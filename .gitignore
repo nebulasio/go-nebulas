@@ -1,0 +1,9 @@
+# ignore vendor dir.
+vendor
+
+# Mac temp files.
+.DS_Store
+
+# binary
+neb/neb
+neb/debug
