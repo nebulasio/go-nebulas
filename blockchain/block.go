@@ -21,6 +21,7 @@ package blockchain
 import (
 	"encoding/binary"
 	"encoding/hex"
+	"fmt"
 	"time"
 
 	"golang.org/x/crypto/sha3"
@@ -99,4 +100,12 @@ func (block *Block) computeHash() string {
 
 	result := h.Sum(nil)
 	return hex.EncodeToString(result)
+}
+
+func (block *Block) String() string {
+	return fmt.Sprintf("Block {hash:%s; parentHash:%s; nonce:%d}",
+		block.header.hash,
+		block.header.parentHash,
+		block.header.nonce,
+	)
 }

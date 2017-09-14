@@ -27,22 +27,77 @@ import (
 
 	"github.com/nebulasio/go-nebulas/blockchain"
 	"github.com/nebulasio/go-nebulas/consensus/pow"
+	"github.com/nebulasio/go-nebulas/net"
+	"github.com/nebulasio/go-nebulas/net/messages"
+
+	log "github.com/sirupsen/logrus"
 )
 
-func main() {
-	fmt.Println("starting...")
+func run(sharedBlockCh chan *blockchain.Block, quitCh chan bool, nmCh chan *net.NetManager) {
+	nm := net.NewNetManager(sharedBlockCh)
+	nmCh <- nm
 
 	bc := blockchain.NewBlockChain(blockchain.TestNetID)
 	fmt.Printf("chainID is %d\n", bc.GetChainID())
 
-	p := pow.NewPow(bc)
+	// p := pow.NewPow(bc)
+	p := pow.NewPow(bc, nm)
+
+	// start Pow.
 	p.Start()
+
+	// start net.
+	nm.Start()
+
+	<-quitCh
+	nm.Stop()
+	p.Stop()
+}
+
+func replicateNewBlock(sharedBlockCh chan *blockchain.Block, quitCh chan bool, nmCh chan *net.NetManager) {
+	nms := make([]*net.NetManager, 0, 10)
+
+	for {
+		select {
+		case block := <-sharedBlockCh:
+			msg := messages.NewBlockMessage(block)
+			for _, nm := range nms {
+				nm.ReceiveMessage(msg)
+			}
+		case nm := <-nmCh:
+			nms = append(nms, nm)
+		case <-quitCh:
+			return
+		}
+	}
+}
+
+func main() {
+	log.SetFormatter(&log.TextFormatter{ForceColors: true, FullTimestamp: true})
+	log.SetOutput(os.Stdout)
+	log.SetLevel(log.DebugLevel)
+
+	fmt.Println("starting...")
+	quitCh := make(chan bool, 10)
+
+	clientCount := 5
+	nmCh := make(chan *net.NetManager, clientCount)
+
+	sharedBlockCh := make(chan *blockchain.Block, 50)
+	go replicateNewBlock(sharedBlockCh, quitCh, nmCh)
+
+	for i := 0; i < clientCount; i++ {
+		go run(sharedBlockCh, quitCh, nmCh)
+	}
 
 	c := make(chan os.Signal, 2)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+
 	go func() {
 		<-c
-		p.Stop()
+		for i := 0; i < clientCount; i++ {
+			quitCh <- true
+		}
 		os.Exit(1)
 	}()
 

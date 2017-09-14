@@ -23,27 +23,33 @@ import (
 
 	"github.com/nebulasio/go-nebulas/blockchain"
 	"github.com/nebulasio/go-nebulas/consensus"
+	"github.com/nebulasio/go-nebulas/net"
+	"github.com/nebulasio/go-nebulas/net/messages"
 	log "github.com/sirupsen/logrus"
 )
 
 type Pow struct {
 	quitCh chan bool
 
-	chain        *blockchain.BlockChain
+	chain *blockchain.BlockChain
+	nm    *net.NetManager
+
 	states       consensus.States
 	currentState consensus.State
 
 	newBlock *blockchain.Block
 }
 
-func NewPow(bc *blockchain.BlockChain) *Pow {
-	p := &Pow{chain: bc, quitCh: make(chan bool)}
+func NewPow(bc *blockchain.BlockChain, nm *net.NetManager) *Pow {
+	p := &Pow{chain: bc, nm: nm, quitCh: make(chan bool)}
 	p.states = consensus.States{
 		Mining:  NewMiningState(p),
 		Minted:  NewMintedState(p),
 		Prepare: NewPrepareState(p),
 		Stopped: NewStoppedState(p),
 	}
+
+	nm.Register(p)
 
 	return p
 }
@@ -84,6 +90,18 @@ func (p *Pow) Transite(nextState consensus.State, data interface{}) {
 	p.currentState.Leave(data)
 	p.currentState = nextState
 	p.currentState.Enter(data)
+}
+
+func (p *Pow) SubscribeMessageTypes() []net.MessageType {
+	list := make([]net.MessageType, 1)
+	list = append(list, messages.NewBlockMessageType)
+	return list
+}
+
+func (p *Pow) OnMessageReceived(msg net.Message) {
+	log.WithFields(log.Fields{
+		"msg": msg,
+	}).Info("Pow received message.")
 }
 
 func (p *Pow) timeLoop() {

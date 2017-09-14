@@ -16,4 +16,18 @@
 // along with the go-nebulas library.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-package net
+package consensus
+
+type Event interface{}
+
+type State interface {
+	Event(e Event) State
+	Enter(data interface{})
+	Leave(data interface{})
+}
+
+type States map[string]State
+
+type BaseEvent struct {
+	Data interface{}
+}

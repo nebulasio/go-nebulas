@@ -52,6 +52,9 @@ func (state *MintedState) Enter(data interface{}) {
 	state.p.newBlock.Sign()
 	state.p.chain.Append(state.p.newBlock)
 
+	// send to net manager.
+	state.p.nm.SendNewBlock(state.p.newBlock)
+
 	// move to prepare state.
 	state.p.TransiteByKey(Prepare, nil)
 }
