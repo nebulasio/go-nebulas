@@ -31,9 +31,11 @@ import (
 )
 
 const (
+	// Mining mining state key
 	Mining = "mining"
 )
 
+// MiningState mining state.
 type MiningState struct {
 	p      *Pow
 	quitCh chan bool
@@ -43,21 +45,28 @@ type MiningState struct {
 	parentHash string
 }
 
+// NewMiningState create MiningState instance.
 func NewMiningState(p *Pow) *MiningState {
 	state := &MiningState{p: p, quitCh: make(chan bool, 1)}
 	return state
 }
 
+// Event handle event.
 func (state *MiningState) Event(e consensus.Event) consensus.State {
-	log.WithFields(log.Fields{"stateType": fmt.Sprintf("%T", state), "eventType": fmt.Sprintf("%T", e)}).Warn("ignore this event.")
+	log.WithFields(log.Fields{
+		"stateType": fmt.Sprintf("%T", state),
+		"eventType": fmt.Sprintf("%T", e),
+	}).Warn("ignore this event.")
 	return state
 }
 
+// Enter called when transiting to this state.
 func (state *MiningState) Enter(data interface{}) {
 	log.Info("MiningState enter.")
 	go state.calculateHash()
 }
 
+// Leave called when leaving this state.
 func (state *MiningState) Leave(data interface{}) {
 	log.Info("MiningState leave.")
 }

@@ -22,14 +22,21 @@ import (
 	"time"
 )
 
-const (
-	Timeout = "timeout"
-)
-
+// TimeoutEvent timeout event.
 type TimeoutEvent struct {
 	timestamp *time.Time
 }
 
+// StopEvent stop event.
+type StopEvent struct {
+}
+
+// NewTimeoutEvent create @TimeoutEvent instance.
 func NewTimeoutEvent(timestamp time.Time) *TimeoutEvent {
 	return &TimeoutEvent{timestamp: &timestamp}
+}
+
+// NewStopEvent create @StopEvent instance.
+func NewStopEvent() *StopEvent {
+	return &StopEvent{}
 }

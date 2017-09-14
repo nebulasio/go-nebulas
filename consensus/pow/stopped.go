@@ -26,34 +26,36 @@ import (
 )
 
 const (
+	// Stopped stopped state key.
 	Stopped = "stopped"
 )
 
+// StoppedState stopped state.
 type StoppedState struct {
 	p *Pow
 }
 
-type StopEvent struct {
-}
-
+// NewStoppedState create @StoppedState instance.
 func NewStoppedState(p *Pow) *StoppedState {
 	state := &StoppedState{p: p}
 	return state
 }
 
-func NewStopEvent() *StopEvent {
-	return &StopEvent{}
-}
-
+// Event handle event.
 func (state *StoppedState) Event(e consensus.Event) consensus.State {
-	log.WithFields(log.Fields{"stateType": fmt.Sprintf("%T", state), "eventType": fmt.Sprintf("%T", e)}).Warn("ignore this event.")
+	log.WithFields(log.Fields{
+		"stateType": fmt.Sprintf("%T", state),
+		"eventType": fmt.Sprintf("%T", e),
+	}).Warn("ignore this event.")
 	return state
 }
 
+// Enter called when transiting to this state.
 func (state *StoppedState) Enter(data interface{}) {
 	log.Info("StoppedState enter.")
 }
 
+// Leave called when leaving this state.
 func (state *StoppedState) Leave(data interface{}) {
 	log.Info("StoppedState leave.")
 }

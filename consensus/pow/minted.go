@@ -26,27 +26,30 @@ import (
 )
 
 const (
+	// Minted minted state key
 	Minted = "minted"
 )
 
+// MintedState minted state, transite from @MiningState
 type MintedState struct {
 	p *Pow
 }
 
+// NewMintedState create MintedState instance.
 func NewMintedState(p *Pow) *MintedState {
 	state := &MintedState{p: p}
 	return state
 }
 
+// Event handle event.
 func (state *MintedState) Event(e consensus.Event) consensus.State {
 	log.WithFields(log.Fields{"stateType": fmt.Sprintf("%T", state), "eventType": fmt.Sprintf("%T", e)}).Warn("ignore this event.")
 	return state
 }
 
+// Enter called when transiting to this state.
 func (state *MintedState) Enter(data interface{}) {
 	log.Info("MintedState enter.")
-
-	// TODO: submit the block.
 
 	// append to local blockchain.
 	state.p.newBlock.Sign()
@@ -59,6 +62,7 @@ func (state *MintedState) Enter(data interface{}) {
 	state.p.TransiteByKey(Prepare, nil)
 }
 
+// Leave called when leaving this state.
 func (state *MintedState) Leave(data interface{}) {
 	log.Info("MintedState leave.")
 }

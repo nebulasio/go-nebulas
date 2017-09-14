@@ -21,13 +21,28 @@ package pow
 import (
 	"time"
 
-	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/consensus"
+	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/net"
 	"github.com/nebulasio/go-nebulas/net/messages"
 	log "github.com/sirupsen/logrus"
 )
 
+// Pow implementation of Proof-of-Work consensus.
+// Pow is designed to be a state machine.
+// The following is the state diagram:
+/*
+@startuml
+[*] --> Prepare
+Prepare --> Mining : start mining
+Mining --> Prepare : new block received
+Mining --> Minted : found the nonce/block
+Minted --> Prepare : broadcast the block, and start over
+Prepare --> [*] : stop
+Mining --> [*] : stop
+Minted --> [*] : stop
+@enduml
+*/
 type Pow struct {
 	quitCh chan bool
 
@@ -40,8 +55,9 @@ type Pow struct {
 	newBlock *core.Block
 }
 
+// NewPow create Pow instance.
 func NewPow(bc *core.BlockChain, nm *net.NetManager) *Pow {
-	p := &Pow{chain: bc, nm: nm, quitCh: make(chan bool)}
+	p := &Pow{chain: bc, nm: nm, quitCh: make(chan bool, 5)}
 	p.states = consensus.States{
 		Mining:  NewMiningState(p),
 		Minted:  NewMintedState(p),
@@ -54,6 +70,7 @@ func NewPow(bc *core.BlockChain, nm *net.NetManager) *Pow {
 	return p
 }
 
+// Start start pow service.
 func (p *Pow) Start() *Pow {
 	// start state machine.
 	go p.loop()
@@ -64,6 +81,7 @@ func (p *Pow) Start() *Pow {
 	return p
 }
 
+// Stop stop pow service.
 func (p *Pow) Stop() *Pow {
 	// cleanup.
 	p.quitCh <- true
@@ -72,16 +90,19 @@ func (p *Pow) Stop() *Pow {
 	return p
 }
 
+// Event handle event.
 func (p *Pow) Event(e consensus.Event) *Pow {
 	nextState := p.currentState.Event(e)
 	p.Transite(nextState, nil)
 	return p
 }
 
+// TransiteByKey transite state by stateKey.
 func (p *Pow) TransiteByKey(stateKey string, data interface{}) {
 	p.Transite(p.states[stateKey], data)
 }
 
+// Transite transite state.
 func (p *Pow) Transite(nextState consensus.State, data interface{}) {
 	if p.currentState == nextState {
 		return
@@ -92,12 +113,16 @@ func (p *Pow) Transite(nextState consensus.State, data interface{}) {
 	p.currentState.Enter(data)
 }
 
+// SubscribeMessageTypes return all message types wanting to subscribe in network.
+// Subscribe the following message types:
+// @NewBlockMessageType
 func (p *Pow) SubscribeMessageTypes() []net.MessageType {
 	list := make([]net.MessageType, 1)
 	list = append(list, messages.NewBlockMessageType)
 	return list
 }
 
+// OnMessageReceived handle new received network message.
 func (p *Pow) OnMessageReceived(msg net.Message) {
 	log.WithFields(log.Fields{
 		"msg": msg,

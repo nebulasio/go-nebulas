@@ -21,29 +21,34 @@ package pow
 import (
 	"fmt"
 
-	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/consensus"
+	"github.com/nebulasio/go-nebulas/core"
 	log "github.com/sirupsen/logrus"
 )
 
 const (
+	// Prepare prepare state key.
 	Prepare = "prepare"
 )
 
+// PrepareState the initial state of @Pow state machine.
 type PrepareState struct {
 	p *Pow
 }
 
+// NewPrepareState create PrepareState instance.
 func NewPrepareState(p *Pow) *PrepareState {
 	state := &PrepareState{p: p}
 	return state
 }
 
+// Event handle event.
 func (state *PrepareState) Event(e consensus.Event) consensus.State {
 	log.WithFields(log.Fields{"stateType": fmt.Sprintf("%T", state), "eventType": fmt.Sprintf("%T", e)}).Warn("ignore this event.")
 	return state
 }
 
+// Enter called when transiting to this state.
 func (state *PrepareState) Enter(data interface{}) {
 	log.Info("PrepareState enter.")
 
@@ -54,6 +59,7 @@ func (state *PrepareState) Enter(data interface{}) {
 	state.p.TransiteByKey(Mining, nil)
 }
 
+// Leave called when leaving this state.
 func (state *PrepareState) Leave(data interface{}) {
 	log.Info("PrepareState leave.")
 }
