@@ -49,21 +49,34 @@ type Pow struct {
 	chain *core.BlockChain
 	nm    *net.NetManager
 
-	states       consensus.States
-	currentState consensus.State
+	states            consensus.States
+	currentState      consensus.State
+	stateTransitionCh chan *stateTransitionArgs
 
 	newBlock *core.Block
 }
 
+type stateTransitionArgs struct {
+	nextState consensus.State
+	data      interface{}
+}
+
 // NewPow create Pow instance.
 func NewPow(bc *core.BlockChain, nm *net.NetManager) *Pow {
-	p := &Pow{chain: bc, nm: nm, quitCh: make(chan bool, 5)}
+	p := &Pow{
+		chain:             bc,
+		nm:                nm,
+		quitCh:            make(chan bool, 5),
+		stateTransitionCh: make(chan *stateTransitionArgs, 10),
+	}
+
 	p.states = consensus.States{
 		Mining:  NewMiningState(p),
 		Minted:  NewMintedState(p),
 		Prepare: NewPrepareState(p),
 		Stopped: NewStoppedState(p),
 	}
+	p.currentState = p.states[Prepare]
 
 	nm.Register(p)
 
@@ -73,7 +86,7 @@ func NewPow(bc *core.BlockChain, nm *net.NetManager) *Pow {
 // Start start pow service.
 func (p *Pow) Start() *Pow {
 	// start state machine.
-	go p.loop()
+	go p.stateLoop()
 
 	// start internal time loop for debug.
 	go p.timeLoop()
@@ -108,9 +121,7 @@ func (p *Pow) Transite(nextState consensus.State, data interface{}) {
 		return
 	}
 
-	p.currentState.Leave(data)
-	p.currentState = nextState
-	p.currentState.Enter(data)
+	p.stateTransitionCh <- &stateTransitionArgs{nextState: nextState, data: data}
 }
 
 // SubscribeMessageTypes return all message types wanting to subscribe in network.
@@ -143,12 +154,23 @@ func (p *Pow) timeLoop() {
 	}
 }
 
-func (p *Pow) loop() {
-	p.currentState = p.states[Prepare]
+func (p *Pow) stateLoop() {
 	p.currentState.Enter(nil)
 
 	for {
 		select {
+		case args := <-p.stateTransitionCh:
+			nextState := args.nextState
+			data := args.data
+
+			if p.currentState == nextState {
+				continue
+			}
+
+			p.currentState.Leave(data)
+			p.currentState = nextState
+			p.currentState.Enter(data)
+
 		case <-p.quitCh:
 			log.Info("quit Pow.loop.")
 			return
