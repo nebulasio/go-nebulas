@@ -5,8 +5,8 @@ vendor
 .DS_Store
 
 # binary
-neb/neb
-neb/debug
+neb
+debug
 
 # ide files.
 .idea
