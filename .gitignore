@@ -4,9 +4,10 @@ vendor
 # Mac temp files.
 .DS_Store
 
-# binary
+# app files.
 neb
 debug
+vet.report
 
 # ide files.
 .idea
