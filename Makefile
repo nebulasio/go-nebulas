@@ -21,18 +21,19 @@ BRANCH=$(shell git rev-parse --abbrev-ref HEAD)
 
 CURRENT_DIR=$(shell pwd)
 BUILD_DIR=${CURRENT_DIR}
-BINARY_BUILD_DIR=${BUILD_DIR}/cmd/neb
+BINARY_BUILD_DIR=cmd/neb
 BINARY=${BUILD_DIR}/neb
 
 VET_REPORT=vet.report
+LINT_REPORT=lint.report
 
 # Setup the -ldflags option for go build here, interpolate the variable values
 LDFLAGS = -ldflags "-X main.VERSION=${VERSION} -X main.COMMIT=${COMMIT} -X main.BRANCH=${BRANCH}"
 
 # Build the project
-.PHONY: build clean dep run
+.PHONY: build clean dep lint run
 
-all: clean vet fmt build
+all: clean vet fmt lint build
 
 dep:
 	cd ${BUILD_DIR}
@@ -40,7 +41,7 @@ dep:
 
 build:
 	cd ${BINARY_BUILD_DIR}; \
-	go build ${LDFLAGS} -o ${BINARY}
+go build ${LDFLAGS} -o ${BINARY}
 
 vet:
 	go vet $$(go list ./...) 2>&1 | tee ${VET_REPORT}
@@ -48,6 +49,10 @@ vet:
 fmt:
 	go fmt $$(go list ./...)
 
+lint:
+	golint $$(go list ./...) | sed "s:^${BUILD_DIR}/::" | tee ${LINT_REPORT}
+
 clean:
 	rm -f ${VET_REPORT}
+	rm -f ${LINT_REPORT}
 	rm -f ${BINARY}

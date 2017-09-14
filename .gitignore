@@ -1,14 +1,15 @@
-# ignore vendor dir.
+# vendor dir.
 vendor
-
-# Mac temp files.
-.DS_Store
-
-# app files.
-neb
-debug
-vet.report
 
 # ide files.
 .idea
 .vscode
+
+# Mac temp files.
+.DS_Store
+
+# build files
+neb
+debug
+*.report
+
