@@ -16,31 +16,17 @@
 // along with the go-nebulas library.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-package blockchain
+package core
+
+import (
+	"time"
+)
 
 /*
-Transaction type is used to handle all transaction data.
+NewGenesisBlock is used to create genesis block from file.
 */
-type Transaction struct {
-	hash  string
-	from  Address
-	to    Address
-	value int64
-	nonce int64
-	data  []byte
-}
-
-/*
-Transactions is an alias of Transaction array.
-*/
-type Transactions []*Transaction
-
-func NewTransaction(from, to Address, value int64, nonce int64) *Transaction {
-	tx := &Transaction{
-		from:  from,
-		to:    to,
-		value: value,
-		nonce: nonce,
-	}
-	return tx
+func NewGenesisBlock() *Block {
+	header := &BlockHeader{hash: "0000000000000000000000000000000", parentHash: "0000000000000000000000000000000", coinbase: &Address{"0000000000000000000000000000000"}, timestamp: time.Now()}
+	b := &Block{header: header}
+	return b
 }

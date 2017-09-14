@@ -21,7 +21,7 @@ package pow
 import (
 	"fmt"
 
-	"github.com/nebulasio/go-nebulas/blockchain"
+	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/consensus"
 	log "github.com/sirupsen/logrus"
 )
@@ -48,7 +48,7 @@ func (state *PrepareState) Enter(data interface{}) {
 	log.Info("PrepareState enter.")
 
 	// get the pending block.
-	state.p.newBlock = state.p.chain.NewBlock(blockchain.NewAddress("1234567890"))
+	state.p.newBlock = state.p.chain.NewBlock(core.NewAddress("1234567890"))
 
 	// move to mining state.
 	state.p.TransiteByKey(Mining, nil)

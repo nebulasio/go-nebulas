@@ -25,7 +25,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/nebulasio/go-nebulas/blockchain"
+	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/consensus/pow"
 	"github.com/nebulasio/go-nebulas/net"
 	"github.com/nebulasio/go-nebulas/net/messages"
@@ -33,11 +33,11 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func run(sharedBlockCh chan *blockchain.Block, quitCh chan bool, nmCh chan *net.NetManager) {
+func run(sharedBlockCh chan *core.Block, quitCh chan bool, nmCh chan *net.NetManager) {
 	nm := net.NewNetManager(sharedBlockCh)
 	nmCh <- nm
 
-	bc := blockchain.NewBlockChain(blockchain.TestNetID)
+	bc := core.NewBlockChain(core.TestNetID)
 	fmt.Printf("chainID is %d\n", bc.GetChainID())
 
 	// p := pow.NewPow(bc)
@@ -54,7 +54,7 @@ func run(sharedBlockCh chan *blockchain.Block, quitCh chan bool, nmCh chan *net.
 	p.Stop()
 }
 
-func replicateNewBlock(sharedBlockCh chan *blockchain.Block, quitCh chan bool, nmCh chan *net.NetManager) {
+func replicateNewBlock(sharedBlockCh chan *core.Block, quitCh chan bool, nmCh chan *net.NetManager) {
 	nms := make([]*net.NetManager, 0, 10)
 
 	for {
@@ -83,7 +83,7 @@ func main() {
 	clientCount := 5
 	nmCh := make(chan *net.NetManager, clientCount)
 
-	sharedBlockCh := make(chan *blockchain.Block, 50)
+	sharedBlockCh := make(chan *core.Block, 50)
 	go replicateNewBlock(sharedBlockCh, quitCh, nmCh)
 
 	for i := 0; i < clientCount; i++ {

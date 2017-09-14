@@ -21,7 +21,7 @@ package pow
 import (
 	"time"
 
-	"github.com/nebulasio/go-nebulas/blockchain"
+	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/consensus"
 	"github.com/nebulasio/go-nebulas/net"
 	"github.com/nebulasio/go-nebulas/net/messages"
@@ -31,16 +31,16 @@ import (
 type Pow struct {
 	quitCh chan bool
 
-	chain *blockchain.BlockChain
+	chain *core.BlockChain
 	nm    *net.NetManager
 
 	states       consensus.States
 	currentState consensus.State
 
-	newBlock *blockchain.Block
+	newBlock *core.Block
 }
 
-func NewPow(bc *blockchain.BlockChain, nm *net.NetManager) *Pow {
+func NewPow(bc *core.BlockChain, nm *net.NetManager) *Pow {
 	p := &Pow{chain: bc, nm: nm, quitCh: make(chan bool)}
 	p.states = consensus.States{
 		Mining:  NewMiningState(p),

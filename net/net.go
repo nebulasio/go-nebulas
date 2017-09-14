@@ -19,23 +19,23 @@
 package net
 
 import (
-	"github.com/nebulasio/go-nebulas/blockchain"
+	"github.com/nebulasio/go-nebulas/core"
 )
 
 type NetManager struct {
-	sharedBlockCh chan *blockchain.Block
+	sharedBlockCh chan *core.Block
 
 	handlers   MessageHandlers
 	dispatcher *Dispatcher
 }
 
-func NewNetManager(sharedBlockCh chan *blockchain.Block) *NetManager {
+func NewNetManager(sharedBlockCh chan *core.Block) *NetManager {
 	nm := &NetManager{
 		sharedBlockCh: sharedBlockCh,
 		handlers:      make(MessageHandlers),
 		dispatcher:    NewDispatcher(),
 	}
-	// nm.receivedBlockCh = make(chan *blockchain.Block)
+	// nm.receivedBlockCh = make(chan *core.Block)
 	return nm
 }
 
@@ -61,7 +61,7 @@ func (nm *NetManager) Stop() {
 	nm.dispatcher.Stop()
 }
 
-func (nm *NetManager) SendNewBlock(block *blockchain.Block) {
+func (nm *NetManager) SendNewBlock(block *core.Block) {
 	nm.sharedBlockCh <- block
 }
 

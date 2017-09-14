@@ -3,7 +3,7 @@ package messages
 import (
 	"fmt"
 
-	"github.com/nebulasio/go-nebulas/blockchain"
+	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/net"
 )
 
@@ -13,10 +13,10 @@ const (
 
 type BlockMessage struct {
 	t     net.MessageType
-	block *blockchain.Block
+	block *core.Block
 }
 
-func NewBlockMessage(block *blockchain.Block) *BlockMessage {
+func NewBlockMessage(block *core.Block) *BlockMessage {
 	msg := &BlockMessage{t: NewBlockMessageType, block: block}
 	return msg
 }
