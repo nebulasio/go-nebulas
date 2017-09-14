@@ -25,8 +25,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/consensus/pow"
+	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/net"
 	"github.com/nebulasio/go-nebulas/net/messages"
 
