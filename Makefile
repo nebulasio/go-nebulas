@@ -21,8 +21,7 @@ BRANCH=$(shell git rev-parse --abbrev-ref HEAD)
 
 CURRENT_DIR=$(shell pwd)
 BUILD_DIR=${CURRENT_DIR}
-BINARY_BUILD_DIR=cmd/neb
-BINARY=${BUILD_DIR}/neb
+BINARY=neb
 
 VET_REPORT=vet.report
 LINT_REPORT=lint.report
@@ -40,8 +39,7 @@ dep:
 	dep ensure
 
 build:
-	cd ${BINARY_BUILD_DIR}; \
-go build ${LDFLAGS} -o ${BINARY}
+	cd cmd/neb; go build ${LDFLAGS} -o ../../${BINARY}
 
 vet:
 	go vet $$(go list ./...) 2>&1 | tee ${VET_REPORT}
