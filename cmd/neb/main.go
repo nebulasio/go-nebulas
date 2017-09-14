@@ -33,8 +33,8 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func run(sharedBlockCh chan *core.Block, quitCh chan bool, nmCh chan *net.NetManager) {
-	nm := net.NewNetManager(sharedBlockCh)
+func run(sharedBlockCh chan *core.Block, quitCh chan bool, nmCh chan *net.Manager) {
+	nm := net.NewManager(sharedBlockCh)
 	nmCh <- nm
 
 	bc := core.NewBlockChain(core.TestNetID)
@@ -54,8 +54,8 @@ func run(sharedBlockCh chan *core.Block, quitCh chan bool, nmCh chan *net.NetMan
 	p.Stop()
 }
 
-func replicateNewBlock(sharedBlockCh chan *core.Block, quitCh chan bool, nmCh chan *net.NetManager) {
-	nms := make([]*net.NetManager, 0, 10)
+func replicateNewBlock(sharedBlockCh chan *core.Block, quitCh chan bool, nmCh chan *net.Manager) {
+	nms := make([]*net.Manager, 0, 10)
 
 	for {
 		select {
@@ -81,7 +81,7 @@ func main() {
 	quitCh := make(chan bool, 10)
 
 	clientCount := 5
-	nmCh := make(chan *net.NetManager, clientCount)
+	nmCh := make(chan *net.Manager, clientCount)
 
 	sharedBlockCh := make(chan *core.Block, 50)
 	go replicateNewBlock(sharedBlockCh, quitCh, nmCh)

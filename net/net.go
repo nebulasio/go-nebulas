@@ -22,15 +22,15 @@ import (
 	"github.com/nebulasio/go-nebulas/core"
 )
 
-type NetManager struct {
+type Manager struct {
 	sharedBlockCh chan *core.Block
 
 	handlers   MessageHandlers
 	dispatcher *Dispatcher
 }
 
-func NewNetManager(sharedBlockCh chan *core.Block) *NetManager {
-	nm := &NetManager{
+func NewManager(sharedBlockCh chan *core.Block) *Manager {
+	nm := &Manager{
 		sharedBlockCh: sharedBlockCh,
 		handlers:      make(MessageHandlers),
 		dispatcher:    NewDispatcher(),
@@ -39,32 +39,32 @@ func NewNetManager(sharedBlockCh chan *core.Block) *NetManager {
 	return nm
 }
 
-func (nm *NetManager) Register(handlers ...MessageHandler) {
+func (nm *Manager) Register(handlers ...MessageHandler) {
 	for _, v := range handlers {
 		nm.handlers[v] = true
 		nm.dispatcher.Register(v)
 	}
 }
 
-func (nm *NetManager) Deregister(handlers ...MessageHandler) {
+func (nm *Manager) Deregister(handlers ...MessageHandler) {
 	for _, v := range handlers {
 		delete(nm.handlers, v)
 		nm.dispatcher.Deregister(v)
 	}
 }
 
-func (nm *NetManager) Start() {
+func (nm *Manager) Start() {
 	nm.dispatcher.Start()
 }
 
-func (nm *NetManager) Stop() {
+func (nm *Manager) Stop() {
 	nm.dispatcher.Stop()
 }
 
-func (nm *NetManager) SendNewBlock(block *core.Block) {
+func (nm *Manager) SendNewBlock(block *core.Block) {
 	nm.sharedBlockCh <- block
 }
 
-func (nm *NetManager) ReceiveMessage(msg Message) {
+func (nm *Manager) ReceiveMessage(msg Message) {
 	nm.dispatcher.OnMessageReceived(msg)
 }
