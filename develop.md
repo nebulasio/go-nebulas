@@ -1,22 +1,16 @@
 # Develop guideline
 
-## 1. Install Dep
+## Prerequisites
 
-[Dep](https://github.com/golang/dep) is official dependency management tool create by Golang team.
+Go https://golang.org >= 1.9
+Dep https://github.com/golang/dep >= 0.3.0
 
-## 2. Download dependency modules
-
-At the root directory of go-nebulas, run the following command:
-
-```
-dep ensure
-```
-
-## 3. Build client
-
-Go to neb directory, run the following command:
+## Building the source
 
 ```
-go build
-```
+// install dependencies.
+make dep
 
+// build
+make build
+```
