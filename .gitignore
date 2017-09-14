@@ -9,5 +9,5 @@ neb/neb
 neb/debug
 
 # ide files.
+.idea
 .vscode
-
