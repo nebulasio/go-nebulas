@@ -50,7 +50,7 @@ func Uint64(data []byte) uint64 {
 
 // FromUint64 decode v.
 func FromUint64(v uint64) (b [8]byte) {
-	binary.BigEndian.PutUint64(b[:0], v)
+	binary.BigEndian.PutUint64(b[:8], v)
 	return
 }
 
@@ -61,7 +61,7 @@ func Uint32(data []byte) uint32 {
 
 // FromUint32 decode v.
 func FromUint32(v uint32) (b [4]byte) {
-	binary.BigEndian.PutUint32(b[:0], v)
+	binary.BigEndian.PutUint32(b[:4], v)
 	return
 }
 
@@ -72,7 +72,7 @@ func Uint16(data []byte) uint16 {
 
 // FromUint16 decode v.
 func FromUint16(v uint16) (b [2]byte) {
-	binary.BigEndian.PutUint16(b[:0], v)
+	binary.BigEndian.PutUint16(b[:2], v)
 	return
 }
 
@@ -83,7 +83,7 @@ func Int64(data []byte) int64 {
 
 // FromInt64 decode v.
 func FromInt64(v int64) (b [8]byte) {
-	binary.BigEndian.PutUint64(b[:0], uint64(v))
+	binary.BigEndian.PutUint64(b[:8], uint64(v))
 	return
 }
 
@@ -94,7 +94,7 @@ func Int32(data []byte) int32 {
 
 // FromInt32 decode v.
 func FromInt32(v int32) (b [4]byte) {
-	binary.BigEndian.PutUint32(b[:0], uint32(v))
+	binary.BigEndian.PutUint32(b[:4], uint32(v))
 	return
 }
 
@@ -105,6 +105,6 @@ func Int16(data []byte) int16 {
 
 // FromInt16 decode v.
 func FromInt16(v int16) (b [2]byte) {
-	binary.BigEndian.PutUint16(b[:0], uint16(v))
+	binary.BigEndian.PutUint16(b[:2], uint16(v))
 	return
 }
