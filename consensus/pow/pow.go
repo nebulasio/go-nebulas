@@ -84,30 +84,26 @@ func NewPow(bc *core.BlockChain, nm *net.Manager) *Pow {
 }
 
 // Start start pow service.
-func (p *Pow) Start() *Pow {
+func (p *Pow) Start() {
 	// start state machine.
 	go p.stateLoop()
 
 	// start internal time loop for debug.
 	go p.timeLoop()
-
-	return p
 }
 
 // Stop stop pow service.
-func (p *Pow) Stop() *Pow {
+func (p *Pow) Stop() {
 	// cleanup.
 	p.quitCh <- true
 	p.quitCh <- true
 	p.Event(NewStopEvent())
-	return p
 }
 
 // Event handle event.
-func (p *Pow) Event(e consensus.Event) *Pow {
+func (p *Pow) Event(e consensus.Event) {
 	nextState := p.currentState.Event(e)
 	p.Transite(nextState, nil)
-	return p
 }
 
 // TransiteByKey transite state by stateKey.
@@ -122,6 +118,60 @@ func (p *Pow) Transite(nextState consensus.State, data interface{}) {
 	}
 
 	p.stateTransitionCh <- &stateTransitionArgs{nextState: nextState, data: data}
+}
+
+// AppendBlock implement new block at tail algorithm.
+func (p *Pow) AppendBlock(block *core.Block) error {
+	bc := p.chain
+
+	tailBlockHash := bc.TailBlock().Hash()
+	blockParentHash := block.ParentHash()
+	blockHash := block.Hash()
+
+	logFields := log.Fields{
+		"bc.latestBlock.header.hash": tailBlockHash,
+		"block.header.parentHash":    blockParentHash,
+		"block.header.hash":          blockHash,
+	}
+
+	if tailBlockHash == blockParentHash {
+		log.WithFields(logFields).Info("New block")
+		bc.SetTailBlock(block)
+
+	} else {
+		log.WithFields(logFields).Info("New forked block")
+
+		// // find the root block in detached blocks.
+		// rootParentBlock := block
+		// for {
+		// 	i, _ := bc.detachedBlocks.Get(rootParentBlock.header.parentHash)
+		// 	if ib, ok := i.(*Block); ok {
+		// 		ib.nextBlock = rootParentBlock
+		// 		rootParentBlock.previousBlock = ib
+		// 		rootParentBlock = ib
+		// 	} else {
+		// 		break
+		// 	}
+		// }
+
+		// // recursively find the common ancestor.
+		// ancestor := bc.latestBlock
+		// for ; ancestor != nil && ancestor.header.hash != rootParentBlock.header.hash; ancestor = ancestor.previousBlock {
+		// 	bc.detachedBlocks.Add(ancestor.header.hash, ancestor)
+		// }
+
+		// if ancestor == nil {
+		// 	log.WithFields(logFields).Error("No common ancestor")
+		// 	return bc, errors.New("No common ancestor")
+		// }
+
+		// // alter the chain.
+		// ancestor.nextBlock = rootParentBlock
+		// rootParentBlock.previousBlock = ancestor
+		// bc.latestBlock = block
+	}
+
+	return nil
 }
 
 // SubscribeMessageTypes return all message types wanting to subscribe in network.

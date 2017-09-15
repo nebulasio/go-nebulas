@@ -25,6 +25,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/nebulasio/go-nebulas/consensus"
+
 	"github.com/nebulasio/go-nebulas/consensus/pow"
 	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/net"
@@ -41,17 +43,18 @@ func run(sharedBlockCh chan *core.Block, quitCh chan bool, nmCh chan *net.Manage
 	fmt.Printf("chainID is %d\n", bc.GetChainID())
 
 	// p := pow.NewPow(bc)
-	p := pow.NewPow(bc, nm)
+	var cons consensus.Consensus
+	cons = pow.NewPow(bc, nm)
 
 	// start Pow.
-	p.Start()
+	cons.Start()
 
 	// start net.
 	nm.Start()
 
 	<-quitCh
 	nm.Stop()
-	p.Stop()
+	cons.Stop()
 }
 
 func replicateNewBlock(sharedBlockCh chan *core.Block, quitCh chan bool, nmCh chan *net.Manager) {

@@ -19,106 +19,56 @@
 package core
 
 import (
-	"errors"
-
 	"github.com/hashicorp/golang-lru"
-	log "github.com/sirupsen/logrus"
 )
 
-/*
-BlockChain type.
-*/
+// BlockChain the BlockChain core type.
 type BlockChain struct {
 	chainID int
 
 	genesisBlock *Block
-	latestBlock  *Block
+	tailBlock    *Block
 
 	detachedBlocks *lru.Cache
 }
 
 const (
-	TestNetID   = 1
+	// TestNetID chain id for test net.
+	TestNetID = 1
+
+	// EagleNebula chain id for 1.x
 	EagleNebula = 1 << 4
 )
 
-/*
-NewBlockChain is used to create new blockchain instance by args.
-*/
+// NewBlockChain create new @BlockChain instance.
 func NewBlockChain(chainID int) *BlockChain {
 	var bc = &BlockChain{chainID: chainID}
 	bc.detachedBlocks, _ = lru.New(100)
 
 	bc.genesisBlock = NewGenesisBlock()
-	bc.latestBlock = bc.genesisBlock
+	bc.tailBlock = bc.genesisBlock
 	return bc
 }
 
-/*
-GetChainID is used to return the ChainID in blockchain instance.
-*/
+// GetChainID return the chainID.
 func (bc *BlockChain) GetChainID() int {
 	return bc.chainID
 }
 
-/*
- */
-func (bc *BlockChain) Append(block *Block) (*BlockChain, error) {
-	logFields := log.Fields{
-		"bc.latestBlock.header.hash": bc.latestBlock.header.hash,
-		"block.header.parentHash":    block.header.parentHash,
-		"block.header.hash":          block.header.hash,
-	}
-
-	if bc.latestBlock.header.hash == block.header.parentHash {
-		log.WithFields(logFields).Info("New block")
-
-		block.previousBlock = bc.latestBlock
-		bc.latestBlock.nextBlock = block
-		bc.latestBlock = block
-
-	} else {
-		log.WithFields(logFields).Info("New forked block")
-
-		// find the root block in detached blocks.
-		rootParentBlock := block
-		for {
-			i, _ := bc.detachedBlocks.Get(rootParentBlock.header.parentHash)
-			if ib, ok := i.(*Block); ok {
-				ib.nextBlock = rootParentBlock
-				rootParentBlock.previousBlock = ib
-				rootParentBlock = ib
-			} else {
-				break
-			}
-		}
-
-		// recursively find the common ancestor.
-		ancestor := bc.latestBlock
-		for ; ancestor != nil && ancestor.header.hash == rootParentBlock.header.hash; ancestor = ancestor.previousBlock {
-			bc.detachedBlocks.Add(ancestor.header.hash, ancestor)
-		}
-
-		if ancestor == nil {
-			log.WithFields(logFields).Error("No common ancestor")
-			return bc, errors.New("No common ancestor")
-		}
-
-		// alter the chain.
-		ancestor.nextBlock = rootParentBlock
-		rootParentBlock.previousBlock = ancestor
-		bc.latestBlock = block
-	}
-
-	return bc, nil
+// TailBlock return the tail block.
+func (bc *BlockChain) TailBlock() *Block {
+	return bc.tailBlock
 }
 
-func (bc *BlockChain) GetLatestBlock() *Block {
-	return bc.latestBlock
+// SetTailBlock set tail block.
+func (bc *BlockChain) SetTailBlock(block *Block) {
+	block.previousBlock = bc.tailBlock
+	bc.tailBlock.nextBlock = block
+	bc.tailBlock = block
 }
 
-// NewBlock create new block with verified transactions, parentHash.
+// NewBlock create new @Block instance.
 func (bc *BlockChain) NewBlock(coinbase *Address) *Block {
-	block := NewBlock(bc.latestBlock.header.hash, bc.latestBlock.header.nonce, coinbase)
+	block := NewBlock(bc.tailBlock.header.hash, bc.tailBlock.header.nonce, coinbase)
 	return block
 }

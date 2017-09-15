@@ -18,6 +18,19 @@
 
 package consensus
 
+import "github.com/nebulasio/go-nebulas/core"
+
+// Consensus interface of consensus algorithm.
+type Consensus interface {
+	Start()
+	Stop()
+	Event(e Event)
+	TransiteByKey(nextStateKey string, data interface{})
+	Transite(nextState State, data interface{})
+
+	// AppendBlock add block to blockchain according to for choice algorithm.
+	AppendBlock(block *core.Block) error
+}
 type Event interface{}
 
 type State interface {

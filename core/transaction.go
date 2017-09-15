@@ -18,9 +18,7 @@
 
 package core
 
-/*
-Transaction type is used to handle all transaction data.
-*/
+// Transaction type is used to handle all transaction data.
 type Transaction struct {
 	hash  string
 	from  Address
@@ -30,11 +28,10 @@ type Transaction struct {
 	data  []byte
 }
 
-/*
-Transactions is an alias of Transaction array.
-*/
+// Transactions is an alias of Transaction array.
 type Transactions []*Transaction
 
+// NewTransaction create @Transaction instance.
 func NewTransaction(from, to Address, value int64, nonce int64) *Transaction {
 	tx := &Transaction{
 		from:  from,

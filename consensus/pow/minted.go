@@ -53,7 +53,7 @@ func (state *MintedState) Enter(data interface{}) {
 
 	// append to local blockchain.
 	state.p.newBlock.Sign()
-	state.p.chain.Append(state.p.newBlock)
+	state.p.AppendBlock(state.p.newBlock)
 
 	// send to net manager.
 	state.p.nm.SendNewBlock(state.p.newBlock)
