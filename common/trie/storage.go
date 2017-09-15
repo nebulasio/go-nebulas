@@ -18,27 +18,24 @@
 
 package trie
 
-import (
-	"sync"
-)
-
 // Storage the nodes in trie.
 type Storage struct {
 	data map[string][]byte
-	lock sync.RWMutex
 }
 
 // Get return value to the key in Storage
 func (db *Storage) Get(key []byte) ([]byte, error) {
-	return nil, nil
+	return db.data[hex(key)], nil
 }
 
 // Put put the key-value entry to Storage
 func (db *Storage) Put(key []byte, value []byte) error {
+	db.data[hex(key)] = value
 	return nil
 }
 
 // Del delete the key in Storage.
 func (db *Storage) Del(key []byte) error {
+	delete(db.data, hex(key))
 	return nil
 }

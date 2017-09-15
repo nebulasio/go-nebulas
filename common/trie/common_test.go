@@ -19,32 +19,33 @@
 package trie
 
 import (
-	hexer "encoding/hex"
-	"golang.org/x/crypto/sha3"
+	"fmt"
+	"testing"
 )
 
-// encode []byte array into []byte
-func encode(value [][]byte) ([]byte, error) {
-	return nil, nil
+func TestHex(t *testing.T) {
+	str := "afb1"
+	bytes := []byte{0xaf, 0xb1}
+	hexStr := hex(bytes)
+	if str != hexStr {
+		t.Errorf("hex %v failed, got %v, expect %v", bytes, str, hexStr)
+	}
+	unhexBytes, err := unhex(hexStr)
+	if err != nil {
+		t.Errorf("unhex %v corrupt", hexStr)
+	}
+	for k, v := range unhexBytes {
+		if v != bytes[k] {
+			t.Errorf("unhex %v failed, at %d got %v, expect %v", hexStr, k, v, bytes[k])
+		}
+	}
 }
 
-// decode []byte into []byte array
-func decode(value []byte) ([][]byte, error) {
-	return nil, nil
-}
-
-// hash value to generate the key
-func hash(value []byte) []byte {
-	digest := sha3.Sum256(value)
-	return digest[:]
-}
-
-// hex converts []byte into hex string
-func hex(value []byte) string {
-	return hexer.EncodeToString(value)
-}
-
-// unhex converts string into []byte
-func unhex(value string) ([]byte, error) {
-	return hexer.DecodeString(value)
+func TestHash(t *testing.T) {
+	bytes := []byte{0xaf, 0xb1}
+	digest := hash(bytes)
+	if len(digest) != 32 {
+		t.Errorf("hash %v failed, length got %v, expect 64", bytes, len(digest))
+	}
+	fmt.Println(hex(digest))
 }
