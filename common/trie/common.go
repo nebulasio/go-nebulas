@@ -18,11 +18,6 @@
 
 package trie
 
-import (
-	hexer "encoding/hex"
-	"golang.org/x/crypto/sha3"
-)
-
 // encode []byte array into []byte
 func encode(value [][]byte) ([]byte, error) {
 	return nil, nil
@@ -31,20 +26,4 @@ func encode(value [][]byte) ([]byte, error) {
 // decode []byte into []byte array
 func decode(value []byte) ([][]byte, error) {
 	return nil, nil
-}
-
-// hash value to generate the key
-func hash(value []byte) []byte {
-	digest := sha3.Sum256(value)
-	return digest[:]
-}
-
-// hex converts []byte into hex string
-func hex(value []byte) string {
-	return hexer.EncodeToString(value)
-}
-
-// unhex converts string into []byte
-func unhex(value string) ([]byte, error) {
-	return hexer.DecodeString(value)
 }

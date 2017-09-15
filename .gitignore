@@ -12,4 +12,5 @@ vendor
 neb
 debug
 *.report
+*.report.xml
 

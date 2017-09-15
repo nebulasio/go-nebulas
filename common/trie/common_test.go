@@ -17,35 +17,3 @@
 //
 
 package trie
-
-import (
-	"fmt"
-	"testing"
-)
-
-func TestHex(t *testing.T) {
-	str := "afb1"
-	bytes := []byte{0xaf, 0xb1}
-	hexStr := hex(bytes)
-	if str != hexStr {
-		t.Errorf("hex %v failed, got %v, expect %v", bytes, str, hexStr)
-	}
-	unhexBytes, err := unhex(hexStr)
-	if err != nil {
-		t.Errorf("unhex %v corrupt", hexStr)
-	}
-	for k, v := range unhexBytes {
-		if v != bytes[k] {
-			t.Errorf("unhex %v failed, at %d got %v, expect %v", hexStr, k, v, bytes[k])
-		}
-	}
-}
-
-func TestHash(t *testing.T) {
-	bytes := []byte{0xaf, 0xb1}
-	digest := hash(bytes)
-	if len(digest) != 32 {
-		t.Errorf("hash %v failed, length got %v, expect 64", bytes, len(digest))
-	}
-	fmt.Println(hex(digest))
-}

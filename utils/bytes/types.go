@@ -16,30 +16,14 @@
 // along with the go-nebulas library.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-package trie
+package bytes
 
-import (
-	"github.com/nebulasio/go-nebulas/utils/bytes"
-)
-
-// Storage the nodes in trie.
-type Storage struct {
-	data map[string][]byte
+// Encoder encoder for bytes.Encode().
+type Encoder interface {
+	EncodeToBytes(s interface{}) ([]byte, error)
 }
 
-// Get return value to the key in Storage
-func (db *Storage) Get(key []byte) ([]byte, error) {
-	return db.data[bytes.Hex(key)], nil
-}
-
-// Put put the key-value entry to Storage
-func (db *Storage) Put(key []byte, value []byte) error {
-	db.data[bytes.Hex(key)] = value
-	return nil
-}
-
-// Del delete the key in Storage.
-func (db *Storage) Del(key []byte) error {
-	delete(db.data, bytes.Hex(key))
-	return nil
+// Decoder decoder for bytes.Decode().
+type Decoder interface {
+	DecodeFromBytes(data []byte) interface{}
 }

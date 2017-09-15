@@ -25,14 +25,16 @@ BINARY=neb
 
 VET_REPORT=vet.report
 LINT_REPORT=lint.report
+TEST_REPORT=test.report
+TEST_XUNIT_REPORT=test.report.xml
 
 # Setup the -ldflags option for go build here, interpolate the variable values
 LDFLAGS = -ldflags "-X main.VERSION=${VERSION} -X main.COMMIT=${COMMIT} -X main.BRANCH=${BRANCH}"
 
 # Build the project
-.PHONY: build clean dep lint run
+.PHONY: build clean dep lint run test
 
-all: clean vet fmt lint build
+all: clean vet fmt lint build test
 
 dep:
 	cd ${BUILD_DIR}
@@ -40,6 +42,9 @@ dep:
 
 build:
 	cd cmd/neb; go build ${LDFLAGS} -o ../../${BINARY}
+
+test:
+	go test -v ./... 2>&1 | tee ${TEST_REPORT}; go2xunit -input ${TEST_REPORT} -output ${TEST_XUNIT_REPORT};
 
 vet:
 	go vet $$(go list ./...) 2>&1 | tee ${VET_REPORT}
@@ -53,4 +58,6 @@ lint:
 clean:
 	rm -f ${VET_REPORT}
 	rm -f ${LINT_REPORT}
+	rm -f ${TEST_REPORT}
+	rm -f ${TEST_XUNIT_REPORT}
 	rm -f ${BINARY}
