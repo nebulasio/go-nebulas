@@ -28,12 +28,17 @@ type Storage struct {
 	lock sync.RWMutex
 }
 
-// Get the value to the key in Storage
+// Get return value to the key in Storage
 func (db *Storage) Get(key []byte) ([]byte, error) {
 	return nil, nil
 }
 
-// Put the key-value entry to Storage
+// Put put the key-value entry to Storage
 func (db *Storage) Put(key []byte, value []byte) error {
+	return nil
+}
+
+// Del delete the key in Storage.
+func (db *Storage) Del(key []byte) error {
 	return nil
 }
