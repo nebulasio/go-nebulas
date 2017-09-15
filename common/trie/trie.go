@@ -18,7 +18,7 @@
 
 package trie
 
-// Flag to indentify the type of node
+// Flag to identify the type of node
 type flag int
 
 const (
@@ -52,7 +52,7 @@ type leafNode struct {
 // Trie is a Merkle Patricia Trie.
 type Trie struct {
 	root    node
-	storage Storage
+	storage *Storage
 }
 
 // New a trie
@@ -76,4 +76,9 @@ func (t *Trie) Update(key []byte, val [][]byte) error {
 // Del the node's value in trie
 func (t *Trie) Del(key []byte) error {
 	return nil
+}
+
+// Clone the trie to create a new trie sharing the same storage
+func (t *Trie) Clone() (*Trie, error) {
+	return nil, nil
 }
