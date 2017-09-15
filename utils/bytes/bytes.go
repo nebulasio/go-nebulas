@@ -29,7 +29,7 @@ func Encode(s interface{}, enc Encoder) ([]byte, error) {
 }
 
 // Decode decode []byte from Decoder.
-func Decode(data []byte, dec Decoder) interface{} {
+func Decode(data []byte, dec Decoder) (interface{}, error) {
 	return dec.DecodeFromBytes(data)
 }
 

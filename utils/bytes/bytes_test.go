@@ -19,56 +19,50 @@
 package bytes
 
 import (
+	"errors"
 	"reflect"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
+type testStringEncoderAndDecoder struct {
+}
+
+func (o *testStringEncoderAndDecoder) EncodeToBytes(s interface{}) ([]byte, error) {
+	str := s.(string)
+
+	if len(str) == 0 {
+		return nil, errors.New("s must be string")
+	}
+
+	return []byte(str), nil
+}
+
+func (o *testStringEncoderAndDecoder) DecodeFromBytes(data []byte) (interface{}, error) {
+	return string(data), nil
+}
+
 func TestEncode(t *testing.T) {
-	type args struct {
-		s   interface{}
-		enc Encoder
-	}
-	tests := []struct {
-		name    string
-		args    args
-		want    []byte
-		wantErr bool
-	}{
-	// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := Encode(tt.args.s, tt.args.enc)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("Encode() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("Encode() = %v, want %v", got, tt.want)
-			}
-		})
-	}
+	o := &testStringEncoderAndDecoder{}
+
+	src := "Hello, world"
+	want := []byte{72, 101, 108, 108, 111, 44, 32, 119, 111, 114, 108, 100}
+
+	ret, err := Encode(src, o)
+	assert.Nil(t, err, "err should be nil")
+	assert.Equal(t, want, ret, "Encode() = %v, want %v", ret, want)
 }
 
 func TestDecode(t *testing.T) {
-	type args struct {
-		data []byte
-		dec  Decoder
-	}
-	tests := []struct {
-		name string
-		args args
-		want interface{}
-	}{
-	// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := Decode(tt.args.data, tt.args.dec); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("Decode() = %v, want %v", got, tt.want)
-			}
-		})
-	}
+	o := &testStringEncoderAndDecoder{}
+
+	src := []byte{72, 101, 108, 108, 111, 44, 32, 119, 111, 114, 108, 100}
+	want := "Hello, world"
+
+	ret, err := Decode(src, o)
+	assert.Nil(t, err, "err should be nil")
+	assert.Equal(t, want, ret, "Decode() = \"%v\", want \"%v\"", ret, want)
 }
 
 func TestHex(t *testing.T) {
@@ -152,14 +146,14 @@ func TestUint64(t *testing.T) {
 			uint64(0),
 		},
 		{
-			"1",
-			args{[]byte{0, 0, 0, 0, 0, 0, 0, 1}},
-			uint64(1),
+			"1024",
+			args{[]byte{0, 0, 0, 0, 0, 0, 4, 0}},
+			uint64(1024),
 		},
 		{
-			"923",
-			args{[]byte{0, 0, 0, 0, 0, 0, 0, 1}},
-			uint64(1),
+			"Uint64.Max",
+			args{[]byte{255, 255, 255, 255, 255, 255, 255, 255}},
+			uint64(18446744073709551615),
 		},
 	}
 	for _, tt := range tests {
@@ -185,6 +179,16 @@ func TestFromUint64(t *testing.T) {
 			args{uint64(0)},
 			[8]byte{0, 0, 0, 0, 0, 0, 0, 0},
 		},
+		{
+			"1024",
+			args{uint64(1024)},
+			[8]byte{0, 0, 0, 0, 0, 0, 4, 0},
+		},
+		{
+			"Uint64.Max",
+			args{uint64(18446744073709551615)},
+			[8]byte{255, 255, 255, 255, 255, 255, 255, 255},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -204,7 +208,21 @@ func TestUint32(t *testing.T) {
 		args args
 		want uint32
 	}{
-	// TODO: Add test cases.
+		{
+			"0",
+			args{[]byte{0, 0, 0, 0}},
+			uint32(0),
+		},
+		{
+			"1024",
+			args{[]byte{0, 0, 4, 0}},
+			uint32(1024),
+		},
+		{
+			"Uint32.Max",
+			args{[]byte{255, 255, 255, 255}},
+			uint32(4294967295),
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -224,7 +242,21 @@ func TestFromUint32(t *testing.T) {
 		args  args
 		wantB [4]byte
 	}{
-	// TODO: Add test cases.
+		{
+			"0",
+			args{uint32(0)},
+			[4]byte{0, 0, 0, 0},
+		},
+		{
+			"1024",
+			args{uint32(1024)},
+			[4]byte{0, 0, 4, 0},
+		},
+		{
+			"Uint32.Max",
+			args{uint32(4294967295)},
+			[4]byte{255, 255, 255, 255},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -244,7 +276,21 @@ func TestUint16(t *testing.T) {
 		args args
 		want uint16
 	}{
-	// TODO: Add test cases.
+		{
+			"0",
+			args{[]byte{0, 0}},
+			uint16(0),
+		},
+		{
+			"1024",
+			args{[]byte{4, 0}},
+			uint16(1024),
+		},
+		{
+			"Uint16.Max",
+			args{[]byte{255, 255}},
+			uint16(65535),
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -264,7 +310,21 @@ func TestFromUint16(t *testing.T) {
 		args  args
 		wantB [2]byte
 	}{
-	// TODO: Add test cases.
+		{
+			"0",
+			args{uint16(0)},
+			[2]byte{0, 0},
+		},
+		{
+			"1024",
+			args{uint16(1024)},
+			[2]byte{4, 0},
+		},
+		{
+			"Uint16.Max",
+			args{uint16(65535)},
+			[2]byte{255, 255},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -284,7 +344,31 @@ func TestInt64(t *testing.T) {
 		args args
 		want int64
 	}{
-	// TODO: Add test cases.
+		{
+			"0",
+			args{[]byte{0, 0, 0, 0, 0, 0, 0, 0}},
+			int64(0),
+		},
+		{
+			"1024",
+			args{[]byte{0, 0, 0, 0, 0, 0, 4, 0}},
+			int64(1024),
+		},
+		{
+			"-1024",
+			args{[]byte{255, 255, 255, 255, 255, 255, 252, 0}},
+			int64(-1024),
+		},
+		{
+			"Int64.Max",
+			args{[]byte{127, 255, 255, 255, 255, 255, 255, 255}},
+			int64(9223372036854775807),
+		},
+		{
+			"Int64.Min",
+			args{[]byte{128, 0, 0, 0, 0, 0, 0, 0}},
+			int64(-9223372036854775808),
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -304,7 +388,31 @@ func TestFromInt64(t *testing.T) {
 		args  args
 		wantB [8]byte
 	}{
-	// TODO: Add test cases.
+		{
+			"0",
+			args{int64(0)},
+			[8]byte{0, 0, 0, 0, 0, 0, 0, 0},
+		},
+		{
+			"1024",
+			args{int64(1024)},
+			[8]byte{0, 0, 0, 0, 0, 0, 4, 0},
+		},
+		{
+			"-1024",
+			args{int64(-1024)},
+			[8]byte{255, 255, 255, 255, 255, 255, 252, 0},
+		},
+		{
+			"Int64.Max",
+			args{int64(9223372036854775807)},
+			[8]byte{127, 255, 255, 255, 255, 255, 255, 255},
+		},
+		{
+			"Int64.Min",
+			args{int64(-9223372036854775808)},
+			[8]byte{128, 0, 0, 0, 0, 0, 0, 0},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -324,7 +432,31 @@ func TestInt32(t *testing.T) {
 		args args
 		want int32
 	}{
-	// TODO: Add test cases.
+		{
+			"0",
+			args{[]byte{0, 0, 0, 0}},
+			int32(0),
+		},
+		{
+			"1024",
+			args{[]byte{0, 0, 4, 0}},
+			int32(1024),
+		},
+		{
+			"-1024",
+			args{[]byte{255, 255, 252, 0}},
+			int32(-1024),
+		},
+		{
+			"Int32.Max",
+			args{[]byte{127, 255, 255, 255}},
+			int32(2147483647),
+		},
+		{
+			"Int32.Min",
+			args{[]byte{128, 0, 0, 0}},
+			int32(-2147483648),
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -344,7 +476,31 @@ func TestFromInt32(t *testing.T) {
 		args  args
 		wantB [4]byte
 	}{
-	// TODO: Add test cases.
+		{
+			"0",
+			args{int32(0)},
+			[4]byte{0, 0, 0, 0},
+		},
+		{
+			"1024",
+			args{int32(1024)},
+			[4]byte{0, 0, 4, 0},
+		},
+		{
+			"-1024",
+			args{int32(-1024)},
+			[4]byte{255, 255, 252, 0},
+		},
+		{
+			"Int32.Max",
+			args{int32(2147483647)},
+			[4]byte{127, 255, 255, 255},
+		},
+		{
+			"Int32.Min",
+			args{int32(-2147483648)},
+			[4]byte{128, 0, 0, 0},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -364,7 +520,31 @@ func TestInt16(t *testing.T) {
 		args args
 		want int16
 	}{
-	// TODO: Add test cases.
+		{
+			"0",
+			args{[]byte{0, 0}},
+			int16(0),
+		},
+		{
+			"1024",
+			args{[]byte{4, 0}},
+			int16(1024),
+		},
+		{
+			"-1024",
+			args{[]byte{252, 0}},
+			int16(-1024),
+		},
+		{
+			"Int16.Max",
+			args{[]byte{127, 255}},
+			int16(32767),
+		},
+		{
+			"Int16.Min",
+			args{[]byte{128, 0}},
+			int16(-32768),
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -384,7 +564,31 @@ func TestFromInt16(t *testing.T) {
 		args  args
 		wantB [2]byte
 	}{
-	// TODO: Add test cases.
+		{
+			"0",
+			args{int16(0)},
+			[2]byte{0, 0},
+		},
+		{
+			"1024",
+			args{int16(1024)},
+			[2]byte{4, 0},
+		},
+		{
+			"-1024",
+			args{int16(-1024)},
+			[2]byte{252, 0},
+		},
+		{
+			"Int16.Max",
+			args{int16(32767)},
+			[2]byte{127, 255},
+		},
+		{
+			"Int16.Min",
+			args{int16(-32768)},
+			[2]byte{128, 0},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

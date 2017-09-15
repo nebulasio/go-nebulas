@@ -25,5 +25,5 @@ type Encoder interface {
 
 // Decoder decoder for bytes.Decode().
 type Decoder interface {
-	DecodeFromBytes(data []byte) interface{}
+	DecodeFromBytes(data []byte) (interface{}, error)
 }
