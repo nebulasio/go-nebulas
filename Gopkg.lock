@@ -16,7 +16,7 @@
 [[projects]]
   branch = "master"
   name = "golang.org/x/crypto"
-  packages = ["sha3","ssh/terminal"]
+  packages = ["ripemd160","sha3","ssh/terminal"]
   revision = "faadfbdc035307d901e69eea569f5dda451a3ee3"
 
 [[projects]]
@@ -28,6 +28,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "3758c584e505058951fd60e9623d9b28029daa9a73480e4d4bf1a3328cdc1cab"
+  inputs-digest = "5a726eee322547d2f261a141315803369b1dfb0d3603e9dc433d0094491af6cc"
   solver-name = "gps-cdcl"
   solver-version = 1

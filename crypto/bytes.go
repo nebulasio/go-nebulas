@@ -18,33 +18,6 @@
 
 package crypto
 
-import (
-	"crypto/sha256"
+func ToBytes() {
 
-	"golang.org/x/crypto/ripemd160"
-	"golang.org/x/crypto/sha3"
-)
-
-// Sha256 returns the SHA-256 digest of the data.
-func Sha256(bytes []byte) (digest [32]byte) {
-	hasher := sha256.New()
-	hasher.Write(bytes)
-	hasher.Sum(digest[:0])
-	return
-}
-
-// Sha3256 returns the SHA3-256 digest of the data.
-func Sha3256(bytes []byte) (digest [32]byte) {
-	hasher := sha3.New256()
-	hasher.Write(bytes)
-	hasher.Sum(digest[:0])
-	return
-}
-
-// Ripemd160 return the RIPEMD160 digest of the data.
-func Ripemd160(bytes []byte) (digest [20]byte) {
-	hasher := ripemd160.New()
-	hasher.Write(bytes)
-	hasher.Sum(digest[:0])
-	return
 }
