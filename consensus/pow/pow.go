@@ -28,10 +28,10 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// Pow implementation of Proof-of-Work consensus.
-// Pow is designed to be a state machine.
-// The following is the state diagram:
 /*
+Pow implementation of Proof-of-Work consensus, designed to be a state machine.
+The following is the state diagram:
+
 @startuml
 [*] --> Prepare
 Prepare --> Mining : start mining
@@ -42,6 +42,7 @@ Prepare --> [*] : stop
 Mining --> [*] : stop
 Minted --> [*] : stop
 @enduml
+
 */
 type Pow struct {
 	quitCh chan bool
