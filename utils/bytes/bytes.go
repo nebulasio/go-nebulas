@@ -114,3 +114,13 @@ func FromInt16(v int16) []byte {
 	binary.BigEndian.PutUint16(b, uint16(v))
 	return b
 }
+
+// string encode []byte
+func String(data []byte) string {
+	return string(data)
+}
+
+// FromString decode s.
+func FromString(s string) []byte {
+	return []byte(s)
+}

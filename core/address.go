@@ -18,6 +18,19 @@
 
 package core
 
+import (
+	"crypto/ecdsa"
+
+	"github.com/nebulasio/go-nebulas/crypto"
+	"github.com/nebulasio/go-nebulas/crypto/hash"
+	"github.com/nebulasio/go-nebulas/utils/bytes"
+)
+
+const (
+	CheckSumLength = 4
+	AddressLength  = 20
+)
+
 /*
 Address Similar to Bitcoin and Ethereum, Nebulas also adopts elliptic curve algorithm as its basic encryption algorithm for Nebulas accounts. A user’s private key is a randomly generated 256-bit binary number, based on which a 64-byte public key can be generated via elliptic curve multiplication. Bitcoin and Ethereum addresses are computed by public key via the deterministic Hash algorithm, and the difference between them lies in: Bitcoin address has the checksum design aiming to prevent a user from sending Bitcoins to a wrong user account accidentally due to entry of several incorrect characters; while Ethereum doesn’t have such checksum design.
 
@@ -57,4 +70,38 @@ type Address struct {
 func NewAddress(address string) *Address {
 	addr := &Address{address: address}
 	return addr
+}
+
+// NewAddressWithPrivateKey generate Address from private key
+func NewAddressWithPrivateKey(privateKey *ecdsa.PrivateKey) *Address {
+	publicKeyBytes := crypto.FromECDSAPub(&privateKey.PublicKey)
+	return NewAddressWithPublicKey(publicKeyBytes)
+}
+
+// NewAddressWithPublicKey generate Address from public key
+func NewAddressWithPublicKey(publicKeyBytes []byte) *Address {
+	data := hash.Sha3256(publicKeyBytes)[len(publicKeyBytes)-AddressLength:]
+	checkSum := hash.Sha3256(data)[:CheckSumLength]
+	address := bytes.Hex(append(data, checkSum...))
+	addr := &Address{address: address}
+	return addr
+}
+
+type ExtAddress struct {
+	nick       string // nick or some comment for address
+	address    Address
+	extAddress string
+}
+
+// NewExtAddress return new @ExtAddress instance.
+func NewExtAddress(nick string, publicKeyBytes []byte) *ExtAddress {
+	data := hash.Sha3256(publicKeyBytes)[len(publicKeyBytes)-AddressLength:]
+	addr := NewAddressWithPublicKey(publicKeyBytes)
+	extHash := hash.Sha3256(append(data, []byte(nick)...))[:2]
+	extAddress := addr.address + bytes.Hex(extHash)
+	extAddr := &ExtAddress{
+		nick:       nick,
+		address:    *addr,
+		extAddress: extAddress}
+	return extAddr
 }

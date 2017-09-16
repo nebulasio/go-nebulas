@@ -8,6 +8,12 @@
   version = "v1.1.0"
 
 [[projects]]
+  name = "github.com/ethereum/go-ethereum"
+  packages = ["common/math","crypto/secp256k1"]
+  revision = "6c6c7b2af3efdad4d2f64f70f3a724af434bbcd2"
+  version = "v1.7.0"
+
+[[projects]]
   branch = "master"
   name = "github.com/hashicorp/golang-lru"
   packages = [".","simplelru"]
@@ -18,6 +24,12 @@
   packages = ["difflib"]
   revision = "792786c7400a136282c1664665ae0a8db921c6c2"
   version = "v1.0.0"
+
+[[projects]]
+  name = "github.com/satori/go.uuid"
+  packages = ["."]
+  revision = "879c5887cd475cd7864858769793b2ceb0d44feb"
+  version = "v1.1.0"
 
 [[projects]]
   name = "github.com/sirupsen/logrus"
@@ -46,6 +58,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "fdc44f6ab393558886d369d1739ea515d845d7e92318e90d364766ac4027f89d"
+  inputs-digest = "37fd3158a9270abdfaf5a50b3a018f2b22f205048e48f1e9e41b31e359ab0866"
   solver-name = "gps-cdcl"
   solver-version = 1
