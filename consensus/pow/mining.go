@@ -19,15 +19,14 @@
 package pow
 
 import (
-	"encoding/binary"
 	"fmt"
 	"time"
 
-	"encoding/hex"
-
 	"github.com/nebulasio/go-nebulas/consensus"
+	"github.com/nebulasio/go-nebulas/crypto/hash"
+	"github.com/nebulasio/go-nebulas/utils/bytes"
+
 	log "github.com/sirupsen/logrus"
-	"golang.org/x/crypto/sha3"
 )
 
 const (
@@ -75,15 +74,9 @@ func (state *MiningState) calculateHash() {
 	// calculate hash.
 	newBlock := state.p.newBlock
 	nonce := newBlock.Nonce()
+
 	parentHash := newBlock.ParentHash()
-
-	parentHashBytes := []byte(parentHash)
-	nonceBytes := make([]byte, 8)
-	resultBytes := make([]byte, 32)
-
-	// expectedHashBytes := make([]byte, 4)
-
-	nonceHash := sha3.New256()
+	parentHashBytes, _ := bytes.FromHex(parentHash)
 
 	timeStart := time.Now()
 	miningInterval, _ := time.ParseDuration("1s")
@@ -93,24 +86,21 @@ func (state *MiningState) calculateHash() {
 		case <-state.quitCh:
 			log.Info("quit MiningState.")
 			return
+
 		default:
 			nonce++
-			binary.LittleEndian.PutUint64(nonceBytes, nonce)
+			nonceBytes := bytes.FromUint64(nonce)
 
 			// compute hash..
-			nonceHash.Reset()
-			nonceHash.Write(parentHashBytes)
-			nonceHash.Write(nonceBytes)
-			nonceHash.Sum(resultBytes[:0])
+			resultBytes := hash.Sha256(parentHashBytes, nonceBytes[:])
 
 			// verify.
-			// if bytes.Compare(expectedHashBytes[:4], resultBytes[:4]) == 0 {
-			if true {
+			if resultBytes[0] == 0 && resultBytes[1] == 0 {
 				log.WithFields(log.Fields{
 					"parentHash": parentHash,
 					"nonce":      nonce,
-					"hashResult": hex.EncodeToString(resultBytes),
-				}).Info("found, done")
+					"hashResult": bytes.Hex(resultBytes[:]),
+				}).Info("Nonce found, done")
 
 				elapse := time.Since(timeStart)
 				if elapse < miningInterval {
@@ -123,11 +113,9 @@ func (state *MiningState) calculateHash() {
 				return
 			}
 
-			log.WithFields(log.Fields{
-				"parentHash": parentHash,
-				"nonce":      nonce,
-				"hashResult": hex.EncodeToString(resultBytes),
-			}).Info("not found, continue")
+			// log.WithFields(log.Fields{
+			// 	"nonce": nonce,
+			// }).Info("continue")
 
 		}
 	}

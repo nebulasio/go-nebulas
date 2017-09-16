@@ -80,7 +80,6 @@ func main() {
 	log.SetOutput(os.Stdout)
 	log.SetLevel(log.DebugLevel)
 
-	fmt.Println("starting...")
 	quitCh := make(chan bool, 10)
 
 	clientCount := 5
@@ -103,9 +102,6 @@ func main() {
 		}
 		os.Exit(1)
 	}()
-
-	fmt.Println("running...")
-	fmt.Println("prss Ctrl+C to quit...")
 
 	for {
 		time.Sleep(60 * time.Second) // or runtime.Gosched() or similar per @misterbee

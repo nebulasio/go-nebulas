@@ -16,7 +16,7 @@
 // along with the go-nebulas library.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-package crypto
+package hash
 
 import (
 	"crypto/sha256"
@@ -26,25 +26,31 @@ import (
 )
 
 // Sha256 returns the SHA-256 digest of the data.
-func Sha256(bytes []byte) (digest [32]byte) {
+func Sha256(args ...[]byte) (digest [32]byte) {
 	hasher := sha256.New()
-	hasher.Write(bytes)
+	for _, bytes := range args {
+		hasher.Write(bytes)
+	}
 	hasher.Sum(digest[:0])
 	return
 }
 
 // Sha3256 returns the SHA3-256 digest of the data.
-func Sha3256(bytes []byte) (digest [32]byte) {
+func Sha3256(args ...[]byte) (digest [32]byte) {
 	hasher := sha3.New256()
-	hasher.Write(bytes)
+	for _, bytes := range args {
+		hasher.Write(bytes)
+	}
 	hasher.Sum(digest[:0])
 	return
 }
 
 // Ripemd160 return the RIPEMD160 digest of the data.
-func Ripemd160(bytes []byte) (digest [20]byte) {
+func Ripemd160(args ...[]byte) (digest [20]byte) {
 	hasher := ripemd160.New()
-	hasher.Write(bytes)
+	for _, bytes := range args {
+		hasher.Write(bytes)
+	}
 	hasher.Sum(digest[:0])
 	return
 }
