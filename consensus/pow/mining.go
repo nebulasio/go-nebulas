@@ -84,17 +84,16 @@ func (state *MiningState) calculateHash() {
 
 		default:
 			nonce++
-			nonceBytes := bytes.FromUint64(nonce)
 
 			// compute hash..
-			resultBytes := hash.Sha256(parentHashBytes, nonceBytes[:])
+			resultBytes := hash.Sha256(parentHashBytes, bytes.FromUint64(nonce))
 
 			// verify.
 			if resultBytes[0] == 0 && resultBytes[1] == 0 {
 				log.WithFields(log.Fields{
 					"parentHash": parentHash,
 					"nonce":      nonce,
-					"hashResult": bytes.Hex(resultBytes[:]),
+					"hashResult": bytes.Hex(resultBytes),
 				}).Info("Nonce found, done")
 
 				elapse := time.Since(timeStart)

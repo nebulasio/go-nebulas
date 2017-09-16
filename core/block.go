@@ -19,12 +19,11 @@
 package core
 
 import (
-	"encoding/binary"
-	"encoding/hex"
 	"fmt"
 	"time"
 
-	"golang.org/x/crypto/sha3"
+	"github.com/nebulasio/go-nebulas/crypto/hash"
+	"github.com/nebulasio/go-nebulas/utils/bytes"
 )
 
 /*
@@ -86,20 +85,14 @@ func (block *Block) ParentHash() string {
 }
 
 func (block *Block) computeHash() string {
-	h := sha3.New256()
+	ph, _ := bytes.FromHex(block.header.parentHash)
+	ah, _ := bytes.FromHex(block.header.coinbase.address)
 
-	h.Write([]byte(block.header.parentHash))
-	h.Write([]byte(block.header.coinbase.address))
-
-	bytes := make([]byte, 256)
-	binary.LittleEndian.PutUint64(bytes[0:], block.header.nonce)
-	h.Write(bytes[:8])
-
-	binary.LittleEndian.PutUint64(bytes[0:], uint64(block.header.timestamp.UnixNano()))
-	h.Write(bytes[:8])
-
-	result := h.Sum(nil)
-	return hex.EncodeToString(result)
+	return bytes.Hex(hash.Sha3256(
+		ph, ah,
+		bytes.FromUint64(block.header.nonce),
+		bytes.FromUint64(uint64(block.header.timestamp.UnixNano())),
+	))
 }
 
 func (block *Block) String() string {
