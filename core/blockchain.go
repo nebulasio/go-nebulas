@@ -50,8 +50,8 @@ func NewBlockChain(chainID int) *BlockChain {
 	return bc
 }
 
-// GetChainID return the chainID.
-func (bc *BlockChain) GetChainID() int {
+// ChainID return the chainID.
+func (bc *BlockChain) ChainID() int {
 	return bc.chainID
 }
 

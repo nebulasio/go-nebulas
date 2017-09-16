@@ -40,7 +40,7 @@ func run(sharedBlockCh chan *core.Block, quitCh chan bool, nmCh chan *net.Manage
 	nmCh <- nm
 
 	bc := core.NewBlockChain(core.TestNetID)
-	fmt.Printf("chainID is %d\n", bc.GetChainID())
+	fmt.Printf("chainID is %d\n", bc.ChainID())
 
 	// p := pow.NewPow(bc)
 	var cons consensus.Consensus
