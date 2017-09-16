@@ -27,10 +27,10 @@ import (
 
 	"github.com/nebulasio/go-nebulas/consensus"
 
+	"github.com/nebulasio/go-nebulas/components/net"
+	"github.com/nebulasio/go-nebulas/components/net/messages"
 	"github.com/nebulasio/go-nebulas/consensus/pow"
 	"github.com/nebulasio/go-nebulas/core"
-	"github.com/nebulasio/go-nebulas/net"
-	"github.com/nebulasio/go-nebulas/net/messages"
 
 	log "github.com/sirupsen/logrus"
 )

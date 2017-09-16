@@ -21,8 +21,8 @@ package messages
 import (
 	"fmt"
 
+	"github.com/nebulasio/go-nebulas/components/net"
 	"github.com/nebulasio/go-nebulas/core"
-	"github.com/nebulasio/go-nebulas/net"
 )
 
 const (

@@ -21,7 +21,7 @@ package pow
 import (
 	"time"
 
-	"github.com/nebulasio/go-nebulas/net"
+	"github.com/nebulasio/go-nebulas/components/net"
 )
 
 // TimeoutEvent timeout event.
