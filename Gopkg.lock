@@ -27,14 +27,8 @@
 
 [[projects]]
   branch = "master"
-  name = "github.com/stretchr/objx"
-  packages = ["."]
-  revision = "1a9d0bb9f541897e62256577b352fdbc1fb4fd94"
-
-[[projects]]
-  branch = "master"
   name = "github.com/stretchr/testify"
-  packages = [".","assert","http","mock"]
+  packages = ["assert"]
   revision = "890a5c3458b43e6104ff5da8dfa139d013d77544"
 
 [[projects]]
@@ -52,6 +46,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "3531a9dbf37844b3396f1c76a5640360d0ad7828037199e204d09320a78b48e6"
+  inputs-digest = "fdc44f6ab393558886d369d1739ea515d845d7e92318e90d364766ac4027f89d"
   solver-name = "gps-cdcl"
   solver-version = 1

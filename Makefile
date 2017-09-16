@@ -37,7 +37,6 @@ LDFLAGS = -ldflags "-X main.VERSION=${VERSION} -X main.COMMIT=${COMMIT} -X main.
 all: clean vet fmt lint build test
 
 dep:
-	cd ${BUILD_DIR}
 	dep ensure
 
 build:

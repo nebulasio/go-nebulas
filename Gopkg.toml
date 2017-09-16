@@ -21,16 +21,5 @@
 #  version = "2.4.0"
 
 [[constraint]]
-  name ="golang.org/x/crypto"
-
-[[constraint]]
-  branch = "master"
-  name = "github.com/hashicorp/golang-lru"
-
-[[constraint]]
   name = "github.com/sirupsen/logrus"
   version = "1.0.3"
-
-[[constraint]]
-  name ="github.com/stretchr/testify"
-  branch = "master"
