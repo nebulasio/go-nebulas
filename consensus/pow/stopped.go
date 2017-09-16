@@ -19,8 +19,6 @@
 package pow
 
 import (
-	"fmt"
-
 	"github.com/nebulasio/go-nebulas/consensus"
 	log "github.com/sirupsen/logrus"
 )
@@ -42,20 +40,16 @@ func NewStoppedState(p *Pow) *StoppedState {
 }
 
 // Event handle event.
-func (state *StoppedState) Event(e consensus.Event) consensus.State {
-	log.WithFields(log.Fields{
-		"stateType": fmt.Sprintf("%T", state),
-		"eventType": fmt.Sprintf("%T", e),
-	}).Warn("ignore this event.")
-	return state
+func (state *StoppedState) Event(e consensus.Event) (bool, consensus.State) {
+	return false, nil
 }
 
 // Enter called when transiting to this state.
 func (state *StoppedState) Enter(data interface{}) {
-	log.Info("StoppedState enter.")
+	log.Debug("StoppedState enter.")
 }
 
 // Leave called when leaving this state.
 func (state *StoppedState) Leave(data interface{}) {
-	log.Info("StoppedState leave.")
+	log.Debug("StoppedState leave.")
 }

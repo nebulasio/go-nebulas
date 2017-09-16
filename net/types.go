@@ -18,14 +18,42 @@
 
 package net
 
+// MessageType a string for message type.
 type MessageType string
 
+// Message interface for message.
 type Message interface {
 	MessageType() MessageType
 }
-type MessageHandler interface {
-	SubscribeMessageTypes() []MessageType
-	OnMessageReceived(msg Message)
+
+// Subscriber subscriber.
+type Subscriber struct {
+	// id usually the owner/creator, used for troubleshooting .
+	id interface{}
+
+	// msgChan chan for subscribed message.
+	msgChan chan Message
+
+	// msgType message types to subscribe
+	msgTypes []MessageType
 }
 
-type MessageHandlers map[MessageHandler]bool
+// NewSubscriber return new Subscriber instance.
+func NewSubscriber(id interface{}, msgChan chan Message, msgTypes ...MessageType) *Subscriber {
+	return &Subscriber{id, msgChan, msgTypes}
+}
+
+// ID return id.
+func (s *Subscriber) ID() interface{} {
+	return s.id
+}
+
+// MessageType return msgTypes.
+func (s *Subscriber) MessageType() []MessageType {
+	return s.msgTypes
+}
+
+// MessageChan return msgChan.
+func (s *Subscriber) MessageChan() chan Message {
+	return s.msgChan
+}

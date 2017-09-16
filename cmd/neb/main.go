@@ -65,7 +65,7 @@ func replicateNewBlock(sharedBlockCh chan *core.Block, quitCh chan bool, nmCh ch
 		case block := <-sharedBlockCh:
 			msg := messages.NewBlockMessage(block)
 			for _, nm := range nms {
-				nm.ReceiveMessage(msg)
+				nm.PutMessage(msg)
 			}
 		case nm := <-nmCh:
 			nms = append(nms, nm)
@@ -78,7 +78,7 @@ func replicateNewBlock(sharedBlockCh chan *core.Block, quitCh chan bool, nmCh ch
 func main() {
 	log.SetFormatter(&log.TextFormatter{ForceColors: true, FullTimestamp: true})
 	log.SetOutput(os.Stdout)
-	log.SetLevel(log.DebugLevel)
+	log.SetLevel(log.InfoLevel)
 
 	quitCh := make(chan bool, 10)
 

@@ -34,7 +34,7 @@ type Consensus interface {
 type Event interface{}
 
 type State interface {
-	Event(e Event) State
+	Event(e Event) (bool, State)
 	Enter(data interface{})
 	Leave(data interface{})
 }

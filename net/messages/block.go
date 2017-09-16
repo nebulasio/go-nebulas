@@ -43,6 +43,10 @@ func (msg *BlockMessage) MessageType() net.MessageType {
 	return msg.t
 }
 
+func (msg *BlockMessage) Block() *core.Block {
+	return msg.block
+}
+
 func (msg *BlockMessage) String() string {
 	return fmt.Sprintf("BlockMessage {type:%s; block:%s}",
 		msg.t,

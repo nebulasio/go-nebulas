@@ -19,7 +19,6 @@
 package pow
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/nebulasio/go-nebulas/consensus"
@@ -51,23 +50,19 @@ func NewMiningState(p *Pow) *MiningState {
 }
 
 // Event handle event.
-func (state *MiningState) Event(e consensus.Event) consensus.State {
-	log.WithFields(log.Fields{
-		"stateType": fmt.Sprintf("%T", state),
-		"eventType": fmt.Sprintf("%T", e),
-	}).Warn("ignore this event.")
-	return state
+func (state *MiningState) Event(e consensus.Event) (bool, consensus.State) {
+	return false, nil
 }
 
 // Enter called when transiting to this state.
 func (state *MiningState) Enter(data interface{}) {
-	log.Info("MiningState enter.")
+	log.Debug("MiningState enter.")
 	go state.calculateHash()
 }
 
 // Leave called when leaving this state.
 func (state *MiningState) Leave(data interface{}) {
-	log.Info("MiningState leave.")
+	log.Debug("MiningState leave.")
 }
 
 func (state *MiningState) calculateHash() {

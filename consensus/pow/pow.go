@@ -19,12 +19,14 @@
 package pow
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/nebulasio/go-nebulas/consensus"
 	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/net"
 	"github.com/nebulasio/go-nebulas/net/messages"
+
 	log "github.com/sirupsen/logrus"
 )
 
@@ -53,6 +55,7 @@ type Pow struct {
 	states            consensus.States
 	currentState      consensus.State
 	stateTransitionCh chan *stateTransitionArgs
+	messageReceivedCh chan net.Message
 
 	newBlock *core.Block
 }
@@ -69,6 +72,7 @@ func NewPow(bc *core.BlockChain, nm *net.Manager) *Pow {
 		nm:                nm,
 		quitCh:            make(chan bool, 5),
 		stateTransitionCh: make(chan *stateTransitionArgs, 10),
+		messageReceivedCh: make(chan net.Message, 128),
 	}
 
 	p.states = consensus.States{
@@ -79,7 +83,7 @@ func NewPow(bc *core.BlockChain, nm *net.Manager) *Pow {
 	}
 	p.currentState = p.states[Prepare]
 
-	nm.Register(p)
+	nm.Register(net.NewSubscriber(p, p.messageReceivedCh, messages.NewBlockMessageType))
 
 	return p
 }
@@ -89,8 +93,8 @@ func (p *Pow) Start() {
 	// start state machine.
 	go p.stateLoop()
 
-	// start internal time loop for debug.
-	go p.timeLoop()
+	// start goroutine to process received message.
+	go p.messageLoop()
 }
 
 // Stop stop pow service.
@@ -98,13 +102,42 @@ func (p *Pow) Stop() {
 	// cleanup.
 	p.quitCh <- true
 	p.quitCh <- true
-	p.Event(NewStopEvent())
 }
 
-// Event handle event.
+/*
+Event handle events from Network or State.
+The whole event process should be as the following:
+1. dispatch to currentState to process.
+2. if currentState does not captured it, consensus process it by default.
+*/
 func (p *Pow) Event(e consensus.Event) {
-	nextState := p.currentState.Event(e)
-	p.Transite(nextState, nil)
+	captured, nextState := p.currentState.Event(e)
+	if captured {
+		if nextState != nil && p.currentState != nextState {
+			p.Transite(nextState, nil)
+		}
+		return
+	}
+
+	// default procedure.
+	switch t := e.(type) {
+	case *NetMessageEvent:
+		switch msg := t.message.(type) {
+		case *messages.BlockMessage:
+			log.WithFields(log.Fields{
+				"block": msg.Block(),
+			}).Info("Pow handle BlockMessage.")
+		default:
+			log.WithFields(log.Fields{
+				"messageType": t.message.MessageType(),
+				"message":     t.message,
+			}).Info("Pow handle NetMessageEvent.")
+		}
+	default:
+		log.WithFields(log.Fields{
+			"eventType": fmt.Sprintf("%T", e),
+		}).Info("Pow handle this event.")
+	}
 }
 
 // TransiteByKey transite state by stateKey.
@@ -141,6 +174,7 @@ func (p *Pow) AppendBlock(block *core.Block) error {
 
 	} else {
 		log.WithFields(logFields).Info("New forked block")
+		//TODO: implement fork choice algorithm.
 
 		// // find the root block in detached blocks.
 		// rootParentBlock := block
@@ -175,22 +209,7 @@ func (p *Pow) AppendBlock(block *core.Block) error {
 	return nil
 }
 
-// SubscribeMessageTypes return all message types wanting to subscribe in network.
-// Subscribe the following message types:
-// @NewBlockMessageType
-func (p *Pow) SubscribeMessageTypes() []net.MessageType {
-	list := make([]net.MessageType, 1)
-	list = append(list, messages.NewBlockMessageType)
-	return list
-}
-
-// OnMessageReceived handle new received network message.
-func (p *Pow) OnMessageReceived(msg net.Message) {
-	log.WithFields(log.Fields{
-		"msg": msg,
-	}).Info("Pow received message.")
-}
-
+// TODO: Timeout Event seems useless, consider to remove them.
 func (p *Pow) timeLoop() {
 	ticker := time.NewTicker(time.Second * 5)
 	for {
@@ -224,6 +243,39 @@ func (p *Pow) stateLoop() {
 
 		case <-p.quitCh:
 			log.Info("quit Pow.loop.")
+			return
+		}
+	}
+}
+
+func (p *Pow) messageLoop() {
+	for {
+		select {
+		case msg := <-p.messageReceivedCh:
+			p.Event(NewNetMessageEvent(msg))
+		case <-p.quitCh:
+			// TODO: should provide base goroutine start/stop func to graceful stop them.
+			/*
+				for example,
+
+				type Stopper struct {
+					quitCh chan int // maybe int is better than bool, less confuss.
+					count int q		// should use thread-safe int, eg. AtomicInt.
+				}
+				func NewStopper() *Stopper {
+					s := &Stopper{quitCh: make(chan int，16), count : 0}
+					return s
+				}
+				func (s *Stopper) CountMe() {
+					s.count++
+				}
+				func (s *Stopper) QuitMe() {
+					for i :=0 ; i<s.count; i++ {
+						s.quitCh <- 0
+					}
+				}
+			*/
+			log.Info("quit Pow.messageLoop.")
 			return
 		}
 	}

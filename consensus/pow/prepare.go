@@ -19,8 +19,6 @@
 package pow
 
 import (
-	"fmt"
-
 	"github.com/nebulasio/go-nebulas/consensus"
 	"github.com/nebulasio/go-nebulas/core"
 	log "github.com/sirupsen/logrus"
@@ -43,14 +41,13 @@ func NewPrepareState(p *Pow) *PrepareState {
 }
 
 // Event handle event.
-func (state *PrepareState) Event(e consensus.Event) consensus.State {
-	log.WithFields(log.Fields{"stateType": fmt.Sprintf("%T", state), "eventType": fmt.Sprintf("%T", e)}).Warn("ignore this event.")
-	return state
+func (state *PrepareState) Event(e consensus.Event) (bool, consensus.State) {
+	return false, nil
 }
 
 // Enter called when transiting to this state.
 func (state *PrepareState) Enter(data interface{}) {
-	log.Info("PrepareState enter.")
+	log.Debug("PrepareState enter.")
 
 	// get the pending block.
 	state.p.newBlock = state.p.chain.NewBlock(core.NewAddress("1234567890"))
@@ -61,5 +58,5 @@ func (state *PrepareState) Enter(data interface{}) {
 
 // Leave called when leaving this state.
 func (state *PrepareState) Leave(data interface{}) {
-	log.Info("PrepareState leave.")
+	log.Debug("PrepareState leave.")
 }

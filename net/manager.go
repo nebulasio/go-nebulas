@@ -22,49 +22,49 @@ import (
 	"github.com/nebulasio/go-nebulas/core"
 )
 
+// Manager the net manager.
 type Manager struct {
 	sharedBlockCh chan *core.Block
-
-	handlers   MessageHandlers
-	dispatcher *Dispatcher
+	dispatcher    *Dispatcher
 }
 
+// NewManager create Manager instance.
+// TODO: remove sharedBlockCH, using underlying network lib instead.
 func NewManager(sharedBlockCh chan *core.Block) *Manager {
 	nm := &Manager{
 		sharedBlockCh: sharedBlockCh,
-		handlers:      make(MessageHandlers),
 		dispatcher:    NewDispatcher(),
 	}
-	// nm.receivedBlockCh = make(chan *core.Block)
 	return nm
 }
 
-func (nm *Manager) Register(handlers ...MessageHandler) {
-	for _, v := range handlers {
-		nm.handlers[v] = true
-		nm.dispatcher.Register(v)
-	}
+// Register register the subscribers.
+func (nm *Manager) Register(subscribers ...*Subscriber) {
+	nm.dispatcher.Register(subscribers...)
 }
 
-func (nm *Manager) Deregister(handlers ...MessageHandler) {
-	for _, v := range handlers {
-		delete(nm.handlers, v)
-		nm.dispatcher.Deregister(v)
-	}
+// Deregister Deregister the subscribers.
+func (nm *Manager) Deregister(subscribers ...*Subscriber) {
+	nm.dispatcher.Deregister(subscribers...)
 }
 
+// Start start net services.
 func (nm *Manager) Start() {
 	nm.dispatcher.Start()
 }
 
+// Stop stop net services.
 func (nm *Manager) Stop() {
 	nm.dispatcher.Stop()
 }
 
-func (nm *Manager) SendNewBlock(block *core.Block) {
-	nm.sharedBlockCh <- block
+// PutMessage put message to dispatcher.
+func (nm *Manager) PutMessage(msg Message) {
+	nm.dispatcher.PutMessage(msg)
 }
 
-func (nm *Manager) ReceiveMessage(msg Message) {
-	nm.dispatcher.OnMessageReceived(msg)
+// BroadcastBlock broadcast block to network.
+func (nm *Manager) BroadcastBlock(block *core.Block) {
+	//TODO: broadcast block via underlying network lib to whole network.
+	nm.sharedBlockCh <- block
 }

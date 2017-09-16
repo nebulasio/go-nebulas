@@ -22,19 +22,19 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type Dispatcher struct {
-	messageHandlerMap MessageHandlerMap
+type messageSubscriberMap map[MessageType]map[*Subscriber]bool
 
+// Dispatcher a message dispatcher service.
+type Dispatcher struct {
+	subscribersMap    messageSubscriberMap
 	quitCh            chan bool
 	receivedMessageCh chan Message
 }
 
-type MessageHandlerMap map[MessageType]MessageHandlers
-
+// NewDispatcher create Dispatcher instance.
 func NewDispatcher() *Dispatcher {
 	dp := &Dispatcher{
-		messageHandlerMap: make(MessageHandlerMap),
-
+		subscribersMap:    make(messageSubscriberMap),
 		quitCh:            make(chan bool, 10),
 		receivedMessageCh: make(chan Message, 1024),
 	}
@@ -42,30 +42,37 @@ func NewDispatcher() *Dispatcher {
 	return dp
 }
 
-func (dp *Dispatcher) Register(handler MessageHandler) {
-	for _, v := range handler.SubscribeMessageTypes() {
-		msgHandlers := dp.messageHandlerMap[v]
-		if msgHandlers == nil {
-			msgHandlers = make(MessageHandlers)
-			dp.messageHandlerMap[v] = msgHandlers
-		}
-		msgHandlers[handler] = true
-	}
-}
-
-func (dp *Dispatcher) Deregister(handler MessageHandler) {
-	for _, v := range handler.SubscribeMessageTypes() {
-		msgHandlers := dp.messageHandlerMap[v]
-		if msgHandlers == nil {
-			continue
-		}
-		delete(msgHandlers, handler)
-		if len(msgHandlers) == 0 {
-			delete(dp.messageHandlerMap, v)
+// Register register subscribers.
+func (dp *Dispatcher) Register(subscribers ...*Subscriber) {
+	for _, v := range subscribers {
+		for _, mt := range v.msgTypes {
+			m := dp.subscribersMap[mt]
+			if m == nil {
+				m = make(map[*Subscriber]bool)
+				dp.subscribersMap[mt] = m
+			}
+			m[v] = true
 		}
 	}
 }
 
+// Deregister deregister subscribers.
+func (dp *Dispatcher) Deregister(subscribers ...*Subscriber) {
+	for _, v := range subscribers {
+		for _, mt := range v.msgTypes {
+			m := dp.subscribersMap[mt]
+			if m == nil {
+				continue
+			}
+			delete(m, v)
+			if len(m) == 0 {
+				delete(dp.subscribersMap, mt)
+			}
+		}
+	}
+}
+
+// Start start message dispatch goroutine.
 func (dp *Dispatcher) Start() {
 	go (func() {
 		for {
@@ -73,28 +80,34 @@ func (dp *Dispatcher) Start() {
 			case <-dp.quitCh:
 				log.Info("dispatcher is stopped.")
 				return
+
 			case msg := <-dp.receivedMessageCh:
-				msgID := msg.MessageType()
-				msgHandlers := dp.messageHandlerMap[msgID]
-				if msgHandlers == nil || len(msgHandlers) == 0 {
+				msgType := msg.MessageType()
+				msgListener := dp.subscribersMap[msgType]
+
+				if msgListener == nil || len(msgListener) == 0 {
 					log.WithFields(log.Fields{
-						"MessageType": msgID,
+						"MessageType": msgType,
 					}).Info("receive message without handler.")
 					break
 				}
 
-				for handler := range msgHandlers {
-					handler.OnMessageReceived(msg)
+				// send message to each subscriber.
+				for listener := range msgListener {
+					// TODO: should use non-blocking send.
+					listener.msgChan <- msg
 				}
 			}
 		}
 	})()
 }
 
+// Stop stop goroutine.
 func (dp *Dispatcher) Stop() {
 	dp.quitCh <- true
 }
 
-func (dp *Dispatcher) OnMessageReceived(msg Message) {
+// PutMessage put new message to chan, then subscribers will be notified to process.
+func (dp *Dispatcher) PutMessage(msg Message) {
 	dp.receivedMessageCh <- msg
 }

@@ -19,8 +19,6 @@
 package pow
 
 import (
-	"fmt"
-
 	"github.com/nebulasio/go-nebulas/consensus"
 	log "github.com/sirupsen/logrus"
 )
@@ -42,21 +40,20 @@ func NewMintedState(p *Pow) *MintedState {
 }
 
 // Event handle event.
-func (state *MintedState) Event(e consensus.Event) consensus.State {
-	log.WithFields(log.Fields{"stateType": fmt.Sprintf("%T", state), "eventType": fmt.Sprintf("%T", e)}).Warn("ignore this event.")
-	return state
+func (state *MintedState) Event(e consensus.Event) (bool, consensus.State) {
+	return false, nil
 }
 
 // Enter called when transiting to this state.
 func (state *MintedState) Enter(data interface{}) {
-	log.Info("MintedState enter.")
+	log.Debug("MintedState enter.")
 
 	// append to local blockchain.
 	state.p.newBlock.Sign()
 	state.p.AppendBlock(state.p.newBlock)
 
-	// send to net manager.
-	state.p.nm.SendNewBlock(state.p.newBlock)
+	// send new block to network.
+	state.p.nm.BroadcastBlock(state.p.newBlock)
 
 	// move to prepare state.
 	state.p.TransiteByKey(Prepare, nil)
@@ -64,5 +61,5 @@ func (state *MintedState) Enter(data interface{}) {
 
 // Leave called when leaving this state.
 func (state *MintedState) Leave(data interface{}) {
-	log.Info("MintedState leave.")
+	log.Debug("MintedState leave.")
 }
