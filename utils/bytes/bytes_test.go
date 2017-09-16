@@ -172,22 +172,22 @@ func TestFromUint64(t *testing.T) {
 	tests := []struct {
 		name  string
 		args  args
-		wantB [8]byte
+		wantB []byte
 	}{
 		{
 			"0",
 			args{uint64(0)},
-			[8]byte{0, 0, 0, 0, 0, 0, 0, 0},
+			[]byte{0, 0, 0, 0, 0, 0, 0, 0},
 		},
 		{
 			"1024",
 			args{uint64(1024)},
-			[8]byte{0, 0, 0, 0, 0, 0, 4, 0},
+			[]byte{0, 0, 0, 0, 0, 0, 4, 0},
 		},
 		{
 			"Uint64.Max",
 			args{uint64(18446744073709551615)},
-			[8]byte{255, 255, 255, 255, 255, 255, 255, 255},
+			[]byte{255, 255, 255, 255, 255, 255, 255, 255},
 		},
 	}
 	for _, tt := range tests {
@@ -240,22 +240,22 @@ func TestFromUint32(t *testing.T) {
 	tests := []struct {
 		name  string
 		args  args
-		wantB [4]byte
+		wantB []byte
 	}{
 		{
 			"0",
 			args{uint32(0)},
-			[4]byte{0, 0, 0, 0},
+			[]byte{0, 0, 0, 0},
 		},
 		{
 			"1024",
 			args{uint32(1024)},
-			[4]byte{0, 0, 4, 0},
+			[]byte{0, 0, 4, 0},
 		},
 		{
 			"Uint32.Max",
 			args{uint32(4294967295)},
-			[4]byte{255, 255, 255, 255},
+			[]byte{255, 255, 255, 255},
 		},
 	}
 	for _, tt := range tests {
@@ -308,22 +308,22 @@ func TestFromUint16(t *testing.T) {
 	tests := []struct {
 		name  string
 		args  args
-		wantB [2]byte
+		wantB []byte
 	}{
 		{
 			"0",
 			args{uint16(0)},
-			[2]byte{0, 0},
+			[]byte{0, 0},
 		},
 		{
 			"1024",
 			args{uint16(1024)},
-			[2]byte{4, 0},
+			[]byte{4, 0},
 		},
 		{
 			"Uint16.Max",
 			args{uint16(65535)},
-			[2]byte{255, 255},
+			[]byte{255, 255},
 		},
 	}
 	for _, tt := range tests {
@@ -386,32 +386,32 @@ func TestFromInt64(t *testing.T) {
 	tests := []struct {
 		name  string
 		args  args
-		wantB [8]byte
+		wantB []byte
 	}{
 		{
 			"0",
 			args{int64(0)},
-			[8]byte{0, 0, 0, 0, 0, 0, 0, 0},
+			[]byte{0, 0, 0, 0, 0, 0, 0, 0},
 		},
 		{
 			"1024",
 			args{int64(1024)},
-			[8]byte{0, 0, 0, 0, 0, 0, 4, 0},
+			[]byte{0, 0, 0, 0, 0, 0, 4, 0},
 		},
 		{
 			"-1024",
 			args{int64(-1024)},
-			[8]byte{255, 255, 255, 255, 255, 255, 252, 0},
+			[]byte{255, 255, 255, 255, 255, 255, 252, 0},
 		},
 		{
 			"Int64.Max",
 			args{int64(9223372036854775807)},
-			[8]byte{127, 255, 255, 255, 255, 255, 255, 255},
+			[]byte{127, 255, 255, 255, 255, 255, 255, 255},
 		},
 		{
 			"Int64.Min",
 			args{int64(-9223372036854775808)},
-			[8]byte{128, 0, 0, 0, 0, 0, 0, 0},
+			[]byte{128, 0, 0, 0, 0, 0, 0, 0},
 		},
 	}
 	for _, tt := range tests {
@@ -474,32 +474,32 @@ func TestFromInt32(t *testing.T) {
 	tests := []struct {
 		name  string
 		args  args
-		wantB [4]byte
+		wantB []byte
 	}{
 		{
 			"0",
 			args{int32(0)},
-			[4]byte{0, 0, 0, 0},
+			[]byte{0, 0, 0, 0},
 		},
 		{
 			"1024",
 			args{int32(1024)},
-			[4]byte{0, 0, 4, 0},
+			[]byte{0, 0, 4, 0},
 		},
 		{
 			"-1024",
 			args{int32(-1024)},
-			[4]byte{255, 255, 252, 0},
+			[]byte{255, 255, 252, 0},
 		},
 		{
 			"Int32.Max",
 			args{int32(2147483647)},
-			[4]byte{127, 255, 255, 255},
+			[]byte{127, 255, 255, 255},
 		},
 		{
 			"Int32.Min",
 			args{int32(-2147483648)},
-			[4]byte{128, 0, 0, 0},
+			[]byte{128, 0, 0, 0},
 		},
 	}
 	for _, tt := range tests {
@@ -562,32 +562,32 @@ func TestFromInt16(t *testing.T) {
 	tests := []struct {
 		name  string
 		args  args
-		wantB [2]byte
+		wantB []byte
 	}{
 		{
 			"0",
 			args{int16(0)},
-			[2]byte{0, 0},
+			[]byte{0, 0},
 		},
 		{
 			"1024",
 			args{int16(1024)},
-			[2]byte{4, 0},
+			[]byte{4, 0},
 		},
 		{
 			"-1024",
 			args{int16(-1024)},
-			[2]byte{252, 0},
+			[]byte{252, 0},
 		},
 		{
 			"Int16.Max",
 			args{int16(32767)},
-			[2]byte{127, 255},
+			[]byte{127, 255},
 		},
 		{
 			"Int16.Min",
 			args{int16(-32768)},
-			[2]byte{128, 0},
+			[]byte{128, 0},
 		},
 	}
 	for _, tt := range tests {
