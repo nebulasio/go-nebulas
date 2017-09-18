@@ -145,7 +145,7 @@ func ping(s gnet.Stream) (time.Duration, error) {
 	}
 
 	if !bytes.Equal(buf, rbuf) {
-		return 0, errors.New("ping packet was incorrect!")
+		return 0, errors.New("ping packet was incorrect")
 	}
 
 	return time.Since(before), nil

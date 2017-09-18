@@ -29,7 +29,7 @@ the config is used to start a local node.
 type Config struct {
 	bucketsize int
 	latency    time.Duration
-	seedNodes  []multiaddr.Multiaddr
+	trustedNodes  []multiaddr.Multiaddr
 	IP         string
 	Port       uint16
 	Randseed   int64

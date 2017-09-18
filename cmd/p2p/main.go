@@ -20,8 +20,17 @@ package main
 
 import (
 	"fmt"
+	//n "../../components/net/p2p"
 )
 
 func main() {
 	fmt.Println("running...")
+	//config := n.Config{
+	//
+	//}
+	//node, err := n.NewNode(&config)
+	//if err != nil {
+	//	node.Start()
+	//}
+
 }

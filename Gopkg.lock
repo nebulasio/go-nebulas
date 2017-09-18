@@ -32,6 +32,12 @@
   revision = "bc6354cbbc295e925e4c611ffe90c1f287ee54db"
 
 [[projects]]
+  name = "github.com/ethereum/go-ethereum"
+  packages = ["common/math","crypto/secp256k1"]
+  revision = "6c6c7b2af3efdad4d2f64f70f3a724af434bbcd2"
+  version = "v1.7.0"
+
+[[projects]]
   branch = "master"
   name = "github.com/fd/go-nat"
   packages = ["."]
@@ -251,13 +257,19 @@
   branch = "master"
   name = "github.com/libp2p/go-libp2p-transport"
   packages = ["."]
-  revision = "3485c468cd16db221b0762f88a43cf87e8732ec7"
+  revision = "1275f6d9b4355ca72bd7c8590c02ab0e043421fd"
 
 [[projects]]
   branch = "master"
   name = "github.com/libp2p/go-maddr-filter"
   packages = ["."]
   revision = "ac6a10c4e30dabf1a55aa0f51102ae4daed951fb"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/libp2p/go-peerstream"
+  packages = ["."]
+  revision = "f93b4def7e7299b4a591fe9ed4022b890f2bc254"
 
 [[projects]]
   branch = "master"
@@ -269,7 +281,7 @@
   branch = "master"
   name = "github.com/libp2p/go-tcp-transport"
   packages = ["."]
-  revision = "b3807808e9b0d61c632d77dc29df5fb9f7de7413"
+  revision = "6dbadcc9c57be74ad0ebfb2031e865cb902977d2"
 
 [[projects]]
   branch = "master"
@@ -330,6 +342,12 @@
   packages = ["."]
   revision = "f006c2ac4710855cf0f916dd6b77acf6b048dc6e"
   version = "v1.0.3"
+
+[[projects]]
+  name = "github.com/spaolacci/murmur3"
+  packages = ["."]
+  revision = "0d12bf811670bf6a1a63828dfbd003eded177fce"
+  version = "v1.0"
 
 [[projects]]
   branch = "master"
@@ -394,7 +412,7 @@
 [[projects]]
   branch = "master"
   name = "golang.org/x/crypto"
-  packages = ["blowfish","ripemd160","sha3","ssh/terminal"]
+  packages = ["blake2b","blake2s","blowfish","ripemd160","sha3","ssh/terminal"]
   revision = "faadfbdc035307d901e69eea569f5dda451a3ee3"
 
 [[projects]]
@@ -415,9 +433,15 @@
   packages = ["encoding","encoding/charmap","encoding/htmlindex","encoding/internal","encoding/internal/identifier","encoding/japanese","encoding/korean","encoding/simplifiedchinese","encoding/traditionalchinese","encoding/unicode","internal/gen","internal/tag","internal/utf8internal","language","runes","transform","unicode/cldr"]
   revision = "1cbadb444a806fd9430d14ad08967ed91da4fa0a"
 
+[[projects]]
+  branch = "master"
+  name = "leb.io/hashland"
+  packages = ["keccakpg"]
+  revision = "e13accbe55f7fa03c73c74ace4cca4c425e47260"
+
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "1c80c9627ef1a227029469339f3ac127162144d1ecdd2874932fd656d76291d4"
+  inputs-digest = "91ad89c2f2ea22b339c21150d1be805eb79d25b85cc7ab1b442871ac6ce15cd4"
   solver-name = "gps-cdcl"
   solver-version = 1
