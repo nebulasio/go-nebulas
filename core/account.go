@@ -34,6 +34,9 @@ type Account struct {
 
 	address Address
 
+	// extAddress for nick check
+	extAddress ExtAddress
+
 	// ecdsa private key ,public & address can be derived from it
 	privateKey ecdsa.PrivateKey
 }
@@ -41,11 +44,12 @@ type Account struct {
 // create new account with nick and private key
 func newAccountFromECDSA(nick string, privateKeyECDSA *ecdsa.PrivateKey) *Account {
 	id := fmt.Sprintf("%s", uuid.NewV4())
-	addr := NewAddressWithPrivateKey(privateKeyECDSA)
+	extAddr := NewExtAddressWithPrivateKey(nick,privateKeyECDSA)
 	account := &Account{
 		id:         id,
 		nick:       nick,
-		address:    *addr,
+		address:    extAddr.address,
+		extAddress:	*extAddr,
 		privateKey: *privateKeyECDSA,
 	}
 	return account
