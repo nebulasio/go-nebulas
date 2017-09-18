@@ -16,7 +16,7 @@
 // along with the go-nebulas library.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-package bytes
+package byteutils
 
 // Encoder encoder for bytes.Encode().
 type Encoder interface {

@@ -16,14 +16,15 @@
 // along with the go-nebulas library.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-package bytes
+package byteutils
 
 import (
-	Bytes "bytes"
+	"bytes"
 	"compress/gzip"
+	"io/ioutil"
+
 	"github.com/nebulasio/go-nebulas/common/rlp"
 	json "github.com/pquerna/ffjson/ffjson"
-	"io/ioutil"
 )
 
 // RLPSerializer implements ethereum rlp algorithm
@@ -63,7 +64,7 @@ func (s *JSONSerializer) Deserialize(val []byte, res interface{}) error {
 }
 
 func compress(val []byte) ([]byte, error) {
-	var b Bytes.Buffer
+	var b bytes.Buffer
 	gz := gzip.NewWriter(&b)
 	if _, err := gz.Write(val); err != nil {
 		return nil, err
@@ -78,7 +79,7 @@ func compress(val []byte) ([]byte, error) {
 }
 
 func uncompress(val []byte) ([]byte, error) {
-	source := Bytes.NewReader(val)
+	source := bytes.NewReader(val)
 	reader, err := gzip.NewReader(source)
 	if err != nil {
 		return nil, err
