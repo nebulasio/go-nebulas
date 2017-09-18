@@ -19,7 +19,7 @@
 package trie
 
 import (
-	"github.com/nebulasio/go-nebulas/utils/bytes"
+	"github.com/nebulasio/go-nebulas/utils/byteutils"
 )
 
 // Storage the nodes in trie.
@@ -29,17 +29,17 @@ type Storage struct {
 
 // Get return value to the key in Storage
 func (db *Storage) Get(key []byte) ([]byte, error) {
-	return db.data[bytes.Hex(key)], nil
+	return db.data[byteutils.Hex(key)], nil
 }
 
 // Put put the key-value entry to Storage
 func (db *Storage) Put(key []byte, value []byte) error {
-	db.data[bytes.Hex(key)] = value
+	db.data[byteutils.Hex(key)] = value
 	return nil
 }
 
 // Del delete the key in Storage.
 func (db *Storage) Del(key []byte) error {
-	delete(db.data, bytes.Hex(key))
+	delete(db.data, byteutils.Hex(key))
 	return nil
 }

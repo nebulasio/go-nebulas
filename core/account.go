@@ -20,9 +20,6 @@ package core
 
 import (
 	"crypto/ecdsa"
-	"fmt"
-
-	"github.com/satori/go.uuid"
 )
 
 type Account struct {
@@ -35,22 +32,22 @@ type Account struct {
 	address Address
 
 	// extAddress for nick check
-	extAddress ExtAddress
+	// extAddress ExtAddress
 
 	// ecdsa private key ,public & address can be derived from it
 	privateKey ecdsa.PrivateKey
 }
 
-// create new account with nick and private key
-func newAccountFromECDSA(nick string, privateKeyECDSA *ecdsa.PrivateKey) *Account {
-	id := fmt.Sprintf("%s", uuid.NewV4())
-	extAddr := NewExtAddressWithPrivateKey(nick,privateKeyECDSA)
-	account := &Account{
-		id:         id,
-		nick:       nick,
-		address:    extAddr.address,
-		extAddress:	*extAddr,
-		privateKey: *privateKeyECDSA,
-	}
-	return account
-}
+// // create new account with nick and private key
+// func newAccountFromECDSA(nick string, privateKeyECDSA *ecdsa.PrivateKey) *Account {
+// 	id := fmt.Sprintf("%s", uuid.NewV4())
+// 	extAddr := NewExtAddressWithPrivateKey(nick, privateKeyECDSA)
+// 	account := &Account{
+// 		id:         id,
+// 		nick:       nick,
+// 		address:    extAddr.address,
+// 		extAddress: *extAddr,
+// 		privateKey: *privateKeyECDSA,
+// 	}
+// 	return account
+// }

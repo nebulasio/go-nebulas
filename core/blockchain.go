@@ -40,7 +40,7 @@ const (
 	EagleNebula = 1 << 4
 )
 
-// NewBlockChain create new @BlockChain instance.
+// NewBlockChain create new #BlockChain instance.
 func NewBlockChain(chainID int) *BlockChain {
 	var bc = &BlockChain{chainID: chainID}
 	bc.detachedBlocks, _ = lru.New(100)
@@ -67,8 +67,8 @@ func (bc *BlockChain) SetTailBlock(block *Block) {
 	bc.tailBlock = block
 }
 
-// NewBlock create new @Block instance.
+// NewBlock create new #Block instance.
 func (bc *BlockChain) NewBlock(coinbase *Address) *Block {
-	block := NewBlock(bc.tailBlock.header.hash, bc.tailBlock.header.nonce, coinbase)
+	block := NewBlock(bc.tailBlock.header.hash, coinbase)
 	return block
 }

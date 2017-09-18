@@ -23,7 +23,7 @@ import (
 
 	"github.com/nebulasio/go-nebulas/consensus"
 	"github.com/nebulasio/go-nebulas/crypto/hash"
-	"github.com/nebulasio/go-nebulas/utils/bytes"
+	"github.com/nebulasio/go-nebulas/utils/byteutils"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -57,7 +57,7 @@ func (state *MiningState) Event(e consensus.Event) (bool, consensus.State) {
 // Enter called when transiting to this state.
 func (state *MiningState) Enter(data interface{}) {
 	log.Debug("MiningState enter.")
-	go state.calculateHash()
+	go state.searchingNonce()
 }
 
 // Leave called when leaving this state.
@@ -65,13 +65,12 @@ func (state *MiningState) Leave(data interface{}) {
 	log.Debug("MiningState leave.")
 }
 
-func (state *MiningState) calculateHash() {
+func (state *MiningState) searchingNonce() {
 	// calculate hash.
 	newBlock := state.p.newBlock
 	nonce := newBlock.Nonce()
 
 	parentHash := newBlock.ParentHash()
-	parentHashBytes, _ := bytes.FromHex(parentHash)
 
 	timeStart := time.Now()
 	miningInterval, _ := time.ParseDuration("1s")
@@ -86,16 +85,17 @@ func (state *MiningState) calculateHash() {
 			nonce++
 
 			// compute hash..
-			resultBytes := hash.Sha256(parentHashBytes, bytes.FromUint64(nonce))
+			resultBytes := hash.Sha256(parentHash, byteutils.FromUint64(nonce))
 
 			// verify.
 			if resultBytes[0] == 0 && resultBytes[1] == 0 {
 				log.WithFields(log.Fields{
-					"parentHash": parentHash,
 					"nonce":      nonce,
-					"hashResult": bytes.Hex(resultBytes),
+					"parentHash": byteutils.Hex(parentHash),
+					"hashResult": byteutils.Hex(resultBytes),
 				}).Info("Nonce found, done")
 
+				// FIXME: Debug purpose.
 				elapse := time.Since(timeStart)
 				if elapse < miningInterval {
 					time.Sleep(miningInterval - elapse)

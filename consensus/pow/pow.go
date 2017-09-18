@@ -19,6 +19,7 @@
 package pow
 
 import (
+	"bytes"
 	"fmt"
 	"time"
 
@@ -26,6 +27,7 @@ import (
 	"github.com/nebulasio/go-nebulas/components/net/messages"
 	"github.com/nebulasio/go-nebulas/consensus"
 	"github.com/nebulasio/go-nebulas/core"
+	"github.com/nebulasio/go-nebulas/utils/byteutils"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -163,12 +165,12 @@ func (p *Pow) AppendBlock(block *core.Block) error {
 	blockHash := block.Hash()
 
 	logFields := log.Fields{
-		"bc.latestBlock.header.hash": tailBlockHash,
-		"block.header.parentHash":    blockParentHash,
-		"block.header.hash":          blockHash,
+		"bc.latestBlock.header.hash": byteutils.Hex(tailBlockHash),
+		"block.header.parentHash":    byteutils.Hex(blockParentHash),
+		"block.header.hash":          byteutils.Hex(blockHash),
 	}
 
-	if tailBlockHash == blockParentHash {
+	if bytes.Compare(tailBlockHash, blockParentHash) == 0 {
 		log.WithFields(logFields).Info("New block")
 		bc.SetTailBlock(block)
 

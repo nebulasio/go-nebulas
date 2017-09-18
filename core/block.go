@@ -23,15 +23,20 @@ import (
 	"time"
 
 	"github.com/nebulasio/go-nebulas/crypto/hash"
-	"github.com/nebulasio/go-nebulas/utils/bytes"
+	"github.com/nebulasio/go-nebulas/utils/byteutils"
+)
+
+const (
+	// BlockHashLength define a const of the length of Hash of Block in byte.
+	BlockHashLength = 32
 )
 
 /*
 BlockHeader type.
 */
 type BlockHeader struct {
-	hash       string
-	parentHash string
+	hash       []byte
+	parentHash []byte
 	nonce      uint64
 	coinbase   *Address
 	timestamp  time.Time
@@ -48,9 +53,14 @@ type Block struct {
 	nextBlock     *Block
 }
 
-func NewBlock(parentHash string, nonce uint64, coinbase *Address) *Block {
+// NewBlock return new block.
+func NewBlock(parentHash []byte, coinbase *Address) *Block {
 	block := &Block{
-		header:       &BlockHeader{parentHash: parentHash, nonce: nonce, coinbase: coinbase},
+		header: &BlockHeader{
+			parentHash: parentHash,
+			coinbase:   coinbase,
+			timestamp:  time.Now(),
+		},
 		transactions: make(Transactions, 10, 20),
 	}
 	return block
@@ -62,43 +72,49 @@ func (block *Block) AddTransactions(txs ...*Transaction) *Block {
 	return block
 }
 
+// Sign signature this block.
 func (block *Block) Sign() *Block {
-	block.header.timestamp = time.Now()
-	block.header.hash = block.computeHash()
+	// TODO: Use Cipher/Key from #KeyStore by coinbase to signature this block.
+	block.header.hash = HashBlock(block)
 	return block
 }
 
+// Nonce return nonce.
 func (block *Block) Nonce() uint64 {
 	return block.header.nonce
 }
 
+// SetNonce set nonce.
 func (block *Block) SetNonce(nonce uint64) {
 	block.header.nonce = nonce
 }
 
-func (block *Block) Hash() string {
+// Hash return block hash.
+func (block *Block) Hash() []byte {
 	return block.header.hash
 }
 
-func (block *Block) ParentHash() string {
+// ParentHash return parent hash.
+func (block *Block) ParentHash() []byte {
 	return block.header.parentHash
 }
 
-func (block *Block) computeHash() string {
-	ph, _ := bytes.FromHex(block.header.parentHash)
-	ah, _ := bytes.FromHex(block.header.coinbase.address)
-
-	return bytes.Hex(hash.Sha3256(
-		ph, ah,
-		bytes.FromUint64(block.header.nonce),
-		bytes.FromUint64(uint64(block.header.timestamp.UnixNano())),
-	))
+func (block *Block) String() string {
+	return fmt.Sprintf("Block {hash:%s; parentHash:%s; nonce:%d, timestamp: %d}",
+		byteutils.Hex(block.header.hash),
+		byteutils.Hex(block.header.parentHash),
+		block.header.nonce,
+		block.header.timestamp.UnixNano(),
+	)
 }
 
-func (block *Block) String() string {
-	return fmt.Sprintf("Block {hash:%s; parentHash:%s; nonce:%d}",
-		block.header.hash,
+// HashBlock return the hash of block.
+func HashBlock(block *Block) []byte {
+	// TODO: block.txs should be included in hash procedure.
+	return hash.Sha3256(
 		block.header.parentHash,
-		block.header.nonce,
+		block.header.coinbase.address,
+		byteutils.FromUint64(block.header.nonce),
+		byteutils.FromInt64(block.header.timestamp.UnixNano()),
 	)
 }

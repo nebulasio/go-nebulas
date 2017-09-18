@@ -19,19 +19,31 @@
 package core
 
 import (
-	"crypto/ecdsa"
+	"errors"
 
-	"github.com/nebulasio/go-nebulas/crypto"
 	"github.com/nebulasio/go-nebulas/crypto/hash"
-	"github.com/nebulasio/go-nebulas/utils/bytes"
-	"strings"
+	"github.com/nebulasio/go-nebulas/utils/byteutils"
+
+	log "github.com/sirupsen/logrus"
 )
 
 const (
-	CheckSumLength = 4
-	AddressLength  = 20
-	CheckAddressLength = 24
-	ExtAddressLength = 26
+	// AddressDataLength the length of data of address in byte.
+	AddressDataLength = 20
+
+	// AddressChecksumLength the checksum of address in byte.
+	AddressChecksumLength = 4
+
+	// AddressLength the length of address in byte.
+	AddressLength = AddressDataLength + AddressChecksumLength
+)
+
+var (
+	// ErrInvalidAddress invalid address error.
+	ErrInvalidAddress = errors.New("address: invalid address")
+
+	// ErrInvalidAddressDataLength invalid data length error.
+	ErrInvalidAddressDataLength = errors.New("address: invalid address data length")
 )
 
 /*
@@ -69,97 +81,51 @@ type Address struct {
 	address []byte
 }
 
-// NewAddress return new @Address instance.
-func NewAddress(address string) *Address {
-	if strings.HasPrefix(address,"0x") {
-		address = address[2:]
+// NewAddress create new #Address according to data bytes.
+func NewAddress(s []byte) (*Address, error) {
+	if len(s) != AddressDataLength {
+		log.Errorf("invalid address data: length of s is %d, expected to %d.", len(s), AddressDataLength)
+		return nil, ErrInvalidAddressDataLength
 	}
-	addrBytes,_ := bytes.FromHex(address)
-	addr := &Address{address: addrBytes}
-	return addr
+
+	cs := checkSum(s)
+	return &Address{address: append(s, cs...)}, nil
 }
 
-// NewAddressWithPrivateKey generate Address from private key
-func NewAddressWithPrivateKey(privateKey *ecdsa.PrivateKey) *Address {
-	publicKeyBytes := crypto.FromECDSAPub(&privateKey.PublicKey)
-	return NewAddressWithPublicKey(publicKeyBytes)
-}
-
-// NewAddressWithPublicKey generate Address from public key
-func NewAddressWithPublicKey(publicKeyBytes []byte) *Address {
-	data := hash.Sha3256(publicKeyBytes)[len(publicKeyBytes)-AddressLength:]
-	checkSum := hash.Sha3256(data)[:CheckSumLength]
-	addr := &Address{address: append(data, checkSum...)}
-	return addr
-}
-
-// check address is valid in nebulas
-func IsValidAddress(addr []byte) bool  {
-	// if address length is not right ,return false
-	if len(addr) != CheckAddressLength {
-		return false
+// Parse parse address string.
+func Parse(s string) (*Address, error) {
+	r, err := byteutils.FromHex(s)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"s": s, "err": err,
+		}).Error("invalid address: string should be encoded in Hexadecimal.")
+		return nil, ErrInvalidAddress
 	}
-	data := addr[:CheckAddressLength]
-	checkSum := addr[AddressLength:]
-	dataCheck := hash.Sha3256(data)[:CheckSumLength]
-	// not use reflect.DeepEqual
-	for i,v := range dataCheck {
-		if v != checkSum[i] {
-			return false
+
+	return ParseFromBytes(r)
+}
+
+// ParseFromBytes parse address from bytes.
+func ParseFromBytes(s []byte) (*Address, error) {
+	if len(s) != AddressLength {
+		log.Errorf("invalid address: length of s is %d, expected to %d.", len(s), AddressLength)
+		return nil, ErrInvalidAddress
+	}
+
+	data := s[:AddressDataLength]
+	cs := s[AddressDataLength:AddressLength]
+	dcs := checkSum(data)
+
+	for i := 0; i < AddressChecksumLength; i++ {
+		if dcs[i] != cs[i] {
+			log.Errorf("invalid address: checksum is %s, expected to %s.", cs, dcs)
+			return nil, ErrInvalidAddress
 		}
 	}
-	return true
+
+	return &Address{address: s}, nil
 }
 
-/*
-ExtAddress is used for double check in transaction if user give it to others,we don't storage it on blockchain
-  ExtData = Utf8Bytes({Nickname})
-  ExtHash = sha3_256(Data + ExtData)[0:2]
-  ExtAddress = Address + Hex(ExtHash)
-*/
-type ExtAddress struct {
-	nick       string // nick or some comment for address
-	address    Address
-	extAddress []byte
-}
-
-// NewExtAddressWithPrivateKey generate new @ExtAddress from private key
-func NewExtAddressWithPrivateKey(nick string, privateKey *ecdsa.PrivateKey) *ExtAddress {
-	publicKeyBytes := crypto.FromECDSAPub(&privateKey.PublicKey)
-	return NewExtAddress(nick,publicKeyBytes)
-}
-
-// NewExtAddress return new @ExtAddress instance.
-func NewExtAddress(nick string, publicKeyBytes []byte) *ExtAddress {
-	data := hash.Sha3256(publicKeyBytes)[len(publicKeyBytes)-AddressLength:]
-	addr := NewAddressWithPublicKey(publicKeyBytes)
-	extHash := hash.Sha3256(append(data, []byte(nick)...))[:2]
-	extAddress := append(addr.address, extHash...)
-	extAddr := &ExtAddress{
-		nick:       nick,
-		address:    *addr,
-		extAddress: extAddress}
-	return extAddr
-}
-
-// check extAddress is valid in nebulas
-func IsValidExtAddress(nick string, addr []byte) bool  {
-	// if address length is not right ,return false
-	if len(addr) != ExtAddressLength {
-		return false
-	}
-	data := addr[:CheckAddressLength]
-	// check is valid address
-	if !IsValidAddress(data) {
-		return false
-	}
-	extCheckSum := addr[CheckAddressLength:]
-	dataCheck := hash.Sha3256(append(data,[]byte(nick)...))[:2]
-	// not use reflect.DeepEqual
-	for i,v := range dataCheck {
-		if v != extCheckSum[i] {
-			return false
-		}
-	}
-	return true
+func checkSum(data []byte) []byte {
+	return hash.Sha3256(data)[:AddressChecksumLength]
 }
