@@ -32,12 +32,6 @@
   revision = "bc6354cbbc295e925e4c611ffe90c1f287ee54db"
 
 [[projects]]
-  name = "github.com/ethereum/go-ethereum"
-  packages = ["common/math","crypto/secp256k1"]
-  revision = "6c6c7b2af3efdad4d2f64f70f3a724af434bbcd2"
-  version = "v1.7.0"
-
-[[projects]]
   branch = "master"
   name = "github.com/fd/go-nat"
   packages = ["."]
@@ -80,10 +74,10 @@
   revision = "5b7801abd885f2f7458add715aee47e7df5370a0"
 
 [[projects]]
-  branch = "master"
   name = "github.com/ipfs/go-ipfs-util"
   packages = ["."]
   revision = "ca91b45d2e776e6e066151f7b65a3984c87e9fbb"
+  version = "1.2.5"
 
 [[projects]]
   branch = "master"
@@ -267,12 +261,6 @@
 
 [[projects]]
   branch = "master"
-  name = "github.com/libp2p/go-peerstream"
-  packages = ["."]
-  revision = "f93b4def7e7299b4a591fe9ed4022b890f2bc254"
-
-[[projects]]
-  branch = "master"
   name = "github.com/libp2p/go-stream-muxer"
   packages = ["."]
   revision = "6ebe3f58af097068454b167a89442050b023b571"
@@ -290,10 +278,10 @@
   revision = "5bd7350ee4509a70ebec7c38ac5bae385e314a0a"
 
 [[projects]]
+  branch = "master"
   name = "github.com/multiformats/go-multiaddr"
   packages = ["."]
-  revision = "b90678896b52c3e5a4c8176805c6facc3fe3eb82"
-  version = "0.1.2"
+  revision = "6c0f82541bfd9b3363aad12276539591377de792"
 
 [[projects]]
   branch = "master"
@@ -314,10 +302,10 @@
   revision = "0ee69486dc1c9087aacfcc575e333f305009997e"
 
 [[projects]]
+  branch = "master"
   name = "github.com/multiformats/go-multihash"
   packages = ["."]
-  revision = "bdcf2980a789f55c97d548fdfa727f8fb19684ba"
-  version = "0.1.0"
+  revision = "a52a6a4768da72eba89ea7f59f70e9d42ddd3072"
 
 [[projects]]
   branch = "master"
