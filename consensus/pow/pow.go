@@ -56,7 +56,8 @@ type Pow struct {
 	currentState      consensus.State
 	stateTransitionCh chan *stateTransitionArgs
 
-	newBlock *core.Block
+	miningBlock   *core.Block
+	receivedBlock *core.Block
 }
 
 type stateTransitionArgs struct {
@@ -239,6 +240,7 @@ func (p *Pow) blockLoop() {
 		case msg := <-p.chain.BlockPool().ReceivedBlockCh():
 			count++
 			log.Debugf("Pow.blockLoop: new block message received. Count=%d", count)
+			p.receivedBlock = msg.Data().(*core.Block)
 			p.Event(consensus.NewBaseEvent(consensus.NetMessageEvent, msg))
 		case <-p.quitCh:
 			// TODO: should provide base goroutine start/stop func to graceful stop them.

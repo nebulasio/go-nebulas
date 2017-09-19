@@ -46,14 +46,26 @@ func (state *MintedState) Event(e consensus.Event) (bool, consensus.State) {
 
 // Enter called when transiting to this state.
 func (state *MintedState) Enter(data interface{}) {
-	log.Debug("MintedState enter.")
+	log.Debug("MintedState.Enter: enter.")
 
-	// append to local blockchain.
-	state.p.newBlock.Sign()
-	state.p.AppendBlock(state.p.newBlock)
+	// first process the received block.
+	if state.p.receivedBlock != nil {
+		log.Info("MintedState.Enter: process received block.")
+		// TODO: append received blocks to BlockChain.
+		state.p.receivedBlock = nil
+	}
 
-	// send new block to network.
-	state.p.nm.BroadcastBlock(state.p.newBlock)
+	// nonce found.
+	if state.p.miningBlock.Nonce() > 0 {
+		// TODO: append minted block to BlockChain.
+		log.Info("MintedState.Enter: process minted block.")
+
+		state.p.miningBlock.Sign()
+		state.p.AppendBlock(state.p.miningBlock)
+
+		// send new block to network.
+		state.p.nm.BroadcastBlock(state.p.miningBlock)
+	}
 
 	// move to prepare state.
 	state.p.TransiteByKey(Prepare, nil)
@@ -61,5 +73,5 @@ func (state *MintedState) Enter(data interface{}) {
 
 // Leave called when leaving this state.
 func (state *MintedState) Leave(data interface{}) {
-	log.Debug("MintedState leave.")
+	log.Debug("MintedState.Leave: leave.")
 }

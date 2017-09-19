@@ -21,6 +21,7 @@ package pow
 import (
 	"time"
 
+	"github.com/nebulasio/go-nebulas/components/net"
 	"github.com/nebulasio/go-nebulas/consensus"
 	"github.com/nebulasio/go-nebulas/crypto/hash"
 	"github.com/nebulasio/go-nebulas/utils/byteutils"
@@ -51,68 +52,88 @@ func NewMiningState(p *Pow) *MiningState {
 
 // Event handle event.
 func (state *MiningState) Event(e consensus.Event) (bool, consensus.State) {
+	msg := e.Data().(net.Message)
+	if msg == nil {
+		return false, nil
+	}
+
+	// when received new block event, quit searchingNonce(), go to next state.
+	if msg.MessageType() == net.MessageTypeNewBlock {
+		log.WithFields(log.Fields{"block": msg.Data()}).Info("MiningState.Event: receive new block message, transite to MintedState.")
+		return true, state.p.states[Minted]
+	}
+
 	return false, nil
 }
 
 // Enter called when transiting to this state.
 func (state *MiningState) Enter(data interface{}) {
-	log.Debug("MiningState enter.")
+	log.Debug("MiningState.Enter: enter.")
+
+	// start searching nonce.
 	go state.searchingNonce()
 }
 
 // Leave called when leaving this state.
 func (state *MiningState) Leave(data interface{}) {
-	log.Debug("MiningState leave.")
+	log.Debug("MiningState.Leave: leave.")
 	state.quitCh <- true
 }
 
 func (state *MiningState) searchingNonce() {
-	// calculate hash.
-	newBlock := state.p.newBlock
-	nonce := newBlock.Nonce()
+	// transite to MintedState if receivedBlock is not nil.
+	if state.p.receivedBlock != nil {
+		log.Info("MiningState.Enter: received block found, transite to MintedState.")
+		state.p.TransiteByKey(Minted, nil)
 
-	parentHash := newBlock.ParentHash()
+	} else {
+		// calculate hash.
+		miningBlock := state.p.miningBlock
+		nonce := miningBlock.Nonce()
 
-	timeStart := time.Now()
-	miningInterval, _ := time.ParseDuration("1s")
+		parentHash := miningBlock.ParentHash()
 
-computeHash:
-	for {
-		select {
-		case <-state.quitCh:
-			log.Info("quit MiningState in loop.")
-			return
+		timeStart := time.Now()
+		miningInterval, _ := time.ParseDuration("1s")
 
-		default:
-			nonce++
+	computeHash:
+		for {
+			select {
+			case <-state.quitCh:
+				log.Info("MiningState.searchingNonce: quit.")
+				return
 
-			// compute hash..
-			resultBytes := hash.Sha256(parentHash, byteutils.FromUint64(nonce))
+			default:
+				nonce++
 
-			// verify.
-			if resultBytes[0] == 0 && resultBytes[1] == 0 {
-				log.WithFields(log.Fields{
-					"nonce":      nonce,
-					"parentHash": byteutils.Hex(parentHash),
-					"hashResult": byteutils.Hex(resultBytes),
-				}).Info("Nonce found, done")
+				// compute hash..
+				resultBytes := hash.Sha256(parentHash, byteutils.FromUint64(nonce))
 
-				// FIXME: Debug purpose.
-				elapse := time.Since(timeStart)
-				if elapse < miningInterval {
-					time.Sleep(miningInterval - elapse)
+				// verify.
+				if resultBytes[0] == 0 && resultBytes[1] == 0 {
+					log.WithFields(log.Fields{
+						"nonce":      nonce,
+						"parentHash": byteutils.Hex(parentHash),
+						"hashResult": byteutils.Hex(resultBytes),
+					}).Info("MiningState.searchingNonce: found valid nonce, transite to MintedState.")
+
+					// FIXME: Debug purpose.
+					elapse := time.Since(timeStart)
+					if elapse < miningInterval {
+						time.Sleep(miningInterval - elapse)
+					}
+
+					miningBlock.SetNonce(nonce)
+					state.p.TransiteByKey(Minted, nil)
+
+					// break this for loop.
+					break computeHash
 				}
-
-				newBlock.SetNonce(nonce)
-				state.p.Transite(state.p.states[Minted], nil)
-
-				// break this for loop.
-				break computeHash
 			}
 		}
 	}
 
 	// wait for quit while transiting.
 	<-state.quitCh
-	log.Info("quit MiningState when nonce is found.")
+	log.Info("MiningState.searchingNonce: quit at the end.")
 }

@@ -51,7 +51,7 @@ func (state *PrepareState) Enter(data interface{}) {
 
 	// get the pending block.
 	addr, _ := core.NewAddress([]byte{223, 77, 34, 97, 20, 18, 19, 45, 62, 155, 211, 34, 248, 46, 41, 64, 103, 78, 193, 188})
-	state.p.newBlock = state.p.chain.NewBlock(addr)
+	state.p.miningBlock = state.p.chain.NewBlock(addr)
 
 	// move to mining state.
 	state.p.TransiteByKey(Mining, nil)
