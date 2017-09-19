@@ -21,8 +21,6 @@ package core
 import (
 	"sync"
 
-	"github.com/nebulasio/go-nebulas/utils/byteutils"
-
 	"github.com/nebulasio/go-nebulas/components/net"
 	log "github.com/sirupsen/logrus"
 )
@@ -60,6 +58,13 @@ func (pool *BlockPool) RegisterInNetwork(nm *net.Manager) {
 // If f returns false, range stops the iteration.
 func (pool *BlockPool) Range(f func(key, value interface{}) bool) {
 	pool.inner.Range(f)
+}
+
+// Delete delete key from pool.
+func (pool *BlockPool) Delete(keys ...HexHash) {
+	for _, key := range keys {
+		pool.inner.Delete(key)
+	}
 }
 
 // Start start loop.
@@ -101,7 +106,7 @@ func (pool *BlockPool) loop() {
 			}
 
 			// send to chan.
-			pool.inner.Store(byteutils.Hex(block.Hash()), block)
+			pool.inner.Store(block.Hash().Hex(), block)
 			pool.receivedBlockCh <- block
 		}
 	}
@@ -117,6 +122,6 @@ func (pool *BlockPool) AddLocalBlock(block *Block) {
 	}
 
 	// send to chan.
-	pool.inner.Store(byteutils.Hex(block.Hash()), block)
+	pool.inner.Store(block.Hash().Hex(), block)
 	pool.receivedBlockCh <- block
 }

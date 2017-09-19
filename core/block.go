@@ -19,12 +19,12 @@
 package core
 
 import (
-	"bytes"
 	"fmt"
 	"time"
 
 	"github.com/nebulasio/go-nebulas/crypto/hash"
 	"github.com/nebulasio/go-nebulas/utils/byteutils"
+	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -36,8 +36,8 @@ const (
 BlockHeader type.
 */
 type BlockHeader struct {
-	hash       []byte
-	parentHash []byte
+	hash       Hash
+	parentHash Hash
 	nonce      uint64
 	coinbase   *Address
 	timestamp  time.Time
@@ -52,11 +52,10 @@ type Block struct {
 
 	height       uint64
 	parenetBlock *Block
-	childBlock   *Block
 }
 
 // NewBlock return new block.
-func NewBlock(parentHash []byte, coinbase *Address) *Block {
+func NewBlock(parentHash Hash, coinbase *Address) *Block {
 	block := &Block{
 		header: &BlockHeader{
 			parentHash: parentHash,
@@ -98,12 +97,12 @@ func (block *Block) SetNonce(nonce uint64) {
 }
 
 // Hash return block hash.
-func (block *Block) Hash() []byte {
+func (block *Block) Hash() Hash {
 	return block.header.hash
 }
 
 // ParentHash return parent hash.
-func (block *Block) ParentHash() []byte {
+func (block *Block) ParentHash() Hash {
 	return block.header.parentHash
 }
 
@@ -119,12 +118,13 @@ func (block *Block) Height() uint64 {
 
 // LinkParentBlock link parent block, return true if hash is the same; false otherwise.
 func (block *Block) LinkParentBlock(parentBlock *Block) bool {
-	if bytes.Compare(block.ParentHash(), parentBlock.Hash()) != 0 {
+	if block.ParentHash().Equals(parentBlock.Hash()) == false {
 		return false
 	}
 
+	log.Infof("Block.LinkParentBlock: parentBlock %s <- block %s", parentBlock.Hash(), block.Hash())
+
 	block.parenetBlock = parentBlock
-	parentBlock.childBlock = block
 
 	// travel to calculate block height.
 	depth := uint64(0)

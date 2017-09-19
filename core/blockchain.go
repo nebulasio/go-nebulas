@@ -89,37 +89,43 @@ func (bc *BlockChain) NewBlock(coinbase *Address) *Block {
 	return block
 }
 
+// PutUnattachedBlocks put unattached blocks to LRU cache for furthur process.
+// Unattached block is the block not yet attach to chain, eg. new block from network, local minted block.
+func (bc *BlockChain) PutUnattachedBlocks(blocks ...*Block) {
+	for _, v := range blocks {
+		bc.detachedBlocks.Add(v.Hash().Hex(), v)
+	}
+}
+
+// PutUnattachedBlockMap put unattached blocks to LRU cache for furthur process.
+// Unattached block is the block not yet attach to chain, eg. new block from network, local minted block.
+func (bc *BlockChain) PutUnattachedBlockMap(blocks map[HexHash]*Block) {
+	for k, v := range blocks {
+		bc.detachedBlocks.Add(k, v)
+	}
+}
+
+// GetBlock return block of given hash from local storage and detachedBlocks.
+func (bc *BlockChain) GetBlock(hash Hash) *Block {
+	// TODO: get block from local storage.
+	v, _ := bc.detachedBlocks.Get(hash.Hex())
+	if v == nil {
+		if hash.Equals(bc.genesisBlock.Hash()) {
+			return bc.genesisBlock
+		}
+		return nil
+	}
+
+	block := v.(*Block)
+	return block
+}
+
 // Dump dump full chain.
 func (bc *BlockChain) Dump() string {
-	l := make([]string, 1)
-
-	for block := bc.genesisBlock; block != nil; block = block.childBlock {
-		l = append(l, fmt.Sprintf("{%d, hash: %s, parent: %s}", block.height, byteutils.Hex(block.Hash()), byteutils.Hex(block.ParentHash())))
-	}
-	ls := strings.Join(l, " <-- ")
-
 	rl := make([]string, 1)
 	for block := bc.tailBlock; block != nil; block = block.parenetBlock {
 		rl = append(rl, fmt.Sprintf("{%d, hash: %s, parent: %s}", block.height, byteutils.Hex(block.Hash()), byteutils.Hex(block.ParentHash())))
 	}
-	rls := strings.Join(rl, " <-- ")
-
-	return ls + "; reverse order:" + rls
-}
-
-// AssertChain
-func (bc *BlockChain) Assert() {
-	for block := bc.genesisBlock; block != nil; block = block.childBlock {
-		if block.childBlock.parenetBlock != block {
-			// log.Infof("block {%d, hash: %s, parent: %s, parentBlock} vs. childblock {%d, hash: %s, parent: %s}", block, block.childBlock)
-			panic("Assert block.childBlock.parenetBlock == block failed.")
-		}
-	}
-
-	for block := bc.tailBlock; block != nil; block = block.parenetBlock {
-		if block.parenetBlock.childBlock != block {
-			// log.Infof("parentBlock %s vs. block %s", block.parenetBlock, block)
-			panic("Assert block.parenetBlock.childBlock == block failed.")
-		}
-	}
+	rls := strings.Join(rl, " --> ")
+	return rls
 }

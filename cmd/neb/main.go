@@ -87,7 +87,7 @@ func main() {
 
 	quitCh := make(chan bool, 10)
 
-	clientCount := 1
+	clientCount := 5
 	nmCh := make(chan *net.Manager, clientCount)
 
 	sharedBlockCh := make(chan interface{}, 50)
