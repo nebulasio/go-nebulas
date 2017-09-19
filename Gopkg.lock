@@ -8,12 +8,6 @@
   version = "v1.1.0"
 
 [[projects]]
-  name = "github.com/ethereum/go-ethereum"
-  packages = ["common/math","crypto/secp256k1"]
-  revision = "6c6c7b2af3efdad4d2f64f70f3a724af434bbcd2"
-  version = "v1.7.0"
-
-[[projects]]
   branch = "master"
   name = "github.com/hashicorp/golang-lru"
   packages = [".","simplelru"]
@@ -58,6 +52,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "b7e238811409377ca76b208c6d13590ade38d98e9bdf44c106551ca546fae69f"
+  inputs-digest = "96f8c5f93ea8708e95a2902cb95bd33047004b3d35146ff89d3618a88ab77c99"
   solver-name = "gps-cdcl"
   solver-version = 1

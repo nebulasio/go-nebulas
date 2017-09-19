@@ -113,8 +113,8 @@ func NewCallbackParameter(f func()) (*CallbackHandlerProtection, error) {
 type Provider interface {
 
 	/*
-		 * Constructs a provider with the specified name, version number,
-	     * and information.
+			 * Constructs a provider with the specified name, version number,
+		     * and information.
 	*/
 	NewProvider(name string, version float32, desc string)
 

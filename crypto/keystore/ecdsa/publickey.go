@@ -22,24 +22,25 @@ import (
 	"crypto/ecdsa"
 )
 
-type ECDSAPrivateKey struct {
-	privateKey *ecdsa.PrivateKey
+type ECDSAPublicKey struct {
+	publickey *ecdsa.PublicKey
 }
 
-// generate ECDSAPrivateKey
-func NewECDSAPrivateKey(pri *ecdsa.PrivateKey) *ECDSAPrivateKey {
-	ecdsaPri := &ECDSAPrivateKey{privateKey: pri}
-	return ecdsaPri
+// generate ECDSAPublicKey
+func NewECDSAPublicKey(pub *ecdsa.PublicKey) *ECDSAPublicKey {
+	ecdsaPub := &ECDSAPublicKey{publickey: pub}
+	return ecdsaPub
 }
 
-func (k *ECDSAPrivateKey) Algorithm() string {
+func (k *ECDSAPublicKey) Algorithm() string {
 	return "ecdsa"
 }
 
-func (k *ECDSAPrivateKey) Format() string {
+func (k *ECDSAPublicKey) Format() string {
 	return "byte"
 }
 
-func (k *ECDSAPrivateKey) Encoded() []byte {
-	return FromECDSAPri(k.privateKey)
+func (k *ECDSAPublicKey) Encoded() []byte {
+	pub, _ := FromECDSAPub(k.publickey)
+	return pub
 }

@@ -23,13 +23,13 @@ import (
 	"errors"
 )
 
-type SignatureECDSA struct {
+type ECDSASignature struct {
 	privateKey *ecdsa.PrivateKey
 
 	publicKey *ecdsa.PublicKey
 }
 
-func (s *SignatureECDSA) InitSign(priByte []byte) error {
+func (s *ECDSASignature) InitSign(priByte []byte) error {
 	pri, err := ToECDSAPrivate(priByte)
 	if err != nil {
 		return err
@@ -38,7 +38,7 @@ func (s *SignatureECDSA) InitSign(priByte []byte) error {
 	return nil
 }
 
-func (s *SignatureECDSA) Sign(data []byte) (out []byte, err error) {
+func (s *ECDSASignature) Sign(data []byte) (out []byte, err error) {
 	if s.privateKey == nil {
 		return nil, errors.New("please call InitSign to set private key")
 	}
@@ -49,19 +49,16 @@ func (s *SignatureECDSA) Sign(data []byte) (out []byte, err error) {
 	return signature, nil
 }
 
-func (s *SignatureECDSA) InitVerify(pubByte []byte) error {
-	pub := ToECDSAPublic(pubByte)
+func (s *ECDSASignature) InitVerify(pubByte []byte) error {
+	pub, _ := ToECDSAPublic(pubByte)
 	s.publicKey = pub
 	return nil
 }
 
-func (s *SignatureECDSA) Verify(signature []byte) (bool, error) {
-	if s.privateKey == nil {
+func (s *ECDSASignature) Verify(data []byte, signature []byte) (bool, error) {
+	if s.publicKey == nil {
 		return false, errors.New("please call InitVerify to set public key")
 	}
-	result, err := Verify(signature, s.publicKey)
-	if err != nil {
-		return false, err
-	}
+	result := Verify(data, signature, s.publicKey)
 	return result, nil
 }

@@ -23,21 +23,38 @@ import (
 	"crypto/elliptic"
 	"io"
 
+	"crypto/rand"
+	"crypto/x509"
 	"encoding/hex"
 	"errors"
-	"fmt"
-	"github.com/ethereum/go-ethereum/crypto/secp256k1"
+	"github.com/nebulasio/go-nebulas/utils/byteutils"
 	"math/big"
+	"sync"
+)
+
+var (
+	once        sync.Once
+	curveParams *elliptic.CurveParams
 )
 
 // S256 returns an instance of the secp256k1 curve.
-func S256() elliptic.Curve {
-	return secp256k1.S256()
+func Curve() elliptic.Curve {
+	once.Do(func() {
+		curveParams := new(elliptic.CurveParams)
+		curveParams.Name = "nebulas"
+		curveParams.P, _ = new(big.Int).SetString("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2F", 16)
+		curveParams.N, _ = new(big.Int).SetString("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141", 16)
+		curveParams.B, _ = new(big.Int).SetString("0000000000000000000000000000000000000000000000000000000000000007", 16)
+		curveParams.Gx, _ = new(big.Int).SetString("79BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F81798", 16)
+		curveParams.Gy, _ = new(big.Int).SetString("483ADA7726A3C4655DA4FBFC0E1108A8FD17B448A68554199C47D08FFB10D4B8", 16)
+		curveParams.BitSize = 256
+	})
+	return curveParams
 }
 
 // generate a ecdsa private key
 func GenerateECDSAPrivateKey(rand io.Reader) (*ecdsa.PrivateKey, error) {
-	privateKeyECDSA, err := ecdsa.GenerateKey(S256(), rand)
+	privateKeyECDSA, err := ecdsa.GenerateKey(Curve(), rand)
 	if err != nil {
 		return nil, err
 	}
@@ -45,19 +62,19 @@ func GenerateECDSAPrivateKey(rand io.Reader) (*ecdsa.PrivateKey, error) {
 }
 
 // FromECDSAPri exports a private key into a binary dump.
-func FromECDSAPri(pri *ecdsa.PrivateKey) []byte {
+func FromECDSAPri(pri *ecdsa.PrivateKey) ([]byte, error) {
 	if pri == nil {
-		return nil
+		return nil, errors.New("ecdsa: please input private key")
 	}
-	return pri.D.Bytes()
+	return x509.MarshalECPrivateKey(pri)
 }
 
 // FromECDSAPub exports a public key into a binary dump.
-func FromECDSAPub(pub *ecdsa.PublicKey) []byte {
+func FromECDSAPub(pub *ecdsa.PublicKey) ([]byte, error) {
 	if pub == nil || pub.X == nil || pub.Y == nil {
-		return nil
+		return nil, errors.New("ecdsa: please input public key")
 	}
-	return elliptic.Marshal(S256(), pub.X, pub.Y)
+	return x509.MarshalPKIXPublicKey(pub)
 }
 
 // HexToECDSAPrivate parses a secp256k1 private key.
@@ -71,31 +88,30 @@ func HexToECDSAPrivate(hexkey string) (*ecdsa.PrivateKey, error) {
 
 // ToECDSAPrivate creates a private key with the given data value.
 func ToECDSAPrivate(d []byte) (*ecdsa.PrivateKey, error) {
-	priv := new(ecdsa.PrivateKey)
-	priv.PublicKey.Curve = S256()
-	if 8*len(d) != priv.Params().BitSize {
-		return nil, fmt.Errorf("invalid length, need %d bits", priv.Params().BitSize)
-	}
-	priv.D = new(big.Int).SetBytes(d)
-	priv.PublicKey.X, priv.PublicKey.Y = priv.PublicKey.Curve.ScalarBaseMult(d)
-	return priv, nil
+	return x509.ParseECPrivateKey(d)
 }
 
 // ToECDSAPrivate creates a public key with the given data value.
-func ToECDSAPublic(pub []byte) *ecdsa.PublicKey {
+func ToECDSAPublic(pub []byte) (*ecdsa.PublicKey, error) {
 	if len(pub) == 0 {
-		return nil
+		return nil, errors.New("ecdsa: please input public key bytes")
 	}
-	x, y := elliptic.Unmarshal(S256(), pub)
-	return &ecdsa.PublicKey{Curve: S256(), X: x, Y: y}
+	pubInterface, err := x509.ParsePKIXPublicKey(pub)
+	return pubInterface.(*ecdsa.PublicKey), err
 }
 
 func Sign(hash []byte, prv *ecdsa.PrivateKey) (sig []byte, err error) {
-	// TODO(larry.wang) implement it later
-	return nil, nil
+	r, s, err := ecdsa.Sign(rand.Reader, prv, hash)
+	if err != nil {
+		return nil, errors.New("ecdsa: sign err")
+	}
+	sign := r.Bytes()
+	sign = append(sign, s.Bytes()...)
+	return sign, nil
 }
 
-func Verify(data []byte, pub *ecdsa.PublicKey) (bool, error) {
-	// TODO(larry.wang) implement it later
-	return false, nil
+func Verify(hash []byte, rs []byte, pub *ecdsa.PublicKey) bool {
+	r := big.NewInt(byteutils.Int64(rs[:32]))
+	s := big.NewInt(byteutils.Int64(rs[32:]))
+	return ecdsa.Verify(pub, hash, r, s)
 }

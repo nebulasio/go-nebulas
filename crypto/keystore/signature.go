@@ -21,34 +21,34 @@ package keystore
 type Signature interface {
 
 	/*
-		 * Initialize this object for signing. If this method is called
-	     * again with a different argument, it negates the effect
-	     * of this call.
+			 * Initialize this object for signing. If this method is called
+		     * again with a different argument, it negates the effect
+		     * of this call.
 	*/
 	InitSign(privateKey []byte) error
 
 	/*
-		 * Returns the signature bytes of all the data input.
-	     * The format of the signature depends on the underlying
-	     * signature scheme.
+			 * Returns the signature bytes of all the data input.
+		     * The format of the signature depends on the underlying
+		     * signature scheme.
 	*/
 	Sign(data []byte) (out []byte, err error)
 
 	/*
-		 * Initializes this object for verification. If this method is called
-	     * again with a different argument, it negates the effect
-	     * of this call.
+			 * Initializes this object for verification. If this method is called
+		     * again with a different argument, it negates the effect
+		     * of this call.
 	*/
 	InitVerify(publicKey []byte) error
 
 	/*
-		 * Verifies the passed-in signature.
-	     *
-	     * <p>A call to this method resets this signature object to the state
-	     * it was in when previously initialized for verification via a
-	     * call to <code>initVerify(PublicKey)</code>. That is, the object is
-	     * reset and available to verify another signature from the identity
-	     * whose public key was specified in the call to <code>initVerify</code>.
+			 * Verifies the passed-in signature.
+		     *
+		     * <p>A call to this method resets this signature object to the state
+		     * it was in when previously initialized for verification via a
+		     * call to <code>initVerify(PublicKey)</code>. That is, the object is
+		     * reset and available to verify another signature from the identity
+		     * whose public key was specified in the call to <code>initVerify</code>.
 	*/
-	Verify(signature []byte) (bool, error)
+	Verify(data []byte, signature []byte) (bool, error)
 }
