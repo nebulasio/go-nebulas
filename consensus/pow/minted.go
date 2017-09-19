@@ -52,6 +52,9 @@ func (state *MintedState) Enter(data interface{}) {
 	if state.p.receivedBlock != nil {
 		log.Info("MintedState.Enter: process received block.")
 		// TODO: append received blocks to BlockChain.
+
+		// bkPool := state.p.chain.BlockPool()
+
 		state.p.receivedBlock = nil
 	}
 

@@ -20,7 +20,6 @@ package pow
 
 import (
 	"bytes"
-	"fmt"
 
 	"github.com/nebulasio/go-nebulas/components/net"
 	"github.com/nebulasio/go-nebulas/consensus"
@@ -119,23 +118,15 @@ func (p *Pow) Event(e consensus.Event) {
 	// default procedure.
 	et := e.EventType()
 	switch et {
-	case consensus.NetMessageEvent:
-		msg := e.Data().(net.Message)
-		mt := msg.MessageType()
-		switch mt {
-		case net.MessageTypeNewBlock:
-			log.WithFields(log.Fields{
-				"block": msg.Data(),
-			}).Info("Pow.Event: handle BlockMessage.")
-		default:
-			log.WithFields(log.Fields{
-				"messageType": msg.MessageType(),
-				"message":     msg,
-			}).Info("Pow.Event: handle NetMessageEvent.")
-		}
+	case consensus.NewBlockEvent:
+		block := e.Data().(*core.Block)
+		log.WithFields(log.Fields{
+			"block": block,
+		}).Info("Pow.Event: handle BlockMessage.")
+
 	default:
 		log.WithFields(log.Fields{
-			"eventType": fmt.Sprintf("%T", e),
+			"eventType": e,
 		}).Info("Pow.Event: handle this event.")
 	}
 }
@@ -237,11 +228,11 @@ func (p *Pow) blockLoop() {
 	count := 0
 	for {
 		select {
-		case msg := <-p.chain.BlockPool().ReceivedBlockCh():
+		case block := <-p.chain.BlockPool().ReceivedBlockCh():
 			count++
 			log.Debugf("Pow.blockLoop: new block message received. Count=%d", count)
-			p.receivedBlock = msg.Data().(*core.Block)
-			p.Event(consensus.NewBaseEvent(consensus.NetMessageEvent, msg))
+			p.receivedBlock = block
+			p.Event(consensus.NewBaseEvent(consensus.NewBlockEvent, block))
 		case <-p.quitCh:
 			// TODO: should provide base goroutine start/stop func to graceful stop them.
 			/*

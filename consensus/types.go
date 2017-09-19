@@ -22,6 +22,7 @@ import "github.com/nebulasio/go-nebulas/core"
 
 const (
 	NetMessageEvent = "event.netmessage"
+	NewBlockEvent   = "event.newblock"
 )
 
 // Consensus interface of consensus algorithm.

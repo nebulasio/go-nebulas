@@ -22,32 +22,78 @@ import (
 	"sync"
 
 	"github.com/nebulasio/go-nebulas/components/net"
+	log "github.com/sirupsen/logrus"
 )
 
 // BlockPool a pool of all received blocks from network.
 // Blocks will be sent to Consensus when it passes signature verification.
 type BlockPool struct {
-	inner           *sync.Map
-	receivedBlockCh chan net.Message
-
-	quitCh chan int
+	inner            *sync.Map
+	receiveMessageCh chan net.Message
+	receivedBlockCh  chan *Block
+	quitCh           chan int
 }
 
 // NewBlockPool return new #BlockPool instance.
 func NewBlockPool() *BlockPool {
 	bp := &BlockPool{
-		inner:           new(sync.Map),
-		receivedBlockCh: make(chan net.Message, 128),
+		inner:            new(sync.Map),
+		receiveMessageCh: make(chan net.Message, 128),
+		receivedBlockCh:  make(chan *Block, 128),
 	}
 	return bp
 }
 
 // ReceivedBlockCh return received block chan.
-func (pool *BlockPool) ReceivedBlockCh() chan net.Message {
+func (pool *BlockPool) ReceivedBlockCh() chan *Block {
 	return pool.receivedBlockCh
 }
 
 // RegisterInNetwork register message subscriber in network.
 func (pool *BlockPool) RegisterInNetwork(nm *net.Manager) {
-	nm.Register(net.NewSubscriber(pool, pool.ReceivedBlockCh(), net.MessageTypeNewBlock))
+	nm.Register(net.NewSubscriber(pool, pool.receiveMessageCh, net.MessageTypeNewBlock))
+}
+
+// Start start loop.
+func (pool *BlockPool) Start() {
+	go pool.loop()
+}
+
+// Stop stop loop.
+func (pool *BlockPool) Stop() {
+	pool.quitCh <- 0
+}
+
+func (pool *BlockPool) loop() {
+	log.Info("BlockPool.loop: running.")
+	count := 0
+	for {
+		select {
+		case <-pool.quitCh:
+			log.Info("BlockPool.loop: quit.")
+			return
+		case msg := <-pool.receiveMessageCh:
+			count++
+			log.Debugf("BlockPool.loop: received message. Count=%d", count)
+			if msg.MessageType() != net.MessageTypeNewBlock {
+				log.WithFields(log.Fields{
+					"messageType": msg.MessageType(),
+					"message":     msg,
+				}).Error("BlockPool.loop: received unregistered message, pls check code.")
+				continue
+			}
+
+			// verify signature.
+			block := msg.Data().(*Block)
+			if block.VerifySign() == false {
+				log.WithFields(log.Fields{
+					"block": block,
+				}).Error("BlockPool.loop: the signature of block is invalid.")
+				continue
+			}
+
+			// send to chan.
+			pool.receivedBlockCh <- block
+		}
+	}
 }

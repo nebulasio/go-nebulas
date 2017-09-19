@@ -41,22 +41,21 @@ func run(sharedBlockCh chan interface{}, quitCh chan bool, nmCh chan *net.Manage
 
 	bc := core.NewBlockChain(core.TestNetID)
 	fmt.Printf("chainID is %d\n", bc.ChainID())
+	bc.BlockPool().RegisterInNetwork(nm)
 
-	// p := pow.NewPow(bc)
 	var cons consensus.Consensus
 	cons = pow.NewPow(bc, nm)
 
-	// register.
-	bc.BlockPool().RegisterInNetwork(nm)
-
 	// start.
 	cons.Start()
+	bc.BlockPool().Start()
 	nm.Start()
 
 	<-quitCh
 
 	// stop
 	nm.Stop()
+	bc.BlockPool().Stop()
 	cons.Stop()
 }
 

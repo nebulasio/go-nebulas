@@ -79,6 +79,12 @@ func (block *Block) Sign() *Block {
 	return block
 }
 
+// VerifySign return the signature verification result.
+func (block *Block) VerifySign() bool {
+	// TODO: implement ECDSA verify, only verify the singature.
+	return true
+}
+
 // Nonce return nonce.
 func (block *Block) Nonce() uint64 {
 	return block.header.nonce
