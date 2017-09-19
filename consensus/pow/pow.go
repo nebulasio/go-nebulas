@@ -21,7 +21,6 @@ package pow
 import (
 	"bytes"
 	"fmt"
-	"time"
 
 	"github.com/nebulasio/go-nebulas/components/net"
 	"github.com/nebulasio/go-nebulas/consensus"
@@ -121,9 +120,10 @@ func (p *Pow) Event(e consensus.Event) {
 	}
 
 	// default procedure.
-	switch t := e.(type) {
-	case *NetMessageEvent:
-		msg := t.message
+	et := e.EventType()
+	switch et {
+	case consensus.NetMessageEvent:
+		msg := e.Data().(net.Message)
 		mt := msg.MessageType()
 		switch mt {
 		case net.MessageTypeNewBlock:
@@ -132,8 +132,8 @@ func (p *Pow) Event(e consensus.Event) {
 			}).Info("Pow handle BlockMessage.")
 		default:
 			log.WithFields(log.Fields{
-				"messageType": t.message.MessageType(),
-				"message":     t.message,
+				"messageType": msg.MessageType(),
+				"message":     msg,
 			}).Info("Pow handle NetMessageEvent.")
 		}
 	default:
@@ -212,21 +212,6 @@ func (p *Pow) AppendBlock(block *core.Block) error {
 	return nil
 }
 
-// TODO: Timeout Event seems useless, consider to remove them.
-func (p *Pow) timeLoop() {
-	ticker := time.NewTicker(time.Second * 5)
-	for {
-		select {
-		case <-ticker.C:
-			p.Event(NewTimeoutEvent(time.Now()))
-			continue
-		case <-p.quitCh:
-			log.Debug("quit Pow.timeLoop.")
-			return
-		}
-	}
-}
-
 func (p *Pow) stateLoop() {
 	p.currentState.Enter(nil)
 
@@ -255,7 +240,7 @@ func (p *Pow) messageLoop() {
 	for {
 		select {
 		case msg := <-p.messageReceivedCh:
-			p.Event(NewNetMessageEvent(msg))
+			p.Event(consensus.NewBaseEvent(consensus.NetMessageEvent, msg))
 		case <-p.quitCh:
 			// TODO: should provide base goroutine start/stop func to graceful stop them.
 			/*

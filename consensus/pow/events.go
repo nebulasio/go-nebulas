@@ -18,37 +18,7 @@
 
 package pow
 
-import (
-	"time"
-
-	"github.com/nebulasio/go-nebulas/components/net"
+const (
+	TimeoutEvent  = "timeout"
+	StoppingEvent = "stopping"
 )
-
-// TimeoutEvent timeout event.
-type TimeoutEvent struct {
-	timestamp *time.Time
-}
-
-// StopEvent stop event.
-type StopEvent struct {
-}
-
-// MessageEvent received network message event.
-type NetMessageEvent struct {
-	message net.Message
-}
-
-// NewTimeoutEvent create @TimeoutEvent instance.
-func NewTimeoutEvent(timestamp time.Time) *TimeoutEvent {
-	return &TimeoutEvent{timestamp: &timestamp}
-}
-
-// NewStopEvent create @StopEvent instance.
-func NewStopEvent() *StopEvent {
-	return &StopEvent{}
-}
-
-// NewNetMessageEvent create @NetMessageEvent instance.
-func NewNetMessageEvent(msg net.Message) *NetMessageEvent {
-	return &NetMessageEvent{msg}
-}
