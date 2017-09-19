@@ -19,6 +19,6 @@
 package trie
 
 // Sync trie data from other servers to Storage
-func (t *Trie) Sync() error {
-	return nil
+func Sync(rootHash []byte) (*Trie, error) {
+	return nil, nil
 }
