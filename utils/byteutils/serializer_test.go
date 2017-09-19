@@ -19,6 +19,7 @@
 package byteutils
 
 import (
+	"github.com/duranliu/go-nebulas/common/pb"
 	"reflect"
 	"testing"
 )
@@ -230,6 +231,64 @@ func TestJSONSerializerArray(t *testing.T) {
 			}
 			if !reflect.DeepEqual(*(tt.args.res.(*[][]byte)), tt.args.val) {
 				t.Errorf("JSONSerializer.EncodeToBytes() = %v, want %v", tt.args.res, tt.args.val)
+			}
+		})
+	}
+}
+
+func TestProtoSerializerMessage(t *testing.T) {
+	type args struct {
+		val *pb.Message
+		res *pb.Message
+	}
+	m1 := &pb.Message{
+		Name: "Alice",
+		Time: 1294706395881547000,
+		Tags: []string{"cat", "dog"},
+		Map:  map[uint32]string{1: "hello"},
+	}
+	m1.Body = append(m1.Body, &pb.Message_Body{Val: []string{"World1", "World2"}})
+	m2 := &pb.Message{}
+	m3 := &pb.Message{
+		Name: "Alice",
+		Tags: []string{"cat", "dog"},
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{
+			"full message",
+			args{m1, &pb.Message{}},
+			false,
+		},
+		{
+			"empty message",
+			args{m2, &pb.Message{}},
+			false,
+		},
+		{
+			"incomplete message",
+			args{m3, &pb.Message{}},
+			false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ps := &ProtoSerializer{}
+			got, err1 := ps.Serialize(tt.args.val)
+			err2 := ps.Deserialize(got, tt.args.res)
+			if (err1 != nil) != tt.wantErr {
+				t.Errorf("ProtoSerializer.Serialize() error = %v, wantErr %v", err1, tt.wantErr)
+				return
+			}
+			if (err2 != nil) != tt.wantErr {
+				t.Errorf("ProtoSerializer.Deserialize() error = %v, wantErr %v", err2, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(*tt.args.res, *tt.args.val) {
+				t.Errorf("ProtoSerializer.Serialize() = %v, want %v", *tt.args.res, *tt.args.val)
 			}
 		})
 	}
