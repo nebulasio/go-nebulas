@@ -63,6 +63,7 @@ func (state *MiningState) Enter(data interface{}) {
 // Leave called when leaving this state.
 func (state *MiningState) Leave(data interface{}) {
 	log.Debug("MiningState leave.")
+	state.quitCh <- true
 }
 
 func (state *MiningState) searchingNonce() {
@@ -75,10 +76,11 @@ func (state *MiningState) searchingNonce() {
 	timeStart := time.Now()
 	miningInterval, _ := time.ParseDuration("1s")
 
+computeHash:
 	for {
 		select {
 		case <-state.quitCh:
-			log.Info("quit MiningState.")
+			log.Info("quit MiningState in loop.")
 			return
 
 		default:
@@ -104,9 +106,13 @@ func (state *MiningState) searchingNonce() {
 				newBlock.SetNonce(nonce)
 				state.p.Transite(state.p.states[Minted], nil)
 
-				return
+				// break this for loop.
+				break computeHash
 			}
 		}
 	}
 
+	// wait for quit while transiting.
+	<-state.quitCh
+	log.Info("quit MiningState when nonce is found.")
 }
