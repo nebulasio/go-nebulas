@@ -110,18 +110,13 @@ func (t *Trie) CommitNode(n *Node) error {
 func NewTrie(rootHash []byte) (*Trie, error) {
 	var serializer byteutils.Serializable = &byteutils.JSONSerializer{}
 	storage, _ := NewStorage()
-	if rootHash == nil {
-		empty := [][]byte{nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil}
-		ir, err := serializer.Serialize(empty)
-		if err != nil {
-			return nil, err
-		}
-		rootHash = hash.Sha3256(ir)
-		storage.Put(rootHash, ir)
-	} else if _, err := storage.Get(rootHash); err != nil {
+	t := &Trie{rootHash, serializer, storage}
+	if t.rootHash == nil {
+		return t, nil
+	} else if _, err := t.storage.Get(rootHash); err != nil {
 		return nil, err
 	}
-	return &Trie{rootHash, serializer, storage}, nil
+	return t, nil
 }
 
 // Get the node's value in trie, all node's key is hash(value)
@@ -129,7 +124,43 @@ func NewTrie(rootHash []byte) (*Trie, error) {
 // Extension Node: 3-elements array, value is [ext flag, prefix path, next hash]
 // Leaf Node: 3-elements array, value is [leaf flag, suffix path, value]
 func (t *Trie) Get(key []byte) (*Node, error) {
-	return nil, nil
+	return t.get(t.rootHash, keybytesToHex(key))
+}
+
+func (t *Trie) get(root []byte, route []byte) (*Node, error) {
+	if root == nil {
+		return nil, errors.New("not found")
+	}
+	// fetch sub-trie root node
+	rootNode, err := t.FetchNode(root)
+	if err != nil {
+		return nil, err
+	}
+	flag, err := rootNode.Flag()
+	if err != nil {
+		return nil, err
+	}
+	switch flag {
+	case branch:
+		return t.get(rootNode.Val[route[0]], route[1:])
+	case ext:
+		path := rootNode.Val[1]
+		next := rootNode.Val[2]
+		matchLen := prefixLen(path, route)
+		if matchLen != len(path) {
+			return nil, errors.New("not found")
+		}
+		return t.get(next, route[matchLen:])
+	case leaf:
+		path := rootNode.Val[1]
+		matchLen := prefixLen(path, route)
+		if matchLen != len(path) {
+			return nil, errors.New("not found")
+		}
+		return rootNode, nil
+	default:
+		return nil, errors.New("unknown node type")
+	}
 }
 
 // Update or add the node's value in trie
@@ -283,7 +314,70 @@ func (t *Trie) updateWhenMeetLeaf(rootNode *Node, route []byte, val []byte) ([]b
 
 // Del the node's value in trie
 func (t *Trie) Del(key []byte) error {
+	rootHash, err := t.del(t.rootHash, keybytesToHex(key))
+	if err != nil {
+		return err
+	}
+	t.rootHash = rootHash
 	return nil
+}
+
+func (t *Trie) del(root []byte, route []byte) ([]byte, error) {
+	if root == nil {
+		return nil, errors.New("not found")
+	}
+	// fetch sub-trie root node
+	rootNode, err := t.FetchNode(root)
+	if err != nil {
+		return nil, err
+	}
+	flag, err := rootNode.Flag()
+	if err != nil {
+		return nil, err
+	}
+	switch flag {
+	case branch:
+		newHash, err := t.del(rootNode.Val[route[0]], route[1:])
+		if err != nil {
+			return nil, err
+		}
+		rootNode.Val[route[0]] = newHash
+		if emptyBrCheck(rootNode) {
+			return nil, nil
+		}
+		if err := t.CommitNode(rootNode); err != nil {
+			return nil, err
+		}
+		return rootNode.Key, nil
+	case ext:
+		path := rootNode.Val[1]
+		next := rootNode.Val[2]
+		matchLen := prefixLen(path, route)
+		if matchLen != len(path) {
+			return nil, errors.New("not found")
+		}
+		newHash, err := t.del(next, route[matchLen:])
+		if err != nil {
+			return nil, err
+		}
+		if newHash == nil {
+			return nil, nil
+		}
+		rootNode.Val[2] = newHash
+		if err := t.CommitNode(rootNode); err != nil {
+			return nil, err
+		}
+		return rootNode.Key, nil
+	case leaf:
+		path := rootNode.Val[1]
+		matchLen := prefixLen(path, route)
+		if matchLen != len(path) {
+			return nil, errors.New("not found")
+		}
+		return nil, nil
+	default:
+		return nil, errors.New("unknown node type")
+	}
 }
 
 // Clone the trie to create a new trie sharing the same storage
@@ -318,4 +412,13 @@ func keybytesToHex(str []byte) []byte {
 func emptyBrNode() *Node {
 	empty := [][]byte{nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil}
 	return &Node{[]byte{}, empty}
+}
+
+func emptyBrCheck(n *Node) bool {
+	for idx := range n.Val {
+		if n.Val[idx] != nil {
+			return false
+		}
+	}
+	return true
 }

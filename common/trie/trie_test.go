@@ -61,11 +61,9 @@ func TestNewTrie(t *testing.T) {
 			if got == nil {
 				if tt.want == nil {
 					return
-				} else {
-
-					t.Errorf("New() = %v, want %v", got, tt.want)
-					return
 				}
+				t.Errorf("New() = %v, want %v", got, tt.want)
+				return
 			}
 			if !reflect.DeepEqual(got.rootHash, tt.want) {
 				t.Errorf("New() = %v, want %v", got, tt.want)
@@ -118,20 +116,22 @@ func TestTrie_Clone(t *testing.T) {
 	}
 }
 
-func TestTrie_Update(t *testing.T) {
+func TestTrie_Operation(t *testing.T) {
 	tr, _ := NewTrie(nil)
+	if !reflect.DeepEqual([]byte(nil), tr.rootHash) {
+		t.Errorf("3 Trie.Del() = %v, want %v", nil, tr.rootHash)
+	}
 	// add a new leaf node
 	addr1, _ := byteutils.FromHex("1f345678e9")
 	key1 := []byte{0x1, 0xf, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0xe, 0x9}
 	tr.Update(addr1, []byte("leaf 1"))
-	leaf1 := [][]byte{[]byte{byte(leaf)}, key1[1:], []byte("leaf 1")}
+	leaf1 := [][]byte{[]byte{byte(leaf)}, key1, []byte("leaf 1")}
 	leaf1IR, _ := tr.serializer.Serialize(leaf1)
 	leaf1H := hash.Sha3256(leaf1IR)
-	branch1 := [][]byte{nil, leaf1H, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil}
-	branch1IR, _ := tr.serializer.Serialize(branch1)
-	branch1H := hash.Sha3256(branch1IR)
-	if !reflect.DeepEqual(branch1H, tr.rootHash) {
-		t.Errorf("1 Trie.Update() = %v, want %v", branch1H, tr.rootHash)
+	fmt.Println("leaf1")
+	fmt.Println(leaf1H)
+	if !reflect.DeepEqual(leaf1H, tr.rootHash) {
+		t.Errorf("1 Trie.Update() = %v, want %v", leaf1H, tr.rootHash)
 	}
 	// add a new leaf node with 3-length common prefix
 	addr2, _ := byteutils.FromHex("1f355678e9")
@@ -152,18 +152,13 @@ func TestTrie_Update(t *testing.T) {
 	branch2H := hash.Sha3256(branch2IR)
 	fmt.Println("branch2")
 	fmt.Println(branch2H)
-	ext1 := [][]byte{[]byte{(byte(ext))}, key2[1:3], branch2H}
+	ext1 := [][]byte{[]byte{(byte(ext))}, key2[:3], branch2H}
 	ext1IR, _ := tr.serializer.Serialize(ext1)
 	ext1H := hash.Sha3256(ext1IR)
 	fmt.Println("ext1")
 	fmt.Println(ext1H)
-	branch3 := [][]byte{nil, ext1H, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil}
-	branch3IR, _ := tr.serializer.Serialize(branch3)
-	branch3H := hash.Sha3256(branch3IR)
-	fmt.Println("branch3")
-	fmt.Println(branch3H)
-	if !reflect.DeepEqual(branch3H, tr.rootHash) {
-		t.Errorf("2 Trie.Update() = %v, want %v", branch3H, tr.rootHash)
+	if !reflect.DeepEqual(ext1H, tr.rootHash) {
+		t.Errorf("2 Trie.Update() = %v, want %v", ext1H, tr.rootHash)
 	}
 	// add a new node with 2-length common prefix
 	addr3, _ := byteutils.FromHex("1f555678e9")
@@ -179,18 +174,13 @@ func TestTrie_Update(t *testing.T) {
 	branch4H := hash.Sha3256(branch4IR)
 	fmt.Println("branch4")
 	fmt.Println(branch4H)
-	ext2 := [][]byte{[]byte{(byte(ext))}, key3[1:2], branch4H}
+	ext2 := [][]byte{[]byte{(byte(ext))}, key3[:2], branch4H}
 	ext2IR, _ := tr.serializer.Serialize(ext2)
 	ext2H := hash.Sha3256(ext2IR)
 	fmt.Println("ext2")
 	fmt.Println(ext2H)
-	branch5 := [][]byte{nil, ext2H, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil}
-	branch5IR, _ := tr.serializer.Serialize(branch5)
-	branch5H := hash.Sha3256(branch5IR)
-	fmt.Println("branch5")
-	fmt.Println(branch5H)
-	if !reflect.DeepEqual(branch5H, tr.rootHash) {
-		t.Errorf("3 Trie.Update() = %v, want %v", branch5H, tr.rootHash)
+	if !reflect.DeepEqual(ext2H, tr.rootHash) {
+		t.Errorf("3 Trie.Update() = %v, want %v", ext2H, tr.rootHash)
 	}
 	// update node leaf1
 	tr.Update(addr1, []byte("leaf 11"))
@@ -209,17 +199,77 @@ func TestTrie_Update(t *testing.T) {
 	branch7H := hash.Sha3256(branch7IR)
 	fmt.Println("branch7")
 	fmt.Println(branch7H)
-	ext3 := [][]byte{[]byte{(byte(ext))}, key3[1:2], branch7H}
+	ext3 := [][]byte{[]byte{(byte(ext))}, key3[:2], branch7H}
 	ext3IR, _ := tr.serializer.Serialize(ext3)
 	ext3H := hash.Sha3256(ext3IR)
 	fmt.Println("ext3")
 	fmt.Println(ext3H)
-	branch8 := [][]byte{nil, ext3H, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil}
-	branch8IR, _ := tr.serializer.Serialize(branch8)
-	branch8H := hash.Sha3256(branch8IR)
-	fmt.Println("branch8")
-	fmt.Println(branch8H)
-	if !reflect.DeepEqual(branch8H, tr.rootHash) {
-		t.Errorf("4 Trie.Update() = %v, want %v", branch8H, tr.rootHash)
+	if !reflect.DeepEqual(ext3H, tr.rootHash) {
+		t.Errorf("4 Trie.Update() = %v, want %v", ext3H, tr.rootHash)
+	}
+
+	// get node "1f345678e9"
+	node1, _ := tr.Get(addr1)
+	if !reflect.DeepEqual(node1.Key, leaf5H) {
+		t.Errorf("1 Trie.Get() key = %v, want %v", node1.Key, leaf5H)
+	}
+	if !reflect.DeepEqual(node1.Val, leaf5) {
+		t.Errorf("1 Trie.Get() val = %v, want %v", node1.Val, leaf5)
+	}
+	// get node "1f355678e9"
+	node2, _ := tr.Get(addr2)
+	if !reflect.DeepEqual(node2.Key, leaf2H) {
+		t.Errorf("2 Trie.Get() key = %v, want %v", node2.Key, leaf2H)
+	}
+	if !reflect.DeepEqual(node2.Val, leaf2) {
+		t.Errorf("2 Trie.Get() val = %v, want %v", node2.Val, leaf2)
+	}
+	// get node "1f555678e9"
+	node3, _ := tr.Get(addr3)
+	if !reflect.DeepEqual(node3.Key, leaf4H) {
+		t.Errorf("2 Trie.Get() key = %v, want %v", node3.Key, leaf4H)
+	}
+	if !reflect.DeepEqual(node3.Val, leaf4) {
+		t.Errorf("2 Trie.Get() val = %v, want %v", node3.Val, leaf4)
+	}
+	// del node "1f345678e9"
+	tr.Del(addr1)
+	branch9 := [][]byte{nil, nil, nil, nil, nil, leaf2H, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil}
+	branch9IR, _ := tr.serializer.Serialize(branch9)
+	branch9H := hash.Sha3256(branch9IR)
+	fmt.Println("branch9")
+	fmt.Println(branch9H)
+	branch10 := [][]byte{nil, nil, nil, branch9H, nil, leaf4H, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil}
+	branch10IR, _ := tr.serializer.Serialize(branch10)
+	branch10H := hash.Sha3256(branch10IR)
+	fmt.Println("branch10")
+	fmt.Println(branch10H)
+	ext4 := [][]byte{[]byte{(byte(ext))}, key3[:2], branch10H}
+	ext4IR, _ := tr.serializer.Serialize(ext4)
+	ext4H := hash.Sha3256(ext4IR)
+	fmt.Println("ext4")
+	fmt.Println(ext4H)
+	if !reflect.DeepEqual(ext4H, tr.rootHash) {
+		t.Errorf("1 Trie.Del() = %v, want %v", ext4H, tr.rootHash)
+	}
+	// del node "1f355678e9"
+	tr.Del(addr2)
+	branch12 := [][]byte{nil, nil, nil, nil, nil, leaf4H, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil}
+	branch12IR, _ := tr.serializer.Serialize(branch12)
+	branch12H := hash.Sha3256(branch12IR)
+	fmt.Println("branch12")
+	fmt.Println(branch12H)
+	ext5 := [][]byte{[]byte{(byte(ext))}, key3[0:2], branch12H}
+	ext5IR, _ := tr.serializer.Serialize(ext5)
+	ext5H := hash.Sha3256(ext5IR)
+	fmt.Println("ext4")
+	fmt.Println(ext4H)
+	if !reflect.DeepEqual(ext5H, tr.rootHash) {
+		t.Errorf("2 Trie.Del() = %v, want %v", ext5H, tr.rootHash)
+	}
+	// del node "1f555678e9"
+	tr.Del(addr3)
+	if !reflect.DeepEqual([]byte(nil), tr.rootHash) {
+		t.Errorf("3 Trie.Del() = %v, want %v", nil, tr.rootHash)
 	}
 }
