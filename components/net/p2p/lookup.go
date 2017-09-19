@@ -22,27 +22,73 @@ import (
 	"github.com/libp2p/go-libp2p-peer"
 	"github.com/libp2p/go-libp2p-peerstore"
 	"github.com/libp2p/go-libp2p-net"
-	"github.com/libp2p/go-libp2p-host"
+	"github.com/nebulasio/go-nebulas/components/net/messages"
+	"github.com/libp2p/go-libp2p-kbucket"
 )
 
+const lookupProtocolID = "/nebulas/lookup/1.0.0"
+
 type LookupService struct {
-	Host host.Host
+	node *Node
 }
 
-// register ping service
+// register lookup service
 func (node *Node) RegisterLookupService() *LookupService {
-	ls := &LookupService{node.host}
-	node.host.SetStreamHandler(protocolID, ls.LookupHandler)
+	ls := &LookupService{node}
+	node.host.SetStreamHandler(lookupProtocolID, ls.LookupHandler)
 	return ls
 }
 
-//TODO Lookup from a node
+// Lookup from a node
 func (node *Node) Lookup(pid peer.ID) ([]peerstore.PeerInfo, error) {
 
-	return nil, nil
+	s, err := node.host.NewStream(node.context, pid, lookupProtocolID)
+	if err != nil {
+		return nil , err
+	}
+	defer s.Close()
+
+	wrappedStream := messages.WrapStream(s)
+	messages, err := handleStream(wrappedStream)
+	if err != nil {
+		log.Errorf("Lookup error, can not receive data from node : %s", pid)
+		return nil, err
+	}
+	return messages.Msg, nil
 }
 
-//TODO handle lookup request
-func (p *LookupService) LookupHandler(s net.Stream) {
+func handleStream(ws *messages.WrappedStream) (messages.LookupMessage, error) {
+	var msg messages.LookupMessage
+	err := ws.Dec.Decode(&msg)
+	if err != nil {
+		return msg, err
+	}
+	return msg, nil
+}
 
+
+// handle lookup request
+func (p *LookupService) LookupHandler(s net.Stream) {
+	defer s.Close()
+	pid := s.Conn().RemotePeer()
+	log.Debug("Receiving request for peers from", pid)
+
+	peers := p.node.routeTable.NearestPeers(kbucket.ConvertPeerID(pid), p.node.config.maxSyncNodes)
+	log.Debug("lookup nearest peers", peers)
+
+	var peerList []peerstore.PeerInfo
+	for i := range peers {
+		peerInfo := p.node.peerstore.PeerInfo(peers[i])
+		peerList = append(peerList, peerInfo)
+	}
+
+	msg := &messages.LookupMessage{
+		Msg:    peerList,
+	}
+
+	messages.WrapStream(s).Enc.Encode(msg)
+	messages.WrapStream(s).W.Flush()
+
+	// Update the routing table.
+	p.node.routeTable.Update(pid)
 }

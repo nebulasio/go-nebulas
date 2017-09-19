@@ -23,6 +23,7 @@ import (
 	"time"
 	"math/rand"
 	"github.com/libp2p/go-libp2p-peer"
+	"github.com/libp2p/go-libp2p-peerstore"
 )
 
 /*
@@ -67,23 +68,7 @@ func (node *Node) syncRoutingTable() {
 	}
 }
 
-func (node *Node) syncRouteInfoFromSingleNode(nodeId peer.ID) {
-
-	reply, err := node.Lookup(nodeId)
-	if err != nil {
-		log.Errorf("")
-		return
-	}
-
-	for i := range reply {
-		if node.routeTable.Find(reply[i].ID) != "" {
-			continue
-		}
-		//TODO handle lookup reply info
-	}
-
-}
-
+// sync single node routing table by peer.ID
 func (node *Node) syncSingleNode(nodeId peer.ID) {
 	// skip self
 	if nodeId == node.id {
@@ -95,4 +80,32 @@ func (node *Node) syncSingleNode(nodeId peer.ID) {
 	} else {
 		node.routeTable.Remove(nodeId)
 	}
+}
+
+func (node *Node) syncRouteInfoFromSingleNode(nodeId peer.ID) {
+
+	reply, err := node.Lookup(nodeId)
+	if err != nil {
+		log.Errorf("")
+		return
+	}
+	for i := range reply {
+		if node.routeTable.Find(reply[i].ID) != "" || len(reply[i].Addrs) == 0 {
+			continue
+		}
+		// Ping the peer.
+		err := node.Ping(reply[i].ID)
+		if err != nil {
+			continue
+		}
+		node.peerstore.SetAddrs(
+			reply[i].ID,
+			reply[i].Addrs,
+			peerstore.ProviderAddrTTL,
+		)
+
+		// Update the routing table.
+		node.routeTable.Update(reply[i].ID)
+	}
+
 }

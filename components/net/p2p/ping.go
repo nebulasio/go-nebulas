@@ -22,7 +22,6 @@ import (
 	"bytes"
 	"errors"
 	u "github.com/ipfs/go-ipfs-util"
-	"github.com/libp2p/go-libp2p-host"
 	gnet "github.com/libp2p/go-libp2p-net"
 	"github.com/libp2p/go-libp2p-peer"
 	"io"
@@ -31,18 +30,18 @@ import (
 
 const PingSize = 32
 
-const protocolID = "/ipfs/ping/1.0.0"
+const pingProtocolID = "/nebulas/ping/1.0.0"
 
 const pingTimeout = time.Second * 60
 
 type PingService struct {
-	Host host.Host
+	node *Node
 }
 
 // register ping service
 func (node *Node) RegisterPingService() *PingService {
-	ps := &PingService{node.host}
-	node.host.SetStreamHandler(protocolID, ps.PingHandler)
+	ps := &PingService{node}
+	node.host.SetStreamHandler(pingProtocolID, ps.PingHandler)
 	return ps
 }
 
@@ -94,7 +93,7 @@ func (p *PingService) PingHandler(s gnet.Stream) {
 //Ping a peer
 func (node *Node) Ping(pid peer.ID) error {
 	ctx := node.context
-	s, err := node.host.NewStream(ctx, pid, protocolID)
+	s, err := node.host.NewStream(ctx, pid, pingProtocolID)
 	if err != nil {
 		return err
 	}
