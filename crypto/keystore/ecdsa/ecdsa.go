@@ -16,7 +16,7 @@
 // along with the go-nebulas library.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-package crypto
+package ecdsa
 
 import (
 	"crypto/ecdsa"
@@ -44,7 +44,15 @@ func GenerateECDSAPrivateKey(rand io.Reader) (*ecdsa.PrivateKey, error) {
 	return privateKeyECDSA, nil
 }
 
-// convert ecdsa public key to bytes
+// FromECDSAPri exports a private key into a binary dump.
+func FromECDSAPri(pri *ecdsa.PrivateKey) []byte {
+	if pri == nil {
+		return nil
+	}
+	return pri.D.Bytes()
+}
+
+// FromECDSAPub exports a public key into a binary dump.
 func FromECDSAPub(pub *ecdsa.PublicKey) []byte {
 	if pub == nil || pub.X == nil || pub.Y == nil {
 		return nil
@@ -71,4 +79,23 @@ func ToECDSAPrivate(d []byte) (*ecdsa.PrivateKey, error) {
 	priv.D = new(big.Int).SetBytes(d)
 	priv.PublicKey.X, priv.PublicKey.Y = priv.PublicKey.Curve.ScalarBaseMult(d)
 	return priv, nil
+}
+
+// ToECDSAPrivate creates a public key with the given data value.
+func ToECDSAPublic(pub []byte) *ecdsa.PublicKey {
+	if len(pub) == 0 {
+		return nil
+	}
+	x, y := elliptic.Unmarshal(S256(), pub)
+	return &ecdsa.PublicKey{Curve: S256(), X: x, Y: y}
+}
+
+func Sign(hash []byte, prv *ecdsa.PrivateKey) (sig []byte, err error) {
+	// TODO(larry.wang) implement it later
+	return nil, nil
+}
+
+func Verify(data []byte, pub *ecdsa.PublicKey) (bool, error) {
+	// TODO(larry.wang) implement it later
+	return false, nil
 }
