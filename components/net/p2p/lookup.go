@@ -24,6 +24,7 @@ import (
 	"github.com/libp2p/go-libp2p-net"
 	"github.com/nebulasio/go-nebulas/components/net/messages"
 	"github.com/libp2p/go-libp2p-kbucket"
+	log "github.com/sirupsen/logrus"
 )
 
 const lookupProtocolID = "/nebulas/lookup/1.0.0"
@@ -36,12 +37,14 @@ type LookupService struct {
 func (node *Node) RegisterLookupService() *LookupService {
 	ls := &LookupService{node}
 	node.host.SetStreamHandler(lookupProtocolID, ls.LookupHandler)
+	log.Infof("node register lookup service success...")
 	return ls
 }
 
 // Lookup from a node
 func (node *Node) Lookup(pid peer.ID) ([]peerstore.PeerInfo, error) {
 
+	log.Infof("node start lookup from peer %s", node.host.Addrs(), pid)
 	s, err := node.host.NewStream(node.context, pid, lookupProtocolID)
 	if err != nil {
 		return nil , err

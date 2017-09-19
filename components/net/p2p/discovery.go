@@ -24,6 +24,7 @@ import (
 	"math/rand"
 	"github.com/libp2p/go-libp2p-peer"
 	"github.com/libp2p/go-libp2p-peerstore"
+	log "github.com/sirupsen/logrus"
 )
 
 /*
@@ -33,7 +34,9 @@ and then update the routing table.
 func (node *Node) Discovery(ctx context.Context) {
 
 	//FIXME  the sync routing table rate can be dynamic
-	ticker := time.NewTicker(30 * time.Second)
+	second := 30 * time.Second
+	ticker := time.NewTicker(second)
+	log.Infof("node start discovery per %s...", second)
 	for {
 		select {
 		case <-ticker.C:
@@ -47,8 +50,10 @@ func (node *Node) Discovery(ctx context.Context) {
 
 //sync route table
 func (node *Node) syncRoutingTable() {
+	log.Infof("node start sync routing table...")
 	asked := make(map[peer.ID]bool)
 	allNode := node.routeTable.ListPeers()
+	log.Infof("node %s routing table: %s", node.host.Addrs(), allNode)
 	randomList := rand.Perm(len(allNode))
 	var nodeAccount int
 	if len(allNode) > node.config.maxSyncNodes {

@@ -28,7 +28,7 @@ import (
 	"sync"
 	"time"
 
-	logging "github.com/ipfs/go-log"
+	log "github.com/sirupsen/logrus"
 	"github.com/libp2p/go-libp2p-crypto"
 	"github.com/libp2p/go-libp2p-kbucket"
 	"github.com/libp2p/go-libp2p-peerstore"
@@ -39,7 +39,6 @@ import (
 	"errors"
 )
 
-var log = logging.Logger("node")
 
 /*
 	the node can be used as both the client and the server
@@ -51,24 +50,21 @@ type Node struct {
 	routeTable *kbucket.RoutingTable
 	context    context.Context
 	config     *Config
-	running  bool
+	running    bool
 }
 
 // start a local node and join the node to network
 func NewNode(config *Config) (*Node, error) {
 
 	node := &Node{}
+	node.config = config
 	node.context = context.Background()
+	log.Info("node make Host success")
 	err := node.makeHost()
 	if err != nil {
 		log.Error("start node fail, can not make a basic host", err)
 	}
-	node.routeTable = kbucket.NewRoutingTable(
-		config.bucketsize,
-		kbucket.ConvertPeerID(node.id),
-		config.latency,
-		node.peerstore,
-	)
+
 	//node.start()
 	return node, nil
 }
@@ -76,11 +72,13 @@ func NewNode(config *Config) (*Node, error) {
 // start the node and say hello to bootNodes, then start node discovery service
 func (node *Node) Start() error{
 
+	log.Info("node create success...")
+	log.Infof("node info {id -> %s, address -> %s}", node.id, node.host.Addrs())
 	if node.running {
 		return errors.New("node already running")
 	}
 	node.running = true
-	log.Info("start p2p network")
+	log.Info("node start join p2p network...")
 
 	node.RegisterPingService()
 	node.RegisterLookupService()
@@ -99,9 +97,13 @@ func (node *Node) Start() error{
 	}
 	wg.Wait()
 
-	go node.Discovery(node.context)
+	go func (){
+		node.Discovery(node.context)
+	}()
 
-	return nil
+	log.Infof("node start and join to p2p network success and listening for connections on port %d... ", node.config.Port)
+	select {}
+
 }
 
 func (node *Node) makeHost() error {
@@ -130,6 +132,13 @@ func (node *Node) makeHost() error {
 	ps.AddPrivKey(node.id, priv)
 	ps.AddPubKey(node.id, pub)
 	node.peerstore = ps
+
+	node.routeTable = kbucket.NewRoutingTable(
+		node.config.bucketsize,
+		kbucket.ConvertPeerID(node.id),
+		node.config.latency,
+		node.peerstore,
+	)
 
 	node.routeTable.Update(node.id)
 

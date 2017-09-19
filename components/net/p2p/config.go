@@ -35,3 +35,13 @@ type Config struct {
 	Randseed       int64
 	maxSyncNodes   int
 }
+
+func DefautConfig() (*Config) {
+	//bootNode, err:= multiaddr.NewMultiaddr("/ip4/127.0.0.1/tcp/10001")
+	//if err != nil {
+	//	return nil
+	//}
+	return &Config{
+		30, 10, []multiaddr.Multiaddr{}, "127.0.0.1", 9999, 12345, 16,
+	}
+}

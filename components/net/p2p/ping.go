@@ -24,6 +24,7 @@ import (
 	u "github.com/ipfs/go-ipfs-util"
 	gnet "github.com/libp2p/go-libp2p-net"
 	"github.com/libp2p/go-libp2p-peer"
+	log "github.com/sirupsen/logrus"
 	"io"
 	"time"
 )
@@ -42,6 +43,7 @@ type PingService struct {
 func (node *Node) RegisterPingService() *PingService {
 	ps := &PingService{node}
 	node.host.SetStreamHandler(pingProtocolID, ps.PingHandler)
+	log.Infof("node register ping service success...")
 	return ps
 }
 
@@ -92,6 +94,7 @@ func (p *PingService) PingHandler(s gnet.Stream) {
 
 //Ping a peer
 func (node *Node) Ping(pid peer.ID) error {
+	log.Infof("node %s start ping peer %s", node.host.Addrs(), pid)
 	ctx := node.context
 	s, err := node.host.NewStream(ctx, pid, pingProtocolID)
 	if err != nil {
