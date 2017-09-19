@@ -24,7 +24,6 @@ import (
 	"time"
 
 	"github.com/nebulasio/go-nebulas/components/net"
-	"github.com/nebulasio/go-nebulas/components/net/messages"
 	"github.com/nebulasio/go-nebulas/consensus"
 	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/utils/byteutils"
@@ -85,7 +84,7 @@ func NewPow(bc *core.BlockChain, nm *net.Manager) *Pow {
 	}
 	p.currentState = p.states[Prepare]
 
-	nm.Register(net.NewSubscriber(p, p.messageReceivedCh, messages.NewBlockMessageType))
+	nm.Register(net.NewSubscriber(p, p.messageReceivedCh, net.MessageTypeNewBlock))
 
 	return p
 }
@@ -124,10 +123,12 @@ func (p *Pow) Event(e consensus.Event) {
 	// default procedure.
 	switch t := e.(type) {
 	case *NetMessageEvent:
-		switch msg := t.message.(type) {
-		case *messages.BlockMessage:
+		msg := t.message
+		mt := msg.MessageType()
+		switch mt {
+		case net.MessageTypeNewBlock:
 			log.WithFields(log.Fields{
-				"block": msg.Block(),
+				"block": msg.Data(),
 			}).Info("Pow handle BlockMessage.")
 		default:
 			log.WithFields(log.Fields{

@@ -106,11 +106,6 @@ func (state *MiningState) searchingNonce() {
 
 				return
 			}
-
-			// log.WithFields(log.Fields{
-			// 	"nonce": nonce,
-			// }).Info("continue")
-
 		}
 	}
 

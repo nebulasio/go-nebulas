@@ -18,12 +18,17 @@
 
 package net
 
+const (
+	MessageTypeNewBlock = "NewBlockMessage"
+)
+
 // MessageType a string for message type.
 type MessageType string
 
 // Message interface for message.
 type Message interface {
 	MessageType() MessageType
+	Data() interface{}
 }
 
 // Subscriber subscriber.

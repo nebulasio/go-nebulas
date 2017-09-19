@@ -63,7 +63,7 @@ func replicateNewBlock(sharedBlockCh chan *core.Block, quitCh chan bool, nmCh ch
 	for {
 		select {
 		case block := <-sharedBlockCh:
-			msg := messages.NewBlockMessage(block)
+			msg := messages.NewBaseMessage(net.MessageTypeNewBlock, block)
 			for _, nm := range nms {
 				nm.PutMessage(msg)
 			}
@@ -82,7 +82,7 @@ func main() {
 
 	quitCh := make(chan bool, 10)
 
-	clientCount := 5
+	clientCount := 2
 	nmCh := make(chan *net.Manager, clientCount)
 
 	sharedBlockCh := make(chan *core.Block, 50)

@@ -22,34 +22,28 @@ import (
 	"fmt"
 
 	"github.com/nebulasio/go-nebulas/components/net"
-	"github.com/nebulasio/go-nebulas/core"
 )
 
-const (
-	NewBlockMessageType = "NewBlock"
-)
-
-type BlockMessage struct {
-	t     net.MessageType
-	block *core.Block
+type BaseMessage struct {
+	t    net.MessageType
+	data interface{}
 }
 
-func NewBlockMessage(block *core.Block) *BlockMessage {
-	msg := &BlockMessage{t: NewBlockMessageType, block: block}
-	return msg
+func NewBaseMessage(t net.MessageType, data interface{}) net.Message {
+	return &BaseMessage{t: t, data: data}
 }
 
-func (msg *BlockMessage) MessageType() net.MessageType {
+func (msg *BaseMessage) MessageType() net.MessageType {
 	return msg.t
 }
 
-func (msg *BlockMessage) Block() *core.Block {
-	return msg.block
+func (msg *BaseMessage) Data() interface{} {
+	return msg.data
 }
 
-func (msg *BlockMessage) String() string {
-	return fmt.Sprintf("BlockMessage {type:%s; block:%s}",
+func (msg *BaseMessage) String() string {
+	return fmt.Sprintf("BaseMessage {type:%s; data:%s}",
 		msg.t,
-		msg.block,
+		msg.data,
 	)
 }
