@@ -18,19 +18,15 @@
 
 package net
 
-import (
-	"github.com/nebulasio/go-nebulas/core"
-)
-
 // Manager the net manager.
 type Manager struct {
-	sharedBlockCh chan *core.Block
+	sharedBlockCh chan interface{}
 	dispatcher    *Dispatcher
 }
 
 // NewManager create Manager instance.
 // TODO: remove sharedBlockCH, using underlying network lib instead.
-func NewManager(sharedBlockCh chan *core.Block) *Manager {
+func NewManager(sharedBlockCh chan interface{}) *Manager {
 	nm := &Manager{
 		sharedBlockCh: sharedBlockCh,
 		dispatcher:    NewDispatcher(),
@@ -64,7 +60,7 @@ func (nm *Manager) PutMessage(msg Message) {
 }
 
 // BroadcastBlock broadcast block to network.
-func (nm *Manager) BroadcastBlock(block *core.Block) {
+func (nm *Manager) BroadcastBlock(block interface{}) {
 	//TODO: broadcast block via underlying network lib to whole network.
 	nm.sharedBlockCh <- block
 }

@@ -35,7 +35,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func run(sharedBlockCh chan *core.Block, quitCh chan bool, nmCh chan *net.Manager) {
+func run(sharedBlockCh chan interface{}, quitCh chan bool, nmCh chan *net.Manager) {
 	nm := net.NewManager(sharedBlockCh)
 	nmCh <- nm
 
@@ -46,23 +46,29 @@ func run(sharedBlockCh chan *core.Block, quitCh chan bool, nmCh chan *net.Manage
 	var cons consensus.Consensus
 	cons = pow.NewPow(bc, nm)
 
-	// start Pow.
-	cons.Start()
+	// register.
+	bc.BlockPool().RegisterInNetwork(nm)
 
-	// start net.
+	// start.
+	cons.Start()
 	nm.Start()
 
 	<-quitCh
+
+	// stop
 	nm.Stop()
 	cons.Stop()
 }
 
-func replicateNewBlock(sharedBlockCh chan *core.Block, quitCh chan bool, nmCh chan *net.Manager) {
+func replicateNewBlock(sharedBlockCh chan interface{}, quitCh chan bool, nmCh chan *net.Manager) {
 	nms := make([]*net.Manager, 0, 10)
 
+	count := 0
 	for {
 		select {
 		case block := <-sharedBlockCh:
+			count++
+			log.Info("replicateNewBlock: repBlockCount = ", count)
 			msg := messages.NewBaseMessage(net.MessageTypeNewBlock, block)
 			for _, nm := range nms {
 				nm.PutMessage(msg)
@@ -76,16 +82,16 @@ func replicateNewBlock(sharedBlockCh chan *core.Block, quitCh chan bool, nmCh ch
 }
 
 func main() {
-	log.SetFormatter(&log.TextFormatter{ForceColors: true, FullTimestamp: true})
+	log.SetFormatter(&log.TextFormatter{FullTimestamp: true})
 	log.SetOutput(os.Stdout)
-	log.SetLevel(log.InfoLevel)
+	log.SetLevel(log.DebugLevel)
 
 	quitCh := make(chan bool, 10)
 
 	clientCount := 2
 	nmCh := make(chan *net.Manager, clientCount)
 
-	sharedBlockCh := make(chan *core.Block, 50)
+	sharedBlockCh := make(chan interface{}, 50)
 	go replicateNewBlock(sharedBlockCh, quitCh, nmCh)
 
 	for i := 0; i < clientCount; i++ {

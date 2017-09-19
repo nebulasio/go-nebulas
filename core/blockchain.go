@@ -29,6 +29,9 @@ type BlockChain struct {
 	genesisBlock *Block
 	tailBlock    *Block
 
+	// block pool.
+	bkPool *BlockPool
+
 	detachedBlocks *lru.Cache
 }
 
@@ -42,11 +45,15 @@ const (
 
 // NewBlockChain create new #BlockChain instance.
 func NewBlockChain(chainID int) *BlockChain {
-	var bc = &BlockChain{chainID: chainID}
-	bc.detachedBlocks, _ = lru.New(100)
+	var bc = &BlockChain{
+		chainID:      chainID,
+		genesisBlock: NewGenesisBlock(),
+		bkPool:       NewBlockPool(),
+	}
 
-	bc.genesisBlock = NewGenesisBlock()
+	bc.detachedBlocks, _ = lru.New(100)
 	bc.tailBlock = bc.genesisBlock
+
 	return bc
 }
 
@@ -65,6 +72,11 @@ func (bc *BlockChain) SetTailBlock(block *Block) {
 	block.previousBlock = bc.tailBlock
 	bc.tailBlock.nextBlock = block
 	bc.tailBlock = block
+}
+
+// BlockPool return block pool.
+func (bc *BlockChain) BlockPool() *BlockPool {
+	return bc.bkPool
 }
 
 // NewBlock create new #Block instance.

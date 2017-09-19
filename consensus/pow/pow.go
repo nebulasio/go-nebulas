@@ -55,7 +55,6 @@ type Pow struct {
 	states            consensus.States
 	currentState      consensus.State
 	stateTransitionCh chan *stateTransitionArgs
-	messageReceivedCh chan net.Message
 
 	newBlock *core.Block
 }
@@ -72,7 +71,6 @@ func NewPow(bc *core.BlockChain, nm *net.Manager) *Pow {
 		nm:                nm,
 		quitCh:            make(chan bool, 5),
 		stateTransitionCh: make(chan *stateTransitionArgs, 10),
-		messageReceivedCh: make(chan net.Message, 128),
 	}
 
 	p.states = consensus.States{
@@ -83,8 +81,6 @@ func NewPow(bc *core.BlockChain, nm *net.Manager) *Pow {
 	}
 	p.currentState = p.states[Prepare]
 
-	nm.Register(net.NewSubscriber(p, p.messageReceivedCh, net.MessageTypeNewBlock))
-
 	return p
 }
 
@@ -94,7 +90,7 @@ func (p *Pow) Start() {
 	go p.stateLoop()
 
 	// start goroutine to process received message.
-	go p.messageLoop()
+	go p.blockLoop()
 }
 
 // Stop stop pow service.
@@ -129,17 +125,17 @@ func (p *Pow) Event(e consensus.Event) {
 		case net.MessageTypeNewBlock:
 			log.WithFields(log.Fields{
 				"block": msg.Data(),
-			}).Info("Pow handle BlockMessage.")
+			}).Info("Pow.Event: handle BlockMessage.")
 		default:
 			log.WithFields(log.Fields{
 				"messageType": msg.MessageType(),
 				"message":     msg,
-			}).Info("Pow handle NetMessageEvent.")
+			}).Info("Pow.Event: handle NetMessageEvent.")
 		}
 	default:
 		log.WithFields(log.Fields{
 			"eventType": fmt.Sprintf("%T", e),
-		}).Info("Pow handle this event.")
+		}).Info("Pow.Event: handle this event.")
 	}
 }
 
@@ -236,10 +232,13 @@ func (p *Pow) stateLoop() {
 	}
 }
 
-func (p *Pow) messageLoop() {
+func (p *Pow) blockLoop() {
+	count := 0
 	for {
 		select {
-		case msg := <-p.messageReceivedCh:
+		case msg := <-p.chain.BlockPool().ReceivedBlockCh():
+			count++
+			log.Debugf("Pow.blockLoop: new block message received. Count=%d", count)
 			p.Event(consensus.NewBaseEvent(consensus.NetMessageEvent, msg))
 		case <-p.quitCh:
 			// TODO: should provide base goroutine start/stop func to graceful stop them.
@@ -263,7 +262,7 @@ func (p *Pow) messageLoop() {
 					}
 				}
 			*/
-			log.Info("quit Pow.messageLoop.")
+			log.Info("Pow.blockLoop: quit.")
 			return
 		}
 	}
