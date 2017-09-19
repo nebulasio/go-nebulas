@@ -19,19 +19,30 @@
 package p2p
 
 import (
-	"github.com/multiformats/go-multiaddr"
-	"time"
+	"github.com/libp2p/go-libp2p-peer"
+	"github.com/libp2p/go-libp2p-peerstore"
+	"github.com/libp2p/go-libp2p-net"
+	"github.com/libp2p/go-libp2p-host"
 )
 
-/*
-the config is used to start a local node.
-*/
-type Config struct {
-	bucketsize     int
-	latency        time.Duration
-	bootNodes      []multiaddr.Multiaddr
-	IP             string
-	Port           uint16
-	Randseed       int64
-	maxSyncNodes   int
+type LookupService struct {
+	Host host.Host
+}
+
+// register ping service
+func (node *Node) RegisterLookupService() *LookupService {
+	ls := &LookupService{node.host}
+	node.host.SetStreamHandler(protocolID, ls.LookupHandler)
+	return ls
+}
+
+//TODO Lookup from a node
+func (node *Node) Lookup(pid peer.ID) ([]peerstore.PeerInfo, error) {
+
+	return nil, nil
+}
+
+//TODO handle lookup request
+func (p *LookupService) LookupHandler(s net.Stream) {
+
 }

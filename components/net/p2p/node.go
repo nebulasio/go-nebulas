@@ -36,6 +36,7 @@ import (
 	"github.com/libp2p/go-libp2p/p2p/host/basic"
 	"github.com/libp2p/go-libp2p-peer"
 	"github.com/multiformats/go-multiaddr"
+	"errors"
 )
 
 var log = logging.Logger("node")
@@ -50,7 +51,7 @@ type Node struct {
 	routeTable *kbucket.RoutingTable
 	context    context.Context
 	config     *Config
-	isRunning  bool
+	running  bool
 }
 
 // start a local node and join the node to network
@@ -72,28 +73,35 @@ func NewNode(config *Config) (*Node, error) {
 	return node, nil
 }
 
-// start the node and say hello to seedNodes, then start node discovery service
-func (node *Node) Start() {
+// start the node and say hello to bootNodes, then start node discovery service
+func (node *Node) Start() error{
 
+	if node.running {
+		return errors.New("node already running")
+	}
+	node.running = true
+	log.Info("start p2p network")
 
 	node.RegisterPingService()
+	node.RegisterLookupService()
 
 	var wg sync.WaitGroup
-	for _, trustedNode := range node.config.trustedNodes {
+	for _, bootNode := range node.config.bootNodes {
 		wg.Add(1)
-		go func(trustedNode multiaddr.Multiaddr) {
+		go func(bootNode multiaddr.Multiaddr) {
 			defer wg.Done()
-			err := node.Hello(trustedNode)
+			err := node.SayHello(bootNode)
 			if err != nil {
-				log.Error("can not say hello to trusted node.", trustedNode, err)
+				log.Error("can not say hello to trusted node.", bootNode, err)
 			}
 
-		}(trustedNode)
+		}(bootNode)
 	}
 	wg.Wait()
 
 	go node.Discovery(node.context)
 
+	return nil
 }
 
 func (node *Node) makeHost() error {
@@ -150,21 +158,21 @@ func (node *Node) makeHost() error {
 	return err
 }
 
-//TODO Say hello to seedNode
-func (node *Node) Hello(seedNode multiaddr.Multiaddr) error {
-	seedAddr, seedID, err := parseAddressFromMultiaddr(seedNode)
+// Say hello to trustedNode
+func (node *Node) SayHello(bootNode multiaddr.Multiaddr) error {
+	bootAddr, bootID, err := parseAddressFromMultiaddr(bootNode)
 	if err != nil {
-		log.Error("parse Address from seedNode failed", seedNode, err)
+		log.Error("parse Address from trustedNode failed", bootNode, err)
 		return err
 	}
-	if node.id != seedID {
+	if node.id != bootID {
 		for i := 0; i < 3; i++ {
 			node.peerstore.AddAddr(
-				seedID,
-				seedAddr,
+				bootID,
+				bootAddr,
 				peerstore.TempAddrTTL,
 			)
-			err := node.Ping(seedID)
+			err := node.Ping(bootID)
 			if err != nil {
 				time.Sleep(time.Second)
 				continue
@@ -172,15 +180,15 @@ func (node *Node) Hello(seedNode multiaddr.Multiaddr) error {
 			break
 		}
 		if err != nil {
-			log.Error("ping to seedNode failed", seedNode, err)
+			log.Error("ping to seedNode failed", bootNode, err)
 		}
 		node.peerstore.SetAddr(
-			seedID,
-			seedAddr,
+			bootID,
+			bootAddr,
 			peerstore.PermanentAddrTTL,
 		)
 		// Update the routing table.
-		node.routeTable.Update(seedID)
+		node.routeTable.Update(bootID)
 	}
 	return nil
 }

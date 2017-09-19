@@ -21,13 +21,14 @@ package p2p
 import (
 	"context"
 	"time"
+	"math/rand"
+	"github.com/libp2p/go-libp2p-peer"
 )
 
 /*
 node can discover other node or can be discovered by another node
 and then update the routing table.
 */
-//TODO discorver other node
 func (node *Node) Discovery(ctx context.Context) {
 
 	//FIXME  the sync routing table rate can be dynamic
@@ -43,7 +44,55 @@ func (node *Node) Discovery(ctx context.Context) {
 	}
 }
 
-//TODO sync route table
+//sync route table
 func (node *Node) syncRoutingTable() {
+	asked := make(map[peer.ID]bool)
+	allNode := node.routeTable.ListPeers()
+	randomList := rand.Perm(len(allNode))
+	var nodeAccount int
+	if len(allNode) > node.config.maxSyncNodes {
+		nodeAccount = node.config.maxSyncNodes
+	} else {
+		nodeAccount = len(allNode)
+	}
 
+	for i := 0; i < nodeAccount; i++ {
+		nodeId := allNode[randomList[i]]
+		if !asked[nodeId] {
+			asked[nodeId] = true
+			go func() {
+				node.syncSingleNode(nodeId)
+			}()
+		}
+	}
+}
+
+func (node *Node) syncRouteInfoFromSingleNode(nodeId peer.ID) {
+
+	reply, err := node.Lookup(nodeId)
+	if err != nil {
+		log.Errorf("")
+		return
+	}
+
+	for i := range reply {
+		if node.routeTable.Find(reply[i].ID) != "" {
+			continue
+		}
+		//TODO handle lookup reply info
+	}
+
+}
+
+func (node *Node) syncSingleNode(nodeId peer.ID) {
+	// skip self
+	if nodeId == node.id {
+		return
+	}
+	nodeInfo := node.peerstore.PeerInfo(nodeId)
+	if len(nodeInfo.Addrs) != 0 {
+		node.syncRouteInfoFromSingleNode(nodeId)
+	} else {
+		node.routeTable.Remove(nodeId)
+	}
 }
