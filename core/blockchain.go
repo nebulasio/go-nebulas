@@ -19,6 +19,11 @@
 package core
 
 import (
+	"fmt"
+	"strings"
+
+	"github.com/nebulasio/go-nebulas/utils/byteutils"
+
 	"github.com/hashicorp/golang-lru"
 )
 
@@ -51,7 +56,7 @@ func NewBlockChain(chainID int) *BlockChain {
 		bkPool:       NewBlockPool(),
 	}
 
-	bc.detachedBlocks, _ = lru.New(100)
+	bc.detachedBlocks, _ = lru.New(1024)
 	bc.tailBlock = bc.genesisBlock
 
 	return bc
@@ -69,8 +74,7 @@ func (bc *BlockChain) TailBlock() *Block {
 
 // SetTailBlock set tail block.
 func (bc *BlockChain) SetTailBlock(block *Block) {
-	block.previousBlock = bc.tailBlock
-	bc.tailBlock.nextBlock = block
+	block.LinkParentBlock(bc.tailBlock)
 	bc.tailBlock = block
 }
 
@@ -83,4 +87,39 @@ func (bc *BlockChain) BlockPool() *BlockPool {
 func (bc *BlockChain) NewBlock(coinbase *Address) *Block {
 	block := NewBlock(bc.tailBlock.header.hash, coinbase)
 	return block
+}
+
+// Dump dump full chain.
+func (bc *BlockChain) Dump() string {
+	l := make([]string, 1)
+
+	for block := bc.genesisBlock; block != nil; block = block.childBlock {
+		l = append(l, fmt.Sprintf("{%d, hash: %s, parent: %s}", block.height, byteutils.Hex(block.Hash()), byteutils.Hex(block.ParentHash())))
+	}
+	ls := strings.Join(l, " <-- ")
+
+	rl := make([]string, 1)
+	for block := bc.tailBlock; block != nil; block = block.parenetBlock {
+		rl = append(rl, fmt.Sprintf("{%d, hash: %s, parent: %s}", block.height, byteutils.Hex(block.Hash()), byteutils.Hex(block.ParentHash())))
+	}
+	rls := strings.Join(rl, " <-- ")
+
+	return ls + "; reverse order:" + rls
+}
+
+// AssertChain
+func (bc *BlockChain) Assert() {
+	for block := bc.genesisBlock; block != nil; block = block.childBlock {
+		if block.childBlock.parenetBlock != block {
+			// log.Infof("block {%d, hash: %s, parent: %s, parentBlock} vs. childblock {%d, hash: %s, parent: %s}", block, block.childBlock)
+			panic("Assert block.childBlock.parenetBlock == block failed.")
+		}
+	}
+
+	for block := bc.tailBlock; block != nil; block = block.parenetBlock {
+		if block.parenetBlock.childBlock != block {
+			// log.Infof("parentBlock %s vs. block %s", block.parenetBlock, block)
+			panic("Assert block.parenetBlock.childBlock == block failed.")
+		}
+	}
 }

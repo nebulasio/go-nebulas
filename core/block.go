@@ -19,6 +19,7 @@
 package core
 
 import (
+	"bytes"
 	"fmt"
 	"time"
 
@@ -49,8 +50,9 @@ type Block struct {
 	header       *BlockHeader
 	transactions Transactions
 
-	previousBlock *Block
-	nextBlock     *Block
+	height       uint64
+	parenetBlock *Block
+	childBlock   *Block
 }
 
 // NewBlock return new block.
@@ -105,8 +107,47 @@ func (block *Block) ParentHash() []byte {
 	return block.header.parentHash
 }
 
+// ParentBlock return parent block.
+func (block *Block) ParentBlock() *Block {
+	return block.parenetBlock
+}
+
+// Height return height from genesis block.
+func (block *Block) Height() uint64 {
+	return block.height
+}
+
+// LinkParentBlock link parent block, return true if hash is the same; false otherwise.
+func (block *Block) LinkParentBlock(parentBlock *Block) bool {
+	if bytes.Compare(block.ParentHash(), parentBlock.Hash()) != 0 {
+		return false
+	}
+
+	block.parenetBlock = parentBlock
+	parentBlock.childBlock = block
+
+	// travel to calculate block height.
+	depth := uint64(0)
+	ancestorHeight := uint64(0)
+	for ancestor := block; ancestor != nil; ancestor = ancestor.parenetBlock {
+		depth++
+		ancestorHeight = ancestor.height
+		if ancestor.height > 0 {
+			break
+		}
+	}
+
+	for ancestor := block; ancestor != nil && depth > 1; ancestor = ancestor.parenetBlock {
+		depth--
+		ancestor.height = ancestorHeight + depth
+	}
+
+	return true
+}
+
 func (block *Block) String() string {
-	return fmt.Sprintf("Block {hash:%s; parentHash:%s; nonce:%d, timestamp: %d}",
+	return fmt.Sprintf("Block {height:%d; hash:%s; parentHash:%s; nonce:%d, timestamp: %d}",
+		block.height,
 		byteutils.Hex(block.header.hash),
 		byteutils.Hex(block.header.parentHash),
 		block.header.nonce,

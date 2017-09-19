@@ -31,6 +31,9 @@ func NewGenesisBlock() *Block {
 		coinbase:   &Address{make([]byte, AddressLength)},
 		timestamp:  time.Now(),
 	}
-	b := &Block{header: header}
+	b := &Block{
+		header: header,
+		height: 1,
+	}
 	return b
 }

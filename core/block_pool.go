@@ -21,6 +21,8 @@ package core
 import (
 	"sync"
 
+	"github.com/nebulasio/go-nebulas/utils/byteutils"
+
 	"github.com/nebulasio/go-nebulas/components/net"
 	log "github.com/sirupsen/logrus"
 )
@@ -52,6 +54,12 @@ func (pool *BlockPool) ReceivedBlockCh() chan *Block {
 // RegisterInNetwork register message subscriber in network.
 func (pool *BlockPool) RegisterInNetwork(nm *net.Manager) {
 	nm.Register(net.NewSubscriber(pool, pool.receiveMessageCh, net.MessageTypeNewBlock))
+}
+
+// Range calls f sequentially for each key and value present in the map.
+// If f returns false, range stops the iteration.
+func (pool *BlockPool) Range(f func(key, value interface{}) bool) {
+	pool.inner.Range(f)
 }
 
 // Start start loop.
@@ -93,7 +101,22 @@ func (pool *BlockPool) loop() {
 			}
 
 			// send to chan.
+			pool.inner.Store(byteutils.Hex(block.Hash()), block)
 			pool.receivedBlockCh <- block
 		}
 	}
+}
+
+// AddLocalBlock add local minted block.
+func (pool *BlockPool) AddLocalBlock(block *Block) {
+	if block.VerifySign() == false {
+		log.WithFields(log.Fields{
+			"block": block,
+		}).Error("BlockPool.AddLocalBlock: the signature of block is invalid.")
+		return
+	}
+
+	// send to chan.
+	pool.inner.Store(byteutils.Hex(block.Hash()), block)
+	pool.receivedBlockCh <- block
 }
