@@ -71,6 +71,7 @@ func TestRLPSerializerStruct(t *testing.T) {
 			if !reflect.DeepEqual(*(tt.args.res.(*Message)), tt.args.val) {
 				t.Errorf("JSONSerializer.EncodeToBytes() = %v, want %v", *(tt.args.res.(*Message)), tt.args.val)
 			}
+
 		})
 	}
 }
@@ -186,6 +187,8 @@ func TestJSONSerializerArray(t *testing.T) {
 		Map  map[int]string
 		Body [][]string
 	}
+	emptyBranchVal := [16][]byte{}
+	emptyBranch := emptyBranchVal[:]
 	tests := []struct {
 		name    string
 		args    args
@@ -198,12 +201,17 @@ func TestJSONSerializerArray(t *testing.T) {
 		},
 		{
 			"empty array",
-			args{[][]byte{}, &[][]byte{}},
+			args{emptyBranch, &[][]byte{}},
 			false,
 		},
 		{
 			"incomplete array",
 			args{[][]byte{[]byte("car"), nil, []byte("dog")}, &[][]byte{}},
+			false,
+		},
+		{
+			"nil",
+			args{[][]byte{nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil}, &[][]byte{}},
 			false,
 		},
 	}

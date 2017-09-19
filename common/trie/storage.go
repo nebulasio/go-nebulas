@@ -19,6 +19,7 @@
 package trie
 
 import (
+	"errors"
 	"github.com/nebulasio/go-nebulas/utils/byteutils"
 )
 
@@ -27,9 +28,19 @@ type Storage struct {
 	data map[string][]byte
 }
 
+// NewStorage init a storage
+func NewStorage() (*Storage, error) {
+	return &Storage{
+		data: make(map[string][]byte),
+	}, nil
+}
+
 // Get return value to the key in Storage
 func (db *Storage) Get(key []byte) ([]byte, error) {
-	return db.data[byteutils.Hex(key)], nil
+	if entry, ok := db.data[byteutils.Hex(key)]; ok {
+		return entry, nil
+	}
+	return nil, errors.New("not found")
 }
 
 // Put put the key-value entry to Storage

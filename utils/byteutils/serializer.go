@@ -47,20 +47,12 @@ type JSONSerializer struct{}
 
 // Serialize convert struct or array into json string
 func (s *JSONSerializer) Serialize(val interface{}) ([]byte, error) {
-	ir, err := json.Marshal(val)
-	if err != nil {
-		return nil, err
-	}
-	return compress(ir)
+	return json.Marshal(val)
 }
 
 // Deserialize convert json string into struct or array
 func (s *JSONSerializer) Deserialize(val []byte, res interface{}) error {
-	ir, err := uncompress(val)
-	if err != nil {
-		return err
-	}
-	return json.Unmarshal(ir, res)
+	return json.Unmarshal(val, res)
 }
 
 func compress(val []byte) ([]byte, error) {
