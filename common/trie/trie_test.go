@@ -31,7 +31,6 @@ func TestNewTrie(t *testing.T) {
 	type args struct {
 		rootHash []byte
 	}
-	rootHash, _ := byteutils.FromHex("2bf57a4ca277d533a4af0f591bfb589e022c2e36546f5c9f1506f0817d391191")
 	tests := []struct {
 		name    string
 		args    args
@@ -41,7 +40,7 @@ func TestNewTrie(t *testing.T) {
 		{
 			"nil",
 			args{nil},
-			rootHash,
+			nil,
 			false,
 		},
 		{
@@ -207,7 +206,14 @@ func TestTrie_Operation(t *testing.T) {
 	if !reflect.DeepEqual(ext3H, tr.rootHash) {
 		t.Errorf("4 Trie.Update() = %v, want %v", ext3H, tr.rootHash)
 	}
-
+	// get merkle proof of "1f345678e9"
+	proof, err := tr.Prove(addr1)
+	if err != nil {
+		t.Errorf("1 Trie.Prove() %v", err.Error())
+	}
+	if err := tr.Verify(tr.rootHash, addr1, proof); err != nil {
+		t.Errorf("1 Trie.Verify() %v", err.Error())
+	}
 	// get node "1f345678e9"
 	node1, _ := tr.Get(addr1)
 	if !reflect.DeepEqual(node1.Key, leaf5H) {
