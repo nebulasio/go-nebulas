@@ -135,7 +135,6 @@ func TestJSONSerializerStruct(t *testing.T) {
 		Map  map[int]string
 		Body [][]string
 	}
-
 	tests := []struct {
 		name    string
 		args    args
