@@ -137,7 +137,7 @@ func TestTrie_Operation(t *testing.T) {
 	addr2, _ := byteutils.FromHex("1f355678e9")
 	key2 := []byte{0x1, 0xf, 0x3, 0x5, 0x5, 0x6, 0x7, 0x8, 0xe, 0x9}
 	val2 := []byte("leaf 2")
-	hash2, _ := tr.Put(addr2, val2)
+	tr.Put(addr2, val2)
 	leaf2 := [][]byte{[]byte{byte(leaf)}, key2[4:], val2}
 	leaf2IR, _ := tr.serializer.Serialize(leaf2)
 	leaf2H := hash.Sha3256(leaf2IR)
@@ -158,14 +158,14 @@ func TestTrie_Operation(t *testing.T) {
 	ext1H := hash.Sha3256(ext1IR)
 	fmt.Println("ext1")
 	fmt.Println(ext1H)
-	if !reflect.DeepEqual(ext1H, hash2) {
+	if !reflect.DeepEqual(ext1H, tr.RootHash()) {
 		t.Errorf("2 Trie.Update() = %v, want %v", ext1H, tr.rootHash)
 	}
 	// add a new node with 2-length common prefix
 	addr3, _ := byteutils.FromHex("1f555678e9")
 	key3 := []byte{0x1, 0xf, 0x5, 0x5, 0x5, 0x6, 0x7, 0x8, 0xe, 0x9}
 	val3 := []byte("leaf 3")
-	hash3, _ := tr.Put(addr3, val3)
+	tr.Put(addr3, val3)
 	leaf4 := [][]byte{[]byte{byte(leaf)}, key3[3:], val3}
 	leaf4IR, _ := tr.serializer.Serialize(leaf4)
 	leaf4H := hash.Sha3256(leaf4IR)
@@ -181,7 +181,7 @@ func TestTrie_Operation(t *testing.T) {
 	ext2H := hash.Sha3256(ext2IR)
 	fmt.Println("ext2")
 	fmt.Println(ext2H)
-	if !reflect.DeepEqual(ext2H, hash3) {
+	if !reflect.DeepEqual(ext2H, tr.rootHash) {
 		t.Errorf("3 Trie.Update() = %v, want %v", ext2H, tr.rootHash)
 	}
 	// update node leaf1

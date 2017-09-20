@@ -122,6 +122,11 @@ func NewTrie(rootHash []byte) (*Trie, error) {
 	return t, nil
 }
 
+// RootHash return trie's rootHash
+func (t *Trie) RootHash() []byte {
+	return t.rootHash
+}
+
 // Get the value to the key in trie
 func (t *Trie) Get(key []byte) ([]byte, error) {
 	return t.get(t.rootHash, keyToRoute(key))
