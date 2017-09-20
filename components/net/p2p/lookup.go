@@ -19,16 +19,16 @@
 package p2p
 
 import (
+	"encoding/json"
+	"errors"
+	"github.com/libp2p/go-libp2p-kbucket"
+	"github.com/libp2p/go-libp2p-net"
 	"github.com/libp2p/go-libp2p-peer"
 	"github.com/libp2p/go-libp2p-peerstore"
-	"github.com/libp2p/go-libp2p-net"
 	nbytes "github.com/nebulasio/go-nebulas/utils/bytes"
-	"github.com/libp2p/go-libp2p-kbucket"
 	log "github.com/sirupsen/logrus"
-	"time"
 	"io"
-	"errors"
-	"encoding/json"
+	"time"
 )
 
 const lookupProtocolID = "/nebulas/lookup/1.0.0"
@@ -52,7 +52,7 @@ func (node *Node) Lookup(pid peer.ID) ([]peerstore.PeerInfo, error) {
 	s, err := node.host.NewStream(node.context, pid, lookupProtocolID)
 	if err != nil {
 		log.Error("Lookup: node start lookup occurs error ", err)
-		return nil , err
+		return nil, err
 	}
 	defer s.Close()
 
@@ -72,7 +72,6 @@ func (node *Node) Lookup(pid peer.ID) ([]peerstore.PeerInfo, error) {
 	log.Infof("Lookup: lookup the node %s success and get response...%s", pid, sample)
 	return sample, nil
 }
-
 
 // Read data from a stream using a timeout.
 func ReadWithTimeout(reader io.Reader, n uint32, timeout time.Duration) ([]byte, error) {
@@ -94,7 +93,6 @@ func ReadWithTimeout(reader io.Reader, n uint32, timeout time.Duration) ([]byte,
 		return data, err
 	}
 }
-
 
 // handle lookup request
 func (p *LookupService) LookupHandler(s net.Stream) {
@@ -126,7 +124,6 @@ func (p *LookupService) LookupHandler(s net.Stream) {
 
 	p.node.routeTable.Update(pid)
 }
-
 
 func WriteWithTimeout(writer io.Writer, data []byte, timeout time.Duration) error {
 	result := make(chan error, 1)

@@ -19,15 +19,15 @@
 package messages
 
 import (
-	"github.com/multiformats/go-multicodec"
 	"bufio"
 	inet "github.com/libp2p/go-libp2p-net"
-	json "github.com/multiformats/go-multicodec/json"
 	"github.com/libp2p/go-libp2p-peerstore"
+	"github.com/multiformats/go-multicodec"
+	json "github.com/multiformats/go-multicodec/json"
 )
 
 type LookupMessage struct {
-	Msg    []peerstore.PeerInfo
+	Msg []peerstore.PeerInfo
 }
 
 // streamWrap wraps a libp2p stream. We encode/decode whenever we
@@ -40,7 +40,6 @@ type WrappedStream struct {
 	W      *bufio.Writer
 	R      *bufio.Reader
 }
-
 
 func WrapStream(s inet.Stream) *WrappedStream {
 	reader := bufio.NewReader(s)

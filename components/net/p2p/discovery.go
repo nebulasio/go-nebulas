@@ -20,11 +20,11 @@ package p2p
 
 import (
 	"context"
-	"time"
-	"math/rand"
 	"github.com/libp2p/go-libp2p-peer"
 	"github.com/libp2p/go-libp2p-peerstore"
 	log "github.com/sirupsen/logrus"
+	"math/rand"
+	"time"
 )
 
 /*
@@ -96,17 +96,24 @@ func (node *Node) syncRouteInfoFromSingleNode(nodeId peer.ID) {
 	}
 	for i := range reply {
 		if node.routeTable.Find(reply[i].ID) != "" || len(reply[i].Addrs) == 0 {
+			log.Warnf("syncRouteInfoFromSingleNode: node %s is already exist in route table", reply[i].ID)
 			continue
 		}
 		// Ping the peer.
+		node.peerstore.AddAddr(
+			reply[i].ID,
+			reply[i].Addrs[0],
+			peerstore.TempAddrTTL,
+		)
 		err := node.Ping(reply[i].ID)
 		if err != nil {
+			log.Errorf("syncRouteInfoFromSingleNode: ping peer %s fail %s", reply[i].ID, err)
 			continue
 		}
-		node.peerstore.SetAddrs(
+		node.peerstore.AddAddr(
 			reply[i].ID,
-			reply[i].Addrs,
-			peerstore.ProviderAddrTTL,
+			reply[i].Addrs[0],
+			peerstore.PermanentAddrTTL,
 		)
 
 		// Update the routing table.

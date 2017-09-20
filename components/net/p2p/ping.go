@@ -43,13 +43,13 @@ type PingService struct {
 func (node *Node) RegisterPingService() *PingService {
 	ps := &PingService{node}
 	node.host.SetStreamHandler(pingProtocolID, ps.PingHandler)
-	log.Infof("node register ping service success...")
+	log.Infof("RegisterPingService: node register ping service success...")
 	return ps
 }
 
 // handle others ping
 func (p *PingService) PingHandler(s gnet.Stream) {
-	log.Infof("node handle ping request...")
+	log.Infof("PingHandler: node handle ping request...")
 	buf := make([]byte, PingSize)
 
 	errCh := make(chan error, 1)
@@ -60,7 +60,7 @@ func (p *PingService) PingHandler(s gnet.Stream) {
 	go func() {
 		select {
 		case <-timer.C:
-			log.Info("ping timeout")
+			log.Info("PingHandler: ping timeout")
 			s.Reset()
 		case err, ok := <-errCh:
 			if ok {
@@ -71,7 +71,7 @@ func (p *PingService) PingHandler(s gnet.Stream) {
 					s.Reset()
 				}
 			} else {
-				log.Error("ping loop failed without error")
+				log.Error("PingHandler: ping loop failed without error")
 			}
 		}
 	}()
@@ -95,10 +95,11 @@ func (p *PingService) PingHandler(s gnet.Stream) {
 
 //Ping a peer
 func (node *Node) Ping(pid peer.ID) error {
-	log.Infof("Ping: node start ping peer %s", node.host.Addrs(), pid)
+	log.Infof("Ping: node start ping peer %s", pid)
 	ctx := node.context
 	s, err := node.host.NewStream(ctx, pid, pingProtocolID)
 	if err != nil {
+		log.Errorf("Ping: node ping peer %s fail %s", pid, err)
 		return err
 	}
 
@@ -114,7 +115,7 @@ func (node *Node) Ping(pid peer.ID) error {
 				t, err := ping(s)
 				if err != nil {
 					s.Reset()
-					log.Errorf("ping error: %s", err)
+					log.Errorf("Ping: ping error: %s", err)
 					return
 				}
 
@@ -148,7 +149,7 @@ func ping(s gnet.Stream) (time.Duration, error) {
 	}
 
 	if !bytes.Equal(buf, rbuf) {
-		return 0, errors.New("ping packet was incorrect")
+		return 0, errors.New("ping: ping packet was incorrect")
 	}
 
 	return time.Since(before), nil

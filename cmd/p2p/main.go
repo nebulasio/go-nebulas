@@ -19,8 +19,8 @@
 package main
 
 import (
-	log "github.com/sirupsen/logrus"
 	n "github.com/nebulasio/go-nebulas/components/net/p2p"
+	log "github.com/sirupsen/logrus"
 )
 
 func main() {

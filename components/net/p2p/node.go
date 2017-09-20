@@ -28,17 +28,16 @@ import (
 	"sync"
 	"time"
 
-	log "github.com/sirupsen/logrus"
+	"errors"
 	"github.com/libp2p/go-libp2p-crypto"
 	"github.com/libp2p/go-libp2p-kbucket"
+	"github.com/libp2p/go-libp2p-peer"
 	"github.com/libp2p/go-libp2p-peerstore"
 	"github.com/libp2p/go-libp2p-swarm"
 	"github.com/libp2p/go-libp2p/p2p/host/basic"
-	"github.com/libp2p/go-libp2p-peer"
 	"github.com/multiformats/go-multiaddr"
-	"errors"
+	log "github.com/sirupsen/logrus"
 )
-
 
 /*
 	the node can be used as both the client and the server
@@ -70,7 +69,7 @@ func NewNode(config *Config) (*Node, error) {
 }
 
 // start the node and say hello to bootNodes, then start node discovery service
-func (node *Node) Start() error{
+func (node *Node) Start() error {
 
 	log.Info("Start: node create success...")
 	log.Infof("Start: node info {id -> %s, address -> %s}", node.id, node.host.Addrs())
@@ -97,7 +96,7 @@ func (node *Node) Start() error{
 	}
 	wg.Wait()
 
-	go func (){
+	go func() {
 		node.Discovery(node.context)
 	}()
 
@@ -118,7 +117,6 @@ func (node *Node) makeHost() error {
 	}
 
 	priv, pub, err := crypto.GenerateKeyPairWithReader(crypto.RSA, 2048, r)
-
 
 	if err != nil {
 		return err
@@ -192,13 +190,13 @@ func (node *Node) SayHello(bootNode multiaddr.Multiaddr) error {
 			break
 		}
 		if err != nil {
-			log.Error("ping to seedNode failed", bootNode, err)
+			log.Error("SayHello: ping to seedNode failed", bootNode, err)
 		}
 		log.Info("SayHello: node say hello to boot node success... ")
 		node.peerstore.AddAddr(
 			bootID,
 			bootAddr,
-			peerstore.PermanentAddrTTL,)
+			peerstore.PermanentAddrTTL)
 		// Update the routing table.
 		node.routeTable.Update(bootID)
 	}
