@@ -168,11 +168,11 @@ func (t *Trie) get(rootHash []byte, route []byte) ([]byte, error) {
 	return nil, errors.New("not found")
 }
 
-// Update or add the key-value pair in trie
-func (t *Trie) Update(key []byte, val []byte) error {
+// Put the key-value pair in trie
+func (t *Trie) Put(key []byte, val []byte) ([]byte, error) {
 	newHash, err := t.update(t.rootHash, keyToRoute(key), val)
 	t.rootHash = newHash
-	return err
+	return newHash, err
 }
 
 func (t *Trie) update(root []byte, route []byte, val []byte) ([]byte, error) {
@@ -314,13 +314,13 @@ func (t *Trie) updateWhenMeetLeaf(rootNode *node, route []byte, val []byte) ([]b
 }
 
 // Del the node's value in trie
-func (t *Trie) Del(key []byte) error {
-	rootHash, err := t.del(t.rootHash, keyToRoute(key))
+func (t *Trie) Del(key []byte) ([]byte, error) {
+	newHash, err := t.del(t.rootHash, keyToRoute(key))
 	if err != nil {
-		return err
+		return nil, err
 	}
-	t.rootHash = rootHash
-	return nil
+	t.rootHash = newHash
+	return newHash, nil
 }
 
 func (t *Trie) del(root []byte, route []byte) ([]byte, error) {
