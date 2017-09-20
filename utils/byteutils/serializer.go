@@ -23,9 +23,9 @@ import (
 	"compress/gzip"
 	"io/ioutil"
 
+	"github.com/golang/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/common/rlp"
 	json "github.com/pquerna/ffjson/ffjson"
-	"github.com/golang/protobuf/proto"
 )
 
 // RLPSerializer implements ethereum rlp algorithm

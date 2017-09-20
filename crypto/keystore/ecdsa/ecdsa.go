@@ -21,40 +21,24 @@ package ecdsa
 import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
+	"github.com/nebulasio/go-nebulas/crypto/keystore/ecdsa/bitelliptic"
 	"io"
 
 	"crypto/rand"
 	"crypto/x509"
 	"encoding/hex"
 	"errors"
-	"github.com/nebulasio/go-nebulas/utils/byteutils"
 	"math/big"
-	"sync"
-)
-
-var (
-	once        sync.Once
-	curveParams *elliptic.CurveParams
 )
 
 // S256 returns an instance of the secp256k1 curve.
-func Curve() elliptic.Curve {
-	once.Do(func() {
-		curveParams := new(elliptic.CurveParams)
-		curveParams.Name = "nebulas"
-		curveParams.P, _ = new(big.Int).SetString("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2F", 16)
-		curveParams.N, _ = new(big.Int).SetString("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141", 16)
-		curveParams.B, _ = new(big.Int).SetString("0000000000000000000000000000000000000000000000000000000000000007", 16)
-		curveParams.Gx, _ = new(big.Int).SetString("79BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F81798", 16)
-		curveParams.Gy, _ = new(big.Int).SetString("483ADA7726A3C4655DA4FBFC0E1108A8FD17B448A68554199C47D08FFB10D4B8", 16)
-		curveParams.BitSize = 256
-	})
-	return curveParams
+func S256() elliptic.Curve {
+	return bitelliptic.S256()
 }
 
 // generate a ecdsa private key
 func GenerateECDSAPrivateKey(rand io.Reader) (*ecdsa.PrivateKey, error) {
-	privateKeyECDSA, err := ecdsa.GenerateKey(Curve(), rand)
+	privateKeyECDSA, err := ecdsa.GenerateKey(S256(), rand)
 	if err != nil {
 		return nil, err
 	}
@@ -105,13 +89,17 @@ func Sign(hash []byte, prv *ecdsa.PrivateKey) (sig []byte, err error) {
 	if err != nil {
 		return nil, errors.New("ecdsa: sign err")
 	}
+
 	sign := r.Bytes()
 	sign = append(sign, s.Bytes()...)
 	return sign, nil
 }
 
 func Verify(hash []byte, rs []byte, pub *ecdsa.PublicKey) bool {
-	r := big.NewInt(byteutils.Int64(rs[:32]))
-	s := big.NewInt(byteutils.Int64(rs[32:]))
+	r := new(big.Int)
+	r.SetBytes(rs[:32])
+	s := new(big.Int)
+	s.SetBytes(rs[32:])
+
 	return ecdsa.Verify(pub, hash, r, s)
 }
