@@ -19,9 +19,10 @@
 package byteutils
 
 import (
-	"github.com/duranliu/go-nebulas/common/pb"
 	"reflect"
 	"testing"
+
+	"github.com/nebulasio/go-nebulas/common/pb"
 )
 
 func TestRLPSerializerStruct(t *testing.T) {
