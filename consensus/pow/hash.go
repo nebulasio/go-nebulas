@@ -27,7 +27,7 @@ import (
 // HashAndVerifyNonce return hash result if nonce is satisfied hash requirements.
 func HashAndVerifyNonce(block *core.Block, nonce uint64) []byte {
 	ret := hash.Sha256(block.ParentHash(), byteutils.FromUint64(nonce))
-	if ret[0] == 0 && ret[1] == 0 {
+	if ret[0] == 0 && ret[1] == 0 && ret[2] == 0 {
 		return ret
 	}
 	return nil

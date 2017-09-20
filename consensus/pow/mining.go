@@ -19,8 +19,6 @@
 package pow
 
 import (
-	"time"
-
 	"github.com/nebulasio/go-nebulas/consensus"
 	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/utils/byteutils"
@@ -87,11 +85,7 @@ func (state *MiningState) searchingNonce() {
 		// calculate hash.
 		miningBlock := state.p.miningBlock
 		nonce := miningBlock.Nonce()
-
 		parentHash := miningBlock.ParentHash()
-
-		timeStart := time.Now()
-		miningInterval, _ := time.ParseDuration("1s")
 
 	computeHash:
 		for {
@@ -112,12 +106,6 @@ func (state *MiningState) searchingNonce() {
 						"parentHash": byteutils.Hex(parentHash),
 						"hashResult": byteutils.Hex(resultBytes),
 					}).Info("MiningState.searchingNonce: found valid nonce, transit to MintedState.")
-
-					// FIXME: Debug purpose.
-					elapse := time.Since(timeStart)
-					if elapse < miningInterval {
-						time.Sleep(miningInterval - elapse)
-					}
 
 					miningBlock.SetNonce(nonce)
 					state.p.TransitByKey(Minted, nil)
