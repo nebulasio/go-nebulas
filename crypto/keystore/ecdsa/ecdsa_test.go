@@ -25,18 +25,47 @@ import (
 )
 
 func TestFromECDSAPri(t *testing.T) {
-
+	priv, _ := GenerateECDSAPrivateKey(rand.Reader)
+	privByte, err := FromECDSAPri(priv)
+	if err != nil {
+		t.Errorf("FromECDSAPri err:%s", err)
+	}
+	t.Logf("private :%d", privByte)
 }
 
 func TestFromECDSAPub(t *testing.T) {
+	priv, _ := GenerateECDSAPrivateKey(rand.Reader)
+	privByte, err := FromECDSAPub(&priv.PublicKey)
+	if err != nil {
+		t.Errorf("FromECDSAPub err:%s", err)
+	}
+	t.Logf("public :%d", privByte)
 
 }
 
 func TestToECDSAPrivate(t *testing.T) {
-
+	priv, _ := GenerateECDSAPrivateKey(rand.Reader)
+	t.Logf("before private :%d", priv.D)
+	privByte, _ := FromECDSAPri(priv)
+	aPriv, err := ToECDSAPrivate(privByte)
+	if err != nil {
+		t.Errorf("ToECDSAPrivate err:%s", err)
+	}
+	if !byteutils.Equal(priv.D.Bytes(), aPriv.D.Bytes()) {
+		t.Errorf("ToECDSAPrivate err")
+	}
+	t.Logf("private :%d", aPriv.D)
 }
 
 func TestToECDSAPublic(t *testing.T) {
+	priv, _ := GenerateECDSAPrivateKey(rand.Reader)
+	t.Logf("before public X:%d, Y:%d", priv.PublicKey.X, priv.PublicKey.Y)
+	pubByte, _ := FromECDSAPub(&priv.PublicKey)
+	pub, err := ToECDSAPublic(pubByte)
+	if err != nil {
+		t.Errorf("FromECDSAPub err:%s", err)
+	}
+	t.Logf("public X:%d, Y:%d", pub.X, pub.Y)
 
 }
 

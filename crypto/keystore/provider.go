@@ -18,130 +18,53 @@
 
 package keystore
 
-import "errors"
-
-var (
-	// ErrNeedPassphrase need passphrase error.
-	ErrNeedPassphrase = errors.New("keystore: PassphraseProtection need passphrase")
-
-	ErrNeedCallback = errors.New("keystore: CallbackHandlerProtection need callback func")
+import (
+	"github.com/nebulasio/go-nebulas/crypto/keystore/key"
 )
 
-type Alias struct {
-	alias []byte
-}
-
-// generate a Alias for provider use
-func NewAlias(a []byte) *Alias {
-	alias := &Alias{alias: a}
-	return alias
-}
-
-/*
-* A marker interface for keystore protection parameters.
-*
-* <p> The information stored in a <code>ProtectionParameter</code>
-* object protects the contents of a keystore.
-* For example, protection parameters may be used to check
-* the integrity of keystore data, or to protect the
-* confidentiality of sensitive keystore data
-* (such as a <code>PrivateKey</code>).
- */
-type ProtectionParameter interface {
-	Protection(p []byte) error
-}
-
-/*
-A password-based implementation of ProtectionParameter
-*/
-type PassphraseProtection struct {
-	passphrase []byte
-}
-
-func (pro *PassphraseProtection) Protection(p []byte) error {
-	if len(p) == 0 {
-		return ErrNeedPassphrase
-	}
-	pro.passphrase = p
-	return nil
-}
-
-func NewPassphraseParameter(p []byte) (*PassphraseProtection, error) {
-	if len(p) == 0 {
-		return nil, ErrNeedPassphrase
-	}
-	pro := &PassphraseProtection{passphrase: p}
-	return pro, nil
-}
-
-/*
-A ProtectionParameter encapsulating a CallbackHandler,hardware encryption may use it
-*/
-type CallbackHandlerProtection struct {
-	handler func()
-}
-
-func (pro *CallbackHandlerProtection) Protection(p []byte) error {
-	return nil
-}
-
-func NewCallbackParameter(f func()) (*CallbackHandlerProtection, error) {
-	if f == nil {
-		return nil, ErrNeedCallback
-	}
-	pro := &CallbackHandlerProtection{handler: f}
-	return pro, nil
-}
-
-/*
-* This class represents a "provider" for the
- * Security API, where a provider implements some or all parts of
- * Security. Services that a provider may implement include:
- *
- * <ul>
- *
- * <li>Algorithms
- *
- * <li>Key generation, conversion, and management facilities (such as for
- * algorithm-specific keys).
- *
- *</ul>
- *
- * <p>Each provider has a name and a version number, and is configured
- * in each runtime it is installed in.
-*/
+// Provider class represents a "provider" for the
+// Security API, where a provider implements some or all parts of
+// Security. Services that a provider may implement include:
+// Algorithms
+// Key generation, conversion, and management facilities (such as for
+// algorithm-specific keys).
+// Each provider has a name and a version number, and is configured
+// in each runtime it is installed in.
 type Provider interface {
 
-	/*
-			 * Constructs a provider with the specified name, version number,
-		     * and information.
-	*/
-	NewProvider(name string, version float32, desc string)
+	// Aliases all alias in provider save
+	Aliases() []key.Alias
 
-	// all entry in provider save
-	Entries() map[Alias]*Key
+	// SetKeyPassphrase assigns the given key to the given alias, protecting it with the given passphrase.
+	SetKeyPassphrase(a key.Alias, k key.Key, passphrase []byte) error
 
-	SetKeyPassphrase(a Alias, k Key, passphrase []byte) error
+	// SetKey assigns the given key (that has already been protected) to the given alias.
+	SetKey(a key.Alias, val []byte) error
 
-	SetKey(a Alias, val []byte) error
+	// GetKey returns the key associated with the given alias, using the given
+	// password to recover it.
+	GetKey(a key.Alias, p key.ProtectionParameter) (key.Key, error)
 
-	// get key
-	GetKey(a Alias, p ProtectionParameter) (Key, error)
+	// Delete remove key
+	Delete(a key.Alias) error
 
-	// remove key
-	Delete(a Alias) error
+	// ContainsAlias check provider contains key
+	ContainsAlias(a key.Alias) (bool, error)
 
-	// check provider contains key
-	ContainsAlias(a Alias) (bool, error)
-
-	// clear all entries in provider
+	// Clear all entries in provider
 	Clear() error
 
+	// Load this KeyStore from the given input stream.
 	Load(d []byte, passphrase []byte) error
 
+	// LoadFile loads this KeyStore from the given file path
 	LoadFile(f string, passphrase []byte) error
 
+	// Store this keystore to the output stream, and protects its
+	// integrity with the given password.
 	Store(passphrase []byte) (out []byte, err error)
 
+	// StoreFile stores this keystore to the given file, and protects its
+	// integrity with the given password.
 	StoreFile(f string, passphrase []byte) error
 }

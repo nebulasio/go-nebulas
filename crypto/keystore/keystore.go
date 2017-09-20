@@ -20,6 +20,13 @@ package keystore
 
 import (
 	"errors"
+	"github.com/nebulasio/go-nebulas/crypto/keystore/ecdsa"
+	"github.com/nebulasio/go-nebulas/crypto/keystore/key"
+)
+
+const (
+	// KeystoreTypeDefault default keystore
+	KeystoreTypeDefault = "default"
 )
 
 var (
@@ -27,81 +34,80 @@ var (
 	ErrUninitialized = errors.New("keystore: uninitialized the provider")
 )
 
-/*
- * This class represents a storage facility for cryptographic keys
- */
+// Keystore class represents a storage facility for cryptographic keys
 type Keystore struct {
 
 	// keystore provider
 	p Provider
 }
 
-// Lists all the alias names of this keystore.
-func (ks *Keystore) Aliases() ([]Alias, error) {
+// NewKeystore new
+func NewKeystore() *Keystore {
+	return NewKeystoreType(KeystoreTypeDefault)
+}
+
+// NewKeystoreType new keystore with type
+func NewKeystoreType(t string) *Keystore {
+	ks := &Keystore{}
+	switch t {
+	case KeystoreTypeDefault:
+		ks.p = ecdsa.NewProvider(1.0)
+	default:
+		ks.p = ecdsa.NewProvider(1.0)
+	}
+	return ks
+}
+
+// Aliases lists all the alias names of this keystore.
+func (ks *Keystore) Aliases() ([]key.Alias, error) {
 	if ks.p == nil {
 		return nil, ErrUninitialized
 	}
-	keys := make([]Alias, len(ks.p.Entries()))
-	for k := range ks.p.Entries() {
-		keys = append(keys, k)
-	}
-	return keys, nil
+	return ks.p.Aliases(), nil
 }
 
-// Checks if the given alias exists in this keystore.
-func (ks *Keystore) ContainsAlias(a Alias) (bool, error) {
+// ContainsAlias checks if the given alias exists in this keystore.
+func (ks *Keystore) ContainsAlias(a key.Alias) (bool, error) {
 	if ks.p == nil {
 		return false, ErrUninitialized
 	}
 	return ks.p.ContainsAlias(a)
 }
 
-/*
-* Assigns the given key to the given alias, protecting it with the given
-* passphrase.
- */
-func (ks *Keystore) SetKeyPassphrase(a Alias, k Key, passphrase []byte) error {
+// SetKeyPassphrase assigns the given key to the given alias, protecting it with the given passphrase.
+func (ks *Keystore) SetKeyPassphrase(a key.Alias, k key.Key, passphrase []byte) error {
 	if ks.p == nil {
 		return ErrUninitialized
 	}
 	return ks.p.SetKeyPassphrase(a, k, passphrase)
 }
 
-/*
-* Assigns the given key (that has already been protected) to the given
-* alias.
- */
-func (ks *Keystore) SetKey(a Alias, d []byte) error {
+// SetKey assigns the given key (that has already been protected) to the given alias.
+func (ks *Keystore) SetKey(a key.Alias, d []byte) error {
 	if ks.p == nil {
 		return ErrUninitialized
 	}
 	return ks.p.SetKey(a, d)
 }
 
-/*
-* Returns the key associated with the given alias, using the given
-* password to recover it.
- */
-func (ks *Keystore) GetKey(a Alias, p ProtectionParameter) (Key, error) {
+// GetKey returns the key associated with the given alias, using the given
+// password to recover it.
+func (ks *Keystore) GetKey(a key.Alias, p key.ProtectionParameter) (key.Key, error) {
 	if ks.p == nil {
 		return nil, ErrUninitialized
 	}
 	return ks.p.GetKey(a, p)
 }
 
-/*
-Deletes the entry identified by the given alias from this keystore.
-*/
-func (ks *Keystore) Delete(a Alias) error {
+// Delete the entry identified by the given alias from this keystore.
+func (ks *Keystore) Delete(a key.Alias) error {
 	if ks.p == nil {
 		return ErrUninitialized
 	}
 	return ks.p.Delete(a)
 }
 
-/*
-Loads this KeyStore from the given input stream.
-*/
+// Load this KeyStore from the given input stream.
 func (ks *Keystore) Load(d []byte, passphrase []byte) error {
 	if ks.p == nil {
 		return ErrUninitialized
@@ -110,9 +116,7 @@ func (ks *Keystore) Load(d []byte, passphrase []byte) error {
 	return nil
 }
 
-/*
-Loads this KeyStore from the given file path
-*/
+// LoadFile load this KeyStore from the given file path
 func (ks *Keystore) LoadFile(f string, passphrase []byte) error {
 	if ks.p == nil {
 		return ErrUninitialized
@@ -121,10 +125,8 @@ func (ks *Keystore) LoadFile(f string, passphrase []byte) error {
 	return nil
 }
 
-/*
-* Stores this keystore to the output stream, and protects its
-* integrity with the given password.
- */
+// Store this keystore to the output stream, and protects its
+// integrity with the given password.
 func (ks *Keystore) Store(passphrase []byte) (out []byte, err error) {
 	if ks.p == nil {
 		return nil, ErrUninitialized
@@ -132,10 +134,8 @@ func (ks *Keystore) Store(passphrase []byte) (out []byte, err error) {
 	return ks.p.Store(passphrase)
 }
 
-/*
-* Stores this keystore to the given file, and protects its
-* integrity with the given password.
- */
+// StoreFile this keystore to the given file, and protects its
+// integrity with the given password.
 func (ks *Keystore) StoreFile(f string, passphrase []byte) error {
 	if ks.p == nil {
 		return ErrUninitialized

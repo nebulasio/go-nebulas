@@ -22,25 +22,28 @@ import (
 	"crypto/ecdsa"
 )
 
-type ECDSAPublicKey struct {
+// PublicStoreKey ecdsa publickey
+type PublicStoreKey struct {
 	publickey *ecdsa.PublicKey
 }
 
-// generate ECDSAPublicKey
-func NewECDSAPublicKey(pub *ecdsa.PublicKey) *ECDSAPublicKey {
-	ecdsaPub := &ECDSAPublicKey{publickey: pub}
+// NewPublicStoreKey generate PublicStoreKey
+func NewPublicStoreKey(pub *ecdsa.PublicKey) *PublicStoreKey {
+	ecdsaPub := &PublicStoreKey{pub}
 	return ecdsaPub
 }
 
-func (k *ECDSAPublicKey) Algorithm() string {
+// Algorithm algorithm name
+func (k *PublicStoreKey) Algorithm() string {
 	return "ecdsa"
 }
 
-func (k *ECDSAPublicKey) Format() string {
+// Format formate
+func (k *PublicStoreKey) Format() string {
 	return "byte"
 }
 
-func (k *ECDSAPublicKey) Encoded() []byte {
-	pub, _ := FromECDSAPub(k.publickey)
-	return pub
+// Encoded encoded to byte
+func (k *PublicStoreKey) Encoded() ([]byte, error) {
+	return FromECDSAPub(k.publickey)
 }

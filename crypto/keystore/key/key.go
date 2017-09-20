@@ -16,25 +16,20 @@
 // along with the go-nebulas library.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-package keystore
+package key
 
+// Key interface
 type Key interface {
 
-	/*
-			* Returns the standard algorithm name for this key. For
-		    * example, "ECDSA" would indicate that this key is a ECDSA key.
-	*/
+	// Algorithm returns the standard algorithm name for this key. For
+	// example, "ECDSA" would indicate that this key is a ECDSA key.
 	Algorithm() string
 
-	/*
-			* Returns the name of the primary encoding format of this key,
-		    * or null if this key does not support encoding.
-	*/
+	// Format returns the name of the primary encoding format of this key,
+	// or null if this key does not support encoding.
 	Format() string
 
-	/*
-			* Returns the key in its primary encoding format, or null
-		    * if this key does not support encoding.
-	*/
-	Encoded() []byte
+	// Encoded returns the key in its primary encoding format, or null
+	// if this key does not support encoding.
+	Encoded() ([]byte, error)
 }
