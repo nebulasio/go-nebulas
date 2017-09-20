@@ -78,18 +78,27 @@ func (pool *BlockPool) Stop() {
 }
 
 func (pool *BlockPool) loop() {
-	log.Info("BlockPool.loop: running.")
+	log.WithFields(log.Fields{
+		"func": "BlockPool.loop",
+	}).Debug("running.")
+
 	count := 0
 	for {
 		select {
 		case <-pool.quitCh:
-			log.Info("BlockPool.loop: quit.")
+			log.WithFields(log.Fields{
+				"func": "BlockPool.loop",
+			}).Info("quit.")
 			return
 		case msg := <-pool.receiveMessageCh:
 			count++
-			log.Debugf("BlockPool.loop: received message. Count=%d", count)
+			log.WithFields(log.Fields{
+				"func": "BlockPool.loop",
+			}).Debugf("received message. Count=%d", count)
+
 			if msg.MessageType() != net.MessageTypeNewBlock {
 				log.WithFields(log.Fields{
+					"func":        "BlockPool.loop",
 					"messageType": msg.MessageType(),
 					"message":     msg,
 				}).Error("BlockPool.loop: received unregistered message, pls check code.")
@@ -98,10 +107,12 @@ func (pool *BlockPool) loop() {
 
 			// verify signature.
 			block := msg.Data().(*Block)
-			if block.VerifySign() == false {
+			if ok, err := block.Verify(); ok == false {
 				log.WithFields(log.Fields{
+					"func":  "BlockPool.loop",
+					"err":   err,
 					"block": block,
-				}).Error("BlockPool.loop: the signature of block is invalid.")
+				}).Error("block is invalid.")
 				continue
 			}
 
@@ -114,10 +125,12 @@ func (pool *BlockPool) loop() {
 
 // AddLocalBlock add local minted block.
 func (pool *BlockPool) AddLocalBlock(block *Block) {
-	if block.VerifySign() == false {
+	if ok, err := block.Verify(); ok == false {
 		log.WithFields(log.Fields{
+			"func":  "BlockPool.AddLocalBlock",
+			"err":   err,
 			"block": block,
-		}).Error("BlockPool.AddLocalBlock: the signature of block is invalid.")
+		}).Error("block is invalid.")
 		return
 	}
 

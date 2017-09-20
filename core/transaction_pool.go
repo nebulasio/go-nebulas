@@ -19,25 +19,21 @@
 package core
 
 import (
-	"time"
-
-	"github.com/nebulasio/go-nebulas/common/trie"
+	"github.com/hashicorp/golang-lru"
 )
 
-// NewGenesisBlock create genesis @Block from file.
-func NewGenesisBlock(stateTrie *trie.Trie) *Block {
-	// TODO: load genesis block data from file.
-	header := &BlockHeader{
-		hash:       make([]byte, BlockHashLength),
-		parentHash: make([]byte, BlockHashLength),
-		coinbase:   &Address{make([]byte, AddressLength)},
-		timestamp:  time.Now(),
-	}
-	b := &Block{
-		header:    header,
-		stateTrie: stateTrie,
-		height:    1,
-	}
+type TransactionPool struct {
+	inner *lru.Cache
+}
 
-	return b
+// NewTransactionPool return new TransactionPool
+func NewTransactionPool() *TransactionPool {
+	txPool := &TransactionPool{}
+	txPool.inner, _ = lru.New(1024)
+	return txPool
+}
+
+// Put put transaction to pool
+func (txPool *TransactionPool) Put(tx *Transaction) {
+	txPool.inner.Add(tx.hash.Hex(), tx)
 }

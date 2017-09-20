@@ -22,6 +22,9 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/nebulasio/go-nebulas/common/trie"
+	log "github.com/sirupsen/logrus"
+
 	"github.com/nebulasio/go-nebulas/utils/byteutils"
 
 	"github.com/hashicorp/golang-lru"
@@ -36,7 +39,9 @@ type BlockChain struct {
 
 	// block pool.
 	bkPool *BlockPool
+	txPool *TransactionPool
 
+	stateTrie      *trie.Trie
 	detachedBlocks *lru.Cache
 }
 
@@ -51,12 +56,15 @@ const (
 // NewBlockChain create new #BlockChain instance.
 func NewBlockChain(chainID int) *BlockChain {
 	var bc = &BlockChain{
-		chainID:      chainID,
-		genesisBlock: NewGenesisBlock(),
-		bkPool:       NewBlockPool(),
+		chainID: chainID,
+		bkPool:  NewBlockPool(),
+		txPool:  NewTransactionPool(),
 	}
 
+	bc.stateTrie, _ = trie.NewTrie(nil)
 	bc.detachedBlocks, _ = lru.New(1024)
+
+	bc.genesisBlock = NewGenesisBlock(bc.stateTrie)
 	bc.tailBlock = bc.genesisBlock
 
 	return bc
@@ -85,7 +93,16 @@ func (bc *BlockChain) BlockPool() *BlockPool {
 
 // NewBlock create new #Block instance.
 func (bc *BlockChain) NewBlock(coinbase *Address) *Block {
-	block := NewBlock(bc.tailBlock.header.hash, coinbase)
+	stateTrie, err := bc.tailBlock.stateTrie.Clone()
+	if err != nil {
+		log.WithFields(log.Fields{
+			"err":  err,
+			"func": "BlockChain.NewBlock",
+		}).Fatal("clone state trie fail.")
+		panic("BlockChain.NewBlock: clone state trie fail.")
+	}
+
+	block := NewBlock(bc.tailBlock.header.hash, coinbase, stateTrie, bc.txPool)
 	return block
 }
 

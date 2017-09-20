@@ -22,7 +22,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/nebulasio/go-nebulas/crypto/hash"
+	"github.com/nebulasio/go-nebulas/common/trie"
+	"golang.org/x/crypto/sha3"
+
 	"github.com/nebulasio/go-nebulas/utils/byteutils"
 	log "github.com/sirupsen/logrus"
 )
@@ -30,6 +32,9 @@ import (
 const (
 	// BlockHashLength define a const of the length of Hash of Block in byte.
 	BlockHashLength = 32
+
+	// BlockReward. TODO: block reward should calculates dynamic.
+	BlockReward = 16
 )
 
 /*
@@ -38,6 +43,7 @@ BlockHeader type.
 type BlockHeader struct {
 	hash       Hash
 	parentHash Hash
+	stateRoot  Hash
 	nonce      uint64
 	coinbase   *Address
 	timestamp  time.Time
@@ -50,40 +56,27 @@ type Block struct {
 	header       *BlockHeader
 	transactions Transactions
 
+	sealed       bool
 	height       uint64
 	parenetBlock *Block
+	stateTrie    *trie.Trie
+	txPool       *TransactionPool
 }
 
 // NewBlock return new block.
-func NewBlock(parentHash Hash, coinbase *Address) *Block {
+func NewBlock(parentHash Hash, coinbase *Address, stateTrie *trie.Trie, txPool *TransactionPool) *Block {
 	block := &Block{
 		header: &BlockHeader{
 			parentHash: parentHash,
 			coinbase:   coinbase,
 			timestamp:  time.Now(),
 		},
-		transactions: make(Transactions, 10, 20),
+		transactions: make(Transactions, 0),
+		stateTrie:    stateTrie,
+		txPool:       txPool,
+		sealed:       false,
 	}
 	return block
-}
-
-func (block *Block) AddTransactions(txs ...*Transaction) *Block {
-	// TODO: dedup the transaction from chain.
-	block.transactions = append(block.transactions, txs...)
-	return block
-}
-
-// Sign signature this block.
-func (block *Block) Sign() *Block {
-	// TODO: Use Cipher/Key from #KeyStore by coinbase to signature this block.
-	block.header.hash = HashBlock(block)
-	return block
-}
-
-// VerifySign return the signature verification result.
-func (block *Block) VerifySign() bool {
-	// TODO: implement ECDSA verify, only verify the singature.
-	return true
 }
 
 // Nonce return nonce.
@@ -93,6 +86,9 @@ func (block *Block) Nonce() uint64 {
 
 // SetNonce set nonce.
 func (block *Block) SetNonce(nonce uint64) {
+	if block.sealed {
+		panic("Sealed block can't be changed.")
+	}
 	block.header.nonce = nonce
 }
 
@@ -145,6 +141,40 @@ func (block *Block) LinkParentBlock(parentBlock *Block) bool {
 	return true
 }
 
+// AddTransactions add transactions to block.
+func (block *Block) AddTransactions(txs ...*Transaction) *Block {
+	if block.sealed {
+		panic("Sealed block can't be changed.")
+	}
+
+	// TODO: dedup the transaction from chain.
+	block.transactions = append(block.transactions, txs...)
+	return block
+}
+
+// Seal seal block, calculate stateRoot and block hash.
+func (block *Block) Seal() {
+	if block.sealed {
+		return
+	}
+
+	// 1st, reward coinbase.
+	block.rewardCoinbase()
+
+	// 2nd, execute transactions.
+	block.executeTransactions()
+
+	block.header.stateRoot = block.stateTrie.RootHash()
+	block.header.hash = HashBlock(block)
+	block.sealed = true
+}
+
+// Verify return the signature verification result.
+func (block *Block) Verify() (bool, error) {
+	// TODO: verify hash and state root hash.
+	return true, nil
+}
+
 func (block *Block) String() string {
 	return fmt.Sprintf("Block {height:%d; hash:%s; parentHash:%s; nonce:%d, timestamp: %d}",
 		block.height,
@@ -155,13 +185,77 @@ func (block *Block) String() string {
 	)
 }
 
+func (block *Block) rewardCoinbase() {
+	stateTrie := block.stateTrie
+	coinbaseAddr := block.header.coinbase.address
+	origBalance := uint64(0)
+	if v, _ := stateTrie.Get(coinbaseAddr); v != nil {
+		origBalance = byteutils.Uint64(v)
+	}
+	balance := origBalance + BlockReward
+	stateTrie.Put(coinbaseAddr, byteutils.FromUint64(balance))
+
+	log.WithFields(log.Fields{
+		"func":        "Block.rewardCoinbase",
+		"coinbase":    block.header.coinbase,
+		"origBalance": origBalance,
+		"balance":     balance,
+	}).Debug("assign block reward.")
+}
+
+func (block *Block) executeTransactions() {
+	stateTrie := block.stateTrie
+
+	// TODO: transaction nonce for address should be added to prevent transaction record-replay attack.
+	invalidTxs := make([]int, 0)
+	for idx, tx := range block.transactions {
+		err := tx.Execute(stateTrie)
+		if err != nil {
+			log.WithFields(log.Fields{
+				"err":         err,
+				"func":        "Block.executeTransactions",
+				"transaction": tx,
+			}).Warn("execute transaction fail, remove it from block.")
+			invalidTxs = append(invalidTxs, idx)
+		}
+	}
+
+	// remove invalid transactions.
+	txs := block.transactions
+	lenOfTxs := len(block.transactions)
+	for i := len(invalidTxs) - 1; i >= 0; i-- {
+		idx := invalidTxs[i]
+
+		// Put transaction back to pool.
+		block.txPool.Put(txs[idx])
+
+		// remove it from block.
+		if idx == lenOfTxs-1 {
+			txs = txs[:idx]
+			continue
+		} else if idx == 0 {
+			txs = txs[0:]
+			continue
+		}
+		txs = append(txs[:idx], txs[idx+1:]...)
+	}
+
+	block.transactions = txs
+}
+
 // HashBlock return the hash of block.
-func HashBlock(block *Block) []byte {
-	// TODO: block.txs should be included in hash procedure.
-	return hash.Sha3256(
-		block.header.parentHash,
-		block.header.coinbase.address,
-		byteutils.FromUint64(block.header.nonce),
-		byteutils.FromInt64(block.header.timestamp.UnixNano()),
-	)
+func HashBlock(block *Block) Hash {
+	hasher := sha3.New256()
+
+	hasher.Write(block.header.parentHash)
+	hasher.Write(block.header.stateRoot)
+	hasher.Write(byteutils.FromUint64(block.header.nonce))
+	hasher.Write(block.header.coinbase.address)
+	hasher.Write(byteutils.FromInt64(block.header.timestamp.UnixNano()))
+
+	for _, tx := range block.transactions {
+		hasher.Write(tx.Hash())
+	}
+
+	return hasher.Sum(nil)
 }

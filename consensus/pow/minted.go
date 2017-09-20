@@ -55,8 +55,8 @@ func (state *MintedState) Enter(data interface{}) {
 	if p.miningBlock.Nonce() > 0 {
 		log.Info("MintedState.Enter: process minted block.")
 
-		// sign.
-		p.miningBlock.Sign()
+		// Seal block.
+		p.miningBlock.Seal()
 
 		// send new block to network.
 		p.nm.BroadcastBlock(p.miningBlock)
