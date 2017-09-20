@@ -24,7 +24,11 @@ import (
 
 	"github.com/nebulasio/go-nebulas/common/trie"
 	"github.com/nebulasio/go-nebulas/crypto/hash"
+	"github.com/nebulasio/go-nebulas/crypto/keystore"
+	"github.com/nebulasio/go-nebulas/crypto/keystore/ecdsa"
+	"github.com/nebulasio/go-nebulas/crypto/keystore/key"
 	"github.com/nebulasio/go-nebulas/utils/byteutils"
+	"os"
 )
 
 var (
@@ -44,6 +48,9 @@ type Transaction struct {
 	nonce     uint64
 	timestamp time.Time
 	data      []byte
+
+	// Signature values
+	sign Hash
 }
 
 type TxStream struct {
@@ -141,10 +148,42 @@ func (tx *Transaction) Hash() Hash {
 }
 
 // Sign sign transaction.
-func (tx *Transaction) Sign() error {
-	// TODO: use ECDSA to sign.
+func (tx *Transaction) Sign(ks *keystore.Keystore, passphrase []byte) error {
+	// TODO(larry.wang):impl sign ,change input to context ,keystore in context
 	tx.hash = HashTransaction(tx)
+	passparam, err := key.NewPassphrase(passphrase)
+	if err != nil {
+		return err
+	}
+	alias := key.Alias(string(tx.from.address))
+	key, err := ks.GetKey(alias, passparam)
+	if err != nil {
+		return err
+	}
+	signer := &ecdsa.Signature{}
+	priv, err := key.Encoded()
+	if err != nil {
+		return err
+	}
+	signer.InitSign(priv)
+	signature, err := signer.Sign(tx.hash)
+	if err != nil {
+		return err
+	}
+	tx.sign = signature
 	return nil
+}
+
+// VerifySign tx
+func (tx *Transaction) VerifySign() (bool, error) {
+	if len(tx.sign) == 0 {
+		return false, errors.New("Transaction: VerifySign need sign hash")
+	}
+	pub, err := ecdsa.RecoverPublicKey(tx.hash, tx.sign)
+	if err != nil {
+		return false, err
+	}
+	return ecdsa.Verify(tx.hash, tx.sign, pub), nil
 }
 
 // Execute execute transaction, eg. transfer Nas, call smart contract.
