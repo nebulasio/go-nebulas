@@ -32,18 +32,6 @@
   revision = "bc6354cbbc295e925e4c611ffe90c1f287ee54db"
 
 [[projects]]
-  name = "github.com/ethereum/go-ethereum"
-  packages = ["common/math","crypto/secp256k1"]
-  revision = "6c6c7b2af3efdad4d2f64f70f3a724af434bbcd2"
-  version = "v1.7.0"
-  
-[[projects]]
-  branch = "master"
-  name = "github.com/golang/protobuf"
-  packages = ["proto"]
-  revision = "ae59567b9aab61b50b2590679a62c3c044030b61"
-
-[[projects]]
   branch = "master"
   name = "github.com/fd/go-nat"
   packages = ["."]
@@ -54,6 +42,12 @@
   packages = ["io","proto"]
   revision = "100ba4e885062801d56799d78530b73b178a78f3"
   version = "v0.4"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/golang/protobuf"
+  packages = ["proto"]
+  revision = "ae59567b9aab61b50b2590679a62c3c044030b61"
 
 [[projects]]
   name = "github.com/gorilla/websocket"
@@ -350,6 +344,12 @@
   revision = "9a5203b7a07166f217f5f8177d5b16177acad3b2"
 
 [[projects]]
+  name = "github.com/satori/go.uuid"
+  packages = ["."]
+  revision = "879c5887cd475cd7864858769793b2ceb0d44feb"
+  version = "v1.1.0"
+
+[[projects]]
   name = "github.com/sirupsen/logrus"
   packages = ["."]
   revision = "f006c2ac4710855cf0f916dd6b77acf6b048dc6e"
@@ -454,6 +454,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "14b1b8fb7b26e218f76d43d17754e580bb59ab4560081817809badc3781c434c"
+  inputs-digest = "d2a01722da869ca32a0310db21d5bd70e51953015f3a0fe423e7f741ab62d2f0"
   solver-name = "gps-cdcl"
   solver-version = 1

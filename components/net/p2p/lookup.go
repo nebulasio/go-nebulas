@@ -21,14 +21,15 @@ package p2p
 import (
 	"encoding/json"
 	"errors"
+	"io"
+	"time"
+
 	"github.com/libp2p/go-libp2p-kbucket"
 	"github.com/libp2p/go-libp2p-net"
 	"github.com/libp2p/go-libp2p-peer"
 	"github.com/libp2p/go-libp2p-peerstore"
-	nbytes "github.com/nebulasio/go-nebulas/utils/bytes"
+	"github.com/nebulasio/go-nebulas/utils/byteutils"
 	log "github.com/sirupsen/logrus"
-	"io"
-	"time"
 )
 
 const lookupProtocolID = "/nebulas/lookup/1.0.0"
@@ -62,7 +63,7 @@ func (node *Node) Lookup(pid peer.ID) ([]peerstore.PeerInfo, error) {
 
 	data, err := ReadWithTimeout(
 		s,
-		nbytes.Uint32(size),
+		byteutils.Uint32(size),
 		timeout,
 	)
 
@@ -115,7 +116,7 @@ func (p *LookupService) LookupHandler(s net.Stream) {
 	if err != nil {
 		log.Error("LookupHandler: lookup handle occurs error...", err)
 	}
-	size := nbytes.FromUint32(uint32(len(data)))
+	size := byteutils.FromUint32(uint32(len(data)))
 	err = WriteWithTimeout(
 		s,
 		append(size[:], data...),
