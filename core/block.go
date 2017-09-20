@@ -76,7 +76,9 @@ func (b *BlockHeader) Serialize() ([]byte, error) {
 func (b *BlockHeader) Deserialize(blob []byte) error {
 	serializer := &byteutils.JSONSerializer{}
 	var data BHStream
-	serializer.Deserialize(blob, &data)
+	if err := serializer.Deserialize(blob, &data); err != nil {
+		return err
+	}
 	b.hash = data.Hash
 	b.parentHash = data.ParentHash
 	b.stateRoot = data.StateRoot
@@ -121,7 +123,9 @@ func (b *Block) Serialize() ([]byte, error) {
 func (b *Block) Deserialize(blob []byte) error {
 	var data [][]byte
 	serializer := &byteutils.JSONSerializer{}
-	serializer.Deserialize(blob, &data)
+	if err := serializer.Deserialize(blob, &data); err != nil {
+		return err
+	}
 	b.sealed = true
 	b.header = &BlockHeader{}
 	if err := b.header.Deserialize(data[0]); err != nil {
