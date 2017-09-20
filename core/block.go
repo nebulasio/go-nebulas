@@ -97,6 +97,11 @@ func (block *Block) Hash() Hash {
 	return block.header.hash
 }
 
+// StateRoot return state root hash.
+func (block *Block) StateRoot() Hash {
+	return block.header.stateRoot
+}
+
 // ParentHash return parent hash.
 func (block *Block) ParentHash() Hash {
 	return block.header.parentHash

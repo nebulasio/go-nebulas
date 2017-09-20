@@ -25,8 +25,6 @@ import (
 	"github.com/nebulasio/go-nebulas/common/trie"
 	log "github.com/sirupsen/logrus"
 
-	"github.com/nebulasio/go-nebulas/utils/byteutils"
-
 	"github.com/hashicorp/golang-lru"
 )
 
@@ -141,7 +139,14 @@ func (bc *BlockChain) GetBlock(hash Hash) *Block {
 func (bc *BlockChain) Dump() string {
 	rl := make([]string, 1)
 	for block := bc.tailBlock; block != nil; block = block.parenetBlock {
-		rl = append(rl, fmt.Sprintf("{%d, hash: %s, parent: %s}", block.height, byteutils.Hex(block.Hash()), byteutils.Hex(block.ParentHash())))
+		rl = append(rl,
+			fmt.Sprintf(
+				"{%d, hash: %s, parent: %s, stateRoot: %s}",
+				block.height,
+				block.Hash().Hex(),
+				block.ParentHash().Hex(),
+				block.StateRoot().Hex(),
+			))
 	}
 	rls := strings.Join(rl, " --> ")
 	return rls
