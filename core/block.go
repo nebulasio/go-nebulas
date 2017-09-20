@@ -19,6 +19,7 @@
 package core
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
@@ -35,6 +36,11 @@ const (
 
 	// BlockReward. TODO: block reward should calculates dynamic.
 	BlockReward = 16
+)
+
+var (
+	ErrInvalidBlockHash      = errors.New("invalid block hash")
+	ErrInvalidBlockStateRoot = errors.New("invalid block state root hash")
 )
 
 /*
@@ -95,11 +101,12 @@ type Block struct {
 	header       *BlockHeader
 	transactions Transactions
 
-	sealed       bool
-	height       uint64
-	parenetBlock *Block
-	stateTrie    *trie.Trie
-	txPool       *TransactionPool
+	sealed          bool
+	height          uint64
+	parenetBlock    *Block
+	stateTrie       *trie.Trie
+	txPool          *TransactionPool
+	parentStateRoot []byte
 }
 
 // Serialize Block to bytes
@@ -116,6 +123,7 @@ func (block *Block) Serialize() ([]byte, error) {
 		return nil, err
 	}
 	data = append(data, tir)
+	data = append(data, block.parentStateRoot)
 	return serializer.Serialize(data)
 }
 
@@ -132,6 +140,9 @@ func (block *Block) Deserialize(blob []byte) error {
 		return err
 	}
 	if err := block.transactions.Deserialize(data[1]); err != nil {
+		return err
+	}
+	if err := serializer.Deserialize(data[2], &block.parentStateRoot); err != nil {
 		return err
 	}
 	return nil
@@ -199,6 +210,21 @@ func (block *Block) LinkParentBlock(parentBlock *Block) bool {
 
 	log.Infof("Block.LinkParentBlock: parentBlock %s <- block %s", parentBlock.Hash(), block.Hash())
 
+	stateTrie, err := parentBlock.stateTrie.Clone()
+	if err != nil {
+		log.WithFields(log.Fields{
+			"func":        "linkedBlock.dfs",
+			"err":         err,
+			"parentBlock": parentBlock,
+			"block":       block,
+		}).Fatal("clone state trie from parent block fail.")
+		panic("clone state trie from parent block fail.")
+	}
+
+	sr := stateTrie.RootHash()
+	log.Debugf("STATEROOT - LINK: %s [%v] vs. [%v]", block.header.hash.Hex(), byteutils.Hex(sr), byteutils.Hex(block.parentStateRoot))
+
+	block.stateTrie = stateTrie
 	block.parenetBlock = parentBlock
 
 	// travel to calculate block height.
@@ -237,31 +263,81 @@ func (block *Block) Seal() {
 		return
 	}
 
-	// 1st, reward coinbase.
-	block.rewardCoinbase()
-
-	// 2nd, execute transactions.
-	block.executeTransactions()
-
-	block.header.stateRoot = block.stateTrie.RootHash()
+	sr := block.stateTrie.RootHash()
+	block.parentStateRoot = sr
 	block.header.hash = HashBlock(block)
+	block.header.stateRoot = HashBlockStateRoot(block)
+	log.Debugf("STATEROOT - SEAL: %s %v vs. %v", block.header.hash.Hex(), sr, []byte(block.header.stateRoot))
+
 	block.sealed = true
 }
 
-// Verify return the signature verification result.
-func (block *Block) Verify() (bool, error) {
-	// TODO: verify hash and state root hash.
-	return true, nil
-}
-
 func (block *Block) String() string {
-	return fmt.Sprintf("Block {height:%d; hash:%s; parentHash:%s; nonce:%d, timestamp: %d}",
+	return fmt.Sprintf("Block {height:%d; hash:%s; parentHash:%s; stateRoot:%s, nonce:%d, timestamp: %d}",
 		block.height,
 		byteutils.Hex(block.header.hash),
 		byteutils.Hex(block.header.parentHash),
+		byteutils.Hex(block.StateRoot()),
 		block.header.nonce,
 		block.header.timestamp.UnixNano(),
 	)
+}
+
+// Verify return block verify result, including Hash, Nonce and StateRoot.
+func (block *Block) Verify(bc *BlockChain) error {
+	if err := block.VerifyHash(bc); err != nil {
+		return err
+	}
+
+	return block.VerifyStateRoot()
+}
+
+// VerifyHash return hash verify result.
+func (block *Block) VerifyHash(bc *BlockChain) error {
+	// verify nonce.
+	if err := bc.consensHandler.VerifyBlock(block); err != nil {
+		return err
+	}
+
+	// verify hash.
+	wantedHash := HashBlock(block)
+	if wantedHash.Equals(block.Hash()) == false {
+		log.WithFields(log.Fields{
+			"func":       "Block.VerifyHash",
+			"err":        ErrInvalidBlockHash,
+			"block":      block,
+			"wantedHash": wantedHash,
+		}).Error("invalid block hash.")
+		return ErrInvalidBlockHash
+	}
+
+	// verify transaction.
+	for _, tx := range block.transactions {
+		if err := tx.Verify(); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// VerifyStateRoot return hash verify result.
+func (block *Block) VerifyStateRoot() error {
+	sr := block.stateTrie.RootHash()
+	wantedStateRoot := HashBlockStateRoot(block)
+	log.Debugf("STATEROOT - VERIFY: %s; %v vs. %v", block.header.hash.Hex(), sr, []byte(wantedStateRoot))
+
+	if wantedStateRoot.Equals(block.StateRoot()) == false {
+		log.WithFields(log.Fields{
+			"func":            "Block.VerifyStateRoot",
+			"err":             ErrInvalidBlockStateRoot,
+			"block":           block,
+			"wantedStateRoot": wantedStateRoot,
+		}).Error("invalid block state root hash.")
+		return ErrInvalidBlockStateRoot
+	}
+
+	return nil
 }
 
 func (block *Block) rewardCoinbase() {
@@ -276,9 +352,10 @@ func (block *Block) rewardCoinbase() {
 
 	log.WithFields(log.Fields{
 		"func":        "Block.rewardCoinbase",
-		"coinbase":    block.header.coinbase,
+		"coinbase":    byteutils.Hex(block.header.coinbase.address),
 		"origBalance": origBalance,
 		"balance":     balance,
+		"stateTrie":   stateTrie,
 	}).Debug("assign block reward.")
 }
 
@@ -327,7 +404,6 @@ func HashBlock(block *Block) Hash {
 	hasher := sha3.New256()
 
 	hasher.Write(block.header.parentHash)
-	hasher.Write(block.header.stateRoot)
 	hasher.Write(byteutils.FromUint64(block.header.nonce))
 	hasher.Write(block.header.coinbase.address)
 	hasher.Write(byteutils.FromInt64(block.header.timestamp.UnixNano()))
@@ -337,4 +413,16 @@ func HashBlock(block *Block) Hash {
 	}
 
 	return hasher.Sum(nil)
+}
+
+// HashBlockStateRoot return the hash of state trie of block.
+func HashBlockStateRoot(block *Block) Hash {
+
+	// 1st, reward coinbase.
+	block.rewardCoinbase()
+
+	// 2nd, execute transactions.
+	block.executeTransactions()
+
+	return block.stateTrie.RootHash()
 }

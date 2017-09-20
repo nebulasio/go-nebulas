@@ -22,6 +22,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/nebulasio/go-nebulas/consensus"
+
 	"github.com/nebulasio/go-nebulas/common/trie"
 	log "github.com/sirupsen/logrus"
 
@@ -35,12 +37,13 @@ type BlockChain struct {
 	genesisBlock *Block
 	tailBlock    *Block
 
-	// block pool.
-	bkPool *BlockPool
-	txPool *TransactionPool
+	bkPool         *BlockPool
+	txPool         *TransactionPool
+	consensHandler consensus.Consensus
 
-	stateTrie      *trie.Trie
-	detachedBlocks *lru.Cache
+	stateTrie          *trie.Trie
+	cachedBlocks       *lru.Cache
+	detachedTailBlocks *lru.Cache
 }
 
 const (
@@ -60,11 +63,13 @@ func NewBlockChain(chainID int) *BlockChain {
 	}
 
 	bc.stateTrie, _ = trie.NewTrie(nil)
-	bc.detachedBlocks, _ = lru.New(1024)
+	bc.cachedBlocks, _ = lru.New(1024)
+	bc.detachedTailBlocks, _ = lru.New(64)
 
 	bc.genesisBlock = NewGenesisBlock(bc.stateTrie)
 	bc.tailBlock = bc.genesisBlock
 
+	bc.bkPool.setBlockChain(bc)
 	return bc
 }
 
@@ -80,13 +85,18 @@ func (bc *BlockChain) TailBlock() *Block {
 
 // SetTailBlock set tail block.
 func (bc *BlockChain) SetTailBlock(block *Block) {
-	block.LinkParentBlock(bc.tailBlock)
+	bc.detachedTailBlocks.Remove(block.Hash().Hex())
 	bc.tailBlock = block
 }
 
 // BlockPool return block pool.
 func (bc *BlockChain) BlockPool() *BlockPool {
 	return bc.bkPool
+}
+
+// SetConsensHandler set consensus handler.
+func (bc *BlockChain) SetConsensHandler(handler consensus.Consensus) {
+	bc.consensHandler = handler
 }
 
 // NewBlock create new #Block instance.
@@ -104,30 +114,54 @@ func (bc *BlockChain) NewBlock(coinbase *Address) *Block {
 	return block
 }
 
-// PutUnattachedBlocks put unattached blocks to LRU cache for furthur process.
-// Unattached block is the block not yet attach to chain, eg. new block from network, local minted block.
-func (bc *BlockChain) PutUnattachedBlocks(blocks ...*Block) {
-	for _, v := range blocks {
-		bc.detachedBlocks.Add(v.Hash().Hex(), v)
+// // PutUnattachedBlocks put unattached blocks to LRU cache for furthur process.
+// // Unattached block is the block not yet attach to chain, eg. new block from network, local minted block.
+// func (bc *BlockChain) PutUnattachedBlocks(blocks ...*Block) {
+// 	for _, v := range blocks {
+// 		bc.detachedBlocks.Add(v.Hash().Hex(), v)
+// 	}
+// }
+
+// // PutUnattachedBlockMap put unattached blocks to LRU cache for furthur process.
+// // Unattached block is the block not yet attach to chain, eg. new block from network, local minted block.
+// func (bc *BlockChain) PutUnattachedBlockMap(blocks map[HexHash]*Block) {
+// 	for k, v := range blocks {
+// 		bc.detachedBlocks.Add(k, v)
+// 	}
+// }
+
+// PutVerifiedNewBlocks put verified new blocks and tails.
+func (bc *BlockChain) PutVerifiedNewBlocks(allBlocks, tailBlocks []*Block) {
+	for _, v := range allBlocks {
+		bc.cachedBlocks.Add(v.Hash().Hex(), v)
+	}
+	for _, v := range tailBlocks {
+		bc.detachedTailBlocks.Add(v.Hash().Hex(), v)
 	}
 }
 
-// PutUnattachedBlockMap put unattached blocks to LRU cache for furthur process.
-// Unattached block is the block not yet attach to chain, eg. new block from network, local minted block.
-func (bc *BlockChain) PutUnattachedBlockMap(blocks map[HexHash]*Block) {
-	for k, v := range blocks {
-		bc.detachedBlocks.Add(k, v)
+// DetachedTailBlocks return detached tail blocks, used by Fork Choice algorithm.
+func (bc *BlockChain) DetachedTailBlocks() []*Block {
+	ret := make([]*Block, 0)
+	for _, k := range bc.detachedTailBlocks.Keys() {
+		v, _ := bc.detachedTailBlocks.Get(k)
+		if v != nil {
+			block := v.(*Block)
+			ret = append(ret, block)
+		}
 	}
+	return ret
 }
 
 // GetBlock return block of given hash from local storage and detachedBlocks.
 func (bc *BlockChain) GetBlock(hash Hash) *Block {
 	// TODO: get block from local storage.
-	v, _ := bc.detachedBlocks.Get(hash.Hex())
+	v, _ := bc.cachedBlocks.Get(hash.Hex())
 	if v == nil {
 		if hash.Equals(bc.genesisBlock.Hash()) {
 			return bc.genesisBlock
 		}
+		// TODO: load from storage for previous block.
 		return nil
 	}
 

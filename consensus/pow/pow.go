@@ -19,14 +19,18 @@
 package pow
 
 import (
-	"bytes"
+	"errors"
 
 	"github.com/nebulasio/go-nebulas/components/net"
 	"github.com/nebulasio/go-nebulas/consensus"
 	"github.com/nebulasio/go-nebulas/core"
-	"github.com/nebulasio/go-nebulas/utils/byteutils"
 
 	log "github.com/sirupsen/logrus"
+)
+
+var (
+	ErrInvalidDataType   = errors.New("invalid data type, should be *core.Block")
+	ErrInvalidBlockNonce = errors.New("invalid block nonce")
 )
 
 /*
@@ -145,56 +149,81 @@ func (p *Pow) Transit(nextState consensus.State, data interface{}) {
 	p.stateTransitionCh <- &stateTransitionArgs{nextState: nextState, data: data}
 }
 
-// AppendBlock implement new block at tail algorithm.
-func (p *Pow) AppendBlock(block *core.Block) error {
-	bc := p.chain
+// TODO: delete this.
+// // AppendBlock implement new block at tail algorithm.
+// func (p *Pow) AppendBlock(block *core.Block) error {
+// 	bc := p.chain
 
-	tailBlockHash := bc.TailBlock().Hash()
-	blockParentHash := block.ParentHash()
-	blockHash := block.Hash()
+// 	tailBlockHash := bc.TailBlock().Hash()
+// 	blockParentHash := block.ParentHash()
+// 	blockHash := block.Hash()
 
-	logFields := log.Fields{
-		"bc.latestBlock.header.hash": byteutils.Hex(tailBlockHash),
-		"block.header.parentHash":    byteutils.Hex(blockParentHash),
-		"block.header.hash":          byteutils.Hex(blockHash),
+// 	logFields := log.Fields{
+// 		"bc.latestBlock.header.hash": byteutils.Hex(tailBlockHash),
+// 		"block.header.parentHash":    byteutils.Hex(blockParentHash),
+// 		"block.header.hash":          byteutils.Hex(blockHash),
+// 	}
+
+// 	if bytes.Compare(tailBlockHash, blockParentHash) == 0 {
+// 		log.WithFields(logFields).Info("New block")
+// 		bc.SetTailBlock(block)
+
+// 	} else {
+// 		log.WithFields(logFields).Info("New forked block")
+// 		//TODO: implement fork choice algorithm.
+
+// 		// // find the root block in detached blocks.
+// 		// rootParentBlock := block
+// 		// for {
+// 		// 	i, _ := bc.detachedBlocks.Get(rootParentBlock.header.parentHash)
+// 		// 	if ib, ok := i.(*Block); ok {
+// 		// 		ib.nextBlock = rootParentBlock
+// 		// 		rootParentBlock.previousBlock = ib
+// 		// 		rootParentBlock = ib
+// 		// 	} else {
+// 		// 		break
+// 		// 	}
+// 		// }
+
+// 		// // recursively find the common ancestor.
+// 		// ancestor := bc.latestBlock
+// 		// for ; ancestor != nil && ancestor.header.hash != rootParentBlock.header.hash; ancestor = ancestor.previousBlock {
+// 		// 	bc.detachedBlocks.Add(ancestor.header.hash, ancestor)
+// 		// }
+
+// 		// if ancestor == nil {
+// 		// 	log.WithFields(logFields).Error("No common ancestor")
+// 		// 	return bc, errors.New("No common ancestor")
+// 		// }
+
+// 		// // alter the chain.
+// 		// ancestor.nextBlock = rootParentBlock
+// 		// rootParentBlock.previousBlock = ancestor
+// 		// bc.latestBlock = block
+// 	}
+
+// 	return nil
+// }
+
+// VerifyBlock return nil if nonce is right, otherwise return error.
+func (p *Pow) VerifyBlock(data interface{}) error {
+	block := data.(*core.Block)
+	if block == nil {
+		log.WithFields(log.Fields{
+			"func": "Pow.VerifyBlock",
+			"err":  ErrInvalidDataType,
+		}).Error("data is not valid block")
+		return ErrInvalidDataType
 	}
 
-	if bytes.Compare(tailBlockHash, blockParentHash) == 0 {
-		log.WithFields(logFields).Info("New block")
-		bc.SetTailBlock(block)
-
-	} else {
-		log.WithFields(logFields).Info("New forked block")
-		//TODO: implement fork choice algorithm.
-
-		// // find the root block in detached blocks.
-		// rootParentBlock := block
-		// for {
-		// 	i, _ := bc.detachedBlocks.Get(rootParentBlock.header.parentHash)
-		// 	if ib, ok := i.(*Block); ok {
-		// 		ib.nextBlock = rootParentBlock
-		// 		rootParentBlock.previousBlock = ib
-		// 		rootParentBlock = ib
-		// 	} else {
-		// 		break
-		// 	}
-		// }
-
-		// // recursively find the common ancestor.
-		// ancestor := bc.latestBlock
-		// for ; ancestor != nil && ancestor.header.hash != rootParentBlock.header.hash; ancestor = ancestor.previousBlock {
-		// 	bc.detachedBlocks.Add(ancestor.header.hash, ancestor)
-		// }
-
-		// if ancestor == nil {
-		// 	log.WithFields(logFields).Error("No common ancestor")
-		// 	return bc, errors.New("No common ancestor")
-		// }
-
-		// // alter the chain.
-		// ancestor.nextBlock = rootParentBlock
-		// rootParentBlock.previousBlock = ancestor
-		// bc.latestBlock = block
+	ret := HashAndVerifyNonce(block, block.Nonce())
+	if ret == nil {
+		log.WithFields(log.Fields{
+			"func":  "Pow.VerifyBlock",
+			"err":   ErrInvalidBlockNonce,
+			"block": block,
+		}).Error("invalid block nonce.")
+		return ErrInvalidBlockNonce
 	}
 
 	return nil

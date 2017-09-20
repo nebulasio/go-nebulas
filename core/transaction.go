@@ -25,6 +25,7 @@ import (
 	"github.com/nebulasio/go-nebulas/common/trie"
 	"github.com/nebulasio/go-nebulas/crypto/hash"
 	"github.com/nebulasio/go-nebulas/utils/byteutils"
+	log "github.com/sirupsen/logrus"
 )
 
 var (
@@ -32,7 +33,10 @@ var (
 	ErrInsufficientBalance = errors.New("insufficient balance")
 
 	// ErrInvalidSignature the signature is not sign by from address.
-	ErrInvalidSignature = errors.New("invalid signature")
+	ErrInvalidSignature = errors.New("invalid transaction signature")
+
+	// ErrInvalidTransactionHash invalid hash.
+	ErrInvalidTransactionHash = errors.New("invalid transaction hash")
 )
 
 // Transaction type is used to handle all transaction data.
@@ -144,6 +148,23 @@ func (tx *Transaction) Hash() Hash {
 func (tx *Transaction) Sign() error {
 	// TODO: use ECDSA to sign.
 	tx.hash = HashTransaction(tx)
+	return nil
+}
+
+// Verify return transaction verify result, including Hash and Signature.
+func (tx *Transaction) Verify() error {
+	wantedHash := HashTransaction(tx)
+	if wantedHash.Equals(tx.hash) == false {
+		log.WithFields(log.Fields{
+			"func": "Transaction.Verify",
+			"err":  ErrInvalidTransactionHash,
+			"tx":   tx,
+		}).Error("invalid transaction hash")
+		return ErrInvalidTransactionHash
+	}
+
+	// TODO: verify signature and from address.
+
 	return nil
 }
 

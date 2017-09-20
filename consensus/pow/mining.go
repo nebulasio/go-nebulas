@@ -23,7 +23,6 @@ import (
 
 	"github.com/nebulasio/go-nebulas/consensus"
 	"github.com/nebulasio/go-nebulas/core"
-	"github.com/nebulasio/go-nebulas/crypto/hash"
 	"github.com/nebulasio/go-nebulas/utils/byteutils"
 
 	log "github.com/sirupsen/logrus"
@@ -105,10 +104,9 @@ func (state *MiningState) searchingNonce() {
 				nonce++
 
 				// compute hash..
-				resultBytes := hash.Sha256(parentHash, byteutils.FromUint64(nonce))
+				resultBytes := HashAndVerifyNonce(miningBlock, nonce)
 
-				// verify.
-				if resultBytes[0] == 0 && resultBytes[1] == 0 {
+				if resultBytes != nil {
 					log.WithFields(log.Fields{
 						"nonce":      nonce,
 						"parentHash": byteutils.Hex(parentHash),

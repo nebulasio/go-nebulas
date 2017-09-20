@@ -16,28 +16,19 @@
 // along with the go-nebulas library.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-package core
+package pow
 
 import (
-	"time"
-
-	"github.com/nebulasio/go-nebulas/common/trie"
+	"github.com/nebulasio/go-nebulas/core"
+	"github.com/nebulasio/go-nebulas/crypto/hash"
+	"github.com/nebulasio/go-nebulas/utils/byteutils"
 )
 
-// NewGenesisBlock create genesis @Block from file.
-func NewGenesisBlock(stateTrie *trie.Trie) *Block {
-	// TODO: load genesis block data from file.
-	b := &Block{
-		header: &BlockHeader{
-			hash:       make([]byte, BlockHashLength),
-			parentHash: make([]byte, BlockHashLength),
-			coinbase:   &Address{make([]byte, AddressLength)},
-			timestamp:  time.Now(),
-		},
-		stateTrie: stateTrie,
-		height:    1,
-		sealed:    true,
+// HashAndVerifyNonce return hash result if nonce is satisfied hash requirements.
+func HashAndVerifyNonce(block *core.Block, nonce uint64) []byte {
+	ret := hash.Sha256(block.ParentHash(), byteutils.FromUint64(nonce))
+	if ret[0] == 0 && ret[1] == 0 {
+		return ret
 	}
-
-	return b
+	return nil
 }

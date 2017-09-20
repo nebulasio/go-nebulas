@@ -115,6 +115,23 @@ func TestTrie_Clone(t *testing.T) {
 	}
 }
 
+func TestTrie_Clone2(t *testing.T) {
+	x, _ := NewTrie(nil)
+	x.Put([]byte("hello"), []byte("world"))
+
+	x1, _ := x.Clone()
+	x1.Put([]byte("hello,x1"), []byte("world x1"))
+
+	s, _ := NewTrie(nil)
+	s.Put([]byte("hello"), []byte("world"))
+	s2, _ := s.Clone()
+	s2.Put([]byte("hello,s2"), []byte("world s2"))
+	s1, _ := s.Clone()
+	s1.Put([]byte("hello,x1"), []byte("world x1"))
+
+	fmt.Printf("%v vs. %v", x1.RootHash(), s1.RootHash())
+}
+
 func TestTrie_Operation(t *testing.T) {
 	tr, _ := NewTrie(nil)
 	if !reflect.DeepEqual([]byte(nil), tr.rootHash) {

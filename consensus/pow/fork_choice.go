@@ -19,10 +19,10 @@
 package pow
 
 import (
-	"github.com/nebulasio/go-nebulas/core"
 	log "github.com/sirupsen/logrus"
 )
 
+/*
 func (p *Pow) ForkChoice() {
 	bc := p.chain
 	bkPool := bc.BlockPool()
@@ -80,6 +80,45 @@ func (p *Pow) ForkChoice() {
 		bc.SetTailBlock(block)
 	} else {
 		log.Debug("Pow.ForkChoice: can't find the longest chain, return.")
+	}
+
+	// dump chain.
+	log.Debug("Dump: ", bc.Dump())
+}
+*/
+
+func (p *Pow) ForkChoice() {
+	bc := p.chain
+	tailBlock := bc.TailBlock()
+	detachedTailBlocks := bc.DetachedTailBlocks()
+
+	// find the max depth.
+	log.WithFields(log.Fields{
+		"func": "Pow.ForkChoice",
+	}).Debug("find the highest tail.")
+
+	newTailBlock := tailBlock
+	maxHeight := tailBlock.Height()
+
+	for _, v := range detachedTailBlocks {
+		h := v.Height()
+		if h > maxHeight {
+			maxHeight = h
+			newTailBlock = v
+		}
+	}
+
+	if newTailBlock == bc.TailBlock() {
+		log.WithFields(log.Fields{
+			"func": "Pow.ForkChoice",
+		}).Info("current tail is the highest, no change.")
+	} else {
+		log.WithFields(log.Fields{
+			"func":      "Pow.ForkChoice",
+			"maxHeight": maxHeight,
+			"tailBlock": newTailBlock,
+		}).Info("change to new tail.")
+		bc.SetTailBlock(newTailBlock)
 	}
 
 	// dump chain.

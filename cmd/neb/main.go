@@ -48,6 +48,7 @@ func run(sharedBlockCh chan interface{}, quitCh chan bool, nmCh chan net.Manager
 
 	var cons consensus.Consensus
 	cons = pow.NewPow(bc, nm)
+	bc.SetConsensHandler(cons)
 
 	// start.
 	cons.Start()
@@ -72,6 +73,7 @@ func runP2p(config *p2p.Config, quitCh chan bool, nmCh chan net.Manager) {
 
 	var cons consensus.Consensus
 	cons = pow.NewPow(bc, nm)
+	bc.SetConsensHandler(cons)
 
 	// start.
 	cons.Start()
@@ -125,7 +127,8 @@ func neb(ctx *cli.Context) error {
 
 func godummy() {
 	quitCh := make(chan bool, 10)
-	clientCount := 5
+
+	clientCount := 2
 	nmCh := make(chan net.Manager, clientCount)
 
 	sharedBlockCh := make(chan interface{}, 50)
