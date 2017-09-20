@@ -54,13 +54,12 @@ func (np *P2pManager) BlockMsgHandler(s net.Stream) {
 		b.Uint32(size),
 		timeout,
 	)
-	var block core.Block
-	var jsons = &b.JSONSerializer{}
-	err = jsons.Deserialize(data, &block)
+
+	block := new(core.Block)
+	err = block.Deserialize(data)
 	if err != nil {
 		log.Error("BlockMsgHandler: handle block msg occurs error ", err)
 	}
-	log.Info("BlockMsgHandler: handle block block -> ", block)
 	msg := messages.NewBaseMessage(nnet.MessageTypeNewBlock, block)
 	log.Info("BlockMsgHandler: handle block msg -> ", msg)
 	np.PutMessage(msg)
@@ -76,15 +75,15 @@ func (node *Node) SendBlock(msg *core.Block, pid peer.ID) {
 	}
 	defer stream.Close()
 
-	var s b.Serializable = &b.JSONSerializer{}
-	data, err := s.Serialize(*msg)
-	log.Info("SendBlock: send block msg data ", string(data))
+	//var s b.Serializable = &b.JSONSerializer{}
+	//data, err := s.Serialize(*msg)
+	data, err:= msg.Serialize()
+
 	if err != nil {
 		return
 	}
 	timeout := 30 * time.Second
 	size := b.FromUint32(uint32(len(data)))
-	log.Info("SendBlock: send block msg size ", uint32(len(data)))
 	err = WriteWithTimeout(
 		stream,
 		append(size[:], data...),
