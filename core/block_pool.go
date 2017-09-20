@@ -50,7 +50,7 @@ func (pool *BlockPool) ReceivedBlockCh() chan *Block {
 }
 
 // RegisterInNetwork register message subscriber in network.
-func (pool *BlockPool) RegisterInNetwork(nm *net.Manager) {
+func (pool *BlockPool) RegisterInNetwork(nm net.Manager) {
 	nm.Register(net.NewSubscriber(pool, pool.receiveMessageCh, net.MessageTypeNewBlock))
 }
 

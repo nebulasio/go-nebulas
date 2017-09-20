@@ -49,7 +49,7 @@ type Pow struct {
 	quitCh chan bool
 
 	chain *core.BlockChain
-	nm    *net.Manager
+	nm    net.Manager
 
 	states            consensus.States
 	currentState      consensus.State
@@ -65,7 +65,7 @@ type stateTransitionArgs struct {
 }
 
 // NewPow create Pow instance.
-func NewPow(bc *core.BlockChain, nm *net.Manager) *Pow {
+func NewPow(bc *core.BlockChain, nm net.Manager) *Pow {
 	p := &Pow{
 		chain:             bc,
 		nm:                nm,

@@ -18,16 +18,15 @@
 
 package net
 
-// Manager the net manager.
-type Manager struct {
+// DummyManager
+type DummyManager struct {
 	sharedBlockCh chan interface{}
 	dispatcher    *Dispatcher
 }
 
-// NewManager create Manager instance.
-// TODO: remove sharedBlockCH, using underlying network lib instead.
-func NewManager(sharedBlockCh chan interface{}) *Manager {
-	nm := &Manager{
+// NewDummyManager create DummyManager instance.
+func NewDummyManager(sharedBlockCh chan interface{}) *DummyManager {
+	nm := &DummyManager{
 		sharedBlockCh: sharedBlockCh,
 		dispatcher:    NewDispatcher(),
 	}
@@ -35,32 +34,32 @@ func NewManager(sharedBlockCh chan interface{}) *Manager {
 }
 
 // Register register the subscribers.
-func (nm *Manager) Register(subscribers ...*Subscriber) {
+func (nm *DummyManager) Register(subscribers ...*Subscriber) {
 	nm.dispatcher.Register(subscribers...)
 }
 
 // Deregister Deregister the subscribers.
-func (nm *Manager) Deregister(subscribers ...*Subscriber) {
+func (nm *DummyManager) Deregister(subscribers ...*Subscriber) {
 	nm.dispatcher.Deregister(subscribers...)
 }
 
 // Start start net services.
-func (nm *Manager) Start() {
+func (nm *DummyManager) Start() {
 	nm.dispatcher.Start()
 }
 
 // Stop stop net services.
-func (nm *Manager) Stop() {
+func (nm *DummyManager) Stop() {
 	nm.dispatcher.Stop()
 }
 
 // PutMessage put message to dispatcher.
-func (nm *Manager) PutMessage(msg Message) {
+func (nm *DummyManager) PutMessage(msg Message) {
 	nm.dispatcher.PutMessage(msg)
 }
 
 // BroadcastBlock broadcast block to network.
-func (nm *Manager) BroadcastBlock(block interface{}) {
+func (nm *DummyManager) BroadcastBlock(block interface{}) {
 	//TODO: broadcast block via underlying network lib to whole network.
 	nm.sharedBlockCh <- block
 }

@@ -35,8 +35,8 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func run(sharedBlockCh chan interface{}, quitCh chan bool, nmCh chan *net.Manager) {
-	nm := net.NewManager(sharedBlockCh)
+func run(sharedBlockCh chan interface{}, quitCh chan bool, nmCh chan net.Manager) {
+	nm := net.NewDummyManager(sharedBlockCh)
 	nmCh <- nm
 
 	bc := core.NewBlockChain(core.TestNetID)
@@ -59,8 +59,8 @@ func run(sharedBlockCh chan interface{}, quitCh chan bool, nmCh chan *net.Manage
 	cons.Stop()
 }
 
-func replicateNewBlock(sharedBlockCh chan interface{}, quitCh chan bool, nmCh chan *net.Manager) {
-	nms := make([]*net.Manager, 0, 10)
+func replicateNewBlock(sharedBlockCh chan interface{}, quitCh chan bool, nmCh chan net.Manager) {
+	nms := make([]net.Manager, 0, 10)
 
 	count := 0
 	for {
@@ -70,7 +70,7 @@ func replicateNewBlock(sharedBlockCh chan interface{}, quitCh chan bool, nmCh ch
 			log.Info("replicateNewBlock: repBlockCount = ", count)
 			msg := messages.NewBaseMessage(net.MessageTypeNewBlock, block)
 			for _, nm := range nms {
-				nm.PutMessage(msg)
+				nm.(*net.DummyManager).PutMessage(msg)
 			}
 		case nm := <-nmCh:
 			nms = append(nms, nm)
@@ -88,7 +88,7 @@ func main() {
 	quitCh := make(chan bool, 10)
 
 	clientCount := 5
-	nmCh := make(chan *net.Manager, clientCount)
+	nmCh := make(chan net.Manager, clientCount)
 
 	sharedBlockCh := make(chan interface{}, 50)
 	go replicateNewBlock(sharedBlockCh, quitCh, nmCh)

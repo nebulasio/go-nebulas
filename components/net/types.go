@@ -31,6 +31,16 @@ type Message interface {
 	Data() interface{}
 }
 
+type Manager interface {
+	Start()
+	Stop()
+
+	Register(subscribers ...*Subscriber)
+	Deregister(subscribers ...*Subscriber)
+
+	BroadcastBlock(block interface{})
+}
+
 // Subscriber subscriber.
 type Subscriber struct {
 	// id usually the owner/creator, used for troubleshooting .
