@@ -309,6 +309,12 @@
 
 [[projects]]
   branch = "master"
+  name = "github.com/multiformats/go-multicodec"
+  packages = [".","json"]
+  revision = "5e2f2923465fed1fd86110f37ca1a64ba1c0e55d"
+
+[[projects]]
+  branch = "master"
   name = "github.com/multiformats/go-multicodec-packed"
   packages = ["."]
   revision = "0ee69486dc1c9087aacfcc575e333f305009997e"
@@ -442,6 +448,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "91ad89c2f2ea22b339c21150d1be805eb79d25b85cc7ab1b442871ac6ce15cd4"
+  inputs-digest = "14b1b8fb7b26e218f76d43d17754e580bb59ab4560081817809badc3781c434c"
   solver-name = "gps-cdcl"
   solver-version = 1
