@@ -21,7 +21,8 @@ package ecdsa
 import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
-	"github.com/nebulasio/go-nebulas/crypto/keystore/ecdsa/bitelliptic"
+	//"github.com/nebulasio/go-nebulas/crypto/keystore/ecdsa/bitelliptic"
+	"github.com/btcsuite/btcd/btcec"
 	"io"
 
 	"crypto/rand"
@@ -32,7 +33,7 @@ import (
 
 // S256 returns an instance of the secp256k1 curve.
 func S256() elliptic.Curve {
-	return bitelliptic.S256()
+	return btcec.S256()
 }
 
 // NewPrivateKey generate a ecdsa private key
@@ -64,7 +65,7 @@ func FromPublicKey(pub *ecdsa.PublicKey) ([]byte, error) {
 func HexToPrivateKey(hexkey string) (*ecdsa.PrivateKey, error) {
 	b, err := hex.DecodeString(hexkey)
 	if err != nil {
-		return nil, errors.New("invalid hex string")
+		return nil, err
 	}
 	return ToPrivateKey(b)
 }
@@ -90,24 +91,37 @@ func ToPublicKey(pub []byte) (*ecdsa.PublicKey, error) {
 	return &ecdsa.PublicKey{Curve: S256(), X: x, Y: y}, nil
 }
 
+// RecoverPublicKey recover verifies the compact signature "signature" of "hash"
+func RecoverPublicKey(hash []byte, signature []byte) (*ecdsa.PublicKey, error) {
+	pub, _, err := btcec.RecoverCompact(btcec.S256(), signature, hash)
+	return (*ecdsa.PublicKey)(pub), err
+}
+
 // Sign sign hash with private key
-func Sign(hash []byte, prv *ecdsa.PrivateKey) (sig []byte, err error) {
-	r, s, err := ecdsa.Sign(rand.Reader, prv, hash)
+func Sign(hash []byte, priv *ecdsa.PrivateKey) ([]byte, error) {
+	r, s, err := ecdsa.Sign(rand.Reader, priv, hash)
 	if err != nil {
-		return nil, errors.New("ecdsa: sign err")
+		return nil, err
 	}
 
-	sign := r.Bytes()
-	sign = append(sign, s.Bytes()...)
-	return sign, nil
+	sig := &btcec.Signature{r, s}
+	//sign := r.Bytes()
+	//sign = append(sign, s.Bytes()...)
+	return sig.Serialize(), nil
+	//return btcec.SignCompact(btcec.S256(), (*btcec.PrivateKey)(priv), hash, false)
 }
 
 // Verify verify with public key
-func Verify(hash []byte, rs []byte, pub *ecdsa.PublicKey) bool {
-	r := new(big.Int)
-	r.SetBytes(rs[:32])
-	s := new(big.Int)
-	s.SetBytes(rs[32:])
-
-	return ecdsa.Verify(pub, hash, r, s)
+func Verify(hash []byte, signature []byte, pub *ecdsa.PublicKey) bool {
+	//r := new(big.Int)
+	//r.SetBytes(rs[:32])
+	//s := new(big.Int)
+	//s.SetBytes(rs[32:])
+	//
+	//return ecdsa.Verify(pub, hash, r, s)
+	sign, err := btcec.ParseDERSignature(signature, btcec.S256())
+	if err != nil {
+		return false
+	}
+	return ecdsa.Verify(pub, hash, sign.R, sign.S)
 }

@@ -18,10 +18,15 @@
 
 package net
 
+import (
+	"github.com/nebulasio/go-nebulas/crypto/keystore"
+)
+
 // DummyManager
 type DummyManager struct {
 	sharedBlockCh chan interface{}
 	dispatcher    *Dispatcher
+	keystore      *keystore.Keystore
 }
 
 // NewDummyManager create DummyManager instance.
@@ -29,6 +34,7 @@ func NewDummyManager(sharedBlockCh chan interface{}) *DummyManager {
 	nm := &DummyManager{
 		sharedBlockCh: sharedBlockCh,
 		dispatcher:    NewDispatcher(),
+		keystore:      keystore.NewKeystore(),
 	}
 	return nm
 }
