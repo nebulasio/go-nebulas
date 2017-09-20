@@ -75,7 +75,9 @@ func (tx *Transaction) Serialize() ([]byte, error) {
 func (tx *Transaction) Deserialize(blob []byte) error {
 	serializer := &byteutils.JSONSerializer{}
 	var data TxStream
-	serializer.Deserialize(blob, &data)
+	if err := serializer.Deserialize(blob, &data); err != nil {
+		return err
+	}
 	tx.hash = data.Hash
 	tx.from = Address{data.From}
 	tx.to = Address{data.To}
@@ -94,7 +96,10 @@ func (txs *Transactions) Serialize() ([]byte, error) {
 	var data [][]byte
 	serializer := &byteutils.JSONSerializer{}
 	for _, v := range *txs {
-		ir, _ := v.Serialize()
+		ir, err := v.Serialize()
+		if err != nil {
+			return nil, err
+		}
 		data = append(data, ir)
 	}
 	return serializer.Serialize(data)
@@ -104,10 +109,14 @@ func (txs *Transactions) Serialize() ([]byte, error) {
 func (txs *Transactions) Deserialize(blob []byte) error {
 	var data [][]byte
 	serializer := &byteutils.JSONSerializer{}
-	serializer.Deserialize(blob, &data)
+	if err := serializer.Deserialize(blob, &data); err != nil {
+		return err
+	}
 	for _, v := range data {
 		tx := &Transaction{}
-		tx.Deserialize(v)
+		if err := tx.Deserialize(v); err != nil {
+			return err
+		}
 		*txs = append(*txs, tx)
 	}
 	return nil
