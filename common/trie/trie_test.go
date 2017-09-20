@@ -123,8 +123,9 @@ func TestTrie_Operation(t *testing.T) {
 	// add a new leaf node
 	addr1, _ := byteutils.FromHex("1f345678e9")
 	key1 := []byte{0x1, 0xf, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0xe, 0x9}
-	tr.Update(addr1, []byte("leaf 1"))
-	leaf1 := [][]byte{[]byte{byte(leaf)}, key1, []byte("leaf 1")}
+	val1 := []byte("leaf 11")
+	tr.Update(addr1, val1)
+	leaf1 := [][]byte{[]byte{byte(leaf)}, key1, val1}
 	leaf1IR, _ := tr.serializer.Serialize(leaf1)
 	leaf1H := hash.Sha3256(leaf1IR)
 	fmt.Println("leaf1")
@@ -135,13 +136,14 @@ func TestTrie_Operation(t *testing.T) {
 	// add a new leaf node with 3-length common prefix
 	addr2, _ := byteutils.FromHex("1f355678e9")
 	key2 := []byte{0x1, 0xf, 0x3, 0x5, 0x5, 0x6, 0x7, 0x8, 0xe, 0x9}
-	tr.Update(addr2, []byte("leaf 2"))
-	leaf2 := [][]byte{[]byte{byte(leaf)}, key2[4:], []byte("leaf 2")}
+	val2 := []byte("leaf 2")
+	tr.Update(addr2, val2)
+	leaf2 := [][]byte{[]byte{byte(leaf)}, key2[4:], val2}
 	leaf2IR, _ := tr.serializer.Serialize(leaf2)
 	leaf2H := hash.Sha3256(leaf2IR)
 	fmt.Println("leaf2")
 	fmt.Println(leaf2H)
-	leaf3 := [][]byte{[]byte{byte(leaf)}, key1[4:], []byte("leaf 1")}
+	leaf3 := [][]byte{[]byte{byte(leaf)}, key1[4:], val1}
 	leaf3IR, _ := tr.serializer.Serialize(leaf3)
 	leaf3H := hash.Sha3256(leaf3IR)
 	fmt.Println("leaf3")
@@ -162,8 +164,9 @@ func TestTrie_Operation(t *testing.T) {
 	// add a new node with 2-length common prefix
 	addr3, _ := byteutils.FromHex("1f555678e9")
 	key3 := []byte{0x1, 0xf, 0x5, 0x5, 0x5, 0x6, 0x7, 0x8, 0xe, 0x9}
-	tr.Update(addr3, []byte("leaf 3"))
-	leaf4 := [][]byte{[]byte{byte(leaf)}, key3[3:], []byte("leaf 3")}
+	val3 := []byte("leaf 3")
+	tr.Update(addr3, val3)
+	leaf4 := [][]byte{[]byte{byte(leaf)}, key3[3:], val3}
 	leaf4IR, _ := tr.serializer.Serialize(leaf4)
 	leaf4H := hash.Sha3256(leaf4IR)
 	fmt.Println("leaf4")
@@ -183,7 +186,8 @@ func TestTrie_Operation(t *testing.T) {
 	}
 	// update node leaf1
 	tr.Update(addr1, []byte("leaf 11"))
-	leaf5 := [][]byte{[]byte{byte(leaf)}, key1[4:], []byte("leaf 11")}
+	val11 := []byte("leaf 11")
+	leaf5 := [][]byte{[]byte{byte(leaf)}, key1[4:], val11}
 	leaf5IR, _ := tr.serializer.Serialize(leaf5)
 	leaf5H := hash.Sha3256(leaf5IR)
 	fmt.Println("leaf5")
@@ -215,28 +219,19 @@ func TestTrie_Operation(t *testing.T) {
 		t.Errorf("1 Trie.Verify() %v", err.Error())
 	}
 	// get node "1f345678e9"
-	node1, _ := tr.Get(addr1)
-	if !reflect.DeepEqual(node1.Key, leaf5H) {
-		t.Errorf("1 Trie.Get() key = %v, want %v", node1.Key, leaf5H)
-	}
-	if !reflect.DeepEqual(node1.Val, leaf5) {
-		t.Errorf("1 Trie.Get() val = %v, want %v", node1.Val, leaf5)
+	checkVal1, _ := tr.Get(addr1)
+	if !reflect.DeepEqual(checkVal1, val11) {
+		t.Errorf("1 Trie.Get() val = %v, want %v", checkVal1, val11)
 	}
 	// get node "1f355678e9"
-	node2, _ := tr.Get(addr2)
-	if !reflect.DeepEqual(node2.Key, leaf2H) {
-		t.Errorf("2 Trie.Get() key = %v, want %v", node2.Key, leaf2H)
-	}
-	if !reflect.DeepEqual(node2.Val, leaf2) {
-		t.Errorf("2 Trie.Get() val = %v, want %v", node2.Val, leaf2)
+	checkVal2, _ := tr.Get(addr2)
+	if !reflect.DeepEqual(checkVal2, val2) {
+		t.Errorf("2 Trie.Get() val = %v, want %v", checkVal2, val2)
 	}
 	// get node "1f555678e9"
-	node3, _ := tr.Get(addr3)
-	if !reflect.DeepEqual(node3.Key, leaf4H) {
-		t.Errorf("2 Trie.Get() key = %v, want %v", node3.Key, leaf4H)
-	}
-	if !reflect.DeepEqual(node3.Val, leaf4) {
-		t.Errorf("2 Trie.Get() val = %v, want %v", node3.Val, leaf4)
+	checkVal3, _ := tr.Get(addr3)
+	if !reflect.DeepEqual(checkVal3, val3) {
+		t.Errorf("2 Trie.Get() val = %v, want %v", checkVal2, val3)
 	}
 	// del node "1f345678e9"
 	tr.Del(addr1)
