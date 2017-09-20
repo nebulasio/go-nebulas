@@ -19,9 +19,9 @@
 package ecdsa
 
 import (
-	"testing"
 	"crypto/rand"
 	"github.com/nebulasio/go-nebulas/utils/byteutils"
+	"testing"
 )
 
 func TestFromECDSAPri(t *testing.T) {

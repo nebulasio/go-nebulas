@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"sort"
 	"syscall"
 	"time"
 
@@ -33,6 +34,7 @@ import (
 	"github.com/nebulasio/go-nebulas/core"
 
 	log "github.com/sirupsen/logrus"
+	"gopkg.in/urfave/cli.v1"
 )
 
 func run(sharedBlockCh chan interface{}, quitCh chan bool, nmCh chan net.Manager) {
@@ -80,7 +82,9 @@ func replicateNewBlock(sharedBlockCh chan interface{}, quitCh chan bool, nmCh ch
 	}
 }
 
-func main() {
+func neb(ctx *cli.Context) error {
+	fmt.Printf("dummy: %v,  config: %v\n", dummy, p2pConfig)
+
 	log.SetFormatter(&log.TextFormatter{FullTimestamp: true})
 	log.SetOutput(os.Stdout)
 	log.SetLevel(log.DebugLevel)
@@ -111,4 +115,48 @@ func main() {
 	for {
 		time.Sleep(60 * time.Second) // or runtime.Gosched() or similar per @misterbee
 	}
+}
+
+var (
+	dummy     bool
+	p2pConfig string
+)
+
+func main() {
+	app := cli.NewApp()
+	app.Action = neb
+	app.Name = "neb"
+	app.Version = "0.1.0"
+	app.Compiled = time.Now()
+	app.Usage = "the go-nebulas command line interface"
+	app.Copyright = "Copyright 2017-2018 The go-nebulas Authors"
+
+	app.Flags = []cli.Flag{
+		cli.BoolFlag{
+			Name:        "dummy",
+			Usage:       "use dummy network",
+			Destination: &dummy,
+		},
+		cli.StringFlag{
+			Name:        "config, c",
+			Usage:       "load configuration from `FILE`",
+			Destination: &p2pConfig,
+		},
+	}
+
+	app.Commands = []cli.Command{
+		{
+			Name:    "config",
+			Aliases: []string{"c"},
+			Usage:   "Show default configuration",
+			Action: func(c *cli.Context) error {
+				return nil
+			},
+		},
+	}
+
+	sort.Sort(cli.FlagsByName(app.Flags))
+	sort.Sort(cli.CommandsByName(app.Commands))
+
+	app.Run(os.Args)
 }
