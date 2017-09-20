@@ -46,8 +46,72 @@ type Transaction struct {
 	data      []byte
 }
 
+type TxStream struct {
+	Hash  []byte
+	From  []byte
+	To    []byte
+	Value uint64
+	Nonce uint64
+	Time  int64
+	Data  []byte
+}
+
+// Serialize a transaction
+func (tx *Transaction) Serialize() ([]byte, error) {
+	serializer := &byteutils.JSONSerializer{}
+	data := TxStream{
+		tx.hash,
+		tx.from.address,
+		tx.to.address,
+		tx.value,
+		tx.nonce,
+		tx.timestamp.UnixNano(),
+		tx.data,
+	}
+	return serializer.Serialize(data)
+}
+
+// Deserialize a transaction
+func (tx *Transaction) Deserialize(blob []byte) error {
+	serializer := &byteutils.JSONSerializer{}
+	var data TxStream
+	serializer.Deserialize(blob, &data)
+	tx.hash = data.Hash
+	tx.from = Address{data.From}
+	tx.to = Address{data.To}
+	tx.value = data.Value
+	tx.nonce = data.Nonce
+	tx.timestamp = time.Unix(0, data.Time)
+	tx.data = data.Data
+	return nil
+}
+
 // Transactions is an alias of Transaction array.
 type Transactions []*Transaction
+
+// Serialize txs
+func (txs *Transactions) Serialize() ([]byte, error) {
+	var data [][]byte
+	serializer := &byteutils.JSONSerializer{}
+	for _, v := range *txs {
+		ir, _ := v.Serialize()
+		data = append(data, ir)
+	}
+	return serializer.Serialize(data)
+}
+
+// Deserialize txs
+func (txs *Transactions) Deserialize(blob []byte) error {
+	var data [][]byte
+	serializer := &byteutils.JSONSerializer{}
+	serializer.Deserialize(blob, &data)
+	for _, v := range data {
+		tx := &Transaction{}
+		tx.Deserialize(v)
+		*txs = append(*txs, tx)
+	}
+	return nil
+}
 
 // NewTransaction create #Transaction instance.
 func NewTransaction(from, to Address, value uint64, nonce uint64, data []byte) *Transaction {

@@ -49,6 +49,43 @@ type BlockHeader struct {
 	timestamp  time.Time
 }
 
+type BHStream struct {
+	Hash       []byte
+	ParentHash []byte
+	StateRoot  []byte
+	Nonce      uint64
+	CoinBase   []byte
+	Time       int64
+}
+
+// Serialize Block to bytes
+func (b *BlockHeader) Serialize() ([]byte, error) {
+	serializer := &byteutils.JSONSerializer{}
+	data := BHStream{
+		b.hash,
+		b.parentHash,
+		b.stateRoot,
+		b.nonce,
+		b.coinbase.address,
+		b.timestamp.UnixNano(),
+	}
+	return serializer.Serialize(data)
+}
+
+// Deserialize a block
+func (b *BlockHeader) Deserialize(blob []byte) error {
+	serializer := &byteutils.JSONSerializer{}
+	var data BHStream
+	serializer.Deserialize(blob, &data)
+	b.hash = data.Hash
+	b.parentHash = data.ParentHash
+	b.stateRoot = data.StateRoot
+	b.nonce = data.Nonce
+	b.coinbase = &Address{data.CoinBase}
+	b.timestamp = time.Unix(0, data.Time)
+	return nil
+}
+
 /*
 Block type.
 */
@@ -61,6 +98,39 @@ type Block struct {
 	parenetBlock *Block
 	stateTrie    *trie.Trie
 	txPool       *TransactionPool
+}
+
+// Serialize Block to bytes
+func (b *Block) Serialize() ([]byte, error) {
+	var data [][]byte
+	serializer := &byteutils.JSONSerializer{}
+	hir, err := b.header.Serialize()
+	if err != nil {
+		return nil, err
+	}
+	data = append(data, hir)
+	tir, err := (&b.transactions).Serialize()
+	if err != nil {
+		return nil, err
+	}
+	data = append(data, tir)
+	return serializer.Serialize(data)
+}
+
+// Deserialize a block
+func (b *Block) Deserialize(blob []byte) error {
+	var data [][]byte
+	serializer := &byteutils.JSONSerializer{}
+	serializer.Deserialize(blob, &data)
+	b.sealed = true
+	b.header = &BlockHeader{}
+	if err := b.header.Deserialize(data[0]); err != nil {
+		return err
+	}
+	if err := b.transactions.Deserialize(data[1]); err != nil {
+		return err
+	}
+	return nil
 }
 
 // NewBlock return new block.
