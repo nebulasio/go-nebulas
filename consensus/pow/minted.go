@@ -28,7 +28,7 @@ const (
 	Minted = "minted"
 )
 
-// MintedState minted state, transite from @MiningState
+// MintedState minted state, transit from @MiningState
 type MintedState struct {
 	p *Pow
 }
@@ -74,7 +74,7 @@ func (state *MintedState) Enter(data interface{}) {
 	}
 
 	// move to prepare state.
-	state.p.TransiteByKey(Prepare, nil)
+	state.p.TransitByKey(Prepare, nil)
 }
 
 // Leave called when leaving this state.

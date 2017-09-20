@@ -60,7 +60,7 @@ func (state *MiningState) Event(e consensus.Event) (bool, consensus.State) {
 	block := e.Data().(*core.Block)
 	log.WithFields(log.Fields{
 		"block": block,
-	}).Info("MiningState.Event: receive new block message, transite to MintedState.")
+	}).Info("MiningState.Event: receive new block message, transit to MintedState.")
 	return true, state.p.states[Minted]
 }
 
@@ -79,10 +79,10 @@ func (state *MiningState) Leave(data interface{}) {
 }
 
 func (state *MiningState) searchingNonce() {
-	// transite to MintedState if receivedBlock is not nil.
+	// transit to MintedState if receivedBlock is not nil.
 	if state.p.receivedBlock != nil {
-		log.Info("MiningState.Enter: received block found, transite to MintedState.")
-		state.p.TransiteByKey(Minted, nil)
+		log.Info("MiningState.Enter: received block found, transit to MintedState.")
+		state.p.TransitByKey(Minted, nil)
 
 	} else {
 		// calculate hash.
@@ -113,7 +113,7 @@ func (state *MiningState) searchingNonce() {
 						"nonce":      nonce,
 						"parentHash": byteutils.Hex(parentHash),
 						"hashResult": byteutils.Hex(resultBytes),
-					}).Info("MiningState.searchingNonce: found valid nonce, transite to MintedState.")
+					}).Info("MiningState.searchingNonce: found valid nonce, transit to MintedState.")
 
 					// FIXME: Debug purpose.
 					elapse := time.Since(timeStart)
@@ -122,7 +122,7 @@ func (state *MiningState) searchingNonce() {
 					}
 
 					miningBlock.SetNonce(nonce)
-					state.p.TransiteByKey(Minted, nil)
+					state.p.TransitByKey(Minted, nil)
 
 					// break this for loop.
 					break computeHash

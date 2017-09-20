@@ -29,8 +29,8 @@ const (
 type Consensus interface {
 	Start()
 	Stop()
-	TransiteByKey(nextStateKey string, data interface{})
-	Transite(nextState State, data interface{})
+	TransitByKey(nextStateKey string, data interface{})
+	Transit(nextState State, data interface{})
 
 	// AppendBlock add block to blockchain according to for choice algorithm.
 	AppendBlock(block *core.Block) error

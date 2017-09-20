@@ -54,7 +54,7 @@ func (state *PrepareState) Enter(data interface{}) {
 	state.p.miningBlock = state.p.chain.NewBlock(addr)
 
 	// move to mining state.
-	state.p.TransiteByKey(Mining, nil)
+	state.p.TransitByKey(Mining, nil)
 }
 
 // Leave called when leaving this state.

@@ -110,7 +110,7 @@ func (p *Pow) Event(e consensus.Event) {
 	captured, nextState := p.currentState.Event(e)
 	if captured {
 		if nextState != nil && p.currentState != nextState {
-			p.Transite(nextState, nil)
+			p.Transit(nextState, nil)
 		}
 		return
 	}
@@ -131,13 +131,13 @@ func (p *Pow) Event(e consensus.Event) {
 	}
 }
 
-// TransiteByKey transite state by stateKey.
-func (p *Pow) TransiteByKey(stateKey string, data interface{}) {
-	p.Transite(p.states[stateKey], data)
+// TransitByKey transit state by stateKey.
+func (p *Pow) TransitByKey(stateKey string, data interface{}) {
+	p.Transit(p.states[stateKey], data)
 }
 
-// Transite transite state.
-func (p *Pow) Transite(nextState consensus.State, data interface{}) {
+// Transit transit state.
+func (p *Pow) Transit(nextState consensus.State, data interface{}) {
 	if p.currentState == nextState {
 		return
 	}
