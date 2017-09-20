@@ -45,5 +45,5 @@ func (k *PrivateStoreKey) Format() string {
 
 // Encoded encoded to byte
 func (k *PrivateStoreKey) Encoded() ([]byte, error) {
-	return FromECDSAPri(k.privateKey)
+	return FromPrivateKey(k.privateKey)
 }

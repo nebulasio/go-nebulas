@@ -35,8 +35,8 @@ func S256() elliptic.Curve {
 	return bitelliptic.S256()
 }
 
-// GenerateECDSAPrivateKey generate a ecdsa private key
-func GenerateECDSAPrivateKey(rand io.Reader) (*ecdsa.PrivateKey, error) {
+// NewPrivateKey generate a ecdsa private key
+func NewPrivateKey(rand io.Reader) (*ecdsa.PrivateKey, error) {
 	privateKeyECDSA, err := ecdsa.GenerateKey(S256(), rand)
 	if err != nil {
 		return nil, err
@@ -44,33 +44,33 @@ func GenerateECDSAPrivateKey(rand io.Reader) (*ecdsa.PrivateKey, error) {
 	return privateKeyECDSA, nil
 }
 
-// FromECDSAPri exports a private key into a binary dump.
-func FromECDSAPri(pri *ecdsa.PrivateKey) ([]byte, error) {
+// FromPrivateKey exports a private key into a binary dump.
+func FromPrivateKey(pri *ecdsa.PrivateKey) ([]byte, error) {
 	if pri == nil {
 		return nil, errors.New("ecdsa: please input private key")
 	}
 	return pri.D.Bytes(), nil
 }
 
-// FromECDSAPub exports a public key into a binary dump.
-func FromECDSAPub(pub *ecdsa.PublicKey) ([]byte, error) {
+// FromPublicKey exports a public key into a binary dump.
+func FromPublicKey(pub *ecdsa.PublicKey) ([]byte, error) {
 	if pub == nil || pub.X == nil || pub.Y == nil {
 		return nil, errors.New("ecdsa: please input public key")
 	}
 	return elliptic.Marshal(S256(), pub.X, pub.Y), nil
 }
 
-// HexToECDSAPrivate parses a secp256k1 private key.
-func HexToECDSAPrivate(hexkey string) (*ecdsa.PrivateKey, error) {
+// HexToPrivateKey parses a secp256k1 private key.
+func HexToPrivateKey(hexkey string) (*ecdsa.PrivateKey, error) {
 	b, err := hex.DecodeString(hexkey)
 	if err != nil {
 		return nil, errors.New("invalid hex string")
 	}
-	return ToECDSAPrivate(b)
+	return ToPrivateKey(b)
 }
 
-// ToECDSAPrivate creates a private key with the given data value.
-func ToECDSAPrivate(d []byte) (*ecdsa.PrivateKey, error) {
+// ToPrivateKey creates a private key with the given data value.
+func ToPrivateKey(d []byte) (*ecdsa.PrivateKey, error) {
 	priv := new(ecdsa.PrivateKey)
 	priv.PublicKey.Curve = S256()
 	//if 8*len(d) != priv.Params().BitSize {
@@ -81,8 +81,8 @@ func ToECDSAPrivate(d []byte) (*ecdsa.PrivateKey, error) {
 	return priv, nil
 }
 
-// ToECDSAPublic creates a public key with the given data value.
-func ToECDSAPublic(pub []byte) (*ecdsa.PublicKey, error) {
+// ToPublicKey creates a public key with the given data value.
+func ToPublicKey(pub []byte) (*ecdsa.PublicKey, error) {
 	if len(pub) == 0 {
 		return nil, errors.New("ecdsa: please input public key bytes")
 	}

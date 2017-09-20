@@ -32,7 +32,7 @@ type Signature struct {
 
 // InitSign ecdsa init sign
 func (s *Signature) InitSign(priByte []byte) error {
-	pri, err := ToECDSAPrivate(priByte)
+	pri, err := ToPrivateKey(priByte)
 	if err != nil {
 		return err
 	}
@@ -54,7 +54,7 @@ func (s *Signature) Sign(data []byte) (out []byte, err error) {
 
 // InitVerify ecdsa verify init
 func (s *Signature) InitVerify(pubByte []byte) error {
-	pub, _ := ToECDSAPublic(pubByte)
+	pub, _ := ToPublicKey(pubByte)
 	s.publicKey = pub
 	return nil
 }

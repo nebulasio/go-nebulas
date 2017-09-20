@@ -27,7 +27,7 @@ import (
 )
 
 func TestKeystore_SetKeyPassphrase(t *testing.T) {
-	priv, _ := ecdsa.GenerateECDSAPrivateKey(rand.Reader)
+	priv, _ := ecdsa.NewPrivateKey(rand.Reader)
 
 	ks := NewKeystore()
 
@@ -52,7 +52,7 @@ func TestKeystore_SetKey(t *testing.T) {
 }
 
 func TestKeystore_GetKey(t *testing.T) {
-	priv, _ := ecdsa.GenerateECDSAPrivateKey(rand.Reader)
+	priv, _ := ecdsa.NewPrivateKey(rand.Reader)
 
 	ks := NewKeystore()
 
@@ -76,7 +76,7 @@ func TestKeystore_GetKey(t *testing.T) {
 }
 
 func TestKeystore_ContainsAlias(t *testing.T) {
-	priv, _ := ecdsa.GenerateECDSAPrivateKey(rand.Reader)
+	priv, _ := ecdsa.NewPrivateKey(rand.Reader)
 
 	ks := NewKeystore()
 
@@ -94,7 +94,7 @@ func TestKeystore_ContainsAlias(t *testing.T) {
 }
 
 func TestKeystore_Delete(t *testing.T) {
-	priv, _ := ecdsa.GenerateECDSAPrivateKey(rand.Reader)
+	priv, _ := ecdsa.NewPrivateKey(rand.Reader)
 
 	alias := key.Alias("test_alias")
 

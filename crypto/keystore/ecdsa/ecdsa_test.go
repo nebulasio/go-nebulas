@@ -25,52 +25,52 @@ import (
 )
 
 func TestFromECDSAPri(t *testing.T) {
-	priv, _ := GenerateECDSAPrivateKey(rand.Reader)
-	privByte, err := FromECDSAPri(priv)
+	priv, _ := NewPrivateKey(rand.Reader)
+	privByte, err := FromPrivateKey(priv)
 	if err != nil {
-		t.Errorf("FromECDSAPri err:%s", err)
+		t.Errorf("FromPrivateKey err:%s", err)
 	}
 	t.Logf("private :%d", privByte)
 }
 
 func TestFromECDSAPub(t *testing.T) {
-	priv, _ := GenerateECDSAPrivateKey(rand.Reader)
-	privByte, err := FromECDSAPub(&priv.PublicKey)
+	priv, _ := NewPrivateKey(rand.Reader)
+	privByte, err := FromPublicKey(&priv.PublicKey)
 	if err != nil {
-		t.Errorf("FromECDSAPub err:%s", err)
+		t.Errorf("FromPublicKey err:%s", err)
 	}
 	t.Logf("public :%d", privByte)
 
 }
 
 func TestToECDSAPrivate(t *testing.T) {
-	priv, _ := GenerateECDSAPrivateKey(rand.Reader)
+	priv, _ := NewPrivateKey(rand.Reader)
 	t.Logf("before private :%d", priv.D)
-	privByte, _ := FromECDSAPri(priv)
-	aPriv, err := ToECDSAPrivate(privByte)
+	privByte, _ := FromPrivateKey(priv)
+	aPriv, err := ToPrivateKey(privByte)
 	if err != nil {
-		t.Errorf("ToECDSAPrivate err:%s", err)
+		t.Errorf("ToPrivateKey err:%s", err)
 	}
 	if !byteutils.Equal(priv.D.Bytes(), aPriv.D.Bytes()) {
-		t.Errorf("ToECDSAPrivate err")
+		t.Errorf("ToPrivateKey err")
 	}
 	t.Logf("private :%d", aPriv.D)
 }
 
 func TestToECDSAPublic(t *testing.T) {
-	priv, _ := GenerateECDSAPrivateKey(rand.Reader)
+	priv, _ := NewPrivateKey(rand.Reader)
 	t.Logf("before public X:%d, Y:%d", priv.PublicKey.X, priv.PublicKey.Y)
-	pubByte, _ := FromECDSAPub(&priv.PublicKey)
-	pub, err := ToECDSAPublic(pubByte)
+	pubByte, _ := FromPublicKey(&priv.PublicKey)
+	pub, err := ToPublicKey(pubByte)
 	if err != nil {
-		t.Errorf("FromECDSAPub err:%s", err)
+		t.Errorf("FromPublicKey err:%s", err)
 	}
 	t.Logf("public X:%d, Y:%d", pub.X, pub.Y)
 
 }
 
 func TestSign(t *testing.T) {
-	priv, _ := GenerateECDSAPrivateKey(rand.Reader)
+	priv, _ := NewPrivateKey(rand.Reader)
 	hash1, _ := byteutils.FromHex("0eb3be2db3a534c192be5570c6c42f59")
 	hash2, _ := byteutils.FromHex("5e6d587f26121f96a07cf4b8b569aac1AAAAAAAA") //5e6d587f26121f96a07cf4b8b569aac1
 	hash3, _ := byteutils.FromHex("c7174759e86c59dcb7df87def82f61eb")         //c7174759e86c59dcb7df87def82f61eb

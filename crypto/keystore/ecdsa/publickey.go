@@ -45,5 +45,5 @@ func (k *PublicStoreKey) Format() string {
 
 // Encoded encoded to byte
 func (k *PublicStoreKey) Encoded() ([]byte, error) {
-	return FromECDSAPub(k.publickey)
+	return FromPublicKey(k.publickey)
 }

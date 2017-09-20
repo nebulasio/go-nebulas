@@ -137,13 +137,13 @@ func (p *Provider) GetKey(a key.Alias, param key.ProtectionParameter) (key.Key, 
 	data := entry.data
 	switch entry.etype {
 	case EntryPrivate:
-		priv, err := ToECDSAPrivate(data)
+		priv, err := ToPrivateKey(data)
 		if err != nil {
 			return nil, err
 		}
 		key = &PrivateStoreKey{priv}
 	case EntryPublic:
-		pub, err := ToECDSAPublic(data)
+		pub, err := ToPublicKey(data)
 		if err != nil {
 			return nil, err
 		}
