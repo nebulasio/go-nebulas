@@ -25,6 +25,7 @@ import (
 
 	"github.com/nebulasio/go-nebulas/common/rlp"
 	json "github.com/pquerna/ffjson/ffjson"
+	"github.com/golang/protobuf/proto"
 )
 
 // RLPSerializer implements ethereum rlp algorithm
@@ -53,6 +54,19 @@ func (s *JSONSerializer) Serialize(val interface{}) ([]byte, error) {
 // Deserialize convert json string into struct or array
 func (s *JSONSerializer) Deserialize(val []byte, res interface{}) error {
 	return json.Unmarshal(val, res)
+}
+
+// ProtoSerializer implements conversion between bytes and proto message.
+type ProtoSerializer struct{}
+
+// Serialize converts proto message to bytes.
+func (s *ProtoSerializer) Serialize(val proto.Message) ([]byte, error) {
+	return proto.Marshal(val)
+}
+
+// Deserialize converts byte into proto message.
+func (s *ProtoSerializer) Deserialize(val []byte, res proto.Message) error {
+	return proto.Unmarshal(val, res)
 }
 
 func compress(val []byte) ([]byte, error) {
