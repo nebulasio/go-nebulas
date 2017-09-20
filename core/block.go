@@ -27,7 +27,6 @@ import (
 
 	"github.com/nebulasio/go-nebulas/utils/byteutils"
 	log "github.com/sirupsen/logrus"
-	"golang.org/x/tools/go/gcimporter15/testdata"
 )
 
 const (
