@@ -58,6 +58,7 @@ func (state *MintedState) Enter(data interface{}) {
 		// Seal block.
 		p.miningBlock.Seal()
 
+		log.Error("miningBlock: ", p.miningBlock)
 		// send new block to network.
 		p.nm.BroadcastBlock(p.miningBlock)
 

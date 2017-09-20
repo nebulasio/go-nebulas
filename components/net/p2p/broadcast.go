@@ -16,4 +16,30 @@
 // along with the go-nebulas library.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-package net
+package p2p
+
+import (
+	"github.com/nebulasio/go-nebulas/core"
+	log "github.com/sirupsen/logrus"
+)
+
+func (node *Node) Broadcast(block interface{}) {
+
+	log.Info("Broadcast: start broadcast...")
+	msg := block.(*core.Block)
+	log.Info("Broadcast: start broadcast msg...", msg)
+	allNode := node.routeTable.ListPeers()
+
+	for i := 0; i < len(allNode); i++ {
+
+		nodeId := allNode[i]
+		if node.id == nodeId {
+			continue
+		}
+ 		go func() {
+			node.SendBlock(msg, nodeId)
+		}()
+	}
+
+
+}

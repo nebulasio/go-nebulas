@@ -32,6 +32,7 @@ import (
 	"github.com/nebulasio/go-nebulas/components/net/messages"
 	"github.com/nebulasio/go-nebulas/consensus/pow"
 	"github.com/nebulasio/go-nebulas/core"
+	"github.com/nebulasio/go-nebulas/components/net/p2p"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
@@ -39,6 +40,30 @@ import (
 
 func run(sharedBlockCh chan interface{}, quitCh chan bool, nmCh chan net.Manager) {
 	nm := net.NewDummyManager(sharedBlockCh)
+	nmCh <- nm
+
+	bc := core.NewBlockChain(core.TestNetID)
+	fmt.Printf("chainID is %d\n", bc.ChainID())
+	bc.BlockPool().RegisterInNetwork(nm)
+
+	var cons consensus.Consensus
+	cons = pow.NewPow(bc, nm)
+
+	// start.
+	cons.Start()
+	bc.BlockPool().Start()
+	nm.Start()
+
+	<-quitCh
+
+	// stop
+	nm.Stop()
+	bc.BlockPool().Stop()
+	cons.Stop()
+}
+
+func runP2p(config *p2p.Config, quitCh chan bool, nmCh chan net.Manager) {
+	nm := p2p.NewP2pManager(config)
 	nmCh <- nm
 
 	bc := core.NewBlockChain(core.TestNetID)
@@ -88,9 +113,18 @@ func neb(ctx *cli.Context) error {
 	log.SetFormatter(&log.TextFormatter{FullTimestamp: true})
 	log.SetOutput(os.Stdout)
 	log.SetLevel(log.DebugLevel)
+	if dummy {
+		godummy()
+	} else {
+		goP2p()
+	}
+	for {
+		time.Sleep(60 * time.Second) // or runtime.Gosched() or similar per @misterbee
+	}
+}
 
+func godummy() {
 	quitCh := make(chan bool, 10)
-
 	clientCount := 5
 	nmCh := make(chan net.Manager, clientCount)
 
@@ -111,10 +145,22 @@ func neb(ctx *cli.Context) error {
 		}
 		os.Exit(1)
 	}()
+}
 
-	for {
-		time.Sleep(60 * time.Second) // or runtime.Gosched() or similar per @misterbee
-	}
+func goP2p() {
+	quitCh := make(chan bool, 1)
+	nmCh := make(chan net.Manager, 1)
+	config := p2p.DefautConfig()
+	go runP2p(config, quitCh, nmCh)
+
+	c := make(chan os.Signal, 2)
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+
+	go func() {
+		<-c
+		quitCh <- true
+		os.Exit(1)
+	}()
 }
 
 var (
