@@ -19,15 +19,14 @@
 package p2p
 
 import (
-
 	"github.com/libp2p/go-libp2p-net"
 	"github.com/libp2p/go-libp2p-peer"
-	"github.com/nebulasio/go-nebulas/core"
 	nnet "github.com/nebulasio/go-nebulas/components/net"
+	"github.com/nebulasio/go-nebulas/components/net/messages"
+	"github.com/nebulasio/go-nebulas/core"
 	b "github.com/nebulasio/go-nebulas/utils/byteutils"
 	log "github.com/sirupsen/logrus"
 	"time"
-	"github.com/nebulasio/go-nebulas/components/net/messages"
 )
 
 const blockProtocolID = "/nebulas/block/1.0.0"
@@ -77,7 +76,7 @@ func (node *Node) SendBlock(msg *core.Block, pid peer.ID) {
 
 	//var s b.Serializable = &b.JSONSerializer{}
 	//data, err := s.Serialize(*msg)
-	data, err:= msg.Serialize()
+	data, err := msg.Serialize()
 
 	if err != nil {
 		return

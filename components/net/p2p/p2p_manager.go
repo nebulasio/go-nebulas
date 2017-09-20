@@ -24,11 +24,10 @@ import (
 )
 
 type P2pManager struct {
-	config 		  *Config
-	dispatcher    *net.Dispatcher
-	node          *Node
+	config     *Config
+	dispatcher *net.Dispatcher
+	node       *Node
 }
-
 
 // NewP2pManager create P2pManager instance.
 func NewP2pManager(config *Config) *P2pManager {
@@ -41,9 +40,9 @@ func NewP2pManager(config *Config) *P2pManager {
 	}
 
 	np := &P2pManager{
-		config: 	config,
-		dispatcher:    net.NewDispatcher(),
-		node:          n,
+		config:     config,
+		dispatcher: net.NewDispatcher(),
+		node:       n,
 	}
 	np.RegisterBlockMsgService()
 	return np

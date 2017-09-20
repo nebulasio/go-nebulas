@@ -27,6 +27,7 @@ import (
 
 	"github.com/nebulasio/go-nebulas/utils/byteutils"
 	log "github.com/sirupsen/logrus"
+	"golang.org/x/tools/go/gcimporter15/testdata"
 )
 
 const (
@@ -103,15 +104,15 @@ type Block struct {
 }
 
 // Serialize Block to bytes
-func (b *Block) Serialize() ([]byte, error) {
+func (block *Block) Serialize() ([]byte, error) {
 	var data [][]byte
 	serializer := &byteutils.JSONSerializer{}
-	hir, err := b.header.Serialize()
+	hir, err := block.header.Serialize()
 	if err != nil {
 		return nil, err
 	}
 	data = append(data, hir)
-	tir, err := (&b.transactions).Serialize()
+	tir, err := (&block.transactions).Serialize()
 	if err != nil {
 		return nil, err
 	}
@@ -120,18 +121,18 @@ func (b *Block) Serialize() ([]byte, error) {
 }
 
 // Deserialize a block
-func (b *Block) Deserialize(blob []byte) error {
+func (block *Block) Deserialize(blob []byte) error {
 	var data [][]byte
 	serializer := &byteutils.JSONSerializer{}
 	if err := serializer.Deserialize(blob, &data); err != nil {
 		return err
 	}
-	b.sealed = true
-	b.header = &BlockHeader{}
-	if err := b.header.Deserialize(data[0]); err != nil {
+	block.sealed = true
+	block.header = &BlockHeader{}
+	if err := block.header.Deserialize(data[0]); err != nil {
 		return err
 	}
-	if err := b.transactions.Deserialize(data[1]); err != nil {
+	if err := block.transactions.Deserialize(data[1]); err != nil {
 		return err
 	}
 	return nil

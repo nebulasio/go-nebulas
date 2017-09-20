@@ -36,10 +36,9 @@ func (node *Node) Broadcast(block interface{}) {
 		if node.id == nodeId {
 			continue
 		}
- 		go func() {
+		go func() {
 			node.SendBlock(msg, nodeId)
 		}()
 	}
-
 
 }

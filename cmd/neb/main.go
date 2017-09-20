@@ -30,9 +30,9 @@ import (
 
 	"github.com/nebulasio/go-nebulas/components/net"
 	"github.com/nebulasio/go-nebulas/components/net/messages"
+	"github.com/nebulasio/go-nebulas/components/net/p2p"
 	"github.com/nebulasio/go-nebulas/consensus/pow"
 	"github.com/nebulasio/go-nebulas/core"
-	"github.com/nebulasio/go-nebulas/components/net/p2p"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
