@@ -23,15 +23,21 @@ import (
 	"time"
 
 	"github.com/nebulasio/go-nebulas/crypto/hash"
-	"github.com/nebulasio/go-nebulas/utils/bytes"
+	"github.com/nebulasio/go-nebulas/utils/byteutils"
+	log "github.com/sirupsen/logrus"
+)
+
+const (
+	// BlockHashLength define a const of the length of Hash of Block in byte.
+	BlockHashLength = 32
 )
 
 /*
 BlockHeader type.
 */
 type BlockHeader struct {
-	hash       string
-	parentHash string
+	hash       Hash
+	parentHash Hash
 	nonce      uint64
 	coinbase   *Address
 	timestamp  time.Time
@@ -44,13 +50,18 @@ type Block struct {
 	header       *BlockHeader
 	transactions Transactions
 
-	previousBlock *Block
-	nextBlock     *Block
+	height       uint64
+	parenetBlock *Block
 }
 
-func NewBlock(parentHash string, nonce uint64, coinbase *Address) *Block {
+// NewBlock return new block.
+func NewBlock(parentHash Hash, coinbase *Address) *Block {
 	block := &Block{
-		header:       &BlockHeader{parentHash: parentHash, nonce: nonce, coinbase: coinbase},
+		header: &BlockHeader{
+			parentHash: parentHash,
+			coinbase:   coinbase,
+			timestamp:  time.Now(),
+		},
 		transactions: make(Transactions, 10, 20),
 	}
 	return block
@@ -62,43 +73,95 @@ func (block *Block) AddTransactions(txs ...*Transaction) *Block {
 	return block
 }
 
+// Sign signature this block.
 func (block *Block) Sign() *Block {
-	block.header.timestamp = time.Now()
-	block.header.hash = block.computeHash()
+	// TODO: Use Cipher/Key from #KeyStore by coinbase to signature this block.
+	block.header.hash = HashBlock(block)
 	return block
 }
 
+// VerifySign return the signature verification result.
+func (block *Block) VerifySign() bool {
+	// TODO: implement ECDSA verify, only verify the singature.
+	return true
+}
+
+// Nonce return nonce.
 func (block *Block) Nonce() uint64 {
 	return block.header.nonce
 }
 
+// SetNonce set nonce.
 func (block *Block) SetNonce(nonce uint64) {
 	block.header.nonce = nonce
 }
 
-func (block *Block) Hash() string {
+// Hash return block hash.
+func (block *Block) Hash() Hash {
 	return block.header.hash
 }
 
-func (block *Block) ParentHash() string {
+// ParentHash return parent hash.
+func (block *Block) ParentHash() Hash {
 	return block.header.parentHash
 }
 
-func (block *Block) computeHash() string {
-	ph, _ := bytes.FromHex(block.header.parentHash)
-	ah, _ := bytes.FromHex(block.header.coinbase.address)
+// ParentBlock return parent block.
+func (block *Block) ParentBlock() *Block {
+	return block.parenetBlock
+}
 
-	return bytes.Hex(hash.Sha3256(
-		ph, ah,
-		bytes.FromUint64(block.header.nonce),
-		bytes.FromUint64(uint64(block.header.timestamp.UnixNano())),
-	))
+// Height return height from genesis block.
+func (block *Block) Height() uint64 {
+	return block.height
+}
+
+// LinkParentBlock link parent block, return true if hash is the same; false otherwise.
+func (block *Block) LinkParentBlock(parentBlock *Block) bool {
+	if block.ParentHash().Equals(parentBlock.Hash()) == false {
+		return false
+	}
+
+	log.Infof("Block.LinkParentBlock: parentBlock %s <- block %s", parentBlock.Hash(), block.Hash())
+
+	block.parenetBlock = parentBlock
+
+	// travel to calculate block height.
+	depth := uint64(0)
+	ancestorHeight := uint64(0)
+	for ancestor := block; ancestor != nil; ancestor = ancestor.parenetBlock {
+		depth++
+		ancestorHeight = ancestor.height
+		if ancestor.height > 0 {
+			break
+		}
+	}
+
+	for ancestor := block; ancestor != nil && depth > 1; ancestor = ancestor.parenetBlock {
+		depth--
+		ancestor.height = ancestorHeight + depth
+	}
+
+	return true
 }
 
 func (block *Block) String() string {
-	return fmt.Sprintf("Block {hash:%s; parentHash:%s; nonce:%d}",
-		block.header.hash,
-		block.header.parentHash,
+	return fmt.Sprintf("Block {height:%d; hash:%s; parentHash:%s; nonce:%d, timestamp: %d}",
+		block.height,
+		byteutils.Hex(block.header.hash),
+		byteutils.Hex(block.header.parentHash),
 		block.header.nonce,
+		block.header.timestamp.UnixNano(),
+	)
+}
+
+// HashBlock return the hash of block.
+func HashBlock(block *Block) []byte {
+	// TODO: block.txs should be included in hash procedure.
+	return hash.Sha3256(
+		block.header.parentHash,
+		block.header.coinbase.address,
+		byteutils.FromUint64(block.header.nonce),
+		byteutils.FromInt64(block.header.timestamp.UnixNano()),
 	)
 }

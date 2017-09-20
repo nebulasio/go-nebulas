@@ -20,18 +20,28 @@ package consensus
 
 import "github.com/nebulasio/go-nebulas/core"
 
+const (
+	NetMessageEvent = "event.netmessage"
+	NewBlockEvent   = "event.newblock"
+)
+
 // Consensus interface of consensus algorithm.
 type Consensus interface {
 	Start()
 	Stop()
-	Event(e Event)
-	TransiteByKey(nextStateKey string, data interface{})
-	Transite(nextState State, data interface{})
+	TransitByKey(nextStateKey string, data interface{})
+	Transit(nextState State, data interface{})
 
 	// AppendBlock add block to blockchain according to for choice algorithm.
 	AppendBlock(block *core.Block) error
 }
-type Event interface{}
+
+type EventType string
+
+type Event interface {
+	EventType() EventType
+	Data() interface{}
+}
 
 type State interface {
 	Event(e Event) (bool, State)
@@ -42,5 +52,18 @@ type State interface {
 type States map[string]State
 
 type BaseEvent struct {
-	Data interface{}
+	eventType EventType
+	data      interface{}
+}
+
+func NewBaseEvent(t EventType, data interface{}) Event {
+	return &BaseEvent{eventType: t, data: data}
+}
+
+func (e *BaseEvent) EventType() EventType {
+	return e.eventType
+}
+
+func (e *BaseEvent) Data() interface{} {
+	return e.data
 }

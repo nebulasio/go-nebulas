@@ -75,26 +75,29 @@ func (dp *Dispatcher) Deregister(subscribers ...*Subscriber) {
 // Start start message dispatch goroutine.
 func (dp *Dispatcher) Start() {
 	go (func() {
+		count := 0
 		for {
+			// log.Info("dispatcher in loop")
 			select {
 			case <-dp.quitCh:
-				log.Info("dispatcher is stopped.")
+				log.Info("dispatcher.loop: dispatcher is stopped.")
 				return
 
 			case msg := <-dp.receivedMessageCh:
+				count++
+				log.Debugf("dispatcher.loop: recvMsgCount=%d", count)
 				msgType := msg.MessageType()
 				msgListener := dp.subscribersMap[msgType]
 
 				if msgListener == nil || len(msgListener) == 0 {
 					log.WithFields(log.Fields{
 						"MessageType": msgType,
-					}).Info("receive message without handler.")
-					break
+					}).Info("dispatcher.loop: receive message without handler.")
+					continue
 				}
 
 				// send message to each subscriber.
 				for listener := range msgListener {
-					// TODO: should use non-blocking send.
 					listener.msgChan <- msg
 				}
 			}

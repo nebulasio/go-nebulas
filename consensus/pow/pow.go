@@ -19,13 +19,12 @@
 package pow
 
 import (
-	"fmt"
-	"time"
+	"bytes"
 
 	"github.com/nebulasio/go-nebulas/components/net"
-	"github.com/nebulasio/go-nebulas/components/net/messages"
 	"github.com/nebulasio/go-nebulas/consensus"
 	"github.com/nebulasio/go-nebulas/core"
+	"github.com/nebulasio/go-nebulas/utils/byteutils"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -50,14 +49,14 @@ type Pow struct {
 	quitCh chan bool
 
 	chain *core.BlockChain
-	nm    *net.Manager
+	nm    net.Manager
 
 	states            consensus.States
 	currentState      consensus.State
 	stateTransitionCh chan *stateTransitionArgs
-	messageReceivedCh chan net.Message
 
-	newBlock *core.Block
+	miningBlock   *core.Block
+	receivedBlock *core.Block
 }
 
 type stateTransitionArgs struct {
@@ -66,13 +65,12 @@ type stateTransitionArgs struct {
 }
 
 // NewPow create Pow instance.
-func NewPow(bc *core.BlockChain, nm *net.Manager) *Pow {
+func NewPow(bc *core.BlockChain, nm net.Manager) *Pow {
 	p := &Pow{
 		chain:             bc,
 		nm:                nm,
 		quitCh:            make(chan bool, 5),
 		stateTransitionCh: make(chan *stateTransitionArgs, 10),
-		messageReceivedCh: make(chan net.Message, 128),
 	}
 
 	p.states = consensus.States{
@@ -83,8 +81,6 @@ func NewPow(bc *core.BlockChain, nm *net.Manager) *Pow {
 	}
 	p.currentState = p.states[Prepare]
 
-	nm.Register(net.NewSubscriber(p, p.messageReceivedCh, messages.NewBlockMessageType))
-
 	return p
 }
 
@@ -94,7 +90,7 @@ func (p *Pow) Start() {
 	go p.stateLoop()
 
 	// start goroutine to process received message.
-	go p.messageLoop()
+	go p.blockLoop()
 }
 
 // Stop stop pow service.
@@ -114,39 +110,34 @@ func (p *Pow) Event(e consensus.Event) {
 	captured, nextState := p.currentState.Event(e)
 	if captured {
 		if nextState != nil && p.currentState != nextState {
-			p.Transite(nextState, nil)
+			p.Transit(nextState, nil)
 		}
 		return
 	}
 
 	// default procedure.
-	switch t := e.(type) {
-	case *NetMessageEvent:
-		switch msg := t.message.(type) {
-		case *messages.BlockMessage:
-			log.WithFields(log.Fields{
-				"block": msg.Block(),
-			}).Info("Pow handle BlockMessage.")
-		default:
-			log.WithFields(log.Fields{
-				"messageType": t.message.MessageType(),
-				"message":     t.message,
-			}).Info("Pow handle NetMessageEvent.")
-		}
+	et := e.EventType()
+	switch et {
+	case consensus.NewBlockEvent:
+		block := e.Data().(*core.Block)
+		log.WithFields(log.Fields{
+			"block": block,
+		}).Info("Pow.Event: handle BlockMessage.")
+
 	default:
 		log.WithFields(log.Fields{
-			"eventType": fmt.Sprintf("%T", e),
-		}).Info("Pow handle this event.")
+			"eventType": e,
+		}).Info("Pow.Event: handle this event.")
 	}
 }
 
-// TransiteByKey transite state by stateKey.
-func (p *Pow) TransiteByKey(stateKey string, data interface{}) {
-	p.Transite(p.states[stateKey], data)
+// TransitByKey transit state by stateKey.
+func (p *Pow) TransitByKey(stateKey string, data interface{}) {
+	p.Transit(p.states[stateKey], data)
 }
 
-// Transite transite state.
-func (p *Pow) Transite(nextState consensus.State, data interface{}) {
+// Transit transit state.
+func (p *Pow) Transit(nextState consensus.State, data interface{}) {
 	if p.currentState == nextState {
 		return
 	}
@@ -163,12 +154,12 @@ func (p *Pow) AppendBlock(block *core.Block) error {
 	blockHash := block.Hash()
 
 	logFields := log.Fields{
-		"bc.latestBlock.header.hash": tailBlockHash,
-		"block.header.parentHash":    blockParentHash,
-		"block.header.hash":          blockHash,
+		"bc.latestBlock.header.hash": byteutils.Hex(tailBlockHash),
+		"block.header.parentHash":    byteutils.Hex(blockParentHash),
+		"block.header.hash":          byteutils.Hex(blockHash),
 	}
 
-	if tailBlockHash == blockParentHash {
+	if bytes.Compare(tailBlockHash, blockParentHash) == 0 {
 		log.WithFields(logFields).Info("New block")
 		bc.SetTailBlock(block)
 
@@ -209,21 +200,6 @@ func (p *Pow) AppendBlock(block *core.Block) error {
 	return nil
 }
 
-// TODO: Timeout Event seems useless, consider to remove them.
-func (p *Pow) timeLoop() {
-	ticker := time.NewTicker(time.Second * 5)
-	for {
-		select {
-		case <-ticker.C:
-			p.Event(NewTimeoutEvent(time.Now()))
-			continue
-		case <-p.quitCh:
-			log.Debug("quit Pow.timeLoop.")
-			return
-		}
-	}
-}
-
 func (p *Pow) stateLoop() {
 	p.currentState.Enter(nil)
 
@@ -248,11 +224,15 @@ func (p *Pow) stateLoop() {
 	}
 }
 
-func (p *Pow) messageLoop() {
+func (p *Pow) blockLoop() {
+	count := 0
 	for {
 		select {
-		case msg := <-p.messageReceivedCh:
-			p.Event(NewNetMessageEvent(msg))
+		case block := <-p.chain.BlockPool().ReceivedBlockCh():
+			count++
+			log.Debugf("Pow.blockLoop: new block message received. Count=%d", count)
+			p.receivedBlock = block
+			p.Event(consensus.NewBaseEvent(consensus.NewBlockEvent, block))
 		case <-p.quitCh:
 			// TODO: should provide base goroutine start/stop func to graceful stop them.
 			/*
@@ -275,7 +255,7 @@ func (p *Pow) messageLoop() {
 					}
 				}
 			*/
-			log.Info("quit Pow.messageLoop.")
+			log.Info("Pow.blockLoop: quit.")
 			return
 		}
 	}

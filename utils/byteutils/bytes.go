@@ -16,7 +16,7 @@
 // along with the go-nebulas library.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-package bytes
+package byteutils
 
 import (
 	"encoding/binary"
@@ -113,4 +113,10 @@ func FromInt16(v int16) []byte {
 	b := make([]byte, 2)
 	binary.BigEndian.PutUint16(b, uint16(v))
 	return b
+}
+
+func ZeroBytes(bytes []byte) {
+	for i := range bytes {
+		bytes[i] = 0
+	}
 }

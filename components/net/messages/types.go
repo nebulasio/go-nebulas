@@ -16,14 +16,34 @@
 // along with the go-nebulas library.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-package trie
+package messages
 
-// encode []byte array into []byte
-func encode(value [][]byte) ([]byte, error) {
-	return nil, nil
+import (
+	"fmt"
+
+	"github.com/nebulasio/go-nebulas/components/net"
+)
+
+type BaseMessage struct {
+	t    net.MessageType
+	data interface{}
 }
 
-// decode []byte into []byte array
-func decode(value []byte) ([][]byte, error) {
-	return nil, nil
+func NewBaseMessage(t net.MessageType, data interface{}) net.Message {
+	return &BaseMessage{t: t, data: data}
+}
+
+func (msg *BaseMessage) MessageType() net.MessageType {
+	return msg.t
+}
+
+func (msg *BaseMessage) Data() interface{} {
+	return msg.data
+}
+
+func (msg *BaseMessage) String() string {
+	return fmt.Sprintf("BaseMessage {type:%s; data:%s}",
+		msg.t,
+		msg.data,
+	)
 }

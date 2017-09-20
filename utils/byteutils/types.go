@@ -16,7 +16,7 @@
 // along with the go-nebulas library.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-package bytes
+package byteutils
 
 // Encoder encoder for bytes.Encode().
 type Encoder interface {
@@ -26,4 +26,10 @@ type Encoder interface {
 // Decoder decoder for bytes.Decode().
 type Decoder interface {
 	DecodeFromBytes(data []byte) (interface{}, error)
+}
+
+// Serializable implements serializer
+type Serializable interface {
+	Serialize(s interface{}) ([]byte, error)
+	Deserialize(data []byte, res interface{}) error
 }

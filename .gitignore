@@ -13,4 +13,7 @@ neb
 debug
 *.report
 *.report.xml
+*.log
 
+# test debug
+*.test

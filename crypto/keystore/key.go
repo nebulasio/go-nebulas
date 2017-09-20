@@ -16,9 +16,25 @@
 // along with the go-nebulas library.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-package pow
+package keystore
 
-const (
-	TimeoutEvent  = "timeout"
-	StoppingEvent = "stopping"
-)
+type Key interface {
+
+	/*
+			* Returns the standard algorithm name for this key. For
+		    * example, "ECDSA" would indicate that this key is a ECDSA key.
+	*/
+	Algorithm() string
+
+	/*
+			* Returns the name of the primary encoding format of this key,
+		    * or null if this key does not support encoding.
+	*/
+	Format() string
+
+	/*
+			* Returns the key in its primary encoding format, or null
+		    * if this key does not support encoding.
+	*/
+	Encoded() []byte
+}

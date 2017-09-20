@@ -36,6 +36,12 @@
   packages = ["common/math","crypto/secp256k1"]
   revision = "6c6c7b2af3efdad4d2f64f70f3a724af434bbcd2"
   version = "v1.7.0"
+  
+[[projects]]
+  branch = "master"
+  name = "github.com/golang/protobuf"
+  packages = ["proto"]
+  revision = "ae59567b9aab61b50b2590679a62c3c044030b61"
 
 [[projects]]
   branch = "master"
@@ -338,10 +344,10 @@
   version = "v1.0.0"
 
 [[projects]]
-  name = "github.com/satori/go.uuid"
-  packages = ["."]
-  revision = "879c5887cd475cd7864858769793b2ceb0d44feb"
-  version = "v1.1.0"
+  branch = "master"
+  name = "github.com/pquerna/ffjson"
+  packages = ["ffjson","fflib/v1","fflib/v1/internal"]
+  revision = "9a5203b7a07166f217f5f8177d5b16177acad3b2"
 
 [[projects]]
   name = "github.com/sirupsen/logrus"

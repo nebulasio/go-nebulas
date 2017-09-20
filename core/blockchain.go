@@ -19,6 +19,11 @@
 package core
 
 import (
+	"fmt"
+	"strings"
+
+	"github.com/nebulasio/go-nebulas/utils/byteutils"
+
 	"github.com/hashicorp/golang-lru"
 )
 
@@ -28,6 +33,9 @@ type BlockChain struct {
 
 	genesisBlock *Block
 	tailBlock    *Block
+
+	// block pool.
+	bkPool *BlockPool
 
 	detachedBlocks *lru.Cache
 }
@@ -40,13 +48,17 @@ const (
 	EagleNebula = 1 << 4
 )
 
-// NewBlockChain create new @BlockChain instance.
+// NewBlockChain create new #BlockChain instance.
 func NewBlockChain(chainID int) *BlockChain {
-	var bc = &BlockChain{chainID: chainID}
-	bc.detachedBlocks, _ = lru.New(100)
+	var bc = &BlockChain{
+		chainID:      chainID,
+		genesisBlock: NewGenesisBlock(),
+		bkPool:       NewBlockPool(),
+	}
 
-	bc.genesisBlock = NewGenesisBlock()
+	bc.detachedBlocks, _ = lru.New(1024)
 	bc.tailBlock = bc.genesisBlock
+
 	return bc
 }
 
@@ -62,13 +74,58 @@ func (bc *BlockChain) TailBlock() *Block {
 
 // SetTailBlock set tail block.
 func (bc *BlockChain) SetTailBlock(block *Block) {
-	block.previousBlock = bc.tailBlock
-	bc.tailBlock.nextBlock = block
+	block.LinkParentBlock(bc.tailBlock)
 	bc.tailBlock = block
 }
 
-// NewBlock create new @Block instance.
+// BlockPool return block pool.
+func (bc *BlockChain) BlockPool() *BlockPool {
+	return bc.bkPool
+}
+
+// NewBlock create new #Block instance.
 func (bc *BlockChain) NewBlock(coinbase *Address) *Block {
-	block := NewBlock(bc.tailBlock.header.hash, bc.tailBlock.header.nonce, coinbase)
+	block := NewBlock(bc.tailBlock.header.hash, coinbase)
 	return block
+}
+
+// PutUnattachedBlocks put unattached blocks to LRU cache for furthur process.
+// Unattached block is the block not yet attach to chain, eg. new block from network, local minted block.
+func (bc *BlockChain) PutUnattachedBlocks(blocks ...*Block) {
+	for _, v := range blocks {
+		bc.detachedBlocks.Add(v.Hash().Hex(), v)
+	}
+}
+
+// PutUnattachedBlockMap put unattached blocks to LRU cache for furthur process.
+// Unattached block is the block not yet attach to chain, eg. new block from network, local minted block.
+func (bc *BlockChain) PutUnattachedBlockMap(blocks map[HexHash]*Block) {
+	for k, v := range blocks {
+		bc.detachedBlocks.Add(k, v)
+	}
+}
+
+// GetBlock return block of given hash from local storage and detachedBlocks.
+func (bc *BlockChain) GetBlock(hash Hash) *Block {
+	// TODO: get block from local storage.
+	v, _ := bc.detachedBlocks.Get(hash.Hex())
+	if v == nil {
+		if hash.Equals(bc.genesisBlock.Hash()) {
+			return bc.genesisBlock
+		}
+		return nil
+	}
+
+	block := v.(*Block)
+	return block
+}
+
+// Dump dump full chain.
+func (bc *BlockChain) Dump() string {
+	rl := make([]string, 1)
+	for block := bc.tailBlock; block != nil; block = block.parenetBlock {
+		rl = append(rl, fmt.Sprintf("{%d, hash: %s, parent: %s}", block.height, byteutils.Hex(block.Hash()), byteutils.Hex(block.ParentHash())))
+	}
+	rls := strings.Join(rl, " --> ")
+	return rls
 }

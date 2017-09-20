@@ -35,37 +35,42 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func run(sharedBlockCh chan *core.Block, quitCh chan bool, nmCh chan *net.Manager) {
-	nm := net.NewManager(sharedBlockCh)
+func run(sharedBlockCh chan interface{}, quitCh chan bool, nmCh chan net.Manager) {
+	nm := net.NewDummyManager(sharedBlockCh)
 	nmCh <- nm
 
 	bc := core.NewBlockChain(core.TestNetID)
 	fmt.Printf("chainID is %d\n", bc.ChainID())
+	bc.BlockPool().RegisterInNetwork(nm)
 
-	// p := pow.NewPow(bc)
 	var cons consensus.Consensus
 	cons = pow.NewPow(bc, nm)
 
-	// start Pow.
+	// start.
 	cons.Start()
-
-	// start net.
+	bc.BlockPool().Start()
 	nm.Start()
 
 	<-quitCh
+
+	// stop
 	nm.Stop()
+	bc.BlockPool().Stop()
 	cons.Stop()
 }
 
-func replicateNewBlock(sharedBlockCh chan *core.Block, quitCh chan bool, nmCh chan *net.Manager) {
-	nms := make([]*net.Manager, 0, 10)
+func replicateNewBlock(sharedBlockCh chan interface{}, quitCh chan bool, nmCh chan net.Manager) {
+	nms := make([]net.Manager, 0, 10)
 
+	count := 0
 	for {
 		select {
 		case block := <-sharedBlockCh:
-			msg := messages.NewBlockMessage(block)
+			count++
+			log.Info("replicateNewBlock: repBlockCount = ", count)
+			msg := messages.NewBaseMessage(net.MessageTypeNewBlock, block)
 			for _, nm := range nms {
-				nm.PutMessage(msg)
+				nm.(*net.DummyManager).PutMessage(msg)
 			}
 		case nm := <-nmCh:
 			nms = append(nms, nm)
@@ -76,16 +81,16 @@ func replicateNewBlock(sharedBlockCh chan *core.Block, quitCh chan bool, nmCh ch
 }
 
 func main() {
-	log.SetFormatter(&log.TextFormatter{ForceColors: true, FullTimestamp: true})
+	log.SetFormatter(&log.TextFormatter{FullTimestamp: true})
 	log.SetOutput(os.Stdout)
-	log.SetLevel(log.InfoLevel)
+	log.SetLevel(log.DebugLevel)
 
 	quitCh := make(chan bool, 10)
 
 	clientCount := 5
-	nmCh := make(chan *net.Manager, clientCount)
+	nmCh := make(chan net.Manager, clientCount)
 
-	sharedBlockCh := make(chan *core.Block, 50)
+	sharedBlockCh := make(chan interface{}, 50)
 	go replicateNewBlock(sharedBlockCh, quitCh, nmCh)
 
 	for i := 0; i < clientCount; i++ {

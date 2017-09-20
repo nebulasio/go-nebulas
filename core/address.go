@@ -19,16 +19,31 @@
 package core
 
 import (
-	"crypto/ecdsa"
+	"errors"
 
-	"github.com/nebulasio/go-nebulas/crypto"
 	"github.com/nebulasio/go-nebulas/crypto/hash"
-	"github.com/nebulasio/go-nebulas/utils/bytes"
+	"github.com/nebulasio/go-nebulas/utils/byteutils"
+
+	log "github.com/sirupsen/logrus"
 )
 
 const (
-	CheckSumLength = 4
-	AddressLength  = 20
+	// AddressDataLength the length of data of address in byte.
+	AddressDataLength = 20
+
+	// AddressChecksumLength the checksum of address in byte.
+	AddressChecksumLength = 4
+
+	// AddressLength the length of address in byte.
+	AddressLength = AddressDataLength + AddressChecksumLength
+)
+
+var (
+	// ErrInvalidAddress invalid address error.
+	ErrInvalidAddress = errors.New("address: invalid address")
+
+	// ErrInvalidAddressDataLength invalid data length error.
+	ErrInvalidAddressDataLength = errors.New("address: invalid address data length")
 )
 
 /*
@@ -63,45 +78,54 @@ An extended address is generated through addition of 2-byte extended verificatio
 	The Wallet App verifies the consistency between the wallet address and the nickname in order to avoid the circumstance that Bob enters the account number of another user by mistake.
 */
 type Address struct {
-	address string
+	address []byte
 }
 
-// NewAddress return new @Address instance.
-func NewAddress(address string) *Address {
-	addr := &Address{address: address}
-	return addr
+// NewAddress create new #Address according to data bytes.
+func NewAddress(s []byte) (*Address, error) {
+	if len(s) != AddressDataLength {
+		log.Errorf("invalid address data: length of s is %d, expected to %d.", len(s), AddressDataLength)
+		return nil, ErrInvalidAddressDataLength
+	}
+
+	cs := checkSum(s)
+	return &Address{address: append(s, cs...)}, nil
 }
 
-// NewAddressWithPrivateKey generate Address from private key
-func NewAddressWithPrivateKey(privateKey *ecdsa.PrivateKey) *Address {
-	publicKeyBytes := crypto.FromECDSAPub(&privateKey.PublicKey)
-	return NewAddressWithPublicKey(publicKeyBytes)
+// Parse parse address string.
+func Parse(s string) (*Address, error) {
+	r, err := byteutils.FromHex(s)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"s": s, "err": err,
+		}).Error("invalid address: string should be encoded in Hexadecimal.")
+		return nil, ErrInvalidAddress
+	}
+
+	return ParseFromBytes(r)
 }
 
-// NewAddressWithPublicKey generate Address from public key
-func NewAddressWithPublicKey(publicKeyBytes []byte) *Address {
-	data := hash.Sha3256(publicKeyBytes)[len(publicKeyBytes)-AddressLength:]
-	checkSum := hash.Sha3256(data)[:CheckSumLength]
-	address := bytes.Hex(append(data, checkSum...))
-	addr := &Address{address: address}
-	return addr
+// ParseFromBytes parse address from bytes.
+func ParseFromBytes(s []byte) (*Address, error) {
+	if len(s) != AddressLength {
+		log.Errorf("invalid address: length of s is %d, expected to %d.", len(s), AddressLength)
+		return nil, ErrInvalidAddress
+	}
+
+	data := s[:AddressDataLength]
+	cs := s[AddressDataLength:AddressLength]
+	dcs := checkSum(data)
+
+	for i := 0; i < AddressChecksumLength; i++ {
+		if dcs[i] != cs[i] {
+			log.Errorf("invalid address: checksum is %s, expected to %s.", cs, dcs)
+			return nil, ErrInvalidAddress
+		}
+	}
+
+	return &Address{address: s}, nil
 }
 
-type ExtAddress struct {
-	nick       string // nick or some comment for address
-	address    Address
-	extAddress string
-}
-
-// NewExtAddress return new @ExtAddress instance.
-func NewExtAddress(nick string, publicKeyBytes []byte) *ExtAddress {
-	data := hash.Sha3256(publicKeyBytes)[len(publicKeyBytes)-AddressLength:]
-	addr := NewAddressWithPublicKey(publicKeyBytes)
-	extHash := hash.Sha3256(append(data, []byte(nick)...))[:2]
-	extAddress := addr.address + bytes.Hex(extHash)
-	extAddr := &ExtAddress{
-		nick:       nick,
-		address:    *addr,
-		extAddress: extAddress}
-	return extAddr
+func checkSum(data []byte) []byte {
+	return hash.Sha3256(data)[:AddressChecksumLength]
 }

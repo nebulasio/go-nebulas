@@ -25,7 +25,15 @@ import (
 // NewGenesisBlock create genesis @Block from file.
 func NewGenesisBlock() *Block {
 	// TODO: load genesis block data from file.
-	header := &BlockHeader{hash: "0000000000000000000000000000000", parentHash: "0000000000000000000000000000000", coinbase: &Address{"0000000000000000000000000000000"}, timestamp: time.Now()}
-	b := &Block{header: header}
+	header := &BlockHeader{
+		hash:       make([]byte, BlockHashLength),
+		parentHash: make([]byte, BlockHashLength),
+		coinbase:   &Address{make([]byte, AddressLength)},
+		timestamp:  time.Now(),
+	}
+	b := &Block{
+		header: header,
+		height: 1,
+	}
 	return b
 }

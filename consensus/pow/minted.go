@@ -28,7 +28,7 @@ const (
 	Minted = "minted"
 )
 
-// MintedState minted state, transite from @MiningState
+// MintedState minted state, transit from @MiningState
 type MintedState struct {
 	p *Pow
 }
@@ -46,20 +46,38 @@ func (state *MintedState) Event(e consensus.Event) (bool, consensus.State) {
 
 // Enter called when transiting to this state.
 func (state *MintedState) Enter(data interface{}) {
-	log.Debug("MintedState enter.")
+	log.Debug("MintedState.Enter: enter.")
 
-	// append to local blockchain.
-	state.p.newBlock.Sign()
-	state.p.AppendBlock(state.p.newBlock)
+	p := state.p
+	bkPool := p.chain.BlockPool()
 
-	// send new block to network.
-	state.p.nm.BroadcastBlock(state.p.newBlock)
+	// process minted block.
+	if p.miningBlock.Nonce() > 0 {
+		log.Info("MintedState.Enter: process minted block.")
+
+		// sign.
+		p.miningBlock.Sign()
+
+		// send new block to network.
+		p.nm.BroadcastBlock(p.miningBlock)
+
+		bkPool.AddLocalBlock(p.miningBlock)
+		if p.receivedBlock == nil {
+			p.receivedBlock = p.miningBlock
+		}
+	}
+
+	// process the received block.
+	if p.receivedBlock != nil {
+		p.receivedBlock = nil
+		p.ForkChoice()
+	}
 
 	// move to prepare state.
-	state.p.TransiteByKey(Prepare, nil)
+	state.p.TransitByKey(Prepare, nil)
 }
 
 // Leave called when leaving this state.
 func (state *MintedState) Leave(data interface{}) {
-	log.Debug("MintedState leave.")
+	log.Debug("MintedState.Leave: leave.")
 }

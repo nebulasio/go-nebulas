@@ -16,9 +16,31 @@
 // along with the go-nebulas library.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-package pow
+package ecdsa
 
-const (
-	TimeoutEvent  = "timeout"
-	StoppingEvent = "stopping"
+import (
+	"crypto/ecdsa"
 )
+
+type ECDSAPublicKey struct {
+	publickey *ecdsa.PublicKey
+}
+
+// generate ECDSAPublicKey
+func NewECDSAPublicKey(pub *ecdsa.PublicKey) *ECDSAPublicKey {
+	ecdsaPub := &ECDSAPublicKey{publickey: pub}
+	return ecdsaPub
+}
+
+func (k *ECDSAPublicKey) Algorithm() string {
+	return "ecdsa"
+}
+
+func (k *ECDSAPublicKey) Format() string {
+	return "byte"
+}
+
+func (k *ECDSAPublicKey) Encoded() []byte {
+	pub, _ := FromECDSAPub(k.publickey)
+	return pub
+}
