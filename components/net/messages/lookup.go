@@ -38,7 +38,7 @@ type WrappedStream struct {
 	Enc    multicodec.Encoder
 	Dec    multicodec.Decoder
 	W      *bufio.Writer
-	r      *bufio.Reader
+	R      *bufio.Reader
 }
 
 
@@ -49,7 +49,7 @@ func WrapStream(s inet.Stream) *WrappedStream {
 	enc := json.Multicodec(false).Encoder(writer)
 	return &WrappedStream{
 		stream: s,
-		r:      reader,
+		R:      reader,
 		W:      writer,
 		Enc:    enc,
 		Dec:    dec,

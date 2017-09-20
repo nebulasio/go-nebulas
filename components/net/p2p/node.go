@@ -59,10 +59,10 @@ func NewNode(config *Config) (*Node, error) {
 	node := &Node{}
 	node.config = config
 	node.context = context.Background()
-	log.Info("node make Host success")
+	log.Info("NewNode: node make Host success")
 	err := node.makeHost()
 	if err != nil {
-		log.Error("start node fail, can not make a basic host", err)
+		log.Error("NewNode: start node fail, can not make a basic host", err)
 	}
 
 	//node.start()
@@ -72,13 +72,13 @@ func NewNode(config *Config) (*Node, error) {
 // start the node and say hello to bootNodes, then start node discovery service
 func (node *Node) Start() error{
 
-	log.Info("node create success...")
-	log.Infof("node info {id -> %s, address -> %s}", node.id, node.host.Addrs())
+	log.Info("Start: node create success...")
+	log.Infof("Start: node info {id -> %s, address -> %s}", node.id, node.host.Addrs())
 	if node.running {
-		return errors.New("node already running")
+		return errors.New("Start: node already running")
 	}
 	node.running = true
-	log.Info("node start join p2p network...")
+	log.Info("Start: node start join p2p network...")
 
 	node.RegisterPingService()
 	node.RegisterLookupService()
@@ -90,7 +90,7 @@ func (node *Node) Start() error{
 			defer wg.Done()
 			err := node.SayHello(bootNode)
 			if err != nil {
-				log.Error("can not say hello to trusted node.", bootNode, err)
+				log.Error("Start: can not say hello to trusted node.", bootNode, err)
 			}
 
 		}(bootNode)
@@ -101,7 +101,7 @@ func (node *Node) Start() error{
 		node.Discovery(node.context)
 	}()
 
-	log.Infof("node start and join to p2p network success and listening for connections on port %d... ", node.config.Port)
+	log.Infof("Start: node start and join to p2p network success and listening for connections on port %d... ", node.config.Port)
 	select {}
 
 }
@@ -118,6 +118,8 @@ func (node *Node) makeHost() error {
 	}
 
 	priv, pub, err := crypto.GenerateKeyPairWithReader(crypto.RSA, 2048, r)
+
+
 	if err != nil {
 		return err
 	}
@@ -163,6 +165,7 @@ func (node *Node) makeHost() error {
 
 	options := &basichost.HostOpts{}
 
+	log.Infof("makeHost: boot node pretty id is %s", node.id.Pretty())
 	node.host, err = basichost.NewHost(node.context, network, options)
 	return err
 }
@@ -171,7 +174,7 @@ func (node *Node) makeHost() error {
 func (node *Node) SayHello(bootNode multiaddr.Multiaddr) error {
 	bootAddr, bootID, err := parseAddressFromMultiaddr(bootNode)
 	if err != nil {
-		log.Error("parse Address from trustedNode failed", bootNode, err)
+		log.Error("SayHello: parse Address from trustedNode failed", bootNode, err)
 		return err
 	}
 	if node.id != bootID {
@@ -191,11 +194,11 @@ func (node *Node) SayHello(bootNode multiaddr.Multiaddr) error {
 		if err != nil {
 			log.Error("ping to seedNode failed", bootNode, err)
 		}
-		node.peerstore.SetAddr(
+		log.Info("SayHello: node say hello to boot node success... ")
+		node.peerstore.AddAddr(
 			bootID,
 			bootAddr,
-			peerstore.PermanentAddrTTL,
-		)
+			peerstore.PermanentAddrTTL,)
 		// Update the routing table.
 		node.routeTable.Update(bootID)
 	}

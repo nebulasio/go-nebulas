@@ -34,15 +34,15 @@ and then update the routing table.
 func (node *Node) Discovery(ctx context.Context) {
 
 	//FIXME  the sync routing table rate can be dynamic
-	second := 30 * time.Second
+	second := 5 * time.Second
 	ticker := time.NewTicker(second)
-	log.Infof("node start discovery per %s...", second)
+	log.Infof("Discovery: node start discovery per %s...", second)
 	for {
 		select {
 		case <-ticker.C:
 			node.syncRoutingTable()
 		case <-ctx.Done():
-			log.Info("discovery service halting")
+			log.Info("Discovery: discovery service halting")
 			return
 		}
 	}
@@ -50,10 +50,10 @@ func (node *Node) Discovery(ctx context.Context) {
 
 //sync route table
 func (node *Node) syncRoutingTable() {
-	log.Infof("node start sync routing table...")
+	log.Infof("syncRoutingTable: node start sync routing table...")
 	asked := make(map[peer.ID]bool)
 	allNode := node.routeTable.ListPeers()
-	log.Infof("node %s routing table: %s", node.host.Addrs(), allNode)
+	log.Infof("syncRoutingTable: node %s routing table: %s", node.host.Addrs(), allNode)
 	randomList := rand.Perm(len(allNode))
 	var nodeAccount int
 	if len(allNode) > node.config.maxSyncNodes {

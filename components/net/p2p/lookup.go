@@ -22,9 +22,13 @@ import (
 	"github.com/libp2p/go-libp2p-peer"
 	"github.com/libp2p/go-libp2p-peerstore"
 	"github.com/libp2p/go-libp2p-net"
-	"github.com/nebulasio/go-nebulas/components/net/messages"
+	nbytes "github.com/nebulasio/go-nebulas/utils/bytes"
 	"github.com/libp2p/go-libp2p-kbucket"
 	log "github.com/sirupsen/logrus"
+	"time"
+	"io"
+	"errors"
+	"encoding/json"
 )
 
 const lookupProtocolID = "/nebulas/lookup/1.0.0"
@@ -37,36 +41,58 @@ type LookupService struct {
 func (node *Node) RegisterLookupService() *LookupService {
 	ls := &LookupService{node}
 	node.host.SetStreamHandler(lookupProtocolID, ls.LookupHandler)
-	log.Infof("node register lookup service success...")
+	log.Infof("RegisterLookupService: node register lookup service success...")
 	return ls
 }
 
 // Lookup from a node
 func (node *Node) Lookup(pid peer.ID) ([]peerstore.PeerInfo, error) {
 
-	log.Infof("node start lookup from peer %s", node.host.Addrs(), pid)
+	log.Infof("Lookup: starting lookup the node %s", pid)
 	s, err := node.host.NewStream(node.context, pid, lookupProtocolID)
 	if err != nil {
+		log.Error("Lookup: node start lookup occurs error ", err)
 		return nil , err
 	}
 	defer s.Close()
 
-	wrappedStream := messages.WrapStream(s)
-	messages, err := handleStream(wrappedStream)
-	if err != nil {
-		log.Errorf("Lookup error, can not receive data from node : %s", pid)
-		return nil, err
-	}
-	return messages.Msg, nil
+	timeout := 30 * time.Second
+
+	size, err := ReadWithTimeout(s, 4, timeout)
+
+	data, err := ReadWithTimeout(
+		s,
+		nbytes.Uint32(size),
+		timeout,
+	)
+
+	var sample []peerstore.PeerInfo
+
+	err = json.Unmarshal(data, &sample)
+	log.Infof("Lookup: lookup the node %s success and get response...%s", pid, sample)
+	return sample, nil
 }
 
-func handleStream(ws *messages.WrappedStream) (messages.LookupMessage, error) {
-	var msg messages.LookupMessage
-	err := ws.Dec.Decode(&msg)
-	if err != nil {
-		return msg, err
+
+// Read data from a stream using a timeout.
+func ReadWithTimeout(reader io.Reader, n uint32, timeout time.Duration) ([]byte, error) {
+	data := make([]byte, n)
+	result := make(chan error, 1)
+	go func(reader io.Reader) {
+		_, err := io.ReadFull(reader, data)
+		result <- err
+	}(reader)
+	select {
+	case err := <-result:
+		return data, err
+	case <-time.After(timeout):
+		select {
+		case result <- errors.New("Timeout!"):
+		default:
+		}
+		err := <-result
+		return data, err
 	}
-	return msg, nil
 }
 
 
@@ -74,10 +100,9 @@ func handleStream(ws *messages.WrappedStream) (messages.LookupMessage, error) {
 func (p *LookupService) LookupHandler(s net.Stream) {
 	defer s.Close()
 	pid := s.Conn().RemotePeer()
-	log.Debug("Receiving request for peers from", pid)
+	log.Info("LookupHandler: Receiving lookup request from pid: ", pid)
 
 	peers := p.node.routeTable.NearestPeers(kbucket.ConvertPeerID(pid), p.node.config.maxSyncNodes)
-	log.Debug("lookup nearest peers", peers)
 
 	var peerList []peerstore.PeerInfo
 	for i := range peers {
@@ -85,13 +110,39 @@ func (p *LookupService) LookupHandler(s net.Stream) {
 		peerList = append(peerList, peerInfo)
 	}
 
-	msg := &messages.LookupMessage{
-		Msg:    peerList,
+	log.Info("LookupHandler: handle lookup request and return data...", peerList)
+	timeout := 30 * time.Second
+	data, err := json.Marshal(peerList)
+
+	if err != nil {
+		log.Error("LookupHandler: lookup handle occurs error...", err)
 	}
+	size := nbytes.FromUint32(uint32(len(data)))
+	err = WriteWithTimeout(
+		s,
+		append(size[:], data...),
+		timeout,
+	)
 
-	messages.WrapStream(s).Enc.Encode(msg)
-	messages.WrapStream(s).W.Flush()
-
-	// Update the routing table.
 	p.node.routeTable.Update(pid)
+}
+
+
+func WriteWithTimeout(writer io.Writer, data []byte, timeout time.Duration) error {
+	result := make(chan error, 1)
+	go func(writer io.Writer, data []byte) {
+		_, err := writer.Write(data)
+		result <- err
+	}(writer, data)
+	select {
+	case err := <-result:
+		return err
+	case <-time.After(timeout):
+		select {
+		case result <- errors.New("Timeout!"):
+		default:
+		}
+		err := <-result
+		return err
+	}
 }

@@ -49,6 +49,7 @@ func (node *Node) RegisterPingService() *PingService {
 
 // handle others ping
 func (p *PingService) PingHandler(s gnet.Stream) {
+	log.Infof("node handle ping request...")
 	buf := make([]byte, PingSize)
 
 	errCh := make(chan error, 1)
@@ -59,7 +60,7 @@ func (p *PingService) PingHandler(s gnet.Stream) {
 	go func() {
 		select {
 		case <-timer.C:
-			log.Debug("ping timeout")
+			log.Info("ping timeout")
 			s.Reset()
 		case err, ok := <-errCh:
 			if ok {
@@ -94,7 +95,7 @@ func (p *PingService) PingHandler(s gnet.Stream) {
 
 //Ping a peer
 func (node *Node) Ping(pid peer.ID) error {
-	log.Infof("node %s start ping peer %s", node.host.Addrs(), pid)
+	log.Infof("Ping: node start ping peer %s", node.host.Addrs(), pid)
 	ctx := node.context
 	s, err := node.host.NewStream(ctx, pid, pingProtocolID)
 	if err != nil {
@@ -113,7 +114,7 @@ func (node *Node) Ping(pid peer.ID) error {
 				t, err := ping(s)
 				if err != nil {
 					s.Reset()
-					log.Debugf("ping error: %s", err)
+					log.Errorf("ping error: %s", err)
 					return
 				}
 
