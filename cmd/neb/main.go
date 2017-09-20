@@ -34,7 +34,7 @@ import (
 	"github.com/nebulasio/go-nebulas/core"
 
 	log "github.com/sirupsen/logrus"
-	"gopkg.in/urfave/cli.v1"
+	"github.com/urfave/cli"
 )
 
 func run(sharedBlockCh chan interface{}, quitCh chan bool, nmCh chan net.Manager) {

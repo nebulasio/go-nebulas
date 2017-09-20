@@ -368,6 +368,12 @@
   revision = "890a5c3458b43e6104ff5da8dfa139d013d77544"
 
 [[projects]]
+  name = "github.com/urfave/cli"
+  packages = ["."]
+  revision = "cfb38830724cc34fedffe9a2a29fb54fa9169cd1"
+  version = "v1.20.0"
+
+[[projects]]
   branch = "master"
   name = "github.com/whyrusleeping/go-logging"
   packages = ["."]
@@ -454,6 +460,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "d2a01722da869ca32a0310db21d5bd70e51953015f3a0fe423e7f741ab62d2f0"
+  inputs-digest = "9cbe5f4b8e6e1307f30c18e4af7890d0a24819746a49d0a4af2400cca096a910"
   solver-name = "gps-cdcl"
   solver-version = 1

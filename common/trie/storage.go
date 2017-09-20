@@ -21,36 +21,37 @@ package trie
 import (
 	"errors"
 	"github.com/nebulasio/go-nebulas/utils/byteutils"
+	"sync"
 )
 
 // Storage the nodes in trie.
 type Storage struct {
-	data map[string][]byte
+	data *sync.Map
 }
 
 // NewStorage init a storage
 func NewStorage() (*Storage, error) {
 	return &Storage{
-		data: make(map[string][]byte),
+		data: new(sync.Map),
 	}, nil
 }
 
 // Get return value to the key in Storage
 func (db *Storage) Get(key []byte) ([]byte, error) {
-	if entry, ok := db.data[byteutils.Hex(key)]; ok {
-		return entry, nil
+	if entry, ok := db.data.Load(byteutils.Hex(key)); ok {
+		return entry.([]byte), nil
 	}
 	return nil, errors.New("not found")
 }
 
 // Put put the key-value entry to Storage
 func (db *Storage) Put(key []byte, value []byte) error {
-	db.data[byteutils.Hex(key)] = value
+	db.data.Store(byteutils.Hex(key), value)
 	return nil
 }
 
 // Del delete the key in Storage.
 func (db *Storage) Del(key []byte) error {
-	delete(db.data, byteutils.Hex(key))
+	db.data.Delete(byteutils.Hex(key))
 	return nil
 }
