@@ -53,7 +53,6 @@ type Keystore struct {
 	unlocked map[key.Alias]*key.Key
 
 	mu sync.RWMutex
-
 }
 
 // NewKeystore new
@@ -63,7 +62,7 @@ func NewKeystore() *Keystore {
 
 // NewKeystoreType new keystore with type
 func NewKeystoreType(t string) *Keystore {
-	ks := &Keystore{unlockedalias:[]key.Alias{}, unlocked:make(map[key.Alias]*key.Key)}
+	ks := &Keystore{unlockedalias: []key.Alias{}, unlocked: make(map[key.Alias]*key.Key)}
 	switch t {
 	case KeystoreTypeDefault:
 		ks.p = ecdsa.NewProvider(1.0)
@@ -106,7 +105,7 @@ func (ks *Keystore) SetKey(a key.Alias, d []byte) error {
 }
 
 // Unlock unlock key with ProtectionParameter
-func (ks *Keystore)Unlock(alias key.Alias, p key.ProtectionParameter) error  {
+func (ks *Keystore) Unlock(alias key.Alias, p key.ProtectionParameter) error {
 	key, err := ks.p.GetKey(alias, p)
 	if err != nil {
 		return err
@@ -129,7 +128,7 @@ func (ks *Keystore)Unlock(alias key.Alias, p key.ProtectionParameter) error  {
 }
 
 // GetUnlocked returns a unlocked key
-func (ks *Keystore)GetUnlocked(alias key.Alias) (key.Key, error) {
+func (ks *Keystore) GetUnlocked(alias key.Alias) (key.Key, error) {
 	if len(alias) == 0 {
 		return nil, errors.New("need alias")
 	}
@@ -142,7 +141,7 @@ func (ks *Keystore)GetUnlocked(alias key.Alias) (key.Key, error) {
 }
 
 // GetKeyByIndex returns the key associated with the given index in unlocked
-func (ks *Keystore)GetKeyByIndex(idx int) (key.Key, error)  {
+func (ks *Keystore) GetKeyByIndex(idx int) (key.Key, error) {
 	if idx < 0 || idx > len(ks.unlocked) {
 		return nil, errors.New("index out of range")
 	}

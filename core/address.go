@@ -24,11 +24,11 @@ import (
 	"github.com/nebulasio/go-nebulas/crypto/hash"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
 
-	log "github.com/sirupsen/logrus"
-	"github.com/nebulasio/go-nebulas/crypto/keystore/key"
-	"github.com/nebulasio/go-nebulas/crypto/keystore/ecdsa"
 	"crypto/rand"
 	"github.com/nebulasio/go-nebulas/crypto/keystore"
+	"github.com/nebulasio/go-nebulas/crypto/keystore/ecdsa"
+	"github.com/nebulasio/go-nebulas/crypto/keystore/key"
+	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -120,7 +120,7 @@ func TestKS() *keystore.Keystore {
 }
 
 // NewAddressFromKey create new #Address according to data key.
-func NewAddressFromKey(k key.Key) (*Address, error)  {
+func NewAddressFromKey(k key.Key) (*Address, error) {
 	pbyte := []byte{}
 	switch k.(type) {
 	case *ecdsa.PrivateStoreKey:

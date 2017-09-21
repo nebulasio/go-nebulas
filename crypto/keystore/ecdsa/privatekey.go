@@ -49,6 +49,6 @@ func (k *PrivateStoreKey) Encoded() ([]byte, error) {
 }
 
 // EncodedPub encode publickey
-func (k *PrivateStoreKey)EncodedPub() ([]byte, error)  {
+func (k *PrivateStoreKey) EncodedPub() ([]byte, error) {
 	return FromPublicKey(&k.privateKey.PublicKey)
 }
