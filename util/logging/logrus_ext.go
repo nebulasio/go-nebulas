@@ -16,22 +16,23 @@
 // along with the go-nebulas library.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-package nebulaslog
+package logging
 
 import (
-	logrus "github.com/sirupsen/logrus"
 	"path/filepath"
 	"runtime"
 	"strings"
+
+	logrus "github.com/sirupsen/logrus"
 )
 
 var std *logrus.Logger
 
-var enableDetailedInfo bool
+var enableFuncNameLog bool
 
 func init() {
 	std = newLogger()
-	enableDetailedInfo = true
+	enableFuncNameLog = true
 }
 
 type functionHooker struct {
@@ -40,7 +41,7 @@ type functionHooker struct {
 }
 
 func (h *functionHooker) Fire(entry *logrus.Entry) error {
-	if !enableDetailedInfo {
+	if !enableFuncNameLog {
 		return nil
 	}
 
@@ -59,7 +60,7 @@ func (h *functionHooker) Fire(entry *logrus.Entry) error {
 		if strings.Contains(fname, "/") {
 			index := strings.LastIndex(fname, "/")
 			entry.Data["func"] = fname[index+1:]
-			entry.Data["package"] = fname[0:index]
+			// entry.Data["package"] = fname[0:index]
 		} else {
 			entry.Data["func"] = fname
 		}
@@ -96,6 +97,12 @@ func newLogger() *logrus.Logger {
 	return ret
 }
 
-func EnableLoggingDetailedInfo(enable bool) {
-	enableDetailedInfo = enable
+// EnableFuncNameLogger enable func name logger.
+func EnableFuncNameLogger() {
+	enableFuncNameLog = true
+}
+
+// DisableFuncNameLogger disable func name logger.
+func DisableFuncNameLogger() {
+	enableFuncNameLog = false
 }

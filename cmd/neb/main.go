@@ -23,10 +23,12 @@ import (
 	"os"
 	"os/signal"
 	"sort"
+	"strconv"
 	"syscall"
 	"time"
 
 	"github.com/nebulasio/go-nebulas/consensus"
+	"github.com/nebulasio/go-nebulas/util/logging"
 
 	"github.com/nebulasio/go-nebulas/components/net"
 	"github.com/nebulasio/go-nebulas/components/net/messages"
@@ -34,9 +36,17 @@ import (
 	"github.com/nebulasio/go-nebulas/consensus/pow"
 	"github.com/nebulasio/go-nebulas/core"
 
-	nebulaslog "github.com/nebulasio/go-nebulas/utils/log"
 	log "github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
+)
+
+var (
+	version   string
+	commit    string
+	branch    string
+	compileAt string
+	dummy     bool
+	p2pConfig string
 )
 
 func run(sharedBlockCh chan interface{}, quitCh chan bool, nmCh chan net.Manager) {
@@ -117,11 +127,12 @@ func replicateNewBlock(sharedBlockCh chan interface{}, quitCh chan bool, nmCh ch
 
 func neb(ctx *cli.Context) error {
 	fmt.Printf("dummy: %v,  config: %v\n", dummy, p2pConfig)
-	nebulaslog.EnableLoggingDetailedInfo(true)
+	logging.EnableFuncNameLogger()
 
 	log.SetFormatter(&log.TextFormatter{FullTimestamp: true})
 	log.SetOutput(os.Stdout)
 	log.SetLevel(log.DebugLevel)
+
 	if dummy {
 		godummy()
 	} else {
@@ -173,17 +184,13 @@ func goP2p() {
 	}()
 }
 
-var (
-	dummy     bool
-	p2pConfig string
-)
-
 func main() {
 	app := cli.NewApp()
 	app.Action = neb
 	app.Name = "neb"
-	app.Version = "0.1.0"
-	app.Compiled = time.Now()
+	app.Version = fmt.Sprintf("%s, branch %s, commit %s", version, branch, commit)
+	timestamp, _ := strconv.ParseInt(compileAt, 10, 64)
+	app.Compiled = time.Unix(timestamp, 0)
 	app.Usage = "the go-nebulas command line interface"
 	app.Copyright = "Copyright 2017-2018 The go-nebulas Authors"
 

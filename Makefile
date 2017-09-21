@@ -29,7 +29,7 @@ TEST_REPORT=test.report
 TEST_XUNIT_REPORT=test.report.xml
 
 # Setup the -ldflags option for go build here, interpolate the variable values
-LDFLAGS = -ldflags "-X main.VERSION=${VERSION} -X main.COMMIT=${COMMIT} -X main.BRANCH=${BRANCH}"
+LDFLAGS = -ldflags "-X main.version=${VERSION} -X main.commit=${COMMIT} -X main.branch=${BRANCH} -X main.compileAt=`date +%s`"
 
 # Build the project
 .PHONY: build build-linux clean dep lint run test
