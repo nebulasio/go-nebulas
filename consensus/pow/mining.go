@@ -76,9 +76,9 @@ func (state *MiningState) Leave(data interface{}) {
 }
 
 func (state *MiningState) searchingNonce() {
-	// transit to MintedState if receivedBlock is not nil.
-	if state.p.receivedBlock != nil {
-		log.Info("MiningState.Enter: received block found, transit to MintedState.")
+	// transit to MintedState if newBlockReceived is true.
+	if state.p.newBlockReceived {
+		log.Info("MiningState.Enter: new block received, transit to MintedState.")
 		state.p.TransitByKey(Minted, nil)
 
 	} else {
@@ -98,6 +98,7 @@ func (state *MiningState) searchingNonce() {
 				nonce++
 
 				// compute hash..
+				miningBlock.SetNonce(nonce)
 				resultBytes := HashAndVerifyNonce(miningBlock, nonce)
 
 				if resultBytes != nil {
@@ -107,7 +108,9 @@ func (state *MiningState) searchingNonce() {
 						"hashResult": byteutils.Hex(resultBytes),
 					}).Info("MiningState.searchingNonce: found valid nonce, transit to MintedState.")
 
-					miningBlock.SetNonce(nonce)
+					// seal block.
+					miningBlock.Seal()
+
 					state.p.TransitByKey(Minted, nil)
 
 					// break this for loop.

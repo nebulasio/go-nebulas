@@ -52,26 +52,26 @@ func (state *MintedState) Enter(data interface{}) {
 	bkPool := p.chain.BlockPool()
 
 	// process minted block.
-	if p.miningBlock.Nonce() > 0 {
-		log.Info("MintedState.Enter: process minted block.")
+	if p.miningBlock.Sealed() {
+		log.Info("MintedState.Enter: process sealed block.")
 
-		// Seal block.
-		p.miningBlock.Seal()
-
-		log.Error("miningBlock: ", p.miningBlock)
-		// send new block to network.
-		p.nm.BroadcastBlock(p.miningBlock)
+		log.WithFields(log.Fields{
+			"func":  "MintedState.Enter",
+			"block": p.miningBlock,
+		}).Info("seal new block, ready to broadcast.")
 
 		bkPool.AddLocalBlock(p.miningBlock)
-		if p.receivedBlock == nil {
-			p.receivedBlock = p.miningBlock
-		}
+
+		// send new block to network.
+		p.nm.BroadcastBlock(p.miningBlock)
 	}
 
 	// process the received block.
-	if p.receivedBlock != nil {
-		p.receivedBlock = nil
+	if p.newBlockReceived == true {
 		p.ForkChoice()
+
+		// reset
+		p.resetMiningStatus()
 	}
 
 	// move to prepare state.

@@ -49,9 +49,18 @@ func (state *PrepareState) Event(e consensus.Event) (bool, consensus.State) {
 func (state *PrepareState) Enter(data interface{}) {
 	log.Debug("PrepareState enter.")
 
-	// get the pending block.
+	p := state.p
+
 	addr, _ := core.NewAddress([]byte{223, 77, 34, 97, 20, 18, 19, 45, 62, 155, 211, 34, 248, 46, 41, 64, 103, 78, 193, 188})
-	state.p.miningBlock = state.p.chain.NewBlock(addr)
+
+	if p.miningBlock == nil {
+		// start mining from chain tail.
+		p.miningBlock = state.p.chain.NewBlock(addr)
+	} else if p.miningBlock.Sealed() {
+		// start mining from local minted block.
+		parentBlock := p.miningBlock
+		p.miningBlock = state.p.chain.NewBlockFromParent(addr, parentBlock)
+	}
 
 	// move to mining state.
 	state.p.TransitByKey(Mining, nil)

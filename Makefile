@@ -32,7 +32,7 @@ TEST_XUNIT_REPORT=test.report.xml
 LDFLAGS = -ldflags "-X main.VERSION=${VERSION} -X main.COMMIT=${COMMIT} -X main.BRANCH=${BRANCH}"
 
 # Build the project
-.PHONY: build clean dep lint run test
+.PHONY: build build-linux clean dep lint run test
 
 all: clean vet fmt lint build test
 
@@ -41,6 +41,9 @@ dep:
 
 build:
 	cd cmd/neb; go build ${LDFLAGS} -o ../../${BINARY}
+
+build-linux:
+	cd cmd/neb; GOOS=linux GOARCH=amd64 go build ${LDFLAGS} -o ../../${BINARY}-linux
 
 test:
 	go test -v ./... 2>&1 | tee ${TEST_REPORT}; go2xunit -input ${TEST_REPORT} -output ${TEST_XUNIT_REPORT};
@@ -59,4 +62,4 @@ clean:
 	rm -f ${LINT_REPORT}
 	rm -f ${TEST_REPORT}
 	rm -f ${TEST_XUNIT_REPORT}
-	rm -f ${BINARY}
+	rm -f ${BINARY}*

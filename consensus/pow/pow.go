@@ -59,8 +59,8 @@ type Pow struct {
 	currentState      consensus.State
 	stateTransitionCh chan *stateTransitionArgs
 
-	miningBlock   *core.Block
-	receivedBlock *core.Block
+	miningBlock      *core.Block
+	newBlockReceived bool
 }
 
 type stateTransitionArgs struct {
@@ -149,62 +149,6 @@ func (p *Pow) Transit(nextState consensus.State, data interface{}) {
 	p.stateTransitionCh <- &stateTransitionArgs{nextState: nextState, data: data}
 }
 
-// TODO: delete this.
-// // AppendBlock implement new block at tail algorithm.
-// func (p *Pow) AppendBlock(block *core.Block) error {
-// 	bc := p.chain
-
-// 	tailBlockHash := bc.TailBlock().Hash()
-// 	blockParentHash := block.ParentHash()
-// 	blockHash := block.Hash()
-
-// 	logFields := log.Fields{
-// 		"bc.latestBlock.header.hash": byteutils.Hex(tailBlockHash),
-// 		"block.header.parentHash":    byteutils.Hex(blockParentHash),
-// 		"block.header.hash":          byteutils.Hex(blockHash),
-// 	}
-
-// 	if bytes.Compare(tailBlockHash, blockParentHash) == 0 {
-// 		log.WithFields(logFields).Info("New block")
-// 		bc.SetTailBlock(block)
-
-// 	} else {
-// 		log.WithFields(logFields).Info("New forked block")
-// 		//TODO: implement fork choice algorithm.
-
-// 		// // find the root block in detached blocks.
-// 		// rootParentBlock := block
-// 		// for {
-// 		// 	i, _ := bc.detachedBlocks.Get(rootParentBlock.header.parentHash)
-// 		// 	if ib, ok := i.(*Block); ok {
-// 		// 		ib.nextBlock = rootParentBlock
-// 		// 		rootParentBlock.previousBlock = ib
-// 		// 		rootParentBlock = ib
-// 		// 	} else {
-// 		// 		break
-// 		// 	}
-// 		// }
-
-// 		// // recursively find the common ancestor.
-// 		// ancestor := bc.latestBlock
-// 		// for ; ancestor != nil && ancestor.header.hash != rootParentBlock.header.hash; ancestor = ancestor.previousBlock {
-// 		// 	bc.detachedBlocks.Add(ancestor.header.hash, ancestor)
-// 		// }
-
-// 		// if ancestor == nil {
-// 		// 	log.WithFields(logFields).Error("No common ancestor")
-// 		// 	return bc, errors.New("No common ancestor")
-// 		// }
-
-// 		// // alter the chain.
-// 		// ancestor.nextBlock = rootParentBlock
-// 		// rootParentBlock.previousBlock = ancestor
-// 		// bc.latestBlock = block
-// 	}
-
-// 	return nil
-// }
-
 // VerifyBlock return nil if nonce is right, otherwise return error.
 func (p *Pow) VerifyBlock(data interface{}) error {
 	block := data.(*core.Block)
@@ -218,6 +162,7 @@ func (p *Pow) VerifyBlock(data interface{}) error {
 
 	ret := HashAndVerifyNonce(block, block.Nonce())
 	if ret == nil {
+		HashAndVerifyNonce(block, block.Nonce())
 		log.WithFields(log.Fields{
 			"func":  "Pow.VerifyBlock",
 			"err":   ErrInvalidBlockNonce,
@@ -260,7 +205,7 @@ func (p *Pow) blockLoop() {
 		case block := <-p.chain.BlockPool().ReceivedBlockCh():
 			count++
 			log.Debugf("Pow.blockLoop: new block message received. Count=%d", count)
-			p.receivedBlock = block
+			p.newBlockReceived = true
 			p.Event(consensus.NewBaseEvent(consensus.NewBlockEvent, block))
 		case <-p.quitCh:
 			// TODO: should provide base goroutine start/stop func to graceful stop them.
@@ -288,4 +233,9 @@ func (p *Pow) blockLoop() {
 			return
 		}
 	}
+}
+
+func (p *Pow) resetMiningStatus() {
+	p.miningBlock = nil
+	p.newBlockReceived = false
 }

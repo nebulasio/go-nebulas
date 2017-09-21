@@ -149,11 +149,12 @@ func (block *Block) Deserialize(blob []byte) error {
 }
 
 // NewBlock return new block.
-func NewBlock(parentHash Hash, coinbase *Address, stateTrie *trie.Trie, txPool *TransactionPool) *Block {
+func NewBlock(coinbase *Address, parentHash Hash, nonce uint64, stateTrie *trie.Trie, txPool *TransactionPool) *Block {
 	block := &Block{
 		header: &BlockHeader{
 			parentHash: parentHash,
 			coinbase:   coinbase,
+			nonce:      nonce,
 			timestamp:  time.Now(),
 		},
 		transactions: make(Transactions, 0),
@@ -257,6 +258,11 @@ func (block *Block) AddTransactions(txs ...*Transaction) *Block {
 	return block
 }
 
+// Sealed return true if block seals. Otherwise return false.
+func (block *Block) Sealed() bool {
+	return block.sealed
+}
+
 // Seal seal block, calculate stateRoot and block hash.
 func (block *Block) Seal() {
 	if block.sealed {
@@ -267,7 +273,7 @@ func (block *Block) Seal() {
 	block.parentStateRoot = sr
 	block.header.hash = HashBlock(block)
 	block.header.stateRoot = HashBlockStateRoot(block)
-	log.Debugf("STATEROOT - SEAL: %s %v vs. %v", block.header.hash.Hex(), sr, []byte(block.header.stateRoot))
+	log.Debugf("STATEROOT - SEAL: %s from [%v] to [%v]", block.header.hash.Hex(), byteutils.Hex(sr), block.header.stateRoot)
 
 	block.sealed = true
 }
@@ -325,7 +331,7 @@ func (block *Block) VerifyHash(bc *BlockChain) error {
 func (block *Block) VerifyStateRoot() error {
 	sr := block.stateTrie.RootHash()
 	wantedStateRoot := HashBlockStateRoot(block)
-	log.Debugf("STATEROOT - VERIFY: %s; %v vs. %v", block.header.hash.Hex(), sr, []byte(wantedStateRoot))
+	log.Debugf("STATEROOT - VERIFY: %s from [%v] to [%v]", block.header.hash.Hex(), byteutils.Hex(sr), wantedStateRoot)
 
 	if wantedStateRoot.Equals(block.StateRoot()) == false {
 		log.WithFields(log.Fields{
@@ -349,14 +355,6 @@ func (block *Block) rewardCoinbase() {
 	}
 	balance := origBalance + BlockReward
 	stateTrie.Put(coinbaseAddr, byteutils.FromUint64(balance))
-
-	log.WithFields(log.Fields{
-		"func":        "Block.rewardCoinbase",
-		"coinbase":    byteutils.Hex(block.header.coinbase.address),
-		"origBalance": origBalance,
-		"balance":     balance,
-		"stateTrie":   stateTrie,
-	}).Debug("assign block reward.")
 }
 
 func (block *Block) executeTransactions() {

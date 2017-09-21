@@ -94,11 +94,16 @@ func replicateNewBlock(sharedBlockCh chan interface{}, quitCh chan bool, nmCh ch
 	count := 0
 	for {
 		select {
-		case block := <-sharedBlockCh:
+		case v := <-sharedBlockCh:
 			count++
 			log.Info("replicateNewBlock: repBlockCount = ", count)
-			msg := messages.NewBaseMessage(net.MessageTypeNewBlock, block)
+			block := v.(*core.Block)
 			for _, nm := range nms {
+				data, _ := block.Serialize()
+				nb := new(core.Block)
+				nb.Deserialize(data)
+
+				msg := messages.NewBaseMessage(net.MessageTypeNewBlock, nb)
 				nm.(*net.DummyManager).PutMessage(msg)
 			}
 		case nm := <-nmCh:
@@ -128,7 +133,7 @@ func neb(ctx *cli.Context) error {
 func godummy() {
 	quitCh := make(chan bool, 10)
 
-	clientCount := 2
+	clientCount := 4
 	nmCh := make(chan net.Manager, clientCount)
 
 	sharedBlockCh := make(chan interface{}, 50)

@@ -141,14 +141,14 @@ func (pool *BlockPool) addBlock(block *Block) error {
 		log.WithFields(log.Fields{
 			"func":  "BlockPool.addBlock",
 			"block": block,
-		}).Debug("duplicated block.")
+		}).Debug("ignore duplicated block.")
 		return nil
 	}
 
 	log.WithFields(log.Fields{
 		"func":  "BlockPool.addBlock",
 		"block": block,
-	}).Debug("new block.")
+	}).Debug("start process new block.")
 
 	if err := block.VerifyHash(pool.bc); err != nil {
 		log.WithFields(log.Fields{

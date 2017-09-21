@@ -101,42 +101,31 @@ func (bc *BlockChain) SetConsensHandler(handler consensus.Consensus) {
 
 // NewBlock create new #Block instance.
 func (bc *BlockChain) NewBlock(coinbase *Address) *Block {
-	stateTrie, err := bc.tailBlock.stateTrie.Clone()
-	if err != nil {
-		log.WithFields(log.Fields{
-			"err":  err,
-			"func": "BlockChain.NewBlock",
-		}).Fatal("clone state trie fail.")
-		panic("BlockChain.NewBlock: clone state trie fail.")
-	}
-
-	block := NewBlock(bc.tailBlock.header.hash, coinbase, stateTrie, bc.txPool)
-	return block
+	return bc.NewBlockFromParent(coinbase, bc.tailBlock)
 }
 
-// // PutUnattachedBlocks put unattached blocks to LRU cache for furthur process.
-// // Unattached block is the block not yet attach to chain, eg. new block from network, local minted block.
-// func (bc *BlockChain) PutUnattachedBlocks(blocks ...*Block) {
-// 	for _, v := range blocks {
-// 		bc.detachedBlocks.Add(v.Hash().Hex(), v)
-// 	}
-// }
+// NewBlockFromParent create new block from parent block and return it.
+func (bc *BlockChain) NewBlockFromParent(coinbase *Address, parentBlock *Block) *Block {
+	stateTrie, err := parentBlock.stateTrie.Clone()
+	if err != nil {
+		log.WithFields(log.Fields{
+			"func": "BlockChain.NewBlockFromParent",
+			"err":  err,
+		}).Fatal("clone state trie fail.")
+		panic("BlockChain.NewBlockFromParent: clone state trie fail.")
+	}
 
-// // PutUnattachedBlockMap put unattached blocks to LRU cache for furthur process.
-// // Unattached block is the block not yet attach to chain, eg. new block from network, local minted block.
-// func (bc *BlockChain) PutUnattachedBlockMap(blocks map[HexHash]*Block) {
-// 	for k, v := range blocks {
-// 		bc.detachedBlocks.Add(k, v)
-// 	}
-// }
+	block := NewBlock(coinbase, parentBlock.Hash(), parentBlock.Nonce(), stateTrie, bc.txPool)
+	return block
+}
 
 // PutVerifiedNewBlocks put verified new blocks and tails.
 func (bc *BlockChain) PutVerifiedNewBlocks(allBlocks, tailBlocks []*Block) {
 	for _, v := range allBlocks {
-		bc.cachedBlocks.Add(v.Hash().Hex(), v)
+		bc.cachedBlocks.ContainsOrAdd(v.Hash().Hex(), v)
 	}
 	for _, v := range tailBlocks {
-		bc.detachedTailBlocks.Add(v.Hash().Hex(), v)
+		bc.detachedTailBlocks.ContainsOrAdd(v.Hash().Hex(), v)
 	}
 }
 
