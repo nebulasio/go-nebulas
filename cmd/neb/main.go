@@ -34,6 +34,7 @@ import (
 	"github.com/nebulasio/go-nebulas/consensus/pow"
 	"github.com/nebulasio/go-nebulas/core"
 
+	nebulaslog "github.com/nebulasio/go-nebulas/utils/log"
 	log "github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 )
@@ -116,6 +117,7 @@ func replicateNewBlock(sharedBlockCh chan interface{}, quitCh chan bool, nmCh ch
 
 func neb(ctx *cli.Context) error {
 	fmt.Printf("dummy: %v,  config: %v\n", dummy, p2pConfig)
+	nebulaslog.EnableLoggingDetailedInfo(true)
 
 	log.SetFormatter(&log.TextFormatter{FullTimestamp: true})
 	log.SetOutput(os.Stdout)
