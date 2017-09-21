@@ -16,16 +16,16 @@
 // along with the go-nebulas library.  If not, see <http://www.gnu.org/licenses/>.
 //
 
+// use btcec https://godoc.org/github.com/btcsuite/btcd/btcec#example-package--VerifySignature
+
 package ecdsa
 
 import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
-	//"github.com/nebulasio/go-nebulas/crypto/keystore/ecdsa/bitelliptic"
 	"github.com/btcsuite/btcd/btcec"
 	"io"
 
-	"crypto/rand"
 	"encoding/hex"
 	"errors"
 	"math/big"
@@ -99,29 +99,16 @@ func RecoverPublicKey(hash []byte, signature []byte) (*ecdsa.PublicKey, error) {
 
 // Sign sign hash with private key
 func Sign(hash []byte, priv *ecdsa.PrivateKey) ([]byte, error) {
-	r, s, err := ecdsa.Sign(rand.Reader, priv, hash)
-	if err != nil {
-		return nil, err
-	}
-
-	sig := &btcec.Signature{r, s}
-	//sign := r.Bytes()
-	//sign = append(sign, s.Bytes()...)
-	return sig.Serialize(), nil
-	//return btcec.SignCompact(btcec.S256(), (*btcec.PrivateKey)(priv), hash, false)
+	return btcec.SignCompact(btcec.S256(), (*btcec.PrivateKey)(priv), hash, true)
 }
 
 // Verify verify with public key
 func Verify(hash []byte, signature []byte, pub *ecdsa.PublicKey) bool {
-	//r := new(big.Int)
-	//r.SetBytes(rs[:32])
-	//s := new(big.Int)
-	//s.SetBytes(rs[32:])
-	//
-	//return ecdsa.Verify(pub, hash, r, s)
-	sign, err := btcec.ParseDERSignature(signature, btcec.S256())
-	if err != nil {
-		return false
+	bitlen := (btcec.S256().BitSize + 7) / 8
+	// format is <header byte><bitlen R><bitlen S>
+	signer := &btcec.Signature{
+		R: new(big.Int).SetBytes(signature[1 : bitlen+1]),
+		S: new(big.Int).SetBytes(signature[bitlen+1:]),
 	}
-	return ecdsa.Verify(pub, hash, sign.R, sign.S)
+	return signer.Verify(hash, (*btcec.PublicKey)(pub))
 }
