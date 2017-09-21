@@ -22,11 +22,17 @@ import (
 	"errors"
 	"github.com/nebulasio/go-nebulas/crypto/keystore/ecdsa"
 	"github.com/nebulasio/go-nebulas/crypto/keystore/key"
+	"sync"
 )
 
 const (
 	// KeystoreTypeDefault default keystore
 	KeystoreTypeDefault = "default"
+)
+
+var (
+	// DefaultKS generate a default keystore
+	DefaultKS = NewKeystore()
 )
 
 var (
@@ -39,6 +45,15 @@ type Keystore struct {
 
 	// keystore provider
 	p Provider
+
+	// unlocked aliases，as map range returns unordered
+	unlockedalias []key.Alias
+
+	// unlocked map
+	unlocked map[key.Alias]*key.Key
+
+	mu sync.RWMutex
+
 }
 
 // NewKeystore new
@@ -48,7 +63,7 @@ func NewKeystore() *Keystore {
 
 // NewKeystoreType new keystore with type
 func NewKeystoreType(t string) *Keystore {
-	ks := &Keystore{}
+	ks := &Keystore{unlockedalias:[]key.Alias{}, unlocked:make(map[key.Alias]*key.Key)}
 	switch t {
 	case KeystoreTypeDefault:
 		ks.p = ecdsa.NewProvider(1.0)
@@ -88,6 +103,51 @@ func (ks *Keystore) SetKey(a key.Alias, d []byte) error {
 		return ErrUninitialized
 	}
 	return ks.p.SetKey(a, d)
+}
+
+// Unlock unlock key with ProtectionParameter
+func (ks *Keystore)Unlock(alias key.Alias, p key.ProtectionParameter) error  {
+	key, err := ks.p.GetKey(alias, p)
+	if err != nil {
+		return err
+	}
+	ks.mu.Lock()
+	defer ks.mu.Unlock()
+
+	unlocked := false
+	for _, a := range ks.unlockedalias {
+		if a == alias {
+			unlocked = true
+		}
+	}
+	// if alias has not unlocked
+	if !unlocked {
+		ks.unlockedalias[len(ks.unlockedalias)] = alias
+	}
+	ks.unlocked[alias] = &key
+	return nil
+}
+
+// GetUnlocked returns a unlocked key
+func (ks *Keystore)GetUnlocked(alias key.Alias) (key.Key, error) {
+	if len(alias) == 0 {
+		return nil, errors.New("need alias")
+	}
+	for a := range ks.unlocked {
+		if a == alias {
+			return *ks.unlocked[a], nil
+		}
+	}
+	return nil, errors.New("not find key")
+}
+
+// GetKeyByIndex returns the key associated with the given index in unlocked
+func (ks *Keystore)GetKeyByIndex(idx int) (key.Key, error)  {
+	if idx < 0 || idx > len(ks.unlocked) {
+		return nil, errors.New("index out of range")
+	}
+	alias := ks.unlockedalias[idx]
+	return *ks.unlocked[alias], nil
 }
 
 // GetKey returns the key associated with the given alias, using the given

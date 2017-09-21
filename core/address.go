@@ -25,6 +25,10 @@ import (
 	"github.com/nebulasio/go-nebulas/util/byteutils"
 
 	log "github.com/sirupsen/logrus"
+	"github.com/nebulasio/go-nebulas/crypto/keystore/key"
+	"github.com/nebulasio/go-nebulas/crypto/keystore/ecdsa"
+	"crypto/rand"
+	"github.com/nebulasio/go-nebulas/crypto/keystore"
 )
 
 const (
@@ -79,6 +83,62 @@ An extended address is generated through addition of 2-byte extended verificatio
 */
 type Address struct {
 	address []byte
+}
+
+// ToHex convert address to hex
+func (a *Address) ToHex() string {
+	return byteutils.Hex(a.address)
+}
+
+// TestKS return a test keystore
+func TestKS() *keystore.Keystore {
+	ks := keystore.NewKeystore()
+	p1, _ := ecdsa.NewPrivateKey(rand.Reader)
+	ps1 := ecdsa.NewPrivateStoreKey(p1)
+	addr1, _ := NewAddressFromKey(ps1)
+	p2, _ := ecdsa.NewPrivateKey(rand.Reader)
+	ps2 := ecdsa.NewPrivateStoreKey(p2)
+	addr2, _ := NewAddressFromKey(ps2)
+	p3, _ := ecdsa.NewPrivateKey(rand.Reader)
+	ps3 := ecdsa.NewPrivateStoreKey(p3)
+	addr3, _ := NewAddressFromKey(ps3)
+
+	ks.SetKeyPassphrase(key.Alias(addr1.ToHex()), ps1, []byte("test"))
+	ks.SetKeyPassphrase(key.Alias(addr2.ToHex()), ps2, []byte("test"))
+	ks.SetKeyPassphrase(key.Alias(addr3.ToHex()), ps3, []byte("test"))
+
+	pass1, _ := key.NewPassphrase([]byte("test"))
+	ks.Unlock(key.Alias(addr1.ToHex()), pass1)
+
+	pass2, _ := key.NewPassphrase([]byte("test"))
+	ks.Unlock(key.Alias(addr2.ToHex()), pass2)
+
+	pass3, _ := key.NewPassphrase([]byte("test"))
+	ks.Unlock(key.Alias(addr3.ToHex()), pass3)
+
+	return ks
+}
+
+// NewAddressFromKey create new #Address according to data key.
+func NewAddressFromKey(k key.Key) (*Address, error)  {
+	pbyte := []byte{}
+	switch k.(type) {
+	case *ecdsa.PrivateStoreKey:
+		pub, err := k.(*ecdsa.PrivateStoreKey).EncodedPub()
+		if err != nil {
+			return nil, err
+		}
+		pbyte = pub[len(pub)-AddressDataLength:]
+	case *ecdsa.PublicStoreKey:
+		pub, err := k.Encoded()
+		if err != nil {
+			return nil, err
+		}
+		pbyte = pub[len(pub)-AddressDataLength:]
+	default:
+		return nil, errors.New("Address: key type not support")
+	}
+	return NewAddress(pbyte)
 }
 
 // NewAddress create new #Address according to data bytes.

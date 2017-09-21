@@ -47,3 +47,8 @@ func (k *PrivateStoreKey) Format() string {
 func (k *PrivateStoreKey) Encoded() ([]byte, error) {
 	return FromPrivateKey(k.privateKey)
 }
+
+// EncodedPub encode publickey
+func (k *PrivateStoreKey)EncodedPub() ([]byte, error)  {
+	return FromPublicKey(&k.privateKey.PublicKey)
+}

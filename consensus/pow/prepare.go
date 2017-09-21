@@ -51,7 +51,9 @@ func (state *PrepareState) Enter(data interface{}) {
 
 	p := state.p
 
-	addr, _ := core.NewAddress([]byte{223, 77, 34, 97, 20, 18, 19, 45, 62, 155, 211, 34, 248, 46, 41, 64, 103, 78, 193, 188})
+	//TODO(larry.wang):later remove test address
+	k, _ := core.TestKS().GetKeyByIndex(0)
+	addr, _ := core.NewAddressFromKey(k)
 
 	if p.miningBlock == nil {
 		// start mining from chain tail.
