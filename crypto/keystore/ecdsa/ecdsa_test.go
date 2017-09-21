@@ -110,7 +110,22 @@ func TestSign(t *testing.T) {
 			//}
 			if !Verify(tt.args.s, got, &priv.PublicKey) {
 				t.Errorf("Verify() false hash = %v", tt.args.s)
-				//return
+				return
+			}
+			gpub, err := RecoverPublicKey(tt.args.s, got)
+			if err != nil {
+				t.Errorf("recover failed:%s", err)
+				return
+			}
+			if gpub == nil {
+				t.Errorf("recover failed: pub nil")
+				return
+			}
+			//t.Logf("orgpub pubX:%d, pubY:%d", priv.PublicKey.X, priv.PublicKey.Y)
+			//t.Logf("newpub pubX:%d, pubY:%d", gpub.X, gpub.Y)
+			if !Verify(tt.args.s, got, gpub) {
+				t.Errorf("recover Verify() false hash = %v", tt.args.s)
+				return
 			}
 		})
 	}
