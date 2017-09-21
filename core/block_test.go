@@ -105,6 +105,7 @@ func TestBlock_Deserialize(t *testing.T) {
 						456,
 						time.Now(),
 						[]byte("hwllo"),
+						nil,
 					},
 					&Transaction{
 						[]byte("123455"),
@@ -114,6 +115,7 @@ func TestBlock_Deserialize(t *testing.T) {
 						456,
 						time.Now(),
 						[]byte("hwllo"),
+						nil,
 					},
 				},
 			},

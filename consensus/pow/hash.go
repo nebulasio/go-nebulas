@@ -21,7 +21,7 @@ package pow
 import (
 	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/crypto/hash"
-	"github.com/nebulasio/go-nebulas/utils/byteutils"
+	"github.com/nebulasio/go-nebulas/util/byteutils"
 )
 
 // HashAndVerifyNonce return hash result if nonce is satisfied hash requirements.

@@ -24,7 +24,7 @@ import (
 	nnet "github.com/nebulasio/go-nebulas/components/net"
 	"github.com/nebulasio/go-nebulas/components/net/messages"
 	"github.com/nebulasio/go-nebulas/core"
-	b "github.com/nebulasio/go-nebulas/utils/byteutils"
+	b "github.com/nebulasio/go-nebulas/util/byteutils"
 	log "github.com/sirupsen/logrus"
 	"time"
 )

@@ -22,7 +22,7 @@ import (
 	"crypto/rand"
 	"github.com/nebulasio/go-nebulas/crypto/keystore/ecdsa"
 	"github.com/nebulasio/go-nebulas/crypto/keystore/key"
-	"github.com/nebulasio/go-nebulas/utils/byteutils"
+	"github.com/nebulasio/go-nebulas/util/byteutils"
 	"testing"
 )
 

@@ -21,7 +21,7 @@ package core
 import (
 	"bytes"
 
-	"github.com/nebulasio/go-nebulas/utils/byteutils"
+	"github.com/nebulasio/go-nebulas/util/byteutils"
 	log "github.com/sirupsen/logrus"
 )
 

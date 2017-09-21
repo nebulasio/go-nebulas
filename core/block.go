@@ -26,7 +26,7 @@ import (
 	"github.com/nebulasio/go-nebulas/common/trie"
 	"golang.org/x/crypto/sha3"
 
-	"github.com/nebulasio/go-nebulas/utils/byteutils"
+	"github.com/nebulasio/go-nebulas/util/byteutils"
 	log "github.com/sirupsen/logrus"
 )
 

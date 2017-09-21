@@ -20,7 +20,7 @@ package ecdsa
 
 import (
 	"crypto/rand"
-	"github.com/nebulasio/go-nebulas/utils/byteutils"
+	"github.com/nebulasio/go-nebulas/util/byteutils"
 	"testing"
 )
 

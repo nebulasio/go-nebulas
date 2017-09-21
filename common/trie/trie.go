@@ -21,7 +21,7 @@ package trie
 import (
 	"errors"
 	"github.com/nebulasio/go-nebulas/crypto/hash"
-	"github.com/nebulasio/go-nebulas/utils/byteutils"
+	"github.com/nebulasio/go-nebulas/util/byteutils"
 )
 
 // Flag to identify the type of node

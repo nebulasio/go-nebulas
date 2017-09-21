@@ -94,6 +94,7 @@ func TestTransactions(t *testing.T) {
 					456,
 					time.Now(),
 					[]byte("hwllo"),
+					nil,
 				},
 				&Transaction{
 					[]byte("123455"),
@@ -103,6 +104,7 @@ func TestTransactions(t *testing.T) {
 					456,
 					time.Now(),
 					[]byte("hwllo"),
+					nil,
 				},
 			},
 			false,

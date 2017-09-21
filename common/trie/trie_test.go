@@ -24,7 +24,7 @@ import (
 	"testing"
 
 	"github.com/nebulasio/go-nebulas/crypto/hash"
-	"github.com/nebulasio/go-nebulas/utils/byteutils"
+	"github.com/nebulasio/go-nebulas/util/byteutils"
 )
 
 func TestNewTrie(t *testing.T) {
