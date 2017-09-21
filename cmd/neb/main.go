@@ -48,7 +48,7 @@ func run(sharedBlockCh chan interface{}, quitCh chan bool, nmCh chan net.Manager
 
 	var cons consensus.Consensus
 	cons = pow.NewPow(bc, nm)
-	bc.SetConsensHandler(cons)
+	bc.SetConsensusHandler(cons)
 
 	// start.
 	cons.Start()
@@ -73,7 +73,7 @@ func runP2p(config *p2p.Config, quitCh chan bool, nmCh chan net.Manager) {
 
 	var cons consensus.Consensus
 	cons = pow.NewPow(bc, nm)
-	bc.SetConsensHandler(cons)
+	bc.SetConsensusHandler(cons)
 
 	// start.
 	cons.Start()

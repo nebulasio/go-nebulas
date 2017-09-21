@@ -150,8 +150,7 @@ func (p *Pow) Transit(nextState consensus.State, data interface{}) {
 }
 
 // VerifyBlock return nil if nonce is right, otherwise return error.
-func (p *Pow) VerifyBlock(data interface{}) error {
-	block := data.(*core.Block)
+func (p *Pow) VerifyBlock(block *core.Block) error {
 	if block == nil {
 		log.WithFields(log.Fields{
 			"func": "Pow.VerifyBlock",
@@ -162,7 +161,6 @@ func (p *Pow) VerifyBlock(data interface{}) error {
 
 	ret := HashAndVerifyNonce(block, block.Nonce())
 	if ret == nil {
-		HashAndVerifyNonce(block, block.Nonce())
 		log.WithFields(log.Fields{
 			"func":  "Pow.VerifyBlock",
 			"err":   ErrInvalidBlockNonce,

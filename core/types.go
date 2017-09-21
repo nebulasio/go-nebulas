@@ -28,6 +28,10 @@ import (
 type Hash []byte
 type HexHash string
 
+type Consensus interface {
+	VerifyBlock(*Block) error
+}
+
 // Hex return hex encoded hash.
 func (h Hash) Hex() HexHash {
 	return HexHash(byteutils.Hex(h))

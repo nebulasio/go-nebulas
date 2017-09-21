@@ -22,8 +22,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/nebulasio/go-nebulas/consensus"
-
 	"github.com/nebulasio/go-nebulas/common/trie"
 	log "github.com/sirupsen/logrus"
 
@@ -37,9 +35,9 @@ type BlockChain struct {
 	genesisBlock *Block
 	tailBlock    *Block
 
-	bkPool         *BlockPool
-	txPool         *TransactionPool
-	consensHandler consensus.Consensus
+	bkPool           *BlockPool
+	txPool           *TransactionPool
+	consensusHandler Consensus
 
 	stateTrie          *trie.Trie
 	cachedBlocks       *lru.Cache
@@ -94,9 +92,14 @@ func (bc *BlockChain) BlockPool() *BlockPool {
 	return bc.bkPool
 }
 
-// SetConsensHandler set consensus handler.
-func (bc *BlockChain) SetConsensHandler(handler consensus.Consensus) {
-	bc.consensHandler = handler
+// SetConsensusHandler set consensus handler.
+func (bc *BlockChain) SetConsensusHandler(handler Consensus) {
+	bc.consensusHandler = handler
+}
+
+// ConsensusHandler return consensus handler.
+func (bc *BlockChain) ConsensusHandler() Consensus {
+	return bc.consensusHandler
 }
 
 // NewBlock create new #Block instance.

@@ -301,7 +301,7 @@ func (block *Block) Verify(bc *BlockChain) error {
 // VerifyHash return hash verify result.
 func (block *Block) VerifyHash(bc *BlockChain) error {
 	// verify nonce.
-	if err := bc.consensHandler.VerifyBlock(block); err != nil {
+	if err := bc.ConsensusHandler().VerifyBlock(block); err != nil {
 		return err
 	}
 
