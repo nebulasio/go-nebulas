@@ -18,17 +18,17 @@
 
 package byteutils
 
-// Encoder encoder for bytes.Encode().
+// Encoder is encoder for bytes.Encode().
 type Encoder interface {
 	EncodeToBytes(s interface{}) ([]byte, error)
 }
 
-// Decoder decoder for bytes.Decode().
+// Decoder is decoder for bytes.Decode().
 type Decoder interface {
 	DecodeFromBytes(data []byte) (interface{}, error)
 }
 
-// Serializable implements serializer
+// Serializable implements serializer.
 type Serializable interface {
 	Serialize(s interface{}) ([]byte, error)
 	Deserialize(data []byte, res interface{}) error

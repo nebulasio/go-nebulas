@@ -33,25 +33,25 @@ import (
 // not support int, use uint instead
 type RLPSerializer struct{}
 
-// Serialize convert struct or array into rlp encoding bytes
+// Serialize converts struct or array into rlp encoding bytes.
 func (s *RLPSerializer) Serialize(val interface{}) ([]byte, error) {
 	return rlp.EncodeToBytes(val)
 }
 
-// Deserialize convert rlp encoding bytes into struct or array
+// Deserialize converts rlp encoding bytes into struct or array.
 func (s *RLPSerializer) Deserialize(val []byte, res interface{}) error {
 	return rlp.DecodeBytes(val, res)
 }
 
-// JSONSerializer implements conversion between bytes and json string
+// JSONSerializer implements conversion between bytes and json string.
 type JSONSerializer struct{}
 
-// Serialize convert struct or array into json string
+// Serialize converts struct or array into json string.
 func (s *JSONSerializer) Serialize(val interface{}) ([]byte, error) {
 	return json.Marshal(val)
 }
 
-// Deserialize convert json string into struct or array
+// Deserialize converts json string into struct or array.
 func (s *JSONSerializer) Deserialize(val []byte, res interface{}) error {
 	return json.Unmarshal(val, res)
 }
