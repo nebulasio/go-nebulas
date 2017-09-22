@@ -20,18 +20,18 @@ package main
 
 import (
 	"fmt"
-	"github.com/ethereum/go-ethereum/log"
+	"net"
+	"os"
+	"os/signal"
+	"syscall"
+
 	"github.com/multiformats/go-multiaddr"
 	nnet "github.com/nebulasio/go-nebulas/components/net"
 	"github.com/nebulasio/go-nebulas/components/net/p2p"
 	"github.com/nebulasio/go-nebulas/consensus"
 	"github.com/nebulasio/go-nebulas/consensus/pow"
 	"github.com/nebulasio/go-nebulas/core"
-	"net"
-	"os"
-	"os/signal"
-	"syscall"
-	"time"
+	log "github.com/sirupsen/logrus"
 )
 
 func GoP2p(seed string, port uint) {
@@ -50,7 +50,10 @@ func GoP2p(seed string, port uint) {
 	if port > 0 {
 		config.Port = port
 	}
-	config.Randseed = time.Now().Unix()
+
+	// P2P network randseed, in this release we use port as randseed
+	// config.Randseed = time.Now().Unix()
+	config.Randseed = int64(port)
 
 	go runP2p(config, quitCh, nmCh)
 
@@ -77,16 +80,16 @@ func runP2p(config *p2p.Config, quitCh chan bool, nmCh chan nnet.Manager) {
 	bc.SetConsensusHandler(cons)
 
 	// start.
-	cons.Start()
-	bc.BlockPool().Start()
 	nm.Start()
+	bc.BlockPool().Start()
+	cons.Start()
 
 	<-quitCh
 
 	// stop
-	nm.Stop()
-	bc.BlockPool().Stop()
 	cons.Stop()
+	bc.BlockPool().Stop()
+	nm.Stop()
 }
 
 func localHost() string {

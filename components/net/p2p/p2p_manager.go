@@ -75,7 +75,6 @@ func (np *P2pManager) PutMessage(msg net.Message) {
 }
 
 func (np *P2pManager) BroadcastBlock(block interface{}) {
-
 	//TODO: broadcast block via underlying network lib to whole network.
 	np.node.Broadcast(block)
 }

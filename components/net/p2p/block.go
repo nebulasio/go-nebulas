@@ -19,6 +19,8 @@
 package p2p
 
 import (
+	"time"
+
 	"github.com/libp2p/go-libp2p-net"
 	"github.com/libp2p/go-libp2p-peer"
 	nnet "github.com/nebulasio/go-nebulas/components/net"
@@ -26,7 +28,6 @@ import (
 	"github.com/nebulasio/go-nebulas/core"
 	b "github.com/nebulasio/go-nebulas/util/byteutils"
 	log "github.com/sirupsen/logrus"
-	"time"
 )
 
 const blockProtocolID = "/nebulas/block/1.0.0"

@@ -19,8 +19,9 @@
 package p2p
 
 import (
-	"github.com/multiformats/go-multiaddr"
 	"time"
+
+	"github.com/multiformats/go-multiaddr"
 )
 
 /*

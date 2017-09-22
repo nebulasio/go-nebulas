@@ -20,11 +20,12 @@ package p2p
 
 import (
 	"context"
+	"math/rand"
+	"time"
+
 	"github.com/libp2p/go-libp2p-peer"
 	"github.com/libp2p/go-libp2p-peerstore"
 	log "github.com/sirupsen/logrus"
-	"math/rand"
-	"time"
 )
 
 /*

@@ -21,12 +21,13 @@ package p2p
 import (
 	"bytes"
 	"errors"
+	"io"
+	"time"
+
 	u "github.com/ipfs/go-ipfs-util"
 	gnet "github.com/libp2p/go-libp2p-net"
 	"github.com/libp2p/go-libp2p-peer"
 	log "github.com/sirupsen/logrus"
-	"io"
-	"time"
 )
 
 const PingSize = 32

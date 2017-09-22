@@ -29,6 +29,7 @@ import (
 	"time"
 
 	"errors"
+
 	"github.com/libp2p/go-libp2p-crypto"
 	"github.com/libp2p/go-libp2p-kbucket"
 	"github.com/libp2p/go-libp2p-peer"
@@ -101,8 +102,8 @@ func (node *Node) Start() error {
 	}()
 
 	log.Infof("Start: node start and join to p2p network success and listening for connections on port %d... ", node.config.Port)
-	select {}
 
+	return nil
 }
 
 func (node *Node) makeHost() error {
