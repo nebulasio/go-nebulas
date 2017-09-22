@@ -28,7 +28,6 @@ import (
 	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/crypto/keystore"
 	"github.com/nebulasio/go-nebulas/crypto/keystore/ecdsa"
-	"github.com/nebulasio/go-nebulas/crypto/keystore/key"
 	"github.com/nebulasio/go-nebulas/util/logging"
 	log "github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
@@ -125,11 +124,10 @@ func addTestAddress() {
 	arr[2] = []byte{217, 81, 120, 192, 22, 101, 123, 205, 222, 253, 237, 63, 248, 9, 226, 102, 97, 202, 124, 1, 248, 178, 7, 69, 14, 63, 254, 127, 61, 158, 126, 65}
 	for _, pdata := range arr {
 		priv, _ := ecdsa.ToPrivateKey(pdata)
-		adata, _ := ecdsa.ToAddressData(priv)
-		addr, _ := core.NewAddress(adata)
+		pubdata, _ := ecdsa.FromPublicKey(&priv.PublicKey)
+		addr, _ := core.NewAddressFromPublicKey(pubdata)
 		ps := ecdsa.NewPrivateStoreKey(priv)
-		ks.SetKeyPassphrase(key.Alias(addr.ToHex()), ps, []byte("passphrase"))
-		pass, _ := key.NewPassphrase([]byte("passphrase"))
-		ks.Unlock(key.Alias(addr.ToHex()), pass)
+		ks.SetKey(addr.ToHex(), ps, []byte("passphrase"))
+		ks.Unlock(addr.ToHex(), []byte("passphrase"), 10)
 	}
 }
