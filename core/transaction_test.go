@@ -19,11 +19,9 @@
 package core
 
 import (
-	"fmt"
 	"reflect"
 	"testing"
 	"time"
-	_ "time"
 )
 
 func TestTransaction(t *testing.T) {
@@ -64,9 +62,7 @@ func TestTransaction(t *testing.T) {
 				timestamp: tt.fields.timestamp,
 				data:      tt.fields.data,
 			}
-			ir, err := tx.Serialize()
-			fmt.Println(err)
-			fmt.Printf("%v\n", ir)
+			ir, _ := tx.Serialize()
 			ntx := new(Transaction)
 			ntx.Deserialize(ir)
 			tx.timestamp = ntx.timestamp
@@ -113,7 +109,6 @@ func TestTransactions(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got, _ := tt.txs.Serialize()
-			fmt.Println(string(got))
 			var txs Transactions
 			(&txs).Deserialize(got)
 			tt.txs[0].timestamp = txs[0].timestamp
