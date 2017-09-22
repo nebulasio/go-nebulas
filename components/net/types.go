@@ -18,6 +18,7 @@
 
 package net
 
+// MessageTypeNewBlock
 const (
 	MessageTypeNewBlock = "NewBlockMessage"
 )
@@ -31,6 +32,7 @@ type Message interface {
 	Data() interface{}
 }
 
+// Manager manager interface
 type Manager interface {
 	Start()
 	Stop()
