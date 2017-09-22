@@ -121,7 +121,7 @@ func (ks *Keystore) Unlock(alias key.Alias, p key.ProtectionParameter) error {
 	}
 	// if alias has not unlocked
 	if !unlocked {
-		ks.unlockedalias[len(ks.unlockedalias)] = alias
+		ks.unlockedalias = append(ks.unlockedalias, alias)
 	}
 	ks.unlocked[alias] = &key
 	return nil
