@@ -22,7 +22,7 @@ import (
 	"github.com/nebulasio/go-nebulas/crypto/keystore"
 )
 
-// DummyManager
+// DummyManager support dummy mode
 type DummyManager struct {
 	sharedBlockCh chan interface{}
 	dispatcher    *Dispatcher

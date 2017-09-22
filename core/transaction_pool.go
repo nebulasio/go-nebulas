@@ -22,11 +22,12 @@ import (
 	"github.com/hashicorp/golang-lru"
 )
 
+// TransactionPool contains a pool of transactions
 type TransactionPool struct {
 	inner *lru.Cache
 }
 
-// NewTransactionPool return new TransactionPool
+// NewTransactionPool create a new TransactionPool
 func NewTransactionPool() *TransactionPool {
 	txPool := &TransactionPool{}
 	txPool.inner, _ = lru.New(1024)

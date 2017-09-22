@@ -56,7 +56,7 @@ type Transaction struct {
 	sign Hash
 }
 
-type TxStream struct {
+type txStream struct {
 	Hash  []byte
 	From  []byte
 	To    []byte
@@ -69,7 +69,7 @@ type TxStream struct {
 // Serialize a transaction
 func (tx *Transaction) Serialize() ([]byte, error) {
 	serializer := &byteutils.JSONSerializer{}
-	data := TxStream{
+	data := txStream{
 		tx.hash,
 		tx.from.address,
 		tx.to.address,
@@ -84,7 +84,7 @@ func (tx *Transaction) Serialize() ([]byte, error) {
 // Deserialize a transaction
 func (tx *Transaction) Deserialize(blob []byte) error {
 	serializer := &byteutils.JSONSerializer{}
-	var data TxStream
+	var data txStream
 	if err := serializer.Deserialize(blob, &data); err != nil {
 		return err
 	}

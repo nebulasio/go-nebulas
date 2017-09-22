@@ -34,18 +34,18 @@ const (
 	// BlockHashLength define a const of the length of Hash of Block in byte.
 	BlockHashLength = 32
 
-	// BlockReward. TODO: block reward should calculates dynamic.
+	// BlockReward given to coinbase
+	// TODO: block reward should calculates dynamic.
 	BlockReward = 16
 )
 
+// Errors in block
 var (
 	ErrInvalidBlockHash      = errors.New("invalid block hash")
 	ErrInvalidBlockStateRoot = errors.New("invalid block state root hash")
 )
 
-/*
-BlockHeader type.
-*/
+// BlockHeader of a block
 type BlockHeader struct {
 	hash       Hash
 	parentHash Hash
@@ -55,7 +55,7 @@ type BlockHeader struct {
 	timestamp  time.Time
 }
 
-type BHStream struct {
+type blockHeaderStream struct {
 	Hash       []byte
 	ParentHash []byte
 	StateRoot  []byte
@@ -67,7 +67,7 @@ type BHStream struct {
 // Serialize Block to bytes
 func (b *BlockHeader) Serialize() ([]byte, error) {
 	serializer := &byteutils.JSONSerializer{}
-	data := BHStream{
+	data := blockHeaderStream{
 		b.hash,
 		b.parentHash,
 		b.stateRoot,
@@ -81,7 +81,7 @@ func (b *BlockHeader) Serialize() ([]byte, error) {
 // Deserialize a block
 func (b *BlockHeader) Deserialize(blob []byte) error {
 	serializer := &byteutils.JSONSerializer{}
-	var data BHStream
+	var data blockHeaderStream
 	if err := serializer.Deserialize(blob, &data); err != nil {
 		return err
 	}
@@ -94,9 +94,7 @@ func (b *BlockHeader) Deserialize(blob []byte) error {
 	return nil
 }
 
-/*
-Block type.
-*/
+// Block structure
 type Block struct {
 	header       *BlockHeader
 	transactions Transactions

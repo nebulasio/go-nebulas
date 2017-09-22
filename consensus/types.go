@@ -20,6 +20,7 @@ package consensus
 
 import "github.com/nebulasio/go-nebulas/core"
 
+// EventType list
 const (
 	NetMessageEvent = "event.netmessage"
 	NewBlockEvent   = "event.newblock"
@@ -36,34 +37,42 @@ type Consensus interface {
 	VerifyBlock(*core.Block) error
 }
 
+// EventType of Events in Consensus State-Machine
 type EventType string
 
+// Event in Consensus State-Machine
 type Event interface {
 	EventType() EventType
 	Data() interface{}
 }
 
+// State in Consensus State-Machine
 type State interface {
 	Event(e Event) (bool, State)
 	Enter(data interface{})
 	Leave(data interface{})
 }
 
+// States contains all possiable states in Consensus State-Machine
 type States map[string]State
 
+// BaseEvent is a kind of event structure
 type BaseEvent struct {
 	eventType EventType
 	data      interface{}
 }
 
+// NewBaseEvent creates an event
 func NewBaseEvent(t EventType, data interface{}) Event {
 	return &BaseEvent{eventType: t, data: data}
 }
 
+// EventType of an event instance
 func (e *BaseEvent) EventType() EventType {
 	return e.eventType
 }
 
+// Data of an event instance
 func (e *BaseEvent) Data() interface{} {
 	return e.data
 }

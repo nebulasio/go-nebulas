@@ -22,71 +22,8 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-/*
-func (p *Pow) ForkChoice() {
-	bc := p.chain
-	bkPool := bc.BlockPool()
-
-	log.Info("Pow.ForkChoice: process received block.")
-	// TODO: append received blocks to BlockChain.
-	blocks := make(map[core.HexHash]*core.Block)
-
-	bkPool.Range(func(key, value interface{}) bool {
-		k := key.(core.HexHash)
-		v := value.(*core.Block)
-		blocks[k] = v
-		return true
-	})
-
-	bc.PutUnattachedBlockMap(blocks)
-	log.Debug("Pow.ForkChoice: all received blocks is ", blocks)
-
-	// link parent.
-	log.Debug("Pow.ForkChoice: 1st iteration, link parenet.")
-	for k, v := range blocks {
-		// get parent block.
-		parentBlock := bc.GetBlock(v.ParentHash())
-		if parentBlock == nil {
-			// waiting for network sync.
-			log.Debugf("Pow.ForkChoice: block=%s requires parent from network.", k)
-			continue
-		}
-
-		v.LinkParentBlock(parentBlock)
-		log.Debugf("Pow.ForkChoice: block=%s link to parentBlock=%s.", k, v.ParentHash().Hex())
-
-		// remove block from BlockPool.
-		bkPool.Delete(k)
-	}
-
-	// find the max depth.
-	log.Debug("Pow.ForkChoice: 2nd iteration, calculate depth.")
-	highest := uint64(0)
-	var block *core.Block
-	for _, v := range blocks {
-		h := v.Height()
-		if h > highest {
-			highest = h
-			block = v
-		}
-	}
-
-	if highest > 0 {
-		// set longest chain.
-		log.WithFields(log.Fields{
-			"highest": highest,
-			"Block":   block,
-		}).Info("Pow.ForkChoice: found the longest chain, set tail block.")
-		bc.SetTailBlock(block)
-	} else {
-		log.Debug("Pow.ForkChoice: can't find the longest chain, return.")
-	}
-
-	// dump chain.
-	log.Debug("Dump: ", bc.Dump())
-}
-*/
-
+// ForkChoice Rule of PoW Consensus
+// Choose the longest chain
 func (p *Pow) ForkChoice() {
 	bc := p.chain
 	tailBlock := bc.TailBlock()
