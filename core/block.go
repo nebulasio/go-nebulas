@@ -130,15 +130,14 @@ func (block *Block) Deserialize(blob []byte) error {
 	if err := serializer.Deserialize(blob, &data); err != nil {
 		return err
 	}
+
 	block.sealed = true
 	block.header = &BlockHeader{}
 	if err := block.header.Deserialize(data[0]); err != nil {
 		return err
 	}
-	if err := block.transactions.Deserialize(data[1]); err != nil {
-		return err
-	}
-	return nil
+
+	return block.transactions.Deserialize(data[1])
 }
 
 // NewBlock return new block.
