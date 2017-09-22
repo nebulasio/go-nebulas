@@ -83,7 +83,7 @@ func (node *Node) Start() error {
 	node.RegisterLookupService()
 
 	var wg sync.WaitGroup
-	for _, bootNode := range node.config.bootNodes {
+	for _, bootNode := range node.config.BootNodes {
 		wg.Add(1)
 		go func(bootNode multiaddr.Multiaddr) {
 			defer wg.Done()
