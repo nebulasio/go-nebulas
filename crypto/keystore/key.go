@@ -26,6 +26,7 @@ type Key interface {
 	Algorithm() string
 }
 
+// PrivateKey privatekey interface
 type PrivateKey interface {
 
 	// Algorithm returns the standard algorithm name for this key. For
@@ -36,6 +37,7 @@ type PrivateKey interface {
 	PublicKey() PublicKey
 }
 
+// PublicKey publickey interface
 type PublicKey interface {
 
 	// Algorithm returns the standard algorithm name for this key. For
