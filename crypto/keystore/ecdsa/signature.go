@@ -19,24 +19,20 @@
 package ecdsa
 
 import (
-	"crypto/ecdsa"
 	"errors"
+	"github.com/nebulasio/go-nebulas/crypto/keystore"
 )
 
 // Signature signature ecdsa
 type Signature struct {
-	privateKey *ecdsa.PrivateKey
+	privateKey *PrivateStoreKey
 
-	publicKey *ecdsa.PublicKey
+	publicKey *PublicStoreKey
 }
 
 // InitSign ecdsa init sign
-func (s *Signature) InitSign(priByte []byte) error {
-	pri, err := ToPrivateKey(priByte)
-	if err != nil {
-		return err
-	}
-	s.privateKey = pri
+func (s *Signature) InitSign(priv keystore.PrivateKey) error {
+	s.privateKey = priv.(*PrivateStoreKey)
 	return nil
 }
 
@@ -45,7 +41,7 @@ func (s *Signature) Sign(data []byte) (out []byte, err error) {
 	if s.privateKey == nil {
 		return nil, errors.New("please call InitSign to set private key")
 	}
-	signature, err := Sign(data, s.privateKey)
+	signature, err := s.privateKey.Sign(data)
 	if err != nil {
 		return nil, err
 	}
@@ -53,9 +49,8 @@ func (s *Signature) Sign(data []byte) (out []byte, err error) {
 }
 
 // InitVerify ecdsa verify init
-func (s *Signature) InitVerify(pubByte []byte) error {
-	pub, _ := ToPublicKey(pubByte)
-	s.publicKey = pub
+func (s *Signature) InitVerify(pub keystore.PublicKey) error {
+	s.publicKey = pub.(*PublicStoreKey)
 	return nil
 }
 
@@ -64,6 +59,5 @@ func (s *Signature) Verify(data []byte, signature []byte) (bool, error) {
 	if s.publicKey == nil {
 		return false, errors.New("please call InitVerify to set public key")
 	}
-	result := Verify(data, signature, s.publicKey)
-	return result, nil
+	return s.publicKey.Verify(data, signature)
 }

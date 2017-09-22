@@ -20,6 +20,7 @@ package ecdsa
 
 import (
 	"crypto/ecdsa"
+	"github.com/nebulasio/go-nebulas/crypto/keystore"
 )
 
 // PrivateStoreKey ecdsa privatekey
@@ -38,17 +39,12 @@ func (k *PrivateStoreKey) Algorithm() string {
 	return "ecdsa"
 }
 
-// Format formate
-func (k *PrivateStoreKey) Format() string {
-	return "byte"
+// PublicKey returns publickey
+func (k *PrivateStoreKey) PublicKey() keystore.PublicKey {
+	return NewPublicStoreKey(k.privateKey.PublicKey)
 }
 
-// Encoded encoded to byte
-func (k *PrivateStoreKey) Encoded() ([]byte, error) {
-	return FromPrivateKey(k.privateKey)
-}
-
-// EncodedPub encode publickey
-func (k *PrivateStoreKey) EncodedPub() ([]byte, error) {
-	return FromPublicKey(&k.privateKey.PublicKey)
+// Sign sign hash with privatekey
+func (k *PrivateStoreKey) Sign(hash []byte) ([]byte, error) {
+	return Sign(hash, k.privateKey)
 }
