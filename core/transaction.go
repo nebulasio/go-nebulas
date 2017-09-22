@@ -151,15 +151,10 @@ func (tx *Transaction) Hash() Hash {
 }
 
 // Sign sign transaction.
-func (tx *Transaction) Sign(ks *keystore.Keystore, passphrase []byte) error {
-	// TODO(larry.wang):impl sign ,change input to context ,keystore in context
+func (tx *Transaction) Sign() error {
 	tx.hash = HashTransaction(tx)
-	passparam, err := key.NewPassphrase(passphrase)
-	if err != nil {
-		return err
-	}
 	alias := key.Alias(string(tx.from.address))
-	key, err := ks.GetKey(alias, passparam)
+	key, err := keystore.DefaultKS.GetUnlocked(alias)
 	if err != nil {
 		return err
 	}
@@ -189,8 +184,13 @@ func (tx *Transaction) Verify() error {
 		return ErrInvalidTransactionHash
 	}
 
-	// TODO: verify signature and from address.
-
+	signVerify, err := tx.VerifySign()
+	if err != nil {
+		return err
+	}
+	if !signVerify {
+		return errors.New("Transaction verifySign failed")
+	}
 	return nil
 }
 
