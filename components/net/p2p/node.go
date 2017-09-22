@@ -40,9 +40,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-/*
-	the node can be used as both the client and the server
-*/
+// Node the node can be used as both the client and the server
 type Node struct {
 	host       *basichost.BasicHost
 	id         peer.ID
@@ -53,7 +51,7 @@ type Node struct {
 	running    bool
 }
 
-// start a local node and join the node to network
+// NewNode start a local node and join the node to network
 func NewNode(config *Config) (*Node, error) {
 
 	node := &Node{}
@@ -69,7 +67,7 @@ func NewNode(config *Config) (*Node, error) {
 	return node, nil
 }
 
-// start the node and say hello to bootNodes, then start node discovery service
+// Start start the node and say hello to bootNodes, then start node discovery service
 func (node *Node) Start() error {
 
 	log.Info("Start: node create success...")
@@ -169,7 +167,7 @@ func (node *Node) makeHost() error {
 	return err
 }
 
-// Say hello to trustedNode
+// SayHello Say hello to trustedNode
 func (node *Node) SayHello(bootNode multiaddr.Multiaddr) error {
 	bootAddr, bootID, err := parseAddressFromMultiaddr(bootNode)
 	if err != nil {

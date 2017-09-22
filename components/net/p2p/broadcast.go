@@ -23,6 +23,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// Broadcast broadcast block message
 func (node *Node) Broadcast(block interface{}) {
 
 	log.Info("Broadcast: start broadcast...")
@@ -32,12 +33,12 @@ func (node *Node) Broadcast(block interface{}) {
 
 	for i := 0; i < len(allNode); i++ {
 
-		nodeId := allNode[i]
-		if node.id == nodeId {
+		nodeID := allNode[i]
+		if node.id == nodeID {
 			continue
 		}
 		go func() {
-			node.SendBlock(msg, nodeId)
+			node.SendBlock(msg, nodeID)
 		}()
 	}
 

@@ -30,17 +30,21 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// PingSize the max ping size
 const PingSize = 32
 
+// pingProtocolID the ping protocol
 const pingProtocolID = "/nebulas/ping/1.0.0"
 
+// pingTimeout ping timeout
 const pingTimeout = time.Second * 60
 
+// PingService is used to ping a node
 type PingService struct {
 	node *Node
 }
 
-// register ping service
+// RegisterPingService register ping service
 func (node *Node) RegisterPingService() *PingService {
 	ps := &PingService{node}
 	node.host.SetStreamHandler(pingProtocolID, ps.PingHandler)
@@ -48,7 +52,7 @@ func (node *Node) RegisterPingService() *PingService {
 	return ps
 }
 
-// handle others ping
+// PingHandler handle others ping
 func (p *PingService) PingHandler(s gnet.Stream) {
 	log.Infof("PingHandler: node handle ping request...")
 	buf := make([]byte, PingSize)

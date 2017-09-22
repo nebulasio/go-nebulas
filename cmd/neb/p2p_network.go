@@ -34,6 +34,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// GoP2p start p2p network
 func GoP2p(seed string, port uint) {
 	quitCh := make(chan bool, 1)
 	nmCh := make(chan nnet.Manager, 1)
@@ -53,7 +54,7 @@ func GoP2p(seed string, port uint) {
 
 	// P2P network randseed, in this release we use port as randseed
 	// config.Randseed = time.Now().Unix()
-	config.Randseed = int64(port)
+	config.Randseed = 20170922
 
 	go runP2p(config, quitCh, nmCh)
 
@@ -68,7 +69,7 @@ func GoP2p(seed string, port uint) {
 }
 
 func runP2p(config *p2p.Config, quitCh chan bool, nmCh chan nnet.Manager) {
-	nm := p2p.NewP2pManager(config)
+	nm := p2p.NewManager(config)
 	nmCh <- nm
 
 	bc := core.NewBlockChain(core.TestNetID)

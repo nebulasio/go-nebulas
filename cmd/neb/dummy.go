@@ -31,6 +31,7 @@ import (
 	"syscall"
 )
 
+// GoDummy start dummy network
 func GoDummy() {
 	quitCh := make(chan bool, 10)
 
