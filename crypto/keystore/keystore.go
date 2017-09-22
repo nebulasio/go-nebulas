@@ -117,6 +117,7 @@ func (ks *Keystore) Unlock(alias key.Alias, p key.ProtectionParameter) error {
 	for _, a := range ks.unlockedalias {
 		if a == alias {
 			unlocked = true
+			break
 		}
 	}
 	// if alias has not unlocked
@@ -141,12 +142,12 @@ func (ks *Keystore) GetUnlocked(alias key.Alias) (key.Key, error) {
 }
 
 // GetKeyByIndex returns the key associated with the given index in unlocked
-func (ks *Keystore) GetKeyByIndex(idx int) (key.Key, error) {
+func (ks *Keystore) GetKeyByIndex(idx int) (key.Alias, key.Key, error) {
 	if idx < 0 || idx > len(ks.unlocked) {
-		return nil, errors.New("index out of range")
+		return "", nil, errors.New("index out of range")
 	}
 	alias := ks.unlockedalias[idx]
-	return *ks.unlocked[alias], nil
+	return alias, *ks.unlocked[alias], nil
 }
 
 // GetKey returns the key associated with the given alias, using the given

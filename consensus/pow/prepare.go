@@ -21,6 +21,7 @@ package pow
 import (
 	"github.com/nebulasio/go-nebulas/consensus"
 	"github.com/nebulasio/go-nebulas/core"
+	"github.com/nebulasio/go-nebulas/crypto/keystore"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -52,8 +53,8 @@ func (state *PrepareState) Enter(data interface{}) {
 	p := state.p
 
 	//TODO(larry.wang):later remove test address
-	k, _ := core.TestKS().GetKeyByIndex(0)
-	addr, _ := core.NewAddressFromKey(k)
+	alias, _, _ := keystore.DefaultKS.GetKeyByIndex(0)
+	addr, _ := core.Parse(string(alias))
 
 	if p.miningBlock == nil {
 		// start mining from chain tail.

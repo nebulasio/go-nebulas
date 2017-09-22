@@ -23,11 +23,6 @@ import (
 	"testing"
 )
 
-func TestTestKS(t *testing.T) {
-	ks := TestKS()
-	ks.GetKeyByIndex(0)
-}
-
 func TestParse(t *testing.T) {
 	type args struct {
 		s string

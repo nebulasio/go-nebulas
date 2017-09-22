@@ -26,8 +26,10 @@ import (
 	"github.com/btcsuite/btcd/btcec"
 	"io"
 
+	"crypto/rand"
 	"encoding/hex"
 	"errors"
+	"github.com/nebulasio/go-nebulas/crypto/hash"
 	"math/big"
 )
 
@@ -43,6 +45,30 @@ func NewPrivateKey(rand io.Reader) (*ecdsa.PrivateKey, error) {
 		return nil, err
 	}
 	return privateKeyECDSA, nil
+}
+
+// NewAddrWithPrivate generate address data , privatekey
+func NewAddrWithPrivate() ([]byte, *ecdsa.PrivateKey, error) {
+	priv, err := NewPrivateKey(rand.Reader)
+	if err != nil {
+		return nil, nil, err
+	}
+	addr, err := ToAddressData(priv)
+	if err != nil {
+		return nil, nil, err
+	}
+	return addr, priv, nil
+}
+
+// ToAddressData returns address data with give privatekey
+func ToAddressData(priv *ecdsa.PrivateKey) ([]byte, error) {
+	pub, err := FromPublicKey(&priv.PublicKey)
+	if err != nil {
+		return nil, err
+	}
+	data := hash.Sha3256(pub)
+	// address data = sha3_256(Public Key)[-20:]
+	return data[len(data)-20:], nil
 }
 
 // FromPrivateKey exports a private key into a binary dump.
