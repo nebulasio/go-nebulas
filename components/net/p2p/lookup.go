@@ -34,11 +34,12 @@ import (
 
 const lookupProtocolID = "/nebulas/lookup/1.0.0"
 
+// LookupService is used to explore other node
 type LookupService struct {
 	node *Node
 }
 
-// register lookup service
+// RegisterLookupService register lookup service
 func (node *Node) RegisterLookupService() *LookupService {
 	ls := &LookupService{node}
 	node.host.SetStreamHandler(lookupProtocolID, ls.LookupHandler)
@@ -74,7 +75,7 @@ func (node *Node) Lookup(pid peer.ID) ([]peerstore.PeerInfo, error) {
 	return sample, nil
 }
 
-// Read data from a stream using a timeout.
+// ReadWithTimeout Read data from a stream using a timeout.
 func ReadWithTimeout(reader io.Reader, n uint32, timeout time.Duration) ([]byte, error) {
 	data := make([]byte, n)
 	result := make(chan error, 1)
@@ -87,7 +88,7 @@ func ReadWithTimeout(reader io.Reader, n uint32, timeout time.Duration) ([]byte,
 		return data, err
 	case <-time.After(timeout):
 		select {
-		case result <- errors.New("Timeout!"):
+		case result <- errors.New("Timeout"):
 		default:
 		}
 		err := <-result
@@ -95,7 +96,7 @@ func ReadWithTimeout(reader io.Reader, n uint32, timeout time.Duration) ([]byte,
 	}
 }
 
-// handle lookup request
+// LookupHandler handle lookup request
 func (p *LookupService) LookupHandler(s net.Stream) {
 	defer s.Close()
 	pid := s.Conn().RemotePeer()
@@ -126,6 +127,7 @@ func (p *LookupService) LookupHandler(s net.Stream) {
 	p.node.routeTable.Update(pid)
 }
 
+// WriteWithTimeout write data using a timeout
 func WriteWithTimeout(writer io.Writer, data []byte, timeout time.Duration) error {
 	result := make(chan error, 1)
 	go func(writer io.Writer, data []byte) {
@@ -137,7 +139,7 @@ func WriteWithTimeout(writer io.Writer, data []byte, timeout time.Duration) erro
 		return err
 	case <-time.After(timeout):
 		select {
-		case result <- errors.New("Timeout!"):
+		case result <- errors.New("Timeout"):
 		default:
 		}
 		err := <-result

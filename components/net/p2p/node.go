@@ -29,6 +29,7 @@ import (
 	"time"
 
 	"errors"
+
 	"github.com/libp2p/go-libp2p-crypto"
 	"github.com/libp2p/go-libp2p-kbucket"
 	"github.com/libp2p/go-libp2p-peer"
@@ -39,9 +40,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-/*
-	the node can be used as both the client and the server
-*/
+// Node the node can be used as both the client and the server
 type Node struct {
 	host       *basichost.BasicHost
 	id         peer.ID
@@ -52,7 +51,7 @@ type Node struct {
 	running    bool
 }
 
-// start a local node and join the node to network
+// NewNode start a local node and join the node to network
 func NewNode(config *Config) (*Node, error) {
 
 	node := &Node{}
@@ -68,7 +67,7 @@ func NewNode(config *Config) (*Node, error) {
 	return node, nil
 }
 
-// start the node and say hello to bootNodes, then start node discovery service
+// Start start the node and say hello to bootNodes, then start node discovery service
 func (node *Node) Start() error {
 
 	log.Info("Start: node create success...")
@@ -83,7 +82,7 @@ func (node *Node) Start() error {
 	node.RegisterLookupService()
 
 	var wg sync.WaitGroup
-	for _, bootNode := range node.config.bootNodes {
+	for _, bootNode := range node.config.BootNodes {
 		wg.Add(1)
 		go func(bootNode multiaddr.Multiaddr) {
 			defer wg.Done()
@@ -101,8 +100,8 @@ func (node *Node) Start() error {
 	}()
 
 	log.Infof("Start: node start and join to p2p network success and listening for connections on port %d... ", node.config.Port)
-	select {}
 
+	return nil
 }
 
 func (node *Node) makeHost() error {
@@ -168,7 +167,7 @@ func (node *Node) makeHost() error {
 	return err
 }
 
-// Say hello to trustedNode
+// SayHello Say hello to trustedNode
 func (node *Node) SayHello(bootNode multiaddr.Multiaddr) error {
 	bootAddr, bootID, err := parseAddressFromMultiaddr(bootNode)
 	if err != nil {

@@ -16,74 +16,63 @@
 // along with the go-nebulas library.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-package keystore
+package test
 
 import (
 	"crypto/rand"
+	"github.com/nebulasio/go-nebulas/crypto/keystore"
 	"github.com/nebulasio/go-nebulas/crypto/keystore/ecdsa"
-	"github.com/nebulasio/go-nebulas/crypto/keystore/key"
-	"github.com/nebulasio/go-nebulas/util/byteutils"
 	"testing"
 )
 
 func TestKeystore_SetKeyPassphrase(t *testing.T) {
 	priv, _ := ecdsa.NewPrivateKey(rand.Reader)
 
-	ks := NewKeystore()
+	ks := keystore.NewKeystore()
 
-	alias := key.Alias("test_alias")
+	alias := "test_alias"
 
 	kpri := ecdsa.NewPrivateStoreKey(priv)
-	err := ks.SetKeyPassphrase(alias, kpri, []byte("paeeword"))
+	err := ks.SetKey(alias, kpri, []byte("paeeword"))
 	if err != nil {
 		t.Errorf("SetKeyPassphrase failed:%s", err)
-	}
-}
-
-func TestKeystore_SetKey(t *testing.T) {
-	ks := NewKeystore()
-
-	alias := key.Alias("test_alias")
-
-	err := ks.SetKey(alias, []byte{})
-	if err != nil {
-		t.Errorf("SetKey failed:%s", err)
 	}
 }
 
 func TestKeystore_GetKey(t *testing.T) {
 	priv, _ := ecdsa.NewPrivateKey(rand.Reader)
 
-	ks := NewKeystore()
+	ks := keystore.NewKeystore()
 
-	alias := key.Alias("test_alias")
+	alias := "test_alias"
+
+	passphrase := []byte("password")
 
 	kpri := ecdsa.NewPrivateStoreKey(priv)
-	kdata, _ := kpri.Encoded()
-	err := ks.SetKeyPassphrase(alias, kpri, []byte("password"))
+	err := ks.SetKey(alias, kpri, passphrase)
 	if err != nil {
 		t.Errorf("SetKeyPassphrase failed:%s", err)
 	}
-	pass, pErr := key.NewPassphrase([]byte("password"))
-	if pErr != nil {
-		t.Errorf("NewPassphrase failed:%s", pErr)
+	key, err := ks.GetKey(alias, passphrase)
+	if err != nil {
+		t.Errorf("getkey failed:%s", err)
 	}
-	key, err := ks.GetKey(alias, pass)
-	data, _ := key.Encoded()
-	if !byteutils.Equal(kdata, data) {
-		t.Errorf("GetKey err")
+	if key == nil {
+		t.Errorf("getkey failed")
 	}
+
 }
 
 func TestKeystore_ContainsAlias(t *testing.T) {
 	priv, _ := ecdsa.NewPrivateKey(rand.Reader)
 
-	ks := NewKeystore()
+	ks := keystore.NewKeystore()
 
-	alias := key.Alias("test_alias")
+	alias := "test_alias"
+	passphrase := []byte("password")
 
 	kpri := ecdsa.NewPrivateStoreKey(priv)
-	err := ks.SetKeyPassphrase(alias, kpri, []byte("password"))
+	err := ks.SetKey(alias, kpri, passphrase)
 	if err != nil {
 		t.Errorf("SetKeyPassphrase failed:%s", err)
 	}
@@ -96,12 +85,13 @@ func TestKeystore_ContainsAlias(t *testing.T) {
 func TestKeystore_Delete(t *testing.T) {
 	priv, _ := ecdsa.NewPrivateKey(rand.Reader)
 
-	alias := key.Alias("test_alias")
+	alias := "test_alias"
+	passphrase := []byte("password")
 
-	ks := NewKeystore()
+	ks := keystore.NewKeystore()
 
 	kpri := ecdsa.NewPrivateStoreKey(priv)
-	err := ks.SetKeyPassphrase(alias, kpri, []byte("password"))
+	err := ks.SetKey(alias, kpri, passphrase)
 	if err != nil {
 		t.Errorf("SetKeyPassphrase failed:%s", err)
 	}

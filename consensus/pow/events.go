@@ -18,6 +18,7 @@
 
 package pow
 
+// Event list of PoW State-Machine
 const (
 	TimeoutEvent  = "timeout"
 	StoppingEvent = "stopping"

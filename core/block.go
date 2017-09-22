@@ -34,18 +34,18 @@ const (
 	// BlockHashLength define a const of the length of Hash of Block in byte.
 	BlockHashLength = 32
 
-	// BlockReward. TODO: block reward should calculates dynamic.
+	// BlockReward given to coinbase
+	// TODO: block reward should calculates dynamic.
 	BlockReward = 16
 )
 
+// Errors in block
 var (
 	ErrInvalidBlockHash      = errors.New("invalid block hash")
 	ErrInvalidBlockStateRoot = errors.New("invalid block state root hash")
 )
 
-/*
-BlockHeader type.
-*/
+// BlockHeader of a block
 type BlockHeader struct {
 	hash       Hash
 	parentHash Hash
@@ -55,7 +55,7 @@ type BlockHeader struct {
 	timestamp  time.Time
 }
 
-type BHStream struct {
+type blockHeaderStream struct {
 	Hash       []byte
 	ParentHash []byte
 	StateRoot  []byte
@@ -67,7 +67,7 @@ type BHStream struct {
 // Serialize Block to bytes
 func (b *BlockHeader) Serialize() ([]byte, error) {
 	serializer := &byteutils.JSONSerializer{}
-	data := BHStream{
+	data := blockHeaderStream{
 		b.hash,
 		b.parentHash,
 		b.stateRoot,
@@ -81,7 +81,7 @@ func (b *BlockHeader) Serialize() ([]byte, error) {
 // Deserialize a block
 func (b *BlockHeader) Deserialize(blob []byte) error {
 	serializer := &byteutils.JSONSerializer{}
-	var data BHStream
+	var data blockHeaderStream
 	if err := serializer.Deserialize(blob, &data); err != nil {
 		return err
 	}
@@ -94,19 +94,16 @@ func (b *BlockHeader) Deserialize(blob []byte) error {
 	return nil
 }
 
-/*
-Block type.
-*/
+// Block structure
 type Block struct {
 	header       *BlockHeader
 	transactions Transactions
 
-	sealed          bool
-	height          uint64
-	parenetBlock    *Block
-	stateTrie       *trie.Trie
-	txPool          *TransactionPool
-	parentStateRoot []byte
+	sealed       bool
+	height       uint64
+	parenetBlock *Block
+	stateTrie    *trie.Trie
+	txPool       *TransactionPool
 }
 
 // Serialize Block to bytes
@@ -123,7 +120,6 @@ func (block *Block) Serialize() ([]byte, error) {
 		return nil, err
 	}
 	data = append(data, tir)
-	data = append(data, block.parentStateRoot)
 	return serializer.Serialize(data)
 }
 
@@ -134,18 +130,14 @@ func (block *Block) Deserialize(blob []byte) error {
 	if err := serializer.Deserialize(blob, &data); err != nil {
 		return err
 	}
+
 	block.sealed = true
 	block.header = &BlockHeader{}
 	if err := block.header.Deserialize(data[0]); err != nil {
 		return err
 	}
-	if err := block.transactions.Deserialize(data[1]); err != nil {
-		return err
-	}
-	if err := serializer.Deserialize(data[2], &block.parentStateRoot); err != nil {
-		return err
-	}
-	return nil
+
+	return block.transactions.Deserialize(data[1])
 }
 
 // NewBlock return new block.
@@ -176,6 +168,14 @@ func (block *Block) SetNonce(nonce uint64) {
 		panic("Sealed block can't be changed.")
 	}
 	block.header.nonce = nonce
+}
+
+// SetTimestamp set timestamp
+func (block *Block) SetTimestamp(timestamp time.Time) {
+	if block.sealed {
+		panic("Sealed block can't be changed.")
+	}
+	block.header.timestamp = timestamp
 }
 
 // Hash return block hash.
@@ -222,9 +222,6 @@ func (block *Block) LinkParentBlock(parentBlock *Block) bool {
 		panic("clone state trie from parent block fail.")
 	}
 
-	sr := stateTrie.RootHash()
-	log.Debugf("STATEROOT - LINK: %s [%v] vs. [%v]", block.header.hash.Hex(), byteutils.Hex(sr), byteutils.Hex(block.parentStateRoot))
-
 	block.stateTrie = stateTrie
 	block.parenetBlock = parentBlock
 
@@ -269,11 +266,8 @@ func (block *Block) Seal() {
 		return
 	}
 
-	sr := block.stateTrie.RootHash()
-	block.parentStateRoot = sr
 	block.header.hash = HashBlock(block)
 	block.header.stateRoot = HashBlockStateRoot(block)
-	log.Debugf("STATEROOT - SEAL: %s from [%v] to [%v]", block.header.hash.Hex(), byteutils.Hex(sr), block.header.stateRoot)
 
 	block.sealed = true
 }

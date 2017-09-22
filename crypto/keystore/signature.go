@@ -24,7 +24,7 @@ type Signature interface {
 	// InitSign this object for signing. If this method is called
 	// again with a different argument, it negates the effect
 	// of this call.
-	InitSign(privateKey []byte) error
+	InitSign(privateKey PrivateKey) error
 
 	// Sign returns the signature bytes of all the data input.
 	// The format of the signature depends on the underlying
@@ -34,7 +34,7 @@ type Signature interface {
 	// InitVerify initializes this object for verification. If this method is called
 	// again with a different argument, it negates the effect
 	// of this call.
-	InitVerify(publicKey []byte) error
+	InitVerify(publicKey PublicKey) error
 
 	// Verify the passed-in signature.
 	//

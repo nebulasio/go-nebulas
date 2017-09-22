@@ -19,29 +19,9 @@
 package byteutils
 
 import (
-	"bytes"
-	"compress/gzip"
-	"io/ioutil"
-
 	"github.com/golang/protobuf/proto"
-	"github.com/nebulasio/go-nebulas/common/rlp"
 	json "github.com/pquerna/ffjson/ffjson"
 )
-
-// RLPSerializer implements ethereum rlp algorithm
-// not support map
-// not support int, use uint instead
-type RLPSerializer struct{}
-
-// Serialize converts struct or array into rlp encoding bytes.
-func (s *RLPSerializer) Serialize(val interface{}) ([]byte, error) {
-	return rlp.EncodeToBytes(val)
-}
-
-// Deserialize converts rlp encoding bytes into struct or array.
-func (s *RLPSerializer) Deserialize(val []byte, res interface{}) error {
-	return rlp.DecodeBytes(val, res)
-}
 
 // JSONSerializer implements conversion between bytes and json string.
 type JSONSerializer struct{}
@@ -67,28 +47,4 @@ func (s *ProtoSerializer) Serialize(val proto.Message) ([]byte, error) {
 // Deserialize converts byte into proto message.
 func (s *ProtoSerializer) Deserialize(val []byte, res proto.Message) error {
 	return proto.Unmarshal(val, res)
-}
-
-func compress(val []byte) ([]byte, error) {
-	var b bytes.Buffer
-	gz := gzip.NewWriter(&b)
-	if _, err := gz.Write(val); err != nil {
-		return nil, err
-	}
-	if err := gz.Flush(); err != nil {
-		return nil, err
-	}
-	if err := gz.Close(); err != nil {
-		return nil, err
-	}
-	return b.Bytes(), nil
-}
-
-func uncompress(val []byte) ([]byte, error) {
-	source := bytes.NewReader(val)
-	reader, err := gzip.NewReader(source)
-	if err != nil {
-		return nil, err
-	}
-	return ioutil.ReadAll(reader)
 }

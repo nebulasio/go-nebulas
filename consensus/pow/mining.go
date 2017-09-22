@@ -24,6 +24,7 @@ import (
 	"github.com/nebulasio/go-nebulas/util/byteutils"
 
 	log "github.com/sirupsen/logrus"
+	"time"
 )
 
 const (
@@ -99,7 +100,8 @@ func (state *MiningState) searchingNonce() {
 
 				// compute hash..
 				miningBlock.SetNonce(nonce)
-				resultBytes := HashAndVerifyNonce(miningBlock, nonce)
+				miningBlock.SetTimestamp(time.Now())
+				resultBytes := HashAndVerify(miningBlock)
 
 				if resultBytes != nil {
 					log.WithFields(log.Fields{

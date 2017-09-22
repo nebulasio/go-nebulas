@@ -23,14 +23,15 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type P2pManager struct {
+// Manager is used to manage the p2p network
+type Manager struct {
 	config     *Config
 	dispatcher *net.Dispatcher
 	node       *Node
 }
 
-// NewP2pManager create P2pManager instance.
-func NewP2pManager(config *Config) *P2pManager {
+// NewManager create Manager instance.
+func NewManager(config *Config) *Manager {
 	if config == nil {
 		config = DefautConfig()
 	}
@@ -39,7 +40,7 @@ func NewP2pManager(config *Config) *P2pManager {
 		log.Error("NewP2pManager: node create fail...", err)
 	}
 
-	np := &P2pManager{
+	np := &Manager{
 		config:     config,
 		dispatcher: net.NewDispatcher(),
 		node:       n,
@@ -49,33 +50,33 @@ func NewP2pManager(config *Config) *P2pManager {
 }
 
 // Register register the subscribers.
-func (np *P2pManager) Register(subscribers ...*net.Subscriber) {
+func (np *Manager) Register(subscribers ...*net.Subscriber) {
 	np.dispatcher.Register(subscribers...)
 }
 
 // Deregister Deregister the subscribers.
-func (np *P2pManager) Deregister(subscribers ...*net.Subscriber) {
+func (np *Manager) Deregister(subscribers ...*net.Subscriber) {
 	np.dispatcher.Deregister(subscribers...)
 }
 
 // Start start p2p manager.
-func (np *P2pManager) Start() {
+func (np *Manager) Start() {
 	np.node.Start()
 	np.dispatcher.Start()
 }
 
 // Stop stop p2p manager.
-func (np *P2pManager) Stop() {
+func (np *Manager) Stop() {
 	np.dispatcher.Stop()
 }
 
 // PutMessage put message to dispatcher.
-func (np *P2pManager) PutMessage(msg net.Message) {
+func (np *Manager) PutMessage(msg net.Message) {
 	np.dispatcher.PutMessage(msg)
 }
 
-func (np *P2pManager) BroadcastBlock(block interface{}) {
-
+// BroadcastBlock broadcast block message
+func (np *Manager) BroadcastBlock(block interface{}) {
 	//TODO: broadcast block via underlying network lib to whole network.
 	np.node.Broadcast(block)
 }

@@ -21,7 +21,10 @@ package pow
 import (
 	"github.com/nebulasio/go-nebulas/consensus"
 	"github.com/nebulasio/go-nebulas/core"
+	"github.com/nebulasio/go-nebulas/crypto/keystore"
 	log "github.com/sirupsen/logrus"
+	"math/rand"
+	"time"
 )
 
 const (
@@ -45,21 +48,50 @@ func (state *PrepareState) Event(e consensus.Event) (bool, consensus.State) {
 	return false, nil
 }
 
+func randomTx(from *core.Address) *core.Transaction {
+
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+	idx := r.Intn(3)
+	for {
+		if idx > 0 {
+			break
+		} else {
+			idx = rand.Intn(2)
+		}
+	}
+	alias, _, _ := keystore.DefaultKS.GetKeyByIndex(idx)
+	to, _ := core.Parse(alias)
+
+	value := rand.Uint64() % 5
+
+	tx := core.NewTransaction(*from, *to, value, 0, nil)
+	tx.Sign()
+	return tx
+}
+
 // Enter called when transiting to this state.
 func (state *PrepareState) Enter(data interface{}) {
 	log.Debug("PrepareState enter.")
 
 	p := state.p
 
-	addr, _ := core.NewAddress([]byte{223, 77, 34, 97, 20, 18, 19, 45, 62, 155, 211, 34, 248, 46, 41, 64, 103, 78, 193, 188})
+	//TODO(larry.wang):later remove test address
+	alias, _, _ := keystore.DefaultKS.GetKeyByIndex(0)
+	addr, _ := core.Parse(alias)
 
 	if p.miningBlock == nil {
 		// start mining from chain tail.
 		p.miningBlock = state.p.chain.NewBlock(addr)
+		//TODO(larry.wang):test trans
+		tx := randomTx(addr)
+		p.miningBlock.AddTransactions(tx)
 	} else if p.miningBlock.Sealed() {
 		// start mining from local minted block.
 		parentBlock := p.miningBlock
 		p.miningBlock = state.p.chain.NewBlockFromParent(addr, parentBlock)
+		//TODO(larry.wang):test trans
+		tx := randomTx(addr)
+		p.miningBlock.AddTransactions(tx)
 	}
 
 	// move to mining state.

@@ -78,7 +78,12 @@ An extended address is generated through addition of 2-byte extended verificatio
 	The Wallet App verifies the consistency between the wallet address and the nickname in order to avoid the circumstance that Bob enters the account number of another user by mistake.
 */
 type Address struct {
-	address []byte
+	address Hash
+}
+
+// ToHex convert address to hex
+func (a *Address) ToHex() string {
+	return string(a.address.Hex())
 }
 
 // NewAddress create new #Address according to data bytes.
@@ -90,6 +95,12 @@ func NewAddress(s []byte) (*Address, error) {
 
 	cs := checkSum(s)
 	return &Address{address: append(s, cs...)}, nil
+}
+
+// NewAddressFromPublicKey return new address from publickey bytes
+func NewAddressFromPublicKey(s []byte) (*Address, error) {
+	hash := hash.Sha3256(s)
+	return NewAddress(hash[len(hash)-AddressDataLength:])
 }
 
 // Parse parse address string.

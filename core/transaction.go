@@ -26,7 +26,6 @@ import (
 	"github.com/nebulasio/go-nebulas/crypto/hash"
 	"github.com/nebulasio/go-nebulas/crypto/keystore"
 	"github.com/nebulasio/go-nebulas/crypto/keystore/ecdsa"
-	"github.com/nebulasio/go-nebulas/crypto/keystore/key"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
 	log "github.com/sirupsen/logrus"
 )
@@ -40,6 +39,9 @@ var (
 
 	// ErrInvalidTransactionHash invalid hash.
 	ErrInvalidTransactionHash = errors.New("invalid transaction hash")
+
+	// ErrFromAddressLocked from address locked.
+	ErrFromAddressLocked = errors.New("from address locked")
 )
 
 // Transaction type is used to handle all transaction data.
@@ -56,7 +58,7 @@ type Transaction struct {
 	sign Hash
 }
 
-type TxStream struct {
+type txStream struct {
 	Hash  []byte
 	From  []byte
 	To    []byte
@@ -64,12 +66,13 @@ type TxStream struct {
 	Nonce uint64
 	Time  int64
 	Data  []byte
+	Sign  []byte
 }
 
 // Serialize a transaction
 func (tx *Transaction) Serialize() ([]byte, error) {
 	serializer := &byteutils.JSONSerializer{}
-	data := TxStream{
+	data := txStream{
 		tx.hash,
 		tx.from.address,
 		tx.to.address,
@@ -77,6 +80,7 @@ func (tx *Transaction) Serialize() ([]byte, error) {
 		tx.nonce,
 		tx.timestamp.UnixNano(),
 		tx.data,
+		tx.sign,
 	}
 	return serializer.Serialize(data)
 }
@@ -84,7 +88,7 @@ func (tx *Transaction) Serialize() ([]byte, error) {
 // Deserialize a transaction
 func (tx *Transaction) Deserialize(blob []byte) error {
 	serializer := &byteutils.JSONSerializer{}
-	var data TxStream
+	var data txStream
 	if err := serializer.Deserialize(blob, &data); err != nil {
 		return err
 	}
@@ -95,6 +99,7 @@ func (tx *Transaction) Deserialize(blob []byte) error {
 	tx.nonce = data.Nonce
 	tx.timestamp = time.Unix(0, data.Time)
 	tx.data = data.Data
+	tx.sign = data.Sign
 	return nil
 }
 
@@ -151,24 +156,19 @@ func (tx *Transaction) Hash() Hash {
 }
 
 // Sign sign transaction.
-func (tx *Transaction) Sign(ks *keystore.Keystore, passphrase []byte) error {
-	// TODO(larry.wang):impl sign ,change input to context ,keystore in context
+func (tx *Transaction) Sign() error {
 	tx.hash = HashTransaction(tx)
-	passparam, err := key.NewPassphrase(passphrase)
+	key, err := keystore.DefaultKS.GetUnlocked(tx.from.ToHex())
 	if err != nil {
-		return err
-	}
-	alias := key.Alias(string(tx.from.address))
-	key, err := ks.GetKey(alias, passparam)
-	if err != nil {
+		log.WithFields(log.Fields{
+			"func": "Transaction.Sign",
+			"err":  ErrInvalidTransactionHash,
+			"tx":   tx,
+		}).Error("from address locked")
 		return err
 	}
 	signer := &ecdsa.Signature{}
-	priv, err := key.Encoded()
-	if err != nil {
-		return err
-	}
-	signer.InitSign(priv)
+	signer.InitSign(key.(keystore.PrivateKey))
 	signature, err := signer.Sign(tx.hash)
 	if err != nil {
 		return err
@@ -189,8 +189,13 @@ func (tx *Transaction) Verify() error {
 		return ErrInvalidTransactionHash
 	}
 
-	// TODO: verify signature and from address.
-
+	signVerify, err := tx.VerifySign()
+	if err != nil {
+		return err
+	}
+	if !signVerify {
+		return errors.New("Transaction verifySign failed")
+	}
 	return nil
 }
 
@@ -203,7 +208,22 @@ func (tx *Transaction) VerifySign() (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	return ecdsa.Verify(tx.hash, tx.sign, pub), nil
+	pubdata, err := ecdsa.FromPublicKey(pub)
+	if err != nil {
+		return false, err
+	}
+	addr, err := NewAddressFromPublicKey(pubdata)
+	if err != nil {
+		return false, err
+	}
+	if !byteutils.Equal(addr.address, tx.from.address) {
+		return false, errors.New("recover publickey not related to from address")
+	}
+	verify := ecdsa.Verify(tx.hash, tx.sign, pub)
+	if verify == false {
+		return false, errors.New("recover cover verify failed")
+	}
+	return true, nil
 }
 
 // Execute execute transaction, eg. transfer Nas, call smart contract.
@@ -228,6 +248,15 @@ func (tx *Transaction) Execute(stateTrie *trie.Trie) error {
 
 	stateTrie.Put(tx.from.address, byteutils.FromUint64(fromBalance))
 	stateTrie.Put(tx.to.address, byteutils.FromUint64(toBalance))
+
+	log.WithFields(log.Fields{
+		"from":            tx.from.address.Hex(),
+		"fromOrigBalance": fromOrigBalance,
+		"fromBalance":     fromBalance,
+		"to":              tx.to.address.Hex(),
+		"toOrigBalance":   toOriginBalance,
+		"toBalance":       toBalance,
+	}).Debug("execute transaction.")
 
 	return nil
 }

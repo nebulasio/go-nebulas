@@ -28,6 +28,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// Errors in PoW Consensus
 var (
 	ErrInvalidDataType   = errors.New("invalid data type, should be *core.Block")
 	ErrInvalidBlockNonce = errors.New("invalid block nonce")
@@ -47,7 +48,6 @@ Prepare --> [*] : stop
 Mining --> [*] : stop
 Minted --> [*] : stop
 @enduml
-
 */
 type Pow struct {
 	quitCh chan bool
@@ -159,7 +159,7 @@ func (p *Pow) VerifyBlock(block *core.Block) error {
 		return ErrInvalidDataType
 	}
 
-	ret := HashAndVerifyNonce(block, block.Nonce())
+	ret := HashAndVerify(block)
 	if ret == nil {
 		log.WithFields(log.Fields{
 			"func":  "Pow.VerifyBlock",

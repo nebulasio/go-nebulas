@@ -19,6 +19,8 @@
 package p2p
 
 import (
+	"time"
+
 	"github.com/libp2p/go-libp2p-net"
 	"github.com/libp2p/go-libp2p-peer"
 	nnet "github.com/nebulasio/go-nebulas/components/net"
@@ -26,24 +28,26 @@ import (
 	"github.com/nebulasio/go-nebulas/core"
 	b "github.com/nebulasio/go-nebulas/util/byteutils"
 	log "github.com/sirupsen/logrus"
-	"time"
 )
 
 const blockProtocolID = "/nebulas/block/1.0.0"
 
+// BlockMsgService blockMsgService is a service for send block msg
 type BlockMsgService struct {
 	node *Node
-	np   *P2pManager
+	np   *Manager
 }
 
-func (np *P2pManager) RegisterBlockMsgService() *BlockMsgService {
+// RegisterBlockMsgService register blockMsgService handle
+func (np *Manager) RegisterBlockMsgService() *BlockMsgService {
 	bs := &BlockMsgService{np.node, np}
 	np.node.host.SetStreamHandler(blockProtocolID, np.BlockMsgHandler)
 	log.Infof("RegisterBlockMsgService: node register block message service success...")
 	return bs
 }
 
-func (np *P2pManager) BlockMsgHandler(s net.Stream) {
+// BlockMsgHandler handle when block msg arrived
+func (np *Manager) BlockMsgHandler(s net.Stream) {
 	defer s.Close()
 	log.Info("BlockMsgHandler: handle block msg ")
 	timeout := 30 * time.Second
@@ -57,13 +61,14 @@ func (np *P2pManager) BlockMsgHandler(s net.Stream) {
 	block := new(core.Block)
 	err = block.Deserialize(data)
 	if err != nil {
-		log.Error("BlockMsgHandler: handle block msg occurs error ", err)
+		log.Error("BlockMsgHandler: handle block msg occurs error: ", err)
 	}
 	msg := messages.NewBaseMessage(nnet.MessageTypeNewBlock, block)
 	log.Info("BlockMsgHandler: handle block msg -> ", msg)
 	np.PutMessage(msg)
 }
 
+// SendBlock send block message
 func (node *Node) SendBlock(msg *core.Block, pid peer.ID) {
 
 	log.Info("SendBlock: send block msg to", pid, msg)

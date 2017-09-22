@@ -20,15 +20,16 @@ package p2p
 
 import (
 	"context"
+	"math/rand"
+	"time"
+
 	"github.com/libp2p/go-libp2p-peer"
 	"github.com/libp2p/go-libp2p-peerstore"
 	log "github.com/sirupsen/logrus"
-	"math/rand"
-	"time"
 )
 
 /*
-node can discover other node or can be discovered by another node
+Discovery node can discover other node or can be discovered by another node
 and then update the routing table.
 */
 func (node *Node) Discovery(ctx context.Context) {
@@ -63,33 +64,33 @@ func (node *Node) syncRoutingTable() {
 	}
 
 	for i := 0; i < nodeAccount; i++ {
-		nodeId := allNode[randomList[i]]
-		if !asked[nodeId] {
-			asked[nodeId] = true
+		nodeID := allNode[randomList[i]]
+		if !asked[nodeID] {
+			asked[nodeID] = true
 			go func() {
-				node.syncSingleNode(nodeId)
+				node.syncSingleNode(nodeID)
 			}()
 		}
 	}
 }
 
 // sync single node routing table by peer.ID
-func (node *Node) syncSingleNode(nodeId peer.ID) {
+func (node *Node) syncSingleNode(nodeID peer.ID) {
 	// skip self
-	if nodeId == node.id {
+	if nodeID == node.id {
 		return
 	}
-	nodeInfo := node.peerstore.PeerInfo(nodeId)
+	nodeInfo := node.peerstore.PeerInfo(nodeID)
 	if len(nodeInfo.Addrs) != 0 {
-		node.syncRouteInfoFromSingleNode(nodeId)
+		node.syncRouteInfoFromSingleNode(nodeID)
 	} else {
-		node.routeTable.Remove(nodeId)
+		node.routeTable.Remove(nodeID)
 	}
 }
 
-func (node *Node) syncRouteInfoFromSingleNode(nodeId peer.ID) {
+func (node *Node) syncRouteInfoFromSingleNode(nodeID peer.ID) {
 
-	reply, err := node.Lookup(nodeId)
+	reply, err := node.Lookup(nodeID)
 	if err != nil {
 		log.Errorf("")
 		return

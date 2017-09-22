@@ -19,7 +19,6 @@
 package core
 
 import (
-	"fmt"
 	"reflect"
 	"testing"
 	"time"
@@ -62,9 +61,7 @@ func TestBlockHeader(t *testing.T) {
 				coinbase:   tt.fields.coinbase,
 				timestamp:  tt.fields.timestamp,
 			}
-			ir, err := b.Serialize()
-			fmt.Println(err)
-			fmt.Printf("%v\n", ir)
+			ir, _ := b.Serialize()
 			nb := new(BlockHeader)
 			nb.Deserialize(ir)
 			b.timestamp = nb.timestamp
@@ -128,9 +125,7 @@ func TestBlock_Deserialize(t *testing.T) {
 				header:       tt.fields.header,
 				transactions: tt.fields.transactions,
 			}
-			ir, err := b.Serialize()
-			fmt.Println(err)
-			fmt.Printf("%v\n", ir)
+			ir, _ := b.Serialize()
 			nb := new(Block)
 			nb.Deserialize(ir)
 			b.header.timestamp = nb.header.timestamp

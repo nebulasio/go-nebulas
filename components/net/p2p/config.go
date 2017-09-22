@@ -19,25 +19,27 @@
 package p2p
 
 import (
-	"github.com/multiformats/go-multiaddr"
 	"time"
+
+	"github.com/multiformats/go-multiaddr"
 )
 
 /*
-the config is used to start a local node.
+Config config is used to start a local node.
 */
 type Config struct {
 	bucketsize   int
 	latency      time.Duration
-	bootNodes    []multiaddr.Multiaddr
+	BootNodes    []multiaddr.Multiaddr
 	IP           string
-	Port         uint16
+	Port         uint
 	Randseed     int64
 	maxSyncNodes int
 }
 
+// DefautConfig defautConfig is the p2p network defaut config
 func DefautConfig() *Config {
-	//bootNode, err:= multiaddr.NewMultiaddr("/ip4/127.0.0.1/tcp/9999/ipfs/QmYiAecoMfkTroY87LkPFXfNJ2tpJ7M1PHPdPNhonXEBLm")
+	//bootNode, err:= multiaddr.NewMultiaddr("/ip4/192.168.2.148/tcp/9999/ipfs/QmYiAecoMfkTroY87LkPFXfNJ2tpJ7M1PHPdPNhonXEBLm")
 	//if err != nil {
 	//	return nil
 	//}

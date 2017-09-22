@@ -195,7 +195,7 @@ func (pool *BlockPool) addBlock(block *Block) error {
 
 	// found in BlockChain, then we can verify the state root, and tell the Consensus all the tails.
 	// performance depth-first search to verify state root, and get all tails.
-	allBlocks, tailBlocks := lb.dfs(parentBlock)
+	allBlocks, tailBlocks := lb.getTailsWithPath(parentBlock)
 	bc.PutVerifiedNewBlocks(allBlocks, tailBlocks)
 
 	// remove allBlocks from cache.
@@ -223,12 +223,12 @@ func newLinkedBlock(block *Block) *linkedBlock {
 	}
 }
 
-func (block *linkedBlock) LinkParent(parentBlock *linkedBlock) {
-	block.parentBlock = parentBlock
-	parentBlock.childBlocks[block.hash.Hex()] = block
+func (lb *linkedBlock) LinkParent(parentBlock *linkedBlock) {
+	lb.parentBlock = parentBlock
+	parentBlock.childBlocks[lb.hash.Hex()] = lb
 }
 
-func (lb *linkedBlock) dfs(parentBlock *Block) ([]*Block, []*Block) {
+func (lb *linkedBlock) getTailsWithPath(parentBlock *Block) ([]*Block, []*Block) {
 	if lb.block.LinkParentBlock(parentBlock) == false {
 		log.WithFields(log.Fields{
 			"func":        "linkedBlock.dfs",
@@ -256,7 +256,7 @@ func (lb *linkedBlock) dfs(parentBlock *Block) ([]*Block, []*Block) {
 	}
 
 	for _, clb := range lb.childBlocks {
-		a, b := clb.dfs(lb.block)
+		a, b := clb.getTailsWithPath(lb.block)
 		if a != nil && b != nil {
 			allBlocks = append(allBlocks, a...)
 			tailBlocks = append(tailBlocks, b...)

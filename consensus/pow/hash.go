@@ -20,13 +20,11 @@ package pow
 
 import (
 	"github.com/nebulasio/go-nebulas/core"
-	"github.com/nebulasio/go-nebulas/crypto/hash"
-	"github.com/nebulasio/go-nebulas/util/byteutils"
 )
 
-// HashAndVerifyNonce return hash result if nonce is satisfied hash requirements.
-func HashAndVerifyNonce(block *core.Block, nonce uint64) []byte {
-	ret := hash.Sha256(block.ParentHash(), byteutils.FromUint64(nonce))
+// HashAndVerify return hash result if all requirements are met
+func HashAndVerify(block *core.Block) []byte {
+	ret := core.HashBlock(block)
 	if ret[0] == 0 && ret[1] == 0 && ret[2] == 0 {
 		return ret
 	}

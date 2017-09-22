@@ -20,8 +20,8 @@ package keystore
 
 import (
 	"errors"
-	"github.com/nebulasio/go-nebulas/crypto/keystore/ecdsa"
-	"github.com/nebulasio/go-nebulas/crypto/keystore/key"
+	"sync"
+	"time"
 )
 
 const (
@@ -30,8 +30,13 @@ const (
 )
 
 var (
+	// DefaultKS generate a default keystore
+	DefaultKS = NewKeystore()
+)
+
+var (
 	// ErrUninitialized uninitialized provider error.
-	ErrUninitialized = errors.New("keystore: uninitialized the provider")
+	ErrUninitialized = errors.New("uninitialized the provider")
 )
 
 // Keystore class represents a storage facility for cryptographic keys
@@ -39,27 +44,25 @@ type Keystore struct {
 
 	// keystore provider
 	p Provider
+
+	// unlocked aliases，as map range returns unordered
+	unlockedalias []string
+
+	// unlocked map
+	unlocked map[string]Key
+
+	mu sync.RWMutex
 }
 
 // NewKeystore new
 func NewKeystore() *Keystore {
-	return NewKeystoreType(KeystoreTypeDefault)
-}
-
-// NewKeystoreType new keystore with type
-func NewKeystoreType(t string) *Keystore {
-	ks := &Keystore{}
-	switch t {
-	case KeystoreTypeDefault:
-		ks.p = ecdsa.NewProvider(1.0)
-	default:
-		ks.p = ecdsa.NewProvider(1.0)
-	}
+	ks := &Keystore{unlockedalias: []string{}, unlocked: make(map[string]Key)}
+	ks.p = NewMemoryProvider(1.0)
 	return ks
 }
 
 // Aliases lists all the alias names of this keystore.
-func (ks *Keystore) Aliases() ([]key.Alias, error) {
+func (ks *Keystore) Aliases() ([]string, error) {
 	if ks.p == nil {
 		return nil, ErrUninitialized
 	}
@@ -67,79 +70,87 @@ func (ks *Keystore) Aliases() ([]key.Alias, error) {
 }
 
 // ContainsAlias checks if the given alias exists in this keystore.
-func (ks *Keystore) ContainsAlias(a key.Alias) (bool, error) {
+func (ks *Keystore) ContainsAlias(a string) (bool, error) {
 	if ks.p == nil {
 		return false, ErrUninitialized
 	}
 	return ks.p.ContainsAlias(a)
 }
 
-// SetKeyPassphrase assigns the given key to the given alias, protecting it with the given passphrase.
-func (ks *Keystore) SetKeyPassphrase(a key.Alias, k key.Key, passphrase []byte) error {
+// SetKey assigns the given key to the given alias, protecting it with the given passphrase.
+func (ks *Keystore) SetKey(a string, k Key, passphrase []byte) error {
 	if ks.p == nil {
 		return ErrUninitialized
 	}
-	return ks.p.SetKeyPassphrase(a, k, passphrase)
+	//TODO(larry.wang):lock k before provider SetKey call
+	return ks.p.SetKey(a, k)
 }
 
-// SetKey assigns the given key (that has already been protected) to the given alias.
-func (ks *Keystore) SetKey(a key.Alias, d []byte) error {
-	if ks.p == nil {
-		return ErrUninitialized
+// Unlock unlock key with ProtectionParameter
+func (ks *Keystore) Unlock(alias string, passphrase []byte, timeout time.Duration) error {
+	key, err := ks.p.GetKey(alias)
+	if err != nil {
+		return err
 	}
-	return ks.p.SetKey(a, d)
+	ks.mu.Lock()
+	defer ks.mu.Unlock()
+
+	unlocked := false
+	for _, a := range ks.unlockedalias {
+		if a == alias {
+			unlocked = true
+			break
+		}
+	}
+	// if alias has not unlocked
+	if !unlocked {
+		ks.unlockedalias = append(ks.unlockedalias, alias)
+	}
+	//TODO(larry.wang):unlock k
+	ks.unlocked[alias] = key
+	return nil
+}
+
+// GetUnlocked returns a unlocked key
+func (ks *Keystore) GetUnlocked(alias string) (Key, error) {
+	if len(alias) == 0 {
+		return nil, errors.New("need alias")
+	}
+	for a := range ks.unlocked {
+		if a == alias {
+			return ks.unlocked[a], nil
+		}
+	}
+	return nil, errors.New("not find key")
+}
+
+// GetKeyByIndex returns the key associated with the given index in unlocked
+func (ks *Keystore) GetKeyByIndex(idx int) (string, Key, error) {
+	if idx < 0 || idx > len(ks.unlocked) {
+		return "", nil, errors.New("index out of range")
+	}
+	alias := ks.unlockedalias[idx]
+	return alias, ks.unlocked[alias], nil
 }
 
 // GetKey returns the key associated with the given alias, using the given
 // password to recover it.
-func (ks *Keystore) GetKey(a key.Alias, p key.ProtectionParameter) (key.Key, error) {
+func (ks *Keystore) GetKey(a string, passphrase []byte) (Key, error) {
 	if ks.p == nil {
 		return nil, ErrUninitialized
 	}
-	return ks.p.GetKey(a, p)
+	key, err := ks.p.GetKey(a)
+	if err != nil {
+		return nil, err
+	}
+	//TODO(larry.wang):unlock k after get from provider
+	return key, nil
 }
 
 // Delete the entry identified by the given alias from this keystore.
-func (ks *Keystore) Delete(a key.Alias) error {
+func (ks *Keystore) Delete(a string) error {
 	if ks.p == nil {
 		return ErrUninitialized
 	}
 	return ks.p.Delete(a)
-}
-
-// Load this KeyStore from the given input stream.
-func (ks *Keystore) Load(d []byte, passphrase []byte) error {
-	if ks.p == nil {
-		return ErrUninitialized
-	}
-	ks.p.Load(d, passphrase)
-	return nil
-}
-
-// LoadFile load this KeyStore from the given file path
-func (ks *Keystore) LoadFile(f string, passphrase []byte) error {
-	if ks.p == nil {
-		return ErrUninitialized
-	}
-	ks.p.LoadFile(f, passphrase)
-	return nil
-}
-
-// Store this keystore to the output stream, and protects its
-// integrity with the given password.
-func (ks *Keystore) Store(passphrase []byte) (out []byte, err error) {
-	if ks.p == nil {
-		return nil, ErrUninitialized
-	}
-	return ks.p.Store(passphrase)
-}
-
-// StoreFile this keystore to the given file, and protects its
-// integrity with the given password.
-func (ks *Keystore) StoreFile(f string, passphrase []byte) error {
-	if ks.p == nil {
-		return ErrUninitialized
-	}
-	ks.p.StoreFile(f, passphrase)
-	return nil
 }

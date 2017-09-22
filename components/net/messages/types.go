@@ -24,23 +24,28 @@ import (
 	"github.com/nebulasio/go-nebulas/components/net"
 )
 
+// BaseMessage base message
 type BaseMessage struct {
 	t    net.MessageType
 	data interface{}
 }
 
+// NewBaseMessage new base message
 func NewBaseMessage(t net.MessageType, data interface{}) net.Message {
 	return &BaseMessage{t: t, data: data}
 }
 
+// MessageType get message type
 func (msg *BaseMessage) MessageType() net.MessageType {
 	return msg.t
 }
 
+// Data get the message data
 func (msg *BaseMessage) Data() interface{} {
 	return msg.data
 }
 
+// String get the message to string
 func (msg *BaseMessage) String() string {
 	return fmt.Sprintf("BaseMessage {type:%s; data:%s}",
 		msg.t,
