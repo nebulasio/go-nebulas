@@ -16,10 +16,27 @@
 // along with the go-nebulas library.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-package key
+package keystore
 
 // Key interface
 type Key interface {
+
+	// Algorithm returns the standard algorithm name for this key. For
+	// example, "ECDSA" would indicate that this key is a ECDSA key.
+	Algorithm() string
+}
+
+type PrivateKey interface {
+
+	// Algorithm returns the standard algorithm name for this key. For
+	// example, "ECDSA" would indicate that this key is a ECDSA key.
+	Algorithm() string
+
+	// PublicKey returns publickey
+	PublicKey() PublicKey
+}
+
+type PublicKey interface {
 
 	// Algorithm returns the standard algorithm name for this key. For
 	// example, "ECDSA" would indicate that this key is a ECDSA key.

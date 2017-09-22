@@ -24,11 +24,11 @@ import (
 
 // PublicStoreKey ecdsa publickey
 type PublicStoreKey struct {
-	publickey *ecdsa.PublicKey
+	publickey ecdsa.PublicKey
 }
 
 // NewPublicStoreKey generate PublicStoreKey
-func NewPublicStoreKey(pub *ecdsa.PublicKey) *PublicStoreKey {
+func NewPublicStoreKey(pub ecdsa.PublicKey) *PublicStoreKey {
 	ecdsaPub := &PublicStoreKey{pub}
 	return ecdsaPub
 }
@@ -45,5 +45,10 @@ func (k *PublicStoreKey) Format() string {
 
 // Encoded encoded to byte
 func (k *PublicStoreKey) Encoded() ([]byte, error) {
-	return FromPublicKey(k.publickey)
+	return FromPublicKey(&k.publickey)
+}
+
+// Verify verify ecdsa publickey
+func (k *PublicStoreKey) Verify(hash []byte, signature []byte) (bool, error) {
+	return Verify(hash, signature, &k.publickey), nil
 }

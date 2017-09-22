@@ -18,10 +18,6 @@
 
 package keystore
 
-import (
-	"github.com/nebulasio/go-nebulas/crypto/keystore/key"
-)
-
 // Provider class represents a "provider" for the
 // Security API, where a provider implements some or all parts of
 // Security. Services that a provider may implement include:
@@ -33,38 +29,21 @@ import (
 type Provider interface {
 
 	// Aliases all alias in provider save
-	Aliases() []key.Alias
-
-	// SetKeyPassphrase assigns the given key to the given alias, protecting it with the given passphrase.
-	SetKeyPassphrase(a key.Alias, k key.Key, passphrase []byte) error
+	Aliases() []string
 
 	// SetKey assigns the given key (that has already been protected) to the given alias.
-	SetKey(a key.Alias, val []byte) error
+	SetKey(a string, key Key) error
 
 	// GetKey returns the key associated with the given alias, using the given
 	// password to recover it.
-	GetKey(a key.Alias, p key.ProtectionParameter) (key.Key, error)
+	GetKey(a string) (Key, error)
 
 	// Delete remove key
-	Delete(a key.Alias) error
+	Delete(a string) error
 
 	// ContainsAlias check provider contains key
-	ContainsAlias(a key.Alias) (bool, error)
+	ContainsAlias(a string) (bool, error)
 
 	// Clear all entries in provider
 	Clear() error
-
-	// Load this KeyStore from the given input stream.
-	Load(d []byte, passphrase []byte) error
-
-	// LoadFile loads this KeyStore from the given file path
-	LoadFile(f string, passphrase []byte) error
-
-	// Store this keystore to the output stream, and protects its
-	// integrity with the given password.
-	Store(passphrase []byte) (out []byte, err error)
-
-	// StoreFile stores this keystore to the given file, and protects its
-	// integrity with the given password.
-	StoreFile(f string, passphrase []byte) error
 }
