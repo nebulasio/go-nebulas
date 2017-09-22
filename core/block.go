@@ -178,6 +178,14 @@ func (block *Block) SetNonce(nonce uint64) {
 	block.header.nonce = nonce
 }
 
+// SetTimestamp set timestamp
+func (block *Block) SetTimestamp(timestamp time.Time) {
+	if block.sealed {
+		panic("Sealed block can't be changed.")
+	}
+	block.header.timestamp = timestamp
+}
+
 // Hash return block hash.
 func (block *Block) Hash() Hash {
 	return block.header.hash

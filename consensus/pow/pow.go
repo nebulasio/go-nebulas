@@ -159,7 +159,7 @@ func (p *Pow) VerifyBlock(block *core.Block) error {
 		return ErrInvalidDataType
 	}
 
-	ret := HashAndVerifyNonce(block, block.Nonce())
+	ret := HashAndVerify(block)
 	if ret == nil {
 		log.WithFields(log.Fields{
 			"func":  "Pow.VerifyBlock",
