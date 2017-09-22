@@ -25,9 +25,13 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// Hash by Sha3-256
 type Hash []byte
+
+// HexHash is the hex string of a hash
 type HexHash string
 
+// Consensus interface
 type Consensus interface {
 	VerifyBlock(*Block) error
 }

@@ -57,7 +57,7 @@ func (np *P2pManager) BlockMsgHandler(s net.Stream) {
 	block := new(core.Block)
 	err = block.Deserialize(data)
 	if err != nil {
-		log.Error("BlockMsgHandler: handle block msg occurs error ", err)
+		log.Error("BlockMsgHandler: handle block msg occurs error: ", err)
 	}
 	msg := messages.NewBaseMessage(nnet.MessageTypeNewBlock, block)
 	log.Info("BlockMsgHandler: handle block msg -> ", msg)

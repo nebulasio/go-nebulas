@@ -99,12 +99,11 @@ type Block struct {
 	header       *BlockHeader
 	transactions Transactions
 
-	sealed          bool
-	height          uint64
-	parenetBlock    *Block
-	stateTrie       *trie.Trie
-	txPool          *TransactionPool
-	parentStateRoot []byte
+	sealed       bool
+	height       uint64
+	parenetBlock *Block
+	stateTrie    *trie.Trie
+	txPool       *TransactionPool
 }
 
 // Serialize Block to bytes
@@ -121,7 +120,6 @@ func (block *Block) Serialize() ([]byte, error) {
 		return nil, err
 	}
 	data = append(data, tir)
-	data = append(data, block.parentStateRoot)
 	return serializer.Serialize(data)
 }
 
@@ -138,9 +136,6 @@ func (block *Block) Deserialize(blob []byte) error {
 		return err
 	}
 	if err := block.transactions.Deserialize(data[1]); err != nil {
-		return err
-	}
-	if err := serializer.Deserialize(data[2], &block.parentStateRoot); err != nil {
 		return err
 	}
 	return nil
@@ -228,9 +223,6 @@ func (block *Block) LinkParentBlock(parentBlock *Block) bool {
 		panic("clone state trie from parent block fail.")
 	}
 
-	sr := stateTrie.RootHash()
-	log.Debugf("STATEROOT - LINK: %s [%v] vs. [%v]", block.header.hash.Hex(), byteutils.Hex(sr), byteutils.Hex(block.parentStateRoot))
-
 	block.stateTrie = stateTrie
 	block.parenetBlock = parentBlock
 
@@ -275,11 +267,8 @@ func (block *Block) Seal() {
 		return
 	}
 
-	sr := block.stateTrie.RootHash()
-	block.parentStateRoot = sr
 	block.header.hash = HashBlock(block)
 	block.header.stateRoot = HashBlockStateRoot(block)
-	log.Debugf("STATEROOT - SEAL: %s from [%v] to [%v]", block.header.hash.Hex(), byteutils.Hex(sr), block.header.stateRoot)
 
 	block.sealed = true
 }
