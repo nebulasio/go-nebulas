@@ -98,7 +98,7 @@ func TestKeystore_Delete(t *testing.T) {
 
 	ks.Delete(alias)
 	_, err = ks.ContainsAlias(alias)
-	if err != nil {
+	if err == nil {
 		t.Errorf("ContainsAlias failed:%s", err)
 	}
 }
