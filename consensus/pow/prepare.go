@@ -33,6 +33,7 @@ const (
 )
 
 // PrepareState the initial state of @Pow state machine.
+// TODO(@roy): can be interrupted
 type PrepareState struct {
 	p *Pow
 }

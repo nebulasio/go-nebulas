@@ -39,7 +39,6 @@ type BlockChain struct {
 	txPool           *TransactionPool
 	consensusHandler Consensus
 
-	stateTrie          *trie.Trie
 	cachedBlocks       *lru.Cache
 	detachedTailBlocks *lru.Cache
 }
@@ -60,11 +59,11 @@ func NewBlockChain(chainID int) *BlockChain {
 		txPool:  NewTransactionPool(),
 	}
 
-	bc.stateTrie, _ = trie.NewTrie(nil)
+	stateTrie, _ := trie.NewTrie(nil)
 	bc.cachedBlocks, _ = lru.New(1024)
 	bc.detachedTailBlocks, _ = lru.New(64)
 
-	bc.genesisBlock = NewGenesisBlock(bc.stateTrie)
+	bc.genesisBlock = NewGenesisBlock(stateTrie)
 	bc.tailBlock = bc.genesisBlock
 
 	bc.bkPool.setBlockChain(bc)

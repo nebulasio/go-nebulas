@@ -43,6 +43,7 @@ func (p *Pow) ForkChoice() {
 			maxHeight = h
 			newTailBlock = v
 		}
+		// TODO(@roy): remove unused tail from detachedTails.
 	}
 
 	if newTailBlock == bc.TailBlock() {
