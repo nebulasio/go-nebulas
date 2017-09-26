@@ -52,7 +52,7 @@ vet:
 	go vet $$(go list ./...) 2>&1 | tee ${VET_REPORT}
 
 fmt:
-	go fmt $$(go list ./...)
+	goimports -w $$(go list -f "{{.Dir}}" ./... | grep -v /vendor/)
 
 lint:
 	golint $$(go list ./...) | sed "s:^${BUILD_DIR}/::" | tee ${LINT_REPORT}

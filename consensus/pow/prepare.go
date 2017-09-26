@@ -19,12 +19,13 @@
 package pow
 
 import (
+	"math/rand"
+	"time"
+
 	"github.com/nebulasio/go-nebulas/consensus"
 	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/crypto/keystore"
 	log "github.com/sirupsen/logrus"
-	"math/rand"
-	"time"
 )
 
 const (

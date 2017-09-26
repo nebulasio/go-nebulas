@@ -20,15 +20,16 @@ package main
 
 import (
 	"fmt"
+	"os"
+	"os/signal"
+	"syscall"
+
 	"github.com/nebulasio/go-nebulas/components/net"
 	"github.com/nebulasio/go-nebulas/components/net/messages"
 	"github.com/nebulasio/go-nebulas/consensus"
 	"github.com/nebulasio/go-nebulas/consensus/pow"
 	"github.com/nebulasio/go-nebulas/core"
 	log "github.com/sirupsen/logrus"
-	"os"
-	"os/signal"
-	"syscall"
 )
 
 // GoDummy start dummy network

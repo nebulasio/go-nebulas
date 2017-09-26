@@ -23,8 +23,9 @@ import (
 	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
 
-	log "github.com/sirupsen/logrus"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 )
 
 const (

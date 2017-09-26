@@ -23,8 +23,9 @@ package ecdsa
 import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
-	"github.com/btcsuite/btcd/btcec"
 	"io"
+
+	"github.com/btcsuite/btcd/btcec"
 
 	"encoding/hex"
 	"errors"

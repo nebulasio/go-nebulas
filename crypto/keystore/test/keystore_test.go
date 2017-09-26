@@ -20,9 +20,10 @@ package test
 
 import (
 	"crypto/rand"
+	"testing"
+
 	"github.com/nebulasio/go-nebulas/crypto/keystore"
 	"github.com/nebulasio/go-nebulas/crypto/keystore/ecdsa"
-	"testing"
 )
 
 func TestKeystore_SetKeyPassphrase(t *testing.T) {

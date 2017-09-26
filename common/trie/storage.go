@@ -20,8 +20,9 @@ package trie
 
 import (
 	"errors"
-	"github.com/nebulasio/go-nebulas/util/byteutils"
 	"sync"
+
+	"github.com/nebulasio/go-nebulas/util/byteutils"
 )
 
 // Storage the nodes in trie.
