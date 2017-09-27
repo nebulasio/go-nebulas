@@ -2,6 +2,8 @@
 
 Official Go implementation of the Nebulas protocol.
 
+For the roadmap of Nebulas, please visit the [Roadmap](https://github.com/nebulasio/wiki/blob/master/roadmap.md) page.
+
 For more information of Nebulas protocol, design documents, please refer to our [wiki](https://github.com/nebulasio/wiki).
 
 ## Building from source
@@ -98,4 +100,4 @@ Thanks.
 
 The go-nebulas project is licensed under the [GNU Lesser General Public License Version 3.0 (“LGPL v3”)](https://www.gnu.org/licenses/lgpl-3.0.en.html).
 
-For the more information about licensing, please refer to [Licensing Page](https://github.com/nebulasio/wiki/blob/master/licensing.md).
+For the more information about licensing, please refer to [Licensing](https://github.com/nebulasio/wiki/blob/master/licensing.md) page.
