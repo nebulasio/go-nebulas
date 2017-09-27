@@ -1,0 +1,16 @@
+language: go
+
+go:
+  - 1.9
+
+os:
+  - linux
+
+before_install:
+  - go get github.com/golang/dep/cmd/dep
+
+install:
+  - dep ensure
+
+script:
+  - go test -v ./...
