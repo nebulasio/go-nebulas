@@ -32,7 +32,7 @@ func NewGenesisBlock(stateTrie *trie.Trie) *Block {
 			hash:       make([]byte, BlockHashLength),
 			parentHash: make([]byte, BlockHashLength),
 			coinbase:   &Address{make([]byte, AddressLength)},
-			timestamp:  time.Now(),
+			timestamp:  time.Now().Unix(),
 		},
 		stateTrie: stateTrie,
 		height:    1,

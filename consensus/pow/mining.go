@@ -101,7 +101,7 @@ func (state *MiningState) searchingNonce() {
 
 				// compute hash..
 				miningBlock.SetNonce(nonce)
-				miningBlock.SetTimestamp(time.Now())
+				miningBlock.SetTimestamp(time.Now().Unix())
 				resultBytes := HashAndVerify(miningBlock)
 
 				if resultBytes != nil {

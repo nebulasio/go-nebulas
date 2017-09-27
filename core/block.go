@@ -52,7 +52,7 @@ type BlockHeader struct {
 	stateRoot  Hash
 	nonce      uint64
 	coinbase   *Address
-	timestamp  time.Time
+	timestamp  int64
 }
 
 type blockHeaderStream struct {
@@ -61,7 +61,7 @@ type blockHeaderStream struct {
 	StateRoot  []byte
 	Nonce      uint64
 	CoinBase   []byte
-	Time       int64
+	TimeStamp  int64
 }
 
 // Serialize Block to bytes
@@ -73,7 +73,7 @@ func (b *BlockHeader) Serialize() ([]byte, error) {
 		b.stateRoot,
 		b.nonce,
 		b.coinbase.address,
-		b.timestamp.UnixNano(),
+		b.timestamp,
 	}
 	return serializer.Serialize(data)
 }
@@ -90,7 +90,7 @@ func (b *BlockHeader) Deserialize(blob []byte) error {
 	b.stateRoot = data.StateRoot
 	b.nonce = data.Nonce
 	b.coinbase = &Address{data.CoinBase}
-	b.timestamp = time.Unix(0, data.Time)
+	b.timestamp = data.TimeStamp
 	return nil
 }
 
@@ -147,7 +147,7 @@ func NewBlock(coinbase *Address, parentHash Hash, nonce uint64, stateTrie *trie.
 			parentHash: parentHash,
 			coinbase:   coinbase,
 			nonce:      nonce,
-			timestamp:  time.Now(),
+			timestamp:  time.Now().Unix(),
 		},
 		transactions: make(Transactions, 0),
 		stateTrie:    stateTrie,
@@ -171,7 +171,7 @@ func (block *Block) SetNonce(nonce uint64) {
 }
 
 // SetTimestamp set timestamp
-func (block *Block) SetTimestamp(timestamp time.Time) {
+func (block *Block) SetTimestamp(timestamp int64) {
 	if block.sealed {
 		panic("Sealed block can't be changed.")
 	}
@@ -279,7 +279,7 @@ func (block *Block) String() string {
 		byteutils.Hex(block.header.parentHash),
 		byteutils.Hex(block.StateRoot()),
 		block.header.nonce,
-		block.header.timestamp.UnixNano(),
+		block.header.timestamp,
 	)
 }
 
@@ -398,7 +398,7 @@ func HashBlock(block *Block) Hash {
 	hasher.Write(block.header.parentHash)
 	hasher.Write(byteutils.FromUint64(block.header.nonce))
 	hasher.Write(block.header.coinbase.address)
-	hasher.Write(byteutils.FromInt64(block.header.timestamp.UnixNano()))
+	hasher.Write(byteutils.FromInt64(block.header.timestamp))
 
 	for _, tx := range block.transactions {
 		hasher.Write(tx.Hash())

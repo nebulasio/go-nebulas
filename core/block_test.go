@@ -31,7 +31,7 @@ func TestBlockHeader(t *testing.T) {
 		stateRoot  Hash
 		nonce      uint64
 		coinbase   *Address
-		timestamp  time.Time
+		timestamp  int64
 	}
 	tests := []struct {
 		name    string
@@ -46,7 +46,7 @@ func TestBlockHeader(t *testing.T) {
 				[]byte("43656"),
 				3546456,
 				&Address{[]byte("hello")},
-				time.Now(),
+				time.Now().Unix(),
 			},
 			false,
 		},
@@ -91,7 +91,7 @@ func TestBlock_Deserialize(t *testing.T) {
 					[]byte("43656"),
 					3546456,
 					&Address{[]byte("hello")},
-					time.Now(),
+					time.Now().Unix(),
 				},
 				Transactions{
 					&Transaction{
