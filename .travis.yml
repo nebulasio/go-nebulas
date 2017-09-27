@@ -1,16 +1,14 @@
 language: go
-
 go:
-  - 1.9
-
+- 1.9
 os:
-  - linux
-
+- linux
 before_install:
-  - go get github.com/golang/dep/cmd/dep
-
+- go get github.com/golang/dep/cmd/dep
 install:
-  - dep ensure
-
+- dep ensure
 script:
-  - go test -v ./...
+- go test -v ./...
+notifications:
+  slack:
+    secure: zgK31lKG7tzw7mQ40tRsGAdkD/XCU1Kbg5v5bLxUywzdaBB07u2jgv1rwFeJ+7IWSwZGIVjf0kR+Pk4iE8q/e/1sE98PApT8SeOSt+DZTtLOjn9dfIOFZPirGc4lEOMZDDWg54mGgmXuGb5KoPXDUHr+JLejrc73ZN2A8nCn324yG3NGBnPQkmYPitBDGBrs8MPYFu9DfACgtvPGgCebRyT6X1KNxMZNsyM7YqXAAR/4n9BiDCPuClbC0Qb1azdtsuBVSwLjJrqy7K0UpSqFvE8vcLRfUCgPy0dGaoier4FI33qnXpR4BHCx2Nd+/5npbObFgjhXkZBOvNQJW0Ll0IVAHzZBqCqThK09tFjfqwamDAbBmKUd51UsqWElXGBM38BTnyzMeCNZSaR8F/SgGZhtODu7hZ/lU+zIC3L4ZJfFiFFBy9LMzax6fAUPy2S8pZvMEnJbVxP7TiX4VlpIMNMVWsIaTNf2IAoxSZJC1QUrExbgKHdxvZtBFuc7FmSjW7vBz6s/c1xD8HtViLfWo3aGKy7ZYu1BpjPd//sC3Xy3+wxizsv6auN7fFpEARwqnitb1DNfBnB2FHOe8mu7YAOx3Zr4SsR9sLMoXknfOr33xsQlyj2PRwkOpDrgxG00SiP7FYzyO7lPh7jNVqecBtk9okC+tGGBAPmkbgBaOOk=
