@@ -25,7 +25,7 @@ import (
 	"github.com/nebulasio/go-nebulas/common/trie"
 	"github.com/nebulasio/go-nebulas/crypto/hash"
 	"github.com/nebulasio/go-nebulas/crypto/keystore"
-	"github.com/nebulasio/go-nebulas/crypto/keystore/ecdsa"
+	"github.com/nebulasio/go-nebulas/crypto/safer"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
 	log "github.com/sirupsen/logrus"
 )
@@ -54,8 +54,9 @@ type Transaction struct {
 	timestamp time.Time
 	data      []byte
 
-	// Signature values
-	sign Hash
+	// Signature
+	alg  uint8 // algorithm
+	sign Hash  // Signature values
 }
 
 type txStream struct {
@@ -66,6 +67,7 @@ type txStream struct {
 	Nonce uint64
 	Time  int64
 	Data  []byte
+	Alg   uint8
 	Sign  []byte
 }
 
@@ -80,6 +82,7 @@ func (tx *Transaction) Serialize() ([]byte, error) {
 		tx.nonce,
 		tx.timestamp.UnixNano(),
 		tx.data,
+		tx.alg,
 		tx.sign,
 	}
 	return serializer.Serialize(data)
@@ -99,6 +102,7 @@ func (tx *Transaction) Deserialize(blob []byte) error {
 	tx.nonce = data.Nonce
 	tx.timestamp = time.Unix(0, data.Time)
 	tx.data = data.Data
+	tx.alg = data.Alg
 	tx.sign = data.Sign
 	return nil
 }
@@ -167,12 +171,12 @@ func (tx *Transaction) Sign() error {
 		}).Error("from address locked")
 		return err
 	}
-	signer := &ecdsa.Signature{}
-	signer.InitSign(key.(keystore.PrivateKey))
-	signature, err := signer.Sign(tx.hash)
+
+	signature, err := safer.Sign(safer.ECDSA, key.(keystore.PrivateKey), tx.hash)
 	if err != nil {
 		return err
 	}
+	tx.alg = safer.ECDSA
 	tx.sign = signature
 	return nil
 }
@@ -204,26 +208,18 @@ func (tx *Transaction) VerifySign() (bool, error) {
 	if len(tx.sign) == 0 {
 		return false, errors.New("Transaction: VerifySign need sign hash")
 	}
-	pub, err := ecdsa.RecoverPublicKey(tx.hash, tx.sign)
+	pub, err := safer.RecoverPub(tx.alg, tx.hash, tx.sign)
 	if err != nil {
 		return false, err
 	}
-	pubdata, err := ecdsa.FromPublicKey(pub)
+	addr, err := NewAddressFromPublicKey(pub)
 	if err != nil {
 		return false, err
 	}
-	addr, err := NewAddressFromPublicKey(pubdata)
-	if err != nil {
-		return false, err
-	}
-	if !byteutils.Equal(addr.address, tx.from.address) {
+	if !tx.from.Equals(*addr) {
 		return false, errors.New("recover publickey not related to from address")
 	}
-	verify := ecdsa.Verify(tx.hash, tx.sign, pub)
-	if verify == false {
-		return false, errors.New("recover cover verify failed")
-	}
-	return true, nil
+	return safer.Verify(tx.alg, tx.hash, tx.sign, pub)
 }
 
 // Execute execute transaction, eg. transfer Nas, call smart contract.

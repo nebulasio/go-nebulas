@@ -86,6 +86,11 @@ func (a *Address) ToHex() string {
 	return string(a.address.Hex())
 }
 
+// Equals compare two Address. True is equal, otherwise false.
+func (a *Address) Equals(b Address) bool {
+	return a.address.Equals(b.address)
+}
+
 // NewAddress create new #Address according to data bytes.
 func NewAddress(s []byte) (*Address, error) {
 	if len(s) != AddressDataLength {
