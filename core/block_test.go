@@ -22,6 +22,7 @@ import (
 	"reflect"
 	"testing"
 	"time"
+	"github.com/nebulasio/go-nebulas/crypto/safer"
 )
 
 func TestBlockHeader(t *testing.T) {
@@ -102,6 +103,7 @@ func TestBlock_Deserialize(t *testing.T) {
 						456,
 						time.Now(),
 						[]byte("hwllo"),
+						safer.ECDSA,
 						nil,
 					},
 					&Transaction{
@@ -112,6 +114,7 @@ func TestBlock_Deserialize(t *testing.T) {
 						456,
 						time.Now(),
 						[]byte("hwllo"),
+						safer.ECDSA,
 						nil,
 					},
 				},
