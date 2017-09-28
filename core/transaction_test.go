@@ -22,7 +22,8 @@ import (
 	"reflect"
 	"testing"
 	"time"
-	"github.com/nebulasio/go-nebulas/crypto/safer"
+
+	"github.com/nebulasio/go-nebulas/crypto/cipher"
 )
 
 func TestTransaction(t *testing.T) {
@@ -91,7 +92,7 @@ func TestTransactions(t *testing.T) {
 					456,
 					time.Now(),
 					[]byte("hwllo"),
-					safer.ECDSA,
+					uint8(cipher.SECP256K1),
 					nil,
 				},
 				&Transaction{
@@ -102,7 +103,7 @@ func TestTransactions(t *testing.T) {
 					456,
 					time.Now(),
 					[]byte("hwllo"),
-					safer.ECDSA,
+					uint8(cipher.SECP256K1),
 					nil,
 				},
 			},

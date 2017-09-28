@@ -38,11 +38,6 @@ func (k *PublicStoreKey) Algorithm() string {
 	return "ecdsa"
 }
 
-// Format formate
-func (k *PublicStoreKey) Format() string {
-	return "byte"
-}
-
 // Encoded encoded to byte
 func (k *PublicStoreKey) Encoded() ([]byte, error) {
 	return FromPublicKey(&k.publickey)

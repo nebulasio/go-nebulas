@@ -23,9 +23,9 @@ import (
 	"time"
 
 	"github.com/nebulasio/go-nebulas/common/trie"
+	"github.com/nebulasio/go-nebulas/crypto/cipher"
 	"github.com/nebulasio/go-nebulas/crypto/hash"
 	"github.com/nebulasio/go-nebulas/crypto/keystore"
-	"github.com/nebulasio/go-nebulas/crypto/safer"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
 	log "github.com/sirupsen/logrus"
 )
@@ -172,12 +172,18 @@ func (tx *Transaction) Sign() error {
 		return err
 	}
 
-	signature, err := safer.Sign(safer.ECDSA, key.(keystore.PrivateKey), tx.hash)
+	alg := cipher.SECP256K1
+	signature, err := cipher.GetSignature(alg)
 	if err != nil {
 		return err
 	}
-	tx.alg = safer.ECDSA
-	tx.sign = signature
+	signature.InitSign(key.(keystore.PrivateKey))
+	sign, err := signature.Sign(tx.hash)
+	if err != nil {
+		return err
+	}
+	tx.alg = uint8(alg)
+	tx.sign = sign
 	return nil
 }
 
@@ -198,28 +204,36 @@ func (tx *Transaction) Verify() error {
 		return err
 	}
 	if !signVerify {
-		return errors.New("Transaction verifySign failed")
+		return errors.New("verifySign failed")
 	}
 	return nil
 }
 
-// VerifySign tx
+// VerifySign verify the transaction sign
 func (tx *Transaction) VerifySign() (bool, error) {
 	if len(tx.sign) == 0 {
-		return false, errors.New("Transaction: VerifySign need sign hash")
+		return false, errors.New("VerifySign need sign hash")
 	}
-	pub, err := safer.RecoverPub(tx.alg, tx.hash, tx.sign)
+	signature, err := cipher.GetSignature(cipher.Algorithm(tx.alg))
 	if err != nil {
 		return false, err
 	}
-	addr, err := NewAddressFromPublicKey(pub)
+	pub, err := signature.RecoverPublic(tx.hash, tx.sign)
+	if err != nil {
+		return false, err
+	}
+	pubdata, err := pub.Encoded()
+	if err != nil {
+		return false, err
+	}
+	addr, err := NewAddressFromPublicKey(pubdata)
 	if err != nil {
 		return false, err
 	}
 	if !tx.from.Equals(*addr) {
-		return false, errors.New("recover publickey not related to from address")
+		return false, errors.New("recover public key not related to from address")
 	}
-	return safer.Verify(tx.alg, tx.hash, tx.sign, pub)
+	return signature.Verify(tx.hash, tx.sign)
 }
 
 // Execute execute transaction, eg. transfer Nas, call smart contract.

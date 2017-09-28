@@ -44,10 +44,6 @@ type PublicKey interface {
 	// example, "ECDSA" would indicate that this key is a ECDSA key.
 	Algorithm() string
 
-	// Format returns the name of the primary encoding format of this key,
-	// or null if this key does not support encoding.
-	Format() string
-
 	// Encoded returns the key in its primary encoding format, or null
 	// if this key does not support encoding.
 	Encoded() ([]byte, error)

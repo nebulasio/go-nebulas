@@ -31,6 +31,9 @@ type Signature interface {
 	// signature scheme.
 	Sign(data []byte) (out []byte, err error)
 
+	// RecoverPublic returns a public key, which is recoverd by data and signature
+	RecoverPublic(data []byte, signature []byte) (PublicKey, error)
+
 	// InitVerify initializes this object for verification. If this method is called
 	// again with a different argument, it negates the effect
 	// of this call.
