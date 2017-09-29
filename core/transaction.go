@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"github.com/nebulasio/go-nebulas/common/trie"
+	"github.com/nebulasio/go-nebulas/core/pb"
 	"github.com/nebulasio/go-nebulas/crypto/hash"
 	"github.com/nebulasio/go-nebulas/crypto/keystore"
 	"github.com/nebulasio/go-nebulas/crypto/keystore/ecdsa"
@@ -58,84 +59,42 @@ type Transaction struct {
 	sign Hash
 }
 
-type txStream struct {
-	Hash  []byte
-	From  []byte
-	To    []byte
-	Value uint64
-	Nonce uint64
-	Time  int64
-	Data  []byte
-	Sign  []byte
-}
-
-// Serialize a transaction
+// Serialize Transaction
 func (tx *Transaction) Serialize() ([]byte, error) {
-	serializer := &byteutils.JSONSerializer{}
-	data := txStream{
-		tx.hash,
-		tx.from.address,
-		tx.to.address,
-		tx.value,
-		tx.nonce,
-		tx.timestamp.UnixNano(),
-		tx.data,
-		tx.sign,
+	serializer := &byteutils.ProtoSerializer{}
+	proto := &core_pb.Transaction{
+		Hash:      tx.hash,
+		From:      tx.from.address,
+		To:        tx.to.address,
+		Value:     tx.value,
+		Nonce:     tx.nonce,
+		Timestamp: tx.timestamp.UnixNano(),
+		Data:      tx.data,
+		Sign:      tx.sign,
 	}
-	return serializer.Serialize(data)
+	return serializer.Serialize(proto)
 }
 
-// Deserialize a transaction
+// Deserialize Transaction
 func (tx *Transaction) Deserialize(blob []byte) error {
-	serializer := &byteutils.JSONSerializer{}
-	var data txStream
-	if err := serializer.Deserialize(blob, &data); err != nil {
+	serializer := &byteutils.ProtoSerializer{}
+	proto := new(core_pb.Transaction)
+	if err := serializer.Deserialize(blob, proto); err != nil {
 		return err
 	}
-	tx.hash = data.Hash
-	tx.from = Address{data.From}
-	tx.to = Address{data.To}
-	tx.value = data.Value
-	tx.nonce = data.Nonce
-	tx.timestamp = time.Unix(0, data.Time)
-	tx.data = data.Data
-	tx.sign = data.Sign
+	tx.hash = proto.Hash
+	tx.from = Address{proto.From}
+	tx.to = Address{proto.To}
+	tx.value = proto.Value
+	tx.nonce = proto.Nonce
+	tx.timestamp = time.Unix(0, proto.Timestamp)
+	tx.data = proto.Data
+	tx.sign = proto.Sign
 	return nil
 }
 
 // Transactions is an alias of Transaction array.
 type Transactions []*Transaction
-
-// Serialize txs
-func (txs *Transactions) Serialize() ([]byte, error) {
-	var data [][]byte
-	serializer := &byteutils.JSONSerializer{}
-	for _, v := range *txs {
-		ir, err := v.Serialize()
-		if err != nil {
-			return nil, err
-		}
-		data = append(data, ir)
-	}
-	return serializer.Serialize(data)
-}
-
-// Deserialize txs
-func (txs *Transactions) Deserialize(blob []byte) error {
-	var data [][]byte
-	serializer := &byteutils.JSONSerializer{}
-	if err := serializer.Deserialize(blob, &data); err != nil {
-		return err
-	}
-	for _, v := range data {
-		tx := &Transaction{}
-		if err := tx.Deserialize(v); err != nil {
-			return err
-		}
-		*txs = append(*txs, tx)
-	}
-	return nil
-}
 
 // NewTransaction create #Transaction instance.
 func NewTransaction(from, to Address, value uint64, nonce uint64, data []byte) *Transaction {

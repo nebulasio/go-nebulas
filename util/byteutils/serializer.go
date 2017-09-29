@@ -19,7 +19,7 @@
 package byteutils
 
 import (
-	"github.com/golang/protobuf/proto"
+	"github.com/gogo/protobuf/proto"
 	json "github.com/pquerna/ffjson/ffjson"
 )
 
@@ -40,11 +40,11 @@ func (s *JSONSerializer) Deserialize(val []byte, res interface{}) error {
 type ProtoSerializer struct{}
 
 // Serialize converts proto message to bytes.
-func (s *ProtoSerializer) Serialize(val proto.Message) ([]byte, error) {
-	return proto.Marshal(val)
+func (s *ProtoSerializer) Serialize(val interface{}) ([]byte, error) {
+	return proto.Marshal(val.(proto.Message))
 }
 
 // Deserialize converts byte into proto message.
-func (s *ProtoSerializer) Deserialize(val []byte, res proto.Message) error {
-	return proto.Unmarshal(val, res)
+func (s *ProtoSerializer) Deserialize(val []byte, res interface{}) error {
+	return proto.Unmarshal(val, res.(proto.Message))
 }

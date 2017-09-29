@@ -16,16 +16,29 @@
 // along with the go-nebulas library.  If not, see <http://www.gnu.org/licenses/>.
 //
 syntax = "proto3";
-package pb;
+package core.pb;
 
-// Message is a sample proto buffer message for test purpose.
-message Message {
-	message Body {
-		repeated string val = 3;
-	}
-	string name = 1;
-	fixed64 time = 2;
-	repeated string tags = 3;
-	map<fixed32, string> map = 4;
-	repeated Body body = 5;
+message Transaction {
+    bytes hash  = 1;
+    bytes from = 2;
+    bytes to = 3;
+    uint64 value = 4;
+    uint64 nonce = 5;
+    int64 timestamp = 6;
+    bytes data = 7;
+    bytes sign = 8;
+}
+
+message BlockHeader {
+    bytes hash = 1;
+    bytes parentHash = 2;
+    bytes stateRoot = 3;
+    uint64 nonce = 4;
+    bytes coinbase = 5;
+    int64 timestamp = 6;
+}
+
+message Block {
+    bytes header = 1;
+    repeated bytes transactions = 2;
 }

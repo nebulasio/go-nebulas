@@ -24,6 +24,7 @@ import (
 	"time"
 
 	"github.com/nebulasio/go-nebulas/common/trie"
+	"github.com/nebulasio/go-nebulas/core/pb"
 	"golang.org/x/crypto/sha3"
 
 	"github.com/nebulasio/go-nebulas/util/byteutils"
@@ -55,42 +56,33 @@ type BlockHeader struct {
 	timestamp  int64
 }
 
-type blockHeaderStream struct {
-	Hash       []byte
-	ParentHash []byte
-	StateRoot  []byte
-	Nonce      uint64
-	CoinBase   []byte
-	TimeStamp  int64
-}
-
-// Serialize Block to bytes
+// Serialize domain BlockHeader
 func (b *BlockHeader) Serialize() ([]byte, error) {
-	serializer := &byteutils.JSONSerializer{}
-	data := blockHeaderStream{
-		b.hash,
-		b.parentHash,
-		b.stateRoot,
-		b.nonce,
-		b.coinbase.address,
-		b.timestamp,
+	serializer := &byteutils.ProtoSerializer{}
+	proto := &core_pb.BlockHeader{
+		Hash:       b.hash,
+		ParentHash: b.parentHash,
+		StateRoot:  b.stateRoot,
+		Nonce:      b.nonce,
+		Coinbase:   b.coinbase.address,
+		Timestamp:  b.timestamp,
 	}
-	return serializer.Serialize(data)
+	return serializer.Serialize(proto)
 }
 
-// Deserialize a block
+// Deserialize domain BlockHeader
 func (b *BlockHeader) Deserialize(blob []byte) error {
-	serializer := &byteutils.JSONSerializer{}
-	var data blockHeaderStream
-	if err := serializer.Deserialize(blob, &data); err != nil {
+	serializer := &byteutils.ProtoSerializer{}
+	proto := new(core_pb.BlockHeader)
+	if err := serializer.Deserialize(blob, proto); err != nil {
 		return err
 	}
-	b.hash = data.Hash
-	b.parentHash = data.ParentHash
-	b.stateRoot = data.StateRoot
-	b.nonce = data.Nonce
-	b.coinbase = &Address{data.CoinBase}
-	b.timestamp = data.TimeStamp
+	b.hash = proto.Hash
+	b.parentHash = proto.ParentHash
+	b.stateRoot = proto.StateRoot
+	b.nonce = proto.Nonce
+	b.coinbase = &Address{proto.Coinbase}
+	b.timestamp = proto.Timestamp
 	return nil
 }
 
@@ -106,38 +98,47 @@ type Block struct {
 	txPool       *TransactionPool
 }
 
-// Serialize Block to bytes
+// Serialize Block
 func (block *Block) Serialize() ([]byte, error) {
-	var data [][]byte
-	serializer := &byteutils.JSONSerializer{}
-	hir, err := block.header.Serialize()
+	serializer := &byteutils.ProtoSerializer{}
+	header, err := block.header.Serialize()
 	if err != nil {
-		return nil, err
+		return nil, nil
 	}
-	data = append(data, hir)
-	tir, err := (&block.transactions).Serialize()
-	if err != nil {
-		return nil, err
+	var txs [][]byte
+	for _, v := range block.transactions {
+		tmp, err := v.Serialize()
+		if err != nil {
+			return nil, nil
+		}
+		txs = append(txs, tmp)
 	}
-	data = append(data, tir)
-	return serializer.Serialize(data)
+	proto := &core_pb.Block{
+		Header:       header,
+		Transactions: txs,
+	}
+	return serializer.Serialize(proto)
 }
 
-// Deserialize a block
+// Deserialize Block
 func (block *Block) Deserialize(blob []byte) error {
-	var data [][]byte
-	serializer := &byteutils.JSONSerializer{}
-	if err := serializer.Deserialize(blob, &data); err != nil {
+	serializer := &byteutils.ProtoSerializer{}
+	proto := new(core_pb.Block)
+	if err := serializer.Deserialize(blob, proto); err != nil {
 		return err
 	}
-
-	block.sealed = true
-	block.header = &BlockHeader{}
-	if err := block.header.Deserialize(data[0]); err != nil {
+	block.header = new(BlockHeader)
+	if err := block.header.Deserialize(proto.Header); err != nil {
 		return err
 	}
-
-	return block.transactions.Deserialize(data[1])
+	for _, v := range proto.Transactions {
+		tx := new(Transaction)
+		if err := tx.Deserialize(v); err != nil {
+			return err
+		}
+		block.transactions = append(block.transactions, tx)
+	}
+	return nil
 }
 
 // NewBlock return new block.
