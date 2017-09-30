@@ -16,7 +16,7 @@
 // along with the go-nebulas library.  If not, see <http://www.gnu.org/licenses/>.
 //
 syntax = "proto3";
-package core.pb;
+package corepb;
 
 message Transaction {
     bytes hash  = 1;

@@ -59,7 +59,7 @@ type BlockHeader struct {
 // Serialize domain BlockHeader
 func (b *BlockHeader) Serialize() ([]byte, error) {
 	serializer := &byteutils.ProtoSerializer{}
-	proto := &core_pb.BlockHeader{
+	proto := &corepb.BlockHeader{
 		Hash:       b.hash,
 		ParentHash: b.parentHash,
 		StateRoot:  b.stateRoot,
@@ -73,7 +73,7 @@ func (b *BlockHeader) Serialize() ([]byte, error) {
 // Deserialize domain BlockHeader
 func (b *BlockHeader) Deserialize(blob []byte) error {
 	serializer := &byteutils.ProtoSerializer{}
-	proto := new(core_pb.BlockHeader)
+	proto := new(corepb.BlockHeader)
 	if err := serializer.Deserialize(blob, proto); err != nil {
 		return err
 	}
@@ -113,7 +113,7 @@ func (block *Block) Serialize() ([]byte, error) {
 		}
 		txs = append(txs, tmp)
 	}
-	proto := &core_pb.Block{
+	proto := &corepb.Block{
 		Header:       header,
 		Transactions: txs,
 	}
@@ -123,7 +123,7 @@ func (block *Block) Serialize() ([]byte, error) {
 // Deserialize Block
 func (block *Block) Deserialize(blob []byte) error {
 	serializer := &byteutils.ProtoSerializer{}
-	proto := new(core_pb.Block)
+	proto := new(corepb.Block)
 	if err := serializer.Deserialize(blob, proto); err != nil {
 		return err
 	}

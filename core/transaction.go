@@ -62,7 +62,7 @@ type Transaction struct {
 // Serialize Transaction
 func (tx *Transaction) Serialize() ([]byte, error) {
 	serializer := &byteutils.ProtoSerializer{}
-	proto := &core_pb.Transaction{
+	proto := &corepb.Transaction{
 		Hash:      tx.hash,
 		From:      tx.from.address,
 		To:        tx.to.address,
@@ -78,7 +78,7 @@ func (tx *Transaction) Serialize() ([]byte, error) {
 // Deserialize Transaction
 func (tx *Transaction) Deserialize(blob []byte) error {
 	serializer := &byteutils.ProtoSerializer{}
-	proto := new(core_pb.Transaction)
+	proto := new(corepb.Transaction)
 	if err := serializer.Deserialize(blob, proto); err != nil {
 		return err
 	}

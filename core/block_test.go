@@ -19,6 +19,10 @@
 package core
 
 import (
+	"fmt"
+	gogoproto "github.com/gogo/protobuf/proto"
+	goproto "github.com/golang/protobuf/proto"
+	"github.com/nebulasio/go-nebulas/core/pb"
 	"reflect"
 	"testing"
 	"time"
@@ -141,5 +145,48 @@ func TestBlock_Deserialize(t *testing.T) {
 				t.Errorf("Transaction.Serialize() = %v, want %v", *b.transactions[1], *nb.transactions[1])
 			}
 		})
+	}
+}
+
+func TestProto_Speed(t *testing.T) {
+	round := 10000
+	msg := &corepb.BlockHeader{
+		Hash:       []byte("1235"),
+		ParentHash: []byte("1234"),
+		StateRoot:  []byte("1233"),
+		Nonce:      42534,
+		Coinbase:   []byte("2345"),
+		Timestamp:  3463465,
+	}
+	start := time.Now().UnixNano()
+	for i := 0; i < round; i++ {
+		ir, _ := msg.Marshal()
+		msg.Unmarshal(ir)
+	}
+	ir1, _ := msg.Marshal()
+	end := time.Now().UnixNano()
+	gogogenDura := end - start
+	start = time.Now().UnixNano()
+	for i := 0; i < round; i++ {
+		ir, _ := goproto.Marshal(msg)
+		goproto.Unmarshal(ir, msg)
+	}
+	ir2, _ := goproto.Marshal(msg)
+	end = time.Now().UnixNano()
+	goDura := end - start
+	start = time.Now().UnixNano()
+	for i := 0; i < round; i++ {
+		ir, _ := gogoproto.Marshal(msg)
+		gogoproto.Unmarshal(ir, msg)
+	}
+	ir3, _ := gogoproto.Marshal(msg)
+	end = time.Now().UnixNano()
+	gogoDura := end - start
+	fmt.Printf("gogogen %v, go %v, gogo %v\n", gogogenDura, goDura, gogoDura)
+	if !reflect.DeepEqual(ir1, ir2) {
+		t.Errorf("Proto %v, want %v", ir1, ir2)
+	}
+	if !reflect.DeepEqual(ir2, ir3) {
+		t.Errorf("Proto %v, want %v", ir2, ir3)
 	}
 }
