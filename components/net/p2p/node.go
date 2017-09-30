@@ -78,8 +78,7 @@ func (node *Node) Start() error {
 	node.running = true
 	log.Info("Start: node start join p2p network...")
 
-	node.RegisterPingService()
-	node.RegisterLookupService()
+	node.RegisterNetService()
 
 	var wg sync.WaitGroup
 	for _, bootNode := range node.config.BootNodes {
@@ -181,7 +180,7 @@ func (node *Node) SayHello(bootNode multiaddr.Multiaddr) error {
 				bootAddr,
 				peerstore.TempAddrTTL,
 			)
-			err := node.Ping(bootID)
+			err := node.Hello(bootID)
 			if err != nil {
 				time.Sleep(time.Second)
 				continue

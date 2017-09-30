@@ -90,7 +90,7 @@ func (node *Node) syncSingleNode(nodeID peer.ID) {
 
 func (node *Node) syncRouteInfoFromSingleNode(nodeID peer.ID) {
 
-	reply, err := node.Lookup(nodeID)
+	reply, err := node.SyncRoutes(nodeID)
 	if err != nil {
 		log.Errorf("")
 		return
@@ -106,7 +106,7 @@ func (node *Node) syncRouteInfoFromSingleNode(nodeID peer.ID) {
 			reply[i].Addrs[0],
 			peerstore.TempAddrTTL,
 		)
-		err := node.Ping(reply[i].ID)
+		err := node.Hello(reply[i].ID)
 		if err != nil {
 			log.Errorf("syncRouteInfoFromSingleNode: ping peer %s fail %s", reply[i].ID, err)
 			continue

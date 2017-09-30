@@ -45,7 +45,6 @@ func NewManager(config *Config) *Manager {
 		dispatcher: net.NewDispatcher(),
 		node:       n,
 	}
-	np.RegisterBlockMsgService()
 	return np
 }
 

@@ -19,32 +19,38 @@
 package p2p
 
 import (
-	"github.com/nebulasio/go-nebulas/core"
+	nnet "github.com/libp2p/go-libp2p-net"
+	peer "github.com/libp2p/go-libp2p-peer"
+	peerstore "github.com/libp2p/go-libp2p-peerstore"
 	log "github.com/sirupsen/logrus"
 )
 
-// Broadcast broadcast block message
-func (node *Node) Broadcast(block interface{}) {
+const ProtocolID = "/neb/1.0.0"
 
-	log.Info("Broadcast: start broadcast...")
-	msg := block.(*core.Block)
-	data, err := msg.Serialize()
-	if err != nil {
-		return
-	}
+type NetService struct {
+	node *Node
+}
 
-	log.Info("Broadcast: start broadcast msg...", msg)
-	allNode := node.routeTable.ListPeers()
+func (node *Node) RegisterNetService() *NetService {
+	ns := &NetService{node}
+	node.host.SetStreamHandler(ProtocolID, ns.msgHandler)
+	log.Infof("NetService: node register net service success...")
+	return ns
+}
 
-	for i := 0; i < len(allNode); i++ {
+func (ns *NetService) msgHandler(s nnet.Stream) {
+	// TODO handle msg coming
+}
 
-		nodeID := allNode[i]
-		if node.id == nodeID {
-			continue
-		}
-		go func() {
-			node.SendMsg(data, nodeID)
-		}()
-	}
+func (node *Node) SendMsg(msg []byte, pid peer.ID) {
+	// TODO Send message
+}
 
+func (node *Node) Hello(pid peer.ID) error {
+	// TODO Say Hello
+	return nil
+}
+
+func (node *Node) SyncRoutes(pid peer.ID) ([]peerstore.PeerInfo, error) {
+	return nil, nil
 }
