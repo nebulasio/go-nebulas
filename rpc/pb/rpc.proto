@@ -1,0 +1,78 @@
+// Copyright (C) 2017 go-nebulas authors
+//
+// This file is part of the go-nebulas library.
+//
+// the go-nebulas library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// the go-nebulas library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with the go-nebulas library.  If not, see <http://www.gnu.org/licenses/>.
+//
+
+syntax = "proto3";
+
+// TODO: test restful endpoints.
+//import "google/api/annotations.proto";
+
+package rpcpb;
+
+// Account related RPCs exported by AccountServer interface.
+service Account {
+	// Returns the balance of the account.
+	rpc GetBalance (GetBalanceRequest) returns (GetBalanceResponse) {
+//		option (google.api.http) = {
+//            get: "/v1/balance"
+//        };
+	}
+
+	rpc SendTransaction (SendTransactionRequest) returns (SendTransactionResponse) {
+//		option (google.api.http) = {
+//            post: "/v1/transaction"
+//            body: "*"
+//        };
+	}
+}
+
+// Request message of GetBalance rpc.
+message GetBalanceRequest {
+	// Hex string of the account addresss.
+	string address = 1;
+
+	// Hex string block number, or one of "latest", "earliest" or "pending". If not specified, use "latest".
+	string block = 2;
+}
+
+// Response message of GetBalance rpc.
+message GetBalanceResponse {
+	// Current balance in unit of 1/(10^8) nas.
+	uint64 value = 1;
+}
+
+// Request message of SendTransaction rpc.
+message SendTransactionRequest {
+	// Hex string of the sender account addresss.
+	string from = 1;
+
+	// Hex string of the receiver account addresss.
+	string to = 2;
+
+	// Amount of value sending with this transaction.
+	uint64 value = 3;
+
+	// TODO: gas provided for the transaction.
+
+	// TODO: contract code bytes or hash.
+}
+
+// Response message of SendTransaction rpc.
+message SendTransactionResponse {
+	// Hex string of transaction hash.
+	string hash = 1;
+}
