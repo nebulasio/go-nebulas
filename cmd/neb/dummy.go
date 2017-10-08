@@ -24,6 +24,7 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/components/net"
 	"github.com/nebulasio/go-nebulas/components/net/messages"
 	"github.com/nebulasio/go-nebulas/consensus"
@@ -94,9 +95,11 @@ func replicateNewBlock(sharedBlockCh chan interface{}, quitCh chan bool, nmCh ch
 			log.Info("replicateNewBlock: repBlockCount = ", count)
 			block := v.(*core.Block)
 			for _, nm := range nms {
-				data, _ := block.Serialize()
+				pb, _ := block.ToProto()
+				data, _ := proto.Marshal(pb)
 				nb := new(core.Block)
-				nb.Deserialize(data)
+				proto.Unmarshal(data, pb)
+				nb.FromProto(pb)
 
 				msg := messages.NewBaseMessage(net.MessageTypeNewBlock, nb)
 				nm.(*net.DummyManager).PutMessage(msg)

@@ -19,11 +19,12 @@
 package core
 
 import (
-	"github.com/gogo/protobuf/proto"
-	"github.com/nebulasio/go-nebulas/core/pb"
 	"reflect"
 	"testing"
 	"time"
+
+	"github.com/gogo/protobuf/proto"
+	"github.com/nebulasio/go-nebulas/core/pb"
 )
 
 func TestTransaction(t *testing.T) {

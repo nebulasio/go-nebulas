@@ -19,10 +19,11 @@
 package core
 
 import (
-	pb "github.com/gogo/protobuf/proto"
 	"reflect"
 	"testing"
 	"time"
+
+	pb "github.com/gogo/protobuf/proto"
 )
 
 func TestBlockHeader(t *testing.T) {
