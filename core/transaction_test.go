@@ -19,6 +19,8 @@
 package core
 
 import (
+	"github.com/gogo/protobuf/proto"
+	"github.com/nebulasio/go-nebulas/core/pb"
 	"reflect"
 	"testing"
 	"time"
@@ -62,10 +64,13 @@ func TestTransaction(t *testing.T) {
 				timestamp: tt.fields.timestamp,
 				data:      tt.fields.data,
 			}
-			ir, _ := tx.Serialize()
+			msg, _ := tx.ToProto()
+			ir, _ := proto.Marshal(msg)
 			ntx := new(Transaction)
-			ntx.Deserialize(ir)
-			tx.timestamp = ntx.timestamp
+			nMsg := new(corepb.Transaction)
+			proto.Unmarshal(ir, nMsg)
+			ntx.FromProto(nMsg)
+			ntx.timestamp = tx.timestamp
 			if !reflect.DeepEqual(tx, ntx) {
 				t.Errorf("Transaction.Serialize() = %v, want %v", *tx, *ntx)
 			}

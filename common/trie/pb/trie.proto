@@ -15,15 +15,9 @@
 // You should have received a copy of the GNU General Public License
 // along with the go-nebulas library.  If not, see <http://www.gnu.org/licenses/>.
 //
+syntax = "proto3";
+package triepb;
 
-package byteutils
-
-// Encoder is encoder for bytes.Encode().
-type Encoder interface {
-	EncodeToBytes(s interface{}) ([]byte, error)
-}
-
-// Decoder is decoder for bytes.Decode().
-type Decoder interface {
-	DecodeFromBytes(data []byte) (interface{}, error)
+message Node {
+    repeated bytes val = 1;
 }

@@ -22,6 +22,7 @@ import (
 	"errors"
 	"time"
 
+	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/common/trie"
 	"github.com/nebulasio/go-nebulas/core/pb"
 	"github.com/nebulasio/go-nebulas/crypto/hash"
@@ -59,10 +60,9 @@ type Transaction struct {
 	sign Hash
 }
 
-// Serialize Transaction
-func (tx *Transaction) Serialize() ([]byte, error) {
-	serializer := &byteutils.ProtoSerializer{}
-	proto := &corepb.Transaction{
+// ToProto converts domain Tx to proto Tx
+func (tx *Transaction) ToProto() (proto.Message, error) {
+	return &corepb.Transaction{
 		Hash:      tx.hash,
 		From:      tx.from.address,
 		To:        tx.to.address,
@@ -71,26 +71,23 @@ func (tx *Transaction) Serialize() ([]byte, error) {
 		Timestamp: tx.timestamp.UnixNano(),
 		Data:      tx.data,
 		Sign:      tx.sign,
-	}
-	return serializer.Serialize(proto)
+	}, nil
 }
 
-// Deserialize Transaction
-func (tx *Transaction) Deserialize(blob []byte) error {
-	serializer := &byteutils.ProtoSerializer{}
-	proto := new(corepb.Transaction)
-	if err := serializer.Deserialize(blob, proto); err != nil {
-		return err
+// FromProto converts proto Tx into domain Tx
+func (tx *Transaction) FromProto(msg proto.Message) error {
+	if msg, ok := msg.(*corepb.Transaction); ok {
+		tx.hash = msg.Hash
+		tx.from = Address{msg.From}
+		tx.to = Address{msg.To}
+		tx.value = msg.Value
+		tx.nonce = msg.Nonce
+		tx.timestamp = time.Unix(0, msg.Timestamp)
+		tx.data = msg.Data
+		tx.sign = msg.Sign
+		return nil
 	}
-	tx.hash = proto.Hash
-	tx.from = Address{proto.From}
-	tx.to = Address{proto.To}
-	tx.value = proto.Value
-	tx.nonce = proto.Nonce
-	tx.timestamp = time.Unix(0, proto.Timestamp)
-	tx.data = proto.Data
-	tx.sign = proto.Sign
-	return nil
+	return errors.New("Pb Message cannot be converted into Transaction")
 }
 
 // Transactions is an alias of Transaction array.

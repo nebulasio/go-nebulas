@@ -39,6 +39,6 @@ message BlockHeader {
 }
 
 message Block {
-    bytes header = 1;
-    repeated bytes transactions = 2;
+    BlockHeader header = 1;
+    repeated Transaction transactions = 2;
 }
