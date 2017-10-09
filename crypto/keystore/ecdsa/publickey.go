@@ -43,6 +43,21 @@ func (k *PublicStoreKey) Encoded() ([]byte, error) {
 	return FromPublicKey(&k.publickey)
 }
 
+// Decode decode data to key
+func (k *PublicStoreKey) Decode(data []byte) error {
+	pub, err := ToPublicKey(data)
+	if err != nil {
+		return err
+	}
+	k.publickey = *pub
+	return nil
+}
+
+// Clear clear key content
+func (k *PublicStoreKey) Clear() {
+	k.publickey = ecdsa.PublicKey{}
+}
+
 // Verify verify ecdsa publickey
 func (k *PublicStoreKey) Verify(hash []byte, signature []byte) (bool, error) {
 	return Verify(hash, signature, &k.publickey), nil

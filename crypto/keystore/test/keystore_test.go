@@ -83,6 +83,29 @@ func TestKeystore_ContainsAlias(t *testing.T) {
 	}
 }
 
+func TestKeystore_Unlock(t *testing.T) {
+	priv, _ := ecdsa.NewPrivateKey(rand.Reader)
+
+	ks := keystore.NewKeystore()
+
+	alias := "test_alias"
+	passphrase := []byte("password")
+
+	kpri := ecdsa.NewPrivateStoreKey(priv)
+	err := ks.SetKey(alias, kpri, passphrase)
+	if err != nil {
+		t.Errorf("SetKeyPassphrase failed:%s", err)
+	}
+	err = ks.Unlock(alias, passphrase, keystore.DefaultUnlockDuration)
+	if err != nil {
+		t.Errorf("Unlock failed:%s", err)
+	}
+	_, err = ks.GetUnlocked(alias)
+	if err != nil {
+		t.Errorf("GetUnlocked failed:%s", err)
+	}
+}
+
 func TestKeystore_Delete(t *testing.T) {
 	priv, _ := ecdsa.NewPrivateKey(rand.Reader)
 

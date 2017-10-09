@@ -113,3 +113,11 @@ func Verify(hash []byte, signature []byte, pub *ecdsa.PublicKey) bool {
 	}
 	return signer.Verify(hash, (*btcec.PublicKey)(pub))
 }
+
+// zeroKey zeroes the private key
+func zeroKey(k *ecdsa.PrivateKey) {
+	b := k.D.Bits()
+	for i := range b {
+		b[i] = 0
+	}
+}

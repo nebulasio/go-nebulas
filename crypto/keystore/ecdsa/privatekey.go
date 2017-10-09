@@ -40,6 +40,26 @@ func (k *PrivateStoreKey) Algorithm() string {
 	return "ecdsa"
 }
 
+// Encoded encoded to byte
+func (k *PrivateStoreKey) Encoded() ([]byte, error) {
+	return FromPrivateKey(k.privateKey)
+}
+
+// Decode decode data to key
+func (k *PrivateStoreKey) Decode(data []byte) error {
+	priv, err := ToPrivateKey(data)
+	if err != nil {
+		return err
+	}
+	k.privateKey = priv
+	return nil
+}
+
+// Clear clear key content
+func (k *PrivateStoreKey) Clear() {
+	zeroKey(k.privateKey)
+}
+
 // PublicKey returns publickey
 func (k *PrivateStoreKey) PublicKey() keystore.PublicKey {
 	return NewPublicStoreKey(k.privateKey.PublicKey)

@@ -21,6 +21,7 @@ package hash
 import (
 	"crypto/sha256"
 
+	keccak "github.com/nebulasio/go-nebulas/crypto/sha3"
 	"golang.org/x/crypto/ripemd160"
 	"golang.org/x/crypto/sha3"
 )
@@ -41,6 +42,15 @@ func Sha3256(args ...[]byte) []byte {
 		hasher.Write(bytes)
 	}
 	return hasher.Sum(nil)
+}
+
+// Keccak256 returns the Keccak-256 digest of the data.
+func Keccak256(data ...[]byte) []byte {
+	d := keccak.NewKeccak256()
+	for _, b := range data {
+		d.Write(b)
+	}
+	return d.Sum(nil)
 }
 
 // Ripemd160 return the RIPEMD160 digest of the data.
