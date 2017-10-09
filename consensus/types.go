@@ -53,7 +53,7 @@ type State interface {
 	Leave(data interface{})
 }
 
-// States contains all possiable states in Consensus State-Machine
+// States contains all possible states in Consensus State-Machine
 type States map[string]State
 
 // BaseEvent is a kind of event structure
