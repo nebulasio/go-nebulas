@@ -33,7 +33,7 @@ func (s *APIService) GetBalance(ctx context.Context, req *rpcpb.GetBalanceReques
 	if len(req.Address) == 0 {
 		return nil, status.Errorf(codes.InvalidArgument, "Address is empty.")
 	}
-	// TODO: Implement real logic -- get balance from block state.
+	// TODO: Invoke core manager to get balance from block state. Remove fake logic.
 	return &rpcpb.GetBalanceResponse{Value: 996}, nil
 }
 
@@ -42,6 +42,6 @@ func (s *APIService) SendTransaction(ctx context.Context, req *rpcpb.SendTransac
 	if len(req.From) == 0 {
 		return nil, status.Errorf(codes.InvalidArgument, "Sender address is empty.")
 	}
-	// TODO: Implement real logic -- sign the tx, and submit it to the tx pool.
+	// TODO: Invoke core manager to validate and sign the tx, then submit it to the tx pool. Remove fake logic.
 	return &rpcpb.SendTransactionResponse{Hash: "0x07"}, nil
 }
