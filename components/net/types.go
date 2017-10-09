@@ -28,7 +28,7 @@ type MessageType string
 
 // Message interface for message.
 type Message interface {
-	MessageType() MessageType
+	MessageType() string
 	Data() interface{}
 }
 
@@ -52,11 +52,11 @@ type Subscriber struct {
 	msgChan chan Message
 
 	// msgType message types to subscribe
-	msgTypes []MessageType
+	msgTypes []string
 }
 
 // NewSubscriber return new Subscriber instance.
-func NewSubscriber(id interface{}, msgChan chan Message, msgTypes ...MessageType) *Subscriber {
+func NewSubscriber(id interface{}, msgChan chan Message, msgTypes ...string) *Subscriber {
 	return &Subscriber{id, msgChan, msgTypes}
 }
 
@@ -66,7 +66,7 @@ func (s *Subscriber) ID() interface{} {
 }
 
 // MessageType return msgTypes.
-func (s *Subscriber) MessageType() []MessageType {
+func (s *Subscriber) MessageType() []string {
 	return s.msgTypes
 }
 

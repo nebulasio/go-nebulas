@@ -19,6 +19,7 @@
 package p2p
 
 import (
+	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/core"
 	log "github.com/sirupsen/logrus"
 )
@@ -28,7 +29,10 @@ func (node *Node) Broadcast(block interface{}) {
 
 	log.Info("Broadcast: start broadcast...")
 	msg := block.(*core.Block)
-	data, err := msg.Serialize()
+	// data, err := msg.Serialize()
+
+	pb, _ := msg.ToProto()
+	data, err := proto.Marshal(pb)
 	if err != nil {
 		return
 	}

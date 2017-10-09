@@ -40,13 +40,22 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+const (
+	S_NC          = -1
+	S_Handshaking = 0
+	S_OK          = 1
+)
+
 // Node the node can be used as both the client and the server
 type Node struct {
 	host       *basichost.BasicHost
 	id         peer.ID
 	peerstore  peerstore.Peerstore
+	conn       map[string]int
 	routeTable *kbucket.RoutingTable
 	context    context.Context
+	chainID    uint32
+	version    uint8
 	config     *Config
 	running    bool
 }
@@ -139,6 +148,8 @@ func (node *Node) makeHost() error {
 	)
 
 	node.routeTable.Update(node.id)
+
+	node.conn = make(map[string]int)
 
 	address, err := multiaddr.NewMultiaddr(
 		fmt.Sprintf(

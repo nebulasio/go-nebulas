@@ -22,7 +22,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type messageSubscriberMap map[MessageType]map[*Subscriber]bool
+type messageSubscriberMap map[string]map[*Subscriber]bool
 
 // Dispatcher a message dispatcher service.
 type Dispatcher struct {

@@ -26,17 +26,17 @@ import (
 
 // BaseMessage base message
 type BaseMessage struct {
-	t    net.MessageType
+	t    string
 	data interface{}
 }
 
 // NewBaseMessage new base message
-func NewBaseMessage(t net.MessageType, data interface{}) net.Message {
+func NewBaseMessage(t string, data interface{}) net.Message {
 	return &BaseMessage{t: t, data: data}
 }
 
 // MessageType get message type
-func (msg *BaseMessage) MessageType() net.MessageType {
+func (msg *BaseMessage) MessageType() string {
 	return msg.t
 }
 
