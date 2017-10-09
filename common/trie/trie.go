@@ -54,6 +54,8 @@ func (n *node) ToProto() (proto.Message, error) {
 
 func (n *node) FromProto(msg proto.Message) error {
 	if msg, ok := msg.(*triepb.Node); ok {
+		n.Bytes, _ = proto.Marshal(msg)
+		n.Hash = hash.Sha3256(n.Bytes)
 		n.Val = msg.Val
 		return nil
 	}
@@ -110,8 +112,6 @@ func (t *Trie) fetchNode(hash []byte) (*node, error) {
 	if err := n.FromProto(pb); err != nil {
 		return nil, err
 	}
-	n.Hash = hash
-	n.Bytes = ir
 	return n, nil
 }
 
