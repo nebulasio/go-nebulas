@@ -25,5 +25,5 @@ import (
 // RPC testing server.
 func main() {
 	s := rpc.NewServer()
-	rpc.StartServer(s)
+	s.Start()
 }
