@@ -23,8 +23,8 @@ syntax = "proto3";
 
 package rpcpb;
 
-// Account related RPCs exported by AccountServer interface.
-service Account {
+// RPC API interface.
+service APIService {
 	// Returns the balance of the account.
 	rpc GetBalance (GetBalanceRequest) returns (GetBalanceResponse) {
 //		option (google.api.http) = {

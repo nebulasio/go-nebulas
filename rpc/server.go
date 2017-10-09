@@ -22,7 +22,7 @@ type Server struct {
 // NewServer creates a new RPC server and register API endpoints.
 func NewServer() *Server {
 	s := grpc.NewServer()
-	rpcpb.RegisterAccountServer(s, &AccountServer{})
+	rpcpb.RegisterAPIServiceServer(s, &APIService{})
 	// Register reflection service on gRPC server.
 	// TODO: Enable reflection only for testing mode.
 	reflection.Register(s)

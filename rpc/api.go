@@ -25,11 +25,11 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-// AccountServer implements the rpc interface.
-type AccountServer struct{}
+// APIService implements the RPC API service interface.
+type APIService struct{}
 
-// GetBalance is the rpc handler.
-func (s *AccountServer) GetBalance(ctx context.Context, req *rpcpb.GetBalanceRequest) (*rpcpb.GetBalanceResponse, error) {
+// GetBalance is the RPC API handler.
+func (s *APIService) GetBalance(ctx context.Context, req *rpcpb.GetBalanceRequest) (*rpcpb.GetBalanceResponse, error) {
 	if len(req.Address) == 0 {
 		return nil, status.Errorf(codes.InvalidArgument, "Address is empty.")
 	}
@@ -37,8 +37,8 @@ func (s *AccountServer) GetBalance(ctx context.Context, req *rpcpb.GetBalanceReq
 	return &rpcpb.GetBalanceResponse{Value: 996}, nil
 }
 
-// SendTransaction is the rpc handler.
-func (s *AccountServer) SendTransaction(ctx context.Context, req *rpcpb.SendTransactionRequest) (*rpcpb.SendTransactionResponse, error) {
+// SendTransaction is the RPC API handler.
+func (s *APIService) SendTransaction(ctx context.Context, req *rpcpb.SendTransactionRequest) (*rpcpb.SendTransactionResponse, error) {
 	if len(req.From) == 0 {
 		return nil, status.Errorf(codes.InvalidArgument, "Sender address is empty.")
 	}

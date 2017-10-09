@@ -27,7 +27,7 @@ import (
 
 func TestGetBalance(t *testing.T) {
 	// TODO: mock service.
-	s := &AccountServer{}
+	s := &APIService{}
 	{
 		req := &rpcpb.GetBalanceRequest{}
 		_, err := s.GetBalance(nil, req)
@@ -42,7 +42,7 @@ func TestGetBalance(t *testing.T) {
 
 func TestSendTransaction(t *testing.T) {
 	// TODO: mock service.
-	s := &AccountServer{}
+	s := &APIService{}
 	{
 		req := &rpcpb.SendTransactionRequest{}
 		_, err := s.SendTransaction(nil, req)

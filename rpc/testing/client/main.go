@@ -35,7 +35,7 @@ func main() {
 	}
 	defer conn.Close()
 
-	ac := rpcpb.NewAccountClient(conn)
+	ac := rpcpb.NewAPIServiceClient(conn)
 
 	{
 		r, err := ac.GetBalance(context.Background(), &rpcpb.GetBalanceRequest{Address: "0x1"})
