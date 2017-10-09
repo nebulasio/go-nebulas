@@ -22,6 +22,9 @@ import (
 	"reflect"
 	"testing"
 	"time"
+
+	"github.com/gogo/protobuf/proto"
+	"github.com/nebulasio/go-nebulas/core/pb"
 )
 
 func TestTransaction(t *testing.T) {
@@ -62,62 +65,15 @@ func TestTransaction(t *testing.T) {
 				timestamp: tt.fields.timestamp,
 				data:      tt.fields.data,
 			}
-			ir, _ := tx.Serialize()
+			msg, _ := tx.ToProto()
+			ir, _ := proto.Marshal(msg)
 			ntx := new(Transaction)
-			ntx.Deserialize(ir)
-			tx.timestamp = ntx.timestamp
+			nMsg := new(corepb.Transaction)
+			proto.Unmarshal(ir, nMsg)
+			ntx.FromProto(nMsg)
+			ntx.timestamp = tx.timestamp
 			if !reflect.DeepEqual(tx, ntx) {
 				t.Errorf("Transaction.Serialize() = %v, want %v", *tx, *ntx)
-			}
-		})
-	}
-}
-
-func TestTransactions(t *testing.T) {
-	tests := []struct {
-		name    string
-		txs     Transactions
-		wantErr bool
-	}{
-		{
-			"full struct",
-			Transactions{
-				&Transaction{
-					[]byte("123455"),
-					Address{[]byte("1235")},
-					Address{[]byte("1245")},
-					123,
-					456,
-					time.Now(),
-					[]byte("hwllo"),
-					nil,
-				},
-				&Transaction{
-					[]byte("123455"),
-					Address{[]byte("1235")},
-					Address{[]byte("1245")},
-					123,
-					456,
-					time.Now(),
-					[]byte("hwllo"),
-					nil,
-				},
-			},
-			false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, _ := tt.txs.Serialize()
-			var txs Transactions
-			(&txs).Deserialize(got)
-			tt.txs[0].timestamp = txs[0].timestamp
-			if !reflect.DeepEqual(tt.txs[0], txs[0]) {
-				t.Errorf("Transactions.Serialize() = %v, want %v", tt.txs[0], txs[0])
-			}
-			tt.txs[1].timestamp = txs[1].timestamp
-			if !reflect.DeepEqual(tt.txs[1], txs[1]) {
-				t.Errorf("Transactions.Serialize() = %v, want %v", tt.txs[1], txs[1])
 			}
 		})
 	}

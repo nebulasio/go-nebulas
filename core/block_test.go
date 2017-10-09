@@ -22,6 +22,8 @@ import (
 	"reflect"
 	"testing"
 	"time"
+
+	pb "github.com/gogo/protobuf/proto"
 )
 
 func TestBlockHeader(t *testing.T) {
@@ -61,9 +63,11 @@ func TestBlockHeader(t *testing.T) {
 				coinbase:   tt.fields.coinbase,
 				timestamp:  tt.fields.timestamp,
 			}
-			ir, _ := b.Serialize()
+			proto, _ := b.ToProto()
+			ir, _ := pb.Marshal(proto)
 			nb := new(BlockHeader)
-			nb.Deserialize(ir)
+			pb.Unmarshal(ir, proto)
+			nb.FromProto(proto)
 			b.timestamp = nb.timestamp
 			if !reflect.DeepEqual(*b, *nb) {
 				t.Errorf("Transaction.Serialize() = %v, want %v", *b, *nb)
@@ -72,7 +76,7 @@ func TestBlockHeader(t *testing.T) {
 	}
 }
 
-func TestBlock_Deserialize(t *testing.T) {
+func TestBlock(t *testing.T) {
 	type fields struct {
 		header       *BlockHeader
 		transactions Transactions
@@ -125,9 +129,11 @@ func TestBlock_Deserialize(t *testing.T) {
 				header:       tt.fields.header,
 				transactions: tt.fields.transactions,
 			}
-			ir, _ := b.Serialize()
+			proto, _ := b.ToProto()
+			ir, _ := pb.Marshal(proto)
 			nb := new(Block)
-			nb.Deserialize(ir)
+			pb.Unmarshal(ir, proto)
+			nb.FromProto(proto)
 			b.header.timestamp = nb.header.timestamp
 			b.transactions[0].timestamp = nb.transactions[0].timestamp
 			b.transactions[1].timestamp = nb.transactions[1].timestamp

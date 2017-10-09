@@ -21,11 +21,13 @@ package p2p
 import (
 	"time"
 
+	"github.com/gogo/protobuf/proto"
 	"github.com/libp2p/go-libp2p-net"
 	"github.com/libp2p/go-libp2p-peer"
 	nnet "github.com/nebulasio/go-nebulas/components/net"
 	"github.com/nebulasio/go-nebulas/components/net/messages"
 	"github.com/nebulasio/go-nebulas/core"
+	"github.com/nebulasio/go-nebulas/core/pb"
 	b "github.com/nebulasio/go-nebulas/util/byteutils"
 	log "github.com/sirupsen/logrus"
 )
@@ -51,16 +53,19 @@ func (np *Manager) BlockMsgHandler(s net.Stream) {
 	defer s.Close()
 	log.Info("BlockMsgHandler: handle block msg ")
 	timeout := 30 * time.Second
-	size, err := ReadWithTimeout(s, 4, timeout)
-	data, err := ReadWithTimeout(
+	size, _ := ReadWithTimeout(s, 4, timeout)
+	data, _ := ReadWithTimeout(
 		s,
 		b.Uint32(size),
 		timeout,
 	)
 
 	block := new(core.Block)
-	err = block.Deserialize(data)
-	if err != nil {
+	pb := new(corepb.Block)
+	if err := proto.Unmarshal(data, pb); err != nil {
+		log.Error("BlockMsgHandler: handle block msg occurs error: ", err)
+	}
+	if err := block.FromProto(pb); err != nil {
 		log.Error("BlockMsgHandler: handle block msg occurs error: ", err)
 	}
 	msg := messages.NewBaseMessage(nnet.MessageTypeNewBlock, block)
@@ -81,8 +86,8 @@ func (node *Node) SendBlock(msg *core.Block, pid peer.ID) {
 
 	//var s b.Serializable = &b.JSONSerializer{}
 	//data, err := s.Serialize(*msg)
-	data, err := msg.Serialize()
-
+	pb, _ := msg.ToProto()
+	data, err := proto.Marshal(pb)
 	if err != nil {
 		return
 	}

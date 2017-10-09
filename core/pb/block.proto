@@ -15,15 +15,30 @@
 // You should have received a copy of the GNU General Public License
 // along with the go-nebulas library.  If not, see <http://www.gnu.org/licenses/>.
 //
+syntax = "proto3";
+package corepb;
 
-package byteutils
-
-// Encoder is encoder for bytes.Encode().
-type Encoder interface {
-	EncodeToBytes(s interface{}) ([]byte, error)
+message Transaction {
+    bytes hash  = 1;
+    bytes from = 2;
+    bytes to = 3;
+    uint64 value = 4;
+    uint64 nonce = 5;
+    int64 timestamp = 6;
+    bytes data = 7;
+    bytes sign = 8;
 }
 
-// Decoder is decoder for bytes.Decode().
-type Decoder interface {
-	DecodeFromBytes(data []byte) (interface{}, error)
+message BlockHeader {
+    bytes hash = 1;
+    bytes parentHash = 2;
+    bytes stateRoot = 3;
+    uint64 nonce = 4;
+    bytes coinbase = 5;
+    int64 timestamp = 6;
+}
+
+message Block {
+    BlockHeader header = 1;
+    repeated Transaction transactions = 2;
 }

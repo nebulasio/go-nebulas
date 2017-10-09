@@ -23,7 +23,9 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/common/trie"
+	"github.com/nebulasio/go-nebulas/core/pb"
 	"golang.org/x/crypto/sha3"
 
 	"github.com/nebulasio/go-nebulas/util/byteutils"
@@ -55,43 +57,30 @@ type BlockHeader struct {
 	timestamp  int64
 }
 
-type blockHeaderStream struct {
-	Hash       []byte
-	ParentHash []byte
-	StateRoot  []byte
-	Nonce      uint64
-	CoinBase   []byte
-	TimeStamp  int64
+// ToProto converts domain BlockHeader to proto BlockHeader
+func (b *BlockHeader) ToProto() (proto.Message, error) {
+	return &corepb.BlockHeader{
+		Hash:       b.hash,
+		ParentHash: b.parentHash,
+		StateRoot:  b.stateRoot,
+		Nonce:      b.nonce,
+		Coinbase:   b.coinbase.address,
+		Timestamp:  b.timestamp,
+	}, nil
 }
 
-// Serialize Block to bytes
-func (b *BlockHeader) Serialize() ([]byte, error) {
-	serializer := &byteutils.JSONSerializer{}
-	data := blockHeaderStream{
-		b.hash,
-		b.parentHash,
-		b.stateRoot,
-		b.nonce,
-		b.coinbase.address,
-		b.timestamp,
+// FromProto converts proto BlockHeader to domain BlockHeader
+func (b *BlockHeader) FromProto(msg proto.Message) error {
+	if msg, ok := msg.(*corepb.BlockHeader); ok {
+		b.hash = msg.Hash
+		b.parentHash = msg.ParentHash
+		b.stateRoot = msg.StateRoot
+		b.nonce = msg.Nonce
+		b.coinbase = &Address{msg.Coinbase}
+		b.timestamp = msg.Timestamp
+		return nil
 	}
-	return serializer.Serialize(data)
-}
-
-// Deserialize a block
-func (b *BlockHeader) Deserialize(blob []byte) error {
-	serializer := &byteutils.JSONSerializer{}
-	var data blockHeaderStream
-	if err := serializer.Deserialize(blob, &data); err != nil {
-		return err
-	}
-	b.hash = data.Hash
-	b.parentHash = data.ParentHash
-	b.stateRoot = data.StateRoot
-	b.nonce = data.Nonce
-	b.coinbase = &Address{data.CoinBase}
-	b.timestamp = data.TimeStamp
-	return nil
+	return errors.New("Pb Message cannot be converted into BlockHeader")
 }
 
 // Block structure
@@ -106,38 +95,44 @@ type Block struct {
 	txPool       *TransactionPool
 }
 
-// Serialize Block to bytes
-func (block *Block) Serialize() ([]byte, error) {
-	var data [][]byte
-	serializer := &byteutils.JSONSerializer{}
-	hir, err := block.header.Serialize()
-	if err != nil {
-		return nil, err
+// ToProto converts domain Block into proto Block
+func (block *Block) ToProto() (proto.Message, error) {
+	header, _ := block.header.ToProto()
+	if header, ok := header.(*corepb.BlockHeader); ok {
+		var txs []*corepb.Transaction
+		for _, v := range block.transactions {
+			tx, _ := v.ToProto()
+			if tx, ok := tx.(*corepb.Transaction); ok {
+				txs = append(txs, tx)
+			} else {
+				return nil, errors.New("Pb Message cannot be converted into Transaction")
+			}
+		}
+		return &corepb.Block{
+			Header:       header,
+			Transactions: txs,
+		}, nil
 	}
-	data = append(data, hir)
-	tir, err := (&block.transactions).Serialize()
-	if err != nil {
-		return nil, err
-	}
-	data = append(data, tir)
-	return serializer.Serialize(data)
+	return nil, errors.New("Pb Message cannot be converted into BlockHeader")
 }
 
-// Deserialize a block
-func (block *Block) Deserialize(blob []byte) error {
-	var data [][]byte
-	serializer := &byteutils.JSONSerializer{}
-	if err := serializer.Deserialize(blob, &data); err != nil {
-		return err
+// FromProto converts proto Block to domain Block
+func (block *Block) FromProto(msg proto.Message) error {
+	if msg, ok := msg.(*corepb.Block); ok {
+		block.header = new(BlockHeader)
+		if err := block.header.FromProto(msg.Header); err != nil {
+			return err
+		}
+		for _, v := range msg.Transactions {
+			tx := new(Transaction)
+			if err := tx.FromProto(v); err != nil {
+				return err
+			}
+			block.transactions = append(block.transactions, tx)
+		}
+		return nil
 	}
-
-	block.sealed = true
-	block.header = &BlockHeader{}
-	if err := block.header.Deserialize(data[0]); err != nil {
-		return err
-	}
-
-	return block.transactions.Deserialize(data[1])
+	return errors.New("Pb Message cannot be converted into Block")
 }
 
 // NewBlock return new block.
