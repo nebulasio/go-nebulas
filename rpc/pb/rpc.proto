@@ -51,8 +51,8 @@ message GetBalanceRequest {
 
 // Response message of GetBalance rpc.
 message GetBalanceResponse {
-	// Current balance in unit of 1/(10^8) nas.
-	uint64 value = 1;
+	// Current balance in unit of 1/(10^18) nas.
+	bytes value = 1; // uint128
 }
 
 // Request message of SendTransaction rpc.
@@ -64,7 +64,7 @@ message SendTransactionRequest {
 	string to = 2;
 
 	// Amount of value sending with this transaction.
-	uint64 value = 3;
+	bytes value = 3; // uint128
 
 	// TODO: gas provided for the transaction.
 

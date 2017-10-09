@@ -21,8 +21,11 @@ package main
 import (
 	"log"
 
+	"math/big"
+
 	"github.com/nebulasio/go-nebulas/rpc"
 	"github.com/nebulasio/go-nebulas/rpc/pb"
+	"github.com/nebulasio/go-nebulas/util"
 	"golang.org/x/net/context"
 )
 
@@ -47,7 +50,9 @@ func main() {
 	}
 
 	{
-		r, err := ac.SendTransaction(context.Background(), &rpcpb.SendTransactionRequest{From: "0x1", To: "0x2", Value: 1})
+		v := util.NewUint128FromBigInt(big.NewInt(1))
+		fsb, _ := v.ToFixedSizeByteSlice()
+		r, err := ac.SendTransaction(context.Background(), &rpcpb.SendTransactionRequest{From: "0x1", To: "0x2", Value: fsb})
 		if err != nil {
 			log.Println("SendTransaction failed: ", err)
 		} else {

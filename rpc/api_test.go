@@ -21,7 +21,10 @@ package rpc
 import (
 	"testing"
 
+	"math/big"
+
 	"github.com/nebulasio/go-nebulas/rpc/pb"
+	"github.com/nebulasio/go-nebulas/util"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -36,7 +39,10 @@ func TestGetBalance(t *testing.T) {
 	{
 		req := &rpcpb.GetBalanceRequest{Address: "0x1"}
 		resp, _ := s.GetBalance(nil, req)
-		assert.True(t, resp.Value > 0)
+		assert.Equal(t, len(resp.Value), util.Uint128Bytes)
+		u, err := util.NewUint128FromFixedSizeByteSlice(resp.Value)
+		assert.Nil(t, err)
+		assert.True(t, u.Cmp(big.NewInt(996)) == 0)
 	}
 }
 

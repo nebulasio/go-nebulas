@@ -19,7 +19,10 @@
 package rpc
 
 import (
+	"math/big"
+
 	"github.com/nebulasio/go-nebulas/rpc/pb"
+	"github.com/nebulasio/go-nebulas/util"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -34,7 +37,12 @@ func (s *APIService) GetBalance(ctx context.Context, req *rpcpb.GetBalanceReques
 		return nil, status.Errorf(codes.InvalidArgument, "Address is empty.")
 	}
 	// TODO: Invoke core manager to get balance from block state. Remove fake logic.
-	return &rpcpb.GetBalanceResponse{Value: 996}, nil
+	v := util.NewUint128FromBigInt(big.NewInt(996))
+	vb, err := v.ToFixedSizeBytes()
+	if err != nil {
+		return nil, err
+	}
+	return &rpcpb.GetBalanceResponse{Value: vb[:]}, nil
 }
 
 // SendTransaction is the RPC API handler.
