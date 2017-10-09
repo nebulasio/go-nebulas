@@ -16,16 +16,8 @@
 // along with the go-nebulas library.  If not, see <http://www.gnu.org/licenses/>.
 //
 syntax = "proto3";
-package pb;
+package triepb;
 
-// Message is a sample proto buffer message for test purpose.
-message Message {
-	message Body {
-		repeated string val = 3;
-	}
-	string name = 1;
-	fixed64 time = 2;
-	repeated string tags = 3;
-	map<fixed32, string> map = 4;
-	repeated Body body = 5;
+message Node {
+    repeated bytes val = 1;
 }

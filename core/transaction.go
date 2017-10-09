@@ -22,7 +22,9 @@ import (
 	"errors"
 	"time"
 
+	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/common/trie"
+	"github.com/nebulasio/go-nebulas/core/pb"
 	"github.com/nebulasio/go-nebulas/crypto/cipher"
 	"github.com/nebulasio/go-nebulas/crypto/hash"
 	"github.com/nebulasio/go-nebulas/crypto/keystore"
@@ -59,87 +61,38 @@ type Transaction struct {
 	sign Hash  // Signature values
 }
 
-type txStream struct {
-	Hash  []byte
-	From  []byte
-	To    []byte
-	Value uint64
-	Nonce uint64
-	Time  int64
-	Data  []byte
-	Alg   uint8
-	Sign  []byte
+// ToProto converts domain Tx to proto Tx
+func (tx *Transaction) ToProto() (proto.Message, error) {
+	return &corepb.Transaction{
+		Hash:      tx.hash,
+		From:      tx.from.address,
+		To:        tx.to.address,
+		Value:     tx.value,
+		Nonce:     tx.nonce,
+		Timestamp: tx.timestamp.UnixNano(),
+		Data:      tx.data,
+		Sign:      tx.sign,
+	}, nil
 }
 
-// Serialize a transaction
-func (tx *Transaction) Serialize() ([]byte, error) {
-	serializer := &byteutils.JSONSerializer{}
-	data := txStream{
-		tx.hash,
-		tx.from.address,
-		tx.to.address,
-		tx.value,
-		tx.nonce,
-		tx.timestamp.UnixNano(),
-		tx.data,
-		tx.alg,
-		tx.sign,
+// FromProto converts proto Tx into domain Tx
+func (tx *Transaction) FromProto(msg proto.Message) error {
+	if msg, ok := msg.(*corepb.Transaction); ok {
+		tx.hash = msg.Hash
+		tx.from = Address{msg.From}
+		tx.to = Address{msg.To}
+		tx.value = msg.Value
+		tx.nonce = msg.Nonce
+		tx.timestamp = time.Unix(0, msg.Timestamp)
+		tx.data = msg.Data
+		tx.sign = msg.Sign
+		return nil
 	}
-	return serializer.Serialize(data)
-}
-
-// Deserialize a transaction
-func (tx *Transaction) Deserialize(blob []byte) error {
-	serializer := &byteutils.JSONSerializer{}
-	var data txStream
-	if err := serializer.Deserialize(blob, &data); err != nil {
-		return err
-	}
-	tx.hash = data.Hash
-	tx.from = Address{data.From}
-	tx.to = Address{data.To}
-	tx.value = data.Value
-	tx.nonce = data.Nonce
-	tx.timestamp = time.Unix(0, data.Time)
-	tx.data = data.Data
-	tx.alg = data.Alg
-	tx.sign = data.Sign
-	return nil
+	return errors.New("Pb Message cannot be converted into Transaction")
 }
 
 // Transactions is an alias of Transaction array.
 type Transactions []*Transaction
-
-// Serialize txs
-func (txs *Transactions) Serialize() ([]byte, error) {
-	var data [][]byte
-	serializer := &byteutils.JSONSerializer{}
-	for _, v := range *txs {
-		ir, err := v.Serialize()
-		if err != nil {
-			return nil, err
-		}
-		data = append(data, ir)
-	}
-	return serializer.Serialize(data)
-}
-
-// Deserialize txs
-func (txs *Transactions) Deserialize(blob []byte) error {
-	var data [][]byte
-	serializer := &byteutils.JSONSerializer{}
-	if err := serializer.Deserialize(blob, &data); err != nil {
-		return err
-	}
-	for _, v := range data {
-		tx := &Transaction{}
-		if err := tx.Deserialize(v); err != nil {
-			return err
-		}
-		*txs = append(*txs, tx)
-	}
-	return nil
-}
 
 // NewTransaction create #Transaction instance.
 func NewTransaction(from, to Address, value uint64, nonce uint64, data []byte) *Transaction {

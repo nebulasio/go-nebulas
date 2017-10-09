@@ -21,6 +21,7 @@ package core
 import (
 	"github.com/hashicorp/golang-lru"
 
+	pb "github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/components/net"
 	"github.com/nebulasio/go-nebulas/components/net/messages"
 	log "github.com/sirupsen/logrus"
@@ -129,9 +130,11 @@ func (pool *BlockPool) loop() {
 
 // AddLocalBlock add local minted block.
 func (pool *BlockPool) AddLocalBlock(block *Block) {
-	data, _ := block.Serialize()
+	proto, _ := block.ToProto()
+	ir, _ := pb.Marshal(proto)
 	nb := new(Block)
-	nb.Deserialize(data)
+	pb.Unmarshal(ir, proto)
+	nb.FromProto(proto)
 	pool.receiveMessageCh <- messages.NewBaseMessage(net.MessageTypeNewBlock, nb)
 }
 

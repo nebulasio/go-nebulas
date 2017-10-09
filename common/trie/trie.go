@@ -21,8 +21,9 @@ package trie
 import (
 	"errors"
 
+	"github.com/gogo/protobuf/proto"
+	"github.com/nebulasio/go-nebulas/common/trie/pb"
 	"github.com/nebulasio/go-nebulas/crypto/hash"
-	"github.com/nebulasio/go-nebulas/util/byteutils"
 )
 
 // Flag to identify the type of node
@@ -40,8 +41,25 @@ const (
 // Extension Node [flag, encodedPath, next hash]
 // Leaf Node [flag, encodedPath, value]
 type node struct {
-	Hash []byte
-	Val  [][]byte
+	Hash  []byte
+	Bytes []byte
+	Val   [][]byte
+}
+
+func (n *node) ToProto() (proto.Message, error) {
+	return &triepb.Node{
+		Val: n.Val,
+	}, nil
+}
+
+func (n *node) FromProto(msg proto.Message) error {
+	if msg, ok := msg.(*triepb.Node); ok {
+		n.Bytes, _ = proto.Marshal(msg)
+		n.Hash = hash.Sha3256(n.Bytes)
+		n.Val = msg.Val
+		return nil
+	}
+	return errors.New("Pb Message cannot be converted into Node")
 }
 
 // Type of node, e.g. Branch, Extension, Leaf Node
@@ -67,23 +85,17 @@ func (n *node) Type() (ty, error) {
 // Extension Node: 3-elements array, value is [ext flag, prefix path, next hash]
 // Leaf Node: 3-elements array, value is [leaf flag, suffix path, value]
 type Trie struct {
-	rootHash   []byte
-	serializer byteutils.Serializable
-	storage    *Storage
+	rootHash []byte
+	storage  *Storage
 }
 
 // CreateNode in trie
 func (t *Trie) createNode(val [][]byte) (*node, error) {
-	ir, err := t.serializer.Serialize(val)
-	if err != nil {
+	n := &node{Val: val}
+	if err := t.commitNode(n); err != nil {
 		return nil, err
 	}
-	key := hash.Sha3256(ir)
-	err = t.storage.Put(key, ir)
-	if err != nil {
-		return nil, err
-	}
-	return &node{key, val}, nil
+	return n, nil
 }
 
 // FetchNode in trie
@@ -92,29 +104,32 @@ func (t *Trie) fetchNode(hash []byte) (*node, error) {
 	if err != nil {
 		return nil, err
 	}
-	var val [][]byte
-	err = t.serializer.Deserialize(ir, &val)
-	if err != nil {
+	pb := new(triepb.Node)
+	if err := proto.Unmarshal(ir, pb); err != nil {
 		return nil, err
 	}
-	return &node{hash, val}, nil
+	n := new(node)
+	if err := n.FromProto(pb); err != nil {
+		return nil, err
+	}
+	return n, nil
 }
 
 // CommitNode node in trie into storage
 func (t *Trie) commitNode(n *node) error {
-	ir, err := t.serializer.Serialize(n.Val)
-	if err != nil {
+	pb, _ := n.ToProto()
+	n.Bytes, _ = proto.Marshal(pb)
+	n.Hash = hash.Sha3256(n.Bytes)
+	if err := t.storage.Put(n.Hash, n.Bytes); err != nil {
 		return err
 	}
-	n.Hash = hash.Sha3256(ir)
-	return t.storage.Put(n.Hash, ir)
+	return nil
 }
 
 // NewTrie if rootHash is nil, create a new Trie, otherwise, build an existed trie
 func NewTrie(rootHash []byte) (*Trie, error) {
-	var serializer byteutils.Serializable = &byteutils.JSONSerializer{}
 	storage, _ := NewStorage()
-	t := &Trie{rootHash, serializer, storage}
+	t := &Trie{rootHash, storage}
 	if t.rootHash == nil {
 		return t, nil
 	} else if _, err := t.storage.Get(rootHash); err != nil {
@@ -391,7 +406,7 @@ func (t *Trie) del(root []byte, route []byte) ([]byte, error) {
 
 // Clone the trie to create a new trie sharing the same storage
 func (t *Trie) Clone() (*Trie, error) {
-	return &Trie{t.rootHash, t.serializer, t.storage}, nil
+	return &Trie{t.rootHash, t.storage}, nil
 }
 
 // prefixLen returns the length of the common prefix between a and b.
@@ -421,13 +436,16 @@ func keyToRoute(key []byte) []byte {
 }
 
 func emptyBranchNode() *node {
-	empty := [][]byte{nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil}
-	return &node{[]byte{}, empty}
+	empty := &node{Val: [][]byte{nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil}}
+	pb, _ := empty.ToProto()
+	empty.Bytes, _ = proto.Marshal(pb)
+	empty.Hash = hash.Sha3256(empty.Bytes)
+	return empty
 }
 
 func isEmptyBranch(n *node) bool {
 	for idx := range n.Val {
-		if n.Val[idx] != nil {
+		if len(n.Val[idx]) != 0 {
 			return false
 		}
 	}
