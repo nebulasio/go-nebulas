@@ -62,7 +62,7 @@ func randomTx(from *core.Address) *core.Transaction {
 		}
 	}
 	alias, _, _ := keystore.DefaultKS.GetKeyByIndex(idx)
-	to, _ := core.Parse(alias)
+	to, _ := core.AddressParse(alias)
 
 	value := rand.Uint64() % 5
 
@@ -79,7 +79,7 @@ func (state *PrepareState) Enter(data interface{}) {
 
 	//TODO(larry.wang):later remove test address
 	alias, _, _ := keystore.DefaultKS.GetKeyByIndex(0)
-	addr, _ := core.Parse(alias)
+	addr, _ := core.AddressParse(alias)
 
 	if p.miningBlock == nil {
 		// start mining from chain tail.

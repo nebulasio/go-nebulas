@@ -75,11 +75,8 @@ func NewKeystore() *Keystore {
 }
 
 // Aliases lists all the alias names of this keystore.
-func (ks *Keystore) Aliases() ([]string, error) {
-	if ks.p == nil {
-		return nil, ErrUninitialized
-	}
-	return ks.p.Aliases(), nil
+func (ks *Keystore) Aliases() []string {
+	return ks.p.Aliases()
 }
 
 // ContainsAlias checks if the given alias exists in this keystore.

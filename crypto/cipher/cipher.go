@@ -21,9 +21,13 @@ package cipher
 import (
 	"errors"
 
+	"crypto/rand"
+
 	"github.com/nebulasio/go-nebulas/crypto/encrypt"
 	"github.com/nebulasio/go-nebulas/crypto/keystore"
 	"github.com/nebulasio/go-nebulas/crypto/keystore/ecdsa"
+
+	goecdsa "crypto/ecdsa"
 )
 
 // Algorithm type alias
@@ -31,7 +35,7 @@ type Algorithm uint8
 
 const (
 	// SECP256K1 a type of signer
-	SECP256K1 Algorithm = iota
+	SECP256K1 Algorithm = 1
 
 	// SCRYPT a type of encrypt
 	SCRYPT Algorithm = 1 << 12
@@ -41,6 +45,29 @@ var (
 	// ErrAlgorithmInvalid invalid Algorithm for sign.
 	ErrAlgorithmInvalid = errors.New("invalid Algorithm")
 )
+
+// NewPrivateKey generate a privatekey with Algorithm
+func NewPrivateKey(alg Algorithm, data []byte) (keystore.PrivateKey, error) {
+	switch alg {
+	case SECP256K1:
+		var (
+			priv *goecdsa.PrivateKey
+			err  error
+		)
+		if len(data) == 0 {
+			priv, err = ecdsa.NewPrivateKey(rand.Reader)
+		} else {
+			priv, err = ecdsa.ToPrivateKey(data)
+		}
+		if err != nil {
+			return nil, err
+		}
+		key := ecdsa.NewPrivateStoreKey(priv)
+		return key, nil
+	default:
+		return nil, ErrAlgorithmInvalid
+	}
+}
 
 // GetSignature returns the specified algorithm Signature
 func GetSignature(alg Algorithm) (keystore.Signature, error) {
