@@ -3,9 +3,10 @@ package util
 import (
 	"fmt"
 	"math/big"
-	"reflect"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 const (
@@ -38,9 +39,9 @@ func TestUint128(t *testing.T) {
 	bigMaxUint128Add1.Add(bigMaxUint128, big.NewInt(1))
 
 	tests := []struct {
-		input    *big.Int // input
-		expected [16]byte // expected Big-Endian result
-		wantErr  error
+		input       *big.Int // input
+		expected    [16]byte // expected Big-Endian result
+		expectedErr error
 	}{
 		{bigInt0, [16]byte{
 			0, 0, 0, 0,
@@ -84,18 +85,16 @@ func TestUint128(t *testing.T) {
 		u1 := NewUint128FromBigInt(tt.input)
 		fsb, err := u1.ToFixedSizeBytes()
 		fmt.Println("uint128.Int =", u1.Int, "bitlen =", u1.BitLen(), "[]bytes =", u1.Bytes(), "[16]bytes =", fsb, "err =", err)
-		if tt.wantErr != nil {
-			if tt.wantErr != err {
-				t.Errorf("TestUint128 wantErr = %v, error = %v", tt.wantErr, err)
-			}
+
+		if tt.expectedErr != nil {
+			assert.Equal(t, tt.expectedErr, err)
 			continue
 		}
-		if !reflect.DeepEqual(tt.expected, fsb) {
-			t.Errorf("TestUint128 ToFixedSizeBytes expected = %v, actual = %v", tt.expected, fsb)
-		}
+
+		assert.Nil(t, u1.Validate(), "Validate doesn't pass.")
+		assert.Equal(t, tt.expected, fsb, "ToFixedSizeBytes result doesn't match.")
+
 		u2 := NewUint128FromFixedSizeBytes(fsb)
-		if !reflect.DeepEqual(u1.Bytes(), u2.Bytes()) {
-			t.Errorf("TestUint128 FromFixedSizeBytes expected = %v, actual = %v", u1.Bytes(), u2.Bytes())
-		}
+		assert.Equal(t, u1.Bytes(), u2.Bytes(), "FromFixedSizeBytes result doesn't match.")
 	}
 }

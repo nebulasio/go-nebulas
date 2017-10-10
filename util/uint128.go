@@ -23,7 +23,9 @@ var (
 )
 
 // Uint128 defines uint128 type, based on big.Int.
+//
 // For arithmetic operations, use uint128.Int.Add()/Sub()/Mul()/Div()/etc.
+// For example, u1.Add(u1.Int, u2.Int) sets u1 to u1 + u2.
 type Uint128 struct {
 	*big.Int
 }
