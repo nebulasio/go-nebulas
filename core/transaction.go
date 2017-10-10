@@ -71,6 +71,7 @@ func (tx *Transaction) ToProto() (proto.Message, error) {
 		Nonce:     tx.nonce,
 		Timestamp: tx.timestamp.UnixNano(),
 		Data:      tx.data,
+		Alg:       (uint32)(tx.alg),
 		Sign:      tx.sign,
 	}, nil
 }
@@ -85,6 +86,7 @@ func (tx *Transaction) FromProto(msg proto.Message) error {
 		tx.nonce = msg.Nonce
 		tx.timestamp = time.Unix(0, msg.Timestamp)
 		tx.data = msg.Data
+		tx.alg = (uint8)(msg.Alg)
 		tx.sign = msg.Sign
 		return nil
 	}
@@ -124,7 +126,6 @@ func (tx *Transaction) Sign() error {
 		}).Error("from address locked")
 		return err
 	}
-
 	alg := cipher.SECP256K1
 	signature, err := cipher.GetSignature(alg)
 	if err != nil {
