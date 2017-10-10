@@ -56,6 +56,7 @@ func (m *Manager) storeAddress(priv keystore.PrivateKey, passphrase []byte) (*co
 		return nil, err
 	}
 
+	defer priv.Clear()
 	err = m.ks.SetKey(addr.ToHex(), priv, passphrase)
 	if err != nil {
 		return nil, err

@@ -38,7 +38,7 @@ const (
 	SECP256K1 Algorithm = 1
 
 	// SCRYPT a type of encrypt
-	SCRYPT Algorithm = 1 << 12
+	SCRYPT Algorithm = 1 << 4
 )
 
 var (
