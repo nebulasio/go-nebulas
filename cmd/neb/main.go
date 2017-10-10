@@ -128,6 +128,6 @@ func addTestAddress() {
 		addr, _ := core.NewAddressFromPublicKey(pubdata)
 		ps := ecdsa.NewPrivateStoreKey(priv)
 		ks.SetKey(addr.ToHex(), ps, []byte("passphrase"))
-		ks.Unlock(addr.ToHex(), []byte("passphrase"), 10)
+		ks.Unlock(addr.ToHex(), []byte("passphrase"), time.Second*60*60*24*365)
 	}
 }

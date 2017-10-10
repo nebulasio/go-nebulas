@@ -179,7 +179,7 @@ func (ks *Keystore) GetUnlocked(alias string) (Key, error) {
 
 // GetKeyByIndex returns the key associated with the given index in unlocked
 func (ks *Keystore) GetKeyByIndex(idx int) (string, Key, error) {
-	if idx < 0 || idx > len(ks.unlocked) {
+	if idx < 0 || idx >= len(ks.unlocked) {
 		return "", nil, ErrNotUnlocked
 	}
 	u := ks.unlocked[idx]
