@@ -18,12 +18,11 @@
 
 // use btcec https://godoc.org/github.com/btcsuite/btcd/btcec#example-package--VerifySignature
 
-package ecdsa
+package secp256k1
 
 import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
-	"io"
 
 	"github.com/btcsuite/btcd/btcec"
 
@@ -37,42 +36,42 @@ func S256() elliptic.Curve {
 	return btcec.S256()
 }
 
-// NewPrivateKey generate a ecdsa private key
-func NewPrivateKey(rand io.Reader) (*ecdsa.PrivateKey, error) {
-	privateKeyECDSA, err := ecdsa.GenerateKey(S256(), rand)
+// NewECDSAPrivateKey generate a ecdsa private key
+func NewECDSAPrivateKey() (*ecdsa.PrivateKey, error) {
+	privateKeyECDSA, err := btcec.NewPrivateKey(btcec.S256())
 	if err != nil {
 		return nil, err
 	}
-	return privateKeyECDSA, nil
+	return (*ecdsa.PrivateKey)(privateKeyECDSA), nil
 }
 
-// FromPrivateKey exports a private key into a binary dump.
-func FromPrivateKey(pri *ecdsa.PrivateKey) ([]byte, error) {
+// FromECDSAPrivateKey exports a private key into a binary dump.
+func FromECDSAPrivateKey(pri *ecdsa.PrivateKey) ([]byte, error) {
 	if pri == nil {
 		return nil, errors.New("ecdsa: please input private key")
 	}
 	return pri.D.Bytes(), nil
 }
 
-// FromPublicKey exports a public key into a binary dump.
-func FromPublicKey(pub *ecdsa.PublicKey) ([]byte, error) {
+// FromECDSAPublicKey exports a public key into a binary dump.
+func FromECDSAPublicKey(pub *ecdsa.PublicKey) ([]byte, error) {
 	if pub == nil || pub.X == nil || pub.Y == nil {
 		return nil, errors.New("ecdsa: please input public key")
 	}
 	return elliptic.Marshal(S256(), pub.X, pub.Y), nil
 }
 
-// HexToPrivateKey parses a secp256k1 private key.
-func HexToPrivateKey(hexkey string) (*ecdsa.PrivateKey, error) {
+// HexToECDSAPrivateKey parses a secp256k1 private key.
+func HexToECDSAPrivateKey(hexkey string) (*ecdsa.PrivateKey, error) {
 	b, err := hex.DecodeString(hexkey)
 	if err != nil {
 		return nil, err
 	}
-	return ToPrivateKey(b)
+	return ToECDSAPrivateKey(b)
 }
 
-// ToPrivateKey creates a private key with the given data value.
-func ToPrivateKey(d []byte) (*ecdsa.PrivateKey, error) {
+// ToECDSAPrivateKey creates a private key with the given data value.
+func ToECDSAPrivateKey(d []byte) (*ecdsa.PrivateKey, error) {
 	priv := new(ecdsa.PrivateKey)
 	priv.PublicKey.Curve = S256()
 	//if 8*len(d) != priv.Params().BitSize {
@@ -83,8 +82,8 @@ func ToPrivateKey(d []byte) (*ecdsa.PrivateKey, error) {
 	return priv, nil
 }
 
-// ToPublicKey creates a public key with the given data value.
-func ToPublicKey(pub []byte) (*ecdsa.PublicKey, error) {
+// ToECDSAPublicKey creates a public key with the given data value.
+func ToECDSAPublicKey(pub []byte) (*ecdsa.PublicKey, error) {
 	if len(pub) == 0 {
 		return nil, errors.New("ecdsa: please input public key bytes")
 	}
@@ -92,8 +91,8 @@ func ToPublicKey(pub []byte) (*ecdsa.PublicKey, error) {
 	return &ecdsa.PublicKey{Curve: S256(), X: x, Y: y}, nil
 }
 
-// RecoverPublicKey recover verifies the compact signature "signature" of "hash"
-func RecoverPublicKey(hash []byte, signature []byte) (*ecdsa.PublicKey, error) {
+// RecoverECDSAPublicKey recover verifies the compact signature "signature" of "hash"
+func RecoverECDSAPublicKey(hash []byte, signature []byte) (*ecdsa.PublicKey, error) {
 	pub, _, err := btcec.RecoverCompact(btcec.S256(), signature, hash)
 	return (*ecdsa.PublicKey)(pub), err
 }
@@ -119,5 +118,12 @@ func zeroKey(k *ecdsa.PrivateKey) {
 	b := k.D.Bits()
 	for i := range b {
 		b[i] = 0
+	}
+}
+
+// ZeroBytes clears byte slice.
+func ZeroBytes(bytes []byte) {
+	for i := range bytes {
+		bytes[i] = 0
 	}
 }

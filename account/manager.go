@@ -19,9 +19,18 @@
 package account
 
 import (
+	"errors"
+
 	"github.com/nebulasio/go-nebulas/core"
+	"github.com/nebulasio/go-nebulas/crypto"
 	"github.com/nebulasio/go-nebulas/crypto/cipher"
 	"github.com/nebulasio/go-nebulas/crypto/keystore"
+	log "github.com/sirupsen/logrus"
+)
+
+var (
+	// ErrTxAddressLocked from address locked.
+	ErrTxAddressLocked = errors.New("transaction from address locked")
 )
 
 // Manager accounts manager ,handle account generate and storage
@@ -39,7 +48,7 @@ func NewManager() *Manager {
 // NewAccount returns a new address and keep it in keystore
 func (m *Manager) NewAccount(passphrase []byte) (*core.Address, error) {
 
-	priv, err := cipher.NewPrivateKey(cipher.SECP256K1, nil)
+	priv, err := crypto.NewPrivateKey(keystore.SECP256K1, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -56,7 +65,6 @@ func (m *Manager) storeAddress(priv keystore.PrivateKey, passphrase []byte) (*co
 		return nil, err
 	}
 
-	defer priv.Clear()
 	err = m.ks.SetKey(addr.ToHex(), priv, passphrase)
 	if err != nil {
 		return nil, err
@@ -65,40 +73,37 @@ func (m *Manager) storeAddress(priv keystore.PrivateKey, passphrase []byte) (*co
 }
 
 // Unlock unlock address with passphrase
-func (m *Manager) Unlock(addr core.Address, passphrase []byte) error {
+func (m *Manager) Unlock(addr *core.Address, passphrase []byte) error {
 	return m.ks.Unlock(addr.ToHex(), passphrase, keystore.DefaultUnlockDuration)
 }
 
 // Lock lock address
-func (m *Manager) Lock(addr core.Address) error {
+func (m *Manager) Lock(addr *core.Address) error {
 	return m.ks.Lock(addr.ToHex())
 }
 
 // Accounts returns slice of address
-func (m *Manager) Accounts() []core.Address {
+func (m *Manager) Accounts() []*core.Address {
 	aliases := m.ks.Aliases()
-	addres := make([]core.Address, len(aliases))
+	addres := make([]*core.Address, len(aliases))
 	for _, a := range aliases {
 		addr, err := core.AddressParse(a)
 		if err == nil {
 			// currently keystore only storage address as alias
-			addres = append(addres, *addr)
+			addres = append(addres, addr)
 		}
 	}
 	return addres
 }
 
 // Import import a key file to keystore, compatible ethereum keystore file
-func (m *Manager) Import(key, passphrase []byte) (*core.Address, error) {
-	encrypt, err := cipher.GetEncrypt(cipher.SCRYPT)
+func (m *Manager) Import(keyjson, passphrase []byte) (*core.Address, error) {
+	cipher := cipher.NewCipher(uint8(keystore.SCRYPT))
+	data, err := cipher.DecryptKey(keyjson, passphrase)
 	if err != nil {
 		return nil, err
 	}
-	dec, err := encrypt.Decrypt(key, passphrase)
-	if err != nil {
-		return nil, err
-	}
-	priv, err := cipher.NewPrivateKey(cipher.SECP256K1, dec)
+	priv, err := crypto.NewPrivateKey(keystore.SECP256K1, data)
 	if err != nil {
 		return nil, err
 	}
@@ -106,7 +111,7 @@ func (m *Manager) Import(key, passphrase []byte) (*core.Address, error) {
 }
 
 // Export export address to key file
-func (m *Manager) Export(addr core.Address, passphrase []byte) ([]byte, error) {
+func (m *Manager) Export(addr *core.Address, passphrase []byte) ([]byte, error) {
 	key, err := m.ks.GetKey(addr.ToHex(), passphrase)
 	if err != nil {
 		return nil, err
@@ -115,13 +120,34 @@ func (m *Manager) Export(addr core.Address, passphrase []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	encrypt, err := cipher.GetEncrypt(cipher.SCRYPT)
+	cipher := cipher.NewCipher(uint8(keystore.SCRYPT))
 	if err != nil {
 		return nil, err
 	}
-	out, err := encrypt.EncryptKey(addr.ToHex(), data, passphrase)
+	out, err := cipher.EncryptKey(addr.ToHex(), data, passphrase)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
+}
+
+// SignTransaction sign transaction with the specified algorithm
+func (m *Manager) SignTransaction(addr *core.Address, tx *core.Transaction) error {
+	// TODO(larry.wang): check the addr is the tx's from address
+	key, err := m.ks.GetUnlocked(addr.ToHex())
+	if err != nil {
+		log.WithFields(log.Fields{
+			"func": "SignTransaction",
+			"err":  ErrTxAddressLocked,
+			"tx":   tx,
+		}).Error("transaction address locked")
+		return err
+	}
+
+	signature, err := crypto.NewSignature(keystore.SECP256K1)
+	if err != nil {
+		return err
+	}
+	signature.InitSign(key.(keystore.PrivateKey))
+	return tx.Sign(signature)
 }

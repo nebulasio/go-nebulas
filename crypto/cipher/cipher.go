@@ -19,74 +19,53 @@
 package cipher
 
 import (
-	"errors"
-
 	"crypto/rand"
-
-	"github.com/nebulasio/go-nebulas/crypto/encrypt"
-	"github.com/nebulasio/go-nebulas/crypto/keystore"
-	"github.com/nebulasio/go-nebulas/crypto/keystore/ecdsa"
-
-	goecdsa "crypto/ecdsa"
+	"io"
 )
 
-// Algorithm type alias
-type Algorithm uint8
-
-const (
-	// SECP256K1 a type of signer
-	SECP256K1 Algorithm = 1
-
-	// SCRYPT a type of encrypt
-	SCRYPT Algorithm = 1 << 4
-)
-
-var (
-	// ErrAlgorithmInvalid invalid Algorithm for sign.
-	ErrAlgorithmInvalid = errors.New("invalid Algorithm")
-)
-
-// NewPrivateKey generate a privatekey with Algorithm
-func NewPrivateKey(alg Algorithm, data []byte) (keystore.PrivateKey, error) {
-	switch alg {
-	case SECP256K1:
-		var (
-			priv *goecdsa.PrivateKey
-			err  error
-		)
-		if len(data) == 0 {
-			priv, err = ecdsa.NewPrivateKey(rand.Reader)
-		} else {
-			priv, err = ecdsa.ToPrivateKey(data)
-		}
-		if err != nil {
-			return nil, err
-		}
-		key := ecdsa.NewPrivateStoreKey(priv)
-		return key, nil
-	default:
-		return nil, ErrAlgorithmInvalid
-	}
+// Cipher encrypt cipher
+type Cipher struct {
+	encrypt Encrypt
 }
 
-// GetSignature returns the specified algorithm Signature
-func GetSignature(alg Algorithm) (keystore.Signature, error) {
+// NewCipher returns a new cipher
+func NewCipher(alg uint8) *Cipher {
+	c := new(Cipher)
 	switch alg {
-	case SECP256K1:
-		secp256k1 := &ecdsa.Signature{}
-		return secp256k1, nil
+	case 1 << 4: //keysotore.SCRYPT
+		c.encrypt = new(Scrypt)
 	default:
-		return nil, ErrAlgorithmInvalid
+		panic("cipher not support the algorithm")
 	}
+	return c
 }
 
-// GetEncrypt returns the specified algorithm Encrpt
-func GetEncrypt(alg Algorithm) (encrypt.Encrypt, error) {
-	switch alg {
-	case SCRYPT:
-		encrypt := &encrypt.Scrypt{}
-		return encrypt, nil
-	default:
-		return nil, ErrAlgorithmInvalid
+// Encrypt scrypt encrypt
+func (c *Cipher) Encrypt(data []byte, passphrase []byte) ([]byte, error) {
+	return c.encrypt.Encrypt(data, passphrase)
+}
+
+// EncryptKey encrypt key with address
+func (c *Cipher) EncryptKey(address string, data []byte, passphrase []byte) ([]byte, error) {
+	return c.encrypt.EncryptKey(address, data, passphrase)
+}
+
+// Decrypt decrypts data, returning the origin data
+func (c *Cipher) Decrypt(data []byte, passphrase []byte) ([]byte, error) {
+	return c.encrypt.Decrypt(data, passphrase)
+}
+
+// DecryptKey decrypts a key, returning the private key itself.
+func (c *Cipher) DecryptKey(keyjson []byte, passphrase []byte) ([]byte, error) {
+	return c.encrypt.DecryptKey(keyjson, passphrase)
+}
+
+// RandomCSPRNG a cryptographically secure pseudo-random number generator
+func RandomCSPRNG(n int) []byte {
+	buff := make([]byte, n)
+	_, err := io.ReadFull(rand.Reader, buff)
+	if err != nil {
+		panic("reading from crypto/rand failed: " + err.Error())
 	}
+	return buff
 }

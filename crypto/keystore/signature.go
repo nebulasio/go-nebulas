@@ -21,6 +21,9 @@ package keystore
 // Signature interface of different signature algorithm
 type Signature interface {
 
+	// Algorithm returns the standard algorithm for this key.
+	Algorithm() Algorithm
+
 	// InitSign this object for signing. If this method is called
 	// again with a different argument, it negates the effect
 	// of this call.

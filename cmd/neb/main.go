@@ -30,7 +30,7 @@ import (
 	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/crypto/keystore"
-	"github.com/nebulasio/go-nebulas/crypto/keystore/ecdsa"
+	"github.com/nebulasio/go-nebulas/crypto/keystore/secp256k1"
 	"github.com/nebulasio/go-nebulas/neblet/pb"
 	"github.com/nebulasio/go-nebulas/util/logging"
 	log "github.com/sirupsen/logrus"
@@ -123,16 +123,11 @@ func loadConfig(filename string) *nebletpb.Config {
 // add test address to keystore
 func addTestAddress() {
 	ks := keystore.DefaultKS
-	arr := make([][]byte, 3)
-	arr[0] = []byte{59, 144, 87, 239, 199, 27, 51, 230, 209, 177, 177, 166, 161, 23, 23, 195, 197, 245, 56, 156, 171, 40, 209, 7, 25, 1, 32, 0, 75, 69, 145, 30}
-	arr[1] = []byte{208, 98, 189, 16, 69, 97, 14, 44, 112, 56, 253, 61, 195, 100, 88, 245, 99, 14, 70, 22, 173, 172, 243, 186, 46, 128, 18, 39, 93, 125, 27, 186}
-	arr[2] = []byte{217, 81, 120, 192, 22, 101, 123, 205, 222, 253, 237, 63, 248, 9, 226, 102, 97, 202, 124, 1, 248, 178, 7, 69, 14, 63, 254, 127, 61, 158, 126, 65}
-	for _, pdata := range arr {
-		priv, _ := ecdsa.ToPrivateKey(pdata)
-		pubdata, _ := ecdsa.FromPublicKey(&priv.PublicKey)
+	for i := 0; i < 3; i++ {
+		priv, _ := secp256k1.GeneratePrivateKey()
+		pubdata, _ := priv.PublicKey().Encoded()
 		addr, _ := core.NewAddressFromPublicKey(pubdata)
-		ps := ecdsa.NewPrivateStoreKey(priv)
-		ks.SetKey(addr.ToHex(), ps, []byte("passphrase"))
+		ks.SetKey(addr.ToHex(), priv, []byte("passphrase"))
 		ks.Unlock(addr.ToHex(), []byte("passphrase"), time.Second*60*60*24*365)
 	}
 }

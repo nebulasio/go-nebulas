@@ -24,7 +24,7 @@ import (
 	"time"
 
 	pb "github.com/gogo/protobuf/proto"
-	"github.com/nebulasio/go-nebulas/crypto/cipher"
+	"github.com/nebulasio/go-nebulas/crypto/keystore"
 )
 
 func TestBlockHeader(t *testing.T) {
@@ -107,7 +107,7 @@ func TestBlock(t *testing.T) {
 						456,
 						time.Now(),
 						[]byte("hwllo"),
-						uint8(cipher.SECP256K1),
+						uint8(keystore.SECP256K1),
 						nil,
 					},
 					&Transaction{
@@ -118,7 +118,7 @@ func TestBlock(t *testing.T) {
 						456,
 						time.Now(),
 						[]byte("hwllo"),
-						uint8(cipher.SECP256K1),
+						uint8(keystore.SECP256K1),
 						nil,
 					},
 				},

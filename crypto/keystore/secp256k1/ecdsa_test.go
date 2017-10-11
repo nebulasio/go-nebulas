@@ -16,54 +16,55 @@
 // along with the go-nebulas library.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-package ecdsa
+package secp256k1
 
 import (
-	"crypto/rand"
 	"testing"
+
+	"reflect"
 
 	"github.com/nebulasio/go-nebulas/util/byteutils"
 )
 
 func TestFromECDSAPri(t *testing.T) {
-	priv, _ := NewPrivateKey(rand.Reader)
-	_, err := FromPrivateKey(priv)
+	priv, _ := NewECDSAPrivateKey()
+	_, err := FromECDSAPrivateKey(priv)
 	if err != nil {
-		t.Errorf("FromPrivateKey err:%s", err)
+		t.Errorf("FromECDSAPrivateKey err:%s", err)
 	}
 }
 
 func TestFromECDSAPub(t *testing.T) {
-	priv, _ := NewPrivateKey(rand.Reader)
-	_, err := FromPublicKey(&priv.PublicKey)
+	priv, _ := NewECDSAPrivateKey()
+	_, err := FromECDSAPublicKey(&priv.PublicKey)
 	if err != nil {
-		t.Errorf("FromPublicKey err:%s", err)
+		t.Errorf("FromECDSAPublicKey err:%s", err)
 	}
 }
 
 func TestToECDSAPrivate(t *testing.T) {
-	priv, _ := NewPrivateKey(rand.Reader)
-	privByte, _ := FromPrivateKey(priv)
-	aPriv, err := ToPrivateKey(privByte)
+	priv, _ := NewECDSAPrivateKey()
+	privByte, _ := FromECDSAPrivateKey(priv)
+	aPriv, err := ToECDSAPrivateKey(privByte)
 	if err != nil {
-		t.Errorf("ToPrivateKey err:%s", err)
+		t.Errorf("ToECDSAPrivateKey err:%s", err)
 	}
-	if !byteutils.Equal(priv.D.Bytes(), aPriv.D.Bytes()) {
-		t.Errorf("ToPrivateKey err")
+	if !reflect.DeepEqual(priv, aPriv) {
+		t.Errorf("ToECDSAPrivateKey err")
 	}
 }
 
 func TestToECDSAPublic(t *testing.T) {
-	priv, _ := NewPrivateKey(rand.Reader)
-	pubByte, _ := FromPublicKey(&priv.PublicKey)
-	_, err := ToPublicKey(pubByte)
+	priv, _ := NewECDSAPrivateKey()
+	pubByte, _ := FromECDSAPublicKey(&priv.PublicKey)
+	_, err := ToECDSAPublicKey(pubByte)
 	if err != nil {
-		t.Errorf("FromPublicKey err:%s", err)
+		t.Errorf("FromECDSAPublicKey err:%s", err)
 	}
 }
 
 func TestSign(t *testing.T) {
-	priv, _ := NewPrivateKey(rand.Reader)
+	priv, _ := NewECDSAPrivateKey()
 	hash1, _ := byteutils.FromHex("0eb3be2db3a534c192be5570c6c42f59")
 	hash2, _ := byteutils.FromHex("5e6d587f26121f96a07cf4b8b569aac1AAAAAAAA") //5e6d587f26121f96a07cf4b8b569aac1
 	hash3, _ := byteutils.FromHex("c7174759e86c59dcb7df87def82f61eb")         //c7174759e86c59dcb7df87def82f61eb
@@ -105,7 +106,7 @@ func TestSign(t *testing.T) {
 				t.Errorf("Verify() false hash = %v", tt.args.s)
 				return
 			}
-			gpub, err := RecoverPublicKey(tt.args.s, got)
+			gpub, err := RecoverECDSAPublicKey(tt.args.s, got)
 			if err != nil {
 				t.Errorf("recover failed:%s", err)
 				return

@@ -16,7 +16,7 @@
 // along with the go-nebulas library.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-package ecdsa
+package secp256k1
 
 import (
 	"crypto/ecdsa"
@@ -24,48 +24,43 @@ import (
 	"github.com/nebulasio/go-nebulas/crypto/keystore"
 )
 
-// PrivateStoreKey ecdsa privatekey
-type PrivateStoreKey struct {
-	privateKey *ecdsa.PrivateKey
+// PublicKey ecdsa publickey
+type PublicKey struct {
+	publickey ecdsa.PublicKey
 }
 
-// NewPrivateStoreKey generate PrivateStoreKey
-func NewPrivateStoreKey(pri *ecdsa.PrivateKey) *PrivateStoreKey {
-	ecdsaPri := &PrivateStoreKey{pri}
-	return ecdsaPri
+// NewPublicKey generate PublicKey
+func NewPublicKey(pub ecdsa.PublicKey) *PublicKey {
+	ecdsaPub := &PublicKey{pub}
+	return ecdsaPub
 }
 
 // Algorithm algorithm name
-func (k *PrivateStoreKey) Algorithm() string {
-	return "ecdsa"
+func (k *PublicKey) Algorithm() keystore.Algorithm {
+	return keystore.SECP256K1
 }
 
 // Encoded encoded to byte
-func (k *PrivateStoreKey) Encoded() ([]byte, error) {
-	return FromPrivateKey(k.privateKey)
+func (k *PublicKey) Encoded() ([]byte, error) {
+	return FromECDSAPublicKey(&k.publickey)
 }
 
 // Decode decode data to key
-func (k *PrivateStoreKey) Decode(data []byte) error {
-	priv, err := ToPrivateKey(data)
+func (k *PublicKey) Decode(data []byte) error {
+	pub, err := ToECDSAPublicKey(data)
 	if err != nil {
 		return err
 	}
-	k.privateKey = priv
+	k.publickey = *pub
 	return nil
 }
 
 // Clear clear key content
-func (k *PrivateStoreKey) Clear() {
-	zeroKey(k.privateKey)
+func (k *PublicKey) Clear() {
+	k.publickey = ecdsa.PublicKey{}
 }
 
-// PublicKey returns publickey
-func (k *PrivateStoreKey) PublicKey() keystore.PublicKey {
-	return NewPublicStoreKey(k.privateKey.PublicKey)
-}
-
-// Sign sign hash with privatekey
-func (k *PrivateStoreKey) Sign(hash []byte) ([]byte, error) {
-	return Sign(hash, k.privateKey)
+// Verify verify ecdsa publickey
+func (k *PublicKey) Verify(hash []byte, signature []byte) (bool, error) {
+	return Verify(hash, signature, &k.publickey), nil
 }

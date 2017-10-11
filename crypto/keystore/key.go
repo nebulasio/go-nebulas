@@ -18,12 +18,23 @@
 
 package keystore
 
+// Algorithm type alias
+type Algorithm uint8
+
+const (
+	// SECP256K1 a type of signer
+	SECP256K1 Algorithm = 1
+
+	// SCRYPT a type of encrypt
+	SCRYPT Algorithm = 1 << 4
+)
+
 // Key interface
 type Key interface {
 
-	// Algorithm returns the standard algorithm name for this key. For
+	// Algorithm returns the standard algorithm for this key. For
 	// example, "ECDSA" would indicate that this key is a ECDSA key.
-	Algorithm() string
+	Algorithm() Algorithm
 
 	// Encoded returns the key in its primary encoding format, or null
 	// if this key does not support encoding.
@@ -39,9 +50,9 @@ type Key interface {
 // PrivateKey privatekey interface
 type PrivateKey interface {
 
-	// Algorithm returns the standard algorithm name for this key. For
+	// Algorithm returns the standard algorithm for this key. For
 	// example, "ECDSA" would indicate that this key is a ECDSA key.
-	Algorithm() string
+	Algorithm() Algorithm
 
 	// Encoded returns the key in its primary encoding format, or null
 	// if this key does not support encoding.
@@ -60,9 +71,9 @@ type PrivateKey interface {
 // PublicKey publickey interface
 type PublicKey interface {
 
-	// Algorithm returns the standard algorithm name for this key. For
+	// Algorithm returns the standard algorithm for this key. For
 	// example, "ECDSA" would indicate that this key is a ECDSA key.
-	Algorithm() string
+	Algorithm() Algorithm
 
 	// Encoded returns the key in its primary encoding format, or null
 	// if this key does not support encoding.
