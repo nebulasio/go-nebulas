@@ -20,9 +20,14 @@ package account
 
 import (
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestManager_NewAccount(t *testing.T) {
 	manager := NewManager()
-	manager.NewAccount([]byte("passphrase"))
+	{
+		_, err := manager.NewAccount([]byte("passphrase"))
+		assert.Nil(t, err)
+	}
 }

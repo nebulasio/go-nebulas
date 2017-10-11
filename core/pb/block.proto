@@ -26,7 +26,8 @@ message Transaction {
     uint64 nonce = 5;
     int64 timestamp = 6;
     bytes data = 7;
-    bytes sign = 8;
+    uint32 alg = 8;    
+    bytes sign = 9;
 }
 
 message BlockHeader {
