@@ -55,6 +55,7 @@ type BlockHeader struct {
 	nonce      uint64
 	coinbase   *Address
 	timestamp  int64
+	chainID    uint32
 }
 
 // ToProto converts domain BlockHeader to proto BlockHeader
@@ -66,6 +67,7 @@ func (b *BlockHeader) ToProto() (proto.Message, error) {
 		Nonce:      b.nonce,
 		Coinbase:   b.coinbase.address,
 		Timestamp:  b.timestamp,
+		ChainID:    b.chainID,
 	}, nil
 }
 
@@ -78,6 +80,7 @@ func (b *BlockHeader) FromProto(msg proto.Message) error {
 		b.nonce = msg.Nonce
 		b.coinbase = &Address{msg.Coinbase}
 		b.timestamp = msg.Timestamp
+		b.chainID = msg.ChainID
 		return nil
 	}
 	return errors.New("Pb Message cannot be converted into BlockHeader")
@@ -92,6 +95,7 @@ type Block struct {
 	height       uint64
 	parenetBlock *Block
 	stateTrie    *trie.Trie
+	txsTrie      *trie.Trie
 	txPool       *TransactionPool
 }
 
@@ -136,16 +140,18 @@ func (block *Block) FromProto(msg proto.Message) error {
 }
 
 // NewBlock return new block.
-func NewBlock(coinbase *Address, parentHash Hash, nonce uint64, stateTrie *trie.Trie, txPool *TransactionPool) *Block {
+func NewBlock(chainID uint32, coinbase *Address, parentHash Hash, nonce uint64, stateTrie *trie.Trie, txsTrie *trie.Trie, txPool *TransactionPool) *Block {
 	block := &Block{
 		header: &BlockHeader{
 			parentHash: parentHash,
 			coinbase:   coinbase,
 			nonce:      nonce,
 			timestamp:  time.Now().Unix(),
+			chainID:    chainID,
 		},
 		transactions: make(Transactions, 0),
 		stateTrie:    stateTrie,
+		txsTrie:      txsTrie,
 		txPool:       txPool,
 		sealed:       false,
 	}
@@ -335,24 +341,32 @@ func (block *Block) VerifyStateRoot() error {
 	return nil
 }
 
-func (block *Block) rewardCoinbase() {
+func (block *Block) rewardCoinbase() error {
 	stateTrie := block.stateTrie
 	coinbaseAddr := block.header.coinbase.address
-	origBalance := uint64(0)
+	coinbaseAccount := new(corepb.Account)
 	if v, _ := stateTrie.Get(coinbaseAddr); v != nil {
-		origBalance = byteutils.Uint64(v)
+		if err := proto.Unmarshal(v, coinbaseAccount); err != nil {
+			return err
+		}
 	}
-	balance := origBalance + BlockReward
-	stateTrie.Put(coinbaseAddr, byteutils.FromUint64(balance))
+	coinbaseAccount.Balance += BlockReward
+	coinbaseBytes, err := proto.Marshal(coinbaseAccount)
+	if err != nil {
+		return err
+	}
+	stateTrie.Put(coinbaseAddr, coinbaseBytes)
+	return nil
 }
 
 func (block *Block) executeTransactions() {
 	stateTrie := block.stateTrie
+	txsTrie := block.txsTrie
 
 	// TODO: transaction nonce for address should be added to prevent transaction record-replay attack.
 	invalidTxs := make([]int, 0)
 	for idx, tx := range block.transactions {
-		err := tx.Execute(stateTrie)
+		err := tx.Execute(stateTrie, txsTrie)
 		if err != nil {
 			log.WithFields(log.Fields{
 				"err":         err,

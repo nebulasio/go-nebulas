@@ -55,10 +55,26 @@ type Transaction struct {
 	nonce     uint64
 	timestamp time.Time
 	data      []byte
+	chainID   uint32
 
 	// Signature
 	alg  uint8 // algorithm
 	sign Hash  // Signature values
+}
+
+// From return from address
+func (tx *Transaction) From() []byte {
+	return tx.from.address
+}
+
+// Nonce return tx nonce
+func (tx *Transaction) Nonce() uint64 {
+	return tx.nonce
+}
+
+// DataLen return data length
+func (tx *Transaction) DataLen() int {
+	return len(tx.data)
 }
 
 // ToProto converts domain Tx to proto Tx
@@ -71,7 +87,8 @@ func (tx *Transaction) ToProto() (proto.Message, error) {
 		Nonce:     tx.nonce,
 		Timestamp: tx.timestamp.UnixNano(),
 		Data:      tx.data,
-		Alg:       (uint32)(tx.alg),
+		ChainID:   tx.chainID,
+		Alg:       uint32(tx.alg),
 		Sign:      tx.sign,
 	}, nil
 }
@@ -86,7 +103,8 @@ func (tx *Transaction) FromProto(msg proto.Message) error {
 		tx.nonce = msg.Nonce
 		tx.timestamp = time.Unix(0, msg.Timestamp)
 		tx.data = msg.Data
-		tx.alg = (uint8)(msg.Alg)
+		tx.chainID = msg.ChainID
+		tx.alg = uint8(msg.Alg)
 		tx.sign = msg.Sign
 		return nil
 	}
@@ -97,13 +115,14 @@ func (tx *Transaction) FromProto(msg proto.Message) error {
 type Transactions []*Transaction
 
 // NewTransaction create #Transaction instance.
-func NewTransaction(from, to Address, value uint64, nonce uint64, data []byte) *Transaction {
+func NewTransaction(chainID uint32, from, to Address, value uint64, nonce uint64, data []byte) *Transaction {
 	tx := &Transaction{
 		from:      from,
 		to:        to,
 		value:     value,
 		nonce:     nonce,
 		timestamp: time.Now(),
+		chainID:   chainID,
 		data:      data,
 	}
 	return tx
@@ -191,35 +210,54 @@ func (tx *Transaction) VerifySign() (bool, error) {
 }
 
 // Execute execute transaction, eg. transfer Nas, call smart contract.
-func (tx *Transaction) Execute(stateTrie *trie.Trie) error {
-	fromOrigBalance := uint64(0)
-	toOriginBalance := uint64(0)
+func (tx *Transaction) Execute(stateTrie *trie.Trie, txsTrie *trie.Trie) error {
+	fromAccount := new(corepb.Account)
+	toAccount := new(corepb.Account)
 
 	if v, _ := stateTrie.Get(tx.from.address); v != nil {
-		fromOrigBalance = byteutils.Uint64(v)
+		if err := proto.Unmarshal(v, fromAccount); err != nil {
+			return err
+		}
 	}
 
 	if v, _ := stateTrie.Get(tx.to.address); v != nil {
-		toOriginBalance = byteutils.Uint64(v)
+		if err := proto.Unmarshal(v, toAccount); err != nil {
+			return err
+		}
 	}
 
-	if fromOrigBalance < tx.value {
+	if fromAccount.Balance < tx.value {
 		return ErrInsufficientBalance
 	}
 
-	fromBalance := fromOrigBalance - tx.value
-	toBalance := toOriginBalance + tx.value
+	fromAccount.Balance -= tx.value
+	toAccount.Balance += tx.value
 
-	stateTrie.Put(tx.from.address, byteutils.FromUint64(fromBalance))
-	stateTrie.Put(tx.to.address, byteutils.FromUint64(toBalance))
+	pbTx, _ := tx.ToProto()
+	fromBytes, fromErr := proto.Marshal(fromAccount)
+	if fromErr != nil {
+		return fromErr
+	}
+	toBytes, toErr := proto.Marshal(toAccount)
+	if toErr != nil {
+		return toErr
+	}
+	txBytes, txErr := proto.Marshal(pbTx)
+	if txErr != nil {
+		return txErr
+	}
+
+	stateTrie.Put(tx.from.address, fromBytes)
+	stateTrie.Put(tx.to.address, toBytes)
+	txsTrie.Put(tx.hash, txBytes)
 
 	log.WithFields(log.Fields{
 		"from":            tx.from.address.Hex(),
-		"fromOrigBalance": fromOrigBalance,
-		"fromBalance":     fromBalance,
+		"fromOrigBalance": fromAccount.Balance + tx.value,
+		"fromBalance":     fromAccount.Balance,
 		"to":              tx.to.address.Hex(),
-		"toOrigBalance":   toOriginBalance,
-		"toBalance":       toBalance,
+		"toOrigBalance":   toAccount.Balance - tx.value,
+		"toBalance":       toAccount.Balance,
 	}).Debug("execute transaction.")
 
 	return nil
@@ -234,5 +272,6 @@ func HashTransaction(tx *Transaction) Hash {
 		byteutils.FromUint64(tx.nonce),
 		byteutils.FromInt64(tx.timestamp.UnixNano()),
 		tx.data,
+		byteutils.FromUint32(tx.chainID),
 	)
 }

@@ -66,7 +66,7 @@ func randomTx(from *core.Address) *core.Transaction {
 
 	value := rand.Uint64() % 5
 
-	tx := core.NewTransaction(*from, *to, value, 0, nil)
+	tx := core.NewTransaction(core.TestNetID, *from, *to, value, 0, nil)
 	tx.Sign()
 	return tx
 }

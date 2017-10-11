@@ -25,7 +25,7 @@ import (
 )
 
 // NewGenesisBlock create genesis @Block from file.
-func NewGenesisBlock(stateTrie *trie.Trie) *Block {
+func NewGenesisBlock(stateTrie *trie.Trie, txsTrie *trie.Trie) *Block {
 	// TODO: load genesis block data from file.
 	b := &Block{
 		header: &BlockHeader{
@@ -35,6 +35,7 @@ func NewGenesisBlock(stateTrie *trie.Trie) *Block {
 			timestamp:  time.Now().Unix(),
 		},
 		stateTrie: stateTrie,
+		txsTrie:   txsTrie,
 		height:    1,
 		sealed:    true,
 	}

@@ -30,7 +30,7 @@ import (
 
 // BlockChain the BlockChain core type.
 type BlockChain struct {
-	chainID int
+	chainID uint32
 
 	genesisBlock *Block
 	tailBlock    *Block
@@ -52,26 +52,28 @@ const (
 )
 
 // NewBlockChain create new #BlockChain instance.
-func NewBlockChain(chainID int) *BlockChain {
+func NewBlockChain(chainID uint32) *BlockChain {
 	var bc = &BlockChain{
 		chainID: chainID,
 		bkPool:  NewBlockPool(),
-		txPool:  NewTransactionPool(),
+		txPool:  NewTransactionPool(4096),
 	}
 
 	stateTrie, _ := trie.NewTrie(nil)
+	txsTrie, _ := trie.NewTrie(nil)
 	bc.cachedBlocks, _ = lru.New(1024)
 	bc.detachedTailBlocks, _ = lru.New(64)
 
-	bc.genesisBlock = NewGenesisBlock(stateTrie)
+	bc.genesisBlock = NewGenesisBlock(stateTrie, txsTrie)
 	bc.tailBlock = bc.genesisBlock
 
 	bc.bkPool.setBlockChain(bc)
+	bc.txPool.setBlockChain(bc)
 	return bc
 }
 
 // ChainID return the chainID.
-func (bc *BlockChain) ChainID() int {
+func (bc *BlockChain) ChainID() uint32 {
 	return bc.chainID
 }
 
@@ -108,16 +110,17 @@ func (bc *BlockChain) NewBlock(coinbase *Address) *Block {
 
 // NewBlockFromParent create new block from parent block and return it.
 func (bc *BlockChain) NewBlockFromParent(coinbase *Address, parentBlock *Block) *Block {
-	stateTrie, err := parentBlock.stateTrie.Clone()
-	if err != nil {
+	stateTrie, err1 := parentBlock.stateTrie.Clone()
+	txsTrie, err2 := parentBlock.txsTrie.Clone()
+	if err1 != nil || err2 != nil {
 		log.WithFields(log.Fields{
 			"func": "BlockChain.NewBlockFromParent",
-			"err":  err,
+			"err":  err1.Error() + err2.Error(),
 		}).Fatal("clone state trie fail.")
 		panic("BlockChain.NewBlockFromParent: clone state trie fail.")
 	}
 
-	block := NewBlock(coinbase, parentBlock.Hash(), parentBlock.Nonce(), stateTrie, bc.txPool)
+	block := NewBlock(bc.chainID, coinbase, parentBlock.Hash(), parentBlock.Nonce(), stateTrie, txsTrie, bc.txPool)
 	return block
 }
 

@@ -35,6 +35,7 @@ func TestBlockHeader(t *testing.T) {
 		nonce      uint64
 		coinbase   *Address
 		timestamp  int64
+		chainID    uint32
 	}
 	tests := []struct {
 		name    string
@@ -50,6 +51,7 @@ func TestBlockHeader(t *testing.T) {
 				3546456,
 				&Address{[]byte("hello")},
 				time.Now().Unix(),
+				1,
 			},
 			false,
 		},
@@ -63,6 +65,7 @@ func TestBlockHeader(t *testing.T) {
 				nonce:      tt.fields.nonce,
 				coinbase:   tt.fields.coinbase,
 				timestamp:  tt.fields.timestamp,
+				chainID:    tt.fields.chainID,
 			}
 			proto, _ := b.ToProto()
 			ir, _ := pb.Marshal(proto)
@@ -97,6 +100,7 @@ func TestBlock(t *testing.T) {
 					3546456,
 					&Address{[]byte("hello")},
 					time.Now().Unix(),
+					1,
 				},
 				Transactions{
 					&Transaction{
@@ -107,6 +111,7 @@ func TestBlock(t *testing.T) {
 						456,
 						time.Now(),
 						[]byte("hwllo"),
+						1,
 						uint8(cipher.SECP256K1),
 						nil,
 					},
@@ -118,6 +123,7 @@ func TestBlock(t *testing.T) {
 						456,
 						time.Now(),
 						[]byte("hwllo"),
+						1,
 						uint8(cipher.SECP256K1),
 						nil,
 					},
