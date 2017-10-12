@@ -50,6 +50,7 @@ func New(config nebletpb.Config) *Neblet {
 func (n *Neblet) Start() error {
 	n.lock.Lock()
 	defer n.lock.Unlock()
+	log.Info("Starting neblet...")
 
 	if n.running {
 		return ErrNebletAlreadyRunning
@@ -86,12 +87,27 @@ func (n *Neblet) Stop() error {
 	n.lock.Lock()
 	defer n.lock.Unlock()
 
-	n.consensus.Stop()
-	n.blockChain.BlockPool().Stop()
-	n.p2pManager.Stop()
+	log.Info("Stopping neblet...")
 
-	n.rpcServer.Stop()
-	n.rpcServer = nil
+	if n.consensus != nil {
+		n.consensus.Stop()
+		n.consensus = nil
+	}
+
+	if n.blockChain != nil {
+		n.blockChain.BlockPool().Stop()
+		n.blockChain = nil
+	}
+
+	if n.p2pManager != nil {
+		n.p2pManager.Stop()
+		n.p2pManager = nil
+	}
+
+	if n.rpcServer != nil {
+		n.rpcServer.Stop()
+		n.rpcServer = nil
+	}
 
 	n.keyStore = nil
 
