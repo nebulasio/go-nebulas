@@ -25,9 +25,13 @@ import (
 	"strconv"
 	"time"
 
+	"io/ioutil"
+
+	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/crypto/keystore"
 	"github.com/nebulasio/go-nebulas/crypto/keystore/ecdsa"
+	"github.com/nebulasio/go-nebulas/neblet/pb"
 	"github.com/nebulasio/go-nebulas/util/logging"
 	log "github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
@@ -39,9 +43,7 @@ var (
 	branch    string
 	compileAt string
 	dummy     bool
-	p2pConfig string
-	port      uint
-	seed      string
+	config    string
 )
 
 func main() {
@@ -67,28 +69,8 @@ func main() {
 		cli.StringFlag{
 			Name:        "config, c",
 			Usage:       "load configuration from `FILE`",
-			Destination: &p2pConfig,
-		},
-		cli.StringFlag{
-			Name:        "seed, s",
-			Usage:       "p2p network seed node address",
-			Destination: &seed,
-		},
-		cli.UintFlag{
-			Name:        "port, p",
-			Usage:       "p2p network port",
-			Destination: &port,
-		},
-	}
-
-	app.Commands = []cli.Command{
-		{
-			Name:    "config",
-			Aliases: []string{"c"},
-			Usage:   "Show default configuration",
-			Action: func(c *cli.Context) error {
-				return nil
-			},
+			Value:       "config.pb.txt",
+			Destination: &config,
 		},
 	}
 
@@ -105,14 +87,34 @@ func neb(ctx *cli.Context) error {
 	log.SetOutput(os.Stdout)
 	log.SetLevel(log.DebugLevel)
 
+	conf := loadConfig(config)
+
 	if dummy {
 		GoDummy()
 	} else {
-		GoP2p(seed, port)
+		GoP2p(conf.P2P.Seed, uint(conf.P2P.Port))
 	}
 	for {
 		time.Sleep(60 * time.Second) // or runtime.Gosched() or similar per @misterbee
 	}
+}
+
+func loadConfig(filename string) *nebletpb.Config {
+	log.Info("Loading Neb config from file ", filename)
+	b, err := ioutil.ReadFile(filename)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	str := string(b)
+	log.Info("Parsing Neb config text ", str)
+
+	pb := new(nebletpb.Config)
+	if err := proto.UnmarshalText(str, pb); err != nil {
+		log.Fatal(err)
+	}
+	log.Info("Loaded Neb config proto ", pb)
+	return pb
 }
 
 // add test address to keystore
