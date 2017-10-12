@@ -45,6 +45,7 @@ const (
 var (
 	ErrInvalidBlockHash      = errors.New("invalid block hash")
 	ErrInvalidBlockStateRoot = errors.New("invalid block state root hash")
+	ErrInvalidBlockTxsRoot   = errors.New("invalid block txs root hash")
 )
 
 // BlockHeader of a block
@@ -52,6 +53,7 @@ type BlockHeader struct {
 	hash       Hash
 	parentHash Hash
 	stateRoot  Hash
+	txsRoot    Hash
 	nonce      uint64
 	coinbase   *Address
 	timestamp  int64
@@ -64,6 +66,7 @@ func (b *BlockHeader) ToProto() (proto.Message, error) {
 		Hash:       b.hash,
 		ParentHash: b.parentHash,
 		StateRoot:  b.stateRoot,
+		TxsRoot:    b.txsRoot,
 		Nonce:      b.nonce,
 		Coinbase:   b.coinbase.address,
 		Timestamp:  b.timestamp,
@@ -77,6 +80,7 @@ func (b *BlockHeader) FromProto(msg proto.Message) error {
 		b.hash = msg.Hash
 		b.parentHash = msg.ParentHash
 		b.stateRoot = msg.StateRoot
+		b.txsRoot = msg.TxsRoot
 		b.nonce = msg.Nonce
 		b.coinbase = &Address{msg.Coinbase}
 		b.timestamp = msg.Timestamp
@@ -140,12 +144,14 @@ func (block *Block) FromProto(msg proto.Message) error {
 }
 
 // NewBlock return new block.
-func NewBlock(chainID uint32, coinbase *Address, parentHash Hash, nonce uint64, stateTrie *trie.Trie, txsTrie *trie.Trie, txPool *TransactionPool) *Block {
+func NewBlock(chainID uint32, coinbase *Address, parent *Block, txPool *TransactionPool) *Block {
+	stateTrie, _ := parent.stateTrie.Clone()
+	txsTrie, _ := parent.txsTrie.Clone()
 	block := &Block{
 		header: &BlockHeader{
-			parentHash: parentHash,
+			parentHash: parent.Hash(),
 			coinbase:   coinbase,
-			nonce:      nonce,
+			nonce:      0,
 			timestamp:  time.Now().Unix(),
 			chainID:    chainID,
 		},
@@ -153,6 +159,7 @@ func NewBlock(chainID uint32, coinbase *Address, parentHash Hash, nonce uint64, 
 		stateTrie:    stateTrie,
 		txsTrie:      txsTrie,
 		txPool:       txPool,
+		height:       parent.height + 1,
 		sealed:       false,
 	}
 	return block
@@ -189,6 +196,11 @@ func (block *Block) StateRoot() Hash {
 	return block.header.stateRoot
 }
 
+// TxsRoot return txs root hash.
+func (block *Block) TxsRoot() Hash {
+	return block.header.txsRoot
+}
+
 // ParentHash return parent hash.
 func (block *Block) ParentHash() Hash {
 	return block.header.parentHash
@@ -212,18 +224,9 @@ func (block *Block) LinkParentBlock(parentBlock *Block) bool {
 
 	log.Infof("Block.LinkParentBlock: parentBlock %s <- block %s", parentBlock.Hash(), block.Hash())
 
-	stateTrie, err := parentBlock.stateTrie.Clone()
-	if err != nil {
-		log.WithFields(log.Fields{
-			"func":        "linkedBlock.dfs",
-			"err":         err,
-			"parentBlock": parentBlock,
-			"block":       block,
-		}).Fatal("clone state trie from parent block fail.")
-		panic("clone state trie from parent block fail.")
-	}
-
-	block.stateTrie = stateTrie
+	block.stateTrie, _ = parentBlock.stateTrie.Clone()
+	block.txsTrie, _ = parentBlock.txsTrie.Clone()
+	block.txPool = parentBlock.txPool
 	block.parenetBlock = parentBlock
 
 	// travel to calculate block height.
@@ -245,15 +248,29 @@ func (block *Block) LinkParentBlock(parentBlock *Block) bool {
 	return true
 }
 
-// AddTransactions add transactions to block.
-func (block *Block) AddTransactions(txs ...*Transaction) *Block {
+// CollectTransactions and add them to block.
+func (block *Block) CollectTransactions(n int) {
 	if block.sealed {
 		panic("Sealed block can't be changed.")
 	}
 
-	// TODO: dedup the transaction from chain.
-	block.transactions = append(block.transactions, txs...)
-	return block
+	pool := block.txPool
+	var givebacks []*Transaction
+	for !pool.Empty() && n > 0 {
+		tx := pool.Pop()
+		giveback, err := block.executeTransaction(tx)
+		if giveback {
+			givebacks = append(givebacks, tx)
+		}
+		if err != nil {
+			continue
+		}
+		block.transactions = append(block.transactions, tx)
+		n--
+	}
+	for _, tx := range givebacks {
+		pool.Push(tx)
+	}
 }
 
 // Sealed return true if block seals. Otherwise return false.
@@ -267,9 +284,10 @@ func (block *Block) Seal() {
 		return
 	}
 
+	block.rewardCoinbase()
 	block.header.hash = HashBlock(block)
-	block.header.stateRoot = HashBlockStateRoot(block)
-
+	block.header.stateRoot = block.stateTrie.RootHash()
+	block.header.txsRoot = block.txsTrie.RootHash()
 	block.sealed = true
 }
 
@@ -285,119 +303,132 @@ func (block *Block) String() string {
 }
 
 // Verify return block verify result, including Hash, Nonce and StateRoot.
-func (block *Block) Verify(bc *BlockChain) error {
-	if err := block.VerifyHash(bc); err != nil {
+func (block *Block) Verify() error {
+	if err := block.VerifyHash(); err != nil {
+		return err
+	}
+	if err := block.VerifyTransactions(); err != nil {
 		return err
 	}
 
-	return block.VerifyStateRoot()
+	block.rewardCoinbase()
+
+	if !byteutils.Equal(block.stateTrie.RootHash(), block.StateRoot()) {
+		return ErrInvalidBlockStateRoot
+	}
+	if !byteutils.Equal(block.txsTrie.RootHash(), block.TxsRoot()) {
+		return ErrInvalidBlockTxsRoot
+	}
+
+	return nil
 }
 
 // VerifyHash return hash verify result.
-func (block *Block) VerifyHash(bc *BlockChain) error {
-	// verify nonce.
-	if err := bc.ConsensusHandler().VerifyBlock(block); err != nil {
-		return err
-	}
-
+func (block *Block) VerifyHash() error {
 	// verify hash.
 	wantedHash := HashBlock(block)
-	if wantedHash.Equals(block.Hash()) == false {
-		log.WithFields(log.Fields{
-			"func":       "Block.VerifyHash",
-			"err":        ErrInvalidBlockHash,
-			"block":      block,
-			"wantedHash": wantedHash,
-		}).Error("invalid block hash.")
+	if !wantedHash.Equals(block.Hash()) {
 		return ErrInvalidBlockHash
 	}
 
-	// verify transaction.
-	for _, tx := range block.transactions {
-		if err := tx.Verify(); err != nil {
-			return err
-		}
-	}
-
 	return nil
 }
 
-// VerifyStateRoot return hash verify result.
-func (block *Block) VerifyStateRoot() error {
-	sr := block.stateTrie.RootHash()
-	wantedStateRoot := HashBlockStateRoot(block)
-	log.Debugf("STATEROOT - VERIFY: %s from [%v] to [%v]", block.header.hash.Hex(), byteutils.Hex(sr), wantedStateRoot)
-
-	if wantedStateRoot.Equals(block.StateRoot()) == false {
-		log.WithFields(log.Fields{
-			"func":            "Block.VerifyStateRoot",
-			"err":             ErrInvalidBlockStateRoot,
-			"block":           block,
-			"wantedStateRoot": wantedStateRoot,
-		}).Error("invalid block state root hash.")
-		return ErrInvalidBlockStateRoot
-	}
-
-	return nil
-}
-
-func (block *Block) rewardCoinbase() error {
-	stateTrie := block.stateTrie
-	coinbaseAddr := block.header.coinbase.address
-	coinbaseAccount := new(corepb.Account)
-	if v, _ := stateTrie.Get(coinbaseAddr); v != nil {
-		if err := proto.Unmarshal(v, coinbaseAccount); err != nil {
-			return err
-		}
-	}
-	coinbaseAccount.Balance += BlockReward
-	coinbaseBytes, err := proto.Marshal(coinbaseAccount)
-	if err != nil {
+// VerifyTransactions return hash verify result.
+func (block *Block) VerifyTransactions() error {
+	if err := block.executeTransactions(); err != nil {
 		return err
 	}
-	stateTrie.Put(coinbaseAddr, coinbaseBytes)
 	return nil
 }
 
-func (block *Block) executeTransactions() {
-	stateTrie := block.stateTrie
-	txsTrie := block.txsTrie
+func (block *Block) rewardCoinbase() {
+	coinbaseAddr := block.header.coinbase
+	coinbaseAcc := block.findAccount(coinbaseAddr)
+	coinbaseAcc.Balance += BlockReward
+	block.saveAccount(coinbaseAddr, coinbaseAcc)
+}
 
-	// TODO: transaction nonce for address should be added to prevent transaction record-replay attack.
-	invalidTxs := make([]int, 0)
-	for idx, tx := range block.transactions {
-		err := tx.Execute(stateTrie, txsTrie)
+func (block *Block) executeTransactions() error {
+	for _, tx := range block.transactions {
+		giveback, err := block.executeTransaction(tx)
+		if giveback {
+			block.txPool.Push(tx)
+		}
 		if err != nil {
-			log.WithFields(log.Fields{
-				"err":         err,
-				"func":        "Block.executeTransactions",
-				"transaction": tx,
-			}).Warn("execute transaction fail, remove it from block.")
-			invalidTxs = append(invalidTxs, idx)
+			return err
 		}
 	}
+	return nil
+}
 
-	// remove invalid transactions.
-	txs := block.transactions
-	lenOfTxs := len(block.transactions)
-	for i := len(invalidTxs) - 1; i >= 0; i-- {
-		idx := invalidTxs[i]
-
-		// Put transaction back to pool.
-		block.txPool.Put(txs[idx])
-
-		// remove it from block.
-		if idx == lenOfTxs-1 {
-			txs = txs[:idx]
-			continue
-		} else if idx == 0 {
-			txs = txs[0:]
-			continue
+// findAccount return account info in state Trie
+// if not found, return a new account
+func (block *Block) findAccount(address *Address) *corepb.Account {
+	acc := new(corepb.Account)
+	if accBytes, err := block.stateTrie.Get(address.address); err != nil {
+		// new account, for safe
+		acc.Balance = 0
+		acc.Nonce = 0
+	} else {
+		if err := proto.Unmarshal(accBytes, acc); err != nil {
+			panic("account in stateTrie cannot be unmarshaled correctly ")
 		}
-		txs = append(txs[:idx], txs[idx+1:]...)
 	}
+	return acc
+}
 
-	block.transactions = txs
+// saveAccount update account info in state Trie
+func (block *Block) saveAccount(address *Address, acc *corepb.Account) {
+	accBytes, _ := proto.Marshal(acc)
+	block.stateTrie.Put(address.address, accBytes)
+}
+
+// executeTransaction in block
+// 0. check chainID
+// 1. check hash
+// 2. check sign
+// 3. check duplication
+// 4. check nonce increase by 1
+// 5. check balance
+func (block *Block) executeTransaction(tx *Transaction) (giveback bool, err error) {
+	// check chainID
+	if tx.chainID != block.header.chainID {
+		return false, errors.New("invalid transaction chainID")
+	}
+	// check hash & sign
+	if err := tx.Verify(); err != nil {
+		return false, err
+	}
+	// check duplication
+	if proof, _ := block.txsTrie.Prove(tx.hash); proof != nil {
+		return false, errors.New("cannot execute an existed transaction")
+	}
+	// check nonce
+	fromAcc := block.findAccount(&tx.from)
+	if tx.nonce < fromAcc.Nonce+1 {
+		return false, errors.New("cannot accept a transaction with smaller nonce")
+	} else if tx.nonce > fromAcc.Nonce+1 {
+		return true, errors.New("cannot accept a transaction with too bigger nonce")
+	}
+	// check balance
+	toAcc := block.findAccount(&tx.to)
+	if fromAcc.Balance < tx.value {
+		return false, ErrInsufficientBalance
+	}
+	// accept the transaction
+	fromAcc.Balance -= tx.value
+	toAcc.Balance += tx.value
+	fromAcc.Nonce++
+	// save account info in state trie
+	block.saveAccount(&tx.from, fromAcc)
+	block.saveAccount(&tx.to, toAcc)
+	// save txs info in txs trie
+	pbTx, _ := tx.ToProto()
+	txBytes, _ := proto.Marshal(pbTx)
+	block.txsTrie.Put(tx.hash, txBytes)
+
+	return false, nil
 }
 
 // HashBlock return the hash of block.
@@ -408,22 +439,11 @@ func HashBlock(block *Block) Hash {
 	hasher.Write(byteutils.FromUint64(block.header.nonce))
 	hasher.Write(block.header.coinbase.address)
 	hasher.Write(byteutils.FromInt64(block.header.timestamp))
+	hasher.Write(byteutils.FromUint32(block.header.chainID))
 
 	for _, tx := range block.transactions {
 		hasher.Write(tx.Hash())
 	}
 
 	return hasher.Sum(nil)
-}
-
-// HashBlockStateRoot return the hash of state trie of block.
-func HashBlockStateRoot(block *Block) Hash {
-
-	// 1st, reward coinbase.
-	block.rewardCoinbase()
-
-	// 2nd, execute transactions.
-	block.executeTransactions()
-
-	return block.stateTrie.RootHash()
 }

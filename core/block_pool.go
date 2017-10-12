@@ -19,9 +19,8 @@
 package core
 
 import (
-	"github.com/hashicorp/golang-lru"
-
 	pb "github.com/gogo/protobuf/proto"
+	"github.com/hashicorp/golang-lru"
 	"github.com/nebulasio/go-nebulas/components/net"
 	"github.com/nebulasio/go-nebulas/components/net/messages"
 	log "github.com/sirupsen/logrus"
@@ -144,21 +143,27 @@ func (pool *BlockPool) addBlock(block *Block) error {
 		log.WithFields(log.Fields{
 			"func":  "BlockPool.addBlock",
 			"block": block,
-		}).Debug("ignore duplicated block.")
+		}).Info("dup block, ignore it.")
 		return nil
 	}
 
-	log.WithFields(log.Fields{
-		"func":  "BlockPool.addBlock",
-		"block": block,
-	}).Debug("start process new block.")
-
-	if err := block.VerifyHash(pool.bc); err != nil {
+	// verify nonce.
+	if err := pool.bc.ConsensusHandler().VerifyBlock(block); err != nil {
 		log.WithFields(log.Fields{
 			"func":  "BlockPool.addBlock",
 			"err":   err,
 			"block": block,
-		}).Error("invalid block hash, drop it.")
+		}).Error("invalid block nonce, drop it.")
+		return err
+	}
+
+	// verify block hash & txs
+	if err := block.VerifyHash(); err != nil {
+		log.WithFields(log.Fields{
+			"func":  "BlockPool.addBlock",
+			"err":   err,
+			"block": block,
+		}).Error("invalid block hash or txs, drop it.")
 		return err
 	}
 
@@ -241,13 +246,13 @@ func (lb *linkedBlock) getTailsWithPath(parentBlock *Block) ([]*Block, []*Block)
 		panic("link parent block fail.")
 	}
 
-	if err := lb.block.VerifyStateRoot(); err != nil {
+	if err := lb.block.VerifyTransactions(); err != nil {
 		log.WithFields(log.Fields{
 			"func":        "linkedBlock.dfs",
 			"err":         err,
 			"parentBlock": parentBlock,
 			"block":       lb.block,
-		}).Fatal("invalid state root hash.")
+		}).Fatal("invalid trie root hash.")
 		return nil, nil
 	}
 

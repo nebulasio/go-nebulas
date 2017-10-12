@@ -23,7 +23,6 @@ import (
 	"time"
 
 	"github.com/gogo/protobuf/proto"
-	"github.com/nebulasio/go-nebulas/common/trie"
 	"github.com/nebulasio/go-nebulas/core/pb"
 	"github.com/nebulasio/go-nebulas/crypto/cipher"
 	"github.com/nebulasio/go-nebulas/crypto/hash"
@@ -172,7 +171,7 @@ func (tx *Transaction) Verify() error {
 		return ErrInvalidTransactionHash
 	}
 
-	signVerify, err := tx.VerifySign()
+	signVerify, err := tx.verifySign()
 	if err != nil {
 		return err
 	}
@@ -183,7 +182,7 @@ func (tx *Transaction) Verify() error {
 }
 
 // VerifySign verify the transaction sign
-func (tx *Transaction) VerifySign() (bool, error) {
+func (tx *Transaction) verifySign() (bool, error) {
 	if len(tx.sign) == 0 {
 		return false, errors.New("VerifySign need sign hash")
 	}
@@ -207,60 +206,6 @@ func (tx *Transaction) VerifySign() (bool, error) {
 		return false, errors.New("recover public key not related to from address")
 	}
 	return signature.Verify(tx.hash, tx.sign)
-}
-
-// Execute execute transaction, eg. transfer Nas, call smart contract.
-func (tx *Transaction) Execute(stateTrie *trie.Trie, txsTrie *trie.Trie) error {
-	fromAccount := new(corepb.Account)
-	toAccount := new(corepb.Account)
-
-	if v, _ := stateTrie.Get(tx.from.address); v != nil {
-		if err := proto.Unmarshal(v, fromAccount); err != nil {
-			return err
-		}
-	}
-
-	if v, _ := stateTrie.Get(tx.to.address); v != nil {
-		if err := proto.Unmarshal(v, toAccount); err != nil {
-			return err
-		}
-	}
-
-	if fromAccount.Balance < tx.value {
-		return ErrInsufficientBalance
-	}
-
-	fromAccount.Balance -= tx.value
-	toAccount.Balance += tx.value
-
-	pbTx, _ := tx.ToProto()
-	fromBytes, fromErr := proto.Marshal(fromAccount)
-	if fromErr != nil {
-		return fromErr
-	}
-	toBytes, toErr := proto.Marshal(toAccount)
-	if toErr != nil {
-		return toErr
-	}
-	txBytes, txErr := proto.Marshal(pbTx)
-	if txErr != nil {
-		return txErr
-	}
-
-	stateTrie.Put(tx.from.address, fromBytes)
-	stateTrie.Put(tx.to.address, toBytes)
-	txsTrie.Put(tx.hash, txBytes)
-
-	log.WithFields(log.Fields{
-		"from":            tx.from.address.Hex(),
-		"fromOrigBalance": fromAccount.Balance + tx.value,
-		"fromBalance":     fromAccount.Balance,
-		"to":              tx.to.address.Hex(),
-		"toOrigBalance":   toAccount.Balance - tx.value,
-		"toBalance":       toAccount.Balance,
-	}).Debug("execute transaction.")
-
-	return nil
 }
 
 // HashTransaction hash the transaction.

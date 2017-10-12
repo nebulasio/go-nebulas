@@ -22,9 +22,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/nebulasio/go-nebulas/common/trie"
-	log "github.com/sirupsen/logrus"
-
 	"github.com/hashicorp/golang-lru"
 )
 
@@ -59,12 +56,10 @@ func NewBlockChain(chainID uint32) *BlockChain {
 		txPool:  NewTransactionPool(4096),
 	}
 
-	stateTrie, _ := trie.NewTrie(nil)
-	txsTrie, _ := trie.NewTrie(nil)
 	bc.cachedBlocks, _ = lru.New(1024)
 	bc.detachedTailBlocks, _ = lru.New(64)
 
-	bc.genesisBlock = NewGenesisBlock(stateTrie, txsTrie)
+	bc.genesisBlock = NewGenesisBlock(chainID)
 	bc.tailBlock = bc.genesisBlock
 
 	bc.bkPool.setBlockChain(bc)
@@ -110,18 +105,7 @@ func (bc *BlockChain) NewBlock(coinbase *Address) *Block {
 
 // NewBlockFromParent create new block from parent block and return it.
 func (bc *BlockChain) NewBlockFromParent(coinbase *Address, parentBlock *Block) *Block {
-	stateTrie, err1 := parentBlock.stateTrie.Clone()
-	txsTrie, err2 := parentBlock.txsTrie.Clone()
-	if err1 != nil || err2 != nil {
-		log.WithFields(log.Fields{
-			"func": "BlockChain.NewBlockFromParent",
-			"err":  err1.Error() + err2.Error(),
-		}).Fatal("clone state trie fail.")
-		panic("BlockChain.NewBlockFromParent: clone state trie fail.")
-	}
-
-	block := NewBlock(bc.chainID, coinbase, parentBlock.Hash(), parentBlock.Nonce(), stateTrie, txsTrie, bc.txPool)
-	return block
+	return NewBlock(bc.chainID, coinbase, parentBlock, bc.txPool)
 }
 
 // PutVerifiedNewBlocks put verified new blocks and tails.

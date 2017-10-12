@@ -198,7 +198,8 @@ func (q *Pdeq) trickleDownMin(pos int) {
 	if len(children) > 0 {
 		grandchild := q.children(children)
 		if len(grandchild) > 0 {
-			opts := q.sort(grandchild)
+			children = append(children, grandchild...)
+			opts := q.sort(children)
 			opt := opts[0]
 			if q.less(heap[opt], heap[pos]) {
 				q.swap(opt, pos)
@@ -223,7 +224,8 @@ func (q *Pdeq) trickleDownMax(pos int) {
 	if len(children) > 0 {
 		grandchild := q.children(children)
 		if len(grandchild) > 0 {
-			opts := q.sort(grandchild)
+			children = append(children, grandchild...)
+			opts := q.sort(children)
 			opt := opts[len(opts)-1]
 			if q.less(heap[pos], heap[opt]) {
 				q.swap(opt, pos)

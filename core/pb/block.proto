@@ -38,13 +38,13 @@ message Transaction {
 
 message BlockHeader {
     bytes hash = 1;
-    bytes parentHash = 2;
-    bytes stateRoot = 3;
-    uint64 nonce = 4;
-    bytes coinbase = 5;
-    int64 timestamp = 6;
-    uint32 chainID = 7;
-
+    bytes parent_hash = 2;
+    uint64 nonce = 3;
+    bytes coinbase = 4;
+    int64 timestamp = 5;
+    uint32 chainID = 6;
+    bytes state_root = 7;
+    bytes txs_root = 8;
 }
 
 message Block {

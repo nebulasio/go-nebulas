@@ -22,10 +22,8 @@ import (
 	"errors"
 	"sync"
 
-	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/common/pdeq"
 	"github.com/nebulasio/go-nebulas/components/net"
-	"github.com/nebulasio/go-nebulas/core/pb"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
 	log "github.com/sirupsen/logrus"
 )
@@ -115,21 +113,21 @@ func (pool *TransactionPool) loop() {
 			}
 
 			tx := msg.Data().(*Transaction)
-			pool.Put(tx)
+			pool.Push(tx)
 		}
 	}
 }
 
-// Put tx into pool
+// Push tx into pool
 // verify chainID, hash, sign, and duplication
 // if cache is full, delete the lowest priority tx
-func (pool *TransactionPool) Put(tx *Transaction) error {
+func (pool *TransactionPool) Push(tx *Transaction) error {
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
-	return pool.put(tx)
+	return pool.push(tx)
 }
 
-func (pool *TransactionPool) put(tx *Transaction) error {
+func (pool *TransactionPool) push(tx *Transaction) error {
 	// verify chainID
 	if tx.chainID != pool.bc.chainID {
 		return errors.New("cannot cache transactions in different chain")
@@ -153,71 +151,25 @@ func (pool *TransactionPool) put(tx *Transaction) error {
 	return nil
 }
 
-// PutTxs put many txs in once
-func (pool *TransactionPool) PutTxs(txs []*Transaction) {
+// Pop a transaction from pool
+func (pool *TransactionPool) Pop() *Transaction {
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
-	for _, v := range txs {
-		pool.put(v)
-	}
+	return pool.pop()
 }
 
-// Get n verified transaction from pool for packing a new block
-// 1. always choose highest priority txs
-// 2. tx chosen cannot exist in the chain of parent block already
-// 3. the nonce of tx chosen must be one more than current nonce
-func (pool *TransactionPool) Get(n int, parent *Block) []*Transaction {
-	pool.mu.Lock()
-	defer pool.mu.Unlock()
-	return pool.get(n, parent)
-}
-
-func (pool *TransactionPool) get(n int, parent *Block) []*Transaction {
-	// store the new block's txs
-	var res []*Transaction
-	// store the txs which should be giveback to pool
-	var giveback []*Transaction
-	// store account's current nonce in new block's txs
-	nonces := make(map[HexHash]uint64)
-	// choose valid tx until n txs are selected
-	for pool.cache.Len() > 0 && len(res) < n {
-		// get highest priority tx
+func (pool *TransactionPool) pop() *Transaction {
+	if pool.cache.Len() > 0 {
 		tx := pool.cache.PopMin().(*Transaction)
-		from := tx.from.address.Hex()
 		delete(pool.all, tx.hash.Hex())
-		// verify if tx exists in the chain of the parent block
-		if proof, _ := parent.txsTrie.Prove(tx.hash); proof != nil {
-			// existed, drop the tx
-			continue
-		}
-		// verify if tx's nonce is one more than current nonce
-		account := new(corepb.Account)
-		// current nonce, default 0
-		var curNonce uint64
-		// get account's current nonce in parent block
-		if accBytes, _ := parent.stateTrie.Get(tx.from.address); accBytes != nil {
-			// account existed
-			if err := proto.Unmarshal(accBytes, account); err != nil {
-				panic("account in stateTrie cannot be unmarshaled correctly")
-			}
-			curNonce = account.Nonce
-		}
-		// get account's current nonce in new block's txs
-		if nonce, ok := nonces[from]; ok {
-			curNonce = nonce
-		}
-		if tx.nonce == curNonce+1 {
-			// right tx, accepted
-			nonces[from] = tx.nonce
-			res = append(res, tx)
-		} else if tx.nonce > curNonce+1 {
-			// tx with bigger nonce is future tx, giveback it to tx pool
-			giveback = append(giveback, tx)
-		} // drop tx with smaller nonce
+		return tx
 	}
-	// giveback future txs
-	for _, v := range giveback {
-		pool.put(v)
-	}
-	return res
+	return nil
+}
+
+// Empty return if the pool is empty
+func (pool *TransactionPool) Empty() bool {
+	pool.mu.Lock()
+	defer pool.mu.Unlock()
+	return pool.cache.Len() == 0
 }
