@@ -335,6 +335,18 @@ func (block *Block) VerifyStateRoot() error {
 	return nil
 }
 
+// GetBalance returns balance for the given address on this block.
+// TODO: use uint128 and unit test.
+func (block *Block) GetBalance(address Hash) uint64 {
+	stateTrie := block.stateTrie
+	v, err := stateTrie.Get(address)
+	if v != nil {
+		return byteutils.Uint64(v)
+	}
+	log.Warn(err)
+	return 0
+}
+
 func (block *Block) rewardCoinbase() {
 	stateTrie := block.stateTrie
 	coinbaseAddr := block.header.coinbase.address
@@ -343,6 +355,11 @@ func (block *Block) rewardCoinbase() {
 		origBalance = byteutils.Uint64(v)
 	}
 	balance := origBalance + BlockReward
+	log.WithFields(log.Fields{
+		"address":     coinbaseAddr,
+		"origBalance": origBalance,
+		"newBalance":  balance,
+	}).Debug("Reward coinbase")
 	stateTrie.Put(coinbaseAddr, byteutils.FromUint64(balance))
 }
 
