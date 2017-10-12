@@ -23,26 +23,39 @@ import (
 
 	"github.com/nebulasio/go-nebulas/rpc/pb"
 	"github.com/nebulasio/go-nebulas/util"
+	"github.com/nebulasio/go-nebulas/util/byteutils"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
 // APIService implements the RPC API service interface.
-type APIService struct{}
+type APIService struct {
+	server *Server
+}
 
 // GetBalance is the RPC API handler.
 func (s *APIService) GetBalance(ctx context.Context, req *rpcpb.GetBalanceRequest) (*rpcpb.GetBalanceResponse, error) {
 	if len(req.Address) == 0 {
 		return nil, status.Errorf(codes.InvalidArgument, "Address is empty.")
 	}
-	// TODO: Invoke core manager to get balance from block state. Remove fake logic.
-	v := util.NewUint128FromBigInt(big.NewInt(996))
-	vb, err := v.ToFixedSizeBytes()
+
+	// TODO: cleanup dummy logic.
+	var bal uint64 = 996
+	if s.server != nil {
+		if neb := s.server.Neblet(); neb != nil {
+			addr, _ := byteutils.FromHex(req.Address)
+			// TODO: handle specific block number.
+			bal = neb.BlockChain().TailBlock().GetBalance(addr)
+		}
+	}
+	v := util.NewUint128FromBigInt(big.NewInt(int64(bal)))
+
+	vb, err := v.ToFixedSizeByteSlice()
 	if err != nil {
 		return nil, err
 	}
-	return &rpcpb.GetBalanceResponse{Value: vb[:]}, nil
+	return &rpcpb.GetBalanceResponse{Value: vb}, nil
 }
 
 // SendTransaction is the RPC API handler.

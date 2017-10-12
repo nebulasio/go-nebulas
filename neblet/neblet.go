@@ -70,7 +70,7 @@ func (n *Neblet) Start() error {
 	n.consensus = pow.NewPow(n.blockChain, n.p2pManager)
 	n.blockChain.SetConsensusHandler(n.consensus)
 
-	n.rpcServer = rpc.NewServer()
+	n.rpcServer = rpc.NewServer(n)
 
 	// start.
 	n.p2pManager.Start()
@@ -114,6 +114,11 @@ func (n *Neblet) Stop() error {
 	n.running = false
 
 	return nil
+}
+
+// BlockChain returns blockChain reference.
+func (n *Neblet) BlockChain() *core.BlockChain {
+	return n.blockChain
 }
 
 // TODO: move this to p2p package.
