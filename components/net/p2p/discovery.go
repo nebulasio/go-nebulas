@@ -90,35 +90,3 @@ func (net *NetService) syncSingleNode(nodeID peer.ID) {
 		node.routeTable.Remove(nodeID)
 	}
 }
-
-// func (net *NetService) syncRouteInfoFromSingleNode(nodeID peer.ID) {
-
-// 	node := net.node
-// 	node.SyncRoutes(nodeID)
-// 	// for i := range reply {
-// 	// 	if node.routeTable.Find(reply[i].ID) != "" || len(reply[i].Addrs) == 0 {
-// 	// 		log.Warnf("syncRouteInfoFromSingleNode: node %s is already exist in route table", reply[i].ID)
-// 	// 		continue
-// 	// 	}
-// 	// 	// Ping the peer.
-// 	// 	node.peerstore.AddAddr(
-// 	// 		reply[i].ID,
-// 	// 		reply[i].Addrs[0],
-// 	// 		peerstore.TempAddrTTL,
-// 	// 	)
-// 	// 	err := net.Hello(reply[i].ID)
-// 	// 	if err != nil {
-// 	// 		log.Errorf("syncRouteInfoFromSingleNode: ping peer %s fail %s", reply[i].ID, err)
-// 	// 		continue
-// 	// 	}
-// 	// 	node.peerstore.AddAddr(
-// 	// 		reply[i].ID,
-// 	// 		reply[i].Addrs[0],
-// 	// 		peerstore.PermanentAddrTTL,
-// 	// 	)
-
-// 	// 	// Update the routing table.
-// 	// 	node.routeTable.Update(reply[i].ID)
-// 	// }
-
-// }
