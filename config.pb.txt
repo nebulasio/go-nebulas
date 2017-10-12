@@ -1,0 +1,5 @@
+# Neb config file. Human-readable text of proto nebletpb.Config.
+
+p2p {
+	port: 51413
+}
