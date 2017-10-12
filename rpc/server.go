@@ -34,12 +34,14 @@ func (s *Server) Start() error {
 	log.Info("Starting RPC server at: ", Address())
 	listener, err := net.Listen("tcp", Address())
 	if err != nil {
-		log.Panic("RPC server failed to listen: ", err)
+		log.Error("RPC server failed to listen: ", err)
+		return err
 	}
 	if err := s.rpcServer.Serve(listener); err != nil {
-		log.Panic("RPC server failed to serve: ", err)
+		log.Error("RPC server failed to serve: ", err)
+		return err
 	}
-	return err
+	return nil
 }
 
 // Stop stops the rpc server and closes listener.

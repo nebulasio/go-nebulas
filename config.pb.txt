@@ -1,4 +1,4 @@
-# Neb config file. Human-readable text of proto nebletpb.Config.
+# Neb configuration text file. Scheme is defined in neblet/pb/config.proto:Config.
 
 p2p {
 	port: 51413

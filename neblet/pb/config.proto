@@ -30,7 +30,7 @@ message P2PConfig {
 	// P2P seed node addresses.
 	string seed = 1;
 
-	// P2p node port number.
+	// P2P node port number.
 	uint32 port = 2;
 }
 
