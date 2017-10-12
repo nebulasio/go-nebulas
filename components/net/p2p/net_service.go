@@ -34,6 +34,7 @@ import (
 	ma "github.com/multiformats/go-multiaddr"
 	"github.com/nebulasio/go-nebulas/components/net"
 	"github.com/nebulasio/go-nebulas/components/net/messages"
+	"github.com/nebulasio/go-nebulas/components/net/pb"
 	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/core/pb"
 	byteutils "github.com/nebulasio/go-nebulas/util/byteutils"
@@ -49,6 +50,7 @@ const (
 	SYNCROUTE      = "syncroute"
 	NEWBLOCK       = "newblock"
 	SYNCROUTEREPLY = "resyncroute"
+	CLIENTVERSION  = "0.2.0"
 )
 
 // MagicNumber the protocol magic number, A constant numerical or text value used to identify protocol.
@@ -110,7 +112,13 @@ func (ns *NetService) streamHandler(s nnet.Stream) {
 				msgNameByte := msgName[0:index]
 				msgNameStr := string(msgNameByte)
 
-				log.Infof("streamHandler:handle coming msg remote addrs -> %s [msgName -> %s, magicNumber -> %s, chainID -> %d, version -> %d]", addrs, msgNameStr, string(magicNumber), byteutils.Uint32(chainID), version[0])
+				log.WithFields(log.Fields{
+					"addrs":       addrs,
+					"msgName":     msgNameStr,
+					"magicNumber": string(magicNumber),
+					"chainID":     byteutils.Uint32(chainID),
+					"version":     version[0],
+				}).Info("streamHandler:handle coming msg.")
 
 				if !ns.verifyHeader(magicNumber, chainID, version) {
 					ns.Bye(pid, []ma.Multiaddr{addrs}, s)
@@ -124,16 +132,49 @@ func (ns *NetService) streamHandler(s nnet.Stream) {
 				}
 				dataChecksumA := crc32.ChecksumIEEE(data)
 				if dataChecksumA != byteutils.Uint32(dataChecksum) {
-					log.Infof("streamHandler: dataChecksumA -> %d, dataChecksum -> %d", dataChecksumA, byteutils.Uint32(dataChecksum))
-					log.Error("streamHandler: data verification occurs error, dataChecksum is error, the connection will be closed.")
+					log.WithFields(log.Fields{
+						"dataChecksumA": dataChecksumA,
+						"dataChecksum":  byteutils.Uint32(dataChecksum),
+					}).Error("streamHandler: data verification occurs error, dataChecksum is error, the connection will be closed.")
 					ns.Bye(pid, []ma.Multiaddr{addrs}, s)
 					return
 				}
 
 				switch msgNameStr {
 				case HELLO:
-					log.Info("streamHandler: [HELLO] handle hello message")
-					okdata := []byte(OK)
+					hello := new(messages.HelloMessage)
+					pb := new(netpb.Hello)
+					if err := proto.Unmarshal(data, pb); err != nil {
+						log.Error("streamHandler: [HELLO] handle hello msg occurs error: ", err)
+						ns.Bye(pid, []ma.Multiaddr{addrs}, s)
+						return
+					}
+					if err := hello.FromProto(pb); err != nil {
+						log.Error("streamHandler: [HELLO] handle hello msg occurs error: ", err)
+						ns.Bye(pid, []ma.Multiaddr{addrs}, s)
+						return
+					}
+
+					log.WithFields(log.Fields{
+						"hello.NodeID":  hello.NodeID,
+						"pid":           pid.String(),
+						"ClientVersion": hello.ClientVersion,
+					}).Info("streamHandler: [HELLO] receive hello message.")
+					if hello.NodeID == pid.String() && hello.ClientVersion == CLIENTVERSION {
+						node.conn[addrs.String()] = S_OK
+						node.stream[addrs.String()] = s
+						node.routeTable.Update(pid)
+					}
+
+					ok := messages.NewHelloMessage(node.id.String(), CLIENTVERSION)
+					pbok, _ := ok.ToProto()
+					okdata, err := proto.Marshal(pbok)
+					if err != nil {
+						log.Error("streamHandler: [HELLO] send ok reply occurs error, ", err)
+						ns.Bye(pid, []ma.Multiaddr{addrs}, s)
+						return
+					}
+
 					totalData := ns.buildData(okdata, OK)
 
 					if err := Write(s, totalData); err != nil {
@@ -145,14 +186,26 @@ func (ns *NetService) streamHandler(s nnet.Stream) {
 					node.conn[addrs.String()] = S_OK
 					node.routeTable.Update(pid)
 				case OK:
-					log.Infof("streamHandler: [OK] handle ok message data -> %s", string(data))
-					okstr := string(data)
-					if okstr == OK {
+
+					ok := new(messages.HelloMessage)
+					pb := new(netpb.Hello)
+					if err := proto.Unmarshal(data, pb); err != nil {
+						log.Error("streamHandler: [OK] handle ok msg occurs error: ", err)
+						ns.Bye(pid, []ma.Multiaddr{addrs}, s)
+						return
+					}
+					if err := ok.FromProto(pb); err != nil {
+						log.Error("streamHandler: [OK] handle ok msg occurs error: ", err)
+						ns.Bye(pid, []ma.Multiaddr{addrs}, s)
+						return
+					}
+
+					if ok.NodeID == pid.String() && ok.ClientVersion == CLIENTVERSION {
 						node.conn[addrs.String()] = S_OK
 						node.stream[addrs.String()] = s
 						node.routeTable.Update(pid)
 					} else {
-						log.Error("streamHandler: [OK] say hello get incorrect response")
+						log.Error("streamHandler: [OK] get incorrect response")
 						ns.Bye(pid, []ma.Multiaddr{addrs}, s)
 						return
 					}
@@ -186,7 +239,9 @@ func (ns *NetService) streamHandler(s nnet.Stream) {
 						}
 						peerList = append(peerList, peerInfo)
 					}
-					log.Info("streamHandler: [SYNCROUTE] handle sync route request and return data -> ", peerList)
+					log.WithFields(log.Fields{
+						"peerList": peerList,
+					}).Info("streamHandler: [SYNCROUTE] handle sync route request.")
 
 					data, err := json.Marshal(peerList)
 					if err != nil {
@@ -196,7 +251,6 @@ func (ns *NetService) streamHandler(s nnet.Stream) {
 					}
 
 					totalData := ns.buildData(data, SYNCROUTEREPLY)
-
 					stream := node.stream[addrs.String()]
 					if stream == nil {
 						log.Error("streamHandler: [SYNCROUTE] send message occrus error, stream does not exist.")
@@ -215,8 +269,12 @@ func (ns *NetService) streamHandler(s nnet.Stream) {
 					log.Infof("streamHandler: [SYNCROUTEREPLY] handle sync route reply ")
 					var sample []peerstore.PeerInfo
 
-					json.Unmarshal(data, &sample)
-					log.Infof("streamHandler: [SYNCROUTEREPLY] handle sync route reply from %s success and get response...%s", pid, sample)
+					if err := json.Unmarshal(data, &sample); err != nil {
+						log.Error("streamHandler: [SYNCROUTEREPLY] handle sync route reply occurs error, ", err)
+					}
+					log.WithFields(log.Fields{
+						"sample": sample,
+					}).Info("streamHandler: [SYNCROUTEREPLY] handle sync route reply.")
 
 					for i := range sample {
 						if node.routeTable.Find(sample[i].ID) != "" || len(sample[i].Addrs) == 0 {
@@ -285,7 +343,10 @@ func (ns *NetService) Bye(pid peer.ID, addrs []ma.Multiaddr, s nnet.Stream) {
 func (ns *NetService) SendMsg(msgName string, msg []byte, pid peer.ID) {
 	node := ns.node
 	addrs := node.peerstore.PeerInfo(pid).Addrs
-	log.Infof("SendMsg: send message to addrs -> %s, msgName -> %s", addrs, msgName)
+	log.WithFields(log.Fields{
+		"addrs":   addrs,
+		"msgName": msgName,
+	}).Info("SendMsg: send message to a peer.")
 	if len(addrs) < 0 {
 		log.Error("SendMsg: wrong pid addrs")
 		return
@@ -307,7 +368,6 @@ func (ns *NetService) SendMsg(msgName string, msg []byte, pid peer.ID) {
 
 // Hello say hello to a peer
 func (ns *NetService) Hello(pid peer.ID) error {
-
 	msgName := HELLO
 	node := ns.node
 	stream, err := node.host.NewStream(
@@ -328,9 +388,14 @@ func (ns *NetService) Hello(pid peer.ID) error {
 
 	log.Infof("Hello: say hello addrs -> %s", addrs)
 
-	data := []byte(msgName)
-	totalData := ns.buildData(data, msgName)
+	hello := messages.NewHelloMessage(node.id.String(), CLIENTVERSION)
+	pb, _ := hello.ToProto()
+	data, err := proto.Marshal(pb)
+	if err != nil {
+		return err
+	}
 
+	totalData := ns.buildData(data, msgName)
 	if err := Write(stream, totalData); err != nil {
 		log.Error("Hello: write data occurs error, ", err)
 		return errors.New("Hello: write data occurs error")

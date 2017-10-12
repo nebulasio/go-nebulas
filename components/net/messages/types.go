@@ -19,15 +19,47 @@
 package messages
 
 import (
+	"errors"
 	"fmt"
 
+	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/components/net"
+	netpb "github.com/nebulasio/go-nebulas/components/net/pb"
 )
 
 // BaseMessage base message
 type BaseMessage struct {
 	t    string
 	data interface{}
+}
+
+// HelloMessage use to send hello
+type HelloMessage struct {
+	NodeID        string
+	ClientVersion string
+}
+
+// NewHelloMessage new hello message
+func NewHelloMessage(nodeID string, clientVersion string) *HelloMessage {
+	return &HelloMessage{NodeID: nodeID, ClientVersion: clientVersion}
+}
+
+// ToProto converts domain HelloMessage to proto HelloMessage
+func (h *HelloMessage) ToProto() (proto.Message, error) {
+	return &netpb.Hello{
+		NodeID:        h.NodeID,
+		ClientVersion: h.ClientVersion,
+	}, nil
+}
+
+// FromProto converts proto HelloMessage to domain HelloMessage
+func (h *HelloMessage) FromProto(msg proto.Message) error {
+	if msg, ok := msg.(*netpb.Hello); ok {
+		h.NodeID = msg.NodeID
+		h.ClientVersion = msg.ClientVersion
+		return nil
+	}
+	return errors.New("Pb Message cannot be converted into HelloMessage")
 }
 
 // NewBaseMessage new base message
