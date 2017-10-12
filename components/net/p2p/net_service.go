@@ -83,20 +83,20 @@ func (ns *NetService) RegisterNetService() *NetService {
 
 func (ns *NetService) streamHandler(s nnet.Stream) {
 	go (func() {
-		node := ns.node
 	HandleMsg:
 		for {
 			select {
 			case <-ns.quitCh:
 				break HandleMsg
 			default:
+				node := ns.node
 				pid := s.Conn().RemotePeer()
 				addrs := s.Conn().RemoteMultiaddr()
 				dataHeader, err := ReadUint32(s, 36)
 				if err != nil {
 					log.Error("streamHandler: read data header occurs error, ", err)
-					node.Bye(pid, []ma.Multiaddr{addrs})
-					break HandleMsg
+					ns.Bye(pid, []ma.Multiaddr{addrs}, s)
+					return
 				}
 
 				magicNumber := dataHeader[:4]
@@ -112,21 +112,22 @@ func (ns *NetService) streamHandler(s nnet.Stream) {
 
 				log.Infof("streamHandler:handle coming msg remote addrs -> %s [msgName -> %s, magicNumber -> %s, chainID -> %d, version -> %d]", addrs, msgNameStr, string(magicNumber), byteutils.Uint32(chainID), version[0])
 
-				if !node.verifyHeader(magicNumber, chainID, version) {
-					node.Bye(pid, []ma.Multiaddr{addrs})
-					break HandleMsg
+				if !ns.verifyHeader(magicNumber, chainID, version) {
+					ns.Bye(pid, []ma.Multiaddr{addrs}, s)
+					return
 				}
 				data, err := ReadUint32(s, byteutils.Uint32(dataLength))
 				if err != nil {
 					log.Error("streamHandler: read data occurs error, ", err)
-					node.Bye(pid, []ma.Multiaddr{addrs})
-					break HandleMsg
+					ns.Bye(pid, []ma.Multiaddr{addrs}, s)
+					return
 				}
 				dataChecksumA := crc32.ChecksumIEEE(data)
 				if dataChecksumA != byteutils.Uint32(dataChecksum) {
 					log.Infof("streamHandler: dataChecksumA -> %d, dataChecksum -> %d", dataChecksumA, byteutils.Uint32(dataChecksum))
 					log.Error("streamHandler: data verification occurs error, dataChecksum is error, the connection will be closed.")
-					break HandleMsg
+					ns.Bye(pid, []ma.Multiaddr{addrs}, s)
+					return
 				}
 
 				switch msgNameStr {
@@ -137,7 +138,8 @@ func (ns *NetService) streamHandler(s nnet.Stream) {
 
 					if err := Write(s, totalData); err != nil {
 						log.Error("streamHandler: [HELLO] write data occurs error, ", err)
-						break HandleMsg
+						ns.Bye(pid, []ma.Multiaddr{addrs}, s)
+						return
 					}
 					node.stream[addrs.String()] = s
 					node.conn[addrs.String()] = S_OK
@@ -151,7 +153,8 @@ func (ns *NetService) streamHandler(s nnet.Stream) {
 						node.routeTable.Update(pid)
 					} else {
 						log.Error("streamHandler: [OK] say hello get incorrect response")
-						break HandleMsg
+						ns.Bye(pid, []ma.Multiaddr{addrs}, s)
+						return
 					}
 
 				case BYE:
@@ -161,11 +164,13 @@ func (ns *NetService) streamHandler(s nnet.Stream) {
 					pb := new(corepb.Block)
 					if err := proto.Unmarshal(data, pb); err != nil {
 						log.Error("streamHandler: [NEWBLOCK] handle new block msg occurs error: ", err)
-						ns.quitCh <- true
+						ns.Bye(pid, []ma.Multiaddr{addrs}, s)
+						return
 					}
 					if err := block.FromProto(pb); err != nil {
 						log.Error("streamHandler: [NEWBLOCK] handle new block msg occurs error: ", err)
-						ns.quitCh <- true
+						ns.Bye(pid, []ma.Multiaddr{addrs}, s)
+						return
 					}
 					msg := messages.NewBaseMessage(msgNameStr, block)
 					ns.PutMessage(msg)
@@ -186,7 +191,8 @@ func (ns *NetService) streamHandler(s nnet.Stream) {
 					data, err := json.Marshal(peerList)
 					if err != nil {
 						log.Error("streamHandler: [SYNCROUTE] handle sync route occurs error...", err)
-						break HandleMsg
+						ns.Bye(pid, []ma.Multiaddr{addrs}, s)
+						return
 					}
 
 					totalData := ns.buildData(data, SYNCROUTEREPLY)
@@ -194,11 +200,13 @@ func (ns *NetService) streamHandler(s nnet.Stream) {
 					stream := node.stream[addrs.String()]
 					if stream == nil {
 						log.Error("streamHandler: [SYNCROUTE] send message occrus error, stream does not exist.")
+						ns.Bye(pid, []ma.Multiaddr{addrs}, s)
 						return
 					}
 					if err := Write(stream, totalData); err != nil {
 						log.Error("streamHandler: [SYNCROUTE] write data occurs error, ", err)
-						break HandleMsg
+						ns.Bye(pid, []ma.Multiaddr{addrs}, s)
+						return
 					}
 
 					node.routeTable.Update(pid)
@@ -244,7 +252,8 @@ func (ns *NetService) streamHandler(s nnet.Stream) {
 
 }
 
-func (node *Node) verifyHeader(magicNumber []byte, chainID []byte, version []byte) bool {
+func (ns *NetService) verifyHeader(magicNumber []byte, chainID []byte, version []byte) bool {
+	node := ns.node
 	if !byteutils.Equal(MagicNumber, magicNumber) {
 		log.Error("verifyHeader: data verification occurs error, magic number is error, the connection will be closed.")
 		return false
@@ -263,11 +272,13 @@ func (node *Node) verifyHeader(magicNumber []byte, chainID []byte, version []byt
 }
 
 // Bye say bye to a peer, and close connection.
-func (node *Node) Bye(pid peer.ID, addrs []ma.Multiaddr) {
+func (ns *NetService) Bye(pid peer.ID, addrs []ma.Multiaddr, s nnet.Stream) {
+	node := ns.node
 	node.peerstore.SetAddrs(pid, addrs, 0)
 	node.routeTable.Remove(pid)
-	node.conn[addrs[0].String()] = S_NC
-	// Say Bye bye!
+	delete(node.conn, addrs[0].String())
+	delete(node.stream, addrs[0].String())
+	s.Close()
 }
 
 // SendMsg send message to a peer
@@ -335,6 +346,8 @@ func (ns *NetService) SyncRoutes(pid peer.ID) {
 	addrs := node.peerstore.PeerInfo(pid).Addrs
 	if len(addrs) < 0 {
 		log.Error("SyncRoutes: wrong pid addrs")
+		node.peerstore.SetAddrs(pid, addrs, 0)
+		node.routeTable.Remove(pid)
 		return
 	}
 	data := []byte(SYNCROUTE)
@@ -343,12 +356,15 @@ func (ns *NetService) SyncRoutes(pid peer.ID) {
 	stream := node.stream[addrs[0].String()]
 	if stream == nil {
 		log.Error("SyncRoutes: send message occrus error, stream does not exist.")
-		// return nil, errors.New("SyncRoutes: send message occrus error, stream does not exist")
+		node.peerstore.SetAddrs(pid, addrs, 0)
+		node.routeTable.Remove(pid)
 		return
 	}
 
 	if err := Write(stream, totalData); err != nil {
 		log.Error("SyncRoutes: write data occurs error, ", err)
+		node.peerstore.SetAddrs(pid, addrs, 0)
+		node.routeTable.Remove(pid)
 		return
 	}
 
@@ -451,6 +467,7 @@ func (ns *NetService) Launch() error {
 	return nil
 }
 
+// Write write bytes to stream
 func Write(writer io.Writer, data []byte) error {
 	result := make(chan error, 1)
 	go func(writer io.Writer, data []byte) {
@@ -461,6 +478,7 @@ func Write(writer io.Writer, data []byte) error {
 	return err
 }
 
+// ReadUint32 read bytes from a stream
 func ReadUint32(reader io.Reader, n uint32) ([]byte, error) {
 	data := make([]byte, n)
 	result := make(chan error, 1)
