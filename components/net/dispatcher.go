@@ -85,7 +85,7 @@ func (dp *Dispatcher) Start() {
 
 			case msg := <-dp.receivedMessageCh:
 				count++
-				log.Debugf("dispatcher.loop: recvMsgCount=%d", count)
+				log.Info("dispatcher.loop: recvMsgCount=%d", count)
 				msgType := msg.MessageType()
 				msgListener := dp.subscribersMap[msgType]
 

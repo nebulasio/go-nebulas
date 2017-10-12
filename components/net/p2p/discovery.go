@@ -24,7 +24,6 @@ import (
 	"time"
 
 	"github.com/libp2p/go-libp2p-peer"
-	"github.com/libp2p/go-libp2p-peerstore"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -32,16 +31,16 @@ import (
 Discovery node can discover other node or can be discovered by another node
 and then update the routing table.
 */
-func (node *Node) Discovery(ctx context.Context) {
+func (net *NetService) Discovery(ctx context.Context) {
 
 	//FIXME  the sync routing table rate can be dynamic
-	second := 5 * time.Second
+	second := 3 * time.Second
 	ticker := time.NewTicker(second)
 	log.Infof("Discovery: node start discovery per %s...", second)
 	for {
 		select {
 		case <-ticker.C:
-			node.syncRoutingTable()
+			net.syncRoutingTable()
 		case <-ctx.Done():
 			log.Info("Discovery: discovery service halting")
 			return
@@ -50,7 +49,8 @@ func (node *Node) Discovery(ctx context.Context) {
 }
 
 //sync route table
-func (node *Node) syncRoutingTable() {
+func (net *NetService) syncRoutingTable() {
+	node := net.node
 	log.Infof("syncRoutingTable: node start sync routing table...")
 	asked := make(map[peer.ID]bool)
 	allNode := node.routeTable.ListPeers()
@@ -68,57 +68,57 @@ func (node *Node) syncRoutingTable() {
 		if !asked[nodeID] {
 			asked[nodeID] = true
 			go func() {
-				node.syncSingleNode(nodeID)
+				net.syncSingleNode(nodeID)
 			}()
 		}
 	}
 }
 
 // sync single node routing table by peer.ID
-func (node *Node) syncSingleNode(nodeID peer.ID) {
+func (net *NetService) syncSingleNode(nodeID peer.ID) {
+	node := net.node
+	log.Info("syncSingleNode: sync route -> ", nodeID)
 	// skip self
 	if nodeID == node.id {
 		return
 	}
 	nodeInfo := node.peerstore.PeerInfo(nodeID)
 	if len(nodeInfo.Addrs) != 0 {
-		node.syncRouteInfoFromSingleNode(nodeID)
+		// net.syncRouteInfoFromSingleNode(nodeID)
+		net.SyncRoutes(nodeID)
 	} else {
 		node.routeTable.Remove(nodeID)
 	}
 }
 
-func (node *Node) syncRouteInfoFromSingleNode(nodeID peer.ID) {
+// func (net *NetService) syncRouteInfoFromSingleNode(nodeID peer.ID) {
 
-	reply, err := node.SyncRoutes(nodeID)
-	if err != nil {
-		log.Errorf("")
-		return
-	}
-	for i := range reply {
-		if node.routeTable.Find(reply[i].ID) != "" || len(reply[i].Addrs) == 0 {
-			log.Warnf("syncRouteInfoFromSingleNode: node %s is already exist in route table", reply[i].ID)
-			continue
-		}
-		// Ping the peer.
-		node.peerstore.AddAddr(
-			reply[i].ID,
-			reply[i].Addrs[0],
-			peerstore.TempAddrTTL,
-		)
-		err := node.Hello(reply[i].ID)
-		if err != nil {
-			log.Errorf("syncRouteInfoFromSingleNode: ping peer %s fail %s", reply[i].ID, err)
-			continue
-		}
-		node.peerstore.AddAddr(
-			reply[i].ID,
-			reply[i].Addrs[0],
-			peerstore.PermanentAddrTTL,
-		)
+// 	node := net.node
+// 	node.SyncRoutes(nodeID)
+// 	// for i := range reply {
+// 	// 	if node.routeTable.Find(reply[i].ID) != "" || len(reply[i].Addrs) == 0 {
+// 	// 		log.Warnf("syncRouteInfoFromSingleNode: node %s is already exist in route table", reply[i].ID)
+// 	// 		continue
+// 	// 	}
+// 	// 	// Ping the peer.
+// 	// 	node.peerstore.AddAddr(
+// 	// 		reply[i].ID,
+// 	// 		reply[i].Addrs[0],
+// 	// 		peerstore.TempAddrTTL,
+// 	// 	)
+// 	// 	err := net.Hello(reply[i].ID)
+// 	// 	if err != nil {
+// 	// 		log.Errorf("syncRouteInfoFromSingleNode: ping peer %s fail %s", reply[i].ID, err)
+// 	// 		continue
+// 	// 	}
+// 	// 	node.peerstore.AddAddr(
+// 	// 		reply[i].ID,
+// 	// 		reply[i].Addrs[0],
+// 	// 		peerstore.PermanentAddrTTL,
+// 	// 	)
 
-		// Update the routing table.
-		node.routeTable.Update(reply[i].ID)
-	}
+// 	// 	// Update the routing table.
+// 	// 	node.routeTable.Update(reply[i].ID)
+// 	// }
 
-}
+// }

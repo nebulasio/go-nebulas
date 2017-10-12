@@ -96,6 +96,17 @@ func ReadWithTimeout(reader io.Reader, n uint32, timeout time.Duration) ([]byte,
 	}
 }
 
+// func ReadUint32(reader io.Reader, n uint32) ([]byte, error) {
+// 	data := make([]byte, n)
+// 	result := make(chan error, 1)
+// 	go func(reader io.Reader) {
+// 		_, err := io.ReadFull(reader, data)
+// 		result <- err
+// 	}(reader)
+// 	err := <-result
+// 	return data, err
+// }
+
 // LookupHandler handle lookup request
 func (p *LookupService) LookupHandler(s net.Stream) {
 	defer s.Close()
@@ -146,3 +157,13 @@ func WriteWithTimeout(writer io.Writer, data []byte, timeout time.Duration) erro
 		return err
 	}
 }
+
+// func Write(writer io.Writer, data []byte) error {
+// 	result := make(chan error, 1)
+// 	go func(writer io.Writer, data []byte) {
+// 		_, err := writer.Write(data)
+// 		result <- err
+// 	}(writer, data)
+// 	err := <-result
+// 	return err
+// }

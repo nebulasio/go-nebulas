@@ -42,10 +42,11 @@ type BlockMsgService struct {
 
 // RegisterBlockMsgService register blockMsgService handle
 func (np *Manager) RegisterBlockMsgService() *BlockMsgService {
-	bs := &BlockMsgService{np.node, np}
-	np.node.host.SetStreamHandler(blockProtocolID, np.BlockMsgHandler)
+	// bs := &BlockMsgService{np.node, np}
+	// np.node.host.SetStreamHandler(blockProtocolID, np.BlockMsgHandler)
 	log.Infof("RegisterBlockMsgService: node register block message service success...")
-	return bs
+	// return bs
+	return nil
 }
 
 // BlockMsgHandler handle when block msg arrived
@@ -70,7 +71,7 @@ func (np *Manager) BlockMsgHandler(s net.Stream) {
 	}
 	msg := messages.NewBaseMessage(nnet.MessageTypeNewBlock, block)
 	log.Info("BlockMsgHandler: handle block msg -> ", msg)
-	np.PutMessage(msg)
+	// np.PutMessage(msg)
 }
 
 // SendBlock send block message

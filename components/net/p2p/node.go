@@ -25,13 +25,11 @@ import (
 	"io"
 	mrand "math/rand"
 	"strings"
-	"sync"
 	"time"
-
-	"errors"
 
 	"github.com/libp2p/go-libp2p-crypto"
 	"github.com/libp2p/go-libp2p-kbucket"
+	nnet "github.com/libp2p/go-libp2p-net"
 	"github.com/libp2p/go-libp2p-peer"
 	"github.com/libp2p/go-libp2p-peerstore"
 	"github.com/libp2p/go-libp2p-swarm"
@@ -52,6 +50,7 @@ type Node struct {
 	id         peer.ID
 	peerstore  peerstore.Peerstore
 	conn       map[string]int
+	stream     map[string]nnet.Stream
 	routeTable *kbucket.RoutingTable
 	context    context.Context
 	chainID    uint32
@@ -77,40 +76,41 @@ func NewNode(config *Config) (*Node, error) {
 }
 
 // Start start the node and say hello to bootNodes, then start node discovery service
-func (node *Node) Start() error {
+// func (netService *NetService) Launch() error {
 
-	log.Info("Start: node create success...")
-	log.Infof("Start: node info {id -> %s, address -> %s}", node.id, node.host.Addrs())
-	if node.running {
-		return errors.New("Start: node already running")
-	}
-	node.running = true
-	log.Info("Start: node start join p2p network...")
+// 	node := netService.node
+// 	log.Info("Start: node create success...")
+// 	log.Infof("Start: node info {id -> %s, address -> %s}", node.id, node.host.Addrs())
+// 	if node.running {
+// 		return errors.New("Start: node already running")
+// 	}
+// 	node.running = true
+// 	log.Info("Start: node start join p2p network...")
 
-	node.RegisterNetService()
+// 	netService.RegisterNetService()
 
-	var wg sync.WaitGroup
-	for _, bootNode := range node.config.BootNodes {
-		wg.Add(1)
-		go func(bootNode multiaddr.Multiaddr) {
-			defer wg.Done()
-			err := node.SayHello(bootNode)
-			if err != nil {
-				log.Error("Start: can not say hello to trusted node.", bootNode, err)
-			}
+// 	var wg sync.WaitGroup
+// 	for _, bootNode := range node.config.BootNodes {
+// 		wg.Add(1)
+// 		go func(bootNode multiaddr.Multiaddr) {
+// 			defer wg.Done()
+// 			err := netService.SayHello(bootNode)
+// 			if err != nil {
+// 				log.Error("Start: can not say hello to trusted node.", bootNode, err)
+// 			}
 
-		}(bootNode)
-	}
-	wg.Wait()
+// 		}(bootNode)
+// 	}
+// 	wg.Wait()
 
-	go func() {
-		node.Discovery(node.context)
-	}()
+// 	go func() {
+// 		netService.Discovery(node.context)
+// 	}()
 
-	log.Infof("Start: node start and join to p2p network success and listening for connections on port %d... ", node.config.Port)
+// 	log.Infof("Start: node start and join to p2p network success and listening for connections on port %d... ", node.config.Port)
 
-	return nil
-}
+// 	return nil
+// }
 
 func (node *Node) makeHost() error {
 
@@ -150,6 +150,9 @@ func (node *Node) makeHost() error {
 	node.routeTable.Update(node.id)
 
 	node.conn = make(map[string]int)
+	node.stream = make(map[string]nnet.Stream)
+	node.chainID = 100
+	node.version = 8
 
 	address, err := multiaddr.NewMultiaddr(
 		fmt.Sprintf(
@@ -178,21 +181,25 @@ func (node *Node) makeHost() error {
 }
 
 // SayHello Say hello to trustedNode
-func (node *Node) SayHello(bootNode multiaddr.Multiaddr) error {
+func (netService *NetService) SayHello(bootNode multiaddr.Multiaddr) error {
+	node := netService.node
 	bootAddr, bootID, err := parseAddressFromMultiaddr(bootNode)
+	log.Info("SayHello: bootNode addr -> ", bootAddr)
 	if err != nil {
 		log.Error("SayHello: parse Address from trustedNode failed", bootNode, err)
 		return err
 	}
+	node.peerstore.AddAddr(
+		bootID,
+		bootAddr,
+		peerstore.TempAddrTTL,
+	)
+	log.Info("SayHello: node id -> %s, bootID -> %s", node.id, bootID)
 	if node.id != bootID {
 		for i := 0; i < 3; i++ {
-			node.peerstore.AddAddr(
-				bootID,
-				bootAddr,
-				peerstore.TempAddrTTL,
-			)
-			err := node.Hello(bootID)
+			err := netService.Hello(bootID)
 			if err != nil {
+				log.Error("SayHello: say hello to bootNode occurs error, ", err)
 				time.Sleep(time.Second)
 				continue
 			}

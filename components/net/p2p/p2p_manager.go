@@ -20,62 +20,64 @@ package p2p
 
 import (
 	"github.com/nebulasio/go-nebulas/components/net"
-	log "github.com/sirupsen/logrus"
 )
 
 // Manager is used to manage the p2p network
 type Manager struct {
-	config     *Config
-	dispatcher *net.Dispatcher
-	node       *Node
+	config *Config
+	// dispatcher *net.Dispatcher
+	// node       *Node
+	netService *NetService
 }
 
 // NewManager create Manager instance.
 func NewManager(config *Config) *Manager {
-	if config == nil {
-		config = DefautConfig()
-	}
-	n, err := NewNode(config)
-	if err != nil {
-		log.Error("NewP2pManager: node create fail...", err)
-	}
+	// if config == nil {
+	// 	config = DefautConfig()
+	// }
+	// n, err := NewNode(config)
+	// if err != nil {
+	// 	log.Error("NewP2pManager: node create fail...", err)
+	// }
+	netService := NewNetService(config)
 
 	np := &Manager{
-		config:     config,
-		dispatcher: net.NewDispatcher(),
-		node:       n,
+		config: config,
+		// dispatcher: net.NewDispatcher(),
+		// node:       n,
+		netService: netService,
 	}
 	return np
 }
 
 // Register register the subscribers.
 func (np *Manager) Register(subscribers ...*net.Subscriber) {
-	np.dispatcher.Register(subscribers...)
+	np.netService.Register(subscribers...)
 }
 
 // Deregister Deregister the subscribers.
 func (np *Manager) Deregister(subscribers ...*net.Subscriber) {
-	np.dispatcher.Deregister(subscribers...)
+	np.netService.Deregister(subscribers...)
 }
 
 // Start start p2p manager.
 func (np *Manager) Start() {
-	np.node.Start()
-	np.dispatcher.Start()
+	np.netService.Start()
+	// np.dispatcher.Start()
 }
 
 // Stop stop p2p manager.
 func (np *Manager) Stop() {
-	np.dispatcher.Stop()
+	np.netService.Stop()
 }
 
 // PutMessage put message to dispatcher.
 func (np *Manager) PutMessage(msg net.Message) {
-	np.dispatcher.PutMessage(msg)
+	np.netService.PutMessage(msg)
 }
 
 // BroadcastBlock broadcast block message
 func (np *Manager) BroadcastBlock(block interface{}) {
 	//TODO: broadcast block via underlying network lib to whole network.
-	np.node.Broadcast(block)
+	np.netService.BroadcastBlock(block)
 }

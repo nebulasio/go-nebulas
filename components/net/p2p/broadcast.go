@@ -25,9 +25,9 @@ import (
 )
 
 // Broadcast broadcast block message
-func (node *Node) Broadcast(block interface{}) {
+func (ns *NetService) Broadcast(block interface{}) {
 
-	log.Info("Broadcast: start broadcast...")
+	node := ns.node
 	msg := block.(*core.Block)
 	// data, err := msg.Serialize()
 
@@ -39,15 +39,17 @@ func (node *Node) Broadcast(block interface{}) {
 
 	log.Info("Broadcast: start broadcast msg...", msg)
 	allNode := node.routeTable.ListPeers()
+	log.Info("Broadcast: allNode -> ", allNode)
 
 	for i := 0; i < len(allNode); i++ {
 
 		nodeID := allNode[i]
 		if node.id == nodeID {
+			log.Warn("Broadcast: skip self")
 			continue
 		}
 		go func() {
-			node.SendMsg(data, nodeID)
+			ns.SendMsg("newblock", data, nodeID)
 		}()
 	}
 

@@ -54,7 +54,7 @@ func GoP2p(seed string, port uint) {
 
 	// P2P network randseed, in this release we use port as randseed
 	// config.Randseed = time.Now().Unix()
-	config.Randseed = 20170922
+	config.Randseed = int64(config.Port)
 
 	go runP2p(config, quitCh, nmCh)
 
