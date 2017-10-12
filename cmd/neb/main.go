@@ -48,7 +48,7 @@ var (
 
 func main() {
 
-	//TODO(larry.wang):add test addres to keystore,later remove
+	// TODO(larry.wang):add test address to keystore,later remove
 	addTestAddress()
 
 	app := cli.NewApp()
@@ -89,11 +89,14 @@ func neb(ctx *cli.Context) error {
 
 	conf := loadConfig(config)
 
+	// TODO: remove dummy.go and p2p_network.go.
 	if dummy {
 		GoDummy()
 	} else {
-		GoP2p(conf.P2P.Seed, uint(conf.P2P.Port))
+		GoP2p(conf)
 	}
+
+	// TODO: just use the signal to block main.
 	for {
 		time.Sleep(60 * time.Second) // or runtime.Gosched() or similar per @misterbee
 	}
