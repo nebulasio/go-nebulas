@@ -24,11 +24,14 @@
 #include <llvm/ExecutionEngine/GenericValue.h>
 #include <llvm/ExecutionEngine/SectionMemoryManager.h>
 #include <llvm/IR/LLVMContext.h>
+#include <llvm/IR/LegacyPassManager.h>
 #include <llvm/IR/Module.h>
 #include <llvm/IRReader/IRReader.h>
 #include <llvm/Support/SourceMgr.h>
 #include <llvm/Support/TargetSelect.h>
 #include <llvm/Support/raw_ostream.h>
+#include <llvm/Transforms/Scalar.h>
+#include <llvm/Transforms/Scalar/GVN.h>
 
 using namespace llvm;
 
@@ -69,7 +72,14 @@ int main(int argc, char *argv[]) {
   }
 
   // Create PassManager.
-  // TODO: @robin.
+  legacy::PassManager *passMgr = new legacy::PassManager();
+  passMgr->add(createConstantPropagationPass());
+  passMgr->add(createInstructionCombiningPass());
+  passMgr->add(createPromoteMemoryToRegisterPass());
+  passMgr->add(createCFGSimplificationPass());
+  passMgr->add(createDeadCodeEliminationPass());
+  passMgr->add(createGVNPass());
+  passMgr->run(*module);
 
   // Create EngineBuilder.
   std::string errMsg;
