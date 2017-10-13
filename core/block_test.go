@@ -247,7 +247,7 @@ func TestBlock_CollectTransactions(t *testing.T) {
 	assert.Equal(t, block.txPool.cache.Len(), 1)
 
 	assert.Equal(t, block.Sealed(), false)
-	fromAcc := block.findAccount(block.header.coinbase)
+	fromAcc := block.FindAccount(block.header.coinbase)
 	assert.Equal(t, fromAcc.Balance, uint64(0))
 	block.Seal()
 	assert.Equal(t, block.Sealed(), true)
@@ -255,7 +255,7 @@ func TestBlock_CollectTransactions(t *testing.T) {
 	assert.Equal(t, block.transactions[1], tx2)
 	assert.Equal(t, block.StateRoot().Equals(block.stateTrie.RootHash()), true)
 	assert.Equal(t, block.TxsRoot().Equals(block.txsTrie.RootHash()), true)
-	fromAcc = block.findAccount(block.header.coinbase)
+	fromAcc = block.FindAccount(block.header.coinbase)
 	assert.Equal(t, fromAcc.Balance, uint64(BlockReward))
 	// mock net message
 	proto, _ := block.ToProto()

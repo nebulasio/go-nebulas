@@ -344,7 +344,7 @@ func (block *Block) VerifyTransactions() error {
 
 func (block *Block) rewardCoinbase() {
 	coinbaseAddr := block.header.coinbase
-	coinbaseAcc := block.findAccount(coinbaseAddr)
+	coinbaseAcc := block.FindAccount(coinbaseAddr)
 	coinbaseAcc.Balance += BlockReward
 	block.saveAccount(coinbaseAddr, coinbaseAcc)
 }
@@ -362,9 +362,9 @@ func (block *Block) executeTransactions() error {
 	return nil
 }
 
-// findAccount return account info in state Trie
+// FindAccount return account info in state Trie
 // if not found, return a new account
-func (block *Block) findAccount(address *Address) *corepb.Account {
+func (block *Block) FindAccount(address *Address) *corepb.Account {
 	acc := new(corepb.Account)
 	if accBytes, err := block.stateTrie.Get(address.address); err != nil {
 		// new account, for safe
@@ -405,14 +405,14 @@ func (block *Block) executeTransaction(tx *Transaction) (giveback bool, err erro
 		return false, errors.New("cannot execute an existed transaction")
 	}
 	// check nonce
-	fromAcc := block.findAccount(&tx.from)
+	fromAcc := block.FindAccount(&tx.from)
 	if tx.nonce < fromAcc.Nonce+1 {
 		return false, errors.New("cannot accept a transaction with smaller nonce")
 	} else if tx.nonce > fromAcc.Nonce+1 {
 		return true, errors.New("cannot accept a transaction with too bigger nonce")
 	}
 	// check balance
-	toAcc := block.findAccount(&tx.to)
+	toAcc := block.FindAccount(&tx.to)
 	if fromAcc.Balance < tx.value {
 		return false, ErrInsufficientBalance
 	}
