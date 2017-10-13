@@ -23,7 +23,7 @@
 
 #include <stdio.h>
 
-void func_a() { printf("called to func_a.\n"); }
+extern "C" void func_a() { printf("called to func_a.\n"); }
 
 int main(int argc, char *argv[]) {
   printf("called to main.\n");
