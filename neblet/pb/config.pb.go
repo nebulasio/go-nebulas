@@ -51,7 +51,7 @@ func (m *Config) GetP2P() *P2PConfig {
 type P2PConfig struct {
 	// P2P seed node addresses.
 	Seed string `protobuf:"bytes,1,opt,name=seed,proto3" json:"seed,omitempty"`
-	// P2p node port number.
+	// P2P node port number.
 	Port uint32 `protobuf:"varint,2,opt,name=port,proto3" json:"port,omitempty"`
 }
 

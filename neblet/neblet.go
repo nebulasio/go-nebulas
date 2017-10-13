@@ -7,11 +7,11 @@ import (
 	"sync"
 
 	"github.com/multiformats/go-multiaddr"
+	"github.com/nebulasio/go-nebulas/account"
 	"github.com/nebulasio/go-nebulas/components/net/p2p"
 	"github.com/nebulasio/go-nebulas/consensus"
 	"github.com/nebulasio/go-nebulas/consensus/pow"
 	"github.com/nebulasio/go-nebulas/core"
-	"github.com/nebulasio/go-nebulas/crypto/keystore"
 	"github.com/nebulasio/go-nebulas/neblet/pb"
 	"github.com/nebulasio/go-nebulas/rpc"
 	log "github.com/sirupsen/logrus"
@@ -26,7 +26,7 @@ var (
 type Neblet struct {
 	config nebletpb.Config
 
-	keyStore *keystore.Keystore
+	accountManager *account.Manager
 
 	p2pManager *p2p.Manager
 
@@ -57,7 +57,7 @@ func (n *Neblet) Start() error {
 	}
 	n.running = true
 
-	n.keyStore = keystore.DefaultKS
+	n.accountManager = account.NewManager()
 
 	// TODO: use new proto config.
 	p2pConfig := n.getP2PConfig()
@@ -109,16 +109,21 @@ func (n *Neblet) Stop() error {
 		n.rpcServer = nil
 	}
 
-	n.keyStore = nil
+	n.accountManager = nil
 
 	n.running = false
 
 	return nil
 }
 
-// BlockChain returns blockChain reference.
+// BlockChain returns block chain reference.
 func (n *Neblet) BlockChain() *core.BlockChain {
 	return n.blockChain
+}
+
+// AccountManager returns account manager reference.
+func (n *Neblet) AccountManager() *account.Manager {
+	return n.accountManager
 }
 
 // TODO: move this to p2p package.
