@@ -21,6 +21,7 @@ package rpc
 import (
 	"math/big"
 
+	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/rpc/pb"
 	"github.com/nebulasio/go-nebulas/util"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
@@ -63,6 +64,40 @@ func (s *APIService) SendTransaction(ctx context.Context, req *rpcpb.SendTransac
 	if len(req.From) == 0 {
 		return nil, status.Errorf(codes.InvalidArgument, "Sender address is empty.")
 	}
-	// TODO: Invoke core manager to validate and sign the tx, then submit it to the tx pool. Remove fake logic.
-	return &rpcpb.SendTransactionResponse{Hash: "0x07"}, nil
+	// TODO: cleanup dummy logic.
+	if s.server == nil {
+		return &rpcpb.SendTransactionResponse{Hash: "0x07"}, nil
+	}
+
+	// Validate and sign the tx, then submit it to the tx pool.
+	if neb := s.server.Neblet(); neb != nil {
+		from, err := byteutils.FromHex(req.From)
+		if err != nil {
+			return nil, err
+		}
+		fromAddr, err := core.NewAddress(from)
+		if err != nil {
+			return nil, err
+		}
+
+		to, err := byteutils.FromHex(req.To)
+		if err != nil {
+			return nil, err
+		}
+		toAddr, err := core.NewAddress(to)
+		if err != nil {
+			return nil, err
+		}
+
+		value, err := util.NewUint128FromFixedSizeByteSlice(req.Value)
+
+		// TODO: use uint128 instead of uint64.
+		tx := core.NewTransaction(*fromAddr, *toAddr, value.Uint64(), req.Nonce /*req.Data */, nil)
+		if err := neb.AccountManager().SignTransaction(fromAddr, tx); err != nil {
+			return nil, err
+		}
+	}
+
+	// TODO: returns the transaction hash if available.
+	return &rpcpb.SendTransactionResponse{}, nil
 }

@@ -5,11 +5,13 @@ import (
 	"math/big"
 )
 
-// Uint128Bytes defines the number of bytes for Uint128 type.
-const Uint128Bytes = 16
+const (
+	// Uint128Bytes defines the number of bytes for Uint128 type.
+	Uint128Bytes = 16
 
-// Uint128Bits defines the number of bits for Uint128 type.
-const Uint128Bits = 128
+	// Uint128Bits defines the number of bits for Uint128 type.
+	Uint128Bits = 128
+)
 
 var (
 	// ErrUint128Overflow indicates the value is greater than uint128 maximum value 2^128.
