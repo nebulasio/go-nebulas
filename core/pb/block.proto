@@ -19,7 +19,7 @@ syntax = "proto3";
 package corepb;
 
 message Account {
-    uint64 balance = 1;
+    bytes balance = 1;
     uint64 nonce = 2;
 }
 
@@ -27,7 +27,7 @@ message Transaction {
     bytes hash  = 1;
     bytes from = 2;
     bytes to = 3;
-    uint64 value = 4;
+    bytes value = 4;
     uint64 nonce = 5;
     int64 timestamp = 6;
     bytes data = 7;

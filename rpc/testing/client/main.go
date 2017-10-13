@@ -21,8 +21,6 @@ package main
 import (
 	"log"
 
-	"math/big"
-
 	"github.com/nebulasio/go-nebulas/rpc"
 	"github.com/nebulasio/go-nebulas/rpc/pb"
 	"github.com/nebulasio/go-nebulas/util"
@@ -50,7 +48,7 @@ func main() {
 	}
 
 	{
-		v := util.NewUint128FromBigInt(big.NewInt(1))
+		v := util.NewUint128FromInt(1)
 		fsb, _ := v.ToFixedSizeByteSlice()
 		r, err := ac.SendTransaction(context.Background(), &rpcpb.SendTransactionRequest{From: "0x1", To: "0x2", Value: fsb})
 		if err != nil {

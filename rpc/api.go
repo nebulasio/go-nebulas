@@ -19,8 +19,6 @@
 package rpc
 
 import (
-	"math/big"
-
 	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/rpc/pb"
 	"github.com/nebulasio/go-nebulas/util"
@@ -42,7 +40,7 @@ func (s *APIService) GetBalance(ctx context.Context, req *rpcpb.GetBalanceReques
 	}
 
 	// TODO: cleanup dummy logic.
-	var bal uint64 = 996
+	bal := util.NewUint128FromInt(996)
 	if s.server != nil {
 		if neb := s.server.Neblet(); neb != nil {
 			addr, _ := byteutils.FromHex(req.Address)
@@ -50,9 +48,8 @@ func (s *APIService) GetBalance(ctx context.Context, req *rpcpb.GetBalanceReques
 			bal = neb.BlockChain().TailBlock().GetBalance(addr)
 		}
 	}
-	v := util.NewUint128FromBigInt(big.NewInt(int64(bal)))
 
-	vb, err := v.ToFixedSizeByteSlice()
+	vb, err := bal.ToFixedSizeByteSlice()
 	if err != nil {
 		return nil, err
 	}
@@ -90,9 +87,12 @@ func (s *APIService) SendTransaction(ctx context.Context, req *rpcpb.SendTransac
 		}
 
 		value, err := util.NewUint128FromFixedSizeByteSlice(req.Value)
+		if err != nil {
+			return nil, err
+		}
 
 		// TODO: use uint128 instead of uint64.
-		tx := core.NewTransaction(neb.BlockChain().ChainID(), *fromAddr, *toAddr, value.Uint64(), req.Nonce /*req.Data */, nil)
+		tx := core.NewTransaction(neb.BlockChain().ChainID(), fromAddr, toAddr, value, req.Nonce /*req.Data */, nil)
 		if err := neb.AccountManager().SignTransaction(fromAddr, tx); err != nil {
 			return nil, err
 		}

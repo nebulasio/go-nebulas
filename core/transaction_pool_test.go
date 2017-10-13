@@ -26,6 +26,7 @@ import (
 	"github.com/nebulasio/go-nebulas/crypto"
 	"github.com/nebulasio/go-nebulas/crypto/keystore"
 	"github.com/nebulasio/go-nebulas/crypto/keystore/secp256k1"
+	"github.com/nebulasio/go-nebulas/util"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -50,15 +51,15 @@ func TestTransactionPool(t *testing.T) {
 	signature2.InitSign(key2.(keystore.PrivateKey))
 
 	txs := []*Transaction{
-		NewTransaction(1, *from, Address{[]byte("to")}, 0, 10, []byte("datadata")),
-		NewTransaction(1, *other, Address{[]byte("to")}, 0, 1, []byte("datadata")),
-		NewTransaction(1, *from, Address{[]byte("to")}, 0, 1, []byte("da")),
+		NewTransaction(1, from, &Address{[]byte("to")}, util.NewUint128(), 10, []byte("datadata")),
+		NewTransaction(1, other, &Address{[]byte("to")}, util.NewUint128(), 1, []byte("datadata")),
+		NewTransaction(1, from, &Address{[]byte("to")}, util.NewUint128(), 1, []byte("da")),
 
-		NewTransaction(1, *from, Address{[]byte("to")}, 0, 2, []byte("da")),
-		NewTransaction(0, *from, Address{[]byte("to")}, 0, 0, []byte("da")),
+		NewTransaction(1, from, &Address{[]byte("to")}, util.NewUint128(), 2, []byte("da")),
+		NewTransaction(0, from, &Address{[]byte("to")}, util.NewUint128(), 0, []byte("da")),
 
-		NewTransaction(1, *other, Address{[]byte("to")}, 0, 1, []byte("data")),
-		NewTransaction(1, *from, Address{[]byte("to")}, 0, 1, []byte("datadata")),
+		NewTransaction(1, other, &Address{[]byte("to")}, util.NewUint128(), 1, []byte("data")),
+		NewTransaction(1, from, &Address{[]byte("to")}, util.NewUint128(), 1, []byte("datadata")),
 	}
 
 	txPool := NewTransactionPool(3)

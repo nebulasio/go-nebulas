@@ -28,17 +28,18 @@ import (
 	"github.com/nebulasio/go-nebulas/core/pb"
 	"golang.org/x/crypto/sha3"
 
+	"github.com/nebulasio/go-nebulas/util"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
 	log "github.com/sirupsen/logrus"
 )
 
-const (
+var (
 	// BlockHashLength define a const of the length of Hash of Block in byte.
 	BlockHashLength = 32
 
 	// BlockReward given to coinbase
 	// TODO: block reward should calculates dynamic.
-	BlockReward = 16
+	BlockReward = util.NewUint128FromInt(16)
 )
 
 // Errors in block
@@ -47,6 +48,38 @@ var (
 	ErrInvalidBlockStateRoot = errors.New("invalid block state root hash")
 	ErrInvalidBlockTxsRoot   = errors.New("invalid block txs root hash")
 )
+
+// Account info in state Trie
+type Account struct {
+	Balance *util.Uint128
+	Nonce   uint64
+}
+
+// ToProto converts domain Account to proto Account
+func (acc *Account) ToProto() (proto.Message, error) {
+	value, err := acc.Balance.ToFixedSizeByteSlice()
+	if err != nil {
+		return nil, err
+	}
+	return &corepb.Account{
+		Balance: value,
+		Nonce:   acc.Nonce,
+	}, nil
+}
+
+// FromProto converts proto Account to domain Account
+func (acc *Account) FromProto(msg proto.Message) error {
+	if msg, ok := msg.(*corepb.Account); ok {
+		value, err := util.NewUint128FromFixedSizeByteSlice(msg.Balance)
+		if err != nil {
+			return err
+		}
+		acc.Balance = value
+		acc.Nonce = msg.Nonce
+		return nil
+	}
+	return errors.New("Pb Message cannot be converted into Account")
+}
 
 // BlockHeader of a block
 type BlockHeader struct {
@@ -109,7 +142,10 @@ func (block *Block) ToProto() (proto.Message, error) {
 	if header, ok := header.(*corepb.BlockHeader); ok {
 		var txs []*corepb.Transaction
 		for _, v := range block.transactions {
-			tx, _ := v.ToProto()
+			tx, err := v.ToProto()
+			if err != nil {
+				return nil, err
+			}
 			if tx, ok := tx.(*corepb.Transaction); ok {
 				txs = append(txs, tx)
 			} else {
@@ -262,11 +298,10 @@ func (block *Block) CollectTransactions(n int) {
 		if giveback {
 			givebacks = append(givebacks, tx)
 		}
-		if err != nil {
-			continue
+		if err == nil {
+			block.transactions = append(block.transactions, tx)
+			n--
 		}
-		block.transactions = append(block.transactions, tx)
-		n--
 	}
 	for _, tx := range givebacks {
 		pool.Push(tx)
@@ -343,8 +378,7 @@ func (block *Block) VerifyTransactions() error {
 }
 
 // GetBalance returns balance for the given address on this block.
-// TODO: use uint128 and unit test.
-func (block *Block) GetBalance(address Hash) uint64 {
+func (block *Block) GetBalance(address Hash) *util.Uint128 {
 	return block.FindAccount(&Address{address}).Balance
 }
 
@@ -356,7 +390,7 @@ func (block *Block) GetNonce(address Hash) uint64 {
 func (block *Block) rewardCoinbase() {
 	coinbaseAddr := block.header.coinbase
 	coinbaseAcc := block.FindAccount(coinbaseAddr)
-	coinbaseAcc.Balance += BlockReward
+	coinbaseAcc.Balance.Add(coinbaseAcc.Balance.Int, BlockReward.Int)
 	block.saveAccount(coinbaseAddr, coinbaseAcc)
 }
 
@@ -375,24 +409,47 @@ func (block *Block) executeTransactions() error {
 
 // FindAccount return account info in state Trie
 // if not found, return a new account
-func (block *Block) FindAccount(address *Address) *corepb.Account {
-	acc := new(corepb.Account)
+func (block *Block) FindAccount(address *Address) *Account {
+	acc := new(Account)
 	if accBytes, err := block.stateTrie.Get(address.address); err != nil {
-		// new account, for safe
-		acc.Balance = 0
+		// new account
+		acc.Balance = util.NewUint128()
 		acc.Nonce = 0
 	} else {
-		if err := proto.Unmarshal(accBytes, acc); err != nil {
-			panic("account in stateTrie cannot be unmarshaled correctly ")
+		pbAcc := new(corepb.Account)
+		if err := proto.Unmarshal(accBytes, pbAcc); err != nil {
+			panic("account in stateTrie cannot be unmarshaled correctly")
 		}
+		value, err := util.NewUint128FromFixedSizeByteSlice(pbAcc.Balance)
+		if err != nil {
+			panic("account's balance in stateTrie, convert []byte to uint128 failed")
+		}
+		acc.Balance = value
+		acc.Nonce = pbAcc.Nonce
 	}
 	return acc
 }
 
 // saveAccount update account info in state Trie
-func (block *Block) saveAccount(address *Address, acc *corepb.Account) {
-	accBytes, _ := proto.Marshal(acc)
+func (block *Block) saveAccount(address *Address, acc *Account) {
+	pbAcc, _ := acc.ToProto()
+	accBytes, _ := proto.Marshal(pbAcc)
 	block.stateTrie.Put(address.address, accBytes)
+}
+
+// saveTxs record tx in txs Trie
+func (block *Block) saveTransaction(tx *Transaction) {
+	pbTx, err := tx.ToProto()
+	if err != nil {
+		panic("tx cannot be converted into []byte")
+	}
+	txBytes, err := proto.Marshal(pbTx)
+	if err != nil {
+		panic("tx cannot be converted into []byte")
+	}
+	if _, err := block.txsTrie.Put(tx.hash, txBytes); err != nil {
+		panic("tx cannot be put into txs trie")
+	}
 }
 
 // executeTransaction in block
@@ -416,28 +473,27 @@ func (block *Block) executeTransaction(tx *Transaction) (giveback bool, err erro
 		return false, errors.New("cannot execute an existed transaction")
 	}
 	// check nonce
-	fromAcc := block.FindAccount(&tx.from)
+	fromAcc := block.FindAccount(tx.from)
 	if tx.nonce < fromAcc.Nonce+1 {
 		return false, errors.New("cannot accept a transaction with smaller nonce")
 	} else if tx.nonce > fromAcc.Nonce+1 {
 		return true, errors.New("cannot accept a transaction with too bigger nonce")
 	}
 	// check balance
-	toAcc := block.FindAccount(&tx.to)
-	if fromAcc.Balance < tx.value {
+	toAcc := block.FindAccount(tx.to)
+	if fromAcc.Balance.Cmp(tx.value.Int) < 0 {
 		return false, ErrInsufficientBalance
 	}
 	// accept the transaction
-	fromAcc.Balance -= tx.value
-	toAcc.Balance += tx.value
+	fromAcc.Balance.Sub(fromAcc.Balance.Int, tx.value.Int)
+	toAcc.Balance.Add(toAcc.Balance.Int, tx.value.Int)
 	fromAcc.Nonce++
+
 	// save account info in state trie
-	block.saveAccount(&tx.from, fromAcc)
-	block.saveAccount(&tx.to, toAcc)
+	block.saveAccount(tx.from, fromAcc)
+	block.saveAccount(tx.to, toAcc)
 	// save txs info in txs trie
-	pbTx, _ := tx.ToProto()
-	txBytes, _ := proto.Marshal(pbTx)
-	block.txsTrie.Put(tx.hash, txBytes)
+	block.saveTransaction(tx)
 
 	return false, nil
 }

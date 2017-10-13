@@ -27,6 +27,7 @@ import (
 	"github.com/nebulasio/go-nebulas/crypto"
 	"github.com/nebulasio/go-nebulas/crypto/hash"
 	"github.com/nebulasio/go-nebulas/crypto/keystore"
+	"github.com/nebulasio/go-nebulas/util"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
 )
 
@@ -44,9 +45,9 @@ var (
 // Transaction type is used to handle all transaction data.
 type Transaction struct {
 	hash      Hash
-	from      Address
-	to        Address
-	value     uint64
+	from      *Address
+	to        *Address
+	value     *util.Uint128
 	nonce     uint64
 	timestamp time.Time
 	data      []byte
@@ -74,11 +75,15 @@ func (tx *Transaction) DataLen() int {
 
 // ToProto converts domain Tx to proto Tx
 func (tx *Transaction) ToProto() (proto.Message, error) {
+	value, err := tx.value.ToFixedSizeByteSlice()
+	if err != nil {
+		return nil, err
+	}
 	return &corepb.Transaction{
 		Hash:      tx.hash,
 		From:      tx.from.address,
 		To:        tx.to.address,
-		Value:     tx.value,
+		Value:     value,
 		Nonce:     tx.nonce,
 		Timestamp: tx.timestamp.UnixNano(),
 		Data:      tx.data,
@@ -92,9 +97,13 @@ func (tx *Transaction) ToProto() (proto.Message, error) {
 func (tx *Transaction) FromProto(msg proto.Message) error {
 	if msg, ok := msg.(*corepb.Transaction); ok {
 		tx.hash = msg.Hash
-		tx.from = Address{msg.From}
-		tx.to = Address{msg.To}
-		tx.value = msg.Value
+		tx.from = &Address{msg.From}
+		tx.to = &Address{msg.To}
+		value, err := util.NewUint128FromFixedSizeByteSlice(msg.Value)
+		if err != nil {
+			return err
+		}
+		tx.value = value
 		tx.nonce = msg.Nonce
 		tx.timestamp = time.Unix(0, msg.Timestamp)
 		tx.data = msg.Data
@@ -110,7 +119,7 @@ func (tx *Transaction) FromProto(msg proto.Message) error {
 type Transactions []*Transaction
 
 // NewTransaction create #Transaction instance.
-func NewTransaction(chainID uint32, from, to Address, value uint64, nonce uint64, data []byte) *Transaction {
+func NewTransaction(chainID uint32, from, to *Address, value *util.Uint128, nonce uint64, data []byte) *Transaction {
 	tx := &Transaction{
 		from:      from,
 		to:        to,
@@ -130,11 +139,15 @@ func (tx *Transaction) Hash() Hash {
 
 // Sign sign transaction,sign algorithm is
 func (tx *Transaction) Sign(signature keystore.Signature) error {
-	tx.hash = HashTransaction(tx)
-	sign, err := signature.Sign(tx.hash)
+	hash, err := HashTransaction(tx)
 	if err != nil {
 		return err
 	}
+	sign, err := signature.Sign(hash)
+	if err != nil {
+		return err
+	}
+	tx.hash = hash
 	tx.alg = uint8(signature.Algorithm())
 	tx.sign = sign
 	return nil
@@ -142,7 +155,10 @@ func (tx *Transaction) Sign(signature keystore.Signature) error {
 
 // Verify return transaction verify result, including Hash and Signature.
 func (tx *Transaction) Verify() error {
-	wantedHash := HashTransaction(tx)
+	wantedHash, err := HashTransaction(tx)
+	if err != nil {
+		return err
+	}
 	if wantedHash.Equals(tx.hash) == false {
 		return ErrInvalidTransactionHash
 	}
@@ -181,14 +197,18 @@ func (tx *Transaction) verifySign() (bool, error) {
 }
 
 // HashTransaction hash the transaction.
-func HashTransaction(tx *Transaction) Hash {
+func HashTransaction(tx *Transaction) (Hash, error) {
+	bytes, err := tx.value.ToFixedSizeByteSlice()
+	if err != nil {
+		return nil, err
+	}
 	return hash.Sha3256(
 		tx.from.address,
 		tx.to.address,
-		byteutils.FromUint64(tx.value),
+		bytes,
 		byteutils.FromUint64(tx.nonce),
 		byteutils.FromInt64(tx.timestamp.UnixNano()),
 		tx.data,
 		byteutils.FromUint32(tx.chainID),
-	)
+	), nil
 }

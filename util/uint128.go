@@ -34,7 +34,12 @@ type Uint128 struct {
 
 // NewUint128 returns a new Uint128 struct with default value.
 func NewUint128() *Uint128 {
-	return &Uint128{&big.Int{}}
+	return &Uint128{big.NewInt(0)}
+}
+
+// NewUint128FromInt returns a new Uint128 struct with given value.
+func NewUint128FromInt(i int64) *Uint128 {
+	return &Uint128{big.NewInt(i)}
 }
 
 // NewUint128FromBigInt returns a new Uint128 struct with given value.
