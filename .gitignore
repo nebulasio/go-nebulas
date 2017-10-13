@@ -9,7 +9,7 @@ vendor
 .DS_Store
 
 # build files
-neb*
+neb
 debug
 *.report
 *.report.xml

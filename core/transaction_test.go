@@ -25,16 +25,18 @@ import (
 
 	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/core/pb"
+	"github.com/nebulasio/go-nebulas/util"
 )
 
 func TestTransaction(t *testing.T) {
 	type fields struct {
 		hash      Hash
-		from      Address
-		to        Address
-		value     uint64
+		from      *Address
+		to        *Address
+		value     *util.Uint128
 		nonce     uint64
 		timestamp time.Time
+		alg       uint8
 		data      []byte
 	}
 	tests := []struct {
@@ -45,11 +47,12 @@ func TestTransaction(t *testing.T) {
 			"full struct",
 			fields(fields{
 				[]byte("123455"),
-				Address{[]byte("1235")},
-				Address{[]byte("1245")},
-				123,
+				&Address{[]byte("1235")},
+				&Address{[]byte("1245")},
+				util.NewUint128(),
 				456,
 				time.Now(),
+				12,
 				[]byte("hwllo"),
 			}),
 		},
@@ -63,6 +66,7 @@ func TestTransaction(t *testing.T) {
 				value:     tt.fields.value,
 				nonce:     tt.fields.nonce,
 				timestamp: tt.fields.timestamp,
+				alg:       tt.fields.alg,
 				data:      tt.fields.data,
 			}
 			msg, _ := tx.ToProto()

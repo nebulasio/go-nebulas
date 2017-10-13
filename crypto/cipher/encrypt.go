@@ -16,39 +16,20 @@
 // along with the go-nebulas library.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-package ecdsa
+package cipher
 
-import (
-	"crypto/ecdsa"
-)
+// Encrypt interface for encrypt
+type Encrypt interface {
 
-// PublicStoreKey ecdsa publickey
-type PublicStoreKey struct {
-	publickey ecdsa.PublicKey
-}
+	// Encrypt encrypts data with passphrase,
+	Encrypt(data []byte, passphrase []byte) ([]byte, error)
 
-// NewPublicStoreKey generate PublicStoreKey
-func NewPublicStoreKey(pub ecdsa.PublicKey) *PublicStoreKey {
-	ecdsaPub := &PublicStoreKey{pub}
-	return ecdsaPub
-}
+	// EncryptKey encrypt key with address
+	EncryptKey(address string, data []byte, passphrase []byte) ([]byte, error)
 
-// Algorithm algorithm name
-func (k *PublicStoreKey) Algorithm() string {
-	return "ecdsa"
-}
+	// Decrypt decrypts data with passphrase,  returning origin data.
+	Decrypt(data []byte, passphrase []byte) ([]byte, error)
 
-// Format formate
-func (k *PublicStoreKey) Format() string {
-	return "byte"
-}
-
-// Encoded encoded to byte
-func (k *PublicStoreKey) Encoded() ([]byte, error) {
-	return FromPublicKey(&k.publickey)
-}
-
-// Verify verify ecdsa publickey
-func (k *PublicStoreKey) Verify(hash []byte, signature []byte) (bool, error) {
-	return Verify(hash, signature, &k.publickey), nil
+	// DecryptKey decrypts a key from a json blob, returning the private key itself.
+	DecryptKey(keyjson []byte, passphrase []byte) ([]byte, error)
 }

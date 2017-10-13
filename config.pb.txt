@@ -1,0 +1,5 @@
+# Neb configuration text file. Scheme is defined in neblet/pb/config.proto:Config.
+
+p2p {
+	port: 51413
+}

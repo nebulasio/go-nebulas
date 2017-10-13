@@ -54,6 +54,8 @@ func (n *node) ToProto() (proto.Message, error) {
 
 func (n *node) FromProto(msg proto.Message) error {
 	if msg, ok := msg.(*triepb.Node); ok {
+		n.Bytes, _ = proto.Marshal(msg)
+		n.Hash = hash.Sha3256(n.Bytes)
 		n.Val = msg.Val
 		return nil
 	}
@@ -110,8 +112,6 @@ func (t *Trie) fetchNode(hash []byte) (*node, error) {
 	if err := n.FromProto(pb); err != nil {
 		return nil, err
 	}
-	n.Hash = hash
-	n.Bytes = ir
 	return n, nil
 }
 
@@ -192,12 +192,15 @@ func (t *Trie) get(rootHash []byte, route []byte) ([]byte, error) {
 // Put the key-value pair in trie
 func (t *Trie) Put(key []byte, val []byte) ([]byte, error) {
 	newHash, err := t.update(t.rootHash, keyToRoute(key), val)
+	if err != nil {
+		return nil, err
+	}
 	t.rootHash = newHash
-	return newHash, err
+	return newHash, nil
 }
 
 func (t *Trie) update(root []byte, route []byte, val []byte) ([]byte, error) {
-	if root == nil {
+	if root == nil || len(root) == 0 {
 		// directly add leaf node
 		value := [][]byte{[]byte{byte(leaf)}, route, val}
 		node, err := t.createNode(value)
@@ -345,7 +348,7 @@ func (t *Trie) Del(key []byte) ([]byte, error) {
 }
 
 func (t *Trie) del(root []byte, route []byte) ([]byte, error) {
-	if root == nil {
+	if root == nil || len(root) == 0 {
 		return nil, errors.New("not found")
 	}
 	// fetch sub-trie root node

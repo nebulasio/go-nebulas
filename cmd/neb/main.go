@@ -25,9 +25,13 @@ import (
 	"strconv"
 	"time"
 
+	"io/ioutil"
+
+	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/crypto/keystore"
-	"github.com/nebulasio/go-nebulas/crypto/keystore/ecdsa"
+	"github.com/nebulasio/go-nebulas/crypto/keystore/secp256k1"
+	"github.com/nebulasio/go-nebulas/neblet/pb"
 	"github.com/nebulasio/go-nebulas/util/logging"
 	log "github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
@@ -39,14 +43,12 @@ var (
 	branch    string
 	compileAt string
 	dummy     bool
-	p2pConfig string
-	port      uint
-	seed      string
+	config    string
 )
 
 func main() {
 
-	//TODO(larry.wang):add test addres to keystore,later remove
+	// TODO(larry.wang):add test address to keystore,later remove
 	addTestAddress()
 
 	app := cli.NewApp()
@@ -67,28 +69,8 @@ func main() {
 		cli.StringFlag{
 			Name:        "config, c",
 			Usage:       "load configuration from `FILE`",
-			Destination: &p2pConfig,
-		},
-		cli.StringFlag{
-			Name:        "seed, s",
-			Usage:       "p2p network seed node address",
-			Destination: &seed,
-		},
-		cli.UintFlag{
-			Name:        "port, p",
-			Usage:       "p2p network port",
-			Destination: &port,
-		},
-	}
-
-	app.Commands = []cli.Command{
-		{
-			Name:    "config",
-			Aliases: []string{"c"},
-			Usage:   "Show default configuration",
-			Action: func(c *cli.Context) error {
-				return nil
-			},
+			Value:       "config.pb.txt",
+			Destination: &config,
 		},
 	}
 
@@ -105,29 +87,47 @@ func neb(ctx *cli.Context) error {
 	log.SetOutput(os.Stdout)
 	log.SetLevel(log.DebugLevel)
 
+	conf := loadConfig(config)
+
+	// TODO: remove dummy.go and p2p_network.go.
 	if dummy {
 		GoDummy()
 	} else {
-		GoP2p(seed, port)
+		GoP2p(conf)
 	}
+
+	// TODO: just use the signal to block main.
 	for {
 		time.Sleep(60 * time.Second) // or runtime.Gosched() or similar per @misterbee
 	}
 }
 
+func loadConfig(filename string) *nebletpb.Config {
+	log.Info("Loading Neb config from file ", filename)
+	b, err := ioutil.ReadFile(filename)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	str := string(b)
+	log.Info("Parsing Neb config text ", str)
+
+	pb := new(nebletpb.Config)
+	if err := proto.UnmarshalText(str, pb); err != nil {
+		log.Fatal(err)
+	}
+	log.Info("Loaded Neb config proto ", pb)
+	return pb
+}
+
 // add test address to keystore
 func addTestAddress() {
 	ks := keystore.DefaultKS
-	arr := make([][]byte, 3)
-	arr[0] = []byte{59, 144, 87, 239, 199, 27, 51, 230, 209, 177, 177, 166, 161, 23, 23, 195, 197, 245, 56, 156, 171, 40, 209, 7, 25, 1, 32, 0, 75, 69, 145, 30}
-	arr[1] = []byte{208, 98, 189, 16, 69, 97, 14, 44, 112, 56, 253, 61, 195, 100, 88, 245, 99, 14, 70, 22, 173, 172, 243, 186, 46, 128, 18, 39, 93, 125, 27, 186}
-	arr[2] = []byte{217, 81, 120, 192, 22, 101, 123, 205, 222, 253, 237, 63, 248, 9, 226, 102, 97, 202, 124, 1, 248, 178, 7, 69, 14, 63, 254, 127, 61, 158, 126, 65}
-	for _, pdata := range arr {
-		priv, _ := ecdsa.ToPrivateKey(pdata)
-		pubdata, _ := ecdsa.FromPublicKey(&priv.PublicKey)
+	for i := 0; i < 3; i++ {
+		priv, _ := secp256k1.GeneratePrivateKey()
+		pubdata, _ := priv.PublicKey().Encoded()
 		addr, _ := core.NewAddressFromPublicKey(pubdata)
-		ps := ecdsa.NewPrivateStoreKey(priv)
-		ks.SetKey(addr.ToHex(), ps, []byte("passphrase"))
-		ks.Unlock(addr.ToHex(), []byte("passphrase"), 10)
+		ks.SetKey(addr.ToHex(), priv, []byte("passphrase"))
+		ks.Unlock(addr.ToHex(), []byte("passphrase"), time.Second*60*60*24*365)
 	}
 }

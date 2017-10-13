@@ -18,24 +18,33 @@
 syntax = "proto3";
 package corepb;
 
+message Account {
+    bytes balance = 1;
+    uint64 nonce = 2;
+}
+
 message Transaction {
     bytes hash  = 1;
     bytes from = 2;
     bytes to = 3;
-    uint64 value = 4;
+    bytes value = 4;
     uint64 nonce = 5;
     int64 timestamp = 6;
     bytes data = 7;
-    bytes sign = 8;
+    uint32 chain_id = 8;
+    uint32 alg = 9;    
+    bytes sign = 10;
 }
 
 message BlockHeader {
     bytes hash = 1;
-    bytes parentHash = 2;
-    bytes stateRoot = 3;
-    uint64 nonce = 4;
-    bytes coinbase = 5;
-    int64 timestamp = 6;
+    bytes parent_hash = 2;
+    uint64 nonce = 3;
+    bytes coinbase = 4;
+    int64 timestamp = 5;
+    uint32 chain_id = 6;
+    bytes state_root = 7;
+    bytes txs_root = 8;
 }
 
 message Block {

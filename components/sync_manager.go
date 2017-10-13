@@ -56,7 +56,7 @@ Loop:
 			break Loop
 		case <-sync.syncCh:
 			go sync.sync()
-		case msg := <-sync.receiveMessageCh:
+		case <-sync.receiveMessageCh:
 
 		}
 	}
