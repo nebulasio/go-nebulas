@@ -30,6 +30,7 @@ import (
 	"github.com/nebulasio/go-nebulas/consensus"
 	"github.com/nebulasio/go-nebulas/consensus/pow"
 	"github.com/nebulasio/go-nebulas/core"
+	"github.com/nebulasio/go-nebulas/core/pb"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -93,13 +94,12 @@ func replicateNewBlock(sharedBlockCh chan interface{}, quitCh chan bool, nmCh ch
 		case v := <-sharedBlockCh:
 			count++
 			log.Info("replicateNewBlock: repBlockCount = ", count)
-			block := v.(*core.Block)
 			for _, nm := range nms {
-				pb, _ := block.ToProto()
-				data, _ := proto.Marshal(pb)
 				nb := new(core.Block)
-				proto.Unmarshal(data, pb)
-				nb.FromProto(pb)
+				b := v.(*corepb.Block)
+				data, _ := proto.Marshal(b)
+				proto.Unmarshal(data, b)
+				nb.FromProto(b)
 
 				msg := messages.NewBaseMessage(net.MessageTypeNewBlock, nb)
 				nm.(*net.DummyManager).PutMessage(msg)

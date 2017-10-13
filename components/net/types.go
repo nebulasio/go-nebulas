@@ -18,6 +18,8 @@
 
 package net
 
+import "github.com/gogo/protobuf/proto"
+
 // MessageTypeNewBlock
 const (
 	MessageTypeNewBlock = "newblock"
@@ -41,7 +43,7 @@ type Manager interface {
 	Register(subscribers ...*Subscriber)
 	Deregister(subscribers ...*Subscriber)
 
-	BroadcastBlock(block interface{})
+	Broadcast(name string, msg proto.Message)
 }
 
 // Subscriber subscriber.

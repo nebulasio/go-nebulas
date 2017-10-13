@@ -4,6 +4,7 @@ import (
 	"net"
 
 	"github.com/nebulasio/go-nebulas/account"
+	"github.com/nebulasio/go-nebulas/components/net/p2p"
 	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/rpc/pb"
 	log "github.com/sirupsen/logrus"
@@ -27,6 +28,7 @@ type Server struct {
 type Neblet interface {
 	BlockChain() *core.BlockChain
 	AccountManager() *account.Manager
+	P2pManager() *p2p.Manager
 }
 
 // NewServer creates a new RPC server and registers the API endpoints.

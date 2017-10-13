@@ -19,6 +19,7 @@
 package rpc
 
 import (
+	"github.com/nebulasio/go-nebulas/components/net"
 	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/rpc/pb"
 	"github.com/nebulasio/go-nebulas/util"
@@ -101,7 +102,11 @@ func (s *APIService) SendTransaction(ctx context.Context, req *rpcpb.SendTransac
 		}
 
 		// relay tx
-		neb.P2pManager().RelayTransaction(tx)
+		pbTx, err := tx.ToProto()
+		if err != nil {
+			return nil, err
+		}
+		neb.P2pManager().Relay(net.MessageTypeNewTx, pbTx)
 	}
 
 	// TODO: returns the transaction hash if available.

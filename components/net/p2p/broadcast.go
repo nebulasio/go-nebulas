@@ -20,19 +20,14 @@ package p2p
 
 import (
 	"github.com/gogo/protobuf/proto"
-	"github.com/nebulasio/go-nebulas/core"
 	log "github.com/sirupsen/logrus"
 )
 
-// Broadcast broadcast block message
-func (ns *NetService) Broadcast(block interface{}) {
+// Broadcast broadcast message
+func (ns *NetService) Broadcast(name string, msg proto.Message) {
 
 	node := ns.node
-	msg := block.(*core.Block)
-	// data, err := msg.Serialize()
-
-	pb, _ := msg.ToProto()
-	data, err := proto.Marshal(pb)
+	data, err := proto.Marshal(msg)
 	if err != nil {
 		return
 	}
@@ -49,7 +44,7 @@ func (ns *NetService) Broadcast(block interface{}) {
 			continue
 		}
 		go func() {
-			ns.SendMsg("newblock", data, nodeID)
+			ns.SendMsg(name, data, nodeID)
 		}()
 	}
 
