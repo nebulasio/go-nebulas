@@ -19,23 +19,46 @@
 package crypto
 
 import (
-	"crypto/rand"
-	"io"
+	"errors"
+
+	"github.com/nebulasio/go-nebulas/crypto/keystore"
+	"github.com/nebulasio/go-nebulas/crypto/keystore/secp256k1"
 )
 
-// ZeroBytes clears byte slice.
-func ZeroBytes(bytes []byte) {
-	for i := range bytes {
-		bytes[i] = 0
+var (
+	// ErrAlgorithmInvalid invalid Algorithm for sign.
+	ErrAlgorithmInvalid = errors.New("invalid Algorithm")
+)
+
+// NewPrivateKey generate a privatekey with Algorithm
+func NewPrivateKey(alg keystore.Algorithm, data []byte) (keystore.PrivateKey, error) {
+	switch alg {
+	case keystore.SECP256K1:
+		var (
+			priv *secp256k1.PrivateKey
+			err  error
+		)
+		if len(data) == 0 {
+			priv, err = secp256k1.GeneratePrivateKey()
+		} else {
+			priv = new(secp256k1.PrivateKey)
+			err = priv.Decode(data)
+		}
+		if err != nil {
+			return nil, err
+		}
+		return priv, nil
+	default:
+		return nil, ErrAlgorithmInvalid
 	}
 }
 
-// RandomCSPRNG a cryptographically secure pseudo-random number generator
-func RandomCSPRNG(n int) []byte {
-	buff := make([]byte, n)
-	_, err := io.ReadFull(rand.Reader, buff)
-	if err != nil {
-		panic("reading from crypto/rand failed: " + err.Error())
+// NewSignature returns a specific signature with the algorithm
+func NewSignature(alg keystore.Algorithm) (keystore.Signature, error) {
+	switch alg {
+	case keystore.SECP256K1:
+		return new(secp256k1.Signature), nil
+	default:
+		return nil, ErrAlgorithmInvalid
 	}
-	return buff
 }

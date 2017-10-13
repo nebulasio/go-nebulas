@@ -24,7 +24,10 @@ import (
 	"time"
 
 	pb "github.com/gogo/protobuf/proto"
-	"github.com/nebulasio/go-nebulas/crypto/cipher"
+	"github.com/nebulasio/go-nebulas/crypto"
+	"github.com/nebulasio/go-nebulas/crypto/keystore"
+	"github.com/nebulasio/go-nebulas/crypto/keystore/secp256k1"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestBlockHeader(t *testing.T) {
@@ -35,6 +38,7 @@ func TestBlockHeader(t *testing.T) {
 		nonce      uint64
 		coinbase   *Address
 		timestamp  int64
+		chainID    uint32
 	}
 	tests := []struct {
 		name    string
@@ -50,6 +54,7 @@ func TestBlockHeader(t *testing.T) {
 				3546456,
 				&Address{[]byte("hello")},
 				time.Now().Unix(),
+				1,
 			},
 			false,
 		},
@@ -63,6 +68,7 @@ func TestBlockHeader(t *testing.T) {
 				nonce:      tt.fields.nonce,
 				coinbase:   tt.fields.coinbase,
 				timestamp:  tt.fields.timestamp,
+				chainID:    tt.fields.chainID,
 			}
 			proto, _ := b.ToProto()
 			ir, _ := pb.Marshal(proto)
@@ -94,9 +100,11 @@ func TestBlock(t *testing.T) {
 					[]byte("124546"),
 					[]byte("344543"),
 					[]byte("43656"),
+					[]byte("43656"),
 					3546456,
 					&Address{[]byte("hello")},
 					time.Now().Unix(),
+					1,
 				},
 				Transactions{
 					&Transaction{
@@ -107,7 +115,8 @@ func TestBlock(t *testing.T) {
 						456,
 						time.Now(),
 						[]byte("hwllo"),
-						uint8(cipher.SECP256K1),
+						1,
+						uint8(keystore.SECP256K1),
 						nil,
 					},
 					&Transaction{
@@ -118,7 +127,8 @@ func TestBlock(t *testing.T) {
 						456,
 						time.Now(),
 						[]byte("hwllo"),
-						uint8(cipher.SECP256K1),
+						1,
+						uint8(keystore.SECP256K1),
 						nil,
 					},
 				},
@@ -151,4 +161,105 @@ func TestBlock(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestBlock_LinkParentBlock(t *testing.T) {
+	genesis := NewGenesisBlock(0)
+	assert.Equal(t, genesis.Height(), uint64(1))
+	block1 := &Block{
+		header: &BlockHeader{
+			[]byte("124546"),
+			genesis.Hash(),
+			[]byte("43656"),
+			[]byte("43656"),
+			3546456,
+			&Address{[]byte("hello")},
+			time.Now().Unix(),
+			1,
+		},
+		transactions: []*Transaction{},
+	}
+	assert.Equal(t, block1.Height(), uint64(0))
+	assert.Equal(t, block1.LinkParentBlock(genesis), true)
+	assert.Equal(t, block1.Height(), uint64(2))
+	assert.Equal(t, block1.ParentBlock(), genesis)
+	block2 := &Block{
+		header: &BlockHeader{
+			[]byte("124546"),
+			[]byte("1234"),
+			[]byte("43656"),
+			[]byte("43656"),
+			3546456,
+			&Address{[]byte("hello")},
+			time.Now().Unix(),
+			1,
+		},
+		transactions: []*Transaction{},
+	}
+	assert.Equal(t, block2.LinkParentBlock(genesis), false)
+	assert.Equal(t, block2.Height(), uint64(0))
+}
+
+func TestBlock_CollectTransactions(t *testing.T) {
+	bc := NewBlockChain(0)
+	tail := bc.tailBlock
+	assert.Panics(t, func() { tail.CollectTransactions(1) })
+	block := NewBlock(0, &Address{[]byte("coinbase")}, tail, bc.txPool)
+
+	ks := keystore.DefaultKS
+	priv, _ := secp256k1.GeneratePrivateKey()
+	pubdata, _ := priv.PublicKey().Encoded()
+	from, _ := NewAddressFromPublicKey(pubdata)
+	to := &Address{[]byte("hello")}
+	ks.SetKey(from.ToHex(), priv, []byte("passphrase"))
+	ks.Unlock(from.ToHex(), []byte("passphrase"), time.Second*60*60*24*365)
+
+	key, _ := ks.GetUnlocked(from.ToHex())
+	signature, _ := crypto.NewSignature(keystore.SECP256K1)
+	signature.InitSign(key.(keystore.PrivateKey))
+
+	tx1 := NewTransaction(0, *from, *to, 0, 1, []byte("nas"))
+	tx1.Sign(signature)
+	tx2 := NewTransaction(0, *from, *to, 0, 2, []byte("nas"))
+	tx2.Sign(signature)
+	tx3 := NewTransaction(0, *from, *to, 0, 0, []byte("nas"))
+	tx3.Sign(signature)
+	tx4 := NewTransaction(0, *from, *to, 0, 4, []byte("nas"))
+	tx4.Sign(signature)
+	tx5 := NewTransaction(0, *from, *to, 1, 3, []byte("nas"))
+	tx5.Sign(signature)
+	tx6 := NewTransaction(1, *from, *to, 0, 1, []byte("nas"))
+	tx6.Sign(signature)
+
+	bc.txPool.Push(tx1)
+	bc.txPool.Push(tx2)
+	bc.txPool.Push(tx3)
+	bc.txPool.Push(tx4)
+	bc.txPool.Push(tx5)
+	bc.txPool.Push(tx6)
+
+	assert.Equal(t, len(block.transactions), 0)
+	block.CollectTransactions(bc.txPool.cache.Len())
+	assert.Equal(t, len(block.transactions), 2)
+	assert.Equal(t, block.txPool.cache.Len(), 1)
+
+	assert.Equal(t, block.Sealed(), false)
+	fromAcc := block.FindAccount(block.header.coinbase)
+	assert.Equal(t, fromAcc.Balance, uint64(0))
+	block.Seal()
+	assert.Equal(t, block.Sealed(), true)
+	assert.Equal(t, block.transactions[0], tx1)
+	assert.Equal(t, block.transactions[1], tx2)
+	assert.Equal(t, block.StateRoot().Equals(block.stateTrie.RootHash()), true)
+	assert.Equal(t, block.TxsRoot().Equals(block.txsTrie.RootHash()), true)
+	fromAcc = block.FindAccount(block.header.coinbase)
+	assert.Equal(t, fromAcc.Balance, uint64(BlockReward))
+	// mock net message
+	proto, _ := block.ToProto()
+	ir, _ := pb.Marshal(proto)
+	nb := new(Block)
+	pb.Unmarshal(ir, proto)
+	nb.FromProto(proto)
+	nb.LinkParentBlock(bc.tailBlock)
+	assert.Nil(t, nb.Verify())
 }

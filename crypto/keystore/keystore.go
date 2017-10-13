@@ -24,11 +24,6 @@ import (
 	"time"
 )
 
-const (
-	// KeystoreTypeDefault default keystore
-	KeystoreTypeDefault = "default"
-)
-
 var (
 	// DefaultKS generate a default keystore
 	DefaultKS = NewKeystore()
@@ -70,7 +65,7 @@ type Keystore struct {
 func NewKeystore() *Keystore {
 	ks := &Keystore{}
 	ks.unlocked = []unlocked{}
-	ks.p = NewMemoryProvider(1.0)
+	ks.p = NewMemoryProvider(1.0, SCRYPT)
 	return ks
 }
 
@@ -87,14 +82,6 @@ func (ks *Keystore) ContainsAlias(a string) (bool, error) {
 	return ks.p.ContainsAlias(a)
 }
 
-// SetKey assigns the given key to the given alias, protecting it with the given passphrase.
-func (ks *Keystore) SetKey(a string, k Key, passphrase []byte) error {
-	if ks.p == nil {
-		return ErrUninitialized
-	}
-	return ks.p.SetKey(a, k, passphrase)
-}
-
 // Unlock unlock key with ProtectionParameter
 func (ks *Keystore) Unlock(alias string, passphrase []byte, timeout time.Duration) error {
 	key, err := ks.p.GetKey(alias, passphrase)
@@ -107,8 +94,6 @@ func (ks *Keystore) Unlock(alias string, passphrase []byte, timeout time.Duratio
 	hasUnlocked := false
 	for _, u := range ks.unlocked {
 		if u.alias == alias {
-			// if key has been unlocked, clear it and reset to slice
-			u.key.Clear()
 			u.key = key
 			u.timer.Reset(timeout)
 			hasUnlocked = true
@@ -126,6 +111,8 @@ func (ks *Keystore) Unlock(alias string, passphrase []byte, timeout time.Duratio
 // Lock lock key
 func (ks *Keystore) Lock(alias string) error {
 
+	ks.mu.Lock()
+	defer ks.mu.Unlock()
 	for _, u := range ks.unlocked {
 		if u.alias == alias {
 			u.timer.Reset(time.Duration(0) * time.Nanosecond)
@@ -175,6 +162,16 @@ func (ks *Keystore) GetUnlocked(alias string) (Key, error) {
 		}
 	}
 	return nil, ErrNotUnlocked
+}
+
+// SetKey assigns the given key to the given alias, protecting it with the given passphrase.
+func (ks *Keystore) SetKey(a string, k Key, passphrase []byte) error {
+	if ks.p == nil {
+		return ErrUninitialized
+	}
+	ks.mu.RLock()
+	defer ks.mu.RUnlock()
+	return ks.p.SetKey(a, k, passphrase)
 }
 
 // GetKeyByIndex returns the key associated with the given index in unlocked

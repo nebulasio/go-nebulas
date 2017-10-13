@@ -21,7 +21,7 @@ package keystore
 import (
 	"errors"
 
-	"github.com/nebulasio/go-nebulas/crypto/encrypt"
+	"github.com/nebulasio/go-nebulas/crypto/cipher"
 )
 
 var (
@@ -51,21 +51,21 @@ type MemoryProvider struct {
 	entries map[string]Entry
 
 	// encrypt key
-	encrypt encrypt.Encrypt
+	cipher *cipher.Cipher
 }
 
 // NewMemoryProvider generate a provider with version
-func NewMemoryProvider(v float32) *MemoryProvider {
-	p := &MemoryProvider{name: "memory", version: v, entries: make(map[string]Entry)}
-	p.encrypt = new(encrypt.Scrypt)
+func NewMemoryProvider(v float32, alg Algorithm) *MemoryProvider {
+	p := &MemoryProvider{name: "memoryProvider", version: v, entries: make(map[string]Entry)}
+	p.cipher = cipher.NewCipher(uint8(alg))
 	return p
 }
 
 // Aliases all entry in provider save
 func (p *MemoryProvider) Aliases() []string {
-	aliases := make([]string, len(p.entries))
-	for k := range p.entries {
-		aliases = append(aliases, k)
+	aliases := []string{}
+	for a := range p.entries {
+		aliases = append(aliases, a)
 	}
 	return aliases
 }
@@ -79,7 +79,7 @@ func (p *MemoryProvider) SetKey(a string, key Key, passphrase []byte) error {
 	if err != nil {
 		return nil
 	}
-	data, err := p.encrypt.Encrypt(encoded, passphrase)
+	data, err := p.cipher.Encrypt(encoded, passphrase)
 	if err != nil {
 		return nil
 	}
@@ -100,7 +100,7 @@ func (p *MemoryProvider) GetKey(a string, passphrase []byte) (Key, error) {
 	if !ok {
 		return nil, ErrNotFind
 	}
-	data, err := p.encrypt.Decrypt(entry.data, passphrase)
+	data, err := p.cipher.Decrypt(entry.data, passphrase)
 	if err != nil {
 		return nil, err
 	}
@@ -108,7 +108,6 @@ func (p *MemoryProvider) GetKey(a string, passphrase []byte) (Key, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer entry.key.Clear()
 	return entry.key, nil
 }
 

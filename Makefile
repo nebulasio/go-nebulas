@@ -62,4 +62,4 @@ clean:
 	rm -f ${LINT_REPORT}
 	rm -f ${TEST_REPORT}
 	rm -f ${TEST_XUNIT_REPORT}
-	rm -f ${BINARY}*
+	rm -f ${BINARY}

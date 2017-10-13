@@ -21,6 +21,7 @@ package net
 // MessageTypeNewBlock
 const (
 	MessageTypeNewBlock = "NewBlockMessage"
+	MessageTypeNewTx    = "NewTxMessage"
 )
 
 // MessageType a string for message type.

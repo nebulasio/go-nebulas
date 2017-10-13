@@ -16,7 +16,7 @@
 // along with the go-nebulas library.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-package ecdsa
+package secp256k1
 
 import (
 	"errors"
@@ -26,14 +26,19 @@ import (
 
 // Signature signature ecdsa
 type Signature struct {
-	privateKey *PrivateStoreKey
+	privateKey *PrivateKey
 
-	publicKey *PublicStoreKey
+	publicKey *PublicKey
+}
+
+// Algorithm secp256k1 algorithm
+func (s *Signature) Algorithm() keystore.Algorithm {
+	return keystore.SECP256K1
 }
 
 // InitSign ecdsa init sign
 func (s *Signature) InitSign(priv keystore.PrivateKey) error {
-	s.privateKey = priv.(*PrivateStoreKey)
+	s.privateKey = priv.(*PrivateKey)
 	return nil
 }
 
@@ -51,17 +56,17 @@ func (s *Signature) Sign(data []byte) (out []byte, err error) {
 
 // RecoverPublic returns a public key
 func (s *Signature) RecoverPublic(data []byte, signature []byte) (keystore.PublicKey, error) {
-	pub, err := RecoverPublicKey(data, signature)
+	pub, err := RecoverECDSAPublicKey(data, signature)
 	if err != nil {
 		return nil, err
 	}
-	s.publicKey = NewPublicStoreKey(*pub)
+	s.publicKey = NewPublicKey(*pub)
 	return s.publicKey, nil
 }
 
 // InitVerify ecdsa verify init
 func (s *Signature) InitVerify(pub keystore.PublicKey) error {
-	s.publicKey = pub.(*PublicStoreKey)
+	s.publicKey = pub.(*PublicKey)
 	return nil
 }
 

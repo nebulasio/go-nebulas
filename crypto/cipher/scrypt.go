@@ -16,7 +16,7 @@
 // along with the go-nebulas library.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-package encrypt
+package cipher
 
 import (
 	"bytes"
@@ -26,7 +26,6 @@ import (
 	"encoding/json"
 	"errors"
 
-	"github.com/nebulasio/go-nebulas/crypto"
 	"github.com/nebulasio/go-nebulas/crypto/hash"
 	"github.com/satori/go.uuid"
 	"golang.org/x/crypto/scrypt"
@@ -131,14 +130,14 @@ func (s *Scrypt) ScryptEncrypt(data []byte, passphrase []byte, N, r, p int) ([]b
 }
 
 func (s *Scrypt) scryptEncrypt(data []byte, passphrase []byte, N, r, p int) (*cryptoJSON, error) {
-	salt := crypto.RandomCSPRNG(ScryptDKLen)
+	salt := RandomCSPRNG(ScryptDKLen)
 	derivedKey, err := scrypt.Key(passphrase, salt, N, r, p, ScryptDKLen)
 	if err != nil {
 		return nil, err
 	}
 	encryptKey := derivedKey[:16]
 
-	iv := crypto.RandomCSPRNG(aes.BlockSize) // 16
+	iv := RandomCSPRNG(aes.BlockSize) // 16
 	cipherText, err := s.aesCTRXOR(encryptKey, data, iv)
 	if err != nil {
 		return nil, err

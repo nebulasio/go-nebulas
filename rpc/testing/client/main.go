@@ -41,7 +41,7 @@ func main() {
 	ac := rpcpb.NewAPIServiceClient(conn)
 
 	{
-		r, err := ac.GetBalance(context.Background(), &rpcpb.GetBalanceRequest{Address: "0x1"})
+		r, err := ac.GetBalance(context.Background(), &rpcpb.GetBalanceRequest{Address: "91da63ba4ec9f6a08636d9abd443f64b4855be7fa9e44aa2"})
 		if err != nil {
 			log.Println("GetBalance failed: ", err)
 		} else {
