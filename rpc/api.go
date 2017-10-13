@@ -91,7 +91,6 @@ func (s *APIService) SendTransaction(ctx context.Context, req *rpcpb.SendTransac
 			return nil, err
 		}
 
-		// TODO: use uint128 instead of uint64.
 		tx := core.NewTransaction(neb.BlockChain().ChainID(), fromAddr, toAddr, value, req.Nonce /*req.Data */, nil)
 		if err := neb.AccountManager().SignTransaction(fromAddr, tx); err != nil {
 			return nil, err
@@ -100,6 +99,9 @@ func (s *APIService) SendTransaction(ctx context.Context, req *rpcpb.SendTransac
 		if err := neb.BlockChain().TransactionPool().Push(tx); err != nil {
 			return nil, err
 		}
+
+		// relay tx
+		neb.P2pManager().RelayTransaction(tx)
 	}
 
 	// TODO: returns the transaction hash if available.
