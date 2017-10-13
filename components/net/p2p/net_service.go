@@ -43,6 +43,9 @@ import (
 
 // const define constant
 const (
+	SNC            = -1
+	SHandshaking   = 0
+	SOK            = 1
 	ProtocolID     = "/neb/1.0.0"
 	HELLO          = "hello"
 	OK             = "ok"
@@ -52,6 +55,7 @@ const (
 	SYNCROUTEREPLY = "resyncroute"
 	CLIENTVERSION  = "0.2.0"
 	SYNCBLOCK      = "syncblock"
+	SYNCREPLY      = "syncreply"
 )
 
 // MagicNumber the protocol magic number, A constant numerical or text value used to identify protocol.
@@ -163,7 +167,7 @@ func (ns *NetService) streamHandler(s nnet.Stream) {
 						"ClientVersion": hello.ClientVersion,
 					}).Info("streamHandler: [HELLO] receive hello message.")
 					if hello.NodeID == pid.String() && hello.ClientVersion == CLIENTVERSION {
-						node.conn[addrs.String()] = S_OK
+						node.conn[addrs.String()] = SOK
 						node.stream[addrs.String()] = s
 						node.routeTable.Update(pid)
 					}
@@ -185,7 +189,7 @@ func (ns *NetService) streamHandler(s nnet.Stream) {
 						return
 					}
 					node.stream[addrs.String()] = s
-					node.conn[addrs.String()] = S_OK
+					node.conn[addrs.String()] = SOK
 					node.routeTable.Update(pid)
 				case OK:
 
@@ -203,7 +207,7 @@ func (ns *NetService) streamHandler(s nnet.Stream) {
 					}
 
 					if ok.NodeID == pid.String() && ok.ClientVersion == CLIENTVERSION {
-						node.conn[addrs.String()] = S_OK
+						node.conn[addrs.String()] = SOK
 						node.stream[addrs.String()] = s
 						node.routeTable.Update(pid)
 					} else {
@@ -214,23 +218,21 @@ func (ns *NetService) streamHandler(s nnet.Stream) {
 
 				case BYE:
 				case SYNCBLOCK:
-					//TODO
+					//check self can providing sync service
+					if !node.synchronized {
+						if !ns.handleBlockMsg(data, msgNameStr) {
+							ns.Bye(pid, []ma.Multiaddr{addrs}, s)
+						}
+						node.syncList = append(node.syncList, addrs.String())
+					}
+				case SYNCREPLY:
+					// TODO
+
 				case NEWBLOCK:
 					log.Info("streamHandler: [NEWBLOCK] handle new block message")
-					block := new(core.Block)
-					pb := new(corepb.Block)
-					if err := proto.Unmarshal(data, pb); err != nil {
-						log.Error("streamHandler: [NEWBLOCK] handle new block msg occurs error: ", err)
+					if !ns.handleBlockMsg(data, msgNameStr) {
 						ns.Bye(pid, []ma.Multiaddr{addrs}, s)
-						return
 					}
-					if err := block.FromProto(pb); err != nil {
-						log.Error("streamHandler: [NEWBLOCK] handle new block msg occurs error: ", err)
-						ns.Bye(pid, []ma.Multiaddr{addrs}, s)
-						return
-					}
-					msg := messages.NewBaseMessage(msgNameStr, block)
-					ns.PutMessage(msg)
 				case SYNCROUTE:
 					log.Info("streamHandler: [SYNCROUTE] handle sync route message")
 					peers := node.routeTable.NearestPeers(kbucket.ConvertPeerID(pid), node.config.maxSyncNodes)
@@ -314,6 +316,22 @@ func (ns *NetService) streamHandler(s nnet.Stream) {
 
 }
 
+func (ns *NetService) handleBlockMsg(data []byte, msgNameStr string) bool {
+	block := new(core.Block)
+	pb := new(corepb.Block)
+	if err := proto.Unmarshal(data, pb); err != nil {
+		log.Error("handleBlockMsg: unmarshal data occurs error, ", err)
+		return false
+	}
+	if err := block.FromProto(pb); err != nil {
+		log.Error("handleBlockMsg: get block from proto occurs error: ", err)
+		return false
+	}
+	msg := messages.NewBaseMessage(msgNameStr, block)
+	ns.PutMessage(msg)
+	return true
+}
+
 func (ns *NetService) verifyHeader(magicNumber []byte, chainID []byte, version []byte) bool {
 	node := ns.node
 	if !byteutils.Equal(MagicNumber, magicNumber) {
@@ -344,9 +362,9 @@ func (ns *NetService) Bye(pid peer.ID, addrs []ma.Multiaddr, s nnet.Stream) {
 }
 
 // SendMsg send message to a peer
-func (ns *NetService) SendMsg(msgName string, msg []byte, pid peer.ID) {
+func (ns *NetService) SendMsg(msgName string, msg []byte, addrs string) {
 	node := ns.node
-	addrs := node.peerstore.PeerInfo(pid).Addrs
+	// addrs := node.peerstore.PeerInfo(pid).Addrs
 	log.WithFields(log.Fields{
 		"addrs":   addrs,
 		"msgName": msgName,
@@ -358,7 +376,7 @@ func (ns *NetService) SendMsg(msgName string, msg []byte, pid peer.ID) {
 	data := msg
 	totalData := ns.buildData(data, msgName)
 
-	stream := node.stream[addrs[0].String()]
+	stream := node.stream[addrs]
 	if stream == nil {
 		log.Error("SendMsg: send message occrus error, stream does not exist.")
 		return

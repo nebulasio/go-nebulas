@@ -20,8 +20,10 @@ package net
 
 // MessageTypeNewBlock
 const (
-	MessageTypeNewBlock = "newblock"
-	MessageTypeNewTx    = "newtx"
+	MessageTypeNewBlock  = "newblock"
+	MessageTypeNewTx     = "newtx"
+	MessageTypeSyncBlock = "syncblock"
+	MessageTypeSyncReply = "syncreply"
 )
 
 // MessageType a string for message type.

@@ -38,25 +38,21 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-const (
-	S_NC          = -1
-	S_Handshaking = 0
-	S_OK          = 1
-)
-
 // Node the node can be used as both the client and the server
 type Node struct {
-	host       *basichost.BasicHost
-	id         peer.ID
-	peerstore  peerstore.Peerstore
-	conn       map[string]int
-	stream     map[string]nnet.Stream
-	routeTable *kbucket.RoutingTable
-	context    context.Context
-	chainID    uint32
-	version    uint8
-	config     *Config
-	running    bool
+	host         *basichost.BasicHost
+	id           peer.ID
+	peerstore    peerstore.Peerstore
+	conn         map[string]int
+	stream       map[string]nnet.Stream
+	routeTable   *kbucket.RoutingTable
+	context      context.Context
+	chainID      uint32
+	version      uint8
+	config       *Config
+	running      bool
+	synchronized bool
+	syncList     []string
 }
 
 // NewNode start a local node and join the node to network
@@ -74,43 +70,6 @@ func NewNode(config *Config) (*Node, error) {
 	//node.start()
 	return node, nil
 }
-
-// Start start the node and say hello to bootNodes, then start node discovery service
-// func (netService *NetService) Launch() error {
-
-// 	node := netService.node
-// 	log.Info("Start: node create success...")
-// 	log.Infof("Start: node info {id -> %s, address -> %s}", node.id, node.host.Addrs())
-// 	if node.running {
-// 		return errors.New("Start: node already running")
-// 	}
-// 	node.running = true
-// 	log.Info("Start: node start join p2p network...")
-
-// 	netService.RegisterNetService()
-
-// 	var wg sync.WaitGroup
-// 	for _, bootNode := range node.config.BootNodes {
-// 		wg.Add(1)
-// 		go func(bootNode multiaddr.Multiaddr) {
-// 			defer wg.Done()
-// 			err := netService.SayHello(bootNode)
-// 			if err != nil {
-// 				log.Error("Start: can not say hello to trusted node.", bootNode, err)
-// 			}
-
-// 		}(bootNode)
-// 	}
-// 	wg.Wait()
-
-// 	go func() {
-// 		netService.Discovery(node.context)
-// 	}()
-
-// 	log.Infof("Start: node start and join to p2p network success and listening for connections on port %d... ", node.config.Port)
-
-// 	return nil
-// }
 
 func (node *Node) makeHost() error {
 
@@ -153,6 +112,7 @@ func (node *Node) makeHost() error {
 	node.stream = make(map[string]nnet.Stream)
 	node.chainID = 100
 	node.version = 8
+	node.synchronized = false
 
 	address, err := multiaddr.NewMultiaddr(
 		fmt.Sprintf(

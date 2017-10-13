@@ -26,9 +26,7 @@ import (
 
 // PreSync do something ready to sync
 func (ns *NetService) PreSync(tail *core.Block) {
-	//TODO
 	node := ns.node
-
 	pb, _ := tail.ToProto()
 	data, err := proto.Marshal(pb)
 	if err != nil {
@@ -36,16 +34,27 @@ func (ns *NetService) PreSync(tail *core.Block) {
 	}
 
 	allNode := node.routeTable.ListPeers()
-	log.Info("Broadcast: allNode -> ", allNode)
+	log.Info("PreSync: allNode -> ", allNode)
 
 	for i := 0; i < len(allNode); i++ {
 		nodeID := allNode[i]
-		if node.id == nodeID {
-			log.Warn("Broadcast: skip self")
+		addrs := node.peerstore.PeerInfo(nodeID).Addrs
+		if len(addrs) > 0 && node.host.Addrs()[0] == addrs[0] {
+			log.Warn("PreSync: skip self")
 			continue
 		}
 		go func() {
-			ns.SendMsg("syncblock", data, nodeID)
+			ns.SendMsg("syncblock", data, addrs[0].String())
+		}()
+	}
+}
+
+// SendSyncReply send sync reply message to remote peer
+func (ns *NetService) SendSyncReply(data []byte) {
+	addrs := ns.node.syncList
+	for i := 0; i < len(addrs); i++ {
+		go func() {
+			ns.SendMsg("syncreply", data, addrs[i])
 		}()
 	}
 }

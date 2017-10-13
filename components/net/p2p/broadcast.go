@@ -44,12 +44,14 @@ func (ns *NetService) Broadcast(block interface{}) {
 	for i := 0; i < len(allNode); i++ {
 
 		nodeID := allNode[i]
-		if node.id == nodeID {
+		addrs := node.peerstore.PeerInfo(nodeID).Addrs
+		log.Info(node.host.Addrs()[0].String())
+		if len(addrs) == 0 || node.host.Addrs()[0].String() == addrs[0].String() {
 			log.Warn("Broadcast: skip self")
 			continue
 		}
 		go func() {
-			ns.SendMsg("newblock", data, nodeID)
+			ns.SendMsg("newblock", data, addrs[0].String())
 		}()
 	}
 

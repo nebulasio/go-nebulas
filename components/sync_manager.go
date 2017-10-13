@@ -26,40 +26,70 @@ import (
 
 // SyncManager is used to manage the sync service
 type SyncManager struct {
-	blockChain       *core.BlockChain
-	ns               *p2p.NetService
-	quitCh           chan bool
-	syncCh           chan bool
-	receiveMessageCh chan net.Message
-	quitPreSync      chan bool
+	blockChain         *core.BlockChain
+	ns                 *p2p.NetService
+	quitCh             chan bool
+	syncCh             chan bool
+	receiveTailCh      chan net.Message
+	receiveSyncReplyCh chan net.Message
+	quitPreSync        chan bool
 }
 
 // NewSyncManager new sync manager
 func NewSyncManager(blockChain *core.BlockChain, ns *p2p.NetService) *SyncManager {
-	sync := &SyncManager{blockChain, ns, make(chan bool), make(chan bool), make(chan net.Message, 128), make(chan bool)}
+	sync := &SyncManager{blockChain, ns, make(chan bool), make(chan bool), make(chan net.Message, 128), make(chan net.Message, 128), make(chan bool)}
+	sync.RegisterSyncBlockInNetwork(ns)
+	sync.RegisterSyncReplyInNetwork(ns)
 	return sync
 }
 
-// RegisterInNetwork register message subscriber in network.
-func (sync *SyncManager) RegisterInNetwork(nm net.Manager) {
-	nm.Register(net.NewSubscriber(sync, sync.receiveMessageCh, net.MessageTypeNewBlock))
+// RegisterSyncBlockInNetwork register message subscriber in network.
+func (sync *SyncManager) RegisterSyncBlockInNetwork(nm net.Manager) {
+	nm.Register(net.NewSubscriber(sync, sync.receiveTailCh, net.MessageTypeSyncBlock))
+}
+
+// RegisterSyncReplyInNetwork register message subscriber in network.
+func (sync *SyncManager) RegisterSyncReplyInNetwork(nm net.Manager) {
+	nm.Register(net.NewSubscriber(sync, sync.receiveSyncReplyCh, net.MessageTypeSyncReply))
 }
 
 // Start start sync service
 func (sync *SyncManager) Start() {
-	tail := sync.blockChain.TailBlock()
-	sync.PreSync(tail)
-Loop:
-	for {
-		select {
-		case <-sync.quitCh:
-			break Loop
-		case <-sync.syncCh:
-			go sync.sync()
-		case <-sync.receiveMessageCh:
+	sync.StartMsgHandle()
+	sync.StartSync()
+}
 
+// StartSync start sync loop
+func (sync *SyncManager) StartSync() {
+	go (func() {
+		tail := sync.blockChain.TailBlock()
+		sync.PreSync(tail)
+	Loop:
+		for {
+			select {
+			case <-sync.quitCh:
+				break Loop
+			case <-sync.syncCh:
+				go sync.sync()
+				// case <-sync.receiveMessageCh:
+
+			}
 		}
-	}
+	})()
+}
+
+// StartMsgHandle start sync message handle loop
+func (sync *SyncManager) StartMsgHandle() {
+	go (func() {
+		for {
+			select {
+			case <-sync.receiveTailCh:
+				// find the common ancestors
+
+			case <-sync.receiveSyncReplyCh:
+			}
+		}
+	})()
 }
 
 // PreSync be ready before start sync
