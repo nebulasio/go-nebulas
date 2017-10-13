@@ -96,6 +96,8 @@ func (s *APIService) SendTransaction(ctx context.Context, req *rpcpb.SendTransac
 		if err := neb.AccountManager().SignTransaction(fromAddr, tx); err != nil {
 			return nil, err
 		}
+
+		// TODO: txPool.Put(tx)
 	}
 
 	// TODO: returns the transaction hash if available.
