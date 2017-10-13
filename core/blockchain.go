@@ -88,6 +88,11 @@ func (bc *BlockChain) BlockPool() *BlockPool {
 	return bc.bkPool
 }
 
+// TransactionPool return block pool.
+func (bc *BlockChain) TransactionPool() *TransactionPool {
+	return bc.txPool
+}
+
 // SetConsensusHandler set consensus handler.
 func (bc *BlockChain) SetConsensusHandler(handler Consensus) {
 	bc.consensusHandler = handler

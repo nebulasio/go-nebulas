@@ -97,7 +97,9 @@ func (s *APIService) SendTransaction(ctx context.Context, req *rpcpb.SendTransac
 			return nil, err
 		}
 
-		// TODO: txPool.Put(tx)
+		if err := neb.BlockChain().TransactionPool().Push(tx); err != nil {
+			return nil, err
+		}
 	}
 
 	// TODO: returns the transaction hash if available.
