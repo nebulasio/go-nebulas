@@ -24,25 +24,30 @@ import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
 
-	"github.com/btcsuite/btcd/btcec"
-
+	"crypto/rand"
 	"encoding/hex"
 	"errors"
 	"math/big"
+
+	"github.com/nebulasio/go-nebulas/crypto/keystore/secp256k1/bitelliptic"
 )
+
+// "github.com/btcsuite/btcd/btcec"
 
 // S256 returns an instance of the secp256k1 curve.
 func S256() elliptic.Curve {
-	return btcec.S256()
+	//return btcec.S256()
+	return bitelliptic.S256()
 }
 
 // NewECDSAPrivateKey generate a ecdsa private key
 func NewECDSAPrivateKey() (*ecdsa.PrivateKey, error) {
-	privateKeyECDSA, err := btcec.NewPrivateKey(btcec.S256())
+	//privateKeyECDSA, err := btcec.NewPrivateKey(btcec.S256())
+	priv, err := ecdsa.GenerateKey(S256(), rand.Reader)
 	if err != nil {
 		return nil, err
 	}
-	return (*ecdsa.PrivateKey)(privateKeyECDSA), nil
+	return priv, nil
 }
 
 // FromECDSAPrivateKey exports a private key into a binary dump.
@@ -91,27 +96,27 @@ func ToECDSAPublicKey(pub []byte) (*ecdsa.PublicKey, error) {
 	return &ecdsa.PublicKey{Curve: S256(), X: x, Y: y}, nil
 }
 
-// RecoverECDSAPublicKey recover verifies the compact signature "signature" of "hash"
-func RecoverECDSAPublicKey(hash []byte, signature []byte) (*ecdsa.PublicKey, error) {
-	pub, _, err := btcec.RecoverCompact(btcec.S256(), signature, hash)
-	return (*ecdsa.PublicKey)(pub), err
-}
-
-// Sign sign hash with private key
-func Sign(hash []byte, priv *ecdsa.PrivateKey) ([]byte, error) {
-	return btcec.SignCompact(btcec.S256(), (*btcec.PrivateKey)(priv), hash, true)
-}
-
-// Verify verify with public key
-func Verify(hash []byte, signature []byte, pub *ecdsa.PublicKey) bool {
-	bitlen := (btcec.S256().BitSize + 7) / 8
-	// format is <header byte><bitlen R><bitlen S>
-	signer := &btcec.Signature{
-		R: new(big.Int).SetBytes(signature[1 : bitlen+1]),
-		S: new(big.Int).SetBytes(signature[bitlen+1:]),
-	}
-	return signer.Verify(hash, (*btcec.PublicKey)(pub))
-}
+//// RecoverECDSAPublicKey recover verifies the compact signature "signature" of "hash"
+//func RecoverECDSAPublicKey(hash []byte, signature []byte) (*ecdsa.PublicKey, error) {
+//	pub, _, err := btcec.RecoverCompact(btcec.S256(), signature, hash)
+//	return (*ecdsa.PublicKey)(pub), err
+//}
+//
+//// Sign sign hash with private key
+//func Sign(hash []byte, priv *ecdsa.PrivateKey) ([]byte, error) {
+//	return btcec.SignCompact(btcec.S256(), (*btcec.PrivateKey)(priv), hash, true)
+//}
+//
+//// Verify verify with public key
+//func Verify(hash []byte, signature []byte, pub *ecdsa.PublicKey) bool {
+//	bitlen := (btcec.S256().BitSize + 7) / 8
+//	// format is <header byte><bitlen R><bitlen S>
+//	signer := &btcec.Signature{
+//		R: new(big.Int).SetBytes(signature[1 : bitlen+1]),
+//		S: new(big.Int).SetBytes(signature[bitlen+1:]),
+//	}
+//	return signer.Verify(hash, (*btcec.PublicKey)(pub))
+//}
 
 // zeroKey zeroes the private key
 func zeroKey(k *ecdsa.PrivateKey) {

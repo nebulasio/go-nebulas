@@ -23,6 +23,7 @@ import (
 
 	"reflect"
 
+	"github.com/nebulasio/go-nebulas/crypto/hash"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
 )
 
@@ -78,17 +79,17 @@ func TestSign(t *testing.T) {
 	}{
 		{
 			"sample hash1",
-			args{hash1},
+			args{hash.Sha3256(hash1)},
 			false,
 		},
 		{
 			"sample hash2",
-			args{hash2},
+			args{hash.Sha3256(hash2)},
 			false,
 		},
 		{
 			"sample hash3",
-			args{hash3},
+			args{hash.Sha3256(hash3)},
 			false,
 		},
 	}
@@ -102,7 +103,7 @@ func TestSign(t *testing.T) {
 			//if !reflect.DeepEqual(got, tt.want) {
 			//	t.Errorf("Sign() = %v, want %v", got, tt.want)
 			//}
-			if !Verify(tt.args.s, got, &priv.PublicKey) {
+			if ok, err := Verify(tt.args.s, got, &priv.PublicKey); !ok || err != nil {
 				t.Errorf("Verify() false hash = %v", tt.args.s)
 				return
 			}
@@ -117,7 +118,7 @@ func TestSign(t *testing.T) {
 			}
 			//t.Logf("orgpub pubX:%d, pubY:%d", priv.PublicKey.X, priv.PublicKey.Y)
 			//t.Logf("newpub pubX:%d, pubY:%d", gpub.X, gpub.Y)
-			if !Verify(tt.args.s, got, gpub) {
+			if ok, err := Verify(tt.args.s, got, gpub); !ok || err != nil {
 				t.Errorf("recover Verify() false hash = %v", tt.args.s)
 				return
 			}

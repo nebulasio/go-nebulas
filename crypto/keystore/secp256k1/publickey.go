@@ -62,5 +62,5 @@ func (k *PublicKey) Clear() {
 
 // Verify verify ecdsa publickey
 func (k *PublicKey) Verify(hash []byte, signature []byte) (bool, error) {
-	return Verify(hash, signature, &k.publickey), nil
+	return Verify(hash, signature, &k.publickey)
 }
