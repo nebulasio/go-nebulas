@@ -20,17 +20,19 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
+	"os/signal"
 	"sort"
 	"strconv"
+	"syscall"
 	"time"
-
-	"io/ioutil"
 
 	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/crypto/keystore"
 	"github.com/nebulasio/go-nebulas/crypto/keystore/secp256k1"
+	"github.com/nebulasio/go-nebulas/neblet"
 	"github.com/nebulasio/go-nebulas/neblet/pb"
 	"github.com/nebulasio/go-nebulas/util/logging"
 	log "github.com/sirupsen/logrus"
@@ -42,7 +44,6 @@ var (
 	commit    string
 	branch    string
 	compileAt string
-	dummy     bool
 	config    string
 )
 
@@ -61,11 +62,6 @@ func main() {
 	app.Copyright = "Copyright 2017-2018 The go-nebulas Authors"
 
 	app.Flags = []cli.Flag{
-		cli.BoolFlag{
-			Name:        "dummy",
-			Usage:       "use dummy network",
-			Destination: &dummy,
-		},
 		cli.StringFlag{
 			Name:        "config, c",
 			Usage:       "load configuration from `FILE`",
@@ -89,17 +85,28 @@ func neb(ctx *cli.Context) error {
 
 	conf := loadConfig(config)
 
-	// TODO: remove dummy.go and p2p_network.go.
-	if dummy {
-		GoDummy()
-	} else {
-		GoP2p(conf)
-	}
+	runNeb(conf)
 
 	// TODO: just use the signal to block main.
 	for {
 		time.Sleep(60 * time.Second) // or runtime.Gosched() or similar per @misterbee
 	}
+}
+
+func runNeb(config *nebletpb.Config) {
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+
+	n := neblet.New(*config)
+	n.Start()
+
+	go func() {
+		<-c
+		n.Stop()
+
+		// TODO: remove this once p2pManager handles stop properly.
+		os.Exit(1)
+	}()
 }
 
 func loadConfig(filename string) *nebletpb.Config {
