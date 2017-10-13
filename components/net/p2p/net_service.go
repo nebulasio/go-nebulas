@@ -51,6 +51,7 @@ const (
 	NEWBLOCK       = "newblock"
 	SYNCROUTEREPLY = "resyncroute"
 	CLIENTVERSION  = "0.2.0"
+	SYNCBLOCK      = "syncblock"
 )
 
 // MagicNumber the protocol magic number, A constant numerical or text value used to identify protocol.
@@ -79,6 +80,7 @@ func NewNetService(config *Config) *NetService {
 // RegisterNetService register to Netservice
 func (ns *NetService) RegisterNetService() *NetService {
 	ns.node.host.SetStreamHandler(ProtocolID, ns.streamHandler)
+
 	log.Infof("RegisterNetService: register netservice success")
 	return ns
 }
@@ -211,6 +213,8 @@ func (ns *NetService) streamHandler(s nnet.Stream) {
 					}
 
 				case BYE:
+				case SYNCBLOCK:
+					//TODO
 				case NEWBLOCK:
 					log.Info("streamHandler: [NEWBLOCK] handle new block message")
 					block := new(core.Block)
