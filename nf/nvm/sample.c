@@ -23,10 +23,18 @@
 
 #include <stdio.h>
 
-extern "C" void func_a() { printf("called to func_a.\n"); }
+int roll_dice();
+
+void func_a() { printf("called to func_a.\n"); }
+
+void func_b() {
+  int v = roll_dice();
+  printf("called to func_b, dice is %d.\n", v);
+}
 
 int main(int argc, char *argv[]) {
   printf("called to main.\n");
   func_a();
+  func_b();
   return 0;
 }

@@ -34,4 +34,4 @@ clean:
 	-rm -f *.o main
 
 ir:
-	clang -S -emit-llvm sample.csc
+	clang -S -emit-llvm sample.c

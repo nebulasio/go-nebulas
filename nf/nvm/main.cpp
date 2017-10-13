@@ -40,6 +40,8 @@ void help(char *name) {
   exit(1);
 }
 
+extern "C" int roll_dice() { return 123; }
+
 static void reportError(SMDiagnostic &Err, const char *ProgName) {
   Err.print(ProgName, errs());
   exit(1);
