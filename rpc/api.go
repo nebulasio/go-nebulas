@@ -34,19 +34,26 @@ type APIService struct {
 	server *Server
 }
 
-// GetBalance is the RPC API handler.
-func (s *APIService) GetBalance(ctx context.Context, req *rpcpb.GetBalanceRequest) (*rpcpb.GetBalanceResponse, error) {
+// GetAccountState is the RPC API handler.
+func (s *APIService) GetAccountState(ctx context.Context, req *rpcpb.GetAccountStateRequest) (*rpcpb.GetAccountStateResponse, error) {
 	if len(req.Address) == 0 {
 		return nil, status.Errorf(codes.InvalidArgument, "Address is empty.")
 	}
 
 	// TODO: cleanup dummy logic.
 	bal := util.NewUint128FromInt(996)
+	var nonce uint64
 	if s.server != nil {
 		if neb := s.server.Neblet(); neb != nil {
-			addr, _ := byteutils.FromHex(req.Address)
+			reqAddr, _ := byteutils.FromHex(req.Address)
+			addr, err := core.NewAddress(reqAddr)
+			if err != nil {
+				return nil, err
+			}
 			// TODO: handle specific block number.
-			bal = neb.BlockChain().TailBlock().GetBalance(addr)
+			acct := neb.BlockChain().TailBlock().FindAccount(addr)
+			bal = acct.Balance
+			nonce = acct.Nonce
 		}
 	}
 
@@ -54,7 +61,7 @@ func (s *APIService) GetBalance(ctx context.Context, req *rpcpb.GetBalanceReques
 	if err != nil {
 		return nil, err
 	}
-	return &rpcpb.GetBalanceResponse{Value: vb}, nil
+	return &rpcpb.GetAccountStateResponse{Balance: vb, TransactionCount: nonce}, nil
 }
 
 // SendTransaction is the RPC API handler.

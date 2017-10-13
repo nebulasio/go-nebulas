@@ -26,9 +26,9 @@ package rpcpb;
 // RPC API interface.
 service APIService {
 	// Returns the balance of the account.
-	rpc GetBalance (GetBalanceRequest) returns (GetBalanceResponse) {
+	rpc GetAccountState (GetAccountStateRequest) returns (GetAccountStateResponse) {
 //		option (google.api.http) = {
-//            get: "/v1/balance"
+//            get: "/v1/account/state"
 //        };
 	}
 
@@ -40,8 +40,8 @@ service APIService {
 	}
 }
 
-// Request message of GetBalance rpc.
-message GetBalanceRequest {
+// Request message of GetAccountState rpc.
+message GetAccountStateRequest {
 	// Hex string of the account addresss.
 	string address = 1;
 
@@ -49,10 +49,13 @@ message GetBalanceRequest {
 	string block = 2;
 }
 
-// Response message of GetBalance rpc.
-message GetBalanceResponse {
+// Response message of GetAccountState rpc.
+message GetAccountStateResponse {
 	// Current balance in unit of 1/(10^18) nas.
-	bytes value = 1; // uint128, len=16
+	bytes balance = 1; // uint128, len=16
+
+	// Current transaction count.
+	uint64 transaction_count = 2;
 }
 
 // Request message of SendTransaction rpc.

@@ -28,19 +28,19 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestGetBalance(t *testing.T) {
+func TestGetAccountState(t *testing.T) {
 	// TODO: mock service.
 	s := &APIService{}
 	{
-		req := &rpcpb.GetBalanceRequest{}
-		_, err := s.GetBalance(nil, req)
+		req := &rpcpb.GetAccountStateRequest{}
+		_, err := s.GetAccountState(nil, req)
 		assert.Error(t, err, "Missing address.")
 	}
 	{
-		req := &rpcpb.GetBalanceRequest{Address: "0x1"}
-		resp, _ := s.GetBalance(nil, req)
-		assert.Equal(t, len(resp.Value), util.Uint128Bytes)
-		u, err := util.NewUint128FromFixedSizeByteSlice(resp.Value)
+		req := &rpcpb.GetAccountStateRequest{Address: "0x1"}
+		resp, _ := s.GetAccountState(nil, req)
+		assert.Equal(t, len(resp.Balance), util.Uint128Bytes)
+		u, err := util.NewUint128FromFixedSizeByteSlice(resp.Balance)
 		assert.Nil(t, err)
 		assert.True(t, u.Cmp(big.NewInt(996)) == 0)
 	}
