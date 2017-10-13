@@ -204,13 +204,11 @@ func TestBlock_CollectTransactions(t *testing.T) {
 	bc := NewBlockChain(0)
 	tail := bc.tailBlock
 	assert.Panics(t, func() { tail.CollectTransactions(1) })
-	block := NewBlock(0, &Address{[]byte("coinbase")}, tail, bc.txPool)
 
 	ks := keystore.DefaultKS
 	priv, _ := secp256k1.GeneratePrivateKey()
 	pubdata, _ := priv.PublicKey().Encoded()
 	from, _ := NewAddressFromPublicKey(pubdata)
-	to := &Address{[]byte("hello")}
 	ks.SetKey(from.ToHex(), priv, []byte("passphrase"))
 	ks.Unlock(from.ToHex(), []byte("passphrase"), time.Second*60*60*24*365)
 
@@ -218,6 +216,14 @@ func TestBlock_CollectTransactions(t *testing.T) {
 	signature, _ := crypto.NewSignature(keystore.SECP256K1)
 	signature.InitSign(key.(keystore.PrivateKey))
 
+	priv1, _ := secp256k1.GeneratePrivateKey()
+	pubdata1, _ := priv1.PublicKey().Encoded()
+	to, _ := NewAddressFromPublicKey(pubdata1)
+	priv2, _ := secp256k1.GeneratePrivateKey()
+	pubdata2, _ := priv2.PublicKey().Encoded()
+	coinbase, _ := NewAddressFromPublicKey(pubdata2)
+
+	block := NewBlock(0, coinbase, tail, bc.txPool)
 	tx1 := NewTransaction(0, *from, *to, 0, 1, []byte("nas"))
 	tx1.Sign(signature)
 	tx2 := NewTransaction(0, *from, *to, 0, 2, []byte("nas"))
@@ -244,16 +250,16 @@ func TestBlock_CollectTransactions(t *testing.T) {
 	assert.Equal(t, block.txPool.cache.Len(), 1)
 
 	assert.Equal(t, block.Sealed(), false)
-	fromAcc := block.FindAccount(block.header.coinbase)
-	assert.Equal(t, fromAcc.Balance, uint64(0))
+	acc := block.FindAccount(block.header.coinbase)
+	assert.Equal(t, acc.Balance, uint64(0))
 	block.Seal()
 	assert.Equal(t, block.Sealed(), true)
 	assert.Equal(t, block.transactions[0], tx1)
 	assert.Equal(t, block.transactions[1], tx2)
 	assert.Equal(t, block.StateRoot().Equals(block.stateTrie.RootHash()), true)
 	assert.Equal(t, block.TxsRoot().Equals(block.txsTrie.RootHash()), true)
-	fromAcc = block.FindAccount(block.header.coinbase)
-	assert.Equal(t, fromAcc.Balance, uint64(BlockReward))
+	acc = block.FindAccount(block.header.coinbase)
+	assert.Equal(t, acc.Balance, uint64(BlockReward))
 	// mock net message
 	proto, _ := block.ToProto()
 	ir, _ := pb.Marshal(proto)

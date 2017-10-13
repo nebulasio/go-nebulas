@@ -28,7 +28,6 @@ import (
 	"github.com/nebulasio/go-nebulas/crypto/hash"
 	"github.com/nebulasio/go-nebulas/crypto/keystore"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
-	log "github.com/sirupsen/logrus"
 )
 
 var (
@@ -83,7 +82,7 @@ func (tx *Transaction) ToProto() (proto.Message, error) {
 		Nonce:     tx.nonce,
 		Timestamp: tx.timestamp.UnixNano(),
 		Data:      tx.data,
-		ChainID:   tx.chainID,
+		ChainId:   tx.chainID,
 		Alg:       uint32(tx.alg),
 		Sign:      tx.sign,
 	}, nil
@@ -99,7 +98,7 @@ func (tx *Transaction) FromProto(msg proto.Message) error {
 		tx.nonce = msg.Nonce
 		tx.timestamp = time.Unix(0, msg.Timestamp)
 		tx.data = msg.Data
-		tx.chainID = msg.ChainID
+		tx.chainID = msg.ChainId
 		tx.alg = uint8(msg.Alg)
 		tx.sign = msg.Sign
 		return nil
@@ -145,11 +144,6 @@ func (tx *Transaction) Sign(signature keystore.Signature) error {
 func (tx *Transaction) Verify() error {
 	wantedHash := HashTransaction(tx)
 	if wantedHash.Equals(tx.hash) == false {
-		log.WithFields(log.Fields{
-			"func": "Transaction.Verify",
-			"err":  ErrInvalidTransactionHash,
-			"tx":   tx,
-		}).Error("invalid transaction hash")
 		return ErrInvalidTransactionHash
 	}
 

@@ -31,7 +31,7 @@ message Transaction {
     uint64 nonce = 5;
     int64 timestamp = 6;
     bytes data = 7;
-    uint32 chainID = 8;
+    uint32 chain_id = 8;
     uint32 alg = 9;    
     bytes sign = 10;
 }
@@ -42,7 +42,7 @@ message BlockHeader {
     uint64 nonce = 3;
     bytes coinbase = 4;
     int64 timestamp = 5;
-    uint32 chainID = 6;
+    uint32 chain_id = 6;
     bytes state_root = 7;
     bytes txs_root = 8;
 }

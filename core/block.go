@@ -70,7 +70,7 @@ func (b *BlockHeader) ToProto() (proto.Message, error) {
 		Nonce:      b.nonce,
 		Coinbase:   b.coinbase.address,
 		Timestamp:  b.timestamp,
-		ChainID:    b.chainID,
+		ChainId:    b.chainID,
 	}, nil
 }
 
@@ -84,7 +84,7 @@ func (b *BlockHeader) FromProto(msg proto.Message) error {
 		b.nonce = msg.Nonce
 		b.coinbase = &Address{msg.Coinbase}
 		b.timestamp = msg.Timestamp
-		b.chainID = msg.ChainID
+		b.chainID = msg.ChainId
 		return nil
 	}
 	return errors.New("Pb Message cannot be converted into BlockHeader")
@@ -345,13 +345,12 @@ func (block *Block) VerifyTransactions() error {
 // GetBalance returns balance for the given address on this block.
 // TODO: use uint128 and unit test.
 func (block *Block) GetBalance(address Hash) uint64 {
-	stateTrie := block.stateTrie
-	v, err := stateTrie.Get(address)
-	if v != nil {
-		return byteutils.Uint64(v)
-	}
-	log.Warn(err)
-	return 0
+	return block.FindAccount(&Address{address}).Balance
+}
+
+// GetNonce returns nonce for the given address on this block.
+func (block *Block) GetNonce(address Hash) uint64 {
+	return block.FindAccount(&Address{address}).Nonce
 }
 
 func (block *Block) rewardCoinbase() {
