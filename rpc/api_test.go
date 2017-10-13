@@ -21,42 +21,43 @@ package rpc
 import (
 	"testing"
 
-	"math/big"
-
+	"github.com/golang/mock/gomock"
+	"github.com/nebulasio/go-nebulas/rpc/mock_pb"
 	"github.com/nebulasio/go-nebulas/rpc/pb"
 	"github.com/nebulasio/go-nebulas/util"
 	"github.com/stretchr/testify/assert"
+	"golang.org/x/net/context"
 )
 
 func TestGetAccountState(t *testing.T) {
-	// TODO: mock service.
-	s := &APIService{}
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	client := mock_pb.NewMockAPIServiceClient(ctrl)
+
 	{
-		req := &rpcpb.GetAccountStateRequest{}
-		_, err := s.GetAccountState(nil, req)
-		assert.Error(t, err, "Missing address.")
+		req := &rpcpb.GetAccountStateRequest{Address: "0xf"}
+		bal, _ := util.NewUint128FromInt(31415926).ToFixedSizeByteSlice()
+		expected := &rpcpb.GetAccountStateResponse{Balance: bal, TransactionCount: 1}
+		client.EXPECT().GetAccountState(gomock.Any(), gomock.Any()).Return(expected, nil)
+		resp, _ := client.GetAccountState(context.Background(), req)
+		assert.Equal(t, expected, resp)
 	}
-	{
-		req := &rpcpb.GetAccountStateRequest{Address: "0x1"}
-		resp, _ := s.GetAccountState(nil, req)
-		assert.Equal(t, len(resp.Balance), util.Uint128Bytes)
-		u, err := util.NewUint128FromFixedSizeByteSlice(resp.Balance)
-		assert.Nil(t, err)
-		assert.True(t, u.Cmp(big.NewInt(996)) == 0)
-	}
+
+	// TODO: test with mock neblet.
 }
 
 func TestSendTransaction(t *testing.T) {
-	// TODO: mock service.
-	s := &APIService{}
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	client := mock_pb.NewMockAPIServiceClient(ctrl)
+
 	{
-		req := &rpcpb.SendTransactionRequest{}
-		_, err := s.SendTransaction(nil, req)
-		assert.Error(t, err, "Missing sender.")
+		req := &rpcpb.SendTransactionRequest{From: "0xf"}
+		expected := &rpcpb.SendTransactionResponse{Hash: "0x1"}
+		client.EXPECT().SendTransaction(gomock.Any(), gomock.Any()).Return(expected, nil)
+		resp, _ := client.SendTransaction(context.Background(), req)
+		assert.Equal(t, expected, resp)
 	}
-	{
-		req := &rpcpb.SendTransactionRequest{From: "0x1"}
-		resp, _ := s.SendTransaction(nil, req)
-		assert.True(t, len(resp.Hash) > 0)
-	}
+
+	// TODO: test with mock neblet.
 }
