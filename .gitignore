@@ -17,3 +17,7 @@ debug
 
 # test debug
 *.test
+
+# c/cpp temp files.
+*.o
+
