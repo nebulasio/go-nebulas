@@ -25,16 +25,20 @@ import (
 )
 
 // NewGenesisBlock create genesis @Block from file.
-func NewGenesisBlock(stateTrie *trie.Trie) *Block {
+func NewGenesisBlock(chainID uint32) *Block {
+	stateTrie, _ := trie.NewTrie(nil)
+	txsTrie, _ := trie.NewTrie(nil)
 	// TODO: load genesis block data from file.
 	b := &Block{
 		header: &BlockHeader{
+			chainID:    chainID,
 			hash:       make([]byte, BlockHashLength),
 			parentHash: make([]byte, BlockHashLength),
 			coinbase:   &Address{make([]byte, AddressLength)},
 			timestamp:  time.Now().Unix(),
 		},
 		stateTrie: stateTrie,
+		txsTrie:   txsTrie,
 		height:    1,
 		sealed:    true,
 	}

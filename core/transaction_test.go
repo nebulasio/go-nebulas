@@ -35,6 +35,7 @@ func TestTransaction(t *testing.T) {
 		value     uint64
 		nonce     uint64
 		timestamp time.Time
+		alg       uint8
 		data      []byte
 	}
 	tests := []struct {
@@ -50,6 +51,7 @@ func TestTransaction(t *testing.T) {
 				123,
 				456,
 				time.Now(),
+				12,
 				[]byte("hwllo"),
 			}),
 		},
@@ -63,6 +65,7 @@ func TestTransaction(t *testing.T) {
 				value:     tt.fields.value,
 				nonce:     tt.fields.nonce,
 				timestamp: tt.fields.timestamp,
+				alg:       tt.fields.alg,
 				data:      tt.fields.data,
 			}
 			msg, _ := tx.ToProto()

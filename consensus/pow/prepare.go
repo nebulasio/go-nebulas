@@ -59,10 +59,14 @@ func (state *PrepareState) Enter(data interface{}) {
 	if p.miningBlock == nil {
 		// start mining from chain tail.
 		p.miningBlock = state.p.chain.NewBlock(addr)
+		//TODO(larry.wang):test trans
+		p.miningBlock.CollectTransactions(2)
 	} else if p.miningBlock.Sealed() {
 		// start mining from local minted block.
 		parentBlock := p.miningBlock
 		p.miningBlock = state.p.chain.NewBlockFromParent(addr, parentBlock)
+		//TODO(larry.wang):test trans
+		p.miningBlock.CollectTransactions(2)
 	}
 
 	// move to mining state.

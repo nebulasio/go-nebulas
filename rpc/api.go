@@ -92,7 +92,7 @@ func (s *APIService) SendTransaction(ctx context.Context, req *rpcpb.SendTransac
 		value, err := util.NewUint128FromFixedSizeByteSlice(req.Value)
 
 		// TODO: use uint128 instead of uint64.
-		tx := core.NewTransaction(*fromAddr, *toAddr, value.Uint64(), req.Nonce /*req.Data */, nil)
+		tx := core.NewTransaction(neb.BlockChain().ChainID(), *fromAddr, *toAddr, value.Uint64(), req.Nonce /*req.Data */, nil)
 		if err := neb.AccountManager().SignTransaction(fromAddr, tx); err != nil {
 			return nil, err
 		}
