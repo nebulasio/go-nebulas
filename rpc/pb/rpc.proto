@@ -25,13 +25,14 @@ package rpcpb;
 
 // RPC API interface.
 service APIService {
-	// Returns the balance of the account.
+	// Return the state of the account.
 	rpc GetAccountState (GetAccountStateRequest) returns (GetAccountStateResponse) {
 //		option (google.api.http) = {
 //            get: "/v1/account/state"
 //        };
 	}
 
+	// Verify, sign, and send the transaction.
 	rpc SendTransaction (SendTransactionRequest) returns (SendTransactionResponse) {
 //		option (google.api.http) = {
 //            post: "/v1/transaction"

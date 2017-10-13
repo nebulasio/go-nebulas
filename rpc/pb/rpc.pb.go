@@ -170,8 +170,9 @@ const _ = grpc.SupportPackageIsVersion4
 // Client API for APIService service
 
 type APIServiceClient interface {
-	// Returns the balance of the account.
+	// Return the state of the account.
 	GetAccountState(ctx context.Context, in *GetAccountStateRequest, opts ...grpc.CallOption) (*GetAccountStateResponse, error)
+	// Verify, sign, and send the transaction.
 	SendTransaction(ctx context.Context, in *SendTransactionRequest, opts ...grpc.CallOption) (*SendTransactionResponse, error)
 }
 
@@ -204,8 +205,9 @@ func (c *aPIServiceClient) SendTransaction(ctx context.Context, in *SendTransact
 // Server API for APIService service
 
 type APIServiceServer interface {
-	// Returns the balance of the account.
+	// Return the state of the account.
 	GetAccountState(context.Context, *GetAccountStateRequest) (*GetAccountStateResponse, error)
+	// Verify, sign, and send the transaction.
 	SendTransaction(context.Context, *SendTransactionRequest) (*SendTransactionResponse, error)
 }
 
