@@ -18,7 +18,7 @@
 
 syntax = "proto3";
 
-// TODO: test restful endpoints.
+// TODO: support restful endpoints.
 //import "google/api/annotations.proto";
 
 package rpcpb;
@@ -52,7 +52,7 @@ message GetBalanceRequest {
 // Response message of GetBalance rpc.
 message GetBalanceResponse {
 	// Current balance in unit of 1/(10^18) nas.
-	bytes value = 1; // uint128
+	bytes value = 1; // uint128, len=16
 }
 
 // Request message of SendTransaction rpc.
@@ -64,7 +64,10 @@ message SendTransactionRequest {
 	string to = 2;
 
 	// Amount of value sending with this transaction.
-	bytes value = 3; // uint128
+	bytes value = 3; // uint128, len=16
+
+	// Transaction nonce.
+	uint64 nonce = 4;
 
 	// TODO: gas provided for the transaction.
 
