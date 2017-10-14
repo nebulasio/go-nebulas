@@ -126,6 +126,11 @@ func (n *Neblet) AccountManager() *account.Manager {
 	return n.accountManager
 }
 
+// P2pManager returns p2p manager reference.
+func (n *Neblet) P2pManager() *p2p.Manager {
+	return n.p2pManager
+}
+
 // TODO: move this to p2p package.
 func (n *Neblet) getP2PConfig() *p2p.Config {
 	config := p2p.DefautConfig()

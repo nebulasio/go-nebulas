@@ -46,7 +46,7 @@ func less(a interface{}, b interface{}) bool {
 	if byteutils.Equal(txa.From(), txb.From()) {
 		return txa.Nonce() < txb.Nonce()
 	}
-	// TODO(shshang): use gas price instead
+	// TODO(@roy): use gas price instead
 	return txa.DataLen() < txb.DataLen()
 }
 
@@ -113,7 +113,14 @@ func (pool *TransactionPool) loop() {
 			}
 
 			tx := msg.Data().(*Transaction)
-			pool.Push(tx)
+			if err := pool.Push(tx); err != nil {
+				log.WithFields(log.Fields{
+					"func":        "TxPool.loop",
+					"messageType": msg.MessageType(),
+					"message":     msg,
+				}).Error("TxPool.loop: invalid transaction, drop it.")
+				continue
+			}
 		}
 	}
 }

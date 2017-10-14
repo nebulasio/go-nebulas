@@ -512,12 +512,6 @@ func (ns *NetService) PutMessage(msg net.Message) {
 	ns.dispatcher.PutMessage(msg)
 }
 
-// BroadcastBlock broadcast block message
-func (ns *NetService) BroadcastBlock(block interface{}) {
-	//TODO: broadcast block via underlying network lib to whole network.
-	ns.Broadcast(block)
-}
-
 // Launch start netService
 func (ns *NetService) Launch() error {
 

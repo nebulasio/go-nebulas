@@ -31,17 +31,6 @@ make build
 
 ## Running
 
-For the version 0.1.0, *neb* supports two running mode, Network and Dummy mode.
-
-### Dummy mode
-
-In Dummy mode, *neb* creates 4 client thread (goroutine) to simulate multi-clients, run
-```
-./neb --dummy
-```
-
-### Network mode
-
 Running in Network mode, we first need to run a seed node by run
 ```
 $ ./neb
@@ -64,16 +53,7 @@ Now we can get the seed address from log, get pretty id from log starts with **"
 /ip4/192.168.1.159/tcp/9999/ipfs/QmcvYFjy2d5Kt1DcmTJJEUKsKCXg8WJsCGRDD2bgyRYk6p
 ```
 
-Then we start other nodes, run
-```
-./neb -s [seed address] -p [your custom port]
-```
-Example,
-```
-./neb -s "/ip4/192.168.1.159/tcp/9999/ipfs/QmcvYFjy2d5Kt1DcmTJJEUKsKCXg8WJsCGRDD2bgyRYk6p" -p 10001
-./neb -s "/ip4/192.168.1.159/tcp/9999/ipfs/QmcvYFjy2d5Kt1DcmTJJEUKsKCXg8WJsCGRDD2bgyRYk6p" -p 10002
-./neb -s "/ip4/192.168.1.159/tcp/9999/ipfs/QmcvYFjy2d5Kt1DcmTJJEUKsKCXg8WJsCGRDD2bgyRYk6p" -p 10003
-```
+Then we start other nodes, by updating p2p seed and port in config.pb.txt.
 
 And, in v0.1.0, the **Sync Protocol** is not implemented. So the non-seed nodes should be start after seed node start, before seed node finds the first nonce, minted the first block. Otherwise the Chain will be forked at the very beginning.
 

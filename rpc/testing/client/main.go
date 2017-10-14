@@ -39,11 +39,11 @@ func main() {
 	ac := rpcpb.NewAPIServiceClient(conn)
 
 	{
-		r, err := ac.GetBalance(context.Background(), &rpcpb.GetBalanceRequest{Address: "91da63ba4ec9f6a08636d9abd443f64b4855be7fa9e44aa2"})
+		r, err := ac.GetAccountState(context.Background(), &rpcpb.GetAccountStateRequest{Address: "91da63ba4ec9f6a08636d9abd443f64b4855be7fa9e44aa2"})
 		if err != nil {
-			log.Println("GetBalance failed: ", err)
+			log.Println("GetAccountState failed: ", err)
 		} else {
-			log.Println("GetBalance respnonse: ", r)
+			log.Println("GetAccountState respnonse: ", r)
 		}
 	}
 
