@@ -20,11 +20,13 @@ package core
 
 import (
 	"errors"
+	"sync"
+
+	"github.com/gogo/protobuf/proto"
 
 	pb "github.com/gogo/protobuf/proto"
 	"github.com/hashicorp/golang-lru"
 	"github.com/nebulasio/go-nebulas/components/net"
-	"github.com/nebulasio/go-nebulas/components/net/messages"
 	"github.com/nebulasio/go-nebulas/core/pb"
 	log "github.com/sirupsen/logrus"
 )
@@ -41,6 +43,7 @@ type BlockPool struct {
 	headBlocks map[HexHash]*linkedBlock
 
 	nm net.Manager
+	mu sync.RWMutex
 }
 
 type linkedBlock struct {
@@ -137,59 +140,67 @@ func (pool *BlockPool) loop() {
 				log.Error("BlockPool.loop:: get block from proto occurs error: ", err)
 				continue
 			}
-			// block := msg.Data().(*Block)
-			if err := pool.addBlock(block); err != nil {
+			if err := pool.PushAndRelay(block); err != nil {
 				log.WithFields(log.Fields{
-					"func":        "BlockicPool.loop",
+					"func":        "BlockPool.loop",
 					"messageType": msg.MessageType(),
-					"message":     msg,
+					"block":       block,
+					"err":         err,
 				}).Warn("BlockPool.loop: invalid block, drop it.")
-				continue
 			}
-
-			// relay block to network
-			pool.nm.Relay(MessageTypeNewBlock, block)
 		}
 	}
 }
 
-// AddLocalBlock add local minted block.
-func (pool *BlockPool) AddLocalBlock(block *Block) {
-	proto, _ := block.ToProto()
-	ir, _ := pb.Marshal(proto)
-	// nb := new(Block)
-	// pb.Unmarshal(ir, proto)
-	// nb.FromProto(proto)
-	pool.receiveMessageCh <- messages.NewBaseMessage(MessageTypeNewBlock, ir)
+// Push block into block pool
+func (pool *BlockPool) Push(block *Block) error {
+	pool.mu.Lock()
+	defer pool.mu.Unlock()
+	// mock network
+	pbBlock, err := block.ToProto()
+	if err != nil {
+		return err
+	}
+	bytes, err := proto.Marshal(pbBlock)
+	if err := proto.Unmarshal(bytes, pbBlock); err != nil {
+		return err
+	}
+	block = new(Block)
+	block.FromProto(pbBlock)
+	return pool.push(block)
 }
 
-func (pool *BlockPool) addBlock(block *Block) error {
+// PushAndRelay push block into block pool and relay it.
+func (pool *BlockPool) PushAndRelay(block *Block) error {
+	if err := pool.Push(block); err != nil {
+		return err
+	}
+	pool.nm.Relay(MessageTypeNewBlock, block)
+	return nil
+}
+
+// PushAndBroadcast push block into block pool and broadcast it.
+func (pool *BlockPool) PushAndBroadcast(block *Block) error {
+	if err := pool.Push(block); err != nil {
+		return err
+	}
+	pool.nm.Broadcast(MessageTypeNewBlock, block)
+	return nil
+}
+
+func (pool *BlockPool) push(block *Block) error {
 	if pool.blockCache.Contains(block.Hash().Hex()) ||
 		pool.bc.GetBlock(block.Hash()) != nil {
-		log.WithFields(log.Fields{
-			"func":  "BlockPool.addBlock",
-			"block": block,
-		}).Info("dup block, ignore it.")
 		return errors.New("cannot add dup block")
 	}
 
 	// verify nonce.
 	if err := pool.bc.ConsensusHandler().VerifyBlock(block); err != nil {
-		log.WithFields(log.Fields{
-			"func":  "BlockPool.addBlock",
-			"err":   err,
-			"block": block,
-		}).Error("invalid block nonce, drop it.")
 		return err
 	}
 
 	// verify block hash & txs
-	if err := block.VerifyHash(); err != nil {
-		log.WithFields(log.Fields{
-			"func":  "BlockPool.addBlock",
-			"err":   err,
-			"block": block,
-		}).Error("invalid block hash or txs, drop it.")
+	if err := block.verifyHash(); err != nil {
 		return err
 	}
 
@@ -272,7 +283,7 @@ func (lb *linkedBlock) getTailsWithPath(parentBlock *Block) ([]*Block, []*Block)
 		panic("link parent block fail.")
 	}
 
-	if err := lb.block.VerifyTransactions(); err != nil {
+	if err := lb.block.verifyTransactions(); err != nil {
 		log.WithFields(log.Fields{
 			"func":        "linkedBlock.dfs",
 			"err":         err,

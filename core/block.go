@@ -30,7 +30,6 @@ import (
 
 	"github.com/nebulasio/go-nebulas/util"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
-	log "github.com/sirupsen/logrus"
 )
 
 var (
@@ -136,6 +135,7 @@ type Block struct {
 	txPool       *TransactionPool
 }
 
+// Blocks structure
 type Blocks struct {
 	blocks []*Block
 }
@@ -230,6 +230,7 @@ func NewBlock(chainID uint32, coinbase *Address, parent *Block, txPool *Transact
 			chainID:    chainID,
 		},
 		transactions: make(Transactions, 0),
+		parenetBlock: parent,
 		stateTrie:    stateTrie,
 		txsTrie:      txsTrie,
 		txPool:       txPool,
@@ -295,8 +296,6 @@ func (block *Block) LinkParentBlock(parentBlock *Block) bool {
 	if block.ParentHash().Equals(parentBlock.Hash()) == false {
 		return false
 	}
-
-	log.Infof("Block.LinkParentBlock: parentBlock %s <- block %s", parentBlock.Hash(), block.Hash())
 
 	block.stateTrie, _ = parentBlock.stateTrie.Clone()
 	block.txsTrie, _ = parentBlock.txsTrie.Clone()
@@ -377,10 +376,10 @@ func (block *Block) String() string {
 
 // Verify return block verify result, including Hash, Nonce and StateRoot.
 func (block *Block) Verify() error {
-	if err := block.VerifyHash(); err != nil {
+	if err := block.verifyHash(); err != nil {
 		return err
 	}
-	if err := block.VerifyTransactions(); err != nil {
+	if err := block.verifyTransactions(); err != nil {
 		return err
 	}
 
@@ -397,7 +396,7 @@ func (block *Block) Verify() error {
 }
 
 // VerifyHash return hash verify result.
-func (block *Block) VerifyHash() error {
+func (block *Block) verifyHash() error {
 	// verify hash.
 	wantedHash := HashBlock(block)
 	if !wantedHash.Equals(block.Hash()) {
@@ -408,7 +407,7 @@ func (block *Block) VerifyHash() error {
 }
 
 // VerifyTransactions return hash verify result.
-func (block *Block) VerifyTransactions() error {
+func (block *Block) verifyTransactions() error {
 	if err := block.executeTransactions(); err != nil {
 		return err
 	}

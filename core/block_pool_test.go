@@ -23,7 +23,6 @@ import (
 
 	"time"
 
-	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/crypto"
 	"github.com/nebulasio/go-nebulas/crypto/keystore"
 	"github.com/nebulasio/go-nebulas/crypto/keystore/secp256k1"
@@ -82,36 +81,12 @@ func TestBlockPool(t *testing.T) {
 	block4.CollectTransactions(1)
 	block4.Seal()
 
-	pb1, _ := block1.ToProto()
-	ir1, _ := proto.Marshal(pb1)
-	nb1 := new(Block)
-	proto.Unmarshal(ir1, pb1)
-	nb1.FromProto(pb1)
-
-	pb2, _ := block2.ToProto()
-	ir2, _ := proto.Marshal(pb2)
-	nb2 := new(Block)
-	proto.Unmarshal(ir2, pb2)
-	nb2.FromProto(pb2)
-
-	pb3, _ := block3.ToProto()
-	ir3, _ := proto.Marshal(pb3)
-	nb3 := new(Block)
-	proto.Unmarshal(ir3, pb3)
-	nb3.FromProto(pb3)
-
-	pb4, _ := block4.ToProto()
-	ir4, _ := proto.Marshal(pb4)
-	nb4 := new(Block)
-	proto.Unmarshal(ir4, pb4)
-	nb4.FromProto(pb4)
-
-	pool.addBlock(nb3)
+	pool.Push(block3)
 	assert.Equal(t, pool.blockCache.Len(), 1)
-	pool.addBlock(nb4)
+	pool.Push(block4)
 	assert.Equal(t, pool.blockCache.Len(), 2)
-	pool.addBlock(nb2)
+	pool.Push(block2)
 	assert.Equal(t, pool.blockCache.Len(), 3)
-	pool.addBlock(nb1)
+	pool.Push(block1)
 	assert.Equal(t, pool.blockCache.Len(), 0)
 }

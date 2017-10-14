@@ -19,6 +19,7 @@
 package core
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
@@ -81,6 +82,52 @@ func (bc *BlockChain) TailBlock() *Block {
 func (bc *BlockChain) SetTailBlock(block *Block) {
 	bc.detachedTailBlocks.Remove(block.Hash().Hex())
 	bc.tailBlock = block
+}
+
+// FindCommonAncestorWithTail return the block's common ancestor with current tail
+func (bc *BlockChain) FindCommonAncestorWithTail(block *Block) (*Block, error) {
+	target := bc.GetBlock(block.Hash())
+	if target == nil {
+		target = bc.GetBlock(block.ParentHash())
+	}
+	if target == nil {
+		return nil, errors.New("cannot location the block in blockchain")
+	}
+	tail := bc.TailBlock()
+	for !tail.Hash().Equals(target.Hash()) {
+		if tail.Height() > target.Height() {
+			tail = bc.GetBlock(tail.header.parentHash)
+		} else if tail.Height() < target.Height() {
+			target = bc.GetBlock(target.header.parentHash)
+		} else {
+			tail = bc.GetBlock(tail.header.parentHash)
+			target = bc.GetBlock(target.header.parentHash)
+		}
+		if tail == nil || target == nil {
+			panic("block in blockchain cannot find its parent block")
+		}
+	}
+	return target, nil
+}
+
+// FetchSubsequentBlocks return the subsequent blocks of the block
+func (bc *BlockChain) FetchSubsequentBlocks(n int, block *Block) []*Block {
+	cur := -1
+	queue := make([]*Block, n)
+	curBlock := bc.tailBlock
+	for curBlock != nil && !curBlock.Hash().Equals(block.Hash()) {
+		cur = (cur + 1) % n
+		queue[cur] = curBlock
+		curBlock = bc.GetBlock(curBlock.header.parentHash)
+	}
+	var res []*Block
+	for i := 0; i < n; i++ {
+		if queue[cur] != nil {
+			res = append(res, queue[cur])
+		}
+		cur = (cur + n - 1) % n
+	}
+	return res
 }
 
 // BlockPool return block pool.

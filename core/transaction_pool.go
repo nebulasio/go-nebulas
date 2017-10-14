@@ -120,8 +120,9 @@ func (pool *TransactionPool) loop() {
 				log.WithFields(log.Fields{
 					"func":        "TxPool.loop",
 					"messageType": msg.MessageType(),
-					"message":     msg,
-				}).Error("TxPool.loop: invalid transaction, drop it.")
+					"transaction": tx,
+					"err":         err,
+				}).Warn("TxPool.loop: invalid transaction, drop it.")
 				continue
 			}
 		}

@@ -23,8 +23,6 @@ import (
 
 	"github.com/nebulasio/go-nebulas/crypto/hash"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
-
-	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -94,7 +92,6 @@ func (a *Address) Equals(b Address) bool {
 // NewAddress create new #Address according to data bytes.
 func NewAddress(s []byte) (*Address, error) {
 	if len(s) != AddressDataLength {
-		log.Errorf("invalid address data: length of s is %d, expected to %d.", len(s), AddressDataLength)
 		return nil, ErrInvalidAddressDataLength
 	}
 
@@ -112,9 +109,6 @@ func NewAddressFromPublicKey(s []byte) (*Address, error) {
 func AddressParse(s string) (*Address, error) {
 	r, err := byteutils.FromHex(s)
 	if err != nil {
-		log.WithFields(log.Fields{
-			"s": s, "err": err,
-		}).Error("invalid address: string should be encoded in Hexadecimal.")
 		return nil, ErrInvalidAddress
 	}
 
@@ -124,7 +118,6 @@ func AddressParse(s string) (*Address, error) {
 // AddressParseFromBytes parse address from bytes.
 func AddressParseFromBytes(s []byte) (*Address, error) {
 	if len(s) != AddressLength {
-		log.Errorf("invalid address: length of s is %d, expected to %d.", len(s), AddressLength)
 		return nil, ErrInvalidAddress
 	}
 
@@ -134,7 +127,6 @@ func AddressParseFromBytes(s []byte) (*Address, error) {
 
 	for i := 0; i < AddressChecksumLength; i++ {
 		if dcs[i] != cs[i] {
-			log.Errorf("invalid address: checksum is %s, expected to %s.", cs, dcs)
 			return nil, ErrInvalidAddress
 		}
 	}
