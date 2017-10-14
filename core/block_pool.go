@@ -36,6 +36,8 @@ type BlockPool struct {
 	bc         *BlockChain
 	blockCache *lru.Cache
 	headBlocks map[HexHash]*linkedBlock
+
+	nm net.Manager
 }
 
 type linkedBlock struct {
@@ -66,7 +68,8 @@ func (pool *BlockPool) ReceivedBlockCh() chan *Block {
 
 // RegisterInNetwork register message subscriber in network.
 func (pool *BlockPool) RegisterInNetwork(nm net.Manager) {
-	nm.Register(net.NewSubscriber(pool, pool.receiveMessageCh, net.MessageTypeNewBlock))
+	nm.Register(net.NewSubscriber(pool, pool.receiveMessageCh, net.NEWBLOCK))
+	pool.nm = nm
 }
 
 // // Range calls f sequentially for each key and value present in the map.
@@ -111,7 +114,7 @@ func (pool *BlockPool) loop() {
 				"func": "BlockPool.loop",
 			}).Debugf("received message. Count=%d", count)
 
-			if msg.MessageType() != net.MessageTypeNewBlock {
+			if msg.MessageType() != net.NEWBLOCK {
 				log.WithFields(log.Fields{
 					"func":        "BlockPool.loop",
 					"messageType": msg.MessageType(),
@@ -122,7 +125,17 @@ func (pool *BlockPool) loop() {
 
 			// verify signature.
 			block := msg.Data().(*Block)
-			pool.addBlock(block)
+			if err := pool.addBlock(block); err != nil {
+				log.WithFields(log.Fields{
+					"func":        "BlockicPool.loop",
+					"messageType": msg.MessageType(),
+					"message":     msg,
+				}).Error("BlockPool.loop: invalid block, drop it.")
+				continue
+			}
+
+			// relay block to network
+			pool.nm.Relay(net.NEWBLOCK, block)
 		}
 	}
 }
@@ -134,7 +147,7 @@ func (pool *BlockPool) AddLocalBlock(block *Block) {
 	nb := new(Block)
 	pb.Unmarshal(ir, proto)
 	nb.FromProto(proto)
-	pool.receiveMessageCh <- messages.NewBaseMessage(net.MessageTypeNewBlock, nb)
+	pool.receiveMessageCh <- messages.NewBaseMessage(net.NEWBLOCK, nb)
 }
 
 func (pool *BlockPool) addBlock(block *Block) error {

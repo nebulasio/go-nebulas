@@ -20,12 +20,19 @@ package net
 
 import "github.com/gogo/protobuf/proto"
 
-// MessageTypeNewBlock
+// MessageType
 const (
-	MessageTypeNewBlock  = "newblock"
-	MessageTypeNewTx     = "newtx"
-	MessageTypeSyncBlock = "syncblock"
-	MessageTypeSyncReply = "syncreply"
+	ProtocolID     = "/neb/1.0.0"
+	HELLO          = "hello"
+	OK             = "ok"
+	BYE            = "bye"
+	SYNCROUTE      = "syncroute"
+	NEWBLOCK       = "newblock"
+	NEWTX          = "newtx"
+	SYNCROUTEREPLY = "resyncroute"
+	CLIENTVERSION  = "0.2.0"
+	SYNCBLOCK      = "syncblock"
+	SYNCREPLY      = "syncreply"
 )
 
 // MessageType a string for message type.
@@ -37,6 +44,12 @@ type Message interface {
 	Data() interface{}
 }
 
+// Serializable model
+type Serializable interface {
+	ToProto() (proto.Message, error)
+	FromProto(proto.Message) error
+}
+
 // Manager manager interface
 type Manager interface {
 	Start()
@@ -45,7 +58,8 @@ type Manager interface {
 	Register(subscribers ...*Subscriber)
 	Deregister(subscribers ...*Subscriber)
 
-	Broadcast(name string, msg proto.Message)
+	Broadcast(name string, msg Serializable)
+	Relay(name string, msg Serializable)
 }
 
 // Subscriber subscriber.

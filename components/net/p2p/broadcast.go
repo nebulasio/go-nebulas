@@ -20,14 +20,16 @@ package p2p
 
 import (
 	"github.com/gogo/protobuf/proto"
+	"github.com/nebulasio/go-nebulas/components/net"
 	log "github.com/sirupsen/logrus"
 )
 
 // Broadcast broadcast message
-func (ns *NetService) Broadcast(name string, msg proto.Message) {
+func (ns *NetService) Broadcast(name string, msg net.Serializable) {
 
 	node := ns.node
-	data, err := proto.Marshal(msg)
+	pbMsg, _ := msg.ToProto()
+	data, err := proto.Marshal(pbMsg)
 	if err != nil {
 		return
 	}
@@ -50,4 +52,10 @@ func (ns *NetService) Broadcast(name string, msg proto.Message) {
 		}()
 	}
 
+}
+
+// Relay message
+func (ns *NetService) Relay(name string, msg net.Serializable) {
+	// TODO(@leon): relay protocol
+	ns.Broadcast(name, msg)
 }

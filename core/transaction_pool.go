@@ -38,6 +38,8 @@ type TransactionPool struct {
 	cache *pdeq.Pdeq
 	all   map[HexHash]*Transaction
 	bc    *BlockChain
+
+	nm net.Manager
 }
 
 func less(a interface{}, b interface{}) bool {
@@ -67,7 +69,8 @@ func NewTransactionPool(size int) *TransactionPool {
 
 // RegisterInNetwork register message subscriber in network.
 func (pool *TransactionPool) RegisterInNetwork(nm net.Manager) {
-	nm.Register(net.NewSubscriber(pool, pool.receivedMessageCh, net.MessageTypeNewTx))
+	nm.Register(net.NewSubscriber(pool, pool.receivedMessageCh, net.NEWTX))
+	pool.nm = nm
 }
 
 func (pool *TransactionPool) setBlockChain(bc *BlockChain) {
@@ -103,7 +106,7 @@ func (pool *TransactionPool) loop() {
 				"func": "TxPool.loop",
 			}).Debugf("received message. Count=%d", count)
 
-			if msg.MessageType() != net.MessageTypeNewTx {
+			if msg.MessageType() != net.NEWTX {
 				log.WithFields(log.Fields{
 					"func":        "TxPool.loop",
 					"messageType": msg.MessageType(),
@@ -121,6 +124,9 @@ func (pool *TransactionPool) loop() {
 				}).Error("TxPool.loop: invalid transaction, drop it.")
 				continue
 			}
+
+			// relay tx to network
+			pool.nm.Relay(net.NEWTX, tx)
 		}
 	}
 }

@@ -66,6 +66,7 @@ func (n *Neblet) Start() error {
 	n.blockChain = core.NewBlockChain(core.TestNetID)
 	fmt.Printf("chainID is %d\n", n.blockChain.ChainID())
 	n.blockChain.BlockPool().RegisterInNetwork(n.p2pManager)
+	n.blockChain.TransactionPool().RegisterInNetwork(n.p2pManager)
 
 	n.consensus = pow.NewPow(n.blockChain, n.p2pManager)
 	n.blockChain.SetConsensusHandler(n.consensus)
@@ -75,6 +76,7 @@ func (n *Neblet) Start() error {
 	// start.
 	n.p2pManager.Start()
 	n.blockChain.BlockPool().Start()
+	n.blockChain.TransactionPool().Start()
 	n.consensus.Start()
 	go n.rpcServer.Start()
 
