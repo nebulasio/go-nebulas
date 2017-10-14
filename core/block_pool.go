@@ -19,6 +19,7 @@
 package core
 
 import (
+	"errors"
 	pb "github.com/gogo/protobuf/proto"
 	"github.com/hashicorp/golang-lru"
 	"github.com/nebulasio/go-nebulas/components/net"
@@ -157,7 +158,7 @@ func (pool *BlockPool) addBlock(block *Block) error {
 			"func":  "BlockPool.addBlock",
 			"block": block,
 		}).Info("dup block, ignore it.")
-		return nil
+		return errors.New("cannot add dup block")
 	}
 
 	// verify nonce.
