@@ -41,7 +41,7 @@ func (net *NetService) Discovery(ctx context.Context) {
 		select {
 		case <-ticker.C:
 			net.syncRoutingTable()
-		case <-ctx.Done():
+		case <-net.quitCh:
 			log.Info("Discovery: discovery service halting")
 			return
 		}
