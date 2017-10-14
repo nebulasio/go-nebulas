@@ -1,4 +1,4 @@
-package pdeq
+package pdeque
 
 import (
 	"testing"
@@ -24,7 +24,7 @@ func TestPdeq_1(t *testing.T) {
 		{"16", 16},
 		{"8", 8},
 	}
-	q := NewPdeq(func(a interface{}, b interface{}) bool { return a.(int) < b.(int) })
+	q := NewPriorityDeque(func(a interface{}, b interface{}) bool { return a.(int) < b.(int) })
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			q.Insert(tt.val)
@@ -54,7 +54,7 @@ func TestPdeq_2(t *testing.T) {
 		{"4", 4},
 		{"5", 5},
 	}
-	q := NewPdeq(func(a interface{}, b interface{}) bool { return a.(int) < b.(int) })
+	q := NewPriorityDeque(func(a interface{}, b interface{}) bool { return a.(int) < b.(int) })
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			q.Insert(tt.val)

@@ -1,4 +1,4 @@
-package pdeq
+package pdeque
 
 import (
 	"math"
@@ -7,8 +7,8 @@ import (
 // Less is compare function for elements in queue
 type Less func(a interface{}, b interface{}) bool
 
-// Pdeq is a priority double-ended queue
-type Pdeq struct {
+// PriorityDeque is a priority double-ended queue
+type PriorityDeque struct {
 	less Less
 	heap []interface{}
 }
@@ -22,26 +22,26 @@ const (
 	LvMax
 )
 
-// NewPdeq create a new Pdeq
-func NewPdeq(less Less) *Pdeq {
-	return &Pdeq{
+// NewPriorityDeque create a new PriorityDeque
+func NewPriorityDeque(less Less) *PriorityDeque {
+	return &PriorityDeque{
 		less: less,
 	}
 }
 
 // Len return the length of the priority deque
-func (q *Pdeq) Len() int {
+func (q *PriorityDeque) Len() int {
 	return len(q.heap)
 }
 
 // Insert an item into priority deque
-func (q *Pdeq) Insert(ele interface{}) {
+func (q *PriorityDeque) Insert(ele interface{}) {
 	q.heap = append(q.heap, ele)
 	q.bubbleUp(q.Len() - 1)
 }
 
 // PopMax pop the max value in priority deque
-func (q *Pdeq) PopMax() interface{} {
+func (q *PriorityDeque) PopMax() interface{} {
 	heap := q.heap
 	pos := 0
 	switch q.Len() {
@@ -65,7 +65,7 @@ func (q *Pdeq) PopMax() interface{} {
 }
 
 // PopMin pop the min value in priority deque
-func (q *Pdeq) PopMin() interface{} {
+func (q *PriorityDeque) PopMin() interface{} {
 	if q.Len() > 0 {
 		tx := q.heap[0]
 		q.deleteAt(0)
@@ -74,7 +74,7 @@ func (q *Pdeq) PopMin() interface{} {
 	return nil
 }
 
-func (q *Pdeq) deleteAt(pos int) {
+func (q *PriorityDeque) deleteAt(pos int) {
 	heap := q.heap
 	size := len(heap)
 	heap[pos] = heap[size-1]
@@ -102,11 +102,11 @@ func rightChildren(pos int) int {
 	return pos*2 + 2
 }
 
-func (q *Pdeq) swap(i int, j int) {
+func (q *PriorityDeque) swap(i int, j int) {
 	q.heap[i], q.heap[j] = q.heap[j], q.heap[i]
 }
 
-func (q *Pdeq) bubbleUp(pos int) {
+func (q *PriorityDeque) bubbleUp(pos int) {
 	heap := q.heap
 	switch level(pos) {
 	case LvMin:
@@ -132,7 +132,7 @@ func (q *Pdeq) bubbleUp(pos int) {
 	}
 }
 
-func (q *Pdeq) bubbleUpMin(pos int) {
+func (q *PriorityDeque) bubbleUpMin(pos int) {
 	heap := q.heap
 	grandParent := parent(parent(pos))
 	if pos > 2 {
@@ -143,7 +143,7 @@ func (q *Pdeq) bubbleUpMin(pos int) {
 	}
 }
 
-func (q *Pdeq) bubbleUpMax(pos int) {
+func (q *PriorityDeque) bubbleUpMax(pos int) {
 	heap := q.heap
 	grandParent := parent(parent(pos))
 	if pos > 2 {
@@ -154,7 +154,7 @@ func (q *Pdeq) bubbleUpMax(pos int) {
 	}
 }
 
-func (q *Pdeq) trickleDown(pos int) {
+func (q *PriorityDeque) trickleDown(pos int) {
 	switch level(pos) {
 	case LvMin:
 		q.trickleDownMin(pos)
@@ -165,7 +165,7 @@ func (q *Pdeq) trickleDown(pos int) {
 	}
 }
 
-func (q *Pdeq) children(parents []int) []int {
+func (q *PriorityDeque) children(parents []int) []int {
 	heap := q.heap
 	size := len(heap)
 	res := []int{}
@@ -180,7 +180,7 @@ func (q *Pdeq) children(parents []int) []int {
 	return res
 }
 
-func (q *Pdeq) sort(items []int) []int {
+func (q *PriorityDeque) sort(items []int) []int {
 	heap := q.heap
 	for i := 0; i < len(items); i++ {
 		for j := i + 1; j < len(items); j++ {
@@ -192,7 +192,7 @@ func (q *Pdeq) sort(items []int) []int {
 	return items
 }
 
-func (q *Pdeq) trickleDownMin(pos int) {
+func (q *PriorityDeque) trickleDownMin(pos int) {
 	heap := q.heap
 	children := q.children([]int{pos})
 	if len(children) > 0 {
@@ -218,7 +218,7 @@ func (q *Pdeq) trickleDownMin(pos int) {
 	}
 }
 
-func (q *Pdeq) trickleDownMax(pos int) {
+func (q *PriorityDeque) trickleDownMax(pos int) {
 	heap := q.heap
 	children := q.children([]int{pos})
 	if len(children) > 0 {

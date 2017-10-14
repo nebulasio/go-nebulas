@@ -22,7 +22,7 @@ import (
 	"errors"
 	"sync"
 
-	"github.com/nebulasio/go-nebulas/common/pdeq"
+	"github.com/nebulasio/go-nebulas/common/pdeque"
 	"github.com/nebulasio/go-nebulas/components/net"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
 	log "github.com/sirupsen/logrus"
@@ -35,7 +35,7 @@ type TransactionPool struct {
 	mu                sync.RWMutex
 
 	size  int
-	cache *pdeq.Pdeq
+	cache *pdeque.PriorityDeque
 	all   map[HexHash]*Transaction
 	bc    *BlockChain
 
@@ -61,7 +61,7 @@ func NewTransactionPool(size int) *TransactionPool {
 		receivedMessageCh: make(chan net.Message, 128),
 		quitCh:            make(chan int, 1),
 		size:              size,
-		cache:             pdeq.NewPdeq(less),
+		cache:             pdeque.NewPriorityDeque(less),
 		all:               make(map[HexHash]*Transaction),
 	}
 	return txPool
@@ -116,7 +116,7 @@ func (pool *TransactionPool) loop() {
 			}
 
 			tx := msg.Data().(*Transaction)
-			if err := pool.Push(tx); err != nil {
+			if err := pool.PushAndRelay(tx); err != nil {
 				log.WithFields(log.Fields{
 					"func":        "TxPool.loop",
 					"messageType": msg.MessageType(),
@@ -124,20 +124,33 @@ func (pool *TransactionPool) loop() {
 				}).Error("TxPool.loop: invalid transaction, drop it.")
 				continue
 			}
-
-			// relay tx to network
-			pool.nm.Relay(net.NEWTX, tx)
 		}
 	}
 }
 
 // Push tx into pool
-// verify chainID, hash, sign, and duplication
-// if cache is full, delete the lowest priority tx
 func (pool *TransactionPool) Push(tx *Transaction) error {
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
 	return pool.push(tx)
+}
+
+// PushAndRelay push tx into pool and relay it
+func (pool *TransactionPool) PushAndRelay(tx *Transaction) error {
+	if err := pool.Push(tx); err != nil {
+		return err
+	}
+	pool.nm.Relay(net.NEWTX, tx)
+	return nil
+}
+
+// PushAndBroadcast push tx into pool and broadcast it
+func (pool *TransactionPool) PushAndBroadcast(tx *Transaction) error {
+	if err := pool.Push(tx); err != nil {
+		return err
+	}
+	pool.nm.Broadcast(net.NEWTX, tx)
+	return nil
 }
 
 func (pool *TransactionPool) push(tx *Transaction) error {
