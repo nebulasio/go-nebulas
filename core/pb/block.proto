@@ -51,3 +51,7 @@ message Block {
     BlockHeader header = 1;
     repeated Transaction transactions = 2;
 }
+
+message Blocks {
+    repeated Block blocks = 1;
+}
