@@ -81,14 +81,24 @@ func TestBlockChain_FindCommonAncestorWithTail(t *testing.T) {
 	assert.Equal(t, BlockFromNetwork(common4), BlockFromNetwork(bc.tailBlock))
 }
 
-func TestBlockChain_FetchSubsequentBlocks(t *testing.T) {
+func TestBlockChain_FetchDescendantInCanonicalChain(t *testing.T) {
 	bc := NewBlockChain(0)
 	var c Cons
 	bc.SetConsensusHandler(c)
 	coinbase := &Address{[]byte("coinbase")}
 	/*
-		genesisi - 1 - 2 - 3 - 4 - 5 - 6
+		genesisi -- 1 - 2 - 3 - 4 - 5 - 6
+		         \_ block - block1
 	*/
+	block := bc.NewBlock(coinbase)
+	block.header.timestamp = 0
+	block.header.hash = HashBlock(block)
+	bc.BlockPool().Push(block)
+	block1 := bc.NewBlock(coinbase)
+	block1.header.timestamp = 1
+	block1.header.hash = HashBlock(block1)
+	bc.BlockPool().Push(block1)
+
 	var blocks []*Block
 	for i := 0; i < 6; i++ {
 		block := bc.NewBlock(coinbase)
@@ -100,14 +110,17 @@ func TestBlockChain_FetchSubsequentBlocks(t *testing.T) {
 		bc.BlockPool().Push(block)
 		bc.SetTailBlock(block)
 	}
-	blocks24 := bc.FetchSubsequentBlocks(3, blocks[0])
+	blocks24, _ := bc.FetchDescendantInCanonicalChain(3, blocks[0])
 	assert.Equal(t, BlockFromNetwork(blocks24[0]), BlockFromNetwork(blocks[1]))
 	assert.Equal(t, BlockFromNetwork(blocks24[1]), BlockFromNetwork(blocks[2]))
 	assert.Equal(t, BlockFromNetwork(blocks24[2]), BlockFromNetwork(blocks[3]))
-	blocks46 := bc.FetchSubsequentBlocks(10, blocks[2])
+	blocks46, _ := bc.FetchDescendantInCanonicalChain(10, blocks[2])
 	assert.Equal(t, len(blocks46), 3)
 	assert.Equal(t, BlockFromNetwork(blocks46[0]), BlockFromNetwork(blocks[3]))
 	assert.Equal(t, BlockFromNetwork(blocks46[1]), BlockFromNetwork(blocks[4]))
 	assert.Equal(t, BlockFromNetwork(blocks46[2]), BlockFromNetwork(blocks[5]))
-
+	blocks13, _ := bc.FetchDescendantInCanonicalChain(3, bc.genesisBlock)
+	assert.Equal(t, len(blocks13), 3)
+	blocks, err := bc.FetchDescendantInCanonicalChain(3, block)
+	assert.NotNil(t, err)
 }

@@ -110,24 +110,30 @@ func (bc *BlockChain) FindCommonAncestorWithTail(block *Block) (*Block, error) {
 	return target, nil
 }
 
-// FetchSubsequentBlocks return the subsequent blocks of the block
-func (bc *BlockChain) FetchSubsequentBlocks(n int, block *Block) []*Block {
-	cur := -1
+// FetchDescendantInCanonicalChain return the subsequent blocks of the block
+// lookup the block's descendant from tail to genesis
+// if the block is not in canonical chain, return err
+func (bc *BlockChain) FetchDescendantInCanonicalChain(n int, block *Block) ([]*Block, error) {
+	curIdx := -1
 	queue := make([]*Block, n)
+	// get tail in canonical chain
 	curBlock := bc.tailBlock
 	for curBlock != nil && !curBlock.Hash().Equals(block.Hash()) {
-		cur = (cur + 1) % n
-		queue[cur] = curBlock
+		if curBlock.Hash().Equals(bc.genesisBlock.Hash()) {
+			return nil, errors.New("cannot find the block in canonical chain")
+		}
+		curIdx = (curIdx + 1) % n
+		queue[curIdx] = curBlock
 		curBlock = bc.GetBlock(curBlock.header.parentHash)
 	}
 	var res []*Block
 	for i := 0; i < n; i++ {
-		if queue[cur] != nil {
-			res = append(res, queue[cur])
+		if queue[curIdx] != nil {
+			res = append(res, queue[curIdx])
 		}
-		cur = (cur + n - 1) % n
+		curIdx = (curIdx + n - 1) % n
 	}
-	return res
+	return res, nil
 }
 
 // BlockPool return block pool.
