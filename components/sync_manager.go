@@ -45,12 +45,12 @@ func NewSyncManager(blockChain *core.BlockChain, ns *p2p.NetService) *SyncManage
 
 // RegisterSyncBlockInNetwork register message subscriber in network.
 func (sync *SyncManager) RegisterSyncBlockInNetwork(nm net.Manager) {
-	nm.Register(net.NewSubscriber(sync, sync.receiveTailCh, net.SYNCBLOCK))
+	nm.Register(net.NewSubscriber(sync, sync.receiveTailCh, net.MessageTypeSyncBlock))
 }
 
 // RegisterSyncReplyInNetwork register message subscriber in network.
 func (sync *SyncManager) RegisterSyncReplyInNetwork(nm net.Manager) {
-	nm.Register(net.NewSubscriber(sync, sync.receiveSyncReplyCh, net.SYNCREPLY))
+	nm.Register(net.NewSubscriber(sync, sync.receiveSyncReplyCh, net.MessageTypeSyncReply))
 }
 
 // Start start sync service
@@ -84,7 +84,8 @@ func (sync *SyncManager) StartMsgHandle() {
 		for {
 			select {
 			case <-sync.receiveTailCh:
-				// find the common ancestors
+				// 1.find the common ancestors
+				// 2.find 10 blocks after ancestors if exist
 
 			case <-sync.receiveSyncReplyCh:
 			}

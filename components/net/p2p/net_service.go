@@ -43,9 +43,16 @@ import (
 
 // connection state
 const (
-	SNC          = -1
-	SHandshaking = 0
-	SOK          = 1
+	ProtocolID     = "/neb/1.0.0"
+	SNC            = -1
+	SHandshaking   = 0
+	SOK            = 1
+	HELLO          = "hello"
+	OK             = "ok"
+	BYE            = "bye"
+	SYNCROUTE      = "syncroute"
+	SYNCROUTEREPLY = "resyncroute"
+	CLIENTVERSION  = "0.2.0"
 )
 
 // MagicNumber the protocol magic number, A constant numerical or text value used to identify protocol.
@@ -73,7 +80,7 @@ func NewNetService(config *Config) *NetService {
 
 // RegisterNetService register to Netservice
 func (ns *NetService) RegisterNetService() *NetService {
-	ns.node.host.SetStreamHandler(net.ProtocolID, ns.streamHandler)
+	ns.node.host.SetStreamHandler(ProtocolID, ns.streamHandler)
 
 	log.Infof("RegisterNetService: register netservice success")
 	return ns
@@ -137,7 +144,7 @@ func (ns *NetService) streamHandler(s nnet.Stream) {
 				}
 
 				switch msgNameStr {
-				case net.HELLO:
+				case HELLO:
 					hello := new(messages.HelloMessage)
 					pb := new(netpb.Hello)
 					if err := proto.Unmarshal(data, pb); err != nil {
@@ -156,13 +163,13 @@ func (ns *NetService) streamHandler(s nnet.Stream) {
 						"pid":           pid.String(),
 						"ClientVersion": hello.ClientVersion,
 					}).Info("streamHandler: [HELLO] receive hello message.")
-					if hello.NodeID == pid.String() && hello.ClientVersion == net.CLIENTVERSION {
+					if hello.NodeID == pid.String() && hello.ClientVersion == CLIENTVERSION {
 						node.conn[addrs.String()] = SOK
 						node.stream[addrs.String()] = s
 						node.routeTable.Update(pid)
 					}
 
-					ok := messages.NewHelloMessage(node.id.String(), net.CLIENTVERSION)
+					ok := messages.NewHelloMessage(node.id.String(), CLIENTVERSION)
 					pbok, _ := ok.ToProto()
 					okdata, err := proto.Marshal(pbok)
 					if err != nil {
@@ -171,7 +178,7 @@ func (ns *NetService) streamHandler(s nnet.Stream) {
 						return
 					}
 
-					totalData := ns.buildData(okdata, net.OK)
+					totalData := ns.buildData(okdata, OK)
 
 					if err := Write(s, totalData); err != nil {
 						log.Error("streamHandler: [HELLO] write data occurs error, ", err)
@@ -181,8 +188,9 @@ func (ns *NetService) streamHandler(s nnet.Stream) {
 					node.stream[addrs.String()] = s
 					node.conn[addrs.String()] = SOK
 					node.routeTable.Update(pid)
-				case net.OK:
 
+				case OK:
+					log.Info("streamHandler: [OK] handle ok message.")
 					ok := new(messages.HelloMessage)
 					pb := new(netpb.Hello)
 					if err := proto.Unmarshal(data, pb); err != nil {
@@ -196,7 +204,7 @@ func (ns *NetService) streamHandler(s nnet.Stream) {
 						return
 					}
 
-					if ok.NodeID == pid.String() && ok.ClientVersion == net.CLIENTVERSION {
+					if ok.NodeID == pid.String() && ok.ClientVersion == CLIENTVERSION {
 						node.conn[addrs.String()] = SOK
 						node.stream[addrs.String()] = s
 						node.routeTable.Update(pid)
@@ -206,24 +214,24 @@ func (ns *NetService) streamHandler(s nnet.Stream) {
 						return
 					}
 
-				case net.BYE:
-				case net.SYNCBLOCK:
-					//check self can providing sync service
-					if !node.synchronized {
-						if !ns.handleBlockMsg(data, msgNameStr) {
-							ns.Bye(pid, []ma.Multiaddr{addrs}, s)
-						}
-						node.syncList = append(node.syncList, addrs.String())
-					}
-				case net.SYNCREPLY:
-					// TODO
+				case BYE:
+				// case net.SYNCBLOCK:
+				// 	//check self can providing sync service
+				// 	if !node.synchronized {
+				// 		if !ns.handleBlockMsg(data, msgNameStr) {
+				// 			ns.Bye(pid, []ma.Multiaddr{addrs}, s)
+				// 		}
+				// 		node.syncList = append(node.syncList, addrs.String())
+				// 	}
+				// case net.SYNCREPLY:
+				// 	// TODO
 
-				case net.NEWBLOCK:
-					log.Info("streamHandler: [NEWBLOCK] handle new block message")
-					if !ns.handleBlockMsg(data, msgNameStr) {
-						ns.Bye(pid, []ma.Multiaddr{addrs}, s)
-					}
-				case net.SYNCROUTE:
+				// case net.NEWBLOCK:
+				// 	log.Info("streamHandler: [NEWBLOCK] handle new block message")
+				// 	if !ns.handleBlockMsg(data, msgNameStr) {
+				// 		ns.Bye(pid, []ma.Multiaddr{addrs}, s)
+				// 	}
+				case SYNCROUTE:
 					log.Info("streamHandler: [SYNCROUTE] handle sync route message")
 					peers := node.routeTable.NearestPeers(kbucket.ConvertPeerID(pid), node.config.maxSyncNodes)
 					var peerList []peerstore.PeerInfo
@@ -246,7 +254,7 @@ func (ns *NetService) streamHandler(s nnet.Stream) {
 						return
 					}
 
-					totalData := ns.buildData(data, net.SYNCROUTEREPLY)
+					totalData := ns.buildData(data, SYNCROUTEREPLY)
 					stream := node.stream[addrs.String()]
 					if stream == nil {
 						log.Error("streamHandler: [SYNCROUTE] send message occrus error, stream does not exist.")
@@ -261,7 +269,7 @@ func (ns *NetService) streamHandler(s nnet.Stream) {
 
 					node.routeTable.Update(pid)
 
-				case net.SYNCROUTEREPLY:
+				case SYNCROUTEREPLY:
 					log.Infof("streamHandler: [SYNCROUTEREPLY] handle sync route reply ")
 					var sample []peerstore.PeerInfo
 
@@ -298,6 +306,14 @@ func (ns *NetService) streamHandler(s nnet.Stream) {
 						node.routeTable.Update(sample[i].ID)
 					}
 
+				default:
+					if node.conn[addrs.String()] != SOK {
+						log.Error("peer not shake hand before send message.")
+						ns.Bye(pid, []ma.Multiaddr{addrs}, s)
+						return
+					}
+					msg := messages.NewBaseMessage(msgNameStr, data)
+					ns.PutMessage(msg)
 				}
 
 			}
@@ -380,12 +396,12 @@ func (ns *NetService) SendMsg(msgName string, msg []byte, addrs string) {
 
 // Hello say hello to a peer
 func (ns *NetService) Hello(pid peer.ID) error {
-	msgName := net.HELLO
+	msgName := HELLO
 	node := ns.node
 	stream, err := node.host.NewStream(
 		node.context,
 		pid,
-		net.ProtocolID,
+		ProtocolID,
 	)
 	addrs := node.peerstore.PeerInfo(pid).Addrs
 	if err != nil {
@@ -400,7 +416,7 @@ func (ns *NetService) Hello(pid peer.ID) error {
 
 	log.Infof("Hello: say hello addrs -> %s", addrs)
 
-	hello := messages.NewHelloMessage(node.id.String(), net.CLIENTVERSION)
+	hello := messages.NewHelloMessage(node.id.String(), CLIENTVERSION)
 	pb, _ := hello.ToProto()
 	data, err := proto.Marshal(pb)
 	if err != nil {
@@ -427,8 +443,8 @@ func (ns *NetService) SyncRoutes(pid peer.ID) {
 		node.routeTable.Remove(pid)
 		return
 	}
-	data := []byte(net.SYNCROUTE)
-	totalData := ns.buildData(data, net.SYNCROUTE)
+	data := []byte(SYNCROUTE)
+	totalData := ns.buildData(data, SYNCROUTE)
 
 	stream := node.stream[addrs[0].String()]
 	if stream == nil {

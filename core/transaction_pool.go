@@ -69,7 +69,7 @@ func NewTransactionPool(size int) *TransactionPool {
 
 // RegisterInNetwork register message subscriber in network.
 func (pool *TransactionPool) RegisterInNetwork(nm net.Manager) {
-	nm.Register(net.NewSubscriber(pool, pool.receivedMessageCh, net.NEWTX))
+	nm.Register(net.NewSubscriber(pool, pool.receivedMessageCh, MessageTypeNewTx))
 	pool.nm = nm
 }
 
@@ -106,7 +106,7 @@ func (pool *TransactionPool) loop() {
 				"func": "TxPool.loop",
 			}).Debugf("received message. Count=%d", count)
 
-			if msg.MessageType() != net.NEWTX {
+			if msg.MessageType() != MessageTypeNewTx {
 				log.WithFields(log.Fields{
 					"func":        "TxPool.loop",
 					"messageType": msg.MessageType(),
@@ -140,7 +140,7 @@ func (pool *TransactionPool) PushAndRelay(tx *Transaction) error {
 	if err := pool.Push(tx); err != nil {
 		return err
 	}
-	pool.nm.Relay(net.NEWTX, tx)
+	pool.nm.Relay(MessageTypeNewTx, tx)
 	return nil
 }
 
@@ -149,7 +149,7 @@ func (pool *TransactionPool) PushAndBroadcast(tx *Transaction) error {
 	if err := pool.Push(tx); err != nil {
 		return err
 	}
-	pool.nm.Broadcast(net.NEWTX, tx)
+	pool.nm.Broadcast(MessageTypeNewTx, tx)
 	return nil
 }
 

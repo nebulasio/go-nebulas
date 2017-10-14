@@ -71,14 +71,14 @@ func (n *Neblet) Start() error {
 	n.consensus = pow.NewPow(n.blockChain, n.p2pManager)
 	n.blockChain.SetConsensusHandler(n.consensus)
 
-	n.rpcServer = rpc.NewServer(n)
+	// n.rpcServer = rpc.NewServer(n)
 
 	// start.
 	n.p2pManager.Start()
 	n.blockChain.BlockPool().Start()
 	n.blockChain.TransactionPool().Start()
 	n.consensus.Start()
-	go n.rpcServer.Start()
+	// go n.rpcServer.Start()
 
 	// TODO: error handling
 	return nil
@@ -151,7 +151,7 @@ func (n *Neblet) getP2PConfig() *p2p.Config {
 	}
 	// P2P network randseed, in this release we use port as randseed
 	// config.Randseed = time.Now().Unix()
-	config.Randseed = 20170922
+	config.Randseed = int64(config.Port)
 	return config
 }
 

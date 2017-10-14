@@ -20,10 +20,12 @@ package core
 
 import (
 	"errors"
+
 	pb "github.com/gogo/protobuf/proto"
 	"github.com/hashicorp/golang-lru"
 	"github.com/nebulasio/go-nebulas/components/net"
 	"github.com/nebulasio/go-nebulas/components/net/messages"
+	"github.com/nebulasio/go-nebulas/core/pb"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -69,7 +71,7 @@ func (pool *BlockPool) ReceivedBlockCh() chan *Block {
 
 // RegisterInNetwork register message subscriber in network.
 func (pool *BlockPool) RegisterInNetwork(nm net.Manager) {
-	nm.Register(net.NewSubscriber(pool, pool.receiveMessageCh, net.NEWBLOCK))
+	nm.Register(net.NewSubscriber(pool, pool.receiveMessageCh, MessageTypeNewBlock))
 	pool.nm = nm
 }
 
@@ -115,7 +117,7 @@ func (pool *BlockPool) loop() {
 				"func": "BlockPool.loop",
 			}).Debugf("received message. Count=%d", count)
 
-			if msg.MessageType() != net.NEWBLOCK {
+			if msg.MessageType() != MessageTypeNewBlock {
 				log.WithFields(log.Fields{
 					"func":        "BlockPool.loop",
 					"messageType": msg.MessageType(),
@@ -125,18 +127,28 @@ func (pool *BlockPool) loop() {
 			}
 
 			// verify signature.
-			block := msg.Data().(*Block)
+			block := new(Block)
+			pbblock := new(corepb.Block)
+			if err := pb.Unmarshal(msg.Data().([]byte), pbblock); err != nil {
+				log.Error("BlockPool.loop:: unmarshal data occurs error, ", err)
+				continue
+			}
+			if err := block.FromProto(pbblock); err != nil {
+				log.Error("BlockPool.loop:: get block from proto occurs error: ", err)
+				continue
+			}
+			// block := msg.Data().(*Block)
 			if err := pool.addBlock(block); err != nil {
 				log.WithFields(log.Fields{
 					"func":        "BlockicPool.loop",
 					"messageType": msg.MessageType(),
 					"message":     msg,
-				}).Error("BlockPool.loop: invalid block, drop it.")
+				}).Warn("BlockPool.loop: invalid block, drop it.")
 				continue
 			}
 
 			// relay block to network
-			pool.nm.Relay(net.NEWBLOCK, block)
+			pool.nm.Relay(MessageTypeNewBlock, block)
 		}
 	}
 }
@@ -145,10 +157,10 @@ func (pool *BlockPool) loop() {
 func (pool *BlockPool) AddLocalBlock(block *Block) {
 	proto, _ := block.ToProto()
 	ir, _ := pb.Marshal(proto)
-	nb := new(Block)
-	pb.Unmarshal(ir, proto)
-	nb.FromProto(proto)
-	pool.receiveMessageCh <- messages.NewBaseMessage(net.NEWBLOCK, nb)
+	// nb := new(Block)
+	// pb.Unmarshal(ir, proto)
+	// nb.FromProto(proto)
+	pool.receiveMessageCh <- messages.NewBaseMessage(MessageTypeNewBlock, ir)
 }
 
 func (pool *BlockPool) addBlock(block *Block) error {

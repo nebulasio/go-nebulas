@@ -22,17 +22,8 @@ import "github.com/gogo/protobuf/proto"
 
 // MessageType
 const (
-	ProtocolID     = "/neb/1.0.0"
-	HELLO          = "hello"
-	OK             = "ok"
-	BYE            = "bye"
-	SYNCROUTE      = "syncroute"
-	NEWBLOCK       = "newblock"
-	NEWTX          = "newtx"
-	SYNCROUTEREPLY = "resyncroute"
-	CLIENTVERSION  = "0.2.0"
-	SYNCBLOCK      = "syncblock"
-	SYNCREPLY      = "syncreply"
+	MessageTypeSyncBlock = "syncblock"
+	MessageTypeSyncReply = "syncreply"
 )
 
 // MessageType a string for message type.

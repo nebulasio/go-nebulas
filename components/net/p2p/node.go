@@ -154,8 +154,8 @@ func (netService *NetService) SayHello(bootNode multiaddr.Multiaddr) error {
 		bootAddr,
 		peerstore.TempAddrTTL,
 	)
-	log.Info("SayHello: node id -> %s, bootID -> %s", node.id, bootID)
-	if node.id != bootID {
+	log.Infof("SayHello: nnode.host.Addrs -> %s, bootAddr -> %s", node.host.Addrs()[0].String(), bootAddr.String())
+	if node.host.Addrs()[0].String() != bootAddr.String() {
 		for i := 0; i < 3; i++ {
 			err := netService.Hello(bootID)
 			if err != nil {

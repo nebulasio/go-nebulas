@@ -19,8 +19,8 @@
 package pow
 
 import (
-	"github.com/nebulasio/go-nebulas/components/net"
 	"github.com/nebulasio/go-nebulas/consensus"
+	"github.com/nebulasio/go-nebulas/core"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -64,7 +64,7 @@ func (state *MintedState) Enter(data interface{}) {
 		bkPool.AddLocalBlock(p.miningBlock)
 
 		// send new block to network.
-		p.nm.Broadcast(net.NEWBLOCK, p.miningBlock)
+		p.nm.Broadcast(core.MessageTypeNewBlock, p.miningBlock)
 	}
 
 	// process the received block.
