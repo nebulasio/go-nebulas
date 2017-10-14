@@ -45,12 +45,12 @@ func NewSyncManager(blockChain *core.BlockChain, ns *p2p.NetService) *SyncManage
 
 // RegisterSyncBlockInNetwork register message subscriber in network.
 func (sync *SyncManager) RegisterSyncBlockInNetwork(nm net.Manager) {
-	nm.Register(net.NewSubscriber(sync, sync.receiveTailCh, net.MessageTypeSyncBlock))
+	nm.Register(net.NewSubscriber(sync, sync.receiveTailCh, net.SYNCBLOCK))
 }
 
 // RegisterSyncReplyInNetwork register message subscriber in network.
 func (sync *SyncManager) RegisterSyncReplyInNetwork(nm net.Manager) {
-	nm.Register(net.NewSubscriber(sync, sync.receiveSyncReplyCh, net.MessageTypeSyncReply))
+	nm.Register(net.NewSubscriber(sync, sync.receiveSyncReplyCh, net.SYNCREPLY))
 }
 
 // Start start sync service

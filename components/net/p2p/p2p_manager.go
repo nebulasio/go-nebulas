@@ -19,7 +19,6 @@
 package p2p
 
 import (
-	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/components/net"
 )
 
@@ -78,13 +77,11 @@ func (np *Manager) PutMessage(msg net.Message) {
 }
 
 // Broadcast message
-func (np *Manager) Broadcast(name string, msg proto.Message) {
-	//TODO: broadcast block via underlying network lib to whole network.
+func (np *Manager) Broadcast(name string, msg net.Serializable) {
 	np.netService.Broadcast(name, msg)
 }
 
 // Relay message
-func (np *Manager) Relay(name string, msg proto.Message) {
-	//TODO: broadcast block via underlying network lib to whole network.
-	np.Broadcast(name, msg)
+func (np *Manager) Relay(name string, msg net.Serializable) {
+	np.netService.Relay(name, msg)
 }

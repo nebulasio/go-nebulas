@@ -19,7 +19,6 @@
 package net
 
 import (
-	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/crypto/keystore"
 )
 
@@ -66,7 +65,13 @@ func (nm *DummyManager) PutMessage(msg Message) {
 }
 
 // Broadcast network.
-func (nm *DummyManager) Broadcast(name string, msg proto.Message) {
-	// TODO(@leon): dispather
+func (nm *DummyManager) Broadcast(name string, msg Serializable) {
+	// TODO(@leon): not only block
 	nm.sharedBlockCh <- msg
+}
+
+// Relay network.
+func (nm *DummyManager) Relay(name string, msg Serializable) {
+	// TODO(@leon): relay in dummy
+	nm.Broadcast(name, msg)
 }

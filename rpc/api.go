@@ -100,12 +100,8 @@ func (s *APIService) SendTransaction(ctx context.Context, req *rpcpb.SendTransac
 	}
 
 	// TODO(leon): should api do the relay?
-	// relay tx
-	pbTx, err := tx.ToProto()
-	if err != nil {
-		return nil, err
-	}
-	neb.P2pManager().Relay(net.MessageTypeNewTx, pbTx)
+	// relay tx to network
+	neb.P2pManager().Relay(net.NEWTX, tx)
 
 	// TODO: returns the transaction hash if available.
 	return &rpcpb.SendTransactionResponse{}, nil

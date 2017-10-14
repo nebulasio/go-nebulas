@@ -64,10 +64,7 @@ func (state *MintedState) Enter(data interface{}) {
 		bkPool.AddLocalBlock(p.miningBlock)
 
 		// send new block to network.
-		pbBlock, err := p.miningBlock.ToProto()
-		if err == nil {
-			p.nm.Broadcast(net.MessageTypeNewBlock, pbBlock)
-		}
+		p.nm.Broadcast(net.NEWBLOCK, p.miningBlock)
 	}
 
 	// process the received block.
