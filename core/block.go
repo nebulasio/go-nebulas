@@ -135,11 +135,6 @@ type Block struct {
 	txPool       *TransactionPool
 }
 
-// Blocks structure
-type Blocks struct {
-	blocks []*Block
-}
-
 // ToProto converts domain Block into proto Block
 func (block *Block) ToProto() (proto.Message, error) {
 	header, _ := block.header.ToProto()
@@ -181,40 +176,6 @@ func (block *Block) FromProto(msg proto.Message) error {
 		return nil
 	}
 	return errors.New("Pb Message cannot be converted into Block")
-}
-
-// ToProto converts domain Blocks into proto Blocks
-func (blocks *Blocks) ToProto() (proto.Message, error) {
-	var result []*corepb.Block
-	for _, v := range blocks.blocks {
-		block, err := v.ToProto()
-		if err != nil {
-			return nil, err
-		}
-		if block, ok := block.(*corepb.Block); ok {
-			result = append(result, block)
-		} else {
-			return nil, errors.New("Pb Message cannot be converted into Block")
-		}
-	}
-	return &corepb.Blocks{
-		Blocks: result,
-	}, nil
-}
-
-// FromProto converts proto Blocks to domain Blocks
-func (blocks *Blocks) FromProto(msg proto.Message) error {
-	if msg, ok := msg.(*corepb.Blocks); ok {
-		for _, v := range msg.Blocks {
-			block := new(Block)
-			if err := block.FromProto(v); err != nil {
-				return err
-			}
-			blocks.blocks = append(blocks.blocks, block)
-		}
-		return nil
-	}
-	return errors.New("Pb Message cannot be converted into Blocks")
 }
 
 // NewBlock return new block.

@@ -19,18 +19,24 @@
 package p2p
 
 import (
+	"errors"
+
 	"github.com/gogo/protobuf/proto"
-	"github.com/nebulasio/go-nebulas/core"
+	"github.com/nebulasio/go-nebulas/components/net"
 	log "github.com/sirupsen/logrus"
 )
 
-// PreSync do something ready to sync
-func (ns *NetService) PreSync(tail *core.Block) {
+var (
+	ErrNodeNotEnough = errors.New("node is not enough")
+)
+
+// Sync do something ready to sync
+func (ns *NetService) Sync(tail net.Serializable) error {
 	node := ns.node
 	pb, _ := tail.ToProto()
 	data, err := proto.Marshal(pb)
 	if err != nil {
-		return
+		return err
 	}
 
 	allNode := node.routeTable.ListPeers()
@@ -47,11 +53,16 @@ func (ns *NetService) PreSync(tail *core.Block) {
 			ns.SendMsg("syncblock", data, addrs[0].String())
 		}()
 	}
+	return nil
 }
 
 // SendSyncReply send sync reply message to remote peer
-func (ns *NetService) SendSyncReply(data []byte) {
+func (ns *NetService) SendSyncReply(blocks net.Serializable) {
+
 	addrs := ns.node.syncList
+	pb, _ := blocks.ToProto()
+	data, _ := proto.Marshal(pb)
+
 	for i := 0; i < len(addrs); i++ {
 		go func() {
 			ns.SendMsg("syncreply", data, addrs[i])

@@ -86,6 +86,11 @@ func (ns *NetService) RegisterNetService() *NetService {
 	return ns
 }
 
+// Addrs get node address in string
+func (ns *NetService) Addrs() string {
+	return ns.node.host.Addrs()[0].String()
+}
+
 func (ns *NetService) streamHandler(s nnet.Stream) {
 	go (func() {
 	HandleMsg:

@@ -23,8 +23,6 @@ import (
 	"sync"
 
 	"github.com/gogo/protobuf/proto"
-
-	pb "github.com/gogo/protobuf/proto"
 	"github.com/hashicorp/golang-lru"
 	"github.com/nebulasio/go-nebulas/components/net"
 	"github.com/nebulasio/go-nebulas/core/pb"
@@ -132,7 +130,7 @@ func (pool *BlockPool) loop() {
 			// verify signature.
 			block := new(Block)
 			pbblock := new(corepb.Block)
-			if err := pb.Unmarshal(msg.Data().([]byte), pbblock); err != nil {
+			if err := proto.Unmarshal(msg.Data().([]byte), pbblock); err != nil {
 				log.Error("BlockPool.loop:: unmarshal data occurs error, ", err)
 				continue
 			}
