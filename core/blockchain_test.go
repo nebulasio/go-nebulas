@@ -40,12 +40,12 @@ func TestBlockChain_FindCommonAncestorWithTail(t *testing.T) {
 	bc.SetConsensusHandler(c)
 	coinbase11 := &Address{[]byte("coinbase11")}
 	coinbase12 := &Address{[]byte("coinbase12")}
-	coinbase211 := &Address{[]byte("coinbase211")}
+	coinbase111 := &Address{[]byte("coinbase111")}
 	coinbase221 := &Address{[]byte("coinbase221")}
 	coinbase222 := &Address{[]byte("coinbase222")}
-	coinbaseTest := &Address{[]byte("test")}
+	coinbase1111 := &Address{[]byte("coinbase1111")}
 	/*
-		genesisi -- 11 -- 211 -- test
+		genesisi -- 11 -- 111 -- 1111
 				 \_ 12 -- 221
 				       \_ 222 tail
 	*/
@@ -56,9 +56,9 @@ func TestBlockChain_FindCommonAncestorWithTail(t *testing.T) {
 	bc.BlockPool().Push(block11)
 	bc.BlockPool().Push(block12)
 	bc.SetTailBlock(block11)
-	block211 := bc.NewBlock(coinbase211)
-	block211.header.hash = HashBlock(block211)
-	bc.BlockPool().Push(block211)
+	block111 := bc.NewBlock(coinbase111)
+	block111.header.hash = HashBlock(block111)
+	bc.BlockPool().Push(block111)
 	bc.SetTailBlock(block12)
 	block221 := bc.NewBlock(coinbase221)
 	block222 := bc.NewBlock(coinbase222)
@@ -66,12 +66,19 @@ func TestBlockChain_FindCommonAncestorWithTail(t *testing.T) {
 	block222.header.hash = HashBlock(block222)
 	bc.BlockPool().Push(block221)
 	bc.BlockPool().Push(block222)
-	bc.SetTailBlock(block211)
-	test := bc.NewBlock(coinbaseTest)
-	test.header.hash = HashBlock(test)
+	bc.SetTailBlock(block111)
+	block1111 := bc.NewBlock(coinbase1111)
+	block1111.header.hash = HashBlock(block1111)
+	bc.BlockPool().Push(block1111)
 	bc.SetTailBlock(block222)
-
-	common1, _ := bc.FindCommonAncestorWithTail(BlockFromNetwork(test))
+	test := &Block{
+		header: &BlockHeader{
+			coinbase: &Address{},
+		},
+	}
+	_, err := bc.FindCommonAncestorWithTail(BlockFromNetwork(test))
+	assert.NotNil(t, err)
+	common1, _ := bc.FindCommonAncestorWithTail(BlockFromNetwork(block1111))
 	assert.Equal(t, BlockFromNetwork(common1), BlockFromNetwork(bc.genesisBlock))
 	common2, _ := bc.FindCommonAncestorWithTail(BlockFromNetwork(block221))
 	assert.Equal(t, BlockFromNetwork(common2), BlockFromNetwork(block12))
@@ -79,6 +86,8 @@ func TestBlockChain_FindCommonAncestorWithTail(t *testing.T) {
 	assert.Equal(t, BlockFromNetwork(common3), BlockFromNetwork(block222))
 	common4, _ := bc.FindCommonAncestorWithTail(BlockFromNetwork(bc.tailBlock))
 	assert.Equal(t, BlockFromNetwork(common4), BlockFromNetwork(bc.tailBlock))
+	common5, _ := bc.FindCommonAncestorWithTail(BlockFromNetwork(block12))
+	assert.Equal(t, BlockFromNetwork(common5), BlockFromNetwork(block12))
 }
 
 func TestBlockChain_FetchDescendantInCanonicalChain(t *testing.T) {

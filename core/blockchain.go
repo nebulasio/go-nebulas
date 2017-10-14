@@ -94,15 +94,15 @@ func (bc *BlockChain) FindCommonAncestorWithTail(block *Block) (*Block, error) {
 		return nil, errors.New("cannot location the block in blockchain")
 	}
 	tail := bc.TailBlock()
+	for tail.Height() > target.Height() {
+		tail = bc.GetBlock(tail.header.parentHash)
+	}
+	for tail.Height() < target.Height() {
+		target = bc.GetBlock(target.header.parentHash)
+	}
 	for !tail.Hash().Equals(target.Hash()) {
-		if tail.Height() > target.Height() {
-			tail = bc.GetBlock(tail.header.parentHash)
-		} else if tail.Height() < target.Height() {
-			target = bc.GetBlock(target.header.parentHash)
-		} else {
-			tail = bc.GetBlock(tail.header.parentHash)
-			target = bc.GetBlock(target.header.parentHash)
-		}
+		tail = bc.GetBlock(tail.header.parentHash)
+		target = bc.GetBlock(target.header.parentHash)
 		if tail == nil || target == nil {
 			panic("block in blockchain cannot find its parent block")
 		}
