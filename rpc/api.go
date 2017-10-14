@@ -19,7 +19,6 @@
 package rpc
 
 import (
-	"github.com/nebulasio/go-nebulas/components/net"
 	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/rpc/pb"
 	"github.com/nebulasio/go-nebulas/util"
@@ -95,13 +94,9 @@ func (s *APIService) SendTransaction(ctx context.Context, req *rpcpb.SendTransac
 		return nil, err
 	}
 
-	if err := neb.BlockChain().TransactionPool().Push(tx); err != nil {
+	if err := neb.BlockChain().TransactionPool().PushAndBroadcast(tx); err != nil {
 		return nil, err
 	}
-
-	// TODO(leon): should api do the relay?
-	// relay tx to network
-	neb.P2pManager().Relay(net.NEWTX, tx)
 
 	// TODO: returns the transaction hash if available.
 	return &rpcpb.SendTransactionResponse{}, nil
