@@ -71,14 +71,14 @@ func (n *Neblet) Start() error {
 	n.consensus = pow.NewPow(n.blockChain, n.p2pManager)
 	n.blockChain.SetConsensusHandler(n.consensus)
 
-	// n.rpcServer = rpc.NewServer(n)
+	n.rpcServer = rpc.NewServer(n)
 
 	// start.
 	n.p2pManager.Start()
 	n.blockChain.BlockPool().Start()
 	n.blockChain.TransactionPool().Start()
 	n.consensus.Start()
-	// go n.rpcServer.Start()
+	go n.rpcServer.Start()
 
 	// TODO: error handling
 	return nil

@@ -22,7 +22,6 @@ import (
 	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/rpc/pb"
 	"github.com/nebulasio/go-nebulas/util"
-	"github.com/nebulasio/go-nebulas/util/byteutils"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -41,8 +40,7 @@ func (s *APIService) GetAccountState(ctx context.Context, req *rpcpb.GetAccountS
 
 	neb := s.server.Neblet()
 
-	reqAddr, _ := byteutils.FromHex(req.Address)
-	addr, err := core.NewAddress(reqAddr)
+	addr, err := core.AddressParse(req.Address)
 	if err != nil {
 		return nil, err
 	}
@@ -66,20 +64,11 @@ func (s *APIService) SendTransaction(ctx context.Context, req *rpcpb.SendTransac
 	// Validate and sign the tx, then submit it to the tx pool.
 	neb := s.server.Neblet()
 
-	from, err := byteutils.FromHex(req.From)
+	fromAddr, err := core.AddressParse(req.From)
 	if err != nil {
 		return nil, err
 	}
-	fromAddr, err := core.NewAddress(from)
-	if err != nil {
-		return nil, err
-	}
-
-	to, err := byteutils.FromHex(req.To)
-	if err != nil {
-		return nil, err
-	}
-	toAddr, err := core.NewAddress(to)
+	toAddr, err := core.AddressParse(req.To)
 	if err != nil {
 		return nil, err
 	}
