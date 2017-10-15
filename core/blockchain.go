@@ -127,7 +127,7 @@ func (bc *BlockChain) FetchDescendantInCanonicalChain(n int, block *Block) ([]*B
 		curBlock = bc.GetBlock(curBlock.header.parentHash)
 	}
 	var res []*Block
-	for i := 0; i < n; i++ {
+	for i := 0; curIdx >= 0 && i < n; i++ {
 		if queue[curIdx] != nil {
 			res = append(res, queue[curIdx])
 		}

@@ -74,7 +74,7 @@ func (n *Neblet) Start() error {
 	n.blockChain.TransactionPool().RegisterInNetwork(n.netService)
 
 	// start sync service
-	n.snycManager = nsync.NewManager(n.blockChain, n.netService)
+	n.snycManager = nsync.NewManager(n.blockChain, n.consensus, n.netService)
 
 	n.consensus = pow.NewPow(n.blockChain, n.netService)
 	n.blockChain.SetConsensusHandler(n.consensus)
@@ -85,7 +85,8 @@ func (n *Neblet) Start() error {
 	n.netService.Start()
 	n.blockChain.BlockPool().Start()
 	n.blockChain.TransactionPool().Start()
-	n.consensus.Start()
+	// mining will start after sync over.
+	// n.consensus.Start()
 	n.snycManager.Start()
 	go n.rpcServer.Start()
 

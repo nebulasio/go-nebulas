@@ -24,6 +24,7 @@ import (
 	pb "github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/components/net"
 	"github.com/nebulasio/go-nebulas/components/net/p2p"
+	"github.com/nebulasio/go-nebulas/consensus"
 	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/core/pb"
 	log "github.com/sirupsen/logrus"
@@ -32,6 +33,7 @@ import (
 // Manager is used to manage the sync service
 type Manager struct {
 	blockChain         *core.BlockChain
+	consensus          consensus.Consensus
 	ns                 *p2p.NetService
 	quitCh             chan bool
 	syncCh             chan bool
@@ -43,8 +45,8 @@ type Manager struct {
 }
 
 // NewManager new sync manager
-func NewManager(blockChain *core.BlockChain, ns *p2p.NetService) *Manager {
-	m := &Manager{blockChain, ns, make(chan bool), make(chan bool), make(chan net.Message, 128), make(chan net.Message, 128), make(chan bool), make(map[string]*SyncBlocks), make(chan bool)}
+func NewManager(blockChain *core.BlockChain, consensus consensus.Consensus, ns *p2p.NetService) *Manager {
+	m := &Manager{blockChain, consensus, ns, make(chan bool), make(chan bool), make(chan net.Message, 128), make(chan net.Message, 128), make(chan bool), make(map[string]*SyncBlocks), make(chan bool)}
 	m.RegisterSyncBlockInNetwork(ns)
 	m.RegisterSyncReplyInNetwork(ns)
 	return m
@@ -66,6 +68,8 @@ func (m *Manager) Start() {
 	if len(m.ns.Node().Config().BootNodes) > 0 {
 		m.StartSync()
 	}
+	// TODO(@leon): start mining after consensus
+	// m.consensus.Start()
 }
 
 // StartSync start sync loop

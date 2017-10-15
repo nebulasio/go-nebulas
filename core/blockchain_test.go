@@ -36,7 +36,7 @@ func BlockFromNetwork(block *Block) *Block {
 
 func TestBlockChain_FindCommonAncestorWithTail(t *testing.T) {
 	bc := NewBlockChain(0)
-	var c Cons
+	var c MockConsensus
 	bc.SetConsensusHandler(c)
 	coinbase11 := &Address{[]byte("coinbase11")}
 	coinbase12 := &Address{[]byte("coinbase12")}
@@ -92,7 +92,7 @@ func TestBlockChain_FindCommonAncestorWithTail(t *testing.T) {
 
 func TestBlockChain_FetchDescendantInCanonicalChain(t *testing.T) {
 	bc := NewBlockChain(0)
-	var c Cons
+	var c MockConsensus
 	bc.SetConsensusHandler(c)
 	coinbase := &Address{[]byte("coinbase")}
 	/*
@@ -130,6 +130,9 @@ func TestBlockChain_FetchDescendantInCanonicalChain(t *testing.T) {
 	assert.Equal(t, BlockFromNetwork(blocks46[2]), BlockFromNetwork(blocks[5]))
 	blocks13, _ := bc.FetchDescendantInCanonicalChain(3, bc.genesisBlock)
 	assert.Equal(t, len(blocks13), 3)
-	blocks, err := bc.FetchDescendantInCanonicalChain(3, block)
+	_, err := bc.FetchDescendantInCanonicalChain(3, block)
 	assert.NotNil(t, err)
+	blocks0, err0 := bc.FetchDescendantInCanonicalChain(3, blocks[5])
+	assert.Equal(t, len(blocks0), 0)
+	assert.Nil(t, err0)
 }

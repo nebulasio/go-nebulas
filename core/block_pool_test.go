@@ -30,15 +30,15 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-type Cons int
+type MockConsensus int
 
-func (c Cons) VerifyBlock(block *Block) error {
+func (c MockConsensus) VerifyBlock(block *Block) error {
 	return nil
 }
 
 func TestBlockPool(t *testing.T) {
 	bc := NewBlockChain(0)
-	var cons Cons
+	var cons MockConsensus
 	bc.SetConsensusHandler(cons)
 	pool := bc.bkPool
 	assert.Equal(t, pool.blockCache.Len(), 0)
