@@ -52,7 +52,12 @@ message Block {
     repeated Transaction transactions = 2;
 }
 
-message SyncBlocks {
-    string addrs = 1;
+message NetBlocks {
+    string from = 1;
     repeated Block blocks = 2;
+}
+
+message NetBlock {
+    string from = 1;
+    Block block = 2;
 }

@@ -76,6 +76,11 @@ func (node *Node) Config() *Config {
 	return node.config
 }
 
+// SetSynchronized set node synchronized
+func (node *Node) SetSynchronized(synchronized bool) {
+	node.synchronized = synchronized
+}
+
 func (node *Node) makeHost() error {
 
 	ctx := node.context

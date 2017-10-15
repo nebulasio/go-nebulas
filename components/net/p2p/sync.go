@@ -47,8 +47,9 @@ func (ns *NetService) Sync(tail net.Serializable) error {
 	}
 
 	allNode := node.routeTable.ListPeers()
-	log.Info("PreSync: allNode -> ", allNode)
-	if len(allNode) < LimitToSync {
+	log.Info("Sync: allNode -> ", allNode)
+	if len(allNode) < LimitToSync || len(node.stream) < LimitToSync {
+		log.Warn("Sync: node not enough.")
 		return ErrNodeNotEnough
 	}
 
@@ -69,15 +70,13 @@ func (ns *NetService) Sync(tail net.Serializable) error {
 }
 
 // SendSyncReply send sync reply message to remote peer
-func (ns *NetService) SendSyncReply(blocks net.Serializable) {
+func (ns *NetService) SendSyncReply(addrs string, blocks net.Serializable) {
 
-	addrs := ns.node.syncList
+	// addrs := ns.node.syncList
+	log.Info("SendSyncReply: send sync addrs -> ", addrs)
 	pb, _ := blocks.ToProto()
 	data, _ := proto.Marshal(pb)
-
-	for i := 0; i < len(addrs); i++ {
-		go func() {
-			ns.SendMsg("syncreply", data, addrs[i])
-		}()
-	}
+	go func() {
+		ns.SendMsg("syncreply", data, addrs)
+	}()
 }

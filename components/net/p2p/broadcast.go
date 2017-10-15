@@ -27,6 +27,9 @@ import (
 // Broadcast broadcast message
 func (ns *NetService) Broadcast(name string, msg net.Serializable) {
 
+	if !ns.node.synchronized {
+		return
+	}
 	node := ns.node
 	pbMsg, _ := msg.ToProto()
 	data, err := proto.Marshal(pbMsg)
@@ -57,5 +60,8 @@ func (ns *NetService) Broadcast(name string, msg net.Serializable) {
 // Relay message
 func (ns *NetService) Relay(name string, msg net.Serializable) {
 	// TODO(@leon): relay protocol
+	if !ns.node.synchronized {
+		return
+	}
 	ns.Broadcast(name, msg)
 }

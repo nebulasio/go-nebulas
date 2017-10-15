@@ -34,8 +34,9 @@ and then update the routing table.
 func (net *NetService) Discovery(ctx context.Context) {
 
 	//FIXME  the sync routing table rate can be dynamic
-	second := 3 * time.Second
+	second := 30 * time.Second
 	ticker := time.NewTicker(second)
+	net.syncRoutingTable()
 	log.Infof("Discovery: node start discovery per %s...", second)
 	for {
 		select {
@@ -85,7 +86,10 @@ func (net *NetService) syncSingleNode(nodeID peer.ID) {
 	nodeInfo := node.peerstore.PeerInfo(nodeID)
 	if len(nodeInfo.Addrs) != 0 {
 		// net.syncRouteInfoFromSingleNode(nodeID)
-		net.SyncRoutes(nodeID)
+		if _, ok := node.stream[nodeInfo.Addrs[0].String()]; ok {
+			net.SyncRoutes(nodeID)
+		}
+
 	} else {
 		node.routeTable.Remove(nodeID)
 	}

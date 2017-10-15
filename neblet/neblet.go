@@ -73,11 +73,11 @@ func (n *Neblet) Start() error {
 	n.blockChain.BlockPool().RegisterInNetwork(n.netService)
 	n.blockChain.TransactionPool().RegisterInNetwork(n.netService)
 
-	// start sync service
-	n.snycManager = nsync.NewManager(n.blockChain, n.consensus, n.netService)
-
 	n.consensus = pow.NewPow(n.blockChain, n.netService)
 	n.blockChain.SetConsensusHandler(n.consensus)
+
+	// start sync service
+	n.snycManager = nsync.NewManager(n.blockChain, n.consensus, n.netService)
 
 	n.rpcServer = rpc.NewServer(n)
 
