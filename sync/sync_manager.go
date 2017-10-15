@@ -118,9 +118,14 @@ func (m *Manager) StartMsgHandle() {
 				// tail := sync.blockChain.TailBlock()
 				ancestor, err := m.blockChain.FindCommonAncestorWithTail(tail)
 				if err != nil {
+					log.Warn("StartMsgHandle.receiveTailCh: find common ancestor with tail occurs error, ", err)
 					continue
 				}
-				subsequentBlocks := m.blockChain.FetchSubsequentBlocks(10, ancestor)
+				subsequentBlocks, err := m.blockChain.FetchDescendantInCanonicalChain(10, ancestor)
+				if err != nil {
+					log.Warn("StartMsgHandle.receiveTailCh: FetchDescendantInCanonicalChain occurs error, ", err)
+					continue
+				}
 				subsequentBlocks = append(subsequentBlocks, ancestor)
 				addrs := m.ns.Addrs()
 				blocks := NewSyncBlocks(addrs, subsequentBlocks)
