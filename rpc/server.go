@@ -28,7 +28,7 @@ type Server struct {
 type Neblet interface {
 	BlockChain() *core.BlockChain
 	AccountManager() *account.Manager
-	P2pManager() *p2p.Manager
+	NetService() *p2p.NetService
 }
 
 // NewServer creates a new RPC server and registers the API endpoints.

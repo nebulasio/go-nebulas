@@ -14,6 +14,7 @@ import (
 	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/neblet/pb"
 	"github.com/nebulasio/go-nebulas/rpc"
+	nsync "github.com/nebulasio/go-nebulas/sync"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -28,11 +29,14 @@ type Neblet struct {
 
 	accountManager *account.Manager
 
-	p2pManager *p2p.Manager
+	// p2pManager *p2p.Manager
+	netService *p2p.NetService
 
 	consensus consensus.Consensus
 
 	blockChain *core.BlockChain
+
+	snycManager *nsync.Manager
 
 	rpcServer *rpc.Server
 
@@ -61,23 +65,28 @@ func (n *Neblet) Start() error {
 
 	// TODO: use new proto config.
 	p2pConfig := n.getP2PConfig()
-	n.p2pManager = p2p.NewManager(p2pConfig)
+	// n.p2pManager = p2p.NewManager(p2pConfig)
+	n.netService = p2p.NewNetService(p2pConfig)
 
 	n.blockChain = core.NewBlockChain(core.TestNetID)
 	fmt.Printf("chainID is %d\n", n.blockChain.ChainID())
-	n.blockChain.BlockPool().RegisterInNetwork(n.p2pManager)
-	n.blockChain.TransactionPool().RegisterInNetwork(n.p2pManager)
+	n.blockChain.BlockPool().RegisterInNetwork(n.netService)
+	n.blockChain.TransactionPool().RegisterInNetwork(n.netService)
 
-	n.consensus = pow.NewPow(n.blockChain, n.p2pManager)
+	// start sync service
+	n.snycManager = nsync.NewManager(n.blockChain, n.netService)
+
+	n.consensus = pow.NewPow(n.blockChain, n.netService)
 	n.blockChain.SetConsensusHandler(n.consensus)
 
 	n.rpcServer = rpc.NewServer(n)
 
 	// start.
-	n.p2pManager.Start()
+	n.netService.Start()
 	n.blockChain.BlockPool().Start()
 	n.blockChain.TransactionPool().Start()
 	n.consensus.Start()
+	n.snycManager.Start()
 	go n.rpcServer.Start()
 
 	// TODO: error handling
@@ -101,9 +110,9 @@ func (n *Neblet) Stop() error {
 		n.blockChain = nil
 	}
 
-	if n.p2pManager != nil {
-		n.p2pManager.Stop()
-		n.p2pManager = nil
+	if n.netService != nil {
+		n.netService.Stop()
+		n.netService = nil
 	}
 
 	if n.rpcServer != nil {
@@ -128,9 +137,9 @@ func (n *Neblet) AccountManager() *account.Manager {
 	return n.accountManager
 }
 
-// P2pManager returns p2p manager reference.
-func (n *Neblet) P2pManager() *p2p.Manager {
-	return n.p2pManager
+// NetService returns p2p manager reference.
+func (n *Neblet) NetService() *p2p.NetService {
+	return n.netService
 }
 
 // TODO: move this to p2p package.

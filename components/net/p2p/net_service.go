@@ -91,6 +91,11 @@ func (ns *NetService) Addrs() string {
 	return ns.node.host.Addrs()[0].String()
 }
 
+// Node return the peer node
+func (ns *NetService) Node() *Node {
+	return ns.node
+}
+
 func (ns *NetService) streamHandler(s nnet.Stream) {
 	go (func() {
 	HandleMsg:

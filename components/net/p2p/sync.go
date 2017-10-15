@@ -23,9 +23,16 @@ import (
 
 	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/components/net"
+
 	log "github.com/sirupsen/logrus"
 )
 
+// const
+const (
+	LimitToSync = 1
+)
+
+// errors
 var (
 	ErrNodeNotEnough = errors.New("node is not enough")
 )
@@ -41,17 +48,22 @@ func (ns *NetService) Sync(tail net.Serializable) error {
 
 	allNode := node.routeTable.ListPeers()
 	log.Info("PreSync: allNode -> ", allNode)
+	if len(allNode) < LimitToSync {
+		return ErrNodeNotEnough
+	}
 
 	for i := 0; i < len(allNode); i++ {
 		nodeID := allNode[i]
 		addrs := node.peerstore.PeerInfo(nodeID).Addrs
-		if len(addrs) > 0 && node.host.Addrs()[0] == addrs[0] {
-			log.Warn("PreSync: skip self")
-			continue
+		if len(addrs) > 0 {
+			if node.host.Addrs()[0] == addrs[0] {
+				log.Warn("PreSync: skip self")
+				continue
+			}
+			go func() {
+				ns.SendMsg("syncblock", data, addrs[0].String())
+			}()
 		}
-		go func() {
-			ns.SendMsg("syncblock", data, addrs[0].String())
-		}()
 	}
 	return nil
 }

@@ -71,6 +71,11 @@ func NewNode(config *Config) (*Node, error) {
 	return node, nil
 }
 
+// Config return node config
+func (node *Node) Config() *Config {
+	return node.config
+}
+
 func (node *Node) makeHost() error {
 
 	ctx := node.context

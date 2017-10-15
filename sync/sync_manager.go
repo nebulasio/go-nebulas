@@ -29,10 +29,6 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-const (
-	limitToSync = 3
-)
-
 // Manager is used to manage the sync service
 type Manager struct {
 	blockChain         *core.BlockChain
@@ -67,7 +63,9 @@ func (m *Manager) RegisterSyncReplyInNetwork(nm net.Manager) {
 // Start start sync service
 func (m *Manager) Start() {
 	m.StartMsgHandle()
-	m.StartSync()
+	if len(m.ns.Node().Config().BootNodes) > 0 {
+		m.StartSync()
+	}
 }
 
 // StartSync start sync loop
@@ -88,6 +86,9 @@ func (m *Manager) StartSync() {
 
 func (m *Manager) syncWithTail() {
 	tail := m.blockChain.TailBlock()
+	log.WithFields(log.Fields{
+		"tail": tail,
+	}).Info("syncWithTail: got tail")
 	err := m.ns.Sync(tail)
 	switch err {
 	case nil:
@@ -150,14 +151,14 @@ func (m *Manager) StartMsgHandle() {
 					continue
 				}
 				blocks := data.Blocks()
-				if len(blocks) > 0 && len(m.cacheList) < limitToSync {
+				if len(blocks) > 0 && len(m.cacheList) < p2p.LimitToSync {
 					m.cacheList[data.addrs] = data
 				} else {
 					continue
 				}
 
 			case <-m.cacheListChangeCh:
-				if len(m.cacheList) >= limitToSync {
+				if len(m.cacheList) >= p2p.LimitToSync {
 					tempList := make(map[string]int)
 					ancestorList := make(map[string]string)
 					for key, value := range m.cacheList {
@@ -170,7 +171,7 @@ func (m *Manager) StartMsgHandle() {
 						}
 					}
 
-					limitLen := limitToSync/2 + 1
+					limitLen := p2p.LimitToSync/2 + 1
 					addrsArray := make([]string, limitLen)
 
 					for key, value := range tempList {
