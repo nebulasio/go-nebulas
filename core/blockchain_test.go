@@ -60,8 +60,10 @@ func TestBlockChain_FindCommonAncestorWithTail(t *testing.T) {
 	tx1 := NewTransaction(0, from, to, util.NewUint128(), 1, []byte("nas"))
 	tx1.Sign(signature)
 	tx2 := NewTransaction(0, from, to, util.NewUint128(), 1, []byte("nas"))
+	tx2.timestamp = tx1.timestamp + 1
 	tx2.Sign(signature)
 	tx3 := NewTransaction(0, from, to, util.NewUint128(), 2, []byte("nas"))
+	tx3.timestamp = tx3.timestamp + 1
 	tx3.Sign(signature)
 	bc.txPool.Push(tx1)
 	bc.txPool.Push(tx2)

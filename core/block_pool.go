@@ -19,7 +19,6 @@
 package core
 
 import (
-	"errors"
 	"sync"
 
 	"github.com/gogo/protobuf/proto"
@@ -189,7 +188,7 @@ func (pool *BlockPool) PushAndBroadcast(block *Block) error {
 func (pool *BlockPool) push(block *Block) error {
 	if pool.blockCache.Contains(block.Hash().Hex()) ||
 		pool.bc.GetBlock(block.Hash()) != nil {
-		return errors.New("cannot add dup block")
+		return nil
 	}
 
 	// verify nonce.
