@@ -35,8 +35,6 @@ import (
 	"github.com/nebulasio/go-nebulas/components/net"
 	"github.com/nebulasio/go-nebulas/components/net/messages"
 	"github.com/nebulasio/go-nebulas/components/net/pb"
-	"github.com/nebulasio/go-nebulas/core"
-	"github.com/nebulasio/go-nebulas/core/pb"
 	byteutils "github.com/nebulasio/go-nebulas/util/byteutils"
 	log "github.com/sirupsen/logrus"
 )
@@ -155,167 +153,31 @@ func (ns *NetService) streamHandler(s nnet.Stream) {
 
 				switch msgNameStr {
 				case HELLO:
-					hello := new(messages.HelloMessage)
-					pb := new(netpb.Hello)
-					if err := proto.Unmarshal(data, pb); err != nil {
-						log.Error("streamHandler: [HELLO] handle hello msg occurs error: ", err)
-						ns.Bye(pid, []ma.Multiaddr{addrs}, s)
-						return
-					}
-					if err := hello.FromProto(pb); err != nil {
-						log.Error("streamHandler: [HELLO] handle hello msg occurs error: ", err)
-						ns.Bye(pid, []ma.Multiaddr{addrs}, s)
-						return
-					}
-
-					log.WithFields(log.Fields{
-						"hello.NodeID":  hello.NodeID,
-						"pid":           pid.String(),
-						"ClientVersion": hello.ClientVersion,
-					}).Info("streamHandler: [HELLO] receive hello message.")
-					if hello.NodeID == pid.String() && hello.ClientVersion == CLIENTVERSION {
-						node.conn[addrs.String()] = SOK
+					if ns.handleHelloMsg(data, msgNameStr, pid.String(), s) {
 						node.stream[addrs.String()] = s
-						node.routeTable.Update(pid)
-					}
-
-					ok := messages.NewHelloMessage(node.id.String(), CLIENTVERSION)
-					pbok, _ := ok.ToProto()
-					okdata, err := proto.Marshal(pbok)
-					if err != nil {
-						log.Error("streamHandler: [HELLO] send ok reply occurs error, ", err)
-						ns.Bye(pid, []ma.Multiaddr{addrs}, s)
-						return
-					}
-
-					totalData := ns.buildData(okdata, OK)
-
-					if err := Write(s, totalData); err != nil {
-						log.Error("streamHandler: [HELLO] write data occurs error, ", err)
-						ns.Bye(pid, []ma.Multiaddr{addrs}, s)
-						return
-					}
-					node.stream[addrs.String()] = s
-					node.conn[addrs.String()] = SOK
-					node.routeTable.Update(pid)
-
-				case OK:
-					log.Info("streamHandler: [OK] handle ok message.")
-					ok := new(messages.HelloMessage)
-					pb := new(netpb.Hello)
-					if err := proto.Unmarshal(data, pb); err != nil {
-						log.Error("streamHandler: [OK] handle ok msg occurs error: ", err)
-						ns.Bye(pid, []ma.Multiaddr{addrs}, s)
-						return
-					}
-					if err := ok.FromProto(pb); err != nil {
-						log.Error("streamHandler: [OK] handle ok msg occurs error: ", err)
-						ns.Bye(pid, []ma.Multiaddr{addrs}, s)
-						return
-					}
-
-					if ok.NodeID == pid.String() && ok.ClientVersion == CLIENTVERSION {
 						node.conn[addrs.String()] = SOK
-						node.stream[addrs.String()] = s
 						node.routeTable.Update(pid)
 					} else {
-						log.Error("streamHandler: [OK] get incorrect response")
 						ns.Bye(pid, []ma.Multiaddr{addrs}, s)
-						return
 					}
-
+				case OK:
+					if ns.handleOkMsg(data, msgNameStr, pid.String()) {
+						node.stream[addrs.String()] = s
+						node.conn[addrs.String()] = SOK
+						node.routeTable.Update(pid)
+					} else {
+						ns.Bye(pid, []ma.Multiaddr{addrs}, s)
+					}
 				case BYE:
-				// case net.SYNCBLOCK:
-				// 	//check self can providing sync service
-				// 	if !node.synchronized {
-				// 		if !ns.handleBlockMsg(data, msgNameStr) {
-				// 			ns.Bye(pid, []ma.Multiaddr{addrs}, s)
-				// 		}
-				// 		node.syncList = append(node.syncList, addrs.String())
-				// 	}
-				// case net.SYNCREPLY:
-				// 	// TODO
 
-				// case net.NEWBLOCK:
-				// 	log.Info("streamHandler: [NEWBLOCK] handle new block message")
-				// 	if !ns.handleBlockMsg(data, msgNameStr) {
-				// 		ns.Bye(pid, []ma.Multiaddr{addrs}, s)
-				// 	}
 				case SYNCROUTE:
-					log.Info("streamHandler: [SYNCROUTE] handle sync route message")
-					peers := node.routeTable.NearestPeers(kbucket.ConvertPeerID(pid), node.config.maxSyncNodes)
-					var peerList []peerstore.PeerInfo
-					for i := range peers {
-						peerInfo := node.peerstore.PeerInfo(peers[i])
-						if len(peerInfo.Addrs) == 0 {
-							log.Warn("streamHandler: [SYNCROUTE] addrs is nil")
-							continue
-						}
-						peerList = append(peerList, peerInfo)
-					}
-					log.WithFields(log.Fields{
-						"peerList": peerList,
-					}).Info("streamHandler: [SYNCROUTE] handle sync route request.")
-
-					data, err := json.Marshal(peerList)
-					if err != nil {
-						log.Error("streamHandler: [SYNCROUTE] handle sync route occurs error...", err)
+					if !ns.handleSyncRouteMsg(data, msgNameStr, pid, addrs.String()) {
 						ns.Bye(pid, []ma.Multiaddr{addrs}, s)
-						return
 					}
-
-					totalData := ns.buildData(data, SYNCROUTEREPLY)
-					stream := node.stream[addrs.String()]
-					if stream == nil {
-						log.Error("streamHandler: [SYNCROUTE] send message occrus error, stream does not exist.")
-						ns.Bye(pid, []ma.Multiaddr{addrs}, s)
-						return
-					}
-					if err := Write(stream, totalData); err != nil {
-						log.Error("streamHandler: [SYNCROUTE] write data occurs error, ", err)
-						ns.Bye(pid, []ma.Multiaddr{addrs}, s)
-						return
-					}
-
-					node.routeTable.Update(pid)
-
 				case SYNCROUTEREPLY:
-					log.Infof("streamHandler: [SYNCROUTEREPLY] handle sync route reply ")
-					var sample []peerstore.PeerInfo
-
-					if err := json.Unmarshal(data, &sample); err != nil {
-						log.Error("streamHandler: [SYNCROUTEREPLY] handle sync route reply occurs error, ", err)
+					if !ns.handleSyncRouteReplyMsg(data, msgNameStr, pid, addrs.String()) {
+						ns.Bye(pid, []ma.Multiaddr{addrs}, s)
 					}
-					log.WithFields(log.Fields{
-						"sample": sample,
-					}).Info("streamHandler: [SYNCROUTEREPLY] handle sync route reply.")
-
-					for i := range sample {
-						if node.routeTable.Find(sample[i].ID) != "" || len(sample[i].Addrs) == 0 {
-							log.Warnf("streamHandler: [SYNCROUTEREPLY] node %s is already exist in route table", sample[i].ID)
-							continue
-						}
-						// Ping the peer.
-						node.peerstore.AddAddr(
-							sample[i].ID,
-							sample[i].Addrs[0],
-							peerstore.TempAddrTTL,
-						)
-
-						if err := ns.Hello(sample[i].ID); err != nil {
-							log.Errorf("streamHandler: [SYNCROUTEREPLY] ping peer %s fail %s", sample[i].ID, err)
-							continue
-						}
-						node.peerstore.AddAddr(
-							sample[i].ID,
-							sample[i].Addrs[0],
-							peerstore.PermanentAddrTTL,
-						)
-
-						// Update the routing table.
-						node.routeTable.Update(sample[i].ID)
-					}
-
 				default:
 					if node.conn[addrs.String()] != SOK {
 						log.Error("peer not shake hand before send message.")
@@ -332,19 +194,139 @@ func (ns *NetService) streamHandler(s nnet.Stream) {
 
 }
 
-func (ns *NetService) handleBlockMsg(data []byte, msgNameStr string) bool {
-	block := new(core.Block)
-	pb := new(corepb.Block)
+func (ns *NetService) handleHelloMsg(data []byte, msgNameStr string, pid string, s nnet.Stream) bool {
+	node := ns.node
+	hello := new(messages.HelloMessage)
+	pb := new(netpb.Hello)
 	if err := proto.Unmarshal(data, pb); err != nil {
-		log.Error("handleBlockMsg: unmarshal data occurs error, ", err)
+		log.Error("streamHandler: [HELLO] handle hello msg occurs error: ", err)
 		return false
 	}
-	if err := block.FromProto(pb); err != nil {
-		log.Error("handleBlockMsg: get block from proto occurs error: ", err)
+	if err := hello.FromProto(pb); err != nil {
+		log.Error("streamHandler: [HELLO] handle hello msg occurs error: ", err)
 		return false
 	}
-	msg := messages.NewBaseMessage(msgNameStr, block)
-	ns.PutMessage(msg)
+
+	log.WithFields(log.Fields{
+		"hello.NodeID":  hello.NodeID,
+		"pid":           pid,
+		"ClientVersion": hello.ClientVersion,
+	}).Info("streamHandler: [HELLO] receive hello message.")
+	if hello.NodeID == pid && hello.ClientVersion == CLIENTVERSION {
+		ok := messages.NewHelloMessage(node.id.String(), CLIENTVERSION)
+		pbok, err := ok.ToProto()
+		okdata, err := proto.Marshal(pbok)
+		if err != nil {
+			log.Error("streamHandler: [HELLO] send ok message occurs error, ", err)
+			return false
+		}
+
+		totalData := ns.buildData(okdata, OK)
+
+		if err := Write(s, totalData); err != nil {
+			log.Error("streamHandler: [HELLO] write data occurs error, ", err)
+			return false
+		}
+	}
+	return true
+}
+
+func (ns *NetService) handleOkMsg(data []byte, msgNameStr string, pid string) bool {
+	log.Info("streamHandler: [OK] handle ok message.")
+	ok := new(messages.HelloMessage)
+	pb := new(netpb.Hello)
+	if err := proto.Unmarshal(data, pb); err != nil {
+		log.Error("streamHandler: [OK] handle ok msg occurs error: ", err)
+		return false
+	}
+	if err := ok.FromProto(pb); err != nil {
+		log.Error("streamHandler: [OK] handle ok msg occurs error: ", err)
+		return false
+	}
+
+	if ok.NodeID == pid && ok.ClientVersion == CLIENTVERSION {
+		return true
+	}
+
+	log.Error("streamHandler: [OK] get incorrect response")
+	return false
+
+}
+
+func (ns *NetService) handleSyncRouteMsg(data []byte, msgNameStr string, pid peer.ID, addrs string) bool {
+	node := ns.node
+	log.Info("streamHandler: [SYNCROUTE] handle sync route message")
+	peers := node.routeTable.NearestPeers(kbucket.ConvertPeerID(pid), node.config.maxSyncNodes)
+	var peerList []peerstore.PeerInfo
+	for i := range peers {
+		peerInfo := node.peerstore.PeerInfo(peers[i])
+		if len(peerInfo.Addrs) == 0 {
+			log.Warn("streamHandler: [SYNCROUTE] addrs is nil")
+			continue
+		}
+		peerList = append(peerList, peerInfo)
+	}
+	log.WithFields(log.Fields{
+		"peerList": peerList,
+	}).Info("streamHandler: [SYNCROUTE] handle sync route request.")
+
+	data, err := json.Marshal(peerList)
+	if err != nil {
+		log.Error("streamHandler: [SYNCROUTE] handle sync route occurs error...", err)
+		return false
+	}
+
+	totalData := ns.buildData(data, SYNCROUTEREPLY)
+	stream := node.stream[addrs]
+	if stream == nil {
+		log.Error("streamHandler: [SYNCROUTE] send message occrus error, stream does not exist.")
+		return false
+	}
+	if err := Write(stream, totalData); err != nil {
+		log.Error("streamHandler: [SYNCROUTE] write data occurs error, ", err)
+		return false
+	}
+	node.routeTable.Update(pid)
+	return true
+}
+
+func (ns *NetService) handleSyncRouteReplyMsg(data []byte, msgNameStr string, pid peer.ID, addrs string) bool {
+	node := ns.node
+	log.Infof("streamHandler: [SYNCROUTEREPLY] handle sync route reply ")
+	var sample []peerstore.PeerInfo
+
+	if err := json.Unmarshal(data, &sample); err != nil {
+		log.Error("streamHandler: [SYNCROUTEREPLY] handle sync route reply occurs error, ", err)
+		return false
+	}
+	log.WithFields(log.Fields{
+		"sample": sample,
+	}).Info("streamHandler: [SYNCROUTEREPLY] handle sync route reply.")
+
+	for i := range sample {
+		if node.routeTable.Find(sample[i].ID) != "" || len(sample[i].Addrs) == 0 {
+			log.Warnf("streamHandler: [SYNCROUTEREPLY] node %s is already exist in route table", sample[i].ID)
+			continue
+		}
+		// Ping the peer.
+		node.peerstore.AddAddr(
+			sample[i].ID,
+			sample[i].Addrs[0],
+			peerstore.TempAddrTTL,
+		)
+
+		if err := ns.Hello(sample[i].ID); err != nil {
+			log.Errorf("streamHandler: [SYNCROUTEREPLY] ping peer %s fail %s", sample[i].ID, err)
+			continue
+		}
+		node.peerstore.AddAddr(
+			sample[i].ID,
+			sample[i].Addrs[0],
+			peerstore.PermanentAddrTTL,
+		)
+		// Update the routing table.
+		node.routeTable.Update(sample[i].ID)
+	}
 	return true
 }
 
