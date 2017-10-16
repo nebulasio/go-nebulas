@@ -90,5 +90,5 @@ func TestBlockPool(t *testing.T) {
 	pool.Push(block1)
 	assert.Equal(t, pool.blockCache.Len(), 0)
 	err := pool.Push(block1)
-	assert.Equal(t, err, ErrDuplicateBlock)
+	assert.Equal(t, err, nil)
 }

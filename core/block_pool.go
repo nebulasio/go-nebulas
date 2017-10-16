@@ -156,27 +156,46 @@ func (pool *BlockPool) loop() {
 	}
 }
 
+func mockBlockFromNetwork(block *Block) (*Block, error) {
+	pbBlock, err := block.ToProto()
+	if err != nil {
+		return nil, err
+	}
+	bytes, err := proto.Marshal(pbBlock)
+	if err := proto.Unmarshal(bytes, pbBlock); err != nil {
+		return nil, err
+	}
+	block = new(Block)
+	block.FromProto(pbBlock)
+	return block, nil
+}
+
 // Push block into block pool
 func (pool *BlockPool) Push(block *Block) error {
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
-	// mock network
-	pbBlock, err := block.ToProto()
+
+	block, err := mockBlockFromNetwork(block)
 	if err != nil {
-		return err
+		return nil
 	}
-	bytes, err := proto.Marshal(pbBlock)
-	if err := proto.Unmarshal(bytes, pbBlock); err != nil {
-		return err
+	pushErr := pool.push(block)
+	if pushErr != ErrDuplicateBlock {
+		return pushErr
 	}
-	block = new(Block)
-	block.FromProto(pbBlock)
-	return pool.push(block)
+	return nil
 }
 
 // PushAndRelay push block into block pool and relay it.
 func (pool *BlockPool) PushAndRelay(block *Block) error {
-	if err := pool.Push(block); err != nil && err != ErrDuplicateBlock {
+	pool.mu.Lock()
+	defer pool.mu.Unlock()
+
+	block, err := mockBlockFromNetwork(block)
+	if err != nil {
+		return nil
+	}
+	if err := pool.push(block); err != nil {
 		return err
 	}
 	pool.nm.Relay(MessageTypeNewBlock, block)
@@ -185,7 +204,14 @@ func (pool *BlockPool) PushAndRelay(block *Block) error {
 
 // PushAndBroadcast push block into block pool and broadcast it.
 func (pool *BlockPool) PushAndBroadcast(block *Block) error {
-	if err := pool.Push(block); err != nil && err != ErrDuplicateBlock {
+	pool.mu.Lock()
+	defer pool.mu.Unlock()
+
+	block, err := mockBlockFromNetwork(block)
+	if err != nil {
+		return nil
+	}
+	if err := pool.push(block); err != nil {
 		return err
 	}
 	pool.nm.Broadcast(MessageTypeNewBlock, block)

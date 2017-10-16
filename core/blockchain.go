@@ -229,11 +229,12 @@ func (bc *BlockChain) Dump() string {
 	for block := bc.tailBlock; block != nil; block = block.parenetBlock {
 		rl = append(rl,
 			fmt.Sprintf(
-				"{%d, hash: %s, parent: %s, stateRoot: %s}",
+				"{%d, hash: %s, parent: %s, stateRoot: %s, coinbase: %s}",
 				block.height,
 				block.Hash().Hex(),
 				block.ParentHash().Hex(),
 				block.StateRoot().Hex(),
+				block.header.coinbase.address.Hex(),
 			))
 	}
 	rls := strings.Join(rl, " --> ")
