@@ -128,6 +128,11 @@ func (n *Neblet) Stop() error {
 	return nil
 }
 
+// Config returns neblet configuration.
+func (n *Neblet) Config() nebletpb.Config {
+	return n.config
+}
+
 // BlockChain returns block chain reference.
 func (n *Neblet) BlockChain() *core.BlockChain {
 	return n.blockChain

@@ -3,17 +3,20 @@ package rpc
 import (
 	"net"
 
+	"fmt"
+
 	"github.com/nebulasio/go-nebulas/account"
 	"github.com/nebulasio/go-nebulas/core"
+	"github.com/nebulasio/go-nebulas/neblet/pb"
 	"github.com/nebulasio/go-nebulas/rpc/pb"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 )
 
-const (
-	// TODO: Load from config.
-	address = "127.0.0.1:50007"
+var (
+	host = "127.0.0.1"
+	port = uint32(51510)
 )
 
 // Server is the RPC server type.
@@ -25,12 +28,16 @@ type Server struct {
 
 // Neblet interface breaks cycle import dependency and hides unused services.
 type Neblet interface {
+	Config() nebletpb.Config
 	BlockChain() *core.BlockChain
 	AccountManager() *account.Manager
 }
 
 // NewServer creates a new RPC server and registers the API endpoints.
 func NewServer(neblet Neblet) *Server {
+	cfg := neblet.Config()
+	port = cfg.Rpc.Port
+
 	rpc := grpc.NewServer()
 	srv := &Server{neblet: neblet, rpcServer: rpc}
 	api := &APIService{srv}
@@ -71,5 +78,6 @@ func (s *Server) Neblet() Neblet {
 
 // Address returns the RPC server address.
 func Address() string {
-	return address
+	addr := fmt.Sprintf("%s:%d", host, port)
+	return addr
 }
