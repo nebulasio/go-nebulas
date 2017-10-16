@@ -1,4 +1,5 @@
 # Neb configuration text file. Scheme is defined in neblet/pb/config.proto:Config.
+# this is a seed node config.
 
 p2p {
 	port: 51413
@@ -20,6 +21,6 @@ account {
 	encrypt: 16
 
 	key_dir: "testKey"
-	
+
 	test_passphrase: "passphrase"
 }

@@ -4,7 +4,7 @@ p2p {
 }
 
 rpc {
-	port: 51511
+	port: 51510
 }
 
 pow {
@@ -19,6 +19,6 @@ account {
 	encrypt: 16
 
 	key_dir: "testKey"
-	
+
 	test_passphrase: "passphrase"
 }
