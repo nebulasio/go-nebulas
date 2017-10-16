@@ -23,8 +23,6 @@ import (
 	"github.com/nebulasio/go-nebulas/rpc/pb"
 	"github.com/nebulasio/go-nebulas/util"
 	"golang.org/x/net/context"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 // APIService implements the RPC API service interface.
@@ -34,10 +32,6 @@ type APIService struct {
 
 // GetAccountState is the RPC API handler.
 func (s *APIService) GetAccountState(ctx context.Context, req *rpcpb.GetAccountStateRequest) (*rpcpb.GetAccountStateResponse, error) {
-	if len(req.Address) == 0 {
-		return nil, status.Errorf(codes.InvalidArgument, "Address is empty.")
-	}
-
 	neb := s.server.Neblet()
 
 	addr, err := core.AddressParse(req.Address)
@@ -57,10 +51,6 @@ func (s *APIService) GetAccountState(ctx context.Context, req *rpcpb.GetAccountS
 
 // SendTransaction is the RPC API handler.
 func (s *APIService) SendTransaction(ctx context.Context, req *rpcpb.SendTransactionRequest) (*rpcpb.SendTransactionResponse, error) {
-	if len(req.From) == 0 {
-		return nil, status.Errorf(codes.InvalidArgument, "Sender address is empty.")
-	}
-
 	// Validate and sign the tx, then submit it to the tx pool.
 	neb := s.server.Neblet()
 
