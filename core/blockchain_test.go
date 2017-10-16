@@ -93,18 +93,22 @@ func TestBlockChain_FindCommonAncestorWithTail(t *testing.T) {
 	bc.SetTailBlock(block11)
 	assert.Equal(t, bc.txPool.cache.Len(), 2)
 	block111 := bc.NewBlock(coinbase111)
-	block111.header.hash = HashBlock(block111)
+	block111.CollectTransactions(0)
+	block111.Seal()
 	bc.BlockPool().Push(block111)
 	bc.SetTailBlock(block12)
 	block221 := bc.NewBlock(coinbase221)
 	block222 := bc.NewBlock(coinbase222)
-	block221.header.hash = HashBlock(block221)
-	block222.header.hash = HashBlock(block222)
+	block221.CollectTransactions(0)
+	block221.Seal()
+	block222.CollectTransactions(0)
+	block222.Seal()
 	bc.BlockPool().Push(block221)
 	bc.BlockPool().Push(block222)
 	bc.SetTailBlock(block111)
 	block1111 := bc.NewBlock(coinbase1111)
-	block1111.header.hash = HashBlock(block1111)
+	block1111.CollectTransactions(0)
+	block1111.Seal()
 	bc.BlockPool().Push(block1111)
 	bc.SetTailBlock(block222)
 	test := &Block{
@@ -137,11 +141,13 @@ func TestBlockChain_FetchDescendantInCanonicalChain(t *testing.T) {
 	*/
 	block := bc.NewBlock(coinbase)
 	block.header.timestamp = 0
-	block.header.hash = HashBlock(block)
+	block.CollectTransactions(0)
+	block.Seal()
 	bc.BlockPool().Push(block)
 	block1 := bc.NewBlock(coinbase)
 	block1.header.timestamp = 1
-	block1.header.hash = HashBlock(block1)
+	block1.CollectTransactions(0)
+	block1.Seal()
 	bc.BlockPool().Push(block1)
 
 	var blocks []*Block
@@ -151,7 +157,8 @@ func TestBlockChain_FetchDescendantInCanonicalChain(t *testing.T) {
 			block.header.timestamp = blocks[i-1].header.timestamp + 1
 		}
 		blocks = append(blocks, block)
-		block.header.hash = HashBlock(block)
+		block.CollectTransactions(0)
+		block.Seal()
 		bc.BlockPool().Push(block)
 		bc.SetTailBlock(block)
 	}

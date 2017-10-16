@@ -9,7 +9,7 @@ rpc {
 }
 
 pow {
-	coinbase: "22ac3a9a2b1c31b7a9084e46eae16e761f83f02324092b09"
+	coinbase: "8a209cec02cbeab7e2f74ad969d2dfe8dd24416aa65589bf"
 }
 
 account {
@@ -19,6 +19,6 @@ account {
 	encrypt:	16
 
 	keyDir: "testKey"
-	
+
 	testPassphrase: "passphrase"
 }

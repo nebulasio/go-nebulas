@@ -20,6 +20,7 @@ package core
 
 import (
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/gogo/protobuf/proto"
@@ -113,6 +114,15 @@ func (tx *Transaction) FromProto(msg proto.Message) error {
 		return nil
 	}
 	return errors.New("Pb Message cannot be converted into Transaction")
+}
+
+func (tx *Transaction) String() string {
+	return fmt.Sprintf("Tx {from:%s; to:%s; nonce:%d, value: %d}",
+		byteutils.Hex(tx.from.address),
+		byteutils.Hex(tx.to.address),
+		tx.nonce,
+		tx.value.Int64(),
+	)
 }
 
 // Transactions is an alias of Transaction array.
