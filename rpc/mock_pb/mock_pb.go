@@ -6,10 +6,11 @@ package mock_pb
 
 import (
 	context "context"
+	reflect "reflect"
+
 	gomock "github.com/golang/mock/gomock"
 	pb "github.com/nebulasio/go-nebulas/rpc/pb"
 	grpc "google.golang.org/grpc"
-	reflect "reflect"
 )
 
 // MockAPIServiceClient is a mock of APIServiceClient interface
