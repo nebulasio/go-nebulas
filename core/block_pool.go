@@ -21,11 +21,18 @@ package core
 import (
 	"sync"
 
+	"errors"
+
 	"github.com/gogo/protobuf/proto"
 	"github.com/hashicorp/golang-lru"
 	"github.com/nebulasio/go-nebulas/components/net"
 	"github.com/nebulasio/go-nebulas/core/pb"
 	log "github.com/sirupsen/logrus"
+)
+
+// Errors in block
+var (
+	ErrDuplicateBlock = errors.New("duplicate err")
 )
 
 // BlockPool a pool of all received blocks from network.
@@ -169,7 +176,7 @@ func (pool *BlockPool) Push(block *Block) error {
 
 // PushAndRelay push block into block pool and relay it.
 func (pool *BlockPool) PushAndRelay(block *Block) error {
-	if err := pool.Push(block); err != nil {
+	if err := pool.Push(block); err != nil && err != ErrDuplicateBlock {
 		return err
 	}
 	pool.nm.Relay(MessageTypeNewBlock, block)
@@ -178,7 +185,7 @@ func (pool *BlockPool) PushAndRelay(block *Block) error {
 
 // PushAndBroadcast push block into block pool and broadcast it.
 func (pool *BlockPool) PushAndBroadcast(block *Block) error {
-	if err := pool.Push(block); err != nil {
+	if err := pool.Push(block); err != nil && err != ErrDuplicateBlock {
 		return err
 	}
 	pool.nm.Broadcast(MessageTypeNewBlock, block)
@@ -188,7 +195,7 @@ func (pool *BlockPool) PushAndBroadcast(block *Block) error {
 func (pool *BlockPool) push(block *Block) error {
 	if pool.blockCache.Contains(block.Hash().Hex()) ||
 		pool.bc.GetBlock(block.Hash()) != nil {
-		return nil
+		return ErrDuplicateBlock
 	}
 
 	// verify nonce.
