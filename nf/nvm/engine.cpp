@@ -18,7 +18,6 @@
 //
 
 #include "engine.h"
-#include "_cgo_export.h"
 
 #include <llvm/ExecutionEngine/ExecutionEngine.h>
 #include <llvm/ExecutionEngine/GenericValue.h>
@@ -37,6 +36,8 @@
 #include <stdlib.h>
 
 using namespace llvm;
+
+extern void LogError(const char *msg);
 
 void Initialize() {
   // Initialization.
