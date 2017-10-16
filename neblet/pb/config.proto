@@ -61,8 +61,8 @@ message AccountConfig {
     uint32 encrypt = 2;
 
 	// Account key file directory
-	string keyDir = 3;
+	string key_dir = 3;
 
 	// Account test keyfile's passphrase
-	string testPassphrase = 4;
+	string test_passphrase = 4;
 }

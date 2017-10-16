@@ -59,7 +59,7 @@ func main() {
 		cli.StringFlag{
 			Name:        "config, c",
 			Usage:       "load configuration from `FILE`",
-			Value:       "/Users/shangshu/workspace/blockchain/src/github.com/nebulasio/go-nebulas/config.pb.txt",
+			Value:       "config.pb.txt",
 			Destination: &config,
 		},
 	}
