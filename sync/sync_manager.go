@@ -246,7 +246,7 @@ func (m *Manager) cacheListChangeHandle() {
 					for k := range m.cacheList {
 						delete(m.cacheList, k)
 					}
-					log.Error("StartMsgHandle: push a block to pool occrus error, ", err)
+					log.Warn("StartMsgHandle: push a block to pool occrus error, ", err)
 					m.syncCh <- true
 					return
 				}
@@ -256,7 +256,7 @@ func (m *Manager) cacheListChangeHandle() {
 		syncContinue := false
 		for i := 0; i < len(addrsArray); i++ {
 			if len(m.cacheList[addrsArray[0]].blocks) > DescendantCount {
-				log.Error("StartMsgHandle: more DescendantCount go to next sync")
+				log.Info("StartMsgHandle: more Descendant need to synchronize, go to next synchronization")
 				syncContinue = true
 			}
 		}
