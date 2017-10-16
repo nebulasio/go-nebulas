@@ -49,7 +49,7 @@ type Transaction struct {
 	to        *Address
 	value     *util.Uint128
 	nonce     uint64
-	timestamp time.Time
+	timestamp int64
 	data      []byte
 	chainID   uint32
 
@@ -85,7 +85,7 @@ func (tx *Transaction) ToProto() (proto.Message, error) {
 		To:        tx.to.address,
 		Value:     value,
 		Nonce:     tx.nonce,
-		Timestamp: tx.timestamp.UnixNano(),
+		Timestamp: tx.timestamp,
 		Data:      tx.data,
 		ChainId:   tx.chainID,
 		Alg:       uint32(tx.alg),
@@ -105,7 +105,7 @@ func (tx *Transaction) FromProto(msg proto.Message) error {
 		}
 		tx.value = value
 		tx.nonce = msg.Nonce
-		tx.timestamp = time.Unix(0, msg.Timestamp)
+		tx.timestamp = msg.Timestamp
 		tx.data = msg.Data
 		tx.chainID = msg.ChainId
 		tx.alg = uint8(msg.Alg)
@@ -125,7 +125,7 @@ func NewTransaction(chainID uint32, from, to *Address, value *util.Uint128, nonc
 		to:        to,
 		value:     value,
 		nonce:     nonce,
-		timestamp: time.Now(),
+		timestamp: time.Now().Unix(),
 		chainID:   chainID,
 		data:      data,
 	}
@@ -207,7 +207,7 @@ func HashTransaction(tx *Transaction) (Hash, error) {
 		tx.to.address,
 		bytes,
 		byteutils.FromUint64(tx.nonce),
-		byteutils.FromInt64(tx.timestamp.UnixNano()),
+		byteutils.FromInt64(tx.timestamp),
 		tx.data,
 		byteutils.FromUint32(tx.chainID),
 	), nil

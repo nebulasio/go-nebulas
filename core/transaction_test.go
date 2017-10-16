@@ -35,7 +35,7 @@ func TestTransaction(t *testing.T) {
 		to        *Address
 		value     *util.Uint128
 		nonce     uint64
-		timestamp time.Time
+		timestamp int64
 		alg       uint8
 		data      []byte
 	}
@@ -51,7 +51,7 @@ func TestTransaction(t *testing.T) {
 				&Address{[]byte("1245")},
 				util.NewUint128(),
 				456,
-				time.Now(),
+				time.Now().Unix(),
 				12,
 				[]byte("hwllo"),
 			}),
