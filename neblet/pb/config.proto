@@ -23,6 +23,9 @@ message Config {
 	// P2P network config.
     P2PConfig p2p  = 1;
 
+	// RPC server config.
+	RPCConfig rpc  = 2;
+
 	// TODO: more configs.
 }
 
@@ -34,3 +37,7 @@ message P2PConfig {
 	uint32 port = 2;
 }
 
+message RPCConfig {
+	// RPC server listening port number.
+	uint32 port = 1;
+}
