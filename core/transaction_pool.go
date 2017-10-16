@@ -22,8 +22,10 @@ import (
 	"errors"
 	"sync"
 
+	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/common/pdeque"
 	"github.com/nebulasio/go-nebulas/components/net"
+	"github.com/nebulasio/go-nebulas/core/pb"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
 	log "github.com/sirupsen/logrus"
 )
@@ -115,7 +117,16 @@ func (pool *TransactionPool) loop() {
 				continue
 			}
 
-			tx := msg.Data().(*Transaction)
+			tx := new(Transaction)
+			pbTx := new(corepb.Transaction)
+			if err := proto.Unmarshal(msg.Data().([]byte), pbTx); err != nil {
+				log.Error("TxPool.loop:: unmarshal data occurs error, ", err)
+				continue
+			}
+			if err := tx.FromProto(pbTx); err != nil {
+				log.Error("TxPool.loop:: get block from proto occurs error: ", err)
+				continue
+			}
 			if err := pool.PushAndRelay(tx); err != nil {
 				log.WithFields(log.Fields{
 					"func":        "TxPool.loop",
