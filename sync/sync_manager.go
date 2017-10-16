@@ -71,10 +71,8 @@ func (m *Manager) Start() {
 	} else {
 		log.Info("Sync.Start: i am a seed node.")
 		m.ns.Node().SetSynchronized(true)
-		m.consensus.Start()
+		m.consensus.SetCanMining(true)
 	}
-	// TODO(@leon): start mining after consensus
-	// m.consensus.Start()
 }
 
 // StartSync start sync loop
@@ -88,7 +86,7 @@ func (m *Manager) StartSync() {
 				break Loop
 			case <-m.endSyncCh:
 				m.ns.Node().SetSynchronized(true)
-				m.consensus.Start()
+				m.consensus.SetCanMining(true)
 				break Loop
 			case <-m.syncCh:
 				m.syncWithTail()

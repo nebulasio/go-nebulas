@@ -1,4 +1,8 @@
 p2p {
 	port: 10001
-    seed: "/ip4/192.168.1.18/tcp/51413/ipfs/QmVMamgHNoR8GBUbq4r9BTFzod5F2BvhSgaGLVxPpXcWNm"
+    seed: "/ip4/192.168.1.20/tcp/51413/ipfs/QmVMamgHNoR8GBUbq4r9BTFzod5F2BvhSgaGLVxPpXcWNm"
+}
+
+rpc {
+port: 10002
 }

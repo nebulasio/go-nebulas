@@ -24,12 +24,16 @@ import "github.com/nebulasio/go-nebulas/core"
 const (
 	NetMessageEvent = "event.netmessage"
 	NewBlockEvent   = "event.newblock"
+	CanMiningEvent  = "event.canmining"
 )
 
 // Consensus interface of consensus algorithm.
 type Consensus interface {
 	Start()
 	Stop()
+
+	CanMining() bool
+	SetCanMining(bool)
 
 	TransitByKey(nextStateKey string, data interface{})
 	Transit(nextState State, data interface{})

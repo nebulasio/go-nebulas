@@ -72,7 +72,7 @@ func (state *MintedState) Enter(data interface{}) {
 	}
 
 	// move to prepare state.
-	state.p.TransitByKey(Prepare, nil)
+	state.p.TransitByKey(Start, nil)
 }
 
 // Leave called when leaving this state.

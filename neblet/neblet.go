@@ -85,8 +85,7 @@ func (n *Neblet) Start() error {
 	n.netService.Start()
 	n.blockChain.BlockPool().Start()
 	n.blockChain.TransactionPool().Start()
-	// mining will start after sync over.
-	// n.consensus.Start()
+	n.consensus.Start()
 	n.snycManager.Start()
 	go n.rpcServer.Start()
 

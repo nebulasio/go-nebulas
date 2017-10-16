@@ -61,6 +61,8 @@ type Pow struct {
 
 	miningBlock      *core.Block
 	newBlockReceived bool
+
+	canMining bool
 }
 
 type stateTransitionArgs struct {
@@ -75,15 +77,17 @@ func NewPow(bc *core.BlockChain, nm net.Manager) *Pow {
 		nm:                nm,
 		quitCh:            make(chan bool, 5),
 		stateTransitionCh: make(chan *stateTransitionArgs, 10),
+		canMining:         false,
 	}
 
 	p.states = consensus.States{
 		Mining:  NewMiningState(p),
 		Minted:  NewMintedState(p),
 		Prepare: NewPrepareState(p),
+		Start:   NewStartState(p),
 		Stopped: NewStoppedState(p),
 	}
-	p.currentState = p.states[Prepare]
+	p.currentState = p.states[Start]
 
 	return p
 }
@@ -102,6 +106,17 @@ func (p *Pow) Stop() {
 	// cleanup.
 	p.quitCh <- true
 	p.quitCh <- true
+}
+
+// CanMining return if consensus can do mining now
+func (p *Pow) CanMining() bool {
+	return p.canMining
+}
+
+// SetCanMining set if consensus can do mining now
+func (p *Pow) SetCanMining(canMining bool) {
+	p.canMining = canMining
+	p.Event(consensus.NewBaseEvent(consensus.CanMiningEvent, nil))
 }
 
 /*
