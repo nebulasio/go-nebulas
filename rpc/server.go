@@ -4,7 +4,6 @@ import (
 	"net"
 
 	"github.com/nebulasio/go-nebulas/account"
-	"github.com/nebulasio/go-nebulas/components/net/p2p"
 	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/rpc/pb"
 	log "github.com/sirupsen/logrus"
@@ -24,11 +23,10 @@ type Server struct {
 	rpcServer *grpc.Server
 }
 
-// Neblet interface breaks cycle import.
+// Neblet interface breaks cycle import dependency and hides unused services.
 type Neblet interface {
 	BlockChain() *core.BlockChain
 	AccountManager() *account.Manager
-	NetService() *p2p.NetService
 }
 
 // NewServer creates a new RPC server and registers the API endpoints.
