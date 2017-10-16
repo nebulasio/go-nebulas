@@ -46,7 +46,7 @@ func (s *APIService) GetAccountState(ctx context.Context, req *rpcpb.GetAccountS
 	if err != nil {
 		return nil, err
 	}
-	return &rpcpb.GetAccountStateResponse{Balance: fsb, TransactionCount: acct.Nonce}, nil
+	return &rpcpb.GetAccountStateResponse{Balance: fsb, Nonce: acct.Nonce}, nil
 }
 
 // SendTransaction is the RPC API handler.
