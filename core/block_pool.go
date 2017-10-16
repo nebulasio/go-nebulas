@@ -133,7 +133,6 @@ func (pool *BlockPool) loop() {
 				continue
 			}
 
-			// verify signature.
 			block := new(Block)
 			pbblock := new(corepb.Block)
 			if err := proto.Unmarshal(msg.Data().([]byte), pbblock); err != nil {
