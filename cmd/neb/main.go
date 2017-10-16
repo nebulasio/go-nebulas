@@ -29,9 +29,6 @@ import (
 	"time"
 
 	"github.com/gogo/protobuf/proto"
-	"github.com/nebulasio/go-nebulas/core"
-	"github.com/nebulasio/go-nebulas/crypto/keystore"
-	"github.com/nebulasio/go-nebulas/crypto/keystore/secp256k1"
 	"github.com/nebulasio/go-nebulas/neblet"
 	"github.com/nebulasio/go-nebulas/neblet/pb"
 	"github.com/nebulasio/go-nebulas/util/logging"
@@ -48,9 +45,6 @@ var (
 )
 
 func main() {
-
-	// TODO(larry.wang):add test address to keystore,later remove
-	addTestAddress()
 
 	app := cli.NewApp()
 	app.Action = neb
@@ -125,16 +119,4 @@ func loadConfig(filename string) *nebletpb.Config {
 	}
 	log.Info("Loaded Neb config proto ", pb)
 	return pb
-}
-
-// add test address to keystore
-func addTestAddress() {
-	ks := keystore.DefaultKS
-	for i := 0; i < 3; i++ {
-		priv, _ := secp256k1.GeneratePrivateKey()
-		pubdata, _ := priv.PublicKey().Encoded()
-		addr, _ := core.NewAddressFromPublicKey(pubdata)
-		ks.SetKey(addr.ToHex(), priv, []byte("passphrase"))
-		ks.Unlock(addr.ToHex(), []byte("passphrase"), time.Second*60*60*24*365)
-	}
 }

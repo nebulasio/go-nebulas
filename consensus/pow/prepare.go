@@ -19,7 +19,6 @@
 package pow
 
 import (
-	"github.com/nebulasio/go-nebulas/account"
 	"github.com/nebulasio/go-nebulas/consensus"
 	log "github.com/sirupsen/logrus"
 )
@@ -52,20 +51,14 @@ func (state *PrepareState) Enter(data interface{}) {
 
 	p := state.p
 
-	//TODO(larry.wang):later remove test address
-	acc := account.NewManager()
-	addr, _ := acc.NewAccount([]byte("passphrase"))
-
 	if p.miningBlock == nil {
 		// start mining from chain tail.
-		p.miningBlock = state.p.chain.NewBlock(addr)
-		//TODO(larry.wang):test trans
+		p.miningBlock = state.p.chain.NewBlock(p.coinbase)
 		p.miningBlock.CollectTransactions(2)
 	} else if p.miningBlock.Sealed() {
 		// start mining from local minted block.
 		parentBlock := p.miningBlock
-		p.miningBlock = state.p.chain.NewBlockFromParent(addr, parentBlock)
-		//TODO(larry.wang):test trans
+		p.miningBlock = state.p.chain.NewBlockFromParent(p.coinbase, parentBlock)
 		p.miningBlock.CollectTransactions(2)
 	}
 

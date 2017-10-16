@@ -39,7 +39,7 @@ func main() {
 	ac := rpcpb.NewAPIServiceClient(conn)
 
 	{
-		r, err := ac.GetAccountState(context.Background(), &rpcpb.GetAccountStateRequest{Address: "63be34931afd4374a7d8a447f6605600269c47a015fa7974"})
+		r, err := ac.GetAccountState(context.Background(), &rpcpb.GetAccountStateRequest{Address: "8a209cec02cbeab7e2f74ad969d2dfe8dd24416aa65589bf"})
 		if err != nil {
 			log.Println("GetAccountState failed: ", err)
 		} else {
@@ -50,7 +50,7 @@ func main() {
 	{
 		v := util.NewUint128FromInt(1)
 		fsb, _ := v.ToFixedSizeByteSlice()
-		r, err := ac.SendTransaction(context.Background(), &rpcpb.SendTransactionRequest{From: "0e52d180a1a7a73afa01df81bf94256501b3227556926fc8", To: "23fce6306fff1bdf5c950092f0604d5113401a9ab6ebdeb9", Value: fsb})
+		r, err := ac.SendTransaction(context.Background(), &rpcpb.SendTransactionRequest{From: "8a209cec02cbeab7e2f74ad969d2dfe8dd24416aa65589bf", To: "22ac3a9a2b1c31b7a9084e46eae16e761f83f02324092b09", Value: fsb})
 		if err != nil {
 			log.Println("SendTransaction failed: ", err)
 		} else {
