@@ -174,7 +174,6 @@ func mockBlockFromNetwork(block *Block) (*Block, error) {
 func (pool *BlockPool) Push(block *Block) error {
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
-
 	block, err := mockBlockFromNetwork(block)
 	if err != nil {
 		return nil

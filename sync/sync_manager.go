@@ -30,6 +30,11 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// const
+const (
+	DescendantCount = 3
+)
+
 // Manager is used to manage the sync service
 type Manager struct {
 	blockChain         *core.BlockChain
@@ -39,15 +44,13 @@ type Manager struct {
 	syncCh             chan bool
 	receiveTailCh      chan net.Message
 	receiveSyncReplyCh chan net.Message
-	quitPreSync        chan bool
 	cacheList          map[string]*NetBlocks
-	cacheListChangeCh  chan bool
 	endSyncCh          chan bool
 }
 
 // NewManager new sync manager
 func NewManager(blockChain *core.BlockChain, consensus consensus.Consensus, ns *p2p.NetService) *Manager {
-	m := &Manager{blockChain, consensus, ns, make(chan bool), make(chan bool), make(chan net.Message, 128), make(chan net.Message, 128), make(chan bool), make(map[string]*NetBlocks), make(chan bool), make(chan bool)}
+	m := &Manager{blockChain, consensus, ns, make(chan bool), make(chan bool), make(chan net.Message, 128), make(chan net.Message, 128), make(map[string]*NetBlocks), make(chan bool)}
 	m.RegisterSyncBlockInNetwork(ns)
 	m.RegisterSyncReplyInNetwork(ns)
 	return m
@@ -138,7 +141,7 @@ func (m *Manager) StartMsgHandle() {
 					log.Warn("StartMsgHandle.receiveTailCh: find common ancestor with tail occurs error, ", err)
 					continue
 				}
-				subsequentBlocks, err := m.blockChain.FetchDescendantInCanonicalChain(10, ancestor)
+				subsequentBlocks, err := m.blockChain.FetchDescendantInCanonicalChain(DescendantCount, ancestor)
 				if err != nil {
 					log.Warn("StartMsgHandle.receiveTailCh: FetchDescendantInCanonicalChain occurs error, ", err)
 					continue
@@ -175,7 +178,6 @@ func (m *Manager) StartMsgHandle() {
 				}).Info("StartMsgHandle.receiveSyncReplyCh: receive receiveSyncReplyCh message.")
 
 				if len(blocks) > 0 && len(m.cacheList) < p2p.LimitToSync {
-					log.Info("xxxxxxxxx1")
 					m.cacheList[data.from] = data
 					go m.cacheListChangeHandle()
 				} else {
@@ -219,16 +221,19 @@ func (m *Manager) cacheListChangeHandle() {
 			}
 		}
 
+		root := m.cacheList[addrsArray[0]].blocks
+
 		log.WithFields(log.Fields{
 			"tempList":        tempList,
 			"ancestorList":    ancestorList,
 			"addrsArray":      addrsArray,
 			"cacheList":       m.cacheList,
 			"len(addrsArray)": len(addrsArray),
+			"root":            root,
 		}).Info("StartMsgHandle.cacheListChangeCh: receive cacheListChangeCh message.")
-		root := m.cacheList[addrsArray[0]].blocks
+
 		for i := 0; i < len(root)-1; i++ {
-			count := 0
+			count := 1
 			for j := 1; j < len(addrsArray); j++ {
 				temp := m.cacheList[addrsArray[j]].blocks
 				if root[i].Hash().String() == temp[i].Hash().String() {
@@ -241,7 +246,7 @@ func (m *Manager) cacheListChangeHandle() {
 					for k := range m.cacheList {
 						delete(m.cacheList, k)
 					}
-
+					log.Error("StartMsgHandle: push a block to pool occrus error, ", err)
 					m.syncCh <- true
 					return
 				}
@@ -250,7 +255,8 @@ func (m *Manager) cacheListChangeHandle() {
 
 		syncContinue := false
 		for i := 0; i < len(addrsArray); i++ {
-			if len(m.cacheList[addrsArray[0]].blocks) > 10 {
+			if len(m.cacheList[addrsArray[0]].blocks) > DescendantCount {
+				log.Error("StartMsgHandle: more DescendantCount go to next sync")
 				syncContinue = true
 			}
 		}
