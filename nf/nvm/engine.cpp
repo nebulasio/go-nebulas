@@ -68,7 +68,10 @@ Engine *CreateEngine(const char *irPath) {
   passMgr->add(createCFGSimplificationPass());
   passMgr->add(createDeadCodeEliminationPass());
   passMgr->add(createGVNPass());
-  if (passMgr->run(*module)) {
+  passMgr->run(*module);
+
+  if (false) {
+    // TODO: @robin, invalid IR file should be quit.
     LogError("running pass failed.");
     delete passMgr;
     delete context;
