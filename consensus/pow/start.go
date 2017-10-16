@@ -56,7 +56,7 @@ func (state *StartState) Event(e consensus.Event) (bool, consensus.State) {
 func (state *StartState) Enter(data interface{}) {
 	log.Debug("StartState enter.")
 	if state.p.CanMining() {
-		state.p.TransitByKey(Prepare, nil)
+		state.p.TransitByKey(Start, Prepare, nil)
 	}
 }
 

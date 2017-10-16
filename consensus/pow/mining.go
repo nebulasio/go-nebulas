@@ -51,8 +51,6 @@ func NewMiningState(p *Pow) *MiningState {
 // Event handle event.
 func (state *MiningState) Event(e consensus.Event) (bool, consensus.State) {
 	switch e.EventType() {
-	case consensus.CanMiningEvent:
-		return true, state.p.states[Prepare]
 	case consensus.NewBlockEvent:
 		return true, state.p.states[Minted]
 	default:
@@ -78,7 +76,7 @@ func (state *MiningState) searchingNonce() {
 	// transit to MintedState if newBlockReceived is true.
 	if state.p.newBlockReceived {
 		log.Info("MiningState.Enter: new block received, transit to MintedState.")
-		state.p.TransitByKey(Minted, nil)
+		state.p.TransitByKey(Mining, Minted, nil)
 
 	} else {
 		// calculate hash.
@@ -111,7 +109,7 @@ func (state *MiningState) searchingNonce() {
 					// seal block.
 					miningBlock.Seal()
 
-					state.p.TransitByKey(Minted, nil)
+					state.p.TransitByKey(Mining, Minted, nil)
 
 					// break this for loop.
 					break computeHash

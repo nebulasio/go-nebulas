@@ -66,8 +66,9 @@ type Pow struct {
 }
 
 type stateTransitionArgs struct {
-	nextState consensus.State
-	data      interface{}
+	from consensus.State
+	to   consensus.State
+	data interface{}
 }
 
 // NewPow create Pow instance.
@@ -129,7 +130,7 @@ func (p *Pow) Event(e consensus.Event) {
 	captured, nextState := p.currentState.Event(e)
 	if captured {
 		if nextState != nil && p.currentState != nextState {
-			p.Transit(nextState, nil)
+			p.Transit(p.currentState, nextState, nil)
 		}
 		return
 	}
@@ -151,17 +152,17 @@ func (p *Pow) Event(e consensus.Event) {
 }
 
 // TransitByKey transit state by stateKey.
-func (p *Pow) TransitByKey(stateKey string, data interface{}) {
-	p.Transit(p.states[stateKey], data)
+func (p *Pow) TransitByKey(from string, to string, data interface{}) {
+	p.Transit(p.states[from], p.states[to], data)
 }
 
 // Transit transit state.
-func (p *Pow) Transit(nextState consensus.State, data interface{}) {
-	if p.currentState == nextState {
+func (p *Pow) Transit(from, to consensus.State, data interface{}) {
+	if p.currentState == to {
 		return
 	}
 
-	p.stateTransitionCh <- &stateTransitionArgs{nextState: nextState, data: data}
+	p.stateTransitionCh <- &stateTransitionArgs{from: from, to: to, data: data}
 }
 
 // VerifyBlock return nil if nonce is right, otherwise return error.
@@ -193,15 +194,16 @@ func (p *Pow) stateLoop() {
 	for {
 		select {
 		case args := <-p.stateTransitionCh:
-			nextState := args.nextState
+			to := args.to
 			data := args.data
+			from := args.from
 
-			if p.currentState == nextState {
+			if p.currentState == to || p.currentState != from {
 				continue
 			}
 
 			p.currentState.Leave(data)
-			p.currentState = nextState
+			p.currentState = to
 			p.currentState.Enter(data)
 
 		case <-p.quitCh:

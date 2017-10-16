@@ -43,12 +43,7 @@ func NewPrepareState(p *Pow) *PrepareState {
 
 // Event handle event.
 func (state *PrepareState) Event(e consensus.Event) (bool, consensus.State) {
-	switch e.EventType() {
-	case consensus.NewBlockEvent:
-		return true, state.p.states[Minted]
-	default:
-		return false, nil
-	}
+	return false, nil
 }
 
 // Enter called when transiting to this state.
@@ -75,7 +70,7 @@ func (state *PrepareState) Enter(data interface{}) {
 	}
 
 	// move to mining state.
-	state.p.TransitByKey(Mining, nil)
+	state.p.TransitByKey(Prepare, Mining, nil)
 }
 
 // Leave called when leaving this state.
