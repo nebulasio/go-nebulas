@@ -20,6 +20,8 @@ package p2p
 
 import (
 	"errors"
+	"strings"
+	"time"
 
 	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/components/net"
@@ -53,6 +55,7 @@ func (ns *NetService) Sync(tail net.Serializable) error {
 		return ErrNodeNotEnough
 	}
 
+	count := 0
 	for i := 0; i < len(allNode); i++ {
 		nodeID := allNode[i]
 		addrs := node.peerstore.PeerInfo(nodeID).Addrs
@@ -61,10 +64,17 @@ func (ns *NetService) Sync(tail net.Serializable) error {
 				log.Warn("PreSync: skip self")
 				continue
 			}
-			go func() {
-				ns.SendMsg("syncblock", data, addrs[0].String())
-			}()
+			key := strings.Split(addrs[0].String(), "/")[2] + nodeID.String()
+			if _, ok := node.stream[key]; ok {
+				count++
+				go func() {
+					ns.SendMsg("syncblock", data, key)
+				}()
+			}
 		}
+	}
+	if count < LimitToSync {
+		return ErrNodeNotEnough
 	}
 	return nil
 }
@@ -76,7 +86,15 @@ func (ns *NetService) SendSyncReply(addrs string, blocks net.Serializable) {
 	log.Info("SendSyncReply: send sync addrs -> ", addrs)
 	pb, _ := blocks.ToProto()
 	data, _ := proto.Marshal(pb)
-	go func() {
-		ns.SendMsg("syncreply", data, addrs)
-	}()
+	for {
+		if _, ok := ns.node.stream[addrs]; ok {
+			go func() {
+				ns.SendMsg("syncreply", data, addrs)
+			}()
+			return
+		}
+		log.Info("SendSyncReply: sleep for 1 second")
+		time.Sleep(1 * time.Second)
+	}
+
 }

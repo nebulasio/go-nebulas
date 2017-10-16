@@ -24,6 +24,7 @@ import (
 	"errors"
 	"hash/crc32"
 	"io"
+	"strings"
 	"sync"
 
 	"github.com/gogo/protobuf/proto"
@@ -86,7 +87,13 @@ func (ns *NetService) RegisterNetService() *NetService {
 
 // Addrs get node address in string
 func (ns *NetService) Addrs() string {
-	return ns.node.host.Addrs()[0].String()
+	len := len(ns.node.host.Addrs())
+	log.Info("Addrs:", ns.node.host.Addrs())
+	if len > 0 {
+		return ns.node.host.Addrs()[len-1].String()
+	}
+	return ""
+
 }
 
 // Node return the peer node
@@ -105,6 +112,9 @@ func (ns *NetService) streamHandler(s nnet.Stream) {
 				node := ns.node
 				pid := s.Conn().RemotePeer()
 				addrs := s.Conn().RemoteMultiaddr()
+
+				key := strings.Split(addrs.String(), "/")[2] + pid.String()
+
 				dataHeader, err := ReadUint32(s, 36)
 				if err != nil {
 					log.Error("streamHandler: read data header occurs error, ", err)
@@ -147,17 +157,17 @@ func (ns *NetService) streamHandler(s nnet.Stream) {
 
 				switch msgNameStr {
 				case HELLO:
-					if ns.handleHelloMsg(data, msgNameStr, pid.String(), s) {
-						node.stream[addrs.String()] = s
-						node.conn[addrs.String()] = SOK
+					if ns.handleHelloMsg(data, msgNameStr, pid, s, addrs) {
+						node.stream[key] = s
+						node.conn[key] = SOK
 						node.routeTable.Update(pid)
 					} else {
 						ns.Bye(pid, []ma.Multiaddr{addrs}, s)
 					}
 				case OK:
 					if ns.handleOkMsg(data, msgNameStr, pid.String()) {
-						node.stream[addrs.String()] = s
-						node.conn[addrs.String()] = SOK
+						node.stream[key] = s
+						node.conn[key] = SOK
 						node.routeTable.Update(pid)
 					} else {
 						ns.Bye(pid, []ma.Multiaddr{addrs}, s)
@@ -173,7 +183,7 @@ func (ns *NetService) streamHandler(s nnet.Stream) {
 						ns.Bye(pid, []ma.Multiaddr{addrs}, s)
 					}
 				default:
-					if node.conn[addrs.String()] != SOK {
+					if node.conn[key] != SOK {
 						log.Error("peer not shake hand before send message.")
 						ns.Bye(pid, []ma.Multiaddr{addrs}, s)
 						return
@@ -188,8 +198,9 @@ func (ns *NetService) streamHandler(s nnet.Stream) {
 
 }
 
-func (ns *NetService) handleHelloMsg(data []byte, msgNameStr string, pid string, s nnet.Stream) bool {
+func (ns *NetService) handleHelloMsg(data []byte, msgNameStr string, pid peer.ID, s nnet.Stream, addrs ma.Multiaddr) bool {
 	node := ns.node
+
 	hello := new(messages.HelloMessage)
 	pb := new(netpb.Hello)
 	if err := proto.Unmarshal(data, pb); err != nil {
@@ -206,7 +217,7 @@ func (ns *NetService) handleHelloMsg(data []byte, msgNameStr string, pid string,
 		"pid":           pid,
 		"ClientVersion": hello.ClientVersion,
 	}).Info("streamHandler: [HELLO] receive hello message.")
-	if hello.NodeID == pid && hello.ClientVersion == CLIENTVERSION {
+	if hello.NodeID == pid.String() && hello.ClientVersion == CLIENTVERSION {
 		ok := messages.NewHelloMessage(node.id.String(), CLIENTVERSION)
 		pbok, err := ok.ToProto()
 		okdata, err := proto.Marshal(pbok)
@@ -271,7 +282,10 @@ func (ns *NetService) handleSyncRouteMsg(data []byte, msgNameStr string, pid pee
 	}
 
 	totalData := ns.buildData(data, SYNCROUTEREPLY)
-	stream := node.stream[addrs]
+
+	key := strings.Split(addrs, "/")[2] + pid.String()
+
+	stream := node.stream[key]
 	if stream == nil {
 		log.Error("streamHandler: [SYNCROUTE] send message occrus error, stream does not exist.")
 		return false
@@ -442,7 +456,8 @@ func (ns *NetService) SyncRoutes(pid peer.ID) {
 	data := []byte(SYNCROUTE)
 	totalData := ns.buildData(data, SYNCROUTE)
 
-	stream := node.stream[addrs[0].String()]
+	key := strings.Split(addrs[0].String(), "/")[2] + pid.String()
+	stream := node.stream[key]
 	if stream == nil {
 		log.Error("SyncRoutes: send message occrus error, stream does not exist.")
 		node.peerstore.SetAddrs(pid, addrs, 0)

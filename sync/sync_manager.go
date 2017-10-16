@@ -19,6 +19,7 @@
 package sync
 
 import (
+	"strings"
 	"time"
 
 	pb "github.com/gogo/protobuf/proto"
@@ -102,7 +103,9 @@ func (m *Manager) StartSync() {
 
 func (m *Manager) syncWithTail() {
 	block := m.blockChain.TailBlock()
-	tail := NewNetBlock(m.ns.Addrs(), block)
+
+	key := strings.Split(m.ns.Addrs(), "/")[2]
+	tail := NewNetBlock(key+m.ns.Node().ID().String(), block)
 	log.WithFields(log.Fields{
 		"tail":  tail,
 		"block": tail.block,
@@ -148,7 +151,8 @@ func (m *Manager) StartMsgHandle() {
 				}
 				subsequentBlocks = append(subsequentBlocks, ancestor)
 				addrs := m.ns.Addrs()
-				blocks := NewNetBlocks(addrs, subsequentBlocks)
+				key := strings.Split(addrs, "/")[2]
+				blocks := NewNetBlocks(key+m.ns.Node().ID().String(), subsequentBlocks)
 				log.WithFields(log.Fields{
 					"from":   blocks.from,
 					"blocks": blocks.blocks,

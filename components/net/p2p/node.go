@@ -76,6 +76,11 @@ func (node *Node) Config() *Config {
 	return node.config
 }
 
+// ID return node config
+func (node *Node) ID() peer.ID {
+	return node.host.ID()
+}
+
 // SetSynchronized set node synchronized
 func (node *Node) SetSynchronized(synchronized bool) {
 	node.synchronized = synchronized

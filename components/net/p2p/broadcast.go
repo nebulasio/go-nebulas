@@ -19,6 +19,8 @@
 package p2p
 
 import (
+	"strings"
+
 	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/components/net"
 	log "github.com/sirupsen/logrus"
@@ -45,14 +47,18 @@ func (ns *NetService) Broadcast(name string, msg net.Serializable) {
 
 		nodeID := allNode[i]
 		addrs := node.peerstore.PeerInfo(nodeID).Addrs
-		log.Info(node.host.Addrs()[0].String())
+
 		if len(addrs) == 0 || node.host.Addrs()[0].String() == addrs[0].String() {
 			log.Warn("Broadcast: skip self")
 			continue
 		}
-		go func() {
-			ns.SendMsg(name, data, addrs[0].String())
-		}()
+		if len(addrs) > 0 {
+			key := strings.Split(addrs[0].String(), "/")[2] + nodeID.String()
+			go func() {
+				ns.SendMsg(name, data, key)
+			}()
+		}
+
 	}
 
 }
