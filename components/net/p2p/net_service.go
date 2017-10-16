@@ -112,9 +112,6 @@ func (ns *NetService) streamHandler(s nnet.Stream) {
 					return
 				}
 
-				magicNumber := dataHeader[:4]
-				chainID := dataHeader[4:8]
-				version := []byte{dataHeader[11]}
 				msgName := dataHeader[12:24]
 				dataLength := dataHeader[24:28]
 				dataChecksum := dataHeader[28:32]
@@ -124,14 +121,11 @@ func (ns *NetService) streamHandler(s nnet.Stream) {
 				msgNameStr := string(msgNameByte)
 
 				log.WithFields(log.Fields{
-					"addrs":       addrs,
-					"msgName":     msgNameStr,
-					"magicNumber": string(magicNumber),
-					"chainID":     byteutils.Uint32(chainID),
-					"version":     version[0],
+					"addrs":   addrs,
+					"msgName": msgNameStr,
 				}).Info("streamHandler:handle coming msg.")
 
-				if !ns.verifyHeader(magicNumber, chainID, version) {
+				if !ns.verifyHeader(dataHeader) {
 					ns.Bye(pid, []ma.Multiaddr{addrs}, s)
 					return
 				}
@@ -330,8 +324,13 @@ func (ns *NetService) handleSyncRouteReplyMsg(data []byte, msgNameStr string, pi
 	return true
 }
 
-func (ns *NetService) verifyHeader(magicNumber []byte, chainID []byte, version []byte) bool {
+func (ns *NetService) verifyHeader(dataHeader []byte) bool {
 	node := ns.node
+	magicNumber := dataHeader[:4]
+	chainID := dataHeader[4:8]
+	version := []byte{dataHeader[11]}
+	dataHeaderChecksum := crc32.ChecksumIEEE(dataHeader[0:32])
+
 	if !byteutils.Equal(MagicNumber, magicNumber) {
 		log.Error("verifyHeader: data verification occurs error, magic number is error, the connection will be closed.")
 		return false
@@ -344,6 +343,11 @@ func (ns *NetService) verifyHeader(magicNumber []byte, chainID []byte, version [
 
 	if !byteutils.Equal([]byte{node.version}, version) {
 		log.Error("verifyHeader: data verification occurs error, version is error, the connection will be closed.")
+		return false
+	}
+
+	if dataHeaderChecksum != byteutils.Uint32(dataHeader[32:36]) {
+		log.Error("verifyHeader: data verification occurs error, dataHeaderChecksum is error, the connection will be closed.")
 		return false
 	}
 	return true
