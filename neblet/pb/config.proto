@@ -26,6 +26,12 @@ message Config {
 	// RPC server config.
 	RPCConfig rpc  = 2;
 
+	// Pow config
+	PowConfig pow = 3;
+
+	// Account manager config
+	AccountConfig account = 4;
+
 	// TODO: more configs.
 }
 
@@ -40,4 +46,23 @@ message P2PConfig {
 message RPCConfig {
 	// RPC server listening port number.
 	uint32 port = 1;
+}
+
+message PowConfig {
+	// pow miner's coinbase
+	string coinbase = 1;
+}
+
+message AccountConfig {
+	// Account transaction sign algorithm type
+	uint32 signature = 1;
+
+	// Account addr encrypt algorithm type
+    uint32 encrypt = 2;
+
+	// Account key file directory
+	string key_dir = 3;
+
+	// Account test keyfile's passphrase
+	string test_passphrase = 4;
 }

@@ -26,6 +26,7 @@ import (
 	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/common/trie"
 	"github.com/nebulasio/go-nebulas/core/pb"
+	log "github.com/sirupsen/logrus"
 	"golang.org/x/crypto/sha3"
 
 	"github.com/nebulasio/go-nebulas/util"
@@ -297,8 +298,20 @@ func (block *Block) CollectTransactions(n int) {
 			givebacks = append(givebacks, tx)
 		}
 		if err == nil {
+			log.WithFields(log.Fields{
+				"func":     "block.CollectionTransactions",
+				"tx":       tx,
+				"giveback": giveback,
+			}).Info("tx is packed.")
 			block.transactions = append(block.transactions, tx)
 			n--
+		} else {
+			log.WithFields(log.Fields{
+				"func":     "block.CollectionTransactions",
+				"tx":       tx,
+				"err":      err,
+				"giveback": giveback,
+			}).Warn("invalid tx.")
 		}
 	}
 	for _, tx := range givebacks {
@@ -343,16 +356,6 @@ func (block *Block) Verify() error {
 	if err := block.verifyTransactions(); err != nil {
 		return err
 	}
-
-	block.rewardCoinbase()
-
-	if !byteutils.Equal(block.stateTrie.RootHash(), block.StateRoot()) {
-		return ErrInvalidBlockStateRoot
-	}
-	if !byteutils.Equal(block.txsTrie.RootHash(), block.TxsRoot()) {
-		return ErrInvalidBlockTxsRoot
-	}
-
 	return nil
 }
 
@@ -371,6 +374,15 @@ func (block *Block) verifyHash() error {
 func (block *Block) verifyTransactions() error {
 	if err := block.executeTransactions(); err != nil {
 		return err
+	}
+
+	block.rewardCoinbase()
+
+	if !byteutils.Equal(block.stateTrie.RootHash(), block.StateRoot()) {
+		return ErrInvalidBlockStateRoot
+	}
+	if !byteutils.Equal(block.txsTrie.RootHash(), block.TxsRoot()) {
+		return ErrInvalidBlockTxsRoot
 	}
 	return nil
 }

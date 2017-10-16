@@ -61,7 +61,7 @@ func (n *Neblet) Start() error {
 	}
 	n.running = true
 
-	n.accountManager = account.NewManager()
+	n.accountManager = account.NewManager(n)
 
 	// TODO: use new proto config.
 	p2pConfig := n.getP2PConfig()
@@ -73,7 +73,7 @@ func (n *Neblet) Start() error {
 	n.blockChain.BlockPool().RegisterInNetwork(n.netService)
 	n.blockChain.TransactionPool().RegisterInNetwork(n.netService)
 
-	n.consensus = pow.NewPow(n.blockChain, n.netService)
+	n.consensus = pow.NewPow(n)
 	n.blockChain.SetConsensusHandler(n.consensus)
 
 	// start sync service

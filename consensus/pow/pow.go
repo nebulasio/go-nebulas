@@ -25,6 +25,8 @@ import (
 	"github.com/nebulasio/go-nebulas/consensus"
 	"github.com/nebulasio/go-nebulas/core"
 
+	"github.com/nebulasio/go-nebulas/components/net/p2p"
+	"github.com/nebulasio/go-nebulas/neblet/pb"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -33,6 +35,13 @@ var (
 	ErrInvalidDataType   = errors.New("invalid data type, should be *core.Block")
 	ErrInvalidBlockNonce = errors.New("invalid block nonce")
 )
+
+// Neblet interface breaks cycle import dependency and hides unused services.
+type Neblet interface {
+	Config() nebletpb.Config
+	BlockChain() *core.BlockChain
+	NetService() *p2p.NetService
+}
 
 /*
 Pow implementation of Proof-of-Work consensus, designed to be a state machine.
@@ -52,8 +61,9 @@ Minted --> [*] : stop
 type Pow struct {
 	quitCh chan bool
 
-	chain *core.BlockChain
-	nm    net.Manager
+	chain    *core.BlockChain
+	nm       net.Manager
+	coinbase *core.Address
 
 	states            consensus.States
 	currentState      consensus.State
@@ -72,13 +82,27 @@ type stateTransitionArgs struct {
 }
 
 // NewPow create Pow instance.
-func NewPow(bc *core.BlockChain, nm net.Manager) *Pow {
+func NewPow(neblet Neblet) *Pow {
 	p := &Pow{
-		chain:             bc,
-		nm:                nm,
+		chain:             neblet.BlockChain(),
+		nm:                neblet.NetService(),
 		quitCh:            make(chan bool, 5),
 		stateTransitionCh: make(chan *stateTransitionArgs, 10),
 		canMining:         false,
+	}
+
+	cfg := neblet.Config().Pow
+	if cfg != nil {
+		coinbase, err := core.AddressParse(cfg.GetCoinbase())
+		if err != nil {
+			log.WithFields(log.Fields{
+				"err": err,
+			}).Info("Pow.NewPow: coinbase parse err.")
+			//panic("coinbase should be configed for pow")
+		}
+		p.coinbase = coinbase
+	} else {
+		//panic("coinbase should be configed for pow")
 	}
 
 	p.states = consensus.States{

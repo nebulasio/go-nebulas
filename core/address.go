@@ -21,6 +21,8 @@ package core
 import (
 	"errors"
 
+	"strings"
+
 	"github.com/nebulasio/go-nebulas/crypto/hash"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
 )
@@ -79,6 +81,11 @@ type Address struct {
 	address Hash
 }
 
+// Bytes returns address bytes
+func (a *Address) Bytes() []byte {
+	return a.address
+}
+
 // ToHex convert address to hex
 func (a *Address) ToHex() string {
 	return string(a.address.Hex())
@@ -107,6 +114,9 @@ func NewAddressFromPublicKey(s []byte) (*Address, error) {
 
 // AddressParse parse address string.
 func AddressParse(s string) (*Address, error) {
+	if strings.HasPrefix(s, "0x") {
+		s = s[2:]
+	}
 	r, err := byteutils.FromHex(s)
 	if err != nil {
 		return nil, ErrInvalidAddress

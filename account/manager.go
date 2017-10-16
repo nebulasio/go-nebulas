@@ -21,34 +21,92 @@ package account
 import (
 	"errors"
 
+	"io/ioutil"
+	"path/filepath"
+	"time"
+
 	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/crypto"
 	"github.com/nebulasio/go-nebulas/crypto/cipher"
 	"github.com/nebulasio/go-nebulas/crypto/keystore"
+	"github.com/nebulasio/go-nebulas/neblet/pb"
+	"github.com/nebulasio/go-nebulas/util/byteutils"
 	log "github.com/sirupsen/logrus"
 )
 
 var (
 	// ErrTxAddressLocked from address locked.
 	ErrTxAddressLocked = errors.New("transaction from address locked")
+
+	// ErrTxSignFrom sign addr not from
+	ErrTxSignFrom = errors.New("transaction sign not use from addr")
 )
+
+// Neblet interface breaks cycle import dependency and hides unused services.
+type Neblet interface {
+	Config() nebletpb.Config
+}
 
 // Manager accounts manager ,handle account generate and storage
 type Manager struct {
 	ks *keystore.Keystore
+
+	encryptAlg keystore.Algorithm
+
+	signatureAlg keystore.Algorithm
 }
 
 // NewManager new a account manager
-func NewManager() *Manager {
+func NewManager(neblet Neblet) *Manager {
 	m := new(Manager)
 	m.ks = keystore.DefaultKS
+	m.signatureAlg = keystore.SECP256K1
+	m.encryptAlg = keystore.SCRYPT
+
+	if neblet != nil {
+		conf := neblet.Config().Account
+		if conf.GetSignature() > 0 {
+			m.signatureAlg = keystore.Algorithm(conf.GetSignature())
+		}
+		if conf.GetEncrypt() > 0 {
+			m.encryptAlg = keystore.Algorithm(conf.GetEncrypt())
+		}
+
+		// TODO(larry.wang): test keys load from keyDir, latter remove
+		if len(conf.GetTestPassphrase()) > 0 && len(conf.GetKeyDir()) > 0 {
+			m.loadTestKey(conf.GetKeyDir(), []byte(conf.GetTestPassphrase()))
+		}
+	}
 	return m
+}
+
+// load test key files
+func (m *Manager) loadTestKey(keyDir string, passphrase []byte) {
+	keyDir, _ = filepath.Abs(keyDir)
+	log.Info("load test keys form:", keyDir)
+	files, _ := ioutil.ReadDir(keyDir)
+	for _, fi := range files {
+		path := filepath.Join(keyDir, fi.Name())
+
+		raw, err := ioutil.ReadFile(path)
+		if err != nil {
+			log.Error("read key file failed", err)
+			continue
+		}
+		addr, err := m.Import(raw, passphrase)
+		if err != nil {
+			log.Error("load key failed", err)
+		}
+		// TODO(larry.wang):test key file auto unlock 1 year
+		m.ks.Unlock(addr.ToHex(), passphrase, time.Second*60*60*24*365)
+		log.Info("load test addr:", addr.ToHex())
+	}
 }
 
 // NewAccount returns a new address and keep it in keystore
 func (m *Manager) NewAccount(passphrase []byte) (*core.Address, error) {
 
-	priv, err := crypto.NewPrivateKey(keystore.SECP256K1, nil)
+	priv, err := crypto.NewPrivateKey(m.signatureAlg, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -98,12 +156,12 @@ func (m *Manager) Accounts() []*core.Address {
 
 // Import import a key file to keystore, compatible ethereum keystore file
 func (m *Manager) Import(keyjson, passphrase []byte) (*core.Address, error) {
-	cipher := cipher.NewCipher(uint8(keystore.SCRYPT))
+	cipher := cipher.NewCipher(uint8(m.encryptAlg))
 	data, err := cipher.DecryptKey(keyjson, passphrase)
 	if err != nil {
 		return nil, err
 	}
-	priv, err := crypto.NewPrivateKey(keystore.SECP256K1, data)
+	priv, err := crypto.NewPrivateKey(m.signatureAlg, data)
 	if err != nil {
 		return nil, err
 	}
@@ -120,7 +178,7 @@ func (m *Manager) Export(addr *core.Address, passphrase []byte) ([]byte, error) 
 	if err != nil {
 		return nil, err
 	}
-	cipher := cipher.NewCipher(uint8(keystore.SCRYPT))
+	cipher := cipher.NewCipher(uint8(m.encryptAlg))
 	if err != nil {
 		return nil, err
 	}
@@ -133,7 +191,10 @@ func (m *Manager) Export(addr *core.Address, passphrase []byte) ([]byte, error) 
 
 // SignTransaction sign transaction with the specified algorithm
 func (m *Manager) SignTransaction(addr *core.Address, tx *core.Transaction) error {
-	// TODO(larry.wang): check the addr is the tx's from address
+	// check sign addr is tx's from addr
+	if !byteutils.Equal(tx.From(), addr.Bytes()) {
+		return ErrTxSignFrom
+	}
 	key, err := m.ks.GetUnlocked(addr.ToHex())
 	if err != nil {
 		log.WithFields(log.Fields{
@@ -144,7 +205,7 @@ func (m *Manager) SignTransaction(addr *core.Address, tx *core.Transaction) erro
 		return err
 	}
 
-	signature, err := crypto.NewSignature(keystore.SECP256K1)
+	signature, err := crypto.NewSignature(m.signatureAlg)
 	if err != nil {
 		return err
 	}

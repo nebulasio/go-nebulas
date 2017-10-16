@@ -7,3 +7,19 @@ p2p {
 rpc {
 	port: 51510
 }
+
+pow {
+	coinbase: "8a209cec02cbeab7e2f74ad969d2dfe8dd24416aa65589bf"
+}
+
+account {
+	# keystore.SECP256K1 = 1
+	signature: 1
+
+	# keystore.SCRYPT = 1 << 4
+	encrypt: 16
+
+	key_dir: "testKey"
+	
+	test_passphrase: "passphrase"
+}

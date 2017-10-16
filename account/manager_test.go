@@ -27,7 +27,7 @@ import (
 )
 
 func TestManager_NewAccount(t *testing.T) {
-	manager := NewManager()
+	manager := NewManager(nil)
 	tests := []struct {
 		name       string
 		passphrase []byte
@@ -56,7 +56,7 @@ func TestManager_NewAccount(t *testing.T) {
 }
 
 func TestManager_Unlock(t *testing.T) {
-	manager := NewManager()
+	manager := NewManager(nil)
 	tests := []struct {
 		name       string
 		passphrase []byte
@@ -87,7 +87,7 @@ func TestManager_Unlock(t *testing.T) {
 }
 
 func TestManager_Lock(t *testing.T) {
-	manager := NewManager()
+	manager := NewManager(nil)
 	tests := []struct {
 		name       string
 		passphrase []byte
@@ -122,7 +122,7 @@ func TestManager_Lock(t *testing.T) {
 }
 
 func TestManager_Import(t *testing.T) {
-	manager := NewManager()
+	manager := NewManager(nil)
 	passphrase := []byte("qwertyuiop")
 	key := `{
     "version":3,
@@ -150,7 +150,7 @@ func TestManager_Import(t *testing.T) {
 }
 
 func TestManager_Export(t *testing.T) {
-	manager := NewManager()
+	manager := NewManager(nil)
 	tests := []struct {
 		name       string
 		passphrase []byte
@@ -180,7 +180,7 @@ func TestManager_Export(t *testing.T) {
 }
 
 func TestManager_SignTransaction(t *testing.T) {
-	manager := NewManager()
+	manager := NewManager(nil)
 	tests := []struct {
 		name       string
 		passphrase []byte
