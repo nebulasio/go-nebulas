@@ -55,7 +55,7 @@ Now we can get the seed address from log, get pretty id from log starts with **"
 
 Then we start other nodes, by updating p2p seed and port in config.pb.txt.
 
-And, in v0.1.0, the **Sync Protocol** is not implemented. So the non-seed nodes should be start after seed node start, before seed node finds the first nonce, minted the first block. Otherwise the Chain will be forked at the very beginning.
+Non-seed nodes should be start after seed node start, before seed node finds the first nonce, minted the first block. Otherwise the Chain will be forked at the very beginning.
 
 
 ### Reading the Log
