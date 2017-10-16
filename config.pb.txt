@@ -13,12 +13,11 @@ pow {
 }
 
 account {
-
 	# keystore.SECP256K1 = 1
 	signature: 1
 
 	# keystore.SCRYPT = 1 << 4
-	encrypt:	16
+	encrypt: 16
 
 	key_dir: "testKey"
 	
