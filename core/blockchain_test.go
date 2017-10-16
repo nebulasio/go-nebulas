@@ -20,6 +20,12 @@ package core
 
 import (
 	"testing"
+	"time"
+
+	"github.com/nebulasio/go-nebulas/crypto"
+	"github.com/nebulasio/go-nebulas/crypto/keystore"
+	"github.com/nebulasio/go-nebulas/crypto/keystore/secp256k1"
+	"github.com/nebulasio/go-nebulas/util"
 
 	"github.com/gogo/protobuf/proto"
 	"github.com/stretchr/testify/assert"
@@ -38,6 +44,29 @@ func TestBlockChain_FindCommonAncestorWithTail(t *testing.T) {
 	bc := NewBlockChain(0)
 	var c MockConsensus
 	bc.SetConsensusHandler(c)
+
+	ks := keystore.DefaultKS
+	priv, _ := secp256k1.GeneratePrivateKey()
+	pubdata, _ := priv.PublicKey().Encoded()
+	from, _ := NewAddressFromPublicKey(pubdata)
+	to := &Address{[]byte("hello")}
+	ks.SetKey(from.ToHex(), priv, []byte("passphrase"))
+	ks.Unlock(from.ToHex(), []byte("passphrase"), time.Second*60*60*24*365)
+
+	key, _ := ks.GetUnlocked(from.ToHex())
+	signature, _ := crypto.NewSignature(keystore.SECP256K1)
+	signature.InitSign(key.(keystore.PrivateKey))
+
+	tx1 := NewTransaction(0, from, to, util.NewUint128(), 1, []byte("nas"))
+	tx1.Sign(signature)
+	tx2 := NewTransaction(0, from, to, util.NewUint128(), 1, []byte("nas"))
+	tx2.Sign(signature)
+	tx3 := NewTransaction(0, from, to, util.NewUint128(), 2, []byte("nas"))
+	tx3.Sign(signature)
+	bc.txPool.Push(tx1)
+	bc.txPool.Push(tx2)
+	bc.txPool.Push(tx3)
+
 	coinbase11 := &Address{[]byte("coinbase11")}
 	coinbase12 := &Address{[]byte("coinbase12")}
 	coinbase111 := &Address{[]byte("coinbase111")}
@@ -51,11 +80,16 @@ func TestBlockChain_FindCommonAncestorWithTail(t *testing.T) {
 	*/
 	block11 := bc.NewBlock(coinbase11)
 	block12 := bc.NewBlock(coinbase12)
-	block11.header.hash = HashBlock(block11)
-	block12.header.hash = HashBlock(block12)
+	block11.CollectTransactions(1)
+	block11.Seal()
+	block12.CollectTransactions(1)
+	block12.Seal()
 	bc.BlockPool().Push(block11)
 	bc.BlockPool().Push(block12)
+	bc.SetTailBlock(block12)
+	assert.Equal(t, bc.txPool.cache.Len(), 1)
 	bc.SetTailBlock(block11)
+	assert.Equal(t, bc.txPool.cache.Len(), 2)
 	block111 := bc.NewBlock(coinbase111)
 	block111.header.hash = HashBlock(block111)
 	bc.BlockPool().Push(block111)

@@ -79,9 +79,27 @@ func (bc *BlockChain) TailBlock() *Block {
 }
 
 // SetTailBlock set tail block.
-func (bc *BlockChain) SetTailBlock(block *Block) {
-	bc.detachedTailBlocks.Remove(block.Hash().Hex())
-	bc.tailBlock = block
+func (bc *BlockChain) SetTailBlock(newTail *Block) {
+	oldTail := bc.tailBlock
+	bc.detachedTailBlocks.Remove(newTail.Hash().Hex())
+	bc.tailBlock = newTail
+	// giveBack txs in reverted blocks to tx pool
+	ancestor, _ := bc.FindCommonAncestorWithTail(oldTail)
+	if ancestor.Hash().Equals(oldTail.Hash()) {
+		// oldTail and newTail is on same chain, no reverted blocks
+		return
+	}
+	reverted := oldTail
+	for !reverted.Hash().Equals(ancestor.Hash()) {
+		for _, v := range reverted.transactions {
+			// give back reverted txs to tx pool
+			bc.txPool.Push(v)
+		}
+		reverted = bc.GetBlock(reverted.header.parentHash)
+		if reverted == nil {
+			panic("find a block on chain, we cannot find its parent block")
+		}
+	}
 }
 
 // FindCommonAncestorWithTail return the block's common ancestor with current tail
@@ -104,7 +122,7 @@ func (bc *BlockChain) FindCommonAncestorWithTail(block *Block) (*Block, error) {
 		tail = bc.GetBlock(tail.header.parentHash)
 		target = bc.GetBlock(target.header.parentHash)
 		if tail == nil || target == nil {
-			panic("block in blockchain cannot find its parent block")
+			panic("find a block on chain, we cannot find its parent block")
 		}
 	}
 	return target, nil
