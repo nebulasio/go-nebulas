@@ -42,11 +42,14 @@ func NewStartState(p *Pow) *StartState {
 
 // Event handle event.
 func (state *StartState) Event(e consensus.Event) (bool, consensus.State) {
-	if e.EventType() != consensus.CanMiningEvent {
+	switch e.EventType() {
+	case consensus.CanMiningEvent:
+		return true, state.p.states[Prepare]
+	case consensus.NewBlockEvent:
+		return true, state.p.states[Minted]
+	default:
 		return false, nil
 	}
-	log.Info("StartState.Event: receive CanMining event")
-	return true, state.p.states[Prepare]
 }
 
 // Enter called when transiting to this state.

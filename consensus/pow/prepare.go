@@ -43,7 +43,12 @@ func NewPrepareState(p *Pow) *PrepareState {
 
 // Event handle event.
 func (state *PrepareState) Event(e consensus.Event) (bool, consensus.State) {
-	return false, nil
+	switch e.EventType() {
+	case consensus.NewBlockEvent:
+		return true, state.p.states[Minted]
+	default:
+		return false, nil
+	}
 }
 
 // Enter called when transiting to this state.

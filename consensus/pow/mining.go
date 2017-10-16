@@ -20,7 +20,6 @@ package pow
 
 import (
 	"github.com/nebulasio/go-nebulas/consensus"
-	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
 
 	"time"
@@ -51,16 +50,14 @@ func NewMiningState(p *Pow) *MiningState {
 
 // Event handle event.
 func (state *MiningState) Event(e consensus.Event) (bool, consensus.State) {
-	if e.EventType() != consensus.NewBlockEvent {
+	switch e.EventType() {
+	case consensus.CanMiningEvent:
+		return true, state.p.states[Prepare]
+	case consensus.NewBlockEvent:
+		return true, state.p.states[Minted]
+	default:
 		return false, nil
 	}
-
-	// when received new block event, quit searchingNonce(), go to next state.
-	block := e.Data().(*core.Block)
-	log.WithFields(log.Fields{
-		"block": block,
-	}).Info("MiningState.Event: receive new block message, transit to MintedState.")
-	return true, state.p.states[Minted]
 }
 
 // Enter called when transiting to this state.

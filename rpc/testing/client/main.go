@@ -39,7 +39,7 @@ func main() {
 	ac := rpcpb.NewAPIServiceClient(conn)
 
 	{
-		r, err := ac.GetAccountState(context.Background(), &rpcpb.GetAccountStateRequest{Address: "0e52d180a1a7a73afa01df81bf94256501b3227556926fc8"})
+		r, err := ac.GetAccountState(context.Background(), &rpcpb.GetAccountStateRequest{Address: "63be34931afd4374a7d8a447f6605600269c47a015fa7974"})
 		if err != nil {
 			log.Println("GetAccountState failed: ", err)
 		} else {

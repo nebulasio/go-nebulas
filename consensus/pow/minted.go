@@ -52,7 +52,7 @@ func (state *MintedState) Enter(data interface{}) {
 	bkPool := p.chain.BlockPool()
 
 	// process minted block.
-	if p.miningBlock.Sealed() {
+	if p.miningBlock != nil && p.miningBlock.Sealed() {
 		log.Info("MintedState.Enter: process sealed block.")
 
 		log.WithFields(log.Fields{
