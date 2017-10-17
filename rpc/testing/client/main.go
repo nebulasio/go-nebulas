@@ -30,7 +30,12 @@ import (
 )
 
 // TODO: add command line flag.
-const config = "../../../config.pb.txt"
+const (
+	config = "../../../config.pb.txt"
+	from   = "8a209cec02cbeab7e2f74ad969d2dfe8dd24416aa65589bf"
+	to     = "22ac3a9a2b1c31b7a9084e46eae16e761f83f02324092b09"
+	value  = 2
+)
 
 // RPC testing client.
 func main() {
@@ -47,35 +52,35 @@ func main() {
 	var nonce uint64
 
 	{
-		r, err := ac.GetAccountState(context.Background(), &rpcpb.GetAccountStateRequest{Address: "8a209cec02cbeab7e2f74ad969d2dfe8dd24416aa65589bf"})
+		r, err := ac.GetAccountState(context.Background(), &rpcpb.GetAccountStateRequest{Address: from})
 		if err != nil {
-			log.Println("GetAccountState failed: ", err)
+			log.Println("GetAccountState", from, "failed", err)
 		} else {
 			val, _ := util.NewUint128FromFixedSizeByteSlice(r.GetBalance())
 			nonce = r.Nonce
-			log.Println("GetAccountState respnonse: ", r.Nonce, val)
+			log.Println("GetAccountState", from, "nonce", r.Nonce, "value", val)
 		}
 	}
 
 	{
-		v := util.NewUint128FromInt(1)
+		v := util.NewUint128FromInt(value)
 		fsb, _ := v.ToFixedSizeByteSlice()
-		r, err := ac.SendTransaction(context.Background(), &rpcpb.SendTransactionRequest{From: "8a209cec02cbeab7e2f74ad969d2dfe8dd24416aa65589bf", To: "22ac3a9a2b1c31b7a9084e46eae16e761f83f02324092b09", Value: fsb, Nonce: nonce + 1})
+		r, err := ac.SendTransaction(context.Background(), &rpcpb.SendTransactionRequest{From: from, To: to, Value: fsb, Nonce: nonce + 1})
 		if err != nil {
-			log.Println("SendTransaction failed: ", err)
+			log.Println("SendTransaction failed:", err)
 		} else {
-			log.Println("SendTransaction response: ", r)
+			log.Println("SendTransaction", from, "->", to, "value", value, r)
 		}
 	}
 
 	{
-		r, err := ac.GetAccountState(context.Background(), &rpcpb.GetAccountStateRequest{Address: "22ac3a9a2b1c31b7a9084e46eae16e761f83f02324092b09"})
+		r, err := ac.GetAccountState(context.Background(), &rpcpb.GetAccountStateRequest{Address: to})
 		if err != nil {
-			log.Println("GetAccountState failed: ", err)
+			log.Println("GetAccountState", to, "failed", err)
 		} else {
 			val, _ := util.NewUint128FromFixedSizeByteSlice(r.GetBalance())
 			nonce = r.Nonce
-			log.Println("GetAccountState respnonse: ", r.Nonce, val)
+			log.Println("GetAccountState", to, "nonce", r.Nonce, "value", val)
 		}
 	}
 
