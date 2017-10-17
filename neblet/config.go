@@ -26,6 +26,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// LoadConfig from neblet
 func LoadConfig(filename string) *nebletpb.Config {
 	log.Info("Loading Neb config from file ", filename)
 	b, err := ioutil.ReadFile(filename)
