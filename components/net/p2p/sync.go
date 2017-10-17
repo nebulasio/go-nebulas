@@ -20,7 +20,6 @@ package p2p
 
 import (
 	"errors"
-	"strings"
 	"time"
 
 	"github.com/gogo/protobuf/proto"
@@ -64,7 +63,7 @@ func (ns *NetService) Sync(tail net.Serializable) error {
 				log.Warn("PreSync: skip self")
 				continue
 			}
-			key := strings.Split(addrs[0].String(), "/")[2] + nodeID.String()
+			key := GenerateKey(addrs[0], nodeID)
 			if _, ok := node.stream[key]; ok {
 				count++
 				go func() {

@@ -86,13 +86,12 @@ func (ns *NetService) RegisterNetService() *NetService {
 }
 
 // Addrs get node address in string
-func (ns *NetService) Addrs() string {
+func (ns *NetService) Addrs() ma.Multiaddr {
 	len := len(ns.node.host.Addrs())
-	log.Info("Addrs:", ns.node.host.Addrs())
 	if len > 0 {
-		return ns.node.host.Addrs()[len-1].String()
+		return ns.node.host.Addrs()[0]
 	}
-	return ""
+	return nil
 
 }
 
@@ -113,7 +112,7 @@ func (ns *NetService) streamHandler(s nnet.Stream) {
 				pid := s.Conn().RemotePeer()
 				addrs := s.Conn().RemoteMultiaddr()
 
-				key := strings.Split(addrs.String(), "/")[2] + pid.String()
+				key := GenerateKey(addrs, pid)
 
 				dataHeader, err := ReadUint32(s, 36)
 				if err != nil {
@@ -175,11 +174,11 @@ func (ns *NetService) streamHandler(s nnet.Stream) {
 				case BYE:
 
 				case SYNCROUTE:
-					if !ns.handleSyncRouteMsg(data, msgNameStr, pid, addrs.String()) {
+					if !ns.handleSyncRouteMsg(data, msgNameStr, pid, addrs) {
 						ns.Bye(pid, []ma.Multiaddr{addrs}, s)
 					}
 				case SYNCROUTEREPLY:
-					if !ns.handleSyncRouteReplyMsg(data, msgNameStr, pid, addrs.String()) {
+					if !ns.handleSyncRouteReplyMsg(data, msgNameStr, pid) {
 						ns.Bye(pid, []ma.Multiaddr{addrs}, s)
 					}
 				default:
@@ -258,7 +257,7 @@ func (ns *NetService) handleOkMsg(data []byte, msgNameStr string, pid string) bo
 
 }
 
-func (ns *NetService) handleSyncRouteMsg(data []byte, msgNameStr string, pid peer.ID, addrs string) bool {
+func (ns *NetService) handleSyncRouteMsg(data []byte, msgNameStr string, pid peer.ID, addrs ma.Multiaddr) bool {
 	node := ns.node
 	log.Info("streamHandler: [SYNCROUTE] handle sync route message")
 	peers := node.routeTable.NearestPeers(kbucket.ConvertPeerID(pid), node.config.maxSyncNodes)
@@ -283,7 +282,7 @@ func (ns *NetService) handleSyncRouteMsg(data []byte, msgNameStr string, pid pee
 
 	totalData := ns.buildData(data, SYNCROUTEREPLY)
 
-	key := strings.Split(addrs, "/")[2] + pid.String()
+	key := GenerateKey(addrs, pid)
 
 	stream := node.stream[key]
 	if stream == nil {
@@ -298,7 +297,7 @@ func (ns *NetService) handleSyncRouteMsg(data []byte, msgNameStr string, pid pee
 	return true
 }
 
-func (ns *NetService) handleSyncRouteReplyMsg(data []byte, msgNameStr string, pid peer.ID, addrs string) bool {
+func (ns *NetService) handleSyncRouteReplyMsg(data []byte, msgNameStr string, pid peer.ID) bool {
 	node := ns.node
 	log.Infof("streamHandler: [SYNCROUTEREPLY] handle sync route reply ")
 	var sample []peerstore.PeerInfo
@@ -456,7 +455,8 @@ func (ns *NetService) SyncRoutes(pid peer.ID) {
 	data := []byte(SYNCROUTE)
 	totalData := ns.buildData(data, SYNCROUTE)
 
-	key := strings.Split(addrs[0].String(), "/")[2] + pid.String()
+	key := GenerateKey(addrs[0], pid)
+
 	stream := node.stream[key]
 	if stream == nil {
 		log.Error("SyncRoutes: send message occrus error, stream does not exist.")
@@ -586,4 +586,17 @@ func ReadUint32(reader io.Reader, n uint32) ([]byte, error) {
 	}(reader)
 	err := <-result
 	return data, err
+}
+
+// GenerateKey generate a key
+func GenerateKey(addrs ma.Multiaddr, pid peer.ID) string {
+	if len(strings.Split(addrs.String(), "/")) > 2 {
+		key := strings.Split(addrs.String(), "/")[2] + pid.String()
+		return key
+	}
+	log.WithFields(log.Fields{
+		"addrs": addrs,
+		"pid":   pid,
+	}).Error("GenerateKey: the addrs format is incorrect.")
+	return ""
 }

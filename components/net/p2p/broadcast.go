@@ -19,8 +19,6 @@
 package p2p
 
 import (
-	"strings"
-
 	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/components/net"
 	log "github.com/sirupsen/logrus"
@@ -53,7 +51,7 @@ func (ns *NetService) Broadcast(name string, msg net.Serializable) {
 			continue
 		}
 		if len(addrs) > 0 {
-			key := strings.Split(addrs[0].String(), "/")[2] + nodeID.String()
+			key := GenerateKey(addrs[0], nodeID)
 			go func() {
 				ns.SendMsg(name, data, key)
 			}()

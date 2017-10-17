@@ -19,7 +19,6 @@
 package sync
 
 import (
-	"strings"
 	"time"
 
 	pb "github.com/gogo/protobuf/proto"
@@ -68,6 +67,14 @@ func (m *Manager) RegisterSyncReplyInNetwork(nm net.Manager) {
 }
 
 // Start start sync service
+/*
+1. send my tail to remote peers and then find the common ancestor
+2. the remote peers will return the common ancestor and 10 blocks after the common ancestor if exist
+3. compare the common ancestors, if over n+1 are the same, suppose the ancestor is the right ancestor
+4. find overlapping blocks in 10 blocks who has the same ancestors
+5. give the overlapping blocks to block pool one by one, if return false, go to next sync
+6. if all remote peers return the number of blocks less than 10, end sync
+*/
 func (m *Manager) Start() {
 	m.StartMsgHandle()
 	if len(m.ns.Node().Config().BootNodes) > 0 {
@@ -104,8 +111,8 @@ func (m *Manager) StartSync() {
 func (m *Manager) syncWithTail() {
 	block := m.blockChain.TailBlock()
 
-	key := strings.Split(m.ns.Addrs(), "/")[2]
-	tail := NewNetBlock(key+m.ns.Node().ID().String(), block)
+	key := p2p.GenerateKey(m.ns.Addrs(), m.ns.Node().ID())
+	tail := NewNetBlock(key, block)
 	log.WithFields(log.Fields{
 		"tail":  tail,
 		"block": tail.block,
@@ -150,9 +157,8 @@ func (m *Manager) StartMsgHandle() {
 					continue
 				}
 				subsequentBlocks = append(subsequentBlocks, ancestor)
-				addrs := m.ns.Addrs()
-				key := strings.Split(addrs, "/")[2]
-				blocks := NewNetBlocks(key+m.ns.Node().ID().String(), subsequentBlocks)
+				key := p2p.GenerateKey(m.ns.Addrs(), m.ns.Node().ID())
+				blocks := NewNetBlocks(key, subsequentBlocks)
 				log.WithFields(log.Fields{
 					"from":   blocks.from,
 					"blocks": blocks.blocks,
