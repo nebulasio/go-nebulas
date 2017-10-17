@@ -17,4 +17,4 @@
 # along with the go-nebulas library.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-make build && ./neb --dummy
+make build && ./neb
