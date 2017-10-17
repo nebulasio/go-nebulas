@@ -17,54 +17,160 @@ For more information of Nebulas protocol, design documents, please refer to our 
 |[Golang](https://golang.org) | >= 1.8| The Go Programming Language |
 [Dep](https://github.com/golang/dep) | >= 0.3.1 | Dep is a dependency management tool for Go. |
 
-### Building
+### Build
 
-1. install dependencies packages, run
+1. Checkout repo.
+```
+cd $GOPATH/src
+go get -u -v github.com/nebulasio/go-nebulas
+```
+The project is under active development. Its default branch is _develop_. New users may want to checkout and use the stable _master_ release.
+```
+cd github.com/nebulasio/go-nebulas
+git checkout master
+```
+
+2. Install dependencies packages.
 ```
 make dep
 ```
 
-2. build the neb application, run
+3. Build the neb binary.
 ```
 make build
 ```
 
-## Running
+## Run
 
-Running in Network mode, we first need to run a seed node by run
+### Run seed node
+Starting a Nebulas seed node is simple. After the build step above, run command:
 ```
-$ ./neb
-INFO[2017-09-27T17:35:58+08:00] NewNode: node make Host success               file=node.go func=p2p.NewNode line=60
-INFO[2017-09-27T17:35:58+08:00] makeHost: boot node pretty id is QmcvYFjy2d5Kt1DcmTJJEUKsKCXg8WJsCGRDD2bgyRYk6p  file=node.go func="p2p.(*Node).makeHost" line=165
-INFO[2017-09-27T17:35:58+08:00] RegisterBlockMsgService: node register block message service success...  file=block.go func="p2p.(*Manager).RegisterBlockMsgService" line=46
+./neb
+```
+
+You will see log message output like:
+```
+INFO[2017-10-18T03:16:09+08:00] Loading Neb config from file config.pb.txt    file=config.go func=neblet.LoadConfig line=30
+  file=config.go func=neblet.LoadConfig line=37
+INFO[2017-10-18T03:16:09+08:00] Loaded Neb config proto p2p:<port:51413 > rpc:<port:51510 > pow:<coinbase:"8a209cec02cbeab7e2f74ad969d2dfe8dd24416aa65589bf" > account:<signature:1 encrypt:16 key_dir:"testKey" test_passphrase:"passphrase" >   file=config.go func=neblet.LoadConfig line=44
+INFO[2017-10-18T03:16:09+08:00] Starting neblet...                            file=neblet.go func="neblet.(*Neblet).Start" line=57
+INFO[2017-10-18T03:16:09+08:00] load test keys form:/Users/duranliu/go/src/github.com/nebulasio/go-nebulas/testKey  file=manager.go func="account.(*Manager).loadTestKey" line=86
+INFO[2017-10-18T03:16:09+08:00] load test addr:8a209cec02cbeab7e2f74ad969d2dfe8dd24416aa65589bf  file=manager.go func="account.(*Manager).loadTestKey" line=88
+INFO[2017-10-18T03:16:09+08:00] load test addr:22ac3a9a2b1c31b7a9084e46eae16e761f83f02324092b09  file=manager.go func="account.(*Manager).loadTestKey" line=88
+INFO[2017-10-18T03:16:09+08:00] load test addr:5cdadc1cfe3da0a3d067e9f1b195b90c5aebfb5afc8d43b4  file=manager.go func="account.(*Manager).loadTestKey" line=88
+INFO[2017-10-18T03:16:09+08:00] NewNode: node make Host success               file=node.go func=p2p.NewNode line=64
+INFO[2017-10-18T03:16:09+08:00] makeHost: boot node pretty id is QmVMamgHNoR8GBUbq4r9BTFzod5F2BvhSgaGLVxPpXcWNm  file=node.go func="p2p.(*Node).makeHost" line=153
 chainID is 1
-INFO[2017-09-27T17:35:58+08:00] Start: node create success...                 file=node.go func="p2p.(*Node).Start" line=71
-INFO[2017-09-27T17:35:58+08:00] Start: node info {id -> <peer.ID cvYFjy>, address -> [/ip4/192.168.1.159/tcp/9999]}  file=node.go func="p2p.(*Node).Start" line=74
-INFO[2017-09-27T17:35:58+08:00] Start: node start join p2p network...         file=node.go func="p2p.(*Node).Start" line=79
-INFO[2017-09-27T17:35:58+08:00] RegisterPingService: node register ping service success...  file=ping.go func="p2p.(*Node).RegisterPingService" line=52
-INFO[2017-09-27T17:35:58+08:00] RegisterLookupService: node register lookup service success...  file=lookup.go func="p2p.(*Node).RegisterLookupService" line=47
-INFO[2017-09-27T17:35:58+08:00] Start: node start and join to p2p network success and listening for connections on port 9999...   file=node.go func="p2p.(*Node).Start" line=104
-DEBU[2017-09-27T17:35:58+08:00] running.                                      file=asm_amd64.s func=runtime.goexit line=2338
-DEBU[2017-09-27T17:35:58+08:00] PrepareState enter.                           file=prepare.go func="pow.(*PrepareState).Enter" line=79
+INFO[2017-10-18T03:16:09+08:00] Launch: node info {id -> <peer.ID VMamgH>, address -> [/ip4/192.168.1.18/tcp/51413]}  file=net_service.go func="p2p.(*NetService).Launch" line=536
+INFO[2017-10-18T03:16:09+08:00] Launch: node start to join p2p network...     file=net_service.go func="p2p.(*NetService).Launch" line=541
+INFO[2017-10-18T03:16:09+08:00] RegisterNetService: register netservice success  file=net_service.go func="p2p.(*NetService).RegisterNetService" line=85
+INFO[2017-10-18T03:16:09+08:00] Launch: node start and join to p2p network success and listening for connections on port 51413...   file=net_service.go func="p2p.(*NetService).Launch" line=565
+INFO[2017-10-18T03:16:09+08:00] Sync.Start: i am a seed node.                 file=sync_manager.go func="sync.(*Manager).Start" line=76
+DEBU[2017-10-18T03:16:09+08:00] running.                                      file=asm_amd64.s func=runtime.goexit line=2338
+INFO[2017-10-18T03:16:09+08:00] Starting RPC server at: 127.0.0.1:51510       file=server.go func="rpc.(*Server).Start" line=56
+DEBU[2017-10-18T03:16:09+08:00] running.                                      file=asm_amd64.s func=runtime.goexit line=2338
+DEBU[2017-10-18T03:16:09+08:00] StartState enter.                             file=start.go func="pow.(*StartState).Enter" line=56
 ```
 
-Now we can get the seed address from log, get pretty id from log starts with **"makeHost: boot node pretty id is "**, get address from log starts with **"Start: node info {id -> <peer.ID ....>, address -> [/ip4...]"**. The seed address from log above is
+From the log, we can see the binary execution loads configuration, loads keystore, starts network service, starts RPC API server, and starts consensus state machine.
+
+
+### Configurations
+Neb uses Protocol Buffer to load configurations. The default config file is named as config.pb.txt and looks like following:
 ```
-/ip4/192.168.1.159/tcp/9999/ipfs/QmcvYFjy2d5Kt1DcmTJJEUKsKCXg8WJsCGRDD2bgyRYk6p
+p2p {
+  # seed: "UNCOMMENT_AND_SET_SEED_NODE_ADDRESS"
+  port: 51413
+}
+
+rpc {
+  port: 51510
+}
+
+pow {
+  coinbase: "8a209cec02cbeab7e2f74ad969d2dfe8dd24416aa65589bf"
+}
+
+account {
+  # keystore.SECP256K1 = 1
+  signature: 1
+
+  # keystore.SCRYPT = 1 << 4
+  encrypt: 16
+
+  key_dir: "testKey"
+
+  test_passphrase: "passphrase"
+}
+
 ```
 
-Then we start other nodes, by updating p2p seed and port in config.pb.txt.
+The configuration schema is defined in proto _neblet/pb/config.proto:Config_. To load a different config file when starting the neb binary, use flag -c. For example,
+```
+./neb -c config1.pb.txt
+```
 
-Non-seed nodes should be start after seed node start, before seed node finds the first nonce, minted the first block. Otherwise the Chain will be forked at the very beginning.
+Neb supports loading KeyStore file of ethereum format. KeyStore files from config _key_dir_ are loaded during neb bootstrap. Example testing KeyStore looks like
+```
+{"version":3,"id":"272a46f1-5141-4234-b948-1b45c6708962","address":"555fcb1b7051d3aea5cf2c0167b4e19ed6a4f98d","Crypto":{"ciphertext":"ecd4b817fa9ebed736235476c91dec43e73e0ca3e8d2f13c004725349882fb49","cipherparams":{"iv":"1ab4ed89c95f66e994f183fed23df9f9"},"cipher":"aes-128-ctr","kdf":"scrypt","kdfparams":{"dklen":32,"salt":"baef3f92cdde9fd97a00879ce060763101530e9e66e4c75ec74352a41419bde0","n":1024,"r":8,"p":1},"mac":"d8ea471cea8184fb7b19c1563804b85a31a2b3d792dc59ecccdb15dbfb3cebc0"}}
+
+```
+
+### Run non-seed node
+Now we can get the seed address from the seed node log output above. Get pretty id from log starts with **"makeHost: boot node pretty id is "**, get address from log starts with **"Start: node info {id -> <peer.ID ....>, address -> [/ip4...]"**. The seed address from log above is
+```
+/ip4/192.168.1.18/tcp/51413/ipfs/QmVMamgHNoR8GBUbq4r9BTFzod5F2BvhSgaGLVxPpXcWNm
+```
+To start a non-seed node on another machine, we need to update p2p seed configuration in _config.pb.txt_:
+```
+p2p {
+  seed: "/ip4/192.168.1.18/tcp/51413/ipfs/QmVMamgHNoR8GBUbq4r9BTFzod5F2BvhSgaGLVxPpXcWNm"
+  port: 51413
+}
+...
+```
+
+Note, if the non-seed node is running on the same machine, we need to use a different config file, and also assign different P2P and RPC server ports.
+
+Now we can start the non-seed nodes by simply run command
+```
+./neb
+```
+
+The binary will join Nebulas network and connects to the seed node started earlier. The log output will look like:
+```
+...
+INFO[2017-10-18T03:59:23+08:00] SayHello: bootNode addr -> /ip4/192.168.1.18/tcp/51413  file=node.go func="p2p.(*NetService).SayHello" line=162
+INFO[2017-10-18T03:59:23+08:00] SayHello: nnode.host.Addrs -> /ip4/1192.168.1.18/tcp/10001, bootAddr -> /ip4/172.31.8.110/tcp/51413  file=node.go func="p2p.(*NetService).SayHello" line=172
+INFO[2017-10-18T03:59:23+08:00] Hello: say hello addrs -> [/ip4/192.168.1.18/tcp/51413]  file=net_service.go func="p2p.(*NetService).Hello" line=427
+INFO[2017-10-18T03:59:23+08:00] SayHello: node say hello to boot node success...   file=node.go func="p2p.(*NetService).SayHello" line=186
+...
+```
 
 
-### Reading the Log
+### RPC API
+We can use API _GetAccountState_ and _SendTransaction_ to check and modify account state. We can play the RPC example testing client code:
+```
+cd rpc/testing/client/
+go run main.go
+```
 
-The Chain will be dump when new block is minted or received and put to tail, you can easily find in log, starting with **"Dump"**:
+The testing client gets account state from sender address, makes a transaction from sender to receiver, and also checks the account state of receiver address.
+
+We can see client log output like:
+```
+GetAccountState 8a209cec02cbeab7e2f74ad969d2dfe8dd24416aa65589bf nonce 1 value 78
+SendTransaction 8a209cec02cbeab7e2f74ad969d2dfe8dd24416aa65589bf -> 22ac3a9a2b1c31b7a9084e46eae16e761f83f02324092b09 value 2 hash:"d9258c06899412169f969807629e1c152b54a3c4033e43727f3a74855849ffa6" 
+GetAccountState 22ac3a9a2b1c31b7a9084e46eae16e761f83f02324092b09 nonce 0 value 2
+```
+
+### Debug chain status from log
+
+The chain will be dump when a new block is minted, or received and added to tail, we can easily find it in log, starting with **"Dump"**:
 
 ```
 ...
-DEBU[2017-09-27T17:36:01+08:00] Dump:  --> {2, hash: 0000002f3a7f6887c1186cb351174b9089818798895c4c43e00c2c58b7980005, parent: 0000000000000000000000000000000000000000000000000000000000000000, stateRoot: 899d499ff2077abe53c88ca3289dfbbc8f8fdfb9d34c47a3830a13dba739fb69} --> {1, hash: 0000000000000000000000000000000000000000000000000000000000000000, parent: 0000000000000000000000000000000000000000000000000000000000000000, stateRoot: }  file=fork_choice.go func="pow.(*Pow).ForkChoice" line=63
+Dump:  --> {2, hash: 0000009a658e094ec9bb642ba4d0d0ada63fe70aee5796b0631f9c844da4f5f0, parent: 0000000000000000000000000000000000000000000000000000000000000000, stateRoot: 3b55bd09bff8718070a341455faf21d1d32a1fde5cc3ddec990a553859efb002, coinbase: 8a209cec02cbeab7e2f74ad969d2dfe8dd24416aa65589bf} --> {1, hash: 0000000000000000000000000000000000000000000000000000000000000000, parent: 0000000000000000000000000000000000000000000000000000000000000000, stateRoot: , coinbase: 000000000000000000000000000000000000000000000000}
 ...
 ```
 
