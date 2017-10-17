@@ -19,18 +19,25 @@
 package main
 
 import (
+	"fmt"
 	"log"
 
+	"github.com/nebulasio/go-nebulas/neblet"
 	"github.com/nebulasio/go-nebulas/rpc"
 	"github.com/nebulasio/go-nebulas/rpc/pb"
 	"github.com/nebulasio/go-nebulas/util"
 	"golang.org/x/net/context"
 )
 
+// TODO: add command line flag.
+const config = "../../../config.pb.txt"
+
 // RPC testing client.
 func main() {
 	// Set up a connection to the server.
-	conn, err := rpc.Dial()
+	cfg := neblet.LoadConfig(config).Rpc
+	addr := fmt.Sprintf("localhost:%d", cfg.Port)
+	conn, err := rpc.Dial(addr)
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -20,7 +20,6 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/signal"
 	"sort"
@@ -28,7 +27,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/neblet"
 	"github.com/nebulasio/go-nebulas/neblet/pb"
 	"github.com/nebulasio/go-nebulas/util/logging"
@@ -77,7 +75,7 @@ func neb(ctx *cli.Context) error {
 	log.SetOutput(os.Stdout)
 	log.SetLevel(log.DebugLevel)
 
-	conf := loadConfig(config)
+	conf := neblet.LoadConfig(config)
 
 	runNeb(conf)
 
@@ -101,22 +99,4 @@ func runNeb(config *nebletpb.Config) {
 		// TODO: remove this once p2pManager handles stop properly.
 		os.Exit(1)
 	}()
-}
-
-func loadConfig(filename string) *nebletpb.Config {
-	log.Info("Loading Neb config from file ", filename)
-	b, err := ioutil.ReadFile(filename)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	str := string(b)
-	log.Info("Parsing Neb config text ", str)
-
-	pb := new(nebletpb.Config)
-	if err := proto.UnmarshalText(str, pb); err != nil {
-		log.Fatal(err)
-	}
-	log.Info("Loaded Neb config proto ", pb)
-	return pb
 }

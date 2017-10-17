@@ -6,9 +6,9 @@ import (
 )
 
 // Dial returns a client connection.
-func Dial() (*grpc.ClientConn, error) {
+func Dial(target string) (*grpc.ClientConn, error) {
 	// TODO: support secure connection.
-	conn, err := grpc.Dial(Address(), grpc.WithInsecure())
+	conn, err := grpc.Dial(target, grpc.WithInsecure())
 	if err != nil {
 		log.Warn("rpc.Dial() failed: ", err)
 	}
