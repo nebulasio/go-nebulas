@@ -29,7 +29,7 @@ import (
 
 	"github.com/libp2p/go-libp2p-crypto"
 	"github.com/libp2p/go-libp2p-kbucket"
-	nnet "github.com/libp2p/go-libp2p-net"
+	libnet "github.com/libp2p/go-libp2p-net"
 	"github.com/libp2p/go-libp2p-peer"
 	"github.com/libp2p/go-libp2p-peerstore"
 	"github.com/libp2p/go-libp2p-swarm"
@@ -40,11 +40,13 @@ import (
 
 // Node the node can be used as both the client and the server
 type Node struct {
-	host         *basichost.BasicHost
-	id           peer.ID
-	peerstore    peerstore.Peerstore
-	conn         map[string]int
-	stream       map[string]nnet.Stream
+	host      *basichost.BasicHost
+	id        peer.ID
+	peerstore peerstore.Peerstore
+	// key: ip + peer.ID
+	conn map[string]int
+	// key: ip + peer.ID
+	stream       map[string]libnet.Stream
 	routeTable   *kbucket.RoutingTable
 	context      context.Context
 	chainID      uint32
@@ -61,13 +63,13 @@ func NewNode(config *Config) (*Node, error) {
 	node := &Node{}
 	node.config = config
 	node.context = context.Background()
-	log.Info("NewNode: node make Host success")
-	err := node.makeHost()
-	if err != nil {
-		log.Error("NewNode: start node fail, can not make a basic host", err)
-	}
 
-	//node.start()
+	err := node.init()
+	if err != nil {
+		log.Error("NewNode: start node fail, can not init node", err)
+		return nil, err
+	}
+	log.Info("NewNode: node init success")
 	return node, nil
 }
 
@@ -86,7 +88,7 @@ func (node *Node) SetSynchronized(synchronized bool) {
 	node.synchronized = synchronized
 }
 
-func (node *Node) makeHost() error {
+func (node *Node) init() error {
 
 	ctx := node.context
 	randseed := node.config.Randseed
@@ -124,7 +126,7 @@ func (node *Node) makeHost() error {
 	node.routeTable.Update(node.id)
 
 	node.conn = make(map[string]int)
-	node.stream = make(map[string]nnet.Stream)
+	node.stream = make(map[string]libnet.Stream)
 	node.chainID = 100
 	node.version = 8
 	node.synchronized = false

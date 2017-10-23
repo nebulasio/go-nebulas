@@ -20,7 +20,7 @@ package p2p
 
 import (
 	"github.com/gogo/protobuf/proto"
-	"github.com/nebulasio/go-nebulas/components/net"
+	"github.com/nebulasio/go-nebulas/net"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -37,9 +37,11 @@ func (ns *NetService) Broadcast(name string, msg net.Serializable) {
 		return
 	}
 
-	log.Info("Broadcast: start broadcast msg...", msg)
 	allNode := node.routeTable.ListPeers()
-	log.Info("Broadcast: allNode -> ", allNode)
+	log.WithFields(log.Fields{
+		"msg":     msg,
+		"allNode": allNode,
+	}).Info("Broadcast: start broadcast msg.")
 
 	for i := 0; i < len(allNode); i++ {
 
@@ -51,10 +53,12 @@ func (ns *NetService) Broadcast(name string, msg net.Serializable) {
 			continue
 		}
 		if len(addrs) > 0 {
-			key := GenerateKey(addrs[0], nodeID)
-			go func() {
-				ns.SendMsg(name, data, key)
-			}()
+			key, err := GenerateKey(addrs[0], nodeID)
+			if err != nil {
+				log.Warn("Broadcast:  the addrs format is incorrect")
+				continue
+			}
+			go ns.SendMsg(name, data, key)
 		}
 
 	}

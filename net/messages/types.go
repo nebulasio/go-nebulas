@@ -23,8 +23,8 @@ import (
 	"fmt"
 
 	"github.com/gogo/protobuf/proto"
-	"github.com/nebulasio/go-nebulas/components/net"
-	netpb "github.com/nebulasio/go-nebulas/components/net/pb"
+	"github.com/nebulasio/go-nebulas/net"
+	netpb "github.com/nebulasio/go-nebulas/net/pb"
 )
 
 // BaseMessage base message

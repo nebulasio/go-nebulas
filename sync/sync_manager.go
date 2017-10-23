@@ -22,11 +22,11 @@ import (
 	"time"
 
 	pb "github.com/gogo/protobuf/proto"
-	"github.com/nebulasio/go-nebulas/components/net"
-	"github.com/nebulasio/go-nebulas/components/net/p2p"
 	"github.com/nebulasio/go-nebulas/consensus"
 	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/core/pb"
+	"github.com/nebulasio/go-nebulas/net"
+	"github.com/nebulasio/go-nebulas/net/p2p"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -76,9 +76,9 @@ func (m *Manager) RegisterSyncReplyInNetwork(nm net.Manager) {
 6. if all remote peers return the number of blocks less than 10, end sync
 */
 func (m *Manager) Start() {
-	m.StartMsgHandle()
+	m.startMsgHandle()
 	if len(m.ns.Node().Config().BootNodes) > 0 {
-		m.StartSync()
+		m.startSync()
 	} else {
 		log.Info("Sync.Start: i am a seed node.")
 		m.ns.Node().SetSynchronized(true)
@@ -86,9 +86,7 @@ func (m *Manager) Start() {
 	}
 }
 
-// StartSync start sync loop
-func (m *Manager) StartSync() {
-
+func (m *Manager) startSync() {
 	go (func() {
 	Loop:
 		for {
@@ -100,35 +98,41 @@ func (m *Manager) StartSync() {
 				m.consensus.SetCanMining(true)
 				break Loop
 			case <-m.syncCh:
-				m.syncWithTail()
+				m.syncWithPeers()
 			}
 		}
 	})()
 
-	m.syncWithTail()
+	m.syncWithPeers()
 }
 
-func (m *Manager) syncWithTail() {
+func (m *Manager) syncWithPeers() {
 	block := m.blockChain.TailBlock()
 
-	key := p2p.GenerateKey(m.ns.Addrs(), m.ns.Node().ID())
+	key, err := p2p.GenerateKey(m.ns.Addrs(), m.ns.Node().ID())
+	if err != nil {
+		log.Error("GenerateKey occurs error, sync has been terminated.")
+		return
+	}
 	tail := NewNetBlock(key, block)
 	log.WithFields(log.Fields{
 		"tail":  tail,
 		"block": tail.block,
-	}).Info("syncWithTail: got tail")
-	err := m.ns.Sync(tail)
+	}).Info("syncWithPeers: got tail")
+	err = m.ns.Sync(tail)
 	switch err {
 	case nil:
 	case p2p.ErrNodeNotEnough:
-		log.Warn("syncWithTail: sleep for 5 second...")
+		log.Warn("syncWithPeers: sleep for 5 second...")
 		time.Sleep(5 * time.Second)
 		m.syncCh <- true
+	default:
+		log.Error("syncWithPeers occurs error, sync has been terminated.")
 	}
 }
 
 // StartMsgHandle start sync message handle loop
-func (m *Manager) StartMsgHandle() {
+func (m *Manager) startMsgHandle() {
 	go (func() {
 		for {
 			select {
@@ -157,7 +161,11 @@ func (m *Manager) StartMsgHandle() {
 					continue
 				}
 				subsequentBlocks = append(subsequentBlocks, ancestor)
-				key := p2p.GenerateKey(m.ns.Addrs(), m.ns.Node().ID())
+				key, err := p2p.GenerateKey(m.ns.Addrs(), m.ns.Node().ID())
+				if err != nil {
+					log.Warn("StartMsgHandle.receiveTailCh: GenerateKey occurs error, ", err)
+					continue
+				}
 				blocks := NewNetBlocks(key, subsequentBlocks)
 				log.WithFields(log.Fields{
 					"from":   blocks.from,
@@ -188,8 +196,7 @@ func (m *Manager) StartMsgHandle() {
 				}).Info("StartMsgHandle.receiveSyncReplyCh: receive receiveSyncReplyCh message.")
 
 				if len(blocks) > 0 && len(m.cacheList) < p2p.LimitToSync {
-					m.cacheList[data.from] = data
-					go m.cacheListChangeHandle()
+					m.checkSyncLimitHandler(data)
 				} else {
 					continue
 				}
@@ -199,86 +206,96 @@ func (m *Manager) StartMsgHandle() {
 	})()
 }
 
-func (m *Manager) cacheListChangeHandle() {
+func (m *Manager) checkSyncLimitHandler(data *NetBlocks) {
+	m.cacheList[data.from] = data
 	if len(m.cacheList) >= p2p.LimitToSync {
-		tempList := make(map[string]int)
-		ancestorList := make(map[string]string)
-		for key, value := range m.cacheList {
-			ancestor := value.blocks[len(value.blocks)-1]
-			ancestorList[key] = ancestor.Hash().String()
-			if _, ok := tempList[ancestor.Hash().String()]; ok {
-				tempList[ancestor.Hash().String()] = tempList[ancestor.Hash().String()] + 1
-			} else {
-				tempList[ancestor.Hash().String()] = 1
-			}
-		}
-
-		limitLen := p2p.LimitToSync/2 + 1
-		var addrsArray []string
-
-		for key, value := range tempList {
-			if value >= limitLen {
-				// Make sure the common ancestor is correct
-				for addrs, hash := range ancestorList {
-					if key == hash {
-						addrsArray = append(addrsArray, addrs)
-						if len(addrsArray) == limitLen {
-							break
-						}
-					}
-				}
-				break
-			}
-		}
-
-		root := m.cacheList[addrsArray[0]].blocks
-
-		log.WithFields(log.Fields{
-			"tempList":        tempList,
-			"ancestorList":    ancestorList,
-			"addrsArray":      addrsArray,
-			"cacheList":       m.cacheList,
-			"len(addrsArray)": len(addrsArray),
-			"root":            root,
-		}).Info("StartMsgHandle.cacheListChangeCh: receive cacheListChangeCh message.")
-
-		for i := 0; i < len(root)-1; i++ {
-			count := 1
-			for j := 1; j < len(addrsArray); j++ {
-				temp := m.cacheList[addrsArray[j]].blocks
-				if root[i].Hash().String() == temp[i].Hash().String() {
-					count++
-				}
-			}
-			// suppose root[i] is a legal block
-			if count >= limitLen {
-				if err := m.blockChain.BlockPool().Push(root[i]); err != nil {
-					for k := range m.cacheList {
-						delete(m.cacheList, k)
-					}
-					log.Warn("StartMsgHandle: push a block to pool occrus error, ", err)
-					m.syncCh <- true
-					return
-				}
-			}
-		}
-
-		syncContinue := false
-		for i := 0; i < len(addrsArray); i++ {
-			if len(m.cacheList[addrsArray[0]].blocks) > DescendantCount {
-				log.Info("StartMsgHandle: more Descendant need to synchronize, go to next synchronization")
-				syncContinue = true
-			}
-		}
-
-		if syncContinue {
-			for k := range m.cacheList {
-				delete(m.cacheList, k)
-			}
-			m.syncCh <- true
-		} else { // sync finish
-			m.endSyncCh <- true
-		}
-
+		m.syncWithBlockList(m.cacheList)
 	}
+
+}
+
+func (m *Manager) syncWithBlockList(list map[string]*NetBlocks) {
+	// the map key is remote peer addrs
+	// find the map key who have the common ancestor
+	addrsArray := m.findBlocksWithCommonAncestor()
+
+	// do sync blocks who have the common ancestor
+	m.doSyncBlocksWithCommonAncestor(addrsArray)
+
+}
+
+func (m *Manager) doSyncBlocksWithCommonAncestor(addrsArray []string) {
+	root := m.cacheList[addrsArray[0]].blocks
+
+	for i := 0; i < len(root)-1; i++ {
+		count := 1
+		for j := 1; j < len(addrsArray); j++ {
+			temp := m.cacheList[addrsArray[j]].blocks
+			if root[i].Hash().String() == temp[i].Hash().String() {
+				count++
+			}
+		}
+		// suppose root[i] is a legal block
+		if count >= len(addrsArray) {
+			if err := m.blockChain.BlockPool().Push(root[i]); err != nil {
+				for k := range m.cacheList {
+					delete(m.cacheList, k)
+				}
+				log.Warn("doSyncBlocksWithCommonAncestor: push a block to pool occrus error, ", err)
+				m.syncCh <- true
+				return
+			}
+		}
+	}
+
+	syncContinue := false
+	for i := 0; i < len(addrsArray); i++ {
+		if len(m.cacheList[addrsArray[0]].blocks) > DescendantCount {
+			log.Info("StartMsgHandle: more Descendant need to synchronize, go to next synchronization")
+			syncContinue = true
+		}
+	}
+
+	if syncContinue {
+		for k := range m.cacheList {
+			delete(m.cacheList, k)
+		}
+		m.syncCh <- true
+	} else { // sync finish
+		m.endSyncCh <- true
+	}
+}
+
+// find blocks who have the common ancestor
+func (m *Manager) findBlocksWithCommonAncestor() []string {
+	tempList := make(map[string]int)
+	ancestorList := make(map[string]string)
+	for key, value := range m.cacheList {
+		ancestor := value.blocks[len(value.blocks)-1]
+		ancestorList[key] = ancestor.Hash().String()
+		if _, ok := tempList[ancestor.Hash().String()]; ok {
+			tempList[ancestor.Hash().String()] = tempList[ancestor.Hash().String()] + 1
+		} else {
+			tempList[ancestor.Hash().String()] = 1
+		}
+	}
+
+	limitLen := p2p.LimitToSync/2 + 1
+	var addrsArray []string
+
+	for key, value := range tempList {
+		if value >= limitLen {
+			// Make sure the common ancestor is correct
+			for addrs, hash := range ancestorList {
+				if key == hash {
+					addrsArray = append(addrsArray, addrs)
+					if len(addrsArray) == limitLen {
+						break
+					}
+				}
+			}
+			break
+		}
+	}
+	return addrsArray
 }

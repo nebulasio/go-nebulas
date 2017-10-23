@@ -8,11 +8,11 @@ import (
 
 	"github.com/multiformats/go-multiaddr"
 	"github.com/nebulasio/go-nebulas/account"
-	"github.com/nebulasio/go-nebulas/components/net/p2p"
 	"github.com/nebulasio/go-nebulas/consensus"
 	"github.com/nebulasio/go-nebulas/consensus/pow"
 	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/neblet/pb"
+	"github.com/nebulasio/go-nebulas/net/p2p"
 	"github.com/nebulasio/go-nebulas/rpc"
 	nsync "github.com/nebulasio/go-nebulas/sync"
 	log "github.com/sirupsen/logrus"
@@ -65,8 +65,9 @@ func (n *Neblet) Start() error {
 
 	// TODO: use new proto config.
 	p2pConfig := n.getP2PConfig()
+	// TODO: handle err
 	// n.p2pManager = p2p.NewManager(p2pConfig)
-	n.netService = p2p.NewNetService(p2pConfig)
+	n.netService, _ = p2p.NewNetService(p2pConfig)
 
 	n.blockChain = core.NewBlockChain(core.TestNetID)
 	fmt.Printf("chainID is %d\n", n.blockChain.ChainID())

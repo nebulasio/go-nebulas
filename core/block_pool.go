@@ -25,8 +25,8 @@ import (
 
 	"github.com/gogo/protobuf/proto"
 	"github.com/hashicorp/golang-lru"
-	"github.com/nebulasio/go-nebulas/components/net"
 	"github.com/nebulasio/go-nebulas/core/pb"
+	"github.com/nebulasio/go-nebulas/net"
 	log "github.com/sirupsen/logrus"
 )
 

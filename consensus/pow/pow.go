@@ -21,12 +21,12 @@ package pow
 import (
 	"errors"
 
-	"github.com/nebulasio/go-nebulas/components/net"
 	"github.com/nebulasio/go-nebulas/consensus"
 	"github.com/nebulasio/go-nebulas/core"
+	"github.com/nebulasio/go-nebulas/net"
 
-	"github.com/nebulasio/go-nebulas/components/net/p2p"
 	"github.com/nebulasio/go-nebulas/neblet/pb"
+	"github.com/nebulasio/go-nebulas/net/p2p"
 	log "github.com/sirupsen/logrus"
 )
 

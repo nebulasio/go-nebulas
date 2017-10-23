@@ -28,10 +28,10 @@ import (
 )
 
 /*
-Discovery node can discover other node or can be discovered by another node
+discovery node can discover other node or can be discovered by another node
 and then update the routing table.
 */
-func (net *NetService) Discovery(ctx context.Context) {
+func (net *NetService) discovery(ctx context.Context) {
 
 	//FIXME  the sync routing table rate can be dynamic
 	second := 30 * time.Second
@@ -56,6 +56,7 @@ func (net *NetService) syncRoutingTable() {
 	asked := make(map[peer.ID]bool)
 	allNode := node.routeTable.ListPeers()
 	log.Infof("syncRoutingTable: node %s routing table: %s", node.host.Addrs(), allNode)
+	// TODO: should set seed?
 	randomList := rand.Perm(len(allNode))
 	var nodeAccount int
 	if len(allNode) > node.config.maxSyncNodes {
@@ -68,9 +69,7 @@ func (net *NetService) syncRoutingTable() {
 		nodeID := allNode[randomList[i]]
 		if !asked[nodeID] {
 			asked[nodeID] = true
-			go func() {
-				net.syncSingleNode(nodeID)
-			}()
+			go net.syncSingleNode(nodeID)
 		}
 	}
 }
@@ -86,7 +85,11 @@ func (net *NetService) syncSingleNode(nodeID peer.ID) {
 	nodeInfo := node.peerstore.PeerInfo(nodeID)
 	if len(nodeInfo.Addrs) != 0 {
 		// net.syncRouteInfoFromSingleNode(nodeID)
-		if _, ok := node.stream[nodeInfo.Addrs[0].String()]; ok {
+		key, err := GenerateKey(nodeInfo.Addrs[0], nodeID)
+		if err != nil {
+			return
+		}
+		if _, ok := node.stream[key]; ok {
 			net.SyncRoutes(nodeID)
 		}
 

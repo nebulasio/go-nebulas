@@ -24,8 +24,8 @@ import (
 
 	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/common/pdeque"
-	"github.com/nebulasio/go-nebulas/components/net"
 	"github.com/nebulasio/go-nebulas/core/pb"
+	"github.com/nebulasio/go-nebulas/net"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
 	log "github.com/sirupsen/logrus"
 )

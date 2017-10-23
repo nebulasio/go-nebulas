@@ -23,7 +23,7 @@ import (
 	"time"
 
 	"github.com/gogo/protobuf/proto"
-	"github.com/nebulasio/go-nebulas/components/net"
+	"github.com/nebulasio/go-nebulas/net"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -60,10 +60,14 @@ func (ns *NetService) Sync(tail net.Serializable) error {
 		addrs := node.peerstore.PeerInfo(nodeID).Addrs
 		if len(addrs) > 0 {
 			if node.host.Addrs()[0] == addrs[0] {
-				log.Warn("PreSync: skip self")
+				log.Warn("Sync: skip self")
 				continue
 			}
-			key := GenerateKey(addrs[0], nodeID)
+			key, err := GenerateKey(addrs[0], nodeID)
+			if err != nil {
+				log.Warn("Sync: GenerateKey occurs error")
+				continue
+			}
 			if _, ok := node.stream[key]; ok {
 				count++
 				go func() {

@@ -6,7 +6,7 @@ p2p {
 }
 
 rpc {
-  port: 51510
+  port: 51511
 }
 
 pow {
