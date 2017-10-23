@@ -1,5 +1,7 @@
 # go-nebulas
 
+[![Join the chat at https://gitter.im/nebulasio/go-nebulas](https://badges.gitter.im/nebulasio/go-nebulas.svg)](https://gitter.im/nebulasio/go-nebulas?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 Official Go implementation of the Nebulas protocol.
 
 [![Build Status](https://travis-ci.org/nebulasio/go-nebulas.svg?branch=develop)](https://travis-ci.org/nebulasio/go-nebulas)
