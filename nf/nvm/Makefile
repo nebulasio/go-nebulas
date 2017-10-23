@@ -33,7 +33,7 @@ all: main
 main: main.cpp.o
 	$(LD) $< $(LDFLAGS) -o $@
 
-engine_test: engine.cpp.o engine_test.cpp.o
+engine_test: engine.cpp.o engine_test.cpp.o memory_manager.cpp.o
 	$(LD) $^ $(LDFLAGS) -o $@
 
 sum: sum.c.o

@@ -18,6 +18,7 @@
 //
 
 #include "engine.h"
+#include "memory_manager.h"
 
 #include <llvm/ExecutionEngine/ExecutionEngine.h>
 #include <llvm/ExecutionEngine/GenericValue.h>
@@ -26,7 +27,9 @@
 #include <llvm/IR/LegacyPassManager.h>
 #include <llvm/IR/Module.h>
 #include <llvm/IRReader/IRReader.h>
+#include <llvm/Support/Host.h>
 #include <llvm/Support/SourceMgr.h>
+#include <llvm/Support/TargetRegistry.h>
 #include <llvm/Support/TargetSelect.h>
 #include <llvm/Support/raw_ostream.h>
 #include <llvm/Transforms/Scalar.h>
@@ -47,19 +50,37 @@ void Initialize() {
   LLVMLinkInMCJIT();
 }
 
-Engine *CreateEngine(const char *irPath) {
+void SetTargetAndDataLayout(Module *module) {
+  std::string targetTriple = sys::getProcessTriple();
+  module->setTargetTriple(targetTriple);
+
+  std::string err;
+  auto target = TargetRegistry::lookupTarget(targetTriple, err);
+
+  StringRef cpu = sys::getHostCPUName();
+
+  SubtargetFeatures features;
+  StringMap<bool> HostFeatures;
+  if (sys::getHostCPUFeatures(HostFeatures))
+    for (auto &F : HostFeatures)
+      features.AddFeature(F.first(), F.second);
+  std::string featureStr = features.getString();
+
+  TargetOptions opt;
+  auto rm = Optional<Reloc::Model>();
+  auto targetMachine =
+      target->createTargetMachine(targetTriple, cpu, featureStr, opt, rm);
+
+  module->setDataLayout(targetMachine->createDataLayout());
+
+  // printf("targetTriple = %s\n", targetTriple.c_str());
+  // printf("cpu = %s\n", cpu.begin());
+  // printf("featureStr = %s\n", featureStr.c_str());
+}
+
+Engine *CreateEngine() {
   // Parse IR.
   LLVMContext *context = new LLVMContext();
-  SMDiagnostic err;
-
-  std::unique_ptr<Module> pModule =
-      parseIRFile(StringRef(irPath), err, *context);
-  Module *module = pModule.get();
-  if (module == nullptr) {
-    LogError(err.getMessage().data());
-    delete context;
-    return NULL;
-  }
 
   // Create PassManager.
   legacy::PassManager *passMgr = new legacy::PassManager();
@@ -69,60 +90,85 @@ Engine *CreateEngine(const char *irPath) {
   passMgr->add(createCFGSimplificationPass());
   passMgr->add(createDeadCodeEliminationPass());
   passMgr->add(createGVNPass());
+
+  // Enable MCJIT.
+  MemoryManager *rtDyldMM = new MemoryManager();
+
+  // Create Engine Structure.
+  Engine *e = static_cast<Engine *>(calloc(1, sizeof(Engine)));
+  e->llvm_context = context;
+  e->llvm_pass_manager = passMgr;
+  e->llvm_builder = NULL;
+  e->llvm_mem_manager = rtDyldMM;
+
+  e->llvm_engine = NULL;
+  e->llvm_main_module = NULL;
+  return e;
+}
+
+int AddModuleFile(Engine *e, const char *irPath) {
+  LLVMContext *context = static_cast<LLVMContext *>(e->llvm_context);
+  legacy::PassManager *passMgr =
+      static_cast<legacy::PassManager *>(e->llvm_pass_manager);
+  MemoryManager *rtDyldMM = static_cast<MemoryManager *>(e->llvm_mem_manager);
+
+  SMDiagnostic err;
+
+  std::unique_ptr<Module> pModule =
+      parseIRFile(StringRef(irPath), err, *context);
+  Module *module = pModule.get();
+  if (module == nullptr) {
+    LogError(err.getMessage().data());
+    return 1;
+  }
+
+  SetTargetAndDataLayout(module);
+
   passMgr->run(*module);
 
   if (false) {
     // TODO: @robin, invalid IR file should be quit.
     LogError("running pass failed.");
-    delete passMgr;
-    delete context;
-    return NULL;
+    return 1;
   }
 
-  // Create EngineBuilder.
-  std::string errMsg;
+  // Create EngineBuilder if not.
+  EngineBuilder *builder = static_cast<EngineBuilder *>(e->llvm_builder);
+  if (builder == nullptr) {
+    std::string errMsg;
 
-  EngineBuilder *builder = new EngineBuilder(std::move(pModule));
-  builder->setErrorStr(&errMsg);
-  builder->setEngineKind(EngineKind::JIT);
-  builder->setUseOrcMCJITReplacement(false);
+    builder = new EngineBuilder(std::move(pModule));
+    builder->setErrorStr(&errMsg);
+    builder->setEngineKind(EngineKind::JIT);
+    builder->setUseOrcMCJITReplacement(false);
 
-  // Enable MCJIT.
-  SectionMemoryManager *rtDyldMM = new SectionMemoryManager();
-  builder->setMCJITMemoryManager(
-      std::unique_ptr<RTDyldMemoryManager>(rtDyldMM));
+    builder->setMCJITMemoryManager(
+        std::unique_ptr<RTDyldMemoryManager>(rtDyldMM));
 
-  builder->setOptLevel(CodeGenOpt::Default);
+    builder->setOptLevel(CodeGenOpt::Default);
 
-  // Create ExecutionEngine.
-  ExecutionEngine *engine = builder->create();
+    e->llvm_builder = builder;
+    e->llvm_main_module = module;
+  }
+
+  // Create ExecutionEngine if not.
+  ExecutionEngine *engine = static_cast<ExecutionEngine *>(e->llvm_engine);
   if (engine == nullptr) {
-    LogError(errMsg.c_str());
-    delete rtDyldMM;
-    delete builder;
-    delete passMgr;
-    delete context;
-    return NULL;
+    engine = builder->create();
+    if (engine == nullptr) {
+      return 1;
+    }
+    e->llvm_engine = engine;
+  } else {
+    engine->addModule(std::move(pModule));
   }
 
-  // Run static contructors.
-  engine->finalizeObject();
-  engine->runStaticConstructorsDestructors(false);
-
-  Engine *e = static_cast<Engine *>(calloc(1, sizeof(Engine)));
-  e->llvm_context = context;
-  e->llvm_pass_manager = passMgr;
-  e->llvm_builder = builder;
-  e->llvm_mem_manager = rtDyldMM;
-
-  e->llvm_engine = engine;
-  e->llvm_module = module;
-  return e;
+  return 0;
 }
 
 void DeleteEngine(Engine *e) {
   // TODO: release llvm resource by call proper llvm dispose function.
-  delete static_cast<SectionMemoryManager *>(e->llvm_mem_manager);
+  delete static_cast<MemoryManager *>(e->llvm_mem_manager);
   delete static_cast<EngineBuilder *>(e->llvm_builder);
   delete static_cast<legacy::PassManager *>(e->llvm_pass_manager);
   delete static_cast<LLVMContext *>(e->llvm_context);
@@ -131,9 +177,14 @@ void DeleteEngine(Engine *e) {
 
 int RunFunction(Engine *e, const char *funcName, size_t len,
                 const uint8_t *data) {
-  Module *module = static_cast<Module *>(e->llvm_module);
+  Module *module = static_cast<Module *>(e->llvm_main_module);
   ExecutionEngine *engine = static_cast<ExecutionEngine *>(e->llvm_engine);
 
+  // finalize.
+  engine->finalizeObject();
+  engine->runStaticConstructorsDestructors(false);
+
+  // run.
   Function *func = module->getFunction(StringRef(funcName));
   if (func == nullptr) {
     char msg[128];
@@ -157,4 +208,9 @@ int RunFunction(Engine *e, const char *funcName, size_t len,
   engine->runFunction(func, args);
 
   return 0;
+}
+
+void AddNamedFunction(Engine *e, const char *funcName, void *address) {
+  MemoryManager *mm = static_cast<MemoryManager *>(e->llvm_mem_manager);
+  mm->addNamedFunction(funcName, address);
 }
