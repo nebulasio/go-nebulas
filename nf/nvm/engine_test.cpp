@@ -55,7 +55,7 @@ int main(int argc, const char *argv[]) {
   AddNamedFunction(e, "roll_dice2", (void *)roll_dice);
   printf("add named functions\n");
 
-  int ret = RunFunction(e, funcName, 0, NULL);
+  int ret = RunFunction(e, funcName, 111, NULL);
   printf("runFunction return %d\n", ret);
 
   DeleteEngine(e);

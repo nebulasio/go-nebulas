@@ -195,19 +195,27 @@ int RunFunction(Engine *e, const char *funcName, size_t len,
 
   (void)engine->getPointerToFunction(func);
 
+  FunctionType *funcType = func->getFunctionType();
   // Run func.
   std::vector<GenericValue> args;
 
   GenericValue argLen;
-  argLen.IntVal = APInt(sizeof(size_t) * 8, len);
-  args.push_back(argLen);
+  if (funcType->getNumParams() > 0) {
+    argLen.IntVal = APInt(sizeof(size_t) * 8, len);
+    args.push_back(argLen);
 
-  GenericValue argData;
-  argData.PointerVal = (PointerTy)data;
-  args.push_back(argData);
-  engine->runFunction(func, args);
+    GenericValue argData;
+    argData.PointerVal = (PointerTy)data;
+    args.push_back(argData);
+  }
 
-  return 0;
+  auto ret = engine->runFunction(func, args);
+
+  if (funcType->getReturnType()->isIntegerTy()) {
+    return (int)(ret.IntVal.getSExtValue());
+  } else {
+    return 0;
+  }
 }
 
 void AddNamedFunction(Engine *e, const char *funcName, void *address) {

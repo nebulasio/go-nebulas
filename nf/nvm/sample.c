@@ -34,7 +34,8 @@ void func_b() {
 
 int main(int argc, char *argv[]) {
   printf("called to main.\n");
+  printf("argc = %d\n", argc);
   func_a();
   func_b();
-  return 0;
+  return 234;
 }
