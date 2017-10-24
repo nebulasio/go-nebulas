@@ -83,7 +83,7 @@ func NewManager(neblet Neblet) *Manager {
 // load test key files
 func (m *Manager) loadTestKey(keyDir string, passphrase []byte) {
 	keyDir, _ = filepath.Abs(keyDir)
-	log.Info("load test keys form:", keyDir)
+	log.Debug("load test keys form:", keyDir)
 	files, _ := ioutil.ReadDir(keyDir)
 	for _, fi := range files {
 		path := filepath.Join(keyDir, fi.Name())
@@ -99,7 +99,7 @@ func (m *Manager) loadTestKey(keyDir string, passphrase []byte) {
 		}
 		// TODO(larry.wang):test key file auto unlock 1 year
 		m.ks.Unlock(addr.ToHex(), passphrase, time.Second*60*60*24*365)
-		log.Info("load test addr:", addr.ToHex())
+		log.Debug("load test addr:", addr.ToHex())
 	}
 }
 
@@ -144,14 +144,19 @@ func (m *Manager) Lock(addr *core.Address) error {
 func (m *Manager) Accounts() []*core.Address {
 	aliases := m.ks.Aliases()
 	addres := make([]*core.Address, len(aliases))
-	for _, a := range aliases {
+	for index, a := range aliases {
 		addr, err := core.AddressParse(a)
 		if err == nil {
 			// currently keystore only storage address as alias
-			addres = append(addres, addr)
+			addres[index] = addr
 		}
 	}
 	return addres
+}
+
+// Update update addr locked passphrase
+func (m *Manager) Update(addr *core.Address, oldPassphrase, newPassphrase []byte) error {
+	return m.ks.Update(addr.ToHex(), oldPassphrase, newPassphrase)
 }
 
 // Import import a key file to keystore, compatible ethereum keystore file

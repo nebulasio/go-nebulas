@@ -47,7 +47,9 @@ type Neblet struct {
 
 // New returns a new neblet.
 func New(config nebletpb.Config) *Neblet {
-	return &Neblet{config: config}
+	n := &Neblet{config: config}
+	n.accountManager = account.NewManager(n)
+	return n
 }
 
 // Start starts the services of the neblet.
@@ -60,8 +62,6 @@ func (n *Neblet) Start() error {
 		return ErrNebletAlreadyRunning
 	}
 	n.running = true
-
-	n.accountManager = account.NewManager(n)
 
 	// TODO: use new proto config.
 	p2pConfig := n.getP2PConfig()

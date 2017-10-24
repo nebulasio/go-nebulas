@@ -28,7 +28,6 @@ import (
 	"time"
 
 	"github.com/nebulasio/go-nebulas/neblet"
-	"github.com/nebulasio/go-nebulas/neblet/pb"
 	"github.com/nebulasio/go-nebulas/util/logging"
 	log "github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
@@ -63,6 +62,10 @@ func main() {
 	}
 
 	sort.Sort(cli.FlagsByName(app.Flags))
+
+	app.Commands = []cli.Command{
+		accountCommand,
+	}
 	sort.Sort(cli.CommandsByName(app.Commands))
 
 	app.Run(os.Args)
@@ -75,9 +78,9 @@ func neb(ctx *cli.Context) error {
 	log.SetOutput(os.Stdout)
 	log.SetLevel(log.DebugLevel)
 
-	conf := neblet.LoadConfig(config)
+	n := makeNeb(ctx)
 
-	runNeb(conf)
+	runNeb(n)
 
 	// TODO: just use the signal to block main.
 	for {
@@ -85,11 +88,10 @@ func neb(ctx *cli.Context) error {
 	}
 }
 
-func runNeb(config *nebletpb.Config) {
+func runNeb(n *neblet.Neblet) {
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 
-	n := neblet.New(*config)
 	n.Start()
 
 	go func() {
@@ -99,4 +101,16 @@ func runNeb(config *nebletpb.Config) {
 		// TODO: remove this once p2pManager handles stop properly.
 		os.Exit(1)
 	}()
+}
+
+func makeNeb(ctx *cli.Context) *neblet.Neblet {
+	conf := neblet.LoadConfig(config)
+	n := neblet.New(*conf)
+	return n
+}
+
+func nebFaid(format string, args ...interface{}) {
+	err := fmt.Sprintf(format, args...)
+	fmt.Println(err)
+	os.Exit(1)
 }
