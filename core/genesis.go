@@ -21,13 +21,13 @@ package core
 import (
 	"time"
 
-	"github.com/nebulasio/go-nebulas/common/trie"
+	"github.com/nebulasio/go-nebulas/common/batch_trie"
 )
 
 // NewGenesisBlock create genesis @Block from file.
 func NewGenesisBlock(chainID uint32) *Block {
-	stateTrie, _ := trie.NewTrie(nil)
-	txsTrie, _ := trie.NewTrie(nil)
+	stateTrie, _ := batchtrie.NewBatchTrie(nil)
+	txsTrie, _ := batchtrie.NewBatchTrie(nil)
 	// TODO: load genesis block data from file.
 	b := &Block{
 		header: &BlockHeader{

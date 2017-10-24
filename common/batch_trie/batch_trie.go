@@ -1,0 +1,163 @@
+package batchtrie
+
+import (
+	"errors"
+
+	"github.com/nebulasio/go-nebulas/common/trie"
+	"github.com/nebulasio/go-nebulas/util/byteutils"
+)
+
+// Action represents operation types in BatchTrie
+type Action int
+
+// Action constants
+const (
+	Insert Action = iota
+	Update
+	Delete
+)
+
+// Entry in changelog, [key, old value, new value]
+type Entry struct {
+	action Action
+	key    []byte
+	old    []byte
+	update []byte
+}
+
+// BatchTrie is a trie that supports batch task
+type BatchTrie struct {
+	trie      *trie.Trie
+	changelog []*Entry
+	batching  bool
+}
+
+// NewBatchTrie if rootHash is nil, create a new BatchTrie, otherwise, build an existed BatchTrie
+func NewBatchTrie(rootHash []byte) (*BatchTrie, error) {
+	t, err := trie.NewTrie(rootHash)
+	if err != nil {
+		return nil, err
+	}
+	return &BatchTrie{trie: t, batching: false}, nil
+}
+
+// RootHash of the BatchTrie
+func (bt *BatchTrie) RootHash() []byte {
+	return bt.trie.RootHash()
+}
+
+// Clone a the BatchTrie
+func (bt *BatchTrie) Clone() (*BatchTrie, error) {
+	if len(bt.changelog) > 0 {
+		panic("invalid status, pls Commit or RollBack at first")
+	}
+	tr, err := bt.trie.Clone()
+	if err != nil {
+		return nil, err
+	}
+	return &BatchTrie{trie: tr, batching: false}, nil
+}
+
+// Get the value to the key in BatchTrie
+// return value to the key
+func (bt *BatchTrie) Get(key []byte) ([]byte, error) {
+	return bt.trie.Get(key)
+}
+
+// Put the key-value pair in BatchTrie
+// return new rootHash
+func (bt *BatchTrie) Put(key []byte, val []byte) ([]byte, error) {
+	entry := &Entry{Update, key, nil, val}
+	old, getErr := bt.trie.Get(key)
+	if getErr != nil {
+		entry.action = Insert
+	} else {
+		entry.old = old
+	}
+	rootHash, putErr := bt.trie.Put(key, val)
+	if putErr != nil {
+		return nil, putErr
+	}
+	if bt.batching {
+		bt.changelog = append(bt.changelog, entry)
+	}
+	return rootHash, nil
+}
+
+// Del the key-value pair in BatchTrie
+// return new rootHash
+func (bt *BatchTrie) Del(key []byte) ([]byte, error) {
+	entry := &Entry{Delete, key, nil, nil}
+	old, getErr := bt.trie.Get(key)
+	if getErr == nil {
+		entry.old = old
+	}
+	rootHash, err := bt.trie.Del(key)
+	if err != nil {
+		return nil, err
+	}
+	if bt.batching {
+		bt.changelog = append(bt.changelog, entry)
+	}
+	return rootHash, nil
+}
+
+// SyncTrie data from other servers
+// Sync whole trie to build snapshot
+func (bt *BatchTrie) SyncTrie(rootHash []byte) error {
+	return bt.trie.SyncTrie(rootHash)
+}
+
+// SyncPath from rootHash to key node from other servers
+// Useful for verification quickly
+func (bt *BatchTrie) SyncPath(rootHash []byte, key []byte) error {
+	return bt.trie.SyncPath(rootHash, key)
+}
+
+// Prove the associated node to the key exists in trie
+// if exists, MerkleProof is a complete path from root to the node
+// otherwise, MerkleProof is nil
+func (bt *BatchTrie) Prove(key []byte) (trie.MerkleProof, error) {
+	return bt.trie.Prove(key)
+}
+
+// Verify whether the merkle proof from root to the associated node is right
+func (bt *BatchTrie) Verify(rootHash []byte, key []byte, proof trie.MerkleProof) error {
+	return bt.trie.Verify(rootHash, key, proof)
+}
+
+// BeginBatch to process a batch task
+func (bt *BatchTrie) BeginBatch() error {
+	if len(bt.changelog) > 0 {
+		return errors.New("invalid status, pls Commit or RollBack at first")
+	}
+	bt.batching = true
+	return nil
+}
+
+// Commit a batch task
+func (bt *BatchTrie) Commit() {
+	bt.changelog = bt.changelog[:0]
+	bt.batching = false
+}
+
+// RollBack a batch task
+func (bt *BatchTrie) RollBack() {
+	// compress changelog
+	changelog := make(map[string]*Entry)
+	for _, entry := range bt.changelog {
+		if _, ok := changelog[byteutils.Hex(entry.key)]; !ok {
+			changelog[byteutils.Hex(entry.key)] = entry
+		}
+	}
+	bt.changelog = bt.changelog[:0]
+	for _, entry := range changelog {
+		switch entry.action {
+		case Insert:
+			bt.trie.Del(entry.key)
+		case Update, Delete:
+			bt.trie.Put(entry.key, entry.old)
+		}
+	}
+	bt.batching = false
+}

@@ -149,7 +149,7 @@ func TestTrie_Operation(t *testing.T) {
 	// add a new node with 2-length common prefix
 	addr3, _ := byteutils.FromHex("1f555678e9")
 	key3 := []byte{0x1, 0xf, 0x5, 0x5, 0x5, 0x6, 0x7, 0x8, 0xe, 0x9}
-	val3 := []byte("leaf 3")
+	val3 := []byte{}
 	tr.Put(addr3, val3)
 	leaf4 := [][]byte{[]byte{byte(leaf)}, key3[3:], val3}
 	leaf4IR, _ := proto.Marshal(&triepb.Node{Val: leaf4})
@@ -202,7 +202,7 @@ func TestTrie_Operation(t *testing.T) {
 	// get node "1f555678e9"
 	checkVal3, _ := tr.Get(addr3)
 	if !reflect.DeepEqual(checkVal3, val3) {
-		t.Errorf("2 Trie.Get() val = %v, want %v", checkVal2, val3)
+		t.Errorf("2 Trie.Get() val = %v, want %v", checkVal3, val3)
 	}
 	// del node "1f345678e9"
 	hash5, _ := tr.Del(addr1)

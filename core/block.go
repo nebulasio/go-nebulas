@@ -24,7 +24,7 @@ import (
 	"time"
 
 	"github.com/gogo/protobuf/proto"
-	"github.com/nebulasio/go-nebulas/common/trie"
+	"github.com/nebulasio/go-nebulas/common/batch_trie"
 	"github.com/nebulasio/go-nebulas/core/pb"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/crypto/sha3"
@@ -131,8 +131,8 @@ type Block struct {
 	sealed       bool
 	height       uint64
 	parenetBlock *Block
-	stateTrie    *trie.Trie
-	txsTrie      *trie.Trie
+	stateTrie    *batchtrie.BatchTrie
+	txsTrie      *batchtrie.BatchTrie
 	txPool       *TransactionPool
 }
 
@@ -283,6 +283,21 @@ func (block *Block) LinkParentBlock(parentBlock *Block) bool {
 	return true
 }
 
+func (block *Block) begin() {
+	block.stateTrie.BeginBatch()
+	block.txsTrie.BeginBatch()
+}
+
+func (block *Block) commit() {
+	block.stateTrie.Commit()
+	block.txsTrie.Commit()
+}
+
+func (block *Block) rollback() {
+	block.stateTrie.RollBack()
+	block.txsTrie.RollBack()
+}
+
 // CollectTransactions and add them to block.
 func (block *Block) CollectTransactions(n int) {
 	if block.sealed {
@@ -293,6 +308,7 @@ func (block *Block) CollectTransactions(n int) {
 	var givebacks []*Transaction
 	for !pool.Empty() && n > 0 {
 		tx := pool.Pop()
+		block.begin()
 		giveback, err := block.executeTransaction(tx)
 		if giveback {
 			givebacks = append(givebacks, tx)
@@ -303,6 +319,7 @@ func (block *Block) CollectTransactions(n int) {
 				"tx":       tx,
 				"giveback": giveback,
 			}).Info("tx is packed.")
+			block.commit()
 			block.transactions = append(block.transactions, tx)
 			n--
 		} else {
@@ -312,6 +329,7 @@ func (block *Block) CollectTransactions(n int) {
 				"err":      err,
 				"giveback": giveback,
 			}).Warn("invalid tx.")
+			block.rollback()
 		}
 	}
 	for _, tx := range givebacks {
@@ -353,9 +371,14 @@ func (block *Block) Verify() error {
 	if err := block.verifyHash(); err != nil {
 		return err
 	}
+
+	block.begin()
 	if err := block.verifyTransactions(); err != nil {
+		block.rollback()
 		return err
 	}
+	block.commit()
+
 	return nil
 }
 
@@ -384,6 +407,7 @@ func (block *Block) verifyTransactions() error {
 	if !byteutils.Equal(block.txsTrie.RootHash(), block.TxsRoot()) {
 		return ErrInvalidBlockTxsRoot
 	}
+
 	return nil
 }
 
