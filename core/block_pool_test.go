@@ -47,7 +47,8 @@ func TestBlockPool(t *testing.T) {
 	priv, _ := secp256k1.GeneratePrivateKey()
 	pubdata, _ := priv.PublicKey().Encoded()
 	from, _ := NewAddressFromPublicKey(pubdata)
-	to := &Address{[]byte("hello")}
+	to := &Address{from.address}
+	coinbase := &Address{from.address}
 	ks.SetKey(from.ToHex(), priv, []byte("passphrase"))
 	ks.Unlock(from.ToHex(), []byte("passphrase"), time.Second*60*60*24*365)
 
@@ -65,19 +66,19 @@ func TestBlockPool(t *testing.T) {
 	bc.txPool.Push(tx2)
 	bc.txPool.Push(tx3)
 
-	block1 := NewBlock(0, &Address{[]byte("coinbase")}, bc.tailBlock, bc.txPool)
+	block1 := NewBlock(0, coinbase, bc.tailBlock, bc.txPool)
 	block1.CollectTransactions(1)
 	block1.Seal()
 
-	block2 := NewBlock(0, &Address{[]byte("coinbase")}, block1, bc.txPool)
+	block2 := NewBlock(0, coinbase, block1, bc.txPool)
 	block2.CollectTransactions(1)
 	block2.Seal()
 
-	block3 := NewBlock(0, &Address{[]byte("coinbase")}, block2, bc.txPool)
+	block3 := NewBlock(0, coinbase, block2, bc.txPool)
 	block3.CollectTransactions(1)
 	block3.Seal()
 
-	block4 := NewBlock(0, &Address{[]byte("coinbase")}, block3, bc.txPool)
+	block4 := NewBlock(0, coinbase, block3, bc.txPool)
 	block4.CollectTransactions(1)
 	block4.Seal()
 

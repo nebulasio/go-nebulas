@@ -49,7 +49,7 @@ func TestBlockChain_FindCommonAncestorWithTail(t *testing.T) {
 	priv, _ := secp256k1.GeneratePrivateKey()
 	pubdata, _ := priv.PublicKey().Encoded()
 	from, _ := NewAddressFromPublicKey(pubdata)
-	to := &Address{[]byte("hello")}
+	to := &Address{from.address}
 	ks.SetKey(from.ToHex(), priv, []byte("passphrase"))
 	ks.Unlock(from.ToHex(), []byte("passphrase"), time.Second*60*60*24*365)
 
@@ -69,12 +69,12 @@ func TestBlockChain_FindCommonAncestorWithTail(t *testing.T) {
 	bc.txPool.Push(tx2)
 	bc.txPool.Push(tx3)
 
-	coinbase11 := &Address{[]byte("coinbase11")}
-	coinbase12 := &Address{[]byte("coinbase12")}
-	coinbase111 := &Address{[]byte("coinbase111")}
-	coinbase221 := &Address{[]byte("coinbase221")}
-	coinbase222 := &Address{[]byte("coinbase222")}
-	coinbase1111 := &Address{[]byte("coinbase1111")}
+	coinbase11 := &Address{[]byte("012345678901234567890011")}
+	coinbase12 := &Address{[]byte("012345678901234567890012")}
+	coinbase111 := &Address{[]byte("012345678901234567890111")}
+	coinbase221 := &Address{[]byte("012345678901234567890221")}
+	coinbase222 := &Address{[]byte("012345678901234567890222")}
+	coinbase1111 := &Address{[]byte("012345678901234567891111")}
 	/*
 		genesisi -- 11 -- 111 -- 1111
 				 \_ 12 -- 221
@@ -134,7 +134,7 @@ func TestBlockChain_FetchDescendantInCanonicalChain(t *testing.T) {
 	bc := NewBlockChain(0)
 	var c MockConsensus
 	bc.SetConsensusHandler(c)
-	coinbase := &Address{[]byte("coinbase")}
+	coinbase := &Address{[]byte("012345678901234567890000")}
 	/*
 		genesisi -- 1 - 2 - 3 - 4 - 5 - 6
 		         \_ block - block1

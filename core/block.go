@@ -49,38 +49,6 @@ var (
 	ErrInvalidBlockTxsRoot   = errors.New("invalid block txs root hash")
 )
 
-// Account info in state Trie
-type Account struct {
-	Balance *util.Uint128
-	Nonce   uint64
-}
-
-// ToProto converts domain Account to proto Account
-func (acc *Account) ToProto() (proto.Message, error) {
-	value, err := acc.Balance.ToFixedSizeByteSlice()
-	if err != nil {
-		return nil, err
-	}
-	return &corepb.Account{
-		Balance: value,
-		Nonce:   acc.Nonce,
-	}, nil
-}
-
-// FromProto converts proto Account to domain Account
-func (acc *Account) FromProto(msg proto.Message) error {
-	if msg, ok := msg.(*corepb.Account); ok {
-		value, err := util.NewUint128FromFixedSizeByteSlice(msg.Balance)
-		if err != nil {
-			return err
-		}
-		acc.Balance = value
-		acc.Nonce = msg.Nonce
-		return nil
-	}
-	return errors.New("Pb Message cannot be converted into Account")
-}
-
 // BlockHeader of a block
 type BlockHeader struct {
 	hash       Hash
@@ -413,18 +381,18 @@ func (block *Block) verifyTransactions() error {
 
 // GetBalance returns balance for the given address on this block.
 func (block *Block) GetBalance(address Hash) *util.Uint128 {
-	return block.FindAccount(&Address{address}).Balance
+	return block.FindAccount(&Address{address}).UserBalance
 }
 
 // GetNonce returns nonce for the given address on this block.
 func (block *Block) GetNonce(address Hash) uint64 {
-	return block.FindAccount(&Address{address}).Nonce
+	return block.FindAccount(&Address{address}).UserNonce
 }
 
 func (block *Block) rewardCoinbase() {
 	coinbaseAddr := block.header.coinbase
 	coinbaseAcc := block.FindAccount(coinbaseAddr)
-	coinbaseAcc.Balance.Add(coinbaseAcc.Balance.Int, BlockReward.Int)
+	coinbaseAcc.AddBalance(BlockReward)
 	block.saveAccount(coinbaseAddr, coinbaseAcc)
 }
 
@@ -444,45 +412,49 @@ func (block *Block) executeTransactions() error {
 // FindAccount return account info in state Trie
 // if not found, return a new account
 func (block *Block) FindAccount(address *Address) *Account {
-	acc := new(Account)
-	if accBytes, err := block.stateTrie.Get(address.address); err != nil {
+	accBytes, err := block.stateTrie.Get(address.address)
+	if err != nil {
 		// new account
-		acc.Balance = util.NewUint128()
-		acc.Nonce = 0
-	} else {
-		pbAcc := new(corepb.Account)
-		if err := proto.Unmarshal(accBytes, pbAcc); err != nil {
-			panic("account in stateTrie cannot be unmarshaled correctly")
-		}
-		value, err := util.NewUint128FromFixedSizeByteSlice(pbAcc.Balance)
-		if err != nil {
-			panic("account's balance in stateTrie, convert []byte to uint128 failed")
-		}
-		acc.Balance = value
-		acc.Nonce = pbAcc.Nonce
+		return NewAccount(false)
+	}
+	acc := new(Account)
+	pbAcc := new(corepb.Account)
+	if err := proto.Unmarshal(accBytes, pbAcc); err != nil {
+		panic("invalid account:" + err.Error())
+	}
+	if err := acc.FromProto(pbAcc); err != nil {
+		panic("invalid account:" + err.Error())
 	}
 	return acc
 }
 
 // saveAccount update account info in state Trie
 func (block *Block) saveAccount(address *Address, acc *Account) {
-	pbAcc, _ := acc.ToProto()
-	accBytes, _ := proto.Marshal(pbAcc)
-	block.stateTrie.Put(address.address, accBytes)
+	pbAcc, err := acc.ToProto()
+	if err != nil {
+		panic("invalid account:" + err.Error())
+	}
+	accBytes, err := proto.Marshal(pbAcc)
+	if err != nil {
+		panic("invalid account:" + err.Error())
+	}
+	if _, err := block.stateTrie.Put(address.address, accBytes); err != nil {
+		panic("invalid account:" + err.Error())
+	}
 }
 
 // saveTxs record tx in txs Trie
 func (block *Block) saveTransaction(tx *Transaction) {
 	pbTx, err := tx.ToProto()
 	if err != nil {
-		panic("tx cannot be converted into []byte")
+		panic("invalid tx:" + err.Error())
 	}
 	txBytes, err := proto.Marshal(pbTx)
 	if err != nil {
-		panic("tx cannot be converted into []byte")
+		panic("invalid tx:" + err.Error())
 	}
 	if _, err := block.txsTrie.Put(tx.hash, txBytes); err != nil {
-		panic("tx cannot be put into txs trie")
+		panic("invalid tx:" + err.Error())
 	}
 }
 
@@ -508,20 +480,20 @@ func (block *Block) executeTransaction(tx *Transaction) (giveback bool, err erro
 	}
 	// check nonce
 	fromAcc := block.FindAccount(tx.from)
-	if tx.nonce < fromAcc.Nonce+1 {
+	if tx.nonce < fromAcc.UserNonce+1 {
 		return false, errors.New("cannot accept a transaction with smaller nonce")
-	} else if tx.nonce > fromAcc.Nonce+1 {
+	} else if tx.nonce > fromAcc.UserNonce+1 {
 		return true, errors.New("cannot accept a transaction with too bigger nonce")
 	}
 	// check balance
 	toAcc := block.FindAccount(tx.to)
-	if fromAcc.Balance.Cmp(tx.value.Int) < 0 {
+	if fromAcc.UserBalance.Cmp(tx.value.Int) < 0 {
 		return false, ErrInsufficientBalance
 	}
 	// accept the transaction
-	fromAcc.Balance.Sub(fromAcc.Balance.Int, tx.value.Int)
-	toAcc.Balance.Add(toAcc.Balance.Int, tx.value.Int)
-	fromAcc.Nonce++
+	fromAcc.SubBalance(tx.value)
+	toAcc.AddBalance(tx.value)
+	fromAcc.IncreNonce()
 
 	// save account info in state trie
 	block.saveAccount(tx.from, fromAcc)

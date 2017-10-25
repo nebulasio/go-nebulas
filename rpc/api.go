@@ -42,11 +42,11 @@ func (s *APIService) GetAccountState(ctx context.Context, req *rpcpb.GetAccountS
 	// TODO: handle specific block number.
 	acct := neb.BlockChain().TailBlock().FindAccount(addr)
 
-	fsb, err := acct.Balance.ToFixedSizeByteSlice()
+	fsb, err := acct.UserBalance.ToFixedSizeByteSlice()
 	if err != nil {
 		return nil, err
 	}
-	return &rpcpb.GetAccountStateResponse{Balance: fsb, Nonce: acct.Nonce}, nil
+	return &rpcpb.GetAccountStateResponse{Balance: fsb, Nonce: acct.UserNonce}, nil
 }
 
 // SendTransaction is the RPC API handler.

@@ -252,7 +252,7 @@ func TestBlock_CollectTransactions(t *testing.T) {
 
 	assert.Equal(t, block.Sealed(), false)
 	acc := block.FindAccount(block.header.coinbase)
-	assert.Equal(t, acc.Balance.Cmp(util.NewUint128().Int), 0)
+	assert.Equal(t, acc.UserBalance.Cmp(util.NewUint128().Int), 0)
 	block.Seal()
 	assert.Equal(t, block.Sealed(), true)
 	assert.Equal(t, block.transactions[0], tx1)
@@ -260,7 +260,7 @@ func TestBlock_CollectTransactions(t *testing.T) {
 	assert.Equal(t, block.StateRoot().Equals(block.stateTrie.RootHash()), true)
 	assert.Equal(t, block.TxsRoot().Equals(block.txsTrie.RootHash()), true)
 	acc = block.FindAccount(block.header.coinbase)
-	assert.Equal(t, acc.Balance.Cmp(BlockReward.Int), 0)
+	assert.Equal(t, acc.UserBalance.Cmp(BlockReward.Int), 0)
 	// mock net message
 	proto, _ := block.ToProto()
 	ir, _ := pb.Marshal(proto)
