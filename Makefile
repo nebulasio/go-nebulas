@@ -37,7 +37,7 @@ LDFLAGS = -ldflags "-X main.version=${VERSION} -X main.commit=${COMMIT} -X main.
 all: clean vet fmt lint build test
 
 dep:
-	dep ensure
+	dep ensure -v
 
 build:
 	cd cmd/neb; go build ${LDFLAGS} -o ../../${BINARY}
