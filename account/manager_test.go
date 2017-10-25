@@ -21,6 +21,8 @@ package account
 import (
 	"testing"
 
+	"os"
+
 	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/util"
 	"github.com/stretchr/testify/assert"
@@ -49,10 +51,11 @@ func TestManager_NewAccount(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := manager.NewAccount(tt.passphrase)
 			assert.Nil(t, err, "new address err")
-			addres := manager.Accounts()
-			assert.Contains(t, addres, got, "new account not in keystore")
+			addrs := manager.Accounts()
+			assert.Contains(t, addrs, got, "new account not in keystore")
 		})
 	}
+	os.RemoveAll(manager.keydir)
 }
 
 func TestManager_Unlock(t *testing.T) {
@@ -84,6 +87,7 @@ func TestManager_Unlock(t *testing.T) {
 			assert.Nil(t, err, "lock err")
 		})
 	}
+	os.RemoveAll(manager.keydir)
 }
 
 func TestManager_Lock(t *testing.T) {
@@ -119,6 +123,7 @@ func TestManager_Lock(t *testing.T) {
 			assert.Equal(t, tt.want, err == nil, "lock err")
 		})
 	}
+	os.RemoveAll(manager.keydir)
 }
 
 func TestManager_Import(t *testing.T) {
@@ -177,6 +182,7 @@ func TestManager_Export(t *testing.T) {
 			//t.Log(string(f))
 		})
 	}
+	os.RemoveAll(manager.keydir)
 }
 
 func TestManager_SignTransaction(t *testing.T) {
@@ -209,4 +215,5 @@ func TestManager_SignTransaction(t *testing.T) {
 			assert.Nil(t, err, "sign err")
 		})
 	}
+	os.RemoveAll(manager.keydir)
 }

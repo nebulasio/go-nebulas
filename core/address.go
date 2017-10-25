@@ -92,7 +92,7 @@ func (a *Address) ToHex() string {
 }
 
 // Equals compare two Address. True is equal, otherwise false.
-func (a *Address) Equals(b Address) bool {
+func (a *Address) Equals(b *Address) bool {
 	return a.address.Equals(b.address)
 }
 

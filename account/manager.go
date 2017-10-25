@@ -21,7 +21,6 @@ package account
 import (
 	"errors"
 
-	"io/ioutil"
 	"path/filepath"
 	"time"
 
@@ -35,6 +34,9 @@ import (
 )
 
 var (
+	// ErrAddrNotFind address not find.
+	ErrAddrNotFind = errors.New("address not find")
+
 	// ErrTxAddressLocked from address locked.
 	ErrTxAddressLocked = errors.New("transaction from address locked")
 
@@ -49,11 +51,21 @@ type Neblet interface {
 
 // Manager accounts manager ,handle account generate and storage
 type Manager struct {
+
+	// keystore
 	ks *keystore.Keystore
 
+	// key save path
+	keydir string
+
+	// key encrypt alg
 	encryptAlg keystore.Algorithm
 
+	// key signature alg
 	signatureAlg keystore.Algorithm
+
+	// account slice
+	accounts []*account
 }
 
 // NewManager new a account manager
@@ -62,9 +74,18 @@ func NewManager(neblet Neblet) *Manager {
 	m.ks = keystore.DefaultKS
 	m.signatureAlg = keystore.SECP256K1
 	m.encryptAlg = keystore.SCRYPT
+	m.keydir, _ = filepath.Abs("keydir")
 
 	if neblet != nil {
 		conf := neblet.Config().Account
+
+		keydir := conf.GetKeyDir()
+		if filepath.IsAbs(keydir) {
+			m.keydir = keydir
+		} else {
+			m.keydir, _ = filepath.Abs(keydir)
+		}
+
 		if conf.GetSignature() > 0 {
 			m.signatureAlg = keystore.Algorithm(conf.GetSignature())
 		}
@@ -72,40 +93,32 @@ func NewManager(neblet Neblet) *Manager {
 			m.encryptAlg = keystore.Algorithm(conf.GetEncrypt())
 		}
 
+		m.refreshAccounts()
+
 		// TODO(larry.wang): test keys load from keyDir, latter remove
-		if len(conf.GetTestPassphrase()) > 0 && len(conf.GetKeyDir()) > 0 {
-			m.loadTestKey(conf.GetKeyDir(), []byte(conf.GetTestPassphrase()))
+		if len(conf.GetTestPassphrase()) > 0 {
+			m.loadTestKey([]byte(conf.GetTestPassphrase()))
 		}
 	}
 	return m
 }
 
 // load test key files
-func (m *Manager) loadTestKey(keyDir string, passphrase []byte) {
-	keyDir, _ = filepath.Abs(keyDir)
-	log.Debug("load test keys form:", keyDir)
-	files, _ := ioutil.ReadDir(keyDir)
-	for _, fi := range files {
-		path := filepath.Join(keyDir, fi.Name())
+func (m *Manager) loadTestKey(passphrase []byte) {
 
-		raw, err := ioutil.ReadFile(path)
+	for _, acc := range m.accounts {
+		err := m.importFile(acc.addr, passphrase)
 		if err != nil {
-			log.Error("read key file failed", err)
-			continue
-		}
-		addr, err := m.Import(raw, passphrase)
-		if err != nil {
-			log.Error("load key failed", err)
+			log.Error("test import key failed", err)
 		}
 		// TODO(larry.wang):test key file auto unlock 1 year
-		m.ks.Unlock(addr.ToHex(), passphrase, time.Second*60*60*24*365)
-		log.Debug("load test addr:", addr.ToHex())
+		m.ks.Unlock(acc.addr.ToHex(), passphrase, time.Second*60*60*24*365)
+		log.Debug("test load addr:", acc.addr.ToHex())
 	}
 }
 
 // NewAccount returns a new address and keep it in keystore
 func (m *Manager) NewAccount(passphrase []byte) (*core.Address, error) {
-
 	priv, err := crypto.NewPrivateKey(m.signatureAlg, nil)
 	if err != nil {
 		return nil, err
@@ -122,8 +135,13 @@ func (m *Manager) storeAddress(priv keystore.PrivateKey, passphrase []byte) (*co
 	if err != nil {
 		return nil, err
 	}
-
+	// set key to keystore
 	err = m.ks.SetKey(addr.ToHex(), priv, passphrase)
+	if err != nil {
+		return nil, err
+	}
+	// export key to file in keydir
+	err = m.exportFile(addr, passphrase)
 	if err != nil {
 		return nil, err
 	}
@@ -132,6 +150,13 @@ func (m *Manager) storeAddress(priv keystore.PrivateKey, passphrase []byte) (*co
 
 // Unlock unlock address with passphrase
 func (m *Manager) Unlock(addr *core.Address, passphrase []byte) error {
+	res, err := m.ks.ContainsAlias(addr.ToHex())
+	if err != nil || res == false {
+		err = m.importFile(addr, passphrase)
+		if err != nil {
+			return err
+		}
+	}
 	return m.ks.Unlock(addr.ToHex(), passphrase, keystore.DefaultUnlockDuration)
 }
 
@@ -142,21 +167,22 @@ func (m *Manager) Lock(addr *core.Address) error {
 
 // Accounts returns slice of address
 func (m *Manager) Accounts() []*core.Address {
-	aliases := m.ks.Aliases()
-	addres := make([]*core.Address, len(aliases))
-	for index, a := range aliases {
-		addr, err := core.AddressParse(a)
-		if err == nil {
-			// currently keystore only storage address as alias
-			addres[index] = addr
-		}
+	m.refreshAccounts()
+	addrs := make([]*core.Address, len(m.accounts))
+	for index, a := range m.accounts {
+		addrs[index] = a.addr
 	}
-	return addres
+	return addrs
 }
 
 // Update update addr locked passphrase
 func (m *Manager) Update(addr *core.Address, oldPassphrase, newPassphrase []byte) error {
-	return m.ks.Update(addr.ToHex(), oldPassphrase, newPassphrase)
+	key, err := m.ks.GetKey(addr.ToHex(), oldPassphrase)
+	if err != nil {
+		return err
+	}
+	_, err = m.storeAddress(key.(keystore.PrivateKey), newPassphrase)
+	return err
 }
 
 // Import import a key file to keystore, compatible ethereum keystore file
@@ -192,6 +218,19 @@ func (m *Manager) Export(addr *core.Address, passphrase []byte) ([]byte, error) 
 		return nil, err
 	}
 	return out, nil
+}
+
+func (m *Manager) Delete(a string, passphrase []byte) error {
+	addr, err := core.AddressParse(a)
+	if err != nil {
+		return err
+	}
+	err = m.ks.Delete(a, passphrase)
+	if err != nil {
+		return err
+	}
+	//remove key file and accounts
+	return m.deleteFile(addr)
 }
 
 // SignTransaction sign transaction with the specified algorithm

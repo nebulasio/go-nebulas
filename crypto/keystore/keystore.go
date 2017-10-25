@@ -196,19 +196,15 @@ func (ks *Keystore) GetKey(a string, passphrase []byte) (Key, error) {
 	return key, nil
 }
 
-// Update update key's passphrase
-func (ks *Keystore) Update(a string, oldPassphrase []byte, newPassphrase []byte) error {
-	key, err := ks.GetKey(a, oldPassphrase)
-	if err != nil {
-		return err
-	}
-	return ks.SetKey(a, key, newPassphrase)
-}
-
 // Delete the entry identified by the given alias from this keystore.
-func (ks *Keystore) Delete(a string) error {
+func (ks *Keystore) Delete(a string, passphrase []byte) error {
 	if ks.p == nil {
 		return ErrUninitialized
 	}
+	key, err := ks.p.GetKey(a, passphrase)
+	if err != nil {
+		return err
+	}
+	key.Clear()
 	return ks.p.Delete(a)
 }

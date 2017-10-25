@@ -202,7 +202,7 @@ func TestKeystore_Delete(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			err := ks.SetKey(tt.alias, tt.key, tt.passphrase)
 			assert.Nil(t, err, "set key err")
-			err = ks.Delete(tt.alias)
+			err = ks.Delete(tt.alias, tt.passphrase)
 			assert.Nil(t, err, "delete err")
 			got, err := ks.ContainsAlias(tt.alias)
 			assert.NotNil(t, err, "contains err")

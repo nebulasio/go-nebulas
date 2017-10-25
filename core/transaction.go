@@ -200,7 +200,7 @@ func (tx *Transaction) verifySign() (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	if !tx.from.Equals(*addr) {
+	if !tx.from.Equals(addr) {
 		return false, errors.New("recover public key not related to from address")
 	}
 	return signature.Verify(tx.hash, tx.sign)
