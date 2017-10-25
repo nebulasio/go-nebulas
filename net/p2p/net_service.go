@@ -20,7 +20,6 @@ package p2p
 
 import (
 	"bytes"
-	"encoding/json"
 	"errors"
 	"hash/crc32"
 	"io"
@@ -75,7 +74,36 @@ type NetService struct {
 	dispatcher *net.Dispatcher
 }
 
-// Protocol protocol data struct
+/*
+Protocol In Nebulas, we define our own wire protocol, as the following:
+
+ 0               1               2               3              (bytes)
+ 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|                         Magic Number                          |
++---------------------------------------------------------------+
+|                         Chain ID                              |
++-----------------------------------------------+---------------+
+|                         Reserved              |   Version     |
++-----------------------------------------------+---------------+
+|                                                               |
++                                                               +
+|                         Message Name                          |
++                                                               +
+|                                                               |
++---------------------------------------------------------------+
+|                         Data Length                           |
++---------------------------------------------------------------+
+|                         Data Checksum                         |
++---------------------------------------------------------------+
+|                         Header Checksum                       |
+|---------------------------------------------------------------+
+|                                                               |
++                         Data                                  +
+.                                                               .
+|                                                               |
++---------------------------------------------------------------+
+*/
 type Protocol struct {
 	magicNumber    []byte
 	chainID        []byte
@@ -89,16 +117,14 @@ type Protocol struct {
 }
 
 // NewNetService create netService
-func NewNetService(config *Config) (*NetService, error) {
-	if config == nil {
-		config = DefautConfig()
-	}
-	n, err := NewNode(config)
+func NewNetService(n Neblet) (*NetService, error) {
+	config := NewP2PConfig(n)
+	node, err := NewNode(config)
 	if err != nil {
 		log.Error("NewNetService: node create fail -> ", err)
 		return nil, err
 	}
-	ns := &NetService{n, make(chan bool), net.NewDispatcher()}
+	ns := &NetService{node, make(chan bool), net.NewDispatcher()}
 	return ns, nil
 }
 
@@ -109,7 +135,7 @@ func (ns *NetService) registerNetService() *NetService {
 	return ns
 }
 
-// Addrs get node address in string
+// Addrs return peer address in string
 func (ns *NetService) Addrs() ma.Multiaddr {
 	len := len(ns.node.host.Addrs())
 	if len > 0 {
@@ -318,25 +344,26 @@ func (ns *NetService) handleSyncRouteMsg(data []byte, pid peer.ID, s libnet.Stre
 			ns.Bye(pid, []ma.Multiaddr{addrs}, s)
 		}
 	}()
-	log.Debug("streamHandler: [SYNCROUTE] handle sync route message")
 	peers := node.routeTable.NearestPeers(kbucket.ConvertPeerID(pid), node.config.maxSyncNodes)
-	var peerList []peerstore.PeerInfo
+	var peerList []*messages.PeerInfo
 	for i := range peers {
 		peerInfo := node.peerstore.PeerInfo(peers[i])
 		if len(peerInfo.Addrs) == 0 {
-			log.Warn("streamHandler: [SYNCROUTE] addrs is nil")
+			log.Warn("handleSyncRouteMsg: [SYNCROUTE] addrs is nil")
 			continue
 		}
-		peerList = append(peerList, peerInfo)
+		peer := messages.NewPeerInfoMessage(peerInfo.ID, peerInfo.Addrs[0].String())
+		peerList = append(peerList, peer)
 	}
 	log.WithFields(log.Fields{
 		"peerList": peerList,
-	}).Debug("streamHandler: [SYNCROUTE] handle sync route request.")
+	}).Debug("handleSyncRouteMsg: [SYNCROUTE] handle sync route request.")
 
-	// TODO: change json to proto
-	data, err := json.Marshal(peerList)
+	peersMessage := messages.NewPeersMessage(peerList)
+	pb, err := peersMessage.ToProto()
+	data, err = proto.Marshal(pb)
 	if err != nil {
-		log.Error("streamHandler: [SYNCROUTE] handle sync route occurs error...", err)
+		log.Error("handleSyncRouteMsg: [SYNCROUTE] send syncroute message occurs error, ", err)
 		return result
 	}
 
@@ -344,11 +371,11 @@ func (ns *NetService) handleSyncRouteMsg(data []byte, pid peer.ID, s libnet.Stre
 
 	stream := node.stream[key]
 	if stream == nil {
-		log.Error("streamHandler: [SYNCROUTE] send message occrus error, stream does not exist.")
+		log.Error("handleSyncRouteMsg: [SYNCROUTE] send message occrus error, stream does not exist.")
 		return result
 	}
 	if err := Write(stream, totalData); err != nil {
-		log.Error("streamHandler: [SYNCROUTE] write data occurs error, ", err)
+		log.Error("handleSyncRouteMsg: [SYNCROUTE] write data occurs error, ", err)
 		return result
 	}
 	node.routeTable.Update(pid)
@@ -358,42 +385,48 @@ func (ns *NetService) handleSyncRouteMsg(data []byte, pid peer.ID, s libnet.Stre
 
 func (ns *NetService) handleSyncRouteReplyMsg(data []byte, pid peer.ID, s libnet.Stream, addrs ma.Multiaddr) bool {
 	node := ns.node
-	log.Infof("streamHandler: [SYNCROUTEREPLY] handle sync route reply ")
-	var sample []peerstore.PeerInfo
+	log.Debug("handleSyncRouteReplyMsg: [SYNCROUTEREPLY] handle sync route reply ")
+	peers := new(messages.Peers)
+	pb := new(netpb.Peers)
 
-	// TODO: change json to proto
-	if err := json.Unmarshal(data, &sample); err != nil {
-		log.Error("streamHandler: [SYNCROUTEREPLY] handle sync route reply occurs error, ", err)
-		ns.Bye(pid, []ma.Multiaddr{addrs}, s)
+	if err := proto.Unmarshal(data, pb); err != nil {
+		log.Error("handleSyncRouteReplyMsg: [OK] handle ok msg occurs error: ", err)
 		return false
 	}
-	log.WithFields(log.Fields{
-		"sample": sample,
-	}).Info("streamHandler: [SYNCROUTEREPLY] handle sync route reply.")
+	if err := peers.FromProto(pb); err != nil {
+		log.Error("handleSyncRouteReplyMsg: [OK] handle ok msg occurs error: ", err)
+		return false
+	}
 
-	for i := range sample {
-		if node.routeTable.Find(sample[i].ID) != "" || len(sample[i].Addrs) == 0 {
-			log.Warnf("streamHandler: [SYNCROUTEREPLY] node %s is already exist in route table", sample[i].ID)
+	for i := range peers.Peers() {
+		id := peers.Peers()[i].ID()
+		if node.routeTable.Find(id) != "" || len(peers.Peers()[i].Addrs()) == 0 {
+			log.Warnf("handleSyncRouteReplyMsg: [SYNCROUTEREPLY] node %s is already exist in route table", id)
+			continue
+		}
+		address, err := ma.NewMultiaddr(peers.Peers()[i].Addrs())
+		if err != nil {
+			log.Warnf("handleSyncRouteReplyMsg: [SYNCROUTEREPLY] parse address occurs error, address -> %s", peers.Peers()[i].Addrs())
 			continue
 		}
 		// Say hello to the peer.
 		node.peerstore.AddAddr(
-			sample[i].ID,
-			sample[i].Addrs[0],
+			id,
+			address,
 			peerstore.TempAddrTTL,
 		)
 
-		if err := ns.Hello(sample[i].ID); err != nil {
-			log.Errorf("streamHandler: [SYNCROUTEREPLY] say hello to the peer %s fail %s", sample[i].ID, err)
+		if err := ns.Hello(id); err != nil {
+			log.Errorf("streamHandler: [SYNCROUTEREPLY] say hello to the peer %s fail %s", id, err)
 			continue
 		}
 		node.peerstore.AddAddr(
-			sample[i].ID,
-			sample[i].Addrs[0],
+			id,
+			address,
 			peerstore.PermanentAddrTTL,
 		)
 		// Update the routing table.
-		node.routeTable.Update(sample[i].ID)
+		node.routeTable.Update(id)
 	}
 	return true
 }

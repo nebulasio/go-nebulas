@@ -127,8 +127,8 @@ func (node *Node) init() error {
 
 	node.conn = make(map[string]int)
 	node.stream = make(map[string]libnet.Stream)
-	node.chainID = 100
-	node.version = 8
+	node.chainID = node.config.ChainID
+	node.version = node.config.Version
 	node.synchronized = false
 
 	address, err := multiaddr.NewMultiaddr(
@@ -171,7 +171,7 @@ func (netService *NetService) SayHello(bootNode multiaddr.Multiaddr) error {
 		bootAddr,
 		peerstore.TempAddrTTL,
 	)
-	log.Infof("SayHello: nnode.host.Addrs -> %s, bootAddr -> %s", node.host.Addrs()[0].String(), bootAddr.String())
+	log.Infof("SayHello: node.host.Addrs -> %s, bootAddr -> %s", node.host.Addrs()[0].String(), bootAddr.String())
 	if node.host.Addrs()[0].String() != bootAddr.String() {
 		for i := 0; i < 3; i++ {
 			err := netService.Hello(bootID)

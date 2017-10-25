@@ -23,6 +23,7 @@ import (
 	"fmt"
 
 	"github.com/gogo/protobuf/proto"
+	peer "github.com/libp2p/go-libp2p-peer"
 	"github.com/nebulasio/go-nebulas/net"
 	netpb "github.com/nebulasio/go-nebulas/net/pb"
 )
@@ -47,7 +48,7 @@ func NewHelloMessage(nodeID string, clientVersion string) *HelloMessage {
 // ToProto converts domain HelloMessage to proto HelloMessage
 func (h *HelloMessage) ToProto() (proto.Message, error) {
 	return &netpb.Hello{
-		NodeID:        h.NodeID,
+		NodeId:        h.NodeID,
 		ClientVersion: h.ClientVersion,
 	}, nil
 }
@@ -55,11 +56,99 @@ func (h *HelloMessage) ToProto() (proto.Message, error) {
 // FromProto converts proto HelloMessage to domain HelloMessage
 func (h *HelloMessage) FromProto(msg proto.Message) error {
 	if msg, ok := msg.(*netpb.Hello); ok {
-		h.NodeID = msg.NodeID
+		h.NodeID = msg.NodeId
 		h.ClientVersion = msg.ClientVersion
 		return nil
 	}
 	return errors.New("Pb Message cannot be converted into HelloMessage")
+}
+
+// Peers struct
+type Peers struct {
+	peers []*PeerInfo
+}
+
+// PeerInfo peerInfo struct
+type PeerInfo struct {
+	id    peer.ID
+	addrs string
+}
+
+// Peers return peers
+func (ps *Peers) Peers() []*PeerInfo {
+	return ps.peers
+}
+
+// ID return peer`s id
+func (p *PeerInfo) ID() peer.ID {
+	return p.id
+}
+
+// Addrs return peer`s addrs
+func (p *PeerInfo) Addrs() string {
+	return p.addrs
+}
+
+// NewPeerInfoMessage return a peerInfo instance
+func NewPeerInfoMessage(id peer.ID, addrs string) *PeerInfo {
+	return &PeerInfo{id, addrs}
+}
+
+// ToProto converts domain PeerInfo to proto PeerInfo
+func (p *PeerInfo) ToProto() (proto.Message, error) {
+	return &netpb.PeerInfo{
+		Id:    string(p.id),
+		Addrs: p.addrs,
+	}, nil
+}
+
+// FromProto converts proto PeerInfo to domain PeerInfo
+func (p *PeerInfo) FromProto(msg proto.Message) error {
+	if msg, ok := msg.(*netpb.PeerInfo); ok {
+		p.id = peer.ID(msg.Id)
+		p.addrs = msg.Addrs
+		return nil
+	}
+	return errors.New("Pb Message cannot be converted into PeerInfo")
+}
+
+// NewPeersMessage return peers instance
+func NewPeersMessage(peers []*PeerInfo) *Peers {
+	return &Peers{peers}
+}
+
+// ToProto converts domain Peers to proto Peers
+func (ps *Peers) ToProto() (proto.Message, error) {
+	var result []*netpb.PeerInfo
+	for _, v := range ps.peers {
+		peer, err := v.ToProto()
+		if err != nil {
+			return nil, err
+		}
+		if peer, ok := peer.(*netpb.PeerInfo); ok {
+			result = append(result, peer)
+		} else {
+			return nil, errors.New("Pb Message cannot be converted into Peers")
+		}
+	}
+	return &netpb.Peers{
+		Peers: result,
+	}, nil
+}
+
+// FromProto converts proto Peers to domain Peers
+func (ps *Peers) FromProto(msg proto.Message) error {
+	if msg, ok := msg.(*netpb.Peers); ok {
+		for _, v := range msg.Peers {
+			peer := new(PeerInfo)
+			if err := peer.FromProto(v); err != nil {
+				return err
+			}
+			ps.peers = append(ps.peers, peer)
+		}
+		return nil
+	}
+	return errors.New("Pb Message cannot be converted into Peers")
 }
 
 // NewBaseMessage new base message

@@ -21,6 +21,15 @@ package netpb;
 
 // TODO: change field name to lowercase with _
 message Hello {
-    string nodeID = 1;
-    string clientVersion = 2;
+    string node_id = 1;
+    string client_version = 2;
+}
+
+message Peers {
+    repeated PeerInfo peers = 1;
+}
+
+message PeerInfo {
+    string id = 1;
+    string addrs = 2;
 }

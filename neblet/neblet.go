@@ -3,10 +3,8 @@ package neblet
 import (
 	"errors"
 	"fmt"
-	"net"
 	"sync"
 
-	"github.com/multiformats/go-multiaddr"
 	"github.com/nebulasio/go-nebulas/account"
 	"github.com/nebulasio/go-nebulas/consensus"
 	"github.com/nebulasio/go-nebulas/consensus/pow"
@@ -54,6 +52,7 @@ func New(config nebletpb.Config) *Neblet {
 
 // Start starts the services of the neblet.
 func (n *Neblet) Start() error {
+	var err error
 	n.lock.Lock()
 	defer n.lock.Unlock()
 	log.Info("Starting neblet...")
@@ -63,11 +62,12 @@ func (n *Neblet) Start() error {
 	}
 	n.running = true
 
-	// TODO: use new proto config.
-	p2pConfig := n.getP2PConfig()
-	// TODO: handle err
-	// n.p2pManager = p2p.NewManager(p2pConfig)
-	n.netService, _ = p2p.NewNetService(p2pConfig)
+	n.accountManager = account.NewManager(n)
+
+	n.netService, err = p2p.NewNetService(n)
+	if err != nil {
+		return err
+	}
 
 	n.blockChain = core.NewBlockChain(core.TestNetID)
 	fmt.Printf("chainID is %d\n", n.blockChain.ChainID())
@@ -146,43 +146,4 @@ func (n *Neblet) AccountManager() *account.Manager {
 // NetService returns p2p manager reference.
 func (n *Neblet) NetService() *p2p.NetService {
 	return n.netService
-}
-
-// TODO: move this to p2p package.
-func (n *Neblet) getP2PConfig() *p2p.Config {
-	config := p2p.DefautConfig()
-	config.IP = localHost()
-	seed := n.config.P2P.Seed
-	if len(seed) > 0 {
-		seed, err := multiaddr.NewMultiaddr(seed)
-		if err != nil {
-			log.Error("param seed error, creating seed node fail", err)
-			return nil
-		}
-		config.BootNodes = []multiaddr.Multiaddr{seed}
-	}
-	if port := n.config.P2P.Port; port > 0 {
-		config.Port = uint(port)
-	}
-	// P2P network randseed, in this release we use port as randseed
-	// config.Randseed = time.Now().Unix()
-	config.Randseed = int64(config.Port)
-	return config
-}
-
-// TODO: move this to p2p package.
-func localHost() string {
-	addrs, err := net.InterfaceAddrs()
-	if err != nil {
-		return ""
-	}
-	for _, address := range addrs {
-		if ipnet, ok := address.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
-			if ipnet.IP.To4() != nil {
-				return ipnet.IP.String()
-			}
-		}
-	}
-
-	return ""
 }
