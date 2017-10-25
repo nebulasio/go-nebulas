@@ -62,7 +62,7 @@ func (n *Neblet) Start() error {
 	}
 	n.running = true
 
-	n.accountManager = account.NewManager(n)
+	//n.accountManager = account.NewManager(n)
 
 	n.netService, err = p2p.NewNetService(n)
 	if err != nil {

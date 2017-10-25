@@ -123,10 +123,10 @@ func (m *Manager) NewAccount(passphrase []byte) (*core.Address, error) {
 	if err != nil {
 		return nil, err
 	}
-	return m.storeAddress(priv, passphrase)
+	return m.storeAddress(priv, passphrase, true)
 }
 
-func (m *Manager) storeAddress(priv keystore.PrivateKey, passphrase []byte) (*core.Address, error) {
+func (m *Manager) storeAddress(priv keystore.PrivateKey, passphrase []byte, writeFile bool) (*core.Address, error) {
 	pub, err := priv.PublicKey().Encoded()
 	if err != nil {
 		return nil, err
@@ -140,10 +140,12 @@ func (m *Manager) storeAddress(priv keystore.PrivateKey, passphrase []byte) (*co
 	if err != nil {
 		return nil, err
 	}
-	// export key to file in keydir
-	err = m.exportFile(addr, passphrase)
-	if err != nil {
-		return nil, err
+	if writeFile {
+		// export key to file in keydir
+		err = m.exportFile(addr, passphrase)
+		if err != nil {
+			return nil, err
+		}
 	}
 	return addr, nil
 }
@@ -184,7 +186,7 @@ func (m *Manager) Update(addr *core.Address, oldPassphrase, newPassphrase []byte
 			return err
 		}
 	}
-	_, err = m.storeAddress(key.(keystore.PrivateKey), newPassphrase)
+	_, err = m.storeAddress(key.(keystore.PrivateKey), newPassphrase, true)
 	return err
 }
 
@@ -199,7 +201,7 @@ func (m *Manager) Import(keyjson, passphrase []byte) (*core.Address, error) {
 	if err != nil {
 		return nil, err
 	}
-	return m.storeAddress(priv, passphrase)
+	return m.storeAddress(priv, passphrase, false)
 }
 
 // Export export address to key file
