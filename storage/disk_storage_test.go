@@ -16,43 +16,29 @@
 // along with the go-nebulas library.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-package trie
+package storage
 
 import (
-	"errors"
-	"sync"
+	"fmt"
+	"strings"
+	"testing"
 
-	"github.com/nebulasio/go-nebulas/util/byteutils"
+	"github.com/stretchr/testify/assert"
 )
 
-// Storage the nodes in trie.
-type Storage struct {
-	data *sync.Map
-}
-
-// NewStorage init a storage
-func NewStorage() (*Storage, error) {
-	return &Storage{
-		data: new(sync.Map),
-	}, nil
-}
-
-// Get return value to the key in Storage
-func (db *Storage) Get(key []byte) ([]byte, error) {
-	if entry, ok := db.data.Load(byteutils.Hex(key)); ok {
-		return entry.([]byte), nil
-	}
-	return nil, errors.New("not found")
-}
-
-// Put put the key-value entry to Storage
-func (db *Storage) Put(key []byte, value []byte) error {
-	db.data.Store(byteutils.Hex(key), value)
-	return nil
-}
-
-// Del delete the key in Storage.
-func (db *Storage) Del(key []byte) error {
-	db.data.Delete(byteutils.Hex(key))
-	return nil
+func TestNewDiskStorage(t *testing.T) {
+	storage, _ := NewDiskStorage("test.db")
+	keys := [][]byte{[]byte("1"), []byte("2")}
+	values := [][]byte{[]byte("1"), []byte("2")}
+	storage.Put(keys[0], values[0])
+	storage.Put(keys[1], values[1])
+	value1, err1 := storage.Get(keys[0])
+	assert.Nil(t, err1)
+	assert.Equal(t, value1, values[0])
+	storage.Del(keys[1])
+	_, err2 := storage.Get(keys[1])
+	assert.NotNil(t, err2)
+	stats, _ := storage.db.GetProperty("leveldb.stats")
+	lines := strings.Split(stats, "\n")
+	fmt.Println(lines)
 }

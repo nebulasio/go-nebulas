@@ -25,6 +25,7 @@ import (
 	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/common/trie/pb"
 	"github.com/nebulasio/go-nebulas/crypto/hash"
+	"github.com/nebulasio/go-nebulas/storage"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
 )
 
@@ -75,9 +76,9 @@ func TestNewTrie(t *testing.T) {
 func TestTrie_Clone(t *testing.T) {
 	type fields struct {
 		rootHash []byte
-		storage  *Storage
+		storage  storage.Storage
 	}
-	storage, _ := NewStorage()
+	storage, _ := storage.NewMemoryStorage()
 	tests := []struct {
 		name    string
 		fields  fields

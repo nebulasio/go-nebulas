@@ -24,6 +24,7 @@ import (
 	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/common/trie/pb"
 	"github.com/nebulasio/go-nebulas/crypto/hash"
+	"github.com/nebulasio/go-nebulas/storage"
 )
 
 // Flag to identify the type of node
@@ -86,7 +87,7 @@ func (n *node) Type() (ty, error) {
 // Leaf Node: 3-elements array, value is [leaf flag, suffix path, value]
 type Trie struct {
 	rootHash []byte
-	storage  *Storage
+	storage  storage.Storage
 }
 
 // CreateNode in trie
@@ -128,7 +129,7 @@ func (t *Trie) commitNode(n *node) error {
 
 // NewTrie if rootHash is nil, create a new Trie, otherwise, build an existed trie
 func NewTrie(rootHash []byte) (*Trie, error) {
-	storage, _ := NewStorage()
+	storage, _ := storage.NewMemoryStorage()
 	t := &Trie{rootHash, storage}
 	if t.rootHash == nil {
 		return t, nil
