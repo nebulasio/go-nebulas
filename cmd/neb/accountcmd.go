@@ -19,7 +19,6 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"io/ioutil"
 
@@ -108,7 +107,7 @@ func accountCreate(ctx *cli.Context) error {
 // accountUpdate update
 func accountUpdate(ctx *cli.Context) error {
 	if len(ctx.Args()) == 0 {
-		return errors.New("No accounts specified to update")
+		nebFaid("No accounts specified to update")
 	}
 	neb := makeNeb(ctx)
 
@@ -124,6 +123,7 @@ func accountUpdate(ctx *cli.Context) error {
 		if err != nil {
 			nebFaid("account update failed:%s,%s", address, err)
 		}
+		fmt.Printf("Updated address: %s\n", addr.ToHex())
 	}
 	return nil
 }
@@ -132,11 +132,11 @@ func accountUpdate(ctx *cli.Context) error {
 func accountImport(ctx *cli.Context) error {
 	keyfile := ctx.Args().First()
 	if len(keyfile) == 0 {
-		return errors.New("keyfile must be given as argument")
+		nebFaid("keyfile must be given as argument")
 	}
 	keyJSON, err := ioutil.ReadFile(keyfile)
 	if err != nil {
-		return err
+		nebFaid("file read failed", err)
 	}
 
 	neb := makeNeb(ctx)
@@ -144,7 +144,7 @@ func accountImport(ctx *cli.Context) error {
 
 	addr, err := neb.AccountManager().Import([]byte(keyJSON), []byte(passphrase))
 	if err != nil {
-		return err
+		nebFaid("key import failed", err)
 	}
 	fmt.Printf("Import address: %s\n", addr.ToHex())
 	return nil

@@ -26,7 +26,7 @@ account {
   # keystore.SCRYPT = 1 << 4
   encrypt: 16
 
-  key_dir: "testKey"
+  key_dir: "keydir"
 
   test_passphrase: "passphrase"
 }

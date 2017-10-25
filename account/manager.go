@@ -179,7 +179,10 @@ func (m *Manager) Accounts() []*core.Address {
 func (m *Manager) Update(addr *core.Address, oldPassphrase, newPassphrase []byte) error {
 	key, err := m.ks.GetKey(addr.ToHex(), oldPassphrase)
 	if err != nil {
-		return err
+		err = m.importFile(addr, oldPassphrase)
+		if err != nil {
+			return err
+		}
 	}
 	_, err = m.storeAddress(key.(keystore.PrivateKey), newPassphrase)
 	return err
@@ -220,6 +223,7 @@ func (m *Manager) Export(addr *core.Address, passphrase []byte) ([]byte, error) 
 	return out, nil
 }
 
+// Delete delete address
 func (m *Manager) Delete(a string, passphrase []byte) error {
 	addr, err := core.AddressParse(a)
 	if err != nil {
