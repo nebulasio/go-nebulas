@@ -29,15 +29,16 @@ import (
 
 // Config TODO: move to proto config.
 type Config struct {
-	bucketsize   int
-	latency      time.Duration
-	BootNodes    []multiaddr.Multiaddr
-	IP           string
-	Port         uint
-	Randseed     int64
-	maxSyncNodes int
-	ChainID      uint32
-	Version      uint8
+	bucketsize     int
+	latency        time.Duration
+	BootNodes      []multiaddr.Multiaddr
+	IP             string
+	Port           uint
+	Randseed       int64
+	maxSyncNodes   int
+	ChainID        uint32
+	Version        uint8
+	RelayCacheSize int
 }
 
 // Neblet interface breaks cycle import dependency.
@@ -100,6 +101,6 @@ func DefautConfig() *Config {
 	//	30, 10, []multiaddr.Multiaddr{bootNode}, "127.0.0.1", 20000, 1896599, 16,
 	//}
 	return &Config{
-		30, 10, []multiaddr.Multiaddr{}, "127.0.0.1", 9999, 12345, 16, 1, 0,
+		30, 10, []multiaddr.Multiaddr{}, "127.0.0.1", 9999, 12345, 16, 1, 0, 65536,
 	}
 }

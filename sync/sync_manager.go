@@ -225,6 +225,11 @@ func (m *Manager) syncWithBlockList(list map[string]*NetBlocks) {
 }
 
 func (m *Manager) doSyncBlocksWithCommonAncestor(addrsArray []string) {
+	if len(addrsArray) == 0 {
+		log.Warn("doSyncBlocksWithCommonAncestor: no common ancestor have been found")
+		m.syncCh <- true
+		return
+	}
 	root := m.cacheList[addrsArray[0]].blocks
 
 	for i := 0; i < len(root)-1; i++ {

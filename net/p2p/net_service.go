@@ -183,6 +183,7 @@ func (ns *NetService) streamHandler(s libnet.Stream) {
 			case SyncRouteReply:
 				ns.handleSyncRouteReplyMsg(protocol.data, pid, s, addrs)
 			default:
+				var relayness []peer.ID
 				if node.conn[key] != SOK {
 					log.Error("peer not shake hand before send message.")
 					ns.Bye(pid, []ma.Multiaddr{addrs}, s)
@@ -190,6 +191,15 @@ func (ns *NetService) streamHandler(s libnet.Stream) {
 				}
 				msg := messages.NewBaseMessage(protocol.msgName, protocol.data)
 				ns.PutMessage(msg)
+
+				// make sure relayness thread safety
+				node.relaynessLock.Lock()
+				peers, exists := node.relayness.Get(byteutils.Uint32(protocol.dataChecksum))
+				if exists {
+					relayness = peers.([]peer.ID)
+				}
+				node.relayness.Add(byteutils.Uint32(protocol.dataChecksum), append(relayness, pid))
+				node.relaynessLock.Unlock()
 			}
 		}
 	}

@@ -19,7 +19,11 @@
 package p2p
 
 import (
+	"hash/crc32"
+	"reflect"
+
 	"github.com/gogo/protobuf/proto"
+	peer "github.com/libp2p/go-libp2p-peer"
 	"github.com/nebulasio/go-nebulas/net"
 	log "github.com/sirupsen/logrus"
 )
@@ -43,11 +47,21 @@ func (ns *NetService) Broadcast(name string, msg net.Serializable) {
 		"allNode": allNode,
 	}).Info("Broadcast: start broadcast msg.")
 
+	var relayness []peer.ID
+	dataChecksum := crc32.ChecksumIEEE(data)
+	peers, exists := node.relayness.Get(dataChecksum)
+	if exists {
+		relayness = peers.([]peer.ID)
+	}
+
 	for i := 0; i < len(allNode); i++ {
 
 		nodeID := allNode[i]
+		if inArray(nodeID, relayness) {
+			log.Warnf("Broadcast:  nodeID %s has already have the same message", nodeID)
+			continue
+		}
 		addrs := node.peerstore.PeerInfo(nodeID).Addrs
-
 		if len(addrs) == 0 || node.host.Addrs()[0].String() == addrs[0].String() {
 			log.Warn("Broadcast: skip self")
 			continue
@@ -58,6 +72,7 @@ func (ns *NetService) Broadcast(name string, msg net.Serializable) {
 				log.Warn("Broadcast:  the addrs format is incorrect")
 				continue
 			}
+			node.relayness.Add(dataChecksum, append(relayness, nodeID))
 			go ns.SendMsg(name, data, key)
 		}
 
@@ -72,4 +87,17 @@ func (ns *NetService) Relay(name string, msg net.Serializable) {
 		return
 	}
 	ns.Broadcast(name, msg)
+}
+
+func inArray(obj interface{}, array interface{}) bool {
+	arrayValue := reflect.ValueOf(array)
+
+	if reflect.TypeOf(array).Kind() == reflect.Array || reflect.TypeOf(array).Kind() == reflect.Slice {
+		for i := 0; i < arrayValue.Len(); i++ {
+			if arrayValue.Index(i).Interface() == obj {
+				return true
+			}
+		}
+	}
+	return false
 }

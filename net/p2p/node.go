@@ -25,8 +25,10 @@ import (
 	"io"
 	mrand "math/rand"
 	"strings"
+	"sync"
 	"time"
 
+	lru "github.com/hashicorp/golang-lru"
 	"github.com/libp2p/go-libp2p-crypto"
 	"github.com/libp2p/go-libp2p-kbucket"
 	libnet "github.com/libp2p/go-libp2p-net"
@@ -55,6 +57,9 @@ type Node struct {
 	running      bool
 	synchronized bool
 	syncList     []string
+	// key: datachecksum value: []ip + peer.ID
+	relayness     *lru.Cache
+	relaynessLock *sync.Mutex
 }
 
 // NewNode start a local node and join the node to network
@@ -130,6 +135,11 @@ func (node *Node) init() error {
 	node.chainID = node.config.ChainID
 	node.version = node.config.Version
 	node.synchronized = false
+	node.relayness, err = lru.New(node.config.RelayCacheSize)
+	if err != nil {
+		return err
+	}
+	node.relaynessLock = &sync.Mutex{}
 
 	address, err := multiaddr.NewMultiaddr(
 		fmt.Sprintf(
@@ -151,6 +161,9 @@ func (node *Node) init() error {
 	)
 
 	options := &basichost.HostOpts{}
+
+	// add nat manager
+	options.NATManager = basichost.NewNATManager(network)
 
 	log.Infof("makeHost: boot node pretty id is %s", node.id.Pretty())
 	node.host, err = basichost.NewHost(node.context, network, options)
