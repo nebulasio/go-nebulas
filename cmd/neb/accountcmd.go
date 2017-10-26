@@ -107,21 +107,21 @@ func accountCreate(ctx *cli.Context) error {
 // accountUpdate update
 func accountUpdate(ctx *cli.Context) error {
 	if len(ctx.Args()) == 0 {
-		nebFaid("No accounts specified to update")
+		FatalF("No accounts specified to update")
 	}
 	neb := makeNeb(ctx)
 
 	for _, address := range ctx.Args() {
 		addr, err := core.AddressParse(address)
 		if err != nil {
-			nebFaid("address parse failed:%s,%s", address, err)
+			FatalF("address parse failed:%s,%s", address, err)
 		}
 		oldPassphrase := getPassPhrase("Please input current passhprase", false)
 		newPassword := getPassPhrase("Please give a new password. Do not forget this password.", true)
 
 		err = neb.AccountManager().Update(addr, []byte(oldPassphrase), []byte(newPassword))
 		if err != nil {
-			nebFaid("account update failed:%s,%s", address, err)
+			FatalF("account update failed:%s,%s", address, err)
 		}
 		fmt.Printf("Updated address: %s\n", addr.ToHex())
 	}
@@ -132,11 +132,11 @@ func accountUpdate(ctx *cli.Context) error {
 func accountImport(ctx *cli.Context) error {
 	keyfile := ctx.Args().First()
 	if len(keyfile) == 0 {
-		nebFaid("keyfile must be given as argument")
+		FatalF("keyfile must be given as argument")
 	}
 	keyJSON, err := ioutil.ReadFile(keyfile)
 	if err != nil {
-		nebFaid("file read failed", err)
+		FatalF("file read failed", err)
 	}
 
 	neb := makeNeb(ctx)
@@ -144,7 +144,7 @@ func accountImport(ctx *cli.Context) error {
 
 	addr, err := neb.AccountManager().Import([]byte(keyJSON), []byte(passphrase))
 	if err != nil {
-		nebFaid("key import failed", err)
+		FatalF("key import failed", err)
 	}
 	fmt.Printf("Import address: %s\n", addr.ToHex())
 	return nil
@@ -157,15 +157,15 @@ func getPassPhrase(prompt string, confirmation bool) string {
 	}
 	passphrase, err := console.Stdin.PromptPassphrase("Passphrase: ")
 	if err != nil {
-		nebFaid("Failed to read passphrase: %v", err)
+		FatalF("Failed to read passphrase: %v", err)
 	}
 	if confirmation {
 		confirm, err := console.Stdin.PromptPassphrase("Repeat passphrase: ")
 		if err != nil {
-			nebFaid("Failed to read passphrase confirmation: %v", err)
+			FatalF("Failed to read passphrase confirmation: %v", err)
 		}
 		if passphrase != confirm {
-			nebFaid("Passphrases do not match")
+			FatalF("Passphrases do not match")
 		}
 	}
 	return passphrase

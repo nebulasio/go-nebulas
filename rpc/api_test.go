@@ -29,6 +29,22 @@ import (
 	"golang.org/x/net/context"
 )
 
+func TestAPIService_GetNebState(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	client := mock_pb.NewMockAPIServiceClient(ctrl)
+
+	{
+		req := &rpcpb.GetNebStateRequest{}
+		expected := &rpcpb.GetNebStateResponse{Tail: "hac"}
+		client.EXPECT().GetNebState(gomock.Any(), gomock.Any()).Return(expected, nil)
+		resp, _ := client.GetNebState(context.Background(), req)
+		assert.Equal(t, expected, resp)
+	}
+
+	// TODO: test with mock neblet.
+}
+
 func TestGetAccountState(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()

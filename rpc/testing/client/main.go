@@ -19,10 +19,10 @@
 package main
 
 import (
-	"fmt"
 	"log"
 
-	"github.com/nebulasio/go-nebulas/neblet"
+	"fmt"
+
 	"github.com/nebulasio/go-nebulas/rpc"
 	"github.com/nebulasio/go-nebulas/rpc/pb"
 	"github.com/nebulasio/go-nebulas/util"
@@ -31,17 +31,17 @@ import (
 
 // TODO: add command line flag.
 const (
-	config = "../../../config.pb.txt"
-	from   = "8a209cec02cbeab7e2f74ad969d2dfe8dd24416aa65589bf"
-	to     = "22ac3a9a2b1c31b7a9084e46eae16e761f83f02324092b09"
-	value  = 2
+	//config = "../../../../config.pb.txt"
+	from  = "8a209cec02cbeab7e2f74ad969d2dfe8dd24416aa65589bf"
+	to    = "22ac3a9a2b1c31b7a9084e46eae16e761f83f02324092b09"
+	value = 2
 )
 
 // RPC testing client.
 func main() {
 	// Set up a connection to the server.
-	cfg := neblet.LoadConfig(config).Rpc
-	addr := fmt.Sprintf("localhost:%d", cfg.Port)
+	//cfg := neblet.LoadConfig(config).Rpc
+	addr := fmt.Sprintf("127.0.0.1:%d", uint32(51510))
 	conn, err := rpc.Dial(addr)
 	if err != nil {
 		log.Fatal(err)
@@ -50,6 +50,16 @@ func main() {
 
 	ac := rpcpb.NewAPIServiceClient(conn)
 	var nonce uint64
+
+	{
+		r, err := ac.GetNebState(context.Background(), &rpcpb.GetNebStateRequest{})
+		if err != nil {
+			log.Println("GetNebState", "failed", err)
+		} else {
+			tail := r.GetTail()
+			log.Println("GetNebState tail", tail)
+		}
+	}
 
 	{
 		r, err := ac.GetAccountState(context.Background(), &rpcpb.GetAccountStateRequest{Address: from})

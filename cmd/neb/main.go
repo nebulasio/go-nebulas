@@ -109,7 +109,8 @@ func makeNeb(ctx *cli.Context) *neblet.Neblet {
 	return n
 }
 
-func nebFaid(format string, args ...interface{}) {
+// FatalF fatal format err
+func FatalF(format string, args ...interface{}) {
 	err := fmt.Sprintf(format, args...)
 	fmt.Println(err)
 	os.Exit(1)

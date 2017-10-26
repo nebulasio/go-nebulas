@@ -25,6 +25,13 @@ package rpcpb;
 
 // RPC API interface.
 service APIService {
+	// Return the state of the neb.
+	rpc GetNebState (GetNebStateRequest) returns (GetNebStateResponse) {
+//		option (google.api.http) = {
+//			get: "/v1/account/state"
+//		};
+	}
+
 	// Return the state of the account.
 	rpc GetAccountState (GetAccountStateRequest) returns (GetAccountStateResponse) {
 //		option (google.api.http) = {
@@ -39,6 +46,16 @@ service APIService {
 //            body: "*"
 //        };
 	}
+}
+
+// Request message of GetNebState rpc.
+message GetNebStateRequest {
+}
+
+// Response message of GetNebState rpc.
+message GetNebStateResponse {
+	// Current neb tail hash
+	string tail = 1;
 }
 
 // Request message of GetAccountState rpc.

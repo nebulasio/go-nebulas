@@ -36,6 +36,24 @@ func (m *MockAPIServiceClient) EXPECT() *MockAPIServiceClientMockRecorder {
 	return m.recorder
 }
 
+// GetNebState mocks base method
+func (m *MockAPIServiceClient) GetNebState(arg0 context.Context, arg1 *pb.GetNebStateRequest, arg2 ...grpc.CallOption) (*pb.GetNebStateResponse, error) {
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "GetNebState", varargs...)
+	ret0, _ := ret[0].(*pb.GetNebStateResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetNebState indicates an expected call of GetNebState
+func (mr *MockAPIServiceClientMockRecorder) GetNebState(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetNebState", reflect.TypeOf((*MockAPIServiceClient)(nil).GetNebState), varargs...)
+}
+
 // GetAccountState mocks base method
 func (m *MockAPIServiceClient) GetAccountState(arg0 context.Context, arg1 *pb.GetAccountStateRequest, arg2 ...grpc.CallOption) (*pb.GetAccountStateResponse, error) {
 	varargs := []interface{}{arg0, arg1}

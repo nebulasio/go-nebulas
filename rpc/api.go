@@ -30,6 +30,17 @@ type APIService struct {
 	server *Server
 }
 
+// GetNebState is the RPC API handler.
+func (s *APIService) GetNebState(ctx context.Context, req *rpcpb.GetNebStateRequest) (*rpcpb.GetNebStateResponse, error) {
+	neb := s.server.Neblet()
+
+	tailHash := neb.BlockChain().TailBlock().Hash()
+
+	resp := &rpcpb.GetNebStateResponse{Tail: string(tailHash.Hex())}
+
+	return resp, nil
+}
+
 // GetAccountState is the RPC API handler.
 func (s *APIService) GetAccountState(ctx context.Context, req *rpcpb.GetAccountStateRequest) (*rpcpb.GetAccountStateResponse, error) {
 	neb := s.server.Neblet()
