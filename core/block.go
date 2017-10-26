@@ -504,6 +504,18 @@ func (block *Block) executeTransaction(tx *Transaction) (giveback bool, err erro
 	return false, nil
 }
 
+// LocalContractStorage return the local storage trie of the contract
+func (block *Block) LocalContractStorage(contract *Address) *batchtrie.BatchTrie {
+	account := block.FindAccount(contract)
+	return account.ContractLocalStorage
+}
+
+// GlobalContractStorage return the local storage trie of the contract
+func (block *Block) GlobalContractStorage(contract *Address) *batchtrie.BatchTrie {
+	account := block.FindAccount(contract)
+	return block.FindAccount(account.ContractOwner).UserGlobalStorage
+}
+
 // HashBlock return the hash of block.
 func HashBlock(block *Block) Hash {
 	hasher := sha3.New256()

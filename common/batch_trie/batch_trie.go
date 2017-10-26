@@ -1,9 +1,8 @@
 package batchtrie
 
 import (
-	"errors"
-
 	"github.com/nebulasio/go-nebulas/common/trie"
+	"github.com/nebulasio/go-nebulas/crypto/hash"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
 )
 
@@ -126,10 +125,15 @@ func (bt *BatchTrie) Verify(rootHash []byte, key []byte, proof trie.MerkleProof)
 	return bt.trie.Verify(rootHash, key, proof)
 }
 
+// Iterator return an trie Iterator to traverse leaf node's value in this trie
+func (bt *BatchTrie) Iterator(prefix []byte) (*trie.Iterator, error) {
+	return bt.trie.Iterator(prefix)
+}
+
 // BeginBatch to process a batch task
 func (bt *BatchTrie) BeginBatch() error {
 	if len(bt.changelog) > 0 {
-		return errors.New("invalid status, pls Commit or RollBack at first")
+		panic("invalid status, pls Commit or RollBack at first")
 	}
 	bt.batching = true
 	return nil
@@ -137,6 +141,7 @@ func (bt *BatchTrie) BeginBatch() error {
 
 // Commit a batch task
 func (bt *BatchTrie) Commit() {
+	// clear changelog
 	bt.changelog = bt.changelog[:0]
 	bt.batching = false
 }
@@ -150,7 +155,9 @@ func (bt *BatchTrie) RollBack() {
 			changelog[byteutils.Hex(entry.key)] = entry
 		}
 	}
+	// clear changelog
 	bt.changelog = bt.changelog[:0]
+	// rollback
 	for _, entry := range changelog {
 		switch entry.action {
 		case Insert:
@@ -160,4 +167,38 @@ func (bt *BatchTrie) RollBack() {
 		}
 	}
 	bt.batching = false
+}
+
+// HashDomains for each variable in contract
+// each domain will represented as 6 bytes, support 4 level domain at most
+// such as,
+// 4a56b7 000000 000000 000000,
+// 4a56b8 1c9812 000000 000000,
+// 4a56b8 3a1289 000000 000000,
+// support iterator with same prefix
+func HashDomains(domains ...string) []byte {
+	if len(domains) > 24/6 {
+		panic("only support 4 level domain at most")
+	}
+	key := [24]byte{0}
+	for k, v := range domains {
+		domain := hash.Sha3256([]byte(v))[0:6]
+		for i := 0; i < len(domain); i++ {
+			key[k*6+i] = domain[i]
+		}
+	}
+	return key[:]
+}
+
+// HashDomainsPrefix is same as HashDomains, but without tail zeros
+func HashDomainsPrefix(domains ...string) []byte {
+	if len(domains) > 24/6 {
+		panic("only support 4 level domain at most")
+	}
+	key := []byte{}
+	for _, v := range domains {
+		domain := hash.Sha3256([]byte(v))[0:6]
+		key = append(key, domain...)
+	}
+	return key[:]
 }

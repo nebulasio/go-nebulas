@@ -179,7 +179,7 @@ func (t *Trie) get(rootHash []byte, route []byte) ([]byte, error) {
 		case leaf:
 			path := rootNode.Val[1]
 			matchLen := prefixLen(path, curRoute)
-			if matchLen != len(path) {
+			if matchLen != len(path) || matchLen != len(curRoute) {
 				return nil, errors.New("not found")
 			}
 			return rootNode.Val[2], nil
@@ -269,8 +269,48 @@ func (t *Trie) updateWhenMeetExt(rootNode *node, route []byte, val []byte) ([]by
 	}
 	// create a new branch for the new node
 	brNode := emptyBranchNode()
-	// a branch to hold the ext node's sub-trie
-	brNode.Val[path[matchLen]] = next
+	// 4 situations
+	// 1. matchLen > 0 && matchLen == len(path), 24 meets 24... => ext - branch - ...
+	// 2. matchLen > 0 && matchLen + 1 < len(path), 23... meets 24... => ext - branch - ext ...
+	// 3. matchLen = 0 && len(path) = 1, 1 meets 2 => branch - ...
+	if matchLen > 0 || len(path) == 1 {
+		// a branch to hold the ext node's sub-trie
+		brNode.Val[path[matchLen]] = next
+		if matchLen > 0 && matchLen+1 < len(path) {
+			value := [][]byte{[]byte{byte(ext)}, path[matchLen+1:], next}
+			extNode, err := t.createNode(value)
+			if err != nil {
+				return nil, err
+			}
+			brNode.Val[path[matchLen]] = extNode.Hash
+		}
+		// a branch to hold the new node
+		if brNode.Val[route[matchLen]], err = t.update(nil, route[matchLen+1:], val); err != nil {
+			return nil, err
+		}
+		// save branch to the storage
+		if err := t.commitNode(brNode); err != nil {
+			return nil, err
+		}
+		// if no common prefix, replace the ext node with the new branch node
+		if matchLen == 0 {
+			return brNode.Hash, nil
+		}
+		// use the new branch node as the ext node's sub-trie
+		rootNode.Val[1] = path[0:matchLen]
+		rootNode.Val[2] = brNode.Hash
+		if err := t.commitNode(rootNode); err != nil {
+			return nil, err
+		}
+		return rootNode.Hash, nil
+	}
+	// 4. matchLen = 0 && len(path) > 1, 12... meets 23... => branch - ext - ...
+	rootNode.Val[1] = path[1:]
+	// save ext node to storage
+	if err := t.commitNode(rootNode); err != nil {
+		return nil, err
+	}
+	brNode.Val[path[matchLen]] = rootNode.Hash
 	// a branch to hold the new node
 	if brNode.Val[route[matchLen]], err = t.update(nil, route[matchLen+1:], val); err != nil {
 		return nil, err
@@ -279,17 +319,7 @@ func (t *Trie) updateWhenMeetExt(rootNode *node, route []byte, val []byte) ([]by
 	if err := t.commitNode(brNode); err != nil {
 		return nil, err
 	}
-	// if no common prefix, replace the ext node with the new branch node
-	if matchLen == 0 {
-		return brNode.Hash, nil
-	}
-	// use the new branch node as the ext node's sub-trie
-	rootNode.Val[1] = path[0:matchLen]
-	rootNode.Val[2] = brNode.Hash
-	if err := t.commitNode(rootNode); err != nil {
-		return nil, err
-	}
-	return rootNode.Hash, nil
+	return brNode.Hash, nil
 }
 
 // split leaf node's into an ext node and a branch node based on

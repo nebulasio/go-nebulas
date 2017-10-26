@@ -46,10 +46,12 @@ func NewAccount(isContract bool) *Account {
 	globalTrie, _ := batchtrie.NewBatchTrie(nil)
 	localTrie, _ := batchtrie.NewBatchTrie(nil)
 	return &Account{
-		IsContract:           isContract,
-		UserBalance:          util.NewUint128(),
-		UserNonce:            0,
-		UserGlobalStorage:    globalTrie,
+		IsContract: isContract,
+
+		UserBalance:       util.NewUint128(),
+		UserNonce:         0,
+		UserGlobalStorage: globalTrie,
+
 		ContractOwner:        &Address{address: []byte{}},
 		ContractCode:         []byte{},
 		ContractLocalStorage: localTrie,
@@ -80,11 +82,6 @@ func (acc *Account) SetContractCode(code []byte) {
 		panic("cannot set contract code in user account")
 	}
 	acc.ContractCode = code
-}
-
-// InitVariableInContract in contract, add them to storage trie
-func (acc *Account) InitVariableInContract(shared bool, name string, value interface{}) {
-	// type of interface
 }
 
 // ToProto converts domain Account to proto Account
