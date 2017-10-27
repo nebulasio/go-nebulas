@@ -92,7 +92,9 @@ func runNeb(n *neblet.Neblet) {
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 
-	n.Start()
+	if err := n.Start(); err != nil {
+		panic("Start Neblet Failed: " + err.Error())
+	}
 
 	go func() {
 		<-c
