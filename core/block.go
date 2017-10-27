@@ -29,6 +29,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/crypto/sha3"
 
+	"github.com/nebulasio/go-nebulas/storage"
 	"github.com/nebulasio/go-nebulas/util"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
 )
@@ -102,6 +103,8 @@ type Block struct {
 	stateTrie    *batchtrie.BatchTrie
 	txsTrie      *batchtrie.BatchTrie
 	txPool       *TransactionPool
+
+	storage storage.Storage
 }
 
 // ToProto converts domain Block into proto Block
@@ -123,6 +126,7 @@ func (block *Block) ToProto() (proto.Message, error) {
 		return &corepb.Block{
 			Header:       header,
 			Transactions: txs,
+			Height:       block.height,
 		}, nil
 	}
 	return nil, errors.New("Pb Message cannot be converted into BlockHeader")
@@ -142,13 +146,14 @@ func (block *Block) FromProto(msg proto.Message) error {
 			}
 			block.transactions = append(block.transactions, tx)
 		}
+		block.height = msg.Height
 		return nil
 	}
 	return errors.New("Pb Message cannot be converted into Block")
 }
 
 // NewBlock return new block.
-func NewBlock(chainID uint32, coinbase *Address, parent *Block, txPool *TransactionPool) *Block {
+func NewBlock(chainID uint32, coinbase *Address, parent *Block, txPool *TransactionPool, storage storage.Storage) *Block {
 	stateTrie, _ := parent.stateTrie.Clone()
 	txsTrie, _ := parent.txsTrie.Clone()
 	block := &Block{
@@ -166,6 +171,7 @@ func NewBlock(chainID uint32, coinbase *Address, parent *Block, txPool *Transact
 		txPool:       txPool,
 		height:       parent.height + 1,
 		sealed:       false,
+		storage:      storage,
 	}
 	return block
 }
@@ -415,7 +421,7 @@ func (block *Block) FindAccount(address *Address) *Account {
 	accBytes, err := block.stateTrie.Get(address.address)
 	if err != nil {
 		// new account
-		return NewAccount(false)
+		return NewAccount(false, block.storage)
 	}
 	acc := new(Account)
 	pbAcc := new(corepb.Account)

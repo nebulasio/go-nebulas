@@ -33,6 +33,7 @@ func TestNewTrie(t *testing.T) {
 	type args struct {
 		rootHash []byte
 	}
+	storage, _ := storage.NewMemoryStorage()
 	tests := []struct {
 		name    string
 		args    args
@@ -54,7 +55,7 @@ func TestNewTrie(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := NewTrie(tt.args.rootHash)
+			got, err := NewTrie(tt.args.rootHash, storage)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("New() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -112,7 +113,8 @@ func TestTrie_Clone(t *testing.T) {
 }
 
 func TestTrie_Operation(t *testing.T) {
-	tr, _ := NewTrie(nil)
+	storage, _ := storage.NewMemoryStorage()
+	tr, _ := NewTrie(nil, storage)
 	if !reflect.DeepEqual([]byte(nil), tr.rootHash) {
 		t.Errorf("3 Trie.Del() = %v, want %v", nil, tr.rootHash)
 	}

@@ -26,11 +26,14 @@ import (
 	"github.com/nebulasio/go-nebulas/crypto"
 	"github.com/nebulasio/go-nebulas/crypto/keystore"
 	"github.com/nebulasio/go-nebulas/crypto/keystore/secp256k1"
+	"github.com/nebulasio/go-nebulas/storage"
 	"github.com/nebulasio/go-nebulas/util"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestTransactionPool(t *testing.T) {
+	storage, _ := storage.NewMemoryStorage()
+
 	ks := keystore.DefaultKS
 	priv1, _ := secp256k1.GeneratePrivateKey()
 	pubdata1, _ := priv1.PublicKey().Encoded()
@@ -63,7 +66,7 @@ func TestTransactionPool(t *testing.T) {
 	}
 
 	txPool := NewTransactionPool(3)
-	bc := NewBlockChain(1)
+	bc, _ := NewBlockChain(1, storage)
 	txPool.setBlockChain(bc)
 	txs[0].Sign(signature1)
 	assert.Nil(t, txPool.Push(txs[0]))

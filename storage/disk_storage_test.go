@@ -19,8 +19,6 @@
 package storage
 
 import (
-	"fmt"
-	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -38,7 +36,4 @@ func TestNewDiskStorage(t *testing.T) {
 	storage.Del(keys[1])
 	_, err2 := storage.Get(keys[1])
 	assert.NotNil(t, err2)
-	stats, _ := storage.db.GetProperty("leveldb.stats")
-	lines := strings.Split(stats, "\n")
-	fmt.Println(lines)
 }

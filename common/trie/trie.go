@@ -128,8 +128,7 @@ func (t *Trie) commitNode(n *node) error {
 }
 
 // NewTrie if rootHash is nil, create a new Trie, otherwise, build an existed trie
-func NewTrie(rootHash []byte) (*Trie, error) {
-	storage, _ := storage.NewMemoryStorage()
+func NewTrie(rootHash []byte, storage storage.Storage) (*Trie, error) {
 	t := &Trie{rootHash, storage}
 	if t.rootHash == nil {
 		return t, nil

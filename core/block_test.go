@@ -27,6 +27,7 @@ import (
 	"github.com/nebulasio/go-nebulas/crypto"
 	"github.com/nebulasio/go-nebulas/crypto/keystore"
 	"github.com/nebulasio/go-nebulas/crypto/keystore/secp256k1"
+	"github.com/nebulasio/go-nebulas/storage"
 	"github.com/nebulasio/go-nebulas/util"
 	"github.com/stretchr/testify/assert"
 )
@@ -165,7 +166,8 @@ func TestBlock(t *testing.T) {
 }
 
 func TestBlock_LinkParentBlock(t *testing.T) {
-	genesis := NewGenesisBlock(0)
+	storage, _ := storage.NewMemoryStorage()
+	genesis := NewGenesisBlock(0, storage)
 	assert.Equal(t, genesis.Height(), uint64(1))
 	block1 := &Block{
 		header: &BlockHeader{
@@ -202,7 +204,8 @@ func TestBlock_LinkParentBlock(t *testing.T) {
 }
 
 func TestBlock_CollectTransactions(t *testing.T) {
-	bc := NewBlockChain(0)
+	storage, _ := storage.NewMemoryStorage()
+	bc, _ := NewBlockChain(0, storage)
 	tail := bc.tailBlock
 	assert.Panics(t, func() { tail.CollectTransactions(1) })
 
@@ -224,7 +227,7 @@ func TestBlock_CollectTransactions(t *testing.T) {
 	pubdata2, _ := priv2.PublicKey().Encoded()
 	coinbase, _ := NewAddressFromPublicKey(pubdata2)
 
-	block := NewBlock(0, coinbase, tail, bc.txPool)
+	block := NewBlock(0, coinbase, tail, bc.txPool, storage)
 	tx1 := NewTransaction(0, from, to, util.NewUint128(), 1, []byte("nas"))
 	tx1.Sign(signature)
 	tx2 := NewTransaction(0, from, to, util.NewUint128(), 2, []byte("nas"))

@@ -23,7 +23,11 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/gogo/protobuf/proto"
 	"github.com/hashicorp/golang-lru"
+	"github.com/nebulasio/go-nebulas/common/batch_trie"
+	"github.com/nebulasio/go-nebulas/core/pb"
+	"github.com/nebulasio/go-nebulas/storage"
 )
 
 // BlockChain the BlockChain core type.
@@ -39,6 +43,8 @@ type BlockChain struct {
 
 	cachedBlocks       *lru.Cache
 	detachedTailBlocks *lru.Cache
+
+	storage storage.Storage
 }
 
 const (
@@ -47,25 +53,36 @@ const (
 
 	// EagleNebula chain id for 1.x
 	EagleNebula = 1 << 4
+
+	// Tail Key in storage
+	Tail = "blockchain_tail"
 )
 
 // NewBlockChain create new #BlockChain instance.
-func NewBlockChain(chainID uint32) *BlockChain {
+func NewBlockChain(chainID uint32, storage storage.Storage) (*BlockChain, error) {
 	var bc = &BlockChain{
 		chainID: chainID,
 		bkPool:  NewBlockPool(),
 		txPool:  NewTransactionPool(4096),
+		storage: storage,
 	}
 
 	bc.cachedBlocks, _ = lru.New(1024)
 	bc.detachedTailBlocks, _ = lru.New(64)
 
-	bc.genesisBlock = NewGenesisBlock(chainID)
-	bc.tailBlock = bc.genesisBlock
+	tailBlock, err := bc.getTail()
+	if err != nil {
+		bc.genesisBlock = NewGenesisBlock(chainID, storage)
+		if err := bc.saveBlock(bc.genesisBlock); err != nil {
+			return nil, err
+		}
+		tailBlock = bc.genesisBlock
+	}
+	bc.tailBlock = tailBlock
 
 	bc.bkPool.setBlockChain(bc)
 	bc.txPool.setBlockChain(bc)
-	return bc
+	return bc, nil
 }
 
 // ChainID return the chainID.
@@ -73,9 +90,26 @@ func (bc *BlockChain) ChainID() uint32 {
 	return bc.chainID
 }
 
+// Storage return the storage
+func (bc *BlockChain) Storage() storage.Storage {
+	return bc.storage
+}
+
 // TailBlock return the tail block.
 func (bc *BlockChain) TailBlock() *Block {
 	return bc.tailBlock
+}
+
+func (bc *BlockChain) saveTail(block *Block) {
+	bc.storage.Put([]byte(Tail), block.Hash())
+}
+
+func (bc *BlockChain) getTail() (*Block, error) {
+	hash, err := bc.storage.Get([]byte(Tail))
+	if err != nil {
+		return nil, err
+	}
+	return bc.getBlock(hash)
 }
 
 // SetTailBlock set tail block.
@@ -83,6 +117,7 @@ func (bc *BlockChain) SetTailBlock(newTail *Block) {
 	oldTail := bc.tailBlock
 	bc.detachedTailBlocks.Remove(newTail.Hash().Hex())
 	bc.tailBlock = newTail
+	bc.saveTail(bc.tailBlock)
 	// giveBack txs in reverted blocks to tx pool
 	ancestor, _ := bc.FindCommonAncestorWithTail(oldTail)
 	if ancestor.Hash().Equals(oldTail.Hash()) {
@@ -181,17 +216,21 @@ func (bc *BlockChain) NewBlock(coinbase *Address) *Block {
 
 // NewBlockFromParent create new block from parent block and return it.
 func (bc *BlockChain) NewBlockFromParent(coinbase *Address, parentBlock *Block) *Block {
-	return NewBlock(bc.chainID, coinbase, parentBlock, bc.txPool)
+	return NewBlock(bc.chainID, coinbase, parentBlock, bc.txPool, bc.storage)
 }
 
 // PutVerifiedNewBlocks put verified new blocks and tails.
-func (bc *BlockChain) PutVerifiedNewBlocks(allBlocks, tailBlocks []*Block) {
+func (bc *BlockChain) PutVerifiedNewBlocks(allBlocks, tailBlocks []*Block) error {
 	for _, v := range allBlocks {
 		bc.cachedBlocks.ContainsOrAdd(v.Hash().Hex(), v)
+		if err := bc.saveBlock(v); err != nil {
+			return err
+		}
 	}
 	for _, v := range tailBlocks {
 		bc.detachedTailBlocks.ContainsOrAdd(v.Hash().Hex(), v)
 	}
+	return nil
 }
 
 // DetachedTailBlocks return detached tail blocks, used by Fork Choice algorithm.
@@ -212,11 +251,11 @@ func (bc *BlockChain) GetBlock(hash Hash) *Block {
 	// TODO: get block from local storage.
 	v, _ := bc.cachedBlocks.Get(hash.Hex())
 	if v == nil {
-		if hash.Equals(bc.genesisBlock.Hash()) {
-			return bc.genesisBlock
+		block, err := bc.getBlock(hash)
+		if err != nil {
+			return nil
 		}
-		// TODO: load from storage for previous block.
-		return nil
+		return block
 	}
 
 	block := v.(*Block)
@@ -239,4 +278,44 @@ func (bc *BlockChain) Dump() string {
 	}
 	rls := strings.Join(rl, " --> ")
 	return rls
+}
+
+func (bc *BlockChain) saveBlock(block *Block) error {
+	pbBlock, err := block.ToProto()
+	if err != nil {
+		return err
+	}
+	value, err := proto.Marshal(pbBlock)
+	if err != nil {
+		return err
+	}
+	err = bc.storage.Put(block.Hash(), value)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (bc *BlockChain) getBlock(hash Hash) (*Block, error) {
+	value, err := bc.storage.Get(hash)
+	if err != nil {
+		return nil, err
+	}
+	pbBlock := new(corepb.Block)
+	block := new(Block)
+	if err = proto.Unmarshal(value, pbBlock); err != nil {
+		return nil, err
+	}
+	if err = block.FromProto(pbBlock); err != nil {
+		return nil, err
+	}
+	block.stateTrie, err = batchtrie.NewBatchTrie(block.StateRoot(), bc.storage)
+	if err != nil {
+		return nil, err
+	}
+	block.txsTrie, err = batchtrie.NewBatchTrie(block.TxsRoot(), bc.storage)
+	if err != nil {
+		return nil, err
+	}
+	return block, nil
 }

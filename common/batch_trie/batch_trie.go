@@ -3,6 +3,7 @@ package batchtrie
 import (
 	"github.com/nebulasio/go-nebulas/common/trie"
 	"github.com/nebulasio/go-nebulas/crypto/hash"
+	"github.com/nebulasio/go-nebulas/storage"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
 )
 
@@ -32,8 +33,8 @@ type BatchTrie struct {
 }
 
 // NewBatchTrie if rootHash is nil, create a new BatchTrie, otherwise, build an existed BatchTrie
-func NewBatchTrie(rootHash []byte) (*BatchTrie, error) {
-	t, err := trie.NewTrie(rootHash)
+func NewBatchTrie(rootHash []byte, storage storage.Storage) (*BatchTrie, error) {
+	t, err := trie.NewTrie(rootHash, storage)
 	if err != nil {
 		return nil, err
 	}

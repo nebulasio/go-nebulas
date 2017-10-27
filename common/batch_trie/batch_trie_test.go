@@ -3,12 +3,14 @@ package batchtrie
 import (
 	"testing"
 
+	"github.com/nebulasio/go-nebulas/storage"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestBatchTrie_Clone(t *testing.T) {
-	tr1, _ := NewBatchTrie(nil)
+	storage, _ := storage.NewMemoryStorage()
+	tr1, _ := NewBatchTrie(nil, storage)
 	tr2, _ := tr1.Clone()
 	assert.Equal(t, tr1.trie.RootHash(), tr2.trie.RootHash())
 	assert.Equal(t, tr1 == tr2, false)
@@ -16,7 +18,8 @@ func TestBatchTrie_Clone(t *testing.T) {
 }
 
 func TestBatchTrie_Batch(t *testing.T) {
-	tr, _ := NewBatchTrie(nil)
+	storage, _ := storage.NewMemoryStorage()
+	tr, _ := NewBatchTrie(nil, storage)
 	assert.Equal(t, []byte(nil), tr.trie.RootHash())
 
 	err1 := tr.BeginBatch()
@@ -60,7 +63,8 @@ func TestBatchTrie_Batch(t *testing.T) {
 }
 
 func TestBatchTrie_Iterator(t *testing.T) {
-	tr, _ := NewBatchTrie(nil)
+	storage, _ := storage.NewMemoryStorage()
+	tr, _ := NewBatchTrie(nil, storage)
 	assert.Equal(t, []byte(nil), tr.trie.RootHash())
 
 	domain1 := []string{"a", "b", "c", "d"}

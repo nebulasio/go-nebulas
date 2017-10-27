@@ -178,7 +178,7 @@ func (pool *BlockPool) Push(block *Block) error {
 		return nil
 	}
 	pushErr := pool.push(block)
-	if pushErr != ErrDuplicateBlock {
+	if pushErr != nil && pushErr != ErrDuplicateBlock {
 		return pushErr
 	}
 	return nil
@@ -269,7 +269,10 @@ func (pool *BlockPool) push(block *Block) error {
 	// found in BlockChain, then we can verify the state root, and tell the Consensus all the tails.
 	// performance depth-first search to verify state root, and get all tails.
 	allBlocks, tailBlocks := lb.getTailsWithPath(parentBlock)
-	bc.PutVerifiedNewBlocks(allBlocks, tailBlocks)
+	err := bc.PutVerifiedNewBlocks(allBlocks, tailBlocks)
+	if err != nil {
+		return err
+	}
 
 	// remove allBlocks from cache.
 	for _, v := range allBlocks {

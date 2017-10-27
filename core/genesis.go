@@ -22,12 +22,13 @@ import (
 	"time"
 
 	"github.com/nebulasio/go-nebulas/common/batch_trie"
+	"github.com/nebulasio/go-nebulas/storage"
 )
 
 // NewGenesisBlock create genesis @Block from file.
-func NewGenesisBlock(chainID uint32) *Block {
-	stateTrie, _ := batchtrie.NewBatchTrie(nil)
-	txsTrie, _ := batchtrie.NewBatchTrie(nil)
+func NewGenesisBlock(chainID uint32, storage storage.Storage) *Block {
+	stateTrie, _ := batchtrie.NewBatchTrie(nil, storage)
+	txsTrie, _ := batchtrie.NewBatchTrie(nil, storage)
 	// TODO: load genesis block data from file.
 	b := &Block{
 		header: &BlockHeader{

@@ -24,12 +24,14 @@ import (
 	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/common/trie/pb"
 	"github.com/nebulasio/go-nebulas/crypto/hash"
+	"github.com/nebulasio/go-nebulas/storage"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestIterator1(t *testing.T) {
-	tr, err := NewTrie(nil)
+	storage, _ := storage.NewMemoryStorage()
+	tr, err := NewTrie(nil, storage)
 	assert.Nil(t, err)
 	names := []string{"123450", "123350", "122450", "223350", "133350"}
 	keys := [][]byte{}
@@ -115,7 +117,8 @@ func TestIterator1(t *testing.T) {
 }
 
 func TestIterator2(t *testing.T) {
-	tr, err := NewTrie(nil)
+	storage, _ := storage.NewMemoryStorage()
+	tr, err := NewTrie(nil, storage)
 	assert.Nil(t, err)
 	names := []string{"123450", "123350", "122450", "223350", "133350"}
 	keys := [][]byte{}

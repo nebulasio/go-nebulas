@@ -26,6 +26,7 @@ import (
 	"github.com/nebulasio/go-nebulas/crypto"
 	"github.com/nebulasio/go-nebulas/crypto/keystore"
 	"github.com/nebulasio/go-nebulas/crypto/keystore/secp256k1"
+	"github.com/nebulasio/go-nebulas/storage"
 	"github.com/nebulasio/go-nebulas/util"
 	"github.com/stretchr/testify/assert"
 )
@@ -37,7 +38,8 @@ func (c MockConsensus) VerifyBlock(block *Block) error {
 }
 
 func TestBlockPool(t *testing.T) {
-	bc := NewBlockChain(0)
+	storage, _ := storage.NewMemoryStorage()
+	bc, _ := NewBlockChain(0, storage)
 	var cons MockConsensus
 	bc.SetConsensusHandler(cons)
 	pool := bc.bkPool
@@ -66,19 +68,19 @@ func TestBlockPool(t *testing.T) {
 	bc.txPool.Push(tx2)
 	bc.txPool.Push(tx3)
 
-	block1 := NewBlock(0, coinbase, bc.tailBlock, bc.txPool)
+	block1 := NewBlock(0, coinbase, bc.tailBlock, bc.txPool, storage)
 	block1.CollectTransactions(1)
 	block1.Seal()
 
-	block2 := NewBlock(0, coinbase, block1, bc.txPool)
+	block2 := NewBlock(0, coinbase, block1, bc.txPool, storage)
 	block2.CollectTransactions(1)
 	block2.Seal()
 
-	block3 := NewBlock(0, coinbase, block2, bc.txPool)
+	block3 := NewBlock(0, coinbase, block2, bc.txPool, storage)
 	block3.CollectTransactions(1)
 	block3.Seal()
 
-	block4 := NewBlock(0, coinbase, block3, bc.txPool)
+	block4 := NewBlock(0, coinbase, block3, bc.txPool, storage)
 	block4.CollectTransactions(1)
 	block4.Seal()
 

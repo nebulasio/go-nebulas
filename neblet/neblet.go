@@ -12,6 +12,7 @@ import (
 	"github.com/nebulasio/go-nebulas/neblet/pb"
 	"github.com/nebulasio/go-nebulas/net/p2p"
 	"github.com/nebulasio/go-nebulas/rpc"
+	"github.com/nebulasio/go-nebulas/storage"
 	nsync "github.com/nebulasio/go-nebulas/sync"
 	log "github.com/sirupsen/logrus"
 )
@@ -69,7 +70,14 @@ func (n *Neblet) Start() error {
 		return err
 	}
 
-	n.blockChain = core.NewBlockChain(core.TestNetID)
+	storage, err := storage.NewDiskStorage("data.db")
+	if err != nil {
+		return err
+	}
+	n.blockChain, err = core.NewBlockChain(core.TestNetID, storage)
+	if err != nil {
+		return err
+	}
 	fmt.Printf("chainID is %d\n", n.blockChain.ChainID())
 	n.blockChain.BlockPool().RegisterInNetwork(n.netService)
 	n.blockChain.TransactionPool().RegisterInNetwork(n.netService)
