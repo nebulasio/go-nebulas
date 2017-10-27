@@ -20,8 +20,6 @@
 #include "memory_manager.h"
 #include <llvm/ExecutionEngine/SectionMemoryManager.h>
 
-int z() { return 0; }
-
 MemoryManager::MemoryManager() {}
 
 MemoryManager::~MemoryManager() {}
