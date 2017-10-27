@@ -1,4 +1,4 @@
-package batchtrie
+package trie
 
 import (
 	"testing"

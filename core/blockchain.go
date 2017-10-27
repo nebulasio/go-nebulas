@@ -25,7 +25,7 @@ import (
 
 	"github.com/gogo/protobuf/proto"
 	"github.com/hashicorp/golang-lru"
-	"github.com/nebulasio/go-nebulas/common/batch_trie"
+	"github.com/nebulasio/go-nebulas/common/trie"
 	"github.com/nebulasio/go-nebulas/core/pb"
 	"github.com/nebulasio/go-nebulas/storage"
 )
@@ -309,11 +309,11 @@ func (bc *BlockChain) getBlock(hash Hash) (*Block, error) {
 	if err = block.FromProto(pbBlock); err != nil {
 		return nil, err
 	}
-	block.stateTrie, err = batchtrie.NewBatchTrie(block.StateRoot(), bc.storage)
+	block.stateTrie, err = trie.NewBatchTrie(block.StateRoot(), bc.storage)
 	if err != nil {
 		return nil, err
 	}
-	block.txsTrie, err = batchtrie.NewBatchTrie(block.TxsRoot(), bc.storage)
+	block.txsTrie, err = trie.NewBatchTrie(block.TxsRoot(), bc.storage)
 	if err != nil {
 		return nil, err
 	}

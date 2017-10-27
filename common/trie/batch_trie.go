@@ -1,7 +1,6 @@
-package batchtrie
+package trie
 
 import (
-	"github.com/nebulasio/go-nebulas/common/trie"
 	"github.com/nebulasio/go-nebulas/crypto/hash"
 	"github.com/nebulasio/go-nebulas/storage"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
@@ -27,14 +26,14 @@ type Entry struct {
 
 // BatchTrie is a trie that supports batch task
 type BatchTrie struct {
-	trie      *trie.Trie
+	trie      *Trie
 	changelog []*Entry
 	batching  bool
 }
 
 // NewBatchTrie if rootHash is nil, create a new BatchTrie, otherwise, build an existed BatchTrie
 func NewBatchTrie(rootHash []byte, storage storage.Storage) (*BatchTrie, error) {
-	t, err := trie.NewTrie(rootHash, storage)
+	t, err := NewTrie(rootHash, storage)
 	if err != nil {
 		return nil, err
 	}
@@ -117,17 +116,17 @@ func (bt *BatchTrie) SyncPath(rootHash []byte, key []byte) error {
 // Prove the associated node to the key exists in trie
 // if exists, MerkleProof is a complete path from root to the node
 // otherwise, MerkleProof is nil
-func (bt *BatchTrie) Prove(key []byte) (trie.MerkleProof, error) {
+func (bt *BatchTrie) Prove(key []byte) (MerkleProof, error) {
 	return bt.trie.Prove(key)
 }
 
 // Verify whether the merkle proof from root to the associated node is right
-func (bt *BatchTrie) Verify(rootHash []byte, key []byte, proof trie.MerkleProof) error {
+func (bt *BatchTrie) Verify(rootHash []byte, key []byte, proof MerkleProof) error {
 	return bt.trie.Verify(rootHash, key, proof)
 }
 
 // Iterator return an trie Iterator to traverse leaf node's value in this trie
-func (bt *BatchTrie) Iterator(prefix []byte) (*trie.Iterator, error) {
+func (bt *BatchTrie) Iterator(prefix []byte) (*Iterator, error) {
 	return bt.trie.Iterator(prefix)
 }
 

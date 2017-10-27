@@ -22,7 +22,7 @@ import (
 	"errors"
 
 	"github.com/gogo/protobuf/proto"
-	"github.com/nebulasio/go-nebulas/common/batch_trie"
+	"github.com/nebulasio/go-nebulas/common/trie"
 	"github.com/nebulasio/go-nebulas/core/pb"
 	"github.com/nebulasio/go-nebulas/storage"
 
@@ -35,19 +35,19 @@ type Account struct {
 
 	UserBalance       *util.Uint128
 	UserNonce         uint64
-	UserGlobalStorage *batchtrie.BatchTrie
+	UserGlobalStorage *trie.BatchTrie
 
 	ContractOwner        *Address
 	ContractCode         []byte
-	ContractLocalStorage *batchtrie.BatchTrie
+	ContractLocalStorage *trie.BatchTrie
 
 	storage storage.Storage
 }
 
 // NewAccount create a new account
 func NewAccount(isContract bool, storage storage.Storage) *Account {
-	globalTrie, _ := batchtrie.NewBatchTrie(nil, storage)
-	localTrie, _ := batchtrie.NewBatchTrie(nil, storage)
+	globalTrie, _ := trie.NewBatchTrie(nil, storage)
+	localTrie, _ := trie.NewBatchTrie(nil, storage)
 	return &Account{
 		IsContract: isContract,
 
@@ -116,13 +116,13 @@ func (acc *Account) FromProto(msg proto.Message) error {
 		acc.IsContract = msg.IsContract
 		acc.UserBalance = value
 		acc.UserNonce = msg.UserNonce
-		acc.UserGlobalStorage, err = batchtrie.NewBatchTrie(msg.UserGlobalStorage, acc.storage)
+		acc.UserGlobalStorage, err = trie.NewBatchTrie(msg.UserGlobalStorage, acc.storage)
 		if err != nil {
 			return err
 		}
 		acc.ContractOwner = &Address{msg.ContractOwner}
 		acc.ContractCode = msg.ContractCode
-		acc.ContractLocalStorage, err = batchtrie.NewBatchTrie(msg.ContractLocalStorage, acc.storage)
+		acc.ContractLocalStorage, err = trie.NewBatchTrie(msg.ContractLocalStorage, acc.storage)
 		if err != nil {
 			return err
 		}

@@ -24,7 +24,7 @@ import (
 	"time"
 
 	"github.com/gogo/protobuf/proto"
-	"github.com/nebulasio/go-nebulas/common/batch_trie"
+	"github.com/nebulasio/go-nebulas/common/trie"
 	"github.com/nebulasio/go-nebulas/core/pb"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/crypto/sha3"
@@ -100,8 +100,8 @@ type Block struct {
 	sealed       bool
 	height       uint64
 	parenetBlock *Block
-	stateTrie    *batchtrie.BatchTrie
-	txsTrie      *batchtrie.BatchTrie
+	stateTrie    *trie.BatchTrie
+	txsTrie      *trie.BatchTrie
 	txPool       *TransactionPool
 
 	storage storage.Storage
@@ -511,13 +511,13 @@ func (block *Block) executeTransaction(tx *Transaction) (giveback bool, err erro
 }
 
 // LocalContractStorage return the local storage trie of the contract
-func (block *Block) LocalContractStorage(contract *Address) *batchtrie.BatchTrie {
+func (block *Block) LocalContractStorage(contract *Address) *trie.BatchTrie {
 	account := block.FindAccount(contract)
 	return account.ContractLocalStorage
 }
 
 // GlobalContractStorage return the local storage trie of the contract
-func (block *Block) GlobalContractStorage(contract *Address) *batchtrie.BatchTrie {
+func (block *Block) GlobalContractStorage(contract *Address) *trie.BatchTrie {
 	account := block.FindAccount(contract)
 	return block.FindAccount(account.ContractOwner).UserGlobalStorage
 }
