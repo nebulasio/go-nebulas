@@ -19,20 +19,18 @@ const Storage = require('Storage.js');
 const LCS = Storage.LocalContractStorage;
 const GCS = Storage.GlobalContractStorage;
 
-var NebulasToken = function () {
-    this._balances = new LCS();
-};
+var NebulasToken = function () {};
 
 NebulasToken.prototype = {
     init: function (totalSupply) {
-        this._totalSupply = totalSupply;
-        this._totalIssued = 0;
+        LCS.set('totalSupply', totalSupply);
+        LCS.set('totalIssued', 0);
     },
     totalSupply: function () {
-        return this._totalSupply;
+        return LCS.get("totalSupply");
     },
     balanceOf: function (owner) {
-        return this._balances.get(owner) || 0;
+        return LCS.get('balances-' + owner) || 0;
     },
     transfer: function (to, value) {
         var balance = this.balanceOf(msg.sender);
@@ -41,19 +39,19 @@ NebulasToken.prototype = {
         }
 
         var finalBalance = balance - value;
-        this._balances.set(msg.sender, finalBalance);
-        this._balances.set(to, this.balanceOf(to) + value);
+        LCS.set('balances-' + msg.sender, finalBalance);
+        LCS.set('balances-' + to, this.balanceOf(to) + value);
         return true;
     },
     pay: function (nass) {
         var r = nass;
-        if (this._totalIssued + r > this._totalSupply) {
+        if (LCS.get('totalIssued') + r > LCS.get('totalSupply')) {
             return false;
         }
 
-        this._balances.set(msg.sender, this.balanceOf(msg.sender) + r);
-        this._totalIssued += r;
+        LCS.set('balances-' + msg.sender, this.balanceOf(msg.sender) + r);
+        LCS.set('totalIssued', LCS.get('totalIssued') + r);
     }
 };
 
-var exports = module.exports = new NebulasToken();
+var exports = module.exports = NebulasToken;
