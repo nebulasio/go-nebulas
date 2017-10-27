@@ -50,6 +50,7 @@ const (
 	BYE            = "bye"
 	SyncRoute      = "syncroute"
 	SyncRouteReply = "resyncroute"
+	NewHashMsg     = "newhashmsg"
 	ClientVersion  = "0.2.0"
 )
 
@@ -182,6 +183,8 @@ func (ns *NetService) streamHandler(s libnet.Stream) {
 				ns.handleSyncRouteMsg(protocol.data, pid, s, addrs, key)
 			case SyncRouteReply:
 				ns.handleSyncRouteReplyMsg(protocol.data, pid, s, addrs)
+			case NewHashMsg:
+				ns.handleNewHashMsg(protocol.data, pid)
 			default:
 				var relayness []peer.ID
 				if node.conn[key] != SOK {
@@ -344,6 +347,18 @@ func (ns *NetService) handleOkMsg(data []byte, pid peer.ID, s libnet.Stream, add
 	log.Error("streamHandler: [OK] get incorrect response")
 	return result
 
+}
+
+func (ns *NetService) handleNewHashMsg(data []byte, pid peer.ID) {
+	var relayness []peer.ID
+	node := ns.node
+	node.relaynessLock.Lock()
+	peers, exists := node.relayness.Get(byteutils.Uint32(data))
+	if exists {
+		relayness = peers.([]peer.ID)
+	}
+	node.relayness.Add(byteutils.Uint32(data), append(relayness, pid))
+	node.relaynessLock.Unlock()
 }
 
 func (ns *NetService) handleSyncRouteMsg(data []byte, pid peer.ID, s libnet.Stream, addrs ma.Multiaddr, key string) bool {

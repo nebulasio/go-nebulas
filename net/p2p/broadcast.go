@@ -20,20 +20,45 @@ package p2p
 
 import (
 	"hash/crc32"
+	"math"
 	"reflect"
 
 	"github.com/gogo/protobuf/proto"
 	peer "github.com/libp2p/go-libp2p-peer"
 	"github.com/nebulasio/go-nebulas/net"
+	byteutils "github.com/nebulasio/go-nebulas/util/byteutils"
 	log "github.com/sirupsen/logrus"
 )
 
 // Broadcast broadcast message
 func (ns *NetService) Broadcast(name string, msg net.Serializable) {
-
-	if !ns.node.synchronized {
+	node := ns.node
+	if !node.synchronized {
 		return
 	}
+	ns.distribute(name, msg, false)
+}
+
+// Relay message
+func (ns *NetService) Relay(name string, msg net.Serializable) {
+	node := ns.node
+	if !node.synchronized {
+		return
+	}
+	ns.distribute(name, msg, true)
+}
+
+func (ns *NetService) nodeNotInRelayness(relayness []peer.ID, peers []peer.ID) []peer.ID {
+	var list []peer.ID
+	for _, p := range peers {
+		if !inArray(p, relayness) {
+			list = append(list, p)
+		}
+	}
+	return list
+}
+
+func (ns *NetService) distribute(name string, msg net.Serializable, relay bool) {
 	node := ns.node
 	pbMsg, _ := msg.ToProto()
 	data, err := proto.Marshal(pbMsg)
@@ -41,52 +66,67 @@ func (ns *NetService) Broadcast(name string, msg net.Serializable) {
 		return
 	}
 
-	allNode := node.routeTable.ListPeers()
-	log.WithFields(log.Fields{
-		"msg":     msg,
-		"allNode": allNode,
-	}).Info("Broadcast: start broadcast msg.")
-
 	var relayness []peer.ID
 	dataChecksum := crc32.ChecksumIEEE(data)
 	peers, exists := node.relayness.Get(dataChecksum)
 	if exists {
 		relayness = peers.([]peer.ID)
 	}
+	allNode := ns.nodeNotInRelayness(relayness, node.routeTable.ListPeers())
+	transfer := allNode
+	if relay {
+		transfer = allNode[:int(math.Sqrt(float64(len(allNode))))]
+	}
+	log.WithFields(log.Fields{
+		"msg":      msg,
+		"transfer": transfer,
+	}).Info("distribute: start distribute msg.")
 
-	for i := 0; i < len(allNode); i++ {
-
-		nodeID := allNode[i]
+	for i := 0; i < len(transfer); i++ {
+		nodeID := transfer[i]
 		if inArray(nodeID, relayness) {
-			log.Warnf("Broadcast:  nodeID %s has already have the same message", nodeID)
+			log.Warnf("distribute:  nodeID %s has already have the same message", nodeID)
 			continue
 		}
 		addrs := node.peerstore.PeerInfo(nodeID).Addrs
 		if len(addrs) == 0 || node.host.Addrs()[0].String() == addrs[0].String() {
-			log.Warn("Broadcast: skip self")
+			log.Warn("distribute: skip self")
 			continue
 		}
 		if len(addrs) > 0 {
 			key, err := GenerateKey(addrs[0], nodeID)
 			if err != nil {
-				log.Warn("Broadcast:  the addrs format is incorrect")
+				log.Warn("distribute:  the addrs format is incorrect")
 				continue
 			}
 			node.relayness.Add(dataChecksum, append(relayness, nodeID))
 			go ns.SendMsg(name, data, key)
 		}
-
 	}
 
-}
-
-// Relay message
-func (ns *NetService) Relay(name string, msg net.Serializable) {
-	// TODO(@leon): relay protocol
-	if !ns.node.synchronized {
-		return
+	if relay {
+		for i := 0; i < len(allNode); i++ {
+			nodeID := allNode[i]
+			if inArray(nodeID, relayness) {
+				log.Warnf("distribute: relay nodeID %s has already have the same message", nodeID)
+				continue
+			}
+			addrs := node.peerstore.PeerInfo(nodeID).Addrs
+			if len(addrs) == 0 || node.host.Addrs()[0].String() == addrs[0].String() {
+				log.Warn("distribute: relay skip self")
+				continue
+			}
+			if len(addrs) > 0 {
+				key, err := GenerateKey(addrs[0], nodeID)
+				if err != nil {
+					log.Warn("distribute: relay  the addrs format is incorrect")
+					continue
+				}
+				node.relayness.Add(dataChecksum, append(relayness, nodeID))
+				go ns.SendMsg(NewHashMsg, byteutils.FromUint32(dataChecksum), key)
+			}
+		}
 	}
-	ns.Broadcast(name, msg)
 }
 
 func inArray(obj interface{}, array interface{}) bool {
