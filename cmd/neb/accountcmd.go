@@ -136,7 +136,7 @@ func accountImport(ctx *cli.Context) error {
 	}
 	keyJSON, err := ioutil.ReadFile(keyfile)
 	if err != nil {
-		FatalF("file read failed", err)
+		FatalF("file read failed:%s", err)
 	}
 
 	neb := makeNeb(ctx)
@@ -144,7 +144,7 @@ func accountImport(ctx *cli.Context) error {
 
 	addr, err := neb.AccountManager().Import([]byte(keyJSON), []byte(passphrase))
 	if err != nil {
-		FatalF("key import failed", err)
+		FatalF("key import failed:%s", err)
 	}
 	fmt.Printf("Import address: %s\n", addr.ToHex())
 	return nil
