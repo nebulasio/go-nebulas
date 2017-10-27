@@ -76,6 +76,6 @@ globalContractStorage.prototype = {
 };
 
 module.exports = {
-    LocalStorage: localContractStorage,
-    GlobalStorage: globalContractStorage
+    LocalContractStorage: localContractStorage,
+    GlobalContractStorage: globalContractStorage
 };

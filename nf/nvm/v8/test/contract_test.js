@@ -20,9 +20,8 @@ const msg = {
     sender: "robin"
 };
 
-const NebulasToken = require('./contract.js');
+var token = require('./contract.js');
 
-var token = new NebulasToken(10000);
 console.log("totalSupply = " + token.totalSupply());
 
 token.pay(500);

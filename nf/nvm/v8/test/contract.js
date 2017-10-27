@@ -15,20 +15,19 @@
 // You should have received a copy of the GNU General Public License
 // along with the go-nebulas library.  If not, see <http://www.gnu.org/licenses/>.
 //
+const Storage = require('Storage.js');
+const LCS = Storage.LocalContractStorage;
+const GCS = Storage.GlobalContractStorage;
 
-const msg = {
-    sender: "robin"
-};
-
-const LCS = require('./local.contract.storage.js');
-
-var NebulasToken = function (totalSupply) {
-    this._totalSupply = totalSupply;
-    this._totalIssued = 0;
+var NebulasToken = function () {
     this._balances = new LCS();
 };
 
 NebulasToken.prototype = {
+    init: function (totalSupply) {
+        this._totalSupply = totalSupply;
+        this._totalIssued = 0;
+    },
     totalSupply: function () {
         return this._totalSupply;
     },
@@ -57,4 +56,4 @@ NebulasToken.prototype = {
     }
 };
 
-var exports = module.exports = NebulasToken;
+var exports = module.exports = new NebulasToken();
