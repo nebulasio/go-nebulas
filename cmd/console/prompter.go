@@ -21,6 +21,8 @@ package console
 import (
 	"fmt"
 
+	"strings"
+
 	"github.com/peterh/liner"
 )
 
@@ -57,8 +59,8 @@ func newTerminalPrompter() *terminalPrompter {
 	return p
 }
 
-// Prompt displays the prompt and requests some textual
-// data to be entered, returning the input.
+// Prompt shows the prompt and requests text input
+// returning the input.
 func (p *terminalPrompter) Prompt(prompt string) (string, error) {
 	if p.supported {
 		p.rawMode.ApplyMode()
@@ -70,9 +72,8 @@ func (p *terminalPrompter) Prompt(prompt string) (string, error) {
 	return p.liner.Prompt(prompt)
 }
 
-// PromptPassphrase displays the prompt and requests some textual
-// data to be entered, but one which must not be echoed out into the terminal.
-// The method returns the input.
+// PromptPassphrase shows the prompt and request passphrase text input, the passphrase
+// not show, returns the passphrase
 func (p *terminalPrompter) PromptPassphrase(prompt string) (passwd string, err error) {
 	if p.supported {
 		p.rawMode.ApplyMode()
@@ -84,4 +85,31 @@ func (p *terminalPrompter) PromptPassphrase(prompt string) (passwd string, err e
 	passwd, err = p.liner.Prompt("")
 	fmt.Println()
 	return passwd, err
+}
+
+// PromptConfirm shows the prompt to the user and requests a boolean
+// choice to be made, returning that choice.
+func (p *terminalPrompter) PromptConfirm(prompt string) (bool, error) {
+	input, err := p.Prompt(prompt + " [y/N] ")
+	if len(input) > 0 && strings.ToUpper(input[:1]) == "Y" {
+		return true, nil
+	}
+	return false, err
+}
+
+// SetHistory sets the history that the prompter will allow
+// the user to scroll back to.
+func (p *terminalPrompter) SetHistory(history []string) {
+	p.liner.ReadHistory(strings.NewReader(strings.Join(history, "\n")))
+}
+
+// AppendHistory appends an entry to the scrollback history.
+func (p *terminalPrompter) AppendHistory(command string) {
+	p.liner.AppendHistory(command)
+}
+
+// SetWordCompleter sets the completion function that the prompter will call to
+// fetch completion candidates when the user presses tab.
+func (p *terminalPrompter) SetWordCompleter(completer liner.WordCompleter) {
+	p.liner.SetWordCompleter(completer)
 }
