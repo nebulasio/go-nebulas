@@ -71,8 +71,8 @@ func (n *Neblet) Start() error {
 		return err
 	}
 
-	// storage, err := storage.NewDiskStorage("data.db")
-	storage, err := storage.NewMemoryStorage()
+	storage, err := storage.NewDiskStorage("data.db")
+	// storage, err := storage.NewMemoryStorage()
 	if err != nil {
 		return err
 	}
