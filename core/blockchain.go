@@ -70,10 +70,10 @@ func NewBlockChain(chainID uint32, storage storage.Storage) (*BlockChain, error)
 	bc.cachedBlocks, _ = lru.New(1024)
 	bc.detachedTailBlocks, _ = lru.New(64)
 
-	tailBlock, err := bc.getTail()
+	tailBlock, err := bc.loadTailFromStorage()
 	if err != nil {
 		bc.genesisBlock = NewGenesisBlock(chainID, storage)
-		if err := bc.saveBlock(bc.genesisBlock); err != nil {
+		if err := bc.storeBlockToStorage(bc.genesisBlock); err != nil {
 			return nil, err
 		}
 		tailBlock = bc.genesisBlock
@@ -100,24 +100,12 @@ func (bc *BlockChain) TailBlock() *Block {
 	return bc.tailBlock
 }
 
-func (bc *BlockChain) saveTail(block *Block) {
-	bc.storage.Put([]byte(Tail), block.Hash())
-}
-
-func (bc *BlockChain) getTail() (*Block, error) {
-	hash, err := bc.storage.Get([]byte(Tail))
-	if err != nil {
-		return nil, err
-	}
-	return bc.getBlock(hash)
-}
-
 // SetTailBlock set tail block.
 func (bc *BlockChain) SetTailBlock(newTail *Block) {
 	oldTail := bc.tailBlock
 	bc.detachedTailBlocks.Remove(newTail.Hash().Hex())
 	bc.tailBlock = newTail
-	bc.saveTail(bc.tailBlock)
+	bc.storeTailToStorage(bc.tailBlock)
 	// giveBack txs in reverted blocks to tx pool
 	ancestor, _ := bc.FindCommonAncestorWithTail(oldTail)
 	if ancestor.Hash().Equals(oldTail.Hash()) {
@@ -223,7 +211,7 @@ func (bc *BlockChain) NewBlockFromParent(coinbase *Address, parentBlock *Block) 
 func (bc *BlockChain) PutVerifiedNewBlocks(allBlocks, tailBlocks []*Block) error {
 	for _, v := range allBlocks {
 		bc.cachedBlocks.ContainsOrAdd(v.Hash().Hex(), v)
-		if err := bc.saveBlock(v); err != nil {
+		if err := bc.storeBlockToStorage(v); err != nil {
 			return err
 		}
 	}
@@ -251,7 +239,7 @@ func (bc *BlockChain) GetBlock(hash Hash) *Block {
 	// TODO: get block from local storage.
 	v, _ := bc.cachedBlocks.Get(hash.Hex())
 	if v == nil {
-		block, err := bc.getBlock(hash)
+		block, err := bc.loadBlockFromStorage(hash)
 		if err != nil {
 			return nil
 		}
@@ -280,7 +268,7 @@ func (bc *BlockChain) Dump() string {
 	return rls
 }
 
-func (bc *BlockChain) saveBlock(block *Block) error {
+func (bc *BlockChain) storeBlockToStorage(block *Block) error {
 	pbBlock, err := block.ToProto()
 	if err != nil {
 		return err
@@ -296,7 +284,7 @@ func (bc *BlockChain) saveBlock(block *Block) error {
 	return nil
 }
 
-func (bc *BlockChain) getBlock(hash Hash) (*Block, error) {
+func (bc *BlockChain) loadBlockFromStorage(hash Hash) (*Block, error) {
 	value, err := bc.storage.Get(hash)
 	if err != nil {
 		return nil, err
@@ -318,4 +306,16 @@ func (bc *BlockChain) getBlock(hash Hash) (*Block, error) {
 		return nil, err
 	}
 	return block, nil
+}
+
+func (bc *BlockChain) storeTailToStorage(block *Block) {
+	bc.storage.Put([]byte(Tail), block.Hash())
+}
+
+func (bc *BlockChain) loadTailFromStorage() (*Block, error) {
+	hash, err := bc.storage.Get([]byte(Tail))
+	if err != nil {
+		return nil, err
+	}
+	return bc.loadBlockFromStorage(hash)
 }
