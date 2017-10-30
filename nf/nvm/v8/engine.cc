@@ -53,20 +53,20 @@ void Dispose() {
   }
 }
 
-Engine *CreateEngine() {
+V8Engine *CreateEngine() {
   ArrayBufferAllocator *allocator = new ArrayBufferAllocator();
 
   Isolate::CreateParams create_params;
   create_params.array_buffer_allocator = allocator;
   Isolate *isolate = Isolate::New(create_params);
 
-  Engine *e = (Engine *)calloc(1, sizeof(Engine));
+  V8Engine *e = (V8Engine *)calloc(1, sizeof(V8Engine));
   e->allocator = allocator;
   e->isolate = isolate;
   return e;
 }
 
-void DeleteEngine(Engine *e) {
+void DeleteEngine(V8Engine *e) {
   Isolate *isolate = static_cast<Isolate *>(e->isolate);
   isolate->Dispose();
 
@@ -75,7 +75,7 @@ void DeleteEngine(Engine *e) {
   free(e);
 }
 
-int RunScript(Engine *e, const char *data) {
+int RunScriptSource(V8Engine *e, const char *data) {
   Isolate *isolate = static_cast<Isolate *>(e->isolate);
   assert(isolate);
 

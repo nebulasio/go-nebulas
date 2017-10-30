@@ -77,9 +77,9 @@ int main(int argc, const char *argv[]) {
 
   // setLogFunc(logFunc);
   Initialize(logFunc);
-  Engine *e = CreateEngine();
+  V8Engine *e = CreateEngine();
 
-  RunScript(e, data);
+  RunScriptSource(e, data);
 
   DeleteEngine(e);
   Dispose();

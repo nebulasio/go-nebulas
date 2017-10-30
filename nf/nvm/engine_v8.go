@@ -34,7 +34,7 @@ var (
 
 // V8Engine v8 engine.
 type V8Engine struct {
-	engine *C.Engine
+	engine *C.V8Engine
 }
 
 // InitV8Engine initialize the v8 engine.
@@ -62,8 +62,8 @@ func (e *V8Engine) Delete() {
 }
 
 // RunScript
-func (e *V8Engine) RunScript(file string) error {
-	ret := C.RunScript(e.engine, C.CString(file))
+func (e *V8Engine) RunScriptSource(content string) error {
+	ret := C.RunScriptSource(e.engine, C.CString(content))
 	if ret != 0 {
 		return ErrFailed
 	}

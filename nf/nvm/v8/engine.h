@@ -44,14 +44,14 @@ EXPORT void SetLogFunc(LogFunc f);
 typedef struct V8Engine {
   void *isolate;
   void *allocator;
-} Engine;
+} V8Engine;
 
 EXPORT void Initialize(LogFunc logFunc);
 EXPORT void Dispose();
 
-EXPORT Engine *CreateEngine();
-EXPORT int RunScript(Engine *e, const char *data);
-EXPORT void DeleteEngine(Engine *e);
+EXPORT V8Engine *CreateEngine();
+EXPORT int RunScriptSource(V8Engine *e, const char *data);
+EXPORT void DeleteEngine(V8Engine *e);
 
 #ifdef __cplusplus
 }
