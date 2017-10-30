@@ -176,6 +176,11 @@ func NewBlock(chainID uint32, coinbase *Address, parent *Block, txPool *Transact
 	return block
 }
 
+// Coinbase return block's coinbase
+func (block *Block) Coinbase() *Address {
+	return block.header.coinbase
+}
+
 // Nonce return nonce.
 func (block *Block) Nonce() uint64 {
 	return block.header.nonce

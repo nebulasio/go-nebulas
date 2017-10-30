@@ -34,9 +34,12 @@ type APIService struct {
 func (s *APIService) GetNebState(ctx context.Context, req *rpcpb.GetNebStateRequest) (*rpcpb.GetNebStateResponse, error) {
 	neb := s.server.Neblet()
 
-	tailHash := neb.BlockChain().TailBlock().Hash()
+	tail := neb.BlockChain().TailBlock()
 
-	resp := &rpcpb.GetNebStateResponse{Tail: string(tailHash.Hex())}
+	resp := &rpcpb.GetNebStateResponse{}
+	resp.ChainID = neb.BlockChain().ChainID()
+	resp.Tail = string(tail.Hash().Hex())
+	resp.Coinbase = tail.Coinbase().ToHex()
 
 	return resp, nil
 }

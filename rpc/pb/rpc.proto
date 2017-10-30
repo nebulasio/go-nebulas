@@ -54,8 +54,21 @@ message GetNebStateRequest {
 
 // Response message of GetNebState rpc.
 message GetNebStateResponse {
+
+	// Block chain id
+	uint32 chainID = 1;
+
 	// Current neb tail hash
-	string tail = 1;
+	string tail = 2;
+
+	// Neb coinbase
+	string coinbase = 3;
+
+	// Number of peers currenly connected
+	uint32 peerCount = 4;
+
+	// Neb mine status, minging is true ,otherwise false
+	bool isMining = 5;
 }
 
 // Request message of GetAccountState rpc.

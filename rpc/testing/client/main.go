@@ -56,8 +56,8 @@ func main() {
 		if err != nil {
 			log.Println("GetNebState", "failed", err)
 		} else {
-			tail := r.GetTail()
-			log.Println("GetNebState tail", tail)
+			//tail := r.GetTail()
+			log.Println("GetNebState tail", r)
 		}
 	}
 
