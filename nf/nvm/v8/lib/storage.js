@@ -17,6 +17,7 @@
 //
 
 //TODO: @robin using blockchain api instead the javascript map.
+'use strict';
 
 var localContractStorage = function () {
     this._map = new Map();

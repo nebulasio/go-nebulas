@@ -80,6 +80,7 @@ static int readSource(const char *filename, char **data, size_t *size) {
   }
 
   if (feof(f) == 0) {
+    free(static_cast<void *>(*data));
     fprintf(stderr, "read file %s error.\n", filename);
     return 1;
   }
@@ -136,6 +137,6 @@ void requireCallback(const v8::FunctionCallbackInfo<v8::Value> &info) {
     Local<Value> rr = ret.ToLocalChecked();
     info.GetReturnValue().Set(rr);
   }
-}
 
-void LogCallback(const v8::FunctionCallbackInfo<v8::Value> &info) {}
+  free(static_cast<void *>(data));
+}

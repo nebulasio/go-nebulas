@@ -84,8 +84,6 @@ int RunScript(Engine *e, const char *data) {
   Local<ObjectTemplate> global = ObjectTemplate::New(isolate);
   global->Set(String::NewFromUtf8(isolate, "require"),
               FunctionTemplate::New(isolate, requireCallback));
-  global->Set(String::NewFromUtf8(isolate, "msg"),
-              ObjectTemplate::New(isolate));
   global->Set(String::NewFromUtf8(isolate, "_native_log"),
               FunctionTemplate::New(isolate, logCallback));
 
