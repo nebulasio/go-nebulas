@@ -19,6 +19,7 @@
 
 #include "engine.h"
 #include "array_buffer_allocator.h"
+#include "lib/log_callback.h"
 #include "lib/require_callback.h"
 
 #include <libplatform/libplatform.h>
@@ -85,6 +86,8 @@ int RunScript(Engine *e, const char *data) {
               FunctionTemplate::New(isolate, requireCallback));
   global->Set(String::NewFromUtf8(isolate, "msg"),
               ObjectTemplate::New(isolate));
+  global->Set(String::NewFromUtf8(isolate, "_native_log"),
+              FunctionTemplate::New(isolate, logCallback));
 
   // Create a new context.
   Local<Context> context = Context::New(isolate, NULL, global);

@@ -18,9 +18,18 @@
 //
 
 #include "engine.h"
+#include "lib/log_callback.h"
 
 #include <stdio.h>
 #include <stdlib.h>
+
+void logFunc(int level, const char *msg) {
+  FILE *f = stdout;
+  if (level >= LogLevel::ERROR) {
+    f = stderr;
+  }
+  fprintf(f, "[%s] %s\n", getLogLevelText(level), msg);
+}
 
 void help(const char *name) {
   printf("%s [Javascript File] [Args...]\n", name);
@@ -66,6 +75,7 @@ int main(int argc, const char *argv[]) {
   size_t size = 0;
   readSource(filename, &data, &size);
 
+  setLogFunc(logFunc);
   Initialize();
   Engine *e = CreateEngine();
 

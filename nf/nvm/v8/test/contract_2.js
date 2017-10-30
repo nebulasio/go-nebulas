@@ -15,7 +15,7 @@
 // You should have received a copy of the GNU General Public License
 // along with the go-nebulas library.  If not, see <http://www.gnu.org/licenses/>.
 //
-const Storage = require('Storage.js');
+const Storage = require('storage.js');
 const LCS = Storage.LocalContractStorage;
 const GCS = Storage.GlobalContractStorage;
 
