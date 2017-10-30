@@ -19,6 +19,7 @@
 package rpc
 
 import (
+	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/rpc/pb"
 	"github.com/nebulasio/go-nebulas/util"
@@ -84,6 +85,32 @@ func (s *APIService) SendTransaction(ctx context.Context, req *rpcpb.SendTransac
 
 	tx := core.NewTransaction(neb.BlockChain().ChainID(), fromAddr, toAddr, value, req.Nonce /*req.Data */, nil)
 	if err := neb.AccountManager().SignTransaction(fromAddr, tx); err != nil {
+		return nil, err
+	}
+
+	if err := neb.BlockChain().TransactionPool().PushAndBroadcast(tx); err != nil {
+		return nil, err
+	}
+
+	return &rpcpb.SendTransactionResponse{Hash: tx.Hash().String()}, nil
+}
+
+// SendRawTransaction transaction raw data submit handler
+func (s *APIService) SendRawTransaction(ctx context.Context, req *rpcpb.SendRawTransactionRequest) (*rpcpb.SendTransactionResponse, error) {
+	// Validate and sign the tx, then submit it to the tx pool.
+	neb := s.server.Neblet()
+
+	var pbMsg proto.Message
+	err := proto.UnmarshalMerge(req.GetData(), pbMsg)
+	if err != nil {
+		return nil, err
+	}
+	tx := new(core.Transaction)
+	err = tx.FromProto(pbMsg)
+	if err != nil {
+		return nil, err
+	}
+	if err := neb.AccountManager().SignTransaction(tx.From(), tx); err != nil {
 		return nil, err
 	}
 

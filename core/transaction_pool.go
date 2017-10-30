@@ -26,7 +26,6 @@ import (
 	"github.com/nebulasio/go-nebulas/common/pdeque"
 	"github.com/nebulasio/go-nebulas/core/pb"
 	"github.com/nebulasio/go-nebulas/net"
-	"github.com/nebulasio/go-nebulas/util/byteutils"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -47,7 +46,7 @@ type TransactionPool struct {
 func less(a interface{}, b interface{}) bool {
 	txa := a.(*Transaction)
 	txb := b.(*Transaction)
-	if byteutils.Equal(txa.From(), txb.From()) {
+	if txa.from.Equals(txb.from) {
 		return txa.Nonce() < txb.Nonce()
 	}
 	// TODO(@roy): use gas price instead

@@ -46,6 +46,10 @@ service APIService {
 //            body: "*"
 //        };
 	}
+
+	// Submit the signed transaction.
+	rpc SendRawTransaction (SendRawTransactionRequest) returns (SendTransactionResponse) {
+	}
 }
 
 // Request message of GetNebState rpc.
@@ -112,4 +116,11 @@ message SendTransactionRequest {
 message SendTransactionResponse {
 	// Hex string of transaction hash.
 	string hash = 1;
+}
+
+// Request message of SendRawTransactionRequest rpc.
+message SendRawTransactionRequest {
+
+	// Signed data of transaction
+	bytes data = 1;
 }

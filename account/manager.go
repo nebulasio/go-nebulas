@@ -29,7 +29,6 @@ import (
 	"github.com/nebulasio/go-nebulas/crypto/cipher"
 	"github.com/nebulasio/go-nebulas/crypto/keystore"
 	"github.com/nebulasio/go-nebulas/neblet/pb"
-	"github.com/nebulasio/go-nebulas/util/byteutils"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -242,7 +241,7 @@ func (m *Manager) Delete(a string, passphrase []byte) error {
 // SignTransaction sign transaction with the specified algorithm
 func (m *Manager) SignTransaction(addr *core.Address, tx *core.Transaction) error {
 	// check sign addr is tx's from addr
-	if !byteutils.Equal(tx.From(), addr.Bytes()) {
+	if !tx.From().Equals(addr) {
 		return ErrTxSignFrom
 	}
 	key, err := m.ks.GetUnlocked(addr.ToHex())

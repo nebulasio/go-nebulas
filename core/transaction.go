@@ -60,8 +60,8 @@ type Transaction struct {
 }
 
 // From return from address
-func (tx *Transaction) From() []byte {
-	return tx.from.address
+func (tx *Transaction) From() *Address {
+	return tx.from
 }
 
 // Nonce return tx nonce
