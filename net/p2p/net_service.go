@@ -25,6 +25,7 @@ import (
 	"io"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/gogo/protobuf/proto"
 	kbucket "github.com/libp2p/go-libp2p-kbucket"
@@ -163,13 +164,13 @@ func (ns *NetService) streamHandler(s libnet.Stream) {
 			key, err := GenerateKey(addrs, pid)
 			if err != nil {
 				log.Error("streamHandler: ", err)
-				ns.Bye(pid, []ma.Multiaddr{addrs}, s)
+				ns.Bye(pid, []ma.Multiaddr{addrs}, s, key)
 				return
 			}
 			protocol, err := ns.parse(s)
 			if err != nil {
 				log.Error("streamHandler: parse network protocol occurs error, ", err)
-				ns.Bye(pid, []ma.Multiaddr{addrs}, s)
+				ns.Bye(pid, []ma.Multiaddr{addrs}, s, key)
 				return
 			}
 			switch protocol.msgName {
@@ -187,9 +188,9 @@ func (ns *NetService) streamHandler(s libnet.Stream) {
 				ns.handleNewHashMsg(protocol.data, pid)
 			default:
 				var relayness []peer.ID
-				if node.conn[key] != SOK {
+				if node.stream[key].conn != SOK {
 					log.Error("peer not shake hand before send message.")
-					ns.Bye(pid, []ma.Multiaddr{addrs}, s)
+					ns.Bye(pid, []ma.Multiaddr{addrs}, s, key)
 					return
 				}
 				msg := messages.NewBaseMessage(protocol.msgName, protocol.data)
@@ -269,7 +270,7 @@ func (ns *NetService) handleHelloMsg(data []byte, pid peer.ID, s libnet.Stream, 
 	result := false
 	defer func() {
 		if !result {
-			ns.Bye(pid, []ma.Multiaddr{addrs}, s)
+			ns.Bye(pid, []ma.Multiaddr{addrs}, s, key)
 		}
 	}()
 
@@ -305,8 +306,10 @@ func (ns *NetService) handleHelloMsg(data []byte, pid peer.ID, s libnet.Stream, 
 			log.Error("handleHelloMsg: [HELLO] write data occurs error, ", err)
 			return result
 		}
-		node.stream[key] = s
-		node.conn[key] = SOK
+		streamStore := NewStreamStore(key, SOK, s)
+		node.stream[key] = streamStore
+		node.streamCache.Insert(streamStore)
+		// node.conn[key] = SOK
 		node.routeTable.Update(pid)
 		result = true
 		return result
@@ -321,7 +324,7 @@ func (ns *NetService) handleOkMsg(data []byte, pid peer.ID, s libnet.Stream, add
 	result := false
 	defer func() {
 		if !result {
-			ns.Bye(pid, []ma.Multiaddr{addrs}, s)
+			ns.Bye(pid, []ma.Multiaddr{addrs}, s, key)
 		}
 	}()
 
@@ -337,8 +340,10 @@ func (ns *NetService) handleOkMsg(data []byte, pid peer.ID, s libnet.Stream, add
 	}
 
 	if ok.NodeID == pid.String() && ok.ClientVersion == ClientVersion {
-		node.stream[key] = s
-		node.conn[key] = SOK
+		streamStore := NewStreamStore(key, SOK, s)
+		node.stream[key] = streamStore
+		node.streamCache.Insert(streamStore)
+		// node.conn[key] = SOK
 		node.routeTable.Update(pid)
 		result = true
 		return result
@@ -366,7 +371,7 @@ func (ns *NetService) handleSyncRouteMsg(data []byte, pid peer.ID, s libnet.Stre
 	result := false
 	defer func() {
 		if !result {
-			ns.Bye(pid, []ma.Multiaddr{addrs}, s)
+			ns.Bye(pid, []ma.Multiaddr{addrs}, s, key)
 		}
 	}()
 	peers := node.routeTable.NearestPeers(kbucket.ConvertPeerID(pid), node.config.maxSyncNodes)
@@ -394,12 +399,12 @@ func (ns *NetService) handleSyncRouteMsg(data []byte, pid peer.ID, s libnet.Stre
 
 	totalData := ns.buildData(data, SyncRouteReply)
 
-	stream := node.stream[key]
-	if stream == nil {
+	if _, ok := node.stream[key]; !ok {
 		log.Error("handleSyncRouteMsg: [SYNCROUTE] send message occrus error, stream does not exist.")
 		return result
 	}
-	if err := Write(stream, totalData); err != nil {
+	streamStore := node.stream[key]
+	if err := Write(streamStore.stream, totalData); err != nil {
 		log.Error("handleSyncRouteMsg: [SYNCROUTE] write data occurs error, ", err)
 		return result
 	}
@@ -484,11 +489,10 @@ func (ns *NetService) verifyHeader(protocol *Protocol) bool {
 }
 
 // Bye say bye to a peer, and close connection.
-func (ns *NetService) Bye(pid peer.ID, addrs []ma.Multiaddr, s libnet.Stream) {
+func (ns *NetService) Bye(pid peer.ID, addrs []ma.Multiaddr, s libnet.Stream, key string) {
 	node := ns.node
 	ns.clearPeerStore(pid, addrs)
-	delete(node.conn, addrs[0].String())
-	delete(node.stream, addrs[0].String())
+	delete(node.stream, key)
 	s.Close()
 }
 
@@ -499,21 +503,22 @@ func (ns *NetService) clearPeerStore(pid peer.ID, addrs []ma.Multiaddr) {
 }
 
 // SendMsg send message to a peer
-func (ns *NetService) SendMsg(msgName string, msg []byte, addrs string) {
+func (ns *NetService) SendMsg(msgName string, msg []byte, key string) {
 	node := ns.node
 	log.WithFields(log.Fields{
-		"addrs":   addrs,
+		"key":     key,
 		"msgName": msgName,
 	}).Info("SendMsg: send message to a peer.")
 	data := msg
 	totalData := ns.buildData(data, msgName)
 
-	stream := node.stream[addrs]
-	if stream == nil {
+	if _, ok := node.stream[key]; !ok {
 		log.Error("SendMsg: send message occrus error, stream does not exist.")
 		return
 	}
-	if err := Write(stream, totalData); err != nil {
+	streamStore := node.stream[key]
+
+	if err := Write(streamStore.stream, totalData); err != nil {
 		log.Error("SendMsg: write data occurs error, ", err)
 		return
 	}
@@ -578,14 +583,14 @@ func (ns *NetService) SyncRoutes(pid peer.ID) {
 		return
 	}
 
-	stream := node.stream[key]
-	if stream == nil {
+	if _, ok := node.stream[key]; !ok {
 		log.Error("SyncRoutes: send message occrus error, stream does not exist.")
-		ns.clearPeerStore(pid, addrs)
 		return
 	}
 
-	if err := Write(stream, totalData); err != nil {
+	streamStore := node.stream[key]
+
+	if err := Write(streamStore.stream, totalData); err != nil {
 		log.Error("SyncRoutes: write data occurs error, ", err)
 		ns.clearPeerStore(pid, addrs)
 		return
@@ -620,9 +625,10 @@ func (ns *NetService) buildData(data []byte, msgName string) []byte {
 }
 
 // Start start p2p manager.
-func (ns *NetService) Start() {
-	ns.start()
+func (ns *NetService) Start() error {
+	err := ns.start()
 	ns.dispatcher.Start()
+	return err
 }
 
 // Stop stop p2p manager.
@@ -649,16 +655,17 @@ func (ns *NetService) PutMessage(msg net.Message) {
 func (ns *NetService) start() error {
 
 	node := ns.node
-	log.Infof("Launch: node info {id -> %s, address -> %s}", node.id, node.host.Addrs())
+	log.Infof("net.start: node info {id -> %s, address -> %s}", node.id, node.host.Addrs())
 	if node.running {
-		return errors.New("Launch: node already running")
+		return errors.New("net.start: node already running")
 	}
 	node.running = true
-	log.Info("Launch: node start to join p2p network...")
+	log.Info("net.start: node start to join p2p network...")
 
 	ns.registerNetService()
 
 	// TODO: All fail handle
+	var success bool
 	var wg sync.WaitGroup
 	for _, bootNode := range node.config.BootNodes {
 		wg.Add(1)
@@ -666,19 +673,69 @@ func (ns *NetService) start() error {
 			defer wg.Done()
 			err := ns.SayHello(bootNode)
 			if err != nil {
-				log.Error("Launch: can not say hello to trusted node.", bootNode, err)
+				log.Error("net.start: can not say hello to trusted node.", bootNode, err)
+			} else {
+				success = true
 			}
 
 		}(bootNode)
 	}
 	wg.Wait()
 
-	go ns.discovery(node.context)
-
-	log.Infof("Launch: node start and join to p2p network success and listening for connections on port %d... ", node.config.Port)
-
+	if success || len(node.Config().BootNodes) == 0 {
+		go ns.discovery(node.context)
+		go ns.manageStreamStore()
+		log.Infof("net.start: node start and join to p2p network success and listening for connections on port %d... ", node.config.Port)
+	} else {
+		log.Error("net.start: node start occurs error, say hello to bootNode fail")
+		return errors.New("net.start: node start occurs error, say hello to bootNode fail")
+	}
 	return nil
 }
+
+func (ns *NetService) manageStreamStore() {
+	second := 60 * time.Second
+	ticker := time.NewTicker(second)
+	for {
+		select {
+		case <-ticker.C:
+			ns.clearStreamStore()
+		case <-ns.quitCh:
+			return
+		}
+	}
+}
+
+func (ns *NetService) clearStreamStore() {
+	node := ns.node
+	// do clear streamStore only when the count of stream in cache exceed the cache size.
+	if ns.node.streamCache.Len() > ns.node.config.StreamStoreSize {
+		overflowSize := ns.node.streamCache.Len() - ns.node.config.StreamStoreSize
+		for i := 0; i < overflowSize; i++ {
+			streamStore := node.streamCache.PopMin().(*StreamStore)
+			key := streamStore.key
+			if _, ok := node.stream[key]; ok {
+				node.stream[key].stream.Close()
+				delete(node.stream, key)
+			}
+		}
+	}
+}
+
+// func (ns *NetService) getMinValue(stream map[string]*StreamStore) (string, *StreamStore) {
+// 	node := ns.node
+// 	min := time.Now().Unix()
+// 	var k string
+// 	var v *StreamStore
+// 	for key, value := range node.stream {
+// 		time := value.timestamp
+// 		if time < min {
+// 			min = time
+// 			k = key
+// 		}
+// 	}
+// 	return k, v
+// }
 
 // Write write bytes to stream
 func Write(writer io.Writer, data []byte) error {

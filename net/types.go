@@ -43,7 +43,7 @@ type Serializable interface {
 
 // Manager manager interface
 type Manager interface {
-	Start()
+	Start() error
 	Stop()
 
 	Register(subscribers ...*Subscriber)

@@ -37,6 +37,7 @@ import (
 	"github.com/libp2p/go-libp2p-swarm"
 	"github.com/libp2p/go-libp2p/p2p/host/basic"
 	"github.com/multiformats/go-multiaddr"
+	"github.com/nebulasio/go-nebulas/common/pdeque"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -46,9 +47,8 @@ type Node struct {
 	id        peer.ID
 	peerstore peerstore.Peerstore
 	// key: ip + peer.ID
-	conn map[string]int
-	// key: ip + peer.ID
-	stream       map[string]libnet.Stream
+	streamCache  *pdeque.PriorityDeque
+	stream       map[string]*StreamStore
 	routeTable   *kbucket.RoutingTable
 	context      context.Context
 	chainID      uint32
@@ -60,6 +60,25 @@ type Node struct {
 	// key: datachecksum value: []ip + peer.ID
 	relayness     *lru.Cache
 	relaynessLock *sync.Mutex
+}
+
+// StreamStore is for stream cache
+type StreamStore struct {
+	key       string
+	conn      int
+	stream    libnet.Stream
+	timestamp int64
+}
+
+func less(a interface{}, b interface{}) bool {
+	sa := a.(*StreamStore)
+	sb := b.(*StreamStore)
+	return sa.timestamp < sb.timestamp
+}
+
+// NewStreamStore return a new streamStore
+func NewStreamStore(key string, conn int, stream libnet.Stream) *StreamStore {
+	return &StreamStore{key, conn, stream, time.Now().Unix()}
 }
 
 // NewNode start a local node and join the node to network
@@ -91,6 +110,11 @@ func (node *Node) ID() peer.ID {
 // SetSynchronized set node synchronized
 func (node *Node) SetSynchronized(synchronized bool) {
 	node.synchronized = synchronized
+}
+
+// GetSynchronized return node synchronized status
+func (node *Node) GetSynchronized() bool {
+	return node.synchronized
 }
 
 func (node *Node) init() error {
@@ -130,8 +154,8 @@ func (node *Node) init() error {
 
 	node.routeTable.Update(node.id)
 
-	node.conn = make(map[string]int)
-	node.stream = make(map[string]libnet.Stream)
+	node.stream = make(map[string]*StreamStore)
+	node.streamCache = pdeque.NewPriorityDeque(less)
 	node.chainID = node.config.ChainID
 	node.version = node.config.Version
 	node.synchronized = false

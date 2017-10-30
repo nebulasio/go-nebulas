@@ -67,10 +67,12 @@ func (n *Neblet) Start() error {
 
 	n.netService, err = p2p.NewNetService(n)
 	if err != nil {
+		log.Error("new NetService occurs error ", err)
 		return err
 	}
 
-	storage, err := storage.NewDiskStorage("data.db")
+	// storage, err := storage.NewDiskStorage("data.db")
+	storage, err := storage.NewMemoryStorage()
 	if err != nil {
 		return err
 	}
@@ -91,7 +93,10 @@ func (n *Neblet) Start() error {
 	n.rpcServer = rpc.NewServer(n)
 
 	// start.
-	n.netService.Start()
+	err = n.netService.Start()
+	if err != nil {
+		return err
+	}
 	n.blockChain.BlockPool().Start()
 	n.blockChain.TransactionPool().Start()
 	n.consensus.Start()

@@ -46,11 +46,12 @@ type Manager struct {
 	receiveSyncReplyCh chan net.Message
 	cacheList          map[string]*NetBlocks
 	endSyncCh          chan bool
+	syncing            bool
 }
 
 // NewManager new sync manager
 func NewManager(blockChain *core.BlockChain, consensus consensus.Consensus, ns *p2p.NetService) *Manager {
-	m := &Manager{blockChain, consensus, ns, make(chan bool), make(chan bool), make(chan net.Message, 128), make(chan net.Message, 128), make(map[string]*NetBlocks), make(chan bool)}
+	m := &Manager{blockChain, consensus, ns, make(chan bool, 1), make(chan bool, 1), make(chan net.Message, 128), make(chan net.Message, 128), make(map[string]*NetBlocks), make(chan bool, 1), false}
 	m.RegisterSyncBlockInNetwork(ns)
 	m.RegisterSyncReplyInNetwork(ns)
 	return m
@@ -83,27 +84,46 @@ func (m *Manager) Start() {
 		log.Info("Sync.Start: i am a seed node.")
 		m.ns.Node().SetSynchronized(true)
 		m.consensus.SetCanMining(true)
+		go m.loop()
+		go m.downloader()
 	}
 }
 
 func (m *Manager) startSync() {
-	go (func() {
-	Loop:
-		for {
-			select {
-			case <-m.quitCh:
-				break Loop
-			case <-m.endSyncCh:
+	go m.loop()
+	m.syncWithPeers()
+}
+
+func (m *Manager) loop() {
+	for {
+		select {
+		case <-m.quitCh:
+			return
+		case <-m.endSyncCh:
+			if !m.ns.Node().GetSynchronized() {
 				m.ns.Node().SetSynchronized(true)
 				m.consensus.SetCanMining(true)
-				break Loop
-			case <-m.syncCh:
+				m.downloader()
+			}
+			// break Loop
+		case msg := <-m.syncCh:
+			if msg {
+				log.Info("loop: m.syncCh true")
 				m.syncWithPeers()
 			}
 		}
-	})()
+	}
+}
 
-	m.syncWithPeers()
+func (m *Manager) downloader() {
+	second := 10 * time.Second
+	ticker := time.NewTicker(second)
+	for {
+		select {
+		case <-ticker.C:
+			m.syncWithPeers()
+		}
+	}
 }
 
 func (m *Manager) syncWithPeers() {
@@ -123,9 +143,12 @@ func (m *Manager) syncWithPeers() {
 	switch err {
 	case nil:
 	case p2p.ErrNodeNotEnough:
-		log.Warn("syncWithPeers: sleep for 5 second...")
-		time.Sleep(5 * time.Second)
-		m.syncCh <- true
+		if !m.ns.Node().GetSynchronized() {
+			log.Warn("syncWithPeers: sleep for 5 second...")
+			time.Sleep(5 * time.Second)
+			m.syncCh <- true
+		}
+
 	default:
 		log.Error("syncWithPeers occurs error, sync has been terminated.")
 	}
