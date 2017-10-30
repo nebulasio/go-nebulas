@@ -17,8 +17,8 @@
 // <http://www.gnu.org/licenses/>.
 //
 
-#ifndef _NEBULAS_NF_NVM_V8_LOG_CALLBACK_H_
-#define _NEBULAS_NF_NVM_V8_LOG_CALLBACK_H_
+#ifndef _NEBULAS_NF_NVM_V8_LIB_LOG_CALLBACK_H_
+#define _NEBULAS_NF_NVM_V8_LIB_LOG_CALLBACK_H_
 
 #include <v8.h>
 
@@ -38,4 +38,4 @@ void setLogFunc(LogFunc f);
 
 void logCallback(const FunctionCallbackInfo<Value> &info);
 
-#endif // _NEBULAS_NF_NVM_V8_LOG_CALLBACK_H_
+#endif // _NEBULAS_NF_NVM_V8_LIB_LOG_CALLBACK_H_

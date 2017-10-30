@@ -16,11 +16,14 @@
 // along with the go-nebulas library.  If not, see
 // <http://www.gnu.org/licenses/>.
 //
-#ifndef _NEBULAS_NF_NVM_V8_LIB_REQUIRE_CALLBACK_H_
-#define _NEBULAS_NF_NVM_V8_LIB_REQUIRE_CALLBACK_H_
+
+#ifndef _NEBULAS_NF_NVM_V8_LIB_EXECUTION_ENV_H_
+#define _NEBULAS_NF_NVM_V8_LIB_EXECUTION_ENV_H_
 
 #include <v8.h>
 
-void requireCallback(const v8::FunctionCallbackInfo<v8::Value> &info);
+using namespace v8;
 
-#endif // _NEBULAS_NF_NVM_V8_LIB_REQUIRE_CALLBACK_H_
+int SetupExecutionEnv(Isolate *isolate, Local<Context> &context);
+
+#endif // _NEBULAS_NF_NVM_V8_LIB_EXECUTION_ENV_H_

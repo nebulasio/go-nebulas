@@ -40,7 +40,7 @@ all: main
 main: main.cc.o
 	$(LD) $(LDFLAGS) $(LIBS) $^ -o $@
 
-engine_test: engine.cc.o lib/log_callback.cc.o lib/require_callback.cc.o engine_test.cc.o
+engine_test: engine.cc.o lib/execution_env.cc.o lib/log_callback.cc.o lib/require_callback.cc.o engine_test.cc.o
 	$(LD) $(LDFLAGS) $(LIBS) $^ -o $@
 
 clean:

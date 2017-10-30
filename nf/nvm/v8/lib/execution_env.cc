@@ -16,11 +16,28 @@
 // along with the go-nebulas library.  If not, see
 // <http://www.gnu.org/licenses/>.
 //
-#ifndef _NEBULAS_NF_NVM_V8_LIB_REQUIRE_CALLBACK_H_
-#define _NEBULAS_NF_NVM_V8_LIB_REQUIRE_CALLBACK_H_
 
-#include <v8.h>
+#include "execution_env.h"
 
-void requireCallback(const v8::FunctionCallbackInfo<v8::Value> &info);
+int SetupExecutionEnv(Isolate *isolate, Local<Context> &context) {
+  char data[] = "const console = require('console.js');"
+                "const Storage = require('storage.js');"
+                "const LCS = Storage.LocalContractStorage;"
+                "const GCS = Storage.GlobalContractStorage;";
 
-#endif // _NEBULAS_NF_NVM_V8_LIB_REQUIRE_CALLBACK_H_
+  Local<String> source =
+      String::NewFromUtf8(isolate, data, NewStringType::kNormal)
+          .ToLocalChecked();
+
+  // Compile the source code.
+  MaybeLocal<Script> script = Script::Compile(context, source);
+
+  if (script.IsEmpty()) {
+    fprintf(stderr, "execution-env.js: compile error.\n");
+    return 1;
+  }
+
+  // Run the script to get the result.
+  MaybeLocal<Value> ret = script.ToLocalChecked()->Run(context);
+  return 0;
+}

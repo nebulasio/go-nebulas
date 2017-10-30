@@ -19,6 +19,7 @@
 
 #include "engine.h"
 #include "array_buffer_allocator.h"
+#include "lib/execution_env.h"
 #include "lib/log_callback.h"
 #include "lib/require_callback.h"
 
@@ -91,6 +92,12 @@ int RunScript(Engine *e, const char *data) {
   Local<Context> context = Context::New(isolate, NULL, global);
   // Enter the context for compiling and running the hello world script.
   Context::Scope context_scope(context);
+
+  // Setup execution env.
+  if (SetupExecutionEnv(isolate, context)) {
+    fprintf(stderr, "setup execution env failed.\n");
+    return 1;
+  }
 
   // Create a string containing the JavaScript source code.
   Local<String> source =
