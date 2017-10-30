@@ -17,7 +17,7 @@
 // <http://www.gnu.org/licenses/>.
 //
 
-#ifdef _cplusplus
+#ifdef __cplusplus
 extern "C" {
 #endif
 
@@ -42,6 +42,6 @@ void AddNamedFunction(Engine *e, const char *funcName, void *address);
 
 void Initialize();
 
-#ifdef _cplusplus
+#ifdef __cplusplus
 }
 #endif

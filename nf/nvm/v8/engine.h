@@ -20,23 +20,40 @@
 #ifndef _NEBULAS_NV_V8_ENGINE_H_
 #define _NEBULAS_NV_V8_ENGINE_H_
 
-#ifdef _cplusplus
+#if BUILDING_DLL
+#define EXPORT __attribute__((__visibility__("default")))
+#else
+#define EXPORT
+#endif
+
+#ifdef __cplusplus
 extern "C" {
 #endif
+
+enum LogLevel {
+  DEBUG = 1,
+  WARN = 2,
+  INFO = 3,
+  ERROR = 4,
+};
+
+typedef void (*LogFunc)(int level, const char *msg);
+EXPORT const char *GetLogLevelText(int level);
+EXPORT void SetLogFunc(LogFunc f);
 
 typedef struct V8Engine {
   void *isolate;
   void *allocator;
 } Engine;
 
-void Initialize();
-void Dispose();
+EXPORT void Initialize(LogFunc logFunc);
+EXPORT void Dispose();
 
-Engine *CreateEngine();
-int RunScript(Engine *e, const char *data);
-void DeleteEngine(Engine *e);
+EXPORT Engine *CreateEngine();
+EXPORT int RunScript(Engine *e, const char *data);
+EXPORT void DeleteEngine(Engine *e);
 
-#ifdef _cplusplus
+#ifdef __cplusplus
 }
 #endif
 

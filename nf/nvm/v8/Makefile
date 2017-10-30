@@ -20,13 +20,22 @@ CC=clang
 CXX=clang++
 LD=clang++
 
-CFLAGS=-g
-CXXFLAGS=-g -std=c++11
+CFLAGS=-DBUILDING_DLL -g -fPIC -Wall -Wextra -Wno-unused-parameter -Wno-unused-result -O2
+CXXFLAGS=-DBUILDING_DLL -g -std=c++11 -fPIC -Wall -Wextra -Wno-unused-parameter -Wno-unused-result -O2
 
-LDFLAGS=
+LDFLAGS=-fvisibility=hidden
 LIBS=-lv8 -lv8_libbase -lv8_libplatform
 
-all: main
+LIB_LDFLAGS=-shared -current_version 1.0 -compatibility_version 1.0
+
+UNAME := $(shell uname)
+ifeq ($(UNAME),Darwin)
+	DYLIB := .dylib
+else
+	DYLIB := .so
+endif
+
+all: engine install
 
 %.c.o : %.c
 	$(CC) $(CFLAGS) -c $< -o $<.o
@@ -43,5 +52,13 @@ main: main.cc.o
 engine_test: engine.cc.o lib/execution_env.cc.o lib/log_callback.cc.o lib/require_callback.cc.o engine_test.cc.o
 	$(LD) $(LDFLAGS) $(LIBS) $^ -o $@
 
+engine: engine.cc.o lib/execution_env.cc.o lib/log_callback.cc.o lib/require_callback.cc.o
+	$(LD) $(LIB_LDFLAGS) $(LDFLAGS) $(LIBS) $^ -o libv8$@$(DYLIB)
+
+install:
+	mkdir -p ../libs/
+	install libv8engine$(DYLIB) ../libs/
+
 clean:
 	-find . -iname '*.o' -exec rm {} \;
+	-rm -f engine_test libv8engine.*;

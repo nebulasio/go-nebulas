@@ -22,7 +22,7 @@
 static LogFunc logFunc = NULL;
 static const char *LogLevelText[] = {"DEBUG", "WARN", "INFO", "ERROR"};
 
-const char *getLogLevelText(int level) {
+const char *GetLogLevelText(int level) {
   if (level > LogLevel::ERROR) {
     level = LogLevel::ERROR;
   } else if (level < LogLevel::DEBUG) {
@@ -32,7 +32,7 @@ const char *getLogLevelText(int level) {
   return LogLevelText[level - 1];
 };
 
-void setLogFunc(LogFunc f) { logFunc = f; }
+void SetLogFunc(LogFunc f) { logFunc = f; }
 
 void logCallback(const FunctionCallbackInfo<Value> &info) {
   Isolate *isolate = info.GetIsolate();

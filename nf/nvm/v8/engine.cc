@@ -32,7 +32,9 @@ using namespace v8;
 
 static Platform *platformPtr = NULL;
 
-void Initialize() {
+void Initialize(LogFunc logFunc) {
+  SetLogFunc(logFunc);
+
   platformPtr = platform::CreateDefaultPlatform();
 
   // Initialize V8.

@@ -18,43 +18,14 @@
 
 package nvm
 
-import (
-	"github.com/nebulasio/go-nebulas/core"
-	log "github.com/sirupsen/logrus"
-)
-
 /*
-#cgo CXXFLAGS: -std=c++11
-#include "engine.h"
+#include <stdio.h>
+
+void GoLogFunc(int level, const char *msg);
+
+// The gateway function
+void GoLogFunc_cgo(int level, const char *msg) {
+	GoLogFunc(level, msg);
+};
 */
 import "C"
-
-// Engine the engine of NVM, build on top of llvm with sandboxing.
-type Engine struct {
-	bc *core.BlockChain
-}
-
-// NewEngine return new engine instance.
-func NewEngine(bc *core.BlockChain) (*Engine, error) {
-	e := &Engine{
-		bc: bc,
-	}
-
-	C.Initialize()
-
-	return e, nil
-}
-
-//export LogError
-func LogError(msg *C.char) {
-	log.WithFields(log.Fields{
-		"func": "LogError",
-	}).Error(C.GoString(msg))
-}
-
-//export LogInfo
-func LogInfo(msg *C.char) {
-	log.WithFields(log.Fields{
-		"func": "LogInfo",
-	}).Info(C.GoString(msg))
-}

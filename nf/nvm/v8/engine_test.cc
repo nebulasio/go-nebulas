@@ -28,7 +28,7 @@ void logFunc(int level, const char *msg) {
   if (level >= LogLevel::ERROR) {
     f = stderr;
   }
-  fprintf(f, "[%s] %s\n", getLogLevelText(level), msg);
+  fprintf(f, "[%s] %s\n", GetLogLevelText(level), msg);
 }
 
 void help(const char *name) {
@@ -75,8 +75,8 @@ int main(int argc, const char *argv[]) {
   size_t size = 0;
   readSource(filename, &data, &size);
 
-  setLogFunc(logFunc);
-  Initialize();
+  // setLogFunc(logFunc);
+  Initialize(logFunc);
   Engine *e = CreateEngine();
 
   RunScript(e, data);

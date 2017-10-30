@@ -20,21 +20,10 @@
 #ifndef _NEBULAS_NF_NVM_V8_LIB_LOG_CALLBACK_H_
 #define _NEBULAS_NF_NVM_V8_LIB_LOG_CALLBACK_H_
 
+#include "../engine.h"
 #include <v8.h>
 
 using namespace v8;
-
-typedef void (*LogFunc)(int level, const char *msg);
-
-enum LogLevel {
-  DEBUG = 1,
-  WARN = 2,
-  INFO = 3,
-  ERROR = 4,
-};
-
-const char *getLogLevelText(int level);
-void setLogFunc(LogFunc f);
 
 void logCallback(const FunctionCallbackInfo<Value> &info);
 

@@ -87,7 +87,7 @@ static int readSource(const char *filename, char **data, size_t *size) {
 
   fclose(f);
 
-  int source_end_len = strlen(source_require_end);
+  size_t source_end_len = strlen(source_require_end);
   if (*size - idx < source_end_len) {
     *size = idx + source_end_len + 1;
     *data = (char *)realloc(*data, *size);
