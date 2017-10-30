@@ -250,6 +250,24 @@ func (bc *BlockChain) GetBlock(hash Hash) *Block {
 	return block
 }
 
+// GetTransaction return transaction of given hash from local storage.
+func (bc *BlockChain) GetTransaction(hash Hash) *Transaction {
+	// TODO: get transaction err handle.
+	v, err := bc.tailBlock.txsTrie.Get(hash)
+	if err != nil {
+		return nil
+	}
+	pbTx := new(corepb.Transaction)
+	if err = proto.Unmarshal(v, pbTx); err != nil {
+		return nil
+	}
+	tx := new(Transaction)
+	if err = tx.FromProto(pbTx); err != nil {
+		return nil
+	}
+	return tx
+}
+
 // Dump dump full chain.
 func (bc *BlockChain) Dump() string {
 	rl := make([]string, 1)

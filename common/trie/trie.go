@@ -121,10 +121,7 @@ func (t *Trie) commitNode(n *node) error {
 	pb, _ := n.ToProto()
 	n.Bytes, _ = proto.Marshal(pb)
 	n.Hash = hash.Sha3256(n.Bytes)
-	if err := t.storage.Put(n.Hash, n.Bytes); err != nil {
-		return err
-	}
-	return nil
+	return t.storage.Put(n.Hash, n.Bytes)
 }
 
 // NewTrie if rootHash is nil, create a new Trie, otherwise, build an existed trie

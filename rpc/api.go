@@ -19,8 +19,11 @@
 package rpc
 
 import (
+	"errors"
+
 	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/core"
+	"github.com/nebulasio/go-nebulas/core/pb"
 	"github.com/nebulasio/go-nebulas/rpc/pb"
 	"github.com/nebulasio/go-nebulas/util"
 	"golang.org/x/net/context"
@@ -95,22 +98,17 @@ func (s *APIService) SendTransaction(ctx context.Context, req *rpcpb.SendTransac
 	return &rpcpb.SendTransactionResponse{Hash: tx.Hash().String()}, nil
 }
 
-// SendRawTransaction transaction raw data submit handler
+// SendRawTransaction submit the signed transaction raw data to txpool
 func (s *APIService) SendRawTransaction(ctx context.Context, req *rpcpb.SendRawTransactionRequest) (*rpcpb.SendTransactionResponse, error) {
 	// Validate and sign the tx, then submit it to the tx pool.
 	neb := s.server.Neblet()
 
-	var pbMsg proto.Message
-	err := proto.UnmarshalMerge(req.GetData(), pbMsg)
-	if err != nil {
+	pbTx := new(corepb.Transaction)
+	if err := proto.Unmarshal(req.GetData(), pbTx); err != nil {
 		return nil, err
 	}
 	tx := new(core.Transaction)
-	err = tx.FromProto(pbMsg)
-	if err != nil {
-		return nil, err
-	}
-	if err := neb.AccountManager().SignTransaction(tx.From(), tx); err != nil {
+	if err := tx.FromProto(pbTx); err != nil {
 		return nil, err
 	}
 
@@ -119,4 +117,34 @@ func (s *APIService) SendRawTransaction(ctx context.Context, req *rpcpb.SendRawT
 	}
 
 	return &rpcpb.SendTransactionResponse{Hash: tx.Hash().String()}, nil
+}
+
+// GetBlockByHash get block info by the block hash
+func (s *APIService) GetBlockByHash(ctx context.Context, req *rpcpb.GetBlockByHashRequest) (*corepb.Block, error) {
+	neb := s.server.Neblet()
+
+	block := neb.BlockChain().GetBlock([]byte(req.GetHash()))
+	if block == nil {
+		return nil, errors.New("block not found")
+	}
+	pbBlock, err := block.ToProto()
+	if err != nil {
+		return nil, err
+	}
+	return pbBlock.(*corepb.Block), nil
+}
+
+// GetTransactionByHash get transaction info by the transaction hash
+func (s *APIService) GetTransactionByHash(ctx context.Context, req *rpcpb.GetTransactionByHashRequest) (*corepb.Transaction, error) {
+	neb := s.server.Neblet()
+
+	tx := neb.BlockChain().GetTransaction([]byte(req.GetHash()))
+	if tx == nil {
+		return nil, errors.New("transaction not found")
+	}
+	pbTx, err := tx.ToProto()
+	if err != nil {
+		return nil, err
+	}
+	return pbTx.(*corepb.Transaction), nil
 }

@@ -20,6 +20,7 @@ syntax = "proto3";
 
 // TODO: support restful endpoints.
 //import "google/api/annotations.proto";
+import "github.com/nebulasio/go-nebulas/core/pb/block.proto";
 
 package rpcpb;
 
@@ -49,6 +50,14 @@ service APIService {
 
 	// Submit the signed transaction.
 	rpc SendRawTransaction (SendRawTransactionRequest) returns (SendTransactionResponse) {
+	}
+
+	// Get block header info by the block hash
+	rpc GetBlockByHash (GetBlockByHashRequest) returns (corepb.Block) {
+	}
+
+	// Get transaction info by the tansaction hash
+	rpc GetTransactionByHash (GetTransactionByHashRequest) returns (corepb.Transaction) {
 	}
 }
 
@@ -112,15 +121,27 @@ message SendTransactionRequest {
 	// TODO: contract code bytes or hash.
 }
 
+// Request message of SendRawTransactionRequest rpc.
+message SendRawTransactionRequest {
+
+	// Signed data of transaction
+	bytes data = 1;
+}
+
 // Response message of SendTransaction rpc.
 message SendTransactionResponse {
 	// Hex string of transaction hash.
 	string hash = 1;
 }
 
-// Request message of SendRawTransactionRequest rpc.
-message SendRawTransactionRequest {
+// Request message of GetBlockByHash rpc.
+message GetBlockByHashRequest {
+	// Hex string of block hash.
+	string hash = 1;
+}
 
-	// Signed data of transaction
-	bytes data = 1;
+// Request message of GetTransactionByHash rpc.
+message GetTransactionByHashRequest {
+	// Hex string of transaction hash.
+	string hash = 1;
 }

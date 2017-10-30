@@ -21,7 +21,7 @@ GO = $(PB:.proto=.pb.go)
 all: $(GO)
 
 %.pb.go: %.proto
-	protoc --gogo_out=plugins=grpc:. $<
+	protoc --gogo_out=plugins=grpc:. --proto_path=../../../../../:. $<
 
 clean:
 	rm *.pb.go
