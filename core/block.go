@@ -350,8 +350,8 @@ func (block *Block) String() string {
 }
 
 // Verify return block verify result, including Hash, Nonce and StateRoot.
-func (block *Block) Verify() error {
-	if err := block.verifyHash(); err != nil {
+func (block *Block) Verify(chainID uint32) error {
+	if err := block.verifyHash(chainID); err != nil {
 		return err
 	}
 
@@ -375,7 +375,12 @@ func (block *Block) Verify() error {
 }
 
 // VerifyHash return hash verify result.
-func (block *Block) verifyHash() error {
+func (block *Block) verifyHash(chainID uint32) error {
+	// check ChainID.
+	if block.header.chainID != chainID {
+		return ErrInvalidChainID
+	}
+
 	// verify hash.
 	wantedHash := HashBlock(block)
 	if !wantedHash.Equals(block.Hash()) {
@@ -407,7 +412,7 @@ func (block *Block) verifyState() error {
 	return nil
 }
 
-// execute execute block and return result.
+// Execute block and return result.
 func (block *Block) Execute() error {
 	// execute transactions.
 	for _, tx := range block.transactions {

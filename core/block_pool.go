@@ -228,7 +228,7 @@ func (pool *BlockPool) push(block *Block) error {
 	}
 
 	// verify block hash & txs
-	if err := block.verifyHash(); err != nil {
+	if err := block.verifyHash(pool.bc.chainID); err != nil {
 		return err
 	}
 

@@ -147,6 +147,7 @@ func (tx *Transaction) Hash() Hash {
 	return tx.hash
 }
 
+// Execute transaction and return result.
 func (tx *Transaction) Execute(block *Block) error {
 	// check balance.
 	fromAcc := block.FindAccount(tx.from)
