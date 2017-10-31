@@ -198,7 +198,6 @@ func (node *Node) init() error {
 func (netService *NetService) SayHello(bootNode multiaddr.Multiaddr) error {
 	node := netService.node
 	bootAddr, bootID, err := parseAddressFromMultiaddr(bootNode)
-	log.Info("SayHello: bootNode addr -> ", bootAddr)
 	if err != nil {
 		log.Error("SayHello: parse Address from trustedNode failed", bootNode, err)
 		return err
@@ -221,6 +220,7 @@ func (netService *NetService) SayHello(bootNode multiaddr.Multiaddr) error {
 		}
 		if err != nil {
 			log.Error("SayHello: ping to seedNode failed", bootNode, err)
+			return err
 		}
 		log.Info("SayHello: node say hello to boot node success... ")
 		node.peerstore.AddAddr(
