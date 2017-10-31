@@ -31,7 +31,7 @@ import (
 
 // APIService implements the RPC API service interface.
 type APIService struct {
-	server *Server
+	server Server
 }
 
 // GetNebState is the RPC API handler.
@@ -45,6 +45,21 @@ func (s *APIService) GetNebState(ctx context.Context, req *rpcpb.GetNebStateRequ
 	resp.Tail = string(tail.Hash().Hex())
 	resp.Coinbase = tail.Coinbase().ToHex()
 
+	return resp, nil
+}
+
+// Accounts is the RPC API handler.
+func (s *APIService) Accounts(ctx context.Context, req *rpcpb.AccountsRequest) (*rpcpb.AccountsResponse, error) {
+	neb := s.server.Neblet()
+
+	accs := neb.AccountManager().Accounts()
+
+	resp := new(rpcpb.AccountsResponse)
+	addrs := make([]string, len(accs))
+	for index, addr := range accs {
+		addrs[index] = addr.ToHex()
+	}
+	resp.Addresses = addrs
 	return resp, nil
 }
 
@@ -72,22 +87,11 @@ func (s *APIService) SendTransaction(ctx context.Context, req *rpcpb.SendTransac
 	// Validate and sign the tx, then submit it to the tx pool.
 	neb := s.server.Neblet()
 
-	fromAddr, err := core.AddressParse(req.From)
+	tx, err := parseTransaction(neb, req.From, req.To, req.Value, req.Nonce, nil)
 	if err != nil {
 		return nil, err
 	}
-	toAddr, err := core.AddressParse(req.To)
-	if err != nil {
-		return nil, err
-	}
-
-	value, err := util.NewUint128FromFixedSizeByteSlice(req.Value)
-	if err != nil {
-		return nil, err
-	}
-
-	tx := core.NewTransaction(neb.BlockChain().ChainID(), fromAddr, toAddr, value, req.Nonce /*req.Data */, nil)
-	if err := neb.AccountManager().SignTransaction(fromAddr, tx); err != nil {
+	if err := neb.AccountManager().SignTransaction(tx.From(), tx); err != nil {
 		return nil, err
 	}
 
@@ -96,6 +100,25 @@ func (s *APIService) SendTransaction(ctx context.Context, req *rpcpb.SendTransac
 	}
 
 	return &rpcpb.SendTransactionResponse{Hash: tx.Hash().String()}, nil
+}
+
+func parseTransaction(neb Neblet, from, to string, v []byte, nonce uint64, data []byte) (*core.Transaction, error) {
+	fromAddr, err := core.AddressParse(from)
+	if err != nil {
+		return nil, err
+	}
+	toAddr, err := core.AddressParse(to)
+	if err != nil {
+		return nil, err
+	}
+
+	value, err := util.NewUint128FromFixedSizeByteSlice(v)
+	if err != nil {
+		return nil, err
+	}
+
+	tx := core.NewTransaction(neb.BlockChain().ChainID(), fromAddr, toAddr, value, nonce, nil)
+	return tx, nil
 }
 
 // SendRawTransaction submit the signed transaction raw data to txpool

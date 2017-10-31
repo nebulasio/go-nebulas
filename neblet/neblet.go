@@ -37,7 +37,9 @@ type Neblet struct {
 
 	snycManager *nsync.Manager
 
-	rpcServer *rpc.Server
+	apiServer rpc.Server
+
+	managementServer rpc.Server
 
 	lock sync.RWMutex
 
@@ -90,7 +92,8 @@ func (n *Neblet) Start() error {
 	// start sync service
 	n.snycManager = nsync.NewManager(n.blockChain, n.consensus, n.netService)
 
-	n.rpcServer = rpc.NewServer(n)
+	n.apiServer = rpc.NewAPIServer(n)
+	n.managementServer = rpc.NewManagementServer(n)
 
 	// start.
 	err = n.netService.Start()
@@ -101,7 +104,8 @@ func (n *Neblet) Start() error {
 	n.blockChain.TransactionPool().Start()
 	n.consensus.Start()
 	n.snycManager.Start()
-	go n.rpcServer.Start()
+	go n.apiServer.Start()
+	go n.managementServer.Start()
 
 	// TODO: error handling
 	return nil
@@ -129,9 +133,14 @@ func (n *Neblet) Stop() error {
 		n.netService = nil
 	}
 
-	if n.rpcServer != nil {
-		n.rpcServer.Stop()
-		n.rpcServer = nil
+	if n.apiServer != nil {
+		n.apiServer.Stop()
+		n.apiServer = nil
+	}
+
+	if n.managementServer != nil {
+		n.managementServer.Stop()
+		n.managementServer = nil
 	}
 
 	n.accountManager = nil

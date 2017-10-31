@@ -12,7 +12,8 @@ p2p {
 }
 
 rpc {
-  port: 51510
+  api_port: 51510
+  management_port: 52520
 }
 
 pow {

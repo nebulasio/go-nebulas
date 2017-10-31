@@ -261,3 +261,27 @@ func (m *Manager) SignTransaction(addr *core.Address, tx *core.Transaction) erro
 	signature.InitSign(key.(keystore.PrivateKey))
 	return tx.Sign(signature)
 }
+
+// SignTransactionWithPassphrase sign transaction with the from passphrase
+func (m *Manager) SignTransactionWithPassphrase(addr *core.Address, tx *core.Transaction, passphrase []byte) error {
+	// check sign addr is tx's from addr
+	if !tx.From().Equals(addr) {
+		return ErrTxSignFrom
+	}
+	key, err := m.ks.GetKey(addr.ToHex(), passphrase)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"func": "SignTransactionWithPassphrase",
+			"err":  ErrTxAddressLocked,
+			"tx":   tx,
+		}).Error("transaction address get failed")
+		return err
+	}
+
+	signature, err := crypto.NewSignature(m.signatureAlg)
+	if err != nil {
+		return err
+	}
+	signature.InitSign(key.(keystore.PrivateKey))
+	return tx.Sign(signature)
+}

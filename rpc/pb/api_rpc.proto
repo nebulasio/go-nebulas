@@ -33,6 +33,13 @@ service APIService {
 //		};
 	}
 
+	// Accounts return account list.
+	rpc Accounts (AccountsRequest) returns (AccountsResponse) {
+//		option (google.api.http) = {
+//			get: "/v1/account/state"
+//		};
+	}
+
 	// Return the state of the account.
 	rpc GetAccountState (GetAccountStateRequest) returns (GetAccountStateResponse) {
 //		option (google.api.http) = {
@@ -82,6 +89,16 @@ message GetNebStateResponse {
 
 	// Neb mine status, minging is true ,otherwise false
 	bool isMining = 5;
+}
+
+// Request message of Accounts rpc.
+message AccountsRequest {
+}
+
+// Response message of Accounts rpc.
+message AccountsResponse {
+	// Account list
+	repeated string addresses = 1;
 }
 
 // Request message of GetAccountState rpc.

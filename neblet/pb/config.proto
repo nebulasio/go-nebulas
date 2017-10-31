@@ -50,8 +50,11 @@ message P2PConfig {
 }
 
 message RPCConfig {
-	// RPC server listening port number.
-	uint32 port = 1;
+	// API RPC server listening port number.
+	uint32 api_port = 1;
+
+	// Management RPC server listening port number.
+	uint32 management_port = 2;
 }
 
 message PowConfig {
