@@ -1,0 +1,5 @@
+main
+engine_test
+*.o
+*.so
+*.dylib
