@@ -268,7 +268,7 @@ func (pool *BlockPool) push(block *Block) error {
 
 	// found in BlockChain, then we can verify the state root, and tell the Consensus all the tails.
 	// performance depth-first search to verify state root, and get all tails.
-	allBlocks, tailBlocks := lb.getTailsWithPath(parentBlock)
+	allBlocks, tailBlocks := lb.travelToLinkAndReturnAllValidBlocks(parentBlock)
 	err := bc.PutVerifiedNewBlocks(allBlocks, tailBlocks)
 	if err != nil {
 		return err
@@ -304,7 +304,7 @@ func (lb *linkedBlock) LinkParent(parentBlock *linkedBlock) {
 	parentBlock.childBlocks[lb.hash.Hex()] = lb
 }
 
-func (lb *linkedBlock) getTailsWithPath(parentBlock *Block) ([]*Block, []*Block) {
+func (lb *linkedBlock) travelToLinkAndReturnAllValidBlocks(parentBlock *Block) ([]*Block, []*Block) {
 	if lb.block.LinkParentBlock(parentBlock) == false {
 		log.WithFields(log.Fields{
 			"func":        "linkedBlock.dfs",
@@ -314,7 +314,17 @@ func (lb *linkedBlock) getTailsWithPath(parentBlock *Block) ([]*Block, []*Block)
 		panic("link parent block fail.")
 	}
 
-	if err := lb.block.verifyTransactions(); err != nil {
+	if err := lb.block.Execute(); err != nil {
+		log.WithFields(log.Fields{
+			"func":        "linkedBlock.dfs",
+			"err":         err,
+			"parentBlock": parentBlock,
+			"block":       lb.block,
+		}).Fatal("execute block fail.")
+		return nil, nil
+	}
+
+	if err := lb.block.verifyState(); err != nil {
 		log.WithFields(log.Fields{
 			"func":        "linkedBlock.dfs",
 			"err":         err,
@@ -332,7 +342,7 @@ func (lb *linkedBlock) getTailsWithPath(parentBlock *Block) ([]*Block, []*Block)
 	}
 
 	for _, clb := range lb.childBlocks {
-		a, b := clb.getTailsWithPath(lb.block)
+		a, b := clb.travelToLinkAndReturnAllValidBlocks(lb.block)
 		if a != nil && b != nil {
 			allBlocks = append(allBlocks, a...)
 			tailBlocks = append(tailBlocks, b...)

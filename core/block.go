@@ -355,11 +355,20 @@ func (block *Block) Verify() error {
 		return err
 	}
 
+	// begin state transaction.
 	block.begin()
-	if err := block.verifyTransactions(); err != nil {
+
+	if err := block.Execute(); err != nil {
 		block.rollback()
 		return err
 	}
+
+	if err := block.verifyState(); err != nil {
+		block.rollback()
+		return err
+	}
+
+	// commit.
 	block.commit()
 
 	return nil
@@ -373,23 +382,45 @@ func (block *Block) verifyHash() error {
 		return ErrInvalidBlockHash
 	}
 
+	// verify transactions, check ChainID, hash & sign
+	for _, tx := range block.transactions {
+		if err := tx.Verify(block.header.chainID); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
-// VerifyTransactions return hash verify result.
-func (block *Block) verifyTransactions() error {
-	if err := block.executeTransactions(); err != nil {
-		return err
-	}
-
-	block.rewardCoinbase()
-
+// verifyState return state verify result.
+func (block *Block) verifyState() error {
+	// verify state root.
 	if !byteutils.Equal(block.stateTrie.RootHash(), block.StateRoot()) {
 		return ErrInvalidBlockStateRoot
 	}
+
+	// verify transaction root.
 	if !byteutils.Equal(block.txsTrie.RootHash(), block.TxsRoot()) {
 		return ErrInvalidBlockTxsRoot
 	}
+
+	return nil
+}
+
+// execute execute block and return result.
+func (block *Block) Execute() error {
+	// execute transactions.
+	for _, tx := range block.transactions {
+		giveback, err := block.executeTransaction(tx)
+		if giveback {
+			block.txPool.Push(tx)
+		}
+		if err != nil {
+			return err
+		}
+	}
+
+	block.rewardCoinbase()
 
 	return nil
 }
@@ -409,19 +440,6 @@ func (block *Block) rewardCoinbase() {
 	coinbaseAcc := block.FindAccount(coinbaseAddr)
 	coinbaseAcc.AddBalance(BlockReward)
 	block.saveAccount(coinbaseAddr, coinbaseAcc)
-}
-
-func (block *Block) executeTransactions() error {
-	for _, tx := range block.transactions {
-		giveback, err := block.executeTransaction(tx)
-		if giveback {
-			block.txPool.Push(tx)
-		}
-		if err != nil {
-			return err
-		}
-	}
-	return nil
 }
 
 // FindAccount return account info in state Trie
@@ -481,16 +499,6 @@ func (block *Block) saveTransaction(tx *Transaction) {
 // 4. check nonce increase by 1
 // 5. check balance
 func (block *Block) executeTransaction(tx *Transaction) (giveback bool, err error) {
-	// check chainID
-	if tx.chainID != block.header.chainID {
-		return false, ErrInvalidChainID
-	}
-
-	// check hash & sign
-	if err := tx.Verify(); err != nil {
-		return false, err
-	}
-
 	// check duplication
 	if proof, _ := block.txsTrie.Prove(tx.hash); proof != nil {
 		return false, ErrDuplicatedTransaction
@@ -504,20 +512,10 @@ func (block *Block) executeTransaction(tx *Transaction) (giveback bool, err erro
 		return true, ErrLargeTransactionNonce
 	}
 
-	// check balance
-	toAcc := block.FindAccount(tx.to)
-	if fromAcc.UserBalance.Cmp(tx.value.Int) < 0 {
-		return false, ErrInsufficientBalance
+	// execute.
+	if err := tx.Execute(block); err != nil {
+		return false, err
 	}
-
-	// accept the transaction
-	fromAcc.SubBalance(tx.value)
-	toAcc.AddBalance(tx.value)
-	fromAcc.IncreNonce()
-
-	// save account info in state trie
-	block.saveAccount(tx.from, fromAcc)
-	block.saveAccount(tx.to, toAcc)
 
 	// save txs info in txs trie
 	block.saveTransaction(tx)

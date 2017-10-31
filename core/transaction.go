@@ -147,6 +147,29 @@ func (tx *Transaction) Hash() Hash {
 	return tx.hash
 }
 
+func (tx *Transaction) Execute(block *Block) error {
+	// check balance.
+	fromAcc := block.FindAccount(tx.from)
+	toAcc := block.FindAccount(tx.to)
+
+	if fromAcc.UserBalance.Cmp(tx.value.Int) < 0 {
+		return ErrInsufficientBalance
+	}
+
+	// accept the transaction
+	fromAcc.SubBalance(tx.value)
+	toAcc.AddBalance(tx.value)
+	fromAcc.IncreNonce()
+
+	// TODO: @robin execute smart contract.
+
+	// save account info in state trie
+	block.saveAccount(tx.from, fromAcc)
+	block.saveAccount(tx.to, toAcc)
+
+	return nil
+}
+
 // Sign sign transaction,sign algorithm is
 func (tx *Transaction) Sign(signature keystore.Signature) error {
 	hash, err := HashTransaction(tx)
@@ -164,7 +187,13 @@ func (tx *Transaction) Sign(signature keystore.Signature) error {
 }
 
 // Verify return transaction verify result, including Hash and Signature.
-func (tx *Transaction) Verify() error {
+func (tx *Transaction) Verify(chainID uint32) error {
+	// check ChainID.
+	if tx.chainID != chainID {
+		return ErrInvalidChainID
+	}
+
+	// check Hash.
 	wantedHash, err := HashTransaction(tx)
 	if err != nil {
 		return err
@@ -173,6 +202,7 @@ func (tx *Transaction) Verify() error {
 		return ErrInvalidTransactionHash
 	}
 
+	// check Signature.
 	signVerify, err := tx.verifySign()
 	if err != nil {
 		return err
@@ -180,6 +210,7 @@ func (tx *Transaction) Verify() error {
 	if !signVerify {
 		return ErrInvalidSignature
 	}
+
 	return nil
 }
 

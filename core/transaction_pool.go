@@ -165,14 +165,11 @@ func (pool *TransactionPool) PushAndBroadcast(tx *Transaction) error {
 }
 
 func (pool *TransactionPool) push(tx *Transaction) error {
-	// verify chainID
-	if tx.chainID != pool.bc.chainID {
-		return errors.New("cannot cache transactions in different chain")
-	}
 	// verify hash & sign of tx
-	if err := tx.Verify(); err != nil {
+	if err := tx.Verify(pool.bc.chainID); err != nil {
 		return err
 	}
+
 	// verify non-dup tx
 	if _, ok := pool.all[tx.hash.Hex()]; ok {
 		return errors.New("duplicate tx")
