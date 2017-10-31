@@ -18,6 +18,7 @@
 //
 #include "require_callback.h"
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <v8.h>
 

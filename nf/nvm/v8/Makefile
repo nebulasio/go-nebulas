@@ -15,7 +15,6 @@
 # You should have received a copy of the GNU General Public License
 # along with the go-nebulas library.  If not, see <http://www.gnu.org/licenses/>.
 #
-
 CC=clang
 CXX=clang++
 LD=clang++
@@ -26,13 +25,13 @@ CXXFLAGS=-DBUILDING_DLL -g -std=c++11 -fPIC -Wall -Wextra -Wno-unused-parameter 
 LDFLAGS=-fvisibility=hidden
 LIBS=-lv8 -lv8_libbase -lv8_libplatform
 
-LIB_LDFLAGS=-shared -current_version 1.0 -compatibility_version 1.0
+LIB_LDFLAGS=-shared
 
-UNAME := $(shell uname)
 ifeq ($(UNAME),Darwin)
-	DYLIB := .dylib
+	DYLIB=.dylib
+	LIB_LDFLAGS=$(LIB_LDFLAGS) -current_version 1.0 -compatibility_version 1.0
 else
-	DYLIB := .so
+	DYLIB=.so
 endif
 
 all: engine install

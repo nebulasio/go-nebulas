@@ -19,7 +19,7 @@
 #ifndef _NEBULAS_NF_V8_ARRAY_BUFFER_ALLOCATOR_H_
 #define _NEBULAS_NF_V8_ARRAY_BUFFER_ALLOCATOR_H_
 
-#include <stdio.h>
+#include <stdlib.h>
 #include <v8.h>
 
 class ArrayBufferAllocator : public v8::ArrayBuffer::Allocator {
