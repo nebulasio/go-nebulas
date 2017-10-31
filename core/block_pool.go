@@ -32,7 +32,7 @@ import (
 
 // Errors in block
 var (
-	ErrDuplicateBlock = errors.New("duplicate err")
+	ErrDuplicatedBlock = errors.New("duplicated block")
 )
 
 // BlockPool a pool of all received blocks from network.
@@ -178,7 +178,7 @@ func (pool *BlockPool) Push(block *Block) error {
 		return nil
 	}
 	pushErr := pool.push(block)
-	if pushErr != nil && pushErr != ErrDuplicateBlock {
+	if pushErr != nil && pushErr != ErrDuplicatedBlock {
 		return pushErr
 	}
 	return nil
@@ -219,7 +219,7 @@ func (pool *BlockPool) PushAndBroadcast(block *Block) error {
 func (pool *BlockPool) push(block *Block) error {
 	if pool.blockCache.Contains(block.Hash().Hex()) ||
 		pool.bc.GetBlock(block.Hash()) != nil {
-		return ErrDuplicateBlock
+		return ErrDuplicatedBlock
 	}
 
 	// verify nonce.

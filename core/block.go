@@ -48,6 +48,10 @@ var (
 	ErrInvalidBlockHash      = errors.New("invalid block hash")
 	ErrInvalidBlockStateRoot = errors.New("invalid block state root hash")
 	ErrInvalidBlockTxsRoot   = errors.New("invalid block txs root hash")
+	ErrInvalidChainID        = errors.New("invalid transaction chainID")
+	ErrDuplicatedTransaction = errors.New("duplicated transaction")
+	ErrSmallTransactionNonce = errors.New("cannot accept a transaction with smaller nonce")
+	ErrLargeTransactionNonce = errors.New("cannot accept a transaction with too bigger nonce")
 )
 
 // BlockHeader of a block
@@ -479,28 +483,33 @@ func (block *Block) saveTransaction(tx *Transaction) {
 func (block *Block) executeTransaction(tx *Transaction) (giveback bool, err error) {
 	// check chainID
 	if tx.chainID != block.header.chainID {
-		return false, errors.New("invalid transaction chainID")
+		return false, ErrInvalidChainID
 	}
+
 	// check hash & sign
 	if err := tx.Verify(); err != nil {
 		return false, err
 	}
+
 	// check duplication
 	if proof, _ := block.txsTrie.Prove(tx.hash); proof != nil {
-		return false, errors.New("cannot execute an existed transaction")
+		return false, ErrDuplicatedTransaction
 	}
+
 	// check nonce
 	fromAcc := block.FindAccount(tx.from)
 	if tx.nonce < fromAcc.UserNonce+1 {
-		return false, errors.New("cannot accept a transaction with smaller nonce")
+		return false, ErrSmallTransactionNonce
 	} else if tx.nonce > fromAcc.UserNonce+1 {
-		return true, errors.New("cannot accept a transaction with too bigger nonce")
+		return true, ErrLargeTransactionNonce
 	}
+
 	// check balance
 	toAcc := block.FindAccount(tx.to)
 	if fromAcc.UserBalance.Cmp(tx.value.Int) < 0 {
 		return false, ErrInsufficientBalance
 	}
+
 	// accept the transaction
 	fromAcc.SubBalance(tx.value)
 	toAcc.AddBalance(tx.value)
@@ -509,6 +518,7 @@ func (block *Block) executeTransaction(tx *Transaction) (giveback bool, err erro
 	// save account info in state trie
 	block.saveAccount(tx.from, fromAcc)
 	block.saveAccount(tx.to, toAcc)
+
 	// save txs info in txs trie
 	block.saveTransaction(tx)
 
