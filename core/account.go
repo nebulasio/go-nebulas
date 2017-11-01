@@ -31,33 +31,29 @@ import (
 
 // Account info in state Trie
 type Account struct {
-	IsContract bool
-
 	UserBalance       *util.Uint128
 	UserNonce         uint64
 	UserGlobalStorage *trie.BatchTrie
 
-	ContractOwner        *Address
-	ContractCode         []byte
-	ContractLocalStorage *trie.BatchTrie
+	ContractOwner           *Address
+	ContractTransactionHash []byte
+	ContractLocalStorage    *trie.BatchTrie
 
 	storage storage.Storage
 }
 
 // NewAccount create a new account
-func NewAccount(isContract bool, storage storage.Storage) *Account {
+func NewAccount(storage storage.Storage) *Account {
 	globalTrie, _ := trie.NewBatchTrie(nil, storage)
 	localTrie, _ := trie.NewBatchTrie(nil, storage)
 	return &Account{
-		IsContract: isContract,
-
 		UserBalance:       util.NewUint128(),
 		UserNonce:         0,
 		UserGlobalStorage: globalTrie,
 
-		ContractOwner:        &Address{address: []byte{}},
-		ContractCode:         []byte{},
-		ContractLocalStorage: localTrie,
+		ContractOwner:           &Address{address: []byte{}},
+		ContractTransactionHash: []byte{},
+		ContractLocalStorage:    localTrie,
 
 		storage: storage,
 	}
@@ -81,12 +77,9 @@ func (acc *Account) SubBalance(value *util.Uint128) {
 	acc.UserBalance.Sub(acc.UserBalance.Int, value.Int)
 }
 
-// SetContractCode in account
-func (acc *Account) SetContractCode(code []byte) {
-	if !acc.IsContract {
-		panic("cannot set contract code in user account")
-	}
-	acc.ContractCode = code
+// SetContractTransactionHash in account
+func (acc *Account) SetContractTransactionHash(code []byte) {
+	acc.ContractTransactionHash = code
 }
 
 // ToProto converts domain Account to proto Account
@@ -96,13 +89,12 @@ func (acc *Account) ToProto() (proto.Message, error) {
 		return nil, err
 	}
 	return &corepb.Account{
-		IsContract:           acc.IsContract,
-		UserBalance:          value,
-		UserNonce:            acc.UserNonce,
-		UserGlobalStorage:    acc.UserGlobalStorage.RootHash(),
-		ContractOwner:        acc.ContractOwner.address,
-		ContractCode:         acc.ContractCode,
-		ContractLocalStorage: acc.ContractLocalStorage.RootHash(),
+		UserBalance:             value,
+		UserNonce:               acc.UserNonce,
+		UserGlobalStorage:       acc.UserGlobalStorage.RootHash(),
+		ContractOwner:           acc.ContractOwner.address,
+		ContractTransactionHash: acc.ContractTransactionHash,
+		ContractLocalStorage:    acc.ContractLocalStorage.RootHash(),
 	}, nil
 }
 
@@ -113,7 +105,6 @@ func (acc *Account) FromProto(msg proto.Message) error {
 		if err != nil {
 			return err
 		}
-		acc.IsContract = msg.IsContract
 		acc.UserBalance = value
 		acc.UserNonce = msg.UserNonce
 		acc.UserGlobalStorage, err = trie.NewBatchTrie(msg.UserGlobalStorage, acc.storage)
@@ -121,7 +112,7 @@ func (acc *Account) FromProto(msg proto.Message) error {
 			return err
 		}
 		acc.ContractOwner = &Address{msg.ContractOwner}
-		acc.ContractCode = msg.ContractCode
+		acc.ContractTransactionHash = msg.ContractTransactionHash
 		acc.ContractLocalStorage, err = trie.NewBatchTrie(msg.ContractLocalStorage, acc.storage)
 		if err != nil {
 			return err

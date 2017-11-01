@@ -19,14 +19,12 @@ syntax = "proto3";
 package corepb;
 
 message Account {
-    bool is_contract = 1;
-
     bytes user_balance = 11;
     uint64 user_nonce = 12;
     bytes user_global_storage = 13;
 
     bytes contract_owner = 21;
-    bytes contract_code = 22;
+    bytes contract_transaction_hash = 22;
     bytes contract_local_storage = 23;    
 }
 

@@ -453,7 +453,7 @@ func (block *Block) FindAccount(address *Address) *Account {
 	accBytes, err := block.stateTrie.Get(address.address)
 	if err != nil {
 		// new account
-		return NewAccount(false, block.storage)
+		return NewAccount(block.storage)
 	}
 	acc := new(Account)
 	pbAcc := new(corepb.Account)
