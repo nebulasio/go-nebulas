@@ -24,6 +24,7 @@ Local<ObjectTemplate> NewStorageObjectTemplate(Isolate *isolate,
   EscapableHandleScope scope(isolate);
 
   Local<ObjectTemplate> obj = ObjectTemplate::New(isolate);
+  obj->SetInternalFieldCount(1);
 
   return scope.Escape(obj);
 }

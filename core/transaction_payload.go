@@ -48,23 +48,62 @@ type txPayload struct {
 }
 
 func (payload *txPayload) Execute(tx *Transaction, block *Block) error {
+	if payload.payloadType == TxPayloadBinaryType {
+		return nil
+	}
+
 	v8engineOnce.Do(func() {
 		nvm.InitV8Engine()
 	})
 
-	engine := nvm.NewV8Engine()
+	contractAddress := tx.TargetContractAddress(block)
+	contractAccount, created := block.FindOrCreateAccount(contractAddress)
+	if created == true {
+		contractAccount.SetContractTransactionHash(tx.Hash())
+	}
+
+	stateTrie := block.stateTrie
+	gcsTrie := block.FindAccount(contractAccount.ContractOwner).UserGlobalStorage
+	lcsTrie := contractAccount.ContractLocalStorage
+
+	// balance trie.
+	stateTrie.BeginBatch()
+	gcsTrie.BeginBatch()
+	lcsTrie.BeginBatch()
+
+	shouldCommit := true
+
+	defer (func() {
+		if shouldCommit {
+			stateTrie.Commit()
+			gcsTrie.Commit()
+			lcsTrie.Commit()
+		} else {
+			stateTrie.RollBack()
+			gcsTrie.RollBack()
+			lcsTrie.RollBack()
+		}
+	})()
+
+	engine := nvm.NewV8Engine(stateTrie, lcsTrie, gcsTrie)
 	defer engine.Delete()
 
+	var err error
 	switch payload.payloadType {
 	case TxPayloadBinaryType:
-		return nil
+		err = nil
 	case TxPayloadDeployType:
-		return engine.DeployAndInit(payload.source, payload.args)
+		err = engine.DeployAndInit(payload.source, payload.args)
 	case TxPayloadCallType:
-		return engine.Call(payload.function, payload.args)
+		err = engine.Call(contractAddress.ToHex(), payload.function, payload.args)
 	default:
-		return ErrInvalidTxPayloadType
+		err = ErrInvalidTxPayloadType
 	}
+
+	if err != nil {
+		shouldCommit = false
+	}
+	return err
 }
 
 func NewDeploySCPayload(source, args string) ([]byte, error) {
@@ -85,11 +124,24 @@ func NewCallSCPayload(function, args string) ([]byte, error) {
 	return json.Marshal(payload)
 }
 
-func ParseTxPayload(data []byte) (*txPayload, error) {
+func parseTxPayload(data []byte) (*txPayload, error) {
 	payload := &txPayload{}
 	if err := json.Unmarshal(data, &payload); err != nil {
 		payload.payloadType = TxPayloadBinaryType
 		payload.binaryData = data
 	}
 	return payload, nil
+}
+
+func isContractPayload(data []byte) (bool, *txPayload) {
+	if data == nil || len(data) == 0 {
+		return false, nil
+	}
+
+	txPayload, err := parseTxPayload(data)
+	if err != nil {
+		return false, nil
+	}
+
+	return true, txPayload
 }

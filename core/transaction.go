@@ -147,6 +147,22 @@ func (tx *Transaction) Hash() Hash {
 	return tx.hash
 }
 
+// TargetContractAddress return the target contract address.
+func (tx *Transaction) TargetContractAddress(block *Block) *Address {
+	isContractPayload, txPayload := isContractPayload(tx.data)
+	if isContractPayload == false {
+		return nil
+	}
+
+	// deploy contract has different contract address rules.
+	if txPayload.payloadType == TxPayloadDeployType {
+		return tx.generateContractAddress(block)
+	} else {
+		// tx.to is the contract address.
+		return tx.to
+	}
+}
+
 // Execute transaction and return result.
 func (tx *Transaction) Execute(block *Block) error {
 	// check balance.
@@ -164,7 +180,7 @@ func (tx *Transaction) Execute(block *Block) error {
 
 	// execute smart contract if needed.
 	if tx.DataLen() > 0 {
-		txPayload, err := ParseTxPayload(tx.data)
+		txPayload, err := parseTxPayload(tx.data)
 		if err != nil {
 			return err
 		}
@@ -246,6 +262,12 @@ func (tx *Transaction) verifySign() (bool, error) {
 		return false, errors.New("recover public key not related to from address")
 	}
 	return signature.Verify(tx.hash, tx.sign)
+}
+
+// generateContractAddress generate and return contract address according to tx & block.
+func (tx *Transaction) generateContractAddress(block *Block) *Address {
+	address, _ := NewContractAddressFromHash(hash.Sha3256(tx.hash, block.Hash()))
+	return address
 }
 
 // HashTransaction hash the transaction.

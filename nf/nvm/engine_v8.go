@@ -34,7 +34,10 @@ var (
 
 // V8Engine v8 engine.
 type V8Engine struct {
-	engine *C.V8Engine
+	engine                *C.V8Engine
+	balanceStorage        Storage
+	localContractStorage  Storage
+	globalContractStorage Storage
 }
 
 // InitV8Engine initialize the v8 engine.
@@ -48,9 +51,12 @@ func DisposeV8Engine() {
 }
 
 // NewV8Engine return new V8Engine instance.
-func NewV8Engine() *V8Engine {
+func NewV8Engine(balanceStorage, localContractStorage, globalContractStorage Storage) *V8Engine {
 	engine := &V8Engine{
-		engine: C.CreateEngine(),
+		engine:                C.CreateEngine(),
+		balanceStorage:        balanceStorage,
+		localContractStorage:  localContractStorage,
+		globalContractStorage: globalContractStorage,
 	}
 	return engine
 }
@@ -70,10 +76,11 @@ func (e *V8Engine) RunScriptSource(content string) error {
 	return nil
 }
 
-func (e *V8Engine) Call(function, args string) error {
+func (e *V8Engine) Call(contractAddress string, function, args string) error {
 	return nil
 }
 
 func (e *V8Engine) DeployAndInit(source, args string) error {
+
 	return nil
 }

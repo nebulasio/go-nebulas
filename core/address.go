@@ -112,6 +112,12 @@ func NewAddressFromPublicKey(s []byte) (*Address, error) {
 	return NewAddress(hash[len(hash)-AddressDataLength:])
 }
 
+// NewContractAddressFromHash return new contract address from bytes.
+func NewContractAddressFromHash(s []byte) (*Address, error) {
+	// TODO: contract address should not be the same with normal account address.
+	return NewAddress(s[len(s)-AddressDataLength:])
+}
+
 // AddressParse parse address string.
 func AddressParse(s string) (*Address, error) {
 	if strings.HasPrefix(s, "0x") {

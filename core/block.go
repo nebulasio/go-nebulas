@@ -450,10 +450,17 @@ func (block *Block) rewardCoinbase() {
 // FindAccount return account info in state Trie
 // if not found, return a new account
 func (block *Block) FindAccount(address *Address) *Account {
+	acc, _ := block.FindOrCreateAccount(address)
+	return acc
+}
+
+// FindAccount return account info in state Trie
+// if not found, create one and return it.
+func (block *Block) FindOrCreateAccount(address *Address) (account *Account, created bool) {
 	accBytes, err := block.stateTrie.Get(address.address)
 	if err != nil {
 		// new account
-		return NewAccount(block.storage)
+		return NewAccount(block.storage), true
 	}
 	acc := new(Account)
 	pbAcc := new(corepb.Account)
@@ -463,7 +470,7 @@ func (block *Block) FindAccount(address *Address) *Account {
 	if err := acc.FromProto(pbAcc); err != nil {
 		panic("invalid account:" + err.Error())
 	}
-	return acc
+	return acc, false
 }
 
 // saveAccount update account info in state Trie
