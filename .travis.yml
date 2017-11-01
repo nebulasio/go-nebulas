@@ -9,7 +9,7 @@ install:
 - dep ensure
 - mkdir -p /usr/local/opt/v8/lib/
 - cp nf/nvm/libs/* /usr/local/lib
-- cp /usr/local/opt/v8/lib/libv8.dylib /usr/local/opt/v8/lib/
+- cp nf/nvm/libs/libv8.dylib /usr/local/opt/v8/lib/
 script:
 - go test -v ./...
 notifications:
