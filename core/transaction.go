@@ -19,6 +19,7 @@
 package core
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
@@ -30,6 +31,7 @@ import (
 	"github.com/nebulasio/go-nebulas/crypto/keystore"
 	"github.com/nebulasio/go-nebulas/util"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
+	log "github.com/sirupsen/logrus"
 )
 
 var (
@@ -162,13 +164,35 @@ func (tx *Transaction) Execute(block *Block) error {
 	toAcc.AddBalance(tx.value)
 	fromAcc.IncreNonce()
 
-	// TODO: @robin execute smart contract.
+	// execute smart contract if needed.
+	if tx.DataLen() > 0 {
+		txDataPayload, err := tx.parseData()
+		if err != nil {
+			return err
+		}
+
+		if err := txDataPayload.Execute(tx); err != nil {
+			return err
+		}
+	}
 
 	// save account info in state trie
 	block.saveAccount(tx.from, fromAcc)
 	block.saveAccount(tx.to, toAcc)
 
 	return nil
+}
+
+func (tx *Transaction) parseData() (*txDataPayload, error) {
+	payload := &txDataPayload{}
+	if err := json.Unmarshal(tx.data, &payload); err != nil {
+		log.WithFields(log.Fields{
+			"func": "Transaction.parseData",
+			"err":  err,
+		}).Error("invalid transaction data.")
+		return nil, err
+	}
+	return payload, nil
 }
 
 // Sign sign transaction,sign algorithm is

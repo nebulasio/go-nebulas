@@ -69,3 +69,11 @@ func (e *V8Engine) RunScriptSource(content string) error {
 	}
 	return nil
 }
+
+func (e *V8Engine) Call(function, args string) error {
+	return nil
+}
+
+func (e *V8Engine) DeployAndInit(source, args string) error {
+	return nil
+}
