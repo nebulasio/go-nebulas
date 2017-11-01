@@ -22,6 +22,7 @@
 #include "lib/execution_env.h"
 #include "lib/log_callback.h"
 #include "lib/require_callback.h"
+#include "lib/storage_object.h"
 
 #include <libplatform/libplatform.h>
 #include <v8.h>
@@ -32,9 +33,7 @@ using namespace v8;
 
 static Platform *platformPtr = NULL;
 
-void Initialize(LogFunc logFunc) {
-  SetLogFunc(logFunc);
-
+void Initialize() {
   platformPtr = platform::CreateDefaultPlatform();
 
   // Initialize V8.
@@ -75,7 +74,8 @@ void DeleteEngine(V8Engine *e) {
   free(e);
 }
 
-int RunScriptSource(V8Engine *e, const char *data) {
+int RunScriptSource(V8Engine *e, const char *data, void *balanceHandler,
+                    void *lcsHandler, void *gcsHandler) {
   Isolate *isolate = static_cast<Isolate *>(e->isolate);
   assert(isolate);
 
@@ -83,17 +83,21 @@ int RunScriptSource(V8Engine *e, const char *data) {
   // Create a stack-allocated handle scope.
   HandleScope handle_scope(isolate);
 
-  // Create global objects.
-  Local<ObjectTemplate> global = ObjectTemplate::New(isolate);
-  global->Set(String::NewFromUtf8(isolate, "require"),
-              FunctionTemplate::New(isolate, requireCallback));
-  global->Set(String::NewFromUtf8(isolate, "_native_log"),
-              FunctionTemplate::New(isolate, logCallback));
+  // Create global object template.
+  Local<ObjectTemplate> globalTpl = ObjectTemplate::New(isolate);
+  globalTpl->Set(String::NewFromUtf8(isolate, "require"),
+                 FunctionTemplate::New(isolate, requireCallback));
+  globalTpl->Set(String::NewFromUtf8(isolate, "_native_log"),
+                 FunctionTemplate::New(isolate, logCallback));
+  NewStorageType(isolate, globalTpl);
 
   // Create a new context.
-  Local<Context> context = Context::New(isolate, NULL, global);
+  Local<Context> context = Context::New(isolate, NULL, globalTpl);
   // Enter the context for compiling and running the hello world script.
   Context::Scope context_scope(context);
+
+  // Continue put objects to global object.
+  NewStorageObject(isolate, context, balanceHandler, lcsHandler, gcsHandler);
 
   // Setup execution env.
   if (SetupExecutionEnv(isolate, context)) {

@@ -39,18 +39,28 @@ enum LogLevel {
 
 typedef void (*LogFunc)(int level, const char *msg);
 EXPORT const char *GetLogLevelText(int level);
-EXPORT void SetLogFunc(LogFunc f);
+EXPORT void InitializeLogger(LogFunc f);
+
+typedef char *(*StorageGetFunc)(void *handler, const char *key);
+typedef int (*StoragePutFunc)(void *handler, const char *key,
+                              const char *value);
+typedef int (*StorageDelFunc)(void *handler, const char *key);
+EXPORT void InitializeStorage(StorageGetFunc get, StoragePutFunc put,
+                              StorageDelFunc del);
 
 typedef struct V8Engine {
   void *isolate;
   void *allocator;
 } V8Engine;
 
-EXPORT void Initialize(LogFunc logFunc);
+EXPORT void Initialize();
 EXPORT void Dispose();
 
 EXPORT V8Engine *CreateEngine();
-EXPORT int RunScriptSource(V8Engine *e, const char *data);
+
+EXPORT int RunScriptSource(V8Engine *e, const char *data, void *balanceHandler,
+                           void *lcsHandler, void *gcsHandler);
+
 EXPORT void DeleteEngine(V8Engine *e);
 
 #ifdef __cplusplus

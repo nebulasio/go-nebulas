@@ -18,8 +18,29 @@
 
 package nvm
 
+import "C"
+
+import (
+	"unsafe"
+)
+
 type Storage interface {
 	Put(key []byte, val []byte) ([]byte, error)
 	Get(key []byte) ([]byte, error)
 	Del(key []byte) ([]byte, error)
+}
+
+//export StorageGetFunc
+func StorageGetFunc(handler unsafe.Pointer, key *C.char) *C.char {
+	return nil
+}
+
+//export StoragePutFunc
+func StoragePutFunc(handler unsafe.Pointer, key *C.char, value *C.char) int {
+	return 0
+}
+
+//export StorageDelFunc
+func StorageDelFunc(handler unsafe.Pointer, key *C.char) int {
+	return 0
 }

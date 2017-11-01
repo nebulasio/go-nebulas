@@ -18,10 +18,18 @@
 
 package nvm
 
-// #cgo CFLAGS:
-// #cgo LDFLAGS: -L${SRCDIR}/libs -lv8engine
-// #include "v8/engine.h"
-// void GoLogFunc_cgo(int level, const char *msg); // Forward declaration.
+/*
+#cgo CFLAGS:
+#cgo LDFLAGS: -L${SRCDIR}/libs -lv8engine
+
+#include "v8/engine.h"
+
+// Forward declaration.
+void GoLogFunc_cgo(int level, const char *msg);
+char *StorageGetFunc_cgo(void *handler, const char *key);
+int StoragePutFunc_cgo(void *handler, const char *key, const char *value);
+int StorageDelFunc_cgo(void *handler, const char *key);
+*/
 import "C"
 import (
 	"errors"
@@ -29,7 +37,7 @@ import (
 )
 
 var (
-	ErrFailed = errors.New("Failed.")
+	ErrExecutionFailed = errors.New("execute source failed")
 )
 
 // V8Engine v8 engine.
@@ -42,7 +50,9 @@ type V8Engine struct {
 
 // InitV8Engine initialize the v8 engine.
 func InitV8Engine() {
-	C.Initialize((C.LogFunc)(unsafe.Pointer(C.GoLogFunc_cgo)))
+	C.Initialize()
+	C.InitializeLogger((C.LogFunc)(unsafe.Pointer(C.GoLogFunc_cgo)))
+	C.InitializeStorage((C.StorageGetFunc)(unsafe.Pointer(C.StorageGetFunc_cgo)), (C.StoragePutFunc)(unsafe.Pointer(C.StoragePutFunc_cgo)), (C.StorageDelFunc)(unsafe.Pointer(C.StorageDelFunc_cgo)))
 }
 
 // DisposeV8Engine dispose the v8 engine.
@@ -69,9 +79,9 @@ func (e *V8Engine) Delete() {
 
 // RunScript
 func (e *V8Engine) RunScriptSource(content string) error {
-	ret := C.RunScriptSource(e.engine, C.CString(content))
+	ret := C.RunScriptSource(e.engine, C.CString(content), unsafe.Pointer(&e.balanceStorage), unsafe.Pointer(&e.localContractStorage), unsafe.Pointer(&e.globalContractStorage))
 	if ret != 0 {
-		return ErrFailed
+		return ErrExecutionFailed
 	}
 	return nil
 }

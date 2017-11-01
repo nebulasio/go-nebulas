@@ -31,6 +31,20 @@ void logFunc(int level, const char *msg) {
   fprintf(f, "[%s] %s\n", GetLogLevelText(level), msg);
 }
 
+char *StorageGet(void *handler, const char *key) {
+  fprintf(stdout, "GET: %s\n", key);
+  return "welcome to nebulas.";
+}
+
+int StoragePut(void *handler, const char *key, const char *value) {
+  fprintf(stdout, "PUT: %s -> %s\n", key, value);
+  return 0;
+}
+int StorageDel(void *handler, const char *key) {
+  fprintf(stdout, "DEL: %s\n", key);
+  return 0;
+}
+
 void help(const char *name) {
   printf("%s [Javascript File] [Args...]\n", name);
   exit(1);
@@ -76,10 +90,13 @@ int main(int argc, const char *argv[]) {
   readSource(filename, &data, &size);
 
   // setLogFunc(logFunc);
-  Initialize(logFunc);
+  Initialize();
+  InitializeLogger(logFunc);
+  InitializeStorage(StorageGet, StoragePut, StorageDel);
+
   V8Engine *e = CreateEngine();
 
-  RunScriptSource(e, data);
+  RunScriptSource(e, data, NULL, NULL, NULL);
 
   DeleteEngine(e);
   Dispose();

@@ -19,13 +19,23 @@
 package nvm
 
 /*
-#include <stdio.h>
-
 void GoLogFunc(int level, const char *msg);
+char *StorageGetFunc(void *handler, const char *key);
+int StoragePutFunc(void *handler, const char *key, const char *value);
+int StorageDelFunc(void *handler, const char *key);
 
 // The gateway function
 void GoLogFunc_cgo(int level, const char *msg) {
 	GoLogFunc(level, msg);
+};
+char *StorageGetFunc_cgo(void *handler, const char *key) {
+	return StorageGetFunc(handler, key);
+};
+int StoragePutFunc_cgo(void *handler, const char *key, const char *value) {
+	return StoragePutFunc(handler, key, value);
+};
+int StorageDelFunc_cgo(void *handler, const char *key) {
+	return StorageDelFunc(handler, key);
 };
 */
 import "C"

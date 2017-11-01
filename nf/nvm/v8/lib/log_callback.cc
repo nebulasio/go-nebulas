@@ -19,7 +19,7 @@
 
 #include "log_callback.h"
 
-static LogFunc logFunc = NULL;
+static LogFunc LOG = NULL;
 static const char *LogLevelText[] = {"DEBUG", "WARN", "INFO", "ERROR"};
 
 const char *GetLogLevelText(int level) {
@@ -32,7 +32,7 @@ const char *GetLogLevelText(int level) {
   return LogLevelText[level - 1];
 };
 
-void SetLogFunc(LogFunc f) { logFunc = f; }
+void InitializeLogger(LogFunc log) { LOG = log; }
 
 void logCallback(const FunctionCallbackInfo<Value> &info) {
   Isolate *isolate = info.GetIsolate();
@@ -55,10 +55,10 @@ void logCallback(const FunctionCallbackInfo<Value> &info) {
     return;
   }
 
-  if (logFunc == NULL) {
+  if (LOG == NULL) {
     return;
   }
 
   String::Utf8Value m(msg);
-  logFunc((level->ToInt32())->Int32Value(), *m);
+  LOG((level->ToInt32())->Int32Value(), *m);
 }
