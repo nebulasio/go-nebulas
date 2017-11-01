@@ -48,6 +48,10 @@ func (s *APIServer) Start() error {
 		log.Error("RPC server failed to serve: ", err)
 		return err
 	}
+	if err = Run(); err != nil {
+		log.Error("RPC gateway server failed to run: ", err)
+		return err
+	}
 	return nil
 }
 
