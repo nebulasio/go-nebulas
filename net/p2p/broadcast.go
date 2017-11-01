@@ -39,7 +39,7 @@ func (ns *NetService) Broadcast(name string, msg net.Serializable) {
 	ns.distribute(name, msg, false)
 }
 
-// Relay message
+// Relay relay message
 func (ns *NetService) Relay(name string, msg net.Serializable) {
 	node := ns.node
 	if !node.synchronized {
@@ -82,6 +82,15 @@ func (ns *NetService) distribute(name string, msg net.Serializable, relay bool) 
 		"transfer": transfer,
 	}).Info("distribute: start distribute msg.")
 
+	ns.doMsgTransfer(transfer, relayness, dataChecksum, name, data)
+
+	if relay {
+		ns.doRelay(allNode, relayness, dataChecksum)
+	}
+}
+
+func (ns *NetService) doMsgTransfer(transfer []peer.ID, relayness []peer.ID, dataChecksum uint32, name string, data []byte) {
+	node := ns.node
 	for i := 0; i < len(transfer); i++ {
 		nodeID := transfer[i]
 		if inArray(nodeID, relayness) {
@@ -103,28 +112,29 @@ func (ns *NetService) distribute(name string, msg net.Serializable, relay bool) 
 			go ns.SendMsg(name, data, key)
 		}
 	}
+}
 
-	if relay {
-		for i := 0; i < len(allNode); i++ {
-			nodeID := allNode[i]
-			if inArray(nodeID, relayness) {
-				log.Warnf("distribute: relay nodeID %s has already have the same message", nodeID)
+func (ns *NetService) doRelay(nodes []peer.ID, relayness []peer.ID, dataChecksum uint32) {
+	node := ns.node
+	for i := 0; i < len(nodes); i++ {
+		nodeID := nodes[i]
+		if inArray(nodeID, relayness) {
+			log.Warnf("distribute: relay nodeID %s has already have the same message", nodeID)
+			continue
+		}
+		addrs := node.peerstore.PeerInfo(nodeID).Addrs
+		if len(addrs) == 0 || node.host.Addrs()[0].String() == addrs[0].String() {
+			log.Warn("distribute: relay skip self")
+			continue
+		}
+		if len(addrs) > 0 {
+			key, err := GenerateKey(addrs[0], nodeID)
+			if err != nil {
+				log.Warn("distribute: relay  the addrs format is incorrect")
 				continue
 			}
-			addrs := node.peerstore.PeerInfo(nodeID).Addrs
-			if len(addrs) == 0 || node.host.Addrs()[0].String() == addrs[0].String() {
-				log.Warn("distribute: relay skip self")
-				continue
-			}
-			if len(addrs) > 0 {
-				key, err := GenerateKey(addrs[0], nodeID)
-				if err != nil {
-					log.Warn("distribute: relay  the addrs format is incorrect")
-					continue
-				}
-				node.relayness.Add(dataChecksum, append(relayness, nodeID))
-				go ns.SendMsg(NewHashMsg, byteutils.FromUint32(dataChecksum), key)
-			}
+			node.relayness.Add(dataChecksum, append(relayness, nodeID))
+			go ns.SendMsg(NewHashMsg, byteutils.FromUint32(dataChecksum), key)
 		}
 	}
 }
