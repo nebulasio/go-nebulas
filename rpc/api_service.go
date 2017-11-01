@@ -23,7 +23,7 @@ import (
 
 	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/core"
-	"github.com/nebulasio/go-nebulas/core/pb"
+	corepb "github.com/nebulasio/go-nebulas/core/pb"
 	"github.com/nebulasio/go-nebulas/rpc/pb"
 	"github.com/nebulasio/go-nebulas/util"
 	"golang.org/x/net/context"
@@ -170,4 +170,22 @@ func (s *APIService) GetTransactionByHash(ctx context.Context, req *rpcpb.GetTra
 		return nil, err
 	}
 	return pbTx.(*corepb.Transaction), nil
+}
+
+// NewDeploySCPayload new deploySCPayload
+func (s *APIService) NewDeploySCPayload(ctx context.Context, req *rpcpb.NewDeploySCPayloadRequest) (*rpcpb.NewDeploySCPayloadResponse, error) {
+	data, err := core.NewDeploySCPayload(req.Source, req.Args)
+	if err != nil {
+		return nil, err
+	}
+	return &rpcpb.NewDeploySCPayloadResponse{Data: data}, nil
+}
+
+// NewCallSCPayload new callSCPayload
+func (s *APIService) NewCallSCPayload(ctx context.Context, req *rpcpb.NewCallSCPayloadRequest) (*rpcpb.NewCallSCPayloadResponse, error) {
+	data, err := core.NewCallSCPayload(req.Function, req.Args)
+	if err != nil {
+		return nil, err
+	}
+	return &rpcpb.NewCallSCPayloadResponse{Data: data}, nil
 }
