@@ -2,7 +2,7 @@ language: go
 go:
 - 1.9
 os:
-- linux
+- osx
 before_install:
 - go get github.com/golang/dep/cmd/dep
 install:
