@@ -28,16 +28,31 @@ LINT_REPORT=lint.report
 TEST_REPORT=test.report
 TEST_XUNIT_REPORT=test.report.xml
 
+ifeq ($(shell uname -s),Darwin)
+	DYLIB=.dylib
+	LIBV8=/usr/local/opt/v8/lib/libv8.dylib
+	LIBV8ENGINE=/usr/local/lib/libv8engine.dylib
+else
+	DYLIB=.so
+	LIBV8=/usr/local/lib/libv8.so
+	LIBV8ENGINE=/usr/local/lib/libv8engine.so
+endif
+
 # Setup the -ldflags option for go build here, interpolate the variable values
 LDFLAGS = -ldflags "-X main.version=${VERSION} -X main.commit=${COMMIT} -X main.branch=${BRANCH} -X main.compileAt=`date +%s`"
 
 # Build the project
-.PHONY: build build-linux clean dep lint run test
+.PHONY: build build-linux clean dep lint run test vet link-libs
 
 all: clean vet fmt lint build test
 
 dep:
 	dep ensure -v
+
+deploy-libs:
+	-mkdir -p /usr/local/opt/v8/lib/
+	-test -f $(LIBV8) || cp nf/nvm/libs/libv8$(DYLIB) $(LIBV8)
+	-test -f $(LIBV8ENGINE) || cp nf/nvm/libs/libv8engine$(DYLIB) $(LIBV8ENGINE)
 
 build:
 	cd cmd/neb; go build ${LDFLAGS} -o ../../${BINARY}

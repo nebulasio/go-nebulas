@@ -27,9 +27,9 @@ LIBS=-lv8 -lv8_libbase -lv8_libplatform
 
 LIB_LDFLAGS=-shared
 
-ifeq ($(UNAME),Darwin)
+ifeq ($(shell uname -s),Darwin)
 	DYLIB=.dylib
-	LIB_LDFLAGS=$(LIB_LDFLAGS) -current_version 1.0 -compatibility_version 1.0
+	LIB_LDFLAGS+=-current_version 1.0 -compatibility_version 1.0
 else
 	DYLIB=.so
 endif
