@@ -86,7 +86,7 @@ func (payload *txPayload) Execute(tx *Transaction, block *Block) error {
 	})()
 
 	engine := nvm.NewV8Engine(stateTrie, lcsTrie, gcsTrie)
-	defer engine.Delete()
+	defer engine.Dispose()
 
 	var err error
 	switch payload.payloadType {

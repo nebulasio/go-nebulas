@@ -33,6 +33,7 @@ int StorageDelFunc_cgo(void *handler, const char *key);
 import "C"
 import (
 	"errors"
+	"sync"
 	"unsafe"
 )
 
@@ -40,9 +41,11 @@ var (
 	ErrExecutionFailed = errors.New("execute source failed")
 )
 
+var v8engineOnce sync.Once
+var v8engine *C.V8Engine
+
 // V8Engine v8 engine.
 type V8Engine struct {
-	engine                *C.V8Engine
 	balanceStorage        Storage
 	localContractStorage  Storage
 	globalContractStorage Storage
@@ -62,8 +65,11 @@ func DisposeV8Engine() {
 
 // NewV8Engine return new V8Engine instance.
 func NewV8Engine(balanceStorage, localContractStorage, globalContractStorage Storage) *V8Engine {
+	v8engineOnce.Do(func() {
+		v8engine = C.CreateEngine()
+	})
+
 	engine := &V8Engine{
-		engine:                C.CreateEngine(),
 		balanceStorage:        balanceStorage,
 		localContractStorage:  localContractStorage,
 		globalContractStorage: globalContractStorage,
@@ -71,15 +77,13 @@ func NewV8Engine(balanceStorage, localContractStorage, globalContractStorage Sto
 	return engine
 }
 
-// Delete delete engine.
-func (e *V8Engine) Delete() {
-	C.DeleteEngine(e.engine)
-	e.engine = nil
+// Dispose dispose all resources.
+func (e *V8Engine) Dispose() {
 }
 
 // RunScript
 func (e *V8Engine) RunScriptSource(content string) error {
-	ret := C.RunScriptSource(e.engine, C.CString(content), unsafe.Pointer(&e.balanceStorage), unsafe.Pointer(&e.localContractStorage), unsafe.Pointer(&e.globalContractStorage))
+	ret := C.RunScriptSource(v8engine, C.CString(content), unsafe.Pointer(&e.balanceStorage), unsafe.Pointer(&e.localContractStorage), unsafe.Pointer(&e.globalContractStorage))
 	if ret != 0 {
 		return ErrExecutionFailed
 	}
