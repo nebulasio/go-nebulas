@@ -81,7 +81,12 @@ void StorageGetCallback(const FunctionCallbackInfo<Value> &info) {
 
   // TODO: in C function, it's not a good idea to return a char*.
   char *value = GET(handler->Value(), *String::Utf8Value(key->ToString()));
-  info.GetReturnValue().Set(String::NewFromUtf8(isolate, value));
+  if (value == NULL) {
+    info.GetReturnValue().SetNull();
+  } else {
+    info.GetReturnValue().Set(String::NewFromUtf8(isolate, value));
+    free(value);
+  }
 }
 
 void StoragePutCallback(const FunctionCallbackInfo<Value> &info) {

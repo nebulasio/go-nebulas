@@ -22,9 +22,9 @@
 
 int SetupExecutionEnv(Isolate *isolate, Local<Context> &context) {
   char data[] = "const console = require('console.js');"
-                "const SStorage = require('storage.js');"
-                "const LCS = SStorage.LocalContractStorage;"
-                "const GCS = SStorage.GlobalContractStorage;";
+                "const ContractStorage = require('storage.js');"
+                "const LocalConstractStorage = ContractStorage.lcs;"
+                "const GlobalContractStorage = ContractStorage.gcs;";
 
   Local<String> source =
       String::NewFromUtf8(isolate, data, NewStringType::kNormal)

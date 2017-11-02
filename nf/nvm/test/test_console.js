@@ -15,42 +15,25 @@
 // You should have received a copy of the GNU General Public License
 // along with the go-nebulas library.  If not, see <http://www.gnu.org/licenses/>.
 //
-
 'use strict';
-
-function Console() {}
-
-function log(...args) {
-    var level = args.shift();
-    if (typeof (level) != 'number') {
-        throw 'level must be number.';
-    }
-
-    var msg = '';
-    for (var i = 0; i < args.length - 1; i++) {
-        msg += format(args[i]) + ' ';
-    }
-    msg += format(args[args.length - 1]);
-
-    _native_log(level, msg);
+if (typeof console === 'undefined') {
+    throw new Error("console is undefined.");
 }
 
-function format(obj) {
-    if (typeof (obj) == 'object') {
-        return JSON.stringify(obj);
-    }
-    return obj;
+if (typeof console !== 'object') {
+    throw new Error("console is not an object.");
 }
 
-[
-    ['debug', 1],
-    ['warn', 2],
-    ['info', 3],
-    ['log', 3],
-    ['error', 4]
-].forEach(function (val) {
-    Console.prototype[val[0]] = log.bind(null, val[1]);
+['debug', 'warn', 'info', 'log', 'error'].forEach(function (val) {
+    if (typeof console[val] !== 'function') {
+        throw new Error("console." + val + " is not a function.");
+    }
+
+    var f = console[val];
+    f("output:", "string", 123, {
+        x: 4,
+        y: 5
+    }, [6, 7, 8, {
+        z: 9
+    }], console, f);
 });
-
-module.exports = new Console();
-module.exports.Console = Console;

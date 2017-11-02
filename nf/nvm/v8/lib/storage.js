@@ -16,67 +16,26 @@
 // along with the go-nebulas library.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-//TODO: @robin using blockchain api instead the javascript map.
 'use strict';
 
-var localContractStorage = function () {
-    this._map = new Map();
+var ContractStorage = function (handler) {
+    this.storage = new Storage(handler);
 };
 
-
-var globalContractStorage = function () {
-    this._map = new Map();
-};
-
-localContractStorage.prototype = {
-    clear: function () {
-        this._map.clear();
-    },
+ContractStorage.prototype = {
     delete: function (key) {
-        return this._map.delete(key);
-    },
-    forEach: function (callbackFn, thisArg) {
-        return this._map.forEach(callbackFn, thisArg);
+        return this.storage.del(key)
     },
     get: function (key) {
-        return this._map.get(key);
-    },
-    has: function (key) {
-        return this._map.has(key);
+        return this.storage.get(key);
     },
     set: function (key, value) {
-        return this._map.set(key, value);
-    },
-    size: function () {
-        return this._map.size();
-    }
-};
-
-globalContractStorage.prototype = {
-    clear: function () {
-        this._map.clear();
-    },
-    delete: function (key) {
-        return this._map.delete(key);
-    },
-    forEach: function (callbackFn, thisArg) {
-        return this._map.forEach(callbackFn, thisArg);
-    },
-    get: function (key) {
-        return this._map.get(key);
-    },
-    has: function (key) {
-        return this._map.has(key);
-    },
-    set: function (key, value) {
-        return this._map.set(key, value);
-    },
-    size: function () {
-        return this._map.size();
+        return this.storage.set(key, value);
     }
 };
 
 module.exports = {
-    LocalContractStorage: localContractStorage,
-    GlobalContractStorage: globalContractStorage
+    ContractStorage: ContractStorage,
+    lcs: new ContractStorage(_storage_handlers.lcs),
+    gcs: new ContractStorage(_storage_handlers.gcs)
 };

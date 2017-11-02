@@ -19,6 +19,7 @@
 package nvm
 
 /*
+#include <stdlib.h>
 #cgo CFLAGS:
 #cgo LDFLAGS: -L${SRCDIR}/native-lib -lv8engine
 
@@ -35,17 +36,18 @@ import (
 	"errors"
 	"sync"
 	"unsafe"
+
+	log "github.com/sirupsen/logrus"
 )
 
 var (
 	ErrExecutionFailed = errors.New("execute source failed")
 	v8engineOnce       = sync.Once{}
-	storages           = make(map[uint64]Storage, 256)
+	storages           = make(map[uint64]*V8Engine, 256)
 	storagesIdx        = uint64(0)
 	storagesLock       = sync.RWMutex{}
+	v8engine           *C.V8Engine
 )
-
-var v8engine *C.V8Engine
 
 // V8Engine v8 engine.
 type V8Engine struct {
@@ -75,22 +77,23 @@ func NewV8Engine(balanceStorage, localContractStorage, globalContractStorage Sto
 		v8engine = C.CreateEngine()
 	})
 
-	storagesLock.Lock()
-	storagesIdx++
-	lcsHandler := storagesIdx
-	storagesIdx++
-	gcsHandler := storagesIdx
-	storages[lcsHandler] = localContractStorage
-	storages[gcsHandler] = globalContractStorage
-	storagesLock.Unlock()
-
 	engine := &V8Engine{
 		balanceStorage:        balanceStorage,
 		localContractStorage:  localContractStorage,
 		globalContractStorage: globalContractStorage,
-		lcsHandler:            lcsHandler,
-		gcsHandler:            gcsHandler,
 	}
+
+	storagesLock.Lock()
+	defer storagesLock.Unlock()
+
+	storagesIdx++
+	engine.lcsHandler = storagesIdx
+	storagesIdx++
+	engine.gcsHandler = storagesIdx
+
+	storages[engine.lcsHandler] = engine
+	storages[engine.gcsHandler] = engine
+
 	return engine
 }
 
@@ -104,7 +107,10 @@ func (e *V8Engine) Dispose() {
 
 // RunScriptSource
 func (e *V8Engine) RunScriptSource(content string) error {
-	ret := C.RunScriptSource2(v8engine, C.CString(content), C.uintptr_t(e.lcsHandler),
+	data := C.CString(content)
+	defer C.free(unsafe.Pointer(data))
+
+	ret := C.RunScriptSource2(v8engine, data, C.uintptr_t(e.lcsHandler),
 		C.uintptr_t(e.gcsHandler))
 
 	if ret != 0 {
@@ -122,4 +128,32 @@ func (e *V8Engine) Call(contractAddress string, function, args string) error {
 func (e *V8Engine) DeployAndInit(source, args string) error {
 
 	return nil
+}
+
+func getEngineAndStorage(handler uint64) (*V8Engine, Storage) {
+	storagesLock.RLock()
+	defer storagesLock.RUnlock()
+
+	engine := storages[handler]
+	if engine == nil {
+		log.WithFields(log.Fields{
+			"func":          "nvm.getEngineAndStorage",
+			"wantedHandler": handler,
+		}).Error("wantedHandler is not found.")
+		return nil, nil
+	}
+
+	if engine.lcsHandler == handler {
+		return engine, engine.localContractStorage
+	} else if engine.gcsHandler == handler {
+		return engine, engine.globalContractStorage
+	} else {
+		log.WithFields(log.Fields{
+			"func":          "nvm.getEngineAndStorage",
+			"lcsHandler":    engine.lcsHandler,
+			"gcsHandler":    engine.gcsHandler,
+			"wantedHandler": handler,
+		}).Error("in-consistent storage handler.")
+		return nil, nil
+	}
 }

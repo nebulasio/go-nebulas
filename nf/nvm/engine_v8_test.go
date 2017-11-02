@@ -19,6 +19,7 @@
 package nvm
 
 import (
+	"io/ioutil"
 	"testing"
 
 	"github.com/nebulasio/go-nebulas/common/trie"
@@ -27,27 +28,29 @@ import (
 )
 
 func TestRunScriptSource(t *testing.T) {
-	mem, _ := storage.NewMemoryStorage()
-	balanceTrie, _ := trie.NewBatchTrie(nil, mem)
-	lcsTrie, _ := trie.NewBatchTrie(nil, mem)
-	gcsTrie, _ := trie.NewBatchTrie(nil, mem)
+	tests := []struct {
+		filepath string
+	}{
+		{"test/test_console.js"},
+		{"test/test_storage_handlers.js"},
+		{"test/test_storage_class.js"},
+	}
 
-	engine := NewV8Engine(balanceTrie, lcsTrie, gcsTrie)
-	defer engine.Dispose()
+	for _, tt := range tests {
+		t.Run(tt.filepath, func(t *testing.T) {
+			data, err := ioutil.ReadFile(tt.filepath)
+			assert.Nil(t, err, "filepath read error")
 
-	err := engine.RunScriptSource("console.log('wow.');")
-	assert.Nil(t, err)
-}
+			mem, _ := storage.NewMemoryStorage()
+			balanceTrie, _ := trie.NewBatchTrie(nil, mem)
+			lcsTrie, _ := trie.NewBatchTrie(nil, mem)
+			gcsTrie, _ := trie.NewBatchTrie(nil, mem)
 
-func TestRunScriptSource1(t *testing.T) {
-	mem, _ := storage.NewMemoryStorage()
-	balanceTrie, _ := trie.NewBatchTrie(nil, mem)
-	lcsTrie, _ := trie.NewBatchTrie(nil, mem)
-	gcsTrie, _ := trie.NewBatchTrie(nil, mem)
+			engine := NewV8Engine(balanceTrie, lcsTrie, gcsTrie)
+			err = engine.RunScriptSource(string(data))
+			engine.Dispose()
 
-	engine := NewV8Engine(balanceTrie, lcsTrie, gcsTrie)
-	defer engine.Dispose()
-
-	err := engine.RunScriptSource("console.log('wow.');")
-	assert.Nil(t, err)
+			assert.Nil(t, err)
+		})
+	}
 }

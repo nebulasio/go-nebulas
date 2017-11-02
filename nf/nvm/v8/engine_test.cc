@@ -46,7 +46,12 @@ char *StorageGet(void *handler, const char *key) {
     exit(1);
   }
 
-  return "welcome to nebulas.";
+  char *msg = "welcome to nebulas.";
+
+  char *ret = (char *)malloc(strlen(msg) + 1);
+  strcpy(ret, msg);
+
+  return ret;
 }
 
 int StoragePut(void *handler, const char *key, const char *value) {

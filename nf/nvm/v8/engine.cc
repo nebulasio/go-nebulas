@@ -133,8 +133,8 @@ int RunScriptSource(V8Engine *e, const char *data, void *lcsHandler,
     return 1;
   }
 
-  Local<Value> ret_str = ret.ToLocalChecked();
-  String::Utf8Value s(ret_str);
-  logInfof("ret value: %s", *s);
+  // Local<Value> ret_str = ret.ToLocalChecked();
+  // String::Utf8Value s(ret_str);
+  // logInfof("ret value: %s", *s);
   return 0;
 }

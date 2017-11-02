@@ -15,42 +15,22 @@
 // You should have received a copy of the GNU General Public License
 // along with the go-nebulas library.  If not, see <http://www.gnu.org/licenses/>.
 //
-
 'use strict';
-
-function Console() {}
-
-function log(...args) {
-    var level = args.shift();
-    if (typeof (level) != 'number') {
-        throw 'level must be number.';
-    }
-
-    var msg = '';
-    for (var i = 0; i < args.length - 1; i++) {
-        msg += format(args[i]) + ' ';
-    }
-    msg += format(args[args.length - 1]);
-
-    _native_log(level, msg);
+if (typeof _storage_handlers === 'undefined') {
+    throw new Error("_storage_handlers is undefined.");
 }
 
-function format(obj) {
-    if (typeof (obj) == 'object') {
-        return JSON.stringify(obj);
-    }
-    return obj;
+if (typeof _storage_handlers !== 'object') {
+    throw new Error("_storage_handlers is not an object.");
 }
 
-[
-    ['debug', 1],
-    ['warn', 2],
-    ['info', 3],
-    ['log', 3],
-    ['error', 4]
-].forEach(function (val) {
-    Console.prototype[val[0]] = log.bind(null, val[1]);
+["lcs", "gcs"].forEach(function (val) {
+    if (typeof _storage_handlers[val] !== 'object') {
+        throw new Error("_storage_handlers[" + val + "] is not an object.");
+    }
+
+    var o = _storage_handlers[val];
+    if (Object.keys(o).length > 0) {
+        throw new Error("_storage_handlers[" + val + "] should not have accessible keys.")
+    }
 });
-
-module.exports = new Console();
-module.exports.Console = Console;

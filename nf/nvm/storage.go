@@ -32,15 +32,41 @@ type Storage interface {
 
 //export StorageGetFunc
 func StorageGetFunc(handler unsafe.Pointer, key *C.char) *C.char {
-	return nil
+	_, storage := getEngineAndStorage(uint64(uintptr(handler)))
+	if storage == nil {
+		return nil
+	}
+
+	val, err := storage.Get([]byte(C.GoString(key)))
+	if err != nil {
+		// log.WithFields(log.Fields{
+		// 	"func":    "nvm.StorageGetFunc",
+		// 	"handler": uint64(uintptr(handler)),
+		// 	"key":     C.GoString(key),
+		// }).Error("get key failed.")
+		return nil
+	}
+	return C.CString(string(val))
 }
 
 //export StoragePutFunc
 func StoragePutFunc(handler unsafe.Pointer, key *C.char, value *C.char) int {
+	_, storage := getEngineAndStorage(uint64(uintptr(handler)))
+	if storage == nil {
+		return 1
+	}
+
+	storage.Put([]byte(C.GoString(key)), []byte(C.GoString(value)))
 	return 0
 }
 
 //export StorageDelFunc
 func StorageDelFunc(handler unsafe.Pointer, key *C.char) int {
+	_, storage := getEngineAndStorage(uint64(uintptr(handler)))
+	if storage == nil {
+		return 1
+	}
+
+	storage.Del([]byte(C.GoString(key)))
 	return 0
 }
