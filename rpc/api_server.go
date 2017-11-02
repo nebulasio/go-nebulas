@@ -2,6 +2,7 @@ package rpc
 
 import (
 	"net"
+	"time"
 
 	"fmt"
 
@@ -48,8 +49,15 @@ func (s *APIServer) Start() error {
 		log.Error("RPC server failed to serve: ", err)
 		return err
 	}
-	if err = Run(); err != nil {
-		log.Error("RPC gateway server failed to run: ", err)
+
+	return nil
+}
+
+// RunGateway run grpc mapping to http after apiserver have started.
+func (s *APIServer) RunGateway() error {
+	time.Sleep(30 * time.Second)
+	if err := Run(); err != nil {
+		log.Error("RPC server gateway failed to serve: ", err)
 		return err
 	}
 	return nil

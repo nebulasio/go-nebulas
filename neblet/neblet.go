@@ -106,6 +106,7 @@ func (n *Neblet) Start() error {
 	n.snycManager.Start()
 	go n.apiServer.Start()
 	go n.managementServer.Start()
+	go n.apiServer.RunGateway()
 
 	// TODO: error handling
 	return nil
