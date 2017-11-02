@@ -38,6 +38,9 @@ int SetupExecutionEnv(Isolate *isolate, Local<Context> &context) {
   }
 
   // Run the script to get the result.
-  script.ToLocalChecked()->Run(context);
+  MaybeLocal<Value> v = script.ToLocalChecked()->Run(context);
+  if (v.IsEmpty()) {
+    return 1;
+  }
   return 0;
 }

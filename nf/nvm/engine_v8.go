@@ -39,9 +39,12 @@ import (
 
 var (
 	ErrExecutionFailed = errors.New("execute source failed")
+	v8engineOnce       = sync.Once{}
+	storages           = make(map[uint64]Storage, 256)
+	storagesIdx        = uint64(0)
+	storagesLock       = sync.RWMutex{}
 )
 
-var v8engineOnce sync.Once
 var v8engine *C.V8Engine
 
 // V8Engine v8 engine.
@@ -49,6 +52,8 @@ type V8Engine struct {
 	balanceStorage        Storage
 	localContractStorage  Storage
 	globalContractStorage Storage
+	lcsHandler            uint64
+	gcsHandler            uint64
 }
 
 // InitV8Engine initialize the v8 engine.
@@ -66,34 +71,54 @@ func DisposeV8Engine() {
 // NewV8Engine return new V8Engine instance.
 func NewV8Engine(balanceStorage, localContractStorage, globalContractStorage Storage) *V8Engine {
 	v8engineOnce.Do(func() {
+		InitV8Engine()
 		v8engine = C.CreateEngine()
 	})
+
+	storagesLock.Lock()
+	storagesIdx++
+	lcsHandler := storagesIdx
+	storagesIdx++
+	gcsHandler := storagesIdx
+	storages[lcsHandler] = localContractStorage
+	storages[gcsHandler] = globalContractStorage
+	storagesLock.Unlock()
 
 	engine := &V8Engine{
 		balanceStorage:        balanceStorage,
 		localContractStorage:  localContractStorage,
 		globalContractStorage: globalContractStorage,
+		lcsHandler:            lcsHandler,
+		gcsHandler:            gcsHandler,
 	}
 	return engine
 }
 
 // Dispose dispose all resources.
 func (e *V8Engine) Dispose() {
+	storagesLock.Lock()
+	delete(storages, e.lcsHandler)
+	delete(storages, e.gcsHandler)
+	storagesLock.Unlock()
 }
 
-// RunScript
+// RunScriptSource
 func (e *V8Engine) RunScriptSource(content string) error {
-	ret := C.RunScriptSource(v8engine, C.CString(content), unsafe.Pointer(&e.localContractStorage), unsafe.Pointer(&e.globalContractStorage))
+	ret := C.RunScriptSource2(v8engine, C.CString(content), C.uintptr_t(e.lcsHandler),
+		C.uintptr_t(e.gcsHandler))
+
 	if ret != 0 {
 		return ErrExecutionFailed
 	}
 	return nil
 }
 
+// Call
 func (e *V8Engine) Call(contractAddress string, function, args string) error {
 	return nil
 }
 
+// DeployAndInit
 func (e *V8Engine) DeployAndInit(source, args string) error {
 
 	return nil

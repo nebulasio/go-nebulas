@@ -74,6 +74,11 @@ void DeleteEngine(V8Engine *e) {
   free(e);
 }
 
+int RunScriptSource2(V8Engine *e, const char *data, uintptr_t lcsHandler,
+                     uintptr_t gcsHandler) {
+  return RunScriptSource(e, data, (void *)lcsHandler, (void *)gcsHandler);
+}
+
 int RunScriptSource(V8Engine *e, const char *data, void *lcsHandler,
                     void *gcsHandler) {
   Isolate *isolate = static_cast<Isolate *>(e->isolate);
@@ -95,6 +100,8 @@ int RunScriptSource(V8Engine *e, const char *data, void *lcsHandler,
   Local<Context> context = Context::New(isolate, NULL, globalTpl);
   // Enter the context for compiling and running the hello world script.
   Context::Scope context_scope(context);
+
+  TryCatch trycatch(isolate);
 
   // Continue put objects to global object.
   NewStorageObject(isolate, context, lcsHandler, gcsHandler);
@@ -119,11 +126,15 @@ int RunScriptSource(V8Engine *e, const char *data, void *lcsHandler,
 
   // Run the script to get the result.
   MaybeLocal<Value> ret = script.ToLocalChecked()->Run(context);
-  if (!ret.IsEmpty()) {
-    Local<Value> ret_str = ret.ToLocalChecked();
-    String::Utf8Value s(ret_str);
-    fprintf(stdout, "ret value: %s\n", *s);
+  if (ret.IsEmpty()) {
+    Local<Value> exception = trycatch.Exception();
+    String::Utf8Value exception_str(exception);
+    fprintf(stderr, "error: %s\n", *exception_str);
+    return 1;
   }
 
+  Local<Value> ret_str = ret.ToLocalChecked();
+  String::Utf8Value s(ret_str);
+  fprintf(stdout, "ret value: %s\n", *s);
   return 0;
 }

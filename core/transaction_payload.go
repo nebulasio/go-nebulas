@@ -21,7 +21,6 @@ package core
 import (
 	"encoding/json"
 	"errors"
-	"sync"
 
 	"github.com/nebulasio/go-nebulas/nf/nvm"
 )
@@ -35,7 +34,6 @@ const (
 
 var (
 	ErrInvalidTxPayloadType = errors.New("invalid transaction data payload type")
-	v8engineOnce            = &sync.Once{}
 )
 
 type txPayload struct {
@@ -51,10 +49,6 @@ func (payload *txPayload) Execute(tx *Transaction, block *Block) error {
 	if payload.payloadType == TxPayloadBinaryType {
 		return nil
 	}
-
-	v8engineOnce.Do(func() {
-		nvm.InitV8Engine()
-	})
 
 	contractAddress := tx.TargetContractAddress(block)
 	contractAccount, created := block.FindOrCreateAccount(contractAddress)
