@@ -83,7 +83,7 @@ func (e *V8Engine) Dispose() {
 
 // RunScript
 func (e *V8Engine) RunScriptSource(content string) error {
-	ret := C.RunScriptSource(v8engine, C.CString(content), unsafe.Pointer(&e.balanceStorage), unsafe.Pointer(&e.localContractStorage), unsafe.Pointer(&e.globalContractStorage))
+	ret := C.RunScriptSource(v8engine, C.CString(content), unsafe.Pointer(&e.localContractStorage), unsafe.Pointer(&e.globalContractStorage))
 	if ret != 0 {
 		return ErrExecutionFailed
 	}

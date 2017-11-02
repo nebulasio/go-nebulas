@@ -80,7 +80,7 @@ void StorageGetCallback(const FunctionCallbackInfo<Value> &info) {
   }
 
   // TODO: in C function, it's not a good idea to return a char*.
-  char *value = GET(*handler, *String::Utf8Value(key->ToString()));
+  char *value = GET(handler->Value(), *String::Utf8Value(key->ToString()));
   info.GetReturnValue().Set(String::NewFromUtf8(isolate, value));
 }
 
@@ -108,7 +108,7 @@ void StoragePutCallback(const FunctionCallbackInfo<Value> &info) {
     return;
   }
 
-  int ret = PUT(*handler, *String::Utf8Value(key->ToString()),
+  int ret = PUT(handler->Value(), *String::Utf8Value(key->ToString()),
                 *String::Utf8Value(value->ToString()));
   info.GetReturnValue().Set(ret);
 }
@@ -130,22 +130,21 @@ void StorageDelCallback(const FunctionCallbackInfo<Value> &info) {
     return;
   }
 
-  int ret = DEL(*handler, *String::Utf8Value(key->ToString()));
+  int ret = DEL(handler->Value(), *String::Utf8Value(key->ToString()));
   info.GetReturnValue().Set(ret);
 }
 
 void NewStorageObject(Isolate *isolate, Local<Context> context,
-                      void *balanceHandler, void *lcsHandler,
-                      void *gcsHandler) {
+                      void *lcsHandler, void *gcsHandler) {
   Local<ObjectTemplate> storageHandlerTpl = ObjectTemplate::New(isolate);
   Local<Object> handlers =
       storageHandlerTpl->NewInstance(context).ToLocalChecked();
-  handlers->Set(context, String::NewFromUtf8(isolate, "balance"),
-                External::New(isolate, balanceHandler));
+
   handlers->Set(context, String::NewFromUtf8(isolate, "lcs"),
                 External::New(isolate, lcsHandler));
   handlers->Set(context, String::NewFromUtf8(isolate, "gcs"),
                 External::New(isolate, gcsHandler));
+
   context->Global()->Set(String::NewFromUtf8(isolate, "_storage_handlers"),
                          handlers);
 }

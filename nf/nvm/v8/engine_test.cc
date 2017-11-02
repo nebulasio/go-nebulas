@@ -23,6 +23,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+static void *lcsHandler = NULL;
+static void *gcsHandler = NULL;
+
 void logFunc(int level, const char *msg) {
   FILE *f = stdout;
   if (level >= LogLevel::ERROR) {
@@ -33,15 +36,45 @@ void logFunc(int level, const char *msg) {
 
 char *StorageGet(void *handler, const char *key) {
   fprintf(stdout, "GET: %s\n", key);
+
+  if (handler == lcsHandler) {
+    fprintf(stdout, "calling lcsHandler.\n");
+  } else if (handler == gcsHandler) {
+    fprintf(stdout, "calling gcsHandler.\n");
+  } else {
+    fprintf(stderr, "unkown handler.\n");
+    exit(1);
+  }
+
   return "welcome to nebulas.";
 }
 
 int StoragePut(void *handler, const char *key, const char *value) {
   fprintf(stdout, "PUT: %s -> %s\n", key, value);
+
+  if (handler == lcsHandler) {
+    fprintf(stdout, "calling lcsHandler.\n");
+  } else if (handler == gcsHandler) {
+    fprintf(stdout, "calling gcsHandler.\n");
+  } else {
+    fprintf(stderr, "unkown handler.\n");
+    exit(1);
+  }
+
   return 0;
 }
 int StorageDel(void *handler, const char *key) {
   fprintf(stdout, "DEL: %s\n", key);
+
+  if (handler == lcsHandler) {
+    fprintf(stdout, "calling lcsHandler.\n");
+  } else if (handler == gcsHandler) {
+    fprintf(stdout, "calling gcsHandler.\n");
+  } else {
+    fprintf(stderr, "unkown handler.\n");
+    exit(1);
+  }
+
   return 0;
 }
 
@@ -89,6 +122,10 @@ int main(int argc, const char *argv[]) {
   size_t size = 0;
   readSource(filename, &data, &size);
 
+  // temp set handler pointer.
+  lcsHandler = (void *)filename;
+  gcsHandler = (void *)data;
+
   // setLogFunc(logFunc);
   Initialize();
   InitializeLogger(logFunc);
@@ -96,7 +133,7 @@ int main(int argc, const char *argv[]) {
 
   V8Engine *e = CreateEngine();
 
-  RunScriptSource(e, data, NULL, NULL, NULL);
+  RunScriptSource(e, data, lcsHandler, gcsHandler);
 
   DeleteEngine(e);
   Dispose();

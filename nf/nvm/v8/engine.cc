@@ -74,8 +74,8 @@ void DeleteEngine(V8Engine *e) {
   free(e);
 }
 
-int RunScriptSource(V8Engine *e, const char *data, void *balanceHandler,
-                    void *lcsHandler, void *gcsHandler) {
+int RunScriptSource(V8Engine *e, const char *data, void *lcsHandler,
+                    void *gcsHandler) {
   Isolate *isolate = static_cast<Isolate *>(e->isolate);
   assert(isolate);
 
@@ -97,7 +97,7 @@ int RunScriptSource(V8Engine *e, const char *data, void *balanceHandler,
   Context::Scope context_scope(context);
 
   // Continue put objects to global object.
-  NewStorageObject(isolate, context, balanceHandler, lcsHandler, gcsHandler);
+  NewStorageObject(isolate, context, lcsHandler, gcsHandler);
 
   // Setup execution env.
   if (SetupExecutionEnv(isolate, context)) {

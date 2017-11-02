@@ -32,6 +32,6 @@ void StoragePutCallback(const FunctionCallbackInfo<Value> &info);
 void StorageDelCallback(const FunctionCallbackInfo<Value> &info);
 
 void NewStorageObject(Isolate *isolate, Local<Context> context,
-                      void *balanceHandler, void *lcsHandler, void *gcsHandler);
+                      void *lcsHandler, void *gcsHandler);
 
 #endif // _NEBULAS_NF_NVM_V8_LIB_STORAGE_OBJECT_H_

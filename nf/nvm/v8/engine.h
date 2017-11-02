@@ -58,8 +58,8 @@ EXPORT void Dispose();
 
 EXPORT V8Engine *CreateEngine();
 
-EXPORT int RunScriptSource(V8Engine *e, const char *data, void *balanceHandler,
-                           void *lcsHandler, void *gcsHandler);
+EXPORT int RunScriptSource(V8Engine *e, const char *data, void *lcsHandler,
+                           void *gcsHandler);
 
 EXPORT void DeleteEngine(V8Engine *e);
 

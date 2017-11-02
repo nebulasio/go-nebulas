@@ -6,7 +6,12 @@ console.log('balance', typeof _storage_handlers.balance,
     'gcs', typeof _storage_handlers.gcs);
 
 console.log('Storage', typeof Storage, Storage);
-var s = new Storage(_storage_handlers.balance);
-console.log(s.get("test"));
-console.log(s.put('new_key', "new value"));
-console.log(s.del('new_key'));
+
+[_storage_handlers.lcs, _storage_handlers.gcs].forEach(function (handler) {
+    var s = new Storage(handler);
+    console.log(s.get("test"));
+    console.log(s.put('new_key', "new value"));
+    console.log(s.del('new_key'));
+});
+
+new Storage({});
