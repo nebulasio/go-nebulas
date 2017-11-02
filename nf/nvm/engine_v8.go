@@ -133,9 +133,9 @@ func (e *V8Engine) DeployAndInit(source, args string) error {
 
 func getEngineAndStorage(handler uint64) (*V8Engine, *trie.BatchTrie) {
 	storagesLock.RLock()
-	defer storagesLock.RUnlock()
-
 	engine := storages[handler]
+	storagesLock.RUnlock()
+
 	if engine == nil {
 		log.WithFields(log.Fields{
 			"func":          "nvm.getEngineAndStorage",

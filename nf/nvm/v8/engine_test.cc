@@ -46,7 +46,7 @@ char *StorageGet(void *handler, const char *key) {
     exit(1);
   }
 
-  char *msg = "welcome to nebulas.";
+  char msg[] = "welcome to nebulas.";
 
   char *ret = (char *)malloc(strlen(msg) + 1);
   strcpy(ret, msg);
@@ -68,6 +68,7 @@ int StoragePut(void *handler, const char *key, const char *value) {
 
   return 0;
 }
+
 int StorageDel(void *handler, const char *key) {
   fprintf(stdout, "DEL: %s\n", key);
 
