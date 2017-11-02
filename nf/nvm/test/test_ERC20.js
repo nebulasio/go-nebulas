@@ -19,43 +19,50 @@
 
 var StandardToken = require('./test/ERC20.js');
 
-var instance = new StandardToken();
+var token = new StandardToken();
 
 // init.
-instance.init("Nebulas", "NAS", 1000000);
+var assertInitStatus = function (instance) {
+    if (instance.name !== "Nebulas") {
+        throw new Error("name should be Nebulas, but is " + instance.name);
+    }
 
-if (instance.name !== "Nebulas") {
-    throw new Error("name should be Nebulas, but is " + instance.name);
-}
+    if (instance.symbol !== "NAS") {
+        throw new Error("symbol should be NAS, but is " + instance.symbol);
+    }
 
-if (instance.symbol !== "NAS") {
-    throw new Error("symbol should be NAS, but is " + instance.symbol);
-}
+    if (instance.totalSupply !== 1000000) {
+        throw new Error("totalSupply should be 1000000, but is " + instance.totalSupply);
+    }
 
-if (instance.totalSupply !== 1000000) {
-    throw new Error("totalSupply should be 1000000, but is " + instance.totalSupply);
-}
-
-if (instance.totalIssued !== 0) {
-    throw new Error("totalIssued should be 0, but is " + instance.totalIssued);
-}
+    if (instance.totalIssued !== 0) {
+        throw new Error("totalIssued should be 0, but is " + instance.totalIssued);
+    }
+};
+token.init("Nebulas", "NAS", 1000000);
+assertInitStatus(token);
+assertInitStatus(new StandardToken()); // assert status for new instance.
 
 // balance.
 var msg = {
     sender: 'robin'
 };
-instance.pay(12);
-if (instance.totalIssued !== 12) {
-    throw new Error("totalIssued should be 12, but is " + instance.totalIssued);
-}
+var assertAfterPayStatus = function (instance) {
+    if (instance.totalIssued !== 12) {
+        throw new Error("totalIssued should be 12, but is " + instance.totalIssued);
+    }
 
-if (instance.balanceOf(msg.sender) !== 12) {
-    throw new Error("robin's balance should be 12, but is " + instance.balanceOf(msg.sender));
-}
+    if (instance.balanceOf(msg.sender) !== 12) {
+        throw new Error("robin's balance should be 12, but is " + instance.balanceOf(msg.sender));
+    }
+};
+token.pay(12);
+assertAfterPayStatus(token);
+assertAfterPayStatus(new StandardToken()); // assert status for new instance.
 
 var err = new Error("exceed amount should throw exception, but not");
 try {
-    instance.pay(999989);
+    token.pay(999989);
 } catch (e) {
     if (e == err) {
         throw e;
