@@ -8,8 +8,8 @@ before_install:
 install:
 - dep ensure
 - mkdir -p /usr/local/opt/v8/lib/
-- cp nf/nvm/libs/* /usr/local/lib
-- cp nf/nvm/libs/libv8.dylib /usr/local/opt/v8/lib/
+- cp nf/nvm/native-lib/* /usr/local/lib
+- cp nf/nvm/native-lib/libv8.dylib /usr/local/opt/v8/lib/
 script:
 - go test -v ./...
 notifications:
