@@ -48,4 +48,6 @@ type Server interface {
 
 	// Address return server address
 	Address() string
+
+	RunGateway() error
 }

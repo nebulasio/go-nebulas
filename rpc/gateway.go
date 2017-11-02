@@ -14,6 +14,7 @@ var (
 	echoEndpoint = flag.String("echo_endpoint", "localhost:51510", "endpoint of YourService")
 )
 
+// Run start gateway proxy to mapping grpc to http.
 func Run() error {
 	ctx := context.Background()
 	ctx, cancel := context.WithCancel(ctx)

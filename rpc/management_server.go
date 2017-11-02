@@ -73,3 +73,8 @@ func (s *ManagementServer) Address() string {
 	addr := fmt.Sprintf("%s:%d", host, s.port)
 	return addr
 }
+
+// RunGateway run grpc mapping to http after apiserver have started.
+func (s *ManagementServer) RunGateway() error {
+	return nil
+}
