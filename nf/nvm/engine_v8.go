@@ -37,6 +37,7 @@ import (
 	"sync"
 	"unsafe"
 
+	"github.com/nebulasio/go-nebulas/common/trie"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -51,9 +52,9 @@ var (
 
 // V8Engine v8 engine.
 type V8Engine struct {
-	balanceStorage        Storage
-	localContractStorage  Storage
-	globalContractStorage Storage
+	balanceStorage        *trie.BatchTrie
+	localContractStorage  *trie.BatchTrie
+	globalContractStorage *trie.BatchTrie
 	lcsHandler            uint64
 	gcsHandler            uint64
 }
@@ -71,7 +72,7 @@ func DisposeV8Engine() {
 }
 
 // NewV8Engine return new V8Engine instance.
-func NewV8Engine(balanceStorage, localContractStorage, globalContractStorage Storage) *V8Engine {
+func NewV8Engine(balanceStorage, localContractStorage, globalContractStorage *trie.BatchTrie) *V8Engine {
 	v8engineOnce.Do(func() {
 		InitV8Engine()
 		v8engine = C.CreateEngine()
@@ -130,7 +131,7 @@ func (e *V8Engine) DeployAndInit(source, args string) error {
 	return nil
 }
 
-func getEngineAndStorage(handler uint64) (*V8Engine, Storage) {
+func getEngineAndStorage(handler uint64) (*V8Engine, *trie.BatchTrie) {
 	storagesLock.RLock()
 	defer storagesLock.RUnlock()
 

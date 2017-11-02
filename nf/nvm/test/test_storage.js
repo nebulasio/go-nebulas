@@ -16,24 +16,28 @@
 // along with the go-nebulas library.  If not, see <http://www.gnu.org/licenses/>.
 //
 'use strict';
-if (typeof Storage === "undefined") {
-    throw new Error("Storage is undefined.");
-}
-if (typeof Storage !== "function") {
-    throw new Error("Storage is not a function.");
+if (typeof ContractStorage === 'undefined') {
+    throw new Error("ContractStorage is undefined.");
 }
 
+var err = new Error("ContractStorage should accept _storage_handlers member only.");
 try {
-    new Storage({});
-    throw new Error("Storage should accept _storage_handlers member only.");
+    new ContractStorage();
+    throw err;
 } catch (e) {
-    // pass.
+    if (e == err) {
+        throw e;
+    }
 }
 
-[_storage_handlers.lcs, _storage_handlers.gcs].forEach(function (handler) {
-    var stor = new Storage(handler);
-    if (stor.get("non-exist-key") !== null) {
-        throw new Error("get non-exist-key should return null.");
+[
+    [LocalConstractStorage, 'LocalContractStorage'],
+    [GlobalContractStorage, 'GlobalContractStorage']
+].forEach(function (item) {
+    var stor = item[0];
+    var name = item[1];
+    if (typeof stor === 'undefined') {
+        throw new Error(name + " is undefined.");
     }
 
     var v1 = 'now is ' + new Date();
@@ -49,15 +53,24 @@ try {
 
     stor.del('k2');
 
-    [123, {}, function () {}, undefined].forEach(function (v) {
-        var err = new Error('value of put should be string, not support ' + typeof v);
-        try {
-            stor.put('k3', v);
-            throw err;
-        } catch (e) {
-            if (e == err) {
-                throw e;
+    ["haha", 123, false, true, null, {
+        x: 1,
+        y: {
+            a: 2
+        },
+        z: ["zzz", 3, 4]
+    }].forEach(function (v, idx) {
+        var key = 'key-' + idx;
+        stor.put(key, v);
+        var val = stor.get(key);
+        if (!Object.is(val, v)) {
+            if (typeof v === 'object') {
+                if (JSON.stringify(v) == JSON.stringify(val)) {
+                    // pass.
+                    return;
+                }
             }
+            throw new Error("ContractStorage should support value type " + typeof v + "; expected is " + v + ", actual is " + val);
         }
     });
 });

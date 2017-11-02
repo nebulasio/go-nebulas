@@ -27,12 +27,23 @@ ContractStorage.prototype = {
         return this.storage.del(key)
     },
     get: function (key) {
-        return this.storage.get(key);
+        var val = this.storage.get(key);
+        // console.log('cs.get: key=' + key + '; val=' + val + ' (' + typeof val + ')');
+
+        if (val != null) {
+            val = JSON.parse(val);
+        }
+        return val;
     },
     set: function (key, value) {
-        return this.storage.set(key, value);
+        var val = JSON.stringify(value);
+        // console.log("cs.set: key=" + key + "; val=" + value + " (" + typeof value + ") to " + val + " (" + typeof val + ")");
+        return this.storage.put(key, val);
     }
 };
+
+ContractStorage.prototype.put = ContractStorage.prototype.set;
+ContractStorage.prototype.del = ContractStorage.prototype.delete;
 
 module.exports = {
     ContractStorage: ContractStorage,

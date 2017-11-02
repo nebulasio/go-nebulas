@@ -22,13 +22,11 @@ import "C"
 
 import (
 	"unsafe"
-)
 
-type Storage interface {
-	Put(key []byte, val []byte) ([]byte, error)
-	Get(key []byte) ([]byte, error)
-	Del(key []byte) ([]byte, error)
-}
+	"github.com/nebulasio/go-nebulas/common/trie"
+
+	log "github.com/sirupsen/logrus"
+)
 
 //export StorageGetFunc
 func StorageGetFunc(handler unsafe.Pointer, key *C.char) *C.char {
@@ -37,13 +35,13 @@ func StorageGetFunc(handler unsafe.Pointer, key *C.char) *C.char {
 		return nil
 	}
 
-	val, err := storage.Get([]byte(C.GoString(key)))
+	val, err := storage.Get([]byte(trie.HashDomains(C.GoString(key))))
 	if err != nil {
-		// log.WithFields(log.Fields{
-		// 	"func":    "nvm.StorageGetFunc",
-		// 	"handler": uint64(uintptr(handler)),
-		// 	"key":     C.GoString(key),
-		// }).Error("get key failed.")
+		log.WithFields(log.Fields{
+			"func":    "nvm.StorageGetFunc",
+			"handler": uint64(uintptr(handler)),
+			"key":     C.GoString(key),
+		}).Error("StorageGetFunc get key failed.")
 		return nil
 	}
 	return C.CString(string(val))
@@ -56,7 +54,16 @@ func StoragePutFunc(handler unsafe.Pointer, key *C.char, value *C.char) int {
 		return 1
 	}
 
-	storage.Put([]byte(C.GoString(key)), []byte(C.GoString(value)))
+	_, err := storage.Put([]byte(trie.HashDomains(C.GoString(key))), []byte(C.GoString(value)))
+	if err != nil {
+		log.WithFields(log.Fields{
+			"func":    "nvm.StoragePutFunc",
+			"handler": uint64(uintptr(handler)),
+			"key":     C.GoString(key),
+			"err":     err,
+		}).Error("StoragePutFunc get key failed.")
+		return 1
+	}
 	return 0
 }
 
@@ -67,6 +74,17 @@ func StorageDelFunc(handler unsafe.Pointer, key *C.char) int {
 		return 1
 	}
 
-	storage.Del([]byte(C.GoString(key)))
+	_, err := storage.Del([]byte(trie.HashDomains(C.GoString(key))))
+
+	if err != nil {
+		log.WithFields(log.Fields{
+			"func":    "nvm.StorageDelFunc",
+			"handler": uint64(uintptr(handler)),
+			"key":     C.GoString(key),
+			"err":     err,
+		}).Error("StorageDelFunc get key failed.")
+		return 1
+	}
+
 	return 0
 }
