@@ -52,7 +52,7 @@ dep:
 deploy-libs:
 	-mkdir -p /usr/local/opt/v8/lib/
 	-test -f $(LIBV8) || cp nf/nvm/libs/libv8$(DYLIB) $(LIBV8)
-	-test -f $(LIBV8ENGINE) || cp nf/nvm/libs/libv8engine$(DYLIB) $(LIBV8ENGINE)
+	-cp nf/nvm/libs/libv8engine$(DYLIB) $(LIBV8ENGINE)
 
 build:
 	cd cmd/neb; go build ${LDFLAGS} -o ../../${BINARY}
