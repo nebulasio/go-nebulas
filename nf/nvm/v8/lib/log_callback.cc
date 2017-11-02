@@ -62,3 +62,35 @@ void logCallback(const FunctionCallbackInfo<Value> &info) {
   String::Utf8Value m(msg);
   LOG((level->ToInt32())->Int32Value(), *m);
 }
+
+void logInfof(const char *format, ...) {
+  if (LOG == NULL) {
+    return;
+  }
+
+  va_list vl;
+  va_start(vl, format);
+
+  char msg[1024];
+  vsnprintf(msg, 1024, format, vl);
+
+  LOG(LogLevel::INFO, msg);
+
+  va_end(vl);
+}
+
+void logErrorf(const char *format, ...) {
+  if (LOG == NULL) {
+    return;
+  }
+
+  va_list vl;
+  va_start(vl, format);
+
+  char msg[1024];
+  vsnprintf(msg, 1024, format, vl);
+
+  LOG(LogLevel::ERROR, msg);
+
+  va_end(vl);
+}

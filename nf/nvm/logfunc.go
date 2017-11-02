@@ -26,19 +26,21 @@ import (
 
 //export GoLogFunc
 func GoLogFunc(level int, msg *C.char) {
-	entry := log.WithFields(log.Fields{})
+	entry := log.WithFields(log.Fields{
+		"func": "GoLogFunc",
+	})
 	s := C.GoString(msg)
 
 	switch level {
 	case 1:
-		entry.Debugln(s)
+		entry.Debug(s)
 	case 2:
-		entry.Warnln(s)
+		entry.Warn(s)
 	case 3:
-		entry.Infoln(s)
+		entry.Info(s)
 	case 4:
-		entry.Errorln(s)
+		entry.Error(s)
 	default:
-		entry.Errorln(s)
+		entry.Error(s)
 	}
 }

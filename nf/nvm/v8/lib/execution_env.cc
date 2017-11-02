@@ -18,6 +18,7 @@
 //
 
 #include "execution_env.h"
+#include "log_callback.h"
 
 int SetupExecutionEnv(Isolate *isolate, Local<Context> &context) {
   char data[] = "const console = require('console.js');"
@@ -33,7 +34,7 @@ int SetupExecutionEnv(Isolate *isolate, Local<Context> &context) {
   MaybeLocal<Script> script = Script::Compile(context, source);
 
   if (script.IsEmpty()) {
-    fprintf(stderr, "execution-env.js: compile error.\n");
+    logErrorf("execution-env.js: compile error.");
     return 1;
   }
 

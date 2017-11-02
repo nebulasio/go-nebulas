@@ -108,7 +108,7 @@ int RunScriptSource(V8Engine *e, const char *data, void *lcsHandler,
 
   // Setup execution env.
   if (SetupExecutionEnv(isolate, context)) {
-    fprintf(stderr, "setup execution env failed.\n");
+    logErrorf("setup execution env failed.");
     return 1;
   }
 
@@ -120,7 +120,7 @@ int RunScriptSource(V8Engine *e, const char *data, void *lcsHandler,
   MaybeLocal<Script> script = Script::Compile(context, source);
 
   if (script.IsEmpty()) {
-    fprintf(stderr, "compile error.\n");
+    logErrorf("compile error.");
     return 1;
   }
 
@@ -129,12 +129,12 @@ int RunScriptSource(V8Engine *e, const char *data, void *lcsHandler,
   if (ret.IsEmpty()) {
     Local<Value> exception = trycatch.Exception();
     String::Utf8Value exception_str(exception);
-    fprintf(stderr, "error: %s\n", *exception_str);
+    logErrorf("error: %s", *exception_str);
     return 1;
   }
 
   Local<Value> ret_str = ret.ToLocalChecked();
   String::Utf8Value s(ret_str);
-  fprintf(stdout, "ret value: %s\n", *s);
+  logInfof("ret value: %s", *s);
   return 0;
 }

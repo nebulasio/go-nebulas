@@ -17,6 +17,8 @@
 // <http://www.gnu.org/licenses/>.
 //
 #include "require_callback.h"
+#include "log_callback.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -58,7 +60,7 @@ static int readSource(const char *filename, char **data, size_t *size) {
   char *path = getValidFilePath(filename);
   FILE *f = fopen(path, "r");
   if (f == NULL) {
-    fprintf(stderr, "file %s does not found.\n", filename);
+    logErrorf("file %s does not found.", filename);
     free(path);
     return 1;
   }
@@ -82,7 +84,7 @@ static int readSource(const char *filename, char **data, size_t *size) {
 
   if (feof(f) == 0) {
     free(static_cast<void *>(*data));
-    fprintf(stderr, "read file %s error.\n", filename);
+    logErrorf("read file %s error.", filename);
     return 1;
   }
 
@@ -99,7 +101,7 @@ static int readSource(const char *filename, char **data, size_t *size) {
 }
 
 void requireCallback(const v8::FunctionCallbackInfo<v8::Value> &info) {
-  // fprintf(stdout, "require called.\n");
+  // logErrorf("require called.");
   Isolate *isolate = info.GetIsolate();
 
   if (info.Length() == 0) {
@@ -125,7 +127,7 @@ void requireCallback(const v8::FunctionCallbackInfo<v8::Value> &info) {
     return;
   }
 
-  // fprintf(stdout, "source is:\n%s\n", data);
+  // logErrorf("source is: %s", data);
 
   Local<Context> context = isolate->GetCurrentContext();
   Local<Script> script =

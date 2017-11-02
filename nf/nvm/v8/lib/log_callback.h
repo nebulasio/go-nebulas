@@ -27,4 +27,7 @@ using namespace v8;
 
 void logCallback(const FunctionCallbackInfo<Value> &info);
 
+void logInfof(const char *format, ...);
+void logErrorf(const char *format, ...);
+
 #endif // _NEBULAS_NF_NVM_V8_LIB_LOG_CALLBACK_H_

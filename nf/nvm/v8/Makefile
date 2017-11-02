@@ -55,8 +55,8 @@ engine: engine.cc.o lib/execution_env.cc.o lib/storage_object.cc.o lib/log_callb
 	$(LD) $(LIB_LDFLAGS) $(LDFLAGS) $(LIBS) $^ -o libv8$@$(DYLIB)
 
 install:
-	mkdir -p ../libs/
-	install libv8engine$(DYLIB) ../libs/
+	mkdir -p ../native-lib/
+	install libv8engine$(DYLIB) ../native-lib/
 
 clean:
 	-find . -iname '*.o' -exec rm {} \;
