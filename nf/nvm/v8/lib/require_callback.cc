@@ -22,6 +22,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 #include <v8.h>
 
 using namespace v8;
@@ -40,7 +41,7 @@ static char *getValidFilePath(const char *filename) {
   size_t len = strlen(filename);
   char *ret = NULL;
 
-  if (strcmp(filename, "./") == 0) {
+  if (strncmp(filename, "./", 2) == 0) {
     // Load file from local package.
     ret = (char *)malloc(len + 1);
     stpcpy(ret, filename);
@@ -58,6 +59,11 @@ static char *getValidFilePath(const char *filename) {
 
 static int readSource(const char *filename, char **data, size_t *size) {
   char *path = getValidFilePath(filename);
+
+  // char cwd[1024];
+  // getcwd(cwd, 1024);
+  // logInfof("fullpath is %s/%s", cwd, path);
+
   FILE *f = fopen(path, "r");
   if (f == NULL) {
     logErrorf("file %s does not found.", filename);

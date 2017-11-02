@@ -23,7 +23,7 @@
 int SetupExecutionEnv(Isolate *isolate, Local<Context> &context) {
   char data[] = "const console = require('console.js');"
                 "const ContractStorage = require('storage.js');"
-                "const LocalConstractStorage = ContractStorage.lcs;"
+                "const LocalContractStorage = ContractStorage.lcs;"
                 "const GlobalContractStorage = ContractStorage.gcs;";
 
   Local<String> source =

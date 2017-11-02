@@ -35,6 +35,7 @@ func TestRunScriptSource(t *testing.T) {
 		{"test/test_storage_handlers.js"},
 		{"test/test_storage_class.js"},
 		{"test/test_storage.js"},
+		{"test/test_ERC20.js"},
 	}
 
 	for _, tt := range tests {

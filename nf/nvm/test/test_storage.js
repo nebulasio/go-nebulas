@@ -31,7 +31,7 @@ try {
 }
 
 [
-    [LocalConstractStorage, 'LocalContractStorage'],
+    [LocalContractStorage, 'LocalContractStorage'],
     [GlobalContractStorage, 'GlobalContractStorage']
 ].forEach(function (item) {
     var stor = item[0];
