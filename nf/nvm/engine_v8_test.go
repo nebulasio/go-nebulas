@@ -22,11 +22,13 @@ import (
 	"flag"
 	"io/ioutil"
 	"os"
+	"sync"
 	"testing"
 
 	"github.com/nebulasio/go-nebulas/common/trie"
 	"github.com/nebulasio/go-nebulas/storage"
 	"github.com/nebulasio/go-nebulas/util/logging"
+	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -147,4 +149,26 @@ func TestFunctionNameCheck(t *testing.T) {
 			engine.Dispose()
 		})
 	}
+}
+func TestMultiEngine(t *testing.T) {
+	mem, _ := storage.NewMemoryStorage()
+	balanceTrie, _ := trie.NewBatchTrie(nil, mem)
+	lcsTrie, _ := trie.NewBatchTrie(nil, mem)
+	gcsTrie, _ := trie.NewBatchTrie(nil, mem)
+
+	var wg sync.WaitGroup
+	for i := 0; i < 50; i++ {
+		wg.Add(1)
+		idx := i
+		go func() {
+			defer wg.Done()
+			engine := NewV8Engine(balanceTrie, lcsTrie, gcsTrie)
+			defer engine.Dispose()
+
+			err := engine.RunScriptSource("console.log('running.');")
+			log.Infof("run script %d; err %v", idx, err)
+			assert.Nil(t, err)
+		}()
+	}
+	wg.Wait()
 }

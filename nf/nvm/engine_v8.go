@@ -52,13 +52,13 @@ var (
 	storages     = make(map[uint64]*V8Engine, 256)
 	storagesIdx  = uint64(0)
 	storagesLock = sync.RWMutex{}
-	v8engine     *C.V8Engine
 
 	functionNameRe = regexp.MustCompile("^[a-zA-Z_]+$")
 )
 
 // V8Engine v8 engine.
 type V8Engine struct {
+	v8engine              *C.V8Engine
 	balanceStorage        *trie.BatchTrie
 	localContractStorage  *trie.BatchTrie
 	globalContractStorage *trie.BatchTrie
@@ -82,10 +82,10 @@ func DisposeV8Engine() {
 func NewV8Engine(balanceStorage, localContractStorage, globalContractStorage *trie.BatchTrie) *V8Engine {
 	v8engineOnce.Do(func() {
 		InitV8Engine()
-		v8engine = C.CreateEngine()
 	})
 
 	engine := &V8Engine{
+		v8engine:              C.CreateEngine(),
 		balanceStorage:        balanceStorage,
 		localContractStorage:  localContractStorage,
 		globalContractStorage: globalContractStorage,
@@ -107,6 +107,7 @@ func NewV8Engine(balanceStorage, localContractStorage, globalContractStorage *tr
 
 // Dispose dispose all resources.
 func (e *V8Engine) Dispose() {
+	C.DeleteEngine(e.v8engine)
 	storagesLock.Lock()
 	delete(storages, e.lcsHandler)
 	delete(storages, e.gcsHandler)
@@ -118,7 +119,7 @@ func (e *V8Engine) RunScriptSource(content string) error {
 	data := C.CString(content)
 	defer C.free(unsafe.Pointer(data))
 
-	ret := C.RunScriptSource2(v8engine, data, C.uintptr_t(e.lcsHandler),
+	ret := C.RunScriptSource2(e.v8engine, data, C.uintptr_t(e.lcsHandler),
 		C.uintptr_t(e.gcsHandler))
 
 	if ret != 0 {
