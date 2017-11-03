@@ -80,6 +80,8 @@ func StoragePutFunc(handler unsafe.Pointer, key *C.char, value *C.char) int {
 		return 1
 	}
 
+	// log.Errorf("[--------------] StoragePutFunc, storage = %v; {%v: %v}", storage, C.GoString(key), C.GoString(value))
+
 	_, err := storage.Put([]byte(hashStorageKey(C.GoString(key))), []byte(C.GoString(value)))
 	if err != nil {
 		log.WithFields(log.Fields{

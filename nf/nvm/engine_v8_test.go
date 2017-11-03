@@ -157,7 +157,7 @@ func TestMultiEngine(t *testing.T) {
 	gcsTrie, _ := trie.NewBatchTrie(nil, mem)
 
 	var wg sync.WaitGroup
-	for i := 0; i < 50; i++ {
+	for i := 0; i < 10; i++ {
 		wg.Add(1)
 		idx := i
 		go func() {

@@ -118,7 +118,7 @@ func (e *V8Engine) Dispose() {
 func (e *V8Engine) RunScriptSource(content string) error {
 	data := C.CString(content)
 	defer C.free(unsafe.Pointer(data))
-
+	// log.Errorf("[--------------] RunScriptSource, lcsHandler = %d, gcsHadnler = %d", e.lcsHandler, e.gcsHandler)
 	ret := C.RunScriptSource2(e.v8engine, data, C.uintptr_t(e.lcsHandler),
 		C.uintptr_t(e.gcsHandler))
 
@@ -156,6 +156,8 @@ func (e *V8Engine) executeScript(source, function, args string) error {
 }
 
 func getEngineAndStorage(handler uint64) (*V8Engine, *trie.BatchTrie) {
+	// log.Errorf("[--------------] getEngineAndStorage, handler = %d", handler)
+
 	storagesLock.RLock()
 	engine := storages[handler]
 	storagesLock.RUnlock()

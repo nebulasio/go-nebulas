@@ -55,7 +55,7 @@ func (s *APIServer) Start() error {
 
 // RunGateway run grpc mapping to http after apiserver have started.
 func (s *APIServer) RunGateway() error {
-	time.Sleep(30 * time.Second)
+	time.Sleep(3 * time.Second)
 	if err := Run(); err != nil {
 		log.Error("RPC server gateway failed to serve: ", err)
 		return err
