@@ -246,6 +246,7 @@ func (block *Block) LinkParentBlock(parentBlock *Block) bool {
 	block.txsTrie, _ = parentBlock.txsTrie.Clone()
 	block.txPool = parentBlock.txPool
 	block.parenetBlock = parentBlock
+	block.storage = parentBlock.storage
 
 	// travel to calculate block height.
 	depth := uint64(0)
@@ -470,6 +471,7 @@ func (block *Block) FindOrCreateAccount(address *Address) (account *Account, cre
 	if err := acc.FromProto(pbAcc); err != nil {
 		panic("invalid account:" + err.Error())
 	}
+	acc.storage = block.storage
 	return acc, false
 }
 
