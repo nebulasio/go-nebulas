@@ -56,3 +56,83 @@ func TestRunScriptSource(t *testing.T) {
 		})
 	}
 }
+
+func TestDeployAndInitAndCall(t *testing.T) {
+	tests := []struct {
+		name         string
+		contractPath string
+		init_args    string
+		verify_args  string
+	}{
+		{"deploy sample_contract.js", "test/sample_contract.js", "[\"TEST001\", 123,[{\"name\":\"robin\",\"count\":2},{\"name\":\"roy\",\"count\":3},{\"name\":\"leon\",\"count\":4}]]", "[\"TEST001\", 123,[{\"name\":\"robin\",\"count\":2},{\"name\":\"roy\",\"count\":3},{\"name\":\"leon\",\"count\":4}]]"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			data, err := ioutil.ReadFile(tt.contractPath)
+			assert.Nil(t, err, "contract path read error")
+
+			mem, _ := storage.NewMemoryStorage()
+			balanceTrie, _ := trie.NewBatchTrie(nil, mem)
+			lcsTrie, _ := trie.NewBatchTrie(nil, mem)
+			gcsTrie, _ := trie.NewBatchTrie(nil, mem)
+
+			engine := NewV8Engine(balanceTrie, lcsTrie, gcsTrie)
+			err = engine.DeployAndInit(string(data), tt.init_args)
+			assert.Nil(t, err)
+			engine.Dispose()
+
+			engine = NewV8Engine(balanceTrie, lcsTrie, gcsTrie)
+			err = engine.Call(string(data), "dump", "")
+			assert.Nil(t, err)
+			engine.Dispose()
+
+			engine = NewV8Engine(balanceTrie, lcsTrie, gcsTrie)
+			err = engine.Call(string(data), "verify", tt.verify_args)
+			assert.Nil(t, err)
+			engine.Dispose()
+
+			// force error.
+			mem, _ = storage.NewMemoryStorage()
+			balanceTrie, _ = trie.NewBatchTrie(nil, mem)
+			lcsTrie, _ = trie.NewBatchTrie(nil, mem)
+			gcsTrie, _ = trie.NewBatchTrie(nil, mem)
+
+			engine = NewV8Engine(balanceTrie, lcsTrie, gcsTrie)
+			err = engine.Call(string(data), "verify", tt.verify_args)
+			assert.NotNil(t, err)
+			engine.Dispose()
+
+		})
+	}
+}
+
+func TestFunctionNameCheck(t *testing.T) {
+	tests := []struct {
+		function    string
+		expectedErr error
+		args        string
+	}{
+		{"init", ErrInvalidFunctionName, ""},
+		{"9dump", ErrInvalidFunctionName, ""},
+		{"$dump", ErrInvalidFunctionName, ""},
+		{"dump", nil, ""},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.function, func(t *testing.T) {
+			data, err := ioutil.ReadFile("test/sample_contract.js")
+			assert.Nil(t, err, "contract path read error")
+
+			mem, _ := storage.NewMemoryStorage()
+			balanceTrie, _ := trie.NewBatchTrie(nil, mem)
+			lcsTrie, _ := trie.NewBatchTrie(nil, mem)
+			gcsTrie, _ := trie.NewBatchTrie(nil, mem)
+
+			engine := NewV8Engine(balanceTrie, lcsTrie, gcsTrie)
+			err = engine.Call(string(data), tt.function, tt.args)
+			assert.Equal(t, tt.expectedErr, err)
+			engine.Dispose()
+		})
+	}
+}

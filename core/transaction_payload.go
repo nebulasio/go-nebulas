@@ -89,7 +89,9 @@ func (payload *txPayload) Execute(tx *Transaction, block *Block) error {
 	case TxPayloadDeployType:
 		err = engine.DeployAndInit(payload.source, payload.args)
 	case TxPayloadCallType:
-		err = engine.Call(contractAddress.ToHex(), payload.function, payload.args)
+		//TODO: @robin get source from tx of contract.
+		source := ""
+		err = engine.Call(source, payload.function, payload.args)
 	default:
 		err = ErrInvalidTxPayloadType
 	}

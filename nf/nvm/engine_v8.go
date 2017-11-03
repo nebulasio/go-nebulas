@@ -34,6 +34,9 @@ int StorageDelFunc_cgo(void *handler, const char *key);
 import "C"
 import (
 	"errors"
+	"fmt"
+	"regexp"
+	"strings"
 	"sync"
 	"unsafe"
 
@@ -42,12 +45,16 @@ import (
 )
 
 var (
-	ErrExecutionFailed = errors.New("execute source failed")
-	v8engineOnce       = sync.Once{}
-	storages           = make(map[uint64]*V8Engine, 256)
-	storagesIdx        = uint64(0)
-	storagesLock       = sync.RWMutex{}
-	v8engine           *C.V8Engine
+	ErrExecutionFailed     = errors.New("execute source failed")
+	ErrInvalidFunctionName = errors.New("invalid function name")
+
+	v8engineOnce = sync.Once{}
+	storages     = make(map[uint64]*V8Engine, 256)
+	storagesIdx  = uint64(0)
+	storagesLock = sync.RWMutex{}
+	v8engine     *C.V8Engine
+
+	functionNameRe = regexp.MustCompile("^[a-zA-Z_]+$")
 )
 
 // V8Engine v8 engine.
@@ -121,14 +128,30 @@ func (e *V8Engine) RunScriptSource(content string) error {
 }
 
 // Call
-func (e *V8Engine) Call(contractAddress string, function, args string) error {
-	return nil
+func (e *V8Engine) Call(source, function, args string) error {
+	if functionNameRe.MatchString(function) == false || strings.Compare("init", function) == 0 {
+		return ErrInvalidFunctionName
+	}
+	return e.executeScript(source, function, args)
 }
 
 // DeployAndInit
 func (e *V8Engine) DeployAndInit(source, args string) error {
+	return e.executeScript(source, "init", args)
+}
 
-	return nil
+// Execute execute the script and return error.
+func (e *V8Engine) executeScript(source, function, args string) error {
+	executablesource := prepareExecutableSource(source, function, args)
+
+	// log.WithFields(log.Fields{
+	// 	"source":           source,
+	// 	"args":             args,
+	// 	"function":         function,
+	// 	"executablesource": executablesource,
+	// }).Info("executeScript")
+
+	return e.RunScriptSource(executablesource)
 }
 
 func getEngineAndStorage(handler uint64) (*V8Engine, *trie.BatchTrie) {
@@ -157,4 +180,25 @@ func getEngineAndStorage(handler uint64) (*V8Engine, *trie.BatchTrie) {
 		}).Error("in-consistent storage handler.")
 		return nil, nil
 	}
+}
+
+func formatArgs(args string) string {
+	return strings.Replace(args, "\"", "\\\"", -1)
+}
+
+func prepareExecutableSource(source, function, args string) string {
+	cSource := C.CString(source)
+	defer C.free(unsafe.Pointer(cSource))
+
+	cmSource := C.encapsulateSourceToModuleStyle(cSource)
+	defer C.free(unsafe.Pointer(cmSource))
+
+	var executablesource string
+	if len(args) > 0 {
+		executablesource = fmt.Sprintf("var __contract = %s; var __instance = new __contract();__instance[\"%s\"].apply(__instance, JSON.parse(\"%s\"));", C.GoString(cmSource), function, formatArgs(args))
+	} else {
+		executablesource = fmt.Sprintf("var __contract = %s; var __instance = new __contract();__instance[\"%s\"].apply(__instance);", C.GoString(cmSource), function)
+	}
+
+	return executablesource
 }

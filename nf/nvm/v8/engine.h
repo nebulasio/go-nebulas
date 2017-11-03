@@ -68,6 +68,8 @@ EXPORT int RunScriptSource2(V8Engine *e, const char *data, uintptr_t lcsHandler,
 
 EXPORT void DeleteEngine(V8Engine *e);
 
+EXPORT char *encapsulateSourceToModuleStyle(const char *source);
+
 #ifdef __cplusplus
 }
 #endif

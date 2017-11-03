@@ -19,6 +19,7 @@
 #include "require_callback.h"
 #include "log_callback.h"
 
+#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -148,4 +149,16 @@ void requireCallback(const v8::FunctionCallbackInfo<v8::Value> &info) {
   }
 
   free(static_cast<void *>(data));
+}
+
+char *encapsulateSourceToModuleStyle(const char *source) {
+  size_t size = strlen(source) + strlen(source_require_begin) +
+                strlen(source_require_end) + 1;
+  char *data = (char *)malloc(size);
+
+  size_t count =
+      sprintf(data, "%s%s%s", source_require_begin, source, source_require_end);
+  assert(count + 1 == size);
+
+  return data;
 }
