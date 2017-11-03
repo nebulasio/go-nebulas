@@ -36,7 +36,7 @@ type Account struct {
 	UserGlobalStorage *trie.BatchTrie
 
 	ContractOwner           *Address
-	ContractTransactionHash []byte
+	ContractTransactionHash Hash
 	ContractLocalStorage    *trie.BatchTrie
 
 	storage storage.Storage
@@ -51,8 +51,8 @@ func NewAccount(storage storage.Storage) *Account {
 		UserNonce:         0,
 		UserGlobalStorage: globalTrie,
 
-		ContractOwner:           &Address{address: []byte{}},
-		ContractTransactionHash: []byte{},
+		ContractOwner:           &Address{address: Hash{}},
+		ContractTransactionHash: Hash{},
 		ContractLocalStorage:    localTrie,
 
 		storage: storage,

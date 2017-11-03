@@ -22,6 +22,10 @@ import (
 	"encoding/json"
 	"errors"
 
+	"github.com/nebulasio/go-nebulas/core/pb"
+	log "github.com/sirupsen/logrus"
+
+	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/nf/nvm"
 )
 
@@ -33,7 +37,8 @@ const (
 )
 
 var (
-	ErrInvalidTxPayloadType = errors.New("invalid transaction data payload type")
+	ErrInvalidTxPayloadType   = errors.New("invalid transaction data payload type")
+	ErrInvalidContractAddress = errors.New("invalid contract address")
 )
 
 type txPayload struct {
@@ -65,7 +70,7 @@ func (payload *txPayload) Execute(tx *Transaction, block *Block) error {
 	gcsTrie.BeginBatch()
 	lcsTrie.BeginBatch()
 
-	shouldCommit := true
+	shouldCommit := false
 
 	defer (func() {
 		if shouldCommit {
@@ -89,16 +94,18 @@ func (payload *txPayload) Execute(tx *Transaction, block *Block) error {
 	case TxPayloadDeployType:
 		err = engine.DeployAndInit(payload.source, payload.args)
 	case TxPayloadCallType:
-		//TODO: @robin get source from tx of contract.
-		source := ""
-		err = engine.Call(source, payload.function, payload.args)
+		source, err := findContractSource(block, contractAddress, contractAccount)
+		if err == nil {
+			err = engine.Call(source, payload.function, payload.args)
+		}
 	default:
 		err = ErrInvalidTxPayloadType
 	}
 
-	if err != nil {
-		shouldCommit = false
+	if err == nil {
+		shouldCommit = true
 	}
+
 	return err
 }
 
@@ -140,4 +147,50 @@ func isContractPayload(data []byte) (bool, *txPayload) {
 	}
 
 	return true, txPayload
+}
+
+func findContractSource(block *Block, contractAddress *Address, contractAccount *Account) (string, error) {
+	logFields := log.Fields{
+		"contractAddress": contractAddress.ToHex(),
+		"contractAccount": contractAccount.ContractTransactionHash.Hex(),
+		"err":             nil,
+	}
+
+	txBytes, err := block.txsTrie.Get(contractAccount.ContractTransactionHash)
+	if err != nil {
+		logFields["err"] = err
+		log.WithFields(logFields).Error("get contract transaction from txsTrie failed.")
+		return "", err
+	}
+
+	pbTx := new(corepb.Transaction)
+	if err = proto.Unmarshal(txBytes, pbTx); err != nil {
+		logFields["err"] = err
+		log.WithFields(logFields).Error("unmarshal contract transaction to corepb.Transaction failed.")
+
+		return "", err
+	}
+
+	tx := new(Transaction)
+	if err = tx.FromProto(pbTx); err != nil {
+		logFields["err"] = err
+		log.WithFields(logFields).Error("convert corepb.Trnsaction to Core.Transaction failed.")
+		return "", err
+	}
+
+	payload, err := parseTxPayload(tx.data)
+	if err != nil {
+		logFields["err"] = err
+		log.WithFields(logFields).Error("parse transaction payload failed.")
+		return "", err
+	}
+
+	if payload.payloadType != TxPayloadDeployType {
+		err = ErrInvalidContractAddress
+		logFields["err"] = err
+		log.WithFields(logFields).Error("transaction must be the type of smart contract deployment.")
+		return "", err
+	}
+
+	return payload.source, nil
 }
