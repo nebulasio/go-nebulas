@@ -67,7 +67,7 @@ func StorageGetFunc(handler unsafe.Pointer, key *C.char) *C.char {
 			"func":    "nvm.StorageGetFunc",
 			"handler": uint64(uintptr(handler)),
 			"key":     C.GoString(key),
-		}).Error("StorageGetFunc get key failed.")
+		}).Warn("StorageGetFunc get key failed.")
 		return nil
 	}
 	return C.CString(string(val))
@@ -87,7 +87,7 @@ func StoragePutFunc(handler unsafe.Pointer, key *C.char, value *C.char) int {
 			"handler": uint64(uintptr(handler)),
 			"key":     C.GoString(key),
 			"err":     err,
-		}).Error("StoragePutFunc get key failed.")
+		}).Error("StoragePutFunc put key failed.")
 		return 1
 	}
 	return 0
@@ -108,7 +108,7 @@ func StorageDelFunc(handler unsafe.Pointer, key *C.char) int {
 			"handler": uint64(uintptr(handler)),
 			"key":     C.GoString(key),
 			"err":     err,
-		}).Error("StorageDelFunc get key failed.")
+		}).Warn("StorageDelFunc del key failed.")
 		return 1
 	}
 

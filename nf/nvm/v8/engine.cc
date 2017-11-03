@@ -98,6 +98,10 @@ int RunScriptSource(V8Engine *e, const char *data, void *lcsHandler,
 
   // Create a new context.
   Local<Context> context = Context::New(isolate, NULL, globalTpl);
+
+  // Disable eval().
+  context->AllowCodeGenerationFromStrings(false);
+
   // Enter the context for compiling and running the hello world script.
   Context::Scope context_scope(context);
 

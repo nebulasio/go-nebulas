@@ -29,13 +29,15 @@ import (
 
 func TestRunScriptSource(t *testing.T) {
 	tests := []struct {
-		filepath string
+		filepath    string
+		expectedErr error
 	}{
-		{"test/test_console.js"},
-		{"test/test_storage_handlers.js"},
-		{"test/test_storage_class.js"},
-		{"test/test_storage.js"},
-		{"test/test_ERC20.js"},
+		{"test/test_console.js", nil},
+		{"test/test_storage_handlers.js", nil},
+		{"test/test_storage_class.js", nil},
+		{"test/test_storage.js", nil},
+		{"test/test_ERC20.js", nil},
+		{"test/test_eval.js", ErrExecutionFailed},
 	}
 
 	for _, tt := range tests {
@@ -50,9 +52,8 @@ func TestRunScriptSource(t *testing.T) {
 
 			engine := NewV8Engine(balanceTrie, lcsTrie, gcsTrie)
 			err = engine.RunScriptSource(string(data))
+			assert.Equal(t, tt.expectedErr, err)
 			engine.Dispose()
-
-			assert.Nil(t, err)
 		})
 	}
 }
