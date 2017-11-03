@@ -19,8 +19,13 @@
 'use strict';
 
 var StandardToken = function () {
-    LocalContractStorage.defineProperties(this, "name", "symbol", "totalSupply", "totalIssued");
-    LocalContractStorage.defineMapProperties(this, "balances");
+    LocalContractStorage.defineProperties(this, {
+        name: null,
+        symbol: null,
+        totalSupply: null,
+        totalIssued: null
+    });
+    LocalContractStorage.defineMapProperty(this, "balances");
 };
 
 StandardToken.prototype = {

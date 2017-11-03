@@ -20,11 +20,69 @@
 
 var fieldNameRe = /^[a-zA-Z_].*/;
 
+var combineStorageMapKey = function (fieldName, key) {
+    return "@" + fieldName + "[" + key + "]";
+};
+
+var applyMapDescriptor = function (obj, descriptor) {
+    descriptor = descriptor || {
+        stringify: JSON.stringify,
+        parse: JSON.parse
+    };
+
+    if (typeof descriptor.stringify !== 'function' || typeof descriptor.parse !== 'function') {
+        throw new Error("descriptor.stringify and descriptor.parse must be function.");
+    }
+
+    Object.defineProperty(obj, "stringify", {
+        configurable: false,
+        enumerable: false,
+        get: function () {
+            return descriptor.stringify;
+        }
+    });
+
+    Object.defineProperty(obj, "parse", {
+        configurable: false,
+        enumerable: false,
+        get: function () {
+            return descriptor.parse;
+        }
+    });
+};
+
+var applyFieldDescriptor = function (obj, fieldName, descriptor) {
+    descriptor = descriptor || {
+        stringify: JSON.stringify,
+        parse: JSON.parse
+    };
+
+    if (typeof descriptor.stringify !== 'function' || typeof descriptor.parse !== 'function') {
+        throw new Error("descriptor.stringify and descriptor.parse must be function.");
+    }
+
+    Object.defineProperty(obj, "__stringify__" + fieldName, {
+        configurable: false,
+        enumerable: false,
+        get: function () {
+            return descriptor.stringify;
+        }
+    });
+
+    Object.defineProperty(obj, "__parse__" + fieldName, {
+        configurable: false,
+        enumerable: false,
+        get: function () {
+            return descriptor.parse;
+        }
+    });
+};
+
 var ContractStorage = function (handler) {
     this.storage = new Storage(handler);
 };
 
-var StorageMap = function (storage, fieldName) {
+var StorageMap = function (storage, fieldName, descriptor) {
     if (!storage instanceof ContractStorage) {
         throw new Error("StorageMap only accept instance of ContractStorage");
     }
@@ -47,85 +105,88 @@ var StorageMap = function (storage, fieldName) {
             return fieldName;
         }
     });
+
+    applyMapDescriptor(this, descriptor);
 };
 
-var combineStorageMapKey = function (fieldName, key) {
-    return "@" + fieldName + "[" + key + "]";
-};
 
 StorageMap.prototype = {
-    delete: function (key) {
+    del: function (key) {
         return this.storage.del(combineStorageMapKey(this.fieldName, key));
     },
     get: function (key) {
-        var val = this.storage.get(combineStorageMapKey(this.fieldName, key));
-        // console.log('cs.get: key=' + key + '; val=' + val + ' (' + typeof val + ')');
-
+        var val = this.storage.rawGet(combineStorageMapKey(this.fieldName, key));
         if (val != null) {
-            val = JSON.parse(val);
+            val = this.parse(val);
         }
         return val;
     },
     set: function (key, value) {
-        var val = JSON.stringify(value);
-        // console.log("cs.set: key=" + key + "; val=" + value + " (" + typeof value + ") to " + val + " (" + typeof val + ")");
-        return this.storage.put(combineStorageMapKey(this.fieldName, key), val);
+        var val = this.stringify(value);
+        return this.storage.rawSet(combineStorageMapKey(this.fieldName, key), val);
     }
 };
 StorageMap.prototype.put = StorageMap.prototype.set;
-StorageMap.prototype.del = StorageMap.prototype.delete;
+StorageMap.prototype.delete = StorageMap.prototype.del;
 
 
 ContractStorage.prototype = {
-    delete: function (key) {
+    rawGet: function (key) {
+        return this.storage.get(key);
+    },
+    rawSet: function (key, value) {
+        return this.storage.set(key, value);
+    },
+    del: function (key) {
         return this.storage.del(key)
     },
     get: function (key) {
         var val = this.storage.get(key);
-        // console.log('cs.get: key=' + key + '; val=' + val + ' (' + typeof val + ')');
-
         if (val != null) {
             val = JSON.parse(val);
         }
         return val;
     },
     set: function (key, value) {
-        var val = JSON.stringify(value);
-        // console.log("cs.set: key=" + key + "; val=" + value + " (" + typeof value + ") to " + val + " (" + typeof val + ")");
-        return this.storage.put(key, val);
+        return this.storage.put(key, JSON.stringify(value));
     },
-    defineProperty: function (obj, fieldName) {
+    defineProperty: function (obj, fieldName, descriptor) {
         if (!obj || !fieldName) {
-            throw new Error("defineProperty requires two parameters.");
+            throw new Error("defineProperty requires at least two parameters.");
         }
         var $this = this;
         Object.defineProperty(obj, fieldName, {
             configurable: false,
             enumerable: true,
             get: function () {
-                return $this.get(fieldName);
+                var val = $this.rawGet(fieldName);
+                if (val != null) {
+                    val = obj["__parse__" + fieldName](val);
+                }
+                return val;
             },
             set: function (val) {
-                return $this.set(fieldName, val);
+                val = obj["__stringify__" + fieldName](val);
+                return $this.rawSet(fieldName, val);
             }
         });
+        applyFieldDescriptor(obj, fieldName, descriptor);
     },
-    defineProperties: function () {
-        if (arguments.length < 2) {
-            throw new Error("defineProperties requires more or equal to two parameters.");
+    defineProperties: function (obj, props) {
+        if (!obj || !props) {
+            throw new Error("defineProperties requires two parameters.");
         }
 
-        var obj = arguments[0];
-        for (var i = 1; i < arguments.length; i++) {
-            this.defineProperty(obj, arguments[i]);
+        for (const fieldName in props) {
+            this.defineProperty(obj, fieldName, props[fieldName]);
         }
     },
-    defineMapProperty: function (obj, fieldName) {
+    defineMapProperty: function (obj, fieldName, descriptor) {
         if (!obj || !fieldName) {
             throw new Error("defineMapProperty requires two parameters.");
         }
 
-        var mapObj = new StorageMap(this, fieldName);
+        var mapObj = new StorageMap(this, fieldName, descriptor);
         Object.defineProperty(obj, fieldName, {
             configurable: false,
             enumerable: true,
@@ -134,20 +195,19 @@ ContractStorage.prototype = {
             }
         });
     },
-    defineMapProperties: function () {
-        if (arguments.length < 2) {
-            throw new Error("defineMapProperties requires more or equal to two parameters.");
+    defineMapProperties: function (obj, props) {
+        if (!obj || !props) {
+            throw new Error("defineMapProperties requires two parameters.");
         }
 
-        var obj = arguments[0];
-        for (var i = 1; i < arguments.length; i++) {
-            this.defineMapProperty(obj, arguments[i]);
+        for (const fieldName in props) {
+            this.defineMapProperty(obj, fieldName, props[fieldName]);
         }
     }
 };
 
 ContractStorage.prototype.put = ContractStorage.prototype.set;
-ContractStorage.prototype.del = ContractStorage.prototype.delete;
+ContractStorage.prototype.delete = ContractStorage.prototype.del;
 
 module.exports = {
     ContractStorage: ContractStorage,

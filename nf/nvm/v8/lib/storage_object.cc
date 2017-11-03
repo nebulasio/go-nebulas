@@ -34,6 +34,8 @@ void NewStorageType(Isolate *isolate, Local<ObjectTemplate> globalTpl) {
   instanceTpl->SetInternalFieldCount(1);
   instanceTpl->Set(String::NewFromUtf8(isolate, "get"),
                    FunctionTemplate::New(isolate, StorageGetCallback));
+  instanceTpl->Set(String::NewFromUtf8(isolate, "set"),
+                   FunctionTemplate::New(isolate, StoragePutCallback));
   instanceTpl->Set(String::NewFromUtf8(isolate, "put"),
                    FunctionTemplate::New(isolate, StoragePutCallback));
   instanceTpl->Set(String::NewFromUtf8(isolate, "del"),

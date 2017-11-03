@@ -1,8 +1,11 @@
 'use strict';
 
 var SampleContract = function () {
-    LocalContractStorage.defineProperties(this, "name", "count");
-    LocalContractStorage.defineMapProperties(this, "allocation");
+    LocalContractStorage.defineProperties(this, {
+        name: null,
+        count: null
+    });
+    LocalContractStorage.defineMapProperty(this, "allocation");
 };
 
 SampleContract.prototype = {
