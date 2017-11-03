@@ -26,7 +26,7 @@ package nvm
 #include "v8/engine.h"
 
 // Forward declaration.
-void GoLogFunc_cgo(int level, const char *msg);
+void V8Log_cgo(int level, const char *msg);
 char *StorageGetFunc_cgo(void *handler, const char *key);
 int StoragePutFunc_cgo(void *handler, const char *key, const char *value);
 int StorageDelFunc_cgo(void *handler, const char *key);
@@ -69,7 +69,7 @@ type V8Engine struct {
 // InitV8Engine initialize the v8 engine.
 func InitV8Engine() {
 	C.Initialize()
-	C.InitializeLogger((C.LogFunc)(unsafe.Pointer(C.GoLogFunc_cgo)))
+	C.InitializeLogger((C.LogFunc)(unsafe.Pointer(C.V8Log_cgo)))
 	C.InitializeStorage((C.StorageGetFunc)(unsafe.Pointer(C.StorageGetFunc_cgo)), (C.StoragePutFunc)(unsafe.Pointer(C.StoragePutFunc_cgo)), (C.StorageDelFunc)(unsafe.Pointer(C.StorageDelFunc_cgo)))
 }
 

@@ -15,27 +15,19 @@
 // You should have received a copy of the GNU General Public License
 // along with the go-nebulas library.  If not, see <http://www.gnu.org/licenses/>.
 //
+'use strict';
 
-package nvm
+var console2 = require('console.js');
+if (!Object.is(console, console2)) {
+    throw new Error("require should caches libs.");
+}
 
-/*
-void V8Log(int level, const char *msg);
-char *StorageGetFunc(void *handler, const char *key);
-int StoragePutFunc(void *handler, const char *key, const char *value);
-int StorageDelFunc(void *handler, const char *key);
-
-// The gateway function
-void V8Log_cgo(int level, const char *msg) {
-	V8Log(level, msg);
-};
-char *StorageGetFunc_cgo(void *handler, const char *key) {
-	return StorageGetFunc(handler, key);
-};
-int StoragePutFunc_cgo(void *handler, const char *key, const char *value) {
-	return StoragePutFunc(handler, key, value);
-};
-int StorageDelFunc_cgo(void *handler, const char *key) {
-	return StorageDelFunc(handler, key);
-};
-*/
-import "C"
+var err = new Error("require should throw error when file does not exist.");
+try {
+    require("not-exist-file");
+    throw err;
+} catch (e) {
+    if (e === err) {
+        throw e;
+    }
+}

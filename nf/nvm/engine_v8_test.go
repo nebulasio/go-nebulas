@@ -19,19 +19,30 @@
 package nvm
 
 import (
+	"flag"
 	"io/ioutil"
+	"os"
 	"testing"
 
 	"github.com/nebulasio/go-nebulas/common/trie"
 	"github.com/nebulasio/go-nebulas/storage"
+	"github.com/nebulasio/go-nebulas/util/logging"
 	"github.com/stretchr/testify/assert"
 )
+
+func TestMain(m *testing.M) {
+	logging.EnableFuncNameLogger()
+
+	flag.Parse()
+	os.Exit(m.Run())
+}
 
 func TestRunScriptSource(t *testing.T) {
 	tests := []struct {
 		filepath    string
 		expectedErr error
 	}{
+		{"test/test_require.js", nil},
 		{"test/test_console.js", nil},
 		{"test/test_storage_handlers.js", nil},
 		{"test/test_storage_class.js", nil},

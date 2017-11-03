@@ -90,7 +90,7 @@ int RunScriptSource(V8Engine *e, const char *data, void *lcsHandler,
 
   // Create global object template.
   Local<ObjectTemplate> globalTpl = ObjectTemplate::New(isolate);
-  globalTpl->Set(String::NewFromUtf8(isolate, "require"),
+  globalTpl->Set(String::NewFromUtf8(isolate, "_native_require"),
                  FunctionTemplate::New(isolate, requireCallback));
   globalTpl->Set(String::NewFromUtf8(isolate, "_native_log"),
                  FunctionTemplate::New(isolate, logCallback));

@@ -24,23 +24,20 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-//export GoLogFunc
-func GoLogFunc(level int, msg *C.char) {
-	entry := log.WithFields(log.Fields{
-		"func": "GoLogFunc",
-	})
+//export V8Log
+func V8Log(level int, msg *C.char) {
 	s := C.GoString(msg)
 
 	switch level {
 	case 1:
-		entry.Debug(s)
+		log.Debug(s)
 	case 2:
-		entry.Warn(s)
+		log.Warn(s)
 	case 3:
-		entry.Info(s)
+		log.Info(s)
 	case 4:
-		entry.Error(s)
+		log.Error(s)
 	default:
-		entry.Error(s)
+		log.Error(s)
 	}
 }
