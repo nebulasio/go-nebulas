@@ -22,6 +22,7 @@ import (
 	"flag"
 	"io/ioutil"
 	"os"
+	"sync"
 	"testing"
 
 	"github.com/nebulasio/go-nebulas/common/trie"
@@ -147,4 +148,24 @@ func TestFunctionNameCheck(t *testing.T) {
 			engine.Dispose()
 		})
 	}
+}
+
+func TestMultiEngine(t *testing.T) {
+	mem, _ := storage.NewMemoryStorage()
+	balanceTrie, _ := trie.NewBatchTrie(nil, mem)
+	lcsTrie, _ := trie.NewBatchTrie(nil, mem)
+	gcsTrie, _ := trie.NewBatchTrie(nil, mem)
+
+	var wg sync.WaitGroup
+	for i := 0; i < 5; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			engine := NewV8Engine(balanceTrie, lcsTrie, gcsTrie)
+			err := engine.RunScriptSource("console.log('hello');")
+			assert.Nil(t, err)
+			engine.Dispose()
+		}()
+	}
+	wg.Wait()
 }

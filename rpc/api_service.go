@@ -20,6 +20,7 @@ package rpc
 
 import (
 	"errors"
+	"io/ioutil"
 
 	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/core"
@@ -87,7 +88,43 @@ func (s *APIService) SendTransaction(ctx context.Context, req *rpcpb.SendTransac
 	// Validate and sign the tx, then submit it to the tx pool.
 	neb := s.server.Neblet()
 
-	tx, err := parseTransaction(neb, req.From, req.To, req.Value, req.Nonce, nil)
+	source, err := ioutil.ReadFile("/Users/leon/go/src/github.com/nebulasio/go-nebulas/nf/nvm/test/sample_contract.js")
+	if err != nil {
+
+	}
+	args := "[\"TEST001\", 123,[{\"name\":\"robin\",\"count\":2},{\"name\":\"roy\",\"count\":3},{\"name\":\"leon\",\"count\":4}]]"
+
+	data, err := core.NewDeploySCPayload(string(source), args)
+	if err != nil {
+		return nil, err
+	}
+
+	tx, err := parseTransaction(neb, req.From, req.To, req.Value, req.Nonce, data)
+	if err != nil {
+		return nil, err
+	}
+	if err := neb.AccountManager().SignTransaction(tx.From(), tx); err != nil {
+		return nil, err
+	}
+	if err := neb.BlockChain().TransactionPool().PushAndBroadcast(tx); err != nil {
+		return nil, err
+	}
+
+	return &rpcpb.SendTransactionResponse{Hash: tx.Hash().String()}, nil
+}
+
+// Call a contract
+func (s *APIService) Call(ctx context.Context, req *rpcpb.SendTransactionRequest) (*rpcpb.SendTransactionResponse, error) {
+	// Validate and sign the tx, then submit it to the tx pool.
+	neb := s.server.Neblet()
+
+	// data, err := core.NewDeploySCPayload(string(soruce), args)
+	data, err := core.NewCallSCPayload("dump", "")
+	if err != nil {
+		return nil, err
+	}
+
+	tx, err := parseTransaction(neb, req.From, req.To, req.Value, req.Nonce, data)
 	if err != nil {
 		return nil, err
 	}
@@ -107,17 +144,25 @@ func parseTransaction(neb Neblet, from, to string, v []byte, nonce uint64, data 
 	if err != nil {
 		return nil, err
 	}
-	toAddr, err := core.AddressParse(to)
-	if err != nil {
-		return nil, err
+	var toAddr *core.Address
+	if len(to) > 0 {
+		toAddr, err = core.AddressParse(to)
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	value, err := util.NewUint128FromFixedSizeByteSlice(v)
-	if err != nil {
-		return nil, err
+	var value *util.Uint128
+	if len(v) > 0 {
+		value, err = util.NewUint128FromFixedSizeByteSlice(v)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		value = util.NewUint128()
 	}
 
-	tx := core.NewTransaction(neb.BlockChain().ChainID(), fromAddr, toAddr, value, nonce, nil)
+	tx := core.NewTransaction(neb.BlockChain().ChainID(), fromAddr, toAddr, value, nonce, data)
 	return tx, nil
 }
 

@@ -42,20 +42,19 @@ var (
 )
 
 type txPayload struct {
-	payloadType string `json: "type"`
-	source      string `json: "source"`
-	function    string `json: "function"`
-	args        string `json: "args"`
-
-	binaryData []byte
+	PayloadType string
+	Source      string
+	Function    string
+	Args        string
+	binaryData  []byte
 }
 
 func (payload *txPayload) Execute(tx *Transaction, block *Block) error {
-	if payload.payloadType == TxPayloadBinaryType {
+	if payload.PayloadType == TxPayloadBinaryType {
 		return nil
 	}
 
-	contractAddress := tx.TargetContractAddress(block)
+	contractAddress := tx.TargetContractAddress()
 	contractAccount, created := block.FindOrCreateAccount(contractAddress)
 	if created == true {
 		contractAccount.SetContractTransactionHash(tx.Hash())
@@ -88,15 +87,15 @@ func (payload *txPayload) Execute(tx *Transaction, block *Block) error {
 	defer engine.Dispose()
 
 	var err error
-	switch payload.payloadType {
+	switch payload.PayloadType {
 	case TxPayloadBinaryType:
 		err = nil
 	case TxPayloadDeployType:
-		err = engine.DeployAndInit(payload.source, payload.args)
+		err = engine.DeployAndInit(payload.Source, payload.Args)
 	case TxPayloadCallType:
 		source, err := findContractSource(block, contractAddress, contractAccount)
 		if err == nil {
-			err = engine.Call(source, payload.function, payload.args)
+			err = engine.Call(source, payload.Function, payload.Args)
 		}
 	default:
 		err = ErrInvalidTxPayloadType
@@ -109,20 +108,32 @@ func (payload *txPayload) Execute(tx *Transaction, block *Block) error {
 	return err
 }
 
+type PayTest struct {
+	id string
+}
+
+func NewPayTest(id string) ([]byte, error) {
+	paytest := &PayTest{id: id}
+	return json.Marshal(paytest)
+}
+
+func parsePayTest() {
+}
+
 func NewDeploySCPayload(source, args string) ([]byte, error) {
 	payload := &txPayload{
-		payloadType: TxPayloadDeployType,
-		source:      source,
-		args:        args,
+		PayloadType: TxPayloadDeployType,
+		Source:      source,
+		Args:        args,
 	}
 	return json.Marshal(payload)
 }
 
 func NewCallSCPayload(function, args string) ([]byte, error) {
 	payload := &txPayload{
-		payloadType: TxPayloadCallType,
-		function:    function,
-		args:        args,
+		PayloadType: TxPayloadCallType,
+		Function:    function,
+		Args:        args,
 	}
 	return json.Marshal(payload)
 }
@@ -130,7 +141,7 @@ func NewCallSCPayload(function, args string) ([]byte, error) {
 func parseTxPayload(data []byte) (*txPayload, error) {
 	payload := &txPayload{}
 	if err := json.Unmarshal(data, &payload); err != nil {
-		payload.payloadType = TxPayloadBinaryType
+		payload.PayloadType = TxPayloadBinaryType
 		payload.binaryData = data
 	}
 	return payload, nil
@@ -185,12 +196,12 @@ func findContractSource(block *Block, contractAddress *Address, contractAccount 
 		return "", err
 	}
 
-	if payload.payloadType != TxPayloadDeployType {
+	if payload.PayloadType != TxPayloadDeployType {
 		err = ErrInvalidContractAddress
 		logFields["err"] = err
 		log.WithFields(logFields).Error("transaction must be the type of smart contract deployment.")
 		return "", err
 	}
 
-	return payload.source, nil
+	return payload.Source, nil
 }

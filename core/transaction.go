@@ -148,19 +148,20 @@ func (tx *Transaction) Hash() Hash {
 }
 
 // TargetContractAddress return the target contract address.
-func (tx *Transaction) TargetContractAddress(block *Block) *Address {
+func (tx *Transaction) TargetContractAddress() *Address {
 	isContractPayload, txPayload := isContractPayload(tx.data)
 	if isContractPayload == false {
 		return nil
 	}
 
 	// deploy contract has different contract address rules.
-	if txPayload.payloadType == TxPayloadDeployType {
-		return tx.generateContractAddress(block)
-	} else {
-		// tx.to is the contract address.
-		return tx.to
+	if txPayload.PayloadType == TxPayloadDeployType {
+		return tx.generateContractAddress()
 	}
+
+	// tx.to is the contract address.
+	return tx.to
+
 }
 
 // Execute transaction and return result.
@@ -264,9 +265,9 @@ func (tx *Transaction) verifySign() (bool, error) {
 	return signature.Verify(tx.hash, tx.sign)
 }
 
-// generateContractAddress generate and return contract address according to tx & block.
-func (tx *Transaction) generateContractAddress(block *Block) *Address {
-	address, _ := NewContractAddressFromHash(hash.Sha3256(tx.hash, block.Hash()))
+// generateContractAddress generate and return contract address according to tx.from and tx.nonce.
+func (tx *Transaction) generateContractAddress() *Address {
+	address, _ := NewContractAddressFromHash(hash.Sha3256(tx.from.Bytes(), byteutils.FromUint64(tx.nonce)))
 	return address
 }
 

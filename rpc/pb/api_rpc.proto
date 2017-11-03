@@ -49,10 +49,18 @@ service APIService {
 
 	// Verify, sign, and send the transaction.
 	rpc SendTransaction (SendTransactionRequest) returns (SendTransactionResponse) {
-//		option (google.api.http) = {
-//            post: "/v1/transaction"
-//            body: "*"
-//        };
+		option (google.api.http) = {
+            post: "/v1/transaction"
+            body: "*"
+        };
+	}
+
+	// Call a contract.
+	rpc Call (SendTransactionRequest) returns (SendTransactionResponse) {
+		option (google.api.http) = {
+            post: "/v1/call"
+            body: "*"
+        };
 	}
 
 	// Submit the signed transaction.
@@ -144,6 +152,12 @@ message SendTransactionRequest {
 	// TODO: gas provided for the transaction.
 
 	// TODO: contract code bytes or hash.
+
+	// contract source code.
+	string source = 5;
+
+	// the params of source code.
+	string args = 6;
 }
 
 // Request message of SendRawTransactionRequest rpc.
