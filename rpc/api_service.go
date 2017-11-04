@@ -197,10 +197,7 @@ func (s *APIService) GetTransactionByHash(ctx context.Context, req *rpcpb.GetTra
 
 // BlockDump is the RPC API handler.
 func (s *APIService) BlockDump(ctx context.Context, req *rpcpb.BlockDumpRequest) (*rpcpb.BlockDumpResponse, error) {
-	var data string
 	neb := s.server.Neblet()
-	if req.Count > 0 {
-		data = neb.BlockChain().Dump(int(req.Count))
-	}
+	data := neb.BlockChain().Dump(int(req.Count))
 	return &rpcpb.BlockDumpResponse{Data: data}, nil
 }
