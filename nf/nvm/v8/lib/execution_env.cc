@@ -22,19 +22,19 @@
 
 int SetupExecutionEnv(Isolate *isolate, Local<Context> &context) {
   char data[] =
-      "const require = (function() {"
-      "    var requiredLibs = {};"
-      "    return function(filename) {"
-      "        if (!(filename in requiredLibs)) {"
-      "            requiredLibs[filename] = _native_require(filename);"
-      "        }"
-      "        return requiredLibs[filename];"
-      "    };"
-      "})();"
-      "const console = require('console.js');"
-      "const ContractStorage = require('storage.js');"
-      "const LocalContractStorage = ContractStorage.lcs;"
-      "const GlobalContractStorage = ContractStorage.gcs;";
+      "const require = (function() {\n"
+      "    var requiredLibs = {};\n"
+      "    return function(filename) {\n"
+      "        if (!(filename in requiredLibs)) {\n"
+      "            requiredLibs[filename] = _native_require(filename);\n"
+      "        }\n"
+      "        return requiredLibs[filename];\n"
+      "    };\n"
+      "})();\n"
+      "const console = require('console.js');\n"
+      "const ContractStorage = require('storage.js');\n"
+      "const LocalContractStorage = ContractStorage.lcs;\n"
+      "const GlobalContractStorage = ContractStorage.gcs;\n";
 
   Local<String> source =
       String::NewFromUtf8(isolate, data, NewStringType::kNormal)
@@ -47,7 +47,6 @@ int SetupExecutionEnv(Isolate *isolate, Local<Context> &context) {
       Script::Compile(context, source, &sourceSrcOrigin);
 
   if (script.IsEmpty()) {
-    logErrorf("execution-env.js: compile error.");
     return 1;
   }
 

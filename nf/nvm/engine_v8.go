@@ -198,9 +198,9 @@ func prepareExecutableSource(source, function, args string) string {
 
 	var executablesource string
 	if len(args) > 0 {
-		executablesource = fmt.Sprintf("var __contract = %s; var __instance = new __contract();__instance[\"%s\"].apply(__instance, JSON.parse(\"%s\"));", C.GoString(cmSource), function, formatArgs(args))
+		executablesource = fmt.Sprintf("var __contract = %s;\n var __instance = new __contract();\n __instance[\"%s\"].apply(__instance, JSON.parse(\"%s\"));\n", C.GoString(cmSource), function, formatArgs(args))
 	} else {
-		executablesource = fmt.Sprintf("var __contract = %s; var __instance = new __contract();__instance[\"%s\"].apply(__instance);", C.GoString(cmSource), function)
+		executablesource = fmt.Sprintf("var __contract = %s;\n var __instance = new __contract();\n __instance[\"%s\"].apply(__instance);\n", C.GoString(cmSource), function)
 	}
 
 	return executablesource

@@ -31,12 +31,13 @@ using namespace v8;
 static char source_require_begin[] = "(function(){"
                                      "var module = {};";
 
-static char source_require_end[] = ";if (module.exports) {"
-                                   " return module.exports;"
-                                   "} else if (exports) {"
-                                   " return exports;"
-                                   "}"
-                                   "})();";
+static char source_require_end[] = ";\n"
+                                   "if (module.exports) {\n"
+                                   " return module.exports;\n"
+                                   "} else if (exports) {\n"
+                                   " return exports;\n"
+                                   "}\n"
+                                   "})();\n";
 
 static char *getValidFilePath(const char *filename) {
   size_t len = strlen(filename);

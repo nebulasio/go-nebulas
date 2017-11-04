@@ -33,6 +33,8 @@ using namespace v8;
 
 static Platform *platformPtr = NULL;
 
+void PrintException(Local<Context> context, TryCatch &trycatch);
+
 void Initialize() {
   platformPtr = platform::CreateDefaultPlatform();
 
@@ -112,7 +114,8 @@ int RunScriptSource(V8Engine *e, const char *data, void *lcsHandler,
 
   // Setup execution env.
   if (SetupExecutionEnv(isolate, context)) {
-    logErrorf("setup execution env failed.");
+    // logErrorf("setup execution env failed.");
+    PrintException(context, trycatch);
     return 1;
   }
 
@@ -122,24 +125,21 @@ int RunScriptSource(V8Engine *e, const char *data, void *lcsHandler,
           .ToLocalChecked();
   // Compile the source code.
   ScriptOrigin sourceSrcOrigin(
-      String::NewFromUtf8(isolate, "contract_wrapper.js"));
+      String::NewFromUtf8(isolate, "_contract_runner.js"));
   MaybeLocal<Script> script =
       Script::Compile(context, source, &sourceSrcOrigin);
 
   if (script.IsEmpty()) {
-    Local<Value> exception = trycatch.Exception();
-    String::Utf8Value exception_str(exception);
-
-    logErrorf("compile error.");
+    // logErrorf("contract_wrapper.js: compilation fail.");
+    PrintException(context, trycatch);
     return 1;
   }
 
   // Run the script to get the result.
   MaybeLocal<Value> ret = script.ToLocalChecked()->Run(context);
   if (ret.IsEmpty()) {
-    Local<Value> exception = trycatch.Exception();
-    String::Utf8Value exception_str(exception);
-    logErrorf("error: %s", *exception_str);
+    // logErrorf("contract_wrapper.js: execution fail.");
+    PrintException(context, trycatch);
     return 1;
   }
 
@@ -147,4 +147,20 @@ int RunScriptSource(V8Engine *e, const char *data, void *lcsHandler,
   // String::Utf8Value s(ret_str);
   // logInfof("ret value: %s", *s);
   return 0;
+}
+
+void PrintException(Local<Context> context, TryCatch &trycatch) {
+  // get stack trace.
+  MaybeLocal<Value> stacktrace_ret = trycatch.StackTrace(context);
+
+  if (stacktrace_ret.IsEmpty()) {
+    // print exception only.
+    Local<Value> exception = trycatch.Exception();
+    String::Utf8Value exception_str(exception);
+    logErrorf("[V8 Exception] %s", *exception_str);
+  } else {
+    // print full stack trace.
+    String::Utf8Value stack_str(stacktrace_ret.ToLocalChecked());
+    logErrorf("[V8 Exception] %s", *stack_str);
+  }
 }
