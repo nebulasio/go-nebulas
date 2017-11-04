@@ -34,24 +34,30 @@ const char *GetLogLevelText(int level) {
 
 void InitializeLogger(LogFunc log) { LOG = log; }
 
-void logCallback(const FunctionCallbackInfo<Value> &info) {
+void NewNativeLogFunction(Isolate *isolate, Local<ObjectTemplate> globalTpl) {
+  globalTpl->Set(String::NewFromUtf8(isolate, "_native_log"),
+                 FunctionTemplate::New(isolate, LogCallback));
+}
+
+void LogCallback(const FunctionCallbackInfo<Value> &info) {
   Isolate *isolate = info.GetIsolate();
   if (info.Length() < 2) {
-    isolate->ThrowException(
-        String::NewFromUtf8(isolate, "native_log mssing params"));
+    isolate->ThrowException(Exception::Error(
+        String::NewFromUtf8(isolate, "_native_log: mssing params")));
     return;
   }
 
   Local<Value> level = info[0];
   if (!level->IsNumber()) {
-    isolate->ThrowException(
-        String::NewFromUtf8(isolate, "level must be number"));
+    isolate->ThrowException(Exception::Error(
+        String::NewFromUtf8(isolate, "_native_log: level must be number")));
     return;
   }
 
   Local<Value> msg = info[1];
   if (!msg->IsString()) {
-    isolate->ThrowException(String::NewFromUtf8(isolate, "msg must be string"));
+    isolate->ThrowException(Exception::Error(
+        String::NewFromUtf8(isolate, "_native_log: msg must be string")));
     return;
   }
 
@@ -63,7 +69,7 @@ void logCallback(const FunctionCallbackInfo<Value> &info) {
   LOG((level->ToInt32())->Int32Value(), *m);
 }
 
-void logInfof(const char *format, ...) {
+void LogInfof(const char *format, ...) {
   if (LOG == NULL) {
     return;
   }
@@ -79,7 +85,7 @@ void logInfof(const char *format, ...) {
   va_end(vl);
 }
 
-void logErrorf(const char *format, ...) {
+void LogErrorf(const char *format, ...) {
   if (LOG == NULL) {
     return;
   }

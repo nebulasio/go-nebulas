@@ -34,7 +34,8 @@ else
 	DYLIB=.so
 endif
 
-all: engine install
+.PHONY: engine main clean
+all: engine main
 
 %.c.o : %.c
 	$(CC) $(CFLAGS) -c $< -o $<.o
@@ -45,19 +46,12 @@ all: engine install
 %.cpp.o: %.cpp
 	$(CXX) $(CXXFLAGS) -c $< -o $<.o
 
-main: main.cc.o
-	$(LD) $(LDFLAGS) $(LIBS) $^ -o $@
-
-engine_test: engine.cc.o lib/execution_env.cc.o lib/storage_object.cc.o lib/log_callback.cc.o lib/require_callback.cc.o engine_test.cc.o
+main: main.cc.o engine.cc.o lib/execution_env.cc.o lib/storage_object.cc.o lib/log_callback.cc.o lib/require_callback.cc.o lib/memory_storage.cc.o
 	$(LD) $(LDFLAGS) $(LIBS) $^ -o $@
 
 engine: engine.cc.o lib/execution_env.cc.o lib/storage_object.cc.o lib/log_callback.cc.o lib/require_callback.cc.o
-	$(LD) $(LIB_LDFLAGS) $(LDFLAGS) $(LIBS) $^ -o libv8$@$(DYLIB)
-
-install:
-	mkdir -p ../native-lib/
-	install libv8engine$(DYLIB) ../native-lib/
+	$(LD) $(LIB_LDFLAGS) $(LDFLAGS) $(LIBS) $^ -o ../native-lib/libv8$@$(DYLIB)
 
 clean:
 	-find . -iname '*.o' -exec rm {} \;
-	-rm -f engine_test libv8engine.*;
+	-rm -f main ../native-lib/libv8engine$(DYLIB);

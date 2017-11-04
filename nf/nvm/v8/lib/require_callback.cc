@@ -67,14 +67,14 @@ static int readSource(const char *filename, char **data, size_t *size) {
   // logInfof("fullpath is %s/%s", cwd, path);
 
   FILE *f = fopen(path, "r");
-  if (f == NULL) {
-    logErrorf("file %s does not found.", filename);
-    free(path);
-    return 1;
-  }
   free(path);
 
-  *size = 10 * 1024 * 1024;
+  if (f == NULL) {
+    // logErrorf("file %s does not found.", filename);
+    return 1;
+  }
+
+  *size = 1024;
   *data = (char *)malloc(*size);
   size_t idx = 0;
 
@@ -84,15 +84,16 @@ static int readSource(const char *filename, char **data, size_t *size) {
   size_t len = 0;
   while ((len = fread(*data + idx, sizeof(char), *size - idx, f)) > 0) {
     idx += len;
-    if (*size - idx < 128) {
+    if (*size - idx <= 1) {
       *size *= 2;
       *data = (char *)realloc(*data, *size);
     }
   }
+  *(*data + idx) = '\0';
 
   if (feof(f) == 0) {
     free(static_cast<void *>(*data));
-    logErrorf("read file %s error.", filename);
+    // logErrorf("read file %s error.", filename);
     return 1;
   }
 
@@ -100,7 +101,7 @@ static int readSource(const char *filename, char **data, size_t *size) {
 
   size_t source_end_len = strlen(source_require_end);
   if (*size - idx < source_end_len) {
-    *size = idx + source_end_len + 1;
+    *size = idx + source_end_len;
     *data = (char *)realloc(*data, *size);
   }
   idx += sprintf(*data + idx, "%s", source_require_end);
@@ -108,20 +109,26 @@ static int readSource(const char *filename, char **data, size_t *size) {
   return 0;
 }
 
-void requireCallback(const v8::FunctionCallbackInfo<v8::Value> &info) {
+void NewNativeRequireFunction(Isolate *isolate,
+                              Local<ObjectTemplate> globalTpl) {
+  globalTpl->Set(String::NewFromUtf8(isolate, "_native_require"),
+                 FunctionTemplate::New(isolate, RequireCallback));
+}
+
+void RequireCallback(const v8::FunctionCallbackInfo<v8::Value> &info) {
   // logErrorf("require called.");
   Isolate *isolate = info.GetIsolate();
 
   if (info.Length() == 0) {
     isolate->ThrowException(
-        String::NewFromUtf8(isolate, "require missing path"));
+        Exception::Error(String::NewFromUtf8(isolate, "require missing path")));
     return;
   }
 
   Local<Value> path = info[0];
   if (!path->IsString()) {
-    isolate->ThrowException(
-        String::NewFromUtf8(isolate, "require path must be string"));
+    isolate->ThrowException(Exception::Error(
+        String::NewFromUtf8(isolate, "require path must be string")));
     return;
   }
 
@@ -129,29 +136,31 @@ void requireCallback(const v8::FunctionCallbackInfo<v8::Value> &info) {
   char *data = NULL;
   size_t size = 0;
   if (readSource(*filename, &data, &size)) {
-    char msg[1024];
-    snprintf(msg, 1024, "read content of path error. %s", *filename);
-    isolate->ThrowException(String::NewFromUtf8(isolate, msg));
+    char msg[512];
+    snprintf(msg, 512, "require cannot find module '%s'", *filename);
+    isolate->ThrowException(
+        Exception::Error(String::NewFromUtf8(isolate, msg)));
     return;
   }
 
   // logErrorf("source is: %s", data);
-  ScriptOrigin sourceSrcOrigin(path);
   Local<Context> context = isolate->GetCurrentContext();
-  Local<Script> script =
-      Script::Compile(context, String::NewFromUtf8(isolate, data),
-                      &sourceSrcOrigin)
-          .ToLocalChecked();
-  MaybeLocal<Value> ret = script->Run(context);
-  if (!ret.IsEmpty()) {
-    Local<Value> rr = ret.ToLocalChecked();
-    info.GetReturnValue().Set(rr);
+
+  ScriptOrigin sourceSrcOrigin(path);
+  MaybeLocal<Script> script = Script::Compile(
+      context, String::NewFromUtf8(isolate, data), &sourceSrcOrigin);
+  if (!script.IsEmpty()) {
+    MaybeLocal<Value> ret = script.ToLocalChecked()->Run(context);
+    if (!ret.IsEmpty()) {
+      Local<Value> rr = ret.ToLocalChecked();
+      info.GetReturnValue().Set(rr);
+    }
   }
 
   free(static_cast<void *>(data));
 }
 
-char *encapsulateSourceToModuleStyle(const char *source) {
+char *EncapsulateSourceToModuleStyle(const char *source) {
   size_t size = strlen(source) + strlen(source_require_begin) +
                 strlen(source_require_end) + 1;
   char *data = (char *)malloc(size);

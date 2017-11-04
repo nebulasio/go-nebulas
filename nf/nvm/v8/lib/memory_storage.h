@@ -17,19 +17,14 @@
 // <http://www.gnu.org/licenses/>.
 //
 
-#ifndef _NEBULAS_NF_NVM_V8_LIB_LOG_CALLBACK_H_
-#define _NEBULAS_NF_NVM_V8_LIB_LOG_CALLBACK_H_
+#ifndef _NEBULAS_NF_NVM_V8_LIB_MEMORY_STORAGE_H_
+#define _NEBULAS_NF_NVM_V8_LIB_MEMORY_STORAGE_H_
 
-#include "../engine.h"
+void *CreateStorageHandler();
+void DeleteStorageHandler(void *handler);
 
-#include <v8.h>
+char *StorageGet(void *handler, const char *key);
+int StoragePut(void *handler, const char *key, const char *value);
+int StorageDel(void *handler, const char *key);
 
-using namespace v8;
-
-void NewNativeLogFunction(Isolate *isolate, Local<ObjectTemplate> globalTpl);
-void LogCallback(const FunctionCallbackInfo<Value> &info);
-
-void LogInfof(const char *format, ...);
-void LogErrorf(const char *format, ...);
-
-#endif // _NEBULAS_NF_NVM_V8_LIB_LOG_CALLBACK_H_
+#endif // _NEBULAS_NF_NVM_V8_LIB_MEMORY_STORAGE_H_

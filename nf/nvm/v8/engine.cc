@@ -92,10 +92,8 @@ int RunScriptSource(V8Engine *e, const char *data, void *lcsHandler,
 
   // Create global object template.
   Local<ObjectTemplate> globalTpl = ObjectTemplate::New(isolate);
-  globalTpl->Set(String::NewFromUtf8(isolate, "_native_require"),
-                 FunctionTemplate::New(isolate, requireCallback));
-  globalTpl->Set(String::NewFromUtf8(isolate, "_native_log"),
-                 FunctionTemplate::New(isolate, logCallback));
+  NewNativeRequireFunction(isolate, globalTpl);
+  NewNativeLogFunction(isolate, globalTpl);
   NewStorageType(isolate, globalTpl);
 
   // Create a new context.
@@ -157,10 +155,10 @@ void PrintException(Local<Context> context, TryCatch &trycatch) {
     // print exception only.
     Local<Value> exception = trycatch.Exception();
     String::Utf8Value exception_str(exception);
-    logErrorf("[V8 Exception] %s", *exception_str);
+    LogErrorf("[V8 Exception] %s", *exception_str);
   } else {
     // print full stack trace.
     String::Utf8Value stack_str(stacktrace_ret.ToLocalChecked());
-    logErrorf("[V8 Exception] %s", *stack_str);
+    LogErrorf("[V8 Exception] %s", *stack_str);
   }
 }

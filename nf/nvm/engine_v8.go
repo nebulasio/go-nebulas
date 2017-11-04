@@ -193,7 +193,7 @@ func prepareExecutableSource(source, function, args string) string {
 	cSource := C.CString(source)
 	defer C.free(unsafe.Pointer(cSource))
 
-	cmSource := C.encapsulateSourceToModuleStyle(cSource)
+	cmSource := C.EncapsulateSourceToModuleStyle(cSource)
 	defer C.free(unsafe.Pointer(cmSource))
 
 	var executablesource string

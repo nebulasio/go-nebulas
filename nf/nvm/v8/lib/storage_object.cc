@@ -24,6 +24,28 @@ static StorageGetFunc GET = NULL;
 static StoragePutFunc PUT = NULL;
 static StorageDelFunc DEL = NULL;
 
+void NewStorageObject(Isolate *isolate, Local<Context> context,
+                      void *lcsHandler, void *gcsHandler) {
+  Local<ObjectTemplate> storageHandlerTpl = ObjectTemplate::New(isolate);
+  Local<Object> handlers =
+      storageHandlerTpl->NewInstance(context).ToLocalChecked();
+
+  handlers->Set(context, String::NewFromUtf8(isolate, "lcs"),
+                External::New(isolate, lcsHandler));
+  handlers->Set(context, String::NewFromUtf8(isolate, "gcs"),
+                External::New(isolate, gcsHandler));
+
+  context->Global()->Set(
+      String::NewFromUtf8(isolate, "_native_storage_handlers"), handlers);
+}
+
+void InitializeStorage(StorageGetFunc get, StoragePutFunc put,
+                       StorageDelFunc del) {
+  GET = get;
+  PUT = put;
+  DEL = del;
+}
+
 void NewStorageType(Isolate *isolate, Local<ObjectTemplate> globalTpl) {
   Local<FunctionTemplate> type =
       FunctionTemplate::New(isolate, StorageConstructor);
@@ -140,26 +162,4 @@ void StorageDelCallback(const FunctionCallbackInfo<Value> &info) {
 
   int ret = DEL(handler->Value(), *String::Utf8Value(key->ToString()));
   info.GetReturnValue().Set(ret);
-}
-
-void NewStorageObject(Isolate *isolate, Local<Context> context,
-                      void *lcsHandler, void *gcsHandler) {
-  Local<ObjectTemplate> storageHandlerTpl = ObjectTemplate::New(isolate);
-  Local<Object> handlers =
-      storageHandlerTpl->NewInstance(context).ToLocalChecked();
-
-  handlers->Set(context, String::NewFromUtf8(isolate, "lcs"),
-                External::New(isolate, lcsHandler));
-  handlers->Set(context, String::NewFromUtf8(isolate, "gcs"),
-                External::New(isolate, gcsHandler));
-
-  context->Global()->Set(
-      String::NewFromUtf8(isolate, "_native_storage_handlers"), handlers);
-}
-
-void InitializeStorage(StorageGetFunc get, StoragePutFunc put,
-                       StorageDelFunc del) {
-  GET = get;
-  PUT = put;
-  DEL = del;
 }

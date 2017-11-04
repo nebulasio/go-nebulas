@@ -21,6 +21,10 @@
 
 #include <v8.h>
 
-void requireCallback(const v8::FunctionCallbackInfo<v8::Value> &info);
+using namespace v8;
+
+void NewNativeRequireFunction(Isolate *isolate,
+                              Local<ObjectTemplate> globalTpl);
+void RequireCallback(const v8::FunctionCallbackInfo<v8::Value> &info);
 
 #endif // _NEBULAS_NF_NVM_V8_LIB_REQUIRE_CALLBACK_H_

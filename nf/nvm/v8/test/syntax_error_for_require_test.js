@@ -16,30 +16,4 @@
 // along with the go-nebulas library.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-// 0. NVM prepare.
-const msg = {
-    sender: "robin",
-    block: {
-        number: 102
-    }
-};
-const NebulasToken = require('./contract.js');
-var instance = new NebulasToken();
-
-// 1. deploy
-instance.init(1000);
-console.log("totalSupply = " + token.totalSupply());
-
-// 2. pay.
-token.pay(500);
-console.log("robin.balance = " + token.balanceOf(msg.sender));
-console.log("totalIssued = " + token._totalIssued);
-
-// 3. transfer.
-token.transfer("hitters", 200);
-console.log("robin.balance = " + token.balanceOf(msg.sender));
-console.log("hitters.balance = " + token.balanceOf("hitters"));
-
-// debug.
-console.log("dump:");
-console.log("token.balances = " + JSON.stringify(token._balances));
+The SyntaxError object represents an error when trying to interpret syntactically invalid code.
