@@ -52,7 +52,12 @@ void readSource(const char *filename, char **data, size_t *size) {
     return;
   }
 
-  *size = 1024;
+  // get file size.
+  fseek(f, 0L, SEEK_END);
+  size_t fileSize = ftell(f);
+  rewind(f);
+
+  *size = fileSize + 1;
   *data = (char *)malloc(*size);
 
   size_t len = 0;

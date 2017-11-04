@@ -74,7 +74,12 @@ static int readSource(const char *filename, char **data, size_t *size) {
     return 1;
   }
 
-  *size = 1024;
+  // get file size.
+  fseek(f, 0L, SEEK_END);
+  size_t fileSize = ftell(f);
+  rewind(f);
+
+  *size = fileSize + 1024; // 1m buffer by default.
   *data = (char *)malloc(*size);
   size_t idx = 0;
 
@@ -101,7 +106,7 @@ static int readSource(const char *filename, char **data, size_t *size) {
 
   size_t source_end_len = strlen(source_require_end);
   if (*size - idx < source_end_len) {
-    *size = idx + source_end_len;
+    *size = idx + source_end_len + 1;
     *data = (char *)realloc(*data, *size);
   }
   idx += sprintf(*data + idx, "%s", source_require_end);
