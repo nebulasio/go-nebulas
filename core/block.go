@@ -455,7 +455,7 @@ func (block *Block) FindAccount(address *Address) *Account {
 	return acc
 }
 
-// FindAccount return account info in state Trie
+// FindOrCreateAccount return account info in state Trie
 // if not found, create one and return it.
 func (block *Block) FindOrCreateAccount(address *Address) (account *Account, created bool) {
 	accBytes, err := block.stateTrie.Get(address.address)
@@ -468,10 +468,10 @@ func (block *Block) FindOrCreateAccount(address *Address) (account *Account, cre
 	if err := proto.Unmarshal(accBytes, pbAcc); err != nil {
 		panic("invalid account:" + err.Error())
 	}
+	acc.storage = block.storage
 	if err := acc.FromProto(pbAcc); err != nil {
 		panic("invalid account:" + err.Error())
 	}
-	acc.storage = block.storage
 	return acc, false
 }
 
