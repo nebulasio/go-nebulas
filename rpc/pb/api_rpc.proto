@@ -63,14 +63,6 @@ service APIService {
         };
 	}
 
-	// Call a contract.
-//	rpc Call (SendTransactionRequest) returns (SendTransactionResponse) {
-//		option (google.api.http) = {
-//            post: "/v1/call"
-//            body: "*"
-//        };
-//	}
-
 	// Submit the signed transaction.
 	rpc SendRawTransaction (SendRawTransactionRequest) returns (SendTransactionResponse) {
 	}

@@ -24,8 +24,10 @@ import (
 	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/core"
 	corepb "github.com/nebulasio/go-nebulas/core/pb"
+	"github.com/nebulasio/go-nebulas/crypto/hash"
 	"github.com/nebulasio/go-nebulas/rpc/pb"
 	"github.com/nebulasio/go-nebulas/util"
+	"github.com/nebulasio/go-nebulas/util/byteutils"
 	"golang.org/x/net/context"
 )
 
@@ -85,13 +87,6 @@ func (s *APIService) GetAccountState(ctx context.Context, req *rpcpb.GetAccountS
 // SendTransaction is the RPC API handler.
 func (s *APIService) SendTransaction(ctx context.Context, req *rpcpb.SendTransactionRequest) (*rpcpb.SendTransactionResponse, error) {
 	neb := s.server.Neblet()
-	// source, err := ioutil.ReadFile("/Users/leon/go/src/github.com/nebulasio/go-nebulas/nf/nvm/test/sample_contract.js")
-	// if err != nil {
-
-	// }
-	// args := "[\"TEST001\", 123,[{\"name\":\"robin\",\"count\":2},{\"name\":\"roy\",\"count\":3},{\"name\":\"leon\",\"count\":4}]]"
-
-	// data, err := core.NewDeploySCPayload(string(source), args)
 
 	var data []byte
 	var err error
@@ -120,7 +115,9 @@ func (s *APIService) SendTransaction(ctx context.Context, req *rpcpb.SendTransac
 		return nil, err
 	}
 
-	return &rpcpb.SendTransactionResponse{Hash: tx.Hash().String()}, nil
+	address, _ := core.NewContractAddressFromHash(hash.Sha3256(tx.From().Bytes(), byteutils.FromUint64(tx.Nonce())))
+
+	return &rpcpb.SendTransactionResponse{Hash: address.ToHex() + "$" + tx.Hash().String()}, nil
 }
 
 func parseTransaction(neb Neblet, from, to string, v []byte, nonce uint64, data []byte) (*core.Transaction, error) {

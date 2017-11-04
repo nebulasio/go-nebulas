@@ -58,6 +58,7 @@ func (payload *txPayload) Execute(tx *Transaction, block *Block) error {
 	contractAccount, created := block.FindOrCreateAccount(contractAddress)
 	if created == true {
 		contractAccount.SetContractTransactionHash(tx.Hash())
+		contractAccount.SetContractOwner(tx.from)
 	}
 
 	// stateTrie are managed by block, don't need to rollback in tx

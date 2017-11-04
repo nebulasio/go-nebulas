@@ -82,6 +82,11 @@ func (acc *Account) SetContractTransactionHash(code []byte) {
 	acc.ContractTransactionHash = code
 }
 
+// SetContractOwner with a address
+func (acc *Account) SetContractOwner(address *Address) {
+	acc.ContractOwner = address
+}
+
 // ToProto converts domain Account to proto Account
 func (acc *Account) ToProto() (proto.Message, error) {
 	value, err := acc.UserBalance.ToFixedSizeByteSlice()
