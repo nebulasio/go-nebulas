@@ -35,7 +35,7 @@ else
 endif
 
 .PHONY: engine main clean
-all: engine main
+all: main
 
 %.c.o : %.c
 	$(CC) $(CFLAGS) -c $< -o $<.o
@@ -50,8 +50,12 @@ main: main.cc.o engine.cc.o lib/execution_env.cc.o lib/storage_object.cc.o lib/l
 	$(LD) $(LDFLAGS) $(LIBS) $^ -o $@
 
 engine: engine.cc.o lib/execution_env.cc.o lib/storage_object.cc.o lib/log_callback.cc.o lib/require_callback.cc.o
-	$(LD) $(LIB_LDFLAGS) $(LDFLAGS) $(LIBS) $^ -o ../native-lib/libv8$@$(DYLIB)
+	$(LD) $(LIB_LDFLAGS) $(LDFLAGS) $(LIBS) $^ -o libv8$@$(DYLIB)
+
+install: engine
+	-mkdir -p ../native-lib
+	-install libv8engine$(DYLIB) ../native-lib/
 
 clean:
 	-find . -iname '*.o' -exec rm {} \;
-	-rm -f main ../native-lib/libv8engine$(DYLIB);
+	-rm -f main libv8engine$(DYLIB);

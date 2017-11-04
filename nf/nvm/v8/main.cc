@@ -21,22 +21,26 @@
 #include "lib/log_callback.h"
 #include "lib/memory_storage.h"
 
+#include <thread>
+#include <vector>
+
 #include <stdio.h>
 #include <stdlib.h>
 
-static void *lcsHandler = NULL;
-static void *gcsHandler = NULL;
-
 void logFunc(int level, const char *msg) {
+  std::thread::id tid = std::this_thread::get_id();
+  std::hash<std::thread::id> hasher;
+
   FILE *f = stdout;
   if (level >= LogLevel::ERROR) {
     f = stderr;
   }
-  fprintf(f, "[%s] %s\n", GetLogLevelText(level), msg);
+  fprintf(f, "[tid-%020zu] [%s] %s\n", hasher(tid), GetLogLevelText(level),
+          msg);
 }
 
 void help(const char *name) {
-  printf("%s [Javascript File] [Args...]\n", name);
+  printf("%s [-c <concurrency>] <Javascript File>\n", name);
   exit(1);
 }
 
@@ -70,30 +74,63 @@ void readSource(const char *filename, char **data, size_t *size) {
   fclose(f);
 }
 
+void run(const char *data) {
+  void *lcsHandler = CreateStorageHandler();
+  void *gcsHandler = CreateStorageHandler();
+
+  V8Engine *e = CreateEngine();
+  RunScriptSource2(e, data, (uintptr_t)lcsHandler, (uintptr_t)gcsHandler);
+  DeleteEngine(e);
+
+  DeleteStorageHandler(lcsHandler);
+  DeleteStorageHandler(gcsHandler);
+}
+
 int main(int argc, const char *argv[]) {
   if (argc < 2) {
     help(argv[0]);
   }
 
-  const char *filename = argv[1];
+  int argcIdx = 1;
+
+  int concurrency = 1;
+
+  if (strcmp(argv[1], "-c") == 0) {
+    if (argc < 4) {
+      help(argv[0]);
+    }
+
+    concurrency = atoi(argv[2]);
+    if (concurrency <= 0) {
+      fprintf(stderr, "concurrency can't less than 0, set to 1.\n");
+      concurrency = 1;
+    }
+    argcIdx += 2;
+  }
+
+  const char *filename = argv[argcIdx];
   char *data = NULL;
   size_t size = 0;
   readSource(filename, &data, &size);
 
   // temp set handler pointer.
-  lcsHandler = (void *)filename;
-  gcsHandler = (void *)data;
 
   Initialize();
   InitializeLogger(logFunc);
   InitializeStorage(StorageGet, StoragePut, StorageDel);
 
-  V8Engine *e = CreateEngine();
-  int ret = RunScriptSource(e, data, lcsHandler, gcsHandler);
-  DeleteEngine(e);
+  std::vector<std::thread *> threads;
+  for (int i = 0; i < concurrency; i++) {
+    std::thread *thread = new std::thread(run, data);
+    threads.push_back(thread);
+  }
+
+  for (int i = 0; i < concurrency; i++) {
+    threads[i]->join();
+  }
 
   Dispose();
   free(data);
 
-  return ret;
+  return 0;
 }
