@@ -101,6 +101,10 @@ func (acc *Account) ToProto() (proto.Message, error) {
 // FromProto converts proto Account to domain Account
 func (acc *Account) FromProto(msg proto.Message) error {
 	if msg, ok := msg.(*corepb.Account); ok {
+		if acc.storage == nil {
+			return errors.New("account's storage cannot be nil before FromProto")
+		}
+
 		value, err := util.NewUint128FromFixedSizeByteSlice(msg.UserBalance)
 		if err != nil {
 			return err

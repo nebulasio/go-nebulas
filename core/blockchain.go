@@ -323,6 +323,7 @@ func (bc *BlockChain) loadBlockFromStorage(hash Hash) (*Block, error) {
 	if err != nil {
 		return nil, err
 	}
+	block.storage = bc.storage
 	return block, nil
 }
 

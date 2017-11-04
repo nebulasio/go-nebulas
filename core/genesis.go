@@ -40,6 +40,7 @@ func NewGenesisBlock(chainID uint32, storage storage.Storage) *Block {
 		},
 		stateTrie: stateTrie,
 		txsTrie:   txsTrie,
+		storage:   storage,
 		height:    1,
 		sealed:    true,
 	}
