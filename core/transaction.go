@@ -175,8 +175,10 @@ func (tx *Transaction) Execute(block *Block) error {
 	}
 
 	// accept the transaction
-	fromAcc.SubBalance(tx.value)
-	toAcc.AddBalance(tx.value)
+	if !tx.from.Equals(tx.to) {
+		fromAcc.SubBalance(tx.value)
+		toAcc.AddBalance(tx.value)
+	}
 	fromAcc.IncreNonce()
 
 	// execute smart contract if needed.
@@ -192,8 +194,8 @@ func (tx *Transaction) Execute(block *Block) error {
 	}
 
 	// save account info in state trie
-	block.saveAccount(tx.from, fromAcc)
 	block.saveAccount(tx.to, toAcc)
+	block.saveAccount(tx.from, fromAcc)
 
 	return nil
 }

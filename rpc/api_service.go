@@ -20,7 +20,7 @@ package rpc
 
 import (
 	"errors"
-	"io/ioutil"
+	/* "io/ioutil" */
 
 	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/core"
@@ -88,18 +88,18 @@ func (s *APIService) SendTransaction(ctx context.Context, req *rpcpb.SendTransac
 	// Validate and sign the tx, then submit it to the tx pool.
 	neb := s.server.Neblet()
 
-	source, err := ioutil.ReadFile("/Users/leon/go/src/github.com/nebulasio/go-nebulas/nf/nvm/test/sample_contract.js")
-	if err != nil {
+	/* 	source, err := ioutil.ReadFile("/Users/leon/go/src/github.com/nebulasio/go-nebulas/nf/nvm/test/sample_contract.js")
+	   	if err != nil {
 
-	}
-	args := "[\"TEST001\", 123,[{\"name\":\"robin\",\"count\":2},{\"name\":\"roy\",\"count\":3},{\"name\":\"leon\",\"count\":4}]]"
+	   	}
+	   	args := "[\"TEST001\", 123,[{\"name\":\"robin\",\"count\":2},{\"name\":\"roy\",\"count\":3},{\"name\":\"leon\",\"count\":4}]]"
 
-	data, err := core.NewDeploySCPayload(string(source), args)
-	if err != nil {
-		return nil, err
-	}
-
-	tx, err := parseTransaction(neb, req.From, req.To, req.Value, req.Nonce, data)
+	   	data, err := core.NewDeploySCPayload(string(source), args)
+	   	if err != nil {
+	   		return nil, err
+	   	}
+	*/
+	tx, err := parseTransaction(neb, req.From, req.To, req.Value, req.Nonce, nil)
 	if err != nil {
 		return nil, err
 	}
