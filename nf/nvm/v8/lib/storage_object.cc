@@ -27,7 +27,7 @@ static StorageDelFunc DEL = NULL;
 void NewStorageType(Isolate *isolate, Local<ObjectTemplate> globalTpl) {
   Local<FunctionTemplate> type =
       FunctionTemplate::New(isolate, StorageConstructor);
-  Local<String> className = String::NewFromUtf8(isolate, "Storage");
+  Local<String> className = String::NewFromUtf8(isolate, "NativeStorage");
   type->SetClassName(className);
 
   Local<ObjectTemplate> instanceTpl = type->InstanceTemplate();
@@ -57,7 +57,8 @@ void StorageConstructor(const FunctionCallbackInfo<Value> &info) {
   Local<Value> handler = info[0];
   if (!handler->IsExternal()) {
     isolate->ThrowException(String::NewFromUtf8(
-        isolate, "Storage constructor requires a member of _storage_handlers"));
+        isolate,
+        "Storage constructor requires a member of _native_storage_handlers"));
     return;
   }
 
@@ -152,8 +153,8 @@ void NewStorageObject(Isolate *isolate, Local<Context> context,
   handlers->Set(context, String::NewFromUtf8(isolate, "gcs"),
                 External::New(isolate, gcsHandler));
 
-  context->Global()->Set(String::NewFromUtf8(isolate, "_storage_handlers"),
-                         handlers);
+  context->Global()->Set(
+      String::NewFromUtf8(isolate, "_native_storage_handlers"), handlers);
 }
 
 void InitializeStorage(StorageGetFunc get, StoragePutFunc put,

@@ -16,46 +16,57 @@
 // along with the go-nebulas library.  If not, see <http://www.gnu.org/licenses/>.
 //
 'use strict';
-if (typeof Storage === "undefined") {
-    throw new Error("Storage is undefined.");
+if (typeof NativeStorage === "undefined") {
+    throw new Error("NativeStorage is undefined.");
 }
-if (typeof Storage !== "function") {
-    throw new Error("Storage is not a function.");
+if (typeof NativeStorage !== "function") {
+    throw new Error("NativeStorage is not a function.");
 }
 
 try {
-    new Storage({});
-    throw new Error("Storage should accept _storage_handlers member only.");
+    new NativeStorage({});
+    throw new Error("NativeStorage should accept _storage_handlers member only.");
 } catch (e) {
     // pass.
 }
 
-[_storage_handlers.lcs, _storage_handlers.gcs].forEach(function (handler) {
-    var stor = new Storage(handler);
+[_native_storage_handlers.lcs, _native_storage_handlers.gcs].forEach(function (handler) {
+    var stor = new NativeStorage(handler);
     if (stor.get("non-exist-key") !== null) {
         throw new Error("get non-exist-key should return null.");
     }
 
     var v1 = 'now is ' + new Date();
-    stor.put('k1', v1);
+    if (stor.put('k1', v1) != 0) {
+        throw new Error("put k1 failed.");
+    }
+
     if (stor.get('k1') !== v1) {
         throw new Error("key k1 should return string [" + v1 + "].")
     }
 
-    stor.del('k1');
+    if (stor.del('k1') != 0) {
+        throw new Error("del k1 failed.");
+    }
+
     if (stor.get('k1') !== null) {
         throw new Error("key k1 should not exist, return null when get.")
     }
 
-    stor.del('k2');
+    if (stor.del('k2') != 0) {
+        throw new Error("del k2 failed.");
+    }
 
     [123, {}, function () {}, undefined].forEach(function (v) {
         var err = new Error('value of put should be string, not support ' + typeof v);
+        var err1 = new Error("put k3 failed.");
         try {
-            stor.put('k3', v);
+            if (stor.put('k3', v) != 0) {
+                throw err1;
+            }
             throw err;
         } catch (e) {
-            if (e == err) {
+            if (e == err || e == err1) {
                 throw e;
             }
         }

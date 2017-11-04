@@ -25,6 +25,10 @@ import (
 	"github.com/nebulasio/go-nebulas/util/byteutils"
 )
 
+var (
+	ErrKeyNotFound = errors.New("not found")
+)
+
 // MemoryStorage the nodes in trie.
 type MemoryStorage struct {
 	data *sync.Map
@@ -42,7 +46,7 @@ func (db *MemoryStorage) Get(key []byte) ([]byte, error) {
 	if entry, ok := db.data.Load(byteutils.Hex(key)); ok {
 		return entry.([]byte), nil
 	}
-	return nil, errors.New("not found")
+	return nil, ErrKeyNotFound
 }
 
 // Put put the key-value entry to Storage

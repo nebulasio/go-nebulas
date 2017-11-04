@@ -54,7 +54,7 @@ func (t *Trie) Prove(key []byte) (MerkleProof, error) {
 			next := rootNode.Val[2]
 			matchLen := prefixLen(path, curRoute)
 			if matchLen != len(path) {
-				return nil, errors.New("not found")
+				return nil, ErrNotFound
 			}
 			proof = append(proof, rootNode.Val)
 			curRootHash = next
@@ -63,15 +63,15 @@ func (t *Trie) Prove(key []byte) (MerkleProof, error) {
 			path := rootNode.Val[1]
 			matchLen := prefixLen(path, curRoute)
 			if matchLen != len(path) {
-				return nil, errors.New("not found")
+				return nil, ErrNotFound
 			}
 			proof = append(proof, rootNode.Val)
 			return proof, nil
 		default:
-			return nil, errors.New("not found")
+			return nil, ErrNotFound
 		}
 	}
-	return nil, errors.New("not found")
+	return nil, ErrNotFound
 }
 
 // Verify whether the merkle proof from root to the associated node is right

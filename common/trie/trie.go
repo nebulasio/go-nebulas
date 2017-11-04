@@ -37,6 +37,10 @@ const (
 	branch
 )
 
+var (
+	ErrNotFound = storage.ErrKeyNotFound
+)
+
 // Node in trie, three kinds,
 // Branch Node [hash_0, hash_1, ..., hash_f]
 // Extension Node [flag, encodedPath, next hash]
@@ -167,7 +171,7 @@ func (t *Trie) get(rootHash []byte, route []byte) ([]byte, error) {
 			next := rootNode.Val[2]
 			matchLen := prefixLen(path, curRoute)
 			if matchLen != len(path) {
-				return nil, errors.New("not found")
+				return nil, ErrNotFound
 			}
 			curRootHash = next
 			curRoute = curRoute[matchLen:]
@@ -176,14 +180,14 @@ func (t *Trie) get(rootHash []byte, route []byte) ([]byte, error) {
 			path := rootNode.Val[1]
 			matchLen := prefixLen(path, curRoute)
 			if matchLen != len(path) || matchLen != len(curRoute) {
-				return nil, errors.New("not found")
+				return nil, ErrNotFound
 			}
 			return rootNode.Val[2], nil
 		default:
 			return nil, errors.New("unknown node type")
 		}
 	}
-	return nil, errors.New("not found")
+	return nil, ErrNotFound
 }
 
 // Put the key-value pair in trie
@@ -376,7 +380,7 @@ func (t *Trie) Del(key []byte) ([]byte, error) {
 
 func (t *Trie) del(root []byte, route []byte) ([]byte, error) {
 	if root == nil || len(root) == 0 {
-		return nil, errors.New("not found")
+		return nil, ErrNotFound
 	}
 	// fetch sub-trie root node
 	rootNode, err := t.fetchNode(root)
@@ -407,7 +411,7 @@ func (t *Trie) del(root []byte, route []byte) ([]byte, error) {
 		next := rootNode.Val[2]
 		matchLen := prefixLen(path, route)
 		if matchLen != len(path) {
-			return nil, errors.New("not found")
+			return nil, ErrNotFound
 		}
 		newHash, err := t.del(next, route[matchLen:])
 		if err != nil {
@@ -426,7 +430,7 @@ func (t *Trie) del(root []byte, route []byte) ([]byte, error) {
 		path := rootNode.Val[1]
 		matchLen := prefixLen(path, route)
 		if matchLen != len(path) {
-			return nil, errors.New("not found")
+			return nil, ErrNotFound
 		}
 		return nil, nil
 	default:

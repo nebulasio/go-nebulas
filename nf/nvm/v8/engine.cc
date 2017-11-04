@@ -124,6 +124,9 @@ int RunScriptSource(V8Engine *e, const char *data, void *lcsHandler,
   MaybeLocal<Script> script = Script::Compile(context, source);
 
   if (script.IsEmpty()) {
+    Local<Value> exception = trycatch.Exception();
+    String::Utf8Value exception_str(exception);
+
     logErrorf("compile error.");
     return 1;
   }

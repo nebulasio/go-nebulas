@@ -22,7 +22,9 @@ var StandardToken = require('./test/ERC20.js');
 var token = new StandardToken();
 
 // init.
+console.log('test: init...');
 var assertInitStatus = function (instance) {
+    console.log('test: verify init...');
     if (instance.name !== "Nebulas") {
         throw new Error("name should be Nebulas, but is " + instance.name);
     }
@@ -44,10 +46,12 @@ assertInitStatus(token);
 assertInitStatus(new StandardToken()); // assert status for new instance.
 
 // balance.
+console.log('test: pay...');
 var msg = {
     sender: 'robin'
 };
 var assertAfterPayStatus = function (instance) {
+    console.log('test: verify pay...');
     if (instance.totalIssued !== 12) {
         throw new Error("totalIssued should be 12, but is " + instance.totalIssued);
     }
@@ -60,6 +64,7 @@ token.pay(12);
 assertAfterPayStatus(token);
 assertAfterPayStatus(new StandardToken()); // assert status for new instance.
 
+console.log('test: pay exceed error...');
 var err = new Error("exceed amount should throw exception, but not");
 try {
     token.pay(999989);

@@ -79,11 +79,11 @@ var applyFieldDescriptor = function (obj, fieldName, descriptor) {
 };
 
 var ContractStorage = function (handler) {
-    this.storage = new Storage(handler);
+    this.nativeStorage = new NativeStorage(handler);
 };
 
-var StorageMap = function (storage, fieldName, descriptor) {
-    if (!storage instanceof ContractStorage) {
+var StorageMap = function (contractStorage, fieldName, descriptor) {
+    if (!contractStorage instanceof ContractStorage) {
         throw new Error("StorageMap only accept instance of ContractStorage");
     }
 
@@ -91,11 +91,11 @@ var StorageMap = function (storage, fieldName, descriptor) {
         throw new Error("StorageMap fieldName must starts with [a-zA-Z_]");
     }
 
-    Object.defineProperty(this, "storage", {
+    Object.defineProperty(this, "contractStorage", {
         configurable: false,
         enumerable: false,
         get: function () {
-            return storage;
+            return contractStorage;
         }
     });
     Object.defineProperty(this, "fieldName", {
@@ -112,10 +112,10 @@ var StorageMap = function (storage, fieldName, descriptor) {
 
 StorageMap.prototype = {
     del: function (key) {
-        return this.storage.del(combineStorageMapKey(this.fieldName, key));
+        return this.contractStorage.del(combineStorageMapKey(this.fieldName, key));
     },
     get: function (key) {
-        var val = this.storage.rawGet(combineStorageMapKey(this.fieldName, key));
+        var val = this.contractStorage.rawGet(combineStorageMapKey(this.fieldName, key));
         if (val != null) {
             val = this.parse(val);
         }
@@ -123,7 +123,7 @@ StorageMap.prototype = {
     },
     set: function (key, value) {
         var val = this.stringify(value);
-        return this.storage.rawSet(combineStorageMapKey(this.fieldName, key), val);
+        return this.contractStorage.rawSet(combineStorageMapKey(this.fieldName, key), val);
     }
 };
 StorageMap.prototype.put = StorageMap.prototype.set;
@@ -132,23 +132,31 @@ StorageMap.prototype.delete = StorageMap.prototype.del;
 
 ContractStorage.prototype = {
     rawGet: function (key) {
-        return this.storage.get(key);
+        return this.nativeStorage.get(key);
     },
     rawSet: function (key, value) {
-        return this.storage.set(key, value);
+        var ret = this.nativeStorage.set(key, value);
+        if (ret != 0) {
+            throw new Error("set key " + key + " failed.");
+        }
+        return ret;
     },
     del: function (key) {
-        return this.storage.del(key)
+        var ret = this.nativeStorage.del(key);
+        if (ret != 0) {
+            throw new Error("del key " + key + " failed.");
+        }
+        return ret;
     },
     get: function (key) {
-        var val = this.storage.get(key);
+        var val = this.rawGet(key);
         if (val != null) {
             val = JSON.parse(val);
         }
         return val;
     },
     set: function (key, value) {
-        return this.storage.put(key, JSON.stringify(value));
+        return this.rawSet(key, JSON.stringify(value));
     },
     defineProperty: function (obj, fieldName, descriptor) {
         if (!obj || !fieldName) {
@@ -211,6 +219,6 @@ ContractStorage.prototype.delete = ContractStorage.prototype.del;
 
 module.exports = {
     ContractStorage: ContractStorage,
-    lcs: new ContractStorage(_storage_handlers.lcs),
-    gcs: new ContractStorage(_storage_handlers.gcs)
+    lcs: new ContractStorage(_native_storage_handlers.lcs),
+    gcs: new ContractStorage(_native_storage_handlers.gcs)
 };

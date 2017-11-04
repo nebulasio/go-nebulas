@@ -56,7 +56,6 @@ StandardToken.prototype = {
         if (this.totalIssued + amount > this.totalSupply) {
             throw new Error("too much amount, exceed totalSupply");
         }
-
         this.balances.set(msg.sender, this.balanceOf(msg.sender) + amount);
         this.totalIssued += amount;
     }

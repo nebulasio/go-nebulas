@@ -63,13 +63,17 @@ func StorageGetFunc(handler unsafe.Pointer, key *C.char) *C.char {
 
 	val, err := storage.Get([]byte(hashStorageKey(C.GoString(key))))
 	if err != nil {
-		log.WithFields(log.Fields{
-			"func":    "nvm.StorageGetFunc",
-			"handler": uint64(uintptr(handler)),
-			"key":     C.GoString(key),
-		}).Warn("StorageGetFunc get key failed.")
+		if err != trie.ErrNotFound {
+			log.WithFields(log.Fields{
+				"func":    "nvm.StorageGetFunc",
+				"handler": uint64(uintptr(handler)),
+				"key":     C.GoString(key),
+				"err":     err,
+			}).Error("StorageGetFunc get key failed.")
+		}
 		return nil
 	}
+
 	return C.CString(string(val))
 }
 
@@ -83,7 +87,7 @@ func StoragePutFunc(handler unsafe.Pointer, key *C.char, value *C.char) int {
 	// log.Errorf("[--------------] StoragePutFunc, storage = %v; {%v: %v}", storage, C.GoString(key), C.GoString(value))
 
 	_, err := storage.Put([]byte(hashStorageKey(C.GoString(key))), []byte(C.GoString(value)))
-	if err != nil {
+	if err != nil && err != trie.ErrNotFound {
 		log.WithFields(log.Fields{
 			"func":    "nvm.StoragePutFunc",
 			"handler": uint64(uintptr(handler)),
@@ -104,7 +108,7 @@ func StorageDelFunc(handler unsafe.Pointer, key *C.char) int {
 
 	_, err := storage.Del([]byte(hashStorageKey(C.GoString(key))))
 
-	if err != nil {
+	if err != nil && err != trie.ErrNotFound {
 		log.WithFields(log.Fields{
 			"func":    "nvm.StorageDelFunc",
 			"handler": uint64(uintptr(handler)),

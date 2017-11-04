@@ -16,21 +16,21 @@
 // along with the go-nebulas library.  If not, see <http://www.gnu.org/licenses/>.
 //
 'use strict';
-if (typeof _storage_handlers === 'undefined') {
-    throw new Error("_storage_handlers is undefined.");
+if (typeof _native_storage_handlers === 'undefined') {
+    throw new Error("_native_storage_handlers is undefined.");
 }
 
-if (typeof _storage_handlers !== 'object') {
-    throw new Error("_storage_handlers is not an object.");
+if (typeof _native_storage_handlers !== 'object') {
+    throw new Error("_native_storage_handlers is not an object.");
 }
 
 ["lcs", "gcs"].forEach(function (val) {
-    if (typeof _storage_handlers[val] !== 'object') {
-        throw new Error("_storage_handlers[" + val + "] is not an object.");
+    if (typeof _native_storage_handlers[val] !== 'object') {
+        throw new Error("_native_storage_handlers[" + val + "] is not an object.");
     }
 
-    var o = _storage_handlers[val];
+    var o = _native_storage_handlers[val];
     if (Object.keys(o).length > 0) {
-        throw new Error("_storage_handlers[" + val + "] should not have accessible keys.")
+        throw new Error("_native_storage_handlers[" + val + "] should not have accessible keys.")
     }
 });
