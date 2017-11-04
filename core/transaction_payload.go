@@ -108,18 +108,6 @@ func (payload *txPayload) Execute(tx *Transaction, block *Block) error {
 	return err
 }
 
-type PayTest struct {
-	id string
-}
-
-func NewPayTest(id string) ([]byte, error) {
-	paytest := &PayTest{id: id}
-	return json.Marshal(paytest)
-}
-
-func parsePayTest() {
-}
-
 func NewDeploySCPayload(source, args string) ([]byte, error) {
 	payload := &txPayload{
 		PayloadType: TxPayloadDeployType,
