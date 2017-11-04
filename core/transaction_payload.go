@@ -60,12 +60,14 @@ func (payload *txPayload) Execute(tx *Transaction, block *Block) error {
 		contractAccount.SetContractTransactionHash(tx.Hash())
 	}
 
+	// stateTrie are managed by block, don't need to rollback in tx
+	// TODO(roy): better design
 	stateTrie := block.stateTrie
-	gcsTrie := block.FindAccount(contractAccount.ContractOwner).UserGlobalStorage
+	ownerAccount := block.FindAccount(contractAccount.ContractOwner)
+	gcsTrie := ownerAccount.UserGlobalStorage
 	lcsTrie := contractAccount.ContractLocalStorage
 
 	// balance trie.
-	stateTrie.BeginBatch()
 	gcsTrie.BeginBatch()
 	lcsTrie.BeginBatch()
 
@@ -73,11 +75,13 @@ func (payload *txPayload) Execute(tx *Transaction, block *Block) error {
 
 	defer (func() {
 		if shouldCommit {
-			stateTrie.Commit()
 			gcsTrie.Commit()
 			lcsTrie.Commit()
+			ownerAccount.UserGlobalStorage = gcsTrie
+			block.saveAccount(contractAccount.ContractOwner, ownerAccount)
+			contractAccount.ContractLocalStorage = lcsTrie
+			block.saveAccount(contractAddress, contractAccount)
 		} else {
-			stateTrie.RollBack()
 			gcsTrie.RollBack()
 			lcsTrie.RollBack()
 		}
