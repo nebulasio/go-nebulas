@@ -269,19 +269,40 @@ func (bc *BlockChain) GetTransaction(hash Hash) *Transaction {
 }
 
 // Dump dump full chain.
-func (bc *BlockChain) Dump() string {
+func (bc *BlockChain) Dump(count int) string {
 	rl := make([]string, 1)
-	for block := bc.tailBlock; block != nil; block = block.parenetBlock {
-		rl = append(rl,
-			fmt.Sprintf(
-				"{%d, hash: %s, parent: %s, stateRoot: %s, coinbase: %s}",
-				block.height,
-				block.Hash().Hex(),
-				block.ParentHash().Hex(),
-				block.StateRoot().Hex(),
-				block.header.coinbase.address.Hex(),
-			))
+	if count > 0 {
+		i := 0
+		for block := bc.tailBlock; block != nil; block = block.parenetBlock {
+			if i < count {
+				i++
+				rl = append(rl,
+					fmt.Sprintf(
+						"{%d, hash: %s, parent: %s, stateRoot: %s, coinbase: %s}",
+						block.height,
+						block.Hash().Hex(),
+						block.ParentHash().Hex(),
+						block.StateRoot().Hex(),
+						block.header.coinbase.address.Hex(),
+					))
+			} else {
+				break
+			}
+		}
+	} else {
+		for block := bc.tailBlock; block != nil; block = block.parenetBlock {
+			rl = append(rl,
+				fmt.Sprintf(
+					"{%d, hash: %s, parent: %s, stateRoot: %s, coinbase: %s}",
+					block.height,
+					block.Hash().Hex(),
+					block.ParentHash().Hex(),
+					block.StateRoot().Hex(),
+					block.header.coinbase.address.Hex(),
+				))
+		}
 	}
+
 	rls := strings.Join(rl, " --> ")
 	return rls
 }

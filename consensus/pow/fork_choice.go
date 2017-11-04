@@ -60,5 +60,5 @@ func (p *Pow) ForkChoice() {
 	}
 
 	// dump chain.
-	log.Debug("Dump: ", bc.Dump())
+	// log.Debug("Dump: ", bc.Dump())
 }

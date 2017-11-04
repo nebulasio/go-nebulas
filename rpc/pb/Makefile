@@ -21,7 +21,7 @@ GO = $(PB:.proto=.pb.go)
 all: $(GO)
 
 %.pb.go: %.proto
-	protoc --gogo_out=plugins=grpc:. --proto_path=../../../../../:. $<
+	protoc -I/usr/local/include -I. -I../../../../../../src -I../../vendor/github.com/grpc-ecosystem/grpc-gateway/third_party/googleapis --go_out=plugins=grpc:. $<
 
 clean:
 	rm *.pb.go

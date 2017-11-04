@@ -33,6 +33,14 @@ service APIService {
 		};
 	}
 
+	// Return the dump info of blockchain.
+	rpc BlockDump (BlockDumpRequest) returns (BlockDumpResponse) {
+		option (google.api.http) = {
+			post: "/v1/block/dump"
+            body: "*"
+		};
+	}
+
 	// Accounts return account list.
 	rpc Accounts (AccountsRequest) returns (AccountsResponse) {
 		option (google.api.http) = {
@@ -56,12 +64,12 @@ service APIService {
 	}
 
 	// Call a contract.
-	rpc Call (SendTransactionRequest) returns (SendTransactionResponse) {
-		option (google.api.http) = {
-            post: "/v1/call"
-            body: "*"
-        };
-	}
+//	rpc Call (SendTransactionRequest) returns (SendTransactionResponse) {
+//		option (google.api.http) = {
+//            post: "/v1/call"
+//            body: "*"
+//        };
+//	}
 
 	// Submit the signed transaction.
 	rpc SendRawTransaction (SendRawTransactionRequest) returns (SendTransactionResponse) {
@@ -73,14 +81,6 @@ service APIService {
 
 	// Get transaction info by the tansaction hash
 	rpc GetTransactionByHash (GetTransactionByHashRequest) returns (corepb.Transaction) {
-	}
-
-	// New deployScPlyload by the source and args
-	rpc NewDeploySCPayload (NewDeploySCPayloadRequest) returns (NewDeploySCPayloadResponse) {	
-	}
-
-	// New callSCPayload by function and args
-	rpc NewCallSCPayload (NewCallSCPayloadRequest) returns (NewCallSCPayloadResponse) {	
 	}
 }
 
@@ -156,8 +156,11 @@ message SendTransactionRequest {
 	// contract source code.
 	string source = 5;
 
-	// the params of source code.
-	string args = 6;
+	// call contract function name
+	string function = 6;
+
+	// the params of contract.
+	string args = 7;
 }
 
 // Request message of SendRawTransactionRequest rpc.
@@ -185,32 +188,16 @@ message GetTransactionByHashRequest {
 	string hash = 1;
 }
 
-// Request message of NewDeploySCPayload rpc.
-message NewDeploySCPayloadRequest {
-	// the source of deploySCPayload 
-	string source = 1;
-	// the args of deploySCPayload
-	string args = 2;
+// Request message of BlockDump
+message BlockDumpRequest {
+	// the count of blocks to dump before current tail.
+	int32 count = 1;
 }
 
-// Response message of NewDeploySCPayload rpc.
-message NewDeploySCPayloadResponse {
-	// new DeploySCPayload data
-	bytes data = 1;
-}
-
-// Request message of NewCallSCPayload rpc.
-message NewCallSCPayloadRequest {
-	// the function of callSCPayload 
-	string function = 1;
-	// the args of callSCPayload
-	string args = 2;
-}
-
-// Response message of NewCallSCPayload rpc.
-message NewCallSCPayloadResponse {
-	// new CallSCPayload data
-	bytes data = 1;
+// Response message of BlockDump
+message BlockDumpResponse {
+	// block dump info.
+	string data = 1;
 }
 
 

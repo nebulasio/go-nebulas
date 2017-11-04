@@ -20,7 +20,6 @@ package rpc
 
 import (
 	"errors"
-	/* "io/ioutil" */
 
 	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/core"
@@ -85,43 +84,29 @@ func (s *APIService) GetAccountState(ctx context.Context, req *rpcpb.GetAccountS
 
 // SendTransaction is the RPC API handler.
 func (s *APIService) SendTransaction(ctx context.Context, req *rpcpb.SendTransactionRequest) (*rpcpb.SendTransactionResponse, error) {
-	// Validate and sign the tx, then submit it to the tx pool.
 	neb := s.server.Neblet()
+	// source, err := ioutil.ReadFile("/Users/leon/go/src/github.com/nebulasio/go-nebulas/nf/nvm/test/sample_contract.js")
+	// if err != nil {
 
-	/* 	source, err := ioutil.ReadFile("/Users/leon/go/src/github.com/nebulasio/go-nebulas/nf/nvm/test/sample_contract.js")
-	   	if err != nil {
+	// }
+	// args := "[\"TEST001\", 123,[{\"name\":\"robin\",\"count\":2},{\"name\":\"roy\",\"count\":3},{\"name\":\"leon\",\"count\":4}]]"
 
-	   	}
-	   	args := "[\"TEST001\", 123,[{\"name\":\"robin\",\"count\":2},{\"name\":\"roy\",\"count\":3},{\"name\":\"leon\",\"count\":4}]]"
+	// data, err := core.NewDeploySCPayload(string(source), args)
 
-	   	data, err := core.NewDeploySCPayload(string(source), args)
-	   	if err != nil {
-	   		return nil, err
-	   	}
-	*/
-	tx, err := parseTransaction(neb, req.From, req.To, req.Value, req.Nonce, nil)
-	if err != nil {
-		return nil, err
-	}
-	if err := neb.AccountManager().SignTransaction(tx.From(), tx); err != nil {
-		return nil, err
-	}
-	if err := neb.BlockChain().TransactionPool().PushAndBroadcast(tx); err != nil {
-		return nil, err
-	}
-
-	return &rpcpb.SendTransactionResponse{Hash: tx.Hash().String()}, nil
-}
-
-// Call a contract
-func (s *APIService) Call(ctx context.Context, req *rpcpb.SendTransactionRequest) (*rpcpb.SendTransactionResponse, error) {
-	// Validate and sign the tx, then submit it to the tx pool.
-	neb := s.server.Neblet()
-
-	// data, err := core.NewDeploySCPayload(string(soruce), args)
-	data, err := core.NewCallSCPayload("dump", "")
-	if err != nil {
-		return nil, err
+	var data []byte
+	var err error
+	if len(req.Source) > 0 && len(req.Function) == 0 {
+		data, err = core.NewDeploySCPayload(req.Source, req.Args)
+		if err != nil {
+			return nil, err
+		}
+	} else if len(req.Function) > 0 && len(req.Source) == 0 {
+		data, err = core.NewCallSCPayload(req.Function, req.Args)
+		if err != nil {
+			return nil, err
+		}
+	} else if len(req.Function) > 0 && len(req.Source) > 0 {
+		return nil, errors.New("params error, you can't deploy and make a call at the same time")
 	}
 
 	tx, err := parseTransaction(neb, req.From, req.To, req.Value, req.Nonce, data)
@@ -131,7 +116,6 @@ func (s *APIService) Call(ctx context.Context, req *rpcpb.SendTransactionRequest
 	if err := neb.AccountManager().SignTransaction(tx.From(), tx); err != nil {
 		return nil, err
 	}
-
 	if err := neb.BlockChain().TransactionPool().PushAndBroadcast(tx); err != nil {
 		return nil, err
 	}
@@ -144,12 +128,9 @@ func parseTransaction(neb Neblet, from, to string, v []byte, nonce uint64, data 
 	if err != nil {
 		return nil, err
 	}
-	var toAddr *core.Address
-	if len(to) > 0 {
-		toAddr, err = core.AddressParse(to)
-		if err != nil {
-			return nil, err
-		}
+	toAddr, err := core.AddressParse(to)
+	if err != nil {
+		return nil, err
 	}
 
 	var value *util.Uint128
@@ -217,20 +198,12 @@ func (s *APIService) GetTransactionByHash(ctx context.Context, req *rpcpb.GetTra
 	return pbTx.(*corepb.Transaction), nil
 }
 
-// NewDeploySCPayload new deploySCPayload
-func (s *APIService) NewDeploySCPayload(ctx context.Context, req *rpcpb.NewDeploySCPayloadRequest) (*rpcpb.NewDeploySCPayloadResponse, error) {
-	data, err := core.NewDeploySCPayload(req.Source, req.Args)
-	if err != nil {
-		return nil, err
+// BlockDump is the RPC API handler.
+func (s *APIService) BlockDump(ctx context.Context, req *rpcpb.BlockDumpRequest) (*rpcpb.BlockDumpResponse, error) {
+	var data string
+	neb := s.server.Neblet()
+	if req.Count > 0 {
+		data = neb.BlockChain().Dump(int(req.Count))
 	}
-	return &rpcpb.NewDeploySCPayloadResponse{Data: data}, nil
-}
-
-// NewCallSCPayload new callSCPayload
-func (s *APIService) NewCallSCPayload(ctx context.Context, req *rpcpb.NewCallSCPayloadRequest) (*rpcpb.NewCallSCPayloadResponse, error) {
-	data, err := core.NewCallSCPayload(req.Function, req.Args)
-	if err != nil {
-		return nil, err
-	}
-	return &rpcpb.NewCallSCPayloadResponse{Data: data}, nil
+	return &rpcpb.BlockDumpResponse{Data: data}, nil
 }
