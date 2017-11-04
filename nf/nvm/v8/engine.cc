@@ -121,7 +121,10 @@ int RunScriptSource(V8Engine *e, const char *data, void *lcsHandler,
       String::NewFromUtf8(isolate, data, NewStringType::kNormal)
           .ToLocalChecked();
   // Compile the source code.
-  MaybeLocal<Script> script = Script::Compile(context, source);
+  ScriptOrigin sourceSrcOrigin(
+      String::NewFromUtf8(isolate, "contract_wrapper.js"));
+  MaybeLocal<Script> script =
+      Script::Compile(context, source, &sourceSrcOrigin);
 
   if (script.IsEmpty()) {
     Local<Value> exception = trycatch.Exception();

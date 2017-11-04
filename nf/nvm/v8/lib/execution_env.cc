@@ -41,7 +41,10 @@ int SetupExecutionEnv(Isolate *isolate, Local<Context> &context) {
           .ToLocalChecked();
 
   // Compile the source code.
-  MaybeLocal<Script> script = Script::Compile(context, source);
+  ScriptOrigin sourceSrcOrigin(
+      String::NewFromUtf8(isolate, "execution_env.js"));
+  MaybeLocal<Script> script =
+      Script::Compile(context, source, &sourceSrcOrigin);
 
   if (script.IsEmpty()) {
     logErrorf("execution-env.js: compile error.");
