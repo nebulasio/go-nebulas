@@ -164,6 +164,45 @@ SendTransaction 8a209cec02cbeab7e2f74ad969d2dfe8dd24416aa65589bf -> 22ac3a9a2b1c
 GetAccountState 22ac3a9a2b1c31b7a9084e46eae16e761f83f02324092b09 nonce 0 value 2
 ```
 
+Now we have provided HTTP to access the RPC API.You first need to generate a mapping from GRPC to HTTP:
+```
+cd rpc/pb
+make all
+```
+The file that ends with gw.go is the mapping file.
+Now we can access the rpc API directly from our browser.
+For http GET request:
+```
+GetNebState:
+http://localhost:8080/v1/neb/state
+
+Accounts:
+http://localhost:8080/v1/accounts
+
+GetAccountState:
+http://localhost:8080/v1/account/state
+```
+For http POST request:
+```
+BlockDump:
+curl -i -H Accept:application/json -X POST http://localhost:8080/v1/block/dump -H Content-Type: application/json -d '{"count":10}'
+```
+Now you can even create & deploy & call smart contracts directly over HTTP just by 'SendTransaction()'.
+If you want to create & deploy a smart contracts:
+1. create your smart contracts source.
+2. call 'SendTransaction()', the params from and to must be the same.
+3. params 'function' must be nil.
+```
+curl -i -H Accept:application/json -X POST http://localhost:8080/v1/transaction -H Content-Type: application/json -d '{"from":"0x8a209cec02cbeab7e2f74ad969d2dfe8dd24416aa65589bf","to":"0x8a209cec02cbeab7e2f74ad969d2dfe8dd24416aa65589bf","nonce":1,"source":"'use strict';var SampleContract = function () {LocalContractStorage.defineProperties(this, {name: null,count: null});LocalContractStorage.defineMapProperty(this, \"allocation\");};SampleContract.prototype = {init: function (name, count, allocation) {this.name = name;this.count = count;allocation.forEach(function (item) {this.allocation.put(item.name, item.count);}, this);},dump: function () {console.log('dump: this.name = ' + this.name);console.log('dump: this.count = ' + this.count);},verify: function (expectedName, expectedCount, expectedAllocation) {if (!Object.is(this.name, expectedName)) {throw new Error(\"name is not the same, expecting \" + expectedName + \", actual is \" + this.name + \".\");}if (!Object.is(this.count, expectedCount)) {throw new Error(\"count is not the same, expecting \" + expectedCount + \", actual is \" + this.count + \".\");}expectedAllocation.forEach(function (expectedItem) {var count = this.allocation.get(expectedItem.name);if (!Object.is(count, expectedItem.count)) {throw new Error(\"count of \" + expectedItem.name + \" is not the same, expecting \" + expectedItem.count + \", actual is \" + count + \".\");}}, this);}};module.exports = SampleContract;", "args":"[\"TEST001\", 123,[{\"name\":\"robin\",\"count\":2},{\"name\":\"roy\",\"count\":3},{\"name\":\"leon\",\"count\":4}]]"}'
+```
+If you succeed in deploying a smart contract, you will get the contract address & transaction hash as response.
+Then you can call this samrt contract:
+1. get the smart contract address.
+2. give the method you want to call.
+```
+curl -i -H Accept:application/json -X POST http://localhost:8080/v1/transaction -H Content-Type: application/json -d '{"from":"0x8a209cec02cbeab7e2f74ad969d2dfe8dd24416aa65589bf","to":"8f5aad7e7ad59c9d9eaa351b3f41f887e49d13f37974a02c", "nonce":2,"function":"dump"}'
+```
+
 ### Debug chain status from log
 
 The chain will be dump when a new block is minted, or received and added to tail, we can easily find it in log, starting with **"Dump"**:
