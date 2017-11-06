@@ -204,16 +204,6 @@ Then you can call this samrt contract:
 curl -i -H Accept:application/json -X POST http://localhost:8080/v1/transaction -H Content-Type: application/json -d '{"from":"0x8a209cec02cbeab7e2f74ad969d2dfe8dd24416aa65589bf","to":"8f5aad7e7ad59c9d9eaa351b3f41f887e49d13f37974a02c", "nonce":2,"function":"dump"}'
 ```
 
-### Debug chain status from log
-
-The chain will be dump when a new block is minted, or received and added to tail, we can easily find it in log, starting with **"Dump"**:
-
-```
-...
-Dump:  --> {2, hash: 0000009a658e094ec9bb642ba4d0d0ada63fe70aee5796b0631f9c844da4f5f0, parent: 0000000000000000000000000000000000000000000000000000000000000000, stateRoot: 3b55bd09bff8718070a341455faf21d1d32a1fde5cc3ddec990a553859efb002, coinbase: 8a209cec02cbeab7e2f74ad969d2dfe8dd24416aa65589bf} --> {1, hash: 0000000000000000000000000000000000000000000000000000000000000000, parent: 0000000000000000000000000000000000000000000000000000000000000000, stateRoot: , coinbase: 000000000000000000000000000000000000000000000000}
-...
-```
-
 ## Contribution
 
 We are very glad that you are considering to help Nebulas Team or go-nebulas project, including but not limited to source code, documents or others.
