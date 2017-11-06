@@ -47,3 +47,14 @@ func NewGenesisBlock(chainID uint32, storage storage.Storage) *Block {
 
 	return b
 }
+
+// CheckGenesisBlock if a block is a genesis block
+func CheckGenesisBlock(block *Block) bool {
+	if block == nil {
+		return false
+	}
+	if block.Hash().Equals(block.ParentHash()) {
+		return true
+	}
+	return false
+}

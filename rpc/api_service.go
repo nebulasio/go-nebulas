@@ -90,18 +90,11 @@ func (s *APIService) SendTransaction(ctx context.Context, req *rpcpb.SendTransac
 
 	var data []byte
 	var err error
-	if len(req.Source) > 0 && len(req.Function) == 0 {
+	if len(req.Source) > 0 {
 		data, err = core.NewDeploySCPayload(req.Source, req.Args)
 		if err != nil {
 			return nil, err
 		}
-	} else if len(req.Function) > 0 && len(req.Source) == 0 {
-		data, err = core.NewCallSCPayload(req.Function, req.Args)
-		if err != nil {
-			return nil, err
-		}
-	} else if len(req.Function) > 0 && len(req.Source) > 0 {
-		return nil, errors.New("params error, you can't deploy and make a call at the same time")
 	}
 
 	tx, err := parseTransaction(neb, req.From, req.To, req.Value, req.Nonce, data)
@@ -114,10 +107,35 @@ func (s *APIService) SendTransaction(ctx context.Context, req *rpcpb.SendTransac
 	if err := neb.BlockChain().TransactionPool().PushAndBroadcast(tx); err != nil {
 		return nil, err
 	}
+	if len(req.Source) > 0 {
+		address, _ := core.NewContractAddressFromHash(hash.Sha3256(tx.From().Bytes(), byteutils.FromUint64(tx.Nonce())))
+		return &rpcpb.SendTransactionResponse{Hash: address.ToHex() + "$" + tx.Hash().String()}, nil
+	}
 
-	address, _ := core.NewContractAddressFromHash(hash.Sha3256(tx.From().Bytes(), byteutils.FromUint64(tx.Nonce())))
+	return &rpcpb.SendTransactionResponse{Hash: tx.Hash().String()}, nil
 
-	return &rpcpb.SendTransactionResponse{Hash: address.ToHex() + "$" + tx.Hash().String()}, nil
+}
+
+// Call is the RPC API handler.
+func (s *APIService) Call(ctx context.Context, req *rpcpb.CallRequest) (*rpcpb.SendTransactionResponse, error) {
+	neb := s.server.Neblet()
+	data, err := core.NewCallSCPayload(req.Function, req.Args)
+	if err != nil {
+		return nil, err
+	}
+	tx, err := parseTransaction(neb, req.From, req.To, nil, req.Nonce, data)
+	if err != nil {
+		return nil, err
+	}
+	if err := neb.AccountManager().SignTransaction(tx.From(), tx); err != nil {
+		return nil, err
+	}
+	if err := neb.BlockChain().TransactionPool().PushAndBroadcast(tx); err != nil {
+		return nil, err
+	}
+
+	return &rpcpb.SendTransactionResponse{Hash: tx.Hash().String()}, nil
+
 }
 
 func parseTransaction(neb Neblet, from, to string, v []byte, nonce uint64, data []byte) (*core.Transaction, error) {

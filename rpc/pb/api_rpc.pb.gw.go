@@ -59,15 +59,11 @@ func request_APIService_Accounts_0(ctx context.Context, marshaler runtime.Marsha
 
 }
 
-var (
-	filter_APIService_GetAccountState_0 = &utilities.DoubleArray{Encoding: map[string]int{}, Base: []int(nil), Check: []int(nil)}
-)
-
 func request_APIService_GetAccountState_0(ctx context.Context, marshaler runtime.Marshaler, client APIServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
 	var protoReq GetAccountStateRequest
 	var metadata runtime.ServerMetadata
 
-	if err := runtime.PopulateQueryParameters(&protoReq, req.URL.Query(), filter_APIService_GetAccountState_0); err != nil {
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
 
@@ -85,6 +81,19 @@ func request_APIService_SendTransaction_0(ctx context.Context, marshaler runtime
 	}
 
 	msg, err := client.SendTransaction(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
+	return msg, metadata, err
+
+}
+
+func request_APIService_Call_0(ctx context.Context, marshaler runtime.Marshaler, client APIServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
+	var protoReq CallRequest
+	var metadata runtime.ServerMetadata
+
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
+	}
+
+	msg, err := client.Call(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
 	return msg, metadata, err
 
 }
@@ -214,7 +223,7 @@ func RegisterAPIServiceHandlerClient(ctx context.Context, mux *runtime.ServeMux,
 
 	})
 
-	mux.Handle("GET", pattern_APIService_GetAccountState_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle("POST", pattern_APIService_GetAccountState_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(ctx)
 		defer cancel()
 		if cn, ok := w.(http.CloseNotifier); ok {
@@ -272,6 +281,35 @@ func RegisterAPIServiceHandlerClient(ctx context.Context, mux *runtime.ServeMux,
 
 	})
 
+	mux.Handle("POST", pattern_APIService_Call_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+		ctx, cancel := context.WithCancel(ctx)
+		defer cancel()
+		if cn, ok := w.(http.CloseNotifier); ok {
+			go func(done <-chan struct{}, closed <-chan bool) {
+				select {
+				case <-done:
+				case <-closed:
+					cancel()
+				}
+			}(ctx.Done(), cn.CloseNotify())
+		}
+		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
+		rctx, err := runtime.AnnotateContext(ctx, mux, req)
+		if err != nil {
+			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
+			return
+		}
+		resp, md, err := request_APIService_Call_0(rctx, inboundMarshaler, client, req, pathParams)
+		ctx = runtime.NewServerMetadataContext(ctx, md)
+		if err != nil {
+			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
+			return
+		}
+
+		forward_APIService_Call_0(ctx, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
+
+	})
+
 	return nil
 }
 
@@ -285,6 +323,8 @@ var (
 	pattern_APIService_GetAccountState_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2}, []string{"v1", "account", "state"}, ""))
 
 	pattern_APIService_SendTransaction_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"v1", "transaction"}, ""))
+
+	pattern_APIService_Call_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"v1", "call"}, ""))
 )
 
 var (
@@ -297,4 +337,6 @@ var (
 	forward_APIService_GetAccountState_0 = runtime.ForwardResponseMessage
 
 	forward_APIService_SendTransaction_0 = runtime.ForwardResponseMessage
+
+	forward_APIService_Call_0 = runtime.ForwardResponseMessage
 )

@@ -273,7 +273,7 @@ func (bc *BlockChain) Dump(count int) string {
 	rl := make([]string, 1)
 	if count > 0 {
 		i := 0
-		for block := bc.tailBlock; block != nil; block = block.parenetBlock {
+		for block := bc.tailBlock; !CheckGenesisBlock(block); block = bc.GetBlock(block.ParentHash()) {
 			if i < count {
 				i++
 				rl = append(rl,
@@ -290,7 +290,7 @@ func (bc *BlockChain) Dump(count int) string {
 			}
 		}
 	} else {
-		for block := bc.tailBlock; block != nil; block = block.parenetBlock {
+		for block := bc.tailBlock; !CheckGenesisBlock(block); block = bc.GetBlock(block.ParentHash()) {
 			rl = append(rl,
 				fmt.Sprintf(
 					"{%d, hash: %s, parent: %s, stateRoot: %s, coinbase: %s}",
@@ -303,7 +303,7 @@ func (bc *BlockChain) Dump(count int) string {
 		}
 	}
 
-	rls := strings.Join(rl, " --> ")
+	rls := strings.Join(rl, " ")
 	return rls
 }
 

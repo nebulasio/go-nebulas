@@ -51,7 +51,8 @@ service APIService {
 	// Return the state of the account.
 	rpc GetAccountState (GetAccountStateRequest) returns (GetAccountStateResponse) {
 		option (google.api.http) = {
-            get: "/v1/account/state"
+            post: "/v1/account/state"
+			body: "*"
         };
 	}
 
@@ -59,6 +60,14 @@ service APIService {
 	rpc SendTransaction (SendTransactionRequest) returns (SendTransactionResponse) {
 		option (google.api.http) = {
             post: "/v1/transaction"
+            body: "*"
+        };
+	}
+
+	// Call smart contract.
+	rpc Call (CallRequest) returns (SendTransactionResponse) {
+		option (google.api.http) = {
+            post: "/v1/call"
             body: "*"
         };
 	}
@@ -148,11 +157,26 @@ message SendTransactionRequest {
 	// contract source code.
 	string source = 5;
 
+	// the params of contract.
+	string args = 6;
+}
+
+message CallRequest {
+	// Hex string of the sender account addresss.
+	string from = 1;
+
+	// Hex string of the receiver account addresss.
+	string to = 2;
+
+	// Transaction nonce.
+	uint64 nonce = 3;
+
 	// call contract function name
-	string function = 6;
+	string function = 4;
 
 	// the params of contract.
-	string args = 7;
+	string args = 5;
+
 }
 
 // Request message of SendRawTransactionRequest rpc.

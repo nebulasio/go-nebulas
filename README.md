@@ -81,10 +81,14 @@ Neb uses Protocol Buffer to load configurations. The default config file is name
 p2p {
   # seed: "UNCOMMENT_AND_SET_SEED_NODE_ADDRESS"
   port: 51413
+  chain_id: 100
+  version: 1
 }
 
 rpc {
-  port: 51510
+  api_port: 51510
+  management_port: 52520
+  gateway_port: 8080
 }
 
 pow {
@@ -170,19 +174,9 @@ cd rpc/pb
 make all
 ```
 The file that ends with gw.go is the mapping file.
-Now we can access the rpc API directly from our browser.
-For http GET request:
-```
-GetNebState:
-http://localhost:8080/v1/neb/state
+Now we can access the rpc API directly from our browser, you can update the gateway_port in config.pb.txt to change HTTP default port.
 
-Accounts:
-http://localhost:8080/v1/accounts
-
-GetAccountState:
-http://localhost:8080/v1/account/state
-```
-For http POST request:
+##### Example:
 ```
 BlockDump:
 curl -i -H Accept:application/json -X POST http://localhost:8080/v1/block/dump -H Content-Type: application/json -d '{"count":10}'
@@ -203,6 +197,7 @@ Then you can call this samrt contract:
 ```
 curl -i -H Accept:application/json -X POST http://localhost:8080/v1/transaction -H Content-Type: application/json -d '{"from":"0x8a209cec02cbeab7e2f74ad969d2dfe8dd24416aa65589bf","to":"8f5aad7e7ad59c9d9eaa351b3f41f887e49d13f37974a02c", "nonce":2,"function":"dump"}'
 ```
+More about [JSON-RPC](https://github.com/nebulasio/wiki/blob/master/json-rpc.md).
 
 ## Contribution
 
