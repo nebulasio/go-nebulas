@@ -19,11 +19,20 @@
 package core
 
 import (
-	"github.com/hashicorp/golang-lru"
+	"sync"
 
-	"github.com/nebulasio/go-nebulas/components/net"
-	"github.com/nebulasio/go-nebulas/components/net/messages"
+	"errors"
+
+	"github.com/gogo/protobuf/proto"
+	"github.com/hashicorp/golang-lru"
+	"github.com/nebulasio/go-nebulas/core/pb"
+	"github.com/nebulasio/go-nebulas/net"
 	log "github.com/sirupsen/logrus"
+)
+
+// Errors in block
+var (
+	ErrDuplicatedBlock = errors.New("duplicated block")
 )
 
 // BlockPool a pool of all received blocks from network.
@@ -36,6 +45,9 @@ type BlockPool struct {
 	bc         *BlockChain
 	blockCache *lru.Cache
 	headBlocks map[HexHash]*linkedBlock
+
+	nm net.Manager
+	mu sync.RWMutex
 }
 
 type linkedBlock struct {
@@ -66,7 +78,8 @@ func (pool *BlockPool) ReceivedBlockCh() chan *Block {
 
 // RegisterInNetwork register message subscriber in network.
 func (pool *BlockPool) RegisterInNetwork(nm net.Manager) {
-	nm.Register(net.NewSubscriber(pool, pool.receiveMessageCh, net.MessageTypeNewBlock))
+	nm.Register(net.NewSubscriber(pool, pool.receiveMessageCh, MessageTypeNewBlock))
+	pool.nm = nm
 }
 
 // // Range calls f sequentially for each key and value present in the map.
@@ -111,7 +124,7 @@ func (pool *BlockPool) loop() {
 				"func": "BlockPool.loop",
 			}).Debugf("received message. Count=%d", count)
 
-			if msg.MessageType() != net.MessageTypeNewBlock {
+			if msg.MessageType() != MessageTypeNewBlock {
 				log.WithFields(log.Fields{
 					"func":        "BlockPool.loop",
 					"messageType": msg.MessageType(),
@@ -120,42 +133,102 @@ func (pool *BlockPool) loop() {
 				continue
 			}
 
-			// verify signature.
-			block := msg.Data().(*Block)
-			pool.addBlock(block)
+			block := new(Block)
+			pbblock := new(corepb.Block)
+			if err := proto.Unmarshal(msg.Data().([]byte), pbblock); err != nil {
+				log.Error("BlockPool.loop:: unmarshal data occurs error, ", err)
+				continue
+			}
+			if err := block.FromProto(pbblock); err != nil {
+				log.Error("BlockPool.loop:: get block from proto occurs error: ", err)
+				continue
+			}
+			if err := pool.PushAndRelay(block); err != nil {
+				log.WithFields(log.Fields{
+					"func":        "BlockPool.loop",
+					"messageType": msg.MessageType(),
+					"block":       block,
+					"err":         err,
+				}).Warn("BlockPool.loop: invalid block, drop it.")
+			}
 		}
 	}
 }
 
-// AddLocalBlock add local minted block.
-func (pool *BlockPool) AddLocalBlock(block *Block) {
-	data, _ := block.Serialize()
-	nb := new(Block)
-	nb.Deserialize(data)
-	pool.receiveMessageCh <- messages.NewBaseMessage(net.MessageTypeNewBlock, nb)
+func mockBlockFromNetwork(block *Block) (*Block, error) {
+	pbBlock, err := block.ToProto()
+	if err != nil {
+		return nil, err
+	}
+	bytes, err := proto.Marshal(pbBlock)
+	if err := proto.Unmarshal(bytes, pbBlock); err != nil {
+		return nil, err
+	}
+	block = new(Block)
+	block.FromProto(pbBlock)
+	return block, nil
 }
 
-func (pool *BlockPool) addBlock(block *Block) error {
-	if pool.blockCache.Contains(block.Hash().Hex()) ||
-		pool.bc.GetBlock(block.Hash()) != nil {
-		log.WithFields(log.Fields{
-			"func":  "BlockPool.addBlock",
-			"block": block,
-		}).Debug("ignore duplicated block.")
+// Push block into block pool
+func (pool *BlockPool) Push(block *Block) error {
+	pool.mu.Lock()
+	defer pool.mu.Unlock()
+	block, err := mockBlockFromNetwork(block)
+	if err != nil {
 		return nil
 	}
+	pushErr := pool.push(block)
+	if pushErr != nil && pushErr != ErrDuplicatedBlock {
+		return pushErr
+	}
+	return nil
+}
 
-	log.WithFields(log.Fields{
-		"func":  "BlockPool.addBlock",
-		"block": block,
-	}).Debug("start process new block.")
+// PushAndRelay push block into block pool and relay it.
+func (pool *BlockPool) PushAndRelay(block *Block) error {
+	pool.mu.Lock()
+	defer pool.mu.Unlock()
 
-	if err := block.VerifyHash(pool.bc); err != nil {
-		log.WithFields(log.Fields{
-			"func":  "BlockPool.addBlock",
-			"err":   err,
-			"block": block,
-		}).Error("invalid block hash, drop it.")
+	block, err := mockBlockFromNetwork(block)
+	if err != nil {
+		return nil
+	}
+	if err := pool.push(block); err != nil {
+		return err
+	}
+	pool.nm.Relay(MessageTypeNewBlock, block)
+	return nil
+}
+
+// PushAndBroadcast push block into block pool and broadcast it.
+func (pool *BlockPool) PushAndBroadcast(block *Block) error {
+	pool.mu.Lock()
+	defer pool.mu.Unlock()
+
+	block, err := mockBlockFromNetwork(block)
+	if err != nil {
+		return nil
+	}
+	if err := pool.push(block); err != nil {
+		return err
+	}
+	pool.nm.Broadcast(MessageTypeNewBlock, block)
+	return nil
+}
+
+func (pool *BlockPool) push(block *Block) error {
+	if pool.blockCache.Contains(block.Hash().Hex()) ||
+		pool.bc.GetBlock(block.Hash()) != nil {
+		return ErrDuplicatedBlock
+	}
+
+	// verify nonce.
+	if err := pool.bc.ConsensusHandler().VerifyBlock(block); err != nil {
+		return err
+	}
+
+	// verify block hash & txs
+	if err := block.verifyHash(pool.bc.chainID); err != nil {
 		return err
 	}
 
@@ -195,12 +268,16 @@ func (pool *BlockPool) addBlock(block *Block) error {
 
 	// found in BlockChain, then we can verify the state root, and tell the Consensus all the tails.
 	// performance depth-first search to verify state root, and get all tails.
-	allBlocks, tailBlocks := lb.getTailsWithPath(parentBlock)
-	bc.PutVerifiedNewBlocks(allBlocks, tailBlocks)
+	allBlocks, tailBlocks := lb.travelToLinkAndReturnAllValidBlocks(parentBlock)
+	err := bc.PutVerifiedNewBlocks(allBlocks, tailBlocks)
+	if err != nil {
+		return err
+	}
 
 	// remove allBlocks from cache.
 	for _, v := range allBlocks {
 		blockCache.Remove(v.Hash().Hex())
+		pool.bc.storeBlockToStorage(v)
 	}
 
 	// notify consensus to handle new block.
@@ -228,7 +305,7 @@ func (lb *linkedBlock) LinkParent(parentBlock *linkedBlock) {
 	parentBlock.childBlocks[lb.hash.Hex()] = lb
 }
 
-func (lb *linkedBlock) getTailsWithPath(parentBlock *Block) ([]*Block, []*Block) {
+func (lb *linkedBlock) travelToLinkAndReturnAllValidBlocks(parentBlock *Block) ([]*Block, []*Block) {
 	if lb.block.LinkParentBlock(parentBlock) == false {
 		log.WithFields(log.Fields{
 			"func":        "linkedBlock.dfs",
@@ -238,13 +315,23 @@ func (lb *linkedBlock) getTailsWithPath(parentBlock *Block) ([]*Block, []*Block)
 		panic("link parent block fail.")
 	}
 
-	if err := lb.block.VerifyStateRoot(); err != nil {
+	if err := lb.block.Execute(); err != nil {
 		log.WithFields(log.Fields{
 			"func":        "linkedBlock.dfs",
 			"err":         err,
 			"parentBlock": parentBlock,
 			"block":       lb.block,
-		}).Fatal("invalid state root hash.")
+		}).Fatal("execute block fail.")
+		return nil, nil
+	}
+
+	if err := lb.block.verifyState(); err != nil {
+		log.WithFields(log.Fields{
+			"func":        "linkedBlock.dfs",
+			"err":         err,
+			"parentBlock": parentBlock,
+			"block":       lb.block,
+		}).Fatal("invalid trie root hash.")
 		return nil, nil
 	}
 
@@ -256,7 +343,7 @@ func (lb *linkedBlock) getTailsWithPath(parentBlock *Block) ([]*Block, []*Block)
 	}
 
 	for _, clb := range lb.childBlocks {
-		a, b := clb.getTailsWithPath(lb.block)
+		a, b := clb.travelToLinkAndReturnAllValidBlocks(lb.block)
 		if a != nil && b != nil {
 			allBlocks = append(allBlocks, a...)
 			tailBlocks = append(tailBlocks, b...)

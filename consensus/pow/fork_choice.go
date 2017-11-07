@@ -43,6 +43,7 @@ func (p *Pow) ForkChoice() {
 			maxHeight = h
 			newTailBlock = v
 		}
+		// TODO(@roy): remove unused tail from detachedTails.
 	}
 
 	if newTailBlock == bc.TailBlock() {
@@ -59,5 +60,5 @@ func (p *Pow) ForkChoice() {
 	}
 
 	// dump chain.
-	log.Debug("Dump: ", bc.Dump())
+	// log.Debug("Dump: ", bc.Dump())
 }

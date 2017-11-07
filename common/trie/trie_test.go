@@ -22,7 +22,10 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/gogo/protobuf/proto"
+	"github.com/nebulasio/go-nebulas/common/trie/pb"
 	"github.com/nebulasio/go-nebulas/crypto/hash"
+	"github.com/nebulasio/go-nebulas/storage"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
 )
 
@@ -30,6 +33,7 @@ func TestNewTrie(t *testing.T) {
 	type args struct {
 		rootHash []byte
 	}
+	storage, _ := storage.NewMemoryStorage()
 	tests := []struct {
 		name    string
 		args    args
@@ -51,7 +55,7 @@ func TestNewTrie(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := NewTrie(tt.args.rootHash)
+			got, err := NewTrie(tt.args.rootHash, storage)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("New() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -72,12 +76,10 @@ func TestNewTrie(t *testing.T) {
 
 func TestTrie_Clone(t *testing.T) {
 	type fields struct {
-		rootHash   []byte
-		serializer byteutils.Serializable
-		storage    *Storage
+		rootHash []byte
+		storage  storage.Storage
 	}
-	storage, _ := NewStorage()
-	serializer := &byteutils.JSONSerializer{}
+	storage, _ := storage.NewMemoryStorage()
 	tests := []struct {
 		name    string
 		fields  fields
@@ -85,24 +87,20 @@ func TestTrie_Clone(t *testing.T) {
 	}{
 		{
 			"case 1",
-			fields{[]byte("hello"), serializer, storage},
+			fields{[]byte("hello"), storage},
 			false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			tr := &Trie{
-				rootHash:   tt.fields.rootHash,
-				serializer: tt.fields.serializer,
-				storage:    tt.fields.storage,
+				rootHash: tt.fields.rootHash,
+				storage:  tt.fields.storage,
 			}
 			got, err := tr.Clone()
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Trie.Clone() error = %v, wantErr %v", err, tt.wantErr)
 				return
-			}
-			if !reflect.DeepEqual(got.serializer, tt.fields.serializer) {
-				t.Errorf("Trie.Clone() = %v, want %v", got.serializer, tt.fields.serializer)
 			}
 			if &got.rootHash == &tt.fields.rootHash {
 				t.Errorf("Trie.Clone() = %p, not want %p", &got.rootHash, &tt.fields.rootHash)
@@ -115,7 +113,8 @@ func TestTrie_Clone(t *testing.T) {
 }
 
 func TestTrie_Operation(t *testing.T) {
-	tr, _ := NewTrie(nil)
+	storage, _ := storage.NewMemoryStorage()
+	tr, _ := NewTrie(nil, storage)
 	if !reflect.DeepEqual([]byte(nil), tr.rootHash) {
 		t.Errorf("3 Trie.Del() = %v, want %v", nil, tr.rootHash)
 	}
@@ -123,11 +122,11 @@ func TestTrie_Operation(t *testing.T) {
 	addr1, _ := byteutils.FromHex("1f345678e9")
 	key1 := []byte{0x1, 0xf, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0xe, 0x9}
 	val1 := []byte("leaf 11")
-	hash1, _ := tr.Put(addr1, val1)
+	tr.Put(addr1, val1)
 	leaf1 := [][]byte{[]byte{byte(leaf)}, key1, val1}
-	leaf1IR, _ := tr.serializer.Serialize(leaf1)
+	leaf1IR, _ := proto.Marshal(&triepb.Node{Val: leaf1})
 	leaf1H := hash.Sha3256(leaf1IR)
-	if !reflect.DeepEqual(leaf1H, hash1) {
+	if !reflect.DeepEqual(leaf1H, tr.rootHash) {
 		t.Errorf("1 Trie.Update() = %v, want %v", leaf1H, tr.rootHash)
 	}
 	// add a new leaf node with 3-length common prefix
@@ -136,16 +135,16 @@ func TestTrie_Operation(t *testing.T) {
 	val2 := []byte("leaf 2")
 	tr.Put(addr2, val2)
 	leaf2 := [][]byte{[]byte{byte(leaf)}, key2[4:], val2}
-	leaf2IR, _ := tr.serializer.Serialize(leaf2)
+	leaf2IR, _ := proto.Marshal(&triepb.Node{Val: leaf2})
 	leaf2H := hash.Sha3256(leaf2IR)
 	leaf3 := [][]byte{[]byte{byte(leaf)}, key1[4:], val1}
-	leaf3IR, _ := tr.serializer.Serialize(leaf3)
+	leaf3IR, _ := proto.Marshal(&triepb.Node{Val: leaf3})
 	leaf3H := hash.Sha3256(leaf3IR)
 	branch2 := [][]byte{nil, nil, nil, nil, leaf3H, leaf2H, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil}
-	branch2IR, _ := tr.serializer.Serialize(branch2)
+	branch2IR, _ := proto.Marshal(&triepb.Node{Val: branch2})
 	branch2H := hash.Sha3256(branch2IR)
 	ext1 := [][]byte{[]byte{(byte(ext))}, key2[:3], branch2H}
-	ext1IR, _ := tr.serializer.Serialize(ext1)
+	ext1IR, _ := proto.Marshal(&triepb.Node{Val: ext1})
 	ext1H := hash.Sha3256(ext1IR)
 	if !reflect.DeepEqual(ext1H, tr.RootHash()) {
 		t.Errorf("2 Trie.Update() = %v, want %v", ext1H, tr.rootHash)
@@ -153,16 +152,16 @@ func TestTrie_Operation(t *testing.T) {
 	// add a new node with 2-length common prefix
 	addr3, _ := byteutils.FromHex("1f555678e9")
 	key3 := []byte{0x1, 0xf, 0x5, 0x5, 0x5, 0x6, 0x7, 0x8, 0xe, 0x9}
-	val3 := []byte("leaf 3")
+	val3 := []byte{}
 	tr.Put(addr3, val3)
 	leaf4 := [][]byte{[]byte{byte(leaf)}, key3[3:], val3}
-	leaf4IR, _ := tr.serializer.Serialize(leaf4)
+	leaf4IR, _ := proto.Marshal(&triepb.Node{Val: leaf4})
 	leaf4H := hash.Sha3256(leaf4IR)
 	branch4 := [][]byte{nil, nil, nil, branch2H, nil, leaf4H, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil}
-	branch4IR, _ := tr.serializer.Serialize(branch4)
+	branch4IR, _ := proto.Marshal(&triepb.Node{Val: branch4})
 	branch4H := hash.Sha3256(branch4IR)
 	ext2 := [][]byte{[]byte{(byte(ext))}, key3[:2], branch4H}
-	ext2IR, _ := tr.serializer.Serialize(ext2)
+	ext2IR, _ := proto.Marshal(&triepb.Node{Val: ext2})
 	ext2H := hash.Sha3256(ext2IR)
 	if !reflect.DeepEqual(ext2H, tr.rootHash) {
 		t.Errorf("3 Trie.Update() = %v, want %v", ext2H, tr.rootHash)
@@ -171,16 +170,16 @@ func TestTrie_Operation(t *testing.T) {
 	hash4, _ := tr.Put(addr1, []byte("leaf 11"))
 	val11 := []byte("leaf 11")
 	leaf5 := [][]byte{[]byte{byte(leaf)}, key1[4:], val11}
-	leaf5IR, _ := tr.serializer.Serialize(leaf5)
+	leaf5IR, _ := proto.Marshal(&triepb.Node{Val: leaf5})
 	leaf5H := hash.Sha3256(leaf5IR)
 	branch6 := [][]byte{nil, nil, nil, nil, leaf5H, leaf2H, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil}
-	branch6IR, _ := tr.serializer.Serialize(branch6)
+	branch6IR, _ := proto.Marshal(&triepb.Node{Val: branch6})
 	branch6H := hash.Sha3256(branch6IR)
 	branch7 := [][]byte{nil, nil, nil, branch6H, nil, leaf4H, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil}
-	branch7IR, _ := tr.serializer.Serialize(branch7)
+	branch7IR, _ := proto.Marshal(&triepb.Node{Val: branch7})
 	branch7H := hash.Sha3256(branch7IR)
 	ext3 := [][]byte{[]byte{(byte(ext))}, key3[:2], branch7H}
-	ext3IR, _ := tr.serializer.Serialize(ext3)
+	ext3IR, _ := proto.Marshal(&triepb.Node{Val: ext3})
 	ext3H := hash.Sha3256(ext3IR)
 	if !reflect.DeepEqual(ext3H, hash4) {
 		t.Errorf("4 Trie.Update() = %v, want %v", ext3H, tr.rootHash)
@@ -206,18 +205,18 @@ func TestTrie_Operation(t *testing.T) {
 	// get node "1f555678e9"
 	checkVal3, _ := tr.Get(addr3)
 	if !reflect.DeepEqual(checkVal3, val3) {
-		t.Errorf("2 Trie.Get() val = %v, want %v", checkVal2, val3)
+		t.Errorf("2 Trie.Get() val = %v, want %v", checkVal3, val3)
 	}
 	// del node "1f345678e9"
 	hash5, _ := tr.Del(addr1)
 	branch9 := [][]byte{nil, nil, nil, nil, nil, leaf2H, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil}
-	branch9IR, _ := tr.serializer.Serialize(branch9)
+	branch9IR, _ := proto.Marshal(&triepb.Node{Val: branch9})
 	branch9H := hash.Sha3256(branch9IR)
 	branch10 := [][]byte{nil, nil, nil, branch9H, nil, leaf4H, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil}
-	branch10IR, _ := tr.serializer.Serialize(branch10)
+	branch10IR, _ := proto.Marshal(&triepb.Node{Val: branch10})
 	branch10H := hash.Sha3256(branch10IR)
 	ext4 := [][]byte{[]byte{(byte(ext))}, key3[:2], branch10H}
-	ext4IR, _ := tr.serializer.Serialize(ext4)
+	ext4IR, _ := proto.Marshal(&triepb.Node{Val: ext4})
 	ext4H := hash.Sha3256(ext4IR)
 	if !reflect.DeepEqual(ext4H, hash5) {
 		t.Errorf("1 Trie.Del() = %v, want %v", ext4H, tr.rootHash)
@@ -225,10 +224,10 @@ func TestTrie_Operation(t *testing.T) {
 	// del node "1f355678e9"
 	hash6, _ := tr.Del(addr2)
 	branch12 := [][]byte{nil, nil, nil, nil, nil, leaf4H, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil}
-	branch12IR, _ := tr.serializer.Serialize(branch12)
+	branch12IR, _ := proto.Marshal(&triepb.Node{Val: branch12})
 	branch12H := hash.Sha3256(branch12IR)
 	ext5 := [][]byte{[]byte{(byte(ext))}, key3[0:2], branch12H}
-	ext5IR, _ := tr.serializer.Serialize(ext5)
+	ext5IR, _ := proto.Marshal(&triepb.Node{Val: ext5})
 	ext5H := hash.Sha3256(ext5IR)
 	if !reflect.DeepEqual(ext5H, hash6) {
 		t.Errorf("2 Trie.Del() = %v, want %v", ext5H, tr.rootHash)

@@ -19,18 +19,20 @@
 package core
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
-	"github.com/nebulasio/go-nebulas/common/trie"
-	log "github.com/sirupsen/logrus"
-
+	"github.com/gogo/protobuf/proto"
 	"github.com/hashicorp/golang-lru"
+	"github.com/nebulasio/go-nebulas/common/trie"
+	"github.com/nebulasio/go-nebulas/core/pb"
+	"github.com/nebulasio/go-nebulas/storage"
 )
 
 // BlockChain the BlockChain core type.
 type BlockChain struct {
-	chainID int
+	chainID uint32
 
 	genesisBlock *Block
 	tailBlock    *Block
@@ -39,9 +41,10 @@ type BlockChain struct {
 	txPool           *TransactionPool
 	consensusHandler Consensus
 
-	stateTrie          *trie.Trie
 	cachedBlocks       *lru.Cache
 	detachedTailBlocks *lru.Cache
+
+	storage storage.Storage
 }
 
 const (
@@ -50,30 +53,46 @@ const (
 
 	// EagleNebula chain id for 1.x
 	EagleNebula = 1 << 4
+
+	// Tail Key in storage
+	Tail = "blockchain_tail"
 )
 
 // NewBlockChain create new #BlockChain instance.
-func NewBlockChain(chainID int) *BlockChain {
+func NewBlockChain(chainID uint32, storage storage.Storage) (*BlockChain, error) {
 	var bc = &BlockChain{
 		chainID: chainID,
 		bkPool:  NewBlockPool(),
-		txPool:  NewTransactionPool(),
+		txPool:  NewTransactionPool(4096),
+		storage: storage,
 	}
 
-	bc.stateTrie, _ = trie.NewTrie(nil)
 	bc.cachedBlocks, _ = lru.New(1024)
 	bc.detachedTailBlocks, _ = lru.New(64)
 
-	bc.genesisBlock = NewGenesisBlock(bc.stateTrie)
-	bc.tailBlock = bc.genesisBlock
+	tailBlock, err := bc.loadTailFromStorage()
+	if err != nil {
+		bc.genesisBlock = NewGenesisBlock(chainID, storage)
+		if err := bc.storeBlockToStorage(bc.genesisBlock); err != nil {
+			return nil, err
+		}
+		tailBlock = bc.genesisBlock
+	}
+	bc.tailBlock = tailBlock
 
 	bc.bkPool.setBlockChain(bc)
-	return bc
+	bc.txPool.setBlockChain(bc)
+	return bc, nil
 }
 
 // ChainID return the chainID.
-func (bc *BlockChain) ChainID() int {
+func (bc *BlockChain) ChainID() uint32 {
 	return bc.chainID
+}
+
+// Storage return the storage
+func (bc *BlockChain) Storage() storage.Storage {
+	return bc.storage
 }
 
 // TailBlock return the tail block.
@@ -82,14 +101,90 @@ func (bc *BlockChain) TailBlock() *Block {
 }
 
 // SetTailBlock set tail block.
-func (bc *BlockChain) SetTailBlock(block *Block) {
-	bc.detachedTailBlocks.Remove(block.Hash().Hex())
-	bc.tailBlock = block
+func (bc *BlockChain) SetTailBlock(newTail *Block) {
+	oldTail := bc.tailBlock
+	bc.detachedTailBlocks.Remove(newTail.Hash().Hex())
+	bc.tailBlock = newTail
+	bc.storeTailToStorage(bc.tailBlock)
+	// giveBack txs in reverted blocks to tx pool
+	ancestor, _ := bc.FindCommonAncestorWithTail(oldTail)
+	if ancestor.Hash().Equals(oldTail.Hash()) {
+		// oldTail and newTail is on same chain, no reverted blocks
+		return
+	}
+	reverted := oldTail
+	for !reverted.Hash().Equals(ancestor.Hash()) {
+		for _, v := range reverted.transactions {
+			// give back reverted txs to tx pool
+			bc.txPool.Push(v)
+		}
+		reverted = bc.GetBlock(reverted.header.parentHash)
+		if reverted == nil {
+			panic("find a block on chain, we cannot find its parent block")
+		}
+	}
+}
+
+// FindCommonAncestorWithTail return the block's common ancestor with current tail
+func (bc *BlockChain) FindCommonAncestorWithTail(block *Block) (*Block, error) {
+	target := bc.GetBlock(block.Hash())
+	if target == nil {
+		target = bc.GetBlock(block.ParentHash())
+	}
+	if target == nil {
+		return nil, errors.New("cannot location the block in blockchain")
+	}
+	tail := bc.TailBlock()
+	for tail.Height() > target.Height() {
+		tail = bc.GetBlock(tail.header.parentHash)
+	}
+	for tail.Height() < target.Height() {
+		target = bc.GetBlock(target.header.parentHash)
+	}
+	for !tail.Hash().Equals(target.Hash()) {
+		tail = bc.GetBlock(tail.header.parentHash)
+		target = bc.GetBlock(target.header.parentHash)
+		if tail == nil || target == nil {
+			panic("find a block on chain, we cannot find its parent block")
+		}
+	}
+	return target, nil
+}
+
+// FetchDescendantInCanonicalChain return the subsequent blocks of the block
+// lookup the block's descendant from tail to genesis
+// if the block is not in canonical chain, return err
+func (bc *BlockChain) FetchDescendantInCanonicalChain(n int, block *Block) ([]*Block, error) {
+	curIdx := -1
+	queue := make([]*Block, n)
+	// get tail in canonical chain
+	curBlock := bc.tailBlock
+	for curBlock != nil && !curBlock.Hash().Equals(block.Hash()) {
+		if curBlock.Hash().Equals(bc.genesisBlock.Hash()) {
+			return nil, errors.New("cannot find the block in canonical chain")
+		}
+		curIdx = (curIdx + 1) % n
+		queue[curIdx] = curBlock
+		curBlock = bc.GetBlock(curBlock.header.parentHash)
+	}
+	var res []*Block
+	for i := 0; curIdx >= 0 && i < n; i++ {
+		if queue[curIdx] != nil {
+			res = append(res, queue[curIdx])
+		}
+		curIdx = (curIdx + n - 1) % n
+	}
+	return res, nil
 }
 
 // BlockPool return block pool.
 func (bc *BlockChain) BlockPool() *BlockPool {
 	return bc.bkPool
+}
+
+// TransactionPool return block pool.
+func (bc *BlockChain) TransactionPool() *TransactionPool {
+	return bc.txPool
 }
 
 // SetConsensusHandler set consensus handler.
@@ -109,27 +204,21 @@ func (bc *BlockChain) NewBlock(coinbase *Address) *Block {
 
 // NewBlockFromParent create new block from parent block and return it.
 func (bc *BlockChain) NewBlockFromParent(coinbase *Address, parentBlock *Block) *Block {
-	stateTrie, err := parentBlock.stateTrie.Clone()
-	if err != nil {
-		log.WithFields(log.Fields{
-			"func": "BlockChain.NewBlockFromParent",
-			"err":  err,
-		}).Fatal("clone state trie fail.")
-		panic("BlockChain.NewBlockFromParent: clone state trie fail.")
-	}
-
-	block := NewBlock(coinbase, parentBlock.Hash(), parentBlock.Nonce(), stateTrie, bc.txPool)
-	return block
+	return NewBlock(bc.chainID, coinbase, parentBlock, bc.txPool, bc.storage)
 }
 
 // PutVerifiedNewBlocks put verified new blocks and tails.
-func (bc *BlockChain) PutVerifiedNewBlocks(allBlocks, tailBlocks []*Block) {
+func (bc *BlockChain) PutVerifiedNewBlocks(allBlocks, tailBlocks []*Block) error {
 	for _, v := range allBlocks {
 		bc.cachedBlocks.ContainsOrAdd(v.Hash().Hex(), v)
+		if err := bc.storeBlockToStorage(v); err != nil {
+			return err
+		}
 	}
 	for _, v := range tailBlocks {
 		bc.detachedTailBlocks.ContainsOrAdd(v.Hash().Hex(), v)
 	}
+	return nil
 }
 
 // DetachedTailBlocks return detached tail blocks, used by Fork Choice algorithm.
@@ -150,30 +239,123 @@ func (bc *BlockChain) GetBlock(hash Hash) *Block {
 	// TODO: get block from local storage.
 	v, _ := bc.cachedBlocks.Get(hash.Hex())
 	if v == nil {
-		if hash.Equals(bc.genesisBlock.Hash()) {
-			return bc.genesisBlock
+		block, err := bc.loadBlockFromStorage(hash)
+		if err != nil {
+			return nil
 		}
-		// TODO: load from storage for previous block.
-		return nil
+		return block
 	}
 
 	block := v.(*Block)
 	return block
 }
 
-// Dump dump full chain.
-func (bc *BlockChain) Dump() string {
-	rl := make([]string, 1)
-	for block := bc.tailBlock; block != nil; block = block.parenetBlock {
-		rl = append(rl,
-			fmt.Sprintf(
-				"{%d, hash: %s, parent: %s, stateRoot: %s}",
-				block.height,
-				block.Hash().Hex(),
-				block.ParentHash().Hex(),
-				block.StateRoot().Hex(),
-			))
+// GetTransaction return transaction of given hash from local storage.
+func (bc *BlockChain) GetTransaction(hash Hash) *Transaction {
+	// TODO: get transaction err handle.
+	v, err := bc.tailBlock.txsTrie.Get(hash)
+	if err != nil {
+		return nil
 	}
-	rls := strings.Join(rl, " --> ")
+	pbTx := new(corepb.Transaction)
+	if err = proto.Unmarshal(v, pbTx); err != nil {
+		return nil
+	}
+	tx := new(Transaction)
+	if err = tx.FromProto(pbTx); err != nil {
+		return nil
+	}
+	return tx
+}
+
+// Dump dump full chain.
+func (bc *BlockChain) Dump(count int) string {
+	rl := make([]string, 1)
+	if count > 0 {
+		i := 0
+		for block := bc.tailBlock; !CheckGenesisBlock(block); block = bc.GetBlock(block.ParentHash()) {
+			if i < count {
+				i++
+				rl = append(rl,
+					fmt.Sprintf(
+						"{%d, hash: %s, parent: %s, stateRoot: %s, coinbase: %s}",
+						block.height,
+						block.Hash().Hex(),
+						block.ParentHash().Hex(),
+						block.StateRoot().Hex(),
+						block.header.coinbase.address.Hex(),
+					))
+			} else {
+				break
+			}
+		}
+	} else {
+		for block := bc.tailBlock; !CheckGenesisBlock(block); block = bc.GetBlock(block.ParentHash()) {
+			rl = append(rl,
+				fmt.Sprintf(
+					"{%d, hash: %s, parent: %s, stateRoot: %s, coinbase: %s}",
+					block.height,
+					block.Hash().Hex(),
+					block.ParentHash().Hex(),
+					block.StateRoot().Hex(),
+					block.header.coinbase.address.Hex(),
+				))
+		}
+	}
+
+	rls := strings.Join(rl, " ")
 	return rls
+}
+
+func (bc *BlockChain) storeBlockToStorage(block *Block) error {
+	pbBlock, err := block.ToProto()
+	if err != nil {
+		return err
+	}
+	value, err := proto.Marshal(pbBlock)
+	if err != nil {
+		return err
+	}
+	err = bc.storage.Put(block.Hash(), value)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (bc *BlockChain) loadBlockFromStorage(hash Hash) (*Block, error) {
+	value, err := bc.storage.Get(hash)
+	if err != nil {
+		return nil, err
+	}
+	pbBlock := new(corepb.Block)
+	block := new(Block)
+	if err = proto.Unmarshal(value, pbBlock); err != nil {
+		return nil, err
+	}
+	if err = block.FromProto(pbBlock); err != nil {
+		return nil, err
+	}
+	block.stateTrie, err = trie.NewBatchTrie(block.StateRoot(), bc.storage)
+	if err != nil {
+		return nil, err
+	}
+	block.txsTrie, err = trie.NewBatchTrie(block.TxsRoot(), bc.storage)
+	if err != nil {
+		return nil, err
+	}
+	block.storage = bc.storage
+	return block, nil
+}
+
+func (bc *BlockChain) storeTailToStorage(block *Block) {
+	bc.storage.Put([]byte(Tail), block.Hash())
+}
+
+func (bc *BlockChain) loadTailFromStorage() (*Block, error) {
+	hash, err := bc.storage.Get([]byte(Tail))
+	if err != nil {
+		return nil, err
+	}
+	return bc.loadBlockFromStorage(hash)
 }

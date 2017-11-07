@@ -20,11 +20,11 @@ package pow
 
 import (
 	"github.com/nebulasio/go-nebulas/consensus"
-	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
 
-	log "github.com/sirupsen/logrus"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -50,16 +50,12 @@ func NewMiningState(p *Pow) *MiningState {
 
 // Event handle event.
 func (state *MiningState) Event(e consensus.Event) (bool, consensus.State) {
-	if e.EventType() != consensus.NewBlockEvent {
+	switch e.EventType() {
+	case consensus.NewBlockEvent:
+		return true, state.p.states[Minted]
+	default:
 		return false, nil
 	}
-
-	// when received new block event, quit searchingNonce(), go to next state.
-	block := e.Data().(*core.Block)
-	log.WithFields(log.Fields{
-		"block": block,
-	}).Info("MiningState.Event: receive new block message, transit to MintedState.")
-	return true, state.p.states[Minted]
 }
 
 // Enter called when transiting to this state.
@@ -80,7 +76,7 @@ func (state *MiningState) searchingNonce() {
 	// transit to MintedState if newBlockReceived is true.
 	if state.p.newBlockReceived {
 		log.Info("MiningState.Enter: new block received, transit to MintedState.")
-		state.p.TransitByKey(Minted, nil)
+		state.p.TransitByKey(Mining, Minted, nil)
 
 	} else {
 		// calculate hash.
@@ -100,7 +96,7 @@ func (state *MiningState) searchingNonce() {
 
 				// compute hash..
 				miningBlock.SetNonce(nonce)
-				miningBlock.SetTimestamp(time.Now())
+				miningBlock.SetTimestamp(time.Now().Unix())
 				resultBytes := HashAndVerify(miningBlock)
 
 				if resultBytes != nil {
@@ -113,7 +109,7 @@ func (state *MiningState) searchingNonce() {
 					// seal block.
 					miningBlock.Seal()
 
-					state.p.TransitByKey(Minted, nil)
+					state.p.TransitByKey(Mining, Minted, nil)
 
 					// break this for loop.
 					break computeHash

@@ -1,0 +1,69 @@
+// Copyright (C) 2017 go-nebulas authors
+//
+// This file is part of the go-nebulas library.
+//
+// the go-nebulas library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// the go-nebulas library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with the go-nebulas library.  If not, see <http://www.gnu.org/licenses/>.
+//
+syntax = "proto3";
+package corepb;
+
+message Account {
+    bytes user_balance = 11;
+    uint64 user_nonce = 12;
+    bytes user_global_storage = 13;
+
+    bytes contract_owner = 21;
+    bytes contract_transaction_hash = 22;
+    bytes contract_local_storage = 23;    
+}
+
+message Transaction {
+    bytes hash  = 1;
+    bytes from = 2;
+    bytes to = 3;
+    bytes value = 4;
+    uint64 nonce = 5;
+    int64 timestamp = 6;
+    bytes data = 7;
+    uint32 chain_id = 8;
+    uint32 alg = 9;    
+    bytes sign = 10;
+}
+
+message BlockHeader {
+    bytes hash = 1;
+    bytes parent_hash = 2;
+    uint64 nonce = 3;
+    bytes coinbase = 4;
+    int64 timestamp = 5;
+    uint32 chain_id = 6;
+    bytes state_root = 7;
+    bytes txs_root = 8;
+}
+
+message Block {
+    BlockHeader header = 1;
+    repeated Transaction transactions = 2;
+    uint64 height = 3;
+}
+
+message NetBlocks {
+    string from = 1;
+    repeated Block blocks = 2;
+}
+
+message NetBlock {
+    string from = 1;
+    Block block = 2;
+}

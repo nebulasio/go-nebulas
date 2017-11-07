@@ -9,7 +9,8 @@ vendor
 .DS_Store
 
 # build files
-neb*
+neb
+!cmd/neb
 debug
 *.report
 *.report.xml
@@ -17,3 +18,10 @@ debug
 
 # test debug
 *.test
+
+# db
+*.db
+
+# c/cpp temp files.
+*.o
+

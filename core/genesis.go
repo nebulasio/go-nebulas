@@ -22,22 +22,39 @@ import (
 	"time"
 
 	"github.com/nebulasio/go-nebulas/common/trie"
+	"github.com/nebulasio/go-nebulas/storage"
 )
 
 // NewGenesisBlock create genesis @Block from file.
-func NewGenesisBlock(stateTrie *trie.Trie) *Block {
+func NewGenesisBlock(chainID uint32, storage storage.Storage) *Block {
+	stateTrie, _ := trie.NewBatchTrie(nil, storage)
+	txsTrie, _ := trie.NewBatchTrie(nil, storage)
 	// TODO: load genesis block data from file.
 	b := &Block{
 		header: &BlockHeader{
+			chainID:    chainID,
 			hash:       make([]byte, BlockHashLength),
 			parentHash: make([]byte, BlockHashLength),
 			coinbase:   &Address{make([]byte, AddressLength)},
-			timestamp:  time.Now(),
+			timestamp:  time.Now().Unix(),
 		},
 		stateTrie: stateTrie,
+		txsTrie:   txsTrie,
+		storage:   storage,
 		height:    1,
 		sealed:    true,
 	}
 
 	return b
+}
+
+// CheckGenesisBlock if a block is a genesis block
+func CheckGenesisBlock(block *Block) bool {
+	if block == nil {
+		return false
+	}
+	if block.Hash().Equals(block.ParentHash()) {
+		return true
+	}
+	return false
 }

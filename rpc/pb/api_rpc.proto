@@ -1,0 +1,221 @@
+// Copyright (C) 2017 go-nebulas authors
+//
+// This file is part of the go-nebulas library.
+//
+// the go-nebulas library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// the go-nebulas library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with the go-nebulas library.  If not, see <http://www.gnu.org/licenses/>.
+//
+
+syntax = "proto3";
+
+// TODO: support restful endpoints.
+import "google/api/annotations.proto";
+import "github.com/nebulasio/go-nebulas/core/pb/block.proto";
+
+package rpcpb;
+
+// RPC API interface.
+service APIService {
+	// Return the state of the neb.
+	rpc GetNebState (GetNebStateRequest) returns (GetNebStateResponse) {
+		option (google.api.http) = {
+			get: "/v1/neb/state"
+		};
+	}
+
+	// Return the dump info of blockchain.
+	rpc BlockDump (BlockDumpRequest) returns (BlockDumpResponse) {
+		option (google.api.http) = {
+			post: "/v1/block/dump"
+            body: "*"
+		};
+	}
+
+	// Accounts return account list.
+	rpc Accounts (AccountsRequest) returns (AccountsResponse) {
+		option (google.api.http) = {
+			get: "/v1/accounts"
+		};
+	}
+
+	// Return the state of the account.
+	rpc GetAccountState (GetAccountStateRequest) returns (GetAccountStateResponse) {
+		option (google.api.http) = {
+            post: "/v1/account/state"
+			body: "*"
+        };
+	}
+
+	// Verify, sign, and send the transaction.
+	rpc SendTransaction (SendTransactionRequest) returns (SendTransactionResponse) {
+		option (google.api.http) = {
+            post: "/v1/transaction"
+            body: "*"
+        };
+	}
+
+	// Call smart contract.
+	rpc Call (CallRequest) returns (SendTransactionResponse) {
+		option (google.api.http) = {
+            post: "/v1/call"
+            body: "*"
+        };
+	}
+
+	// Submit the signed transaction.
+	rpc SendRawTransaction (SendRawTransactionRequest) returns (SendTransactionResponse) {
+	}
+
+	// Get block header info by the block hash
+	rpc GetBlockByHash (GetBlockByHashRequest) returns (corepb.Block) {
+	}
+
+	// Get transaction info by the tansaction hash
+	rpc GetTransactionByHash (GetTransactionByHashRequest) returns (corepb.Transaction) {
+	}
+}
+
+// Request message of GetNebState rpc.
+message GetNebStateRequest {
+}
+
+// Response message of GetNebState rpc.
+message GetNebStateResponse {
+
+	// Block chain id
+	uint32 chainID = 1;
+
+	// Current neb tail hash
+	string tail = 2;
+
+	// Neb coinbase
+	string coinbase = 3;
+
+	// Number of peers currenly connected
+	uint32 peerCount = 4;
+
+	// Neb mine status, minging is true ,otherwise false
+	bool isMining = 5;
+}
+
+// Request message of Accounts rpc.
+message AccountsRequest {
+}
+
+// Response message of Accounts rpc.
+message AccountsResponse {
+	// Account list
+	repeated string addresses = 1;
+}
+
+// Request message of GetAccountState rpc.
+message GetAccountStateRequest {
+	// Hex string of the account addresss.
+	string address = 1;
+
+	// Hex string block number, or one of "latest", "earliest" or "pending". If not specified, use "latest".
+	string block = 2;
+}
+
+// Response message of GetAccountState rpc.
+message GetAccountStateResponse {
+	// Current balance in unit of 1/(10^18) nas.
+	bytes balance = 1; // uint128, len=16
+
+	// Current transaction count.
+	uint64 nonce = 2;
+}
+
+// Request message of SendTransaction rpc.
+message SendTransactionRequest {
+	// Hex string of the sender account addresss.
+	string from = 1;
+
+	// Hex string of the receiver account addresss.
+	string to = 2;
+
+	// Amount of value sending with this transaction.
+	bytes value = 3; // uint128, len=16
+
+	// Transaction nonce.
+	uint64 nonce = 4;
+
+	// TODO: gas provided for the transaction.
+
+	// TODO: contract code bytes or hash.
+
+	// contract source code.
+	string source = 5;
+
+	// the params of contract.
+	string args = 6;
+}
+
+message CallRequest {
+	// Hex string of the sender account addresss.
+	string from = 1;
+
+	// Hex string of the receiver account addresss.
+	string to = 2;
+
+	// Transaction nonce.
+	uint64 nonce = 3;
+
+	// call contract function name
+	string function = 4;
+
+	// the params of contract.
+	string args = 5;
+
+}
+
+// Request message of SendRawTransactionRequest rpc.
+message SendRawTransactionRequest {
+
+	// Signed data of transaction
+	bytes data = 1;
+}
+
+// Response message of SendTransaction rpc.
+message SendTransactionResponse {
+	// Hex string of transaction hash.
+	string hash = 1;
+}
+
+// Request message of GetBlockByHash rpc.
+message GetBlockByHashRequest {
+	// Hex string of block hash.
+	string hash = 1;
+}
+
+// Request message of GetTransactionByHash rpc.
+message GetTransactionByHashRequest {
+	// Hex string of transaction hash.
+	string hash = 1;
+}
+
+// Request message of BlockDump
+message BlockDumpRequest {
+	// the count of blocks to dump before current tail.
+	int32 count = 1;
+}
+
+// Response message of BlockDump
+message BlockDumpResponse {
+	// block dump info.
+	string data = 1;
+}
+
+
+
+

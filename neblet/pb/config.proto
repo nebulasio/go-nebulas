@@ -1,0 +1,80 @@
+// Copyright (C) 2017 go-nebulas authors
+//
+// This file is part of the go-nebulas library.
+//
+// the go-nebulas library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// the go-nebulas library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with the go-nebulas library.  If not, see <http://www.gnu.org/licenses/>.
+//
+syntax = "proto3";
+package nebletpb;
+
+// Neblet global configurations.
+message Config {
+	// P2P network config.
+    P2PConfig p2p  = 1;
+
+	// RPC server config.
+	RPCConfig rpc  = 2;
+
+	// Pow config
+	PowConfig pow = 3;
+
+	// Account manager config
+	AccountConfig account = 4;
+
+	// TODO: more configs.
+}
+
+message P2PConfig {
+	// P2P seed node addresses.
+	string seed = 1;
+
+	// P2P node port number.
+	uint32 port = 2;
+
+	// P2P node chainID.
+	uint32 chain_id = 3;
+	
+	// P2P node version.
+	uint32 version = 4;
+}
+
+message RPCConfig {
+	// API RPC server listening port number.
+	uint32 api_port = 1;
+
+	// Management RPC server listening port number.
+	uint32 management_port = 2;
+
+	// Json RPC Gateway server listening port number.
+	uint32 gateway_port = 3;
+}
+
+message PowConfig {
+	// pow miner's coinbase
+	string coinbase = 1;
+}
+
+message AccountConfig {
+	// Account transaction sign algorithm type
+	uint32 signature = 1;
+
+	// Account addr encrypt algorithm type
+    uint32 encrypt = 2;
+
+	// Account key file directory
+	string key_dir = 3;
+
+	// Account test keyfile's passphrase
+	string test_passphrase = 4;
+}

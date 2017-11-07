@@ -20,18 +20,23 @@ package keystore
 
 import (
 	"errors"
+
+	"github.com/nebulasio/go-nebulas/crypto/cipher"
 )
 
 var (
 	// ErrNeedAlias need alias
 	ErrNeedAlias = errors.New("need alias")
 
-	// ErrNeedFilePath need file path
-	ErrNeedFilePath = errors.New("need file path")
-
-	// ErrNeedPassphrase need passphrase
-	ErrNeedPassphrase = errors.New("need passphrase")
+	// ErrNotFind not find key
+	ErrNotFind = errors.New("not find key")
 )
+
+// Entry keeps in memory
+type Entry struct {
+	key  Key
+	data []byte
+}
 
 // MemoryProvider handle keystore with ecdsa
 type MemoryProvider struct {
@@ -43,45 +48,67 @@ type MemoryProvider struct {
 	version float32
 
 	// a map storage entry
-	entries map[string]Key
+	entries map[string]Entry
+
+	// encrypt key
+	cipher *cipher.Cipher
 }
 
 // NewMemoryProvider generate a provider with version
-func NewMemoryProvider(v float32) *MemoryProvider {
-	p := &MemoryProvider{"memory", v, make(map[string]Key)}
+func NewMemoryProvider(v float32, alg Algorithm) *MemoryProvider {
+	p := &MemoryProvider{name: "memoryProvider", version: v, entries: make(map[string]Entry)}
+	p.cipher = cipher.NewCipher(uint8(alg))
 	return p
 }
 
 // Aliases all entry in provider save
 func (p *MemoryProvider) Aliases() []string {
-	aliases := make([]string, len(p.entries))
-	for k := range p.entries {
-		aliases = append(aliases, k)
+	aliases := []string{}
+	for a := range p.entries {
+		aliases = append(aliases, a)
 	}
 	return aliases
 }
 
 // SetKey assigns the given key (that has already been protected) to the given alias.
-func (p *MemoryProvider) SetKey(a string, key Key) error {
+func (p *MemoryProvider) SetKey(a string, key Key, passphrase []byte) error {
 	if &a == nil {
 		return ErrNeedAlias
 	}
-	p.entries[a] = key
+	encoded, err := key.Encoded()
+	if err != nil {
+		return nil
+	}
+	data, err := p.cipher.Encrypt(encoded, passphrase)
+	if err != nil {
+		return nil
+	}
+	key.Clear()
+	entry := Entry{key, data}
+	p.entries[a] = entry
 	return nil
 }
 
 // GetKey returns the key associated with the given alias, using the given
 // password to recover it.
-func (p *MemoryProvider) GetKey(a string) (Key, error) {
-	if &a == nil {
+func (p *MemoryProvider) GetKey(a string, passphrase []byte) (Key, error) {
+	if len(a) == 0 {
 		return nil, ErrNeedAlias
 	}
 
-	key := p.entries[a]
-	if key == nil {
-		return nil, errors.New("not find in provider")
+	entry, ok := p.entries[a]
+	if !ok {
+		return nil, ErrNotFind
 	}
-	return key, nil
+	data, err := p.cipher.Decrypt(entry.data, passphrase)
+	if err != nil {
+		return nil, err
+	}
+	err = entry.key.Decode(data)
+	if err != nil {
+		return nil, err
+	}
+	return entry.key, nil
 }
 
 // Delete remove key
@@ -98,12 +125,10 @@ func (p *MemoryProvider) ContainsAlias(a string) (bool, error) {
 	if &a == nil {
 		return false, ErrNeedAlias
 	}
-	for k := range p.entries {
-		if k == a {
-			return true, nil
-		}
+	if _, ok := p.entries[a]; ok {
+		return true, nil
 	}
-	return false, errors.New("not contains alias")
+	return false, ErrNotFind
 }
 
 // Clear clear all entries in provider
@@ -111,6 +136,6 @@ func (p *MemoryProvider) Clear() error {
 	if p.entries == nil {
 		return errors.New("need entries map")
 	}
-	p.entries = make(map[string]Key)
+	p.entries = make(map[string]Entry)
 	return nil
 }

@@ -21,6 +21,9 @@ package keystore
 // Signature interface of different signature algorithm
 type Signature interface {
 
+	// Algorithm returns the standard algorithm for this key.
+	Algorithm() Algorithm
+
 	// InitSign this object for signing. If this method is called
 	// again with a different argument, it negates the effect
 	// of this call.
@@ -30,6 +33,9 @@ type Signature interface {
 	// The format of the signature depends on the underlying
 	// signature scheme.
 	Sign(data []byte) (out []byte, err error)
+
+	// RecoverPublic returns a public key, which is recoverd by data and signature
+	RecoverPublic(data []byte, signature []byte) (PublicKey, error)
 
 	// InitVerify initializes this object for verification. If this method is called
 	// again with a different argument, it negates the effect

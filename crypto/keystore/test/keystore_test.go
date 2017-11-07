@@ -19,86 +19,194 @@
 package test
 
 import (
-	"crypto/rand"
-	"github.com/nebulasio/go-nebulas/crypto/keystore"
-	"github.com/nebulasio/go-nebulas/crypto/keystore/ecdsa"
 	"testing"
+
+	"time"
+
+	"github.com/nebulasio/go-nebulas/crypto"
+	"github.com/nebulasio/go-nebulas/crypto/keystore"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestKeystore_SetKeyPassphrase(t *testing.T) {
-	priv, _ := ecdsa.NewPrivateKey(rand.Reader)
+	priv1, _ := crypto.NewPrivateKey(keystore.SECP256K1, nil)
+	priv2, _ := crypto.NewPrivateKey(keystore.SECP256K1, nil)
+	priv3, _ := crypto.NewPrivateKey(keystore.SECP256K1, nil)
 
 	ks := keystore.NewKeystore()
 
-	alias := "test_alias"
-
-	kpri := ecdsa.NewPrivateStoreKey(priv)
-	err := ks.SetKey(alias, kpri, []byte("paeeword"))
-	if err != nil {
-		t.Errorf("SetKeyPassphrase failed:%s", err)
+	tests := []struct {
+		name       string
+		passphrase []byte
+		alias      string
+		key        keystore.PrivateKey
+	}{
+		{
+			"address1",
+			[]byte("passphrase"),
+			"alias1",
+			priv1,
+		},
+		{
+			"address2",
+			[]byte("passphrase"),
+			"alias2",
+			priv2,
+		},
+		{
+			"address3",
+			[]byte("passphrase"),
+			"alias3",
+			priv3,
+		},
 	}
-}
-
-func TestKeystore_GetKey(t *testing.T) {
-	priv, _ := ecdsa.NewPrivateKey(rand.Reader)
-
-	ks := keystore.NewKeystore()
-
-	alias := "test_alias"
-
-	passphrase := []byte("password")
-
-	kpri := ecdsa.NewPrivateStoreKey(priv)
-	err := ks.SetKey(alias, kpri, passphrase)
-	if err != nil {
-		t.Errorf("SetKeyPassphrase failed:%s", err)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := ks.SetKey(tt.alias, tt.key, tt.passphrase)
+			assert.Nil(t, err, "set key err")
+			got, err := ks.GetKey(tt.alias, tt.passphrase)
+			assert.Equal(t, tt.key, got, "keystore get err")
+		})
 	}
-	key, err := ks.GetKey(alias, passphrase)
-	if err != nil {
-		t.Errorf("getkey failed:%s", err)
-	}
-	if key == nil {
-		t.Errorf("getkey failed")
-	}
-
 }
 
 func TestKeystore_ContainsAlias(t *testing.T) {
-	priv, _ := ecdsa.NewPrivateKey(rand.Reader)
+	priv1, _ := crypto.NewPrivateKey(keystore.SECP256K1, nil)
+	priv2, _ := crypto.NewPrivateKey(keystore.SECP256K1, nil)
+	priv3, _ := crypto.NewPrivateKey(keystore.SECP256K1, nil)
 
 	ks := keystore.NewKeystore()
 
-	alias := "test_alias"
-	passphrase := []byte("password")
-
-	kpri := ecdsa.NewPrivateStoreKey(priv)
-	err := ks.SetKey(alias, kpri, passphrase)
-	if err != nil {
-		t.Errorf("SetKeyPassphrase failed:%s", err)
+	tests := []struct {
+		name       string
+		passphrase []byte
+		alias      string
+		key        keystore.PrivateKey
+	}{
+		{
+			"address1",
+			[]byte("passphrase"),
+			"alias1",
+			priv1,
+		},
+		{
+			"address2",
+			[]byte("passphrase"),
+			"alias2",
+			priv2,
+		},
+		{
+			"address3",
+			[]byte("passphrase"),
+			"alias3",
+			priv3,
+		},
 	}
-	_, err = ks.ContainsAlias(alias)
-	if err != nil {
-		t.Errorf("ContainsAlias failed:%s", err)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := ks.SetKey(tt.alias, tt.key, tt.passphrase)
+			assert.Nil(t, err, "set key err")
+			got, err := ks.ContainsAlias(tt.alias)
+			assert.Nil(t, err, "contains err")
+			assert.True(t, got, "not contains")
+		})
+	}
+}
+
+func TestKeystore_Unlock(t *testing.T) {
+	priv1, _ := crypto.NewPrivateKey(keystore.SECP256K1, nil)
+	priv2, _ := crypto.NewPrivateKey(keystore.SECP256K1, nil)
+	priv3, _ := crypto.NewPrivateKey(keystore.SECP256K1, nil)
+
+	ks := keystore.NewKeystore()
+
+	tests := []struct {
+		name       string
+		passphrase []byte
+		alias      string
+		key        keystore.PrivateKey
+		duration   time.Duration
+		want       bool
+	}{
+		{
+			"address1",
+			[]byte("passphrase"),
+			"alias1",
+			priv1,
+			time.Second * 1,
+			false,
+		},
+		{
+			"address2",
+			[]byte("passphrase"),
+			"alias2",
+			priv2,
+			time.Second * 2,
+			true,
+		},
+		{
+			"address3",
+			[]byte("passphrase"),
+			"alias3",
+			priv3,
+			time.Second * 3,
+			true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := ks.SetKey(tt.alias, tt.key, tt.passphrase)
+			assert.Nil(t, err, "set key err")
+			err = ks.Unlock(tt.alias, tt.passphrase, tt.duration)
+			assert.Nil(t, err, "unlock err")
+			time.Sleep(time.Second * 2)
+			got, _ := ks.GetUnlocked(tt.alias)
+			assert.Equal(t, tt.want, tt.key == got, "get unlock err:%s", tt.alias)
+		})
 	}
 }
 
 func TestKeystore_Delete(t *testing.T) {
-	priv, _ := ecdsa.NewPrivateKey(rand.Reader)
-
-	alias := "test_alias"
-	passphrase := []byte("password")
+	priv1, _ := crypto.NewPrivateKey(keystore.SECP256K1, nil)
+	priv2, _ := crypto.NewPrivateKey(keystore.SECP256K1, nil)
+	priv3, _ := crypto.NewPrivateKey(keystore.SECP256K1, nil)
 
 	ks := keystore.NewKeystore()
 
-	kpri := ecdsa.NewPrivateStoreKey(priv)
-	err := ks.SetKey(alias, kpri, passphrase)
-	if err != nil {
-		t.Errorf("SetKeyPassphrase failed:%s", err)
+	tests := []struct {
+		name       string
+		passphrase []byte
+		alias      string
+		key        keystore.PrivateKey
+	}{
+		{
+			"address1",
+			[]byte("passphrase"),
+			"alias1",
+			priv1,
+		},
+		{
+			"address2",
+			[]byte("passphrase"),
+			"alias2",
+			priv2,
+		},
+		{
+			"address3",
+			[]byte("passphrase"),
+			"alias3",
+			priv3,
+		},
 	}
-
-	ks.Delete(alias)
-	_, err = ks.ContainsAlias(alias)
-	if err == nil {
-		t.Errorf("ContainsAlias failed:%s", err)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := ks.SetKey(tt.alias, tt.key, tt.passphrase)
+			assert.Nil(t, err, "set key err")
+			err = ks.Delete(tt.alias, tt.passphrase)
+			assert.Nil(t, err, "delete err")
+			got, err := ks.ContainsAlias(tt.alias)
+			assert.NotNil(t, err, "contains err")
+			assert.False(t, got, "not contains")
+		})
 	}
 }

@@ -32,11 +32,11 @@ type Provider interface {
 	Aliases() []string
 
 	// SetKey assigns the given key (that has already been protected) to the given alias.
-	SetKey(a string, key Key) error
+	SetKey(a string, key Key, passphrase []byte) error
 
 	// GetKey returns the key associated with the given alias, using the given
 	// password to recover it.
-	GetKey(a string) (Key, error)
+	GetKey(a string, passphrase []byte) (Key, error)
 
 	// Delete remove key
 	Delete(a string) error

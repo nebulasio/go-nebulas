@@ -21,13 +21,13 @@ package main
 import (
 	"fmt"
 	"os"
+	"os/signal"
 	"sort"
 	"strconv"
+	"syscall"
 	"time"
 
-	"github.com/nebulasio/go-nebulas/core"
-	"github.com/nebulasio/go-nebulas/crypto/keystore"
-	"github.com/nebulasio/go-nebulas/crypto/keystore/ecdsa"
+	"github.com/nebulasio/go-nebulas/neblet"
 	"github.com/nebulasio/go-nebulas/util/logging"
 	log "github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
@@ -38,16 +38,10 @@ var (
 	commit    string
 	branch    string
 	compileAt string
-	dummy     bool
-	p2pConfig string
-	port      uint
-	seed      string
+	config    string
 )
 
 func main() {
-
-	//TODO(larry.wang):add test addres to keystore,later remove
-	addTestAddress()
 
 	app := cli.NewApp()
 	app.Action = neb
@@ -59,40 +53,20 @@ func main() {
 	app.Copyright = "Copyright 2017-2018 The go-nebulas Authors"
 
 	app.Flags = []cli.Flag{
-		cli.BoolFlag{
-			Name:        "dummy",
-			Usage:       "use dummy network",
-			Destination: &dummy,
-		},
 		cli.StringFlag{
 			Name:        "config, c",
 			Usage:       "load configuration from `FILE`",
-			Destination: &p2pConfig,
-		},
-		cli.StringFlag{
-			Name:        "seed, s",
-			Usage:       "p2p network seed node address",
-			Destination: &seed,
-		},
-		cli.UintFlag{
-			Name:        "port, p",
-			Usage:       "p2p network port",
-			Destination: &port,
-		},
-	}
-
-	app.Commands = []cli.Command{
-		{
-			Name:    "config",
-			Aliases: []string{"c"},
-			Usage:   "Show default configuration",
-			Action: func(c *cli.Context) error {
-				return nil
-			},
+			Value:       "config.pb.txt",
+			Destination: &config,
 		},
 	}
 
 	sort.Sort(cli.FlagsByName(app.Flags))
+
+	app.Commands = []cli.Command{
+		accountCommand,
+		consoleCommand,
+	}
 	sort.Sort(cli.CommandsByName(app.Commands))
 
 	app.Run(os.Args)
@@ -105,29 +79,42 @@ func neb(ctx *cli.Context) error {
 	log.SetOutput(os.Stdout)
 	log.SetLevel(log.DebugLevel)
 
-	if dummy {
-		GoDummy()
-	} else {
-		GoP2p(seed, port)
-	}
+	n := makeNeb(ctx)
+
+	runNeb(n)
+
+	// TODO: just use the signal to block main.
 	for {
 		time.Sleep(60 * time.Second) // or runtime.Gosched() or similar per @misterbee
 	}
 }
 
-// add test address to keystore
-func addTestAddress() {
-	ks := keystore.DefaultKS
-	arr := make([][]byte, 3)
-	arr[0] = []byte{59, 144, 87, 239, 199, 27, 51, 230, 209, 177, 177, 166, 161, 23, 23, 195, 197, 245, 56, 156, 171, 40, 209, 7, 25, 1, 32, 0, 75, 69, 145, 30}
-	arr[1] = []byte{208, 98, 189, 16, 69, 97, 14, 44, 112, 56, 253, 61, 195, 100, 88, 245, 99, 14, 70, 22, 173, 172, 243, 186, 46, 128, 18, 39, 93, 125, 27, 186}
-	arr[2] = []byte{217, 81, 120, 192, 22, 101, 123, 205, 222, 253, 237, 63, 248, 9, 226, 102, 97, 202, 124, 1, 248, 178, 7, 69, 14, 63, 254, 127, 61, 158, 126, 65}
-	for _, pdata := range arr {
-		priv, _ := ecdsa.ToPrivateKey(pdata)
-		pubdata, _ := ecdsa.FromPublicKey(&priv.PublicKey)
-		addr, _ := core.NewAddressFromPublicKey(pubdata)
-		ps := ecdsa.NewPrivateStoreKey(priv)
-		ks.SetKey(addr.ToHex(), ps, []byte("passphrase"))
-		ks.Unlock(addr.ToHex(), []byte("passphrase"), 10)
+func runNeb(n *neblet.Neblet) {
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+
+	if err := n.Start(); err != nil {
+		panic("Start Neblet Failed: " + err.Error())
 	}
+
+	go func() {
+		<-c
+		n.Stop()
+
+		// TODO: remove this once p2pManager handles stop properly.
+		os.Exit(1)
+	}()
+}
+
+func makeNeb(ctx *cli.Context) *neblet.Neblet {
+	conf := neblet.LoadConfig(config)
+	n := neblet.New(*conf)
+	return n
+}
+
+// FatalF fatal format err
+func FatalF(format string, args ...interface{}) {
+	err := fmt.Sprintf(format, args...)
+	fmt.Println(err)
+	os.Exit(1)
 }

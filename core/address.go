@@ -21,10 +21,10 @@ package core
 import (
 	"errors"
 
+	"strings"
+
 	"github.com/nebulasio/go-nebulas/crypto/hash"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
-
-	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -81,15 +81,24 @@ type Address struct {
 	address Hash
 }
 
+// Bytes returns address bytes
+func (a *Address) Bytes() []byte {
+	return a.address
+}
+
 // ToHex convert address to hex
 func (a *Address) ToHex() string {
 	return string(a.address.Hex())
 }
 
+// Equals compare two Address. True is equal, otherwise false.
+func (a *Address) Equals(b *Address) bool {
+	return a.address.Equals(b.address)
+}
+
 // NewAddress create new #Address according to data bytes.
 func NewAddress(s []byte) (*Address, error) {
 	if len(s) != AddressDataLength {
-		log.Errorf("invalid address data: length of s is %d, expected to %d.", len(s), AddressDataLength)
 		return nil, ErrInvalidAddressDataLength
 	}
 
@@ -103,23 +112,28 @@ func NewAddressFromPublicKey(s []byte) (*Address, error) {
 	return NewAddress(hash[len(hash)-AddressDataLength:])
 }
 
-// Parse parse address string.
-func Parse(s string) (*Address, error) {
+// NewContractAddressFromHash return new contract address from bytes.
+func NewContractAddressFromHash(s []byte) (*Address, error) {
+	// TODO: contract address should not be the same with normal account address.
+	return NewAddress(s[len(s)-AddressDataLength:])
+}
+
+// AddressParse parse address string.
+func AddressParse(s string) (*Address, error) {
+	if strings.HasPrefix(s, "0x") {
+		s = s[2:]
+	}
 	r, err := byteutils.FromHex(s)
 	if err != nil {
-		log.WithFields(log.Fields{
-			"s": s, "err": err,
-		}).Error("invalid address: string should be encoded in Hexadecimal.")
 		return nil, ErrInvalidAddress
 	}
 
-	return ParseFromBytes(r)
+	return AddressParseFromBytes(r)
 }
 
-// ParseFromBytes parse address from bytes.
-func ParseFromBytes(s []byte) (*Address, error) {
+// AddressParseFromBytes parse address from bytes.
+func AddressParseFromBytes(s []byte) (*Address, error) {
 	if len(s) != AddressLength {
-		log.Errorf("invalid address: length of s is %d, expected to %d.", len(s), AddressLength)
 		return nil, ErrInvalidAddress
 	}
 
@@ -129,7 +143,6 @@ func ParseFromBytes(s []byte) (*Address, error) {
 
 	for i := 0; i < AddressChecksumLength; i++ {
 		if dcs[i] != cs[i] {
-			log.Errorf("invalid address: checksum is %s, expected to %s.", cs, dcs)
 			return nil, ErrInvalidAddress
 		}
 	}

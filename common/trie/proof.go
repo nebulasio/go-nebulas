@@ -21,7 +21,6 @@ package trie
 import (
 	"bytes"
 	"errors"
-	"github.com/nebulasio/go-nebulas/crypto/hash"
 )
 
 // MerkleProof is a path from root to the proved node
@@ -55,7 +54,7 @@ func (t *Trie) Prove(key []byte) (MerkleProof, error) {
 			next := rootNode.Val[2]
 			matchLen := prefixLen(path, curRoute)
 			if matchLen != len(path) {
-				return nil, errors.New("not found")
+				return nil, ErrNotFound
 			}
 			proof = append(proof, rootNode.Val)
 			curRootHash = next
@@ -64,15 +63,15 @@ func (t *Trie) Prove(key []byte) (MerkleProof, error) {
 			path := rootNode.Val[1]
 			matchLen := prefixLen(path, curRoute)
 			if matchLen != len(path) {
-				return nil, errors.New("not found")
+				return nil, ErrNotFound
 			}
 			proof = append(proof, rootNode.Val)
 			return proof, nil
 		default:
-			return nil, errors.New("not found")
+			return nil, ErrNotFound
 		}
 	}
-	return nil, errors.New("not found")
+	return nil, ErrNotFound
 }
 
 // Verify whether the merkle proof from root to the associated node is right
@@ -82,11 +81,11 @@ func (t *Trie) Verify(rootHash []byte, key []byte, proof MerkleProof) error {
 	wantHash := rootHash
 	for i := 0; i < length; i++ {
 		val := proof[i]
-		ir, err := t.serializer.Serialize(val)
+		n, err := t.createNode(val)
 		if err != nil {
 			return err
 		}
-		proofHash := hash.Sha3256(ir)
+		proofHash := n.Hash
 		if !bytes.Equal(wantHash, proofHash) {
 			return errors.New("wrong hash")
 		}

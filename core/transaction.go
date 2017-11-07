@@ -20,14 +20,16 @@ package core
 
 import (
 	"errors"
+	"fmt"
 	"time"
 
-	"github.com/nebulasio/go-nebulas/common/trie"
+	"github.com/gogo/protobuf/proto"
+	"github.com/nebulasio/go-nebulas/core/pb"
+	"github.com/nebulasio/go-nebulas/crypto"
 	"github.com/nebulasio/go-nebulas/crypto/hash"
 	"github.com/nebulasio/go-nebulas/crypto/keystore"
-	"github.com/nebulasio/go-nebulas/crypto/keystore/ecdsa"
+	"github.com/nebulasio/go-nebulas/util"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
-	log "github.com/sirupsen/logrus"
 )
 
 var (
@@ -39,112 +41,102 @@ var (
 
 	// ErrInvalidTransactionHash invalid hash.
 	ErrInvalidTransactionHash = errors.New("invalid transaction hash")
-
-	// ErrFromAddressLocked from address locked.
-	ErrFromAddressLocked = errors.New("from address locked")
 )
 
 // Transaction type is used to handle all transaction data.
 type Transaction struct {
 	hash      Hash
-	from      Address
-	to        Address
-	value     uint64
+	from      *Address
+	to        *Address
+	value     *util.Uint128
 	nonce     uint64
-	timestamp time.Time
+	timestamp int64
 	data      []byte
+	chainID   uint32
 
-	// Signature values
-	sign Hash
+	// Signature
+	alg  uint8 // algorithm
+	sign Hash  // Signature values
 }
 
-type txStream struct {
-	Hash  []byte
-	From  []byte
-	To    []byte
-	Value uint64
-	Nonce uint64
-	Time  int64
-	Data  []byte
-	Sign  []byte
+// From return from address
+func (tx *Transaction) From() *Address {
+	return tx.from
 }
 
-// Serialize a transaction
-func (tx *Transaction) Serialize() ([]byte, error) {
-	serializer := &byteutils.JSONSerializer{}
-	data := txStream{
-		tx.hash,
-		tx.from.address,
-		tx.to.address,
-		tx.value,
+// Nonce return tx nonce
+func (tx *Transaction) Nonce() uint64 {
+	return tx.nonce
+}
+
+// DataLen return data length
+func (tx *Transaction) DataLen() int {
+	return len(tx.data)
+}
+
+// ToProto converts domain Tx to proto Tx
+func (tx *Transaction) ToProto() (proto.Message, error) {
+	value, err := tx.value.ToFixedSizeByteSlice()
+	if err != nil {
+		return nil, err
+	}
+	return &corepb.Transaction{
+		Hash:      tx.hash,
+		From:      tx.from.address,
+		To:        tx.to.address,
+		Value:     value,
+		Nonce:     tx.nonce,
+		Timestamp: tx.timestamp,
+		Data:      tx.data,
+		ChainId:   tx.chainID,
+		Alg:       uint32(tx.alg),
+		Sign:      tx.sign,
+	}, nil
+}
+
+// FromProto converts proto Tx into domain Tx
+func (tx *Transaction) FromProto(msg proto.Message) error {
+	if msg, ok := msg.(*corepb.Transaction); ok {
+		tx.hash = msg.Hash
+		tx.from = &Address{msg.From}
+		tx.to = &Address{msg.To}
+		value, err := util.NewUint128FromFixedSizeByteSlice(msg.Value)
+		if err != nil {
+			return err
+		}
+		tx.value = value
+		tx.nonce = msg.Nonce
+		tx.timestamp = msg.Timestamp
+		tx.data = msg.Data
+		tx.chainID = msg.ChainId
+		tx.alg = uint8(msg.Alg)
+		tx.sign = msg.Sign
+		return nil
+	}
+	return errors.New("Pb Message cannot be converted into Transaction")
+}
+
+func (tx *Transaction) String() string {
+	return fmt.Sprintf("Tx {from:%s; to:%s; nonce:%d, value: %d}",
+		byteutils.Hex(tx.from.address),
+		byteutils.Hex(tx.to.address),
 		tx.nonce,
-		tx.timestamp.UnixNano(),
-		tx.data,
-		tx.sign,
-	}
-	return serializer.Serialize(data)
-}
-
-// Deserialize a transaction
-func (tx *Transaction) Deserialize(blob []byte) error {
-	serializer := &byteutils.JSONSerializer{}
-	var data txStream
-	if err := serializer.Deserialize(blob, &data); err != nil {
-		return err
-	}
-	tx.hash = data.Hash
-	tx.from = Address{data.From}
-	tx.to = Address{data.To}
-	tx.value = data.Value
-	tx.nonce = data.Nonce
-	tx.timestamp = time.Unix(0, data.Time)
-	tx.data = data.Data
-	tx.sign = data.Sign
-	return nil
+		tx.value.Int64(),
+	)
 }
 
 // Transactions is an alias of Transaction array.
 type Transactions []*Transaction
 
-// Serialize txs
-func (txs *Transactions) Serialize() ([]byte, error) {
-	var data [][]byte
-	serializer := &byteutils.JSONSerializer{}
-	for _, v := range *txs {
-		ir, err := v.Serialize()
-		if err != nil {
-			return nil, err
-		}
-		data = append(data, ir)
-	}
-	return serializer.Serialize(data)
-}
-
-// Deserialize txs
-func (txs *Transactions) Deserialize(blob []byte) error {
-	var data [][]byte
-	serializer := &byteutils.JSONSerializer{}
-	if err := serializer.Deserialize(blob, &data); err != nil {
-		return err
-	}
-	for _, v := range data {
-		tx := &Transaction{}
-		if err := tx.Deserialize(v); err != nil {
-			return err
-		}
-		*txs = append(*txs, tx)
-	}
-	return nil
-}
-
 // NewTransaction create #Transaction instance.
-func NewTransaction(from, to Address, value uint64, nonce uint64, data []byte) *Transaction {
+func NewTransaction(chainID uint32, from, to *Address, value *util.Uint128, nonce uint64, data []byte) *Transaction {
 	tx := &Transaction{
 		from:      from,
 		to:        to,
 		value:     value,
 		nonce:     nonce,
-		timestamp: time.Now(),
+		timestamp: time.Now().Unix(),
+		chainID:   chainID,
 		data:      data,
 	}
 	return tx
@@ -155,60 +147,113 @@ func (tx *Transaction) Hash() Hash {
 	return tx.hash
 }
 
-// Sign sign transaction.
-func (tx *Transaction) Sign() error {
-	tx.hash = HashTransaction(tx)
-	key, err := keystore.DefaultKS.GetUnlocked(tx.from.ToHex())
+// TargetContractAddress return the target contract address.
+func (tx *Transaction) TargetContractAddress() *Address {
+	isContractPayload, txPayload := isContractPayload(tx.data)
+	if isContractPayload == false {
+		return nil
+	}
+
+	// deploy contract has different contract address rules.
+	if txPayload.PayloadType == TxPayloadDeployType {
+		return tx.generateContractAddress()
+	}
+
+	// tx.to is the contract address.
+	return tx.to
+
+}
+
+// Execute transaction and return result.
+func (tx *Transaction) Execute(block *Block) error {
+	// check balance.
+	fromAcc := block.FindAccount(tx.from)
+	toAcc := block.FindAccount(tx.to)
+
+	if fromAcc.UserBalance.Cmp(tx.value.Int) < 0 {
+		return ErrInsufficientBalance
+	}
+
+	// accept the transaction
+	if !tx.from.Equals(tx.to) {
+		fromAcc.SubBalance(tx.value)
+		toAcc.AddBalance(tx.value)
+	}
+	fromAcc.IncreNonce()
+
+	// execute smart contract if needed.
+	if tx.DataLen() > 0 {
+		txPayload, err := parseTxPayload(tx.data)
+		if err != nil {
+			return err
+		}
+
+		if err := txPayload.Execute(tx, block); err != nil {
+			return err
+		}
+	}
+
+	// save account info in state trie
+	block.saveAccount(tx.to, toAcc)
+	block.saveAccount(tx.from, fromAcc)
+
+	return nil
+}
+
+// Sign sign transaction,sign algorithm is
+func (tx *Transaction) Sign(signature keystore.Signature) error {
+	hash, err := HashTransaction(tx)
 	if err != nil {
-		log.WithFields(log.Fields{
-			"func": "Transaction.Sign",
-			"err":  ErrInvalidTransactionHash,
-			"tx":   tx,
-		}).Error("from address locked")
 		return err
 	}
-	signer := &ecdsa.Signature{}
-	signer.InitSign(key.(keystore.PrivateKey))
-	signature, err := signer.Sign(tx.hash)
+	sign, err := signature.Sign(hash)
 	if err != nil {
 		return err
 	}
-	tx.sign = signature
+	tx.hash = hash
+	tx.alg = uint8(signature.Algorithm())
+	tx.sign = sign
 	return nil
 }
 
 // Verify return transaction verify result, including Hash and Signature.
-func (tx *Transaction) Verify() error {
-	wantedHash := HashTransaction(tx)
+func (tx *Transaction) Verify(chainID uint32) error {
+	// check ChainID.
+	if tx.chainID != chainID {
+		return ErrInvalidChainID
+	}
+
+	// check Hash.
+	wantedHash, err := HashTransaction(tx)
+	if err != nil {
+		return err
+	}
 	if wantedHash.Equals(tx.hash) == false {
-		log.WithFields(log.Fields{
-			"func": "Transaction.Verify",
-			"err":  ErrInvalidTransactionHash,
-			"tx":   tx,
-		}).Error("invalid transaction hash")
 		return ErrInvalidTransactionHash
 	}
 
-	signVerify, err := tx.VerifySign()
+	// check Signature.
+	signVerify, err := tx.verifySign()
 	if err != nil {
 		return err
 	}
 	if !signVerify {
-		return errors.New("Transaction verifySign failed")
+		return ErrInvalidSignature
 	}
+
 	return nil
 }
 
-// VerifySign tx
-func (tx *Transaction) VerifySign() (bool, error) {
-	if len(tx.sign) == 0 {
-		return false, errors.New("Transaction: VerifySign need sign hash")
-	}
-	pub, err := ecdsa.RecoverPublicKey(tx.hash, tx.sign)
+func (tx *Transaction) verifySign() (bool, error) {
+	signature, err := crypto.NewSignature(keystore.Algorithm(tx.alg))
 	if err != nil {
 		return false, err
 	}
-	pubdata, err := ecdsa.FromPublicKey(pub)
+	pub, err := signature.RecoverPublic(tx.hash, tx.sign)
+	if err != nil {
+		return false, err
+	}
+	pubdata, err := pub.Encoded()
 	if err != nil {
 		return false, err
 	}
@@ -216,59 +261,31 @@ func (tx *Transaction) VerifySign() (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	if !byteutils.Equal(addr.address, tx.from.address) {
-		return false, errors.New("recover publickey not related to from address")
+	if !tx.from.Equals(addr) {
+		return false, errors.New("recover public key not related to from address")
 	}
-	verify := ecdsa.Verify(tx.hash, tx.sign, pub)
-	if verify == false {
-		return false, errors.New("recover cover verify failed")
-	}
-	return true, nil
+	return signature.Verify(tx.hash, tx.sign)
 }
 
-// Execute execute transaction, eg. transfer Nas, call smart contract.
-func (tx *Transaction) Execute(stateTrie *trie.Trie) error {
-	fromOrigBalance := uint64(0)
-	toOriginBalance := uint64(0)
-
-	if v, _ := stateTrie.Get(tx.from.address); v != nil {
-		fromOrigBalance = byteutils.Uint64(v)
-	}
-
-	if v, _ := stateTrie.Get(tx.to.address); v != nil {
-		toOriginBalance = byteutils.Uint64(v)
-	}
-
-	if fromOrigBalance < tx.value {
-		return ErrInsufficientBalance
-	}
-
-	fromBalance := fromOrigBalance - tx.value
-	toBalance := toOriginBalance + tx.value
-
-	stateTrie.Put(tx.from.address, byteutils.FromUint64(fromBalance))
-	stateTrie.Put(tx.to.address, byteutils.FromUint64(toBalance))
-
-	log.WithFields(log.Fields{
-		"from":            tx.from.address.Hex(),
-		"fromOrigBalance": fromOrigBalance,
-		"fromBalance":     fromBalance,
-		"to":              tx.to.address.Hex(),
-		"toOrigBalance":   toOriginBalance,
-		"toBalance":       toBalance,
-	}).Debug("execute transaction.")
-
-	return nil
+// generateContractAddress generate and return contract address according to tx.from and tx.nonce.
+func (tx *Transaction) generateContractAddress() *Address {
+	address, _ := NewContractAddressFromHash(hash.Sha3256(tx.from.Bytes(), byteutils.FromUint64(tx.nonce)))
+	return address
 }
 
 // HashTransaction hash the transaction.
-func HashTransaction(tx *Transaction) Hash {
+func HashTransaction(tx *Transaction) (Hash, error) {
+	bytes, err := tx.value.ToFixedSizeByteSlice()
+	if err != nil {
+		return nil, err
+	}
 	return hash.Sha3256(
 		tx.from.address,
 		tx.to.address,
-		byteutils.FromUint64(tx.value),
+		bytes,
 		byteutils.FromUint64(tx.nonce),
-		byteutils.FromInt64(tx.timestamp.UnixNano()),
+		byteutils.FromInt64(tx.timestamp),
 		tx.data,
-	)
+		byteutils.FromUint32(tx.chainID),
+	), nil
 }

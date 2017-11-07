@@ -115,13 +115,6 @@ func FromInt16(v int16) []byte {
 	return b
 }
 
-// ZeroBytes clears byte slice.
-func ZeroBytes(bytes []byte) {
-	for i := range bytes {
-		bytes[i] = 0
-	}
-}
-
 // Equal checks whether byte slice a and b are equal.
 func Equal(a []byte, b []byte) bool {
 	if len(a) != len(b) {

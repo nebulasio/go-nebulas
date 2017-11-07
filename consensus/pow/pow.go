@@ -21,10 +21,12 @@ package pow
 import (
 	"errors"
 
-	"github.com/nebulasio/go-nebulas/components/net"
 	"github.com/nebulasio/go-nebulas/consensus"
 	"github.com/nebulasio/go-nebulas/core"
+	"github.com/nebulasio/go-nebulas/net"
 
+	"github.com/nebulasio/go-nebulas/neblet/pb"
+	"github.com/nebulasio/go-nebulas/net/p2p"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -33,6 +35,13 @@ var (
 	ErrInvalidDataType   = errors.New("invalid data type, should be *core.Block")
 	ErrInvalidBlockNonce = errors.New("invalid block nonce")
 )
+
+// Neblet interface breaks cycle import dependency and hides unused services.
+type Neblet interface {
+	Config() nebletpb.Config
+	BlockChain() *core.BlockChain
+	NetService() *p2p.NetService
+}
 
 /*
 Pow implementation of Proof-of-Work consensus, designed to be a state machine.
@@ -52,8 +61,9 @@ Minted --> [*] : stop
 type Pow struct {
 	quitCh chan bool
 
-	chain *core.BlockChain
-	nm    net.Manager
+	chain    *core.BlockChain
+	nm       net.Manager
+	coinbase *core.Address
 
 	states            consensus.States
 	currentState      consensus.State
@@ -61,29 +71,48 @@ type Pow struct {
 
 	miningBlock      *core.Block
 	newBlockReceived bool
+
+	canMining bool
 }
 
 type stateTransitionArgs struct {
-	nextState consensus.State
-	data      interface{}
+	from consensus.State
+	to   consensus.State
+	data interface{}
 }
 
 // NewPow create Pow instance.
-func NewPow(bc *core.BlockChain, nm net.Manager) *Pow {
+func NewPow(neblet Neblet) *Pow {
 	p := &Pow{
-		chain:             bc,
-		nm:                nm,
+		chain:             neblet.BlockChain(),
+		nm:                neblet.NetService(),
 		quitCh:            make(chan bool, 5),
 		stateTransitionCh: make(chan *stateTransitionArgs, 10),
+		canMining:         false,
+	}
+
+	cfg := neblet.Config().Pow
+	if cfg != nil {
+		coinbase, err := core.AddressParse(cfg.GetCoinbase())
+		if err != nil {
+			log.WithFields(log.Fields{
+				"err": err,
+			}).Info("Pow.NewPow: coinbase parse err.")
+			//panic("coinbase should be configed for pow")
+		}
+		p.coinbase = coinbase
+	} else {
+		//panic("coinbase should be configed for pow")
 	}
 
 	p.states = consensus.States{
 		Mining:  NewMiningState(p),
 		Minted:  NewMintedState(p),
 		Prepare: NewPrepareState(p),
+		Start:   NewStartState(p),
 		Stopped: NewStoppedState(p),
 	}
-	p.currentState = p.states[Prepare]
+	p.currentState = p.states[Start]
 
 	return p
 }
@@ -104,6 +133,17 @@ func (p *Pow) Stop() {
 	p.quitCh <- true
 }
 
+// CanMining return if consensus can do mining now
+func (p *Pow) CanMining() bool {
+	return p.canMining
+}
+
+// SetCanMining set if consensus can do mining now
+func (p *Pow) SetCanMining(canMining bool) {
+	p.canMining = canMining
+	p.Event(consensus.NewBaseEvent(consensus.CanMiningEvent, nil))
+}
+
 /*
 Event handle events from Network or State.
 The whole event process should be as the following:
@@ -114,7 +154,7 @@ func (p *Pow) Event(e consensus.Event) {
 	captured, nextState := p.currentState.Event(e)
 	if captured {
 		if nextState != nil && p.currentState != nextState {
-			p.Transit(nextState, nil)
+			p.Transit(p.currentState, nextState, nil)
 		}
 		return
 	}
@@ -136,17 +176,17 @@ func (p *Pow) Event(e consensus.Event) {
 }
 
 // TransitByKey transit state by stateKey.
-func (p *Pow) TransitByKey(stateKey string, data interface{}) {
-	p.Transit(p.states[stateKey], data)
+func (p *Pow) TransitByKey(from string, to string, data interface{}) {
+	p.Transit(p.states[from], p.states[to], data)
 }
 
 // Transit transit state.
-func (p *Pow) Transit(nextState consensus.State, data interface{}) {
-	if p.currentState == nextState {
+func (p *Pow) Transit(from, to consensus.State, data interface{}) {
+	if p.currentState == to {
 		return
 	}
 
-	p.stateTransitionCh <- &stateTransitionArgs{nextState: nextState, data: data}
+	p.stateTransitionCh <- &stateTransitionArgs{from: from, to: to, data: data}
 }
 
 // VerifyBlock return nil if nonce is right, otherwise return error.
@@ -178,15 +218,16 @@ func (p *Pow) stateLoop() {
 	for {
 		select {
 		case args := <-p.stateTransitionCh:
-			nextState := args.nextState
+			to := args.to
 			data := args.data
+			from := args.from
 
-			if p.currentState == nextState {
+			if p.currentState == to || p.currentState != from {
 				continue
 			}
 
 			p.currentState.Leave(data)
-			p.currentState = nextState
+			p.currentState = to
 			p.currentState.Enter(data)
 
 		case <-p.quitCh:

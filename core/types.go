@@ -25,6 +25,12 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// MessageType
+const (
+	MessageTypeNewBlock = "newblock"
+	MessageTypeNewTx    = "newtx"
+)
+
 // Hash by Sha3-256
 type Hash []byte
 

@@ -20,8 +20,11 @@ package trie
 
 import (
 	"errors"
+
+	"github.com/gogo/protobuf/proto"
+	"github.com/nebulasio/go-nebulas/common/trie/pb"
 	"github.com/nebulasio/go-nebulas/crypto/hash"
-	"github.com/nebulasio/go-nebulas/util/byteutils"
+	"github.com/nebulasio/go-nebulas/storage"
 )
 
 // Flag to identify the type of node
@@ -34,13 +37,35 @@ const (
 	branch
 )
 
+// const ErrNotFound
+var (
+	ErrNotFound = storage.ErrKeyNotFound
+)
+
 // Node in trie, three kinds,
 // Branch Node [hash_0, hash_1, ..., hash_f]
 // Extension Node [flag, encodedPath, next hash]
 // Leaf Node [flag, encodedPath, value]
 type node struct {
-	Hash []byte
-	Val  [][]byte
+	Hash  []byte
+	Bytes []byte
+	Val   [][]byte
+}
+
+func (n *node) ToProto() (proto.Message, error) {
+	return &triepb.Node{
+		Val: n.Val,
+	}, nil
+}
+
+func (n *node) FromProto(msg proto.Message) error {
+	if msg, ok := msg.(*triepb.Node); ok {
+		n.Bytes, _ = proto.Marshal(msg)
+		n.Hash = hash.Sha3256(n.Bytes)
+		n.Val = msg.Val
+		return nil
+	}
+	return errors.New("Pb Message cannot be converted into Node")
 }
 
 // Type of node, e.g. Branch, Extension, Leaf Node
@@ -66,23 +91,17 @@ func (n *node) Type() (ty, error) {
 // Extension Node: 3-elements array, value is [ext flag, prefix path, next hash]
 // Leaf Node: 3-elements array, value is [leaf flag, suffix path, value]
 type Trie struct {
-	rootHash   []byte
-	serializer byteutils.Serializable
-	storage    *Storage
+	rootHash []byte
+	storage  storage.Storage
 }
 
 // CreateNode in trie
 func (t *Trie) createNode(val [][]byte) (*node, error) {
-	ir, err := t.serializer.Serialize(val)
-	if err != nil {
+	n := &node{Val: val}
+	if err := t.commitNode(n); err != nil {
 		return nil, err
 	}
-	key := hash.Sha3256(ir)
-	err = t.storage.Put(key, ir)
-	if err != nil {
-		return nil, err
-	}
-	return &node{key, val}, nil
+	return n, nil
 }
 
 // FetchNode in trie
@@ -91,29 +110,28 @@ func (t *Trie) fetchNode(hash []byte) (*node, error) {
 	if err != nil {
 		return nil, err
 	}
-	var val [][]byte
-	err = t.serializer.Deserialize(ir, &val)
-	if err != nil {
+	pb := new(triepb.Node)
+	if err := proto.Unmarshal(ir, pb); err != nil {
 		return nil, err
 	}
-	return &node{hash, val}, nil
+	n := new(node)
+	if err := n.FromProto(pb); err != nil {
+		return nil, err
+	}
+	return n, nil
 }
 
 // CommitNode node in trie into storage
 func (t *Trie) commitNode(n *node) error {
-	ir, err := t.serializer.Serialize(n.Val)
-	if err != nil {
-		return err
-	}
-	n.Hash = hash.Sha3256(ir)
-	return t.storage.Put(n.Hash, ir)
+	pb, _ := n.ToProto()
+	n.Bytes, _ = proto.Marshal(pb)
+	n.Hash = hash.Sha3256(n.Bytes)
+	return t.storage.Put(n.Hash, n.Bytes)
 }
 
 // NewTrie if rootHash is nil, create a new Trie, otherwise, build an existed trie
-func NewTrie(rootHash []byte) (*Trie, error) {
-	var serializer byteutils.Serializable = &byteutils.JSONSerializer{}
-	storage, _ := NewStorage()
-	t := &Trie{rootHash, serializer, storage}
+func NewTrie(rootHash []byte, storage storage.Storage) (*Trie, error) {
+	t := &Trie{rootHash, storage}
 	if t.rootHash == nil {
 		return t, nil
 	} else if _, err := t.storage.Get(rootHash); err != nil {
@@ -154,7 +172,7 @@ func (t *Trie) get(rootHash []byte, route []byte) ([]byte, error) {
 			next := rootNode.Val[2]
 			matchLen := prefixLen(path, curRoute)
 			if matchLen != len(path) {
-				return nil, errors.New("not found")
+				return nil, ErrNotFound
 			}
 			curRootHash = next
 			curRoute = curRoute[matchLen:]
@@ -162,26 +180,29 @@ func (t *Trie) get(rootHash []byte, route []byte) ([]byte, error) {
 		case leaf:
 			path := rootNode.Val[1]
 			matchLen := prefixLen(path, curRoute)
-			if matchLen != len(path) {
-				return nil, errors.New("not found")
+			if matchLen != len(path) || matchLen != len(curRoute) {
+				return nil, ErrNotFound
 			}
 			return rootNode.Val[2], nil
 		default:
 			return nil, errors.New("unknown node type")
 		}
 	}
-	return nil, errors.New("not found")
+	return nil, ErrNotFound
 }
 
 // Put the key-value pair in trie
 func (t *Trie) Put(key []byte, val []byte) ([]byte, error) {
 	newHash, err := t.update(t.rootHash, keyToRoute(key), val)
+	if err != nil {
+		return nil, err
+	}
 	t.rootHash = newHash
-	return newHash, err
+	return newHash, nil
 }
 
 func (t *Trie) update(root []byte, route []byte, val []byte) ([]byte, error) {
-	if root == nil {
+	if root == nil || len(root) == 0 {
 		// directly add leaf node
 		value := [][]byte{[]byte{byte(leaf)}, route, val}
 		node, err := t.createNode(value)
@@ -249,8 +270,48 @@ func (t *Trie) updateWhenMeetExt(rootNode *node, route []byte, val []byte) ([]by
 	}
 	// create a new branch for the new node
 	brNode := emptyBranchNode()
-	// a branch to hold the ext node's sub-trie
-	brNode.Val[path[matchLen]] = next
+	// 4 situations
+	// 1. matchLen > 0 && matchLen == len(path), 24 meets 24... => ext - branch - ...
+	// 2. matchLen > 0 && matchLen + 1 < len(path), 23... meets 24... => ext - branch - ext ...
+	// 3. matchLen = 0 && len(path) = 1, 1 meets 2 => branch - ...
+	if matchLen > 0 || len(path) == 1 {
+		// a branch to hold the ext node's sub-trie
+		brNode.Val[path[matchLen]] = next
+		if matchLen > 0 && matchLen+1 < len(path) {
+			value := [][]byte{[]byte{byte(ext)}, path[matchLen+1:], next}
+			extNode, err := t.createNode(value)
+			if err != nil {
+				return nil, err
+			}
+			brNode.Val[path[matchLen]] = extNode.Hash
+		}
+		// a branch to hold the new node
+		if brNode.Val[route[matchLen]], err = t.update(nil, route[matchLen+1:], val); err != nil {
+			return nil, err
+		}
+		// save branch to the storage
+		if err := t.commitNode(brNode); err != nil {
+			return nil, err
+		}
+		// if no common prefix, replace the ext node with the new branch node
+		if matchLen == 0 {
+			return brNode.Hash, nil
+		}
+		// use the new branch node as the ext node's sub-trie
+		rootNode.Val[1] = path[0:matchLen]
+		rootNode.Val[2] = brNode.Hash
+		if err := t.commitNode(rootNode); err != nil {
+			return nil, err
+		}
+		return rootNode.Hash, nil
+	}
+	// 4. matchLen = 0 && len(path) > 1, 12... meets 23... => branch - ext - ...
+	rootNode.Val[1] = path[1:]
+	// save ext node to storage
+	if err := t.commitNode(rootNode); err != nil {
+		return nil, err
+	}
+	brNode.Val[path[matchLen]] = rootNode.Hash
 	// a branch to hold the new node
 	if brNode.Val[route[matchLen]], err = t.update(nil, route[matchLen+1:], val); err != nil {
 		return nil, err
@@ -259,17 +320,7 @@ func (t *Trie) updateWhenMeetExt(rootNode *node, route []byte, val []byte) ([]by
 	if err := t.commitNode(brNode); err != nil {
 		return nil, err
 	}
-	// if no common prefix, replace the ext node with the new branch node
-	if matchLen == 0 {
-		return brNode.Hash, nil
-	}
-	// use the new branch node as the ext node's sub-trie
-	rootNode.Val[1] = path[0:matchLen]
-	rootNode.Val[2] = brNode.Hash
-	if err := t.commitNode(rootNode); err != nil {
-		return nil, err
-	}
-	return rootNode.Hash, nil
+	return brNode.Hash, nil
 }
 
 // split leaf node's into an ext node and a branch node based on
@@ -329,8 +380,8 @@ func (t *Trie) Del(key []byte) ([]byte, error) {
 }
 
 func (t *Trie) del(root []byte, route []byte) ([]byte, error) {
-	if root == nil {
-		return nil, errors.New("not found")
+	if root == nil || len(root) == 0 {
+		return nil, ErrNotFound
 	}
 	// fetch sub-trie root node
 	rootNode, err := t.fetchNode(root)
@@ -361,7 +412,7 @@ func (t *Trie) del(root []byte, route []byte) ([]byte, error) {
 		next := rootNode.Val[2]
 		matchLen := prefixLen(path, route)
 		if matchLen != len(path) {
-			return nil, errors.New("not found")
+			return nil, ErrNotFound
 		}
 		newHash, err := t.del(next, route[matchLen:])
 		if err != nil {
@@ -380,7 +431,7 @@ func (t *Trie) del(root []byte, route []byte) ([]byte, error) {
 		path := rootNode.Val[1]
 		matchLen := prefixLen(path, route)
 		if matchLen != len(path) {
-			return nil, errors.New("not found")
+			return nil, ErrNotFound
 		}
 		return nil, nil
 	default:
@@ -390,7 +441,7 @@ func (t *Trie) del(root []byte, route []byte) ([]byte, error) {
 
 // Clone the trie to create a new trie sharing the same storage
 func (t *Trie) Clone() (*Trie, error) {
-	return &Trie{t.rootHash, t.serializer, t.storage}, nil
+	return &Trie{t.rootHash, t.storage}, nil
 }
 
 // prefixLen returns the length of the common prefix between a and b.
@@ -420,13 +471,16 @@ func keyToRoute(key []byte) []byte {
 }
 
 func emptyBranchNode() *node {
-	empty := [][]byte{nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil}
-	return &node{[]byte{}, empty}
+	empty := &node{Val: [][]byte{nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil}}
+	pb, _ := empty.ToProto()
+	empty.Bytes, _ = proto.Marshal(pb)
+	empty.Hash = hash.Sha3256(empty.Bytes)
+	return empty
 }
 
 func isEmptyBranch(n *node) bool {
 	for idx := range n.Val {
-		if n.Val[idx] != nil {
+		if len(n.Val[idx]) != 0 {
 			return false
 		}
 	}

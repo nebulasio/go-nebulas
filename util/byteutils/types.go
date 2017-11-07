@@ -27,9 +27,3 @@ type Encoder interface {
 type Decoder interface {
 	DecodeFromBytes(data []byte) (interface{}, error)
 }
-
-// Serializable implements serializer.
-type Serializable interface {
-	Serialize(s interface{}) ([]byte, error)
-	Deserialize(data []byte, res interface{}) error
-}
