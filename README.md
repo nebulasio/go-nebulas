@@ -81,14 +81,10 @@ Neb uses Protocol Buffer to load configurations. The default config file is name
 p2p {
   # seed: "UNCOMMENT_AND_SET_SEED_NODE_ADDRESS"
   port: 51413
-  chain_id: 100
-  version: 1
 }
 
 rpc {
-  api_port: 51510
-  management_port: 52520
-  gateway_port: 8080
+  port: 51510
 }
 
 pow {
@@ -148,6 +144,34 @@ INFO[2017-10-18T03:59:23+08:00] SayHello: bootNode addr -> /ip4/192.168.1.18/tcp
 INFO[2017-10-18T03:59:23+08:00] SayHello: nnode.host.Addrs -> /ip4/1192.168.1.18/tcp/10001, bootAddr -> /ip4/172.31.8.110/tcp/51413  file=node.go func="p2p.(*NetService).SayHello" line=172
 INFO[2017-10-18T03:59:23+08:00] Hello: say hello addrs -> [/ip4/192.168.1.18/tcp/51413]  file=net_service.go func="p2p.(*NetService).Hello" line=427
 INFO[2017-10-18T03:59:23+08:00] SayHello: node say hello to boot node success...   file=node.go func="p2p.(*NetService).SayHello" line=186
+...
+```
+
+
+### RPC API
+We can use API _GetAccountState_ and _SendTransaction_ to check and modify account state. We can play the RPC example testing client code:
+```
+cd rpc/testing/client/
+go run main.go
+```
+
+The testing client gets account state from sender address, makes a transaction from sender to receiver, and also checks the account state of receiver address.
+
+We can see client log output like:
+```
+GetAccountState 8a209cec02cbeab7e2f74ad969d2dfe8dd24416aa65589bf nonce 1 value 78
+SendTransaction 8a209cec02cbeab7e2f74ad969d2dfe8dd24416aa65589bf -> 22ac3a9a2b1c31b7a9084e46eae16e761f83f02324092b09 value 2 hash:"d9258c06899412169f969807629e1c152b54a3c4033e43727f3a74855849ffa6" 
+GetAccountState 22ac3a9a2b1c31b7a9084e46eae16e761f83f02324092b09 nonce 0 value 2
+```
+
+### Debug chain status from log
+
+The chain will be dump when a new block is minted, or received and added to tail, we can easily find it in log, starting with **"Dump"**:
+
+The binary will join Nebulas network and connects to the seed node started earlier. The log output will look like:
+```
+...
+Dump:  --> {2, hash: 0000009a658e094ec9bb642ba4d0d0ada63fe70aee5796b0631f9c844da4f5f0, parent: 0000000000000000000000000000000000000000000000000000000000000000, stateRoot: 3b55bd09bff8718070a341455faf21d1d32a1fde5cc3ddec990a553859efb002, coinbase: 8a209cec02cbeab7e2f74ad969d2dfe8dd24416aa65589bf} --> {1, hash: 0000000000000000000000000000000000000000000000000000000000000000, parent: 0000000000000000000000000000000000000000000000000000000000000000, stateRoot: , coinbase: 000000000000000000000000000000000000000000000000}
 ...
 ```
 

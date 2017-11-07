@@ -10,7 +10,6 @@ vendor
 
 # build files
 neb
-!cmd/neb
 debug
 *.report
 *.report.xml
