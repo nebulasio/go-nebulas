@@ -75,8 +75,8 @@ func TestDeployAndInitAndCall(t *testing.T) {
 	tests := []struct {
 		name         string
 		contractPath string
-		init_args    string
-		verify_args  string
+		initArgs     string
+		verifyArgs   string
 	}{
 		{"deploy sample_contract.js", "test/sample_contract.js", "[\"TEST001\", 123,[{\"name\":\"robin\",\"count\":2},{\"name\":\"roy\",\"count\":3},{\"name\":\"leon\",\"count\":4}]]", "[\"TEST001\", 123,[{\"name\":\"robin\",\"count\":2},{\"name\":\"roy\",\"count\":3},{\"name\":\"leon\",\"count\":4}]]"},
 	}
@@ -92,7 +92,7 @@ func TestDeployAndInitAndCall(t *testing.T) {
 			gcsTrie, _ := trie.NewBatchTrie(nil, mem)
 
 			engine := NewV8Engine(balanceTrie, lcsTrie, gcsTrie)
-			err = engine.DeployAndInit(string(data), tt.init_args)
+			err = engine.DeployAndInit(string(data), tt.initArgs)
 			assert.Nil(t, err)
 			engine.Dispose()
 
@@ -102,7 +102,7 @@ func TestDeployAndInitAndCall(t *testing.T) {
 			engine.Dispose()
 
 			engine = NewV8Engine(balanceTrie, lcsTrie, gcsTrie)
-			err = engine.Call(string(data), "verify", tt.verify_args)
+			err = engine.Call(string(data), "verify", tt.verifyArgs)
 			assert.Nil(t, err)
 			engine.Dispose()
 
@@ -113,7 +113,7 @@ func TestDeployAndInitAndCall(t *testing.T) {
 			gcsTrie, _ = trie.NewBatchTrie(nil, mem)
 
 			engine = NewV8Engine(balanceTrie, lcsTrie, gcsTrie)
-			err = engine.Call(string(data), "verify", tt.verify_args)
+			err = engine.Call(string(data), "verify", tt.verifyArgs)
 			assert.NotNil(t, err)
 			engine.Dispose()
 

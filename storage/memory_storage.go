@@ -25,6 +25,7 @@ import (
 	"github.com/nebulasio/go-nebulas/util/byteutils"
 )
 
+// const
 var (
 	ErrKeyNotFound = errors.New("not found")
 )

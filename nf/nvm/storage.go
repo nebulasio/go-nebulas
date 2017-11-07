@@ -54,6 +54,7 @@ func hashStorageKey(key string) []byte {
 	return trie.HashDomains(domainKey, itemKey)
 }
 
+// StorageGetFunc export StorageGetFunc
 //export StorageGetFunc
 func StorageGetFunc(handler unsafe.Pointer, key *C.char) *C.char {
 	_, storage := getEngineAndStorage(uint64(uintptr(handler)))
@@ -77,6 +78,7 @@ func StorageGetFunc(handler unsafe.Pointer, key *C.char) *C.char {
 	return C.CString(string(val))
 }
 
+// StoragePutFunc export StoragePutFunc
 //export StoragePutFunc
 func StoragePutFunc(handler unsafe.Pointer, key *C.char, value *C.char) int {
 	_, storage := getEngineAndStorage(uint64(uintptr(handler)))
@@ -99,6 +101,7 @@ func StoragePutFunc(handler unsafe.Pointer, key *C.char, value *C.char) int {
 	return 0
 }
 
+// StorageDelFunc export StorageDelFunc
 //export StorageDelFunc
 func StorageDelFunc(handler unsafe.Pointer, key *C.char) int {
 	_, storage := getEngineAndStorage(uint64(uintptr(handler)))
