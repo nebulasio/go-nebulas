@@ -29,19 +29,6 @@ import (
 	"github.com/nebulasio/go-nebulas/util"
 )
 
-// Account info in state Trie
-type Account struct {
-	UserBalance       *util.Uint128
-	UserNonce         uint64
-	UserGlobalStorage *trie.BatchTrie
-
-	ContractOwner           *Address
-	ContractTransactionHash Hash
-	ContractLocalStorage    *trie.BatchTrie
-
-	storage storage.Storage
-}
-
 // NewAccount create a new account
 func NewAccount(storage storage.Storage) *Account {
 	globalTrie, _ := trie.NewBatchTrie(nil, storage)
