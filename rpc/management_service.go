@@ -37,7 +37,7 @@ func (s *ManagementService) NewAccount(ctx context.Context, req *rpcpb.NewAccoun
 	if err != nil {
 		return nil, err
 	}
-	return &rpcpb.NewAccountResponse{addr.ToHex()}, nil
+	return &rpcpb.NewAccountResponse{Address: addr.ToHex()}, nil
 }
 
 // UnlockAccount unlock address with the passphrase
@@ -51,7 +51,7 @@ func (s *ManagementService) UnlockAccount(ctx context.Context, req *rpcpb.Unlock
 	if err != nil {
 		return nil, err
 	}
-	return &rpcpb.UnlockAccountResponse{true}, nil
+	return &rpcpb.UnlockAccountResponse{Result: true}, nil
 }
 
 // LockAccount lock address
@@ -65,7 +65,7 @@ func (s *ManagementService) LockAccount(ctx context.Context, req *rpcpb.LockAcco
 	if err != nil {
 		return nil, err
 	}
-	return &rpcpb.LockAccountResponse{true}, nil
+	return &rpcpb.LockAccountResponse{Result: true}, nil
 }
 
 // SignTransaction sign transaction with the from addr passphrase
@@ -86,7 +86,7 @@ func (s *ManagementService) SignTransaction(ctx context.Context, req *rpcpb.Sign
 	if err != nil {
 		return nil, err
 	}
-	return &rpcpb.SignTransactionResponse{data}, nil
+	return &rpcpb.SignTransactionResponse{Data: data}, nil
 }
 
 // SendTransactionWithPassphrase send transaction with the from addr passphrase
@@ -102,5 +102,5 @@ func (s *ManagementService) SendTransactionWithPassphrase(ctx context.Context, r
 	if err := neb.BlockChain().TransactionPool().PushAndBroadcast(tx); err != nil {
 		return nil, err
 	}
-	return &rpcpb.SendTransactionPassphraseResponse{tx.Hash().String()}, nil
+	return &rpcpb.SendTransactionPassphraseResponse{Hash: tx.Hash().String()}, nil
 }

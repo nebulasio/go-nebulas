@@ -44,6 +44,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// const
 var (
 	ErrExecutionFailed     = errors.New("execute source failed")
 	ErrInvalidFunctionName = errors.New("invalid function name")
@@ -114,7 +115,7 @@ func (e *V8Engine) Dispose() {
 	storagesLock.Unlock()
 }
 
-// RunScriptSource
+// RunScriptSource run js source.
 func (e *V8Engine) RunScriptSource(content string) error {
 	data := C.CString(content)
 	defer C.free(unsafe.Pointer(data))
@@ -128,7 +129,7 @@ func (e *V8Engine) RunScriptSource(content string) error {
 	return nil
 }
 
-// Call
+// Call smart contract source.
 func (e *V8Engine) Call(source, function, args string) error {
 	if functionNameRe.MatchString(function) == false || strings.Compare("init", function) == 0 {
 		return ErrInvalidFunctionName
@@ -136,7 +137,7 @@ func (e *V8Engine) Call(source, function, args string) error {
 	return e.executeScript(source, function, args)
 }
 
-// DeployAndInit
+// DeployAndInit smart contract.
 func (e *V8Engine) DeployAndInit(source, args string) error {
 	return e.executeScript(source, "init", args)
 }

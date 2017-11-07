@@ -37,6 +37,7 @@ const (
 	branch
 )
 
+// const ErrNotFound
 var (
 	ErrNotFound = storage.ErrKeyNotFound
 )

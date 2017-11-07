@@ -29,6 +29,7 @@ import (
 	"github.com/nebulasio/go-nebulas/nf/nvm"
 )
 
+// const
 const (
 	TxPayloadBinaryType = "binary"
 	TxPayloadDeployType = "deploy"
@@ -36,6 +37,7 @@ const (
 	TxPayloadVoteType   = "vote"
 )
 
+// ErrInvalidTxPayloadType
 var (
 	ErrInvalidTxPayloadType   = errors.New("invalid transaction data payload type")
 	ErrInvalidContractAddress = errors.New("invalid contract address")
@@ -49,6 +51,7 @@ type txPayload struct {
 	binaryData  []byte
 }
 
+// Execute transaction.
 func (payload *txPayload) Execute(tx *Transaction, block *Block) error {
 	if payload.PayloadType == TxPayloadBinaryType {
 		return nil
@@ -113,6 +116,7 @@ func (payload *txPayload) Execute(tx *Transaction, block *Block) error {
 	return err
 }
 
+// NewDeploySCPayload return SCPayload.
 func NewDeploySCPayload(source, args string) ([]byte, error) {
 	payload := &txPayload{
 		PayloadType: TxPayloadDeployType,
@@ -122,6 +126,7 @@ func NewDeploySCPayload(source, args string) ([]byte, error) {
 	return json.Marshal(payload)
 }
 
+// NewCallSCPayload return a call SCPayload.
 func NewCallSCPayload(function, args string) ([]byte, error) {
 	payload := &txPayload{
 		PayloadType: TxPayloadCallType,
