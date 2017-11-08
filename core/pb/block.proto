@@ -19,13 +19,15 @@ syntax = "proto3";
 package corepb;
 
 message Account {
-    bytes user_balance = 11;
-    uint64 user_nonce = 12;
-    bytes user_global_storage = 13;
+    bytes balance = 1;
+    uint64 nonce = 2;
+    bytes vars_hash = 3;
+    bytes birth_place = 4;
+}
 
-    bytes contract_owner = 21;
-    bytes contract_transaction_hash = 22;
-    bytes contract_local_storage = 23;    
+message Data {
+    string type = 1;
+    bytes payload = 2;
 }
 
 message Transaction {
@@ -35,7 +37,7 @@ message Transaction {
     bytes value = 4;
     uint64 nonce = 5;
     int64 timestamp = 6;
-    bytes data = 7;
+    Data data = 7;
     uint32 chain_id = 8;
     uint32 alg = 9;    
     bytes sign = 10;

@@ -75,13 +75,14 @@ func (s *APIService) GetAccountState(ctx context.Context, req *rpcpb.GetAccountS
 	}
 
 	// TODO: handle specific block number.
-	acct := neb.BlockChain().TailBlock().FindAccount(addr)
+	balance := neb.BlockChain().TailBlock().GetBalance(addr.Bytes())
+	nonce := neb.BlockChain().TailBlock().GetNonce(addr.Bytes())
 
-	fsb, err := acct.UserBalance.ToFixedSizeByteSlice()
+	balanceBytes, err := balance.ToFixedSizeByteSlice()
 	if err != nil {
 		return nil, err
 	}
-	return &rpcpb.GetAccountStateResponse{Balance: fsb, Nonce: acct.UserNonce}, nil
+	return &rpcpb.GetAccountStateResponse{Balance: balanceBytes, Nonce: nonce}, nil
 }
 
 // SendTransaction is the RPC API handler.
@@ -90,14 +91,16 @@ func (s *APIService) SendTransaction(ctx context.Context, req *rpcpb.SendTransac
 
 	var data []byte
 	var err error
+	payloadType := core.TxPayloadBinaryType
 	if len(req.Source) > 0 {
-		data, err = core.NewDeploySCPayload(req.Source, req.Args)
+		data, err = core.NewDeployPayload(req.Source, req.Args).ToBytes()
+		payloadType = core.TxPayloadDeployType
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	tx, err := parseTransaction(neb, req.From, req.To, req.Value, req.Nonce, data)
+	tx, err := parseTransaction(neb, req.From, req.To, req.Value, req.Nonce, payloadType, data)
 	if err != nil {
 		return nil, err
 	}
@@ -119,11 +122,11 @@ func (s *APIService) SendTransaction(ctx context.Context, req *rpcpb.SendTransac
 // Call is the RPC API handler.
 func (s *APIService) Call(ctx context.Context, req *rpcpb.CallRequest) (*rpcpb.SendTransactionResponse, error) {
 	neb := s.server.Neblet()
-	data, err := core.NewCallSCPayload(req.Function, req.Args)
+	data, err := core.NewCallPayload(req.Function, req.Args).ToBytes()
 	if err != nil {
 		return nil, err
 	}
-	tx, err := parseTransaction(neb, req.From, req.To, nil, req.Nonce, data)
+	tx, err := parseTransaction(neb, req.From, req.To, nil, req.Nonce, core.TxPayloadCallType, data)
 	if err != nil {
 		return nil, err
 	}
@@ -138,7 +141,7 @@ func (s *APIService) Call(ctx context.Context, req *rpcpb.CallRequest) (*rpcpb.S
 
 }
 
-func parseTransaction(neb Neblet, from, to string, v []byte, nonce uint64, data []byte) (*core.Transaction, error) {
+func parseTransaction(neb Neblet, from, to string, v []byte, nonce uint64, payloadType string, payload []byte) (*core.Transaction, error) {
 	fromAddr, err := core.AddressParse(from)
 	if err != nil {
 		return nil, err
@@ -158,7 +161,7 @@ func parseTransaction(neb Neblet, from, to string, v []byte, nonce uint64, data 
 		value = util.NewUint128()
 	}
 
-	tx := core.NewTransaction(neb.BlockChain().ChainID(), fromAddr, toAddr, value, nonce, data)
+	tx := core.NewTransaction(neb.BlockChain().ChainID(), fromAddr, toAddr, value, nonce, payloadType, payload)
 	return tx, nil
 }
 

@@ -210,7 +210,7 @@ func TestManager_SignTransaction(t *testing.T) {
 			assert.Nil(t, err, "new address err")
 			err = manager.Unlock(got, tt.passphrase)
 			assert.Nil(t, err, "unlock err")
-			tx := core.NewTransaction(0, got, got, util.NewUint128FromInt(5), 0, nil)
+			tx := core.NewTransaction(0, got, got, util.NewUint128FromInt(5), 0, core.TxPayloadBinaryType, nil)
 			err = manager.SignTransaction(got, tx)
 			assert.Nil(t, err, "sign err")
 		})

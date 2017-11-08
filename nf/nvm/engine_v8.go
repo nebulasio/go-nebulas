@@ -40,15 +40,17 @@ import (
 	"sync"
 	"unsafe"
 
-	"github.com/nebulasio/go-nebulas/common/trie"
+	"github.com/nebulasio/go-nebulas/state"
 	log "github.com/sirupsen/logrus"
 )
 
-// const
+// Errors
 var (
 	ErrExecutionFailed     = errors.New("execute source failed")
 	ErrInvalidFunctionName = errors.New("invalid function name")
+)
 
+var (
 	v8engineOnce = sync.Once{}
 	storages     = make(map[uint64]*V8Engine, 256)
 	storagesIdx  = uint64(0)
@@ -59,12 +61,12 @@ var (
 
 // V8Engine v8 engine.
 type V8Engine struct {
-	v8engine              *C.V8Engine
-	balanceStorage        *trie.BatchTrie
-	localContractStorage  *trie.BatchTrie
-	globalContractStorage *trie.BatchTrie
-	lcsHandler            uint64
-	gcsHandler            uint64
+	v8engine   *C.V8Engine
+	contract   state.Account
+	owner      state.Account
+	context    state.AccountState
+	lcsHandler uint64
+	gcsHandler uint64
 }
 
 // InitV8Engine initialize the v8 engine.
@@ -80,16 +82,16 @@ func DisposeV8Engine() {
 }
 
 // NewV8Engine return new V8Engine instance.
-func NewV8Engine(balanceStorage, localContractStorage, globalContractStorage *trie.BatchTrie) *V8Engine {
+func NewV8Engine(owner state.Account, contract state.Account, context state.AccountState) *V8Engine {
 	v8engineOnce.Do(func() {
 		InitV8Engine()
 	})
 
 	engine := &V8Engine{
-		v8engine:              C.CreateEngine(),
-		balanceStorage:        balanceStorage,
-		localContractStorage:  localContractStorage,
-		globalContractStorage: globalContractStorage,
+		v8engine: C.CreateEngine(),
+		owner:    owner,
+		contract: contract,
+		context:  context,
 	}
 
 	storagesLock.Lock()
@@ -129,7 +131,7 @@ func (e *V8Engine) RunScriptSource(content string) error {
 	return nil
 }
 
-// Call smart contract source.
+// Call function in a script
 func (e *V8Engine) Call(source, function, args string) error {
 	if functionNameRe.MatchString(function) == false || strings.Compare("init", function) == 0 {
 		return ErrInvalidFunctionName
@@ -137,7 +139,7 @@ func (e *V8Engine) Call(source, function, args string) error {
 	return e.executeScript(source, function, args)
 }
 
-// DeployAndInit smart contract.
+// DeployAndInit a contract
 func (e *V8Engine) DeployAndInit(source, args string) error {
 	return e.executeScript(source, "init", args)
 }
@@ -156,7 +158,7 @@ func (e *V8Engine) executeScript(source, function, args string) error {
 	return e.RunScriptSource(executablesource)
 }
 
-func getEngineAndStorage(handler uint64) (*V8Engine, *trie.BatchTrie) {
+func getEngineAndStorage(handler uint64) (*V8Engine, state.Account) {
 	// log.Errorf("[--------------] getEngineAndStorage, handler = %d", handler)
 
 	storagesLock.RLock()
@@ -172,9 +174,9 @@ func getEngineAndStorage(handler uint64) (*V8Engine, *trie.BatchTrie) {
 	}
 
 	if engine.lcsHandler == handler {
-		return engine, engine.localContractStorage
+		return engine, engine.contract
 	} else if engine.gcsHandler == handler {
-		return engine, engine.globalContractStorage
+		return engine, engine.owner
 	} else {
 		log.WithFields(log.Fields{
 			"func":          "nvm.getEngineAndStorage",

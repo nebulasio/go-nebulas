@@ -27,7 +27,9 @@ import (
 	"github.com/hashicorp/golang-lru"
 	"github.com/nebulasio/go-nebulas/common/trie"
 	"github.com/nebulasio/go-nebulas/core/pb"
+	"github.com/nebulasio/go-nebulas/state"
 	"github.com/nebulasio/go-nebulas/storage"
+	"github.com/nebulasio/go-nebulas/util/byteutils"
 )
 
 // BlockChain the BlockChain core type.
@@ -235,7 +237,7 @@ func (bc *BlockChain) DetachedTailBlocks() []*Block {
 }
 
 // GetBlock return block of given hash from local storage and detachedBlocks.
-func (bc *BlockChain) GetBlock(hash Hash) *Block {
+func (bc *BlockChain) GetBlock(hash byteutils.Hash) *Block {
 	// TODO: get block from local storage.
 	v, _ := bc.cachedBlocks.Get(hash.Hex())
 	if v == nil {
@@ -251,18 +253,10 @@ func (bc *BlockChain) GetBlock(hash Hash) *Block {
 }
 
 // GetTransaction return transaction of given hash from local storage.
-func (bc *BlockChain) GetTransaction(hash Hash) *Transaction {
+func (bc *BlockChain) GetTransaction(hash byteutils.Hash) *Transaction {
 	// TODO: get transaction err handle.
-	v, err := bc.tailBlock.txsTrie.Get(hash)
+	tx, err := bc.tailBlock.GetTransaction(hash)
 	if err != nil {
-		return nil
-	}
-	pbTx := new(corepb.Transaction)
-	if err = proto.Unmarshal(v, pbTx); err != nil {
-		return nil
-	}
-	tx := new(Transaction)
-	if err = tx.FromProto(pbTx); err != nil {
 		return nil
 	}
 	return tx
@@ -323,7 +317,7 @@ func (bc *BlockChain) storeBlockToStorage(block *Block) error {
 	return nil
 }
 
-func (bc *BlockChain) loadBlockFromStorage(hash Hash) (*Block, error) {
+func (bc *BlockChain) loadBlockFromStorage(hash byteutils.Hash) (*Block, error) {
 	value, err := bc.storage.Get(hash)
 	if err != nil {
 		return nil, err
@@ -336,7 +330,7 @@ func (bc *BlockChain) loadBlockFromStorage(hash Hash) (*Block, error) {
 	if err = block.FromProto(pbBlock); err != nil {
 		return nil, err
 	}
-	block.stateTrie, err = trie.NewBatchTrie(block.StateRoot(), bc.storage)
+	block.accState, err = state.NewAccountState(block.StateRoot(), bc.storage)
 	if err != nil {
 		return nil, err
 	}

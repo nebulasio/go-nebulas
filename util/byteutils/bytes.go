@@ -19,9 +19,39 @@
 package byteutils
 
 import (
+	"bytes"
 	"encoding/binary"
 	"encoding/hex"
 )
+
+// Hash by Sha3-256
+type Hash []byte
+
+// HexHash is the hex string of a hash
+type HexHash string
+
+// Hex return hex encoded hash.
+func (h Hash) Hex() HexHash {
+	return HexHash(Hex(h))
+}
+
+// Equals compare two Hash. True is equal, otherwise false.
+func (h Hash) Equals(b Hash) bool {
+	return bytes.Compare(h, b) == 0
+}
+
+func (h Hash) String() string {
+	return string(h.Hex())
+}
+
+// Hash return hex decoded hash.
+func (hh HexHash) Hash() (Hash, error) {
+	v, err := FromHex(string(hh))
+	if err != nil {
+		return nil, err
+	}
+	return Hash(v), nil
+}
 
 // Encode encodes object to Encoder.
 func Encode(s interface{}, enc Encoder) ([]byte, error) {
