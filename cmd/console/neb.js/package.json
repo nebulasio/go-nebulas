@@ -1,0 +1,44 @@
+{
+  "name": "neb",
+  "version": "0.3.0",
+  "description": "Nebulas JavaScript API",
+  "main": "index.js",
+  "scripts": {
+    "build": "gulp",
+    "watch": "gulp watch",
+    "lint": "jshint *.js lib",
+    "test": "mocha; jshint *.js lib"
+  },
+  "author": "nebulas",
+  "license": "LGPL-3.0",
+  "keywords": [
+    "neb",
+    "javascript",
+    "API"
+  ],
+  "directories": {
+    "lib": "./lib"
+  },
+  "dependencies": {
+    "xhr2": "*",
+    "xmlhttprequest": "*"
+  },
+  "devDependencies": {
+    "browserify": ">=10.0",
+    "chai": "^3.0.0",
+    "coveralls": "^2.11.2",
+    "del": ">=2.0.2",
+    "exorcist": "^0.4.0",
+    "gulp": ">=3.9.0",
+    "gulp-jshint": ">=1.5.0",
+    "gulp-rename": ">=1.2.0",
+    "gulp-replace": "^0.5.3",
+    "gulp-streamify": "0.0.5",
+    "gulp-uglify": ">=1.2.0",
+    "istanbul": "^0.4.4",
+    "jshint": ">=2.5.0",
+    "mocha": ">=2.3.3",
+    "sandboxed-module": "^2.0.2",
+    "vinyl-source-stream": "^1.1.0"
+  }
+}
