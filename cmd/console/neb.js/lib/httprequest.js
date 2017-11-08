@@ -18,12 +18,14 @@
 
 "use strict";
 
+var XMLHttpRequest = null;
+
 // browser
 if (typeof window !== 'undefined' && window.XMLHttpRequest) {
   XMLHttpRequest = window.XMLHttpRequest;
 // node
 } else {
-  XMLHttpRequest = require('xmlhttprequest').XMLHttpRequest;
+  XMLHttpRequest = require("xmlhttprequest").XMLHttpRequest;
 }
 
 var XHR2 = require('xhr2'); 
@@ -32,7 +34,7 @@ var HttpRequest = function (host, port,timeout) {
 	this.host = host || "http://localhost";
 	this.port = port || "51510";
 	this.timeout = timeout || 0;
-}
+};
 
 HttpRequest.prototype.newRequest = function (method, api, async) {
 	var request;
@@ -43,13 +45,13 @@ HttpRequest.prototype.newRequest = function (method, api, async) {
 		request = new XMLHttpRequest();
 	}
 
-	m = method.toUpperCase() == "POST" ? "POST" : "GET"
-	url = this.host + ":" + this.port + api;
+	var m = method.toUpperCase() === "POST" ? "POST" : "GET";
+	var url = this.host + ":" + this.port + api;
 	request.open(m, url, true);
 	return request;
-}
+};
 
-HttpRequest.prototype.request = function (method, api, payload = "") {
+HttpRequest.prototype.request = function (method, api, payload) {
 	var request = this.prepareRequest(method, api, false);
 	try {
 		request.send(JSON.stringify(payload));
@@ -65,7 +67,7 @@ HttpRequest.prototype.request = function (method, api, payload = "") {
 	}
 
 	return result;
-}
+};
 
 HttpRequest.prototype.asyncRequest = function (method, api, payload, callback) {
 	var request = this.newRequest(method, api, true);
@@ -77,7 +79,6 @@ HttpRequest.prototype.asyncRequest = function (method, api, payload, callback) {
 	      try {
 	        result = JSON.parse(result);
 	      } catch (e) {
-	        error = errors.InvalidResponse(request.responseText);
 	        var message = !!result && !!result.error && !!result.error.message ? result.error.message : 'Invalid response: ' + JSON.stringify(result);
         	error = new Error(message);
 	      }
@@ -95,6 +96,6 @@ HttpRequest.prototype.asyncRequest = function (method, api, payload, callback) {
   } catch (error) {
     callback(error);
   }
-}
+};
 
 module.exports = HttpRequest;
