@@ -133,11 +133,11 @@ var XHR2 = require('xhr2');
 
 var HttpRequest = function (host, port,timeout) {
 	this.host = host || "http://localhost";
-	this.port = port || "51510";
+	this.port = port || "8080";
 	this.timeout = timeout || 0;
 };
 
-HttpRequest.prototype.newRequest = function (method, api, async) {
+HttpRequest.prototype._newRequest = function (method, api, async) {
 	var request;
 	if (async) {
 		request = new XHR2();
@@ -148,14 +148,18 @@ HttpRequest.prototype.newRequest = function (method, api, async) {
 
 	var m = method.toUpperCase() === "POST" ? "POST" : "GET";
 	var url = this.host + ":" + this.port + api;
-	request.open(m, url, true);
+	request.open(m, url, async);
 	return request;
 };
 
 HttpRequest.prototype.request = function (method, api, payload) {
-	var request = this.prepareRequest(method, api, false);
+	var request = this._newRequest(method, api, false);
 	try {
-		request.send(JSON.stringify(payload));
+		if (payload === undefined || payload === "") {
+			request.send();
+		} else {
+			request.send(JSON.stringify(payload));
+		}
 	} catch (error) {
 		throw error;
 	}
@@ -171,7 +175,7 @@ HttpRequest.prototype.request = function (method, api, payload) {
 };
 
 HttpRequest.prototype.asyncRequest = function (method, api, payload, callback) {
-	var request = this.newRequest(method, api, true);
+	var request = this._newRequest(method, api, true);
 	request.onreadystatechange = function () {
 	    if (request.readyState === 4 && request.timeout !== 1) {
 	      var result = request.responseText;
@@ -193,7 +197,11 @@ HttpRequest.prototype.asyncRequest = function (method, api, payload, callback) {
   };
 
   try {
-    request.send(JSON.stringify(payload));
+  	if (payload === undefined || payload === "") {
+		request.send();
+	} else {
+		request.send(JSON.stringify(payload));
+	}
   } catch (error) {
     callback(error);
   }
