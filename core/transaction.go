@@ -32,31 +32,20 @@ import (
 	"github.com/nebulasio/go-nebulas/util/byteutils"
 )
 
-var (
-	// ErrInsufficientBalance insufficient balance error.
-	ErrInsufficientBalance = errors.New("insufficient balance")
-
-	// ErrInvalidSignature the signature is not sign by from address.
-	ErrInvalidSignature = errors.New("invalid transaction signature")
-
-	// ErrInvalidTransactionHash invalid hash.
-	ErrInvalidTransactionHash = errors.New("invalid transaction hash")
-)
-
 // Transaction type is used to handle all transaction data.
 type Transaction struct {
-	hash      Hash
+	hash      byteutils.Hash
 	from      *Address
 	to        *Address
 	value     *util.Uint128
 	nonce     uint64
 	timestamp int64
-	data      []byte
+	data      *corepb.Data
 	chainID   uint32
 
 	// Signature
-	alg  uint8 // algorithm
-	sign Hash  // Signature values
+	alg  uint8          // algorithm
+	sign byteutils.Hash // Signature values
 }
 
 // From return from address
@@ -67,11 +56,6 @@ func (tx *Transaction) From() *Address {
 // Nonce return tx nonce
 func (tx *Transaction) Nonce() uint64 {
 	return tx.nonce
-}
-
-// DataLen return data length
-func (tx *Transaction) DataLen() int {
-	return len(tx.data)
 }
 
 // ToProto converts domain Tx to proto Tx
@@ -129,7 +113,7 @@ func (tx *Transaction) String() string {
 type Transactions []*Transaction
 
 // NewTransaction create #Transaction instance.
-func NewTransaction(chainID uint32, from, to *Address, value *util.Uint128, nonce uint64, data []byte) *Transaction {
+func NewTransaction(chainID uint32, from, to *Address, value *util.Uint128, nonce uint64, payloadType string, payload []byte) *Transaction {
 	tx := &Transaction{
 		from:      from,
 		to:        to,
@@ -137,40 +121,28 @@ func NewTransaction(chainID uint32, from, to *Address, value *util.Uint128, nonc
 		nonce:     nonce,
 		timestamp: time.Now().Unix(),
 		chainID:   chainID,
-		data:      data,
+		data:      &corepb.Data{Type: payloadType, Payload: payload},
 	}
 	return tx
 }
 
 // Hash return the hash of transaction.
-func (tx *Transaction) Hash() Hash {
+func (tx *Transaction) Hash() byteutils.Hash {
 	return tx.hash
 }
 
-// TargetContractAddress return the target contract address.
-func (tx *Transaction) TargetContractAddress() *Address {
-	isContractPayload, txPayload := isContractPayload(tx.data)
-	if isContractPayload == false {
-		return nil
-	}
-
-	// deploy contract has different contract address rules.
-	if txPayload.PayloadType == TxPayloadDeployType {
-		return tx.generateContractAddress()
-	}
-
-	// tx.to is the contract address.
-	return tx.to
-
+// DataLen return the length of payload
+func (tx *Transaction) DataLen() int {
+	return len(tx.data.Payload)
 }
 
 // Execute transaction and return result.
 func (tx *Transaction) Execute(block *Block) error {
 	// check balance.
-	fromAcc := block.FindAccount(tx.from)
-	toAcc := block.FindAccount(tx.to)
+	fromAcc := block.accState.GetOrCreateUserAccount(tx.from.address)
+	toAcc := block.accState.GetOrCreateUserAccount(tx.to.address)
 
-	if fromAcc.UserBalance.Cmp(tx.value.Int) < 0 {
+	if fromAcc.Balance().Cmp(tx.value.Int) < 0 {
 		return ErrInsufficientBalance
 	}
 
@@ -181,23 +153,25 @@ func (tx *Transaction) Execute(block *Block) error {
 	}
 	fromAcc.IncreNonce()
 
-	// execute smart contract if needed.
-	if tx.DataLen() > 0 {
-		txPayload, err := parseTxPayload(tx.data)
-		if err != nil {
-			return err
-		}
-
-		if err := txPayload.Execute(tx, block); err != nil {
-			return err
-		}
+	// execute payload
+	var payload TxPayload
+	var err error
+	switch tx.data.Type {
+	case TxPayloadBinaryType:
+		payload, err = LoadBinaryPayload(tx.data.Payload)
+	case TxPayloadDeployType:
+		payload, err = LoadDeployPayload(tx.data.Payload)
+	case TxPayloadCallType:
+		payload, err = LoadCallPayload(tx.data.Payload)
+	default:
+		return ErrInvalidTxPayloadType
 	}
 
-	// save account info in state trie
-	block.saveAccount(tx.to, toAcc)
-	block.saveAccount(tx.from, fromAcc)
+	if err != nil {
+		return err
+	}
 
-	return nil
+	return payload.Execute(tx, block)
 }
 
 // Sign sign transaction,sign algorithm is
@@ -267,15 +241,18 @@ func (tx *Transaction) verifySign() (bool, error) {
 	return signature.Verify(tx.hash, tx.sign)
 }
 
-// generateContractAddress generate and return contract address according to tx.from and tx.nonce.
-func (tx *Transaction) generateContractAddress() *Address {
-	address, _ := NewContractAddressFromHash(hash.Sha3256(tx.from.Bytes(), byteutils.FromUint64(tx.nonce)))
-	return address
+// GenerateContractAddress according to tx.from and tx.nonce.
+func (tx *Transaction) GenerateContractAddress() (*Address, error) {
+	return NewContractAddressFromHash(hash.Sha3256(tx.from.Bytes(), byteutils.FromUint64(tx.nonce)))
 }
 
 // HashTransaction hash the transaction.
-func HashTransaction(tx *Transaction) (Hash, error) {
+func HashTransaction(tx *Transaction) (byteutils.Hash, error) {
 	bytes, err := tx.value.ToFixedSizeByteSlice()
+	if err != nil {
+		return nil, err
+	}
+	data, err := proto.Marshal(tx.data)
 	if err != nil {
 		return nil, err
 	}
@@ -285,7 +262,7 @@ func HashTransaction(tx *Transaction) (Hash, error) {
 		bytes,
 		byteutils.FromUint64(tx.nonce),
 		byteutils.FromInt64(tx.timestamp),
-		tx.data,
+		data,
 		byteutils.FromUint32(tx.chainID),
 	), nil
 }

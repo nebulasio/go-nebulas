@@ -25,7 +25,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/nebulasio/go-nebulas/common/trie"
+	"github.com/nebulasio/go-nebulas/state"
 	"github.com/nebulasio/go-nebulas/storage"
 	"github.com/nebulasio/go-nebulas/util/logging"
 	log "github.com/sirupsen/logrus"
@@ -59,11 +59,10 @@ func TestRunScriptSource(t *testing.T) {
 			assert.Nil(t, err, "filepath read error")
 
 			mem, _ := storage.NewMemoryStorage()
-			balanceTrie, _ := trie.NewBatchTrie(nil, mem)
-			lcsTrie, _ := trie.NewBatchTrie(nil, mem)
-			gcsTrie, _ := trie.NewBatchTrie(nil, mem)
-
-			engine := NewV8Engine(balanceTrie, lcsTrie, gcsTrie)
+			context, _ := state.NewAccountState(nil, mem)
+			owner := context.GetOrCreateUserAccount([]byte("account1"))
+			contract, _ := context.CreateContractAccount([]byte("account2"), nil)
+			engine := NewV8Engine(owner, contract, context)
 			err = engine.RunScriptSource(string(data))
 			assert.Equal(t, tt.expectedErr, err)
 			engine.Dispose()
@@ -87,32 +86,32 @@ func TestDeployAndInitAndCall(t *testing.T) {
 			assert.Nil(t, err, "contract path read error")
 
 			mem, _ := storage.NewMemoryStorage()
-			balanceTrie, _ := trie.NewBatchTrie(nil, mem)
-			lcsTrie, _ := trie.NewBatchTrie(nil, mem)
-			gcsTrie, _ := trie.NewBatchTrie(nil, mem)
+			context, _ := state.NewAccountState(nil, mem)
+			owner := context.GetOrCreateUserAccount([]byte("account1"))
+			contract, _ := context.CreateContractAccount([]byte("account2"), nil)
 
-			engine := NewV8Engine(balanceTrie, lcsTrie, gcsTrie)
+			engine := NewV8Engine(owner, contract, context)
 			err = engine.DeployAndInit(string(data), tt.init_args)
 			assert.Nil(t, err)
 			engine.Dispose()
 
-			engine = NewV8Engine(balanceTrie, lcsTrie, gcsTrie)
+			engine = NewV8Engine(owner, contract, context)
 			err = engine.Call(string(data), "dump", "")
 			assert.Nil(t, err)
 			engine.Dispose()
 
-			engine = NewV8Engine(balanceTrie, lcsTrie, gcsTrie)
+			engine = NewV8Engine(owner, contract, context)
 			err = engine.Call(string(data), "verify", tt.verify_args)
 			assert.Nil(t, err)
 			engine.Dispose()
 
 			// force error.
 			mem, _ = storage.NewMemoryStorage()
-			balanceTrie, _ = trie.NewBatchTrie(nil, mem)
-			lcsTrie, _ = trie.NewBatchTrie(nil, mem)
-			gcsTrie, _ = trie.NewBatchTrie(nil, mem)
+			context, _ = state.NewAccountState(nil, mem)
+			owner = context.GetOrCreateUserAccount([]byte("account1"))
+			contract, _ = context.CreateContractAccount([]byte("account2"), nil)
 
-			engine = NewV8Engine(balanceTrie, lcsTrie, gcsTrie)
+			engine = NewV8Engine(owner, contract, context)
 			err = engine.Call(string(data), "verify", tt.verify_args)
 			assert.NotNil(t, err)
 			engine.Dispose()
@@ -139,11 +138,11 @@ func TestFunctionNameCheck(t *testing.T) {
 			assert.Nil(t, err, "contract path read error")
 
 			mem, _ := storage.NewMemoryStorage()
-			balanceTrie, _ := trie.NewBatchTrie(nil, mem)
-			lcsTrie, _ := trie.NewBatchTrie(nil, mem)
-			gcsTrie, _ := trie.NewBatchTrie(nil, mem)
+			context, _ := state.NewAccountState(nil, mem)
+			owner := context.GetOrCreateUserAccount([]byte("account1"))
+			contract, _ := context.CreateContractAccount([]byte("account2"), nil)
 
-			engine := NewV8Engine(balanceTrie, lcsTrie, gcsTrie)
+			engine := NewV8Engine(owner, contract, context)
 			err = engine.Call(string(data), tt.function, tt.args)
 			assert.Equal(t, tt.expectedErr, err)
 			engine.Dispose()
@@ -152,9 +151,9 @@ func TestFunctionNameCheck(t *testing.T) {
 }
 func TestMultiEngine(t *testing.T) {
 	mem, _ := storage.NewMemoryStorage()
-	balanceTrie, _ := trie.NewBatchTrie(nil, mem)
-	lcsTrie, _ := trie.NewBatchTrie(nil, mem)
-	gcsTrie, _ := trie.NewBatchTrie(nil, mem)
+	context, _ := state.NewAccountState(nil, mem)
+	owner := context.GetOrCreateUserAccount([]byte("account1"))
+	contract, _ := context.CreateContractAccount([]byte("account2"), nil)
 
 	var wg sync.WaitGroup
 	for i := 0; i < 50; i++ {
@@ -162,7 +161,7 @@ func TestMultiEngine(t *testing.T) {
 		idx := i
 		go func() {
 			defer wg.Done()
-			engine := NewV8Engine(balanceTrie, lcsTrie, gcsTrie)
+			engine := NewV8Engine(owner, contract, context)
 			defer engine.Dispose()
 
 			err := engine.RunScriptSource("console.log('running.');")

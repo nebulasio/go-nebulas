@@ -27,6 +27,7 @@ import (
 	"github.com/hashicorp/golang-lru"
 	"github.com/nebulasio/go-nebulas/core/pb"
 	"github.com/nebulasio/go-nebulas/net"
+	"github.com/nebulasio/go-nebulas/util/byteutils"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -44,7 +45,7 @@ type BlockPool struct {
 
 	bc         *BlockChain
 	blockCache *lru.Cache
-	headBlocks map[HexHash]*linkedBlock
+	headBlocks map[byteutils.HexHash]*linkedBlock
 
 	nm net.Manager
 	mu sync.RWMutex
@@ -52,11 +53,11 @@ type BlockPool struct {
 
 type linkedBlock struct {
 	block      *Block
-	hash       Hash
-	parentHash Hash
+	hash       byteutils.Hash
+	parentHash byteutils.Hash
 
 	parentBlock *linkedBlock
-	childBlocks map[HexHash]*linkedBlock
+	childBlocks map[byteutils.HexHash]*linkedBlock
 }
 
 // NewBlockPool return new #BlockPool instance.
@@ -65,7 +66,7 @@ func NewBlockPool() *BlockPool {
 		receiveMessageCh: make(chan net.Message, 128),
 		receivedBlockCh:  make(chan *Block, 128),
 		quitCh:           make(chan int, 1),
-		headBlocks:       make(map[HexHash]*linkedBlock),
+		headBlocks:       make(map[byteutils.HexHash]*linkedBlock),
 	}
 	bp.blockCache, _ = lru.New(1024)
 	return bp
@@ -81,19 +82,6 @@ func (pool *BlockPool) RegisterInNetwork(nm net.Manager) {
 	nm.Register(net.NewSubscriber(pool, pool.receiveMessageCh, MessageTypeNewBlock))
 	pool.nm = nm
 }
-
-// // Range calls f sequentially for each key and value present in the map.
-// // If f returns false, range stops the iteration.
-// func (pool *BlockPool) Range(f func(key, value interface{}) bool) {
-// 	pool.inner.Range(f)
-// }
-
-// // Delete delete key from pool.
-// func (pool *BlockPool) Delete(keys ...HexHash) {
-// 	for _, key := range keys {
-// 		pool.inner.Delete(key)
-// 	}
-// }
 
 // Start start loop.
 func (pool *BlockPool) Start() {
@@ -296,7 +284,7 @@ func newLinkedBlock(block *Block) *linkedBlock {
 		hash:        block.Hash(),
 		parentHash:  block.ParentHash(),
 		parentBlock: nil,
-		childBlocks: make(map[HexHash]*linkedBlock),
+		childBlocks: make(map[byteutils.HexHash]*linkedBlock),
 	}
 }
 
@@ -315,23 +303,7 @@ func (lb *linkedBlock) travelToLinkAndReturnAllValidBlocks(parentBlock *Block) (
 		panic("link parent block fail.")
 	}
 
-	if err := lb.block.Execute(); err != nil {
-		log.WithFields(log.Fields{
-			"func":        "linkedBlock.dfs",
-			"err":         err,
-			"parentBlock": parentBlock,
-			"block":       lb.block,
-		}).Fatal("execute block fail.")
-		return nil, nil
-	}
-
-	if err := lb.block.verifyState(); err != nil {
-		log.WithFields(log.Fields{
-			"func":        "linkedBlock.dfs",
-			"err":         err,
-			"parentBlock": parentBlock,
-			"block":       lb.block,
-		}).Fatal("invalid trie root hash.")
+	if err := lb.block.Verify(parentBlock.header.chainID); err != nil {
 		return nil, nil
 	}
 

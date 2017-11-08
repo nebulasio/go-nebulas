@@ -37,6 +37,7 @@ const (
 	branch
 )
 
+// Errors
 var (
 	ErrNotFound = storage.ErrKeyNotFound
 )
@@ -122,8 +123,14 @@ func (t *Trie) fetchNode(hash []byte) (*node, error) {
 
 // CommitNode node in trie into storage
 func (t *Trie) commitNode(n *node) error {
-	pb, _ := n.ToProto()
-	n.Bytes, _ = proto.Marshal(pb)
+	pb, err := n.ToProto()
+	if err != nil {
+		return err
+	}
+	n.Bytes, err = proto.Marshal(pb)
+	if err != nil {
+		return err
+	}
 	n.Hash = hash.Sha3256(n.Bytes)
 	return t.storage.Put(n.Hash, n.Bytes)
 }

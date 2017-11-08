@@ -78,7 +78,7 @@ An extended address is generated through addition of 2-byte extended verificatio
 	The Wallet App verifies the consistency between the wallet address and the nickname in order to avoid the circumstance that Bob enters the account number of another user by mistake.
 */
 type Address struct {
-	address Hash
+	address byteutils.Hash
 }
 
 // Bytes returns address bytes

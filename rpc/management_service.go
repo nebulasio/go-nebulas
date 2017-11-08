@@ -71,7 +71,7 @@ func (s *ManagementService) LockAccount(ctx context.Context, req *rpcpb.LockAcco
 // SignTransaction sign transaction with the from addr passphrase
 func (s *ManagementService) SignTransaction(ctx context.Context, req *rpcpb.SignTransactionRequest) (*rpcpb.SignTransactionResponse, error) {
 	neb := s.server.Neblet()
-	tx, err := parseTransaction(neb, req.From, req.To, req.Value, req.Nonce, nil)
+	tx, err := parseTransaction(neb, req.From, req.To, req.Value, req.Nonce, core.TxPayloadBinaryType, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -92,7 +92,7 @@ func (s *ManagementService) SignTransaction(ctx context.Context, req *rpcpb.Sign
 // SendTransactionWithPassphrase send transaction with the from addr passphrase
 func (s *ManagementService) SendTransactionWithPassphrase(ctx context.Context, req *rpcpb.SendTransactionPassphraseRequest) (*rpcpb.SendTransactionPassphraseResponse, error) {
 	neb := s.server.Neblet()
-	tx, err := parseTransaction(neb, req.From, req.To, req.Value, req.Nonce, nil)
+	tx, err := parseTransaction(neb, req.From, req.To, req.Value, req.Nonce, core.TxPayloadBinaryType, nil)
 	if err != nil {
 		return nil, err
 	}
