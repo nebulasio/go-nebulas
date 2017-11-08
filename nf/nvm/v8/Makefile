@@ -22,8 +22,8 @@ LD=clang++
 CFLAGS=-DBUILDING_DLL -g -fPIC -Wall -Wextra -Wno-unused-parameter -Wno-unused-result -O2
 CXXFLAGS=-DBUILDING_DLL -g -std=c++11 -fPIC -Wall -Wextra -Wno-unused-parameter -Wno-unused-result -O2
 
-LDFLAGS=-fvisibility=hidden
-LIBS=-lv8 -lv8_libbase -lv8_libplatform
+LDFLAGS=-fvisibility=hidden -Wl,-dead_strip
+LIBS=-lv8_libbase -lv8_libplatform -lv8_base -lv8_libsampler -lv8_external_snapshot -licui18n -licuuc -linspector
 
 LIB_LDFLAGS=-shared
 
@@ -37,13 +37,13 @@ endif
 .PHONY: engine main clean
 all: main
 
-%.c.o : %.c
+%.c.o : %.c inc.h
 	$(CC) $(CFLAGS) -c $< -o $<.o
 
-%.cc.o: %.cc
+%.cc.o: %.cc inc.h
 	$(CXX) $(CXXFLAGS) -c $< -o $<.o
 
-%.cpp.o: %.cpp
+%.cpp.o: %.cpp inc.h
 	$(CXX) $(CXXFLAGS) -c $< -o $<.o
 
 main: main.cc.o engine.cc.o lib/execution_env.cc.o lib/storage_object.cc.o lib/log_callback.cc.o lib/require_callback.cc.o lib/memory_storage.cc.o
@@ -57,5 +57,13 @@ install: engine
 	-install libv8engine$(DYLIB) ../native-lib/
 
 clean:
+	-rm -f natives_blob.bin.h snapshot_blob.bin.h;
 	-find . -iname '*.o' -exec rm {} \;
 	-rm -f main libv8engine$(DYLIB);
+
+inc.h:
+	-ln -s /usr/local/opt/v8/bin/natives_blob.bin .
+	-ln -s /usr/local/opt/v8/bin/snapshot_blob.bin .
+	-xxd -i natives_blob.bin natives_blob.bin.h
+	-xxd -i snapshot_blob.bin snapshot_blob.bin.h
+	-rm natives_blob.bin snapshot_blob.bin

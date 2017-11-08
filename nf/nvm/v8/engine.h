@@ -17,8 +17,8 @@
 // <http://www.gnu.org/licenses/>.
 //
 
-#ifndef _NEBULAS_NV_V8_ENGINE_H_
-#define _NEBULAS_NV_V8_ENGINE_H_
+#ifndef _NEBULAS_NF_NVM_V8_ENGINE_H_
+#define _NEBULAS_NF_NVM_V8_ENGINE_H_
 
 #if BUILDING_DLL
 #define EXPORT __attribute__((__visibility__("default")))
@@ -28,7 +28,7 @@
 
 #ifdef __cplusplus
 extern "C" {
-#endif
+#endif // __cplusplus
 
 #include <stdint.h>
 
@@ -49,6 +49,8 @@ typedef int (*StoragePutFunc)(void *handler, const char *key,
 typedef int (*StorageDelFunc)(void *handler, const char *key);
 EXPORT void InitializeStorage(StorageGetFunc get, StoragePutFunc put,
                               StorageDelFunc del);
+
+EXPORT char *GetV8Version();
 
 typedef struct V8Engine {
   void *isolate;
@@ -72,6 +74,6 @@ EXPORT char *EncapsulateSourceToModuleStyle(const char *source);
 
 #ifdef __cplusplus
 }
-#endif
+#endif // __cplusplus
 
-#endif
+#endif // _NEBULAS_NF_NVM_V8_ENGINE_H_

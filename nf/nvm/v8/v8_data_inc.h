@@ -16,17 +16,11 @@
 // along with the go-nebulas library.  If not, see
 // <http://www.gnu.org/licenses/>.
 //
-#ifndef _NEBULAS_NF_V8_ARRAY_BUFFER_ALLOCATOR_H_
-#define _NEBULAS_NF_V8_ARRAY_BUFFER_ALLOCATOR_H_
 
-#include <stdlib.h>
-#include <v8.h>
+#ifndef _NEBULAS_NF_NVM_V8_V8_DATA_INC_H_
+#define _NEBULAS_NF_NVM_V8_V8_DATA_INC_H_
 
-class ArrayBufferAllocator : public v8::ArrayBuffer::Allocator {
-public:
-  virtual void *Allocate(size_t length) { return calloc(length, 1); }
-  virtual void *AllocateUninitialized(size_t length) { return malloc(length); }
-  virtual void Free(void *data, size_t length) { free(data); }
-};
+#include "snapshot_blob.bin.h"
+#include "natives_blob.bin.h"
 
-#endif // _NEBULAS_NF_V8_ARRAY_BUFFER_ALLOCATOR_H_
+#endif // _NEBULAS_NF_NVM_V8_V8_CONFIG_H_

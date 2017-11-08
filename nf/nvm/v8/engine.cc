@@ -18,7 +18,7 @@
 //
 
 #include "engine.h"
-#include "array_buffer_allocator.h"
+#include "v8_data_inc.h"
 #include "lib/execution_env.h"
 #include "lib/log_callback.h"
 #include "lib/require_callback.h"
@@ -35,13 +35,31 @@ static Platform *platformPtr = NULL;
 
 void PrintException(Local<Context> context, TryCatch &trycatch);
 
+#define STRINGIZE2(s) #s
+#define STRINGIZE(s) STRINGIZE2(s)
+#define V8VERSION_STRING STRINGIZE(V8_MAJOR_VERSION) \
+                        "." STRINGIZE(V8_MINOR_VERSION) \
+                        "." STRINGIZE(V8_BUILD_NUMBER) \
+                        "." STRINGIZE(V8_PATCH_LEVEL)
+
+static char V8VERSION[] = V8VERSION_STRING;
+char *GetV8Version() { return V8VERSION; }
+
 void Initialize() {
   platformPtr = platform::CreateDefaultPlatform();
 
   // Initialize V8.
   V8::InitializeICU();
-  V8::InitializeExternalStartupData("");
   V8::InitializePlatform(platformPtr);
+
+  StartupData nativesData, snapshotData;
+  nativesData.data = reinterpret_cast<char *>(natives_blob_bin);
+  nativesData.raw_size = natives_blob_bin_len;
+  snapshotData.data = reinterpret_cast<char *>(snapshot_blob_bin);
+  snapshotData.raw_size = snapshot_blob_bin_len;
+  V8::SetNativesDataBlob(&nativesData);
+  V8::SetSnapshotDataBlob(&snapshotData);
+
   V8::Initialize();
 }
 
@@ -55,14 +73,16 @@ void Dispose() {
 }
 
 V8Engine *CreateEngine() {
-  ArrayBufferAllocator *allocator = new ArrayBufferAllocator();
+  ArrayBuffer::Allocator *allocator =
+      ArrayBuffer::Allocator::NewDefaultAllocator();
 
   Isolate::CreateParams create_params;
   create_params.array_buffer_allocator = allocator;
+
   Isolate *isolate = Isolate::New(create_params);
 
   V8Engine *e = (V8Engine *)calloc(1, sizeof(V8Engine));
-  e->allocator = allocator;
+  // e->allocator = allocator;
   e->isolate = isolate;
   return e;
 }
@@ -71,7 +91,7 @@ void DeleteEngine(V8Engine *e) {
   Isolate *isolate = static_cast<Isolate *>(e->isolate);
   isolate->Dispose();
 
-  delete static_cast<ArrayBufferAllocator *>(e->allocator);
+  delete static_cast<ArrayBuffer::Allocator *>(e->allocator);
 
   free(e);
 }

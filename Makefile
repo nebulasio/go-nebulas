@@ -30,11 +30,9 @@ TEST_XUNIT_REPORT=test.report.xml
 
 ifeq ($(shell uname -s),Darwin)
 	DYLIB=.dylib
-	LIBV8=/usr/local/opt/v8/lib/libv8.dylib
 	LIBV8ENGINE=/usr/local/lib/libv8engine.dylib
 else
 	DYLIB=.so
-	LIBV8=/usr/local/lib/libv8.so
 	LIBV8ENGINE=/usr/local/lib/libv8engine.so
 endif
 
@@ -50,8 +48,6 @@ dep:
 	dep ensure -v
 
 deploy-libs:
-	-mkdir -p /usr/local/opt/v8/lib/
-	-test -f $(LIBV8) || cp nf/nvm/native-lib/libv8$(DYLIB) $(LIBV8)
 	-cp nf/nvm/native-lib/libv8engine$(DYLIB) $(LIBV8ENGINE)
 
 build:
