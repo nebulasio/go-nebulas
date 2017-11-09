@@ -3,11 +3,18 @@ go:
 - 1.9
 os:
 - osx
+- linux
+matrix:
+  include:
+    - os: linux
+      dist: xenial
+      sudo: required
 before_install:
 - go get github.com/golang/dep/cmd/dep
 install:
 - dep ensure
-- cp nf/nvm/native-lib/libv8engine* /usr/local/lib
+- install nf/nvm/native-lib/* /usr/local/lib
+- if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then /sbin/ldconfig ; fi
 script:
 - go test -v ./...
 notifications:
