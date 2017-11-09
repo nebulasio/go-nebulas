@@ -34,8 +34,6 @@ static char source_require_begin[] = "(function(){"
 static char source_require_end[] = ";\n"
                                    "if (module.exports) {\n"
                                    " return module.exports;\n"
-                                   "} else if (exports) {\n"
-                                   " return exports;\n"
                                    "}\n"
                                    "})();\n";
 
@@ -117,7 +115,9 @@ static int readSource(const char *filename, char **data, size_t *size) {
 void NewNativeRequireFunction(Isolate *isolate,
                               Local<ObjectTemplate> globalTpl) {
   globalTpl->Set(String::NewFromUtf8(isolate, "_native_require"),
-                 FunctionTemplate::New(isolate, RequireCallback));
+                 FunctionTemplate::New(isolate, RequireCallback),
+                 static_cast<PropertyAttribute>(PropertyAttribute::DontDelete |
+                                                PropertyAttribute::ReadOnly));
 }
 
 void RequireCallback(const v8::FunctionCallbackInfo<v8::Value> &info) {

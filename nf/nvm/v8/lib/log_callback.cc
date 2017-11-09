@@ -38,7 +38,9 @@ void InitializeLogger(LogFunc log) { LOG = log; }
 
 void NewNativeLogFunction(Isolate *isolate, Local<ObjectTemplate> globalTpl) {
   globalTpl->Set(String::NewFromUtf8(isolate, "_native_log"),
-                 FunctionTemplate::New(isolate, LogCallback));
+                 FunctionTemplate::New(isolate, LogCallback),
+                 static_cast<PropertyAttribute>(PropertyAttribute::DontDelete |
+                                                PropertyAttribute::ReadOnly));
 }
 
 void LogCallback(const FunctionCallbackInfo<Value> &info) {
