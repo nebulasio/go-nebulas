@@ -290,11 +290,11 @@ func (block *Block) rollback() {
 	}).Info("Block RollBack.")
 }
 
-// ReturnTransaction and giveback them to tx pool
+// ReturnTransactions and giveback them to tx pool
+// TODO(roy): optimize storage.
+// if a block is reverted, we should erase all changes
+// made by this block on storage. use refcount.
 func (block *Block) ReturnTransactions() {
-	if block.sealed {
-		panic("Sealed block can't be changed.")
-	}
 	for _, tx := range block.transactions {
 		block.txPool.Push(tx)
 	}

@@ -116,10 +116,7 @@ func (bc *BlockChain) SetTailBlock(newTail *Block) {
 	}
 	reverted := oldTail
 	for !reverted.Hash().Equals(ancestor.Hash()) {
-		for _, v := range reverted.transactions {
-			// give back reverted txs to tx pool
-			bc.txPool.Push(v)
-		}
+		reverted.ReturnTransactions()
 		reverted = bc.GetBlock(reverted.header.parentHash)
 		if reverted == nil {
 			panic("find a block on chain, we cannot find its parent block")
@@ -338,6 +335,7 @@ func (bc *BlockChain) loadBlockFromStorage(hash byteutils.Hash) (*Block, error) 
 	if err != nil {
 		return nil, err
 	}
+	block.txPool = bc.txPool
 	block.storage = bc.storage
 	return block, nil
 }
