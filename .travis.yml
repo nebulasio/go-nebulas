@@ -8,7 +8,7 @@ matrix:
   include:
     - os: linux
       dist: xenial
-      sudo: required
+      sudo: false
 before_install:
 - go get github.com/golang/dep/cmd/dep
 install:
