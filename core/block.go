@@ -26,7 +26,7 @@ import (
 	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/common/trie"
 	"github.com/nebulasio/go-nebulas/core/pb"
-	"github.com/nebulasio/go-nebulas/state"
+	"github.com/nebulasio/go-nebulas/core/state"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/crypto/sha3"
 

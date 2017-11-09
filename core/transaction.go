@@ -167,10 +167,8 @@ func (tx *Transaction) Execute(block *Block) error {
 	}
 
 	// accept the transaction
-	if !tx.from.Equals(tx.to) {
-		fromAcc.SubBalance(tx.value)
-		toAcc.AddBalance(tx.value)
-	}
+	fromAcc.AddBalance(tx.value)
+	toAcc.SubBalance(tx.value)
 	fromAcc.IncreNonce()
 
 	// execute payload

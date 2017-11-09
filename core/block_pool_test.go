@@ -94,4 +94,14 @@ func TestBlockPool(t *testing.T) {
 	assert.Equal(t, pool.blockCache.Len(), 0)
 	err := pool.Push(block1)
 	assert.Equal(t, err, nil)
+	bc.SetTailBlock(block1)
+	nonce := bc.tailBlock.GetNonce(from.Bytes())
+	assert.Equal(t, nonce, uint64(1))
+	bc.SetTailBlock(block2)
+	nonce = bc.tailBlock.GetNonce(from.Bytes())
+	assert.Equal(t, nonce, uint64(2))
+	bc.SetTailBlock(block3)
+	nonce = bc.tailBlock.GetNonce(from.Bytes())
+	assert.Equal(t, nonce, uint64(3))
+
 }

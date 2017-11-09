@@ -25,7 +25,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/nebulasio/go-nebulas/state"
+	"github.com/nebulasio/go-nebulas/core/state"
 	"github.com/nebulasio/go-nebulas/storage"
 	"github.com/nebulasio/go-nebulas/util/logging"
 	log "github.com/sirupsen/logrus"

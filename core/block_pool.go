@@ -307,6 +307,10 @@ func (lb *linkedBlock) travelToLinkAndReturnAllValidBlocks(parentBlock *Block) (
 		return nil, nil
 	}
 
+	log.WithFields(log.Fields{
+		"block": lb.block,
+	}).Info("Block Verified.")
+
 	allBlocks := []*Block{lb.block}
 	tailBlocks := []*Block{}
 

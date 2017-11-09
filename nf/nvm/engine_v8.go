@@ -40,7 +40,7 @@ import (
 	"sync"
 	"unsafe"
 
-	"github.com/nebulasio/go-nebulas/state"
+	"github.com/nebulasio/go-nebulas/core/state"
 	log "github.com/sirupsen/logrus"
 )
 

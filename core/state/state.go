@@ -227,6 +227,10 @@ func (as *accountState) getAccount(addr byteutils.Hash) (Account, error) {
 func (as *accountState) flush() {
 	for addr, acc := range as.dirtyAccount {
 		acc.Commit()
+		log.WithFields(log.Fields{
+			"account": addr,
+			"nonce":   acc.Nonce(),
+		}).Info("Account Commit.")
 		delete(as.dirtyAccount, addr)
 		bytes, err := acc.ToBytes()
 		if err != nil {
