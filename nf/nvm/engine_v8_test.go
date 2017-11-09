@@ -149,7 +149,8 @@ func TestFunctionNameCheck(t *testing.T) {
 		})
 	}
 }
-func TestMultiEngine(t *testing.T) {
+
+func testMultiEngine(t *testing.T) {
 	mem, _ := storage.NewMemoryStorage()
 	context, _ := state.NewAccountState(nil, mem)
 	owner := context.GetOrCreateUserAccount([]byte("account1"))
