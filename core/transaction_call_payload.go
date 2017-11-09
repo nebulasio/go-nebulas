@@ -64,7 +64,7 @@ func (payload *CallPayload) Execute(tx *Transaction, block *Block) error {
 		return err
 	}
 	owner := context.GetOrCreateUserAccount(birthTx.from.Bytes())
-	deploy, err := LoadDeployPayload(tx.data.Payload)
+	deploy, err := LoadDeployPayload(birthTx.data.Payload)
 	if err != nil {
 		return err
 	}
