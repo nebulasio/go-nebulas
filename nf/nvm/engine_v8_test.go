@@ -156,7 +156,7 @@ func TestMultiEngine(t *testing.T) {
 	contract, _ := context.CreateContractAccount([]byte("account2"), nil)
 
 	var wg sync.WaitGroup
-	for i := 0; i < 50; i++ {
+	for i := 0; i < 10; i++ {
 		wg.Add(1)
 		idx := i
 		go func() {

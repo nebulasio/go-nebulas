@@ -82,7 +82,7 @@ V8Engine *CreateEngine() {
   Isolate *isolate = Isolate::New(create_params);
 
   V8Engine *e = (V8Engine *)calloc(1, sizeof(V8Engine));
-  // e->allocator = allocator;
+  e->allocator = allocator;
   e->isolate = isolate;
   return e;
 }
