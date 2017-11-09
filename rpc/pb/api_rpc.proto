@@ -76,13 +76,26 @@ service APIService {
 	rpc SendRawTransaction (SendRawTransactionRequest) returns (SendTransactionResponse) {
 	}
 
-	// Get block header info by the block hash
+	// Get block header info by the block hash.
 	rpc GetBlockByHash (GetBlockByHashRequest) returns (corepb.Block) {
 	}
 
-	// Get transaction info by the tansaction hash
-	rpc GetTransactionByHash (GetTransactionByHashRequest) returns (corepb.Transaction) {
+	// Get transaction info by the tansaction hash.
+//	rpc GetTransactionByHash (GetTransactionByHashRequest) returns (corepb.Transaction) {
+//		option (google.api.http) = {
+//            post: "/v1/getTransaction"
+//			body: "*"
+//        };
+//	}
+
+	// Get transactionReceipt info by tansaction hash.
+	rpc GetTransactionReceipt (GetTransactionByHashRequest) returns (TransactionReceiptResponse) {
+		option (google.api.http) = {
+            post: "/v1/getTransactionReceipt"
+            body: "*"
+        };
 	}
+
 }
 
 // Request message of GetNebState rpc.
@@ -93,7 +106,7 @@ message GetNebStateRequest {
 message GetNebStateResponse {
 
 	// Block chain id
-	uint32 chainID = 1;
+	uint32 chain_id = 1;
 
 	// Current neb tail hash
 	string tail = 2;
@@ -102,10 +115,16 @@ message GetNebStateResponse {
 	string coinbase = 3;
 
 	// Number of peers currenly connected
-	uint32 peerCount = 4;
+	uint32 peer_count = 4;
 
 	// Neb mine status, minging is true ,otherwise false
-	bool isMining = 5;
+	bool is_mining = 5;
+
+	// The current neb protocol version.
+	string protocol_version = 6;
+
+	// The peer sync status.
+	bool synchronized = 7;
 }
 
 // Request message of Accounts rpc.
@@ -204,16 +223,41 @@ message GetTransactionByHashRequest {
 	string hash = 1;
 }
 
-// Request message of BlockDump
+// Request message of BlockDump.
 message BlockDumpRequest {
 	// the count of blocks to dump before current tail.
 	int32 count = 1;
 }
 
-// Response message of BlockDump
+// Response message of BlockDump.
 message BlockDumpResponse {
 	// block dump info.
 	string data = 1;
+}
+
+// Response message of TransactionReceipt.
+message TransactionReceiptResponse {
+
+	// Hex string of tx hash.
+	string hash = 1;
+
+	// Hex string of the sender account addresss.
+	string from = 2;
+
+	// Hex string of the receiver account addresss.
+	string to = 3;
+
+	// Transaction nonce.
+	uint64 nonce = 4;
+
+	int64 timestamp = 5;
+
+	string data = 6;
+
+	uint32 chainId = 7;
+
+	string contract_address = 8;
+
 }
 
 

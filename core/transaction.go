@@ -53,9 +53,29 @@ func (tx *Transaction) From() *Address {
 	return tx.from
 }
 
+// Timestamp return timestamp
+func (tx *Transaction) Timestamp() int64 {
+	return tx.timestamp
+}
+
+// To return to address
+func (tx *Transaction) To() *Address {
+	return tx.to
+}
+
+// ChainID return chainID
+func (tx *Transaction) ChainID() uint32 {
+	return tx.chainID
+}
+
 // Nonce return tx nonce
 func (tx *Transaction) Nonce() uint64 {
 	return tx.nonce
+}
+
+// Data return tx data
+func (tx *Transaction) Data() []byte {
+	return tx.data.Payload
 }
 
 // ToProto converts domain Tx to proto Tx

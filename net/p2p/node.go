@@ -97,24 +97,29 @@ func NewNode(config *Config) (*Node, error) {
 	return node, nil
 }
 
-// Config return node config
+// Config return node config.
 func (node *Node) Config() *Config {
 	return node.config
 }
 
-// ID return node config
+// ID return node ID.
 func (node *Node) ID() peer.ID {
 	return node.host.ID()
 }
 
-// SetSynchronized set node synchronized
+// SetSynchronized set node synchronized.
 func (node *Node) SetSynchronized(synchronized bool) {
 	node.synchronized = synchronized
 }
 
-// GetSynchronized return node synchronized status
+// GetSynchronized return node synchronized status.
 func (node *Node) GetSynchronized() bool {
 	return node.synchronized
+}
+
+// GetStream return node stream.
+func (node *Node) GetStream() map[string]*StreamStore {
+	return node.stream
 }
 
 func (node *Node) init() error {

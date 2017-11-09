@@ -22,6 +22,7 @@ import (
 	"github.com/nebulasio/go-nebulas/account"
 	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/neblet/pb"
+	"github.com/nebulasio/go-nebulas/net/p2p"
 )
 
 var (
@@ -33,6 +34,7 @@ type Neblet interface {
 	Config() nebletpb.Config
 	BlockChain() *core.BlockChain
 	AccountManager() *account.Manager
+	NetService() *p2p.NetService
 }
 
 // Server server interface for api & management etc.
