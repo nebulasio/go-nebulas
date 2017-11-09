@@ -20,6 +20,7 @@ package state
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/common/trie"
@@ -108,17 +109,24 @@ func (acc *account) BirthPlace() byteutils.Hash {
 
 // BeginBatch begins a batch task
 func (acc *account) BeginBatch() {
+	log.Info("Account Begin.")
 	acc.variables.BeginBatch()
 }
 
 // Commit a batch task
 func (acc *account) Commit() {
 	acc.variables.Commit()
+	log.WithFields(log.Fields{
+		"acc": acc,
+	}).Info("Account Commit.")
 }
 
 // RollBack a batch task
 func (acc *account) RollBack() {
 	acc.variables.RollBack()
+	log.WithFields(log.Fields{
+		"acc": acc,
+	}).Info("Account RollBack.")
 }
 
 // IncreNonce by 1
@@ -162,6 +170,16 @@ func (acc *account) Del(key []byte) error {
 // Iterator map var from account's storage
 func (acc *account) Iterator(prefix []byte) (Iterator, error) {
 	return acc.variables.Iterator(prefix)
+}
+
+func (acc *account) String() string {
+	return fmt.Sprintf("Account %p {Balance:%v; Nonce:%v; VarsHash:%v; BirthPlace:%v}",
+		acc,
+		acc.balance.Int,
+		acc.nonce,
+		byteutils.Hex(acc.variables.RootHash()),
+		acc.birthPlace.Hex(),
+	)
 }
 
 // AccountState manage account state in Block
@@ -227,10 +245,6 @@ func (as *accountState) getAccount(addr byteutils.Hash) (Account, error) {
 func (as *accountState) flush() {
 	for addr, acc := range as.dirtyAccount {
 		acc.Commit()
-		log.WithFields(log.Fields{
-			"account": addr,
-			"nonce":   acc.Nonce(),
-		}).Info("Account Commit.")
 		delete(as.dirtyAccount, addr)
 		bytes, err := acc.ToBytes()
 		if err != nil {
@@ -277,6 +291,7 @@ func (as *accountState) CreateContractAccount(addr []byte, birthPlace []byte) (A
 
 // BeginBatch begin a batch task
 func (as *accountState) BeginBatch() {
+	log.Info("AccountState Begin.")
 	as.batching = true
 	err := as.stateTrie.BeginBatch()
 	if err != nil {
@@ -289,6 +304,9 @@ func (as *accountState) Commit() {
 	as.flush()
 	as.stateTrie.Commit()
 	as.batching = false
+	log.WithFields(log.Fields{
+		"AccountState": as,
+	}).Info("AccountState Commit.")
 }
 
 // RollBack a batch task
@@ -299,6 +317,9 @@ func (as *accountState) RollBack() {
 		delete(as.dirtyAccount, addr)
 	}
 	as.batching = false
+	log.WithFields(log.Fields{
+		"AccountState": as,
+	}).Info("AccountState RollBack.")
 }
 
 // Clone an accountState
@@ -313,4 +334,14 @@ func (as *accountState) Clone() (AccountState, error) {
 		batching:     false,
 		storage:      as.storage,
 	}, nil
+}
+
+func (as *accountState) String() string {
+	return fmt.Sprintf("AccountState %p {RootHash:%s; dirtyAccount:%v; Batching:%v; Storage:%p}",
+		as,
+		byteutils.Hex(as.stateTrie.RootHash()),
+		as.dirtyAccount,
+		as.batching,
+		as.storage,
+	)
 }

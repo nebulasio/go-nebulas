@@ -275,6 +275,9 @@ func (p *Pow) blockLoop() {
 }
 
 func (p *Pow) resetMiningStatus() {
-	p.miningBlock = nil
+	if p.miningBlock != nil && !p.miningBlock.Sealed() {
+		p.miningBlock.ReturnTransactions()
+		p.miningBlock = nil
+	}
 	p.newBlockReceived = false
 }

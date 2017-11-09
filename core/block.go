@@ -269,6 +269,7 @@ func (block *Block) LinkParentBlock(parentBlock *Block) bool {
 }
 
 func (block *Block) begin() {
+	log.Info("Block Begin.")
 	block.accState.BeginBatch()
 	block.txsTrie.BeginBatch()
 }
@@ -276,11 +277,27 @@ func (block *Block) begin() {
 func (block *Block) commit() {
 	block.accState.Commit()
 	block.txsTrie.Commit()
+	log.WithFields(log.Fields{
+		"block": block,
+	}).Info("Block Commit.")
 }
 
 func (block *Block) rollback() {
 	block.accState.RollBack()
 	block.txsTrie.RollBack()
+	log.WithFields(log.Fields{
+		"block": block,
+	}).Info("Block RollBack.")
+}
+
+// ReturnTransaction and giveback them to tx pool
+func (block *Block) ReturnTransactions() {
+	if block.sealed {
+		panic("Sealed block can't be changed.")
+	}
+	for _, tx := range block.transactions {
+		block.txPool.Push(tx)
+	}
 }
 
 // CollectTransactions and add them to block.
@@ -335,6 +352,10 @@ func (block *Block) Seal() {
 		return
 	}
 
+	log.WithFields(log.Fields{
+		"block": block,
+	}).Info("Block Seal.")
+
 	block.begin()
 	block.rewardCoinbase()
 	block.commit()
@@ -345,7 +366,8 @@ func (block *Block) Seal() {
 }
 
 func (block *Block) String() string {
-	return fmt.Sprintf("Block {height:%d; hash:%s; parentHash:%s; stateRoot:%s, nonce:%d, timestamp: %d}",
+	return fmt.Sprintf("Block %p {height:%d; hash:%s; parentHash:%s; stateRoot:%s, nonce:%d, timestamp: %d}",
+		block,
 		block.height,
 		byteutils.Hex(block.header.hash),
 		byteutils.Hex(block.header.parentHash),
