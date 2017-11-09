@@ -150,14 +150,14 @@ func TestFunctionNameCheck(t *testing.T) {
 	}
 }
 
-func testMultiEngine(t *testing.T) {
+func TestMultiEngine(t *testing.T) {
 	mem, _ := storage.NewMemoryStorage()
 	context, _ := state.NewAccountState(nil, mem)
 	owner := context.GetOrCreateUserAccount([]byte("account1"))
 	contract, _ := context.CreateContractAccount([]byte("account2"), nil)
 
 	var wg sync.WaitGroup
-	for i := 0; i < 10; i++ {
+	for i := 0; i < 100; i++ {
 		wg.Add(1)
 		idx := i
 		go func() {

@@ -18,11 +18,11 @@
 //
 
 #include "engine.h"
-#include "v8_data_inc.h"
 #include "lib/execution_env.h"
 #include "lib/log_callback.h"
 #include "lib/require_callback.h"
 #include "lib/storage_object.h"
+#include "v8_data_inc.h"
 
 #include <libplatform/libplatform.h>
 #include <v8.h>
@@ -37,10 +37,10 @@ void PrintException(Local<Context> context, TryCatch &trycatch);
 
 #define STRINGIZE2(s) #s
 #define STRINGIZE(s) STRINGIZE2(s)
-#define V8VERSION_STRING STRINGIZE(V8_MAJOR_VERSION) \
-                        "." STRINGIZE(V8_MINOR_VERSION) \
-                        "." STRINGIZE(V8_BUILD_NUMBER) \
-                        "." STRINGIZE(V8_PATCH_LEVEL)
+#define V8VERSION_STRING                                                       \
+  STRINGIZE(V8_MAJOR_VERSION)                                                  \
+  "." STRINGIZE(V8_MINOR_VERSION) "." STRINGIZE(                               \
+      V8_BUILD_NUMBER) "." STRINGIZE(V8_PATCH_LEVEL)
 
 static char V8VERSION[] = V8VERSION_STRING;
 char *GetV8Version() { return V8VERSION; }
@@ -80,6 +80,9 @@ V8Engine *CreateEngine() {
   create_params.array_buffer_allocator = allocator;
 
   Isolate *isolate = Isolate::New(create_params);
+
+  // fix bug: https://github.com/nebulasio/go-nebulas/issues/5
+  isolate->SetStackLimit(0x700000000000UL);
 
   V8Engine *e = (V8Engine *)calloc(1, sizeof(V8Engine));
   e->allocator = allocator;
