@@ -62,8 +62,8 @@ func (net *NetService) syncRoutingTable() {
 	// TODO: should set seed?
 	randomList := rand.Perm(len(allNode))
 	var nodeAccount int
-	if len(allNode) > node.config.maxSyncNodes {
-		nodeAccount = node.config.maxSyncNodes
+	if len(allNode) > node.config.MaxSyncNodes {
+		nodeAccount = node.config.MaxSyncNodes
 	} else {
 		nodeAccount = len(allNode)
 	}

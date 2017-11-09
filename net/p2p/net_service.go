@@ -374,7 +374,7 @@ func (ns *NetService) handleSyncRouteMsg(data []byte, pid peer.ID, s libnet.Stre
 			ns.Bye(pid, []ma.Multiaddr{addrs}, s, key)
 		}
 	}()
-	peers := node.routeTable.NearestPeers(kbucket.ConvertPeerID(pid), node.config.maxSyncNodes)
+	peers := node.routeTable.NearestPeers(kbucket.ConvertPeerID(pid), node.config.MaxSyncNodes)
 	var peerList []*messages.PeerInfo
 	for i := range peers {
 		peerInfo := node.peerstore.PeerInfo(peers[i])

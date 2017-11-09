@@ -33,6 +33,13 @@ service APIService {
 		};
 	}
 
+	// Return the p2p node info.
+	rpc NodeInfo (NodeInfoRequest) returns (NodeInfoResponse) {
+		option (google.api.http) = {
+			get: "/v1/node/info"
+		};
+	}
+
 	// Return the dump info of blockchain.
 	rpc BlockDump (BlockDumpRequest) returns (BlockDumpResponse) {
 		option (google.api.http) = {
@@ -78,15 +85,11 @@ service APIService {
 
 	// Get block header info by the block hash.
 	rpc GetBlockByHash (GetBlockByHashRequest) returns (corepb.Block) {
+		option (google.api.http) = {
+            post: "/v1/getBlockByHash"
+            body: "*"
+        };
 	}
-
-	// Get transaction info by the tansaction hash.
-//	rpc GetTransactionByHash (GetTransactionByHashRequest) returns (corepb.Transaction) {
-//		option (google.api.http) = {
-//            post: "/v1/getTransaction"
-//			body: "*"
-//        };
-//	}
 
 	// Get transactionReceipt info by tansaction hash.
 	rpc GetTransactionReceipt (GetTransactionByHashRequest) returns (TransactionReceiptResponse) {
@@ -100,6 +103,44 @@ service APIService {
 
 // Request message of GetNebState rpc.
 message GetNebStateRequest {
+}
+
+// Request message of NodeInfo rpc.
+message NodeInfoRequest {
+
+}
+
+// Response message of node info.
+message NodeInfoResponse {
+	// the node ID.
+	string id = 1;
+
+	// the block chainID.
+	uint32 chain_id  = 2;
+
+	// the node version.
+	uint32 version = 3;
+
+	// Number of peers currenly connected.
+	int32 peer_count = 4;
+
+	// the node synchronized status.
+	bool synchronized = 5;
+
+	// the node route table bucket size.
+	int32 bucket_size = 6;
+
+	// the node relay cache size.
+	int32 relay_cache_size = 7;
+
+	// the node stream store size.
+	int32 stream_store_size = 8;
+
+	// the node stream store extend size.
+	int32 stream_store_extend_size = 9;
+
+	// the network protocol version.
+	string protocol_version = 10;
 }
 
 // Response message of GetNebState rpc.

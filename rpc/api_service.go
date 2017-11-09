@@ -54,6 +54,23 @@ func (s *APIService) GetNebState(ctx context.Context, req *rpcpb.GetNebStateRequ
 	return resp, nil
 }
 
+// NodeInfo is the PRC API handler
+func (s *APIService) NodeInfo(ctx context.Context, req *rpcpb.NodeInfoRequest) (*rpcpb.NodeInfoResponse, error) {
+	neb := s.server.Neblet()
+	resp := &rpcpb.NodeInfoResponse{}
+	node := neb.NetService().Node()
+	resp.Id = node.ID().Pretty()
+	resp.ChainId = node.Config().ChainID
+	resp.BucketSize = int32(node.Config().Bucketsize)
+	resp.Version = uint32(node.Config().Version)
+	resp.StreamStoreSize = int32(node.Config().StreamStoreSize)
+	resp.StreamStoreExtendSize = int32(node.Config().StreamStoreExtendSize)
+	resp.RelayCacheSize = int32(node.Config().RelayCacheSize)
+	resp.PeerCount = int32(len(node.GetStream()))
+	resp.ProtocolVersion = p2p.ProtocolID
+	return resp, nil
+}
+
 // Accounts is the RPC API handler.
 func (s *APIService) Accounts(ctx context.Context, req *rpcpb.AccountsRequest) (*rpcpb.AccountsResponse, error) {
 	neb := s.server.Neblet()
@@ -194,7 +211,8 @@ func (s *APIService) SendRawTransaction(ctx context.Context, req *rpcpb.SendRawT
 func (s *APIService) GetBlockByHash(ctx context.Context, req *rpcpb.GetBlockByHashRequest) (*corepb.Block, error) {
 	neb := s.server.Neblet()
 
-	block := neb.BlockChain().GetBlock([]byte(req.GetHash()))
+	bhash, _ := byteutils.FromHex(req.GetHash())
+	block := neb.BlockChain().GetBlock(bhash)
 	if block == nil {
 		return nil, errors.New("block not found")
 	}

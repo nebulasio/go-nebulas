@@ -151,9 +151,9 @@ func (node *Node) init() error {
 	node.peerstore = ps
 
 	node.routeTable = kbucket.NewRoutingTable(
-		node.config.bucketsize,
+		node.config.Bucketsize,
 		kbucket.ConvertPeerID(node.id),
-		node.config.latency,
+		node.config.Latency,
 		node.peerstore,
 	)
 

@@ -44,13 +44,13 @@ const (
 
 // Config TODO: move to proto config.
 type Config struct {
-	bucketsize            int
-	latency               time.Duration
+	Bucketsize            int
+	Latency               time.Duration
 	BootNodes             []multiaddr.Multiaddr
 	IP                    string
 	Port                  uint
 	Randseed              int64
-	maxSyncNodes          int
+	MaxSyncNodes          int
 	ChainID               uint32
 	Version               uint8
 	RelayCacheSize        int
