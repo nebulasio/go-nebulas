@@ -301,6 +301,7 @@ func (block *Block) CollectTransactions(n int) {
 		if err == nil {
 			log.WithFields(log.Fields{
 				"func":     "block.CollectionTransactions",
+				"block":    block,
 				"tx":       tx,
 				"giveback": giveback,
 			}).Info("tx is packed.")
@@ -310,6 +311,7 @@ func (block *Block) CollectTransactions(n int) {
 		} else {
 			log.WithFields(log.Fields{
 				"func":     "block.CollectionTransactions",
+				"block":    block,
 				"tx":       tx,
 				"err":      err,
 				"giveback": giveback,
