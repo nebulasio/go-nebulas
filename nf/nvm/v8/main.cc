@@ -26,6 +26,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 void logFunc(int level, const char *msg) {
   std::thread::id tid = std::this_thread::get_id();

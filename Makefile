@@ -28,12 +28,15 @@ LINT_REPORT=lint.report
 TEST_REPORT=test.report
 TEST_XUNIT_REPORT=test.report.xml
 
-ifeq ($(shell uname -s),Darwin)
+OS := $(shell uname -s)
+ifeq ($(OS),Darwin)
 	DYLIB=.dylib
-	LIBV8ENGINE=/usr/local/lib/libv8engine.dylib
+	INSTALL=install
+	LDCONFIG=
 else
 	DYLIB=.so
-	LIBV8ENGINE=/usr/local/lib/libv8engine.so
+	INSTALL=sudo install
+	LDCONFIG=sudo /sbin/ldconfig
 endif
 
 # Setup the -ldflags option for go build here, interpolate the variable values
@@ -47,30 +50,36 @@ all: clean vet fmt lint build test
 dep:
 	dep ensure -v
 
+deploy-v8:
+	$(INSTALL) nf/nvm/native-lib/*$(DYLIB) /usr/local/lib/
+	$(LDCONFIG)
+
 deploy-libs:
-	-cp nf/nvm/native-lib/libv8engine$(DYLIB) $(LIBV8ENGINE)
+	$(INSTALL) nf/nvm/native-lib/libv8engine$(DYLIB) /usr/local/lib/
+	$(LDCONFIG)
 
 build:
-	cd cmd/neb; go build ${LDFLAGS} -o ../../${BINARY}
+	cd cmd/neb; go build $(LDFLAGS) -o ../../$(BINARY)
 
 build-linux:
-	cd cmd/neb; GOOS=linux GOARCH=amd64 go build ${LDFLAGS} -o ../../${BINARY}-linux
+	cd cmd/neb; GOOS=linux GOARCH=amd64 go build $(LDFLAGS) -o ../../$(BINARY)-linux
 
 test:
-	go test -v ./... 2>&1 | tee ${TEST_REPORT}; go2xunit -fail -input ${TEST_REPORT} -output ${TEST_XUNIT_REPORT} && echo "All tests are passed." || echo "Tests were failed, please check your codes."
+	go test -v ./... 2>&1 | tee $(TEST_REPORT); go2xunit -fail -input $(TEST_REPORT) -output $(TEST_XUNIT_REPORT) && echo "All tests are passed." || echo "Tests were failed, please check your codes."
 
 vet:
-	go vet $$(go list ./...) 2>&1 | tee ${VET_REPORT}
+	go vet $$(go list ./...) 2>&1 | tee $(VET_REPORT)
 
 fmt:
 	goimports -w $$(go list -f "{{.Dir}}" ./... | grep -v /vendor/)
 
 lint:
-	golint $$(go list ./...) | sed "s:^${BUILD_DIR}/::" | tee ${LINT_REPORT}
+	golint $$(go list ./...) | sed "s:^$(BUILD_DIR)/::" | tee $(LINT_REPORT)
 
 clean:
-	rm -f ${VET_REPORT}
-	rm -f ${LINT_REPORT}
-	rm -f ${TEST_REPORT}
-	rm -f ${TEST_XUNIT_REPORT}
-	rm -f ${BINARY}
+	-rm -f $(VET_REPORT)
+	-rm -f $(LINT_REPORT)
+	-rm -f $(TEST_REPORT)
+	-rm -f $(TEST_XUNIT_REPORT)
+	-rm -f $(BINARY)
+

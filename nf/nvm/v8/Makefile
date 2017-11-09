@@ -15,42 +15,52 @@
 # You should have received a copy of the GNU General Public License
 # along with the go-nebulas library.  If not, see <http://www.gnu.org/licenses/>.
 #
-CC=clang
-CXX=clang++
-LD=clang++
 
 CFLAGS=-DBUILDING_DLL -g -fPIC -Wall -Wextra -Wno-unused-parameter -Wno-unused-result -O2
 CXXFLAGS=-DBUILDING_DLL -g -std=c++11 -fPIC -Wall -Wextra -Wno-unused-parameter -Wno-unused-result -O2
 
-LDFLAGS=-fvisibility=hidden -Wl,-dead_strip
-LIBS=-lv8_libbase -lv8_libplatform -lv8_base -lv8_libsampler -lv8_external_snapshot -licui18n -licuuc -linspector
-
-LIB_LDFLAGS=-shared
+LDFLAGS=-fvisibility=hidden
+LIBS_PATH=
+LIBS=-lpthread -lv8_libbase -lv8_libplatform -licui18n -licuuc
 
 ifeq ($(shell uname -s),Darwin)
+	CC=clang
+	CXX=clang++
+	LD=clang++
 	DYLIB=.dylib
+	LDFLAGS+=-Wl,-dead_strip
 	LIB_LDFLAGS+=-current_version 1.0 -compatibility_version 1.0
+	LIBS+=-lv8_base -lv8_libsampler -lv8_external_snapshot
+	V8_BLOB_BIN_PATH=/usr/local/opt/v8/bin
 else
+	CC=gcc
+	CXX=g++
+	LD=g++
 	DYLIB=.so
+	CFLAGS+=-I/usr/local/v8/6.2.414.40/include
+	CXXFLAGS+=-I/usr/local/v8/6.2.414.40/include
+	LIBS_PATH=-L/usr/local/v8/6.2.414.40/lib
+	LIBS+=-lv8
+	V8_BLOB_BIN_PATH=/usr/local/v8/6.2.414.40/bin
 endif
 
-.PHONY: engine main clean
+.PHONY: engine main clean v8_snapshot_bin install
 all: main
 
-%.c.o : %.c inc.h
+%.c.o : %.c
 	$(CC) $(CFLAGS) -c $< -o $<.o
 
-%.cc.o: %.cc inc.h
+%.cc.o: %.cc
 	$(CXX) $(CXXFLAGS) -c $< -o $<.o
 
-%.cpp.o: %.cpp inc.h
+%.cpp.o: %.cpp
 	$(CXX) $(CXXFLAGS) -c $< -o $<.o
 
 main: main.cc.o engine.cc.o lib/execution_env.cc.o lib/storage_object.cc.o lib/log_callback.cc.o lib/require_callback.cc.o lib/memory_storage.cc.o
-	$(LD) $(LDFLAGS) $(LIBS) $^ -o $@
+	$(LD) $(LDFLAGS) $^ -o $@ $(LIBS_PATH) $(LIBS)
 
 engine: engine.cc.o lib/execution_env.cc.o lib/storage_object.cc.o lib/log_callback.cc.o lib/require_callback.cc.o
-	$(LD) $(LIB_LDFLAGS) $(LDFLAGS) $(LIBS) $^ -o libv8$@$(DYLIB)
+	$(LD) -shared $(LDFLAGS) $^ -o libv8$@$(DYLIB) $(LIBS_PATH) $(LIBS)
 
 install: engine
 	-mkdir -p ../native-lib
@@ -61,9 +71,9 @@ clean:
 	-find . -iname '*.o' -exec rm {} \;
 	-rm -f main libv8engine$(DYLIB);
 
-inc.h:
-	-ln -s /usr/local/opt/v8/bin/natives_blob.bin .
-	-ln -s /usr/local/opt/v8/bin/snapshot_blob.bin .
+v8_snapshot_bin:
+	-ln -s $(V8_BLOB_BIN_PATH)/natives_blob.bin .
+	-ln -s $(V8_BLOB_BIN_PATH)/snapshot_blob.bin .
 	-xxd -i natives_blob.bin natives_blob.bin.h
 	-xxd -i snapshot_blob.bin snapshot_blob.bin.h
 	-rm natives_blob.bin snapshot_blob.bin

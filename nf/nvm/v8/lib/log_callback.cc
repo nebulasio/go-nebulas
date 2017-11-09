@@ -19,6 +19,8 @@
 
 #include "log_callback.h"
 
+#include <stdarg.h>
+
 static LogFunc LOG = NULL;
 static const char *LogLevelText[] = {"DEBUG", "WARN", "INFO", "ERROR"};
 
