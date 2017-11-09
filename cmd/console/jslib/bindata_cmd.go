@@ -16,31 +16,6 @@
 // along with the go-nebulas library.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-package neblet
+package jslib
 
-import (
-	"io/ioutil"
-
-	"github.com/gogo/protobuf/proto"
-	"github.com/nebulasio/go-nebulas/neblet/pb"
-	log "github.com/sirupsen/logrus"
-)
-
-// LoadConfig loads configuration from the file.
-func LoadConfig(filename string) *nebletpb.Config {
-	//log.Info("Loading Neb config from file ", filename)
-	b, err := ioutil.ReadFile(filename)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	str := string(b)
-	//log.Info("Parsing Neb config text ", str)
-
-	pb := new(nebletpb.Config)
-	if err := proto.UnmarshalText(str, pb); err != nil {
-		log.Fatal(err)
-	}
-	//log.Info("Loaded Neb config proto ", pb)
-	return pb
-}
+//go:generate go-bindata -nometadata -pkg jslib -o bindata.go neb.js

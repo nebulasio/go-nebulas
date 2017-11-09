@@ -23,6 +23,9 @@
     "xhr2": "*",
     "xmlhttprequest": "*"
   },
+  "browser": {
+    "xmlhttprequest": "./lib/utils/browser-xhr.js"
+  },
   "devDependencies": {
     "browserify": ">=10.0",
     "chai": "^3.0.0",
