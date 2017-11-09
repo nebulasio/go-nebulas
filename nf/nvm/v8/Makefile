@@ -16,8 +16,8 @@
 # along with the go-nebulas library.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-CFLAGS=-DBUILDING_DLL -g -fPIC -Wall -Wextra -Wno-unused-parameter -Wno-unused-result -O2
-CXXFLAGS=-DBUILDING_DLL -g -std=c++11 -fPIC -Wall -Wextra -Wno-unused-parameter -Wno-unused-result -O2
+CFLAGS=-DBUILDING_DLL -g -fPIC -m64 -Wall -Wextra -Wno-unused-parameter -Wno-unused-result -O2
+CXXFLAGS=-DBUILDING_DLL -g -std=c++11 -fPIC -m64 -Wall -Wextra -Wno-unused-parameter -Wno-unused-result -O2
 
 LDFLAGS=-fvisibility=hidden
 LIBS_PATH=
