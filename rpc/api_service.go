@@ -25,6 +25,7 @@ import (
 	"github.com/nebulasio/go-nebulas/core"
 	corepb "github.com/nebulasio/go-nebulas/core/pb"
 	"github.com/nebulasio/go-nebulas/crypto/hash"
+	"github.com/nebulasio/go-nebulas/net/p2p"
 	"github.com/nebulasio/go-nebulas/rpc/pb"
 	"github.com/nebulasio/go-nebulas/util"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
@@ -43,9 +44,12 @@ func (s *APIService) GetNebState(ctx context.Context, req *rpcpb.GetNebStateRequ
 	tail := neb.BlockChain().TailBlock()
 
 	resp := &rpcpb.GetNebStateResponse{}
-	resp.ChainID = neb.BlockChain().ChainID()
+	resp.ChainId = neb.BlockChain().ChainID()
 	resp.Tail = string(tail.Hash().Hex())
 	resp.Coinbase = tail.Coinbase().ToHex()
+	resp.Synchronized = neb.NetService().Node().GetSynchronized()
+	resp.PeerCount = uint32(len(neb.NetService().Node().GetStream()))
+	resp.ProtocolVersion = p2p.ProtocolID
 
 	return resp, nil
 }
@@ -201,24 +205,59 @@ func (s *APIService) GetBlockByHash(ctx context.Context, req *rpcpb.GetBlockByHa
 	return pbBlock.(*corepb.Block), nil
 }
 
-// GetTransactionByHash get transaction info by the transaction hash
-func (s *APIService) GetTransactionByHash(ctx context.Context, req *rpcpb.GetTransactionByHashRequest) (*corepb.Transaction, error) {
-	neb := s.server.Neblet()
-
-	tx := neb.BlockChain().GetTransaction([]byte(req.GetHash()))
-	if tx == nil {
-		return nil, errors.New("transaction not found")
-	}
-	pbTx, err := tx.ToProto()
-	if err != nil {
-		return nil, err
-	}
-	return pbTx.(*corepb.Transaction), nil
-}
+// // GetTransactionByHash get transaction info by the transaction hash
+// func (s *APIService) GetTransactionByHash(ctx context.Context, req *rpcpb.GetTransactionByHashRequest) (*corepb.Transaction, error) {
+// 	neb := s.server.Neblet()
+// 	bhash, _ := byteutils.FromHex(req.GetHash())
+// 	tx := neb.BlockChain().GetTransaction(bhash)
+// 	if tx == nil {
+// 		return nil, errors.New("transaction not found")
+// 	}
+// 	pbTx, err := tx.ToProto()
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	return pbTx.(*corepb.Transaction), nil
+// }
 
 // BlockDump is the RPC API handler.
 func (s *APIService) BlockDump(ctx context.Context, req *rpcpb.BlockDumpRequest) (*rpcpb.BlockDumpResponse, error) {
 	neb := s.server.Neblet()
 	data := neb.BlockChain().Dump(int(req.Count))
 	return &rpcpb.BlockDumpResponse{Data: data}, nil
+}
+
+// GetTransactionReceipt get transaction info by the transaction hash
+func (s *APIService) GetTransactionReceipt(ctx context.Context, req *rpcpb.GetTransactionByHashRequest) (*rpcpb.TransactionReceiptResponse, error) {
+	neb := s.server.Neblet()
+	bhash, _ := byteutils.FromHex(req.GetHash())
+	tx := neb.BlockChain().GetTransaction(bhash)
+	if tx == nil {
+		return nil, errors.New("transaction not found")
+	}
+	if tx.From().ToHex() == tx.To().ToHex() {
+		contractAddr, err := tx.GenerateContractAddress()
+		if err != nil {
+			return nil, err
+		}
+		return &rpcpb.TransactionReceiptResponse{
+			Hash:            byteutils.Hex(tx.Hash()),
+			From:            tx.From().ToHex(),
+			To:              tx.To().ToHex(),
+			Nonce:           tx.Nonce(),
+			Timestamp:       tx.Timestamp(),
+			ChainId:         tx.ChainID(),
+			ContractAddress: contractAddr.ToHex(),
+			Data:            string(tx.Data()),
+		}, nil
+	}
+
+	return &rpcpb.TransactionReceiptResponse{
+		Hash:      byteutils.Hex(tx.Hash()),
+		From:      tx.From().ToHex(),
+		To:        tx.To().ToHex(),
+		Nonce:     tx.Nonce(),
+		Timestamp: tx.Timestamp(),
+		ChainId:   tx.ChainID(),
+	}, nil
 }
