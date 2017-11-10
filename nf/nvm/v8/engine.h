@@ -30,6 +30,7 @@
 extern "C" {
 #endif // __cplusplus
 
+#include <stddef.h>
 #include <stdint.h>
 
 enum LogLevel {
@@ -55,7 +56,19 @@ EXPORT char *GetV8Version();
 typedef struct V8Engine {
   void *isolate;
   void *allocator;
+  size_t count_of_executed_instruction;
 } V8Engine;
+
+typedef struct V8EngineStats {
+  size_t total_heap_size;
+  size_t total_heap_size_executable;
+  size_t total_physical_size;
+  size_t total_available_size;
+  size_t used_heap_size;
+  size_t heap_size_limit;
+  size_t malloced_memory;
+  size_t peak_malloced_memory;
+} V8EngineStats;
 
 EXPORT void Initialize();
 EXPORT void Dispose();
@@ -67,6 +80,10 @@ EXPORT int RunScriptSource(V8Engine *e, const char *data, void *lcsHandler,
 
 EXPORT int RunScriptSource2(V8Engine *e, const char *data, uintptr_t lcsHandler,
                             uintptr_t gcsHandler);
+
+EXPORT V8EngineStats *GetV8EngineStatistics(V8Engine *e);
+
+EXPORT void TerminateExecution(V8Engine *e);
 
 EXPORT void DeleteEngine(V8Engine *e);
 

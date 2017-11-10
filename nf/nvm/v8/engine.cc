@@ -19,6 +19,7 @@
 
 #include "engine.h"
 #include "lib/execution_env.h"
+#include "lib/instruction_counter.h"
 #include "lib/log_callback.h"
 #include "lib/require_callback.h"
 #include "lib/storage_object.h"
@@ -46,9 +47,9 @@ static char V8VERSION[] = V8VERSION_STRING;
 char *GetV8Version() { return V8VERSION; }
 
 void Initialize() {
+  // Initialize V8.
   platformPtr = platform::CreateDefaultPlatform();
 
-  // Initialize V8.
   V8::InitializeICU();
   V8::InitializePlatform(platformPtr);
 
@@ -87,6 +88,7 @@ V8Engine *CreateEngine() {
   V8Engine *e = (V8Engine *)calloc(1, sizeof(V8Engine));
   e->allocator = allocator;
   e->isolate = isolate;
+  e->count_of_executed_instruction = 0;
   return e;
 }
 
@@ -131,7 +133,9 @@ int RunScriptSource(V8Engine *e, const char *data, void *lcsHandler,
   TryCatch trycatch(isolate);
 
   // Continue put objects to global object.
-  NewStorageObject(isolate, context, lcsHandler, gcsHandler);
+  NewStorageTypeInstance(isolate, context, lcsHandler, gcsHandler);
+  NewInstructionCounterInstance(isolate, context,
+                                &(e->count_of_executed_instruction));
 
   // Setup execution env.
   if (SetupExecutionEnv(isolate, context)) {
@@ -184,4 +188,29 @@ void PrintException(Local<Context> context, TryCatch &trycatch) {
     String::Utf8Value stack_str(stacktrace_ret.ToLocalChecked());
     LogErrorf("[V8 Exception] %s", *stack_str);
   }
+}
+
+V8EngineStats *GetV8EngineStatistics(V8Engine *e) {
+  Isolate *isolate = static_cast<Isolate *>(e->isolate);
+  HeapStatistics heap_stats;
+  isolate->GetHeapStatistics(&heap_stats);
+
+  V8EngineStats *stats =
+      static_cast<V8EngineStats *>(calloc(1, sizeof(V8EngineStats)));
+
+  stats->heap_size_limit = heap_stats.heap_size_limit();
+  stats->malloced_memory = heap_stats.malloced_memory();
+  stats->peak_malloced_memory = heap_stats.peak_malloced_memory();
+  stats->total_available_size = heap_stats.total_available_size();
+  stats->total_heap_size = heap_stats.total_heap_size();
+  stats->total_heap_size_executable = heap_stats.total_heap_size_executable();
+  stats->total_physical_size = heap_stats.total_physical_size();
+  stats->used_heap_size = heap_stats.used_heap_size();
+
+  return stats;
+}
+
+void TerminateExecution(V8Engine *e) {
+  Isolate *isolate = static_cast<Isolate *>(e->isolate);
+  isolate->TerminateExecution();
 }
