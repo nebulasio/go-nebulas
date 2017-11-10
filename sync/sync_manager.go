@@ -163,7 +163,7 @@ func (m *Manager) syncWithPeers(block *core.Block) {
 		m.syncWithBlockList(m.cacheList)
 	case <-time.After(timeout):
 		if !m.ns.Node().GetSynchronized() && !core.CheckGenesisBlock(m.curTail) {
-			m.curTail = m.curTail.ParentBlock()
+			m.curTail = m.blockChain.GetBlock(m.curTail.ParentHash())
 			m.syncWithPeers(m.curTail)
 		}
 
