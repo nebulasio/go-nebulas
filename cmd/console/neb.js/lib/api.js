@@ -2,29 +2,29 @@
 "use strict";
 
 var API = function (neb) {
-	this._requestHandler = neb.requestHandler;
+	this.requestHandler = neb.requestHandler;
 };
 
 API.prototype.getNebState = function () {
-	return this._request("get", "/v1/neb/state");
+	return this.request("get", "/v1/neb/state");
 };
 
 API.prototype.nodeInfo = function () {
-	return this._request("get", "/v1/node/info");
+	return this.request("get", "/v1/node/info");
 };
 
 API.prototype.accounts = function () {
-	return this._request("get", "/v1/accounts");
+	return this.request("get", "/v1/accounts");
 };
 
 API.prototype.blockDump = function (count) {
 	var params = {"count":count};
-	return this._request("post", "/v1/block/dump", params);
+	return this.request("post", "/v1/block/dump", params);
 };
 
 API.prototype.getAccountState = function (address) {
 	var params = {"address":address};
-	return this._request("post", "/v1/account/state", params);
+	return this.request("post", "/v1/account/state", params);
 };
 
 API.prototype.sendTransaction = function (from, to, value, nonce, source, args) {
@@ -35,7 +35,7 @@ API.prototype.sendTransaction = function (from, to, value, nonce, source, args) 
 	"source": source,
 	"args": args
 	};
-	return this._request("post", "/v1/transaction", params);
+	return this.request("post", "/v1/transaction", params);
 };
 
 API.prototype.call = function (from, to, nonce, func, args) {
@@ -45,26 +45,26 @@ API.prototype.call = function (from, to, nonce, func, args) {
 	"function": func,
 	"args": args
 	};
-	return this._request("post", "/v1/call", params);
+	return this.request("post", "/v1/call", params);
 };
 
 API.prototype.sendRawTransaction = function (data) {
 	var params = {"data": data};
-	return this._request("post", "/v1/rawtransaction", params);
+	return this.request("post", "/v1/rawtransaction", params);
 };
 
 API.prototype.getBlockByHash = function (hash) {
 	var params = {"hash": hash};
-	return this._request("post", "/v1/getBlockByHash", params);
+	return this.request("post", "/v1/getBlockByHash", params);
 };
 
 API.prototype.getTransactionReceipt = function (hash) {
 	var params = {"hash": hash};
-	return this._request("post", "/v1/getTransactionReceipt", params);
+	return this.request("post", "/v1/getTransactionReceipt", params);
 };
 
-API.prototype._request = function (method, api, params) {
-	return this._requestHandler.request(method, api, params);
+API.prototype.request = function (method, api, params) {
+	return this.requestHandler.request(method, api, params);
 };
 
 module.exports = API;

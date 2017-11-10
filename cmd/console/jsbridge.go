@@ -101,7 +101,8 @@ func (b *jsBridge) request(call otto.FunctionCall) otto.Value {
 	//fmt.Fprintln(b.writer, "result:", string(result))
 	response, err := JSON.Call("parse", string(result))
 	if err != nil {
-		return jsError(call.Otto, err)
+		// if result can't be parse to json obj ,return origin string
+		response, _ = otto.ToValue(string(result))
 	}
 
 	if fn := call.Argument(3); fn.Class() == "Function" {
