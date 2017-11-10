@@ -81,10 +81,12 @@ void LogInfof(const char *format, ...) {
   va_list vl;
   va_start(vl, format);
 
-  char msg[1024];
-  vsnprintf(msg, 1024, format, vl);
-
-  LOG(LogLevel::INFO, msg);
+  char *msg = NULL;
+  vasprintf(&msg, format, vl);
+  if (msg != NULL) {
+    LOG(LogLevel::INFO, msg);
+    free(msg);
+  }
 
   va_end(vl);
 }
@@ -97,10 +99,12 @@ void LogErrorf(const char *format, ...) {
   va_list vl;
   va_start(vl, format);
 
-  char msg[1024];
-  vsnprintf(msg, 1024, format, vl);
-
-  LOG(LogLevel::ERROR, msg);
+  char *msg = NULL;
+  vasprintf(&msg, format, vl);
+  if (msg != NULL) {
+    LOG(LogLevel::ERROR, msg);
+    free(msg);
+  }
 
   va_end(vl);
 }

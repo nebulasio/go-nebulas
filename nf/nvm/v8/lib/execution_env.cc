@@ -21,20 +21,19 @@
 #include "log_callback.h"
 
 int SetupExecutionEnv(Isolate *isolate, Local<Context> &context) {
-  char data[] =
-      "const require = (function() {\n"
-      "    var requiredLibs = {};\n"
-      "    return function(filename) {\n"
-      "        if (!(filename in requiredLibs)) {\n"
-      "            requiredLibs[filename] = _native_require(filename);\n"
-      "        }\n"
-      "        return requiredLibs[filename];\n"
-      "    };\n"
-      "})();\n"
-      "const console = require('console.js');\n"
-      "const ContractStorage = require('storage.js');\n"
-      "const LocalContractStorage = ContractStorage.lcs;\n"
-      "const GlobalContractStorage = ContractStorage.gcs;\n";
+  char data[] = "const require = (function() {\n"
+                "    var requiredLibs = {};\n"
+                "    return function(id) {\n"
+                "        if (!(id in requiredLibs)) {\n"
+                "            requiredLibs[id] = _native_require(id);\n"
+                "        }\n"
+                "        return requiredLibs[id];\n"
+                "    };\n"
+                "})();\n"
+                "const console = require('console.js');\n"
+                "const ContractStorage = require('storage.js');\n"
+                "const LocalContractStorage = ContractStorage.lcs;\n"
+                "const GlobalContractStorage = ContractStorage.gcs;\n";
 
   Local<String> source =
       String::NewFromUtf8(isolate, data, NewStringType::kNormal)

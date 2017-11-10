@@ -31,3 +31,13 @@ try {
         throw e;
     }
 }
+
+err = new Error("require should throw error while file name contains \".");
+try {
+    require("./test/require_file_\"1.js");
+    throw err;
+} catch (e) {
+    if (e === err) {
+        throw e;
+    }
+}

@@ -28,13 +28,16 @@
 
 using namespace v8;
 
-static char source_require_begin[] = "(function(){"
-                                     "var module = {};";
+static char source_require_begin[] = "(function () {\n"
+                                     "    var module = {\n"
+                                     "        exports: {},\n"
+                                     "        id: \"%s\"\n"
+                                     "    };\n"
+                                     "    (function (exports, module) {\n";
 
 static char source_require_end[] = ";\n"
-                                   "if (module.exports) {\n"
-                                   " return module.exports;\n"
-                                   "}\n"
+                                   "})(module.exports, module);\n"
+                                   "    return module.exports;\n"
                                    "})();\n";
 
 static char *getValidFilePath(const char *filename) {
@@ -58,6 +61,10 @@ static char *getValidFilePath(const char *filename) {
 }
 
 static int readSource(const char *filename, char **data, size_t *size) {
+  if (strstr(filename, "\"") != NULL) {
+    return -1;
+  }
+
   char *path = getValidFilePath(filename);
 
   // char cwd[1024];
@@ -77,12 +84,16 @@ static int readSource(const char *filename, char **data, size_t *size) {
   size_t fileSize = ftell(f);
   rewind(f);
 
-  *size = fileSize + 1024; // 1m buffer by default.
+  size_t filename_len = strlen(filename);
+  size_t source_begin_len = strlen(source_require_begin);
+  size_t source_end_len = strlen(source_require_end);
+
+  *size = fileSize + filename_len + source_begin_len + source_end_len + 1;
   *data = (char *)malloc(*size);
   size_t idx = 0;
 
   // Prepare the source.
-  idx += sprintf(*data, "%s", source_require_begin);
+  idx += snprintf(*data, *size - idx, source_require_begin, filename);
 
   size_t len = 0;
   while ((len = fread(*data + idx, sizeof(char), *size - idx, f)) > 0) {
@@ -102,12 +113,11 @@ static int readSource(const char *filename, char **data, size_t *size) {
 
   fclose(f);
 
-  size_t source_end_len = strlen(source_require_end);
   if (*size - idx < source_end_len) {
     *size = idx + source_end_len + 1;
     *data = (char *)realloc(*data, *size);
   }
-  idx += sprintf(*data + idx, "%s", source_require_end);
+  idx += snprintf(*data + idx, *size - idx, "%s", source_require_end);
 
   return 0;
 }
@@ -148,7 +158,7 @@ void RequireCallback(const v8::FunctionCallbackInfo<v8::Value> &info) {
     return;
   }
 
-  // logErrorf("source is: %s", data);
+  // LogInfof("source is: %s", data);
   Local<Context> context = isolate->GetCurrentContext();
 
   ScriptOrigin sourceSrcOrigin(path);
