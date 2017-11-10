@@ -46,7 +46,7 @@ type Node struct {
 	host      *basichost.BasicHost
 	id        peer.ID
 	peerstore peerstore.Peerstore
-	// key: ip + peer.ID
+	// key: peer.ID: ip
 	streamCache  *pdeque.PriorityDeque
 	stream       map[string]*StreamStore
 	routeTable   *kbucket.RoutingTable
@@ -57,7 +57,7 @@ type Node struct {
 	running      bool
 	synchronized bool
 	syncList     []string
-	// key: datachecksum value: []ip + peer.ID
+	// key: datachecksum value: peer.ID
 	relayness     *lru.Cache
 	relaynessLock *sync.Mutex
 }
