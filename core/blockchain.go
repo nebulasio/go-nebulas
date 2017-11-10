@@ -30,6 +30,7 @@ import (
 	"github.com/nebulasio/go-nebulas/core/state"
 	"github.com/nebulasio/go-nebulas/storage"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
+	log "github.com/sirupsen/logrus"
 )
 
 // BlockChain the BlockChain core type.
@@ -72,15 +73,12 @@ func NewBlockChain(chainID uint32, storage storage.Storage) (*BlockChain, error)
 	bc.cachedBlocks, _ = lru.New(1024)
 	bc.detachedTailBlocks, _ = lru.New(64)
 
-	tailBlock, err := bc.loadTailFromStorage()
+	var err error
+	bc.genesisBlock = bc.loadGenesisFromStorage()
+	bc.tailBlock, err = bc.loadTailFromStorage()
 	if err != nil {
-		bc.genesisBlock = NewGenesisBlock(chainID, storage)
-		if err := bc.storeBlockToStorage(bc.genesisBlock); err != nil {
-			return nil, err
-		}
-		tailBlock = bc.genesisBlock
+		return nil, err
 	}
-	bc.tailBlock = tailBlock
 
 	bc.bkPool.setBlockChain(bc)
 	bc.txPool.setBlockChain(bc)
@@ -159,7 +157,7 @@ func (bc *BlockChain) FetchDescendantInCanonicalChain(n int, block *Block) ([]*B
 	// get tail in canonical chain
 	curBlock := bc.tailBlock
 	for curBlock != nil && !curBlock.Hash().Equals(block.Hash()) {
-		if curBlock.Hash().Equals(bc.genesisBlock.Hash()) {
+		if CheckGenesisBlock(curBlock) {
 			return nil, errors.New("cannot find the block in canonical chain")
 		}
 		curIdx = (curIdx + 1) % n
@@ -348,7 +346,21 @@ func (bc *BlockChain) storeTailToStorage(block *Block) {
 func (bc *BlockChain) loadTailFromStorage() (*Block, error) {
 	hash, err := bc.storage.Get([]byte(Tail))
 	if err != nil {
-		return nil, err
+		genesis := bc.loadGenesisFromStorage()
+		bc.storeTailToStorage(genesis)
+		return genesis, nil
 	}
 	return LoadBlockFromStorage(hash, bc.storage, bc.txPool)
+}
+
+func (bc *BlockChain) loadGenesisFromStorage() *Block {
+	genesis, err := LoadBlockFromStorage(GenesisHash, bc.storage, nil)
+	if err != nil {
+		genesis = NewGenesisBlock(bc.chainID, bc.storage)
+		err := bc.storeBlockToStorage(genesis)
+		if err != nil {
+			log.Error(err)
+		}
+	}
+	return genesis
 }
