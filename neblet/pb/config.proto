@@ -29,8 +29,11 @@ message Config {
 	// Pow config
 	PowConfig pow = 3;
 
+	// Storage config
+	StorageConfig storage = 4;
+
 	// Account manager config
-	AccountConfig account = 4;
+	AccountConfig account = 5;
 
 	// TODO: more configs.
 }
@@ -63,6 +66,10 @@ message RPCConfig {
 message PowConfig {
 	// pow miner's coinbase
 	string coinbase = 1;
+}
+
+message StorageConfig {
+	string location = 1;
 }
 
 message AccountConfig {

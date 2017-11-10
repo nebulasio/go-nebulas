@@ -3,11 +3,50 @@ require=(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof requ
 "use strict";
 
 var Admin = function (neb) {
-	this._requestHandler = neb.requestHandler;
+	this.requestHandler = neb.requestHandler;
 };
 
-Admin.prototype._request = function (method, api, params) {
-	return this._requestHandler.request(method, api, params);
+Admin.prototype.newAccount = function (passphrase) {
+	var params = {"passphrase": passphrase};
+	return this.request("get", "/v1/newAccount", params);
+};
+
+Admin.prototype.unlockAccount = function (address, passphrase) {
+	var params = {"address": address,
+	 "passphrase": passphrase};
+	return this.request("post", "/v1/unlock", params);
+};
+
+Admin.prototype.lockAccount = function (address) {
+	var params = {"address": address};
+	return this.request("post", "/v1/lock", params);
+};
+
+Admin.prototype.signTransaction = function (from, to, value, nonce, source, args) {
+	var params = {"from": from,
+	"to": to,
+	"value": value,
+	"nonce": nonce,
+	"source": source,
+	"args": args
+	};
+	return this.request("post", "/v1/sign", params);
+};
+
+Admin.prototype.sendTransactionWithPassphrase = function (from, to, value, nonce, source, args, passphrase) {
+	var params = {"from": from,
+	"to": to,
+	"value": value,
+	"nonce": nonce,
+	"source": source,
+	"args": args,
+	"passphrase": passphrase
+	};
+	return this.request("post", "/v1/transactionWithPassphrase", params);
+};
+
+Admin.prototype.request = function (method, api, params) {
+	return this.requestHandler.request(method, api, params);
 };
 
 module.exports = Admin;
@@ -16,37 +55,40 @@ module.exports = Admin;
 "use strict";
 
 var API = function (neb) {
-	this._requestHandler = neb.requestHandler;
+	this.requestHandler = neb.requestHandler;
 };
 
 API.prototype.getNebState = function () {
-	return this._request("get", "/v1/neb/state");
+	return this.request("get", "/v1/neb/state");
+};
+
+API.prototype.nodeInfo = function () {
+	return this.request("get", "/v1/node/info");
 };
 
 API.prototype.accounts = function () {
-	return this._request("get", "/v1/accounts");
+	return this.request("get", "/v1/accounts");
 };
 
 API.prototype.blockDump = function (count) {
 	var params = {"count":count};
-	return this._request("post", "/v1/block/dump", params);
+	return this.request("post", "/v1/block/dump", params);
 };
 
 API.prototype.getAccountState = function (address) {
 	var params = {"address":address};
-	return this._request("post", "/v1/account/state", params);
+	return this.request("post", "/v1/account/state", params);
 };
 
-API.prototype.sendTransaction = function (from, to, value, nonce, source, func, args) {
+API.prototype.sendTransaction = function (from, to, value, nonce, source, args) {
 	var params = {"from": from,
 	"to": to,
 	"value": value,
 	"nonce": nonce,
 	"source": source,
-	"function": func,
 	"args": args
 	};
-	return this._request("post", "/v1/transaction", params);
+	return this.request("post", "/v1/transaction", params);
 };
 
 API.prototype.call = function (from, to, nonce, func, args) {
@@ -56,11 +98,26 @@ API.prototype.call = function (from, to, nonce, func, args) {
 	"function": func,
 	"args": args
 	};
-	return this._request("post", "/v1/call", params);
+	return this.request("post", "/v1/call", params);
 };
 
-API.prototype._request = function (method, api, params) {
-	return this._requestHandler.request(method, api, params);
+API.prototype.sendRawTransaction = function (data) {
+	var params = {"data": data};
+	return this.request("post", "/v1/rawtransaction", params);
+};
+
+API.prototype.getBlockByHash = function (hash) {
+	var params = {"hash": hash};
+	return this.request("post", "/v1/getBlockByHash", params);
+};
+
+API.prototype.getTransactionReceipt = function (hash) {
+	var params = {"hash": hash};
+	return this.request("post", "/v1/getTransactionReceipt", params);
+};
+
+API.prototype.request = function (method, api, params) {
+	return this.requestHandler.request(method, api, params);
 };
 
 module.exports = API;
@@ -78,9 +135,8 @@ if (typeof window !== "undefined" && window.XMLHttpRequest) {
 
 var XHR2 = require("xhr2"); 
 
-var HttpRequest = function (host, port,timeout) {
-	this.host = host || "http://localhost";
-	this.port = port || "8080";
+var HttpRequest = function (host, timeout) {
+	this.host = host || "http://localhost:8080";
 	this.timeout = timeout || 0;
 };
 
@@ -96,7 +152,7 @@ HttpRequest.prototype._newRequest = function (method, api, async) {
 	if (method.toUpperCase() === "POST") {
 		m = "POST";
 	}
-	var url = this.host + ":" + this.port + api;
+	var url = this.host + api;
 	request.open(m, url, async);
 	return request;
 };

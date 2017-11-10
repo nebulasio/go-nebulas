@@ -21,8 +21,10 @@ package p2p
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"hash/crc32"
 	"io"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -565,7 +567,7 @@ func (ns *NetService) Hello(pid peer.ID) error {
 
 // SyncRoutes sync routing table from a peer
 func (ns *NetService) SyncRoutes(pid peer.ID) {
-	log.Info("SyncRoutes: begin to sync route from ", pid)
+	log.Info("SyncRoutes: begin to sync route from ", pid.Pretty())
 	node := ns.node
 	addrs := node.peerstore.PeerInfo(pid).Addrs
 	if len(addrs) == 0 {
@@ -763,7 +765,11 @@ func ReadBytes(reader io.Reader, n uint32) ([]byte, error) {
 // GenerateKey generate a key
 func GenerateKey(addrs ma.Multiaddr, pid peer.ID) (string, error) {
 	if len(strings.Split(addrs.String(), "/")) > 2 {
-		key := strings.Split(addrs.String(), "/")[2] + pid.String()
+		ip, err := stringIPToInt(strings.Split(addrs.String(), "/")[2])
+		if err != nil {
+			return "", err
+		}
+		key := fmt.Sprintf("%s:%d", pid.Pretty(), ip)
 		return key, nil
 	}
 	log.WithFields(log.Fields{
@@ -773,4 +779,20 @@ func GenerateKey(addrs ma.Multiaddr, pid peer.ID) (string, error) {
 	// TODO return nil, error
 	err := errors.New("GenerateKey: the addrs format is incorrect")
 	return "", err
+}
+
+func stringIPToInt(ipstring string) (int, error) {
+	ipSegs := strings.Split(ipstring, ".")
+	if len(ipSegs) != 4 {
+		return 0, errors.New("The IP format is not correct")
+	}
+	var ipInt int
+	var pos uint = 24
+	for _, ipSeg := range ipSegs {
+		tempInt, _ := strconv.Atoi(ipSeg)
+		tempInt = tempInt << pos
+		ipInt = ipInt | tempInt
+		pos -= 8
+	}
+	return ipInt, nil
 }

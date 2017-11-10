@@ -227,11 +227,6 @@ func (block *Block) ParentHash() byteutils.Hash {
 	return block.header.parentHash
 }
 
-// ParentBlock return parent block.
-func (block *Block) ParentBlock() *Block {
-	return block.parenetBlock
-}
-
 // Height return height from genesis block.
 func (block *Block) Height() uint64 {
 	return block.height

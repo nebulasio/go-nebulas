@@ -26,6 +26,9 @@ import (
 
 	"io"
 
+	"bytes"
+	"encoding/json"
+
 	"github.com/nebulasio/go-nebulas/cmd/console/jslib"
 	"github.com/nebulasio/go-nebulas/neblet/pb"
 	"github.com/peterh/liner"
@@ -223,8 +226,22 @@ func (c *Console) Evaluate(code string) error {
 		fmt.Fprintln(c.writer, err)
 		return err
 	}
-	// TODO: print value for output
-	fmt.Fprintln(c.writer, v)
+	if v.IsObject() {
+		result, err := c.jsvm.JSONString(v)
+		if err != nil {
+			fmt.Fprintln(c.writer, err)
+			return err
+		}
+		var buf bytes.Buffer
+		err = json.Indent(&buf, []byte(result), "", "    ")
+		if err != nil {
+			fmt.Fprintln(c.writer, err)
+			return err
+		}
+		fmt.Fprintln(c.writer, buf.String())
+	} else if v.IsString() {
+		fmt.Fprintln(c.writer, v.String())
+	}
 	return nil
 }
 

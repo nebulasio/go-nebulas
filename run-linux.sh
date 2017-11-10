@@ -1,3 +1,4 @@
+#!/bin/bash
 # Copyright (C) 2017 go-nebulas authors
 #
 # This file is part of the go-nebulas library.
@@ -15,12 +16,5 @@
 # You should have received a copy of the GNU General Public License
 # along with the go-nebulas library.  If not, see <http://www.gnu.org/licenses/>.
 #
-PB = $(wildcard *.proto)
-GO = $(PB:.proto=.pb.go)
 
-all: $(GO)
-
-%.pb.go: %.proto
-	protoc -I/usr/local/include -I. -I../../../../../../src -I../../vendor/github.com/grpc-ecosystem/grpc-gateway/third_party/googleapis --gogo_out=plugins=grpc:. --grpc-gateway_out=logtostderr=true:. $<
-clean:
-	rm *.pb.go
+make build-linux && ./neb-linux

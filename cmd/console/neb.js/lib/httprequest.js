@@ -11,9 +11,8 @@ if (typeof window !== "undefined" && window.XMLHttpRequest) {
 
 var XHR2 = require("xhr2"); 
 
-var HttpRequest = function (host, port,timeout) {
-	this.host = host || "http://localhost";
-	this.port = port || "8080";
+var HttpRequest = function (host, timeout) {
+	this.host = host || "http://localhost:8080";
 	this.timeout = timeout || 0;
 };
 
@@ -29,7 +28,7 @@ HttpRequest.prototype._newRequest = function (method, api, async) {
 	if (method.toUpperCase() === "POST") {
 		m = "POST";
 	}
-	var url = this.host + ":" + this.port + api;
+	var url = this.host + api;
 	request.open(m, url, async);
 	return request;
 };
