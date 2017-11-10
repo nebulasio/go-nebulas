@@ -26,6 +26,11 @@ import (
 	"github.com/nebulasio/go-nebulas/storage"
 )
 
+// Genesis Block Hash
+var (
+	GenesisHash = make([]byte, BlockHashLength)
+)
+
 // NewGenesisBlock create genesis @Block from file.
 func NewGenesisBlock(chainID uint32, storage storage.Storage) *Block {
 	accState, _ := state.NewAccountState(nil, storage)
@@ -34,8 +39,8 @@ func NewGenesisBlock(chainID uint32, storage storage.Storage) *Block {
 	b := &Block{
 		header: &BlockHeader{
 			chainID:    chainID,
-			hash:       make([]byte, BlockHashLength),
-			parentHash: make([]byte, BlockHashLength),
+			hash:       GenesisHash,
+			parentHash: GenesisHash,
 			coinbase:   &Address{make([]byte, AddressLength)},
 			timestamp:  time.Now().Unix(),
 		},
@@ -54,7 +59,7 @@ func CheckGenesisBlock(block *Block) bool {
 	if block == nil {
 		return false
 	}
-	if block.Hash().Equals(block.ParentHash()) {
+	if block.Hash().Equals(GenesisHash) {
 		return true
 	}
 	return false

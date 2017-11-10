@@ -238,7 +238,7 @@ func (bc *BlockChain) GetBlock(hash byteutils.Hash) *Block {
 	// TODO: get block from local storage.
 	v, _ := bc.cachedBlocks.Get(hash.Hex())
 	if v == nil {
-		block, err := bc.loadBlockFromStorage(hash)
+		block, err := LoadBlockFromStorage(hash, bc.storage, bc.txPool)
 		if err != nil {
 			return nil
 		}
@@ -314,8 +314,9 @@ func (bc *BlockChain) storeBlockToStorage(block *Block) error {
 	return nil
 }
 
-func (bc *BlockChain) loadBlockFromStorage(hash byteutils.Hash) (*Block, error) {
-	value, err := bc.storage.Get(hash)
+// LoadBlockFromStorage return a block from storage
+func LoadBlockFromStorage(hash byteutils.Hash, storage storage.Storage, txPool *TransactionPool) (*Block, error) {
+	value, err := storage.Get(hash)
 	if err != nil {
 		return nil, err
 	}
@@ -327,16 +328,16 @@ func (bc *BlockChain) loadBlockFromStorage(hash byteutils.Hash) (*Block, error) 
 	if err = block.FromProto(pbBlock); err != nil {
 		return nil, err
 	}
-	block.accState, err = state.NewAccountState(block.StateRoot(), bc.storage)
+	block.accState, err = state.NewAccountState(block.StateRoot(), storage)
 	if err != nil {
 		return nil, err
 	}
-	block.txsTrie, err = trie.NewBatchTrie(block.TxsRoot(), bc.storage)
+	block.txsTrie, err = trie.NewBatchTrie(block.TxsRoot(), storage)
 	if err != nil {
 		return nil, err
 	}
-	block.txPool = bc.txPool
-	block.storage = bc.storage
+	block.txPool = txPool
+	block.storage = storage
 	return block, nil
 }
 
@@ -349,5 +350,5 @@ func (bc *BlockChain) loadTailFromStorage() (*Block, error) {
 	if err != nil {
 		return nil, err
 	}
-	return bc.loadBlockFromStorage(hash)
+	return LoadBlockFromStorage(hash, bc.storage, bc.txPool)
 }
