@@ -108,6 +108,12 @@ message SignTransactionRequest {
     // TODO: gas provided for the transaction.
 
     // TODO: contract code bytes or hash.
+
+    // contract source code.
+    string source = 5;
+
+    // the params of contract.
+    string args = 6;
 }
 
 message SignTransactionResponse {
@@ -127,12 +133,18 @@ message SendTransactionPassphraseRequest {
     // Transaction nonce.
     uint64 nonce = 4;
 
-    // from account passphrase
-    string passphrase = 5;
-
     // TODO: gas provided for the transaction.
 
     // TODO: contract code bytes or hash.
+
+    // contract source code.
+    string source = 5;
+
+    // the params of contract.
+    string args = 6;
+
+    // from account passphrase
+    string passphrase = 7;
 }
 
 message SendTransactionPassphraseResponse {

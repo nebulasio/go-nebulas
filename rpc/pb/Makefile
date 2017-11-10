@@ -21,7 +21,6 @@ GO = $(PB:.proto=.pb.go)
 all: $(GO)
 
 %.pb.go: %.proto
-	protoc -I/usr/local/include -I. -I../../../../../../src -I../../vendor/github.com/grpc-ecosystem/grpc-gateway/third_party/googleapis --go_out=plugins=grpc:. $<
-	protoc -I/usr/local/include -I. -I../../../../../../src -I../../vendor/github.com/grpc-ecosystem/grpc-gateway/third_party/googleapis --grpc-gateway_out=logtostderr=true:. $<
+	protoc -I/usr/local/include -I. -I../../../../../../src -I../../vendor/github.com/grpc-ecosystem/grpc-gateway/third_party/googleapis --gogo_out=plugins=grpc:. --grpc-gateway_out=logtostderr=true:. $<
 clean:
 	rm *.pb.go
