@@ -2,7 +2,6 @@ package neblet
 
 import (
 	"errors"
-	"fmt"
 	"sync"
 
 	"github.com/nebulasio/go-nebulas/account"
@@ -73,8 +72,8 @@ func (n *Neblet) Start() error {
 		return err
 	}
 
-	/* storage, err := storage.NewDiskStorage("data.db") */
-	storage, err := storage.NewMemoryStorage()
+	storage, err := storage.NewDiskStorage("data.db")
+	// storage, err := storage.NewMemoryStorage()
 	if err != nil {
 		return err
 	}
@@ -82,7 +81,6 @@ func (n *Neblet) Start() error {
 	if err != nil {
 		return err
 	}
-	fmt.Printf("chainID is %d\n", n.blockChain.ChainID())
 	n.blockChain.BlockPool().RegisterInNetwork(n.netService)
 	n.blockChain.TransactionPool().RegisterInNetwork(n.netService)
 

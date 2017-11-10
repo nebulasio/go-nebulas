@@ -10,7 +10,7 @@ p2p {
 rpc {
   api_port: 51511
   management_port: 52521
-  gateway_port: 8081
+  gateway_port: 8080
 }
 
 pow {
