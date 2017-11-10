@@ -24,6 +24,9 @@ import (
 	"os/signal"
 	"strings"
 
+	"io"
+
+	"github.com/nebulasio/go-nebulas/cmd/console/jslib"
 	"github.com/nebulasio/go-nebulas/neblet/pb"
 	"github.com/peterh/liner"
 )
@@ -32,6 +35,8 @@ var (
 	defaultPrompt = "> "
 
 	exitCmd = "exit"
+
+	nebjs = jslib.MustAsset("neb.js")
 )
 
 // Neblet interface breaks cycle import dependency and hides unused services.
@@ -41,6 +46,8 @@ type Neblet interface {
 
 // Console console handler
 type Console struct {
+
+	// terminal input prompter
 	prompter *terminalPrompter
 
 	// Channel to send the next prompt on and receive the input
@@ -48,17 +55,84 @@ type Console struct {
 
 	// input history
 	history []string
+
+	// js bridge with go func
+	jsBridge *jsBridge
+
+	// js runtime environment
+	jsvm *JSVM
+
+	// output writer
+	writer io.Writer
 }
 
 // New new a console obj,config params is need
 func New(neb Neblet) *Console {
 	c := new(Console)
-	if neb != nil {
-		//TODO(larry.wang):add conf for consle
-	}
 	c.prompter = Stdin
 	c.promptCh = make(chan string)
+	c.writer = os.Stdout
+	c.jsBridge = newBirdge(neb.Config(), c.prompter, c.writer)
+	c.jsvm = newJSVM()
+
+	if err := c.loadLibraryScripts(); err != nil {
+		fmt.Fprintln(c.writer, err)
+	}
+	if err := c.methodSwizzling(); err != nil {
+		fmt.Fprintln(c.writer, err)
+	}
 	return c
+}
+
+func (c *Console) loadLibraryScripts() error {
+	if err := c.jsvm.Compile("neb.js", nebjs); err != nil {
+		return fmt.Errorf("neb.js: %v", err)
+	}
+	return nil
+}
+
+// Individual methods use go implementation
+func (c *Console) methodSwizzling() error {
+
+	// replace js console log & error with go impl
+	jsconsole, _ := c.jsvm.Get("console")
+	jsconsole.Object().Set("log", c.jsBridge.output)
+	jsconsole.Object().Set("error", c.jsBridge.output)
+
+	// replace js xmlhttprequest to go implement
+	c.jsvm.Set("bridge", struct{}{})
+	bridgeObj, _ := c.jsvm.Get("bridge")
+	bridgeObj.Object().Set("request", c.jsBridge.request)
+	bridgeObj.Object().Set("asyncRequest", c.jsBridge.request)
+
+	if _, err := c.jsvm.Run("var Neb = require('neb');"); err != nil {
+		return fmt.Errorf("neb require: %v", err)
+	}
+	if _, err := c.jsvm.Run("var neb = new Neb(bridge);"); err != nil {
+		return fmt.Errorf("neb create: %v", err)
+	}
+	jsAlias := "var api = neb.api; var admin = neb.admin; "
+	if _, err := c.jsvm.Run(jsAlias); err != nil {
+		return fmt.Errorf("namespace: %v", err)
+	}
+
+	if c.prompter != nil {
+		admin, err := c.jsvm.Get("admin")
+		if err != nil {
+			return err
+		}
+		if obj := admin.Object(); obj != nil {
+			if _, err = c.jsvm.Run(`bridge.newAccount = admin.newAccount;`); err != nil {
+				return fmt.Errorf("admin.newAccount: %v", err)
+			}
+			if _, err = c.jsvm.Run(`bridge.unlockAccount = admin.unlockAccount;`); err != nil {
+				return fmt.Errorf("admin.unlockAccount: %v", err)
+			}
+			obj.Set("newAccount", c.jsBridge.newAccount)
+			obj.Set("unlockAccount", c.jsBridge.unlockAccount)
+		}
+	}
+	return nil
 }
 
 // AutoComplete console auto complete input
@@ -84,7 +158,7 @@ func (c *Console) Setup() {
 	if c.prompter != nil {
 		c.prompter.SetWordCompleter(c.AutoComplete)
 	}
-	fmt.Println("Welcome to the Neb JavaScript console!")
+	fmt.Fprint(c.writer, "Welcome to the Neb JavaScript console!\n")
 }
 
 // Interactive starts an interactive user session.
@@ -115,7 +189,7 @@ func (c *Console) Interactive() {
 		c.promptCh <- defaultPrompt
 		select {
 		case <-abort:
-			fmt.Println("exiting...")
+			fmt.Fprint(c.writer, "exiting...")
 			return
 		case line, ok := <-c.promptCh:
 			// User exit
@@ -138,8 +212,19 @@ func (c *Console) Interactive() {
 }
 
 // Evaluate executes code and pretty prints the result
-func (c *Console) Evaluate(statement string) error {
-	//TODO(larry.wang):evaluate js cmd
+func (c *Console) Evaluate(code string) error {
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Fprintf(c.writer, "[native] error: %v\n", r)
+		}
+	}()
+	v, err := c.jsvm.Run(code)
+	if err != nil {
+		fmt.Fprintln(c.writer, err)
+		return err
+	}
+	// TODO: print value for output
+	fmt.Fprintln(c.writer, v)
 	return nil
 }
 
