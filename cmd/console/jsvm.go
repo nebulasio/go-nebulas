@@ -59,3 +59,13 @@ func (v *JSVM) Compile(filename string, src interface{}) error {
 	_, err = v.vm.Run(script)
 	return err
 }
+
+// JSONString convert value to json string
+func (v *JSVM) JSONString(val otto.Value) (string, error) {
+	JSON, _ := v.vm.Object("JSON")
+	jsonVal, err := JSON.Call("stringify", val)
+	if err != nil {
+		return "", err
+	}
+	return jsonVal.String(), nil
+}
