@@ -187,7 +187,7 @@ func TestBlock_LinkParentBlock(t *testing.T) {
 	assert.Equal(t, block1.Height(), uint64(0))
 	assert.Equal(t, block1.LinkParentBlock(genesis), true)
 	assert.Equal(t, block1.Height(), uint64(2))
-	assert.Equal(t, block1.ParentBlock(), genesis)
+	assert.Equal(t, block1.ParentHash(), genesis.Hash())
 	block2 := &Block{
 		header: &BlockHeader{
 			[]byte("124546"),
