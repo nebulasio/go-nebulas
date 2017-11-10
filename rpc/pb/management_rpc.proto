@@ -18,6 +18,8 @@
 
 syntax = "proto3";
 
+import "google/api/annotations.proto";
+
 package rpcpb;
 
 // RPC Managment interface.
@@ -25,27 +27,42 @@ service ManagementService {
 
     // NewAccount create a new account with passphrase
     rpc NewAccount(NewAccountRequest) returns (NewAccountResponse) {
-
+        option (google.api.http) = {
+            post: "/v1/newAccount"
+            body: "*"
+        };
     }
 
     // UnlockAccount unlock account with passphrase
     rpc UnlockAccount(UnlockAccountRequest) returns (UnlockAccountResponse) {
-
+        option (google.api.http) = {
+            post: "/v1/unlock"
+            body: "*"
+        };
     }
 
     // LockAccount lock account
     rpc LockAccount(LockAccountRequest) returns (LockAccountResponse) {
-
+        option (google.api.http) = {
+            post: "/v1/lock"
+            body: "*"
+        };
     }
 
     // SignTransaction sign transaction
     rpc SignTransaction(SignTransactionRequest) returns (SignTransactionResponse) {
-
+        option (google.api.http) = {
+            post: "/v1/sign"
+            body: "*"
+        };
     }
 
-    // sendTransactionWithPassphrase send transaction with passphrase
-    rpc sendTransactionWithPassphrase(SendTransactionPassphraseRequest) returns (SendTransactionPassphraseResponse) {
-
+    // SendTransactionWithPassphrase send transaction with passphrase
+    rpc SendTransactionWithPassphrase(SendTransactionPassphraseRequest) returns (SendTransactionPassphraseResponse) {
+        option (google.api.http) = {
+            post: "/v1/transactionWithPassphrase"
+            body: "*"
+        };
     }
 
 }
@@ -69,7 +86,6 @@ message UnlockAccountResponse {
 
 message LockAccountRequest {
     string address = 1;
-    string passphrase = 2;
 }
 
 message LockAccountResponse {

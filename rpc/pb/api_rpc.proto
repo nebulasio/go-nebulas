@@ -81,6 +81,10 @@ service APIService {
 
 	// Submit the signed transaction.
 	rpc SendRawTransaction (SendRawTransactionRequest) returns (SendTransactionResponse) {
+		option (google.api.http) = {
+            post: "/v1/rawtransaction"
+            body: "*"
+        };
 	}
 
 	// Get block header info by the block hash.
