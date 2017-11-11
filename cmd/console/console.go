@@ -153,7 +153,10 @@ func (c *Console) AutoComplete(line string, pos int) (string, []string, string) 
 		start++
 		break
 	}
-	return line[:start], nil, line[pos:]
+	if start == pos {
+		return "", nil, ""
+	}
+	return line[:start], c.jsvm.CompleteKeywords(line[start:pos]), line[pos:]
 }
 
 // Setup setup console

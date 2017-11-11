@@ -2,7 +2,7 @@
 "use strict";
 
 var Admin = function (neb) {
-	this.requestHandler = neb.requestHandler;
+	this._requestHandler = neb._requestHandler;
 };
 
 Admin.prototype.newAccount = function (passphrase) {
@@ -45,7 +45,7 @@ Admin.prototype.sendTransactionWithPassphrase = function (from, to, value, nonce
 };
 
 Admin.prototype.request = function (method, api, params) {
-	return this.requestHandler.request(method, api, params);
+	return this._requestHandler.request(method, api, params);
 };
 
 module.exports = Admin;

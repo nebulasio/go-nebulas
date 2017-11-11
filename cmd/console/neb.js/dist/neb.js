@@ -3,7 +3,7 @@ require=(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof requ
 "use strict";
 
 var Admin = function (neb) {
-	this.requestHandler = neb.requestHandler;
+	this._requestHandler = neb._requestHandler;
 };
 
 Admin.prototype.newAccount = function (passphrase) {
@@ -46,7 +46,7 @@ Admin.prototype.sendTransactionWithPassphrase = function (from, to, value, nonce
 };
 
 Admin.prototype.request = function (method, api, params) {
-	return this.requestHandler.request(method, api, params);
+	return this._requestHandler.request(method, api, params);
 };
 
 module.exports = Admin;
@@ -55,7 +55,7 @@ module.exports = Admin;
 "use strict";
 
 var API = function (neb) {
-	this.requestHandler = neb.requestHandler;
+	this._requestHandler = neb._requestHandler;
 };
 
 API.prototype.getNebState = function () {
@@ -117,7 +117,7 @@ API.prototype.getTransactionReceipt = function (hash) {
 };
 
 API.prototype.request = function (method, api, params) {
-	return this.requestHandler.request(method, api, params);
+	return this._requestHandler.request(method, api, params);
 };
 
 module.exports = API;
@@ -224,9 +224,9 @@ var Admin = require("./admin.js");
 
 var Neb = function (request) {
 	if (request) {
-		this.requestHandler = request;
+		this._requestHandler = request;
 	} else {
-		this.requestHandler = new HttpRequest();
+		this._requestHandler = new HttpRequest();
 	}
 
 	this.api = new API(this);
@@ -234,7 +234,7 @@ var Neb = function (request) {
 };
 
 Neb.prototype.setRequestHandler = function (request) {
-	this.requestHandler = request;
+	this._requestHandler = request;
 };
 
 module.exports = Neb;

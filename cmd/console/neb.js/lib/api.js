@@ -2,7 +2,7 @@
 "use strict";
 
 var API = function (neb) {
-	this.requestHandler = neb.requestHandler;
+	this._requestHandler = neb._requestHandler;
 };
 
 API.prototype.getNebState = function () {
@@ -64,7 +64,7 @@ API.prototype.getTransactionReceipt = function (hash) {
 };
 
 API.prototype.request = function (method, api, params) {
-	return this.requestHandler.request(method, api, params);
+	return this._requestHandler.request(method, api, params);
 };
 
 module.exports = API;
