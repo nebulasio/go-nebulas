@@ -112,7 +112,6 @@ func (m *Manager) loop() {
 				m.downloader()
 			}
 		case <-m.syncCh:
-			log.Info("loop: m.syncCh true")
 			m.syncWithPeers(m.curTail)
 		}
 	}
@@ -157,21 +156,23 @@ func (m *Manager) syncWithPeers(block *core.Block) {
 	default:
 		log.Error("syncWithPeers occurs error, sync has been terminated.")
 	}
+	go (func() {
+		timeout := 30 * time.Second
 
-	timeout := 30 * time.Second
+		select {
+		case <-m.canHandleCh:
+			m.syncWithBlockList(m.cacheList)
+		case <-m.goParentSyncCh:
+			m.goSyncParentWithPeers()
+		case <-time.After(timeout):
+			m.goSyncParentWithPeers()
+		}
+	})()
 
-	select {
-	case <-m.canHandleCh:
-		m.syncWithBlockList(m.cacheList)
-	case <-m.goParentSyncCh:
-		m.goSyncParentWithPeers()
-	case <-time.After(timeout):
-		m.goSyncParentWithPeers()
-	}
 }
 
 func (m *Manager) goSyncParentWithPeers() {
-	if !core.CheckGenesisBlock(m.curTail) {
+	if !m.ns.Node().GetSynchronized() && !core.CheckGenesisBlock(m.curTail) {
 		m.curTail = m.blockChain.GetBlock(m.curTail.ParentHash())
 		m.syncWithPeers(m.curTail)
 	}
@@ -325,7 +326,7 @@ func (m *Manager) doSyncBlocksWithCommonAncestor(addrsArray []string) {
 
 	syncContinue := false
 	for i := 0; i < len(addrsArray); i++ {
-		if len(m.cacheList[addrsArray[0]].blocks) > DescendantCount {
+		if len(m.cacheList[addrsArray[i]].blocks) > DescendantCount {
 			log.Info("StartMsgHandle: more Descendant need to synchronize, go to next synchronization")
 			syncContinue = true
 		}
@@ -338,6 +339,9 @@ func (m *Manager) doSyncBlocksWithCommonAncestor(addrsArray []string) {
 		m.curTail = tail
 		m.syncCh <- true
 	} else { // sync finish
+		for k := range m.cacheList {
+			delete(m.cacheList, k)
+		}
 		m.endSyncCh <- true
 	}
 }
