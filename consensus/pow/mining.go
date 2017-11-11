@@ -20,6 +20,7 @@ package pow
 
 import (
 	"fmt"
+
 	"github.com/nebulasio/go-nebulas/consensus"
 	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/util/byteutils"

@@ -61,10 +61,10 @@ var (
 
 // V8Engine v8 engine.
 type V8Engine struct {
-	v8engine   *C.V8Engine
-	contract   state.Account
-	owner      state.Account
-	context    state.AccountState
+	ctx *Context
+
+	v8engine *C.V8Engine
+
 	lcsHandler uint64
 	gcsHandler uint64
 }
@@ -82,16 +82,14 @@ func DisposeV8Engine() {
 }
 
 // NewV8Engine return new V8Engine instance.
-func NewV8Engine(owner state.Account, contract state.Account, context state.AccountState) *V8Engine {
+func NewV8Engine(ctx *Context) *V8Engine {
 	v8engineOnce.Do(func() {
 		InitV8Engine()
 	})
 
 	engine := &V8Engine{
+		ctx:      ctx,
 		v8engine: C.CreateEngine(),
-		owner:    owner,
-		contract: contract,
-		context:  context,
 	}
 
 	storagesLock.Lock()
@@ -174,9 +172,9 @@ func getEngineAndStorage(handler uint64) (*V8Engine, state.Account) {
 	}
 
 	if engine.lcsHandler == handler {
-		return engine, engine.contract
+		return engine, engine.ctx.contract
 	} else if engine.gcsHandler == handler {
-		return engine, engine.owner
+		return engine, engine.ctx.owner
 	} else {
 		log.WithFields(log.Fields{
 			"func":          "nvm.getEngineAndStorage",

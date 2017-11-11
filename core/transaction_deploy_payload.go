@@ -64,7 +64,8 @@ func (payload *DeployPayload) Execute(tx *Transaction, block *Block) error {
 	if err != nil {
 		return err
 	}
-	engine := nvm.NewV8Engine(owner, contract, context)
+	ctx := nvm.NewContext(block, tx, owner, contract, context)
+	engine := nvm.NewV8Engine(ctx)
 	defer engine.Dispose()
 
 	return engine.DeployAndInit(payload.Source, payload.Args)

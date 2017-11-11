@@ -20,6 +20,7 @@ package pow
 
 import (
 	"fmt"
+
 	"github.com/nebulasio/go-nebulas/consensus"
 	log "github.com/sirupsen/logrus"
 )

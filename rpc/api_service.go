@@ -46,7 +46,7 @@ func (s *APIService) GetNebState(ctx context.Context, req *rpcpb.GetNebStateRequ
 	resp := &rpcpb.GetNebStateResponse{}
 	resp.ChainId = neb.BlockChain().ChainID()
 	resp.Tail = string(tail.Hash().Hex())
-	resp.Coinbase = tail.Coinbase().ToHex()
+	resp.Coinbase = string(tail.Coinbase())
 	resp.Synchronized = neb.NetService().Node().GetSynchronized()
 	resp.PeerCount = uint32(len(neb.NetService().Node().GetStream()))
 	resp.ProtocolVersion = p2p.ProtocolID
