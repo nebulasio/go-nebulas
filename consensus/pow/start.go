@@ -19,13 +19,9 @@
 package pow
 
 import (
+	"fmt"
 	"github.com/nebulasio/go-nebulas/consensus"
 	log "github.com/sirupsen/logrus"
-)
-
-const (
-	// Start tart state key.
-	Start = "Start"
 )
 
 // StartState the initial state of @Pow state machine.
@@ -40,13 +36,17 @@ func NewStartState(p *Pow) *StartState {
 	return state
 }
 
+func (state *StartState) String() string {
+	return fmt.Sprintf("StartState %p", state)
+}
+
 // Event handle event.
 func (state *StartState) Event(e consensus.Event) (bool, consensus.State) {
 	switch e.EventType() {
 	case consensus.CanMiningEvent:
-		return true, state.p.states[Prepare]
+		return true, NewPrepareState(state.p)
 	case consensus.NewBlockEvent:
-		return true, state.p.states[Minted]
+		return true, NewMintedState(state.p)
 	default:
 		return false, nil
 	}
@@ -56,7 +56,7 @@ func (state *StartState) Event(e consensus.Event) (bool, consensus.State) {
 func (state *StartState) Enter(data interface{}) {
 	log.Debug("StartState enter.")
 	if state.p.CanMining() {
-		state.p.TransitByKey(Start, Prepare, nil)
+		state.p.Transit(state, NewPrepareState(state.p), nil)
 	}
 }
 

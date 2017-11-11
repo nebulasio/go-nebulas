@@ -19,6 +19,7 @@
 package pow
 
 import (
+	"fmt"
 	"github.com/nebulasio/go-nebulas/consensus"
 	log "github.com/sirupsen/logrus"
 )
@@ -37,6 +38,10 @@ type MintedState struct {
 func NewMintedState(p *Pow) *MintedState {
 	state := &MintedState{p: p}
 	return state
+}
+
+func (state *MintedState) String() string {
+	return fmt.Sprintf("MintedState %p", state)
 }
 
 // Event handle event.
@@ -72,7 +77,7 @@ func (state *MintedState) Enter(data interface{}) {
 	}
 
 	// move to prepare state.
-	state.p.TransitByKey(Minted, Start, nil)
+	state.p.Transit(state, NewStartState(state.p), nil)
 }
 
 // Leave called when leaving this state.

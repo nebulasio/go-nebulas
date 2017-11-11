@@ -35,7 +35,6 @@ type Consensus interface {
 	CanMining() bool
 	SetCanMining(bool)
 
-	TransitByKey(from, to string, data interface{})
 	Transit(from, to State, data interface{})
 
 	VerifyBlock(*core.Block) error
@@ -56,9 +55,6 @@ type State interface {
 	Enter(data interface{})
 	Leave(data interface{})
 }
-
-// States contains all possible states in Consensus State-Machine
-type States map[string]State
 
 // BaseEvent is a kind of event structure
 type BaseEvent struct {

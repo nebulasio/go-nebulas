@@ -19,7 +19,9 @@
 package pow
 
 import (
+	"fmt"
 	"github.com/nebulasio/go-nebulas/consensus"
+	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
 
 	"time"
@@ -48,11 +50,15 @@ func NewMiningState(p *Pow) *MiningState {
 	return state
 }
 
+func (state *MiningState) String() string {
+	return fmt.Sprintf("MiningState %p", state)
+}
+
 // Event handle event.
 func (state *MiningState) Event(e consensus.Event) (bool, consensus.State) {
 	switch e.EventType() {
 	case consensus.NewBlockEvent:
-		return true, state.p.states[Minted]
+		return true, NewMintedState(state.p)
 	default:
 		return false, nil
 	}
@@ -63,7 +69,7 @@ func (state *MiningState) Enter(data interface{}) {
 	log.Debug("MiningState.Enter: enter.")
 
 	// start searching nonce.
-	go state.searchingNonce()
+	go state.searchingNonce(state.p.miningBlock)
 }
 
 // Leave called when leaving this state.
@@ -72,15 +78,13 @@ func (state *MiningState) Leave(data interface{}) {
 	state.quitCh <- true
 }
 
-func (state *MiningState) searchingNonce() {
+func (state *MiningState) searchingNonce(miningBlock *core.Block) {
 	// transit to MintedState if newBlockReceived is true.
 	if state.p.newBlockReceived {
 		log.Info("MiningState.Enter: new block received, transit to MintedState.")
-		state.p.TransitByKey(Mining, Minted, nil)
+		state.p.Transit(state, NewMintedState(state.p), nil)
 
 	} else {
-		// calculate hash.
-		miningBlock := state.p.miningBlock
 		nonce := miningBlock.Nonce()
 		parentHash := miningBlock.ParentHash()
 
@@ -93,7 +97,6 @@ func (state *MiningState) searchingNonce() {
 
 			default:
 				nonce++
-
 				// compute hash..
 				miningBlock.SetNonce(nonce)
 				miningBlock.SetTimestamp(time.Now().Unix())
@@ -109,7 +112,7 @@ func (state *MiningState) searchingNonce() {
 					// seal block.
 					miningBlock.Seal()
 
-					state.p.TransitByKey(Mining, Minted, nil)
+					state.p.Transit(state, NewMintedState(state.p), nil)
 
 					// break this for loop.
 					break computeHash
