@@ -111,11 +111,9 @@ func (m *Manager) loop() {
 				m.consensus.SetCanMining(true)
 				m.downloader()
 			}
-		case msg := <-m.syncCh:
-			if msg {
-				log.Info("loop: m.syncCh true")
-				m.syncWithPeers(m.curTail)
-			}
+		case <-m.syncCh:
+			log.Info("loop: m.syncCh true")
+			m.syncWithPeers(m.curTail)
 		}
 	}
 }
@@ -173,7 +171,7 @@ func (m *Manager) syncWithPeers(block *core.Block) {
 }
 
 func (m *Manager) goSyncParentWithPeers() {
-	if !m.ns.Node().GetSynchronized() && !core.CheckGenesisBlock(m.curTail) {
+	if !core.CheckGenesisBlock(m.curTail) {
 		m.curTail = m.blockChain.GetBlock(m.curTail.ParentHash())
 		m.syncWithPeers(m.curTail)
 	}
