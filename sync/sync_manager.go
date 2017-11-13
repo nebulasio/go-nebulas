@@ -132,17 +132,17 @@ func (m *Manager) downloader() {
 func (m *Manager) syncWithPeers(block *core.Block) {
 	// block := m.blockChain.TailBlock()
 	m.nonce++
-	key, err := p2p.GenerateKey(m.ns.Addrs(), m.ns.Node().ID())
-	if err != nil {
-		log.Error("GenerateKey occurs error, sync has been terminated.")
-		return
-	}
-	tail := NewNetBlock(key, m.nonce, block)
+	//key, err := p2p.GenerateKey(m.ns.Addrs(), m.ns.Node().ID())
+	//if err != nil {
+	//	log.Error("GenerateKey occurs error, sync has been terminated.")
+	//	return
+	//}
+	tail := NewNetBlock(m.ns.Node().ID(), m.nonce, block)
 	log.WithFields(log.Fields{
 		"tail":  tail,
 		"block": tail.block,
 	}).Info("syncWithPeers: got tail")
-	err = m.ns.Sync(tail)
+	err := m.ns.Sync(tail)
 
 	switch err {
 	case nil:
@@ -201,11 +201,12 @@ func (m *Manager) startMsgHandle() {
 					continue
 				}
 
-				key, err := p2p.GenerateKey(m.ns.Addrs(), m.ns.Node().ID())
-				if err != nil {
-					log.Warn("StartMsgHandle.receiveTailCh: GenerateKey occurs error, ", err)
-					continue
-				}
+				//key, err := p2p.GenerateKey(m.ns.Addrs(), m.ns.Node().ID())
+				//if err != nil {
+				//	log.Warn("StartMsgHandle.receiveTailCh: GenerateKey occurs error, ", err)
+				//	continue
+				//}
+				key := m.ns.Node().ID()
 
 				ancestor, err := m.blockChain.FindCommonAncestorWithTail(tail.block)
 				var emptyblocks []*core.Block

@@ -20,8 +20,6 @@ package p2p
 
 import (
 	"net"
-	"strconv"
-	"strings"
 	"time"
 
 	"github.com/multiformats/go-multiaddr"
@@ -51,7 +49,6 @@ type Config struct {
 	BootNodes             []multiaddr.Multiaddr
 	IP                    string
 	Port                  uint
-	Randseed              int64
 	MaxSyncNodes          int
 	ChainID               uint32
 	Version               uint8
@@ -91,7 +88,7 @@ func NewP2PConfig(n Neblet) *Config {
 	// P2P network randseed, in this release we use port as randseed
 	// config.Randseed = time.Now().Unix()
 	// config.Randseed = int64(config.Port)
-	config.Randseed = ipToInt64(config.IP)
+	// config.Randseed = ipToInt64(config.IP)
 
 	return config
 }
@@ -112,24 +109,6 @@ func localHost() string {
 	return ""
 }
 
-func ipToInt64(ip string) int64 {
-	bits := strings.Split(ip, ".")
-
-	b0, _ := strconv.Atoi(bits[0])
-	b1, _ := strconv.Atoi(bits[1])
-	b2, _ := strconv.Atoi(bits[2])
-	b3, _ := strconv.Atoi(bits[3])
-
-	var sum int64
-
-	sum += int64(b0) << 24
-	sum += int64(b1) << 16
-	sum += int64(b2) << 8
-	sum += int64(b3)
-
-	return sum
-}
-
 // DefautConfig defautConfig is the p2p network defaut config
 func DefautConfig() *Config {
 	//bootNode, err:= multiaddr.NewMultiaddr("/ip4/192.168.2.148/tcp/9999/ipfs/QmYiAecoMfkTroY87LkPFXfNJ2tpJ7M1PHPdPNhonXEBLm")
@@ -140,6 +119,16 @@ func DefautConfig() *Config {
 	//	30, 10, []multiaddr.Multiaddr{bootNode}, "127.0.0.1", 20000, 1896599, 16,
 	//}
 	return &Config{
-		DefaultBucketsize, DefaultLatency, []multiaddr.Multiaddr{}, DefaultIP, DefaultPort, DefaultRandseed, DefaultChainID, DefaultVersion, DefaultVersion, DefaultRelayCacheSize, DefaultStreamStoreSize, DefaultStreamStoreExtendSize,
+		DefaultBucketsize,
+		DefaultLatency,
+		[]multiaddr.Multiaddr{},
+		DefaultIP,
+		DefaultPort,
+		DefaultChainID,
+		DefaultVersion,
+		DefaultVersion,
+		DefaultRelayCacheSize,
+		DefaultStreamStoreSize,
+		DefaultStreamStoreExtendSize,
 	}
 }

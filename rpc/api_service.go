@@ -59,7 +59,7 @@ func (s *APIService) NodeInfo(ctx context.Context, req *rpcpb.NodeInfoRequest) (
 	neb := s.server.Neblet()
 	resp := &rpcpb.NodeInfoResponse{}
 	node := neb.NetService().Node()
-	resp.Id = node.ID().Pretty()
+	resp.Id = node.ID()
 	resp.ChainId = node.Config().ChainID
 	resp.BucketSize = int32(node.Config().Bucketsize)
 	resp.Version = uint32(node.Config().Version)
