@@ -144,7 +144,7 @@ func (e *V8Engine) DeployAndInit(source, args string) error {
 
 // Execute execute the script and return error.
 func (e *V8Engine) executeScript(source, function, args string) error {
-	executablesource := prepareExecutableSource(source, function, args)
+	executablesource := e.prepareExecutableSource(source, function, args)
 
 	// log.WithFields(log.Fields{
 	// 	"source":           source,
@@ -154,6 +154,25 @@ func (e *V8Engine) executeScript(source, function, args string) error {
 	// }).Info("executeScript")
 
 	return e.RunScriptSource(executablesource)
+}
+
+func (e *V8Engine) prepareExecutableSource(source, function, args string) string {
+	cSource := C.CString(source)
+	defer C.free(unsafe.Pointer(cSource))
+
+	cmSource := C.EncapsulateSourceToModuleStyle(cSource)
+	defer C.free(unsafe.Pointer(cmSource))
+
+	contextJSON := e.ctx.getParamsJSON()
+
+	var executablesource string
+	if len(args) > 0 {
+		executablesource = fmt.Sprintf("var __contract = %s;\n var __instance = new __contract();\n __instance.context = JSON.parse(\"%s\");\n __instance[\"%s\"].apply(__instance, JSON.parse(\"%s\"));\n", C.GoString(cmSource), formatArgs(contextJSON), function, formatArgs(args))
+	} else {
+		executablesource = fmt.Sprintf("var __contract = %s;\n var __instance = new __contract();\n __instance.context = JSON.parse(\"%s\");\n __instance[\"%s\"].apply(__instance);\n", C.GoString(cmSource), formatArgs(contextJSON), function)
+	}
+
+	return executablesource
 }
 
 func getEngineAndStorage(handler uint64) (*V8Engine, state.Account) {
@@ -188,21 +207,4 @@ func getEngineAndStorage(handler uint64) (*V8Engine, state.Account) {
 
 func formatArgs(args string) string {
 	return strings.Replace(args, "\"", "\\\"", -1)
-}
-
-func prepareExecutableSource(source, function, args string) string {
-	cSource := C.CString(source)
-	defer C.free(unsafe.Pointer(cSource))
-
-	cmSource := C.EncapsulateSourceToModuleStyle(cSource)
-	defer C.free(unsafe.Pointer(cmSource))
-
-	var executablesource string
-	if len(args) > 0 {
-		executablesource = fmt.Sprintf("var __contract = %s;\n var __instance = new __contract();\n __instance[\"%s\"].apply(__instance, JSON.parse(\"%s\"));\n", C.GoString(cmSource), function, formatArgs(args))
-	} else {
-		executablesource = fmt.Sprintf("var __contract = %s;\n var __instance = new __contract();\n __instance[\"%s\"].apply(__instance);\n", C.GoString(cmSource), function)
-	}
-
-	return executablesource
 }

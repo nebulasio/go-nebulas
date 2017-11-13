@@ -17,6 +17,12 @@ SampleContract.prototype = {
         }, this);
         // console.log('init: this.name = ' + this.name);
         // console.log('init: this.count = ' + this.count);
+        console.log('init: this.context.coinbase = ' + this.context.coinbase);
+        console.log('init: this.context.blockNonce = ' + this.context.blockNonce);
+        console.log('init: this.context.blockHash = ' + this.context.blockHash);
+        console.log('init: this.context.blockHeight = ' + this.context.blockHeight);
+        console.log('init: this.context.txNonce = ' + this.context.txNonce);
+        console.log('init: this.context.txHash = ' + this.context.txHash);
     },
     dump: function () {
         console.log('dump: this.name = ' + this.name);

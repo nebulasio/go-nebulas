@@ -19,43 +19,42 @@
 package nvm
 
 import (
+	"encoding/json"
+
 	"github.com/nebulasio/go-nebulas/core/state"
-	"github.com/nebulasio/go-nebulas/util/byteutils"
 )
 
-// Block interface breaks cycle import dependency and hides unused properties.
-type Block interface {
-	Coinbase() []byte
-	Nonce() uint64
-	Hash() byteutils.Hash
-	ParentHash() byteutils.Hash
-	Height() uint64
-}
-
-// Transaction interface breaks cycle import dependency and hides unused properties.
-type Transaction interface {
-	ChainID() uint32
-	Nonce() uint64
-	Hash() byteutils.Hash
+// ContextParams warpper block & transaction info
+type ContextParams struct {
+	Coinbase    string `json:"coinbase"`
+	BlockNonce  uint64 `json:"blockNonce"`
+	BlockHash   string `json:"blockHash"`
+	BlockHeight uint64 `json:"blockHeight"`
+	TxNonce     uint64 `json:"txNonce"`
+	TxHash      string `json:"txHash"`
 }
 
 // Context nvm engine context
 type Context struct {
-	block    Block       //contract execute block
-	tx       Transaction //contract execute transaction
+	params   *ContextParams
 	owner    state.Account
 	contract state.Account
 	state    state.AccountState
 }
 
 // NewContext create a engine context
-func NewContext(block Block, tx Transaction, owner state.Account, contract state.Account, state state.AccountState) *Context {
+func NewContext(params *ContextParams, owner state.Account, contract state.Account, state state.AccountState) *Context {
 	ctx := &Context{
-		block:    block,
-		tx:       tx,
+		params:   params,
 		owner:    owner,
 		contract: contract,
 		state:    state,
 	}
 	return ctx
+}
+
+// getParamsJson returns a json string with block & transaction info
+func (c *Context) getParamsJSON() string {
+	jsonStr, _ := json.Marshal(c.params)
+	return string(jsonStr)
 }

@@ -182,8 +182,8 @@ func NewBlock(chainID uint32, coinbase *Address, parent *Block, txPool *Transact
 }
 
 // Coinbase return block's coinbase
-func (block *Block) Coinbase() []byte {
-	return block.header.coinbase.Bytes()
+func (block *Block) Coinbase() *Address {
+	return block.header.coinbase
 }
 
 // Nonce return nonce.
