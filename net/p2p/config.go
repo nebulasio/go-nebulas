@@ -20,6 +20,8 @@ package p2p
 
 import (
 	"net"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/multiformats/go-multiaddr"
@@ -88,7 +90,9 @@ func NewP2PConfig(n Neblet) *Config {
 	}
 	// P2P network randseed, in this release we use port as randseed
 	// config.Randseed = time.Now().Unix()
-	config.Randseed = int64(config.Port)
+	// config.Randseed = int64(config.Port)
+	config.Randseed = ipToInt64(config.IP)
+
 	return config
 }
 
@@ -106,6 +110,24 @@ func localHost() string {
 	}
 
 	return ""
+}
+
+func ipToInt64(ip string) int64 {
+	bits := strings.Split(ip, ".")
+
+	b0, _ := strconv.Atoi(bits[0])
+	b1, _ := strconv.Atoi(bits[1])
+	b2, _ := strconv.Atoi(bits[2])
+	b3, _ := strconv.Atoi(bits[3])
+
+	var sum int64
+
+	sum += int64(b0) << 24
+	sum += int64(b1) << 16
+	sum += int64(b2) << 8
+	sum += int64(b3)
+
+	return sum
 }
 
 // DefautConfig defautConfig is the p2p network defaut config
