@@ -397,7 +397,11 @@ func (ns *NetService) handleSyncRouteMsg(data []byte, pid peer.ID, s libnet.Stre
 			}).Warn("node addrs is nil")
 			continue
 		}
-		peer := messages.NewPeerInfoMessage(peerInfo.ID, peerInfo.Addrs[0].String())
+		var addres []string
+		for _, v := range peerInfo.Addrs {
+			addres = append(addres, v.String())
+		}
+		peer := messages.NewPeerInfoMessage(peerInfo.ID, addres)
 		peerList = append(peerList, peer)
 	}
 	log.WithFields(log.Fields{
@@ -452,21 +456,27 @@ func (ns *NetService) handleSyncRouteReplyMsg(data []byte, pid peer.ID, s libnet
 			}).Warn("node is already exist in route table")
 			continue
 		}
-		address, err := ma.NewMultiaddr(peers.Peers()[i].Addrs())
-		if err != nil {
-			log.WithFields(log.Fields{
-				"addrs": peers.Peers()[i].Addrs(),
-			}).Warn("parse address occurs error")
-			continue
+		var addres []ma.Multiaddr
+		for _, v := range peers.Peers()[i].Addrs() {
+			addr, _ := ma.NewMultiaddr(v)
+			addres = append(addres, addr)
 		}
+
+		// address, err := ma.NewMultiaddr(peers.Peers()[i].Addrs())
+		// if err != nil {
+		// 	log.WithFields(log.Fields{
+		// 		"addrs": peers.Peers()[i].Addrs(),
+		// 	}).Warn("parse address occurs error")
+		// 	continue
+		// }
 		log.WithFields(log.Fields{
 			"id":    id.Pretty(),
-			"addrs": peers.Peers()[i].Addrs(),
+			"addrs": addres,
 		}).Debug("discover new node")
 
-		node.peerstore.AddAddr(
+		node.peerstore.AddAddrs(
 			id,
-			address,
+			addres,
 			peerstore.ProviderAddrTTL,
 		)
 		if err := ns.Hello(id); err != nil {
