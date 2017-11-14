@@ -21,7 +21,7 @@ package nvm
 /*
 #include <stdlib.h>
 #cgo CFLAGS:
-#cgo LDFLAGS: -L${SRCDIR}/native-lib -lv8engine
+#cgo LDFLAGS: -lv8engine
 
 #include "v8/engine.h"
 
