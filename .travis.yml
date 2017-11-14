@@ -4,6 +4,13 @@ go:
 os:
 - osx
 - linux
+addons:
+  apt:
+    sources:
+    - ubuntu-toolchain-r-test
+    packages:
+    - gcc-5
+    - g++-5
 before_install:
 - go get github.com/golang/dep/cmd/dep
 install:
