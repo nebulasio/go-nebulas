@@ -30,6 +30,12 @@ void V8Log_cgo(int level, const char *msg);
 char *StorageGetFunc_cgo(void *handler, const char *key);
 int StoragePutFunc_cgo(void *handler, const char *key, const char *value);
 int StorageDelFunc_cgo(void *handler, const char *key);
+
+char *GetBlockByHashFunc_cgo(void *handler, const char *hash);
+char *GetTxByHashFunc_cgo(void *handler, const char *hash);
+char *GetAccountStateFunc_cgo(void *handler, const char *address);
+int SendFunc_cgo(void *handler, const char *to, const char *value);
+
 */
 import "C"
 import (
@@ -74,6 +80,7 @@ func InitV8Engine() {
 	C.Initialize()
 	C.InitializeLogger((C.LogFunc)(unsafe.Pointer(C.V8Log_cgo)))
 	C.InitializeStorage((C.StorageGetFunc)(unsafe.Pointer(C.StorageGetFunc_cgo)), (C.StoragePutFunc)(unsafe.Pointer(C.StoragePutFunc_cgo)), (C.StorageDelFunc)(unsafe.Pointer(C.StorageDelFunc_cgo)))
+	C.InitializeBlockchain((C.GetBlockByHashFunc)(unsafe.Pointer(C.GetBlockByHashFunc_cgo)), (C.GetTxByHashFunc)(unsafe.Pointer(C.GetTxByHashFunc_cgo)), (C.GetAccountStateFunc)(unsafe.Pointer(C.GetAccountStateFunc_cgo)), (C.SendFunc)(unsafe.Pointer(C.SendFunc_cgo)))
 }
 
 // DisposeV8Engine dispose the v8 engine.

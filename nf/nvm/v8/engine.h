@@ -40,10 +40,12 @@ enum LogLevel {
   ERROR = 4,
 };
 
+// log
 typedef void (*LogFunc)(int level, const char *msg);
 EXPORT const char *GetLogLevelText(int level);
 EXPORT void InitializeLogger(LogFunc f);
 
+// storage
 typedef char *(*StorageGetFunc)(void *handler, const char *key);
 typedef int (*StoragePutFunc)(void *handler, const char *key,
                               const char *value);
@@ -51,6 +53,15 @@ typedef int (*StorageDelFunc)(void *handler, const char *key);
 EXPORT void InitializeStorage(StorageGetFunc get, StoragePutFunc put,
                               StorageDelFunc del);
 
+// blockchain
+typedef char *(*GetBlockByHashFunc)(void *handler, const char *hash);
+typedef char *(*GetTxByHashFunc)(void *handler, const char *hash);
+typedef char *(*GetAccountStateFunc)(void *handler, const char *address);
+typedef int  (*SendFunc)(void *handler, const char *to, const char *value);
+EXPORT void InitializeBlockchain(GetBlockByHashFunc getBlock, GetTxByHashFunc getTx, GetAccountStateFunc getAccount,
+                        SendFunc send);
+
+// version
 EXPORT char *GetV8Version();
 
 typedef struct V8Engine {

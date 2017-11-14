@@ -24,10 +24,17 @@ char *StorageGetFunc(void *handler, const char *key);
 int StoragePutFunc(void *handler, const char *key, const char *value);
 int StorageDelFunc(void *handler, const char *key);
 
+char *GetBlockByHashFunc(void *handler, const char *hash);
+char *GetTxByHashFunc(void *handler, const char *hash);
+char *GetAccountStateFunc(void *handler, const char *address);
+int SendFunc(void *handler, const char *to, const char *value);
+
+
 // The gateway function
 void V8Log_cgo(int level, const char *msg) {
 	V8Log(level, msg);
 };
+
 char *StorageGetFunc_cgo(void *handler, const char *key) {
 	return StorageGetFunc(handler, key);
 };
@@ -37,5 +44,19 @@ int StoragePutFunc_cgo(void *handler, const char *key, const char *value) {
 int StorageDelFunc_cgo(void *handler, const char *key) {
 	return StorageDelFunc(handler, key);
 };
+
+char *GetBlockByHashFunc_cgo(void *handler, const char *hash) {
+	return GetBlockByHashFunc(handler, hash);
+};
+char *GetTxByHashFunc_cgo(void *handler, const char *hash) {
+	return GetTxByHashFunc(handler, hash);
+};
+char *GetAccountStateFunc_cgo(void *handler, const char *address) {
+	return GetAccountStateFunc(handler, address);
+};
+int SendFunc_cgo(void *handler, const char *to, const char *value) {
+	return SendFunc(handler, to, value);
+};
+
 */
 import "C"
