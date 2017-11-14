@@ -103,13 +103,13 @@ func (ns *NetService) doMsgTransfer(transfer []peer.ID, relayness []peer.ID, dat
 			continue
 		}
 		if len(addrs) > 0 {
-			key, err := GenerateKey(addrs[0], nodeID)
-			if err != nil {
-				log.Warn("distribute:  the addrs format is incorrect")
-				continue
-			}
+			// key, err := GenerateKey(addrs[0], nodeID)
+			// if err != nil {
+			// 	log.Warn("distribute:  the addrs format is incorrect")
+			// 	continue
+			// }
 			node.relayness.Add(dataChecksum, append(relayness, nodeID))
-			go ns.SendMsg(name, data, key)
+			go ns.SendMsg(name, data, nodeID.Pretty())
 		}
 	}
 }
@@ -128,13 +128,13 @@ func (ns *NetService) doRelay(nodes []peer.ID, relayness []peer.ID, dataChecksum
 			continue
 		}
 		if len(addrs) > 0 {
-			key, err := GenerateKey(addrs[0], nodeID)
-			if err != nil {
-				log.Warn("distribute: relay  the addrs format is incorrect")
-				continue
-			}
+			//key, err := GenerateKey(addrs[0], nodeID)
+			//if err != nil {
+			//	log.Warn("distribute: relay  the addrs format is incorrect")
+			//	continue
+			//}
 			node.relayness.Add(dataChecksum, append(relayness, nodeID))
-			go ns.SendMsg(NewHashMsg, byteutils.FromUint32(dataChecksum), key)
+			go ns.SendMsg(NewHashMsg, byteutils.FromUint32(dataChecksum), nodeID.Pretty())
 		}
 	}
 }

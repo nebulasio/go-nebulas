@@ -65,7 +65,6 @@ type Pow struct {
 	nm       net.Manager
 	coinbase *core.Address
 
-	states            consensus.States
 	currentState      consensus.State
 	stateTransitionCh chan *stateTransitionArgs
 
@@ -105,14 +104,7 @@ func NewPow(neblet Neblet) *Pow {
 		//panic("coinbase should be configed for pow")
 	}
 
-	p.states = consensus.States{
-		Mining:  NewMiningState(p),
-		Minted:  NewMintedState(p),
-		Prepare: NewPrepareState(p),
-		Start:   NewStartState(p),
-		Stopped: NewStoppedState(p),
-	}
-	p.currentState = p.states[Start]
+	p.currentState = NewStartState(p)
 
 	return p
 }
@@ -140,6 +132,7 @@ func (p *Pow) CanMining() bool {
 
 // SetCanMining set if consensus can do mining now
 func (p *Pow) SetCanMining(canMining bool) {
+	log.Info("sync over, start mining")
 	p.canMining = canMining
 	p.Event(consensus.NewBaseEvent(consensus.CanMiningEvent, nil))
 }
@@ -153,9 +146,7 @@ The whole event process should be as the following:
 func (p *Pow) Event(e consensus.Event) {
 	captured, nextState := p.currentState.Event(e)
 	if captured {
-		if nextState != nil && p.currentState != nextState {
-			p.Transit(p.currentState, nextState, nil)
-		}
+		p.Transit(p.currentState, nextState, nil)
 		return
 	}
 
@@ -167,7 +158,6 @@ func (p *Pow) Event(e consensus.Event) {
 		log.WithFields(log.Fields{
 			"block": block,
 		}).Info("Pow.Event: handle BlockMessage.")
-
 	default:
 		log.WithFields(log.Fields{
 			"eventType": e,
@@ -175,17 +165,8 @@ func (p *Pow) Event(e consensus.Event) {
 	}
 }
 
-// TransitByKey transit state by stateKey.
-func (p *Pow) TransitByKey(from string, to string, data interface{}) {
-	p.Transit(p.states[from], p.states[to], data)
-}
-
 // Transit transit state.
 func (p *Pow) Transit(from, to consensus.State, data interface{}) {
-	if p.currentState == to {
-		return
-	}
-
 	p.stateTransitionCh <- &stateTransitionArgs{from: from, to: to, data: data}
 }
 
@@ -212,6 +193,18 @@ func (p *Pow) VerifyBlock(block *core.Block) error {
 	return nil
 }
 
+func (p *Pow) checkValidTransit(from, to consensus.State) bool {
+	valid := from != nil && to != nil && from != to && p.currentState == from
+	log.WithFields(log.Fields{
+		"func":    "Pow.CheckTransit",
+		"success": valid,
+		"current": p.currentState,
+		"from":    from,
+		"to":      to,
+	}).Debug("State Transition.")
+	return valid
+}
+
 func (p *Pow) stateLoop() {
 	p.currentState.Enter(nil)
 
@@ -222,7 +215,7 @@ func (p *Pow) stateLoop() {
 			data := args.data
 			from := args.from
 
-			if p.currentState == to || p.currentState != from {
+			if !p.checkValidTransit(from, to) {
 				continue
 			}
 

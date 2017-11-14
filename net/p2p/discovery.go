@@ -86,11 +86,11 @@ func (net *NetService) syncSingleNode(nodeID peer.ID) {
 	}
 	nodeInfo := node.peerstore.PeerInfo(nodeID)
 	if len(nodeInfo.Addrs) != 0 {
-		key, err := GenerateKey(nodeInfo.Addrs[0], nodeID)
-		if err != nil {
-			return
-		}
-		if _, ok := node.stream[key]; ok {
+		//key, err := GenerateKey(nodeInfo.Addrs[0], nodeID)
+		//if err != nil {
+		//	return
+		//}
+		if _, ok := node.stream[nodeID.Pretty()]; ok {
 			net.SyncRoutes(nodeID)
 		}
 

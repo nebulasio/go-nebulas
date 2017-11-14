@@ -8,9 +8,9 @@ var Admin = require("./admin.js");
 
 var Neb = function (request) {
 	if (request) {
-		this.requestHandler = request;
+		this._requestHandler = request;
 	} else {
-		this.requestHandler = new HttpRequest();
+		this._requestHandler = new HttpRequest();
 	}
 
 	this.api = new API(this);
@@ -18,7 +18,7 @@ var Neb = function (request) {
 };
 
 Neb.prototype.setRequestHandler = function (request) {
-	this.requestHandler = request;
+	this._requestHandler = request;
 };
 
 module.exports = Neb;

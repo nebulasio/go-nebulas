@@ -141,7 +141,7 @@ func TestKeystore_Unlock(t *testing.T) {
 			[]byte("passphrase"),
 			"alias2",
 			priv2,
-			time.Second * 2,
+			time.Second * 3,
 			true,
 		},
 		{
@@ -149,7 +149,7 @@ func TestKeystore_Unlock(t *testing.T) {
 			[]byte("passphrase"),
 			"alias3",
 			priv3,
-			time.Second * 3,
+			time.Second * 5,
 			true,
 		},
 	}

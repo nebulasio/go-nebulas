@@ -21,11 +21,8 @@ package p2p
 import (
 	"bytes"
 	"errors"
-	"fmt"
 	"hash/crc32"
 	"io"
-	"strconv"
-	"strings"
 	"sync"
 	"time"
 
@@ -163,12 +160,13 @@ func (ns *NetService) streamHandler(s libnet.Stream) {
 			node := ns.node
 			pid := s.Conn().RemotePeer()
 			addrs := s.Conn().RemoteMultiaddr()
-			key, err := GenerateKey(addrs, pid)
-			if err != nil {
-				log.Error("streamHandler: ", err)
-				ns.Bye(pid, []ma.Multiaddr{addrs}, s, key)
-				return
-			}
+			//key, err := GenerateKey(addrs, pid)
+			//if err != nil {
+			//	log.Error("streamHandler: ", err)
+			//	ns.Bye(pid, []ma.Multiaddr{addrs}, s, key)
+			//	return
+			//}
+			key := pid.Pretty()
 			protocol, err := ns.parse(s)
 			if err != nil {
 				log.Error("streamHandler: parse network protocol occurs error, ", err)
@@ -290,6 +288,7 @@ func (ns *NetService) handleHelloMsg(data []byte, pid peer.ID, s libnet.Stream, 
 	log.WithFields(log.Fields{
 		"hello.NodeID":  hello.NodeID,
 		"pid":           pid,
+		"addrs":         addrs.String(),
 		"ClientVersion": hello.ClientVersion,
 	}).Info("handleHelloMsg: [HELLO] receive hello message.")
 
@@ -301,6 +300,12 @@ func (ns *NetService) handleHelloMsg(data []byte, pid peer.ID, s libnet.Stream, 
 			log.Error("handleHelloMsg: [HELLO] send ok message occurs error, ", err)
 			return result
 		}
+
+		node.peerstore.AddAddr(
+			pid,
+			addrs,
+			peerstore.PermanentAddrTTL,
+		)
 
 		totalData := ns.buildData(okdata, OK)
 
@@ -578,12 +583,13 @@ func (ns *NetService) SyncRoutes(pid peer.ID) {
 	data := []byte{}
 	totalData := ns.buildData(data, SyncRoute)
 
-	key, err := GenerateKey(addrs[0], pid)
-	if err != nil {
-		log.Error("SyncRoutes: ", err)
-		ns.clearPeerStore(pid, addrs)
-		return
-	}
+	//key, err := GenerateKey(addrs[0], pid)
+	//if err != nil {
+	//	log.Error("SyncRoutes: ", err)
+	//	ns.clearPeerStore(pid, addrs)
+	//	return
+	//}
+	key := pid.Pretty()
 
 	if _, ok := node.stream[key]; !ok {
 		log.Error("SyncRoutes: send message occrus error, stream does not exist.")
@@ -763,36 +769,36 @@ func ReadBytes(reader io.Reader, n uint32) ([]byte, error) {
 }
 
 // GenerateKey generate a key
-func GenerateKey(addrs ma.Multiaddr, pid peer.ID) (string, error) {
-	if len(strings.Split(addrs.String(), "/")) > 2 {
-		ip, err := stringIPToInt(strings.Split(addrs.String(), "/")[2])
-		if err != nil {
-			return "", err
-		}
-		key := fmt.Sprintf("%s:%d", pid.Pretty(), ip)
-		return key, nil
-	}
-	log.WithFields(log.Fields{
-		"addrs": addrs,
-		"pid":   pid,
-	}).Error("GenerateKey: the addrs format is incorrect.")
-	// TODO return nil, error
-	err := errors.New("GenerateKey: the addrs format is incorrect")
-	return "", err
-}
+// func GenerateKey(addrs ma.Multiaddr, pid peer.ID) (string, error) {
+// 	if len(strings.Split(addrs.String(), "/")) > 2 {
+// 		ip, err := stringIPToInt(strings.Split(addrs.String(), "/")[2])
+// 		if err != nil {
+// 			return "", err
+// 		}
+// 		key := fmt.Sprintf("%s:%d", pid.Pretty(), ip)
+// 		return key, nil
+// 	}
+// 	log.WithFields(log.Fields{
+// 		"addrs": addrs,
+// 		"pid":   pid,
+// 	}).Error("GenerateKey: the addrs format is incorrect.")
+// 	// TODO return nil, error
+// 	err := errors.New("GenerateKey: the addrs format is incorrect")
+// 	return "", err
+// }
 
-func stringIPToInt(ipstring string) (int, error) {
-	ipSegs := strings.Split(ipstring, ".")
-	if len(ipSegs) != 4 {
-		return 0, errors.New("The IP format is not correct")
-	}
-	var ipInt int
-	var pos uint = 24
-	for _, ipSeg := range ipSegs {
-		tempInt, _ := strconv.Atoi(ipSeg)
-		tempInt = tempInt << pos
-		ipInt = ipInt | tempInt
-		pos -= 8
-	}
-	return ipInt, nil
-}
+// func stringIPToInt(ipstring string) (int, error) {
+// 	ipSegs := strings.Split(ipstring, ".")
+// 	if len(ipSegs) != 4 {
+// 		return 0, errors.New("The IP format is not correct")
+// 	}
+// 	var ipInt int
+// 	var pos uint = 24
+// 	for _, ipSeg := range ipSegs {
+// 		tempInt, _ := strconv.Atoi(ipSeg)
+// 		tempInt = tempInt << pos
+// 		ipInt = ipInt | tempInt
+// 		pos -= 8
+// 	}
+// 	return ipInt, nil
+// }

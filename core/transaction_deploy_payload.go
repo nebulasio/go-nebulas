@@ -64,7 +64,15 @@ func (payload *DeployPayload) Execute(tx *Transaction, block *Block) error {
 	if err != nil {
 		return err
 	}
-	engine := nvm.NewV8Engine(owner, contract, context)
+	ctxParams := &nvm.ContextParams{
+		Coinbase:    block.Coinbase().String(),
+		BlockHash:   block.Hash().String(),
+		BlockHeight: block.Height(),
+		TxHash:      tx.Hash().String(),
+		TxNonce:     tx.Nonce(),
+	}
+	ctx := nvm.NewContext(ctxParams, owner, contract, context)
+	engine := nvm.NewV8Engine(ctx)
 	defer engine.Dispose()
 
 	return engine.DeployAndInit(payload.Source, payload.Args)

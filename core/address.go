@@ -87,8 +87,14 @@ func (a *Address) Bytes() []byte {
 }
 
 // ToHex convert address to hex
+// TODO:later remove it
 func (a *Address) ToHex() string {
 	return string(a.address.Hex())
+}
+
+// String returns address string
+func (a *Address) String() string {
+	return a.address.String()
 }
 
 // Equals compare two Address. True is equal, otherwise false.

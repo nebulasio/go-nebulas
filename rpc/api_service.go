@@ -45,7 +45,7 @@ func (s *APIService) GetNebState(ctx context.Context, req *rpcpb.GetNebStateRequ
 
 	resp := &rpcpb.GetNebStateResponse{}
 	resp.ChainId = neb.BlockChain().ChainID()
-	resp.Tail = string(tail.Hash().Hex())
+	resp.Tail = tail.Hash().String()
 	resp.Coinbase = tail.Coinbase().ToHex()
 	resp.Synchronized = neb.NetService().Node().GetSynchronized()
 	resp.PeerCount = uint32(len(neb.NetService().Node().GetStream()))
@@ -59,7 +59,7 @@ func (s *APIService) NodeInfo(ctx context.Context, req *rpcpb.NodeInfoRequest) (
 	neb := s.server.Neblet()
 	resp := &rpcpb.NodeInfoResponse{}
 	node := neb.NetService().Node()
-	resp.Id = node.ID().Pretty()
+	resp.Id = node.ID()
 	resp.ChainId = node.Config().ChainID
 	resp.BucketSize = int32(node.Config().Bucketsize)
 	resp.Version = uint32(node.Config().Version)

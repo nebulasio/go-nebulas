@@ -19,10 +19,10 @@
 package p2p
 
 import (
+	"bytes"
 	"context"
-	"crypto/rand"
+	"encoding/hex"
 	"fmt"
-	"io"
 	mrand "math/rand"
 	"strings"
 	"sync"
@@ -39,6 +39,14 @@ import (
 	"github.com/multiformats/go-multiaddr"
 	"github.com/nebulasio/go-nebulas/common/pdeque"
 	log "github.com/sirupsen/logrus"
+)
+
+const letterBytes = "0123456789ABCDEF0123456789ABCDE10123456789ABCDEF0123456789ABCDEF"
+
+const (
+	letterIdxBits = 6                    // 6 bits to represent a letter index
+	letterIdxMask = 1<<letterIdxBits - 1 // All 1-bits, as many as letterIdxBits
+	letterIdxMax  = 63 / letterIdxBits   // # of letter indices fitting in 63 bits
 )
 
 // Node the node can be used as both the client and the server
@@ -103,8 +111,8 @@ func (node *Node) Config() *Config {
 }
 
 // ID return node ID.
-func (node *Node) ID() peer.ID {
-	return node.host.ID()
+func (node *Node) ID() string {
+	return node.id.Pretty()
 }
 
 // SetSynchronized set node synchronized.
@@ -125,16 +133,18 @@ func (node *Node) GetStream() map[string]*StreamStore {
 func (node *Node) init() error {
 
 	ctx := node.context
-	randseed := node.config.Randseed
-	var r io.Reader
-	if randseed == 0 {
-		r = rand.Reader
+	var randseedstr string
+	if len(node.Config().BootNodes) == 0 {
+		// seednode
+		randseedstr = letterBytes
 	} else {
-		r = mrand.New(mrand.NewSource(randseed))
+		randseedstr = randSeed(64)
 	}
+	randseed, err := hex.DecodeString(randseedstr)
 
-	priv, pub, err := crypto.GenerateKeyPairWithReader(crypto.RSA, 2048, r)
-
+	priv, pub, err := crypto.GenerateEd25519Key(
+		bytes.NewReader(randseed),
+	)
 	if err != nil {
 		return err
 	}
@@ -197,6 +207,24 @@ func (node *Node) init() error {
 	log.Infof("makeHost: boot node pretty id is %s", node.id.Pretty())
 	node.host, err = basichost.NewHost(node.context, network, options)
 	return err
+}
+
+func randSeed(n int) string {
+	var src = mrand.NewSource(time.Now().UnixNano())
+	b := make([]byte, n)
+	for i, cache, remain := n-1, src.Int63(), letterIdxMax; i >= 0; {
+		if remain == 0 {
+			cache, remain = mrand.Int63(), letterIdxMax
+		}
+		if idx := int(cache & letterIdxMask); idx < len(letterBytes) {
+			b[i] = letterBytes[idx]
+			i--
+		}
+		cache >>= letterIdxBits
+		remain--
+	}
+
+	return string(b)
 }
 
 // SayHello Say hello to trustedNode

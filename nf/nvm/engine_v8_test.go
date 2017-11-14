@@ -62,7 +62,8 @@ func TestRunScriptSource(t *testing.T) {
 			context, _ := state.NewAccountState(nil, mem)
 			owner := context.GetOrCreateUserAccount([]byte("account1"))
 			contract, _ := context.CreateContractAccount([]byte("account2"), nil)
-			engine := NewV8Engine(owner, contract, context)
+			ctx := NewContext(nil, owner, contract, context)
+			engine := NewV8Engine(ctx)
 			err = engine.RunScriptSource(string(data))
 			assert.Equal(t, tt.expectedErr, err)
 			engine.Dispose()
@@ -90,17 +91,24 @@ func TestDeployAndInitAndCall(t *testing.T) {
 			owner := context.GetOrCreateUserAccount([]byte("account1"))
 			contract, _ := context.CreateContractAccount([]byte("account2"), nil)
 
-			engine := NewV8Engine(owner, contract, context)
+			params := &ContextParams{Coinbase: "0eb3be2db3a534c192be5570c6c42f59",
+				BlockNonce:  1,
+				BlockHash:   "5e6d587f26121f96a07cf4b8b569aac1",
+				BlockHeight: 2,
+				TxNonce:     3,
+				TxHash:      "c7174759e86c59dcb7df87def82f61eb"}
+			ctx := NewContext(params, owner, contract, context)
+			engine := NewV8Engine(ctx)
 			err = engine.DeployAndInit(string(data), tt.initArgs)
 			assert.Nil(t, err)
 			engine.Dispose()
 
-			engine = NewV8Engine(owner, contract, context)
+			engine = NewV8Engine(ctx)
 			err = engine.Call(string(data), "dump", "")
 			assert.Nil(t, err)
 			engine.Dispose()
 
-			engine = NewV8Engine(owner, contract, context)
+			engine = NewV8Engine(ctx)
 			err = engine.Call(string(data), "verify", tt.verifyArgs)
 			assert.Nil(t, err)
 			engine.Dispose()
@@ -111,7 +119,8 @@ func TestDeployAndInitAndCall(t *testing.T) {
 			owner = context.GetOrCreateUserAccount([]byte("account1"))
 			contract, _ = context.CreateContractAccount([]byte("account2"), nil)
 
-			engine = NewV8Engine(owner, contract, context)
+			ctx = NewContext(params, owner, contract, context)
+			engine = NewV8Engine(ctx)
 			err = engine.Call(string(data), "verify", tt.verifyArgs)
 			assert.NotNil(t, err)
 			engine.Dispose()
@@ -142,7 +151,8 @@ func TestFunctionNameCheck(t *testing.T) {
 			owner := context.GetOrCreateUserAccount([]byte("account1"))
 			contract, _ := context.CreateContractAccount([]byte("account2"), nil)
 
-			engine := NewV8Engine(owner, contract, context)
+			ctx := NewContext(nil, owner, contract, context)
+			engine := NewV8Engine(ctx)
 			err = engine.Call(string(data), tt.function, tt.args)
 			assert.Equal(t, tt.expectedErr, err)
 			engine.Dispose()
@@ -162,7 +172,8 @@ func TestMultiEngine(t *testing.T) {
 		idx := i
 		go func() {
 			defer wg.Done()
-			engine := NewV8Engine(owner, contract, context)
+			ctx := NewContext(nil, owner, contract, context)
+			engine := NewV8Engine(ctx)
 			defer engine.Dispose()
 
 			err := engine.RunScriptSource("console.log('running.');")
