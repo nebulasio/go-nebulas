@@ -145,6 +145,13 @@ message NodeInfoResponse {
 
 	// the network protocol version.
 	string protocol_version = 10;
+
+	repeated RouteTable route_table = 11;
+}
+
+message RouteTable {
+	string id = 1;
+	string address = 2;
 }
 
 // Response message of GetNebState rpc.
