@@ -24,8 +24,12 @@
 
 using namespace v8;
 
+typedef void (*InstructionCounterIncrListener)(Isolate *isolate, size_t count,
+                                               void *context);
+void SetInstructionCounterIncrListener(InstructionCounterIncrListener listener);
+
 void NewInstructionCounterInstance(Isolate *isolate, Local<Context> context,
-                                   size_t *counter);
+                                   size_t *counter, void *listenerContext);
 
 void IncrCounterCallback(const FunctionCallbackInfo<Value> &info);
 void CountGetterCallback(Local<String> property,

@@ -57,20 +57,16 @@ EXPORT void InitializeStorage(StorageGetFunc get, StoragePutFunc put,
 typedef char *(*GetBlockByHashFunc)(void *handler, const char *hash);
 typedef char *(*GetTxByHashFunc)(void *handler, const char *hash);
 typedef char *(*GetAccountStateFunc)(void *handler, const char *address);
-typedef int  (*SendFunc)(void *handler, const char *to, const char *value);
-EXPORT void InitializeBlockchain(GetBlockByHashFunc getBlock, GetTxByHashFunc getTx, GetAccountStateFunc getAccount,
-                        SendFunc send);
+typedef int (*SendFunc)(void *handler, const char *to, const char *value);
+EXPORT void InitializeBlockchain(GetBlockByHashFunc getBlock,
+                                 GetTxByHashFunc getTx,
+                                 GetAccountStateFunc getAccount, SendFunc send);
 
 // version
 EXPORT char *GetV8Version();
 
-typedef struct V8Engine {
-  void *isolate;
-  void *allocator;
-  size_t count_of_executed_instruction;
-} V8Engine;
-
 typedef struct V8EngineStats {
+  size_t count_of_executed_instructions;
   size_t total_heap_size;
   size_t total_heap_size_executable;
   size_t total_physical_size;
@@ -80,6 +76,15 @@ typedef struct V8EngineStats {
   size_t malloced_memory;
   size_t peak_malloced_memory;
 } V8EngineStats;
+
+typedef struct V8Engine {
+  void *isolate;
+  void *allocator;
+  size_t limits_of_executed_instructions;
+  size_t limits_of_total_heap_size;
+  int is_requested_terminate_execution;
+  V8EngineStats stats;
+} V8Engine;
 
 EXPORT void Initialize();
 EXPORT void Dispose();
@@ -91,7 +96,7 @@ EXPORT int RunScriptSource(V8Engine *e, const char *data, uintptr_t lcsHandler,
 
 EXPORT char *InjectTracingInstructions(V8Engine *e, const char *source);
 
-EXPORT V8EngineStats *GetV8EngineStatistics(V8Engine *e);
+EXPORT void ReadMemoryStatistics(V8Engine *e);
 
 EXPORT void TerminateExecution(V8Engine *e);
 

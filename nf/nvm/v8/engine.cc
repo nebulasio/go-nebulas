@@ -19,13 +19,13 @@
 
 #include "engine.h"
 #include "engine_int.h"
+#include "lib/blockchain.h"
 #include "lib/execution_env.h"
 #include "lib/instruction_counter.h"
 #include "lib/log_callback.h"
 #include "lib/require_callback.h"
 #include "lib/storage_object.h"
 #include "lib/tracing.h"
-#include "lib/blockchain.h"
 #include "v8_data_inc.h"
 
 #include <libplatform/libplatform.h>
@@ -38,6 +38,8 @@ using namespace v8;
 static Platform *platformPtr = NULL;
 
 void PrintException(Local<Context> context, TryCatch &trycatch);
+void EngineLimitsCheckDelegate(Isolate *isolate, size_t count,
+                               void *listenerContext);
 
 #define STRINGIZE2(s) #s
 #define STRINGIZE(s) STRINGIZE2(s)
@@ -65,6 +67,9 @@ void Initialize() {
   V8::SetSnapshotDataBlob(&snapshotData);
 
   V8::Initialize();
+
+  // Initialize V8Engine.
+  SetInstructionCounterIncrListener(EngineLimitsCheckDelegate);
 }
 
 void Dispose() {
@@ -91,7 +96,6 @@ V8Engine *CreateEngine() {
   V8Engine *e = (V8Engine *)calloc(1, sizeof(V8Engine));
   e->allocator = allocator;
   e->isolate = isolate;
-  e->count_of_executed_instruction = 0;
   return e;
 }
 
@@ -176,7 +180,7 @@ int Execute(V8Engine *e, const char *data, void *lcsHandler, void *gcsHandler,
   // Continue put objects to global object.
   NewStorageTypeInstance(isolate, context, lcsHandler, gcsHandler);
   NewInstructionCounterInstance(isolate, context,
-                                &(e->count_of_executed_instruction));
+                                &(e->stats.count_of_executed_instructions), e);
 
   // Setup execution env.
   if (SetupExecutionEnv(isolate, context)) {
@@ -204,14 +208,12 @@ void PrintException(Local<Context> context, TryCatch &trycatch) {
   }
 }
 
-V8EngineStats *GetV8EngineStatistics(V8Engine *e) {
+void ReadMemoryStatistics(V8Engine *e) {
   Isolate *isolate = static_cast<Isolate *>(e->isolate);
   HeapStatistics heap_stats;
   isolate->GetHeapStatistics(&heap_stats);
 
-  V8EngineStats *stats =
-      static_cast<V8EngineStats *>(calloc(1, sizeof(V8EngineStats)));
-
+  V8EngineStats *stats = &(e->stats);
   stats->heap_size_limit = heap_stats.heap_size_limit();
   stats->malloced_memory = heap_stats.malloced_memory();
   stats->peak_malloced_memory = heap_stats.peak_malloced_memory();
@@ -220,11 +222,31 @@ V8EngineStats *GetV8EngineStatistics(V8Engine *e) {
   stats->total_heap_size_executable = heap_stats.total_heap_size_executable();
   stats->total_physical_size = heap_stats.total_physical_size();
   stats->used_heap_size = heap_stats.used_heap_size();
-
-  return stats;
 }
 
 void TerminateExecution(V8Engine *e) {
+  if (e->is_requested_terminate_execution) {
+    return;
+  }
   Isolate *isolate = static_cast<Isolate *>(e->isolate);
   isolate->TerminateExecution();
+  e->is_requested_terminate_execution = 1;
+}
+
+void EngineLimitsCheckDelegate(Isolate *isolate, size_t count,
+                               void *listenerContext) {
+  V8Engine *e = static_cast<V8Engine *>(listenerContext);
+
+  // TODO: read memory stats everytime may impact the performance.
+  ReadMemoryStatistics(e);
+
+  if (e->limits_of_executed_instructions > 0 &&
+      e->limits_of_executed_instructions < count) {
+    // Reach instruction limits, terminate.
+    TerminateExecution(e);
+  } else if (e->limits_of_total_heap_size > 0 &&
+             e->limits_of_total_heap_size < e->stats.total_heap_size) {
+    // reach memory limits, terminate.
+    TerminateExecution(e);
+  }
 }
