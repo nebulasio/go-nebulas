@@ -42,6 +42,8 @@ void logFunc(int level, const char *msg) {
 
 void help(const char *name) {
   printf("%s [-c <concurrency>] <Javascript File>\n", name);
+  printf("%s -t <Javascript File>\n", name);
+  printf("\t inject tracer code into file.\n");
   exit(1);
 }
 
@@ -85,7 +87,7 @@ void run(const char *data) {
   void *gcsHandler = CreateStorageHandler();
 
   V8Engine *e = CreateEngine();
-  RunScriptSource2(e, data, (uintptr_t)lcsHandler, (uintptr_t)gcsHandler);
+  RunScriptSource(e, data, (uintptr_t)lcsHandler, (uintptr_t)gcsHandler);
   DeleteEngine(e);
 
   DeleteStorageHandler(lcsHandler);
@@ -97,14 +99,17 @@ int main(int argc, const char *argv[]) {
     help(argv[0]);
   }
 
-  int argcIdx = 1;
-
-  int concurrency = 1;
+  Initialize();
+  InitializeLogger(logFunc);
+  InitializeStorage(StorageGet, StoragePut, StorageDel);
 
   if (strcmp(argv[1], "-c") == 0) {
     if (argc < 4) {
       help(argv[0]);
     }
+
+    int concurrency = 1;
+    int argcIdx = 1;
 
     concurrency = atoi(argv[2]);
     if (concurrency <= 0) {
@@ -112,31 +117,54 @@ int main(int argc, const char *argv[]) {
       concurrency = 1;
     }
     argcIdx += 2;
-  }
 
-  const char *filename = argv[argcIdx];
-  char *data = NULL;
-  size_t size = 0;
-  readSource(filename, &data, &size);
+    const char *filename = argv[argcIdx];
+    char *data = NULL;
+    size_t size = 0;
+    readSource(filename, &data, &size);
 
-  // temp set handler pointer.
+    std::vector<std::thread *> threads;
+    for (int i = 0; i < concurrency; i++) {
+      std::thread *thread = new std::thread(run, data);
+      threads.push_back(thread);
+    }
 
-  Initialize();
-  InitializeLogger(logFunc);
-  InitializeStorage(StorageGet, StoragePut, StorageDel);
+    for (int i = 0; i < concurrency; i++) {
+      threads[i]->join();
+    }
+    free(data);
 
-  std::vector<std::thread *> threads;
-  for (int i = 0; i < concurrency; i++) {
-    std::thread *thread = new std::thread(run, data);
-    threads.push_back(thread);
-  }
+  } else if (strcmp(argv[1], "-t") == 0) {
+    // inject tracer.
+    if (argc < 3) {
+      help(argv[0]);
+    }
 
-  for (int i = 0; i < concurrency; i++) {
-    threads[i]->join();
+    const char *filename = argv[2];
+    char *data = NULL;
+    size_t size = 0;
+    readSource(filename, &data, &size);
+
+    void *lcsHandler = CreateStorageHandler();
+    void *gcsHandler = CreateStorageHandler();
+
+    V8Engine *e = CreateEngine();
+    char *traceableSource = InjectTracingInstructions(e, data);
+    if (traceableSource == NULL) {
+      printf("Error.\n");
+    } else {
+      printf("%s\n", traceableSource);
+      free(traceableSource);
+    }
+
+    DeleteEngine(e);
+
+    DeleteStorageHandler(lcsHandler);
+    DeleteStorageHandler(gcsHandler);
+
+    free(data);
   }
 
   Dispose();
-  free(data);
-
   return 0;
 }

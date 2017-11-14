@@ -75,11 +75,10 @@ EXPORT void Dispose();
 
 EXPORT V8Engine *CreateEngine();
 
-EXPORT int RunScriptSource(V8Engine *e, const char *data, void *lcsHandler,
-                           void *gcsHandler);
+EXPORT int RunScriptSource(V8Engine *e, const char *data, uintptr_t lcsHandler,
+                           uintptr_t gcsHandler);
 
-EXPORT int RunScriptSource2(V8Engine *e, const char *data, uintptr_t lcsHandler,
-                            uintptr_t gcsHandler);
+EXPORT char *InjectTracingInstructions(V8Engine *e, const char *source);
 
 EXPORT V8EngineStats *GetV8EngineStatistics(V8Engine *e);
 

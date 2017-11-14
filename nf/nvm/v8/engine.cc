@@ -18,11 +18,13 @@
 //
 
 #include "engine.h"
+#include "engine_int.h"
 #include "lib/execution_env.h"
 #include "lib/instruction_counter.h"
 #include "lib/log_callback.h"
 #include "lib/require_callback.h"
 #include "lib/storage_object.h"
+#include "lib/tracing.h"
 #include "v8_data_inc.h"
 
 #include <libplatform/libplatform.h>
@@ -101,13 +103,50 @@ void DeleteEngine(V8Engine *e) {
   free(e);
 }
 
-int RunScriptSource2(V8Engine *e, const char *data, uintptr_t lcsHandler,
-                     uintptr_t gcsHandler) {
-  return RunScriptSource(e, data, (void *)lcsHandler, (void *)gcsHandler);
+int ExecuteSourceDataDelegate(Isolate *isolate, const char *data,
+                              Local<Context> context, TryCatch &trycatch,
+                              void *delegateContext) {
+  // Create a string containing the JavaScript source code.
+  Local<String> source =
+      String::NewFromUtf8(isolate, data, NewStringType::kNormal)
+          .ToLocalChecked();
+
+  // Compile the source code.
+  ScriptOrigin sourceSrcOrigin(
+      String::NewFromUtf8(isolate, "_contract_runner.js"));
+  MaybeLocal<Script> script =
+      Script::Compile(context, source, &sourceSrcOrigin);
+
+  if (script.IsEmpty()) {
+    PrintException(context, trycatch);
+    return 1;
+  }
+
+  // Run the script to get the result.
+  MaybeLocal<Value> ret = script.ToLocalChecked()->Run(context);
+  if (ret.IsEmpty()) {
+    PrintException(context, trycatch);
+    return 1;
+  }
+
+  return 0;
 }
 
-int RunScriptSource(V8Engine *e, const char *data, void *lcsHandler,
-                    void *gcsHandler) {
+char *InjectTracingInstructions(V8Engine *e, const char *source) {
+  char *traceableSource = NULL;
+  Execute(e, source, 0L, 0L, InjectTracingInstructionDelegate,
+          (void *)&traceableSource);
+  return traceableSource;
+}
+
+int RunScriptSource(V8Engine *e, const char *data, uintptr_t lcsHandler,
+                    uintptr_t gcsHandler) {
+  return Execute(e, data, (void *)lcsHandler, (void *)gcsHandler,
+                 ExecuteSourceDataDelegate, NULL);
+}
+
+int Execute(V8Engine *e, const char *data, void *lcsHandler, void *gcsHandler,
+            ExecutionDelegate delegate, void *delegateContext) {
   Isolate *isolate = static_cast<Isolate *>(e->isolate);
   assert(isolate);
 
@@ -127,7 +166,7 @@ int RunScriptSource(V8Engine *e, const char *data, void *lcsHandler,
   // Disable eval().
   context->AllowCodeGenerationFromStrings(false);
 
-  // Enter the context for compiling and running the hello world script.
+  // Enter the context for compiling and running the script.
   Context::Scope context_scope(context);
 
   TryCatch trycatch(isolate);
@@ -144,34 +183,7 @@ int RunScriptSource(V8Engine *e, const char *data, void *lcsHandler,
     return 1;
   }
 
-  // Create a string containing the JavaScript source code.
-  Local<String> source =
-      String::NewFromUtf8(isolate, data, NewStringType::kNormal)
-          .ToLocalChecked();
-  // Compile the source code.
-  ScriptOrigin sourceSrcOrigin(
-      String::NewFromUtf8(isolate, "_contract_runner.js"));
-  MaybeLocal<Script> script =
-      Script::Compile(context, source, &sourceSrcOrigin);
-
-  if (script.IsEmpty()) {
-    // logErrorf("contract_wrapper.js: compilation fail.");
-    PrintException(context, trycatch);
-    return 1;
-  }
-
-  // Run the script to get the result.
-  MaybeLocal<Value> ret = script.ToLocalChecked()->Run(context);
-  if (ret.IsEmpty()) {
-    // logErrorf("contract_wrapper.js: execution fail.");
-    PrintException(context, trycatch);
-    return 1;
-  }
-
-  // Local<Value> ret_str = ret.ToLocalChecked();
-  // String::Utf8Value s(ret_str);
-  // logInfof("ret value: %s", *s);
-  return 0;
+  return delegate(isolate, data, context, trycatch, delegateContext);
 }
 
 void PrintException(Local<Context> context, TryCatch &trycatch) {
