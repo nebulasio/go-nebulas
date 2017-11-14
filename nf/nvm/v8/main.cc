@@ -20,6 +20,7 @@
 #include "engine.h"
 #include "lib/log_callback.h"
 #include "lib/memory_storage.h"
+#include "lib/blockchain.h"
 
 #include <thread>
 #include <vector>
@@ -27,6 +28,26 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+char *GetBlockByHash(void *handler, const char *hash) {
+  char *ret = NULL;
+  //TODO:not impl
+  return ret;
+}
+char *GetTxByHash(void *handler, const char *hash) {
+  char *ret = NULL;
+  //TODO:not impl
+  return ret;
+}
+char *GetAccountState(void *handler, const char *address) {
+  char *ret = NULL;
+  //TODO:not impl
+  return ret;
+}
+int Send(void *handler, const char *to, const char *value) {
+  //TODO:not impl
+  return 0;
+}
 
 void logFunc(int level, const char *msg) {
   std::thread::id tid = std::this_thread::get_id();
@@ -102,6 +123,7 @@ int main(int argc, const char *argv[]) {
   Initialize();
   InitializeLogger(logFunc);
   InitializeStorage(StorageGet, StoragePut, StorageDel);
+  InitializeBlockchain(GetBlockByHash, GetTxByHash, GetAccountState, Send);
 
   if (strcmp(argv[1], "-c") == 0) {
     if (argc < 4) {

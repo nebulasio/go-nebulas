@@ -25,6 +25,7 @@
 #include "lib/require_callback.h"
 #include "lib/storage_object.h"
 #include "lib/tracing.h"
+#include "lib/blockchain.h"
 #include "v8_data_inc.h"
 
 #include <libplatform/libplatform.h>
@@ -159,6 +160,7 @@ int Execute(V8Engine *e, const char *data, void *lcsHandler, void *gcsHandler,
   NewNativeRequireFunction(isolate, globalTpl);
   NewNativeLogFunction(isolate, globalTpl);
   NewStorageType(isolate, globalTpl);
+  NewBlockchain(isolate, globalTpl);
 
   // Create a new context.
   Local<Context> context = Context::New(isolate, NULL, globalTpl);

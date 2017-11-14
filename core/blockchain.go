@@ -31,6 +31,7 @@ import (
 	"github.com/nebulasio/go-nebulas/storage"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
 	log "github.com/sirupsen/logrus"
+	"encoding/json"
 )
 
 // BlockChain the BlockChain core type.
@@ -88,6 +89,12 @@ func NewBlockChain(chainID uint32, storage storage.Storage) (*BlockChain, error)
 // ChainID return the chainID.
 func (bc *BlockChain) ChainID() uint32 {
 	return bc.chainID
+}
+
+// IsValidAddress returns if the addr string is valid
+func (bc *BlockChain) IsValidAddress(str string) bool {
+	_, err := AddressParse(str)
+	return err == nil
 }
 
 // Storage return the storage
@@ -255,6 +262,24 @@ func (bc *BlockChain) GetTransaction(hash byteutils.Hash) *Transaction {
 		return nil
 	}
 	return tx
+}
+
+// SerializeBlockByHash returns block serialized bytes
+func (bc *BlockChain) SerializeBlockByHash(hash byteutils.Hash) ([]byte, error) {
+	block := bc.GetBlock(hash)
+	if block == nil {
+		return nil, errors.New("block not find")
+	}
+	return json.Marshal(block)
+}
+
+// SerializeTxByHash returns tx serialized bytes
+func (bc *BlockChain) SerializeTxByHash(hash byteutils.Hash) ([]byte, error) {
+	tx := bc.GetTransaction(hash)
+	if tx == nil {
+		return nil, errors.New("transaction not find")
+	}
+	return json.Marshal(tx)
 }
 
 // Dump dump full chain.

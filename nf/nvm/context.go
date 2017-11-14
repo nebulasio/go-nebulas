@@ -22,7 +22,15 @@ import (
 	"encoding/json"
 
 	"github.com/nebulasio/go-nebulas/core/state"
+	"github.com/nebulasio/go-nebulas/util/byteutils"
 )
+
+// Blockchain interface breaks cycle import dependency and hides unused services.
+type Blockchain interface {
+	IsValidAddress(str string) bool
+	SerializeBlockByHash(hash byteutils.Hash) ([]byte, error)
+	SerializeTxByHash(hash byteutils.Hash) ([]byte, error)
+}
 
 // ContextParams warpper block & transaction info
 type ContextParams struct {
@@ -40,6 +48,7 @@ type Context struct {
 	owner    state.Account
 	contract state.Account
 	state    state.AccountState
+	chain    Blockchain
 }
 
 // NewContext create a engine context
