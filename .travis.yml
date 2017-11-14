@@ -17,6 +17,8 @@ install:
 - dep ensure
 - sudo install nf/nvm/native-lib/* /usr/local/lib
 - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo /sbin/ldconfig ; fi
+before_script:
+- ./dump.sh
 script:
 - go test -v ./...
 notifications:
