@@ -188,6 +188,10 @@ func (ns *NetService) streamHandler(s libnet.Stream) {
 				ns.handleNewHashMsg(protocol.data, pid)
 			default:
 				var relayness []peer.ID
+				if _, ok := node.stream[key]; !ok {
+					ns.Bye(pid, []ma.Multiaddr{addrs}, s, key)
+					return
+				}
 				if node.stream[key].conn != SOK {
 					log.Error("peer not shake hand before send message.")
 					ns.Bye(pid, []ma.Multiaddr{addrs}, s, key)
@@ -725,14 +729,24 @@ func (ns *NetService) start() error {
 }
 
 func (ns *NetService) manageStreamStore() {
-	second := 60 * time.Second
+	second := 30 * time.Second
 	ticker := time.NewTicker(second)
 	for {
 		select {
 		case <-ticker.C:
 			ns.clearStreamStore()
+			ns.cleanPeerStore()
 		case <-ns.quitCh:
 			return
+		}
+	}
+}
+
+func (ns *NetService) cleanPeerStore() {
+	node := ns.node
+	for _, v := range node.peerstore.Peers() {
+		if _, ok := node.stream[v.Pretty()]; !ok {
+			node.peerstore.ClearAddrs(v)
 		}
 	}
 }
