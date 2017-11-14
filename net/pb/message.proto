@@ -31,5 +31,5 @@ message Peers {
 
 message PeerInfo {
     string id = 1;
-    string addrs = 2;
+    repeated string addrs = 2;
 }

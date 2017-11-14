@@ -151,7 +151,7 @@ message NodeInfoResponse {
 
 message RouteTable {
 	string id = 1;
-	string address = 2;
+	repeated string address = 2;
 }
 
 // Response message of GetNebState rpc.
