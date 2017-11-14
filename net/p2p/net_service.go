@@ -560,16 +560,17 @@ func (ns *NetService) Hello(pid peer.ID) error {
 		pid,
 		ProtocolID,
 	)
-	// addrs := node.peerstore.PeerInfo(pid).Addrs
-	// if err != nil {
-	// 	log.Error("say hello occurs error, ", err)
-	// 	ns.clearPeerStore(pid, addrs)
-	// 	return err
-	// }
-	// if len(addrs) < 1 {
-	// 	log.Error("Hello: wrong pid addrs")
-	// 	return errors.New("wrong pid addrs")
-	// }
+	addrs := node.peerstore.PeerInfo(pid).Addrs
+	if err != nil {
+		log.Error("say hello occurs error, ", err)
+		ns.clearPeerStore(pid, addrs)
+		return err
+	}
+	if len(addrs) < 1 {
+		log.Error("Hello: wrong pid addrs")
+		ns.clearPeerStore(pid, addrs)
+		return errors.New("wrong pid addrs")
+	}
 
 	hello := messages.NewHelloMessage(node.id.String(), ClientVersion)
 	pb, _ := hello.ToProto()
