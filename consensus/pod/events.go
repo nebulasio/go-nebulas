@@ -16,25 +16,14 @@
 // along with the go-nebulas library.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-package consensus
-
-import "github.com/nebulasio/go-nebulas/core"
+package pod
 
 // EventType list
 const (
-	NewBlockEvent  = "event.newblock"
-	CanMiningEvent = "event.canmining"
+	TimeoutEvent         = "event.timeout"
+	NewPrepareVoteEvent  = "event.vote.prepare"
+	NewCommitVoteEvent   = "event.vote.commit"
+	NewChangeVoteEvent   = "event.vote.change"
+	NewAbdicateVoteEvent = "event.vote.abdicate"
+	CanMiningEvent       = "event.canmining"
 )
-
-// Consensus interface of consensus algorithm.
-type Consensus interface {
-	Start()
-	Stop()
-
-	CanMining() bool
-	SetCanMining(bool)
-
-	Transit(from, to State, data interface{})
-
-	VerifyBlock(*core.Block) error
-}

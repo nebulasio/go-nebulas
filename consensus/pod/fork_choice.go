@@ -16,10 +16,19 @@
 // along with the go-nebulas library.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-package pow
+package pod
 
-// Event list of PoW State-Machine
-const (
-	TimeoutEvent  = "timeout"
-	StoppingEvent = "stopping"
+import (
+	log "github.com/sirupsen/logrus"
 )
+
+// ForkChoice Rule of PoD Consensus
+// 1. Choose the chain with highest score
+// 2. if same score, choose the longest chain
+// 3. if same length, choose the chain whose tail's hash is smaller
+func (p *PoD) ForkChoice() {
+	log.WithFields(log.Fields{
+		"func":         "PoD.ForkChoice",
+		"current tail": p.chain.TailBlock(),
+	}).Info("Fork Choice.")
+}
