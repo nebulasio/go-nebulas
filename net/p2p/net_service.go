@@ -288,6 +288,7 @@ func (ns *NetService) handleHelloMsg(data []byte, pid peer.ID, s libnet.Stream, 
 	log.WithFields(log.Fields{
 		"hello.NodeID":  hello.NodeID,
 		"pid":           pid,
+		"addrs":         addrs.String(),
 		"ClientVersion": hello.ClientVersion,
 	}).Info("handleHelloMsg: [HELLO] receive hello message.")
 
@@ -299,6 +300,12 @@ func (ns *NetService) handleHelloMsg(data []byte, pid peer.ID, s libnet.Stream, 
 			log.Error("handleHelloMsg: [HELLO] send ok message occurs error, ", err)
 			return result
 		}
+
+		node.peerstore.AddAddr(
+			pid,
+			addrs,
+			peerstore.PermanentAddrTTL,
+		)
 
 		totalData := ns.buildData(okdata, OK)
 

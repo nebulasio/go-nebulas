@@ -35,6 +35,11 @@ const (
 	DescendantCount = 3
 )
 
+var (
+	nonce       = uint64(0)
+	msgErrCount = 0
+)
+
 // Manager is used to manage the sync service
 type Manager struct {
 	blockChain         *core.BlockChain
@@ -48,14 +53,25 @@ type Manager struct {
 	endSyncCh          chan bool
 	curTail            *core.Block
 	canHandleCh        chan bool
-	errCount           int
-	nonce              uint64
 	goParentSyncCh     chan bool
 }
 
 // NewManager new sync manager
 func NewManager(blockChain *core.BlockChain, consensus consensus.Consensus, ns *p2p.NetService) *Manager {
-	m := &Manager{blockChain, consensus, ns, make(chan bool, 1), make(chan bool, 1), make(chan net.Message, 128), make(chan net.Message, 128), make(map[string]*NetBlocks), make(chan bool, 1), blockChain.TailBlock(), make(chan bool, 1), 0, 0, make(chan bool, 1)}
+	m := &Manager{
+		blockChain,
+		consensus,
+		ns,
+		make(chan bool, 1),
+		make(chan bool, 1),
+		make(chan net.Message, 128),
+		make(chan net.Message, 128),
+		make(map[string]*NetBlocks),
+		make(chan bool, 1),
+		blockChain.TailBlock(),
+		make(chan bool, 1),
+		make(chan bool, 1),
+	}
 	m.RegisterSyncBlockInNetwork(ns)
 	m.RegisterSyncReplyInNetwork(ns)
 	return m
@@ -131,13 +147,13 @@ func (m *Manager) downloader() {
 
 func (m *Manager) syncWithPeers(block *core.Block) {
 	// block := m.blockChain.TailBlock()
-	m.nonce++
+	nonce++
 	//key, err := p2p.GenerateKey(m.ns.Addrs(), m.ns.Node().ID())
 	//if err != nil {
 	//	log.Error("GenerateKey occurs error, sync has been terminated.")
 	//	return
 	//}
-	tail := NewNetBlock(m.ns.Node().ID(), m.nonce, block)
+	tail := NewNetBlock(m.ns.Node().ID(), nonce, block)
 	log.WithFields(log.Fields{
 		"tail":  tail,
 		"block": tail.block,
@@ -247,15 +263,16 @@ func (m *Manager) startMsgHandle() {
 					log.Error("StartMsgHandle.receiveSyncReplyCh: get blocks from proto occurs error: ", err)
 					continue
 				}
-				if data.nonce < m.nonce {
+				if data.nonce < nonce {
 					continue
 				}
 				blocks := data.Blocks()
 
 				if len(blocks) == 0 {
-					m.errCount++
-					if m.errCount >= p2p.LimitToSync/2 {
+					msgErrCount++
+					if msgErrCount >= p2p.LimitToSync/2 {
 						// go to next sync
+						msgErrCount = 0
 						m.goParentSyncCh <- true
 					}
 				}
