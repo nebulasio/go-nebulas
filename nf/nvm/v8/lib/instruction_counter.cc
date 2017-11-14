@@ -56,17 +56,15 @@ void IncrCounterCallback(const FunctionCallbackInfo<Value> &info) {
   }
 
   Local<Value> arg = info[0];
-  if (!arg->IsString()) {
+  if (!arg->IsNumber()) {
     isolate->ThrowException(Exception::Error(
-        String::NewFromUtf8(isolate, "incr: Expression must be string")));
+        String::NewFromUtf8(isolate, "incr: value must be number")));
     return;
   }
 
-  String::Utf8Value expr(arg);
-
   size_t *cnt = static_cast<size_t *>(count->Value());
-  *cnt += 1;
-  LogInfof("Incr: count = %zu, %s", *cnt, *expr);
+  *cnt += arg->NumberValue();
+  LogInfof("Incr: count = %zu", *cnt);
 }
 
 void CountGetterCallback(Local<String> property,
