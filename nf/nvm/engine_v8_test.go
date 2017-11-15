@@ -111,6 +111,32 @@ func TestRunScriptSourceWithLimits(t *testing.T) {
 	}
 }
 
+func TestRunScriptSourceTimeout(t *testing.T) {
+	tests := []struct {
+		filepath string
+	}{
+		{"test/test_infinite_loop.js"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.filepath, func(t *testing.T) {
+			data, err := ioutil.ReadFile(tt.filepath)
+			assert.Nil(t, err, "filepath read error")
+
+			mem, _ := storage.NewMemoryStorage()
+			context, _ := state.NewAccountState(nil, mem)
+			owner := context.GetOrCreateUserAccount([]byte("account1"))
+			contract, _ := context.CreateContractAccount([]byte("account2"), nil)
+
+			ctx := NewContext(nil, owner, contract, context)
+			engine := NewV8Engine(ctx)
+			err = engine.RunScriptSource(string(data))
+			assert.Equal(t, ErrExecutionTimeout, err)
+			engine.Dispose()
+		})
+	}
+}
+
 func TestDeployAndInitAndCall(t *testing.T) {
 	tests := []struct {
 		name         string

@@ -44,6 +44,7 @@ import (
 	"regexp"
 	"strings"
 	"sync"
+	"time"
 	"unsafe"
 
 	"github.com/nebulasio/go-nebulas/core/state"
@@ -54,6 +55,7 @@ import (
 var (
 	ErrExecutionFailed                = errors.New("execute source failed")
 	ErrInvalidFunctionName            = errors.New("invalid function name")
+	ErrExecutionTimeout               = errors.New("execution timeout")
 	ErrInsufficientGas                = errors.New("insufficient gas")
 	ErrExceedMemoryLimits             = errors.New("exceed memory limits")
 	ErrInjectTracingInstructionFailed = errors.New("inject tracing instructions failed")
@@ -133,11 +135,16 @@ func NewV8Engine(ctx *Context) *V8Engine {
 
 // Dispose dispose all resources.
 func (e *V8Engine) Dispose() {
-	C.DeleteEngine(e.v8engine)
-	storagesLock.Lock()
-	delete(storages, e.lcsHandler)
-	delete(storages, e.gcsHandler)
-	storagesLock.Unlock()
+	go func() {
+		// Delay deleting engine otherwise isolate->Dispose() crash after call TerminateExecution().
+		// For more information, please refer to https://github.com/nebulasio/go-nebulas/issues/8
+		time.Sleep(1 * time.Second)
+		C.DeleteEngine(e.v8engine)
+		storagesLock.Lock()
+		delete(storages, e.lcsHandler)
+		delete(storages, e.gcsHandler)
+		storagesLock.Unlock()
+	}()
 }
 
 // SetExecutionLimits set execution limits of V8 Engine, prevent Halting Problem.
@@ -155,7 +162,7 @@ func (e *V8Engine) SetExecutionLimits(limitsOfExecutionInstructions, limitsOfTot
 	e.enableLimits = !(limitsOfExecutionInstructions == 0 && limitsOfTotalMemorySize == 0)
 
 	// V8 needs at least 6M heap memory.
-	if limitsOfTotalMemorySize < 6000000 {
+	if limitsOfTotalMemorySize > 0 && limitsOfTotalMemorySize < 6000000 {
 		log.Warnf("V8 needs at least 6M (6000000) heap memory, your limitsOfTotalMemorySize (%d) is too low.", limitsOfTotalMemorySize)
 	}
 }
@@ -173,16 +180,25 @@ func (e *V8Engine) RunScriptSource(content string) (err error) {
 			return ErrInjectTracingInstructionFailed
 		}
 		defer C.free(unsafe.Pointer(traceableCSource))
-
-		ret = C.RunScriptSource(e.v8engine, traceableCSource, C.uintptr_t(e.lcsHandler),
-			C.uintptr_t(e.gcsHandler))
-	} else {
-		ret = C.RunScriptSource(e.v8engine, cSource, C.uintptr_t(e.lcsHandler),
-			C.uintptr_t(e.gcsHandler))
+		cSource = traceableCSource
 	}
 
-	if ret != 0 {
-		err = ErrExecutionFailed
+	done := make(chan bool, 1)
+
+	go func() {
+		ret = C.RunScriptSource(e.v8engine, cSource, C.uintptr_t(e.lcsHandler),
+			C.uintptr_t(e.gcsHandler))
+		done <- true
+	}()
+
+	select {
+	case <-done:
+		if ret != 0 {
+			err = ErrExecutionFailed
+		}
+	case <-time.After(10 * time.Second):
+		C.TerminateExecution(e.v8engine)
+		err = ErrExecutionTimeout
 	}
 
 	if e.enableLimits {
