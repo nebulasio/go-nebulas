@@ -24,5 +24,6 @@ char *GetBlockByHash(void *handler, const char *hash);
 char *GetTxByHash(void *handler, const char *hash);
 char *GetAccountState(void *handler, const char *address);
 int Transfer(void *handler, const char *to, const char *value);
+int VerifyAddress(void *handler, const char *address);
 
 #endif //_NEBULAS_NF_NVM_V8_LIB_FAKE_BLOCKCHAIN_H_

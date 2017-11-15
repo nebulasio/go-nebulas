@@ -191,7 +191,7 @@ int main(int argc, const char *argv[]) {
   Initialize();
   InitializeLogger(logFunc);
   InitializeStorage(StorageGet, StoragePut, StorageDel);
-  InitializeBlockchain(GetBlockByHash, GetTxByHash, GetAccountState, Transfer);
+  InitializeBlockchain(GetBlockByHash, GetTxByHash, GetAccountState, Transfer, VerifyAddress);
 
   int argcIdx = 1;
   const char *filename = NULL;

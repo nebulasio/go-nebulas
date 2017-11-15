@@ -83,7 +83,7 @@ func GetAccountStateFunc(handler unsafe.Pointer, address *C.char) *C.char {
 		return nil
 	}
 	addr := C.GoString(address)
-	valid := engine.ctx.chain.IsValidAddress(addr)
+	valid := engine.ctx.chain.VerifyAddress(addr)
 	if !valid {
 		log.WithFields(log.Fields{
 			"func":    "nvm.GetAccountStateFunc",
@@ -112,7 +112,7 @@ func TransferFunc(handler unsafe.Pointer, to *C.char, v *C.char) int {
 	}
 
 	addr := C.GoString(to)
-	valid := engine.ctx.chain.IsValidAddress(addr)
+	valid := engine.ctx.chain.VerifyAddress(addr)
 	if !valid {
 		log.WithFields(log.Fields{
 			"func":    "nvm.TransferFunc",
@@ -156,4 +156,18 @@ func TransferFunc(handler unsafe.Pointer, to *C.char, v *C.char) int {
 	}
 	toAcc.AddBalance(amount)
 	return 1
+}
+
+// VerifyAddressFunc verify address is valid
+//export VerifyAddressFunc
+func VerifyAddressFunc(handler unsafe.Pointer, address *C.char) int {
+	engine, _ := getEngineAndStorage(uint64(uintptr(handler)))
+	if engine == nil {
+		return 0
+	}
+
+	if engine.ctx.chain.VerifyAddress(C.GoString(address)) {
+		return 1
+	}
+	return 0
 }

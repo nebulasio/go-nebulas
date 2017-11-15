@@ -28,7 +28,7 @@ char *GetBlockByHashFunc(void *handler, const char *hash);
 char *GetTxByHashFunc(void *handler, const char *hash);
 char *GetAccountStateFunc(void *handler, const char *address);
 int TransferFunc(void *handler, const char *to, const char *value);
-
+int VerifyAddressFunc(void *handler, const char *address);
 
 // The gateway function
 void V8Log_cgo(int level, const char *msg) {
@@ -56,6 +56,9 @@ char *GetAccountStateFunc_cgo(void *handler, const char *address) {
 };
 int TransferFunc_cgo(void *handler, const char *to, const char *value) {
 	return TransferFunc(handler, to, value);
+};
+int VerifyAddressFunc_cgo(void *handler, const char *address) {
+	return VerifyAddressFunc(handler, address);
 };
 
 */

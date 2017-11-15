@@ -24,14 +24,16 @@ static GetBlockByHashFunc sGetBlockByHash = NULL;
 static GetTxByHashFunc sGetTxByHash = NULL;
 static GetAccountStateFunc sGetAccountState = NULL;
 static TransferFunc sTransfer = NULL;
+static VerifyAddressFunc sVerifyAddress = NULL;
 
 void InitializeBlockchain(GetBlockByHashFunc getBlock, GetTxByHashFunc getTx,
                           GetAccountStateFunc getAccount,
-                          TransferFunc transfer) {
+                          TransferFunc transfer, VerifyAddressFunc verifyAddress) {
   sGetBlockByHash = getBlock;
   sGetTxByHash = getTx;
   sGetAccountState = getAccount;
   sTransfer = transfer;
+  sVerifyAddress = verifyAddress;
 }
 
 void NewBlockchainInstance(Isolate *isolate, Local<Context> context,
@@ -56,6 +58,11 @@ void NewBlockchainInstance(Isolate *isolate, Local<Context> context,
 
   blockTpl->Set(String::NewFromUtf8(isolate, "transfer"),
                 FunctionTemplate::New(isolate, TransferCallback),
+                static_cast<PropertyAttribute>(PropertyAttribute::DontDelete |
+                                               PropertyAttribute::ReadOnly));
+
+  blockTpl->Set(String::NewFromUtf8(isolate, "verifyAddress"),
+                FunctionTemplate::New(isolate, VerifyAddressCallback),
                 static_cast<PropertyAttribute>(PropertyAttribute::DontDelete |
                                                PropertyAttribute::ReadOnly));
 
@@ -180,5 +187,28 @@ void TransferCallback(const FunctionCallbackInfo<Value> &info) {
 
   int ret = sTransfer(handler->Value(), *String::Utf8Value(address->ToString()),
                       *String::Utf8Value(amount->ToString()));
+  info.GetReturnValue().Set(ret);
+}
+
+// VerifyAddressCallback
+void VerifyAddressCallback(const FunctionCallbackInfo<Value> &info) {
+  Isolate *isolate = info.GetIsolate();
+  Local<Object> thisArg = info.Holder();
+  Local<External> handler = Local<External>::Cast(thisArg->GetInternalField(0));
+
+  if (info.Length() != 1) {
+    isolate->ThrowException(
+        String::NewFromUtf8(isolate, "Blockchain.verifyAddress() requires 1 arguments"));
+    return;
+  }
+
+  Local<Value> address = info[0];
+  if (!address->IsString()) {
+    isolate->ThrowException(
+        String::NewFromUtf8(isolate, "address must be string"));
+    return;
+  }
+
+  int ret = sVerifyAddress(handler->Value(), *String::Utf8Value(address->ToString()));
   info.GetReturnValue().Set(ret);
 }

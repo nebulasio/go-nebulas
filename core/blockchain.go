@@ -92,8 +92,8 @@ func (bc *BlockChain) ChainID() uint32 {
 	return bc.chainID
 }
 
-// IsValidAddress returns if the addr string is valid
-func (bc *BlockChain) IsValidAddress(str string) bool {
+// VerifyAddress returns if the addr string is valid
+func (bc *BlockChain) VerifyAddress(str string) bool {
 	_, err := AddressParse(str)
 	return err == nil
 }

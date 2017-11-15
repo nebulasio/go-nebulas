@@ -47,8 +47,10 @@ try {
 }
 
 var result = _native_blockchain.transfer("5e6d587f26121f96a07cf4b8b569aac1", "1");
-console.log("result:" + result)
+console.log("transfer:" + result)
 
+var result = _native_blockchain.verifyAddress("70e30fcae5e7f4b2460faaa9e5b1bd912332ebb5");
+console.log("verifyAddress:" + result)
 
 var Blockchain = require('../lib/blockchain.js');
 var b = Blockchain.getBlockByHash("5e6d587f26121f96a07cf4b8b569aac1");

@@ -58,3 +58,5 @@ char *GetAccountState(void *handler, const char *address) {
 }
 
 int Transfer(void *handler, const char *to, const char *value) { return 1; }
+
+int VerifyAddress(void *handler, const char *address) { return 1; }

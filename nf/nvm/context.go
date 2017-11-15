@@ -27,7 +27,7 @@ import (
 
 // Blockchain interface breaks cycle import dependency and hides unused services.
 type Blockchain interface {
-	IsValidAddress(str string) bool
+	VerifyAddress(str string) bool
 	SerializeBlockByHash(hash byteutils.Hash) ([]byte, error)
 	SerializeTxByHash(hash byteutils.Hash) ([]byte, error)
 }
