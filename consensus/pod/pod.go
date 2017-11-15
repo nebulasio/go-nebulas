@@ -94,16 +94,28 @@ type PoD struct {
 	nm       net.Manager
 	coinbase *core.Address
 
-	// contain many state machines
-	// each block has a state machine
-	stateMachineContainer *lru.Cache
+	createdStateMachines *lru.Cache
+	creatingStateMachine *consensus.StateMachine
 
 	canMining bool
 }
 
 // NewPoD create PoD instance.
 func NewPoD(neblet Neblet) (*PoD, error) {
-	stateMachineContainer, err := lru.New(1024)
+	cfg := neblet.Config().Pod
+	if cfg == nil {
+		log.Info("PoD.NewPoD: cannot find pod config.")
+		return nil, ErrInvalidPoDConfig
+	}
+	coinbase, err := core.AddressParse(cfg.GetCoinbase())
+	if err != nil {
+		log.WithFields(log.Fields{
+			"err": err,
+		}).Info("PoD.NewPoD: coinbase parse err.")
+		return nil, err
+	}
+
+	createdStateMachines, err := lru.New(1024)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"err": err,
@@ -111,35 +123,27 @@ func NewPoD(neblet Neblet) (*PoD, error) {
 		return nil, err
 	}
 	p := &PoD{
-		chain:                 neblet.BlockChain(),
-		nm:                    neblet.NetService(),
-		quitCh:                make(chan bool),
-		stateMachineContainer: stateMachineContainer,
-		canMining:             false,
+		quitCh: make(chan bool),
+
+		chain:    neblet.BlockChain(),
+		nm:       neblet.NetService(),
+		coinbase: coinbase,
+
+		createdStateMachines: createdStateMachines,
+		creatingStateMachine: consensus.NewStateMachine(),
+
+		canMining: false,
 	}
 
-	cfg := neblet.Config().Pod
-	if cfg != nil {
-		coinbase, err := core.AddressParse(cfg.GetCoinbase())
-		if err != nil {
-			log.WithFields(log.Fields{
-				"err": err,
-			}).Info("PoD.NewPoD: coinbase parse err.")
-			return nil, err
-		}
-		p.coinbase = coinbase
-	} else {
-		log.WithFields(log.Fields{
-			"err": err,
-		}).Info("PoD.NewPoD: cannot find pod config.")
-		return nil, ErrInvalidPoDConfig
-	}
+	creationState := NewCreationState(p.creatingStateMachine, p.chain.TailBlock())
+	p.creatingStateMachine.SetInitialState(creationState)
 
 	return p, nil
 }
 
 // Start start pod service.
 func (p *PoD) Start() {
+	p.creatingStateMachine.Start()
 	go p.blockLoop()
 }
 
@@ -147,8 +151,9 @@ func (p *PoD) Start() {
 func (p *PoD) Stop() {
 	// cleanup.
 	p.quitCh <- true
-	for _, key := range p.stateMachineContainer.Keys() {
-		if stateMachine, ok := p.stateMachineContainer.Get(key); ok {
+	p.creatingStateMachine.Stop()
+	for _, key := range p.createdStateMachines.Keys() {
+		if stateMachine, ok := p.createdStateMachines.Get(key); ok {
 			stateMachine.(*consensus.StateMachine).Stop()
 		}
 	}
@@ -181,7 +186,7 @@ func (p *PoD) blockLoop() {
 	for {
 		select {
 		case block := <-p.chain.BlockPool().ReceivedBlockCh():
-			if p.stateMachineContainer.Contains(block.Hash()) {
+			if p.createdStateMachines.Contains(block.Hash()) {
 				log.WithFields(log.Fields{
 					"func": "PoD.blockloop",
 					"err":  ErrDuplicateBlock,
@@ -194,7 +199,7 @@ func (p *PoD) blockLoop() {
 
 				sm := consensus.NewStateMachine()
 				sm.SetInitialState(NewCreationState(sm, block))
-				p.stateMachineContainer.Add(block.Hash(), sm)
+				p.createdStateMachines.Add(block.Hash(), sm)
 				sm.Start()
 
 				log.WithFields(log.Fields{
@@ -206,7 +211,7 @@ func (p *PoD) blockLoop() {
 		case tx := <-p.chain.TransactionPool().ReceivedTransactionCh():
 			if tx.DataType() == core.TxPayloadVoteType {
 				if vote, err := core.LoadVotePayload(tx.Data()); err == nil {
-					if stateMachine, ok := p.stateMachineContainer.Get(vote.BlockHash); ok {
+					if stateMachine, ok := p.createdStateMachines.Get(vote.BlockHash); ok {
 						eventType := consensus.EventType("event.vote." + vote.Action)
 						stateMachine.(*consensus.StateMachine).Event(consensus.NewBaseEvent(eventType, tx.From().ToHex()))
 					}

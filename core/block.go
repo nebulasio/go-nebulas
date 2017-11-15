@@ -21,6 +21,7 @@ package core
 import (
 	"errors"
 	"fmt"
+	"sort"
 	"time"
 
 	"github.com/gogo/protobuf/proto"
@@ -33,6 +34,13 @@ import (
 	"github.com/nebulasio/go-nebulas/storage"
 	"github.com/nebulasio/go-nebulas/util"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
+)
+
+// constants
+const (
+	EpochSize       = 100
+	DynastySize     = 100
+	CandidatesLimit = 3000
 )
 
 var (
@@ -55,29 +63,71 @@ var (
 	ErrLargeTransactionNonce = errors.New("cannot accept a transaction with too bigger nonce")
 )
 
+// ValidatorSort are able to sort validator
+// Use hash(str)[0] to sort validators
+type ValidatorSort struct {
+	seed       uint64
+	validators []byteutils.Hash
+}
+
+func (v *ValidatorSort) hash(validator byteutils.Hash) int64 {
+	hasher := sha3.New256()
+	hasher.Write(byteutils.FromUint64(v.seed))
+	hasher.Write(validator)
+	result := hasher.Sum(nil)
+	return byteutils.Int64(result[:8])
+}
+
+func (v *ValidatorSort) Len() int {
+	return len(v.validators)
+}
+
+func (v *ValidatorSort) Swap(i, j int) {
+	v.validators[i], v.validators[j] = v.validators[j], v.validators[i]
+}
+
+func (v *ValidatorSort) Less(i, j int) bool {
+	return v.hash(v.validators[i]) < v.hash(v.validators[j])
+}
+
 // BlockHeader of a block
 type BlockHeader struct {
 	hash       byteutils.Hash
 	parentHash byteutils.Hash
-	stateRoot  byteutils.Hash
-	txsRoot    byteutils.Hash
-	nonce      uint64
-	coinbase   *Address
-	timestamp  int64
-	chainID    uint32
+
+	stateRoot byteutils.Hash
+	txsRoot   byteutils.Hash
+
+	// the block hash where dynasty works
+	dynastyBirthPlace byteutils.Hash
+	// validators in current dynasty
+	dynastyRoot byteutils.Hash
+	// validators in next dynasty
+	nextDynastyRoot byteutils.Hash
+	// candidates in second next dynasty
+	dynastyCandidatesRoot byteutils.Hash
+
+	nonce     uint64
+	coinbase  *Address
+	timestamp int64
+	chainID   uint32
 }
 
 // ToProto converts domain BlockHeader to proto BlockHeader
 func (b *BlockHeader) ToProto() (proto.Message, error) {
 	return &corepb.BlockHeader{
-		Hash:       b.hash,
-		ParentHash: b.parentHash,
-		StateRoot:  b.stateRoot,
-		TxsRoot:    b.txsRoot,
-		Nonce:      b.nonce,
-		Coinbase:   b.coinbase.address,
-		Timestamp:  b.timestamp,
-		ChainId:    b.chainID,
+		Hash:                  b.hash,
+		ParentHash:            b.parentHash,
+		StateRoot:             b.stateRoot,
+		TxsRoot:               b.txsRoot,
+		DynastyBirthPlace:     b.dynastyBirthPlace,
+		DynastyRoot:           b.dynastyRoot,
+		NextDynastyRoot:       b.nextDynastyRoot,
+		DynastyCandidatesRoot: b.dynastyCandidatesRoot,
+		Nonce:     b.nonce,
+		Coinbase:  b.coinbase.address,
+		Timestamp: b.timestamp,
+		ChainId:   b.chainID,
 	}, nil
 }
 
@@ -88,6 +138,10 @@ func (b *BlockHeader) FromProto(msg proto.Message) error {
 		b.parentHash = msg.ParentHash
 		b.stateRoot = msg.StateRoot
 		b.txsRoot = msg.TxsRoot
+		b.dynastyBirthPlace = msg.DynastyBirthPlace
+		b.dynastyRoot = msg.DynastyRoot
+		b.nextDynastyRoot = msg.NextDynastyRoot
+		b.dynastyCandidatesRoot = msg.DynastyCandidatesRoot
 		b.nonce = msg.Nonce
 		b.coinbase = &Address{msg.Coinbase}
 		b.timestamp = msg.Timestamp
@@ -102,12 +156,15 @@ type Block struct {
 	header       *BlockHeader
 	transactions Transactions
 
-	sealed       bool
-	height       uint64
-	parenetBlock *Block
-	accState     state.AccountState
-	txsTrie      *trie.BatchTrie
-	txPool       *TransactionPool
+	sealed                bool
+	height                uint64
+	parenetBlock          *Block
+	accState              state.AccountState
+	txsTrie               *trie.BatchTrie
+	dynastyTrie           *trie.BatchTrie
+	nextDynastyTrie       *trie.BatchTrie
+	dynastyCandidatesTrie *trie.BatchTrie
+	txPool                *TransactionPool
 
 	storage storage.Storage
 }
@@ -161,6 +218,9 @@ func (block *Block) FromProto(msg proto.Message) error {
 func NewBlock(chainID uint32, coinbase *Address, parent *Block, txPool *TransactionPool, storage storage.Storage) *Block {
 	accState, _ := parent.accState.Clone()
 	txsTrie, _ := parent.txsTrie.Clone()
+	dynastyTrie, _ := parent.dynastyTrie.Clone()
+	nextDynastyTrie, _ := parent.nextDynastyTrie.Clone()
+	dynastyCandidatesTrie, _ := parent.dynastyCandidatesTrie.Clone()
 	block := &Block{
 		header: &BlockHeader{
 			parentHash: parent.Hash(),
@@ -169,16 +229,69 @@ func NewBlock(chainID uint32, coinbase *Address, parent *Block, txPool *Transact
 			timestamp:  time.Now().Unix(),
 			chainID:    chainID,
 		},
-		transactions: make(Transactions, 0),
-		parenetBlock: parent,
-		accState:     accState,
-		txsTrie:      txsTrie,
-		txPool:       txPool,
-		height:       parent.height + 1,
-		sealed:       false,
-		storage:      storage,
+		transactions:          make(Transactions, 0),
+		parenetBlock:          parent,
+		accState:              accState,
+		txsTrie:               txsTrie,
+		dynastyTrie:           dynastyTrie,
+		nextDynastyTrie:       nextDynastyTrie,
+		dynastyCandidatesTrie: dynastyCandidatesTrie,
+		txPool:                txPool,
+		height:                parent.height + 1,
+		sealed:                false,
+		storage:               storage,
 	}
 	return block
+}
+
+// Dynasty return validators in current dynasty
+func (block *Block) Dynasty() map[byteutils.HexHash]bool {
+	iterator, _ := block.dynastyTrie.Iterator(nil)
+	validators := make(map[byteutils.HexHash]bool)
+	for iterator.Next() {
+		validators[byteutils.HexHash(byteutils.Hex(iterator.Value()))] = true
+	}
+	return validators
+}
+
+// Candidates return all candidates in second next dynasty
+func (block *Block) Candidates() []byteutils.Hash {
+	iterator, _ := block.dynastyCandidatesTrie.Iterator(nil)
+	candidates := []byteutils.Hash{}
+	for iterator.Next() {
+		candidates = append(candidates, byteutils.Hash(byteutils.Hex(iterator.Value())))
+	}
+	return candidates
+}
+
+// CheckDynastyRule judge whether to change current dynasty
+// 1. epoch over, create > 100 blocks
+// 2. remove validators > 1/3 * N
+func (block *Block) CheckDynastyChangeRule() (bool, error) {
+	birthBlock, err := LoadBlockFromStorage(block.header.dynastyBirthPlace, block.storage, block.txPool)
+	if err != nil {
+		return false, err
+	}
+	if block.height > birthBlock.height && block.height-birthBlock.height > EpochSize {
+		return true, nil
+	}
+	if len(block.Dynasty()) < 2/3*len(birthBlock.Dynasty()) {
+		return true, nil
+	}
+	return false, nil
+}
+
+// ChangeDynasty change current dynasty to next one
+func (block *Block) ChangeDynasty() {
+	block.dynastyTrie = block.nextDynastyTrie
+	// select DynastySize validators from candidates
+	vs := &ValidatorSort{validators: block.Candidates(), seed: block.height}
+	sort.Sort(vs)
+	for i := 0; i < DynastySize; i++ {
+		v := vs.validators[i]
+		block.nextDynastyTrie.Put(v, v)
+	}
+	block.dynastyCandidatesTrie, _ = trie.NewBatchTrie(nil, block.storage)
 }
 
 // Coinbase return block's coinbase
@@ -222,6 +335,21 @@ func (block *Block) TxsRoot() byteutils.Hash {
 	return block.header.txsRoot
 }
 
+// DynastyRoot return dynasty root hash.
+func (block *Block) DynastyRoot() byteutils.Hash {
+	return block.header.dynastyRoot
+}
+
+// NextDynastyRoot return next dynasty root hash.
+func (block *Block) NextDynastyRoot() byteutils.Hash {
+	return block.header.nextDynastyRoot
+}
+
+// DynastyCandidatesRoot return dynasty candidates root hash.
+func (block *Block) DynastyCandidatesRoot() byteutils.Hash {
+	return block.header.dynastyCandidatesRoot
+}
+
 // ParentHash return parent hash.
 func (block *Block) ParentHash() byteutils.Hash {
 	return block.header.parentHash
@@ -240,6 +368,9 @@ func (block *Block) LinkParentBlock(parentBlock *Block) bool {
 
 	block.accState, _ = parentBlock.accState.Clone()
 	block.txsTrie, _ = parentBlock.txsTrie.Clone()
+	block.dynastyTrie, _ = parentBlock.dynastyTrie.Clone()
+	block.nextDynastyTrie, _ = parentBlock.nextDynastyTrie.Clone()
+	block.dynastyCandidatesTrie, _ = parentBlock.dynastyCandidatesTrie.Clone()
 	block.txPool = parentBlock.txPool
 	block.parenetBlock = parentBlock
 	block.storage = parentBlock.storage
@@ -546,4 +677,43 @@ func HashBlock(block *Block) byteutils.Hash {
 	}
 
 	return hasher.Sum(nil)
+}
+
+// LoadBlockFromStorage return a block from storage
+func LoadBlockFromStorage(hash byteutils.Hash, storage storage.Storage, txPool *TransactionPool) (*Block, error) {
+	value, err := storage.Get(hash)
+	if err != nil {
+		return nil, err
+	}
+	pbBlock := new(corepb.Block)
+	block := new(Block)
+	if err = proto.Unmarshal(value, pbBlock); err != nil {
+		return nil, err
+	}
+	if err = block.FromProto(pbBlock); err != nil {
+		return nil, err
+	}
+	block.accState, err = state.NewAccountState(block.StateRoot(), storage)
+	if err != nil {
+		return nil, err
+	}
+	block.txsTrie, err = trie.NewBatchTrie(block.TxsRoot(), storage)
+	if err != nil {
+		return nil, err
+	}
+	block.dynastyTrie, err = trie.NewBatchTrie(block.DynastyRoot(), storage)
+	if err != nil {
+		return nil, err
+	}
+	block.nextDynastyTrie, err = trie.NewBatchTrie(block.NextDynastyRoot(), storage)
+	if err != nil {
+		return nil, err
+	}
+	block.dynastyCandidatesTrie, err = trie.NewBatchTrie(block.DynastyCandidatesRoot(), storage)
+	if err != nil {
+		return nil, err
+	}
+	block.txPool = txPool
+	block.storage = storage
+	return block, nil
 }

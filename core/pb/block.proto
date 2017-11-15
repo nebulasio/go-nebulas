@@ -52,6 +52,10 @@ message BlockHeader {
     uint32 chain_id = 6;
     bytes state_root = 7;
     bytes txs_root = 8;
+    bytes dynasty_birth_place = 9;
+    bytes dynasty_root = 10;
+    bytes next_dynasty_root = 11;
+    bytes dynasty_candidates_root = 12;
 }
 
 message Block {

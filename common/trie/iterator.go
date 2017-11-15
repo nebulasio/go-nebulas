@@ -20,6 +20,8 @@ package trie
 
 import (
 	"errors"
+
+	log "github.com/sirupsen/logrus"
 )
 
 // errors constants
@@ -131,10 +133,10 @@ func (it *Iterator) pop() (*IteratorState, error) {
 }
 
 // Next return if there is next leaf node
-func (it *Iterator) Next() (bool, error) {
+func (it *Iterator) Next() bool {
 	state, err := it.pop()
 	if err != nil {
-		return false, nil
+		return false
 	}
 	node := state.node
 	pos := state.pos
@@ -144,27 +146,31 @@ func (it *Iterator) Next() (bool, error) {
 		case branch:
 			valid := validElementsInBranchNode(pos, node)
 			if len(valid) == 0 {
-				return false, errors.New("empty branch node")
+				log.Error("empty branch node")
+				return false
 			}
 			if len(valid) > 1 {
 				it.push(node, valid[1])
 			}
 			node, err = it.root.fetchNode(node.Val[valid[0]])
 			if err != nil {
-				return false, err
+				log.Error(err)
+				return false
 			}
 			ty, err = node.Type()
 		case ext:
 			node, err = it.root.fetchNode(node.Val[2])
 			if err != nil {
-				return false, err
+				log.Error(err)
+				return false
 			}
 			ty, err = node.Type()
 		case leaf:
 			it.value = node.Val[2]
-			return true, nil
+			return true
 		default:
-			return false, err
+			log.Error(err)
+			return false
 		}
 		pos = 0
 	}

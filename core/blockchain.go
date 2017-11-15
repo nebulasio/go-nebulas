@@ -27,9 +27,6 @@ import (
 
 	"github.com/gogo/protobuf/proto"
 	"github.com/hashicorp/golang-lru"
-	"github.com/nebulasio/go-nebulas/common/trie"
-	"github.com/nebulasio/go-nebulas/core/pb"
-	"github.com/nebulasio/go-nebulas/core/state"
 	"github.com/nebulasio/go-nebulas/storage"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
 	log "github.com/sirupsen/logrus"
@@ -336,33 +333,6 @@ func (bc *BlockChain) storeBlockToStorage(block *Block) error {
 		return err
 	}
 	return nil
-}
-
-// LoadBlockFromStorage return a block from storage
-func LoadBlockFromStorage(hash byteutils.Hash, storage storage.Storage, txPool *TransactionPool) (*Block, error) {
-	value, err := storage.Get(hash)
-	if err != nil {
-		return nil, err
-	}
-	pbBlock := new(corepb.Block)
-	block := new(Block)
-	if err = proto.Unmarshal(value, pbBlock); err != nil {
-		return nil, err
-	}
-	if err = block.FromProto(pbBlock); err != nil {
-		return nil, err
-	}
-	block.accState, err = state.NewAccountState(block.StateRoot(), storage)
-	if err != nil {
-		return nil, err
-	}
-	block.txsTrie, err = trie.NewBatchTrie(block.TxsRoot(), storage)
-	if err != nil {
-		return nil, err
-	}
-	block.txPool = txPool
-	block.storage = storage
-	return block, nil
 }
 
 func (bc *BlockChain) storeTailToStorage(block *Block) {

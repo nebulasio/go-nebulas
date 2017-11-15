@@ -26,7 +26,7 @@ import (
 
 // Iterator Variables in Account Storage
 type Iterator interface {
-	Next() (bool, error)
+	Next() bool
 	Value() []byte
 }
 

@@ -18,6 +18,10 @@
 
 package pod
 
+import (
+	"github.com/nebulasio/go-nebulas/core"
+)
+
 // EventType list
 const (
 	TimeoutEvent         = "event.timeout"
@@ -27,3 +31,30 @@ const (
 	NewAbdicateVoteEvent = "event.vote.abdicate"
 	CanMiningEvent       = "event.canmining"
 )
+
+// StateContext carries the context in state transitions
+type StateContext struct {
+	parentBlock *core.Block
+	miningBlock *core.Block
+
+	prepareVotes  map[string]bool
+	commitVotes   map[string]bool
+	changeVotes   map[string]bool
+	abdicateVotes map[string]bool
+}
+
+// NewStateContext create a new state context
+func NewStateContext(parentBlock *core.Block) *StateContext {
+	return &StateContext{
+		parentBlock:   parentBlock,
+		prepareVotes:  make(map[string]bool),
+		commitVotes:   make(map[string]bool),
+		changeVotes:   make(map[string]bool),
+		abdicateVotes: make(map[string]bool),
+	}
+}
+
+// NextProposer change current proposer to next
+func (sc *StateContext) NextProposer() {
+
+}

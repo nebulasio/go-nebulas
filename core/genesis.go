@@ -35,7 +35,9 @@ var (
 func NewGenesisBlock(chainID uint32, storage storage.Storage) *Block {
 	accState, _ := state.NewAccountState(nil, storage)
 	txsTrie, _ := trie.NewBatchTrie(nil, storage)
-	// TODO: load genesis block data from file.
+	dynastyTrie, _ := trie.NewBatchTrie(nil, storage)
+	nextDynastyTrie, _ := trie.NewBatchTrie(nil, storage)
+	dynastyCandidatesTrie, _ := trie.NewBatchTrie(nil, storage)
 	b := &Block{
 		header: &BlockHeader{
 			chainID:    chainID,
@@ -44,11 +46,14 @@ func NewGenesisBlock(chainID uint32, storage storage.Storage) *Block {
 			coinbase:   &Address{make([]byte, AddressLength)},
 			timestamp:  time.Now().Unix(),
 		},
-		accState: accState,
-		txsTrie:  txsTrie,
-		storage:  storage,
-		height:   1,
-		sealed:   true,
+		accState:              accState,
+		txsTrie:               txsTrie,
+		dynastyTrie:           dynastyTrie,
+		nextDynastyTrie:       nextDynastyTrie,
+		dynastyCandidatesTrie: dynastyCandidatesTrie,
+		storage:               storage,
+		height:                1,
+		sealed:                true,
 	}
 
 	return b

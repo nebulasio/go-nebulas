@@ -28,15 +28,15 @@ import (
 
 // CreationState presents the prepare stage in pod
 type CreationState struct {
-	sm    *consensus.StateMachine
-	block *core.Block
+	sm      *consensus.StateMachine
+	context *StateContext
 }
 
 // NewCreationState create a new prepare state
-func NewCreationState(sm *consensus.StateMachine, block *core.Block) *CreationState {
+func NewCreationState(sm *consensus.StateMachine, tail *core.Block) *CreationState {
 	return &CreationState{
-		sm:    sm,
-		block: block,
+		sm:      sm,
+		context: NewStateContext(tail),
 	}
 }
 
