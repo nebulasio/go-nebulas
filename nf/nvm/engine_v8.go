@@ -34,7 +34,7 @@ int StorageDelFunc_cgo(void *handler, const char *key);
 char *GetBlockByHashFunc_cgo(void *handler, const char *hash);
 char *GetTxByHashFunc_cgo(void *handler, const char *hash);
 char *GetAccountStateFunc_cgo(void *handler, const char *address);
-int SendFunc_cgo(void *handler, const char *to, const char *value);
+int TransferFunc_cgo(void *handler, const char *to, const char *value);
 
 */
 import "C"
@@ -93,7 +93,7 @@ func InitV8Engine() {
 	C.InitializeStorage((C.StorageGetFunc)(unsafe.Pointer(C.StorageGetFunc_cgo)), (C.StoragePutFunc)(unsafe.Pointer(C.StoragePutFunc_cgo)), (C.StorageDelFunc)(unsafe.Pointer(C.StorageDelFunc_cgo)))
 
 	// Blockchain.
-	C.InitializeBlockchain((C.GetBlockByHashFunc)(unsafe.Pointer(C.GetBlockByHashFunc_cgo)), (C.GetTxByHashFunc)(unsafe.Pointer(C.GetTxByHashFunc_cgo)), (C.GetAccountStateFunc)(unsafe.Pointer(C.GetAccountStateFunc_cgo)), (C.SendFunc)(unsafe.Pointer(C.SendFunc_cgo)))
+	C.InitializeBlockchain((C.GetBlockByHashFunc)(unsafe.Pointer(C.GetBlockByHashFunc_cgo)), (C.GetTxByHashFunc)(unsafe.Pointer(C.GetTxByHashFunc_cgo)), (C.GetAccountStateFunc)(unsafe.Pointer(C.GetAccountStateFunc_cgo)), (C.TransferFunc)(unsafe.Pointer(C.TransferFunc_cgo)))
 }
 
 // DisposeV8Engine dispose the v8 engine.

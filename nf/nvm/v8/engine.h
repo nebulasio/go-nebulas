@@ -57,10 +57,10 @@ EXPORT void InitializeStorage(StorageGetFunc get, StoragePutFunc put,
 typedef char *(*GetBlockByHashFunc)(void *handler, const char *hash);
 typedef char *(*GetTxByHashFunc)(void *handler, const char *hash);
 typedef char *(*GetAccountStateFunc)(void *handler, const char *address);
-typedef int (*SendFunc)(void *handler, const char *to, const char *value);
+typedef int (*TransferFunc)(void *handler, const char *to, const char *value);
 EXPORT void InitializeBlockchain(GetBlockByHashFunc getBlock,
                                  GetTxByHashFunc getTx,
-                                 GetAccountStateFunc getAccount, SendFunc send);
+                                 GetAccountStateFunc getAccount, TransferFunc transfer);
 
 // version
 EXPORT char *GetV8Version();

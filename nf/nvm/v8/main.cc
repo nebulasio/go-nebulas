@@ -19,6 +19,7 @@
 
 #include "engine.h"
 #include "lib/blockchain.h"
+#include "lib/fake_blockchain.h"
 #include "lib/log_callback.h"
 #include "lib/memory_storage.h"
 
@@ -35,26 +36,6 @@ static int enable_tracer_injection = 0;
 static size_t limits_of_executed_instructions = 0;
 static size_t limits_of_total_memory_size = 0;
 static int print_injection_result = 0;
-
-char *GetBlockByHash(void *handler, const char *hash) {
-  char *ret = NULL;
-  // TODO:not impl
-  return ret;
-}
-char *GetTxByHash(void *handler, const char *hash) {
-  char *ret = NULL;
-  // TODO:not impl
-  return ret;
-}
-char *GetAccountState(void *handler, const char *address) {
-  char *ret = NULL;
-  // TODO:not impl
-  return ret;
-}
-int Send(void *handler, const char *to, const char *value) {
-  // TODO:not impl
-  return 0;
-}
 
 void logFunc(int level, const char *msg) {
   std::thread::id tid = std::this_thread::get_id();
@@ -210,7 +191,7 @@ int main(int argc, const char *argv[]) {
   Initialize();
   InitializeLogger(logFunc);
   InitializeStorage(StorageGet, StoragePut, StorageDel);
-  InitializeBlockchain(GetBlockByHash, GetTxByHash, GetAccountState, Send);
+  InitializeBlockchain(GetBlockByHash, GetTxByHash, GetAccountState, Transfer);
 
   int argcIdx = 1;
   const char *filename = NULL;

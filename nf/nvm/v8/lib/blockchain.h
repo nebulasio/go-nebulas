@@ -24,12 +24,12 @@
 
 using namespace v8;
 
-void NewBlockchain(Isolate *isolate, Local<ObjectTemplate> globalTpl);
+void NewBlockchainInstance(Isolate *isolate, Local<Context> context, void *listenerContext);
 
 void BlockchainConstructor(const FunctionCallbackInfo<Value> &info);
 void GetBlockByHashCallback(const FunctionCallbackInfo<Value> &info);
 void GetTransactionByHashCallback(const FunctionCallbackInfo<Value> &info);
 void GetAccountStateCallback(const FunctionCallbackInfo<Value> &info);
-void SendCallback(const FunctionCallbackInfo<Value> &info);
+void TransferCallback(const FunctionCallbackInfo<Value> &info);
 
 #endif  //_NEBULAS_NF_NVM_V8_LIB_BLOCKCHAIN_H_
