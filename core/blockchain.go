@@ -23,6 +23,8 @@ import (
 	"fmt"
 	"strings"
 
+	"encoding/json"
+
 	"github.com/gogo/protobuf/proto"
 	"github.com/hashicorp/golang-lru"
 	"github.com/nebulasio/go-nebulas/common/trie"
@@ -31,7 +33,6 @@ import (
 	"github.com/nebulasio/go-nebulas/storage"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
 	log "github.com/sirupsen/logrus"
-	"encoding/json"
 )
 
 // BlockChain the BlockChain core type.

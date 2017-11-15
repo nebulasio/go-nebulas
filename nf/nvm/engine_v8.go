@@ -34,7 +34,7 @@ int StorageDelFunc_cgo(void *handler, const char *key);
 char *GetBlockByHashFunc_cgo(void *handler, const char *hash);
 char *GetTxByHashFunc_cgo(void *handler, const char *hash);
 char *GetAccountStateFunc_cgo(void *handler, const char *address);
-int SendFunc_cgo(void *handler, const char *to, const char *value);
+int TransferFunc_cgo(void *handler, const char *to, const char *value);
 
 */
 import "C"
@@ -95,7 +95,7 @@ func InitV8Engine() {
 	C.InitializeStorage((C.StorageGetFunc)(unsafe.Pointer(C.StorageGetFunc_cgo)), (C.StoragePutFunc)(unsafe.Pointer(C.StoragePutFunc_cgo)), (C.StorageDelFunc)(unsafe.Pointer(C.StorageDelFunc_cgo)))
 
 	// Blockchain.
-	C.InitializeBlockchain((C.GetBlockByHashFunc)(unsafe.Pointer(C.GetBlockByHashFunc_cgo)), (C.GetTxByHashFunc)(unsafe.Pointer(C.GetTxByHashFunc_cgo)), (C.GetAccountStateFunc)(unsafe.Pointer(C.GetAccountStateFunc_cgo)), (C.SendFunc)(unsafe.Pointer(C.SendFunc_cgo)))
+	C.InitializeBlockchain((C.GetBlockByHashFunc)(unsafe.Pointer(C.GetBlockByHashFunc_cgo)), (C.GetTxByHashFunc)(unsafe.Pointer(C.GetTxByHashFunc_cgo)), (C.GetAccountStateFunc)(unsafe.Pointer(C.GetAccountStateFunc_cgo)), (C.TransferFunc)(unsafe.Pointer(C.TransferFunc_cgo)))
 }
 
 // DisposeV8Engine dispose the v8 engine.
@@ -135,16 +135,11 @@ func NewV8Engine(ctx *Context) *V8Engine {
 
 // Dispose dispose all resources.
 func (e *V8Engine) Dispose() {
-	go func() {
-		// Delay deleting engine otherwise isolate->Dispose() crash after call TerminateExecution().
-		// For more information, please refer to https://github.com/nebulasio/go-nebulas/issues/8
-		time.Sleep(1 * time.Second)
-		C.DeleteEngine(e.v8engine)
-		storagesLock.Lock()
-		delete(storages, e.lcsHandler)
-		delete(storages, e.gcsHandler)
-		storagesLock.Unlock()
-	}()
+	C.DeleteEngine(e.v8engine)
+	storagesLock.Lock()
+	delete(storages, e.lcsHandler)
+	delete(storages, e.gcsHandler)
+	storagesLock.Unlock()
 }
 
 // SetExecutionLimits set execution limits of V8 Engine, prevent Halting Problem.
@@ -199,6 +194,11 @@ func (e *V8Engine) RunScriptSource(content string) (err error) {
 	case <-time.After(10 * time.Second):
 		C.TerminateExecution(e.v8engine)
 		err = ErrExecutionTimeout
+
+		// wait for C.RunScriptSource() returns.
+		select {
+		case <-done:
+		}
 	}
 
 	if e.enableLimits {

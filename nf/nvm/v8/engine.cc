@@ -164,7 +164,6 @@ int Execute(V8Engine *e, const char *data, void *lcsHandler, void *gcsHandler,
   NewNativeRequireFunction(isolate, globalTpl);
   NewNativeLogFunction(isolate, globalTpl);
   NewStorageType(isolate, globalTpl);
-  NewBlockchain(isolate, globalTpl);
 
   // Create a new context.
   Local<Context> context = Context::New(isolate, NULL, globalTpl);
@@ -181,6 +180,7 @@ int Execute(V8Engine *e, const char *data, void *lcsHandler, void *gcsHandler,
   NewStorageTypeInstance(isolate, context, lcsHandler, gcsHandler);
   NewInstructionCounterInstance(isolate, context,
                                 &(e->stats.count_of_executed_instructions), e);
+  NewBlockchainInstance(isolate, context, lcsHandler);
 
   // Setup execution env.
   if (SetupExecutionEnv(isolate, context)) {

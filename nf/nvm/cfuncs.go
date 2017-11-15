@@ -27,7 +27,7 @@ int StorageDelFunc(void *handler, const char *key);
 char *GetBlockByHashFunc(void *handler, const char *hash);
 char *GetTxByHashFunc(void *handler, const char *hash);
 char *GetAccountStateFunc(void *handler, const char *address);
-int SendFunc(void *handler, const char *to, const char *value);
+int TransferFunc(void *handler, const char *to, const char *value);
 
 
 // The gateway function
@@ -54,8 +54,8 @@ char *GetTxByHashFunc_cgo(void *handler, const char *hash) {
 char *GetAccountStateFunc_cgo(void *handler, const char *address) {
 	return GetAccountStateFunc(handler, address);
 };
-int SendFunc_cgo(void *handler, const char *to, const char *value) {
-	return SendFunc(handler, to, value);
+int TransferFunc_cgo(void *handler, const char *to, const char *value) {
+	return TransferFunc(handler, to, value);
 };
 
 */

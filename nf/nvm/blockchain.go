@@ -21,15 +21,16 @@ package nvm
 import "C"
 
 import (
-	log "github.com/sirupsen/logrus"
-	"unsafe"
 	"encoding/json"
+	"unsafe"
+
 	"github.com/nebulasio/go-nebulas/util"
+	log "github.com/sirupsen/logrus"
 )
 
 type accountState struct {
-	nonce uint64	`json:"nonce"`
-	balance string	`json:"balance"`
+	nonce   uint64 `json:"nonce"`
+	balance string `json:"balance"`
 }
 
 // GetBlockByHashFunc returns the block info by hash
@@ -44,7 +45,7 @@ func GetBlockByHashFunc(handler unsafe.Pointer, hash *C.char) *C.char {
 		log.WithFields(log.Fields{
 			"func":    "nvm.GetBlockByHashFunc",
 			"handler": uint64(uintptr(handler)),
-			"hash":     C.GoString(hash),
+			"hash":    C.GoString(hash),
 			"err":     err,
 		}).Info("GetBlockByHashFunc get block failed.")
 		return nil
@@ -95,16 +96,16 @@ func GetAccountStateFunc(handler unsafe.Pointer, address *C.char) *C.char {
 	// TODO: handle specific block number.
 	acc := engine.ctx.state.GetOrCreateUserAccount([]byte(addr))
 	state := &accountState{
-		nonce:acc.Nonce(),
-		balance:acc.Balance().String(),
+		nonce:   acc.Nonce(),
+		balance: acc.Balance().String(),
 	}
 	json, _ := json.Marshal(state)
 	return C.CString(string(json))
 }
 
-// SendFunc send vale to address
-//export SendFunc
-func SendFunc(handler unsafe.Pointer, to *C.char, v *C.char) int {
+// TransferFunc transfer vale to address
+//export TransferFunc
+func TransferFunc(handler unsafe.Pointer, to *C.char, v *C.char) int {
 	engine, _ := getEngineAndStorage(uint64(uintptr(handler)))
 	if engine == nil {
 		return 0
@@ -114,28 +115,28 @@ func SendFunc(handler unsafe.Pointer, to *C.char, v *C.char) int {
 	valid := engine.ctx.chain.IsValidAddress(addr)
 	if !valid {
 		log.WithFields(log.Fields{
-			"func":    "nvm.SendFunc",
+			"func":    "nvm.TransferFunc",
 			"handler": uint64(uintptr(handler)),
 			"key":     C.GoString(to),
-		}).Error("SendFunc parse address failed.")
+		}).Error("TransferFunc parse address failed.")
 		return 0
 	}
 	toAcc := engine.ctx.state.GetOrCreateUserAccount([]byte(addr))
 
 	var (
 		amount *util.Uint128
-		err error
+		err    error
 	)
 	value := []byte(C.GoString(v))
 	if len(value) > 0 {
 		amount, err = util.NewUint128FromFixedSizeByteSlice(value)
 		if err != nil {
 			log.WithFields(log.Fields{
-				"func":    "nvm.SendFunc",
+				"func":    "nvm.TransferFunc",
 				"handler": uint64(uintptr(handler)),
 				"key":     C.GoString(to),
 				"err":     err,
-			}).Error("SendFunc parse balance failed.")
+			}).Error("TransferFunc parse balance failed.")
 			return 0
 		}
 	} else {
@@ -146,14 +147,13 @@ func SendFunc(handler unsafe.Pointer, to *C.char, v *C.char) int {
 	err = engine.ctx.contract.SubBalance(amount)
 	if err != nil {
 		log.WithFields(log.Fields{
-			"func":    "nvm.SendFunc",
+			"func":    "nvm.TransferFunc",
 			"handler": uint64(uintptr(handler)),
 			"key":     C.GoString(to),
 			"err":     err,
-		}).Error("SendFunc SubBalance failed.")
+		}).Error("TransferFunc SubBalance failed.")
 		return 0
 	}
 	toAcc.AddBalance(amount)
 	return 1
 }
-
