@@ -264,21 +264,21 @@ func (block *Block) Candidates() []byteutils.Hash {
 	return candidates
 }
 
-// CheckDynastyRule judge whether to change current dynasty
+// CheckDynastyChangeRule judge whether to change current dynasty
 // 1. epoch over, create > 100 blocks
 // 2. remove validators > 1/3 * N
-func (block *Block) CheckDynastyChangeRule() (bool, error) {
+func (block *Block) CheckDynastyChangeRule() bool {
 	birthBlock, err := LoadBlockFromStorage(block.header.dynastyBirthPlace, block.storage, block.txPool)
 	if err != nil {
-		return false, err
+		panic("cannot find the birth place of the block's dynasty")
 	}
 	if block.height > birthBlock.height && block.height-birthBlock.height > EpochSize {
-		return true, nil
+		return true
 	}
 	if len(block.Dynasty()) < 2/3*len(birthBlock.Dynasty()) {
-		return true, nil
+		return true
 	}
-	return false, nil
+	return false
 }
 
 // ChangeDynasty change current dynasty to next one
