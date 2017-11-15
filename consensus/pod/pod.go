@@ -26,6 +26,7 @@ import (
 
 	"github.com/hashicorp/golang-lru"
 	"github.com/nebulasio/go-nebulas/consensus"
+	"github.com/nebulasio/go-nebulas/core/state"
 	"github.com/nebulasio/go-nebulas/neblet/pb"
 	"github.com/nebulasio/go-nebulas/net/p2p"
 	log "github.com/sirupsen/logrus"
@@ -96,6 +97,9 @@ type PoD struct {
 	// contain many state machines
 	// each block has a state machine
 	stateMachineContainer *lru.Cache
+
+	currentDynasty    uint64
+	currentValidators map[string]state.Account
 
 	canMining bool
 }
@@ -181,6 +185,12 @@ func (p *PoD) blockLoop() {
 		select {
 		case block := <-p.chain.BlockPool().ReceivedBlockCh():
 			log.Debugf("PoD.blockLoop: new block message received. %v", block)
+			sm := consensus.NewStateMachine()
+			sm.SetInitialState(NewCreationState(sm, p))
+			p.stateMachineContainer.Add(sm)
+			sm.Start()
+		case tx := <-p.chain.TransactionPool().ReceivedTransactionCh():
+			log.Debugf("PoD.blockLoop: new transaction message received. %v", tx)
 		case <-p.quitCh:
 			log.Info("PoD.blockLoop: quit.")
 			return

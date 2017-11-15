@@ -67,15 +67,24 @@ type StateMachine struct {
 }
 
 // NewStateMachine create a new state machine
-func NewStateMachine(initState State) *StateMachine {
+func NewStateMachine() *StateMachine {
 	return &StateMachine{
 		quitCh:            make(chan bool),
-		currentState:      initState,
 		stateTransitionCh: make(chan *StateTransitionArgs, 10),
 	}
 }
 
-// Stop stop pow service.
+// SetInitialState set the first state
+func (sm *StateMachine) SetInitialState(state State) {
+	sm.currentState = state
+}
+
+// Start pow service.
+func (sm *StateMachine) Start() {
+	go sm.stateLoop()
+}
+
+// Stop pow service.
 func (sm *StateMachine) Stop() {
 	// cleanup.
 	sm.quitCh <- true

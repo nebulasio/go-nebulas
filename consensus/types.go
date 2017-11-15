@@ -38,3 +38,8 @@ type Consensus interface {
 
 	VerifyBlock(*core.Block) error
 }
+
+// MessageType
+const (
+	MessageTypeNewTx = "newtx"
+)

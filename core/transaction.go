@@ -121,11 +121,12 @@ func (tx *Transaction) FromProto(msg proto.Message) error {
 }
 
 func (tx *Transaction) String() string {
-	return fmt.Sprintf("Tx {from:%s; to:%s; nonce:%d, value: %d}",
+	return fmt.Sprintf("Tx {from:%s; to:%s; nonce:%d; value: %d; type: %v}",
 		byteutils.Hex(tx.from.address),
 		byteutils.Hex(tx.to.address),
 		tx.nonce,
 		tx.value.Int64(),
+		tx.data.Type,
 	)
 }
 
