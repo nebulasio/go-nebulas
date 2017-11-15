@@ -71,7 +71,7 @@ type Peers struct {
 // PeerInfo peerInfo struct
 type PeerInfo struct {
 	id    peer.ID
-	addrs string
+	addrs []string
 }
 
 // Peers return peers
@@ -85,12 +85,12 @@ func (p *PeerInfo) ID() peer.ID {
 }
 
 // Addrs return peer`s addrs
-func (p *PeerInfo) Addrs() string {
+func (p *PeerInfo) Addrs() []string {
 	return p.addrs
 }
 
 // NewPeerInfoMessage return a peerInfo instance
-func NewPeerInfoMessage(id peer.ID, addrs string) *PeerInfo {
+func NewPeerInfoMessage(id peer.ID, addrs []string) *PeerInfo {
 	return &PeerInfo{id, addrs}
 }
 

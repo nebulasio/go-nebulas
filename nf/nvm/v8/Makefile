@@ -33,9 +33,9 @@ ifeq ($(shell uname -s),Darwin)
 	LIBS+=-lv8_base -lv8_libsampler -lv8_external_snapshot
 	V8_BLOB_BIN_PATH=/usr/local/opt/v8/bin
 else
-	CC=gcc
-	CXX=g++
-	LD=g++
+	CC=gcc-4.8
+	CXX=g++-4.8
+	LD=g++-4.8
 	DYLIB=.so
 	CFLAGS+=-I/usr/local/v8/6.2.414.40/include
 	CXXFLAGS+=-I/usr/local/v8/6.2.414.40/include
@@ -56,10 +56,10 @@ all: main
 %.cpp.o: %.cpp
 	$(CXX) $(CXXFLAGS) -c $< -o $<.o
 
-main: main.cc.o engine.cc.o lib/execution_env.cc.o lib/storage_object.cc.o lib/log_callback.cc.o lib/require_callback.cc.o lib/memory_storage.cc.o  lib/instruction_counter.cc.o
+main: main.cc.o engine.cc.o lib/execution_env.cc.o lib/storage_object.cc.o lib/log_callback.cc.o lib/require_callback.cc.o lib/memory_storage.cc.o  lib/instruction_counter.cc.o lib/blockchain.cc.o lib/tracing.cc.o
 	$(LD) $(LDFLAGS) $^ -o $@ $(LIBS_PATH) $(LIBS)
 
-engine: engine.cc.o lib/execution_env.cc.o lib/storage_object.cc.o lib/log_callback.cc.o lib/require_callback.cc.o lib/instruction_counter.cc.o
+engine: engine.cc.o lib/execution_env.cc.o lib/storage_object.cc.o lib/log_callback.cc.o lib/require_callback.cc.o lib/instruction_counter.cc.o lib/blockchain.cc.o lib/tracing.cc.o
 	$(LD) -shared $(LDFLAGS) $^ -o libv8$@$(DYLIB) $(LIBS_PATH) $(LIBS)
 
 install: engine

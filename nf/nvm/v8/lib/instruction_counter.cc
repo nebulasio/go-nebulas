@@ -20,10 +20,12 @@
 #include "instruction_counter.h"
 #include "log_callback.h"
 
+static InstructionCounterIncrListener sListener = NULL;
+
 void NewInstructionCounterInstance(Isolate *isolate, Local<Context> context,
-                                   size_t *counter) {
+                                   size_t *counter, void *listenerContext) {
   Local<ObjectTemplate> counterTpl = ObjectTemplate::New(isolate);
-  counterTpl->SetInternalFieldCount(1);
+  counterTpl->SetInternalFieldCount(2);
 
   counterTpl->Set(String::NewFromUtf8(isolate, "incr"),
                   FunctionTemplate::New(isolate, IncrCounterCallback),
@@ -37,6 +39,7 @@ void NewInstructionCounterInstance(Isolate *isolate, Local<Context> context,
 
   Local<Object> instance = counterTpl->NewInstance(context).ToLocalChecked();
   instance->SetInternalField(0, External::New(isolate, counter));
+  instance->SetInternalField(1, External::New(isolate, listenerContext));
 
   context->Global()->DefineOwnProperty(
       context, String::NewFromUtf8(isolate, "_instruction_counter"), instance,
@@ -48,6 +51,8 @@ void IncrCounterCallback(const FunctionCallbackInfo<Value> &info) {
   Isolate *isolate = info.GetIsolate();
   Local<Object> thisArg = info.Holder();
   Local<External> count = Local<External>::Cast(thisArg->GetInternalField(0));
+  Local<External> listenerContext =
+      Local<External>::Cast(thisArg->GetInternalField(1));
 
   if (info.Length() < 1) {
     isolate->ThrowException(
@@ -56,17 +61,19 @@ void IncrCounterCallback(const FunctionCallbackInfo<Value> &info) {
   }
 
   Local<Value> arg = info[0];
-  if (!arg->IsString()) {
+  if (!arg->IsNumber()) {
     isolate->ThrowException(Exception::Error(
-        String::NewFromUtf8(isolate, "incr: Expression must be string")));
+        String::NewFromUtf8(isolate, "incr: value must be number")));
     return;
   }
 
-  String::Utf8Value expr(arg);
-
   size_t *cnt = static_cast<size_t *>(count->Value());
-  *cnt += 1;
-  LogInfof("Incr: count = %zu, %s", *cnt, *expr);
+  *cnt += arg->NumberValue();
+  // LogInfof("Incr: count = %zu", *cnt);
+
+  if (sListener != NULL) {
+    sListener(isolate, *cnt, listenerContext->Value());
+  }
 }
 
 void CountGetterCallback(Local<String> property,
@@ -77,4 +84,9 @@ void CountGetterCallback(Local<String> property,
 
   size_t *cnt = static_cast<size_t *>(count->Value());
   info.GetReturnValue().Set(Number::New(isolate, (double)*cnt));
+}
+
+void SetInstructionCounterIncrListener(
+    InstructionCounterIncrListener listener) {
+  sListener = listener;
 }

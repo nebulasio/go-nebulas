@@ -34,16 +34,15 @@ and then update the routing table.
 func (net *NetService) discovery(ctx context.Context) {
 
 	//FIXME  the sync routing table rate can be dynamic
-	second := 30 * time.Second
+	second := 5 * time.Second
 	ticker := time.NewTicker(second)
 	net.syncRoutingTable()
-	log.Infof("discovery: node start discovery per %s...", second)
 	for {
 		select {
 		case <-ticker.C:
 			net.syncRoutingTable()
 		case <-net.quitCh:
-			log.Info("Discovery: discovery service halting")
+			log.Info("discovery service halting")
 			return
 		}
 	}
@@ -54,11 +53,6 @@ func (net *NetService) syncRoutingTable() {
 	node := net.node
 	asked := make(map[peer.ID]bool)
 	allNode := node.routeTable.ListPeers()
-	log.WithFields(log.Fields{
-		"node.Addrs": node.host.Addrs(),
-		"allNode":    allNode,
-	}).Debug()
-	log.Infof("syncRoutingTable: node start sync routing table")
 	// TODO: should set seed?
 	randomList := rand.Perm(len(allNode))
 	var nodeAccount int

@@ -30,6 +30,12 @@ void V8Log_cgo(int level, const char *msg);
 char *StorageGetFunc_cgo(void *handler, const char *key);
 int StoragePutFunc_cgo(void *handler, const char *key, const char *value);
 int StorageDelFunc_cgo(void *handler, const char *key);
+
+char *GetBlockByHashFunc_cgo(void *handler, const char *hash);
+char *GetTxByHashFunc_cgo(void *handler, const char *hash);
+char *GetAccountStateFunc_cgo(void *handler, const char *address);
+int SendFunc_cgo(void *handler, const char *to, const char *value);
+
 */
 import "C"
 import (
@@ -74,6 +80,7 @@ func InitV8Engine() {
 	C.Initialize()
 	C.InitializeLogger((C.LogFunc)(unsafe.Pointer(C.V8Log_cgo)))
 	C.InitializeStorage((C.StorageGetFunc)(unsafe.Pointer(C.StorageGetFunc_cgo)), (C.StoragePutFunc)(unsafe.Pointer(C.StoragePutFunc_cgo)), (C.StorageDelFunc)(unsafe.Pointer(C.StorageDelFunc_cgo)))
+	C.InitializeBlockchain((C.GetBlockByHashFunc)(unsafe.Pointer(C.GetBlockByHashFunc_cgo)), (C.GetTxByHashFunc)(unsafe.Pointer(C.GetTxByHashFunc_cgo)), (C.GetAccountStateFunc)(unsafe.Pointer(C.GetAccountStateFunc_cgo)), (C.SendFunc)(unsafe.Pointer(C.SendFunc_cgo)))
 }
 
 // DisposeV8Engine dispose the v8 engine.
@@ -120,7 +127,7 @@ func (e *V8Engine) RunScriptSource(content string) error {
 	data := C.CString(content)
 	defer C.free(unsafe.Pointer(data))
 	// log.Errorf("[--------------] RunScriptSource, lcsHandler = %d, gcsHadnler = %d", e.lcsHandler, e.gcsHandler)
-	ret := C.RunScriptSource2(e.v8engine, data, C.uintptr_t(e.lcsHandler),
+	ret := C.RunScriptSource(e.v8engine, data, C.uintptr_t(e.lcsHandler),
 		C.uintptr_t(e.gcsHandler))
 
 	if ret != 0 {
@@ -144,7 +151,10 @@ func (e *V8Engine) DeployAndInit(source, args string) error {
 
 // Execute execute the script and return error.
 func (e *V8Engine) executeScript(source, function, args string) error {
-	executablesource := e.prepareExecutableSource(source, function, args)
+	executablesource, err := e.prepareExecutableSource(source, function, args)
+	if err != nil {
+		return err
+	}
 
 	// log.WithFields(log.Fields{
 	// 	"source":           source,
@@ -156,23 +166,31 @@ func (e *V8Engine) executeScript(source, function, args string) error {
 	return e.RunScriptSource(executablesource)
 }
 
-func (e *V8Engine) prepareExecutableSource(source, function, args string) string {
+func (e *V8Engine) prepareExecutableSource(source, function, args string) (string, error) {
+	// inject tracing instructions.
 	cSource := C.CString(source)
 	defer C.free(unsafe.Pointer(cSource))
+	traceableCSource := C.InjectTracingInstructions(e.v8engine, cSource)
+	if traceableCSource == nil {
+		return "", errors.New("inject tracing instructions failed")
+	}
+	defer C.free(unsafe.Pointer(traceableCSource))
 
-	cmSource := C.EncapsulateSourceToModuleStyle(cSource)
+	// encapsulate to module style.
+	cmSource := C.EncapsulateSourceToModuleStyle(traceableCSource)
 	defer C.free(unsafe.Pointer(cmSource))
 
+	// prepare for execute.
 	contextJSON := e.ctx.getParamsJSON()
-
 	var executablesource string
+
 	if len(args) > 0 {
 		executablesource = fmt.Sprintf("var __contract = %s;\n var __instance = new __contract();\n __instance.context = JSON.parse(\"%s\");\n __instance[\"%s\"].apply(__instance, JSON.parse(\"%s\"));\n", C.GoString(cmSource), formatArgs(contextJSON), function, formatArgs(args))
 	} else {
 		executablesource = fmt.Sprintf("var __contract = %s;\n var __instance = new __contract();\n __instance.context = JSON.parse(\"%s\");\n __instance[\"%s\"].apply(__instance);\n", C.GoString(cmSource), formatArgs(contextJSON), function)
 	}
 
-	return executablesource
+	return executablesource, nil
 }
 
 func getEngineAndStorage(handler uint64) (*V8Engine, state.Account) {

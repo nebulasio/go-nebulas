@@ -18,11 +18,14 @@
 //
 
 #include "engine.h"
+#include "engine_int.h"
+#include "lib/blockchain.h"
 #include "lib/execution_env.h"
 #include "lib/instruction_counter.h"
 #include "lib/log_callback.h"
 #include "lib/require_callback.h"
 #include "lib/storage_object.h"
+#include "lib/tracing.h"
 #include "v8_data_inc.h"
 
 #include <libplatform/libplatform.h>
@@ -35,6 +38,8 @@ using namespace v8;
 static Platform *platformPtr = NULL;
 
 void PrintException(Local<Context> context, TryCatch &trycatch);
+void EngineLimitsCheckDelegate(Isolate *isolate, size_t count,
+                               void *listenerContext);
 
 #define STRINGIZE2(s) #s
 #define STRINGIZE(s) STRINGIZE2(s)
@@ -62,6 +67,9 @@ void Initialize() {
   V8::SetSnapshotDataBlob(&snapshotData);
 
   V8::Initialize();
+
+  // Initialize V8Engine.
+  SetInstructionCounterIncrListener(EngineLimitsCheckDelegate);
 }
 
 void Dispose() {
@@ -88,7 +96,6 @@ V8Engine *CreateEngine() {
   V8Engine *e = (V8Engine *)calloc(1, sizeof(V8Engine));
   e->allocator = allocator;
   e->isolate = isolate;
-  e->count_of_executed_instruction = 0;
   return e;
 }
 
@@ -101,13 +108,50 @@ void DeleteEngine(V8Engine *e) {
   free(e);
 }
 
-int RunScriptSource2(V8Engine *e, const char *data, uintptr_t lcsHandler,
-                     uintptr_t gcsHandler) {
-  return RunScriptSource(e, data, (void *)lcsHandler, (void *)gcsHandler);
+int ExecuteSourceDataDelegate(Isolate *isolate, const char *data,
+                              Local<Context> context, TryCatch &trycatch,
+                              void *delegateContext) {
+  // Create a string containing the JavaScript source code.
+  Local<String> source =
+      String::NewFromUtf8(isolate, data, NewStringType::kNormal)
+          .ToLocalChecked();
+
+  // Compile the source code.
+  ScriptOrigin sourceSrcOrigin(
+      String::NewFromUtf8(isolate, "_contract_runner.js"));
+  MaybeLocal<Script> script =
+      Script::Compile(context, source, &sourceSrcOrigin);
+
+  if (script.IsEmpty()) {
+    PrintException(context, trycatch);
+    return 1;
+  }
+
+  // Run the script to get the result.
+  MaybeLocal<Value> ret = script.ToLocalChecked()->Run(context);
+  if (ret.IsEmpty()) {
+    PrintException(context, trycatch);
+    return 1;
+  }
+
+  return 0;
 }
 
-int RunScriptSource(V8Engine *e, const char *data, void *lcsHandler,
-                    void *gcsHandler) {
+char *InjectTracingInstructions(V8Engine *e, const char *source) {
+  char *traceableSource = NULL;
+  Execute(e, source, 0L, 0L, InjectTracingInstructionDelegate,
+          (void *)&traceableSource);
+  return traceableSource;
+}
+
+int RunScriptSource(V8Engine *e, const char *data, uintptr_t lcsHandler,
+                    uintptr_t gcsHandler) {
+  return Execute(e, data, (void *)lcsHandler, (void *)gcsHandler,
+                 ExecuteSourceDataDelegate, NULL);
+}
+
+int Execute(V8Engine *e, const char *data, void *lcsHandler, void *gcsHandler,
+            ExecutionDelegate delegate, void *delegateContext) {
   Isolate *isolate = static_cast<Isolate *>(e->isolate);
   assert(isolate);
 
@@ -120,6 +164,7 @@ int RunScriptSource(V8Engine *e, const char *data, void *lcsHandler,
   NewNativeRequireFunction(isolate, globalTpl);
   NewNativeLogFunction(isolate, globalTpl);
   NewStorageType(isolate, globalTpl);
+  NewBlockchain(isolate, globalTpl);
 
   // Create a new context.
   Local<Context> context = Context::New(isolate, NULL, globalTpl);
@@ -127,7 +172,7 @@ int RunScriptSource(V8Engine *e, const char *data, void *lcsHandler,
   // Disable eval().
   context->AllowCodeGenerationFromStrings(false);
 
-  // Enter the context for compiling and running the hello world script.
+  // Enter the context for compiling and running the script.
   Context::Scope context_scope(context);
 
   TryCatch trycatch(isolate);
@@ -135,7 +180,7 @@ int RunScriptSource(V8Engine *e, const char *data, void *lcsHandler,
   // Continue put objects to global object.
   NewStorageTypeInstance(isolate, context, lcsHandler, gcsHandler);
   NewInstructionCounterInstance(isolate, context,
-                                &(e->count_of_executed_instruction));
+                                &(e->stats.count_of_executed_instructions), e);
 
   // Setup execution env.
   if (SetupExecutionEnv(isolate, context)) {
@@ -144,34 +189,7 @@ int RunScriptSource(V8Engine *e, const char *data, void *lcsHandler,
     return 1;
   }
 
-  // Create a string containing the JavaScript source code.
-  Local<String> source =
-      String::NewFromUtf8(isolate, data, NewStringType::kNormal)
-          .ToLocalChecked();
-  // Compile the source code.
-  ScriptOrigin sourceSrcOrigin(
-      String::NewFromUtf8(isolate, "_contract_runner.js"));
-  MaybeLocal<Script> script =
-      Script::Compile(context, source, &sourceSrcOrigin);
-
-  if (script.IsEmpty()) {
-    // logErrorf("contract_wrapper.js: compilation fail.");
-    PrintException(context, trycatch);
-    return 1;
-  }
-
-  // Run the script to get the result.
-  MaybeLocal<Value> ret = script.ToLocalChecked()->Run(context);
-  if (ret.IsEmpty()) {
-    // logErrorf("contract_wrapper.js: execution fail.");
-    PrintException(context, trycatch);
-    return 1;
-  }
-
-  // Local<Value> ret_str = ret.ToLocalChecked();
-  // String::Utf8Value s(ret_str);
-  // logInfof("ret value: %s", *s);
-  return 0;
+  return delegate(isolate, data, context, trycatch, delegateContext);
 }
 
 void PrintException(Local<Context> context, TryCatch &trycatch) {
@@ -190,14 +208,12 @@ void PrintException(Local<Context> context, TryCatch &trycatch) {
   }
 }
 
-V8EngineStats *GetV8EngineStatistics(V8Engine *e) {
+void ReadMemoryStatistics(V8Engine *e) {
   Isolate *isolate = static_cast<Isolate *>(e->isolate);
   HeapStatistics heap_stats;
   isolate->GetHeapStatistics(&heap_stats);
 
-  V8EngineStats *stats =
-      static_cast<V8EngineStats *>(calloc(1, sizeof(V8EngineStats)));
-
+  V8EngineStats *stats = &(e->stats);
   stats->heap_size_limit = heap_stats.heap_size_limit();
   stats->malloced_memory = heap_stats.malloced_memory();
   stats->peak_malloced_memory = heap_stats.peak_malloced_memory();
@@ -206,11 +222,31 @@ V8EngineStats *GetV8EngineStatistics(V8Engine *e) {
   stats->total_heap_size_executable = heap_stats.total_heap_size_executable();
   stats->total_physical_size = heap_stats.total_physical_size();
   stats->used_heap_size = heap_stats.used_heap_size();
-
-  return stats;
 }
 
 void TerminateExecution(V8Engine *e) {
+  if (e->is_requested_terminate_execution) {
+    return;
+  }
   Isolate *isolate = static_cast<Isolate *>(e->isolate);
   isolate->TerminateExecution();
+  e->is_requested_terminate_execution = 1;
+}
+
+void EngineLimitsCheckDelegate(Isolate *isolate, size_t count,
+                               void *listenerContext) {
+  V8Engine *e = static_cast<V8Engine *>(listenerContext);
+
+  // TODO: read memory stats everytime may impact the performance.
+  ReadMemoryStatistics(e);
+
+  if (e->limits_of_executed_instructions > 0 &&
+      e->limits_of_executed_instructions < count) {
+    // Reach instruction limits, terminate.
+    TerminateExecution(e);
+  } else if (e->limits_of_total_heap_size > 0 &&
+             e->limits_of_total_heap_size < e->stats.total_heap_size) {
+    // reach memory limits, terminate.
+    TerminateExecution(e);
+  }
 }

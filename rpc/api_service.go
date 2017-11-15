@@ -68,6 +68,18 @@ func (s *APIService) NodeInfo(ctx context.Context, req *rpcpb.NodeInfoRequest) (
 	resp.RelayCacheSize = int32(node.Config().RelayCacheSize)
 	resp.PeerCount = int32(len(node.GetStream()))
 	resp.ProtocolVersion = p2p.ProtocolID
+	for _, v := range node.PeerStore().Peers() {
+		routeTable := &rpcpb.RouteTable{}
+		routeTable.Id = v.Pretty()
+		if len(node.PeerStore().Addrs(v)) > 0 {
+			var addrs []string
+			for _, val := range node.PeerStore().Addrs(v) {
+				addrs = append(addrs, val.String())
+			}
+			routeTable.Address = addrs
+			resp.RouteTable = append(resp.RouteTable, routeTable)
+		}
+	}
 	return resp, nil
 }
 
