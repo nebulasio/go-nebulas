@@ -279,6 +279,9 @@ func getEngineAndStorage(handler uint64) (*V8Engine, state.Account) {
 	}
 }
 
-func formatArgs(args string) string {
-	return strings.Replace(args, "\"", "\\\"", -1)
+func formatArgs(s string) string {
+	s = strings.Replace(s, "\\", "\\\\", -1)
+	s = strings.Replace(s, "\n", "\\n", -1)
+	s = strings.Replace(s, "\"", "\\\"", -1)
+	return s
 }
