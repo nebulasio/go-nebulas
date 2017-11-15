@@ -83,6 +83,19 @@ func (s *APIService) NodeInfo(ctx context.Context, req *rpcpb.NodeInfoRequest) (
 	return resp, nil
 }
 
+// StatisticsNodeInfo is the RPC API handler.
+func (s *APIService) StatisticsNodeInfo(ctx context.Context, req *rpcpb.NodeInfoRequest) (*rpcpb.StatisticsNodeInfoResponse, error) {
+	neb := s.server.Neblet()
+	node := neb.NetService().Node()
+	tail := neb.BlockChain().TailBlock()
+	resp := &rpcpb.StatisticsNodeInfoResponse{}
+	resp.NodeID = node.ID()
+	resp.Height = tail.Height()
+	resp.Hash = byteutils.Hex(tail.Hash())
+	resp.PeerCount = uint32(len(node.GetStream()))
+	return resp, nil
+}
+
 // Accounts is the RPC API handler.
 func (s *APIService) Accounts(ctx context.Context, req *rpcpb.AccountsRequest) (*rpcpb.AccountsResponse, error) {
 	neb := s.server.Neblet()

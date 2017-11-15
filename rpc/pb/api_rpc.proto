@@ -103,6 +103,12 @@ service APIService {
         };
 	}
 
+	rpc StatisticsNodeInfo (NodeInfoRequest) returns (StatisticsNodeInfoResponse) {
+		option (google.api.http) = {
+			get: "/v1/statistics/nodeInfo"
+		};
+	}
+
 }
 
 // Request message of GetNebState rpc.
@@ -147,6 +153,13 @@ message NodeInfoResponse {
 	string protocol_version = 10;
 
 	repeated RouteTable route_table = 11;
+}
+
+message StatisticsNodeInfoResponse {
+	string NodeID = 1;
+	uint64 Height = 2;
+	string Hash = 3;
+	uint32 PeerCount = 4;
 }
 
 message RouteTable {
