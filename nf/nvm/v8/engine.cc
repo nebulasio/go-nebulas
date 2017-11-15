@@ -18,6 +18,7 @@
 //
 
 #include "engine.h"
+#include "allocator.h"
 #include "engine_int.h"
 #include "lib/blockchain.h"
 #include "lib/execution_env.h"
@@ -82,8 +83,7 @@ void Dispose() {
 }
 
 V8Engine *CreateEngine() {
-  ArrayBuffer::Allocator *allocator =
-      ArrayBuffer::Allocator::NewDefaultAllocator();
+  ArrayBuffer::Allocator *allocator = new ArrayBufferAllocator();
 
   Isolate::CreateParams create_params;
   create_params.array_buffer_allocator = allocator;
@@ -210,6 +210,9 @@ void PrintException(Local<Context> context, TryCatch &trycatch) {
 
 void ReadMemoryStatistics(V8Engine *e) {
   Isolate *isolate = static_cast<Isolate *>(e->isolate);
+  ArrayBufferAllocator *allocator =
+      static_cast<ArrayBufferAllocator *>(e->allocator);
+
   HeapStatistics heap_stats;
   isolate->GetHeapStatistics(&heap_stats);
 
@@ -222,6 +225,11 @@ void ReadMemoryStatistics(V8Engine *e) {
   stats->total_heap_size_executable = heap_stats.total_heap_size_executable();
   stats->total_physical_size = heap_stats.total_physical_size();
   stats->used_heap_size = heap_stats.used_heap_size();
+  stats->total_array_buffer_size = allocator->total_available_size();
+  stats->peak_array_buffer_size = allocator->peak_allocated_size();
+
+  stats->total_memory_size =
+      stats->total_heap_size + stats->peak_array_buffer_size;
 }
 
 void TerminateExecution(V8Engine *e) {
@@ -237,16 +245,25 @@ void EngineLimitsCheckDelegate(Isolate *isolate, size_t count,
                                void *listenerContext) {
   V8Engine *e = static_cast<V8Engine *>(listenerContext);
 
+  if (IsEngineLimitsExceeded(e)) {
+    TerminateExecution(e);
+  }
+}
+
+int IsEngineLimitsExceeded(V8Engine *e) {
   // TODO: read memory stats everytime may impact the performance.
   ReadMemoryStatistics(e);
 
   if (e->limits_of_executed_instructions > 0 &&
-      e->limits_of_executed_instructions < count) {
-    // Reach instruction limits, terminate.
-    TerminateExecution(e);
-  } else if (e->limits_of_total_heap_size > 0 &&
-             e->limits_of_total_heap_size < e->stats.total_heap_size) {
-    // reach memory limits, terminate.
-    TerminateExecution(e);
+      e->limits_of_executed_instructions <
+          e->stats.count_of_executed_instructions) {
+    // Reach instruction limits.
+    return 1;
+  } else if (e->limits_of_total_memory_size > 0 &&
+             e->limits_of_total_memory_size < e->stats.total_memory_size) {
+    // reach memory limits.
+    return 2;
   }
+
+  return 0;
 }

@@ -17,7 +17,7 @@
 #
 
 CFLAGS=-DBUILDING_DLL -g -fPIC -m64 -Wall -Wextra -Wno-unused-parameter -Wno-unused-result -O2
-CXXFLAGS=-DBUILDING_DLL -g -std=c++11 -fPIC -m64 -Wall -Wextra -Wno-unused-parameter -Wno-unused-result -O2
+CXXFLAGS=-DBUILDING_DLL -g -std=c++11 -fno-rtti -fPIC -m64 -Wall -Wextra -Wno-unused-parameter -Wno-unused-result -O2
 
 LDFLAGS=-fvisibility=hidden
 LIBS_PATH=
@@ -56,10 +56,10 @@ all: main
 %.cpp.o: %.cpp
 	$(CXX) $(CXXFLAGS) -c $< -o $<.o
 
-main: main.cc.o engine.cc.o lib/execution_env.cc.o lib/storage_object.cc.o lib/log_callback.cc.o lib/require_callback.cc.o lib/memory_storage.cc.o  lib/instruction_counter.cc.o lib/blockchain.cc.o lib/tracing.cc.o
+main: main.cc.o engine.cc.o allocator.cc.o lib/execution_env.cc.o lib/storage_object.cc.o lib/log_callback.cc.o lib/require_callback.cc.o lib/memory_storage.cc.o  lib/instruction_counter.cc.o lib/blockchain.cc.o lib/tracing.cc.o
 	$(LD) $(LDFLAGS) $^ -o $@ $(LIBS_PATH) $(LIBS)
 
-engine: engine.cc.o lib/execution_env.cc.o lib/storage_object.cc.o lib/log_callback.cc.o lib/require_callback.cc.o lib/instruction_counter.cc.o lib/blockchain.cc.o lib/tracing.cc.o
+engine: engine.cc.o allocator.cc.o lib/execution_env.cc.o lib/storage_object.cc.o lib/log_callback.cc.o lib/require_callback.cc.o lib/instruction_counter.cc.o lib/blockchain.cc.o lib/tracing.cc.o
 	$(LD) -shared $(LDFLAGS) $^ -o libv8$@$(DYLIB) $(LIBS_PATH) $(LIBS)
 
 install: engine

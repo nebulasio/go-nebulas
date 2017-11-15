@@ -18,6 +18,7 @@
 //
 
 #include "tracing.h"
+#include "log_callback.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -52,6 +53,7 @@ int InjectTracingInstructionDelegate(Isolate *isolate, const char *data,
   *output = NULL;
 
   std::string s(data);
+  s = ReplaceAll(s, "\\", "\\\\");
   s = ReplaceAll(s, "\n", "\\n");
   s = ReplaceAll(s, "\"", "\\\"");
 

@@ -52,8 +52,11 @@ import (
 
 // Errors
 var (
-	ErrExecutionFailed     = errors.New("execute source failed")
-	ErrInvalidFunctionName = errors.New("invalid function name")
+	ErrExecutionFailed                = errors.New("execute source failed")
+	ErrInvalidFunctionName            = errors.New("invalid function name")
+	ErrInsufficientGas                = errors.New("insufficient gas")
+	ErrExceedMemoryLimits             = errors.New("exceed memory limits")
+	ErrInjectTracingInstructionFailed = errors.New("inject tracing instructions failed")
 )
 
 var (
@@ -69,17 +72,27 @@ var (
 type V8Engine struct {
 	ctx *Context
 
-	v8engine *C.V8Engine
-
-	lcsHandler uint64
-	gcsHandler uint64
+	v8engine                           *C.V8Engine
+	enableLimits                       bool
+	limitsOfExecutionInstructions      uint64
+	limitsOfTotalMemorySize            uint64
+	actualCountOfExecutionInstructions uint64
+	actualTotalMemorySize              uint64
+	lcsHandler                         uint64
+	gcsHandler                         uint64
 }
 
 // InitV8Engine initialize the v8 engine.
 func InitV8Engine() {
 	C.Initialize()
+
+	// Logger.
 	C.InitializeLogger((C.LogFunc)(unsafe.Pointer(C.V8Log_cgo)))
+
+	// Storage.
 	C.InitializeStorage((C.StorageGetFunc)(unsafe.Pointer(C.StorageGetFunc_cgo)), (C.StoragePutFunc)(unsafe.Pointer(C.StoragePutFunc_cgo)), (C.StorageDelFunc)(unsafe.Pointer(C.StorageDelFunc_cgo)))
+
+	// Blockchain.
 	C.InitializeBlockchain((C.GetBlockByHashFunc)(unsafe.Pointer(C.GetBlockByHashFunc_cgo)), (C.GetTxByHashFunc)(unsafe.Pointer(C.GetTxByHashFunc_cgo)), (C.GetAccountStateFunc)(unsafe.Pointer(C.GetAccountStateFunc_cgo)), (C.SendFunc)(unsafe.Pointer(C.SendFunc_cgo)))
 }
 
@@ -95,8 +108,13 @@ func NewV8Engine(ctx *Context) *V8Engine {
 	})
 
 	engine := &V8Engine{
-		ctx:      ctx,
-		v8engine: C.CreateEngine(),
+		ctx:                                ctx,
+		v8engine:                           C.CreateEngine(),
+		enableLimits:                       false,
+		limitsOfExecutionInstructions:      0,
+		limitsOfTotalMemorySize:            0,
+		actualCountOfExecutionInstructions: 0,
+		actualTotalMemorySize:              0,
 	}
 
 	storagesLock.Lock()
@@ -122,18 +140,68 @@ func (e *V8Engine) Dispose() {
 	storagesLock.Unlock()
 }
 
+// SetExecutionLimits set execution limits of V8 Engine, prevent Halting Problem.
+func (e *V8Engine) SetExecutionLimits(limitsOfExecutionInstructions, limitsOfTotalMemorySize uint64) {
+	e.v8engine.limits_of_executed_instructions = C.size_t(limitsOfExecutionInstructions)
+	e.v8engine.limits_of_total_memory_size = C.size_t(limitsOfTotalMemorySize)
+
+	log.WithFields(log.Fields{
+		"limits_of_executed_instructions": e.v8engine.limits_of_executed_instructions,
+		"limits_of_total_memory_size":     e.v8engine.limits_of_total_memory_size,
+	}).Debug("set execution limits.")
+
+	e.limitsOfExecutionInstructions = limitsOfExecutionInstructions
+	e.limitsOfTotalMemorySize = limitsOfTotalMemorySize
+	e.enableLimits = !(limitsOfExecutionInstructions == 0 && limitsOfTotalMemorySize == 0)
+
+	// V8 needs at least 6M heap memory.
+	if limitsOfTotalMemorySize < 6000000 {
+		log.Warnf("V8 needs at least 6M (6000000) heap memory, your limitsOfTotalMemorySize (%d) is too low.", limitsOfTotalMemorySize)
+	}
+}
+
 // RunScriptSource run js source.
-func (e *V8Engine) RunScriptSource(content string) error {
-	data := C.CString(content)
-	defer C.free(unsafe.Pointer(data))
-	// log.Errorf("[--------------] RunScriptSource, lcsHandler = %d, gcsHadnler = %d", e.lcsHandler, e.gcsHandler)
-	ret := C.RunScriptSource(e.v8engine, data, C.uintptr_t(e.lcsHandler),
-		C.uintptr_t(e.gcsHandler))
+func (e *V8Engine) RunScriptSource(content string) (err error) {
+	cSource := C.CString(content)
+	defer C.free(unsafe.Pointer(cSource))
+
+	var ret C.int
+
+	if e.enableLimits {
+		traceableCSource := C.InjectTracingInstructions(e.v8engine, cSource)
+		if traceableCSource == nil {
+			return ErrInjectTracingInstructionFailed
+		}
+		defer C.free(unsafe.Pointer(traceableCSource))
+
+		ret = C.RunScriptSource(e.v8engine, traceableCSource, C.uintptr_t(e.lcsHandler),
+			C.uintptr_t(e.gcsHandler))
+	} else {
+		ret = C.RunScriptSource(e.v8engine, cSource, C.uintptr_t(e.lcsHandler),
+			C.uintptr_t(e.gcsHandler))
+	}
 
 	if ret != 0 {
-		return ErrExecutionFailed
+		err = ErrExecutionFailed
 	}
-	return nil
+
+	if e.enableLimits {
+		// check limits.
+		ret = C.IsEngineLimitsExceeded(e.v8engine)
+		if ret == 1 {
+			err = ErrInsufficientGas
+		} else if ret == 2 {
+			err = ErrExceedMemoryLimits
+		}
+	} else {
+		// read memory stats.
+		C.ReadMemoryStatistics(e.v8engine)
+	}
+
+	e.actualCountOfExecutionInstructions = uint64(e.v8engine.stats.count_of_executed_instructions)
+	e.actualTotalMemorySize = uint64(e.v8engine.stats.total_memory_size)
+
+	return
 }
 
 // Call function in a script
@@ -156,13 +224,6 @@ func (e *V8Engine) executeScript(source, function, args string) error {
 		return err
 	}
 
-	// log.WithFields(log.Fields{
-	// 	"source":           source,
-	// 	"args":             args,
-	// 	"function":         function,
-	// 	"executablesource": executablesource,
-	// }).Info("executeScript")
-
 	return e.RunScriptSource(executablesource)
 }
 
@@ -170,14 +231,9 @@ func (e *V8Engine) prepareExecutableSource(source, function, args string) (strin
 	// inject tracing instructions.
 	cSource := C.CString(source)
 	defer C.free(unsafe.Pointer(cSource))
-	traceableCSource := C.InjectTracingInstructions(e.v8engine, cSource)
-	if traceableCSource == nil {
-		return "", errors.New("inject tracing instructions failed")
-	}
-	defer C.free(unsafe.Pointer(traceableCSource))
 
 	// encapsulate to module style.
-	cmSource := C.EncapsulateSourceToModuleStyle(traceableCSource)
+	cmSource := C.EncapsulateSourceToModuleStyle(cSource)
 	defer C.free(unsafe.Pointer(cmSource))
 
 	// prepare for execute.

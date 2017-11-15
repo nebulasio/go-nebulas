@@ -67,6 +67,7 @@ EXPORT char *GetV8Version();
 
 typedef struct V8EngineStats {
   size_t count_of_executed_instructions;
+  size_t total_memory_size;
   size_t total_heap_size;
   size_t total_heap_size_executable;
   size_t total_physical_size;
@@ -75,13 +76,15 @@ typedef struct V8EngineStats {
   size_t heap_size_limit;
   size_t malloced_memory;
   size_t peak_malloced_memory;
+  size_t total_array_buffer_size;
+  size_t peak_array_buffer_size;
 } V8EngineStats;
 
 typedef struct V8Engine {
   void *isolate;
   void *allocator;
   size_t limits_of_executed_instructions;
-  size_t limits_of_total_heap_size;
+  size_t limits_of_total_memory_size;
   int is_requested_terminate_execution;
   V8EngineStats stats;
 } V8Engine;
@@ -95,6 +98,8 @@ EXPORT int RunScriptSource(V8Engine *e, const char *data, uintptr_t lcsHandler,
                            uintptr_t gcsHandler);
 
 EXPORT char *InjectTracingInstructions(V8Engine *e, const char *source);
+
+EXPORT int IsEngineLimitsExceeded(V8Engine *e);
 
 EXPORT void ReadMemoryStatistics(V8Engine *e);
 

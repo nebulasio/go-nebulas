@@ -33,7 +33,7 @@
 static int concurrency = 1;
 static int enable_tracer_injection = 0;
 static size_t limits_of_executed_instructions = 0;
-static size_t limits_of_total_heap_size = 0;
+static size_t limits_of_total_memory_size = 0;
 static int print_injection_result = 0;
 
 char *GetBlockByHash(void *handler, const char *hash) {
@@ -128,20 +128,29 @@ void RunScriptSourceDelegate(V8Engine *e, const char *data,
                              uintptr_t lcsHandler, uintptr_t gcsHandler) {
   if (enable_tracer_injection) {
     e->limits_of_executed_instructions = limits_of_executed_instructions;
-    e->limits_of_total_heap_size = limits_of_total_heap_size;
+    e->limits_of_total_memory_size = limits_of_total_memory_size;
 
     char *traceableSource = InjectTracingInstructions(e, data);
     if (traceableSource == NULL) {
       fprintf(stderr, "Inject tracing instructions failed.\n");
     } else {
-      RunScriptSource(e, traceableSource, (uintptr_t)lcsHandler,
-                      (uintptr_t)gcsHandler);
+      int ret = RunScriptSource(e, traceableSource, (uintptr_t)lcsHandler,
+                                (uintptr_t)gcsHandler);
       free(traceableSource);
+
+      fprintf(stdout, "[V8] Execution ret = %d\n", ret);
+
+      ret = IsEngineLimitsExceeded(e);
+      if (ret) {
+        fprintf(stdout, "[V8Error] Exceed %s limits, ret = %d\n",
+                ret == 1 ? "Instructions" : "Memory", ret);
+      }
 
       // print tracing stats.
       fprintf(stdout,
               "\nStats of V8Engine:\n"
               "  count_of_executed_instructions: \t%zu\n"
+              "  total_memory_size: \t\t\t%zu\n"
               "  total_heap_size: \t\t\t%zu\n"
               "  total_heap_size_executable: \t\t%zu\n"
               "  total_physical_size: \t\t\t%zu\n"
@@ -149,12 +158,16 @@ void RunScriptSourceDelegate(V8Engine *e, const char *data,
               "  used_heap_size: \t\t\t%zu\n"
               "  heap_size_limit: \t\t\t%zu\n"
               "  malloced_memory: \t\t\t%zu\n"
-              "  peak_malloced_memory: \t\t%zu\n",
-              e->stats.count_of_executed_instructions, e->stats.total_heap_size,
+              "  peak_malloced_memory: \t\t%zu\n"
+              "  total_array_buffer_size: \t\t%zu\n"
+              "  peak_array_buffer_size: \t\t%zu\n",
+              e->stats.count_of_executed_instructions,
+              e->stats.total_memory_size, e->stats.total_heap_size,
               e->stats.total_heap_size_executable, e->stats.total_physical_size,
               e->stats.total_available_size, e->stats.used_heap_size,
               e->stats.heap_size_limit, e->stats.malloced_memory,
-              e->stats.peak_malloced_memory);
+              e->stats.peak_malloced_memory, e->stats.total_array_buffer_size,
+              e->stats.peak_array_buffer_size);
     }
   } else {
     RunScriptSource(e, data, (uintptr_t)lcsHandler, (uintptr_t)gcsHandler);
@@ -245,9 +258,9 @@ int main(int argc, const char *argv[]) {
 
       if (errno == ERANGE) {
         // do nothing.
-        limits_of_total_heap_size = 0;
+        limits_of_total_memory_size = 0;
       } else {
-        limits_of_total_heap_size = limits;
+        limits_of_total_memory_size = limits;
       }
     } else if (strcmp(arg, "-ip") == 0) {
       argcIdx++;

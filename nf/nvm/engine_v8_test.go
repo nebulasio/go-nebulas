@@ -62,8 +62,48 @@ func TestRunScriptSource(t *testing.T) {
 			context, _ := state.NewAccountState(nil, mem)
 			owner := context.GetOrCreateUserAccount([]byte("account1"))
 			contract, _ := context.CreateContractAccount([]byte("account2"), nil)
+
 			ctx := NewContext(nil, owner, contract, context)
 			engine := NewV8Engine(ctx)
+			engine.SetExecutionLimits(1000, 10000000)
+			err = engine.RunScriptSource(string(data))
+			assert.Equal(t, tt.expectedErr, err)
+			engine.Dispose()
+		})
+	}
+}
+
+func TestRunScriptSourceWithLimits(t *testing.T) {
+	tests := []struct {
+		filepath                      string
+		limitsOfExecutionInstructions uint64
+		limitsOfTotalMemorySize       uint64
+		expectedErr                   error
+	}{
+		{"test/test_oom_1.js", 100000, 0, ErrInsufficientGas},
+		{"test/test_oom_1.js", 0, 50000000, ErrExceedMemoryLimits},
+		{"test/test_oom_1.js", 100000, 50000000, ErrInsufficientGas},
+		{"test/test_oom_1.js", 500000, 7000000, ErrExceedMemoryLimits},
+
+		{"test/test_oom_2.js", 100000, 0, ErrInsufficientGas},
+		{"test/test_oom_2.js", 0, 8000000, ErrExceedMemoryLimits},
+		{"test/test_oom_2.js", 100000, 8000000, ErrInsufficientGas},
+		{"test/test_oom_2.js", 1000000, 7000000, ErrExceedMemoryLimits},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.filepath, func(t *testing.T) {
+			data, err := ioutil.ReadFile(tt.filepath)
+			assert.Nil(t, err, "filepath read error")
+
+			mem, _ := storage.NewMemoryStorage()
+			context, _ := state.NewAccountState(nil, mem)
+			owner := context.GetOrCreateUserAccount([]byte("account1"))
+			contract, _ := context.CreateContractAccount([]byte("account2"), nil)
+
+			ctx := NewContext(nil, owner, contract, context)
+			engine := NewV8Engine(ctx)
+			engine.SetExecutionLimits(tt.limitsOfExecutionInstructions, tt.limitsOfTotalMemorySize)
 			err = engine.RunScriptSource(string(data))
 			assert.Equal(t, tt.expectedErr, err)
 			engine.Dispose()
@@ -99,16 +139,19 @@ func TestDeployAndInitAndCall(t *testing.T) {
 				TxHash:      "c7174759e86c59dcb7df87def82f61eb"}
 			ctx := NewContext(params, owner, contract, context)
 			engine := NewV8Engine(ctx)
+			engine.SetExecutionLimits(1000, 10000000)
 			err = engine.DeployAndInit(string(data), tt.initArgs)
 			assert.Nil(t, err)
 			engine.Dispose()
 
 			engine = NewV8Engine(ctx)
+			engine.SetExecutionLimits(1000, 10000000)
 			err = engine.Call(string(data), "dump", "")
 			assert.Nil(t, err)
 			engine.Dispose()
 
 			engine = NewV8Engine(ctx)
+			engine.SetExecutionLimits(1000, 10000000)
 			err = engine.Call(string(data), "verify", tt.verifyArgs)
 			assert.Nil(t, err)
 			engine.Dispose()
@@ -121,6 +164,7 @@ func TestDeployAndInitAndCall(t *testing.T) {
 
 			ctx = NewContext(params, owner, contract, context)
 			engine = NewV8Engine(ctx)
+			engine.SetExecutionLimits(1000, 10000000)
 			err = engine.Call(string(data), "verify", tt.verifyArgs)
 			assert.NotNil(t, err)
 			engine.Dispose()
@@ -153,6 +197,7 @@ func TestFunctionNameCheck(t *testing.T) {
 
 			ctx := NewContext(nil, owner, contract, context)
 			engine := NewV8Engine(ctx)
+			engine.SetExecutionLimits(1000, 10000000)
 			err = engine.Call(string(data), tt.function, tt.args)
 			assert.Equal(t, tt.expectedErr, err)
 			engine.Dispose()
@@ -174,6 +219,7 @@ func TestMultiEngine(t *testing.T) {
 			defer wg.Done()
 			ctx := NewContext(nil, owner, contract, context)
 			engine := NewV8Engine(ctx)
+			engine.SetExecutionLimits(1000, 10000000)
 			defer engine.Dispose()
 
 			err := engine.RunScriptSource("console.log('running.');")
