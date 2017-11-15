@@ -154,7 +154,7 @@ func (e *V8Engine) SetExecutionLimits(limitsOfExecutionInstructions, limitsOfTot
 
 	e.limitsOfExecutionInstructions = limitsOfExecutionInstructions
 	e.limitsOfTotalMemorySize = limitsOfTotalMemorySize
-	e.enableLimits = !(limitsOfExecutionInstructions == 0 && limitsOfTotalMemorySize == 0)
+	e.enableLimits = limitsOfExecutionInstructions != 0 || limitsOfTotalMemorySize != 0
 
 	// V8 needs at least 6M heap memory.
 	if limitsOfTotalMemorySize > 0 && limitsOfTotalMemorySize < 6000000 {
