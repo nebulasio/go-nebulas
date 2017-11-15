@@ -22,20 +22,21 @@ import (
 	"fmt"
 
 	"github.com/nebulasio/go-nebulas/consensus"
+	"github.com/nebulasio/go-nebulas/core"
 	log "github.com/sirupsen/logrus"
 )
 
 // CreationState presents the prepare stage in pod
 type CreationState struct {
-	sm  *consensus.StateMachine
-	pod *PoD
+	sm    *consensus.StateMachine
+	block *core.Block
 }
 
 // NewCreationState create a new prepare state
-func NewCreationState(sm *consensus.StateMachine, pod *PoD) *CreationState {
+func NewCreationState(sm *consensus.StateMachine, block *core.Block) *CreationState {
 	return &CreationState{
-		sm:  sm,
-		pod: pod,
+		sm:    sm,
+		block: block,
 	}
 }
 

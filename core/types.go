@@ -22,13 +22,10 @@ import "errors"
 
 // Payload Types
 const (
-	TxPayloadBinaryType       = "binary"
-	TxPayloadDeployType       = "deploy"
-	TxPayloadCallType         = "call"
-	TxPayloadPrepareVoteType  = "vote.prepare"
-	TxPayloadCommitVoteType   = "vote.commit"
-	TxPayloadChangeVoteType   = "vote.change"
-	TxPayloadAbdicateVoteType = "vote.abdicate"
+	TxPayloadBinaryType = "binary"
+	TxPayloadDeployType = "deploy"
+	TxPayloadCallType   = "call"
+	TxPayloadVoteType   = "vote"
 )
 
 // Error Types

@@ -26,7 +26,6 @@ import (
 
 	"github.com/hashicorp/golang-lru"
 	"github.com/nebulasio/go-nebulas/consensus"
-	"github.com/nebulasio/go-nebulas/core/state"
 	"github.com/nebulasio/go-nebulas/neblet/pb"
 	"github.com/nebulasio/go-nebulas/net/p2p"
 	log "github.com/sirupsen/logrus"
@@ -36,6 +35,7 @@ import (
 var (
 	ErrInvalidDataType   = errors.New("invalid data type, should be *core.Block")
 	ErrInvalidBlockNonce = errors.New("invalid block nonce")
+	ErrDuplicateBlock    = errors.New("dup block from block pool")
 	ErrInvalidPoDConfig  = errors.New("invalid pod config")
 )
 
@@ -97,9 +97,6 @@ type PoD struct {
 	// contain many state machines
 	// each block has a state machine
 	stateMachineContainer *lru.Cache
-
-	currentDynasty    uint64
-	currentValidators map[string]state.Account
 
 	canMining bool
 }
@@ -184,13 +181,37 @@ func (p *PoD) blockLoop() {
 	for {
 		select {
 		case block := <-p.chain.BlockPool().ReceivedBlockCh():
-			log.Debugf("PoD.blockLoop: new block message received. %v", block)
-			sm := consensus.NewStateMachine()
-			sm.SetInitialState(NewCreationState(sm, p))
-			p.stateMachineContainer.Add(sm)
-			sm.Start()
+			if p.stateMachineContainer.Contains(block.Hash()) {
+				log.WithFields(log.Fields{
+					"func": "PoD.blockloop",
+					"err":  ErrDuplicateBlock,
+				}).Error("Receive Duplicate Block.")
+			} else {
+				log.WithFields(log.Fields{
+					"func":  "PoD.blockloop",
+					"block": block,
+				}).Debug("Receive new Block.")
+
+				sm := consensus.NewStateMachine()
+				sm.SetInitialState(NewCreationState(sm, block))
+				p.stateMachineContainer.Add(block.Hash(), sm)
+				sm.Start()
+
+				log.WithFields(log.Fields{
+					"func":          "PoD.blockloop",
+					"block":         block,
+					"state machine": sm,
+				}).Info("Create new StateMachine")
+			}
 		case tx := <-p.chain.TransactionPool().ReceivedTransactionCh():
-			log.Debugf("PoD.blockLoop: new transaction message received. %v", tx)
+			if tx.DataType() == core.TxPayloadVoteType {
+				if vote, err := core.LoadVotePayload(tx.Data()); err == nil {
+					if stateMachine, ok := p.stateMachineContainer.Get(vote.BlockHash); ok {
+						eventType := consensus.EventType("event.vote." + vote.Action)
+						stateMachine.(*consensus.StateMachine).Event(consensus.NewBaseEvent(eventType, tx.From().ToHex()))
+					}
+				}
+			}
 		case <-p.quitCh:
 			log.Info("PoD.blockLoop: quit.")
 			return

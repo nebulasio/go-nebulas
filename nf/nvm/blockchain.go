@@ -21,15 +21,16 @@ package nvm
 import "C"
 
 import (
-	log "github.com/sirupsen/logrus"
-	"unsafe"
 	"encoding/json"
+	"unsafe"
+
 	"github.com/nebulasio/go-nebulas/util"
+	log "github.com/sirupsen/logrus"
 )
 
 type accountState struct {
-	nonce uint64	`json:"nonce"`
-	balance string	`json:"balance"`
+	nonce   uint64 `json:"nonce"`
+	balance string `json:"balance"`
 }
 
 // GetBlockByHashFunc returns the block info by hash
@@ -44,7 +45,7 @@ func GetBlockByHashFunc(handler unsafe.Pointer, hash *C.char) *C.char {
 		log.WithFields(log.Fields{
 			"func":    "nvm.GetBlockByHashFunc",
 			"handler": uint64(uintptr(handler)),
-			"hash":     C.GoString(hash),
+			"hash":    C.GoString(hash),
 			"err":     err,
 		}).Info("GetBlockByHashFunc get block failed.")
 		return nil
@@ -95,8 +96,8 @@ func GetAccountStateFunc(handler unsafe.Pointer, address *C.char) *C.char {
 	// TODO: handle specific block number.
 	acc := engine.ctx.state.GetOrCreateUserAccount([]byte(addr))
 	state := &accountState{
-		nonce:acc.Nonce(),
-		balance:acc.Balance().String(),
+		nonce:   acc.Nonce(),
+		balance: acc.Balance().String(),
 	}
 	json, _ := json.Marshal(state)
 	return C.CString(string(json))
@@ -124,7 +125,7 @@ func SendFunc(handler unsafe.Pointer, to *C.char, v *C.char) int {
 
 	var (
 		amount *util.Uint128
-		err error
+		err    error
 	)
 	value := []byte(C.GoString(v))
 	if len(value) > 0 {
@@ -156,4 +157,3 @@ func SendFunc(handler unsafe.Pointer, to *C.char, v *C.char) int {
 	toAcc.AddBalance(amount)
 	return 1
 }
-

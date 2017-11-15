@@ -78,6 +78,11 @@ func (tx *Transaction) Data() []byte {
 	return tx.data.Payload
 }
 
+// DataType return tx data type
+func (tx *Transaction) DataType() string {
+	return tx.data.Type
+}
+
 // ToProto converts domain Tx to proto Tx
 func (tx *Transaction) ToProto() (proto.Message, error) {
 	value, err := tx.value.ToFixedSizeByteSlice()
