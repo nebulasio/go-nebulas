@@ -258,9 +258,9 @@ func (e *V8Engine) prepareExecutableSource(source, function, args string) (strin
 	var executablesource string
 
 	if len(args) > 0 {
-		executablesource = fmt.Sprintf("var __contract = %s;\n var __instance = new __contract();\n __instance.context = JSON.parse(\"%s\");\n __instance[\"%s\"].apply(__instance, JSON.parse(\"%s\"));\n", C.GoString(cmSource), formatArgs(contextJSON), function, formatArgs(args))
+		executablesource = fmt.Sprintf("var __contract = %s;\n var __instance = new __contract();\n Blockchain.current = Object.freeze(JSON.parse(\"%s\"));\n __instance[\"%s\"].apply(__instance, JSON.parse(\"%s\"));\n", C.GoString(cmSource), formatArgs(contextJSON), function, formatArgs(args))
 	} else {
-		executablesource = fmt.Sprintf("var __contract = %s;\n var __instance = new __contract();\n __instance.context = JSON.parse(\"%s\");\n __instance[\"%s\"].apply(__instance);\n", C.GoString(cmSource), formatArgs(contextJSON), function)
+		executablesource = fmt.Sprintf("var __contract = %s;\n var __instance = new __contract();\n Blockchain.current = Object.freeze(JSON.parse(\"%s\"));\n __instance[\"%s\"].apply(__instance);\n", C.GoString(cmSource), formatArgs(contextJSON), function)
 	}
 
 	return executablesource, nil
