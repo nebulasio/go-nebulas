@@ -108,6 +108,14 @@ type BlockHeader struct {
 	dynastyCandidatesRoot byteutils.Hash
 	// deposit charged by validators
 	depositRoot byteutils.Hash
+	// all prepare votes
+	prepareVotesRoot byteutils.Hash
+	// all commit votes
+	commitVotesRoot byteutils.Hash
+	// all change votes
+	changeVotesRoot byteutils.Hash
+	// all abdicate votes
+	abdicateVotesRoot byteutils.Hash
 
 	nonce     uint64
 	coinbase  *Address
@@ -118,19 +126,25 @@ type BlockHeader struct {
 // ToProto converts domain BlockHeader to proto BlockHeader
 func (b *BlockHeader) ToProto() (proto.Message, error) {
 	return &corepb.BlockHeader{
-		Hash:                  b.hash,
-		ParentHash:            b.parentHash,
-		StateRoot:             b.stateRoot,
-		TxsRoot:               b.txsRoot,
+		Hash:       b.hash,
+		ParentHash: b.parentHash,
+		StateRoot:  b.stateRoot,
+		TxsRoot:    b.txsRoot,
+
 		DynastyParentHash:     b.dynastyParentHash,
 		DynastyRoot:           b.dynastyRoot,
 		NextDynastyRoot:       b.nextDynastyRoot,
 		DynastyCandidatesRoot: b.dynastyCandidatesRoot,
 		DepositRoot:           b.depositRoot,
-		Nonce:                 b.nonce,
-		Coinbase:              b.coinbase.address,
-		Timestamp:             b.timestamp,
-		ChainId:               b.chainID,
+		PrepareVotesRoot:      b.prepareVotesRoot,
+		CommitVotesRoot:       b.commitVotesRoot,
+		ChangeVotesRoot:       b.changeVotesRoot,
+		AbdicateVotesRoot:     b.abdicateVotesRoot,
+
+		Nonce:     b.nonce,
+		Coinbase:  b.coinbase.address,
+		Timestamp: b.timestamp,
+		ChainId:   b.chainID,
 	}, nil
 }
 
@@ -141,11 +155,17 @@ func (b *BlockHeader) FromProto(msg proto.Message) error {
 		b.parentHash = msg.ParentHash
 		b.stateRoot = msg.StateRoot
 		b.txsRoot = msg.TxsRoot
+
 		b.dynastyParentHash = msg.DynastyParentHash
 		b.dynastyRoot = msg.DynastyRoot
 		b.nextDynastyRoot = msg.NextDynastyRoot
 		b.dynastyCandidatesRoot = msg.DynastyCandidatesRoot
 		b.depositRoot = msg.DepositRoot
+		b.prepareVotesRoot = msg.PrepareVotesRoot
+		b.commitVotesRoot = msg.CommitVotesRoot
+		b.changeVotesRoot = msg.ChangeVotesRoot
+		b.abdicateVotesRoot = msg.AbdicateVotesRoot
+
 		b.nonce = msg.Nonce
 		b.coinbase = &Address{msg.Coinbase}
 		b.timestamp = msg.Timestamp
@@ -160,16 +180,22 @@ type Block struct {
 	header       *BlockHeader
 	transactions Transactions
 
-	sealed                bool
-	height                uint64
-	parenetBlock          *Block
-	accState              state.AccountState
-	txsTrie               *trie.BatchTrie
-	dynastyTrie           *trie.BatchTrie
-	nextDynastyTrie       *trie.BatchTrie
-	dynastyCandidatesTrie *trie.BatchTrie
-	depositTrie           *trie.BatchTrie
-	txPool                *TransactionPool
+	sealed       bool
+	height       uint64
+	parenetBlock *Block
+	accState     state.AccountState
+	txsTrie      *trie.BatchTrie
+
+	dynastyTrie           *trie.BatchTrie // key: addr
+	nextDynastyTrie       *trie.BatchTrie // key: addr
+	dynastyCandidatesTrie *trie.BatchTrie // key: addr
+	depositTrie           *trie.BatchTrie // key: addr
+	prepareVotesTrie      *trie.BatchTrie // key: height + block hash
+	commitVotesTrie       *trie.BatchTrie // key: height + block hash
+	changeVotesTrie       *trie.BatchTrie // key: height + block hash
+	abdicateVotesTrie     *trie.BatchTrie // key: dynasty parent hash
+
+	txPool *TransactionPool
 
 	storage storage.Storage
 }
@@ -223,10 +249,16 @@ func (block *Block) FromProto(msg proto.Message) error {
 func NewBlock(chainID uint32, coinbase *Address, parent *Block, txPool *TransactionPool, storage storage.Storage) *Block {
 	accState, _ := parent.accState.Clone()
 	txsTrie, _ := parent.txsTrie.Clone()
+
 	dynastyTrie, _ := parent.dynastyTrie.Clone()
 	nextDynastyTrie, _ := parent.nextDynastyTrie.Clone()
 	dynastyCandidatesTrie, _ := parent.dynastyCandidatesTrie.Clone()
 	depositTrie, _ := parent.depositTrie.Clone()
+	prepareVotesTrie, _ := parent.prepareVotesTrie.Clone()
+	commitVotesTrie, _ := parent.commitVotesTrie.Clone()
+	changeVotesTrie, _ := parent.changeVotesTrie.Clone()
+	abdicateVotesTrie, _ := parent.abdicateVotesTrie.Clone()
+
 	block := &Block{
 		header: &BlockHeader{
 			parentHash:        parent.Hash(),
@@ -236,18 +268,24 @@ func NewBlock(chainID uint32, coinbase *Address, parent *Block, txPool *Transact
 			timestamp:         time.Now().Unix(),
 			chainID:           chainID,
 		},
-		transactions:          make(Transactions, 0),
-		parenetBlock:          parent,
-		accState:              accState,
-		txsTrie:               txsTrie,
+		transactions: make(Transactions, 0),
+		parenetBlock: parent,
+		accState:     accState,
+		txsTrie:      txsTrie,
+
 		dynastyTrie:           dynastyTrie,
 		nextDynastyTrie:       nextDynastyTrie,
 		dynastyCandidatesTrie: dynastyCandidatesTrie,
 		depositTrie:           depositTrie,
-		txPool:                txPool,
-		height:                parent.Height() + 1,
-		sealed:                false,
-		storage:               storage,
+		prepareVotesTrie:      prepareVotesTrie,
+		commitVotesTrie:       commitVotesTrie,
+		changeVotesTrie:       changeVotesTrie,
+		abdicateVotesTrie:     abdicateVotesTrie,
+
+		txPool:  txPool,
+		height:  parent.Height() + 1,
+		sealed:  false,
+		storage: storage,
 	}
 
 	if block.checkDynastyRuleEpochOver() {
@@ -387,6 +425,26 @@ func (block *Block) DepositRoot() byteutils.Hash {
 	return block.header.depositRoot
 }
 
+// PrepareVotesRoot return prepare votes root hash.
+func (block *Block) PrepareVotesRoot() byteutils.Hash {
+	return block.header.prepareVotesRoot
+}
+
+// CommitVotesRoot return commit votes root hash.
+func (block *Block) CommitVotesRoot() byteutils.Hash {
+	return block.header.commitVotesRoot
+}
+
+// ChangeVotesRoot return change votes root hash.
+func (block *Block) ChangeVotesRoot() byteutils.Hash {
+	return block.header.changeVotesRoot
+}
+
+// AbdicateVotesRoot return abdicate votes root hash.
+func (block *Block) AbdicateVotesRoot() byteutils.Hash {
+	return block.header.abdicateVotesRoot
+}
+
 // ParentHash return parent hash.
 func (block *Block) ParentHash() byteutils.Hash {
 	return block.header.parentHash
@@ -405,10 +463,16 @@ func (block *Block) LinkParentBlock(parentBlock *Block) bool {
 
 	block.accState, _ = parentBlock.accState.Clone()
 	block.txsTrie, _ = parentBlock.txsTrie.Clone()
+
 	block.dynastyTrie, _ = parentBlock.dynastyTrie.Clone()
 	block.nextDynastyTrie, _ = parentBlock.nextDynastyTrie.Clone()
 	block.dynastyCandidatesTrie, _ = parentBlock.dynastyCandidatesTrie.Clone()
 	block.depositTrie, _ = parentBlock.depositTrie.Clone()
+	block.prepareVotesTrie, _ = parentBlock.prepareVotesTrie.Clone()
+	block.commitVotesTrie, _ = parentBlock.commitVotesTrie.Clone()
+	block.changeVotesTrie, _ = parentBlock.changeVotesTrie.Clone()
+	block.abdicateVotesTrie, _ = parentBlock.abdicateVotesTrie.Clone()
+
 	block.txPool = parentBlock.txPool
 	block.parenetBlock = parentBlock
 	block.storage = parentBlock.storage
@@ -438,13 +502,33 @@ func (block *Block) LinkParentBlock(parentBlock *Block) bool {
 
 func (block *Block) begin() {
 	log.Info("Block Begin.")
+
 	block.accState.BeginBatch()
 	block.txsTrie.BeginBatch()
+
+	block.dynastyTrie.BeginBatch()
+	block.nextDynastyTrie.BeginBatch()
+	block.dynastyCandidatesTrie.BeginBatch()
+	block.depositTrie.BeginBatch()
+	block.prepareVotesTrie.BeginBatch()
+	block.commitVotesTrie.BeginBatch()
+	block.changeVotesTrie.BeginBatch()
+	block.abdicateVotesTrie.BeginBatch()
 }
 
 func (block *Block) commit() {
 	block.accState.Commit()
 	block.txsTrie.Commit()
+
+	block.dynastyTrie.Commit()
+	block.nextDynastyTrie.Commit()
+	block.dynastyCandidatesTrie.Commit()
+	block.depositTrie.Commit()
+	block.prepareVotesTrie.Commit()
+	block.commitVotesTrie.Commit()
+	block.changeVotesTrie.Commit()
+	block.abdicateVotesTrie.Commit()
+
 	log.WithFields(log.Fields{
 		"block": block,
 	}).Info("Block Commit.")
@@ -453,6 +537,16 @@ func (block *Block) commit() {
 func (block *Block) rollback() {
 	block.accState.RollBack()
 	block.txsTrie.RollBack()
+
+	block.dynastyTrie.RollBack()
+	block.nextDynastyTrie.RollBack()
+	block.dynastyCandidatesTrie.RollBack()
+	block.depositTrie.RollBack()
+	block.prepareVotesTrie.RollBack()
+	block.commitVotesTrie.RollBack()
+	block.changeVotesTrie.RollBack()
+	block.abdicateVotesTrie.RollBack()
+
 	log.WithFields(log.Fields{
 		"block": block,
 	}).Info("Block RollBack.")
@@ -529,26 +623,42 @@ func (block *Block) Seal() {
 	block.commit()
 	block.header.stateRoot = block.accState.RootHash()
 	block.header.txsRoot = block.txsTrie.RootHash()
+
 	block.header.dynastyRoot = block.dynastyTrie.RootHash()
 	block.header.nextDynastyRoot = block.nextDynastyTrie.RootHash()
 	block.header.dynastyCandidatesRoot = block.dynastyCandidatesTrie.RootHash()
 	block.header.depositRoot = block.depositTrie.RootHash()
+	block.header.prepareVotesRoot = block.prepareVotesTrie.RootHash()
+	block.header.commitVotesRoot = block.commitVotesTrie.RootHash()
+	block.header.changeVotesRoot = block.changeVotesTrie.RootHash()
+	block.header.abdicateVotesRoot = block.abdicateVotesTrie.RootHash()
+
 	block.header.hash = HashBlock(block)
 	block.sealed = true
 }
 
 func (block *Block) String() string {
-	return fmt.Sprintf("Block %p { height:%d; hash:%s; parentHash:%s; stateRoot:%s; txsRoot: %s; dynastyRoot: %s; nextDynastyRoot: %s; dynastyCandidatesRoot: %s; depositRoot: %s; nonce:%d; timestamp: %d}",
+	return fmt.Sprintf(`Block %p { 
+		height:%d; hash:%s; parentHash:%s; stateRoot:%s; txsRoot: %s; 
+		dynastyRoot: %s; nextDynastyRoot: %s; dynastyCandidatesRoot: %s; depositRoot: %s; 
+		prepareVotesRoot: %s; commitVotesRoot: %s; changeVotesRoot: %s; abdicateVotesRoot: %s;
+		nonce:%d; timestamp: %d}`,
 		block,
 		block.height,
 		byteutils.Hex(block.header.hash),
 		byteutils.Hex(block.header.parentHash),
 		byteutils.Hex(block.StateRoot()),
 		byteutils.Hex(block.TxsRoot()),
+
 		byteutils.Hex(block.DynastyRoot()),
 		byteutils.Hex(block.NextDynastyRoot()),
 		byteutils.Hex(block.DynastyCandidatesRoot()),
 		byteutils.Hex(block.DepositRoot()),
+		byteutils.Hex(block.PrepareVotesRoot()),
+		byteutils.Hex(block.CommitVotesRoot()),
+		byteutils.Hex(block.ChangeVotesRoot()),
+		byteutils.Hex(block.AbdicateVotesRoot()),
+
 		block.header.nonce,
 		block.header.timestamp,
 	)
@@ -721,10 +831,16 @@ func HashBlock(block *Block) byteutils.Hash {
 	hasher.Write(block.header.dynastyParentHash)
 	hasher.Write(block.header.stateRoot)
 	hasher.Write(block.header.txsRoot)
+
 	hasher.Write(block.header.dynastyRoot)
 	hasher.Write(block.header.nextDynastyRoot)
 	hasher.Write(block.header.dynastyCandidatesRoot)
 	hasher.Write(block.header.depositRoot)
+	hasher.Write(block.header.prepareVotesRoot)
+	hasher.Write(block.header.commitVotesRoot)
+	hasher.Write(block.header.changeVotesRoot)
+	hasher.Write(block.header.abdicateVotesRoot)
+
 	hasher.Write(byteutils.FromUint64(block.header.nonce))
 	hasher.Write(block.header.coinbase.address)
 	hasher.Write(byteutils.FromInt64(block.header.timestamp))
@@ -751,30 +867,39 @@ func LoadBlockFromStorage(hash byteutils.Hash, storage storage.Storage, txPool *
 	if err = block.FromProto(pbBlock); err != nil {
 		return nil, err
 	}
-	block.accState, err = state.NewAccountState(block.StateRoot(), storage)
-	if err != nil {
+
+	if block.accState, err = state.NewAccountState(block.StateRoot(), storage); err != nil {
 		return nil, err
 	}
-	block.txsTrie, err = trie.NewBatchTrie(block.TxsRoot(), storage)
-	if err != nil {
+	if block.txsTrie, err = trie.NewBatchTrie(block.TxsRoot(), storage); err != nil {
 		return nil, err
 	}
-	block.dynastyTrie, err = trie.NewBatchTrie(block.DynastyRoot(), storage)
-	if err != nil {
+
+	if block.dynastyTrie, err = trie.NewBatchTrie(block.DynastyRoot(), storage); err != nil {
 		return nil, err
 	}
-	block.nextDynastyTrie, err = trie.NewBatchTrie(block.NextDynastyRoot(), storage)
-	if err != nil {
+	if block.nextDynastyTrie, err = trie.NewBatchTrie(block.NextDynastyRoot(), storage); err != nil {
 		return nil, err
 	}
-	block.dynastyCandidatesTrie, err = trie.NewBatchTrie(block.DynastyCandidatesRoot(), storage)
-	if err != nil {
+	if block.dynastyCandidatesTrie, err = trie.NewBatchTrie(block.DynastyCandidatesRoot(), storage); err != nil {
 		return nil, err
 	}
-	block.depositTrie, err = trie.NewBatchTrie(block.DepositRoot(), storage)
-	if err != nil {
+	if block.depositTrie, err = trie.NewBatchTrie(block.DepositRoot(), storage); err != nil {
 		return nil, err
 	}
+	if block.prepareVotesTrie, err = trie.NewBatchTrie(block.PrepareVotesRoot(), storage); err != nil {
+		return nil, err
+	}
+	if block.commitVotesTrie, err = trie.NewBatchTrie(block.CommitVotesRoot(), storage); err != nil {
+		return nil, err
+	}
+	if block.changeVotesTrie, err = trie.NewBatchTrie(block.ChangeVotesRoot(), storage); err != nil {
+		return nil, err
+	}
+	if block.abdicateVotesTrie, err = trie.NewBatchTrie(block.AbdicateVotesRoot(), storage); err != nil {
+		return nil, err
+	}
+
 	block.txPool = txPool
 	block.storage = storage
 	return block, nil

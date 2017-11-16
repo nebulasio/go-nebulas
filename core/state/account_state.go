@@ -60,11 +60,7 @@ func (acc *account) ToBytes() ([]byte, error) {
 		VarsHash:   acc.variables.RootHash(),
 		BirthPlace: acc.birthPlace,
 	}
-	bytes, err := proto.Marshal(pbAcc)
-	if err != nil {
-		return nil, err
-	}
-	return bytes, nil
+	return proto.Marshal(pbAcc)
 }
 
 // FromBytes converts bytes to Account

@@ -35,10 +35,16 @@ var (
 func NewGenesisBlock(chainID uint32, storage storage.Storage) *Block {
 	accState, _ := state.NewAccountState(nil, storage)
 	txsTrie, _ := trie.NewBatchTrie(nil, storage)
+
 	dynastyTrie, _ := trie.NewBatchTrie(nil, storage)
 	nextDynastyTrie, _ := trie.NewBatchTrie(nil, storage)
 	dynastyCandidatesTrie, _ := trie.NewBatchTrie(nil, storage)
 	depositTrie, _ := trie.NewBatchTrie(nil, storage)
+	prepareVotesTrie, _ := trie.NewBatchTrie(nil, storage)
+	commitVotesTrie, _ := trie.NewBatchTrie(nil, storage)
+	changeVotesTrie, _ := trie.NewBatchTrie(nil, storage)
+	abdicateVotesTrie, _ := trie.NewBatchTrie(nil, storage)
+
 	b := &Block{
 		header: &BlockHeader{
 			chainID:           chainID,
@@ -48,15 +54,21 @@ func NewGenesisBlock(chainID uint32, storage storage.Storage) *Block {
 			coinbase:          &Address{make([]byte, AddressLength)},
 			timestamp:         time.Now().Unix(),
 		},
-		accState:              accState,
-		txsTrie:               txsTrie,
+		accState: accState,
+		txsTrie:  txsTrie,
+
 		dynastyTrie:           dynastyTrie,
 		nextDynastyTrie:       nextDynastyTrie,
 		dynastyCandidatesTrie: dynastyCandidatesTrie,
 		depositTrie:           depositTrie,
-		storage:               storage,
-		height:                1,
-		sealed:                true,
+		prepareVotesTrie:      prepareVotesTrie,
+		commitVotesTrie:       commitVotesTrie,
+		changeVotesTrie:       changeVotesTrie,
+		abdicateVotesTrie:     abdicateVotesTrie,
+
+		storage: storage,
+		height:  1,
+		sealed:  true,
 	}
 
 	return b
