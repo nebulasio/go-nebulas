@@ -63,7 +63,10 @@ message RPCConfig {
 	uint32 management_port = 2;
 
 	// Json RPC Gateway server listening port number.
-	uint32 gateway_port = 3;
+	uint32 api_http_port = 3;
+
+	// Management http server listening port number.
+	uint32 management_http_port = 4;
 }
 
 message PowConfig {

@@ -28,7 +28,7 @@ func NewAPIServer(neblet Neblet) *APIServer {
 	cfg := neblet.Config()
 
 	rpc := grpc.NewServer()
-	srv := &APIServer{neblet: neblet, rpcServer: rpc, port: cfg.Rpc.ApiPort, gatewayPort: cfg.Rpc.GatewayPort}
+	srv := &APIServer{neblet: neblet, rpcServer: rpc, port: cfg.Rpc.ApiPort, gatewayPort: cfg.Rpc.ApiHttpPort}
 	api := &APIService{srv}
 
 	rpcpb.RegisterAPIServiceServer(rpc, api)
@@ -58,6 +58,7 @@ func (s *APIServer) Start() error {
 // RunGateway run grpc mapping to http after apiserver have started.
 func (s *APIServer) RunGateway() error {
 	time.Sleep(3 * time.Second)
+	log.Info("Starting api gateway server bind port: ", s.port, " to:", s.gatewayPort)
 	if err := Run(s.port, s.gatewayPort); err != nil {
 		log.Error("RPC server gateway failed to serve: ", err)
 		return err

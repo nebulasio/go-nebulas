@@ -1,7 +1,7 @@
 package rpc
 
 import (
-	"flag"
+	//"flag"
 	"fmt"
 	"net/http"
 	"strings"
@@ -10,6 +10,7 @@ import (
 	"github.com/nebulasio/go-nebulas/rpc/pb"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
+	//log "github.com/sirupsen/logrus"
 )
 
 // Run start gateway proxy to mapping grpc to http.
@@ -20,8 +21,8 @@ func Run(apiPort uint32, gatewayPort uint32) error {
 
 	mux := runtime.NewServeMux()
 	opts := []grpc.DialOption{grpc.WithInsecure()}
-	echoEndpoint := flag.String("api_service_endpoint", apiAddress(int(apiPort)), "endpoint of api_service")
-	err := rpcpb.RegisterAPIServiceHandlerFromEndpoint(ctx, mux, *echoEndpoint, opts)
+	//echoEndpoint := flag.String("api_service_endpoint", apiAddress(int(apiPort)), "endpoint of api_service")
+	err := rpcpb.RegisterAPIServiceHandlerFromEndpoint(ctx, mux, apiAddress(int(apiPort)), opts)
 	if err != nil {
 		return err
 	}

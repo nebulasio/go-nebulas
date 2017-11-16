@@ -27,23 +27,27 @@ API.prototype.getAccountState = function (address) {
 	return this.request("post", "/v1/account/state", params);
 };
 
-API.prototype.sendTransaction = function (from, to, value, nonce, source, args) {
+API.prototype.sendTransaction = function (from, to, value, nonce, source, args, gasPrice, gasLimit) {
 	var params = {"from": from,
 	"to": to,
 	"value": value,
 	"nonce": nonce,
 	"source": source,
-	"args": args
+	"args": args,
+	"gasPrice": gasPrice,
+	"gasLimit": gasLimit
 	};
 	return this.request("post", "/v1/transaction", params);
 };
 
-API.prototype.call = function (from, to, nonce, func, args) {
+API.prototype.call = function (from, to, nonce, func, args, gasPrice, gasLimit) {
 	var params = {"from": from,
 	"to": to,
 	"nonce": nonce,
 	"function": func,
-	"args": args
+	"args": args,
+	"gasPrice": gasPrice,
+	"gasLimit": gasLimit
 	};
 	return this.request("post", "/v1/call", params);
 };

@@ -8,38 +8,42 @@ var Admin = function (neb) {
 
 Admin.prototype.newAccount = function (passphrase) {
 	var params = {"passphrase": passphrase};
-	return this.request("get", "/v1/newAccount", params);
+	return this.request("post", "/v1/account/new", params);
 };
 
 Admin.prototype.unlockAccount = function (address, passphrase) {
 	var params = {"address": address,
 	 "passphrase": passphrase};
-	return this.request("post", "/v1/unlock", params);
+	return this.request("post", "/v1/account/unlock", params);
 };
 
 Admin.prototype.lockAccount = function (address) {
 	var params = {"address": address};
-	return this.request("post", "/v1/lock", params);
+	return this.request("post", "/v1/account/lock", params);
 };
 
-Admin.prototype.signTransaction = function (from, to, value, nonce, source, args) {
-	var params = {"from": from,
-	"to": to,
-	"value": value,
-	"nonce": nonce,
-	"source": source,
-	"args": args
-	};
-	return this.request("post", "/v1/sign", params);
-};
-
-Admin.prototype.sendTransactionWithPassphrase = function (from, to, value, nonce, source, args, passphrase) {
+Admin.prototype.signTransaction = function (from, to, value, nonce, source, args, gasPrice, gasLimit) {
 	var params = {"from": from,
 	"to": to,
 	"value": value,
 	"nonce": nonce,
 	"source": source,
 	"args": args,
+	"gasPrice": gasPrice,
+	"gasLimit": gasLimit
+	};
+	return this.request("post", "/v1/sign", params);
+};
+
+Admin.prototype.sendTransactionWithPassphrase = function (from, to, value, nonce, source, args, gasPrice, gasLimit, passphrase) {
+	var params = {"from": from,
+	"to": to,
+	"value": value,
+	"nonce": nonce,
+	"source": source,
+	"args": args,
+	"gasPrice": gasPrice,
+	"gasLimit": gasLimit,
 	"passphrase": passphrase
 	};
 	return this.request("post", "/v1/transactionWithPassphrase", params);
@@ -80,23 +84,27 @@ API.prototype.getAccountState = function (address) {
 	return this.request("post", "/v1/account/state", params);
 };
 
-API.prototype.sendTransaction = function (from, to, value, nonce, source, args) {
+API.prototype.sendTransaction = function (from, to, value, nonce, source, args, gasPrice, gasLimit) {
 	var params = {"from": from,
 	"to": to,
 	"value": value,
 	"nonce": nonce,
 	"source": source,
-	"args": args
+	"args": args,
+	"gasPrice": gasPrice,
+	"gasLimit": gasLimit
 	};
 	return this.request("post", "/v1/transaction", params);
 };
 
-API.prototype.call = function (from, to, nonce, func, args) {
+API.prototype.call = function (from, to, nonce, func, args, gasPrice, gasLimit) {
 	var params = {"from": from,
 	"to": to,
 	"nonce": nonce,
 	"function": func,
-	"args": args
+	"args": args,
+	"gasPrice": gasPrice,
+	"gasLimit": gasLimit
 	};
 	return this.request("post", "/v1/call", params);
 };
@@ -138,6 +146,10 @@ var XHR2 = require("xhr2");
 var HttpRequest = function (host, timeout) {
 	this.host = host || "http://localhost:8080";
 	this.timeout = timeout || 0;
+};
+
+HttpRequest.prototype.setHost = function (host) {
+	this.host = host || "http://localhost:8080";
 };
 
 HttpRequest.prototype._newRequest = function (method, api, async) {

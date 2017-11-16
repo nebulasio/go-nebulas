@@ -29,7 +29,7 @@ import (
 	"bytes"
 	"encoding/json"
 
-	"github.com/nebulasio/go-nebulas/cmd/console/jslib"
+	"github.com/nebulasio/go-nebulas/cmd/console/library"
 	"github.com/nebulasio/go-nebulas/neblet/pb"
 	"github.com/peterh/liner"
 )
@@ -39,7 +39,7 @@ var (
 
 	exitCmd = "exit"
 
-	nebjs = jslib.MustAsset("neb.js")
+	nebjs = library.MustAsset("neb.js")
 )
 
 // Neblet interface breaks cycle import dependency and hides unused services.
@@ -131,8 +131,13 @@ func (c *Console) methodSwizzling() error {
 			if _, err = c.jsvm.Run(`bridge.unlockAccount = admin.unlockAccount;`); err != nil {
 				return fmt.Errorf("admin.unlockAccount: %v", err)
 			}
+			if _, err = c.jsvm.Run(`bridge.sendTransactionWithPassphrase = admin.sendTransactionWithPassphrase;`); err != nil {
+				return fmt.Errorf("admin.sendTransactionWithPassphrase: %v", err)
+			}
+			obj.Set("setHost", c.jsBridge.setHost)
 			obj.Set("newAccount", c.jsBridge.newAccount)
 			obj.Set("unlockAccount", c.jsBridge.unlockAccount)
+			obj.Set("sendTransactionWithPassphrase", c.jsBridge.sendTransactionWithPassphrase)
 		}
 	}
 	return nil

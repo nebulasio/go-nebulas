@@ -16,6 +16,10 @@ var HttpRequest = function (host, timeout) {
 	this.timeout = timeout || 0;
 };
 
+HttpRequest.prototype.setHost = function (host) {
+	this.host = host || "http://localhost:8080";
+};
+
 HttpRequest.prototype._newRequest = function (method, api, async) {
 	var request;
 	if (async) {

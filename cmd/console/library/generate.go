@@ -16,6 +16,7 @@
 // along with the go-nebulas library.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-package jslib
+package library
 
-//go:generate go-bindata -nometadata -pkg jslib -o bindata.go neb.js
+//go:generate go-bindata -nometadata -pkg library -o bindata.go neb.js
+//go:generate goimports -w bindata.go
