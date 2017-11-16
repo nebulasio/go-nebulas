@@ -36,3 +36,10 @@ account {
 
   test_passphrase: "passphrase"
 }
+
+influxdb {
+  host: "http://47.254.16.35:8086"
+  db: "nebulas"
+  username: "leon"
+  password: "leonforlove"
+}

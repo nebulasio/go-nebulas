@@ -35,6 +35,9 @@ message Config {
 	// Account manager config
 	AccountConfig account = 5;
 
+	// Influxdb config
+	Influxdb influxdb = 6;
+
 	// TODO: more configs.
 }
 
@@ -84,4 +87,18 @@ message AccountConfig {
 
 	// Account test keyfile's passphrase
 	string test_passphrase = 4;
+}
+
+message Influxdb {
+	// Influxdb host
+	string host = 1;
+
+	// Influxdb db name
+	string db = 2;
+
+	// Influxdb username
+	string username = 3;
+
+	// Influxdb password
+	string password = 4;
 }

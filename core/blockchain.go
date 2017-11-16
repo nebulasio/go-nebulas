@@ -21,6 +21,7 @@ package core
 import (
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 
 	"encoding/json"
@@ -32,6 +33,7 @@ import (
 	"github.com/nebulasio/go-nebulas/core/state"
 	"github.com/nebulasio/go-nebulas/storage"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
+	metrics "github.com/rcrowley/go-metrics"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -61,6 +63,11 @@ const (
 
 	// Tail Key in storage
 	Tail = "blockchain_tail"
+)
+
+var (
+	blockHeightGauge   = metrics.GetOrRegisterGauge("block_height", nil)
+	blocktailHashGauge = metrics.GetOrRegisterGauge("blocktail_hash", nil)
 )
 
 // NewBlockChain create new #BlockChain instance.
@@ -118,6 +125,13 @@ func (bc *BlockChain) SetTailBlock(newTail *Block) {
 	ancestor, _ := bc.FindCommonAncestorWithTail(oldTail)
 	if ancestor.Hash().Equals(oldTail.Hash()) {
 		// oldTail and newTail is on same chain, no reverted blocks
+		// when tail change, add metrics
+		blockHeightGauge.Update(int64(newTail.Height()))
+		hashStr := byteutils.Hex(newTail.Hash())
+		hash, err := hashToInt64(hashStr)
+		if err == nil {
+			blocktailHashGauge.Update(hash)
+		}
 		return
 	}
 	reverted := oldTail
@@ -128,6 +142,21 @@ func (bc *BlockChain) SetTailBlock(newTail *Block) {
 			panic("find a block on chain, we cannot find its parent block")
 		}
 	}
+
+}
+
+func hashToInt64(hash string) (int64, error) {
+	rs := []rune(hash)
+	h := string(rs[len(hash)-4 : len(hash)])
+	var s int64
+	var err error
+	if s, err = strconv.ParseInt(h, 16, 32); err != nil {
+		log.WithFields(log.Fields{
+			"hash": hash,
+		}).Error("parseInt error")
+		return 0, err
+	}
+	return s, nil
 }
 
 // FindCommonAncestorWithTail return the block's common ancestor with current tail
