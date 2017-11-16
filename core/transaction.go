@@ -187,6 +187,8 @@ func (tx *Transaction) Execute(block *Block) error {
 		payload, err = LoadDeployPayload(tx.data.Payload)
 	case TxPayloadCallType:
 		payload, err = LoadCallPayload(tx.data.Payload)
+	case TxPayloadVoteType:
+		payload, err = LoadVotePayload(tx.data.Payload)
 	default:
 		return ErrInvalidTxPayloadType
 	}

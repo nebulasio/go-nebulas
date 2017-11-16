@@ -20,6 +20,7 @@ package core
 
 import (
 	"encoding/json"
+	"errors"
 
 	"github.com/nebulasio/go-nebulas/util/byteutils"
 )
@@ -32,7 +33,16 @@ const (
 	AbdicateAction = "abdicate"
 )
 
-// VotePayload carry function call information
+// Errors constants
+var (
+	ErrInvalidVoteAction = errors.New("invalid vote action")
+)
+
+// VotePayload carry vote information
+// 1. action: prepare, blockHash: current block
+// 2. action: commit, blockHash: current block
+// 3. action: change, blockHash: parent block
+// 4. action: abdicate, blockHash: parent block
 type VotePayload struct {
 	Action    string
 	BlockHash byteutils.Hash
@@ -62,5 +72,13 @@ func (payload *VotePayload) ToBytes() ([]byte, error) {
 
 // Execute the call payload in tx, call a function
 func (payload *VotePayload) Execute(tx *Transaction, block *Block) error {
+	switch payload.Action {
+	case PrepareAction:
+	case CommitAction:
+	case ChangeAction:
+	case AbdicateAction:
+	default:
+		return ErrInvalidVoteAction
+	}
 	return nil
 }

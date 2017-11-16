@@ -23,6 +23,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/gogo/protobuf/proto"
 	pb "github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/core/pb"
 	"github.com/nebulasio/go-nebulas/crypto"
@@ -174,6 +175,9 @@ func TestBlock(t *testing.T) {
 func TestBlock_LinkParentBlock(t *testing.T) {
 	storage, _ := storage.NewMemoryStorage()
 	genesis := NewGenesisBlock(0, storage)
+	pbBlock, _ := genesis.ToProto()
+	value, _ := proto.Marshal(pbBlock)
+	storage.Put(genesis.Hash(), value)
 	assert.Equal(t, genesis.Height(), uint64(1))
 	block1 := &Block{
 		header: &BlockHeader{
@@ -181,7 +185,7 @@ func TestBlock_LinkParentBlock(t *testing.T) {
 			genesis.Hash(),
 			[]byte("43656"),
 			[]byte("43656"),
-			nil,
+			genesis.Hash(),
 			nil,
 			nil,
 			nil,

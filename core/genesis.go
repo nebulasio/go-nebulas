@@ -40,11 +40,12 @@ func NewGenesisBlock(chainID uint32, storage storage.Storage) *Block {
 	dynastyCandidatesTrie, _ := trie.NewBatchTrie(nil, storage)
 	b := &Block{
 		header: &BlockHeader{
-			chainID:    chainID,
-			hash:       GenesisHash,
-			parentHash: GenesisHash,
-			coinbase:   &Address{make([]byte, AddressLength)},
-			timestamp:  time.Now().Unix(),
+			chainID:           chainID,
+			hash:              GenesisHash,
+			parentHash:        GenesisHash,
+			dynastyParentHash: GenesisHash,
+			coinbase:          &Address{make([]byte, AddressLength)},
+			timestamp:         time.Now().Unix(),
 		},
 		accState:              accState,
 		txsTrie:               txsTrie,
