@@ -78,6 +78,9 @@ func (payload *CallPayload) Execute(tx *Transaction, block *Block) error {
 	}
 	ctx := nvm.NewContext(ctxParams, owner, contract, context)
 	engine := nvm.NewV8Engine(ctx)
+	executionInstructions := tx.GasLimit().Div(tx.GasLimit().Int, tx.GasPrice().Int)
+	//add gas limit and memory use limit
+	engine.SetExecutionLimits(executionInstructions.Uint64(), nvm.DefaultLimitsOfTotalMemorySize)
 	defer engine.Dispose()
 
 	return engine.Call(deploy.Source, payload.Function, payload.Args)

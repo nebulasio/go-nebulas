@@ -175,6 +175,26 @@ func (tx *Transaction) Hash() byteutils.Hash {
 	return tx.hash
 }
 
+// GasPrice returns gasPrice
+func (tx *Transaction) GasPrice() *util.Uint128 {
+	// if gasPrice <= 0 , returns default gasprice
+	if tx.gasPrice.Cmp(util.NewUint128FromInt(0).Int) <= 0 {
+		// TODO:the default gasPrice needs to be computed dynamically
+		return util.NewUint128FromInt(1)
+	}
+	return tx.gasPrice
+}
+
+// GasLimit returns gasLimit
+func (tx *Transaction) GasLimit() *util.Uint128 {
+	// if gasPrice <= 0 , returns default gasprice
+	if tx.gasPrice.Cmp(util.NewUint128FromInt(0).Int) <= 0 {
+		// TODO:the default gasLimit must be given, else return total value
+		return tx.value
+	}
+	return tx.gasLimit
+}
+
 // DataLen return the length of payload
 func (tx *Transaction) DataLen() int {
 	return len(tx.data.Payload)

@@ -35,6 +35,15 @@ Blockchain.prototype = {
         if (tx != null) {
             tx = JSON.parse(tx);
         }
+        if (tx.value != undefined) {
+            tx.value = new BigNumber(tx.value)
+        }
+        if (tx.gasPrice != undefined) {
+            tx.gasPrice = new BigNumber(tx.gasPrice)
+        }
+        if (tx.gasLimit != undefined) {
+            tx.gasLimit = new BigNumber(tx.gasLimit)
+        }
         return tx
     },
     getAccountState: function (address) {
@@ -42,10 +51,16 @@ Blockchain.prototype = {
         if (acc != null) {
             acc = JSON.parse(acc);
         }
+        if (acc.balance != undefined) {
+            acc.balance = new BigNumber(acc.balance)
+        }
         return acc
     },
     transfer: function (address, value) {
         return this.nativeBlockchain.transfer(address, value.toString());
+    },
+    verifyAddress: function (address) {
+        return this.nativeBlockchain.verifyAddress(address);
     }
 };
 

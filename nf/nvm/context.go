@@ -25,6 +25,11 @@ import (
 	"github.com/nebulasio/go-nebulas/util/byteutils"
 )
 
+var (
+	// DefaultLimitsOfTotalMemorySize default limits of total menmory size
+	DefaultLimitsOfTotalMemorySize uint64 = 20 * 1024 * 1024
+)
+
 // Blockchain interface breaks cycle import dependency and hides unused services.
 type Blockchain interface {
 	VerifyAddress(str string) bool

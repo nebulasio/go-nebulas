@@ -33,7 +33,9 @@ int SetupExecutionEnv(Isolate *isolate, Local<Context> &context) {
                 "const console = require('console.js');\n"
                 "const ContractStorage = require('storage.js');\n"
                 "const LocalContractStorage = ContractStorage.lcs;\n"
-                "const GlobalContractStorage = ContractStorage.gcs;\n";
+                "const GlobalContractStorage = ContractStorage.gcs;\n"
+                "const BigNumber = require('bignumber.min.js');\n"
+                "const Blockchain = require('blockchain.js');\n";
 
   Local<String> source =
       String::NewFromUtf8(isolate, data, NewStringType::kNormal)
