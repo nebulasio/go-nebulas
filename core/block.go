@@ -196,7 +196,7 @@ type Block struct {
 	depositTrie           *trie.BatchTrie // key: addr
 	prepareVotesTrie      *trie.BatchTrie // key: block hash + addr
 	commitVotesTrie       *trie.BatchTrie // key: block hash + addr
-	changeVotesTrie       *trie.BatchTrie // key: block hash + addr
+	changeVotesTrie       *trie.BatchTrie // key: block hash + N + addr
 	abdicateVotesTrie     *trie.BatchTrie // key: dynasty parent hash + addr
 	blocksHeightTrie      *trie.BatchTrie // key: height
 
