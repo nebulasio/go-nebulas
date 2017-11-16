@@ -211,6 +211,7 @@ func (p *PoD) blockLoop() {
 		case tx := <-p.chain.TransactionPool().ReceivedTransactionCh():
 			if tx.DataType() == core.TxPayloadVoteType {
 				if vote, err := core.LoadVotePayload(tx.Data()); err == nil {
+					// prepare & commit
 					if stateMachine, ok := p.createdStateMachines.Get(vote.BlockHash); ok {
 						eventType := consensus.EventType("event.vote." + vote.Action)
 						stateMachine.(*consensus.StateMachine).Event(consensus.NewBaseEvent(eventType, tx.From().ToHex()))

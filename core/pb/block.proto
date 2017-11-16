@@ -50,6 +50,7 @@ message BlockHeader {
     bytes coinbase = 4;
     int64 timestamp = 5;
     uint32 chain_id = 6;
+
     bytes state_root = 7;
     bytes txs_root = 8;
 
@@ -62,6 +63,7 @@ message BlockHeader {
     bytes commit_votes_root = 15;
     bytes change_votes_root = 16;
     bytes abdicate_votes_root = 17;
+    bytes blocks_height_root = 18;
 }
 
 message Block {

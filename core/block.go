@@ -116,6 +116,8 @@ type BlockHeader struct {
 	changeVotesRoot byteutils.Hash
 	// all abdicate votes
 	abdicateVotesRoot byteutils.Hash
+	// reorganize all blocks based on their height
+	blocksHeightRoot byteutils.Hash
 
 	nonce     uint64
 	coinbase  *Address
@@ -140,6 +142,7 @@ func (b *BlockHeader) ToProto() (proto.Message, error) {
 		CommitVotesRoot:       b.commitVotesRoot,
 		ChangeVotesRoot:       b.changeVotesRoot,
 		AbdicateVotesRoot:     b.abdicateVotesRoot,
+		BlocksHeightRoot:      b.blocksHeightRoot,
 
 		Nonce:     b.nonce,
 		Coinbase:  b.coinbase.address,
@@ -165,6 +168,7 @@ func (b *BlockHeader) FromProto(msg proto.Message) error {
 		b.commitVotesRoot = msg.CommitVotesRoot
 		b.changeVotesRoot = msg.ChangeVotesRoot
 		b.abdicateVotesRoot = msg.AbdicateVotesRoot
+		b.blocksHeightRoot = msg.BlocksHeightRoot
 
 		b.nonce = msg.Nonce
 		b.coinbase = &Address{msg.Coinbase}
@@ -190,10 +194,11 @@ type Block struct {
 	nextDynastyTrie       *trie.BatchTrie // key: addr
 	dynastyCandidatesTrie *trie.BatchTrie // key: addr
 	depositTrie           *trie.BatchTrie // key: addr
-	prepareVotesTrie      *trie.BatchTrie // key: height + block hash
-	commitVotesTrie       *trie.BatchTrie // key: height + block hash
-	changeVotesTrie       *trie.BatchTrie // key: height + block hash
-	abdicateVotesTrie     *trie.BatchTrie // key: dynasty parent hash
+	prepareVotesTrie      *trie.BatchTrie // key: block hash + addr
+	commitVotesTrie       *trie.BatchTrie // key: block hash + addr
+	changeVotesTrie       *trie.BatchTrie // key: block hash + addr
+	abdicateVotesTrie     *trie.BatchTrie // key: dynasty parent hash + addr
+	blocksHeightTrie      *trie.BatchTrie // key: height
 
 	txPool *TransactionPool
 
@@ -258,6 +263,7 @@ func NewBlock(chainID uint32, coinbase *Address, parent *Block, txPool *Transact
 	commitVotesTrie, _ := parent.commitVotesTrie.Clone()
 	changeVotesTrie, _ := parent.changeVotesTrie.Clone()
 	abdicateVotesTrie, _ := parent.abdicateVotesTrie.Clone()
+	blocksHeightTrie, _ := parent.blocksHeightTrie.Clone()
 
 	block := &Block{
 		header: &BlockHeader{
@@ -281,6 +287,7 @@ func NewBlock(chainID uint32, coinbase *Address, parent *Block, txPool *Transact
 		commitVotesTrie:       commitVotesTrie,
 		changeVotesTrie:       changeVotesTrie,
 		abdicateVotesTrie:     abdicateVotesTrie,
+		blocksHeightTrie:      blocksHeightTrie,
 
 		txPool:  txPool,
 		height:  parent.Height() + 1,
@@ -445,6 +452,11 @@ func (block *Block) AbdicateVotesRoot() byteutils.Hash {
 	return block.header.abdicateVotesRoot
 }
 
+// BlocksHeightRoot return blocks height root hash.
+func (block *Block) BlocksHeightRoot() byteutils.Hash {
+	return block.header.blocksHeightRoot
+}
+
 // ParentHash return parent hash.
 func (block *Block) ParentHash() byteutils.Hash {
 	return block.header.parentHash
@@ -472,6 +484,7 @@ func (block *Block) LinkParentBlock(parentBlock *Block) bool {
 	block.commitVotesTrie, _ = parentBlock.commitVotesTrie.Clone()
 	block.changeVotesTrie, _ = parentBlock.changeVotesTrie.Clone()
 	block.abdicateVotesTrie, _ = parentBlock.abdicateVotesTrie.Clone()
+	block.blocksHeightTrie, _ = parentBlock.blocksHeightTrie.Clone()
 
 	block.txPool = parentBlock.txPool
 	block.parenetBlock = parentBlock
@@ -514,6 +527,7 @@ func (block *Block) begin() {
 	block.commitVotesTrie.BeginBatch()
 	block.changeVotesTrie.BeginBatch()
 	block.abdicateVotesTrie.BeginBatch()
+	block.blocksHeightTrie.BeginBatch()
 }
 
 func (block *Block) commit() {
@@ -528,6 +542,7 @@ func (block *Block) commit() {
 	block.commitVotesTrie.Commit()
 	block.changeVotesTrie.Commit()
 	block.abdicateVotesTrie.Commit()
+	block.blocksHeightTrie.Commit()
 
 	log.WithFields(log.Fields{
 		"block": block,
@@ -546,6 +561,7 @@ func (block *Block) rollback() {
 	block.commitVotesTrie.RollBack()
 	block.changeVotesTrie.RollBack()
 	block.abdicateVotesTrie.RollBack()
+	block.blocksHeightTrie.RollBack()
 
 	log.WithFields(log.Fields{
 		"block": block,
@@ -632,6 +648,7 @@ func (block *Block) Seal() {
 	block.header.commitVotesRoot = block.commitVotesTrie.RootHash()
 	block.header.changeVotesRoot = block.changeVotesTrie.RootHash()
 	block.header.abdicateVotesRoot = block.abdicateVotesTrie.RootHash()
+	block.header.blocksHeightRoot = block.blocksHeightTrie.RootHash()
 
 	block.header.hash = HashBlock(block)
 	block.sealed = true
@@ -641,7 +658,8 @@ func (block *Block) String() string {
 	return fmt.Sprintf(`Block %p { 
 		height:%d; hash:%s; parentHash:%s; stateRoot:%s; txsRoot: %s; 
 		dynastyRoot: %s; nextDynastyRoot: %s; dynastyCandidatesRoot: %s; depositRoot: %s; 
-		prepareVotesRoot: %s; commitVotesRoot: %s; changeVotesRoot: %s; abdicateVotesRoot: %s;
+		prepareVotesRoot: %s; commitVotesRoot: %s; changeVotesRoot: %s; 
+		abdicateVotesRoot: %s; blocksHeightRoot: %s;
 		nonce:%d; timestamp: %d}`,
 		block,
 		block.height,
@@ -658,6 +676,7 @@ func (block *Block) String() string {
 		byteutils.Hex(block.CommitVotesRoot()),
 		byteutils.Hex(block.ChangeVotesRoot()),
 		byteutils.Hex(block.AbdicateVotesRoot()),
+		byteutils.Hex(block.BlocksHeightRoot()),
 
 		block.header.nonce,
 		block.header.timestamp,
@@ -840,6 +859,7 @@ func HashBlock(block *Block) byteutils.Hash {
 	hasher.Write(block.header.commitVotesRoot)
 	hasher.Write(block.header.changeVotesRoot)
 	hasher.Write(block.header.abdicateVotesRoot)
+	hasher.Write(block.header.blocksHeightRoot)
 
 	hasher.Write(byteutils.FromUint64(block.header.nonce))
 	hasher.Write(block.header.coinbase.address)
@@ -897,6 +917,9 @@ func LoadBlockFromStorage(hash byteutils.Hash, storage storage.Storage, txPool *
 		return nil, err
 	}
 	if block.abdicateVotesTrie, err = trie.NewBatchTrie(block.AbdicateVotesRoot(), storage); err != nil {
+		return nil, err
+	}
+	if block.blocksHeightTrie, err = trie.NewBatchTrie(block.BlocksHeightRoot(), storage); err != nil {
 		return nil, err
 	}
 

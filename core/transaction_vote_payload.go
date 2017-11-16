@@ -39,13 +39,15 @@ var (
 )
 
 // VotePayload carry vote information
-// 1. action: prepare, blockHash: current block
-// 2. action: commit, blockHash: current block
-// 3. action: change, blockHash: parent block
-// 4. action: abdicate, blockHash: parent block
+// 1. action: prepare, block: current block hash, view: based block hash
+// 2. action: commit, block: current block hash
+// 3. action: change, block: parent block, times: change times
+// 4. action: abdicate, block: parent block
 type VotePayload struct {
 	Action    string
 	BlockHash byteutils.Hash
+	ViewHash  byteutils.Hash
+	Times     int
 }
 
 // LoadVotePayload from bytes
@@ -57,11 +59,37 @@ func LoadVotePayload(bytes []byte) (*VotePayload, error) {
 	return payload, nil
 }
 
-// NewVotePayload with function & args
-func NewVotePayload(action string, blockHash byteutils.Hash) *VotePayload {
+// NewPrepareVotePayload create a new prepare vote payload
+func NewPrepareVotePayload(action string, block byteutils.Hash, view byteutils.Hash) *VotePayload {
 	return &VotePayload{
 		Action:    action,
-		BlockHash: blockHash,
+		BlockHash: block,
+		ViewHash:  view,
+	}
+}
+
+// NewCommitVotePayload create a new commit vote payload
+func NewCommitVotePayload(action string, block byteutils.Hash) *VotePayload {
+	return &VotePayload{
+		Action:    action,
+		BlockHash: block,
+	}
+}
+
+// NewChangeVotePayload create a new change vote payload
+func NewChangeVotePayload(action string, block byteutils.Hash, times int) *VotePayload {
+	return &VotePayload{
+		Action:    action,
+		BlockHash: block,
+		Times:     times,
+	}
+}
+
+// NewAbdicateVotePayload create a new abdicate vote payload
+func NewAbdicateVotePayload(action string, block byteutils.Hash) *VotePayload {
+	return &VotePayload{
+		Action:    action,
+		BlockHash: block,
 	}
 }
 
@@ -70,15 +98,35 @@ func (payload *VotePayload) ToBytes() ([]byte, error) {
 	return json.Marshal(payload)
 }
 
+func (payload *VotePayload) prepare(from []byte, block *Block) error {
+	return nil
+}
+
+func (payload *VotePayload) commit(from []byte, block *Block) error {
+	return nil
+}
+
+func (payload *VotePayload) change(from []byte, block *Block) error {
+	return nil
+}
+
+func (payload *VotePayload) abdicate(from []byte, block *Block) error {
+	return nil
+}
+
 // Execute the call payload in tx, call a function
 func (payload *VotePayload) Execute(tx *Transaction, block *Block) error {
+	from := tx.from.Bytes()
 	switch payload.Action {
 	case PrepareAction:
+		return payload.prepare(from, block)
 	case CommitAction:
+		return payload.commit(from, block)
 	case ChangeAction:
+		return payload.change(from, block)
 	case AbdicateAction:
+		return payload.abdicate(from, block)
 	default:
 		return ErrInvalidVoteAction
 	}
-	return nil
 }

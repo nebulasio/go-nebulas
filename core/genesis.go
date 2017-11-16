@@ -44,6 +44,7 @@ func NewGenesisBlock(chainID uint32, storage storage.Storage) *Block {
 	commitVotesTrie, _ := trie.NewBatchTrie(nil, storage)
 	changeVotesTrie, _ := trie.NewBatchTrie(nil, storage)
 	abdicateVotesTrie, _ := trie.NewBatchTrie(nil, storage)
+	blocksHeightTrie, _ := trie.NewBatchTrie(nil, storage)
 
 	b := &Block{
 		header: &BlockHeader{
@@ -65,6 +66,7 @@ func NewGenesisBlock(chainID uint32, storage storage.Storage) *Block {
 		commitVotesTrie:       commitVotesTrie,
 		changeVotesTrie:       changeVotesTrie,
 		abdicateVotesTrie:     abdicateVotesTrie,
+		blocksHeightTrie:      blocksHeightTrie,
 
 		storage: storage,
 		height:  1,
