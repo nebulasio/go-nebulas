@@ -59,12 +59,12 @@ func TestBlockChain_FindCommonAncestorWithTail(t *testing.T) {
 	signature, _ := crypto.NewSignature(keystore.SECP256K1)
 	signature.InitSign(key.(keystore.PrivateKey))
 
-	tx1 := NewTransaction(0, from, to, util.NewUint128(), 1, TxPayloadBinaryType, []byte("nas"))
+	tx1 := NewTransaction(0, from, to, util.NewUint128(), 1, TxPayloadBinaryType, []byte("nas"), util.NewUint128(), util.NewUint128())
 	tx1.Sign(signature)
-	tx2 := NewTransaction(0, from, to, util.NewUint128(), 1, TxPayloadBinaryType, []byte("nas"))
+	tx2 := NewTransaction(0, from, to, util.NewUint128(), 1, TxPayloadBinaryType, []byte("nas"), util.NewUint128(), util.NewUint128())
 	tx2.timestamp = tx1.timestamp + 1
 	tx2.Sign(signature)
-	tx3 := NewTransaction(0, from, to, util.NewUint128(), 2, TxPayloadBinaryType, []byte("nas"))
+	tx3 := NewTransaction(0, from, to, util.NewUint128(), 2, TxPayloadBinaryType, []byte("nas"), util.NewUint128(), util.NewUint128())
 	tx3.timestamp = tx3.timestamp + 1
 	tx3.Sign(signature)
 	bc.txPool.Push(tx1)

@@ -39,8 +39,11 @@ message Transaction {
     int64 timestamp = 6;
     Data data = 7;
     uint32 chain_id = 8;
-    uint32 alg = 9;    
-    bytes sign = 10;
+    bytes gas_price = 9;
+    bytes gas_limit = 10;
+
+    uint32 alg = 11;
+    bytes sign = 12;
 }
 
 message BlockHeader {

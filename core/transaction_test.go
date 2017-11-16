@@ -39,6 +39,8 @@ func TestTransaction(t *testing.T) {
 		timestamp int64
 		alg       uint8
 		data      *corepb.Data
+		gasPrice  *util.Uint128
+		gasLimit  *util.Uint128
 	}
 	tests := []struct {
 		name   string
@@ -55,6 +57,8 @@ func TestTransaction(t *testing.T) {
 				time.Now().Unix(),
 				12,
 				&corepb.Data{Type: TxPayloadBinaryType, Payload: []byte("hwllo")},
+				util.NewUint128(),
+				util.NewUint128(),
 			}),
 		},
 	}
@@ -69,6 +73,8 @@ func TestTransaction(t *testing.T) {
 				timestamp: tt.fields.timestamp,
 				alg:       tt.fields.alg,
 				data:      tt.fields.data,
+				gasPrice:  tt.fields.gasPrice,
+				gasLimit:  tt.fields.gasLimit,
 			}
 			msg, _ := tx.ToProto()
 			ir, _ := proto.Marshal(msg)

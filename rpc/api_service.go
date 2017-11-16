@@ -146,7 +146,7 @@ func (s *APIService) SendTransaction(ctx context.Context, req *rpcpb.SendTransac
 		}
 	}
 
-	tx, err := parseTransaction(neb, req.From, req.To, req.Value, req.Nonce, payloadType, data)
+	tx, err := parseTransaction(neb, req.From, req.To, req.Value, req.Nonce, payloadType, data, req.GasPrice, req.GasLimit)
 	if err != nil {
 		return nil, err
 	}
@@ -172,7 +172,7 @@ func (s *APIService) Call(ctx context.Context, req *rpcpb.CallRequest) (*rpcpb.S
 	if err != nil {
 		return nil, err
 	}
-	tx, err := parseTransaction(neb, req.From, req.To, nil, req.Nonce, core.TxPayloadCallType, data)
+	tx, err := parseTransaction(neb, req.From, req.To, nil, req.Nonce, core.TxPayloadCallType, data, req.GasPrice, req.GasLimit)
 	if err != nil {
 		return nil, err
 	}
@@ -187,7 +187,7 @@ func (s *APIService) Call(ctx context.Context, req *rpcpb.CallRequest) (*rpcpb.S
 
 }
 
-func parseTransaction(neb Neblet, from, to string, v []byte, nonce uint64, payloadType string, payload []byte) (*core.Transaction, error) {
+func parseTransaction(neb Neblet, from, to string, v []byte, nonce uint64, payloadType string, payload []byte, price []byte, limit []byte) (*core.Transaction, error) {
 	fromAddr, err := core.AddressParse(from)
 	if err != nil {
 		return nil, err
@@ -207,7 +207,16 @@ func parseTransaction(neb Neblet, from, to string, v []byte, nonce uint64, paylo
 		value = util.NewUint128()
 	}
 
-	tx := core.NewTransaction(neb.BlockChain().ChainID(), fromAddr, toAddr, value, nonce, payloadType, payload)
+	gasPrice, err := util.NewUint128FromFixedSizeByteSlice(price)
+	if err != nil {
+		return nil, err
+	}
+	gasLimit, err := util.NewUint128FromFixedSizeByteSlice(limit)
+	if err != nil {
+		return nil, err
+	}
+
+	tx := core.NewTransaction(neb.BlockChain().ChainID(), fromAddr, toAddr, value, nonce, payloadType, payload, gasPrice, gasLimit)
 	return tx, nil
 }
 

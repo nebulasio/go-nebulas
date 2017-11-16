@@ -42,6 +42,8 @@ type Transaction struct {
 	timestamp int64
 	data      *corepb.Data
 	chainID   uint32
+	gasPrice  *util.Uint128
+	gasLimit  *util.Uint128
 
 	// Signature
 	alg  uint8          // algorithm
@@ -84,6 +86,14 @@ func (tx *Transaction) ToProto() (proto.Message, error) {
 	if err != nil {
 		return nil, err
 	}
+	gasPrice, err := tx.gasPrice.ToFixedSizeByteSlice()
+	if err != nil {
+		return nil, err
+	}
+	gasLimit, err := tx.gasLimit.ToFixedSizeByteSlice()
+	if err != nil {
+		return nil, err
+	}
 	return &corepb.Transaction{
 		Hash:      tx.hash,
 		From:      tx.from.address,
@@ -93,6 +103,8 @@ func (tx *Transaction) ToProto() (proto.Message, error) {
 		Timestamp: tx.timestamp,
 		Data:      tx.data,
 		ChainId:   tx.chainID,
+		GasPrice:  gasPrice,
+		GasLimit:  gasLimit,
 		Alg:       uint32(tx.alg),
 		Sign:      tx.sign,
 	}, nil
@@ -113,6 +125,16 @@ func (tx *Transaction) FromProto(msg proto.Message) error {
 		tx.timestamp = msg.Timestamp
 		tx.data = msg.Data
 		tx.chainID = msg.ChainId
+		gasPrice, err := util.NewUint128FromFixedSizeByteSlice(msg.GasPrice)
+		if err != nil {
+			return err
+		}
+		tx.gasPrice = gasPrice
+		gasLimit, err := util.NewUint128FromFixedSizeByteSlice(msg.GasLimit)
+		if err != nil {
+			return err
+		}
+		tx.gasLimit = gasLimit
 		tx.alg = uint8(msg.Alg)
 		tx.sign = msg.Sign
 		return nil
@@ -133,7 +155,7 @@ func (tx *Transaction) String() string {
 type Transactions []*Transaction
 
 // NewTransaction create #Transaction instance.
-func NewTransaction(chainID uint32, from, to *Address, value *util.Uint128, nonce uint64, payloadType string, payload []byte) *Transaction {
+func NewTransaction(chainID uint32, from, to *Address, value *util.Uint128, nonce uint64, payloadType string, payload []byte, gasPrice *util.Uint128, gasLimit *util.Uint128) *Transaction {
 	tx := &Transaction{
 		from:      from,
 		to:        to,
@@ -142,6 +164,8 @@ func NewTransaction(chainID uint32, from, to *Address, value *util.Uint128, nonc
 		timestamp: time.Now().Unix(),
 		chainID:   chainID,
 		data:      &corepb.Data{Type: payloadType, Payload: payload},
+		gasPrice:  gasPrice,
+		gasLimit:  gasLimit,
 	}
 	return tx
 }
@@ -266,7 +290,7 @@ func (tx *Transaction) GenerateContractAddress() (*Address, error) {
 
 // HashTransaction hash the transaction.
 func HashTransaction(tx *Transaction) (byteutils.Hash, error) {
-	bytes, err := tx.value.ToFixedSizeByteSlice()
+	value, err := tx.value.ToFixedSizeByteSlice()
 	if err != nil {
 		return nil, err
 	}
@@ -274,13 +298,23 @@ func HashTransaction(tx *Transaction) (byteutils.Hash, error) {
 	if err != nil {
 		return nil, err
 	}
+	gasPrice, err := tx.gasPrice.ToFixedSizeByteSlice()
+	if err != nil {
+		return nil, err
+	}
+	gasLimit, err := tx.gasLimit.ToFixedSizeByteSlice()
+	if err != nil {
+		return nil, err
+	}
 	return hash.Sha3256(
 		tx.from.address,
 		tx.to.address,
-		bytes,
+		value,
 		byteutils.FromUint64(tx.nonce),
 		byteutils.FromInt64(tx.timestamp),
 		data,
 		byteutils.FromUint32(tx.chainID),
+		gasPrice,
+		gasLimit,
 	), nil
 }

@@ -120,6 +120,8 @@ func TestBlock(t *testing.T) {
 						time.Now().Unix(),
 						&corepb.Data{Type: TxPayloadBinaryType, Payload: []byte("hello")},
 						1,
+						util.NewUint128(),
+						util.NewUint128(),
 						uint8(keystore.SECP256K1),
 						nil,
 					},
@@ -132,6 +134,8 @@ func TestBlock(t *testing.T) {
 						time.Now().Unix(),
 						&corepb.Data{Type: TxPayloadBinaryType, Payload: []byte("hello")},
 						1,
+						util.NewUint128(),
+						util.NewUint128(),
 						uint8(keystore.SECP256K1),
 						nil,
 					},
@@ -230,17 +234,17 @@ func TestBlock_CollectTransactions(t *testing.T) {
 	coinbase, _ := NewAddressFromPublicKey(pubdata2)
 
 	block := NewBlock(0, coinbase, tail, bc.txPool, storage)
-	tx1 := NewTransaction(0, from, to, util.NewUint128(), 1, TxPayloadBinaryType, []byte("nas"))
+	tx1 := NewTransaction(0, from, to, util.NewUint128(), 1, TxPayloadBinaryType, []byte("nas"), util.NewUint128(), util.NewUint128())
 	tx1.Sign(signature)
-	tx2 := NewTransaction(0, from, to, util.NewUint128(), 2, TxPayloadBinaryType, []byte("nas"))
+	tx2 := NewTransaction(0, from, to, util.NewUint128(), 2, TxPayloadBinaryType, []byte("nas"), util.NewUint128(), util.NewUint128())
 	tx2.Sign(signature)
-	tx3 := NewTransaction(0, from, to, util.NewUint128(), 0, TxPayloadBinaryType, []byte("nas"))
+	tx3 := NewTransaction(0, from, to, util.NewUint128(), 0, TxPayloadBinaryType, []byte("nas"), util.NewUint128(), util.NewUint128())
 	tx3.Sign(signature)
-	tx4 := NewTransaction(0, from, to, util.NewUint128(), 4, TxPayloadBinaryType, []byte("nas"))
+	tx4 := NewTransaction(0, from, to, util.NewUint128(), 4, TxPayloadBinaryType, []byte("nas"), util.NewUint128(), util.NewUint128())
 	tx4.Sign(signature)
-	tx5 := NewTransaction(0, from, to, util.NewUint128FromInt(1), 3, TxPayloadBinaryType, []byte("nas"))
+	tx5 := NewTransaction(0, from, to, util.NewUint128FromInt(1), 3, TxPayloadBinaryType, []byte("nas"), util.NewUint128FromInt(1), util.NewUint128FromInt(10))
 	tx5.Sign(signature)
-	tx6 := NewTransaction(1, from, to, util.NewUint128(), 1, TxPayloadBinaryType, []byte("nas"))
+	tx6 := NewTransaction(1, from, to, util.NewUint128(), 1, TxPayloadBinaryType, []byte("nas"), util.NewUint128(), util.NewUint128())
 	tx6.Sign(signature)
 
 	bc.txPool.Push(tx1)

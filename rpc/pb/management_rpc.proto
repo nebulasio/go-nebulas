@@ -114,6 +114,12 @@ message SignTransactionRequest {
 
     // the params of contract.
     string args = 6;
+
+    // gasPrice sending with this transaction.
+    bytes gas_price = 7; // uint128, len=16
+
+    // gasLimit sending with this transaction.
+    bytes gas_limit = 8; // uint128, len=16
 }
 
 message SignTransactionResponse {
@@ -143,8 +149,14 @@ message SendTransactionPassphraseRequest {
     // the params of contract.
     string args = 6;
 
+    // gasPrice sending with this transaction.
+    bytes gas_price = 7; // uint128, len=16
+
+    // gasLimit sending with this transaction.
+    bytes gas_limit = 8; // uint128, len=16
+
     // from account passphrase
-    string passphrase = 7;
+    string passphrase = 9;
 }
 
 message SendTransactionPassphraseResponse {

@@ -243,6 +243,12 @@ message SendTransactionRequest {
 
 	// the params of contract.
 	string args = 6;
+
+	// gasPrice sending with this transaction.
+	bytes gas_price = 7; // uint128, len=16
+
+	// gasLimit sending with this transaction.
+	bytes gas_limit = 8; // uint128, len=16
 }
 
 message CallRequest {
@@ -260,6 +266,12 @@ message CallRequest {
 
 	// the params of contract.
 	string args = 5;
+
+	// gasPrice sending with this transaction.
+	bytes gas_price = 6; // uint128, len=16
+
+	// gasLimit sending with this transaction.
+	bytes gas_limit = 7; // uint128, len=16
 
 }
 
