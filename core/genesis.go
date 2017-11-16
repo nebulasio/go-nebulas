@@ -38,6 +38,7 @@ func NewGenesisBlock(chainID uint32, storage storage.Storage) *Block {
 	dynastyTrie, _ := trie.NewBatchTrie(nil, storage)
 	nextDynastyTrie, _ := trie.NewBatchTrie(nil, storage)
 	dynastyCandidatesTrie, _ := trie.NewBatchTrie(nil, storage)
+	depositTrie, _ := trie.NewBatchTrie(nil, storage)
 	b := &Block{
 		header: &BlockHeader{
 			chainID:           chainID,
@@ -52,6 +53,7 @@ func NewGenesisBlock(chainID uint32, storage storage.Storage) *Block {
 		dynastyTrie:           dynastyTrie,
 		nextDynastyTrie:       nextDynastyTrie,
 		dynastyCandidatesTrie: dynastyCandidatesTrie,
+		depositTrie:           depositTrie,
 		storage:               storage,
 		height:                1,
 		sealed:                true,

@@ -106,6 +106,8 @@ type BlockHeader struct {
 	nextDynastyRoot byteutils.Hash
 	// candidates in second next dynasty
 	dynastyCandidatesRoot byteutils.Hash
+	// deposit charged by validators
+	depositRoot byteutils.Hash
 
 	nonce     uint64
 	coinbase  *Address
@@ -124,10 +126,11 @@ func (b *BlockHeader) ToProto() (proto.Message, error) {
 		DynastyRoot:           b.dynastyRoot,
 		NextDynastyRoot:       b.nextDynastyRoot,
 		DynastyCandidatesRoot: b.dynastyCandidatesRoot,
-		Nonce:     b.nonce,
-		Coinbase:  b.coinbase.address,
-		Timestamp: b.timestamp,
-		ChainId:   b.chainID,
+		DepositRoot:           b.depositRoot,
+		Nonce:                 b.nonce,
+		Coinbase:              b.coinbase.address,
+		Timestamp:             b.timestamp,
+		ChainId:               b.chainID,
 	}, nil
 }
 
@@ -142,6 +145,7 @@ func (b *BlockHeader) FromProto(msg proto.Message) error {
 		b.dynastyRoot = msg.DynastyRoot
 		b.nextDynastyRoot = msg.NextDynastyRoot
 		b.dynastyCandidatesRoot = msg.DynastyCandidatesRoot
+		b.depositRoot = msg.DepositRoot
 		b.nonce = msg.Nonce
 		b.coinbase = &Address{msg.Coinbase}
 		b.timestamp = msg.Timestamp
@@ -164,6 +168,7 @@ type Block struct {
 	dynastyTrie           *trie.BatchTrie
 	nextDynastyTrie       *trie.BatchTrie
 	dynastyCandidatesTrie *trie.BatchTrie
+	depositTrie           *trie.BatchTrie
 	txPool                *TransactionPool
 
 	storage storage.Storage
@@ -221,6 +226,7 @@ func NewBlock(chainID uint32, coinbase *Address, parent *Block, txPool *Transact
 	dynastyTrie, _ := parent.dynastyTrie.Clone()
 	nextDynastyTrie, _ := parent.nextDynastyTrie.Clone()
 	dynastyCandidatesTrie, _ := parent.dynastyCandidatesTrie.Clone()
+	depositTrie, _ := parent.depositTrie.Clone()
 	block := &Block{
 		header: &BlockHeader{
 			parentHash:        parent.Hash(),
@@ -237,6 +243,7 @@ func NewBlock(chainID uint32, coinbase *Address, parent *Block, txPool *Transact
 		dynastyTrie:           dynastyTrie,
 		nextDynastyTrie:       nextDynastyTrie,
 		dynastyCandidatesTrie: dynastyCandidatesTrie,
+		depositTrie:           depositTrie,
 		txPool:                txPool,
 		height:                parent.Height() + 1,
 		sealed:                false,
@@ -301,11 +308,17 @@ func (block *Block) changeDynasty() {
 	// select DynastySize validators from candidates
 	vs := &ValidatorSort{validators: block.candidates(), seed: block.height}
 	sort.Sort(vs)
-	for i := 0; i < DynastySize; i++ {
-		v := vs.validators[i]
-		block.nextDynastyTrie.Put(v, v)
+	// TODO(roy): adjust the dynastysize dynamically
+	// TODO(roy): limit the re-election validators
+	count := 0
+	for _, v := range vs.validators {
+		if count < DynastySize {
+			block.nextDynastyTrie.Put(v, v)
+			// un-selected candidates will login automatically
+			block.dynastyCandidatesTrie.Del(v)
+			count++
+		}
 	}
-	block.dynastyCandidatesTrie, _ = trie.NewBatchTrie(nil, block.storage)
 }
 
 // Coinbase return block's coinbase
@@ -369,6 +382,11 @@ func (block *Block) DynastyCandidatesRoot() byteutils.Hash {
 	return block.header.dynastyCandidatesRoot
 }
 
+// DepositRoot return deposit root hash.
+func (block *Block) DepositRoot() byteutils.Hash {
+	return block.header.depositRoot
+}
+
 // ParentHash return parent hash.
 func (block *Block) ParentHash() byteutils.Hash {
 	return block.header.parentHash
@@ -390,6 +408,7 @@ func (block *Block) LinkParentBlock(parentBlock *Block) bool {
 	block.dynastyTrie, _ = parentBlock.dynastyTrie.Clone()
 	block.nextDynastyTrie, _ = parentBlock.nextDynastyTrie.Clone()
 	block.dynastyCandidatesTrie, _ = parentBlock.dynastyCandidatesTrie.Clone()
+	block.depositTrie, _ = parentBlock.depositTrie.Clone()
 	block.txPool = parentBlock.txPool
 	block.parenetBlock = parentBlock
 	block.storage = parentBlock.storage
@@ -513,17 +532,23 @@ func (block *Block) Seal() {
 	block.header.dynastyRoot = block.dynastyTrie.RootHash()
 	block.header.nextDynastyRoot = block.nextDynastyTrie.RootHash()
 	block.header.dynastyCandidatesRoot = block.dynastyCandidatesTrie.RootHash()
+	block.header.depositRoot = block.depositTrie.RootHash()
 	block.header.hash = HashBlock(block)
 	block.sealed = true
 }
 
 func (block *Block) String() string {
-	return fmt.Sprintf("Block %p {height:%d; hash:%s; parentHash:%s; stateRoot:%s, nonce:%d, timestamp: %d}",
+	return fmt.Sprintf("Block %p { height:%d; hash:%s; parentHash:%s; stateRoot:%s; txsRoot: %s; dynastyRoot: %s; nextDynastyRoot: %s; dynastyCandidatesRoot: %s; depositRoot: %s; nonce:%d; timestamp: %d}",
 		block,
 		block.height,
 		byteutils.Hex(block.header.hash),
 		byteutils.Hex(block.header.parentHash),
 		byteutils.Hex(block.StateRoot()),
+		byteutils.Hex(block.TxsRoot()),
+		byteutils.Hex(block.DynastyRoot()),
+		byteutils.Hex(block.NextDynastyRoot()),
+		byteutils.Hex(block.DynastyCandidatesRoot()),
+		byteutils.Hex(block.DepositRoot()),
 		block.header.nonce,
 		block.header.timestamp,
 	)
@@ -699,6 +724,7 @@ func HashBlock(block *Block) byteutils.Hash {
 	hasher.Write(block.header.dynastyRoot)
 	hasher.Write(block.header.nextDynastyRoot)
 	hasher.Write(block.header.dynastyCandidatesRoot)
+	hasher.Write(block.header.depositRoot)
 	hasher.Write(byteutils.FromUint64(block.header.nonce))
 	hasher.Write(block.header.coinbase.address)
 	hasher.Write(byteutils.FromInt64(block.header.timestamp))
@@ -742,6 +768,10 @@ func LoadBlockFromStorage(hash byteutils.Hash, storage storage.Storage, txPool *
 		return nil, err
 	}
 	block.dynastyCandidatesTrie, err = trie.NewBatchTrie(block.DynastyCandidatesRoot(), storage)
+	if err != nil {
+		return nil, err
+	}
+	block.depositTrie, err = trie.NewBatchTrie(block.DepositRoot(), storage)
 	if err != nil {
 		return nil, err
 	}
