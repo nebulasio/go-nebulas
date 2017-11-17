@@ -24,6 +24,7 @@ import (
 	"github.com/nebulasio/go-nebulas/consensus"
 	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
+	metrics "github.com/rcrowley/go-metrics"
 
 	"time"
 
@@ -34,6 +35,9 @@ const (
 	// Mining mining state key
 	Mining = "mining"
 )
+
+var searchingNonceTimer = metrics.GetOrRegisterTimer("pow_search_nonce", nil)
+var nonceRetryCountGauge = metrics.GetOrRegisterGauge("pow_nonce_retry_count", nil)
 
 // MiningState mining state.
 type MiningState struct {
@@ -89,6 +93,7 @@ func (state *MiningState) searchingNonce(miningBlock *core.Block) {
 		nonce := miningBlock.Nonce()
 		parentHash := miningBlock.ParentHash()
 
+		now := time.Now()
 	computeHash:
 		for {
 			select {
@@ -112,6 +117,9 @@ func (state *MiningState) searchingNonce(miningBlock *core.Block) {
 
 					// seal block.
 					miningBlock.Seal()
+
+					searchingNonceTimer.UpdateSince(now)
+					nonceRetryCountGauge.Update(int64(nonce))
 
 					state.p.Transit(state, NewMintedState(state.p), nil)
 

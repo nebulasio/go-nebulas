@@ -2,7 +2,7 @@
 
 p2p {
   port: 10000
-  seed: "/ip4/47.254.16.35/tcp/51413/ipfs/QmPyr4ZbDmwF1nWxymTktdzspcBFPL6X1v3Q5nT7PGNtUN"
+  seed: "/ip4/127.0.0.1/tcp/51413/ipfs/QmPyr4ZbDmwF1nWxymTktdzspcBFPL6X1v3Q5nT7PGNtUN"
   chain_id: 100
   version: 1
 }
@@ -35,8 +35,12 @@ account {
 }
 
 influxdb {
-  host: "http://47.254.16.35:8086"
+  host: "http://localhost:8086"
   db: "nebulas"
-  username: "leon"
-  password: "leonforlove"
+  username: "admin"
+  password: "admin"
+}
+
+metrics {
+  enable: false
 }
