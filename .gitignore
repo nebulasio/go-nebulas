@@ -26,5 +26,5 @@ debug
 *.o
 
 # 3rd test suites.
-mozilla_js_tests
+mozilla_js_tests*
 
