@@ -25,3 +25,6 @@ debug
 # c/cpp temp files.
 *.o
 
+# 3rd test suites.
+mozilla_js_tests
+

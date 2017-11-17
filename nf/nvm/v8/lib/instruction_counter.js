@@ -101,8 +101,11 @@ const InjectionCodeGenerators = {
             return "}";
         }
     },
-    InnerCounterIncrFunc: function (value) {
-        return "_instruction_counter.incr(" + value + ") && ";
+    BeginInnerCounterIncrFunc: function (value) {
+        return "_instruction_counter.incr(" + value + ") && (";
+    },
+    EndInnerCounterIncrFunc: function (value) {
+        return ")";
     },
 };
 
@@ -252,8 +255,9 @@ function processScript(source) {
                     }
                     break;
                 case InjectionType.INNER_BEGINNING:
-                    pos = target_node.range[0];
-                    generator = InjectionCodeGenerators.InnerCounterIncrFunc;
+                    pos = -1;
+                    record_injection(target_node.range[0], tracing_val, InjectionCodeGenerators.BeginInnerCounterIncrFunc);
+                    record_injection(target_node.range[1], tracing_val, InjectionCodeGenerators.EndInnerCounterIncrFunc);
                     break;
                 default:
                     throw new Error("Unknown Injection Type " + injection_type);

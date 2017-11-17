@@ -143,6 +143,15 @@ func (e *V8Engine) Dispose() {
 	storagesLock.Unlock()
 }
 
+// SetTestingFlag set testing flag, default is False.
+func (e *V8Engine) SetTestingFlag(flag bool) {
+	if flag {
+		e.v8engine.testing = C.int(1)
+	} else {
+		e.v8engine.testing = C.int(0)
+	}
+}
+
 // SetExecutionLimits set execution limits of V8 Engine, prevent Halting Problem.
 func (e *V8Engine) SetExecutionLimits(limitsOfExecutionInstructions, limitsOfTotalMemorySize uint64) {
 	e.v8engine.limits_of_executed_instructions = C.size_t(limitsOfExecutionInstructions)

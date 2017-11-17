@@ -90,6 +90,7 @@ typedef struct V8Engine {
   size_t limits_of_executed_instructions;
   size_t limits_of_total_memory_size;
   int is_requested_terminate_execution;
+  int testing;
   V8EngineStats stats;
 } V8Engine;
 

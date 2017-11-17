@@ -168,8 +168,8 @@ int Execute(V8Engine *e, const char *data, void *lcsHandler, void *gcsHandler,
   // Create a new context.
   Local<Context> context = Context::New(isolate, NULL, globalTpl);
 
-  // Disable eval().
-  context->AllowCodeGenerationFromStrings(false);
+  // enable eval() only in testing env.
+  context->AllowCodeGenerationFromStrings(e->testing == 1 ? true : false);
 
   // Enter the context for compiling and running the script.
   Context::Scope context_scope(context);

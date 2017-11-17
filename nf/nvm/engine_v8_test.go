@@ -19,9 +19,13 @@
 package nvm
 
 import (
+	"bufio"
+	"bytes"
 	"flag"
+	"fmt"
 	"io/ioutil"
 	"os"
+	"strings"
 	"sync"
 	"testing"
 
@@ -30,6 +34,7 @@ import (
 	"github.com/nebulasio/go-nebulas/util/logging"
 	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestMain(m *testing.M) {
@@ -254,4 +259,74 @@ func TestMultiEngine(t *testing.T) {
 		}()
 	}
 	wg.Wait()
+}
+
+func TestRunMozillaJSTestSuite(t *testing.T) {
+	mem, _ := storage.NewMemoryStorage()
+	context, _ := state.NewAccountState(nil, mem)
+	owner := context.GetOrCreateUserAccount([]byte("account1"))
+	contract, _ := context.CreateContractAccount([]byte("account2"), nil)
+	ctx := NewContext(nil, owner, contract, context)
+
+	var runTest func(dir string, shelljs string)
+	runTest = func(dir string, shelljs string) {
+		files, err := ioutil.ReadDir(dir)
+		require.Nil(t, err)
+
+		cwdShelljs := fmt.Sprintf("%s/shell.js", dir)
+		if _, err := os.Stat(cwdShelljs); !os.IsNotExist(err) {
+			shelljs = fmt.Sprintf("%s;%s", shelljs, cwdShelljs)
+		}
+
+		for _, file := range files {
+			filepath := fmt.Sprintf("%s/%s", dir, file.Name())
+			fi, err := os.Stat(filepath)
+			require.Nil(t, err)
+
+			if fi.IsDir() {
+				if strings.Compare(file.Name(), "Intl") == 0 {
+					continue
+				}
+
+				runTest(filepath, shelljs)
+				continue
+			}
+
+			if !strings.HasSuffix(file.Name(), ".js") {
+				continue
+			}
+			if strings.Compare(file.Name(), "browser.js") == 0 || strings.Compare(file.Name(), "shell.js") == 0 || strings.HasPrefix(file.Name(), "toLocale") {
+				continue
+			}
+
+			log.Infof("Testing %s", filepath)
+
+			buf := bytes.NewBufferString("this.print = console.log;var native_eval = eval;eval = function (s) { try {  return native_eval(s); } catch (e) { return \"error\"; }};")
+
+			jsfiles := fmt.Sprintf("%s;%s;%s", shelljs, "test/moailla_js_tests_modifier.js", filepath)
+
+			for _, v := range strings.Split(jsfiles, ";") {
+				// log.Infof("v %s", v)
+				if len(v) == 0 {
+					continue
+				}
+
+				fi, err := os.Stat(v)
+				require.Nil(t, err)
+				f, err := os.Open(v)
+				require.Nil(t, err)
+				reader := bufio.NewReader(f)
+				buf.Grow(int(fi.Size()))
+				buf.ReadFrom(reader)
+			}
+			// execute.
+			engine := NewV8Engine(ctx)
+			engine.SetTestingFlag(true)
+			engine.enableLimits = true
+			err = engine.RunScriptSource(buf.String())
+			assert.Nil(t, err)
+		}
+	}
+
+	runTest("test/mozilla_js_tests", "")
 }
