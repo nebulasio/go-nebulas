@@ -67,6 +67,9 @@ void IncrCounterCallback(const FunctionCallbackInfo<Value> &info) {
     return;
   }
 
+  // always return true.
+  info.GetReturnValue().Set(true);
+
   size_t *cnt = static_cast<size_t *>(count->Value());
   *cnt += arg->NumberValue();
   // LogInfof("Incr: count = %zu", *cnt);
