@@ -27,6 +27,7 @@ import (
 
 	"github.com/nebulasio/go-nebulas/core/state"
 	"github.com/nebulasio/go-nebulas/storage"
+	"github.com/nebulasio/go-nebulas/util"
 	"github.com/nebulasio/go-nebulas/util/logging"
 	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
@@ -61,6 +62,7 @@ func TestRunScriptSource(t *testing.T) {
 			mem, _ := storage.NewMemoryStorage()
 			context, _ := state.NewAccountState(nil, mem)
 			owner := context.GetOrCreateUserAccount([]byte("account1"))
+			owner.AddBalance(util.NewUint128FromInt(1000000000))
 			contract, _ := context.CreateContractAccount([]byte("account2"), nil)
 
 			ctx := NewContext(nil, owner, contract, context)
@@ -87,7 +89,7 @@ func TestRunScriptSourceWithLimits(t *testing.T) {
 
 		{"test/test_oom_2.js", 100000, 0, ErrInsufficientGas},
 		{"test/test_oom_2.js", 0, 8000000, ErrExceedMemoryLimits},
-		{"test/test_oom_2.js", 100000, 8000000, ErrInsufficientGas},
+		{"test/test_oom_2.js", 100000, 8000000, ErrExceedMemoryLimits},
 		{"test/test_oom_2.js", 1000000, 7000000, ErrExceedMemoryLimits},
 	}
 
@@ -99,6 +101,7 @@ func TestRunScriptSourceWithLimits(t *testing.T) {
 			mem, _ := storage.NewMemoryStorage()
 			context, _ := state.NewAccountState(nil, mem)
 			owner := context.GetOrCreateUserAccount([]byte("account1"))
+			owner.AddBalance(util.NewUint128FromInt(10000000))
 			contract, _ := context.CreateContractAccount([]byte("account2"), nil)
 
 			ctx := NewContext(nil, owner, contract, context)
@@ -155,6 +158,7 @@ func TestDeployAndInitAndCall(t *testing.T) {
 			mem, _ := storage.NewMemoryStorage()
 			context, _ := state.NewAccountState(nil, mem)
 			owner := context.GetOrCreateUserAccount([]byte("account1"))
+			owner.AddBalance(util.NewUint128FromInt(10000000))
 			contract, _ := context.CreateContractAccount([]byte("account2"), nil)
 
 			params := &ContextParams{Coinbase: "0eb3be2db3a534c192be5570c6c42f59",
@@ -219,6 +223,7 @@ func TestFunctionNameCheck(t *testing.T) {
 			mem, _ := storage.NewMemoryStorage()
 			context, _ := state.NewAccountState(nil, mem)
 			owner := context.GetOrCreateUserAccount([]byte("account1"))
+			owner.AddBalance(util.NewUint128FromInt(1000000))
 			contract, _ := context.CreateContractAccount([]byte("account2"), nil)
 
 			ctx := NewContext(nil, owner, contract, context)
@@ -235,6 +240,7 @@ func TestMultiEngine(t *testing.T) {
 	mem, _ := storage.NewMemoryStorage()
 	context, _ := state.NewAccountState(nil, mem)
 	owner := context.GetOrCreateUserAccount([]byte("account1"))
+	owner.AddBalance(util.NewUint128FromInt(1000000))
 	contract, _ := context.CreateContractAccount([]byte("account2"), nil)
 
 	var wg sync.WaitGroup

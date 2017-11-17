@@ -49,6 +49,7 @@ import (
 	"unsafe"
 
 	"github.com/nebulasio/go-nebulas/core/state"
+	"github.com/nebulasio/go-nebulas/util"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -218,7 +219,16 @@ func (e *V8Engine) RunScriptSource(content string) (err error) {
 	e.actualCountOfExecutionInstructions = uint64(e.v8engine.stats.count_of_executed_instructions)
 	e.actualTotalMemorySize = uint64(e.v8engine.stats.total_memory_size)
 
+	if err == nil {
+		err = e.gasCombustion(e.actualCountOfExecutionInstructions)
+	}
 	return
+}
+
+// gas combustion
+func (e *V8Engine) gasCombustion(executionInstructions uint64) error {
+	amount := util.NewUint128FromInt(int64(executionInstructions))
+	return e.ctx.owner.SubBalance(amount)
 }
 
 // Call function in a script
