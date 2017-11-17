@@ -28,7 +28,7 @@ import (
 )
 
 const (
-	duration = 10 * time.Second
+	duration = 2 * time.Second
 	tagName  = "nodeID"
 )
 
