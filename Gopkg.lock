@@ -98,6 +98,12 @@
   revision = "5b7801abd885f2f7458add715aee47e7df5370a0"
 
 [[projects]]
+  name = "github.com/influxdata/influxdb"
+  packages = ["client","models","pkg/escape"]
+  revision = "6d2685d1738277a1c2672fc58df7994627769be6"
+  version = "v1.4.2"
+
+[[projects]]
   name = "github.com/ipfs/go-ipfs-util"
   packages = ["."]
   revision = "ca91b45d2e776e6e066151f7b65a3984c87e9fbb"
@@ -357,6 +363,12 @@
 
 [[projects]]
   branch = "master"
+  name = "github.com/rcrowley/go-metrics"
+  packages = ["."]
+  revision = "1f30fe9094a513ce4c700b9a54458bbb0c96996c"
+
+[[projects]]
+  branch = "master"
   name = "github.com/robertkrimen/otto"
   packages = [".","ast","dbg","file","parser","registry","token"]
   revision = "68a29f5e29b18d7367e686c43cf74eba1900f548"
@@ -396,6 +408,12 @@
   packages = ["."]
   revision = "cfb38830724cc34fedffe9a2a29fb54fa9169cd1"
   version = "v1.20.0"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/vrischmann/go-metrics-influxdb"
+  packages = ["."]
+  revision = "43af8332c303f62ef62663b02b3b7d8a9802002a"
 
 [[projects]]
   branch = "master"
@@ -502,6 +520,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "64d379f7c8bbc950c5d2f661b11ab5aa0aae506ae128cf2db9166f75a68f943b"
+  inputs-digest = "7abd4f0a83c515babc3182607663ba02b0ffd1bed84a0a326705534cd52bc45f"
   solver-name = "gps-cdcl"
   solver-version = 1
