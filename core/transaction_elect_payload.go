@@ -201,7 +201,7 @@ func (payload *ElectPayload) checkWithdrawExpired(from []byte, block *Block) (bo
 	// not in previous 1000 blocks' dynasties
 	curBlock := block
 	for i := 0; i < WithdrawExpireBlocks; i++ {
-		exist, err := checkExistanceInDynasty(from, curBlock.dynastyTrie)
+		exist, err := checkExistanceInDynasty(from, curBlock.curDynastyTrie)
 		if err != nil {
 			return false, err
 		}

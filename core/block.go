@@ -98,26 +98,26 @@ type BlockHeader struct {
 	stateRoot byteutils.Hash
 	txsRoot   byteutils.Hash
 
-	// the hash of the parent of the block where dynasty works
-	dynastyParentHash byteutils.Hash
 	// validators in current dynasty
-	dynastyRoot byteutils.Hash
+	curDynastyRoot byteutils.Hash
 	// validators in next dynasty
 	nextDynastyRoot byteutils.Hash
 	// candidates in second next dynasty
 	dynastyCandidatesRoot byteutils.Hash
+	// active validators in all dynasties
+	validatorsRoot byteutils.Hash
 	// deposit charged by validators
 	depositRoot byteutils.Hash
 	// all prepare votes
 	prepareVotesRoot byteutils.Hash
+	// all prepare votes are organized by their height
+	heightPrepareVotesRoot byteutils.Hash
 	// all commit votes
 	commitVotesRoot byteutils.Hash
 	// all change votes
 	changeVotesRoot byteutils.Hash
 	// all abdicate votes
 	abdicateVotesRoot byteutils.Hash
-	// reorganize all blocks based on their height
-	blocksHeightRoot byteutils.Hash
 
 	nonce     uint64
 	coinbase  *Address
@@ -133,16 +133,16 @@ func (b *BlockHeader) ToProto() (proto.Message, error) {
 		StateRoot:  b.stateRoot,
 		TxsRoot:    b.txsRoot,
 
-		DynastyParentHash:     b.dynastyParentHash,
-		DynastyRoot:           b.dynastyRoot,
-		NextDynastyRoot:       b.nextDynastyRoot,
-		DynastyCandidatesRoot: b.dynastyCandidatesRoot,
-		DepositRoot:           b.depositRoot,
-		PrepareVotesRoot:      b.prepareVotesRoot,
-		CommitVotesRoot:       b.commitVotesRoot,
-		ChangeVotesRoot:       b.changeVotesRoot,
-		AbdicateVotesRoot:     b.abdicateVotesRoot,
-		BlocksHeightRoot:      b.blocksHeightRoot,
+		CurDynastyRoot:         b.curDynastyRoot,
+		NextDynastyRoot:        b.nextDynastyRoot,
+		DynastyCandidatesRoot:  b.dynastyCandidatesRoot,
+		ValidatorsRoot:         b.validatorsRoot,
+		DepositRoot:            b.depositRoot,
+		PrepareVotesRoot:       b.prepareVotesRoot,
+		HeightPrepareVotesRoot: b.heightPrepareVotesRoot,
+		CommitVotesRoot:        b.commitVotesRoot,
+		ChangeVotesRoot:        b.changeVotesRoot,
+		AbdicateVotesRoot:      b.abdicateVotesRoot,
 
 		Nonce:     b.nonce,
 		Coinbase:  b.coinbase.address,
@@ -159,16 +159,16 @@ func (b *BlockHeader) FromProto(msg proto.Message) error {
 		b.stateRoot = msg.StateRoot
 		b.txsRoot = msg.TxsRoot
 
-		b.dynastyParentHash = msg.DynastyParentHash
-		b.dynastyRoot = msg.DynastyRoot
+		b.curDynastyRoot = msg.CurDynastyRoot
 		b.nextDynastyRoot = msg.NextDynastyRoot
 		b.dynastyCandidatesRoot = msg.DynastyCandidatesRoot
+		b.validatorsRoot = msg.ValidatorsRoot
 		b.depositRoot = msg.DepositRoot
 		b.prepareVotesRoot = msg.PrepareVotesRoot
+		b.heightPrepareVotesRoot = msg.HeightPrepareVotesRoot
 		b.commitVotesRoot = msg.CommitVotesRoot
 		b.changeVotesRoot = msg.ChangeVotesRoot
 		b.abdicateVotesRoot = msg.AbdicateVotesRoot
-		b.blocksHeightRoot = msg.BlocksHeightRoot
 
 		b.nonce = msg.Nonce
 		b.coinbase = &Address{msg.Coinbase}
@@ -184,21 +184,22 @@ type Block struct {
 	header       *BlockHeader
 	transactions Transactions
 
-	sealed       bool
-	height       uint64
-	parenetBlock *Block
-	accState     state.AccountState
-	txsTrie      *trie.BatchTrie
+	sealed      bool
+	height      uint64
+	parentBlock *Block
+	accState    state.AccountState
+	txsTrie     *trie.BatchTrie
 
-	dynastyTrie           *trie.BatchTrie // key: addr
-	nextDynastyTrie       *trie.BatchTrie // key: addr
-	dynastyCandidatesTrie *trie.BatchTrie // key: addr
-	depositTrie           *trie.BatchTrie // key: addr
-	prepareVotesTrie      *trie.BatchTrie // key: block hash + addr
-	commitVotesTrie       *trie.BatchTrie // key: block hash + addr
-	changeVotesTrie       *trie.BatchTrie // key: block hash + N + addr
-	abdicateVotesTrie     *trie.BatchTrie // key: dynasty parent hash + addr
-	blocksHeightTrie      *trie.BatchTrie // key: height
+	curDynastyTrie         *trie.BatchTrie // key: addr, value: addr
+	nextDynastyTrie        *trie.BatchTrie // key: addr, value: addr
+	dynastyCandidatesTrie  *trie.BatchTrie // key: addr, value: addr
+	validatorsTrie         *trie.BatchTrie // key: dynasty hash + addr, value: addr
+	depositTrie            *trie.BatchTrie // key: addr, value: deposit
+	prepareVotesTrie       *trie.BatchTrie // key: block hash + addr, value: vote
+	heightPrepareVotesTrie *trie.BatchTrie // key: height + addr, value: vote
+	commitVotesTrie        *trie.BatchTrie // key: block hash + addr, value: vote
+	changeVotesTrie        *trie.BatchTrie // key: block hash + addr, value: N
+	abdicateVotesTrie      *trie.BatchTrie // key: dynasty hash + addr, value: vote
 
 	txPool *TransactionPool
 
@@ -255,108 +256,173 @@ func NewBlock(chainID uint32, coinbase *Address, parent *Block, txPool *Transact
 	accState, _ := parent.accState.Clone()
 	txsTrie, _ := parent.txsTrie.Clone()
 
-	dynastyTrie, _ := parent.dynastyTrie.Clone()
+	curDynastyTrie, _ := parent.curDynastyTrie.Clone()
 	nextDynastyTrie, _ := parent.nextDynastyTrie.Clone()
 	dynastyCandidatesTrie, _ := parent.dynastyCandidatesTrie.Clone()
+	validatorsTrie, _ := parent.validatorsTrie.Clone()
 	depositTrie, _ := parent.depositTrie.Clone()
 	prepareVotesTrie, _ := parent.prepareVotesTrie.Clone()
+	heightPrepareVotesTrie, _ := parent.heightPrepareVotesTrie.Clone()
 	commitVotesTrie, _ := parent.commitVotesTrie.Clone()
 	changeVotesTrie, _ := parent.changeVotesTrie.Clone()
 	abdicateVotesTrie, _ := parent.abdicateVotesTrie.Clone()
-	blocksHeightTrie, _ := parent.blocksHeightTrie.Clone()
 
 	block := &Block{
 		header: &BlockHeader{
-			parentHash:        parent.Hash(),
-			dynastyParentHash: parent.DynastyParentHash(),
-			coinbase:          coinbase,
-			nonce:             0,
-			timestamp:         time.Now().Unix(),
-			chainID:           chainID,
+			parentHash:     parent.Hash(),
+			curDynastyRoot: parent.CurDynastyRoot(),
+			coinbase:       coinbase,
+			nonce:          0,
+			timestamp:      time.Now().Unix(),
+			chainID:        chainID,
 		},
 		transactions: make(Transactions, 0),
-		parenetBlock: parent,
+		parentBlock:  parent,
 		accState:     accState,
 		txsTrie:      txsTrie,
 
-		dynastyTrie:           dynastyTrie,
-		nextDynastyTrie:       nextDynastyTrie,
-		dynastyCandidatesTrie: dynastyCandidatesTrie,
-		depositTrie:           depositTrie,
-		prepareVotesTrie:      prepareVotesTrie,
-		commitVotesTrie:       commitVotesTrie,
-		changeVotesTrie:       changeVotesTrie,
-		abdicateVotesTrie:     abdicateVotesTrie,
-		blocksHeightTrie:      blocksHeightTrie,
+		curDynastyTrie:         curDynastyTrie,
+		nextDynastyTrie:        nextDynastyTrie,
+		dynastyCandidatesTrie:  dynastyCandidatesTrie,
+		validatorsTrie:         validatorsTrie,
+		depositTrie:            depositTrie,
+		prepareVotesTrie:       prepareVotesTrie,
+		heightPrepareVotesTrie: heightPrepareVotesTrie,
+		commitVotesTrie:        commitVotesTrie,
+		changeVotesTrie:        changeVotesTrie,
+		abdicateVotesTrie:      abdicateVotesTrie,
 
 		txPool:  txPool,
 		height:  parent.Height() + 1,
 		sealed:  false,
 		storage: storage,
 	}
-
-	if block.checkDynastyRuleEpochOver() {
-		block.changeDynasty()
-		block.header.dynastyParentHash = block.header.parentHash
-	}
-
 	return block
 }
 
-// return validators in the given dynasty
-func validators(dynasty *trie.BatchTrie) map[byteutils.HexHash]bool {
-	iterator, _ := dynasty.Iterator(nil)
-	validators := make(map[byteutils.HexHash]bool)
-	for iterator.Next() {
-		validators[byteutils.HexHash(byteutils.Hex(iterator.Value()))] = true
-	}
-	return validators
+func sortValidators(validators []byteutils.Hash, seed uint64) []byteutils.Hash {
+	vs := &ValidatorSort{validators: validators, seed: seed}
+	sort.Sort(vs)
+	// TODO(roy): adjust the dynastysize dynamically
+	// TODO(roy): limit the re-election validators
+	return vs.validators
 }
 
-// return all candidates in second next dynasty
-func (block *Block) candidates() []byteutils.Hash {
-	iterator, _ := block.dynastyCandidatesTrie.Iterator(nil)
-	candidates := []byteutils.Hash{}
-	for iterator.Next() {
-		candidates = append(candidates, byteutils.Hash(byteutils.Hex(iterator.Value())))
+func traverseValidators(dynastyTrie *trie.BatchTrie, prefix []byte) ([]byteutils.Hash, error) {
+	iter, err := dynastyTrie.Iterator(prefix)
+	if err != nil {
+		return nil, err
 	}
-	return candidates
+	validators := []byteutils.Hash{}
+	for iter.Next() {
+		validators = append(validators, iter.Value())
+	}
+	return validators, nil
+}
+
+func countValidators(dynastyTrie *trie.BatchTrie, prefix []byte) (int, error) {
+	iter, err := dynastyTrie.Iterator(prefix)
+	if err != nil {
+		return 0, err
+	}
+	count := 0
+	for iter.Next() {
+		count++
+	}
+	return count, nil
+}
+
+// DynastyMaxVotes return the dynasty max votes
+func DynastyMaxVotes(dynastyRoot byteutils.Hash, storage storage.Storage) (int, error) {
+	dynasty, err := trie.NewBatchTrie(dynastyRoot, storage)
+	if err != nil {
+		return 0, err
+	}
+	return countValidators(dynasty, nil)
+}
+
+// NextBlockSortedValidators return the sorted validators who will propose and vote the next block
+func (block *Block) NextBlockSortedValidators() ([]byteutils.Hash, error) {
+	change, err := block.checkDynastyRule()
+	if err != nil {
+		return nil, err
+	}
+	dynastyRoot := block.header.curDynastyRoot
+	if change {
+		dynastyRoot = block.header.nextDynastyRoot
+	}
+	iter, _ := block.validatorsTrie.Iterator(dynastyRoot)
+	validators := []byteutils.Hash{}
+	for iter.Next() {
+		validators = append(validators, iter.Value())
+	}
+	return sortValidators(validators, block.height), nil
+}
+
+// NextBlockDynastyRoot return the dynasty root in next block
+func (block *Block) NextBlockDynastyRoot() (byteutils.Hash, error) {
+	change, err := block.checkDynastyRule()
+	if err != nil {
+		return nil, err
+	}
+	dynastyRoot := block.header.curDynastyRoot
+	if change {
+		dynastyRoot = block.header.nextDynastyRoot
+	}
+	return dynastyRoot, nil
+}
+
+func (block *Block) checkDynastyRule() (bool, error) {
+	change, err := block.checkDynastyRuleEpochOver()
+	if err != nil {
+		return false, err
+	}
+	if change {
+		return true, nil
+	}
+	return block.checkDynastyRuleTooFewValidators()
 }
 
 // dynasty rule: epoch over, create > 100 blocks
-func (block *Block) checkDynastyRuleEpochOver() bool {
-	parentBlock, err := LoadBlockFromStorage(block.header.dynastyParentHash, block.storage, block.txPool)
-	if err != nil {
-		panic("cannot find the birth place of the block's dynasty")
+func (block *Block) checkDynastyRuleEpochOver() (bool, error) {
+	dynastyRoot := block.CurDynastyRoot()
+	curBlock := block
+	var err error
+	for !curBlock.CurDynastyRoot().Equals(dynastyRoot) && !CheckGenesisBlock(curBlock) {
+		curBlock, err = LoadBlockFromStorage(curBlock.ParentHash(), curBlock.storage, curBlock.txPool)
+		if err != nil {
+			return false, err
+		}
 	}
-	if block.height > parentBlock.height && block.height-parentBlock.height > EpochSize {
-		return true
+	if curBlock.Height() < block.Height() && block.Height()-curBlock.Height() > EpochSize {
+		return true, nil
 	}
-	return false
+	return false, nil
 }
 
 // dynasty rule: remove too many validators, remove > 1/3 * N
-func (block *Block) checkDynastyRuleTooFewValidators() bool {
-	parentBlock, err := LoadBlockFromStorage(block.header.dynastyParentHash, block.storage, block.txPool)
+func (block *Block) checkDynastyRuleTooFewValidators() (bool, error) {
+	curSize, err := countValidators(block.validatorsTrie, block.CurDynastyRoot())
 	if err != nil {
-		panic("cannot find the birth place of the block's dynasty")
+		return false, err
 	}
-	if len(validators(block.dynastyTrie)) < 2/3*len(validators(parentBlock.nextDynastyTrie)) {
-		return true
+	fullSize, err := countValidators(block.curDynastyTrie, nil)
+	if err != nil {
+		return false, err
 	}
-	return false
+	if curSize < 2/3*fullSize {
+		return true, nil
+	}
+	return false, nil
 }
 
 // change current dynasty to next one
 func (block *Block) changeDynasty() {
-	block.dynastyTrie = block.nextDynastyTrie
-	// select DynastySize validators from candidates
-	vs := &ValidatorSort{validators: block.candidates(), seed: block.height}
-	sort.Sort(vs)
-	// TODO(roy): adjust the dynastysize dynamically
-	// TODO(roy): limit the re-election validators
+	block.curDynastyTrie = block.nextDynastyTrie
+	validators, _ := traverseValidators(block.dynastyCandidatesTrie, nil)
+	validators = sortValidators(validators, block.height)
 	count := 0
-	for _, v := range vs.validators {
+	for _, v := range validators {
 		if count < DynastySize {
 			block.nextDynastyTrie.Put(v, v)
 			// un-selected candidates will login automatically
@@ -397,11 +463,6 @@ func (block *Block) Hash() byteutils.Hash {
 	return block.header.hash
 }
 
-// DynastyParentHash return block's dynasty's parent hash.
-func (block *Block) DynastyParentHash() byteutils.Hash {
-	return block.header.dynastyParentHash
-}
-
 // StateRoot return state root hash.
 func (block *Block) StateRoot() byteutils.Hash {
 	return block.header.stateRoot
@@ -412,9 +473,9 @@ func (block *Block) TxsRoot() byteutils.Hash {
 	return block.header.txsRoot
 }
 
-// DynastyRoot return dynasty root hash.
-func (block *Block) DynastyRoot() byteutils.Hash {
-	return block.header.dynastyRoot
+// CurDynastyRoot return current dynasty root hash.
+func (block *Block) CurDynastyRoot() byteutils.Hash {
+	return block.header.curDynastyRoot
 }
 
 // NextDynastyRoot return next dynasty root hash.
@@ -425,6 +486,11 @@ func (block *Block) NextDynastyRoot() byteutils.Hash {
 // DynastyCandidatesRoot return dynasty candidates root hash.
 func (block *Block) DynastyCandidatesRoot() byteutils.Hash {
 	return block.header.dynastyCandidatesRoot
+}
+
+// ValidatorsRoot return validators candidates root hash.
+func (block *Block) ValidatorsRoot() byteutils.Hash {
+	return block.header.validatorsRoot
 }
 
 // DepositRoot return deposit root hash.
@@ -452,9 +518,9 @@ func (block *Block) AbdicateVotesRoot() byteutils.Hash {
 	return block.header.abdicateVotesRoot
 }
 
-// BlocksHeightRoot return blocks height root hash.
-func (block *Block) BlocksHeightRoot() byteutils.Hash {
-	return block.header.blocksHeightRoot
+// HeightPrepareVotesRoot return height prepare votes root hash.
+func (block *Block) HeightPrepareVotesRoot() byteutils.Hash {
+	return block.header.heightPrepareVotesRoot
 }
 
 // ParentHash return parent hash.
@@ -476,24 +542,24 @@ func (block *Block) LinkParentBlock(parentBlock *Block) bool {
 	block.accState, _ = parentBlock.accState.Clone()
 	block.txsTrie, _ = parentBlock.txsTrie.Clone()
 
-	block.dynastyTrie, _ = parentBlock.dynastyTrie.Clone()
+	block.curDynastyTrie, _ = parentBlock.curDynastyTrie.Clone()
 	block.nextDynastyTrie, _ = parentBlock.nextDynastyTrie.Clone()
 	block.dynastyCandidatesTrie, _ = parentBlock.dynastyCandidatesTrie.Clone()
 	block.depositTrie, _ = parentBlock.depositTrie.Clone()
 	block.prepareVotesTrie, _ = parentBlock.prepareVotesTrie.Clone()
+	block.heightPrepareVotesTrie, _ = parentBlock.heightPrepareVotesTrie.Clone()
 	block.commitVotesTrie, _ = parentBlock.commitVotesTrie.Clone()
 	block.changeVotesTrie, _ = parentBlock.changeVotesTrie.Clone()
 	block.abdicateVotesTrie, _ = parentBlock.abdicateVotesTrie.Clone()
-	block.blocksHeightTrie, _ = parentBlock.blocksHeightTrie.Clone()
 
 	block.txPool = parentBlock.txPool
-	block.parenetBlock = parentBlock
+	block.parentBlock = parentBlock
 	block.storage = parentBlock.storage
 
 	// travel to calculate block height.
 	depth := uint64(0)
 	ancestorHeight := uint64(0)
-	for ancestor := block; ancestor != nil; ancestor = ancestor.parenetBlock {
+	for ancestor := block; ancestor != nil; ancestor = ancestor.parentBlock {
 		depth++
 		ancestorHeight = ancestor.height
 		if ancestor.height > 0 {
@@ -501,12 +567,17 @@ func (block *Block) LinkParentBlock(parentBlock *Block) bool {
 		}
 	}
 
-	for ancestor := block; ancestor != nil && depth > 1; ancestor = ancestor.parenetBlock {
+	for ancestor := block; ancestor != nil && depth > 1; ancestor = ancestor.parentBlock {
 		depth--
 		ancestor.height = ancestorHeight + depth
 	}
 
-	if block.checkDynastyRuleEpochOver() {
+	over, err := block.checkDynastyRuleEpochOver()
+	if err != nil {
+		log.Error(err)
+		return false
+	}
+	if over {
 		block.changeDynasty()
 	}
 
@@ -519,30 +590,30 @@ func (block *Block) begin() {
 	block.accState.BeginBatch()
 	block.txsTrie.BeginBatch()
 
-	block.dynastyTrie.BeginBatch()
+	block.curDynastyTrie.BeginBatch()
 	block.nextDynastyTrie.BeginBatch()
 	block.dynastyCandidatesTrie.BeginBatch()
 	block.depositTrie.BeginBatch()
 	block.prepareVotesTrie.BeginBatch()
+	block.heightPrepareVotesTrie.BeginBatch()
 	block.commitVotesTrie.BeginBatch()
 	block.changeVotesTrie.BeginBatch()
 	block.abdicateVotesTrie.BeginBatch()
-	block.blocksHeightTrie.BeginBatch()
 }
 
 func (block *Block) commit() {
 	block.accState.Commit()
 	block.txsTrie.Commit()
 
-	block.dynastyTrie.Commit()
+	block.curDynastyTrie.Commit()
 	block.nextDynastyTrie.Commit()
 	block.dynastyCandidatesTrie.Commit()
 	block.depositTrie.Commit()
 	block.prepareVotesTrie.Commit()
+	block.heightPrepareVotesTrie.Commit()
 	block.commitVotesTrie.Commit()
 	block.changeVotesTrie.Commit()
 	block.abdicateVotesTrie.Commit()
-	block.blocksHeightTrie.Commit()
 
 	log.WithFields(log.Fields{
 		"block": block,
@@ -553,15 +624,15 @@ func (block *Block) rollback() {
 	block.accState.RollBack()
 	block.txsTrie.RollBack()
 
-	block.dynastyTrie.RollBack()
+	block.curDynastyTrie.RollBack()
 	block.nextDynastyTrie.RollBack()
 	block.dynastyCandidatesTrie.RollBack()
 	block.depositTrie.RollBack()
 	block.prepareVotesTrie.RollBack()
+	block.heightPrepareVotesTrie.RollBack()
 	block.commitVotesTrie.RollBack()
 	block.changeVotesTrie.RollBack()
 	block.abdicateVotesTrie.RollBack()
-	block.blocksHeightTrie.RollBack()
 
 	log.WithFields(log.Fields{
 		"block": block,
@@ -640,15 +711,16 @@ func (block *Block) Seal() {
 	block.header.stateRoot = block.accState.RootHash()
 	block.header.txsRoot = block.txsTrie.RootHash()
 
-	block.header.dynastyRoot = block.dynastyTrie.RootHash()
+	block.header.curDynastyRoot = block.curDynastyTrie.RootHash()
 	block.header.nextDynastyRoot = block.nextDynastyTrie.RootHash()
 	block.header.dynastyCandidatesRoot = block.dynastyCandidatesTrie.RootHash()
+	block.header.validatorsRoot = block.validatorsTrie.RootHash()
 	block.header.depositRoot = block.depositTrie.RootHash()
 	block.header.prepareVotesRoot = block.prepareVotesTrie.RootHash()
+	block.header.heightPrepareVotesRoot = block.heightPrepareVotesTrie.RootHash()
 	block.header.commitVotesRoot = block.commitVotesTrie.RootHash()
 	block.header.changeVotesRoot = block.changeVotesTrie.RootHash()
 	block.header.abdicateVotesRoot = block.abdicateVotesTrie.RootHash()
-	block.header.blocksHeightRoot = block.blocksHeightTrie.RootHash()
 
 	block.header.hash = HashBlock(block)
 	block.sealed = true
@@ -657,9 +729,10 @@ func (block *Block) Seal() {
 func (block *Block) String() string {
 	return fmt.Sprintf(`Block %p { 
 		height:%d; hash:%s; parentHash:%s; stateRoot:%s; txsRoot: %s; 
-		dynastyRoot: %s; nextDynastyRoot: %s; dynastyCandidatesRoot: %s; depositRoot: %s; 
-		prepareVotesRoot: %s; commitVotesRoot: %s; changeVotesRoot: %s; 
-		abdicateVotesRoot: %s; blocksHeightRoot: %s;
+		dynastyRoot: %s; nextDynastyRoot: %s; 
+		dynastyCandidatesRoot: %s; depositRoot: %s; validatorsRoot: %s;
+		prepareVotesRoot: %s; heightPrepapreVotesRoot: %s; commitVotesRoot: %s; 
+		changeVotesRoot: %s; abdicateVotesRoot: %s;
 		nonce:%d; timestamp: %d}`,
 		block,
 		block.height,
@@ -668,15 +741,16 @@ func (block *Block) String() string {
 		byteutils.Hex(block.StateRoot()),
 		byteutils.Hex(block.TxsRoot()),
 
-		byteutils.Hex(block.DynastyRoot()),
+		byteutils.Hex(block.CurDynastyRoot()),
 		byteutils.Hex(block.NextDynastyRoot()),
 		byteutils.Hex(block.DynastyCandidatesRoot()),
+		byteutils.Hex(block.ValidatorsRoot()),
 		byteutils.Hex(block.DepositRoot()),
 		byteutils.Hex(block.PrepareVotesRoot()),
+		byteutils.Hex(block.HeightPrepareVotesRoot()),
 		byteutils.Hex(block.CommitVotesRoot()),
 		byteutils.Hex(block.ChangeVotesRoot()),
 		byteutils.Hex(block.AbdicateVotesRoot()),
-		byteutils.Hex(block.BlocksHeightRoot()),
 
 		block.header.nonce,
 		block.header.timestamp,
@@ -847,19 +921,19 @@ func HashBlock(block *Block) byteutils.Hash {
 	hasher := sha3.New256()
 
 	hasher.Write(block.header.parentHash)
-	hasher.Write(block.header.dynastyParentHash)
 	hasher.Write(block.header.stateRoot)
 	hasher.Write(block.header.txsRoot)
 
-	hasher.Write(block.header.dynastyRoot)
+	hasher.Write(block.header.curDynastyRoot)
 	hasher.Write(block.header.nextDynastyRoot)
 	hasher.Write(block.header.dynastyCandidatesRoot)
+	hasher.Write(block.header.validatorsRoot)
 	hasher.Write(block.header.depositRoot)
 	hasher.Write(block.header.prepareVotesRoot)
+	hasher.Write(block.header.heightPrepareVotesRoot)
 	hasher.Write(block.header.commitVotesRoot)
 	hasher.Write(block.header.changeVotesRoot)
 	hasher.Write(block.header.abdicateVotesRoot)
-	hasher.Write(block.header.blocksHeightRoot)
 
 	hasher.Write(byteutils.FromUint64(block.header.nonce))
 	hasher.Write(block.header.coinbase.address)
@@ -895,7 +969,7 @@ func LoadBlockFromStorage(hash byteutils.Hash, storage storage.Storage, txPool *
 		return nil, err
 	}
 
-	if block.dynastyTrie, err = trie.NewBatchTrie(block.DynastyRoot(), storage); err != nil {
+	if block.curDynastyTrie, err = trie.NewBatchTrie(block.CurDynastyRoot(), storage); err != nil {
 		return nil, err
 	}
 	if block.nextDynastyTrie, err = trie.NewBatchTrie(block.NextDynastyRoot(), storage); err != nil {
@@ -904,10 +978,16 @@ func LoadBlockFromStorage(hash byteutils.Hash, storage storage.Storage, txPool *
 	if block.dynastyCandidatesTrie, err = trie.NewBatchTrie(block.DynastyCandidatesRoot(), storage); err != nil {
 		return nil, err
 	}
+	if block.validatorsTrie, err = trie.NewBatchTrie(block.ValidatorsRoot(), storage); err != nil {
+		return nil, err
+	}
 	if block.depositTrie, err = trie.NewBatchTrie(block.DepositRoot(), storage); err != nil {
 		return nil, err
 	}
 	if block.prepareVotesTrie, err = trie.NewBatchTrie(block.PrepareVotesRoot(), storage); err != nil {
+		return nil, err
+	}
+	if block.heightPrepareVotesTrie, err = trie.NewBatchTrie(block.HeightPrepareVotesRoot(), storage); err != nil {
 		return nil, err
 	}
 	if block.commitVotesTrie, err = trie.NewBatchTrie(block.CommitVotesRoot(), storage); err != nil {
@@ -917,9 +997,6 @@ func LoadBlockFromStorage(hash byteutils.Hash, storage storage.Storage, txPool *
 		return nil, err
 	}
 	if block.abdicateVotesTrie, err = trie.NewBatchTrie(block.AbdicateVotesRoot(), storage); err != nil {
-		return nil, err
-	}
-	if block.blocksHeightTrie, err = trie.NewBatchTrie(block.BlocksHeightRoot(), storage); err != nil {
 		return nil, err
 	}
 

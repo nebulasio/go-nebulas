@@ -54,16 +54,16 @@ message BlockHeader {
     bytes state_root = 7;
     bytes txs_root = 8;
 
-    bytes dynasty_parent_hash = 9;
-    bytes dynasty_root = 10;
-    bytes next_dynasty_root = 11;
-    bytes dynasty_candidates_root = 12;
+    bytes cur_dynasty_root = 9;
+    bytes next_dynasty_root = 10;
+    bytes dynasty_candidates_root = 11;
+    bytes validators_root = 12;
     bytes deposit_root = 13;
     bytes prepare_votes_root = 14;
-    bytes commit_votes_root = 15;
-    bytes change_votes_root = 16;
-    bytes abdicate_votes_root = 17;
-    bytes blocks_height_root = 18;
+    bytes height_prepare_votes_root = 15;
+    bytes commit_votes_root = 16;
+    bytes change_votes_root = 17;
+    bytes abdicate_votes_root = 18;
 }
 
 message Block {

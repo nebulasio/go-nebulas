@@ -36,37 +36,38 @@ func NewGenesisBlock(chainID uint32, storage storage.Storage) *Block {
 	accState, _ := state.NewAccountState(nil, storage)
 	txsTrie, _ := trie.NewBatchTrie(nil, storage)
 
-	dynastyTrie, _ := trie.NewBatchTrie(nil, storage)
+	curDynastyTrie, _ := trie.NewBatchTrie(nil, storage)
 	nextDynastyTrie, _ := trie.NewBatchTrie(nil, storage)
 	dynastyCandidatesTrie, _ := trie.NewBatchTrie(nil, storage)
+	validatorsTrie, _ := trie.NewBatchTrie(nil, storage)
 	depositTrie, _ := trie.NewBatchTrie(nil, storage)
 	prepareVotesTrie, _ := trie.NewBatchTrie(nil, storage)
+	heightPrepareVotesTrie, _ := trie.NewBatchTrie(nil, storage)
 	commitVotesTrie, _ := trie.NewBatchTrie(nil, storage)
 	changeVotesTrie, _ := trie.NewBatchTrie(nil, storage)
 	abdicateVotesTrie, _ := trie.NewBatchTrie(nil, storage)
-	blocksHeightTrie, _ := trie.NewBatchTrie(nil, storage)
 
 	b := &Block{
 		header: &BlockHeader{
-			chainID:           chainID,
-			hash:              GenesisHash,
-			parentHash:        GenesisHash,
-			dynastyParentHash: GenesisHash,
-			coinbase:          &Address{make([]byte, AddressLength)},
-			timestamp:         time.Now().Unix(),
+			chainID:    chainID,
+			hash:       GenesisHash,
+			parentHash: GenesisHash,
+			coinbase:   &Address{make([]byte, AddressLength)},
+			timestamp:  time.Now().Unix(),
 		},
 		accState: accState,
 		txsTrie:  txsTrie,
 
-		dynastyTrie:           dynastyTrie,
-		nextDynastyTrie:       nextDynastyTrie,
-		dynastyCandidatesTrie: dynastyCandidatesTrie,
-		depositTrie:           depositTrie,
-		prepareVotesTrie:      prepareVotesTrie,
-		commitVotesTrie:       commitVotesTrie,
-		changeVotesTrie:       changeVotesTrie,
-		abdicateVotesTrie:     abdicateVotesTrie,
-		blocksHeightTrie:      blocksHeightTrie,
+		curDynastyTrie:         curDynastyTrie,
+		nextDynastyTrie:        nextDynastyTrie,
+		dynastyCandidatesTrie:  dynastyCandidatesTrie,
+		validatorsTrie:         validatorsTrie,
+		depositTrie:            depositTrie,
+		prepareVotesTrie:       prepareVotesTrie,
+		heightPrepareVotesTrie: heightPrepareVotesTrie,
+		commitVotesTrie:        commitVotesTrie,
+		changeVotesTrie:        changeVotesTrie,
+		abdicateVotesTrie:      abdicateVotesTrie,
 
 		storage: storage,
 		height:  1,
