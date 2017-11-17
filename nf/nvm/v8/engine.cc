@@ -193,18 +193,60 @@ int Execute(V8Engine *e, const char *data, void *lcsHandler, void *gcsHandler,
 }
 
 void PrintException(Local<Context> context, TryCatch &trycatch) {
+  static char EMPTY_STRING[] = "";
+  char *source_info = EMPTY_STRING;
+
+  // print source line.
+  Local<Message> message = trycatch.Message();
+  if (!message.IsEmpty()) {
+    // Print (filename):(line number): (message).
+    ScriptOrigin origin = message->GetScriptOrigin();
+    String::Utf8Value filename(message->GetScriptResourceName());
+    int linenum = message->GetLineNumber();
+
+    // Print line of source code.
+    String::Utf8Value sourceline(message->GetSourceLine());
+    int script_start = (linenum - origin.ResourceLineOffset()->Value()) == 1
+                           ? origin.ResourceColumnOffset()->Value()
+                           : 0;
+    int start = message->GetStartColumn(context).FromMaybe(0);
+    int end = message->GetEndColumn(context).FromMaybe(0);
+    if (start >= script_start) {
+      start -= script_start;
+      end -= script_start;
+    }
+
+    char arrow[start + 1];
+    for (int i = 0; i < start; i++) {
+      char c = (*sourceline)[i];
+      if (c == '\t') {
+        arrow[i] = c;
+      } else {
+        arrow[i] = ' ';
+      }
+    }
+    arrow[start] = '^';
+    arrow[start + 1] = '\0';
+
+    asprintf(&source_info, "%s:%d\n%s\n%s\n\n", *filename, linenum, *sourceline,
+             arrow);
+  }
+
   // get stack trace.
   MaybeLocal<Value> stacktrace_ret = trycatch.StackTrace(context);
-
   if (stacktrace_ret.IsEmpty()) {
     // print exception only.
     Local<Value> exception = trycatch.Exception();
     String::Utf8Value exception_str(exception);
-    LogErrorf("[V8 Exception] %s", *exception_str);
+    LogErrorf("V8 Exception:\n%s%s", source_info, *exception_str);
   } else {
     // print full stack trace.
     String::Utf8Value stack_str(stacktrace_ret.ToLocalChecked());
-    LogErrorf("[V8 Exception] %s", *stack_str);
+    LogErrorf("V8 Exception:\n%s%s", source_info, *stack_str);
+  }
+
+  if (source_info != EMPTY_STRING) {
+    free(source_info);
   }
 }
 

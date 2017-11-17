@@ -161,7 +161,7 @@ void RequireCallback(const v8::FunctionCallbackInfo<v8::Value> &info) {
   // LogInfof("source is: %s", data);
   Local<Context> context = isolate->GetCurrentContext();
 
-  ScriptOrigin sourceSrcOrigin(path);
+  ScriptOrigin sourceSrcOrigin(path, Integer::New(isolate, -6));
   MaybeLocal<Script> script = Script::Compile(
       context, String::NewFromUtf8(isolate, data), &sourceSrcOrigin);
   if (!script.IsEmpty()) {
