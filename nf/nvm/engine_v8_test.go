@@ -89,7 +89,7 @@ func TestRunScriptSourceWithLimits(t *testing.T) {
 
 		{"test/test_oom_2.js", 100000, 0, ErrInsufficientGas},
 		{"test/test_oom_2.js", 0, 8000000, ErrExceedMemoryLimits},
-		{"test/test_oom_2.js", 100000, 8000000, ErrExceedMemoryLimits},
+		{"test/test_oom_2.js", 100000, 8000000, ErrInsufficientGas},
 		{"test/test_oom_2.js", 1000000, 7000000, ErrExceedMemoryLimits},
 	}
 
@@ -101,7 +101,7 @@ func TestRunScriptSourceWithLimits(t *testing.T) {
 			mem, _ := storage.NewMemoryStorage()
 			context, _ := state.NewAccountState(nil, mem)
 			owner := context.GetOrCreateUserAccount([]byte("account1"))
-			owner.AddBalance(util.NewUint128FromInt(10000000))
+			owner.AddBalance(util.NewUint128FromInt(100000))
 			contract, _ := context.CreateContractAccount([]byte("account2"), nil)
 
 			ctx := NewContext(nil, owner, contract, context)
