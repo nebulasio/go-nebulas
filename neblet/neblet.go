@@ -10,6 +10,7 @@ import (
 	"github.com/nebulasio/go-nebulas/consensus"
 	"github.com/nebulasio/go-nebulas/consensus/pow"
 	"github.com/nebulasio/go-nebulas/core"
+	"github.com/nebulasio/go-nebulas/metrics"
 	"github.com/nebulasio/go-nebulas/neblet/pb"
 	"github.com/nebulasio/go-nebulas/net/p2p"
 	"github.com/nebulasio/go-nebulas/rpc"
@@ -114,8 +115,10 @@ func (n *Neblet) Start() error {
 	n.consensus.Start()
 	n.snycManager.Start()
 	go n.apiServer.Start()
-	go n.managementServer.Start()
 	go n.apiServer.RunGateway()
+	go n.managementServer.Start()
+	go n.managementServer.RunGateway()
+	go metrics.Start(n)
 
 	// TODO: error handling
 	return nil

@@ -41,7 +41,7 @@ const (
 func main() {
 	// Set up a connection to the server.
 	//cfg := neblet.LoadConfig(config).Rpc
-	addr := fmt.Sprintf("127.0.0.1:%d", uint32(51510))
+	addr := fmt.Sprintf("127.0.0.1:%d", uint32(52520))
 	conn, err := rpc.Dial(addr)
 	if err != nil {
 		log.Fatal(err)
@@ -94,4 +94,19 @@ func main() {
 		}
 	}
 
+	managementAddr := fmt.Sprintf("127.0.0.1:%d", uint32(52520))
+	managementConn, err := rpc.Dial(managementAddr)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer managementConn.Close()
+
+	managementAc := rpcpb.NewManagementServiceClient(managementConn)
+
+	r, err := managementAc.LockAccount(context.Background(), &rpcpb.LockAccountRequest{Address: from})
+	if err != nil {
+		log.Println("LockAccount", from, "failed", err)
+	} else {
+		log.Println("LockAccount", from, "result", r)
+	}
 }

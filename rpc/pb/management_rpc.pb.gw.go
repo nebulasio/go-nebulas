@@ -280,11 +280,11 @@ func RegisterManagementServiceHandlerClient(ctx context.Context, mux *runtime.Se
 }
 
 var (
-	pattern_ManagementService_NewAccount_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"v1", "newAccount"}, ""))
+	pattern_ManagementService_NewAccount_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2}, []string{"v1", "account", "new"}, ""))
 
-	pattern_ManagementService_UnlockAccount_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"v1", "unlock"}, ""))
+	pattern_ManagementService_UnlockAccount_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2}, []string{"v1", "account", "unlock"}, ""))
 
-	pattern_ManagementService_LockAccount_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"v1", "lock"}, ""))
+	pattern_ManagementService_LockAccount_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2}, []string{"v1", "account", "lock"}, ""))
 
 	pattern_ManagementService_SignTransaction_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"v1", "sign"}, ""))
 

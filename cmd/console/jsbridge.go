@@ -47,9 +47,9 @@ type jsBridge struct {
 func newBirdge(config nebletpb.Config, prompter *terminalPrompter, writer io.Writer) *jsBridge {
 	bridge := &jsBridge{prompter: prompter, writer: writer}
 	if config.GetRpc() != nil {
-		bridge.host = fmt.Sprintf("http://localhost:%d", config.GetRpc().GatewayPort)
+		bridge.host = fmt.Sprintf("http://localhost:%d", config.GetRpc().ManagementHttpPort)
 	} else {
-		bridge.host = "http://localhost:8080"
+		bridge.host = "http://localhost:8191"
 	}
 	return bridge
 }
@@ -61,6 +61,16 @@ func (b *jsBridge) output(call otto.FunctionCall) {
 		output = append(output, fmt.Sprintf("%v", argument))
 	}
 	fmt.Fprintln(b.writer, strings.Join(output, " "))
+}
+
+// setHost update repl request host
+func (b *jsBridge) setHost(call otto.FunctionCall) otto.Value {
+	host := call.Argument(0)
+	if !host.IsString() {
+		return jsError(call.Otto, errors.New("setHost host is null"))
+	}
+	b.host = host.String()
+	return otto.NullValue()
 }
 
 // request handle http request
@@ -85,7 +95,7 @@ func (b *jsBridge) request(call otto.FunctionCall) otto.Value {
 	}
 
 	url := b.host + api.String()
-	//fmt.Fprintln(b.writer, "request", url, method.String())
+	//fmt.Fprintln(b.writer, "request", url, method.String(), args)
 	// method only support upper case.
 	req, err := http.NewRequest(strings.ToUpper(method.String()), url, bytes.NewBuffer([]byte(args)))
 	req.Header.Set("Content-Type", "application/json")
@@ -94,6 +104,10 @@ func (b *jsBridge) request(call otto.FunctionCall) otto.Value {
 	resp, err := client.Do(req)
 	if err != nil {
 		return jsError(call.Otto, err)
+	}
+	if resp.StatusCode != 200 {
+		response, _ := otto.ToValue(resp.Status)
+		return response
 	}
 
 	defer resp.Body.Close()
@@ -186,15 +200,41 @@ func (b *jsBridge) unlockAccount(call otto.FunctionCall) otto.Value {
 	return val
 }
 
-//// signTransaction handle the transaction sign with passphrase input
-//func (b *jsBridge)signTransaction(call otto.FunctionCall) otto.Value {
-//	return nil
-//}
-
-//// sendTransaction handle the transaction send with passphrase input
-//func (b *jsBridge)sendTransactionWithPassphrase(call otto.FunctionCall) otto.Value {
-//	return nil
-//}
+// sendTransaction handle the transaction send with passphrase input
+func (b *jsBridge) sendTransactionWithPassphrase(call otto.FunctionCall) otto.Value {
+	if !call.Argument(0).IsString() || !call.Argument(1).IsString() {
+		fmt.Fprintln(b.writer, errors.New("from/to address arg must be string"))
+		return otto.NullValue()
+	}
+	var passphrase otto.Value
+	if call.Argument(8).IsUndefined() || call.Argument(8).IsNull() {
+		var (
+			input string
+			err   error
+		)
+		if input, err = b.prompter.PromptPassphrase("Passphrase: "); err != nil {
+			fmt.Fprintln(b.writer, err)
+			return otto.NullValue()
+		}
+		passphrase, _ = otto.ToValue(input)
+	} else {
+		if !call.Argument(8).IsString() {
+			fmt.Fprintln(b.writer, errors.New("password must be a string"))
+			return otto.NullValue()
+		}
+		passphrase = call.Argument(1)
+	}
+	// Send the request to the backend and return
+	val, err := call.Otto.Call("bridge.sendTransactionWithPassphrase", nil,
+		call.Argument(0), call.Argument(1), call.Argument(2),
+		call.Argument(3), call.Argument(4), call.Argument(5),
+		call.Argument(6), call.Argument(7), passphrase)
+	if err != nil {
+		fmt.Fprintln(b.writer, err)
+		return otto.NullValue()
+	}
+	return val
+}
 
 func jsError(otto *otto.Otto, err error) otto.Value {
 	resp, _ := otto.Object(`({})`)

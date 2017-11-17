@@ -27,7 +27,7 @@ import (
 
 var (
 	// DefaultLimitsOfTotalMemorySize default limits of total menmory size
-	DefaultLimitsOfTotalMemorySize uint64 = 20 * 1024 * 1024
+	DefaultLimitsOfTotalMemorySize uint64 = 20 * 1000 * 1000
 )
 
 // Blockchain interface breaks cycle import dependency and hides unused services.

@@ -28,7 +28,7 @@ service ManagementService {
     // NewAccount create a new account with passphrase
     rpc NewAccount(NewAccountRequest) returns (NewAccountResponse) {
         option (google.api.http) = {
-            post: "/v1/newAccount"
+            post: "/v1/account/new"
             body: "*"
         };
     }
@@ -36,7 +36,7 @@ service ManagementService {
     // UnlockAccount unlock account with passphrase
     rpc UnlockAccount(UnlockAccountRequest) returns (UnlockAccountResponse) {
         option (google.api.http) = {
-            post: "/v1/unlock"
+            post: "/v1/account/unlock"
             body: "*"
         };
     }
@@ -44,7 +44,7 @@ service ManagementService {
     // LockAccount lock account
     rpc LockAccount(LockAccountRequest) returns (LockAccountResponse) {
         option (google.api.http) = {
-            post: "/v1/lock"
+            post: "/v1/account/lock"
             body: "*"
         };
     }
@@ -105,10 +105,6 @@ message SignTransactionRequest {
     // Transaction nonce.
     uint64 nonce = 4;
 
-    // TODO: gas provided for the transaction.
-
-    // TODO: contract code bytes or hash.
-
     // contract source code.
     string source = 5;
 
@@ -138,10 +134,6 @@ message SendTransactionPassphraseRequest {
 
     // Transaction nonce.
     uint64 nonce = 4;
-
-    // TODO: gas provided for the transaction.
-
-    // TODO: contract code bytes or hash.
 
     // contract source code.
     string source = 5;

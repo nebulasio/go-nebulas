@@ -16,6 +16,31 @@
 // along with the go-nebulas library.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-package jslib
+package metrics
 
-//go:generate go-bindata -nometadata -pkg jslib -o bindata.go neb.js
+import (
+	"time"
+
+	"github.com/nebulasio/go-nebulas/neblet/pb"
+	"github.com/nebulasio/go-nebulas/net/p2p"
+	metrics "github.com/rcrowley/go-metrics"
+	influxdb "github.com/vrischmann/go-metrics-influxdb"
+)
+
+const (
+	duration = 10 * time.Second
+	tagName  = "nodeID"
+)
+
+// Neblet interface breaks cycle import dependency.
+type Neblet interface {
+	Config() nebletpb.Config
+	NetService() *p2p.NetService
+}
+
+// Start metrics mornitor
+func Start(neb Neblet) {
+	tags := make(map[string]string)
+	tags[tagName] = neb.NetService().Node().ID()
+	influxdb.InfluxDBWithTags(metrics.DefaultRegistry, duration, neb.Config().Influxdb.Host, neb.Config().Influxdb.Db, neb.Config().Influxdb.Username, neb.Config().Influxdb.Password, tags)
+}

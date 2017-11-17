@@ -18,7 +18,6 @@
 
 syntax = "proto3";
 
-// TODO: support restful endpoints.
 import "google/api/annotations.proto";
 import "github.com/nebulasio/go-nebulas/core/pb/block.proto";
 
@@ -233,10 +232,6 @@ message SendTransactionRequest {
 
 	// Transaction nonce.
 	uint64 nonce = 4;
-
-	// TODO: gas provided for the transaction.
-
-	// TODO: contract code bytes or hash.
 
 	// contract source code.
 	string source = 5;

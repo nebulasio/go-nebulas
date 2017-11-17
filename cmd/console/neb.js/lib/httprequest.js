@@ -12,8 +12,12 @@ if (typeof window !== "undefined" && window.XMLHttpRequest) {
 var XHR2 = require("xhr2"); 
 
 var HttpRequest = function (host, timeout) {
-	this.host = host || "http://localhost:8080";
+	this.host = host || "http://localhost:8191";
 	this.timeout = timeout || 0;
+};
+
+HttpRequest.prototype.setHost = function (host) {
+	this.host = host || "http://localhost:8191";
 };
 
 HttpRequest.prototype._newRequest = function (method, api, async) {
