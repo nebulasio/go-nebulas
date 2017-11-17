@@ -59,7 +59,7 @@ func (s *APIServer) Start() error {
 func (s *APIServer) RunGateway() error {
 	time.Sleep(3 * time.Second)
 	log.Info("Starting api gateway server bind port: ", s.port, " to:", s.gatewayPort)
-	if err := Run(s.port, s.gatewayPort); err != nil {
+	if err := Run(GatewayAPIServiceKey, s.port, s.gatewayPort); err != nil {
 		log.Error("RPC server gateway failed to serve: ", err)
 		return err
 	}

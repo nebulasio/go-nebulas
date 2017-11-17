@@ -11,7 +11,7 @@ rpc {
   api_port: 51511
   management_port: 52521
   api_http_port: 8090
-  management_http_port: 8091
+  management_http_port: 8191
 }
 
 pow {

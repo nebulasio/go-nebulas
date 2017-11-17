@@ -1,30 +1,44 @@
 package rpc
 
 import (
-	//"flag"
 	"fmt"
 	"net/http"
 	"strings"
+
+	"flag"
 
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"github.com/nebulasio/go-nebulas/rpc/pb"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
-	//log "github.com/sirupsen/logrus"
+)
+
+var (
+	// GatewayAPIServiceKey api service
+	GatewayAPIServiceKey = "api_service"
+	// GatewayManagementServiceKey management service
+	GatewayManagementServiceKey = "management_service"
 )
 
 // Run start gateway proxy to mapping grpc to http.
-func Run(apiPort uint32, gatewayPort uint32) error {
+func Run(key string, apiPort uint32, gatewayPort uint32) error {
 	ctx := context.Background()
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
 	mux := runtime.NewServeMux()
 	opts := []grpc.DialOption{grpc.WithInsecure()}
-	//echoEndpoint := flag.String("api_service_endpoint", apiAddress(int(apiPort)), "endpoint of api_service")
-	err := rpcpb.RegisterAPIServiceHandlerFromEndpoint(ctx, mux, apiAddress(int(apiPort)), opts)
+	echoEndpoint := flag.String(key, apiAddress(int(apiPort)), "")
+	err := rpcpb.RegisterAPIServiceHandlerFromEndpoint(ctx, mux, *echoEndpoint, opts)
 	if err != nil {
 		return err
+	}
+	// only management service need register manage handler
+	if key == GatewayManagementServiceKey {
+		err = rpcpb.RegisterManagementServiceHandlerFromEndpoint(ctx, mux, *echoEndpoint, opts)
+		if err != nil {
+			return err
+		}
 	}
 
 	return http.ListenAndServe(gateWayAddress(int(gatewayPort)), allowCORS(mux))

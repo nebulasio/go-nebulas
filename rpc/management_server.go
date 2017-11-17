@@ -82,7 +82,7 @@ func (s *ManagementServer) Address() string {
 func (s *ManagementServer) RunGateway() error {
 	time.Sleep(3 * time.Second)
 	log.Info("Starting management gateway server bind port: ", s.port, " to:", s.gatewayPort)
-	if err := Run(s.port, s.gatewayPort); err != nil {
+	if err := Run(GatewayManagementServiceKey, s.port, s.gatewayPort); err != nil {
 		log.Error("management server gateway failed to serve: ", err)
 		return err
 	}

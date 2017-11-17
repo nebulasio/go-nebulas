@@ -49,7 +49,7 @@ func newBirdge(config nebletpb.Config, prompter *terminalPrompter, writer io.Wri
 	if config.GetRpc() != nil {
 		bridge.host = fmt.Sprintf("http://localhost:%d", config.GetRpc().ManagementHttpPort)
 	} else {
-		bridge.host = "http://localhost:8091"
+		bridge.host = "http://localhost:8191"
 	}
 	return bridge
 }
