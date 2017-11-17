@@ -66,8 +66,10 @@ const (
 )
 
 var (
-	blockHeightGauge   = metrics.GetOrRegisterGauge("block_height", nil)
-	blocktailHashGauge = metrics.GetOrRegisterGauge("blocktail_hash", nil)
+	blockHeightGauge      = metrics.GetOrRegisterGauge("block_height", nil)
+	blocktailHashGauge    = metrics.GetOrRegisterGauge("blocktail_hash", nil)
+	blockRevertTimesGauge = metrics.GetOrRegisterGauge("block_revert_count", nil)
+	blockRevertMeter      = metrics.GetOrRegisterMeter("block_revert", nil)
 )
 
 // NewBlockChain create new #BlockChain instance.
@@ -127,7 +129,7 @@ func (bc *BlockChain) SetTailBlock(newTail *Block) {
 		// oldTail and newTail is on same chain, no reverted blocks
 		// when tail change, add metrics
 		blockHeightGauge.Update(int64(newTail.Height()))
-		hashStr := byteutils.Hex(newTail.Hash())
+		hashStr := byteutils.Hex(bc.getAncestorHash(6))
 		hash, err := hashToInt64(hashStr)
 		if err == nil {
 			blocktailHashGauge.Update(hash)
@@ -135,12 +137,18 @@ func (bc *BlockChain) SetTailBlock(newTail *Block) {
 		return
 	}
 	reverted := oldTail
-	for !reverted.Hash().Equals(ancestor.Hash()) {
+	var revertTimes int64
+	for revertTimes = 0; !reverted.Hash().Equals(ancestor.Hash()); {
+		revertTimes++
 		reverted.ReturnTransactions()
 		reverted = bc.GetBlock(reverted.header.parentHash)
 		if reverted == nil {
 			panic("find a block on chain, we cannot find its parent block")
 		}
+	}
+	if revertTimes > 0 {
+		blockRevertTimesGauge.Update(revertTimes)
+		blockRevertMeter.Mark(1)
 	}
 
 }
@@ -312,29 +320,23 @@ func (bc *BlockChain) SerializeTxByHash(hash byteutils.Hash) ([]byte, error) {
 	return json.Marshal(tx)
 }
 
+func (bc *BlockChain) getAncestorHash(number int) byteutils.Hash {
+	block := bc.tailBlock
+	for i := 0; i < number; i++ {
+		if !CheckGenesisBlock(block) {
+			block = bc.GetBlock(block.ParentHash())
+		}
+	}
+	return block.Hash()
+}
+
 // Dump dump full chain.
 func (bc *BlockChain) Dump(count int) string {
 	rl := make([]string, 1)
-	if count > 0 {
-		i := 0
-		for block := bc.tailBlock; !CheckGenesisBlock(block); block = bc.GetBlock(block.ParentHash()) {
-			if i < count {
-				i++
-				rl = append(rl,
-					fmt.Sprintf(
-						"{%d, hash: %s, parent: %s, stateRoot: %s, coinbase: %s}",
-						block.height,
-						block.Hash().Hex(),
-						block.ParentHash().Hex(),
-						block.StateRoot().Hex(),
-						block.header.coinbase.address.Hex(),
-					))
-			} else {
-				break
-			}
-		}
-	} else {
-		for block := bc.tailBlock; !CheckGenesisBlock(block); block = bc.GetBlock(block.ParentHash()) {
+	block := bc.tailBlock
+	for i := 0; i < count; i++ {
+		if !CheckGenesisBlock(block) {
+			block = bc.GetBlock(block.ParentHash())
 			rl = append(rl,
 				fmt.Sprintf(
 					"{%d, hash: %s, parent: %s, stateRoot: %s, coinbase: %s}",

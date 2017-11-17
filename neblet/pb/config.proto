@@ -38,6 +38,8 @@ message Config {
 	// Influxdb config
 	Influxdb influxdb = 6;
 
+	// Metrics config
+	Metrics metrics = 7;
 	// TODO: more configs.
 }
 
@@ -104,4 +106,8 @@ message Influxdb {
 
 	// Influxdb password
 	string password = 4;
+}
+
+message Metrics {
+	bool enable = 1;
 }

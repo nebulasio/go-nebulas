@@ -118,7 +118,10 @@ func (n *Neblet) Start() error {
 	go n.apiServer.RunGateway()
 	go n.managementServer.Start()
 	go n.managementServer.RunGateway()
-	go metrics.Start(n)
+
+	if n.config.Metrics.Enable {
+		go metrics.Start(n)
+	}
 
 	// TODO: error handling
 	return nil
