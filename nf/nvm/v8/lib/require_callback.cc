@@ -17,7 +17,8 @@
 // <http://www.gnu.org/licenses/>.
 //
 #include "require_callback.h"
-#include "log_callback.h"
+#include "../engine.h"
+#include "logger.h"
 
 #include <assert.h>
 #include <stdio.h>

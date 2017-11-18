@@ -139,12 +139,6 @@ ContractStorage.prototype = {
         if (ret != 0) {
             throw new Error("set key " + key + " failed.");
         }
-        (function () {
-            // add tracing code.
-            var data_size = key.length + value.length;
-            var incr_val = Math.ceil(data_size / 32);
-            _instruction_counter.incr(incr_val);
-        })();
         return ret;
     },
     del: function (key) {

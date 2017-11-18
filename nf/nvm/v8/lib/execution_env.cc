@@ -18,7 +18,7 @@
 //
 
 #include "execution_env.h"
-#include "log_callback.h"
+#include "logger.h"
 
 int SetupExecutionEnv(Isolate *isolate, Local<Context> &context) {
   char data[] = "const require = (function() {\n"

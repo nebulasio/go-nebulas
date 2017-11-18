@@ -18,7 +18,9 @@
 //
 
 #include "instruction_counter.h"
-#include "log_callback.h"
+#include "logger.h"
+
+static char sInstructionCounter[] = "_instruction_counter";
 
 static InstructionCounterIncrListener sListener = NULL;
 
@@ -31,6 +33,7 @@ void NewInstructionCounterInstance(Isolate *isolate, Local<Context> context,
                   FunctionTemplate::New(isolate, IncrCounterCallback),
                   static_cast<PropertyAttribute>(PropertyAttribute::DontDelete |
                                                  PropertyAttribute::ReadOnly));
+
   counterTpl->SetAccessor(
       String::NewFromUtf8(isolate, "count"), CountGetterCallback, 0,
       Local<Value>(), DEFAULT,
@@ -42,7 +45,7 @@ void NewInstructionCounterInstance(Isolate *isolate, Local<Context> context,
   instance->SetInternalField(1, External::New(isolate, listenerContext));
 
   context->Global()->DefineOwnProperty(
-      context, String::NewFromUtf8(isolate, "_instruction_counter"), instance,
+      context, String::NewFromUtf8(isolate, sInstructionCounter), instance,
       static_cast<PropertyAttribute>(PropertyAttribute::DontDelete |
                                      PropertyAttribute::ReadOnly));
 }
@@ -92,4 +95,28 @@ void CountGetterCallback(Local<String> property,
 void SetInstructionCounterIncrListener(
     InstructionCounterIncrListener listener) {
   sListener = listener;
+}
+
+void RecordStorageUsage(Isolate *isolate, Local<Context> context,
+                        size_t key_length, size_t value_length) {
+  Local<Object> global = context->Global();
+  HandleScope handle_scope(isolate);
+
+  Local<Object> counter = Local<Object>::Cast(
+      global->Get(String::NewFromUtf8(isolate, sInstructionCounter)));
+
+  Local<Value> prop = counter->Get(String::NewFromUtf8(isolate, "storIncr"));
+  if (!prop->IsFunction()) {
+    LogDebugf(
+        "RecordStorageUsage: %s.storIncr is not a "
+        "Function, instruction_count.js may not be called before execution.",
+        sInstructionCounter);
+    return;
+  }
+
+  Local<Function> stor_incr_func = Local<Function>::Cast(prop);
+  Local<Value> argv[2];
+  argv[0] = Number::New(isolate, key_length);
+  argv[1] = Number::New(isolate, value_length);
+  stor_incr_func->Call(context, counter, 2, argv);
 }

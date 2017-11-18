@@ -24,6 +24,7 @@
 #include "lib/execution_env.h"
 #include "lib/instruction_counter.h"
 #include "lib/log_callback.h"
+#include "lib/logger.h"
 #include "lib/require_callback.h"
 #include "lib/storage_object.h"
 #include "lib/tracing.h"

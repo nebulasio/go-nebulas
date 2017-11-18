@@ -21,6 +21,7 @@
 #include "lib/blockchain.h"
 #include "lib/fake_blockchain.h"
 #include "lib/log_callback.h"
+#include "lib/logger.h"
 #include "lib/memory_storage.h"
 
 #include <thread>
@@ -191,7 +192,8 @@ int main(int argc, const char *argv[]) {
   Initialize();
   InitializeLogger(logFunc);
   InitializeStorage(StorageGet, StoragePut, StorageDel);
-  InitializeBlockchain(GetBlockByHash, GetTxByHash, GetAccountState, Transfer, VerifyAddress);
+  InitializeBlockchain(GetBlockByHash, GetTxByHash, GetAccountState, Transfer,
+                       VerifyAddress);
 
   int argcIdx = 1;
   const char *filename = NULL;

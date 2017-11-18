@@ -55,6 +55,14 @@ function traverse(object, visitor, master, injection_context_from_parent) {
     }
 };
 
+// calculate and record the storage usage.
+function storIncrFunc(key_len, value_len) {
+    var data_size = key_len + value_len;
+    var incr_val = Math.ceil(data_size / 32);
+    _instruction_counter.incr(incr_val);
+};
+
+// key is the Expression, value is the count of instruction of the Expression.
 const TrackingExpressions = {
     CallExpression: 1,
     AssignmentExpression: 1,
@@ -278,6 +286,11 @@ function processScript(source) {
 
     var start_offset = 0,
         traceable_source = "";
+
+    // add storIncrFunc.
+    traceable_source += "_instruction_counter.storIncr = " + storIncrFunc.toString() + ";\n";
+
+    // add sources.
     ordered_records.forEach(function (record) {
         traceable_source += source.slice(start_offset, record.pos);
         traceable_source += record.func(record.value);
@@ -307,6 +320,7 @@ function disallowRedefineOfInstructionCounter(node, parents) {
         throw new Error("redefine _instruction_counter is now allowed.");
     }
 };
+
 
 exports["parseScript"] = esprima.parseScript;
 exports["processScript"] = processScript;

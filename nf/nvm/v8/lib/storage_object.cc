@@ -19,6 +19,9 @@
 
 #include "storage_object.h"
 #include "../engine.h"
+#include "instruction_counter.h"
+#include "logger.h"
+#include <math.h>
 
 static StorageGetFunc GET = NULL;
 static StoragePutFunc PUT = NULL;
@@ -160,9 +163,17 @@ void StoragePutCallback(const FunctionCallbackInfo<Value> &info) {
     return;
   }
 
-  int ret = PUT(handler->Value(), *String::Utf8Value(key->ToString()),
-                *String::Utf8Value(value->ToString()));
+  Local<String> key_str = key->ToString();
+  Local<String> val_str = value->ToString();
+
+  int ret = PUT(handler->Value(), *String::Utf8Value(key_str),
+                *String::Utf8Value(val_str));
   info.GetReturnValue().Set(ret);
+
+  // record storage usage.
+  Local<Context> context = isolate->GetCallingContext();
+  RecordStorageUsage(isolate, context, key_str->Utf8Length(),
+                     val_str->Utf8Length());
 }
 
 void StorageDelCallback(const FunctionCallbackInfo<Value> &info) {

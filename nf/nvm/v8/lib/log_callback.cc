@@ -18,6 +18,7 @@
 //
 
 #include "log_callback.h"
+#include "logger.h"
 
 #include <stdarg.h>
 
@@ -92,6 +93,60 @@ void LogInfof(const char *format, ...) {
 }
 
 void LogErrorf(const char *format, ...) {
+  if (LOG == NULL) {
+    return;
+  }
+
+  va_list vl;
+  va_start(vl, format);
+
+  char *msg = NULL;
+  vasprintf(&msg, format, vl);
+  if (msg != NULL) {
+    LOG(LogLevel::ERROR, msg);
+    free(msg);
+  }
+
+  va_end(vl);
+}
+
+void LogWarnf(const char *format, ...) {
+  if (LOG == NULL) {
+    return;
+  }
+
+  va_list vl;
+  va_start(vl, format);
+
+  char *msg = NULL;
+  vasprintf(&msg, format, vl);
+  if (msg != NULL) {
+    LOG(LogLevel::WARN, msg);
+    free(msg);
+  }
+
+  va_end(vl);
+}
+
+void LogDebugf(const char *format, ...) {
+  if (LOG == NULL) {
+    return;
+  }
+
+  va_list vl;
+  va_start(vl, format);
+
+  char *msg = NULL;
+  vasprintf(&msg, format, vl);
+  if (msg != NULL) {
+    LOG(LogLevel::DEBUG, msg);
+    free(msg);
+  }
+
+  va_end(vl);
+}
+
+void LogFatalf(const char *format, ...) {
   if (LOG == NULL) {
     return;
   }

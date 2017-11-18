@@ -17,16 +17,13 @@
 // <http://www.gnu.org/licenses/>.
 //
 
-#ifndef _NEBULAS_NF_NVM_V8_LIB_LOG_CALLBACK_H_
-#define _NEBULAS_NF_NVM_V8_LIB_LOG_CALLBACK_H_
+#ifndef _NEBULAS_NF_NVM_V8_LOGGER_H_
+#define _NEBULAS_NF_NVM_V8_LOGGER_H_
 
-#include "../engine.h"
+void LogInfof(const char *format, ...);
+void LogErrorf(const char *format, ...);
+void LogDebugf(const char *format, ...);
+void LogWarnf(const char *format, ...);
+void LogFatalF(const char *format, ...);
 
-#include <v8.h>
-
-using namespace v8;
-
-void NewNativeLogFunction(Isolate *isolate, Local<ObjectTemplate> globalTpl);
-void LogCallback(const FunctionCallbackInfo<Value> &info);
-
-#endif // _NEBULAS_NF_NVM_V8_LIB_LOG_CALLBACK_H_
+#endif // _NEBULAS_NF_NVM_V8_LOGGER_H_

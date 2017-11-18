@@ -18,7 +18,7 @@
 //
 
 #include "tracing.h"
-#include "log_callback.h"
+#include "logger.h"
 
 #include <stdio.h>
 #include <string.h>
