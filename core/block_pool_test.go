@@ -68,19 +68,19 @@ func TestBlockPool(t *testing.T) {
 	bc.txPool.Push(tx2)
 	bc.txPool.Push(tx3)
 
-	block1 := NewBlock(0, coinbase, bc.tailBlock, bc.txPool, storage)
+	block1 := NewBlock(0, coinbase, bc.tailBlock)
 	block1.CollectTransactions(1)
 	block1.Seal()
 
-	block2 := NewBlock(0, coinbase, block1, bc.txPool, storage)
+	block2 := NewBlock(0, coinbase, block1)
 	block2.CollectTransactions(1)
 	block2.Seal()
 
-	block3 := NewBlock(0, coinbase, block2, bc.txPool, storage)
+	block3 := NewBlock(0, coinbase, block2)
 	block3.CollectTransactions(1)
 	block3.Seal()
 
-	block4 := NewBlock(0, coinbase, block3, bc.txPool, storage)
+	block4 := NewBlock(0, coinbase, block3)
 	block4.CollectTransactions(1)
 	block4.Seal()
 

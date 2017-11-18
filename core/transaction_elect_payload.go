@@ -35,20 +35,20 @@ const (
 	WithdrawAction = "withdraw"
 )
 
-// Withdraw works after logout > 1000 blocks
-const (
-	WithdrawExpireBlocks = 1000
-)
-
 // Errors constants
 var (
-	ErrInvalidElectAction   = errors.New("invalid elect action")
-	ErrChargeTooManyDeposit = errors.New("charged too many deposit")
+	ErrInvalidElectAction                    = errors.New("invalid elect action")
+	ErrChargeTooManyDeposit                  = errors.New("charged too many deposit")
+	ErrLogoutBeforeLogin                     = errors.New("cannot logout before login")
+	ErrWithdrawBeforeLogout                  = errors.New("cannot withdraw before logout")
+	ErrWithdrawWhileInNextDynasty            = errors.New("cannot withdraw when you are still in next dynasty")
+	ErrWithdrawWhileBeADynastyInRecentBlocks = errors.New("cannot withdraw if you are a validator in recent blocks")
 )
 
-// Deposit 4000 NAS
+// Deposit & Withdraw Expiration
 var (
-	StandardDeposit = util.NewUint128FromInt(4000)
+	WithdrawExpireBlocks = 1000
+	StandardDeposit      = util.NewUint128FromInt(4000)
 )
 
 // ElectPayload carry election information
@@ -162,7 +162,7 @@ func (payload *ElectPayload) logout(from []byte, block *Block) error {
 		"func": "ElectPayload.Execute",
 		"from": from,
 	}).Warn("logout before login")
-	return nil
+	return ErrLogoutBeforeLogin
 }
 
 func checkExistanceInDynasty(address []byte, dynasty *trie.BatchTrie) (bool, error) {
@@ -188,7 +188,7 @@ func (payload *ElectPayload) checkWithdrawExpired(from []byte, block *Block) (bo
 			"from":  from,
 			"block": block,
 		}).Warn("cannot withdraw. not expired. exist in candidates, pls logout at first.")
-		return false, nil
+		return false, ErrWithdrawBeforeLogout
 	}
 	// not in next dynasty
 	exist, err = checkExistanceInDynasty(from, block.nextDynastyTrie)
@@ -201,7 +201,7 @@ func (payload *ElectPayload) checkWithdrawExpired(from []byte, block *Block) (bo
 			"from":  from,
 			"block": block,
 		}).Warn("cannot withdraw. not expired. exist in next dynasty.")
-		return false, nil
+		return false, ErrWithdrawWhileInNextDynasty
 	}
 	// not in previous 1000 blocks' dynasties
 	curBlock := block
@@ -217,9 +217,9 @@ func (payload *ElectPayload) checkWithdrawExpired(from []byte, block *Block) (bo
 				"current":  block,
 				"ancestor": curBlock,
 			}).Warn("cannot withdraw. not expired. found in recent ancestors.")
-			return false, nil
+			return false, ErrWithdrawWhileBeADynastyInRecentBlocks
 		}
-		curBlock, err = LoadBlockFromStorage(block.ParentHash(), block.storage, block.txPool)
+		curBlock, err = block.ParentBlock()
 		if err != nil {
 			return false, err
 		}

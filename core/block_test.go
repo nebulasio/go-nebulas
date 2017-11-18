@@ -180,7 +180,7 @@ func TestBlock(t *testing.T) {
 
 func TestBlock_LinkParentBlock(t *testing.T) {
 	storage, _ := storage.NewMemoryStorage()
-	genesis := NewGenesisBlock(0, storage)
+	genesis := NewGenesisBlock(0, storage, nil)
 	pbBlock, _ := genesis.ToProto()
 	value, _ := proto.Marshal(pbBlock)
 	storage.Put(genesis.Hash(), value)
@@ -263,7 +263,7 @@ func TestBlock_CollectTransactions(t *testing.T) {
 	pubdata2, _ := priv2.PublicKey().Encoded()
 	coinbase, _ := NewAddressFromPublicKey(pubdata2)
 
-	block := NewBlock(0, coinbase, tail, bc.txPool, storage)
+	block := NewBlock(0, coinbase, tail)
 	tx1 := NewTransaction(0, from, to, util.NewUint128(), 1, TxPayloadBinaryType, []byte("nas"))
 	tx1.Sign(signature)
 	tx2 := NewTransaction(0, from, to, util.NewUint128(), 2, TxPayloadBinaryType, []byte("nas"))

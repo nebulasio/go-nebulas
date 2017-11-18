@@ -61,6 +61,7 @@ var (
 	ErrDuplicatedTransaction = errors.New("duplicated transaction")
 	ErrSmallTransactionNonce = errors.New("cannot accept a transaction with smaller nonce")
 	ErrLargeTransactionNonce = errors.New("cannot accept a transaction with too bigger nonce")
+	ErrGenesisHasNoParent    = errors.New("genesis block has no parent")
 )
 
 // ValidatorSort are able to sort validator
@@ -252,7 +253,7 @@ func (block *Block) FromProto(msg proto.Message) error {
 }
 
 // NewBlock return new block.
-func NewBlock(chainID uint32, coinbase *Address, parent *Block, txPool *TransactionPool, storage storage.Storage) *Block {
+func NewBlock(chainID uint32, coinbase *Address, parent *Block) *Block {
 	accState, _ := parent.accState.Clone()
 	txsTrie, _ := parent.txsTrie.Clone()
 
@@ -269,12 +270,11 @@ func NewBlock(chainID uint32, coinbase *Address, parent *Block, txPool *Transact
 
 	block := &Block{
 		header: &BlockHeader{
-			parentHash:     parent.Hash(),
-			curDynastyRoot: parent.CurDynastyRoot(),
-			coinbase:       coinbase,
-			nonce:          0,
-			timestamp:      time.Now().Unix(),
-			chainID:        chainID,
+			parentHash: parent.Hash(),
+			coinbase:   coinbase,
+			nonce:      0,
+			timestamp:  time.Now().Unix(),
+			chainID:    chainID,
 		},
 		transactions: make(Transactions, 0),
 		parentBlock:  parent,
@@ -292,10 +292,18 @@ func NewBlock(chainID uint32, coinbase *Address, parent *Block, txPool *Transact
 		changeVotesTrie:        changeVotesTrie,
 		abdicateVotesTrie:      abdicateVotesTrie,
 
-		txPool:  txPool,
+		txPool:  parent.txPool,
 		height:  parent.Height() + 1,
 		sealed:  false,
-		storage: storage,
+		storage: parent.storage,
+	}
+
+	change, err := parent.checkDynastyRule()
+	if err != nil {
+		panic("cannot create new block:" + err.Error())
+	}
+	if change {
+		block.changeDynasty()
 	}
 	return block
 }
@@ -309,11 +317,14 @@ func sortValidators(validators []byteutils.Hash, seed uint64) []byteutils.Hash {
 }
 
 func traverseValidators(dynastyTrie *trie.BatchTrie, prefix []byte) ([]byteutils.Hash, error) {
+	validators := []byteutils.Hash{}
+	if dynastyTrie.Empty() {
+		return validators, nil
+	}
 	iter, err := dynastyTrie.Iterator(prefix)
 	if err != nil {
 		return nil, err
 	}
-	validators := []byteutils.Hash{}
 	for iter.Next() {
 		validators = append(validators, iter.Value())
 	}
@@ -321,6 +332,9 @@ func traverseValidators(dynastyTrie *trie.BatchTrie, prefix []byte) ([]byteutils
 }
 
 func countValidators(dynastyTrie *trie.BatchTrie, prefix []byte) (int, error) {
+	if dynastyTrie.Empty() {
+		return 0, nil
+	}
 	iter, err := dynastyTrie.Iterator(prefix)
 	if err != nil {
 		return 0, err
@@ -332,29 +346,15 @@ func countValidators(dynastyTrie *trie.BatchTrie, prefix []byte) (int, error) {
 	return count, nil
 }
 
-// DynastyMaxVotes return the dynasty max votes
-func DynastyMaxVotes(dynastyRoot byteutils.Hash, storage storage.Storage) (int, error) {
-	dynasty, err := trie.NewBatchTrie(dynastyRoot, storage)
-	if err != nil {
-		return 0, err
-	}
-	return countValidators(dynasty, nil)
-}
-
 // NextBlockSortedValidators return the sorted validators who will propose and vote the next block
 func (block *Block) NextBlockSortedValidators() ([]byteutils.Hash, error) {
-	change, err := block.checkDynastyRule()
+	dynastyRoot, err := block.NextBlockDynastyRoot()
 	if err != nil {
 		return nil, err
 	}
-	dynastyRoot := block.header.curDynastyRoot
-	if change {
-		dynastyRoot = block.header.nextDynastyRoot
-	}
-	iter, _ := block.validatorsTrie.Iterator(dynastyRoot)
-	validators := []byteutils.Hash{}
-	for iter.Next() {
-		validators = append(validators, iter.Value())
+	validators, err := traverseValidators(block.validatorsTrie, dynastyRoot)
+	if err != nil {
+		return nil, err
 	}
 	return sortValidators(validators, block.height), nil
 }
@@ -383,18 +383,33 @@ func (block *Block) checkDynastyRule() (bool, error) {
 	return block.checkDynastyRuleTooFewValidators()
 }
 
+// ParentBlock return the parent block
+func (block *Block) ParentBlock() (*Block, error) {
+	if CheckGenesisBlock(block) {
+		return nil, ErrGenesisHasNoParent
+	}
+	if block.parentBlock == nil {
+		parentBlock, err := LoadBlockFromStorage(block.ParentHash(), block.storage, block.txPool)
+		if err != nil {
+			return nil, err
+		}
+		block.parentBlock = parentBlock
+	}
+	return block.parentBlock, nil
+}
+
 // dynasty rule: epoch over, create > 100 blocks
 func (block *Block) checkDynastyRuleEpochOver() (bool, error) {
-	dynastyRoot := block.CurDynastyRoot()
-	curBlock := block
 	var err error
-	for !curBlock.CurDynastyRoot().Equals(dynastyRoot) && !CheckGenesisBlock(curBlock) {
-		curBlock, err = LoadBlockFromStorage(curBlock.ParentHash(), curBlock.storage, curBlock.txPool)
+	curBlock := block
+	dynastyRoot := block.CurDynastyRoot()
+	for !CheckGenesisBlock(curBlock) && curBlock.CurDynastyRoot().Equals(dynastyRoot) {
+		curBlock, err = curBlock.ParentBlock()
 		if err != nil {
 			return false, err
 		}
 	}
-	if curBlock.Height() < block.Height() && block.Height()-curBlock.Height() > EpochSize {
+	if curBlock.Height() < block.Height() && block.Height()-curBlock.Height() >= EpochSize {
 		return true, nil
 	}
 	return false, nil
@@ -402,7 +417,10 @@ func (block *Block) checkDynastyRuleEpochOver() (bool, error) {
 
 // dynasty rule: remove too many validators, remove > 1/3 * N
 func (block *Block) checkDynastyRuleTooFewValidators() (bool, error) {
-	curSize, err := countValidators(block.validatorsTrie, block.CurDynastyRoot())
+	if block.curDynastyTrie.Empty() {
+		return true, nil
+	}
+	curSize, err := countValidators(block.validatorsTrie, block.curDynastyTrie.RootHash())
 	if err != nil {
 		return false, err
 	}
@@ -417,16 +435,25 @@ func (block *Block) checkDynastyRuleTooFewValidators() (bool, error) {
 }
 
 // change current dynasty to next one
+// all candidates will login automatically
 func (block *Block) changeDynasty() {
 	block.curDynastyTrie = block.nextDynastyTrie
+	block.nextDynastyTrie, _ = trie.NewBatchTrie(nil, block.storage)
 	validators, _ := traverseValidators(block.dynastyCandidatesTrie, nil)
 	validators = sortValidators(validators, block.height)
 	count := 0
 	for _, v := range validators {
 		if count < DynastySize {
 			block.nextDynastyTrie.Put(v, v)
-			// un-selected candidates will login automatically
-			block.dynastyCandidatesTrie.Del(v)
+			count++
+		}
+	}
+	dynastyRoot := block.nextDynastyTrie.RootHash()
+	count = 0
+	for _, v := range validators {
+		if count < DynastySize {
+			key := append(dynastyRoot, v...)
+			block.validatorsTrie.Put(key, v)
 			count++
 		}
 	}
@@ -570,15 +597,6 @@ func (block *Block) LinkParentBlock(parentBlock *Block) bool {
 	for ancestor := block; ancestor != nil && depth > 1; ancestor = ancestor.parentBlock {
 		depth--
 		ancestor.height = ancestorHeight + depth
-	}
-
-	over, err := block.checkDynastyRuleEpochOver()
-	if err != nil {
-		log.Error(err)
-		return false
-	}
-	if over {
-		block.changeDynasty()
 	}
 
 	return true
@@ -1002,5 +1020,6 @@ func LoadBlockFromStorage(hash byteutils.Hash, storage storage.Storage, txPool *
 
 	block.txPool = txPool
 	block.storage = storage
+	block.sealed = true
 	return block, nil
 }

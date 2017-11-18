@@ -56,6 +56,14 @@ func validElementsInBranchNode(offset int, node *node) []int {
 	return valid
 }
 
+// Empty return if the trie is empty
+func (t *Trie) Empty() bool {
+	if len(t.RootHash()) == 0 {
+		return true
+	}
+	return false
+}
+
 // Iterator return an iterator
 func (t *Trie) Iterator(prefix []byte) (*Iterator, error) {
 	rootHash, err := t.getSubTrieWithMaxCommonPrefix(prefix)

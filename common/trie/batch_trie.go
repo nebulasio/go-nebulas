@@ -133,6 +133,11 @@ func (bt *BatchTrie) Verify(rootHash []byte, key []byte, proof MerkleProof) erro
 	return bt.trie.Verify(rootHash, key, proof)
 }
 
+// Empty return if the trie is empty
+func (bt *BatchTrie) Empty() bool {
+	return bt.trie.Empty()
+}
+
 // Iterator return an trie Iterator to traverse leaf node's value in this trie
 func (bt *BatchTrie) Iterator(prefix []byte) (*Iterator, error) {
 	return bt.trie.Iterator(prefix)

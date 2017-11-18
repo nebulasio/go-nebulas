@@ -73,8 +73,8 @@ func NewBlockChain(chainID uint32, storage storage.Storage) (*BlockChain, error)
 	bc.detachedTailBlocks, _ = lru.New(64)
 
 	var err error
-	bc.genesisBlock = bc.loadGenesisFromStorage()
-	bc.tailBlock, err = bc.loadTailFromStorage()
+	bc.genesisBlock = loadGenesisFromStorage(bc.chainID, bc.storage, bc.txPool)
+	bc.tailBlock, err = loadTailFromStorage(bc.chainID, bc.storage, bc.txPool)
 	if err != nil {
 		return nil, err
 	}
@@ -110,7 +110,7 @@ func (bc *BlockChain) SetTailBlock(newTail *Block) {
 	oldTail := bc.tailBlock
 	bc.detachedTailBlocks.Remove(newTail.Hash().Hex())
 	bc.tailBlock = newTail
-	bc.storeTailToStorage(bc.tailBlock)
+	storeTailToStorage(bc.tailBlock)
 	// giveBack txs in reverted blocks to tx pool
 	ancestor, _ := bc.FindCommonAncestorWithTail(oldTail)
 	if ancestor.Hash().Equals(oldTail.Hash()) {
@@ -206,14 +206,14 @@ func (bc *BlockChain) NewBlock(coinbase *Address) *Block {
 
 // NewBlockFromParent create new block from parent block and return it.
 func (bc *BlockChain) NewBlockFromParent(coinbase *Address, parentBlock *Block) *Block {
-	return NewBlock(bc.chainID, coinbase, parentBlock, bc.txPool, bc.storage)
+	return NewBlock(bc.chainID, coinbase, parentBlock)
 }
 
 // PutVerifiedNewBlocks put verified new blocks and tails.
 func (bc *BlockChain) PutVerifiedNewBlocks(allBlocks, tailBlocks []*Block) error {
 	for _, v := range allBlocks {
 		bc.cachedBlocks.ContainsOrAdd(v.Hash().Hex(), v)
-		if err := bc.storeBlockToStorage(v); err != nil {
+		if err := storeBlockToStorage(v); err != nil {
 			return err
 		}
 	}
@@ -319,7 +319,7 @@ func (bc *BlockChain) Dump(count int) string {
 	return rls
 }
 
-func (bc *BlockChain) storeBlockToStorage(block *Block) error {
+func storeBlockToStorage(block *Block) error {
 	pbBlock, err := block.ToProto()
 	if err != nil {
 		return err
@@ -328,32 +328,32 @@ func (bc *BlockChain) storeBlockToStorage(block *Block) error {
 	if err != nil {
 		return err
 	}
-	err = bc.storage.Put(block.Hash(), value)
+	err = block.storage.Put(block.Hash(), value)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (bc *BlockChain) storeTailToStorage(block *Block) {
-	bc.storage.Put([]byte(Tail), block.Hash())
+func storeTailToStorage(block *Block) {
+	block.storage.Put([]byte(Tail), block.Hash())
 }
 
-func (bc *BlockChain) loadTailFromStorage() (*Block, error) {
-	hash, err := bc.storage.Get([]byte(Tail))
+func loadTailFromStorage(chainID uint32, storage storage.Storage, txPool *TransactionPool) (*Block, error) {
+	hash, err := storage.Get([]byte(Tail))
 	if err != nil {
-		genesis := bc.loadGenesisFromStorage()
-		bc.storeTailToStorage(genesis)
+		genesis := loadGenesisFromStorage(chainID, storage, txPool)
+		storeTailToStorage(genesis)
 		return genesis, nil
 	}
-	return LoadBlockFromStorage(hash, bc.storage, bc.txPool)
+	return LoadBlockFromStorage(hash, storage, txPool)
 }
 
-func (bc *BlockChain) loadGenesisFromStorage() *Block {
-	genesis, err := LoadBlockFromStorage(GenesisHash, bc.storage, nil)
+func loadGenesisFromStorage(chainID uint32, storage storage.Storage, txPool *TransactionPool) *Block {
+	genesis, err := LoadBlockFromStorage(GenesisHash, storage, txPool)
 	if err != nil {
-		genesis = NewGenesisBlock(bc.chainID, bc.storage)
-		err := bc.storeBlockToStorage(genesis)
+		genesis = NewGenesisBlock(chainID, storage, txPool)
+		err := storeBlockToStorage(genesis)
 		if err != nil {
 			log.Error(err)
 		}

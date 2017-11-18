@@ -265,7 +265,7 @@ func (pool *BlockPool) push(block *Block) error {
 	// remove allBlocks from cache.
 	for _, v := range allBlocks {
 		blockCache.Remove(v.Hash().Hex())
-		pool.bc.storeBlockToStorage(v)
+		storeBlockToStorage(v)
 	}
 
 	// notify consensus to handle new block.

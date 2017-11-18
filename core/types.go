@@ -25,6 +25,7 @@ const (
 	TxPayloadBinaryType = "binary"
 	TxPayloadDeployType = "deploy"
 	TxPayloadCallType   = "call"
+	TxPayloadElectType  = "elect"
 	TxPayloadVoteType   = "vote"
 )
 

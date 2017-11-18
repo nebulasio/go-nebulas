@@ -32,7 +32,7 @@ var (
 )
 
 // NewGenesisBlock create genesis @Block from file.
-func NewGenesisBlock(chainID uint32, storage storage.Storage) *Block {
+func NewGenesisBlock(chainID uint32, storage storage.Storage, txPool *TransactionPool) *Block {
 	accState, _ := state.NewAccountState(nil, storage)
 	txsTrie, _ := trie.NewBatchTrie(nil, storage)
 
@@ -47,16 +47,19 @@ func NewGenesisBlock(chainID uint32, storage storage.Storage) *Block {
 	changeVotesTrie, _ := trie.NewBatchTrie(nil, storage)
 	abdicateVotesTrie, _ := trie.NewBatchTrie(nil, storage)
 
-	b := &Block{
+	block := &Block{
 		header: &BlockHeader{
 			chainID:    chainID,
 			hash:       GenesisHash,
 			parentHash: GenesisHash,
 			coinbase:   &Address{make([]byte, AddressLength)},
+			nonce:      0,
 			timestamp:  time.Now().Unix(),
 		},
-		accState: accState,
-		txsTrie:  txsTrie,
+		transactions: make(Transactions, 0),
+		parentBlock:  nil,
+		accState:     accState,
+		txsTrie:      txsTrie,
 
 		curDynastyTrie:         curDynastyTrie,
 		nextDynastyTrie:        nextDynastyTrie,
@@ -70,11 +73,12 @@ func NewGenesisBlock(chainID uint32, storage storage.Storage) *Block {
 		abdicateVotesTrie:      abdicateVotesTrie,
 
 		storage: storage,
+		txPool:  txPool,
 		height:  1,
 		sealed:  true,
 	}
 
-	return b
+	return block
 }
 
 // CheckGenesisBlock if a block is a genesis block

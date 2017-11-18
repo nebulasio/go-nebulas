@@ -118,7 +118,7 @@ type voteContext struct {
 	VotedBlock        *Block
 	VotedBlockParent  *Block
 	PackedBlock       *Block
-	RewardDynastyRoot byteutils.Hash
+	RewardDynastyTrie *trie.BatchTrie
 }
 
 // block is valid, created by validators
@@ -238,7 +238,7 @@ func (payload *VotePayload) slash(voteCtx *voteContext) error {
 	if _, err = voteCtx.PackedBlock.depositTrie.Del(voteCtx.Voter); err != nil {
 		return err
 	}
-	validators, err := traverseValidators(voteCtx.PackedBlock.validatorsTrie, voteCtx.RewardDynastyRoot)
+	validators, err := traverseValidators(voteCtx.PackedBlock.validatorsTrie, voteCtx.RewardDynastyTrie.RootHash())
 	if err != nil {
 		return err
 	}
@@ -281,8 +281,8 @@ func (payload *VotePayload) prepare(voteCtx *voteContext) error {
 	}
 	// 1
 	votedBlock := chain[0]
-	voteCtx.RewardDynastyRoot = voteCtx.VotedBlock.CurDynastyRoot()
-	maxVotes, err := DynastyMaxVotes(votedBlock.CurDynastyRoot(), votedBlock.storage)
+	voteCtx.RewardDynastyTrie = voteCtx.VotedBlock.curDynastyTrie
+	maxVotes, err := countValidators(votedBlock.curDynastyTrie, nil)
 	if err != nil {
 		return err
 	}
@@ -355,6 +355,7 @@ func (payload *VotePayload) prepare(voteCtx *voteContext) error {
 		return err
 	}
 
+	// valid
 	prepareKey := append(voteCtx.PackedBlock.Hash(), voteCtx.Voter...)
 	if _, err = voteCtx.PackedBlock.prepareVotesTrie.Put(prepareKey, vote); err != nil {
 		return err
@@ -385,7 +386,7 @@ func (payload *VotePayload) commit(voteCtx *voteContext) error {
 		"func":      "VotePayload.commit",
 		"BlockHash": payload.BlockHash.Hex(),
 	}).Error("Slash, Commit(B) before Prepare(B, V).")
-	voteCtx.RewardDynastyRoot = voteCtx.VotedBlock.CurDynastyRoot()
+	voteCtx.RewardDynastyTrie = voteCtx.VotedBlock.curDynastyTrie
 	return payload.slash(voteCtx)
 }
 
@@ -404,10 +405,7 @@ func (payload *VotePayload) change(voteCtx *voteContext) error {
 				changeVotes++
 			}
 		}
-		if voteCtx.RewardDynastyRoot, err = voteCtx.VotedBlockParent.NextBlockDynastyRoot(); err != nil {
-			return err
-		}
-		maxVotes, err := DynastyMaxVotes(voteCtx.RewardDynastyRoot, voteCtx.VotedBlock.storage)
+		maxVotes, err := countValidators(voteCtx.RewardDynastyTrie, nil)
 		if err != nil {
 			return err
 		}
