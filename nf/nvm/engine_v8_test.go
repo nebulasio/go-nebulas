@@ -290,10 +290,6 @@ func TestRunMozillaJSTestSuite(t *testing.T) {
 			require.Nil(t, err)
 
 			if fi.IsDir() {
-				if strings.Compare(file.Name(), "Intl") == 0 {
-					continue
-				}
-
 				runTest(filepath, shelljs)
 				continue
 			}
@@ -309,7 +305,7 @@ func TestRunMozillaJSTestSuite(t *testing.T) {
 
 			buf := bytes.NewBufferString("this.print = console.log;var native_eval = eval;eval = function (s) { try {  return native_eval(s); } catch (e) { return \"error\"; }};")
 
-			jsfiles := fmt.Sprintf("%s;%s;%s", shelljs, "test/moailla_js_tests_modifier.js", filepath)
+			jsfiles := fmt.Sprintf("%s;%s;%s", shelljs, "test/mozilla_js_tests_loader.js", filepath)
 
 			for _, v := range strings.Split(jsfiles, ";") {
 				// log.Infof("v %s", v)
