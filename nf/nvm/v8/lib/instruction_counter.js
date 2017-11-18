@@ -112,6 +112,13 @@ const InjectionCodeGenerators = {
             return "}";
         }
     },
+    BlockStatementBeginAndCounterIncrFuncAndReturn: function (value) {
+        if (value > 0) {
+            return "{_instruction_counter.incr(" + value + "); return "
+        } else {
+            return "{return ";
+        }
+    },
     BeginInnerCounterIncrFunc: function (value) {
         return "_instruction_counter.incr(" + value + ") && (";
     },
@@ -143,13 +150,17 @@ function processScript(source) {
     var record_injection = function (pos, value, injection_func) {
         return record_injection_info(injection_records, pos, value, injection_func);
     };
-    var ensure_block_statement = function (node) {
+
+    function ensure_block_statement(node) {
         if (!node || !node.type) {
             // not a valid node, ignore
             return;
         }
 
-        if (node.type !== 'BlockStatement') {
+        if (!node.type in {
+                BlockStatement: "",
+                IfStatement: "",
+            }) {
             record_injection(node.range[0], 0, InjectionCodeGenerators.BlockStatementBeginAndCounterIncrFunc);
             record_injection(node.range[1], 0, InjectionCodeGenerators.BlockStatementEndAndCounterIncrFunc);
         }
@@ -216,10 +227,18 @@ function processScript(source) {
                 "object": new InjectionContext(node, InjectionType.BEFORE_NODE),
             };
         } else if (node.type == "SwitchStatement") {
-            debugger;
             return {
                 "discriminant": new InjectionContext(node, InjectionType.BEFORE_NODE),
             };
+        } else if (node.type == "ArrowFunctionExpression") {
+            var body = node.body;
+            if (body.type !== 'BlockStatement') {
+                record_injection(body.range[0], 0, InjectionCodeGenerators.BlockStatementBeginAndCounterIncrFuncAndReturn);
+                record_injection(body.range[1], 0, InjectionCodeGenerators.BlockStatementEndAndCounterIncrFunc);
+                return {
+                    "body": new InjectionContext(body, InjectionType.BEFORE_NODE),
+                }
+            }
         } else {
 
             // Other Expressions.

@@ -73,7 +73,7 @@ func TestRunScriptSource(t *testing.T) {
 			ctx := NewContext(nil, owner, contract, context)
 			engine := NewV8Engine(ctx)
 			engine.SetExecutionLimits(1000, 10000000)
-			err = engine.RunScriptSource(string(data))
+			err = engine.RunScriptSource(string(data), 0)
 			assert.Equal(t, tt.expectedErr, err)
 			engine.Dispose()
 		})
@@ -112,7 +112,7 @@ func TestRunScriptSourceWithLimits(t *testing.T) {
 			ctx := NewContext(nil, owner, contract, context)
 			engine := NewV8Engine(ctx)
 			engine.SetExecutionLimits(tt.limitsOfExecutionInstructions, tt.limitsOfTotalMemorySize)
-			err = engine.RunScriptSource(string(data))
+			err = engine.RunScriptSource(string(data), 0)
 			assert.Equal(t, tt.expectedErr, err)
 			engine.Dispose()
 		})
@@ -138,7 +138,7 @@ func TestRunScriptSourceTimeout(t *testing.T) {
 
 			ctx := NewContext(nil, owner, contract, context)
 			engine := NewV8Engine(ctx)
-			err = engine.RunScriptSource(string(data))
+			err = engine.RunScriptSource(string(data), 0)
 			assert.Equal(t, ErrExecutionTimeout, err)
 			engine.Dispose()
 		})
@@ -259,7 +259,7 @@ func TestMultiEngine(t *testing.T) {
 			engine.SetExecutionLimits(1000, 10000000)
 			defer engine.Dispose()
 
-			err := engine.RunScriptSource("console.log('running.');")
+			err := engine.RunScriptSource("console.log('running.');", 0)
 			log.Infof("run script %d; err %v", idx, err)
 			assert.Nil(t, err)
 		}()
@@ -267,10 +267,46 @@ func TestMultiEngine(t *testing.T) {
 	wg.Wait()
 }
 
+func TestInstructionCounterTestSuite(t *testing.T) {
+	tests := []struct {
+		filepath    string
+		expectedErr error
+	}{
+		{"test/instruction_couter_tests/redefine1.js", ErrInjectTracingInstructionFailed},
+		{"test/instruction_couter_tests/redefine2.js", ErrInjectTracingInstructionFailed},
+		{"test/instruction_couter_tests/redefine3.js", ErrInjectTracingInstructionFailed},
+		{"test/instruction_couter_tests/redefine4.js", ErrExecutionFailed},
+		{"test/instruction_couter_tests/function.js", nil},
+		{"test/instruction_couter_tests/if.js", nil},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.filepath, func(t *testing.T) {
+			data, err := ioutil.ReadFile(tt.filepath)
+			assert.Nil(t, err, "filepath read error")
+
+			mem, _ := storage.NewMemoryStorage()
+			context, _ := state.NewAccountState(nil, mem)
+			owner := context.GetOrCreateUserAccount([]byte("account1"))
+			owner.AddBalance(util.NewUint128FromInt(1000000000))
+			contract, _ := context.CreateContractAccount([]byte("account2"), nil)
+
+			ctx := NewContext(nil, owner, contract, context)
+			engine := NewV8Engine(ctx)
+			engine.enableLimits = true
+			err = engine.RunScriptSource(string(data), 0)
+			assert.Equal(t, tt.expectedErr, err)
+			engine.Dispose()
+		})
+	}
+}
+
 func TestRunMozillaJSTestSuite(t *testing.T) {
 	mem, _ := storage.NewMemoryStorage()
 	context, _ := state.NewAccountState(nil, mem)
 	owner := context.GetOrCreateUserAccount([]byte("account1"))
+	owner.AddBalance(util.NewUint128FromInt(1000000000))
+
 	contract, _ := context.CreateContractAccount([]byte("account2"), nil)
 	ctx := NewContext(nil, owner, contract, context)
 
@@ -325,7 +361,7 @@ func TestRunMozillaJSTestSuite(t *testing.T) {
 			engine := NewV8Engine(ctx)
 			engine.SetTestingFlag(true)
 			engine.enableLimits = true
-			err = engine.RunScriptSource(buf.String())
+			err = engine.RunScriptSource(buf.String(), 0)
 			assert.Nil(t, err)
 		}
 	}
