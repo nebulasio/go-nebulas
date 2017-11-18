@@ -237,7 +237,7 @@ void PrintException(Local<Context> context, TryCatch &trycatch) {
     arrow[start] = '^';
     arrow[start + 1] = '\0';
 
-    asprintf(&source_info, "%s:%d\n%s\n%s\n\n", *filename, linenum, *sourceline,
+    asprintf(&source_info, "%s:%d\n%s\n%s\n", *filename, linenum, *sourceline,
              arrow);
   }
 
