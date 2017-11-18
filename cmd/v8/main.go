@@ -43,7 +43,7 @@ func main() {
 
 	ctx := nvm.NewContext(nil, owner, contract, context)
 	engine := nvm.NewV8Engine(ctx)
-	err := engine.RunScriptSource(string(data))
+	err := engine.RunScriptSource(string(data), 0)
 
 	log.Errorf("Err is %s", err)
 
