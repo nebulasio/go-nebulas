@@ -1,6 +1,8 @@
 
 "use strict";
 
+var utils = require('./utils/utils.js');
+
 var API = function (neb) {
 	this._requestHandler = neb._requestHandler;
 };
@@ -30,12 +32,12 @@ API.prototype.getAccountState = function (address) {
 API.prototype.sendTransaction = function (from, to, value, nonce, source, args, gasPrice, gasLimit) {
 	var params = {"from": from,
 	"to": to,
-	"value": value,
+	"value": utils.toString(value),
 	"nonce": nonce,
 	"source": source,
 	"args": args,
-	"gasPrice": gasPrice,
-	"gasLimit": gasLimit
+	"gasPrice": utils.toString(gasPrice),
+	"gasLimit": utils.toString(gasLimit)
 	};
 	return this.request("post", "/v1/transaction", params);
 };
@@ -46,8 +48,8 @@ API.prototype.call = function (from, to, nonce, func, args, gasPrice, gasLimit) 
 	"nonce": nonce,
 	"function": func,
 	"args": args,
-	"gasPrice": gasPrice,
-	"gasLimit": gasLimit
+	"gasPrice": utils.toString(gasPrice),
+	"gasLimit": utils.toString(gasLimit)
 	};
 	return this.request("post", "/v1/call", params);
 };

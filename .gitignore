@@ -28,3 +28,6 @@ debug
 # 3rd test suites.
 mozilla_js_tests*
 
+#keydir
+keydir
+

@@ -124,11 +124,7 @@ func (s *APIService) GetAccountState(ctx context.Context, req *rpcpb.GetAccountS
 	balance := neb.BlockChain().TailBlock().GetBalance(addr.Bytes())
 	nonce := neb.BlockChain().TailBlock().GetNonce(addr.Bytes())
 
-	balanceBytes, err := balance.ToFixedSizeByteSlice()
-	if err != nil {
-		return nil, err
-	}
-	return &rpcpb.GetAccountStateResponse{Balance: balanceBytes, Nonce: nonce}, nil
+	return &rpcpb.GetAccountStateResponse{Balance: balance.String(), Nonce: nonce}, nil
 }
 
 // SendTransaction is the RPC API handler.
@@ -172,7 +168,7 @@ func (s *APIService) Call(ctx context.Context, req *rpcpb.CallRequest) (*rpcpb.S
 	if err != nil {
 		return nil, err
 	}
-	tx, err := parseTransaction(neb, req.From, req.To, nil, req.Nonce, core.TxPayloadCallType, data, req.GasPrice, req.GasLimit)
+	tx, err := parseTransaction(neb, req.From, req.To, "0", req.Nonce, core.TxPayloadCallType, data, req.GasPrice, req.GasLimit)
 	if err != nil {
 		return nil, err
 	}
@@ -187,7 +183,7 @@ func (s *APIService) Call(ctx context.Context, req *rpcpb.CallRequest) (*rpcpb.S
 
 }
 
-func parseTransaction(neb Neblet, from, to string, v []byte, nonce uint64, payloadType string, payload []byte, price []byte, limit []byte) (*core.Transaction, error) {
+func parseTransaction(neb Neblet, from, to string, v string, nonce uint64, payloadType string, payload []byte, price string, limit string) (*core.Transaction, error) {
 	fromAddr, err := core.AddressParse(from)
 	if err != nil {
 		return nil, err
@@ -197,24 +193,9 @@ func parseTransaction(neb Neblet, from, to string, v []byte, nonce uint64, paylo
 		return nil, err
 	}
 
-	var value *util.Uint128
-	if len(v) > 0 {
-		value, err = util.NewUint128FromFixedSizeByteSlice(v)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		value = util.NewUint128()
-	}
-
-	gasPrice, err := util.NewUint128FromFixedSizeByteSlice(price)
-	if err != nil {
-		return nil, err
-	}
-	gasLimit, err := util.NewUint128FromFixedSizeByteSlice(limit)
-	if err != nil {
-		return nil, err
-	}
+	value := util.NewUint128FromString(v)
+	gasPrice := util.NewUint128FromString(price)
+	gasLimit := util.NewUint128FromString(limit)
 
 	tx := core.NewTransaction(neb.BlockChain().ChainID(), fromAddr, toAddr, value, nonce, payloadType, payload, gasPrice, gasLimit)
 	return tx, nil
@@ -226,7 +207,7 @@ func (s *APIService) SendRawTransaction(ctx context.Context, req *rpcpb.SendRawT
 	neb := s.server.Neblet()
 
 	pbTx := new(corepb.Transaction)
-	if err := proto.Unmarshal(req.GetData(), pbTx); err != nil {
+	if err := proto.Unmarshal([]byte(req.GetData()), pbTx); err != nil {
 		return nil, err
 	}
 	tx := new(core.Transaction)

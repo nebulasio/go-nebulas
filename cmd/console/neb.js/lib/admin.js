@@ -1,6 +1,8 @@
 
 "use strict";
 
+var utils = require('./utils/utils.js');
+
 var Admin = function (neb) {
 	this._requestHandler = neb._requestHandler;
 };
@@ -24,12 +26,12 @@ Admin.prototype.lockAccount = function (address) {
 Admin.prototype.signTransaction = function (from, to, value, nonce, source, args, gasPrice, gasLimit) {
 	var params = {"from": from,
 	"to": to,
-	"value": value,
+	"value": utils.toString(value),
 	"nonce": nonce,
 	"source": source,
 	"args": args,
-	"gasPrice": gasPrice,
-	"gasLimit": gasLimit
+	"gasPrice": utils.toString(gasPrice),
+	"gasLimit": utils.toString(gasLimit)
 	};
 	return this.request("post", "/v1/sign", params);
 };
@@ -37,12 +39,12 @@ Admin.prototype.signTransaction = function (from, to, value, nonce, source, args
 Admin.prototype.sendTransactionWithPassphrase = function (from, to, value, nonce, source, args, gasPrice, gasLimit, passphrase) {
 	var params = {"from": from,
 	"to": to,
-	"value": value,
+	"value": utils.toString(value),
 	"nonce": nonce,
 	"source": source,
 	"args": args,
-	"gasPrice": gasPrice,
-	"gasLimit": gasLimit,
+	"gasPrice": utils.toString(gasPrice),
+	"gasLimit": utils.toString(gasLimit),
 	"passphrase": passphrase
 	};
 	return this.request("post", "/v1/transactionWithPassphrase", params);

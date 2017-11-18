@@ -21,7 +21,8 @@
   },
   "dependencies": {
     "xhr2": "*",
-    "xmlhttprequest": "*"
+    "xmlhttprequest": "*",
+    "bignumber.js": "git+https://github.com/frozeman/bignumber.js-nolookahead.git"
   },
   "browser": {
     "xmlhttprequest": "./lib/utils/browser-xhr.js"

@@ -105,10 +105,6 @@ func (b *jsBridge) request(call otto.FunctionCall) otto.Value {
 	if err != nil {
 		return jsError(call.Otto, err)
 	}
-	if resp.StatusCode != 200 {
-		response, _ := otto.ToValue(resp.Status)
-		return response
-	}
 
 	defer resp.Body.Close()
 	result, _ := ioutil.ReadAll(resp.Body)

@@ -75,6 +75,7 @@ func main() {
 	{
 		v := util.NewUint128FromInt(value)
 		fsb, _ := v.ToFixedSizeByteSlice()
+		log.Println("v :", v, " fsb :", fsb, "fsbs:", string(fsb))
 		r, err := ac.SendTransaction(context.Background(), &rpcpb.SendTransactionRequest{From: from, To: to, Value: fsb, Nonce: nonce + 1})
 		if err != nil {
 			log.Println("SendTransaction failed:", err)
@@ -94,19 +95,19 @@ func main() {
 		}
 	}
 
-	managementAddr := fmt.Sprintf("127.0.0.1:%d", uint32(52520))
-	managementConn, err := rpc.Dial(managementAddr)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer managementConn.Close()
-
-	managementAc := rpcpb.NewManagementServiceClient(managementConn)
-
-	r, err := managementAc.LockAccount(context.Background(), &rpcpb.LockAccountRequest{Address: from})
-	if err != nil {
-		log.Println("LockAccount", from, "failed", err)
-	} else {
-		log.Println("LockAccount", from, "result", r)
-	}
+	//managementAddr := fmt.Sprintf("127.0.0.1:%d", uint32(52520))
+	//managementConn, err := rpc.Dial(managementAddr)
+	//if err != nil {
+	//	log.Fatal(err)
+	//}
+	//defer managementConn.Close()
+	//
+	//managementAc := rpcpb.NewManagementServiceClient(managementConn)
+	//
+	//r, err := managementAc.LockAccount(context.Background(), &rpcpb.LockAccountRequest{Address: from})
+	//if err != nil {
+	//	log.Println("LockAccount", from, "failed", err)
+	//} else {
+	//	log.Println("LockAccount", from, "result", r)
+	//}
 }
