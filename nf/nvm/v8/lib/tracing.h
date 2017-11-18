@@ -24,7 +24,13 @@
 
 using namespace v8;
 
-int InjectTracingInstructionDelegate(Isolate *isolate, const char *data,
+typedef struct {
+  int source_line_offset;
+  char *tracable_source;
+} TracingContext;
+
+int InjectTracingInstructionDelegate(Isolate *isolate, const char *source,
+                                     int source_line_offset,
                                      Local<Context> context, TryCatch &trycatch,
                                      void *delegateContext);
 

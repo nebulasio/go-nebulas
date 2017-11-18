@@ -29,6 +29,7 @@
 
 using namespace v8;
 
+#define SOURCE_REQUIRE_LINE_OFFSET -6
 static char source_require_begin[] = "(function () {\n"
                                      "    var module = {\n"
                                      "        exports: {},\n"
@@ -162,7 +163,8 @@ void RequireCallback(const v8::FunctionCallbackInfo<v8::Value> &info) {
   // LogInfof("source is: %s", data);
   Local<Context> context = isolate->GetCurrentContext();
 
-  ScriptOrigin sourceSrcOrigin(path, Integer::New(isolate, -6));
+  ScriptOrigin sourceSrcOrigin(
+      path, Integer::New(isolate, SOURCE_REQUIRE_LINE_OFFSET));
   MaybeLocal<Script> script = Script::Compile(
       context, String::NewFromUtf8(isolate, data), &sourceSrcOrigin);
   if (!script.IsEmpty()) {
@@ -176,7 +178,8 @@ void RequireCallback(const v8::FunctionCallbackInfo<v8::Value> &info) {
   free(static_cast<void *>(data));
 }
 
-char *EncapsulateSourceToModuleStyle(const char *source) {
+char *EncapsulateSourceToModuleStyle(const char *source,
+                                     int *source_line_offset) {
   size_t size = strlen(source) + strlen(source_require_begin) +
                 strlen(source_require_end) + 1;
   char *data = (char *)malloc(size);
@@ -184,6 +187,6 @@ char *EncapsulateSourceToModuleStyle(const char *source) {
   size_t count =
       sprintf(data, "%s%s%s", source_require_begin, source, source_require_end);
   assert(count + 1 == size);
-
+  *source_line_offset = -6;
   return data;
 }

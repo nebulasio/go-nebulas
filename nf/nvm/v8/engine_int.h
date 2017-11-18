@@ -25,14 +25,16 @@
 
 using namespace v8;
 
-typedef int (*ExecutionDelegate)(Isolate *isolate, const char *data,
-                                 Local<Context> context, TryCatch &trycatch,
-                                 void *delegateContext);
-int Execute(V8Engine *e, const char *data, void *lcsHandler, void *gcsHandler,
-            ExecutionDelegate delegate, void *delegateContext);
+typedef int (*ExecutionDelegate)(Isolate *isolate, const char *source,
+                                 int source_line_offset, Local<Context> context,
+                                 TryCatch &trycatch, void *delegateContext);
 
-int ExecuteSourceDataDelegate(Isolate *isolate, const char *data,
-                              Local<Context> context, TryCatch &trycatch,
-                              void *delegateContext);
+int Execute(V8Engine *e, const char *data, int source_line_offset,
+            void *lcsHandler, void *gcsHandler, ExecutionDelegate delegate,
+            void *delegateContext);
+
+int ExecuteSourceDataDelegate(Isolate *isolate, const char *source,
+                              int source_line_offset, Local<Context> context,
+                              TryCatch &trycatch, void *delegateContext);
 
 #endif // _NEBULAS_NF_NVM_V8_ENGINE_INT_H_

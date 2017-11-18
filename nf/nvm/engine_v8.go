@@ -174,25 +174,27 @@ func (e *V8Engine) SetExecutionLimits(limitsOfExecutionInstructions, limitsOfTot
 }
 
 // RunScriptSource run js source.
-func (e *V8Engine) RunScriptSource(content string) (err error) {
-	cSource := C.CString(content)
+func (e *V8Engine) RunScriptSource(source string, sourceLineOffset int) (err error) {
+	cSource := C.CString(source)
 	defer C.free(unsafe.Pointer(cSource))
 
 	var ret C.int
 
 	if e.enableLimits {
-		traceableCSource := C.InjectTracingInstructions(e.v8engine, cSource)
+		var injectLineOffset C.int
+		traceableCSource := C.InjectTracingInstructions(e.v8engine, cSource, &injectLineOffset)
 		if traceableCSource == nil {
 			return ErrInjectTracingInstructionFailed
 		}
 		defer C.free(unsafe.Pointer(traceableCSource))
 		cSource = traceableCSource
+		sourceLineOffset += int(injectLineOffset)
 	}
 
 	done := make(chan bool, 1)
 
 	go func() {
-		ret = C.RunScriptSource(e.v8engine, cSource, C.uintptr_t(e.lcsHandler),
+		ret = C.RunScriptSource(e.v8engine, cSource, C.int(sourceLineOffset), C.uintptr_t(e.lcsHandler),
 			C.uintptr_t(e.gcsHandler))
 		done <- true
 	}()
@@ -255,21 +257,22 @@ func (e *V8Engine) DeployAndInit(source, args string) error {
 
 // Execute execute the script and return error.
 func (e *V8Engine) executeScript(source, function, args string) error {
-	executablesource, err := e.prepareExecutableSource(source, function, args)
+	executablesource, sourceLineOffset, err := e.prepareExecutableSource(source, function, args)
 	if err != nil {
 		return err
 	}
 
-	return e.RunScriptSource(executablesource)
+	return e.RunScriptSource(executablesource, sourceLineOffset)
 }
 
-func (e *V8Engine) prepareExecutableSource(source, function, args string) (string, error) {
+func (e *V8Engine) prepareExecutableSource(source, function, args string) (string, int, error) {
 	// inject tracing instructions.
 	cSource := C.CString(source)
 	defer C.free(unsafe.Pointer(cSource))
 
 	// encapsulate to module style.
-	cmSource := C.EncapsulateSourceToModuleStyle(cSource)
+	sourceLineOffset := C.int(0)
+	cmSource := C.EncapsulateSourceToModuleStyle(cSource, &sourceLineOffset)
 	defer C.free(unsafe.Pointer(cmSource))
 
 	// prepare for execute.
@@ -282,7 +285,7 @@ func (e *V8Engine) prepareExecutableSource(source, function, args string) (strin
 		executablesource = fmt.Sprintf("var __contract = %s;\n var __instance = new __contract();\n Blockchain.current = Object.freeze(JSON.parse(\"%s\"));\n __instance[\"%s\"].apply(__instance);\n", C.GoString(cmSource), formatArgs(contextJSON), function)
 	}
 
-	return executablesource, nil
+	return executablesource, int(sourceLineOffset), nil
 }
 
 func getEngineAndStorage(handler uint64) (*V8Engine, state.Account) {

@@ -108,16 +108,18 @@ typedef void (*V8ExecutionDelegate)(V8Engine *e, const char *data,
 
 void RunScriptSourceDelegate(V8Engine *e, const char *data,
                              uintptr_t lcsHandler, uintptr_t gcsHandler) {
+  int lineOffset = 0;
+
   if (enable_tracer_injection) {
     e->limits_of_executed_instructions = limits_of_executed_instructions;
     e->limits_of_total_memory_size = limits_of_total_memory_size;
 
-    char *traceableSource = InjectTracingInstructions(e, data);
+    char *traceableSource = InjectTracingInstructions(e, data, &lineOffset);
     if (traceableSource == NULL) {
       fprintf(stderr, "Inject tracing instructions failed.\n");
     } else {
-      int ret = RunScriptSource(e, traceableSource, (uintptr_t)lcsHandler,
-                                (uintptr_t)gcsHandler);
+      int ret = RunScriptSource(e, traceableSource, lineOffset,
+                                (uintptr_t)lcsHandler, (uintptr_t)gcsHandler);
       free(traceableSource);
 
       fprintf(stdout, "[V8] Execution ret = %d\n", ret);
@@ -152,14 +154,16 @@ void RunScriptSourceDelegate(V8Engine *e, const char *data,
               e->stats.peak_array_buffer_size);
     }
   } else {
-    RunScriptSource(e, data, (uintptr_t)lcsHandler, (uintptr_t)gcsHandler);
+    RunScriptSource(e, data, lineOffset, (uintptr_t)lcsHandler,
+                    (uintptr_t)gcsHandler);
   }
 }
 
 void InjectTracingInstructionsAndPrintDelegate(V8Engine *e, const char *data,
                                                uintptr_t lcsHandler,
                                                uintptr_t gcsHandler) {
-  char *traceableSource = InjectTracingInstructions(e, data);
+  int lineOffset = 0;
+  char *traceableSource = InjectTracingInstructions(e, data, &lineOffset);
   if (traceableSource == NULL) {
     fprintf(stderr, "Inject tracing instructions failed.\n");
   } else {

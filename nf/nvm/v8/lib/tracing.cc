@@ -31,8 +31,7 @@ static char inject_tracer_source_template[] =
     "(function(){\n"
     "const instCounter = require(\"instruction_counter.js\");\n"
     "const source = \"%s\";\n"
-    "var traceableSource = instCounter.processScript(source);\n"
-    "return traceableSource;\n"
+    "return instCounter.processScript(source);\n"
     "})();";
 
 std::string ReplaceAll(std::string str, const std::string &from,
@@ -46,13 +45,14 @@ std::string ReplaceAll(std::string str, const std::string &from,
   return str;
 }
 
-int InjectTracingInstructionDelegate(Isolate *isolate, const char *data,
+int InjectTracingInstructionDelegate(Isolate *isolate, const char *source,
+                                     int source_line_offset,
                                      Local<Context> context, TryCatch &trycatch,
                                      void *delegateContext) {
-  char **output = static_cast<char **>(delegateContext);
-  *output = NULL;
+  TracingContext *tContext = static_cast<TracingContext *>(delegateContext);
+  tContext->tracable_source = NULL;
 
-  std::string s(data);
+  std::string s(source);
   s = ReplaceAll(s, "\\", "\\\\");
   s = ReplaceAll(s, "\n", "\\n");
   s = ReplaceAll(s, "\"", "\\\"");
@@ -61,16 +61,16 @@ int InjectTracingInstructionDelegate(Isolate *isolate, const char *data,
   asprintf(&injectTracerSource, inject_tracer_source_template, s.c_str());
 
   // Create a string containing the JavaScript source code.
-  Local<String> source =
+  Local<String> src =
       String::NewFromUtf8(isolate, injectTracerSource, NewStringType::kNormal)
           .ToLocalChecked();
   free(injectTracerSource);
 
   // Compile the source code.
   ScriptOrigin sourceSrcOrigin(
-      String::NewFromUtf8(isolate, "_inject_tracer.js"));
-  MaybeLocal<Script> script =
-      Script::Compile(context, source, &sourceSrcOrigin);
+      String::NewFromUtf8(isolate, "_inject_tracer.js"),
+      Integer::New(isolate, source_line_offset));
+  MaybeLocal<Script> script = Script::Compile(context, src, &sourceSrcOrigin);
 
   if (script.IsEmpty()) {
     PrintException(context, trycatch);
@@ -85,13 +85,27 @@ int InjectTracingInstructionDelegate(Isolate *isolate, const char *data,
   }
 
   Local<Value> checked_ret = ret.ToLocalChecked();
-  if (!checked_ret->IsString()) {
+  if (!checked_ret->IsObject()) {
     return 1;
   }
 
-  String::Utf8Value str(checked_ret->ToString(isolate));
-  *output = (char *)malloc(str.length() + 1);
-  strcpy(*output, *str);
+  Local<Object> obj = Local<Object>::Cast(checked_ret);
+  Local<Value> traceableSource =
+      obj->Get(String::NewFromUtf8(isolate, "traceableSource"));
+  Local<Value> lineOffset =
+      obj->Get(String::NewFromUtf8(isolate, "lineOffset"));
+
+  if (!traceableSource->IsString() || !lineOffset->IsNumber()) {
+    LogErrorf("instruction_counter.js:processScript() should return object "
+              "with traceableSource and lineOffset keys.");
+    return 1;
+  }
+
+  String::Utf8Value str(traceableSource);
+  tContext->tracable_source = (char *)malloc(str.length() + 1);
+  strcpy(tContext->tracable_source, *str);
+
+  tContext->source_line_offset = (int)lineOffset->IntegerValue();
 
   return 0;
 }

@@ -92,6 +92,9 @@ const InjectionType = {
 };
 
 const InjectionCodeGenerators = {
+    StorageUsageFunc: function (value) {
+        return "_instruction_counter.storIncr = " + storIncrFunc.toString() + ";\n";
+    },
     CounterIncrFunc: function (value) {
         return "_instruction_counter.incr(" + value + ");";
     },
@@ -157,7 +160,17 @@ function processScript(source) {
         loc: true
     });
 
+    var unsetStorageUsageFuncInjection = true;
+    var source_line_offset = 0;
+
     traverse(ast, function (node, parents, injection_context_from_parent) {
+        // get the ast begin offset, after comments before first statement.
+        if (unsetStorageUsageFuncInjection) {
+            source_line_offset = -5;
+            record_injection(node.range[0], 0, InjectionCodeGenerators.StorageUsageFunc);
+            unsetStorageUsageFuncInjection = false;
+        }
+
         // throw error when "_instruction_counter" was redefined in source.
         disallowRedefineOfInstructionCounter(node, parents);
 
@@ -286,11 +299,6 @@ function processScript(source) {
 
     var start_offset = 0,
         traceable_source = "";
-
-    // add storIncrFunc.
-    traceable_source += "_instruction_counter.storIncr = " + storIncrFunc.toString() + ";\n";
-
-    // add sources.
     ordered_records.forEach(function (record) {
         traceable_source += source.slice(start_offset, record.pos);
         traceable_source += record.func(record.value);
@@ -298,7 +306,10 @@ function processScript(source) {
     });
     traceable_source += source.slice(start_offset);
 
-    return traceable_source;
+    return {
+        traceableSource: traceable_source,
+        lineOffset: source_line_offset
+    };
 };
 
 // throw error when "_instruction_counter" was redefined.

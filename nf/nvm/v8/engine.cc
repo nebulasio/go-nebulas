@@ -109,19 +109,19 @@ void DeleteEngine(V8Engine *e) {
   free(e);
 }
 
-int ExecuteSourceDataDelegate(Isolate *isolate, const char *data,
-                              Local<Context> context, TryCatch &trycatch,
-                              void *delegateContext) {
+int ExecuteSourceDataDelegate(Isolate *isolate, const char *source,
+                              int source_line_offset, Local<Context> context,
+                              TryCatch &trycatch, void *delegateContext) {
   // Create a string containing the JavaScript source code.
-  Local<String> source =
-      String::NewFromUtf8(isolate, data, NewStringType::kNormal)
+  Local<String> src =
+      String::NewFromUtf8(isolate, source, NewStringType::kNormal)
           .ToLocalChecked();
 
   // Compile the source code.
   ScriptOrigin sourceSrcOrigin(
-      String::NewFromUtf8(isolate, "_contract_runner.js"));
-  MaybeLocal<Script> script =
-      Script::Compile(context, source, &sourceSrcOrigin);
+      String::NewFromUtf8(isolate, "_contract_runner.js"),
+      Integer::New(isolate, source_line_offset));
+  MaybeLocal<Script> script = Script::Compile(context, src, &sourceSrcOrigin);
 
   if (script.IsEmpty()) {
     PrintException(context, trycatch);
@@ -138,21 +138,28 @@ int ExecuteSourceDataDelegate(Isolate *isolate, const char *data,
   return 0;
 }
 
-char *InjectTracingInstructions(V8Engine *e, const char *source) {
-  char *traceableSource = NULL;
-  Execute(e, source, 0L, 0L, InjectTracingInstructionDelegate,
-          (void *)&traceableSource);
-  return traceableSource;
+char *InjectTracingInstructions(V8Engine *e, const char *source,
+                                int *source_line_offset) {
+  TracingContext tContext;
+  tContext.source_line_offset = 0;
+  tContext.tracable_source = NULL;
+
+  Execute(e, source, 0, 0L, 0L, InjectTracingInstructionDelegate,
+          (void *)&tContext);
+
+  *source_line_offset = tContext.source_line_offset;
+  return static_cast<char *>(tContext.tracable_source);
 }
 
-int RunScriptSource(V8Engine *e, const char *data, uintptr_t lcsHandler,
-                    uintptr_t gcsHandler) {
-  return Execute(e, data, (void *)lcsHandler, (void *)gcsHandler,
-                 ExecuteSourceDataDelegate, NULL);
+int RunScriptSource(V8Engine *e, const char *source, int source_line_offset,
+                    uintptr_t lcsHandler, uintptr_t gcsHandler) {
+  return Execute(e, source, source_line_offset, (void *)lcsHandler,
+                 (void *)gcsHandler, ExecuteSourceDataDelegate, NULL);
 }
 
-int Execute(V8Engine *e, const char *data, void *lcsHandler, void *gcsHandler,
-            ExecutionDelegate delegate, void *delegateContext) {
+int Execute(V8Engine *e, const char *source, int source_line_offset,
+            void *lcsHandler, void *gcsHandler, ExecutionDelegate delegate,
+            void *delegateContext) {
   Isolate *isolate = static_cast<Isolate *>(e->isolate);
   assert(isolate);
 
@@ -190,7 +197,8 @@ int Execute(V8Engine *e, const char *data, void *lcsHandler, void *gcsHandler,
     return 1;
   }
 
-  return delegate(isolate, data, context, trycatch, delegateContext);
+  return delegate(isolate, source, source_line_offset, context, trycatch,
+                  delegateContext);
 }
 
 void PrintException(Local<Context> context, TryCatch &trycatch) {

@@ -99,10 +99,12 @@ EXPORT void Dispose();
 
 EXPORT V8Engine *CreateEngine();
 
-EXPORT int RunScriptSource(V8Engine *e, const char *data, uintptr_t lcsHandler,
+EXPORT int RunScriptSource(V8Engine *e, const char *source,
+                           int source_line_offset, uintptr_t lcsHandler,
                            uintptr_t gcsHandler);
 
-EXPORT char *InjectTracingInstructions(V8Engine *e, const char *source);
+EXPORT char *InjectTracingInstructions(V8Engine *e, const char *source,
+                                       int *source_line_offset);
 
 EXPORT int IsEngineLimitsExceeded(V8Engine *e);
 
@@ -112,7 +114,8 @@ EXPORT void TerminateExecution(V8Engine *e);
 
 EXPORT void DeleteEngine(V8Engine *e);
 
-EXPORT char *EncapsulateSourceToModuleStyle(const char *source);
+EXPORT char *EncapsulateSourceToModuleStyle(const char *source,
+                                            int *source_line_offset);
 
 #ifdef __cplusplus
 }
