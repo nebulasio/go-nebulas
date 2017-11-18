@@ -136,7 +136,12 @@ func (payload *ElectPayload) login(from []byte, block *Block) error {
 	if err != nil {
 		return err
 	}
-	block.depositTrie.Put(from, bytes)
+	if _, err = block.depositTrie.Put(from, bytes); err != nil {
+		return err
+	}
+	if _, err = block.dynastyCandidatesTrie.Put(from, from); err != nil {
+		return err
+	}
 	return nil
 }
 

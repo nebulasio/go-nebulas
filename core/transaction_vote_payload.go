@@ -276,8 +276,8 @@ func (payload *VotePayload) prepare(voteCtx *voteContext) error {
 			"func":      "VotePayload.prepare",
 			"BlockHash": payload.BlockHash.Hex(),
 			"ViewHash":  payload.ViewHash.Hex(),
-		}).Warn("Cannot find a chain from ViewHash to BlockHash.")
-		return ErrCommitBeforePrepare
+		}).Warn("Slash, Cannot find a chain from ViewHash to BlockHash.")
+		return payload.slash(voteCtx)
 	}
 	// 1
 	votedBlock := chain[0]
