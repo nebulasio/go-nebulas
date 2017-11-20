@@ -50,6 +50,11 @@ var (
 	// BlockReward given to coinbase
 	// TODO: block reward should calculates dynamic.
 	BlockReward = util.NewUint128FromInt(16)
+
+	// VoteBlockReward given to the validator who votes prepare or commit in canonical chain
+	VoteBlockReward = util.NewUint128FromInt(30)
+	// FinalityBlockReward given to all active validators who are in the finality block's dynasty
+	FinalityBlockReward = util.NewUint128FromInt(15)
 )
 
 // Errors in block
@@ -305,6 +310,12 @@ func NewBlock(chainID uint32, coinbase *Address, parent *Block) *Block {
 	if change {
 		block.changeDynasty()
 	}
+
+	err = block.chargeCurrentValidators()
+	if err != nil {
+		panic("cannot charge current validators:" + err.Error())
+	}
+
 	return block
 }
 
@@ -344,6 +355,72 @@ func countValidators(dynastyTrie *trie.BatchTrie, prefix []byte) (int, error) {
 		count++
 	}
 	return count, nil
+}
+
+func (block *Block) addDeposit(addr []byte, value *util.Uint128) error {
+	depositBytes, err := block.depositTrie.Get(addr)
+	deposit := util.NewUint128()
+	if depositBytes != nil {
+		deposit, err = util.NewUint128FromFixedSizeByteSlice(depositBytes)
+		if err != nil {
+			return err
+		}
+	}
+	deposit.Add(deposit.Int, value.Int)
+	depositBytes, err = deposit.ToFixedSizeByteSlice()
+	if err != nil {
+		return err
+	}
+	_, err = block.depositTrie.Put(addr, depositBytes)
+	log.WithFields(log.Fields{
+		"func":  "Block.SubDeposit",
+		"addr":  byteutils.Hex(addr),
+		"value": value.Int64(),
+	}).Info("add deposit")
+	return err
+}
+
+// TODO(roy): if no enough deposit, kick out the validator
+func (block *Block) subDeposit(addr []byte, value *util.Uint128) error {
+	depositBytes, _ := block.depositTrie.Get(addr)
+	if depositBytes != nil {
+		deposit, err := util.NewUint128FromFixedSizeByteSlice(depositBytes)
+		if err != nil {
+			return err
+		}
+		if deposit.Cmp(value.Int) < 0 {
+			return ErrInsufficientBalance
+		}
+		deposit.Sub(deposit.Int, value.Int)
+		depositBytes, err = deposit.ToFixedSizeByteSlice()
+		if err != nil {
+			return err
+		}
+		_, err = block.depositTrie.Put(addr, depositBytes)
+		if err != nil {
+			return err
+		}
+	}
+	log.WithFields(log.Fields{
+		"func":  "Block.SubDeposit",
+		"addr":  byteutils.Hex(addr),
+		"value": value.Int64(),
+	}).Info("sub deposit")
+	return nil
+}
+
+func (block *Block) chargeCurrentValidators() error {
+	validators, err := traverseValidators(block.validatorsTrie, block.CurDynastyRoot())
+	if err != nil {
+		return err
+	}
+	for _, v := range validators {
+		err := block.subDeposit(v, VoteBlockReward)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // NextBlockSortedValidators return the sorted validators who will propose and vote the next block

@@ -23,11 +23,11 @@ import (
 	"errors"
 
 	"github.com/nebulasio/go-nebulas/common/trie"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/nebulasio/go-nebulas/storage"
 	"github.com/nebulasio/go-nebulas/util"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
-	log "github.com/sirupsen/logrus"
 )
 
 // Action types
@@ -49,8 +49,7 @@ var (
 )
 
 var (
-	vote   = []byte{1}
-	reward = util.NewUint128FromInt(4000)
+	vote = []byte{1}
 )
 
 // VotePayload carry vote information
@@ -151,7 +150,7 @@ func buildVoteContext(from []byte, votedBlockHash byteutils.Hash, packedBlock *B
 	if err != nil {
 		return nil, err
 	}
-	validators, err := votedBlock.NextBlockSortedValidators()
+	validators, err := votedBlockParent.NextBlockSortedValidators()
 	if err != nil {
 		return nil, err
 	}
@@ -193,6 +192,10 @@ func (payload *VotePayload) slash(ctx *voteContext) error {
 	if _, err = ctx.PackedBlock.depositTrie.Del(ctx.Voter); err != nil {
 		return err
 	}
+	key := append(ctx.DynastyTrie.RootHash(), ctx.Voter...)
+	if _, err = ctx.PackedBlock.validatorsTrie.Del(key); err != nil {
+		return err
+	}
 	validators, err := traverseValidators(ctx.PackedBlock.validatorsTrie, ctx.DynastyTrie.RootHash())
 	if err != nil {
 		return err
@@ -204,12 +207,10 @@ func (payload *VotePayload) slash(ctx *voteContext) error {
 	minerReward := util.NewUint128FromBigInt(deposit.Sub(deposit.Int, diff))
 	packedBlock := ctx.PackedBlock
 	for _, v := range validators {
-		if !v.Equals(ctx.Voter) {
-			packedBlock.accState.GetOrCreateUserAccount(v).AddBalance(averDynastyReward)
-		}
+		packedBlock.addDeposit(v, averDynastyReward)
 	}
 	coinbase := packedBlock.Coinbase().Bytes()
-	packedBlock.accState.GetOrCreateUserAccount(coinbase).AddBalance(minerReward)
+	packedBlock.addDeposit(coinbase, minerReward)
 	return nil
 }
 
@@ -225,7 +226,7 @@ func (payload *VotePayload) prepare(from []byte, packedBlock *Block) error {
 	if err != nil {
 		return err
 	}
-	if payload.ViewHeight > payload.CurrentHeight {
+	if payload.ViewHeight >= payload.CurrentHeight {
 		return ErrInvalidPrepareBiggerViewHeight
 	}
 	if ctx != nil {
@@ -240,32 +241,34 @@ func (payload *VotePayload) prepare(from []byte, packedBlock *Block) error {
 			return payload.slash(ctx)
 		}
 		// 1. cannot Prepare(B,CH,VH) before V’s prepare votes > 2/3 * MaxVotes
-		curBlock := ctx.VotedBlock
-		for curBlock.Height() > payload.ViewHeight {
-			curBlock, err = curBlock.ParentBlock()
+		if payload.ViewHeight > 1 {
+			curBlock := ctx.VotedBlock
+			for curBlock.Height() > payload.ViewHeight {
+				curBlock, err = curBlock.ParentBlock()
+				if err != nil {
+					return err
+				}
+			}
+			maxVotes, err := countValidators(curBlock.curDynastyTrie, nil)
 			if err != nil {
 				return err
 			}
-		}
-		maxVotes, err := countValidators(curBlock.curDynastyTrie, nil)
-		if err != nil {
-			return err
-		}
-		viewPrepareVotes, err := countValidators(packedBlock.prepareVotesTrie, curBlock.Hash())
-		if err != nil {
-			return err
-		}
-		if viewPrepareVotes <= 2/3*maxVotes {
-			log.WithFields(log.Fields{
-				"func":                  "VotePayload.prepare",
-				"BlockHash":             payload.Hash,
-				"CurrentHeight":         payload.CurrentHeight,
-				"ViewHeight":            payload.ViewHeight,
-				"ViewHash":              curBlock.Hash(),
-				"ViewBlockPrepareVotes": viewPrepareVotes,
-				"MaxVotes":              maxVotes,
-			}).Error("Slash, Prepare(B,CH,VH) before view block's prepare votes > 2/3 * MaxVotes.")
-			return payload.slash(ctx)
+			viewPrepareVotes, err := countValidators(packedBlock.prepareVotesTrie, curBlock.Hash())
+			if err != nil {
+				return err
+			}
+			if viewPrepareVotes <= maxVotes*2/3 {
+				log.WithFields(log.Fields{
+					"func":                  "VotePayload.prepare",
+					"BlockHash":             payload.Hash,
+					"CurrentHeight":         payload.CurrentHeight,
+					"ViewHeight":            payload.ViewHeight,
+					"ViewHash":              curBlock.Hash(),
+					"ViewBlockPrepareVotes": viewPrepareVotes,
+					"MaxVotes":              maxVotes,
+				}).Error("Slash, Prepare(B,CH,VH) before view block's prepare votes > 2/3 * MaxVotes.")
+				return payload.slash(ctx)
+			}
 		}
 		// 2. if B' is B's child & B' is created by Proposer(N) after B, cannot Prepare(B',CH,VH) after Change(B, N)
 		changeKey := append(ctx.VotedBlock.ParentHash(), from...)
@@ -329,6 +332,15 @@ func (payload *VotePayload) prepare(from []byte, packedBlock *Block) error {
 			return err
 		}
 	}
+	if ctx != nil {
+		packedBlock.addDeposit(from, VoteBlockReward)
+	}
+
+	log.WithFields(log.Fields{
+		"func":      "VotePayload.prepare",
+		"BlockHash": payload.Hash,
+		"Height":    payload.CurrentHeight,
+	}).Info("prepare vote")
 	return nil
 }
 
@@ -341,8 +353,8 @@ func (payload *VotePayload) commit(from []byte, packedBlock *Block) error {
 	}
 	// check slash rule
 	key := append(payload.Hash, from...)
-	bytes, err := packedBlock.prepareVotesTrie.Get(key)
-	if bytes != nil && ctx != nil {
+	_, err = packedBlock.prepareVotesTrie.Get(key)
+	if err == storage.ErrKeyNotFound && ctx != nil {
 		log.WithFields(log.Fields{
 			"func":           "VotePayload.commit",
 			"VotedBlockHash": payload.Hash,
@@ -356,6 +368,9 @@ func (payload *VotePayload) commit(from []byte, packedBlock *Block) error {
 	_, err = packedBlock.commitVotesTrie.Put(key, vote)
 	if err != nil {
 		return err
+	}
+	if ctx != nil {
+		packedBlock.addDeposit(from, VoteBlockReward)
 	}
 	// check finality reward
 	if ctx != nil {
@@ -372,13 +387,16 @@ func (payload *VotePayload) commit(from []byte, packedBlock *Block) error {
 			if err != nil {
 				return err
 			}
-			size := util.NewUint128FromInt(int64(len(validators)))
-			averDynastyReward := util.NewUint128FromBigInt(reward.Div(reward.Int, size.Int))
 			for _, v := range validators {
-				packedBlock.accState.GetOrCreateUserAccount(v).AddBalance(averDynastyReward)
+				packedBlock.addDeposit(v, FinalityBlockReward)
 			}
 		}
 	}
+
+	log.WithFields(log.Fields{
+		"func":      "VotePayload.commit",
+		"BlockHash": payload.Hash,
+	}).Info("commit vote")
 	return nil
 }
 
@@ -392,12 +410,11 @@ func (payload *VotePayload) change(from []byte, packedBlock *Block) error {
 	// check N is increasing
 	key := append(payload.Hash, from...)
 	nBytes, err := packedBlock.changeVotesTrie.Get(key)
-	if err != nil {
-		return err
-	}
-	n := byteutils.Uint32(nBytes)
-	if n >= payload.Times {
-		return ErrInvalidChangeSmallerN
+	if nBytes != nil {
+		n := byteutils.Uint32(nBytes)
+		if n >= payload.Times {
+			return ErrInvalidChangeSmallerN
+		}
 	}
 	// check slash rules
 	if ctx != nil && payload.Times > 1 {

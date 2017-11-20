@@ -48,7 +48,7 @@ var (
 // Deposit & Withdraw Expiration
 var (
 	WithdrawExpireBlocks = 1000
-	StandardDeposit      = util.NewUint128FromInt(4000)
+	StandardDeposit      = util.NewUint128FromInt(40000)
 )
 
 // ElectPayload carry election information
@@ -91,9 +91,8 @@ func (payload *ElectPayload) calDiffBetweenCurrentAndStandardDeposit(from []byte
 				"func":     "ElectPayload.Execute",
 				"from":     from,
 				"original": current.Int64(),
-				"standard": diff.Int64(),
-			}).Error("charged too many deposit")
-			return nil, ErrChargeTooManyDeposit
+			}).Info("deposit is enough")
+			return nil, nil
 		}
 		diff.Sub(diff.Int, current.Int)
 		log.WithFields(log.Fields{
@@ -127,17 +126,14 @@ func (payload *ElectPayload) login(from []byte, block *Block) error {
 	if err != nil {
 		return err
 	}
-	account := block.accState.GetOrCreateUserAccount(from)
-	if account.Balance().Cmp(diff.Int) < 0 {
-		return ErrInsufficientBalance
-	}
-	account.SubBalance(diff)
-	bytes, err := StandardDeposit.ToFixedSizeByteSlice()
-	if err != nil {
-		return err
-	}
-	if _, err = block.depositTrie.Put(from, bytes); err != nil {
-		return err
+	if diff != nil {
+		account := block.accState.GetOrCreateUserAccount(from)
+		if err := account.SubBalance(diff); err != nil {
+			return ErrInsufficientBalance
+		}
+		if err = block.addDeposit(from, diff); err != nil {
+			return err
+		}
 	}
 	if _, err = block.dynastyCandidatesTrie.Put(from, from); err != nil {
 		return err
