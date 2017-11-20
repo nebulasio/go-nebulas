@@ -383,21 +383,6 @@ func (block *Block) checkDynastyRule() (bool, error) {
 	return block.checkDynastyRuleTooFewValidators()
 }
 
-// ParentBlock return the parent block
-func (block *Block) ParentBlock() (*Block, error) {
-	if CheckGenesisBlock(block) {
-		return nil, ErrGenesisHasNoParent
-	}
-	if block.parentBlock == nil {
-		parentBlock, err := LoadBlockFromStorage(block.ParentHash(), block.storage, block.txPool)
-		if err != nil {
-			return nil, err
-		}
-		block.parentBlock = parentBlock
-	}
-	return block.parentBlock, nil
-}
-
 // dynasty rule: epoch over, create > 100 blocks
 func (block *Block) checkDynastyRuleEpochOver() (bool, error) {
 	var err error
@@ -457,6 +442,21 @@ func (block *Block) changeDynasty() {
 			count++
 		}
 	}
+}
+
+// ParentBlock return the parent block
+func (block *Block) ParentBlock() (*Block, error) {
+	if CheckGenesisBlock(block) {
+		return nil, ErrGenesisHasNoParent
+	}
+	if block.parentBlock == nil {
+		parentBlock, err := LoadBlockFromStorage(block.ParentHash(), block.storage, block.txPool)
+		if err != nil {
+			return nil, err
+		}
+		block.parentBlock = parentBlock
+	}
+	return block.parentBlock, nil
 }
 
 // Coinbase return block's coinbase
@@ -1022,4 +1022,9 @@ func LoadBlockFromStorage(hash byteutils.Hash, storage storage.Storage, txPool *
 	block.storage = storage
 	block.sealed = true
 	return block, nil
+}
+
+// EraseBlockFromStorage remove a block from local storage
+func EraseBlockFromStorage(block *Block) error {
+	return block.storage.Del(block.Hash())
 }

@@ -40,28 +40,32 @@ const (
 
 // Errors constants
 var (
-	ErrInvalidVoteAction             = errors.New("invalid vote action")
-	ErrDupVoteAction                 = errors.New("different vote, but same action")
-	ErrCommitBeforePrepare           = errors.New("cannot commit before prepare a block")
-	ErrInvalidVotedBlock             = errors.New("cannot vote for a block which isn't created by validators")
-	ErrInvalidBlockFromNonValidators = errors.New("invalid block created by non-validators")
-	ErrInvalidVoterNotAcitve         = errors.New("invalid voter, not in current active validators set")
+	ErrInvalidVoteAction              = errors.New("invalid vote action")
+	ErrInvalidVotedBlock              = errors.New("cannot vote for a block which isn't created by validators")
+	ErrInvalidBlockFromNonValidators  = errors.New("invalid block created by non-validators")
+	ErrInvalidVoterNotAcitve          = errors.New("invalid voter, not in current active validators set")
+	ErrInvalidChangeSmallerN          = errors.New("invalid change vote, pls vote for a bigger N on a same block")
+	ErrInvalidPrepareBiggerViewHeight = errors.New("invalid prepare vote, view height should be smaller than current height")
 )
 
 var (
-	vote = []byte{1}
+	vote   = []byte{1}
+	reward = util.NewUint128FromInt(4000)
 )
 
 // VotePayload carry vote information
-// 1. action: prepare, block: current block hash, view: based block hash
-// 2. action: commit, block: current block hash
-// 3. action: change, block: parent block, times: change times
-// 4. action: abdicate, block: parent block
+// 1. Action: prepare, Hash: voted block hash,
+//    CurrentHeight: voted block height,
+//    ViewHeight: view block height.
+// 2. Action: commit, Hash: voted block hash
+// 3. Action: change, Hash: voted block hash, Times: change times
+// 4. Action: abdicate, Hash: voted dynasty root hash
 type VotePayload struct {
-	Action    string
-	BlockHash byteutils.Hash
-	ViewHash  byteutils.Hash
-	Times     uint32
+	Action        string
+	Hash          byteutils.Hash
+	CurrentHeight uint64
+	ViewHeight    uint64
+	Times         uint32
 }
 
 // LoadVotePayload from bytes
@@ -74,36 +78,38 @@ func LoadVotePayload(bytes []byte) (*VotePayload, error) {
 }
 
 // NewPrepareVotePayload create a new prepare vote payload
-func NewPrepareVotePayload(action string, block byteutils.Hash, view byteutils.Hash) *VotePayload {
+func NewPrepareVotePayload(action string, votedBlockHash byteutils.Hash,
+	currentHeight uint64, viewHeight uint64) *VotePayload {
 	return &VotePayload{
-		Action:    action,
-		BlockHash: block,
-		ViewHash:  view,
+		Action:        action,
+		Hash:          votedBlockHash,
+		CurrentHeight: currentHeight,
+		ViewHeight:    viewHeight,
 	}
 }
 
 // NewCommitVotePayload create a new commit vote payload
-func NewCommitVotePayload(action string, block byteutils.Hash) *VotePayload {
+func NewCommitVotePayload(action string, votedBlockHash byteutils.Hash) *VotePayload {
 	return &VotePayload{
-		Action:    action,
-		BlockHash: block,
+		Action: action,
+		Hash:   votedBlockHash,
 	}
 }
 
 // NewChangeVotePayload create a new change vote payload
-func NewChangeVotePayload(action string, block byteutils.Hash, times uint32) *VotePayload {
+func NewChangeVotePayload(action string, votedBlockHash byteutils.Hash, times uint32) *VotePayload {
 	return &VotePayload{
-		Action:    action,
-		BlockHash: block,
-		Times:     times,
+		Action: action,
+		Hash:   votedBlockHash,
+		Times:  times,
 	}
 }
 
 // NewAbdicateVotePayload create a new abdicate vote payload
-func NewAbdicateVotePayload(action string, block byteutils.Hash) *VotePayload {
+func NewAbdicateVotePayload(action string, dynastyRootHash byteutils.Hash) *VotePayload {
 	return &VotePayload{
-		Action:    action,
-		BlockHash: block,
+		Action: action,
+		Hash:   dynastyRootHash,
 	}
 }
 
@@ -113,31 +119,39 @@ func (payload *VotePayload) ToBytes() ([]byte, error) {
 }
 
 type voteContext struct {
-	Voter             byteutils.Hash
-	ProposerIndex     int
-	VotedBlock        *Block
-	VotedBlockParent  *Block
-	PackedBlock       *Block
-	RewardDynastyTrie *trie.BatchTrie
+	Voter         byteutils.Hash
+	ProposerIndex int
+	VotedBlock    *Block
+	PackedBlock   *Block
+	DynastyTrie   *trie.BatchTrie
 }
 
 // block is valid, created by validators
 // voter is valid, in validators
-// vote is valid, not dup
-// return ctx, nil. valid. voter is the proposer at position N.
-// return nil, err. invalid.
-func (payload *VotePayload) checkVoteValid(from []byte, packedBlock *Block) (*voteContext, error) {
+func buildVoteContext(from []byte, votedBlockHash byteutils.Hash, packedBlock *Block) (*voteContext, error) {
 	index := -1
-	votedBlock, err := LoadBlockFromStorage(payload.BlockHash, packedBlock.storage, packedBlock.txPool)
+	votedBlock, err := LoadBlockFromStorage(votedBlockHash, packedBlock.storage, packedBlock.txPool)
 	if err != nil {
-		return nil, err
+		log.WithFields(log.Fields{
+			"func":           "VotePayload.buildVoteContext",
+			"VotedBlockHash": votedBlockHash,
+		}).Warn("cannot find the voted block in canonical chain.")
+		return nil, nil
 	}
 	votedBlockParent, err := LoadBlockFromStorage(votedBlock.ParentHash(), votedBlock.storage, votedBlock.txPool)
 	if err != nil {
 		return nil, err
 	}
 	// check block & voter valid
-	validators, err := votedBlockParent.NextBlockSortedValidators()
+	dynastyRoot, err := votedBlockParent.NextBlockDynastyRoot()
+	if err != nil {
+		return nil, err
+	}
+	dynastyTrie, err := trie.NewBatchTrie(dynastyRoot, packedBlock.storage)
+	if err != nil {
+		return nil, err
+	}
+	validators, err := votedBlock.NextBlockSortedValidators()
 	if err != nil {
 		return nil, err
 	}
@@ -158,76 +172,17 @@ func (payload *VotePayload) checkVoteValid(from []byte, packedBlock *Block) (*vo
 	if !validVoter {
 		return nil, ErrInvalidVoterNotAcitve
 	}
-	// check dup action
-	var voteTrie *trie.BatchTrie
-	var key byteutils.Hash
-	switch payload.Action {
-	case PrepareAction:
-		key = append(payload.BlockHash, from...)
-		voteTrie = packedBlock.prepareVotesTrie
-	case CommitAction:
-		key = append(payload.BlockHash, from...)
-		voteTrie = packedBlock.commitVotesTrie
-	case ChangeAction:
-		key = append(payload.BlockHash, byteutils.FromUint32(payload.Times)...)
-		key = append(key, from...)
-		voteTrie = packedBlock.changeVotesTrie
-	case AbdicateAction:
-		key = append(votedBlock.CurDynastyRoot(), from...)
-		voteTrie = packedBlock.abdicateVotesTrie
-	default:
-		return nil, ErrInvalidVoteAction
-	}
-	_, err = voteTrie.Get(key)
-	if err == nil {
-		return nil, ErrDupVoteAction
-	}
-	if err != storage.ErrKeyNotFound {
-		return nil, err
-	}
 	return &voteContext{
-		Voter:            from,
-		ProposerIndex:    index,
-		VotedBlock:       votedBlock,
-		VotedBlockParent: votedBlockParent,
-		PackedBlock:      packedBlock,
+		Voter:         from,
+		ProposerIndex: index,
+		VotedBlock:    votedBlock,
+		DynastyTrie:   dynastyTrie,
+		PackedBlock:   packedBlock,
 	}, nil
 }
 
-// prove there is a chain from the ancestor block to the given block
-// return nil, err. invalid tx.
-// return nil, nil. cannot find the chain.
-// return result, nil. find the chain.
-// chain. given block -> ... -> ancestor block -> ancestor block hash
-func proveAncestorOfBlock(ancestorHash byteutils.Hash, blockHash byteutils.Hash, miner *Block) ([]*Block, error) {
-	result := []*Block{}
-	ans, err := LoadBlockFromStorage(ancestorHash, miner.storage, miner.txPool)
-	if err != nil {
-		return nil, err
-	}
-	cur, err := LoadBlockFromStorage(blockHash, miner.storage, miner.txPool)
-	if err != nil {
-		return nil, err
-	}
-	if ans.Height() > cur.Height() {
-		return nil, nil
-	}
-	result = append(result, cur)
-	for ans.Height() < cur.Height() {
-		cur, err = LoadBlockFromStorage(cur.ParentHash(), miner.storage, miner.txPool)
-		if err != nil {
-			return nil, err
-		}
-		result = append(result, cur)
-	}
-	if ans.Hash().Equals(cur.Hash()) {
-		return result, nil
-	}
-	return nil, nil
-}
-
-func (payload *VotePayload) slash(voteCtx *voteContext) error {
-	depositBytes, err := voteCtx.PackedBlock.depositTrie.Get(voteCtx.Voter)
+func (payload *VotePayload) slash(ctx *voteContext) error {
+	depositBytes, err := ctx.PackedBlock.depositTrie.Get(ctx.Voter)
 	if err != nil {
 		return err
 	}
@@ -235,10 +190,10 @@ func (payload *VotePayload) slash(voteCtx *voteContext) error {
 	if err != nil {
 		return err
 	}
-	if _, err = voteCtx.PackedBlock.depositTrie.Del(voteCtx.Voter); err != nil {
+	if _, err = ctx.PackedBlock.depositTrie.Del(ctx.Voter); err != nil {
 		return err
 	}
-	validators, err := traverseValidators(voteCtx.PackedBlock.validatorsTrie, voteCtx.RewardDynastyTrie.RootHash())
+	validators, err := traverseValidators(ctx.PackedBlock.validatorsTrie, ctx.DynastyTrie.RootHash())
 	if err != nil {
 		return err
 	}
@@ -247,9 +202,9 @@ func (payload *VotePayload) slash(voteCtx *voteContext) error {
 	averDynastyReward := util.NewUint128FromBigInt(deposit.Div(deposit.Int, size.Int))
 	diff := averDynastyReward.Mul(averDynastyReward.Int, size.Sub(size.Int, one.Int))
 	minerReward := util.NewUint128FromBigInt(deposit.Sub(deposit.Int, diff))
-	packedBlock := voteCtx.PackedBlock
+	packedBlock := ctx.PackedBlock
 	for _, v := range validators {
-		if !v.Equals(voteCtx.Voter) {
+		if !v.Equals(ctx.Voter) {
 			packedBlock.accState.GetOrCreateUserAccount(v).AddBalance(averDynastyReward)
 		}
 	}
@@ -259,111 +214,118 @@ func (payload *VotePayload) slash(voteCtx *voteContext) error {
 }
 
 // check slashing rule
-// 0. V must be B's ancestor in Prepare(B, V)
-// 1. cannot Prepare(B,V) before V’s prepare votes > 2/3 * MaxVotes
-// 2. if V.height < B'.height < B.height, cannot Prepare(B’,V’) after Prepare(B,V)
-// 3. if B1 != B2 but B1.height == B2.height, cannot Prepare(B1, V1) after Prepare(B2, V2)
-// 4. if B' is B's child & B' is created by Proposer(N) after B, cannot Prepare(B', V) after Change(B, N)
-// 5. if B belongs to Dynasty D, cannot Prepare in D any more after Abdicate(B)
-func (payload *VotePayload) prepare(voteCtx *voteContext) error {
-	// 0
-	chain, err := proveAncestorOfBlock(payload.ViewHash, payload.BlockHash, voteCtx.PackedBlock)
+// 0. cannot Prepare(B,CH,VH) while B.height() != CH
+// 1. cannot Prepare(B,CH,VH) before V’s prepare votes > 2/3 * MaxVotes
+// 2. if B' is B's child & B' is created by Proposer(N) after B, cannot Prepare(B',CH,VH) after Change(B, N)
+// 3. if B belongs to Dynasty D, cannot Prepare in D any more after Abdicate(B)
+// 4. if V.height < B'.height < B.height, cannot Prepare(B’,V’) after Prepare(B,V)
+// 5. if B1 != B2 but B1.height == B2.height, cannot Prepare(B1, V1) after Prepare(B2, V2)
+func (payload *VotePayload) prepare(from []byte, packedBlock *Block) error {
+	ctx, err := buildVoteContext(from, payload.Hash, packedBlock)
 	if err != nil {
 		return err
 	}
-	if chain == nil {
-		log.WithFields(log.Fields{
-			"func":      "VotePayload.prepare",
-			"BlockHash": payload.BlockHash.Hex(),
-			"ViewHash":  payload.ViewHash.Hex(),
-		}).Warn("Slash, Cannot find a chain from ViewHash to BlockHash.")
-		return payload.slash(voteCtx)
+	if payload.ViewHeight > payload.CurrentHeight {
+		return ErrInvalidPrepareBiggerViewHeight
 	}
-	// 1
-	votedBlock := chain[0]
-	voteCtx.RewardDynastyTrie = voteCtx.VotedBlock.curDynastyTrie
-	maxVotes, err := countValidators(votedBlock.curDynastyTrie, nil)
-	if err != nil {
-		return err
-	}
-	viewPrepareVotes, err := countValidators(voteCtx.PackedBlock.prepareVotesTrie, payload.ViewHash)
-	if err != nil {
-		return err
-	}
-	if viewPrepareVotes < 2/3*maxVotes {
-		log.WithFields(log.Fields{
-			"func":       "VotePayload.prepare",
-			"BlockHash":  payload.BlockHash.Hex(),
-			"ViewHash":   payload.ViewHash.Hex(),
-			"Prepare(V)": viewPrepareVotes,
-			"MaxVotes":   maxVotes,
-		}).Error("Slash, Prepare(B,V) before V’s prepare votes > 2/3 * MaxVotes.")
-		return payload.slash(voteCtx)
-	}
-	// 2 and 3
-	height := byteutils.FromUint64(votedBlock.Height())
-	heightKey := append(height, voteCtx.Voter...)
-	_, err = voteCtx.PackedBlock.heightPrepareVotesTrie.Get(heightKey)
-	if err == nil {
-		log.WithFields(log.Fields{
-			"func":      "VotePayload.prepare",
-			"BlockHash": payload.BlockHash.Hex(),
-			"ViewHash":  payload.ViewHash.Hex(),
-			"Height":    chain[0].Height(),
-		}).Error(`Slash, V.height < B'.height < B.height, Prepare(B’,V’) after Prepare(B,V); 
-		B1 != B2 but B1.height == B2.height, cannot Prepare(B1, V1) after Prepare(B2, V2)`)
-		return payload.slash(voteCtx)
-	}
-	if err != storage.ErrKeyNotFound {
-		return err
-	}
-	// 4
-	changeKey := append(voteCtx.VotedBlockParent.Hash(), voteCtx.Voter...)
-	nBytes, err := voteCtx.PackedBlock.changeVotesTrie.Get(changeKey)
-	if err == nil {
-		n := byteutils.Uint32(nBytes)
-		if int(n) >= voteCtx.ProposerIndex {
+	if ctx != nil {
+		// 0. cannot Prepare(B,CH,VH) while B.height() != CH
+		if ctx.VotedBlock.Height() != payload.CurrentHeight {
 			log.WithFields(log.Fields{
 				"func":          "VotePayload.prepare",
-				"BlockHash":     payload.BlockHash.Hex(),
-				"ViewHash":      payload.ViewHash.Hex(),
-				"N":             n,
-				"ProposerIndex": voteCtx.ProposerIndex,
-			}).Error("Slash,  Parent(B2) = B1 and B2 is created by Proposer(N), Prepare(B2, V) after Change(B1, N).")
-			return payload.slash(voteCtx)
+				"BlockHash":     payload.Hash,
+				"BlockHeight":   ctx.VotedBlock.Height(),
+				"CurrentHeight": payload.CurrentHeight,
+			}).Error("Slash, Cannot Prepare(B,CH,VH) while B.Height() != CH.")
+			return payload.slash(ctx)
+		}
+		// 1. cannot Prepare(B,CH,VH) before V’s prepare votes > 2/3 * MaxVotes
+		curBlock := ctx.VotedBlock
+		for curBlock.Height() > payload.ViewHeight {
+			curBlock, err = curBlock.ParentBlock()
+			if err != nil {
+				return err
+			}
+		}
+		maxVotes, err := countValidators(curBlock.curDynastyTrie, nil)
+		if err != nil {
+			return err
+		}
+		viewPrepareVotes, err := countValidators(packedBlock.prepareVotesTrie, curBlock.Hash())
+		if err != nil {
+			return err
+		}
+		if viewPrepareVotes <= 2/3*maxVotes {
+			log.WithFields(log.Fields{
+				"func":                  "VotePayload.prepare",
+				"BlockHash":             payload.Hash,
+				"CurrentHeight":         payload.CurrentHeight,
+				"ViewHeight":            payload.ViewHeight,
+				"ViewHash":              curBlock.Hash(),
+				"ViewBlockPrepareVotes": viewPrepareVotes,
+				"MaxVotes":              maxVotes,
+			}).Error("Slash, Prepare(B,CH,VH) before view block's prepare votes > 2/3 * MaxVotes.")
+			return payload.slash(ctx)
+		}
+		// 2. if B' is B's child & B' is created by Proposer(N) after B, cannot Prepare(B',CH,VH) after Change(B, N)
+		changeKey := append(ctx.VotedBlock.ParentHash(), from...)
+		bytes, err := packedBlock.changeVotesTrie.Get(changeKey)
+		if bytes != nil {
+			changeN := byteutils.Uint32(bytes)
+			if int(changeN) >= ctx.ProposerIndex {
+				log.WithFields(log.Fields{
+					"func":          "VotePayload.prepare",
+					"BlockHash":     payload.Hash,
+					"ChangeN":       changeN,
+					"ProposerIndex": ctx.ProposerIndex,
+				}).Error("Slash,  Parent(B2) = B1 and B2 is created by Proposer(N), Prepare(B2, CH2, VH2) after Change(B1, CH1, VH1).")
+				return payload.slash(ctx)
+			}
+		}
+		if err != storage.ErrKeyNotFound {
+			return err
+		}
+		// 3. if B belongs to Dynasty D, cannot Prepare in D any more after Abdicate(B)
+		abdicateKey := append(ctx.VotedBlock.CurDynastyRoot(), from...)
+		bytes, err = packedBlock.abdicateVotesTrie.Get(abdicateKey)
+		if bytes != nil {
+			log.WithFields(log.Fields{
+				"func":        "VotePayload.prepare",
+				"BlockHash":   payload.Hash,
+				"DynastyHash": ctx.VotedBlock.CurDynastyRoot(),
+			}).Error("Slash,  B belongs to Dynasty D, cannot Prepare in D any more after Abdicate(B).")
+			return payload.slash(ctx)
+		}
+		if err != storage.ErrKeyNotFound {
+			return err
 		}
 	}
-	if err != storage.ErrKeyNotFound {
-		return err
-	}
-	// 5
-	dynastyRoot, err := voteCtx.VotedBlockParent.NextBlockDynastyRoot()
-	if err != nil {
-		return err
-	}
-	abdicateKey := append(dynastyRoot, voteCtx.Voter...)
-	_, err = voteCtx.PackedBlock.abdicateVotesTrie.Get(abdicateKey)
-	if err == nil {
+	// 4 and 5
+	height := byteutils.FromUint64(payload.CurrentHeight)
+	heightKey := append(height, from...)
+	bytes, err := packedBlock.heightPrepareVotesTrie.Get(heightKey)
+	if bytes != nil {
 		log.WithFields(log.Fields{
-			"func":      "VotePayload.prepare",
-			"BlockHash": payload.BlockHash.Hex(),
-			"ViewHash":  payload.ViewHash.Hex(),
-		}).Error("Slash,  B belongs to Dynasty D, cannot Prepare in D any more after Abdicate(B).")
-		return payload.slash(voteCtx)
+			"func":          "VotePayload.prepare",
+			"BlockHash":     payload.Hash,
+			"CurrentHeight": payload.CurrentHeight,
+		}).Error(`Slash, V.height < B'.height < B.height, Prepare(B’,V’) after Prepare(B,V); 
+		B1 != B2 but B1.height == B2.height, cannot Prepare(B1, V1) after Prepare(B2, V2)`)
+		return payload.slash(ctx)
 	}
 	if err != storage.ErrKeyNotFound {
 		return err
 	}
 
-	// valid
-	prepareKey := append(voteCtx.PackedBlock.Hash(), voteCtx.Voter...)
-	if _, err = voteCtx.PackedBlock.prepareVotesTrie.Put(prepareKey, vote); err != nil {
+	// record vote
+	prepareKey := append(payload.Hash, from...)
+	if _, err = packedBlock.prepareVotesTrie.Put(prepareKey, vote); err != nil {
 		return err
 	}
-	for _, v := range chain {
-		height := byteutils.FromUint64(v.Height())
-		heightKey = append(height, voteCtx.Voter...)
-		if _, err = voteCtx.PackedBlock.heightPrepareVotesTrie.Put(heightKey, vote); err != nil {
+	for i := payload.ViewHeight; i <= payload.CurrentHeight; i++ {
+		height := byteutils.FromUint64(i)
+		heightKey = append(height, from...)
+		if _, err = packedBlock.heightPrepareVotesTrie.Put(heightKey, vote); err != nil {
 			return err
 		}
 	}
@@ -371,31 +333,75 @@ func (payload *VotePayload) prepare(voteCtx *voteContext) error {
 }
 
 // check slashing rule
-// 1. cannot Commit(B) before Prepare(B, V)
-func (payload *VotePayload) commit(voteCtx *voteContext) error {
-	key := append(voteCtx.VotedBlock.Hash(), voteCtx.Voter...)
-	_, err := voteCtx.PackedBlock.prepareVotesTrie.Get(key)
-	if err == nil {
-		_, err = voteCtx.PackedBlock.commitVotesTrie.Put(key, vote)
+// 1. cannot Commit(B) before Prepare(B, CH, VH)
+func (payload *VotePayload) commit(from []byte, packedBlock *Block) error {
+	ctx, err := buildVoteContext(from, payload.Hash, packedBlock)
+	if err != nil {
 		return err
 	}
-	if err != storage.ErrKeyNotFound {
+	// check slash rule
+	key := append(payload.Hash, from...)
+	bytes, err := packedBlock.prepareVotesTrie.Get(key)
+	if bytes != nil && ctx != nil {
+		log.WithFields(log.Fields{
+			"func":           "VotePayload.commit",
+			"VotedBlockHash": payload.Hash,
+		}).Error("Slash, Commit(B) before Prepare(B, CH, VH).")
+		return payload.slash(ctx)
+	}
+	if err != nil {
 		return err
 	}
-	log.WithFields(log.Fields{
-		"func":      "VotePayload.commit",
-		"BlockHash": payload.BlockHash.Hex(),
-	}).Error("Slash, Commit(B) before Prepare(B, V).")
-	voteCtx.RewardDynastyTrie = voteCtx.VotedBlock.curDynastyTrie
-	return payload.slash(voteCtx)
+	// record vote
+	_, err = packedBlock.commitVotesTrie.Put(key, vote)
+	if err != nil {
+		return err
+	}
+	// check finality reward
+	if ctx != nil {
+		n, err := countValidators(packedBlock.commitVotesTrie, payload.Hash)
+		if err != nil {
+			return err
+		}
+		maxVotes, err := countValidators(ctx.VotedBlock.curDynastyTrie, nil)
+		if err != nil {
+			return err
+		}
+		if n-1 <= maxVotes*2/3 && n > maxVotes*2/3 {
+			validators, err := traverseValidators(packedBlock.validatorsTrie, ctx.VotedBlock.CurDynastyRoot())
+			if err != nil {
+				return err
+			}
+			size := util.NewUint128FromInt(int64(len(validators)))
+			averDynastyReward := util.NewUint128FromBigInt(reward.Div(reward.Int, size.Int))
+			for _, v := range validators {
+				packedBlock.accState.GetOrCreateUserAccount(v).AddBalance(averDynastyReward)
+			}
+		}
+	}
+	return nil
 }
 
 // check slashing rule
 // 1. cannot Change(B, N+1) before Change(B, N) > 2/3 * MaxVotes
-func (payload *VotePayload) change(voteCtx *voteContext) error {
-	if payload.Times > 1 {
-		prefix := voteCtx.VotedBlockParent.Hash()
-		iter, err := voteCtx.PackedBlock.changeVotesTrie.Iterator(prefix)
+func (payload *VotePayload) change(from []byte, packedBlock *Block) error {
+	ctx, err := buildVoteContext(from, payload.Hash, packedBlock)
+	if err != nil {
+		return err
+	}
+	// check N is increasing
+	key := append(payload.Hash, from...)
+	nBytes, err := packedBlock.changeVotesTrie.Get(key)
+	if err != nil {
+		return err
+	}
+	n := byteutils.Uint32(nBytes)
+	if n >= payload.Times {
+		return ErrInvalidChangeSmallerN
+	}
+	// check slash rules
+	if ctx != nil && payload.Times > 1 {
+		iter, err := packedBlock.changeVotesTrie.Iterator(payload.Hash)
 		if err != nil {
 			return err
 		}
@@ -405,51 +411,53 @@ func (payload *VotePayload) change(voteCtx *voteContext) error {
 				changeVotes++
 			}
 		}
-		maxVotes, err := countValidators(voteCtx.RewardDynastyTrie, nil)
+		maxVotes, err := countValidators(ctx.DynastyTrie, nil)
 		if err != nil {
 			return err
 		}
 		if changeVotes < 2/3*maxVotes {
 			log.WithFields(log.Fields{
 				"func":         "VotePayload.change",
-				"BlockHash":    payload.BlockHash.Hex(),
+				"BlockHash":    payload.Hash,
 				"Times":        payload.Times,
 				"Change(B, N)": changeVotes,
 				"MaxVotes":     maxVotes,
 			}).Error("Slash, Change(B, N+1) before Change(B, N) > 2/3 * MaxVotes.")
-			if err != nil {
-				return err
-			}
-			return payload.slash(voteCtx)
+			return payload.slash(ctx)
 		}
 	}
-	key := append(voteCtx.VotedBlock.Hash(), byteutils.FromUint32(payload.Times)...)
-	key = append(key, voteCtx.Voter...)
-	_, err := voteCtx.PackedBlock.changeVotesTrie.Put(key, vote)
+	// record vote
+	nBytes = byteutils.FromUint32(payload.Times)
+	_, err = packedBlock.changeVotesTrie.Put(key, nBytes)
 	return err
 }
 
-func (payload *VotePayload) abdicate(voteCtx *voteContext) error {
-	key := append(voteCtx.VotedBlock.CurDynastyRoot(), voteCtx.Voter...)
-	_, err := voteCtx.PackedBlock.abdicateVotesTrie.Put(key, vote)
+func (payload *VotePayload) abdicate(from []byte, packedBlock *Block) error {
+	key := append(payload.Hash, from...)
+	_, err := packedBlock.validatorsTrie.Get(key)
+	if err != nil {
+		return err
+	}
+	_, err = packedBlock.validatorsTrie.Del(key)
+	if err != nil {
+		return err
+	}
+	_, err = packedBlock.abdicateVotesTrie.Put(key, vote)
 	return err
 }
 
 // Execute the call payload in tx, call a function
 func (payload *VotePayload) Execute(tx *Transaction, block *Block) error {
-	voteCtx, err := payload.checkVoteValid(tx.from.Bytes(), block)
-	if err != nil {
-		return err
-	}
+	from := tx.from.Bytes()
 	switch payload.Action {
 	case PrepareAction:
-		return payload.prepare(voteCtx)
+		return payload.prepare(from, block)
 	case CommitAction:
-		return payload.commit(voteCtx)
+		return payload.commit(from, block)
 	case ChangeAction:
-		return payload.change(voteCtx)
+		return payload.change(from, block)
 	case AbdicateAction:
-		return payload.abdicate(voteCtx)
+		return payload.abdicate(from, block)
 	default:
 		return ErrInvalidVoteAction
 	}

@@ -20,8 +20,47 @@ package core
 
 import (
 	"testing"
+
+	"github.com/nebulasio/go-nebulas/storage"
+	"github.com/stretchr/testify/assert"
 )
 
+func NewBlockWithValidDynasty(t *testing.T, size int) *Block {
+	storage, _ := storage.NewMemoryStorage()
+	genesis := NewGenesisBlock(0, storage, nil)
+	genesis.begin()
+	loginPayload, _ := NewElectPayload(LoginAction).ToBytes()
+	for i := 0; i < size; i++ {
+		v := GenerateNewAddress()
+		account := genesis.accState.GetOrCreateUserAccount(v.Bytes())
+		account.AddBalance(StandardDeposit)
+		tx := NewTransaction(genesis.header.chainID, v, v, zero, 1, TxPayloadElectType, loginPayload)
+		giveback, err := genesis.executeTransaction(tx)
+		assert.Equal(t, giveback, false)
+		assert.Nil(t, err)
+	}
+	genesis.commit()
+
+	coinbase := GenerateNewAddress()
+	block1 := NewBlock(genesis.header.chainID, coinbase, genesis)
+	cnt, _ := countValidators(block1.curDynastyTrie, nil)
+	assert.Equal(t, cnt, 0)
+	cnt, _ = countValidators(block1.nextDynastyTrie, nil)
+	assert.Equal(t, cnt, size)
+	cnt, _ = countValidators(block1.dynastyCandidatesTrie, nil)
+	assert.Equal(t, cnt, size)
+	block2 := NewBlock(block1.header.chainID, coinbase, block1)
+	cnt, _ = countValidators(block2.curDynastyTrie, nil)
+	assert.Equal(t, cnt, size)
+	cnt, _ = countValidators(block2.nextDynastyTrie, nil)
+	assert.Equal(t, cnt, size)
+	cnt, _ = countValidators(block2.dynastyCandidatesTrie, nil)
+	assert.Equal(t, cnt, size)
+	return block1
+}
+
 func TestVotePayload_Execute(t *testing.T) {
+	block := NewBlockWithValidDynasty(t, 3)
+	block.begin()
 
 }
