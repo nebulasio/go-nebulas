@@ -19,7 +19,7 @@ var replace = require('gulp-replace');
 var DEST = path.join(__dirname, 'dist/');
 var src = 'index';
 var dst = 'neb';
-// var adminDis = 'neb-admin';
+var lightDst = 'neb-light';
 
 var browserifyOptions = {
     debug: true,
@@ -44,9 +44,25 @@ gulp.task('clean', ['lint'], function(cb) {
     del([ DEST ]).then(cb.bind(null, null));
 });
 
+gulp.task('light', ['clean'], function () {
+    return browserify(browserifyOptions)
+        .require('./' + src + '.js', {expose: 'neb'})
+        .ignore('bignumber.js')
+        .require('./lib/utils/browser-bignumber.js', {expose: 'bignumber.js'}) // fake bignumber.js
+        .add('./' + src + '.js')
+        .bundle()
+        .pipe(exorcist(path.join( DEST, lightDst + '.js.map')))
+        .pipe(source(lightDst + '.js'))
+        .pipe(gulp.dest( DEST ))
+        .pipe(streamify(uglify()))
+        .pipe(rename(lightDst + '.min.js'))
+        .pipe(gulp.dest( DEST ));
+});
+
 gulp.task('neb', ['clean'], function () {
     return browserify(browserifyOptions)
         .require('./' + src + '.js', {expose: 'neb'})
+        .require('bignumber.js') // expose it to dapp users
         .add('./' + src + '.js')
         .bundle()
         .pipe(exorcist(path.join( DEST, dst + '.js.map')))
@@ -61,5 +77,5 @@ gulp.task('watch', function() {
     gulp.watch(['./lib/*.js'], ['lint', 'build']);
 });
 
-gulp.task('default', ['version', 'lint', 'clean', 'neb']);
+gulp.task('default', ['version', 'lint', 'clean', 'light', 'neb']);
 

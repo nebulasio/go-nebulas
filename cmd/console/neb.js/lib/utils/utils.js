@@ -39,7 +39,6 @@ var toString = function (obj) {
 }
 
 module.exports = {
-	verifyAddress: verifyAddress,
 	isBigNumber: isBigNumber,
 	isString: isString,
 	isObject: isObject,

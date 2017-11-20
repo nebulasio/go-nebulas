@@ -39,7 +39,8 @@ var (
 
 	exitCmd = "exit"
 
-	nebjs = library.MustAsset("neb.js")
+	bignumberJS = library.MustAsset("bignumber.js")
+	nebJS       = library.MustAsset("neb-light.js")
 )
 
 // Neblet interface breaks cycle import dependency and hides unused services.
@@ -88,7 +89,10 @@ func New(neb Neblet) *Console {
 }
 
 func (c *Console) loadLibraryScripts() error {
-	if err := c.jsvm.Compile("neb.js", nebjs); err != nil {
+	if err := c.jsvm.Compile("bignumber.js", bignumberJS); err != nil {
+		return fmt.Errorf("bignumber.js: %v", err)
+	}
+	if err := c.jsvm.Compile("neb-light.js", nebJS); err != nil {
 		return fmt.Errorf("neb.js: %v", err)
 	}
 	return nil
