@@ -193,7 +193,7 @@ func (payload *VotePayload) slash(ctx *voteContext) error {
 		return err
 	}
 	key := append(ctx.DynastyTrie.RootHash(), ctx.Voter...)
-	if _, err = ctx.PackedBlock.validatorsTrie.Del(key); err != nil {
+	if _, err = ctx.PackedBlock.validatorsTrie.Del(key); err != nil && err != storage.ErrKeyNotFound {
 		return err
 	}
 	validators, err := traverseValidators(ctx.PackedBlock.validatorsTrie, ctx.DynastyTrie.RootHash())
@@ -432,7 +432,7 @@ func (payload *VotePayload) change(from []byte, packedBlock *Block) error {
 		if err != nil {
 			return err
 		}
-		if changeVotes < 2/3*maxVotes {
+		if changeVotes <= maxVotes*2/3 {
 			log.WithFields(log.Fields{
 				"func":         "VotePayload.change",
 				"BlockHash":    payload.Hash,

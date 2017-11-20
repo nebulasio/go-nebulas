@@ -218,3 +218,142 @@ func TestVotePayload_PrepareChangedBlock(t *testing.T) {
 	_, err = newBlock1.depositTrie.Get(validators[1])
 	assert.NotNil(t, err)
 }
+
+func TestVotePayload_PrepareAfterAbdicate(t *testing.T) {
+	size := 3
+	validators, block := NewBlockWithValidDynasty(t, size)
+	validators, err := block.NextBlockSortedValidators()
+	assert.Nil(t, err)
+	zero := util.NewUint128()
+
+	newBlock := NewBlock(block.header.chainID, &Address{validators[0]}, block)
+	newBlock.begin()
+	abdicatePayload, err := NewAbdicateVotePayload(AbdicateAction, block.CurDynastyRoot()).ToBytes()
+	assert.Nil(t, err)
+	abdicateTx := NewTransaction(
+		block.header.chainID, &Address{validators[1]}, &Address{validators[1]},
+		zero, 2, TxPayloadVoteType, abdicatePayload)
+	giveback, err := newBlock.executeTransaction(abdicateTx)
+	assert.Equal(t, giveback, false)
+	assert.Nil(t, err)
+	newBlock.commit()
+	newBlock.Seal()
+	assert.Nil(t, storeBlockToStorage(newBlock))
+
+	newBlock1 := NewBlock(newBlock.header.chainID, &Address{validators[0]}, newBlock)
+	newBlock1.begin()
+	preparePayload, err := NewPrepareVotePayload(PrepareAction, newBlock.Hash(), newBlock.Height(), 1).ToBytes()
+	assert.Nil(t, err)
+	prepareTx := NewTransaction(block.header.chainID, &Address{validators[1]}, &Address{validators[1]},
+		zero, 3, TxPayloadVoteType, preparePayload)
+	giveback, err = newBlock1.executeTransaction(prepareTx)
+	assert.Equal(t, giveback, false)
+	assert.Nil(t, err)
+	newBlock1.commit()
+	newBlock1.Seal()
+	assert.Nil(t, storeBlockToStorage(newBlock1))
+
+	_, err = newBlock1.depositTrie.Get(validators[1])
+	assert.NotNil(t, err)
+}
+
+func TestVotePayload_PrepareOnJumpedHeight(t *testing.T) {
+	size := 3
+	validators, block := NewBlockWithValidDynasty(t, size)
+	validators, err := block.NextBlockSortedValidators()
+	assert.Nil(t, err)
+	zero := util.NewUint128()
+
+	newBlock := NewBlock(block.header.chainID, &Address{validators[0]}, block)
+	newBlock.begin()
+	preparePayload, err := NewPrepareVotePayload(PrepareAction, block.Hash(), block.Height(), 1).ToBytes()
+	assert.Nil(t, err)
+	prepareTx := NewTransaction(block.header.chainID, &Address{validators[1]}, &Address{validators[1]},
+		zero, 2, TxPayloadVoteType, preparePayload)
+	giveback, err := newBlock.executeTransaction(prepareTx)
+	assert.Equal(t, giveback, false)
+	assert.Nil(t, err)
+	newBlock.commit()
+	newBlock.Seal()
+	assert.Nil(t, storeBlockToStorage(newBlock))
+
+	newBlock1 := NewBlock(newBlock.header.chainID, &Address{validators[0]}, newBlock)
+	newBlock1.begin()
+	preparePayload, err = NewPrepareVotePayload(PrepareAction, block.ParentHash(), block.parentBlock.Height(), 1).ToBytes()
+	assert.Nil(t, err)
+	prepareTx = NewTransaction(block.header.chainID, &Address{validators[1]}, &Address{validators[1]},
+		zero, 3, TxPayloadVoteType, preparePayload)
+	giveback, err = newBlock1.executeTransaction(prepareTx)
+	assert.Equal(t, giveback, false)
+	assert.Nil(t, err)
+	newBlock1.commit()
+	newBlock1.Seal()
+	assert.Nil(t, storeBlockToStorage(newBlock1))
+
+	_, err = newBlock1.depositTrie.Get(validators[1])
+	assert.NotNil(t, err)
+}
+
+func TestVotePayload_CommitBeforePrepare(t *testing.T) {
+	size := 3
+	validators, block := NewBlockWithValidDynasty(t, size)
+	validators, err := block.NextBlockSortedValidators()
+	assert.Nil(t, err)
+	zero := util.NewUint128()
+
+	newBlock := NewBlock(block.header.chainID, &Address{validators[0]}, block)
+	newBlock.begin()
+	commitPayload, err := NewCommitVotePayload(CommitAction, block.Hash()).ToBytes()
+	assert.Nil(t, err)
+	commitTx := NewTransaction(block.header.chainID, &Address{validators[1]}, &Address{validators[1]},
+		zero, 2, TxPayloadVoteType, commitPayload)
+	giveback, err := newBlock.executeTransaction(commitTx)
+	assert.Equal(t, giveback, false)
+	assert.Nil(t, err)
+	newBlock.commit()
+	newBlock.Seal()
+	assert.Nil(t, storeBlockToStorage(newBlock))
+
+	_, err = newBlock.depositTrie.Get(validators[1])
+	assert.NotNil(t, err)
+}
+
+func TestVotePayload_ChangeBefore23(t *testing.T) {
+	size := 3
+	validators, block := NewBlockWithValidDynasty(t, size)
+	newBlock := NewBlock(block.header.chainID, block.Coinbase(), block)
+	newBlock.begin()
+	zero := util.NewUint128()
+	for i := 0; i < size*2/3; i++ {
+		changePayload, err := NewChangeVotePayload(
+			ChangeAction, block.Hash(), 1).ToBytes()
+		assert.Nil(t, err)
+		changeTx := NewTransaction(
+			block.header.chainID, &Address{validators[i]}, &Address{validators[i]},
+			zero, 2, TxPayloadVoteType, changePayload)
+		giveback, err := newBlock.executeTransaction(changeTx)
+		assert.Equal(t, giveback, false)
+		assert.Nil(t, err)
+	}
+	newBlock.commit()
+	newBlock.Seal()
+	assert.Nil(t, storeBlockToStorage(newBlock))
+
+	newBlock2 := NewBlock(newBlock.header.chainID, newBlock.Coinbase(), newBlock)
+	newBlock2.begin()
+	changePayload, err := NewChangeVotePayload(
+		ChangeAction, block.Hash(), 2).ToBytes()
+	assert.Nil(t, err)
+	changeTx := NewTransaction(
+		newBlock.header.chainID, &Address{validators[1]}, &Address{validators[1]},
+		zero, 3, TxPayloadVoteType, changePayload)
+	giveback, err := newBlock2.executeTransaction(changeTx)
+	assert.Equal(t, giveback, false)
+	assert.Nil(t, err)
+	newBlock2.commit()
+	newBlock2.Seal()
+	assert.Nil(t, storeBlockToStorage(newBlock2))
+
+	_, err = newBlock2.depositTrie.Get(validators[1])
+	assert.NotNil(t, err)
+}
