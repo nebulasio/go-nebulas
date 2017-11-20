@@ -278,6 +278,12 @@ func TestInstructionCounterTestSuite(t *testing.T) {
 		{"test/instruction_couter_tests/redefine4.js", ErrExecutionFailed},
 		{"test/instruction_couter_tests/function.js", nil},
 		{"test/instruction_couter_tests/if.js", nil},
+		{"test/instruction_couter_tests/switch.js", nil},
+		{"test/instruction_couter_tests/for.js", nil},
+		{"test/instruction_couter_tests/with.js", nil},
+		{"test/instruction_couter_tests/while.js", nil},
+		{"test/instruction_couter_tests/throw.js", nil},
+		{"test/instruction_couter_tests/switch.js", nil},
 	}
 
 	for _, tt := range tests {

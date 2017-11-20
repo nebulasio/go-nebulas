@@ -157,10 +157,10 @@ function processScript(source) {
             return;
         }
 
-        if (!node.type in {
+        if (!(node.type in {
                 BlockStatement: "",
                 IfStatement: "",
-            }) {
+            })) {
             record_injection(node.range[0], 0, InjectionCodeGenerators.BlockStatementBeginAndCounterIncrFunc);
             record_injection(node.range[1], 0, InjectionCodeGenerators.BlockStatementEndAndCounterIncrFunc);
         }
@@ -193,6 +193,7 @@ function processScript(source) {
                 "test": new InjectionContext(node.test, InjectionType.INNER_BEGINNING),
             };
         } else if (node.type == "ForStatement") {
+            debugger
             ensure_block_statement(node.body);
             return {
                 "init": new InjectionContext(node, InjectionType.BEFORE_NODE),
@@ -201,12 +202,32 @@ function processScript(source) {
             };
         } else if (node.type == "ForInStatement") {
             ensure_block_statement(node.body);
+
+            // because for in just call right once and iterate internal,
+            // to keep inst const consistency with others, we manually add 1.
+            var body = node.body;
+            var pos = body.range[0];
+            if (body.type === 'BlockStatement') {
+                pos = body.range[0] + 1;
+            }
+            record_injection(pos, 1, InjectionCodeGenerators.CounterIncrFunc);
+
             return {
                 "left": new InjectionContext(node, InjectionType.BEFORE_NODE),
                 "right": new InjectionContext(node, InjectionType.BEFORE_NODE),
             };
         } else if (node.type == "ForOfStatement") {
             ensure_block_statement(node.body);
+
+            // because for in just call right once and iterate internal,
+            // to keep inst const consistency with others, we manually add 1.
+            var body = node.body;
+            var pos = body.range[0];
+            if (body.type === 'BlockStatement') {
+                pos = body.range[0] + 1;
+            }
+            record_injection(pos, 1, InjectionCodeGenerators.CounterIncrFunc);
+
             return {
                 "left": new InjectionContext(node, InjectionType.BEFORE_NODE),
                 "right": new InjectionContext(node, InjectionType.BEFORE_NODE),
@@ -235,6 +256,8 @@ function processScript(source) {
             if (body.type !== 'BlockStatement') {
                 record_injection(body.range[0], 0, InjectionCodeGenerators.BlockStatementBeginAndCounterIncrFuncAndReturn);
                 record_injection(body.range[1], 0, InjectionCodeGenerators.BlockStatementEndAndCounterIncrFunc);
+
+                // only return injection context when body is not in {};
                 return {
                     "body": new InjectionContext(body, InjectionType.BEFORE_NODE),
                 }

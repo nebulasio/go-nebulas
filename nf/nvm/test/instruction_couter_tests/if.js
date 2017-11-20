@@ -24,9 +24,6 @@ function assertEqual(func, args, expected, expected_count, msg) {
     assert.equal(_instruction_counter.count - count - count_of_helper_statement, expected_count, msg);
 };
 
-var count = 0;
-var x, y, z;
-
 // test 1.
 var test1 = function (x) {
     if (x < 5) {
@@ -84,3 +81,20 @@ assertEqual(test3, [10, 11], 0, 3);
 assertEqual(test3, [40, 30], 50, 6);
 assertEqual(test3, [60, 30], 200, 8);
 assertEqual(test3, [60, 60], 300, 8);
+
+
+// test 4.
+var test4 = function (x) {
+    if (x < 5)
+        return x * 2;
+    else if (x < 20)
+        return Math.floor(x / 2);
+    else if (x < 40)
+        return x * 3 + 1;
+    else
+        return x - 20;
+};
+assertEqual(test4, [1], 2, 2);
+assertEqual(test4, [15], 7, 5);
+assertEqual(test4, [30], 91, 5);
+assertEqual(test4, [100], 80, 4);
