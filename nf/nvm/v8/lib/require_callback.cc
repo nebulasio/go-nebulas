@@ -18,6 +18,7 @@
 //
 #include "require_callback.h"
 #include "../engine.h"
+#include "file.h"
 #include "logger.h"
 
 #include <assert.h>
@@ -30,17 +31,17 @@
 using namespace v8;
 
 #define SOURCE_REQUIRE_LINE_OFFSET -6
-static char source_require_begin[] = "(function () {\n"
-                                     "    var module = {\n"
-                                     "        exports: {},\n"
-                                     "        id: \"%s\"\n"
-                                     "    };\n"
-                                     "    (function (exports, module) {\n";
-
-static char source_require_end[] = ";\n"
-                                   "})(module.exports, module);\n"
-                                   "    return module.exports;\n"
-                                   "})();\n";
+static char source_require_format[] = "(function () {\n"
+                                      "    var module = {\n"
+                                      "        exports: {},\n"
+                                      "        id: \"%s\"\n"
+                                      "    };\n"
+                                      "    (function (exports, module) {\n"
+                                      "%s"
+                                      ";\n"
+                                      "})(module.exports, module);\n"
+                                      "    return module.exports;\n"
+                                      "})();\n";
 
 static char *getValidFilePath(const char *filename) {
   size_t len = strlen(filename);
@@ -67,60 +68,18 @@ static int readSource(const char *filename, char **data, size_t *size) {
     return -1;
   }
 
-  char *path = getValidFilePath(filename);
+  char *filepath = getValidFilePath(filename);
+  size_t file_size = 0;
+  char *content = readFile(filepath, &file_size);
 
-  // char cwd[1024];
-  // getcwd(cwd, 1024);
-  // logInfof("fullpath is %s/%s", cwd, path);
-
-  FILE *f = fopen(path, "r");
-  free(path);
-
-  if (f == NULL) {
-    // logErrorf("file %s does not found.", filename);
+  if (content == NULL) {
+    free(filepath);
     return 1;
   }
 
-  // get file size.
-  fseek(f, 0L, SEEK_END);
-  size_t fileSize = ftell(f);
-  rewind(f);
-
-  size_t filename_len = strlen(filename);
-  size_t source_begin_len = strlen(source_require_begin);
-  size_t source_end_len = strlen(source_require_end);
-
-  *size = fileSize + filename_len + source_begin_len + source_end_len + 1;
-  *data = (char *)malloc(*size);
-  size_t idx = 0;
-
-  // Prepare the source.
-  idx += snprintf(*data, *size - idx, source_require_begin, filename);
-
-  size_t len = 0;
-  while ((len = fread(*data + idx, sizeof(char), *size - idx, f)) > 0) {
-    idx += len;
-    if (*size - idx <= 1) {
-      *size *= 2;
-      *data = (char *)realloc(*data, *size);
-    }
-  }
-  *(*data + idx) = '\0';
-
-  if (feof(f) == 0) {
-    free(static_cast<void *>(*data));
-    // logErrorf("read file %s error.", filename);
-    return 1;
-  }
-
-  fclose(f);
-
-  if (*size - idx < source_end_len) {
-    *size = idx + source_end_len + 1;
-    *data = (char *)realloc(*data, *size);
-  }
-  idx += snprintf(*data + idx, *size - idx, "%s", source_require_end);
-
+  *size = asprintf(data, source_require_format, filepath, content);
+  free(filepath);
+  free(content);
   return 0;
 }
 
@@ -180,13 +139,16 @@ void RequireCallback(const v8::FunctionCallbackInfo<v8::Value> &info) {
 
 char *EncapsulateSourceToModuleStyle(const char *source,
                                      int *source_line_offset) {
-  size_t size = strlen(source) + strlen(source_require_begin) +
-                strlen(source_require_end) + 1;
-  char *data = (char *)malloc(size);
+  static const char charset[] =
+      "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 
-  size_t count =
-      sprintf(data, "%s%s%s", source_require_begin, source, source_require_end);
-  assert(count + 1 == size);
-  *source_line_offset = -6;
+  char genfilename[8];
+  for (size_t i = 0; i < sizeof(genfilename); i++) {
+    genfilename[i] = rand() % (int)(sizeof charset - 1);
+  }
+
+  char *data = NULL;
+  asprintf(&data, source_require_format, genfilename, source);
+  *source_line_offset = SOURCE_REQUIRE_LINE_OFFSET;
   return data;
 }

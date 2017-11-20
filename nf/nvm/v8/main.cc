@@ -20,6 +20,7 @@
 #include "engine.h"
 #include "lib/blockchain.h"
 #include "lib/fake_blockchain.h"
+#include "lib/file.h"
 #include "lib/log_callback.h"
 #include "lib/logger.h"
 #include "lib/memory_storage.h"
@@ -66,41 +67,6 @@ void help(const char *name) {
   printf("\t -ip \tinject tracing code and print result\n");
   printf("\n");
   exit(1);
-}
-
-void readSource(const char *filename, char **data, size_t *size) {
-  FILE *f = fopen(filename, "r");
-  if (f == NULL) {
-    fprintf(stderr, "file %s does not found.\n", filename);
-    exit(1);
-    return;
-  }
-
-  // get file size.
-  fseek(f, 0L, SEEK_END);
-  size_t fileSize = ftell(f);
-  rewind(f);
-
-  *size = fileSize + 1;
-  *data = (char *)malloc(*size);
-
-  size_t len = 0;
-  size_t idx = 0;
-  while ((len = fread(*data + idx, sizeof(char), *size - idx, f)) > 0) {
-    idx += len;
-    if (*size - idx <= 1) {
-      *size *= 1.5;
-      *data = (char *)realloc(*data, *size);
-    }
-  }
-  *(*data + idx) = '\0';
-
-  if (feof(f) == 0) {
-    fprintf(stderr, "read file %s error.\n", filename);
-    exit(1);
-  }
-
-  fclose(f);
 }
 
 typedef void (*V8ExecutionDelegate)(V8Engine *e, const char *data,
@@ -258,9 +224,8 @@ int main(int argc, const char *argv[]) {
     }
   }
 
-  char *data = NULL;
   size_t size = 0;
-  readSource(filename, &data, &size);
+  char *data = readFile(filename, &size);
 
   if (print_injection_result) {
     // inject and print.
