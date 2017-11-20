@@ -41,7 +41,7 @@ func main() {
 	owner := context.GetOrCreateUserAccount([]byte("account1"))
 	contract, _ := context.CreateContractAccount([]byte("account2"), nil)
 
-	ctx := nvm.NewContext(nil, owner, contract, context)
+	ctx := nvm.NewContext(nil, nil, owner, contract, context)
 	engine := nvm.NewV8Engine(ctx)
 	err := engine.RunScriptSource(string(data), 0)
 

@@ -19,9 +19,8 @@
 package nvm
 
 import (
-	"encoding/json"
-
 	"github.com/nebulasio/go-nebulas/core/state"
+	"github.com/nebulasio/go-nebulas/util"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
 )
 
@@ -37,19 +36,25 @@ type Blockchain interface {
 	SerializeTxByHash(hash byteutils.Hash) ([]byte, error)
 }
 
-// ContextParams warpper block & transaction info
-type ContextParams struct {
-	Coinbase    string `json:"coinbase"`
-	BlockNonce  uint64 `json:"blockNonce"`
-	BlockHash   string `json:"blockHash"`
-	BlockHeight uint64 `json:"blockHeight"`
-	TxNonce     uint64 `json:"txNonce"`
-	TxHash      string `json:"txHash"`
+// ContextBlock warpper block
+type ContextBlock struct {
+	Coinbase string `json:"coinbase"`
+	Nonce    uint64 `json:"nonce"`
+	Hash     string `json:"hash"`
+	Height   uint64 `json:"height"`
+}
+
+// ContextTransaction warpper transaction
+type ContextTransaction struct {
+	Nonce    uint64        `json:"nonce"`
+	Hash     string        `json:"hash"`
+	GasPrice *util.Uint128 `json:"-"`
 }
 
 // Context nvm engine context
 type Context struct {
-	params   *ContextParams
+	block    *ContextBlock
+	tx       *ContextTransaction
 	owner    state.Account
 	contract state.Account
 	state    state.AccountState
@@ -57,18 +62,13 @@ type Context struct {
 }
 
 // NewContext create a engine context
-func NewContext(params *ContextParams, owner state.Account, contract state.Account, state state.AccountState) *Context {
+func NewContext(block *ContextBlock, tx *ContextTransaction, owner state.Account, contract state.Account, state state.AccountState) *Context {
 	ctx := &Context{
-		params:   params,
+		block:    block,
+		tx:       tx,
 		owner:    owner,
 		contract: contract,
 		state:    state,
 	}
 	return ctx
-}
-
-// getParamsJson returns a json string with block & transaction info
-func (c *Context) getParamsJSON() string {
-	jsonStr, _ := json.Marshal(c.params)
-	return string(jsonStr)
 }

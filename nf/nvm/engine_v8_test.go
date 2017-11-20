@@ -45,6 +45,23 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
+func testContextBlock() *ContextBlock {
+	return &ContextBlock{
+		Coinbase: "0eb3be2db3a534c192be5570c6c42f59",
+		Nonce:    1,
+		Hash:     "5e6d587f26121f96a07cf4b8b569aac1",
+		Height:   2,
+	}
+}
+
+func testContextTransaction() *ContextTransaction {
+	return &ContextTransaction{
+		Nonce:    3,
+		Hash:     "c7174759e86c59dcb7df87def82f61eb",
+		GasPrice: util.NewUint128FromInt(1),
+	}
+}
+
 func TestRunScriptSource(t *testing.T) {
 	tests := []struct {
 		filepath    string
@@ -70,7 +87,7 @@ func TestRunScriptSource(t *testing.T) {
 			owner.AddBalance(util.NewUint128FromInt(1000000000))
 			contract, _ := context.CreateContractAccount([]byte("account2"), nil)
 
-			ctx := NewContext(nil, owner, contract, context)
+			ctx := NewContext(testContextBlock(), testContextTransaction(), owner, contract, context)
 			engine := NewV8Engine(ctx)
 			engine.SetExecutionLimits(1000, 10000000)
 			err = engine.RunScriptSource(string(data), 0)
@@ -109,7 +126,7 @@ func TestRunScriptSourceWithLimits(t *testing.T) {
 			owner.AddBalance(util.NewUint128FromInt(100000))
 			contract, _ := context.CreateContractAccount([]byte("account2"), nil)
 
-			ctx := NewContext(nil, owner, contract, context)
+			ctx := NewContext(testContextBlock(), testContextTransaction(), owner, contract, context)
 			engine := NewV8Engine(ctx)
 			engine.SetExecutionLimits(tt.limitsOfExecutionInstructions, tt.limitsOfTotalMemorySize)
 			err = engine.RunScriptSource(string(data), 0)
@@ -136,7 +153,7 @@ func TestRunScriptSourceTimeout(t *testing.T) {
 			owner := context.GetOrCreateUserAccount([]byte("account1"))
 			contract, _ := context.CreateContractAccount([]byte("account2"), nil)
 
-			ctx := NewContext(nil, owner, contract, context)
+			ctx := NewContext(testContextBlock(), testContextTransaction(), owner, contract, context)
 			engine := NewV8Engine(ctx)
 			err = engine.RunScriptSource(string(data), 0)
 			assert.Equal(t, ErrExecutionTimeout, err)
@@ -166,13 +183,7 @@ func TestDeployAndInitAndCall(t *testing.T) {
 			owner.AddBalance(util.NewUint128FromInt(10000000))
 			contract, _ := context.CreateContractAccount([]byte("account2"), nil)
 
-			params := &ContextParams{Coinbase: "0eb3be2db3a534c192be5570c6c42f59",
-				BlockNonce:  1,
-				BlockHash:   "5e6d587f26121f96a07cf4b8b569aac1",
-				BlockHeight: 2,
-				TxNonce:     3,
-				TxHash:      "c7174759e86c59dcb7df87def82f61eb"}
-			ctx := NewContext(params, owner, contract, context)
+			ctx := NewContext(testContextBlock(), testContextTransaction(), owner, contract, context)
 			engine := NewV8Engine(ctx)
 			engine.SetExecutionLimits(1000, 10000000)
 			err = engine.DeployAndInit(string(data), tt.initArgs)
@@ -197,7 +208,7 @@ func TestDeployAndInitAndCall(t *testing.T) {
 			owner = context.GetOrCreateUserAccount([]byte("account1"))
 			contract, _ = context.CreateContractAccount([]byte("account2"), nil)
 
-			ctx = NewContext(params, owner, contract, context)
+			ctx = NewContext(testContextBlock(), testContextTransaction(), owner, contract, context)
 			engine = NewV8Engine(ctx)
 			engine.SetExecutionLimits(1000, 10000000)
 			err = engine.Call(string(data), "verify", tt.verifyArgs)
@@ -231,7 +242,7 @@ func TestFunctionNameCheck(t *testing.T) {
 			owner.AddBalance(util.NewUint128FromInt(1000000))
 			contract, _ := context.CreateContractAccount([]byte("account2"), nil)
 
-			ctx := NewContext(nil, owner, contract, context)
+			ctx := NewContext(testContextBlock(), testContextTransaction(), owner, contract, context)
 			engine := NewV8Engine(ctx)
 			engine.SetExecutionLimits(1000, 10000000)
 			err = engine.Call(string(data), tt.function, tt.args)
@@ -254,7 +265,7 @@ func TestMultiEngine(t *testing.T) {
 		idx := i
 		go func() {
 			defer wg.Done()
-			ctx := NewContext(nil, owner, contract, context)
+			ctx := NewContext(testContextBlock(), testContextTransaction(), owner, contract, context)
 			engine := NewV8Engine(ctx)
 			engine.SetExecutionLimits(1000, 10000000)
 			defer engine.Dispose()
@@ -297,7 +308,7 @@ func TestInstructionCounterTestSuite(t *testing.T) {
 			owner.AddBalance(util.NewUint128FromInt(1000000000))
 			contract, _ := context.CreateContractAccount([]byte("account2"), nil)
 
-			ctx := NewContext(nil, owner, contract, context)
+			ctx := NewContext(testContextBlock(), testContextTransaction(), owner, contract, context)
 			engine := NewV8Engine(ctx)
 			engine.enableLimits = true
 			err = engine.RunScriptSource(string(data), 0)
@@ -314,7 +325,7 @@ func TestRunMozillaJSTestSuite(t *testing.T) {
 	owner.AddBalance(util.NewUint128FromInt(1000000000))
 
 	contract, _ := context.CreateContractAccount([]byte("account2"), nil)
-	ctx := NewContext(nil, owner, contract, context)
+	ctx := NewContext(testContextBlock(), testContextTransaction(), owner, contract, context)
 
 	var runTest func(dir string, shelljs string)
 	runTest = func(dir string, shelljs string) {
