@@ -211,8 +211,8 @@ func (tx *Transaction) Execute(block *Block) error {
 	}
 
 	// accept the transaction
-	fromAcc.AddBalance(tx.value)
-	toAcc.SubBalance(tx.value)
+	fromAcc.SubBalance(tx.value)
+	toAcc.AddBalance(tx.value)
 	fromAcc.IncreNonce()
 
 	// execute payload

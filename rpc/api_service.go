@@ -134,6 +134,14 @@ func (s *APIService) SendTransaction(ctx context.Context, req *rpcpb.SendTransac
 	var data []byte
 	var err error
 	payloadType := core.TxPayloadBinaryType
+	tail := neb.BlockChain().TailBlock()
+	addr, err := core.AddressParse(req.From)
+	if err != nil {
+		return nil, err
+	}
+	if req.Nonce <= tail.GetNonce(addr.Bytes()) {
+		return nil, errors.New("nonce is invalid")
+	}
 	if len(req.Source) > 0 {
 		data, err = core.NewDeployPayload(req.Source, req.Args).ToBytes()
 		payloadType = core.TxPayloadDeployType
@@ -164,6 +172,14 @@ func (s *APIService) SendTransaction(ctx context.Context, req *rpcpb.SendTransac
 // Call is the RPC API handler.
 func (s *APIService) Call(ctx context.Context, req *rpcpb.CallRequest) (*rpcpb.SendTransactionResponse, error) {
 	neb := s.server.Neblet()
+	tail := neb.BlockChain().TailBlock()
+	addr, err := core.AddressParse(req.From)
+	if err != nil {
+		return nil, err
+	}
+	if req.Nonce <= tail.GetNonce(addr.Bytes()) {
+		return nil, errors.New("nonce is invalid")
+	}
 	data, err := core.NewCallPayload(req.Function, req.Args).ToBytes()
 	if err != nil {
 		return nil, err
