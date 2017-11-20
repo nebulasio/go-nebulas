@@ -159,7 +159,11 @@ func TestKeystore_Unlock(t *testing.T) {
 			assert.Nil(t, err, "set key err")
 			err = ks.Unlock(tt.alias, tt.passphrase, tt.duration)
 			assert.Nil(t, err, "unlock err")
-			time.Sleep(time.Second * 2)
+		})
+	}
+	time.Sleep(time.Second * 2)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
 			got, _ := ks.GetUnlocked(tt.alias)
 			assert.Equal(t, tt.want, tt.key == got, "get unlock err:%s", tt.alias)
 		})

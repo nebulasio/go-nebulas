@@ -66,7 +66,7 @@ func main() {
 		if err != nil {
 			log.Println("GetAccountState", from, "failed", err)
 		} else {
-			val, _ := util.NewUint128FromFixedSizeByteSlice(r.GetBalance())
+			val := util.NewUint128FromString(r.GetBalance())
 			nonce = r.Nonce
 			log.Println("GetAccountState", from, "nonce", r.Nonce, "value", val)
 		}
@@ -74,9 +74,7 @@ func main() {
 
 	{
 		v := util.NewUint128FromInt(value)
-		fsb, _ := v.ToFixedSizeByteSlice()
-		log.Println("v :", v, " fsb :", fsb, "fsbs:", string(fsb))
-		r, err := ac.SendTransaction(context.Background(), &rpcpb.SendTransactionRequest{From: from, To: to, Value: fsb, Nonce: nonce + 1})
+		r, err := ac.SendTransaction(context.Background(), &rpcpb.SendTransactionRequest{From: from, To: to, Value: v.String(), Nonce: nonce + 1})
 		if err != nil {
 			log.Println("SendTransaction failed:", err)
 		} else {
@@ -89,7 +87,7 @@ func main() {
 		if err != nil {
 			log.Println("GetAccountState", to, "failed", err)
 		} else {
-			val, _ := util.NewUint128FromFixedSizeByteSlice(r.GetBalance())
+			val := util.NewUint128FromString(r.GetBalance())
 			nonce = r.Nonce
 			log.Println("GetAccountState", to, "nonce", r.Nonce, "value", val)
 		}
