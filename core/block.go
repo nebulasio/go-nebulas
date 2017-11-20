@@ -39,9 +39,10 @@ var (
 	// BlockHashLength define a const of the length of Hash of Block in byte.
 	BlockHashLength = 32
 
-	// BlockReward given to coinbase
+	// BlockReward given to coinbase, default is:16*(10**18)
 	// TODO: block reward should calculates dynamic.
-	BlockReward = util.NewUint128FromInt(16)
+	BlockReward = util.NewUint128FromBigInt(util.NewUint128().Mul(util.NewUint128FromInt(16).Int,
+		util.NewUint128().Exp(util.NewUint128FromInt(10).Int, util.NewUint128FromInt(18).Int, nil)))
 )
 
 // Errors in block
