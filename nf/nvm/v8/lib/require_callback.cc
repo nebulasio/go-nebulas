@@ -142,10 +142,13 @@ char *EncapsulateSourceToModuleStyle(const char *source,
   static const char charset[] =
       "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 
-  char genfilename[8];
-  for (size_t i = 0; i < sizeof(genfilename); i++) {
-    genfilename[i] = rand() % (int)(sizeof charset - 1);
+  char genfilename[10];
+  genfilename[0] = '_';
+  size_t i = 1;
+  for (; i < sizeof(genfilename) - 4; i++) {
+    genfilename[i] = charset[rand() % (int)(sizeof charset - 1)];
   }
+  strncpy(genfilename + i, ".js", 3);
 
   char *data = NULL;
   asprintf(&data, source_require_format, genfilename, source);

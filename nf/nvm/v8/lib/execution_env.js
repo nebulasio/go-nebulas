@@ -16,12 +16,14 @@
 // along with the go-nebulas library.  If not, see <http://www.gnu.org/licenses/>.
 //
 const require = (function () {
-    var requiredLibs = {};
+    var modules = new Map();
     return function (id) {
-        if (!(id in requiredLibs)) {
-            requiredLibs[id] = _native_require(id);
+        var module = modules.get(id);
+        if (!module) {
+            module = _native_require(id);
+            modules.set(id, module);
         }
-        return requiredLibs[id];
+        return module;
     };
 })();
 
