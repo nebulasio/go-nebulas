@@ -19,6 +19,7 @@
 package metrics
 
 import (
+	"runtime"
 	"time"
 
 	"github.com/nebulasio/go-nebulas/neblet/pb"
@@ -42,5 +43,31 @@ type Neblet interface {
 func Start(neb Neblet) {
 	tags := make(map[string]string)
 	tags[tagName] = neb.NetService().Node().ID()
+	go systemMetrics()
 	influxdb.InfluxDBWithTags(metrics.DefaultRegistry, duration, neb.Config().Influxdb.Host, neb.Config().Influxdb.Db, neb.Config().Influxdb.Username, neb.Config().Influxdb.Password, tags)
+}
+
+func systemMetrics() {
+	memstats := make([]*runtime.MemStats, 2)
+	for i := 0; i < len(memstats); i++ {
+		memstats[i] = new(runtime.MemStats)
+	}
+
+	allocs := metrics.GetOrRegisterMeter("system_allocs", nil)
+	// totalAllocs := metrics.GetOrRegisterMeter("system_total_allocs", nil)
+	sys := metrics.GetOrRegisterMeter("system_sys", nil)
+	frees := metrics.GetOrRegisterMeter("system_frees", nil)
+	heapInuse := metrics.GetOrRegisterMeter("system_heapInuse", nil)
+	stackInuse := metrics.GetOrRegisterMeter("system_stackInuse", nil)
+
+	for i := 1; ; i++ {
+		runtime.ReadMemStats(memstats[i%2])
+		allocs.Mark(int64(memstats[i%2].Alloc - memstats[(i-1)%2].Alloc))
+		sys.Mark(int64(memstats[i%2].Sys - memstats[(i-1)%2].Sys))
+		frees.Mark(int64(memstats[i%2].Frees - memstats[(i-1)%2].Frees))
+		heapInuse.Mark(int64(memstats[i%2].HeapInuse - memstats[(i-1)%2].HeapInuse))
+		stackInuse.Mark(int64(memstats[i%2].StackInuse - memstats[(i-1)%2].StackInuse))
+		time.Sleep(2 * time.Second)
+	}
+
 }

@@ -36,6 +36,7 @@ import (
 	"github.com/nebulasio/go-nebulas/net/messages"
 	"github.com/nebulasio/go-nebulas/net/pb"
 	byteutils "github.com/nebulasio/go-nebulas/util/byteutils"
+	metrics "github.com/rcrowley/go-metrics"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -66,6 +67,11 @@ var (
 	offsetTwentyEight = 28
 	offsetThirtyTwo   = 32
 	offsetThirtySix   = 36
+)
+
+var (
+	packetInFromNet = metrics.GetOrRegisterMeter("packet_in_from_net", nil)
+	packetOut       = metrics.GetOrRegisterMeter("packet_out", nil)
 )
 
 // NetService service for nebulas p2p network
@@ -167,6 +173,7 @@ func (ns *NetService) streamHandler(s libnet.Stream) {
 				ns.Bye(pid, []ma.Multiaddr{addrs}, s, key)
 				return
 			}
+
 			switch protocol.msgName {
 			case HELLO:
 				ns.handleHelloMsg(protocol.data, pid, s, addrs, key)
@@ -193,7 +200,7 @@ func (ns *NetService) streamHandler(s libnet.Stream) {
 				}
 				msg := messages.NewBaseMessage(protocol.msgName, protocol.data)
 				ns.PutMessage(msg)
-
+				packetInFromNet.Mark(1)
 				// make sure relayness thread safety
 				node.relaynessLock.Lock()
 				peers, exists := node.relayness.Get(byteutils.Uint32(protocol.dataChecksum))
@@ -556,6 +563,8 @@ func (ns *NetService) SendMsg(msgName string, msg []byte, key string) {
 		log.Error("SendMsg: write data occurs error, ", err)
 		return
 	}
+
+	packetOut.Mark(1)
 
 }
 
