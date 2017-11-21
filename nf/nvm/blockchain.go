@@ -28,40 +28,14 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type accountState struct {
-	nonce   uint64 `json:"nonce"`
-	balance string `json:"balance"`
-}
-
-// GetBlockByHashFunc returns the block info by hash
-//export GetBlockByHashFunc
-func GetBlockByHashFunc(handler unsafe.Pointer, hash *C.char) *C.char {
-	engine, _ := getEngineByStorageHandler(uint64(uintptr(handler)))
-	if engine == nil {
-		return nil
-	}
-	block, err := engine.ctx.chain.SerializeBlockByHash([]byte(C.GoString(hash)))
-	if err != nil {
-		log.WithFields(log.Fields{
-			"func":    "nvm.GetBlockByHashFunc",
-			"handler": uint64(uintptr(handler)),
-			"hash":    C.GoString(hash),
-			"err":     err,
-		}).Info("GetBlockByHashFunc get block failed.")
-		return nil
-	}
-	json, _ := json.Marshal(block)
-	return C.CString(string(json))
-}
-
 // GetTxByHashFunc returns tx info by hash
 //export GetTxByHashFunc
 func GetTxByHashFunc(handler unsafe.Pointer, hash *C.char) *C.char {
 	engine, _ := getEngineByStorageHandler(uint64(uintptr(handler)))
-	if engine == nil {
+	if engine == nil || engine.ctx.block == nil {
 		return nil
 	}
-	tx, err := engine.ctx.chain.SerializeTxByHash([]byte(C.GoString(hash)))
+	tx, err := engine.ctx.SerializeTxByHash([]byte(C.GoString(hash)))
 	if err != nil {
 		log.WithFields(log.Fields{
 			"func":    "nvm.GetTxByHashFunc",
@@ -79,11 +53,11 @@ func GetTxByHashFunc(handler unsafe.Pointer, hash *C.char) *C.char {
 //export GetAccountStateFunc
 func GetAccountStateFunc(handler unsafe.Pointer, address *C.char) *C.char {
 	engine, _ := getEngineByStorageHandler(uint64(uintptr(handler)))
-	if engine == nil {
+	if engine == nil || engine.ctx.block == nil {
 		return nil
 	}
 	addr := C.GoString(address)
-	valid := engine.ctx.chain.VerifyAddress(addr)
+	valid := engine.ctx.block.VerifyAddress(addr)
 	if !valid {
 		log.WithFields(log.Fields{
 			"func":    "nvm.GetAccountStateFunc",
@@ -93,11 +67,10 @@ func GetAccountStateFunc(handler unsafe.Pointer, address *C.char) *C.char {
 		return nil
 	}
 
-	// TODO: handle specific block number.
 	acc := engine.ctx.state.GetOrCreateUserAccount([]byte(addr))
-	state := &accountState{
-		nonce:   acc.Nonce(),
-		balance: acc.Balance().String(),
+	state := &AccountState{
+		Nonce:   acc.Nonce(),
+		Balance: acc.Balance().String(),
 	}
 	json, _ := json.Marshal(state)
 	return C.CString(string(json))
@@ -107,12 +80,12 @@ func GetAccountStateFunc(handler unsafe.Pointer, address *C.char) *C.char {
 //export TransferFunc
 func TransferFunc(handler unsafe.Pointer, to *C.char, v *C.char) int {
 	engine, _ := getEngineByStorageHandler(uint64(uintptr(handler)))
-	if engine == nil {
+	if engine == nil || engine.ctx.block == nil {
 		return 0
 	}
 
 	addr := C.GoString(to)
-	valid := engine.ctx.chain.VerifyAddress(addr)
+	valid := engine.ctx.block.VerifyAddress(addr)
 	if !valid {
 		log.WithFields(log.Fields{
 			"func":    "nvm.TransferFunc",
@@ -162,11 +135,11 @@ func TransferFunc(handler unsafe.Pointer, to *C.char, v *C.char) int {
 //export VerifyAddressFunc
 func VerifyAddressFunc(handler unsafe.Pointer, address *C.char) int {
 	engine, _ := getEngineByStorageHandler(uint64(uintptr(handler)))
-	if engine == nil {
+	if engine == nil || engine.ctx.block == nil {
 		return 0
 	}
 
-	if engine.ctx.chain.VerifyAddress(C.GoString(address)) {
+	if engine.ctx.block.VerifyAddress(C.GoString(address)) {
 		return 1
 	}
 	return 0

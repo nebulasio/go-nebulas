@@ -19,6 +19,12 @@
 package nvm
 
 import (
+	"encoding/json"
+
+	"errors"
+
+	"github.com/gogo/protobuf/proto"
+	"github.com/nebulasio/go-nebulas/core/pb"
 	"github.com/nebulasio/go-nebulas/core/state"
 	"github.com/nebulasio/go-nebulas/util"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
@@ -29,11 +35,20 @@ var (
 	DefaultLimitsOfTotalMemorySize uint64 = 20 * 1000 * 1000
 )
 
-// Blockchain interface breaks cycle import dependency and hides unused services.
-type Blockchain interface {
+// Block interface breaks cycle import dependency and hides unused services.
+type Block interface {
+	CoinbaseHash() byteutils.Hash
+	Nonce() uint64
+	Hash() byteutils.Hash
+	Height() uint64
 	VerifyAddress(str string) bool
-	SerializeBlockByHash(hash byteutils.Hash) ([]byte, error)
-	SerializeTxByHash(hash byteutils.Hash) ([]byte, error)
+	SerializeTxByHash(hash byteutils.Hash) (proto.Message, error)
+}
+
+// AccountState context account state
+type AccountState struct {
+	Nonce   uint64 `json:"nonce"`
+	Balance string `json:"balance"`
 }
 
 // ContextBlock warpper block
@@ -46,23 +61,27 @@ type ContextBlock struct {
 
 // ContextTransaction warpper transaction
 type ContextTransaction struct {
-	Nonce    uint64        `json:"nonce"`
-	Hash     string        `json:"hash"`
-	GasPrice *util.Uint128 `json:"-"`
+	Hash      string `json:"hash"`
+	From      string `json:"from"`
+	To        string `json:"to"`
+	Value     string `json:"value"`
+	Nonce     uint64 `json:"nonce"`
+	Timestamp int64  `json:"timestamp"`
+	GasPrice  string `json:"gasPrice"`
+	GasLimit  string `json:"gasLimit"`
 }
 
 // Context nvm engine context
 type Context struct {
-	block    *ContextBlock
+	block    Block
 	tx       *ContextTransaction
 	owner    state.Account
 	contract state.Account
 	state    state.AccountState
-	chain    Blockchain
 }
 
 // NewContext create a engine context
-func NewContext(block *ContextBlock, tx *ContextTransaction, owner state.Account, contract state.Account, state state.AccountState) *Context {
+func NewContext(block Block, tx *ContextTransaction, owner state.Account, contract state.Account, state state.AccountState) *Context {
 	ctx := &Context{
 		block:    block,
 		tx:       tx,
@@ -71,4 +90,47 @@ func NewContext(block *ContextBlock, tx *ContextTransaction, owner state.Account
 		state:    state,
 	}
 	return ctx
+}
+
+// SerializeContextBlock Serialize current block
+func (ctx *Context) SerializeContextBlock() ([]byte, error) {
+
+	if ctx.block != nil {
+		block := &ContextBlock{
+			Coinbase: ctx.block.CoinbaseHash().String(),
+			Nonce:    ctx.block.Nonce(),
+			Hash:     ctx.block.Hash().String(),
+			Height:   ctx.block.Height(),
+		}
+		return json.Marshal(block)
+	}
+	return []byte("{}"), errors.New("no block in context")
+}
+
+// SerializeContextTx Serialize current tx
+func (ctx *Context) SerializeContextTx() ([]byte, error) {
+	return json.Marshal(ctx.tx)
+}
+
+// SerializeTxByHash Serialize tx
+func (ctx *Context) SerializeTxByHash(hash byteutils.Hash) ([]byte, error) {
+	msg, err := ctx.block.SerializeTxByHash(hash)
+	if err != nil {
+		return nil, err
+	}
+	txMsg := msg.(*corepb.Transaction)
+	value, _ := util.NewUint128FromFixedSizeByteSlice(txMsg.Value)
+	gasPrice, _ := util.NewUint128FromFixedSizeByteSlice(txMsg.GasPrice)
+	gasLimit, _ := util.NewUint128FromFixedSizeByteSlice(txMsg.GasLimit)
+	tx := &ContextTransaction{
+		Hash:      byteutils.Hex(txMsg.Hash),
+		From:      byteutils.Hex(txMsg.From),
+		To:        byteutils.Hex(txMsg.To),
+		Value:     value.String(),
+		Nonce:     txMsg.Nonce,
+		Timestamp: txMsg.Timestamp,
+		GasPrice:  gasPrice.String(),
+		GasLimit:  gasLimit.String(),
+	}
+	return json.Marshal(tx)
 }

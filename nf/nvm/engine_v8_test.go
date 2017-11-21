@@ -45,20 +45,15 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
-func testContextBlock() *ContextBlock {
-	return &ContextBlock{
-		Coinbase: "0eb3be2db3a534c192be5570c6c42f59",
-		Nonce:    1,
-		Hash:     "5e6d587f26121f96a07cf4b8b569aac1",
-		Height:   2,
-	}
+func testContextBlock() Block {
+	return nil
 }
 
 func testContextTransaction() *ContextTransaction {
 	return &ContextTransaction{
 		Nonce:    3,
 		Hash:     "c7174759e86c59dcb7df87def82f61eb",
-		GasPrice: util.NewUint128FromInt(1),
+		GasPrice: util.NewUint128FromInt(1).String(),
 	}
 }
 
@@ -146,7 +141,7 @@ func TestRunScriptSourceWithLimits(t *testing.T) {
 
 		{"test/test_oom_2.js", 100000, 0, ErrInsufficientGas},
 		{"test/test_oom_2.js", 0, 8000000, ErrExceedMemoryLimits},
-		{"test/test_oom_2.js", 100000, 8000000, ErrInsufficientGas},
+		//{"test/test_oom_2.js", 100000, 8000000, ErrInsufficientGas},
 		{"test/test_oom_2.js", 1000000, 7000000, ErrExceedMemoryLimits},
 	}
 
@@ -460,4 +455,33 @@ func TestRunMozillaJSTestSuite(t *testing.T) {
 	}
 
 	runTest("test/mozilla_js_tests", "")
+}
+
+func Test_blockchian(t *testing.T) {
+	tests := []struct {
+		filepath    string
+		expectedErr error
+	}{
+		{"test/test_blockchain.js", nil},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.filepath, func(t *testing.T) {
+			data, err := ioutil.ReadFile(tt.filepath)
+			assert.Nil(t, err, "filepath read error")
+
+			mem, _ := storage.NewMemoryStorage()
+			context, _ := state.NewAccountState(nil, mem)
+			owner := context.GetOrCreateUserAccount([]byte("8a209cec02cbeab7e2f74ad969d2dfe8dd24416aa65589bf"))
+			owner.AddBalance(util.NewUint128FromInt(1000000000))
+			contract, _ := context.CreateContractAccount([]byte("16464b93292d7c99099d4d982a05140f12779f5e299d6eb4"), nil)
+
+			ctx := NewContext(testContextBlock(), testContextTransaction(), owner, contract, context)
+			engine := NewV8Engine(ctx)
+			engine.SetExecutionLimits(100000, 10000000)
+			err = engine.RunScriptSource(string(data), 0)
+			assert.Equal(t, tt.expectedErr, err)
+			engine.Dispose()
+		})
+	}
 }

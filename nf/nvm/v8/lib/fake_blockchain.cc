@@ -27,17 +27,6 @@
 
 using namespace std;
 
-char *GetBlockByHash(void *handler, const char *hash) {
-  char *ret = NULL;
-  string value = "{\"hash\":\"5e6d587f26121f96a07cf4b8b569aac1\","
-                 "\"parentHash\":\"c7174759e86c59dcb7df87def82f61eb\","
-                 "\"coinbase\":\"70e30fcae5e7f4b2460faaa9e5b1bd912332ebb5\","
-                 "\"nonce\":4,\"chainID\":1}";
-  ret = (char *)calloc(value.length() + 1, sizeof(char));
-  strncpy(ret, value.c_str(), value.length());
-  return ret;
-}
-
 char *GetTxByHash(void *handler, const char *hash) {
   char *ret = NULL;
   string value = "{\"hash\":\"5e6d587f26121f96a07cf4b8b569aac1\",\"from\":"
