@@ -22,14 +22,6 @@ if (typeof _native_blockchain === "undefined") {
     throw new Error("_native_blockchain is undefined.");
 }
 
-var block = _native_blockchain.getBlockByHash("5e6d587f26121f96a07cf4b8b569aac1");
-console.log("block:" + block);
-try {
-    JSON.parse(block);
-} catch (e) {
-    throw error("block parse err");
-}
-
 var tx = _native_blockchain.getTransactionByHash("5e6d587f26121f96a07cf4b8b569aac1");
 console.log("tx:" + tx);
 try {
@@ -51,9 +43,6 @@ console.log("transfer:" + result)
 
 var result = _native_blockchain.verifyAddress("70e30fcae5e7f4b2460faaa9e5b1bd912332ebb5");
 console.log("verifyAddress:" + result)
-
-var b = Blockchain.getBlockByHash("5e6d587f26121f96a07cf4b8b569aac1");
-console.log("block:" + JSON.stringify(b));
 
 var tx = Blockchain.getTransactionByHash("5e6d587f26121f96a07cf4b8b569aac1");
 console.log("tx:" + tx.value);

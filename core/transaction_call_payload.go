@@ -69,18 +69,17 @@ func (payload *CallPayload) Execute(tx *Transaction, block *Block) error {
 		return err
 	}
 
-	ctxBlock := &nvm.ContextBlock{
-		Coinbase: block.Coinbase().String(),
-		Nonce:    block.Nonce(),
-		Hash:     block.Hash().String(),
-		Height:   block.Height(),
-	}
 	ctxTx := &nvm.ContextTransaction{
-		Nonce:    tx.Nonce(),
-		Hash:     tx.Hash().String(),
-		GasPrice: tx.GasPrice(),
+		From:      tx.from.String(),
+		To:        tx.to.String(),
+		Value:     tx.value.String(),
+		Timestamp: tx.timestamp,
+		Nonce:     tx.Nonce(),
+		Hash:      tx.Hash().String(),
+		GasPrice:  tx.GasPrice().String(),
+		GasLimit:  tx.GasLimit().String(),
 	}
-	ctx := nvm.NewContext(ctxBlock, ctxTx, owner, contract, context)
+	ctx := nvm.NewContext(block, ctxTx, owner, contract, context)
 	engine := nvm.NewV8Engine(ctx)
 	//add gas limit and memory use limit
 	engine.SetExecutionLimits(tx.GasLimit().Uint64(), nvm.DefaultLimitsOfTotalMemorySize)

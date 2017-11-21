@@ -20,7 +20,6 @@
 #ifndef _NEBULAS_NF_NVM_V8_LIB_FAKE_BLOCKCHAIN_H_
 #define _NEBULAS_NF_NVM_V8_LIB_FAKE_BLOCKCHAIN_H_
 
-char *GetBlockByHash(void *handler, const char *hash);
 char *GetTxByHash(void *handler, const char *hash);
 char *GetAccountState(void *handler, const char *address);
 int Transfer(void *handler, const char *to, const char *value);

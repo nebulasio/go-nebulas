@@ -23,18 +23,12 @@ var Blockchain = function () {
 };
 
 Blockchain.prototype = {
-    getBlockByHash: function (hash) {
-        var block = this.nativeBlockchain.getBlockByHash(hash);
-        if (block != null) {
-            block = JSON.parse(block);
-        }
-        return block
-    },
     getTransactionByHash: function (hash) {
         var tx = this.nativeBlockchain.getTransactionByHash(hash);
-        if (tx != null) {
-            tx = JSON.parse(tx);
+        if (tx === null) {
+            return null
         }
+        tx = JSON.parse(tx);
         if (tx.value != undefined) {
             tx.value = new BigNumber(tx.value)
         }
@@ -48,9 +42,10 @@ Blockchain.prototype = {
     },
     getAccountState: function (address) {
         var acc = this.nativeBlockchain.getAccountState(address);
-        if (acc != null) {
-            acc = JSON.parse(acc);
+        if (acc === null) {
+            return null
         }
+        acc = JSON.parse(acc);
         if (acc.balance != undefined) {
             acc.balance = new BigNumber(acc.balance)
         }

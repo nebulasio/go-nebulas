@@ -158,6 +158,15 @@ func (block *Block) FromProto(msg proto.Message) error {
 	return errors.New("Pb Message cannot be converted into Block")
 }
 
+// SerializeTxByHash returns tx serialized bytes
+func (block *Block) SerializeTxByHash(hash byteutils.Hash) (proto.Message, error) {
+	tx, err := block.GetTransaction(hash)
+	if err != nil {
+		return nil, err
+	}
+	return tx.ToProto()
+}
+
 // NewBlock return new block.
 func NewBlock(chainID uint32, coinbase *Address, parent *Block, txPool *TransactionPool, storage storage.Storage) *Block {
 	accState, _ := parent.accState.Clone()
@@ -185,6 +194,11 @@ func NewBlock(chainID uint32, coinbase *Address, parent *Block, txPool *Transact
 // Coinbase return block's coinbase
 func (block *Block) Coinbase() *Address {
 	return block.header.coinbase
+}
+
+// CoinbaseHash return block's coinbase hash
+func (block *Block) CoinbaseHash() byteutils.Hash {
+	return block.header.coinbase.address
 }
 
 // Nonce return nonce.
@@ -231,6 +245,12 @@ func (block *Block) ParentHash() byteutils.Hash {
 // Height return height from genesis block.
 func (block *Block) Height() uint64 {
 	return block.height
+}
+
+// VerifyAddress returns if the addr string is valid
+func (block *Block) VerifyAddress(str string) bool {
+	_, err := AddressParse(str)
+	return err == nil
 }
 
 // LinkParentBlock link parent block, return true if hash is the same; false otherwise.

@@ -20,16 +20,14 @@
 #include "blockchain.h"
 #include "../engine.h"
 
-static GetBlockByHashFunc sGetBlockByHash = NULL;
 static GetTxByHashFunc sGetTxByHash = NULL;
 static GetAccountStateFunc sGetAccountState = NULL;
 static TransferFunc sTransfer = NULL;
 static VerifyAddressFunc sVerifyAddress = NULL;
 
-void InitializeBlockchain(GetBlockByHashFunc getBlock, GetTxByHashFunc getTx,
+void InitializeBlockchain(GetTxByHashFunc getTx,
                           GetAccountStateFunc getAccount,
                           TransferFunc transfer, VerifyAddressFunc verifyAddress) {
-  sGetBlockByHash = getBlock;
   sGetTxByHash = getTx;
   sGetAccountState = getAccount;
   sTransfer = transfer;
@@ -40,11 +38,6 @@ void NewBlockchainInstance(Isolate *isolate, Local<Context> context,
                            void *handler) {
   Local<ObjectTemplate> blockTpl = ObjectTemplate::New(isolate);
   blockTpl->SetInternalFieldCount(1);
-
-  blockTpl->Set(String::NewFromUtf8(isolate, "getBlockByHash"),
-                FunctionTemplate::New(isolate, GetBlockByHashCallback),
-                static_cast<PropertyAttribute>(PropertyAttribute::DontDelete |
-                                               PropertyAttribute::ReadOnly));
 
   blockTpl->Set(String::NewFromUtf8(isolate, "getTransactionByHash"),
                 FunctionTemplate::New(isolate, GetTransactionByHashCallback),
@@ -73,34 +66,6 @@ void NewBlockchainInstance(Isolate *isolate, Local<Context> context,
       context, String::NewFromUtf8(isolate, "_native_blockchain"), instance,
       static_cast<PropertyAttribute>(PropertyAttribute::DontDelete |
                                      PropertyAttribute::ReadOnly));
-}
-
-// GetBlockByHashCallback
-void GetBlockByHashCallback(const FunctionCallbackInfo<Value> &info) {
-  Isolate *isolate = info.GetIsolate();
-  Local<Object> thisArg = info.Holder();
-  Local<External> handler = Local<External>::Cast(thisArg->GetInternalField(0));
-
-  if (info.Length() != 1) {
-    isolate->ThrowException(String::NewFromUtf8(
-        isolate, "Blockchain.getBlockByHash() requires only 1 argument"));
-    return;
-  }
-
-  Local<Value> key = info[0];
-  if (!key->IsString()) {
-    isolate->ThrowException(String::NewFromUtf8(isolate, "key must be string"));
-    return;
-  }
-
-  char *value =
-      sGetBlockByHash(handler->Value(), *String::Utf8Value(key->ToString()));
-  if (value == NULL) {
-    info.GetReturnValue().SetNull();
-  } else {
-    info.GetReturnValue().Set(String::NewFromUtf8(isolate, value));
-    free(value);
-  }
 }
 
 // GetTransactionByHashCallback

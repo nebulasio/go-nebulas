@@ -28,7 +28,6 @@ void NewBlockchainInstance(Isolate *isolate, Local<Context> context,
                            void *handler);
 
 void BlockchainConstructor(const FunctionCallbackInfo<Value> &info);
-void GetBlockByHashCallback(const FunctionCallbackInfo<Value> &info);
 void GetTransactionByHashCallback(const FunctionCallbackInfo<Value> &info);
 void GetAccountStateCallback(const FunctionCallbackInfo<Value> &info);
 void TransferCallback(const FunctionCallbackInfo<Value> &info);

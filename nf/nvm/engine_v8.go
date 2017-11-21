@@ -34,7 +34,6 @@ char *StorageGetFunc_cgo(void *handler, const char *key);
 int StoragePutFunc_cgo(void *handler, const char *key, const char *value);
 int StorageDelFunc_cgo(void *handler, const char *key);
 
-char *GetBlockByHashFunc_cgo(void *handler, const char *hash);
 char *GetTxByHashFunc_cgo(void *handler, const char *hash);
 char *GetAccountStateFunc_cgo(void *handler, const char *address);
 int TransferFunc_cgo(void *handler, const char *to, const char *value);
@@ -50,8 +49,6 @@ import (
 	"sync"
 	"time"
 	"unsafe"
-
-	"encoding/json"
 
 	"github.com/nebulasio/go-nebulas/core/state"
 	"github.com/nebulasio/go-nebulas/util"
@@ -106,7 +103,7 @@ func InitV8Engine() {
 	C.InitializeStorage((C.StorageGetFunc)(unsafe.Pointer(C.StorageGetFunc_cgo)), (C.StoragePutFunc)(unsafe.Pointer(C.StoragePutFunc_cgo)), (C.StorageDelFunc)(unsafe.Pointer(C.StorageDelFunc_cgo)))
 
 	// Blockchain.
-	C.InitializeBlockchain((C.GetBlockByHashFunc)(unsafe.Pointer(C.GetBlockByHashFunc_cgo)), (C.GetTxByHashFunc)(unsafe.Pointer(C.GetTxByHashFunc_cgo)), (C.GetAccountStateFunc)(unsafe.Pointer(C.GetAccountStateFunc_cgo)), (C.TransferFunc)(unsafe.Pointer(C.TransferFunc_cgo)), (C.VerifyAddressFunc)(unsafe.Pointer(C.VerifyAddressFunc_cgo)))
+	C.InitializeBlockchain((C.GetTxByHashFunc)(unsafe.Pointer(C.GetTxByHashFunc_cgo)), (C.GetAccountStateFunc)(unsafe.Pointer(C.GetAccountStateFunc_cgo)), (C.TransferFunc)(unsafe.Pointer(C.TransferFunc_cgo)), (C.VerifyAddressFunc)(unsafe.Pointer(C.VerifyAddressFunc_cgo)))
 }
 
 // DisposeV8Engine dispose the v8 engine.
@@ -289,7 +286,8 @@ func (e *V8Engine) RunScriptSource(source string, sourceLineOffset int) (err err
 func (e *V8Engine) gasCombustion(executionInstructions uint64) error {
 	instructions := util.NewUint128FromInt(int64(executionInstructions))
 	// cost = gasPrice * executionInstructions
-	return e.ctx.owner.SubBalance(util.NewUint128FromBigInt(instructions.Mul(instructions.Int, e.ctx.tx.GasPrice.Int)))
+	cost := instructions.Mul(instructions.Int, util.NewUint128FromString(e.ctx.tx.GasPrice).Int)
+	return e.ctx.owner.SubBalance(util.NewUint128FromBigInt(cost))
 }
 
 // Call function in a script
@@ -344,8 +342,8 @@ func (e *V8Engine) prepareRunnableContractScript(source, function, args string) 
 	}
 
 	// prepare for execute.
-	blockJSON, _ := json.Marshal(e.ctx.block)
-	txJSON, _ := json.Marshal(e.ctx.tx)
+	blockJSON, _ := e.ctx.SerializeContextBlock()
+	txJSON, _ := e.ctx.SerializeContextTx()
 	var runnableSource string
 
 	if len(args) > 0 {
