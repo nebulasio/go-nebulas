@@ -170,12 +170,7 @@ void ExecuteScript(const char *filename, V8ExecutionDelegate delegate) {
   }
 
   char id[128];
-  if (strncmp(filename, "/", 1) != 0 && strncmp(filename, "./", 2) != 0 &&
-      strncmp(filename, "../", 3) != 0) {
-    sprintf(id, "./%s", filename);
-  } else {
-    sprintf(id, "%s", filename);
-  }
+  sprintf(id, "./%s", filename);
 
   AddModule(e, id, source, lineOffset);
 

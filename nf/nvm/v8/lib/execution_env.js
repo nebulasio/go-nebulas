@@ -46,7 +46,7 @@ const require = (function (global) {
 
             if (!PathRegexForNotLibFile.test(id)) {
                 id = "lib/" + id;
-                paths = new Array();
+                paths = [];
             }
 
             for (const p of id.split("/")) {

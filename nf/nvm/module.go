@@ -33,13 +33,14 @@ var (
 	pathRe = regexp.MustCompile("^\\.{0,2}/")
 )
 
-// Module
+// Module module structure.
 type Module struct {
 	id         string
 	source     string
 	lineOffset int
 }
 
+// Modules module maps.
 type Modules map[string]*Module
 
 // NewModules create new modules and return it.
@@ -52,7 +53,7 @@ func NewModule(id, source string, lineOffset int) *Module {
 	if !pathRe.MatchString(id) {
 		id = fmt.Sprintf("lib/%s", id)
 	}
-	id = reformatModuleId(id)
+	id = reformatModuleID(id)
 
 	return &Module{
 		id:         id,
@@ -95,7 +96,7 @@ func RequireDelegateFunc(handler unsafe.Pointer, filename *C.char, lineOffset *C
 	return cSource
 }
 
-func reformatModuleId(id string) string {
+func reformatModuleID(id string) string {
 	paths := make([]string, 0)
 	for _, p := range strings.Split(id, "/") {
 		if len(p) == 0 || strings.Compare(".", p) == 0 {
@@ -104,8 +105,8 @@ func reformatModuleId(id string) string {
 		if strings.Compare("..", p) == 0 {
 			if len(paths) > 0 {
 				paths = paths[:len(paths)-1]
+				continue
 			}
-			continue
 		}
 		paths = append(paths, p)
 	}

@@ -54,8 +54,8 @@ void reformatModuleId(char *dst, const char *src) {
     if (p.compare("..") == 0) {
       if (paths.size() > 0) {
         paths.pop_back();
+        continue;
       }
-      continue;
     }
     paths.push_back(p);
   }
@@ -71,10 +71,12 @@ void reformatModuleId(char *dst, const char *src) {
   strcpy(dst, ss.str().c_str());
 }
 
-char *RequireDelegateFunc(void *handler, const char *filename,
+char *RequireDelegateFunc(void *handler, const char *filepath,
                           size_t *lineOffset) {
+  // LogInfof("RequireDelegateFunc: %s -> %s", "", filepath);
+
   char id[128];
-  sprintf(id, "%zu:%s", (uintptr_t)handler, filename);
+  sprintf(id, "%zu:%s", (uintptr_t)handler, filepath);
 
   char *ret = NULL;
   *lineOffset = 0;
@@ -88,24 +90,23 @@ char *RequireDelegateFunc(void *handler, const char *filename,
   }
   m.unlock();
 
-  // LogInfof("require load %s; orig id:%s", id, filename);
   return ret;
 }
 
 void AddModule(void *handler, const char *filename, const char *source,
                int lineOffset) {
-  char file[128];
+  char filepath[128];
   if (strncmp(filename, "/", 1) != 0 && strncmp(filename, "./", 2) != 0 &&
       strncmp(filename, "../", 3) != 0) {
-    sprintf(file, "lib/%s", filename);
-    reformatModuleId(file, file);
+    sprintf(filepath, "lib/%s", filename);
+    reformatModuleId(filepath, filepath);
   } else {
-    reformatModuleId(file, filename);
+    reformatModuleId(filepath, filename);
   }
+  // LogInfof("AddModule: %s -> %s", filename, filepath);
 
   char id[128];
-  sprintf(id, "%zu:%s", (uintptr_t)handler, filename);
-  // LogInfof("add module %s; orig id:%s", id, filename);
+  sprintf(id, "%zu:%s", (uintptr_t)handler, filepath);
 
   m.lock();
   modules[string(id)] = string(source);
@@ -113,15 +114,16 @@ void AddModule(void *handler, const char *filename, const char *source,
 }
 
 char *GetModuleSource(void *handler, const char *filename) {
-  char file[128];
+  char filepath[128];
   if (strncmp(filename, "/", 1) != 0 && strncmp(filename, "./", 2) != 0 &&
       strncmp(filename, "../", 3) != 0) {
-    sprintf(file, "lib/%s", filename);
-    reformatModuleId(file, file);
+    sprintf(filepath, "lib/%s", filename);
+    reformatModuleId(filepath, filepath);
   } else {
-    reformatModuleId(file, filename);
+    reformatModuleId(filepath, filename);
   }
+  // LogInfof("GetModule: %s -> %s", filename, filepath);
 
   size_t size = 0;
-  return RequireDelegateFunc(handler, filename, &size);
+  return RequireDelegateFunc(handler, filepath, &size);
 }
