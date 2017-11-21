@@ -452,6 +452,7 @@ func (payload *VotePayload) change(from []byte, packedBlock *Block) error {
 	// record vote
 	nBytes = byteutils.FromUint32(payload.Times)
 	_, err = packedBlock.changeVotesTrie.Put(key, nBytes)
+	// TODO(roy): kickout the changed validator if change vote > 2/3
 	return err
 }
 
