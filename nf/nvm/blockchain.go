@@ -36,7 +36,7 @@ type accountState struct {
 // GetBlockByHashFunc returns the block info by hash
 //export GetBlockByHashFunc
 func GetBlockByHashFunc(handler unsafe.Pointer, hash *C.char) *C.char {
-	engine, _ := getEngineAndStorage(uint64(uintptr(handler)))
+	engine, _ := getEngineByStorageHandler(uint64(uintptr(handler)))
 	if engine == nil {
 		return nil
 	}
@@ -57,7 +57,7 @@ func GetBlockByHashFunc(handler unsafe.Pointer, hash *C.char) *C.char {
 // GetTxByHashFunc returns tx info by hash
 //export GetTxByHashFunc
 func GetTxByHashFunc(handler unsafe.Pointer, hash *C.char) *C.char {
-	engine, _ := getEngineAndStorage(uint64(uintptr(handler)))
+	engine, _ := getEngineByStorageHandler(uint64(uintptr(handler)))
 	if engine == nil {
 		return nil
 	}
@@ -78,7 +78,7 @@ func GetTxByHashFunc(handler unsafe.Pointer, hash *C.char) *C.char {
 // GetAccountStateFunc returns account info by address
 //export GetAccountStateFunc
 func GetAccountStateFunc(handler unsafe.Pointer, address *C.char) *C.char {
-	engine, _ := getEngineAndStorage(uint64(uintptr(handler)))
+	engine, _ := getEngineByStorageHandler(uint64(uintptr(handler)))
 	if engine == nil {
 		return nil
 	}
@@ -106,7 +106,7 @@ func GetAccountStateFunc(handler unsafe.Pointer, address *C.char) *C.char {
 // TransferFunc transfer vale to address
 //export TransferFunc
 func TransferFunc(handler unsafe.Pointer, to *C.char, v *C.char) int {
-	engine, _ := getEngineAndStorage(uint64(uintptr(handler)))
+	engine, _ := getEngineByStorageHandler(uint64(uintptr(handler)))
 	if engine == nil {
 		return 0
 	}
@@ -161,7 +161,7 @@ func TransferFunc(handler unsafe.Pointer, to *C.char, v *C.char) int {
 // VerifyAddressFunc verify address is valid
 //export VerifyAddressFunc
 func VerifyAddressFunc(handler unsafe.Pointer, address *C.char) int {
-	engine, _ := getEngineAndStorage(uint64(uintptr(handler)))
+	engine, _ := getEngineByStorageHandler(uint64(uintptr(handler)))
 	if engine == nil {
 		return 0
 	}

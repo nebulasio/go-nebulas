@@ -19,6 +19,7 @@
 #include "require_callback.h"
 #include "../engine.h"
 #include "file.h"
+#include "global.h"
 #include "logger.h"
 
 #include <assert.h>
@@ -30,56 +31,41 @@
 
 using namespace v8;
 
-#define SOURCE_REQUIRE_LINE_OFFSET -6
-static char source_require_format[] = "(function () {\n"
-                                      "    var module = {\n"
-                                      "        exports: {},\n"
-                                      "        id: \"%s\"\n"
-                                      "    };\n"
-                                      "    (function (exports, module) {\n"
-                                      "%s"
-                                      ";\n"
-                                      "})(module.exports, module);\n"
-                                      "    return module.exports;\n"
-                                      "})();\n";
+static char source_require_format[] =
+    "(function(){\n"
+    "return function (exports, module, require) {\n"
+    "%s\n"
+    "};\n"
+    "})();\n";
 
-static char *getValidFilePath(const char *filename) {
-  size_t len = strlen(filename);
-  char *ret = NULL;
+static RequireDelegate sRequireDelegate = NULL;
 
-  if (strncmp(filename, "./", 2) == 0) {
-    // Load file from local package.
-    ret = (char *)malloc(len + 1);
-    stpcpy(ret, filename);
-    return ret;
-
-  } else {
-    // Load file from lib.
-    ret = (char *)malloc(len + 1 + 6);
-    strcpy(ret, "./lib/");
-    strcpy(ret + 6, filename);
-  }
-
-  return ret;
-}
-
-static int readSource(const char *filename, char **data, size_t *size) {
+static int readSource(Local<Context> context, const char *filename, char **data,
+                      size_t *lineOffset) {
   if (strstr(filename, "\"") != NULL) {
     return -1;
   }
 
-  char *filepath = getValidFilePath(filename);
-  size_t file_size = 0;
-  char *content = readFile(filepath, &file_size);
+  *lineOffset = 0;
 
+  size_t file_size = 0;
+  char *content = readFile(filename, &file_size);
   if (content == NULL) {
-    free(filepath);
-    return 1;
+    // try sRequireDelegate.
+    if (sRequireDelegate != NULL) {
+      V8Engine *e = GetV8EngineInstance(context);
+      content = sRequireDelegate(e, filename, lineOffset);
+    }
+
+    if (content == NULL) {
+      return 1;
+    }
   }
 
-  *size = asprintf(data, source_require_format, filepath, content);
-  free(filepath);
+  asprintf(data, source_require_format, content);
+  *lineOffset += -2;
   free(content);
+
   return 0;
 }
 
@@ -94,6 +80,7 @@ void NewNativeRequireFunction(Isolate *isolate,
 void RequireCallback(const v8::FunctionCallbackInfo<v8::Value> &info) {
   // logErrorf("require called.");
   Isolate *isolate = info.GetIsolate();
+  Local<Context> context = isolate->GetCurrentContext();
 
   if (info.Length() == 0) {
     isolate->ThrowException(
@@ -110,8 +97,8 @@ void RequireCallback(const v8::FunctionCallbackInfo<v8::Value> &info) {
 
   String::Utf8Value filename(path);
   char *data = NULL;
-  size_t size = 0;
-  if (readSource(*filename, &data, &size)) {
+  size_t lineOffset = 0;
+  if (readSource(context, *filename, &data, &lineOffset)) {
     char msg[512];
     snprintf(msg, 512, "require cannot find module '%s'", *filename);
     isolate->ThrowException(
@@ -119,11 +106,7 @@ void RequireCallback(const v8::FunctionCallbackInfo<v8::Value> &info) {
     return;
   }
 
-  // LogInfof("source is: %s", data);
-  Local<Context> context = isolate->GetCurrentContext();
-
-  ScriptOrigin sourceSrcOrigin(
-      path, Integer::New(isolate, SOURCE_REQUIRE_LINE_OFFSET));
+  ScriptOrigin sourceSrcOrigin(path, Integer::New(isolate, lineOffset));
   MaybeLocal<Script> script = Script::Compile(
       context, String::NewFromUtf8(isolate, data), &sourceSrcOrigin);
   if (!script.IsEmpty()) {
@@ -137,21 +120,6 @@ void RequireCallback(const v8::FunctionCallbackInfo<v8::Value> &info) {
   free(static_cast<void *>(data));
 }
 
-char *EncapsulateSourceToModuleStyle(const char *source,
-                                     int *source_line_offset) {
-  static const char charset[] =
-      "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-
-  char genfilename[10];
-  genfilename[0] = '_';
-  size_t i = 1;
-  for (; i < sizeof(genfilename) - 4; i++) {
-    genfilename[i] = charset[rand() % (int)(sizeof charset - 1)];
-  }
-  strncpy(genfilename + i, ".js", 3);
-
-  char *data = NULL;
-  asprintf(&data, source_require_format, genfilename, source);
-  *source_line_offset = SOURCE_REQUIRE_LINE_OFFSET;
-  return data;
+void InitializeRequireDelegate(RequireDelegate delegate) {
+  sRequireDelegate = delegate;
 }

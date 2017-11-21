@@ -19,7 +19,11 @@
 package nvm
 
 /*
+#include <stddef.h>
 void V8Log(int level, const char *msg);
+
+char *RequireDelegateFunc(void *handler, const char *filename, size_t *lineOffset);
+
 char *StorageGetFunc(void *handler, const char *key);
 int StoragePutFunc(void *handler, const char *key, const char *value);
 int StorageDelFunc(void *handler, const char *key);
@@ -34,6 +38,10 @@ int VerifyAddressFunc(void *handler, const char *address);
 void V8Log_cgo(int level, const char *msg) {
 	V8Log(level, msg);
 };
+
+char *RequireDelegateFunc_cgo(void *handler, const char *filename, size_t *lineOffset) {
+	return RequireDelegateFunc(handler, filename, lineOffset);
+}
 
 char *StorageGetFunc_cgo(void *handler, const char *key) {
 	return StorageGetFunc(handler, key);

@@ -171,7 +171,7 @@ void StoragePutCallback(const FunctionCallbackInfo<Value> &info) {
   info.GetReturnValue().Set(ret);
 
   // record storage usage.
-  Local<Context> context = isolate->GetCallingContext();
+  Local<Context> context = isolate->GetCurrentContext();
   RecordStorageUsage(isolate, context, key_str->Utf8Length(),
                      val_str->Utf8Length());
 }

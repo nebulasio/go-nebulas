@@ -69,6 +69,11 @@ EXPORT void InitializeBlockchain(GetBlockByHashFunc getBlock,
 // version
 EXPORT char *GetV8Version();
 
+// require callback.
+typedef char *(*RequireDelegate)(void *handler, const char *filename,
+                                 size_t *lineOffset);
+EXPORT void InitializeRequireDelegate(RequireDelegate delegate);
+
 typedef struct V8EngineStats {
   size_t count_of_executed_instructions;
   size_t total_memory_size;
@@ -114,8 +119,8 @@ EXPORT void TerminateExecution(V8Engine *e);
 
 EXPORT void DeleteEngine(V8Engine *e);
 
-EXPORT char *EncapsulateSourceToModuleStyle(const char *source,
-                                            int *source_line_offset);
+// EXPORT char *EncapsulateSourceToModuleStyle(const char *source,
+//                                             int *source_line_offset);
 
 #ifdef __cplusplus
 }

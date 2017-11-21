@@ -20,13 +20,10 @@
 #include "engine.h"
 #include "allocator.h"
 #include "engine_int.h"
-#include "lib/blockchain.h"
 #include "lib/execution_env.h"
+#include "lib/global.h"
 #include "lib/instruction_counter.h"
-#include "lib/log_callback.h"
 #include "lib/logger.h"
-#include "lib/require_callback.h"
-#include "lib/storage_object.h"
 #include "lib/tracing.h"
 #include "v8_data_inc.h"
 
@@ -168,10 +165,7 @@ int Execute(V8Engine *e, const char *source, int source_line_offset,
   HandleScope handle_scope(isolate);
 
   // Create global object template.
-  Local<ObjectTemplate> globalTpl = ObjectTemplate::New(isolate);
-  NewNativeRequireFunction(isolate, globalTpl);
-  NewNativeLogFunction(isolate, globalTpl);
-  NewStorageType(isolate, globalTpl);
+  Local<ObjectTemplate> globalTpl = CreateGlobalObjectTemplate(isolate);
 
   // Create a new context.
   Local<Context> context = Context::New(isolate, NULL, globalTpl);
@@ -185,10 +179,7 @@ int Execute(V8Engine *e, const char *source, int source_line_offset,
   TryCatch trycatch(isolate);
 
   // Continue put objects to global object.
-  NewStorageTypeInstance(isolate, context, lcsHandler, gcsHandler);
-  NewInstructionCounterInstance(isolate, context,
-                                &(e->stats.count_of_executed_instructions), e);
-  NewBlockchainInstance(isolate, context, lcsHandler);
+  SetGlobalObjectProperties(isolate, context, e, lcsHandler, gcsHandler);
 
   // Setup execution env.
   if (SetupExecutionEnv(isolate, context)) {

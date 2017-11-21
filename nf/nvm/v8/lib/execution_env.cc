@@ -22,7 +22,7 @@
 #include "logger.h"
 
 int SetupExecutionEnv(Isolate *isolate, Local<Context> &context) {
-  char *data = readFile("./lib/execution_env.js", NULL);
+  char *data = readFile("lib/execution_env.js", NULL);
   if (data == NULL) {
     isolate->ThrowException(Exception::Error(
         String::NewFromUtf8(isolate, "execution_env.js is not found.")));

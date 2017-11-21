@@ -16,15 +16,85 @@
 // along with the go-nebulas library.  If not, see <http://www.gnu.org/licenses/>.
 //
 const require = (function () {
+    var PathRegex = /^\.{0,2}\//;
     var modules = new Map();
-    return function (id) {
+
+    var Module = function (id, parent) {
+        this.exports = {};
+        Object.defineProperty(this, "id", {
+            enumerable: false,
+            configurable: false,
+            writable: false,
+            value: id
+        });
+
+        if (parent && !(parent instanceof Module)) {
+            throw new Error("parent parameter of Module construction must be instance of Module or null.");
+        }
+    };
+
+    Module.prototype = {
+        _load: function () {
+            var $this = this,
+                native_req_func = _native_require(this.id),
+                temp_global = Object.create(null);
+            native_req_func.call(temp_global, this.exports, this, curry(require_func, $this));
+        },
+        _resolve: function (id) {
+            if (!PathRegex.test(id)) {
+                return "lib/" + id;
+            }
+
+            var paths = this.id.split("/");
+            paths.pop();
+
+            for (const p of id.split("/")) {
+                if (p == "" || p == ".") {
+                    continue;
+                } else if (p == ".." && paths.length > 0) {
+                    paths.pop();
+                } else {
+                    paths.push(p);
+                }
+            }
+            if (paths.length > 0 && paths[0] == "") {
+                paths.shift();
+            }
+            return paths.join("/");
+        },
+    };
+
+    var globalModule = new Module("main.js");
+    modules.set(globalModule.id, globalModule);
+
+    function require_func(parent, id) {
+        id = parent._resolve(id);
         var module = modules.get(id);
-        if (!module) {
-            module = _native_require(id);
+        if (!module || !(module instanceof Module)) {
+            module = new Module(id, parent);
+            module._load();
             modules.set(id, module);
         }
-        return module;
+        return module.exports;
     };
+
+    function curry(uncurried) {
+        var parameters = Array.prototype.slice.call(arguments, 1);
+        var f = function () {
+            return uncurried.apply(this, parameters.concat(
+                Array.prototype.slice.call(arguments, 0)
+            ));
+        };
+        Object.defineProperty(f, "main", {
+            enumerable: true,
+            configurable: false,
+            writable: false,
+            value: globalModule,
+        });
+        return f;
+    };
+
+    return curry(require_func, globalModule);
 })();
 
 const console = require('console.js');

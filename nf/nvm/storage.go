@@ -62,7 +62,7 @@ func hashStorageKey(key string) []byte {
 // StorageGetFunc export StorageGetFunc
 //export StorageGetFunc
 func StorageGetFunc(handler unsafe.Pointer, key *C.char) *C.char {
-	_, storage := getEngineAndStorage(uint64(uintptr(handler)))
+	_, storage := getEngineByStorageHandler(uint64(uintptr(handler)))
 	if storage == nil {
 		return nil
 	}
@@ -86,7 +86,7 @@ func StorageGetFunc(handler unsafe.Pointer, key *C.char) *C.char {
 // StoragePutFunc export StoragePutFunc
 //export StoragePutFunc
 func StoragePutFunc(handler unsafe.Pointer, key *C.char, value *C.char) int {
-	_, storage := getEngineAndStorage(uint64(uintptr(handler)))
+	_, storage := getEngineByStorageHandler(uint64(uintptr(handler)))
 	if storage == nil {
 		return 1
 	}
@@ -109,7 +109,7 @@ func StoragePutFunc(handler unsafe.Pointer, key *C.char, value *C.char) int {
 // StorageDelFunc export StorageDelFunc
 //export StorageDelFunc
 func StorageDelFunc(handler unsafe.Pointer, key *C.char) int {
-	_, storage := getEngineAndStorage(uint64(uintptr(handler)))
+	_, storage := getEngineByStorageHandler(uint64(uintptr(handler)))
 	if storage == nil {
 		return 1
 	}

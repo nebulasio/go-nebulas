@@ -152,7 +152,7 @@ func TestDeployAndInitAndCall(t *testing.T) {
 		initArgs     string
 		verifyArgs   string
 	}{
-		{"deploy sample_contract.js", "test/sample_contract.js", "[\"TEST001\", 123,[{\"name\":\"robin\",\"count\":2},{\"name\":\"roy\",\"count\":3},{\"name\":\"leon\",\"count\":4}]]", "[\"TEST001\", 123,[{\"name\":\"robin\",\"count\":2},{\"name\":\"roy\",\"count\":3},{\"name\":\"leon\",\"count\":4}]]"},
+		{"deploy sample_contract.js", "./test/sample_contract.js", "[\"TEST001\", 123,[{\"name\":\"robin\",\"count\":2},{\"name\":\"roy\",\"count\":3},{\"name\":\"leon\",\"count\":4}]]", "[\"TEST001\", 123,[{\"name\":\"robin\",\"count\":2},{\"name\":\"roy\",\"count\":3},{\"name\":\"leon\",\"count\":4}]]"},
 	}
 
 	for _, tt := range tests {
@@ -203,7 +203,6 @@ func TestDeployAndInitAndCall(t *testing.T) {
 			err = engine.Call(string(data), "verify", tt.verifyArgs)
 			assert.NotNil(t, err)
 			engine.Dispose()
-
 		})
 	}
 }

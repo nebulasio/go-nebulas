@@ -27,6 +27,9 @@ package nvm
 
 // Forward declaration.
 void V8Log_cgo(int level, const char *msg);
+
+char *RequireDelegateFunc_cgo(void *handler, const char *filename, size_t *lineOffset);
+
 char *StorageGetFunc_cgo(void *handler, const char *key);
 int StoragePutFunc_cgo(void *handler, const char *key, const char *value);
 int StorageDelFunc_cgo(void *handler, const char *key);
@@ -64,18 +67,19 @@ var (
 )
 
 var (
-	v8engineOnce = sync.Once{}
-	storages     = make(map[uint64]*V8Engine, 256)
-	storagesIdx  = uint64(0)
-	storagesLock = sync.RWMutex{}
-
+	v8engineOnce   = sync.Once{}
+	storages       = make(map[uint64]*V8Engine, 256)
+	storagesIdx    = uint64(0)
+	storagesLock   = sync.RWMutex{}
+	engines        = make(map[*C.V8Engine]*V8Engine, 256)
+	enginesLock    = sync.RWMutex{}
 	functionNameRe = regexp.MustCompile("^[a-zA-Z_]+$")
 )
 
 // V8Engine v8 engine.
 type V8Engine struct {
-	ctx *Context
-
+	ctx                                *Context
+	modules                            Modules
 	v8engine                           *C.V8Engine
 	enableLimits                       bool
 	limitsOfExecutionInstructions      uint64
@@ -92,6 +96,9 @@ func InitV8Engine() {
 
 	// Logger.
 	C.InitializeLogger((C.LogFunc)(unsafe.Pointer(C.V8Log_cgo)))
+
+	// Require.
+	C.InitializeRequireDelegate((C.RequireDelegate)(unsafe.Pointer(C.RequireDelegateFunc_cgo)))
 
 	// Storage.
 	C.InitializeStorage((C.StorageGetFunc)(unsafe.Pointer(C.StorageGetFunc_cgo)), (C.StoragePutFunc)(unsafe.Pointer(C.StoragePutFunc_cgo)), (C.StorageDelFunc)(unsafe.Pointer(C.StorageDelFunc_cgo)))
@@ -113,6 +120,7 @@ func NewV8Engine(ctx *Context) *V8Engine {
 
 	engine := &V8Engine{
 		ctx:                                ctx,
+		modules:                            NewModules(),
 		v8engine:                           C.CreateEngine(),
 		enableLimits:                       false,
 		limitsOfExecutionInstructions:      0,
@@ -121,27 +129,39 @@ func NewV8Engine(ctx *Context) *V8Engine {
 		actualTotalMemorySize:              0,
 	}
 
-	storagesLock.Lock()
-	defer storagesLock.Unlock()
+	(func() {
+		enginesLock.Lock()
+		defer enginesLock.Unlock()
+		engines[engine.v8engine] = engine
+	})()
 
-	storagesIdx++
-	engine.lcsHandler = storagesIdx
-	storagesIdx++
-	engine.gcsHandler = storagesIdx
+	(func() {
+		storagesLock.Lock()
+		defer storagesLock.Unlock()
 
-	storages[engine.lcsHandler] = engine
-	storages[engine.gcsHandler] = engine
+		storagesIdx++
+		engine.lcsHandler = storagesIdx
+		storagesIdx++
+		engine.gcsHandler = storagesIdx
 
+		storages[engine.lcsHandler] = engine
+		storages[engine.gcsHandler] = engine
+	})()
 	return engine
 }
 
 // Dispose dispose all resources.
 func (e *V8Engine) Dispose() {
-	C.DeleteEngine(e.v8engine)
 	storagesLock.Lock()
 	delete(storages, e.lcsHandler)
 	delete(storages, e.gcsHandler)
 	storagesLock.Unlock()
+
+	enginesLock.Lock()
+	delete(engines, e.v8engine)
+	enginesLock.Unlock()
+
+	C.DeleteEngine(e.v8engine)
 }
 
 // SetTestingFlag set testing flag, default is False.
@@ -173,6 +193,30 @@ func (e *V8Engine) SetExecutionLimits(limitsOfExecutionInstructions, limitsOfTot
 	}
 }
 
+// InjectTracingInstructions process the source to inject tracing instructions.
+func (e *V8Engine) InjectTracingInstructions(source string) (string, int, error) {
+	cSource := C.CString(source)
+	defer C.free(unsafe.Pointer(cSource))
+
+	lineOffset := C.int(0)
+	traceableCSource := C.InjectTracingInstructions(e.v8engine, cSource, &lineOffset)
+	if traceableCSource == nil {
+		return "", 0, ErrInjectTracingInstructionFailed
+	}
+	defer C.free(unsafe.Pointer(traceableCSource))
+
+	return C.GoString(traceableCSource), int(lineOffset), nil
+}
+
+// CollectTracingStats collect tracing data from v8 engine.
+func (e *V8Engine) CollectTracingStats() {
+	// read memory stats.
+	C.ReadMemoryStatistics(e.v8engine)
+
+	e.actualCountOfExecutionInstructions = uint64(e.v8engine.stats.count_of_executed_instructions)
+	e.actualTotalMemorySize = uint64(e.v8engine.stats.total_memory_size)
+}
+
 // RunScriptSource run js source.
 func (e *V8Engine) RunScriptSource(source string, sourceLineOffset int) (err error) {
 	cSource := C.CString(source)
@@ -181,14 +225,14 @@ func (e *V8Engine) RunScriptSource(source string, sourceLineOffset int) (err err
 	var ret C.int
 
 	if e.enableLimits {
-		var injectLineOffset C.int
-		traceableCSource := C.InjectTracingInstructions(e.v8engine, cSource, &injectLineOffset)
+		var injectedLineOffset C.int
+		traceableCSource := C.InjectTracingInstructions(e.v8engine, cSource, &injectedLineOffset)
 		if traceableCSource == nil {
 			return ErrInjectTracingInstructionFailed
 		}
 		defer C.free(unsafe.Pointer(traceableCSource))
 		cSource = traceableCSource
-		sourceLineOffset += int(injectLineOffset)
+		sourceLineOffset += int(injectedLineOffset)
 	}
 
 	done := make(chan bool, 1)
@@ -214,6 +258,9 @@ func (e *V8Engine) RunScriptSource(source string, sourceLineOffset int) (err err
 		}
 	}
 
+	// collect tracing stats.
+	e.CollectTracingStats()
+
 	if e.enableLimits {
 		// check limits.
 		ret = C.IsEngineLimitsExceeded(e.v8engine)
@@ -222,17 +269,17 @@ func (e *V8Engine) RunScriptSource(source string, sourceLineOffset int) (err err
 		} else if ret == 2 {
 			err = ErrExceedMemoryLimits
 		}
-	} else {
-		// read memory stats.
-		C.ReadMemoryStatistics(e.v8engine)
+
+		// combust the gas.
+		if e.actualCountOfExecutionInstructions > e.limitsOfExecutionInstructions || err == ErrExceedMemoryLimits {
+			// combust all available gas.
+			e.gasCombustion(e.limitsOfExecutionInstructions)
+		} else {
+			// combust actual executed gas.
+			e.gasCombustion(e.actualCountOfExecutionInstructions)
+		}
 	}
 
-	e.actualCountOfExecutionInstructions = uint64(e.v8engine.stats.count_of_executed_instructions)
-	e.actualTotalMemorySize = uint64(e.v8engine.stats.total_memory_size)
-
-	if err == nil {
-		err = e.gasCombustion(e.actualCountOfExecutionInstructions)
-	}
 	return
 }
 
@@ -247,49 +294,64 @@ func (e *V8Engine) Call(source, function, args string) error {
 	if functionNameRe.MatchString(function) == false || strings.Compare("init", function) == 0 {
 		return ErrInvalidFunctionName
 	}
-	return e.executeScript(source, function, args)
+	return e.RunContractScript(source, function, args)
 }
 
 // DeployAndInit a contract
 func (e *V8Engine) DeployAndInit(source, args string) error {
-	return e.executeScript(source, "init", args)
+	return e.RunContractScript(source, "init", args)
 }
 
-// Execute execute the script and return error.
-func (e *V8Engine) executeScript(source, function, args string) error {
-	executablesource, sourceLineOffset, err := e.prepareExecutableSource(source, function, args)
+// RunContractScript execute script in Smart Contract's way.
+func (e *V8Engine) RunContractScript(source, function, args string) error {
+	runnableSource, sourceLineOffset, err := e.prepareRunnableContractScript(source, function, args)
 	if err != nil {
 		return err
 	}
 
-	return e.RunScriptSource(executablesource, sourceLineOffset)
+	return e.RunScriptSource(runnableSource, sourceLineOffset)
 }
 
-func (e *V8Engine) prepareExecutableSource(source, function, args string) (string, int, error) {
-	// inject tracing instructions.
-	cSource := C.CString(source)
-	defer C.free(unsafe.Pointer(cSource))
+// AddModule add module.
+func (e *V8Engine) AddModule(id, source string, sourceLineOffset int) {
+	e.modules.Add(NewModule(id, source, sourceLineOffset))
+}
 
-	// encapsulate to module style.
-	sourceLineOffset := C.int(0)
-	cmSource := C.EncapsulateSourceToModuleStyle(cSource, &sourceLineOffset)
-	defer C.free(unsafe.Pointer(cmSource))
+func (e *V8Engine) prepareRunnableContractScript(source, function, args string) (string, int, error) {
+	sourceLineOffset := 0
+
+	// inject tracing instruction when enable limits.
+	if e.enableLimits {
+		traceableSource, lineOffset, err := e.InjectTracingInstructions(source)
+		if err != nil {
+			log.WithFields(log.Fields{
+				"err": err,
+			}).Error("inject tracing instruction failed.")
+			return "", 0, err
+		}
+		source = traceableSource
+		sourceLineOffset = lineOffset
+	}
+
+	// add module.
+	const MID string = "contract.js"
+	e.AddModule(MID, source, sourceLineOffset)
 
 	// prepare for execute.
 	contextJSON := e.ctx.getParamsJSON()
-	var executablesource string
+	var runnableSource string
 
 	if len(args) > 0 {
-		executablesource = fmt.Sprintf("var __contract = %s;\n var __instance = new __contract();\n Blockchain.current = Object.freeze(JSON.parse(\"%s\"));\n __instance[\"%s\"].apply(__instance, JSON.parse(\"%s\"));\n", C.GoString(cmSource), formatArgs(contextJSON), function, formatArgs(args))
+		runnableSource = fmt.Sprintf("var __contract = require(\"%s\");\n var __instance = new __contract();\n Blockchain.current = Object.freeze(JSON.parse(\"%s\"));\n __instance[\"%s\"].apply(__instance, JSON.parse(\"%s\"));\n", MID, formatArgs(contextJSON), function, formatArgs(args))
 	} else {
-		executablesource = fmt.Sprintf("var __contract = %s;\n var __instance = new __contract();\n Blockchain.current = Object.freeze(JSON.parse(\"%s\"));\n __instance[\"%s\"].apply(__instance);\n", C.GoString(cmSource), formatArgs(contextJSON), function)
+		runnableSource = fmt.Sprintf("var __contract = require(\"%s\");\n var __instance = new __contract();\n Blockchain.current = Object.freeze(JSON.parse(\"%s\"));\n __instance[\"%s\"].apply(__instance);\n", MID, formatArgs(contextJSON), function)
 	}
 
-	return executablesource, int(sourceLineOffset), nil
+	return runnableSource, 0, nil
 }
 
-func getEngineAndStorage(handler uint64) (*V8Engine, state.Account) {
-	// log.Errorf("[--------------] getEngineAndStorage, handler = %d", handler)
+func getEngineByStorageHandler(handler uint64) (*V8Engine, state.Account) {
+	// log.Errorf("[--------------] getEngineByStorageHandler, handler = %d", handler)
 
 	storagesLock.RLock()
 	engine := storages[handler]
@@ -297,7 +359,7 @@ func getEngineAndStorage(handler uint64) (*V8Engine, state.Account) {
 
 	if engine == nil {
 		log.WithFields(log.Fields{
-			"func":          "nvm.getEngineAndStorage",
+			"func":          "nvm.getEngineByStorageHandler",
 			"wantedHandler": handler,
 		}).Error("wantedHandler is not found.")
 		return nil, nil
@@ -309,13 +371,21 @@ func getEngineAndStorage(handler uint64) (*V8Engine, state.Account) {
 		return engine, engine.ctx.owner
 	} else {
 		log.WithFields(log.Fields{
-			"func":          "nvm.getEngineAndStorage",
+			"func":          "nvm.getEngineByStorageHandler",
 			"lcsHandler":    engine.lcsHandler,
 			"gcsHandler":    engine.gcsHandler,
 			"wantedHandler": handler,
 		}).Error("in-consistent storage handler.")
 		return nil, nil
 	}
+}
+
+func getEngineByEngineHandler(handler unsafe.Pointer) *V8Engine {
+	v8engine := (*C.V8Engine)(handler)
+	enginesLock.RLock()
+	defer enginesLock.RUnlock()
+
+	return engines[v8engine]
 }
 
 func formatArgs(s string) string {
