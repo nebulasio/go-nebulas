@@ -141,7 +141,7 @@ func TestRunScriptSourceWithLimits(t *testing.T) {
 
 		{"test/test_oom_2.js", 100000, 0, ErrInsufficientGas},
 		{"test/test_oom_2.js", 0, 8000000, ErrExceedMemoryLimits},
-		//{"test/test_oom_2.js", 100000, 8000000, ErrInsufficientGas},
+		{"test/test_oom_2.js", 100000, 10000000, ErrInsufficientGas},
 		{"test/test_oom_2.js", 1000000, 7000000, ErrExceedMemoryLimits},
 	}
 
