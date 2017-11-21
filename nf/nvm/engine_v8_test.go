@@ -55,7 +55,6 @@ func TestRunScriptSource(t *testing.T) {
 		{"test/test_storage_handlers.js", nil},
 		{"test/test_storage_class.js", nil},
 		{"test/test_storage.js", nil},
-		{"test/test_ERC20.js", nil},
 		{"test/test_eval.js", ErrExecutionFailed},
 	}
 
@@ -80,6 +79,42 @@ func TestRunScriptSource(t *testing.T) {
 	}
 }
 
+func TestRunScriptSourceInModule(t *testing.T) {
+	tests := []struct {
+		filepath    string
+		expectedErr error
+	}{
+		{"./test/test_require.js", nil},
+		{"./test/test_console.js", nil},
+		{"./test/test_storage_handlers.js", nil},
+		{"./test/test_storage_class.js", nil},
+		{"./test/test_storage.js", nil},
+		{"./test/test_ERC20.js", nil},
+		{"./test/test_eval.js", ErrExecutionFailed},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.filepath, func(t *testing.T) {
+			data, err := ioutil.ReadFile(tt.filepath)
+			assert.Nil(t, err, "filepath read error")
+
+			mem, _ := storage.NewMemoryStorage()
+			context, _ := state.NewAccountState(nil, mem)
+			owner := context.GetOrCreateUserAccount([]byte("account1"))
+			owner.AddBalance(util.NewUint128FromInt(1000000000))
+			contract, _ := context.CreateContractAccount([]byte("account2"), nil)
+
+			ctx := NewContext(nil, owner, contract, context)
+			engine := NewV8Engine(ctx)
+			engine.SetExecutionLimits(1000, 10000000)
+			engine.AddModule(tt.filepath, string(data), 0)
+			runnableSource := fmt.Sprintf("require(\"%s\");", tt.filepath)
+			err = engine.RunScriptSource(runnableSource, 0)
+			assert.Equal(t, tt.expectedErr, err)
+			engine.Dispose()
+		})
+	}
+}
 func TestRunScriptSourceWithLimits(t *testing.T) {
 	tests := []struct {
 		filepath                      string
@@ -108,13 +143,29 @@ func TestRunScriptSourceWithLimits(t *testing.T) {
 			owner := context.GetOrCreateUserAccount([]byte("account1"))
 			owner.AddBalance(util.NewUint128FromInt(100000))
 			contract, _ := context.CreateContractAccount([]byte("account2"), nil)
-
 			ctx := NewContext(nil, owner, contract, context)
-			engine := NewV8Engine(ctx)
-			engine.SetExecutionLimits(tt.limitsOfExecutionInstructions, tt.limitsOfTotalMemorySize)
-			err = engine.RunScriptSource(string(data), 0)
-			assert.Equal(t, tt.expectedErr, err)
-			engine.Dispose()
+
+			// direct run.
+			(func() {
+				engine := NewV8Engine(ctx)
+				engine.SetExecutionLimits(tt.limitsOfExecutionInstructions, tt.limitsOfTotalMemorySize)
+				err = engine.RunScriptSource(string(data), 0)
+				assert.Equal(t, tt.expectedErr, err)
+				engine.Dispose()
+			})()
+
+			// modularized run.
+			(func() {
+				moduleID := fmt.Sprintf("./%s", tt.filepath)
+				runnableSource := fmt.Sprintf("require(\"%s\");", moduleID)
+
+				engine := NewV8Engine(ctx)
+				engine.SetExecutionLimits(tt.limitsOfExecutionInstructions, tt.limitsOfTotalMemorySize)
+				engine.AddModule(moduleID, string(data), 0)
+				err = engine.RunScriptSource(runnableSource, 0)
+				assert.Equal(t, tt.expectedErr, err)
+				engine.Dispose()
+			})()
 		})
 	}
 }
@@ -135,12 +186,27 @@ func TestRunScriptSourceTimeout(t *testing.T) {
 			context, _ := state.NewAccountState(nil, mem)
 			owner := context.GetOrCreateUserAccount([]byte("account1"))
 			contract, _ := context.CreateContractAccount([]byte("account2"), nil)
-
 			ctx := NewContext(nil, owner, contract, context)
-			engine := NewV8Engine(ctx)
-			err = engine.RunScriptSource(string(data), 0)
-			assert.Equal(t, ErrExecutionTimeout, err)
-			engine.Dispose()
+
+			// direct run.
+			(func() {
+				engine := NewV8Engine(ctx)
+				err = engine.RunScriptSource(string(data), 0)
+				assert.Equal(t, ErrExecutionTimeout, err)
+				engine.Dispose()
+			})()
+
+			// modularized run.
+			(func() {
+				moduleID := fmt.Sprintf("./%s", tt.filepath)
+				runnableSource := fmt.Sprintf("require(\"%s\");", moduleID)
+
+				engine := NewV8Engine(ctx)
+				engine.AddModule(moduleID, string(data), 0)
+				err = engine.RunScriptSource(runnableSource, 0)
+				assert.Equal(t, ErrExecutionTimeout, err)
+				engine.Dispose()
+			})()
 		})
 	}
 }
@@ -271,18 +337,18 @@ func TestInstructionCounterTestSuite(t *testing.T) {
 		filepath    string
 		expectedErr error
 	}{
-		{"test/instruction_couter_tests/redefine1.js", ErrInjectTracingInstructionFailed},
-		{"test/instruction_couter_tests/redefine2.js", ErrInjectTracingInstructionFailed},
-		{"test/instruction_couter_tests/redefine3.js", ErrInjectTracingInstructionFailed},
-		{"test/instruction_couter_tests/redefine4.js", ErrExecutionFailed},
-		{"test/instruction_couter_tests/function.js", nil},
-		{"test/instruction_couter_tests/if.js", nil},
-		{"test/instruction_couter_tests/switch.js", nil},
-		{"test/instruction_couter_tests/for.js", nil},
-		{"test/instruction_couter_tests/with.js", nil},
-		{"test/instruction_couter_tests/while.js", nil},
-		{"test/instruction_couter_tests/throw.js", nil},
-		{"test/instruction_couter_tests/switch.js", nil},
+		{"./test/instruction_couter_tests/redefine1.js", ErrInjectTracingInstructionFailed},
+		{"./test/instruction_couter_tests/redefine2.js", ErrInjectTracingInstructionFailed},
+		{"./test/instruction_couter_tests/redefine3.js", ErrInjectTracingInstructionFailed},
+		{"./test/instruction_couter_tests/redefine4.js", ErrExecutionFailed},
+		{"./test/instruction_couter_tests/function.js", nil},
+		{"./test/instruction_couter_tests/if.js", nil},
+		{"./test/instruction_couter_tests/switch.js", nil},
+		{"./test/instruction_couter_tests/for.js", nil},
+		{"./test/instruction_couter_tests/with.js", nil},
+		{"./test/instruction_couter_tests/while.js", nil},
+		{"./test/instruction_couter_tests/throw.js", nil},
+		{"./test/instruction_couter_tests/switch.js", nil},
 	}
 
 	for _, tt := range tests {
@@ -295,12 +361,20 @@ func TestInstructionCounterTestSuite(t *testing.T) {
 			owner := context.GetOrCreateUserAccount([]byte("account1"))
 			owner.AddBalance(util.NewUint128FromInt(1000000000))
 			contract, _ := context.CreateContractAccount([]byte("account2"), nil)
-
 			ctx := NewContext(nil, owner, contract, context)
+
+			moduleID := tt.filepath
+			runnableSource := fmt.Sprintf("require(\"%s\");", moduleID)
+
 			engine := NewV8Engine(ctx)
 			engine.enableLimits = true
-			err = engine.RunScriptSource(string(data), 0)
-			assert.Equal(t, tt.expectedErr, err)
+			err = engine.AddModule(moduleID, string(data), 0)
+			if err != nil {
+				assert.Equal(t, tt.expectedErr, err)
+			} else {
+				err = engine.RunScriptSource(runnableSource, 0)
+				assert.Equal(t, tt.expectedErr, err)
+			}
 			engine.Dispose()
 		})
 	}

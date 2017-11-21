@@ -24,7 +24,7 @@ if (!Object.is(console, console2)) {
 
 var err = new Error("require should throw error when file does not exist.");
 try {
-    require("not-exist-file");
+    require("./not-exist-file");
     throw err;
 } catch (e) {
     if (e === err) {
@@ -34,7 +34,7 @@ try {
 
 err = new Error("require should throw error while file name contains \".");
 try {
-    require("./test/require_file_\"1.js");
+    require("./require_file_\"1.js");
     throw err;
 } catch (e) {
     if (e === err) {

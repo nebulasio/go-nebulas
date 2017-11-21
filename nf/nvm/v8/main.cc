@@ -23,6 +23,7 @@
 #include "lib/file.h"
 #include "lib/log_callback.h"
 #include "lib/logger.h"
+#include "lib/memory_modules.h"
 #include "lib/memory_storage.h"
 
 #include <thread>
@@ -128,30 +129,70 @@ void RunScriptSourceDelegate(V8Engine *e, const char *data,
 void InjectTracingInstructionsAndPrintDelegate(V8Engine *e, const char *data,
                                                uintptr_t lcsHandler,
                                                uintptr_t gcsHandler) {
-  int lineOffset = 0;
-  char *traceableSource = InjectTracingInstructions(e, data, &lineOffset);
-  if (traceableSource == NULL) {
-    fprintf(stderr, "Inject tracing instructions failed.\n");
-  } else {
-    fprintf(stdout, "%s", traceableSource);
-    free(traceableSource);
+  const char *begin = strstr(data, "\"") + 1;
+  const char *end = strstr(begin, "\"");
+
+  char id[128];
+  int idx = 0;
+  while (begin + idx != end) {
+    id[idx] = begin[idx];
+    idx++;
   }
+
+  char *source = GetModuleSource(e, id);
+  fprintf(stdout, "%s", source);
+  free(source);
 }
 
-void ExecuteScript(const char *data, V8ExecutionDelegate delegate) {
+void ExecuteScript(const char *filename, V8ExecutionDelegate delegate) {
   void *lcsHandler = CreateStorageHandler();
   void *gcsHandler = CreateStorageHandler();
 
   V8Engine *e = CreateEngine();
+
+  size_t size = 0;
+  int lineOffset = 0;
+  char *source = readFile(filename, &size);
+  if (source == NULL) {
+    fprintf(stderr, "%s is not found.\n", filename);
+    exit(1);
+  }
+
+  if (enable_tracer_injection) {
+    char *traceableSource = InjectTracingInstructions(e, source, &lineOffset);
+    if (traceableSource == NULL) {
+      fprintf(stderr, "Inject tracing instructions failed.\n");
+      free(source);
+      return;
+    }
+    free(source);
+    source = traceableSource;
+  }
+
+  char id[128];
+  if (strncmp(filename, "/", 1) != 0 && strncmp(filename, "./", 2) != 0 &&
+      strncmp(filename, "../", 3) != 0) {
+    sprintf(id, "./%s", filename);
+  } else {
+    sprintf(id, "%s", filename);
+  }
+
+  AddModule(e, id, source, lineOffset);
+
+  char data[128];
+  sprintf(data, "require(\"%s\");", id);
+
   delegate(e, data, (uintptr_t)lcsHandler, (uintptr_t)gcsHandler);
+
+  free(source);
   DeleteEngine(e);
 
   DeleteStorageHandler(lcsHandler);
   DeleteStorageHandler(gcsHandler);
 }
 
-void ExecuteScriptSource(const char *data) {
-  ExecuteScript(data, RunScriptSourceDelegate);
+void ExecuteScriptSource(const char *filename) {
+  ExecuteScript(filename, RunScriptSourceDelegate);
 }
 
 int main(int argc, const char *argv[]) {
@@ -161,6 +202,7 @@ int main(int argc, const char *argv[]) {
 
   Initialize();
   InitializeLogger(logFunc);
+  InitializeRequireDelegate(RequireDelegateFunc);
   InitializeStorage(StorageGet, StoragePut, StorageDel);
   InitializeBlockchain(GetBlockByHash, GetTxByHash, GetAccountState, Transfer,
                        VerifyAddress);
@@ -218,23 +260,24 @@ int main(int argc, const char *argv[]) {
     } else if (strcmp(arg, "-ip") == 0) {
       argcIdx++;
       print_injection_result = 1;
+      enable_tracer_injection = 1;
     } else {
       filename = arg;
       break;
     }
   }
 
-  size_t size = 0;
-  char *data = readFile(filename, &size);
+  // size_t size = 0;
+  // char *data = readFile(filename, &size);
 
   if (print_injection_result) {
     // inject and print.
-    ExecuteScript(data, InjectTracingInstructionsAndPrintDelegate);
+    ExecuteScript(filename, InjectTracingInstructionsAndPrintDelegate);
   } else {
     // execute script.
     std::vector<std::thread *> threads;
     for (int i = 0; i < concurrency; i++) {
-      std::thread *thread = new std::thread(ExecuteScriptSource, data);
+      std::thread *thread = new std::thread(ExecuteScriptSource, filename);
       threads.push_back(thread);
     }
 
@@ -243,7 +286,7 @@ int main(int argc, const char *argv[]) {
     }
   }
 
-  free(data);
+  // free(data);
 
   Dispose();
   return 0;

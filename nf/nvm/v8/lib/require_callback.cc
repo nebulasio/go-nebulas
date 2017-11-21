@@ -48,15 +48,17 @@ static int readSource(Local<Context> context, const char *filename, char **data,
 
   *lineOffset = 0;
 
-  size_t file_size = 0;
-  char *content = readFile(filename, &file_size);
-  if (content == NULL) {
-    // try sRequireDelegate.
-    if (sRequireDelegate != NULL) {
-      V8Engine *e = GetV8EngineInstance(context);
-      content = sRequireDelegate(e, filename, lineOffset);
-    }
+  char *content = NULL;
 
+  // try sRequireDelegate.
+  if (sRequireDelegate != NULL) {
+    V8Engine *e = GetV8EngineInstance(context);
+    content = sRequireDelegate(e, filename, lineOffset);
+  }
+
+  if (content == NULL) {
+    size_t file_size = 0;
+    content = readFile(filename, &file_size);
     if (content == NULL) {
       return 1;
     }
@@ -78,7 +80,6 @@ void NewNativeRequireFunction(Isolate *isolate,
 }
 
 void RequireCallback(const v8::FunctionCallbackInfo<v8::Value> &info) {
-  // logErrorf("require called.");
   Isolate *isolate = info.GetIsolate();
   Local<Context> context = isolate->GetCurrentContext();
 

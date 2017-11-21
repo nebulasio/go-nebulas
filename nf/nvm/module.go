@@ -21,6 +21,7 @@ package nvm
 import "C"
 
 import (
+	"fmt"
 	"regexp"
 	"strings"
 	"unsafe"
@@ -48,12 +49,10 @@ func NewModules() Modules {
 
 // NewModule create new module and return it.
 func NewModule(id, source string, lineOffset int) *Module {
-	paths := strings.Split(id, "/")
 	if !pathRe.MatchString(id) {
-		paths = append([]string{"lib"}, paths...)
+		id = fmt.Sprintf("lib/%s", id)
 	}
-
-	id = strings.Join(paths, "/")
+	id = reformatModuleId(id)
 
 	return &Module{
 		id:         id,
@@ -76,7 +75,7 @@ func (ms Modules) Get(id string) *Module {
 //export RequireDelegateFunc
 func RequireDelegateFunc(handler unsafe.Pointer, filename *C.char, lineOffset *C.size_t) *C.char {
 	id := C.GoString(filename)
-	log.Debugf("require load %s", id)
+	// log.Debugf("require load %s", id)
 
 	e := getEngineByEngineHandler(handler)
 	if e == nil {
@@ -94,4 +93,22 @@ func RequireDelegateFunc(handler unsafe.Pointer, filename *C.char, lineOffset *C
 	*lineOffset = C.size_t(module.lineOffset)
 	cSource := C.CString(module.source)
 	return cSource
+}
+
+func reformatModuleId(id string) string {
+	paths := make([]string, 0)
+	for _, p := range strings.Split(id, "/") {
+		if len(p) == 0 || strings.Compare(".", p) == 0 {
+			continue
+		}
+		if strings.Compare("..", p) == 0 {
+			if len(paths) > 0 {
+				paths = paths[:len(paths)-1]
+			}
+			continue
+		}
+		paths = append(paths, p)
+	}
+
+	return strings.Join(paths, "/")
 }

@@ -1,0 +1,127 @@
+// Copyright (C) 2017 go-nebulas authors
+//
+// This file is part of the go-nebulas library.
+//
+// the go-nebulas library is free software: you can redistribute it and/or
+// modify it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// the go-nebulas library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with the go-nebulas library.  If not, see
+// <http://www.gnu.org/licenses/>.
+//
+
+#include "memory_modules.h"
+#include "logger.h"
+
+#include <atomic>
+#include <mutex>
+#include <sstream>
+#include <string>
+#include <unordered_map>
+#include <vector>
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+using namespace std;
+
+static std::mutex m;
+static std::unordered_map<string, string> modules;
+
+void reformatModuleId(char *dst, const char *src) {
+  string s = src;
+  string delimiter = "/";
+
+  vector<string> paths;
+
+  size_t pos = 0;
+  while ((pos = s.find(delimiter)) != std::string::npos) {
+    string p = s.substr(0, pos);
+    s.erase(0, pos + delimiter.length());
+
+    if (p.length() == 0 || p.compare(".") == 0) {
+      continue;
+    }
+
+    if (p.compare("..") == 0) {
+      if (paths.size() > 0) {
+        paths.pop_back();
+      }
+      continue;
+    }
+    paths.push_back(p);
+  }
+  paths.push_back(s);
+
+  std::stringstream ss;
+  for (size_t i = 0; i < paths.size(); ++i) {
+    if (i != 0)
+      ss << "/";
+    ss << paths[i];
+  }
+
+  strcpy(dst, ss.str().c_str());
+}
+
+char *RequireDelegateFunc(void *handler, const char *filename,
+                          size_t *lineOffset) {
+  char id[128];
+  sprintf(id, "%zu:%s", (uintptr_t)handler, filename);
+
+  char *ret = NULL;
+  *lineOffset = 0;
+
+  m.lock();
+  auto it = modules.find(string(id));
+  if (it != modules.end()) {
+    string &value = it->second;
+    ret = (char *)calloc(value.length() + 1, sizeof(char));
+    strncpy(ret, value.c_str(), value.length());
+  }
+  m.unlock();
+
+  // LogInfof("require load %s; orig id:%s", id, filename);
+  return ret;
+}
+
+void AddModule(void *handler, const char *filename, const char *source,
+               int lineOffset) {
+  char file[128];
+  if (strncmp(filename, "/", 1) != 0 && strncmp(filename, "./", 2) != 0 &&
+      strncmp(filename, "../", 3) != 0) {
+    sprintf(file, "lib/%s", filename);
+    reformatModuleId(file, file);
+  } else {
+    reformatModuleId(file, filename);
+  }
+
+  char id[128];
+  sprintf(id, "%zu:%s", (uintptr_t)handler, filename);
+  // LogInfof("add module %s; orig id:%s", id, filename);
+
+  m.lock();
+  modules[string(id)] = string(source);
+  m.unlock();
+}
+
+char *GetModuleSource(void *handler, const char *filename) {
+  char file[128];
+  if (strncmp(filename, "/", 1) != 0 && strncmp(filename, "./", 2) != 0 &&
+      strncmp(filename, "../", 3) != 0) {
+    sprintf(file, "lib/%s", filename);
+    reformatModuleId(file, file);
+  } else {
+    reformatModuleId(file, filename);
+  }
+
+  size_t size = 0;
+  return RequireDelegateFunc(handler, filename, &size);
+}

@@ -313,13 +313,7 @@ func (e *V8Engine) RunContractScript(source, function, args string) error {
 }
 
 // AddModule add module.
-func (e *V8Engine) AddModule(id, source string, sourceLineOffset int) {
-	e.modules.Add(NewModule(id, source, sourceLineOffset))
-}
-
-func (e *V8Engine) prepareRunnableContractScript(source, function, args string) (string, int, error) {
-	sourceLineOffset := 0
-
+func (e *V8Engine) AddModule(id, source string, sourceLineOffset int) error {
 	// inject tracing instruction when enable limits.
 	if e.enableLimits {
 		traceableSource, lineOffset, err := e.InjectTracingInstructions(source)
@@ -327,15 +321,24 @@ func (e *V8Engine) prepareRunnableContractScript(source, function, args string) 
 			log.WithFields(log.Fields{
 				"err": err,
 			}).Error("inject tracing instruction failed.")
-			return "", 0, err
+			return err
 		}
 		source = traceableSource
 		sourceLineOffset = lineOffset
 	}
 
+	e.modules.Add(NewModule(id, source, sourceLineOffset))
+	return nil
+}
+
+func (e *V8Engine) prepareRunnableContractScript(source, function, args string) (string, int, error) {
+	sourceLineOffset := 0
+
 	// add module.
 	const MID string = "contract.js"
-	e.AddModule(MID, source, sourceLineOffset)
+	if err := e.AddModule(MID, source, sourceLineOffset); err != nil {
+		return "", 0, err
+	}
 
 	// prepare for execute.
 	contextJSON := e.ctx.getParamsJSON()

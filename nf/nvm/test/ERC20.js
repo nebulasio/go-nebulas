@@ -52,7 +52,7 @@ StandardToken.prototype = {
         this.balances.set(to, this.balanceOf(to) + value);
         return true;
     },
-    pay: function (amount) {
+    pay: function (msg, amount) {
         if (this.totalIssued + amount > this.totalSupply) {
             throw new Error("too much amount, exceed totalSupply");
         }
