@@ -97,6 +97,8 @@ type PoD struct {
 	createdStateMachines *lru.Cache
 	creatingStateMachine *consensus.StateMachine
 
+	votesTransactionCh chan *core.Transaction
+
 	canMining bool
 }
 
@@ -186,38 +188,34 @@ func (p *PoD) blockLoop() {
 	for {
 		select {
 		case block := <-p.chain.BlockPool().ReceivedBlockCh():
-			if p.createdStateMachines.Contains(block.Hash()) {
-				log.WithFields(log.Fields{
-					"func": "PoD.blockloop",
-					"err":  ErrDuplicateBlock,
-				}).Error("Receive Duplicate Block.")
-			} else {
-				log.WithFields(log.Fields{
-					"func":  "PoD.blockloop",
-					"block": block,
-				}).Debug("Receive new Block.")
-
-				sm := consensus.NewStateMachine()
-				sm.SetInitialState(NewCreationState(sm, block))
-				p.createdStateMachines.Add(block.Hash(), sm)
-				sm.Start()
-
-				log.WithFields(log.Fields{
-					"func":          "PoD.blockloop",
-					"block":         block,
-					"state machine": sm,
-				}).Info("Create new StateMachine")
-			}
-		case tx := <-p.chain.TransactionPool().ReceivedTransactionCh():
-			if tx.DataType() == core.TxPayloadVoteType {
-				if vote, err := core.LoadVotePayload(tx.Data()); err == nil {
-					// prepare & commit
-					if stateMachine, ok := p.createdStateMachines.Get(vote.Hash); ok {
-						eventType := consensus.EventType("event.vote." + vote.Action)
-						stateMachine.(*consensus.StateMachine).Event(consensus.NewBaseEvent(eventType, tx.From().ToHex()))
-					}
+			p.creatingStateMachine.Event(consensus.NewBaseEvent(NewBlockEvent, block))
+			for _, tx := range block.Transactions() {
+				if tx.DataType() == core.TxPayloadVoteType {
+					p.votesTransactionCh <- tx
 				}
 			}
+		case voteTx := <-p.votesTransactionCh:
+			votePayload, err := core.LoadVotePayload(voteTx.Data())
+			if err != nil {
+				log.WithFields(log.Fields{
+					"func":    "PoD.BlockLoop",
+					"channel": "Votes Transaction",
+					"err":     err,
+				}).Error("invalid vote payload")
+				continue
+			}
+			var event consensus.Event
+			switch votePayload.Action {
+			case core.PrepareAction:
+				event = consensus.NewBaseEvent(NewPrepareVoteEvent, &PrepareContext{voteTx.From().Bytes(), votePayload.Hash})
+			case core.CommitAction:
+				event = consensus.NewBaseEvent(NewCommitVoteEvent, &CommitContext{voteTx.From().Bytes(), votePayload.Hash})
+			case core.ChangeAction:
+				event = consensus.NewBaseEvent(NewChangeVoteEvent, &ChangeContext{voteTx.From().Bytes(), votePayload.Hash})
+			case core.AbdicateAction:
+				event = consensus.NewBaseEvent(NewAbdicateVoteEvent, &AbdicateContext{voteTx.From().Bytes(), votePayload.Hash})
+			}
+			p.creatingStateMachine.Event(event)
 		case <-p.quitCh:
 			log.Info("PoD.blockLoop: quit.")
 			return

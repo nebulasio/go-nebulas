@@ -20,12 +20,6 @@ package consensus
 
 import "github.com/nebulasio/go-nebulas/core"
 
-// EventType list
-const (
-	NewBlockEvent  = "event.newblock"
-	CanMiningEvent = "event.canmining"
-)
-
 // Consensus interface of consensus algorithm.
 type Consensus interface {
 	Start()

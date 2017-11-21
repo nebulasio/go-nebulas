@@ -58,7 +58,7 @@ func (state *MiningState) String() string {
 // Event handle event.
 func (state *MiningState) Event(e consensus.Event) (bool, consensus.State) {
 	switch e.EventType() {
-	case consensus.NewBlockEvent:
+	case NewBlockEvent:
 		return true, NewMintedState(state.p)
 	default:
 		return false, nil

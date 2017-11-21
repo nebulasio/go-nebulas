@@ -23,8 +23,15 @@ import (
 
 	"github.com/nebulasio/go-nebulas/consensus"
 	"github.com/nebulasio/go-nebulas/core"
+	"github.com/nebulasio/go-nebulas/util/byteutils"
 	log "github.com/sirupsen/logrus"
 )
+
+// AbdicateContext carray abdicate info
+type AbdicateContext struct {
+	Voter       byteutils.Hash
+	DynastyRoot byteutils.Hash
+}
 
 // CreationState presents the prepare stage in pod
 type CreationState struct {

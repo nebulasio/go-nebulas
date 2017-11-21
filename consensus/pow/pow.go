@@ -30,6 +30,12 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// EventType list
+const (
+	NewBlockEvent  = "event.newblock"
+	CanMiningEvent = "event.canmining"
+)
+
 // Errors in PoW Consensus
 var (
 	ErrInvalidDataType   = errors.New("invalid data type, should be *core.Block")
@@ -134,7 +140,7 @@ func (p *Pow) CanMining() bool {
 func (p *Pow) SetCanMining(canMining bool) {
 	log.Info("sync over, start mining")
 	p.canMining = canMining
-	p.Event(consensus.NewBaseEvent(consensus.CanMiningEvent, nil))
+	p.Event(consensus.NewBaseEvent(CanMiningEvent, nil))
 }
 
 /*
@@ -153,7 +159,7 @@ func (p *Pow) Event(e consensus.Event) {
 	// default procedure.
 	et := e.EventType()
 	switch et {
-	case consensus.NewBlockEvent:
+	case NewBlockEvent:
 		block := e.Data().(*core.Block)
 		log.WithFields(log.Fields{
 			"block": block,
@@ -238,7 +244,7 @@ func (p *Pow) blockLoop() {
 			count++
 			log.Debugf("Pow.blockLoop: new block message received. Count=%d", count)
 			p.newBlockReceived = true
-			p.Event(consensus.NewBaseEvent(consensus.NewBlockEvent, block))
+			p.Event(consensus.NewBaseEvent(NewBlockEvent, block))
 		case <-p.quitCh:
 			// TODO: should provide base goroutine start/stop func to graceful stop them.
 			/*

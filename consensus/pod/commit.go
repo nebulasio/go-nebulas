@@ -21,9 +21,17 @@ package pod
 import (
 	"fmt"
 
+	"github.com/nebulasio/go-nebulas/util/byteutils"
+
 	"github.com/nebulasio/go-nebulas/consensus"
 	log "github.com/sirupsen/logrus"
 )
+
+// CommitContext carray commit info
+type CommitContext struct {
+	Voter     byteutils.Hash
+	BlockHash byteutils.Hash
+}
 
 // CommitState presents the prepare stage in pod
 type CommitState struct {

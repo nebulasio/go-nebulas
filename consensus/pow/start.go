@@ -44,9 +44,9 @@ func (state *StartState) String() string {
 // Event handle event.
 func (state *StartState) Event(e consensus.Event) (bool, consensus.State) {
 	switch e.EventType() {
-	case consensus.CanMiningEvent:
+	case CanMiningEvent:
 		return true, NewPrepareState(state.p)
-	case consensus.NewBlockEvent:
+	case NewBlockEvent:
 		return true, NewMintedState(state.p)
 	default:
 		return false, nil

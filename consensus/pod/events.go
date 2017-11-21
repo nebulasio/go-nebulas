@@ -22,8 +22,9 @@ import (
 	"github.com/nebulasio/go-nebulas/core"
 )
 
-// EventType list
+// Event Type List
 const (
+	NewBlockEvent        = "event.newblock"
 	TimeoutEvent         = "event.timeout"
 	NewPrepareVoteEvent  = "event.vote.prepare"
 	NewCommitVoteEvent   = "event.vote.commit"

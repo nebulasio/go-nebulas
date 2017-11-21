@@ -541,6 +541,11 @@ func (block *Block) Coinbase() *Address {
 	return block.header.coinbase
 }
 
+// Transactions return block's transactions
+func (block *Block) Transactions() []*Transaction {
+	return block.transactions
+}
+
 // Nonce return nonce.
 func (block *Block) Nonce() uint64 {
 	return block.header.nonce

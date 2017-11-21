@@ -21,9 +21,17 @@ package pod
 import (
 	"fmt"
 
+	"github.com/nebulasio/go-nebulas/util/byteutils"
+
 	"github.com/nebulasio/go-nebulas/consensus"
 	log "github.com/sirupsen/logrus"
 )
+
+// PrepareContext carray prepare info
+type PrepareContext struct {
+	Voter     byteutils.Hash
+	BlockHash byteutils.Hash
+}
 
 // PrepareState presents the prepare stage in pod
 type PrepareState struct {

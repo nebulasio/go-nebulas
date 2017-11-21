@@ -216,6 +216,8 @@ func (bc *BlockChain) PutVerifiedNewBlocks(allBlocks, tailBlocks []*Block) error
 		if err := storeBlockToStorage(v); err != nil {
 			return err
 		}
+		// notify consensus to handle new block.
+		bc.bkPool.receivedBlockCh <- v
 	}
 	for _, v := range tailBlocks {
 		bc.detachedTailBlocks.ContainsOrAdd(v.Hash().Hex(), v)
