@@ -373,7 +373,7 @@ func (block *Block) addDeposit(addr []byte, value *util.Uint128) error {
 	}
 	_, err = block.depositTrie.Put(addr, depositBytes)
 	log.WithFields(log.Fields{
-		"func":  "Block.SubDeposit",
+		"func":  "Block.AddDeposit",
 		"addr":  byteutils.Hex(addr),
 		"value": value.Int64(),
 	}).Info("add deposit")

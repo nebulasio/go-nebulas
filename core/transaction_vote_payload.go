@@ -125,10 +125,9 @@ type voteContext struct {
 	DynastyTrie   *trie.BatchTrie
 }
 
-// block is valid, created by validators
-// voter is valid, in validators
-func buildVoteContext(from []byte, votedBlockHash byteutils.Hash, packedBlock *Block) (*voteContext, error) {
-	index := -1
+// TODO(roy): make sure the voted blocks are all on canonical chain
+func checkAndBuildVoteContext(from []byte, votedBlockHash byteutils.Hash, packedBlock *Block) (*voteContext, error) {
+	// find votedBlock on canonical chain
 	votedBlock, err := LoadBlockFromStorage(votedBlockHash, packedBlock.storage, packedBlock.txPool)
 	if err != nil {
 		log.WithFields(log.Fields{
@@ -142,20 +141,13 @@ func buildVoteContext(from []byte, votedBlockHash byteutils.Hash, packedBlock *B
 		return nil, err
 	}
 	// check block & voter valid
-	dynastyRoot, err := votedBlockParent.NextBlockDynastyRoot()
-	if err != nil {
-		return nil, err
-	}
-	dynastyTrie, err := trie.NewBatchTrie(dynastyRoot, packedBlock.storage)
-	if err != nil {
-		return nil, err
-	}
 	validators, err := votedBlockParent.NextBlockSortedValidators()
 	if err != nil {
 		return nil, err
 	}
 	validBlock := false
 	validVoter := false
+	index := -1
 	for k, v := range validators {
 		if v.Equals(votedBlock.Coinbase().Bytes()) {
 			validBlock = true
@@ -171,6 +163,15 @@ func buildVoteContext(from []byte, votedBlockHash byteutils.Hash, packedBlock *B
 	if !validVoter {
 		return nil, ErrInvalidVoterNotAcitve
 	}
+	// record vote context
+	dynastyRoot, err := votedBlockParent.NextBlockDynastyRoot()
+	if err != nil {
+		return nil, err
+	}
+	dynastyTrie, err := trie.NewBatchTrie(dynastyRoot, packedBlock.storage)
+	if err != nil {
+		return nil, err
+	}
 	return &voteContext{
 		Voter:         from,
 		ProposerIndex: index,
@@ -180,7 +181,12 @@ func buildVoteContext(from []byte, votedBlockHash byteutils.Hash, packedBlock *B
 	}, nil
 }
 
+// TODO(roy): how to slash voters who always vote on non-canonical chain
 func (payload *VotePayload) slash(ctx *voteContext) error {
+	if ctx == nil {
+		return nil
+	}
+
 	depositBytes, err := ctx.PackedBlock.depositTrie.Get(ctx.Voter)
 	if err != nil {
 		return err
@@ -222,7 +228,7 @@ func (payload *VotePayload) slash(ctx *voteContext) error {
 // 4. if V.height < B'.height < B.height, cannot Prepare(B’,V’) after Prepare(B,V)
 // 5. if B1 != B2 but B1.height == B2.height, cannot Prepare(B1, V1) after Prepare(B2, V2)
 func (payload *VotePayload) prepare(from []byte, packedBlock *Block) error {
-	ctx, err := buildVoteContext(from, payload.Hash, packedBlock)
+	ctx, err := checkAndBuildVoteContext(from, payload.Hash, packedBlock)
 	if err != nil {
 		return err
 	}
@@ -347,14 +353,14 @@ func (payload *VotePayload) prepare(from []byte, packedBlock *Block) error {
 // check slashing rule
 // 1. cannot Commit(B) before Prepare(B, CH, VH)
 func (payload *VotePayload) commit(from []byte, packedBlock *Block) error {
-	ctx, err := buildVoteContext(from, payload.Hash, packedBlock)
+	ctx, err := checkAndBuildVoteContext(from, payload.Hash, packedBlock)
 	if err != nil {
 		return err
 	}
 	// check slash rule
 	key := append(payload.Hash, from...)
 	_, err = packedBlock.prepareVotesTrie.Get(key)
-	if err == storage.ErrKeyNotFound && ctx != nil {
+	if err == storage.ErrKeyNotFound {
 		log.WithFields(log.Fields{
 			"func":           "VotePayload.commit",
 			"VotedBlockHash": payload.Hash,
@@ -403,7 +409,7 @@ func (payload *VotePayload) commit(from []byte, packedBlock *Block) error {
 // check slashing rule
 // 1. cannot Change(B, N+1) before Change(B, N) > 2/3 * MaxVotes
 func (payload *VotePayload) change(from []byte, packedBlock *Block) error {
-	ctx, err := buildVoteContext(from, payload.Hash, packedBlock)
+	ctx, err := checkAndBuildVoteContext(from, payload.Hash, packedBlock)
 	if err != nil {
 		return err
 	}
