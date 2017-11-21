@@ -89,6 +89,7 @@ const InjectionType = {
     BEFORE_NODE: "BEFORE_NODE",
     AT_BEGINNING: "AT_BEGINNING",
     INNER_BEGINNING: "INNER_BEGINNING",
+    INNER_BEGINNING_NOT_AND_OR: "INNER_BEGINNING_NOT_AND_OR",
 };
 
 const InjectionCodeGenerators = {
@@ -124,6 +125,9 @@ const InjectionCodeGenerators = {
     },
     EndInnerCounterIncrFunc: function (value) {
         return ")";
+    },
+    CounterIncrFuncUsingNotAndLogicalOrFunc: function (value) {
+        return "!_instruction_counter.incr(" + value + ") || ";
     },
 };
 
@@ -260,8 +264,14 @@ function processScript(source) {
                 // only return injection context when body is not in {};
                 return {
                     "body": new InjectionContext(body, InjectionType.BEFORE_NODE),
-                }
+                };
             }
+        } else if (node.type == "ConditionalExpression") {
+            return {
+                "test": new InjectionContext(node.test, InjectionType.INNER_BEGINNING_NOT_AND_OR),
+                "consequent": new InjectionContext(node.consequent, InjectionType.INNER_BEGINNING_NOT_AND_OR),
+                "alternate": new InjectionContext(node.alternate, InjectionType.INNER_BEGINNING_NOT_AND_OR),
+            };
         } else {
 
             // Other Expressions.
@@ -321,6 +331,10 @@ function processScript(source) {
                     pos = -1;
                     record_injection(target_node.range[0], tracing_val, InjectionCodeGenerators.BeginInnerCounterIncrFunc);
                     record_injection(target_node.range[1], tracing_val, InjectionCodeGenerators.EndInnerCounterIncrFunc);
+                    break;
+                case InjectionType.INNER_BEGINNING_NOT_AND_OR:
+                    pos = target_node.range[0];
+                    generator = InjectionCodeGenerators.CounterIncrFuncUsingNotAndLogicalOrFunc;
                     break;
                 default:
                     throw new Error("Unknown Injection Type " + injection_type);

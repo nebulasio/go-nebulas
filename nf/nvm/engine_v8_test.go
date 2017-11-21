@@ -362,6 +362,7 @@ func TestInstructionCounterTestSuite(t *testing.T) {
 		{"./test/instruction_couter_tests/while.js", nil},
 		{"./test/instruction_couter_tests/throw.js", nil},
 		{"./test/instruction_couter_tests/switch.js", nil},
+		{"./test/instruction_couter_tests/condition_operator.js", nil},
 	}
 
 	for _, tt := range tests {

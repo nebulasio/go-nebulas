@@ -138,6 +138,7 @@ void InjectTracingInstructionsAndPrintDelegate(V8Engine *e, const char *data,
     id[idx] = begin[idx];
     idx++;
   }
+  id[idx] = '\0';
 
   char *source = GetModuleSource(e, id);
   fprintf(stdout, "%s", source);
