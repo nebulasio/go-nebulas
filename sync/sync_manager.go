@@ -42,18 +42,18 @@ var (
 
 // Manager is used to manage the sync service
 type Manager struct {
-	blockChain         *core.BlockChain
-	consensus          consensus.Consensus
-	ns                 *p2p.NetService
-	quitCh             chan bool
-	syncCh             chan bool
-	receiveTailCh      chan net.Message
-	receiveSyncReplyCh chan net.Message
-	cacheList          map[string]*NetBlocks
-	endSyncCh          chan bool
-	curTail            *core.Block
-	canHandleCh        chan bool
-	goParentSyncCh     chan bool
+	blockChain             *core.BlockChain
+	consensus              consensus.Consensus
+	ns                     *p2p.NetService
+	quitCh                 chan bool
+	syncCh                 chan bool
+	receiveTailCh          chan net.Message
+	receiveSyncReplyCh     chan net.Message
+	cacheList              map[string]*NetBlocks
+	endSyncCh              chan bool
+	curTail                *core.Block
+	canSyncWithBlockListCh chan bool
+	goParentSyncCh         chan bool
 }
 
 // NewManager new sync manager
@@ -134,8 +134,8 @@ func (m *Manager) loop() {
 }
 
 func (m *Manager) downloader() {
-	second := 10 * time.Second
-	ticker := time.NewTicker(second)
+	interval := 10 * time.Second
+	ticker := time.NewTicker(interval)
 	for {
 		select {
 		case <-ticker.C:
@@ -146,13 +146,7 @@ func (m *Manager) downloader() {
 }
 
 func (m *Manager) syncWithPeers(block *core.Block) {
-	// block := m.blockChain.TailBlock()
 	nonce++
-	//key, err := p2p.GenerateKey(m.ns.Addrs(), m.ns.Node().ID())
-	//if err != nil {
-	//	log.Error("GenerateKey occurs error, sync has been terminated.")
-	//	return
-	//}
 	tail := NewNetBlock(m.ns.Node().ID(), nonce, block)
 	log.WithFields(log.Fields{
 		"tail":  tail,
@@ -176,7 +170,7 @@ func (m *Manager) syncWithPeers(block *core.Block) {
 		timeout := 30 * time.Second
 
 		select {
-		case <-m.canHandleCh:
+		case <-m.canSyncWithBlockListCh:
 			m.syncWithBlockList(m.cacheList)
 		case <-m.goParentSyncCh:
 			m.goSyncParentWithPeers()
@@ -217,11 +211,6 @@ func (m *Manager) startMsgHandle() {
 					continue
 				}
 
-				//key, err := p2p.GenerateKey(m.ns.Addrs(), m.ns.Node().ID())
-				//if err != nil {
-				//	log.Warn("StartMsgHandle.receiveTailCh: GenerateKey occurs error, ", err)
-				//	continue
-				//}
 				key := m.ns.Node().ID()
 
 				ancestor, err := m.blockChain.FindCommonAncestorWithTail(tail.block)
@@ -297,7 +286,7 @@ func (m *Manager) checkSyncLimitHandler(data *NetBlocks) {
 	m.cacheList[data.from] = data
 	if len(m.cacheList) >= p2p.LimitToSync {
 		// m.syncWithBlockList(m.cacheList)
-		m.canHandleCh <- true
+		m.canSyncWithBlockListCh <- true
 	}
 
 }

@@ -160,12 +160,6 @@ func (ns *NetService) streamHandler(s libnet.Stream) {
 			node := ns.node
 			pid := s.Conn().RemotePeer()
 			addrs := s.Conn().RemoteMultiaddr()
-			//key, err := GenerateKey(addrs, pid)
-			//if err != nil {
-			//	log.Error("streamHandler: ", err)
-			//	ns.Bye(pid, []ma.Multiaddr{addrs}, s, key)
-			//	return
-			//}
 			key := pid.Pretty()
 			protocol, err := ns.parse(s)
 			if err != nil {

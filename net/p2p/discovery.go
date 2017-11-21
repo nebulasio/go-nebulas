@@ -34,8 +34,8 @@ and then update the routing table.
 func (net *NetService) discovery(ctx context.Context) {
 
 	//FIXME  the sync routing table rate can be dynamic
-	second := 5 * time.Second
-	ticker := time.NewTicker(second)
+	interval := 30 * time.Second
+	ticker := time.NewTicker(interval)
 	net.syncRoutingTable()
 	for {
 		select {
@@ -53,7 +53,7 @@ func (net *NetService) syncRoutingTable() {
 	node := net.node
 	asked := make(map[peer.ID]bool)
 	allNode := node.routeTable.ListPeers()
-	// TODO: should set seed?
+	rand.Seed(time.Now().UnixNano())
 	randomList := rand.Perm(len(allNode))
 	var nodeAccount int
 	if len(allNode) > node.config.MaxSyncNodes {
@@ -80,10 +80,6 @@ func (net *NetService) syncSingleNode(nodeID peer.ID) {
 	}
 	nodeInfo := node.peerstore.PeerInfo(nodeID)
 	if len(nodeInfo.Addrs) != 0 {
-		//key, err := GenerateKey(nodeInfo.Addrs[0], nodeID)
-		//if err != nil {
-		//	return
-		//}
 		if _, ok := node.stream[nodeID.Pretty()]; ok {
 			net.SyncRoutes(nodeID)
 		}
