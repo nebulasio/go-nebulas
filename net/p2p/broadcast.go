@@ -103,11 +103,6 @@ func (ns *NetService) doMsgTransfer(transfer []peer.ID, relayness []peer.ID, dat
 			continue
 		}
 		if len(addrs) > 0 {
-			// key, err := GenerateKey(addrs[0], nodeID)
-			// if err != nil {
-			// 	log.Warn("distribute:  the addrs format is incorrect")
-			// 	continue
-			// }
 			node.relayness.Add(dataChecksum, append(relayness, nodeID))
 			go ns.SendMsg(name, data, nodeID.Pretty())
 		}
@@ -128,11 +123,6 @@ func (ns *NetService) doRelay(nodes []peer.ID, relayness []peer.ID, dataChecksum
 			continue
 		}
 		if len(addrs) > 0 {
-			//key, err := GenerateKey(addrs[0], nodeID)
-			//if err != nil {
-			//	log.Warn("distribute: relay  the addrs format is incorrect")
-			//	continue
-			//}
 			node.relayness.Add(dataChecksum, append(relayness, nodeID))
 			go ns.SendMsg(NewHashMsg, byteutils.FromUint32(dataChecksum), nodeID.Pretty())
 		}
@@ -141,7 +131,6 @@ func (ns *NetService) doRelay(nodes []peer.ID, relayness []peer.ID, dataChecksum
 
 func inArray(obj interface{}, array interface{}) bool {
 	arrayValue := reflect.ValueOf(array)
-
 	if reflect.TypeOf(array).Kind() == reflect.Array || reflect.TypeOf(array).Kind() == reflect.Slice {
 		for i := 0; i < arrayValue.Len(); i++ {
 			if arrayValue.Index(i).Interface() == obj {

@@ -51,6 +51,8 @@ import (
 	"time"
 	"unsafe"
 
+	"encoding/json"
+
 	"github.com/nebulasio/go-nebulas/core/state"
 	"github.com/nebulasio/go-nebulas/util"
 	log "github.com/sirupsen/logrus"
@@ -285,8 +287,9 @@ func (e *V8Engine) RunScriptSource(source string, sourceLineOffset int) (err err
 
 // gas combustion
 func (e *V8Engine) gasCombustion(executionInstructions uint64) error {
-	amount := util.NewUint128FromInt(int64(executionInstructions))
-	return e.ctx.owner.SubBalance(amount)
+	instructions := util.NewUint128FromInt(int64(executionInstructions))
+	// cost = gasPrice * executionInstructions
+	return e.ctx.owner.SubBalance(util.NewUint128FromBigInt(instructions.Mul(instructions.Int, e.ctx.tx.GasPrice.Int)))
 }
 
 // Call function in a script
@@ -335,19 +338,20 @@ func (e *V8Engine) prepareRunnableContractScript(source, function, args string) 
 	sourceLineOffset := 0
 
 	// add module.
-	const MID string = "contract.js"
-	if err := e.AddModule(MID, source, sourceLineOffset); err != nil {
+	const ModuleID string = "contract.js"
+	if err := e.AddModule(ModuleID, source, sourceLineOffset); err != nil {
 		return "", 0, err
 	}
 
 	// prepare for execute.
-	contextJSON := e.ctx.getParamsJSON()
+	blockJSON, _ := json.Marshal(e.ctx.block)
+	txJSON, _ := json.Marshal(e.ctx.tx)
 	var runnableSource string
 
 	if len(args) > 0 {
-		runnableSource = fmt.Sprintf("var __contract = require(\"%s\");\n var __instance = new __contract();\n Blockchain.current = Object.freeze(JSON.parse(\"%s\"));\n __instance[\"%s\"].apply(__instance, JSON.parse(\"%s\"));\n", MID, formatArgs(contextJSON), function, formatArgs(args))
+		runnableSource = fmt.Sprintf("var __contract = require(\"%s\");\n var __instance = new __contract();\n Blockchain.block = Object.freeze(JSON.parse(\"%s\"));\n Blockchain.transaction = Object.freeze(JSON.parse(\"%s\"));\n __instance[\"%s\"].apply(__instance, JSON.parse(\"%s\"));\n", ModuleID, formatArgs(string(blockJSON)), formatArgs(string(txJSON)), function, formatArgs(args))
 	} else {
-		runnableSource = fmt.Sprintf("var __contract = require(\"%s\");\n var __instance = new __contract();\n Blockchain.current = Object.freeze(JSON.parse(\"%s\"));\n __instance[\"%s\"].apply(__instance);\n", MID, formatArgs(contextJSON), function)
+		runnableSource = fmt.Sprintf("var __contract = require(\"%s\");\n var __instance = new __contract();\n Blockchain.block = Object.freeze(JSON.parse(\"%s\"));\n Blockchain.transaction = Object.freeze(JSON.parse(\"%s\"));\n __instance[\"%s\"].apply(__instance);\n", ModuleID, formatArgs(string(blockJSON)), formatArgs(string(txJSON)), function)
 	}
 
 	return runnableSource, 0, nil

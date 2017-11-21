@@ -49,26 +49,33 @@ func TestBlockPool(t *testing.T) {
 	priv, _ := secp256k1.GeneratePrivateKey()
 	pubdata, _ := priv.PublicKey().Encoded()
 	from, _ := NewAddressFromPublicKey(pubdata)
-	to := &Address{from.address}
-	coinbase := &Address{from.address}
 	ks.SetKey(from.ToHex(), priv, []byte("passphrase"))
 	ks.Unlock(from.ToHex(), []byte("passphrase"), time.Second*60*60*24*365)
+
+	coinbase := &Address{from.address}
+	to := &Address{from.address}
 
 	key, _ := ks.GetUnlocked(from.ToHex())
 	signature, _ := crypto.NewSignature(keystore.SECP256K1)
 	signature.InitSign(key.(keystore.PrivateKey))
 
-	tx1 := NewTransaction(0, from, to, util.NewUint128(), 1, TxPayloadBinaryType, []byte("nas"), util.NewUint128(), util.NewUint128())
-	tx1.Sign(signature)
-	tx2 := NewTransaction(0, from, to, util.NewUint128(), 2, TxPayloadBinaryType, []byte("nas"), util.NewUint128(), util.NewUint128())
-	tx2.Sign(signature)
-	tx3 := NewTransaction(0, from, to, util.NewUint128(), 3, TxPayloadBinaryType, []byte("nas"), util.NewUint128(), util.NewUint128())
-	tx3.Sign(signature)
-	bc.txPool.Push(tx1)
-	bc.txPool.Push(tx2)
-	bc.txPool.Push(tx3)
+	block0 := NewBlock(0, coinbase, bc.tailBlock, bc.txPool, storage)
+	block0.Seal()
 
-	block1 := NewBlock(0, coinbase, bc.tailBlock, bc.txPool, storage)
+	tx1 := NewTransaction(0, from, to, util.NewUint128FromInt(1), 1, TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, TransactionGas)
+	tx1.Sign(signature)
+	tx2 := NewTransaction(0, from, to, util.NewUint128FromInt(2), 2, TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, TransactionGas)
+	tx2.Sign(signature)
+	tx3 := NewTransaction(0, from, to, util.NewUint128FromInt(3), 3, TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, TransactionGas)
+	tx3.Sign(signature)
+	err := bc.txPool.Push(tx1)
+	assert.NoError(t, err)
+	err = bc.txPool.Push(tx2)
+	assert.NoError(t, err)
+	err = bc.txPool.Push(tx3)
+	assert.NoError(t, err)
+
+	block1 := NewBlock(0, coinbase, block0, bc.txPool, storage)
 	block1.CollectTransactions(1)
 	block1.Seal()
 
@@ -84,18 +91,30 @@ func TestBlockPool(t *testing.T) {
 	block4.CollectTransactions(1)
 	block4.Seal()
 
-	pool.Push(block3)
-	assert.Equal(t, pool.blockCache.Len(), 1)
-	pool.Push(block4)
-	assert.Equal(t, pool.blockCache.Len(), 2)
-	pool.Push(block2)
-	assert.Equal(t, pool.blockCache.Len(), 3)
-	pool.Push(block1)
+	err = pool.Push(block0)
+	assert.NoError(t, err)
 	assert.Equal(t, pool.blockCache.Len(), 0)
-	err := pool.Push(block1)
-	assert.Equal(t, err, nil)
-	bc.SetTailBlock(block1)
+
+	err = pool.Push(block3)
+	assert.Equal(t, pool.blockCache.Len(), 1)
+	assert.NoError(t, err)
+	err = pool.Push(block4)
+	assert.Equal(t, pool.blockCache.Len(), 2)
+	assert.NoError(t, err)
+	err = pool.Push(block2)
+	assert.Equal(t, pool.blockCache.Len(), 3)
+	assert.NoError(t, err)
+
+	err = pool.Push(block1)
+	assert.NoError(t, err)
+	assert.Equal(t, pool.blockCache.Len(), 0)
+
+	bc.SetTailBlock(block0)
 	nonce := bc.tailBlock.GetNonce(from.Bytes())
+	assert.Equal(t, nonce, uint64(0))
+
+	bc.SetTailBlock(block1)
+	nonce = bc.tailBlock.GetNonce(from.Bytes())
 	assert.Equal(t, nonce, uint64(1))
 	bc.SetTailBlock(block2)
 	nonce = bc.tailBlock.GetNonce(from.Bytes())

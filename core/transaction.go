@@ -32,6 +32,14 @@ import (
 	"github.com/nebulasio/go-nebulas/util/byteutils"
 )
 
+var (
+	// TransactionGasPrice default gasPrice
+	TransactionGasPrice = util.NewUint128FromInt(1)
+
+	// TransactionGas default gasLimt
+	TransactionGas = util.NewUint128FromInt(20000)
+)
+
 // Transaction type is used to handle all transaction data.
 type Transaction struct {
 	hash      byteutils.Hash
@@ -177,22 +185,28 @@ func (tx *Transaction) Hash() byteutils.Hash {
 
 // GasPrice returns gasPrice
 func (tx *Transaction) GasPrice() *util.Uint128 {
-	// if gasPrice <= 0 , returns default gasprice
+	// if gasPrice <= 0 , returns default gasPrice
 	if tx.gasPrice.Cmp(util.NewUint128FromInt(0).Int) <= 0 {
 		// TODO:the default gasPrice needs to be computed dynamically
-		return util.NewUint128FromInt(1)
+		return TransactionGasPrice
 	}
 	return tx.gasPrice
 }
 
 // GasLimit returns gasLimit
 func (tx *Transaction) GasLimit() *util.Uint128 {
-	// if gasPrice <= 0 , returns default gasprice
+	// if gasLimit <= 0 , returns default gasLimit
 	if tx.gasPrice.Cmp(util.NewUint128FromInt(0).Int) <= 0 {
-		// TODO:the default gasLimit must be given, else return total value
-		return tx.value
+		return TransactionGas
 	}
 	return tx.gasLimit
+}
+
+// Cost returns value + gasprice * gaslimit.
+func (tx *Transaction) Cost() *util.Uint128 {
+	total := util.NewUint128().Mul(tx.GasPrice().Int, tx.GasLimit().Int)
+	total.Add(total, tx.value.Int)
+	return util.NewUint128FromBigInt(total)
 }
 
 // DataLen return the length of payload
@@ -206,7 +220,8 @@ func (tx *Transaction) Execute(block *Block) error {
 	fromAcc := block.accState.GetOrCreateUserAccount(tx.from.address)
 	toAcc := block.accState.GetOrCreateUserAccount(tx.to.address)
 
-	if fromAcc.Balance().Cmp(tx.value.Int) < 0 {
+	// TODO:calculate data cost gas
+	if fromAcc.Balance().Cmp(tx.Cost().Int) < 0 {
 		return ErrInsufficientBalance
 	}
 
@@ -214,6 +229,12 @@ func (tx *Transaction) Execute(block *Block) error {
 	fromAcc.SubBalance(tx.value)
 	toAcc.AddBalance(tx.value)
 	fromAcc.IncreNonce()
+
+	// only normal transaction(don't execute smart contract) sub gas here
+	if tx.data.Type == TxPayloadBinaryType {
+		gas := util.NewUint128().Mul(tx.GasPrice().Int, tx.GasLimit().Int)
+		fromAcc.SubBalance(util.NewUint128FromBigInt(gas))
+	}
 
 	// execute payload
 	var payload TxPayload
@@ -233,6 +254,7 @@ func (tx *Transaction) Execute(block *Block) error {
 		return err
 	}
 
+	// execute smart contract and sub the calcute gas.
 	return payload.Execute(tx, block)
 }
 

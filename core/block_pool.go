@@ -304,6 +304,12 @@ func (lb *linkedBlock) travelToLinkAndReturnAllValidBlocks(parentBlock *Block) (
 	}
 
 	if err := lb.block.Verify(parentBlock.header.chainID); err != nil {
+		log.Error(err)
+		log.WithFields(log.Fields{
+			"func":  "BlockPool.Verify",
+			"block": lb.block,
+			"err":   err,
+		}).Error("BlockPool.Verify: verify block failed.")
 		return nil, nil
 	}
 

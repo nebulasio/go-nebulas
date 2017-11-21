@@ -265,20 +265,22 @@ func (netService *NetService) SayHello(bootNode multiaddr.Multiaddr) error {
 		peerstore.TempAddrTTL,
 	)
 	if node.host.Addrs()[0].String() != bootAddr.String() {
+		var success = false
 		for i := 0; i < 3; i++ {
 			err := netService.Hello(bootID)
 			if err != nil {
 				time.Sleep(time.Second)
 				continue
 			}
+			success = true
 			break
 		}
-		if err != nil {
+		if !success {
 			log.WithFields(log.Fields{
 				"bootNode": bootNode,
 				"error":    err,
 			}).Error("say hello to bootNode failed")
-			return err
+			return errors.New("say hello to bootNode failed")
 		}
 		log.WithFields(log.Fields{
 			"bootNode": bootNode,

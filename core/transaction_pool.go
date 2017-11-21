@@ -42,6 +42,7 @@ type TransactionPool struct {
 	bc    *BlockChain
 
 	nm net.Manager
+	//TODO: miner should have the lowest gasPrice & maximum gasLimt
 }
 
 func less(a interface{}, b interface{}) bool {

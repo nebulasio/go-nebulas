@@ -63,11 +63,7 @@ func (ns *NetService) Sync(tail net.Serializable) error {
 				log.Warn("Sync: skip self")
 				continue
 			}
-			//key, err := GenerateKey(addrs[0], nodeID)
-			//if err != nil {
-			//	log.Warn("Sync: GenerateKey occurs error")
-			//	continue
-			//}
+
 			key := nodeID.Pretty()
 			if _, ok := node.stream[key]; ok {
 				count++
