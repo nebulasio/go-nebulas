@@ -65,6 +65,7 @@ type VotePayload struct {
 	CurrentHeight uint64
 	ViewHeight    uint64
 	Times         uint32
+	DynastyHash   byteutils.Hash
 }
 
 // LoadVotePayload from bytes
@@ -105,10 +106,11 @@ func NewChangeVotePayload(action string, votedBlockHash byteutils.Hash, times ui
 }
 
 // NewAbdicateVotePayload create a new abdicate vote payload
-func NewAbdicateVotePayload(action string, dynastyRootHash byteutils.Hash) *VotePayload {
+func NewAbdicateVotePayload(action string, votedBlockHash byteutils.Hash, dynastyRootHash byteutils.Hash) *VotePayload {
 	return &VotePayload{
-		Action: action,
-		Hash:   dynastyRootHash,
+		Action:      action,
+		Hash:        votedBlockHash,
+		DynastyHash: dynastyRootHash,
 	}
 }
 
@@ -457,7 +459,7 @@ func (payload *VotePayload) change(from []byte, packedBlock *Block) error {
 }
 
 func (payload *VotePayload) abdicate(from []byte, packedBlock *Block) error {
-	key := append(payload.Hash, from...)
+	key := append(payload.DynastyHash, from...)
 	_, err := packedBlock.validatorsTrie.Get(key)
 	if err != nil {
 		return err

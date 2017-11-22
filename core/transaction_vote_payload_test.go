@@ -228,7 +228,7 @@ func TestVotePayload_PrepareAfterAbdicate(t *testing.T) {
 
 	newBlock := NewBlock(block.header.chainID, &Address{validators[0]}, block)
 	newBlock.begin()
-	abdicatePayload, err := NewAbdicateVotePayload(AbdicateAction, block.CurDynastyRoot()).ToBytes()
+	abdicatePayload, err := NewAbdicateVotePayload(AbdicateAction, block.Hash(), block.CurDynastyRoot()).ToBytes()
 	assert.Nil(t, err)
 	abdicateTx := NewTransaction(
 		block.header.chainID, &Address{validators[1]}, &Address{validators[1]},

@@ -51,12 +51,17 @@ func (state *PrepareState) String() string {
 
 // Event handle event.
 func (state *PrepareState) Event(e consensus.Event) (bool, consensus.State) {
+	switch e.EventType() {
+	case NewPrepareVoteEvent:
+		return true, nil
+	}
 	return false, nil
 }
 
 // Enter called when transiting to this state.
 func (state *PrepareState) Enter(data interface{}) {
 	log.Debug("PrepareState enter.")
+	// if the block is on canonical chain, vote
 }
 
 // Leave called when leaving this state.

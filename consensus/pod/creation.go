@@ -23,27 +23,20 @@ import (
 
 	"github.com/nebulasio/go-nebulas/consensus"
 	"github.com/nebulasio/go-nebulas/core"
-	"github.com/nebulasio/go-nebulas/util/byteutils"
 	log "github.com/sirupsen/logrus"
 )
 
-// AbdicateContext carray abdicate info
-type AbdicateContext struct {
-	Voter       byteutils.Hash
-	DynastyRoot byteutils.Hash
-}
-
 // CreationState presents the prepare stage in pod
 type CreationState struct {
-	sm      *consensus.StateMachine
-	context *StateContext
+	sm     *consensus.StateMachine
+	parent *core.Block
 }
 
 // NewCreationState create a new prepare state
-func NewCreationState(sm *consensus.StateMachine, tail *core.Block) *CreationState {
+func NewCreationState(sm *consensus.StateMachine, parent *core.Block) *CreationState {
 	return &CreationState{
-		sm:      sm,
-		context: NewStateContext(tail),
+		sm:     sm,
+		parent: parent,
 	}
 }
 
@@ -53,6 +46,12 @@ func (state *CreationState) String() string {
 
 // Event handle event.
 func (state *CreationState) Event(e consensus.Event) (bool, consensus.State) {
+	switch e.EventType() {
+	case NewBlockEvent:
+		return true, nil
+	case NewChangeTimeoutEvent:
+		return true, nil
+	}
 	return false, nil
 }
 

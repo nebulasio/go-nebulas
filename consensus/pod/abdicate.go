@@ -22,8 +22,15 @@ import (
 	"fmt"
 
 	"github.com/nebulasio/go-nebulas/consensus"
+	"github.com/nebulasio/go-nebulas/util/byteutils"
 	log "github.com/sirupsen/logrus"
 )
+
+// AbdicateContext carray abdicate info
+type AbdicateContext struct {
+	Voter     byteutils.Hash
+	BlockHash byteutils.Hash
+}
 
 // AbdicateState presents the prepare stage in pod
 type AbdicateState struct {
@@ -43,12 +50,17 @@ func (state *AbdicateState) String() string {
 
 // Event handle event.
 func (state *AbdicateState) Event(e consensus.Event) (bool, consensus.State) {
+	switch e.EventType() {
+	case NewAbdicateVoteEvent:
+		return true, nil
+	}
 	return false, nil
 }
 
 // Enter called when transiting to this state.
 func (state *AbdicateState) Enter(data interface{}) {
 	log.Debug("AbdicateState enter.")
+	// if the block is on canonical chain, vote
 }
 
 // Leave called when leaving this state.

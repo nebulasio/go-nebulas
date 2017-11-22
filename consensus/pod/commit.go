@@ -51,12 +51,17 @@ func (state *CommitState) String() string {
 
 // Event handle event.
 func (state *CommitState) Event(e consensus.Event) (bool, consensus.State) {
+	switch e.EventType() {
+	case NewCommitVoteEvent:
+		return true, nil
+	}
 	return false, nil
 }
 
 // Enter called when transiting to this state.
 func (state *CommitState) Enter(data interface{}) {
 	log.Debug("CommitState enter.")
+	// if the block is on canonical chain, vote
 }
 
 // Leave called when leaving this state.

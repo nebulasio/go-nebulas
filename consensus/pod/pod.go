@@ -94,8 +94,8 @@ type PoD struct {
 	nm       net.Manager
 	coinbase *core.Address
 
-	createdStateMachines *lru.Cache
-	creatingStateMachine *consensus.StateMachine
+	createdStateMachines  *lru.Cache
+	creatingStateMachines *lru.Cache
 
 	votesTransactionCh chan *core.Transaction
 
@@ -117,13 +117,15 @@ func NewPoD(neblet Neblet) (*PoD, error) {
 		return nil, err
 	}
 
-	createdStateMachines, err := lru.New(1024)
-	if err != nil {
+	createdStateMachines, err1 := lru.New(1024)
+	creatingStateMachines, err2 := lru.New(1024)
+	if err1 != nil || err2 != nil {
 		log.WithFields(log.Fields{
 			"err": err,
 		}).Info("Pow.NewPow: fail to create lru cache for state machines.")
 		return nil, err
 	}
+
 	p := &PoD{
 		quitCh: make(chan bool),
 
@@ -131,29 +133,41 @@ func NewPoD(neblet Neblet) (*PoD, error) {
 		nm:       neblet.NetService(),
 		coinbase: coinbase,
 
-		createdStateMachines: createdStateMachines,
-		creatingStateMachine: consensus.NewStateMachine(),
+		createdStateMachines:  createdStateMachines,
+		creatingStateMachines: creatingStateMachines,
 
 		canMining: false,
 	}
 
-	creationState := NewCreationState(p.creatingStateMachine, p.chain.TailBlock())
-	p.creatingStateMachine.SetInitialState(creationState)
-
+	tails := []*core.Block{p.chain.TailBlock()}
+	for _, tail := range tails {
+		creatingStateMachine := consensus.NewStateMachine()
+		creatingStateMachine.SetInitialState(NewCreationState(creatingStateMachine, tail))
+		p.creatingStateMachines.Add(tail.Hash(), creatingStateMachine)
+	}
 	return p, nil
 }
 
 // Start start pod service.
 func (p *PoD) Start() {
-	p.creatingStateMachine.Start()
+	for _, key := range p.creatingStateMachines.Keys() {
+		if stateMachine, ok := p.creatingStateMachines.Get(key); ok {
+			stateMachine.(*consensus.StateMachine).Start()
+		}
+	}
 	go p.blockLoop()
 }
 
 // Stop stop pow service.
 func (p *PoD) Stop() {
-	// cleanup.
 	p.quitCh <- true
-	p.creatingStateMachine.Stop()
+	// stop creating state machines
+	for _, key := range p.creatingStateMachines.Keys() {
+		if stateMachine, ok := p.creatingStateMachines.Get(key); ok {
+			stateMachine.(*consensus.StateMachine).Stop()
+		}
+	}
+	// start created state machines
 	for _, key := range p.createdStateMachines.Keys() {
 		if stateMachine, ok := p.createdStateMachines.Get(key); ok {
 			stateMachine.(*consensus.StateMachine).Stop()
@@ -188,12 +202,21 @@ func (p *PoD) blockLoop() {
 	for {
 		select {
 		case block := <-p.chain.BlockPool().ReceivedBlockCh():
-			p.creatingStateMachine.Event(consensus.NewBaseEvent(NewBlockEvent, block))
+			// extract all votes
 			for _, tx := range block.Transactions() {
 				if tx.DataType() == core.TxPayloadVoteType {
 					p.votesTransactionCh <- tx
 				}
 			}
+			// new block event
+			event := consensus.NewBaseEvent(NewBlockEvent, block)
+			if stateMachine, exist := p.creatingStateMachines.Get(block.ParentHash()); exist {
+				stateMachine.(*consensus.StateMachine).Event(event)
+			}
+			// create a creating state machine waiting for next block
+			creatingStateMachine := consensus.NewStateMachine()
+			creatingStateMachine.SetInitialState(NewCreationState(creatingStateMachine, block))
+			p.creatingStateMachines.Add(block.Hash(), creatingStateMachine)
 		case voteTx := <-p.votesTransactionCh:
 			votePayload, err := core.LoadVotePayload(voteTx.Data())
 			if err != nil {
@@ -204,18 +227,38 @@ func (p *PoD) blockLoop() {
 				}).Error("invalid vote payload")
 				continue
 			}
-			var event consensus.Event
 			switch votePayload.Action {
 			case core.PrepareAction:
-				event = consensus.NewBaseEvent(NewPrepareVoteEvent, &PrepareContext{voteTx.From().Bytes(), votePayload.Hash})
+				event := consensus.NewBaseEvent(NewPrepareVoteEvent, &PrepareContext{voteTx.From().Bytes(), votePayload.Hash})
+				if stateMachine, exist := p.createdStateMachines.Get(votePayload.Hash); exist {
+					stateMachine.(*consensus.StateMachine).Event(event)
+					continue
+				}
 			case core.CommitAction:
-				event = consensus.NewBaseEvent(NewCommitVoteEvent, &CommitContext{voteTx.From().Bytes(), votePayload.Hash})
+				event := consensus.NewBaseEvent(NewCommitVoteEvent, &CommitContext{voteTx.From().Bytes(), votePayload.Hash})
+				if stateMachine, exist := p.createdStateMachines.Get(votePayload.Hash); exist {
+					stateMachine.(*consensus.StateMachine).Event(event)
+					continue
+				}
 			case core.ChangeAction:
-				event = consensus.NewBaseEvent(NewChangeVoteEvent, &ChangeContext{voteTx.From().Bytes(), votePayload.Hash})
+				event := consensus.NewBaseEvent(NewChangeVoteEvent, &ChangeContext{voteTx.From().Bytes(), votePayload.Hash})
+				if stateMachine, exist := p.creatingStateMachines.Get(votePayload.Hash); exist {
+					stateMachine.(*consensus.StateMachine).Event(event)
+					continue
+				}
 			case core.AbdicateAction:
-				event = consensus.NewBaseEvent(NewAbdicateVoteEvent, &AbdicateContext{voteTx.From().Bytes(), votePayload.Hash})
+				event := consensus.NewBaseEvent(NewAbdicateVoteEvent, &AbdicateContext{voteTx.From().Bytes(), votePayload.Hash})
+				if stateMachine, exist := p.creatingStateMachines.Get(votePayload.Hash); exist {
+					stateMachine.(*consensus.StateMachine).Event(event)
+					continue
+				}
 			}
-			p.creatingStateMachine.Event(event)
+			log.WithFields(log.Fields{
+				"func":    "PoD.BlockLoop",
+				"channel": "Votes Transaction",
+				"action":  votePayload.Action,
+				"hash":    votePayload.Hash,
+			}).Error("cannot find the related state machine")
 		case <-p.quitCh:
 			log.Info("PoD.blockLoop: quit.")
 			return

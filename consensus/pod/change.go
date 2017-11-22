@@ -51,12 +51,19 @@ func (state *ChangeState) String() string {
 
 // Event handle event.
 func (state *ChangeState) Event(e consensus.Event) (bool, consensus.State) {
+	switch e.EventType() {
+	case NewChangeVoteEvent:
+		return true, nil
+	case NewAbdicateTimeoutEvent:
+		return true, nil
+	}
 	return false, nil
 }
 
 // Enter called when transiting to this state.
 func (state *ChangeState) Enter(data interface{}) {
 	log.Debug("ChangeState enter.")
+	// if the block is on canonical chain, vote & set timeout
 }
 
 // Leave called when leaving this state.
