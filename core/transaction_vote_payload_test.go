@@ -157,10 +157,10 @@ func TestVotePayload_InvalidViewBlock(t *testing.T) {
 	assert.Nil(t, storeBlockToStorage(newBlock))
 	maxVotes, err := countValidators(newBlock.curDynastyTrie, nil)
 	assert.Nil(t, err)
-	assert.Equal(t, maxVotes, size)
+	assert.Equal(t, maxVotes, uint32(size))
 	prepareVotes, err := countValidators(newBlock.prepareVotesTrie, block.ParentHash())
 	assert.Nil(t, err)
-	assert.Equal(t, prepareVotes, size*2/3)
+	assert.Equal(t, prepareVotes, uint32(size*2/3))
 
 	newBlock2 := NewBlock(newBlock.header.chainID, newBlock.Coinbase(), newBlock)
 	newBlock2.begin()

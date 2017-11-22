@@ -342,7 +342,7 @@ func traverseValidators(dynastyTrie *trie.BatchTrie, prefix []byte) ([]byteutils
 	return validators, nil
 }
 
-func countValidators(dynastyTrie *trie.BatchTrie, prefix []byte) (int, error) {
+func countValidators(dynastyTrie *trie.BatchTrie, prefix []byte) (uint32, error) {
 	if dynastyTrie.Empty() {
 		return 0, nil
 	}
@@ -354,7 +354,7 @@ func countValidators(dynastyTrie *trie.BatchTrie, prefix []byte) (int, error) {
 	for iter.Next() {
 		count++
 	}
-	return count, nil
+	return uint32(count), nil
 }
 
 func (block *Block) addDeposit(addr []byte, value *util.Uint128) error {
@@ -447,6 +447,24 @@ func (block *Block) NextBlockDynastyRoot() (byteutils.Hash, error) {
 		dynastyRoot = block.header.nextDynastyRoot
 	}
 	return dynastyRoot, nil
+}
+
+// DynastyValidators return all validators in this dynasty
+func (block *Block) DynastyValidators(dynastyRoot byteutils.Hash) ([]byteutils.Hash, error) {
+	dynastyTrie, err := trie.NewBatchTrie(dynastyRoot, block.storage)
+	if err != nil {
+		return nil, err
+	}
+	return traverseValidators(dynastyTrie, nil)
+}
+
+// DynastySize return the size of a dynasty
+func (block *Block) DynastySize(dynastyRoot byteutils.Hash) (uint32, error) {
+	dynastyTrie, err := trie.NewBatchTrie(dynastyRoot, block.storage)
+	if err != nil {
+		return 0, err
+	}
+	return countValidators(dynastyTrie, nil)
 }
 
 func (block *Block) checkDynastyRule() (bool, error) {
@@ -570,6 +588,11 @@ func (block *Block) SetTimestamp(timestamp int64) {
 // Hash return block hash.
 func (block *Block) Hash() byteutils.Hash {
 	return block.header.hash
+}
+
+// ChainID return chain id
+func (block *Block) ChainID() uint32 {
+	return block.header.chainID
 }
 
 // StateRoot return state root hash.

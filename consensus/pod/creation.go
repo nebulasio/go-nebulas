@@ -20,23 +20,25 @@ package pod
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/nebulasio/go-nebulas/consensus"
 	"github.com/nebulasio/go-nebulas/core"
+	"github.com/nebulasio/go-nebulas/util/byteutils"
 	log "github.com/sirupsen/logrus"
 )
 
 // CreationState presents the prepare stage in pod
 type CreationState struct {
-	sm     *consensus.StateMachine
-	parent *core.Block
+	sm      *consensus.StateMachine
+	context *CreatingContext
 }
 
 // NewCreationState create a new prepare state
-func NewCreationState(sm *consensus.StateMachine, parent *core.Block) *CreationState {
+func NewCreationState(sm *consensus.StateMachine, context *CreatingContext) *CreationState {
 	return &CreationState{
-		sm:     sm,
-		parent: parent,
+		sm:      sm,
+		context: context,
 	}
 }
 
@@ -44,13 +46,35 @@ func (state *CreationState) String() string {
 	return fmt.Sprintf("CreationState %p", state)
 }
 
+// Proposer return current proposer who should propose the new block
+func (state *CreationState) Proposer() byteutils.Hash {
+	return state.context.validators[state.context.index]
+}
+
 // Event handle event.
 func (state *CreationState) Event(e consensus.Event) (bool, consensus.State) {
 	switch e.EventType() {
 	case NewBlockEvent:
-		return true, nil
+		block := e.Data().(*core.Block)
+		p := state.sm.Context().(*PoD)
+		createdStateMachine := consensus.NewStateMachine(state.sm.Context())
+		onCanonical := block.Hash().Equals(p.chain.TailBlock().Hash())
+		context, err := NewCreatedContext(block, onCanonical)
+		if err != nil {
+			panic(err)
+		}
+		createdStateMachine.SetInitialState(NewPrepareState(state.sm, context))
+		p.createdStateMachines.Add(block.Hash(), createdStateMachine)
+		// creating over
+		p.creatingStateMachines.Remove(state.context.parent.Hash())
+		state.sm.Stop()
+		log.WithFields(log.Fields{
+			"func":  "PoD.CreationState",
+			"block": block,
+		}).Info("Receive New Block.")
+		return false, nil
 	case NewChangeTimeoutEvent:
-		return true, nil
+		return true, NewChangeState(state.sm, state.context)
 	}
 	return false, nil
 }
@@ -58,6 +82,25 @@ func (state *CreationState) Event(e consensus.Event) (bool, consensus.State) {
 // Enter called when transiting to this state.
 func (state *CreationState) Enter(data interface{}) {
 	log.Debug("CreationState enter.")
+	// if the block is on canonical chain, create or set timeout
+	if state.context.onCanonical {
+		p := state.sm.Context().(*PoD)
+		if state.Proposer().Equals(p.coinbase.Bytes()) {
+			parent := p.chain.GetBlock(state.context.parent.Hash())
+			block := core.NewBlock(state.context.parent.ChainID(), p.coinbase, parent)
+			block.CollectTransactions(100)
+			block.Seal()
+			log.WithFields(log.Fields{
+				"func":  "PoD.CreationState",
+				"block": block,
+			}).Info("Create New Block.")
+			p.nm.Broadcast(consensus.MessageTypeNewBlock, block)
+		} else {
+			time.AfterFunc(10*time.Second, func() {
+				state.sm.Event(consensus.NewBaseEvent(NewChangeTimeoutEvent, nil))
+			})
+		}
+	}
 }
 
 // Leave called when leaving this state.

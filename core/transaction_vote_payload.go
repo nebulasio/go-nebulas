@@ -430,7 +430,7 @@ func (payload *VotePayload) change(from []byte, packedBlock *Block) error {
 		if err != nil {
 			return err
 		}
-		changeVotes := 0
+		changeVotes := uint32(0)
 		for iter.Next() {
 			if byteutils.Uint32(iter.Value()) >= payload.Times-1 {
 				changeVotes++

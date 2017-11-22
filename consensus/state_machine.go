@@ -64,13 +64,15 @@ type StateMachine struct {
 	quitCh            chan bool
 	currentState      State
 	stateTransitionCh chan *StateTransitionArgs
+	context           interface{}
 }
 
 // NewStateMachine create a new state machine
-func NewStateMachine() *StateMachine {
+func NewStateMachine(context interface{}) *StateMachine {
 	return &StateMachine{
 		quitCh:            make(chan bool),
 		stateTransitionCh: make(chan *StateTransitionArgs, 10),
+		context:           context,
 	}
 }
 
@@ -88,6 +90,11 @@ func (sm *StateMachine) Start() {
 func (sm *StateMachine) Stop() {
 	// cleanup.
 	sm.quitCh <- true
+}
+
+// Context return state machine context
+func (sm *StateMachine) Context() interface{} {
+	return sm.context
 }
 
 // StateTransitionArgs contains transition data

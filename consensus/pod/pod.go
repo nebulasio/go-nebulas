@@ -141,11 +141,23 @@ func NewPoD(neblet Neblet) (*PoD, error) {
 
 	tails := []*core.Block{p.chain.TailBlock()}
 	for _, tail := range tails {
-		creatingStateMachine := consensus.NewStateMachine()
-		creatingStateMachine.SetInitialState(NewCreationState(creatingStateMachine, tail))
+		creatingStateMachine, err := p.newCreatingStateMachine(tail)
+		if err != nil {
+			return nil, err
+		}
 		p.creatingStateMachines.Add(tail.Hash(), creatingStateMachine)
 	}
 	return p, nil
+}
+
+func (p *PoD) newCreatingStateMachine(parent *core.Block) (*consensus.StateMachine, error) {
+	creatingStateMachine := consensus.NewStateMachine(p)
+	context, err := NewCreatingContext(parent, p.chain.TailBlock())
+	if err != nil {
+		return nil, err
+	}
+	creatingStateMachine.SetInitialState(NewCreationState(creatingStateMachine, context))
+	return creatingStateMachine, nil
 }
 
 // Start start pod service.
@@ -214,9 +226,17 @@ func (p *PoD) blockLoop() {
 				stateMachine.(*consensus.StateMachine).Event(event)
 			}
 			// create a creating state machine waiting for next block
-			creatingStateMachine := consensus.NewStateMachine()
-			creatingStateMachine.SetInitialState(NewCreationState(creatingStateMachine, block))
-			p.creatingStateMachines.Add(block.Hash(), creatingStateMachine)
+			creatingStateMachine, err := p.newCreatingStateMachine(block)
+			if creatingStateMachine != nil {
+				p.creatingStateMachines.Add(block.Hash(), creatingStateMachine)
+				continue
+			}
+			log.WithFields(log.Fields{
+				"func":    "PoD.BlockLoop",
+				"channel": "New Block",
+				"block":   block,
+				"err":     err,
+			}).Error("cannot create new state machine")
 		case voteTx := <-p.votesTransactionCh:
 			votePayload, err := core.LoadVotePayload(voteTx.Data())
 			if err != nil {
@@ -227,31 +247,26 @@ func (p *PoD) blockLoop() {
 				}).Error("invalid vote payload")
 				continue
 			}
+			var action consensus.EventType
+			var stateMachines *lru.Cache
 			switch votePayload.Action {
 			case core.PrepareAction:
-				event := consensus.NewBaseEvent(NewPrepareVoteEvent, &PrepareContext{voteTx.From().Bytes(), votePayload.Hash})
-				if stateMachine, exist := p.createdStateMachines.Get(votePayload.Hash); exist {
-					stateMachine.(*consensus.StateMachine).Event(event)
-					continue
-				}
+				action = NewPrepareVoteEvent
+				stateMachines = p.createdStateMachines
 			case core.CommitAction:
-				event := consensus.NewBaseEvent(NewCommitVoteEvent, &CommitContext{voteTx.From().Bytes(), votePayload.Hash})
-				if stateMachine, exist := p.createdStateMachines.Get(votePayload.Hash); exist {
-					stateMachine.(*consensus.StateMachine).Event(event)
-					continue
-				}
+				action = NewCommitVoteEvent
+				stateMachines = p.createdStateMachines
 			case core.ChangeAction:
-				event := consensus.NewBaseEvent(NewChangeVoteEvent, &ChangeContext{voteTx.From().Bytes(), votePayload.Hash})
-				if stateMachine, exist := p.creatingStateMachines.Get(votePayload.Hash); exist {
-					stateMachine.(*consensus.StateMachine).Event(event)
-					continue
-				}
+				action = NewChangeVoteEvent
+				stateMachines = p.creatingStateMachines
 			case core.AbdicateAction:
-				event := consensus.NewBaseEvent(NewAbdicateVoteEvent, &AbdicateContext{voteTx.From().Bytes(), votePayload.Hash})
-				if stateMachine, exist := p.creatingStateMachines.Get(votePayload.Hash); exist {
-					stateMachine.(*consensus.StateMachine).Event(event)
-					continue
-				}
+				action = NewAbdicateVoteEvent
+				stateMachines = p.creatingStateMachines
+			}
+			event := consensus.NewBaseEvent(action, voteTx.From().Bytes())
+			if stateMachine, exist := stateMachines.Get(votePayload.Hash); exist {
+				stateMachine.(*consensus.StateMachine).Event(event)
+				continue
 			}
 			log.WithFields(log.Fields{
 				"func":    "PoD.BlockLoop",

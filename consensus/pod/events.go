@@ -35,19 +35,64 @@ const (
 	CanMiningEvent          = "event.canmining"
 )
 
-// StateContext carries the context in state transitions
-type StateContext struct {
-	Tails     map[byteutils.HexHash]*core.Block
-	Proposers map[byteutils.HexHash]byteutils.Hash
+// CreatingContext carries the context in creatingStateMachine
+type CreatingContext struct {
+	parent *core.Block
+
+	index          uint32
+	dynastyRoot    byteutils.Hash
+	dynastyChanged uint32
+	validators     []byteutils.Hash
+	maxVotes       uint32
+
+	onCanonical bool
 }
 
-// NewStateContext create a new state context
-func NewStateContext(tails []*core.Block) *StateContext {
-	ctx := &StateContext{
-		Tails: make(map[byteutils.HexHash]*core.Block),
+// NewCreatingContext create a new creating context
+func NewCreatingContext(parent *core.Block, tail *core.Block) (*CreatingContext, error) {
+	var err error
+
+	context := &CreatingContext{}
+	context.parent = parent
+
+	context.index = 0
+	context.dynastyChanged = 0
+	context.dynastyRoot, err = parent.NextBlockDynastyRoot()
+	if err != nil {
+		return nil, err
 	}
-	for _, v := range tails {
-		ctx.Tails[v.Hash().Hex()] = v
+	context.maxVotes, err = parent.DynastySize(context.dynastyRoot)
+	if err != nil {
+		return nil, err
 	}
-	return ctx
+	context.validators, err = parent.NextBlockSortedValidators()
+	if err != nil {
+		return nil, err
+	}
+
+	context.onCanonical = false
+	if parent.Hash().Equals(tail.Hash()) {
+		context.onCanonical = true
+	}
+	return context, nil
+}
+
+// CreatedContext carries the context in createdStateMachine
+type CreatedContext struct {
+	block       *core.Block
+	maxVotes    uint32
+	onCanonical bool
+}
+
+// NewCreatedContext create a new creating context
+func NewCreatedContext(block *core.Block, onCanonical bool) (*CreatedContext, error) {
+	var err error
+	context := &CreatedContext{}
+	context.block = block
+	context.maxVotes, err = block.DynastySize(block.CurDynastyRoot())
+	if err != nil {
+		return nil, err
+	}
+	context.onCanonical = onCanonical
+	return context, nil
 }

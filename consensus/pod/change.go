@@ -20,28 +20,30 @@ package pod
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/nebulasio/go-nebulas/util/byteutils"
+
+	"github.com/nebulasio/go-nebulas/core"
+
+	"github.com/nebulasio/go-nebulas/util"
 
 	"github.com/nebulasio/go-nebulas/consensus"
 	log "github.com/sirupsen/logrus"
 )
 
-// ChangeContext carray change info
-type ChangeContext struct {
-	Voter     byteutils.Hash
-	BlockHash byteutils.Hash
-}
-
 // ChangeState presents the prepare stage in pod
 type ChangeState struct {
-	sm *consensus.StateMachine
+	sm      *consensus.StateMachine
+	votes   map[byteutils.HexHash]bool
+	context *CreatingContext
 }
 
 // NewChangeState create a new prepare state
-func NewChangeState(sm *consensus.StateMachine) *ChangeState {
+func NewChangeState(sm *consensus.StateMachine, context *CreatingContext) *ChangeState {
 	return &ChangeState{
-		sm: sm,
+		sm:      sm,
+		context: context,
 	}
 }
 
@@ -53,9 +55,33 @@ func (state *ChangeState) String() string {
 func (state *ChangeState) Event(e consensus.Event) (bool, consensus.State) {
 	switch e.EventType() {
 	case NewChangeVoteEvent:
-		return true, nil
+		voter := e.Data().(byteutils.Hash)
+		state.votes[voter.Hex()] = true
+		changeVotes := uint32(len(state.votes))
+		activeN := uint32(len(state.context.validators)) - state.context.index
+		if changeVotes > state.context.maxVotes*2/3 {
+			state.context.index++
+			return true, NewCreationState(state.sm, state.context)
+		}
+		if activeN <= state.context.maxVotes*2/3 {
+			state.context.index = 0
+			state.context.dynastyChanged++
+			// TODO(roy): change to next dynasty, emergency
+			state.context.dynastyRoot = state.context.parent.NextDynastyRoot()
+			var err error
+			state.context.maxVotes, err = state.context.parent.DynastySize(state.context.dynastyRoot)
+			if err != nil {
+				panic(err)
+			}
+			state.context.validators, err = state.context.parent.DynastyValidators(state.context.dynastyRoot)
+			if err != nil {
+				panic(err)
+			}
+			return true, NewCreationState(state.sm, state.context)
+		}
+		return false, nil
 	case NewAbdicateTimeoutEvent:
-		return true, nil
+		return true, NewAbdicateState(state.sm, state.context)
 	}
 	return false, nil
 }
@@ -64,6 +90,26 @@ func (state *ChangeState) Event(e consensus.Event) (bool, consensus.State) {
 func (state *ChangeState) Enter(data interface{}) {
 	log.Debug("ChangeState enter.")
 	// if the block is on canonical chain, vote & set timeout
+	if state.context.onCanonical {
+		p := state.sm.Context().(*PoD)
+		zero := util.NewUint128()
+		nonce := p.chain.TailBlock().GetNonce(p.coinbase.Bytes())
+		payload, err := core.NewChangeVotePayload(core.ChangeAction, state.context.parent.Hash(), state.context.index+1).ToBytes()
+		if err != nil {
+			panic(err)
+		}
+		changeTx := core.NewTransaction(state.context.parent.ChainID(), p.coinbase, p.coinbase, zero, nonce+1, core.TxPayloadVoteType, payload)
+		p.nm.Broadcast(consensus.MessageTypeNewTx, changeTx)
+		log.WithFields(log.Fields{
+			"func":       "PoD.ChangeState",
+			"block hash": state.context.parent.Hash(),
+			"n":          state.context.index + 1,
+		}).Info("Vote Change.")
+
+		time.AfterFunc(120*time.Second, func() {
+			state.sm.Event(consensus.NewBaseEvent(NewAbdicateTimeoutEvent, nil))
+		})
+	}
 }
 
 // Leave called when leaving this state.

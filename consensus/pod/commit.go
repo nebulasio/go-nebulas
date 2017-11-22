@@ -21,27 +21,28 @@ package pod
 import (
 	"fmt"
 
+	"github.com/nebulasio/go-nebulas/util"
+
 	"github.com/nebulasio/go-nebulas/util/byteutils"
 
 	"github.com/nebulasio/go-nebulas/consensus"
+	"github.com/nebulasio/go-nebulas/core"
 	log "github.com/sirupsen/logrus"
 )
 
-// CommitContext carray commit info
-type CommitContext struct {
-	Voter     byteutils.Hash
-	BlockHash byteutils.Hash
-}
-
 // CommitState presents the prepare stage in pod
 type CommitState struct {
-	sm *consensus.StateMachine
+	sm      *consensus.StateMachine
+	votes   map[byteutils.HexHash]bool
+	context *CreatedContext
 }
 
 // NewCommitState create a new prepare state
-func NewCommitState(sm *consensus.StateMachine) *CommitState {
+func NewCommitState(sm *consensus.StateMachine, context *CreatedContext) *CommitState {
 	return &CommitState{
-		sm: sm,
+		sm:      sm,
+		votes:   make(map[byteutils.HexHash]bool),
+		context: context,
 	}
 }
 
@@ -53,7 +54,14 @@ func (state *CommitState) String() string {
 func (state *CommitState) Event(e consensus.Event) (bool, consensus.State) {
 	switch e.EventType() {
 	case NewCommitVoteEvent:
-		return true, nil
+		voter := e.Data().(byteutils.Hash)
+		state.votes[voter.Hex()] = true
+		commitVotes := uint32(len(state.votes))
+		if commitVotes > state.context.maxVotes*2/3 {
+			// finality
+		}
+		state.sm.Context().(*PoD).ForkChoice()
+		return false, nil
 	}
 	return false, nil
 }
@@ -62,6 +70,21 @@ func (state *CommitState) Event(e consensus.Event) (bool, consensus.State) {
 func (state *CommitState) Enter(data interface{}) {
 	log.Debug("CommitState enter.")
 	// if the block is on canonical chain, vote
+	if state.context.onCanonical {
+		p := state.sm.Context().(*PoD)
+		zero := util.NewUint128()
+		nonce := p.chain.TailBlock().GetNonce(p.coinbase.Bytes())
+		payload, err := core.NewCommitVotePayload(core.CommitAction, state.context.block.Hash()).ToBytes()
+		if err != nil {
+			panic(err)
+		}
+		commitTx := core.NewTransaction(state.context.block.ChainID(), p.coinbase, p.coinbase, zero, nonce+1, core.TxPayloadVoteType, payload)
+		p.nm.Broadcast(consensus.MessageTypeNewTx, commitTx)
+		log.WithFields(log.Fields{
+			"func":       "PoD.CommitState",
+			"block hash": state.context.block.Hash(),
+		}).Info("Vote Commit.")
+	}
 }
 
 // Leave called when leaving this state.

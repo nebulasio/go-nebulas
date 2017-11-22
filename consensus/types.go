@@ -35,5 +35,6 @@ type Consensus interface {
 
 // MessageType
 const (
-	MessageTypeNewTx = "newtx"
+	MessageTypeNewTx    = "newtx"
+	MessageTypeNewBlock = "newblock"
 )

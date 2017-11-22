@@ -74,7 +74,7 @@ func TestElectPayload_BaseElect(t *testing.T) {
 		}
 	}
 	cnt, err := countValidators(block.dynastyCandidatesTrie, nil)
-	assert.Equal(t, cnt, 6)
+	assert.Equal(t, cnt, uint32(6))
 	assert.Nil(t, err)
 	loginValidators, err := traverseValidators(block.dynastyCandidatesTrie, nil)
 	assert.Nil(t, err)
@@ -129,7 +129,7 @@ func TestElectPayload_BaseElect(t *testing.T) {
 	}
 	cnt, err = countValidators(block.depositTrie, nil)
 	assert.Nil(t, err)
-	assert.Equal(t, cnt, 3)
+	assert.Equal(t, cnt, uint32(3))
 	deposit, err := StandardDeposit.ToFixedSizeByteSlice()
 	assert.Nil(t, err)
 	for i := 3; i < 6; i++ {
@@ -162,13 +162,13 @@ func TestElectPayload_WithdrawWhileInNextDynasty(t *testing.T) {
 	}
 	cnt, err := countValidators(block.dynastyCandidatesTrie, nil)
 	assert.Nil(t, err)
-	assert.Equal(t, cnt, 5)
+	assert.Equal(t, cnt, uint32(5))
 	cnt, err = countValidators(block.curDynastyTrie, nil)
 	assert.Nil(t, err)
-	assert.Equal(t, cnt, 0)
+	assert.Equal(t, cnt, uint32(0))
 	cnt, err = countValidators(block.nextDynastyTrie, nil)
 	assert.Nil(t, err)
-	assert.Equal(t, cnt, 0)
+	assert.Equal(t, cnt, uint32(0))
 
 	change, err := block.checkDynastyRule()
 	assert.Nil(t, err)
@@ -177,10 +177,10 @@ func TestElectPayload_WithdrawWhileInNextDynasty(t *testing.T) {
 
 	cnt, err = countValidators(block.curDynastyTrie, nil)
 	assert.Nil(t, err)
-	assert.Equal(t, cnt, 0)
+	assert.Equal(t, cnt, uint32(0))
 	cnt, err = countValidators(block.nextDynastyTrie, nil)
 	assert.Nil(t, err)
-	assert.Equal(t, cnt, 5)
+	assert.Equal(t, cnt, uint32(5))
 
 	tx := NewTransaction(block.header.chainID, validators[0], validators[0], zero, 2, TxPayloadElectType, logoutPayload)
 	giveback, err := block.executeTransaction(tx)
@@ -213,13 +213,13 @@ func TestElectPayload_DynastyRule(t *testing.T) {
 	}
 	cnt, err := countValidators(block.dynastyCandidatesTrie, nil)
 	assert.Nil(t, err)
-	assert.Equal(t, cnt, DynastySize*2/3)
+	assert.Equal(t, cnt, uint32(DynastySize*2/3))
 	cnt, err = countValidators(block.curDynastyTrie, nil)
 	assert.Nil(t, err)
-	assert.Equal(t, cnt, 0)
+	assert.Equal(t, cnt, uint32(0))
 	cnt, err = countValidators(block.nextDynastyTrie, nil)
 	assert.Nil(t, err)
-	assert.Equal(t, cnt, 0)
+	assert.Equal(t, cnt, uint32(0))
 
 	// cur: 0, next: 2/3, candidates: 2/3
 	change, err := block.checkDynastyRule()
@@ -229,10 +229,10 @@ func TestElectPayload_DynastyRule(t *testing.T) {
 
 	cnt, err = countValidators(block.curDynastyTrie, nil)
 	assert.Nil(t, err)
-	assert.Equal(t, cnt, 0)
+	assert.Equal(t, cnt, uint32(0))
 	cnt, err = countValidators(block.nextDynastyTrie, nil)
 	assert.Nil(t, err)
-	assert.Equal(t, cnt, DynastySize*2/3)
+	assert.Equal(t, cnt, uint32(DynastySize*2/3))
 
 	tx := NewTransaction(block.header.chainID, validators[0], validators[0], zero, 2, TxPayloadElectType, logoutPayload)
 	giveback, err := block.executeTransaction(tx)
@@ -247,16 +247,16 @@ func TestElectPayload_DynastyRule(t *testing.T) {
 
 	cnt, err = countValidators(block.curDynastyTrie, nil)
 	assert.Nil(t, err)
-	assert.Equal(t, cnt, DynastySize*2/3)
+	assert.Equal(t, cnt, uint32(DynastySize*2/3))
 	cnt, err = countValidators(block.nextDynastyTrie, nil)
 	assert.Nil(t, err)
-	assert.Equal(t, cnt, DynastySize*2/3-1)
+	assert.Equal(t, cnt, uint32(DynastySize*2/3-1))
 	cnt, err = countValidators(block.validatorsTrie, block.curDynastyTrie.RootHash())
 	assert.Nil(t, err)
-	assert.Equal(t, cnt, DynastySize*2/3)
+	assert.Equal(t, cnt, uint32(DynastySize*2/3))
 	cnt, err = countValidators(block.validatorsTrie, block.nextDynastyTrie.RootHash())
 	assert.Nil(t, err)
-	assert.Equal(t, cnt, DynastySize*2/3-1)
+	assert.Equal(t, cnt, uint32(DynastySize*2/3-1))
 
 	// cannot change dynasty
 	change, err = block.checkDynastyRule()
