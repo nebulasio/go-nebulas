@@ -345,19 +345,19 @@ func TestInstructionCounterTestSuite(t *testing.T) {
 		filepath    string
 		expectedErr error
 	}{
-		{"./test/instruction_couter_tests/redefine1.js", ErrInjectTracingInstructionFailed},
-		{"./test/instruction_couter_tests/redefine2.js", ErrInjectTracingInstructionFailed},
-		{"./test/instruction_couter_tests/redefine3.js", ErrInjectTracingInstructionFailed},
-		{"./test/instruction_couter_tests/redefine4.js", ErrExecutionFailed},
-		{"./test/instruction_couter_tests/function.js", nil},
-		{"./test/instruction_couter_tests/if.js", nil},
-		{"./test/instruction_couter_tests/switch.js", nil},
-		{"./test/instruction_couter_tests/for.js", nil},
-		{"./test/instruction_couter_tests/with.js", nil},
-		{"./test/instruction_couter_tests/while.js", nil},
-		{"./test/instruction_couter_tests/throw.js", nil},
-		{"./test/instruction_couter_tests/switch.js", nil},
-		{"./test/instruction_couter_tests/condition_operator.js", nil},
+		{"./test/instruction_counter_tests/redefine1.js", ErrInjectTracingInstructionFailed},
+		{"./test/instruction_counter_tests/redefine2.js", ErrInjectTracingInstructionFailed},
+		{"./test/instruction_counter_tests/redefine3.js", ErrInjectTracingInstructionFailed},
+		{"./test/instruction_counter_tests/redefine4.js", ErrExecutionFailed},
+		{"./test/instruction_counter_tests/function.js", nil},
+		{"./test/instruction_counter_tests/if.js", nil},
+		{"./test/instruction_counter_tests/switch.js", nil},
+		{"./test/instruction_counter_tests/for.js", nil},
+		{"./test/instruction_counter_tests/with.js", nil},
+		{"./test/instruction_counter_tests/while.js", nil},
+		{"./test/instruction_counter_tests/throw.js", nil},
+		{"./test/instruction_counter_tests/switch.js", nil},
+		{"./test/instruction_counter_tests/condition_operator.js", nil},
 	}
 
 	for _, tt := range tests {
