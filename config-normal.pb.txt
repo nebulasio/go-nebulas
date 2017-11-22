@@ -2,7 +2,7 @@
 
 p2p {
   port: 10000
-  seed: "/ip4/127.0.0.1/tcp/51413/ipfs/QmPyr4ZbDmwF1nWxymTktdzspcBFPL6X1v3Q5nT7PGNtUN"
+  seed: "/ip4/192.168.1.13/tcp/51413/ipfs/QmPyr4ZbDmwF1nWxymTktdzspcBFPL6X1v3Q5nT7PGNtUN"
   chain_id: 100
   version: 1
 }
@@ -29,7 +29,7 @@ account {
   # keystore.SCRYPT = 1 << 4
   encrypt: 16
 
-  key_dir: "testKey"
+  key_dir: "keydir"
 
   test_passphrase: "passphrase"
 }

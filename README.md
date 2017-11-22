@@ -49,34 +49,31 @@ Starting a Nebulas seed node is simple. After the build step above, run command:
 ```
 
 You will see log message output like:
+
 ```
-INFO[2017-10-18T03:16:09+08:00] Loading Neb config from file config.pb.txt    file=config.go func=neblet.LoadConfig line=30
-  file=config.go func=neblet.LoadConfig line=37
-INFO[2017-10-18T03:16:09+08:00] Loaded Neb config proto p2p:<port:51413 > rpc:<port:51510 > pow:<coinbase:"8a209cec02cbeab7e2f74ad969d2dfe8dd24416aa65589bf" > account:<signature:1 encrypt:16 key_dir:"testKey" test_passphrase:"passphrase" >   file=config.go func=neblet.LoadConfig line=44
-INFO[2017-10-18T03:16:09+08:00] Starting neblet...                            file=neblet.go func="neblet.(*Neblet).Start" line=57
-INFO[2017-10-18T03:16:09+08:00] load test keys form:/Users/duranliu/go/src/github.com/nebulasio/go-nebulas/testKey  file=manager.go func="account.(*Manager).loadTestKey" line=86
-INFO[2017-10-18T03:16:09+08:00] load test addr:8a209cec02cbeab7e2f74ad969d2dfe8dd24416aa65589bf  file=manager.go func="account.(*Manager).loadTestKey" line=88
-INFO[2017-10-18T03:16:09+08:00] load test addr:22ac3a9a2b1c31b7a9084e46eae16e761f83f02324092b09  file=manager.go func="account.(*Manager).loadTestKey" line=88
-INFO[2017-10-18T03:16:09+08:00] load test addr:5cdadc1cfe3da0a3d067e9f1b195b90c5aebfb5afc8d43b4  file=manager.go func="account.(*Manager).loadTestKey" line=88
-INFO[2017-10-18T03:16:09+08:00] NewNode: node make Host success               file=node.go func=p2p.NewNode line=64
-INFO[2017-10-18T03:16:09+08:00] makeHost: boot node pretty id is QmVMamgHNoR8GBUbq4r9BTFzod5F2BvhSgaGLVxPpXcWNm  file=node.go func="p2p.(*Node).makeHost" line=153
-chainID is 1
-INFO[2017-10-18T03:16:09+08:00] Launch: node info {id -> <peer.ID VMamgH>, address -> [/ip4/192.168.1.18/tcp/51413]}  file=net_service.go func="p2p.(*NetService).Launch" line=536
-INFO[2017-10-18T03:16:09+08:00] Launch: node start to join p2p network...     file=net_service.go func="p2p.(*NetService).Launch" line=541
-INFO[2017-10-18T03:16:09+08:00] RegisterNetService: register netservice success  file=net_service.go func="p2p.(*NetService).RegisterNetService" line=85
-INFO[2017-10-18T03:16:09+08:00] Launch: node start and join to p2p network success and listening for connections on port 51413...   file=net_service.go func="p2p.(*NetService).Launch" line=565
-INFO[2017-10-18T03:16:09+08:00] Sync.Start: i am a seed node.                 file=sync_manager.go func="sync.(*Manager).Start" line=76
-DEBU[2017-10-18T03:16:09+08:00] running.                                      file=asm_amd64.s func=runtime.goexit line=2338
-INFO[2017-10-18T03:16:09+08:00] Starting RPC server at: 127.0.0.1:51510       file=server.go func="rpc.(*Server).Start" line=56
-DEBU[2017-10-18T03:16:09+08:00] running.                                      file=asm_amd64.s func=runtime.goexit line=2338
-DEBU[2017-10-18T03:16:09+08:00] StartState enter.                             file=start.go func="pow.(*StartState).Enter" line=56
+time="2017-11-22T14:43:10+08:00" level=info msg="Starting neblet..." file=neblet.go func="neblet.(*Neblet).Start" line=68
+time="2017-11-22T14:43:11+08:00" level=debug msg="node init success" file=net_service.go func=p2p.NewNetService line=129 node.id=QmPyr4ZbDmwF1nWxymTktdzspcBFPL6X1v3Q5nT7PGNtUN node.port=51413
+time="2017-11-22T14:43:11+08:00" level=info msg="node start" addrs="[/ip4/192.168.1.13/tcp/51413]" file=net_service.go func="p2p.(*NetService).Start" id=QmPyr4ZbDmwF1nWxymTktdzspcBFPL6X1v3Q5nT7PGNtUN line=665
+time="2017-11-22T14:43:11+08:00" level=info msg="RegisterNetService: register netservice success" file=net_service.go func="p2p.(*NetService).registerNetService" line=142
+time="2017-11-22T14:43:11+08:00" level=info msg="net.start: node start and join to p2p network success and listening for connections on port 51413... " file=net_service.go func="p2p.(*NetService).start" line=731
+time="2017-11-22T14:43:11+08:00" level=info msg="Sync.Start: i am a seed node." file=sync_manager.go func="sync.(*Manager).Start" line=105
+time="2017-11-22T14:43:11+08:00" level=debug msg=running. file=asm_amd64.s func=runtime.goexit line=2338
+time="2017-11-22T14:43:11+08:00" level=debug msg=running. file=asm_amd64.s func=runtime.goexit line=2338
+time="2017-11-22T14:43:11+08:00" level=info msg="sync over, start mining" file=pow.go func="pow.(*Pow).SetCanMining" line=134
+time="2017-11-22T14:43:11+08:00" level=debug msg="StartState enter." file=start.go func="pow.(*StartState).Enter" line=57
+time="2017-11-22T14:43:11+08:00" level=info msg="Starting RPC server at: 127.0.0.1:52520" file=management_server.go func="rpc.(*ManagementServer).Start" line=51
+time="2017-11-22T14:43:11+08:00" level=debug msg="State Transition." current="StartState 0xc4205d2320" file=pow.go from="StartState 0xc4205d2320" func="pow.(*Pow).stateLoop" line=218 success=true to="PrepareState 0xc4205d0010"
+time="2017-11-22T14:43:11+08:00" level=debug msg="StartState leave." file=start.go func="pow.(*StartState).Leave" line=67
+time="2017-11-22T14:43:11+08:00" level=info msg="Starting RPC server at: 127.0.0.1:51510" file=api_server.go func="rpc.(*APIServer).Start" line=44
+time="2017-11-22T14:43:11+08:00" level=debug msg="PrepareState enter." file=prepare.go func="pow.(*PrepareState).Enter" line=55
 ```
 
-From the log, we can see the binary execution loads configuration, loads keystore, starts network service, starts RPC API server, and starts consensus state machine.
+From the log, we can see the binary execution starts neblet, starts network service, starts RPC API server, and starts consensus state machine.
 
 
 ### Configurations
 Neb uses Protocol Buffer to load configurations. The default config file is named as config.pb.txt and looks like following:
+
 ```
 p2p {
   # seed: "UNCOMMENT_AND_SET_SEED_NODE_ADDRESS"
@@ -88,11 +85,16 @@ p2p {
 rpc {
   api_port: 51510
   management_port: 52520
-  gateway_port: 8080
+  api_http_port: 8090
+  management_http_port: 8191
 }
 
 pow {
   coinbase: "8a209cec02cbeab7e2f74ad969d2dfe8dd24416aa65589bf"
+}
+
+storage {
+  location: "seed.db"
 }
 
 account {
@@ -102,34 +104,47 @@ account {
   # keystore.SCRYPT = 1 << 4
   encrypt: 16
 
-  key_dir: "testKey"
+  key_dir: "keydir"
 
   test_passphrase: "passphrase"
 }
 
-```
+influxdb {
+  host: "http://localhost:8086"
+  db: "test"
+  username: "admin"
+  password: "admin"
+}
 
+metrics {
+  enable: false
+}
+
+```
 The configuration schema is defined in proto _neblet/pb/config.proto:Config_. To load a different config file when starting the neb binary, use flag -c. For example,
 ```
-./neb -c config1.pb.txt
+./neb -c <path>/config-seed.pb.txt
 ```
 
 Neb supports loading KeyStore file of ethereum format. KeyStore files from config _key_dir_ are loaded during neb bootstrap. Example testing KeyStore looks like
+
 ```
 {"version":3,"id":"272a46f1-5141-4234-b948-1b45c6708962","address":"555fcb1b7051d3aea5cf2c0167b4e19ed6a4f98d","Crypto":{"ciphertext":"ecd4b817fa9ebed736235476c91dec43e73e0ca3e8d2f13c004725349882fb49","cipherparams":{"iv":"1ab4ed89c95f66e994f183fed23df9f9"},"cipher":"aes-128-ctr","kdf":"scrypt","kdfparams":{"dklen":32,"salt":"baef3f92cdde9fd97a00879ce060763101530e9e66e4c75ec74352a41419bde0","n":1024,"r":8,"p":1},"mac":"d8ea471cea8184fb7b19c1563804b85a31a2b3d792dc59ecccdb15dbfb3cebc0"}}
 
 ```
 
 ### Run non-seed node
-Now we can get the seed address from the seed node log output above. Get pretty id from log starts with **"makeHost: boot node pretty id is "**, get address from log starts with **"Start: node info {id -> <peer.ID ....>, address -> [/ip4...]"**. The seed address from log above is
+Now we can get the seed address from the seed node log output above. Get pretty address and id from log starts with **"node start"**. The seed address from log above is
+
 ```
-/ip4/192.168.1.18/tcp/51413/ipfs/QmVMamgHNoR8GBUbq4r9BTFzod5F2BvhSgaGLVxPpXcWNm
+time="2017-11-22T15:01:43+08:00" level=info msg="node start" addrs="[/ip4/192.168.1.13/tcp/51413]" file=net_service.go func="p2p.(*NetService).Start" id=QmPyr4ZbDmwF1nWxymTktdzspcBFPL6X1v3Q5nT7PGNtUN line=665
 ```
-To start a non-seed node on another machine, we need to update p2p seed configuration in _config.pb.txt_:
+To start a non-seed node on another machine, we need to update p2p seed configuration in _config-normal.pb.txt_:
+
 ```
 p2p {
-  seed: "/ip4/192.168.1.18/tcp/51413/ipfs/QmVMamgHNoR8GBUbq4r9BTFzod5F2BvhSgaGLVxPpXcWNm"
-  port: 51413
+  seed: "/ip4/192.168.1.13/tcp/51413/ipfs/QmPyr4ZbDmwF1nWxymTktdzspcBFPL6X1v3Q5nT7PGNtUN"
+  port: 51415
 }
 ...
 ```
@@ -138,22 +153,28 @@ Note, if the non-seed node is running on the same machine, we need to use a diff
 
 Now we can start the non-seed nodes by simply run command
 ```
-./neb
+./neb -c config-normal.pb.txt
 ```
 
 The binary will join Nebulas network and connects to the seed node started earlier. The log output will look like:
+
 ```
-...
-INFO[2017-10-18T03:59:23+08:00] SayHello: bootNode addr -> /ip4/192.168.1.18/tcp/51413  file=node.go func="p2p.(*NetService).SayHello" line=162
-INFO[2017-10-18T03:59:23+08:00] SayHello: nnode.host.Addrs -> /ip4/1192.168.1.18/tcp/10001, bootAddr -> /ip4/172.31.8.110/tcp/51413  file=node.go func="p2p.(*NetService).SayHello" line=172
-INFO[2017-10-18T03:59:23+08:00] Hello: say hello addrs -> [/ip4/192.168.1.18/tcp/51413]  file=net_service.go func="p2p.(*NetService).Hello" line=427
-INFO[2017-10-18T03:59:23+08:00] SayHello: node say hello to boot node success...   file=node.go func="p2p.(*NetService).SayHello" line=186
+time="2017-11-22T15:14:50+08:00" level=info msg="Starting neblet..." file=neblet.go func="neblet.(*Neblet).Start" line=68
+time="2017-11-22T15:14:50+08:00" level=debug msg="node init success" file=net_service.go func=p2p.NewNetService line=129 node.id=QmZTq1fopzbPU4dY3Bu12R89yHtjZb9GSM2FhcKYbA67fC node.port=10000
+time="2017-11-22T15:14:50+08:00" level=info msg="node start" addrs="[/ip4/192.168.1.13/tcp/10000]" file=net_service.go func="p2p.(*NetService).Start" id=QmZTq1fopzbPU4dY3Bu12R89yHtjZb9GSM2FhcKYbA67fC line=665
+time="2017-11-22T15:14:50+08:00" level=info msg="RegisterNetService: register netservice success" file=net_service.go func="p2p.(*NetService).registerNetService" line=142
+time="2017-11-22T15:14:50+08:00" level=debug msg="say hello to a node success" bootNode=/ip4/192.168.1.13/tcp/51413/ipfs/QmPyr4ZbDmwF1nWxymTktdzspcBFPL6X1v3Q5nT7PGNtUN file=net_service.go func="p2p.(*NetService).start.func1" line=712
+time="2017-11-22T15:14:50+08:00" level=info msg="net.start: node start and join to p2p network success and listening for connections on port 10000... " file=net_service.go func="p2p.(*NetService).start" line=731
 ...
 ```
 
+### RPC
+Nebulas have api and management service for RPC, which provides interactive capabilities.API service provides basic APIs for accounts , transaction and block interactive.Management service provides advanced interfaces that require password input.
+We support two RPC interfaces for GRPC and HTTP. 
 
-### RPC API
-We can use API _GetAccountState_ and _SendTransaction_ to check and modify account state. We can play the RPC example testing client code:
+##### gRPC
+We can play the gRPC example testing client code:
+
 ```
 cd rpc/testing/client/
 go run main.go
@@ -162,40 +183,84 @@ go run main.go
 The testing client gets account state from sender address, makes a transaction from sender to receiver, and also checks the account state of receiver address.
 
 We can see client log output like:
+
 ```
 GetAccountState 8a209cec02cbeab7e2f74ad969d2dfe8dd24416aa65589bf nonce 1 value 78
 SendTransaction 8a209cec02cbeab7e2f74ad969d2dfe8dd24416aa65589bf -> 22ac3a9a2b1c31b7a9084e46eae16e761f83f02324092b09 value 2 hash:"d9258c06899412169f969807629e1c152b54a3c4033e43727f3a74855849ffa6" 
 GetAccountState 22ac3a9a2b1c31b7a9084e46eae16e761f83f02324092b09 nonce 0 value 2
 ```
+##### HTTP
+Now we also provided HTTP to access the RPC API.You first need to generate a mapping from GRPC to HTTP:
 
-Now we have provided HTTP to access the RPC API.You first need to generate a mapping from GRPC to HTTP:
 ```
 cd rpc/pb
 make all
 ```
 The file that ends with gw.go is the mapping file.
-Now we can access the rpc API directly from our browser, you can update the gateway_port in config.pb.txt to change HTTP default port.
+Now we can access the rpc API directly from our browser, you can update the *api-http-port* and *management-http-port* in _config.pb.txt_ to change HTTP default port.
 
-##### Example:
+###### Example:
 ```
 BlockDump:
-curl -i -H Accept:application/json -X POST http://localhost:8080/v1/block/dump -H Content-Type: application/json -d '{"count":10}'
+curl -i -H Accept:application/json -X POST http://localhost:8090/v1/block/dump -H Content-Type: application/json -d '{"count":10}'
 ```
-Now you can even create & deploy & call smart contracts directly over HTTP just by 'SendTransaction()'.
+More about [NEB JSON RPC](https://github.com/nebulasio/wiki/blob/master/json-rpc.md).
+
+## Console
+Nebulas implement an interactive javascript console, which you can invoke all api and management rpc methods.For some management methods, we provide passphrase submission.Users can interact with neb like RPC through the console.
+
+###### start console
+
+```
+./neb console
+```
+We have api and admin two schemes to access the consle cmds.Users can quickly enter instructions using the TAB key.
+
+```
+> api.
+api.accounts              api.getBlockByHash        api.sendRawTransaction
+api.blockDump             api.getNebState           api.sendTransaction
+api.call                  api.getTransactionReceipt
+api.getAccountState       api.nodeInfo
+```
+```
+> admin.
+admin.lockAccount                   admin.setHost
+admin.newAccount                    admin.signTransaction
+admin.sendTransactionWithPassphrase admin.unlockAccount
+```
+The command parameters of the command line are consistent with the parameters of the RPC interface. [NEB JSON RPC](https://github.com/nebulasio/wiki/blob/master/json-rpc.md).
+
+## NVM
+Nebulas implemented a nvm to run smart contracts like ethereum.NVM provides a javascript runtime environment through v8-engine.Users can write smart contracts by javascript, which is the most popular language for world. 
+
+We can deploy and run smart contracts by two rpc methods:
+
+```
+SendTransaction()
+Call()
+```
+Now you can create & deploy & call smart contracts directly over HTTP/console just by 'SendTransaction()'.
 If you want to create & deploy a smart contracts:
+
 1. create your smart contracts source.
 2. call 'SendTransaction()', the params 'from' and 'to' must be the same.
+
+
 ```
 curl -i -H Accept:application/json -X POST http://localhost:8080/v1/transaction -H Content-Type: application/json -d '{"from":"0x8a209cec02cbeab7e2f74ad969d2dfe8dd24416aa65589bf","to":"0x8a209cec02cbeab7e2f74ad969d2dfe8dd24416aa65589bf","nonce":1,"source":"'use strict';var SampleContract = function () {LocalContractStorage.defineProperties(this, {name: null,count: null});LocalContractStorage.defineMapProperty(this, \"allocation\");};SampleContract.prototype = {init: function (name, count, allocation) {this.name = name;this.count = count;allocation.forEach(function (item) {this.allocation.put(item.name, item.count);}, this);},dump: function () {console.log('dump: this.name = ' + this.name);console.log('dump: this.count = ' + this.count);},verify: function (expectedName, expectedCount, expectedAllocation) {if (!Object.is(this.name, expectedName)) {throw new Error(\"name is not the same, expecting \" + expectedName + \", actual is \" + this.name + \".\");}if (!Object.is(this.count, expectedCount)) {throw new Error(\"count is not the same, expecting \" + expectedCount + \", actual is \" + this.count + \".\");}expectedAllocation.forEach(function (expectedItem) {var count = this.allocation.get(expectedItem.name);if (!Object.is(count, expectedItem.count)) {throw new Error(\"count of \" + expectedItem.name + \" is not the same, expecting \" + expectedItem.count + \", actual is \" + count + \".\");}}, this);}};module.exports = SampleContract;", "args":"[\"TEST001\", 123,[{\"name\":\"robin\",\"count\":2},{\"name\":\"roy\",\"count\":3},{\"name\":\"leon\",\"count\":4}]]"}'
 ```
 If you succeed in deploying a smart contract, you will get the contract address & transaction hash as response.
 Then you can call this samrt contract:
+
 1. get the smart contract address.
 2. give the 'function' you want to call.
+
+
 ```
 curl -i -H Accept:application/json -X POST http://localhost:8080/v1/call -H Content-Type: application/json -d '{"from":"0x8a209cec02cbeab7e2f74ad969d2dfe8dd24416aa65589bf","to":"8f5aad7e7ad59c9d9eaa351b3f41f887e49d13f37974a02c", "nonce":2,"function":"dump"}'
 ```
-More about [NEB JSON RPC](https://github.com/nebulasio/wiki/blob/master/json-rpc.md).
+More nvm info [TODO]
 
 ## Contribution
 
