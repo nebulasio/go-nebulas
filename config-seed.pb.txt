@@ -46,5 +46,5 @@ influxdb {
 }
 
 metrics {
-  enable: true
+  enable: false
 }

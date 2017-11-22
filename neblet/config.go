@@ -50,7 +50,8 @@ func LoadConfig(filename string) *nebletpb.Config {
 }
 
 func createFile(filename string) {
-	content := `p2p {
+	content := `
+	  p2p {
 		port: 51413
 		chain_id: 100
 		version: 1
