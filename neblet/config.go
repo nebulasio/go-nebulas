@@ -83,9 +83,9 @@ func createFile(filename string) {
 	  
 	  influxdb {
 		host: "http://localhost:8086"
-		db: "test"
-		username: "dudu"
-		password: "duduforlove"
+		db: "nebulas"
+		username: "admin"
+		password: "admin"
 	  }
 	  
 	  metrics {
