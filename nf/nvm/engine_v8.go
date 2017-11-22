@@ -218,24 +218,20 @@ func (e *V8Engine) CollectTracingStats() {
 
 // RunScriptSource run js source.
 func (e *V8Engine) RunScriptSource(source string, sourceLineOffset int) (err error) {
-	cSource := C.CString(source)
-	defer C.free(unsafe.Pointer(cSource))
-
-	var ret C.int
-
 	if e.enableLimits {
-		var injectedLineOffset C.int
-		traceableCSource := C.InjectTracingInstructions(e.v8engine, cSource, &injectedLineOffset)
-		if traceableCSource == nil {
-			return ErrInjectTracingInstructionFailed
+		traceableSource, traceableSourceLineOffset, err := e.InjectTracingInstructions(source)
+		if err != nil {
+			return err
 		}
-		defer C.free(unsafe.Pointer(traceableCSource))
-		cSource = traceableCSource
-		sourceLineOffset += int(injectedLineOffset)
+		source = traceableSource
+		sourceLineOffset += traceableSourceLineOffset
 	}
 
-	done := make(chan bool, 1)
+	cSource := C.CString(source)
+	defer C.free(unsafe.Pointer(cSource))
+	var ret C.int
 
+	done := make(chan bool, 1)
 	go func() {
 		ret = C.RunScriptSource(e.v8engine, cSource, C.int(sourceLineOffset), C.uintptr_t(e.lcsHandler),
 			C.uintptr_t(e.gcsHandler))
