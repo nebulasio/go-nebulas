@@ -29,9 +29,11 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/core/state"
 	"github.com/nebulasio/go-nebulas/storage"
 	"github.com/nebulasio/go-nebulas/util"
+	"github.com/nebulasio/go-nebulas/util/byteutils"
 	"github.com/nebulasio/go-nebulas/util/logging"
 	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
@@ -45,12 +47,42 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
+type mockBlock struct {
+}
+
+func (m *mockBlock) CoinbaseHash() byteutils.Hash {
+	return []byte("8a209cec02cbeab7e2f74ad969d2dfe8dd24416aa65589bf")
+}
+
+func (m *mockBlock) Nonce() uint64 {
+	return 1
+}
+
+func (m *mockBlock) Hash() byteutils.Hash {
+	return []byte("c7174759e86c59dcb7df87def82f61eb")
+}
+
+func (m *mockBlock) Height() uint64 {
+	return 2
+}
+
+func (m *mockBlock) VerifyAddress(str string) bool {
+	return true
+}
+
+func (m *mockBlock) SerializeTxByHash(hash byteutils.Hash) (proto.Message, error) {
+	return nil, nil
+}
+
 func testContextBlock() Block {
-	return nil
+	return new(mockBlock)
 }
 
 func testContextTransaction() *ContextTransaction {
 	return &ContextTransaction{
+		From:     "8a209cec02cbeab7e2f74ad969d2dfe8dd24416aa65589bf",
+		To:       "22ac3a9a2b1c31b7a9084e46eae16e761f83f02324092b09",
+		Value:    "5",
 		Nonce:    3,
 		Hash:     "c7174759e86c59dcb7df87def82f61eb",
 		GasPrice: util.NewUint128FromInt(1).String(),
@@ -476,11 +508,54 @@ func Test_blockchian(t *testing.T) {
 			owner.AddBalance(util.NewUint128FromInt(1000000000))
 			contract, _ := context.CreateContractAccount([]byte("16464b93292d7c99099d4d982a05140f12779f5e299d6eb4"), nil)
 
-			ctx := NewContext(testContextBlock(), testContextTransaction(), owner, contract, context)
+			ctx := NewContext(nil, testContextTransaction(), owner, contract, context)
 			engine := NewV8Engine(ctx)
 			engine.SetExecutionLimits(100000, 10000000)
 			err = engine.RunScriptSource(string(data), 0)
 			assert.Equal(t, tt.expectedErr, err)
+			engine.Dispose()
+		})
+	}
+}
+
+func TestBankVaultContract(t *testing.T) {
+	tests := []struct {
+		name         string
+		contractPath string
+		saveArgs     string
+		takeoutArgs  string
+	}{
+		{"deploy bank_vault_contract.js", "./test/bank_vault_contract.js", "[]", "1"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			data, err := ioutil.ReadFile(tt.contractPath)
+			assert.Nil(t, err, "contract path read error")
+
+			mem, _ := storage.NewMemoryStorage()
+			context, _ := state.NewAccountState(nil, mem)
+			owner := context.GetOrCreateUserAccount([]byte("account1"))
+			owner.AddBalance(util.NewUint128FromInt(10000000))
+			contract, _ := context.CreateContractAccount([]byte("account2"), nil)
+
+			ctx := NewContext(testContextBlock(), testContextTransaction(), owner, contract, context)
+			engine := NewV8Engine(ctx)
+			engine.SetExecutionLimits(1000, 10000000)
+			err = engine.DeployAndInit(string(data), "")
+			assert.Nil(t, err)
+			engine.Dispose()
+
+			engine = NewV8Engine(ctx)
+			engine.SetExecutionLimits(1000, 10000000)
+			err = engine.Call(string(data), "save", "[0]")
+			assert.Nil(t, err)
+			engine.Dispose()
+
+			engine = NewV8Engine(ctx)
+			engine.SetExecutionLimits(1000, 10000000)
+			err = engine.Call(string(data), "takeout", "[1]")
+			assert.Nil(t, err)
 			engine.Dispose()
 		})
 	}

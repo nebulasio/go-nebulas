@@ -100,21 +100,7 @@ func TransferFunc(handler unsafe.Pointer, to *C.char, v *C.char) int {
 		amount *util.Uint128
 		err    error
 	)
-	value := []byte(C.GoString(v))
-	if len(value) > 0 {
-		amount, err = util.NewUint128FromFixedSizeByteSlice(value)
-		if err != nil {
-			log.WithFields(log.Fields{
-				"func":    "nvm.TransferFunc",
-				"handler": uint64(uintptr(handler)),
-				"key":     C.GoString(to),
-				"err":     err,
-			}).Error("TransferFunc parse balance failed.")
-			return 0
-		}
-	} else {
-		amount = util.NewUint128()
-	}
+	amount = util.NewUint128FromString(C.GoString(v))
 
 	// update balance
 	err = engine.ctx.contract.SubBalance(amount)

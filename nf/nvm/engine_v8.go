@@ -347,7 +347,6 @@ func (e *V8Engine) prepareRunnableContractScript(source, function, args string) 
 	} else {
 		runnableSource = fmt.Sprintf("var __contract = require(\"%s\");\n var __instance = new __contract();\n Blockchain.block = Object.freeze(JSON.parse(\"%s\"));\n Blockchain.transaction = Object.freeze(JSON.parse(\"%s\"));\n __instance[\"%s\"].apply(__instance);\n", ModuleID, formatArgs(string(blockJSON)), formatArgs(string(txJSON)), function)
 	}
-
 	return runnableSource, 0, nil
 }
 
