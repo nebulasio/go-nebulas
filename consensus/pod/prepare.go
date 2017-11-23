@@ -77,6 +77,7 @@ func (state *PrepareState) Enter(data interface{}) {
 			panic(err)
 		}
 		prepareTx := core.NewTransaction(state.context.block.ChainID(), p.coinbase, p.coinbase, zero, nonce+1, core.TxPayloadVoteType, payload)
+		p.neblet.AccountManager().SignTransaction(p.coinbase, prepareTx)
 		p.nm.Broadcast(consensus.MessageTypeNewTx, prepareTx)
 		log.WithFields(log.Fields{
 			"func":       "PoD.PrepareState",

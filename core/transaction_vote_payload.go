@@ -377,9 +377,6 @@ func (payload *VotePayload) commit(from []byte, packedBlock *Block) error {
 	if err != nil {
 		return err
 	}
-	if ctx != nil {
-		packedBlock.addDeposit(from, VoteBlockReward)
-	}
 	// check finality reward
 	if ctx != nil {
 		n, err := countValidators(packedBlock.commitVotesTrie, payload.Hash)

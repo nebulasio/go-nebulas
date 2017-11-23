@@ -79,6 +79,7 @@ func (state *CommitState) Enter(data interface{}) {
 			panic(err)
 		}
 		commitTx := core.NewTransaction(state.context.block.ChainID(), p.coinbase, p.coinbase, zero, nonce+1, core.TxPayloadVoteType, payload)
+		p.neblet.AccountManager().SignTransaction(p.coinbase, commitTx)
 		p.nm.Broadcast(consensus.MessageTypeNewTx, commitTx)
 		log.WithFields(log.Fields{
 			"func":       "PoD.CommitState",

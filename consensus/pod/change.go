@@ -99,6 +99,7 @@ func (state *ChangeState) Enter(data interface{}) {
 			panic(err)
 		}
 		changeTx := core.NewTransaction(state.context.parent.ChainID(), p.coinbase, p.coinbase, zero, nonce+1, core.TxPayloadVoteType, payload)
+		p.neblet.AccountManager().SignTransaction(p.coinbase, changeTx)
 		p.nm.Broadcast(consensus.MessageTypeNewTx, changeTx)
 		log.WithFields(log.Fields{
 			"func":       "PoD.ChangeState",

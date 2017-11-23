@@ -21,6 +21,8 @@ package pod
 import (
 	"errors"
 
+	"github.com/nebulasio/go-nebulas/account"
+
 	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/net"
 
@@ -44,6 +46,7 @@ type Neblet interface {
 	Config() nebletpb.Config
 	BlockChain() *core.BlockChain
 	NetService() *p2p.NetService
+	AccountManager() *account.Manager
 }
 
 /*
@@ -93,6 +96,7 @@ type PoD struct {
 	chain    *core.BlockChain
 	nm       net.Manager
 	coinbase *core.Address
+	neblet   Neblet
 
 	createdStateMachines  *lru.Cache
 	creatingStateMachines *lru.Cache
@@ -103,27 +107,19 @@ type PoD struct {
 }
 
 // NewPoD create PoD instance.
-func NewPoD(neblet Neblet) (*PoD, error) {
+func NewPoD(neblet Neblet) *PoD {
 	cfg := neblet.Config().Pod
 	if cfg == nil {
-		log.Info("PoD.NewPoD: cannot find pod config.")
-		return nil, ErrInvalidPoDConfig
+		panic("PoD.NewPoD: cannot find pod config.")
 	}
 	coinbase, err := core.AddressParse(cfg.GetCoinbase())
 	if err != nil {
-		log.WithFields(log.Fields{
-			"err": err,
-		}).Info("PoD.NewPoD: coinbase parse err.")
-		return nil, err
+		panic("PoD.NewPoD: coinbase parse err.")
 	}
-
 	createdStateMachines, err1 := lru.New(1024)
 	creatingStateMachines, err2 := lru.New(1024)
 	if err1 != nil || err2 != nil {
-		log.WithFields(log.Fields{
-			"err": err,
-		}).Info("Pow.NewPow: fail to create lru cache for state machines.")
-		return nil, err
+		panic("Pow.NewPow: fail to create lru cache for state machines.")
 	}
 
 	p := &PoD{
@@ -131,6 +127,7 @@ func NewPoD(neblet Neblet) (*PoD, error) {
 
 		chain:    neblet.BlockChain(),
 		nm:       neblet.NetService(),
+		neblet:   neblet,
 		coinbase: coinbase,
 
 		createdStateMachines:  createdStateMachines,
@@ -143,11 +140,11 @@ func NewPoD(neblet Neblet) (*PoD, error) {
 	for _, tail := range tails {
 		creatingStateMachine, err := p.newCreatingStateMachine(tail)
 		if err != nil {
-			return nil, err
+			panic(err)
 		}
 		p.creatingStateMachines.Add(tail.Hash(), creatingStateMachine)
 	}
-	return p, nil
+	return p
 }
 
 func (p *PoD) newCreatingStateMachine(parent *core.Block) (*consensus.StateMachine, error) {
@@ -214,6 +211,8 @@ func (p *PoD) blockLoop() {
 	for {
 		select {
 		case block := <-p.chain.BlockPool().ReceivedBlockCh():
+			// unlock coinbase
+			p.neblet.AccountManager().Unlock(p.coinbase, []byte("passphrase"))
 			// extract all votes
 			for _, tx := range block.Transactions() {
 				if tx.DataType() == core.TxPayloadVoteType {
@@ -238,6 +237,9 @@ func (p *PoD) blockLoop() {
 				"err":     err,
 			}).Error("cannot create new state machine")
 		case voteTx := <-p.votesTransactionCh:
+			// unlock coinbase
+			p.neblet.AccountManager().Unlock(p.coinbase, []byte("passphrase"))
+			// parse vote tx
 			votePayload, err := core.LoadVotePayload(voteTx.Data())
 			if err != nil {
 				log.WithFields(log.Fields{
@@ -275,6 +277,8 @@ func (p *PoD) blockLoop() {
 				"hash":    votePayload.Hash,
 			}).Error("cannot find the related state machine")
 		case <-p.quitCh:
+			// unlock coinbase
+			p.neblet.AccountManager().Lock(p.coinbase)
 			log.Info("PoD.blockLoop: quit.")
 			return
 		}

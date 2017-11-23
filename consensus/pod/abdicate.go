@@ -90,6 +90,7 @@ func (state *AbdicateState) Enter(data interface{}) {
 			panic(err)
 		}
 		abdicateTx := core.NewTransaction(state.context.parent.ChainID(), p.coinbase, p.coinbase, zero, nonce+1, core.TxPayloadVoteType, payload)
+		p.neblet.AccountManager().SignTransaction(p.coinbase, abdicateTx)
 		p.nm.Broadcast(consensus.MessageTypeNewTx, abdicateTx)
 		log.WithFields(log.Fields{
 			"func":         "PoD.Abdicate",

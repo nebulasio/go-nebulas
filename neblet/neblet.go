@@ -8,7 +8,7 @@ import (
 
 	"github.com/nebulasio/go-nebulas/account"
 	"github.com/nebulasio/go-nebulas/consensus"
-	"github.com/nebulasio/go-nebulas/consensus/pow"
+	"github.com/nebulasio/go-nebulas/consensus/pod"
 	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/neblet/pb"
 	"github.com/nebulasio/go-nebulas/net/p2p"
@@ -95,7 +95,7 @@ func (n *Neblet) Start() error {
 	n.blockChain.BlockPool().RegisterInNetwork(n.netService)
 	n.blockChain.TransactionPool().RegisterInNetwork(n.netService)
 
-	n.consensus = pow.NewPow(n)
+	n.consensus = pod.NewPoD(n)
 	n.blockChain.SetConsensusHandler(n.consensus)
 
 	// start sync service

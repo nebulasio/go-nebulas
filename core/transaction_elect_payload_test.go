@@ -74,20 +74,8 @@ func TestElectPayload_BaseElect(t *testing.T) {
 		}
 	}
 	cnt, err := countValidators(block.dynastyCandidatesTrie, nil)
-	assert.Equal(t, cnt, uint32(6))
+	assert.Equal(t, cnt, uint32(9))
 	assert.Nil(t, err)
-	loginValidators, err := traverseValidators(block.dynastyCandidatesTrie, nil)
-	assert.Nil(t, err)
-	for _, v := range loginValidators {
-		exist := false
-		for i := 0; i < 6; i++ {
-			if v.Equals(validators[i].Bytes()) {
-				exist = true
-				continue
-			}
-		}
-		assert.Equal(t, exist, true)
-	}
 	for i := 0; i < 10; i++ {
 		v := validators[i]
 		if i < 3 {
@@ -127,66 +115,45 @@ func TestElectPayload_BaseElect(t *testing.T) {
 			assert.NotNil(t, err)
 		}
 	}
-	cnt, err = countValidators(block.depositTrie, nil)
-	assert.Nil(t, err)
-	assert.Equal(t, cnt, uint32(3))
-	deposit, err := StandardDeposit.ToFixedSizeByteSlice()
-	assert.Nil(t, err)
-	for i := 3; i < 6; i++ {
-		d, err := block.depositTrie.Get(validators[i].Bytes())
-		assert.Nil(t, err)
-		assert.Equal(t, deposit, d)
-	}
 	block.commit()
 }
 
 func TestElectPayload_WithdrawWhileInNextDynasty(t *testing.T) {
 	storage, _ := storage.NewMemoryStorage()
 	genesis := NewGenesisBlock(0, storage, nil)
-	coinbase := GenerateNewAddress()
-	block := NewBlock(genesis.header.chainID, coinbase, genesis)
-	block.begin()
+	validators, _ := genesis.NextBlockSortedValidators()
 	loginPayload, _ := NewElectPayload(LoginAction).ToBytes()
 	logoutPayload, _ := NewElectPayload(LogoutAction).ToBytes()
 	withdrawPayload, _ := NewElectPayload(WithdrawAction).ToBytes()
-	validators := []*Address{}
-	for i := 0; i < 5; i++ {
-		v := GenerateNewAddress()
-		validators = append(validators, v)
-		account := block.accState.GetOrCreateUserAccount(v.Bytes())
-		account.AddBalance(StandardDeposit)
-		tx := NewTransaction(block.header.chainID, validators[i], validators[i], zero, 1, TxPayloadElectType, loginPayload)
-		giveback, err := block.executeTransaction(tx)
-		assert.Equal(t, giveback, false)
-		assert.Nil(t, err)
-	}
-	cnt, err := countValidators(block.dynastyCandidatesTrie, nil)
-	assert.Nil(t, err)
-	assert.Equal(t, cnt, uint32(5))
-	cnt, err = countValidators(block.curDynastyTrie, nil)
-	assert.Nil(t, err)
-	assert.Equal(t, cnt, uint32(0))
-	cnt, err = countValidators(block.nextDynastyTrie, nil)
-	assert.Nil(t, err)
-	assert.Equal(t, cnt, uint32(0))
 
-	change, err := block.checkDynastyRule()
-	assert.Nil(t, err)
-	assert.Equal(t, change, true)
-	block.changeDynasty()
+	coinbase := &Address{validators[1]}
+	block := NewBlock(genesis.header.chainID, coinbase, genesis)
+	block.begin()
 
-	cnt, err = countValidators(block.curDynastyTrie, nil)
-	assert.Nil(t, err)
-	assert.Equal(t, cnt, uint32(0))
-	cnt, err = countValidators(block.nextDynastyTrie, nil)
-	assert.Nil(t, err)
-	assert.Equal(t, cnt, uint32(5))
-
-	tx := NewTransaction(block.header.chainID, validators[0], validators[0], zero, 2, TxPayloadElectType, logoutPayload)
+	logoutAddress := &Address{validators[0]}
+	tx := NewTransaction(block.header.chainID, logoutAddress, logoutAddress, zero, 1, TxPayloadElectType, logoutPayload)
 	giveback, err := block.executeTransaction(tx)
 	assert.Equal(t, giveback, false)
 	assert.Nil(t, err)
-	tx = NewTransaction(block.header.chainID, validators[0], validators[0], zero, 3, TxPayloadElectType, withdrawPayload)
+
+	v := GenerateNewAddress()
+	account := block.accState.GetOrCreateUserAccount(v.Bytes())
+	account.AddBalance(StandardDeposit)
+	tx = NewTransaction(block.header.chainID, v, v, zero, 1, TxPayloadElectType, loginPayload)
+	giveback, err = block.executeTransaction(tx)
+	assert.Equal(t, giveback, false)
+	assert.Nil(t, err)
+
+	change, err := block.checkDynastyRule()
+	assert.Nil(t, err)
+	assert.Equal(t, change, false)
+	block.changeDynasty()
+
+	tx = NewTransaction(block.header.chainID, v, v, zero, 2, TxPayloadElectType, logoutPayload)
+	giveback, err = block.executeTransaction(tx)
+	assert.Equal(t, giveback, false)
+	assert.Nil(t, err)
+	tx = NewTransaction(block.header.chainID, v, v, zero, 3, TxPayloadElectType, withdrawPayload)
 	giveback, err = block.executeTransaction(tx)
 	assert.Equal(t, giveback, false)
 	assert.NotNil(t, err)
@@ -195,98 +162,47 @@ func TestElectPayload_WithdrawWhileInNextDynasty(t *testing.T) {
 func TestElectPayload_DynastyRule(t *testing.T) {
 	storage, _ := storage.NewMemoryStorage()
 	genesis := NewGenesisBlock(0, storage, nil)
-	coinbase := GenerateNewAddress()
+	validators, _ := genesis.NextBlockSortedValidators()
+	coinbase := &Address{validators[0]}
 	block := NewBlock(genesis.header.chainID, coinbase, genesis)
 	block.begin()
-	loginPayload, _ := NewElectPayload(LoginAction).ToBytes()
 	logoutPayload, _ := NewElectPayload(LogoutAction).ToBytes()
-	validators := []*Address{}
-	for i := 0; i < DynastySize*2/3; i++ {
-		v := GenerateNewAddress()
-		validators = append(validators, v)
-		account := block.accState.GetOrCreateUserAccount(v.Bytes())
-		account.AddBalance(StandardDeposit)
-		tx := NewTransaction(block.header.chainID, validators[i], validators[i], zero, 1, TxPayloadElectType, loginPayload)
-		giveback, err := block.executeTransaction(tx)
-		assert.Equal(t, giveback, false)
-		assert.Nil(t, err)
-	}
+
+	logoutAddress := &Address{validators[1]}
+	tx := NewTransaction(block.header.chainID, logoutAddress, logoutAddress, zero, 1, TxPayloadElectType, logoutPayload)
+	giveback, err := block.executeTransaction(tx)
+	assert.Equal(t, giveback, false)
+	assert.Nil(t, err)
+
 	cnt, err := countValidators(block.dynastyCandidatesTrie, nil)
 	assert.Nil(t, err)
 	assert.Equal(t, cnt, uint32(DynastySize*2/3))
 	cnt, err = countValidators(block.curDynastyTrie, nil)
 	assert.Nil(t, err)
-	assert.Equal(t, cnt, uint32(0))
+	assert.Equal(t, cnt, uint32(3))
 	cnt, err = countValidators(block.nextDynastyTrie, nil)
 	assert.Nil(t, err)
-	assert.Equal(t, cnt, uint32(0))
-
-	// cur: 0, next: 2/3, candidates: 2/3
-	change, err := block.checkDynastyRule()
-	assert.Nil(t, err)
-	assert.Equal(t, change, true)
-	block.changeDynasty()
-
-	cnt, err = countValidators(block.curDynastyTrie, nil)
-	assert.Nil(t, err)
-	assert.Equal(t, cnt, uint32(0))
-	cnt, err = countValidators(block.nextDynastyTrie, nil)
-	assert.Nil(t, err)
-	assert.Equal(t, cnt, uint32(DynastySize*2/3))
-
-	tx := NewTransaction(block.header.chainID, validators[0], validators[0], zero, 2, TxPayloadElectType, logoutPayload)
-	giveback, err := block.executeTransaction(tx)
-	assert.Equal(t, giveback, false)
-	assert.Nil(t, err)
-
-	// cur: 2/3, next: 2/3-1, canidates: 2/3-1
-	change, err = block.checkDynastyRule()
-	assert.Nil(t, err)
-	assert.Equal(t, change, true)
-	block.changeDynasty()
-
-	cnt, err = countValidators(block.curDynastyTrie, nil)
-	assert.Nil(t, err)
-	assert.Equal(t, cnt, uint32(DynastySize*2/3))
-	cnt, err = countValidators(block.nextDynastyTrie, nil)
-	assert.Nil(t, err)
-	assert.Equal(t, cnt, uint32(DynastySize*2/3-1))
-	cnt, err = countValidators(block.validatorsTrie, block.curDynastyTrie.RootHash())
-	assert.Nil(t, err)
-	assert.Equal(t, cnt, uint32(DynastySize*2/3))
-	cnt, err = countValidators(block.validatorsTrie, block.nextDynastyTrie.RootHash())
-	assert.Nil(t, err)
-	assert.Equal(t, cnt, uint32(DynastySize*2/3-1))
-
-	// cannot change dynasty
-	change, err = block.checkDynastyRule()
-	assert.Nil(t, err)
-	assert.Equal(t, change, false)
+	assert.Equal(t, cnt, uint32(3))
 
 	curBlock := block
 	curBlock.Seal()
-	dynastyRoot, err := block.NextBlockDynastyRoot()
-	assert.Nil(t, err)
-	assert.Equal(t, dynastyRoot, block.CurDynastyRoot())
 	for i := 0; i < EpochSize-2; i++ {
 		curBlock = NewBlock(curBlock.header.chainID, curBlock.Coinbase(), curBlock)
 		curBlock.Seal()
 	}
-	// create EpochSize - 1 blocks, cannot change
-	dynastyRoot, err = curBlock.NextBlockDynastyRoot()
+	dynastyRoot, err := curBlock.NextBlockDynastyRoot()
 	assert.Nil(t, err)
 	assert.Equal(t, dynastyRoot, curBlock.CurDynastyRoot())
 
 	curBlock = NewBlock(curBlock.header.chainID, curBlock.Coinbase(), curBlock)
 	curBlock.Seal()
-	// create EpochSize blocks, change dynasty
-	// cur: 2/3-1, next: 2/3 -1, candidates: 2/3-1
-	change, err = curBlock.checkDynastyRule()
+
+	change, err := curBlock.checkDynastyRule()
 	assert.Nil(t, err)
 	assert.Equal(t, change, true)
 	block.changeDynasty()
-	// < 2/3 validators, change dynasty
-	change, err = curBlock.checkDynastyRule()
+
+	dynastyRoot, err = curBlock.NextBlockDynastyRoot()
 	assert.Nil(t, err)
-	assert.Equal(t, change, true)
+	assert.Equal(t, dynastyRoot, curBlock.NextDynastyRoot())
 }

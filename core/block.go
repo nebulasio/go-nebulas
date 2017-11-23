@@ -38,8 +38,8 @@ import (
 
 // constants
 const (
-	EpochSize       = 100
-	DynastySize     = 100
+	EpochSize       = 10
+	DynastySize     = 3
 	CandidatesLimit = 3000
 )
 
@@ -54,7 +54,7 @@ var (
 	// VoteBlockReward given to the validator who votes prepare or commit in canonical chain
 	VoteBlockReward = util.NewUint128FromInt(30)
 	// FinalityBlockReward given to all active validators who are in the finality block's dynasty
-	FinalityBlockReward = util.NewUint128FromInt(15)
+	FinalityBlockReward = util.NewUint128FromInt(45)
 )
 
 // Errors in block
