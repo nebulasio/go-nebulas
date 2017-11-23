@@ -178,15 +178,12 @@ time="2017-11-22T15:14:50+08:00" level=info msg="net.start: node start and join 
 ```
 
 ## REPL console
-Nebulas implement an interactive javascript console, which you can invoke all api and management rpc methods.For some management methods, we provide passphrase submission.Users can interact with neb like RPC through the console.
-
-###### start console
-
+Nebulas provides an interactive javascript console, which can invoke all API and management RPC methods. Some management methods may require passphrase. Start console using command:
 ```
 ./neb console
 ```
-We have api and admin two schemes to access the consle cmds. Users can quickly enter instructions using the TAB key.
 
+We have api and admin two schemes to access the consle cmds. Users can quickly enter instructions using the TAB key.
 ```
 > api.
 api.accounts              api.getBlockByHash        api.sendRawTransaction
@@ -214,7 +211,7 @@ Passphrase:
 The command parameters of the command line are consistent with the parameters of the RPC interface. [NEB JSON RPC](https://github.com/nebulasio/wiki/blob/master/json-rpc.md).
 
 
-### RPC
+## RPC
 Nebulas provides both [gRPC](https://grpc.io) and RESTful API, let users interact with Nebulas.
 
 #### Endpoint
