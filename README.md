@@ -52,7 +52,8 @@ make build
 ## Run
 
 ### Run seed node
-Starting a Nebulas seed node is simple. After the build step above, run command:
+Starting a Nebulas seed node is simple. After the build step above, run a command:
+
 ```
 ./neb
 ```
@@ -135,7 +136,7 @@ The configuration schema is defined in proto _neblet/pb/config.proto:Config_. To
 ./neb -c <path>/config-seed.pb.txt
 ```
 
-Neb supports loading KeyStore file of Ethereum format. KeyStore files from config _key_dir_ are loaded during neb bootstrap. Example testing KeyStore looks like
+Neb supports loading KeyStore file in Ethereum format. KeyStore files from config _key_dir_ are loaded during neb bootstrap. Example testing KeyStore looks like
 
 ```
 {"version":3,"id":"272a46f1-5141-4234-b948-1b45c6708962","address":"555fcb1b7051d3aea5cf2c0167b4e19ed6a4f98d","Crypto":{"ciphertext":"ecd4b817fa9ebed736235476c91dec43e73e0ca3e8d2f13c004725349882fb49","cipherparams":{"iv":"1ab4ed89c95f66e994f183fed23df9f9"},"cipher":"aes-128-ctr","kdf":"scrypt","kdfparams":{"dklen":32,"salt":"baef3f92cdde9fd97a00879ce060763101530e9e66e4c75ec74352a41419bde0","n":1024,"r":8,"p":1},"mac":"d8ea471cea8184fb7b19c1563804b85a31a2b3d792dc59ecccdb15dbfb3cebc0"}}
@@ -178,12 +179,14 @@ time="2017-11-22T15:14:50+08:00" level=info msg="net.start: node start and join 
 ```
 
 ## REPL console
-Nebulas provides an interactive javascript console, which can invoke all API and management RPC methods. Some management methods may require passphrase. Start console using command:
+Nebulas provide an interactive javascript console, which can invoke all API and management RPC methods. Some management methods may require passphrase. Start console using the command:
+
 ```
 ./neb console
 ```
 
-We have api and admin two schemes to access the consle cmds. Users can quickly enter instructions using the TAB key.
+We have API and admin two schemes to access the console cmds. Users can quickly enter instructions using the TAB key.
+
 ```
 > api.
 api.accounts              api.getBlockByHash        api.sendRawTransaction
@@ -199,6 +202,7 @@ admin.sendTransactionWithPassphrase admin.unlockAccount
 ```
 
 For example, if we want to unlock account 8a209cec02cbeab7e2f74ad969d2dfe8dd24416aa65589bf:
+
 ```
 > admin.unlockAccount('8a209cec02cbeab7e2f74ad969d2dfe8dd24416aa65589bf')
 Unlock account 8a209cec02cbeab7e2f74ad969d2dfe8dd24416aa65589bf
@@ -208,19 +212,20 @@ Passphrase:
 }
 ```
 
-The command parameters of the command line are consistent with the parameters of the RPC interface. [NEB JSON RPC](https://github.com/nebulasio/wiki/blob/master/json-rpc.md).
+The command parameters of the command line are consistent with the parameters of the RPC interface. [NEB RPC](https://github.com/nebulasio/wiki/blob/master/json-rpc.md).
 
 
 ## RPC
-Nebulas provides both [gRPC](https://grpc.io) and RESTful API, let users interact with Nebulas.
+Nebulas provide both [gRPC](https://grpc.io) and RESTful API, let users interact with Nebulas.
 
 #### Endpoint
 
 Default endpoints:
+
 | API | URL | Protocol |
 |-------|:------------:|:------------:|
-| gRPC |  http://localhost:PORT | Protobuf
-| RESTful |http://localhost:PORT | HTTP |
+| gRPC |  http://localhost:52520 | Protobuf
+| RESTful |http://localhost:8191 | HTTP |
 
 ##### gRPC API
 We can play the gRPC example testing client code:
@@ -252,78 +257,70 @@ Now we can access the rpc API directly from our browser, you can update the *api
 ###### Example:
 ```
 BlockDump:
-curl -i -H 'Accept: application/json' -X POST http://localhost:8090/v1/block/dump -H 'Content-Type: application/json' -d '{"count":10}'
+curl -i -H 'Accept: application/json' -X POST http://localhost:8191/v1/block/dump -H 'Content-Type: application/json' -d '{"count":10}'
 ```
-More about [NEB JSON RPC](https://github.com/nebulasio/wiki/blob/master/json-rpc.md).
 
 #### API list
 
 
-For more details, please refer to [api_rpc.proto]().
+For more details, please refer to [NEB RPC](https://github.com/nebulasio/wiki/blob/master/json-rpc.md).
 
 
 ## NVM
-Nebulas implemented a nvm to run smart contracts like ethereum.NVM provides a javascript runtime environment through v8-engine.Users can write smart contracts by javascript, which is the most popular language for world.
+Nebulas implemented an nvm to run smart contracts like ethereum.NVM provides a javascript runtime environment through v8-engine.Users can write smart contracts by javascript, which is the most popular language in the world.
 
-We can deploy and run smart contracts by two rpc methods:
+We can deploy and run smart contracts by two RPC methods:
 
 ```
 SendTransaction()
 Call()
 ```
 Now you can create & deploy & call smart contracts directly over HTTP/console just by 'SendTransaction()'.
-If you want to create & deploy a smart contracts:
+If you want to create & deploy smart contracts:
 
 ```
-'use strict';
+"use strict";
 
-var BankVaultContract = function () {
-	LocalContractStorage.defineMapProperty(this, "bankVault");
+var BankVaultContract = function() {
+    LocalContractStorage.defineMapProperty(this, "bankVault");
 };
 
 // save value to contract, only after height of block, users can takeout
 BankVaultContract.prototype = {
-	init: function() {
-		//TODO:
-	},
-	save: function(height) {
-		var deposit = this.bankVault.get(Blockchain.transaction.from);
-		if (deposit != null) {
-			deposit = JSON.parse(deposit)
-		}
-		var value = new BigNumber(Blockchain.transaction.value);
-		if (deposit != null && deposit.balance.length > 0) {
-			var balance = new BigNumber(deposit.balance);
-			value = value.plus(balance);
-		}
-		var content = {
-			balance: value.toString(),
-			height: Blockchain.block.height + height
-		}
-		this.bankVault.put(Blockchain.transaction.from, JSON.stringify(content))
-	},
-	takeout: function(amount) {
-		var deposit = this.bankVault.get(Blockchain.transaction.from);
-		if (deposit == null) {
-			return 0;
-		} else {
-			deposit = JSON.parse(deposit)
-		}
-		if (Blockchain.block.height < deposit.height) {
-			return 0;
-		}
-		var balance = new BigNumber(deposit.balance);
-		var value = new BigNumber(amount);
-		if (balance.lessThan(value)) {
-			return 0;
-		}
-		var result = Blockchain.transfer(Blockchain.transaction.from, value);
-		if (result > 0) {
-			deposit.balance = balance.dividedBy(value).toString()
-			this.bankVault.put(Blockchain.transaction.from, JSON.stringify(deposit))
-		}
-		return result
-	}
+    init:function() {},
+    save:function(height) {
+        var deposit = this.bankVault.get(Blockchain.transaction.from);
+        var value = new BigNumber(Blockchain.transaction.value);
+        if (deposit != null && deposit.balance.length > 0) {
+            var balance = new BigNumber(deposit.balance);
+            value = value.plus(balance);
+        }
+        var content = {
+            balance:value.toString(),
+            height:Blockchain.block.height + height
+        };
+        this.bankVault.put(Blockchain.transaction.from, content);
+    },
+    takeout:function(amount) {
+        var deposit = this.bankVault.get(Blockchain.transaction.from);
+        if (deposit == null) {
+            return 0;
+        }
+        if (Blockchain.block.height < deposit.height) {
+            return 0;
+        }
+        var balance = new BigNumber(deposit.balance);
+        var value = new BigNumber(amount);
+        if (balance.lessThan(value)) {
+            return 0;
+        }
+        var result = Blockchain.transfer(Blockchain.transaction.from, value);
+        if (result > 0) {
+            deposit.balance = balance.dividedBy(value).toString();
+            this.bankVault.put(Blockchain.transaction.from, deposit);
+        }
+        return result;
+    }
 };
 
 module.exports = BankVaultContract;
@@ -331,20 +328,20 @@ module.exports = BankVaultContract;
 
 1. create your smart contracts source.
 2. call 'SendTransaction()', the params 'from' and 'to' must be the same.
+
 ```
-curl -i -H 'Accept: application/json' -X POST http://localhost:8090/v1/transaction -H 'Content-Type: application/json' -d '{"from":"0x8a209cec02cbeab7e2f74ad969d2dfe8dd24416aa65589bf","to":"0x8a209cec02cbeab7e2f74ad969d2dfe8dd24416aa65589bf","nonce":2,"source":"\"use strict\";var BankVaultContract=function(){LocalContractStorage.defineMapProperty(this,\"bankVault\")};BankVaultContract.prototype={init:function(){},save:function(height){var deposit=this.bankVault.get(Blockchain.transaction.from);if(deposit!=null){deposit=JSON.parse(deposit)}var value=new BigNumber(Blockchain.transaction.value);if(deposit!=null&&deposit.balance.length>0){var balance=new BigNumber(deposit.balance);value=value.plus(balance)}var content={balance:value.toString(),height:Blockchain.block.height+height}this.bankVault.put(Blockchain.transaction.from,JSON.stringify(content))},takeout:function(amount){var deposit=this.bankVault.get(Blockchain.transaction.from);if(deposit==null){return 0}else{deposit=JSON.parse(deposit)}if(Blockchain.block.height<deposit.height){return 0}var balance=new BigNumber(deposit.balance);var value=new BigNumber(amount);if(balance.lessThan(value)){return 0}var result=Blockchain.transfer(Blockchain.transaction.from,value);if(result>0){deposit.balance=balance.dividedBy(value).toString()this.bankVault.put(Blockchain.transaction.from,JSON.stringify(deposit))}return result}};module.exports=BankVaultContract;", "args":"[\"TEST001\", 123,[{\"name\":\"robin\",\"count\":2},{\"name\":\"roy\",\"count\":3},{\"name\":\"leon\",\"count\":4}]]"}'
+curl -i -H 'Accept: application/json' -X POST http://localhost:8191/v1/transaction -H 'Content-Type: application/json' -d '{"from":"8a209cec02cbeab7e2f74ad969d2dfe8dd24416aa65589bf","to":"8a209cec02cbeab7e2f74ad969d2dfe8dd24416aa65589bf","nonce":1,"source":"\"use strict\";var BankVaultContract=function(){LocalContractStorage.defineMapProperty(this,\"bankVault\")};BankVaultContract.prototype={init:function(){},save:function(height){var deposit=this.bankVault.get(Blockchain.transaction.from);var value=new BigNumber(Blockchain.transaction.value);if(deposit!=null&&deposit.balance.length>0){var balance=new BigNumber(deposit.balance);value=value.plus(balance)}var content={balance:value.toString(),height:Blockchain.block.height+height};this.bankVault.put(Blockchain.transaction.from,content)},takeout:function(amount){var deposit=this.bankVault.get(Blockchain.transaction.from);if(deposit==null){return 0}if(Blockchain.block.height<deposit.height){return 0}var balance=new BigNumber(deposit.balance);var value=new BigNumber(amount);if(balance.lessThan(value)){return 0}var result=Blockchain.transfer(Blockchain.transaction.from,value);if(result>0){deposit.balance=balance.dividedBy(value).toString();this.bankVault.put(Blockchain.transaction.from,deposit)}return result}};module.exports=BankVaultContract;", "args":""}'
 ```
 
 If you succeed in deploying a smart contract, you will get the contract address & transaction hash as response.
-Then you can call this samrt contract:
+Then you can call this smart contract:
 
 1. get the smart contract address.
 2. give the 'function' you want to call.
 
 ```
-curl -i -H 'Accept: application/json' -X POST http://localhost:8090/v1/call -H 'Content-Type: application/json' -d '{"from":"0x8a209cec02cbeab7e2f74ad969d2dfe8dd24416aa65589bf","to":"8f5aad7e7ad59c9d9eaa351b3f41f887e49d13f37974a02c", "nonce":2,"function":"save","args":"[0]"}'
+curl -i -H 'Accept: application/json' -X POST http://localhost:8191/v1/call -H 'Content-Type: application/json' -d '{"from":"8a209cec02cbeab7e2f74ad969d2dfe8dd24416aa65589bf","to":"4df690cad7727510f386cddb9416f601de69e48ac662c44c","nonce":2,"function":"save","args":"[0]"}'
 ```
-More nvm info [TODO]
 
 ## Contribution
 
