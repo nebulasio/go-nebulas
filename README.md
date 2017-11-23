@@ -252,7 +252,7 @@ Now we can access the rpc API directly from our browser, you can update the *api
 ###### Example:
 ```
 BlockDump:
-curl -i -H Accept:application/json -X POST http://localhost:8090/v1/block/dump -H Content-Type: application/json -d '{"count":10}'
+curl -i -H 'Accept: application/json' -X POST http://localhost:8090/v1/block/dump -H 'Content-Type: application/json' -d '{"count":10}'
 ```
 More about [NEB JSON RPC](https://github.com/nebulasio/wiki/blob/master/json-rpc.md).
 
@@ -334,7 +334,7 @@ module.exports = BankVaultContract;
 
 
 ```
-curl -i -H Accept:application/json -X POST http://localhost:8090/v1/transaction -H Content-Type: application/json -d '{"from":"0x8a209cec02cbeab7e2f74ad969d2dfe8dd24416aa65589bf","to":"0x8a209cec02cbeab7e2f74ad969d2dfe8dd24416aa65589bf","nonce":1,"source":"'usestrict';varBankVaultContract=function(){	LocalContractStorage.defineMapProperty(this,"bankVault");};//savevaluetocontract,onlyafterheightofblock,userscantakeoutBankVaultContract.prototype={	init:function(){		//TODO:	},	save:function(height){		vardeposit=this.bankVault.get(Blockchain.transaction.from);		if(deposit!=null){			deposit=JSON.parse(deposit)		}		varvalue=newBigNumber(Blockchain.transaction.value);		if(deposit!=null&&deposit.balance.length>0){			varbalance=newBigNumber(deposit.balance);			value=value.plus(balance);		}		varcontent={			balance:value.toString(),			height:Blockchain.block.height+height		}		this.bankVault.put(Blockchain.transaction.from,JSON.stringify(content))	},	takeout:function(amount){		vardeposit=this.bankVault.get(Blockchain.transaction.from);		if(deposit==null){			return0;		}else{			deposit=JSON.parse(deposit)		}		if(Blockchain.block.height<deposit.height){			return0;		}		varbalance=newBigNumber(deposit.balance);		varvalue=newBigNumber(amount);		if(balance.lessThan(value)){			return0;		}		varresult=Blockchain.transfer(Blockchain.transaction.from,value);		if(result>0){			deposit.balance=balance.dividedBy(value).toString()			this.bankVault.put(Blockchain.transaction.from,JSON.stringify(deposit))		}		returnresult	}};module.exports=BankVaultContract;", "args":"[\"TEST001\", 123,[{\"name\":\"robin\",\"count\":2},{\"name\":\"roy\",\"count\":3},{\"name\":\"leon\",\"count\":4}]]"}'
+curl -i -H 'Accept: application/json' -X POST http://localhost:8090/v1/transaction -H 'Content-Type: application/json' -d '{"from":"0x8a209cec02cbeab7e2f74ad969d2dfe8dd24416aa65589bf","to":"0x8a209cec02cbeab7e2f74ad969d2dfe8dd24416aa65589bf","nonce":1,"source":"'usestrict';varBankVaultContract=function(){	LocalContractStorage.defineMapProperty(this,"bankVault");};//savevaluetocontract,onlyafterheightofblock,userscantakeoutBankVaultContract.prototype={	init:function(){		//TODO:	},	save:function(height){		vardeposit=this.bankVault.get(Blockchain.transaction.from);		if(deposit!=null){			deposit=JSON.parse(deposit)		}		varvalue=newBigNumber(Blockchain.transaction.value);		if(deposit!=null&&deposit.balance.length>0){			varbalance=newBigNumber(deposit.balance);			value=value.plus(balance);		}		varcontent={			balance:value.toString(),			height:Blockchain.block.height+height		}		this.bankVault.put(Blockchain.transaction.from,JSON.stringify(content))	},	takeout:function(amount){		vardeposit=this.bankVault.get(Blockchain.transaction.from);		if(deposit==null){			return0;		}else{			deposit=JSON.parse(deposit)		}		if(Blockchain.block.height<deposit.height){			return0;		}		varbalance=newBigNumber(deposit.balance);		varvalue=newBigNumber(amount);		if(balance.lessThan(value)){			return0;		}		varresult=Blockchain.transfer(Blockchain.transaction.from,value);		if(result>0){			deposit.balance=balance.dividedBy(value).toString()			this.bankVault.put(Blockchain.transaction.from,JSON.stringify(deposit))		}		returnresult	}};module.exports=BankVaultContract;", "args":"[\"TEST001\", 123,[{\"name\":\"robin\",\"count\":2},{\"name\":\"roy\",\"count\":3},{\"name\":\"leon\",\"count\":4}]]"}'
 ```
 If you succeed in deploying a smart contract, you will get the contract address & transaction hash as response.
 Then you can call this samrt contract:
@@ -344,7 +344,7 @@ Then you can call this samrt contract:
 
 
 ```
-curl -i -H Accept:application/json -X POST http://localhost:8090/v1/call -H Content-Type: application/json -d '{"from":"0x8a209cec02cbeab7e2f74ad969d2dfe8dd24416aa65589bf","to":"8f5aad7e7ad59c9d9eaa351b3f41f887e49d13f37974a02c", "nonce":2,"function":"save","args":"[0]"}'
+curl -i -H 'Accept: application/json' -X POST http://localhost:8090/v1/call -H 'Content-Type: application/json' -d '{"from":"0x8a209cec02cbeab7e2f74ad969d2dfe8dd24416aa65589bf","to":"8f5aad7e7ad59c9d9eaa351b3f41f887e49d13f37974a02c", "nonce":2,"function":"save","args":"[0]"}'
 ```
 More nvm info [TODO]
 
