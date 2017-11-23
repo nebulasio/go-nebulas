@@ -24,9 +24,13 @@ For more information of Nebulas protocol, design documents, please refer to our 
 cd $GOPATH/src
 go get -u -v github.com/nebulasio/go-nebulas
 ```
-The project is under active development. Its default branch is _develop_. New users may want to checkout and use the stable _master_ release.
+The project is under active development. Its default branch is _develop_.
 ```
 cd github.com/nebulasio/go-nebulas
+```
+
+New users may want to checkout and use the stable _master_ release.
+```
 git checkout master
 ```
 
@@ -35,7 +39,12 @@ git checkout master
 make dep
 ```
 
-3. Build the neb binary.
+3. Install dependent v8 libraries.
+```
+make deploy-v8
+```
+
+4. Build the neb binary.
 ```
 make build
 ```
