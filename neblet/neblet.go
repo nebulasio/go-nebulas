@@ -2,13 +2,15 @@ package neblet
 
 import (
 	"errors"
-	"fmt"
 	"sync"
+
+	"github.com/nebulasio/go-nebulas/util/byteutils"
 
 	"github.com/nebulasio/go-nebulas/account"
 	"github.com/nebulasio/go-nebulas/consensus"
 	"github.com/nebulasio/go-nebulas/consensus/pow"
 	"github.com/nebulasio/go-nebulas/core"
+	"github.com/nebulasio/go-nebulas/metrics"
 	"github.com/nebulasio/go-nebulas/neblet/pb"
 	"github.com/nebulasio/go-nebulas/net/p2p"
 	"github.com/nebulasio/go-nebulas/rpc"
@@ -22,7 +24,12 @@ var (
 	ErrNebletAlreadyRunning = errors.New("neblet is already running")
 )
 
-// Neblet manages life cycle of blockchain services.
+var (
+	storageSchemeVersionKey = []byte("scheme")
+	storageSchemeVersionVal = []byte("0.1.0")
+)
+
+// Neblet manages ldife cycle of blockchain services.
 type Neblet struct {
 	config nebletpb.Config
 
@@ -73,16 +80,19 @@ func (n *Neblet) Start() error {
 		return err
 	}
 
-	storage, err := storage.NewDiskStorage("data.db")
+	storage, err := storage.NewDiskStorage(n.config.GetStorage().Location)
 	// storage, err := storage.NewMemoryStorage()
 	if err != nil {
 		return err
 	}
+	if err := n.CheckSchemeVersion(storage); err != nil {
+		return err
+	}
+
 	n.blockChain, err = core.NewBlockChain(core.TestNetID, storage)
 	if err != nil {
 		return err
 	}
-	fmt.Printf("chainID is %d\n", n.blockChain.ChainID())
 	n.blockChain.BlockPool().RegisterInNetwork(n.netService)
 	n.blockChain.TransactionPool().RegisterInNetwork(n.netService)
 
@@ -105,8 +115,13 @@ func (n *Neblet) Start() error {
 	n.consensus.Start()
 	n.snycManager.Start()
 	go n.apiServer.Start()
-	go n.managementServer.Start()
 	go n.apiServer.RunGateway()
+	go n.managementServer.Start()
+	go n.managementServer.RunGateway()
+
+	if n.config.Metrics.Enable {
+		go metrics.Start(n)
+	}
 
 	// TODO: error handling
 	return nil
@@ -144,6 +159,10 @@ func (n *Neblet) Stop() error {
 		n.managementServer = nil
 	}
 
+	if n.config.Metrics.Enable {
+		metrics.Stop()
+	}
+
 	n.accountManager = nil
 
 	n.running = false
@@ -169,4 +188,17 @@ func (n *Neblet) AccountManager() *account.Manager {
 // NetService returns p2p manager reference.
 func (n *Neblet) NetService() *p2p.NetService {
 	return n.netService
+}
+
+// CheckSchemeVersion checks if the storage scheme version is compatiable
+func (n *Neblet) CheckSchemeVersion(storage storage.Storage) error {
+	version, err := storage.Get(storageSchemeVersionKey)
+	if err != nil {
+		storage.Put(storageSchemeVersionKey, storageSchemeVersionVal)
+		return nil
+	}
+	if !byteutils.Equal(version, storageSchemeVersionVal) {
+		return errors.New("incompatible storage schema version, pls migrate your storage")
+	}
+	return nil
 }

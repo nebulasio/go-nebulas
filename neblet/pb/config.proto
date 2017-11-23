@@ -29,9 +29,17 @@ message Config {
 	// Pow config
 	PowConfig pow = 3;
 
-	// Account manager config
-	AccountConfig account = 4;
+	// Storage config
+	StorageConfig storage = 4;
 
+	// Account manager config
+	AccountConfig account = 5;
+
+	// Influxdb config
+	Influxdb influxdb = 6;
+
+	// Metrics config
+	Metrics metrics = 7;
 	// TODO: more configs.
 }
 
@@ -57,12 +65,19 @@ message RPCConfig {
 	uint32 management_port = 2;
 
 	// Json RPC Gateway server listening port number.
-	uint32 gateway_port = 3;
+	uint32 api_http_port = 3;
+
+	// Management http server listening port number.
+	uint32 management_http_port = 4;
 }
 
 message PowConfig {
 	// pow miner's coinbase
 	string coinbase = 1;
+}
+
+message StorageConfig {
+	string location = 1;
 }
 
 message AccountConfig {
@@ -77,4 +92,22 @@ message AccountConfig {
 
 	// Account test keyfile's passphrase
 	string test_passphrase = 4;
+}
+
+message Influxdb {
+	// Influxdb host
+	string host = 1;
+
+	// Influxdb db name
+	string db = 2;
+
+	// Influxdb username
+	string username = 3;
+
+	// Influxdb password
+	string password = 4;
+}
+
+message Metrics {
+	bool enable = 1;
 }

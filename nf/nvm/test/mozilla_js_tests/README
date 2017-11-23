@@ -1,0 +1,72 @@
+// Copyright (C) 2017 go-nebulas authors
+//
+// This file is part of the go-nebulas library.
+//
+// the go-nebulas library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// the go-nebulas library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with the go-nebulas library.  If not, see <http://www.gnu.org/licenses/>.
+//
+
+This directory contains Mozilla JavaScript test suites, you can follow this instructions to download and test them:
+
+1. Visit https://developer.mozilla.org/en-US/docs/Mozilla/Developer_guide/Source_Code/Downloading_Source_Archives link to download the source of firefox.
+
+For example, download the firefox-53.0.3.source.tar.xz by open link https://archive.mozilla.org/pub/firefox/releases/53.0.3/source/ in browser.
+
+2. Unzip the downloaded file, and copy all files/dirs from {FIREFOX_SRC}/js/src/tests/ to this dir. After copy, the structure of this dir should be the following:
+~/workspace/nebulas.io/src/github.com/nebulasio/go-nebulas/nf/nvm/test/mozilla_js_tests ❯❯❯ ls -alh
+total 320
+drwxr-xr-x@ 43 fbzhong  staff   1.3K Nov 17 19:47 .
+drwxr-xr-x@ 19 fbzhong  staff   608B Nov 18 01:10 ..
+-rw-r--r--@  1 fbzhong  staff   6.0K Nov 17 19:47 .DS_Store
+drwxr-xr-x@ 22 fbzhong  staff   704B Apr 11  2017 Intl
+-rw-r--r--@  1 fbzhong  staff   1.0K Feb 28  2017 Makefile.in
+-rw-r--r--@  1 fbzhong  staff   2.4K Jan 17  2017 README.txt
+-rw-r--r--@  1 fbzhong  staff    16K Jan 17  2017 browser.js
+-rw-r--r--@  1 fbzhong  staff   2.6K May 13  2016 compare_bench.py
+-rw-r--r--@  1 fbzhong  staff    13K May 13  2016 dupl-prop-changes.diff
+drwxr-xr-x@ 24 fbzhong  staff   768B Nov  1  2016 ecma
+drwxr-xr-x@ 15 fbzhong  staff   480B Nov  1  2016 ecma_2
+drwxr-xr-x@  7 fbzhong  staff   224B Feb 28  2017 ecma_2017
+drwxr-xr-x@ 24 fbzhong  staff   768B May 13  2016 ecma_3
+drwxr-xr-x@ 10 fbzhong  staff   320B Nov 17 19:47 ecma_3_1
+drwxr-xr-x@ 23 fbzhong  staff   736B May 13  2016 ecma_5
+drwxr-xr-x@ 35 fbzhong  staff   1.1K Apr 11  2017 ecma_6
+drwxr-xr-x@ 14 fbzhong  staff   448B Apr 11  2017 ecma_7
+-rw-r--r--@  1 fbzhong  staff   8.7K May 13  2016 function-arguments-caller-changes.diff
+-rw-r--r--@  1 fbzhong  staff     0B May 13  2016 js-test-driver-begin.js
+-rw-r--r--@  1 fbzhong  staff    21B May 13  2016 js-test-driver-end.js
+drwxr-xr-x@  6 fbzhong  staff   192B Nov  1  2016 js1_1
+drwxr-xr-x@ 14 fbzhong  staff   448B Nov  1  2016 js1_2
+drwxr-xr-x@ 11 fbzhong  staff   352B Nov  1  2016 js1_3
+drwxr-xr-x@  8 fbzhong  staff   256B Nov  1  2016 js1_4
+drwxr-xr-x@ 20 fbzhong  staff   640B Apr 11  2017 js1_5
+drwxr-xr-x@ 10 fbzhong  staff   320B Apr 11  2017 js1_6
+drwxr-xr-x@ 14 fbzhong  staff   448B Apr 11  2017 js1_7
+drwxr-xr-x@  9 fbzhong  staff   288B Apr 11  2017 js1_8
+drwxr-xr-x@ 12 fbzhong  staff   384B Apr 11  2017 js1_8_1
+drwxr-xr-x@  9 fbzhong  staff   288B Apr 11  2017 js1_8_5
+-rw-r--r--@  1 fbzhong  staff   673B Jan 17  2017 jsreftest.html
+-rw-r--r--@  1 fbzhong  staff    20K Apr 11  2017 jstests.list
+-rwxr-xr-x@  1 fbzhong  staff    16K Jan 17  2017 jstests.py
+drwxr-xr-x@ 18 fbzhong  staff   576B Nov 17 19:30 lib
+-rw-r--r--@  1 fbzhong  staff   289B Nov  1  2016 moz.build
+-rw-r--r--@  1 fbzhong  staff   5.7K May 13  2016 parsemark.py
+drwxr-xr-x@  9 fbzhong  staff   288B Jan 17  2017 shell
+-rw-r--r--@  1 fbzhong  staff    23K Feb 28  2017 shell.js
+drwxr-xr-x@ 14 fbzhong  staff   448B May 13  2016 style
+drwxr-xr-x@ 10 fbzhong  staff   320B May 13  2016 supporting
+drwxr-xr-x@ 18 fbzhong  staff   576B Apr 11  2017 test262
+-rwxr-xr-x@  1 fbzhong  staff   6.2K May 13  2016 update-test262.sh
+-rwxr-xr-x@  1 fbzhong  staff   1.9K Nov  1  2016 user.js
+
+3. Run the test named "TestRunMozillaJSTestSuite" under "github.com/nebulasio/go-nebulas/nf/nvm" package, then you will see the test results.

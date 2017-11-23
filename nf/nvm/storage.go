@@ -25,8 +25,13 @@ import (
 	"unsafe"
 
 	"github.com/nebulasio/go-nebulas/common/trie"
-
+	"github.com/nebulasio/go-nebulas/storage"
 	log "github.com/sirupsen/logrus"
+)
+
+// Errors
+var (
+	ErrKeyNotFound = storage.ErrKeyNotFound
 )
 
 var (
@@ -54,16 +59,17 @@ func hashStorageKey(key string) []byte {
 	return trie.HashDomains(domainKey, itemKey)
 }
 
+// StorageGetFunc export StorageGetFunc
 //export StorageGetFunc
 func StorageGetFunc(handler unsafe.Pointer, key *C.char) *C.char {
-	_, storage := getEngineAndStorage(uint64(uintptr(handler)))
+	_, storage := getEngineByStorageHandler(uint64(uintptr(handler)))
 	if storage == nil {
 		return nil
 	}
 
 	val, err := storage.Get([]byte(hashStorageKey(C.GoString(key))))
 	if err != nil {
-		if err != trie.ErrNotFound {
+		if err != ErrKeyNotFound {
 			log.WithFields(log.Fields{
 				"func":    "nvm.StorageGetFunc",
 				"handler": uint64(uintptr(handler)),
@@ -77,17 +83,18 @@ func StorageGetFunc(handler unsafe.Pointer, key *C.char) *C.char {
 	return C.CString(string(val))
 }
 
+// StoragePutFunc export StoragePutFunc
 //export StoragePutFunc
 func StoragePutFunc(handler unsafe.Pointer, key *C.char, value *C.char) int {
-	_, storage := getEngineAndStorage(uint64(uintptr(handler)))
+	_, storage := getEngineByStorageHandler(uint64(uintptr(handler)))
 	if storage == nil {
 		return 1
 	}
 
 	// log.Errorf("[--------------] StoragePutFunc, storage = %v; {%v: %v}", storage, C.GoString(key), C.GoString(value))
 
-	_, err := storage.Put([]byte(hashStorageKey(C.GoString(key))), []byte(C.GoString(value)))
-	if err != nil && err != trie.ErrNotFound {
+	err := storage.Put([]byte(hashStorageKey(C.GoString(key))), []byte(C.GoString(value)))
+	if err != nil && err != ErrKeyNotFound {
 		log.WithFields(log.Fields{
 			"func":    "nvm.StoragePutFunc",
 			"handler": uint64(uintptr(handler)),
@@ -99,16 +106,17 @@ func StoragePutFunc(handler unsafe.Pointer, key *C.char, value *C.char) int {
 	return 0
 }
 
+// StorageDelFunc export StorageDelFunc
 //export StorageDelFunc
 func StorageDelFunc(handler unsafe.Pointer, key *C.char) int {
-	_, storage := getEngineAndStorage(uint64(uintptr(handler)))
+	_, storage := getEngineByStorageHandler(uint64(uintptr(handler)))
 	if storage == nil {
 		return 1
 	}
 
-	_, err := storage.Del([]byte(hashStorageKey(C.GoString(key))))
+	err := storage.Del([]byte(hashStorageKey(C.GoString(key))))
 
-	if err != nil && err != trie.ErrNotFound {
+	if err != nil && err != ErrKeyNotFound {
 		log.WithFields(log.Fields{
 			"func":    "nvm.StorageDelFunc",
 			"handler": uint64(uintptr(handler)),

@@ -1,9 +1,17 @@
 package trie
 
 import (
+	"errors"
+
 	"github.com/nebulasio/go-nebulas/crypto/hash"
 	"github.com/nebulasio/go-nebulas/storage"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
+)
+
+// Errors
+var (
+	ErrCloneInBatch      = errors.New("cannot clone AccountState with a batch task unfinished")
+	ErrBeginAgainInBatch = errors.New("cannot begin AccountState with a batch task unfinished")
 )
 
 // Action represents operation types in BatchTrie
@@ -47,8 +55,8 @@ func (bt *BatchTrie) RootHash() []byte {
 
 // Clone a the BatchTrie
 func (bt *BatchTrie) Clone() (*BatchTrie, error) {
-	if len(bt.changelog) > 0 {
-		panic("invalid status, pls Commit or RollBack at first")
+	if bt.batching {
+		return nil, ErrCloneInBatch
 	}
 	tr, err := bt.trie.Clone()
 	if err != nil {
@@ -132,8 +140,8 @@ func (bt *BatchTrie) Iterator(prefix []byte) (*Iterator, error) {
 
 // BeginBatch to process a batch task
 func (bt *BatchTrie) BeginBatch() error {
-	if len(bt.changelog) > 0 {
-		panic("invalid status, pls Commit or RollBack at first")
+	if bt.batching {
+		return ErrBeginAgainInBatch
 	}
 	bt.batching = true
 	return nil

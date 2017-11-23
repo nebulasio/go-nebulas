@@ -19,11 +19,13 @@
 package p2p
 
 import (
+	"bytes"
 	"context"
-	"crypto/rand"
+	"encoding/hex"
+	"errors"
 	"fmt"
-	"io"
 	mrand "math/rand"
+	"net"
 	"strings"
 	"sync"
 	"time"
@@ -41,12 +43,20 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+const letterBytes = "0123456789ABCDEF0123456789ABCDE10123456789ABCDEF0123456789ABCDEF"
+
+const (
+	letterIdxBits = 6                    // 6 bits to represent a letter index
+	letterIdxMask = 1<<letterIdxBits - 1 // All 1-bits, as many as letterIdxBits
+	letterIdxMax  = 63 / letterIdxBits   // # of letter indices fitting in 63 bits
+)
+
 // Node the node can be used as both the client and the server
 type Node struct {
 	host      *basichost.BasicHost
 	id        peer.ID
 	peerstore peerstore.Peerstore
-	// key: ip + peer.ID
+	// key: peer.ID: ip
 	streamCache  *pdeque.PriorityDeque
 	stream       map[string]*StreamStore
 	routeTable   *kbucket.RoutingTable
@@ -57,7 +67,7 @@ type Node struct {
 	running      bool
 	synchronized bool
 	syncList     []string
-	// key: datachecksum value: []ip + peer.ID
+	// key: datachecksum value: peer.ID
 	relayness     *lru.Cache
 	relaynessLock *sync.Mutex
 }
@@ -90,81 +100,113 @@ func NewNode(config *Config) (*Node, error) {
 
 	err := node.init()
 	if err != nil {
-		log.Error("NewNode: start node fail, can not init node", err)
+		log.Error("start node fail, can not init node", err)
 		return nil, err
 	}
-	log.Info("NewNode: node init success")
+	log.WithFields(log.Fields{
+		"node.id":   node.ID(),
+		"node.port": node.config.Port,
+	}).Debug("node init success")
 	return node, nil
 }
 
-// Config return node config
+// Config return node config.
 func (node *Node) Config() *Config {
 	return node.config
 }
 
-// ID return node config
-func (node *Node) ID() peer.ID {
-	return node.host.ID()
+// ID return node ID.
+func (node *Node) ID() string {
+	return node.id.Pretty()
 }
 
-// SetSynchronized set node synchronized
+// PeerStore return node peerstore
+func (node *Node) PeerStore() peerstore.Peerstore {
+	return node.peerstore
+}
+
+// SetSynchronized set node synchronized.
 func (node *Node) SetSynchronized(synchronized bool) {
 	node.synchronized = synchronized
 }
 
-// GetSynchronized return node synchronized status
+// GetSynchronized return node synchronized status.
 func (node *Node) GetSynchronized() bool {
 	return node.synchronized
 }
 
-func (node *Node) init() error {
+// GetStream return node stream.
+func (node *Node) GetStream() map[string]*StreamStore {
+	return node.stream
+}
 
-	ctx := node.context
-	randseed := node.config.Randseed
-	var r io.Reader
-	if randseed == 0 {
-		r = rand.Reader
-	} else {
-		r = mrand.New(mrand.NewSource(randseed))
+func (node *Node) checkPort() error {
+	conn, err := net.Dial("tcp",
+		fmt.Sprintf(
+			"%s:%d",
+			node.config.IP,
+			node.config.Port,
+		),
+	)
+	if err == nil {
+		conn.Close()
+		return errors.New("The port already in use")
 	}
+	return nil
+}
 
-	priv, pub, err := crypto.GenerateKeyPairWithReader(crypto.RSA, 2048, r)
-
+func (node *Node) generatePeerStore() error {
+	var randseedstr string
+	if len(node.Config().BootNodes) == 0 {
+		// seednode
+		randseedstr = letterBytes
+	} else {
+		randseedstr = randSeed(64)
+	}
+	randseed, err := hex.DecodeString(randseedstr)
+	priv, pub, err := crypto.GenerateEd25519Key(
+		bytes.NewReader(randseed),
+	)
 	if err != nil {
 		return err
 	}
-
 	// Obtain Peer ID from public key
 	node.id, err = peer.IDFromPublicKey(pub)
 	if err != nil {
 		return err
 	}
 	ps := peerstore.NewPeerstore()
-
 	ps.AddPrivKey(node.id, priv)
 	ps.AddPubKey(node.id, pub)
 	node.peerstore = ps
+	return nil
+}
+
+func (node *Node) init() error {
+
+	ctx := node.context
+
+	if err := node.checkPort(); err != nil {
+		return err
+	}
+	if err := node.generatePeerStore(); err != nil {
+		return err
+	}
 
 	node.routeTable = kbucket.NewRoutingTable(
-		node.config.bucketsize,
+		node.config.Bucketsize,
 		kbucket.ConvertPeerID(node.id),
-		node.config.latency,
+		node.config.Latency,
 		node.peerstore,
 	)
 
 	node.routeTable.Update(node.id)
-
 	node.stream = make(map[string]*StreamStore)
 	node.streamCache = pdeque.NewPriorityDeque(less)
 	node.chainID = node.config.ChainID
 	node.version = node.config.Version
 	node.synchronized = false
-	node.relayness, err = lru.New(node.config.RelayCacheSize)
-	if err != nil {
-		return err
-	}
 	node.relaynessLock = &sync.Mutex{}
-
 	address, err := multiaddr.NewMultiaddr(
 		fmt.Sprintf(
 			"/ip4/%s/tcp/%d",
@@ -172,10 +214,6 @@ func (node *Node) init() error {
 			node.config.Port,
 		),
 	)
-	if err != nil {
-		return err
-	}
-
 	network, err := swarm.NewNetwork(
 		ctx,
 		[]multiaddr.Multiaddr{address},
@@ -183,15 +221,31 @@ func (node *Node) init() error {
 		node.peerstore,
 		nil,
 	)
+	node.relayness, err = lru.New(node.config.RelayCacheSize)
 
 	options := &basichost.HostOpts{}
-
 	// add nat manager
 	options.NATManager = basichost.NewNATManager(network)
-
-	log.Infof("makeHost: boot node pretty id is %s", node.id.Pretty())
 	node.host, err = basichost.NewHost(node.context, network, options)
 	return err
+}
+
+func randSeed(n int) string {
+	var src = mrand.NewSource(time.Now().UnixNano())
+	b := make([]byte, n)
+	for i, cache, remain := n-1, src.Int63(), letterIdxMax; i >= 0; {
+		if remain == 0 {
+			cache, remain = mrand.Int63(), letterIdxMax
+		}
+		if idx := int(cache & letterIdxMask); idx < len(letterBytes) {
+			b[i] = letterBytes[idx]
+			i--
+		}
+		cache >>= letterIdxBits
+		remain--
+	}
+
+	return string(b)
 }
 
 // SayHello Say hello to trustedNode
@@ -199,7 +253,10 @@ func (netService *NetService) SayHello(bootNode multiaddr.Multiaddr) error {
 	node := netService.node
 	bootAddr, bootID, err := parseAddressFromMultiaddr(bootNode)
 	if err != nil {
-		log.Error("SayHello: parse Address from trustedNode failed", bootNode, err)
+		log.WithFields(log.Fields{
+			"bootNode": bootNode,
+			"error":    err,
+		}).Error("parse Address from trustedNode failed")
 		return err
 	}
 	node.peerstore.AddAddr(
@@ -207,22 +264,27 @@ func (netService *NetService) SayHello(bootNode multiaddr.Multiaddr) error {
 		bootAddr,
 		peerstore.TempAddrTTL,
 	)
-	log.Infof("SayHello: node.host.Addrs -> %s, bootAddr -> %s", node.host.Addrs()[0].String(), bootAddr.String())
 	if node.host.Addrs()[0].String() != bootAddr.String() {
+		var success = false
 		for i := 0; i < 3; i++ {
 			err := netService.Hello(bootID)
 			if err != nil {
-				log.Error("SayHello: say hello to bootNode occurs error, ", err)
 				time.Sleep(time.Second)
 				continue
 			}
+			success = true
 			break
 		}
-		if err != nil {
-			log.Error("SayHello: ping to seedNode failed", bootNode, err)
-			return err
+		if !success {
+			log.WithFields(log.Fields{
+				"bootNode": bootNode,
+				"error":    err,
+			}).Error("say hello to bootNode failed")
+			return errors.New("say hello to bootNode failed")
 		}
-		log.Info("SayHello: node say hello to boot node success... ")
+		log.WithFields(log.Fields{
+			"bootNode": bootNode,
+		}).Debug("say hello to a node success")
 		node.peerstore.AddAddr(
 			bootID,
 			bootAddr,

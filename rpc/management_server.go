@@ -5,6 +5,8 @@ import (
 
 	"fmt"
 
+	"time"
+
 	"github.com/nebulasio/go-nebulas/rpc/pb"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
@@ -18,6 +20,8 @@ type ManagementServer struct {
 	rpcServer *grpc.Server
 
 	port uint32
+
+	gatewayPort uint32
 }
 
 // NewManagementServer creates a new management RPC server and registers the API endpoints.
@@ -25,7 +29,7 @@ func NewManagementServer(neblet Neblet) *ManagementServer {
 	cfg := neblet.Config()
 
 	rpc := grpc.NewServer()
-	srv := &ManagementServer{neblet: neblet, rpcServer: rpc, port: cfg.Rpc.ManagementPort}
+	srv := &ManagementServer{neblet: neblet, rpcServer: rpc, port: cfg.Rpc.ManagementPort, gatewayPort: cfg.Rpc.ManagementHttpPort}
 
 	// register api to management server
 	api := &APIService{srv}
@@ -76,5 +80,11 @@ func (s *ManagementServer) Address() string {
 
 // RunGateway run grpc mapping to http after apiserver have started.
 func (s *ManagementServer) RunGateway() error {
+	time.Sleep(3 * time.Second)
+	log.Info("Starting management gateway server bind port: ", s.port, " to:", s.gatewayPort)
+	if err := Run(GatewayManagementServiceKey, s.port, s.gatewayPort); err != nil {
+		log.Error("management server gateway failed to serve: ", err)
+		return err
+	}
 	return nil
 }

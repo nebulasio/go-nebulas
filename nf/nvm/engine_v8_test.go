@@ -19,17 +19,25 @@
 package nvm
 
 import (
+	"bufio"
+	"bytes"
 	"flag"
+	"fmt"
 	"io/ioutil"
 	"os"
+	"strings"
 	"sync"
 	"testing"
 
-	"github.com/nebulasio/go-nebulas/common/trie"
+	"github.com/gogo/protobuf/proto"
+	"github.com/nebulasio/go-nebulas/core/state"
 	"github.com/nebulasio/go-nebulas/storage"
+	"github.com/nebulasio/go-nebulas/util"
+	"github.com/nebulasio/go-nebulas/util/byteutils"
 	"github.com/nebulasio/go-nebulas/util/logging"
 	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestMain(m *testing.M) {
@@ -37,6 +45,48 @@ func TestMain(m *testing.M) {
 
 	flag.Parse()
 	os.Exit(m.Run())
+}
+
+type mockBlock struct {
+}
+
+func (m *mockBlock) CoinbaseHash() byteutils.Hash {
+	return []byte("8a209cec02cbeab7e2f74ad969d2dfe8dd24416aa65589bf")
+}
+
+func (m *mockBlock) Nonce() uint64 {
+	return 1
+}
+
+func (m *mockBlock) Hash() byteutils.Hash {
+	return []byte("c7174759e86c59dcb7df87def82f61eb")
+}
+
+func (m *mockBlock) Height() uint64 {
+	return 2
+}
+
+func (m *mockBlock) VerifyAddress(str string) bool {
+	return true
+}
+
+func (m *mockBlock) SerializeTxByHash(hash byteutils.Hash) (proto.Message, error) {
+	return nil, nil
+}
+
+func testContextBlock() Block {
+	return new(mockBlock)
+}
+
+func testContextTransaction() *ContextTransaction {
+	return &ContextTransaction{
+		From:     "8a209cec02cbeab7e2f74ad969d2dfe8dd24416aa65589bf",
+		To:       "22ac3a9a2b1c31b7a9084e46eae16e761f83f02324092b09",
+		Value:    "5",
+		Nonce:    3,
+		Hash:     "c7174759e86c59dcb7df87def82f61eb",
+		GasPrice: util.NewUint128FromInt(1).String(),
+	}
 }
 
 func TestRunScriptSource(t *testing.T) {
@@ -49,7 +99,6 @@ func TestRunScriptSource(t *testing.T) {
 		{"test/test_storage_handlers.js", nil},
 		{"test/test_storage_class.js", nil},
 		{"test/test_storage.js", nil},
-		{"test/test_ERC20.js", nil},
 		{"test/test_eval.js", ErrExecutionFailed},
 	}
 
@@ -59,14 +108,149 @@ func TestRunScriptSource(t *testing.T) {
 			assert.Nil(t, err, "filepath read error")
 
 			mem, _ := storage.NewMemoryStorage()
-			balanceTrie, _ := trie.NewBatchTrie(nil, mem)
-			lcsTrie, _ := trie.NewBatchTrie(nil, mem)
-			gcsTrie, _ := trie.NewBatchTrie(nil, mem)
+			context, _ := state.NewAccountState(nil, mem)
+			owner := context.GetOrCreateUserAccount([]byte("account1"))
+			owner.AddBalance(util.NewUint128FromInt(1000000000))
+			contract, _ := context.CreateContractAccount([]byte("account2"), nil)
+			ctx := NewContext(testContextBlock(), testContextTransaction(), owner, contract, context)
 
-			engine := NewV8Engine(balanceTrie, lcsTrie, gcsTrie)
-			err = engine.RunScriptSource(string(data))
+			engine := NewV8Engine(ctx)
+			engine.SetExecutionLimits(1000, 10000000)
+			err = engine.RunScriptSource(string(data), 0)
 			assert.Equal(t, tt.expectedErr, err)
 			engine.Dispose()
+		})
+	}
+}
+
+func TestRunScriptSourceInModule(t *testing.T) {
+	tests := []struct {
+		filepath    string
+		expectedErr error
+	}{
+		{"./test/test_require.js", nil},
+		{"./test/test_console.js", nil},
+		{"./test/test_storage_handlers.js", nil},
+		{"./test/test_storage_class.js", nil},
+		{"./test/test_storage.js", nil},
+		{"./test/test_ERC20.js", nil},
+		{"./test/test_eval.js", ErrExecutionFailed},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.filepath, func(t *testing.T) {
+			data, err := ioutil.ReadFile(tt.filepath)
+			assert.Nil(t, err, "filepath read error")
+
+			mem, _ := storage.NewMemoryStorage()
+			context, _ := state.NewAccountState(nil, mem)
+			owner := context.GetOrCreateUserAccount([]byte("account1"))
+			owner.AddBalance(util.NewUint128FromInt(1000000000))
+			contract, _ := context.CreateContractAccount([]byte("account2"), nil)
+			ctx := NewContext(testContextBlock(), testContextTransaction(), owner, contract, context)
+
+			engine := NewV8Engine(ctx)
+			engine.SetExecutionLimits(1000, 10000000)
+			engine.AddModule(tt.filepath, string(data), 0)
+			runnableSource := fmt.Sprintf("require(\"%s\");", tt.filepath)
+			err = engine.RunScriptSource(runnableSource, 0)
+			assert.Equal(t, tt.expectedErr, err)
+			engine.Dispose()
+		})
+	}
+}
+func TestRunScriptSourceWithLimits(t *testing.T) {
+	tests := []struct {
+		filepath                      string
+		limitsOfExecutionInstructions uint64
+		limitsOfTotalMemorySize       uint64
+		expectedErr                   error
+	}{
+		{"test/test_oom_1.js", 100000, 0, ErrInsufficientGas},
+		{"test/test_oom_1.js", 0, 50000000, ErrExceedMemoryLimits},
+		{"test/test_oom_1.js", 100000, 50000000, ErrInsufficientGas},
+		{"test/test_oom_1.js", 500000, 7000000, ErrExceedMemoryLimits},
+
+		{"test/test_oom_2.js", 100000, 0, ErrInsufficientGas},
+		{"test/test_oom_2.js", 0, 8000000, ErrExceedMemoryLimits},
+		{"test/test_oom_2.js", 100000, 10000000, ErrInsufficientGas},
+		{"test/test_oom_2.js", 1000000, 7000000, ErrExceedMemoryLimits},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.filepath, func(t *testing.T) {
+			data, err := ioutil.ReadFile(tt.filepath)
+			assert.Nil(t, err, "filepath read error")
+
+			mem, _ := storage.NewMemoryStorage()
+			context, _ := state.NewAccountState(nil, mem)
+			owner := context.GetOrCreateUserAccount([]byte("account1"))
+			owner.AddBalance(util.NewUint128FromInt(100000))
+			contract, _ := context.CreateContractAccount([]byte("account2"), nil)
+			ctx := NewContext(testContextBlock(), testContextTransaction(), owner, contract, context)
+
+			// direct run.
+			(func() {
+				engine := NewV8Engine(ctx)
+				engine.SetExecutionLimits(tt.limitsOfExecutionInstructions, tt.limitsOfTotalMemorySize)
+				err = engine.RunScriptSource(string(data), 0)
+				assert.Equal(t, tt.expectedErr, err)
+				engine.Dispose()
+			})()
+
+			// modularized run.
+			(func() {
+				moduleID := fmt.Sprintf("./%s", tt.filepath)
+				runnableSource := fmt.Sprintf("require(\"%s\");", moduleID)
+
+				engine := NewV8Engine(ctx)
+				engine.SetExecutionLimits(tt.limitsOfExecutionInstructions, tt.limitsOfTotalMemorySize)
+				engine.AddModule(moduleID, string(data), 0)
+				err = engine.RunScriptSource(runnableSource, 0)
+				assert.Equal(t, tt.expectedErr, err)
+				engine.Dispose()
+			})()
+		})
+	}
+}
+
+func TestRunScriptSourceTimeout(t *testing.T) {
+	tests := []struct {
+		filepath string
+	}{
+		{"test/test_infinite_loop.js"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.filepath, func(t *testing.T) {
+			data, err := ioutil.ReadFile(tt.filepath)
+			assert.Nil(t, err, "filepath read error")
+
+			mem, _ := storage.NewMemoryStorage()
+			context, _ := state.NewAccountState(nil, mem)
+			owner := context.GetOrCreateUserAccount([]byte("account1"))
+			contract, _ := context.CreateContractAccount([]byte("account2"), nil)
+			ctx := NewContext(testContextBlock(), testContextTransaction(), owner, contract, context)
+
+			// direct run.
+			(func() {
+				engine := NewV8Engine(ctx)
+				err = engine.RunScriptSource(string(data), 0)
+				assert.Equal(t, ErrExecutionTimeout, err)
+				engine.Dispose()
+			})()
+
+			// modularized run.
+			(func() {
+				moduleID := fmt.Sprintf("./%s", tt.filepath)
+				runnableSource := fmt.Sprintf("require(\"%s\");", moduleID)
+
+				engine := NewV8Engine(ctx)
+				engine.AddModule(moduleID, string(data), 0)
+				err = engine.RunScriptSource(runnableSource, 0)
+				assert.Equal(t, ErrExecutionTimeout, err)
+				engine.Dispose()
+			})()
 		})
 	}
 }
@@ -75,10 +259,10 @@ func TestDeployAndInitAndCall(t *testing.T) {
 	tests := []struct {
 		name         string
 		contractPath string
-		init_args    string
-		verify_args  string
+		initArgs     string
+		verifyArgs   string
 	}{
-		{"deploy sample_contract.js", "test/sample_contract.js", "[\"TEST001\", 123,[{\"name\":\"robin\",\"count\":2},{\"name\":\"roy\",\"count\":3},{\"name\":\"leon\",\"count\":4}]]", "[\"TEST001\", 123,[{\"name\":\"robin\",\"count\":2},{\"name\":\"roy\",\"count\":3},{\"name\":\"leon\",\"count\":4}]]"},
+		{"deploy sample_contract.js", "./test/sample_contract.js", "[\"TEST001\", 123,[{\"name\":\"robin\",\"count\":2},{\"name\":\"roy\",\"count\":3},{\"name\":\"leon\",\"count\":4}]]", "[\"TEST001\", 123,[{\"name\":\"robin\",\"count\":2},{\"name\":\"roy\",\"count\":3},{\"name\":\"leon\",\"count\":4}]]"},
 	}
 
 	for _, tt := range tests {
@@ -87,36 +271,42 @@ func TestDeployAndInitAndCall(t *testing.T) {
 			assert.Nil(t, err, "contract path read error")
 
 			mem, _ := storage.NewMemoryStorage()
-			balanceTrie, _ := trie.NewBatchTrie(nil, mem)
-			lcsTrie, _ := trie.NewBatchTrie(nil, mem)
-			gcsTrie, _ := trie.NewBatchTrie(nil, mem)
+			context, _ := state.NewAccountState(nil, mem)
+			owner := context.GetOrCreateUserAccount([]byte("account1"))
+			owner.AddBalance(util.NewUint128FromInt(10000000))
+			contract, _ := context.CreateContractAccount([]byte("account2"), nil)
 
-			engine := NewV8Engine(balanceTrie, lcsTrie, gcsTrie)
-			err = engine.DeployAndInit(string(data), tt.init_args)
+			ctx := NewContext(testContextBlock(), testContextTransaction(), owner, contract, context)
+			engine := NewV8Engine(ctx)
+			engine.SetExecutionLimits(1000, 10000000)
+			err = engine.DeployAndInit(string(data), tt.initArgs)
 			assert.Nil(t, err)
 			engine.Dispose()
 
-			engine = NewV8Engine(balanceTrie, lcsTrie, gcsTrie)
+			engine = NewV8Engine(ctx)
+			engine.SetExecutionLimits(1000, 10000000)
 			err = engine.Call(string(data), "dump", "")
 			assert.Nil(t, err)
 			engine.Dispose()
 
-			engine = NewV8Engine(balanceTrie, lcsTrie, gcsTrie)
-			err = engine.Call(string(data), "verify", tt.verify_args)
+			engine = NewV8Engine(ctx)
+			engine.SetExecutionLimits(1000, 10000000)
+			err = engine.Call(string(data), "verify", tt.verifyArgs)
 			assert.Nil(t, err)
 			engine.Dispose()
 
 			// force error.
 			mem, _ = storage.NewMemoryStorage()
-			balanceTrie, _ = trie.NewBatchTrie(nil, mem)
-			lcsTrie, _ = trie.NewBatchTrie(nil, mem)
-			gcsTrie, _ = trie.NewBatchTrie(nil, mem)
+			context, _ = state.NewAccountState(nil, mem)
+			owner = context.GetOrCreateUserAccount([]byte("account1"))
+			contract, _ = context.CreateContractAccount([]byte("account2"), nil)
 
-			engine = NewV8Engine(balanceTrie, lcsTrie, gcsTrie)
-			err = engine.Call(string(data), "verify", tt.verify_args)
+			ctx = NewContext(testContextBlock(), testContextTransaction(), owner, contract, context)
+			engine = NewV8Engine(ctx)
+			engine.SetExecutionLimits(1000, 10000000)
+			err = engine.Call(string(data), "verify", tt.verifyArgs)
 			assert.NotNil(t, err)
 			engine.Dispose()
-
 		})
 	}
 }
@@ -139,36 +329,234 @@ func TestFunctionNameCheck(t *testing.T) {
 			assert.Nil(t, err, "contract path read error")
 
 			mem, _ := storage.NewMemoryStorage()
-			balanceTrie, _ := trie.NewBatchTrie(nil, mem)
-			lcsTrie, _ := trie.NewBatchTrie(nil, mem)
-			gcsTrie, _ := trie.NewBatchTrie(nil, mem)
+			context, _ := state.NewAccountState(nil, mem)
+			owner := context.GetOrCreateUserAccount([]byte("account1"))
+			owner.AddBalance(util.NewUint128FromInt(1000000))
+			contract, _ := context.CreateContractAccount([]byte("account2"), nil)
+			ctx := NewContext(testContextBlock(), testContextTransaction(), owner, contract, context)
 
-			engine := NewV8Engine(balanceTrie, lcsTrie, gcsTrie)
+			engine := NewV8Engine(ctx)
+			engine.SetExecutionLimits(1000, 10000000)
 			err = engine.Call(string(data), tt.function, tt.args)
 			assert.Equal(t, tt.expectedErr, err)
 			engine.Dispose()
 		})
 	}
 }
+
 func TestMultiEngine(t *testing.T) {
 	mem, _ := storage.NewMemoryStorage()
-	balanceTrie, _ := trie.NewBatchTrie(nil, mem)
-	lcsTrie, _ := trie.NewBatchTrie(nil, mem)
-	gcsTrie, _ := trie.NewBatchTrie(nil, mem)
+	context, _ := state.NewAccountState(nil, mem)
+	owner := context.GetOrCreateUserAccount([]byte("account1"))
+	owner.AddBalance(util.NewUint128FromInt(1000000))
+	contract, _ := context.CreateContractAccount([]byte("account2"), nil)
 
 	var wg sync.WaitGroup
-	for i := 0; i < 50; i++ {
+	for i := 0; i < 100; i++ {
 		wg.Add(1)
 		idx := i
 		go func() {
 			defer wg.Done()
-			engine := NewV8Engine(balanceTrie, lcsTrie, gcsTrie)
+
+			ctx := NewContext(testContextBlock(), testContextTransaction(), owner, contract, context)
+
+			engine := NewV8Engine(ctx)
+			engine.SetExecutionLimits(1000, 10000000)
 			defer engine.Dispose()
 
-			err := engine.RunScriptSource("console.log('running.');")
+			err := engine.RunScriptSource("console.log('running.');", 0)
 			log.Infof("run script %d; err %v", idx, err)
 			assert.Nil(t, err)
 		}()
 	}
 	wg.Wait()
+}
+
+func TestInstructionCounterTestSuite(t *testing.T) {
+	tests := []struct {
+		filepath    string
+		expectedErr error
+	}{
+		{"./test/instruction_counter_tests/redefine1.js", ErrInjectTracingInstructionFailed},
+		{"./test/instruction_counter_tests/redefine2.js", ErrInjectTracingInstructionFailed},
+		{"./test/instruction_counter_tests/redefine3.js", ErrInjectTracingInstructionFailed},
+		{"./test/instruction_counter_tests/redefine4.js", ErrExecutionFailed},
+		{"./test/instruction_counter_tests/function.js", nil},
+		{"./test/instruction_counter_tests/if.js", nil},
+		{"./test/instruction_counter_tests/switch.js", nil},
+		{"./test/instruction_counter_tests/for.js", nil},
+		{"./test/instruction_counter_tests/with.js", nil},
+		{"./test/instruction_counter_tests/while.js", nil},
+		{"./test/instruction_counter_tests/throw.js", nil},
+		{"./test/instruction_counter_tests/switch.js", nil},
+		{"./test/instruction_counter_tests/condition_operator.js", nil},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.filepath, func(t *testing.T) {
+			data, err := ioutil.ReadFile(tt.filepath)
+			assert.Nil(t, err, "filepath read error")
+
+			mem, _ := storage.NewMemoryStorage()
+			context, _ := state.NewAccountState(nil, mem)
+			owner := context.GetOrCreateUserAccount([]byte("account1"))
+			owner.AddBalance(util.NewUint128FromInt(1000000000))
+			contract, _ := context.CreateContractAccount([]byte("account2"), nil)
+			ctx := NewContext(testContextBlock(), testContextTransaction(), owner, contract, context)
+
+			moduleID := tt.filepath
+			runnableSource := fmt.Sprintf("require(\"%s\");", moduleID)
+
+			engine := NewV8Engine(ctx)
+			engine.enableLimits = true
+			err = engine.AddModule(moduleID, string(data), 0)
+			if err != nil {
+				assert.Equal(t, tt.expectedErr, err)
+			} else {
+				err = engine.RunScriptSource(runnableSource, 0)
+				assert.Equal(t, tt.expectedErr, err)
+			}
+			engine.Dispose()
+		})
+	}
+}
+
+func TestRunMozillaJSTestSuite(t *testing.T) {
+	mem, _ := storage.NewMemoryStorage()
+	context, _ := state.NewAccountState(nil, mem)
+	owner := context.GetOrCreateUserAccount([]byte("account1"))
+	owner.AddBalance(util.NewUint128FromInt(1000000000))
+
+	contract, _ := context.CreateContractAccount([]byte("account2"), nil)
+	ctx := NewContext(testContextBlock(), testContextTransaction(), owner, contract, context)
+
+	var runTest func(dir string, shelljs string)
+	runTest = func(dir string, shelljs string) {
+		files, err := ioutil.ReadDir(dir)
+		require.Nil(t, err)
+
+		cwdShelljs := fmt.Sprintf("%s/shell.js", dir)
+		if _, err := os.Stat(cwdShelljs); !os.IsNotExist(err) {
+			shelljs = fmt.Sprintf("%s;%s", shelljs, cwdShelljs)
+		}
+
+		for _, file := range files {
+			filepath := fmt.Sprintf("%s/%s", dir, file.Name())
+			fi, err := os.Stat(filepath)
+			require.Nil(t, err)
+
+			if fi.IsDir() {
+				runTest(filepath, shelljs)
+				continue
+			}
+
+			if !strings.HasSuffix(file.Name(), ".js") {
+				continue
+			}
+			if strings.Compare(file.Name(), "browser.js") == 0 || strings.Compare(file.Name(), "shell.js") == 0 || strings.HasPrefix(file.Name(), "toLocale") {
+				continue
+			}
+
+			log.Infof("Testing %s", filepath)
+
+			buf := bytes.NewBufferString("this.print = console.log;var native_eval = eval;eval = function (s) { try {  return native_eval(s); } catch (e) { return \"error\"; }};")
+
+			jsfiles := fmt.Sprintf("%s;%s;%s", shelljs, "test/mozilla_js_tests_loader.js", filepath)
+
+			for _, v := range strings.Split(jsfiles, ";") {
+				// log.Infof("v %s", v)
+				if len(v) == 0 {
+					continue
+				}
+
+				fi, err := os.Stat(v)
+				require.Nil(t, err)
+				f, err := os.Open(v)
+				require.Nil(t, err)
+				reader := bufio.NewReader(f)
+				buf.Grow(int(fi.Size()))
+				buf.ReadFrom(reader)
+			}
+			// execute.
+			engine := NewV8Engine(ctx)
+			engine.SetTestingFlag(true)
+			engine.enableLimits = true
+			err = engine.RunScriptSource(buf.String(), 0)
+			assert.Nil(t, err)
+		}
+	}
+
+	runTest("test/mozilla_js_tests", "")
+}
+
+func Test_blockchian(t *testing.T) {
+	tests := []struct {
+		filepath    string
+		expectedErr error
+	}{
+		{"test/test_blockchain.js", nil},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.filepath, func(t *testing.T) {
+			data, err := ioutil.ReadFile(tt.filepath)
+			assert.Nil(t, err, "filepath read error")
+
+			mem, _ := storage.NewMemoryStorage()
+			context, _ := state.NewAccountState(nil, mem)
+			owner := context.GetOrCreateUserAccount([]byte("8a209cec02cbeab7e2f74ad969d2dfe8dd24416aa65589bf"))
+			owner.AddBalance(util.NewUint128FromInt(1000000000))
+			contract, _ := context.CreateContractAccount([]byte("16464b93292d7c99099d4d982a05140f12779f5e299d6eb4"), nil)
+
+			ctx := NewContext(nil, testContextTransaction(), owner, contract, context)
+			engine := NewV8Engine(ctx)
+			engine.SetExecutionLimits(100000, 10000000)
+			err = engine.RunScriptSource(string(data), 0)
+			assert.Equal(t, tt.expectedErr, err)
+			engine.Dispose()
+		})
+	}
+}
+
+func TestBankVaultContract(t *testing.T) {
+	tests := []struct {
+		name         string
+		contractPath string
+		saveArgs     string
+		takeoutArgs  string
+	}{
+		{"deploy bank_vault_contract.js", "./test/bank_vault_contract.js", "[]", "1"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			data, err := ioutil.ReadFile(tt.contractPath)
+			assert.Nil(t, err, "contract path read error")
+
+			mem, _ := storage.NewMemoryStorage()
+			context, _ := state.NewAccountState(nil, mem)
+			owner := context.GetOrCreateUserAccount([]byte("account1"))
+			owner.AddBalance(util.NewUint128FromInt(10000000))
+			contract, _ := context.CreateContractAccount([]byte("account2"), nil)
+
+			ctx := NewContext(testContextBlock(), testContextTransaction(), owner, contract, context)
+			engine := NewV8Engine(ctx)
+			engine.SetExecutionLimits(1000, 10000000)
+			err = engine.DeployAndInit(string(data), "")
+			assert.Nil(t, err)
+			engine.Dispose()
+
+			engine = NewV8Engine(ctx)
+			engine.SetExecutionLimits(1000, 10000000)
+			err = engine.Call(string(data), "save", "[0]")
+			assert.Nil(t, err)
+			engine.Dispose()
+
+			engine = NewV8Engine(ctx)
+			engine.SetExecutionLimits(1000, 10000000)
+			err = engine.Call(string(data), "takeout", "[1]")
+			assert.Nil(t, err)
+			engine.Dispose()
+		})
+	}
 }

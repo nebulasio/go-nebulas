@@ -37,6 +37,13 @@ func NewUint128() *Uint128 {
 	return &Uint128{big.NewInt(0)}
 }
 
+// NewUint128FromString returns a new Uint128 struct with given value.
+func NewUint128FromString(str string) *Uint128 {
+	big := new(big.Int)
+	big.SetString(str, 10)
+	return &Uint128{big}
+}
+
 // NewUint128FromInt returns a new Uint128 struct with given value.
 func NewUint128FromInt(i int64) *Uint128 {
 	return &Uint128{big.NewInt(i)}
@@ -92,6 +99,17 @@ func (u *Uint128) ToFixedSizeBytes() ([16]byte, error) {
 func (u *Uint128) ToFixedSizeByteSlice() ([]byte, error) {
 	bytes, err := u.ToFixedSizeBytes()
 	return bytes[:], err
+}
+
+// String returns the string representation of x.
+func (u *Uint128) String() string {
+	return u.Text(10)
+}
+
+// FromString sets z to the value of s.
+func (u *Uint128) FromString(s string) (*Uint128, bool) {
+	_, ok := u.SetString(s, 10)
+	return u, ok
 }
 
 // FromFixedSizeBytes converts Big-Endian fixed size bytes to Uint128.

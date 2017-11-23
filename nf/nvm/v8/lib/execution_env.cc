@@ -18,27 +18,21 @@
 //
 
 #include "execution_env.h"
-#include "log_callback.h"
+#include "file.h"
+#include "logger.h"
 
 int SetupExecutionEnv(Isolate *isolate, Local<Context> &context) {
-  char data[] =
-      "const require = (function() {\n"
-      "    var requiredLibs = {};\n"
-      "    return function(filename) {\n"
-      "        if (!(filename in requiredLibs)) {\n"
-      "            requiredLibs[filename] = _native_require(filename);\n"
-      "        }\n"
-      "        return requiredLibs[filename];\n"
-      "    };\n"
-      "})();\n"
-      "const console = require('console.js');\n"
-      "const ContractStorage = require('storage.js');\n"
-      "const LocalContractStorage = ContractStorage.lcs;\n"
-      "const GlobalContractStorage = ContractStorage.gcs;\n";
+  char *data = readFile("lib/execution_env.js", NULL);
+  if (data == NULL) {
+    isolate->ThrowException(Exception::Error(
+        String::NewFromUtf8(isolate, "execution_env.js is not found.")));
+    return 1;
+  }
 
   Local<String> source =
       String::NewFromUtf8(isolate, data, NewStringType::kNormal)
           .ToLocalChecked();
+  free(data);
 
   // Compile the source code.
   ScriptOrigin sourceSrcOrigin(
@@ -55,5 +49,6 @@ int SetupExecutionEnv(Isolate *isolate, Local<Context> &context) {
   if (v.IsEmpty()) {
     return 1;
   }
+
   return 0;
 }

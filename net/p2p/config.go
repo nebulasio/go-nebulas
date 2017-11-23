@@ -44,13 +44,12 @@ const (
 
 // Config TODO: move to proto config.
 type Config struct {
-	bucketsize            int
-	latency               time.Duration
+	Bucketsize            int
+	Latency               time.Duration
 	BootNodes             []multiaddr.Multiaddr
 	IP                    string
 	Port                  uint
-	Randseed              int64
-	maxSyncNodes          int
+	MaxSyncNodes          int
 	ChainID               uint32
 	Version               uint8
 	RelayCacheSize        int
@@ -88,7 +87,9 @@ func NewP2PConfig(n Neblet) *Config {
 	}
 	// P2P network randseed, in this release we use port as randseed
 	// config.Randseed = time.Now().Unix()
-	config.Randseed = int64(config.Port)
+	// config.Randseed = int64(config.Port)
+	// config.Randseed = ipToInt64(config.IP)
+
 	return config
 }
 
@@ -118,6 +119,16 @@ func DefautConfig() *Config {
 	//	30, 10, []multiaddr.Multiaddr{bootNode}, "127.0.0.1", 20000, 1896599, 16,
 	//}
 	return &Config{
-		DefaultBucketsize, DefaultLatency, []multiaddr.Multiaddr{}, DefaultIP, DefaultPort, DefaultRandseed, DefaultChainID, DefaultVersion, DefaultVersion, DefaultRelayCacheSize, DefaultStreamStoreSize, DefaultStreamStoreExtendSize,
+		DefaultBucketsize,
+		DefaultLatency,
+		[]multiaddr.Multiaddr{},
+		DefaultIP,
+		DefaultPort,
+		DefaultMaxSyncNodes,
+		DefaultChainID,
+		DefaultVersion,
+		DefaultRelayCacheSize,
+		DefaultStreamStoreSize,
+		DefaultStreamStoreExtendSize,
 	}
 }

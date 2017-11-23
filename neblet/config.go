@@ -20,6 +20,7 @@ package neblet
 
 import (
 	"io/ioutil"
+	"os"
 
 	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/neblet/pb"
@@ -28,19 +29,79 @@ import (
 
 // LoadConfig loads configuration from the file.
 func LoadConfig(filename string) *nebletpb.Config {
-	log.Info("Loading Neb config from file ", filename)
+	//log.Info("Loading Neb config from file ", filename)
+	if !pathExist(filename) {
+		createDefaultConfigFile(filename)
+	}
 	b, err := ioutil.ReadFile(filename)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	str := string(b)
-	log.Info("Parsing Neb config text ", str)
+	//log.Info("Parsing Neb config text ", str)
 
 	pb := new(nebletpb.Config)
 	if err := proto.UnmarshalText(str, pb); err != nil {
 		log.Fatal(err)
 	}
-	log.Info("Loaded Neb config proto ", pb)
+	//log.Info("Loaded Neb config proto ", pb)
 	return pb
+}
+
+func createDefaultConfigFile(filename string) {
+	content := `
+	  p2p {
+		port: 51413
+		chain_id: 100
+		version: 1
+	  }
+	  rpc {
+		api_port: 51510
+		management_port: 52520
+		api_http_port: 8090
+		management_http_port: 8191
+	  }
+	  pow {
+		coinbase: "8a209cec02cbeab7e2f74ad969d2dfe8dd24416aa65589bf"
+	  }
+	  
+	  storage {
+		location: "seed.db"
+	  }
+	  
+	  account {
+		# keystore.SECP256K1 = 1
+		signature: 1
+	  
+		# keystore.SCRYPT = 1 << 4
+		encrypt: 16
+	  
+		key_dir: "keydir"
+	  
+		test_passphrase: "passphrase"
+	  }
+	  
+	  influxdb {
+		host: "http://localhost:8086"
+		db: "nebulas"
+		username: "admin"
+		password: "admin"
+	  }
+	  
+	  metrics {
+		enable: false
+	  }`
+
+	if err := ioutil.WriteFile(filename, []byte(content), 0644); err != nil {
+		log.Fatal(err)
+	}
+}
+
+func pathExist(_path string) bool {
+	_, err := os.Stat(_path)
+	if err != nil && os.IsNotExist(err) {
+		return false
+	}
+	return true
 }

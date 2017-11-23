@@ -19,15 +19,29 @@
 package nvm
 
 /*
+#include <stddef.h>
 void V8Log(int level, const char *msg);
+
+char *RequireDelegateFunc(void *handler, const char *filename, size_t *lineOffset);
+
 char *StorageGetFunc(void *handler, const char *key);
 int StoragePutFunc(void *handler, const char *key, const char *value);
 int StorageDelFunc(void *handler, const char *key);
+
+char *GetTxByHashFunc(void *handler, const char *hash);
+char *GetAccountStateFunc(void *handler, const char *address);
+int TransferFunc(void *handler, const char *to, const char *value);
+int VerifyAddressFunc(void *handler, const char *address);
 
 // The gateway function
 void V8Log_cgo(int level, const char *msg) {
 	V8Log(level, msg);
 };
+
+char *RequireDelegateFunc_cgo(void *handler, const char *filename, size_t *lineOffset) {
+	return RequireDelegateFunc(handler, filename, lineOffset);
+}
+
 char *StorageGetFunc_cgo(void *handler, const char *key) {
 	return StorageGetFunc(handler, key);
 };
@@ -37,5 +51,19 @@ int StoragePutFunc_cgo(void *handler, const char *key, const char *value) {
 int StorageDelFunc_cgo(void *handler, const char *key) {
 	return StorageDelFunc(handler, key);
 };
+
+char *GetTxByHashFunc_cgo(void *handler, const char *hash) {
+	return GetTxByHashFunc(handler, hash);
+};
+char *GetAccountStateFunc_cgo(void *handler, const char *address) {
+	return GetAccountStateFunc(handler, address);
+};
+int TransferFunc_cgo(void *handler, const char *to, const char *value) {
+	return TransferFunc(handler, to, value);
+};
+int VerifyAddressFunc_cgo(void *handler, const char *address) {
+	return VerifyAddressFunc(handler, address);
+};
+
 */
 import "C"

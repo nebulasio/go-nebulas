@@ -1,0 +1,132 @@
+// Copyright (C) 2017 go-nebulas authors
+//
+// This file is part of the go-nebulas library.
+//
+// the go-nebulas library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// the go-nebulas library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with the go-nebulas library.  If not, see <http://www.gnu.org/licenses/>.
+//
+
+package nvm
+
+import "C"
+
+import (
+	"encoding/json"
+	"unsafe"
+
+	"github.com/nebulasio/go-nebulas/util"
+	log "github.com/sirupsen/logrus"
+)
+
+// GetTxByHashFunc returns tx info by hash
+//export GetTxByHashFunc
+func GetTxByHashFunc(handler unsafe.Pointer, hash *C.char) *C.char {
+	engine, _ := getEngineByStorageHandler(uint64(uintptr(handler)))
+	if engine == nil || engine.ctx.block == nil {
+		return nil
+	}
+	tx, err := engine.ctx.SerializeTxByHash([]byte(C.GoString(hash)))
+	if err != nil {
+		log.WithFields(log.Fields{
+			"func":    "nvm.GetTxByHashFunc",
+			"handler": uint64(uintptr(handler)),
+			"key":     C.GoString(hash),
+			"err":     err,
+		}).Error("GetTxByHashFunc get tx failed.")
+		return nil
+	}
+	json, _ := json.Marshal(tx)
+	return C.CString(string(json))
+}
+
+// GetAccountStateFunc returns account info by address
+//export GetAccountStateFunc
+func GetAccountStateFunc(handler unsafe.Pointer, address *C.char) *C.char {
+	engine, _ := getEngineByStorageHandler(uint64(uintptr(handler)))
+	if engine == nil || engine.ctx.block == nil {
+		return nil
+	}
+	addr := C.GoString(address)
+	valid := engine.ctx.block.VerifyAddress(addr)
+	if !valid {
+		log.WithFields(log.Fields{
+			"func":    "nvm.GetAccountStateFunc",
+			"handler": uint64(uintptr(handler)),
+			"key":     C.GoString(address),
+		}).Error("GetAccountStateFunc parse address failed.")
+		return nil
+	}
+
+	acc := engine.ctx.state.GetOrCreateUserAccount([]byte(addr))
+	state := &AccountState{
+		Nonce:   acc.Nonce(),
+		Balance: acc.Balance().String(),
+	}
+	json, _ := json.Marshal(state)
+	return C.CString(string(json))
+}
+
+// TransferFunc transfer vale to address
+//export TransferFunc
+func TransferFunc(handler unsafe.Pointer, to *C.char, v *C.char) int {
+	engine, _ := getEngineByStorageHandler(uint64(uintptr(handler)))
+	if engine == nil || engine.ctx.block == nil {
+		return 0
+	}
+
+	addr := C.GoString(to)
+	valid := engine.ctx.block.VerifyAddress(addr)
+	if !valid {
+		log.WithFields(log.Fields{
+			"func":    "nvm.TransferFunc",
+			"handler": uint64(uintptr(handler)),
+			"key":     C.GoString(to),
+		}).Error("TransferFunc parse address failed.")
+		return 0
+	}
+	toAcc := engine.ctx.state.GetOrCreateUserAccount([]byte(addr))
+
+	var (
+		amount *util.Uint128
+		err    error
+	)
+	amount = util.NewUint128FromString(C.GoString(v))
+
+	// update balance
+	err = engine.ctx.contract.SubBalance(amount)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"func":    "nvm.TransferFunc",
+			"handler": uint64(uintptr(handler)),
+			"key":     C.GoString(to),
+			"err":     err,
+		}).Error("TransferFunc SubBalance failed.")
+		return 0
+	}
+	toAcc.AddBalance(amount)
+	return 1
+}
+
+// VerifyAddressFunc verify address is valid
+//export VerifyAddressFunc
+func VerifyAddressFunc(handler unsafe.Pointer, address *C.char) int {
+	engine, _ := getEngineByStorageHandler(uint64(uintptr(handler)))
+	if engine == nil || engine.ctx.block == nil {
+		return 0
+	}
+
+	if engine.ctx.block.VerifyAddress(C.GoString(address)) {
+		return 1
+	}
+	return 0
+}

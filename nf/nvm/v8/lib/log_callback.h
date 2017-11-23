@@ -29,7 +29,4 @@ using namespace v8;
 void NewNativeLogFunction(Isolate *isolate, Local<ObjectTemplate> globalTpl);
 void LogCallback(const FunctionCallbackInfo<Value> &info);
 
-void LogInfof(const char *format, ...);
-void LogErrorf(const char *format, ...);
-
 #endif // _NEBULAS_NF_NVM_V8_LIB_LOG_CALLBACK_H_

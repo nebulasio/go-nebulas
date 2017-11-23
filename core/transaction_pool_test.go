@@ -54,15 +54,15 @@ func TestTransactionPool(t *testing.T) {
 	signature2.InitSign(key2.(keystore.PrivateKey))
 
 	txs := []*Transaction{
-		NewTransaction(1, from, &Address{[]byte("to")}, util.NewUint128(), 10, []byte("datadata")),
-		NewTransaction(1, other, &Address{[]byte("to")}, util.NewUint128(), 1, []byte("datadata")),
-		NewTransaction(1, from, &Address{[]byte("to")}, util.NewUint128(), 1, []byte("da")),
+		NewTransaction(1, from, &Address{[]byte("to")}, util.NewUint128(), 10, TxPayloadBinaryType, []byte("datadata"), util.NewUint128(), util.NewUint128()),
+		NewTransaction(1, other, &Address{[]byte("to")}, util.NewUint128(), 1, TxPayloadBinaryType, []byte("datadata"), util.NewUint128(), util.NewUint128()),
+		NewTransaction(1, from, &Address{[]byte("to")}, util.NewUint128(), 1, TxPayloadBinaryType, []byte("da"), util.NewUint128(), util.NewUint128()),
 
-		NewTransaction(1, from, &Address{[]byte("to")}, util.NewUint128(), 2, []byte("da")),
-		NewTransaction(0, from, &Address{[]byte("to")}, util.NewUint128(), 0, []byte("da")),
+		NewTransaction(1, from, &Address{[]byte("to")}, util.NewUint128(), 2, TxPayloadBinaryType, []byte("da"), util.NewUint128(), util.NewUint128()),
+		NewTransaction(0, from, &Address{[]byte("to")}, util.NewUint128(), 0, TxPayloadBinaryType, []byte("da"), util.NewUint128(), util.NewUint128()),
 
-		NewTransaction(1, other, &Address{[]byte("to")}, util.NewUint128(), 1, []byte("data")),
-		NewTransaction(1, from, &Address{[]byte("to")}, util.NewUint128(), 1, []byte("datadata")),
+		NewTransaction(1, other, &Address{[]byte("to")}, util.NewUint128(), 1, TxPayloadBinaryType, []byte("data"), util.NewUint128(), util.NewUint128()),
+		NewTransaction(1, from, &Address{[]byte("to")}, util.NewUint128(), 1, TxPayloadBinaryType, []byte("datadata"), util.NewUint128(), util.NewUint128()),
 	}
 
 	txPool := NewTransactionPool(3)

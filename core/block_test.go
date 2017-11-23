@@ -24,19 +24,21 @@ import (
 	"time"
 
 	pb "github.com/gogo/protobuf/proto"
+	"github.com/nebulasio/go-nebulas/core/pb"
 	"github.com/nebulasio/go-nebulas/crypto"
 	"github.com/nebulasio/go-nebulas/crypto/keystore"
 	"github.com/nebulasio/go-nebulas/crypto/keystore/secp256k1"
 	"github.com/nebulasio/go-nebulas/storage"
 	"github.com/nebulasio/go-nebulas/util"
+	"github.com/nebulasio/go-nebulas/util/byteutils"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestBlockHeader(t *testing.T) {
 	type fields struct {
-		hash       Hash
-		parentHash Hash
-		stateRoot  Hash
+		hash       byteutils.Hash
+		parentHash byteutils.Hash
+		stateRoot  byteutils.Hash
 		nonce      uint64
 		coinbase   *Address
 		timestamp  int64
@@ -116,8 +118,10 @@ func TestBlock(t *testing.T) {
 						util.NewUint128(),
 						456,
 						time.Now().Unix(),
-						[]byte("hwllo"),
+						&corepb.Data{Type: TxPayloadBinaryType, Payload: []byte("hello")},
 						1,
+						util.NewUint128(),
+						util.NewUint128(),
 						uint8(keystore.SECP256K1),
 						nil,
 					},
@@ -128,8 +132,10 @@ func TestBlock(t *testing.T) {
 						util.NewUint128(),
 						456,
 						time.Now().Unix(),
-						[]byte("hwllo"),
+						&corepb.Data{Type: TxPayloadBinaryType, Payload: []byte("hello")},
 						1,
+						util.NewUint128(),
+						util.NewUint128(),
 						uint8(keystore.SECP256K1),
 						nil,
 					},
@@ -185,7 +191,7 @@ func TestBlock_LinkParentBlock(t *testing.T) {
 	assert.Equal(t, block1.Height(), uint64(0))
 	assert.Equal(t, block1.LinkParentBlock(genesis), true)
 	assert.Equal(t, block1.Height(), uint64(2))
-	assert.Equal(t, block1.ParentBlock(), genesis)
+	assert.Equal(t, block1.ParentHash(), genesis.Hash())
 	block2 := &Block{
 		header: &BlockHeader{
 			[]byte("124546"),
@@ -227,18 +233,24 @@ func TestBlock_CollectTransactions(t *testing.T) {
 	pubdata2, _ := priv2.PublicKey().Encoded()
 	coinbase, _ := NewAddressFromPublicKey(pubdata2)
 
-	block := NewBlock(0, coinbase, tail, bc.txPool, storage)
-	tx1 := NewTransaction(0, from, to, util.NewUint128(), 1, []byte("nas"))
+	block0 := NewBlock(0, from, tail, bc.txPool, storage)
+	block0.Seal()
+	//bc.BlockPool().push(block0)
+	bc.SetTailBlock(block0)
+
+	block := NewBlock(0, coinbase, block0, bc.txPool, storage)
+
+	tx1 := NewTransaction(0, from, to, util.NewUint128FromInt(1), 1, TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, TransactionGas)
 	tx1.Sign(signature)
-	tx2 := NewTransaction(0, from, to, util.NewUint128(), 2, []byte("nas"))
+	tx2 := NewTransaction(0, from, to, util.NewUint128FromInt(1), 2, TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, TransactionGas)
 	tx2.Sign(signature)
-	tx3 := NewTransaction(0, from, to, util.NewUint128(), 0, []byte("nas"))
+	tx3 := NewTransaction(0, from, to, util.NewUint128FromInt(1), 0, TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, TransactionGas)
 	tx3.Sign(signature)
-	tx4 := NewTransaction(0, from, to, util.NewUint128(), 4, []byte("nas"))
+	tx4 := NewTransaction(0, from, to, util.NewUint128FromInt(1), 4, TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, TransactionGas)
 	tx4.Sign(signature)
-	tx5 := NewTransaction(0, from, to, util.NewUint128FromInt(1), 3, []byte("nas"))
+	tx5 := NewTransaction(0, from, to, util.NewUint128FromInt(1), 3, TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, TransactionGas)
 	tx5.Sign(signature)
-	tx6 := NewTransaction(1, from, to, util.NewUint128(), 1, []byte("nas"))
+	tx6 := NewTransaction(1, from, to, util.NewUint128FromInt(1), 1, TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, TransactionGas)
 	tx6.Sign(signature)
 
 	bc.txPool.Push(tx1)
@@ -249,21 +261,22 @@ func TestBlock_CollectTransactions(t *testing.T) {
 	bc.txPool.Push(tx6)
 
 	assert.Equal(t, len(block.transactions), 0)
+	assert.Equal(t, bc.txPool.cache.Len(), 5)
 	block.CollectTransactions(bc.txPool.cache.Len())
-	assert.Equal(t, len(block.transactions), 2)
-	assert.Equal(t, block.txPool.cache.Len(), 1)
+	assert.Equal(t, len(block.transactions), 4)
+	assert.Equal(t, block.txPool.cache.Len(), 0)
 
 	assert.Equal(t, block.Sealed(), false)
-	acc := block.FindAccount(block.header.coinbase)
-	assert.Equal(t, acc.UserBalance.Cmp(util.NewUint128().Int), 0)
+	balance := block.GetBalance(block.header.coinbase.address)
+	assert.Equal(t, balance.Cmp(util.NewUint128().Int), 0)
 	block.Seal()
 	assert.Equal(t, block.Sealed(), true)
 	assert.Equal(t, block.transactions[0], tx1)
 	assert.Equal(t, block.transactions[1], tx2)
-	assert.Equal(t, block.StateRoot().Equals(block.stateTrie.RootHash()), true)
+	assert.Equal(t, block.StateRoot().Equals(block.accState.RootHash()), true)
 	assert.Equal(t, block.TxsRoot().Equals(block.txsTrie.RootHash()), true)
-	acc = block.FindAccount(block.header.coinbase)
-	assert.Equal(t, acc.UserBalance.Cmp(BlockReward.Int), 0)
+	balance = block.GetBalance(block.header.coinbase.address)
+	assert.Equal(t, balance.Cmp(BlockReward.Int), 0)
 	// mock net message
 	proto, _ := block.ToProto()
 	ir, _ := pb.Marshal(proto)

@@ -18,7 +18,6 @@
 
 syntax = "proto3";
 
-// TODO: support restful endpoints.
 import "google/api/annotations.proto";
 import "github.com/nebulasio/go-nebulas/core/pb/block.proto";
 
@@ -30,6 +29,13 @@ service APIService {
 	rpc GetNebState (GetNebStateRequest) returns (GetNebStateResponse) {
 		option (google.api.http) = {
 			get: "/v1/neb/state"
+		};
+	}
+
+	// Return the p2p node info.
+	rpc NodeInfo (NodeInfoRequest) returns (NodeInfoResponse) {
+		option (google.api.http) = {
+			get: "/v1/node/info"
 		};
 	}
 
@@ -74,26 +80,97 @@ service APIService {
 
 	// Submit the signed transaction.
 	rpc SendRawTransaction (SendRawTransactionRequest) returns (SendTransactionResponse) {
+		option (google.api.http) = {
+            post: "/v1/rawtransaction"
+            body: "*"
+        };
 	}
 
-	// Get block header info by the block hash
+	// Get block header info by the block hash.
 	rpc GetBlockByHash (GetBlockByHashRequest) returns (corepb.Block) {
+		option (google.api.http) = {
+            post: "/v1/getBlockByHash"
+            body: "*"
+        };
 	}
 
-	// Get transaction info by the tansaction hash
-	rpc GetTransactionByHash (GetTransactionByHashRequest) returns (corepb.Transaction) {
+	// Get transactionReceipt info by tansaction hash.
+	rpc GetTransactionReceipt (GetTransactionByHashRequest) returns (TransactionReceiptResponse) {
+		option (google.api.http) = {
+            post: "/v1/getTransactionReceipt"
+            body: "*"
+        };
 	}
+
+	rpc StatisticsNodeInfo (NodeInfoRequest) returns (StatisticsNodeInfoResponse) {
+		option (google.api.http) = {
+			get: "/v1/statistics/nodeInfo"
+		};
+	}
+
 }
 
 // Request message of GetNebState rpc.
 message GetNebStateRequest {
 }
 
+// Request message of NodeInfo rpc.
+message NodeInfoRequest {
+
+}
+
+// Response message of node info.
+message NodeInfoResponse {
+	// the node ID.
+	string id = 1;
+
+	// the block chainID.
+	uint32 chain_id  = 2;
+
+	// the node version.
+	uint32 version = 3;
+
+	// Number of peers currenly connected.
+	int32 peer_count = 4;
+
+	// the node synchronized status.
+	bool synchronized = 5;
+
+	// the node route table bucket size.
+	int32 bucket_size = 6;
+
+	// the node relay cache size.
+	int32 relay_cache_size = 7;
+
+	// the node stream store size.
+	int32 stream_store_size = 8;
+
+	// the node stream store extend size.
+	int32 stream_store_extend_size = 9;
+
+	// the network protocol version.
+	string protocol_version = 10;
+
+	repeated RouteTable route_table = 11;
+}
+
+message StatisticsNodeInfoResponse {
+	string NodeID = 1;
+	uint64 Height = 2;
+	string Hash = 3;
+	uint32 PeerCount = 4;
+}
+
+message RouteTable {
+	string id = 1;
+	repeated string address = 2;
+}
+
 // Response message of GetNebState rpc.
 message GetNebStateResponse {
 
 	// Block chain id
-	uint32 chainID = 1;
+	uint32 chain_id = 1;
 
 	// Current neb tail hash
 	string tail = 2;
@@ -102,10 +179,16 @@ message GetNebStateResponse {
 	string coinbase = 3;
 
 	// Number of peers currenly connected
-	uint32 peerCount = 4;
+	uint32 peer_count = 4;
 
 	// Neb mine status, minging is true ,otherwise false
-	bool isMining = 5;
+	bool is_mining = 5;
+
+	// The current neb protocol version.
+	string protocol_version = 6;
+
+	// The peer sync status.
+	bool synchronized = 7;
 }
 
 // Request message of Accounts rpc.
@@ -130,7 +213,7 @@ message GetAccountStateRequest {
 // Response message of GetAccountState rpc.
 message GetAccountStateResponse {
 	// Current balance in unit of 1/(10^18) nas.
-	bytes balance = 1; // uint128, len=16
+	string balance = 1; // uint128, len=16
 
 	// Current transaction count.
 	uint64 nonce = 2;
@@ -145,20 +228,22 @@ message SendTransactionRequest {
 	string to = 2;
 
 	// Amount of value sending with this transaction.
-	bytes value = 3; // uint128, len=16
+	string value = 3; // uint128, len=16
 
 	// Transaction nonce.
 	uint64 nonce = 4;
-
-	// TODO: gas provided for the transaction.
-
-	// TODO: contract code bytes or hash.
 
 	// contract source code.
 	string source = 5;
 
 	// the params of contract.
 	string args = 6;
+
+	// gasPrice sending with this transaction.
+	string gas_price = 7; // uint128, len=16
+
+	// gasLimit sending with this transaction.
+	string gas_limit = 8; // uint128, len=16
 }
 
 message CallRequest {
@@ -177,13 +262,19 @@ message CallRequest {
 	// the params of contract.
 	string args = 5;
 
+	// gasPrice sending with this transaction.
+	string gas_price = 6; // uint128, len=16
+
+	// gasLimit sending with this transaction.
+	string gas_limit = 7; // uint128, len=16
+
 }
 
 // Request message of SendRawTransactionRequest rpc.
 message SendRawTransactionRequest {
 
 	// Signed data of transaction
-	bytes data = 1;
+	string data = 1;
 }
 
 // Response message of SendTransaction rpc.
@@ -204,16 +295,41 @@ message GetTransactionByHashRequest {
 	string hash = 1;
 }
 
-// Request message of BlockDump
+// Request message of BlockDump.
 message BlockDumpRequest {
 	// the count of blocks to dump before current tail.
 	int32 count = 1;
 }
 
-// Response message of BlockDump
+// Response message of BlockDump.
 message BlockDumpResponse {
 	// block dump info.
 	string data = 1;
+}
+
+// Response message of TransactionReceipt.
+message TransactionReceiptResponse {
+
+	// Hex string of tx hash.
+	string hash = 1;
+
+	// Hex string of the sender account addresss.
+	string from = 2;
+
+	// Hex string of the receiver account addresss.
+	string to = 3;
+
+	// Transaction nonce.
+	uint64 nonce = 4;
+
+	int64 timestamp = 5;
+
+	string data = 6;
+
+	uint32 chainId = 7;
+
+	string contract_address = 8;
+
 }
 
 

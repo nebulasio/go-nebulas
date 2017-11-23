@@ -17,7 +17,8 @@
 //
 'use strict';
 
-var StandardToken = require('./test/ERC20.js');
+
+var StandardToken = require('./ERC20.js');
 
 var token = new StandardToken();
 
@@ -47,9 +48,7 @@ assertInitStatus(new StandardToken()); // assert status for new instance.
 
 // balance.
 console.log('test: pay...');
-var msg = {
-    sender: 'robin'
-};
+
 var assertAfterPayStatus = function (instance) {
     console.log('test: verify pay...');
     if (instance.totalIssued !== 12) {
@@ -60,14 +59,17 @@ var assertAfterPayStatus = function (instance) {
         throw new Error("robin's balance should be 12, but is " + instance.balanceOf(msg.sender));
     }
 };
-token.pay(12);
+const msg = {
+    sender: 'robin'
+};
+token.pay(msg, 12);
 assertAfterPayStatus(token);
 assertAfterPayStatus(new StandardToken()); // assert status for new instance.
 
 console.log('test: pay exceed error...');
 var err = new Error("exceed amount should throw exception, but not");
 try {
-    token.pay(999989);
+    token.pay(msg, 999989);
 } catch (e) {
     if (e == err) {
         throw e;

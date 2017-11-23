@@ -24,6 +24,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// V8Log export V8Log
 //export V8Log
 func V8Log(level int, msg *C.char) {
 	s := C.GoString(msg)

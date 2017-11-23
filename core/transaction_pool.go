@@ -26,6 +26,7 @@ import (
 	"github.com/nebulasio/go-nebulas/common/pdeque"
 	"github.com/nebulasio/go-nebulas/core/pb"
 	"github.com/nebulasio/go-nebulas/net"
+	"github.com/nebulasio/go-nebulas/util/byteutils"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -37,10 +38,11 @@ type TransactionPool struct {
 
 	size  int
 	cache *pdeque.PriorityDeque
-	all   map[HexHash]*Transaction
+	all   map[byteutils.HexHash]*Transaction
 	bc    *BlockChain
 
 	nm net.Manager
+	//TODO: miner should have the lowest gasPrice & maximum gasLimt
 }
 
 func less(a interface{}, b interface{}) bool {
@@ -63,7 +65,7 @@ func NewTransactionPool(size int) *TransactionPool {
 		quitCh:            make(chan int, 1),
 		size:              size,
 		cache:             pdeque.NewPriorityDeque(less),
-		all:               make(map[HexHash]*Transaction),
+		all:               make(map[byteutils.HexHash]*Transaction),
 	}
 	return txPool
 }

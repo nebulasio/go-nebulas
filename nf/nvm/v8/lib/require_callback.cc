@@ -17,7 +17,10 @@
 // <http://www.gnu.org/licenses/>.
 //
 #include "require_callback.h"
-#include "log_callback.h"
+#include "../engine.h"
+#include "file.h"
+#include "global.h"
+#include "logger.h"
 
 #include <assert.h>
 #include <stdio.h>
@@ -28,88 +31,42 @@
 
 using namespace v8;
 
-static char source_require_begin[] = "(function(){"
-                                     "var module = {};";
+static char source_require_format[] =
+    "(function(){\n"
+    "return function (exports, module, require) {\n"
+    "%s\n"
+    "};\n"
+    "})();\n";
 
-static char source_require_end[] = ";\n"
-                                   "if (module.exports) {\n"
-                                   " return module.exports;\n"
-                                   "} else if (exports) {\n"
-                                   " return exports;\n"
-                                   "}\n"
-                                   "})();\n";
+static RequireDelegate sRequireDelegate = NULL;
 
-static char *getValidFilePath(const char *filename) {
-  size_t len = strlen(filename);
-  char *ret = NULL;
-
-  if (strncmp(filename, "./", 2) == 0) {
-    // Load file from local package.
-    ret = (char *)malloc(len + 1);
-    stpcpy(ret, filename);
-    return ret;
-
-  } else {
-    // Load file from lib.
-    ret = (char *)malloc(len + 1 + 6);
-    strcpy(ret, "./lib/");
-    strcpy(ret + 6, filename);
+static int readSource(Local<Context> context, const char *filename, char **data,
+                      size_t *lineOffset) {
+  if (strstr(filename, "\"") != NULL) {
+    return -1;
   }
 
-  return ret;
-}
+  *lineOffset = 0;
 
-static int readSource(const char *filename, char **data, size_t *size) {
-  char *path = getValidFilePath(filename);
+  char *content = NULL;
 
-  // char cwd[1024];
-  // getcwd(cwd, 1024);
-  // logInfof("fullpath is %s/%s", cwd, path);
-
-  FILE *f = fopen(path, "r");
-  free(path);
-
-  if (f == NULL) {
-    // logErrorf("file %s does not found.", filename);
-    return 1;
+  // try sRequireDelegate.
+  if (sRequireDelegate != NULL) {
+    V8Engine *e = GetV8EngineInstance(context);
+    content = sRequireDelegate(e, filename, lineOffset);
   }
 
-  // get file size.
-  fseek(f, 0L, SEEK_END);
-  size_t fileSize = ftell(f);
-  rewind(f);
-
-  *size = fileSize + 1024; // 1m buffer by default.
-  *data = (char *)malloc(*size);
-  size_t idx = 0;
-
-  // Prepare the source.
-  idx += sprintf(*data, "%s", source_require_begin);
-
-  size_t len = 0;
-  while ((len = fread(*data + idx, sizeof(char), *size - idx, f)) > 0) {
-    idx += len;
-    if (*size - idx <= 1) {
-      *size *= 2;
-      *data = (char *)realloc(*data, *size);
+  if (content == NULL) {
+    size_t file_size = 0;
+    content = readFile(filename, &file_size);
+    if (content == NULL) {
+      return 1;
     }
   }
-  *(*data + idx) = '\0';
 
-  if (feof(f) == 0) {
-    free(static_cast<void *>(*data));
-    // logErrorf("read file %s error.", filename);
-    return 1;
-  }
-
-  fclose(f);
-
-  size_t source_end_len = strlen(source_require_end);
-  if (*size - idx < source_end_len) {
-    *size = idx + source_end_len + 1;
-    *data = (char *)realloc(*data, *size);
-  }
-  idx += sprintf(*data + idx, "%s", source_require_end);
+  asprintf(data, source_require_format, content);
+  *lineOffset += -2;
+  free(content);
 
   return 0;
 }
@@ -117,12 +74,14 @@ static int readSource(const char *filename, char **data, size_t *size) {
 void NewNativeRequireFunction(Isolate *isolate,
                               Local<ObjectTemplate> globalTpl) {
   globalTpl->Set(String::NewFromUtf8(isolate, "_native_require"),
-                 FunctionTemplate::New(isolate, RequireCallback));
+                 FunctionTemplate::New(isolate, RequireCallback),
+                 static_cast<PropertyAttribute>(PropertyAttribute::DontDelete |
+                                                PropertyAttribute::ReadOnly));
 }
 
 void RequireCallback(const v8::FunctionCallbackInfo<v8::Value> &info) {
-  // logErrorf("require called.");
   Isolate *isolate = info.GetIsolate();
+  Local<Context> context = isolate->GetCurrentContext();
 
   if (info.Length() == 0) {
     isolate->ThrowException(
@@ -139,8 +98,8 @@ void RequireCallback(const v8::FunctionCallbackInfo<v8::Value> &info) {
 
   String::Utf8Value filename(path);
   char *data = NULL;
-  size_t size = 0;
-  if (readSource(*filename, &data, &size)) {
+  size_t lineOffset = 0;
+  if (readSource(context, *filename, &data, &lineOffset)) {
     char msg[512];
     snprintf(msg, 512, "require cannot find module '%s'", *filename);
     isolate->ThrowException(
@@ -148,10 +107,7 @@ void RequireCallback(const v8::FunctionCallbackInfo<v8::Value> &info) {
     return;
   }
 
-  // logErrorf("source is: %s", data);
-  Local<Context> context = isolate->GetCurrentContext();
-
-  ScriptOrigin sourceSrcOrigin(path);
+  ScriptOrigin sourceSrcOrigin(path, Integer::New(isolate, lineOffset));
   MaybeLocal<Script> script = Script::Compile(
       context, String::NewFromUtf8(isolate, data), &sourceSrcOrigin);
   if (!script.IsEmpty()) {
@@ -165,14 +121,6 @@ void RequireCallback(const v8::FunctionCallbackInfo<v8::Value> &info) {
   free(static_cast<void *>(data));
 }
 
-char *EncapsulateSourceToModuleStyle(const char *source) {
-  size_t size = strlen(source) + strlen(source_require_begin) +
-                strlen(source_require_end) + 1;
-  char *data = (char *)malloc(size);
-
-  size_t count =
-      sprintf(data, "%s%s%s", source_require_begin, source, source_require_end);
-  assert(count + 1 == size);
-
-  return data;
+void InitializeRequireDelegate(RequireDelegate delegate) {
+  sRequireDelegate = delegate;
 }

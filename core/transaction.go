@@ -33,30 +33,29 @@ import (
 )
 
 var (
-	// ErrInsufficientBalance insufficient balance error.
-	ErrInsufficientBalance = errors.New("insufficient balance")
+	// TransactionGasPrice default gasPrice
+	TransactionGasPrice = util.NewUint128FromInt(1)
 
-	// ErrInvalidSignature the signature is not sign by from address.
-	ErrInvalidSignature = errors.New("invalid transaction signature")
-
-	// ErrInvalidTransactionHash invalid hash.
-	ErrInvalidTransactionHash = errors.New("invalid transaction hash")
+	// TransactionGas default gasLimt
+	TransactionGas = util.NewUint128FromInt(20000)
 )
 
 // Transaction type is used to handle all transaction data.
 type Transaction struct {
-	hash      Hash
+	hash      byteutils.Hash
 	from      *Address
 	to        *Address
 	value     *util.Uint128
 	nonce     uint64
 	timestamp int64
-	data      []byte
+	data      *corepb.Data
 	chainID   uint32
+	gasPrice  *util.Uint128
+	gasLimit  *util.Uint128
 
 	// Signature
-	alg  uint8 // algorithm
-	sign Hash  // Signature values
+	alg  uint8          // algorithm
+	sign byteutils.Hash // Signature values
 }
 
 // From return from address
@@ -64,19 +63,42 @@ func (tx *Transaction) From() *Address {
 	return tx.from
 }
 
+// Timestamp return timestamp
+func (tx *Transaction) Timestamp() int64 {
+	return tx.timestamp
+}
+
+// To return to address
+func (tx *Transaction) To() *Address {
+	return tx.to
+}
+
+// ChainID return chainID
+func (tx *Transaction) ChainID() uint32 {
+	return tx.chainID
+}
+
 // Nonce return tx nonce
 func (tx *Transaction) Nonce() uint64 {
 	return tx.nonce
 }
 
-// DataLen return data length
-func (tx *Transaction) DataLen() int {
-	return len(tx.data)
+// Data return tx data
+func (tx *Transaction) Data() []byte {
+	return tx.data.Payload
 }
 
 // ToProto converts domain Tx to proto Tx
 func (tx *Transaction) ToProto() (proto.Message, error) {
 	value, err := tx.value.ToFixedSizeByteSlice()
+	if err != nil {
+		return nil, err
+	}
+	gasPrice, err := tx.gasPrice.ToFixedSizeByteSlice()
+	if err != nil {
+		return nil, err
+	}
+	gasLimit, err := tx.gasLimit.ToFixedSizeByteSlice()
 	if err != nil {
 		return nil, err
 	}
@@ -89,6 +111,8 @@ func (tx *Transaction) ToProto() (proto.Message, error) {
 		Timestamp: tx.timestamp,
 		Data:      tx.data,
 		ChainId:   tx.chainID,
+		GasPrice:  gasPrice,
+		GasLimit:  gasLimit,
 		Alg:       uint32(tx.alg),
 		Sign:      tx.sign,
 	}, nil
@@ -109,6 +133,16 @@ func (tx *Transaction) FromProto(msg proto.Message) error {
 		tx.timestamp = msg.Timestamp
 		tx.data = msg.Data
 		tx.chainID = msg.ChainId
+		gasPrice, err := util.NewUint128FromFixedSizeByteSlice(msg.GasPrice)
+		if err != nil {
+			return err
+		}
+		tx.gasPrice = gasPrice
+		gasLimit, err := util.NewUint128FromFixedSizeByteSlice(msg.GasLimit)
+		if err != nil {
+			return err
+		}
+		tx.gasLimit = gasLimit
 		tx.alg = uint8(msg.Alg)
 		tx.sign = msg.Sign
 		return nil
@@ -129,7 +163,7 @@ func (tx *Transaction) String() string {
 type Transactions []*Transaction
 
 // NewTransaction create #Transaction instance.
-func NewTransaction(chainID uint32, from, to *Address, value *util.Uint128, nonce uint64, data []byte) *Transaction {
+func NewTransaction(chainID uint32, from, to *Address, value *util.Uint128, nonce uint64, payloadType string, payload []byte, gasPrice *util.Uint128, gasLimit *util.Uint128) *Transaction {
 	tx := &Transaction{
 		from:      from,
 		to:        to,
@@ -137,67 +171,91 @@ func NewTransaction(chainID uint32, from, to *Address, value *util.Uint128, nonc
 		nonce:     nonce,
 		timestamp: time.Now().Unix(),
 		chainID:   chainID,
-		data:      data,
+		data:      &corepb.Data{Type: payloadType, Payload: payload},
+		gasPrice:  gasPrice,
+		gasLimit:  gasLimit,
 	}
 	return tx
 }
 
 // Hash return the hash of transaction.
-func (tx *Transaction) Hash() Hash {
+func (tx *Transaction) Hash() byteutils.Hash {
 	return tx.hash
 }
 
-// TargetContractAddress return the target contract address.
-func (tx *Transaction) TargetContractAddress() *Address {
-	isContractPayload, txPayload := isContractPayload(tx.data)
-	if isContractPayload == false {
-		return nil
+// GasPrice returns gasPrice
+func (tx *Transaction) GasPrice() *util.Uint128 {
+	// if gasPrice <= 0 , returns default gasPrice
+	if tx.gasPrice.Cmp(util.NewUint128FromInt(0).Int) <= 0 {
+		// TODO:the default gasPrice needs to be computed dynamically
+		return TransactionGasPrice
 	}
+	return tx.gasPrice
+}
 
-	// deploy contract has different contract address rules.
-	if txPayload.PayloadType == TxPayloadDeployType {
-		return tx.generateContractAddress()
+// GasLimit returns gasLimit
+func (tx *Transaction) GasLimit() *util.Uint128 {
+	// if gasLimit <= 0 , returns default gasLimit
+	if tx.gasPrice.Cmp(util.NewUint128FromInt(0).Int) <= 0 {
+		return TransactionGas
 	}
+	return tx.gasLimit
+}
 
-	// tx.to is the contract address.
-	return tx.to
+// Cost returns value + gasprice * gaslimit.
+func (tx *Transaction) Cost() *util.Uint128 {
+	total := util.NewUint128().Mul(tx.GasPrice().Int, tx.GasLimit().Int)
+	total.Add(total, tx.value.Int)
+	return util.NewUint128FromBigInt(total)
+}
 
+// DataLen return the length of payload
+func (tx *Transaction) DataLen() int {
+	return len(tx.data.Payload)
 }
 
 // Execute transaction and return result.
 func (tx *Transaction) Execute(block *Block) error {
 	// check balance.
-	fromAcc := block.FindAccount(tx.from)
-	toAcc := block.FindAccount(tx.to)
+	fromAcc := block.accState.GetOrCreateUserAccount(tx.from.address)
+	toAcc := block.accState.GetOrCreateUserAccount(tx.to.address)
 
-	if fromAcc.UserBalance.Cmp(tx.value.Int) < 0 {
+	// TODO:calculate data cost gas
+	if fromAcc.Balance().Cmp(tx.Cost().Int) < 0 {
 		return ErrInsufficientBalance
 	}
 
 	// accept the transaction
-	if !tx.from.Equals(tx.to) {
-		fromAcc.SubBalance(tx.value)
-		toAcc.AddBalance(tx.value)
-	}
+	fromAcc.SubBalance(tx.value)
+	toAcc.AddBalance(tx.value)
 	fromAcc.IncreNonce()
 
-	// execute smart contract if needed.
-	if tx.DataLen() > 0 {
-		txPayload, err := parseTxPayload(tx.data)
-		if err != nil {
-			return err
-		}
-
-		if err := txPayload.Execute(tx, block); err != nil {
-			return err
-		}
+	// only normal transaction(don't execute smart contract) sub gas here
+	if tx.data.Type == TxPayloadBinaryType {
+		gas := util.NewUint128().Mul(tx.GasPrice().Int, tx.GasLimit().Int)
+		fromAcc.SubBalance(util.NewUint128FromBigInt(gas))
 	}
 
-	// save account info in state trie
-	block.saveAccount(tx.to, toAcc)
-	block.saveAccount(tx.from, fromAcc)
+	// execute payload
+	var payload TxPayload
+	var err error
+	switch tx.data.Type {
+	case TxPayloadBinaryType:
+		payload, err = LoadBinaryPayload(tx.data.Payload)
+	case TxPayloadDeployType:
+		payload, err = LoadDeployPayload(tx.data.Payload)
+	case TxPayloadCallType:
+		payload, err = LoadCallPayload(tx.data.Payload)
+	default:
+		return ErrInvalidTxPayloadType
+	}
 
-	return nil
+	if err != nil {
+		return err
+	}
+
+	// execute smart contract and sub the calcute gas.
+	return payload.Execute(tx, block)
 }
 
 // Sign sign transaction,sign algorithm is
@@ -267,25 +325,38 @@ func (tx *Transaction) verifySign() (bool, error) {
 	return signature.Verify(tx.hash, tx.sign)
 }
 
-// generateContractAddress generate and return contract address according to tx.from and tx.nonce.
-func (tx *Transaction) generateContractAddress() *Address {
-	address, _ := NewContractAddressFromHash(hash.Sha3256(tx.from.Bytes(), byteutils.FromUint64(tx.nonce)))
-	return address
+// GenerateContractAddress according to tx.from and tx.nonce.
+func (tx *Transaction) GenerateContractAddress() (*Address, error) {
+	return NewContractAddressFromHash(hash.Sha3256(tx.from.Bytes(), byteutils.FromUint64(tx.nonce)))
 }
 
 // HashTransaction hash the transaction.
-func HashTransaction(tx *Transaction) (Hash, error) {
-	bytes, err := tx.value.ToFixedSizeByteSlice()
+func HashTransaction(tx *Transaction) (byteutils.Hash, error) {
+	value, err := tx.value.ToFixedSizeByteSlice()
+	if err != nil {
+		return nil, err
+	}
+	data, err := proto.Marshal(tx.data)
+	if err != nil {
+		return nil, err
+	}
+	gasPrice, err := tx.gasPrice.ToFixedSizeByteSlice()
+	if err != nil {
+		return nil, err
+	}
+	gasLimit, err := tx.gasLimit.ToFixedSizeByteSlice()
 	if err != nil {
 		return nil, err
 	}
 	return hash.Sha3256(
 		tx.from.address,
 		tx.to.address,
-		bytes,
+		value,
 		byteutils.FromUint64(tx.nonce),
 		byteutils.FromInt64(tx.timestamp),
-		tx.data,
+		data,
 		byteutils.FromUint32(tx.chainID),
+		gasPrice,
+		gasLimit,
 	), nil
 }

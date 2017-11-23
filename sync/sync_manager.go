@@ -35,23 +35,43 @@ const (
 	DescendantCount = 3
 )
 
+var (
+	nonce       = uint64(0)
+	msgErrCount = 0
+)
+
 // Manager is used to manage the sync service
 type Manager struct {
-	blockChain         *core.BlockChain
-	consensus          consensus.Consensus
-	ns                 *p2p.NetService
-	quitCh             chan bool
-	syncCh             chan bool
-	receiveTailCh      chan net.Message
-	receiveSyncReplyCh chan net.Message
-	cacheList          map[string]*NetBlocks
-	endSyncCh          chan bool
-	syncing            bool
+	blockChain             *core.BlockChain
+	consensus              consensus.Consensus
+	ns                     *p2p.NetService
+	quitCh                 chan bool
+	syncCh                 chan bool
+	receiveTailCh          chan net.Message
+	receiveSyncReplyCh     chan net.Message
+	cacheList              map[string]*NetBlocks
+	endSyncCh              chan bool
+	curTail                *core.Block
+	canSyncWithBlockListCh chan bool
+	goParentSyncCh         chan bool
 }
 
 // NewManager new sync manager
 func NewManager(blockChain *core.BlockChain, consensus consensus.Consensus, ns *p2p.NetService) *Manager {
-	m := &Manager{blockChain, consensus, ns, make(chan bool, 1), make(chan bool, 1), make(chan net.Message, 128), make(chan net.Message, 128), make(map[string]*NetBlocks), make(chan bool, 1), false}
+	m := &Manager{
+		blockChain,
+		consensus,
+		ns,
+		make(chan bool, 1),
+		make(chan bool, 1),
+		make(chan net.Message, 128),
+		make(chan net.Message, 128),
+		make(map[string]*NetBlocks),
+		make(chan bool, 1),
+		blockChain.TailBlock(),
+		make(chan bool, 1),
+		make(chan bool, 1),
+	}
 	m.RegisterSyncBlockInNetwork(ns)
 	m.RegisterSyncReplyInNetwork(ns)
 	return m
@@ -80,6 +100,7 @@ func (m *Manager) Start() {
 	m.startMsgHandle()
 	if len(m.ns.Node().Config().BootNodes) > 0 {
 		m.startSync()
+		m.curTail = m.blockChain.TailBlock()
 	} else {
 		log.Info("Sync.Start: i am a seed node.")
 		m.ns.Node().SetSynchronized(true)
@@ -91,10 +112,11 @@ func (m *Manager) Start() {
 
 func (m *Manager) startSync() {
 	go m.loop()
-	m.syncWithPeers()
+	m.syncWithPeers(m.curTail)
 }
 
 func (m *Manager) loop() {
+
 	for {
 		select {
 		case <-m.quitCh:
@@ -105,41 +127,33 @@ func (m *Manager) loop() {
 				m.consensus.SetCanMining(true)
 				m.downloader()
 			}
-			// break Loop
-		case msg := <-m.syncCh:
-			if msg {
-				log.Info("loop: m.syncCh true")
-				m.syncWithPeers()
-			}
+		case <-m.syncCh:
+			m.syncWithPeers(m.curTail)
 		}
 	}
 }
 
 func (m *Manager) downloader() {
-	second := 10 * time.Second
-	ticker := time.NewTicker(second)
+	interval := 10 * time.Second
+	ticker := time.NewTicker(interval)
 	for {
 		select {
 		case <-ticker.C:
-			m.syncWithPeers()
+			block := m.blockChain.TailBlock()
+			m.syncWithPeers(block)
 		}
 	}
 }
 
-func (m *Manager) syncWithPeers() {
-	block := m.blockChain.TailBlock()
-
-	key, err := p2p.GenerateKey(m.ns.Addrs(), m.ns.Node().ID())
-	if err != nil {
-		log.Error("GenerateKey occurs error, sync has been terminated.")
-		return
-	}
-	tail := NewNetBlock(key, block)
+func (m *Manager) syncWithPeers(block *core.Block) {
+	nonce++
+	tail := NewNetBlock(m.ns.Node().ID(), nonce, block)
 	log.WithFields(log.Fields{
 		"tail":  tail,
 		"block": tail.block,
 	}).Info("syncWithPeers: got tail")
-	err = m.ns.Sync(tail)
+	err := m.ns.Sync(tail)
+
 	switch err {
 	case nil:
 	case p2p.ErrNodeNotEnough:
@@ -152,6 +166,26 @@ func (m *Manager) syncWithPeers() {
 	default:
 		log.Error("syncWithPeers occurs error, sync has been terminated.")
 	}
+	go (func() {
+		timeout := 30 * time.Second
+
+		select {
+		case <-m.canSyncWithBlockListCh:
+			m.syncWithBlockList(m.cacheList)
+		case <-m.goParentSyncCh:
+			m.goSyncParentWithPeers()
+		case <-time.After(timeout):
+			m.goSyncParentWithPeers()
+		}
+	})()
+
+}
+
+func (m *Manager) goSyncParentWithPeers() {
+	if !m.ns.Node().GetSynchronized() && !core.CheckGenesisBlock(m.curTail) {
+		m.curTail = m.blockChain.GetBlock(m.curTail.ParentHash())
+		m.syncWithPeers(m.curTail)
+	}
 }
 
 // StartMsgHandle start sync message handle loop
@@ -160,6 +194,10 @@ func (m *Manager) startMsgHandle() {
 		for {
 			select {
 			case msg := <-m.receiveTailCh:
+				if !m.ns.Node().GetSynchronized() {
+					log.Warn("node can not reply sync message when it is synchronizing")
+					continue
+				}
 				// 1.find the common ancestors
 				// 2.find 10 blocks after ancestors if exist
 				tail := new(NetBlock)
@@ -172,26 +210,29 @@ func (m *Manager) startMsgHandle() {
 					log.Error("StartMsgHandle.receiveTailCh: get block from proto occurs error: ", err)
 					continue
 				}
-				// tail := sync.blockChain.TailBlock()
+
+				key := m.ns.Node().ID()
+
 				ancestor, err := m.blockChain.FindCommonAncestorWithTail(tail.block)
+				var emptyblocks []*core.Block
 				if err != nil {
 					log.Warn("StartMsgHandle.receiveTailCh: find common ancestor with tail occurs error, ", err)
+					netblocks := NewNetBlocks(key, tail.nonce, emptyblocks)
+					m.ns.SendSyncReply(tail.from, netblocks)
 					continue
 				}
 				subsequentBlocks, err := m.blockChain.FetchDescendantInCanonicalChain(DescendantCount, ancestor)
 				if err != nil {
 					log.Warn("StartMsgHandle.receiveTailCh: FetchDescendantInCanonicalChain occurs error, ", err)
+					netblocks := NewNetBlocks(key, tail.nonce, emptyblocks)
+					m.ns.SendSyncReply(tail.from, netblocks)
 					continue
 				}
 				subsequentBlocks = append(subsequentBlocks, ancestor)
-				key, err := p2p.GenerateKey(m.ns.Addrs(), m.ns.Node().ID())
-				if err != nil {
-					log.Warn("StartMsgHandle.receiveTailCh: GenerateKey occurs error, ", err)
-					continue
-				}
-				blocks := NewNetBlocks(key, subsequentBlocks)
+				blocks := NewNetBlocks(key, tail.nonce, subsequentBlocks)
 				log.WithFields(log.Fields{
 					"from":   blocks.from,
+					"nonce":  blocks.nonce,
 					"blocks": blocks.blocks,
 				}).Info("StartMsgHandle.receiveTailCh: receive receiveTailCh message.")
 				m.ns.SendSyncReply(tail.from, blocks)
@@ -211,7 +252,19 @@ func (m *Manager) startMsgHandle() {
 					log.Error("StartMsgHandle.receiveSyncReplyCh: get blocks from proto occurs error: ", err)
 					continue
 				}
+				if data.nonce < nonce {
+					continue
+				}
 				blocks := data.Blocks()
+
+				if len(blocks) == 0 {
+					msgErrCount++
+					if msgErrCount >= p2p.LimitToSync/2 {
+						// go to next sync
+						msgErrCount = 0
+						m.goParentSyncCh <- true
+					}
+				}
 
 				log.WithFields(log.Fields{
 					"from":   data.from,
@@ -232,7 +285,8 @@ func (m *Manager) startMsgHandle() {
 func (m *Manager) checkSyncLimitHandler(data *NetBlocks) {
 	m.cacheList[data.from] = data
 	if len(m.cacheList) >= p2p.LimitToSync {
-		m.syncWithBlockList(m.cacheList)
+		// m.syncWithBlockList(m.cacheList)
+		m.canSyncWithBlockListCh <- true
 	}
 
 }
@@ -254,7 +308,7 @@ func (m *Manager) doSyncBlocksWithCommonAncestor(addrsArray []string) {
 		return
 	}
 	root := m.cacheList[addrsArray[0]].blocks
-
+	var tail *core.Block
 	for i := 0; i < len(root)-1; i++ {
 		count := 1
 		for j := 1; j < len(addrsArray); j++ {
@@ -273,12 +327,13 @@ func (m *Manager) doSyncBlocksWithCommonAncestor(addrsArray []string) {
 				m.syncCh <- true
 				return
 			}
+			tail = root[i]
 		}
 	}
 
 	syncContinue := false
 	for i := 0; i < len(addrsArray); i++ {
-		if len(m.cacheList[addrsArray[0]].blocks) > DescendantCount {
+		if len(m.cacheList[addrsArray[i]].blocks) > DescendantCount {
 			log.Info("StartMsgHandle: more Descendant need to synchronize, go to next synchronization")
 			syncContinue = true
 		}
@@ -288,8 +343,12 @@ func (m *Manager) doSyncBlocksWithCommonAncestor(addrsArray []string) {
 		for k := range m.cacheList {
 			delete(m.cacheList, k)
 		}
+		m.curTail = tail
 		m.syncCh <- true
 	} else { // sync finish
+		for k := range m.cacheList {
+			delete(m.cacheList, k)
+		}
 		m.endSyncCh <- true
 	}
 }

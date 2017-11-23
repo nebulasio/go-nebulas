@@ -29,30 +29,37 @@ import (
 // NetBlocks structure
 type NetBlocks struct {
 	from   string
+	nonce  uint64
 	blocks []*core.Block
 }
 
 // NetBlock structure
 type NetBlock struct {
 	from  string
+	nonce uint64
 	block *core.Block
 }
 
 // NewNetBlocks return new Blocks.
-func NewNetBlocks(from string, blocks []*core.Block) *NetBlocks {
-	bs := &NetBlocks{from: from, blocks: blocks}
+func NewNetBlocks(from string, nonce uint64, blocks []*core.Block) *NetBlocks {
+	bs := &NetBlocks{from: from, nonce: nonce, blocks: blocks}
 	return bs
 }
 
 // NewNetBlock return new Blocks.
-func NewNetBlock(from string, block *core.Block) *NetBlock {
-	b := &NetBlock{from: from, block: block}
+func NewNetBlock(from string, nonce uint64, block *core.Block) *NetBlock {
+	b := &NetBlock{from: from, nonce: nonce, block: block}
 	return b
 }
 
 // Blocks return blocks.
 func (nbs *NetBlocks) Blocks() []*core.Block {
 	return nbs.blocks
+}
+
+// Nonce return nonce.
+func (nbs *NetBlocks) Nonce() uint64 {
+	return nbs.nonce
 }
 
 // ToProto converts domain Blocks into proto Blocks
@@ -71,6 +78,7 @@ func (nbs *NetBlocks) ToProto() (proto.Message, error) {
 	}
 	return &corepb.NetBlocks{
 		From:   nbs.from,
+		Nonce:  nbs.nonce,
 		Blocks: result,
 	}, nil
 }
@@ -79,6 +87,7 @@ func (nbs *NetBlocks) ToProto() (proto.Message, error) {
 func (nbs *NetBlocks) FromProto(msg proto.Message) error {
 	if msg, ok := msg.(*corepb.NetBlocks); ok {
 		nbs.from = msg.From
+		nbs.nonce = msg.Nonce
 		for _, v := range msg.Blocks {
 			block := new(core.Block)
 			if err := block.FromProto(v); err != nil {
@@ -104,6 +113,7 @@ func (nb *NetBlock) ToProto() (proto.Message, error) {
 	}
 	return &corepb.NetBlock{
 		From:  nb.from,
+		Nonce: nb.nonce,
 		Block: block.(*corepb.Block),
 	}, nil
 }
@@ -112,6 +122,7 @@ func (nb *NetBlock) ToProto() (proto.Message, error) {
 func (nb *NetBlock) FromProto(msg proto.Message) error {
 	if msg, ok := msg.(*corepb.NetBlock); ok {
 		nb.from = msg.From
+		nb.nonce = msg.Nonce
 		block := new(core.Block)
 		if err := block.FromProto(msg.Block); err != nil {
 			return err

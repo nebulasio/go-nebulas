@@ -18,6 +18,9 @@
 //
 
 #include "log_callback.h"
+#include "logger.h"
+
+#include <stdarg.h>
 
 static LogFunc LOG = NULL;
 static const char *LogLevelText[] = {"DEBUG", "WARN", "INFO", "ERROR"};
@@ -36,7 +39,9 @@ void InitializeLogger(LogFunc log) { LOG = log; }
 
 void NewNativeLogFunction(Isolate *isolate, Local<ObjectTemplate> globalTpl) {
   globalTpl->Set(String::NewFromUtf8(isolate, "_native_log"),
-                 FunctionTemplate::New(isolate, LogCallback));
+                 FunctionTemplate::New(isolate, LogCallback),
+                 static_cast<PropertyAttribute>(PropertyAttribute::DontDelete |
+                                                PropertyAttribute::ReadOnly));
 }
 
 void LogCallback(const FunctionCallbackInfo<Value> &info) {
@@ -77,10 +82,12 @@ void LogInfof(const char *format, ...) {
   va_list vl;
   va_start(vl, format);
 
-  char msg[1024];
-  vsnprintf(msg, 1024, format, vl);
-
-  LOG(LogLevel::INFO, msg);
+  char *msg = NULL;
+  vasprintf(&msg, format, vl);
+  if (msg != NULL) {
+    LOG(LogLevel::INFO, msg);
+    free(msg);
+  }
 
   va_end(vl);
 }
@@ -93,10 +100,66 @@ void LogErrorf(const char *format, ...) {
   va_list vl;
   va_start(vl, format);
 
-  char msg[1024];
-  vsnprintf(msg, 1024, format, vl);
+  char *msg = NULL;
+  vasprintf(&msg, format, vl);
+  if (msg != NULL) {
+    LOG(LogLevel::ERROR, msg);
+    free(msg);
+  }
 
-  LOG(LogLevel::ERROR, msg);
+  va_end(vl);
+}
+
+void LogWarnf(const char *format, ...) {
+  if (LOG == NULL) {
+    return;
+  }
+
+  va_list vl;
+  va_start(vl, format);
+
+  char *msg = NULL;
+  vasprintf(&msg, format, vl);
+  if (msg != NULL) {
+    LOG(LogLevel::WARN, msg);
+    free(msg);
+  }
+
+  va_end(vl);
+}
+
+void LogDebugf(const char *format, ...) {
+  if (LOG == NULL) {
+    return;
+  }
+
+  va_list vl;
+  va_start(vl, format);
+
+  char *msg = NULL;
+  vasprintf(&msg, format, vl);
+  if (msg != NULL) {
+    LOG(LogLevel::DEBUG, msg);
+    free(msg);
+  }
+
+  va_end(vl);
+}
+
+void LogFatalf(const char *format, ...) {
+  if (LOG == NULL) {
+    return;
+  }
+
+  va_list vl;
+  va_start(vl, format);
+
+  char *msg = NULL;
+  vasprintf(&msg, format, vl);
+  if (msg != NULL) {
+    LOG(LogLevel::ERROR, msg);
+    free(msg);
+  }
 
   va_end(vl);
 }

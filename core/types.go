@@ -18,12 +18,30 @@
 
 package core
 
-import (
-	"bytes"
+import "errors"
 
-	"github.com/nebulasio/go-nebulas/util/byteutils"
-	log "github.com/sirupsen/logrus"
+// Payload Types
+const (
+	TxPayloadBinaryType = "binary"
+	TxPayloadDeployType = "deploy"
+	TxPayloadCallType   = "call"
+	TxPayloadVoteType   = "vote"
 )
+
+// Error Types
+var (
+	ErrInvalidTxPayloadType   = errors.New("invalid transaction data payload type")
+	ErrInvalidContractAddress = errors.New("invalid contract address")
+	ErrInsufficientBalance    = errors.New("insufficient balance")
+	ErrInvalidSignature       = errors.New("invalid transaction signature")
+	ErrInvalidTransactionHash = errors.New("invalid transaction hash")
+)
+
+// TxPayload stored in tx
+type TxPayload interface {
+	ToBytes() ([]byte, error)
+	Execute(tx *Transaction, block *Block) error
+}
 
 // MessageType
 const (
@@ -31,37 +49,7 @@ const (
 	MessageTypeNewTx    = "newtx"
 )
 
-// Hash by Sha3-256
-type Hash []byte
-
-// HexHash is the hex string of a hash
-type HexHash string
-
 // Consensus interface
 type Consensus interface {
 	VerifyBlock(*Block) error
-}
-
-// Hex return hex encoded hash.
-func (h Hash) Hex() HexHash {
-	return HexHash(byteutils.Hex(h))
-}
-
-// Equals compare two Hash. True is equal, otherwise false.
-func (h Hash) Equals(b Hash) bool {
-	return bytes.Compare(h, b) == 0
-}
-
-func (h Hash) String() string {
-	return string(h.Hex())
-}
-
-// Hash return hex decoded hash.
-func (hh HexHash) Hash() Hash {
-	v, err := byteutils.FromHex(string(hh))
-	if err != nil {
-		log.Errorf("HexHash.Hash: hex decode %s failed, err is %s", hh, err)
-		return nil
-	}
-	return Hash(v)
 }

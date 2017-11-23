@@ -22,7 +22,6 @@ import (
 	"errors"
 
 	"path/filepath"
-	"time"
 
 	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/crypto"
@@ -93,27 +92,8 @@ func NewManager(neblet Neblet) *Manager {
 		}
 
 		m.refreshAccounts()
-
-		// TODO(larry.wang): test keys load from keyDir, latter remove
-		if len(conf.GetTestPassphrase()) > 0 {
-			m.loadTestKey([]byte(conf.GetTestPassphrase()))
-		}
 	}
 	return m
-}
-
-// load test key files
-func (m *Manager) loadTestKey(passphrase []byte) {
-
-	for _, acc := range m.accounts {
-		err := m.importFile(acc.addr, passphrase)
-		if err != nil {
-			log.Error("test import key failed", err)
-		}
-		// TODO(larry.wang):test key file auto unlock 1 year
-		m.ks.Unlock(acc.addr.ToHex(), passphrase, time.Second*60*60*24*365)
-		log.Debug("test load addr:", acc.addr.ToHex())
-	}
 }
 
 // NewAccount returns a new address and keep it in keystore

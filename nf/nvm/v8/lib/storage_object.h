@@ -25,13 +25,12 @@
 using namespace v8;
 
 void NewStorageType(Isolate *isolate, Local<ObjectTemplate> globalTpl);
+void NewStorageTypeInstance(Isolate *isolate, Local<Context> context,
+                            void *lcsHandler, void *gcsHandler);
 
 void StorageConstructor(const FunctionCallbackInfo<Value> &info);
 void StorageGetCallback(const FunctionCallbackInfo<Value> &info);
 void StoragePutCallback(const FunctionCallbackInfo<Value> &info);
 void StorageDelCallback(const FunctionCallbackInfo<Value> &info);
-
-void NewStorageObject(Isolate *isolate, Local<Context> context,
-                      void *lcsHandler, void *gcsHandler);
 
 #endif // _NEBULAS_NF_NVM_V8_LIB_STORAGE_OBJECT_H_

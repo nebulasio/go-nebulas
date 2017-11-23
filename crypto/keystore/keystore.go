@@ -37,7 +37,7 @@ var (
 	ErrUninitialized = errors.New("uninitialized the provider")
 
 	// ErrNotUnlocked not unlocked
-	ErrNotUnlocked = errors.New("not unlocked")
+	ErrNotUnlocked = errors.New("key not unlocked")
 )
 
 // unlock item

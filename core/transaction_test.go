@@ -26,18 +26,21 @@ import (
 	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/core/pb"
 	"github.com/nebulasio/go-nebulas/util"
+	"github.com/nebulasio/go-nebulas/util/byteutils"
 )
 
 func TestTransaction(t *testing.T) {
 	type fields struct {
-		hash      Hash
+		hash      byteutils.Hash
 		from      *Address
 		to        *Address
 		value     *util.Uint128
 		nonce     uint64
 		timestamp int64
 		alg       uint8
-		data      []byte
+		data      *corepb.Data
+		gasPrice  *util.Uint128
+		gasLimit  *util.Uint128
 	}
 	tests := []struct {
 		name   string
@@ -53,7 +56,9 @@ func TestTransaction(t *testing.T) {
 				456,
 				time.Now().Unix(),
 				12,
-				[]byte("hwllo"),
+				&corepb.Data{Type: TxPayloadBinaryType, Payload: []byte("hwllo")},
+				util.NewUint128(),
+				util.NewUint128(),
 			}),
 		},
 	}
@@ -68,6 +73,8 @@ func TestTransaction(t *testing.T) {
 				timestamp: tt.fields.timestamp,
 				alg:       tt.fields.alg,
 				data:      tt.fields.data,
+				gasPrice:  tt.fields.gasPrice,
+				gasLimit:  tt.fields.gasLimit,
 			}
 			msg, _ := tx.ToProto()
 			ir, _ := proto.Marshal(msg)

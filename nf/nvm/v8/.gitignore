@@ -3,3 +3,7 @@ engine_test
 *.o
 *.so
 *.dylib
+
+natives_blob.bin.h
+snapshot_blob.bin.h
+

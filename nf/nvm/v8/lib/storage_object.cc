@@ -19,32 +19,13 @@
 
 #include "storage_object.h"
 #include "../engine.h"
+#include "instruction_counter.h"
+#include "logger.h"
+#include <math.h>
 
 static StorageGetFunc GET = NULL;
 static StoragePutFunc PUT = NULL;
 static StorageDelFunc DEL = NULL;
-
-void NewStorageObject(Isolate *isolate, Local<Context> context,
-                      void *lcsHandler, void *gcsHandler) {
-  Local<ObjectTemplate> storageHandlerTpl = ObjectTemplate::New(isolate);
-  Local<Object> handlers =
-      storageHandlerTpl->NewInstance(context).ToLocalChecked();
-
-  handlers->Set(context, String::NewFromUtf8(isolate, "lcs"),
-                External::New(isolate, lcsHandler));
-  handlers->Set(context, String::NewFromUtf8(isolate, "gcs"),
-                External::New(isolate, gcsHandler));
-
-  context->Global()->Set(
-      String::NewFromUtf8(isolate, "_native_storage_handlers"), handlers);
-}
-
-void InitializeStorage(StorageGetFunc get, StoragePutFunc put,
-                       StorageDelFunc del) {
-  GET = get;
-  PUT = put;
-  DEL = del;
-}
 
 void NewStorageType(Isolate *isolate, Local<ObjectTemplate> globalTpl) {
   Local<FunctionTemplate> type =
@@ -54,16 +35,61 @@ void NewStorageType(Isolate *isolate, Local<ObjectTemplate> globalTpl) {
 
   Local<ObjectTemplate> instanceTpl = type->InstanceTemplate();
   instanceTpl->SetInternalFieldCount(1);
-  instanceTpl->Set(String::NewFromUtf8(isolate, "get"),
-                   FunctionTemplate::New(isolate, StorageGetCallback));
-  instanceTpl->Set(String::NewFromUtf8(isolate, "set"),
-                   FunctionTemplate::New(isolate, StoragePutCallback));
-  instanceTpl->Set(String::NewFromUtf8(isolate, "put"),
-                   FunctionTemplate::New(isolate, StoragePutCallback));
-  instanceTpl->Set(String::NewFromUtf8(isolate, "del"),
-                   FunctionTemplate::New(isolate, StorageDelCallback));
+  instanceTpl->Set(
+      String::NewFromUtf8(isolate, "get"),
+      FunctionTemplate::New(isolate, StorageGetCallback),
+      static_cast<PropertyAttribute>(PropertyAttribute::DontDelete |
+                                     PropertyAttribute::ReadOnly));
+  instanceTpl->Set(
+      String::NewFromUtf8(isolate, "set"),
+      FunctionTemplate::New(isolate, StoragePutCallback),
+      static_cast<PropertyAttribute>(PropertyAttribute::DontDelete |
+                                     PropertyAttribute::ReadOnly));
+  instanceTpl->Set(
+      String::NewFromUtf8(isolate, "put"),
+      FunctionTemplate::New(isolate, StoragePutCallback),
+      static_cast<PropertyAttribute>(PropertyAttribute::DontDelete |
+                                     PropertyAttribute::ReadOnly));
+  instanceTpl->Set(
+      String::NewFromUtf8(isolate, "del"),
+      FunctionTemplate::New(isolate, StorageDelCallback),
+      static_cast<PropertyAttribute>(PropertyAttribute::DontDelete |
+                                     PropertyAttribute::ReadOnly));
 
-  globalTpl->Set(className, type);
+  globalTpl->Set(className, type,
+                 static_cast<PropertyAttribute>(PropertyAttribute::DontDelete |
+                                                PropertyAttribute::ReadOnly));
+}
+
+void NewStorageTypeInstance(Isolate *isolate, Local<Context> context,
+                            void *lcsHandler, void *gcsHandler) {
+  Local<ObjectTemplate> storageHandlerTpl = ObjectTemplate::New(isolate);
+  Local<Object> handlers =
+      storageHandlerTpl->NewInstance(context).ToLocalChecked();
+
+  handlers->DefineOwnProperty(
+      context, String::NewFromUtf8(isolate, "lcs"),
+      External::New(isolate, lcsHandler),
+      static_cast<PropertyAttribute>(PropertyAttribute::DontDelete |
+                                     PropertyAttribute::ReadOnly));
+  handlers->DefineOwnProperty(
+      context, String::NewFromUtf8(isolate, "gcs"),
+      External::New(isolate, gcsHandler),
+      static_cast<PropertyAttribute>(PropertyAttribute::DontDelete |
+                                     PropertyAttribute::ReadOnly));
+
+  context->Global()->DefineOwnProperty(
+      context, String::NewFromUtf8(isolate, "_native_storage_handlers"),
+      handlers,
+      static_cast<PropertyAttribute>(PropertyAttribute::DontDelete |
+                                     PropertyAttribute::ReadOnly));
+}
+
+void InitializeStorage(StorageGetFunc get, StoragePutFunc put,
+                       StorageDelFunc del) {
+  GET = get;
+  PUT = put;
+  DEL = del;
 }
 
 void StorageConstructor(const FunctionCallbackInfo<Value> &info) {
@@ -104,7 +130,6 @@ void StorageGetCallback(const FunctionCallbackInfo<Value> &info) {
     return;
   }
 
-  // TODO: in C function, it's not a good idea to return a char*.
   char *value = GET(handler->Value(), *String::Utf8Value(key->ToString()));
   if (value == NULL) {
     info.GetReturnValue().SetNull();
@@ -138,9 +163,17 @@ void StoragePutCallback(const FunctionCallbackInfo<Value> &info) {
     return;
   }
 
-  int ret = PUT(handler->Value(), *String::Utf8Value(key->ToString()),
-                *String::Utf8Value(value->ToString()));
+  Local<String> key_str = key->ToString();
+  Local<String> val_str = value->ToString();
+
+  int ret = PUT(handler->Value(), *String::Utf8Value(key_str),
+                *String::Utf8Value(val_str));
   info.GetReturnValue().Set(ret);
+
+  // record storage usage.
+  Local<Context> context = isolate->GetCurrentContext();
+  RecordStorageUsage(isolate, context, key_str->Utf8Length(),
+                     val_str->Utf8Length());
 }
 
 void StorageDelCallback(const FunctionCallbackInfo<Value> &info) {

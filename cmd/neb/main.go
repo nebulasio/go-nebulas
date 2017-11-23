@@ -56,7 +56,7 @@ func main() {
 		cli.StringFlag{
 			Name:        "config, c",
 			Usage:       "load configuration from `FILE`",
-			Value:       "config.pb.txt",
+			Value:       "config-seed.pb.txt",
 			Destination: &config,
 		},
 	}

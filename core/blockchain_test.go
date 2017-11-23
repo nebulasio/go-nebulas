@@ -59,12 +59,18 @@ func TestBlockChain_FindCommonAncestorWithTail(t *testing.T) {
 	signature, _ := crypto.NewSignature(keystore.SECP256K1)
 	signature.InitSign(key.(keystore.PrivateKey))
 
-	tx1 := NewTransaction(0, from, to, util.NewUint128(), 1, []byte("nas"))
+	//add from reward
+	block0 := bc.NewBlock(from)
+	block0.Seal()
+	bc.BlockPool().Push(block0)
+	bc.SetTailBlock(block0)
+
+	tx1 := NewTransaction(0, from, to, util.NewUint128FromInt(1), 1, TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, TransactionGas)
 	tx1.Sign(signature)
-	tx2 := NewTransaction(0, from, to, util.NewUint128(), 1, []byte("nas"))
+	tx2 := NewTransaction(0, from, to, util.NewUint128FromInt(1), 1, TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, TransactionGas)
 	tx2.timestamp = tx1.timestamp + 1
 	tx2.Sign(signature)
-	tx3 := NewTransaction(0, from, to, util.NewUint128(), 2, []byte("nas"))
+	tx3 := NewTransaction(0, from, to, util.NewUint128FromInt(1), 2, TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, TransactionGas)
 	tx3.timestamp = tx3.timestamp + 1
 	tx3.Sign(signature)
 	bc.txPool.Push(tx1)
@@ -78,9 +84,9 @@ func TestBlockChain_FindCommonAncestorWithTail(t *testing.T) {
 	coinbase222 := &Address{[]byte("012345678901234567890222")}
 	coinbase1111 := &Address{[]byte("012345678901234567891111")}
 	/*
-		genesisi -- 11 -- 111 -- 1111
-				 \_ 12 -- 221
-				       \_ 222 tail
+		genesis -- 0 -- 11 -- 111 -- 1111
+					 \_ 12 -- 221
+					       \_ 222 tail
 	*/
 	block11 := bc.NewBlock(coinbase11)
 	block12 := bc.NewBlock(coinbase12)
@@ -121,7 +127,7 @@ func TestBlockChain_FindCommonAncestorWithTail(t *testing.T) {
 	_, err := bc.FindCommonAncestorWithTail(BlockFromNetwork(test))
 	assert.NotNil(t, err)
 	common1, _ := bc.FindCommonAncestorWithTail(BlockFromNetwork(block1111))
-	assert.Equal(t, BlockFromNetwork(common1), BlockFromNetwork(bc.genesisBlock))
+	assert.Equal(t, BlockFromNetwork(common1), BlockFromNetwork(block0))
 	common2, _ := bc.FindCommonAncestorWithTail(BlockFromNetwork(block221))
 	assert.Equal(t, BlockFromNetwork(common2), BlockFromNetwork(block12))
 	common3, _ := bc.FindCommonAncestorWithTail(BlockFromNetwork(block222))

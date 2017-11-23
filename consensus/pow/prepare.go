@@ -19,6 +19,8 @@
 package pow
 
 import (
+	"fmt"
+
 	"github.com/nebulasio/go-nebulas/consensus"
 	log "github.com/sirupsen/logrus"
 )
@@ -38,6 +40,10 @@ type PrepareState struct {
 func NewPrepareState(p *Pow) *PrepareState {
 	state := &PrepareState{p: p}
 	return state
+}
+
+func (state *PrepareState) String() string {
+	return fmt.Sprintf("PrepareState %p", state)
 }
 
 // Event handle event.
@@ -63,7 +69,7 @@ func (state *PrepareState) Enter(data interface{}) {
 	}
 
 	// move to mining state.
-	state.p.TransitByKey(Prepare, Mining, nil)
+	state.p.Transit(state, NewMiningState(state.p), nil)
 }
 
 // Leave called when leaving this state.

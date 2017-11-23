@@ -26,6 +26,7 @@ import (
 	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/common/trie"
 	"github.com/nebulasio/go-nebulas/core/pb"
+	"github.com/nebulasio/go-nebulas/core/state"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/crypto/sha3"
 
@@ -38,9 +39,10 @@ var (
 	// BlockHashLength define a const of the length of Hash of Block in byte.
 	BlockHashLength = 32
 
-	// BlockReward given to coinbase
+	// BlockReward given to coinbase, default is:16*(10**18)
 	// TODO: block reward should calculates dynamic.
-	BlockReward = util.NewUint128FromInt(16)
+	BlockReward = util.NewUint128FromBigInt(util.NewUint128().Mul(util.NewUint128FromInt(16).Int,
+		util.NewUint128().Exp(util.NewUint128FromInt(10).Int, util.NewUint128FromInt(18).Int, nil)))
 )
 
 // Errors in block
@@ -56,10 +58,10 @@ var (
 
 // BlockHeader of a block
 type BlockHeader struct {
-	hash       Hash
-	parentHash Hash
-	stateRoot  Hash
-	txsRoot    Hash
+	hash       byteutils.Hash
+	parentHash byteutils.Hash
+	stateRoot  byteutils.Hash
+	txsRoot    byteutils.Hash
 	nonce      uint64
 	coinbase   *Address
 	timestamp  int64
@@ -104,7 +106,7 @@ type Block struct {
 	sealed       bool
 	height       uint64
 	parenetBlock *Block
-	stateTrie    *trie.BatchTrie
+	accState     state.AccountState
 	txsTrie      *trie.BatchTrie
 	txPool       *TransactionPool
 
@@ -156,9 +158,18 @@ func (block *Block) FromProto(msg proto.Message) error {
 	return errors.New("Pb Message cannot be converted into Block")
 }
 
+// SerializeTxByHash returns tx serialized bytes
+func (block *Block) SerializeTxByHash(hash byteutils.Hash) (proto.Message, error) {
+	tx, err := block.GetTransaction(hash)
+	if err != nil {
+		return nil, err
+	}
+	return tx.ToProto()
+}
+
 // NewBlock return new block.
 func NewBlock(chainID uint32, coinbase *Address, parent *Block, txPool *TransactionPool, storage storage.Storage) *Block {
-	stateTrie, _ := parent.stateTrie.Clone()
+	accState, _ := parent.accState.Clone()
 	txsTrie, _ := parent.txsTrie.Clone()
 	block := &Block{
 		header: &BlockHeader{
@@ -170,7 +181,7 @@ func NewBlock(chainID uint32, coinbase *Address, parent *Block, txPool *Transact
 		},
 		transactions: make(Transactions, 0),
 		parenetBlock: parent,
-		stateTrie:    stateTrie,
+		accState:     accState,
 		txsTrie:      txsTrie,
 		txPool:       txPool,
 		height:       parent.height + 1,
@@ -183,6 +194,11 @@ func NewBlock(chainID uint32, coinbase *Address, parent *Block, txPool *Transact
 // Coinbase return block's coinbase
 func (block *Block) Coinbase() *Address {
 	return block.header.coinbase
+}
+
+// CoinbaseHash return block's coinbase hash
+func (block *Block) CoinbaseHash() byteutils.Hash {
+	return block.header.coinbase.address
 }
 
 // Nonce return nonce.
@@ -207,33 +223,34 @@ func (block *Block) SetTimestamp(timestamp int64) {
 }
 
 // Hash return block hash.
-func (block *Block) Hash() Hash {
+func (block *Block) Hash() byteutils.Hash {
 	return block.header.hash
 }
 
 // StateRoot return state root hash.
-func (block *Block) StateRoot() Hash {
+func (block *Block) StateRoot() byteutils.Hash {
 	return block.header.stateRoot
 }
 
 // TxsRoot return txs root hash.
-func (block *Block) TxsRoot() Hash {
+func (block *Block) TxsRoot() byteutils.Hash {
 	return block.header.txsRoot
 }
 
 // ParentHash return parent hash.
-func (block *Block) ParentHash() Hash {
+func (block *Block) ParentHash() byteutils.Hash {
 	return block.header.parentHash
-}
-
-// ParentBlock return parent block.
-func (block *Block) ParentBlock() *Block {
-	return block.parenetBlock
 }
 
 // Height return height from genesis block.
 func (block *Block) Height() uint64 {
 	return block.height
+}
+
+// VerifyAddress returns if the addr string is valid
+func (block *Block) VerifyAddress(str string) bool {
+	_, err := AddressParse(str)
+	return err == nil
 }
 
 // LinkParentBlock link parent block, return true if hash is the same; false otherwise.
@@ -242,7 +259,7 @@ func (block *Block) LinkParentBlock(parentBlock *Block) bool {
 		return false
 	}
 
-	block.stateTrie, _ = parentBlock.stateTrie.Clone()
+	block.accState, _ = parentBlock.accState.Clone()
 	block.txsTrie, _ = parentBlock.txsTrie.Clone()
 	block.txPool = parentBlock.txPool
 	block.parenetBlock = parentBlock
@@ -268,18 +285,35 @@ func (block *Block) LinkParentBlock(parentBlock *Block) bool {
 }
 
 func (block *Block) begin() {
-	block.stateTrie.BeginBatch()
+	log.Info("Block Begin.")
+	block.accState.BeginBatch()
 	block.txsTrie.BeginBatch()
 }
 
 func (block *Block) commit() {
-	block.stateTrie.Commit()
+	block.accState.Commit()
 	block.txsTrie.Commit()
+	log.WithFields(log.Fields{
+		"block": block,
+	}).Info("Block Commit.")
 }
 
 func (block *Block) rollback() {
-	block.stateTrie.RollBack()
+	block.accState.RollBack()
 	block.txsTrie.RollBack()
+	log.WithFields(log.Fields{
+		"block": block,
+	}).Info("Block RollBack.")
+}
+
+// ReturnTransactions and giveback them to tx pool
+// TODO(roy): optimize storage.
+// if a block is reverted, we should erase all changes
+// made by this block on storage. use refcount.
+func (block *Block) ReturnTransactions() {
+	for _, tx := range block.transactions {
+		block.txPool.Push(tx)
+	}
 }
 
 // CollectTransactions and add them to block.
@@ -300,6 +334,7 @@ func (block *Block) CollectTransactions(n int) {
 		if err == nil {
 			log.WithFields(log.Fields{
 				"func":     "block.CollectionTransactions",
+				"block":    block,
 				"tx":       tx,
 				"giveback": giveback,
 			}).Info("tx is packed.")
@@ -309,6 +344,7 @@ func (block *Block) CollectTransactions(n int) {
 		} else {
 			log.WithFields(log.Fields{
 				"func":     "block.CollectionTransactions",
+				"block":    block,
 				"tx":       tx,
 				"err":      err,
 				"giveback": giveback,
@@ -332,15 +368,22 @@ func (block *Block) Seal() {
 		return
 	}
 
+	log.WithFields(log.Fields{
+		"block": block,
+	}).Info("Block Seal.")
+
+	block.begin()
 	block.rewardCoinbase()
+	block.commit()
 	block.header.hash = HashBlock(block)
-	block.header.stateRoot = block.stateTrie.RootHash()
+	block.header.stateRoot = block.accState.RootHash()
 	block.header.txsRoot = block.txsTrie.RootHash()
 	block.sealed = true
 }
 
 func (block *Block) String() string {
-	return fmt.Sprintf("Block {height:%d; hash:%s; parentHash:%s; stateRoot:%s, nonce:%d, timestamp: %d}",
+	return fmt.Sprintf("Block %p {height:%d; hash:%s; parentHash:%s; stateRoot:%s, nonce:%d, timestamp: %d}",
+		block,
 		block.height,
 		byteutils.Hex(block.header.hash),
 		byteutils.Hex(block.header.parentHash),
@@ -401,7 +444,7 @@ func (block *Block) verifyHash(chainID uint32) error {
 // verifyState return state verify result.
 func (block *Block) verifyState() error {
 	// verify state root.
-	if !byteutils.Equal(block.stateTrie.RootHash(), block.StateRoot()) {
+	if !byteutils.Equal(block.accState.RootHash(), block.StateRoot()) {
 		return ErrInvalidBlockStateRoot
 	}
 
@@ -432,86 +475,56 @@ func (block *Block) Execute() error {
 }
 
 // GetBalance returns balance for the given address on this block.
-func (block *Block) GetBalance(address Hash) *util.Uint128 {
-	return block.FindAccount(&Address{address}).UserBalance
+func (block *Block) GetBalance(address byteutils.Hash) *util.Uint128 {
+	return block.accState.GetOrCreateUserAccount(address).Balance()
 }
 
 // GetNonce returns nonce for the given address on this block.
-func (block *Block) GetNonce(address Hash) uint64 {
-	return block.FindAccount(&Address{address}).UserNonce
+func (block *Block) GetNonce(address byteutils.Hash) uint64 {
+	return block.accState.GetOrCreateUserAccount(address).Nonce()
 }
 
 func (block *Block) rewardCoinbase() {
-	coinbaseAddr := block.header.coinbase
-	coinbaseAcc := block.FindAccount(coinbaseAddr)
+	coinbaseAddr := block.header.coinbase.address
+	coinbaseAcc := block.accState.GetOrCreateUserAccount(coinbaseAddr)
 	coinbaseAcc.AddBalance(BlockReward)
-	block.saveAccount(coinbaseAddr, coinbaseAcc)
 }
 
-// FindAccount return account info in state Trie
-// if not found, return a new account
-func (block *Block) FindAccount(address *Address) *Account {
-	acc, _ := block.FindOrCreateAccount(address)
-	return acc
-}
-
-// FindOrCreateAccount return account info in state Trie
-// if not found, create one and return it.
-func (block *Block) FindOrCreateAccount(address *Address) (account *Account, created bool) {
-	accBytes, err := block.stateTrie.Get(address.address)
+// GetTransaction from txs Trie
+func (block *Block) GetTransaction(hash byteutils.Hash) (*Transaction, error) {
+	txBytes, err := block.txsTrie.Get(hash)
 	if err != nil {
-		// new account
-		return NewAccount(block.storage), true
+		return nil, err
 	}
-	acc := new(Account)
-	pbAcc := new(corepb.Account)
-	if err := proto.Unmarshal(accBytes, pbAcc); err != nil {
-		panic("invalid account:" + err.Error())
+	pbTx := new(corepb.Transaction)
+	if err := proto.Unmarshal(txBytes, pbTx); err != nil {
+		return nil, err
 	}
-	acc.storage = block.storage
-	if err := acc.FromProto(pbAcc); err != nil {
-		panic("invalid account:" + err.Error())
+
+	tx := new(Transaction)
+	if err = tx.FromProto(pbTx); err != nil {
+		return nil, err
 	}
-	return acc, false
+	return tx, nil
 }
 
-// saveAccount update account info in state Trie
-func (block *Block) saveAccount(address *Address, acc *Account) {
-	pbAcc, err := acc.ToProto()
-	if err != nil {
-		panic("invalid account:" + err.Error())
-	}
-	accBytes, err := proto.Marshal(pbAcc)
-	if err != nil {
-		panic("invalid account:" + err.Error())
-	}
-	if _, err := block.stateTrie.Put(address.address, accBytes); err != nil {
-		panic("invalid account:" + err.Error())
-	}
-}
-
-// saveTxs record tx in txs Trie
-func (block *Block) saveTransaction(tx *Transaction) {
+// save tx in txs Trie
+func (block *Block) acceptTransaction(tx *Transaction) error {
 	pbTx, err := tx.ToProto()
 	if err != nil {
-		panic("invalid tx:" + err.Error())
+		return err
 	}
 	txBytes, err := proto.Marshal(pbTx)
 	if err != nil {
-		panic("invalid tx:" + err.Error())
+		return err
 	}
 	if _, err := block.txsTrie.Put(tx.hash, txBytes); err != nil {
-		panic("invalid tx:" + err.Error())
+		return err
 	}
+	return nil
 }
 
 // executeTransaction in block
-// 0. check chainID
-// 1. check hash
-// 2. check sign
-// 3. check duplication
-// 4. check nonce increase by 1
-// 5. check balance
 func (block *Block) executeTransaction(tx *Transaction) (giveback bool, err error) {
 	// check duplication
 	if proof, _ := block.txsTrie.Prove(tx.hash); proof != nil {
@@ -519,10 +532,10 @@ func (block *Block) executeTransaction(tx *Transaction) (giveback bool, err erro
 	}
 
 	// check nonce
-	fromAcc := block.FindAccount(tx.from)
-	if tx.nonce < fromAcc.UserNonce+1 {
+	fromAcc := block.accState.GetOrCreateUserAccount(tx.from.address)
+	if tx.nonce < fromAcc.Nonce()+1 {
 		return false, ErrSmallTransactionNonce
-	} else if tx.nonce > fromAcc.UserNonce+1 {
+	} else if tx.nonce > fromAcc.Nonce()+1 {
 		return true, ErrLargeTransactionNonce
 	}
 
@@ -532,25 +545,15 @@ func (block *Block) executeTransaction(tx *Transaction) (giveback bool, err erro
 	}
 
 	// save txs info in txs trie
-	block.saveTransaction(tx)
+	if err := block.acceptTransaction(tx); err != nil {
+		return false, err
+	}
 
 	return false, nil
 }
 
-// LocalContractStorage return the local storage trie of the contract
-func (block *Block) LocalContractStorage(contract *Address) *trie.BatchTrie {
-	account := block.FindAccount(contract)
-	return account.ContractLocalStorage
-}
-
-// GlobalContractStorage return the local storage trie of the contract
-func (block *Block) GlobalContractStorage(contract *Address) *trie.BatchTrie {
-	account := block.FindAccount(contract)
-	return block.FindAccount(account.ContractOwner).UserGlobalStorage
-}
-
 // HashBlock return the hash of block.
-func HashBlock(block *Block) Hash {
+func HashBlock(block *Block) byteutils.Hash {
 	hasher := sha3.New256()
 
 	hasher.Write(block.header.parentHash)
