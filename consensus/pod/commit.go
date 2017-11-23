@@ -54,13 +54,17 @@ func (state *CommitState) String() string {
 func (state *CommitState) Event(e consensus.Event) (bool, consensus.State) {
 	switch e.EventType() {
 	case NewCommitVoteEvent:
-		voter := e.Data().(byteutils.Hash)
+		voter := byteutils.Hash(e.Data().([]byte))
 		state.votes[voter.Hex()] = true
 		commitVotes := uint32(len(state.votes))
-		if commitVotes > state.context.maxVotes*2/3 {
-			// finality
+		limit := state.context.maxVotes * 2 / 3
+		if commitVotes-1 <= limit && commitVotes > limit {
+			log.WithFields(log.Fields{
+				"func":       "PoD.CommitState",
+				"block hash": state.context.block.Hash(),
+				"height":     state.context.block.Height(),
+			}).Info("Finality.")
 		}
-		state.sm.Context().(*PoD).ForkChoice()
 		return false, nil
 	}
 	return false, nil
@@ -70,20 +74,22 @@ func (state *CommitState) Event(e consensus.Event) (bool, consensus.State) {
 func (state *CommitState) Enter(data interface{}) {
 	log.Debug("CommitState enter.")
 	// if the block is on canonical chain, vote
+	log.Infof("OnCanonical. %v", state.context.onCanonical)
 	if state.context.onCanonical {
 		p := state.sm.Context().(*PoD)
 		zero := util.NewUint128()
-		nonce := p.chain.TailBlock().GetNonce(p.coinbase.Bytes())
 		payload, err := core.NewCommitVotePayload(core.CommitAction, state.context.block.Hash()).ToBytes()
 		if err != nil {
 			panic(err)
 		}
-		commitTx := core.NewTransaction(state.context.block.ChainID(), p.coinbase, p.coinbase, zero, nonce+1, core.TxPayloadVoteType, payload)
+		commitTx := core.NewTransaction(state.context.block.ChainID(), p.coinbase, p.coinbase, zero, p.nonce+1, core.TxPayloadVoteType, payload)
+		p.nonce++
 		p.neblet.AccountManager().SignTransaction(p.coinbase, commitTx)
-		p.nm.Broadcast(consensus.MessageTypeNewTx, commitTx)
+		p.chain.TransactionPool().PushAndBroadcast(commitTx)
 		log.WithFields(log.Fields{
 			"func":       "PoD.CommitState",
 			"block hash": state.context.block.Hash(),
+			"height":     state.context.block.Height(),
 		}).Info("Vote Commit.")
 	}
 }

@@ -57,21 +57,11 @@ func (state *CreationState) Event(e consensus.Event) (bool, consensus.State) {
 	case NewBlockEvent:
 		block := e.Data().(*core.Block)
 		p := state.sm.Context().(*PoD)
-		createdStateMachine := consensus.NewStateMachine(state.sm.Context())
-		onCanonical := block.Hash().Equals(p.chain.TailBlock().Hash())
-		context, err := NewCreatedContext(block, onCanonical)
-		if err != nil {
-			panic(err)
-		}
-		createdStateMachine.SetInitialState(NewPrepareState(state.sm, context))
-		p.createdStateMachines.Add(block.Hash(), createdStateMachine)
+		createdStateMachine := p.newCreatedStateMachine(block)
+		p.createdStateMachines.Add(block.Hash().Hex(), createdStateMachine)
 		// creating over
-		p.creatingStateMachines.Remove(state.context.parent.Hash())
+		p.creatingStateMachines.Remove(state.context.parent.Hash().Hex())
 		state.sm.Stop()
-		log.WithFields(log.Fields{
-			"func":  "PoD.CreationState",
-			"block": block,
-		}).Info("Receive New Block.")
 		return false, nil
 	case NewChangeTimeoutEvent:
 		return true, NewChangeState(state.sm, state.context)
@@ -81,22 +71,24 @@ func (state *CreationState) Event(e consensus.Event) (bool, consensus.State) {
 
 // Enter called when transiting to this state.
 func (state *CreationState) Enter(data interface{}) {
-	log.Debug("CreationState enter.")
+	log.Debugf("CreationState enter. %p", state)
 	// if the block is on canonical chain, create or set timeout
 	if state.context.onCanonical {
 		p := state.sm.Context().(*PoD)
+		parent := p.chain.GetBlock(state.context.parent.Hash())
+		log.Infof("Proposer %s height %s me %s", state.Proposer().Hex(), parent.Height(), p.coinbase.ToHex())
 		if state.Proposer().Equals(p.coinbase.Bytes()) {
-			parent := p.chain.GetBlock(state.context.parent.Hash())
 			block := core.NewBlock(state.context.parent.ChainID(), p.coinbase, parent)
 			block.CollectTransactions(100)
 			block.Seal()
 			log.WithFields(log.Fields{
-				"func":  "PoD.CreationState",
-				"block": block,
-			}).Info("Create New Block.")
-			p.nm.Broadcast(consensus.MessageTypeNewBlock, block)
+				"func":   "PoD.CreationState",
+				"block":  block,
+				"parent": state.context.parent,
+			}).Infof("Create New Block. %p", state)
+			p.chain.BlockPool().PushAndBroadcast(block)
 		} else {
-			time.AfterFunc(10*time.Second, func() {
+			time.AfterFunc(30*time.Second, func() {
 				state.sm.Event(consensus.NewBaseEvent(NewChangeTimeoutEvent, nil))
 			})
 		}

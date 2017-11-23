@@ -19,8 +19,6 @@
 package core
 
 import (
-	"time"
-
 	"github.com/nebulasio/go-nebulas/util/byteutils"
 
 	"github.com/nebulasio/go-nebulas/common/trie"
@@ -55,7 +53,7 @@ func NewGenesisBlock(chainID uint32, storage storage.Storage, txPool *Transactio
 			parentHash: GenesisHash,
 			coinbase:   &Address{make([]byte, AddressLength)},
 			nonce:      0,
-			timestamp:  time.Now().Unix(),
+			timestamp:  0,
 		},
 		transactions: make(Transactions, 0),
 		parentBlock:  nil,
@@ -93,7 +91,13 @@ func NewGenesisBlock(chainID uint32, storage storage.Storage, txPool *Transactio
 		// default login
 		block.addDeposit(addr, StandardDeposit)
 	}
-	block.changeDynasty()
+	change, err := block.checkDynastyRule()
+	if err != nil {
+		panic(err)
+	}
+	if change {
+		block.changeDynasty()
+	}
 	block.Seal()
 
 	return block

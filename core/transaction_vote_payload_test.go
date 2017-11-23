@@ -76,6 +76,12 @@ func TestVotePayload_RightFlow(t *testing.T) {
 	}
 	newBlock.commit()
 	newBlock.Seal()
+	newScores, err := CalScoresOnChain(newBlock)
+	assert.Nil(t, err)
+	blockScores, err := CalScoresOnChain(block)
+	assert.Nil(t, err)
+	assert.Equal(t, newScores, uint64(3))
+	assert.Equal(t, blockScores, uint64(0))
 	reward := util.NewUint128()
 	reward.Add(reward.Int, FinalityBlockReward.Int)
 	reward.Add(reward.Int, StandardDeposit.Int)

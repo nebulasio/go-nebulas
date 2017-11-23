@@ -21,6 +21,7 @@ package pod
 import (
 	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
+	log "github.com/sirupsen/logrus"
 )
 
 // Event Type List
@@ -74,6 +75,8 @@ func NewCreatingContext(parent *core.Block, tail *core.Block) (*CreatingContext,
 	if parent.Hash().Equals(tail.Hash()) {
 		context.onCanonical = true
 	}
+
+	log.Info("NewCreatingStateMachine ", context.onCanonical)
 	return context, nil
 }
 
@@ -94,5 +97,7 @@ func NewCreatedContext(block *core.Block, onCanonical bool) (*CreatedContext, er
 		return nil, err
 	}
 	context.onCanonical = onCanonical
+
+	log.Info("NewCreatedStateMachine ", context.onCanonical)
 	return context, nil
 }

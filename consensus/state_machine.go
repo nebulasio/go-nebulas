@@ -83,14 +83,11 @@ func (sm *StateMachine) SetInitialState(state State) {
 
 // Start pow service.
 func (sm *StateMachine) Start() {
-	go sm.stateLoop()
+	sm.currentState.Enter(nil)
 }
 
 // Stop pow service.
-func (sm *StateMachine) Stop() {
-	// cleanup.
-	sm.quitCh <- true
-}
+func (sm *StateMachine) Stop() {}
 
 // Context return state machine context
 func (sm *StateMachine) Context() interface{} {
@@ -116,17 +113,16 @@ func (sm *StateMachine) Event(e Event) {
 		sm.Transit(sm.currentState, nextState, nil)
 		return
 	}
-
-	// default procedure.
-	log.WithFields(log.Fields{
-		"eventType":    e.EventType(),
-		"currentState": sm.currentState,
-	}).Info("StateMachine.Event: not captured event.")
 }
 
 // Transit transit state.
 func (sm *StateMachine) Transit(from, to State, data interface{}) {
-	sm.stateTransitionCh <- &StateTransitionArgs{from: from, to: to, data: data}
+	if !sm.checkValidTransit(from, to) {
+		return
+	}
+	sm.currentState.Leave(data)
+	sm.currentState = to
+	sm.currentState.Enter(data)
 }
 
 func (sm *StateMachine) checkValidTransit(from, to State) bool {
@@ -139,29 +135,4 @@ func (sm *StateMachine) checkValidTransit(from, to State) bool {
 		"to":      to,
 	}).Debug("State Transition.")
 	return valid
-}
-
-func (sm *StateMachine) stateLoop() {
-	sm.currentState.Enter(nil)
-
-	for {
-		select {
-		case args := <-sm.stateTransitionCh:
-			to := args.to
-			data := args.data
-			from := args.from
-
-			if !sm.checkValidTransit(from, to) {
-				continue
-			}
-
-			sm.currentState.Leave(data)
-			sm.currentState = to
-			sm.currentState.Enter(data)
-
-		case <-sm.quitCh:
-			log.Info("quit Pow.loop.")
-			return
-		}
-	}
 }

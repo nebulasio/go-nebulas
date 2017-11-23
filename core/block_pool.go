@@ -135,7 +135,7 @@ func (pool *BlockPool) loop() {
 				log.WithFields(log.Fields{
 					"func":        "BlockPool.loop",
 					"messageType": msg.MessageType(),
-					"block":       block,
+					"block":       block.Hash().Hex(),
 					"err":         err,
 				}).Warn("BlockPool.loop: invalid block, drop it.")
 			}
@@ -205,6 +205,8 @@ func (pool *BlockPool) PushAndBroadcast(block *Block) error {
 }
 
 func (pool *BlockPool) push(block *Block) error {
+	log.Info("Block Pool Push New Block: ", block.header.hash.Hex())
+
 	if pool.blockCache.Contains(block.Hash().Hex()) ||
 		pool.bc.GetBlock(block.Hash()) != nil {
 		return ErrDuplicatedBlock

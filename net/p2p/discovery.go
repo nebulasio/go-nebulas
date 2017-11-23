@@ -34,7 +34,7 @@ and then update the routing table.
 func (net *NetService) discovery(ctx context.Context) {
 
 	//FIXME  the sync routing table rate can be dynamic
-	second := 5 * time.Second
+	second := 1 * time.Second
 	ticker := time.NewTicker(second)
 	net.syncRoutingTable()
 	for {

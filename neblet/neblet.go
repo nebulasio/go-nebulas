@@ -3,6 +3,7 @@ package neblet
 import (
 	"errors"
 	"sync"
+	"time"
 
 	"github.com/nebulasio/go-nebulas/util/byteutils"
 
@@ -71,16 +72,14 @@ func (n *Neblet) Start() error {
 	}
 	n.running = true
 
-	//n.accountManager = account.NewManager(n)
-
 	n.netService, err = p2p.NewNetService(n)
 	if err != nil {
 		log.Error("new NetService occurs error ", err)
 		return err
 	}
 
-	storage, err := storage.NewDiskStorage(n.config.GetStorage().Location)
-	// storage, err := storage.NewMemoryStorage()
+	// storage, err := storage.NewDiskStorage(n.config.GetStorage().Location)
+	storage, err := storage.NewMemoryStorage()
 	if err != nil {
 		return err
 	}
@@ -111,8 +110,10 @@ func (n *Neblet) Start() error {
 	}
 	n.blockChain.BlockPool().Start()
 	n.blockChain.TransactionPool().Start()
-	n.consensus.Start()
-	n.snycManager.Start()
+	time.AfterFunc(10*time.Second, func() {
+		n.consensus.Start()
+	})
+	// n.snycManager.Start()
 	go n.apiServer.Start()
 	go n.managementServer.Start()
 	go n.apiServer.RunGateway()

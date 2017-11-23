@@ -41,6 +41,7 @@ func NewAbdicateState(sm *consensus.StateMachine, context *CreatingContext) *Abd
 	return &AbdicateState{
 		sm:      sm,
 		context: context,
+		votes:   make(map[byteutils.HexHash]bool),
 	}
 }
 
@@ -91,7 +92,7 @@ func (state *AbdicateState) Enter(data interface{}) {
 		}
 		abdicateTx := core.NewTransaction(state.context.parent.ChainID(), p.coinbase, p.coinbase, zero, nonce+1, core.TxPayloadVoteType, payload)
 		p.neblet.AccountManager().SignTransaction(p.coinbase, abdicateTx)
-		p.nm.Broadcast(consensus.MessageTypeNewTx, abdicateTx)
+		p.chain.TransactionPool().PushAndBroadcast(abdicateTx)
 		log.WithFields(log.Fields{
 			"func":         "PoD.Abdicate",
 			"block hash":   state.context.parent.Hash(),

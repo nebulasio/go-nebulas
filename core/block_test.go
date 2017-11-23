@@ -181,6 +181,7 @@ func TestBlock(t *testing.T) {
 func TestBlock_LinkParentBlock(t *testing.T) {
 	storage, _ := storage.NewMemoryStorage()
 	genesis := NewGenesisBlock(0, storage, nil)
+	genesis.Seal()
 	pbBlock, _ := genesis.ToProto()
 	value, _ := proto.Marshal(pbBlock)
 	storage.Put(genesis.Hash(), value)

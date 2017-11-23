@@ -101,6 +101,7 @@ type PoD struct {
 	createdStateMachines  *lru.Cache
 	creatingStateMachines *lru.Cache
 
+	nonce              uint64
 	votesTransactionCh chan *core.Transaction
 
 	canMining bool
@@ -132,29 +133,58 @@ func NewPoD(neblet Neblet) *PoD {
 
 		createdStateMachines:  createdStateMachines,
 		creatingStateMachines: creatingStateMachines,
+		votesTransactionCh:    make(chan *core.Transaction, 1024),
+		nonce:                 0,
 
 		canMining: false,
 	}
 
-	tails := []*core.Block{p.chain.TailBlock()}
-	for _, tail := range tails {
-		creatingStateMachine, err := p.newCreatingStateMachine(tail)
-		if err != nil {
-			panic(err)
-		}
-		p.creatingStateMachines.Add(tail.Hash(), creatingStateMachine)
-	}
+	tail := p.chain.TailBlock()
+	creatingStateMachine := p.newCreatingStateMachine(tail)
+	p.creatingStateMachines.Add(tail.Hash().Hex(), creatingStateMachine)
 	return p
 }
 
-func (p *PoD) newCreatingStateMachine(parent *core.Block) (*consensus.StateMachine, error) {
+func (p *PoD) newCreatingStateMachine(parent *core.Block) *consensus.StateMachine {
 	creatingStateMachine := consensus.NewStateMachine(p)
 	context, err := NewCreatingContext(parent, p.chain.TailBlock())
 	if err != nil {
-		return nil, err
+		log.WithFields(log.Fields{
+			"func":    "PoD.BlockLoop",
+			"channel": "New Block",
+			"parent":  parent,
+			"err":     err,
+		}).Error("cannot create new state machine")
+		panic("cannot create new state machine")
 	}
 	creatingStateMachine.SetInitialState(NewCreationState(creatingStateMachine, context))
-	return creatingStateMachine, nil
+	log.WithFields(log.Fields{
+		"func":   "PoD.newCreatingStateMachine",
+		"parent": parent,
+	}).Info("create new creating state machine")
+	return creatingStateMachine
+}
+
+func (p *PoD) newCreatedStateMachine(block *core.Block) *consensus.StateMachine {
+	onCanonical := block.Hash().Equals(p.chain.TailBlock().Hash())
+	createdStateMachine := consensus.NewStateMachine(p)
+	context, err := NewCreatedContext(block, onCanonical)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"func":    "PoD.BlockLoop",
+			"channel": "New Block",
+			"block":   block,
+			"err":     err,
+		}).Error("cannot create new state machine")
+		panic("cannot create new state machine")
+	}
+	createdStateMachine.SetInitialState(NewPrepareState(createdStateMachine, context))
+	log.WithFields(log.Fields{
+		"func":   "PoD.newCreatedStateMachine",
+		"parent": block,
+	}).Info("create new created state machine")
+	createdStateMachine.Start()
+	return createdStateMachine
 }
 
 // Start start pod service.
@@ -170,18 +200,6 @@ func (p *PoD) Start() {
 // Stop stop pow service.
 func (p *PoD) Stop() {
 	p.quitCh <- true
-	// stop creating state machines
-	for _, key := range p.creatingStateMachines.Keys() {
-		if stateMachine, ok := p.creatingStateMachines.Get(key); ok {
-			stateMachine.(*consensus.StateMachine).Stop()
-		}
-	}
-	// start created state machines
-	for _, key := range p.createdStateMachines.Keys() {
-		if stateMachine, ok := p.createdStateMachines.Get(key); ok {
-			stateMachine.(*consensus.StateMachine).Stop()
-		}
-	}
 }
 
 // CanMining return if consensus can do mining now
@@ -211,34 +229,38 @@ func (p *PoD) blockLoop() {
 	for {
 		select {
 		case block := <-p.chain.BlockPool().ReceivedBlockCh():
+			log.Info("PoD Receive Block. ", block)
 			// unlock coinbase
-			p.neblet.AccountManager().Unlock(p.coinbase, []byte("passphrase"))
+			if err := p.neblet.AccountManager().Unlock(p.coinbase, []byte("passphrase")); err != nil {
+				log.WithFields(log.Fields{
+					"func":    "PoD.BlockLoop",
+					"channel": "New Blocks",
+					"err":     err,
+				}).Error("unlock address failed.")
+				continue
+			}
 			// extract all votes
 			for _, tx := range block.Transactions() {
 				if tx.DataType() == core.TxPayloadVoteType {
 					p.votesTransactionCh <- tx
 				}
 			}
+			// fork choice
+			log.Info("PoD Fork Choice.")
+			p.ForkChoice(block)
 			// new block event
 			event := consensus.NewBaseEvent(NewBlockEvent, block)
-			if stateMachine, exist := p.creatingStateMachines.Get(block.ParentHash()); exist {
+			if stateMachine, exist := p.creatingStateMachines.Get(block.ParentHash().Hex()); exist {
 				stateMachine.(*consensus.StateMachine).Event(event)
+			} else {
+				createdStateMachine := p.newCreatedStateMachine(block)
+				p.createdStateMachines.Add(block.Hash().Hex(), createdStateMachine)
 			}
 			// create a creating state machine waiting for next block
-			creatingStateMachine, err := p.newCreatingStateMachine(block)
-			if creatingStateMachine != nil {
-				p.creatingStateMachines.Add(block.Hash(), creatingStateMachine)
-				continue
-			}
-			log.WithFields(log.Fields{
-				"func":    "PoD.BlockLoop",
-				"channel": "New Block",
-				"block":   block,
-				"err":     err,
-			}).Error("cannot create new state machine")
+			creatingStateMachine := p.newCreatingStateMachine(block)
+			p.creatingStateMachines.Add(block.Hash().Hex(), creatingStateMachine)
+			creatingStateMachine.Start()
 		case voteTx := <-p.votesTransactionCh:
-			// unlock coinbase
-			p.neblet.AccountManager().Unlock(p.coinbase, []byte("passphrase"))
 			// parse vote tx
 			votePayload, err := core.LoadVotePayload(voteTx.Data())
 			if err != nil {
@@ -247,6 +269,16 @@ func (p *PoD) blockLoop() {
 					"channel": "Votes Transaction",
 					"err":     err,
 				}).Error("invalid vote payload")
+				continue
+			}
+			log.Info("PoD Receive Tx. ", votePayload)
+			// unlock coinbase
+			if err := p.neblet.AccountManager().Unlock(p.coinbase, []byte("passphrase")); err != nil {
+				log.WithFields(log.Fields{
+					"func":    "PoD.BlockLoop",
+					"channel": "New Blocks",
+					"err":     err,
+				}).Error("unlock address failed.")
 				continue
 			}
 			var action consensus.EventType
@@ -266,7 +298,7 @@ func (p *PoD) blockLoop() {
 				stateMachines = p.creatingStateMachines
 			}
 			event := consensus.NewBaseEvent(action, voteTx.From().Bytes())
-			if stateMachine, exist := stateMachines.Get(votePayload.Hash); exist {
+			if stateMachine, exist := stateMachines.Get(votePayload.Hash.Hex()); exist {
 				stateMachine.(*consensus.StateMachine).Event(event)
 				continue
 			}

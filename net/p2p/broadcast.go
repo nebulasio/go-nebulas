@@ -32,19 +32,19 @@ import (
 
 // Broadcast broadcast message
 func (ns *NetService) Broadcast(name string, msg net.Serializable) {
-	node := ns.node
-	if !node.synchronized {
+	/* 	node := ns.node */
+	/* 	if !node.synchronized {
 		return
-	}
+	} */
 	ns.distribute(name, msg, false)
 }
 
 // Relay relay message
 func (ns *NetService) Relay(name string, msg net.Serializable) {
-	node := ns.node
-	if !node.synchronized {
-		return
-	}
+	/* 	node := ns.node
+	   	if !node.synchronized {
+	   		return
+	   	} */
 	ns.distribute(name, msg, true)
 }
 

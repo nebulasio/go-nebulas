@@ -42,6 +42,7 @@ func NewPrepareState(sm *consensus.StateMachine, context *CreatedContext) *Prepa
 	return &PrepareState{
 		sm:      sm,
 		context: context,
+		votes:   make(map[byteutils.HexHash]bool),
 	}
 }
 
@@ -53,7 +54,7 @@ func (state *PrepareState) String() string {
 func (state *PrepareState) Event(e consensus.Event) (bool, consensus.State) {
 	switch e.EventType() {
 	case NewPrepareVoteEvent:
-		voter := e.Data().(byteutils.Hash)
+		voter := byteutils.Hash(e.Data().([]byte))
 		state.votes[voter.Hex()] = true
 		prepareVotes := uint32(len(state.votes))
 		if prepareVotes > state.context.maxVotes*2/3 {
@@ -68,20 +69,22 @@ func (state *PrepareState) Event(e consensus.Event) (bool, consensus.State) {
 func (state *PrepareState) Enter(data interface{}) {
 	log.Debug("PrepareState enter.")
 	// if the block is on canonical chain, vote
+	log.Infof("OnCanonical. %v", state.context.onCanonical)
 	if state.context.onCanonical {
 		p := state.sm.Context().(*PoD)
 		zero := util.NewUint128()
-		nonce := p.chain.TailBlock().GetNonce(p.coinbase.Bytes())
 		payload, err := core.NewPrepareVotePayload(core.PrepareAction, state.context.block.Hash(), state.context.block.Height(), 1).ToBytes()
 		if err != nil {
 			panic(err)
 		}
-		prepareTx := core.NewTransaction(state.context.block.ChainID(), p.coinbase, p.coinbase, zero, nonce+1, core.TxPayloadVoteType, payload)
+		prepareTx := core.NewTransaction(state.context.block.ChainID(), p.coinbase, p.coinbase, zero, p.nonce+1, core.TxPayloadVoteType, payload)
+		p.nonce++
 		p.neblet.AccountManager().SignTransaction(p.coinbase, prepareTx)
-		p.nm.Broadcast(consensus.MessageTypeNewTx, prepareTx)
+		p.chain.TransactionPool().PushAndBroadcast(prepareTx)
 		log.WithFields(log.Fields{
 			"func":       "PoD.PrepareState",
 			"block hash": state.context.block.Hash(),
+			"height":     state.context.block.Height(),
 		}).Info("Vote Prepare.")
 	}
 }

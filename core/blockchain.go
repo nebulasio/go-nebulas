@@ -107,6 +107,7 @@ func (bc *BlockChain) TailBlock() *Block {
 
 // SetTailBlock set tail block.
 func (bc *BlockChain) SetTailBlock(newTail *Block) {
+	log.Info("Set New Tail. ", newTail.Hash().Hex(), " height: ", newTail.Height())
 	oldTail := bc.tailBlock
 	bc.detachedTailBlocks.Remove(newTail.Hash().Hex())
 	bc.tailBlock = newTail

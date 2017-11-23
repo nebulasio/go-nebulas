@@ -19,16 +19,71 @@
 package pod
 
 import (
+	"github.com/nebulasio/go-nebulas/core"
 	log "github.com/sirupsen/logrus"
 )
 
 // ForkChoice Rule of PoD Consensus
 // 1. Choose the chain with highest score
 // 2. if same score, choose the longest chain
-// 3. if same length, choose the chain whose tail's hash is smaller
-func (p *PoD) ForkChoice() {
+// 3. if same length, choose the chain whose tail's HashInt64 is bigger
+func (p *PoD) ForkChoice(newTail *core.Block) {
+	oldTail := p.chain.TailBlock()
 	log.WithFields(log.Fields{
-		"func":         "PoD.ForkChoice",
-		"current tail": p.chain.TailBlock(),
+		"func":     "PoD.ForkChoice",
+		"old tail": oldTail,
 	}).Info("Fork Choice.")
+	oldTailScores, err := core.CalScoresOnChain(oldTail)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"func": "PoD.ForkChoice",
+			"err":  err,
+		}).Error("Error. Calculate Old Tail Scores.")
+		return
+	}
+	newTailScores, err := core.CalScoresOnChain(newTail)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"func": "PoD.ForkChoice",
+			"err":  err,
+		}).Error("Error. Calculate New Tail Scores.")
+		return
+	}
+	// compare scores
+	if newTailScores < oldTailScores {
+		return
+	}
+	if newTailScores > oldTailScores {
+		log.WithFields(log.Fields{
+			"func":          "PoD.ForkChoice",
+			"newTailScores": newTailScores,
+			"oldTailScores": oldTailScores,
+		}).Info("Bigger Scores. Found New Tail.")
+		p.chain.SetTailBlock(newTail)
+		return
+	}
+	// compare height
+	if newTail.Height() < oldTail.Height() {
+		return
+	}
+	if newTail.Height() > oldTail.Height() {
+		log.WithFields(log.Fields{
+			"func":          "PoD.ForkChoice",
+			"newTailHeight": newTail.Height(),
+			"oldTailHeight": oldTail.Height(),
+		}).Info("Longer Chain. Found New Tail.")
+		p.chain.SetTailBlock(newTail)
+		return
+	}
+	// compare tail hash
+	oldHashInt64 := core.HashBytesToInt64(oldTail.Hash(), oldTail.Hash())
+	newHashInt64 := core.HashBytesToInt64(newTail.Hash(), newTail.Hash())
+	if newHashInt64 > oldHashInt64 {
+		log.WithFields(log.Fields{
+			"func":        "PoD.ForkChoice",
+			"newTailHash": newHashInt64,
+			"oldTailHash": oldHashInt64,
+		}).Info("Bigger Hash. Found New Tail.")
+		p.chain.SetTailBlock(newTail)
+	}
 }

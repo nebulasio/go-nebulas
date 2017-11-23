@@ -61,8 +61,8 @@ func NewTransactionPool(size int) *TransactionPool {
 		panic("cannot new txpool with size == 0")
 	}
 	txPool := &TransactionPool{
-		receivedMessageCh:     make(chan net.Message, 128),
-		receivedTransactionCh: make(chan *Transaction, 128),
+		receivedMessageCh:     make(chan net.Message, 1024),
+		receivedTransactionCh: make(chan *Transaction, 1024),
 		quitCh:                make(chan int, 1),
 		size:                  size,
 		cache:                 pdeque.NewPriorityDeque(less),
@@ -182,6 +182,7 @@ func (pool *TransactionPool) push(tx *Transaction) error {
 	if _, ok := pool.all[tx.hash.Hex()]; ok {
 		return errors.New("duplicate tx")
 	}
+
 	// cache the verified tx
 	pool.cache.Insert(tx)
 	pool.all[tx.hash.Hex()] = tx

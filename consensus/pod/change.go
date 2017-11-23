@@ -44,6 +44,7 @@ func NewChangeState(sm *consensus.StateMachine, context *CreatingContext) *Chang
 	return &ChangeState{
 		sm:      sm,
 		context: context,
+		votes:   make(map[byteutils.HexHash]bool),
 	}
 }
 
@@ -100,7 +101,7 @@ func (state *ChangeState) Enter(data interface{}) {
 		}
 		changeTx := core.NewTransaction(state.context.parent.ChainID(), p.coinbase, p.coinbase, zero, nonce+1, core.TxPayloadVoteType, payload)
 		p.neblet.AccountManager().SignTransaction(p.coinbase, changeTx)
-		p.nm.Broadcast(consensus.MessageTypeNewTx, changeTx)
+		p.chain.TransactionPool().PushAndBroadcast(changeTx)
 		log.WithFields(log.Fields{
 			"func":       "PoD.ChangeState",
 			"block hash": state.context.parent.Hash(),
