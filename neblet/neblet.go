@@ -159,6 +159,10 @@ func (n *Neblet) Stop() error {
 		n.managementServer = nil
 	}
 
+	if n.config.Metrics.Enable {
+		metrics.Stop()
+	}
+
 	n.accountManager = nil
 
 	n.running = false
