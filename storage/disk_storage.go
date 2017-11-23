@@ -47,7 +47,12 @@ func NewDiskStorage(path string) (*DiskStorage, error) {
 
 // Get return value to the key in Storage
 func (storage *DiskStorage) Get(key []byte) ([]byte, error) {
-	return storage.db.Get(key, nil)
+	value, err := storage.db.Get(key, nil)
+	if err != nil && err == leveldb.ErrNotFound {
+		return nil, ErrKeyNotFound
+	}
+
+	return value, err
 }
 
 // Put put the key-value entry to Storage

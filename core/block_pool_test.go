@@ -39,7 +39,8 @@ func (c MockConsensus) VerifyBlock(block *Block) error {
 
 func TestBlockPool(t *testing.T) {
 	storage, _ := storage.NewMemoryStorage()
-	bc, _ := NewBlockChain(0, storage)
+	bc, err := NewBlockChain(0, storage)
+	assert.NoError(t, err)
 	var cons MockConsensus
 	bc.SetConsensusHandler(cons)
 	pool := bc.bkPool
@@ -68,7 +69,7 @@ func TestBlockPool(t *testing.T) {
 	tx2.Sign(signature)
 	tx3 := NewTransaction(0, from, to, util.NewUint128FromInt(3), 3, TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, TransactionGas)
 	tx3.Sign(signature)
-	err := bc.txPool.Push(tx1)
+	err = bc.txPool.Push(tx1)
 	assert.NoError(t, err)
 	err = bc.txPool.Push(tx2)
 	assert.NoError(t, err)

@@ -83,7 +83,11 @@ func NewBlockChain(chainID uint32, storage storage.Storage) (*BlockChain, error)
 	bc.detachedTailBlocks, _ = lru.New(64)
 
 	var err error
-	bc.genesisBlock = bc.loadGenesisFromStorage()
+	bc.genesisBlock, err = bc.loadGenesisFromStorage()
+	if err != nil {
+		return nil, err
+	}
+
 	bc.tailBlock, err = bc.loadTailFromStorage()
 	if err != nil {
 		return nil, err
@@ -91,6 +95,7 @@ func NewBlockChain(chainID uint32, storage storage.Storage) (*BlockChain, error)
 
 	bc.bkPool.setBlockChain(bc)
 	bc.txPool.setBlockChain(bc)
+
 	return bc, nil
 }
 
@@ -376,22 +381,34 @@ func (bc *BlockChain) storeTailToStorage(block *Block) {
 
 func (bc *BlockChain) loadTailFromStorage() (*Block, error) {
 	hash, err := bc.storage.Get([]byte(Tail))
-	if err != nil {
-		genesis := bc.loadGenesisFromStorage()
+	if err != nil && err != storage.ErrKeyNotFound {
+		return nil, err
+	}
+
+	if err == storage.ErrKeyNotFound {
+		genesis, err := bc.loadGenesisFromStorage()
+		if err != nil {
+			return nil, err
+		}
+
 		bc.storeTailToStorage(genesis)
+
 		return genesis, nil
 	}
+
 	return LoadBlockFromStorage(hash, bc.storage, bc.txPool)
 }
 
-func (bc *BlockChain) loadGenesisFromStorage() *Block {
+func (bc *BlockChain) loadGenesisFromStorage() (*Block, error) {
 	genesis, err := LoadBlockFromStorage(GenesisHash, bc.storage, nil)
-	if err != nil {
-		genesis = NewGenesisBlock(bc.chainID, bc.storage)
-		err := bc.storeBlockToStorage(genesis)
-		if err != nil {
-			log.Error(err)
-		}
+	if err != nil && err != storage.ErrKeyNotFound {
+		return nil, err
 	}
-	return genesis
+
+	genesis = NewGenesisBlock(bc.chainID, bc.storage)
+	if err := bc.storeBlockToStorage(genesis); err != nil {
+		return nil, err
+	}
+
+	return genesis, nil
 }
