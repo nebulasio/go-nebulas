@@ -179,11 +179,13 @@ time="2017-11-22T15:14:50+08:00" level=info msg="net.start: node start and join 
 
 ## REPL console
 Nebulas provides an interactive javascript console, which can invoke all API and management RPC methods. Some management methods may require passphrase. Start console using command:
+
 ```
 ./neb console
 ```
 
 We have api and admin two schemes to access the consle cmds. Users can quickly enter instructions using the TAB key.
+
 ```
 > api.
 api.accounts              api.getBlockByHash        api.sendRawTransaction
@@ -199,6 +201,7 @@ admin.sendTransactionWithPassphrase admin.unlockAccount
 ```
 
 For example, if we want to unlock account 8a209cec02cbeab7e2f74ad969d2dfe8dd24416aa65589bf:
+
 ```
 > admin.unlockAccount('8a209cec02cbeab7e2f74ad969d2dfe8dd24416aa65589bf')
 Unlock account 8a209cec02cbeab7e2f74ad969d2dfe8dd24416aa65589bf
@@ -208,7 +211,7 @@ Passphrase:
 }
 ```
 
-The command parameters of the command line are consistent with the parameters of the RPC interface. [NEB JSON RPC](https://github.com/nebulasio/wiki/blob/master/json-rpc.md).
+The command parameters of the command line are consistent with the parameters of the RPC interface. [NEB RPC](https://github.com/nebulasio/wiki/blob/master/json-rpc.md).
 
 
 ## RPC
@@ -217,10 +220,11 @@ Nebulas provides both [gRPC](https://grpc.io) and RESTful API, let users interac
 #### Endpoint
 
 Default endpoints:
+
 | API | URL | Protocol |
 |-------|:------------:|:------------:|
-| gRPC |  http://localhost:PORT | Protobuf
-| RESTful |http://localhost:PORT | HTTP |
+| gRPC |  http://localhost:52520 | Protobuf
+| RESTful |http://localhost:8191 | HTTP |
 
 ##### gRPC API
 We can play the gRPC example testing client code:
@@ -254,12 +258,11 @@ Now we can access the rpc API directly from our browser, you can update the *api
 BlockDump:
 curl -i -H 'Accept: application/json' -X POST http://localhost:8090/v1/block/dump -H 'Content-Type: application/json' -d '{"count":10}'
 ```
-More about [NEB JSON RPC](https://github.com/nebulasio/wiki/blob/master/json-rpc.md).
 
 #### API list
 
 
-For more details, please refer to [api_rpc.proto]().
+For more details, please refer to [NEB RPC](https://github.com/nebulasio/wiki/blob/master/json-rpc.md).
 
 
 ## NVM
@@ -346,7 +349,6 @@ Then you can call this samrt contract:
 ```
 curl -i -H 'Accept: application/json' -X POST http://localhost:8090/v1/call -H 'Content-Type: application/json' -d '{"from":"0x8a209cec02cbeab7e2f74ad969d2dfe8dd24416aa65589bf","to":"8f5aad7e7ad59c9d9eaa351b3f41f887e49d13f37974a02c", "nonce":2,"function":"save","args":"[0]"}'
 ```
-More nvm info [TODO]
 
 ## Contribution
 
