@@ -11,9 +11,6 @@ BankVaultContract.prototype = {
 	},
 	save: function(height) {
 		var deposit = this.bankVault.get(Blockchain.transaction.from);
-		if (deposit != null) {
-			deposit = JSON.parse(deposit)
-		}
 		var value = new BigNumber(Blockchain.transaction.value);
 		if (deposit != null && deposit.balance.length > 0) {
 			var balance = new BigNumber(deposit.balance);
@@ -23,14 +20,12 @@ BankVaultContract.prototype = {
 			balance: value.toString(),
 			height: Blockchain.block.height + height
 		}
-		this.bankVault.put(Blockchain.transaction.from, JSON.stringify(content))
+		this.bankVault.put(Blockchain.transaction.from, content);
 	},
 	takeout: function(amount) {
 		var deposit = this.bankVault.get(Blockchain.transaction.from);
 		if (deposit == null) {
 			return 0;
-		} else {
-			deposit = JSON.parse(deposit)
 		}
 		if (Blockchain.block.height < deposit.height) {
 			return 0;
@@ -42,10 +37,10 @@ BankVaultContract.prototype = {
 		}
 		var result = Blockchain.transfer(Blockchain.transaction.from, value);
 		if (result > 0) {
-			deposit.balance = balance.dividedBy(value).toString()
-			this.bankVault.put(Blockchain.transaction.from, JSON.stringify(deposit))
+			deposit.balance = balance.dividedBy(value).toString();
+			this.bankVault.put(Blockchain.transaction.from, deposit);
 		}
-		return result
+		return result;
 	}
 };
 
