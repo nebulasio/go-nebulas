@@ -223,7 +223,7 @@ func (s *APIService) SendRawTransaction(ctx context.Context, req *rpcpb.SendRawT
 	neb := s.server.Neblet()
 
 	pbTx := new(corepb.Transaction)
-	if err := proto.Unmarshal([]byte(req.GetData()), pbTx); err != nil {
+	if err := proto.Unmarshal(req.GetData(), pbTx); err != nil {
 		return nil, err
 	}
 	tx := new(core.Transaction)
