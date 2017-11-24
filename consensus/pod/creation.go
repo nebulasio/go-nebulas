@@ -86,7 +86,7 @@ func (state *CreationState) Enter(data interface{}) {
 				"block":  block,
 				"parent": state.context.parent,
 			}).Infof("Create New Block.")
-			p.chain.BlockPool().PushAndBroadcast(block)
+			go p.chain.BlockPool().PushAndBroadcast(block)
 		} else {
 			time.AfterFunc(30*time.Second, func() {
 				state.sm.Event(consensus.NewBaseEvent(NewChangeTimeoutEvent, nil))

@@ -131,7 +131,7 @@ func TestVotePayload_PrepareWrongHeight(t *testing.T) {
 func TestVotePayload_InvalidViewBlock(t *testing.T) {
 	validators, block := NewBlockWithValidDynasty(t)
 	size := len(validators)
-	newBlock := NewBlock(block.header.chainID, block.Coinbase(), block)
+	newBlock := NewBlock(block.header.chainID, &Address{validators[0]}, block)
 	newBlock.begin()
 	zero := util.NewUint128()
 	for i := 0; i < size*2/3; i++ {
@@ -298,10 +298,10 @@ func TestVotePayload_CommitBeforePrepare(t *testing.T) {
 	assert.NotNil(t, err)
 }
 
-func TestVotePayload_ChangeBefore23(t *testing.T) {
+func TestVotePayload_ChangeBeforeLastChanged(t *testing.T) {
 	validators, block := NewBlockWithValidDynasty(t)
 	size := len(validators)
-	newBlock := NewBlock(block.header.chainID, block.Coinbase(), block)
+	newBlock := NewBlock(block.header.chainID, &Address{validators[0]}, block)
 	newBlock.begin()
 	zero := util.NewUint128()
 	for i := 0; i < size*2/3; i++ {

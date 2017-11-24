@@ -63,8 +63,8 @@ type linkedBlock struct {
 // NewBlockPool return new #BlockPool instance.
 func NewBlockPool() *BlockPool {
 	bp := &BlockPool{
-		receiveMessageCh: make(chan net.Message, 128),
-		receivedBlockCh:  make(chan *Block, 128),
+		receiveMessageCh: make(chan net.Message, 1024),
+		receivedBlockCh:  make(chan *Block, 1024),
 		quitCh:           make(chan int, 1),
 		headBlocks:       make(map[byteutils.HexHash]*linkedBlock),
 	}

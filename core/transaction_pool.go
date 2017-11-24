@@ -32,10 +32,9 @@ import (
 
 // TransactionPool cache txs, is thread safe
 type TransactionPool struct {
-	receivedMessageCh     chan net.Message
-	receivedTransactionCh chan *Transaction
-	quitCh                chan int
-	mu                    sync.RWMutex
+	receivedMessageCh chan net.Message
+	quitCh            chan int
+	mu                sync.RWMutex
 
 	size  int
 	cache *pdeque.PriorityDeque
@@ -61,12 +60,11 @@ func NewTransactionPool(size int) *TransactionPool {
 		panic("cannot new txpool with size == 0")
 	}
 	txPool := &TransactionPool{
-		receivedMessageCh:     make(chan net.Message, 1024),
-		receivedTransactionCh: make(chan *Transaction, 1024),
-		quitCh:                make(chan int, 1),
-		size:                  size,
-		cache:                 pdeque.NewPriorityDeque(less),
-		all:                   make(map[byteutils.HexHash]*Transaction),
+		receivedMessageCh: make(chan net.Message, 1024),
+		quitCh:            make(chan int, 1),
+		size:              size,
+		cache:             pdeque.NewPriorityDeque(less),
+		all:               make(map[byteutils.HexHash]*Transaction),
 	}
 	return txPool
 }
@@ -142,11 +140,6 @@ func (pool *TransactionPool) loop() {
 	}
 }
 
-// ReceivedTransactionCh return received block chan.
-func (pool *TransactionPool) ReceivedTransactionCh() chan *Transaction {
-	return pool.receivedTransactionCh
-}
-
 // Push tx into pool
 func (pool *TransactionPool) Push(tx *Transaction) error {
 	pool.mu.Lock()
@@ -191,9 +184,6 @@ func (pool *TransactionPool) push(tx *Transaction) error {
 		tx := pool.cache.PopMax().(*Transaction)
 		delete(pool.all, tx.hash.Hex())
 	}
-
-	// notify consensus to handle new tx.
-	pool.receivedTransactionCh <- tx
 
 	return nil
 }
