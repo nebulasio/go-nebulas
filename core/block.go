@@ -346,6 +346,9 @@ func traverseValidators(dynastyTrie *trie.BatchTrie, prefix []byte) ([]byteutils
 		return validators, nil
 	}
 	iter, err := dynastyTrie.Iterator(prefix)
+	if err == storage.ErrKeyNotFound {
+		return validators, nil
+	}
 	if err != nil {
 		return nil, err
 	}

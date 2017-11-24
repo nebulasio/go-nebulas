@@ -79,13 +79,13 @@ func (state *CreationState) Enter(data interface{}) {
 		log.Infof("Proposer %s height %s me %s", state.Proposer().Hex(), parent.Height(), p.coinbase.ToHex())
 		if state.Proposer().Equals(p.coinbase.Bytes()) {
 			block := core.NewBlock(state.context.parent.ChainID(), p.coinbase, parent)
-			block.CollectTransactions(100)
+			block.CollectTransactions(200)
 			block.Seal()
 			log.WithFields(log.Fields{
 				"func":   "PoD.CreationState",
 				"block":  block,
 				"parent": state.context.parent,
-			}).Infof("Create New Block. %p", state)
+			}).Infof("Create New Block.")
 			p.chain.BlockPool().PushAndBroadcast(block)
 		} else {
 			time.AfterFunc(30*time.Second, func() {
