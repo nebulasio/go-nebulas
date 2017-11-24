@@ -58,6 +58,8 @@ type linkedBlock struct {
 
 	parentBlock *linkedBlock
 	childBlocks map[byteutils.HexHash]*linkedBlock
+
+	consensus Consensus
 }
 
 // NewBlockPool return new #BlockPool instance.
@@ -212,11 +214,6 @@ func (pool *BlockPool) push(block *Block) error {
 		return ErrDuplicatedBlock
 	}
 
-	// verify nonce.
-	if err := pool.bc.ConsensusHandler().VerifyBlock(block); err != nil {
-		return err
-	}
-
 	// verify block hash & txs
 	if err := block.verifyHash(pool.bc.chainID); err != nil {
 		return err
@@ -226,7 +223,7 @@ func (pool *BlockPool) push(block *Block) error {
 	blockCache := pool.blockCache
 
 	var plb *linkedBlock
-	lb := newLinkedBlock(block)
+	lb := pool.newLinkedBlock(block)
 	blockCache.Add(lb.hash.Hex(), lb)
 
 	// find child block in pool.
@@ -275,13 +272,14 @@ func (pool *BlockPool) setBlockChain(bc *BlockChain) {
 	pool.bc = bc
 }
 
-func newLinkedBlock(block *Block) *linkedBlock {
+func (pool *BlockPool) newLinkedBlock(block *Block) *linkedBlock {
 	return &linkedBlock{
 		block:       block,
 		hash:        block.Hash(),
 		parentHash:  block.ParentHash(),
 		parentBlock: nil,
 		childBlocks: make(map[byteutils.HexHash]*linkedBlock),
+		consensus:   pool.bc.ConsensusHandler(),
 	}
 }
 
@@ -300,7 +298,7 @@ func (lb *linkedBlock) travelToLinkAndReturnAllValidBlocks(parentBlock *Block) (
 		panic("link parent block fail.")
 	}
 
-	if err := lb.block.Verify(parentBlock.header.chainID); err != nil {
+	if err := lb.block.Verify(parentBlock.header.chainID, lb.consensus); err != nil {
 		return nil, nil
 	}
 

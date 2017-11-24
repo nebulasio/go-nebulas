@@ -31,6 +31,7 @@ import (
 // CreationState presents the prepare stage in pod
 type CreationState struct {
 	sm      *consensus.StateMachine
+	got     bool
 	context *CreatingContext
 }
 
@@ -38,6 +39,7 @@ type CreationState struct {
 func NewCreationState(sm *consensus.StateMachine, context *CreatingContext) *CreationState {
 	return &CreationState{
 		sm:      sm,
+		got:     false,
 		context: context,
 	}
 }
@@ -48,7 +50,7 @@ func (state *CreationState) String() string {
 
 // Proposer return current proposer who should propose the new block
 func (state *CreationState) Proposer() byteutils.Hash {
-	return state.context.validators[state.context.index]
+	return state.context.validators[0]
 }
 
 // Event handle event.
@@ -57,14 +59,17 @@ func (state *CreationState) Event(e consensus.Event) (bool, consensus.State) {
 	case NewBlockEvent:
 		block := e.Data().(*core.Block)
 		p := state.sm.Context().(*PoD)
-		createdStateMachine := p.newCreatedStateMachine(block)
+		createdStateMachine := p.newAndStartCreatedStateMachine(block)
 		p.createdStateMachines.Add(block.Hash().Hex(), createdStateMachine)
-		// creating over
-		p.creatingStateMachines.Remove(state.context.parent.Hash().Hex())
+		// stop the state machine
 		state.sm.Stop()
+		p.creatingStateMachines.Remove(state.context.parent.Hash().Hex())
+		state.got = true
 		return false, nil
 	case NewChangeTimeoutEvent:
-		return true, NewChangeState(state.sm, state.context)
+		if !state.got {
+			return true, NewChangeState(state.sm, state.context)
+		}
 	}
 	return false, nil
 }
@@ -73,7 +78,8 @@ func (state *CreationState) Event(e consensus.Event) (bool, consensus.State) {
 func (state *CreationState) Enter(data interface{}) {
 	log.Debugf("CreationState enter. %p", state)
 	// if the block is on canonical chain, create or set timeout
-	if state.context.onCanonical {
+	log.Infof("Chosen. %v", state.context.chosen)
+	if state.context.chosen {
 		p := state.sm.Context().(*PoD)
 		parent := p.chain.GetBlock(state.context.parent.Hash())
 		log.Infof("Proposer %s height %s me %s", state.Proposer().Hex(), parent.Height(), p.coinbase.ToHex())
@@ -88,7 +94,7 @@ func (state *CreationState) Enter(data interface{}) {
 			}).Infof("Create New Block.")
 			go p.chain.BlockPool().PushAndBroadcast(block)
 		} else {
-			time.AfterFunc(30*time.Second, func() {
+			time.AfterFunc(5*time.Second, func() {
 				state.sm.Event(consensus.NewBaseEvent(NewChangeTimeoutEvent, nil))
 			})
 		}
@@ -97,5 +103,5 @@ func (state *CreationState) Enter(data interface{}) {
 
 // Leave called when leaving this state.
 func (state *CreationState) Leave(data interface{}) {
-	log.Debug("CreationState leave.")
+	log.Debugf("CreationState leave. %p", state)
 }

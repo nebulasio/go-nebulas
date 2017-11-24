@@ -39,7 +39,7 @@ import (
 // constants
 const (
 	EpochSize       = 10
-	DynastySize     = 3
+	DynastySize     = 5
 	CandidatesLimit = 3000
 )
 
@@ -316,12 +316,12 @@ func NewBlock(chainID uint32, coinbase *Address, parent *Block) *Block {
 		storage: parent.storage,
 	}
 
-	change, err := parent.checkDynastyRule()
+	change, err := parent.CheckDynastyRule()
 	if err != nil {
 		panic("cannot create new block:" + err.Error())
 	}
 	if change {
-		block.changeDynasty()
+		block.ChangeDynasty()
 	}
 
 	err = block.chargeCurrentValidators()
@@ -451,16 +451,12 @@ func (block *Block) NextBlockSortedValidators() ([]byteutils.Hash, error) {
 	if err != nil {
 		return nil, err
 	}
-	validators, err := traverseValidators(block.validatorsTrie, dynastyRoot)
-	if err != nil {
-		return nil, err
-	}
-	return sortValidators(validators, block.Hash()), nil
+	return block.SortedActiveValidators(dynastyRoot)
 }
 
 // NextBlockDynastyRoot return the dynasty root in next block
 func (block *Block) NextBlockDynastyRoot() (byteutils.Hash, error) {
-	change, err := block.checkDynastyRule()
+	change, err := block.CheckDynastyRule()
 	if err != nil {
 		return nil, err
 	}
@@ -471,13 +467,13 @@ func (block *Block) NextBlockDynastyRoot() (byteutils.Hash, error) {
 	return dynastyRoot, nil
 }
 
-// DynastyValidators return all validators in this dynasty
-func (block *Block) DynastyValidators(dynastyRoot byteutils.Hash) ([]byteutils.Hash, error) {
-	dynastyTrie, err := trie.NewBatchTrie(dynastyRoot, block.storage)
+// SortedActiveValidators return all active validators in this dynasty
+func (block *Block) SortedActiveValidators(dynastyRoot byteutils.Hash) ([]byteutils.Hash, error) {
+	validators, err := traverseValidators(block.validatorsTrie, dynastyRoot)
 	if err != nil {
 		return nil, err
 	}
-	return traverseValidators(dynastyTrie, nil)
+	return sortValidators(validators, block.Hash()), nil
 }
 
 // DynastySize return the size of a dynasty
@@ -512,7 +508,8 @@ func CalScoresOnChain(tail *Block) (uint64, error) {
 	return scores, nil
 }
 
-func (block *Block) checkDynastyRule() (bool, error) {
+// CheckDynastyRule to judge if change current dynasty
+func (block *Block) CheckDynastyRule() (bool, error) {
 	change, err := block.checkDynastyRuleEpochOver()
 	if err != nil {
 		return false, err
@@ -559,9 +556,9 @@ func (block *Block) checkDynastyRuleTooFewValidators() (bool, error) {
 	return false, nil
 }
 
-// change current dynasty to next one
+// ChangeDynasty changes current dynasty to next one
 // all candidates will login automatically
-func (block *Block) changeDynasty() {
+func (block *Block) ChangeDynasty() {
 	block.curDynastyTrie = block.nextDynastyTrie
 	block.nextDynastyTrie, _ = trie.NewBatchTrie(nil, block.storage)
 	validators, _ := traverseValidators(block.dynastyCandidatesTrie, nil)
@@ -737,13 +734,13 @@ func (block *Block) LinkParentBlock(parentBlock *Block) bool {
 	block.height = parentBlock.Height() + 1
 	block.storage = parentBlock.storage
 
-	change, err := block.checkDynastyRule()
+	change, err := block.CheckDynastyRule()
 	if err != nil {
 		log.Error(err)
 		return false
 	}
 	if change {
-		block.changeDynasty()
+		block.ChangeDynasty()
 	}
 
 	err = block.chargeCurrentValidators()
@@ -926,7 +923,7 @@ func (block *Block) String() string {
 }
 
 // Verify return block verify result, including Hash, Nonce and StateRoot.
-func (block *Block) Verify(chainID uint32) error {
+func (block *Block) Verify(chainID uint32, consensus Consensus) error {
 	if err := block.verifyHash(chainID); err != nil {
 		return err
 	}
@@ -943,6 +940,11 @@ func (block *Block) Verify(chainID uint32) error {
 	if err := block.verifyState(); err != nil {
 		log.Error(err)
 		block.rollback()
+		return err
+	}
+
+	// verify coinbase.
+	if err := consensus.VerifyBlock(block); err != nil {
 		return err
 	}
 

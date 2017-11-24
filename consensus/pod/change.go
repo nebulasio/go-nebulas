@@ -36,6 +36,7 @@ import (
 type ChangeState struct {
 	sm      *consensus.StateMachine
 	votes   map[byteutils.HexHash]bool
+	over    bool
 	context *CreatingContext
 }
 
@@ -44,6 +45,7 @@ func NewChangeState(sm *consensus.StateMachine, context *CreatingContext) *Chang
 	return &ChangeState{
 		sm:      sm,
 		context: context,
+		over:    false,
 		votes:   make(map[byteutils.HexHash]bool),
 	}
 }
@@ -54,48 +56,68 @@ func (state *ChangeState) String() string {
 
 // Event handle event.
 func (state *ChangeState) Event(e consensus.Event) (bool, consensus.State) {
+	var err error
 	switch e.EventType() {
 	case NewChangeVoteEvent:
 		voter := e.Data().(byteutils.Hash)
 		state.votes[voter.Hex()] = true
 		changeVotes := uint32(len(state.votes))
-		activeN := uint32(len(state.context.validators)) - state.context.index
 		if changeVotes > state.context.maxVotes*2/3 {
-			state.context.index++
-			return true, NewCreationState(state.sm, state.context)
-		}
-		if activeN <= state.context.maxVotes*2/3 {
-			state.context.index = 0
-			state.context.dynastyChanged++
-			// TODO(roy): change to next dynasty, emergency
-			state.context.dynastyRoot = state.context.parent.NextDynastyRoot()
-			var err error
-			state.context.maxVotes, err = state.context.parent.DynastySize(state.context.dynastyRoot)
-			if err != nil {
-				panic(err)
+			state.context.validators = state.context.validators[1:]
+			state.context.changed++
+			activeN := uint32(len(state.context.validators))
+			log.WithFields(log.Fields{
+				"func":       "PoD.ChangeState",
+				"block hash": state.context.parent.Hash(),
+				"height":     state.context.parent.Height(),
+				"from":       state.context.validators[0],
+				"to":         state.context.validators[1],
+				"n":          state.context.changed + 1,
+			}).Info("Proposer Changed.")
+			if activeN <= state.context.maxVotes*2/3 {
+				currentDynasty := state.context.parent.CurDynastyRoot()
+				state.context.parent.ChangeDynasty()
+				state.context.dynastyRoot = state.context.parent.CurDynastyRoot()
+				state.context.maxVotes, err = state.context.parent.DynastySize(state.context.dynastyRoot)
+				if err != nil {
+					log.Error(err)
+					break
+				}
+				state.context.validators, err = state.context.parent.SortedActiveValidators(state.context.dynastyRoot)
+				if err != nil {
+					log.Error(err)
+					break
+				}
+				log.WithFields(log.Fields{
+					"func":       "PoD.ChangeState",
+					"block hash": state.context.parent.Hash(),
+					"height":     state.context.parent.Height(),
+					"from":       currentDynasty,
+					"to":         state.context.dynastyRoot.Hex(),
+				}).Info("Dynasty Changed.")
 			}
-			state.context.validators, err = state.context.parent.DynastyValidators(state.context.dynastyRoot)
-			if err != nil {
-				panic(err)
-			}
+			state.over = true
 			return true, NewCreationState(state.sm, state.context)
 		}
 		return false, nil
 	case NewAbdicateTimeoutEvent:
-		return true, NewAbdicateState(state.sm, state.context)
+		if !state.over {
+			return true, NewAbdicateState(state.sm, state.context)
+		}
 	}
 	return false, nil
 }
 
 // Enter called when transiting to this state.
 func (state *ChangeState) Enter(data interface{}) {
-	log.Debug("ChangeState enter.")
+	log.Debugf("ChangeState enter. %p", state)
 	// if the block is on canonical chain, vote & set timeout
-	if state.context.onCanonical {
+	log.Infof("Chosen. %v", state.context.chosen)
+	if state.context.chosen {
 		p := state.sm.Context().(*PoD)
 		zero := util.NewUint128()
 		nonce := p.chain.TailBlock().GetNonce(p.coinbase.Bytes())
-		payload, err := core.NewChangeVotePayload(core.ChangeAction, state.context.parent.Hash(), state.context.index+1).ToBytes()
+		payload, err := core.NewChangeVotePayload(core.ChangeAction, state.context.parent.Hash(), state.context.changed+1).ToBytes()
 		if err != nil {
 			panic(err)
 		}
@@ -105,8 +127,13 @@ func (state *ChangeState) Enter(data interface{}) {
 		log.WithFields(log.Fields{
 			"func":       "PoD.ChangeState",
 			"block hash": state.context.parent.Hash(),
-			"n":          state.context.index + 1,
+			"height":     state.context.parent.Height(),
+			"from":       state.context.validators[0],
+			"to":         state.context.validators[1],
+			"n":          state.context.changed + 1,
 		}).Info("Vote Change.")
+
+		// check change votes
 
 		time.AfterFunc(120*time.Second, func() {
 			state.sm.Event(consensus.NewBaseEvent(NewAbdicateTimeoutEvent, nil))
@@ -116,5 +143,5 @@ func (state *ChangeState) Enter(data interface{}) {
 
 // Leave called when leaving this state.
 func (state *ChangeState) Leave(data interface{}) {
-	log.Debug("ChangeState leave.")
+	log.Debugf("ChangeState leave. %p", state)
 }

@@ -81,6 +81,8 @@ func NewGenesisBlock(chainID uint32, storage storage.Storage, txPool *Transactio
 		"5cdadc1cfe3da0a3d067e9f1b195b90c5aebfb5afc8d43b4",
 		"8a209cec02cbeab7e2f74ad969d2dfe8dd24416aa65589bf",
 		"22ac3a9a2b1c31b7a9084e46eae16e761f83f02324092b09",
+		"080a4a6370b0b54436fdc5c52125cd8349af80c41c7ab591",
+		"a1981c24c5dde067952468ad2fc6556dcde5f2abe40fe7eb",
 	}
 	for _, v := range validators {
 		addr, err := byteutils.FromHex(v)
@@ -91,12 +93,12 @@ func NewGenesisBlock(chainID uint32, storage storage.Storage, txPool *Transactio
 		// default login
 		block.addDeposit(addr, StandardDeposit)
 	}
-	change, err := block.checkDynastyRule()
+	change, err := block.CheckDynastyRule()
 	if err != nil {
 		panic(err)
 	}
 	if change {
-		block.changeDynasty()
+		block.ChangeDynasty()
 	}
 	block.Seal()
 

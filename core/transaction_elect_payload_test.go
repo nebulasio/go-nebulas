@@ -46,6 +46,7 @@ func GenerateNewAddress() *Address {
 func TestElectPayload_BaseElect(t *testing.T) {
 	storage, _ := storage.NewMemoryStorage()
 	genesis := NewGenesisBlock(0, storage, nil)
+	size, _ := countValidators(genesis.dynastyCandidatesTrie, nil)
 	validators := []*Address{}
 	for i := 0; i < 10; i++ {
 		v := GenerateNewAddress()
@@ -74,7 +75,7 @@ func TestElectPayload_BaseElect(t *testing.T) {
 		}
 	}
 	cnt, err := countValidators(block.dynastyCandidatesTrie, nil)
-	assert.Equal(t, cnt, uint32(9))
+	assert.Equal(t, cnt, uint32(size+6))
 	assert.Nil(t, err)
 	for i := 0; i < 10; i++ {
 		v := validators[i]
@@ -144,10 +145,10 @@ func TestElectPayload_WithdrawWhileInNextDynasty(t *testing.T) {
 	assert.Equal(t, giveback, false)
 	assert.Nil(t, err)
 
-	change, err := block.checkDynastyRule()
+	change, err := block.CheckDynastyRule()
 	assert.Nil(t, err)
 	assert.Equal(t, change, false)
-	block.changeDynasty()
+	block.ChangeDynasty()
 
 	tx = NewTransaction(block.header.chainID, v, v, zero, 2, TxPayloadElectType, logoutPayload)
 	giveback, err = block.executeTransaction(tx)
@@ -166,23 +167,6 @@ func TestElectPayload_DynastyRule(t *testing.T) {
 	coinbase := &Address{validators[0]}
 	block := NewBlock(genesis.header.chainID, coinbase, genesis)
 	block.begin()
-	logoutPayload, _ := NewElectPayload(LogoutAction).ToBytes()
-
-	logoutAddress := &Address{validators[1]}
-	tx := NewTransaction(block.header.chainID, logoutAddress, logoutAddress, zero, 1, TxPayloadElectType, logoutPayload)
-	giveback, err := block.executeTransaction(tx)
-	assert.Equal(t, giveback, false)
-	assert.Nil(t, err)
-
-	cnt, err := countValidators(block.dynastyCandidatesTrie, nil)
-	assert.Nil(t, err)
-	assert.Equal(t, cnt, uint32(DynastySize*2/3))
-	cnt, err = countValidators(block.curDynastyTrie, nil)
-	assert.Nil(t, err)
-	assert.Equal(t, cnt, uint32(3))
-	cnt, err = countValidators(block.nextDynastyTrie, nil)
-	assert.Nil(t, err)
-	assert.Equal(t, cnt, uint32(3))
 
 	curBlock := block
 	curBlock.Seal()
@@ -197,10 +181,10 @@ func TestElectPayload_DynastyRule(t *testing.T) {
 	curBlock = NewBlock(curBlock.header.chainID, curBlock.Coinbase(), curBlock)
 	curBlock.Seal()
 
-	change, err := curBlock.checkDynastyRule()
+	change, err := curBlock.CheckDynastyRule()
 	assert.Nil(t, err)
 	assert.Equal(t, change, true)
-	block.changeDynasty()
+	block.ChangeDynasty()
 
 	dynastyRoot, err = curBlock.NextBlockDynastyRoot()
 	assert.Nil(t, err)

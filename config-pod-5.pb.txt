@@ -1,0 +1,34 @@
+# Sample non-seed testing node config.
+
+p2p {
+  port: 10002
+  seed: "/ip4/192.168.1.22/tcp/9998/ipfs/QmPyr4ZbDmwF1nWxymTktdzspcBFPL6X1v3Q5nT7PGNtUN"
+  chain_id: 100
+  version: 1
+}
+
+rpc {
+  api_port: 51514
+  management_port: 52524
+  gateway_port: 8083
+}
+
+pod {
+  coinbase: "a1981c24c5dde067952468ad2fc6556dcde5f2abe40fe7eb"
+}
+
+storage {
+  location: "normal.db"
+}
+
+account {
+  # keystore.SECP256K1 = 1
+  signature: 1
+
+  # keystore.SCRYPT = 1 << 4
+  encrypt: 16
+
+  key_dir: "keydir"
+
+  test_passphrase: "passphrase"
+}

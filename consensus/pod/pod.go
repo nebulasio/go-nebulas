@@ -21,15 +21,19 @@ package pod
 import (
 	"errors"
 
+	"github.com/nebulasio/go-nebulas/util/byteutils"
+
 	"github.com/nebulasio/go-nebulas/account"
 
 	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/net"
 
 	"github.com/hashicorp/golang-lru"
+	"github.com/nebulasio/go-nebulas/common/trie"
 	"github.com/nebulasio/go-nebulas/consensus"
 	"github.com/nebulasio/go-nebulas/neblet/pb"
 	"github.com/nebulasio/go-nebulas/net/p2p"
+	"github.com/nebulasio/go-nebulas/storage"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -101,14 +105,17 @@ type PoD struct {
 	createdStateMachines  *lru.Cache
 	creatingStateMachines *lru.Cache
 
-	nonce              uint64
-	votesTransactionCh chan *core.Transaction
+	nonce                    uint64
+	votesTransactionCh       chan *core.Transaction
+	chosenCreatedBlocksTrie  *trie.BatchTrie // key: height value: block hash
+	chosenCreatingBlocksTrie *trie.BatchTrie // key: height value: block hash
+	abdicateDynastyTrie      *trie.BatchTrie // key: dynasty hash value: vote
 
 	canMining bool
 }
 
 // NewPoD create PoD instance.
-func NewPoD(neblet Neblet) *PoD {
+func NewPoD(neblet Neblet, storage storage.Storage) *PoD {
 	cfg := neblet.Config().Pod
 	if cfg == nil {
 		panic("PoD.NewPoD: cannot find pod config.")
@@ -117,10 +124,19 @@ func NewPoD(neblet Neblet) *PoD {
 	if err != nil {
 		panic("PoD.NewPoD: coinbase parse err.")
 	}
+
 	createdStateMachines, err1 := lru.New(1024)
 	creatingStateMachines, err2 := lru.New(1024)
 	if err1 != nil || err2 != nil {
-		panic("Pow.NewPow: fail to create lru cache for state machines.")
+		panic("PoD.NewPoD: fail to create lru cache for state machines.")
+	}
+
+	// TODO(roy): support disk storage
+	chosenCreatedBlocksTrie, err1 := trie.NewBatchTrie(nil, storage)
+	chosenCreatingBlocksTrie, err2 := trie.NewBatchTrie(nil, storage)
+	abdicateDynastyTrie, err3 := trie.NewBatchTrie(nil, storage)
+	if err != nil || err2 != nil || err3 != nil {
+		panic("PoD.NewPoD: fail to create chosen blocks trie")
 	}
 
 	p := &PoD{
@@ -131,10 +147,13 @@ func NewPoD(neblet Neblet) *PoD {
 		neblet:   neblet,
 		coinbase: coinbase,
 
-		createdStateMachines:  createdStateMachines,
-		creatingStateMachines: creatingStateMachines,
-		votesTransactionCh:    make(chan *core.Transaction, 1024),
-		nonce:                 0,
+		createdStateMachines:     createdStateMachines,
+		creatingStateMachines:    creatingStateMachines,
+		chosenCreatedBlocksTrie:  chosenCreatedBlocksTrie,
+		chosenCreatingBlocksTrie: chosenCreatingBlocksTrie,
+		abdicateDynastyTrie:      abdicateDynastyTrie,
+		votesTransactionCh:       make(chan *core.Transaction, 1024),
+		nonce:                    0,
 
 		canMining: false,
 	}
@@ -145,45 +164,78 @@ func NewPoD(neblet Neblet) *PoD {
 	return p
 }
 
+func (p *PoD) chooseBlock(block *core.Block, record *trie.BatchTrie) bool {
+	onCanonical := block.Hash().Equals(p.chain.TailBlock().Hash())
+	if onCanonical {
+		dynasty := block.CurDynastyRoot()
+		dynastyKey := append(dynasty, p.coinbase.Bytes()...)
+		_, err := p.abdicateDynastyTrie.Get(dynastyKey)
+		if err == storage.ErrKeyNotFound {
+			key := byteutils.FromUint64(block.Height())
+			_, err = p.chosenCreatingBlocksTrie.Get(key)
+			if err == storage.ErrKeyNotFound {
+				record.Put(key, block.Hash())
+				return true
+			}
+		}
+		if err != nil {
+			log.WithFields(log.Fields{
+				"func":  "PoD.chooseBlock",
+				"block": block,
+				"err":   err,
+			}).Error("check if the block is chosen failed")
+			panic("check if the block is chosen failed")
+		}
+	}
+	return false
+}
+
 func (p *PoD) newCreatingStateMachine(parent *core.Block) *consensus.StateMachine {
-	creatingStateMachine := consensus.NewStateMachine(p)
-	context, err := NewCreatingContext(parent, p.chain.TailBlock())
+	chosen := p.chooseBlock(parent, p.chosenCreatingBlocksTrie)
+	context, err := NewCreatingContext(p.coinbase.Bytes(), parent, chosen)
 	if err != nil {
 		log.WithFields(log.Fields{
-			"func":    "PoD.BlockLoop",
-			"channel": "New Block",
-			"parent":  parent,
-			"err":     err,
+			"func":   "PoD.newCreatingStateMachine",
+			"parent": parent,
+			"err":    err,
 		}).Error("cannot create new state machine")
 		panic("cannot create new state machine")
 	}
+	return p.newCreatingStateMachineWithContext(context)
+}
+
+func (p *PoD) newCreatingStateMachineWithContext(context *CreatingContext) *consensus.StateMachine {
+	creatingStateMachine := consensus.NewStateMachine(p)
 	creatingStateMachine.SetInitialState(NewCreationState(creatingStateMachine, context))
 	log.WithFields(log.Fields{
 		"func":   "PoD.newCreatingStateMachine",
-		"parent": parent,
+		"parent": context.parent,
 	}).Info("create new creating state machine")
 	return creatingStateMachine
 }
 
-func (p *PoD) newCreatedStateMachine(block *core.Block) *consensus.StateMachine {
-	onCanonical := block.Hash().Equals(p.chain.TailBlock().Hash())
-	createdStateMachine := consensus.NewStateMachine(p)
-	context, err := NewCreatedContext(block, onCanonical)
+func (p *PoD) newAndStartCreatedStateMachine(block *core.Block) *consensus.StateMachine {
+	chosen := p.chooseBlock(block, p.chosenCreatedBlocksTrie)
+	context, err := NewCreatedContext(p.coinbase.Bytes(), block, chosen)
 	if err != nil {
 		log.WithFields(log.Fields{
-			"func":    "PoD.BlockLoop",
-			"channel": "New Block",
-			"block":   block,
-			"err":     err,
+			"func":  "PoD.newAndStartCreatedStateMachine",
+			"block": block,
+			"err":   err,
 		}).Error("cannot create new state machine")
 		panic("cannot create new state machine")
 	}
+	return p.newAndStartCreatedStateMachineWithContext(context)
+}
+
+func (p *PoD) newAndStartCreatedStateMachineWithContext(context *CreatedContext) *consensus.StateMachine {
+	createdStateMachine := consensus.NewStateMachine(p)
 	createdStateMachine.SetInitialState(NewPrepareState(createdStateMachine, context))
-	log.WithFields(log.Fields{
-		"func":   "PoD.newCreatedStateMachine",
-		"parent": block,
-	}).Info("create new created state machine")
 	createdStateMachine.Start()
+	log.WithFields(log.Fields{
+		"func":  "PoD.newAndStartCreatedStateMachine",
+		"block": context.block,
+	}).Info("create new created state machine")
 	return createdStateMachine
 }
 
@@ -253,7 +305,7 @@ func (p *PoD) blockLoop() {
 			if stateMachine, exist := p.creatingStateMachines.Get(block.ParentHash().Hex()); exist {
 				stateMachine.(*consensus.StateMachine).Event(event)
 			} else {
-				createdStateMachine := p.newCreatedStateMachine(block)
+				createdStateMachine := p.newAndStartCreatedStateMachine(block)
 				p.createdStateMachines.Add(block.Hash().Hex(), createdStateMachine)
 			}
 			// create a creating state machine waiting for next block

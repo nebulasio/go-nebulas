@@ -69,8 +69,8 @@ func (state *PrepareState) Event(e consensus.Event) (bool, consensus.State) {
 func (state *PrepareState) Enter(data interface{}) {
 	log.Debug("PrepareState enter.")
 	// if the block is on canonical chain, vote
-	log.Infof("OnCanonical. %v", state.context.onCanonical)
-	if state.context.onCanonical {
+	log.Infof("Chosen. %v", state.context.chosen)
+	if state.context.chosen {
 		p := state.sm.Context().(*PoD)
 		zero := util.NewUint128()
 		payload, err := core.NewPrepareVotePayload(core.PrepareAction, state.context.block.Hash(), state.context.block.Height(), 1).ToBytes()

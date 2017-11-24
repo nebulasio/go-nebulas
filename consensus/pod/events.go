@@ -21,7 +21,6 @@ package pod
 import (
 	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
-	log "github.com/sirupsen/logrus"
 )
 
 // Event Type List
@@ -40,64 +39,87 @@ const (
 type CreatingContext struct {
 	parent *core.Block
 
-	index          uint32
-	dynastyRoot    byteutils.Hash
-	dynastyChanged uint32
-	validators     []byteutils.Hash
-	maxVotes       uint32
+	changed     uint32
+	dynastyRoot byteutils.Hash
+	validators  []byteutils.Hash
+	maxVotes    uint32
 
-	onCanonical bool
+	chosen bool
 }
 
 // NewCreatingContext create a new creating context
-func NewCreatingContext(parent *core.Block, tail *core.Block) (*CreatingContext, error) {
+func NewCreatingContext(coinbase byteutils.Hash, parent *core.Block, chosen bool) (*CreatingContext, error) {
 	var err error
 
 	context := &CreatingContext{}
 	context.parent = parent
+	context.changed = 0
 
-	context.index = 0
-	context.dynastyChanged = 0
-	context.dynastyRoot, err = parent.NextBlockDynastyRoot()
+	// check current dynasty
+	change, err := parent.CheckDynastyRule()
 	if err != nil {
 		return nil, err
 	}
+	if change {
+		parent.ChangeDynasty()
+	}
+	context.dynastyRoot = parent.CurDynastyRoot()
 	context.maxVotes, err = parent.DynastySize(context.dynastyRoot)
 	if err != nil {
 		return nil, err
 	}
-	context.validators, err = parent.NextBlockSortedValidators()
+	context.validators, err = parent.SortedActiveValidators(context.dynastyRoot)
 	if err != nil {
 		return nil, err
 	}
 
-	context.onCanonical = false
-	if parent.Hash().Equals(tail.Hash()) {
-		context.onCanonical = true
+	// check if current coinbase is a validator
+	context.chosen = false
+	for _, v := range context.validators {
+		if coinbase.Equals(v) {
+			context.chosen = chosen
+		}
 	}
 
-	log.Info("NewCreatingStateMachine ", context.onCanonical)
 	return context, nil
 }
 
 // CreatedContext carries the context in createdStateMachine
 type CreatedContext struct {
-	block       *core.Block
+	block *core.Block
+
+	dynastyRoot byteutils.Hash
+	validators  []byteutils.Hash
 	maxVotes    uint32
-	onCanonical bool
+
+	chosen bool
 }
 
 // NewCreatedContext create a new creating context
-func NewCreatedContext(block *core.Block, onCanonical bool) (*CreatedContext, error) {
+func NewCreatedContext(coinbase byteutils.Hash, block *core.Block, chosen bool) (*CreatedContext, error) {
 	var err error
+
 	context := &CreatedContext{}
 	context.block = block
-	context.maxVotes, err = block.DynastySize(block.CurDynastyRoot())
+
+	// check current dynasty
+	context.dynastyRoot = block.CurDynastyRoot()
+	context.maxVotes, err = block.DynastySize(context.dynastyRoot)
 	if err != nil {
 		return nil, err
 	}
-	context.onCanonical = onCanonical
+	context.validators, err = block.SortedActiveValidators(context.dynastyRoot)
+	if err != nil {
+		return nil, err
+	}
 
-	log.Info("NewCreatedStateMachine ", context.onCanonical)
+	// check if current coinbase is a validator
+	context.chosen = false
+	for _, v := range context.validators {
+		if coinbase.Equals(v) {
+			context.chosen = chosen
+		}
+	}
+
 	return context, nil
 }

@@ -308,5 +308,6 @@ func TestBlock_CollectTransactions(t *testing.T) {
 	pb.Unmarshal(ir, proto)
 	nb.FromProto(proto)
 	nb.LinkParentBlock(bc.tailBlock)
-	assert.Nil(t, nb.Verify(0))
+	var consensus MockConsensus
+	assert.Nil(t, nb.Verify(0, consensus))
 }

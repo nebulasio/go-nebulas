@@ -51,6 +51,8 @@ func (state *AbdicateState) String() string {
 
 // Event handle event.
 func (state *AbdicateState) Event(e consensus.Event) (bool, consensus.State) {
+	var err error
+
 	switch e.EventType() {
 	case NewAbdicateVoteEvent:
 		voter := e.Data().(byteutils.Hash)
@@ -58,19 +60,26 @@ func (state *AbdicateState) Event(e consensus.Event) (bool, consensus.State) {
 		abdicateVotes := uint32(len(state.votes))
 		activeN := uint32(len(state.context.validators)) - abdicateVotes
 		if activeN <= state.context.maxVotes*2/3 {
-			state.context.index = 0
-			state.context.dynastyChanged++
-			// TODO(roy): change to next dynasty, emergency
-			state.context.dynastyRoot = state.context.parent.NextDynastyRoot()
-			var err error
+			currentDynasty := state.context.parent.CurDynastyRoot()
+			state.context.parent.ChangeDynasty()
+			state.context.dynastyRoot = state.context.parent.CurDynastyRoot()
 			state.context.maxVotes, err = state.context.parent.DynastySize(state.context.dynastyRoot)
 			if err != nil {
-				panic(err)
+				log.Error(err)
+				break
 			}
-			state.context.validators, err = state.context.parent.DynastyValidators(state.context.dynastyRoot)
+			state.context.validators, err = state.context.parent.SortedActiveValidators(state.context.dynastyRoot)
 			if err != nil {
-				panic(err)
+				log.Error(err)
+				break
 			}
+			log.WithFields(log.Fields{
+				"func":       "PoD.AbdicateState",
+				"block hash": state.context.parent.Hash(),
+				"height":     state.context.parent.Height(),
+				"from":       currentDynasty,
+				"to":         state.context.dynastyRoot.Hex(),
+			}).Info("Dynasty Changed.")
 			return true, NewCreationState(state.sm, state.context)
 		}
 		return false, nil
@@ -82,21 +91,31 @@ func (state *AbdicateState) Event(e consensus.Event) (bool, consensus.State) {
 func (state *AbdicateState) Enter(data interface{}) {
 	log.Debug("AbdicateState enter.")
 	// if the block is on canonical chain, vote
-	if state.context.onCanonical {
+	log.Infof("Chosen. %v", state.context.chosen)
+	if state.context.chosen {
 		p := state.sm.Context().(*PoD)
 		zero := util.NewUint128()
 		nonce := p.chain.TailBlock().GetNonce(p.coinbase.Bytes())
 		payload, err := core.NewAbdicateVotePayload(core.AbdicateAction, state.context.parent.Hash(), state.context.dynastyRoot).ToBytes()
 		if err != nil {
-			panic(err)
+			log.Error(err)
+			return
+		}
+		_, err = p.abdicateDynastyTrie.Put(state.context.dynastyRoot, p.coinbase.Bytes())
+		if err != nil {
+			log.Error(err)
+			return
 		}
 		abdicateTx := core.NewTransaction(state.context.parent.ChainID(), p.coinbase, p.coinbase, zero, nonce+1, core.TxPayloadVoteType, payload)
 		p.neblet.AccountManager().SignTransaction(p.coinbase, abdicateTx)
 		p.chain.TransactionPool().PushAndBroadcast(abdicateTx)
+
+		// check abdicate votes
+
 		log.WithFields(log.Fields{
-			"func":         "PoD.Abdicate",
-			"block hash":   state.context.parent.Hash(),
-			"dynasty root": state.context.dynastyRoot,
+			"func":       "PoD.AbdicateState",
+			"block hash": state.context.parent.Hash(),
+			"from":       state.context.dynastyRoot,
 		}).Info("Vote Abdicate.")
 	}
 }

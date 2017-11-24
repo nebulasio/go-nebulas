@@ -94,7 +94,7 @@ func (n *Neblet) Start() error {
 	n.blockChain.BlockPool().RegisterInNetwork(n.netService)
 	n.blockChain.TransactionPool().RegisterInNetwork(n.netService)
 
-	n.consensus = pod.NewPoD(n)
+	n.consensus = pod.NewPoD(n, storage)
 	n.blockChain.SetConsensusHandler(n.consensus)
 
 	// start sync service

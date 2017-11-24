@@ -74,8 +74,8 @@ func (state *CommitState) Event(e consensus.Event) (bool, consensus.State) {
 func (state *CommitState) Enter(data interface{}) {
 	log.Debug("CommitState enter.")
 	// if the block is on canonical chain, vote
-	log.Infof("OnCanonical. %v", state.context.onCanonical)
-	if state.context.onCanonical {
+	log.Infof("Chosen. %v", state.context.chosen)
+	if state.context.chosen {
 		p := state.sm.Context().(*PoD)
 		zero := util.NewUint128()
 		payload, err := core.NewCommitVotePayload(core.CommitAction, state.context.block.Hash()).ToBytes()
