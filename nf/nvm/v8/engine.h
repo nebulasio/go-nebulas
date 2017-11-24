@@ -109,6 +109,9 @@ EXPORT int RunScriptSource(V8Engine *e, const char *source,
 EXPORT char *InjectTracingInstructions(V8Engine *e, const char *source,
                                        int *source_line_offset);
 
+EXPORT char *TypeScriptTranspileModule(V8Engine *e, const char *source,
+                                       int *source_line_offset);
+
 EXPORT int IsEngineLimitsExceeded(V8Engine *e);
 
 EXPORT void ReadMemoryStatistics(V8Engine *e);
@@ -116,9 +119,6 @@ EXPORT void ReadMemoryStatistics(V8Engine *e);
 EXPORT void TerminateExecution(V8Engine *e);
 
 EXPORT void DeleteEngine(V8Engine *e);
-
-// EXPORT char *EncapsulateSourceToModuleStyle(const char *source,
-//                                             int *source_line_offset);
 
 #ifdef __cplusplus
 }

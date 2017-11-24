@@ -159,6 +159,22 @@ void ExecuteScript(const char *filename, V8ExecutionDelegate delegate) {
     exit(1);
   }
 
+  // convert TS to js if needed.
+  size_t filenameLen = strlen(filename);
+  if (filenameLen > 3 && filename[filenameLen - 3] == '.' &&
+      filename[filenameLen - 2] == 't' && filename[filenameLen - 1] == 's') {
+    size = 0;
+    char *jsSource = TypeScriptTranspileModule(e, source, &lineOffset);
+    if (jsSource == NULL) {
+      fprintf(stderr, "%s is not a valid TypeScript file.\n", filename);
+      free(source);
+      exit(1);
+    }
+    free(source);
+    source = jsSource;
+  }
+
+  // inject tracing code.
   if (enable_tracer_injection) {
     char *traceableSource = InjectTracingInstructions(e, source, &lineOffset);
     if (traceableSource == NULL) {

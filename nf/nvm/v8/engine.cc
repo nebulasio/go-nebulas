@@ -25,6 +25,7 @@
 #include "lib/instruction_counter.h"
 #include "lib/logger.h"
 #include "lib/tracing.h"
+#include "lib/typescript.h"
 #include "v8_data_inc.h"
 
 #include <libplatform/libplatform.h>
@@ -146,6 +147,18 @@ char *InjectTracingInstructions(V8Engine *e, const char *source,
 
   *source_line_offset = tContext.source_line_offset;
   return static_cast<char *>(tContext.tracable_source);
+}
+
+char *TypeScriptTranspileModule(V8Engine *e, const char *source,
+                                int *source_line_offset) {
+  TypeScriptContext tContext;
+  tContext.source_line_offset = 0;
+  tContext.js_source = NULL;
+
+  Execute(e, source, 0, 0L, 0L, TypeScriptTranspileDelegate, (void *)&tContext);
+
+  *source_line_offset = tContext.source_line_offset;
+  return static_cast<char *>(tContext.js_source);
 }
 
 int RunScriptSource(V8Engine *e, const char *source, int source_line_offset,

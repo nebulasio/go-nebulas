@@ -391,6 +391,7 @@ func getEngineByEngineHandler(handler unsafe.Pointer) *V8Engine {
 func formatArgs(s string) string {
 	s = strings.Replace(s, "\\", "\\\\", -1)
 	s = strings.Replace(s, "\n", "\\n", -1)
+	s = strings.Replace(s, "\r", "\\r", -1)
 	s = strings.Replace(s, "\"", "\\\"", -1)
 	return s
 }
