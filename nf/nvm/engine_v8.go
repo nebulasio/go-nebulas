@@ -63,6 +63,7 @@ var (
 	ErrInsufficientGas                = errors.New("insufficient gas")
 	ErrExceedMemoryLimits             = errors.New("exceed memory limits")
 	ErrInjectTracingInstructionFailed = errors.New("inject tracing instructions failed")
+	ErrTranspileTypeScriptFailed      = errors.New("transpile TypeScript failed")
 )
 
 var (
@@ -190,6 +191,22 @@ func (e *V8Engine) SetExecutionLimits(limitsOfExecutionInstructions, limitsOfTot
 	if limitsOfTotalMemorySize > 0 && limitsOfTotalMemorySize < 6000000 {
 		log.Warnf("V8 needs at least 6M (6000000) heap memory, your limitsOfTotalMemorySize (%d) is too low.", limitsOfTotalMemorySize)
 	}
+}
+
+// TranspileTypeScript transpile typescript to javascript and return it.
+func (e *V8Engine) TranspileTypeScript(source string) (string, int, error) {
+	cSource := C.CString(source)
+	defer C.free(unsafe.Pointer(cSource))
+
+	lineOffset := C.int(0)
+	jsSource := C.TranspileTypeScriptModule(e.v8engine, cSource, &lineOffset)
+	if jsSource == nil {
+		return "", 0, ErrTranspileTypeScriptFailed
+	}
+	defer C.free(unsafe.Pointer(jsSource))
+
+	return C.GoString(jsSource), int(lineOffset), nil
+
 }
 
 // InjectTracingInstructions process the source to inject tracing instructions.

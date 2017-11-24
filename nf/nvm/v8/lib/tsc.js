@@ -24,7 +24,7 @@ var compilerOptions = {
 function transpileModule(input) {
     var ret = ts.transpileModule(input, {
         compilerOptions: compilerOptions,
-        moduleName: "myModule2"
+        moduleName: "module"
     });
 
     if (ret.diagnostics.length > 0) {

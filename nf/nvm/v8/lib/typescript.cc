@@ -21,6 +21,8 @@
 #include "logger.h"
 #include "util.h"
 
+#include <string.h>
+
 extern void PrintException(Local<Context> context, TryCatch &trycatch);
 
 static char ts_transpile_source_template[] =

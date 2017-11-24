@@ -421,6 +421,50 @@ func TestInstructionCounterTestSuite(t *testing.T) {
 	}
 }
 
+func TestTypeScriptExecution(t *testing.T) {
+	tests := []struct {
+		filepath    string
+		expectedErr error
+	}{
+		{"./test/test_greeter.ts", nil},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.filepath, func(t *testing.T) {
+			data, err := ioutil.ReadFile(tt.filepath)
+			assert.Nil(t, err, "filepath read error")
+
+			mem, _ := storage.NewMemoryStorage()
+			context, _ := state.NewAccountState(nil, mem)
+			owner := context.GetOrCreateUserAccount([]byte("account1"))
+			owner.AddBalance(util.NewUint128FromInt(1000000000))
+			contract, _ := context.CreateContractAccount([]byte("account2"), nil)
+			ctx := NewContext(testContextBlock(), testContextTransaction(), owner, contract, context)
+
+			moduleID := tt.filepath
+			runnableSource := fmt.Sprintf("require(\"%s\");", moduleID)
+
+			engine := NewV8Engine(ctx)
+			defer engine.Dispose()
+
+			engine.enableLimits = true
+			jsSource, _, err := engine.TranspileTypeScript(string(data))
+			if err != nil {
+				assert.Equal(t, tt.expectedErr, err)
+				return
+			}
+
+			err = engine.AddModule(moduleID, string(jsSource), 0)
+			if err != nil {
+				assert.Equal(t, tt.expectedErr, err)
+			} else {
+				err = engine.RunScriptSource(runnableSource, 0)
+				assert.Equal(t, tt.expectedErr, err)
+			}
+		})
+	}
+}
+
 func TestRunMozillaJSTestSuite(t *testing.T) {
 	mem, _ := storage.NewMemoryStorage()
 	context, _ := state.NewAccountState(nil, mem)

@@ -109,7 +109,7 @@ EXPORT int RunScriptSource(V8Engine *e, const char *source,
 EXPORT char *InjectTracingInstructions(V8Engine *e, const char *source,
                                        int *source_line_offset);
 
-EXPORT char *TypeScriptTranspileModule(V8Engine *e, const char *source,
+EXPORT char *TranspileTypeScriptModule(V8Engine *e, const char *source,
                                        int *source_line_offset);
 
 EXPORT int IsEngineLimitsExceeded(V8Engine *e);

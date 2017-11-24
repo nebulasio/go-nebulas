@@ -149,7 +149,7 @@ char *InjectTracingInstructions(V8Engine *e, const char *source,
   return static_cast<char *>(tContext.tracable_source);
 }
 
-char *TypeScriptTranspileModule(V8Engine *e, const char *source,
+char *TranspileTypeScriptModule(V8Engine *e, const char *source,
                                 int *source_line_offset) {
   TypeScriptContext tContext;
   tContext.source_line_offset = 0;

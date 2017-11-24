@@ -164,7 +164,7 @@ void ExecuteScript(const char *filename, V8ExecutionDelegate delegate) {
   if (filenameLen > 3 && filename[filenameLen - 3] == '.' &&
       filename[filenameLen - 2] == 't' && filename[filenameLen - 1] == 's') {
     size = 0;
-    char *jsSource = TypeScriptTranspileModule(e, source, &lineOffset);
+    char *jsSource = TranspileTypeScriptModule(e, source, &lineOffset);
     if (jsSource == NULL) {
       fprintf(stderr, "%s is not a valid TypeScript file.\n", filename);
       free(source);
