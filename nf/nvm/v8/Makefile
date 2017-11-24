@@ -60,16 +60,16 @@ main: main.cc.o lib/memory_storage.cc.o lib/memory_modules.cc.o engine.cc.o allo
 	$(LD) $(LDFLAGS) $^ -o $@ $(LIBS_PATH) $(LIBS)
 
 engine: engine.cc.o allocator.cc.o lib/global.cc.o lib/execution_env.cc.o lib/storage_object.cc.o lib/log_callback.cc.o lib/require_callback.cc.o lib/instruction_counter.cc.o lib/blockchain.cc.o lib/tracing.cc.o lib/file.cc.o
-	$(LD) -shared $(LDFLAGS) $^ -o libv8$@$(DYLIB) $(LIBS_PATH) $(LIBS)
+	$(LD) -shared $(LDFLAGS) $^ -o libnebulasv8$(DYLIB) $(LIBS_PATH) $(LIBS)
 
 install: engine
 	-mkdir -p ../native-lib
-	-install libv8engine$(DYLIB) ../native-lib/
+	-install libnebulasv8$(DYLIB) ../native-lib/
 
 clean:
 	-rm -f natives_blob.bin.h snapshot_blob.bin.h;
 	-find . -iname '*.o' -exec rm {} \;
-	-rm -f main libv8engine$(DYLIB);
+	-rm -f main libnebulasv8$(DYLIB);
 
 v8_snapshot_bin:
 	-ln -s $(V8_BLOB_BIN_PATH)/natives_blob.bin .
