@@ -35,7 +35,7 @@ gulp.task('version', function(){
 });
 
 gulp.task('lint', [], function(){
-    return gulp.src(['./*.js', './lib/*.js'])
+    return gulp.src(['./index.js', './lib/*.js', './lib/**/*.js'])
         .pipe(jshint())
         .pipe(jshint.reporter('default'));
 });
@@ -62,7 +62,6 @@ gulp.task('light', ['clean'], function () {
 gulp.task('neb', ['clean'], function () {
     return browserify(browserifyOptions)
         .require('./' + src + '.js', {expose: 'neb'})
-        .require('bignumber.js') // expose it to dapp users
         .add('./' + src + '.js')
         .bundle()
         .pipe(exorcist(path.join( DEST, dst + '.js.map')))

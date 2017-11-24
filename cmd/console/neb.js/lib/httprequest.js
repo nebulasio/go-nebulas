@@ -1,15 +1,16 @@
 
 "use strict";
 
+var XMLHttpRequest;
+
 // browser
 if (typeof window !== "undefined" && window.XMLHttpRequest) {
-  XMLHttpRequest = window.XMLHttpRequest; // jshint ignore: line
+  XMLHttpRequest = window.XMLHttpRequest;
 // node
 } else {
-  XMLHttpRequest = require("xmlhttprequest").XMLHttpRequest; // jshint ignore: line
+  XMLHttpRequest = require("xmlhttprequest").XMLHttpRequest;
+  // XMLHttpRequest = require('xhr2');
 }
-
-var XHR2 = require("xhr2"); 
 
 var HttpRequest = function (host, timeout) {
 	this.host = host || "http://localhost:8191";
@@ -21,13 +22,7 @@ HttpRequest.prototype.setHost = function (host) {
 };
 
 HttpRequest.prototype._newRequest = function (method, api, async) {
-	var request;
-	if (async) {
-		request = new XHR2();
-		request.timeout = this.timeout;
-	} else {
-		request = new XMLHttpRequest();
-	}
+	var request = new XMLHttpRequest();
 	var m = "GET";
 	if (method.toUpperCase() === "POST") {
 		m = "POST";
@@ -75,21 +70,21 @@ HttpRequest.prototype.asyncRequest = function (method, api, payload, callback) {
 
 	      callback(error, result);
 	    }
-  };
+	};
 
-  request.ontimeout = function () {
-    callback(new Error("connection timeout"));
-  };
+	request.ontimeout = function () {
+		callback(new Error("connection timeout"));
+	};
 
-  try {
-  	if (payload === undefined || payload === "") {
+	try {
+		if (payload === undefined || payload === "") {
 		request.send();
 	} else {
 		request.send(JSON.stringify(payload));
 	}
-  } catch (error) {
-    callback(error);
-  }
+	} catch (error) {
+		callback(error);
+	}
 };
 
 module.exports = HttpRequest;
