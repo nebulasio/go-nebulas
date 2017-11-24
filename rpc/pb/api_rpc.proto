@@ -274,7 +274,7 @@ message CallRequest {
 message SendRawTransactionRequest {
 
 	// Signed data of transaction
-	string data = 1;
+	bytes data = 1;
 }
 
 // Response message of SendTransaction rpc.
