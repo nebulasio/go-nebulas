@@ -19,15 +19,9 @@
 package storage
 
 import (
-	"errors"
 	"sync"
 
 	"github.com/nebulasio/go-nebulas/util/byteutils"
-)
-
-// const
-var (
-	ErrKeyNotFound = errors.New("not found")
 )
 
 // MemoryStorage the nodes in trie.

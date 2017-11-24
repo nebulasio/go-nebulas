@@ -18,6 +18,13 @@
 
 package storage
 
+import "errors"
+
+// const
+var (
+	ErrKeyNotFound = errors.New("not found")
+)
+
 // Storage interface of Storage.
 type Storage interface {
 	// Get return the value to the key in Storage.
