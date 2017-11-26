@@ -15,7 +15,7 @@ Neblet.prototype = {
         if (seed) {
             this._configName = config.createNonSeedConfig(seed, this.port, this.http_port);
         } else {
-            this._configName = config.createSeedConfig(this.port, this.http_port);;
+            this._configName = config.createSeedConfig(this.port, this.http_port);
         }
     },
 
@@ -24,11 +24,13 @@ Neblet.prototype = {
         var neb = spawn('./neb', ['-c', this._configName + '.pb.txt']);
         var logPath = this._configName + '.log';
         neb.stdout.on('data', function (data) {
-            fs.writeFile(logPath, data, { flag: 'a' }, function (err) {
+            fs.writeFile(logPath, data, {
+                flag: 'a'
+            }, function (err) {
                 if (err) {
                     console.error(err);
                 }
-            })
+            });
         });
 
         return neb;

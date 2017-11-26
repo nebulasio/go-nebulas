@@ -1,0 +1,15 @@
+{
+  "name": "nebtestkit",
+  "version": "0.1.0",
+  "description": "Neb Test Kit",
+  "author": "nebulas",
+  "license": "LGPL-3.0",
+  "keywords": [
+    "neb",
+    "test",
+    "kit"
+  ],
+  "devDependencies": {
+    "chai": "^3.0.0"
+  }
+}
