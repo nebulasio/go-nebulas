@@ -58,7 +58,7 @@ import (
 // Errors
 var (
 	ErrExecutionFailed                = errors.New("execute source failed")
-	ErrInvalidFunctionName            = errors.New("invalid function name")
+	ErrDisallowCallPrivateFunction    = errors.New("disallow call private function")
 	ErrExecutionTimeout               = errors.New("execution timeout")
 	ErrInsufficientGas                = errors.New("insufficient gas")
 	ErrExceedMemoryLimits             = errors.New("exceed memory limits")
@@ -67,13 +67,13 @@ var (
 )
 
 var (
-	v8engineOnce   = sync.Once{}
-	storages       = make(map[uint64]*V8Engine, 256)
-	storagesIdx    = uint64(0)
-	storagesLock   = sync.RWMutex{}
-	engines        = make(map[*C.V8Engine]*V8Engine, 256)
-	enginesLock    = sync.RWMutex{}
-	functionNameRe = regexp.MustCompile("^[a-zA-Z_]+$")
+	v8engineOnce          = sync.Once{}
+	storages              = make(map[uint64]*V8Engine, 256)
+	storagesIdx           = uint64(0)
+	storagesLock          = sync.RWMutex{}
+	engines               = make(map[*C.V8Engine]*V8Engine, 256)
+	enginesLock           = sync.RWMutex{}
+	publicFuncNameChecker = regexp.MustCompile("^[a-zA-Z$][A-Za-z0-9_$]*$")
 )
 
 // V8Engine v8 engine.
@@ -305,8 +305,8 @@ func (e *V8Engine) gasCombustion(executionInstructions uint64) error {
 
 // Call function in a script
 func (e *V8Engine) Call(source, function, args string) error {
-	if functionNameRe.MatchString(function) == false || strings.Compare("init", function) == 0 {
-		return ErrInvalidFunctionName
+	if publicFuncNameChecker.MatchString(function) == false || strings.EqualFold("init", function) == true {
+		return ErrDisallowCallPrivateFunction
 	}
 	return e.RunContractScript(source, function, args)
 }

@@ -18,17 +18,17 @@
 
 'use strict';
 
-var fieldNameRe = /^[a-zA-Z_].*/;
+var fieldNameRe = /^[a-zA-Z_$].*/;
 
 var combineStorageMapKey = function (fieldName, key) {
     return "@" + fieldName + "[" + key + "]";
 };
 
 var applyMapDescriptor = function (obj, descriptor) {
-    descriptor = descriptor || {
+    descriptor = Object.assign(descriptor || {}, {
         stringify: JSON.stringify,
         parse: JSON.parse
-    };
+    });
 
     if (typeof descriptor.stringify !== 'function' || typeof descriptor.parse !== 'function') {
         throw new Error("descriptor.stringify and descriptor.parse must be function.");
@@ -52,10 +52,10 @@ var applyMapDescriptor = function (obj, descriptor) {
 };
 
 var applyFieldDescriptor = function (obj, fieldName, descriptor) {
-    descriptor = descriptor || {
+    descriptor = Object.assign(descriptor || {}, {
         stringify: JSON.stringify,
         parse: JSON.parse
-    };
+    });
 
     if (typeof descriptor.stringify !== 'function' || typeof descriptor.parse !== 'function') {
         throw new Error("descriptor.stringify and descriptor.parse must be function.");
@@ -88,7 +88,7 @@ var StorageMap = function (contractStorage, fieldName, descriptor) {
     }
 
     if (typeof fieldName !== "string" || fieldNameRe.exec(fieldName) == null) {
-        throw new Error("StorageMap fieldName must starts with [a-zA-Z_]");
+        throw new Error("StorageMap fieldName must match regex /^[a-zA-Z_$].*$/");
     }
 
     Object.defineProperty(this, "contractStorage", {

@@ -28,6 +28,12 @@ SampleContract.prototype = {
         console.log('dump: this.name = ' + this.name);
         console.log('dump: this.count = ' + this.count);
     },
+    $dump: function () {
+        return this.dump();
+    },
+    dump_1: function () {
+        return this.dump();
+    },
     verify: function (expectedName, expectedCount, expectedAllocation) {
         if (!Object.is(this.name, expectedName)) {
             throw new Error("name is not the same, expecting " + expectedName + ", actual is " + this.name + ".");

@@ -311,16 +311,78 @@ func TestDeployAndInitAndCall(t *testing.T) {
 	}
 }
 
+func TestContracts(t *testing.T) {
+	type fields struct {
+		function string
+		args     string
+	}
+	tests := []struct {
+		contract string
+		initArgs string
+		calls    []fields
+	}{
+		{
+			"./test/contract_rectangle.js",
+			"[\"1024\", \"768\"]",
+			[]fields{
+				{"calcArea", "[]"},
+				{"verify", "[\"786432\"]"},
+			},
+		},
+		{
+			"./test/contract_rectangle.js",
+			"[\"999\", \"123\"]",
+			[]fields{
+				{"calcArea", "[]"},
+				{"verify", "[\"122877\"]"},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.contract, func(t *testing.T) {
+			data, err := ioutil.ReadFile(tt.contract)
+			assert.Nil(t, err, "contract path read error")
+
+			mem, _ := storage.NewMemoryStorage()
+			context, _ := state.NewAccountState(nil, mem)
+			owner := context.GetOrCreateUserAccount([]byte("account1"))
+			owner.AddBalance(util.NewUint128FromInt(10000000))
+			contract, _ := context.CreateContractAccount([]byte("account2"), nil)
+			ctx := NewContext(testContextBlock(), testContextTransaction(), owner, contract, context)
+
+			// deploy and init.
+			engine := NewV8Engine(ctx)
+			engine.SetExecutionLimits(1000, 10000000)
+			err = engine.DeployAndInit(string(data), tt.initArgs)
+			assert.Nil(t, err)
+			engine.Dispose()
+
+			// call.
+			for _, fields := range tt.calls {
+				engine = NewV8Engine(ctx)
+				engine.SetExecutionLimits(1000, 10000000)
+				err = engine.Call(string(data), fields.function, fields.args)
+				assert.Nil(t, err)
+				engine.Dispose()
+			}
+		})
+	}
+}
+
 func TestFunctionNameCheck(t *testing.T) {
 	tests := []struct {
 		function    string
 		expectedErr error
 		args        string
 	}{
-		{"init", ErrInvalidFunctionName, ""},
-		{"9dump", ErrInvalidFunctionName, ""},
-		{"$dump", ErrInvalidFunctionName, ""},
+		{"$dump", nil, ""},
 		{"dump", nil, ""},
+		{"dump_1", nil, ""},
+		{"init", ErrDisallowCallPrivateFunction, ""},
+		{"Init", ErrDisallowCallPrivateFunction, ""},
+		{"9dump", ErrDisallowCallPrivateFunction, ""},
+		{"_dump", ErrDisallowCallPrivateFunction, ""},
 	}
 
 	for _, tt := range tests {
