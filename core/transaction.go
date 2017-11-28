@@ -30,6 +30,7 @@ import (
 	"github.com/nebulasio/go-nebulas/crypto/keystore"
 	"github.com/nebulasio/go-nebulas/util"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
+	log "github.com/sirupsen/logrus"
 )
 
 var (
@@ -230,11 +231,8 @@ func (tx *Transaction) Execute(block *Block) error {
 	toAcc.AddBalance(tx.value)
 	fromAcc.IncreNonce()
 
-	// only normal transaction(don't execute smart contract) sub gas here
-	if tx.data.Type == TxPayloadBinaryType {
-		gas := util.NewUint128().Mul(tx.GasPrice().Int, tx.GasLimit().Int)
-		fromAcc.SubBalance(util.NewUint128FromBigInt(gas))
-	}
+	gas := util.NewUint128().Mul(tx.GasPrice().Int, tx.GasLimit().Int)
+	fromAcc.SubBalance(util.NewUint128FromBigInt(gas))
 
 	// execute payload
 	var payload TxPayload
@@ -320,9 +318,18 @@ func (tx *Transaction) verifySign() (bool, error) {
 		return false, err
 	}
 	if !tx.from.Equals(addr) {
-		return false, errors.New("recover public key not related to from address")
+		log.WithFields(log.Fields{
+			"recover address": addr.String(),
+			"tx":              tx,
+			//"tx.from": tx.from,
+			//"tx.hash": tx.hash.String(),
+			//"tx.sign": tx.sign.String(),
+		}).Error("Transaction verifySign.")
+		return false, errors.New("Transaction recover public key address not equal to from. ")
 	}
-	return signature.Verify(tx.hash, tx.sign)
+	// recover public key need not verify again
+	return true, nil
+	//return signature.Verify(tx.hash, tx.sign)
 }
 
 // GenerateContractAddress according to tx.from and tx.nonce.

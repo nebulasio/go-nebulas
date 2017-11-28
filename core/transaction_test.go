@@ -25,6 +25,9 @@ import (
 
 	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/core/pb"
+	"github.com/nebulasio/go-nebulas/crypto"
+	"github.com/nebulasio/go-nebulas/crypto/keystore"
+	"github.com/nebulasio/go-nebulas/crypto/keystore/secp256k1"
 	"github.com/nebulasio/go-nebulas/util"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
 )
@@ -87,5 +90,53 @@ func TestTransaction(t *testing.T) {
 				t.Errorf("Transaction.Serialize() = %v, want %v", *tx, *ntx)
 			}
 		})
+	}
+}
+
+func TestTransactionVerify(t *testing.T) {
+	testCount := 3
+	type testTx struct {
+		name   string
+		tx     *Transaction
+		signer keystore.Signature
+		count  int
+	}
+
+	tests := []testTx{}
+	ks := keystore.DefaultKS
+
+	for index := 0; index < testCount; index++ {
+		priv1, _ := secp256k1.GeneratePrivateKey()
+		pubdata1, _ := priv1.PublicKey().Encoded()
+		from, _ := NewAddressFromPublicKey(pubdata1)
+		ks.SetKey(from.ToHex(), priv1, []byte("passphrase"))
+		ks.Unlock(from.ToHex(), []byte("passphrase"), time.Second*60*60*24*365)
+		key1, _ := ks.GetUnlocked(from.ToHex())
+		signature1, _ := crypto.NewSignature(keystore.SECP256K1)
+		signature1.InitSign(key1.(keystore.PrivateKey))
+
+		toPriv, _ := secp256k1.GeneratePrivateKey()
+		toPub, _ := toPriv.PublicKey().Encoded()
+		toAddr, _ := NewAddressFromPublicKey(toPub)
+		tx := NewTransaction(1, from, toAddr, util.NewUint128(), 10, TxPayloadBinaryType, []byte("datadata"), util.NewUint128(), util.NewUint128())
+
+		test := testTx{string(index), tx, signature1, 1}
+		tests = append(tests, test)
+	}
+	for _, tt := range tests {
+		for index := 0; index < tt.count; index++ {
+			t.Run(tt.name, func(t *testing.T) {
+				err := tt.tx.Sign(tt.signer)
+				if err != nil {
+					t.Errorf("Sign() error = %v", err)
+					return
+				}
+				err = tt.tx.Verify(tt.tx.chainID)
+				if err != nil {
+					t.Errorf("verify failed:%s", err)
+					return
+				}
+			})
+		}
 	}
 }

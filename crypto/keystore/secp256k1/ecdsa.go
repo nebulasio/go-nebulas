@@ -24,10 +24,11 @@ import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
 
-	"crypto/rand"
 	"encoding/hex"
 	"errors"
 	"math/big"
+
+	"crypto/rand"
 
 	"github.com/nebulasio/go-nebulas/crypto/keystore/secp256k1/bitelliptic"
 )
@@ -43,6 +44,7 @@ func S256() elliptic.Curve {
 // NewECDSAPrivateKey generate a ecdsa private key
 func NewECDSAPrivateKey() (*ecdsa.PrivateKey, error) {
 	//privateKeyECDSA, err := btcec.NewPrivateKey(btcec.S256())
+	//return (*ecdsa.PrivateKey)(privateKeyECDSA), err
 	priv, err := ecdsa.GenerateKey(S256(), rand.Reader)
 	if err != nil {
 		return nil, err
@@ -51,11 +53,12 @@ func NewECDSAPrivateKey() (*ecdsa.PrivateKey, error) {
 }
 
 // FromECDSAPrivateKey exports a private key into a binary dump.
-func FromECDSAPrivateKey(pri *ecdsa.PrivateKey) ([]byte, error) {
-	if pri == nil {
+func FromECDSAPrivateKey(priv *ecdsa.PrivateKey) ([]byte, error) {
+	if priv == nil {
 		return nil, errors.New("ecdsa: please input private key")
 	}
-	return pri.D.Bytes(), nil
+	//return pri.D.Bytes(), nil
+	return paddedBigBytes(priv.D, priv.Params().BitSize/8), nil
 }
 
 // FromECDSAPublicKey exports a public key into a binary dump.
@@ -130,5 +133,32 @@ func zeroKey(k *ecdsa.PrivateKey) {
 func ZeroBytes(bytes []byte) {
 	for i := range bytes {
 		bytes[i] = 0
+	}
+}
+
+func paddedBigBytes(bigint *big.Int, n int) []byte {
+	if bigint.BitLen()/8 >= n {
+		return bigint.Bytes()
+	}
+	ret := make([]byte, n)
+	readBits(bigint, ret)
+	return ret
+}
+
+const (
+	// number of bits in a big.Word
+	wordBits = 32 << (uint64(^big.Word(0)) >> 63)
+	// number of bytes in a big.Word
+	wordBytes = wordBits / 8
+)
+
+func readBits(bigint *big.Int, buf []byte) {
+	i := len(buf)
+	for _, d := range bigint.Bits() {
+		for j := 0; j < wordBytes && i > 0; j++ {
+			i--
+			buf[i] = byte(d)
+			d >>= 8
+		}
 	}
 }

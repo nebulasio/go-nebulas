@@ -23,6 +23,13 @@ import (
 
 	"reflect"
 
+	"crypto/ecdsa"
+	"crypto/rand"
+	"io"
+
+	"crypto/elliptic"
+
+	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/nebulasio/go-nebulas/crypto/hash"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
 )
@@ -64,64 +71,62 @@ func TestToECDSAPublic(t *testing.T) {
 	}
 }
 
+func generateKeyPair() (pubkey, privkey []byte) {
+	key, err := ecdsa.GenerateKey(S256(), rand.Reader)
+	if err != nil {
+		panic(err)
+	}
+	pubkey = elliptic.Marshal(S256(), key.X, key.Y)
+	return pubkey, math.PaddedBigBytes(key.D, 32)
+}
+
 func TestSign(t *testing.T) {
-	priv, _ := NewECDSAPrivateKey()
-	hash1, _ := byteutils.FromHex("0eb3be2db3a534c192be5570c6c42f59")
-	hash2, _ := byteutils.FromHex("5e6d587f26121f96a07cf4b8b569aac1AAAAAAAA") //5e6d587f26121f96a07cf4b8b569aac1
-	hash3, _ := byteutils.FromHex("c7174759e86c59dcb7df87def82f61eb")         //c7174759e86c59dcb7df87def82f61eb
 	type args struct {
 		s []byte
 	}
-	tests := []struct {
+	type test struct {
 		name    string
+		priv    *ecdsa.PrivateKey
 		args    args
 		wantErr bool
-	}{
-		{
-			"sample hash1",
-			args{hash.Sha3256(hash1)},
-			false,
-		},
-		{
-			"sample hash2",
-			args{hash.Sha3256(hash2)},
-			false,
-		},
-		{
-			"sample hash3",
-			args{hash.Sha3256(hash3)},
-			false,
-		},
+		count   int
+	}
+
+	tests := []test{}
+	for index := 0; index < 10; index++ {
+		mainBuff := make([]byte, 32)
+		io.ReadFull(rand.Reader, mainBuff)
+		priv, _ := NewECDSAPrivateKey()
+		test := test{string(index), priv, args{hash.Sha3256(mainBuff)}, false, 1}
+		tests = append(tests, test)
 	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := Sign(tt.args.s, priv) //NewAddress(tt.args.s)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("Sign() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			//if !reflect.DeepEqual(got, tt.want) {
-			//	t.Errorf("Sign() = %v, want %v", got, tt.want)
-			//}
-			if ok, err := Verify(tt.args.s, got, &priv.PublicKey); !ok || err != nil {
-				t.Errorf("Verify() false hash = %v", tt.args.s)
-				return
-			}
-			gpub, err := RecoverECDSAPublicKey(tt.args.s, got)
-			if err != nil {
-				t.Errorf("recover failed:%s", err)
-				return
-			}
-			if gpub == nil {
-				t.Errorf("recover failed: pub nil")
-				return
-			}
-			//t.Logf("orgpub pubX:%d, pubY:%d", priv.PublicKey.X, priv.PublicKey.Y)
-			//t.Logf("newpub pubX:%d, pubY:%d", gpub.X, gpub.Y)
-			if ok, err := Verify(tt.args.s, got, gpub); !ok || err != nil {
-				t.Errorf("recover Verify() false hash = %v", tt.args.s)
-				return
-			}
-		})
+		for index := 0; index < tt.count; index++ {
+			t.Run(tt.name, func(t *testing.T) {
+				got, err := Sign(tt.args.s, tt.priv) //NewAddress(tt.args.s)
+				if (err != nil) != tt.wantErr {
+					t.Errorf("Sign() error = %v, wantErr %v", err, tt.wantErr)
+					return
+				}
+				gpub, err := RecoverECDSAPublicKey(tt.args.s, got)
+				if err != nil {
+					t.Errorf("recover failed:%s", err)
+					return
+				}
+				originPub, _ := FromECDSAPublicKey(&tt.priv.PublicKey)
+				gotPub, _ := FromECDSAPublicKey(gpub)
+				if !byteutils.Equal(originPub, gotPub) {
+					t.Errorf("recover failed: pub not equal")
+					seckey, _ := FromECDSAPrivateKey(tt.priv)
+					t.Log("private:", byteutils.Hex(seckey))
+					t.Log("public:", byteutils.Hex(originPub))
+					return
+				}
+				//if ok, err := Verify(tt.args.s, got, gpub); !ok || err != nil {
+				//	t.Errorf("recover Verify() false hash = %v", tt.args.s)
+				//	return
+				//}
+			})
+		}
 	}
 }

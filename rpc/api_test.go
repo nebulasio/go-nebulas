@@ -69,7 +69,7 @@ func TestSendTransaction(t *testing.T) {
 
 	{
 		req := &rpcpb.SendTransactionRequest{From: "0xf"}
-		expected := &rpcpb.SendTransactionResponse{Hash: "0x2"}
+		expected := &rpcpb.SendTransactionResponse{Txhash: "0x2"}
 		client.EXPECT().SendTransaction(gomock.Any(), gomock.Any()).Return(expected, nil)
 		resp, _ := client.SendTransaction(context.Background(), req)
 		assert.Equal(t, expected, resp)
