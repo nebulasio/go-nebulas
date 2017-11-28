@@ -4,7 +4,11 @@
 var utils = require('./utils/utils.js');
 
 var API = function (neb) {
-	this._requestHandler = neb._requestHandler;
+	this._request = neb._request;
+};
+
+API.prototype.setRequest = function (request) {
+	this._request = request;
 };
 
 API.prototype.getNebState = function () {
@@ -70,7 +74,7 @@ API.prototype.getTransactionReceipt = function (hash) {
 };
 
 API.prototype.request = function (method, api, params) {
-	return this._requestHandler.request(method, api, params);
+	return this._request.request(method, api, params);
 };
 
 module.exports = API;

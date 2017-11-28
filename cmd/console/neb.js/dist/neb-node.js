@@ -4894,7 +4894,11 @@ var utils = {
 };
 
 var API = function (neb) {
-	this._requestHandler = neb._requestHandler;
+	this._request = neb._request;
+};
+
+API.prototype.setRequest = function (request) {
+	this._request = request;
 };
 
 API.prototype.getNebState = function () {
@@ -4960,13 +4964,17 @@ API.prototype.getTransactionReceipt = function (hash) {
 };
 
 API.prototype.request = function (method, api, params) {
-	return this._requestHandler.request(method, api, params);
+	return this._request.request(method, api, params);
 };
 
 var api = API;
 
 var Admin = function (neb) {
-	this._requestHandler = neb._requestHandler;
+	this._request = neb._request;
+};
+
+Admin.prototype.setRequest = function (request) {
+	this._request = request;
 };
 
 Admin.prototype.newAccount = function (passphrase) {
@@ -5013,25 +5021,69 @@ Admin.prototype.sendTransactionWithPassphrase = function (from, to, value, nonce
 };
 
 Admin.prototype.request = function (method, api, params) {
-	return this._requestHandler.request(method, api, params);
+	return this._request.request(method, api, params);
 };
 
 var admin = Admin;
 
+var unitMap = {
+    'none':       '0',
+    'particle':        '1',
+    'kparticle':       '1000',
+    'mparticle':       '1000000',
+    'nanonas':    '1000000000',
+    'micronas':   '1000000000000',
+    'millinas':   '1000000000000000',
+    'nas':        '1000000000000000000',
+ };
+
+var unitValue = function (unit) {
+	unit = unit ? unit.toLowerCase() : 'nas';
+    var unitValue = unitMap[unit];
+    if (unitValue === undefined) {
+        throw new Error('The unit undefined, please use the following units:' + JSON.stringify(unitMap, null, 2));
+    }
+    return new bignumber(unitValue, 10);
+};
+
+var toBasic = function (number, unit) {
+	return utils.toBigNumber(number).times(unitValue(unit));
+};
+
+var fromBasic = function (number, unit) {
+	return utils.toBigNumber(number).dividedBy(unitValue(unit));
+};
+
+var nasToBasic = function (number) {
+	return utils.toBigNumber(number).times(unitValue("nas"));
+};
+
+var unit = {
+	toBasic: toBasic,
+	fromBasic: fromBasic,
+	nasToBasic: nasToBasic
+};
+
 var Neb = function (request) {
 	if (request) {
-		this._requestHandler = request;
+		this._request = request;
 	} else {
-		this._requestHandler = new httprequest();
+		this._request = new httprequest();
 	}
 
 	this.api = new api(this);
 	this.admin = new admin(this);
 };
 
-Neb.prototype.setRequestHandler = function (request) {
-	this._requestHandler = request;
+Neb.prototype.setRequest = function (request) {
+	this._request = request;
+	this.api.setRequest(request);
+	this.admin.setRequest(request);
 };
+
+Neb.prototype.toBasic = unit.toBasic;
+Neb.prototype.fromBasic = unit.fromBasic;
+Neb.prototype.nasToBasic = unit.nasToBasic;
 
 var neb = Neb;
 

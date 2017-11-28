@@ -6,19 +6,27 @@ var HttpRequest = require("./httprequest.js");
 var API = require("./api.js");
 var Admin = require("./admin.js");
 
+var Unit = require("./utils/unit.js");
+
 var Neb = function (request) {
 	if (request) {
-		this._requestHandler = request;
+		this._request = request;
 	} else {
-		this._requestHandler = new HttpRequest();
+		this._request = new HttpRequest();
 	}
 
 	this.api = new API(this);
 	this.admin = new Admin(this);
 };
 
-Neb.prototype.setRequestHandler = function (request) {
-	this._requestHandler = request;
+Neb.prototype.setRequest = function (request) {
+	this._request = request;
+	this.api.setRequest(request);
+	this.admin.setRequest(request);
 };
+
+Neb.prototype.toBasic = Unit.toBasic;
+Neb.prototype.fromBasic = Unit.fromBasic;
+Neb.prototype.nasToBasic = Unit.nasToBasic;
 
 module.exports = Neb;

@@ -4,7 +4,11 @@
 var utils = require('./utils/utils.js');
 
 var Admin = function (neb) {
-	this._requestHandler = neb._requestHandler;
+	this._request = neb._request;
+};
+
+Admin.prototype.setRequest = function (request) {
+	this._request = request;
 };
 
 Admin.prototype.newAccount = function (passphrase) {
@@ -51,7 +55,7 @@ Admin.prototype.sendTransactionWithPassphrase = function (from, to, value, nonce
 };
 
 Admin.prototype.request = function (method, api, params) {
-	return this._requestHandler.request(method, api, params);
+	return this._request.request(method, api, params);
 };
 
 module.exports = Admin;

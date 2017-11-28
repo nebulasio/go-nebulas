@@ -5,7 +5,11 @@ require=(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof requ
 var utils = require('./utils/utils.js');
 
 var Admin = function (neb) {
-	this._requestHandler = neb._requestHandler;
+	this._request = neb._request;
+};
+
+Admin.prototype.setRequest = function (request) {
+	this._request = request;
 };
 
 Admin.prototype.newAccount = function (passphrase) {
@@ -52,18 +56,22 @@ Admin.prototype.sendTransactionWithPassphrase = function (from, to, value, nonce
 };
 
 Admin.prototype.request = function (method, api, params) {
-	return this._requestHandler.request(method, api, params);
+	return this._request.request(method, api, params);
 };
 
 module.exports = Admin;
-},{"./utils/utils.js":6}],2:[function(require,module,exports){
+},{"./utils/utils.js":7}],2:[function(require,module,exports){
 
 "use strict";
 
 var utils = require('./utils/utils.js');
 
 var API = function (neb) {
-	this._requestHandler = neb._requestHandler;
+	this._request = neb._request;
+};
+
+API.prototype.setRequest = function (request) {
+	this._request = request;
 };
 
 API.prototype.getNebState = function () {
@@ -129,11 +137,11 @@ API.prototype.getTransactionReceipt = function (hash) {
 };
 
 API.prototype.request = function (method, api, params) {
-	return this._requestHandler.request(method, api, params);
+	return this._request.request(method, api, params);
 };
 
 module.exports = API;
-},{"./utils/utils.js":6}],3:[function(require,module,exports){
+},{"./utils/utils.js":7}],3:[function(require,module,exports){
 
 "use strict";
 
@@ -233,23 +241,31 @@ var HttpRequest = require("./httprequest.js");
 var API = require("./api.js");
 var Admin = require("./admin.js");
 
+var Unit = require("./utils/unit.js");
+
 var Neb = function (request) {
 	if (request) {
-		this._requestHandler = request;
+		this._request = request;
 	} else {
-		this._requestHandler = new HttpRequest();
+		this._request = new HttpRequest();
 	}
 
 	this.api = new API(this);
 	this.admin = new Admin(this);
 };
 
-Neb.prototype.setRequestHandler = function (request) {
-	this._requestHandler = request;
+Neb.prototype.setRequest = function (request) {
+	this._request = request;
+	this.api.setRequest(request);
+	this.admin.setRequest(request);
 };
 
+Neb.prototype.toBasic = Unit.toBasic;
+Neb.prototype.fromBasic = Unit.fromBasic;
+Neb.prototype.nasToBasic = Unit.nasToBasic;
+
 module.exports = Neb;
-},{"./admin.js":1,"./api.js":2,"./httprequest.js":3}],5:[function(require,module,exports){
+},{"./admin.js":1,"./api.js":2,"./httprequest.js":3,"./utils/unit.js":6}],5:[function(require,module,exports){
 "use strict";
 
 if (typeof XMLHttpRequest === "undefined") {
@@ -260,6 +276,48 @@ if (typeof XMLHttpRequest === "undefined") {
 
 
 },{}],6:[function(require,module,exports){
+
+var BigNumber = require('bignumber.js');
+var utils = require('./utils.js');
+
+var unitMap = {
+    'none':       '0',
+    'particle':        '1',
+    'kparticle':       '1000',
+    'mparticle':       '1000000',
+    'nanonas':    '1000000000',
+    'micronas':   '1000000000000',
+    'millinas':   '1000000000000000',
+    'nas':        '1000000000000000000',
+ };
+
+var unitValue = function (unit) {
+	unit = unit ? unit.toLowerCase() : 'nas';
+    var unitValue = unitMap[unit];
+    if (unitValue === undefined) {
+        throw new Error('The unit undefined, please use the following units:' + JSON.stringify(unitMap, null, 2));
+    }
+    return new BigNumber(unitValue, 10);
+};
+
+var toBasic = function (number, unit) {
+	return utils.toBigNumber(number).times(unitValue(unit));
+};
+
+var fromBasic = function (number, unit) {
+	return utils.toBigNumber(number).dividedBy(unitValue(unit));
+};
+
+var nasToBasic = function (number) {
+	return utils.toBigNumber(number).times(unitValue("nas"));
+};
+
+module.exports = {
+	toBasic: toBasic,
+	fromBasic: fromBasic,
+	nasToBasic: nasToBasic
+};
+},{"./utils.js":7,"bignumber.js":8}],7:[function(require,module,exports){
 
 
 var BigNumber = require('bignumber.js');
@@ -308,7 +366,7 @@ module.exports = {
 	toString: toString
 };
 
-},{"bignumber.js":7}],7:[function(require,module,exports){
+},{"bignumber.js":8}],8:[function(require,module,exports){
 /*! bignumber.js v4.1.0 https://github.com/MikeMcl/bignumber.js/LICENCE */
 
 ;(function (globalObj) {
