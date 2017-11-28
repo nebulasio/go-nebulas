@@ -40,32 +40,40 @@ declare const ContractStorage: ContractStorageConstructor;
 interface ContractStorage {
     // get and return value by key from Native Storage.
     rawGet(key: string): string;
-    // set key and value pair to Native Storage, return 0 for success, otherwise failure.
+    // set key and value pair to Native Storage,
+    // return 0 for success, otherwise failure.
     rawSet(key: string, value: string): number;
 
-    // define a object property named `fieldname` to `obj` with descriptor. Default descriptor is JSON.parse and JSON.stringify.
+    // define a object property named `fieldname` to `obj` with descriptor.
+    // default descriptor is JSON.parse/JSON.stringify descriptor.
     // return this.
     defineProperty(obj: any, fieldName: string, descriptor?: Descriptor): any;
 
-    // define object properties to `obj` from `props`. Default descriptor is JSON.parse and JSON.stringify.
+    // define object properties to `obj` from `props`.
+    // default descriptor is JSON.parse/JSON.stringify descriptor.
     // return this.
     defineProperties(obj: any, props: DescriptorMap): any;
 
-    // define a StorageMap property named `fieldname` to `obj` with descriptor. Default descriptor is JSON.parse and JSON.stringify.
+    // define a StorageMap property named `fieldname` to `obj` with descriptor.
+    // default descriptor is JSON.parse/JSON.stringify descriptor.
     // return this.
     defineMapProperty(obj: any, fieldName: string, descriptor?: Descriptor): any;
 
-    // define StorageMap properties to `obj` from `props`. Default descriptor is JSON.parse and JSON.stringify.
+    // define StorageMap properties to `obj` from `props`.
+    // default descriptor is JSON.parse/JSON.stringify descriptor.
     // return this.
     defineMapProperties(obj: any, props: DescriptorMap): any;
 
-    // delete key from Native Storage, return 0 for success, otherwise failure.
+    // delete key from Native Storage.
+    // return 0 for success, otherwise failure.
     del(key: string): number;
 
-    // get value by key from Native Storage, convert by calling `descriptor.parse` and return.
+    // get value by key from Native Storage,
+    // deserialize value by calling `descriptor.parse` and return.
     get(key: string): any;
 
-    // set key and value pair to Native Storage, the value will be convert to string by calling `descriptor.stringify`.
+    // set key and value pair to Native Storage,
+    // the value will be serialized to string by calling `descriptor.stringify`.
     // return 0 for success, otherwise failure.
     set(key: string, value: any): number;
 }
@@ -80,10 +88,12 @@ interface StorageMap {
     // delete key from Native Storage, return 0 for success, otherwise failure.
     del(key: string): number;
 
-    // get value by key from Native Storage, convert by calling `descriptor.parse` and return.
+    // get value by key from Native Storage,
+    // deserialize value by calling `descriptor.parse` and return.
     get(key: string): any;
 
-    // set key and value pair to Native Storage, the value will be convert to string by calling `descriptor.stringify`.
+    // set key and value pair to Native Storage,
+    // the value will be serialized to string by calling `descriptor.stringify`.
     // return 0 for success, otherwise failure.
     set(key: string, value: any): number;
 }
