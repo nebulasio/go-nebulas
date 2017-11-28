@@ -122,10 +122,6 @@ func TestSign(t *testing.T) {
 					t.Log("public:", byteutils.Hex(originPub))
 					return
 				}
-				//if ok, err := Verify(tt.args.s, got, gpub); !ok || err != nil {
-				//	t.Errorf("recover Verify() false hash = %v", tt.args.s)
-				//	return
-				//}
 			})
 		}
 	}

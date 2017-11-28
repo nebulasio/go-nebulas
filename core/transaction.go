@@ -321,15 +321,10 @@ func (tx *Transaction) verifySign() (bool, error) {
 		log.WithFields(log.Fields{
 			"recover address": addr.String(),
 			"tx":              tx,
-			//"tx.from": tx.from,
-			//"tx.hash": tx.hash.String(),
-			//"tx.sign": tx.sign.String(),
 		}).Error("Transaction verifySign.")
 		return false, errors.New("Transaction recover public key address not equal to from. ")
 	}
-	// recover public key need not verify again
 	return true, nil
-	//return signature.Verify(tx.hash, tx.sign)
 }
 
 // GenerateContractAddress according to tx.from and tx.nonce.

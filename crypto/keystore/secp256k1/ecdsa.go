@@ -33,18 +33,13 @@ import (
 	"github.com/nebulasio/go-nebulas/crypto/keystore/secp256k1/bitelliptic"
 )
 
-// "github.com/btcsuite/btcd/btcec"
-
 // S256 returns an instance of the secp256k1 curve.
 func S256() elliptic.Curve {
-	//return btcec.S256()
 	return bitelliptic.S256()
 }
 
 // NewECDSAPrivateKey generate a ecdsa private key
 func NewECDSAPrivateKey() (*ecdsa.PrivateKey, error) {
-	//privateKeyECDSA, err := btcec.NewPrivateKey(btcec.S256())
-	//return (*ecdsa.PrivateKey)(privateKeyECDSA), err
 	priv, err := ecdsa.GenerateKey(S256(), rand.Reader)
 	if err != nil {
 		return nil, err
@@ -57,7 +52,7 @@ func FromECDSAPrivateKey(priv *ecdsa.PrivateKey) ([]byte, error) {
 	if priv == nil {
 		return nil, errors.New("ecdsa: please input private key")
 	}
-	//return pri.D.Bytes(), nil
+	// as private key len cannot guarantee greater than Params bytes len, padding big bytes.
 	return paddedBigBytes(priv.D, priv.Params().BitSize/8), nil
 }
 
@@ -82,9 +77,6 @@ func HexToECDSAPrivateKey(hexkey string) (*ecdsa.PrivateKey, error) {
 func ToECDSAPrivateKey(d []byte) (*ecdsa.PrivateKey, error) {
 	priv := new(ecdsa.PrivateKey)
 	priv.PublicKey.Curve = S256()
-	//if 8*len(d) != priv.Params().BitSize {
-	//	return nil, errors.New("invalid length")
-	//}
 	priv.D = new(big.Int).SetBytes(d)
 	priv.PublicKey.X, priv.PublicKey.Y = priv.PublicKey.Curve.ScalarBaseMult(d)
 	return priv, nil
@@ -98,28 +90,6 @@ func ToECDSAPublicKey(pub []byte) (*ecdsa.PublicKey, error) {
 	x, y := elliptic.Unmarshal(S256(), pub)
 	return &ecdsa.PublicKey{Curve: S256(), X: x, Y: y}, nil
 }
-
-//// RecoverECDSAPublicKey recover verifies the compact signature "signature" of "hash"
-//func RecoverECDSAPublicKey(hash []byte, signature []byte) (*ecdsa.PublicKey, error) {
-//	pub, _, err := btcec.RecoverCompact(btcec.S256(), signature, hash)
-//	return (*ecdsa.PublicKey)(pub), err
-//}
-//
-//// Sign sign hash with private key
-//func Sign(hash []byte, priv *ecdsa.PrivateKey) ([]byte, error) {
-//	return btcec.SignCompact(btcec.S256(), (*btcec.PrivateKey)(priv), hash, true)
-//}
-//
-//// Verify verify with public key
-//func Verify(hash []byte, signature []byte, pub *ecdsa.PublicKey) bool {
-//	bitlen := (btcec.S256().BitSize + 7) / 8
-//	// format is <header byte><bitlen R><bitlen S>
-//	signer := &btcec.Signature{
-//		R: new(big.Int).SetBytes(signature[1 : bitlen+1]),
-//		S: new(big.Int).SetBytes(signature[bitlen+1:]),
-//	}
-//	return signer.Verify(hash, (*btcec.PublicKey)(pub))
-//}
 
 // zeroKey zeroes the private key
 func zeroKey(k *ecdsa.PrivateKey) {
@@ -136,6 +106,7 @@ func ZeroBytes(bytes []byte) {
 	}
 }
 
+// paddedBigBytes encodes a big integer as a big-endian byte slice.
 func paddedBigBytes(bigint *big.Int, n int) []byte {
 	if bigint.BitLen()/8 >= n {
 		return bigint.Bytes()
@@ -152,6 +123,7 @@ const (
 	wordBytes = wordBits / 8
 )
 
+// readBits encodes the absolute value of bigint as big-endian bytes.
 func readBits(bigint *big.Int, buf []byte) {
 	i := len(buf)
 	for _, d := range bigint.Bits() {
