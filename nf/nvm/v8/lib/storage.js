@@ -179,6 +179,7 @@ ContractStorage.prototype = {
             }
         });
         applyFieldDescriptor(obj, fieldName, descriptor);
+        return this;
     },
     defineProperties: function (obj, props) {
         if (!obj || !props) {
@@ -188,6 +189,7 @@ ContractStorage.prototype = {
         for (const fieldName in props) {
             this.defineProperty(obj, fieldName, props[fieldName]);
         }
+        return this;
     },
     defineMapProperty: function (obj, fieldName, descriptor) {
         if (!obj || !fieldName) {
@@ -202,6 +204,7 @@ ContractStorage.prototype = {
                 return mapObj;
             }
         });
+        return this;
     },
     defineMapProperties: function (obj, props) {
         if (!obj || !props) {
@@ -211,6 +214,7 @@ ContractStorage.prototype = {
         for (const fieldName in props) {
             this.defineMapProperty(obj, fieldName, props[fieldName]);
         }
+        return this;
     }
 };
 
