@@ -9,10 +9,34 @@
 npm install -g mocha
 npm install
 ```
+### Write test suite
+Start a seed server:
+```javascript
+var seed = new Neblet("192.168.1.25", 51413, 8191);
+var seedJsAgent = seed.NebJs();
+seed.Init();
+var nebSeed = seed.Start();
+```
+
+Start a common server and connect to seed server:
+```javascript
+var server = new Neblet("192.168.1.25", 51414, 8192);
+var jsAgent = server.NebJs();
+server.Init(seed);
+var neb = server.Start();
+```
+Because RPC server is 3 seconds later than neblet server. so we should wait for several seconds before run our test suite.
+```javascript
+    before(function(done) {
+        this.timeout(10000);
+        setTimeout(done, 8000);
+    });
+```
+
 
 ### Run test suite
-Fist fo all, we shold move the binary file 'neb' to nebtestkit. And then run:
-```
+Fist fo all, we shold copy the binary file 'neb' to nebtestkit. And then run:
+```sh
 $ mocha neblet.test.js
 
 seed server A test suite

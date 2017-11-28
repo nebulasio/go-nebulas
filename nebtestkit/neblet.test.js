@@ -1,9 +1,8 @@
 'use strict';
 
-var Neblet = require('./neblet')
-var os = require('os')
+var Neblet = require('./neblet');
+var os = require('os');
 var expect = require('chai').expect;
-
 var ip = getLocalIP();
 
 // start a seed server.
@@ -35,13 +34,13 @@ describe('seed server A test suite', function() {
     });
     it('get accounts info from server A', function() {
         var accounts = seedJsAgent.api.accounts();
-        expect(accounts.addresses).to.be.have.length(3)
-        expect(accounts.addresses).to.be.have.contains('8a209cec02cbeab7e2f74ad969d2dfe8dd24416aa65589bf')
+        expect(accounts.addresses).to.be.have.length(3);
+        expect(accounts.addresses).to.be.have.contains('8a209cec02cbeab7e2f74ad969d2dfe8dd24416aa65589bf');
     });
 
     it('get account B balance from server A', function() {
         var accountState = seedJsAgent.api.getAccountState('22ac3a9a2b1c31b7a9084e46eae16e761f83f02324092b09');
-        expect(accountState).to.be.have.property('balance').eq('0')
+        expect(accountState).to.be.have.property('balance').eq('0');
     });
 
     it('unlock account A from server A', function() {
@@ -52,11 +51,11 @@ describe('seed server A test suite', function() {
     // A transfer to B 10.
     it('transfer 10 from account A to B', function(done) {
         this.timeout(8000);
-        txhash = seedJsAgent.api.sendTransaction('8a209cec02cbeab7e2f74ad969d2dfe8dd24416aa65589bf', '22ac3a9a2b1c31b7a9084e46eae16e761f83f02324092b09', 10, 1, '', '', '', '')
+        txhash = seedJsAgent.api.sendTransaction('8a209cec02cbeab7e2f74ad969d2dfe8dd24416aa65589bf', '22ac3a9a2b1c31b7a9084e46eae16e761f83f02324092b09', 10, 1, '', '', '', '');
         var tx;
         var timeout;
         timeout = setInterval(function() {
-            tx = seedJsAgent.api.getTransactionReceipt(txhash.hash)
+            tx = seedJsAgent.api.getTransactionReceipt(txhash.hash);
             if (tx.error == undefined) {
                 expect(txhash).to.be.have.property('hash');
                 clearInterval(timeout);

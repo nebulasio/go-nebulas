@@ -21,9 +21,11 @@ package p2p
 import (
 	"context"
 	"math/rand"
+	"sync"
 	"time"
 
 	"github.com/libp2p/go-libp2p-peer"
+	ma "github.com/multiformats/go-multiaddr"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -62,13 +64,30 @@ func (net *NetService) syncRoutingTable() {
 		nodeAccount = len(allNode)
 	}
 
-	for i := 0; i < nodeAccount; i++ {
-		nodeID := allNode[randomList[i]]
-		if !asked[nodeID] {
-			asked[nodeID] = true
-			go net.syncSingleNode(nodeID)
+	if nodeAccount > 0 {
+		for i := 0; i < nodeAccount; i++ {
+			nodeID := allNode[randomList[i]]
+			if !asked[nodeID] {
+				asked[nodeID] = true
+				go net.syncSingleNode(nodeID)
+			}
 		}
+	} else if nodeAccount == 0 && len(node.Config().BootNodes) > 0 { // If disconnect from the network, say hello to seed node, reconnect to the network.
+		var wg sync.WaitGroup
+		for _, bootNode := range node.config.BootNodes {
+			wg.Add(1)
+			go func(bootNode ma.Multiaddr) {
+				defer wg.Done()
+				err := net.SayHello(bootNode)
+				if err != nil {
+					log.Error("net.start: can not say hello to trusted node.", bootNode, err)
+				}
+
+			}(bootNode)
+		}
+		wg.Wait()
 	}
+
 }
 
 // sync single node routing table by peer.ID
@@ -82,6 +101,9 @@ func (net *NetService) syncSingleNode(nodeID peer.ID) {
 	if len(nodeInfo.Addrs) != 0 {
 		if _, ok := node.stream[nodeID.Pretty()]; ok {
 			net.SyncRoutes(nodeID)
+		} else {
+			// if stream not exist, create new connection to remote node.
+			net.Hello(nodeID)
 		}
 
 	} else {

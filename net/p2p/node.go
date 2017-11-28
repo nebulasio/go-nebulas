@@ -26,7 +26,6 @@ import (
 	"fmt"
 	mrand "math/rand"
 	"net"
-	"strings"
 	"sync"
 	"time"
 
@@ -246,74 +245,4 @@ func randSeed(n int) string {
 	}
 
 	return string(b)
-}
-
-// SayHello Say hello to trustedNode
-func (netService *NetService) SayHello(bootNode multiaddr.Multiaddr) error {
-	node := netService.node
-	bootAddr, bootID, err := parseAddressFromMultiaddr(bootNode)
-	if err != nil {
-		log.WithFields(log.Fields{
-			"bootNode": bootNode,
-			"error":    err,
-		}).Error("parse Address from trustedNode failed")
-		return err
-	}
-	node.peerstore.AddAddr(
-		bootID,
-		bootAddr,
-		peerstore.TempAddrTTL,
-	)
-	if node.host.Addrs()[0].String() != bootAddr.String() {
-		var success = false
-		for i := 0; i < 3; i++ {
-			err := netService.Hello(bootID)
-			if err != nil {
-				time.Sleep(time.Second)
-				continue
-			}
-			success = true
-			break
-		}
-		if !success {
-			log.WithFields(log.Fields{
-				"bootNode": bootNode,
-				"error":    err,
-			}).Error("say hello to bootNode failed")
-			return errors.New("say hello to bootNode failed")
-		}
-		log.WithFields(log.Fields{
-			"bootNode": bootNode,
-		}).Debug("say hello to a node success")
-		node.peerstore.AddAddr(
-			bootID,
-			bootAddr,
-			peerstore.PermanentAddrTTL)
-		// Update the routing table.
-		node.routeTable.Update(bootID)
-	}
-	return nil
-}
-
-func parseAddressFromMultiaddr(address multiaddr.Multiaddr) (multiaddr.Multiaddr, peer.ID, error) {
-
-	addr, err := multiaddr.NewMultiaddr(
-		strings.Split(address.String(), "/ipfs/")[0],
-	)
-	if err != nil {
-		return nil, "", err
-	}
-
-	b58, err := address.ValueForProtocol(multiaddr.P_IPFS)
-	if err != nil {
-		return nil, "", err
-	}
-
-	id, err := peer.IDB58Decode(b58)
-	if err != nil {
-		return nil, "", err
-	}
-
-	return addr, id, nil
-
 }

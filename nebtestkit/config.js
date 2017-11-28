@@ -1,6 +1,7 @@
 'use strict';
 var fs = require('fs'), 
-  os = require('os');
+  os = require('os'),
+  path = require('path');
 
 var tempdir = os.tmpdir();
 
@@ -93,30 +94,36 @@ var config_non_seed =
 
 var API_PORT = 51510, MANAGEMENT_PORT = 53521, API_HTTP_PORT = 8090, MANAGEMENT_HTTP_PORT = 8191;
 var nonius = 1;
+var now = Date.now();
+var dirname = tempdir + '/nebulas/' + now;
+
+
 
 exports.createSeedConfig = function (port) {
+  mkdirsSync(dirname);
   var dataSeed = {
     port: port,
     api_port: API_PORT,
     management_port: MANAGEMENT_PORT,
     api_http_port: API_HTTP_PORT,
     management_http_port: MANAGEMENT_HTTP_PORT,
-    data_location: '"' + tempdir + '/seed/' + Date.now() + '"'
-  }
+    data_location: '"' + dirname + '/data.db' + '"'
+  };
   var configSeed = new Buffer(render(config_seed, dataSeed));
 
-  fs.writeFile(tempdir + '/seed/seed.pb.txt', configSeed, { flag: 'w' }, function (err) {
+  fs.writeFile(dirname + '/seed.pb.txt', configSeed, { flag: 'w' }, function (err) {
     if (err) {
       console.error(err);
     } else {
       // console.log('generate default config file success.');
     }
-  })
+  });
 
-  return tempdir + '/seed/seed';
+  return dirname + '/seed';
 };
 
 exports.createNonSeedConfig = function (seed, port, http_port) {
+  mkdirsSync(dirname);
   var nonius = nextNonius();
   var dataNonSeed = {
     port: port,
@@ -126,18 +133,18 @@ exports.createNonSeedConfig = function (seed, port, http_port) {
     management_port: MANAGEMENT_PORT + nonius,
     api_http_port: API_HTTP_PORT + nonius,
     management_http_port: http_port,
-    data_location: '"' + tempdir + '/nonSeed/' + Date.now() + '"'
-  }
+    data_location: '"' + dirname + '/data.db_' + nonius + '"'
+  };
   var configNonSeed = new Buffer(render(config_non_seed, dataNonSeed));
-  fs.writeFile(tempdir + '/nonSeed/nonSeed_' + nonius + '.pb.txt', configNonSeed, { flag: 'w' }, function (err) {
+  fs.writeFile(dirname + '/nonseed_' + nonius + '.pb.txt', configNonSeed, { flag: 'w' }, function (err) {
     if (err) {
       console.error(err);
     } else {
       // console.log('generate normal config file success.');
     }
-  })
+  });
 
-  return tempdir + '/nonSeed/nonSeed_' + nonius;
+  return dirname + '/nonseed_' + nonius;
 };
 
 function render(tpl, data) {
@@ -147,6 +154,17 @@ function render(tpl, data) {
     tpl = tpl.replace(match[0], data[match[1]]);
   }
   return tpl;
+}
+
+function mkdirsSync(dirname) {  
+  if (fs.existsSync(dirname)) {  
+      return true;  
+  } else {  
+      if (mkdirsSync(path.dirname(dirname))) {  
+          fs.mkdirSync(dirname);  
+          return true;  
+      }  
+  }  
 }
 
 function nextNonius() {
