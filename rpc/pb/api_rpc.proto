@@ -280,7 +280,8 @@ message SendRawTransactionRequest {
 // Response message of SendTransaction rpc.
 message SendTransactionResponse {
 	// Hex string of transaction hash.
-	string hash = 1;
+	string txhash = 1;
+	string contract_address = 2;
 }
 
 // Request message of GetBlockByHash rpc.

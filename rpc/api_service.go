@@ -162,10 +162,10 @@ func (s *APIService) SendTransaction(ctx context.Context, req *rpcpb.SendTransac
 	}
 	if len(req.Source) > 0 {
 		address, _ := core.NewContractAddressFromHash(hash.Sha3256(tx.From().Bytes(), byteutils.FromUint64(tx.Nonce())))
-		return &rpcpb.SendTransactionResponse{Hash: address.ToHex() + "$" + tx.Hash().String()}, nil
+		return &rpcpb.SendTransactionResponse{Txhash: tx.Hash().String(), ContractAddress: address.ToHex()}, nil
 	}
 
-	return &rpcpb.SendTransactionResponse{Hash: tx.Hash().String()}, nil
+	return &rpcpb.SendTransactionResponse{Txhash: tx.Hash().String()}, nil
 
 }
 
@@ -195,7 +195,7 @@ func (s *APIService) Call(ctx context.Context, req *rpcpb.CallRequest) (*rpcpb.S
 		return nil, err
 	}
 
-	return &rpcpb.SendTransactionResponse{Hash: tx.Hash().String()}, nil
+	return &rpcpb.SendTransactionResponse{Txhash: tx.Hash().String()}, nil
 
 }
 
@@ -235,7 +235,7 @@ func (s *APIService) SendRawTransaction(ctx context.Context, req *rpcpb.SendRawT
 		return nil, err
 	}
 
-	return &rpcpb.SendTransactionResponse{Hash: tx.Hash().String()}, nil
+	return &rpcpb.SendTransactionResponse{Txhash: tx.Hash().String()}, nil
 }
 
 // GetBlockByHash get block info by the block hash
