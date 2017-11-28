@@ -24,12 +24,23 @@ var compilerOptions = {
 function transpileModule(input) {
     var ret = ts.transpileModule(input, {
         compilerOptions: compilerOptions,
-        moduleName: "module"
+        reportDiagnostics: true,
+        fileName: "_contract.ts",
     });
 
     if (ret.diagnostics.length > 0) {
-        console.error("tsc.js: input is invalid;\n" + ret.diagnostics);
-        throw new Error("tsc.js: input is invalid.");
+        ret.diagnostics.forEach(diagnostic => {
+            var message = ts.flattenDiagnosticMessageText(diagnostic.messageText, '\n');
+
+            if (diagnostic.file) {
+                var {
+                    line,
+                    character
+                } = diagnostic.file.getLineAndCharacterOfPosition(diagnostic.start);
+                message = diagnostic.file.fileName + ":" + (line + 1) + ":" + (character + 1) + ": " + message;
+            }
+            throw new Error("fail to transpile TypeScript: " + message);
+        });
     }
 
     return {
