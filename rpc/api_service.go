@@ -20,6 +20,7 @@ package rpc
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/core"
@@ -124,7 +125,7 @@ func (s *APIService) GetAccountState(ctx context.Context, req *rpcpb.GetAccountS
 	balance := neb.BlockChain().TailBlock().GetBalance(addr.Bytes())
 	nonce := neb.BlockChain().TailBlock().GetNonce(addr.Bytes())
 
-	return &rpcpb.GetAccountStateResponse{Balance: balance.String(), Nonce: nonce}, nil
+	return &rpcpb.GetAccountStateResponse{Balance: balance.String(), Nonce: fmt.Sprintf("%d", nonce)}, nil
 }
 
 // SendTransaction is the RPC API handler.

@@ -298,6 +298,7 @@ func (ns *NetService) handleHelloMsg(data []byte, pid peer.ID, s libnet.Stream, 
 		"ClientVersion": hello.ClientVersion,
 	}).Info("receive hello message.")
 
+	//Todo: clientVersion backwards compatible
 	if hello.NodeID == pid.String() && hello.ClientVersion == ClientVersion {
 		ok := messages.NewHelloMessage(node.id.String(), ClientVersion)
 		pbok, err := ok.ToProto()

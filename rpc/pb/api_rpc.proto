@@ -216,7 +216,7 @@ message GetAccountStateResponse {
 	string balance = 1; // uint128, len=16
 
 	// Current transaction count.
-	uint64 nonce = 2;
+	string nonce = 2;
 }
 
 // Request message of SendTransaction rpc.
