@@ -53,7 +53,7 @@ func TestGetAccountState(t *testing.T) {
 	{
 		req := &rpcpb.GetAccountStateRequest{Address: "0xf"}
 		bal := util.NewUint128FromInt(31415926).String()
-		expected := &rpcpb.GetAccountStateResponse{Balance: bal, Nonce: 1}
+		expected := &rpcpb.GetAccountStateResponse{Balance: bal, Nonce: "1"}
 		client.EXPECT().GetAccountState(gomock.Any(), gomock.Any()).Return(expected, nil)
 		resp, _ := client.GetAccountState(context.Background(), req)
 		assert.Equal(t, expected, resp)
