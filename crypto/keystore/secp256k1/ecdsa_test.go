@@ -35,7 +35,7 @@ import (
 )
 
 func TestFromECDSAPri(t *testing.T) {
-	priv, _ := NewECDSAPrivateKey()
+	priv := NewECDSAPrivateKey()
 	_, err := FromECDSAPrivateKey(priv)
 	if err != nil {
 		t.Errorf("FromECDSAPrivateKey err:%s", err)
@@ -43,7 +43,7 @@ func TestFromECDSAPri(t *testing.T) {
 }
 
 func TestFromECDSAPub(t *testing.T) {
-	priv, _ := NewECDSAPrivateKey()
+	priv := NewECDSAPrivateKey()
 	_, err := FromECDSAPublicKey(&priv.PublicKey)
 	if err != nil {
 		t.Errorf("FromECDSAPublicKey err:%s", err)
@@ -51,7 +51,7 @@ func TestFromECDSAPub(t *testing.T) {
 }
 
 func TestToECDSAPrivate(t *testing.T) {
-	priv, _ := NewECDSAPrivateKey()
+	priv := NewECDSAPrivateKey()
 	privByte, _ := FromECDSAPrivateKey(priv)
 	aPriv, err := ToECDSAPrivateKey(privByte)
 	if err != nil {
@@ -63,7 +63,7 @@ func TestToECDSAPrivate(t *testing.T) {
 }
 
 func TestToECDSAPublic(t *testing.T) {
-	priv, _ := NewECDSAPrivateKey()
+	priv := NewECDSAPrivateKey()
 	pubByte, _ := FromECDSAPublicKey(&priv.PublicKey)
 	_, err := ToECDSAPublicKey(pubByte)
 	if err != nil {
@@ -96,7 +96,7 @@ func TestSign(t *testing.T) {
 	for index := 0; index < 10; index++ {
 		mainBuff := make([]byte, 32)
 		io.ReadFull(rand.Reader, mainBuff)
-		priv, _ := NewECDSAPrivateKey()
+		priv := NewECDSAPrivateKey()
 		test := test{string(index), priv, args{hash.Sha3256(mainBuff)}, false, 1}
 		tests = append(tests, test)
 	}

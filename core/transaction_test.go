@@ -106,7 +106,7 @@ func TestTransactionVerify(t *testing.T) {
 	ks := keystore.DefaultKS
 
 	for index := 0; index < testCount; index++ {
-		priv1, _ := secp256k1.GeneratePrivateKey()
+		priv1 := secp256k1.GeneratePrivateKey()
 		pubdata1, _ := priv1.PublicKey().Encoded()
 		from, _ := NewAddressFromPublicKey(pubdata1)
 		ks.SetKey(from.ToHex(), priv1, []byte("passphrase"))
@@ -115,7 +115,7 @@ func TestTransactionVerify(t *testing.T) {
 		signature1, _ := crypto.NewSignature(keystore.SECP256K1)
 		signature1.InitSign(key1.(keystore.PrivateKey))
 
-		toPriv, _ := secp256k1.GeneratePrivateKey()
+		toPriv := secp256k1.GeneratePrivateKey()
 		toPub, _ := toPriv.PublicKey().Encoded()
 		toAddr, _ := NewAddressFromPublicKey(toPub)
 		tx := NewTransaction(1, from, toAddr, util.NewUint128(), 10, TxPayloadBinaryType, []byte("datadata"), util.NewUint128(), util.NewUint128())

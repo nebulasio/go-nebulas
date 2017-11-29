@@ -47,7 +47,7 @@ func TestBlockPool(t *testing.T) {
 	assert.Equal(t, pool.blockCache.Len(), 0)
 
 	ks := keystore.DefaultKS
-	priv, _ := secp256k1.GeneratePrivateKey()
+	priv := secp256k1.GeneratePrivateKey()
 	pubdata, _ := priv.PublicKey().Encoded()
 	from, _ := NewAddressFromPublicKey(pubdata)
 	ks.SetKey(from.ToHex(), priv, []byte("passphrase"))

@@ -71,6 +71,15 @@ func init() {
 	ctx = C.secp256k1_context_create(C.SECP256K1_CONTEXT_SIGN | C.SECP256K1_CONTEXT_VERIFY)
 }
 
+// SeckeyVerify check private is ok for secp256k1
+func SeckeyVerify(priv *ecdsa.PrivateKey) bool {
+	seckey, err := FromECDSAPrivateKey(priv)
+	if err != nil {
+		return false
+	}
+	return C.secp256k1_ec_seckey_verify(ctx, cBuf(seckey)) == 1
+}
+
 // RecoverECDSAPublicKey recover verifies the compact signature "signature" of "hash"
 func RecoverECDSAPublicKey(msg []byte, signature []byte) (*ecdsa.PublicKey, error) {
 	if len(msg) != 32 {

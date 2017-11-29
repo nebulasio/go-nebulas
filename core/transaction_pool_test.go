@@ -35,7 +35,7 @@ func TestTransactionPool(t *testing.T) {
 	storage, _ := storage.NewMemoryStorage()
 
 	ks := keystore.DefaultKS
-	priv1, _ := secp256k1.GeneratePrivateKey()
+	priv1 := secp256k1.GeneratePrivateKey()
 	pubdata1, _ := priv1.PublicKey().Encoded()
 	from, _ := NewAddressFromPublicKey(pubdata1)
 	ks.SetKey(from.ToHex(), priv1, []byte("passphrase"))
@@ -44,7 +44,7 @@ func TestTransactionPool(t *testing.T) {
 	signature1, _ := crypto.NewSignature(keystore.SECP256K1)
 	signature1.InitSign(key1.(keystore.PrivateKey))
 
-	priv2, _ := secp256k1.GeneratePrivateKey()
+	priv2 := secp256k1.GeneratePrivateKey()
 	pubdata2, _ := priv2.PublicKey().Encoded()
 	other, _ := NewAddressFromPublicKey(pubdata2)
 	ks.SetKey(other.ToHex(), priv2, []byte("passphrase"))

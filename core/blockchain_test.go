@@ -48,7 +48,7 @@ func TestBlockChain_FindCommonAncestorWithTail(t *testing.T) {
 	bc.SetConsensusHandler(c)
 
 	ks := keystore.DefaultKS
-	priv, _ := secp256k1.GeneratePrivateKey()
+	priv := secp256k1.GeneratePrivateKey()
 	pubdata, _ := priv.PublicKey().Encoded()
 	from, _ := NewAddressFromPublicKey(pubdata)
 	to := &Address{from.address}

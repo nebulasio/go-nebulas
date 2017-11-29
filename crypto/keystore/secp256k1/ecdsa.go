@@ -39,12 +39,15 @@ func S256() elliptic.Curve {
 }
 
 // NewECDSAPrivateKey generate a ecdsa private key
-func NewECDSAPrivateKey() (*ecdsa.PrivateKey, error) {
-	priv, err := ecdsa.GenerateKey(S256(), rand.Reader)
-	if err != nil {
-		return nil, err
+func NewECDSAPrivateKey() *ecdsa.PrivateKey {
+	var priv *ecdsa.PrivateKey
+	for {
+		priv, _ = ecdsa.GenerateKey(S256(), rand.Reader)
+		if SeckeyVerify(priv) {
+			break
+		}
 	}
-	return priv, nil
+	return priv
 }
 
 // FromECDSAPrivateKey exports a private key into a binary dump.

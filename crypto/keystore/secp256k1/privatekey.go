@@ -30,14 +30,11 @@ type PrivateKey struct {
 }
 
 // GeneratePrivateKey generate a new private key
-func GeneratePrivateKey() (*PrivateKey, error) {
+func GeneratePrivateKey() *PrivateKey {
 	priv := new(PrivateKey)
-	ecdsa, err := NewECDSAPrivateKey()
-	if err != nil {
-		return nil, err
-	}
+	ecdsa := NewECDSAPrivateKey()
 	priv.privateKey = ecdsa
-	return priv, nil
+	return priv
 }
 
 // Algorithm algorithm name

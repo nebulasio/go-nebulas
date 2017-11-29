@@ -216,7 +216,7 @@ func TestBlock_CollectTransactions(t *testing.T) {
 	assert.Panics(t, func() { tail.CollectTransactions(1) })
 
 	ks := keystore.DefaultKS
-	priv, _ := secp256k1.GeneratePrivateKey()
+	priv := secp256k1.GeneratePrivateKey()
 	pubdata, _ := priv.PublicKey().Encoded()
 	from, _ := NewAddressFromPublicKey(pubdata)
 	ks.SetKey(from.ToHex(), priv, []byte("passphrase"))
@@ -226,10 +226,10 @@ func TestBlock_CollectTransactions(t *testing.T) {
 	signature, _ := crypto.NewSignature(keystore.SECP256K1)
 	signature.InitSign(key.(keystore.PrivateKey))
 
-	priv1, _ := secp256k1.GeneratePrivateKey()
+	priv1 := secp256k1.GeneratePrivateKey()
 	pubdata1, _ := priv1.PublicKey().Encoded()
 	to, _ := NewAddressFromPublicKey(pubdata1)
-	priv2, _ := secp256k1.GeneratePrivateKey()
+	priv2 := secp256k1.GeneratePrivateKey()
 	pubdata2, _ := priv2.PublicKey().Encoded()
 	coinbase, _ := NewAddressFromPublicKey(pubdata2)
 

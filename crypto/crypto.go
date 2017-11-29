@@ -39,7 +39,7 @@ func NewPrivateKey(alg keystore.Algorithm, data []byte) (keystore.PrivateKey, er
 			err  error
 		)
 		if len(data) == 0 {
-			priv, err = secp256k1.GeneratePrivateKey()
+			priv = secp256k1.GeneratePrivateKey()
 		} else {
 			priv = new(secp256k1.PrivateKey)
 			err = priv.Decode(data)
