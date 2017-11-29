@@ -20,6 +20,7 @@ package main
 
 import (
 	"log"
+	"strconv"
 
 	"fmt"
 
@@ -67,7 +68,8 @@ func main() {
 			log.Println("GetAccountState", from, "failed", err)
 		} else {
 			val := util.NewUint128FromString(r.GetBalance())
-			nonce = r.Nonce
+			nonce, _ = strconv.ParseUint(r.Nonce, 10, 64)
+			// nonce = r.Nonce
 			log.Println("GetAccountState", from, "nonce", r.Nonce, "value", val)
 		}
 	}
@@ -88,7 +90,8 @@ func main() {
 			log.Println("GetAccountState", to, "failed", err)
 		} else {
 			val := util.NewUint128FromString(r.GetBalance())
-			nonce = r.Nonce
+			nonce, _ = strconv.ParseUint(r.Nonce, 10, 64)
+			// nonce = r.Nonce
 			log.Println("GetAccountState", to, "nonce", r.Nonce, "value", val)
 		}
 	}
