@@ -104,7 +104,7 @@ func (ctx *Context) SerializeContextBlock() ([]byte, error) {
 		}
 		return json.Marshal(block)
 	}
-	return []byte("{}"), errors.New("no block in context")
+	return nil, errors.New("no block in context")
 }
 
 // SerializeContextTx Serialize current tx

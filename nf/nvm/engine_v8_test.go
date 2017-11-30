@@ -38,6 +38,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/nebulasio/go-nebulas/core/pb"
 )
 
 func TestMain(m *testing.M) {
@@ -71,7 +72,20 @@ func (m *mockBlock) VerifyAddress(str string) bool {
 }
 
 func (m *mockBlock) SerializeTxByHash(hash byteutils.Hash) (proto.Message, error) {
-	return nil, nil
+	from, _ := byteutils.FromHex("8a209cec02cbeab7e2f74ad969d2dfe8dd24416aa65589bf")
+	to, _ := byteutils.FromHex("22ac3a9a2b1c31b7a9084e46eae16e761f83f02324092b09")
+	value, _ := util.NewUint128FromString("10").ToFixedSizeByteSlice()
+	gasPrice, _ := util.NewUint128FromString("1").ToFixedSizeByteSlice()
+	gasLimit, _ := util.NewUint128FromString("100").ToFixedSizeByteSlice()
+	block := &corepb.Transaction{
+		From: from,
+		To:to,
+		Value:value,
+		GasPrice:gasPrice,
+		GasLimit:gasLimit,
+		Hash:hash,
+	}
+	return proto.Message(block), nil
 }
 
 func testContextBlock() Block {
@@ -86,6 +100,7 @@ func testContextTransaction() *ContextTransaction {
 		Nonce:    3,
 		Hash:     "c7174759e86c59dcb7df87def82f61eb",
 		GasPrice: util.NewUint128FromInt(1).String(),
+		GasLimit: util.NewUint128FromInt(10).String(),
 	}
 }
 
@@ -595,7 +610,7 @@ func TestRunMozillaJSTestSuite(t *testing.T) {
 	runTest("test/mozilla_js_tests", "")
 }
 
-func Test_blockchian(t *testing.T) {
+func TestBlockchian(t *testing.T) {
 	tests := []struct {
 		filepath    string
 		expectedErr error
@@ -631,7 +646,7 @@ func TestBankVaultContract(t *testing.T) {
 		saveArgs     string
 		takeoutArgs  string
 	}{
-		{"deploy bank_vault_contract.js", "./test/bank_vault_contract.js", "[]", "1"},
+		{"deploy bank_vault_contract.js", "./test/bank_vault_contract.js", "[0]", "[1]"},
 	}
 
 	for _, tt := range tests {
@@ -654,13 +669,13 @@ func TestBankVaultContract(t *testing.T) {
 
 			engine = NewV8Engine(ctx)
 			engine.SetExecutionLimits(1000, 10000000)
-			err = engine.Call(string(data), "save", "[0]")
+			err = engine.Call(string(data), "save", tt.saveArgs)
 			assert.Nil(t, err)
 			engine.Dispose()
 
 			engine = NewV8Engine(ctx)
 			engine.SetExecutionLimits(1000, 10000000)
-			err = engine.Call(string(data), "takeout", "[1]")
+			err = engine.Call(string(data), "takeout", tt.takeoutArgs)
 			assert.Nil(t, err)
 			engine.Dispose()
 		})

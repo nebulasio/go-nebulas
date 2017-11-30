@@ -11,7 +11,7 @@ BankVaultContract.prototype = {
 	},
 	save: function(height) {
 		var deposit = this.bankVault.get(Blockchain.transaction.from);
-		var value = new BigNumber(Blockchain.transaction.value);
+		var value = Blockchain.transaction.value;
 		if (deposit != null && deposit.balance.length > 0) {
 			var balance = new BigNumber(deposit.balance);
 			value = value.plus(balance);

@@ -23,21 +23,36 @@ var Blockchain = function () {
 };
 
 Blockchain.prototype = {
+    blockParse: function (str) {
+        var block = JSON.parse(str);
+        if (block != null) {
+            this.block = block;
+        }
+    },
+    transactionParse: function (str) {
+        var tx = JSON.parse(str);
+        if (tx != null) {
+            var value = tx.value === undefined || tx.value.length === 0 ? "0" : tx.value;
+            tx.value = new BigNumber(value);
+            var gasPrice = tx.gasPrice === undefined || tx.gasPrice.length === 0 ? "0" : tx.gasPrice;
+            tx.gasPrice = new BigNumber(gasPrice);
+            var gasLimit = tx.gasLimit === undefined || tx.gasLimit.length === 0 ? "0" : tx.gasLimit;
+            tx.gasLimit = new BigNumber(gasLimit);
+            this.transaction = tx;
+        }
+    },
     getTransactionByHash: function (hash) {
         var tx = this.nativeBlockchain.getTransactionByHash(hash);
         if (tx === null) {
             return null
         }
         tx = JSON.parse(tx);
-        if (tx.value != undefined) {
-            tx.value = new BigNumber(tx.value)
-        }
-        if (tx.gasPrice != undefined) {
-            tx.gasPrice = new BigNumber(tx.gasPrice)
-        }
-        if (tx.gasLimit != undefined) {
-            tx.gasLimit = new BigNumber(tx.gasLimit)
-        }
+        var value = tx.value === undefined || tx.value.length === 0 ? "0" : tx.value;
+        tx.value = new BigNumber(value);
+        var gasPrice = tx.gasPrice === undefined || tx.gasPrice.length === 0 ? "0" : tx.gasPrice;
+        tx.gasPrice = new BigNumber(gasPrice);
+        var gasLimit = tx.gasLimit === undefined || tx.gasLimit.length === 0 ? "0" : tx.gasLimit;
+        tx.gasLimit = new BigNumber(gasLimit);
         return tx
     },
     getAccountState: function (address) {
@@ -46,8 +61,10 @@ Blockchain.prototype = {
             return null
         }
         acc = JSON.parse(acc);
-        if (acc.balance != undefined) {
-            acc.balance = new BigNumber(acc.balance)
+        var balance = acc.balance === undefined || acc.balance.length === 0 ? "0" : acc.balance;
+        acc.balance = new BigNumber(balance);
+        if (acc.nonce === undefined) {
+            acc.nonce = 0;
         }
         return acc
     },
