@@ -21,8 +21,11 @@ SampleContract.prototype = {
         console.log('init: Blockchain.block.nonce = ' + Blockchain.block.nonce);
         console.log('init: Blockchain.block.hash = ' + Blockchain.block.hash);
         console.log('init: Blockchain.block.height = ' + Blockchain.block.height);
-        console.log('init: Blockchain.transaction.nonce = ' + Blockchain.block.nonce);
-        console.log('init: Blockchain.transaction.hash = ' + Blockchain.block.hash);
+        console.log('init: Blockchain.transaction.from = ' + Blockchain.transaction.from);
+        console.log('init: Blockchain.transaction.to = ' + Blockchain.transaction.to);
+        console.log('init: Blockchain.transaction.value = ' + Blockchain.transaction.value);
+        console.log('init: Blockchain.transaction.nonce = ' + Blockchain.transaction.nonce);
+        console.log('init: Blockchain.transaction.hash = ' + Blockchain.transaction.hash);
     },
     dump: function () {
         console.log('dump: this.name = ' + this.name);

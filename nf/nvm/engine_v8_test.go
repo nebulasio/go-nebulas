@@ -30,6 +30,7 @@ import (
 	"testing"
 
 	"github.com/gogo/protobuf/proto"
+	"github.com/nebulasio/go-nebulas/core/pb"
 	"github.com/nebulasio/go-nebulas/core/state"
 	"github.com/nebulasio/go-nebulas/storage"
 	"github.com/nebulasio/go-nebulas/util"
@@ -38,7 +39,6 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/nebulasio/go-nebulas/core/pb"
 )
 
 func TestMain(m *testing.M) {
@@ -78,12 +78,12 @@ func (m *mockBlock) SerializeTxByHash(hash byteutils.Hash) (proto.Message, error
 	gasPrice, _ := util.NewUint128FromString("1").ToFixedSizeByteSlice()
 	gasLimit, _ := util.NewUint128FromString("100").ToFixedSizeByteSlice()
 	block := &corepb.Transaction{
-		From: from,
-		To:to,
-		Value:value,
-		GasPrice:gasPrice,
-		GasLimit:gasLimit,
-		Hash:hash,
+		From:     from,
+		To:       to,
+		Value:    value,
+		GasPrice: gasPrice,
+		GasLimit: gasLimit,
+		Hash:     hash,
 	}
 	return proto.Message(block), nil
 }
