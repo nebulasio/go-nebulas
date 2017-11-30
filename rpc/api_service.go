@@ -185,7 +185,7 @@ func (s *APIService) Call(ctx context.Context, req *rpcpb.CallRequest) (*rpcpb.S
 	if err != nil {
 		return nil, err
 	}
-	tx, err := parseTransaction(neb, req.From, req.To, "0", req.Nonce, core.TxPayloadCallType, data, req.GasPrice, req.GasLimit)
+	tx, err := parseTransaction(neb, req.From, req.To, req.Value, req.Nonce, core.TxPayloadCallType, data, req.GasPrice, req.GasLimit)
 	if err != nil {
 		return nil, err
 	}

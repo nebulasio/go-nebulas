@@ -268,6 +268,8 @@ message CallRequest {
 	// gasLimit sending with this transaction.
 	string gas_limit = 7; // uint128, len=16
 
+	string value = 8;
+
 }
 
 // Request message of SendRawTransactionRequest rpc.
