@@ -60,7 +60,7 @@ func TestBlockPool(t *testing.T) {
 	signature, _ := crypto.NewSignature(keystore.SECP256K1)
 	signature.InitSign(key.(keystore.PrivateKey))
 
-	block0 := NewBlock(0, coinbase, bc.tailBlock, bc.txPool, storage)
+	block0 := NewBlock(0, coinbase, bc.tailBlock)
 	block0.Seal()
 
 	tx1 := NewTransaction(0, from, to, util.NewUint128FromInt(1), 1, TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, util.NewUint128FromInt(200000))
@@ -76,19 +76,19 @@ func TestBlockPool(t *testing.T) {
 	err = bc.txPool.Push(tx3)
 	assert.NoError(t, err)
 
-	block1 := NewBlock(0, coinbase, block0, bc.txPool, storage)
+	block1 := NewBlock(0, coinbase, block0)
 	block1.CollectTransactions(1)
 	block1.Seal()
 
-	block2 := NewBlock(0, coinbase, block1, bc.txPool, storage)
+	block2 := NewBlock(0, coinbase, block1)
 	block2.CollectTransactions(1)
 	block2.Seal()
 
-	block3 := NewBlock(0, coinbase, block2, bc.txPool, storage)
+	block3 := NewBlock(0, coinbase, block2)
 	block3.CollectTransactions(1)
 	block3.Seal()
 
-	block4 := NewBlock(0, coinbase, block3, bc.txPool, storage)
+	block4 := NewBlock(0, coinbase, block3)
 	block4.CollectTransactions(1)
 	block4.Seal()
 

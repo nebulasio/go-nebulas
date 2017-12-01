@@ -168,7 +168,7 @@ func (block *Block) SerializeTxByHash(hash byteutils.Hash) (proto.Message, error
 }
 
 // NewBlock return new block.
-func NewBlock(chainID uint32, coinbase *Address, parent *Block, txPool *TransactionPool, storage storage.Storage) *Block {
+func NewBlock(chainID uint32, coinbase *Address, parent *Block) *Block {
 	accState, _ := parent.accState.Clone()
 	txsTrie, _ := parent.txsTrie.Clone()
 	block := &Block{
@@ -183,10 +183,10 @@ func NewBlock(chainID uint32, coinbase *Address, parent *Block, txPool *Transact
 		parenetBlock: parent,
 		accState:     accState,
 		txsTrie:      txsTrie,
-		txPool:       txPool,
+		txPool:       parent.txPool,
 		height:       parent.height + 1,
 		sealed:       false,
-		storage:      storage,
+		storage:      parent.storage,
 	}
 	return block
 }
@@ -212,6 +212,11 @@ func (block *Block) SetNonce(nonce uint64) {
 		panic("Sealed block can't be changed.")
 	}
 	block.header.nonce = nonce
+}
+
+// Timestamp return timestamp
+func (block *Block) Timestamp() int64 {
+	return block.header.timestamp
 }
 
 // SetTimestamp set timestamp
@@ -242,6 +247,23 @@ func (block *Block) ParentHash() byteutils.Hash {
 	return block.header.parentHash
 }
 
+// ParentBlock return the parent block.
+func (block *Block) ParentBlock() (*Block, error) {
+	if block.parenetBlock != nil {
+		return block.parenetBlock, nil
+	}
+	parentBlock, err := LoadBlockFromStorage(block.ParentHash(), block.storage, block.txPool)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"func":  "block.ParentBlock",
+			"block": block,
+			"err":   err,
+		}).Error("cannot find the parent block.")
+		return nil, err
+	}
+	return parentBlock, nil
+}
+
 // Height return height from genesis block.
 func (block *Block) Height() uint64 {
 	return block.height
@@ -251,6 +273,11 @@ func (block *Block) Height() uint64 {
 func (block *Block) VerifyAddress(str string) bool {
 	_, err := AddressParse(str)
 	return err == nil
+}
+
+// NextProposer return next block proposer when some seconds elapsed
+func (block *Block) NextProposer(elapsedSecond int64) *Address {
+	return nil
 }
 
 // LinkParentBlock link parent block, return true if hash is the same; false otherwise.
@@ -264,22 +291,7 @@ func (block *Block) LinkParentBlock(parentBlock *Block) bool {
 	block.txPool = parentBlock.txPool
 	block.parenetBlock = parentBlock
 	block.storage = parentBlock.storage
-
-	// travel to calculate block height.
-	depth := uint64(0)
-	ancestorHeight := uint64(0)
-	for ancestor := block; ancestor != nil; ancestor = ancestor.parenetBlock {
-		depth++
-		ancestorHeight = ancestor.height
-		if ancestor.height > 0 {
-			break
-		}
-	}
-
-	for ancestor := block; ancestor != nil && depth > 1; ancestor = ancestor.parenetBlock {
-		depth--
-		ancestor.height = ancestorHeight + depth
-	}
+	block.height = parentBlock.height + 1
 
 	return true
 }

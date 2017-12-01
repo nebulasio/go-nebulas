@@ -109,6 +109,11 @@ func (bc *BlockChain) Storage() storage.Storage {
 	return bc.storage
 }
 
+// GenesisBlock return the genesis block.
+func (bc *BlockChain) GenesisBlock() *Block {
+	return bc.genesisBlock
+}
+
 // TailBlock return the tail block.
 func (bc *BlockChain) TailBlock() *Block {
 	return bc.tailBlock
@@ -243,7 +248,7 @@ func (bc *BlockChain) NewBlock(coinbase *Address) *Block {
 
 // NewBlockFromParent create new block from parent block and return it.
 func (bc *BlockChain) NewBlockFromParent(coinbase *Address, parentBlock *Block) *Block {
-	return NewBlock(bc.chainID, coinbase, parentBlock, bc.txPool, bc.storage)
+	return NewBlock(bc.chainID, coinbase, parentBlock)
 }
 
 // PutVerifiedNewBlocks put verified new blocks and tails.
@@ -421,12 +426,12 @@ func (bc *BlockChain) loadTailFromStorage() (*Block, error) {
 }
 
 func (bc *BlockChain) loadGenesisFromStorage() (*Block, error) {
-	genesis, err := LoadBlockFromStorage(GenesisHash, bc.storage, nil)
+	genesis, err := LoadBlockFromStorage(GenesisHash, bc.storage, bc.txPool)
 	if err != nil && err != storage.ErrKeyNotFound {
 		return nil, err
 	}
 
-	genesis = NewGenesisBlock(bc.chainID, bc.storage)
+	genesis = NewGenesisBlock(bc.chainID, bc.storage, bc.txPool)
 	if err := bc.storeBlockToStorage(genesis); err != nil {
 		return nil, err
 	}

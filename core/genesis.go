@@ -32,7 +32,7 @@ var (
 )
 
 // NewGenesisBlock create genesis @Block from file.
-func NewGenesisBlock(chainID uint32, storage storage.Storage) *Block {
+func NewGenesisBlock(chainID uint32, storage storage.Storage, txPool *TransactionPool) *Block {
 	accState, _ := state.NewAccountState(nil, storage)
 	txsTrie, _ := trie.NewBatchTrie(nil, storage)
 	// TODO: load genesis block data from file.
@@ -46,6 +46,7 @@ func NewGenesisBlock(chainID uint32, storage storage.Storage) *Block {
 		},
 		accState: accState,
 		txsTrie:  txsTrie,
+		txPool:   txPool,
 		storage:  storage,
 		height:   1,
 		sealed:   true,

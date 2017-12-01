@@ -32,6 +32,12 @@
   revision = "bc6354cbbc295e925e4c611ffe90c1f287ee54db"
 
 [[projects]]
+  name = "github.com/ethereum/go-ethereum"
+  packages = ["common/math"]
+  revision = "4bb3c89d44e372e6a9ab85a8be0c9345265c763a"
+  version = "v1.7.3"
+
+[[projects]]
   branch = "master"
   name = "github.com/fd/go-nat"
   packages = ["."]
@@ -520,6 +526,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "1e84d941d85d20797f58f3b20f87fdde4548bc6f9634d9780ae61859a25cb8d5"
+  inputs-digest = "22f4597c30e20448b32b05895c8ddd6c7a9ab846ca789810ff62703b4d897d55"
   solver-name = "gps-cdcl"
   solver-version = 1
