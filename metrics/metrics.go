@@ -46,7 +46,7 @@ func Start(neb Neblet) {
 	tags := make(map[string]string)
 	tags[tagName] = neb.NetService().Node().ID()
 	go collectSystemMetrics()
-	influxdb.InfluxDBWithTags(metrics.DefaultRegistry, duration, neb.Config().Influxdb.Host, neb.Config().Influxdb.Db, neb.Config().Influxdb.Username, neb.Config().Influxdb.Password, tags)
+	influxdb.InfluxDBWithTags(metrics.DefaultRegistry, duration, neb.Config().Stats.Influxdb.Host, neb.Config().Stats.Influxdb.Db, neb.Config().Stats.Influxdb.User, neb.Config().Stats.Influxdb.Password, tags)
 }
 
 func collectSystemMetrics() {

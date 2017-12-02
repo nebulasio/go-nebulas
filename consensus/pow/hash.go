@@ -25,7 +25,7 @@ import (
 // HashAndVerify return hash result if all requirements are met
 func HashAndVerify(block *core.Block) []byte {
 	ret := core.HashBlock(block)
-	if ret[0] == 0 && ret[1] == 0 && ret[2] < 32 {
+	if ret[0] == 0 && ret[1] == 0 && ret[2] < 8 {
 		return ret
 	}
 	return nil

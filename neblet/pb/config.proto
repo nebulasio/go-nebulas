@@ -17,97 +17,72 @@
 //
 syntax = "proto3";
 package nebletpb;
-
 // Neblet global configurations.
 message Config {
-	// P2P network config.
-    P2PConfig p2p  = 1;
-
-	// RPC server config.
-	RPCConfig rpc  = 2;
-
-	// Pow config
-	PowConfig pow = 3;
-
-	// Storage config
-	StorageConfig storage = 4;
-
-	// Account manager config
-	AccountConfig account = 5;
-
-	// Influxdb config
-	Influxdb influxdb = 6;
-
-	// Metrics config
-	Metrics metrics = 7;
-	// TODO: more configs.
+    // Network config.
+    NetworkConfig network  = 1;
+    // Chain config.
+    ChainConfig chain = 2;
+    // RPC config.
+    RPCConfig rpc = 3;
+    // Stats config.
+    StatsConfig stats = 100;
+    // Misc config.
+    MiscConfig misc = 101;
 }
-
-message P2PConfig {
-	// P2P seed node addresses.
-	string seed = 1;
-
-	// P2P node port number.
-	uint32 port = 2;
-
-	// P2P node chainID.
-	uint32 chain_id = 3;
-	
-	// P2P node version.
-	uint32 version = 4;
+message NetworkConfig {
+    // Neb seed node address.
+    repeated string seed = 1;
+    // Listen addresses.
+    uint32 listen = 2;
 }
-
+message ChainConfig {
+    // ChainID.
+    uint32 chain_id = 1;
+    // Data dir.
+    string datadir = 11;
+    // Key dir.
+    string keydir = 12;
+    // Coinbase.
+    string coinbase = 21;
+    // GasPrice.
+    string gasprice = 22;
+    // Supported signature cipher list.
+    enum SignatureCiphers {
+        ECC_SECP256K1 = 0;
+    }
+    repeated SignatureCiphers signature_ciphers = 23;
+}
 message RPCConfig {
-	// API RPC server listening port number.
-	uint32 api_port = 1;
-
-	// Management RPC server listening port number.
-	uint32 management_port = 2;
-
-	// Json RPC Gateway server listening port number.
-	uint32 api_http_port = 3;
-
-	// Management http server listening port number.
-	uint32 management_http_port = 4;
+    // RPC listen addresses.
+    uint32 rpc_listen = 1;
+    // HTTP listen addresses.
+    uint32 http_listen = 2;
 }
-
-message PowConfig {
-	// pow miner's coinbase
-	string coinbase = 1;
+message MiscConfig {
+    // Default encryption ciper when create new keystore file.
+    string default_keystore_file_ciper = 1;
 }
-
-message StorageConfig {
-	string location = 1;
+message StatsConfig {
+    // Enable metrics or not.
+    bool enable_metrics = 1;
+    // Reporting modules.
+    enum ReportingModule {
+        Influxdb = 0;
+    }
+    repeated ReportingModule reporting_module = 2;
+    // Influxdb config.
+    InfluxdbConfig influxdb = 11;
 }
-
-message AccountConfig {
-	// Account transaction sign algorithm type
-	uint32 signature = 1;
-
-	// Account addr encrypt algorithm type
-    uint32 encrypt = 2;
-
-	// Account key file directory
-	string key_dir = 3;
-
-	// Account test keyfile's passphrase
-	string test_passphrase = 4;
-}
-
-message Influxdb {
-	// Influxdb host
-	string host = 1;
-
-	// Influxdb db name
-	string db = 2;
-
-	// Influxdb username
-	string username = 3;
-
-	// Influxdb password
-	string password = 4;
-}
-
-message Metrics {
-	bool enable = 1;
+message InfluxdbConfig {
+    // Host.
+    string host = 1;
+    // Port.
+    uint32 port = 2;
+    // Database name.
+    string db = 3;
+    // Auth user.
+    string user = 4;
+    // Auth password.
+    string password = 5;
 }

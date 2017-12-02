@@ -34,12 +34,12 @@ func Run(key string, apiPort uint32, gatewayPort uint32) error {
 		return err
 	}
 	// only management service need register manage handler
-	if key == GatewayManagementServiceKey {
-		err = rpcpb.RegisterManagementServiceHandlerFromEndpoint(ctx, mux, *echoEndpoint, opts)
-		if err != nil {
-			return err
-		}
-	}
+	// if key == GatewayManagementServiceKey {
+	// 	err = rpcpb.RegisterManagementServiceHandlerFromEndpoint(ctx, mux, *echoEndpoint, opts)
+	// 	if err != nil {
+	// 		return err
+	// 	}
+	// }
 
 	return http.ListenAndServe(gateWayAddress(int(gatewayPort)), allowCORS(mux))
 }

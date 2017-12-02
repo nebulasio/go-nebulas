@@ -28,7 +28,7 @@ func NewAPIServer(neblet Neblet) *APIServer {
 	cfg := neblet.Config()
 
 	rpc := grpc.NewServer()
-	srv := &APIServer{neblet: neblet, rpcServer: rpc, port: cfg.Rpc.ApiPort, gatewayPort: cfg.Rpc.ApiHttpPort}
+	srv := &APIServer{neblet: neblet, rpcServer: rpc, port: cfg.Rpc.RpcListen, gatewayPort: cfg.Rpc.HttpListen}
 	api := &APIService{srv}
 
 	rpcpb.RegisterAPIServiceServer(rpc, api)

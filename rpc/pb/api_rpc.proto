@@ -28,21 +28,21 @@ service APIService {
 	// Return the state of the neb.
 	rpc GetNebState (GetNebStateRequest) returns (GetNebStateResponse) {
 		option (google.api.http) = {
-			get: "/v1/neb/state"
+			get: "/v1/user/nebstate"
 		};
 	}
 
 	// Return the p2p node info.
 	rpc NodeInfo (NodeInfoRequest) returns (NodeInfoResponse) {
 		option (google.api.http) = {
-			get: "/v1/node/info"
+			get: "/v1/user/nodeinfo"
 		};
 	}
 
 	// Return the dump info of blockchain.
 	rpc BlockDump (BlockDumpRequest) returns (BlockDumpResponse) {
 		option (google.api.http) = {
-			post: "/v1/block/dump"
+			post: "/v1/user/blockdump"
             body: "*"
 		};
 	}
@@ -50,14 +50,14 @@ service APIService {
 	// Accounts return account list.
 	rpc Accounts (AccountsRequest) returns (AccountsResponse) {
 		option (google.api.http) = {
-			get: "/v1/accounts"
+			get: "/v1/user/accounts"
 		};
 	}
 
 	// Return the state of the account.
 	rpc GetAccountState (GetAccountStateRequest) returns (GetAccountStateResponse) {
 		option (google.api.http) = {
-            post: "/v1/account/state"
+            post: "/v1/user/accountstate"
 			body: "*"
         };
 	}
@@ -65,7 +65,7 @@ service APIService {
 	// Verify, sign, and send the transaction.
 	rpc SendTransaction (SendTransactionRequest) returns (SendTransactionResponse) {
 		option (google.api.http) = {
-            post: "/v1/transaction"
+            post: "/v1/user/transaction"
             body: "*"
         };
 	}
@@ -73,7 +73,7 @@ service APIService {
 	// Call smart contract.
 	rpc Call (CallRequest) returns (SendTransactionResponse) {
 		option (google.api.http) = {
-            post: "/v1/call"
+            post: "/v1/user/call"
             body: "*"
         };
 	}
@@ -81,7 +81,7 @@ service APIService {
 	// Submit the signed transaction.
 	rpc SendRawTransaction (SendRawTransactionRequest) returns (SendTransactionResponse) {
 		option (google.api.http) = {
-            post: "/v1/rawtransaction"
+            post: "/v1/user/rawtransaction"
             body: "*"
         };
 	}
@@ -89,7 +89,7 @@ service APIService {
 	// Get block header info by the block hash.
 	rpc GetBlockByHash (GetBlockByHashRequest) returns (corepb.Block) {
 		option (google.api.http) = {
-            post: "/v1/getBlockByHash"
+            post: "/v1/user/getBlockByHash"
             body: "*"
         };
 	}
@@ -97,16 +97,56 @@ service APIService {
 	// Get transactionReceipt info by tansaction hash.
 	rpc GetTransactionReceipt (GetTransactionByHashRequest) returns (TransactionReceiptResponse) {
 		option (google.api.http) = {
-            post: "/v1/getTransactionReceipt"
+            post: "/v1/user/getTransactionReceipt"
             body: "*"
         };
 	}
 
 	rpc StatisticsNodeInfo (NodeInfoRequest) returns (StatisticsNodeInfoResponse) {
 		option (google.api.http) = {
-			get: "/v1/statistics/nodeInfo"
+			get: "/v1/admin/statistics/nodeInfo"
 		};
 	}
+
+	// NewAccount create a new account with passphrase
+    rpc NewAccount(NewAccountRequest) returns (NewAccountResponse) {
+        option (google.api.http) = {
+            post: "/v1/admin/account/new"
+            body: "*"
+        };
+    }
+
+    // UnlockAccount unlock account with passphrase
+    rpc UnlockAccount(UnlockAccountRequest) returns (UnlockAccountResponse) {
+        option (google.api.http) = {
+            post: "/v1/admin/account/unlock"
+            body: "*"
+        };
+    }
+
+    // LockAccount lock account
+    rpc LockAccount(LockAccountRequest) returns (LockAccountResponse) {
+        option (google.api.http) = {
+            post: "/v1/admin/account/lock"
+            body: "*"
+        };
+    }
+
+    // SignTransaction sign transaction
+    rpc SignTransaction(SignTransactionRequest) returns (SignTransactionResponse) {
+        option (google.api.http) = {
+            post: "/v1/admin/sign"
+            body: "*"
+        };
+    }
+
+    // SendTransactionWithPassphrase send transaction with passphrase
+    rpc SendTransactionWithPassphrase(SendTransactionPassphraseRequest) returns (SendTransactionPassphraseResponse) {
+        option (google.api.http) = {
+            post: "/v1/admin/transactionWithPassphrase"
+            body: "*"
+        };
+    }
 
 }
 
@@ -335,6 +375,93 @@ message TransactionReceiptResponse {
 
 }
 
+message NewAccountRequest {
+    string passphrase = 1;
+}
 
+message NewAccountResponse {
+    string address = 1;
+}
+
+message UnlockAccountRequest {
+    string address = 1;
+    string passphrase = 2;
+}
+
+message UnlockAccountResponse {
+    bool result = 1;
+}
+
+message LockAccountRequest {
+    string address = 1;
+}
+
+message LockAccountResponse {
+    bool result = 1;
+}
+
+message SignTransactionRequest {
+    // Hex string of the sender account addresss.
+    string from = 1;
+
+    // Hex string of the receiver account addresss.
+    string to = 2;
+
+    // Amount of value sending with this transaction.
+    string value = 3; // uint128, len=16
+
+    // Transaction nonce.
+    uint64 nonce = 4;
+
+    // contract source code.
+    string source = 5;
+
+    // the params of contract.
+    string args = 6;
+
+    // gasPrice sending with this transaction.
+    string gas_price = 7; // uint128, len=16
+
+    // gasLimit sending with this transaction.
+    string gas_limit = 8; // uint128, len=16
+}
+
+message SignTransactionResponse {
+    bytes data = 1;
+}
+
+message SendTransactionPassphraseRequest {
+    // Hex string of the sender account addresss.
+    string from = 1;
+
+    // Hex string of the receiver account addresss.
+    string to = 2;
+
+    // Amount of value sending with this transaction.
+    string value = 3; // uint128, len=16
+
+    // Transaction nonce.
+    uint64 nonce = 4;
+
+    // contract source code.
+    string source = 5;
+
+    // the params of contract.
+    string args = 6;
+
+    // gasPrice sending with this transaction.
+    string gas_price = 7; // uint128, len=16
+
+    // gasLimit sending with this transaction.
+    string gas_limit = 8; // uint128, len=16
+
+    // from account passphrase
+    string passphrase = 9;
+}
+
+message SendTransactionPassphraseResponse {
+    // Hex string of transaction hash.
+    string hash = 1;
+}
 
 

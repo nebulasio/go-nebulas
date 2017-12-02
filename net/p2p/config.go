@@ -29,11 +29,11 @@ import (
 
 // const
 const (
-	DefaultBucketsize            = 16
-	DefaultLatency               = 10
-	DefaultIP                    = "127.0.0.1"
+	DefaultBucketsize = 16
+	DefaultLatency    = 10
+	DefaultIP         = "127.0.0.1"
+	// DefaultRandseed              = 12345
 	DefaultPort                  = 9999
-	DefaultRandseed              = 12345
 	DefaultMaxSyncNodes          = 16
 	DefaultChainID               = 1
 	DefaultVersion               = 0
@@ -48,7 +48,7 @@ type Config struct {
 	Latency               time.Duration
 	BootNodes             []multiaddr.Multiaddr
 	IP                    string
-	Port                  uint
+	Port                  uint32
 	MaxSyncNodes          int
 	ChainID               uint32
 	Version               uint8
@@ -67,28 +67,24 @@ func NewP2PConfig(n Neblet) *Config {
 	config := DefautConfig()
 	config.IP = localHost()
 
-	seed := n.Config().P2P.Seed
-	if len(seed) > 0 {
-		seed, err := multiaddr.NewMultiaddr(seed)
-		if err != nil {
-			log.Error("param seed error, creating seed node fail", err)
-			return nil
+	seeds := n.Config().Network.Seed
+	if len(seeds) > 0 {
+		config.BootNodes = []multiaddr.Multiaddr{}
+		for _, v := range seeds {
+			seed, err := multiaddr.NewMultiaddr(v)
+			if err != nil {
+				log.Error("param seed error, creating seed node fail", err)
+				return nil
+			}
+			config.BootNodes = append(config.BootNodes, seed)
 		}
-		config.BootNodes = []multiaddr.Multiaddr{seed}
 	}
-	if port := n.Config().P2P.Port; port > 0 {
-		config.Port = uint(port)
-	}
-	if chainID := n.Config().P2P.ChainId; chainID > 0 {
+
+	config.Port = n.Config().Network.Listen
+
+	if chainID := n.Config().Chain.ChainId; chainID > 0 {
 		config.ChainID = chainID
 	}
-	if version := n.Config().P2P.Version; version > 0 {
-		config.Version = uint8(version)
-	}
-	// P2P network randseed, in this release we use port as randseed
-	// config.Randseed = time.Now().Unix()
-	// config.Randseed = int64(config.Port)
-	// config.Randseed = ipToInt64(config.IP)
 
 	return config
 }

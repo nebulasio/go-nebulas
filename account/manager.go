@@ -75,21 +75,26 @@ func NewManager(neblet Neblet) *Manager {
 	m.keydir, _ = filepath.Abs("keydir")
 
 	if neblet != nil {
-		conf := neblet.Config().Account
+		// conf := neblet.Config().Account
+		conf := neblet.Config().Chain
 
-		keydir := conf.GetKeyDir()
+		keydir := conf.Keydir
 		if filepath.IsAbs(keydir) {
 			m.keydir = keydir
 		} else {
 			m.keydir, _ = filepath.Abs(keydir)
 		}
 
-		if conf.GetSignature() > 0 {
-			m.signatureAlg = keystore.Algorithm(conf.GetSignature())
+		if conf.SignatureCiphers[0] > 0 {
+			m.signatureAlg = keystore.Algorithm(conf.SignatureCiphers[0])
 		}
-		if conf.GetEncrypt() > 0 {
-			m.encryptAlg = keystore.Algorithm(conf.GetEncrypt())
-		}
+
+		// if conf.GetSignature() > 0 {
+		// 	m.signatureAlg = keystore.Algorithm(conf.GetSignature())
+		// }
+		// if conf.GetEncrypt() > 0 {
+		// 	m.encryptAlg = keystore.Algorithm(conf.GetEncrypt())
+		// }
 
 		m.refreshAccounts()
 	}

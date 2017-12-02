@@ -90,9 +90,9 @@ func NewPow(neblet Neblet) *Pow {
 		canMining:         false,
 	}
 
-	cfg := neblet.Config().Pow
-	if cfg != nil {
-		coinbase, err := core.AddressParse(cfg.GetCoinbase())
+	coinbaseConf := neblet.Config().Chain.Coinbase
+	if coinbaseConf != "" {
+		coinbase, err := core.AddressParse(coinbaseConf)
 		if err != nil {
 			log.WithFields(log.Fields{
 				"err": err,

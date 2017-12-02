@@ -47,7 +47,7 @@ type jsBridge struct {
 func newBirdge(config nebletpb.Config, prompter *terminalPrompter, writer io.Writer) *jsBridge {
 	bridge := &jsBridge{prompter: prompter, writer: writer}
 	if config.GetRpc() != nil {
-		bridge.host = fmt.Sprintf("http://localhost:%d", config.GetRpc().ManagementHttpPort)
+		bridge.host = fmt.Sprintf("http://localhost:%d", config.GetRpc().HttpListen)
 	} else {
 		bridge.host = "http://localhost:8191"
 	}
