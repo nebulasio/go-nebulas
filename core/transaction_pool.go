@@ -51,8 +51,12 @@ func less(a interface{}, b interface{}) bool {
 	if txa.from.Equals(txb.from) {
 		return txa.Nonce() < txb.Nonce()
 	}
-	// TODO(@roy): use gas price instead
-	return txa.DataLen() < txb.DataLen()
+	if txa.gasPrice.Cmp(txb.gasPrice.Int) != 0 {
+		// txa.gasPrice < txb.gasPrice
+		return txa.GasPrice().Cmp(txb.GasPrice().Int) == -1
+	}
+	// txa.gasLimit < txb.gasLimit
+	return txa.GasLimit().Cmp(txb.GasLimit().Int) == -1
 }
 
 // NewTransactionPool create a new TransactionPool

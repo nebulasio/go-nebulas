@@ -54,37 +54,37 @@ func TestTransactionPool(t *testing.T) {
 	signature2.InitSign(key2.(keystore.PrivateKey))
 
 	txs := []*Transaction{
-		NewTransaction(1, from, &Address{[]byte("to")}, util.NewUint128(), 10, TxPayloadBinaryType, []byte("datadata"), util.NewUint128(), util.NewUint128()),
-		NewTransaction(1, other, &Address{[]byte("to")}, util.NewUint128(), 1, TxPayloadBinaryType, []byte("datadata"), util.NewUint128(), util.NewUint128()),
-		NewTransaction(1, from, &Address{[]byte("to")}, util.NewUint128(), 1, TxPayloadBinaryType, []byte("da"), util.NewUint128(), util.NewUint128()),
+		NewTransaction(1, from, &Address{[]byte("to")}, util.NewUint128(), 10, TxPayloadBinaryType, []byte("datadata"), TransactionGasPrice, TransactionGas),
+		NewTransaction(1, other, &Address{[]byte("to")}, util.NewUint128(), 1, TxPayloadBinaryType, []byte("datadata"), util.NewUint128FromInt(2), TransactionGas),
+		NewTransaction(1, from, &Address{[]byte("to")}, util.NewUint128(), 1, TxPayloadBinaryType, []byte("da"), TransactionGasPrice, TransactionGas),
 
-		NewTransaction(1, from, &Address{[]byte("to")}, util.NewUint128(), 2, TxPayloadBinaryType, []byte("da"), util.NewUint128(), util.NewUint128()),
-		NewTransaction(0, from, &Address{[]byte("to")}, util.NewUint128(), 0, TxPayloadBinaryType, []byte("da"), util.NewUint128(), util.NewUint128()),
+		NewTransaction(1, from, &Address{[]byte("to")}, util.NewUint128(), 2, TxPayloadBinaryType, []byte("da"), TransactionGasPrice, TransactionGas),
+		NewTransaction(0, from, &Address{[]byte("to")}, util.NewUint128(), 0, TxPayloadBinaryType, []byte("da"), TransactionGasPrice, TransactionGas),
 
-		NewTransaction(1, other, &Address{[]byte("to")}, util.NewUint128(), 1, TxPayloadBinaryType, []byte("data"), util.NewUint128(), util.NewUint128()),
-		NewTransaction(1, from, &Address{[]byte("to")}, util.NewUint128(), 1, TxPayloadBinaryType, []byte("datadata"), util.NewUint128(), util.NewUint128()),
+		NewTransaction(1, other, &Address{[]byte("to")}, util.NewUint128(), 1, TxPayloadBinaryType, []byte("data"), TransactionGasPrice, TransactionGas),
+		NewTransaction(1, from, &Address{[]byte("to")}, util.NewUint128(), 1, TxPayloadBinaryType, []byte("datadata"), util.NewUint128FromInt(2), TransactionGas),
 	}
 
 	txPool := NewTransactionPool(3)
 	bc, _ := NewBlockChain(1, storage)
 	txPool.setBlockChain(bc)
-	txs[0].Sign(signature1)
+	assert.Nil(t, txs[0].Sign(signature1))
 	assert.Nil(t, txPool.Push(txs[0]))
 	// put dup tx, should fail
 	assert.NotNil(t, txPool.Push(txs[0]))
-	txs[1].Sign(signature2)
+	assert.Nil(t, txs[1].Sign(signature2))
 	assert.Nil(t, txPool.Push(txs[1]))
-	txs[2].Sign(signature1)
+	assert.Nil(t, txs[2].Sign(signature1))
 	assert.Nil(t, txPool.Push(txs[2]))
 	// put not signed tx, should fail
 	assert.NotNil(t, txPool.Push(txs[3]))
 	// put tx with different chainID, should fail
-	txs[4].Sign(signature1)
+	assert.Nil(t, txs[4].Sign(signature1))
 	assert.NotNil(t, txPool.Push(txs[4]))
 	// put one new, replace txs[1]
 	assert.Equal(t, len(txPool.all), 3)
 	assert.Equal(t, txPool.cache.Len(), 3)
-	txs[6].Sign(signature1)
+	assert.Nil(t, txs[6].Sign(signature1))
 	assert.Nil(t, txPool.Push(txs[6]))
 	assert.Equal(t, txPool.cache.Len(), 3)
 	assert.Equal(t, len(txPool.all), 3)
@@ -96,7 +96,7 @@ func TestTransactionPool(t *testing.T) {
 	// put one new
 	assert.Equal(t, len(txPool.all), 2)
 	assert.Equal(t, txPool.cache.Len(), 2)
-	txs[5].Sign(signature2)
+	assert.Nil(t, txs[5].Sign(signature2))
 	assert.Nil(t, txPool.Push(txs[5]))
 	assert.Equal(t, len(txPool.all), 3)
 	assert.Equal(t, txPool.cache.Len(), 3)

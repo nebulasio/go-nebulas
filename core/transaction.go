@@ -165,6 +165,14 @@ type Transactions []*Transaction
 
 // NewTransaction create #Transaction instance.
 func NewTransaction(chainID uint32, from, to *Address, value *util.Uint128, nonce uint64, payloadType string, payload []byte, gasPrice *util.Uint128, gasLimit *util.Uint128) *Transaction {
+	//if gasPrice is not specified, use the default gasPrice
+	if gasPrice == nil || gasPrice.Cmp(util.NewUint128FromInt(0).Int) <= 0 {
+		gasPrice = TransactionGasPrice
+	}
+	if gasLimit == nil || gasLimit.Cmp(util.NewUint128FromInt(0).Int) <= 0 {
+		gasLimit = TransactionGas
+	}
+
 	tx := &Transaction{
 		from:      from,
 		to:        to,
