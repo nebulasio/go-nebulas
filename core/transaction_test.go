@@ -118,7 +118,7 @@ func TestTransactionVerify(t *testing.T) {
 		toPriv := secp256k1.GeneratePrivateKey()
 		toPub, _ := toPriv.PublicKey().Encoded()
 		toAddr, _ := NewAddressFromPublicKey(toPub)
-		tx := NewTransaction(1, from, toAddr, util.NewUint128(), 10, TxPayloadBinaryType, []byte("datadata"), util.NewUint128(), util.NewUint128())
+		tx := NewTransaction(1, from, toAddr, util.NewUint128(), 10, TxPayloadBinaryType, []byte("datadata"), TransactionGasPrice, util.NewUint128FromInt(200000))
 
 		test := testTx{string(index), tx, signature1, 1}
 		tests = append(tests, test)

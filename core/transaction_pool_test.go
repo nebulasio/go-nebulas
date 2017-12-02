@@ -54,15 +54,15 @@ func TestTransactionPool(t *testing.T) {
 	signature2.InitSign(key2.(keystore.PrivateKey))
 
 	txs := []*Transaction{
-		NewTransaction(1, from, &Address{[]byte("to")}, util.NewUint128(), 10, TxPayloadBinaryType, []byte("datadata"), TransactionGasPrice, TransactionGas),
-		NewTransaction(1, other, &Address{[]byte("to")}, util.NewUint128(), 1, TxPayloadBinaryType, []byte("datadata"), util.NewUint128FromInt(2), TransactionGas),
-		NewTransaction(1, from, &Address{[]byte("to")}, util.NewUint128(), 1, TxPayloadBinaryType, []byte("da"), TransactionGasPrice, TransactionGas),
+		NewTransaction(1, from, &Address{[]byte("to")}, util.NewUint128(), 10, TxPayloadBinaryType, []byte("datadata"), TransactionGasPrice, util.NewUint128FromInt(200000)),
+		NewTransaction(1, other, &Address{[]byte("to")}, util.NewUint128(), 1, TxPayloadBinaryType, []byte("datadata"), util.NewUint128FromInt(2), util.NewUint128FromInt(200000)),
+		NewTransaction(1, from, &Address{[]byte("to")}, util.NewUint128(), 1, TxPayloadBinaryType, []byte("da"), TransactionGasPrice, util.NewUint128FromInt(200000)),
 
-		NewTransaction(1, from, &Address{[]byte("to")}, util.NewUint128(), 2, TxPayloadBinaryType, []byte("da"), TransactionGasPrice, TransactionGas),
-		NewTransaction(0, from, &Address{[]byte("to")}, util.NewUint128(), 0, TxPayloadBinaryType, []byte("da"), TransactionGasPrice, TransactionGas),
+		NewTransaction(1, from, &Address{[]byte("to")}, util.NewUint128(), 2, TxPayloadBinaryType, []byte("da"), TransactionGasPrice, util.NewUint128FromInt(200000)),
+		NewTransaction(0, from, &Address{[]byte("to")}, util.NewUint128(), 0, TxPayloadBinaryType, []byte("da"), TransactionGasPrice, util.NewUint128FromInt(200000)),
 
-		NewTransaction(1, other, &Address{[]byte("to")}, util.NewUint128(), 1, TxPayloadBinaryType, []byte("data"), TransactionGasPrice, TransactionGas),
-		NewTransaction(1, from, &Address{[]byte("to")}, util.NewUint128(), 1, TxPayloadBinaryType, []byte("datadata"), util.NewUint128FromInt(2), TransactionGas),
+		NewTransaction(1, other, &Address{[]byte("to")}, util.NewUint128(), 1, TxPayloadBinaryType, []byte("data"), TransactionGasPrice, util.NewUint128FromInt(200000)),
+		NewTransaction(1, from, &Address{[]byte("to")}, util.NewUint128(), 1, TxPayloadBinaryType, []byte("datadata"), util.NewUint128FromInt(2), util.NewUint128FromInt(200000)),
 	}
 
 	txPool := NewTransactionPool(3)

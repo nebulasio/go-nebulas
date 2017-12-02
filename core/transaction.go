@@ -39,6 +39,9 @@ var (
 
 	// TransactionGas default gasLimt
 	TransactionGas = util.NewUint128FromInt(20000)
+
+	// TransactionDataGas per byte of data attached to a transaction gas cost
+	TransactionDataGas = util.NewUint128FromInt(50)
 )
 
 // Transaction type is used to handle all transaction data.
@@ -218,6 +221,18 @@ func (tx *Transaction) Cost() *util.Uint128 {
 	return util.NewUint128FromBigInt(total)
 }
 
+// CalculateGas calculate the actual amount for a tx with data
+func (tx *Transaction) CalculateGas() *util.Uint128 {
+	txGas := util.NewUint128()
+	txGas.Add(txGas.Int, TransactionGas.Int)
+	if tx.DataLen() > 0 {
+		dataGas := util.NewUint128()
+		dataGas.Mul(util.NewUint128FromInt(int64(tx.DataLen())).Int, TransactionDataGas.Int)
+		txGas.Add(txGas.Int, dataGas.Int)
+	}
+	return txGas
+}
+
 // DataLen return the length of payload
 func (tx *Transaction) DataLen() int {
 	return len(tx.data.Payload)
@@ -229,9 +244,11 @@ func (tx *Transaction) Execute(block *Block) error {
 	fromAcc := block.accState.GetOrCreateUserAccount(tx.from.address)
 	toAcc := block.accState.GetOrCreateUserAccount(tx.to.address)
 
-	// TODO:calculate data cost gas
 	if fromAcc.Balance().Cmp(tx.Cost().Int) < 0 {
 		return ErrInsufficientBalance
+	}
+	if tx.gasLimit.Cmp(tx.CalculateGas().Int) < 0 {
+		return ErrOutofGasLimit
 	}
 
 	// accept the transaction
@@ -239,7 +256,7 @@ func (tx *Transaction) Execute(block *Block) error {
 	toAcc.AddBalance(tx.value)
 	fromAcc.IncreNonce()
 
-	gas := util.NewUint128().Mul(tx.GasPrice().Int, tx.GasLimit().Int)
+	gas := util.NewUint128().Mul(tx.GasPrice().Int, tx.CalculateGas().Int)
 	fromAcc.SubBalance(util.NewUint128FromBigInt(gas))
 
 	// execute payload
