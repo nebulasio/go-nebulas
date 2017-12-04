@@ -19,12 +19,12 @@
 package core
 
 import (
+	"math"
 	"sync"
-
-	"errors"
+	"time"
 
 	"github.com/gogo/protobuf/proto"
-	"github.com/hashicorp/golang-lru"
+	lru "github.com/hashicorp/golang-lru"
 	"github.com/nebulasio/go-nebulas/core/pb"
 	"github.com/nebulasio/go-nebulas/net"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
@@ -34,7 +34,6 @@ import (
 
 // Errors in block
 var (
-	ErrDuplicatedBlock    = errors.New("duplicated block")
 	duplicateBlockCounter = metrics.GetOrRegisterCounter("bp_duplicate", nil)
 	invalidBlockCounter   = metrics.GetOrRegisterCounter("bp_invalid", nil)
 )
@@ -56,6 +55,7 @@ type BlockPool struct {
 
 type linkedBlock struct {
 	block      *Block
+	pool       *BlockPool
 	hash       byteutils.Hash
 	parentHash byteutils.Hash
 
@@ -132,6 +132,15 @@ func (pool *BlockPool) loop() {
 			}
 			if err := block.FromProto(pbblock); err != nil {
 				log.Error("BlockPool.loop:: get block from proto occurs error: ", err)
+				continue
+			}
+			if int64(math.Abs(float64(time.Now().Unix()-block.Timestamp()))) > AcceptedNetWorkDelay {
+				log.WithFields(log.Fields{
+					"func":        "BlockPool.loop",
+					"messageType": msg.MessageType(),
+					"block":       block,
+					"err":         "timeout",
+				}).Error("BlockPool.loop: invalid block, drop it.")
 				continue
 			}
 			if err := pool.PushAndRelay(block); err != nil {
@@ -214,14 +223,14 @@ func (pool *BlockPool) push(block *Block) error {
 		return ErrDuplicatedBlock
 	}
 
-	// verify nonce.
-	if err := pool.bc.ConsensusHandler().VerifyBlock(block); err != nil {
+	// verify block hash & txs
+	if err := block.verifyHash(pool.bc.chainID); err != nil {
 		invalidBlockCounter.Inc(1)
 		return err
 	}
 
-	// verify block hash & txs
-	if err := block.verifyHash(pool.bc.chainID); err != nil {
+	// verify consensus.
+	if err := pool.bc.ConsensusHandler().FastVerifyBlock(block); err != nil {
 		invalidBlockCounter.Inc(1)
 		return err
 	}
@@ -230,7 +239,7 @@ func (pool *BlockPool) push(block *Block) error {
 	blockCache := pool.blockCache
 
 	var plb *linkedBlock
-	lb := newLinkedBlock(block)
+	lb := newLinkedBlock(block, pool)
 	blockCache.Add(lb.hash.Hex(), lb)
 
 	// find child block in pool.
@@ -284,9 +293,10 @@ func (pool *BlockPool) setBlockChain(bc *BlockChain) {
 	pool.bc = bc
 }
 
-func newLinkedBlock(block *Block) *linkedBlock {
+func newLinkedBlock(block *Block, pool *BlockPool) *linkedBlock {
 	return &linkedBlock{
 		block:       block,
+		pool:        pool,
 		hash:        block.Hash(),
 		parentHash:  block.ParentHash(),
 		parentBlock: nil,
@@ -309,13 +319,21 @@ func (lb *linkedBlock) travelToLinkAndReturnAllValidBlocks(parentBlock *Block) (
 		panic("link parent block fail.")
 	}
 
-	if err := lb.block.Verify(parentBlock.header.chainID); err != nil {
-		log.Error(err)
+	if err := lb.pool.bc.ConsensusHandler().VerifyBlock(lb.block); err != nil {
 		log.WithFields(log.Fields{
 			"func":  "BlockPool.Verify",
 			"block": lb.block,
 			"err":   err,
-		}).Error("BlockPool.Verify: verify block failed.")
+		}).Error("BlockPool.Verify: verify block in dpos failed.")
+		return nil, nil
+	}
+
+	if err := lb.block.Verify(parentBlock.header.chainID); err != nil {
+		log.WithFields(log.Fields{
+			"func":  "BlockPool.Verify",
+			"block": lb.block,
+			"err":   err,
+		}).Error("BlockPool.Verify: verify block txs failed.")
 		return nil, nil
 	}
 

@@ -1,0 +1,50 @@
+# Sample non-seed testing node config.
+
+p2p {
+  port: 10003
+  seed: "/ip4/192.168.1.22/tcp/51410/ipfs/QmPyr4ZbDmwF1nWxymTktdzspcBFPL6X1v3Q5nT7PGNtUN"
+  chain_id: 100
+  version: 1
+}
+
+rpc {
+  api_port: 51513
+  management_port: 52523
+  api_http_port: 8093
+  management_http_port: 8193
+}
+
+pow {
+  coinbase: "8a209cec02cbeab7e2f74ad969d2dfe8dd24416aa65589bf"
+}
+
+dpos {
+  coinbase: "8e07853e0017b49c3ffd24d8388c83e2fa507f359aa57ab0"
+}
+
+storage {
+  location: "normal.3.db"
+}
+
+account {
+  # keystore.SECP256K1 = 1
+  signature: 1
+
+  # keystore.SCRYPT = 1 << 4
+  encrypt: 16
+
+  key_dir: "keydir"
+
+  test_passphrase: "passphrase"
+}
+
+influxdb {
+  host: "http://localhost:8086"
+  db: "nebulas"
+  username: "admin"
+  password: "admin"
+}
+
+metrics {
+  enable: false
+}

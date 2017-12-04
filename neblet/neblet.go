@@ -4,11 +4,9 @@ import (
 	"errors"
 	"sync"
 
-	"github.com/nebulasio/go-nebulas/util/byteutils"
-
 	"github.com/nebulasio/go-nebulas/account"
 	"github.com/nebulasio/go-nebulas/consensus"
-	"github.com/nebulasio/go-nebulas/consensus/pow"
+	"github.com/nebulasio/go-nebulas/consensus/dpos"
 	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/metrics"
 	"github.com/nebulasio/go-nebulas/neblet/pb"
@@ -17,6 +15,7 @@ import (
 	"github.com/nebulasio/go-nebulas/storage"
 	nsync "github.com/nebulasio/go-nebulas/sync"
 	"github.com/nebulasio/go-nebulas/util"
+	"github.com/nebulasio/go-nebulas/util/byteutils"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -92,7 +91,10 @@ func (n *Neblet) Setup() error {
 	n.blockChain.TransactionPool().SetGasConfig(gasPrice, gasLimit)
 	n.blockChain.TransactionPool().RegisterInNetwork(n.netService)
 
-	n.consensus = pow.NewPow(n)
+	n.consensus, err = dpos.NewDpos(n)
+	if err != nil {
+		return err
+	}
 	n.blockChain.SetConsensusHandler(n.consensus)
 
 	// start sync service

@@ -45,40 +45,31 @@ var (
 		util.NewUint128().Exp(util.NewUint128FromInt(10).Int, util.NewUint128FromInt(18).Int, nil)))
 )
 
-// Errors in block
-var (
-	ErrInvalidBlockHash      = errors.New("invalid block hash")
-	ErrInvalidBlockStateRoot = errors.New("invalid block state root hash")
-	ErrInvalidBlockTxsRoot   = errors.New("invalid block txs root hash")
-	ErrInvalidChainID        = errors.New("invalid transaction chainID")
-	ErrDuplicatedTransaction = errors.New("duplicated transaction")
-	ErrSmallTransactionNonce = errors.New("cannot accept a transaction with smaller nonce")
-	ErrLargeTransactionNonce = errors.New("cannot accept a transaction with too bigger nonce")
-)
-
 // BlockHeader of a block
 type BlockHeader struct {
-	hash       byteutils.Hash
-	parentHash byteutils.Hash
-	stateRoot  byteutils.Hash
-	txsRoot    byteutils.Hash
-	nonce      uint64
-	coinbase   *Address
-	timestamp  int64
-	chainID    uint32
+	hash        byteutils.Hash
+	parentHash  byteutils.Hash
+	stateRoot   byteutils.Hash
+	txsRoot     byteutils.Hash
+	dposContext *corepb.DposContext
+	nonce       uint64
+	coinbase    *Address
+	timestamp   int64
+	chainID     uint32
 }
 
 // ToProto converts domain BlockHeader to proto BlockHeader
 func (b *BlockHeader) ToProto() (proto.Message, error) {
 	return &corepb.BlockHeader{
-		Hash:       b.hash,
-		ParentHash: b.parentHash,
-		StateRoot:  b.stateRoot,
-		TxsRoot:    b.txsRoot,
-		Nonce:      b.nonce,
-		Coinbase:   b.coinbase.address,
-		Timestamp:  b.timestamp,
-		ChainId:    b.chainID,
+		Hash:        b.hash,
+		ParentHash:  b.parentHash,
+		StateRoot:   b.stateRoot,
+		TxsRoot:     b.txsRoot,
+		DposContext: b.dposContext,
+		Nonce:       b.nonce,
+		Coinbase:    b.coinbase.address,
+		Timestamp:   b.timestamp,
+		ChainId:     b.chainID,
 	}, nil
 }
 
@@ -89,6 +80,7 @@ func (b *BlockHeader) FromProto(msg proto.Message) error {
 		b.parentHash = msg.ParentHash
 		b.stateRoot = msg.StateRoot
 		b.txsRoot = msg.TxsRoot
+		b.dposContext = msg.DposContext
 		b.nonce = msg.Nonce
 		b.coinbase = &Address{msg.Coinbase}
 		b.timestamp = msg.Timestamp
@@ -108,6 +100,7 @@ type Block struct {
 	parenetBlock *Block
 	accState     state.AccountState
 	txsTrie      *trie.BatchTrie
+	dposContext  *DposContext
 	txPool       *TransactionPool
 
 	storage storage.Storage
@@ -171,18 +164,21 @@ func (block *Block) SerializeTxByHash(hash byteutils.Hash) (proto.Message, error
 func NewBlock(chainID uint32, coinbase *Address, parent *Block) *Block {
 	accState, _ := parent.accState.Clone()
 	txsTrie, _ := parent.txsTrie.Clone()
+	dposContext, _ := parent.dposContext.Clone()
 	block := &Block{
 		header: &BlockHeader{
-			parentHash: parent.Hash(),
-			coinbase:   coinbase,
-			nonce:      0,
-			timestamp:  time.Now().Unix(),
-			chainID:    chainID,
+			parentHash:  parent.Hash(),
+			dposContext: &corepb.DposContext{},
+			coinbase:    coinbase,
+			nonce:       0,
+			timestamp:   time.Now().Unix(),
+			chainID:     chainID,
 		},
 		transactions: make(Transactions, 0),
 		parenetBlock: parent,
 		accState:     accState,
 		txsTrie:      txsTrie,
+		dposContext:  dposContext,
 		txPool:       parent.txPool,
 		height:       parent.height + 1,
 		sealed:       false,
@@ -242,6 +238,22 @@ func (block *Block) TxsRoot() byteutils.Hash {
 	return block.header.txsRoot
 }
 
+// DposContext return dpos context
+func (block *Block) DposContext() *corepb.DposContext {
+	return block.header.dposContext
+}
+
+// DposContextHash hash dpos context
+func (block *Block) DposContextHash() byteutils.Hash {
+	hasher := sha3.New256()
+
+	hasher.Write(block.header.dposContext.DynastyRoot)
+	hasher.Write(block.header.dposContext.NextDynastyRoot)
+	hasher.Write(block.header.dposContext.DelegateRoot)
+
+	return hasher.Sum(nil)
+}
+
 // ParentHash return parent hash.
 func (block *Block) ParentHash() byteutils.Hash {
 	return block.header.parentHash
@@ -275,11 +287,6 @@ func (block *Block) VerifyAddress(str string) bool {
 	return err == nil
 }
 
-// NextProposer return next block proposer when some seconds elapsed
-func (block *Block) NextProposer(elapsedSecond int64) *Address {
-	return nil
-}
-
 // LinkParentBlock link parent block, return true if hash is the same; false otherwise.
 func (block *Block) LinkParentBlock(parentBlock *Block) bool {
 	if block.ParentHash().Equals(parentBlock.Hash()) == false {
@@ -288,6 +295,7 @@ func (block *Block) LinkParentBlock(parentBlock *Block) bool {
 
 	block.accState, _ = parentBlock.accState.Clone()
 	block.txsTrie, _ = parentBlock.txsTrie.Clone()
+	block.dposContext, _ = parentBlock.dposContext.Clone()
 	block.txPool = parentBlock.txPool
 	block.parenetBlock = parentBlock
 	block.storage = parentBlock.storage
@@ -300,11 +308,13 @@ func (block *Block) begin() {
 	log.Info("Block Begin.")
 	block.accState.BeginBatch()
 	block.txsTrie.BeginBatch()
+	block.dposContext.BeginBatch()
 }
 
 func (block *Block) commit() {
 	block.accState.Commit()
 	block.txsTrie.Commit()
+	block.dposContext.Commit()
 	log.WithFields(log.Fields{
 		"block": block,
 	}).Info("Block Commit.")
@@ -313,6 +323,7 @@ func (block *Block) commit() {
 func (block *Block) rollback() {
 	block.accState.RollBack()
 	block.txsTrie.RollBack()
+	block.dposContext.RollBack()
 	log.WithFields(log.Fields{
 		"block": block,
 	}).Info("Block RollBack.")
@@ -380,26 +391,27 @@ func (block *Block) Seal() {
 		return
 	}
 
-	log.WithFields(log.Fields{
-		"block": block,
-	}).Info("Block Seal.")
-
 	block.begin()
 	block.rewardCoinbase()
 	block.commit()
-	block.header.hash = HashBlock(block)
 	block.header.stateRoot = block.accState.RootHash()
 	block.header.txsRoot = block.txsTrie.RootHash()
+	block.header.dposContext, _ = block.dposContext.ToProto()
+	block.header.hash = HashBlock(block)
 	block.sealed = true
+
+	log.WithFields(log.Fields{
+		"block": block,
+	}).Info("Block Seal.")
 }
 
 func (block *Block) String() string {
-	return fmt.Sprintf("Block %p {height:%d; hash:%s; parentHash:%s; stateRoot:%s, nonce:%d, timestamp: %d}",
+	return fmt.Sprintf("Block %p {height:%d; hash:%s; parentHash:%s; accState: %s; nonce:%d, timestamp: %d}",
 		block,
 		block.height,
 		byteutils.Hex(block.header.hash),
 		byteutils.Hex(block.header.parentHash),
-		byteutils.Hex(block.StateRoot()),
+		byteutils.Hex(block.header.stateRoot),
 		block.header.nonce,
 		block.header.timestamp,
 	)
@@ -456,12 +468,19 @@ func (block *Block) verifyHash(chainID uint32) error {
 // verifyState return state verify result.
 func (block *Block) verifyState() error {
 	// verify state root.
+	log.Info(block.accState.RootHash())
+	log.Info(block.StateRoot())
 	if !byteutils.Equal(block.accState.RootHash(), block.StateRoot()) {
 		return ErrInvalidBlockStateRoot
 	}
 
 	// verify transaction root.
 	if !byteutils.Equal(block.txsTrie.RootHash(), block.TxsRoot()) {
+		return ErrInvalidBlockTxsRoot
+	}
+
+	// verify transaction root.
+	if !byteutils.Equal(block.dposContext.RootHash(), block.DposContextHash()) {
 		return ErrInvalidBlockTxsRoot
 	}
 
@@ -568,7 +587,10 @@ func (block *Block) executeTransaction(tx *Transaction) (giveback bool, err erro
 func HashBlock(block *Block) byteutils.Hash {
 	hasher := sha3.New256()
 
-	hasher.Write(block.header.parentHash)
+	hasher.Write(block.ParentHash())
+	hasher.Write(block.StateRoot())
+	hasher.Write(block.TxsRoot())
+	hasher.Write(block.DposContextHash())
 	hasher.Write(byteutils.FromUint64(block.header.nonce))
 	hasher.Write(block.header.coinbase.address)
 	hasher.Write(byteutils.FromInt64(block.header.timestamp))
@@ -579,4 +601,35 @@ func HashBlock(block *Block) byteutils.Hash {
 	}
 
 	return hasher.Sum(nil)
+}
+
+// LoadBlockFromStorage return a block from storage
+func LoadBlockFromStorage(hash byteutils.Hash, storage storage.Storage, txPool *TransactionPool) (*Block, error) {
+	value, err := storage.Get(hash)
+	if err != nil {
+		return nil, err
+	}
+	pbBlock := new(corepb.Block)
+	block := new(Block)
+	if err = proto.Unmarshal(value, pbBlock); err != nil {
+		return nil, err
+	}
+	if err = block.FromProto(pbBlock); err != nil {
+		return nil, err
+	}
+	block.accState, err = state.NewAccountState(block.StateRoot(), storage)
+	if err != nil {
+		return nil, err
+	}
+	block.txsTrie, err = trie.NewBatchTrie(block.TxsRoot(), storage)
+	if err != nil {
+		return nil, err
+	}
+	block.dposContext = NewDposContext(storage)
+	if block.dposContext.FromProto(block.DposContext()) != nil {
+		return nil, err
+	}
+	block.txPool = txPool
+	block.storage = storage
+	return block, nil
 }

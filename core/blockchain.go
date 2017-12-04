@@ -24,10 +24,7 @@ import (
 	"strings"
 
 	"github.com/gogo/protobuf/proto"
-	"github.com/hashicorp/golang-lru"
-	"github.com/nebulasio/go-nebulas/common/trie"
-	"github.com/nebulasio/go-nebulas/core/pb"
-	"github.com/nebulasio/go-nebulas/core/state"
+	lru "github.com/hashicorp/golang-lru"
 	"github.com/nebulasio/go-nebulas/storage"
 	"github.com/nebulasio/go-nebulas/util"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
@@ -120,13 +117,16 @@ func (bc *BlockChain) TailBlock() *Block {
 }
 
 // SetTailBlock set tail block.
-func (bc *BlockChain) SetTailBlock(newTail *Block) {
+func (bc *BlockChain) SetTailBlock(newTail *Block) error {
 	oldTail := bc.tailBlock
 	bc.detachedTailBlocks.Remove(newTail.Hash().Hex())
 	bc.tailBlock = newTail
 	bc.storeTailToStorage(bc.tailBlock)
 	// giveBack txs in reverted blocks to tx pool
-	ancestor, _ := bc.FindCommonAncestorWithTail(oldTail)
+	ancestor, err := bc.FindCommonAncestorWithTail(oldTail)
+	if err != nil {
+		return err
+	}
 	if ancestor.Hash().Equals(oldTail.Hash()) {
 		// oldTail and newTail is on same chain, no reverted blocks
 		// when tail change, add metrics
@@ -136,7 +136,7 @@ func (bc *BlockChain) SetTailBlock(newTail *Block) {
 		if err == nil {
 			blocktailHashGauge.Update(hash)
 		}
-		return
+		return nil
 	}
 	reverted := oldTail
 	var revertTimes int64
@@ -145,14 +145,14 @@ func (bc *BlockChain) SetTailBlock(newTail *Block) {
 		reverted.ReturnTransactions()
 		reverted = bc.GetBlock(reverted.header.parentHash)
 		if reverted == nil {
-			panic("find a block on chain, we cannot find its parent block")
+			return ErrMissingParentBlock
 		}
 	}
 	if revertTimes > 0 {
 		blockRevertTimesGauge.Update(revertTimes)
 		blockRevertMeter.Mark(1)
 	}
-
+	return nil
 }
 
 func hashToInt64(hash string) (int64, error) {
@@ -176,20 +176,26 @@ func (bc *BlockChain) FindCommonAncestorWithTail(block *Block) (*Block, error) {
 		target = bc.GetBlock(block.ParentHash())
 	}
 	if target == nil {
-		return nil, errors.New("cannot location the block in blockchain")
+		return nil, ErrMissingParentBlock
 	}
 	tail := bc.TailBlock()
 	for tail.Height() > target.Height() {
 		tail = bc.GetBlock(tail.header.parentHash)
+		if tail == nil {
+			return nil, ErrMissingParentBlock
+		}
 	}
 	for tail.Height() < target.Height() {
 		target = bc.GetBlock(target.header.parentHash)
+		if target == nil {
+			return nil, ErrMissingParentBlock
+		}
 	}
 	for !tail.Hash().Equals(target.Hash()) {
 		tail = bc.GetBlock(tail.header.parentHash)
 		target = bc.GetBlock(target.header.parentHash)
 		if tail == nil || target == nil {
-			panic("find a block on chain, we cannot find its parent block")
+			return nil, ErrMissingParentBlock
 		}
 	}
 	return target, nil
@@ -337,6 +343,9 @@ func (bc *BlockChain) getAncestorHash(number int) byteutils.Hash {
 	for i := 0; i < number; i++ {
 		if !CheckGenesisBlock(block) {
 			block = bc.GetBlock(block.ParentHash())
+			if block == nil {
+				block = bc.genesisBlock
+			}
 		}
 	}
 	return block.Hash()
@@ -374,33 +383,6 @@ func (bc *BlockChain) storeBlockToStorage(block *Block) error {
 	return nil
 }
 
-// LoadBlockFromStorage return a block from storage
-func LoadBlockFromStorage(hash byteutils.Hash, storage storage.Storage, txPool *TransactionPool) (*Block, error) {
-	value, err := storage.Get(hash)
-	if err != nil {
-		return nil, err
-	}
-	pbBlock := new(corepb.Block)
-	block := new(Block)
-	if err = proto.Unmarshal(value, pbBlock); err != nil {
-		return nil, err
-	}
-	if err = block.FromProto(pbBlock); err != nil {
-		return nil, err
-	}
-	block.accState, err = state.NewAccountState(block.StateRoot(), storage)
-	if err != nil {
-		return nil, err
-	}
-	block.txsTrie, err = trie.NewBatchTrie(block.TxsRoot(), storage)
-	if err != nil {
-		return nil, err
-	}
-	block.txPool = txPool
-	block.storage = storage
-	return block, nil
-}
-
 func (bc *BlockChain) storeTailToStorage(block *Block) {
 	bc.storage.Put([]byte(Tail), block.Hash())
 }
@@ -431,7 +413,7 @@ func (bc *BlockChain) loadGenesisFromStorage() (*Block, error) {
 		return nil, err
 	}
 
-	genesis = NewGenesisBlock(bc.chainID, bc.storage, bc.txPool)
+	genesis = NewGenesisBlock(bc.chainID, bc)
 	if err := bc.storeBlockToStorage(genesis); err != nil {
 		return nil, err
 	}

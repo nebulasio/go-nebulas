@@ -35,8 +35,6 @@ type Consensus interface {
 	CanMining() bool
 	SetCanMining(bool)
 
-	Transit(from, to State, data interface{})
-
 	VerifyBlock(*core.Block) error
 }
 

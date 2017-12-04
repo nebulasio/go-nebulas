@@ -23,9 +23,9 @@ import (
 	"time"
 
 	"github.com/nebulasio/go-nebulas/core"
+	"github.com/nebulasio/go-nebulas/neblet/pb"
 	"github.com/nebulasio/go-nebulas/net"
 
-	"github.com/nebulasio/go-nebulas/neblet/pb"
 	"github.com/nebulasio/go-nebulas/net/p2p"
 	log "github.com/sirupsen/logrus"
 )
@@ -33,6 +33,8 @@ import (
 // Errors in PoW Consensus
 var (
 	ErrInvalidBlockInterval = errors.New("invalid block interval")
+	ErrInvalidBlockCoinbase = errors.New("invalid block proposer")
+	ErrMissingConfigForDpos = errors.New("missing configuration for Dpos")
 )
 
 // Neblet interface breaks cycle import dependency and hides unused services.
@@ -51,41 +53,40 @@ type Dpos struct {
 	coinbase *core.Address
 
 	blockInterval   int64
-	dynastyInterval int
+	dynastyInterval int64
 	txsPerBlock     int
 
 	canMining bool
 }
 
 // NewDpos create Dpos instance.
-func NewDpos(neblet Neblet) *Dpos {
+func NewDpos(neblet Neblet) (*Dpos, error) {
 	p := &Dpos{
 		quitCh: make(chan bool, 5),
 
 		chain: neblet.BlockChain(),
 		nm:    neblet.NetService(),
 
-		blockInterval:   3,
-		dynastyInterval: 3600,
+		blockInterval:   core.BlockInterval,
+		dynastyInterval: core.DynastyInterval,
 		txsPerBlock:     500,
 
 		canMining: false,
 	}
 
 	cfg := neblet.Config().Dpos
-	if cfg != nil {
-		coinbase, err := core.AddressParse(cfg.GetCoinbase())
-		if err != nil {
-			log.WithFields(log.Fields{
-				"err": err,
-			}).Info("Dpos.NewDpos: coinbase parse err.")
-			panic("coinbase should be correctly configed for Dpos, expect hex string without 0x prefix")
-		}
-		p.coinbase = coinbase
-	} else {
-		panic("coinbase should be configed for Dpos")
+	if cfg == nil {
+		return nil, ErrMissingConfigForDpos
 	}
-	return p
+	coinbase, err := core.AddressParse(cfg.GetCoinbase())
+	if err != nil {
+		log.WithFields(log.Fields{
+			"err": err,
+		}).Error("Dpos.NewDpos: coinbase parse err.")
+		return nil, err
+	}
+	p.coinbase = coinbase
+	return p, nil
 }
 
 // Start start pow service.
@@ -98,8 +99,8 @@ func (p *Dpos) Stop() {
 	p.quitCh <- true
 }
 
-// ForkChoice do fork choice
-func (p *Dpos) ForkChoice() {
+// do fork choice
+func (p *Dpos) forkChoice() {
 	bc := p.chain
 	tailBlock := bc.TailBlock()
 	detachedTailBlocks := bc.DetachedTailBlocks()
@@ -148,15 +149,24 @@ func (p *Dpos) SetCanMining(canMining bool) {
 	p.canMining = canMining
 }
 
-// VerifyBlock return nil if nonce is right, otherwise return error.
+// VerifyBlock return nil if timestamp & proposer are right, otherwise return error.
 func (p *Dpos) VerifyBlock(block *core.Block) error {
 	parent, err := block.ParentBlock()
 	if err != nil {
 		return err
 	}
-	elapsedSecond := parent.Timestamp() - block.Timestamp()
+	// check timestamp
+	elapsedSecond := block.Timestamp() - parent.Timestamp()
 	if elapsedSecond%p.blockInterval != 0 {
 		return ErrInvalidBlockInterval
+	}
+	// check proposer
+	context, err := parent.NextDynastyContext(elapsedSecond)
+	if err != nil {
+		return err
+	}
+	if !context.Proposer.Equals(block.Coinbase().Bytes()) {
+		return ErrInvalidBlockCoinbase
 	}
 	return nil
 }
@@ -166,16 +176,34 @@ func (p *Dpos) mintBlock() {
 	if !p.canMining {
 		return
 	}
+	// check proposer
 	tail := p.chain.TailBlock()
-	// calculate time elapsed
 	elapsedSecond := time.Now().Unix() - tail.Timestamp()
-	// check whether it's my turn
-	proposer := tail.NextProposer(elapsedSecond)
-	if !proposer.Equals(p.coinbase) {
+	context, err := tail.NextDynastyContext(elapsedSecond)
+	if err != nil {
 		return
 	}
+	if !context.Proposer.Equals(p.coinbase.Bytes()) {
+		log.WithFields(log.Fields{
+			"func":     "Dpos.mintBlock",
+			"tail":     tail,
+			"elapsed":  elapsedSecond,
+			"expected": context.Proposer.Hex(),
+			"actual":   p.coinbase.ToHex(),
+		}).Info("not my turn, waiting...")
+		return
+	}
+	log.WithFields(log.Fields{
+		"func":     "Dpos.mintBlock",
+		"tail":     tail,
+		"elapsed":  elapsedSecond,
+		"offset":   context.Offset,
+		"expected": context.Proposer.Hex(),
+		"actual":   p.coinbase.ToHex(),
+	}).Info("my turn")
 	// mint new block
 	block := core.NewBlock(p.chain.ChainID(), p.coinbase, tail)
+	block.LoadDynastyContext(context)
 	block.CollectTransactions(p.txsPerBlock)
 	block.Seal()
 	// broadcast it
@@ -183,13 +211,13 @@ func (p *Dpos) mintBlock() {
 }
 
 func (p *Dpos) blockLoop() {
-	timeChan := time.NewTimer(time.Second).C
+	timeChan := time.NewTicker(time.Second).C
 	for {
 		select {
 		case <-timeChan:
-			go p.mintBlock()
+			p.mintBlock()
 		case <-p.chain.BlockPool().ReceivedBlockCh():
-			go p.ForkChoice()
+			p.forkChoice()
 		case <-p.quitCh:
 			log.Info("Dpos.blockLoop: quit.")
 			return

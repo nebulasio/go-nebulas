@@ -101,14 +101,19 @@ func TestBlock(t *testing.T) {
 			"full struct",
 			fields{
 				&BlockHeader{
-					[]byte("124546"),
-					[]byte("344543"),
-					[]byte("43656"),
-					[]byte("43656"),
-					3546456,
-					&Address{[]byte("hello")},
-					time.Now().Unix(),
-					1,
+					hash:       []byte("124546"),
+					parentHash: []byte("344543"),
+					stateRoot:  []byte("43656"),
+					txsRoot:    []byte("43656"),
+					dposContext: &corepb.DposContext{
+						DynastyRoot:     []byte("43656"),
+						NextDynastyRoot: []byte("43656"),
+						DelegateRoot:    []byte("43656"),
+					},
+					nonce:     3546456,
+					coinbase:  &Address{[]byte("hello")},
+					timestamp: time.Now().Unix(),
+					chainID:   1,
 				},
 				Transactions{
 					&Transaction{
@@ -173,18 +178,24 @@ func TestBlock(t *testing.T) {
 
 func TestBlock_LinkParentBlock(t *testing.T) {
 	storage, _ := storage.NewMemoryStorage()
-	genesis := NewGenesisBlock(0, storage, nil)
+	bc, _ := NewBlockChain(0, storage)
+	genesis := bc.genesisBlock
 	assert.Equal(t, genesis.Height(), uint64(1))
 	block1 := &Block{
 		header: &BlockHeader{
-			[]byte("124546"),
-			genesis.Hash(),
-			[]byte("43656"),
-			[]byte("43656"),
-			3546456,
-			&Address{[]byte("hello")},
-			time.Now().Unix(),
-			1,
+			hash:       []byte("124546"),
+			parentHash: GenesisHash,
+			stateRoot:  []byte("43656"),
+			txsRoot:    []byte("43656"),
+			dposContext: &corepb.DposContext{
+				DynastyRoot:     []byte("43656"),
+				NextDynastyRoot: []byte("43656"),
+				DelegateRoot:    []byte("43656"),
+			},
+			nonce:     3546456,
+			coinbase:  &Address{[]byte("hello")},
+			timestamp: time.Now().Unix(),
+			chainID:   1,
 		},
 		transactions: []*Transaction{},
 	}
@@ -194,14 +205,19 @@ func TestBlock_LinkParentBlock(t *testing.T) {
 	assert.Equal(t, block1.ParentHash(), genesis.Hash())
 	block2 := &Block{
 		header: &BlockHeader{
-			[]byte("124546"),
-			[]byte("1234"),
-			[]byte("43656"),
-			[]byte("43656"),
-			3546456,
-			&Address{[]byte("hello")},
-			time.Now().Unix(),
-			1,
+			hash:       []byte("124546"),
+			parentHash: []byte("344543"),
+			stateRoot:  []byte("43656"),
+			txsRoot:    []byte("43656"),
+			dposContext: &corepb.DposContext{
+				DynastyRoot:     []byte("43656"),
+				NextDynastyRoot: []byte("43656"),
+				DelegateRoot:    []byte("43656"),
+			},
+			nonce:     3546456,
+			coinbase:  &Address{[]byte("hello")},
+			timestamp: time.Now().Unix(),
+			chainID:   1,
 		},
 		transactions: []*Transaction{},
 	}

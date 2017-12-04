@@ -19,8 +19,6 @@
 package core
 
 import (
-	"errors"
-
 	"strings"
 
 	"github.com/nebulasio/go-nebulas/crypto/hash"
@@ -36,14 +34,6 @@ const (
 
 	// AddressLength the length of address in byte.
 	AddressLength = AddressDataLength + AddressChecksumLength
-)
-
-var (
-	// ErrInvalidAddress invalid address error.
-	ErrInvalidAddress = errors.New("address: invalid address")
-
-	// ErrInvalidAddressDataLength invalid data length error.
-	ErrInvalidAddressDataLength = errors.New("address: invalid address data length")
 )
 
 /*

@@ -30,6 +30,11 @@ message Data {
     bytes payload = 2;
 }
 
+message Delegate {
+    bytes delegator = 1;
+    bytes delegatee = 2;
+}
+
 message Transaction {
     bytes hash  = 1;
     bytes from = 2;
@@ -46,6 +51,12 @@ message Transaction {
     bytes sign = 12;
 }
 
+message DposContext {
+    bytes dynasty_root = 1;
+    bytes next_dynasty_root = 2;
+    bytes delegate_root = 3;
+}
+
 message BlockHeader {
     bytes hash = 1;
     bytes parent_hash = 2;
@@ -55,6 +66,7 @@ message BlockHeader {
     uint32 chain_id = 6;
     bytes state_root = 7;
     bytes txs_root = 8;
+    DposContext dpos_context = 9;
 }
 
 message Block {

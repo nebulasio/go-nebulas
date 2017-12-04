@@ -28,10 +28,13 @@ import (
 	"github.com/nebulasio/go-nebulas/crypto/keystore/secp256k1"
 	"github.com/nebulasio/go-nebulas/storage"
 	"github.com/nebulasio/go-nebulas/util"
+	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 )
 
-type MockConsensus int
+type MockConsensus struct {
+	storage storage.Storage
+}
 
 func (c MockConsensus) VerifyBlock(block *Block) error {
 	return nil
@@ -40,8 +43,7 @@ func (c MockConsensus) VerifyBlock(block *Block) error {
 func TestBlockPool(t *testing.T) {
 	storage, _ := storage.NewMemoryStorage()
 	bc, err := NewBlockChain(0, storage)
-	assert.NoError(t, err)
-	var cons MockConsensus
+	cons := &MockConsensus{storage}
 	bc.SetConsensusHandler(cons)
 	pool := bc.bkPool
 	assert.Equal(t, pool.blockCache.Len(), 0)
@@ -50,6 +52,7 @@ func TestBlockPool(t *testing.T) {
 	priv := secp256k1.GeneratePrivateKey()
 	pubdata, _ := priv.PublicKey().Encoded()
 	from, _ := NewAddressFromPublicKey(pubdata)
+<<<<<<< HEAD
 	ks.SetKey(from.String(), priv, []byte("passphrase"))
 	ks.Unlock(from.String(), []byte("passphrase"), time.Second*60*60*24*365)
 
@@ -57,10 +60,26 @@ func TestBlockPool(t *testing.T) {
 	to := &Address{from.address}
 
 	key, _ := ks.GetUnlocked(from.String())
+=======
+	ks.SetKey(from.ToHex(), priv, []byte("passphrase"))
+	ks.Unlock(from.ToHex(), []byte("passphrase"), time.Second*60*60*24*365)
+	to := &Address{from.address}
+	key, _ := ks.GetUnlocked(from.ToHex())
+>>>>>>> core: finish an executable dpos.
 	signature, _ := crypto.NewSignature(keystore.SECP256K1)
 	signature.InitSign(key.(keystore.PrivateKey))
+	log.Info(bc.tailBlock.accState.RootHash())
+	bc.tailBlock.begin()
+	bc.tailBlock.accState.GetOrCreateUserAccount(from.Bytes()).AddBalance(util.NewUint128FromInt(100000))
+	bc.tailBlock.commit()
+	log.Info(bc.tailBlock.accState.RootHash())
+	bc.cachedBlocks.ContainsOrAdd(bc.tailBlock.Hash().Hex(), bc.tailBlock)
 
-	block0 := NewBlock(0, coinbase, bc.tailBlock)
+	validators, _ := TraverseDynasty(bc.tailBlock.dposContext.dynastyTrie)
+
+	block0 := NewBlock(0, &Address{validators[1]}, bc.tailBlock)
+	log.Info(block0.accState.RootHash())
+	block0.header.timestamp = bc.tailBlock.header.timestamp + BlockInterval
 	block0.Seal()
 
 	tx1 := NewTransaction(0, from, to, util.NewUint128FromInt(1), 1, TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, util.NewUint128FromInt(200000))
@@ -76,19 +95,23 @@ func TestBlockPool(t *testing.T) {
 	err = bc.txPool.Push(tx3)
 	assert.NoError(t, err)
 
-	block1 := NewBlock(0, coinbase, block0)
+	block1 := NewBlock(0, &Address{validators[2]}, block0)
+	block1.header.timestamp = block0.header.timestamp + BlockInterval
 	block1.CollectTransactions(1)
 	block1.Seal()
 
-	block2 := NewBlock(0, coinbase, block1)
+	block2 := NewBlock(0, &Address{validators[3]}, block1)
+	block2.header.timestamp = block1.header.timestamp + BlockInterval
 	block2.CollectTransactions(1)
 	block2.Seal()
 
-	block3 := NewBlock(0, coinbase, block2)
+	block3 := NewBlock(0, &Address{validators[4]}, block2)
+	block3.header.timestamp = block2.header.timestamp + BlockInterval
 	block3.CollectTransactions(1)
 	block3.Seal()
 
-	block4 := NewBlock(0, coinbase, block3)
+	block4 := NewBlock(0, &Address{validators[5]}, block3)
+	block4.header.timestamp = block3.header.timestamp + BlockInterval
 	block4.CollectTransactions(1)
 	block4.Seal()
 
