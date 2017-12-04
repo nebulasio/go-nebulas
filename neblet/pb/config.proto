@@ -35,6 +35,8 @@ message NetworkConfig {
     repeated string seed = 1;
     // Listen addresses.
     uint32 listen = 2;
+    // Network node privateKey address. If nil, generate a new node.
+    string private_key = 3;
 }
 message ChainConfig {
     // ChainID.

@@ -32,6 +32,7 @@ const (
 	DefaultBucketsize = 16
 	DefaultLatency    = 10
 	DefaultIP         = "127.0.0.1"
+	DefaultPrivateKey = ""
 	// DefaultRandseed              = 12345
 	DefaultPort                  = 9999
 	DefaultMaxSyncNodes          = 16
@@ -47,6 +48,7 @@ type Config struct {
 	Bucketsize            int
 	Latency               time.Duration
 	BootNodes             []multiaddr.Multiaddr
+	PrivateKey            string
 	IP                    string
 	Port                  uint32
 	MaxSyncNodes          int
@@ -81,6 +83,7 @@ func NewP2PConfig(n Neblet) *Config {
 	}
 
 	config.Port = n.Config().Network.Listen
+	config.PrivateKey = n.Config().Network.PrivateKey
 
 	if chainID := n.Config().Chain.ChainId; chainID > 0 {
 		config.ChainID = chainID
@@ -118,6 +121,7 @@ func DefautConfig() *Config {
 		DefaultBucketsize,
 		DefaultLatency,
 		[]multiaddr.Multiaddr{},
+		DefaultPrivateKey,
 		DefaultIP,
 		DefaultPort,
 		DefaultMaxSyncNodes,

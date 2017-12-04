@@ -21,9 +21,11 @@ package p2p
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	mrand "math/rand"
 	"net"
 	"sync"
@@ -154,21 +156,36 @@ func (node *Node) checkPort() error {
 	return nil
 }
 
-func (node *Node) generatePeerStore() error {
-	var randseedstr string
-	if len(node.Config().BootNodes) == 0 {
-		// seednode
-		randseedstr = letterBytes
-	} else {
-		randseedstr = randSeed(64)
-	}
+// GenerateEd25519Key generate a privKey and pubKey by ed25519.
+func GenerateEd25519Key() (crypto.PrivKey, crypto.PubKey, error) {
+	randseedstr := randSeed(64)
 	randseed, err := hex.DecodeString(randseedstr)
 	priv, pub, err := crypto.GenerateEd25519Key(
 		bytes.NewReader(randseed),
 	)
+	return priv, pub, err
+}
+
+func (node *Node) generatePeerStore() error {
+	filename := node.Config().PrivateKey
+	priv, pub, err := getPeerstoreFromFile(filename)
 	if err != nil {
-		return err
+		var randseedstr string
+		if len(node.Config().BootNodes) == 0 {
+			// seednode
+			randseedstr = letterBytes
+		} else {
+			randseedstr = randSeed(64)
+		}
+		randseed, err := hex.DecodeString(randseedstr)
+		priv, pub, err = crypto.GenerateEd25519Key(
+			bytes.NewReader(randseed),
+		)
+		if err != nil {
+			return err
+		}
 	}
+
 	// Obtain Peer ID from public key
 	node.id, err = peer.IDFromPublicKey(pub)
 	if err != nil {
@@ -179,6 +196,20 @@ func (node *Node) generatePeerStore() error {
 	ps.AddPubKey(node.id, pub)
 	node.peerstore = ps
 	return nil
+}
+
+func getPeerstoreFromFile(filename string) (crypto.PrivKey, crypto.PubKey, error) {
+	b, err := ioutil.ReadFile(filename)
+	if err != nil {
+		return nil, nil, errors.New("get private_key from file error")
+	}
+	privb, err := base64.StdEncoding.DecodeString(string(b))
+	priv, err := crypto.UnmarshalPrivateKey(privb)
+	if err != nil {
+		return nil, nil, errors.New("get private_key from file error")
+	}
+	pub := priv.GetPublic()
+	return priv, pub, nil
 }
 
 func (node *Node) init() error {

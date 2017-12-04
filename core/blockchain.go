@@ -20,7 +20,6 @@ package core
 
 import (
 	"errors"
-	"fmt"
 	"strconv"
 	"strings"
 
@@ -317,14 +316,7 @@ func (bc *BlockChain) Dump(count int) string {
 		if !CheckGenesisBlock(block) {
 			block = bc.GetBlock(block.ParentHash())
 			rl = append(rl,
-				fmt.Sprintf(
-					"{%d, hash: %s, parent: %s, stateRoot: %s, coinbase: %s}",
-					block.height,
-					block.Hash().Hex(),
-					block.ParentHash().Hex(),
-					block.StateRoot().Hex(),
-					block.header.coinbase.address.Hex(),
-				))
+				block.String())
 		}
 	}
 

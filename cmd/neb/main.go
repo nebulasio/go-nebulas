@@ -66,6 +66,7 @@ func main() {
 	app.Commands = []cli.Command{
 		accountCommand,
 		consoleCommand,
+		networkCommand,
 	}
 	sort.Sort(cli.CommandsByName(app.Commands))
 

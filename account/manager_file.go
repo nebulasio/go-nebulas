@@ -107,7 +107,7 @@ func (m *Manager) exportFile(addr *core.Address, passphrase []byte) error {
 	} else {
 		path = filepath.Join(m.keydir, addr.ToHex())
 	}
-	writeFile(path, raw)
+	WriteFile(path, raw)
 	return nil
 }
 
@@ -120,8 +120,8 @@ func (m *Manager) getAccount(addr *core.Address) *account {
 	return nil
 }
 
-// writeFile write file to path
-func writeFile(file string, content []byte) error {
+// WriteFile write file to path
+func WriteFile(file string, content []byte) error {
 	// Create the keystore directory with appropriate permissions
 	const dirPerm = 0700
 	if err := os.MkdirAll(filepath.Dir(file), dirPerm); err != nil {
