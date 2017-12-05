@@ -2,6 +2,7 @@ package pdeque
 
 import (
 	"math"
+	"sync"
 )
 
 // Less is compare function for elements in queue
@@ -11,6 +12,7 @@ type Less func(a interface{}, b interface{}) bool
 type PriorityDeque struct {
 	less Less
 	heap []interface{}
+	mu   sync.Mutex
 }
 
 // LvTy is type of level
@@ -36,12 +38,18 @@ func (q *PriorityDeque) Len() int {
 
 // Insert an item into priority deque
 func (q *PriorityDeque) Insert(ele interface{}) {
+	q.mu.Lock()
+	defer q.mu.Unlock()
+
 	q.heap = append(q.heap, ele)
 	q.bubbleUp(q.Len() - 1)
 }
 
 // PopMax pop the max value in priority deque
 func (q *PriorityDeque) PopMax() interface{} {
+	q.mu.Lock()
+	defer q.mu.Unlock()
+
 	heap := q.heap
 	pos := 0
 	switch q.Len() {
@@ -66,6 +74,9 @@ func (q *PriorityDeque) PopMax() interface{} {
 
 // PopMin pop the min value in priority deque
 func (q *PriorityDeque) PopMin() interface{} {
+	q.mu.Lock()
+	defer q.mu.Unlock()
+
 	if q.Len() > 0 {
 		tx := q.heap[0]
 		q.deleteAt(0)
