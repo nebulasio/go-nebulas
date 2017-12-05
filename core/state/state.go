@@ -242,25 +242,13 @@ func (as *accountState) getAccount(addr byteutils.Hash) (Account, error) {
 	return nil, ErrAccountNotFound
 }
 
-func (as *accountState) flush() {
-	for addr, acc := range as.dirtyAccount {
-		acc.Commit()
-		delete(as.dirtyAccount, addr)
-		bytes, err := acc.ToBytes()
-		if err != nil {
-			log.Error(err)
-		}
-		key, err := addr.Hash()
-		if err != nil {
-			log.Error(err)
-		}
-		as.stateTrie.Put(key, bytes)
-	}
-}
-
 // RootHash return root hash of account state
 func (as *accountState) RootHash() byteutils.Hash {
-	as.flush()
+	for addr, acc := range as.dirtyAccount {
+		bytes, _ := acc.ToBytes()
+		key, _ := addr.Hash()
+		as.stateTrie.Put(key, bytes)
+	}
 	return as.stateTrie.RootHash()
 }
 
@@ -301,7 +289,13 @@ func (as *accountState) BeginBatch() {
 
 // Commit a batch task
 func (as *accountState) Commit() {
-	as.flush()
+	for addr, acc := range as.dirtyAccount {
+		acc.Commit()
+		delete(as.dirtyAccount, addr)
+		bytes, _ := acc.ToBytes()
+		key, _ := addr.Hash()
+		as.stateTrie.Put(key, bytes)
+	}
 	as.stateTrie.Commit()
 	as.batching = false
 	log.WithFields(log.Fields{
