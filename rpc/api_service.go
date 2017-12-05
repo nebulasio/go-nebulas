@@ -21,6 +21,7 @@ package rpc
 import (
 	"errors"
 	"fmt"
+	"sync"
 
 	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/core"
@@ -49,7 +50,7 @@ func (s *APIService) GetNebState(ctx context.Context, req *rpcpb.GetNebStateRequ
 	resp.Tail = tail.Hash().String()
 	resp.Coinbase = tail.Coinbase().ToHex()
 	resp.Synchronized = neb.NetService().Node().GetSynchronized()
-	resp.PeerCount = uint32(len(neb.NetService().Node().GetStream()))
+	resp.PeerCount = getStreamCount(neb.NetService().Node().GetStream())
 	resp.ProtocolVersion = p2p.ProtocolID
 
 	return resp, nil
@@ -67,7 +68,7 @@ func (s *APIService) NodeInfo(ctx context.Context, req *rpcpb.NodeInfoRequest) (
 	resp.StreamStoreSize = int32(node.Config().StreamStoreSize)
 	resp.StreamStoreExtendSize = int32(node.Config().StreamStoreExtendSize)
 	resp.RelayCacheSize = int32(node.Config().RelayCacheSize)
-	resp.PeerCount = int32(len(node.GetStream()))
+	resp.PeerCount = getStreamCount(node.GetStream())
 	resp.ProtocolVersion = p2p.ProtocolID
 	for _, v := range node.PeerStore().Peers() {
 		routeTable := &rpcpb.RouteTable{}
@@ -93,8 +94,17 @@ func (s *APIService) StatisticsNodeInfo(ctx context.Context, req *rpcpb.NodeInfo
 	resp.NodeID = node.ID()
 	resp.Height = tail.Height()
 	resp.Hash = byteutils.Hex(tail.Hash())
-	resp.PeerCount = uint32(len(node.GetStream()))
+	resp.PeerCount = getStreamCount(node.GetStream())
 	return resp, nil
+}
+
+func getStreamCount(m *sync.Map) uint32 {
+	length := 0
+	m.Range(func(_, _ interface{}) bool {
+		length++
+		return true
+	})
+	return uint32(length)
 }
 
 // Accounts is the RPC API handler.
@@ -310,4 +320,79 @@ func (s *APIService) GetTransactionReceipt(ctx context.Context, req *rpcpb.GetTr
 		Timestamp: tx.Timestamp(),
 		ChainId:   tx.ChainID(),
 	}, nil
+}
+
+// NewAccount generate a new address with passphrase
+func (s *APIService) NewAccount(ctx context.Context, req *rpcpb.NewAccountRequest) (*rpcpb.NewAccountResponse, error) {
+	neb := s.server.Neblet()
+	addr, err := neb.AccountManager().NewAccount([]byte(req.Passphrase))
+	if err != nil {
+		return nil, err
+	}
+	return &rpcpb.NewAccountResponse{Address: addr.ToHex()}, nil
+}
+
+// UnlockAccount unlock address with the passphrase
+func (s *APIService) UnlockAccount(ctx context.Context, req *rpcpb.UnlockAccountRequest) (*rpcpb.UnlockAccountResponse, error) {
+	neb := s.server.Neblet()
+	addr, err := core.AddressParse(req.Address)
+	if err != nil {
+		return nil, err
+	}
+	err = neb.AccountManager().Unlock(addr, []byte(req.Passphrase))
+	if err != nil {
+		return nil, err
+	}
+	return &rpcpb.UnlockAccountResponse{Result: true}, nil
+}
+
+// LockAccount lock address
+func (s *APIService) LockAccount(ctx context.Context, req *rpcpb.LockAccountRequest) (*rpcpb.LockAccountResponse, error) {
+	neb := s.server.Neblet()
+	addr, err := core.AddressParse(req.Address)
+	if err != nil {
+		return nil, err
+	}
+	err = neb.AccountManager().Lock(addr)
+	if err != nil {
+		return nil, err
+	}
+	return &rpcpb.LockAccountResponse{Result: true}, nil
+}
+
+// SignTransaction sign transaction with the from addr passphrase
+func (s *APIService) SignTransaction(ctx context.Context, req *rpcpb.SignTransactionRequest) (*rpcpb.SignTransactionResponse, error) {
+	neb := s.server.Neblet()
+	tx, err := parseTransaction(neb, req.From, req.To, req.Value, req.Nonce, core.TxPayloadBinaryType, nil, req.GasPrice, req.GasLimit)
+	if err != nil {
+		return nil, err
+	}
+	if err := neb.AccountManager().SignTransaction(tx.From(), tx); err != nil {
+		return nil, err
+	}
+	pbMsg, err := tx.ToProto()
+	if err != nil {
+		return nil, err
+	}
+	data, err := proto.Marshal(pbMsg)
+	if err != nil {
+		return nil, err
+	}
+	return &rpcpb.SignTransactionResponse{Data: data}, nil
+}
+
+// SendTransactionWithPassphrase send transaction with the from addr passphrase
+func (s *APIService) SendTransactionWithPassphrase(ctx context.Context, req *rpcpb.SendTransactionPassphraseRequest) (*rpcpb.SendTransactionPassphraseResponse, error) {
+	neb := s.server.Neblet()
+	tx, err := parseTransaction(neb, req.From, req.To, req.Value, req.Nonce, core.TxPayloadBinaryType, nil, req.GasPrice, req.GasLimit)
+	if err != nil {
+		return nil, err
+	}
+	if err := neb.AccountManager().SignTransactionWithPassphrase(tx.From(), tx, []byte(req.Passphrase)); err != nil {
+		return nil, err
+	}
+	if err := neb.BlockChain().TransactionPool().PushAndBroadcast(tx); err != nil {
+		return nil, err
+	}
+	return &rpcpb.SendTransactionPassphraseResponse{Hash: tx.Hash().String()}, nil
 }

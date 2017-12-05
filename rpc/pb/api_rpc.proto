@@ -171,7 +171,7 @@ message NodeInfoResponse {
 	uint32 version = 3;
 
 	// Number of peers currenly connected.
-	int32 peer_count = 4;
+	uint32 peer_count = 4;
 
 	// the node synchronized status.
 	bool synchronized = 5;

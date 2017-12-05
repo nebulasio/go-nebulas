@@ -190,11 +190,12 @@ func (ns *NetService) streamHandler(s libnet.Stream) {
 				ns.handleNewHashMsg(protocol.data, pid)
 			default:
 				var relayness []peer.ID
-				if _, ok := node.stream[key]; !ok {
+				streamStore, ok := node.stream.Load(key)
+				if !ok {
 					ns.Bye(pid, []ma.Multiaddr{addrs}, s, key)
 					return
 				}
-				if node.stream[key].conn != SOK {
+				if streamStore.(*StreamStore).conn != SOK {
 					log.Error("peer not shake hand before send message.")
 					ns.Bye(pid, []ma.Multiaddr{addrs}, s, key)
 					return
@@ -202,14 +203,11 @@ func (ns *NetService) streamHandler(s libnet.Stream) {
 				msg := messages.NewBaseMessage(protocol.msgName, protocol.data)
 				ns.PutMessage(msg)
 				packetInFromNet.Mark(1)
-				// make sure relayness thread safety
-				node.relaynessLock.Lock()
 				peers, exists := node.relayness.Get(byteutils.Uint32(protocol.dataChecksum))
 				if exists {
 					relayness = peers.([]peer.ID)
 				}
 				node.relayness.Add(byteutils.Uint32(protocol.dataChecksum), append(relayness, pid))
-				node.relaynessLock.Unlock()
 			}
 		}
 	}
@@ -321,9 +319,8 @@ func (ns *NetService) handleHelloMsg(data []byte, pid peer.ID, s libnet.Stream, 
 			return result
 		}
 		streamStore := NewStreamStore(key, SOK, s)
-		node.stream[key] = streamStore
+		node.stream.Store(key, streamStore)
 		node.streamCache.Insert(streamStore)
-		// node.conn[key] = SOK
 		node.routeTable.Update(pid)
 		result = true
 		return result
@@ -355,7 +352,8 @@ func (ns *NetService) handleOkMsg(data []byte, pid peer.ID, s libnet.Stream, add
 
 	if ok.NodeID == pid.String() && ok.ClientVersion == ClientVersion {
 		streamStore := NewStreamStore(key, SOK, s)
-		node.stream[key] = streamStore
+		// node.stream[key] = streamStore
+		node.stream.Store(key, streamStore)
 		node.streamCache.Insert(streamStore)
 		// node.conn[key] = SOK
 		node.peerstore.AddAddr(
@@ -377,13 +375,11 @@ func (ns *NetService) handleOkMsg(data []byte, pid peer.ID, s libnet.Stream, add
 func (ns *NetService) handleNewHashMsg(data []byte, pid peer.ID) {
 	var relayness []peer.ID
 	node := ns.node
-	node.relaynessLock.Lock()
 	peers, exists := node.relayness.Get(byteutils.Uint32(data))
 	if exists {
 		relayness = peers.([]peer.ID)
 	}
 	node.relayness.Add(byteutils.Uint32(data), append(relayness, pid))
-	node.relaynessLock.Unlock()
 }
 
 func (ns *NetService) handleSyncRouteMsg(data []byte, pid peer.ID, s libnet.Stream, addrs ma.Multiaddr, key string) bool {
@@ -427,12 +423,16 @@ func (ns *NetService) handleSyncRouteMsg(data []byte, pid peer.ID, s libnet.Stre
 
 	totalData := ns.buildData(data, SyncRouteReply)
 
-	if _, ok := node.stream[key]; !ok {
+	// if _, ok := node.stream[key]; !ok {
+	// 	log.Error("handleSyncRouteMsg occrus error, stream does not exist.")
+	// 	return result
+	// }
+	streamStore, ok := node.stream.Load(key)
+	if !ok {
 		log.Error("handleSyncRouteMsg occrus error, stream does not exist.")
 		return result
 	}
-	streamStore := node.stream[key]
-	if err := Write(streamStore.stream, totalData); err != nil {
+	if err := Write(streamStore.(*StreamStore).stream, totalData); err != nil {
 		log.Error("handleSyncRouteMsg write data occurs error, ", err)
 		return result
 	}
@@ -535,7 +535,8 @@ func (ns *NetService) verifyHeader(protocol *Protocol) bool {
 func (ns *NetService) Bye(pid peer.ID, addrs []ma.Multiaddr, s libnet.Stream, key string) {
 	node := ns.node
 	ns.clearPeerStore(pid, addrs)
-	delete(node.stream, key)
+	// delete(node.stream, key)
+	node.stream.Delete(key)
 	s.Close()
 }
 
@@ -555,13 +556,19 @@ func (ns *NetService) SendMsg(msgName string, msg []byte, key string) {
 	data := msg
 	totalData := ns.buildData(data, msgName)
 
-	if _, ok := node.stream[key]; !ok {
+	// if _, ok := node.stream[key]; !ok {
+	// 	log.Error("SendMsg: send message occrus error, stream does not exist.")
+	// 	return
+	// }
+	// streamStore := node.stream[key]
+
+	streamStore, ok := node.stream.Load(key)
+	if !ok {
 		log.Error("SendMsg: send message occrus error, stream does not exist.")
 		return
 	}
-	streamStore := node.stream[key]
 
-	if err := Write(streamStore.stream, totalData); err != nil {
+	if err := Write(streamStore.(*StreamStore).stream, totalData); err != nil {
 		log.Error("SendMsg: write data occurs error, ", err)
 		return
 	}
@@ -621,14 +628,19 @@ func (ns *NetService) SyncRoutes(pid peer.ID) {
 	totalData := ns.buildData(data, SyncRoute)
 	key := pid.Pretty()
 
-	if _, ok := node.stream[key]; !ok {
+	// if _, ok := node.stream[key]; !ok {
+	// 	log.Error("SyncRoutes: send message occrus error, stream does not exist.")
+	// 	return
+	// }
+
+	// streamStore := node.stream[key]
+
+	streamStore, ok := node.stream.Load(key)
+	if !ok {
 		log.Error("SyncRoutes: send message occrus error, stream does not exist.")
 		return
 	}
-
-	streamStore := node.stream[key]
-
-	if err := Write(streamStore.stream, totalData); err != nil {
+	if err := Write(streamStore.(*StreamStore).stream, totalData); err != nil {
 		log.Error("SyncRoutes: write data occurs error, ", err)
 		ns.clearPeerStore(pid, addrs)
 		return
@@ -750,7 +762,7 @@ func (ns *NetService) manageStreamStore() {
 func (ns *NetService) cleanPeerStore() {
 	node := ns.node
 	for _, v := range node.peerstore.Peers() {
-		if _, ok := node.stream[v.Pretty()]; !ok {
+		if _, ok := node.stream.Load(v.Pretty()); !ok {
 			node.peerstore.ClearAddrs(v)
 		}
 	}
@@ -764,28 +776,14 @@ func (ns *NetService) clearStreamStore() {
 		for i := 0; i < overflowSize; i++ {
 			streamStore := node.streamCache.PopMin().(*StreamStore)
 			key := streamStore.key
-			if _, ok := node.stream[key]; ok {
-				node.stream[key].stream.Close()
-				delete(node.stream, key)
+
+			if streamStore, ok := node.stream.Load(key); ok {
+				streamStore.(*StreamStore).stream.Close()
+				node.stream.Delete(key)
 			}
 		}
 	}
 }
-
-// func (ns *NetService) getMinValue(stream map[string]*StreamStore) (string, *StreamStore) {
-// 	node := ns.node
-// 	min := time.Now().Unix()
-// 	var k string
-// 	var v *StreamStore
-// 	for key, value := range node.stream {
-// 		time := value.timestamp
-// 		if time < min {
-// 			min = time
-// 			k = key
-// 		}
-// 	}
-// 	return k, v
-// }
 
 // Write write bytes to stream
 func Write(writer io.Writer, data []byte) error {

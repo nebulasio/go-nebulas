@@ -99,7 +99,7 @@ func (net *NetService) syncSingleNode(nodeID peer.ID) {
 	}
 	nodeInfo := node.peerstore.PeerInfo(nodeID)
 	if len(nodeInfo.Addrs) != 0 {
-		if _, ok := node.stream[nodeID.Pretty()]; ok {
+		if _, ok := node.stream.Load(nodeID.Pretty()); ok {
 			net.SyncRoutes(nodeID)
 		} else {
 			// if stream not exist, create new connection to remote node.

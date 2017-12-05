@@ -49,7 +49,7 @@ func (ns *NetService) Sync(tail net.Serializable) error {
 
 	allNode := node.routeTable.ListPeers()
 	log.Info("Sync: allNode -> ", allNode)
-	if len(allNode) < LimitToSync || len(node.stream) < LimitToSync {
+	if len(allNode) < LimitToSync {
 		log.Warn("Sync: node not enough.")
 		return ErrNodeNotEnough
 	}
@@ -65,7 +65,7 @@ func (ns *NetService) Sync(tail net.Serializable) error {
 			}
 
 			key := nodeID.Pretty()
-			if _, ok := node.stream[key]; ok {
+			if _, ok := node.stream.Load(key); ok {
 				count++
 				go func() {
 					ns.SendMsg("syncblock", data, key)
@@ -87,7 +87,7 @@ func (ns *NetService) SendSyncReply(key string, blocks net.Serializable) {
 	pb, _ := blocks.ToProto()
 	data, _ := proto.Marshal(pb)
 	for {
-		if _, ok := ns.node.stream[key]; ok {
+		if _, ok := ns.node.stream.Load(key); ok {
 			go func() {
 				ns.SendMsg("syncreply", data, key)
 			}()
