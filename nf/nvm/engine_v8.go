@@ -82,6 +82,7 @@ type V8Engine struct {
 	modules                            Modules
 	v8engine                           *C.V8Engine
 	enableLimits                       bool
+	simulationRun                      bool
 	limitsOfExecutionInstructions      uint64
 	limitsOfTotalMemorySize            uint64
 	actualCountOfExecutionInstructions uint64
@@ -123,6 +124,7 @@ func NewV8Engine(ctx *Context) *V8Engine {
 		modules:                            NewModules(),
 		v8engine:                           C.CreateEngine(),
 		enableLimits:                       false,
+		simulationRun:                      false,
 		limitsOfExecutionInstructions:      0,
 		limitsOfTotalMemorySize:            0,
 		actualCountOfExecutionInstructions: 0,
@@ -191,6 +193,14 @@ func (e *V8Engine) SetExecutionLimits(limitsOfExecutionInstructions, limitsOfTot
 	if limitsOfTotalMemorySize > 0 && limitsOfTotalMemorySize < 6000000 {
 		log.Warnf("V8 needs at least 6M (6000000) heap memory, your limitsOfTotalMemorySize (%d) is too low.", limitsOfTotalMemorySize)
 	}
+}
+
+// ExecutionInstructions returns the execution instructions
+func (e *V8Engine) ExecutionInstructions() uint64 {
+	if e.actualCountOfExecutionInstructions > e.limitsOfExecutionInstructions {
+		return e.limitsOfExecutionInstructions
+	}
+	return e.actualCountOfExecutionInstructions
 }
 
 // TranspileTypeScript transpile typescript to javascript and return it.
@@ -282,13 +292,15 @@ func (e *V8Engine) RunScriptSource(source string, sourceLineOffset int) (err err
 			err = ErrExceedMemoryLimits
 		}
 
-		// combust the gas.
-		if e.actualCountOfExecutionInstructions > e.limitsOfExecutionInstructions || err == ErrExceedMemoryLimits {
-			// combust all available gas.
-			e.gasCombustion(e.limitsOfExecutionInstructions)
-		} else {
-			// combust actual executed gas.
-			e.gasCombustion(e.actualCountOfExecutionInstructions)
+		if !e.simulationRun {
+			// combust the gas.
+			if e.actualCountOfExecutionInstructions > e.limitsOfExecutionInstructions || err == ErrExceedMemoryLimits {
+				// combust all available gas.
+				e.gasCombustion(e.limitsOfExecutionInstructions)
+			} else {
+				// combust actual executed gas.
+				e.gasCombustion(e.actualCountOfExecutionInstructions)
+			}
 		}
 	}
 
@@ -300,7 +312,13 @@ func (e *V8Engine) gasCombustion(executionInstructions uint64) error {
 	instructions := util.NewUint128FromInt(int64(executionInstructions))
 	// cost = gasPrice * executionInstructions
 	cost := instructions.Mul(instructions.Int, util.NewUint128FromString(e.ctx.tx.GasPrice).Int)
-	return e.ctx.owner.SubBalance(util.NewUint128FromBigInt(cost))
+	err := e.ctx.owner.SubBalance(util.NewUint128FromBigInt(cost))
+	if err != nil {
+		return err
+	}
+	coinbaseAcc := e.ctx.state.GetOrCreateUserAccount(e.ctx.block.CoinbaseHash())
+	coinbaseAcc.AddBalance(util.NewUint128FromBigInt(cost))
+	return nil
 }
 
 // Call function in a script
@@ -314,6 +332,12 @@ func (e *V8Engine) Call(source, function, args string) error {
 // DeployAndInit a contract
 func (e *V8Engine) DeployAndInit(source, args string) error {
 	return e.RunContractScript(source, "init", args)
+}
+
+// SimulationRun a contract
+func (e *V8Engine) SimulationRun(source, function, args string) error {
+	e.simulationRun = true
+	return e.RunContractScript(source, function, args)
 }
 
 // RunContractScript execute script in Smart Contract's way.

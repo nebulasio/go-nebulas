@@ -20,6 +20,8 @@ package core
 
 import (
 	"encoding/json"
+
+	"github.com/nebulasio/go-nebulas/util"
 )
 
 // BinaryPayload carry some data
@@ -47,4 +49,9 @@ func (payload *BinaryPayload) ToBytes() ([]byte, error) {
 // Execute the payload in tx
 func (payload *BinaryPayload) Execute(tx *Transaction, block *Block) error {
 	return nil
+}
+
+// EstimateGas the payload in tx
+func (payload *BinaryPayload) EstimateGas(tx *Transaction, block *Block) (*util.Uint128, error) {
+	return util.NewUint128(), nil
 }

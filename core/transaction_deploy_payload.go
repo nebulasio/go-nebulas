@@ -22,6 +22,7 @@ import (
 	"encoding/json"
 
 	"github.com/nebulasio/go-nebulas/nf/nvm"
+	"github.com/nebulasio/go-nebulas/util"
 )
 
 // DeployPayload carry contract deploy information
@@ -54,16 +55,51 @@ func (payload *DeployPayload) ToBytes() ([]byte, error) {
 
 // Execute deploy payload in tx, deploy a new contract
 func (payload *DeployPayload) Execute(tx *Transaction, block *Block) error {
-	addr, err := tx.GenerateContractAddress()
+	ctx, err := generateDeployContext(tx, block)
 	if err != nil {
 		return err
+	}
+	engine := nvm.NewV8Engine(ctx)
+	//add gas limit and memory use limit
+	engine.SetExecutionLimits(tx.GasLimit().Uint64(), nvm.DefaultLimitsOfTotalMemorySize)
+	defer engine.Dispose()
+
+	return engine.DeployAndInit(payload.Source, payload.Args)
+}
+
+// EstimateGas the payload in tx
+func (payload *DeployPayload) EstimateGas(tx *Transaction, block *Block) (*util.Uint128, error) {
+	ctx, err := generateDeployContext(tx, block)
+	if err != nil {
+		return nil, err
+	}
+	engine := nvm.NewV8Engine(ctx)
+	//add gas limit and memory use limit
+	engine.SetExecutionLimits(TransactionMaxGas.Uint64(), nvm.DefaultLimitsOfTotalMemorySize)
+	defer engine.Dispose()
+	err = engine.SimulationRun(payload.Source, "init", payload.Args)
+	if err != nil {
+		return nil, err
+	}
+	return util.NewUint128FromInt(int64(engine.ExecutionInstructions())), nil
+}
+
+func generateDeployContext(tx *Transaction, block *Block) (*nvm.Context, error) {
+	addr, err := tx.GenerateContractAddress()
+	if err != nil {
+		return nil, err
 	}
 	context := block.accState
 	owner := context.GetOrCreateUserAccount(tx.from.Bytes())
 	contract, err := context.CreateContractAccount(addr.Bytes(), tx.Hash())
 	if err != nil {
-		return err
+		return nil, err
 	}
+	ctx := nvm.NewContext(block, convertNvmTx(tx), owner, contract, context)
+	return ctx, nil
+}
+
+func convertNvmTx(tx *Transaction) *nvm.ContextTransaction {
 	ctxTx := &nvm.ContextTransaction{
 		From:      tx.from.String(),
 		To:        tx.to.String(),
@@ -74,11 +110,5 @@ func (payload *DeployPayload) Execute(tx *Transaction, block *Block) error {
 		GasPrice:  tx.GasPrice().String(),
 		GasLimit:  tx.GasLimit().String(),
 	}
-	ctx := nvm.NewContext(block, ctxTx, owner, contract, context)
-	engine := nvm.NewV8Engine(ctx)
-	//add gas limit and memory use limit
-	engine.SetExecutionLimits(tx.GasLimit().Uint64(), nvm.DefaultLimitsOfTotalMemorySize)
-	defer engine.Dispose()
-
-	return engine.DeployAndInit(payload.Source, payload.Args)
+	return ctxTx
 }

@@ -18,7 +18,11 @@
 
 package core
 
-import "errors"
+import (
+	"errors"
+
+	"github.com/nebulasio/go-nebulas/util"
+)
 
 // Payload Types
 const (
@@ -42,6 +46,7 @@ var (
 type TxPayload interface {
 	ToBytes() ([]byte, error)
 	Execute(tx *Transaction, block *Block) error
+	EstimateGas(tx *Transaction, block *Block) (*util.Uint128, error)
 }
 
 // MessageType

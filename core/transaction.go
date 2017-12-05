@@ -34,6 +34,14 @@ import (
 )
 
 var (
+	// TransactionMaxGasPrice max gasPrice:50 * 10 ** 9
+	TransactionMaxGasPrice = util.NewUint128FromBigInt(util.NewUint128().Mul(util.NewUint128FromInt(50).Int,
+		util.NewUint128().Exp(util.NewUint128FromInt(10).Int, util.NewUint128FromInt(9).Int, nil)))
+
+	// TransactionMaxGas max gas:50 * 10 ** 9
+	TransactionMaxGas = util.NewUint128FromBigInt(util.NewUint128().Mul(util.NewUint128FromInt(50).Int,
+		util.NewUint128().Exp(util.NewUint128FromInt(10).Int, util.NewUint128FromInt(9).Int, nil)))
+
 	// TransactionGasPrice default gasPrice
 	TransactionGasPrice = util.NewUint128FromInt(1)
 
@@ -243,6 +251,7 @@ func (tx *Transaction) Execute(block *Block) error {
 	// check balance.
 	fromAcc := block.accState.GetOrCreateUserAccount(tx.from.address)
 	toAcc := block.accState.GetOrCreateUserAccount(tx.to.address)
+	coinbaseAcc := block.accState.GetOrCreateUserAccount(block.CoinbaseHash())
 
 	if fromAcc.Balance().Cmp(tx.Cost().Int) < 0 {
 		return ErrInsufficientBalance
@@ -258,6 +267,7 @@ func (tx *Transaction) Execute(block *Block) error {
 
 	gas := util.NewUint128().Mul(tx.GasPrice().Int, tx.CalculateGas().Int)
 	fromAcc.SubBalance(util.NewUint128FromBigInt(gas))
+	coinbaseAcc.AddBalance(util.NewUint128FromBigInt(gas))
 
 	// execute payload
 	var payload TxPayload

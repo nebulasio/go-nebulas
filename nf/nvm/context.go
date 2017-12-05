@@ -92,6 +92,11 @@ func NewContext(block Block, tx *ContextTransaction, owner state.Account, contra
 	return ctx
 }
 
+// State returns account state
+func (ctx *Context) State() state.AccountState {
+	return ctx.state
+}
+
 // SerializeContextBlock Serialize current block
 func (ctx *Context) SerializeContextBlock() ([]byte, error) {
 

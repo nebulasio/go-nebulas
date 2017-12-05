@@ -22,6 +22,7 @@ import (
 	"encoding/json"
 
 	"github.com/nebulasio/go-nebulas/nf/nvm"
+	"github.com/nebulasio/go-nebulas/util"
 )
 
 // CallPayload carry function call information
@@ -54,36 +55,51 @@ func (payload *CallPayload) ToBytes() ([]byte, error) {
 
 // Execute the call payload in tx, call a function
 func (payload *CallPayload) Execute(tx *Transaction, block *Block) error {
-	context := block.accState
-	contract, err := context.GetContractAccount(tx.to.Bytes())
+	ctx, source, err := generateCallContext(tx, block)
 	if err != nil {
 		return err
 	}
-	birthTx, err := block.GetTransaction(contract.BirthPlace())
-	if err != nil {
-		return err
-	}
-	owner := context.GetOrCreateUserAccount(birthTx.from.Bytes())
-	deploy, err := LoadDeployPayload(birthTx.data.Payload)
-	if err != nil {
-		return err
-	}
-
-	ctxTx := &nvm.ContextTransaction{
-		From:      tx.from.String(),
-		To:        tx.to.String(),
-		Value:     tx.value.String(),
-		Timestamp: tx.timestamp,
-		Nonce:     tx.Nonce(),
-		Hash:      tx.Hash().String(),
-		GasPrice:  tx.GasPrice().String(),
-		GasLimit:  tx.GasLimit().String(),
-	}
-	ctx := nvm.NewContext(block, ctxTx, owner, contract, context)
 	engine := nvm.NewV8Engine(ctx)
 	//add gas limit and memory use limit
 	engine.SetExecutionLimits(tx.GasLimit().Uint64(), nvm.DefaultLimitsOfTotalMemorySize)
 	defer engine.Dispose()
 
-	return engine.Call(deploy.Source, payload.Function, payload.Args)
+	return engine.Call(source, payload.Function, payload.Args)
+}
+
+// EstimateGas the payload in tx
+func (payload *CallPayload) EstimateGas(tx *Transaction, block *Block) (*util.Uint128, error) {
+	ctx, source, err := generateCallContext(tx, block)
+	if err != nil {
+		return nil, err
+	}
+	engine := nvm.NewV8Engine(ctx)
+	//add gas limit and memory use limit
+	engine.SetExecutionLimits(TransactionMaxGas.Uint64(), nvm.DefaultLimitsOfTotalMemorySize)
+	defer engine.Dispose()
+	err = engine.SimulationRun(source, payload.Function, payload.Args)
+	if err != nil {
+		return nil, err
+	}
+	return util.NewUint128FromInt(int64(engine.ExecutionInstructions())), nil
+}
+
+func generateCallContext(tx *Transaction, block *Block) (*nvm.Context, string, error) {
+	context := block.accState
+	contract, err := context.GetContractAccount(tx.to.Bytes())
+	if err != nil {
+		return nil, "", err
+	}
+	birthTx, err := block.GetTransaction(contract.BirthPlace())
+	if err != nil {
+		return nil, "", err
+	}
+	owner := context.GetOrCreateUserAccount(birthTx.from.Bytes())
+	deploy, err := LoadDeployPayload(birthTx.data.Payload)
+	if err != nil {
+		return nil, "", err
+	}
+
+	ctx := nvm.NewContext(block, convertNvmTx(tx), owner, contract, context)
+	return ctx, deploy.Source, nil
 }

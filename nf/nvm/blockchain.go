@@ -45,8 +45,7 @@ func GetTxByHashFunc(handler unsafe.Pointer, hash *C.char) *C.char {
 		}).Error("GetTxByHashFunc get tx failed.")
 		return nil
 	}
-	json, _ := json.Marshal(tx)
-	return C.CString(string(json))
+	return C.CString(string(tx))
 }
 
 // GetAccountStateFunc returns account info by address
@@ -101,6 +100,13 @@ func TransferFunc(handler unsafe.Pointer, to *C.char, v *C.char) int {
 		err    error
 	)
 	amount = util.NewUint128FromString(C.GoString(v))
+	// if engine is simulation run, need not update balance
+	if engine.simulationRun {
+		if engine.ctx.contract.Balance().Cmp(amount.Int) < 0 {
+			return 0
+		}
+		return 1
+	}
 
 	// update balance
 	err = engine.ctx.contract.SubBalance(amount)

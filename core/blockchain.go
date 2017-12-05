@@ -29,6 +29,7 @@ import (
 	"github.com/nebulasio/go-nebulas/core/pb"
 	"github.com/nebulasio/go-nebulas/core/state"
 	"github.com/nebulasio/go-nebulas/storage"
+	"github.com/nebulasio/go-nebulas/util"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
 	metrics "github.com/rcrowley/go-metrics"
 	log "github.com/sirupsen/logrus"
@@ -296,6 +297,51 @@ func (bc *BlockChain) GetTransaction(hash byteutils.Hash) *Transaction {
 		return nil
 	}
 	return tx
+}
+
+// GasPrice returns the lowest transaction gas price.
+func (bc *BlockChain) GasPrice() *util.Uint128 {
+	gasPrice := TransactionMaxGasPrice
+	tailBlock := bc.tailBlock
+	for {
+		if len(tailBlock.transactions) > 0 {
+			break
+		}
+		tailBlock = bc.GetBlock(tailBlock.ParentHash())
+	}
+	for _, tx := range tailBlock.transactions {
+		if tx.gasPrice.Cmp(gasPrice.Int) < 0 {
+			gasPrice = tx.gasPrice
+		}
+	}
+	return gasPrice
+}
+
+// EstimateGas returns the transaction gas cost
+func (bc *BlockChain) EstimateGas(tx *Transaction) (*util.Uint128, error) {
+	txGas := tx.CalculateGas()
+	var payload TxPayload
+	var err error
+	switch tx.data.Type {
+	case TxPayloadBinaryType:
+		payload, err = LoadBinaryPayload(tx.data.Payload)
+	case TxPayloadDeployType:
+		payload, err = LoadDeployPayload(tx.data.Payload)
+	case TxPayloadCallType:
+		payload, err = LoadCallPayload(tx.data.Payload)
+	default:
+		return nil, ErrInvalidTxPayloadType
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	// execute smart contract and sub the calcute gas.
+	contractGas, err := payload.EstimateGas(tx, bc.tailBlock)
+	if err != nil {
+		return nil, err
+	}
+	return util.NewUint128FromBigInt(txGas.Add(txGas.Int, contractGas.Int)), nil
 }
 
 func (bc *BlockChain) getAncestorHash(number int) byteutils.Hash {
