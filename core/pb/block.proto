@@ -30,11 +30,6 @@ message Data {
     bytes payload = 2;
 }
 
-message Delegate {
-    bytes delegator = 1;
-    bytes delegatee = 2;
-}
-
 message Transaction {
     bytes hash  = 1;
     bytes from = 2;
@@ -64,9 +59,11 @@ message BlockHeader {
     bytes coinbase = 4;
     int64 timestamp = 5;
     uint32 chain_id = 6;
-    bytes state_root = 7;
-    bytes txs_root = 8;
-    DposContext dpos_context = 9;
+    uint32 alg = 7;
+    bytes sign = 8;
+    bytes state_root = 9;
+    bytes txs_root = 10;
+    DposContext dpos_context = 11;
 }
 
 message Block {

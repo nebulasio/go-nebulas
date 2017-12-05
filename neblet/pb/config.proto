@@ -52,13 +52,17 @@ message ChainConfig {
     string keydir = 12;
     // Coinbase.
     string coinbase = 21;
-    // Lowest GasPrice.
-    string gas_price = 22;
-    // Max GasLimit.
-    string gas_limit = 23;
-
-    // Supported signature cipher list. ["ECC_SECP256K1"]
-    repeated string signature_ciphers = 24;
+    // Miner.
+    string miner = 22;
+    // Passphrase.
+    string passphrase = 23;
+    // GasPrice.
+    string gasprice = 24;
+    // Supported signature cipher list.
+    enum SignatureCiphers {
+        ECC_SECP256K1 = 0;
+    }
+    repeated SignatureCiphers signature_ciphers = 25;
 }
 
 message RPCConfig {

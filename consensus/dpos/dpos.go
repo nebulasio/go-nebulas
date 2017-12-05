@@ -22,6 +22,11 @@ import (
 	"errors"
 	"time"
 
+	"github.com/nebulasio/go-nebulas/crypto"
+	"github.com/nebulasio/go-nebulas/crypto/keystore"
+
+	"github.com/nebulasio/go-nebulas/account"
+
 	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/neblet/pb"
 	"github.com/nebulasio/go-nebulas/net"
@@ -35,8 +40,8 @@ import (
 // Errors in PoW Consensus
 var (
 	ErrInvalidBlockInterval = errors.New("invalid block interval")
-	ErrInvalidBlockCoinbase = errors.New("invalid block proposer")
 	ErrMissingConfigForDpos = errors.New("missing configuration for Dpos")
+	ErrInvalidBlockProposer = errors.New("invalid block proposer")
 )
 
 // Neblet interface breaks cycle import dependency and hides unused services.
@@ -44,15 +49,20 @@ type Neblet interface {
 	Config() nebletpb.Config
 	BlockChain() *core.BlockChain
 	NetService() *p2p.NetService
+	AccountManager() *account.Manager
 }
 
 // Dpos Delegate Proof-of-Stake
 type Dpos struct {
 	quitCh chan bool
 
-	chain    *core.BlockChain
-	nm       net.Manager
-	coinbase *core.Address
+	chain *core.BlockChain
+	nm    net.Manager
+	am    *account.Manager
+
+	coinbase   *core.Address
+	miner      *core.Address
+	passphrase string
 
 	blockInterval   int64
 	dynastyInterval int64
@@ -68,6 +78,7 @@ func NewDpos(neblet Neblet) (*Dpos, error) {
 
 		chain: neblet.BlockChain(),
 		nm:    neblet.NetService(),
+		am:    neblet.AccountManager(),
 
 		blockInterval:   core.BlockInterval,
 		dynastyInterval: core.DynastyInterval,
@@ -76,18 +87,24 @@ func NewDpos(neblet Neblet) (*Dpos, error) {
 		canMining: false,
 	}
 
-	cfg := neblet.Config().Dpos
-	if cfg == nil {
-		return nil, ErrMissingConfigForDpos
-	}
-	coinbase, err := core.AddressParse(cfg.GetCoinbase())
+	config := neblet.Config().Chain
+	coinbase, err := core.AddressParse(config.Coinbase)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"err": err,
 		}).Error("Dpos.NewDpos: coinbase parse err.")
 		return nil, err
 	}
+	miner, err := core.AddressParse(config.Miner)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"err": err,
+		}).Error("Dpos.NewDpos: miner parse err.")
+		return nil, err
+	}
 	p.coinbase = coinbase
+	p.miner = miner
+	p.passphrase = config.Passphrase
 	return p, nil
 }
 
@@ -168,6 +185,33 @@ func (p *Dpos) SetCanMining(canMining bool) {
 	p.canMining = canMining
 }
 
+func verifyBlockSign(miner *core.Address, block *core.Block) error {
+	signature, err := crypto.NewSignature(keystore.Algorithm(block.Alg()))
+	if err != nil {
+		return err
+	}
+	pub, err := signature.RecoverPublic(block.Hash(), block.Signature())
+	if err != nil {
+		return err
+	}
+	pubdata, err := pub.Encoded()
+	if err != nil {
+		return err
+	}
+	addr, err := core.NewAddressFromPublicKey(pubdata)
+	if err != nil {
+		return err
+	}
+	if !miner.Equals(addr) {
+		log.WithFields(log.Fields{
+			"recover address": addr.String(),
+			"block":           block,
+		}).Error("verify block sign failed.")
+		return ErrInvalidBlockProposer
+	}
+	return nil
+}
+
 // VerifyBlock return nil if timestamp & proposer are right, otherwise return error.
 func (p *Dpos) VerifyBlock(block *core.Block) error {
 	parent, err := block.ParentBlock()
@@ -184,10 +228,11 @@ func (p *Dpos) VerifyBlock(block *core.Block) error {
 	if err != nil {
 		return err
 	}
-	if !context.Proposer.Equals(block.Coinbase().Bytes()) {
-		return ErrInvalidBlockCoinbase
+	proposer, err := core.AddressParseFromBytes(context.Proposer)
+	if err != nil {
+		return err
 	}
-	return nil
+	return verifyBlockSign(proposer, block)
 }
 
 func (p *Dpos) mintBlock() {
@@ -202,13 +247,13 @@ func (p *Dpos) mintBlock() {
 	if err != nil {
 		return
 	}
-	if !context.Proposer.Equals(p.coinbase.Bytes()) {
+	if !context.Proposer.Equals(p.miner.Bytes()) {
 		log.WithFields(log.Fields{
 			"func":     "Dpos.mintBlock",
 			"tail":     tail,
 			"elapsed":  elapsedSecond,
 			"expected": context.Proposer.Hex(),
-			"actual":   p.coinbase.ToHex(),
+			"actual":   p.miner.ToHex(),
 		}).Info("not my turn, waiting...")
 		return
 	}
@@ -223,13 +268,18 @@ func (p *Dpos) mintBlock() {
 	// mint new block
 	block, err := core.NewBlock(p.chain.ChainID(), p.coinbase, tail)
 	if err != nil {
+		log.Error(err)
 		return
 	}
 	block.LoadDynastyContext(context)
 	block.CollectTransactions(p.txsPerBlock)
-	if block.Seal() != nil {
+	if err = block.Seal(); err != nil {
+		log.Error(err)
 		return
 	}
+	//T ODO: move passphrase from config to console
+	p.am.Unlock(p.miner, []byte(p.passphrase))
+	p.am.SignBlock(p.miner, block)
 	// broadcast it
 	p.chain.BlockPool().PushAndBroadcast(block)
 }

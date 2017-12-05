@@ -23,6 +23,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/nebulasio/go-nebulas/crypto/keystore"
+
 	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/common/trie"
 	"github.com/nebulasio/go-nebulas/core/pb"
@@ -47,15 +49,22 @@ var (
 
 // BlockHeader of a block
 type BlockHeader struct {
-	hash        byteutils.Hash
-	parentHash  byteutils.Hash
+	hash       byteutils.Hash
+	parentHash byteutils.Hash
+
+	// world state
 	stateRoot   byteutils.Hash
 	txsRoot     byteutils.Hash
 	dposContext *corepb.DposContext
-	nonce       uint64
-	coinbase    *Address
-	timestamp   int64
-	chainID     uint32
+
+	coinbase  *Address
+	nonce     uint64
+	timestamp int64
+	chainID   uint32
+
+	// sign
+	alg  uint8
+	sign byteutils.Hash
 }
 
 // ToProto converts domain BlockHeader to proto BlockHeader
@@ -70,6 +79,8 @@ func (b *BlockHeader) ToProto() (proto.Message, error) {
 		Coinbase:    b.coinbase.address,
 		Timestamp:   b.timestamp,
 		ChainId:     b.chainID,
+		Alg:         uint32(b.alg),
+		Sign:        b.sign,
 	}, nil
 }
 
@@ -85,6 +96,8 @@ func (b *BlockHeader) FromProto(msg proto.Message) error {
 		b.coinbase = &Address{msg.Coinbase}
 		b.timestamp = msg.Timestamp
 		b.chainID = msg.ChainId
+		b.alg = uint8(msg.Alg)
+		b.sign = msg.Sign
 		return nil
 	}
 	return errors.New("Pb Message cannot be converted into BlockHeader")
@@ -196,9 +209,30 @@ func NewBlock(chainID uint32, coinbase *Address, parent *Block) (*Block, error) 
 	return block, nil
 }
 
+// Sign sign transaction,sign algorithm is
+func (block *Block) Sign(signature keystore.Signature) error {
+	sign, err := signature.Sign(block.header.hash)
+	if err != nil {
+		return err
+	}
+	block.header.alg = uint8(signature.Algorithm())
+	block.header.sign = sign
+	return nil
+}
+
 // Coinbase return block's coinbase
 func (block *Block) Coinbase() *Address {
 	return block.header.coinbase
+}
+
+// Alg return block's alg
+func (block *Block) Alg() uint8 {
+	return block.header.alg
+}
+
+// Signature return block's signature
+func (block *Block) Signature() byteutils.Hash {
+	return block.header.sign
 }
 
 // CoinbaseHash return block's coinbase hash

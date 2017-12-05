@@ -31,21 +31,21 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+<<<<<<< HEAD
 // const SignatureCiphers
 const (
 	EccSecp256K1      = "ECC_SECP256K1"
 	EccSecp256K1Value = 1
 )
 
+=======
+// Error Constants
+>>>>>>> core: block.go. add signature to block header.
 var (
-	// ErrAddrNotFind address not find.
-	ErrAddrNotFind = errors.New("address not find")
-
-	// ErrTxAddressLocked from address locked.
-	ErrTxAddressLocked = errors.New("transaction from address locked")
-
-	// ErrTxSignFrom sign addr not from
-	ErrTxSignFrom = errors.New("transaction sign not use from addr")
+	ErrAddrNotFind        = errors.New("address not find")
+	ErrTxAddressLocked    = errors.New("transaction from address locked")
+	ErrBlockAddressLocked = errors.New("block signer's address locked")
+	ErrTxSignFrom         = errors.New("transaction sign not use from addr")
 )
 
 // Neblet interface breaks cycle import dependency and hides unused services.
@@ -255,6 +255,26 @@ func (m *Manager) SignTransaction(addr *core.Address, tx *core.Transaction) erro
 	}
 	signature.InitSign(key.(keystore.PrivateKey))
 	return tx.Sign(signature)
+}
+
+// SignBlock sign block with the specified algorithm
+func (m *Manager) SignBlock(addr *core.Address, block *core.Block) error {
+	key, err := m.ks.GetUnlocked(addr.ToHex())
+	if err != nil {
+		log.WithFields(log.Fields{
+			"func":  "SignBlock",
+			"err":   ErrBlockAddressLocked,
+			"block": block,
+		}).Error("block signer's address locked")
+		return err
+	}
+
+	signature, err := crypto.NewSignature(m.signatureAlg)
+	if err != nil {
+		return err
+	}
+	signature.InitSign(key.(keystore.PrivateKey))
+	return block.Sign(signature)
 }
 
 // SignTransactionWithPassphrase sign transaction with the from passphrase
