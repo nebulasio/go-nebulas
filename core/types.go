@@ -37,6 +37,7 @@ var (
 	ErrInvalidTxPayloadType   = errors.New("invalid transaction data payload type")
 	ErrInvalidContractAddress = errors.New("invalid contract address")
 	ErrInsufficientBalance    = errors.New("insufficient balance")
+	ErrBelowGasPrice          = errors.New("below the gas price")
 	ErrOutofGasLimit          = errors.New("out of gas limit")
 	ErrInvalidSignature       = errors.New("invalid transaction signature")
 	ErrInvalidTransactionHash = errors.New("invalid transaction hash")

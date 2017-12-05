@@ -16,6 +16,7 @@ import (
 	"github.com/nebulasio/go-nebulas/rpc"
 	"github.com/nebulasio/go-nebulas/storage"
 	nsync "github.com/nebulasio/go-nebulas/sync"
+	"github.com/nebulasio/go-nebulas/util"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -94,6 +95,9 @@ func (n *Neblet) Start() error {
 		return err
 	}
 	n.blockChain.BlockPool().RegisterInNetwork(n.netService)
+	gasPrice := util.NewUint128FromString(n.config.Chain.GasPrice)
+	gasLimit := util.NewUint128FromString(n.config.Chain.GasLimit)
+	n.blockChain.TransactionPool().SetGasConfig(gasPrice, gasLimit)
 	n.blockChain.TransactionPool().RegisterInNetwork(n.netService)
 
 	n.consensus = pow.NewPow(n)

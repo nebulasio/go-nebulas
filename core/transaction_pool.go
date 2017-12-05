@@ -26,6 +26,7 @@ import (
 	"github.com/nebulasio/go-nebulas/common/pdeque"
 	"github.com/nebulasio/go-nebulas/core/pb"
 	"github.com/nebulasio/go-nebulas/net"
+	"github.com/nebulasio/go-nebulas/util"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
 	log "github.com/sirupsen/logrus"
 )
@@ -42,7 +43,9 @@ type TransactionPool struct {
 	bc    *BlockChain
 
 	nm net.Manager
-	//TODO: miner should have the lowest gasPrice & maximum gasLimt
+
+	gasPrice *util.Uint128 // the lowest gasPrice.
+	gasLimt  *util.Uint128 // the maximum gasLimit.
 }
 
 func less(a interface{}, b interface{}) bool {
@@ -70,8 +73,22 @@ func NewTransactionPool(size int) *TransactionPool {
 		size:              size,
 		cache:             pdeque.NewPriorityDeque(less),
 		all:               make(map[byteutils.HexHash]*Transaction),
+		gasPrice:          TransactionGasPrice,
+		gasLimt:           TransactionMaxGas,
 	}
 	return txPool
+}
+
+// SetGasConfig config the lowest gasPrice and the maximum gasLimit.
+func (pool *TransactionPool) SetGasConfig(gasPrice, gasLimit *util.Uint128) {
+	if gasPrice == nil || gasPrice.Cmp(util.NewUint128().Int) < 0 {
+		pool.gasPrice = TransactionGasPrice
+	} else {
+		pool.gasPrice = gasPrice
+	}
+	if gasLimit == nil || gasLimit.Cmp(TransactionMaxGas.Int) > 0 {
+		pool.gasLimt = TransactionMaxGas
+	}
 }
 
 // RegisterInNetwork register message subscriber in network.
@@ -171,6 +188,14 @@ func (pool *TransactionPool) PushAndBroadcast(tx *Transaction) error {
 }
 
 func (pool *TransactionPool) push(tx *Transaction) error {
+	// if tx's gasPrice below the pool config lowest gasPrice, return ErrBelowGasPrice
+	if tx.gasPrice.Cmp(pool.gasPrice.Int) < 0 {
+		return ErrBelowGasPrice
+	}
+	if tx.gasLimit.Cmp(pool.gasLimt.Int) > 0 {
+		return ErrOutofGasLimit
+	}
+
 	// verify hash & sign of tx
 	if err := tx.Verify(pool.bc.chainID); err != nil {
 		return err
