@@ -41,11 +41,6 @@ var (
 	ErrOutofGasLimit               = errors.New("out of gas limit")
 	ErrInvalidSignature            = errors.New("invalid transaction signature")
 	ErrInvalidTransactionHash      = errors.New("invalid transaction hash")
-	ErrInvalidTxPayloadType        = errors.New("invalid transaction data payload type")
-	ErrInvalidContractAddress      = errors.New("invalid contract address")
-	ErrInsufficientBalance         = errors.New("insufficient balance")
-	ErrInvalidSignature            = errors.New("invalid transaction signature")
-	ErrInvalidTransactionHash      = errors.New("invalid transaction hash")
 	ErrMissingParentBlock          = errors.New("cannot find a on-chain block's parent block in storage")
 	ErrTooFewCandidates            = errors.New("too few candidates in consensus")
 	ErrNotBlockForgTime            = errors.New("now is not time to forg block")
@@ -60,6 +55,7 @@ var (
 	ErrDuplicatedBlock             = errors.New("duplicated block")
 	ErrInvalidAddress              = errors.New("address: invalid address")
 	ErrInvalidAddressDataLength    = errors.New("address: invalid address data length")
+	ErrDoubleSealBlock             = errors.New("cannot seal a block twice")
 )
 
 // TxPayload stored in tx

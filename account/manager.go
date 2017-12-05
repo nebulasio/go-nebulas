@@ -96,6 +96,7 @@ func NewManager(neblet Neblet) *Manager {
 				m.signatureAlg = keystore.Algorithm(EccSecp256K1Value)
 			}
 		}
+<<<<<<< HEAD
 
 		// if conf.GetSignature() > 0 {
 		// 	m.signatureAlg = keystore.Algorithm(conf.GetSignature())
@@ -103,6 +104,8 @@ func NewManager(neblet Neblet) *Manager {
 		// if conf.GetEncrypt() > 0 {
 		// 	m.encryptAlg = keystore.Algorithm(conf.GetEncrypt())
 		// }
+=======
+>>>>>>> core: catch err in merkle trie clone.
 	}
 	m.refreshAccounts()
 	return m

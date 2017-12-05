@@ -316,7 +316,7 @@ func (lb *linkedBlock) travelToLinkAndReturnAllValidBlocks(parentBlock *Block) (
 			"parentBlock": parentBlock,
 			"block":       lb.block,
 		}).Fatal("link parent block fail.")
-		panic("link parent block fail.")
+		return nil, nil
 	}
 
 	if err := lb.pool.bc.ConsensusHandler().VerifyBlock(lb.block); err != nil {

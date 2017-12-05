@@ -6,12 +6,13 @@ import (
 	"github.com/nebulasio/go-nebulas/crypto/hash"
 	"github.com/nebulasio/go-nebulas/storage"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
+	log "github.com/sirupsen/logrus"
 )
 
 // Errors
 var (
-	ErrCloneInBatch      = errors.New("cannot clone AccountState with a batch task unfinished")
-	ErrBeginAgainInBatch = errors.New("cannot begin AccountState with a batch task unfinished")
+	ErrCloneInBatch      = errors.New("cannot clone with a batch task unfinished")
+	ErrBeginAgainInBatch = errors.New("cannot begin with a batch task unfinished")
 )
 
 // Action represents operation types in BatchTrie
@@ -142,6 +143,7 @@ func (bt *BatchTrie) Iterator(prefix []byte) (*Iterator, error) {
 
 // BeginBatch to process a batch task
 func (bt *BatchTrie) BeginBatch() error {
+	log.Info("TxsState Begin.")
 	if bt.batching {
 		return ErrBeginAgainInBatch
 	}
@@ -154,6 +156,7 @@ func (bt *BatchTrie) Commit() {
 	// clear changelog
 	bt.changelog = bt.changelog[:0]
 	bt.batching = false
+	log.Info("TxsState Commit.")
 }
 
 // RollBack a batch task
@@ -177,6 +180,7 @@ func (bt *BatchTrie) RollBack() {
 		}
 	}
 	bt.batching = false
+	log.Info("TxsState RollBack.")
 }
 
 // HashDomains for each variable in contract

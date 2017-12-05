@@ -249,12 +249,12 @@ func TestBlock_CollectTransactions(t *testing.T) {
 	pubdata2, _ := priv2.PublicKey().Encoded()
 	coinbase, _ := NewAddressFromPublicKey(pubdata2)
 
-	block0 := NewBlock(0, from, tail)
+	block0, _ := NewBlock(0, from, tail)
 	block0.Seal()
 	//bc.BlockPool().push(block0)
 	bc.SetTailBlock(block0)
 
-	block := NewBlock(0, coinbase, block0)
+	block, _ := NewBlock(0, coinbase, block0)
 
 	tx1 := NewTransaction(0, from, to, util.NewUint128FromInt(1), 1, TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, util.NewUint128FromInt(200000))
 	tx1.Sign(signature)

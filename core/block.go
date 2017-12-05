@@ -161,10 +161,19 @@ func (block *Block) SerializeTxByHash(hash byteutils.Hash) (proto.Message, error
 }
 
 // NewBlock return new block.
-func NewBlock(chainID uint32, coinbase *Address, parent *Block) *Block {
-	accState, _ := parent.accState.Clone()
-	txsTrie, _ := parent.txsTrie.Clone()
-	dposContext, _ := parent.dposContext.Clone()
+func NewBlock(chainID uint32, coinbase *Address, parent *Block) (*Block, error) {
+	accState, err := parent.accState.Clone()
+	if err != nil {
+		return nil, err
+	}
+	txsTrie, err := parent.txsTrie.Clone()
+	if err != nil {
+		return nil, err
+	}
+	dposContext, err := parent.dposContext.Clone()
+	if err != nil {
+		return nil, err
+	}
 	block := &Block{
 		header: &BlockHeader{
 			parentHash:  parent.Hash(),
@@ -184,7 +193,7 @@ func NewBlock(chainID uint32, coinbase *Address, parent *Block) *Block {
 		sealed:       false,
 		storage:      parent.storage,
 	}
-	return block
+	return block, nil
 }
 
 // Coinbase return block's coinbase
@@ -293,9 +302,31 @@ func (block *Block) LinkParentBlock(parentBlock *Block) bool {
 		return false
 	}
 
-	block.accState, _ = parentBlock.accState.Clone()
-	block.txsTrie, _ = parentBlock.txsTrie.Clone()
-	block.dposContext, _ = parentBlock.dposContext.Clone()
+	var err error
+	if block.accState, err = parentBlock.accState.Clone(); err != nil {
+		log.WithFields(log.Fields{
+			"func":  "block.LinkParentBlock",
+			"block": parentBlock,
+			"err":   err,
+		}).Error("cannot clone account state.")
+		return false
+	}
+	if block.txsTrie, err = parentBlock.txsTrie.Clone(); err != nil {
+		log.WithFields(log.Fields{
+			"func":  "block.LinkParentBlock",
+			"block": parentBlock,
+			"err":   err,
+		}).Error("cannot clone txs state.")
+		return false
+	}
+	if block.dposContext, err = parentBlock.dposContext.Clone(); err != nil {
+		log.WithFields(log.Fields{
+			"func":  "block.LinkParentBlock",
+			"block": parentBlock,
+			"err":   err,
+		}).Error("cannot clone dpos context.")
+		return false
+	}
 	block.txPool = parentBlock.txPool
 	block.parenetBlock = parentBlock
 	block.storage = parentBlock.storage
@@ -386,9 +417,9 @@ func (block *Block) Sealed() bool {
 }
 
 // Seal seal block, calculate stateRoot and block hash.
-func (block *Block) Seal() {
+func (block *Block) Seal() error {
 	if block.sealed {
-		return
+		return ErrDoubleSealBlock
 	}
 
 	block.begin()
@@ -396,17 +427,21 @@ func (block *Block) Seal() {
 	block.commit()
 	block.header.stateRoot = block.accState.RootHash()
 	block.header.txsRoot = block.txsTrie.RootHash()
-	block.header.dposContext, _ = block.dposContext.ToProto()
+	var err error
+	if block.header.dposContext, err = block.dposContext.ToProto(); err != nil {
+		return err
+	}
 	block.header.hash = HashBlock(block)
 	block.sealed = true
 
 	log.WithFields(log.Fields{
 		"block": block,
 	}).Info("Block Seal.")
+	return nil
 }
 
 func (block *Block) String() string {
-	return fmt.Sprintf("Block %p {height:%d; hash:%s; parentHash:%s; accState: %s; nonce:%d, timestamp: %d}",
+	return fmt.Sprintf("Block %p {height:%d; hash:%s; parentHash:%s; accState: %s; nonce:%d, timestamp: %d; coinbase: %s}",
 		block,
 		block.height,
 		byteutils.Hex(block.header.hash),
@@ -414,6 +449,7 @@ func (block *Block) String() string {
 		byteutils.Hex(block.header.stateRoot),
 		block.header.nonce,
 		block.header.timestamp,
+		block.header.coinbase.String(),
 	)
 }
 
@@ -625,7 +661,9 @@ func LoadBlockFromStorage(hash byteutils.Hash, storage storage.Storage, txPool *
 	if err != nil {
 		return nil, err
 	}
-	block.dposContext = NewDposContext(storage)
+	if block.dposContext, err = NewDposContext(storage); err != nil {
+		return nil, err
+	}
 	if block.dposContext.FromProto(block.DposContext()) != nil {
 		return nil, err
 	}

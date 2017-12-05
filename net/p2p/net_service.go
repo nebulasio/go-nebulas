@@ -586,7 +586,7 @@ func (ns *NetService) Hello(pid peer.ID) error {
 		return errors.New("Hello: write data occurs error")
 	}
 	// call streamHandler explicitly to start loop to handle stream origined from this node.
-	ns.streamHandler(stream)
+	go ns.streamHandler(stream)
 	return nil
 }
 

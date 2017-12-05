@@ -38,7 +38,7 @@ const (
 	BlockInterval        = int64(5)
 	AcceptedNetWorkDelay = int64(2)
 	DynastyInterval      = int64(3600)
-	DynastySize          = 21
+	DynastySize          = 6
 )
 
 // DposContext carry context in dpos consensus
@@ -51,16 +51,25 @@ type DposContext struct {
 }
 
 // NewDposContext create a new dpos context
-func NewDposContext(storage storage.Storage) *DposContext {
-	dynastyTrie, _ := trie.NewBatchTrie(nil, storage)
-	nextDynastyTrie, _ := trie.NewBatchTrie(nil, storage)
-	delegateTrie, _ := trie.NewBatchTrie(nil, storage)
+func NewDposContext(storage storage.Storage) (*DposContext, error) {
+	dynastyTrie, err := trie.NewBatchTrie(nil, storage)
+	if err != nil {
+		return nil, err
+	}
+	nextDynastyTrie, err := trie.NewBatchTrie(nil, storage)
+	if err != nil {
+		return nil, err
+	}
+	delegateTrie, err := trie.NewBatchTrie(nil, storage)
+	if err != nil {
+		return nil, err
+	}
 	return &DposContext{
 		dynastyTrie:     dynastyTrie,
 		nextDynastyTrie: nextDynastyTrie,
 		delegateTrie:    delegateTrie,
 		storage:         storage,
-	}
+	}, nil
 }
 
 // RootHash hash dpos context root hash
@@ -76,6 +85,7 @@ func (dc *DposContext) RootHash() byteutils.Hash {
 
 // BeginBatch starts a batch task
 func (dc *DposContext) BeginBatch() {
+	log.Info("DposContext Begin.")
 	dc.delegateTrie.BeginBatch()
 	dc.dynastyTrie.BeginBatch()
 	dc.nextDynastyTrie.BeginBatch()
@@ -86,6 +96,7 @@ func (dc *DposContext) Commit() {
 	dc.delegateTrie.Commit()
 	dc.dynastyTrie.Commit()
 	dc.nextDynastyTrie.Commit()
+	log.Info("DposContext Commit.")
 }
 
 // RollBack a batch task
@@ -93,19 +104,26 @@ func (dc *DposContext) RollBack() {
 	dc.delegateTrie.RollBack()
 	dc.dynastyTrie.RollBack()
 	dc.nextDynastyTrie.RollBack()
+	log.Info("DposContext RollBack.")
 }
 
 // Clone a dpos context
 func (dc *DposContext) Clone() (*DposContext, error) {
 	var err error
-	context := NewDposContext(dc.storage)
+	context, err := NewDposContext(dc.storage)
+	if err != nil {
+		return nil, err
+	}
 	if context.dynastyTrie, err = dc.dynastyTrie.Clone(); err != nil {
+		log.Error("DynastyTrie")
 		return nil, err
 	}
 	if context.nextDynastyTrie, err = dc.nextDynastyTrie.Clone(); err != nil {
+		log.Error("NextDynastyTrie")
 		return nil, err
 	}
 	if context.delegateTrie, err = dc.delegateTrie.Clone(); err != nil {
+		log.Error("DelegateTrie")
 		return nil, err
 	}
 	return context, nil

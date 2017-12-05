@@ -26,6 +26,8 @@ import (
 	"github.com/nebulasio/go-nebulas/neblet/pb"
 	"github.com/nebulasio/go-nebulas/net"
 
+	"hash/fnv"
+
 	"github.com/nebulasio/go-nebulas/net/p2p"
 	log "github.com/sirupsen/logrus"
 )
@@ -69,7 +71,7 @@ func NewDpos(neblet Neblet) (*Dpos, error) {
 
 		blockInterval:   core.BlockInterval,
 		dynastyInterval: core.DynastyInterval,
-		txsPerBlock:     500,
+		txsPerBlock:     2000,
 
 		canMining: false,
 	}
@@ -99,6 +101,27 @@ func (p *Dpos) Stop() {
 	p.quitCh <- true
 }
 
+func score(b *core.Block) uint32 {
+	hasher := fnv.New32a()
+	hasher.Write(b.Hash())
+	return hasher.Sum32()
+}
+
+func less(b1 *core.Block, b2 *core.Block) bool {
+	if b1.Height() < b2.Height() {
+		return true
+	}
+	if b1.Height() > b2.Height() {
+		return false
+	}
+	score1 := score(b1)
+	score2 := score(b2)
+	if score1 < score2 {
+		return true
+	}
+	return false
+}
+
 // do fork choice
 func (p *Dpos) forkChoice() {
 	bc := p.chain
@@ -111,12 +134,9 @@ func (p *Dpos) forkChoice() {
 	}).Debug("find the highest tail.")
 
 	newTailBlock := tailBlock
-	maxHeight := tailBlock.Height()
 
 	for _, v := range detachedTailBlocks {
-		h := v.Height()
-		if h > maxHeight {
-			maxHeight = h
+		if less(newTailBlock, v) {
 			newTailBlock = v
 		}
 	}
@@ -128,7 +148,6 @@ func (p *Dpos) forkChoice() {
 	} else {
 		log.WithFields(log.Fields{
 			"func":      "Dpos.ForkChoice",
-			"maxHeight": maxHeight,
 			"tailBlock": newTailBlock,
 		}).Info("change to new tail.")
 		bc.SetTailBlock(newTailBlock)
@@ -202,10 +221,15 @@ func (p *Dpos) mintBlock() {
 		"actual":   p.coinbase.ToHex(),
 	}).Info("my turn")
 	// mint new block
-	block := core.NewBlock(p.chain.ChainID(), p.coinbase, tail)
+	block, err := core.NewBlock(p.chain.ChainID(), p.coinbase, tail)
+	if err != nil {
+		return
+	}
 	block.LoadDynastyContext(context)
 	block.CollectTransactions(p.txsPerBlock)
-	block.Seal()
+	if block.Seal() != nil {
+		return
+	}
 	// broadcast it
 	p.chain.BlockPool().PushAndBroadcast(block)
 }

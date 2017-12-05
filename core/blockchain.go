@@ -248,12 +248,12 @@ func (bc *BlockChain) ConsensusHandler() Consensus {
 }
 
 // NewBlock create new #Block instance.
-func (bc *BlockChain) NewBlock(coinbase *Address) *Block {
+func (bc *BlockChain) NewBlock(coinbase *Address) (*Block, error) {
 	return bc.NewBlockFromParent(coinbase, bc.tailBlock)
 }
 
 // NewBlockFromParent create new block from parent block and return it.
-func (bc *BlockChain) NewBlockFromParent(coinbase *Address, parentBlock *Block) *Block {
+func (bc *BlockChain) NewBlockFromParent(coinbase *Address, parentBlock *Block) (*Block, error) {
 	return NewBlock(bc.chainID, coinbase, parentBlock)
 }
 
@@ -413,7 +413,10 @@ func (bc *BlockChain) loadGenesisFromStorage() (*Block, error) {
 		return nil, err
 	}
 
-	genesis = NewGenesisBlock(bc.chainID, bc)
+	genesis, err = NewGenesisBlock(bc.chainID, bc)
+	if err != nil {
+		return nil, err
+	}
 	if err := bc.storeBlockToStorage(genesis); err != nil {
 		return nil, err
 	}
