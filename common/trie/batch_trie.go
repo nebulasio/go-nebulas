@@ -55,14 +55,11 @@ func (bt *BatchTrie) RootHash() []byte {
 
 // Clone a the BatchTrie
 func (bt *BatchTrie) Clone() (*BatchTrie, error) {
-	if bt.batching {
-		return nil, ErrCloneInBatch
-	}
 	tr, err := bt.trie.Clone()
 	if err != nil {
 		return nil, err
 	}
-	return &BatchTrie{trie: tr, batching: false}, nil
+	return &BatchTrie{trie: tr, batching: bt.batching}, nil
 }
 
 // Get the value to the key in BatchTrie

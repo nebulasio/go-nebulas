@@ -23,6 +23,7 @@ import (
 
 	"github.com/nebulasio/go-nebulas/nf/nvm"
 	"github.com/nebulasio/go-nebulas/util"
+	log "github.com/sirupsen/logrus"
 )
 
 // DeployPayload carry contract deploy information
@@ -64,7 +65,17 @@ func (payload *DeployPayload) Execute(tx *Transaction, block *Block) error {
 	engine.SetExecutionLimits(tx.GasLimit().Uint64(), nvm.DefaultLimitsOfTotalMemorySize)
 	defer engine.Dispose()
 
-	return engine.DeployAndInit(payload.Source, payload.Args)
+	err = engine.DeployAndInit(payload.Source, payload.Args)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"error":       err,
+			"block":       block,
+			"transaction": tx,
+		}).Error("DeployPayload Execute.")
+	} else {
+		block.accState = ctx.State()
+	}
+	return gasCombustion(engine, tx, block)
 }
 
 // EstimateGas the payload in tx
@@ -89,7 +100,10 @@ func generateDeployContext(tx *Transaction, block *Block) (*nvm.Context, error) 
 	if err != nil {
 		return nil, err
 	}
-	context := block.accState
+	context, err := block.accState.Clone()
+	if err != nil {
+		return nil, err
+	}
 	owner := context.GetOrCreateUserAccount(tx.from.Bytes())
 	contract, err := context.CreateContractAccount(addr.Bytes(), tx.Hash())
 	if err != nil {
@@ -111,4 +125,18 @@ func convertNvmTx(tx *Transaction) *nvm.ContextTransaction {
 		GasLimit:  tx.GasLimit().String(),
 	}
 	return ctxTx
+}
+
+// execute contracts gas combustion
+func gasCombustion(e *nvm.V8Engine, tx *Transaction, block *Block) error {
+	instructions := util.NewUint128FromInt(int64(e.ExecutionInstructions()))
+	// cost = gasPrice * executionInstructions
+	cost := instructions.Mul(instructions.Int, tx.gasPrice.Int)
+	err := e.Context().Owner().SubBalance(util.NewUint128FromBigInt(cost))
+	if err != nil {
+		return err
+	}
+	coinbaseAcc := e.Context().State().GetOrCreateUserAccount(block.CoinbaseHash())
+	coinbaseAcc.AddBalance(util.NewUint128FromBigInt(cost))
+	return nil
 }

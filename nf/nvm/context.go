@@ -97,6 +97,16 @@ func (ctx *Context) State() state.AccountState {
 	return ctx.state
 }
 
+// Owner returns contract owner account
+func (ctx *Context) Owner() state.Account {
+	return ctx.owner
+}
+
+// Contract returns contract account
+func (ctx *Context) Contract() state.Account {
+	return ctx.contract
+}
+
 // SerializeContextBlock Serialize current block
 func (ctx *Context) SerializeContextBlock() ([]byte, error) {
 

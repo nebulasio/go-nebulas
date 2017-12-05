@@ -324,8 +324,8 @@ func (as *accountState) Clone() (AccountState, error) {
 	}
 	return &accountState{
 		stateTrie:    stateTrie,
-		dirtyAccount: make(map[byteutils.HexHash]Account),
-		batching:     false,
+		dirtyAccount: as.dirtyAccount,
+		batching:     as.batching,
 		storage:      as.storage,
 	}, nil
 }

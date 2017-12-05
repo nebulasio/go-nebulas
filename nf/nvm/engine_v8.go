@@ -51,7 +51,6 @@ import (
 	"unsafe"
 
 	"github.com/nebulasio/go-nebulas/core/state"
-	"github.com/nebulasio/go-nebulas/util"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -166,6 +165,11 @@ func (e *V8Engine) Dispose() {
 	C.DeleteEngine(e.v8engine)
 }
 
+// Context returns engine context
+func (e *V8Engine) Context() *Context {
+	return e.ctx
+}
+
 // SetTestingFlag set testing flag, default is False.
 func (e *V8Engine) SetTestingFlag(flag bool) {
 	if flag {
@@ -197,9 +201,6 @@ func (e *V8Engine) SetExecutionLimits(limitsOfExecutionInstructions, limitsOfTot
 
 // ExecutionInstructions returns the execution instructions
 func (e *V8Engine) ExecutionInstructions() uint64 {
-	if e.actualCountOfExecutionInstructions > e.limitsOfExecutionInstructions {
-		return e.limitsOfExecutionInstructions
-	}
 	return e.actualCountOfExecutionInstructions
 }
 
@@ -292,33 +293,12 @@ func (e *V8Engine) RunScriptSource(source string, sourceLineOffset int) (err err
 			err = ErrExceedMemoryLimits
 		}
 
-		if !e.simulationRun {
-			// combust the gas.
-			if e.actualCountOfExecutionInstructions > e.limitsOfExecutionInstructions || err == ErrExceedMemoryLimits {
-				// combust all available gas.
-				e.gasCombustion(e.limitsOfExecutionInstructions)
-			} else {
-				// combust actual executed gas.
-				e.gasCombustion(e.actualCountOfExecutionInstructions)
-			}
+		if e.actualCountOfExecutionInstructions > e.limitsOfExecutionInstructions || err == ErrExceedMemoryLimits {
+			e.actualCountOfExecutionInstructions = e.limitsOfExecutionInstructions
 		}
 	}
 
 	return
-}
-
-// gas combustion
-func (e *V8Engine) gasCombustion(executionInstructions uint64) error {
-	instructions := util.NewUint128FromInt(int64(executionInstructions))
-	// cost = gasPrice * executionInstructions
-	cost := instructions.Mul(instructions.Int, util.NewUint128FromString(e.ctx.tx.GasPrice).Int)
-	err := e.ctx.owner.SubBalance(util.NewUint128FromBigInt(cost))
-	if err != nil {
-		return err
-	}
-	coinbaseAcc := e.ctx.state.GetOrCreateUserAccount(e.ctx.block.CoinbaseHash())
-	coinbaseAcc.AddBalance(util.NewUint128FromBigInt(cost))
-	return nil
 }
 
 // Call function in a script

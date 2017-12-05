@@ -23,6 +23,7 @@ import (
 
 	"github.com/nebulasio/go-nebulas/nf/nvm"
 	"github.com/nebulasio/go-nebulas/util"
+	log "github.com/sirupsen/logrus"
 )
 
 // CallPayload carry function call information
@@ -64,7 +65,17 @@ func (payload *CallPayload) Execute(tx *Transaction, block *Block) error {
 	engine.SetExecutionLimits(tx.GasLimit().Uint64(), nvm.DefaultLimitsOfTotalMemorySize)
 	defer engine.Dispose()
 
-	return engine.Call(source, payload.Function, payload.Args)
+	err = engine.Call(source, payload.Function, payload.Args)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"error":       err,
+			"block":       block,
+			"transaction": tx,
+		}).Error("CallPayload Execute.")
+	} else {
+		block.accState = ctx.State()
+	}
+	return gasCombustion(engine, tx, block)
 }
 
 // EstimateGas the payload in tx
@@ -85,7 +96,10 @@ func (payload *CallPayload) EstimateGas(tx *Transaction, block *Block) (*util.Ui
 }
 
 func generateCallContext(tx *Transaction, block *Block) (*nvm.Context, string, error) {
-	context := block.accState
+	context, err := block.accState.Clone()
+	if err != nil {
+		return nil, "", err
+	}
 	contract, err := context.GetContractAccount(tx.to.Bytes())
 	if err != nil {
 		return nil, "", err
