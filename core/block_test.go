@@ -194,7 +194,7 @@ func TestBlock_LinkParentBlock(t *testing.T) {
 			},
 			nonce:     3546456,
 			coinbase:  &Address{[]byte("hello")},
-			timestamp: time.Now().Unix(),
+			timestamp: BlockInterval,
 			chainID:   1,
 		},
 		transactions: []*Transaction{},
@@ -216,7 +216,7 @@ func TestBlock_LinkParentBlock(t *testing.T) {
 			},
 			nonce:     3546456,
 			coinbase:  &Address{[]byte("hello")},
-			timestamp: time.Now().Unix(),
+			timestamp: BlockInterval * 2,
 			chainID:   1,
 		},
 		transactions: []*Transaction{},
@@ -250,11 +250,13 @@ func TestBlock_CollectTransactions(t *testing.T) {
 	coinbase, _ := NewAddressFromPublicKey(pubdata2)
 
 	block0, _ := NewBlock(0, from, tail)
+	block0.header.timestamp = BlockInterval
 	block0.Seal()
 	//bc.BlockPool().push(block0)
 	bc.SetTailBlock(block0)
 
 	block, _ := NewBlock(0, coinbase, block0)
+	block.header.timestamp = BlockInterval * 2
 
 	tx1 := NewTransaction(0, from, to, util.NewUint128FromInt(1), 1, TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, util.NewUint128FromInt(200000))
 	tx1.Sign(signature)
@@ -296,11 +298,7 @@ func TestBlock_CollectTransactions(t *testing.T) {
 	//gas, _ := bc.EstimateGas(tx1)
 	assert.NotEqual(t, balance.Cmp(BlockReward.Int), 0)
 	// mock net message
-	proto, _ := block.ToProto()
-	ir, _ := pb.Marshal(proto)
-	nb := new(Block)
-	pb.Unmarshal(ir, proto)
-	nb.FromProto(proto)
-	nb.LinkParentBlock(bc.tailBlock)
-	assert.Nil(t, nb.Verify(0))
+	block, _ = mockBlockFromNetwork(block)
+	assert.Equal(t, block.LinkParentBlock(bc.tailBlock), true)
+	assert.Nil(t, block.Verify(0))
 }

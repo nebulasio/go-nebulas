@@ -409,7 +409,10 @@ func (bc *BlockChain) loadTailFromStorage() (*Block, error) {
 
 func (bc *BlockChain) loadGenesisFromStorage() (*Block, error) {
 	genesis, err := LoadBlockFromStorage(GenesisHash, bc.storage, bc.txPool)
-	if err != nil && err != storage.ErrKeyNotFound {
+	if err == nil {
+		return genesis, nil
+	}
+	if err != storage.ErrKeyNotFound {
 		return nil, err
 	}
 

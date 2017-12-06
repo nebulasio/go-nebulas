@@ -212,12 +212,35 @@ func verifyBlockSign(miner *core.Address, block *core.Block) error {
 	return nil
 }
 
-// VerifyBlock return nil if timestamp & proposer are right, otherwise return error.
-func (p *Dpos) VerifyBlock(block *core.Block) error {
-	parent, err := block.ParentBlock()
-	if err != nil {
-		return err
+// FastVerifyBlock verify the block before its parent found
+// can be verified if the block's dynasty == tail's dynasty
+// can be verified if the block's dynasty == tails's next dynasty
+func (p *Dpos) FastVerifyBlock(block *core.Block) error {
+	tail := p.chain.TailBlock()
+	// check timestamp
+	elapsedSecond := block.Timestamp() - tail.Timestamp()
+	if elapsedSecond%p.blockInterval != 0 {
+		return ErrInvalidBlockInterval
 	}
+	// check proposer
+	currentHour := block.Timestamp() / core.DynastyInterval
+	tailHour := tail.Timestamp() / core.DynastyInterval
+	if currentHour == tailHour || currentHour == tailHour+1 {
+		context, err := tail.NextDynastyContext(elapsedSecond)
+		if err != nil {
+			return err
+		}
+		proposer, err := core.AddressParseFromBytes(context.Proposer)
+		if err != nil {
+			return err
+		}
+		return verifyBlockSign(proposer, block)
+	}
+	return nil
+}
+
+// VerifyBlock verify the block with its parent found
+func (p *Dpos) VerifyBlock(block *core.Block, parent *core.Block) error {
 	// check timestamp
 	elapsedSecond := block.Timestamp() - parent.Timestamp()
 	if elapsedSecond%p.blockInterval != 0 {

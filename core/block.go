@@ -353,14 +353,17 @@ func (block *Block) LinkParentBlock(parentBlock *Block) bool {
 		}).Error("cannot clone txs state.")
 		return false
 	}
-	if block.dposContext, err = parentBlock.dposContext.Clone(); err != nil {
+	elapsedSecond := block.Timestamp() - parentBlock.Timestamp()
+	context, err := parentBlock.NextDynastyContext(elapsedSecond)
+	if err != nil {
 		log.WithFields(log.Fields{
 			"func":  "block.LinkParentBlock",
 			"block": parentBlock,
 			"err":   err,
-		}).Error("cannot clone dpos context.")
+		}).Error("calculate next dynasty context.")
 		return false
 	}
+	block.LoadDynastyContext(context)
 	block.txPool = parentBlock.txPool
 	block.parenetBlock = parentBlock
 	block.storage = parentBlock.storage
@@ -550,8 +553,14 @@ func (block *Block) verifyState() error {
 	}
 
 	// verify transaction root.
+	log.Info(block.dposContext.dynastyTrie.RootHash())
+	log.Info(block.dposContext.nextDynastyTrie.RootHash())
+	log.Info(block.dposContext.delegateTrie.RootHash())
+	log.Info(block.header.dposContext.DynastyRoot)
+	log.Info(block.header.dposContext.NextDynastyRoot)
+	log.Info(block.header.dposContext.DelegateRoot)
 	if !byteutils.Equal(block.dposContext.RootHash(), block.DposContextHash()) {
-		return ErrInvalidBlockTxsRoot
+		return ErrInvalidBlockDposContextRoot
 	}
 
 	return nil
@@ -703,5 +712,6 @@ func LoadBlockFromStorage(hash byteutils.Hash, storage storage.Storage, txPool *
 	}
 	block.txPool = txPool
 	block.storage = storage
+	block.sealed = true
 	return block, nil
 }

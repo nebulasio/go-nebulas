@@ -235,6 +235,11 @@ func (pool *BlockPool) push(block *Block) error {
 		return err
 	}
 
+	// verify consensus
+	if err := pool.bc.ConsensusHandler().FastVerifyBlock(block); err != nil {
+		return err
+	}
+
 	bc := pool.bc
 	blockCache := pool.blockCache
 
@@ -319,12 +324,12 @@ func (lb *linkedBlock) travelToLinkAndReturnAllValidBlocks(parentBlock *Block) (
 		return nil, nil
 	}
 
-	if err := lb.pool.bc.ConsensusHandler().VerifyBlock(lb.block); err != nil {
+	if err := lb.pool.bc.ConsensusHandler().VerifyBlock(lb.block, parentBlock); err != nil {
 		log.WithFields(log.Fields{
 			"func":  "BlockPool.Verify",
 			"block": lb.block,
 			"err":   err,
-		}).Error("BlockPool.Verify: verify block in dpos failed.")
+		}).Error("BlockPool.Verify: consensus verify block.")
 		return nil, nil
 	}
 

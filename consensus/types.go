@@ -35,7 +35,8 @@ type Consensus interface {
 	CanMining() bool
 	SetCanMining(bool)
 
-	VerifyBlock(*core.Block) error
+	VerifyBlock(block *core.Block, parent *core.Block) error
+	FastVerifyBlock(block *core.Block) error
 }
 
 // EventType of Events in Consensus State-Machine

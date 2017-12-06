@@ -31,10 +31,10 @@ func TestDpos_mintBlock(t *testing.T) {
 	storage, _ := storage.NewMemoryStorage()
 	chain, _ := core.NewBlockChain(0, storage)
 	tail := chain.TailBlock()
-	elapsedSecond := int64(1512479205)
+	elapsedSecond := int64(core.DynastySize*core.BlockInterval + core.DynastyInterval)
 	context, err := tail.NextDynastyContext(elapsedSecond)
 	assert.Nil(t, err)
-	coinbase, err := core.AddressParse("0dae13b7d3db400b0513514ffa6cdc62fdba109cff037b84")
+	coinbase, err := core.AddressParse("1a263547d167c74cf4b8f9166cfa244de0481c514a45aa2c")
 	assert.Nil(t, err)
 	block, err := core.NewBlock(chain.ChainID(), coinbase, tail)
 	assert.Nil(t, err)
@@ -45,6 +45,6 @@ func TestDpos_mintBlock(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Nil(t, manager.Unlock(miner, []byte("passphrase")))
 	assert.Nil(t, manager.SignBlock(miner, block))
-	dpos := Dpos{blockInterval: core.BlockInterval}
-	assert.Nil(t, dpos.VerifyBlock(block))
+	dpos := Dpos{blockInterval: core.BlockInterval, chain: chain}
+	assert.Nil(t, dpos.VerifyBlock(block, tail))
 }

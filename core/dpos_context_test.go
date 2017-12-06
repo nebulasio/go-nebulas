@@ -51,6 +51,7 @@ func TestBlock_NextDynastyContext(t *testing.T) {
 	newBlock.LoadDynastyContext(context)
 	newBlock.CollectTransactions(500)
 	newBlock.Seal()
+	newBlock, _ = mockBlockFromNetwork(newBlock)
 	newBlock.LinkParentBlock(chain.tailBlock)
 	assert.Nil(t, newBlock.Verify(chain.ChainID()))
 }

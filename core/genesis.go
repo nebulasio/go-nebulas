@@ -19,7 +19,6 @@
 package core
 
 import (
-	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/common/trie"
 	"github.com/nebulasio/go-nebulas/core/pb"
 	"github.com/nebulasio/go-nebulas/core/state"
@@ -30,27 +29,27 @@ var (
 	GenesisHash      = make([]byte, BlockHashLength)
 	GenesisTimestamp = int64(0)
 	GenesisDynasty   = []string{
-		"0dae13b7d3db400b0513514ffa6cdc62fdba109cff037b84",
-		"2ba36d63abd06b3b5bac4192b8711d02a59e2002fdfc6430",
-		"5db1ff2ea6056f71bf47b843daa64774ff9a4e65e35f6c40",
-		"6a192c7f6c07fb9751f4bfb8ba83498c298bdcc147a44027",
-		"07ab122765ca7d49322fc8a8af9845cb95cb07f2e27a4fc6",
-		"7bb6e8799ec48f73197ef0e336dec5e272b174d27820a7d2",
-		/* 		"43c04a7992c7b4c59c5d12f2f940e6d1d579d0db07756087",
-		   		"43faedd5182b44ee160cb47e444f9460057abca0daed3a6f",
-		   		"49e3681c8e659c28ba22533484af503bdfdc1a5ea5d492f7",
-		   		"831def042a8060f68c197ea09aab16f8905c096baed8269c",
-		   		"11235560b1af46f22cbc2f70808d21a7284ffe0c24f2196f",
-		   		"a6c3254ad8a449e2c5fa30c64cdd9cd4d8aea77d39139e3d",
-		   		"b54e25518956babbf4e77abff6aca2d3cbadd4a178f6078b",
-		   		"bf493723544625d1eeb1c64c1fbb57866615c3c17b2e877f",
-		   		"c155c7bfda0a714229f92797dfffd3eee213239e7605037c",
-		   		"cb7d1d7c1e46377b1752d1b25dd8574d03e2507c35b71061",
-		   		"d704c735d2896b930f3d46a198d3f976a66ee88985454ba2",
-		   		"dc2e617a9c2724d5afc01133ecddb38dad191f83af7d7270",
-		   		"e43e7290297947732c2aac546750dbc39ab00857f491ca56",
-		   		"efcbaefb78e80c0fb8f1d424636809dfdbd7479501c0f1a9",
-		   		"f732100adc168bd8292463879adb0654908ec5773c4a5de1", */
+		"1a263547d167c74cf4b8f9166cfa244de0481c514a45aa2c",
+		"2fe3f9f51f9a05dd5f7c5329127f7c917917149b4e16b0b8",
+		"333cb3ed8c417971845382ede3cf67a0a96270c05fe2f700",
+		"48f981ed38910f1232c1bab124f650c482a57271632db9e3",
+		"59fc526072b09af8a8ca9732dae17132c4e9127e43cf2232",
+		"75e4e5a71d647298b88928d8cb5da43d90ab1a6c52d0905f",
+		"7da9dabedb4c6e121146fb4250a9883d6180570e63d6b080",
+		"98a3eed687640b75ec55bf5c9e284371bdcaeab943524d51",
+		"a8f1f53952c535c6600c77cf92b65e0c9b64496a8a328569",
+		"b040353ec0f2c113d5639444f7253681aecda1f8b91f179f",
+		"b414432e15f21237013017fa6ee90fc99433dec82c1c8370",
+		"b49f30d0e5c9c88cade54cd1adecf6bc2c7e0e5af646d903",
+		"b7d83b44a3719720ec54cdb9f54c0202de68f1ebcb927b4f",
+		"ba56cc452e450551b7b9cffe25084a069e8c1e94412aad22",
+		"c5bcfcb3fa8250be4f2bf2b1e70e1da500c668377ba8cd4a",
+		"c79d9667c71bb09d6ca7c3ed12bfe5e7be24e2ffe13a833d",
+		"d1abde197e97398864ba74511f02832726edad596775420a",
+		"d86f99d97a394fa7a623fdf84fdc7446b99c3cb335fca4bf",
+		"e0f78b011e639ce6d8b76f97712118f3fe4a12dd954eba49",
+		"f38db3b6c801dddd624d6ddc2088aa64b5a24936619e4848",
+		"fc751b484bd5296f8d267a8537d33f25a848f7f7af8cfcf6",
 	}
 )
 
@@ -72,7 +71,6 @@ func NewGenesisBlock(chainID uint32, chain *BlockChain) (*Block, error) {
 	genesis := &Block{
 		header: &BlockHeader{
 			chainID:     chainID,
-			hash:        GenesisHash,
 			parentHash:  GenesisHash,
 			dposContext: &corepb.DposContext{},
 			coinbase:    &Address{make([]byte, AddressLength)},
@@ -85,44 +83,16 @@ func NewGenesisBlock(chainID uint32, chain *BlockChain) (*Block, error) {
 		txPool:      chain.txPool,
 		storage:     chain.storage,
 		height:      1,
-		sealed:      true,
+		sealed:      false,
 	}
 
-	dynasty, err := trie.NewBatchTrie(nil, chain.storage)
+	context, err := GenesisDynastyContext(chain.storage)
 	if err != nil {
 		return nil, err
 	}
-	delegate, err := trie.NewBatchTrie(nil, chain.storage)
-	if err != nil {
-		return nil, err
-	}
-	for _, v := range GenesisDynasty {
-		member, err := AddressParse(v)
-		if err != nil {
-			return nil, err
-		}
-		dynasty.Put(member.Bytes(), member.Bytes())
-		vote, err := proto.Marshal(
-			&corepb.Delegate{
-				Delegator: member.Bytes(),
-				Delegatee: member.Bytes(),
-			},
-		)
-		if err != nil {
-			return nil, err
-		}
-		delegate.Put(member.Bytes(), vote)
-	}
-	genesis.dposContext.dynastyTrie = dynasty
-	genesis.header.dposContext.DynastyRoot = dynasty.RootHash()
-	genesis.dposContext.nextDynastyTrie, err = dynasty.Clone()
-	if err != nil {
-		return nil, err
-	}
-	genesis.header.dposContext.NextDynastyRoot = dynasty.RootHash()
-	genesis.dposContext.delegateTrie = delegate
-	genesis.header.dposContext.DelegateRoot = delegate.RootHash()
-
+	genesis.LoadDynastyContext(context)
+	genesis.Seal()
+	genesis.header.hash = GenesisHash
 	return genesis, nil
 }
 

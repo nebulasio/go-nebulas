@@ -36,7 +36,10 @@ type MockConsensus struct {
 	storage storage.Storage
 }
 
-func (c MockConsensus) VerifyBlock(block *Block) error {
+func (c MockConsensus) FastVerifyBlock(block *Block) error {
+	return nil
+}
+func (c MockConsensus) VerifyBlock(block *Block, parent *Block) error {
 	return nil
 }
 

@@ -61,6 +61,7 @@ func TestBlockChain_FindCommonAncestorWithTail(t *testing.T) {
 
 	//add from reward
 	block0, _ := bc.NewBlock(from)
+	block0.header.timestamp = BlockInterval
 	block0.Seal()
 	bc.BlockPool().Push(block0)
 	bc.SetTailBlock(block0)
@@ -89,7 +90,9 @@ func TestBlockChain_FindCommonAncestorWithTail(t *testing.T) {
 					       \_ 222 tail
 	*/
 	block11, _ := bc.NewBlock(coinbase11)
+	block11.header.timestamp = BlockInterval * 2
 	block12, _ := bc.NewBlock(coinbase12)
+	block12.header.timestamp = BlockInterval * 2
 	block11.CollectTransactions(1)
 	block11.Seal()
 	block12.CollectTransactions(1)
@@ -101,12 +104,15 @@ func TestBlockChain_FindCommonAncestorWithTail(t *testing.T) {
 	bc.SetTailBlock(block11)
 	assert.Equal(t, bc.txPool.cache.Len(), 2)
 	block111, _ := bc.NewBlock(coinbase111)
+	block111.header.timestamp = BlockInterval * 3
 	block111.CollectTransactions(0)
 	block111.Seal()
 	bc.BlockPool().Push(block111)
 	bc.SetTailBlock(block12)
 	block221, _ := bc.NewBlock(coinbase221)
+	block221.header.timestamp = BlockInterval * 3
 	block222, _ := bc.NewBlock(coinbase222)
+	block222.header.timestamp = BlockInterval * 3
 	block221.CollectTransactions(0)
 	block221.Seal()
 	block222.CollectTransactions(0)
@@ -115,6 +121,7 @@ func TestBlockChain_FindCommonAncestorWithTail(t *testing.T) {
 	bc.BlockPool().Push(block222)
 	bc.SetTailBlock(block111)
 	block1111, _ := bc.NewBlock(coinbase1111)
+	block1111.header.timestamp = BlockInterval * 4
 	block1111.CollectTransactions(0)
 	block1111.Seal()
 	bc.BlockPool().Push(block1111)
@@ -149,12 +156,12 @@ func TestBlockChain_FetchDescendantInCanonicalChain(t *testing.T) {
 		         \_ block - block1
 	*/
 	block, _ := bc.NewBlock(coinbase)
-	block.header.timestamp = 0
+	block.header.timestamp = BlockInterval
 	block.CollectTransactions(0)
 	block.Seal()
 	bc.BlockPool().Push(block)
 	block1, _ := bc.NewBlock(coinbase)
-	block1.header.timestamp = 1
+	block1.header.timestamp = BlockInterval * 2
 	block1.CollectTransactions(0)
 	block1.Seal()
 	bc.BlockPool().Push(block1)
@@ -162,9 +169,7 @@ func TestBlockChain_FetchDescendantInCanonicalChain(t *testing.T) {
 	var blocks []*Block
 	for i := 0; i < 6; i++ {
 		block, _ := bc.NewBlock(coinbase)
-		if i > 0 {
-			block.header.timestamp = blocks[i-1].header.timestamp + 1
-		}
+		block.header.timestamp = BlockInterval * int64(i+3)
 		blocks = append(blocks, block)
 		block.CollectTransactions(0)
 		block.Seal()
