@@ -27,9 +27,6 @@ import (
 	"crypto/rand"
 	"io"
 
-	"crypto/elliptic"
-
-	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/nebulasio/go-nebulas/crypto/hash"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
 )
@@ -69,15 +66,6 @@ func TestToECDSAPublic(t *testing.T) {
 	if err != nil {
 		t.Errorf("FromECDSAPublicKey err:%s", err)
 	}
-}
-
-func generateKeyPair() (pubkey, privkey []byte) {
-	key, err := ecdsa.GenerateKey(S256(), rand.Reader)
-	if err != nil {
-		panic(err)
-	}
-	pubkey = elliptic.Marshal(S256(), key.X, key.Y)
-	return pubkey, math.PaddedBigBytes(key.D, 32)
 }
 
 func TestSign(t *testing.T) {
