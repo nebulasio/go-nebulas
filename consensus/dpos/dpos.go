@@ -291,18 +291,43 @@ func (p *Dpos) mintBlock() {
 	// mint new block
 	block, err := core.NewBlock(p.chain.ChainID(), p.coinbase, tail)
 	if err != nil {
-		log.Error(err)
+		log.WithFields(log.Fields{
+			"func": "Dpos.mintBlock",
+			"tail": tail,
+			"err":  err,
+		}).Error("create block failed")
 		return
 	}
 	block.LoadDynastyContext(context)
 	block.CollectTransactions(p.txsPerBlock)
 	if err = block.Seal(); err != nil {
-		log.Error(err)
+		log.WithFields(log.Fields{
+			"func":  "Dpos.mintBlock",
+			"tail":  tail,
+			"block": block,
+			"err":   err,
+		}).Error("seal block failed")
 		return
 	}
-	//T ODO: move passphrase from config to console
-	p.am.Unlock(p.miner, []byte(p.passphrase))
-	p.am.SignBlock(p.miner, block)
+	// TODO: move passphrase from config to console
+	if err = p.am.Unlock(p.miner, []byte(p.passphrase)); err != nil {
+		log.WithFields(log.Fields{
+			"func":  "Dpos.mintBlock",
+			"tail":  tail,
+			"block": block,
+			"err":   err,
+		}).Error("unlock failed")
+		return
+	}
+	if err = p.am.SignBlock(p.miner, block); err != nil {
+		log.WithFields(log.Fields{
+			"func":  "Dpos.mintBlock",
+			"tail":  tail,
+			"block": block,
+			"err":   err,
+		}).Error("sign block failed")
+		return
+	}
 	// broadcast it
 	p.chain.BlockPool().PushAndBroadcast(block)
 }

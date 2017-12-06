@@ -21,6 +21,7 @@ package rpc
 import (
 	"errors"
 	"fmt"
+	"github.com/nebulasio/go-nebulas/common/trie"
 	"sync"
 
 	"github.com/gogo/protobuf/proto"
@@ -137,6 +138,19 @@ func (s *APIService) GetAccountState(ctx context.Context, req *rpcpb.GetAccountS
 	nonce := neb.BlockChain().TailBlock().GetNonce(addr.Bytes())
 
 	return &rpcpb.GetAccountStateResponse{Balance: balance.String(), Nonce: fmt.Sprintf("%d", nonce)}, nil
+}
+
+// GetDynasty is the RPC API handler.
+func (s *APIService) GetDynasty(ctx context.Context, req *rpcpb.GetDynastyRequest) (*rpcpb.GetDynastyResponse, error) {
+	neb := s.server.Neblet()
+	dynastyRoot := neb.BlockChain().TailBlock().DposContext().DynastyRoot
+	dynastyTrie, _ := trie.NewBatchTrie(dynastyRoot, neb.BlockChain().Storage())
+	delegatees, _ := core.TraverseDynasty(dynastyTrie)
+	result := []string{}
+	for _, v := range delegatees {
+		result = append(result, string(v.Hex()))
+	}
+	return &rpcpb.GetDynastyResponse{Delegatees: result}, nil
 }
 
 // SendTransaction is the RPC API handler.

@@ -157,7 +157,13 @@ service AdminService {
         option (google.api.http) = {
             get: "/v1/admin/statistics/nodeInfo"
         };
-    }
+	}
+	
+	rpc GetDynasty (GetDynastyRequest) returns (GetDynastyResponse) {
+		option (google.api.http) = {
+			get: "/v1/admin/dynasty"
+		};
+	}
 }
 
 // Request message of Subscribe rpc
@@ -278,6 +284,14 @@ message GetAccountStateResponse {
     // Current transaction count.
     string nonce = 2;
 }
+
+// Request message of GetDynastyRequest rpc.
+message GetDynastyRequest {}
+
+// Response message of GetDynastyRequest rpc
+message GetDynastyResponse {
+	repeated string delegatees = 1;
+}	
 
 // Request message of SendTransaction rpc.
 message TransactionRequest {
