@@ -30,9 +30,23 @@ try {
     }
 }
 
+// disable gcs according to https://github.com/nebulasio/go-nebulas/issues/23
+var _e = new Error('GlobalContractStorage should be disabled.');
+try {
+    GlobalContractStorage.put('k1', 'v1');
+    throw _e;
+} catch (e) {
+    if (e == _e) {
+        throw e;
+    } else {
+        // pass.
+    }
+}
+
 [
-    [LocalContractStorage, 'LocalContractStorage'],
-    [GlobalContractStorage, 'GlobalContractStorage']
+    [LocalContractStorage, 'LocalContractStorage']
+    // disable gcs according to https://github.com/nebulasio/go-nebulas/issues/23
+    // [GlobalContractStorage, 'GlobalContractStorage']
 ].forEach(function (item) {
     var stor = item[0];
     var name = item[1];

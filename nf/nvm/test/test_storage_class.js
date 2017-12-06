@@ -30,7 +30,21 @@ try {
     // pass.
 }
 
-[_native_storage_handlers.lcs, _native_storage_handlers.gcs].forEach(function (handler) {
+// disable gcs according to https://github.com/nebulasio/go-nebulas/issues/23
+var _e = new Error('_native_storage_handlers.gcs should be disabled.');
+try {
+    _native_storage_handlers.gcs.put('k1', 'v1');
+    throw _e;
+} catch (e) {
+    if (e == _e) {
+        throw e;
+    } else {
+        // pass.
+    }
+}
+
+// [_native_storage_handlers.lcs, _native_storage_handlers.gcs].forEach(function (handler) {
+[_native_storage_handlers.lcs].forEach(function (handler) {
     var stor = new NativeStorage(handler);
     if (stor.get("non-exist-key") !== null) {
         throw new Error("get non-exist-key should return null.");

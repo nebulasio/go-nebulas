@@ -389,7 +389,9 @@ func getEngineByStorageHandler(handler uint64) (*V8Engine, state.Account) {
 	if engine.lcsHandler == handler {
 		return engine, engine.ctx.contract
 	} else if engine.gcsHandler == handler {
-		return engine, engine.ctx.owner
+		// disable gcs according to issue https://github.com/nebulasio/go-nebulas/issues/23.
+		return nil, nil
+		// return engine, engine.ctx.owner
 	} else {
 		log.WithFields(log.Fields{
 			"func":          "nvm.getEngineByStorageHandler",
