@@ -45,7 +45,7 @@ var (
 	// TransactionGasPrice default gasPrice
 	TransactionGasPrice = util.NewUint128FromInt(1)
 
-	// TransactionGas default gasLimt
+	// TransactionGas default gas for normal transaction
 	TransactionGas = util.NewUint128FromInt(20000)
 
 	// TransactionDataGas per byte of data attached to a transaction gas cost
@@ -205,20 +205,11 @@ func (tx *Transaction) Hash() byteutils.Hash {
 
 // GasPrice returns gasPrice
 func (tx *Transaction) GasPrice() *util.Uint128 {
-	// if gasPrice <= 0 , returns default gasPrice
-	if tx.gasPrice.Cmp(util.NewUint128FromInt(0).Int) <= 0 {
-		// TODO:the default gasPrice needs to be computed dynamically
-		return TransactionGasPrice
-	}
 	return tx.gasPrice
 }
 
 // GasLimit returns gasLimit
 func (tx *Transaction) GasLimit() *util.Uint128 {
-	// if gasLimit <= 0 , returns default gasLimit
-	if tx.gasPrice.Cmp(util.NewUint128FromInt(0).Int) <= 0 {
-		return TransactionGas
-	}
 	return tx.gasLimit
 }
 
@@ -256,8 +247,22 @@ func (tx *Transaction) Execute(block *Block) error {
 	if fromAcc.Balance().Cmp(tx.Cost().Int) < 0 {
 		return ErrInsufficientBalance
 	}
-	if tx.gasLimit.Cmp(tx.CalculateGas().Int) < 0 {
-		return ErrOutofGasLimit
+
+	gasUsed := tx.CalculateGas()
+	if tx.gasLimit.Cmp(gasUsed.Int) < 0 {
+		log.WithFields(log.Fields{
+			"error":       ErrOutofGasLimit,
+			"block":       block,
+			"transaction": tx,
+		}).Error("Transaction Execute.")
+		gasUsed = tx.gasLimit
+	}
+	// if gasUsed > gasLimit, burn the gas and do nothing
+	gas := util.NewUint128().Mul(tx.GasPrice().Int, gasUsed.Int)
+	fromAcc.SubBalance(util.NewUint128FromBigInt(gas))
+	coinbaseAcc.AddBalance(util.NewUint128FromBigInt(gas))
+	if tx.gasLimit.Cmp(gasUsed.Int) < 0 {
+		return nil
 	}
 
 	// accept the transaction
@@ -265,13 +270,11 @@ func (tx *Transaction) Execute(block *Block) error {
 	toAcc.AddBalance(tx.value)
 	fromAcc.IncreNonce()
 
-	gas := util.NewUint128().Mul(tx.GasPrice().Int, tx.CalculateGas().Int)
-	fromAcc.SubBalance(util.NewUint128FromBigInt(gas))
-	coinbaseAcc.AddBalance(util.NewUint128FromBigInt(gas))
-
 	// execute payload
-	var payload TxPayload
-	var err error
+	var (
+		payload TxPayload
+		err     error
+	)
 	switch tx.data.Type {
 	case TxPayloadBinaryType:
 		payload, err = LoadBinaryPayload(tx.data.Payload)

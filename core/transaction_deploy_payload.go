@@ -61,8 +61,9 @@ func (payload *DeployPayload) Execute(tx *Transaction, block *Block) error {
 		return err
 	}
 	engine := nvm.NewV8Engine(ctx)
-	//add gas limit and memory use limit
-	engine.SetExecutionLimits(tx.GasLimit().Uint64(), nvm.DefaultLimitsOfTotalMemorySize)
+	executionInstructions := util.NewUint128()
+	executionInstructions.Sub(tx.gasLimit.Int, tx.CalculateGas().Int)
+	engine.SetExecutionLimits(executionInstructions.Uint64(), nvm.DefaultLimitsOfTotalMemorySize)
 	defer engine.Dispose()
 
 	err = engine.DeployAndInit(payload.Source, payload.Args)

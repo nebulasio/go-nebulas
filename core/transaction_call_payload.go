@@ -85,8 +85,9 @@ func (payload *CallPayload) EstimateGas(tx *Transaction, block *Block) (*util.Ui
 		return nil, err
 	}
 	engine := nvm.NewV8Engine(ctx)
-	//add gas limit and memory use limit
-	engine.SetExecutionLimits(TransactionMaxGas.Uint64(), nvm.DefaultLimitsOfTotalMemorySize)
+	executionInstructions := util.NewUint128()
+	executionInstructions.Sub(tx.gasLimit.Int, tx.CalculateGas().Int)
+	engine.SetExecutionLimits(executionInstructions.Uint64(), nvm.DefaultLimitsOfTotalMemorySize)
 	defer engine.Dispose()
 	err = engine.SimulationRun(source, payload.Function, payload.Args)
 	if err != nil {
