@@ -265,11 +265,6 @@ func (tx *Transaction) Execute(block *Block) error {
 		return nil
 	}
 
-	// accept the transaction
-	fromAcc.SubBalance(tx.value)
-	toAcc.AddBalance(tx.value)
-	fromAcc.IncreNonce()
-
 	// execute payload
 	var (
 		payload TxPayload
@@ -285,13 +280,21 @@ func (tx *Transaction) Execute(block *Block) error {
 	default:
 		return ErrInvalidTxPayloadType
 	}
-
 	if err != nil {
 		return err
 	}
 
 	// execute smart contract and sub the calcute gas.
-	return payload.Execute(tx, block)
+	err = payload.Execute(tx, block)
+	if err != nil {
+		return err
+	}
+
+	// accept the transaction
+	fromAcc.SubBalance(tx.value)
+	toAcc.AddBalance(tx.value)
+	fromAcc.IncreNonce()
+	return nil
 }
 
 // Sign sign transaction,sign algorithm is
