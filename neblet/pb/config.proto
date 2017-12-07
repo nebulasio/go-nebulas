@@ -34,10 +34,11 @@ message NetworkConfig {
     // Neb seed node address.
     repeated string seed = 1;
     // Listen addresses.
-    uint32 listen = 2;
+    repeated string listen = 2;
     // Network node privateKey address. If nil, generate a new node.
     string private_key = 3;
 }
+
 message ChainConfig {
     // ChainID.
     uint32 chain_id = 1;
@@ -57,12 +58,24 @@ message ChainConfig {
     }
     repeated SignatureCiphers signature_ciphers = 24;
 }
+
 message RPCConfig {
-    // RPC listen addresses.
-    uint32 rpc_listen = 1;
-    // HTTP listen addresses.
-    uint32 http_listen = 2;
+    // PRC modules.
+	enum RPCModule {
+		App = 0;
+		Admin = 1;
+	}
+
+	// RPC listen addresses.
+	repeated string rpc_listen = 1;
+
+	// HTTP listen addresses.
+	repeated string http_listen = 3;
+
+	// Enabled HTTP modules.
+	repeated RPCModule http_module = 4;
 }
+
 message MiscConfig {
     // Default encryption ciper when create new keystore file.
     string default_keystore_file_ciper = 1;
@@ -75,7 +88,7 @@ message StatsConfig {
         Influxdb = 0;
     }
     repeated ReportingModule reporting_module = 2;
-    // Influxdb config.
+    // Influxdb config.`
     InfluxdbConfig influxdb = 11;
 }
 message InfluxdbConfig {

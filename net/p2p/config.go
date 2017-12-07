@@ -31,10 +31,10 @@ import (
 const (
 	DefaultBucketsize = 16
 	DefaultLatency    = 10
-	DefaultIP         = "127.0.0.1"
+	// DefaultIP         = "127.0.0.1"
 	DefaultPrivateKey = ""
 	// DefaultRandseed              = 12345
-	DefaultPort                  = 9999
+	// DefaultPort                  = 9999
 	DefaultMaxSyncNodes          = 16
 	DefaultChainID               = 1
 	DefaultVersion               = 0
@@ -45,12 +45,13 @@ const (
 
 // Config TODO: move to proto config.
 type Config struct {
-	Bucketsize            int
-	Latency               time.Duration
-	BootNodes             []multiaddr.Multiaddr
-	PrivateKey            string
-	IP                    string
-	Port                  uint32
+	Bucketsize int
+	Latency    time.Duration
+	BootNodes  []multiaddr.Multiaddr
+	PrivateKey string
+	// IP                    string
+	// Port                  uint32
+	Listen                []string
 	MaxSyncNodes          int
 	ChainID               uint32
 	Version               uint8
@@ -67,7 +68,8 @@ type Neblet interface {
 // NewP2PConfig new p2p network config
 func NewP2PConfig(n Neblet) *Config {
 	config := DefautConfig()
-	config.IP = localHost()
+	// config.IP = localHost()
+	config.Listen = n.Config().Network.Listen
 
 	seeds := n.Config().Network.Seed
 	if len(seeds) > 0 {
@@ -82,7 +84,7 @@ func NewP2PConfig(n Neblet) *Config {
 		}
 	}
 
-	config.Port = n.Config().Network.Listen
+	// config.Port = n.Config().Network.Listen
 	config.PrivateKey = n.Config().Network.PrivateKey
 
 	if chainID := n.Config().Chain.ChainId; chainID > 0 {
@@ -117,13 +119,13 @@ func DefautConfig() *Config {
 	//return &Config{
 	//	30, 10, []multiaddr.Multiaddr{bootNode}, "127.0.0.1", 20000, 1896599, 16,
 	//}
+	defaultListen := []string{"127.0.0.1:9999"}
 	return &Config{
 		DefaultBucketsize,
 		DefaultLatency,
 		[]multiaddr.Multiaddr{},
 		DefaultPrivateKey,
-		DefaultIP,
-		DefaultPort,
+		defaultListen,
 		DefaultMaxSyncNodes,
 		DefaultChainID,
 		DefaultVersion,

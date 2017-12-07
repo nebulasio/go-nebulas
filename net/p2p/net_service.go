@@ -737,7 +737,7 @@ func (ns *NetService) start() error {
 	if success || len(node.Config().BootNodes) == 0 {
 		go ns.discovery(node.context)
 		go ns.manageStreamStore()
-		log.Infof("net.start: node start and join to p2p network success and listening for connections on port %d... ", node.config.Port)
+		log.Infof("net.start: node start and join to p2p network success and listening for connections on %s... ", node.config.Listen)
 	} else {
 		log.Error("net.start: node start occurs error, say hello to bootNode fail")
 		return errors.New("net.start: node start occurs error, say hello to bootNode fail")

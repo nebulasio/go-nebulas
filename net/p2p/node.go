@@ -106,8 +106,7 @@ func NewNode(config *Config) (*Node, error) {
 		return nil, err
 	}
 	log.WithFields(log.Fields{
-		"node.id":   node.ID(),
-		"node.port": node.config.Port,
+		"node.listen": node.config.Listen,
 	}).Debug("node init success")
 	return node, nil
 }
@@ -143,17 +142,14 @@ func (node *Node) GetStream() *sync.Map {
 }
 
 func (node *Node) checkPort() error {
-	conn, err := net.Dial("tcp",
-		fmt.Sprintf(
-			"%s:%d",
-			node.config.IP,
-			node.config.Port,
-		),
-	)
-	if err == nil {
-		conn.Close()
-		return errors.New("The port already in use")
+	for _, v := range node.config.Listen {
+		conn, err := net.Dial("tcp", v)
+		if err == nil {
+			conn.Close()
+			return errors.New("The port already in use")
+		}
 	}
+
 	return nil
 }
 
@@ -239,16 +235,26 @@ func (node *Node) init() error {
 	node.version = node.config.Version
 	node.synchronized = false
 	// node.mutexLock = &sync.Mutex{}
-	address, err := multiaddr.NewMultiaddr(
-		fmt.Sprintf(
-			"/ip4/%s/tcp/%d",
-			node.config.IP,
-			node.config.Port,
-		),
-	)
+	var multiaddrs []multiaddr.Multiaddr
+	for _, v := range node.config.Listen {
+		tcpAddr, err := net.ResolveTCPAddr("tcp", v)
+		if err != nil {
+			return err
+		}
+
+		address, err := multiaddr.NewMultiaddr(
+			fmt.Sprintf(
+				"/ip4/%s/tcp/%d",
+				tcpAddr.IP,
+				tcpAddr.Port,
+			),
+		)
+		multiaddrs = append(multiaddrs, address)
+	}
+
 	network, err := swarm.NewNetwork(
 		ctx,
-		[]multiaddr.Multiaddr{address},
+		multiaddrs,
 		node.id,
 		node.peerstore,
 		nil,

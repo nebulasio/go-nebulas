@@ -1,15 +1,19 @@
 package rpc
 
 import (
+	"errors"
 	"net"
 	"time"
 
-	"fmt"
-
+	"github.com/nebulasio/go-nebulas/neblet/pb"
 	"github.com/nebulasio/go-nebulas/rpc/pb"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
+)
+
+var (
+	defaultAddr = "127.0.0.1:51510"
 )
 
 // APIServer is the RPC server type.
@@ -18,20 +22,24 @@ type APIServer struct {
 
 	rpcServer *grpc.Server
 
-	port uint32
+	rpcConfig *nebletpb.RPCConfig
 
-	gatewayPort uint32
+	// port uint32
+
+	// gatewayPort uint32
 }
 
 // NewAPIServer creates a new RPC server and registers the API endpoints.
 func NewAPIServer(neblet Neblet) *APIServer {
-	cfg := neblet.Config()
+	cfg := neblet.Config().Rpc
 
 	rpc := grpc.NewServer()
-	srv := &APIServer{neblet: neblet, rpcServer: rpc, port: cfg.Rpc.RpcListen, gatewayPort: cfg.Rpc.HttpListen}
+
+	srv := &APIServer{neblet: neblet, rpcServer: rpc, rpcConfig: cfg}
 	api := &APIService{srv}
 
-	rpcpb.RegisterAPIServiceServer(rpc, api)
+	rpcpb.RegisterAppServiceServer(rpc, api)
+	rpcpb.RegisterAdminServiceServer(rpc, api)
 	// Register reflection service on gRPC server.
 	// TODO: Enable reflection only for testing mode.
 	reflection.Register(rpc)
@@ -41,8 +49,20 @@ func NewAPIServer(neblet Neblet) *APIServer {
 
 // Start starts the rpc server and serves incoming requests.
 func (s *APIServer) Start() error {
-	log.Info("Starting RPC server at: ", s.Address())
-	listener, err := net.Listen("tcp", s.Address())
+	if len(s.rpcConfig.RpcListen) > 0 {
+		for _, v := range s.rpcConfig.RpcListen {
+			s.start(v)
+		}
+	} else {
+		return errors.New("parse rpc-config rpc-listen occurs error")
+	}
+
+	return nil
+}
+
+func (s *APIServer) start(addr string) error {
+	log.Info("Starting RPC server at: ", addr)
+	listener, err := net.Listen("tcp", addr)
 	if err != nil {
 		log.Error("RPC server failed to listen: ", err)
 		return err
@@ -51,15 +71,18 @@ func (s *APIServer) Start() error {
 		log.Error("RPC server failed to serve: ", err)
 		return err
 	}
-
 	return nil
 }
 
 // RunGateway run grpc mapping to http after apiserver have started.
 func (s *APIServer) RunGateway() error {
+	//todo make sure rpc server has run before gateway start.
 	time.Sleep(3 * time.Second)
-	log.Info("Starting api gateway server bind port: ", s.port, " to:", s.gatewayPort)
-	if err := Run(GatewayAPIServiceKey, s.port, s.gatewayPort); err != nil {
+	rpcListen := s.rpcConfig.RpcListen[0]
+	gatewayListen := s.rpcConfig.HttpListen
+	httpModule := s.rpcConfig.HttpModule
+	log.Info("Starting api gateway server bind rpc-server: ", rpcListen, " to:", gatewayListen)
+	if err := Run(rpcListen, gatewayListen, httpModule); err != nil {
 		log.Error("RPC server gateway failed to serve: ", err)
 		return err
 	}
@@ -68,17 +91,11 @@ func (s *APIServer) RunGateway() error {
 
 // Stop stops the rpc server and closes listener.
 func (s *APIServer) Stop() {
-	log.Info("Stopping RPC server at: ", s.Address())
+	log.Info("Stopping RPC server at: ", s.rpcConfig.RpcListen)
 	s.rpcServer.Stop()
 }
 
 // Neblet returns weak reference to Neblet.
 func (s *APIServer) Neblet() Neblet {
 	return s.neblet
-}
-
-// Address returns the RPC server address.
-func (s *APIServer) Address() string {
-	addr := fmt.Sprintf("%s:%d", host, s.port)
-	return addr
 }

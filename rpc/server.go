@@ -48,8 +48,5 @@ type Server interface {
 	// Neblet return neblet
 	Neblet() Neblet
 
-	// Address return server address
-	Address() string
-
 	RunGateway() error
 }
