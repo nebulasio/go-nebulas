@@ -50,7 +50,8 @@ message DposContext {
     bytes dynasty_root = 1;
     bytes next_dynasty_root = 2;
     bytes delegate_root = 3;
-    bytes candidates_root = 4;
+    bytes candidate_root = 4;
+    bytes vote_root = 5;
 }
 
 message BlockHeader {

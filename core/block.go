@@ -293,7 +293,8 @@ func (block *Block) DposContextHash() byteutils.Hash {
 	hasher.Write(block.header.dposContext.DynastyRoot)
 	hasher.Write(block.header.dposContext.NextDynastyRoot)
 	hasher.Write(block.header.dposContext.DelegateRoot)
-	hasher.Write(block.header.dposContext.CandidatesRoot)
+	hasher.Write(block.header.dposContext.CandidateRoot)
+	hasher.Write(block.header.dposContext.VoteRoot)
 
 	return hasher.Sum(nil)
 }

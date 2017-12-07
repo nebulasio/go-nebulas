@@ -28,7 +28,6 @@ import (
 	"github.com/nebulasio/go-nebulas/crypto/keystore/secp256k1"
 	"github.com/nebulasio/go-nebulas/storage"
 	"github.com/nebulasio/go-nebulas/util"
-	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -37,9 +36,11 @@ type MockConsensus struct {
 }
 
 func (c MockConsensus) FastVerifyBlock(block *Block) error {
+	block.miner = block.Coinbase()
 	return nil
 }
 func (c MockConsensus) VerifyBlock(block *Block, parent *Block) error {
+	block.miner = block.Coinbase()
 	return nil
 }
 
@@ -55,38 +56,26 @@ func TestBlockPool(t *testing.T) {
 	priv := secp256k1.GeneratePrivateKey()
 	pubdata, _ := priv.PublicKey().Encoded()
 	from, _ := NewAddressFromPublicKey(pubdata)
-<<<<<<< HEAD
-	ks.SetKey(from.String(), priv, []byte("passphrase"))
-	ks.Unlock(from.String(), []byte("passphrase"), time.Second*60*60*24*365)
-
-	coinbase := &Address{from.address}
-	to := &Address{from.address}
-
-	key, _ := ks.GetUnlocked(from.String())
-=======
 	ks.SetKey(from.ToHex(), priv, []byte("passphrase"))
 	ks.Unlock(from.ToHex(), []byte("passphrase"), time.Second*60*60*24*365)
 	to := &Address{from.address}
 	key, _ := ks.GetUnlocked(from.ToHex())
->>>>>>> core: finish an executable dpos.
 	signature, _ := crypto.NewSignature(keystore.SECP256K1)
 	signature.InitSign(key.(keystore.PrivateKey))
-	log.Info(bc.tailBlock.accState.RootHash())
 	bc.tailBlock.begin()
-	bc.tailBlock.accState.GetOrCreateUserAccount(from.Bytes()).AddBalance(util.NewUint128FromInt(100000))
+	bc.tailBlock.accState.GetOrCreateUserAccount(from.Bytes()).AddBalance(util.NewUint128FromInt(1000000))
+	bc.tailBlock.header.stateRoot = bc.tailBlock.accState.RootHash()
 	bc.tailBlock.commit()
-	log.Info(bc.tailBlock.accState.RootHash())
-	bc.cachedBlocks.ContainsOrAdd(bc.tailBlock.Hash().Hex(), bc.tailBlock)
+	bc.storeBlockToStorage(bc.tailBlock)
 
-	validators, _ := TraverseDynasty(bc.tailBlock.dposContext.dynastyTrie)
+	validators, err := TraverseDynasty(bc.tailBlock.dposContext.dynastyTrie)
+	assert.Nil(t, err)
 
-<<<<<<< HEAD
-	block0 := NewBlock(0, &Address{validators[1]}, bc.tailBlock)
-	log.Info(block0.accState.RootHash())
-=======
-	block0, _ := NewBlock(0, &Address{validators[1]}, bc.tailBlock)
->>>>>>> core: catch err in merkle trie clone.
+	addr := &Address{validators[1]}
+	block0, err := NewBlock(0, addr, bc.tailBlock)
+	assert.Nil(t, err)
 	block0.header.timestamp = bc.tailBlock.header.timestamp + BlockInterval
+	block0.SetMiner(addr)
 	block0.Seal()
 
 	tx1 := NewTransaction(0, from, to, util.NewUint128FromInt(1), 1, TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, util.NewUint128FromInt(200000))
@@ -102,24 +91,32 @@ func TestBlockPool(t *testing.T) {
 	err = bc.txPool.Push(tx3)
 	assert.NoError(t, err)
 
-	block1, _ := NewBlock(0, &Address{validators[2]}, block0)
+	addr = &Address{validators[2]}
+	block1, _ := NewBlock(0, addr, block0)
 	block1.header.timestamp = block0.header.timestamp + BlockInterval
 	block1.CollectTransactions(1)
+	block1.SetMiner(addr)
 	block1.Seal()
 
-	block2, _ := NewBlock(0, &Address{validators[3]}, block1)
+	addr = &Address{validators[3]}
+	block2, _ := NewBlock(0, addr, block1)
 	block2.header.timestamp = block1.header.timestamp + BlockInterval
 	block2.CollectTransactions(1)
+	block2.SetMiner(addr)
 	block2.Seal()
 
-	block3, _ := NewBlock(0, &Address{validators[4]}, block2)
+	addr = &Address{validators[4]}
+	block3, _ := NewBlock(0, addr, block2)
 	block3.header.timestamp = block2.header.timestamp + BlockInterval
 	block3.CollectTransactions(1)
+	block3.SetMiner(addr)
 	block3.Seal()
 
-	block4, _ := NewBlock(0, &Address{validators[5]}, block3)
+	addr = &Address{validators[5]}
+	block4, _ := NewBlock(0, addr, block3)
 	block4.header.timestamp = block3.header.timestamp + BlockInterval
 	block4.CollectTransactions(1)
+	block4.SetMiner(addr)
 	block4.Seal()
 
 	err = pool.Push(block0)
