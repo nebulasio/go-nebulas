@@ -1,47 +1,43 @@
 package rpc
 
 import (
-	"fmt"
+	"flag"
 	"net/http"
 	"strings"
 
-	"flag"
-
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
+	"github.com/nebulasio/go-nebulas/neblet/pb"
 	"github.com/nebulasio/go-nebulas/rpc/pb"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 )
 
-var (
-	// GatewayAPIServiceKey api service
-	GatewayAPIServiceKey = "api_service"
-	// GatewayManagementServiceKey management service
-	GatewayManagementServiceKey = "management_service"
-)
-
 // Run start gateway proxy to mapping grpc to http.
-func Run(key string, apiPort uint32, gatewayPort uint32) error {
+func Run(rpcListen string, gatewayListen []string, httpModule []nebletpb.RPCConfig_RPCModule) error {
 	ctx := context.Background()
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
 	mux := runtime.NewServeMux()
 	opts := []grpc.DialOption{grpc.WithInsecure()}
-	echoEndpoint := flag.String(key, apiAddress(int(apiPort)), "")
-	err := rpcpb.RegisterAPIServiceHandlerFromEndpoint(ctx, mux, *echoEndpoint, opts)
-	if err != nil {
-		return err
+	echoEndpoint := flag.String("rpc", rpcListen, "")
+	for _, v := range httpModule {
+		switch v {
+		case nebletpb.RPCConfig_App:
+			rpcpb.RegisterAppServiceHandlerFromEndpoint(ctx, mux, *echoEndpoint, opts)
+		case nebletpb.RPCConfig_Admin:
+			rpcpb.RegisterAdminServiceHandlerFromEndpoint(ctx, mux, *echoEndpoint, opts)
+		}
 	}
-	// only management service need register manage handler
-	// if key == GatewayManagementServiceKey {
-	// 	err = rpcpb.RegisterManagementServiceHandlerFromEndpoint(ctx, mux, *echoEndpoint, opts)
-	// 	if err != nil {
-	// 		return err
-	// 	}
-	// }
 
-	return http.ListenAndServe(gateWayAddress(int(gatewayPort)), allowCORS(mux))
+	for _, v := range gatewayListen {
+		err := http.ListenAndServe(v, allowCORS(mux))
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func allowCORS(h http.Handler) http.Handler {
@@ -63,14 +59,4 @@ func preflightHandler(w http.ResponseWriter, r *http.Request) {
 	methods := []string{"GET", "HEAD", "POST", "PUT", "DELETE"}
 	w.Header().Set("Access-Control-Allow-Methods", strings.Join(methods, ","))
 	return
-}
-
-func apiAddress(port int) string {
-	addr := fmt.Sprintf("localhost:%d", port)
-	return addr
-}
-
-func gateWayAddress(port int) string {
-	addr := fmt.Sprintf(":%d", port)
-	return addr
 }

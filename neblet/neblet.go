@@ -119,6 +119,7 @@ func (n *Neblet) Start() error {
 	n.consensus.Start()
 	n.snycManager.Start()
 	go n.apiServer.Start()
+
 	go n.apiServer.RunGateway()
 	// go n.managementServer.Start()
 	// go n.managementServer.RunGateway()

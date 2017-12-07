@@ -24,7 +24,7 @@ import "github.com/nebulasio/go-nebulas/core/pb/block.proto";
 package rpcpb;
 
 // RPC API interface.
-service APIService {
+service AppService {
 	// Return the state of the neb.
 	rpc GetNebState (GetNebStateRequest) returns (GetNebStateResponse) {
 		option (google.api.http) = {
@@ -108,7 +108,10 @@ service APIService {
 		};
 	}
 
-	// NewAccount create a new account with passphrase
+}
+
+service AdminService {
+// NewAccount create a new account with passphrase
     rpc NewAccount(NewAccountRequest) returns (NewAccountResponse) {
         option (google.api.http) = {
             post: "/v1/admin/account/new"
@@ -147,7 +150,6 @@ service APIService {
             body: "*"
         };
     }
-
 }
 
 // Request message of GetNebState rpc.

@@ -6,8 +6,8 @@
 
 network {
   # seed: "UNCOMMENT_AND_SET_SEED_NODE_ADDRESS"
-  listen: 51413
-  private_key: "id_ed25519"
+  listen: ["127.0.0.1:51413"]
+  #private_key: "id_ed25519"
 }
 
 chain {
@@ -19,8 +19,9 @@ chain {
 }
 
 rpc {
-    rpc_listen: 51510
-    http_listen: 8090
+    rpc_listen: ["127.0.0.1:51510"]
+    http_listen: ["127.0.0.1:8090"]
+    http_module: [0,1]
 }
 
 stats {

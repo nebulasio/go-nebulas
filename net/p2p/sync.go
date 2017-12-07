@@ -20,6 +20,7 @@ package p2p
 
 import (
 	"errors"
+	"math"
 	"time"
 
 	"github.com/gogo/protobuf/proto"
@@ -29,7 +30,7 @@ import (
 )
 
 // const
-const (
+var (
 	LimitToSync = 1
 )
 
@@ -48,6 +49,7 @@ func (ns *NetService) Sync(tail net.Serializable) error {
 	}
 
 	allNode := node.routeTable.ListPeers()
+	LimitToSync = int(math.Sqrt(float64(len(allNode))))
 	log.Info("Sync: allNode -> ", allNode)
 	if len(allNode) < LimitToSync {
 		log.Warn("Sync: node not enough.")
