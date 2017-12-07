@@ -18,11 +18,6 @@
 
 package core
 
-import (
-	"github.com/gogo/protobuf/proto"
-	"github.com/nebulasio/go-nebulas/core/pb"
-)
-
 // DelegatePayload carry election information
 type DelegatePayload struct {
 	Delegatee *Address
@@ -57,14 +52,7 @@ func (payload *DelegatePayload) ToBytes() []byte {
 func (payload *DelegatePayload) Execute(tx *Transaction, block *Block) error {
 	delegator := tx.from.Bytes()
 	delegatee := payload.Delegatee.Bytes()
-	delegate := &corepb.Delegate{Delegator: delegator, Delegatee: delegatee}
-	bytes, err := proto.Marshal(delegate)
-	if err != nil {
-		return err
-	}
-	_, err = block.dposContext.delegateTrie.Put(delegator, bytes)
-	if err != nil {
-		return err
-	}
-	return nil
+	key := append(delegatee, delegator...)
+	_, err := block.dposContext.delegateTrie.Put(key, delegator)
+	return err
 }

@@ -21,8 +21,9 @@ package rpc
 import (
 	"errors"
 	"fmt"
-	"github.com/nebulasio/go-nebulas/common/trie"
 	"sync"
+
+	"github.com/nebulasio/go-nebulas/common/trie"
 
 	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/core"

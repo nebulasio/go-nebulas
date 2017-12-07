@@ -293,6 +293,7 @@ func (block *Block) DposContextHash() byteutils.Hash {
 	hasher.Write(block.header.dposContext.DynastyRoot)
 	hasher.Write(block.header.dposContext.NextDynastyRoot)
 	hasher.Write(block.header.dposContext.DelegateRoot)
+	hasher.Write(block.header.dposContext.CandidatesRoot)
 
 	return hasher.Sum(nil)
 }
@@ -553,12 +554,6 @@ func (block *Block) verifyState() error {
 	}
 
 	// verify transaction root.
-	log.Info(block.dposContext.dynastyTrie.RootHash())
-	log.Info(block.dposContext.nextDynastyTrie.RootHash())
-	log.Info(block.dposContext.delegateTrie.RootHash())
-	log.Info(block.header.dposContext.DynastyRoot)
-	log.Info(block.header.dposContext.NextDynastyRoot)
-	log.Info(block.header.dposContext.DelegateRoot)
 	if !byteutils.Equal(block.dposContext.RootHash(), block.DposContextHash()) {
 		return ErrInvalidBlockDposContextRoot
 	}
