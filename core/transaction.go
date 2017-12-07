@@ -99,6 +99,11 @@ func (tx *Transaction) Nonce() uint64 {
 	return tx.nonce
 }
 
+// Type return tx type
+func (tx *Transaction) Type() string {
+	return tx.data.Type
+}
+
 // Data return tx data
 func (tx *Transaction) Data() []byte {
 	return tx.data.Payload
@@ -266,6 +271,7 @@ func (tx *Transaction) Execute(block *Block) error {
 	fromAcc.SubBalance(util.NewUint128FromBigInt(gas))
 	coinbaseAcc.AddBalance(util.NewUint128FromBigInt(gas))
 	if tx.gasLimit.Cmp(gasUsed.Int) < 0 {
+		//TODO: add failed execution flag for the tx
 		return nil
 	}
 
@@ -291,16 +297,22 @@ func (tx *Transaction) Execute(block *Block) error {
 	// execute smart contract and sub the calcute gas.
 	err = payload.Execute(tx, block)
 	if err != nil {
+		log.WithFields(log.Fields{
+			"error":       ErrOutofGasLimit,
+			"block":       block,
+			"transaction": tx,
+		}).Error("Transaction Execute.")
+
 		executeTxErrCounter.Inc(1)
-		return err
+		//TODO: add failed execution flag for the tx
+	} else {
+		// accept the transaction
+		fromAcc.SubBalance(tx.value)
+		toAcc.AddBalance(tx.value)
+		fromAcc.IncreNonce()
+
+		executeTxCounter.Inc(1)
 	}
-
-	executeTxCounter.Inc(1)
-
-	// accept the transaction
-	fromAcc.SubBalance(tx.value)
-	toAcc.AddBalance(tx.value)
-	fromAcc.IncreNonce()
 	return nil
 }
 

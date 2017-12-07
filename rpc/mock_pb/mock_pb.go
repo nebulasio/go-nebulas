@@ -73,7 +73,7 @@ func (mr *MockAPIServiceClientMockRecorder) GetAccountState(arg0, arg1 interface
 }
 
 // SendTransaction mocks base method
-func (m *MockAPIServiceClient) SendTransaction(arg0 context.Context, arg1 *pb.SendTransactionRequest, arg2 ...grpc.CallOption) (*pb.SendTransactionResponse, error) {
+func (m *MockAPIServiceClient) SendTransaction(arg0 context.Context, arg1 *pb.TransactionRequest, arg2 ...grpc.CallOption) (*pb.SendTransactionResponse, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)

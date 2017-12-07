@@ -23,7 +23,6 @@ import (
 
 	"github.com/nebulasio/go-nebulas/nf/nvm"
 	"github.com/nebulasio/go-nebulas/util"
-	log "github.com/sirupsen/logrus"
 )
 
 // DeployPayload carry contract deploy information
@@ -72,16 +71,11 @@ func (payload *DeployPayload) Execute(tx *Transaction, block *Block) error {
 
 	// Deploy and Init.
 	err = engine.DeployAndInit(payload.Source, payload.SourceType, payload.Args)
-	if err != nil {
-		log.WithFields(log.Fields{
-			"error":       err,
-			"block":       block,
-			"transaction": tx,
-		}).Error("DeployPayload Execute.")
-	} else {
+	if err == nil {
 		block.accState = ctx.State()
 	}
-	return gasCombustion(engine, tx, block)
+	gasCombustion(engine, tx, block)
+	return nil
 }
 
 // EstimateGas the payload in tx
@@ -137,15 +131,12 @@ func convertNvmTx(tx *Transaction) *nvm.ContextTransaction {
 }
 
 // execute contracts gas combustion
-func gasCombustion(e *nvm.V8Engine, tx *Transaction, block *Block) error {
+func gasCombustion(e *nvm.V8Engine, tx *Transaction, block *Block) {
 	instructions := util.NewUint128FromInt(int64(e.ExecutionInstructions()))
 	// cost = gasPrice * executionInstructions
 	cost := instructions.Mul(instructions.Int, tx.gasPrice.Int)
-	err := e.Context().Owner().SubBalance(util.NewUint128FromBigInt(cost))
-	if err != nil {
-		return err
-	}
+	e.Context().Owner().SubBalance(util.NewUint128FromBigInt(cost))
+
 	coinbaseAcc := e.Context().State().GetOrCreateUserAccount(block.CoinbaseHash())
 	coinbaseAcc.AddBalance(util.NewUint128FromBigInt(cost))
-	return nil
 }

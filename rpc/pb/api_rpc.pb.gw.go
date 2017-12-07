@@ -82,7 +82,7 @@ func request_ApiService_GetAccountState_0(ctx context.Context, marshaler runtime
 }
 
 func request_ApiService_SendTransaction_0(ctx context.Context, marshaler runtime.Marshaler, client ApiServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq SendTransactionRequest
+	var protoReq TransactionRequest
 	var metadata runtime.ServerMetadata
 
 	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil {
@@ -95,7 +95,7 @@ func request_ApiService_SendTransaction_0(ctx context.Context, marshaler runtime
 }
 
 func request_ApiService_Call_0(ctx context.Context, marshaler runtime.Marshaler, client ApiServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq CallRequest
+	var protoReq TransactionRequest
 	var metadata runtime.ServerMetadata
 
 	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil {
@@ -195,7 +195,7 @@ func request_AdminService_LockAccount_0(ctx context.Context, marshaler runtime.M
 }
 
 func request_AdminService_SignTransaction_0(ctx context.Context, marshaler runtime.Marshaler, client AdminServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq SignTransactionRequest
+	var protoReq TransactionRequest
 	var metadata runtime.ServerMetadata
 
 	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil {

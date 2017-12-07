@@ -68,7 +68,7 @@ func TestSendTransaction(t *testing.T) {
 	client := mock_pb.NewMockAPIServiceClient(ctrl)
 
 	{
-		req := &rpcpb.SendTransactionRequest{From: "0xf"}
+		req := &rpcpb.TransactionRequest{From: "0xf"}
 		expected := &rpcpb.SendTransactionResponse{Txhash: "0x2"}
 		client.EXPECT().SendTransaction(gomock.Any(), gomock.Any()).Return(expected, nil)
 		resp, _ := client.SendTransaction(context.Background(), req)

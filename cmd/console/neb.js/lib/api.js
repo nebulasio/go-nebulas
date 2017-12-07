@@ -33,28 +33,27 @@ API.prototype.getAccountState = function (address) {
 	return this.request("post", "/v1/user/accountstate", params);
 };
 
-API.prototype.sendTransaction = function (from, to, value, nonce, source, args, gasPrice, gasLimit) {
+API.prototype.sendTransaction = function (from, to, value, nonce, source, args, gasPrice, gasLimit, contract) {
 	var params = {"from": from,
-	"to": to,
-	"value": utils.toString(value),
-	"nonce": nonce,
-	"source": source,
-	"args": args,
-	"gasPrice": utils.toString(gasPrice),
-	"gasLimit": utils.toString(gasLimit)
+        "to": to,
+        "value": utils.toString(value),
+        "nonce": nonce,
+        "gasPrice": utils.toString(gasPrice),
+        "gasLimit": utils.toString(gasLimit),
+        "contract": contract
 	};
 	return this.request("post", "/v1/user/transaction", params);
 };
 
-API.prototype.call = function (from, to, nonce, func, args, gasPrice, gasLimit) {
-	var params = {"from": from,
-	"to": to,
-	"nonce": nonce,
-	"function": func,
-	"args": args,
-	"gasPrice": utils.toString(gasPrice),
-	"gasLimit": utils.toString(gasLimit)
-	};
+API.prototype.call = function (from, to, value, nonce, gasPrice, gasLimit, contract) {
+    var params = {"from": from,
+        "to": to,
+        "value": utils.toString(value),
+        "nonce": nonce,
+        "gasPrice": utils.toString(gasPrice),
+        "gasLimit": utils.toString(gasLimit),
+        "contract": contract
+    };
 	return this.request("post", "/v1/user/call", params);
 };
 

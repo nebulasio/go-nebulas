@@ -27,29 +27,29 @@ Admin.prototype.lockAccount = function (address) {
 	return this.request("post", "/v1/admin/account/lock", params);
 };
 
-Admin.prototype.signTransaction = function (from, to, value, nonce, source, args, gasPrice, gasLimit) {
-	var params = {"from": from,
-	"to": to,
-	"value": utils.toString(value),
-	"nonce": nonce,
-	"source": source,
-	"args": args,
-	"gasPrice": utils.toString(gasPrice),
-	"gasLimit": utils.toString(gasLimit)
-	};
+Admin.prototype.signTransaction = function (from, to, value, nonce, gasPrice, gasLimit, contract) {
+    var params = {"from": from,
+        "to": to,
+        "value": utils.toString(value),
+        "nonce": nonce,
+        "gasPrice": utils.toString(gasPrice),
+        "gasLimit": utils.toString(gasLimit),
+        "contract": contract
+    };
 	return this.request("post", "/v1/admin/sign", params);
 };
 
-Admin.prototype.sendTransactionWithPassphrase = function (from, to, value, nonce, source, args, gasPrice, gasLimit, passphrase) {
-	var params = {"from": from,
-	"to": to,
-	"value": utils.toString(value),
-	"nonce": nonce,
-	"source": source,
-	"args": args,
-	"gasPrice": utils.toString(gasPrice),
-	"gasLimit": utils.toString(gasLimit),
-	"passphrase": passphrase
+Admin.prototype.sendTransactionWithPassphrase = function (from, to, value, nonce, gasPrice, gasLimit, contract, passphrase) {
+    var tx = {"from": from,
+        "to": to,
+        "value": utils.toString(value),
+        "nonce": nonce,
+        "gasPrice": utils.toString(gasPrice),
+        "gasLimit": utils.toString(gasLimit),
+        "contract": contract
+    };
+    var params = {"transaction": tx,
+        "passphrase": passphrase
 	};
 	return this.request("post", "/v1/admin/transactionWithPassphrase", params);
 };

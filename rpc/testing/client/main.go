@@ -76,7 +76,7 @@ func main() {
 
 	{
 		v := util.NewUint128FromInt(value)
-		r, err := ac.SendTransaction(context.Background(), &rpcpb.SendTransactionRequest{From: from, To: to, Value: v.String(), Nonce: nonce + 1})
+		r, err := ac.SendTransaction(context.Background(), &rpcpb.TransactionRequest{From: from, To: to, Value: v.String(), Nonce: nonce + 1})
 		if err != nil {
 			log.Println("SendTransaction failed:", err)
 		} else {
