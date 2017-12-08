@@ -51,47 +51,34 @@ func LoadConfig(filename string) *nebletpb.Config {
 
 func createDefaultConfigFile(filename string) {
 	content := `
-	  p2p {
-		port: 51413
+	network {
+		listen: ["127.0.0.1:51413"]
+	}
+	
+	chain {
 		chain_id: 100
-		version: 1
-	  }
-	  rpc {
-		api_port: 51510
-		management_port: 52520
-		api_http_port: 8090
-		management_http_port: 8191
-	  }
-	  pow {
-		coinbase: "8a209cec02cbeab7e2f74ad969d2dfe8dd24416aa65589bf"
-	  }
-	  
-	  storage {
-		location: "seed.db"
-	  }
-	  
-	  account {
-		# keystore.SECP256K1 = 1
-		signature: 1
-	  
-		# keystore.SCRYPT = 1 << 4
-		encrypt: 16
-	  
-		key_dir: "keydir"
-	  
-		test_passphrase: "passphrase"
-	  }
-	  
-	  influxdb {
-		host: "http://localhost:8086"
-		db: "nebulas"
-		username: "admin"
-		password: "admin"
-	  }
-	  
-	  metrics {
-		enable: false
-	  }`
+		datadir: "seed.db"
+		keydir: "keydir"
+		coinbase: "000000000000000000000000000000000000000000000000"
+		signature_ciphers: [0]
+	}
+	
+	rpc {
+			rpc_listen: ["127.0.0.1:51510"]
+			http_listen: ["127.0.0.1:8090"]
+			http_module: [0,1]
+	}
+	
+	stats {
+			enable_metrics: false
+			influxdb: {
+					host: "http://localhost:8086"
+					db: "nebulas"
+					user: "admin"
+					password: "admin"
+			}
+	}
+	  `
 
 	if err := ioutil.WriteFile(filename, []byte(content), 0644); err != nil {
 		log.Fatal(err)
