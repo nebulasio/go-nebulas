@@ -56,16 +56,18 @@ func (payload *CallPayload) ToBytes() ([]byte, error) {
 
 // Execute the call payload in tx, call a function
 func (payload *CallPayload) Execute(tx *Transaction, block *Block) error {
-	ctx, source, err := generateCallContext(tx, block)
+	ctx, deployPayload, err := generateCallContext(tx, block)
 	if err != nil {
 		return err
 	}
+
 	engine := nvm.NewV8Engine(ctx)
-	//add gas limit and memory use limit
-	engine.SetExecutionLimits(tx.GasLimit().Uint64(), nvm.DefaultLimitsOfTotalMemorySize)
 	defer engine.Dispose()
 
-	err = engine.Call(source, payload.Function, payload.Args)
+	//add gas limit and memory use limit
+	engine.SetExecutionLimits(tx.GasLimit().Uint64(), nvm.DefaultLimitsOfTotalMemorySize)
+
+	err = engine.Call(deployPayload.Source, deployPayload.SourceType, payload.Function, payload.Args)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"error":       err,
@@ -80,41 +82,47 @@ func (payload *CallPayload) Execute(tx *Transaction, block *Block) error {
 
 // EstimateGas the payload in tx
 func (payload *CallPayload) EstimateGas(tx *Transaction, block *Block) (*util.Uint128, error) {
-	ctx, source, err := generateCallContext(tx, block)
+	// TODO: @larry by @robin. since we can rollback all changes after Execute, so we don't need such function.
+
+	ctx, deployPayload, err := generateCallContext(tx, block)
 	if err != nil {
 		return nil, err
 	}
+
 	engine := nvm.NewV8Engine(ctx)
+	defer engine.Dispose()
+
 	executionInstructions := util.NewUint128()
 	executionInstructions.Sub(tx.gasLimit.Int, tx.CalculateGas().Int)
 	engine.SetExecutionLimits(executionInstructions.Uint64(), nvm.DefaultLimitsOfTotalMemorySize)
-	defer engine.Dispose()
-	err = engine.SimulationRun(source, payload.Function, payload.Args)
+
+	err = engine.SimulationRun(deployPayload.Source, deployPayload.SourceType, payload.Function, payload.Args)
 	if err != nil {
 		return nil, err
 	}
+
 	return util.NewUint128FromInt(int64(engine.ExecutionInstructions())), nil
 }
 
-func generateCallContext(tx *Transaction, block *Block) (*nvm.Context, string, error) {
+func generateCallContext(tx *Transaction, block *Block) (*nvm.Context, *DeployPayload, error) {
 	context, err := block.accState.Clone()
 	if err != nil {
-		return nil, "", err
+		return nil, nil, err
 	}
 	contract, err := context.GetContractAccount(tx.to.Bytes())
 	if err != nil {
-		return nil, "", err
+		return nil, nil, err
 	}
 	birthTx, err := block.GetTransaction(contract.BirthPlace())
 	if err != nil {
-		return nil, "", err
+		return nil, nil, err
 	}
 	owner := context.GetOrCreateUserAccount(birthTx.from.Bytes())
 	deploy, err := LoadDeployPayload(birthTx.data.Payload)
 	if err != nil {
-		return nil, "", err
+		return nil, nil, err
 	}
 
 	ctx := nvm.NewContext(block, convertNvmTx(tx), owner, contract, context)
-	return ctx, deploy.Source, nil
+	return ctx, deploy, nil
 }

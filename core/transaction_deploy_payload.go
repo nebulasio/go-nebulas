@@ -28,8 +28,9 @@ import (
 
 // DeployPayload carry contract deploy information
 type DeployPayload struct {
-	Source string
-	Args   string
+	SourceType string
+	Source     string
+	Args       string
 }
 
 // LoadDeployPayload from bytes
@@ -42,10 +43,11 @@ func LoadDeployPayload(bytes []byte) (*DeployPayload, error) {
 }
 
 // NewDeployPayload with source & args
-func NewDeployPayload(source, args string) *DeployPayload {
+func NewDeployPayload(source, sourceType, args string) *DeployPayload {
 	return &DeployPayload{
-		Source: source,
-		Args:   args,
+		SourceType: sourceType,
+		Source:     source,
+		Args:       args,
 	}
 }
 
@@ -60,13 +62,16 @@ func (payload *DeployPayload) Execute(tx *Transaction, block *Block) error {
 	if err != nil {
 		return err
 	}
+
 	engine := nvm.NewV8Engine(ctx)
+	defer engine.Dispose()
+
 	executionInstructions := util.NewUint128()
 	executionInstructions.Sub(tx.gasLimit.Int, tx.CalculateGas().Int)
 	engine.SetExecutionLimits(executionInstructions.Uint64(), nvm.DefaultLimitsOfTotalMemorySize)
-	defer engine.Dispose()
 
-	err = engine.DeployAndInit(payload.Source, payload.Args)
+	// Deploy and Init.
+	err = engine.DeployAndInit(payload.Source, payload.SourceType, payload.Args)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"error":       err,
@@ -81,15 +86,18 @@ func (payload *DeployPayload) Execute(tx *Transaction, block *Block) error {
 
 // EstimateGas the payload in tx
 func (payload *DeployPayload) EstimateGas(tx *Transaction, block *Block) (*util.Uint128, error) {
+	// TODO: @larry by @robin. since we can rollback all changes after Execute, so we don't need such function.
 	ctx, err := generateDeployContext(tx, block)
 	if err != nil {
 		return nil, err
 	}
+
 	engine := nvm.NewV8Engine(ctx)
+	defer engine.Dispose()
 	//add gas limit and memory use limit
 	engine.SetExecutionLimits(TransactionMaxGas.Uint64(), nvm.DefaultLimitsOfTotalMemorySize)
-	defer engine.Dispose()
-	err = engine.SimulationRun(payload.Source, "init", payload.Args)
+
+	err = engine.SimulationRun(payload.Source, payload.SourceType, "init", payload.Args)
 	if err != nil {
 		return nil, err
 	}

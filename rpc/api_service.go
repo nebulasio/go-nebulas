@@ -154,7 +154,7 @@ func (s *APIService) SendTransaction(ctx context.Context, req *rpcpb.SendTransac
 		return nil, errors.New("nonce is invalid")
 	}
 	if len(req.Source) > 0 {
-		data, err = core.NewDeployPayload(req.Source, req.Args).ToBytes()
+		data, err = core.NewDeployPayload(req.Source, req.SourceType, req.Args).ToBytes()
 		payloadType = core.TxPayloadDeployType
 		if err != nil {
 			return nil, err

@@ -30,9 +30,9 @@ import (
 	"github.com/nebulasio/go-nebulas/util/byteutils"
 )
 
-var (
-	// DefaultLimitsOfTotalMemorySize default limits of total menmory size
-	DefaultLimitsOfTotalMemorySize uint64 = 20 * 1000 * 1000
+const (
+	// DefaultLimitsOfTotalMemorySize default limits of total memory size
+	DefaultLimitsOfTotalMemorySize uint64 = 40 * 1000 * 1000
 )
 
 // Block interface breaks cycle import dependency and hides unused services.

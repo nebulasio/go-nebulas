@@ -274,10 +274,11 @@ func TestDeployAndInitAndCall(t *testing.T) {
 	tests := []struct {
 		name         string
 		contractPath string
+		sourceType   string
 		initArgs     string
 		verifyArgs   string
 	}{
-		{"deploy sample_contract.js", "./test/sample_contract.js", "[\"TEST001\", 123,[{\"name\":\"robin\",\"count\":2},{\"name\":\"roy\",\"count\":3},{\"name\":\"leon\",\"count\":4}]]", "[\"TEST001\", 123,[{\"name\":\"robin\",\"count\":2},{\"name\":\"roy\",\"count\":3},{\"name\":\"leon\",\"count\":4}]]"},
+		{"deploy sample_contract.js", "./test/sample_contract.js", "js", "[\"TEST001\", 123,[{\"name\":\"robin\",\"count\":2},{\"name\":\"roy\",\"count\":3},{\"name\":\"leon\",\"count\":4}]]", "[\"TEST001\", 123,[{\"name\":\"robin\",\"count\":2},{\"name\":\"roy\",\"count\":3},{\"name\":\"leon\",\"count\":4}]]"},
 	}
 
 	for _, tt := range tests {
@@ -294,19 +295,19 @@ func TestDeployAndInitAndCall(t *testing.T) {
 			ctx := NewContext(testContextBlock(), testContextTransaction(), owner, contract, context)
 			engine := NewV8Engine(ctx)
 			engine.SetExecutionLimits(1000, 10000000)
-			err = engine.DeployAndInit(string(data), tt.initArgs)
+			err = engine.DeployAndInit(string(data), tt.sourceType, tt.initArgs)
 			assert.Nil(t, err)
 			engine.Dispose()
 
 			engine = NewV8Engine(ctx)
 			engine.SetExecutionLimits(1000, 10000000)
-			err = engine.Call(string(data), "dump", "")
+			err = engine.Call(string(data), tt.sourceType, "dump", "")
 			assert.Nil(t, err)
 			engine.Dispose()
 
 			engine = NewV8Engine(ctx)
 			engine.SetExecutionLimits(1000, 10000000)
-			err = engine.Call(string(data), "verify", tt.verifyArgs)
+			err = engine.Call(string(data), tt.sourceType, "verify", tt.verifyArgs)
 			assert.Nil(t, err)
 			engine.Dispose()
 
@@ -319,7 +320,7 @@ func TestDeployAndInitAndCall(t *testing.T) {
 			ctx = NewContext(testContextBlock(), testContextTransaction(), owner, contract, context)
 			engine = NewV8Engine(ctx)
 			engine.SetExecutionLimits(1000, 10000000)
-			err = engine.Call(string(data), "verify", tt.verifyArgs)
+			err = engine.Call(string(data), tt.sourceType, "verify", tt.verifyArgs)
 			assert.NotNil(t, err)
 			engine.Dispose()
 		})
@@ -332,12 +333,14 @@ func TestContracts(t *testing.T) {
 		args     string
 	}
 	tests := []struct {
-		contract string
-		initArgs string
-		calls    []fields
+		contract   string
+		sourceType string
+		initArgs   string
+		calls      []fields
 	}{
 		{
 			"./test/contract_rectangle.js",
+			"js",
 			"[\"1024\", \"768\"]",
 			[]fields{
 				{"calcArea", "[]"},
@@ -346,6 +349,7 @@ func TestContracts(t *testing.T) {
 		},
 		{
 			"./test/contract_rectangle.js",
+			"js",
 			"[\"999\", \"123\"]",
 			[]fields{
 				{"calcArea", "[]"},
@@ -369,7 +373,7 @@ func TestContracts(t *testing.T) {
 			// deploy and init.
 			engine := NewV8Engine(ctx)
 			engine.SetExecutionLimits(1000, 10000000)
-			err = engine.DeployAndInit(string(data), tt.initArgs)
+			err = engine.DeployAndInit(string(data), tt.sourceType, tt.initArgs)
 			assert.Nil(t, err)
 			engine.Dispose()
 
@@ -377,7 +381,7 @@ func TestContracts(t *testing.T) {
 			for _, fields := range tt.calls {
 				engine = NewV8Engine(ctx)
 				engine.SetExecutionLimits(1000, 10000000)
-				err = engine.Call(string(data), fields.function, fields.args)
+				err = engine.Call(string(data), tt.sourceType, fields.function, fields.args)
 				assert.Nil(t, err)
 				engine.Dispose()
 			}
@@ -403,6 +407,7 @@ func TestFunctionNameCheck(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.function, func(t *testing.T) {
 			data, err := ioutil.ReadFile("test/sample_contract.js")
+			sourceType := "js"
 			assert.Nil(t, err, "contract path read error")
 
 			mem, _ := storage.NewMemoryStorage()
@@ -414,7 +419,7 @@ func TestFunctionNameCheck(t *testing.T) {
 
 			engine := NewV8Engine(ctx)
 			engine.SetExecutionLimits(1000, 10000000)
-			err = engine.Call(string(data), tt.function, tt.args)
+			err = engine.Call(string(data), sourceType, tt.function, tt.args)
 			assert.Equal(t, tt.expectedErr, err)
 			engine.Dispose()
 		})
@@ -640,13 +645,34 @@ func TestBlockchian(t *testing.T) {
 }
 
 func TestBankVaultContract(t *testing.T) {
+	type TakeoutTest struct {
+		args        string
+		expectedErr error
+	}
+
 	tests := []struct {
 		name         string
 		contractPath string
+		sourceType   string
 		saveArgs     string
-		takeoutArgs  string
+		takeoutTests []TakeoutTest
 	}{
-		{"deploy bank_vault_contract.js", "./test/bank_vault_contract.js", "[0]", "[1]"},
+		{"deploy bank_vault_contract.js", "./test/bank_vault_contract.js", "js", "[0]",
+			[]TakeoutTest{
+				{"[1]", nil},
+				{"[5]", ErrExecutionFailed},
+				{"[4]", nil},
+				{"[1]", ErrExecutionFailed},
+			},
+		},
+		{"deploy bank_vault_contract.ts", "./test/bank_vault_contract.ts", "ts", "[0]",
+			[]TakeoutTest{
+				{"[1]", nil},
+				{"[5]", ErrExecutionFailed},
+				{"[4]", nil},
+				{"[1]", ErrExecutionFailed},
+			},
+		},
 	}
 
 	for _, tt := range tests {
@@ -660,24 +686,29 @@ func TestBankVaultContract(t *testing.T) {
 			owner.AddBalance(util.NewUint128FromInt(10000000))
 			contract, _ := context.CreateContractAccount([]byte("account2"), nil)
 
+			// parepare env, block & transactions.
 			ctx := NewContext(testContextBlock(), testContextTransaction(), owner, contract, context)
+
+			// execute.
 			engine := NewV8Engine(ctx)
-			engine.SetExecutionLimits(1000, 10000000)
-			err = engine.DeployAndInit(string(data), "")
+			engine.SetExecutionLimits(1000, 100000000)
+			err = engine.DeployAndInit(string(data), tt.sourceType, "")
 			assert.Nil(t, err)
 			engine.Dispose()
 
 			engine = NewV8Engine(ctx)
-			engine.SetExecutionLimits(1000, 10000000)
-			err = engine.Call(string(data), "save", tt.saveArgs)
+			engine.SetExecutionLimits(1000, 100000000)
+			err = engine.Call(string(data), tt.sourceType, "save", tt.saveArgs)
 			assert.Nil(t, err)
 			engine.Dispose()
 
-			engine = NewV8Engine(ctx)
-			engine.SetExecutionLimits(1000, 10000000)
-			err = engine.Call(string(data), "takeout", tt.takeoutArgs)
-			assert.Nil(t, err)
-			engine.Dispose()
+			for _, tot := range tt.takeoutTests {
+				engine = NewV8Engine(ctx)
+				engine.SetExecutionLimits(1000, 100000000)
+				err = engine.Call(string(data), tt.sourceType, "takeout", tot.args)
+				assert.Equal(t, err, tot.expectedErr)
+				engine.Dispose()
+			}
 		})
 	}
 }

@@ -25,10 +25,10 @@ var combineStorageMapKey = function (fieldName, key) {
 };
 
 var applyMapDescriptor = function (obj, descriptor) {
-    descriptor = Object.assign(descriptor || {}, {
+    descriptor = Object.assign({
         stringify: JSON.stringify,
         parse: JSON.parse
-    });
+    }, descriptor || {});
 
     if (typeof descriptor.stringify !== 'function' || typeof descriptor.parse !== 'function') {
         throw new Error("descriptor.stringify and descriptor.parse must be function.");
@@ -52,10 +52,10 @@ var applyMapDescriptor = function (obj, descriptor) {
 };
 
 var applyFieldDescriptor = function (obj, fieldName, descriptor) {
-    descriptor = Object.assign(descriptor || {}, {
+    descriptor = Object.assign({
         stringify: JSON.stringify,
         parse: JSON.parse
-    });
+    }, descriptor || {});
 
     if (typeof descriptor.stringify !== 'function' || typeof descriptor.parse !== 'function') {
         throw new Error("descriptor.stringify and descriptor.parse must be function.");

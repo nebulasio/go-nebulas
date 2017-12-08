@@ -54,15 +54,22 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// Const.
+const (
+	SourceTypeJavaScript = "js"
+	SourceTypeTypeScript = "ts"
+)
+
 // Errors
 var (
-	ErrExecutionFailed                = errors.New("execute source failed")
+	ErrExecutionFailed                = errors.New("execution failed")
 	ErrDisallowCallPrivateFunction    = errors.New("disallow call private function")
 	ErrExecutionTimeout               = errors.New("execution timeout")
 	ErrInsufficientGas                = errors.New("insufficient gas")
 	ErrExceedMemoryLimits             = errors.New("exceed memory limits")
 	ErrInjectTracingInstructionFailed = errors.New("inject tracing instructions failed")
 	ErrTranspileTypeScriptFailed      = errors.New("transpile TypeScript failed")
+	ErrUnsupportedSourceType          = errors.New("unsupported source type")
 )
 
 var (
@@ -302,27 +309,44 @@ func (e *V8Engine) RunScriptSource(source string, sourceLineOffset int) (err err
 }
 
 // Call function in a script
-func (e *V8Engine) Call(source, function, args string) error {
+func (e *V8Engine) Call(source, sourceType, function, args string) error {
 	if publicFuncNameChecker.MatchString(function) == false || strings.EqualFold("init", function) == true {
 		return ErrDisallowCallPrivateFunction
 	}
-	return e.RunContractScript(source, function, args)
+	return e.RunContractScript(source, sourceType, function, args)
 }
 
 // DeployAndInit a contract
-func (e *V8Engine) DeployAndInit(source, args string) error {
-	return e.RunContractScript(source, "init", args)
+func (e *V8Engine) DeployAndInit(source, sourceType, args string) error {
+	return e.RunContractScript(source, sourceType, "init", args)
 }
 
 // SimulationRun a contract
-func (e *V8Engine) SimulationRun(source, function, args string) error {
+func (e *V8Engine) SimulationRun(source, sourceType, function, args string) error {
 	e.simulationRun = true
-	return e.RunContractScript(source, function, args)
+	return e.RunContractScript(source, sourceType, function, args)
 }
 
 // RunContractScript execute script in Smart Contract's way.
-func (e *V8Engine) RunContractScript(source, function, args string) error {
-	runnableSource, sourceLineOffset, err := e.prepareRunnableContractScript(source, function, args)
+func (e *V8Engine) RunContractScript(source, sourceType, function, args string) error {
+	var runnableSource string
+	var sourceLineOffset int
+	var err error
+
+	switch sourceType {
+	case SourceTypeJavaScript:
+		runnableSource, sourceLineOffset, err = e.prepareRunnableContractScript(source, function, args)
+	case SourceTypeTypeScript:
+		// transpile to javascript.
+		jsSource, _, err := e.TranspileTypeScript(source)
+		if err != nil {
+			return err
+		}
+		runnableSource, sourceLineOffset, err = e.prepareRunnableContractScript(jsSource, function, args)
+	default:
+		return ErrUnsupportedSourceType
+	}
+
 	if err != nil {
 		return err
 	}

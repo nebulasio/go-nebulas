@@ -1,46 +1,81 @@
 'use strict';
 
+var DepositeContent = function (text) {
+	if (text) {
+		let o = JSON.parse(text);
+		this.balance = new BigNumber(o.balance);
+		this.expiryHeight = new BigNumber(o.expiryHeight);
+	} else {
+		this.balance = new BigNumber(0);
+		this.expiryHeight = new BigNumber(0);
+	}
+};
+
+DepositeContent.prototype = {
+	toString: function () {
+		return JSON.stringify(this);
+	}
+};
+
 var BankVaultContract = function () {
-	LocalContractStorage.defineMapProperty(this, "bankVault");
+	LocalContractStorage.defineMapProperty(this, "bankVault", {
+		parse: function (text) {
+			return new DepositeContent(text);
+		},
+		stringify: function (o) {
+			return o.toString();
+		}
+	});
 };
 
 // save value to contract, only after height of block, users can takeout
 BankVaultContract.prototype = {
-	init: function() {
+	init: function () {
 		//TODO:
 	},
-	save: function(height) {
-		var deposit = this.bankVault.get(Blockchain.transaction.from);
+
+	save: function (height) {
+		var from = Blockchain.transaction.from;
 		var value = Blockchain.transaction.value;
-		if (deposit != null && deposit.balance.length > 0) {
-			var balance = new BigNumber(deposit.balance);
+		var bk_height = new BigNumber(Blockchain.block.height);
+
+		var orig_deposit = this.bankVault.get(from);
+		if (orig_deposit) {
 			value = value.plus(balance);
 		}
-		var content = {
-			balance: value.toString(),
-			height: Blockchain.block.height + height
-		}
-		this.bankVault.put(Blockchain.transaction.from, content);
+
+		var deposit = new DepositeContent();
+		deposit.balance = value;
+		deposit.expiryHeight = bk_height.plus(height);
+
+		this.bankVault.put(from, deposit);
 	},
-	takeout: function(amount) {
-		var deposit = this.bankVault.get(Blockchain.transaction.from);
-		if (deposit == null) {
-			return 0;
+
+	takeout: function (value) {
+		var from = Blockchain.transaction.from;
+		var bk_height = new BigNumber(Blockchain.block.height);
+		var amount = new BigNumber(value);
+
+		var deposit = this.bankVault.get(from);
+		if (!deposit) {
+			throw new Error("No deposit before.");
 		}
-		if (Blockchain.block.height < deposit.height) {
-			return 0;
+
+		if (bk_height.lt(deposit.expiryHeight)) {
+			throw new Error("Can't takeout before expiryHeight.");
 		}
-		var balance = new BigNumber(deposit.balance);
-		var value = new BigNumber(amount);
-		if (balance.lessThan(value)) {
-			return 0;
+
+		if (amount.gt(deposit.balance)) {
+			throw new Error("Insufficient balance.");
 		}
-		var result = Blockchain.transfer(Blockchain.transaction.from, value);
-		if (result > 0) {
-			deposit.balance = balance.dividedBy(value).toString();
-			this.bankVault.put(Blockchain.transaction.from, deposit);
+
+		var result = Blockchain.transfer(from, amount);
+		if (result != 0) {
+			throw new Error("transfer failed.");
 		}
-		return result;
+
+		deposit.balance = deposit.balance.sub(amount);
+		this.bankVault.put(from, deposit);
 	}
 };
 

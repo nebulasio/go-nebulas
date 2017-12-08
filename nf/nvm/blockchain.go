@@ -78,6 +78,7 @@ func GetAccountStateFunc(handler unsafe.Pointer, address *C.char) *C.char {
 // TransferFunc transfer vale to address
 //export TransferFunc
 func TransferFunc(handler unsafe.Pointer, to *C.char, v *C.char) int {
+	//TODO: @larry should change to return 0 success, otherwise failed.
 	engine, _ := getEngineByStorageHandler(uint64(uintptr(handler)))
 	if engine == nil || engine.ctx.block == nil {
 		return 0
