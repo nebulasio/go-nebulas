@@ -30,6 +30,7 @@ import (
 	"github.com/nebulasio/go-nebulas/crypto/keystore"
 	"github.com/nebulasio/go-nebulas/util"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
+	metrics "github.com/rcrowley/go-metrics"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -50,6 +51,9 @@ var (
 
 	// TransactionDataGas per byte of data attached to a transaction gas cost
 	TransactionDataGas = util.NewUint128FromInt(50)
+
+	executeTxCounter    = metrics.GetOrRegisterCounter("tx_execute", nil)
+	executeTxErrCounter = metrics.GetOrRegisterCounter("tx_execute_err", nil)
 )
 
 // Transaction type is used to handle all transaction data.
@@ -287,8 +291,11 @@ func (tx *Transaction) Execute(block *Block) error {
 	// execute smart contract and sub the calcute gas.
 	err = payload.Execute(tx, block)
 	if err != nil {
+		executeTxErrCounter.Inc(1)
 		return err
 	}
+
+	executeTxCounter.Inc(1)
 
 	// accept the transaction
 	fromAcc.SubBalance(tx.value)

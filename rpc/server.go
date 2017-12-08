@@ -25,10 +25,6 @@ import (
 	"github.com/nebulasio/go-nebulas/net/p2p"
 )
 
-var (
-	host = "127.0.0.1"
-)
-
 // Neblet interface breaks cycle import dependency and hides unused services.
 type Neblet interface {
 	Config() nebletpb.Config

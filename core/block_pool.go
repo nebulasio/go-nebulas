@@ -28,12 +28,15 @@ import (
 	"github.com/nebulasio/go-nebulas/core/pb"
 	"github.com/nebulasio/go-nebulas/net"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
+	metrics "github.com/rcrowley/go-metrics"
 	log "github.com/sirupsen/logrus"
 )
 
 // Errors in block
 var (
-	ErrDuplicatedBlock = errors.New("duplicated block")
+	ErrDuplicatedBlock    = errors.New("duplicated block")
+	duplicateBlockCounter = metrics.GetOrRegisterCounter("bp_duplicate", nil)
+	invalidBlockCounter   = metrics.GetOrRegisterCounter("bp_invalid", nil)
 )
 
 // BlockPool a pool of all received blocks from network.
@@ -207,16 +210,19 @@ func (pool *BlockPool) PushAndBroadcast(block *Block) error {
 func (pool *BlockPool) push(block *Block) error {
 	if pool.blockCache.Contains(block.Hash().Hex()) ||
 		pool.bc.GetBlock(block.Hash()) != nil {
+		duplicateBlockCounter.Inc(1)
 		return ErrDuplicatedBlock
 	}
 
 	// verify nonce.
 	if err := pool.bc.ConsensusHandler().VerifyBlock(block); err != nil {
+		invalidBlockCounter.Inc(1)
 		return err
 	}
 
 	// verify block hash & txs
 	if err := block.verifyHash(pool.bc.chainID); err != nil {
+		invalidBlockCounter.Inc(1)
 		return err
 	}
 

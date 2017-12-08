@@ -28,7 +28,15 @@ import (
 	"github.com/nebulasio/go-nebulas/net"
 	"github.com/nebulasio/go-nebulas/util"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
+	metrics "github.com/rcrowley/go-metrics"
 	log "github.com/sirupsen/logrus"
+)
+
+var (
+	invalidTxCounter       = metrics.GetOrRegisterCounter("txpool_invalid", nil)
+	duplicateTxCounter     = metrics.GetOrRegisterCounter("txpool_duplicate", nil)
+	belowGasPriceTxCounter = metrics.GetOrRegisterCounter("txpool_below_gas_price", nil)
+	outOfGasLimitTxCounter = metrics.GetOrRegisterCounter("txpool_out_of_gas_limit", nil)
 )
 
 // TransactionPool cache txs, is thread safe
@@ -190,19 +198,23 @@ func (pool *TransactionPool) PushAndBroadcast(tx *Transaction) error {
 func (pool *TransactionPool) push(tx *Transaction) error {
 	// if tx's gasPrice below the pool config lowest gasPrice, return ErrBelowGasPrice
 	if tx.gasPrice.Cmp(pool.gasPrice.Int) < 0 {
+		belowGasPriceTxCounter.Inc(1)
 		return ErrBelowGasPrice
 	}
 	if tx.gasLimit.Cmp(pool.gasLimt.Int) > 0 {
+		outOfGasLimitTxCounter.Inc(1)
 		return ErrOutofGasLimit
 	}
 
 	// verify hash & sign of tx
 	if err := tx.Verify(pool.bc.chainID); err != nil {
+		invalidTxCounter.Inc(1)
 		return err
 	}
 
 	// verify non-dup tx
 	if _, ok := pool.all[tx.hash.Hex()]; ok {
+		duplicateTxCounter.Inc(1)
 		return errors.New("duplicate tx")
 	}
 	// cache the verified tx
