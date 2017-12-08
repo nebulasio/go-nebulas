@@ -684,7 +684,10 @@ func TestBankVaultContract(t *testing.T) {
 			context, _ := state.NewAccountState(nil, mem)
 			owner := context.GetOrCreateUserAccount([]byte("account1"))
 			owner.AddBalance(util.NewUint128FromInt(10000000))
+
+			// prepare the contract.
 			contract, _ := context.CreateContractAccount([]byte("account2"), nil)
+			contract.AddBalance(util.NewUint128FromInt(5))
 
 			// parepare env, block & transactions.
 			ctx := NewContext(testContextBlock(), testContextTransaction(), owner, contract, context)

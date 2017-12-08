@@ -78,10 +78,9 @@ func GetAccountStateFunc(handler unsafe.Pointer, address *C.char) *C.char {
 // TransferFunc transfer vale to address
 //export TransferFunc
 func TransferFunc(handler unsafe.Pointer, to *C.char, v *C.char) int {
-	//TODO: @larry should change to return 0 success, otherwise failed.
 	engine, _ := getEngineByStorageHandler(uint64(uintptr(handler)))
 	if engine == nil || engine.ctx.block == nil {
-		return 0
+		return 1
 	}
 
 	addr := C.GoString(to)
@@ -92,8 +91,9 @@ func TransferFunc(handler unsafe.Pointer, to *C.char, v *C.char) int {
 			"handler": uint64(uintptr(handler)),
 			"key":     C.GoString(to),
 		}).Error("TransferFunc parse address failed.")
-		return 0
+		return 1
 	}
+
 	toAcc := engine.ctx.state.GetOrCreateUserAccount([]byte(addr))
 
 	var (
@@ -104,9 +104,9 @@ func TransferFunc(handler unsafe.Pointer, to *C.char, v *C.char) int {
 	// if engine is simulation run, need not update balance
 	if engine.simulationRun {
 		if engine.ctx.contract.Balance().Cmp(amount.Int) < 0 {
-			return 0
+			return 1
 		}
-		return 1
+		return 0
 	}
 
 	// update balance
@@ -118,10 +118,11 @@ func TransferFunc(handler unsafe.Pointer, to *C.char, v *C.char) int {
 			"key":     C.GoString(to),
 			"err":     err,
 		}).Error("TransferFunc SubBalance failed.")
-		return 0
+		return 1
 	}
+
 	toAcc.AddBalance(amount)
-	return 1
+	return 0
 }
 
 // VerifyAddressFunc verify address is valid
