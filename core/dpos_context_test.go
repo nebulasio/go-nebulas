@@ -24,6 +24,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/nebulasio/go-nebulas/storage"
+	"github.com/nebulasio/go-nebulas/util"
 )
 
 func TestBlock_NextDynastyContext(t *testing.T) {
@@ -102,4 +103,24 @@ func TestBlock_NextDynastyContext(t *testing.T) {
 	newBlock, _ = mockBlockFromNetwork(newBlock)
 	newBlock.LinkParentBlock(chain.tailBlock)
 	assert.Nil(t, newBlock.Verify(chain.ChainID()))
+}
+
+func TestBlock_ElectNewDynasty(t *testing.T) {
+	storage, _ := storage.NewMemoryStorage()
+	chain, _ := NewBlockChain(0, storage)
+	block, _ := LoadBlockFromStorage(GenesisHash, chain.storage, chain.txPool)
+	validators, _ := TraverseDynasty(block.dposContext.dynastyTrie)
+	block.begin()
+	v := &Address{validators[DynastySize-1]}
+	block.accState.GetOrCreateUserAccount(v.Bytes()).AddBalance(util.NewUint128FromInt(2000000))
+	payload, _ := NewDelegatePayload(DelegateAction, v.ToHex())
+	bytes, _ := payload.ToBytes()
+	tx := NewTransaction(0, v, v, util.NewUint128FromInt(1), 1, TxPayloadDelegateType, bytes, TransactionGasPrice, util.NewUint128FromInt(200000))
+	_, err := block.executeTransaction(tx)
+	assert.Nil(t, err)
+	block.commit()
+	dynasty, err := block.electNewDynasty(0)
+	assert.Nil(t, err)
+	_, err = dynasty.Get(validators[ReserveSize+1])
+	assert.Nil(t, err)
 }

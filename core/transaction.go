@@ -284,6 +284,10 @@ func (tx *Transaction) Execute(block *Block) (*util.Uint128, error) {
 		payload, err = LoadDeployPayload(tx.data.Payload)
 	case TxPayloadCallType:
 		payload, err = LoadCallPayload(tx.data.Payload)
+	case TxPayloadCandidateType:
+		payload, err = LoadCandidatePayload(tx.data.Payload)
+	case TxPayloadDelegateType:
+		payload, err = LoadDelegatePayload(tx.data.Payload)
 	default:
 		return nil, ErrInvalidTxPayloadType
 	}

@@ -278,9 +278,9 @@ func (p Candidates) Swap(i, j int) { p[i], p[j] = p[j], p[i] }
 func (p Candidates) Len() int      { return len(p) }
 func (p Candidates) Less(i, j int) bool {
 	if p[i].Votes.Cmp(p[j].Votes.Int) < 0 {
-		return true
-	} else if p[i].Votes.Cmp(p[j].Votes.Int) > 0 {
 		return false
+	} else if p[i].Votes.Cmp(p[j].Votes.Int) > 0 {
+		return true
 	} else {
 		return p[i].Address.String() < p[j].Address.String()
 	}
@@ -324,8 +324,8 @@ func (block *Block) electNewDynasty(seed int64) (*trie.BatchTrie, error) {
 	if err != nil {
 		return nil, err
 	}
-	if len(votes) < DynastySize {
-		log.Error(len(votes))
+	if len(candidates) < DynastySize {
+		log.Error(len(candidates))
 		return nil, ErrTooFewCandidates
 	}
 	// Top 20 are selected directly
@@ -334,6 +334,7 @@ func (block *Block) electNewDynasty(seed int64) (*trie.BatchTrie, error) {
 	for i := 0; i < directSelected; i++ {
 		delegatee := candidates[i].Address.Bytes()
 		log.Info(candidates[i].Address.ToHex())
+		log.Info(candidates[i].Votes.Int64())
 		_, err := dynasty.Put(delegatee, delegatee)
 		if err != nil {
 			return nil, err
@@ -347,6 +348,7 @@ func (block *Block) electNewDynasty(seed int64) (*trie.BatchTrie, error) {
 	offset := result + DynastySize - 1
 	delegatee := candidates[offset].Address.Bytes()
 	log.Info(candidates[offset].Address.ToHex())
+	log.Info(candidates[offset].Votes.Int64())
 	_, err = dynasty.Put(delegatee, delegatee)
 	if err != nil {
 		return nil, err

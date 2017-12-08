@@ -22,6 +22,7 @@ import (
 	"encoding/json"
 
 	"github.com/nebulasio/go-nebulas/storage"
+	"github.com/nebulasio/go-nebulas/util/byteutils"
 )
 
 // Candidate Action
@@ -45,10 +46,10 @@ func LoadCandidatePayload(bytes []byte) (*CandidatePayload, error) {
 }
 
 // NewCandidatePayload with comments
-func NewCandidatePayload(action string) (*CandidatePayload, error) {
+func NewCandidatePayload(action string) *CandidatePayload {
 	return &CandidatePayload{
 		Action: action,
-	}, nil
+	}
 }
 
 // ToBytes serialize payload
@@ -80,9 +81,19 @@ func (payload *CandidatePayload) Execute(tx *Transaction, block *Block) error {
 			return err
 		}
 		for exist {
-			key := append(candidate, iter.Value()...)
+			delegator := iter.Value()
+			key := append(candidate, delegator...)
 			if _, err := block.dposContext.delegateTrie.Del(key); err != nil {
 				return err
+			}
+			bytes, err := block.dposContext.voteTrie.Get(delegator)
+			if err != nil {
+				return err
+			}
+			if byteutils.Equal(bytes, candidate) {
+				if _, err := block.dposContext.voteTrie.Del(delegator); err != nil {
+					return err
+				}
 			}
 			exist, err = iter.Next()
 			if err != nil {
