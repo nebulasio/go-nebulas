@@ -12,10 +12,6 @@ import (
 	"google.golang.org/grpc/reflection"
 )
 
-var (
-	defaultAddr = "127.0.0.1:51510"
-)
-
 // APIServer is the RPC server type.
 type APIServer struct {
 	neblet Neblet
@@ -23,10 +19,6 @@ type APIServer struct {
 	rpcServer *grpc.Server
 
 	rpcConfig *nebletpb.RPCConfig
-
-	// port uint32
-
-	// gatewayPort uint32
 }
 
 // NewAPIServer creates a new RPC server and registers the API endpoints.
@@ -51,7 +43,10 @@ func NewAPIServer(neblet Neblet) *APIServer {
 func (s *APIServer) Start() error {
 	if len(s.rpcConfig.RpcListen) > 0 {
 		for _, v := range s.rpcConfig.RpcListen {
-			s.start(v)
+			err := s.start(v)
+			if err != nil {
+				return errors.New("parse rpc-config rpc-listen occurs error")
+			}
 		}
 	} else {
 		return errors.New("parse rpc-config rpc-listen occurs error")
