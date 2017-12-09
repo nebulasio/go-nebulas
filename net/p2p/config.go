@@ -68,7 +68,6 @@ type Neblet interface {
 // NewP2PConfig new p2p network config
 func NewP2PConfig(n Neblet) *Config {
 	config := DefautConfig()
-	// config.IP = localHost()
 	config.Listen = n.Config().Network.Listen
 
 	seeds := n.Config().Network.Seed
@@ -84,7 +83,6 @@ func NewP2PConfig(n Neblet) *Config {
 		}
 	}
 
-	// config.Port = n.Config().Network.Listen
 	config.PrivateKey = n.Config().Network.PrivateKey
 
 	if chainID := n.Config().Chain.ChainId; chainID > 0 {
@@ -112,13 +110,6 @@ func localHost() string {
 
 // DefautConfig defautConfig is the p2p network defaut config
 func DefautConfig() *Config {
-	//bootNode, err:= multiaddr.NewMultiaddr("/ip4/192.168.2.148/tcp/9999/ipfs/QmYiAecoMfkTroY87LkPFXfNJ2tpJ7M1PHPdPNhonXEBLm")
-	//if err != nil {
-	//	return nil
-	//}
-	//return &Config{
-	//	30, 10, []multiaddr.Multiaddr{bootNode}, "127.0.0.1", 20000, 1896599, 16,
-	//}
 	defaultListen := []string{"127.0.0.1:9999"}
 	return &Config{
 		DefaultBucketsize,
