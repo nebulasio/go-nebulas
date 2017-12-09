@@ -17,6 +17,7 @@
 //
 syntax = "proto3";
 package nebletpb;
+
 // Neblet global configurations.
 message Config {
     // Network config.
@@ -30,6 +31,7 @@ message Config {
     // Misc config.
     MiscConfig misc = 101;
 }
+
 message NetworkConfig {
     // Neb seed node address.
     repeated string seed = 1;
@@ -80,6 +82,7 @@ message MiscConfig {
     // Default encryption ciper when create new keystore file.
     string default_keystore_file_ciper = 1;
 }
+
 message StatsConfig {
     // Enable metrics or not.
     bool enable_metrics = 1;
@@ -91,6 +94,7 @@ message StatsConfig {
     // Influxdb config.`
     InfluxdbConfig influxdb = 11;
 }
+
 message InfluxdbConfig {
     // Host.
     string host = 1;
