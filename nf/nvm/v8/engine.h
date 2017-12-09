@@ -45,6 +45,11 @@ typedef void (*LogFunc)(int level, const char *msg);
 EXPORT const char *GetLogLevelText(int level);
 EXPORT void InitializeLogger(LogFunc f);
 
+// event.
+typedef void (*EventTriggerFunc)(void *handler, const char *topic,
+                                 const char *data);
+EXPORT void InitializeEvent(EventTriggerFunc trigger);
+
 // storage
 typedef char *(*StorageGetFunc)(void *handler, const char *key);
 typedef int (*StoragePutFunc)(void *handler, const char *key,

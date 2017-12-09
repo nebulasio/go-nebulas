@@ -52,6 +52,10 @@ void logFunc(int level, const char *msg) {
           msg);
 }
 
+void eventTriggerFunc(void *handler, const char *topic, const char *data) {
+  fprintf(stdout, "[Event] [%s] %s\n", topic, data);
+}
+
 void help(const char *name) {
   printf("%s [-c <concurrency>] [-i] [-li <number>] [-lm <number>] <Javascript "
          "File>\n",
@@ -217,6 +221,7 @@ int main(int argc, const char *argv[]) {
   InitializeRequireDelegate(RequireDelegateFunc);
   InitializeStorage(StorageGet, StoragePut, StorageDel);
   InitializeBlockchain(GetTxByHash, GetAccountState, Transfer, VerifyAddress);
+  InitializeEvent(eventTriggerFunc);
 
   int argcIdx = 1;
   const char *filename = NULL;
@@ -278,9 +283,6 @@ int main(int argc, const char *argv[]) {
     }
   }
 
-  // size_t size = 0;
-  // char *data = readFile(filename, &size);
-
   if (print_injection_result) {
     // inject and print.
     ExecuteScript(filename, InjectTracingInstructionsAndPrintDelegate);
@@ -296,8 +298,6 @@ int main(int argc, const char *argv[]) {
       threads[i]->join();
     }
   }
-
-  // free(data);
 
   Dispose();
   return 0;

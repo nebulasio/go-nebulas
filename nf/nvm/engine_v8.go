@@ -39,6 +39,8 @@ char *GetAccountStateFunc_cgo(void *handler, const char *address);
 int TransferFunc_cgo(void *handler, const char *to, const char *value);
 int VerifyAddressFunc_cgo(void *handler, const char *address);
 
+void EventTriggerFunc_cgo(void *handler, const char *topic, const char *data);
+
 */
 import "C"
 import (
@@ -112,6 +114,9 @@ func InitV8Engine() {
 
 	// Blockchain.
 	C.InitializeBlockchain((C.GetTxByHashFunc)(unsafe.Pointer(C.GetTxByHashFunc_cgo)), (C.GetAccountStateFunc)(unsafe.Pointer(C.GetAccountStateFunc_cgo)), (C.TransferFunc)(unsafe.Pointer(C.TransferFunc_cgo)), (C.VerifyAddressFunc)(unsafe.Pointer(C.VerifyAddressFunc_cgo)))
+
+	// Event.
+	C.InitializeEvent((C.EventTriggerFunc)(unsafe.Pointer(C.EventTriggerFunc_cgo)))
 }
 
 // DisposeV8Engine dispose the v8 engine.

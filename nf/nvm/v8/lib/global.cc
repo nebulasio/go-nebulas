@@ -19,6 +19,7 @@
 
 #include "global.h"
 #include "blockchain.h"
+#include "event.h"
 #include "instruction_counter.h"
 #include "log_callback.h"
 #include "require_callback.h"
@@ -30,6 +31,8 @@ Local<ObjectTemplate> CreateGlobalObjectTemplate(Isolate *isolate) {
 
   NewNativeRequireFunction(isolate, globalTpl);
   NewNativeLogFunction(isolate, globalTpl);
+  NewNativeEventFunction(isolate, globalTpl);
+
   NewStorageType(isolate, globalTpl);
 
   return globalTpl;

@@ -20,20 +20,28 @@ package nvm
 
 /*
 #include <stddef.h>
+
+// logger.
 void V8Log(int level, const char *msg);
 
+// require.
 char *RequireDelegateFunc(void *handler, const char *filename, size_t *lineOffset);
 
+// storage.
 char *StorageGetFunc(void *handler, const char *key);
 int StoragePutFunc(void *handler, const char *key, const char *value);
 int StorageDelFunc(void *handler, const char *key);
 
+// blockchain.
 char *GetTxByHashFunc(void *handler, const char *hash);
 char *GetAccountStateFunc(void *handler, const char *address);
 int TransferFunc(void *handler, const char *to, const char *value);
 int VerifyAddressFunc(void *handler, const char *address);
 
-// The gateway function
+// event.
+void EventTriggerFunc(void *handler, const char *topic, const char *data);
+
+// The gateway functions.
 void V8Log_cgo(int level, const char *msg) {
 	V8Log(level, msg);
 };
@@ -63,6 +71,10 @@ int TransferFunc_cgo(void *handler, const char *to, const char *value) {
 };
 int VerifyAddressFunc_cgo(void *handler, const char *address) {
 	return VerifyAddressFunc(handler, address);
+};
+
+void EventTriggerFunc_cgo(void *handler, const char *topic, const char *data) {
+	EventTriggerFunc(handler, topic, data);
 };
 
 */
