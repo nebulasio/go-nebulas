@@ -56,9 +56,10 @@ type EventEmitter struct {
 // NewEventEmitter return new EventEmitter.
 func NewEventEmitter() *EventEmitter {
 	return &EventEmitter{
-		eventCh:        make(chan *Event, 1024),
 		chainEventSubs: new(sync.Map),
 		nodeEventSubs:  new(sync.Map),
+		eventCh:        make(chan *Event, 1024),
+		quitCh:         make(chan int, 1),
 	}
 }
 
@@ -133,8 +134,10 @@ func (emitter *EventEmitter) loop() {
 			subs, err := emitter.getEventSubscriptors(category)
 			if err != nil {
 				log.WithFields(log.Fields{
-					"err": err,
-				}).Warnf("category %d is not supported.", category)
+					"err":      err,
+					"category": category,
+					"topic":    topic,
+				}).Warnf("the category is unsupported.")
 				continue
 			}
 
