@@ -31,7 +31,7 @@ import (
 func LoadConfig(filename string) *nebletpb.Config {
 	//log.Info("Loading Neb config from file ", filename)
 	if !pathExist(filename) {
-		createDefaultConfigFile(filename)
+		CreateDefaultConfigFile(filename)
 	}
 	b, err := ioutil.ReadFile(filename)
 	if err != nil {
@@ -49,7 +49,8 @@ func LoadConfig(filename string) *nebletpb.Config {
 	return pb
 }
 
-func createDefaultConfigFile(filename string) {
+// CreateDefaultConfigFile create a default config file.
+func CreateDefaultConfigFile(filename string) {
 	content := `
 	network {
 		listen: ["127.0.0.1:51413"]

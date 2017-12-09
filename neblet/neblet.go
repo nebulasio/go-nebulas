@@ -36,7 +36,6 @@ type Neblet struct {
 
 	accountManager *account.Manager
 
-	// p2pManager *p2p.Manager
 	netService *p2p.NetService
 
 	consensus consensus.Consensus
@@ -55,10 +54,29 @@ type Neblet struct {
 }
 
 // New returns a new neblet.
-func New(config nebletpb.Config) *Neblet {
+func New(config nebletpb.Config) (*Neblet, error) {
 	n := &Neblet{config: config}
 	n.accountManager = account.NewManager(n)
-	return n
+	var err error
+	n.netService, err = p2p.NewNetService(n)
+	if err != nil {
+		log.Error("new NetService occurs error ", err)
+		return nil, err
+	}
+	storage, err := storage.NewDiskStorage(n.config.Chain.Datadir)
+	// storage, err := storage.NewMemoryStorage()
+	if err != nil {
+		return nil, err
+	}
+	if err := n.CheckSchemeVersion(storage); err != nil {
+		return nil, err
+	}
+	n.blockChain, err = core.NewBlockChain(core.TestNetID, storage)
+	if err != nil {
+		return nil, err
+	}
+
+	return n, nil
 }
 
 // Start starts the services of the neblet.
@@ -73,27 +91,6 @@ func (n *Neblet) Start() error {
 	}
 	n.running = true
 
-	//n.accountManager = account.NewManager(n)
-
-	n.netService, err = p2p.NewNetService(n)
-	if err != nil {
-		log.Error("new NetService occurs error ", err)
-		return err
-	}
-
-	storage, err := storage.NewDiskStorage(n.config.Chain.Datadir)
-	// storage, err := storage.NewMemoryStorage()
-	if err != nil {
-		return err
-	}
-	if err := n.CheckSchemeVersion(storage); err != nil {
-		return err
-	}
-
-	n.blockChain, err = core.NewBlockChain(core.TestNetID, storage)
-	if err != nil {
-		return err
-	}
 	n.blockChain.BlockPool().RegisterInNetwork(n.netService)
 	gasPrice := util.NewUint128FromString(n.config.Chain.GasPrice)
 	gasLimit := util.NewUint128FromString(n.config.Chain.GasLimit)
@@ -107,11 +104,9 @@ func (n *Neblet) Start() error {
 	n.snycManager = nsync.NewManager(n.blockChain, n.consensus, n.netService)
 
 	n.apiServer = rpc.NewAPIServer(n)
-	// n.managementServer = rpc.NewManagementServer(n)
 
 	// start.
-	err = n.netService.Start()
-	if err != nil {
+	if err = n.netService.Start(); err != nil {
 		return err
 	}
 	n.blockChain.BlockPool().Start()
@@ -119,10 +114,7 @@ func (n *Neblet) Start() error {
 	n.consensus.Start()
 	n.snycManager.Start()
 	go n.apiServer.Start()
-
 	go n.apiServer.RunGateway()
-	// go n.managementServer.Start()
-	// go n.managementServer.RunGateway()
 
 	if n.config.Stats.EnableMetrics {
 		go metrics.Start(n)
