@@ -14,18 +14,18 @@ Admin.prototype.setRequest = function (request) {
 
 Admin.prototype.newAccount = function (passphrase) {
 	var params = {"passphrase": passphrase};
-	return this.request("post", "/v1/account/new", params);
+	return this.request("post", "/v1/admin/account/new", params);
 };
 
 Admin.prototype.unlockAccount = function (address, passphrase) {
 	var params = {"address": address,
 	 "passphrase": passphrase};
-	return this.request("post", "/v1/account/unlock", params);
+	return this.request("post", "/v1/admin/account/unlock", params);
 };
 
 Admin.prototype.lockAccount = function (address) {
 	var params = {"address": address};
-	return this.request("post", "/v1/account/lock", params);
+	return this.request("post", "/v1/admin/account/lock", params);
 };
 
 Admin.prototype.signTransaction = function (from, to, value, nonce, source, args, gasPrice, gasLimit) {
@@ -38,7 +38,7 @@ Admin.prototype.signTransaction = function (from, to, value, nonce, source, args
 	"gasPrice": utils.toString(gasPrice),
 	"gasLimit": utils.toString(gasLimit)
 	};
-	return this.request("post", "/v1/sign", params);
+	return this.request("post", "/v1/admin/sign", params);
 };
 
 Admin.prototype.sendTransactionWithPassphrase = function (from, to, value, nonce, source, args, gasPrice, gasLimit, passphrase) {
@@ -52,7 +52,7 @@ Admin.prototype.sendTransactionWithPassphrase = function (from, to, value, nonce
 	"gasLimit": utils.toString(gasLimit),
 	"passphrase": passphrase
 	};
-	return this.request("post", "/v1/transactionWithPassphrase", params);
+	return this.request("post", "/v1/admin/transactionWithPassphrase", params);
 };
 
 Admin.prototype.request = function (method, api, params) {
@@ -75,25 +75,25 @@ API.prototype.setRequest = function (request) {
 };
 
 API.prototype.getNebState = function () {
-	return this.request("get", "/v1/neb/state");
+	return this.request("get", "/v1/user/nebstate");
 };
 
 API.prototype.nodeInfo = function () {
-	return this.request("get", "/v1/node/info");
+	return this.request("get", "/v1/user/nodeinfo");
 };
 
 API.prototype.accounts = function () {
-	return this.request("get", "/v1/accounts");
+	return this.request("get", "/v1/user/accounts");
 };
 
 API.prototype.blockDump = function (count) {
 	var params = {"count":count};
-	return this.request("post", "/v1/block/dump", params);
+	return this.request("post", "/v1/user/blockdump", params);
 };
 
 API.prototype.getAccountState = function (address) {
 	var params = {"address":address};
-	return this.request("post", "/v1/account/state", params);
+	return this.request("post", "/v1/user/accountstate", params);
 };
 
 API.prototype.sendTransaction = function (from, to, value, nonce, source, args, gasPrice, gasLimit) {
@@ -106,7 +106,7 @@ API.prototype.sendTransaction = function (from, to, value, nonce, source, args, 
 	"gasPrice": utils.toString(gasPrice),
 	"gasLimit": utils.toString(gasLimit)
 	};
-	return this.request("post", "/v1/transaction", params);
+	return this.request("post", "/v1/user/transaction", params);
 };
 
 API.prototype.call = function (from, to, nonce, func, args, gasPrice, gasLimit) {
@@ -118,22 +118,22 @@ API.prototype.call = function (from, to, nonce, func, args, gasPrice, gasLimit) 
 	"gasPrice": utils.toString(gasPrice),
 	"gasLimit": utils.toString(gasLimit)
 	};
-	return this.request("post", "/v1/call", params);
+	return this.request("post", "/v1/user/call", params);
 };
 
 API.prototype.sendRawTransaction = function (data) {
 	var params = {"data": data};
-	return this.request("post", "/v1/rawtransaction", params);
+	return this.request("post", "/v1/user/rawtransaction", params);
 };
 
 API.prototype.getBlockByHash = function (hash) {
 	var params = {"hash": hash};
-	return this.request("post", "/v1/getBlockByHash", params);
+	return this.request("post", "/v1/user/getBlockByHash", params);
 };
 
 API.prototype.getTransactionReceipt = function (hash) {
 	var params = {"hash": hash};
-	return this.request("post", "/v1/getTransactionReceipt", params);
+	return this.request("post", "/v1/user/getTransactionReceipt", params);
 };
 
 API.prototype.request = function (method, api, params) {

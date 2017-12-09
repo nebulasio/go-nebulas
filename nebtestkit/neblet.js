@@ -21,7 +21,7 @@ Neblet.prototype = {
 
     Start: function () {
         var spawn = require('child_process').spawn;
-        var neb = spawn('./neb', ['-c', this._configName + '.pb.txt']);
+        var neb = spawn('./neb', ['-c', this._configName + '.conf']);
         var logPath = this._configName + '.log';
         neb.stdout.on('data', function (data) {
             fs.writeFile(logPath, data, {
