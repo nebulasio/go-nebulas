@@ -67,6 +67,10 @@ func main() {
 		accountCommand,
 		consoleCommand,
 		networkCommand,
+		versionCommand,
+		licenseCommand,
+		configCommand,
+		blockDumpCommand,
 	}
 	sort.Sort(cli.CommandsByName(app.Commands))
 
@@ -109,7 +113,10 @@ func runNeb(n *neblet.Neblet) {
 
 func makeNeb(ctx *cli.Context) *neblet.Neblet {
 	conf := neblet.LoadConfig(config)
-	n := neblet.New(*conf)
+	n, err := neblet.New(*conf)
+	if err != nil {
+		panic("make neb Failed: " + err.Error())
+	}
 	return n
 }
 

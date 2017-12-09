@@ -352,10 +352,8 @@ func (ns *NetService) handleOkMsg(data []byte, pid peer.ID, s libnet.Stream, add
 
 	if ok.NodeID == pid.String() && ok.ClientVersion == ClientVersion {
 		streamStore := NewStreamStore(key, SOK, s)
-		// node.stream[key] = streamStore
 		node.stream.Store(key, streamStore)
 		node.streamCache.Insert(streamStore)
-		// node.conn[key] = SOK
 		node.peerstore.AddAddr(
 			pid,
 			addrs,
@@ -423,10 +421,6 @@ func (ns *NetService) handleSyncRouteMsg(data []byte, pid peer.ID, s libnet.Stre
 
 	totalData := ns.buildData(data, SyncRouteReply)
 
-	// if _, ok := node.stream[key]; !ok {
-	// 	log.Error("handleSyncRouteMsg occrus error, stream does not exist.")
-	// 	return result
-	// }
 	streamStore, ok := node.stream.Load(key)
 	if !ok {
 		log.Error("handleSyncRouteMsg occrus error, stream does not exist.")
@@ -469,13 +463,6 @@ func (ns *NetService) handleSyncRouteReplyMsg(data []byte, pid peer.ID, s libnet
 			addres = append(addres, addr)
 		}
 
-		// address, err := ma.NewMultiaddr(peers.Peers()[i].Addrs())
-		// if err != nil {
-		// 	log.WithFields(log.Fields{
-		// 		"addrs": peers.Peers()[i].Addrs(),
-		// 	}).Warn("parse address occurs error")
-		// 	continue
-		// }
 		log.WithFields(log.Fields{
 			"id":    id.Pretty(),
 			"addrs": addres,
@@ -493,12 +480,7 @@ func (ns *NetService) handleSyncRouteReplyMsg(data []byte, pid peer.ID, s libnet
 			}).Error("say hello to the peer fail")
 			continue
 		}
-		// node.peerstore.AddAddr(
-		// 	id,
-		// 	address,
-		// 	peerstore.PermanentAddrTTL,
-		// )
-		// Update the routing table.
+
 		node.routeTable.Update(id)
 	}
 	return true
@@ -535,7 +517,6 @@ func (ns *NetService) verifyHeader(protocol *Protocol) bool {
 func (ns *NetService) Bye(pid peer.ID, addrs []ma.Multiaddr, s libnet.Stream, key string) {
 	node := ns.node
 	ns.clearPeerStore(pid, addrs)
-	// delete(node.stream, key)
 	node.stream.Delete(key)
 	s.Close()
 }
@@ -555,12 +536,6 @@ func (ns *NetService) SendMsg(msgName string, msg []byte, key string) {
 	}).Info("SendMsg: send message to a peer.")
 	data := msg
 	totalData := ns.buildData(data, msgName)
-
-	// if _, ok := node.stream[key]; !ok {
-	// 	log.Error("SendMsg: send message occrus error, stream does not exist.")
-	// 	return
-	// }
-	// streamStore := node.stream[key]
 
 	streamStore, ok := node.stream.Load(key)
 	if !ok {
@@ -627,13 +602,6 @@ func (ns *NetService) SyncRoutes(pid peer.ID) {
 	data := []byte{}
 	totalData := ns.buildData(data, SyncRoute)
 	key := pid.Pretty()
-
-	// if _, ok := node.stream[key]; !ok {
-	// 	log.Error("SyncRoutes: send message occrus error, stream does not exist.")
-	// 	return
-	// }
-
-	// streamStore := node.stream[key]
 
 	streamStore, ok := node.stream.Load(key)
 	if !ok {
@@ -877,38 +845,3 @@ func parseAddressFromMultiaddr(address ma.Multiaddr) (ma.Multiaddr, peer.ID, err
 	return addr, id, nil
 
 }
-
-// GenerateKey generate a key
-// func GenerateKey(addrs ma.Multiaddr, pid peer.ID) (string, error) {
-// 	if len(strings.Split(addrs.String(), "/")) > 2 {
-// 		ip, err := stringIPToInt(strings.Split(addrs.String(), "/")[2])
-// 		if err != nil {
-// 			return "", err
-// 		}
-// 		key := fmt.Sprintf("%s:%d", pid.Pretty(), ip)
-// 		return key, nil
-// 	}
-// 	log.WithFields(log.Fields{
-// 		"addrs": addrs,
-// 		"pid":   pid,
-// 	}).Error("GenerateKey: the addrs format is incorrect.")
-// 	// TODO return nil, error
-// 	err := errors.New("GenerateKey: the addrs format is incorrect")
-// 	return "", err
-// }
-
-// func stringIPToInt(ipstring string) (int, error) {
-// 	ipSegs := strings.Split(ipstring, ".")
-// 	if len(ipSegs) != 4 {
-// 		return 0, errors.New("The IP format is not correct")
-// 	}
-// 	var ipInt int
-// 	var pos uint = 24
-// 	for _, ipSeg := range ipSegs {
-// 		tempInt, _ := strconv.Atoi(ipSeg)
-// 		tempInt = tempInt << pos
-// 		ipInt = ipInt | tempInt
-// 		pos -= 8
-// 	}
-// 	return ipInt, nil
-// }

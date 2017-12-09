@@ -58,8 +58,7 @@ type Node struct {
 	id        peer.ID
 	peerstore peerstore.Peerstore
 	// key: peer.ID: ip
-	streamCache *pdeque.PriorityDeque
-	// stream       map[string]*StreamStore
+	streamCache  *pdeque.PriorityDeque
 	stream       *sync.Map
 	routeTable   *kbucket.RoutingTable
 	context      context.Context
@@ -71,7 +70,6 @@ type Node struct {
 	syncList     []string
 	// key: datachecksum value: peer.ID
 	relayness *lru.Cache
-	// mutexLock *sync.Mutex
 }
 
 // StreamStore is for stream cache
@@ -228,13 +226,11 @@ func (node *Node) init() error {
 	)
 
 	node.routeTable.Update(node.id)
-	// node.stream = make(map[string]*StreamStore)
 	node.stream = new(sync.Map)
 	node.streamCache = pdeque.NewPriorityDeque(less)
 	node.chainID = node.config.ChainID
 	node.version = node.config.Version
 	node.synchronized = false
-	// node.mutexLock = &sync.Mutex{}
 	var multiaddrs []multiaddr.Multiaddr
 	for _, v := range node.config.Listen {
 		tcpAddr, err := net.ResolveTCPAddr("tcp", v)
