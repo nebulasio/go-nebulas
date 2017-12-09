@@ -47,6 +47,7 @@ type DposContext struct {
 	delegateTrie    *trie.BatchTrie // key: delegatee + delegator, val: delegator
 	voteTrie        *trie.BatchTrie // key: delegator, val: delegatee
 	candidateTrie   *trie.BatchTrie // key: delegatee, val: delegatee
+	mintCntTrie     *trie.BatchTrie // key: dynastyId + delegatee, val: count
 
 	storage storage.Storage
 }
@@ -73,12 +74,17 @@ func NewDposContext(storage storage.Storage) (*DposContext, error) {
 	if err != nil {
 		return nil, err
 	}
+	mintCntTrie, err := trie.NewBatchTrie(nil, storage)
+	if err != nil {
+		return nil, err
+	}
 	return &DposContext{
 		dynastyTrie:     dynastyTrie,
 		nextDynastyTrie: nextDynastyTrie,
 		delegateTrie:    delegateTrie,
 		voteTrie:        voteTrie,
 		candidateTrie:   candidateTrie,
+		mintCntTrie:     mintCntTrie,
 		storage:         storage,
 	}, nil
 }
@@ -87,11 +93,19 @@ func NewDposContext(storage storage.Storage) (*DposContext, error) {
 func (dc *DposContext) RootHash() byteutils.Hash {
 	hasher := sha3.New256()
 
+	log.Info("RootHash")
+	log.Info(dc.dynastyTrie.RootHash())
+	log.Info(dc.nextDynastyTrie.RootHash())
+	log.Info(dc.delegateTrie.RootHash())
+	log.Info(dc.voteTrie.RootHash())
+	log.Info(dc.candidateTrie.RootHash())
+	log.Info(dc.mintCntTrie.RootHash())
 	hasher.Write(dc.dynastyTrie.RootHash())
 	hasher.Write(dc.nextDynastyTrie.RootHash())
 	hasher.Write(dc.delegateTrie.RootHash())
 	hasher.Write(dc.voteTrie.RootHash())
 	hasher.Write(dc.candidateTrie.RootHash())
+	hasher.Write(dc.mintCntTrie.RootHash())
 
 	return hasher.Sum(nil)
 }
@@ -104,6 +118,7 @@ func (dc *DposContext) BeginBatch() {
 	dc.nextDynastyTrie.BeginBatch()
 	dc.candidateTrie.BeginBatch()
 	dc.voteTrie.BeginBatch()
+	dc.mintCntTrie.BeginBatch()
 }
 
 // Commit a batch task
@@ -113,6 +128,7 @@ func (dc *DposContext) Commit() {
 	dc.nextDynastyTrie.Commit()
 	dc.candidateTrie.Commit()
 	dc.voteTrie.Commit()
+	dc.mintCntTrie.Commit()
 	log.Info("DposContext Commit.")
 }
 
@@ -123,6 +139,7 @@ func (dc *DposContext) RollBack() {
 	dc.nextDynastyTrie.RollBack()
 	dc.candidateTrie.RollBack()
 	dc.voteTrie.RollBack()
+	dc.mintCntTrie.RollBack()
 	log.Info("DposContext RollBack.")
 }
 
@@ -153,6 +170,10 @@ func (dc *DposContext) Clone() (*DposContext, error) {
 		log.Error("VoteTrie Clone Error")
 		return nil, err
 	}
+	if context.mintCntTrie, err = dc.mintCntTrie.Clone(); err != nil {
+		log.Error("MintCntTrie Clone Error")
+		return nil, err
+	}
 	return context, nil
 }
 
@@ -164,6 +185,7 @@ func (dc *DposContext) ToProto() (*corepb.DposContext, error) {
 		DelegateRoot:    dc.delegateTrie.RootHash(),
 		CandidateRoot:   dc.candidateTrie.RootHash(),
 		VoteRoot:        dc.voteTrie.RootHash(),
+		MintCntRoot:     dc.mintCntTrie.RootHash(),
 	}, nil
 }
 
@@ -185,6 +207,9 @@ func (dc *DposContext) FromProto(msg *corepb.DposContext) error {
 	if dc.voteTrie, err = trie.NewBatchTrie(msg.VoteRoot, dc.storage); err != nil {
 		return err
 	}
+	if dc.mintCntTrie, err = trie.NewBatchTrie(msg.MintCntRoot, dc.storage); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -198,6 +223,7 @@ type DynastyContext struct {
 	DelegateTrie    *trie.BatchTrie
 	CandidateTrie   *trie.BatchTrie
 	VoteTrie        *trie.BatchTrie
+	MintCntTrie     *trie.BatchTrie
 	Storage         storage.Storage
 }
 
@@ -317,9 +343,94 @@ func candidates(votes map[string]*util.Uint128) (Candidates, error) {
 	return candidates, nil
 }
 
-func (block *Block) electNewDynasty(seed int64) (*trie.BatchTrie, error) {
+func (block *Block) kickoutCandidate(candidate byteutils.Hash) error {
+	if _, err := block.dposContext.candidateTrie.Del(candidate); err != nil {
+		return err
+	}
+	iter, err := block.dposContext.delegateTrie.Iterator(candidate)
+	if err != nil && err != storage.ErrKeyNotFound {
+		return err
+	}
+	if err != nil {
+		return nil
+	}
+	exist, err := iter.Next()
+	if err != nil {
+		return err
+	}
+	for exist {
+		delegator := iter.Value()
+		key := append(candidate, delegator...)
+		if _, err := block.dposContext.delegateTrie.Del(key); err != nil {
+			return err
+		}
+		bytes, err := block.dposContext.voteTrie.Get(delegator)
+		if err != nil {
+			return err
+		}
+		if byteutils.Equal(bytes, candidate) {
+			if _, err := block.dposContext.voteTrie.Del(delegator); err != nil {
+				return err
+			}
+		}
+		exist, err = iter.Next()
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (block *Block) kickoutDumbValidators(curDynastyID int64) error {
+	if curDynastyID <= 0 {
+		return nil
+	}
+	iter, err := block.dposContext.dynastyTrie.Iterator(nil)
+	if err != nil {
+		return err
+	}
+	exist, err := iter.Next()
+	if err != nil {
+		return err
+	}
+	for exist {
+		validator := iter.Value()
+		key := append(byteutils.FromInt64(curDynastyID), validator...)
+		bytes, err := block.dposContext.mintCntTrie.Get(key)
+		if err != nil && err != storage.ErrKeyNotFound {
+			return err
+		}
+		if err != storage.ErrKeyNotFound {
+			cnt := byteutils.Int64(bytes)
+			if cnt >= DynastyInterval/BlockInterval/2 {
+				exist, err = iter.Next()
+				if err != nil {
+					return err
+				}
+				continue
+			}
+		}
+		if err := block.kickoutCandidate(validator); err != nil {
+			return err
+		}
+		exist, err = iter.Next()
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (block *Block) electNewDynasty(curDynastyID int64, newDynastyID int64) (*trie.BatchTrie, error) {
 	// collect candidates
+	err := block.kickoutDumbValidators(curDynastyID)
+	if err != nil {
+		return nil, err
+	}
 	votes, err := block.tallyVotes()
+	if err != nil {
+		return nil, err
+	}
 	candidates, err := candidates(votes)
 	if err != nil {
 		return nil, err
@@ -334,7 +445,6 @@ func (block *Block) electNewDynasty(seed int64) (*trie.BatchTrie, error) {
 	for i := 0; i < directSelected; i++ {
 		delegatee := candidates[i].Address.Bytes()
 		log.Info(candidates[i].Address.ToHex())
-		log.Info(candidates[i].Votes.Int64())
 		_, err := dynasty.Put(delegatee, delegatee)
 		if err != nil {
 			return nil, err
@@ -342,13 +452,12 @@ func (block *Block) electNewDynasty(seed int64) (*trie.BatchTrie, error) {
 	}
 	// The last one is selected randomly
 	hasher := fnv.New32a()
-	hasher.Write(byteutils.FromInt64(seed))
+	hasher.Write(byteutils.FromInt64(newDynastyID))
 	hasher.Write(block.Hash())
 	result := int(hasher.Sum32()) % (len(votes) - directSelected)
 	offset := result + DynastySize - 1
 	delegatee := candidates[offset].Address.Bytes()
 	log.Info(candidates[offset].Address.ToHex())
-	log.Info(candidates[offset].Votes.Int64())
 	_, err = dynasty.Put(delegatee, delegatee)
 	if err != nil {
 		return nil, err
@@ -358,16 +467,42 @@ func (block *Block) electNewDynasty(seed int64) (*trie.BatchTrie, error) {
 }
 
 // LoadDynastyContext from a given context
-func (block *Block) LoadDynastyContext(context *DynastyContext) {
+func (block *Block) LoadDynastyContext(context *DynastyContext) error {
 	block.header.timestamp = context.TimeStamp
+	dynastyTrie, err := context.DynastyTrie.Clone()
+	if err != nil {
+		return err
+	}
+	nextDynastyTrie, err := context.NextDynastyTrie.Clone()
+	if err != nil {
+		return err
+	}
+	delegateTrie, err := context.DelegateTrie.Clone()
+	if err != nil {
+		return err
+	}
+	candidateTrie, err := context.CandidateTrie.Clone()
+	if err != nil {
+		return err
+	}
+	voteTrie, err := context.VoteTrie.Clone()
+	if err != nil {
+		return err
+	}
+	mintCntTrie, err := context.MintCntTrie.Clone()
+	if err != nil {
+		return err
+	}
 	block.dposContext = &DposContext{
-		dynastyTrie:     context.DynastyTrie,
-		nextDynastyTrie: context.NextDynastyTrie,
-		delegateTrie:    context.DelegateTrie,
-		candidateTrie:   context.CandidateTrie,
-		voteTrie:        context.VoteTrie,
+		dynastyTrie:     dynastyTrie,
+		nextDynastyTrie: nextDynastyTrie,
+		delegateTrie:    delegateTrie,
+		candidateTrie:   candidateTrie,
+		voteTrie:        voteTrie,
+		mintCntTrie:     mintCntTrie,
 		storage:         block.storage,
 	}
+	return nil
 }
 
 // GenesisDynastyContext return dynasty context in genesis
@@ -385,6 +520,10 @@ func GenesisDynastyContext(storage storage.Storage) (*DynastyContext, error) {
 		return nil, err
 	}
 	vote, err := trie.NewBatchTrie(nil, storage)
+	if err != nil {
+		return nil, err
+	}
+	mint, err := trie.NewBatchTrie(nil, storage)
 	if err != nil {
 		return nil, err
 	}
@@ -411,6 +550,7 @@ func GenesisDynastyContext(storage storage.Storage) (*DynastyContext, error) {
 		NextDynastyTrie: nextDynasty,
 		DelegateTrie:    delegate,
 		CandidateTrie:   candidate,
+		MintCntTrie:     mint,
 		VoteTrie:        vote,
 	}, nil
 }
@@ -424,6 +564,7 @@ func (block *Block) NextDynastyContext(elapsedSecond int64) (*DynastyContext, er
 	delegateTrie := block.dposContext.delegateTrie
 	candidateTrie := block.dposContext.candidateTrie
 	voteTrie := block.dposContext.voteTrie
+	mintCntTrie := block.dposContext.mintCntTrie
 	currentHour := block.header.timestamp / DynastyInterval
 	nextHour := nextTimeStamp / DynastyInterval
 	offset := nextTimeStamp % DynastyInterval
@@ -433,16 +574,15 @@ func (block *Block) NextDynastyContext(elapsedSecond int64) (*DynastyContext, er
 	offset /= BlockInterval
 	offset %= DynastySize
 	if currentHour < nextHour {
-		seed := nextHour - currentHour
-		if seed == 1 {
+		if nextHour == currentHour+1 {
 			dynastyTrie = nextDynastyTrie
 		} else {
-			dynastyTrie, err = block.electNewDynasty(seed - 1)
+			dynastyTrie, err = block.electNewDynasty(currentHour, nextHour-1)
 			if err != nil {
 				return nil, err
 			}
 		}
-		nextDynastyTrie, err = block.electNewDynasty(seed)
+		nextDynastyTrie, err = block.electNewDynasty(currentHour, nextHour)
 		if err != nil {
 			return nil, err
 		}
@@ -461,6 +601,7 @@ func (block *Block) NextDynastyContext(elapsedSecond int64) (*DynastyContext, er
 		DelegateTrie:    delegateTrie,
 		CandidateTrie:   candidateTrie,
 		VoteTrie:        voteTrie,
+		MintCntTrie:     mintCntTrie,
 		Storage:         block.storage,
 	}, nil
 }

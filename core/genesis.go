@@ -67,13 +67,13 @@ func NewGenesisBlock(chainID uint32, chain *BlockChain) (*Block, error) {
 	if err != nil {
 		return nil, err
 	}
-
+	coinbase := &Address{make([]byte, AddressLength)}
 	genesis := &Block{
 		header: &BlockHeader{
 			chainID:     chainID,
 			parentHash:  GenesisHash,
 			dposContext: &corepb.DposContext{},
-			coinbase:    &Address{make([]byte, AddressLength)},
+			coinbase:    coinbase,
 			timestamp:   GenesisTimestamp,
 			nonce:       0,
 		},
@@ -91,6 +91,7 @@ func NewGenesisBlock(chainID uint32, chain *BlockChain) (*Block, error) {
 		return nil, err
 	}
 	genesis.LoadDynastyContext(context)
+	genesis.SetMiner(coinbase)
 	genesis.Seal()
 	genesis.header.hash = GenesisHash
 	return genesis, nil

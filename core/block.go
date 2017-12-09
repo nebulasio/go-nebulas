@@ -115,6 +115,7 @@ type Block struct {
 	txsTrie      *trie.BatchTrie
 	dposContext  *DposContext
 	txPool       *TransactionPool
+	miner        *Address
 
 	storage storage.Storage
 }
@@ -290,11 +291,19 @@ func (block *Block) DposContext() *corepb.DposContext {
 func (block *Block) DposContextHash() byteutils.Hash {
 	hasher := sha3.New256()
 
+	log.Info("DposContextHash")
+	log.Info(block.header.dposContext.DynastyRoot)
+	log.Info(block.header.dposContext.NextDynastyRoot)
+	log.Info(block.header.dposContext.DelegateRoot)
+	log.Info(block.header.dposContext.VoteRoot)
+	log.Info(block.header.dposContext.CandidateRoot)
+	log.Info(block.header.dposContext.MintCntRoot)
 	hasher.Write(block.header.dposContext.DynastyRoot)
 	hasher.Write(block.header.dposContext.NextDynastyRoot)
 	hasher.Write(block.header.dposContext.DelegateRoot)
 	hasher.Write(block.header.dposContext.VoteRoot)
 	hasher.Write(block.header.dposContext.CandidateRoot)
+	hasher.Write(block.header.dposContext.MintCntRoot)
 
 	return hasher.Sum(nil)
 }
@@ -321,9 +330,19 @@ func (block *Block) ParentBlock() (*Block, error) {
 	return parentBlock, nil
 }
 
-// Height return height from genesis block.
+// Height return height
 func (block *Block) Height() uint64 {
 	return block.height
+}
+
+// Miner return miner
+func (block *Block) Miner() *Address {
+	return block.miner
+}
+
+// SetMiner return miner
+func (block *Block) SetMiner(miner *Address) {
+	block.miner = miner
 }
 
 // VerifyAddress returns if the addr string is valid
@@ -366,6 +385,10 @@ func (block *Block) LinkParentBlock(parentBlock *Block) bool {
 		return false
 	}
 	block.LoadDynastyContext(context)
+	log.Info("Clone")
+	log.Info(parentBlock.Height())
+	log.Info(parentBlock.dposContext.mintCntTrie.RootHash())
+	log.Info(block.dposContext.mintCntTrie.RootHash())
 	block.txPool = parentBlock.txPool
 	block.parenetBlock = parentBlock
 	block.storage = parentBlock.storage
@@ -455,6 +478,24 @@ func (block *Block) Sealed() bool {
 	return block.sealed
 }
 
+func (block *Block) recordMintCnt() error {
+	key := append(byteutils.FromInt64(block.Timestamp()), block.miner.Bytes()...)
+	bytes, err := block.dposContext.mintCntTrie.Get(key)
+	if err != nil && err != storage.ErrKeyNotFound {
+		return err
+	}
+	cnt := int64(0)
+	if err != storage.ErrKeyNotFound {
+		cnt = byteutils.Int64(bytes)
+	}
+	cnt++
+	log.Info("MintCnt")
+	log.Info(block.dposContext.mintCntTrie.RootHash())
+	_, err = block.dposContext.mintCntTrie.Put(key, byteutils.FromInt64(cnt))
+	log.Info(block.dposContext.mintCntTrie.RootHash())
+	return err
+}
+
 // Seal seal block, calculate stateRoot and block hash.
 func (block *Block) Seal() error {
 	if block.sealed {
@@ -463,10 +504,14 @@ func (block *Block) Seal() error {
 
 	block.begin()
 	block.rewardCoinbase()
+	err := block.recordMintCnt()
+	if err != nil {
+		block.rollback()
+		return err
+	}
 	block.commit()
 	block.header.stateRoot = block.accState.RootHash()
 	block.header.txsRoot = block.txsTrie.RootHash()
-	var err error
 	if block.header.dposContext, err = block.dposContext.ToProto(); err != nil {
 		return err
 	}
@@ -576,6 +621,9 @@ func (block *Block) Execute() error {
 	}
 
 	block.rewardCoinbase()
+	if err := block.recordMintCnt(); err != nil {
+		return err
+	}
 
 	return nil
 }

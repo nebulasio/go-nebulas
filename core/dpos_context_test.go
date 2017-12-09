@@ -96,12 +96,15 @@ func TestBlock_NextDynastyContext(t *testing.T) {
 	}
 
 	// new block
-	newBlock, _ := NewBlock(chain.ChainID(), &Address{validators[1]}, chain.tailBlock)
+	coinbase := &Address{validators[1]}
+	newBlock, _ := NewBlock(chain.ChainID(), coinbase, chain.tailBlock)
 	newBlock.LoadDynastyContext(context)
 	newBlock.CollectTransactions(500)
+	newBlock.SetMiner(coinbase)
 	newBlock.Seal()
 	newBlock, _ = mockBlockFromNetwork(newBlock)
 	newBlock.LinkParentBlock(chain.tailBlock)
+	newBlock.SetMiner(coinbase)
 	assert.Nil(t, newBlock.Verify(chain.ChainID()))
 }
 
@@ -119,7 +122,7 @@ func TestBlock_ElectNewDynasty(t *testing.T) {
 	_, err := block.executeTransaction(tx)
 	assert.Nil(t, err)
 	block.commit()
-	dynasty, err := block.electNewDynasty(0)
+	dynasty, err := block.electNewDynasty(0, 1)
 	assert.Nil(t, err)
 	_, err = dynasty.Get(validators[ReserveSize+1])
 	assert.Nil(t, err)

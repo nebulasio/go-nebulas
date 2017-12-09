@@ -52,6 +52,7 @@ message DposContext {
     bytes delegate_root = 3;
     bytes candidate_root = 4;
     bytes vote_root = 5;
+    bytes mint_cnt_root = 6;
 }
 
 message BlockHeader {

@@ -209,6 +209,7 @@ func verifyBlockSign(miner *core.Address, block *core.Block) error {
 		}).Error("verify block sign failed.")
 		return ErrInvalidBlockProposer
 	}
+	block.SetMiner(miner)
 	return nil
 }
 
@@ -300,6 +301,7 @@ func (p *Dpos) mintBlock() {
 	}
 	block.LoadDynastyContext(context)
 	block.CollectTransactions(p.txsPerBlock)
+	block.SetMiner(p.miner)
 	if err = block.Seal(); err != nil {
 		log.WithFields(log.Fields{
 			"func":  "Dpos.mintBlock",

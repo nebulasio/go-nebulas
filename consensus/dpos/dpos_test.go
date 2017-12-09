@@ -39,6 +39,7 @@ func TestDpos_mintBlock(t *testing.T) {
 	block, err := core.NewBlock(chain.ChainID(), coinbase, tail)
 	assert.Nil(t, err)
 	block.LoadDynastyContext(context)
+	block.SetMiner(coinbase)
 	block.Seal()
 	manager := account.NewManager(nil)
 	miner, err := core.AddressParseFromBytes(context.Proposer)

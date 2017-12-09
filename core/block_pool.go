@@ -338,7 +338,7 @@ func (lb *linkedBlock) travelToLinkAndReturnAllValidBlocks(parentBlock *Block) (
 			"func":  "BlockPool.Verify",
 			"block": lb.block,
 			"err":   err,
-		}).Error("BlockPool.Verify: verify block txs failed.")
+		}).Error("BlockPool.Verify: verify block failed.")
 		return nil, nil
 	}
 

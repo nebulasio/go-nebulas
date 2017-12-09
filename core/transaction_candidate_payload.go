@@ -20,9 +20,6 @@ package core
 
 import (
 	"encoding/json"
-
-	"github.com/nebulasio/go-nebulas/storage"
-	"github.com/nebulasio/go-nebulas/util/byteutils"
 )
 
 // Candidate Action
@@ -66,39 +63,8 @@ func (payload *CandidatePayload) Execute(tx *Transaction, block *Block) error {
 			return err
 		}
 	case LogoutAction:
-		if _, err := block.dposContext.candidateTrie.Del(candidate); err != nil {
+		if err := block.kickoutCandidate(candidate); err != nil {
 			return err
-		}
-		iter, err := block.dposContext.delegateTrie.Iterator(candidate)
-		if err != nil && err != storage.ErrKeyNotFound {
-			return err
-		}
-		if err != nil {
-			return nil
-		}
-		exist, err := iter.Next()
-		if err != nil {
-			return err
-		}
-		for exist {
-			delegator := iter.Value()
-			key := append(candidate, delegator...)
-			if _, err := block.dposContext.delegateTrie.Del(key); err != nil {
-				return err
-			}
-			bytes, err := block.dposContext.voteTrie.Get(delegator)
-			if err != nil {
-				return err
-			}
-			if byteutils.Equal(bytes, candidate) {
-				if _, err := block.dposContext.voteTrie.Del(delegator); err != nil {
-					return err
-				}
-			}
-			exist, err = iter.Next()
-			if err != nil {
-				return err
-			}
 		}
 	default:
 		return ErrInvalidCandidatePayloadAction
