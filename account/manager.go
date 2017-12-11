@@ -34,7 +34,7 @@ import (
 // const SignatureCiphers
 const (
 	EccSecp256K1      = "ECC_SECP256K1"
-	EccSecp256K1Value = 0
+	EccSecp256K1Value = 1
 )
 
 var (

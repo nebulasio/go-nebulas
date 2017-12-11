@@ -14,14 +14,14 @@ var config_seed =
 		chain_id: 100
 		datadir: {{data_location}}
 		keydir: "keydir"
-		coinbase: "8a209cec02cbeab7e2f74ad969d2dfe8dd24416aa65589bf"
-		signature_ciphers: [0]
+		coinbase: "eb31ad2d8a89a0ca6935c308d5425730430bc2d63f2573b8"
+		signature_ciphers: ["ECC_SECP256K1"]
 	}
 	
 	rpc {
 			rpc_listen: ["127.0.0.1:{{rpc_port}}"]
 			http_listen: ["127.0.0.1:{{http_port}}"]
-			http_module: [0,1]
+			http_module: ["api", "admin"]
 	}
 	
 	stats {
@@ -44,14 +44,14 @@ var config_non_seed =
     chain_id: 100
     datadir: {{data_location}}
     keydir: "keydir"
-    coinbase: "8a209cec02cbeab7e2f74ad969d2dfe8dd24416aa65589bf"
-    signature_ciphers: [0]
+    coinbase: "eb31ad2d8a89a0ca6935c308d5425730430bc2d63f2573b8"
+    signature_ciphers: ["ECC_SECP256K1"]
   }
 
   rpc {
       rpc_listen: ["127.0.0.1:{{rpc_port}}"]
       http_listen: ["127.0.0.1:{{http_port}}"]
-      http_module: [0,1]
+      http_module: ["api", "admin"]
   }
 
   stats {
