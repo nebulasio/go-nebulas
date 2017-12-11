@@ -31,6 +31,12 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// const SignatureCiphers
+const (
+	EccSecp256K1      = "ECC_SECP256K1"
+	EccSecp256K1Value = 0
+)
+
 var (
 	// ErrAddrNotFind address not find.
 	ErrAddrNotFind = errors.New("address not find")
@@ -85,8 +91,10 @@ func NewManager(neblet Neblet) *Manager {
 			m.keydir, _ = filepath.Abs(keydir)
 		}
 
-		if conf.SignatureCiphers[0] > 0 {
-			m.signatureAlg = keystore.Algorithm(conf.SignatureCiphers[0])
+		if len(conf.SignatureCiphers) > 0 {
+			if conf.SignatureCiphers[0] == EccSecp256K1 {
+				m.signatureAlg = keystore.Algorithm(EccSecp256K1Value)
+			}
 		}
 
 		// if conf.GetSignature() > 0 {
