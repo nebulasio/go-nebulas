@@ -30,7 +30,7 @@ func NewAPIServer(neblet Neblet) *APIServer {
 	srv := &APIServer{neblet: neblet, rpcServer: rpc, rpcConfig: cfg}
 	api := &APIService{srv}
 
-	rpcpb.RegisterAppServiceServer(rpc, api)
+	rpcpb.RegisterApiServiceServer(rpc, api)
 	rpcpb.RegisterAdminServiceServer(rpc, api)
 	// Register reflection service on gRPC server.
 	// TODO: Enable reflection only for testing mode.

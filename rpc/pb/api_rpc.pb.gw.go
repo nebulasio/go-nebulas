@@ -28,7 +28,7 @@ var _ status.Status
 var _ = runtime.String
 var _ = utilities.NewDoubleArray
 
-func request_AppService_GetNebState_0(ctx context.Context, marshaler runtime.Marshaler, client AppServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
+func request_ApiService_GetNebState_0(ctx context.Context, marshaler runtime.Marshaler, client ApiServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
 	var protoReq GetNebStateRequest
 	var metadata runtime.ServerMetadata
 
@@ -37,7 +37,7 @@ func request_AppService_GetNebState_0(ctx context.Context, marshaler runtime.Mar
 
 }
 
-func request_AppService_NodeInfo_0(ctx context.Context, marshaler runtime.Marshaler, client AppServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
+func request_ApiService_NodeInfo_0(ctx context.Context, marshaler runtime.Marshaler, client ApiServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
 	var protoReq NodeInfoRequest
 	var metadata runtime.ServerMetadata
 
@@ -46,7 +46,7 @@ func request_AppService_NodeInfo_0(ctx context.Context, marshaler runtime.Marsha
 
 }
 
-func request_AppService_BlockDump_0(ctx context.Context, marshaler runtime.Marshaler, client AppServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
+func request_ApiService_BlockDump_0(ctx context.Context, marshaler runtime.Marshaler, client ApiServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
 	var protoReq BlockDumpRequest
 	var metadata runtime.ServerMetadata
 
@@ -59,7 +59,7 @@ func request_AppService_BlockDump_0(ctx context.Context, marshaler runtime.Marsh
 
 }
 
-func request_AppService_Accounts_0(ctx context.Context, marshaler runtime.Marshaler, client AppServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
+func request_ApiService_Accounts_0(ctx context.Context, marshaler runtime.Marshaler, client ApiServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
 	var protoReq AccountsRequest
 	var metadata runtime.ServerMetadata
 
@@ -68,7 +68,7 @@ func request_AppService_Accounts_0(ctx context.Context, marshaler runtime.Marsha
 
 }
 
-func request_AppService_GetAccountState_0(ctx context.Context, marshaler runtime.Marshaler, client AppServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
+func request_ApiService_GetAccountState_0(ctx context.Context, marshaler runtime.Marshaler, client ApiServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
 	var protoReq GetAccountStateRequest
 	var metadata runtime.ServerMetadata
 
@@ -81,7 +81,7 @@ func request_AppService_GetAccountState_0(ctx context.Context, marshaler runtime
 
 }
 
-func request_AppService_SendTransaction_0(ctx context.Context, marshaler runtime.Marshaler, client AppServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
+func request_ApiService_SendTransaction_0(ctx context.Context, marshaler runtime.Marshaler, client ApiServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
 	var protoReq SendTransactionRequest
 	var metadata runtime.ServerMetadata
 
@@ -94,7 +94,7 @@ func request_AppService_SendTransaction_0(ctx context.Context, marshaler runtime
 
 }
 
-func request_AppService_Call_0(ctx context.Context, marshaler runtime.Marshaler, client AppServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
+func request_ApiService_Call_0(ctx context.Context, marshaler runtime.Marshaler, client ApiServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
 	var protoReq CallRequest
 	var metadata runtime.ServerMetadata
 
@@ -107,7 +107,7 @@ func request_AppService_Call_0(ctx context.Context, marshaler runtime.Marshaler,
 
 }
 
-func request_AppService_SendRawTransaction_0(ctx context.Context, marshaler runtime.Marshaler, client AppServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
+func request_ApiService_SendRawTransaction_0(ctx context.Context, marshaler runtime.Marshaler, client ApiServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
 	var protoReq SendRawTransactionRequest
 	var metadata runtime.ServerMetadata
 
@@ -120,7 +120,7 @@ func request_AppService_SendRawTransaction_0(ctx context.Context, marshaler runt
 
 }
 
-func request_AppService_GetBlockByHash_0(ctx context.Context, marshaler runtime.Marshaler, client AppServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
+func request_ApiService_GetBlockByHash_0(ctx context.Context, marshaler runtime.Marshaler, client ApiServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
 	var protoReq GetBlockByHashRequest
 	var metadata runtime.ServerMetadata
 
@@ -133,7 +133,7 @@ func request_AppService_GetBlockByHash_0(ctx context.Context, marshaler runtime.
 
 }
 
-func request_AppService_GetTransactionReceipt_0(ctx context.Context, marshaler runtime.Marshaler, client AppServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
+func request_ApiService_GetTransactionReceipt_0(ctx context.Context, marshaler runtime.Marshaler, client ApiServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
 	var protoReq GetTransactionByHashRequest
 	var metadata runtime.ServerMetadata
 
@@ -146,7 +146,7 @@ func request_AppService_GetTransactionReceipt_0(ctx context.Context, marshaler r
 
 }
 
-func request_AppService_StatisticsNodeInfo_0(ctx context.Context, marshaler runtime.Marshaler, client AppServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
+func request_ApiService_StatisticsNodeInfo_0(ctx context.Context, marshaler runtime.Marshaler, client ApiServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
 	var protoReq NodeInfoRequest
 	var metadata runtime.ServerMetadata
 
@@ -220,9 +220,9 @@ func request_AdminService_SendTransactionWithPassphrase_0(ctx context.Context, m
 
 }
 
-// RegisterAppServiceHandlerFromEndpoint is same as RegisterAppServiceHandler but
+// RegisterApiServiceHandlerFromEndpoint is same as RegisterApiServiceHandler but
 // automatically dials to "endpoint" and closes the connection when "ctx" gets done.
-func RegisterAppServiceHandlerFromEndpoint(ctx context.Context, mux *runtime.ServeMux, endpoint string, opts []grpc.DialOption) (err error) {
+func RegisterApiServiceHandlerFromEndpoint(ctx context.Context, mux *runtime.ServeMux, endpoint string, opts []grpc.DialOption) (err error) {
 	conn, err := grpc.Dial(endpoint, opts...)
 	if err != nil {
 		return err
@@ -242,24 +242,24 @@ func RegisterAppServiceHandlerFromEndpoint(ctx context.Context, mux *runtime.Ser
 		}()
 	}()
 
-	return RegisterAppServiceHandler(ctx, mux, conn)
+	return RegisterApiServiceHandler(ctx, mux, conn)
 }
 
-// RegisterAppServiceHandler registers the http handlers for service AppService to "mux".
+// RegisterApiServiceHandler registers the http handlers for service ApiService to "mux".
 // The handlers forward requests to the grpc endpoint over "conn".
-func RegisterAppServiceHandler(ctx context.Context, mux *runtime.ServeMux, conn *grpc.ClientConn) error {
-	return RegisterAppServiceHandlerClient(ctx, mux, NewAppServiceClient(conn))
+func RegisterApiServiceHandler(ctx context.Context, mux *runtime.ServeMux, conn *grpc.ClientConn) error {
+	return RegisterApiServiceHandlerClient(ctx, mux, NewApiServiceClient(conn))
 }
 
-// RegisterAppServiceHandler registers the http handlers for service AppService to "mux".
-// The handlers forward requests to the grpc endpoint over the given implementation of "AppServiceClient".
-// Note: the gRPC framework executes interceptors within the gRPC handler. If the passed in "AppServiceClient"
+// RegisterApiServiceHandler registers the http handlers for service ApiService to "mux".
+// The handlers forward requests to the grpc endpoint over the given implementation of "ApiServiceClient".
+// Note: the gRPC framework executes interceptors within the gRPC handler. If the passed in "ApiServiceClient"
 // doesn't go through the normal gRPC flow (creating a gRPC client etc.) then it will be up to the passed in
-// "AppServiceClient" to call the correct interceptors.
-func RegisterAppServiceHandlerClient(ctx context.Context, mux *runtime.ServeMux, client AppServiceClient) error {
+// "ApiServiceClient" to call the correct interceptors.
+func RegisterApiServiceHandlerClient(ctx context.Context, mux *runtime.ServeMux, client ApiServiceClient) error {
 
-	mux.Handle("GET", pattern_AppService_GetNebState_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
-		ctx, cancel := context.WithCancel(req.Context())
+	mux.Handle("GET", pattern_ApiService_GetNebState_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+		ctx, cancel := context.WithCancel(ctx)
 		defer cancel()
 		if cn, ok := w.(http.CloseNotifier); ok {
 			go func(done <-chan struct{}, closed <-chan bool) {
@@ -276,19 +276,19 @@ func RegisterAppServiceHandlerClient(ctx context.Context, mux *runtime.ServeMux,
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
 		}
-		resp, md, err := request_AppService_GetNebState_0(rctx, inboundMarshaler, client, req, pathParams)
+		resp, md, err := request_ApiService_GetNebState_0(rctx, inboundMarshaler, client, req, pathParams)
 		ctx = runtime.NewServerMetadataContext(ctx, md)
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
 		}
 
-		forward_AppService_GetNebState_0(ctx, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
+		forward_ApiService_GetNebState_0(ctx, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
 
 	})
 
-	mux.Handle("GET", pattern_AppService_NodeInfo_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
-		ctx, cancel := context.WithCancel(req.Context())
+	mux.Handle("GET", pattern_ApiService_NodeInfo_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+		ctx, cancel := context.WithCancel(ctx)
 		defer cancel()
 		if cn, ok := w.(http.CloseNotifier); ok {
 			go func(done <-chan struct{}, closed <-chan bool) {
@@ -305,19 +305,19 @@ func RegisterAppServiceHandlerClient(ctx context.Context, mux *runtime.ServeMux,
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
 		}
-		resp, md, err := request_AppService_NodeInfo_0(rctx, inboundMarshaler, client, req, pathParams)
+		resp, md, err := request_ApiService_NodeInfo_0(rctx, inboundMarshaler, client, req, pathParams)
 		ctx = runtime.NewServerMetadataContext(ctx, md)
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
 		}
 
-		forward_AppService_NodeInfo_0(ctx, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
+		forward_ApiService_NodeInfo_0(ctx, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
 
 	})
 
-	mux.Handle("POST", pattern_AppService_BlockDump_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
-		ctx, cancel := context.WithCancel(req.Context())
+	mux.Handle("POST", pattern_ApiService_BlockDump_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+		ctx, cancel := context.WithCancel(ctx)
 		defer cancel()
 		if cn, ok := w.(http.CloseNotifier); ok {
 			go func(done <-chan struct{}, closed <-chan bool) {
@@ -334,19 +334,19 @@ func RegisterAppServiceHandlerClient(ctx context.Context, mux *runtime.ServeMux,
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
 		}
-		resp, md, err := request_AppService_BlockDump_0(rctx, inboundMarshaler, client, req, pathParams)
+		resp, md, err := request_ApiService_BlockDump_0(rctx, inboundMarshaler, client, req, pathParams)
 		ctx = runtime.NewServerMetadataContext(ctx, md)
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
 		}
 
-		forward_AppService_BlockDump_0(ctx, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
+		forward_ApiService_BlockDump_0(ctx, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
 
 	})
 
-	mux.Handle("GET", pattern_AppService_Accounts_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
-		ctx, cancel := context.WithCancel(req.Context())
+	mux.Handle("GET", pattern_ApiService_Accounts_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+		ctx, cancel := context.WithCancel(ctx)
 		defer cancel()
 		if cn, ok := w.(http.CloseNotifier); ok {
 			go func(done <-chan struct{}, closed <-chan bool) {
@@ -363,19 +363,19 @@ func RegisterAppServiceHandlerClient(ctx context.Context, mux *runtime.ServeMux,
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
 		}
-		resp, md, err := request_AppService_Accounts_0(rctx, inboundMarshaler, client, req, pathParams)
+		resp, md, err := request_ApiService_Accounts_0(rctx, inboundMarshaler, client, req, pathParams)
 		ctx = runtime.NewServerMetadataContext(ctx, md)
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
 		}
 
-		forward_AppService_Accounts_0(ctx, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
+		forward_ApiService_Accounts_0(ctx, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
 
 	})
 
-	mux.Handle("POST", pattern_AppService_GetAccountState_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
-		ctx, cancel := context.WithCancel(req.Context())
+	mux.Handle("POST", pattern_ApiService_GetAccountState_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+		ctx, cancel := context.WithCancel(ctx)
 		defer cancel()
 		if cn, ok := w.(http.CloseNotifier); ok {
 			go func(done <-chan struct{}, closed <-chan bool) {
@@ -392,19 +392,19 @@ func RegisterAppServiceHandlerClient(ctx context.Context, mux *runtime.ServeMux,
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
 		}
-		resp, md, err := request_AppService_GetAccountState_0(rctx, inboundMarshaler, client, req, pathParams)
+		resp, md, err := request_ApiService_GetAccountState_0(rctx, inboundMarshaler, client, req, pathParams)
 		ctx = runtime.NewServerMetadataContext(ctx, md)
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
 		}
 
-		forward_AppService_GetAccountState_0(ctx, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
+		forward_ApiService_GetAccountState_0(ctx, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
 
 	})
 
-	mux.Handle("POST", pattern_AppService_SendTransaction_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
-		ctx, cancel := context.WithCancel(req.Context())
+	mux.Handle("POST", pattern_ApiService_SendTransaction_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+		ctx, cancel := context.WithCancel(ctx)
 		defer cancel()
 		if cn, ok := w.(http.CloseNotifier); ok {
 			go func(done <-chan struct{}, closed <-chan bool) {
@@ -421,19 +421,19 @@ func RegisterAppServiceHandlerClient(ctx context.Context, mux *runtime.ServeMux,
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
 		}
-		resp, md, err := request_AppService_SendTransaction_0(rctx, inboundMarshaler, client, req, pathParams)
+		resp, md, err := request_ApiService_SendTransaction_0(rctx, inboundMarshaler, client, req, pathParams)
 		ctx = runtime.NewServerMetadataContext(ctx, md)
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
 		}
 
-		forward_AppService_SendTransaction_0(ctx, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
+		forward_ApiService_SendTransaction_0(ctx, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
 
 	})
 
-	mux.Handle("POST", pattern_AppService_Call_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
-		ctx, cancel := context.WithCancel(req.Context())
+	mux.Handle("POST", pattern_ApiService_Call_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+		ctx, cancel := context.WithCancel(ctx)
 		defer cancel()
 		if cn, ok := w.(http.CloseNotifier); ok {
 			go func(done <-chan struct{}, closed <-chan bool) {
@@ -450,19 +450,19 @@ func RegisterAppServiceHandlerClient(ctx context.Context, mux *runtime.ServeMux,
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
 		}
-		resp, md, err := request_AppService_Call_0(rctx, inboundMarshaler, client, req, pathParams)
+		resp, md, err := request_ApiService_Call_0(rctx, inboundMarshaler, client, req, pathParams)
 		ctx = runtime.NewServerMetadataContext(ctx, md)
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
 		}
 
-		forward_AppService_Call_0(ctx, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
+		forward_ApiService_Call_0(ctx, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
 
 	})
 
-	mux.Handle("POST", pattern_AppService_SendRawTransaction_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
-		ctx, cancel := context.WithCancel(req.Context())
+	mux.Handle("POST", pattern_ApiService_SendRawTransaction_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+		ctx, cancel := context.WithCancel(ctx)
 		defer cancel()
 		if cn, ok := w.(http.CloseNotifier); ok {
 			go func(done <-chan struct{}, closed <-chan bool) {
@@ -479,19 +479,19 @@ func RegisterAppServiceHandlerClient(ctx context.Context, mux *runtime.ServeMux,
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
 		}
-		resp, md, err := request_AppService_SendRawTransaction_0(rctx, inboundMarshaler, client, req, pathParams)
+		resp, md, err := request_ApiService_SendRawTransaction_0(rctx, inboundMarshaler, client, req, pathParams)
 		ctx = runtime.NewServerMetadataContext(ctx, md)
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
 		}
 
-		forward_AppService_SendRawTransaction_0(ctx, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
+		forward_ApiService_SendRawTransaction_0(ctx, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
 
 	})
 
-	mux.Handle("POST", pattern_AppService_GetBlockByHash_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
-		ctx, cancel := context.WithCancel(req.Context())
+	mux.Handle("POST", pattern_ApiService_GetBlockByHash_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+		ctx, cancel := context.WithCancel(ctx)
 		defer cancel()
 		if cn, ok := w.(http.CloseNotifier); ok {
 			go func(done <-chan struct{}, closed <-chan bool) {
@@ -508,19 +508,19 @@ func RegisterAppServiceHandlerClient(ctx context.Context, mux *runtime.ServeMux,
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
 		}
-		resp, md, err := request_AppService_GetBlockByHash_0(rctx, inboundMarshaler, client, req, pathParams)
+		resp, md, err := request_ApiService_GetBlockByHash_0(rctx, inboundMarshaler, client, req, pathParams)
 		ctx = runtime.NewServerMetadataContext(ctx, md)
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
 		}
 
-		forward_AppService_GetBlockByHash_0(ctx, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
+		forward_ApiService_GetBlockByHash_0(ctx, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
 
 	})
 
-	mux.Handle("POST", pattern_AppService_GetTransactionReceipt_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
-		ctx, cancel := context.WithCancel(req.Context())
+	mux.Handle("POST", pattern_ApiService_GetTransactionReceipt_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+		ctx, cancel := context.WithCancel(ctx)
 		defer cancel()
 		if cn, ok := w.(http.CloseNotifier); ok {
 			go func(done <-chan struct{}, closed <-chan bool) {
@@ -537,19 +537,19 @@ func RegisterAppServiceHandlerClient(ctx context.Context, mux *runtime.ServeMux,
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
 		}
-		resp, md, err := request_AppService_GetTransactionReceipt_0(rctx, inboundMarshaler, client, req, pathParams)
+		resp, md, err := request_ApiService_GetTransactionReceipt_0(rctx, inboundMarshaler, client, req, pathParams)
 		ctx = runtime.NewServerMetadataContext(ctx, md)
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
 		}
 
-		forward_AppService_GetTransactionReceipt_0(ctx, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
+		forward_ApiService_GetTransactionReceipt_0(ctx, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
 
 	})
 
-	mux.Handle("GET", pattern_AppService_StatisticsNodeInfo_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
-		ctx, cancel := context.WithCancel(req.Context())
+	mux.Handle("GET", pattern_ApiService_StatisticsNodeInfo_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+		ctx, cancel := context.WithCancel(ctx)
 		defer cancel()
 		if cn, ok := w.(http.CloseNotifier); ok {
 			go func(done <-chan struct{}, closed <-chan bool) {
@@ -566,14 +566,14 @@ func RegisterAppServiceHandlerClient(ctx context.Context, mux *runtime.ServeMux,
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
 		}
-		resp, md, err := request_AppService_StatisticsNodeInfo_0(rctx, inboundMarshaler, client, req, pathParams)
+		resp, md, err := request_ApiService_StatisticsNodeInfo_0(rctx, inboundMarshaler, client, req, pathParams)
 		ctx = runtime.NewServerMetadataContext(ctx, md)
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
 		}
 
-		forward_AppService_StatisticsNodeInfo_0(ctx, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
+		forward_ApiService_StatisticsNodeInfo_0(ctx, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
 
 	})
 
@@ -581,51 +581,51 @@ func RegisterAppServiceHandlerClient(ctx context.Context, mux *runtime.ServeMux,
 }
 
 var (
-	pattern_AppService_GetNebState_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2}, []string{"v1", "user", "nebstate"}, ""))
+	pattern_ApiService_GetNebState_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2}, []string{"v1", "user", "nebstate"}, ""))
 
-	pattern_AppService_NodeInfo_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2}, []string{"v1", "user", "nodeinfo"}, ""))
+	pattern_ApiService_NodeInfo_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2}, []string{"v1", "user", "nodeinfo"}, ""))
 
-	pattern_AppService_BlockDump_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2}, []string{"v1", "user", "blockdump"}, ""))
+	pattern_ApiService_BlockDump_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2}, []string{"v1", "user", "blockdump"}, ""))
 
-	pattern_AppService_Accounts_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2}, []string{"v1", "user", "accounts"}, ""))
+	pattern_ApiService_Accounts_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2}, []string{"v1", "user", "accounts"}, ""))
 
-	pattern_AppService_GetAccountState_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2}, []string{"v1", "user", "accountstate"}, ""))
+	pattern_ApiService_GetAccountState_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2}, []string{"v1", "user", "accountstate"}, ""))
 
-	pattern_AppService_SendTransaction_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2}, []string{"v1", "user", "transaction"}, ""))
+	pattern_ApiService_SendTransaction_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2}, []string{"v1", "user", "transaction"}, ""))
 
-	pattern_AppService_Call_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2}, []string{"v1", "user", "call"}, ""))
+	pattern_ApiService_Call_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2}, []string{"v1", "user", "call"}, ""))
 
-	pattern_AppService_SendRawTransaction_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2}, []string{"v1", "user", "rawtransaction"}, ""))
+	pattern_ApiService_SendRawTransaction_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2}, []string{"v1", "user", "rawtransaction"}, ""))
 
-	pattern_AppService_GetBlockByHash_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2}, []string{"v1", "user", "getBlockByHash"}, ""))
+	pattern_ApiService_GetBlockByHash_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2}, []string{"v1", "user", "getBlockByHash"}, ""))
 
-	pattern_AppService_GetTransactionReceipt_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2}, []string{"v1", "user", "getTransactionReceipt"}, ""))
+	pattern_ApiService_GetTransactionReceipt_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2}, []string{"v1", "user", "getTransactionReceipt"}, ""))
 
-	pattern_AppService_StatisticsNodeInfo_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 2, 3}, []string{"v1", "admin", "statistics", "nodeInfo"}, ""))
+	pattern_ApiService_StatisticsNodeInfo_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 2, 3}, []string{"v1", "admin", "statistics", "nodeInfo"}, ""))
 )
 
 var (
-	forward_AppService_GetNebState_0 = runtime.ForwardResponseMessage
+	forward_ApiService_GetNebState_0 = runtime.ForwardResponseMessage
 
-	forward_AppService_NodeInfo_0 = runtime.ForwardResponseMessage
+	forward_ApiService_NodeInfo_0 = runtime.ForwardResponseMessage
 
-	forward_AppService_BlockDump_0 = runtime.ForwardResponseMessage
+	forward_ApiService_BlockDump_0 = runtime.ForwardResponseMessage
 
-	forward_AppService_Accounts_0 = runtime.ForwardResponseMessage
+	forward_ApiService_Accounts_0 = runtime.ForwardResponseMessage
 
-	forward_AppService_GetAccountState_0 = runtime.ForwardResponseMessage
+	forward_ApiService_GetAccountState_0 = runtime.ForwardResponseMessage
 
-	forward_AppService_SendTransaction_0 = runtime.ForwardResponseMessage
+	forward_ApiService_SendTransaction_0 = runtime.ForwardResponseMessage
 
-	forward_AppService_Call_0 = runtime.ForwardResponseMessage
+	forward_ApiService_Call_0 = runtime.ForwardResponseMessage
 
-	forward_AppService_SendRawTransaction_0 = runtime.ForwardResponseMessage
+	forward_ApiService_SendRawTransaction_0 = runtime.ForwardResponseMessage
 
-	forward_AppService_GetBlockByHash_0 = runtime.ForwardResponseMessage
+	forward_ApiService_GetBlockByHash_0 = runtime.ForwardResponseMessage
 
-	forward_AppService_GetTransactionReceipt_0 = runtime.ForwardResponseMessage
+	forward_ApiService_GetTransactionReceipt_0 = runtime.ForwardResponseMessage
 
-	forward_AppService_StatisticsNodeInfo_0 = runtime.ForwardResponseMessage
+	forward_ApiService_StatisticsNodeInfo_0 = runtime.ForwardResponseMessage
 )
 
 // RegisterAdminServiceHandlerFromEndpoint is same as RegisterAdminServiceHandler but
@@ -667,7 +667,7 @@ func RegisterAdminServiceHandler(ctx context.Context, mux *runtime.ServeMux, con
 func RegisterAdminServiceHandlerClient(ctx context.Context, mux *runtime.ServeMux, client AdminServiceClient) error {
 
 	mux.Handle("POST", pattern_AdminService_NewAccount_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
-		ctx, cancel := context.WithCancel(req.Context())
+		ctx, cancel := context.WithCancel(ctx)
 		defer cancel()
 		if cn, ok := w.(http.CloseNotifier); ok {
 			go func(done <-chan struct{}, closed <-chan bool) {
@@ -696,7 +696,7 @@ func RegisterAdminServiceHandlerClient(ctx context.Context, mux *runtime.ServeMu
 	})
 
 	mux.Handle("POST", pattern_AdminService_UnlockAccount_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
-		ctx, cancel := context.WithCancel(req.Context())
+		ctx, cancel := context.WithCancel(ctx)
 		defer cancel()
 		if cn, ok := w.(http.CloseNotifier); ok {
 			go func(done <-chan struct{}, closed <-chan bool) {
@@ -725,7 +725,7 @@ func RegisterAdminServiceHandlerClient(ctx context.Context, mux *runtime.ServeMu
 	})
 
 	mux.Handle("POST", pattern_AdminService_LockAccount_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
-		ctx, cancel := context.WithCancel(req.Context())
+		ctx, cancel := context.WithCancel(ctx)
 		defer cancel()
 		if cn, ok := w.(http.CloseNotifier); ok {
 			go func(done <-chan struct{}, closed <-chan bool) {
@@ -754,7 +754,7 @@ func RegisterAdminServiceHandlerClient(ctx context.Context, mux *runtime.ServeMu
 	})
 
 	mux.Handle("POST", pattern_AdminService_SignTransaction_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
-		ctx, cancel := context.WithCancel(req.Context())
+		ctx, cancel := context.WithCancel(ctx)
 		defer cancel()
 		if cn, ok := w.(http.CloseNotifier); ok {
 			go func(done <-chan struct{}, closed <-chan bool) {
@@ -783,7 +783,7 @@ func RegisterAdminServiceHandlerClient(ctx context.Context, mux *runtime.ServeMu
 	})
 
 	mux.Handle("POST", pattern_AdminService_SendTransactionWithPassphrase_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
-		ctx, cancel := context.WithCancel(req.Context())
+		ctx, cancel := context.WithCancel(ctx)
 		defer cancel()
 		if cn, ok := w.(http.CloseNotifier); ok {
 			go func(done <-chan struct{}, closed <-chan bool) {

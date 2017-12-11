@@ -1138,9 +1138,9 @@ var _ grpc.ClientConn
 // is compatible with the grpc package it is being compiled against.
 const _ = grpc.SupportPackageIsVersion4
 
-// Client API for AppService service
+// Client API for ApiService service
 
-type AppServiceClient interface {
+type ApiServiceClient interface {
 	// Return the state of the neb.
 	GetNebState(ctx context.Context, in *GetNebStateRequest, opts ...grpc.CallOption) (*GetNebStateResponse, error)
 	// Return the p2p node info.
@@ -1164,116 +1164,116 @@ type AppServiceClient interface {
 	StatisticsNodeInfo(ctx context.Context, in *NodeInfoRequest, opts ...grpc.CallOption) (*StatisticsNodeInfoResponse, error)
 }
 
-type appServiceClient struct {
+type apiServiceClient struct {
 	cc *grpc.ClientConn
 }
 
-func NewAppServiceClient(cc *grpc.ClientConn) AppServiceClient {
-	return &appServiceClient{cc}
+func NewApiServiceClient(cc *grpc.ClientConn) ApiServiceClient {
+	return &apiServiceClient{cc}
 }
 
-func (c *appServiceClient) GetNebState(ctx context.Context, in *GetNebStateRequest, opts ...grpc.CallOption) (*GetNebStateResponse, error) {
+func (c *apiServiceClient) GetNebState(ctx context.Context, in *GetNebStateRequest, opts ...grpc.CallOption) (*GetNebStateResponse, error) {
 	out := new(GetNebStateResponse)
-	err := grpc.Invoke(ctx, "/rpcpb.AppService/GetNebState", in, out, c.cc, opts...)
+	err := grpc.Invoke(ctx, "/rpcpb.ApiService/GetNebState", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *appServiceClient) NodeInfo(ctx context.Context, in *NodeInfoRequest, opts ...grpc.CallOption) (*NodeInfoResponse, error) {
+func (c *apiServiceClient) NodeInfo(ctx context.Context, in *NodeInfoRequest, opts ...grpc.CallOption) (*NodeInfoResponse, error) {
 	out := new(NodeInfoResponse)
-	err := grpc.Invoke(ctx, "/rpcpb.AppService/NodeInfo", in, out, c.cc, opts...)
+	err := grpc.Invoke(ctx, "/rpcpb.ApiService/NodeInfo", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *appServiceClient) BlockDump(ctx context.Context, in *BlockDumpRequest, opts ...grpc.CallOption) (*BlockDumpResponse, error) {
+func (c *apiServiceClient) BlockDump(ctx context.Context, in *BlockDumpRequest, opts ...grpc.CallOption) (*BlockDumpResponse, error) {
 	out := new(BlockDumpResponse)
-	err := grpc.Invoke(ctx, "/rpcpb.AppService/BlockDump", in, out, c.cc, opts...)
+	err := grpc.Invoke(ctx, "/rpcpb.ApiService/BlockDump", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *appServiceClient) Accounts(ctx context.Context, in *AccountsRequest, opts ...grpc.CallOption) (*AccountsResponse, error) {
+func (c *apiServiceClient) Accounts(ctx context.Context, in *AccountsRequest, opts ...grpc.CallOption) (*AccountsResponse, error) {
 	out := new(AccountsResponse)
-	err := grpc.Invoke(ctx, "/rpcpb.AppService/Accounts", in, out, c.cc, opts...)
+	err := grpc.Invoke(ctx, "/rpcpb.ApiService/Accounts", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *appServiceClient) GetAccountState(ctx context.Context, in *GetAccountStateRequest, opts ...grpc.CallOption) (*GetAccountStateResponse, error) {
+func (c *apiServiceClient) GetAccountState(ctx context.Context, in *GetAccountStateRequest, opts ...grpc.CallOption) (*GetAccountStateResponse, error) {
 	out := new(GetAccountStateResponse)
-	err := grpc.Invoke(ctx, "/rpcpb.AppService/GetAccountState", in, out, c.cc, opts...)
+	err := grpc.Invoke(ctx, "/rpcpb.ApiService/GetAccountState", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *appServiceClient) SendTransaction(ctx context.Context, in *SendTransactionRequest, opts ...grpc.CallOption) (*SendTransactionResponse, error) {
+func (c *apiServiceClient) SendTransaction(ctx context.Context, in *SendTransactionRequest, opts ...grpc.CallOption) (*SendTransactionResponse, error) {
 	out := new(SendTransactionResponse)
-	err := grpc.Invoke(ctx, "/rpcpb.AppService/SendTransaction", in, out, c.cc, opts...)
+	err := grpc.Invoke(ctx, "/rpcpb.ApiService/SendTransaction", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *appServiceClient) Call(ctx context.Context, in *CallRequest, opts ...grpc.CallOption) (*SendTransactionResponse, error) {
+func (c *apiServiceClient) Call(ctx context.Context, in *CallRequest, opts ...grpc.CallOption) (*SendTransactionResponse, error) {
 	out := new(SendTransactionResponse)
-	err := grpc.Invoke(ctx, "/rpcpb.AppService/Call", in, out, c.cc, opts...)
+	err := grpc.Invoke(ctx, "/rpcpb.ApiService/Call", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *appServiceClient) SendRawTransaction(ctx context.Context, in *SendRawTransactionRequest, opts ...grpc.CallOption) (*SendTransactionResponse, error) {
+func (c *apiServiceClient) SendRawTransaction(ctx context.Context, in *SendRawTransactionRequest, opts ...grpc.CallOption) (*SendTransactionResponse, error) {
 	out := new(SendTransactionResponse)
-	err := grpc.Invoke(ctx, "/rpcpb.AppService/SendRawTransaction", in, out, c.cc, opts...)
+	err := grpc.Invoke(ctx, "/rpcpb.ApiService/SendRawTransaction", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *appServiceClient) GetBlockByHash(ctx context.Context, in *GetBlockByHashRequest, opts ...grpc.CallOption) (*corepb.Block, error) {
+func (c *apiServiceClient) GetBlockByHash(ctx context.Context, in *GetBlockByHashRequest, opts ...grpc.CallOption) (*corepb.Block, error) {
 	out := new(corepb.Block)
-	err := grpc.Invoke(ctx, "/rpcpb.AppService/GetBlockByHash", in, out, c.cc, opts...)
+	err := grpc.Invoke(ctx, "/rpcpb.ApiService/GetBlockByHash", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *appServiceClient) GetTransactionReceipt(ctx context.Context, in *GetTransactionByHashRequest, opts ...grpc.CallOption) (*TransactionReceiptResponse, error) {
+func (c *apiServiceClient) GetTransactionReceipt(ctx context.Context, in *GetTransactionByHashRequest, opts ...grpc.CallOption) (*TransactionReceiptResponse, error) {
 	out := new(TransactionReceiptResponse)
-	err := grpc.Invoke(ctx, "/rpcpb.AppService/GetTransactionReceipt", in, out, c.cc, opts...)
+	err := grpc.Invoke(ctx, "/rpcpb.ApiService/GetTransactionReceipt", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *appServiceClient) StatisticsNodeInfo(ctx context.Context, in *NodeInfoRequest, opts ...grpc.CallOption) (*StatisticsNodeInfoResponse, error) {
+func (c *apiServiceClient) StatisticsNodeInfo(ctx context.Context, in *NodeInfoRequest, opts ...grpc.CallOption) (*StatisticsNodeInfoResponse, error) {
 	out := new(StatisticsNodeInfoResponse)
-	err := grpc.Invoke(ctx, "/rpcpb.AppService/StatisticsNodeInfo", in, out, c.cc, opts...)
+	err := grpc.Invoke(ctx, "/rpcpb.ApiService/StatisticsNodeInfo", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-// Server API for AppService service
+// Server API for ApiService service
 
-type AppServiceServer interface {
+type ApiServiceServer interface {
 	// Return the state of the neb.
 	GetNebState(context.Context, *GetNebStateRequest) (*GetNebStateResponse, error)
 	// Return the p2p node info.
@@ -1297,255 +1297,255 @@ type AppServiceServer interface {
 	StatisticsNodeInfo(context.Context, *NodeInfoRequest) (*StatisticsNodeInfoResponse, error)
 }
 
-func RegisterAppServiceServer(s *grpc.Server, srv AppServiceServer) {
-	s.RegisterService(&_AppService_serviceDesc, srv)
+func RegisterApiServiceServer(s *grpc.Server, srv ApiServiceServer) {
+	s.RegisterService(&_ApiService_serviceDesc, srv)
 }
 
-func _AppService_GetNebState_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _ApiService_GetNebState_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetNebStateRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(AppServiceServer).GetNebState(ctx, in)
+		return srv.(ApiServiceServer).GetNebState(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/rpcpb.AppService/GetNebState",
+		FullMethod: "/rpcpb.ApiService/GetNebState",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AppServiceServer).GetNebState(ctx, req.(*GetNebStateRequest))
+		return srv.(ApiServiceServer).GetNebState(ctx, req.(*GetNebStateRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _AppService_NodeInfo_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _ApiService_NodeInfo_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(NodeInfoRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(AppServiceServer).NodeInfo(ctx, in)
+		return srv.(ApiServiceServer).NodeInfo(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/rpcpb.AppService/NodeInfo",
+		FullMethod: "/rpcpb.ApiService/NodeInfo",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AppServiceServer).NodeInfo(ctx, req.(*NodeInfoRequest))
+		return srv.(ApiServiceServer).NodeInfo(ctx, req.(*NodeInfoRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _AppService_BlockDump_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _ApiService_BlockDump_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(BlockDumpRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(AppServiceServer).BlockDump(ctx, in)
+		return srv.(ApiServiceServer).BlockDump(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/rpcpb.AppService/BlockDump",
+		FullMethod: "/rpcpb.ApiService/BlockDump",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AppServiceServer).BlockDump(ctx, req.(*BlockDumpRequest))
+		return srv.(ApiServiceServer).BlockDump(ctx, req.(*BlockDumpRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _AppService_Accounts_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _ApiService_Accounts_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(AccountsRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(AppServiceServer).Accounts(ctx, in)
+		return srv.(ApiServiceServer).Accounts(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/rpcpb.AppService/Accounts",
+		FullMethod: "/rpcpb.ApiService/Accounts",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AppServiceServer).Accounts(ctx, req.(*AccountsRequest))
+		return srv.(ApiServiceServer).Accounts(ctx, req.(*AccountsRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _AppService_GetAccountState_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _ApiService_GetAccountState_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetAccountStateRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(AppServiceServer).GetAccountState(ctx, in)
+		return srv.(ApiServiceServer).GetAccountState(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/rpcpb.AppService/GetAccountState",
+		FullMethod: "/rpcpb.ApiService/GetAccountState",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AppServiceServer).GetAccountState(ctx, req.(*GetAccountStateRequest))
+		return srv.(ApiServiceServer).GetAccountState(ctx, req.(*GetAccountStateRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _AppService_SendTransaction_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _ApiService_SendTransaction_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(SendTransactionRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(AppServiceServer).SendTransaction(ctx, in)
+		return srv.(ApiServiceServer).SendTransaction(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/rpcpb.AppService/SendTransaction",
+		FullMethod: "/rpcpb.ApiService/SendTransaction",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AppServiceServer).SendTransaction(ctx, req.(*SendTransactionRequest))
+		return srv.(ApiServiceServer).SendTransaction(ctx, req.(*SendTransactionRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _AppService_Call_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _ApiService_Call_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(CallRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(AppServiceServer).Call(ctx, in)
+		return srv.(ApiServiceServer).Call(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/rpcpb.AppService/Call",
+		FullMethod: "/rpcpb.ApiService/Call",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AppServiceServer).Call(ctx, req.(*CallRequest))
+		return srv.(ApiServiceServer).Call(ctx, req.(*CallRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _AppService_SendRawTransaction_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _ApiService_SendRawTransaction_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(SendRawTransactionRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(AppServiceServer).SendRawTransaction(ctx, in)
+		return srv.(ApiServiceServer).SendRawTransaction(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/rpcpb.AppService/SendRawTransaction",
+		FullMethod: "/rpcpb.ApiService/SendRawTransaction",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AppServiceServer).SendRawTransaction(ctx, req.(*SendRawTransactionRequest))
+		return srv.(ApiServiceServer).SendRawTransaction(ctx, req.(*SendRawTransactionRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _AppService_GetBlockByHash_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _ApiService_GetBlockByHash_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetBlockByHashRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(AppServiceServer).GetBlockByHash(ctx, in)
+		return srv.(ApiServiceServer).GetBlockByHash(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/rpcpb.AppService/GetBlockByHash",
+		FullMethod: "/rpcpb.ApiService/GetBlockByHash",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AppServiceServer).GetBlockByHash(ctx, req.(*GetBlockByHashRequest))
+		return srv.(ApiServiceServer).GetBlockByHash(ctx, req.(*GetBlockByHashRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _AppService_GetTransactionReceipt_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _ApiService_GetTransactionReceipt_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetTransactionByHashRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(AppServiceServer).GetTransactionReceipt(ctx, in)
+		return srv.(ApiServiceServer).GetTransactionReceipt(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/rpcpb.AppService/GetTransactionReceipt",
+		FullMethod: "/rpcpb.ApiService/GetTransactionReceipt",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AppServiceServer).GetTransactionReceipt(ctx, req.(*GetTransactionByHashRequest))
+		return srv.(ApiServiceServer).GetTransactionReceipt(ctx, req.(*GetTransactionByHashRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _AppService_StatisticsNodeInfo_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _ApiService_StatisticsNodeInfo_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(NodeInfoRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(AppServiceServer).StatisticsNodeInfo(ctx, in)
+		return srv.(ApiServiceServer).StatisticsNodeInfo(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/rpcpb.AppService/StatisticsNodeInfo",
+		FullMethod: "/rpcpb.ApiService/StatisticsNodeInfo",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AppServiceServer).StatisticsNodeInfo(ctx, req.(*NodeInfoRequest))
+		return srv.(ApiServiceServer).StatisticsNodeInfo(ctx, req.(*NodeInfoRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-var _AppService_serviceDesc = grpc.ServiceDesc{
-	ServiceName: "rpcpb.AppService",
-	HandlerType: (*AppServiceServer)(nil),
+var _ApiService_serviceDesc = grpc.ServiceDesc{
+	ServiceName: "rpcpb.ApiService",
+	HandlerType: (*ApiServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
 			MethodName: "GetNebState",
-			Handler:    _AppService_GetNebState_Handler,
+			Handler:    _ApiService_GetNebState_Handler,
 		},
 		{
 			MethodName: "NodeInfo",
-			Handler:    _AppService_NodeInfo_Handler,
+			Handler:    _ApiService_NodeInfo_Handler,
 		},
 		{
 			MethodName: "BlockDump",
-			Handler:    _AppService_BlockDump_Handler,
+			Handler:    _ApiService_BlockDump_Handler,
 		},
 		{
 			MethodName: "Accounts",
-			Handler:    _AppService_Accounts_Handler,
+			Handler:    _ApiService_Accounts_Handler,
 		},
 		{
 			MethodName: "GetAccountState",
-			Handler:    _AppService_GetAccountState_Handler,
+			Handler:    _ApiService_GetAccountState_Handler,
 		},
 		{
 			MethodName: "SendTransaction",
-			Handler:    _AppService_SendTransaction_Handler,
+			Handler:    _ApiService_SendTransaction_Handler,
 		},
 		{
 			MethodName: "Call",
-			Handler:    _AppService_Call_Handler,
+			Handler:    _ApiService_Call_Handler,
 		},
 		{
 			MethodName: "SendRawTransaction",
-			Handler:    _AppService_SendRawTransaction_Handler,
+			Handler:    _ApiService_SendRawTransaction_Handler,
 		},
 		{
 			MethodName: "GetBlockByHash",
-			Handler:    _AppService_GetBlockByHash_Handler,
+			Handler:    _ApiService_GetBlockByHash_Handler,
 		},
 		{
 			MethodName: "GetTransactionReceipt",
-			Handler:    _AppService_GetTransactionReceipt_Handler,
+			Handler:    _ApiService_GetTransactionReceipt_Handler,
 		},
 		{
 			MethodName: "StatisticsNodeInfo",
-			Handler:    _AppService_StatisticsNodeInfo_Handler,
+			Handler:    _ApiService_StatisticsNodeInfo_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
@@ -1830,35 +1830,35 @@ var fileDescriptorApiRpc = []byte{
 	0x1f, 0xc2, 0xcd, 0xd7, 0x9f, 0x61, 0x5e, 0x0f, 0x4a, 0x36, 0x0c, 0xff, 0x3e, 0x83, 0xf2, 0x21,
 	0x6c, 0x57, 0x1e, 0x5c, 0xd3, 0x4b, 0xe9, 0x70, 0xf9, 0xae, 0x01, 0xed, 0xd2, 0x74, 0x39, 0xc9,
 	0xd2, 0xf9, 0xd7, 0x0e, 0x55, 0xa9, 0x98, 0xa1, 0x52, 0xcc, 0x4f, 0xe0, 0xce, 0x27, 0x42, 0x33,
-	0x7b, 0xda, 0x1c, 0x7e, 0x6f, 0x03, 0x1c, 0x45, 0xd1, 0x29, 0x8d, 0xcf, 0x15, 0x88, 0x1e, 0x2c,
-	0x15, 0x96, 0x2e, 0xb4, 0x63, 0x76, 0xcb, 0xea, 0x6f, 0x81, 0xeb, 0xd6, 0x89, 0x12, 0x47, 0x78,
-	0xe7, 0xeb, 0x9f, 0x7f, 0xfb, 0xb6, 0x71, 0x13, 0xad, 0x77, 0xcf, 0x1f, 0x75, 0x27, 0x82, 0xc6,
-	0xea, 0x1f, 0x44, 0x68, 0x8b, 0x6f, 0xa1, 0x95, 0x2e, 0xa1, 0x68, 0xcb, 0x98, 0x28, 0xfd, 0x5e,
-	0xb8, 0xdb, 0x15, 0xfe, 0x6c, 0xbb, 0x7c, 0x40, 0x99, 0xb2, 0xf5, 0x25, 0xd8, 0xd9, 0x44, 0x46,
-	0xa9, 0x81, 0xf2, 0x34, 0x77, 0x9d, 0xaa, 0xc0, 0x98, 0xde, 0xd7, 0xa6, 0xb7, 0x31, 0xca, 0x4c,
-	0xeb, 0x4d, 0x68, 0x30, 0x19, 0x47, 0x4f, 0xad, 0x07, 0x0a, 0x76, 0xba, 0x8c, 0x65, 0xb0, 0x4b,
-	0x0b, 0x5b, 0x06, 0xbb, 0xbc, 0xb5, 0xd5, 0xc0, 0x26, 0xa9, 0xad, 0x18, 0x56, 0x4b, 0x8b, 0x16,
-	0xda, 0xcf, 0x03, 0x5b, 0xb3, 0xca, 0xb9, 0xb7, 0x66, 0x89, 0x8d, 0xb3, 0xb6, 0x76, 0xe6, 0xe2,
-	0xcd, 0x8a, 0x33, 0xa5, 0xa6, 0xde, 0xf2, 0x01, 0x56, 0x4b, 0xb5, 0x92, 0xf9, 0xac, 0x5f, 0xd4,
-	0x32, 0x9f, 0x33, 0xbe, 0xed, 0xf8, 0xb6, 0xf6, 0xb9, 0x83, 0x37, 0x32, 0x9f, 0x32, 0xd7, 0x52,
-	0x2e, 0xcf, 0xa0, 0xa9, 0x36, 0x22, 0x84, 0x8c, 0xa1, 0xc2, 0x7a, 0x74, 0xad, 0x71, 0x47, 0x1b,
-	0x47, 0x78, 0x39, 0x33, 0xee, 0x93, 0x20, 0x50, 0x56, 0xaf, 0x00, 0x55, 0xd7, 0x13, 0xd4, 0x2e,
-	0xd8, 0xab, 0xdd, 0x5c, 0xae, 0xf5, 0x88, 0xb5, 0xc7, 0x3d, 0xbc, 0x9d, 0x79, 0x8c, 0xc9, 0x45,
-	0xe9, 0x45, 0x04, 0x56, 0xa6, 0x77, 0x11, 0xb4, 0x97, 0x27, 0xa6, 0xba, 0xa2, 0xb8, 0xcb, 0x07,
-	0xea, 0x8f, 0x3b, 0x2d, 0xbd, 0x1a, 0x17, 0xc3, 0xa9, 0x6b, 0xca, 0xc5, 0x37, 0x96, 0xde, 0x77,
-	0xaa, 0xeb, 0x03, 0xc2, 0xb9, 0xab, 0x59, 0x0b, 0x8e, 0x7b, 0xc7, 0xe8, 0xcc, 0xde, 0x3e, 0xf0,
-	0x7d, 0x0d, 0xe2, 0x2e, 0xbe, 0x55, 0x04, 0x51, 0xd5, 0x57, 0x58, 0xce, 0x01, 0x55, 0xff, 0x22,
-	0x67, 0x36, 0x70, 0xea, 0x7b, 0xf6, 0x8f, 0x27, 0xfe, 0x87, 0xf6, 0x7d, 0x1b, 0xed, 0x2b, 0xdf,
-	0x64, 0x30, 0x66, 0x61, 0x57, 0x64, 0xda, 0xba, 0xad, 0x95, 0xfa, 0xe1, 0x2f, 0x4d, 0xb8, 0x71,
-	0xa4, 0xa4, 0xe9, 0x80, 0xf2, 0x01, 0xf2, 0xbd, 0x01, 0xa5, 0xfd, 0x5c, 0xd9, 0x3f, 0xdc, 0x9d,
-	0x1a, 0x49, 0x5d, 0x87, 0x24, 0xae, 0x4d, 0x8b, 0x74, 0x43, 0x7a, 0xa1, 0x5e, 0xcb, 0x61, 0x79,
-	0x6a, 0x35, 0x40, 0xbb, 0xc6, 0x5a, 0xdd, 0x0a, 0xe2, 0xee, 0xd5, 0x0b, 0x8d, 0xb7, 0xbb, 0xda,
-	0xdb, 0x3e, 0x76, 0xaa, 0xde, 0x26, 0xfa, 0x82, 0x72, 0x38, 0x84, 0xa5, 0xc2, 0xaa, 0x90, 0x8d,
-	0xdd, 0xea, 0xba, 0x91, 0x8d, 0xdd, 0x9a, 0xcd, 0x02, 0xdf, 0xd1, 0xae, 0x76, 0xf1, 0x56, 0xd5,
-	0x55, 0xea, 0xe8, 0x3d, 0xac, 0x96, 0x3e, 0xb9, 0x79, 0xef, 0xd7, 0xee, 0x1e, 0x79, 0xb3, 0xd4,
-	0x7f, 0xa9, 0xd3, 0xe1, 0x86, 0x57, 0x0a, 0x89, 0x64, 0x43, 0xdd, 0x23, 0x3f, 0x58, 0xb0, 0x5f,
-	0xea, 0xb1, 0xff, 0x33, 0x39, 0xca, 0xbf, 0x4c, 0xe8, 0x5e, 0x7d, 0x27, 0x56, 0x3e, 0xeb, 0x6e,
-	0xe7, 0x7a, 0x45, 0x83, 0xe7, 0x40, 0xe3, 0xe9, 0xe0, 0xbb, 0x39, 0x1e, 0x39, 0xcb, 0xff, 0x53,
-	0xeb, 0x41, 0x7f, 0x41, 0xff, 0xae, 0x3f, 0xfe, 0x33, 0x00, 0x00, 0xff, 0xff, 0x0d, 0x50, 0xc4,
-	0xeb, 0x66, 0x13, 0x00, 0x00,
+	0x7b, 0xda, 0x1c, 0x7e, 0x6f, 0x03, 0x1c, 0x45, 0xec, 0x94, 0xc6, 0xe7, 0x0a, 0x44, 0x0f, 0x96,
+	0x0a, 0x4b, 0x17, 0xda, 0x31, 0xbb, 0x65, 0xf5, 0xb7, 0xc0, 0x75, 0xeb, 0x44, 0x89, 0x23, 0xbc,
+	0xf3, 0xf5, 0xcf, 0xbf, 0x7d, 0xdb, 0xb8, 0x89, 0xd6, 0xbb, 0xe7, 0x8f, 0xba, 0x13, 0x41, 0x63,
+	0xf5, 0x0f, 0x22, 0xb4, 0xc5, 0xb7, 0xd0, 0x4a, 0x97, 0x50, 0xb4, 0x65, 0x4c, 0x94, 0x7e, 0x2f,
+	0xdc, 0xed, 0x0a, 0x7f, 0xb6, 0x5d, 0x3e, 0xa0, 0x4c, 0xd9, 0xfa, 0x12, 0xec, 0x6c, 0x22, 0xa3,
+	0xd4, 0x40, 0x79, 0x9a, 0xbb, 0x4e, 0x55, 0x60, 0x4c, 0xef, 0x6b, 0xd3, 0xdb, 0x18, 0x65, 0xa6,
+	0xf5, 0x26, 0x34, 0x98, 0x8c, 0xa3, 0xa7, 0xd6, 0x03, 0x05, 0x3b, 0x5d, 0xc6, 0x32, 0xd8, 0xa5,
+	0x85, 0x2d, 0x83, 0x5d, 0xde, 0xda, 0x6a, 0x60, 0x93, 0xd4, 0x56, 0x0c, 0xab, 0xa5, 0x45, 0x0b,
+	0xed, 0xe7, 0x81, 0xad, 0x59, 0xe5, 0xdc, 0x5b, 0xb3, 0xc4, 0xc6, 0x59, 0x5b, 0x3b, 0x73, 0xf1,
+	0x66, 0xc5, 0x99, 0x52, 0x53, 0x6f, 0xf9, 0x00, 0xab, 0xa5, 0x5a, 0xc9, 0x7c, 0xd6, 0x2f, 0x6a,
+	0x99, 0xcf, 0x19, 0xdf, 0x76, 0x7c, 0x5b, 0xfb, 0xdc, 0xc1, 0x1b, 0x99, 0x4f, 0x99, 0x6b, 0x29,
+	0x97, 0x67, 0xd0, 0x54, 0x1b, 0x11, 0x42, 0xc6, 0x50, 0x61, 0x3d, 0xba, 0xd6, 0xb8, 0xa3, 0x8d,
+	0x23, 0xbc, 0x9c, 0x19, 0xf7, 0x49, 0x10, 0x28, 0xab, 0x57, 0x80, 0xaa, 0xeb, 0x09, 0x6a, 0x17,
+	0xec, 0xd5, 0x6e, 0x2e, 0xd7, 0x7a, 0xc4, 0xda, 0xe3, 0x1e, 0xde, 0xce, 0x3c, 0xc6, 0xe4, 0xa2,
+	0xf4, 0x22, 0x02, 0x2b, 0xd3, 0xbb, 0x08, 0xda, 0xcb, 0x13, 0x53, 0x5d, 0x51, 0xdc, 0xe5, 0x03,
+	0xf5, 0xc7, 0x9d, 0x96, 0x5e, 0x8d, 0x8b, 0xe1, 0xd4, 0x35, 0xe5, 0xe2, 0x1b, 0x4b, 0xef, 0x3b,
+	0xd5, 0xf5, 0x01, 0xe1, 0xdc, 0xd5, 0xac, 0x05, 0xc7, 0xbd, 0x63, 0x74, 0x66, 0x6f, 0x1f, 0xf8,
+	0xbe, 0x06, 0x71, 0x17, 0xdf, 0x2a, 0x82, 0xa8, 0xea, 0x2b, 0x2c, 0xe7, 0x80, 0xaa, 0x7f, 0x91,
+	0x33, 0x1b, 0x38, 0xf5, 0x3d, 0xfb, 0xc7, 0x13, 0xff, 0x43, 0xfb, 0xbe, 0x8d, 0xf6, 0x95, 0x6f,
+	0x32, 0x18, 0xb3, 0xb0, 0x2b, 0x32, 0x6d, 0xdd, 0xd6, 0x4a, 0xfd, 0xf0, 0x97, 0x26, 0xdc, 0x38,
+	0x52, 0xd2, 0x74, 0x40, 0xf9, 0x00, 0xf9, 0xde, 0x80, 0xd2, 0x7e, 0xae, 0xec, 0x1f, 0xee, 0x4e,
+	0x8d, 0xa4, 0xae, 0x43, 0x12, 0xd7, 0xa6, 0x45, 0xba, 0x21, 0xbd, 0x50, 0xaf, 0xe5, 0xb0, 0x3c,
+	0xb5, 0x1a, 0xa0, 0x5d, 0x63, 0xad, 0x6e, 0x05, 0x71, 0xf7, 0xea, 0x85, 0xc6, 0xdb, 0x5d, 0xed,
+	0x6d, 0x1f, 0x3b, 0x55, 0x6f, 0x13, 0x7d, 0x41, 0x39, 0x1c, 0xc2, 0x52, 0x61, 0x55, 0xc8, 0xc6,
+	0x6e, 0x75, 0xdd, 0xc8, 0xc6, 0x6e, 0xcd, 0x66, 0x81, 0xef, 0x68, 0x57, 0xbb, 0x78, 0xab, 0xea,
+	0x2a, 0x75, 0xf4, 0x1e, 0x56, 0x4b, 0x9f, 0xdc, 0xbc, 0xf7, 0x6b, 0x77, 0x8f, 0xbc, 0x59, 0xea,
+	0xbf, 0xd4, 0xe9, 0x70, 0xc3, 0x2b, 0x85, 0x44, 0xb2, 0xa1, 0xee, 0x91, 0x1f, 0x2c, 0xd8, 0x2f,
+	0xf5, 0xd8, 0xff, 0x99, 0x1c, 0xe5, 0x5f, 0x26, 0x74, 0xaf, 0xbe, 0x13, 0x2b, 0x9f, 0x75, 0xb7,
+	0x73, 0xbd, 0xa2, 0xc1, 0x73, 0xa0, 0xf1, 0x74, 0xf0, 0xdd, 0x1c, 0x8f, 0x9c, 0xe5, 0xff, 0xa9,
+	0xf5, 0xa0, 0xbf, 0xa0, 0x7f, 0xd7, 0x1f, 0xff, 0x19, 0x00, 0x00, 0xff, 0xff, 0xb1, 0x51, 0xfd,
+	0xfa, 0x66, 0x13, 0x00, 0x00,
 }

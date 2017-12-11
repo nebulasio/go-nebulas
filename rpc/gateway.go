@@ -13,7 +13,7 @@ import (
 
 // const
 const (
-	App   = "app"
+	API   = "api"
 	Admin = "admin"
 )
 
@@ -28,8 +28,8 @@ func Run(rpcListen string, gatewayListen []string, httpModule []string) error {
 	echoEndpoint := flag.String("rpc", rpcListen, "")
 	for _, v := range httpModule {
 		switch v {
-		case App:
-			rpcpb.RegisterAppServiceHandlerFromEndpoint(ctx, mux, *echoEndpoint, opts)
+		case API:
+			rpcpb.RegisterApiServiceHandlerFromEndpoint(ctx, mux, *echoEndpoint, opts)
 		case Admin:
 			rpcpb.RegisterAdminServiceHandlerFromEndpoint(ctx, mux, *echoEndpoint, opts)
 		}

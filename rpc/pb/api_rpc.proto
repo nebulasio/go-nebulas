@@ -24,7 +24,7 @@ import "github.com/nebulasio/go-nebulas/core/pb/block.proto";
 package rpcpb;
 
 // RPC API interface.
-service AppService {
+service ApiService {
     // Return the state of the neb.
     rpc GetNebState (GetNebStateRequest) returns (GetNebStateResponse) {
         option (google.api.http) = {

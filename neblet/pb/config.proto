@@ -67,7 +67,7 @@ message RPCConfig {
 	// HTTP listen addresses.
 	repeated string http_listen = 2;
 
-	// Enabled HTTP modules.["app", "admin"]
+	// Enabled HTTP modules.["api", "admin"]
 	repeated string http_module = 3;
 }
 
