@@ -67,7 +67,7 @@ build-linux:
 	cd cmd/neb; GOOS=linux GOARCH=amd64 go build $(LDFLAGS) -o ../../$(BINARY)-linux
 
 test:
-	go test -v ./... 2>&1 | tee $(TEST_REPORT); go2xunit -fail -input $(TEST_REPORT) -output $(TEST_XUNIT_REPORT) && echo "All tests are passed." || echo "Tests were failed, please check your codes."
+	go test ./... 2>&1 | tee $(TEST_REPORT); go2xunit -fail -input $(TEST_REPORT) -output $(TEST_XUNIT_REPORT)
 
 vet:
 	go vet $$(go list ./...) 2>&1 | tee $(VET_REPORT)
