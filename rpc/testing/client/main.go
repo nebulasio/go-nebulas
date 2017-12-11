@@ -49,7 +49,7 @@ func main() {
 	}
 	defer conn.Close()
 
-	ac := rpcpb.NewAppServiceClient(conn)
+	ac := rpcpb.NewApiServiceClient(conn)
 	var nonce uint64
 
 	{
