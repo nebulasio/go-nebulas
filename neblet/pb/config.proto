@@ -54,28 +54,21 @@ message ChainConfig {
     string gas_price = 22;
     // Max GasLimit.
     string gas_limit = 23;
-    // Supported signature cipher list.
-    enum SignatureCiphers {
-        ECC_SECP256K1 = 0;
-    }
-    repeated SignatureCiphers signature_ciphers = 24;
+
+    // Supported signature cipher list. ["ECC_SECP256K1"]
+    repeated string signature_ciphers = 24;
 }
 
 message RPCConfig {
-    // PRC modules.
-	enum RPCModule {
-		App = 0;
-		Admin = 1;
-	}
 
 	// RPC listen addresses.
 	repeated string rpc_listen = 1;
 
 	// HTTP listen addresses.
-	repeated string http_listen = 3;
+	repeated string http_listen = 2;
 
-	// Enabled HTTP modules.
-	repeated RPCModule http_module = 4;
+	// Enabled HTTP modules.["app", "admin"]
+	repeated string http_module = 3;
 }
 
 message MiscConfig {

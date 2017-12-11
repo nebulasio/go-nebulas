@@ -6,14 +6,19 @@ import (
 	"strings"
 
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
-	"github.com/nebulasio/go-nebulas/neblet/pb"
 	"github.com/nebulasio/go-nebulas/rpc/pb"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 )
 
+// const
+const (
+	App   = "app"
+	Admin = "admin"
+)
+
 // Run start gateway proxy to mapping grpc to http.
-func Run(rpcListen string, gatewayListen []string, httpModule []nebletpb.RPCConfig_RPCModule) error {
+func Run(rpcListen string, gatewayListen []string, httpModule []string) error {
 	ctx := context.Background()
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
@@ -23,9 +28,9 @@ func Run(rpcListen string, gatewayListen []string, httpModule []nebletpb.RPCConf
 	echoEndpoint := flag.String("rpc", rpcListen, "")
 	for _, v := range httpModule {
 		switch v {
-		case nebletpb.RPCConfig_App:
+		case App:
 			rpcpb.RegisterAppServiceHandlerFromEndpoint(ctx, mux, *echoEndpoint, opts)
-		case nebletpb.RPCConfig_Admin:
+		case Admin:
 			rpcpb.RegisterAdminServiceHandlerFromEndpoint(ctx, mux, *echoEndpoint, opts)
 		}
 	}
