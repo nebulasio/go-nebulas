@@ -1,7 +1,6 @@
 'use strict';
 
 var Neblet = require('./neblet');
-var await = require('asyncawait/await');
 var os = require('os');
 var expect = require('chai').expect;
 var ip = "127.0.0.1";
@@ -125,7 +124,7 @@ describe('Server A test suite', function(){
 });
 
 describe('Server B test suite', function(){
-    it('start Server B & connect to seed Server', function() {·
+    it('start Server B & connect to seed Server', function() {
         var nodeinfo = jsAgentB.api.nodeInfo();
         expect(nodeinfo.chain_id).to.be.equal(100);
         expect(nodeinfo.route_table[0]).to.be.have.property('id').equals('QmPyr4ZbDmwF1nWxymTktdzspcBFPL6X1v3Q5nT7PGNtUN');
