@@ -247,14 +247,14 @@ func (tx *Transaction) DataLen() int {
 }
 
 // Execute transaction and return result.
-func (tx *Transaction) Execute(block *Block) error {
+func (tx *Transaction) Execute(block *Block) (*util.Uint128, error) {
 	// check balance.
 	fromAcc := block.accState.GetOrCreateUserAccount(tx.from.address)
 	toAcc := block.accState.GetOrCreateUserAccount(tx.to.address)
 	coinbaseAcc := block.accState.GetOrCreateUserAccount(block.CoinbaseHash())
 
 	if fromAcc.Balance().Cmp(tx.Cost().Int) < 0 {
-		return ErrInsufficientBalance
+		return nil, ErrInsufficientBalance
 	}
 
 	gasUsed := tx.CalculateGas()
@@ -264,15 +264,12 @@ func (tx *Transaction) Execute(block *Block) error {
 			"block":       block,
 			"transaction": tx,
 		}).Error("Transaction Execute.")
-		gasUsed = tx.gasLimit
-	}
-	// if gasUsed > gasLimit, burn the gas and do nothing
-	gas := util.NewUint128().Mul(tx.GasPrice().Int, gasUsed.Int)
-	fromAcc.SubBalance(util.NewUint128FromBigInt(gas))
-	coinbaseAcc.AddBalance(util.NewUint128FromBigInt(gas))
-	if tx.gasLimit.Cmp(gasUsed.Int) < 0 {
+		// if gasUsed > gasLimit, burn the gas and do nothing
+		gas := util.NewUint128().Mul(tx.GasPrice().Int, tx.gasLimit.Int)
+		fromAcc.SubBalance(util.NewUint128FromBigInt(gas))
+		coinbaseAcc.AddBalance(util.NewUint128FromBigInt(gas))
 		//TODO: add failed execution flag for the tx
-		return nil
+		return tx.gasLimit, nil
 	}
 
 	// execute payload
@@ -288,14 +285,14 @@ func (tx *Transaction) Execute(block *Block) error {
 	case TxPayloadCallType:
 		payload, err = LoadCallPayload(tx.data.Payload)
 	default:
-		return ErrInvalidTxPayloadType
+		return nil, ErrInvalidTxPayloadType
 	}
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// execute smart contract and sub the calcute gas.
-	err = payload.Execute(tx, block)
+	gasExecution, err := payload.Execute(tx, block)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"error":       ErrOutofGasLimit,
@@ -313,7 +310,11 @@ func (tx *Transaction) Execute(block *Block) error {
 
 		executeTxCounter.Inc(1)
 	}
-	return nil
+	gas := util.NewUint128FromBigInt(gasUsed.Add(gasUsed.Int, gasExecution.Int))
+	gasCost := util.NewUint128().Mul(tx.GasPrice().Int, gas.Int)
+	fromAcc.SubBalance(util.NewUint128FromBigInt(gasCost))
+	coinbaseAcc.AddBalance(util.NewUint128FromBigInt(gasCost))
+	return gas, nil
 }
 
 // Sign sign transaction,sign algorithm is

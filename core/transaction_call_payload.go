@@ -54,47 +54,24 @@ func (payload *CallPayload) ToBytes() ([]byte, error) {
 }
 
 // Execute the call payload in tx, call a function
-func (payload *CallPayload) Execute(tx *Transaction, block *Block) error {
+func (payload *CallPayload) Execute(tx *Transaction, block *Block) (*util.Uint128, error) {
 	ctx, deployPayload, err := generateCallContext(tx, block)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	engine := nvm.NewV8Engine(ctx)
 	defer engine.Dispose()
 
 	//add gas limit and memory use limit
-	engine.SetExecutionLimits(tx.GasLimit().Uint64(), nvm.DefaultLimitsOfTotalMemorySize)
+	executionInstructions := util.NewUint128()
+	executionInstructions.Sub(tx.gasLimit.Int, tx.CalculateGas().Int)
+	engine.SetExecutionLimits(executionInstructions.Uint64(), nvm.DefaultLimitsOfTotalMemorySize)
 
 	err = engine.Call(deployPayload.Source, deployPayload.SourceType, payload.Function, payload.Args)
 	if err == nil {
 		block.accState = ctx.State()
 	}
-	gasCombustion(engine, tx, block)
-	return nil
-}
-
-// EstimateGas the payload in tx
-func (payload *CallPayload) EstimateGas(tx *Transaction, block *Block) (*util.Uint128, error) {
-	// TODO: @larry by @robin. since we can rollback all changes after Execute, so we don't need such function.
-
-	ctx, deployPayload, err := generateCallContext(tx, block)
-	if err != nil {
-		return nil, err
-	}
-
-	engine := nvm.NewV8Engine(ctx)
-	defer engine.Dispose()
-
-	executionInstructions := util.NewUint128()
-	executionInstructions.Sub(tx.gasLimit.Int, tx.CalculateGas().Int)
-	engine.SetExecutionLimits(executionInstructions.Uint64(), nvm.DefaultLimitsOfTotalMemorySize)
-
-	err = engine.SimulationRun(deployPayload.Source, deployPayload.SourceType, payload.Function, payload.Args)
-	if err != nil {
-		return nil, err
-	}
-
 	return util.NewUint128FromInt(int64(engine.ExecutionInstructions())), nil
 }
 

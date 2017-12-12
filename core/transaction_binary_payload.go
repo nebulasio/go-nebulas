@@ -47,8 +47,8 @@ func (payload *BinaryPayload) ToBytes() ([]byte, error) {
 }
 
 // Execute the payload in tx
-func (payload *BinaryPayload) Execute(tx *Transaction, block *Block) error {
-	return nil
+func (payload *BinaryPayload) Execute(tx *Transaction, block *Block) (*util.Uint128, error) {
+	return util.NewUint128(), nil
 }
 
 // EstimateGas the payload in tx

@@ -90,7 +90,6 @@ type V8Engine struct {
 	modules                            Modules
 	v8engine                           *C.V8Engine
 	enableLimits                       bool
-	simulationRun                      bool
 	limitsOfExecutionInstructions      uint64
 	limitsOfTotalMemorySize            uint64
 	actualCountOfExecutionInstructions uint64
@@ -135,7 +134,6 @@ func NewV8Engine(ctx *Context) *V8Engine {
 		modules:                            NewModules(),
 		v8engine:                           C.CreateEngine(),
 		enableLimits:                       false,
-		simulationRun:                      false,
 		limitsOfExecutionInstructions:      0,
 		limitsOfTotalMemorySize:            0,
 		actualCountOfExecutionInstructions: 0,
@@ -324,12 +322,6 @@ func (e *V8Engine) Call(source, sourceType, function, args string) error {
 // DeployAndInit a contract
 func (e *V8Engine) DeployAndInit(source, sourceType, args string) error {
 	return e.RunContractScript(source, sourceType, "init", args)
-}
-
-// SimulationRun a contract
-func (e *V8Engine) SimulationRun(source, sourceType, function, args string) error {
-	e.simulationRun = true
-	return e.RunContractScript(source, sourceType, function, args)
 }
 
 // RunContractScript execute script in Smart Contract's way.

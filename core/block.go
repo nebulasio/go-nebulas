@@ -540,7 +540,7 @@ func (block *Block) executeTransaction(tx *Transaction) (giveback bool, err erro
 	}
 
 	// execute.
-	if err := tx.Execute(block); err != nil {
+	if _, err := tx.Execute(block); err != nil {
 		return false, err
 	}
 

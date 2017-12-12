@@ -319,29 +319,12 @@ func (bc *BlockChain) GasPrice() *util.Uint128 {
 
 // EstimateGas returns the transaction gas cost
 func (bc *BlockChain) EstimateGas(tx *Transaction) (*util.Uint128, error) {
-	txGas := tx.CalculateGas()
-	var payload TxPayload
-	var err error
-	switch tx.data.Type {
-	case TxPayloadBinaryType:
-		payload, err = LoadBinaryPayload(tx.data.Payload)
-	case TxPayloadDeployType:
-		payload, err = LoadDeployPayload(tx.data.Payload)
-	case TxPayloadCallType:
-		payload, err = LoadCallPayload(tx.data.Payload)
-	default:
-		return nil, ErrInvalidTxPayloadType
-	}
-	if err != nil {
-		return nil, err
-	}
-
-	// execute smart contract and sub the calcute gas.
-	contractGas, err := payload.EstimateGas(tx, bc.tailBlock)
-	if err != nil {
-		return nil, err
-	}
-	return util.NewUint128FromBigInt(txGas.Add(txGas.Int, contractGas.Int)), nil
+	bc.tailBlock.accState.BeginBatch()
+	fromAcc := bc.tailBlock.accState.GetOrCreateUserAccount(tx.from.address)
+	fromAcc.AddBalance(tx.value)
+	fromAcc.AddBalance(TransactionMaxGas)
+	defer bc.tailBlock.accState.RollBack()
+	return tx.Execute(bc.tailBlock)
 }
 
 func (bc *BlockChain) getAncestorHash(number int) byteutils.Hash {

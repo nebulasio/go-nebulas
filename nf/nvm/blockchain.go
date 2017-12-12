@@ -101,13 +101,6 @@ func TransferFunc(handler unsafe.Pointer, to *C.char, v *C.char) int {
 		err    error
 	)
 	amount = util.NewUint128FromString(C.GoString(v))
-	// if engine is simulation run, need not update balance
-	if engine.simulationRun {
-		if engine.ctx.contract.Balance().Cmp(amount.Int) < 0 {
-			return 1
-		}
-		return 0
-	}
 
 	// update balance
 	err = engine.ctx.contract.SubBalance(amount)

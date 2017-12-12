@@ -46,8 +46,7 @@ var (
 // TxPayload stored in tx
 type TxPayload interface {
 	ToBytes() ([]byte, error)
-	Execute(tx *Transaction, block *Block) error
-	EstimateGas(tx *Transaction, block *Block) (*util.Uint128, error)
+	Execute(tx *Transaction, block *Block) (*util.Uint128, error)
 }
 
 // MessageType

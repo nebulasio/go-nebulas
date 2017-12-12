@@ -56,10 +56,10 @@ func (payload *DeployPayload) ToBytes() ([]byte, error) {
 }
 
 // Execute deploy payload in tx, deploy a new contract
-func (payload *DeployPayload) Execute(tx *Transaction, block *Block) error {
+func (payload *DeployPayload) Execute(tx *Transaction, block *Block) (*util.Uint128, error) {
 	ctx, err := generateDeployContext(tx, block)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	engine := nvm.NewV8Engine(ctx)
@@ -73,27 +73,6 @@ func (payload *DeployPayload) Execute(tx *Transaction, block *Block) error {
 	err = engine.DeployAndInit(payload.Source, payload.SourceType, payload.Args)
 	if err == nil {
 		block.accState = ctx.State()
-	}
-	gasCombustion(engine, tx, block)
-	return nil
-}
-
-// EstimateGas the payload in tx
-func (payload *DeployPayload) EstimateGas(tx *Transaction, block *Block) (*util.Uint128, error) {
-	// TODO: @larry by @robin. since we can rollback all changes after Execute, so we don't need such function.
-	ctx, err := generateDeployContext(tx, block)
-	if err != nil {
-		return nil, err
-	}
-
-	engine := nvm.NewV8Engine(ctx)
-	defer engine.Dispose()
-	//add gas limit and memory use limit
-	engine.SetExecutionLimits(TransactionMaxGas.Uint64(), nvm.DefaultLimitsOfTotalMemorySize)
-
-	err = engine.SimulationRun(payload.Source, payload.SourceType, "init", payload.Args)
-	if err != nil {
-		return nil, err
 	}
 	return util.NewUint128FromInt(int64(engine.ExecutionInstructions())), nil
 }
@@ -128,15 +107,4 @@ func convertNvmTx(tx *Transaction) *nvm.ContextTransaction {
 		GasLimit:  tx.GasLimit().String(),
 	}
 	return ctxTx
-}
-
-// execute contracts gas combustion
-func gasCombustion(e *nvm.V8Engine, tx *Transaction, block *Block) {
-	instructions := util.NewUint128FromInt(int64(e.ExecutionInstructions()))
-	// cost = gasPrice * executionInstructions
-	cost := instructions.Mul(instructions.Int, tx.gasPrice.Int)
-	e.Context().Owner().SubBalance(util.NewUint128FromBigInt(cost))
-
-	coinbaseAcc := e.Context().State().GetOrCreateUserAccount(block.CoinbaseHash())
-	coinbaseAcc.AddBalance(util.NewUint128FromBigInt(cost))
 }
