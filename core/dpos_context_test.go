@@ -31,7 +31,9 @@ func TestBlock_NextDynastyContext(t *testing.T) {
 	storage, _ := storage.NewMemoryStorage()
 	chain, _ := NewBlockChain(0, storage)
 	block, _ := LoadBlockFromStorage(GenesisHash, chain.storage, chain.txPool)
-	context, err := block.NextDynastyContext(5)
+
+	block.begin()
+	context, err := block.NextDynastyContext(BlockInterval)
 	assert.Nil(t, err)
 	validators, _ := TraverseDynasty(block.dposContext.dynastyTrie)
 	assert.Equal(t, context.Proposer, validators[1])
@@ -46,8 +48,10 @@ func TestBlock_NextDynastyContext(t *testing.T) {
 	for i := 0; i < DynastySize-1; i++ {
 		assert.Equal(t, string(delegatees[i].Hex()), GenesisDynasty[i])
 	}
+	block.rollback()
 
-	context, err = block.NextDynastyContext(3605)
+	block.begin()
+	context, err = block.NextDynastyContext(BlockInterval + DynastyInterval)
 	assert.Nil(t, err)
 	validators, _ = TraverseDynasty(block.dposContext.dynastyTrie)
 	assert.Equal(t, context.Proposer, validators[1])
@@ -62,11 +66,13 @@ func TestBlock_NextDynastyContext(t *testing.T) {
 	for i := 0; i < DynastySize-1; i++ {
 		assert.Equal(t, string(delegatees[i].Hex()), GenesisDynasty[i])
 	}
+	block.rollback()
 
-	context, err = block.NextDynastyContext(110)
+	block.begin()
+	context, err = block.NextDynastyContext(DynastyInterval / 2)
 	assert.Nil(t, err)
 	validators, _ = TraverseDynasty(block.dposContext.dynastyTrie)
-	assert.Equal(t, context.Proposer, validators[110/int(BlockInterval)%len(GenesisDynasty)])
+	assert.Equal(t, context.Proposer, validators[int(DynastyInterval/2/BlockInterval)%len(GenesisDynasty)])
 	// check dynasty
 	delegatees, err = TraverseDynasty(context.DynastyTrie)
 	assert.Nil(t, err)
@@ -78,11 +84,14 @@ func TestBlock_NextDynastyContext(t *testing.T) {
 	for i := 0; i < DynastySize-1; i++ {
 		assert.Equal(t, string(delegatees[i].Hex()), GenesisDynasty[i])
 	}
+	block.rollback()
 
-	context, err = block.NextDynastyContext(7310)
+	block.begin()
+	context, err = block.NextDynastyContext(DynastyInterval*2 + DynastyInterval/3)
 	assert.Nil(t, err)
 	validators, _ = TraverseDynasty(block.dposContext.dynastyTrie)
-	assert.Equal(t, context.Proposer, validators[7310%int(DynastyInterval)/int(BlockInterval)%len(GenesisDynasty)])
+	index := int((DynastyInterval*2+DynastyInterval/3)%DynastyInterval) / int(BlockInterval) % len(GenesisDynasty)
+	assert.Equal(t, context.Proposer, validators[index])
 	// check dynasty
 	delegatees, err = TraverseDynasty(context.DynastyTrie)
 	assert.Nil(t, err)
@@ -94,6 +103,7 @@ func TestBlock_NextDynastyContext(t *testing.T) {
 	for i := 0; i < DynastySize-1; i++ {
 		assert.Equal(t, string(delegatees[i].Hex()), GenesisDynasty[i])
 	}
+	block.rollback()
 
 	// new block
 	coinbase := &Address{validators[1]}

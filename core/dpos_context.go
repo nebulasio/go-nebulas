@@ -35,7 +35,7 @@ import (
 const (
 	BlockInterval        = int64(5)
 	AcceptedNetWorkDelay = int64(2)
-	DynastyInterval      = int64(3600)
+	DynastyInterval      = int64(60)
 	DynastySize          = 7
 	ReserveSize          = DynastySize / 3
 )
@@ -344,6 +344,7 @@ func candidates(votes map[string]*util.Uint128) (Candidates, error) {
 }
 
 func (block *Block) kickoutCandidate(candidate byteutils.Hash) error {
+	log.Info("Kickout Candidate: ", candidate.Hex())
 	if _, err := block.dposContext.candidateTrie.Del(candidate); err != nil {
 		return err
 	}
@@ -381,11 +382,9 @@ func (block *Block) kickoutCandidate(candidate byteutils.Hash) error {
 	return nil
 }
 
-func (block *Block) kickoutDumbValidators(curDynastyID int64) error {
-	if curDynastyID <= 0 {
-		return nil
-	}
-	iter, err := block.dposContext.dynastyTrie.Iterator(nil)
+func (block *Block) kickoutDumbDynasty(id int64, dynasty *trie.BatchTrie) error {
+	log.Info("Kickout Dynasty: ", id)
+	iter, err := dynasty.Iterator(nil)
 	if err != nil {
 		return err
 	}
@@ -395,7 +394,7 @@ func (block *Block) kickoutDumbValidators(curDynastyID int64) error {
 	}
 	for exist {
 		validator := iter.Value()
-		key := append(byteutils.FromInt64(curDynastyID), validator...)
+		key := append(byteutils.FromInt64(id), validator...)
 		bytes, err := block.dposContext.mintCntTrie.Get(key)
 		if err != nil && err != storage.ErrKeyNotFound {
 			return err
@@ -421,9 +420,27 @@ func (block *Block) kickoutDumbValidators(curDynastyID int64) error {
 	return nil
 }
 
+func (block *Block) kickoutDumbValidators(curDynastyID int64, nextDynastyID int64) error {
+	// do not kickout genesis dynasty
+	if curDynastyID <= 0 {
+		return nil
+	}
+	for i := curDynastyID; i < nextDynastyID; i++ {
+		context, err := block.NextDynastyContext(curDynastyID*DynastyInterval - block.Timestamp())
+		if err != nil {
+			return err
+		}
+		err = block.kickoutDumbDynasty(i, context.DynastyTrie)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (block *Block) electNewDynasty(curDynastyID int64, newDynastyID int64) (*trie.BatchTrie, error) {
 	// collect candidates
-	err := block.kickoutDumbValidators(curDynastyID)
+	err := block.kickoutDumbValidators(curDynastyID, newDynastyID)
 	if err != nil {
 		return nil, err
 	}
