@@ -82,7 +82,7 @@ func neb(ctx *cli.Context) error {
 
 	log.SetFormatter(&log.TextFormatter{FullTimestamp: true})
 	log.SetOutput(os.Stdout)
-	log.SetLevel(log.DebugLevel)
+	log.SetLevel(log.InfoLevel)
 
 	n := makeNeb(ctx)
 
