@@ -21,6 +21,7 @@ debug
 
 # db
 *.db
+normal.db*
 
 # c/cpp temp files.
 *.o

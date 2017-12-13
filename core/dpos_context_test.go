@@ -25,6 +25,7 @@ import (
 
 	"github.com/nebulasio/go-nebulas/storage"
 	"github.com/nebulasio/go-nebulas/util"
+	log "github.com/sirupsen/logrus"
 )
 
 func TestBlock_NextDynastyContext(t *testing.T) {
@@ -32,7 +33,6 @@ func TestBlock_NextDynastyContext(t *testing.T) {
 	chain, _ := NewBlockChain(0, storage)
 	block, _ := LoadBlockFromStorage(GenesisHash, chain.storage, chain.txPool)
 
-	block.begin()
 	context, err := block.NextDynastyContext(BlockInterval)
 	assert.Nil(t, err)
 	validators, _ := TraverseDynasty(block.dposContext.dynastyTrie)
@@ -48,9 +48,7 @@ func TestBlock_NextDynastyContext(t *testing.T) {
 	for i := 0; i < DynastySize-1; i++ {
 		assert.Equal(t, string(delegatees[i].Hex()), GenesisDynasty[i])
 	}
-	block.rollback()
 
-	block.begin()
 	context, err = block.NextDynastyContext(BlockInterval + DynastyInterval)
 	assert.Nil(t, err)
 	validators, _ = TraverseDynasty(block.dposContext.dynastyTrie)
@@ -66,13 +64,11 @@ func TestBlock_NextDynastyContext(t *testing.T) {
 	for i := 0; i < DynastySize-1; i++ {
 		assert.Equal(t, string(delegatees[i].Hex()), GenesisDynasty[i])
 	}
-	block.rollback()
 
-	block.begin()
 	context, err = block.NextDynastyContext(DynastyInterval / 2)
 	assert.Nil(t, err)
 	validators, _ = TraverseDynasty(block.dposContext.dynastyTrie)
-	assert.Equal(t, context.Proposer, validators[int(DynastyInterval/2/BlockInterval)%len(GenesisDynasty)])
+	assert.Equal(t, context.Proposer, validators[int(DynastyInterval/2/BlockInterval)%DynastySize])
 	// check dynasty
 	delegatees, err = TraverseDynasty(context.DynastyTrie)
 	assert.Nil(t, err)
@@ -84,13 +80,11 @@ func TestBlock_NextDynastyContext(t *testing.T) {
 	for i := 0; i < DynastySize-1; i++ {
 		assert.Equal(t, string(delegatees[i].Hex()), GenesisDynasty[i])
 	}
-	block.rollback()
 
-	block.begin()
 	context, err = block.NextDynastyContext(DynastyInterval*2 + DynastyInterval/3)
 	assert.Nil(t, err)
 	validators, _ = TraverseDynasty(block.dposContext.dynastyTrie)
-	index := int((DynastyInterval*2+DynastyInterval/3)%DynastyInterval) / int(BlockInterval) % len(GenesisDynasty)
+	index := int((DynastyInterval*2+DynastyInterval/3)%DynastyInterval) / int(BlockInterval) % DynastySize
 	assert.Equal(t, context.Proposer, validators[index])
 	// check dynasty
 	delegatees, err = TraverseDynasty(context.DynastyTrie)
@@ -103,7 +97,6 @@ func TestBlock_NextDynastyContext(t *testing.T) {
 	for i := 0; i < DynastySize-1; i++ {
 		assert.Equal(t, string(delegatees[i].Hex()), GenesisDynasty[i])
 	}
-	block.rollback()
 
 	// new block
 	coinbase := &Address{validators[1]}
@@ -132,8 +125,70 @@ func TestBlock_ElectNewDynasty(t *testing.T) {
 	_, err := block.executeTransaction(tx)
 	assert.Nil(t, err)
 	block.commit()
-	dynasty, err := block.electNewDynasty(0, 1)
+	context, err := block.NextDynastyContext(DynastyInterval)
 	assert.Nil(t, err)
-	_, err = dynasty.Get(validators[ReserveSize+1])
+	_, err = context.NextDynastyTrie.Get(validators[ReserveSize+1])
 	assert.Nil(t, err)
+}
+
+func TestBlock_Kickout(t *testing.T) {
+	storage, _ := storage.NewMemoryStorage()
+	chain, _ := NewBlockChain(0, storage)
+	validators, _ := TraverseDynasty(chain.tailBlock.dposContext.dynastyTrie)
+	coinbase := &Address{validators[2]}
+
+	block, _ := NewBlock(0, coinbase, chain.tailBlock)
+	block.header.timestamp = DynastyInterval
+	context, err := chain.tailBlock.NextDynastyContext(block.Timestamp() - chain.tailBlock.Timestamp())
+	assert.Nil(t, err)
+	block.LoadDynastyContext(context)
+	block.SetMiner(coinbase)
+	assert.Equal(t, block.Seal(), nil)
+	block, _ = mockBlockFromNetwork(block)
+	assert.Equal(t, block.LinkParentBlock(chain.tailBlock), true)
+	block.SetMiner(coinbase)
+	assert.Nil(t, block.Verify(0))
+	chain.SetTailBlock(block)
+	delegatees, _ := TraverseDynasty(chain.tailBlock.dposContext.dynastyTrie)
+	for i := 0; i < DynastySize-1; i++ {
+		assert.Equal(t, string(delegatees[i].Hex()), GenesisDynasty[i])
+	}
+	delegatees, _ = TraverseDynasty(chain.tailBlock.dposContext.nextDynastyTrie)
+	for i := 0; i < DynastySize-1; i++ {
+		assert.Equal(t, string(delegatees[i].Hex()), GenesisDynasty[i])
+	}
+
+	log.Info(chain.tailBlock.DposContextHash())
+	log.Info(chain.tailBlock.dposContext.RootHash())
+	block, _ = NewBlock(0, coinbase, block)
+	block.header.timestamp = DynastyInterval * 2
+	context, err = chain.tailBlock.NextDynastyContext(block.Timestamp() - chain.tailBlock.Timestamp())
+	assert.Nil(t, err)
+	block.LoadDynastyContext(context)
+	block.SetMiner(coinbase)
+	assert.Equal(t, block.Seal(), nil)
+	log.Info(chain.tailBlock.DposContextHash())
+	log.Info(chain.tailBlock.dposContext.RootHash())
+	block, _ = mockBlockFromNetwork(block)
+	assert.Equal(t, block.LinkParentBlock(chain.tailBlock), true)
+	block.SetMiner(coinbase)
+	assert.Nil(t, block.Verify(0))
+	chain.SetTailBlock(block)
+	delegatees, _ = TraverseDynasty(chain.tailBlock.dposContext.dynastyTrie)
+	for i := 0; i < DynastySize-1; i++ {
+		assert.Equal(t, string(delegatees[i].Hex()), GenesisDynasty[i])
+	}
+	delegatees, _ = TraverseDynasty(chain.tailBlock.dposContext.nextDynastyTrie)
+	for i := 0; i <= ReserveSize; i++ {
+		assert.Equal(t, string(delegatees[i].Hex()), GenesisDynasty[i])
+	}
+	cnt := 0
+	for i := ReserveSize + 1; i < DynastySize; i++ {
+		for j := DynastySize; j < len(GenesisDynasty); j++ {
+			if delegatees[i].String() == GenesisDynasty[j] {
+				cnt++
+			}
+		}
+	}
+	assert.Equal(t, cnt, DynastySize-ReserveSize-1)
 }

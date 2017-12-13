@@ -24,6 +24,7 @@ import (
 
 	"github.com/nebulasio/go-nebulas/common/trie"
 	"github.com/nebulasio/go-nebulas/core/pb"
+	"github.com/nebulasio/go-nebulas/core/state"
 	"github.com/nebulasio/go-nebulas/crypto/sha3"
 	"github.com/nebulasio/go-nebulas/storage"
 	"github.com/nebulasio/go-nebulas/util"
@@ -36,7 +37,7 @@ const (
 	BlockInterval        = int64(5)
 	AcceptedNetWorkDelay = int64(2)
 	DynastyInterval      = int64(60)
-	DynastySize          = 7
+	DynastySize          = 6
 	ReserveSize          = DynastySize / 3
 )
 
@@ -93,13 +94,6 @@ func NewDposContext(storage storage.Storage) (*DposContext, error) {
 func (dc *DposContext) RootHash() byteutils.Hash {
 	hasher := sha3.New256()
 
-	log.Info("RootHash")
-	log.Info(dc.dynastyTrie.RootHash())
-	log.Info(dc.nextDynastyTrie.RootHash())
-	log.Info(dc.delegateTrie.RootHash())
-	log.Info(dc.voteTrie.RootHash())
-	log.Info(dc.candidateTrie.RootHash())
-	log.Info(dc.mintCntTrie.RootHash())
 	hasher.Write(dc.dynastyTrie.RootHash())
 	hasher.Write(dc.nextDynastyTrie.RootHash())
 	hasher.Write(dc.delegateTrie.RootHash())
@@ -224,13 +218,15 @@ type DynastyContext struct {
 	CandidateTrie   *trie.BatchTrie
 	VoteTrie        *trie.BatchTrie
 	MintCntTrie     *trie.BatchTrie
+	Accounts        state.AccountState
 	Storage         storage.Storage
 }
 
-func (block *Block) tallyVotes() (map[string]*util.Uint128, error) {
+func (dc *DynastyContext) tallyVotes() (map[string]*util.Uint128, error) {
 	votes := make(map[string]*util.Uint128)
-	delegate := block.dposContext.delegateTrie
-	candidates := block.dposContext.candidateTrie
+	delegate := dc.DelegateTrie
+	candidates := dc.CandidateTrie
+	accounts := dc.Accounts
 	if candidates.Empty() {
 		return votes, nil
 	}
@@ -275,7 +271,7 @@ func (block *Block) tallyVotes() (map[string]*util.Uint128, error) {
 			if !ok {
 				score = util.NewUint128()
 			}
-			weight := block.accState.GetOrCreateUserAccount(delegator.Bytes()).Balance()
+			weight := accounts.GetOrCreateUserAccount(delegator.Bytes()).Balance()
 			score.Add(score.Int, weight.Int)
 			votes[delegatee.ToHex()] = score
 			existDelegate, err = iterDelegate.Next()
@@ -343,12 +339,22 @@ func candidates(votes map[string]*util.Uint128) (Candidates, error) {
 	return candidates, nil
 }
 
-func (block *Block) kickoutCandidate(candidate byteutils.Hash) error {
+func kickout(candidatesTrie *trie.BatchTrie, delegateTrie *trie.BatchTrie, voteTrie *trie.BatchTrie, candidate byteutils.Hash) error {
+	for i := 0; i <= ReserveSize; i++ {
+		if candidate.String() == GenesisDynasty[i] {
+			log.Info("Cannot Kickout Reserved Candidate: ", candidate.Hex())
+			return nil
+		}
+	}
 	log.Info("Kickout Candidate: ", candidate.Hex())
-	if _, err := block.dposContext.candidateTrie.Del(candidate); err != nil {
+	_, err := candidatesTrie.Del(candidate)
+	if err != nil && err != storage.ErrKeyNotFound {
 		return err
 	}
-	iter, err := block.dposContext.delegateTrie.Iterator(candidate)
+	if err != nil {
+		return nil
+	}
+	iter, err := delegateTrie.Iterator(candidate)
 	if err != nil && err != storage.ErrKeyNotFound {
 		return err
 	}
@@ -362,15 +368,18 @@ func (block *Block) kickoutCandidate(candidate byteutils.Hash) error {
 	for exist {
 		delegator := iter.Value()
 		key := append(candidate, delegator...)
-		if _, err := block.dposContext.delegateTrie.Del(key); err != nil {
+		if _, err := delegateTrie.Del(key); err != nil && err != storage.ErrKeyNotFound {
 			return err
 		}
-		bytes, err := block.dposContext.voteTrie.Get(delegator)
+		bytes, err := voteTrie.Get(delegator)
+		if err != nil && err != storage.ErrKeyNotFound {
+			return err
+		}
 		if err != nil {
-			return err
+			log.Error("unexpected voter who votes nobody appears in delegate trie")
 		}
-		if byteutils.Equal(bytes, candidate) {
-			if _, err := block.dposContext.voteTrie.Del(delegator); err != nil {
+		if err == nil && byteutils.Equal(bytes, candidate) {
+			if _, err := voteTrie.Del(delegator); err != nil && err != storage.ErrKeyNotFound {
 				return err
 			}
 		}
@@ -382,9 +391,20 @@ func (block *Block) kickoutCandidate(candidate byteutils.Hash) error {
 	return nil
 }
 
-func (block *Block) kickoutDumbDynasty(id int64, dynasty *trie.BatchTrie) error {
-	log.Info("Kickout Dynasty: ", id)
-	iter, err := dynasty.Iterator(nil)
+func (dc *DynastyContext) kickoutCandidate(candidate byteutils.Hash) error {
+	return kickout(dc.CandidateTrie, dc.DelegateTrie, dc.VoteTrie, candidate)
+}
+
+func (block *Block) kickoutCandidate(candidate byteutils.Hash) error {
+	context := block.dposContext
+	return kickout(context.candidateTrie, context.delegateTrie, context.voteTrie, candidate)
+}
+
+func (dc *DynastyContext) kickoutDynasty(dynastyID int64) error {
+	log.Info("Kickout Dynasty ", dynastyID)
+
+	dynastyTrie := dc.DynastyTrie
+	iter, err := dynastyTrie.Iterator(nil)
 	if err != nil {
 		return err
 	}
@@ -394,14 +414,14 @@ func (block *Block) kickoutDumbDynasty(id int64, dynasty *trie.BatchTrie) error 
 	}
 	for exist {
 		validator := iter.Value()
-		key := append(byteutils.FromInt64(id), validator...)
-		bytes, err := block.dposContext.mintCntTrie.Get(key)
+		key := append(byteutils.FromInt64(dynastyID), validator...)
+		bytes, err := dc.MintCntTrie.Get(key)
 		if err != nil && err != storage.ErrKeyNotFound {
 			return err
 		}
 		if err != storage.ErrKeyNotFound {
 			cnt := byteutils.Int64(bytes)
-			if cnt >= DynastyInterval/BlockInterval/2 {
+			if cnt >= DynastyInterval/BlockInterval/DynastySize/2 {
 				exist, err = iter.Next()
 				if err != nil {
 					return err
@@ -409,7 +429,7 @@ func (block *Block) kickoutDumbDynasty(id int64, dynasty *trie.BatchTrie) error 
 				continue
 			}
 		}
-		if err := block.kickoutCandidate(validator); err != nil {
+		if err := dc.kickoutCandidate(validator); err != nil {
 			return err
 		}
 		exist, err = iter.Next()
@@ -420,67 +440,56 @@ func (block *Block) kickoutDumbDynasty(id int64, dynasty *trie.BatchTrie) error 
 	return nil
 }
 
-func (block *Block) kickoutDumbValidators(curDynastyID int64, nextDynastyID int64) error {
-	// do not kickout genesis dynasty
-	if curDynastyID <= 0 {
-		return nil
-	}
-	for i := curDynastyID; i < nextDynastyID; i++ {
-		context, err := block.NextDynastyContext(curDynastyID*DynastyInterval - block.Timestamp())
+func (dc *DynastyContext) electNextDynastyOnBaseDynasty(baseDynastyID int64, nextDynastyID int64, kickout bool) error {
+	log.Info("elect ", nextDynastyID, " from ", baseDynastyID)
+	for i := baseDynastyID; i < nextDynastyID; i++ {
+		// collect candidates
+		if kickout {
+			err := dc.kickoutDynasty(i)
+			if err != nil {
+				return err
+			}
+		}
+		votes, err := dc.tallyVotes()
 		if err != nil {
 			return err
 		}
-		err = block.kickoutDumbDynasty(i, context.DynastyTrie)
+		candidates, err := candidates(votes)
 		if err != nil {
 			return err
 		}
+		if len(candidates) <= ReserveSize {
+			return ErrTooFewCandidates
+		}
+		// Top 20 are selected directly
+		nextDynastyTrie, err := trie.NewBatchTrie(nil, dc.Storage)
+		directSelected := DynastySize - 1
+		for i := 0; i < directSelected && i < len(candidates); i++ {
+			delegatee := candidates[i].Address.Bytes()
+			log.Info(candidates[i].Address.ToHex())
+			_, err := nextDynastyTrie.Put(delegatee, delegatee)
+			if err != nil {
+				return err
+			}
+		}
+		// The last one is selected randomly
+		if len(candidates) > directSelected {
+			hasher := fnv.New32a()
+			hasher.Write(byteutils.FromInt64(nextDynastyID))
+			hasher.Write(dc.Accounts.RootHash())
+			result := int(hasher.Sum32()) % (len(candidates) - directSelected)
+			offset := result + DynastySize - 1
+			delegatee := candidates[offset].Address.Bytes()
+			_, err = nextDynastyTrie.Put(delegatee, delegatee)
+			if err != nil {
+				return err
+			}
+		}
+		log.Info("new dynasty")
+		dc.DynastyTrie = dc.NextDynastyTrie
+		dc.NextDynastyTrie = nextDynastyTrie
 	}
 	return nil
-}
-
-func (block *Block) electNewDynasty(curDynastyID int64, newDynastyID int64) (*trie.BatchTrie, error) {
-	// collect candidates
-	err := block.kickoutDumbValidators(curDynastyID, newDynastyID)
-	if err != nil {
-		return nil, err
-	}
-	votes, err := block.tallyVotes()
-	if err != nil {
-		return nil, err
-	}
-	candidates, err := candidates(votes)
-	if err != nil {
-		return nil, err
-	}
-	if len(candidates) < DynastySize {
-		log.Error(len(candidates))
-		return nil, ErrTooFewCandidates
-	}
-	// Top 20 are selected directly
-	dynasty, err := trie.NewBatchTrie(nil, block.storage)
-	directSelected := DynastySize - 1
-	for i := 0; i < directSelected; i++ {
-		delegatee := candidates[i].Address.Bytes()
-		log.Info(candidates[i].Address.ToHex())
-		_, err := dynasty.Put(delegatee, delegatee)
-		if err != nil {
-			return nil, err
-		}
-	}
-	// The last one is selected randomly
-	hasher := fnv.New32a()
-	hasher.Write(byteutils.FromInt64(newDynastyID))
-	hasher.Write(block.Hash())
-	result := int(hasher.Sum32()) % (len(votes) - directSelected)
-	offset := result + DynastySize - 1
-	delegatee := candidates[offset].Address.Bytes()
-	log.Info(candidates[offset].Address.ToHex())
-	_, err = dynasty.Put(delegatee, delegatee)
-	if err != nil {
-		return nil, err
-	}
-	log.Info("new dynasty")
-	return dynasty, nil
 }
 
 // LoadDynastyContext from a given context
@@ -550,8 +559,10 @@ func GenesisDynastyContext(storage storage.Storage) (*DynastyContext, error) {
 			return nil, err
 		}
 		v := member.Bytes()
-		if _, err = dynasty.Put(v, v); err != nil {
-			return nil, err
+		if i < DynastySize {
+			if _, err = dynasty.Put(v, v); err != nil {
+				return nil, err
+			}
 		}
 		if _, err = candidate.Put(v, v); err != nil {
 			return nil, err
@@ -574,53 +585,79 @@ func GenesisDynastyContext(storage storage.Storage) (*DynastyContext, error) {
 
 // NextDynastyContext when some seconds elapsed
 func (block *Block) NextDynastyContext(elapsedSecond int64) (*DynastyContext, error) {
-	var err error
-	nextTimeStamp := block.header.timestamp + elapsedSecond
-	dynastyTrie := block.dposContext.dynastyTrie
-	nextDynastyTrie := block.dposContext.nextDynastyTrie
-	delegateTrie := block.dposContext.delegateTrie
-	candidateTrie := block.dposContext.candidateTrie
-	voteTrie := block.dposContext.voteTrie
-	mintCntTrie := block.dposContext.mintCntTrie
-	currentHour := block.header.timestamp / DynastyInterval
-	nextHour := nextTimeStamp / DynastyInterval
-	offset := nextTimeStamp % DynastyInterval
-	if offset%BlockInterval != 0 {
-		return nil, ErrNotBlockForgTime
-	}
-	offset /= BlockInterval
-	offset %= DynastySize
-	if currentHour < nextHour {
-		if nextHour == currentHour+1 {
-			dynastyTrie = nextDynastyTrie
-		} else {
-			dynastyTrie, err = block.electNewDynasty(currentHour, nextHour-1)
-			if err != nil {
-				return nil, err
-			}
-		}
-		nextDynastyTrie, err = block.electNewDynasty(currentHour, nextHour)
-		if err != nil {
-			return nil, err
-		}
-	}
-	delegatees, err := TraverseDynasty(dynastyTrie)
+	log.Info("Next Dynasty Context ", elapsedSecond, "\n")
+
+	dynastyTrie, err := block.dposContext.dynastyTrie.Clone()
 	if err != nil {
 		return nil, err
 	}
-	proposer := delegatees[offset]
-	return &DynastyContext{
-		TimeStamp:       nextTimeStamp,
-		Offset:          offset,
-		Proposer:        proposer,
+	nextDynastyTrie, err := block.dposContext.nextDynastyTrie.Clone()
+	if err != nil {
+		return nil, err
+	}
+	delegateTrie, err := block.dposContext.delegateTrie.Clone()
+	if err != nil {
+		return nil, err
+	}
+	candidateTrie, err := block.dposContext.candidateTrie.Clone()
+	if err != nil {
+		return nil, err
+	}
+	voteTrie, err := block.dposContext.voteTrie.Clone()
+	if err != nil {
+		return nil, err
+	}
+	mintCntTrie, err := block.dposContext.mintCntTrie.Clone()
+	if err != nil {
+		return nil, err
+	}
+
+	context := &DynastyContext{
+		TimeStamp:       block.header.timestamp + elapsedSecond,
 		DynastyTrie:     dynastyTrie,
 		NextDynastyTrie: nextDynastyTrie,
 		DelegateTrie:    delegateTrie,
 		CandidateTrie:   candidateTrie,
 		VoteTrie:        voteTrie,
 		MintCntTrie:     mintCntTrie,
+		Accounts:        block.accState,
 		Storage:         block.storage,
-	}, nil
+	}
+
+	baseDynastyID := block.header.timestamp / DynastyInterval
+	newDynastyID := context.TimeStamp / DynastyInterval
+	offset := context.TimeStamp % DynastyInterval
+	if offset%BlockInterval != 0 {
+		return nil, ErrNotBlockForgTime
+	}
+	offset /= BlockInterval
+	offset %= DynastySize
+
+	if baseDynastyID < newDynastyID {
+		if baseDynastyID+1 < newDynastyID {
+			// do not kickout genesis dynasty
+			err = context.electNextDynastyOnBaseDynasty(baseDynastyID, newDynastyID-1, baseDynastyID != 0)
+			if err != nil {
+				return nil, err
+			}
+		}
+		// do not kickout genesis's next dynasty
+		err = context.electNextDynastyOnBaseDynasty(newDynastyID-1, newDynastyID, baseDynastyID != 0)
+		if err != nil {
+			return nil, err
+		}
+	}
+	delegatees, err := TraverseDynasty(context.DynastyTrie)
+	if err != nil {
+		return nil, err
+	}
+	context.Offset = offset
+	if int(offset) >= len(delegatees) {
+		context.Proposer = nil
+	} else {
+		context.Proposer = delegatees[offset]
+	}
+	return context, nil
 }
 
 // TraverseDynasty return all members in the dynasty

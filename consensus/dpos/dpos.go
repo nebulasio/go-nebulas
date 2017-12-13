@@ -260,6 +260,7 @@ func (p *Dpos) VerifyBlock(block *core.Block, parent *core.Block) error {
 }
 
 func (p *Dpos) mintBlock() {
+	log.Info("Mint Block")
 	// check can do mining
 	if !p.canMining {
 		return
@@ -269,14 +270,24 @@ func (p *Dpos) mintBlock() {
 	elapsedSecond := time.Now().Unix() - tail.Timestamp()
 	context, err := tail.NextDynastyContext(elapsedSecond)
 	if err != nil {
+		log.WithFields(log.Fields{
+			"func":    "Dpos.mintBlock",
+			"tail":    tail,
+			"elapsed": elapsedSecond,
+			"err":     err,
+		}).Warn("mintBlock.")
 		return
 	}
-	if !context.Proposer.Equals(p.miner.Bytes()) {
+	if context.Proposer == nil || !context.Proposer.Equals(p.miner.Bytes()) {
+		proposer := "nil"
+		if context.Proposer != nil {
+			proposer = string(context.Proposer.Hex())
+		}
 		log.WithFields(log.Fields{
 			"func":     "Dpos.mintBlock",
 			"tail":     tail,
 			"elapsed":  elapsedSecond,
-			"expected": context.Proposer.Hex(),
+			"expected": proposer,
 			"actual":   p.miner.ToHex(),
 		}).Info("not my turn, waiting...")
 		return

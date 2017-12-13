@@ -291,13 +291,6 @@ func (block *Block) DposContext() *corepb.DposContext {
 func (block *Block) DposContextHash() byteutils.Hash {
 	hasher := sha3.New256()
 
-	log.Info("DposContextHash")
-	log.Info(block.header.dposContext.DynastyRoot)
-	log.Info(block.header.dposContext.NextDynastyRoot)
-	log.Info(block.header.dposContext.DelegateRoot)
-	log.Info(block.header.dposContext.VoteRoot)
-	log.Info(block.header.dposContext.CandidateRoot)
-	log.Info(block.header.dposContext.MintCntRoot)
 	hasher.Write(block.header.dposContext.DynastyRoot)
 	hasher.Write(block.header.dposContext.NextDynastyRoot)
 	hasher.Write(block.header.dposContext.DelegateRoot)
@@ -385,10 +378,6 @@ func (block *Block) LinkParentBlock(parentBlock *Block) bool {
 		return false
 	}
 	block.LoadDynastyContext(context)
-	log.Info("Clone")
-	log.Info(parentBlock.Height())
-	log.Info(parentBlock.dposContext.mintCntTrie.RootHash())
-	log.Info(block.dposContext.mintCntTrie.RootHash())
 	block.txPool = parentBlock.txPool
 	block.parenetBlock = parentBlock
 	block.storage = parentBlock.storage
@@ -479,7 +468,7 @@ func (block *Block) Sealed() bool {
 }
 
 func (block *Block) recordMintCnt() error {
-	key := append(byteutils.FromInt64(block.Timestamp()), block.miner.Bytes()...)
+	key := append(byteutils.FromInt64(block.Timestamp()/DynastyInterval), block.miner.Bytes()...)
 	bytes, err := block.dposContext.mintCntTrie.Get(key)
 	if err != nil && err != storage.ErrKeyNotFound {
 		return err
@@ -489,11 +478,16 @@ func (block *Block) recordMintCnt() error {
 		cnt = byteutils.Int64(bytes)
 	}
 	cnt++
-	log.Info("MintCnt")
-	log.Info(block.dposContext.mintCntTrie.RootHash())
 	_, err = block.dposContext.mintCntTrie.Put(key, byteutils.FromInt64(cnt))
-	log.Info(block.dposContext.mintCntTrie.RootHash())
-	return err
+	if err != nil {
+		return err
+	}
+	log.WithFields(log.Fields{
+		"dynasty": block.Timestamp() / DynastyInterval,
+		"miner":   block.miner.ToHex(),
+		"count":   cnt,
+	}).Info("Record Mint Count.")
+	return nil
 }
 
 // Seal seal block, calculate stateRoot and block hash.
@@ -642,6 +636,10 @@ func (block *Block) rewardCoinbase() {
 	coinbaseAddr := block.header.coinbase.address
 	coinbaseAcc := block.accState.GetOrCreateUserAccount(coinbaseAddr)
 	coinbaseAcc.AddBalance(BlockReward)
+	log.WithFields(log.Fields{
+		"coinbase": coinbaseAddr.Hex(),
+		"balance":  coinbaseAcc.Balance().Int64(),
+	}).Debug("Coinbase Reward.")
 }
 
 // GetTransaction from txs Trie
