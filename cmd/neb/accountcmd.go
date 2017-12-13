@@ -88,7 +88,7 @@ Imports an encrypted private key from <keyfile> and creates a new account.`,
 func accountList(ctx *cli.Context) error {
 	neb := makeNeb(ctx)
 	for index, addr := range neb.AccountManager().Accounts() {
-		fmt.Printf("Account #%d: %s\n", index, addr.ToHex())
+		fmt.Printf("Account #%d: %s\n", index, addr.String())
 		index++
 	}
 	return nil
@@ -100,7 +100,7 @@ func accountCreate(ctx *cli.Context) error {
 	passphrase := getPassPhrase("Your new account is locked with a passphrase. Please give a passphrase. Do not forget this passphrase.", true)
 
 	addr, err := neb.AccountManager().NewAccount([]byte(passphrase))
-	fmt.Printf("Address: %s\n", addr.ToHex())
+	fmt.Printf("Address: %s\n", addr.String())
 	return err
 }
 
@@ -123,7 +123,7 @@ func accountUpdate(ctx *cli.Context) error {
 		if err != nil {
 			FatalF("account update failed:%s,%s", address, err)
 		}
-		fmt.Printf("Updated address: %s\n", addr.ToHex())
+		fmt.Printf("Updated address: %s\n", addr.String())
 	}
 	return nil
 }
@@ -146,7 +146,7 @@ func accountImport(ctx *cli.Context) error {
 	if err != nil {
 		FatalF("key import failed:%s", err)
 	}
-	fmt.Printf("Import address: %s\n", addr.ToHex())
+	fmt.Printf("Import address: %s\n", addr.String())
 	return nil
 }
 

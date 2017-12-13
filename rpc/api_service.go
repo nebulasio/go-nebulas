@@ -48,7 +48,7 @@ func (s *APIService) GetNebState(ctx context.Context, req *rpcpb.GetNebStateRequ
 	resp := &rpcpb.GetNebStateResponse{}
 	resp.ChainId = neb.BlockChain().ChainID()
 	resp.Tail = tail.Hash().String()
-	resp.Coinbase = tail.Coinbase().ToHex()
+	resp.Coinbase = tail.Coinbase().String()
 	resp.Synchronized = neb.NetService().Node().GetSynchronized()
 	resp.PeerCount = getStreamCount(neb.NetService().Node().GetStream())
 	resp.ProtocolVersion = p2p.ProtocolID
@@ -116,7 +116,7 @@ func (s *APIService) Accounts(ctx context.Context, req *rpcpb.AccountsRequest) (
 	resp := new(rpcpb.AccountsResponse)
 	addrs := make([]string, len(accs))
 	for index, addr := range accs {
-		addrs[index] = addr.ToHex()
+		addrs[index] = addr.String()
 	}
 	resp.Addresses = addrs
 	return resp, nil
@@ -171,7 +171,7 @@ func (s *APIService) sendTransaction(req *rpcpb.TransactionRequest) (*rpcpb.Send
 	}
 	if tx.Type() == core.TxPayloadDeployType {
 		address, _ := core.NewContractAddressFromHash(hash.Sha3256(tx.From().Bytes(), byteutils.FromUint64(tx.Nonce())))
-		return &rpcpb.SendTransactionResponse{Txhash: tx.Hash().String(), ContractAddress: address.ToHex()}, nil
+		return &rpcpb.SendTransactionResponse{Txhash: tx.Hash().String(), ContractAddress: address.String()}, nil
 	}
 
 	return &rpcpb.SendTransactionResponse{Txhash: tx.Hash().String()}, nil
@@ -264,27 +264,27 @@ func (s *APIService) GetTransactionReceipt(ctx context.Context, req *rpcpb.GetTr
 	if tx == nil {
 		return nil, errors.New("transaction not found")
 	}
-	if tx.From().ToHex() == tx.To().ToHex() {
+	if tx.From().String() == tx.To().String() {
 		contractAddr, err := tx.GenerateContractAddress()
 		if err != nil {
 			return nil, err
 		}
 		return &rpcpb.TransactionReceiptResponse{
 			Hash:            byteutils.Hex(tx.Hash()),
-			From:            tx.From().ToHex(),
-			To:              tx.To().ToHex(),
+			From:            tx.From().String(),
+			To:              tx.To().String(),
 			Nonce:           tx.Nonce(),
 			Timestamp:       tx.Timestamp(),
 			ChainId:         tx.ChainID(),
-			ContractAddress: contractAddr.ToHex(),
+			ContractAddress: contractAddr.String(),
 			Data:            string(tx.Data()),
 		}, nil
 	}
 
 	return &rpcpb.TransactionReceiptResponse{
 		Hash:      byteutils.Hex(tx.Hash()),
-		From:      tx.From().ToHex(),
-		To:        tx.To().ToHex(),
+		From:      tx.From().String(),
+		To:        tx.To().String(),
 		Nonce:     tx.Nonce(),
 		Timestamp: tx.Timestamp(),
 		ChainId:   tx.ChainID(),
@@ -298,7 +298,7 @@ func (s *APIService) NewAccount(ctx context.Context, req *rpcpb.NewAccountReques
 	if err != nil {
 		return nil, err
 	}
-	return &rpcpb.NewAccountResponse{Address: addr.ToHex()}, nil
+	return &rpcpb.NewAccountResponse{Address: addr.String()}, nil
 }
 
 // UnlockAccount unlock address with the passphrase

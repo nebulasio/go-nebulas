@@ -109,9 +109,9 @@ func TestTransactionVerify(t *testing.T) {
 		priv1 := secp256k1.GeneratePrivateKey()
 		pubdata1, _ := priv1.PublicKey().Encoded()
 		from, _ := NewAddressFromPublicKey(pubdata1)
-		ks.SetKey(from.ToHex(), priv1, []byte("passphrase"))
-		ks.Unlock(from.ToHex(), []byte("passphrase"), time.Second*60*60*24*365)
-		key1, _ := ks.GetUnlocked(from.ToHex())
+		ks.SetKey(from.String(), priv1, []byte("passphrase"))
+		ks.Unlock(from.String(), []byte("passphrase"), time.Second*60*60*24*365)
+		key1, _ := ks.GetUnlocked(from.String())
 		signature1, _ := crypto.NewSignature(keystore.SECP256K1)
 		signature1.InitSign(key1.(keystore.PrivateKey))
 

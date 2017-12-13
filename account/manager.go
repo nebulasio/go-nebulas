@@ -103,9 +103,8 @@ func NewManager(neblet Neblet) *Manager {
 		// if conf.GetEncrypt() > 0 {
 		// 	m.encryptAlg = keystore.Algorithm(conf.GetEncrypt())
 		// }
-
-		m.refreshAccounts()
 	}
+	m.refreshAccounts()
 	return m
 }
 
@@ -128,7 +127,7 @@ func (m *Manager) storeAddress(priv keystore.PrivateKey, passphrase []byte, writ
 		return nil, err
 	}
 	// set key to keystore
-	err = m.ks.SetKey(addr.ToHex(), priv, passphrase)
+	err = m.ks.SetKey(addr.String(), priv, passphrase)
 	if err != nil {
 		return nil, err
 	}
@@ -144,19 +143,19 @@ func (m *Manager) storeAddress(priv keystore.PrivateKey, passphrase []byte, writ
 
 // Unlock unlock address with passphrase
 func (m *Manager) Unlock(addr *core.Address, passphrase []byte) error {
-	res, err := m.ks.ContainsAlias(addr.ToHex())
+	res, err := m.ks.ContainsAlias(addr.String())
 	if err != nil || res == false {
 		err = m.importFile(addr, passphrase)
 		if err != nil {
 			return err
 		}
 	}
-	return m.ks.Unlock(addr.ToHex(), passphrase, keystore.DefaultUnlockDuration)
+	return m.ks.Unlock(addr.String(), passphrase, keystore.DefaultUnlockDuration)
 }
 
 // Lock lock address
 func (m *Manager) Lock(addr *core.Address) error {
-	return m.ks.Lock(addr.ToHex())
+	return m.ks.Lock(addr.String())
 }
 
 // Accounts returns slice of address
@@ -171,7 +170,7 @@ func (m *Manager) Accounts() []*core.Address {
 
 // Update update addr locked passphrase
 func (m *Manager) Update(addr *core.Address, oldPassphrase, newPassphrase []byte) error {
-	key, err := m.ks.GetKey(addr.ToHex(), oldPassphrase)
+	key, err := m.ks.GetKey(addr.String(), oldPassphrase)
 	if err != nil {
 		err = m.importFile(addr, oldPassphrase)
 		if err != nil {
@@ -198,7 +197,7 @@ func (m *Manager) Import(keyjson, passphrase []byte) (*core.Address, error) {
 
 // Export export address to key file
 func (m *Manager) Export(addr *core.Address, passphrase []byte) ([]byte, error) {
-	key, err := m.ks.GetKey(addr.ToHex(), passphrase)
+	key, err := m.ks.GetKey(addr.String(), passphrase)
 	if err != nil {
 		return nil, err
 	}
@@ -210,7 +209,7 @@ func (m *Manager) Export(addr *core.Address, passphrase []byte) ([]byte, error) 
 	if err != nil {
 		return nil, err
 	}
-	out, err := cipher.EncryptKey(addr.ToHex(), data, passphrase)
+	out, err := cipher.EncryptKey(addr.String(), data, passphrase)
 	if err != nil {
 		return nil, err
 	}
@@ -237,7 +236,7 @@ func (m *Manager) SignTransaction(addr *core.Address, tx *core.Transaction) erro
 	if !tx.From().Equals(addr) {
 		return ErrTxSignFrom
 	}
-	key, err := m.ks.GetUnlocked(addr.ToHex())
+	key, err := m.ks.GetUnlocked(addr.String())
 	if err != nil {
 		log.WithFields(log.Fields{
 			"func": "SignTransaction",
@@ -261,7 +260,7 @@ func (m *Manager) SignTransactionWithPassphrase(addr *core.Address, tx *core.Tra
 	if !tx.From().Equals(addr) {
 		return ErrTxSignFrom
 	}
-	key, err := m.ks.GetKey(addr.ToHex(), passphrase)
+	key, err := m.ks.GetKey(addr.String(), passphrase)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"func": "SignTransactionWithPassphrase",

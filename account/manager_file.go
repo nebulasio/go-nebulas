@@ -26,6 +26,7 @@ import (
 	"strings"
 
 	"github.com/nebulasio/go-nebulas/core"
+	"github.com/nebulasio/go-nebulas/util/byteutils"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -70,7 +71,17 @@ func (m *Manager) refreshAccounts() error {
 			log.Debug("key file parse failed", err)
 			continue
 		}
-		addr, err := core.AddressParse(keyJSON.Address)
+		var (
+			addr *core.Address
+		)
+		bytes, err := byteutils.FromHex(keyJSON.Address)
+		if len(bytes) == core.AddressDataLength {
+			if err == nil {
+				addr, err = core.NewAddress(bytes)
+			}
+		} else {
+			addr, err = core.AddressParse(keyJSON.Address)
+		}
 		if err != nil {
 			log.Debug("key file address parse failed", err)
 			continue
@@ -105,7 +116,7 @@ func (m *Manager) exportFile(addr *core.Address, passphrase []byte) error {
 	if acc != nil {
 		path = acc.path
 	} else {
-		path = filepath.Join(m.keydir, addr.ToHex())
+		path = filepath.Join(m.keydir, addr.String())
 	}
 	WriteFile(path, raw)
 	return nil

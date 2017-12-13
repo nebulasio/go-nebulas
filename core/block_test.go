@@ -219,10 +219,10 @@ func TestBlock_CollectTransactions(t *testing.T) {
 	priv := secp256k1.GeneratePrivateKey()
 	pubdata, _ := priv.PublicKey().Encoded()
 	from, _ := NewAddressFromPublicKey(pubdata)
-	ks.SetKey(from.ToHex(), priv, []byte("passphrase"))
-	ks.Unlock(from.ToHex(), []byte("passphrase"), time.Second*60*60*24*365)
+	ks.SetKey(from.String(), priv, []byte("passphrase"))
+	ks.Unlock(from.String(), []byte("passphrase"), time.Second*60*60*24*365)
 
-	key, _ := ks.GetUnlocked(from.ToHex())
+	key, _ := ks.GetUnlocked(from.String())
 	signature, _ := crypto.NewSignature(keystore.SECP256K1)
 	signature.InitSign(key.(keystore.PrivateKey))
 
