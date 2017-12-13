@@ -62,14 +62,11 @@ func main() {
 	app.Usage = "the go-nebulas command line interface"
 	app.Copyright = "Copyright 2017-2018 The go-nebulas Authors"
 
-	app.Flags = []cli.Flag{
-		cli.StringFlag{
-			Name:        "config, c",
-			Usage:       "load configuration from `FILE`",
-			Value:       "seed.conf",
-			Destination: &config,
-		},
-	}
+	app.Flags = append(app.Flags, ConfigFlag)
+	app.Flags = append(app.Flags, NetworkFlags...)
+	app.Flags = append(app.Flags, ChainFlags...)
+	app.Flags = append(app.Flags, RPCFlags...)
+	app.Flags = append(app.Flags, StatsFlags...)
 
 	sort.Sort(cli.FlagsByName(app.Flags))
 
@@ -152,6 +149,13 @@ func runNeb(n *neblet.Neblet) {
 
 func makeNeb(ctx *cli.Context) *neblet.Neblet {
 	conf := neblet.LoadConfig(config)
+
+	// load config from cli args
+	networkConfig(ctx, conf.Network)
+	chainConfig(ctx, conf.Chain)
+	rpcConfig(ctx, conf.Rpc)
+	statsConfig(ctx, conf.Stats)
+
 	n := neblet.New(*conf)
 	return n
 }
