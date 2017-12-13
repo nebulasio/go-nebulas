@@ -30,6 +30,8 @@ message Config {
     StatsConfig stats = 100;
     // Misc config.
     MiscConfig misc = 101;
+    // App Config.
+	AppConfig app = 102;
 }
 
 message NetworkConfig {
@@ -70,6 +72,15 @@ message RPCConfig {
 	// Enabled HTTP modules.["api", "admin"]
 	repeated string http_module = 3;
 }
+
+message AppConfig {
+
+	string log_level = 1;
+
+	// Log dir.
+	string log_dir = 2;
+}
+
 
 message MiscConfig {
     // Default encryption ciper when create new keystore file.

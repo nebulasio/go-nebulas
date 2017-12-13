@@ -33,6 +33,16 @@ import (
 	"github.com/urfave/cli"
 )
 
+// const
+const (
+	PanicLevel = "panic"
+	FatalLevel = "fatal"
+	ErrorLevel = "error"
+	WarnLevel  = "warn"
+	InfoLevel  = "info"
+	DebugLevel = "debug"
+)
+
 var (
 	version   string
 	commit    string
@@ -80,11 +90,36 @@ func main() {
 func neb(ctx *cli.Context) error {
 	logging.EnableFuncNameLogger()
 
-	log.SetFormatter(&log.TextFormatter{FullTimestamp: true})
-	log.SetOutput(os.Stdout)
-	log.SetLevel(log.InfoLevel)
-
 	n := makeNeb(ctx)
+
+	log.SetFormatter(&log.TextFormatter{FullTimestamp: true})
+	// log.SetOutput(os.Stdout)
+	if n.Config().App.LogDir != "" {
+		file, err := os.OpenFile(n.Config().App.LogDir, os.O_CREATE|os.O_RDWR, 0666)
+		if err != nil {
+			panic("Setup Neblet Failed: " + err.Error())
+		}
+		log.SetOutput(file)
+	}
+
+	if n.Config().App.LogLevel != "" {
+		switch n.Config().App.LogLevel {
+		case PanicLevel:
+			log.SetLevel(log.PanicLevel)
+		case FatalLevel:
+			log.SetLevel(log.FatalLevel)
+		case ErrorLevel:
+			log.SetLevel(log.ErrorLevel)
+		case WarnLevel:
+			log.SetLevel(log.WarnLevel)
+		case InfoLevel:
+			log.SetLevel(log.InfoLevel)
+		case DebugLevel:
+			log.SetLevel(log.DebugLevel)
+		default:
+			log.SetLevel(log.InfoLevel)
+		}
+	}
 
 	runNeb(n)
 
