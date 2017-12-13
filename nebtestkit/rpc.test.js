@@ -18,7 +18,33 @@ var addresses;
 var nonce = 0;
 var first = true;
 
-var test = setInterval(function(){
+var intervaltime = 1000;
+var myFunction = function(){
+    clearInterval(interval);
+    sendTransaction();
+    intervaltime = Math.floor(Math.random()*1000);
+    console.log('interval time: ' + intervaltime);
+    interval = setInterval(myFunction, intervaltime);
+};
+var interval = setInterval(myFunction, intervaltime);
+
+
+Array.prototype.indexOf = function(val) {
+    for (var i = 0; i < this.length; i++) {
+        if (this[i] == val) return i;
+    }
+    return -1;
+};
+
+Array.prototype.remove = function(val) {
+    var index = this.indexOf(val);
+    if (index > -1) {
+    this.splice(index, 1);
+    }
+};
+
+
+function sendTransaction() {
     var random = Math.floor(Math.random()*ipArray.length);
     var jsAgent = jsAgentArray[random];
 
@@ -35,7 +61,7 @@ var test = setInterval(function(){
     var result = jsAgent.admin.unlockAccount(coinbase, 'zaq12wsx');
     if (!result.result) {
         console.error('unlock account error.');
-        clearInterval(test);
+        // clearInterval(test);
     }
 
     // get coinbase account state
@@ -56,21 +82,8 @@ var test = setInterval(function(){
     } else {
         nonce++;
     }
+}
 
-}, 2000);
 
 
-Array.prototype.indexOf = function(val) {
-    for (var i = 0; i < this.length; i++) {
-        if (this[i] == val) return i;
-    }
-    return -1;
-};
-
-Array.prototype.remove = function(val) {
-    var index = this.indexOf(val);
-    if (index > -1) {
-    this.splice(index, 1);
-    }
-};
 
