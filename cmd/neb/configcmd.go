@@ -49,6 +49,10 @@ Generate a a default config file.`,
 // accountCreate creates a new account into the keystore
 func createDefaultConfig(ctx *cli.Context) error {
 	fileName := ctx.Args().First()
+	if len(fileName) == 0 {
+		fmt.Println("please give a config file arg!!!")
+		return nil
+	}
 	neblet.CreateDefaultConfigFile(fileName)
 	fmt.Printf("create default config %s\n", fileName)
 	return nil

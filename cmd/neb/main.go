@@ -98,6 +98,10 @@ func runNeb(n *neblet.Neblet) {
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 
+	if err := n.Setup(); err != nil {
+		panic("Setup Neblet Failed: " + err.Error())
+	}
+
 	if err := n.Start(); err != nil {
 		panic("Start Neblet Failed: " + err.Error())
 	}
@@ -113,10 +117,7 @@ func runNeb(n *neblet.Neblet) {
 
 func makeNeb(ctx *cli.Context) *neblet.Neblet {
 	conf := neblet.LoadConfig(config)
-	n, err := neblet.New(*conf)
-	if err != nil {
-		panic("make neb Failed: " + err.Error())
-	}
+	n := neblet.New(*conf)
 	return n
 }
 

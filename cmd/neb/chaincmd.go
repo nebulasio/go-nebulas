@@ -39,6 +39,9 @@ Use "./neb dump 10" to dump 10 blocks before tail block.`,
 
 func dumpblock(ctx *cli.Context) error {
 	neb := makeNeb(ctx)
+	if err := neb.Setup(); err != nil {
+		return err
+	}
 	count, err := strconv.Atoi(ctx.Args().First())
 	if err != nil {
 		return err

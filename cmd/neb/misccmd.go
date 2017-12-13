@@ -52,7 +52,7 @@ func _version(ctx *cli.Context) error {
 	}
 	fmt.Println("Protocol Versions:", p2p.ProtocolID)
 	fmt.Println("Protocol ClientVersion:", p2p.ClientVersion)
-	fmt.Printf("Chain Id: %d\n", neb.NetService().Node().Config().ChainID)
+	fmt.Printf("Chain Id: %d\n", neb.Config().Chain.ChainId)
 	fmt.Println("Go Version:", runtime.Version())
 	fmt.Println("Operating System:", runtime.GOOS)
 	fmt.Printf("GOPATH=%s\n", os.Getenv("GOPATH"))

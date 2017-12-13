@@ -48,8 +48,11 @@ func newBirdge(config nebletpb.Config, prompter *terminalPrompter, writer io.Wri
 	bridge := &jsBridge{prompter: prompter, writer: writer}
 	if config.GetRpc() != nil {
 		bridge.host = config.GetRpc().HttpListen[0]
+		if !strings.HasPrefix(bridge.host, "http") {
+			bridge.host = "http://" + bridge.host
+		}
 	} else {
-		bridge.host = "http://localhost:8191"
+		bridge.host = "http://localhost:8090"
 	}
 	return bridge
 }
@@ -98,6 +101,9 @@ func (b *jsBridge) request(call otto.FunctionCall) otto.Value {
 	//fmt.Fprintln(b.writer, "request", url, method.String(), args)
 	// method only support upper case.
 	req, err := http.NewRequest(strings.ToUpper(method.String()), url, bytes.NewBuffer([]byte(args)))
+	if err != nil {
+		return jsError(call.Otto, err)
+	}
 	req.Header.Set("Content-Type", "application/json")
 
 	client := &http.Client{}
@@ -107,8 +113,11 @@ func (b *jsBridge) request(call otto.FunctionCall) otto.Value {
 	}
 
 	defer resp.Body.Close()
-	result, _ := ioutil.ReadAll(resp.Body)
-	//fmt.Fprintln(b.writer, "result:", string(result))
+	result, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return jsError(call.Otto, err)
+	}
+	//fmt.Fprintln(b.writer, "result:", result)
 	response, err := JSON.Call("parse", string(result))
 	if err != nil {
 		// if result can't be parse to json obj ,return origin string

@@ -54,42 +54,33 @@ type Neblet struct {
 }
 
 // New returns a new neblet.
-func New(config nebletpb.Config) (*Neblet, error) {
+func New(config nebletpb.Config) *Neblet {
 	n := &Neblet{config: config}
 	n.accountManager = account.NewManager(n)
+	return n
+}
+
+// Setup setup neblet
+func (n *Neblet) Setup() error {
 	var err error
+	//var err error
 	n.netService, err = p2p.NewNetService(n)
 	if err != nil {
 		log.Error("new NetService occurs error ", err)
-		return nil, err
+		return err
 	}
 	storage, err := storage.NewDiskStorage(n.config.Chain.Datadir)
 	// storage, err := storage.NewMemoryStorage()
 	if err != nil {
-		return nil, err
+		return err
 	}
 	if err := n.CheckSchemeVersion(storage); err != nil {
-		return nil, err
+		return err
 	}
 	n.blockChain, err = core.NewBlockChain(core.TestNetID, storage)
 	if err != nil {
-		return nil, err
+		return err
 	}
-
-	return n, nil
-}
-
-// Start starts the services of the neblet.
-func (n *Neblet) Start() error {
-	var err error
-	n.lock.Lock()
-	defer n.lock.Unlock()
-	log.Info("Starting neblet...")
-
-	if n.running {
-		return ErrNebletAlreadyRunning
-	}
-	n.running = true
 
 	n.blockChain.BlockPool().RegisterInNetwork(n.netService)
 	gasPrice := util.NewUint128FromString(n.config.Chain.GasPrice)
@@ -104,6 +95,20 @@ func (n *Neblet) Start() error {
 	n.snycManager = nsync.NewManager(n.blockChain, n.consensus, n.netService)
 
 	n.apiServer = rpc.NewAPIServer(n)
+	return nil
+}
+
+// Start starts the services of the neblet.
+func (n *Neblet) Start() error {
+	var err error
+	n.lock.Lock()
+	defer n.lock.Unlock()
+	log.Info("Starting neblet...")
+
+	if n.running {
+		return ErrNebletAlreadyRunning
+	}
+	n.running = true
 
 	// start.
 	if err = n.netService.Start(); err != nil {
