@@ -313,8 +313,10 @@ func (m *Manager) doSyncBlocksWithCommonAncestor(addrsArray []string) {
 		count := 1
 		for j := 1; j < len(addrsArray); j++ {
 			temp := m.cacheList[addrsArray[j]].blocks
-			if root[i].Hash().String() == temp[i].Hash().String() {
-				count++
+			if len(temp)-1 > i {
+				if root[i].Hash().String() == temp[i].Hash().String() {
+					count++
+				}
 			}
 		}
 		// suppose root[i] is a legal block
