@@ -27,7 +27,7 @@ import (
 
 var (
 	blockDumpCommand = cli.Command{
-		Action:    dumpblock,
+		Action:    MergeFlags(dumpblock),
 		Name:      "dump",
 		Usage:     "Dump the number of newest block before tail block from storage",
 		ArgsUsage: "<blocknumber>",

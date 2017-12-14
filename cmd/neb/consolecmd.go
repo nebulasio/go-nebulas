@@ -25,7 +25,7 @@ import (
 
 var (
 	consoleCommand = cli.Command{
-		Action:   consoleStart,
+		Action:   MergeFlags(consoleStart),
 		Name:     "console",
 		Usage:    "Start an interactive JavaScript console",
 		Category: "CONSOLE COMMANDS",

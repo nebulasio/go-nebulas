@@ -35,13 +35,13 @@ var (
 	// NetworkSeedFlag network seed
 	NetworkSeedFlag = cli.StringSliceFlag{
 		Name:  "network.seed",
-		Usage: "network seed addresses",
+		Usage: "network seed addresses, multi-value support.",
 	}
 
 	// NetworkListenFlag network listen
 	NetworkListenFlag = cli.StringSliceFlag{
 		Name:  "network.listen",
-		Usage: "network listen addresses",
+		Usage: "network listen addresses, multi-value support.",
 	}
 
 	// NetworkKeyPathFlag network key
@@ -83,8 +83,8 @@ var (
 
 	// ChainCipherFlag chain cipher
 	ChainCipherFlag = cli.StringSliceFlag{
-		Name:  "chain.cipher",
-		Usage: "chain signature ciphers",
+		Name:  "chain.ciphers",
+		Usage: "chain signature ciphers, multi-value support.",
 	}
 
 	// ChainFlags chain config list
@@ -99,19 +99,19 @@ var (
 	// RPCListenFlag rpc listen
 	RPCListenFlag = cli.StringSliceFlag{
 		Name:  "rpc.listen",
-		Usage: "rpc listen addresses",
+		Usage: "rpc listen addresses, multi-value support.",
 	}
 
 	// RPCHTTPFlag rpc http listen
 	RPCHTTPFlag = cli.StringSliceFlag{
 		Name:  "rpc.http",
-		Usage: "rpc http listen addresses",
+		Usage: "rpc http listen addresses, multi-value support.",
 	}
 
 	// RPCModuleFlag rpc http module
 	RPCModuleFlag = cli.StringSliceFlag{
 		Name:  "rpc.module",
-		Usage: "rpc support modules",
+		Usage: "rpc support modules, multi-value support.",
 	}
 
 	// RPCFlags rpc config list
@@ -128,25 +128,25 @@ var (
 	}
 
 	// StatsDBHostFlag stats db host
-	StatsDBHostFlag = cli.BoolFlag{
+	StatsDBHostFlag = cli.StringFlag{
 		Name:  "stats.dbhost",
 		Usage: "stats influxdb host",
 	}
 
 	// StatsDBNameFlag stats db name
-	StatsDBNameFlag = cli.BoolFlag{
+	StatsDBNameFlag = cli.StringFlag{
 		Name:  "stats.dbname",
 		Usage: "stats influxdb db name",
 	}
 
 	// StatsDBUserFlag stats db user
-	StatsDBUserFlag = cli.BoolFlag{
+	StatsDBUserFlag = cli.StringFlag{
 		Name:  "stats.dbuser",
 		Usage: "stats influxdb user",
 	}
 
 	// StatsDBPasswordFlag stats db password
-	StatsDBPasswordFlag = cli.BoolFlag{
+	StatsDBPasswordFlag = cli.StringFlag{
 		Name:  "stats.dbpassword",
 		Usage: "stats influxdb password",
 	}
@@ -218,5 +218,17 @@ func statsConfig(ctx *cli.Context, cfg *nebletpb.StatsConfig) {
 	}
 	if ctx.GlobalIsSet(StatsDBPasswordFlag.Name) {
 		cfg.Influxdb.Password = ctx.GlobalString(StatsDBPasswordFlag.Name)
+	}
+}
+
+// MergeFlags sets the global flag from a local flag when it's set.
+func MergeFlags(action func(ctx *cli.Context) error) func(*cli.Context) error {
+	return func(ctx *cli.Context) error {
+		for _, name := range ctx.FlagNames() {
+			if ctx.IsSet(name) {
+				ctx.GlobalSet(name, ctx.String(name))
+			}
+		}
+		return action(ctx)
 	}
 }
