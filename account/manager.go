@@ -31,21 +31,24 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-<<<<<<< HEAD
 // const SignatureCiphers
 const (
 	EccSecp256K1      = "ECC_SECP256K1"
 	EccSecp256K1Value = 1
 )
 
-=======
-// Error Constants
->>>>>>> core: block.go. add signature to block header.
 var (
-	ErrAddrNotFind        = errors.New("address not find")
-	ErrTxAddressLocked    = errors.New("transaction from address locked")
+	// ErrAddrNotFind address not find.
+	ErrAddrNotFind = errors.New("address not find")
+
+	// ErrTxAddressLocked from address locked.
+	ErrTxAddressLocked = errors.New("transaction from address locked")
+
+	// ErrBlockAddressLocked from address locked.
 	ErrBlockAddressLocked = errors.New("block signer's address locked")
-	ErrTxSignFrom         = errors.New("transaction sign not use from addr")
+
+	// ErrTxSignFrom sign addr not from
+	ErrTxSignFrom = errors.New("transaction sign not use from addr")
 )
 
 // Neblet interface breaks cycle import dependency and hides unused services.
@@ -96,7 +99,6 @@ func NewManager(neblet Neblet) *Manager {
 				m.signatureAlg = keystore.Algorithm(EccSecp256K1Value)
 			}
 		}
-<<<<<<< HEAD
 
 		// if conf.GetSignature() > 0 {
 		// 	m.signatureAlg = keystore.Algorithm(conf.GetSignature())
@@ -104,8 +106,6 @@ func NewManager(neblet Neblet) *Manager {
 		// if conf.GetEncrypt() > 0 {
 		// 	m.encryptAlg = keystore.Algorithm(conf.GetEncrypt())
 		// }
-=======
->>>>>>> core: catch err in merkle trie clone.
 	}
 	m.refreshAccounts()
 	return m
@@ -259,7 +259,7 @@ func (m *Manager) SignTransaction(addr *core.Address, tx *core.Transaction) erro
 
 // SignBlock sign block with the specified algorithm
 func (m *Manager) SignBlock(addr *core.Address, block *core.Block) error {
-	key, err := m.ks.GetUnlocked(addr.ToHex())
+	key, err := m.ks.GetUnlocked(addr.String())
 	if err != nil {
 		log.WithFields(log.Fields{
 			"func":  "SignBlock",

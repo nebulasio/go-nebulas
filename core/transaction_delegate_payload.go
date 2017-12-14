@@ -22,6 +22,7 @@ import (
 	"encoding/json"
 
 	"github.com/nebulasio/go-nebulas/storage"
+	"github.com/nebulasio/go-nebulas/util"
 )
 
 // Action Constants
@@ -50,16 +51,11 @@ func LoadDelegatePayload(bytes []byte) (*DelegatePayload, error) {
 }
 
 // NewDelegatePayload with function & args
-func NewDelegatePayload(action string, addr string) (*DelegatePayload, error) {
-	// check addr valid
-	_, err := AddressParse(addr)
-	if err != nil {
-		return nil, err
-	}
+func NewDelegatePayload(action string, addr string) *DelegatePayload {
 	return &DelegatePayload{
 		Action:    action,
 		Delegatee: addr,
-	}, nil
+	}
 }
 
 // ToBytes serialize payload
@@ -68,52 +64,60 @@ func (payload *DelegatePayload) ToBytes() ([]byte, error) {
 }
 
 // Execute the call payload in tx, call a function
-func (payload *DelegatePayload) Execute(tx *Transaction, block *Block) error {
+func (payload *DelegatePayload) Execute(tx *Transaction, block *Block) (*util.Uint128, error) {
 	delegator := tx.from.Bytes()
+	counter := util.NewUint128()
 	delegatee, err := AddressParse(payload.Delegatee)
 	if err != nil {
-		return err
+		return counter, err
 	}
+	counter.Add(counter.Int, one.Int)
 	// check delegatee valid
 	_, err = block.dposContext.candidateTrie.Get(delegatee.Bytes())
 	if err != nil && err != storage.ErrKeyNotFound {
-		return err
+		return counter, err
 	}
 	if err == storage.ErrKeyNotFound {
-		return ErrInvalidDelegateToNonCandidate
+		return counter, ErrInvalidDelegateToNonCandidate
 	}
+	counter.Add(counter.Int, one.Int)
 	pre, err := block.dposContext.voteTrie.Get(delegator)
 	if err != nil && err != storage.ErrKeyNotFound {
-		return err
+		return counter, err
 	}
 	switch payload.Action {
 	case DelegateAction:
 		if err != storage.ErrKeyNotFound {
 			key := append(pre, delegator...)
+			counter.Add(counter.Int, one.Int)
 			if _, err = block.dposContext.delegateTrie.Del(key); err != nil {
-				return err
+				return counter, err
 			}
 		}
 		key := append(delegatee.Bytes(), delegator...)
+		counter.Add(counter.Int, one.Int)
 		if _, err = block.dposContext.delegateTrie.Put(key, delegator); err != nil {
-			return err
+			return counter, err
 		}
+		counter.Add(counter.Int, one.Int)
 		if _, err = block.dposContext.voteTrie.Put(delegator, delegatee.Bytes()); err != nil {
-			return err
+			return counter, err
 		}
 	case UnDelegateAction:
 		if !delegatee.address.Equals(pre) {
-			return ErrInvalidUnDelegateFromNonDelegatee
+			return counter, ErrInvalidUnDelegateFromNonDelegatee
 		}
 		key := append(delegatee.Bytes(), delegator...)
+		counter.Add(counter.Int, one.Int)
 		if _, err = block.dposContext.delegateTrie.Del(key); err != nil {
-			return err
+			return counter, err
 		}
+		counter.Add(counter.Int, one.Int)
 		if _, err = block.dposContext.voteTrie.Del(delegator); err != nil {
-			return err
+			return counter, err
 		}
 	default:
-		return ErrInvalidDelegatePayloadAction
+		return counter, ErrInvalidDelegatePayloadAction
 	}
-	return nil
+	return counter, nil
 }

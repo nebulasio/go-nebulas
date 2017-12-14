@@ -48,9 +48,10 @@ func main() {
 	}
 	defer conn.Close()
 
-	ac := rpcpb.NewAPIServiceClient(conn)
+	admin := rpcpb.NewAdminServiceClient(conn)
+	api := rpcpb.NewApiServiceClient(conn)
 	{
-		_, err := ac.UnlockAccount(context.Background(), &rpcpb.UnlockAccountRequest{Address: from, Passphrase: "passphrase"})
+		_, err := admin.UnlockAccount(context.Background(), &rpcpb.UnlockAccountRequest{Address: from, Passphrase: "passphrase"})
 		if err != nil {
 			log.Println("Unlock failed:", err)
 		} else {
@@ -59,17 +60,15 @@ func main() {
 	}
 
 	{
-		bytes, _ := core.NewCandidatePayload(core.LoginAction).ToBytes()
-		resp, err := ac.SignTransaction(context.Background(), &rpcpb.SignTransactionRequest{
-			From:        from,
-			To:          from,
-			Value:       "0",
-			Nonce:       4,
-			PayloadType: core.TxPayloadCandidateType,
-			PayloadData: bytes,
-			GasLimit:    "400000",
+		resp, err := admin.SignTransaction(context.Background(), &rpcpb.TransactionRequest{
+			From:      from,
+			To:        from,
+			Value:     "0",
+			Nonce:     4,
+			Candidate: &rpcpb.CandidateRequest{Action: core.LoginAction},
+			GasLimit:  "400000",
 		})
-		r, err := ac.SendRawTransaction(context.Background(), &rpcpb.SendRawTransactionRequest{Data: resp.Data})
+		r, err := api.SendRawTransaction(context.Background(), &rpcpb.SendRawTransactionRequest{Data: resp.Data})
 		if err != nil {
 			log.Println("SendRawTransaction failed:", err)
 		} else {

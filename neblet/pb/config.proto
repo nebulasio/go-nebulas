@@ -56,13 +56,14 @@ message ChainConfig {
     string miner = 22;
     // Passphrase.
     string passphrase = 23;
-    // GasPrice.
-    string gasprice = 24;
-    // Supported signature cipher list.
-    enum SignatureCiphers {
-        ECC_SECP256K1 = 0;
-    }
-    repeated SignatureCiphers signature_ciphers = 25;
+
+    // Lowest GasPrice.
+    string gas_price = 24;
+    // Max GasLimit.
+    string gas_limit = 25;
+
+    // Supported signature cipher list. ["ECC_SECP256K1"]
+    repeated string signature_ciphers = 26;
 }
 
 message RPCConfig {

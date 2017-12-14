@@ -65,6 +65,10 @@ var (
 	ErrInvalidBaseAndNextDynastyID       = errors.New("cannot kickout from baseDynastyID to nextDynastyID if nextDynastyID <= baseDynastyID")
 )
 
+var (
+	one = util.NewUint128FromInt(1)
+)
+
 // TxPayload stored in tx
 type TxPayload interface {
 	ToBytes() ([]byte, error)

@@ -251,7 +251,7 @@ func (dc *DynastyContext) tallyVotes() (map[string]*util.Uint128, error) {
 			return nil, err
 		}
 		if err != nil {
-			votes[delegatee.ToHex()] = util.NewUint128()
+			votes[delegatee.String()] = util.NewUint128()
 			existCandidates, err = iterCandidates.Next()
 			if err != nil {
 				return nil, err
@@ -267,13 +267,13 @@ func (dc *DynastyContext) tallyVotes() (map[string]*util.Uint128, error) {
 			if err != nil {
 				return nil, err
 			}
-			score, ok := votes[delegatee.ToHex()]
+			score, ok := votes[delegatee.String()]
 			if !ok {
 				score = util.NewUint128()
 			}
 			weight := accounts.GetOrCreateUserAccount(delegator.Bytes()).Balance()
 			score.Add(score.Int, weight.Int)
-			votes[delegatee.ToHex()] = score
+			votes[delegatee.String()] = score
 			existDelegate, err = iterDelegate.Next()
 			if err != nil {
 				return nil, err
@@ -469,7 +469,7 @@ func (dc *DynastyContext) electNextDynastyOnBaseDynasty(baseDynastyID int64, nex
 		directSelected := DynastySize - 1
 		for i := 0; i < directSelected && i < len(candidates); i++ {
 			delegatee := candidates[i].Address.Bytes()
-			log.Info(candidates[i].Address.ToHex())
+			log.Info(candidates[i].Address.String())
 			_, err := nextDynastyTrie.Put(delegatee, delegatee)
 			if err != nil {
 				return err

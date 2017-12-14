@@ -52,10 +52,11 @@ func main() {
 	}
 	defer conn.Close()
 
-	ac := rpcpb.NewAPIServiceClient(conn)
+	admin := rpcpb.NewAdminServiceClient(conn)
+	api := rpcpb.NewApiServiceClient(conn)
 	start := time.Now().Unix()
 	{
-		_, err := ac.UnlockAccount(context.Background(), &rpcpb.UnlockAccountRequest{Address: from, Passphrase: "passphrase"})
+		_, err := admin.UnlockAccount(context.Background(), &rpcpb.UnlockAccountRequest{Address: from, Passphrase: "passphrase"})
 		if err != nil {
 			log.Println("Unlock failed:", err)
 		} else {
@@ -67,7 +68,7 @@ func main() {
 		v := util.NewUint128FromInt(value)
 		nonce := uint64(1)
 		for i := 0; i < 10000; i++ {
-			r, err := ac.SendTransaction(context.Background(), &rpcpb.SendTransactionRequest{From: from, To: to, Value: v.String(), Nonce: nonce})
+			r, err := api.SendTransaction(context.Background(), &rpcpb.TransactionRequest{From: from, To: to, Value: v.String(), Nonce: nonce})
 			if err != nil {
 				log.Println("SendTransaction failed:", err)
 			} else {
@@ -79,7 +80,7 @@ func main() {
 
 	{
 		for true {
-			a, err := ac.GetAccountState(context.Background(), &rpcpb.GetAccountStateRequest{Address: from})
+			a, err := api.GetAccountState(context.Background(), &rpcpb.GetAccountStateRequest{Address: from})
 			if err != nil {
 				log.Println("GetAccountState", from, "failed", err)
 			} else {

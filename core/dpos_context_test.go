@@ -119,7 +119,7 @@ func TestBlock_ElectNewDynasty(t *testing.T) {
 	block.begin()
 	v := &Address{validators[DynastySize-1]}
 	block.accState.GetOrCreateUserAccount(v.Bytes()).AddBalance(util.NewUint128FromInt(2000000))
-	payload, _ := NewDelegatePayload(DelegateAction, v.ToHex())
+	payload := NewDelegatePayload(DelegateAction, v.String())
 	bytes, _ := payload.ToBytes()
 	tx := NewTransaction(0, v, v, util.NewUint128FromInt(1), 1, TxPayloadDelegateType, bytes, TransactionGasPrice, util.NewUint128FromInt(200000))
 	_, err := block.executeTransaction(tx)

@@ -217,6 +217,12 @@ func parseTransaction(neb Neblet, reqTx *rpcpb.TransactionRequest) (*core.Transa
 	} else if reqTx.Contract != nil && len(reqTx.Contract.Function) > 0 {
 		payloadType = core.TxPayloadCallType
 		payload, err = core.NewCallPayload(reqTx.Contract.Function, reqTx.Contract.Args).ToBytes()
+	} else if reqTx.Candidate != nil {
+		payloadType = core.TxPayloadCandidateType
+		payload, err = core.NewCandidatePayload(reqTx.Candidate.Action).ToBytes()
+	} else if reqTx.Delegate != nil {
+		payloadType = core.TxPayloadDelegateType
+		payload, err = core.NewDelegatePayload(reqTx.Delegate.Action, reqTx.Delegate.Delegatee).ToBytes()
 	} else {
 		payloadType = core.TxPayloadBinaryType
 	}

@@ -232,6 +232,7 @@ func request_AdminService_SendTransactionWithPassphrase_0(ctx context.Context, m
 
 }
 
+<<<<<<< HEAD
 func request_AdminService_StatisticsNodeInfo_0(ctx context.Context, marshaler runtime.Marshaler, client AdminServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
 	var protoReq NodeInfoRequest
 	var metadata runtime.ServerMetadata
@@ -241,6 +242,8 @@ func request_AdminService_StatisticsNodeInfo_0(ctx context.Context, marshaler ru
 
 }
 
+=======
+>>>>>>> merge feature/dpos.
 func request_AdminService_GetDynasty_0(ctx context.Context, marshaler runtime.Marshaler, client AdminServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
 	var protoReq GetDynastyRequest
 	var metadata runtime.ServerMetadata
@@ -578,7 +581,11 @@ func RegisterApiServiceHandlerClient(ctx context.Context, mux *runtime.ServeMux,
 
 	})
 
+<<<<<<< HEAD
 	mux.Handle("POST", pattern_ApiService_Subscribe_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+=======
+	mux.Handle("GET", pattern_ApiService_StatisticsNodeInfo_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+>>>>>>> merge feature/dpos.
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		if cn, ok := w.(http.CloseNotifier); ok {
@@ -841,7 +848,11 @@ func RegisterAdminServiceHandlerClient(ctx context.Context, mux *runtime.ServeMu
 
 	})
 
+<<<<<<< HEAD
 	mux.Handle("GET", pattern_AdminService_StatisticsNodeInfo_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+=======
+	mux.Handle("GET", pattern_AdminService_GetDynasty_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+>>>>>>> merge feature/dpos.
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		if cn, ok := w.(http.CloseNotifier); ok {
@@ -859,13 +870,18 @@ func RegisterAdminServiceHandlerClient(ctx context.Context, mux *runtime.ServeMu
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
 		}
+<<<<<<< HEAD
 		resp, md, err := request_AdminService_StatisticsNodeInfo_0(rctx, inboundMarshaler, client, req, pathParams)
+=======
+		resp, md, err := request_AdminService_GetDynasty_0(rctx, inboundMarshaler, client, req, pathParams)
+>>>>>>> merge feature/dpos.
 		ctx = runtime.NewServerMetadataContext(ctx, md)
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
 		}
 
+<<<<<<< HEAD
 		forward_AdminService_StatisticsNodeInfo_0(ctx, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
 
 	})
@@ -895,6 +911,8 @@ func RegisterAdminServiceHandlerClient(ctx context.Context, mux *runtime.ServeMu
 			return
 		}
 
+=======
+>>>>>>> merge feature/dpos.
 		forward_AdminService_GetDynasty_0(ctx, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
 
 	})
@@ -913,8 +931,11 @@ var (
 
 	pattern_AdminService_SendTransactionWithPassphrase_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2}, []string{"v1", "admin", "transactionWithPassphrase"}, ""))
 
+<<<<<<< HEAD
 	pattern_AdminService_StatisticsNodeInfo_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 2, 3}, []string{"v1", "admin", "statistics", "nodeInfo"}, ""))
 
+=======
+>>>>>>> merge feature/dpos.
 	pattern_AdminService_GetDynasty_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2}, []string{"v1", "admin", "dynasty"}, ""))
 )
 
@@ -929,7 +950,10 @@ var (
 
 	forward_AdminService_SendTransactionWithPassphrase_0 = runtime.ForwardResponseMessage
 
+<<<<<<< HEAD
 	forward_AdminService_StatisticsNodeInfo_0 = runtime.ForwardResponseMessage
 
+=======
+>>>>>>> merge feature/dpos.
 	forward_AdminService_GetDynasty_0 = runtime.ForwardResponseMessage
 )

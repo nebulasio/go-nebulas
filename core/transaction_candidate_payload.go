@@ -21,6 +21,7 @@ package core
 import (
 	"encoding/json"
 
+	"github.com/nebulasio/go-nebulas/util"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -57,31 +58,34 @@ func (payload *CandidatePayload) ToBytes() ([]byte, error) {
 }
 
 // Execute the candidate payload in tx
-func (payload *CandidatePayload) Execute(tx *Transaction, block *Block) error {
+func (payload *CandidatePayload) Execute(tx *Transaction, block *Block) (*util.Uint128, error) {
 	candidate := tx.from.Bytes()
+	counter := util.NewUint128()
 	switch payload.Action {
 	case LoginAction:
+		counter.Add(counter.Int, one.Int)
 		if _, err := block.dposContext.candidateTrie.Put(candidate, candidate); err != nil {
-			return err
+			return counter, err
 		}
 		log.WithFields(log.Fields{
 			"func":      "Payload.Candidate",
 			"block":     block,
 			"tx":        tx,
-			"candidate": tx.from.ToHex(),
+			"candidate": tx.from.String(),
 		}).Info("Candidate Login.")
 	case LogoutAction:
+		counter.Add(counter.Int, one.Int)
 		if err := block.kickoutCandidate(candidate); err != nil {
-			return err
+			return counter, err
 		}
 		log.WithFields(log.Fields{
 			"func":      "Payload.Candidate",
 			"block":     block,
 			"tx":        tx,
-			"candidate": tx.from.ToHex(),
+			"candidate": tx.from.String(),
 		}).Info("Candidate Logout.")
 	default:
-		return ErrInvalidCandidatePayloadAction
+		return counter, ErrInvalidCandidatePayloadAction
 	}
-	return nil
+	return counter, nil
 }

@@ -287,7 +287,7 @@ func TestBlock_CollectTransactions(t *testing.T) {
 
 	assert.Equal(t, block.Sealed(), false)
 	balance := block.GetBalance(block.header.coinbase.address)
-	assert.Equal(t, balance.Cmp(util.NewUint128().Int), 0)
+	assert.Equal(t, balance.Cmp(util.NewUint128().Int), 1)
 	block.SetMiner(coinbase)
 	block.Seal()
 	assert.Equal(t, block.Sealed(), true)
@@ -316,10 +316,10 @@ func TestBlock_DposCandidates(t *testing.T) {
 	priv := secp256k1.GeneratePrivateKey()
 	pubdata, _ := priv.PublicKey().Encoded()
 	from, _ := NewAddressFromPublicKey(pubdata)
-	ks.SetKey(from.ToHex(), priv, []byte("passphrase"))
-	ks.Unlock(from.ToHex(), []byte("passphrase"), time.Second*60*60*24*365)
+	ks.SetKey(from.String(), priv, []byte("passphrase"))
+	ks.Unlock(from.String(), []byte("passphrase"), time.Second*60*60*24*365)
 
-	key, _ := ks.GetUnlocked(from.ToHex())
+	key, _ := ks.GetUnlocked(from.String())
 	signature, _ := crypto.NewSignature(keystore.SECP256K1)
 	signature.InitSign(key.(keystore.PrivateKey))
 
@@ -342,7 +342,7 @@ func TestBlock_DposCandidates(t *testing.T) {
 	tx := NewTransaction(0, from, to, util.NewUint128FromInt(1), 1, TxPayloadCandidateType, bytes, TransactionGasPrice, util.NewUint128FromInt(200000))
 	tx.Sign(signature)
 	bc.txPool.Push(tx)
-	payload, _ := NewDelegatePayload(DelegateAction, from.ToHex())
+	payload := NewDelegatePayload(DelegateAction, from.String())
 	bytes, _ = payload.ToBytes()
 	tx = NewTransaction(0, from, to, util.NewUint128FromInt(1), 2, TxPayloadDelegateType, bytes, TransactionGasPrice, util.NewUint128FromInt(200000))
 	tx.Sign(signature)
@@ -368,7 +368,7 @@ func TestBlock_DposCandidates(t *testing.T) {
 
 	block, _ = NewBlock(0, coinbase, block)
 	block.header.timestamp = BlockInterval * 3
-	payload, _ = NewDelegatePayload(UnDelegateAction, from.ToHex())
+	payload = NewDelegatePayload(UnDelegateAction, from.String())
 	bytes, _ = payload.ToBytes()
 	tx = NewTransaction(0, from, to, util.NewUint128FromInt(1), 3, TxPayloadDelegateType, bytes, TransactionGasPrice, util.NewUint128FromInt(200000))
 	tx.Sign(signature)
@@ -394,7 +394,7 @@ func TestBlock_DposCandidates(t *testing.T) {
 
 	block, _ = NewBlock(0, coinbase, block)
 	block.header.timestamp = BlockInterval * 4
-	payload, _ = NewDelegatePayload(DelegateAction, from.ToHex())
+	payload = NewDelegatePayload(DelegateAction, from.String())
 	bytes, _ = payload.ToBytes()
 	tx = NewTransaction(0, from, to, util.NewUint128FromInt(1), 4, TxPayloadDelegateType, bytes, TransactionGasPrice, util.NewUint128FromInt(200000))
 	tx.Sign(signature)

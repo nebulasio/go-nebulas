@@ -288,7 +288,7 @@ func (p *Dpos) mintBlock() {
 			"tail":     tail,
 			"elapsed":  elapsedSecond,
 			"expected": proposer,
-			"actual":   p.miner.ToHex(),
+			"actual":   p.miner.String(),
 		}).Info("not my turn, waiting...")
 		return
 	}
@@ -298,7 +298,7 @@ func (p *Dpos) mintBlock() {
 		"elapsed":  elapsedSecond,
 		"offset":   context.Offset,
 		"expected": context.Proposer.Hex(),
-		"actual":   p.coinbase.ToHex(),
+		"actual":   p.coinbase.String(),
 	}).Info("my turn")
 	// mint new block
 	block, err := core.NewBlock(p.chain.ChainID(), p.coinbase, tail)

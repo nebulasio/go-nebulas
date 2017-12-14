@@ -484,7 +484,7 @@ func (block *Block) recordMintCnt() error {
 	}
 	log.WithFields(log.Fields{
 		"dynasty": block.Timestamp() / DynastyInterval,
-		"miner":   block.miner.ToHex(),
+		"miner":   block.miner.String(),
 		"count":   cnt,
 	}).Info("Record Mint Count.")
 	return nil
