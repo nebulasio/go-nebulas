@@ -440,11 +440,14 @@ func (dc *DynastyContext) kickoutDynasty(dynastyID int64) error {
 	return nil
 }
 
-func (dc *DynastyContext) electNextDynastyOnBaseDynasty(baseDynastyID int64, nextDynastyID int64, kickout bool) error {
+func (dc *DynastyContext) electNextDynastyOnBaseDynasty(baseDynastyID int64, nextDynastyID int64, baseGenesis bool) error {
 	log.Info("elect ", nextDynastyID, " from ", baseDynastyID)
+	if baseGenesis {
+		baseDynastyID = nextDynastyID - 1
+	}
 	for i := baseDynastyID; i < nextDynastyID; i++ {
 		// collect candidates
-		if kickout {
+		if !baseGenesis {
 			err := dc.kickoutDynasty(i)
 			if err != nil {
 				return err
@@ -636,13 +639,13 @@ func (block *Block) NextDynastyContext(elapsedSecond int64) (*DynastyContext, er
 	if baseDynastyID < newDynastyID {
 		if baseDynastyID+1 < newDynastyID {
 			// do not kickout genesis dynasty
-			err = context.electNextDynastyOnBaseDynasty(baseDynastyID, newDynastyID-1, baseDynastyID != 0)
+			err = context.electNextDynastyOnBaseDynasty(baseDynastyID, newDynastyID-1, baseDynastyID == 0)
 			if err != nil {
 				return nil, err
 			}
 		}
 		// do not kickout genesis's next dynasty
-		err = context.electNextDynastyOnBaseDynasty(newDynastyID-1, newDynastyID, baseDynastyID != 0)
+		err = context.electNextDynastyOnBaseDynasty(newDynastyID-1, newDynastyID, baseDynastyID == 0)
 		if err != nil {
 			return nil, err
 		}

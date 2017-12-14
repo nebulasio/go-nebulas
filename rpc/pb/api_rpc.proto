@@ -137,8 +137,8 @@ service AdminService {
         };
     }
 
-    // SignTransaction sign transaction
-    rpc SignTransaction(TransactionRequest) returns (SignTransactionResponse) {
+    // Sign sign transaction
+    rpc SignTransaction(SignTransactionRequest) returns (SignTransactionResponse) {
         option (google.api.http) = {
             post: "/v1/admin/sign"
             body: "*"
@@ -420,6 +420,35 @@ message LockAccountResponse {
     bool result = 1;
 }
 
+<<<<<<< HEAD
+=======
+message SignTransactionRequest {
+    // Hex string of the sender account addresss.
+    string from = 1;
+
+    // Hex string of the receiver account addresss.
+    string to = 2;
+
+    // Amount of value sending with this transaction.
+    string value = 3; // uint128, len=16
+
+    // Transaction nonce.
+    uint64 nonce = 4;
+
+    // payload type.
+    string payload_type = 5;
+
+    // payload data.
+    bytes payload_data = 6;
+
+    // gasPrice sending with this transaction.
+    string gas_price = 7; // uint128, len=16
+
+    // gasLimit sending with this transaction.
+    string gas_limit = 8; // uint128, len=16
+}
+
+>>>>>>> core: dpos_context.go. protext genesis dynasty.
 message SignTransactionResponse {
     bytes data = 1;
 }
