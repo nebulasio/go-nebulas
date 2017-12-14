@@ -64,7 +64,7 @@ func main() {
 			From:      from,
 			To:        from,
 			Value:     "0",
-			Nonce:     4,
+			Nonce:     2,
 			Candidate: &rpcpb.CandidateRequest{Action: core.LoginAction},
 			GasLimit:  "400000",
 		})
