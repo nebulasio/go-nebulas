@@ -65,12 +65,12 @@ message Block {
 
 message NetBlocks {
     string from = 1;
-    uint64 nonce = 2;
+    uint64 batch = 2;
     repeated Block blocks = 3;
 }
 
 message NetBlock {
     string from = 1;
-    uint64 nonce = 2;
+    uint64 batch = 2;
     Block block = 3;
 }

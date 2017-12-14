@@ -19,6 +19,7 @@
 package main
 
 import (
+	"io"
 	"log"
 	"strconv"
 
@@ -42,7 +43,7 @@ const (
 func main() {
 	// Set up a connection to the server.
 	//cfg := neblet.LoadConfig(config).Rpc
-	addr := fmt.Sprintf("127.0.0.1:%d", uint32(52520))
+	addr := fmt.Sprintf("127.0.0.1:%d", uint32(51510))
 	conn, err := rpc.Dial(addr)
 	if err != nil {
 		log.Fatal(err)
@@ -96,6 +97,23 @@ func main() {
 		}
 	}
 
+	{
+		stream, err := ac.Subscribe(context.Background(), &rpcpb.SubscribeRequest{})
+
+		if err != nil {
+			log.Fatalf("could not subscribe: %v", err)
+		}
+		for {
+			reply, err := stream.Recv()
+			if err == io.EOF {
+				break
+			}
+			if err != nil {
+				log.Printf("failed to recv: %v", err)
+			}
+			log.Println("recv notification: ", reply.MsgType, reply.Data)
+		}
+	}
 	//managementAddr := fmt.Sprintf("127.0.0.1:%d", uint32(52520))
 	//managementConn, err := rpc.Dial(managementAddr)
 	//if err != nil {

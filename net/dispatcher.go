@@ -19,14 +19,14 @@
 package net
 
 import (
+	"sync"
+
 	log "github.com/sirupsen/logrus"
 )
 
-type messageSubscriberMap map[string]map[*Subscriber]bool
-
 // Dispatcher a message dispatcher service.
 type Dispatcher struct {
-	subscribersMap    messageSubscriberMap
+	subscribersMap    *sync.Map
 	quitCh            chan bool
 	receivedMessageCh chan Message
 }
@@ -34,7 +34,7 @@ type Dispatcher struct {
 // NewDispatcher create Dispatcher instance.
 func NewDispatcher() *Dispatcher {
 	dp := &Dispatcher{
-		subscribersMap:    make(messageSubscriberMap),
+		subscribersMap:    new(sync.Map),
 		quitCh:            make(chan bool, 10),
 		receivedMessageCh: make(chan Message, 1024),
 	}
@@ -44,30 +44,26 @@ func NewDispatcher() *Dispatcher {
 
 // Register register subscribers.
 func (dp *Dispatcher) Register(subscribers ...*Subscriber) {
+
 	for _, v := range subscribers {
 		for _, mt := range v.msgTypes {
-			m := dp.subscribersMap[mt]
-			if m == nil {
-				m = make(map[*Subscriber]bool)
-				dp.subscribersMap[mt] = m
-			}
-			m[v] = true
+			m, _ := dp.subscribersMap.LoadOrStore(mt, new(sync.Map))
+			m.(*sync.Map).Store(v, true)
 		}
 	}
 }
 
 // Deregister deregister subscribers.
 func (dp *Dispatcher) Deregister(subscribers ...*Subscriber) {
+
 	for _, v := range subscribers {
 		for _, mt := range v.msgTypes {
-			m := dp.subscribersMap[mt]
+			m, _ := dp.subscribersMap.Load(mt)
 			if m == nil {
 				continue
 			}
-			delete(m, v)
-			if len(m) == 0 {
-				delete(dp.subscribersMap, mt)
-			}
+			m.(*sync.Map).Delete(v)
+			dp.subscribersMap.Delete(mt)
 		}
 	}
 }
@@ -87,19 +83,12 @@ func (dp *Dispatcher) Start() {
 				count++
 				log.Info("dispatcher.loop: recvMsgCount=%d", count)
 				msgType := msg.MessageType()
-				msgListener := dp.subscribersMap[msgType]
-
-				if msgListener == nil || len(msgListener) == 0 {
-					log.WithFields(log.Fields{
-						"MessageType": msgType,
-					}).Info("dispatcher.loop: receive message without handler.")
-					continue
-				}
-
-				// send message to each subscriber.
-				for listener := range msgListener {
-					listener.msgChan <- msg
-				}
+				v, _ := dp.subscribersMap.Load(msgType)
+				m, _ := v.(*sync.Map)
+				m.Range(func(key, value interface{}) bool {
+					key.(*Subscriber).msgChan <- msg
+					return true
+				})
 			}
 		}
 	})()

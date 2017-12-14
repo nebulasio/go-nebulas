@@ -36,7 +36,7 @@ const (
 )
 
 var (
-	nonce       = uint64(0)
+	batch       = uint64(0)
 	msgErrCount = 0
 )
 
@@ -146,8 +146,8 @@ func (m *Manager) downloader() {
 }
 
 func (m *Manager) syncWithPeers(block *core.Block) {
-	nonce++
-	tail := NewNetBlock(m.ns.Node().ID(), nonce, block)
+	batch++
+	tail := NewNetBlock(m.ns.Node().ID(), batch, block)
 	log.WithFields(log.Fields{
 		"tail":  tail,
 		"block": tail.block,
@@ -217,22 +217,22 @@ func (m *Manager) startMsgHandle() {
 				var emptyblocks []*core.Block
 				if err != nil {
 					log.Warn("StartMsgHandle.receiveTailCh: find common ancestor with tail occurs error, ", err)
-					netblocks := NewNetBlocks(key, tail.nonce, emptyblocks)
+					netblocks := NewNetBlocks(key, tail.batch, emptyblocks)
 					m.ns.SendSyncReply(tail.from, netblocks)
 					continue
 				}
 				subsequentBlocks, err := m.blockChain.FetchDescendantInCanonicalChain(DescendantCount, ancestor)
 				if err != nil {
 					log.Warn("StartMsgHandle.receiveTailCh: FetchDescendantInCanonicalChain occurs error, ", err)
-					netblocks := NewNetBlocks(key, tail.nonce, emptyblocks)
+					netblocks := NewNetBlocks(key, tail.batch, emptyblocks)
 					m.ns.SendSyncReply(tail.from, netblocks)
 					continue
 				}
 				subsequentBlocks = append(subsequentBlocks, ancestor)
-				blocks := NewNetBlocks(key, tail.nonce, subsequentBlocks)
+				blocks := NewNetBlocks(key, tail.batch, subsequentBlocks)
 				log.WithFields(log.Fields{
 					"from":   blocks.from,
-					"nonce":  blocks.nonce,
+					"batch":  blocks.batch,
 					"blocks": blocks.blocks,
 				}).Info("StartMsgHandle.receiveTailCh: receive receiveTailCh message.")
 				m.ns.SendSyncReply(tail.from, blocks)
@@ -252,7 +252,7 @@ func (m *Manager) startMsgHandle() {
 					log.Error("StartMsgHandle.receiveSyncReplyCh: get blocks from proto occurs error: ", err)
 					continue
 				}
-				if data.nonce < nonce {
+				if data.batch < batch {
 					continue
 				}
 				blocks := data.Blocks()

@@ -27,6 +27,7 @@ import (
 	"github.com/nebulasio/go-nebulas/core"
 	corepb "github.com/nebulasio/go-nebulas/core/pb"
 	"github.com/nebulasio/go-nebulas/crypto/hash"
+	nnet "github.com/nebulasio/go-nebulas/net"
 	"github.com/nebulasio/go-nebulas/net/p2p"
 	"github.com/nebulasio/go-nebulas/rpc/pb"
 	"github.com/nebulasio/go-nebulas/util"
@@ -364,4 +365,36 @@ func (s *APIService) SendTransactionWithPassphrase(ctx context.Context, req *rpc
 		return nil, err
 	}
 	return &rpcpb.SendTransactionPassphraseResponse{Hash: tx.Hash().String()}, nil
+}
+
+// Subscribe ..
+func (s *APIService) Subscribe(req *rpcpb.SubscribeRequest, gs rpcpb.ApiService_SubscribeServer) error {
+	neb := s.server.Neblet()
+
+	chainEventCh := make(chan *core.Event, 128)
+	emitter := neb.EventEmitter()
+	emitter.Register(core.ChainEventCategory, "", chainEventCh)
+	defer emitter.Deregister(core.ChainEventCategory, "", chainEventCh)
+
+	netEventCh := make(chan nnet.Message, 128)
+	net := neb.NetService()
+	net.Register(nnet.NewSubscriber(s, netEventCh, core.MessageTypeNewBlock))
+	net.Register(nnet.NewSubscriber(s, netEventCh, core.MessageTypeNewTx))
+	defer net.Deregister(nnet.NewSubscriber(s, netEventCh, core.MessageTypeNewBlock))
+	defer net.Deregister(nnet.NewSubscriber(s, netEventCh, core.MessageTypeNewTx))
+
+	for {
+		select {
+		case event := <-chainEventCh:
+			err := gs.Send(&rpcpb.SubscribeResponse{MsgType: event.Topic, Data: event.Data})
+			if err != nil {
+				return err
+			}
+		case event := <-netEventCh:
+			err := gs.Send(&rpcpb.SubscribeResponse{MsgType: event.MessageType(), Data: ""})
+			if err != nil {
+				return err
+			}
+		}
+	}
 }

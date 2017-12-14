@@ -21,7 +21,6 @@ package p2p
 import (
 	"errors"
 	"math"
-	"time"
 
 	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/net"
@@ -87,15 +86,12 @@ func (ns *NetService) SendSyncReply(key string, blocks net.Serializable) {
 	log.Debug("SendSyncReply: send sync addrs -> ", key)
 	pb, _ := blocks.ToProto()
 	data, _ := proto.Marshal(pb)
-	for {
-		if _, ok := ns.node.stream.Load(key); ok {
-			go func() {
-				ns.SendMsg("syncreply", data, key)
-			}()
-			return
-		}
-		log.Info("SendSyncReply: sleep for 1 second")
-		time.Sleep(1 * time.Second)
+	if _, ok := ns.node.stream.Load(key); ok {
+		go func() {
+			ns.SendMsg("syncreply", data, key)
+		}()
+		return
 	}
+	log.Warnf("send syncReply to addrs %s fail", key)
 
 }

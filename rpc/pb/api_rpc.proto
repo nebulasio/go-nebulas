@@ -102,9 +102,11 @@ service ApiService {
         };
     }
 
-    rpc StatisticsNodeInfo (NodeInfoRequest) returns (StatisticsNodeInfoResponse) {
+    // Subscribe message
+    rpc Subscribe(SubscribeRequest) returns (stream SubscribeResponse) {
         option (google.api.http) = {
-            get: "/v1/admin/statistics/nodeInfo"
+            post: "/v1/user/subscribe"
+            body: "*"
         };
     }
 
@@ -150,6 +152,22 @@ service AdminService {
             body: "*"
         };
     }
+
+    rpc StatisticsNodeInfo (NodeInfoRequest) returns (StatisticsNodeInfoResponse) {
+        option (google.api.http) = {
+            get: "/v1/admin/statistics/nodeInfo"
+        };
+    }
+}
+
+// Request message of Subscribe rpc
+message SubscribeRequest {
+}
+
+// Request message of Subscribe rpc
+message SubscribeResponse {
+    string msg_type = 1;
+    string data = 2;
 }
 
 // Request message of GetNebState rpc.
@@ -311,6 +329,7 @@ message SendTransactionResponse {
     // Hex string of transaction hash.
     string txhash = 1;
     string contract_address = 2;
+    bool result = 3;
 }
 
 // Request message of GetBlockByHash rpc.

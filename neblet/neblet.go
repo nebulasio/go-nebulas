@@ -50,6 +50,8 @@ type Neblet struct {
 
 	lock sync.RWMutex
 
+	eventEmitter *core.EventEmitter
+
 	running bool
 }
 
@@ -81,6 +83,8 @@ func (n *Neblet) Setup() error {
 	if err != nil {
 		return err
 	}
+
+	n.eventEmitter = core.NewEventEmitter()
 
 	n.blockChain.BlockPool().RegisterInNetwork(n.netService)
 	gasPrice := util.NewUint128FromString(n.config.Chain.GasPrice)
@@ -116,6 +120,7 @@ func (n *Neblet) Start() error {
 	}
 	n.blockChain.BlockPool().Start()
 	n.blockChain.TransactionPool().Start()
+	n.eventEmitter.Start()
 	n.consensus.Start()
 	n.snycManager.Start()
 	go n.apiServer.Start()
@@ -144,6 +149,11 @@ func (n *Neblet) Stop() error {
 	if n.blockChain != nil {
 		n.blockChain.BlockPool().Stop()
 		n.blockChain = nil
+	}
+
+	if n.eventEmitter != nil {
+		n.eventEmitter.Stop()
+		n.eventEmitter = nil
 	}
 
 	if n.netService != nil {
@@ -180,6 +190,11 @@ func (n *Neblet) Config() nebletpb.Config {
 // BlockChain returns block chain reference.
 func (n *Neblet) BlockChain() *core.BlockChain {
 	return n.blockChain
+}
+
+// EventEmitter returns eventEmitter reference.
+func (n *Neblet) EventEmitter() *core.EventEmitter {
+	return n.eventEmitter
 }
 
 // AccountManager returns account manager reference.
