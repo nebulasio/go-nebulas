@@ -19,9 +19,14 @@
 package core
 
 import (
+	"io/ioutil"
+
+	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/common/trie"
 	"github.com/nebulasio/go-nebulas/core/pb"
 	"github.com/nebulasio/go-nebulas/core/state"
+	"github.com/nebulasio/go-nebulas/util"
+	log "github.com/sirupsen/logrus"
 )
 
 // Genesis Block Hash
@@ -53,8 +58,40 @@ var (
 	}
 )
 
+// DefaultGenesisConf create default gengesis
+func DefaultGenesisConf(chainid uint32) *corepb.Genesis {
+	gengesis := new(corepb.Genesis)
+	meta := &corepb.GenesisMeta{
+		ChainId: chainid,
+	}
+	gengesis.Meta = meta
+	dpos := &corepb.GenesisConsensusDpos{
+		Dynasty: GenesisDynasty,
+	}
+	consensus := &corepb.GenesisConsensus{
+		Dpos: dpos,
+	}
+	gengesis.Consensus = consensus
+	return gengesis
+}
+
+// LoadGenesisConf load genesis conf for file
+func LoadGenesisConf(filePath string) (*corepb.Genesis, error) {
+	b, err := ioutil.ReadFile(filePath)
+	if err != nil {
+		return nil, err
+	}
+	content := string(b)
+
+	genesis := new(corepb.Genesis)
+	if err := proto.UnmarshalText(content, genesis); err != nil {
+		return nil, err
+	}
+	return genesis, nil
+}
+
 // NewGenesisBlock create genesis @Block from file.
-func NewGenesisBlock(chainID uint32, chain *BlockChain) (*Block, error) {
+func NewGenesisBlock(genesis *corepb.Genesis, chain *BlockChain) (*Block, error) {
 	accState, err := state.NewAccountState(nil, chain.storage)
 	if err != nil {
 		return nil, err
@@ -72,9 +109,9 @@ func NewGenesisBlock(chainID uint32, chain *BlockChain) (*Block, error) {
 		return nil, err
 	}
 	coinbase := &Address{make([]byte, AddressLength)}
-	genesis := &Block{
+	genesisBlock := &Block{
 		header: &BlockHeader{
-			chainID:     chainID,
+			chainID:     genesis.Meta.ChainId,
 			parentHash:  GenesisHash,
 			dposContext: &corepb.DposContext{},
 			coinbase:    coinbase,
@@ -95,11 +132,27 @@ func NewGenesisBlock(chainID uint32, chain *BlockChain) (*Block, error) {
 	if err != nil {
 		return nil, err
 	}
-	genesis.LoadDynastyContext(context)
-	genesis.SetMiner(coinbase)
-	genesis.Seal()
-	genesis.header.hash = GenesisHash
-	return genesis, nil
+	genesisBlock.LoadDynastyContext(context)
+	genesisBlock.SetMiner(coinbase)
+
+	// add token distribution for genesis
+	for _, v := range genesis.TokenDistribution {
+		addr, err := AddressParse(v.Address)
+		if err != nil {
+			log.WithFields(log.Fields{
+				"func":  "GenerateGenesisBlock",
+				"block": genesis,
+				"err":   err,
+			}).Error("cannot parse distribution.")
+			continue
+		}
+		acc := genesisBlock.accState.GetOrCreateUserAccount(addr.address)
+		acc.AddBalance(util.NewUint128FromString(v.Value))
+	}
+
+	genesisBlock.Seal()
+	genesisBlock.header.hash = GenesisHash
+	return genesisBlock, nil
 }
 
 // CheckGenesisBlock if a block is a genesis block

@@ -33,6 +33,35 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+type Neb struct {
+	genesis *corepb.Genesis
+	storage storage.Storage
+	emitter *EventEmitter
+}
+
+func (n *Neb) Genesis() *corepb.Genesis {
+	return n.genesis
+}
+
+func (n *Neb) Storage() storage.Storage {
+	return n.storage
+}
+
+func (n *Neb) EventEmitter() *EventEmitter {
+	return n.emitter
+}
+
+func testNeb() *Neb {
+	storage, _ := storage.NewMemoryStorage()
+	eventEmitter := NewEventEmitter()
+	neb := &Neb{
+		genesis: DefaultGenesisConf(0),
+		storage: storage,
+		emitter: eventEmitter,
+	}
+	return neb
+}
+
 func TestBlock(t *testing.T) {
 	type fields struct {
 		header       *BlockHeader
@@ -124,9 +153,7 @@ func TestBlock(t *testing.T) {
 }
 
 func TestBlock_LinkParentBlock(t *testing.T) {
-	storage, _ := storage.NewMemoryStorage()
-	eventEmitter := NewEventEmitter()
-	bc, _ := NewBlockChain(0, storage, eventEmitter)
+	bc, _ := NewBlockChain(testNeb())
 	genesis := bc.genesisBlock
 	assert.Equal(t, genesis.Height(), uint64(1))
 	block1 := &Block{
@@ -176,9 +203,7 @@ func TestBlock_LinkParentBlock(t *testing.T) {
 }
 
 func TestBlock_CollectTransactions(t *testing.T) {
-	storage, _ := storage.NewMemoryStorage()
-	eventEmitter := NewEventEmitter()
-	bc, _ := NewBlockChain(0, storage, eventEmitter)
+	bc, _ := NewBlockChain(testNeb())
 	tail := bc.tailBlock
 	assert.Panics(t, func() { tail.CollectTransactions(1) })
 
@@ -258,9 +283,7 @@ func TestBlock_CollectTransactions(t *testing.T) {
 }
 
 func TestBlock_DposCandidates(t *testing.T) {
-	stor, _ := storage.NewMemoryStorage()
-	eventEmitter := NewEventEmitter()
-	bc, _ := NewBlockChain(0, stor, eventEmitter)
+	bc, _ := NewBlockChain(testNeb())
 	tail := bc.tailBlock
 	assert.Panics(t, func() { tail.CollectTransactions(1) })
 
@@ -376,9 +399,7 @@ func TestBlock_DposCandidates(t *testing.T) {
 }
 
 func TestBlock_fetchEvents(t *testing.T) {
-	stor, _ := storage.NewMemoryStorage()
-	eventEmitter := NewEventEmitter()
-	bc, _ := NewBlockChain(0, stor, eventEmitter)
+	bc, _ := NewBlockChain(testNeb())
 	tail := bc.tailBlock
 	events := []*Event{
 		&Event{Topic: "chain.block", Data: "hello"},

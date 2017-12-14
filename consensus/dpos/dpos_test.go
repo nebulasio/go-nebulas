@@ -23,14 +23,39 @@ import (
 
 	"github.com/nebulasio/go-nebulas/account"
 	"github.com/nebulasio/go-nebulas/core"
+	"github.com/nebulasio/go-nebulas/core/pb"
 	"github.com/nebulasio/go-nebulas/storage"
 	"github.com/stretchr/testify/assert"
 )
 
+type Neb struct {
+	genesis *corepb.Genesis
+	storage storage.Storage
+	emitter *core.EventEmitter
+}
+
+func (n *Neb) Genesis() *corepb.Genesis {
+	return n.genesis
+}
+
+func (n *Neb) Storage() storage.Storage {
+	return n.storage
+}
+
+func (n *Neb) EventEmitter() *core.EventEmitter {
+	return n.emitter
+}
+
 func TestDpos_mintBlock(t *testing.T) {
 	storage, _ := storage.NewMemoryStorage()
 	eventEmitter := core.NewEventEmitter()
-	chain, _ := core.NewBlockChain(0, storage, eventEmitter)
+	neb := &Neb{
+		genesis: core.DefaultGenesisConf(0),
+		storage: storage,
+		emitter: eventEmitter,
+	}
+
+	chain, _ := core.NewBlockChain(neb)
 	tail := chain.TailBlock()
 	elapsedSecond := int64(core.DynastySize*core.BlockInterval + core.DynastyInterval)
 	context, err := tail.NextDynastyContext(elapsedSecond)

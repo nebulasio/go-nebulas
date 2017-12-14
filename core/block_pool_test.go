@@ -45,10 +45,9 @@ func (c MockConsensus) VerifyBlock(block *Block, parent *Block) error {
 }
 
 func TestBlockPool(t *testing.T) {
-	storage, _ := storage.NewMemoryStorage()
-	eventEmitter := NewEventEmitter()
-	bc, err := NewBlockChain(0, storage, eventEmitter)
-	cons := &MockConsensus{storage}
+	neb := testNeb()
+	bc, err := NewBlockChain(neb)
+	cons := &MockConsensus{neb.storage}
 	bc.SetConsensusHandler(cons)
 	pool := bc.bkPool
 	assert.Equal(t, pool.blockCache.Len(), 0)

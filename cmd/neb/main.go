@@ -71,6 +71,7 @@ func main() {
 	sort.Sort(cli.FlagsByName(app.Flags))
 
 	app.Commands = []cli.Command{
+		initCommand,
 		accountCommand,
 		consoleCommand,
 		networkCommand,

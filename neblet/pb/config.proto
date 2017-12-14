@@ -46,6 +46,10 @@ message NetworkConfig {
 message ChainConfig {
     // ChainID.
     uint32 chain_id = 1;
+
+    // genesis conf file path
+    string genesis = 2;
+
     // Data dir.
     string datadir = 11;
     // Key dir.

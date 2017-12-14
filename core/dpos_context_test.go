@@ -23,16 +23,14 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/nebulasio/go-nebulas/storage"
 	"github.com/nebulasio/go-nebulas/util"
 	log "github.com/sirupsen/logrus"
 )
 
 func TestBlock_NextDynastyContext(t *testing.T) {
-	storage, _ := storage.NewMemoryStorage()
-	eventEmitter := NewEventEmitter()
-	chain, _ := NewBlockChain(0, storage, eventEmitter)
-	block, _ := LoadBlockFromStorage(GenesisHash, chain.storage, chain.txPool, eventEmitter)
+	neb := testNeb()
+	chain, _ := NewBlockChain(neb)
+	block, _ := LoadBlockFromStorage(GenesisHash, chain.storage, chain.txPool, neb.emitter)
 
 	context, err := block.NextDynastyContext(BlockInterval)
 	assert.Nil(t, err)
@@ -113,10 +111,9 @@ func TestBlock_NextDynastyContext(t *testing.T) {
 }
 
 func TestBlock_ElectNewDynasty(t *testing.T) {
-	storage, _ := storage.NewMemoryStorage()
-	eventEmitter := NewEventEmitter()
-	chain, _ := NewBlockChain(0, storage, eventEmitter)
-	block, _ := LoadBlockFromStorage(GenesisHash, chain.storage, chain.txPool, eventEmitter)
+	neb := testNeb()
+	chain, _ := NewBlockChain(neb)
+	block, _ := LoadBlockFromStorage(GenesisHash, chain.storage, chain.txPool, neb.emitter)
 	validators, _ := TraverseDynasty(block.dposContext.dynastyTrie)
 	block.begin()
 	v := &Address{validators[DynastySize-1]}
@@ -134,9 +131,8 @@ func TestBlock_ElectNewDynasty(t *testing.T) {
 }
 
 func TestBlock_Kickout(t *testing.T) {
-	storage, _ := storage.NewMemoryStorage()
-	eventEmitter := NewEventEmitter()
-	chain, _ := NewBlockChain(0, storage, eventEmitter)
+	neb := testNeb()
+	chain, _ := NewBlockChain(neb)
 	validators, _ := TraverseDynasty(chain.tailBlock.dposContext.dynastyTrie)
 	coinbase := &Address{validators[2]}
 

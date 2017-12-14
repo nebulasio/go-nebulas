@@ -8,6 +8,7 @@ import (
 	"github.com/nebulasio/go-nebulas/consensus"
 	"github.com/nebulasio/go-nebulas/consensus/dpos"
 	"github.com/nebulasio/go-nebulas/core"
+	"github.com/nebulasio/go-nebulas/core/pb"
 	"github.com/nebulasio/go-nebulas/metrics"
 	"github.com/nebulasio/go-nebulas/neblet/pb"
 	"github.com/nebulasio/go-nebulas/net/p2p"
@@ -33,11 +34,15 @@ var (
 type Neblet struct {
 	config nebletpb.Config
 
+	gengesis *corepb.Genesis
+
 	accountManager *account.Manager
 
 	netService *p2p.NetService
 
 	consensus consensus.Consensus
+
+	storage storage.Storage
 
 	blockChain *core.BlockChain
 
@@ -57,6 +62,10 @@ type Neblet struct {
 // New returns a new neblet.
 func New(config nebletpb.Config) *Neblet {
 	n := &Neblet{config: config}
+	n.gengesis, _ = core.LoadGenesisConf(config.Chain.Genesis)
+	if n.gengesis == nil {
+		n.gengesis = core.DefaultGenesisConf(config.Chain.ChainId)
+	}
 	n.accountManager = account.NewManager(n)
 	return n
 }
@@ -70,16 +79,16 @@ func (n *Neblet) Setup() error {
 		log.Error("new NetService occurs error ", err)
 		return err
 	}
-	storage, err := storage.NewDiskStorage(n.config.Chain.Datadir)
+	n.storage, err = storage.NewDiskStorage(n.config.Chain.Datadir)
 	// storage, err := storage.NewMemoryStorage()
 	if err != nil {
 		return err
 	}
-	if err := n.CheckSchemeVersion(storage); err != nil {
+	if err = n.CheckSchemeVersion(n.storage); err != nil {
 		return err
 	}
 	n.eventEmitter = core.NewEventEmitter()
-	n.blockChain, err = core.NewBlockChain(core.TestNetID, storage, n.eventEmitter)
+	n.blockChain, err = core.NewBlockChain(n)
 	if err != nil {
 		return err
 	}
@@ -183,9 +192,24 @@ func (n *Neblet) Stop() error {
 	return nil
 }
 
+// SetGenesis set genesis conf
+func (n *Neblet) SetGenesis(g *corepb.Genesis) {
+	n.gengesis = g
+}
+
+// Genesis returns genesis conf.
+func (n *Neblet) Genesis() *corepb.Genesis {
+	return n.gengesis
+}
+
 // Config returns neblet configuration.
 func (n *Neblet) Config() nebletpb.Config {
 	return n.config
+}
+
+// Storage returns storage reference.
+func (n *Neblet) Storage() storage.Storage {
+	return n.storage
 }
 
 // BlockChain returns block chain reference.

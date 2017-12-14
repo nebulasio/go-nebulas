@@ -99,5 +99,4 @@ func InitCrashReporter() {
 	} else {
 		log.Warn("InitCrashReporter ignore due to code not match")
 	}
-
 }

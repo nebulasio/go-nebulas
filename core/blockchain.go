@@ -25,6 +25,7 @@ import (
 
 	"github.com/gogo/protobuf/proto"
 	lru "github.com/hashicorp/golang-lru"
+	"github.com/nebulasio/go-nebulas/core/pb"
 	"github.com/nebulasio/go-nebulas/storage"
 	"github.com/nebulasio/go-nebulas/util"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
@@ -32,9 +33,18 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// Neblet interface breaks cycle import dependency and hides unused services.
+type Neblet interface {
+	Genesis() *corepb.Genesis
+	Storage() storage.Storage
+	EventEmitter() *EventEmitter
+}
+
 // BlockChain the BlockChain core type.
 type BlockChain struct {
 	chainID uint32
+
+	genesis *corepb.Genesis
 
 	genesisBlock *Block
 	tailBlock    *Block
@@ -70,13 +80,15 @@ var (
 )
 
 // NewBlockChain create new #BlockChain instance.
-func NewBlockChain(chainID uint32, storage storage.Storage, eventEmitter *EventEmitter) (*BlockChain, error) {
+func NewBlockChain(neb Neblet) (*BlockChain, error) {
+
 	var bc = &BlockChain{
-		chainID:      chainID,
+		chainID:      neb.Genesis().Meta.ChainId,
+		genesis:      neb.Genesis(),
 		bkPool:       NewBlockPool(),
 		txPool:       NewTransactionPool(4096),
-		storage:      storage,
-		eventEmitter: eventEmitter,
+		storage:      neb.Storage(),
+		eventEmitter: neb.EventEmitter(),
 	}
 
 	bc.cachedBlocks, _ = lru.New(1024)
@@ -424,7 +436,7 @@ func (bc *BlockChain) loadGenesisFromStorage() (*Block, error) {
 		return nil, err
 	}
 
-	genesis, err = NewGenesisBlock(bc.chainID, bc)
+	genesis, err = NewGenesisBlock(bc.genesis, bc)
 	if err != nil {
 		return nil, err
 	}

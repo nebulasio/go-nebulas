@@ -22,10 +22,21 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/nebulasio/go-nebulas/core"
 	"github.com/urfave/cli"
 )
 
 var (
+	initCommand = cli.Command{
+		Action:    MergeFlags(initGenesis),
+		Name:      "init",
+		Usage:     "Bootstrap and initialize a new genesis block",
+		ArgsUsage: "<genesisPath>",
+		Category:  "BLOCKCHAIN COMMANDS",
+		Description: `
+The init command initializes a new genesis block and definition for the network.`,
+	}
+
 	blockDumpCommand = cli.Command{
 		Action:    MergeFlags(dumpblock),
 		Name:      "dump",
@@ -36,6 +47,19 @@ var (
 Use "./neb dump 10" to dump 10 blocks before tail block.`,
 	}
 )
+
+func initGenesis(ctx *cli.Context) error {
+	filePath := ctx.Args().First()
+	genesis, err := core.LoadGenesisConf(filePath)
+	if err != nil {
+		return err
+	}
+
+	neb := makeNeb(ctx)
+	neb.SetGenesis(genesis)
+
+	return neb.Setup()
+}
 
 func dumpblock(ctx *cli.Context) error {
 	neb := makeNeb(ctx)

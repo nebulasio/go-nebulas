@@ -26,13 +26,11 @@ import (
 	"github.com/nebulasio/go-nebulas/crypto"
 	"github.com/nebulasio/go-nebulas/crypto/keystore"
 	"github.com/nebulasio/go-nebulas/crypto/keystore/secp256k1"
-	"github.com/nebulasio/go-nebulas/storage"
 	"github.com/nebulasio/go-nebulas/util"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestTransactionPool(t *testing.T) {
-	storage, _ := storage.NewMemoryStorage()
 
 	ks := keystore.DefaultKS
 	priv1 := secp256k1.GeneratePrivateKey()
@@ -54,20 +52,19 @@ func TestTransactionPool(t *testing.T) {
 	signature2.InitSign(key2.(keystore.PrivateKey))
 
 	txs := []*Transaction{
-		NewTransaction(1, from, &Address{[]byte("to")}, util.NewUint128(), 10, TxPayloadBinaryType, []byte("datadata"), TransactionGasPrice, util.NewUint128FromInt(200000)),
-		NewTransaction(1, other, &Address{[]byte("to")}, util.NewUint128(), 1, TxPayloadBinaryType, []byte("datadata"), util.NewUint128FromInt(2), util.NewUint128FromInt(200000)),
-		NewTransaction(1, from, &Address{[]byte("to")}, util.NewUint128(), 1, TxPayloadBinaryType, []byte("da"), TransactionGasPrice, util.NewUint128FromInt(200000)),
+		NewTransaction(0, from, &Address{[]byte("to")}, util.NewUint128(), 10, TxPayloadBinaryType, []byte("datadata"), TransactionGasPrice, util.NewUint128FromInt(200000)),
+		NewTransaction(0, other, &Address{[]byte("to")}, util.NewUint128(), 1, TxPayloadBinaryType, []byte("datadata"), util.NewUint128FromInt(2), util.NewUint128FromInt(200000)),
+		NewTransaction(0, from, &Address{[]byte("to")}, util.NewUint128(), 1, TxPayloadBinaryType, []byte("da"), TransactionGasPrice, util.NewUint128FromInt(200000)),
 
-		NewTransaction(1, from, &Address{[]byte("to")}, util.NewUint128(), 2, TxPayloadBinaryType, []byte("da"), TransactionGasPrice, util.NewUint128FromInt(200000)),
-		NewTransaction(0, from, &Address{[]byte("to")}, util.NewUint128(), 0, TxPayloadBinaryType, []byte("da"), TransactionGasPrice, util.NewUint128FromInt(200000)),
+		NewTransaction(0, from, &Address{[]byte("to")}, util.NewUint128(), 2, TxPayloadBinaryType, []byte("da"), TransactionGasPrice, util.NewUint128FromInt(200000)),
+		NewTransaction(1, from, &Address{[]byte("to")}, util.NewUint128(), 0, TxPayloadBinaryType, []byte("da"), TransactionGasPrice, util.NewUint128FromInt(200000)),
 
-		NewTransaction(1, other, &Address{[]byte("to")}, util.NewUint128(), 1, TxPayloadBinaryType, []byte("data"), TransactionGasPrice, util.NewUint128FromInt(200000)),
-		NewTransaction(1, from, &Address{[]byte("to")}, util.NewUint128(), 1, TxPayloadBinaryType, []byte("datadata"), util.NewUint128FromInt(2), util.NewUint128FromInt(200000)),
+		NewTransaction(0, other, &Address{[]byte("to")}, util.NewUint128(), 1, TxPayloadBinaryType, []byte("data"), TransactionGasPrice, util.NewUint128FromInt(200000)),
+		NewTransaction(0, from, &Address{[]byte("to")}, util.NewUint128(), 1, TxPayloadBinaryType, []byte("datadata"), util.NewUint128FromInt(2), util.NewUint128FromInt(200000)),
 	}
 
 	txPool := NewTransactionPool(3)
-	eventEmitter := NewEventEmitter()
-	bc, _ := NewBlockChain(1, storage, eventEmitter)
+	bc, _ := NewBlockChain(testNeb())
 	txPool.setBlockChain(bc)
 	assert.Nil(t, txs[0].Sign(signature1))
 	assert.Nil(t, txPool.Push(txs[0]))

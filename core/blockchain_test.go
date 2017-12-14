@@ -25,7 +25,6 @@ import (
 	"github.com/nebulasio/go-nebulas/crypto"
 	"github.com/nebulasio/go-nebulas/crypto/keystore"
 	"github.com/nebulasio/go-nebulas/crypto/keystore/secp256k1"
-	"github.com/nebulasio/go-nebulas/storage"
 	"github.com/nebulasio/go-nebulas/util"
 
 	"github.com/gogo/protobuf/proto"
@@ -42,9 +41,7 @@ func BlockFromNetwork(block *Block) *Block {
 }
 
 func TestBlockChain_FindCommonAncestorWithTail(t *testing.T) {
-	storage, _ := storage.NewMemoryStorage()
-	eventEmitter := NewEventEmitter()
-	bc, _ := NewBlockChain(0, storage, eventEmitter)
+	bc, _ := NewBlockChain(testNeb())
 	var cons MockConsensus
 	bc.SetConsensusHandler(cons)
 	var c MockConsensus
@@ -161,9 +158,7 @@ func TestBlockChain_FindCommonAncestorWithTail(t *testing.T) {
 }
 
 func TestBlockChain_FetchDescendantInCanonicalChain(t *testing.T) {
-	storage, _ := storage.NewMemoryStorage()
-	eventEmitter := NewEventEmitter()
-	bc, _ := NewBlockChain(0, storage, eventEmitter)
+	bc, _ := NewBlockChain(testNeb())
 	var c MockConsensus
 	bc.SetConsensusHandler(c)
 	coinbase := &Address{[]byte("012345678901234567890000")}
