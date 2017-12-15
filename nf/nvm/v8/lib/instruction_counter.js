@@ -56,13 +56,13 @@ function traverse(object, visitor, master, injection_context_from_parent) {
 };
 
 // calculate and record the storage usage.
-function storIncrFunc(key_len, value_len) {
+var storIncrFunc = function (key_len, value_len) {
     var incr_val = Math.ceil((key_len + value_len) * 8);
     _instruction_counter.incr(incr_val);
 };
 
 // calculate and record the event usage.
-function eventIncrFunc(data_len) {
+var eventIncrFunc = function (data_len) {
     const EVENT_INCR = 20;
     var incr_val = Math.ceil(data_len * 8) + EVENT_INCR;
     _instruction_counter.incr(incr_val);
@@ -99,8 +99,9 @@ const InjectionType = {
 };
 
 const InjectionCodeGenerators = {
-    StorageUsageFunc: function (value) {
-        return "_instruction_counter.storIncr = " + storIncrFunc.toString() + ";\n";
+    StorageAndEventUsageFunc: function () {
+        return "_instruction_counter.storIncr = " + storIncrFunc.toString() + ";\n" +
+            "_instruction_counter.eventIncr = " + eventIncrFunc.toString() + ";\n";
     },
     CounterIncrFunc: function (value) {
         return "_instruction_counter.incr(" + value + ");";
@@ -181,15 +182,15 @@ function processScript(source) {
         loc: true
     });
 
-    var unsetStorageUsageFuncInjection = true;
+    var setStorageAndEventUsageFuncInjection = false;
     var source_line_offset = 0;
 
     traverse(ast, function (node, parents, injection_context_from_parent) {
         // get the ast begin offset, after comments before first statement.
-        if (unsetStorageUsageFuncInjection) {
-            source_line_offset = -4;
-            record_injection(node.range[0], 0, InjectionCodeGenerators.StorageUsageFunc);
-            unsetStorageUsageFuncInjection = false;
+        if (!setStorageAndEventUsageFuncInjection) {
+            source_line_offset = -9;
+            record_injection(node.range[0], 0, InjectionCodeGenerators.StorageAndEventUsageFunc);
+            setStorageAndEventUsageFuncInjection = true;
         }
 
         // throw error when "_instruction_counter" was redefined in source.

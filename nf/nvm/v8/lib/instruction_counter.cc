@@ -124,3 +124,26 @@ void RecordStorageUsage(Isolate *isolate, Local<Context> context,
   argv[1] = Number::New(isolate, value_length);
   stor_incr_func->Call(context, counter, 2, argv);
 }
+
+void RecordEventUsage(Isolate *isolate, Local<Context> context,
+                      size_t msg_length) {
+  Local<Object> global = context->Global();
+  HandleScope handle_scope(isolate);
+
+  Local<Object> counter = Local<Object>::Cast(
+      global->Get(String::NewFromUtf8(isolate, sInstructionCounter)));
+
+  Local<Value> prop = counter->Get(String::NewFromUtf8(isolate, "eventIncr"));
+  if (!prop->IsFunction()) {
+    LogDebugf(
+        "RecordEventUsage: %s.eventIncr is not a "
+        "Function, instruction_count.js may not be called before execution.",
+        sInstructionCounter);
+    return;
+  }
+
+  Local<Function> event_incr_func = Local<Function>::Cast(prop);
+  Local<Value> argv[1];
+  argv[0] = Number::New(isolate, msg_length);
+  event_incr_func->Call(context, counter, 1, argv);
+}

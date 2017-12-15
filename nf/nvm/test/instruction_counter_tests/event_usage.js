@@ -16,18 +16,20 @@
 // along with the go-nebulas library.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-var $this = {
-    incr: function () {},
-    storIncr: function () {},
-    eventIncr: function () {},
-    count: 0,
+const assert = require('assert.js');
+
+function assertEqual(func, args, expected, expected_count, msg) {
+    const count_of_helper_statement = 46;
+    var count = _instruction_counter.count;
+    assert.equal(func.apply(null, args), expected);
+    assert.equal(_instruction_counter.count - count - count_of_helper_statement, expected_count, msg);
 };
 
-(function () {
-    _instruction_counter.incr(1);
-    if (_instruction_counter.count == 0) {
-        console.log('WARNING: succeed bypass the instruction counter.');
-    } else {
-        throw new Error("still not break the jail of _instruction_counter.");
-    }
-}).apply($this);
+// test1.
+var test1 = function (v) {
+    Event.Trigger("ERC20", v);
+};
+
+assertEqual(test1, ["123"], undefined, 112);
+assertEqual(test1, ["1234"], undefined, 112 + 8);
+assertEqual(test1, ["12345"], undefined, 112 + 8 * 2);

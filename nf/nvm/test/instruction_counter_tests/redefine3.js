@@ -21,4 +21,5 @@
 })({
     incr: function () {},
     storIncr: function () {},
+    eventIncr: function () {},
 });

@@ -20,6 +20,7 @@
 #include "event.h"
 #include "../engine.h"
 #include "global.h"
+#include "instruction_counter.h"
 
 static EventTriggerFunc TRIGGER = NULL;
 
@@ -55,6 +56,11 @@ void EventTriggerCallback(const FunctionCallbackInfo<Value> &info) {
         isolate, "_native_event_trigger: data must be string")));
     return;
   }
+
+  // record event usage.
+  RecordEventUsage(isolate, context,
+                   topic->ToString()->Utf8Length() +
+                       data->ToString()->Utf8Length());
 
   if (TRIGGER == NULL) {
     return;

@@ -38,4 +38,7 @@ void CountGetterCallback(Local<String> property,
 void RecordStorageUsage(Isolate *isolate, Local<Context> context,
                         size_t key_length, size_t value_length);
 
+void RecordEventUsage(Isolate *isolate, Local<Context> context,
+                      size_t msg_length);
+
 #endif // _NEBULAS_NF_NVM_V8_LIB_INSTRUCTION_COUNTER_H_
