@@ -3,6 +3,12 @@
 
 [[projects]]
   branch = "master"
+  name = "github.com/VividCortex/godaemon"
+  packages = ["."]
+  revision = "3d9f6e0b234fe7d17448b345b2e14ac05814a758"
+
+[[projects]]
+  branch = "master"
   name = "github.com/agl/ed25519"
   packages = [".","edwards25519","extra25519"]
   revision = "5312a61534124124185d41f09206b9fef1d88403"
@@ -520,6 +526,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "1e84d941d85d20797f58f3b20f87fdde4548bc6f9634d9780ae61859a25cb8d5"
+  inputs-digest = "b07ec9999efcb7111b32bc39302ba40d4842df1ce71ad172769a56541dca44ad"
   solver-name = "gps-cdcl"
   solver-version = 1
