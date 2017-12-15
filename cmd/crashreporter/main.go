@@ -54,9 +54,8 @@ func checkCrashFileAndUpload(fp string) error {
 		ioutil.WriteFile(fmt.Sprintf("%v/crash.log", dir), []byte(output), 0644)
 
 		return nil
-	} else {
-		fmt.Println("no crash yet")
 	}
+	fmt.Println("no crash yet")
 	return nil
 }
 
@@ -83,14 +82,13 @@ func main() {
 			fmt.Printf("Failed to find process: %s\n", err)
 			checkCrashFileAndUpload(*logfp)
 			return
+		}
+		err = process.Signal(syscall.Signal(0))
+		if err == nil {
+			continue
 		} else {
-			err := process.Signal(syscall.Signal(0))
-			if err == nil {
-				continue
-			} else {
-				checkCrashFileAndUpload(*logfp)
-				return
-			}
+			checkCrashFileAndUpload(*logfp)
+			return
 		}
 	}
 }

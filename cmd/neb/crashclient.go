@@ -31,6 +31,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// InitCrashReporter init crash reporter
 func InitCrashReporter() {
 	os.Setenv("GOBACKTRACE", "crash")
 	dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
@@ -43,7 +44,7 @@ func InitCrashReporter() {
 	port := rand.Intn(0xFFFF-1024) + 1024
 	s, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
 
-	for i := 0; i < 0xff; i += 1 {
+	for i := 0; i < 0xff; i++ {
 		if err != nil {
 			port = rand.Intn(0xFFFF-1024) + 1024
 			s, err = net.Listen("tcp", fmt.Sprintf(":%d", port))
