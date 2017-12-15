@@ -29,7 +29,8 @@ import (
 
 func TestDpos_mintBlock(t *testing.T) {
 	storage, _ := storage.NewMemoryStorage()
-	chain, _ := core.NewBlockChain(0, storage)
+	eventEmitter := core.NewEventEmitter()
+	chain, _ := core.NewBlockChain(0, storage, eventEmitter)
 	tail := chain.TailBlock()
 	elapsedSecond := int64(core.DynastySize*core.BlockInterval + core.DynastyInterval)
 	context, err := tail.NextDynastyContext(elapsedSecond)

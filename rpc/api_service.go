@@ -394,8 +394,15 @@ func (s *APIService) Subscribe(req *rpcpb.SubscribeRequest, gs rpcpb.ApiService_
 
 	chainEventCh := make(chan *core.Event, 128)
 	emitter := neb.EventEmitter()
-	emitter.Register(core.ChainEventCategory, "", chainEventCh)
-	defer emitter.Deregister(core.ChainEventCategory, "", chainEventCh)
+	for _, v := range req.Topic {
+		emitter.Register(v, chainEventCh)
+	}
+
+	defer (func() {
+		for _, v := range req.Topic {
+			emitter.Deregister(v, chainEventCh)
+		}
+	})()
 
 	netEventCh := make(chan nnet.Message, 128)
 	net := neb.NetService()

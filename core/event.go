@@ -19,49 +19,51 @@
 package core
 
 import (
-	"errors"
 	"sync"
-	"time"
 
 	log "github.com/sirupsen/logrus"
 )
 
 const (
-	// ChainEventCategory events coming from chain, for example, Smart Contract Event, Tx Event, etc.
-	ChainEventCategory = iota
 
-	// NodeEventCategory events coming from node, for example, New Transaction Submitted, New Block Received, After Fork Choice, egc.
-	NodeEventCategory
-)
+	// TopicSendTransaction the topic of send a transaction.
+	TopicSendTransaction = "chain.sendTransaction"
 
-var (
-	// ErrUnsupportedEventCategory unsupported event category.
-	ErrUnsupportedEventCategory = errors.New("unsupported event category")
+	// TopicDeploySmartContract the topic of deploy a smart contract.
+	TopicDeploySmartContract = "chain.deploySmartContract"
+
+	// TopicCallSmartContract the topic of call a smart contract.
+	TopicCallSmartContract = "chain.callSmartContract"
+
+	// TopicDelegate the topic of delegate.
+	TopicDelegate = "chain.delegate"
+
+	// TopicCandidate the topic of candidate.
+	TopicCandidate = "chain.candidate"
+
+	// TopicLinkBlock the topic of link a block.
+	TopicLinkBlock = "chain.linkBlock"
 )
 
 // Event event structure.
 type Event struct {
-	Category int
-	Topic    string
-	Data     string
-	created  time.Time
+	Topic string
+	Data  string
 }
 
 // EventEmitter provide event functionality for Nebulas.
 type EventEmitter struct {
-	chainEventSubs *sync.Map
-	nodeEventSubs  *sync.Map
-	eventCh        chan *Event
-	quitCh         chan int
+	eventSubs *sync.Map
+	eventCh   chan *Event
+	quitCh    chan int
 }
 
 // NewEventEmitter return new EventEmitter.
 func NewEventEmitter() *EventEmitter {
 	return &EventEmitter{
-		chainEventSubs: new(sync.Map),
-		nodeEventSubs:  new(sync.Map),
-		eventCh:        make(chan *Event, 1024),
-		quitCh:         make(chan int, 1),
+		eventSubs: new(sync.Map),
+		eventCh:   make(chan *Event, 1024),
+		quitCh:    make(chan int, 1),
 	}
 }
 
@@ -78,24 +80,18 @@ func (emitter *EventEmitter) Stop() {
 // Trigger trigger event.
 func (emitter *EventEmitter) Trigger(e *Event) {
 	log.WithFields(log.Fields{
-		"category": e.Category,
-		"topic":    e.Topic,
-		"data":     e.Data,
+		"topic": e.Topic,
+		"data":  e.Data,
 	}).Debug("trigger new event")
 	emitter.eventCh <- e
 }
 
 // Register register event chan.
-func (emitter *EventEmitter) Register(category int, topic string, ch chan *Event) error {
-	subs, err := emitter.getEventSubscriptors(category)
-	if err != nil {
-		return err
-	}
+func (emitter *EventEmitter) Register(topic string, ch chan *Event) error {
 
-	// get subs of chan by topic.
-	v, ok := subs.Load(topic)
+	v, ok := emitter.eventSubs.Load(topic)
 	if !ok {
-		v, _ = subs.LoadOrStore(topic, new(sync.Map))
+		v, _ = emitter.eventSubs.LoadOrStore(topic, new(sync.Map))
 	}
 
 	m, _ := v.(*sync.Map)
@@ -105,18 +101,12 @@ func (emitter *EventEmitter) Register(category int, topic string, ch chan *Event
 }
 
 // Deregister deregister event chan.
-func (emitter *EventEmitter) Deregister(category int, topic string, ch chan *Event) error {
-	subs, err := emitter.getEventSubscriptors(category)
-	if err != nil {
-		return err
-	}
+func (emitter *EventEmitter) Deregister(topic string, ch chan *Event) error {
 
-	// get subs of chan by topic.
-	v, ok := subs.Load(topic)
+	v, ok := emitter.eventSubs.Load(topic)
 	if !ok {
 		return nil
 	}
-
 	m, _ := v.(*sync.Map)
 	m.Delete(ch)
 
@@ -130,20 +120,9 @@ func (emitter *EventEmitter) loop() {
 			log.Info("EventEmitter.loop: quit.")
 			return
 		case e := <-emitter.eventCh:
-			category := e.Category
+
 			topic := e.Topic
-
-			subs, err := emitter.getEventSubscriptors(category)
-			if err != nil {
-				log.WithFields(log.Fields{
-					"err":      err,
-					"category": category,
-					"topic":    topic,
-				}).Warnf("the category is unsupported.")
-				continue
-			}
-
-			v, ok := subs.Load(topic)
+			v, ok := emitter.eventSubs.Load(topic)
 			if !ok {
 				continue
 			}
@@ -155,18 +134,4 @@ func (emitter *EventEmitter) loop() {
 			})
 		}
 	}
-}
-
-func (emitter *EventEmitter) getEventSubscriptors(category int) (*sync.Map, error) {
-	var subs *sync.Map
-	switch category {
-	case ChainEventCategory:
-		subs = emitter.chainEventSubs
-	case NodeEventCategory:
-		subs = emitter.nodeEventSubs
-	default:
-		return nil, ErrUnsupportedEventCategory
-	}
-
-	return subs, nil
 }

@@ -43,7 +43,8 @@ func BlockFromNetwork(block *Block) *Block {
 
 func TestBlockChain_FindCommonAncestorWithTail(t *testing.T) {
 	storage, _ := storage.NewMemoryStorage()
-	bc, _ := NewBlockChain(0, storage)
+	eventEmitter := NewEventEmitter()
+	bc, _ := NewBlockChain(0, storage, eventEmitter)
 	var cons MockConsensus
 	bc.SetConsensusHandler(cons)
 	var c MockConsensus
@@ -161,7 +162,8 @@ func TestBlockChain_FindCommonAncestorWithTail(t *testing.T) {
 
 func TestBlockChain_FetchDescendantInCanonicalChain(t *testing.T) {
 	storage, _ := storage.NewMemoryStorage()
-	bc, _ := NewBlockChain(0, storage)
+	eventEmitter := NewEventEmitter()
+	bc, _ := NewBlockChain(0, storage, eventEmitter)
 	var c MockConsensus
 	bc.SetConsensusHandler(c)
 	coinbase := &Address{[]byte("012345678901234567890000")}

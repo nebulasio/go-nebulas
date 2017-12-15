@@ -117,7 +117,8 @@ type Block struct {
 	txPool       *TransactionPool
 	miner        *Address
 
-	storage storage.Storage
+	storage      storage.Storage
+	eventEmitter *EventEmitter
 }
 
 // ToProto converts domain Block into proto Block
@@ -206,6 +207,7 @@ func NewBlock(chainID uint32, coinbase *Address, parent *Block) (*Block, error) 
 		height:       parent.height + 1,
 		sealed:       false,
 		storage:      parent.storage,
+		eventEmitter: parent.eventEmitter,
 	}
 	return block, nil
 }
@@ -311,7 +313,7 @@ func (block *Block) ParentBlock() (*Block, error) {
 	if block.parenetBlock != nil {
 		return block.parenetBlock, nil
 	}
-	parentBlock, err := LoadBlockFromStorage(block.ParentHash(), block.storage, block.txPool)
+	parentBlock, err := LoadBlockFromStorage(block.ParentHash(), block.storage, block.txPool, block.eventEmitter)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"func":  "block.ParentBlock",
@@ -382,6 +384,23 @@ func (block *Block) LinkParentBlock(parentBlock *Block) bool {
 	block.parenetBlock = parentBlock
 	block.storage = parentBlock.storage
 	block.height = parentBlock.height + 1
+	block.eventEmitter = parentBlock.eventEmitter
+
+	// travel to calculate block height.
+	depth := uint64(0)
+	ancestorHeight := uint64(0)
+	for ancestor := block; ancestor != nil; ancestor = ancestor.parenetBlock {
+		depth++
+		ancestorHeight = ancestor.height
+		if ancestor.height > 0 {
+			break
+		}
+	}
+
+	for ancestor := block; ancestor != nil && depth > 1; ancestor = ancestor.parenetBlock {
+		depth--
+		ancestor.height = ancestorHeight + depth
+	}
 
 	return true
 }
@@ -553,6 +572,34 @@ func (block *Block) Verify(chainID uint32) error {
 	// commit.
 	block.commit()
 
+	// trigger event.
+	for _, v := range block.transactions {
+		var topic string
+		switch v.Type() {
+		case TxPayloadBinaryType:
+			topic = TopicSendTransaction
+		case TxPayloadDeployType:
+			topic = TopicDeploySmartContract
+		case TxPayloadCallType:
+			topic = TopicCallSmartContract
+		case TxPayloadDelegateType:
+			topic = TopicDelegate
+		case TxPayloadCandidateType:
+			topic = TopicCandidate
+		}
+		e := &Event{
+			Topic: topic,
+			Data:  v.String(),
+		}
+		block.eventEmitter.Trigger(e)
+	}
+
+	e := &Event{
+		Topic: TopicLinkBlock,
+		Data:  block.String(),
+	}
+	block.eventEmitter.Trigger(e)
+
 	return nil
 }
 
@@ -615,11 +662,7 @@ func (block *Block) Execute() error {
 	}
 
 	block.rewardCoinbase()
-	if err := block.recordMintCnt(); err != nil {
-		return err
-	}
-
-	return nil
+	return block.recordMintCnt()
 }
 
 // GetBalance returns balance for the given address on this block.
@@ -725,7 +768,7 @@ func HashBlock(block *Block) byteutils.Hash {
 }
 
 // LoadBlockFromStorage return a block from storage
-func LoadBlockFromStorage(hash byteutils.Hash, storage storage.Storage, txPool *TransactionPool) (*Block, error) {
+func LoadBlockFromStorage(hash byteutils.Hash, storage storage.Storage, txPool *TransactionPool, eventEmitter *EventEmitter) (*Block, error) {
 	value, err := storage.Get(hash)
 	if err != nil {
 		return nil, err
@@ -755,5 +798,6 @@ func LoadBlockFromStorage(hash byteutils.Hash, storage storage.Storage, txPool *
 	block.txPool = txPool
 	block.storage = storage
 	block.sealed = true
+	block.eventEmitter = eventEmitter
 	return block, nil
 }

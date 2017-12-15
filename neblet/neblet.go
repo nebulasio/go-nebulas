@@ -78,12 +78,11 @@ func (n *Neblet) Setup() error {
 	if err := n.CheckSchemeVersion(storage); err != nil {
 		return err
 	}
-	n.blockChain, err = core.NewBlockChain(core.TestNetID, storage)
+	n.eventEmitter = core.NewEventEmitter()
+	n.blockChain, err = core.NewBlockChain(core.TestNetID, storage, n.eventEmitter)
 	if err != nil {
 		return err
 	}
-
-	n.eventEmitter = core.NewEventEmitter()
 
 	n.blockChain.BlockPool().RegisterInNetwork(n.netService)
 	gasPrice := util.NewUint128FromString(n.config.Chain.GasPrice)

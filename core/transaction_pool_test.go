@@ -66,7 +66,8 @@ func TestTransactionPool(t *testing.T) {
 	}
 
 	txPool := NewTransactionPool(3)
-	bc, _ := NewBlockChain(1, storage)
+	eventEmitter := NewEventEmitter()
+	bc, _ := NewBlockChain(1, storage, eventEmitter)
 	txPool.setBlockChain(bc)
 	assert.Nil(t, txs[0].Sign(signature1))
 	assert.Nil(t, txPool.Push(txs[0]))

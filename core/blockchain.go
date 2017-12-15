@@ -47,6 +47,8 @@ type BlockChain struct {
 	detachedTailBlocks *lru.Cache
 
 	storage storage.Storage
+
+	eventEmitter *EventEmitter
 }
 
 const (
@@ -68,12 +70,13 @@ var (
 )
 
 // NewBlockChain create new #BlockChain instance.
-func NewBlockChain(chainID uint32, storage storage.Storage) (*BlockChain, error) {
+func NewBlockChain(chainID uint32, storage storage.Storage, eventEmitter *EventEmitter) (*BlockChain, error) {
 	var bc = &BlockChain{
-		chainID: chainID,
-		bkPool:  NewBlockPool(),
-		txPool:  NewTransactionPool(4096),
-		storage: storage,
+		chainID:      chainID,
+		bkPool:       NewBlockPool(),
+		txPool:       NewTransactionPool(4096),
+		storage:      storage,
+		eventEmitter: eventEmitter,
 	}
 
 	bc.cachedBlocks, _ = lru.New(1024)
@@ -101,7 +104,7 @@ func (bc *BlockChain) ChainID() uint32 {
 	return bc.chainID
 }
 
-// Storage return the storage
+// Storage return the storage.
 func (bc *BlockChain) Storage() storage.Storage {
 	return bc.storage
 }
@@ -114,6 +117,11 @@ func (bc *BlockChain) GenesisBlock() *Block {
 // TailBlock return the tail block.
 func (bc *BlockChain) TailBlock() *Block {
 	return bc.tailBlock
+}
+
+// EventEmitter return the eventEmitter.
+func (bc *BlockChain) EventEmitter() *EventEmitter {
+	return bc.eventEmitter
 }
 
 // SetTailBlock set tail block.
@@ -289,7 +297,7 @@ func (bc *BlockChain) GetBlock(hash byteutils.Hash) *Block {
 	// TODO: get block from local storage.
 	v, _ := bc.cachedBlocks.Get(hash.Hex())
 	if v == nil {
-		block, err := LoadBlockFromStorage(hash, bc.storage, bc.txPool)
+		block, err := LoadBlockFromStorage(hash, bc.storage, bc.txPool, bc.eventEmitter)
 		if err != nil {
 			return nil
 		}
@@ -404,11 +412,11 @@ func (bc *BlockChain) loadTailFromStorage() (*Block, error) {
 		return genesis, nil
 	}
 
-	return LoadBlockFromStorage(hash, bc.storage, bc.txPool)
+	return LoadBlockFromStorage(hash, bc.storage, bc.txPool, bc.eventEmitter)
 }
 
 func (bc *BlockChain) loadGenesisFromStorage() (*Block, error) {
-	genesis, err := LoadBlockFromStorage(GenesisHash, bc.storage, bc.txPool)
+	genesis, err := LoadBlockFromStorage(GenesisHash, bc.storage, bc.txPool, bc.eventEmitter)
 	if err == nil {
 		return genesis, nil
 	}
