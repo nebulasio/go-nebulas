@@ -86,6 +86,8 @@ message AppConfig {
 
 	// Log dir.
 	string log_file_dir = 3;
+
+	bool enable_crash_report = 4;
 }
 
 

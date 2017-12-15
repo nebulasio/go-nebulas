@@ -53,9 +53,6 @@ var (
 
 func main() {
 
-  //TODO: need check args to enable this
-  InitCrashReporter()
-
 	app := cli.NewApp()
 	app.Action = neb
 	app.Name = "neb"
@@ -91,6 +88,10 @@ func neb(ctx *cli.Context) error {
 	logging.EnableFuncNameLogger()
 
 	n := makeNeb(ctx)
+
+  if n.Config().App.EnableCrashReport{
+    InitCrashReporter()
+  }
 
 	log.SetFormatter(&log.TextFormatter{FullTimestamp: true})
 	log.SetOutput(os.Stdout)

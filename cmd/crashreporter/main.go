@@ -21,19 +21,50 @@ package main
 import (
   "fmt"
   "os"
+  "os/user"
   "time"
   "net"
   "strconv"
   "flag"
+  "syscall"
+  "io/ioutil"
+  "strings"
+  "path/filepath"
   "github.com/VividCortex/godaemon"
 )
 
+func checkCrashFileAndUpload(fp string) error{
+  if _, ferr := os.Stat(fp); ferr == nil {
+    bytes, err := ioutil.ReadFile(fp)
+    if err != nil{
+      return nil
+    }
+    lines := strings.Split(string(bytes), "\n")
+    current, err := user.Current()
+    for i, line := range lines {
+      line = strings.Replace(line, current.HomeDir, "HomeDir", -1)
+      line = strings.Replace(line, current.Name, "Name", -1)
+      line = strings.Replace(line, current.Username, "Username", -1)
+      lines[i] = line
+    }
+    output := strings.Join(lines, "\n")
+
+    dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
+    ioutil.WriteFile(fmt.Sprintf("%v/crash.log", dir), []byte(output), 0644)
+
+    return nil
+  }else{
+    fmt.Println("no crash yet")
+  }
+  return nil
+}
 
 func main() {
   godaemon.MakeDaemon(&godaemon.DaemonAttr{})
   logfp :=flag.String("logfile","", "log file path")
   port :=flag.Int("port",0,"tcp port for notification")
   code :=flag.Int("code",0,"verification code")
+  pid :=flag.Int("pid",0,"verification code")
   flag.Parse()
   s, err := net.Dial("tcp", fmt.Sprintf(":%d", *port))
   if err != nil{
@@ -44,14 +75,21 @@ func main() {
 
   s.Write([]byte(strconv.Itoa(*code)))
 
-  ticker := time.NewTicker(3 * time.Second)
+  ticker := time.NewTicker(1 * time.Second)
   for _ = range ticker.C {
-    if _, ferr := os.Stat(*logfp); ferr == nil {
-      fmt.Println("got the crash file!")
-
+    process, err := os.FindProcess(*pid)
+    if err != nil {
+      fmt.Printf("Failed to find process: %s\n", err)
+      checkCrashFileAndUpload(*logfp)
       return ;
-    }else{
-      fmt.Println("no crash yet")
+    } else {
+      err := process.Signal(syscall.Signal(0))
+      if err == nil{
+        continue
+      }else{
+        checkCrashFileAndUpload(*logfp)
+        return ;
+      }
     }
   }
 }
