@@ -89,9 +89,9 @@ func neb(ctx *cli.Context) error {
 
 	n := makeNeb(ctx)
 
-  if n.Config().App.EnableCrashReport{
-    InitCrashReporter()
-  }
+	if n.Config().App.EnableCrashReport {
+		InitCrashReporter()
+	}
 
 	log.SetFormatter(&log.TextFormatter{FullTimestamp: true})
 	log.SetOutput(os.Stdout)
