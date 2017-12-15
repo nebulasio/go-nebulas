@@ -52,13 +52,18 @@ message ChainConfig {
     string keydir = 12;
     // Coinbase.
     string coinbase = 21;
+    // Miner.
+    string miner = 22;
+    // Passphrase.
+    string passphrase = 23;
+
     // Lowest GasPrice.
-    string gas_price = 22;
+    string gas_price = 24;
     // Max GasLimit.
-    string gas_limit = 23;
+    string gas_limit = 25;
 
     // Supported signature cipher list. ["ECC_SECP256K1"]
-    repeated string signature_ciphers = 24;
+    repeated string signature_ciphers = 26;
 }
 
 message RPCConfig {
@@ -77,8 +82,12 @@ message AppConfig {
 
 	string log_level = 1;
 
+    bool log_file_enable = 2;
+
 	// Log dir.
-	string log_dir = 2;
+	string log_file_dir = 3;
+
+	bool enable_crash_report = 4;
 }
 
 

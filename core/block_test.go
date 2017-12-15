@@ -101,14 +101,19 @@ func TestBlock(t *testing.T) {
 			"full struct",
 			fields{
 				&BlockHeader{
-					[]byte("124546"),
-					[]byte("344543"),
-					[]byte("43656"),
-					[]byte("43656"),
-					3546456,
-					&Address{[]byte("hello")},
-					time.Now().Unix(),
-					1,
+					hash:       []byte("124546"),
+					parentHash: []byte("344543"),
+					stateRoot:  []byte("43656"),
+					txsRoot:    []byte("43656"),
+					dposContext: &corepb.DposContext{
+						DynastyRoot:     []byte("43656"),
+						NextDynastyRoot: []byte("43656"),
+						DelegateRoot:    []byte("43656"),
+					},
+					nonce:     3546456,
+					coinbase:  &Address{[]byte("hello")},
+					timestamp: time.Now().Unix(),
+					chainID:   1,
 				},
 				Transactions{
 					&Transaction{
@@ -173,18 +178,24 @@ func TestBlock(t *testing.T) {
 
 func TestBlock_LinkParentBlock(t *testing.T) {
 	storage, _ := storage.NewMemoryStorage()
-	genesis := NewGenesisBlock(0, storage)
+	bc, _ := NewBlockChain(0, storage)
+	genesis := bc.genesisBlock
 	assert.Equal(t, genesis.Height(), uint64(1))
 	block1 := &Block{
 		header: &BlockHeader{
-			[]byte("124546"),
-			genesis.Hash(),
-			[]byte("43656"),
-			[]byte("43656"),
-			3546456,
-			&Address{[]byte("hello")},
-			time.Now().Unix(),
-			1,
+			hash:       []byte("124546"),
+			parentHash: GenesisHash,
+			stateRoot:  []byte("43656"),
+			txsRoot:    []byte("43656"),
+			dposContext: &corepb.DposContext{
+				DynastyRoot:     []byte("43656"),
+				NextDynastyRoot: []byte("43656"),
+				DelegateRoot:    []byte("43656"),
+			},
+			nonce:     3546456,
+			coinbase:  &Address{[]byte("hello")},
+			timestamp: BlockInterval,
+			chainID:   1,
 		},
 		transactions: []*Transaction{},
 	}
@@ -194,14 +205,19 @@ func TestBlock_LinkParentBlock(t *testing.T) {
 	assert.Equal(t, block1.ParentHash(), genesis.Hash())
 	block2 := &Block{
 		header: &BlockHeader{
-			[]byte("124546"),
-			[]byte("1234"),
-			[]byte("43656"),
-			[]byte("43656"),
-			3546456,
-			&Address{[]byte("hello")},
-			time.Now().Unix(),
-			1,
+			hash:       []byte("124546"),
+			parentHash: []byte("344543"),
+			stateRoot:  []byte("43656"),
+			txsRoot:    []byte("43656"),
+			dposContext: &corepb.DposContext{
+				DynastyRoot:     []byte("43656"),
+				NextDynastyRoot: []byte("43656"),
+				DelegateRoot:    []byte("43656"),
+			},
+			nonce:     3546456,
+			coinbase:  &Address{[]byte("hello")},
+			timestamp: BlockInterval * 2,
+			chainID:   1,
 		},
 		transactions: []*Transaction{},
 	}
@@ -233,12 +249,15 @@ func TestBlock_CollectTransactions(t *testing.T) {
 	pubdata2, _ := priv2.PublicKey().Encoded()
 	coinbase, _ := NewAddressFromPublicKey(pubdata2)
 
-	block0 := NewBlock(0, from, tail, bc.txPool, storage)
+	block0, _ := NewBlock(0, from, tail)
+	block0.header.timestamp = BlockInterval
+	block0.SetMiner(from)
 	block0.Seal()
 	//bc.BlockPool().push(block0)
 	bc.SetTailBlock(block0)
 
-	block := NewBlock(0, coinbase, block0, bc.txPool, storage)
+	block, _ := NewBlock(0, coinbase, block0)
+	block.header.timestamp = BlockInterval * 2
 
 	tx1 := NewTransaction(0, from, to, util.NewUint128FromInt(1), 1, TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, util.NewUint128FromInt(200000))
 	tx1.Sign(signature)
@@ -268,7 +287,8 @@ func TestBlock_CollectTransactions(t *testing.T) {
 
 	assert.Equal(t, block.Sealed(), false)
 	balance := block.GetBalance(block.header.coinbase.address)
-	assert.NotEqual(t, balance.Cmp(util.NewUint128().Int), 0)
+	assert.Equal(t, balance.Cmp(util.NewUint128().Int), 1)
+	block.SetMiner(coinbase)
 	block.Seal()
 	assert.Equal(t, block.Sealed(), true)
 	assert.Equal(t, block.transactions[0], tx1)
@@ -280,11 +300,125 @@ func TestBlock_CollectTransactions(t *testing.T) {
 	//gas, _ := bc.EstimateGas(tx1)
 	assert.NotEqual(t, balance.Cmp(BlockReward.Int), 0)
 	// mock net message
-	proto, _ := block.ToProto()
-	ir, _ := pb.Marshal(proto)
-	nb := new(Block)
-	pb.Unmarshal(ir, proto)
-	nb.FromProto(proto)
-	nb.LinkParentBlock(bc.tailBlock)
-	assert.Nil(t, nb.Verify(0))
+	block, _ = mockBlockFromNetwork(block)
+	assert.Equal(t, block.LinkParentBlock(bc.tailBlock), true)
+	block.SetMiner(coinbase)
+	assert.Nil(t, block.Verify(0))
+}
+
+func TestBlock_DposCandidates(t *testing.T) {
+	stor, _ := storage.NewMemoryStorage()
+	bc, _ := NewBlockChain(0, stor)
+	tail := bc.tailBlock
+	assert.Panics(t, func() { tail.CollectTransactions(1) })
+
+	ks := keystore.DefaultKS
+	priv := secp256k1.GeneratePrivateKey()
+	pubdata, _ := priv.PublicKey().Encoded()
+	from, _ := NewAddressFromPublicKey(pubdata)
+	ks.SetKey(from.String(), priv, []byte("passphrase"))
+	ks.Unlock(from.String(), []byte("passphrase"), time.Second*60*60*24*365)
+
+	key, _ := ks.GetUnlocked(from.String())
+	signature, _ := crypto.NewSignature(keystore.SECP256K1)
+	signature.InitSign(key.(keystore.PrivateKey))
+
+	priv1 := secp256k1.GeneratePrivateKey()
+	pubdata1, _ := priv1.PublicKey().Encoded()
+	to, _ := NewAddressFromPublicKey(pubdata1)
+	priv2 := secp256k1.GeneratePrivateKey()
+	pubdata2, _ := priv2.PublicKey().Encoded()
+	coinbase, _ := NewAddressFromPublicKey(pubdata2)
+
+	block0, _ := NewBlock(0, from, tail)
+	block0.header.timestamp = BlockInterval
+	block0.SetMiner(from)
+	block0.Seal()
+	bc.SetTailBlock(block0)
+
+	block, _ := NewBlock(0, coinbase, block0)
+	block.header.timestamp = BlockInterval * 2
+	bytes, _ := NewCandidatePayload(LoginAction).ToBytes()
+	tx := NewTransaction(0, from, to, util.NewUint128FromInt(1), 1, TxPayloadCandidateType, bytes, TransactionGasPrice, util.NewUint128FromInt(200000))
+	tx.Sign(signature)
+	bc.txPool.Push(tx)
+	payload := NewDelegatePayload(DelegateAction, from.String())
+	bytes, _ = payload.ToBytes()
+	tx = NewTransaction(0, from, to, util.NewUint128FromInt(1), 2, TxPayloadDelegateType, bytes, TransactionGasPrice, util.NewUint128FromInt(200000))
+	tx.Sign(signature)
+	bc.txPool.Push(tx)
+	assert.Equal(t, len(block.transactions), 0)
+	assert.Equal(t, bc.txPool.cache.Len(), 2)
+	block.CollectTransactions(2)
+	assert.Equal(t, len(block.transactions), 2)
+	assert.Equal(t, block.txPool.cache.Len(), 0)
+	block.SetMiner(coinbase)
+	assert.Equal(t, block.Seal(), nil)
+	block, _ = mockBlockFromNetwork(block)
+	assert.Equal(t, block.LinkParentBlock(bc.tailBlock), true)
+	block.SetMiner(coinbase)
+	assert.Nil(t, block.Verify(0))
+	bytes, _ = block.dposContext.candidateTrie.Get(from.Bytes())
+	assert.Equal(t, bytes, from.Bytes())
+	bytes, _ = block.dposContext.voteTrie.Get(from.Bytes())
+	assert.Equal(t, bytes, from.Bytes())
+	bytes, _ = block.dposContext.delegateTrie.Get(append(from.Bytes(), from.Bytes()...))
+	assert.Equal(t, bytes, from.Bytes())
+	bc.SetTailBlock(block)
+
+	block, _ = NewBlock(0, coinbase, block)
+	block.header.timestamp = BlockInterval * 3
+	payload = NewDelegatePayload(UnDelegateAction, from.String())
+	bytes, _ = payload.ToBytes()
+	tx = NewTransaction(0, from, to, util.NewUint128FromInt(1), 3, TxPayloadDelegateType, bytes, TransactionGasPrice, util.NewUint128FromInt(200000))
+	tx.Sign(signature)
+	bc.txPool.Push(tx)
+	assert.Equal(t, len(block.transactions), 0)
+	assert.Equal(t, bc.txPool.cache.Len(), 1)
+	block.CollectTransactions(1)
+	assert.Equal(t, len(block.transactions), 1)
+	assert.Equal(t, block.txPool.cache.Len(), 0)
+	block.SetMiner(coinbase)
+	assert.Equal(t, block.Seal(), nil)
+	block, _ = mockBlockFromNetwork(block)
+	assert.Equal(t, block.LinkParentBlock(bc.tailBlock), true)
+	block.SetMiner(coinbase)
+	assert.Nil(t, block.Verify(0))
+	_, err := block.dposContext.candidateTrie.Get(from.Bytes())
+	assert.Equal(t, err, nil)
+	_, err = block.dposContext.voteTrie.Get(from.Bytes())
+	assert.Equal(t, err, storage.ErrKeyNotFound)
+	_, err = block.dposContext.delegateTrie.Iterator(from.Bytes())
+	assert.Equal(t, err, storage.ErrKeyNotFound)
+	bc.SetTailBlock(block)
+
+	block, _ = NewBlock(0, coinbase, block)
+	block.header.timestamp = BlockInterval * 4
+	payload = NewDelegatePayload(DelegateAction, from.String())
+	bytes, _ = payload.ToBytes()
+	tx = NewTransaction(0, from, to, util.NewUint128FromInt(1), 4, TxPayloadDelegateType, bytes, TransactionGasPrice, util.NewUint128FromInt(200000))
+	tx.Sign(signature)
+	bc.txPool.Push(tx)
+	bytes, _ = NewCandidatePayload(LogoutAction).ToBytes()
+	tx = NewTransaction(0, from, to, util.NewUint128FromInt(1), 5, TxPayloadCandidateType, bytes, TransactionGasPrice, util.NewUint128FromInt(200000))
+	tx.Sign(signature)
+	bc.txPool.Push(tx)
+	assert.Equal(t, len(block.transactions), 0)
+	assert.Equal(t, bc.txPool.cache.Len(), 2)
+	block.CollectTransactions(2)
+	assert.Equal(t, len(block.transactions), 2)
+	assert.Equal(t, block.txPool.cache.Len(), 0)
+	block.SetMiner(coinbase)
+	assert.Equal(t, block.Seal(), nil)
+	block, _ = mockBlockFromNetwork(block)
+	assert.Equal(t, block.LinkParentBlock(bc.tailBlock), true)
+	block.SetMiner(coinbase)
+	assert.Nil(t, block.Verify(0))
+	_, err = block.dposContext.candidateTrie.Get(from.Bytes())
+	assert.Equal(t, err, storage.ErrKeyNotFound)
+	_, err = block.dposContext.voteTrie.Get(from.Bytes())
+	assert.Equal(t, err, storage.ErrKeyNotFound)
+	_, err = block.dposContext.delegateTrie.Iterator(from.Bytes())
+	assert.Equal(t, err, storage.ErrKeyNotFound)
+	bc.SetTailBlock(block)
 }

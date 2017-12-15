@@ -89,14 +89,18 @@ func neb(ctx *cli.Context) error {
 
 	n := makeNeb(ctx)
 
+  if n.Config().App.EnableCrashReport{
+    InitCrashReporter()
+  }
+
 	log.SetFormatter(&log.TextFormatter{FullTimestamp: true})
-	// log.SetOutput(os.Stdout)
-	if n.Config().App.LogDir != "" {
-		file, err := os.OpenFile(n.Config().App.LogDir, os.O_CREATE|os.O_RDWR, 0666)
+	log.SetOutput(os.Stdout)
+	if n.Config().App.LogFileEnable && len(n.Config().App.LogFileDir) > 0 {
+		fileHook, err := logging.NewLogrusFileHook(n.Config().App.LogFileDir)
 		if err != nil {
 			panic("Setup Neblet Failed: " + err.Error())
 		}
-		log.SetOutput(file)
+		log.AddHook(fileHook)
 	}
 
 	if n.Config().App.LogLevel != "" {

@@ -75,6 +75,10 @@ func defaultConfig() string {
 		http_module: ["api","admin"]
 	}
 
+  app {
+    enable_crash_report: true
+  }
+
 	stats {
 		enable_metrics: false
 		influxdb: {

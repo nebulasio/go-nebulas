@@ -59,12 +59,12 @@ func (state *PrepareState) Enter(data interface{}) {
 
 	if p.miningBlock == nil {
 		// start mining from chain tail.
-		p.miningBlock = state.p.chain.NewBlock(p.coinbase)
+		p.miningBlock, _ = state.p.chain.NewBlock(p.coinbase)
 		p.miningBlock.CollectTransactions(2)
 	} else if p.miningBlock.Sealed() {
 		// start mining from local minted block.
 		parentBlock := p.miningBlock
-		p.miningBlock = state.p.chain.NewBlockFromParent(p.coinbase, parentBlock)
+		p.miningBlock, _ = state.p.chain.NewBlockFromParent(p.coinbase, parentBlock)
 		p.miningBlock.CollectTransactions(2)
 	}
 

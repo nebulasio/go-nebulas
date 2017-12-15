@@ -102,9 +102,11 @@ service ApiService {
         };
     }
 
-    rpc StatisticsNodeInfo (NodeInfoRequest) returns (StatisticsNodeInfoResponse) {
+    // Subscribe message
+    rpc Subscribe(SubscribeRequest) returns (stream SubscribeResponse) {
         option (google.api.http) = {
-            get: "/v1/admin/statistics/nodeInfo"
+            post: "/v1/user/subscribe"
+            body: "*"
         };
     }
 
@@ -135,7 +137,7 @@ service AdminService {
         };
     }
 
-    // SignTransaction sign transaction
+    // Sign sign transaction
     rpc SignTransaction(TransactionRequest) returns (SignTransactionResponse) {
         option (google.api.http) = {
             post: "/v1/admin/sign"
@@ -150,6 +152,28 @@ service AdminService {
             body: "*"
         };
     }
+
+    rpc StatisticsNodeInfo (NodeInfoRequest) returns (StatisticsNodeInfoResponse) {
+        option (google.api.http) = {
+            get: "/v1/admin/statistics/nodeInfo"
+        };
+	}
+	
+	rpc GetDynasty (GetDynastyRequest) returns (GetDynastyResponse) {
+		option (google.api.http) = {
+			get: "/v1/admin/dynasty"
+		};
+	}
+}
+
+// Request message of Subscribe rpc
+message SubscribeRequest {
+}
+
+// Request message of Subscribe rpc
+message SubscribeResponse {
+    string msg_type = 1;
+    string data = 2;
 }
 
 // Request message of GetNebState rpc.
@@ -261,6 +285,14 @@ message GetAccountStateResponse {
     string nonce = 2;
 }
 
+// Request message of GetDynastyRequest rpc.
+message GetDynastyRequest {}
+
+// Response message of GetDynastyRequest rpc
+message GetDynastyResponse {
+	repeated string delegatees = 1;
+}	
+
 // Request message of SendTransaction rpc.
 message TransactionRequest {
 	// Hex string of the sender account addresss.
@@ -283,6 +315,12 @@ message TransactionRequest {
 
 	// contract sending with this transaction
 	ContractRequest contract = 7;
+
+	// candidate application sending with this transaction.
+	CandidateRequest candidate = 8;
+
+	// delegate vote sending with this transaction.	
+	DelegateRequest delegate = 9;
 }
 
 message ContractRequest {
@@ -299,6 +337,20 @@ message ContractRequest {
 	string args = 4;
 }
 
+message CandidateRequest {
+	// candidate action.
+	string action = 1;
+}
+
+
+message DelegateRequest {
+	// delegate action.
+	string action = 1;
+
+	// delegatee.
+	string delegatee = 2;
+}
+
 // Request message of SendRawTransactionRequest rpc.
 message SendRawTransactionRequest {
 
@@ -311,6 +363,7 @@ message SendTransactionResponse {
     // Hex string of transaction hash.
     string txhash = 1;
     string contract_address = 2;
+    bool result = 3;
 }
 
 // Request message of GetBlockByHash rpc.

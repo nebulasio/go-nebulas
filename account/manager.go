@@ -44,6 +44,9 @@ var (
 	// ErrTxAddressLocked from address locked.
 	ErrTxAddressLocked = errors.New("transaction from address locked")
 
+	// ErrBlockAddressLocked from address locked.
+	ErrBlockAddressLocked = errors.New("block signer's address locked")
+
 	// ErrTxSignFrom sign addr not from
 	ErrTxSignFrom = errors.New("transaction sign not use from addr")
 )
@@ -252,6 +255,26 @@ func (m *Manager) SignTransaction(addr *core.Address, tx *core.Transaction) erro
 	}
 	signature.InitSign(key.(keystore.PrivateKey))
 	return tx.Sign(signature)
+}
+
+// SignBlock sign block with the specified algorithm
+func (m *Manager) SignBlock(addr *core.Address, block *core.Block) error {
+	key, err := m.ks.GetUnlocked(addr.String())
+	if err != nil {
+		log.WithFields(log.Fields{
+			"func":  "SignBlock",
+			"err":   ErrBlockAddressLocked,
+			"block": block,
+		}).Error("block signer's address locked")
+		return err
+	}
+
+	signature, err := crypto.NewSignature(m.signatureAlg)
+	if err != nil {
+		return err
+	}
+	signature.InitSign(key.(keystore.PrivateKey))
+	return block.Sign(signature)
 }
 
 // SignTransactionWithPassphrase sign transaction with the from passphrase

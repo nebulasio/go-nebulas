@@ -10,8 +10,8 @@ import (
 
 // Errors
 var (
-	ErrCloneInBatch      = errors.New("cannot clone AccountState with a batch task unfinished")
-	ErrBeginAgainInBatch = errors.New("cannot begin AccountState with a batch task unfinished")
+	ErrCloneInBatch      = errors.New("cannot clone with a batch task unfinished")
+	ErrBeginAgainInBatch = errors.New("cannot begin with a batch task unfinished")
 )
 
 // Action represents operation types in BatchTrie
@@ -128,6 +128,11 @@ func (bt *BatchTrie) Prove(key []byte) (MerkleProof, error) {
 // Verify whether the merkle proof from root to the associated node is right
 func (bt *BatchTrie) Verify(rootHash []byte, key []byte, proof MerkleProof) error {
 	return bt.trie.Verify(rootHash, key, proof)
+}
+
+// Empty return if the trie is empty
+func (bt *BatchTrie) Empty() bool {
+	return bt.trie.Empty()
 }
 
 // Iterator return an trie Iterator to traverse leaf node's value in this trie

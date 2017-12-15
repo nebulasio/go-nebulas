@@ -62,6 +62,7 @@ deploy-libs:
 
 build:
 	cd cmd/neb; go build $(LDFLAGS) -o ../../$(BINARY)
+	cd cmd/crashreporter; go build $(LDFLAGS) -o ../../nebulas_crashreporter
 
 build-linux:
 	cd cmd/neb; GOOS=linux GOARCH=amd64 go build $(LDFLAGS) -o ../../$(BINARY)-linux

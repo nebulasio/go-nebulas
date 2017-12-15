@@ -21,6 +21,7 @@ package core
 import (
 	"errors"
 	"sync"
+	"time"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -43,6 +44,7 @@ type Event struct {
 	Category int
 	Topic    string
 	Data     string
+	created  time.Time
 }
 
 // EventEmitter provide event functionality for Nebulas.

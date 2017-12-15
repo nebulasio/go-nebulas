@@ -46,6 +46,15 @@ message Transaction {
     bytes sign = 12;
 }
 
+message DposContext {
+    bytes dynasty_root = 1;
+    bytes next_dynasty_root = 2;
+    bytes delegate_root = 3;
+    bytes candidate_root = 4;
+    bytes vote_root = 5;
+    bytes mint_cnt_root = 6;
+}
+
 message BlockHeader {
     bytes hash = 1;
     bytes parent_hash = 2;
@@ -53,8 +62,11 @@ message BlockHeader {
     bytes coinbase = 4;
     int64 timestamp = 5;
     uint32 chain_id = 6;
-    bytes state_root = 7;
-    bytes txs_root = 8;
+    uint32 alg = 7;
+    bytes sign = 8;
+    bytes state_root = 9;
+    bytes txs_root = 10;
+    DposContext dpos_context = 11;
 }
 
 message Block {
@@ -65,12 +77,12 @@ message Block {
 
 message NetBlocks {
     string from = 1;
-    uint64 nonce = 2;
+    uint64 batch = 2;
     repeated Block blocks = 3;
 }
 
 message NetBlock {
     string from = 1;
-    uint64 nonce = 2;
+    uint64 batch = 2;
     Block block = 3;
 }

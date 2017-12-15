@@ -37,7 +37,7 @@ Manage neblas config, generate a default config file.`,
 			{
 				Name:      "new",
 				Usage:     "Generate a default config file",
-				Action:    createDefaultConfig,
+				Action:    MergeFlags(createDefaultConfig),
 				ArgsUsage: "<filename>",
 				Description: `
 Generate a a default config file.`,

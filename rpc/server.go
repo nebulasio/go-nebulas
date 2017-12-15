@@ -31,6 +31,7 @@ type Neblet interface {
 	BlockChain() *core.BlockChain
 	AccountManager() *account.Manager
 	NetService() *p2p.NetService
+	EventEmitter() *core.EventEmitter
 }
 
 // Server server interface for api & management etc.

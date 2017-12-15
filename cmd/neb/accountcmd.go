@@ -40,7 +40,7 @@ account, create a new account or update an existing account.`,
 			{
 				Name:   "new",
 				Usage:  "Create a new account",
-				Action: accountCreate,
+				Action: MergeFlags(accountCreate),
 				Description: `
     geth account new
 
@@ -53,14 +53,14 @@ You must remember this passphrase to unlock your account in the future.`,
 			{
 				Name:   "list",
 				Usage:  "Print summary of existing addresses",
-				Action: accountList,
+				Action: MergeFlags(accountList),
 				Description: `
 Print a short summary of all accounts`,
 			},
 			{
 				Name:      "update",
 				Usage:     "Update an existing account",
-				Action:    accountUpdate,
+				Action:    MergeFlags(accountUpdate),
 				ArgsUsage: "<address>",
 				Description: `
     geth account update <address>
@@ -73,7 +73,7 @@ for a passphrase to unlock the account and another to save the updated file.`,
 			{
 				Name:      "import",
 				Usage:     "Import a private key into a new account",
-				Action:    accountImport,
+				Action:    MergeFlags(accountImport),
 				ArgsUsage: "<keyFile>",
 				Description: `
     geth account import <keyfile>

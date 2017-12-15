@@ -29,14 +29,14 @@ import (
 
 var (
 	versionCommand = cli.Command{
-		Action:    _version,
+		Action:    MergeFlags(_version),
 		Name:      "version",
 		Usage:     "Print version numbers",
 		ArgsUsage: " ",
 		Category:  "MISC COMMANDS",
 	}
 	licenseCommand = cli.Command{
-		Action:    _license,
+		Action:    MergeFlags(_license),
 		Name:      "license",
 		Usage:     "Display license information",
 		ArgsUsage: " ",

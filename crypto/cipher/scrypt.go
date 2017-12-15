@@ -27,7 +27,7 @@ import (
 	"errors"
 
 	"github.com/nebulasio/go-nebulas/crypto/hash"
-	"github.com/satori/go.uuid"
+	uuid "github.com/satori/go.uuid"
 	"golang.org/x/crypto/scrypt"
 )
 

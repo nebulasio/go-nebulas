@@ -151,6 +151,11 @@ func (t *Trie) RootHash() []byte {
 	return t.rootHash
 }
 
+// Empty return if the trie is empty
+func (t *Trie) Empty() bool {
+	return t.rootHash == nil
+}
+
 // Get the value to the key in trie
 func (t *Trie) Get(key []byte) ([]byte, error) {
 	return t.get(t.rootHash, keyToRoute(key))
