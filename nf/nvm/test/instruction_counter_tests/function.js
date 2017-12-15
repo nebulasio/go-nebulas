@@ -16,7 +16,7 @@
 // along with the go-nebulas library.  If not, see <http://www.gnu.org/licenses/>.
 //
 const assert = require('assert.js');
-const count_of_helper_statement = 7;
+const count_of_helper_statement = 42;
 
 var count = 0;
 var x = 1,
@@ -28,24 +28,24 @@ function test1(a, b) {
 };
 count = _instruction_counter.count;
 assert.equal(test1(x, y), z);
-assert.equal(_instruction_counter.count - count - count_of_helper_statement, 2);
+assert.equal(_instruction_counter.count - count - count_of_helper_statement, 3);
 
 var test2 = function (a, b) {
     return a + b;
 };
 count = _instruction_counter.count;
 assert.equal(test2(x, y), z);
-assert.equal(_instruction_counter.count - count - count_of_helper_statement, 2, "test2");
+assert.equal(_instruction_counter.count - count - count_of_helper_statement, 3);
 
 
 var test3 = (a, b) => a + b;
 count = _instruction_counter.count;
 assert.equal(test3(x, y), z);
-assert.equal(_instruction_counter.count - count - count_of_helper_statement, 2, "test3");
+assert.equal(_instruction_counter.count - count - count_of_helper_statement, 3);
 
 var test4 = (a, b) => {
     return a + b;
 };
 count = _instruction_counter.count;
 assert.equal(test4(x, y), z);
-assert.equal(_instruction_counter.count - count - count_of_helper_statement, 2, "test4");
+assert.equal(_instruction_counter.count - count - count_of_helper_statement, 3);

@@ -18,7 +18,7 @@
 const assert = require('assert.js');
 
 function assertEqual(func, args, expected, expected_count, msg) {
-    const count_of_helper_statement = 9;
+    const count_of_helper_statement = 46;
     var count = _instruction_counter.count;
     assert.equal(func.apply(null, args), expected);
     assert.equal(_instruction_counter.count - count - count_of_helper_statement, expected_count, msg);
@@ -36,10 +36,10 @@ var test1 = function (x) {
         return -1;
     }
 };
-assertEqual(test1, [1], 0, 1);
-assertEqual(test1, [15], 5, 2);
-assertEqual(test1, [30], 10, 3);
-assertEqual(test1, [100], -1, 4);
+assertEqual(test1, [1], 0, 3);
+assertEqual(test1, [15], 5, 6);
+assertEqual(test1, [30], 10, 9);
+assertEqual(test1, [100], -1, 12);
 
 // test 2.
 var test2 = function (x, y) {
@@ -55,11 +55,11 @@ var test2 = function (x, y) {
         return 300;
     }
 };
-assertEqual(test2, [1, 3], 0, 3);
-assertEqual(test2, [10, 15], 50, 6);
-assertEqual(test2, [60, 70], 100, 7);
-assertEqual(test2, [90, 80], 200, 8);
-assertEqual(test2, [100, 100], 300, 8);
+assertEqual(test2, [1, 3], 0, 9);
+assertEqual(test2, [10, 15], 50, 18);
+assertEqual(test2, [60, 70], 100, 21);
+assertEqual(test2, [90, 80], 200, 24);
+assertEqual(test2, [100, 100], 300, 24);
 
 // test 3.
 var test3 = function (x, y) {
@@ -75,12 +75,12 @@ var test3 = function (x, y) {
         return 300;
     }
 };
-assertEqual(test3, [1, 0], 0, 3);
-assertEqual(test3, [5, 6], 0, 3);
-assertEqual(test3, [10, 11], 0, 3);
-assertEqual(test3, [40, 30], 50, 6);
-assertEqual(test3, [60, 30], 200, 8);
-assertEqual(test3, [60, 60], 300, 8);
+assertEqual(test3, [1, 0], 0, 9);
+assertEqual(test3, [5, 6], 0, 9);
+assertEqual(test3, [10, 11], 0, 9);
+assertEqual(test3, [40, 30], 50, 18);
+assertEqual(test3, [60, 30], 200, 24);
+assertEqual(test3, [60, 60], 300, 24);
 
 
 // test 4.
@@ -94,7 +94,7 @@ var test4 = function (x) {
     else
         return x - 20;
 };
-assertEqual(test4, [1], 2, 2);
-assertEqual(test4, [15], 7, 5);
-assertEqual(test4, [30], 91, 5);
-assertEqual(test4, [100], 80, 4);
+assertEqual(test4, [1], 2, 6);
+assertEqual(test4, [15], 7, 21);
+assertEqual(test4, [30], 91, 15);
+assertEqual(test4, [100], 80, 12);

@@ -19,7 +19,7 @@
 const assert = require('assert.js');
 
 function assertEqual(func, args, expected, expected_count, msg) {
-    const count_of_helper_statement = 9;
+    const count_of_helper_statement = 46;
     var count = _instruction_counter.count;
     assert.equal(func.apply(null, args), expected);
     assert.equal(_instruction_counter.count - count - count_of_helper_statement, expected_count, msg);
@@ -32,10 +32,10 @@ var test1 = function (x) {
         ret += i;
     return ret;
 };
-assertEqual(test1, [0], 0, 1);
-assertEqual(test1, [10], 45, 10 * 3 + 1);
-assertEqual(test1, [11], 55, 11 * 3 + 1);
-assertEqual(test1, [23], 253, 23 * 3 + 1);
+assertEqual(test1, [0], 0, 3);
+assertEqual(test1, [10], 45, 10 * 9 + 3);
+assertEqual(test1, [11], 55, 11 * 9 + 3);
+assertEqual(test1, [23], 253, 23 * 9 + 3);
 
 // test2.
 var test2 = function (x) {
@@ -45,10 +45,10 @@ var test2 = function (x) {
     }
     return ret;
 }
-assertEqual(test2, [10], 55, 10 * 6 + 3);
-assertEqual(test2, [11], 66, 11 * 6 + 3);
-assertEqual(test2, [20], 210, 20 * 6 + 3);
-assertEqual(test2, [23], 210, 20 * 6 + 3);
+assertEqual(test2, [10], 55, 10 * 18 + 9);
+assertEqual(test2, [11], 66, 11 * 18 + 9);
+assertEqual(test2, [20], 210, 20 * 18 + 9);
+assertEqual(test2, [23], 210, 20 * 18 + 9);
 
 // test3.
 var test3 = function (x) {
@@ -62,10 +62,10 @@ var test3 = function (x) {
     }
     return ret;
 }
-assertEqual(test3, [1], 1, 1 * 6 + 1);
-assertEqual(test3, [10], 60, 10 * 6 + 1 + 10 / 2);
-assertEqual(test3, [11], 71, 11 * 6 + 1 + Math.floor(11 / 2));
-assertEqual(test3, [12], 84, 12 * 6 + 1 + Math.floor(12 / 2));
+assertEqual(test3, [1], 1, 1 * 18 + 3);
+assertEqual(test3, [10], 60, 10 * 18 + 3 + 10 / 2 * 3);
+assertEqual(test3, [11], 71, 11 * 18 + 3 + Math.floor(11 / 2) * 3);
+assertEqual(test3, [12], 84, 12 * 18 + 3 + Math.floor(12 / 2) * 3);
 
 // test4.
 var gen4X = function (a) {
@@ -83,9 +83,9 @@ var test4 = function (x) {
     return ret;
 };
 assertEqual(test4, [gen4X(0)], 0, 0);
-assertEqual(test4, [gen4X(1)], 1, 3 * 1);
-assertEqual(test4, [gen4X(2)], 3, 3 * 2);
-assertEqual(test4, [gen4X(3)], 6, 3 * 3);
+assertEqual(test4, [gen4X(1)], 1, 8 * 1);
+assertEqual(test4, [gen4X(2)], 3, 8 * 2);
+assertEqual(test4, [gen4X(3)], 6, 8 * 3);
 
 // test5.
 var gen5X = function (a) {
@@ -102,9 +102,9 @@ var test5 = function (x) {
     return ret;
 };
 assertEqual(test5, [gen5X(0)], 0, 0);
-assertEqual(test5, [gen5X(1)], 1, 3 * 1);
-assertEqual(test5, [gen5X(2)], 3, 3 * 2);
-assertEqual(test5, [gen5X(10)], 55, 3 * 10);
+assertEqual(test5, [gen5X(1)], 1, 8 * 1);
+assertEqual(test5, [gen5X(2)], 3, 8 * 2);
+assertEqual(test5, [gen5X(10)], 55, 8 * 10);
 
 // test6.
 var gen6X = function (a) {
@@ -120,7 +120,7 @@ var test6 = function (x) {
         ret += i;
     return ret;
 };
-assertEqual(test6, [gen6X(0)], 0, 2);
-assertEqual(test6, [gen6X(1)], 1, 2 * 1 + 2);
-assertEqual(test6, [gen6X(2)], 3, 2 * 2 + 2);
-assertEqual(test6, [gen6X(10)], 55, 2 * 10 + 2);
+assertEqual(test6, [gen6X(0)], 0, 12);
+assertEqual(test6, [gen6X(1)], 1, 4 * 1 + 12);
+assertEqual(test6, [gen6X(2)], 3, 4 * 2 + 12);
+assertEqual(test6, [gen6X(10)], 55, 4 * 10 + 12);

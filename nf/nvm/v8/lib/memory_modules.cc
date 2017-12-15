@@ -33,8 +33,13 @@
 
 using namespace std;
 
+typedef struct {
+  string source;
+  int lineOffset;
+} SourceInfo;
+
 static std::mutex m;
-static std::unordered_map<string, string> modules;
+static std::unordered_map<string, SourceInfo> modules;
 
 void reformatModuleId(char *dst, const char *src) {
   string s = src;
@@ -84,9 +89,10 @@ char *RequireDelegateFunc(void *handler, const char *filepath,
   m.lock();
   auto it = modules.find(string(id));
   if (it != modules.end()) {
-    string &value = it->second;
-    ret = (char *)calloc(value.length() + 1, sizeof(char));
-    strncpy(ret, value.c_str(), value.length());
+    SourceInfo &srcInfo = it->second;
+    ret = (char *)calloc(srcInfo.source.length() + 1, sizeof(char));
+    strncpy(ret, srcInfo.source.c_str(), srcInfo.source.length());
+    *lineOffset = srcInfo.lineOffset;
   }
   m.unlock();
 
@@ -103,13 +109,16 @@ void AddModule(void *handler, const char *filename, const char *source,
   } else {
     reformatModuleId(filepath, filename);
   }
-  // LogInfof("AddModule: %s -> %s", filename, filepath);
+  LogDebugf("AddModule: %s -> %s %d", filename, filepath, lineOffset);
 
   char id[128];
   sprintf(id, "%zu:%s", (uintptr_t)handler, filepath);
 
   m.lock();
-  modules[string(id)] = string(source);
+  SourceInfo srcInfo;
+  srcInfo.lineOffset = lineOffset;
+  srcInfo.source = source;
+  modules[string(id)] = srcInfo;
   m.unlock();
 }
 

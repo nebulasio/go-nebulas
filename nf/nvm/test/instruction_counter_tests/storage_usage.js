@@ -15,8 +15,8 @@
 // You should have received a copy of the GNU General Public License
 // along with the go-nebulas library.  If not, see <http://www.gnu.org/licenses/>.
 //
-
 const assert = require('assert.js');
+const lcs = LocalContractStorage;
 
 function assertEqual(func, args, expected, expected_count, msg) {
     const count_of_helper_statement = 46;
@@ -26,23 +26,22 @@ function assertEqual(func, args, expected, expected_count, msg) {
 };
 
 // test1.
-var test1 = function (x) {
-    return x > 10 ? x - 1 : x + 1;
+var test1 = function (k, v) {
+    lcs.set(k, v);
+    return lcs.get(k);
 };
-assertEqual(test1, [1], 2, 6);
-assertEqual(test1, [11], 10, 6);
+
+assertEqual(test1, ["k", "1"], "1", 56);
+assertEqual(test1, ["k", "12"], "12", 56 + 8 * 1);
+assertEqual(test1, ["k", "123"], "123", 56 + 8 * 2);
+assertEqual(test1, ["k1", "1"], "1", 56 + 8 * 1);
+assertEqual(test1, ["k12", "1"], "1", 56 + 8 * 2);
 
 // test2.
-var test2 = function (x) {
-    return x > 10 && x < 20 ? x * 8 - 1 : x - 3;
+var test2 = function (k) {
+    lcs.del(k);
 };
-assertEqual(test2, [15], 119, 15);
-assertEqual(test2, [10], 7, 12);
 
-// test3.
-var test3 = function (x) {
-    return x > 10 ? x < 20 ? x * 8 - 1 : x - 2 : x * 2 + 3;
-};
-assertEqual(test3, [10], 23, 9);
-assertEqual(test3, [15], 119, 12);
-assertEqual(test3, [20], 18, 9);
+assertEqual(test2, ["k"], undefined, 12);
+assertEqual(test2, ["k1"], undefined, 12);
+assertEqual(test2, ["k12"], undefined, 12);

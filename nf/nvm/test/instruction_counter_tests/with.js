@@ -18,7 +18,7 @@
 const assert = require('assert.js');
 
 function assertEqual(func, args, expected, expected_count, msg) {
-    const count_of_helper_statement = 9;
+    const count_of_helper_statement = 46;
     var count = _instruction_counter.count;
     assert.equal(func.apply(null, args), expected);
     assert.equal(_instruction_counter.count - count - count_of_helper_statement, expected_count, msg);
@@ -32,7 +32,7 @@ var test1 = function (x) {
 assertEqual(test1, [{
     a: 1,
     b: 2
-}], 3, 1);
+}], 3, 3);
 
 // test2
 var test2 = function (x) {
@@ -45,7 +45,7 @@ assertEqual(test2, [
         a: 1,
         b: 2
     }]
-], 3, 2);
+], 3, 7);
 
 // test3
 var gen3X = function (a, b) {
@@ -69,6 +69,6 @@ var test3 = function (x) {
         }
     }
 };
-assertEqual(test3, [gen3X(3, 5)], 8, 4);
-assertEqual(test3, [gen3X(5, 3)], 13, 6);
-assertEqual(test3, [gen3X(4, 4)], 0, 4);
+assertEqual(test3, [gen3X(3, 5)], 8, 18);
+assertEqual(test3, [gen3X(5, 3)], 13, 24);
+assertEqual(test3, [gen3X(4, 4)], 0, 18);

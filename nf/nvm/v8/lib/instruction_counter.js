@@ -57,25 +57,31 @@ function traverse(object, visitor, master, injection_context_from_parent) {
 
 // calculate and record the storage usage.
 function storIncrFunc(key_len, value_len) {
-    var data_size = key_len + value_len;
-    var incr_val = Math.ceil(data_size / 32);
+    var incr_val = Math.ceil((key_len + value_len) * 8);
+    _instruction_counter.incr(incr_val);
+};
+
+// calculate and record the event usage.
+function eventIncrFunc(data_len) {
+    const EVENT_INCR = 20;
+    var incr_val = Math.ceil(data_len * 8) + EVENT_INCR;
     _instruction_counter.incr(incr_val);
 };
 
 // key is the Expression, value is the count of instruction of the Expression.
 const TrackingExpressions = {
-    CallExpression: 1,
-    AssignmentExpression: 1,
-    BinaryExpression: 1,
-    UpdateExpression: 1,
-    UnaryExpression: 1,
-    LogicalExpression: 1,
-    MemberExpression: 1,
-    NewExpression: 1,
-    ThrowStatement: 1,
-    MetaProperty: 1,
-    ConditionalExpression: 1,
-    YieldExpression: 1,
+    CallExpression: 8,
+    AssignmentExpression: 3,
+    BinaryExpression: 3,
+    UpdateExpression: 3,
+    UnaryExpression: 3,
+    LogicalExpression: 3,
+    MemberExpression: 4,
+    NewExpression: 8,
+    ThrowStatement: 6,
+    MetaProperty: 4,
+    ConditionalExpression: 3,
+    YieldExpression: 6,
 };
 
 const InjectableExpressions = {
@@ -181,7 +187,7 @@ function processScript(source) {
     traverse(ast, function (node, parents, injection_context_from_parent) {
         // get the ast begin offset, after comments before first statement.
         if (unsetStorageUsageFuncInjection) {
-            source_line_offset = -5;
+            source_line_offset = -4;
             record_injection(node.range[0], 0, InjectionCodeGenerators.StorageUsageFunc);
             unsetStorageUsageFuncInjection = false;
         }
