@@ -30,5 +30,3 @@ normal.db*
 mozilla_js_tests*
 
 #keydir
-keydir
-!consensus/dpos/keydir
