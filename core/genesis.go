@@ -63,6 +63,10 @@ func NewGenesisBlock(chainID uint32, chain *BlockChain) (*Block, error) {
 	if err != nil {
 		return nil, err
 	}
+	eventsTrie, err := trie.NewBatchTrie(nil, chain.storage)
+	if err != nil {
+		return nil, err
+	}
 	dposContext, err := NewDposContext(chain.storage)
 	if err != nil {
 		return nil, err
@@ -79,6 +83,7 @@ func NewGenesisBlock(chainID uint32, chain *BlockChain) (*Block, error) {
 		},
 		accState:    accState,
 		txsTrie:     txsTrie,
+		eventsTrie:  eventsTrie,
 		dposContext: dposContext,
 		txPool:      chain.txPool,
 		storage:     chain.storage,

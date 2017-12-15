@@ -49,6 +49,7 @@ var (
 	ErrInvalidBlockHash                  = errors.New("invalid block hash")
 	ErrInvalidBlockStateRoot             = errors.New("invalid block state root hash")
 	ErrInvalidBlockTxsRoot               = errors.New("invalid block txs root hash")
+	ErrInvalidBlockEventsRoot            = errors.New("invalid block events root hash")
 	ErrInvalidBlockDposContextRoot       = errors.New("invalid block dpos context root hash")
 	ErrInvalidChainID                    = errors.New("invalid transaction chainID")
 	ErrDuplicatedTransaction             = errors.New("duplicated transaction")

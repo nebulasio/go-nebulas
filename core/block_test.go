@@ -30,62 +30,8 @@ import (
 	"github.com/nebulasio/go-nebulas/crypto/keystore/secp256k1"
 	"github.com/nebulasio/go-nebulas/storage"
 	"github.com/nebulasio/go-nebulas/util"
-	"github.com/nebulasio/go-nebulas/util/byteutils"
 	"github.com/stretchr/testify/assert"
 )
-
-func TestBlockHeader(t *testing.T) {
-	type fields struct {
-		hash       byteutils.Hash
-		parentHash byteutils.Hash
-		stateRoot  byteutils.Hash
-		nonce      uint64
-		coinbase   *Address
-		timestamp  int64
-		chainID    uint32
-	}
-	tests := []struct {
-		name    string
-		fields  fields
-		wantErr bool
-	}{
-		{
-			"full struct",
-			fields{
-				[]byte("124546"),
-				[]byte("344543"),
-				[]byte("43656"),
-				3546456,
-				&Address{[]byte("hello")},
-				time.Now().Unix(),
-				1,
-			},
-			false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			b := &BlockHeader{
-				hash:       tt.fields.hash,
-				parentHash: tt.fields.parentHash,
-				stateRoot:  tt.fields.stateRoot,
-				nonce:      tt.fields.nonce,
-				coinbase:   tt.fields.coinbase,
-				timestamp:  tt.fields.timestamp,
-				chainID:    tt.fields.chainID,
-			}
-			proto, _ := b.ToProto()
-			ir, _ := pb.Marshal(proto)
-			nb := new(BlockHeader)
-			pb.Unmarshal(ir, proto)
-			nb.FromProto(proto)
-			b.timestamp = nb.timestamp
-			if !reflect.DeepEqual(*b, *nb) {
-				t.Errorf("Transaction.Serialize() = %v, want %v", *b, *nb)
-			}
-		})
-	}
-}
 
 func TestBlock(t *testing.T) {
 	type fields struct {
@@ -105,6 +51,7 @@ func TestBlock(t *testing.T) {
 					parentHash: []byte("344543"),
 					stateRoot:  []byte("43656"),
 					txsRoot:    []byte("43656"),
+					eventsRoot: []byte("43656"),
 					dposContext: &corepb.DposContext{
 						DynastyRoot:     []byte("43656"),
 						NextDynastyRoot: []byte("43656"),
@@ -188,6 +135,7 @@ func TestBlock_LinkParentBlock(t *testing.T) {
 			parentHash: GenesisHash,
 			stateRoot:  []byte("43656"),
 			txsRoot:    []byte("43656"),
+			eventsRoot: []byte("43656"),
 			dposContext: &corepb.DposContext{
 				DynastyRoot:     []byte("43656"),
 				NextDynastyRoot: []byte("43656"),
@@ -210,6 +158,7 @@ func TestBlock_LinkParentBlock(t *testing.T) {
 			parentHash: []byte("344543"),
 			stateRoot:  []byte("43656"),
 			txsRoot:    []byte("43656"),
+			eventsRoot: []byte("43656"),
 			dposContext: &corepb.DposContext{
 				DynastyRoot:     []byte("43656"),
 				NextDynastyRoot: []byte("43656"),
@@ -424,4 +373,26 @@ func TestBlock_DposCandidates(t *testing.T) {
 	_, err = block.dposContext.delegateTrie.Iterator(from.Bytes())
 	assert.Equal(t, err, storage.ErrKeyNotFound)
 	bc.SetTailBlock(block)
+}
+
+func TestBlock_fetchEvents(t *testing.T) {
+	stor, _ := storage.NewMemoryStorage()
+	eventEmitter := NewEventEmitter()
+	bc, _ := NewBlockChain(0, stor, eventEmitter)
+	tail := bc.tailBlock
+	events := []*Event{
+		&Event{Topic: "chain.block", Data: "hello"},
+		&Event{Topic: "chain.tx", Data: "hello"},
+		&Event{Topic: "chain.block", Data: "hello"},
+		&Event{Topic: "chain.block", Data: "hello"},
+	}
+	tx := &Transaction{hash: []byte("tx")}
+	for _, event := range events {
+		assert.Nil(t, tail.recordEvent(tx, event))
+	}
+	es, err := tail.fetchEvents(tx)
+	assert.Nil(t, err)
+	for idx, event := range es {
+		assert.Equal(t, events[idx], event)
+	}
 }

@@ -19,6 +19,7 @@
 package core
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
@@ -55,6 +56,7 @@ type BlockHeader struct {
 	// world state
 	stateRoot   byteutils.Hash
 	txsRoot     byteutils.Hash
+	eventsRoot  byteutils.Hash
 	dposContext *corepb.DposContext
 
 	coinbase  *Address
@@ -74,6 +76,7 @@ func (b *BlockHeader) ToProto() (proto.Message, error) {
 		ParentHash:  b.parentHash,
 		StateRoot:   b.stateRoot,
 		TxsRoot:     b.txsRoot,
+		EventsRoot:  b.eventsRoot,
 		DposContext: b.dposContext,
 		Nonce:       b.nonce,
 		Coinbase:    b.coinbase.address,
@@ -91,6 +94,7 @@ func (b *BlockHeader) FromProto(msg proto.Message) error {
 		b.parentHash = msg.ParentHash
 		b.stateRoot = msg.StateRoot
 		b.txsRoot = msg.TxsRoot
+		b.eventsRoot = msg.EventsRoot
 		b.dposContext = msg.DposContext
 		b.nonce = msg.Nonce
 		b.coinbase = &Address{msg.Coinbase}
@@ -113,6 +117,7 @@ type Block struct {
 	parenetBlock *Block
 	accState     state.AccountState
 	txsTrie      *trie.BatchTrie
+	eventsTrie   *trie.BatchTrie
 	dposContext  *DposContext
 	txPool       *TransactionPool
 	miner        *Address
@@ -185,6 +190,10 @@ func NewBlock(chainID uint32, coinbase *Address, parent *Block) (*Block, error) 
 	if err != nil {
 		return nil, err
 	}
+	eventsTrie, err := parent.eventsTrie.Clone()
+	if err != nil {
+		return nil, err
+	}
 	dposContext, err := parent.dposContext.Clone()
 	if err != nil {
 		return nil, err
@@ -202,6 +211,7 @@ func NewBlock(chainID uint32, coinbase *Address, parent *Block) (*Block, error) 
 		parenetBlock: parent,
 		accState:     accState,
 		txsTrie:      txsTrie,
+		eventsTrie:   eventsTrie,
 		dposContext:  dposContext,
 		txPool:       parent.txPool,
 		height:       parent.height + 1,
@@ -282,6 +292,11 @@ func (block *Block) StateRoot() byteutils.Hash {
 // TxsRoot return txs root hash.
 func (block *Block) TxsRoot() byteutils.Hash {
 	return block.header.txsRoot
+}
+
+// EventsRoot return events root hash.
+func (block *Block) EventsRoot() byteutils.Hash {
+	return block.header.eventsRoot
 }
 
 // DposContext return dpos context
@@ -369,6 +384,14 @@ func (block *Block) LinkParentBlock(parentBlock *Block) bool {
 		}).Error("cannot clone txs state.")
 		return false
 	}
+	if block.eventsTrie, err = parentBlock.eventsTrie.Clone(); err != nil {
+		log.WithFields(log.Fields{
+			"func":  "block.LinkParentBlock",
+			"block": parentBlock,
+			"err":   err,
+		}).Error("cannot clone events state.")
+		return false
+	}
 	elapsedSecond := block.Timestamp() - parentBlock.Timestamp()
 	context, err := parentBlock.NextDynastyContext(elapsedSecond)
 	if err != nil {
@@ -409,12 +432,14 @@ func (block *Block) begin() {
 	log.Info("Block Begin.")
 	block.accState.BeginBatch()
 	block.txsTrie.BeginBatch()
+	block.eventsTrie.BeginBatch()
 	block.dposContext.BeginBatch()
 }
 
 func (block *Block) commit() {
 	block.accState.Commit()
 	block.txsTrie.Commit()
+	block.eventsTrie.Commit()
 	block.dposContext.Commit()
 	log.WithFields(log.Fields{
 		"block": block,
@@ -424,6 +449,7 @@ func (block *Block) commit() {
 func (block *Block) rollback() {
 	block.accState.RollBack()
 	block.txsTrie.RollBack()
+	block.eventsTrie.RollBack()
 	block.dposContext.RollBack()
 	log.WithFields(log.Fields{
 		"block": block,
@@ -486,29 +512,6 @@ func (block *Block) Sealed() bool {
 	return block.sealed
 }
 
-func (block *Block) recordMintCnt() error {
-	key := append(byteutils.FromInt64(block.Timestamp()/DynastyInterval), block.miner.Bytes()...)
-	bytes, err := block.dposContext.mintCntTrie.Get(key)
-	if err != nil && err != storage.ErrKeyNotFound {
-		return err
-	}
-	cnt := int64(0)
-	if err != storage.ErrKeyNotFound {
-		cnt = byteutils.Int64(bytes)
-	}
-	cnt++
-	_, err = block.dposContext.mintCntTrie.Put(key, byteutils.FromInt64(cnt))
-	if err != nil {
-		return err
-	}
-	log.WithFields(log.Fields{
-		"dynasty": block.Timestamp() / DynastyInterval,
-		"miner":   block.miner.String(),
-		"count":   cnt,
-	}).Info("Record Mint Count.")
-	return nil
-}
-
 // Seal seal block, calculate stateRoot and block hash.
 func (block *Block) Seal() error {
 	if block.sealed {
@@ -525,6 +528,7 @@ func (block *Block) Seal() error {
 	block.commit()
 	block.header.stateRoot = block.accState.RootHash()
 	block.header.txsRoot = block.txsTrie.RootHash()
+	block.header.eventsRoot = block.eventsTrie.RootHash()
 	if block.header.dposContext, err = block.dposContext.ToProto(); err != nil {
 		return err
 	}
@@ -640,6 +644,11 @@ func (block *Block) verifyState() error {
 		return ErrInvalidBlockTxsRoot
 	}
 
+	// verify events root.
+	if !byteutils.Equal(block.eventsTrie.RootHash(), block.EventsRoot()) {
+		return ErrInvalidBlockEventsRoot
+	}
+
 	// verify transaction root.
 	if !byteutils.Equal(block.dposContext.RootHash(), block.DposContextHash()) {
 		return ErrInvalidBlockDposContextRoot
@@ -673,6 +682,93 @@ func (block *Block) GetBalance(address byteutils.Hash) *util.Uint128 {
 // GetNonce returns nonce for the given address on this block.
 func (block *Block) GetNonce(address byteutils.Hash) uint64 {
 	return block.accState.GetOrCreateUserAccount(address).Nonce()
+}
+
+func (block *Block) recordEvent(tx *Transaction, event *Event) error {
+	iter, err := block.eventsTrie.Iterator(tx.Hash())
+	if err != nil && err != storage.ErrKeyNotFound {
+		return err
+	}
+	cnt := int64(0)
+	if err != storage.ErrKeyNotFound {
+		exist, err := iter.Next()
+		if err != nil {
+			return err
+		}
+		for exist {
+			cnt++
+			exist, err = iter.Next()
+			if err != nil {
+				return err
+			}
+		}
+	}
+	cnt++
+	key := append(tx.Hash(), byteutils.FromInt64(cnt)...)
+	bytes, err := json.Marshal(event)
+	if err != nil {
+		return err
+	}
+	_, err = block.eventsTrie.Put(key, bytes)
+	if err != nil {
+		return err
+	}
+	log.WithFields(log.Fields{
+		"block": block,
+		"tx":    tx,
+		"event": event,
+	}).Debug("Record Event.")
+	return nil
+}
+
+func (block *Block) fetchEvents(tx *Transaction) ([]*Event, error) {
+	events := []*Event{}
+	iter, err := block.eventsTrie.Iterator(tx.Hash())
+	if err != nil && err != storage.ErrKeyNotFound {
+		return nil, err
+	}
+	if err != storage.ErrKeyNotFound {
+		exist, err := iter.Next()
+		if err != nil {
+			return nil, err
+		}
+		for exist {
+			event := new(Event)
+			err = json.Unmarshal(iter.Value(), event)
+			if err != nil {
+				return nil, err
+			}
+			events = append(events, event)
+			exist, err = iter.Next()
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+	return events, nil
+}
+
+func (block *Block) recordMintCnt() error {
+	key := append(byteutils.FromInt64(block.Timestamp()/DynastyInterval), block.miner.Bytes()...)
+	bytes, err := block.dposContext.mintCntTrie.Get(key)
+	if err != nil && err != storage.ErrKeyNotFound {
+		return err
+	}
+	cnt := int64(0)
+	if err != storage.ErrKeyNotFound {
+		cnt = byteutils.Int64(bytes)
+	}
+	cnt++
+	_, err = block.dposContext.mintCntTrie.Put(key, byteutils.FromInt64(cnt))
+	if err != nil {
+		return err
+	}
+	log.WithFields(log.Fields{
+		"dynasty": block.Timestamp() / DynastyInterval,
+		"miner":   block.miner.String(),
+		"count":   cnt,
+	}).Debug("Record Mint Count.")
+	return nil
 }
 
 func (block *Block) rewardCoinbase() {
@@ -754,6 +850,7 @@ func HashBlock(block *Block) byteutils.Hash {
 	hasher.Write(block.ParentHash())
 	hasher.Write(block.StateRoot())
 	hasher.Write(block.TxsRoot())
+	hasher.Write(block.EventsRoot())
 	hasher.Write(block.DposContextHash())
 	hasher.Write(byteutils.FromUint64(block.header.nonce))
 	hasher.Write(block.header.coinbase.address)
@@ -786,6 +883,10 @@ func LoadBlockFromStorage(hash byteutils.Hash, storage storage.Storage, txPool *
 		return nil, err
 	}
 	block.txsTrie, err = trie.NewBatchTrie(block.TxsRoot(), storage)
+	if err != nil {
+		return nil, err
+	}
+	block.eventsTrie, err = trie.NewBatchTrie(block.EventsRoot(), storage)
 	if err != nil {
 		return nil, err
 	}
