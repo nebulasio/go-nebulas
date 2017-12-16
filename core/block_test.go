@@ -388,9 +388,9 @@ func TestBlock_fetchEvents(t *testing.T) {
 	}
 	tx := &Transaction{hash: []byte("tx")}
 	for _, event := range events {
-		assert.Nil(t, tail.recordEvent(tx, event))
+		assert.Nil(t, tail.recordEvent(tx.Hash(), event))
 	}
-	es, err := tail.fetchEvents(tx)
+	es, err := tail.fetchEvents(tx.Hash())
 	assert.Nil(t, err)
 	for idx, event := range es {
 		assert.Equal(t, events[idx], event)

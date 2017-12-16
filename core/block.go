@@ -684,8 +684,8 @@ func (block *Block) GetNonce(address byteutils.Hash) uint64 {
 	return block.accState.GetOrCreateUserAccount(address).Nonce()
 }
 
-func (block *Block) recordEvent(tx *Transaction, event *Event) error {
-	iter, err := block.eventsTrie.Iterator(tx.Hash())
+func (block *Block) recordEvent(txHash byteutils.Hash, event *Event) error {
+	iter, err := block.eventsTrie.Iterator(txHash)
 	if err != nil && err != storage.ErrKeyNotFound {
 		return err
 	}
@@ -704,7 +704,7 @@ func (block *Block) recordEvent(tx *Transaction, event *Event) error {
 		}
 	}
 	cnt++
-	key := append(tx.Hash(), byteutils.FromInt64(cnt)...)
+	key := append(txHash, byteutils.FromInt64(cnt)...)
 	bytes, err := json.Marshal(event)
 	if err != nil {
 		return err
@@ -715,15 +715,15 @@ func (block *Block) recordEvent(tx *Transaction, event *Event) error {
 	}
 	log.WithFields(log.Fields{
 		"block": block,
-		"tx":    tx,
+		"tx":    txHash.Hex(),
 		"event": event,
 	}).Debug("Record Event.")
 	return nil
 }
 
-func (block *Block) fetchEvents(tx *Transaction) ([]*Event, error) {
+func (block *Block) fetchEvents(txHash byteutils.Hash) ([]*Event, error) {
 	events := []*Event{}
-	iter, err := block.eventsTrie.Iterator(tx.Hash())
+	iter, err := block.eventsTrie.Iterator(txHash)
 	if err != nil && err != storage.ErrKeyNotFound {
 		return nil, err
 	}

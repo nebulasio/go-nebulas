@@ -26,7 +26,7 @@ var (
 
 var (
 	storageSchemeVersionKey = []byte("scheme")
-	storageSchemeVersionVal = []byte("0.1.0")
+	storageSchemeVersionVal = []byte("0.5.0")
 )
 
 // Neblet manages ldife cycle of blockchain services.
