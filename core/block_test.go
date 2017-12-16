@@ -33,28 +33,28 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-type Neb struct {
+type mockNeb struct {
 	genesis *corepb.Genesis
 	storage storage.Storage
 	emitter *EventEmitter
 }
 
-func (n *Neb) Genesis() *corepb.Genesis {
+func (n *mockNeb) Genesis() *corepb.Genesis {
 	return n.genesis
 }
 
-func (n *Neb) Storage() storage.Storage {
+func (n *mockNeb) Storage() storage.Storage {
 	return n.storage
 }
 
-func (n *Neb) EventEmitter() *EventEmitter {
+func (n *mockNeb) EventEmitter() *EventEmitter {
 	return n.emitter
 }
 
-func testNeb() *Neb {
+func testNeb() *mockNeb {
 	storage, _ := storage.NewMemoryStorage()
 	eventEmitter := NewEventEmitter()
-	neb := &Neb{
+	neb := &mockNeb{
 		genesis: DefaultGenesisConf(0),
 		storage: storage,
 		emitter: eventEmitter,

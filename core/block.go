@@ -699,6 +699,12 @@ func (block *Block) GetNonce(address byteutils.Hash) uint64 {
 	return block.accState.GetOrCreateUserAccount(address).Nonce()
 }
 
+// RecordEvent record event's topic and data with txHash
+func (block *Block) RecordEvent(txHash byteutils.Hash, topic, data string) error {
+	event := &Event{Topic: topic, Data: data}
+	return block.recordEvent(txHash, event)
+}
+
 func (block *Block) recordEvent(txHash byteutils.Hash, event *Event) error {
 	iter, err := block.eventsTrie.Iterator(txHash)
 	if err != nil && err != storage.ErrKeyNotFound {

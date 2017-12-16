@@ -73,6 +73,13 @@ BankVaultContract.prototype = {
 		if (result != 0) {
 			throw new Error("transfer failed.");
 		}
+        Event.Trigger("BankVault", {
+            Transfer: {
+                from: Blockchain.transaction.to,
+                to: from,
+                value: amount.toString(),
+            }
+        });
 
 		deposit.balance = deposit.balance.sub(amount);
 		this.bankVault.put(from, deposit);

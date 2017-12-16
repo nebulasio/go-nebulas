@@ -43,6 +43,7 @@ type Block interface {
 	Height() uint64
 	VerifyAddress(str string) bool
 	SerializeTxByHash(hash byteutils.Hash) (proto.Message, error)
+	RecordEvent(txHash byteutils.Hash, topic, data string) error
 }
 
 // AccountState context account state

@@ -71,6 +71,10 @@ func (m *mockBlock) VerifyAddress(str string) bool {
 	return true
 }
 
+func (m *mockBlock) RecordEvent(txHash byteutils.Hash, topic, data string) error {
+	return nil
+}
+
 func (m *mockBlock) SerializeTxByHash(hash byteutils.Hash) (proto.Message, error) {
 	from, _ := byteutils.FromHex("8a209cec02cbeab7e2f74ad969d2dfe8dd24416aa65589bf")
 	to, _ := byteutils.FromHex("22ac3a9a2b1c31b7a9084e46eae16e761f83f02324092b09")

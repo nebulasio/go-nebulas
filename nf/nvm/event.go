@@ -22,7 +22,14 @@ import "C"
 import (
 	"unsafe"
 
+	"github.com/nebulasio/go-nebulas/util/byteutils"
 	log "github.com/sirupsen/logrus"
+)
+
+const (
+
+	// TopicContract the topic of contract.
+	TopicContract = "chain.contract"
 )
 
 // EventTriggerFunc export EventTriggerFunc
@@ -41,10 +48,13 @@ func EventTriggerFunc(handler unsafe.Pointer, topic, data *C.char) {
 		return
 	}
 
-	// TODO: @robin connect to EventEmitter.Trigger.
 	log.WithFields(log.Fields{
 		"category": 0, // ChainEventCategory.
 		"topic":    gTopic,
 		"data":     gData,
 	}).Info("Event triggered from V8 engine.")
+
+	txHash, _ := byteutils.FromHex(e.ctx.tx.Hash)
+	contractTopic := TopicContract + "." + gTopic
+	e.ctx.block.RecordEvent(txHash, contractTopic, gData)
 }
