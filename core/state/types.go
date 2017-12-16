@@ -32,6 +32,7 @@ type Iterator interface {
 
 // Account Interface
 type Account interface {
+	Address() byteutils.Hash
 	Balance() *util.Uint128
 	Nonce() uint64
 	BirthPlace() byteutils.Hash
@@ -56,6 +57,7 @@ type Account interface {
 // AccountState Interface
 type AccountState interface {
 	RootHash() byteutils.Hash
+	Accounts() ([]Account, error)
 
 	BeginBatch()
 	Commit()

@@ -19,10 +19,11 @@ syntax = "proto3";
 package corepb;
 
 message Account {
-    bytes balance = 1;
-    uint64 nonce = 2;
-    bytes vars_hash = 3;
-    bytes birth_place = 4;
+    bytes address = 1;
+    bytes balance = 2;
+    uint64 nonce = 3;
+    bytes vars_hash = 4;
+    bytes birth_place = 5;
 }
 
 message Data {

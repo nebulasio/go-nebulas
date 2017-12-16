@@ -357,6 +357,7 @@ func (dc *DynastyContext) chooseCandidates(votes map[string]*util.Uint128) (Cand
 		}
 		bootstrapCandidates = append(bootstrapCandidates, &Candidate{address, util.NewUint128()})
 	}
+	sort.Sort(bootstrapCandidates)
 	// sort
 	var candidates Candidates
 	for k, v := range votes {

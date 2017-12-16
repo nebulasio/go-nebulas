@@ -39,6 +39,7 @@ var (
 
 // account info in state Trie
 type account struct {
+	address byteutils.Hash
 	balance *util.Uint128
 	nonce   uint64
 	// UserType: Global Storage
@@ -55,6 +56,7 @@ func (acc *account) ToBytes() ([]byte, error) {
 		return nil, err
 	}
 	pbAcc := &corepb.Account{
+		Address:    acc.address,
 		Balance:    value,
 		Nonce:      acc.nonce,
 		VarsHash:   acc.variables.RootHash(),
@@ -77,6 +79,7 @@ func (acc *account) FromBytes(bytes []byte, storage storage.Storage) error {
 	if err != nil {
 		return err
 	}
+	acc.address = pbAcc.Address
 	acc.balance = value
 	acc.nonce = pbAcc.Nonce
 	acc.birthPlace = pbAcc.BirthPlace
@@ -90,6 +93,11 @@ func (acc *account) FromBytes(bytes []byte, storage storage.Storage) error {
 // Balance return account's balance
 func (acc *account) Balance() *util.Uint128 {
 	return acc.balance
+}
+
+// Address return account's address
+func (acc *account) Address() byteutils.Hash {
+	return acc.address
 }
 
 // Nonce return account's nonce
@@ -173,8 +181,9 @@ func (acc *account) Iterator(prefix []byte) (Iterator, error) {
 }
 
 func (acc *account) String() string {
-	return fmt.Sprintf("Account %p {Balance:%v; Nonce:%v; VarsHash:%v; BirthPlace:%v}",
+	return fmt.Sprintf("Account %p {Address: %v, Balance:%v; Nonce:%v; VarsHash:%v; BirthPlace:%v}",
 		acc,
+		byteutils.Hex(acc.address),
 		acc.balance.Int,
 		acc.nonce,
 		byteutils.Hex(acc.variables.RootHash()),
@@ -214,6 +223,7 @@ func (as *accountState) recordDirtyAccount(addr byteutils.Hash, acc Account) {
 func (as *accountState) newAccount(addr byteutils.Hash, birthPlace byteutils.Hash) Account {
 	varTrie, _ := trie.NewBatchTrie(nil, as.storage)
 	acc := &account{
+		address:    addr,
 		balance:    util.NewUint128(),
 		nonce:      0,
 		variables:  varTrie,
@@ -275,6 +285,34 @@ func (as *accountState) GetContractAccount(addr []byte) (Account, error) {
 func (as *accountState) CreateContractAccount(addr []byte, birthPlace []byte) (Account, error) {
 	acc := as.newAccount(addr, birthPlace)
 	return acc, nil
+}
+
+func (as *accountState) Accounts() ([]Account, error) {
+	accounts := []Account{}
+	iter, err := as.stateTrie.Iterator(nil)
+	if err != nil && err != storage.ErrKeyNotFound {
+		return nil, err
+	}
+	if err != nil {
+		return accounts, nil
+	}
+	exist, err := iter.Next()
+	if err != nil {
+		return nil, err
+	}
+	for exist {
+		acc := new(account)
+		err = acc.FromBytes(iter.Value(), as.storage)
+		if err != nil {
+			return nil, err
+		}
+		accounts = append(accounts, acc)
+		exist, err = iter.Next()
+		if err != nil {
+			return nil, err
+		}
+	}
+	return accounts, nil
 }
 
 // BeginBatch begin a batch task

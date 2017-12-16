@@ -25,6 +25,7 @@ import (
 
 	"github.com/nebulasio/go-nebulas/common/trie"
 	"github.com/nebulasio/go-nebulas/util"
+	log "github.com/sirupsen/logrus"
 )
 
 func checkDynasty(t *testing.T, dynasty *trie.BatchTrie) {
@@ -92,7 +93,7 @@ func TestBlock_ElectNewDynasty(t *testing.T) {
 	block, _ := LoadBlockFromStorage(GenesisHash, chain.storage, chain.txPool, neb.emitter)
 	block.begin()
 	kickout, _ := AddressParse(MockDynasty[0])
-	v, _ := AddressParse(MockDynasty[DynastySize])
+	v, _ := AddressParse(MockDynasty[DynastySize-1])
 	block.accState.GetOrCreateUserAccount(v.Bytes()).AddBalance(util.NewUint128FromInt(2000000))
 	block.accState.GetOrCreateUserAccount(kickout.Bytes()).AddBalance(util.NewUint128FromInt(2000000))
 	delegatePayload := NewDelegatePayload(DelegateAction, v.String())
@@ -107,6 +108,7 @@ func TestBlock_ElectNewDynasty(t *testing.T) {
 	block.commit()
 	context, err := block.NextDynastyContext(DynastyInterval)
 	assert.Nil(t, err)
+	log.Info(v.String())
 	_, err = context.NextDynastyTrie.Get(v.Bytes())
 	assert.Nil(t, err)
 }

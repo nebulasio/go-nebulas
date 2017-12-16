@@ -80,6 +80,7 @@ func TestNewGenesisBlock(t *testing.T) {
 	assert.Nil(t, err)
 	chain := &BlockChain{storage: storage}
 	genesis, err := NewGenesisBlock(conf, chain)
+	assert.Nil(t, chain.storeBlockToStorage(genesis))
 	assert.Nil(t, err)
 
 	iter, err := genesis.dposContext.dynastyTrie.Iterator(nil)
@@ -123,4 +124,10 @@ func TestNewGenesisBlock(t *testing.T) {
 		acc := genesis.accState.GetOrCreateUserAccount(addr)
 		assert.Equal(t, acc.Balance().String(), v.Value)
 	}
+
+	dumpConf, err := DumpGenesis(storage)
+	assert.Nil(t, err)
+	assert.Equal(t, dumpConf.Meta.ChainId, conf.Meta.ChainId)
+	assert.Equal(t, dumpConf.Consensus.Dpos.Dynasty, conf.Consensus.Dpos.Dynasty)
+	assert.Equal(t, dumpConf.TokenDistribution, conf.TokenDistribution)
 }
