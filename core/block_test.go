@@ -54,7 +54,7 @@ func (n *mockNeb) EventEmitter() *EventEmitter {
 func testNeb() *mockNeb {
 	storage, _ := storage.NewMemoryStorage()
 	eventEmitter := NewEventEmitter()
-	neb := &Neb{
+	neb := &mockNeb{
 		genesis: MockGenesisConf(),
 		storage: storage,
 		emitter: eventEmitter,
