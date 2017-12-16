@@ -34,7 +34,7 @@ var (
 type Neblet struct {
 	config nebletpb.Config
 
-	gengesis *corepb.Genesis
+	genesis *corepb.Genesis
 
 	accountManager *account.Manager
 
@@ -60,14 +60,15 @@ type Neblet struct {
 }
 
 // New returns a new neblet.
-func New(config nebletpb.Config) *Neblet {
+func New(config nebletpb.Config) (*Neblet, error) {
+	var err error
 	n := &Neblet{config: config}
-	n.gengesis, _ = core.LoadGenesisConf(config.Chain.Genesis)
-	if n.gengesis == nil {
-		n.gengesis = core.DefaultGenesisConf(config.Chain.ChainId)
+	n.genesis, err = core.LoadGenesisConf(config.Chain.Genesis)
+	if err != nil {
+		return nil, err
 	}
 	n.accountManager = account.NewManager(n)
-	return n
+	return n, nil
 }
 
 // Setup setup neblet
@@ -194,12 +195,12 @@ func (n *Neblet) Stop() error {
 
 // SetGenesis set genesis conf
 func (n *Neblet) SetGenesis(g *corepb.Genesis) {
-	n.gengesis = g
+	n.genesis = g
 }
 
 // Genesis returns genesis conf.
 func (n *Neblet) Genesis() *corepb.Genesis {
-	return n.gengesis
+	return n.genesis
 }
 
 // Config returns neblet configuration.

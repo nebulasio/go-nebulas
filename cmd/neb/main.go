@@ -89,7 +89,10 @@ func main() {
 func neb(ctx *cli.Context) error {
 	logging.EnableFuncNameLogger()
 
-	n := makeNeb(ctx)
+	n, err := makeNeb(ctx)
+	if err != nil {
+		return err
+	}
 
 	if n.Config().App.EnableCrashReport {
 		InitCrashReporter()
@@ -153,7 +156,7 @@ func runNeb(n *neblet.Neblet) {
 	}()
 }
 
-func makeNeb(ctx *cli.Context) *neblet.Neblet {
+func makeNeb(ctx *cli.Context) (*neblet.Neblet, error) {
 	conf := neblet.LoadConfig(config)
 
 	// load config from cli args
@@ -162,8 +165,11 @@ func makeNeb(ctx *cli.Context) *neblet.Neblet {
 	rpcConfig(ctx, conf.Rpc)
 	statsConfig(ctx, conf.Stats)
 
-	n := neblet.New(*conf)
-	return n
+	n, err := neblet.New(*conf)
+	if err != nil {
+		return nil, err
+	}
+	return n, nil
 }
 
 // FatalF fatal format err

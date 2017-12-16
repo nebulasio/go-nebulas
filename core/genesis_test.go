@@ -16,38 +16,20 @@
 // along with the go-nebulas library.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-package dpos
+package core
 
 import (
 	"testing"
 
-	"github.com/nebulasio/go-nebulas/account"
-	"github.com/nebulasio/go-nebulas/core"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/nebulasio/go-nebulas/core/pb"
 	"github.com/nebulasio/go-nebulas/storage"
-	"github.com/stretchr/testify/assert"
+	"github.com/nebulasio/go-nebulas/util/byteutils"
 )
 
-type Neb struct {
-	genesis *corepb.Genesis
-	storage storage.Storage
-	emitter *core.EventEmitter
-}
-
-func (n *Neb) Genesis() *corepb.Genesis {
-	return n.genesis
-}
-
-func (n *Neb) Storage() storage.Storage {
-	return n.storage
-}
-
-func (n *Neb) EventEmitter() *core.EventEmitter {
-	return n.emitter
-}
-
 var (
-	DefaultOpenDynasty = []string{
+	MockDynasty = []string{
 		"1a263547d167c74cf4b8f9166cfa244de0481c514a45aa2c",
 		"2fe3f9f51f9a05dd5f7c5329127f7c917917149b4e16b0b8",
 		"333cb3ed8c417971845382ede3cf67a0a96270c05fe2f700",
@@ -77,7 +59,7 @@ func MockGenesisConf() *corepb.Genesis {
 		Meta: &corepb.GenesisMeta{ChainId: 0},
 		Consensus: &corepb.GenesisConsensus{
 			Dpos: &corepb.GenesisConsensusDpos{
-				Dynasty: DefaultOpenDynasty,
+				Dynasty: MockDynasty,
 			},
 		},
 		TokenDistribution: []*corepb.GenesisTokenDistribution{
@@ -92,34 +74,53 @@ func MockGenesisConf() *corepb.Genesis {
 		},
 	}
 }
+func TestNewGenesisBlock(t *testing.T) {
+	conf := MockGenesisConf()
+	storage, err := storage.NewMemoryStorage()
+	assert.Nil(t, err)
+	chain := &BlockChain{storage: storage}
+	genesis, err := NewGenesisBlock(conf, chain)
+	assert.Nil(t, err)
 
-func TestDpos_mintBlock(t *testing.T) {
-	storage, _ := storage.NewMemoryStorage()
-	eventEmitter := core.NewEventEmitter()
-	genesisConf := MockGenesisConf()
-	neb := &Neb{
-		genesis: genesisConf,
-		storage: storage,
-		emitter: eventEmitter,
+	iter, err := genesis.dposContext.dynastyTrie.Iterator(nil)
+	assert.Nil(t, err)
+	exist, err := iter.Next()
+	i := 0
+	for exist {
+		var addr byteutils.Hash
+		addr, _ = byteutils.FromHex(MockDynasty[i])
+		assert.Equal(t, addr, byteutils.Hash(iter.Value()))
+		i++
+		exist, err = iter.Next()
 	}
 
-	chain, _ := core.NewBlockChain(neb)
-	tail := chain.TailBlock()
-	elapsedSecond := int64(core.DynastySize*core.BlockInterval + core.DynastyInterval)
-	context, err := tail.NextDynastyContext(elapsedSecond)
+	iter, err = genesis.dposContext.voteTrie.Iterator(nil)
 	assert.Nil(t, err)
-	coinbase, err := core.AddressParse("1a263547d167c74cf4b8f9166cfa244de0481c514a45aa2c")
+	exist, err = iter.Next()
+	i = 0
+	for exist {
+		var addr byteutils.Hash
+		addr, _ = byteutils.FromHex(MockDynasty[i])
+		assert.Equal(t, addr, byteutils.Hash(iter.Value()))
+		i++
+		exist, err = iter.Next()
+	}
+
+	iter, err = genesis.dposContext.delegateTrie.Iterator(nil)
 	assert.Nil(t, err)
-	block, err := core.NewBlock(chain.ChainID(), coinbase, tail)
-	assert.Nil(t, err)
-	block.LoadDynastyContext(context)
-	block.SetMiner(coinbase)
-	block.Seal()
-	manager := account.NewManager(nil)
-	miner, err := core.AddressParseFromBytes(context.Proposer)
-	assert.Nil(t, err)
-	assert.Nil(t, manager.Unlock(miner, []byte("passphrase")))
-	assert.Nil(t, manager.SignBlock(miner, block))
-	dpos := Dpos{blockInterval: core.BlockInterval, chain: chain}
-	assert.Nil(t, dpos.VerifyBlock(block, tail))
+	exist, err = iter.Next()
+	i = 0
+	for exist {
+		var addr byteutils.Hash
+		addr, _ = byteutils.FromHex(MockDynasty[i])
+		assert.Equal(t, addr, byteutils.Hash(iter.Value()))
+		i++
+		exist, err = iter.Next()
+	}
+
+	for _, v := range conf.TokenDistribution {
+		addr, _ := byteutils.FromHex(v.Address)
+		acc := genesis.accState.GetOrCreateUserAccount(addr)
+		assert.Equal(t, acc.Balance().String(), v.Value)
+	}
 }

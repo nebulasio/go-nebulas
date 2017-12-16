@@ -28,7 +28,7 @@ var (
 	ConfigFlag = cli.StringFlag{
 		Name:        "config, c",
 		Usage:       "load configuration from `FILE`",
-		Value:       "seed.conf",
+		Value:       "conf/default/seed.conf",
 		Destination: &config,
 	}
 

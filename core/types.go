@@ -20,6 +20,7 @@ package core
 
 import (
 	"errors"
+	"strconv"
 
 	"github.com/nebulasio/go-nebulas/util"
 )
@@ -44,7 +45,7 @@ var (
 	ErrInvalidSignature                  = errors.New("invalid transaction signature")
 	ErrInvalidTransactionHash            = errors.New("invalid transaction hash")
 	ErrMissingParentBlock                = errors.New("cannot find a on-chain block's parent block in storage")
-	ErrTooFewCandidates                  = errors.New("too few candidates in consensus")
+	ErrTooFewCandidates                  = errors.New("the size of candidates in consensus is un-safe, should be greater than or equal " + strconv.Itoa(SafeSize))
 	ErrNotBlockForgTime                  = errors.New("now is not time to forg block")
 	ErrInvalidBlockHash                  = errors.New("invalid block hash")
 	ErrInvalidBlockStateRoot             = errors.New("invalid block state root hash")
@@ -64,6 +65,7 @@ var (
 	ErrInvalidDelegateToNonCandidate     = errors.New("cannot delegate to non-candidate")
 	ErrInvalidUnDelegateFromNonDelegatee = errors.New("cannot un-delegate from non-delegatee")
 	ErrInvalidBaseAndNextDynastyID       = errors.New("cannot kickout from baseDynastyID to nextDynastyID if nextDynastyID <= baseDynastyID")
+	ErrInitialDynastyNotEnough           = errors.New("the size of initial dynasty in genesis block is un-safe, should be greater than or equal " + strconv.Itoa(SafeSize))
 )
 
 var (

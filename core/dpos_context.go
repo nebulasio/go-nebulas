@@ -36,9 +36,9 @@ import (
 const (
 	BlockInterval        = int64(5)
 	AcceptedNetWorkDelay = int64(2)
-	DynastyInterval      = int64(60)
-	DynastySize          = 6
-	ReserveSize          = DynastySize / 3
+	DynastyInterval      = int64(60) // TODO(roy): 3600
+	DynastySize          = 6         // TODO(roy): 21
+	SafeSize             = DynastySize/3 + 1
 )
 
 // DposContext carry context in dpos consensus
@@ -294,7 +294,7 @@ type Candidate struct {
 }
 
 // Candidates is a slice of Candidates that implements sort.Interface to sort by Votes.
-type Candidates []Candidate
+type Candidates []*Candidate
 
 func (p Candidates) Swap(i, j int) { p[i], p[j] = p[j], p[i] }
 func (p Candidates) Len() int      { return len(p) }
@@ -308,45 +308,93 @@ func (p Candidates) Less(i, j int) bool {
 	}
 }
 
-func candidates(votes map[string]*util.Uint128) (Candidates, error) {
-	// remove reserved
-	reserved := make(Candidates, ReserveSize+1)
-	for i := 0; i <= ReserveSize; i++ {
-		delete(votes, GenesisDynasty[i])
-		address, err := AddressParse(GenesisDynasty[i])
+func fetchActiveBootstapValidators(stor storage.Storage, candidates *trie.BatchTrie) ([]byteutils.Hash, error) {
+	genesis, err := LoadBlockFromStorage(GenesisHash, stor, nil, nil)
+	if err != nil {
+		return nil, err
+	}
+	iter, err := genesis.dposContext.dynastyTrie.Iterator(nil)
+	if err != nil && err != storage.ErrKeyNotFound {
+		return nil, err
+	}
+	activeBootstapValidators := []byteutils.Hash{}
+	if err != nil {
+		return activeBootstapValidators, nil
+	}
+	exist, err := iter.Next()
+	if err != nil {
+		return nil, err
+	}
+	for exist {
+		var validator byteutils.Hash = iter.Value()
+		_, err = candidates.Get(validator)
+		if err != nil && err != storage.ErrKeyNotFound {
+			return nil, err
+		}
+		if err != storage.ErrKeyNotFound {
+			activeBootstapValidators = append(activeBootstapValidators, validator)
+		}
+		exist, err = iter.Next()
 		if err != nil {
 			return nil, err
 		}
-		reserved[i] = Candidate{
-			Address: address,
-			Votes:   util.NewUint128(),
+	}
+	return activeBootstapValidators, nil
+}
+
+func (dc *DynastyContext) chooseCandidates(votes map[string]*util.Uint128) (Candidates, error) {
+	// active bootstrap validators
+	var bootstrapCandidates Candidates
+	activeBootstrapValidators, err := fetchActiveBootstapValidators(dc.Storage, dc.CandidateTrie)
+	if err != nil {
+		return nil, err
+	}
+	for i := 0; i < len(activeBootstrapValidators); i++ {
+		delete(votes, activeBootstrapValidators[i].String())
+		address, err := AddressParseFromBytes(activeBootstrapValidators[i])
+		if err != nil {
+			return nil, err
 		}
+		bootstrapCandidates = append(bootstrapCandidates, &Candidate{address, util.NewUint128()})
 	}
 	// sort
-	candidates := make(Candidates, len(votes))
-	idx := 0
+	var candidates Candidates
 	for k, v := range votes {
 		addr, err := AddressParse(k)
 		if err != nil {
 			return nil, err
 		}
-		candidates[idx] = Candidate{addr, v}
-		idx++
+		candidates = append(candidates, &Candidate{addr, v})
 	}
 	sort.Sort(candidates)
-	// add reserved
-	candidates = append(reserved, candidates...)
+	// merge
+	candidates = append(bootstrapCandidates, candidates...)
 	return candidates, nil
 }
 
-func kickout(candidatesTrie *trie.BatchTrie, delegateTrie *trie.BatchTrie, voteTrie *trie.BatchTrie, candidate byteutils.Hash) error {
-	for i := 0; i <= ReserveSize; i++ {
-		if candidate.String() == GenesisDynasty[i] {
-			log.Info("Cannot Kickout Reserved Candidate: ", candidate.Hex())
-			return nil
-		}
+func checkActiveBootstrapValidator(validator byteutils.Hash, stor storage.Storage, candidates *trie.BatchTrie) (bool, error) {
+	genesis, err := LoadBlockFromStorage(GenesisHash, stor, nil, nil)
+	if err != nil {
+		return false, err
 	}
-	log.Info("Kickout Candidate: ", candidate.Hex())
+	_, err = genesis.dposContext.dynastyTrie.Get(validator)
+	if err != nil && err != storage.ErrKeyNotFound {
+		return false, err
+	}
+	if err != nil {
+		return false, nil
+	}
+	_, err = candidates.Get(validator)
+	if err != nil && err != storage.ErrKeyNotFound {
+		return false, err
+	}
+	if err != nil {
+		return false, nil
+	}
+	return true, nil
+}
+
+func kickout(stor storage.Storage, candidatesTrie *trie.BatchTrie, delegateTrie *trie.BatchTrie, voteTrie *trie.BatchTrie, candidate byteutils.Hash) error {
 	_, err := candidatesTrie.Del(candidate)
 	if err != nil && err != storage.ErrKeyNotFound {
 		return err
@@ -388,16 +436,17 @@ func kickout(candidatesTrie *trie.BatchTrie, delegateTrie *trie.BatchTrie, voteT
 			return err
 		}
 	}
+	log.Info("Kickout Candidate: ", candidate.Hex())
 	return nil
 }
 
 func (dc *DynastyContext) kickoutCandidate(candidate byteutils.Hash) error {
-	return kickout(dc.CandidateTrie, dc.DelegateTrie, dc.VoteTrie, candidate)
+	return kickout(dc.Storage, dc.CandidateTrie, dc.DelegateTrie, dc.VoteTrie, candidate)
 }
 
 func (block *Block) kickoutCandidate(candidate byteutils.Hash) error {
 	context := block.dposContext
-	return kickout(context.candidateTrie, context.delegateTrie, context.voteTrie, candidate)
+	return kickout(block.storage, context.candidateTrie, context.delegateTrie, context.voteTrie, candidate)
 }
 
 func (dc *DynastyContext) kickoutDynasty(dynastyID int64) error {
@@ -429,8 +478,20 @@ func (dc *DynastyContext) kickoutDynasty(dynastyID int64) error {
 				continue
 			}
 		}
-		if err := dc.kickoutCandidate(validator); err != nil {
+		isActiveBootstrapValidator, err := checkActiveBootstrapValidator(validator, dc.Storage, dc.CandidateTrie)
+		if err != nil {
 			return err
+		}
+		if isActiveBootstrapValidator {
+			addr, err := AddressParseFromBytes(validator)
+			if err != nil {
+				return err
+			}
+			log.Info("Cannot Kickout Active Bootstrap Candidate: ", addr)
+		} else {
+			if err := dc.kickoutCandidate(validator); err != nil {
+				return err
+			}
 		}
 		exist, err = iter.Next()
 		if err != nil {
@@ -457,11 +518,11 @@ func (dc *DynastyContext) electNextDynastyOnBaseDynasty(baseDynastyID int64, nex
 		if err != nil {
 			return err
 		}
-		candidates, err := candidates(votes)
+		candidates, err := dc.chooseCandidates(votes)
 		if err != nil {
 			return err
 		}
-		if len(candidates) <= ReserveSize {
+		if len(candidates) < SafeSize {
 			return ErrTooFewCandidates
 		}
 		// Top 20 are selected directly
@@ -535,7 +596,7 @@ func (block *Block) LoadDynastyContext(context *DynastyContext) error {
 }
 
 // GenesisDynastyContext return dynasty context in genesis
-func GenesisDynastyContext(storage storage.Storage) (*DynastyContext, error) {
+func GenesisDynastyContext(storage storage.Storage, conf *corepb.Genesis) (*DynastyContext, error) {
 	dynasty, err := trie.NewBatchTrie(nil, storage)
 	if err != nil {
 		return nil, err
@@ -556,8 +617,12 @@ func GenesisDynastyContext(storage storage.Storage) (*DynastyContext, error) {
 	if err != nil {
 		return nil, err
 	}
-	for i := 0; i < len(GenesisDynasty); i++ {
-		member, err := AddressParse(GenesisDynasty[i])
+	if len(conf.Consensus.Dpos.Dynasty) < SafeSize {
+		return nil, ErrInitialDynastyNotEnough
+	}
+	for i := 0; i < len(conf.Consensus.Dpos.Dynasty); i++ {
+		addr := conf.Consensus.Dpos.Dynasty[i]
+		member, err := AddressParse(addr)
 		if err != nil {
 			return nil, err
 		}
@@ -566,6 +631,13 @@ func GenesisDynastyContext(storage storage.Storage) (*DynastyContext, error) {
 			if _, err = dynasty.Put(v, v); err != nil {
 				return nil, err
 			}
+		}
+		if _, err = vote.Put(v, v); err != nil {
+			return nil, err
+		}
+		key := append(v, v...)
+		if _, err = delegate.Put(key, v); err != nil {
+			return nil, err
 		}
 		if _, err = candidate.Put(v, v); err != nil {
 			return nil, err

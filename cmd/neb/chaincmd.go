@@ -77,7 +77,11 @@ func initGenesis(ctx *cli.Context) error {
 		FatalF("load genesis conf faild: %v", err)
 	}
 
-	neb := makeNeb(ctx)
+	neb, err := makeNeb(ctx)
+	if err != nil {
+		return err
+	}
+
 	neb.SetGenesis(genesis)
 
 	err = neb.Setup()
@@ -114,7 +118,11 @@ func dumpGenesis(ctx *cli.Context) error {
 }
 
 func dumpblock(ctx *cli.Context) error {
-	neb := makeNeb(ctx)
+	neb, err := makeNeb(ctx)
+	if err != nil {
+		return err
+	}
+
 	if err := neb.Setup(); err != nil {
 		return err
 	}

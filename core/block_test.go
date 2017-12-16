@@ -54,8 +54,8 @@ func (n *mockNeb) EventEmitter() *EventEmitter {
 func testNeb() *mockNeb {
 	storage, _ := storage.NewMemoryStorage()
 	eventEmitter := NewEventEmitter()
-	neb := &mockNeb{
-		genesis: DefaultGenesisConf(0),
+	neb := &Neb{
+		genesis: MockGenesisConf(),
 		storage: storage,
 		emitter: eventEmitter,
 	}
@@ -89,7 +89,7 @@ func TestBlock(t *testing.T) {
 					nonce:     3546456,
 					coinbase:  &Address{[]byte("hello")},
 					timestamp: time.Now().Unix(),
-					chainID:   1,
+					chainID:   0,
 				},
 				Transactions{
 					&Transaction{
@@ -171,7 +171,7 @@ func TestBlock_LinkParentBlock(t *testing.T) {
 			nonce:     3546456,
 			coinbase:  &Address{[]byte("hello")},
 			timestamp: BlockInterval,
-			chainID:   1,
+			chainID:   0,
 		},
 		transactions: []*Transaction{},
 	}
@@ -194,7 +194,7 @@ func TestBlock_LinkParentBlock(t *testing.T) {
 			nonce:     3546456,
 			coinbase:  &Address{[]byte("hello")},
 			timestamp: BlockInterval * 2,
-			chainID:   1,
+			chainID:   0,
 		},
 		transactions: []*Transaction{},
 	}

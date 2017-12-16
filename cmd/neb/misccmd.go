@@ -45,7 +45,11 @@ var (
 )
 
 func _version(ctx *cli.Context) error {
-	neb := makeNeb(ctx)
+	neb, err := makeNeb(ctx)
+	if err != nil {
+		return err
+	}
+
 	fmt.Println("Version:", version)
 	if commit != "" {
 		fmt.Println("Git Commit:", commit)

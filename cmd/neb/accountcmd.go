@@ -79,7 +79,11 @@ Imports an encrypted private key from <keyfile> and creates a new account.`,
 
 // accountList list account
 func accountList(ctx *cli.Context) error {
-	neb := makeNeb(ctx)
+	neb, err := makeNeb(ctx)
+	if err != nil {
+		return err
+	}
+
 	for index, addr := range neb.AccountManager().Accounts() {
 		fmt.Printf("Account #%d: %s\n", index, addr.String())
 		index++
@@ -89,9 +93,12 @@ func accountList(ctx *cli.Context) error {
 
 // accountCreate creates a new account into the keystore
 func accountCreate(ctx *cli.Context) error {
-	neb := makeNeb(ctx)
-	passphrase := getPassPhrase("Your new account is locked with a passphrase. Please give a passphrase. Do not forget this passphrase.", true)
+	neb, err := makeNeb(ctx)
+	if err != nil {
+		return err
+	}
 
+	passphrase := getPassPhrase("Your new account is locked with a passphrase. Please give a passphrase. Do not forget this passphrase.", true)
 	addr, err := neb.AccountManager().NewAccount([]byte(passphrase))
 	fmt.Printf("Address: %s\n", addr.String())
 	return err
@@ -102,7 +109,11 @@ func accountUpdate(ctx *cli.Context) error {
 	if len(ctx.Args()) == 0 {
 		FatalF("No accounts specified to update")
 	}
-	neb := makeNeb(ctx)
+
+	neb, err := makeNeb(ctx)
+	if err != nil {
+		return err
+	}
 
 	for _, address := range ctx.Args() {
 		addr, err := core.AddressParse(address)
@@ -132,9 +143,12 @@ func accountImport(ctx *cli.Context) error {
 		FatalF("file read failed:%s", err)
 	}
 
-	neb := makeNeb(ctx)
-	passphrase := getPassPhrase("", false)
+	neb, err := makeNeb(ctx)
+	if err != nil {
+		return err
+	}
 
+	passphrase := getPassPhrase("", false)
 	addr, err := neb.AccountManager().Import([]byte(keyJSON), []byte(passphrase))
 	if err != nil {
 		FatalF("key import failed:%s", err)
