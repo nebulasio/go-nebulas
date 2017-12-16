@@ -26,14 +26,14 @@ package rpcpb;
 // RPC API interface.
 service ApiService {
     // Return the state of the neb.
-    rpc GetNebState (GetNebStateRequest) returns (GetNebStateResponse) {
+    rpc GetNebState (NonParamsRequest) returns (GetNebStateResponse) {
         option (google.api.http) = {
             get: "/v1/user/nebstate"
         };
     }
 
     // Return the p2p node info.
-    rpc NodeInfo (NodeInfoRequest) returns (NodeInfoResponse) {
+    rpc NodeInfo (NonParamsRequest) returns (NodeInfoResponse) {
         option (google.api.http) = {
             get: "/v1/user/nodeinfo"
         };
@@ -48,7 +48,7 @@ service ApiService {
     }
 
     // Accounts return account list.
-    rpc Accounts (AccountsRequest) returns (AccountsResponse) {
+    rpc Accounts (NonParamsRequest) returns (AccountsResponse) {
         option (google.api.http) = {
             get: "/v1/user/accounts"
         };
@@ -110,6 +110,29 @@ service ApiService {
         };
     }
 
+    // Get GasPrice
+    rpc GetGasPrice(NonParamsRequest) returns (GasPriceResponse) {
+        option (google.api.http) = {
+            get: "/v1/user/getGasPrice"
+        };
+    }
+
+    // EstimateGas
+    rpc EstimateGas(TransactionRequest) returns (EstimateGasResponse) {
+        option (google.api.http) = {
+            post: "/v1/user/estimateGas"
+            body: "*"
+        };
+    }
+
+    rpc GetEventsByHash(GetTransactionByHashRequest) returns (EventsResponse) {
+        option (google.api.http) = {
+            post: "/v1/user/getEventsByHash"
+            body: "*"
+        };
+    }
+
+
 }
 
 service AdminService {
@@ -153,13 +176,13 @@ service AdminService {
         };
     }
 
-    rpc StatisticsNodeInfo (NodeInfoRequest) returns (StatisticsNodeInfoResponse) {
+    rpc StatisticsNodeInfo (NonParamsRequest) returns (StatisticsNodeInfoResponse) {
         option (google.api.http) = {
             get: "/v1/admin/statistics/nodeInfo"
         };
 	}
 	
-	rpc GetDynasty (GetDynastyRequest) returns (GetDynastyResponse) {
+	rpc GetDynasty (NonParamsRequest) returns (GetDynastyResponse) {
 		option (google.api.http) = {
 			get: "/v1/admin/dynasty"
 		};
@@ -177,13 +200,8 @@ message SubscribeResponse {
     string data = 2;
 }
 
-// Request message of GetNebState rpc.
-message GetNebStateRequest {
-}
-
-// Request message of NodeInfo rpc.
-message NodeInfoRequest {
-
+// Request message of non params.
+message NonParamsRequest {
 }
 
 // Response message of node info.
@@ -258,10 +276,6 @@ message GetNebStateResponse {
     bool synchronized = 7;
 }
 
-// Request message of Accounts rpc.
-message AccountsRequest {
-}
-
 // Response message of Accounts rpc.
 message AccountsResponse {
     // Account list
@@ -285,9 +299,6 @@ message GetAccountStateResponse {
     // Current transaction count.
     string nonce = 2;
 }
-
-// Request message of GetDynastyRequest rpc.
-message GetDynastyRequest {}
 
 // Response message of GetDynastyRequest rpc
 message GetDynastyResponse {
@@ -458,4 +469,19 @@ message SendTransactionPassphraseResponse {
     string hash = 1;
 }
 
+message GasPriceResponse {
+    string gas_price = 1;
+}
 
+message EstimateGasResponse {
+    string estimate_gas = 1;
+}
+
+message EventsResponse {
+   repeated Event events = 1;
+}
+
+message Event {
+    string topic = 1;
+    string data = 2;
+}

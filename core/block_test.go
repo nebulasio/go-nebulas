@@ -411,7 +411,7 @@ func TestBlock_fetchEvents(t *testing.T) {
 	for _, event := range events {
 		assert.Nil(t, tail.recordEvent(tx.Hash(), event))
 	}
-	es, err := tail.fetchEvents(tx.Hash())
+	es, err := tail.FetchEvents(tx.Hash())
 	assert.Nil(t, err)
 	for idx, event := range es {
 		assert.Equal(t, events[idx], event)

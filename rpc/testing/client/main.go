@@ -54,7 +54,7 @@ func main() {
 	var nonce uint64
 
 	{
-		r, err := ac.GetNebState(context.Background(), &rpcpb.GetNebStateRequest{})
+		r, err := ac.GetNebState(context.Background(), &rpcpb.NonParamsRequest{})
 		if err != nil {
 			log.Println("GetNebState", "failed", err)
 		} else {

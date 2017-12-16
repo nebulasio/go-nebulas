@@ -35,7 +35,7 @@ func TestAPIService_GetNebState(t *testing.T) {
 	client := mock_pb.NewMockAPIServiceClient(ctrl)
 
 	{
-		req := &rpcpb.GetNebStateRequest{}
+		req := &rpcpb.NonParamsRequest{}
 		expected := &rpcpb.GetNebStateResponse{Tail: "hac"}
 		client.EXPECT().GetNebState(gomock.Any(), gomock.Any()).Return(expected, nil)
 		resp, _ := client.GetNebState(context.Background(), req)

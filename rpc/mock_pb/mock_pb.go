@@ -37,7 +37,7 @@ func (m *MockAPIServiceClient) EXPECT() *MockAPIServiceClientMockRecorder {
 }
 
 // GetNebState mocks base method
-func (m *MockAPIServiceClient) GetNebState(arg0 context.Context, arg1 *pb.GetNebStateRequest, arg2 ...grpc.CallOption) (*pb.GetNebStateResponse, error) {
+func (m *MockAPIServiceClient) GetNebState(arg0 context.Context, arg1 *pb.NonParamsRequest, arg2 ...grpc.CallOption) (*pb.GetNebStateResponse, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)

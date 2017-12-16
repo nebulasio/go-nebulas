@@ -596,16 +596,26 @@ func (block *Block) Verify(chainID uint32) error {
 		case TxPayloadCandidateType:
 			topic = TopicCandidate
 		}
-		e := &Event{
+		data, err := json.Marshal(v)
+		event := &Event{
 			Topic: topic,
-			Data:  v.String(),
+			Data:  string(data),
 		}
-		block.eventEmitter.Trigger(e)
+		block.eventEmitter.Trigger(event)
+
+		events, err := block.FetchEvents(v.hash)
+		if err != nil {
+			for _, e := range events {
+				block.eventEmitter.Trigger(e)
+			}
+		}
+
 	}
 
+	blockData, _ := json.Marshal(block)
 	e := &Event{
 		Topic: TopicLinkBlock,
-		Data:  block.String(),
+		Data:  string(blockData),
 	}
 	block.eventEmitter.Trigger(e)
 
@@ -726,7 +736,8 @@ func (block *Block) recordEvent(txHash byteutils.Hash, event *Event) error {
 	return nil
 }
 
-func (block *Block) fetchEvents(txHash byteutils.Hash) ([]*Event, error) {
+// FetchEvents fetch events by txHash.
+func (block *Block) FetchEvents(txHash byteutils.Hash) ([]*Event, error) {
 	events := []*Event{}
 	iter, err := block.eventsTrie.Iterator(txHash)
 	if err != nil && err != storage.ErrKeyNotFound {
