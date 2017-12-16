@@ -72,6 +72,7 @@ func main() {
 
 	app.Commands = []cli.Command{
 		initCommand,
+		genesisCommand,
 		accountCommand,
 		consoleCommand,
 		networkCommand,

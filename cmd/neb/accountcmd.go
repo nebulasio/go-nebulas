@@ -42,13 +42,9 @@ account, create a new account or update an existing account.`,
 				Usage:  "Create a new account",
 				Action: MergeFlags(accountCreate),
 				Description: `
-    geth account new
+    neb account new
 
-Creates a new account and prints the address.
-
-The account is saved in encrypted format, you are prompted for a passphrase.
-
-You must remember this passphrase to unlock your account in the future.`,
+Creates a new account and prints the address.`,
 			},
 			{
 				Name:   "list",
@@ -63,12 +59,9 @@ Print a short summary of all accounts`,
 				Action:    MergeFlags(accountUpdate),
 				ArgsUsage: "<address>",
 				Description: `
-    geth account update <address>
+    neb account update <address>
 
-Update an existing account.
-
-The account is saved in the newest version in encrypted format, you are prompted
-for a passphrase to unlock the account and another to save the updated file.`,
+Update an existing account.`,
 			},
 			{
 				Name:      "import",
@@ -76,7 +69,7 @@ for a passphrase to unlock the account and another to save the updated file.`,
 				Action:    MergeFlags(accountImport),
 				ArgsUsage: "<keyFile>",
 				Description: `
-    geth account import <keyfile>
+    neb account import <keyfile>
 
 Imports an encrypted private key from <keyfile> and creates a new account.`,
 			},

@@ -233,6 +233,11 @@ func (block *Block) Sign(signature keystore.Signature) error {
 	return nil
 }
 
+// ChainID returns block's chainID
+func (block *Block) ChainID() uint32 {
+	return block.header.chainID
+}
+
 // Coinbase return block's coinbase
 func (block *Block) Coinbase() *Address {
 	return block.header.coinbase

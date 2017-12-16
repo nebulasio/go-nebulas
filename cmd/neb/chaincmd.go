@@ -22,7 +22,11 @@ import (
 	"fmt"
 	"strconv"
 
+	"bytes"
+	"encoding/json"
+
 	"github.com/nebulasio/go-nebulas/core"
+	"github.com/nebulasio/go-nebulas/core/pb"
 	"github.com/urfave/cli"
 )
 
@@ -35,6 +39,24 @@ var (
 		Category:  "BLOCKCHAIN COMMANDS",
 		Description: `
 The init command initializes a new genesis block and definition for the network.`,
+	}
+	genesisCommand = cli.Command{
+		Name:     "genesis",
+		Usage:    "the genesis block command",
+		Category: "BLOCKCHAIN COMMANDS",
+		Description: `
+The genesis command for genesis dump or other commands.`,
+		Subcommands: []cli.Command{
+			{
+				Name:   "dump",
+				Usage:  "dump the genesis",
+				Action: MergeFlags(dumpGenesis),
+				Description: `
+    neb account new
+
+Dump the genesis config info.`,
+			},
+		},
 	}
 
 	blockDumpCommand = cli.Command{
@@ -52,13 +74,43 @@ func initGenesis(ctx *cli.Context) error {
 	filePath := ctx.Args().First()
 	genesis, err := core.LoadGenesisConf(filePath)
 	if err != nil {
-		return err
+		FatalF("load genesis conf faild: %v", err)
 	}
 
 	neb := makeNeb(ctx)
 	neb.SetGenesis(genesis)
 
-	return neb.Setup()
+	err = neb.Setup()
+	if err != nil {
+		FatalF("update genesis conf faild: %v", err)
+	}
+	fmt.Println("init genesis success.")
+	return nil
+}
+
+func dumpGenesis(ctx *cli.Context) error {
+	neb := makeNeb(ctx)
+	if err := neb.Setup(); err != nil {
+		FatalF("dump genesis conf faild: %v", err)
+	}
+
+	block := neb.BlockChain().GetBlock(core.GenesisHash)
+
+	// TODO: add genesis dump
+	genesis := new(corepb.Genesis)
+	meta := &corepb.GenesisMeta{
+		ChainId: block.ChainID(),
+	}
+	genesis.Meta = meta
+	genesisJSON, err := json.Marshal(genesis)
+
+	var buf bytes.Buffer
+	err = json.Indent(&buf, genesisJSON, "", "    ")
+	if err != nil {
+		FatalF("dump genesis conf faild: %v", err)
+	}
+	fmt.Println(buf.String())
+	return nil
 }
 
 func dumpblock(ctx *cli.Context) error {
