@@ -582,7 +582,14 @@ func (block *Block) Verify(chainID uint32) error {
 	// commit.
 	block.commit()
 
-	// trigger event.
+	// trigger event
+	block.triggerEvent()
+
+	return nil
+}
+
+func (block *Block) triggerEvent() {
+
 	for _, v := range block.transactions {
 		var topic string
 		switch v.Type() {
@@ -619,8 +626,6 @@ func (block *Block) Verify(chainID uint32) error {
 		Data:  string(blockData),
 	}
 	block.eventEmitter.Trigger(e)
-
-	return nil
 }
 
 // VerifyHash return hash verify result.

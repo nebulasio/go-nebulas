@@ -2,7 +2,6 @@
 
 var Neblet = require('./neblet');
 var os = require('os');
-var expect = require('chai').expect;
 
 var ipArray = ['127.0.0.1'];
 var jsAgentArray = new Array();

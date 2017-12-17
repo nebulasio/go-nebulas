@@ -11,18 +11,27 @@ var config_seed =
 	}
 	
 	chain {
-		chain_id: 100
-		datadir: {{data_location}}
-		keydir: "keydir"
-		coinbase: "eb31ad2d8a89a0ca6935c308d5425730430bc2d63f2573b8"
-		signature_ciphers: ["ECC_SECP256K1"]
+    chain_id: 100
+    datadir: {{data_location}}
+    keydir: "keydir"
+    genesis: "genesis.conf"
+    coinbase: "eb31ad2d8a89a0ca6935c308d5425730430bc2d63f2573b8"
+    signature_ciphers: ["ECC_SECP256K1"]
+    miner: "eb31ad2d8a89a0ca6935c308d5425730430bc2d63f2573b8"
+    passphrase: "passphrase"
 	}
 	
 	rpc {
 			rpc_listen: ["127.0.0.1:{{rpc_port}}"]
 			http_listen: ["127.0.0.1:{{http_port}}"]
 			http_module: ["api", "admin"]
-	}
+  }
+  
+  app {
+    log_level: "info"
+    log_file_enable: false
+    enable_crash_report: false
+  }
 	
 	stats {
 			enable_metrics: false
@@ -44,14 +53,23 @@ var config_non_seed =
     chain_id: 100
     datadir: {{data_location}}
     keydir: "keydir"
-    coinbase: "eb31ad2d8a89a0ca6935c308d5425730430bc2d63f2573b8"
+    genesis: "genesis.conf"
+    coinbase: "1a263547d167c74cf4b8f9166cfa244de0481c514a45aa2c"
     signature_ciphers: ["ECC_SECP256K1"]
+    miner: "1a263547d167c74cf4b8f9166cfa244de0481c514a45aa2c"
+    passphrase: "passphrase"
   }
 
   rpc {
       rpc_listen: ["127.0.0.1:{{rpc_port}}"]
       http_listen: ["127.0.0.1:{{http_port}}"]
       http_module: ["api", "admin"]
+  }
+
+  app {
+    log_level: "info"
+    log_file_enable: false
+    enable_crash_report: false
   }
 
   stats {

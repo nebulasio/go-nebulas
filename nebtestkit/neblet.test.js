@@ -22,57 +22,63 @@ var jsAgentB = serverB.NebJs();
 serverB.Init(seed);
 var nebB = serverB.Start();
 
-var serverC = new Neblet(ip, 10002, 9002);
-var jsAgentC = serverC.NebJs();
-serverC.Init(seed);
-var nebC = serverC.Start();
-
-var coinbase = 'eb31ad2d8a89a0ca6935c308d5425730430bc2d63f2573b8';
-var addresses = ['5cdadc1cfe3da0a3d067e9f1b195b90c5aebfb5afc8d43b4', '22ac3a9a2b1c31b7a9084e46eae16e761f83f02324092b09', '88c1573761de0b48503536a0d60f056a08ea2e3cdc947f3f', 'a8565ee007ebbdfabdc9c0c32f931a7f5416eff7b2fbd5cd'];
-var nebArray = [nebSeed, nebA, nebB, nebC];
+var coinbase = '1a263547d167c74cf4b8f9166cfa244de0481c514a45aa2c';
+var addresses = ['333cb3ed8c417971845382ede3cf67a0a96270c05fe2f700'];
+var nebArray = [nebSeed, nebA, nebB];
 
 var txhash;
 var txhashArr = new Array();
 var loop = 0;
-describe('seed server A test suite', function() {
+describe('seed server test suite', function() {
     before(function(done) {
-        this.timeout(10000);
-        setTimeout(done, 8000);
+        this.timeout(6000);
+        setTimeout(done, 5000);
       });
-    it('start server A', function() {
+    it('start seed server', function() {
         var nodeinfo = seedJsAgent.api.nodeInfo();
         expect(nodeinfo.id).to.be.equal('QmPyr4ZbDmwF1nWxymTktdzspcBFPL6X1v3Q5nT7PGNtUN');
         expect(nodeinfo.chain_id).to.be.equal(100);
     });
     it('get accounts info from seed server', function() {
         var accounts = seedJsAgent.api.accounts();
-        expect(accounts.addresses).to.be.have.length(5);
         expect(accounts.addresses).to.be.have.contains(coinbase);
     });
+});
 
-    it('get accounts balance from seed server', function() {
+describe('Server A test suite', function(){
+    before(function(done) {
+        this.timeout(10000);
+        setTimeout(done, 8000);
+      });
+    it('start Server A & connect to seed Server', function() {
+        var nodeinfo = jsAgentA.api.nodeInfo();
+        expect(nodeinfo.chain_id).to.be.equal(100);
+        expect(nodeinfo.route_table[0]).to.be.have.property('id').equals('QmPyr4ZbDmwF1nWxymTktdzspcBFPL6X1v3Q5nT7PGNtUN');
+    });
+
+    it('get accounts balance from server A', function() {
         for (var i = 0;i<addresses.length;i++) {
-            var accountState = seedJsAgent.api.getAccountState(addresses[i]);
+            var accountState = jsAgentA.api.getAccountState(addresses[i]);
             expect(accountState).to.be.have.property('balance').eq('0');
         }
     });
 
-    it('unlock account A from seed server', function() {
-        var result = seedJsAgent.admin.unlockAccount(coinbase, 'zaq12wsx');
+    it('unlock account A from server A', function() {
+        var result = jsAgentA.admin.unlockAccount(coinbase, 'passphrase');
         expect(result).to.be.have.property('result').eq(true);
     });
 
     // A transfer to B 10.
     for (var i = 0;i < addresses.length;i++) {  
         it('transfer 10 from account A to ' + addresses[i], function(done) {
-            this.timeout(10000);
+            this.timeout(20000);
             var tx;
             var timeout;
-            var txhash = seedJsAgent.api.sendTransaction(coinbase, addresses[loop], 10, loop+1);
+            var txhash = jsAgentA.api.sendTransaction(coinbase, addresses[loop], 10, loop+1);
             txhashArr[loop] = txhash;
             loop++;
             timeout = setInterval(function() {
-                tx = seedJsAgent.api.getTransactionReceipt(txhash.txhash);
+                tx = jsAgentA.api.getTransactionReceipt(txhash.txhash);
                 if (tx.error == undefined) {
                     expect(txhash).to.be.have.property('txhash');
                     clearInterval(timeout);
@@ -84,31 +90,7 @@ describe('seed server A test suite', function() {
     
 
     // query transaction by txhash.
-    it('verify transaction from seed server', function() {
-        for (var i=0;i<txhashArr.length;i++) {
-            var tx = seedJsAgent.api.getTransactionReceipt(txhashArr[i].txhash);
-            expect(tx).to.be.have.property('from').equals(coinbase);
-            expect(tx).to.be.have.property('hash').equals(txhashArr[i].txhash);
-            expect(tx).to.be.have.property('nonce').equals((i+1).toString());
-        }
-    });
-
-    it('verify all account balance from seed server', function() {
-        for (var i=0;i<addresses.length;i++) {
-            var accountState = seedJsAgent.api.getAccountState(addresses[i]);
-            expect(accountState).to.be.have.property('balance').eq('10');
-        }
-    });
-});
-
-describe('Server A test suite', function(){
-    it('start Server A & connect to seed Server', function() {
-        var nodeinfo = jsAgentA.api.nodeInfo();
-        expect(nodeinfo.chain_id).to.be.equal(100);
-        expect(nodeinfo.route_table[0]).to.be.have.property('id').equals('QmPyr4ZbDmwF1nWxymTktdzspcBFPL6X1v3Q5nT7PGNtUN');
-    });
-
-    it('verify transaction from seed Server', function() {
+    it('verify transaction from server A', function() {
         for (var i=0;i<txhashArr.length;i++) {
             var tx = jsAgentA.api.getTransactionReceipt(txhashArr[i].txhash);
             expect(tx).to.be.have.property('from').equals(coinbase);
@@ -117,9 +99,11 @@ describe('Server A test suite', function(){
         }
     });
 
-    it('verify account balance from seed Server', function() {
-        var accountState = jsAgentA.api.getAccountState('5cdadc1cfe3da0a3d067e9f1b195b90c5aebfb5afc8d43b4');
-        expect(accountState).to.be.have.property('balance').eq('10');
+    it('verify all account balance from server A', function() {
+        for (var i=0;i<addresses.length;i++) {
+            var accountState = jsAgentA.api.getAccountState(addresses[i]);
+            expect(accountState).to.be.have.property('balance').eq('10');
+        }
     });
 });
 
@@ -140,29 +124,7 @@ describe('Server B test suite', function(){
     });
 
     it('verify account balance from seed Server', function() {
-        var accountState = jsAgentB.api.getAccountState('5cdadc1cfe3da0a3d067e9f1b195b90c5aebfb5afc8d43b4');
-        expect(accountState).to.be.have.property('balance').eq('10');
-    });
-});
-
-describe('Server C test suite', function(){
-    it('start Server C & connect to seed Server', function() {
-        var nodeinfo = jsAgentC.api.nodeInfo();
-        expect(nodeinfo.chain_id).to.be.equal(100);
-        expect(nodeinfo.route_table[0]).to.be.have.property('id').equals('QmPyr4ZbDmwF1nWxymTktdzspcBFPL6X1v3Q5nT7PGNtUN');
-    });
-
-    it('verify transaction from seed Server', function() {
-        for (var i=0;i<txhashArr.length;i++) {
-            var tx = jsAgentC.api.getTransactionReceipt(txhashArr[i].txhash);
-            expect(tx).to.be.have.property('from').equals(coinbase);
-            expect(tx).to.be.have.property('hash').equals(txhashArr[i].txhash);
-            expect(tx).to.be.have.property('nonce').equals((i+1).toString());
-        }
-    });
-
-    it('verify account balance from seed Server', function() {
-        var accountState = jsAgentC.api.getAccountState('5cdadc1cfe3da0a3d067e9f1b195b90c5aebfb5afc8d43b4');
+        var accountState = jsAgentB.api.getAccountState('333cb3ed8c417971845382ede3cf67a0a96270c05fe2f700');
         expect(accountState).to.be.have.property('balance').eq('10');
     });
 });
