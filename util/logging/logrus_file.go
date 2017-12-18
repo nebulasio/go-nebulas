@@ -19,64 +19,45 @@
 package logging
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 	"time"
 
+	rotatelogs "github.com/lestrrat/go-file-rotatelogs"
+	"github.com/rifflock/lfshook"
 	"github.com/sirupsen/logrus"
 )
 
-// LogrusFileHook file hook for stdout
-type LogrusFileHook struct {
-	file      *os.File
-	flag      int
-	chmod     os.FileMode
-	formatter *logrus.TextFormatter
-}
+// EnableFileLogger enable log file output
+func EnableFileLogger(path string) (err error) {
+	if len(path) == 0 {
+		// If the path is not set, the file log is not output
+		return nil
+	}
+	if !filepath.IsAbs(path) {
+		path, _ = filepath.Abs(path)
+	}
+	if err = os.MkdirAll(path, 0700); err != nil {
+		return err
+	}
+	filePath := path + "/neb-%Y%m%d%H%M.log"
+	linkPath := path + "/neb.log"
+	writer, err := rotatelogs.New(
+		filePath,
+		rotatelogs.WithLinkName(linkPath),
+		//rotatelogs.WithMaxAge(time.Duration(604800) * time.Second),
+		rotatelogs.WithRotationTime(time.Duration(86400)*time.Second),
+	)
 
-// NewLogrusFileHook create logrus file hook
-func NewLogrusFileHook(dir string) (*LogrusFileHook, error) {
-	if !filepath.IsAbs(dir) {
-		dir, _ = filepath.Abs(dir)
-	}
-	flag := os.O_CREATE | os.O_APPEND | os.O_RDWR
-	if err := os.MkdirAll(dir, 0700); err != nil {
-		return nil, err
-	}
-	file := dir + "/neb-" + time.Now().Format("2006-01-02") + ".log"
-	plainFormatter := &logrus.TextFormatter{DisableColors: true}
-	logFile, err := os.OpenFile(file, flag, 0666)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "unable to write file on filehook %v", err)
-		return nil, err
-	}
-
-	return &LogrusFileHook{logFile, flag, 0666, plainFormatter}, err
-}
-
-// Fire event
-func (hook *LogrusFileHook) Fire(entry *logrus.Entry) error {
-
-	plainformat, err := hook.formatter.Format(entry)
-	line := string(plainformat)
-	_, err = hook.file.WriteString(line)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "unable to write file on filehook(entry.String)%v", err)
 		return err
 	}
 
+	hook := lfshook.NewHook(lfshook.WriterMap{
+		logrus.InfoLevel:  writer,
+		logrus.ErrorLevel: writer,
+	}, nil)
+	logrus.AddHook(hook)
 	return nil
-}
 
-// Levels log levels
-func (hook *LogrusFileHook) Levels() []logrus.Level {
-	return []logrus.Level{
-		logrus.PanicLevel,
-		logrus.FatalLevel,
-		logrus.ErrorLevel,
-		logrus.WarnLevel,
-		logrus.InfoLevel,
-		logrus.DebugLevel,
-	}
 }

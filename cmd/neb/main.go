@@ -98,15 +98,13 @@ func neb(ctx *cli.Context) error {
 		InitCrashReporter()
 	}
 
+	err = logging.EnableFileLogger(n.Config().App.LogFile)
+	if err != nil {
+		return err
+	}
+
 	log.SetFormatter(&log.TextFormatter{FullTimestamp: true})
 	log.SetOutput(os.Stdout)
-	if n.Config().App.LogFileEnable && len(n.Config().App.LogFileDir) > 0 {
-		fileHook, err := logging.NewLogrusFileHook(n.Config().App.LogFileDir)
-		if err != nil {
-			panic("Setup Neblet Failed: " + err.Error())
-		}
-		log.AddHook(fileHook)
-	}
 
 	if n.Config().App.LogLevel != "" {
 		switch n.Config().App.LogLevel {

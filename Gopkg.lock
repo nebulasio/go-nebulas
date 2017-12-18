@@ -170,6 +170,18 @@
   revision = "b497e2f366b8624394fb2e89c10ab607bebdde0b"
 
 [[projects]]
+  name = "github.com/lestrrat/go-file-rotatelogs"
+  packages = ["."]
+  revision = "9df8b44f21785240553882138c5df2e9cc1db910"
+  version = "v2.1.0"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/lestrrat/go-strftime"
+  packages = ["."]
+  revision = "04ef93e285313c8978cbc7cad26d2aa7a9927451"
+
+[[projects]]
   branch = "master"
   name = "github.com/libp2p/go-addr-util"
   packages = ["."]
@@ -362,6 +374,12 @@
   revision = "a37ad39843113264dae84a5d89fcee28f50b35c6"
 
 [[projects]]
+  name = "github.com/pkg/errors"
+  packages = ["."]
+  revision = "645ef00459ed84a119197bfb8d8205042c6df63d"
+  version = "v0.8.0"
+
+[[projects]]
   name = "github.com/pmezard/go-difflib"
   packages = ["difflib"]
   revision = "792786c7400a136282c1664665ae0a8db921c6c2"
@@ -372,6 +390,12 @@
   name = "github.com/rcrowley/go-metrics"
   packages = ["."]
   revision = "1f30fe9094a513ce4c700b9a54458bbb0c96996c"
+
+[[projects]]
+  name = "github.com/rifflock/lfshook"
+  packages = ["."]
+  revision = "1e6869029fcba52a12e98696e95dc1f0fb33702f"
+  version = "v2.1"
 
 [[projects]]
   branch = "master"
@@ -526,6 +550,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "b07ec9999efcb7111b32bc39302ba40d4842df1ce71ad172769a56541dca44ad"
+  inputs-digest = "f3ddf5fb02de0fe4ea5ae245f813e0bf50ab325b580cabda548f9d63334fcbf2"
   solver-name = "gps-cdcl"
   solver-version = 1

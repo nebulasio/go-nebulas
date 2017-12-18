@@ -86,12 +86,9 @@ message AppConfig {
 
 	string log_level = 1;
 
-    bool log_file_enable = 2;
+	string log_file = 2;
 
-	// Log dir.
-	string log_file_dir = 3;
-
-	bool enable_crash_report = 4;
+	bool enable_crash_report = 3;
 }
 
 
