@@ -26,7 +26,6 @@ import (
 	"encoding/json"
 
 	"github.com/nebulasio/go-nebulas/core"
-	"github.com/nebulasio/go-nebulas/core/pb"
 	"github.com/urfave/cli"
 )
 
@@ -95,20 +94,16 @@ func initGenesis(ctx *cli.Context) error {
 func dumpGenesis(ctx *cli.Context) error {
 	neb, err := makeNeb(ctx)
 	if err != nil {
-		return err
+		FatalF("dump genesis conf faild: %v", err)
 	}
 	if err := neb.Setup(); err != nil {
 		FatalF("dump genesis conf faild: %v", err)
 	}
 
-	block := neb.BlockChain().GetBlock(core.GenesisHash)
-
-	// TODO: add genesis dump
-	genesis := new(corepb.Genesis)
-	meta := &corepb.GenesisMeta{
-		ChainId: block.ChainID(),
+	genesis, err := core.DumpGenesis(neb.Storage())
+	if err != nil {
+		FatalF("dump genesis conf faild: %v", err)
 	}
-	genesis.Meta = meta
 	genesisJSON, err := json.Marshal(genesis)
 
 	var buf bytes.Buffer
