@@ -44,9 +44,9 @@ var (
 
 	// BlockReward given to coinbase
 	// rule: 3% per year, 3,000,000. 1 block per 5 seconds
-	// value: 10^8 / (365*24*3600/5) * 10^18 ≈ 16 * 10*18
-	BlockReward = util.NewUint128FromBigInt(util.NewUint128().Mul(util.NewUint128FromInt(16).Int,
-		util.NewUint128().Exp(util.NewUint128FromInt(10).Int, util.NewUint128FromInt(18).Int, nil)))
+	// value: 10^8 * 3% / (365*24*3600/5) * 10^18 ≈ 16 * 3% * 10*18 = 48 * 10^16
+	BlockReward = util.NewUint128FromBigInt(util.NewUint128().Mul(util.NewUint128FromInt(48).Int,
+		util.NewUint128().Exp(util.NewUint128FromInt(10).Int, util.NewUint128FromInt(16).Int, nil)))
 )
 
 // BlockHeader of a block

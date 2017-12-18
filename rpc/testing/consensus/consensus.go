@@ -64,8 +64,8 @@ func main() {
 			From:      from,
 			To:        from,
 			Value:     "0",
-			Nonce:     2,
-			Candidate: &rpcpb.CandidateRequest{Action: core.LoginAction},
+			Nonce:     1,
+			Candidate: &rpcpb.CandidateRequest{Action: core.LogoutAction},
 			GasLimit:  "400000",
 		})
 		r, err := api.SendRawTransaction(context.Background(), &rpcpb.SendRawTransactionRequest{Data: resp.Data})
