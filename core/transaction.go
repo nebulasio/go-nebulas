@@ -23,6 +23,8 @@ import (
 	"fmt"
 	"time"
 
+	"encoding/json"
+
 	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/core/pb"
 	"github.com/nebulasio/go-nebulas/crypto"
@@ -268,7 +270,8 @@ func (tx *Transaction) Execute(block *Block) (*util.Uint128, error) {
 		gas := util.NewUint128().Mul(tx.GasPrice().Int, tx.gasLimit.Int)
 		fromAcc.SubBalance(util.NewUint128FromBigInt(gas))
 		coinbaseAcc.AddBalance(util.NewUint128FromBigInt(gas))
-		//TODO: add failed execution flag for the tx
+
+		tx.triggerEvent(TopicExecuteTxFailed, block)
 		return tx.gasLimit, nil
 	}
 
@@ -305,7 +308,7 @@ func (tx *Transaction) Execute(block *Block) (*util.Uint128, error) {
 		}).Error("Transaction Execute.")
 
 		executeTxErrCounter.Inc(1)
-		//TODO: add failed execution flag for the tx
+		tx.triggerEvent(TopicExecuteTxFailed, block)
 	} else {
 		// accept the transaction
 		fromAcc.SubBalance(tx.value)
@@ -314,11 +317,23 @@ func (tx *Transaction) Execute(block *Block) (*util.Uint128, error) {
 
 		executeTxCounter.Inc(1)
 	}
+
+	// gas = tx.CalculateGas() +  gasExecution
 	gas := util.NewUint128FromBigInt(gasUsed.Add(gasUsed.Int, gasExecution.Int))
 	gasCost := util.NewUint128().Mul(tx.GasPrice().Int, gas.Int)
 	fromAcc.SubBalance(util.NewUint128FromBigInt(gasCost))
 	coinbaseAcc.AddBalance(util.NewUint128FromBigInt(gasCost))
+
+	// record tx execution success event
+	tx.triggerEvent(TopicExecuteTxSuccess, block)
 	return gas, nil
+}
+
+func (tx *Transaction) triggerEvent(topic string, block *Block) {
+	txData, _ := json.Marshal(tx)
+	event := &Event{Topic: topic,
+		Data: string(txData)}
+	block.recordEvent(tx.hash, event)
 }
 
 // Sign sign transaction,sign algorithm is
