@@ -33,6 +33,7 @@ type MessageType string
 type Message interface {
 	MessageType() string
 	Data() interface{}
+	MessageFrom() string
 }
 
 // Serializable model

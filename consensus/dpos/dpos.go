@@ -326,7 +326,7 @@ func (p *Dpos) mintBlock() {
 		return
 	}
 	// broadcast it
-	p.chain.BlockPool().PushAndBroadcast(block)
+	p.chain.BlockPool().PushAndBroadcast(core.NoSender, block)
 }
 
 func (p *Dpos) blockLoop() {

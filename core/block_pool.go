@@ -32,6 +32,11 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// constants
+const (
+	NoSender = ""
+)
+
 // Errors in block
 var (
 	duplicateBlockCounter = metrics.GetOrRegisterCounter("bp_duplicate", nil)
@@ -41,10 +46,10 @@ var (
 // BlockPool a pool of all received blocks from network.
 // Blocks will be sent to Consensus when it passes signature verification.
 type BlockPool struct {
-	receiveMessageCh        chan net.Message
-	receivedLinkedBlockCh   chan *Block
-	receivedUnLinkedBlockCh chan *Block
-	quitCh                  chan int
+	receiveBlockMessageCh         chan net.Message
+	receiveDownloadBlockMessageCh chan net.Message
+	receivedLinkedBlockCh         chan *Block
+	quitCh                        chan int
 
 	bc    *BlockChain
 	cache *lru.Cache
@@ -67,10 +72,10 @@ type linkedBlock struct {
 // NewBlockPool return new #BlockPool instance.
 func NewBlockPool() *BlockPool {
 	bp := &BlockPool{
-		receiveMessageCh:        make(chan net.Message, 128),
-		receivedLinkedBlockCh:   make(chan *Block, 128),
-		receivedUnLinkedBlockCh: make(chan *Block, 128),
-		quitCh:                  make(chan int, 1),
+		receiveBlockMessageCh:         make(chan net.Message, 128),
+		receiveDownloadBlockMessageCh: make(chan net.Message, 128),
+		receivedLinkedBlockCh:         make(chan *Block, 128),
+		quitCh:                        make(chan int, 1),
 	}
 	bp.cache, _ = lru.New(1024)
 	bp.slot = make(map[int64]*linkedBlock)
@@ -82,14 +87,11 @@ func (pool *BlockPool) ReceivedLinkedBlockCh() chan *Block {
 	return pool.receivedLinkedBlockCh
 }
 
-// ReceivedUnLinkedBlockCh return received block chan.
-func (pool *BlockPool) ReceivedUnLinkedBlockCh() chan *Block {
-	return pool.receivedUnLinkedBlockCh
-}
-
 // RegisterInNetwork register message subscriber in network.
 func (pool *BlockPool) RegisterInNetwork(nm net.Manager) {
-	nm.Register(net.NewSubscriber(pool, pool.receiveMessageCh, MessageTypeNewBlock))
+	nm.Register(net.NewSubscriber(pool, pool.receiveBlockMessageCh, MessageTypeNewBlock))
+	nm.Register(net.NewSubscriber(pool, pool.receiveBlockMessageCh, MessageTypeDownloadedBlockReply))
+	nm.Register(net.NewSubscriber(pool, pool.receiveDownloadBlockMessageCh, MessageTypeDownloadedBlock))
 	pool.nm = nm
 }
 
@@ -103,12 +105,113 @@ func (pool *BlockPool) Stop() {
 	pool.quitCh <- 0
 }
 
+func (pool *BlockPool) handleBlock(msg net.Message) {
+	if msg.MessageType() != MessageTypeNewBlock || msg.MessageType() != MessageTypeDownloadedBlockReply {
+		log.WithFields(log.Fields{
+			"func":        "BlockPool.loop",
+			"messageType": msg.MessageType(),
+			"message":     msg,
+		}).Error("BlockPool.loop: received unregistered message, pls check code.")
+		return
+	}
+
+	block := new(Block)
+	pbblock := new(corepb.Block)
+	if err := proto.Unmarshal(msg.Data().([]byte), pbblock); err != nil {
+		log.Error("BlockPool.loop:: unmarshal data occurs error, ", err)
+		return
+	}
+	if err := block.FromProto(pbblock); err != nil {
+		log.Error("BlockPool.loop:: get block from proto occurs error: ", err)
+		return
+	}
+	diff := time.Now().Unix() - block.Timestamp()
+	if msg.MessageType() == MessageTypeNewBlock && int64(math.Abs(float64(diff))) > AcceptedNetWorkDelay {
+		log.WithFields(log.Fields{
+			"func":        "BlockPool.loop",
+			"messageType": msg.MessageType(),
+			"block":       block,
+			"diff":        diff,
+			"limit":       AcceptedNetWorkDelay,
+			"err":         "timeout",
+		}).Error("BlockPool.loop: invalid block, drop it.")
+		return
+	}
+	if err := pool.PushAndRelay(msg.MessageFrom(), block); err != nil {
+		log.WithFields(log.Fields{
+			"func":        "BlockPool.loop",
+			"messageType": msg.MessageType(),
+			"block":       block,
+			"err":         err,
+		}).Warn("BlockPool.loop: invalid block, drop it.")
+	}
+}
+
+func (pool *BlockPool) handleDownloadedBlock(msg net.Message) {
+	if msg.MessageType() != MessageTypeDownloadedBlock {
+		log.WithFields(log.Fields{
+			"func":        "BlockPool.loop",
+			"messageType": msg.MessageType(),
+			"message":     msg,
+		}).Error("BlockPool.loop: received unregistered message, pls check code.")
+		return
+	}
+
+	pbDownloadBlock := new(corepb.DownloadBlock)
+	if err := proto.Unmarshal(msg.Data().([]byte), pbDownloadBlock); err != nil {
+		log.Error("BlockPool.loop:: unmarshal data occurs error, ", err)
+		return
+	}
+	block := pool.bc.GetBlock(pbDownloadBlock.Hash)
+	if block == nil {
+		log.WithFields(log.Fields{
+			"func":        "BlockPool.loop",
+			"messageType": msg.MessageType(),
+			"wantedHash":  byteutils.Hex(pbDownloadBlock.Hash),
+		}).Error("BlockPool.loop: received download request, but cannot find the block.")
+		return
+	}
+	if !block.Signature().Equals(pbDownloadBlock.Sign) {
+		log.WithFields(log.Fields{
+			"func":         "BlockPool.loop",
+			"messageType":  msg.MessageType(),
+			"wantedSign":   byteutils.Hex(pbDownloadBlock.Sign),
+			"expectedSign": block.Signature().Hex(),
+		}).Error("BlockPool.loop: received download request, but with wrong signature.")
+		return
+	}
+	parent, err := block.ParentBlock()
+	if err != nil {
+		log.WithFields(log.Fields{
+			"func":        "BlockPool.loop",
+			"messageType": msg.MessageType(),
+			"block":       block,
+		}).Error("BlockPool.loop: received download request, but cannot find the block's parent.")
+		return
+	}
+	pbBlock, err := parent.ToProto()
+	if err != nil {
+		log.Error("BlockPool.loop: convert block to proto occurs error: ", err)
+		return
+	}
+	bytes, err := proto.Marshal(pbBlock)
+	if err != nil {
+		log.Error("BlockPool.loop: convert block proto to bytes occurs error: ", err)
+		return
+	}
+	pool.nm.SendMsg(MessageTypeDownloadedBlockReply, bytes, msg.MessageFrom())
+	log.WithFields(log.Fields{
+		"func":        "BlockPool.loop",
+		"messageType": msg.MessageType(),
+		"block":       block,
+	}).Info("BlockPool.loop: received download request, send back the block's parent.")
+}
+
 func (pool *BlockPool) loop() {
 	log.WithFields(log.Fields{
 		"func": "BlockPool.loop",
 	}).Debug("running.")
 
-	count := 0
 	for {
 		select {
 		case <-pool.quitCh:
@@ -116,51 +219,10 @@ func (pool *BlockPool) loop() {
 				"func": "BlockPool.loop",
 			}).Info("quit.")
 			return
-		case msg := <-pool.receiveMessageCh:
-			count++
-			log.WithFields(log.Fields{
-				"func": "BlockPool.loop",
-			}).Debugf("received message. Count=%d", count)
-
-			if msg.MessageType() != MessageTypeNewBlock {
-				log.WithFields(log.Fields{
-					"func":        "BlockPool.loop",
-					"messageType": msg.MessageType(),
-					"message":     msg,
-				}).Error("BlockPool.loop: received unregistered message, pls check code.")
-				continue
-			}
-
-			block := new(Block)
-			pbblock := new(corepb.Block)
-			if err := proto.Unmarshal(msg.Data().([]byte), pbblock); err != nil {
-				log.Error("BlockPool.loop:: unmarshal data occurs error, ", err)
-				continue
-			}
-			if err := block.FromProto(pbblock); err != nil {
-				log.Error("BlockPool.loop:: get block from proto occurs error: ", err)
-				continue
-			}
-			diff := time.Now().Unix() - block.Timestamp()
-			if int64(math.Abs(float64(diff))) > AcceptedNetWorkDelay {
-				log.WithFields(log.Fields{
-					"func":        "BlockPool.loop",
-					"messageType": msg.MessageType(),
-					"block":       block,
-					"diff":        diff,
-					"limit":       AcceptedNetWorkDelay,
-					"err":         "timeout",
-				}).Error("BlockPool.loop: invalid block, drop it.")
-				continue
-			}
-			if err := pool.PushAndRelay(block); err != nil {
-				log.WithFields(log.Fields{
-					"func":        "BlockPool.loop",
-					"messageType": msg.MessageType(),
-					"block":       block,
-					"err":         err,
-				}).Warn("BlockPool.loop: invalid block, drop it.")
-			}
+		case msg := <-pool.receiveBlockMessageCh:
+			pool.handleBlock(msg)
+		case msg := <-pool.receiveDownloadBlockMessageCh:
+			pool.handleDownloadedBlock(msg)
 		}
 	}
 }
@@ -187,7 +249,7 @@ func (pool *BlockPool) Push(block *Block) error {
 	if err != nil {
 		return nil
 	}
-	pushErr := pool.push(block)
+	pushErr := pool.push(NoSender, block)
 	if pushErr != nil && pushErr != ErrDuplicatedBlock {
 		return pushErr
 	}
@@ -195,7 +257,7 @@ func (pool *BlockPool) Push(block *Block) error {
 }
 
 // PushAndRelay push block into block pool and relay it.
-func (pool *BlockPool) PushAndRelay(block *Block) error {
+func (pool *BlockPool) PushAndRelay(sender string, block *Block) error {
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
 
@@ -203,7 +265,7 @@ func (pool *BlockPool) PushAndRelay(block *Block) error {
 	if err != nil {
 		return nil
 	}
-	if err := pool.push(block); err != nil {
+	if err := pool.push(sender, block); err != nil {
 		return err
 	}
 	pool.nm.Relay(MessageTypeNewBlock, block)
@@ -211,7 +273,7 @@ func (pool *BlockPool) PushAndRelay(block *Block) error {
 }
 
 // PushAndBroadcast push block into block pool and broadcast it.
-func (pool *BlockPool) PushAndBroadcast(block *Block) error {
+func (pool *BlockPool) PushAndBroadcast(sender string, block *Block) error {
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
 
@@ -219,14 +281,14 @@ func (pool *BlockPool) PushAndBroadcast(block *Block) error {
 	if err != nil {
 		return nil
 	}
-	if err := pool.push(block); err != nil {
+	if err := pool.push(sender, block); err != nil {
 		return err
 	}
 	pool.nm.Broadcast(MessageTypeNewBlock, block)
 	return nil
 }
 
-func (pool *BlockPool) push(block *Block) error {
+func (pool *BlockPool) push(sender string, block *Block) error {
 	// verify non-dup block
 	if pool.cache.Contains(block.Hash().Hex()) ||
 		pool.bc.GetBlock(block.Hash()) != nil {
@@ -283,7 +345,28 @@ func (pool *BlockPool) push(block *Block) error {
 	var parentBlock *Block
 	if parentBlock = bc.GetBlock(lb.parentHash); parentBlock == nil {
 		// still not found, wait to parent block from network.
-		pool.receivedUnLinkedBlockCh <- block
+		if sender == NoSender {
+			log.WithFields(log.Fields{
+				"func": "BlockPool.loop",
+				"err":  "cannot find the block's parent",
+			}).Info("BlockPool.loop: receive block from local.")
+			return nil
+		}
+		downloadMsg := &corepb.DownloadBlock{
+			Hash: lb.block.Hash(),
+			Sign: lb.block.Signature(),
+		}
+		bytes, err := proto.Marshal(downloadMsg)
+		if err != nil {
+			return err
+		}
+		pool.nm.SendMsg(MessageTypeDownloadedBlock, bytes, sender)
+		log.WithFields(log.Fields{
+			"func":   "BlockPool.loop",
+			"target": sender,
+			"hash":   lb.block.Hash().Hex(),
+			"sign":   lb.block.Signature().Hex(),
+		}).Info("BlockPool.loop: send download request.")
 		return nil
 	}
 

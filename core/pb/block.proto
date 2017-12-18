@@ -88,3 +88,8 @@ message NetBlock {
     uint64 batch = 2;
     Block block = 3;
 }
+
+message DownloadBlock {
+    bytes hash = 1;
+    bytes sign = 2;
+}

@@ -82,8 +82,10 @@ type TxPayload interface {
 
 // MessageType
 const (
-	MessageTypeNewBlock = "newblock"
-	MessageTypeNewTx    = "newtx"
+	MessageTypeNewBlock             = "newblock"
+	MessageTypeDownloadedBlock      = "downloadedblock"
+	MessageTypeDownloadedBlockReply = "downloadedblockreply"
+	MessageTypeNewTx                = "newtx"
 )
 
 // Consensus interface
