@@ -335,16 +335,28 @@ func (bc *BlockChain) GasPrice() *util.Uint128 {
 	gasPrice := TransactionMaxGasPrice
 	tailBlock := bc.tailBlock
 	for {
+		// if the block is genesis, stop find the parent block
+		if tailBlock.Hash().Equals(GenesisHash) {
+			break
+		}
+
 		if len(tailBlock.transactions) > 0 {
 			break
 		}
 		tailBlock = bc.GetBlock(tailBlock.ParentHash())
 	}
-	for _, tx := range tailBlock.transactions {
-		if tx.gasPrice.Cmp(gasPrice.Int) < 0 {
-			gasPrice = tx.gasPrice
+
+	if len(tailBlock.transactions) > 0 {
+		for _, tx := range tailBlock.transactions {
+			if tx.gasPrice.Cmp(gasPrice.Int) < 0 {
+				gasPrice = tx.gasPrice
+			}
 		}
+	} else {
+		// if no transactions have been submited, use the default gasPrice
+		gasPrice = TransactionGasPrice
 	}
+
 	return gasPrice
 }
 
