@@ -41,9 +41,10 @@ var (
 // BlockPool a pool of all received blocks from network.
 // Blocks will be sent to Consensus when it passes signature verification.
 type BlockPool struct {
-	receiveMessageCh chan net.Message
-	receivedBlockCh  chan *Block
-	quitCh           chan int
+	receiveMessageCh        chan net.Message
+	receivedLinkedBlockCh   chan *Block
+	receivedUnLinkedBlockCh chan *Block
+	quitCh                  chan int
 
 	bc    *BlockChain
 	cache *lru.Cache
@@ -66,18 +67,24 @@ type linkedBlock struct {
 // NewBlockPool return new #BlockPool instance.
 func NewBlockPool() *BlockPool {
 	bp := &BlockPool{
-		receiveMessageCh: make(chan net.Message, 128),
-		receivedBlockCh:  make(chan *Block, 128),
-		quitCh:           make(chan int, 1),
+		receiveMessageCh:        make(chan net.Message, 128),
+		receivedLinkedBlockCh:   make(chan *Block, 128),
+		receivedUnLinkedBlockCh: make(chan *Block, 128),
+		quitCh:                  make(chan int, 1),
 	}
 	bp.cache, _ = lru.New(1024)
 	bp.slot = make(map[int64]*linkedBlock)
 	return bp
 }
 
-// ReceivedBlockCh return received block chan.
-func (pool *BlockPool) ReceivedBlockCh() chan *Block {
-	return pool.receivedBlockCh
+// ReceivedLinkedBlockCh return received block chan.
+func (pool *BlockPool) ReceivedLinkedBlockCh() chan *Block {
+	return pool.receivedLinkedBlockCh
+}
+
+// ReceivedUnLinkedBlockCh return received block chan.
+func (pool *BlockPool) ReceivedUnLinkedBlockCh() chan *Block {
+	return pool.receivedUnLinkedBlockCh
 }
 
 // RegisterInNetwork register message subscriber in network.
@@ -276,6 +283,7 @@ func (pool *BlockPool) push(block *Block) error {
 	var parentBlock *Block
 	if parentBlock = bc.GetBlock(lb.parentHash); parentBlock == nil {
 		// still not found, wait to parent block from network.
+		pool.receivedUnLinkedBlockCh <- block
 		return nil
 	}
 
@@ -294,7 +302,7 @@ func (pool *BlockPool) push(block *Block) error {
 	}
 
 	// notify consensus to handle new block.
-	pool.receivedBlockCh <- block
+	pool.receivedLinkedBlockCh <- block
 
 	return nil
 }

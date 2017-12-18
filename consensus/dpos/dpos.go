@@ -335,7 +335,7 @@ func (p *Dpos) blockLoop() {
 		select {
 		case <-timeChan:
 			p.mintBlock()
-		case <-p.chain.BlockPool().ReceivedBlockCh():
+		case <-p.chain.BlockPool().ReceivedLinkedBlockCh():
 			p.forkChoice()
 		case <-p.quitCh:
 			log.Info("Dpos.blockLoop: quit.")

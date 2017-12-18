@@ -233,7 +233,7 @@ func (p *Pow) blockLoop() {
 	count := 0
 	for {
 		select {
-		case block := <-p.chain.BlockPool().ReceivedBlockCh():
+		case block := <-p.chain.BlockPool().ReceivedLinkedBlockCh():
 			count++
 			log.Debugf("Pow.blockLoop: new block message received. Count=%d", count)
 			p.newBlockReceived = true
