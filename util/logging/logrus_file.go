@@ -40,7 +40,7 @@ func EnableFileLogger(path string) (err error) {
 	if err = os.MkdirAll(path, 0700); err != nil {
 		return err
 	}
-	filePath := path + "/neb-%Y%m%d%H%M.log"
+	filePath := path + "/neb-%Y%m%d.log"
 	linkPath := path + "/neb.log"
 	writer, err := rotatelogs.New(
 		filePath,
