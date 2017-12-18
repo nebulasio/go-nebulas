@@ -28,8 +28,8 @@ import (
 
 const (
 
-	// TopicContract the topic of contract.
-	TopicContract = "chain.contract"
+	// EventNameSpaceContract the topic of contract.
+	EventNameSpaceContract = "chain.contract"
 )
 
 // EventTriggerFunc export EventTriggerFunc
@@ -55,6 +55,6 @@ func EventTriggerFunc(handler unsafe.Pointer, topic, data *C.char) {
 	}).Info("Event triggered from V8 engine.")
 
 	txHash, _ := byteutils.FromHex(e.ctx.tx.Hash)
-	contractTopic := TopicContract + "." + gTopic
+	contractTopic := EventNameSpaceContract + "." + gTopic
 	e.ctx.block.RecordEvent(txHash, contractTopic, gData)
 }
