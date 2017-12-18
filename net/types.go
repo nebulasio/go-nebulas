@@ -51,6 +51,7 @@ type Manager interface {
 
 	Broadcast(name string, msg Serializable)
 	Relay(name string, msg Serializable)
+	SendMsg(name string, msg []byte, target string)
 }
 
 // Subscriber subscriber.

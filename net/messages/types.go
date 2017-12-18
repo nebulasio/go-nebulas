@@ -31,6 +31,7 @@ import (
 // BaseMessage base message
 type BaseMessage struct {
 	t    string
+	from string
 	data interface{}
 }
 
@@ -152,13 +153,18 @@ func (ps *Peers) FromProto(msg proto.Message) error {
 }
 
 // NewBaseMessage new base message
-func NewBaseMessage(t string, data interface{}) net.Message {
-	return &BaseMessage{t: t, data: data}
+func NewBaseMessage(t string, from string, data interface{}) net.Message {
+	return &BaseMessage{t: t, from: from, data: data}
 }
 
 // MessageType get message type
 func (msg *BaseMessage) MessageType() string {
 	return msg.t
+}
+
+// MessageFrom get message who send
+func (msg *BaseMessage) MessageFrom() string {
+	return msg.from
 }
 
 // Data get the message data

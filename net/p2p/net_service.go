@@ -200,7 +200,7 @@ func (ns *NetService) streamHandler(s libnet.Stream) {
 					ns.Bye(pid, []ma.Multiaddr{addrs}, s, key)
 					return
 				}
-				msg := messages.NewBaseMessage(protocol.msgName, protocol.data)
+				msg := messages.NewBaseMessage(protocol.msgName, pid.Pretty(), protocol.data)
 				ns.PutMessage(msg)
 				packetInFromNet.Mark(1)
 				peers, exists := node.relayness.Get(byteutils.Uint32(protocol.dataChecksum))
