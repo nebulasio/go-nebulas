@@ -19,7 +19,6 @@
 package core
 
 import (
-	"errors"
 	"sync"
 
 	"github.com/gogo/protobuf/proto"
@@ -43,7 +42,6 @@ var (
 type TransactionPool struct {
 	receivedMessageCh chan net.Message
 	quitCh            chan int
-	mu                sync.RWMutex
 
 	size  int
 	cache *pdeque.PriorityDeque
@@ -51,6 +49,7 @@ type TransactionPool struct {
 	bc    *BlockChain
 
 	nm net.Manager
+	mu sync.RWMutex
 
 	gasPrice *util.Uint128 // the lowest gasPrice.
 	gasLimt  *util.Uint128 // the maximum gasLimit.
@@ -196,6 +195,12 @@ func (pool *TransactionPool) PushAndBroadcast(tx *Transaction) error {
 }
 
 func (pool *TransactionPool) push(tx *Transaction) error {
+	// verify non-dup tx
+	if _, ok := pool.all[tx.hash.Hex()]; ok {
+		duplicateTxCounter.Inc(1)
+		return ErrDuplicatedTransaction
+	}
+
 	// if tx's gasPrice below the pool config lowest gasPrice, return ErrBelowGasPrice
 	if tx.gasPrice.Cmp(pool.gasPrice.Int) < 0 {
 		belowGasPriceTxCounter.Inc(1)
@@ -212,11 +217,6 @@ func (pool *TransactionPool) push(tx *Transaction) error {
 		return err
 	}
 
-	// verify non-dup tx
-	if _, ok := pool.all[tx.hash.Hex()]; ok {
-		duplicateTxCounter.Inc(1)
-		return errors.New("duplicate tx")
-	}
 	// cache the verified tx
 	pool.cache.Insert(tx)
 	pool.all[tx.hash.Hex()] = tx

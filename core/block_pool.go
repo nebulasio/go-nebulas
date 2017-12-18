@@ -45,9 +45,9 @@ type BlockPool struct {
 	receivedBlockCh  chan *Block
 	quitCh           chan int
 
-	bc         *BlockChain
-	blockCache *lru.Cache
-	headBlocks map[byteutils.HexHash]*linkedBlock
+	bc    *BlockChain
+	cache *lru.Cache
+	slot  map[int64]*linkedBlock
 
 	nm net.Manager
 	mu sync.RWMutex
@@ -69,9 +69,9 @@ func NewBlockPool() *BlockPool {
 		receiveMessageCh: make(chan net.Message, 128),
 		receivedBlockCh:  make(chan *Block, 128),
 		quitCh:           make(chan int, 1),
-		headBlocks:       make(map[byteutils.HexHash]*linkedBlock),
 	}
-	bp.blockCache, _ = lru.New(1024)
+	bp.cache, _ = lru.New(1024)
+	bp.slot = make(map[int64]*linkedBlock)
 	return bp
 }
 
@@ -134,11 +134,14 @@ func (pool *BlockPool) loop() {
 				log.Error("BlockPool.loop:: get block from proto occurs error: ", err)
 				continue
 			}
-			if int64(math.Abs(float64(time.Now().Unix()-block.Timestamp()))) > AcceptedNetWorkDelay {
+			diff := time.Now().Unix() - block.Timestamp()
+			if int64(math.Abs(float64(diff))) > AcceptedNetWorkDelay {
 				log.WithFields(log.Fields{
 					"func":        "BlockPool.loop",
 					"messageType": msg.MessageType(),
 					"block":       block,
+					"diff":        diff,
+					"limit":       AcceptedNetWorkDelay,
 					"err":         "timeout",
 				}).Error("BlockPool.loop: invalid block, drop it.")
 				continue
@@ -217,7 +220,8 @@ func (pool *BlockPool) PushAndBroadcast(block *Block) error {
 }
 
 func (pool *BlockPool) push(block *Block) error {
-	if pool.blockCache.Contains(block.Hash().Hex()) ||
+	// verify non-dup block
+	if pool.cache.Contains(block.Hash().Hex()) ||
 		pool.bc.GetBlock(block.Hash()) != nil {
 		duplicateBlockCounter.Inc(1)
 		return ErrDuplicatedBlock
@@ -235,21 +239,22 @@ func (pool *BlockPool) push(block *Block) error {
 		return err
 	}
 
-	// verify consensus
-	if err := pool.bc.ConsensusHandler().FastVerifyBlock(block); err != nil {
-		return err
-	}
-
 	bc := pool.bc
-	blockCache := pool.blockCache
+	cache := pool.cache
 
 	var plb *linkedBlock
 	lb := newLinkedBlock(block, pool)
-	blockCache.Add(lb.hash.Hex(), lb)
+
+	if _, exist := pool.slot[lb.block.Timestamp()]; exist {
+		invalidBlockCounter.Inc(1)
+		return ErrDoubleBlockMinted
+	}
+	pool.slot[lb.block.Timestamp()] = lb
+	cache.Add(lb.hash.Hex(), lb)
 
 	// find child block in pool.
-	for _, k := range blockCache.Keys() {
-		v, _ := blockCache.Get(k)
+	for _, k := range cache.Keys() {
+		v, _ := cache.Get(k)
 		c := v.(*linkedBlock)
 		if c.parentHash.Equals(lb.hash) {
 			// found child block and continue.
@@ -258,7 +263,7 @@ func (pool *BlockPool) push(block *Block) error {
 	}
 
 	// find parent block in cache.
-	v, _ := blockCache.Get(lb.parentHash.Hex())
+	v, _ := cache.Get(lb.parentHash.Hex())
 	if v != nil {
 		// found in cache.
 		plb = v.(*linkedBlock)
@@ -284,7 +289,7 @@ func (pool *BlockPool) push(block *Block) error {
 
 	// remove allBlocks from cache.
 	for _, v := range allBlocks {
-		blockCache.Remove(v.Hash().Hex())
+		cache.Remove(v.Hash().Hex())
 		pool.bc.storeBlockToStorage(v)
 	}
 

@@ -31,8 +31,6 @@ import (
 	"github.com/nebulasio/go-nebulas/neblet/pb"
 	"github.com/nebulasio/go-nebulas/net"
 
-	"hash/fnv"
-
 	"github.com/nebulasio/go-nebulas/net/p2p"
 	log "github.com/sirupsen/logrus"
 )
@@ -118,25 +116,11 @@ func (p *Dpos) Stop() {
 	p.quitCh <- true
 }
 
-func score(b *core.Block) uint32 {
-	hasher := fnv.New32a()
-	hasher.Write(b.Hash())
-	return hasher.Sum32()
-}
-
-func less(b1 *core.Block, b2 *core.Block) bool {
-	if b1.Height() < b2.Height() {
-		return true
+func less(a *core.Block, b *core.Block) bool {
+	if a.Height() != b.Height() {
+		return a.Height() < b.Height()
 	}
-	if b1.Height() > b2.Height() {
-		return false
-	}
-	score1 := score(b1)
-	score2 := score(b2)
-	if score1 < score2 {
-		return true
-	}
-	return false
+	return core.Less(a, b)
 }
 
 // do fork choice

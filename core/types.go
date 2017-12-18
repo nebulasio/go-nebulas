@@ -20,6 +20,7 @@ package core
 
 import (
 	"errors"
+	"hash/fnv"
 	"strconv"
 
 	"github.com/nebulasio/go-nebulas/util"
@@ -57,6 +58,7 @@ var (
 	ErrSmallTransactionNonce             = errors.New("cannot accept a transaction with smaller nonce")
 	ErrLargeTransactionNonce             = errors.New("cannot accept a transaction with too bigger nonce")
 	ErrDuplicatedBlock                   = errors.New("duplicated block")
+	ErrDoubleBlockMinted                 = errors.New("double block minted")
 	ErrInvalidAddress                    = errors.New("address: invalid address")
 	ErrInvalidAddressDataLength          = errors.New("address: invalid address data length")
 	ErrDoubleSealBlock                   = errors.New("cannot seal a block twice")
@@ -88,4 +90,15 @@ const (
 type Consensus interface {
 	VerifyBlock(block *Block, parent *Block) error
 	FastVerifyBlock(block *Block) error
+}
+
+// Less return if a < b
+func Less(a *Block, b *Block) bool {
+	hasherA := fnv.New32a()
+	hasherA.Write(a.Hash())
+	scoreA := hasherA.Sum32()
+	hasherB := fnv.New32a()
+	hasherB.Write(b.Hash())
+	scoreB := hasherB.Sum32()
+	return scoreA < scoreB
 }

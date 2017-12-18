@@ -50,7 +50,7 @@ func TestBlockPool(t *testing.T) {
 	cons := &MockConsensus{neb.storage}
 	bc.SetConsensusHandler(cons)
 	pool := bc.bkPool
-	assert.Equal(t, pool.blockCache.Len(), 0)
+	assert.Equal(t, pool.cache.Len(), 0)
 
 	ks := keystore.DefaultKS
 	priv := secp256k1.GeneratePrivateKey()
@@ -121,21 +121,21 @@ func TestBlockPool(t *testing.T) {
 
 	err = pool.Push(block0)
 	assert.NoError(t, err)
-	assert.Equal(t, pool.blockCache.Len(), 0)
+	assert.Equal(t, pool.cache.Len(), 0)
 
 	err = pool.Push(block3)
-	assert.Equal(t, pool.blockCache.Len(), 1)
+	assert.Equal(t, pool.cache.Len(), 1)
 	assert.NoError(t, err)
 	err = pool.Push(block4)
-	assert.Equal(t, pool.blockCache.Len(), 2)
+	assert.Equal(t, pool.cache.Len(), 2)
 	assert.NoError(t, err)
 	err = pool.Push(block2)
-	assert.Equal(t, pool.blockCache.Len(), 3)
+	assert.Equal(t, pool.cache.Len(), 3)
 	assert.NoError(t, err)
 
 	err = pool.Push(block1)
 	assert.NoError(t, err)
-	assert.Equal(t, pool.blockCache.Len(), 0)
+	assert.Equal(t, pool.cache.Len(), 0)
 
 	bc.SetTailBlock(block0)
 	nonce := bc.tailBlock.GetNonce(from.Bytes())
