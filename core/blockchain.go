@@ -33,13 +33,6 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// Neblet interface breaks cycle import dependency and hides unused services.
-type Neblet interface {
-	Genesis() *corepb.Genesis
-	Storage() storage.Storage
-	EventEmitter() *EventEmitter
-}
-
 // BlockChain the BlockChain core type.
 type BlockChain struct {
 	chainID uint32
@@ -57,6 +50,7 @@ type BlockChain struct {
 	detachedTailBlocks *lru.Cache
 
 	storage storage.Storage
+	neb     Neblet
 
 	eventEmitter *EventEmitter
 }
@@ -88,6 +82,7 @@ func NewBlockChain(neb Neblet) (*BlockChain, error) {
 		bkPool:       NewBlockPool(),
 		txPool:       NewTransactionPool(4096),
 		storage:      neb.Storage(),
+		neb:          neb,
 		eventEmitter: neb.EventEmitter(),
 	}
 
@@ -119,6 +114,11 @@ func (bc *BlockChain) ChainID() uint32 {
 // Storage return the storage.
 func (bc *BlockChain) Storage() storage.Storage {
 	return bc.storage
+}
+
+// Neb return the neblet.
+func (bc *BlockChain) Neb() Neblet {
+	return bc.neb
 }
 
 // GenesisBlock return the genesis block.

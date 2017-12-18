@@ -46,6 +46,8 @@ func (n *Neb) EventEmitter() *core.EventEmitter {
 	return n.emitter
 }
 
+func (n *Neb) StartSync() {}
+
 var (
 	DefaultOpenDynasty = []string{
 		"1a263547d167c74cf4b8f9166cfa244de0481c514a45aa2c",

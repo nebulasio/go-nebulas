@@ -22,7 +22,6 @@ import (
 	"fmt"
 
 	"github.com/nebulasio/go-nebulas/consensus"
-	"github.com/nebulasio/go-nebulas/core"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -67,7 +66,7 @@ func (state *MintedState) Enter(data interface{}) {
 			"block": p.miningBlock,
 		}).Info("seal new block, ready to broadcast.")
 
-		bkPool.PushAndBroadcast(core.NoSender, p.miningBlock)
+		bkPool.PushAndBroadcast(p.miningBlock)
 	}
 
 	// process the received block.

@@ -46,7 +46,7 @@ type Neblet struct {
 
 	blockChain *core.BlockChain
 
-	snycManager *nsync.Manager
+	syncManager *nsync.Manager
 
 	apiServer rpc.Server
 
@@ -107,7 +107,7 @@ func (n *Neblet) Setup() error {
 	n.blockChain.SetConsensusHandler(n.consensus)
 
 	// start sync service
-	n.snycManager = nsync.NewManager(n.blockChain, n.consensus, n.netService)
+	n.syncManager = nsync.NewManager(n.blockChain, n.consensus, n.netService)
 
 	n.apiServer = rpc.NewAPIServer(n)
 	return nil
@@ -133,7 +133,7 @@ func (n *Neblet) Start() error {
 	n.blockChain.TransactionPool().Start()
 	n.eventEmitter.Start()
 	n.consensus.Start()
-	n.snycManager.Start()
+	n.syncManager.Start()
 	go n.apiServer.Start()
 	go n.apiServer.RunGateway()
 
@@ -211,6 +211,11 @@ func (n *Neblet) Config() nebletpb.Config {
 // Storage returns storage reference.
 func (n *Neblet) Storage() storage.Storage {
 	return n.storage
+}
+
+// StartSync starts sync
+func (n *Neblet) StartSync() {
+	n.syncManager.Start()
 }
 
 // BlockChain returns block chain reference.

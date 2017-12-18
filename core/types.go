@@ -23,6 +23,8 @@ import (
 	"hash/fnv"
 	"strconv"
 
+	"github.com/nebulasio/go-nebulas/core/pb"
+	"github.com/nebulasio/go-nebulas/storage"
 	"github.com/nebulasio/go-nebulas/util"
 )
 
@@ -103,4 +105,12 @@ func Less(a *Block, b *Block) bool {
 	hasherB.Write(b.Hash())
 	scoreB := hasherB.Sum32()
 	return scoreA < scoreB
+}
+
+// Neblet interface breaks cycle import dependency and hides unused services.
+type Neblet interface {
+	Genesis() *corepb.Genesis
+	Storage() storage.Storage
+	EventEmitter() *EventEmitter
+	StartSync()
 }

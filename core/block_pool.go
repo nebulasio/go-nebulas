@@ -273,7 +273,7 @@ func (pool *BlockPool) PushAndRelay(sender string, block *Block) error {
 }
 
 // PushAndBroadcast push block into block pool and broadcast it.
-func (pool *BlockPool) PushAndBroadcast(sender string, block *Block) error {
+func (pool *BlockPool) PushAndBroadcast(block *Block) error {
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
 
@@ -281,7 +281,7 @@ func (pool *BlockPool) PushAndBroadcast(sender string, block *Block) error {
 	if err != nil {
 		return nil
 	}
-	if err := pool.push(sender, block); err != nil {
+	if err := pool.push(NoSender, block); err != nil {
 		return err
 	}
 	pool.nm.Broadcast(MessageTypeNewBlock, block)
@@ -349,7 +349,12 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 			log.WithFields(log.Fields{
 				"func": "BlockPool.loop",
 				"err":  "cannot find the block's parent",
-			}).Info("BlockPool.loop: receive block from local.")
+			}).Error("BlockPool.loop: receive block from local.")
+			return nil
+		}
+		// do sync if there are so many empty slots.
+		if lb.block.Timestamp()-bc.TailBlock().Timestamp() > BlockInterval*DynastySize {
+			bc.Neb().StartSync()
 			return nil
 		}
 		downloadMsg := &corepb.DownloadBlock{
