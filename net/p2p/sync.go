@@ -31,6 +31,8 @@ import (
 // const
 var (
 	LimitToSync = 1
+	SyncBlock   = "syncblock"
+	SyncReply   = "syncreply"
 )
 
 // errors
@@ -69,7 +71,7 @@ func (ns *NetService) Sync(tail net.Serializable) error {
 			if _, ok := node.stream.Load(key); ok {
 				count++
 				go func() {
-					ns.SendMsg("syncblock", data, key)
+					ns.SendMsg(SyncBlock, data, key)
 				}()
 			}
 		}
@@ -88,7 +90,7 @@ func (ns *NetService) SendSyncReply(key string, blocks net.Serializable) {
 	data, _ := proto.Marshal(pb)
 	if _, ok := ns.node.stream.Load(key); ok {
 		go func() {
-			ns.SendMsg("syncreply", data, key)
+			ns.SendMsg(SyncReply, data, key)
 		}()
 		return
 	}

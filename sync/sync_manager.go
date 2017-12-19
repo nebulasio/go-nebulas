@@ -97,6 +97,10 @@ func (m *Manager) RegisterSyncReplyInNetwork(nm net.Manager) {
 6. if all remote peers return the number of blocks less than 10, end sync
 */
 func (m *Manager) Start() {
+	// if the node is syncing, return.
+	if m.ns.Node().GetSynchronized() {
+		return
+	}
 	m.startMsgHandle()
 	if len(m.ns.Node().Config().BootNodes) > 0 {
 		m.startSync()
@@ -106,7 +110,6 @@ func (m *Manager) Start() {
 		m.ns.Node().SetSynchronized(true)
 		m.consensus.SetCanMining(true)
 		go m.loop()
-		go m.downloader()
 	}
 }
 
@@ -125,22 +128,13 @@ func (m *Manager) loop() {
 			if !m.ns.Node().GetSynchronized() {
 				m.ns.Node().SetSynchronized(true)
 				m.consensus.SetCanMining(true)
-				m.downloader()
 			}
 		case <-m.syncCh:
+			if m.curTail == nil {
+				log.Warn("sync occurs error, the current tail is nil.")
+				m.curTail = m.blockChain.TailBlock()
+			}
 			m.syncWithPeers(m.curTail)
-		}
-	}
-}
-
-func (m *Manager) downloader() {
-	interval := 10 * time.Second
-	ticker := time.NewTicker(interval)
-	for {
-		select {
-		case <-ticker.C:
-			block := m.blockChain.TailBlock()
-			m.syncWithPeers(block)
 		}
 	}
 }
