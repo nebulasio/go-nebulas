@@ -107,6 +107,8 @@ func (net *NetService) syncSingleNode(nodeID peer.ID) {
 		}
 
 	} else {
-		node.routeTable.Remove(nodeID)
+		if !InArray(nodeID, node.bootIds) {
+			node.routeTable.Remove(nodeID)
+		}
 	}
 }

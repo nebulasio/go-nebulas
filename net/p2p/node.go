@@ -70,6 +70,7 @@ type Node struct {
 	syncList     []string
 	// key: datachecksum value: peer.ID
 	relayness *lru.Cache
+	bootIds   []string
 }
 
 // StreamStore is for stream cache

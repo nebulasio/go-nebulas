@@ -21,7 +21,6 @@ package p2p
 import (
 	"hash/crc32"
 	"math"
-	"reflect"
 
 	"github.com/gogo/protobuf/proto"
 	peer "github.com/libp2p/go-libp2p-peer"
@@ -51,7 +50,7 @@ func (ns *NetService) Relay(name string, msg net.Serializable) {
 func (ns *NetService) nodeNotInRelayness(relayness []peer.ID, peers []peer.ID) []peer.ID {
 	var list []peer.ID
 	for _, p := range peers {
-		if !inArray(p, relayness) {
+		if !InArray(p, relayness) {
 			list = append(list, p)
 		}
 	}
@@ -93,7 +92,7 @@ func (ns *NetService) doMsgTransfer(transfer []peer.ID, relayness []peer.ID, dat
 	node := ns.node
 	for i := 0; i < len(transfer); i++ {
 		nodeID := transfer[i]
-		if inArray(nodeID, relayness) {
+		if InArray(nodeID, relayness) {
 			log.Warnf("distribute:  nodeID %s has already have the same message", nodeID)
 			continue
 		}
@@ -113,7 +112,7 @@ func (ns *NetService) doRelay(nodes []peer.ID, relayness []peer.ID, dataChecksum
 	node := ns.node
 	for i := 0; i < len(nodes); i++ {
 		nodeID := nodes[i]
-		if inArray(nodeID, relayness) {
+		if InArray(nodeID, relayness) {
 			log.Warnf("distribute: relay nodeID %s has already have the same message", nodeID)
 			continue
 		}
@@ -127,16 +126,4 @@ func (ns *NetService) doRelay(nodes []peer.ID, relayness []peer.ID, dataChecksum
 			go ns.SendMsg(NewHashMsg, byteutils.FromUint32(dataChecksum), nodeID.Pretty())
 		}
 	}
-}
-
-func inArray(obj interface{}, array interface{}) bool {
-	arrayValue := reflect.ValueOf(array)
-	if reflect.TypeOf(array).Kind() == reflect.Array || reflect.TypeOf(array).Kind() == reflect.Slice {
-		for i := 0; i < arrayValue.Len(); i++ {
-			if arrayValue.Index(i).Interface() == obj {
-				return true
-			}
-		}
-	}
-	return false
 }

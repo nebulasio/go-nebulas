@@ -23,6 +23,7 @@ import (
 	"errors"
 	"hash/crc32"
 	"io"
+	"reflect"
 	"strings"
 	"sync"
 	"time"
@@ -524,7 +525,9 @@ func (ns *NetService) Bye(pid peer.ID, addrs []ma.Multiaddr, s libnet.Stream, ke
 func (ns *NetService) clearPeerStore(pid peer.ID, addrs []ma.Multiaddr) {
 	node := ns.node
 	node.peerstore.SetAddrs(pid, addrs, 0)
-	node.routeTable.Remove(pid)
+	if !InArray(pid, node.bootIds) {
+		node.routeTable.Remove(pid)
+	}
 }
 
 // SendMsg send message to a peer
@@ -787,6 +790,7 @@ func (ns *NetService) SayHello(bootNode ma.Multiaddr) error {
 		}).Error("parse Address from trustedNode failed")
 		return err
 	}
+	node.bootIds = append(node.bootIds, bootID.Pretty())
 	node.peerstore.AddAddr(
 		bootID,
 		bootAddr,
@@ -844,4 +848,17 @@ func parseAddressFromMultiaddr(address ma.Multiaddr) (ma.Multiaddr, peer.ID, err
 
 	return addr, id, nil
 
+}
+
+// InArray returns whether an object exists in an array.
+func InArray(obj interface{}, array interface{}) bool {
+	arrayValue := reflect.ValueOf(array)
+	if reflect.TypeOf(array).Kind() == reflect.Array || reflect.TypeOf(array).Kind() == reflect.Slice {
+		for i := 0; i < arrayValue.Len(); i++ {
+			if arrayValue.Index(i).Interface() == obj {
+				return true
+			}
+		}
+	}
+	return false
 }
