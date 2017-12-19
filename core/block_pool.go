@@ -106,7 +106,7 @@ func (pool *BlockPool) Stop() {
 }
 
 func (pool *BlockPool) handleBlock(msg net.Message) {
-	if msg.MessageType() != MessageTypeNewBlock || msg.MessageType() != MessageTypeDownloadedBlockReply {
+	if msg.MessageType() != MessageTypeNewBlock && msg.MessageType() != MessageTypeDownloadedBlockReply {
 		log.WithFields(log.Fields{
 			"func":        "BlockPool.loop",
 			"messageType": msg.MessageType(),
