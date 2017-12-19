@@ -57,14 +57,14 @@ function traverse(object, visitor, master, injection_context_from_parent) {
 
 // calculate and record the storage usage.
 var storIncrFunc = function (key_len, value_len) {
-    var incr_val = Math.ceil((key_len + value_len) * 8);
+    var incr_val = Math.ceil(key_len + value_len);
     _instruction_counter.incr(incr_val);
 };
 
 // calculate and record the event usage.
 var eventIncrFunc = function (data_len) {
     const EVENT_INCR = 20;
-    var incr_val = Math.ceil(data_len * 8) + EVENT_INCR;
+    var incr_val = Math.ceil(data_len) + EVENT_INCR;
     _instruction_counter.incr(incr_val);
 };
 

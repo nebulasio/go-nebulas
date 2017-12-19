@@ -30,6 +30,6 @@ var test1 = function (v) {
     Event.Trigger("ERC20", v);
 };
 
-assertEqual(test1, ["123"], undefined, 112);
-assertEqual(test1, ["1234"], undefined, 112 + 8);
-assertEqual(test1, ["12345"], undefined, 112 + 8 * 2);
+assertEqual(test1, ["123"], undefined, 42);
+assertEqual(test1, ["1234"], undefined, 42 + 1);
+assertEqual(test1, ["12345"], undefined, 42 + 1 * 2);

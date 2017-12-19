@@ -51,16 +51,18 @@ func TestTransactionPool(t *testing.T) {
 	signature2, _ := crypto.NewSignature(keystore.SECP256K1)
 	signature2.InitSign(key2.(keystore.PrivateKey))
 
+	heighPrice := util.NewUint128FromBigInt(util.NewUint128().Mul(TransactionGasPrice.Int, util.NewUint128FromInt(2).Int))
+
 	txs := []*Transaction{
 		NewTransaction(0, from, &Address{[]byte("to")}, util.NewUint128(), 10, TxPayloadBinaryType, []byte("datadata"), TransactionGasPrice, util.NewUint128FromInt(200000)),
-		NewTransaction(0, other, &Address{[]byte("to")}, util.NewUint128(), 1, TxPayloadBinaryType, []byte("datadata"), util.NewUint128FromInt(2), util.NewUint128FromInt(200000)),
+		NewTransaction(0, other, &Address{[]byte("to")}, util.NewUint128(), 1, TxPayloadBinaryType, []byte("datadata"), heighPrice, util.NewUint128FromInt(200000)),
 		NewTransaction(0, from, &Address{[]byte("to")}, util.NewUint128(), 1, TxPayloadBinaryType, []byte("da"), TransactionGasPrice, util.NewUint128FromInt(200000)),
 
 		NewTransaction(0, from, &Address{[]byte("to")}, util.NewUint128(), 2, TxPayloadBinaryType, []byte("da"), TransactionGasPrice, util.NewUint128FromInt(200000)),
 		NewTransaction(1, from, &Address{[]byte("to")}, util.NewUint128(), 0, TxPayloadBinaryType, []byte("da"), TransactionGasPrice, util.NewUint128FromInt(200000)),
 
 		NewTransaction(0, other, &Address{[]byte("to")}, util.NewUint128(), 1, TxPayloadBinaryType, []byte("data"), TransactionGasPrice, util.NewUint128FromInt(200000)),
-		NewTransaction(0, from, &Address{[]byte("to")}, util.NewUint128(), 1, TxPayloadBinaryType, []byte("datadata"), util.NewUint128FromInt(2), util.NewUint128FromInt(200000)),
+		NewTransaction(0, from, &Address{[]byte("to")}, util.NewUint128(), 1, TxPayloadBinaryType, []byte("datadata"), heighPrice, util.NewUint128FromInt(200000)),
 	}
 
 	txPool := NewTransactionPool(3)

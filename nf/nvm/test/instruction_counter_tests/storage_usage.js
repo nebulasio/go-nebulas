@@ -31,11 +31,11 @@ var test1 = function (k, v) {
     return lcs.get(k);
 };
 
-assertEqual(test1, ["k", "1"], "1", 56);
-assertEqual(test1, ["k", "12"], "12", 56 + 8 * 1);
-assertEqual(test1, ["k", "123"], "123", 56 + 8 * 2);
-assertEqual(test1, ["k1", "1"], "1", 56 + 8 * 1);
-assertEqual(test1, ["k12", "1"], "1", 56 + 8 * 2);
+assertEqual(test1, ["k", "1"], "1", 28);
+assertEqual(test1, ["k", "12"], "12", 28 + 1);
+assertEqual(test1, ["k", "123"], "123", 28 + 2);
+assertEqual(test1, ["k1", "1"], "1", 28 + 1);
+assertEqual(test1, ["k12", "1"], "1", 28 + 2);
 
 // test2.
 var test2 = function (k) {

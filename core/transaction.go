@@ -45,14 +45,14 @@ var (
 	TransactionMaxGas = util.NewUint128FromBigInt(util.NewUint128().Mul(util.NewUint128FromInt(50).Int,
 		util.NewUint128().Exp(util.NewUint128FromInt(10).Int, util.NewUint128FromInt(9).Int, nil)))
 
-	// TransactionGasPrice default gasPrice
-	TransactionGasPrice = util.NewUint128FromInt(1)
+	// TransactionGasPrice default gasPrice : 10**6
+	TransactionGasPrice = util.NewUint128FromBigInt(util.NewUint128().Exp(util.NewUint128FromInt(10).Int, util.NewUint128FromInt(6).Int, nil))
 
 	// TransactionGas default gas for normal transaction
 	TransactionGas = util.NewUint128FromInt(20000)
 
 	// TransactionDataGas per byte of data attached to a transaction gas cost
-	TransactionDataGas = util.NewUint128FromInt(50)
+	TransactionDataGas = util.NewUint128FromInt(1)
 
 	executeTxCounter    = metrics.GetOrRegisterCounter("tx_execute", nil)
 	executeTxErrCounter = metrics.GetOrRegisterCounter("tx_execute_err", nil)
