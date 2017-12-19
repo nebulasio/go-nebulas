@@ -31,3 +31,6 @@ normal.db*
 mozilla_js_tests*
 
 #keydir
+
+#node_modules
+node_modules

@@ -11,5 +11,8 @@
   ],
   "devDependencies": {
     "chai": "^3.0.0"
+  },
+  "dependencies": {
+    "shelljs": "^0.7.8"
   }
 }
