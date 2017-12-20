@@ -91,6 +91,10 @@ func NewP2PConfig(n Neblet) *Config {
 		config.ChainID = chainID
 	}
 
+	if networkID := n.Config().Network.NetworkId; networkID > 0 {
+		config.NetworkID = networkID
+	}
+
 	return config
 }
 

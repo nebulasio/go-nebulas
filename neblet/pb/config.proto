@@ -41,6 +41,9 @@ message NetworkConfig {
     repeated string listen = 2;
     // Network node privateKey address. If nil, generate a new node.
     string private_key = 3;
+
+    // Network ID
+    uint32 network_id = 4;
 }
 
 message ChainConfig {
