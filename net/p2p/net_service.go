@@ -125,6 +125,7 @@ type Protocol struct {
 	headerChecksum []byte
 	dataHeader     []byte
 	data           []byte
+	reserved       []byte
 }
 
 // NewNetService create netService
@@ -232,6 +233,7 @@ func (ns *NetService) parse(s libnet.Stream) (*Protocol, error) {
 	protocol := &Protocol{}
 	protocol.magicNumber = header[:offsetFour]
 	protocol.chainID = header[offsetFour:offsetEight]
+	protocol.reserved = header[offsetEight:offsetEleven]
 	protocol.version = header[offsetEleven]
 	msgName := header[offsetTwelve:offsetTwentyFour]
 	protocol.dataLength = header[offsetTwentyFour:offsetTwentyEight]
@@ -648,13 +650,14 @@ func (ns *NetService) SyncRoutes(pid peer.ID) {
 }
 
 // buildHeader build header information
-func buildHeader(chainID uint32, msgName string, version byte, dataLength uint32, dataChecksum uint32) []byte {
+func buildHeader(chainID uint32, msgName string, version byte, dataLength uint32, dataChecksum uint32, reserved []byte) []byte {
 	var metaHeader = make([]byte, offsetThirtyTwo)
 	msgNameByte := []byte(msgName)
 
 	copy(metaHeader[:], MagicNumber)
 	copy(metaHeader[offsetFour:], byteutils.FromUint32(chainID))
 	// 64-88 Reserved field
+	copy(metaHeader[offsetEight:], reserved)
 	copy(metaHeader[offsetEleven:], []byte{version})
 	copy(metaHeader[offsetTwelve:], msgNameByte)
 	copy(metaHeader[offsetTwentyFour:], byteutils.FromUint32(dataLength))
@@ -666,7 +669,8 @@ func buildHeader(chainID uint32, msgName string, version byte, dataLength uint32
 func (ns *NetService) buildData(data []byte, msgName string) []byte {
 	node := ns.node
 	dataChecksum := crc32.ChecksumIEEE(data)
-	metaHeader := buildHeader(node.config.ChainID, msgName, node.version, uint32(len(data)), dataChecksum)
+	reserved := []byte{0}
+	metaHeader := buildHeader(node.config.ChainID, msgName, node.version, uint32(len(data)), dataChecksum, reserved)
 	headerChecksum := crc32.ChecksumIEEE(metaHeader)
 	metaHeader = append(metaHeader[:], byteutils.FromUint32(headerChecksum)...)
 	totalData := append(metaHeader[:], data...)
