@@ -148,7 +148,7 @@ func (m *Manager) storeAddress(priv keystore.PrivateKey, passphrase []byte, writ
 func (m *Manager) Unlock(addr *core.Address, passphrase []byte) error {
 	res, err := m.ks.ContainsAlias(addr.String())
 	if err != nil || res == false {
-		err = m.importFile(addr, passphrase)
+		err = m.loadFile(addr, passphrase)
 		if err != nil {
 			return err
 		}
@@ -175,7 +175,7 @@ func (m *Manager) Accounts() []*core.Address {
 func (m *Manager) Update(addr *core.Address, oldPassphrase, newPassphrase []byte) error {
 	key, err := m.ks.GetKey(addr.String(), oldPassphrase)
 	if err != nil {
-		err = m.importFile(addr, oldPassphrase)
+		err = m.loadFile(addr, oldPassphrase)
 		if err != nil {
 			return err
 		}
@@ -184,8 +184,17 @@ func (m *Manager) Update(addr *core.Address, oldPassphrase, newPassphrase []byte
 	return err
 }
 
-// Import import a key file to keystore, compatible ethereum keystore file
+// Load load a key file to keystore, unable to write file
+func (m *Manager) Load(keyjson, passphrase []byte) (*core.Address, error) {
+	return m.readKey(keyjson, passphrase, false)
+}
+
+// Import import a key file to keystore, compatible ethereum keystore file, write to file
 func (m *Manager) Import(keyjson, passphrase []byte) (*core.Address, error) {
+	return m.readKey(keyjson, passphrase, true)
+}
+
+func (m *Manager) readKey(keyjson, passphrase []byte, write bool) (*core.Address, error) {
 	cipher := cipher.NewCipher(uint8(m.encryptAlg))
 	data, err := cipher.DecryptKey(keyjson, passphrase)
 	if err != nil {
@@ -195,7 +204,7 @@ func (m *Manager) Import(keyjson, passphrase []byte) (*core.Address, error) {
 	if err != nil {
 		return nil, err
 	}
-	return m.storeAddress(priv, passphrase, false)
+	return m.storeAddress(priv, passphrase, write)
 }
 
 // Export export address to key file

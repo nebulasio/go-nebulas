@@ -126,7 +126,7 @@ func TestManager_Lock(t *testing.T) {
 	os.RemoveAll(manager.keydir)
 }
 
-func TestManager_Import(t *testing.T) {
+func TestManager_Load(t *testing.T) {
 	manager := NewManager(nil)
 	passphrase := []byte("qwertyuiop")
 	key := `{
@@ -150,7 +150,7 @@ func TestManager_Import(t *testing.T) {
         "mac":"a22874c9c35e365e305b1defe6663bde930d2efbcc6c3d0db192ff44bd9dfa7c"
     }
 	}`
-	_, err := manager.Import([]byte(key), passphrase)
+	_, err := manager.Load([]byte(key), passphrase)
 	assert.Nil(t, err, "import address err")
 }
 

@@ -92,8 +92,8 @@ func (m *Manager) refreshAccounts() error {
 	return nil
 }
 
-// importFile import key to keystore in keydir
-func (m *Manager) importFile(addr *core.Address, passphrase []byte) error {
+// loadFile import key to keystore in keydir
+func (m *Manager) loadFile(addr *core.Address, passphrase []byte) error {
 	acc := m.getAccount(addr)
 	if acc == nil {
 		return ErrAddrNotFind
@@ -102,7 +102,7 @@ func (m *Manager) importFile(addr *core.Address, passphrase []byte) error {
 	if err != nil {
 		return err
 	}
-	_, err = m.Import(raw, passphrase)
+	_, err = m.Load(raw, passphrase)
 	return err
 }
 

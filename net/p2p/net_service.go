@@ -624,6 +624,11 @@ func (ns *NetService) buildData(data []byte, msgName string) []byte {
 	return totalData
 }
 
+// BuildData returns net service request data
+func (ns *NetService) BuildData(data []byte, msgName string) []byte {
+	return ns.buildData(data, msgName)
+}
+
 // Start start p2p manager.
 func (ns *NetService) Start() error {
 	err := ns.start()
