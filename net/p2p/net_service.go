@@ -140,7 +140,7 @@ func NewNetService(n Neblet) (*NetService, error) {
 func (ns *NetService) registerNetService() *NetService {
 	// register streamHandler to start loop to handle stream origined from remote node.
 	ns.node.host.SetStreamHandler(ProtocolID, ns.streamHandler)
-	log.Infof("RegisterNetService: register netservice success")
+	log.Debug("RegisterNetService: register netservice success")
 	return ns
 }
 
@@ -233,8 +233,12 @@ func (ns *NetService) parse(s libnet.Stream) (*Protocol, error) {
 	protocol.dataHeader = header[:offsetThirtyTwo]
 
 	index := bytes.IndexByte(msgName, 0)
-	msgNameByte := msgName[0:index]
-	protocol.msgName = string(msgNameByte)
+	if index != -1 {
+		msgNameByte := msgName[0:index]
+		protocol.msgName = string(msgNameByte)
+	} else {
+		protocol.msgName = string(msgName)
+	}
 
 	protocol.headerChecksum = header[offsetThirtyTwo:offsetThirtySix]
 
@@ -264,7 +268,7 @@ func (ns *NetService) parse(s libnet.Stream) (*Protocol, error) {
 		"chainID":      byteutils.Uint32(protocol.chainID),
 		"version":      protocol.version,
 		"dataChecksum": byteutils.Uint32(protocol.dataChecksum),
-	}).Info("parse protocol header data.")
+	}).Debug("parse protocol header data.")
 
 	return protocol, nil
 
@@ -313,10 +317,8 @@ func (ns *NetService) handleHelloMsg(data []byte, pid peer.ID, s libnet.Stream, 
 			peerstore.PermanentAddrTTL,
 		)
 
-		totalData := ns.buildData(okdata, OK)
-
-		if err := Write(s, totalData); err != nil {
-			log.Error("handleHelloMsg write data occurs error, ", err)
+		if err := ns.sendMsg(OK, okdata, s); err != nil {
+			log.Error("handleHelloMsg occurs error, ", err)
 			return result
 		}
 		streamStore := NewStreamStore(key, SOK, s)
@@ -332,7 +334,6 @@ func (ns *NetService) handleHelloMsg(data []byte, pid peer.ID, s libnet.Stream, 
 
 func (ns *NetService) handleOkMsg(data []byte, pid peer.ID, s libnet.Stream, addrs ma.Multiaddr, key string) bool {
 	node := ns.node
-	log.Debug("handle ok message")
 	result := false
 	defer func() {
 		if !result {
@@ -413,6 +414,7 @@ func (ns *NetService) handleSyncRouteMsg(data []byte, pid peer.ID, s libnet.Stre
 	}).Debug("reply sync route to remote node")
 
 	peersMessage := messages.NewPeersMessage(peerList)
+
 	pb, err := peersMessage.ToProto()
 	data, err = proto.Marshal(pb)
 	if err != nil {
@@ -420,17 +422,10 @@ func (ns *NetService) handleSyncRouteMsg(data []byte, pid peer.ID, s libnet.Stre
 		return result
 	}
 
-	totalData := ns.buildData(data, SyncRouteReply)
+	if err := ns.SendMsg(SyncRouteReply, data, key); err != nil {
+		return result
+	}
 
-	streamStore, ok := node.stream.Load(key)
-	if !ok {
-		log.Error("handleSyncRouteMsg occrus error, stream does not exist.")
-		return result
-	}
-	if err := Write(streamStore.(*StreamStore).stream, totalData); err != nil {
-		log.Error("handleSyncRouteMsg write data occurs error, ", err)
-		return result
-	}
 	node.routeTable.Update(pid)
 	result = true
 	return result
@@ -497,7 +492,7 @@ func (ns *NetService) verifyHeader(protocol *Protocol) bool {
 		return false
 	}
 
-	if node.chainID != byteutils.Uint32(protocol.chainID) {
+	if node.Config().ChainID != byteutils.Uint32(protocol.chainID) {
 		log.Error("verifyHeader: data verification occurs error, chainID is error, the connection will be closed.")
 		return false
 	}
@@ -525,56 +520,51 @@ func (ns *NetService) Bye(pid peer.ID, addrs []ma.Multiaddr, s libnet.Stream, ke
 func (ns *NetService) clearPeerStore(pid peer.ID, addrs []ma.Multiaddr) {
 	node := ns.node
 	node.peerstore.SetAddrs(pid, addrs, 0)
-	if !InArray(pid, node.bootIds) {
+	if !InArray(pid.Pretty(), node.bootIds) {
 		node.routeTable.Remove(pid)
 	}
 }
 
 // SendMsg send message to a peer
-func (ns *NetService) SendMsg(msgName string, msg []byte, key string) {
-	node := ns.node
+func (ns *NetService) sendMsg(msgName string, msg []byte, stream libnet.Stream) error {
+
 	log.WithFields(log.Fields{
-		"key":     key,
 		"msgName": msgName,
-	}).Info("SendMsg: send message to a peer.")
+	}).Debug("SendMsg: send message to a peer.")
 	data := msg
 	totalData := ns.buildData(data, msgName)
 
-	streamStore, ok := node.stream.Load(key)
-	if !ok {
-		log.Error("SendMsg: send message occrus error, stream does not exist.")
-		return
-	}
-
-	if err := Write(streamStore.(*StreamStore).stream, totalData); err != nil {
+	if err := Write(stream, totalData); err != nil {
 		log.Error("SendMsg: write data occurs error, ", err)
-		return
+		return err
 	}
-
 	packetOut.Mark(1)
+	return nil
+}
 
+// SendMsg send message to a peer
+func (ns *NetService) SendMsg(msgName string, msg []byte, target string) error {
+
+	node := ns.node
+	streamStore, ok := node.stream.Load(target)
+	if !ok {
+		return errors.New("handleSyncRouteMsg occrus error, stream does not exist")
+	}
+	if err := ns.sendMsg(msgName, msg, streamStore.(*StreamStore).stream); err != nil {
+		return err
+	}
+	packetOut.Mark(1)
+	return nil
 }
 
 // Hello say hello to a peer
 func (ns *NetService) Hello(pid peer.ID) error {
-	msgName := HELLO
 	node := ns.node
 	stream, err := node.host.NewStream(
 		node.context,
 		pid,
 		ProtocolID,
 	)
-	addrs := node.peerstore.PeerInfo(pid).Addrs
-	if err != nil {
-		log.Error("say hello occurs error, ", err)
-		ns.clearPeerStore(pid, addrs)
-		return err
-	}
-	if len(addrs) < 1 {
-		log.Error("Hello: wrong pid addrs")
-		ns.clearPeerStore(pid, addrs)
-		return errors.New("wrong pid addrs")
-	}
 
 	hello := messages.NewHelloMessage(node.id.String(), ClientVersion)
 	pb, _ := hello.ToProto()
@@ -582,11 +572,8 @@ func (ns *NetService) Hello(pid peer.ID) error {
 	if err != nil {
 		return err
 	}
-
-	totalData := ns.buildData(data, msgName)
-	if err := Write(stream, totalData); err != nil {
-		log.Error("Hello: write data occurs error, ", err)
-		return errors.New("Hello: write data occurs error")
+	if err = ns.sendMsg(HELLO, data, stream); err != nil {
+		return err
 	}
 	// call streamHandler explicitly to start loop to handle stream origined from this node.
 	go ns.streamHandler(stream)
@@ -603,15 +590,7 @@ func (ns *NetService) SyncRoutes(pid peer.ID) {
 		return
 	}
 	data := []byte{}
-	totalData := ns.buildData(data, SyncRoute)
-	key := pid.Pretty()
-
-	streamStore, ok := node.stream.Load(key)
-	if !ok {
-		log.Error("SyncRoutes: send message occrus error, stream does not exist.")
-		return
-	}
-	if err := Write(streamStore.(*StreamStore).stream, totalData); err != nil {
+	if err := ns.SendMsg(SyncRoute, data, pid.Pretty()); err != nil {
 		log.Error("SyncRoutes: write data occurs error, ", err)
 		ns.clearPeerStore(pid, addrs)
 		return
@@ -638,7 +617,7 @@ func buildHeader(chainID uint32, msgName string, version byte, dataLength uint32
 func (ns *NetService) buildData(data []byte, msgName string) []byte {
 	node := ns.node
 	dataChecksum := crc32.ChecksumIEEE(data)
-	metaHeader := buildHeader(node.chainID, msgName, node.version, uint32(len(data)), dataChecksum)
+	metaHeader := buildHeader(node.config.ChainID, msgName, node.version, uint32(len(data)), dataChecksum)
 	headerChecksum := crc32.ChecksumIEEE(metaHeader)
 	metaHeader = append(metaHeader[:], byteutils.FromUint32(headerChecksum)...)
 	totalData := append(metaHeader[:], data...)
@@ -734,7 +713,9 @@ func (ns *NetService) cleanPeerStore() {
 	node := ns.node
 	for _, v := range node.peerstore.Peers() {
 		if _, ok := node.stream.Load(v.Pretty()); !ok {
-			node.peerstore.ClearAddrs(v)
+			if !InArray(v.Pretty(), node.bootIds) {
+				node.peerstore.ClearAddrs(v)
+			}
 		}
 	}
 }

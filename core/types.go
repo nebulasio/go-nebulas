@@ -84,8 +84,8 @@ type TxPayload interface {
 // MessageType
 const (
 	MessageTypeNewBlock             = "newblock"
-	MessageTypeDownloadedBlock      = "downloadedblock"
-	MessageTypeDownloadedBlockReply = "downloadedblockreply"
+	MessageTypeDownloadedBlock      = "dlblock"
+	MessageTypeDownloadedBlockReply = "dlreply"
 	MessageTypeNewTx                = "newtx"
 )
 

@@ -52,7 +52,7 @@ type Manager interface {
 
 	Broadcast(name string, msg Serializable)
 	Relay(name string, msg Serializable)
-	SendMsg(name string, msg []byte, target string)
+	SendMsg(name string, msg []byte, target string) error
 }
 
 // Subscriber subscriber.

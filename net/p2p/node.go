@@ -62,7 +62,6 @@ type Node struct {
 	stream       *sync.Map
 	routeTable   *kbucket.RoutingTable
 	context      context.Context
-	chainID      uint32
 	version      uint8
 	config       *Config
 	running      bool
@@ -229,7 +228,6 @@ func (node *Node) init() error {
 	node.routeTable.Update(node.id)
 	node.stream = new(sync.Map)
 	node.streamCache = pdeque.NewPriorityDeque(less)
-	node.chainID = node.config.ChainID
 	node.version = node.config.Version
 	node.synchronized = false
 	var multiaddrs []multiaddr.Multiaddr

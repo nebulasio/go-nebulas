@@ -93,12 +93,12 @@ func (ns *NetService) doMsgTransfer(transfer []peer.ID, relayness []peer.ID, dat
 	for i := 0; i < len(transfer); i++ {
 		nodeID := transfer[i]
 		if InArray(nodeID, relayness) {
-			log.Warnf("distribute:  nodeID %s has already have the same message", nodeID)
+			log.Warnf("msgTransfer:  nodeID %s has already have the same message", nodeID)
 			continue
 		}
 		addrs := node.peerstore.PeerInfo(nodeID).Addrs
 		if len(addrs) == 0 || node.host.Addrs()[0].String() == addrs[0].String() {
-			log.Warn("distribute: skip self")
+			log.Warn("msgTransfer: skip self")
 			continue
 		}
 		if len(addrs) > 0 {

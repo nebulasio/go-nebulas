@@ -187,11 +187,22 @@ service AdminService {
 			get: "/v1/admin/dynasty"
 		};
 	}
+
 }
 
 // Request message of Subscribe rpc
 message SubscribeRequest {
     repeated string topic = 1;
+}
+
+// Request message of Update chainID.
+message UpdateChainIDRequest {
+    uint32 chain_id = 1;
+}
+
+// Response message of update chainID.
+message UpdateChainIDResponse {
+    bool result = 1;
 }
 
 // Request message of Subscribe rpc
