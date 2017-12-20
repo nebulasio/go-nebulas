@@ -127,3 +127,16 @@ func (ns *NetService) doRelay(nodes []peer.ID, relayness []peer.ID, dataChecksum
 		}
 	}
 }
+
+// BroadcastNetworkID broadcast networkID when changed.
+func (ns *NetService) BroadcastNetworkID(msg []byte) {
+	node := ns.node
+	if !node.synchronized {
+		return
+	}
+
+	allNode := node.routeTable.ListPeers()
+	for _, v := range allNode {
+		go ns.SendMsg(NetworkID, msg, v.Pretty())
+	}
+}

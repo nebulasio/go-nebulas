@@ -55,6 +55,8 @@ const (
 	SyncRouteReply = "resyncroute"
 	NewHashMsg     = "newhashmsg"
 	ClientVersion  = "0.2.0"
+	NetworkID      = "networkid"
+	NetworkIDReply = "renetworkid"
 )
 
 // MagicNumber the protocol magic number, A constant numerical or text value used to identify protocol.
@@ -189,6 +191,10 @@ func (ns *NetService) streamHandler(s libnet.Stream) {
 				ns.handleSyncRouteReplyMsg(protocol.data, pid, s, addrs)
 			case NewHashMsg:
 				ns.handleNewHashMsg(protocol.data, pid)
+			case NetworkID:
+				ns.handleNetworkIDMsg(protocol.data, pid, s)
+			case NetworkIDReply:
+				ns.handleReNetworkIDMsg(protocol.data, pid)
 			default:
 				var relayness []peer.ID
 				streamStore, ok := node.stream.Load(key)
@@ -318,9 +324,16 @@ func (ns *NetService) handleHelloMsg(data []byte, pid peer.ID, s libnet.Stream, 
 		)
 
 		if err := ns.sendMsg(OK, okdata, s); err != nil {
-			log.Error("handleHelloMsg occurs error, ", err)
+			log.Error("send ok msg occurs error, ", err)
 			return result
 		}
+
+		networkIDData := byteutils.FromUint32(node.Config().NetworkID)
+		if err := ns.sendMsg(NetworkID, networkIDData, s); err != nil {
+			log.Error("send networkID msg occurs error, ", err)
+			return result
+		}
+
 		streamStore := NewStreamStore(key, SOK, s)
 		node.stream.Store(key, streamStore)
 		node.streamCache.Insert(streamStore)
@@ -370,6 +383,24 @@ func (ns *NetService) handleOkMsg(data []byte, pid peer.ID, s libnet.Stream, add
 	log.Error("handleOkMsg get incorrect response")
 	return result
 
+}
+
+func (ns *NetService) handleNetworkIDMsg(data []byte, pid peer.ID, s libnet.Stream) {
+	node := ns.node
+	networkID := byteutils.Uint32(data)
+	node.networkIDCache.Add(pid.Pretty(), networkID)
+
+	networkIDData := byteutils.FromUint32(node.Config().NetworkID)
+	if err := ns.sendMsg(NetworkIDReply, networkIDData, s); err != nil {
+		log.Error("send networkID msg occurs error, ", err)
+	}
+
+}
+
+func (ns *NetService) handleReNetworkIDMsg(data []byte, pid peer.ID) {
+	node := ns.node
+	networkID := byteutils.Uint32(data)
+	node.networkIDCache.Add(pid.Pretty(), networkID)
 }
 
 func (ns *NetService) handleNewHashMsg(data []byte, pid peer.ID) {
@@ -531,8 +562,7 @@ func (ns *NetService) sendMsg(msgName string, msg []byte, stream libnet.Stream) 
 	log.WithFields(log.Fields{
 		"msgName": msgName,
 	}).Debug("SendMsg: send message to a peer.")
-	data := msg
-	totalData := ns.buildData(data, msgName)
+	totalData := ns.buildData(msg, msgName)
 
 	if err := Write(stream, totalData); err != nil {
 		log.Error("SendMsg: write data occurs error, ", err)
@@ -546,6 +576,10 @@ func (ns *NetService) sendMsg(msgName string, msg []byte, stream libnet.Stream) 
 func (ns *NetService) SendMsg(msgName string, msg []byte, target string) error {
 
 	node := ns.node
+	if msgName != NetworkID && !ns.checkNetworkID(target) {
+		log.Warn("can not send message, target node is not in the same network")
+		return errors.New("can not send message, target node is not in the same network")
+	}
 	streamStore, ok := node.stream.Load(target)
 	if !ok {
 		return errors.New("handleSyncRouteMsg occrus error, stream does not exist")
@@ -555,6 +589,21 @@ func (ns *NetService) SendMsg(msgName string, msg []byte, target string) error {
 	}
 	packetOut.Mark(1)
 	return nil
+}
+
+func (ns *NetService) checkNetworkID(target string) bool {
+	node := ns.node
+	targetNetworkID, ok := node.networkIDCache.Get(target)
+	if ok {
+		log.WithFields(log.Fields{
+			"targetNetworkID": targetNetworkID,
+			"result":          node.config.NetworkID & targetNetworkID.(uint32),
+		}).Debug("checkNetworkID.")
+		if node.config.NetworkID&targetNetworkID.(uint32) > 0 {
+			return true
+		}
+	}
+	return false
 }
 
 // Hello say hello to a peer

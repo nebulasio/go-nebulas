@@ -41,6 +41,7 @@ const (
 	DefaultRelayCacheSize        = 65536
 	DefaultStreamStoreSize       = 128
 	DefaultStreamStoreExtendSize = 32
+	DefaultNetworkID             = 1
 )
 
 // Config TODO: move to proto config.
@@ -58,6 +59,7 @@ type Config struct {
 	RelayCacheSize        int
 	StreamStoreSize       int
 	StreamStoreExtendSize int
+	NetworkID             uint32
 }
 
 // Neblet interface breaks cycle import dependency.
@@ -123,5 +125,6 @@ func DefautConfig() *Config {
 		DefaultRelayCacheSize,
 		DefaultStreamStoreSize,
 		DefaultStreamStoreExtendSize,
+		DefaultNetworkID,
 	}
 }

@@ -68,8 +68,9 @@ type Node struct {
 	synchronized bool
 	syncList     []string
 	// key: datachecksum value: peer.ID
-	relayness *lru.Cache
-	bootIds   []string
+	relayness      *lru.Cache
+	bootIds        []string
+	networkIDCache *lru.Cache
 }
 
 // StreamStore is for stream cache
@@ -255,6 +256,7 @@ func (node *Node) init() error {
 		nil,
 	)
 	node.relayness, err = lru.New(node.config.RelayCacheSize)
+	node.networkIDCache, err = lru.New(node.config.StreamStoreSize)
 
 	options := &basichost.HostOpts{}
 	// add nat manager

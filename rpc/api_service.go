@@ -510,3 +510,12 @@ func (s *APIService) GetEventsByHash(ctx context.Context, req *rpcpb.GetTransact
 	return nil, nil
 
 }
+
+// ChangeNetworkID change the network id
+func (s *APIService) ChangeNetworkID(ctx context.Context, req *rpcpb.ChangeNetworkIDRequest) (*rpcpb.ChangeNetworkIDResponse, error) {
+	neb := s.server.Neblet()
+	neb.NetService().Node().Config().NetworkID = req.NetworkId
+	// broadcast to all the node in the routetable.
+	neb.NetService().BroadcastNetworkID(byteutils.FromUint32(req.NetworkId))
+	return &rpcpb.ChangeNetworkIDResponse{Result: true}, nil
+}
