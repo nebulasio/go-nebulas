@@ -841,17 +841,7 @@ func (ns *NetService) SayHello(bootNode ma.Multiaddr) error {
 		peerstore.TempAddrTTL,
 	)
 	if node.host.Addrs()[0].String() != bootAddr.String() {
-		var success = false
-		for i := 0; i < 3; i++ {
-			err := ns.Hello(bootID)
-			if err != nil {
-				time.Sleep(time.Second)
-				continue
-			}
-			success = true
-			break
-		}
-		if !success {
+		if err := ns.Hello(bootID); err != nil {
 			log.WithFields(log.Fields{
 				"bootNode": bootNode,
 				"error":    err,
