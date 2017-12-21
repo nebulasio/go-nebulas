@@ -1,6 +1,6 @@
 'use strict';
 
-var Neblet = require('./neblet');
+var Neblet = require('../../neblet');
 var os = require('os');
 
 var local = "127.0.0.1";
@@ -18,7 +18,7 @@ var miners = [
 ]
 
 var nodes = new Array();
-for (var i = 0; i < miner.length; i++) {
+for (var i = 0; i < miners.length; i++) {
     var server = new Neblet(
         local, port + i, http_port + i, rpc_port + i,
         miners[i], miners[i], 'passphrase'

@@ -17,7 +17,7 @@ Neblet.prototype = {
 
     Init: function (seed) {
         if (seed) {
-            this._configName = config.createNonSeedConfig(
+            this._configName = config.createNormalConfig(
                 seed, this.port, this.http_port, this.rpc_http,
                 this.coinbase, this.miner, this.passphrase);
         } else {

@@ -13,6 +13,7 @@ neb
 nebulas_crashreporter
 !cmd/neb
 debug
+cmd/console/neb.js/dist/
 *.report
 *.report.xml
 *.log

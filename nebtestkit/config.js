@@ -108,7 +108,7 @@ exports.createSeedConfig = function (port, http_port, rpc_port, coinbase, miner,
   return dirname + '/seed.conf';
 };
 
-exports.createNormalConfig = function (seed, port, http_port, coinbase, miner, passphrase) {
+exports.createNormalConfig = function (seed, port, http_port, rpc_port, coinbase, miner, passphrase) {
   mkdirsSync(dirname);
   var dataNonSeed = {
     port: port,
