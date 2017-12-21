@@ -29,8 +29,8 @@ var config_seed =
   
   app {
     log_level: "info"
-    log_file_enable: false
-    enable_crash_report: false
+    log_file: {{log_file}}
+    enable_crash_report: true
   }
 	
 	stats {
@@ -43,7 +43,7 @@ var config_seed =
 			}
 	}`;
 
-var config_non_seed =
+var config_normal =
   `  network {
     listen: ["127.0.0.1:{{port}}"]
     seed: ["/ip4/{{seed_ip}}/tcp/{{seed_port}}/ipfs/QmPyr4ZbDmwF1nWxymTktdzspcBFPL6X1v3Q5nT7PGNtUN"]
@@ -68,8 +68,8 @@ var config_non_seed =
 
   app {
     log_level: "info"
-    log_file_enable: false
-    enable_crash_report: false
+    log_file: {{log_file}}
+    enable_crash_report: true
   }
 
   stats {
@@ -82,7 +82,7 @@ var config_non_seed =
       }
   }`;
 
-var now = Date.now();
+var now = new Date().getTime();
 var dirname = tempdir + '/nebulas/' + now;
 console.log(dirname);
 
@@ -92,9 +92,10 @@ exports.createSeedConfig = function (port, http_port, rpc_port, coinbase, miner,
     port: port,
     rpc_port: rpc_port,
     http_port: http_port,
-    coinbase: coinbase,
-    miner: miner,
-    passphrase: passphrase,
+    coinbase: '"' + coinbase + '"',
+    miner: '"' + miner + '"',
+    passphrase: '"' + passphrase + '"',
+    log_file: '"' + dirname + '/seed.log' + '"',
     data_location: '"' + dirname + '/seed.db' + '"'
   };
   var configSeed = new Buffer(render(config_seed, dataSeed));
@@ -104,7 +105,7 @@ exports.createSeedConfig = function (port, http_port, rpc_port, coinbase, miner,
     }
   });
 
-  return dirname + '/seed.conf';
+  return dirname + '/seed';
 };
 
 exports.createNormalConfig = function (seed, port, http_port, rpc_port, coinbase, miner, passphrase) {
@@ -115,19 +116,20 @@ exports.createNormalConfig = function (seed, port, http_port, rpc_port, coinbase
     seed_port: seed.port,
     rpc_port: rpc_port,
     http_port: http_port,
-    coinbase: coinbase,
-    miner: miner,
-    passphrase: passphrase,
+    coinbase: '"' + coinbase + '"',
+    miner: '"' + miner + '"',
+    passphrase: '"' + passphrase + '"',
+    log_file: '"' + dirname + '/normal.' + (port - seed.port) + '.log' + '"',
     data_location: '"' + dirname + '/normal.' + (port - seed.port) + '.db' + '"'
   };
-  var configNonSeed = new Buffer(render(config_non_seed, dataNonSeed));
+  var configNonSeed = new Buffer(render(config_normal, dataNonSeed));
   fs.writeFile(dirname + '/normal.' + (port - seed.port) + '.conf', configNonSeed, { flag: 'w' }, function (err) {
     if (err) {
       console.error(err);
     }
   });
 
-  return dirname + '/normal.' + (port - seed.port) + '.conf';
+  return dirname + '/normal.' + (port - seed.port);
 };
 
 function render(tpl, data) {

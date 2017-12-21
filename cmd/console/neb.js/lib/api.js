@@ -24,51 +24,53 @@ API.prototype.accounts = function () {
 };
 
 API.prototype.blockDump = function (count) {
-	var params = {"count":count};
+	var params = { "count": count };
 	return this.request("post", "/v1/user/blockdump", params);
 };
 
 API.prototype.getAccountState = function (address) {
-	var params = {"address":address};
+	var params = { "address": address };
 	return this.request("post", "/v1/user/accountstate", params);
 };
 
 API.prototype.sendTransaction = function (from, to, value, nonce, source, args, gasPrice, gasLimit, contract) {
-	var params = {"from": from,
-        "to": to,
-        "value": utils.toString(value),
-        "nonce": nonce,
-        "gasPrice": utils.toString(gasPrice),
-        "gasLimit": utils.toString(gasLimit),
-        "contract": contract
+	var params = {
+		"from": from,
+		"to": to,
+		"value": utils.toString(value),
+		"nonce": nonce,
+		"gasPrice": utils.toString(gasPrice),
+		"gasLimit": utils.toString(gasLimit),
+		"contract": contract
 	};
 	return this.request("post", "/v1/user/transaction", params);
 };
 
 API.prototype.call = function (from, to, value, nonce, gasPrice, gasLimit, contract) {
-    var params = {"from": from,
-        "to": to,
-        "value": utils.toString(value),
-        "nonce": nonce,
-        "gasPrice": utils.toString(gasPrice),
-        "gasLimit": utils.toString(gasLimit),
-        "contract": contract
-    };
+	var params = {
+		"from": from,
+		"to": to,
+		"value": utils.toString(value),
+		"nonce": nonce,
+		"gasPrice": utils.toString(gasPrice),
+		"gasLimit": utils.toString(gasLimit),
+		"contract": contract
+	};
 	return this.request("post", "/v1/user/call", params);
 };
 
 API.prototype.sendRawTransaction = function (data) {
-	var params = {"data": data};
+	var params = { "data": data };
 	return this.request("post", "/v1/user/rawtransaction", params);
 };
 
 API.prototype.getBlockByHash = function (hash) {
-	var params = {"hash": hash};
+	var params = { "hash": hash };
 	return this.request("post", "/v1/user/getBlockByHash", params);
 };
 
 API.prototype.getTransactionReceipt = function (hash) {
-	var params = {"hash": hash};
+	var params = { "hash": hash };
 	return this.request("post", "/v1/user/getTransactionReceipt", params);
 };
 

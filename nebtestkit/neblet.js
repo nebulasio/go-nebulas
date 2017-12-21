@@ -18,19 +18,19 @@ Neblet.prototype = {
     Init: function (seed) {
         if (seed) {
             this._configName = config.createNormalConfig(
-                seed, this.port, this.http_port, this.rpc_http,
+                seed, this.port, this.http_port, this.rpc_port,
                 this.coinbase, this.miner, this.passphrase);
         } else {
             this._configName = config.createSeedConfig(
-                this.port, this.http_port, this.rpc_http,
+                this.port, this.http_port, this.rpc_port,
                 this.coinbase, this.miner, this.passphrase);
         }
     },
 
     Start: function () {
         var spawn = require('child_process').spawn;
-        var neb = spawn('./neb', ['-c', this._configName]);
-        var logPath = this._configName + '.log';
+        var neb = spawn('./neb', ['-c', this._configName + '.conf']);
+        var logPath = this._configName + '.debug.log';
         neb.stdout.on('data', function (data) {
             fs.writeFile(logPath, data, {
                 flag: 'a'
