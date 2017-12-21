@@ -18,6 +18,7 @@ var miners = [
 ]
 
 var nodes = new Array();
+var servers = new Array();
 for (var i = 0; i < miners.length; i++) {
     var server = new Neblet(
         local, port + i, http_port + i, rpc_port + i,
@@ -27,7 +28,9 @@ for (var i = 0; i < miners.length; i++) {
     if (i == 0) {
         server.Init()
     } else {
-        server.Init(nodes[0])
+        server.Init(servers[0])
     }
+    servers.push(server);
     nodes.push(node);
+    console.log(server);
 }

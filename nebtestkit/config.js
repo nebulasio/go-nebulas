@@ -84,6 +84,7 @@ var config_non_seed =
 
 var now = Date.now();
 var dirname = tempdir + '/nebulas/' + now;
+console.log(dirname);
 
 exports.createSeedConfig = function (port, http_port, rpc_port, coinbase, miner, passphrase) {
   mkdirsSync(dirname);
@@ -100,8 +101,6 @@ exports.createSeedConfig = function (port, http_port, rpc_port, coinbase, miner,
   fs.writeFile(dirname + '/seed.conf', configSeed, { flag: 'w' }, function (err) {
     if (err) {
       console.error(err);
-    } else {
-      console.log('generate default config file success.');
     }
   });
 
@@ -125,8 +124,6 @@ exports.createNormalConfig = function (seed, port, http_port, rpc_port, coinbase
   fs.writeFile(dirname + '/normal.' + (port - seed.port) + '.conf', configNonSeed, { flag: 'w' }, function (err) {
     if (err) {
       console.error(err);
-    } else {
-      console.log('generate normal config file success.');
     }
   });
 
