@@ -129,13 +129,16 @@ func (n *Neblet) Start() error {
 	if err = n.netService.Start(); err != nil {
 		return err
 	}
+
+	go n.apiServer.Start()
+	go n.apiServer.RunGateway()
+
 	n.blockChain.BlockPool().Start()
 	n.blockChain.TransactionPool().Start()
 	n.eventEmitter.Start()
+
 	n.consensus.Start()
 	n.syncManager.Start()
-	go n.apiServer.Start()
-	go n.apiServer.RunGateway()
 
 	if n.config.Stats.EnableMetrics {
 		go metrics.Start(n)

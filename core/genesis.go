@@ -110,7 +110,6 @@ func NewGenesisBlock(conf *corepb.Genesis, chain *BlockChain) (*Block, error) {
 		}
 		acc := genesisBlock.accState.GetOrCreateUserAccount(addr.address)
 		acc.AddBalance(util.NewUint128FromString(v.Value))
-		log.Info(acc.Balance().Int64())
 	}
 	genesisBlock.commit()
 

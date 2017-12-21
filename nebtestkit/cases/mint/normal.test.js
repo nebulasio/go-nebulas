@@ -32,45 +32,34 @@ for (var i = 0; i < miners.length; i++) {
     } else {
         server.Init(servers[0])
     }
+    var node = server.Start()
+    nodes.push(node)
     servers.push(server);
     agents.push(agent);
 }
 
-var node = servers[0].Start()
-console.log(0);
-nodes.push(node)
-
 describe('seed server start correctly', function () {
     before(function (done) {
         this.timeout(6000);
-        setTimeout(done, 5000);
+        setTimeout(done, 4000);
     });
 
     it('check status', function () {
         var nodeInfo = agents[0].api.nodeInfo()
         expect(nodeInfo.chain_id).to.be.equal(100);
     });
-
-    it('start normal servers', function () {
-        for (var i = 1; i < servers.length; i++) {
-            console.log(i);
-            var node = servers[i].Start()
-            nodes.push(node)
-        }
-    });
 });
 
 describe('normal servers start correctly', function () {
     before(function (done) {
-        this.timeout(10000);
-        setTimeout(done, 8000);
+        this.timeout(6000);
+        setTimeout(done, 4000);
     });
 
     it('check status', function () {
         for (var i = 1; i < agents.length; i++) {
             var nodeInfo = agents[i].api.nodeInfo()
             expect(nodeInfo.chain_id).to.be.equal(100);
-            // expect(nodeInfo.route_table[0]).to.be.have.property('id').equals('QmPyr4ZbDmwF1nWxymTktdzspcBFPL6X1v3Q5nT7PGNtUN');
             expect(nodeInfo.route_table).to.be.have.contains({ "id": "QmPyr4ZbDmwF1nWxymTktdzspcBFPL6X1v3Q5nT7PGNtUN", "address": ["/ip4/127.0.0.1/tcp/10000"] });
         }
     });

@@ -735,6 +735,7 @@ func (ns *NetService) start() error {
 			if err != nil {
 				log.Error("net.start: can not say hello to trusted node.", bootNode, err)
 			} else {
+				log.Debug("net.start: say hello to trusted node.", bootNode)
 				success = true
 			}
 
