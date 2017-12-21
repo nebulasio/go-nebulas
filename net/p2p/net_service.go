@@ -799,6 +799,10 @@ func (ns *NetService) clearStreamStore() {
 func Write(writer io.Writer, data []byte) error {
 	result := make(chan error, 1)
 	go func(writer io.Writer, data []byte) {
+		if writer == nil {
+			result <- errors.New("write data occurs error, write is nil")
+			return
+		}
 		_, err := writer.Write(data)
 		result <- err
 	}(writer, data)
