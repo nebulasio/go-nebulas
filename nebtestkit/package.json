@@ -13,7 +13,8 @@
     "chai": "^3.0.0"
   },
   "dependencies": {
+    "bignumber.js": "*",
     "shelljs": "^0.7.8",
-    "bignumber.js": "*"
+    "sync-request": "^4.1.0"
   }
 }

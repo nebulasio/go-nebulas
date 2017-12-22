@@ -13,12 +13,12 @@ if (typeof window !== "undefined" && window.XMLHttpRequest) {
 }
 
 var HttpRequest = function (host, timeout) {
-	this.host = host || "http://localhost:8191";
+	this.host = host || "http://localhost:8090";
 	this.timeout = timeout || 0;
 };
 
 HttpRequest.prototype.setHost = function (host) {
-	this.host = host || "http://localhost:8191";
+	this.host = host || "http://localhost:8090";
 };
 
 HttpRequest.prototype._newRequest = function (method, api, async) {
