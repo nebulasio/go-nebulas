@@ -13,6 +13,7 @@
     "chai": "^3.0.0"
   },
   "dependencies": {
-    "shelljs": "^0.7.8"
+    "shelljs": "^0.7.8",
+    "bignumber.js": "*"
   }
 }

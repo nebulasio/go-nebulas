@@ -40,6 +40,7 @@ Neblet.prototype = {
                 }
             });
         });
+        this.neb = neb;
 
         return neb;
     },
@@ -47,6 +48,20 @@ Neblet.prototype = {
     NebJs: function () {
         var httpRequest = new HttpRequest('http://' + this.ip + ':' + this.http_port);
         return new Neb(httpRequest);
+    },
+
+    RPC: function () {
+        return this.NebJs();
+    },
+
+    Coinbase: function () {
+        return this.coinbase;
+    },
+    Passphrase: function () {
+        return this.passphrase;
+    },
+    Kill: function () {
+        this.neb.kill('SIGINT');
     },
 };
 
