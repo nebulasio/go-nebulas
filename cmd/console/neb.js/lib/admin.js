@@ -27,31 +27,39 @@ Admin.prototype.lockAccount = function (address) {
 	return this.request("post", "/v1/admin/account/lock", params);
 };
 
-Admin.prototype.signTransaction = function (from, to, value, nonce, gasPrice, gasLimit, contract) {
+Admin.prototype.signTransaction = function (from, to, value, nonce, gasPrice, gasLimit, contract, candidate, delegate) {
     var params = {"from": from,
         "to": to,
         "value": utils.toString(value),
         "nonce": nonce,
         "gasPrice": utils.toString(gasPrice),
         "gasLimit": utils.toString(gasLimit),
-        "contract": contract
+        "contract": contract,
+        "candidate": candidate,
+        "delegate": delegate
     };
 	return this.request("post", "/v1/admin/sign", params);
 };
 
-Admin.prototype.sendTransactionWithPassphrase = function (from, to, value, nonce, gasPrice, gasLimit, contract, passphrase) {
+Admin.prototype.sendTransactionWithPassphrase = function (from, to, value, nonce, gasPrice, gasLimit, contract, candidate, delegate, passphrase) {
     var tx = {"from": from,
         "to": to,
         "value": utils.toString(value),
         "nonce": nonce,
         "gasPrice": utils.toString(gasPrice),
         "gasLimit": utils.toString(gasLimit),
-        "contract": contract
+        "contract": contract,
+        "candidate": candidate,
+        "delegate": delegate
     };
     var params = {"transaction": tx,
         "passphrase": passphrase
 	};
 	return this.request("post", "/v1/admin/transactionWithPassphrase", params);
+};
+
+Admin.prototype.getDynasty = function () {
+    return this.request("get", "/v1/admin/dynasty");
 };
 
 Admin.prototype.request = function (method, api, params) {

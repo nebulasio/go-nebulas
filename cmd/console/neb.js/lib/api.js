@@ -33,29 +33,29 @@ API.prototype.getAccountState = function (address) {
 	return this.request("post", "/v1/user/accountstate", params);
 };
 
-API.prototype.sendTransaction = function (from, to, value, nonce, source, args, gasPrice, gasLimit, contract) {
-	var params = {
-		"from": from,
-		"to": to,
-		"value": utils.toString(value),
-		"nonce": nonce,
-		"gasPrice": utils.toString(gasPrice),
-		"gasLimit": utils.toString(gasLimit),
-		"contract": contract
+API.prototype.sendTransaction = function (from, to, value, nonce, gasPrice, gasLimit, contract, candidate, delegate) {
+	var params = {"from": from,
+        "to": to,
+        "value": utils.toString(value),
+        "nonce": nonce,
+        "gasPrice": utils.toString(gasPrice),
+        "gasLimit": utils.toString(gasLimit),
+        "contract": contract,
+        "candidate": candidate,
+        "delegate": delegate
 	};
 	return this.request("post", "/v1/user/transaction", params);
 };
 
 API.prototype.call = function (from, to, value, nonce, gasPrice, gasLimit, contract) {
-	var params = {
-		"from": from,
-		"to": to,
-		"value": utils.toString(value),
-		"nonce": nonce,
-		"gasPrice": utils.toString(gasPrice),
-		"gasLimit": utils.toString(gasLimit),
-		"contract": contract
-	};
+    var params = {"from": from,
+        "to": to,
+        "value": utils.toString(value),
+        "nonce": nonce,
+        "gasPrice": utils.toString(gasPrice),
+        "gasLimit": utils.toString(gasLimit),
+        "contract": contract
+    };
 	return this.request("post", "/v1/user/call", params);
 };
 
@@ -72,6 +72,34 @@ API.prototype.getBlockByHash = function (hash) {
 API.prototype.getTransactionReceipt = function (hash) {
 	var params = { "hash": hash };
 	return this.request("post", "/v1/user/getTransactionReceipt", params);
+};
+
+API.prototype.subscribe = function (topic) {
+    var params = { "topic": topic };
+    return this.request("post", "/v1/user/subscribe", params);
+};
+
+API.prototype.gasPrice = function () {
+    return this.request("get", "/v1/user/getGasPrice");
+};
+
+API.prototype.estimateGas = function (from, to, value, nonce, gasPrice, gasLimit, contract, candidate, delegate) {
+    var params = {"from": from,
+        "to": to,
+        "value": utils.toString(value),
+        "nonce": nonce,
+        "gasPrice": utils.toString(gasPrice),
+        "gasLimit": utils.toString(gasLimit),
+        "contract": contract,
+        "candidate": candidate,
+        "delegate": delegate
+    };
+    return this.request("post", "/v1/user/estimateGas", params);
+};
+
+API.prototype.getEventsByHash = function (hash) {
+    var params = { "hash": hash };
+    return this.request("post", "/v1/user/getEventsByHash", params);
 };
 
 API.prototype.request = function (method, api, params) {
