@@ -611,11 +611,16 @@ func (ns *NetService) checkNetworkID(target string) bool {
 // Hello say hello to a peer
 func (ns *NetService) Hello(pid peer.ID) error {
 	node := ns.node
+
 	stream, err := node.host.NewStream(
 		node.context,
 		pid,
 		ProtocolID,
 	)
+	defer stream.Close()
+	if err != nil {
+		return err
+	}
 
 	hello := messages.NewHelloMessage(node.id.String(), ClientVersion)
 	pb, _ := hello.ToProto()
@@ -838,7 +843,7 @@ func (ns *NetService) SayHello(bootNode ma.Multiaddr) error {
 	node.peerstore.AddAddr(
 		bootID,
 		bootAddr,
-		peerstore.TempAddrTTL,
+		peerstore.ProviderAddrTTL,
 	)
 	if node.host.Addrs()[0].String() != bootAddr.String() {
 		if err := ns.Hello(bootID); err != nil {
