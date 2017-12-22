@@ -617,7 +617,6 @@ func (ns *NetService) Hello(pid peer.ID) error {
 		pid,
 		ProtocolID,
 	)
-	defer stream.Close()
 	if err != nil {
 		return err
 	}
