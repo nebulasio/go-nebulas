@@ -141,24 +141,6 @@
 
 [[projects]]
   branch = "master"
-  name = "github.com/jbenet/go-msgio"
-  packages = [".","mpool"]
-  revision = "242a3f4ed2d0098bff2f25b1bd32f4254e803b23"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/jbenet/go-reuseport"
-  packages = [".","poll","singlepoll"]
-  revision = "c5d151d96d2a1f8cf5059a161dec4098de939225"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/jbenet/go-sockaddr"
-  packages = ["net"]
-  revision = "2e7ea655c10e4d4d73365f0f073b81b39cb08ee1"
-
-[[projects]]
-  branch = "master"
   name = "github.com/jbenet/go-temp-err-catcher"
   packages = ["."]
   revision = "aac704a3f4f27190b4ccc05f303a4931fd1241ff"
@@ -201,21 +183,9 @@
 
 [[projects]]
   branch = "master"
-  name = "github.com/libp2p/go-libp2p-interface-connmgr"
-  packages = ["."]
-  revision = "2d407456dc007099a2eebf82037f645160952655"
-
-[[projects]]
-  branch = "master"
   name = "github.com/libp2p/go-libp2p-conn"
   packages = ["."]
   revision = "cac05849bae7557fcad8e3f42cc03c89bad45fb1"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/libp2p/go-libp2p-connmgr"
-  packages = ["."]
-  revision = "9e07a19f917303b987adc8d6cfbe1fd87c8abc3d"
 
 [[projects]]
   branch = "master"
@@ -234,6 +204,12 @@
   name = "github.com/libp2p/go-libp2p-interface-conn"
   packages = ["."]
   revision = "e4aa48663dcc3f94df3e268ff986214ceb50fc96"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/libp2p/go-libp2p-interface-connmgr"
+  packages = ["."]
+  revision = "2d407456dc007099a2eebf82037f645160952655"
 
 [[projects]]
   branch = "master"
@@ -315,9 +291,27 @@
 
 [[projects]]
   branch = "master"
+  name = "github.com/libp2p/go-msgio"
+  packages = [".","mpool"]
+  revision = "d82125c9907e1365775356505f14277d47dfd4d6"
+
+[[projects]]
+  branch = "master"
   name = "github.com/libp2p/go-peerstream"
   packages = ["."]
   revision = "897bba6345df97eef1861f5ec4226f9c62697ac6"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/libp2p/go-reuseport"
+  packages = [".","poll","singlepoll"]
+  revision = "2a863ed0ff1167e16ff48dd1de862b180af3bf27"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/libp2p/go-sockaddr"
+  packages = ["net"]
+  revision = "7f35106c80c67752f88217d797aa6d099ead99f9"
 
 [[projects]]
   branch = "master"
@@ -354,6 +348,12 @@
   name = "github.com/multiformats/go-multiaddr-net"
   packages = ["."]
   revision = "376ba58703c84bfff9ca6e0057adf38ad48d3de5"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/multiformats/go-multicodec"
+  packages = [".","json"]
+  revision = "fd289ac41fba9e574f214ab2a808a1678ef8810c"
 
 [[projects]]
   branch = "master"
@@ -556,6 +556,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "f3ddf5fb02de0fe4ea5ae245f813e0bf50ab325b580cabda548f9d63334fcbf2"
+  inputs-digest = "aa2f63179639bef478af042e06903d32df0b3d8709e92877217a0c849fd9b4e8"
   solver-name = "gps-cdcl"
   solver-version = 1
