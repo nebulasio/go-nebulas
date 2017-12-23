@@ -99,11 +99,7 @@ exports.createSeedConfig = function (port, http_port, rpc_port, coinbase, miner,
     data_location: '"' + dirname + '/seed.db' + '"'
   };
   var configSeed = new Buffer(render(config_seed, dataSeed));
-  fs.writeFile(dirname + '/seed.conf', configSeed, { flag: 'w' }, function (err) {
-    if (err) {
-      console.error(err);
-    }
-  });
+  fs.writeFileSync(dirname + '/seed.conf', configSeed, "utf-8");
 
   return dirname + '/seed';
 };
@@ -123,11 +119,7 @@ exports.createNormalConfig = function (seed, port, http_port, rpc_port, coinbase
     data_location: '"' + dirname + '/normal.' + (port - seed.port) + '.db' + '"'
   };
   var configNonSeed = new Buffer(render(config_normal, dataNonSeed));
-  fs.writeFile(dirname + '/normal.' + (port - seed.port) + '.conf', configNonSeed, { flag: 'w' }, function (err) {
-    if (err) {
-      console.error(err);
-    }
-  });
+  fs.writeFileSync(dirname + '/normal.' + (port - seed.port) + '.conf', configNonSeed, 'utf-8');
 
   return dirname + '/normal.' + (port - seed.port);
 };
