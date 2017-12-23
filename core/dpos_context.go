@@ -661,8 +661,6 @@ func GenesisDynastyContext(storage storage.Storage, conf *corepb.Genesis) (*Dyna
 
 // NextDynastyContext when some seconds elapsed
 func (block *Block) NextDynastyContext(elapsedSecond int64) (*DynastyContext, error) {
-	log.Info("Next Dynasty Context ", elapsedSecond, "\n")
-
 	dynastyTrie, err := block.dposContext.dynastyTrie.Clone()
 	if err != nil {
 		return nil, err

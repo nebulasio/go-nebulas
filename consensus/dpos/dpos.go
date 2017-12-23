@@ -147,11 +147,19 @@ func (p *Dpos) forkChoice() {
 			"func": "Dpos.ForkChoice",
 		}).Info("current tail is the highest, no change.")
 	} else {
-		log.WithFields(log.Fields{
-			"func":      "Dpos.ForkChoice",
-			"tailBlock": newTailBlock,
-		}).Info("change to new tail.")
-		bc.SetTailBlock(newTailBlock)
+		err := bc.SetTailBlock(newTailBlock)
+		if err != nil {
+			log.WithFields(log.Fields{
+				"func":      "Dpos.ForkChoice",
+				"tailBlock": newTailBlock,
+				"err":       err,
+			}).Error("set tail failed.")
+		} else {
+			log.WithFields(log.Fields{
+				"func":      "Dpos.ForkChoice",
+				"tailBlock": newTailBlock,
+			}).Info("change to new tail.")
+		}
 	}
 }
 
@@ -244,7 +252,6 @@ func (p *Dpos) VerifyBlock(block *core.Block, parent *core.Block) error {
 }
 
 func (p *Dpos) mintBlock() {
-	log.Info("Mint Block")
 	// check can do mining
 	if !p.canMining {
 		return

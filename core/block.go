@@ -548,8 +548,7 @@ func (block *Block) Seal() error {
 }
 
 func (block *Block) String() string {
-	return fmt.Sprintf("Block %p {height:%d; hash:%s; parentHash:%s; accState: %s; nonce:%d, timestamp: %d; coinbase: %s}",
-		block,
+	return fmt.Sprintf("{\"height\":%d, \"hash\":\"%s\", \"parentHash\":\"%s\", \"accState\":\"%s\", \"nonce\":%d, \"timestamp\": %d, \"coinbase\": \"%s\"}",
 		block.height,
 		byteutils.Hex(block.header.hash),
 		byteutils.Hex(block.header.parentHash),

@@ -385,17 +385,20 @@ func (bc *BlockChain) getAncestorHash(number int) byteutils.Hash {
 
 // Dump dump full chain.
 func (bc *BlockChain) Dump(count int) string {
-	rl := make([]string, 1)
+	rl := []string{}
 	block := bc.tailBlock
-	for i := 0; i < count; i++ {
+	log.Info("Dump ", count)
+	log.Info("Tail ", bc.tailBlock)
+	rl = append(rl, block.String())
+	for i := 1; i < count; i++ {
 		if !CheckGenesisBlock(block) {
 			block = bc.GetBlock(block.ParentHash())
-			rl = append(rl,
-				block.String())
+			rl = append(rl, block.String())
 		}
 	}
 
-	rls := strings.Join(rl, " ")
+	rls := "[" + strings.Join(rl, ",") + "]"
+	log.Info("Blocks ", rls)
 	return rls
 }
 

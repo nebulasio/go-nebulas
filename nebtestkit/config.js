@@ -30,7 +30,7 @@ var config_seed =
   app {
     log_level: "debug"
     log_file: {{log_file}}
-    enable_crash_report: true
+    enable_crash_report: false
   }
 	
 	stats {
@@ -69,7 +69,7 @@ var config_normal =
   app {
     log_level: "debug"
     log_file: {{log_file}}
-    enable_crash_report: true
+    enable_crash_report: false
   }
 
   stats {
