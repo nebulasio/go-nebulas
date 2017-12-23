@@ -579,7 +579,7 @@ func (ns *NetService) SendMsg(msgName string, msg []byte, target string) error {
 
 	node := ns.node
 	if msgName != NetworkID && !ns.checkNetworkID(target) {
-		log.Warn("can not send message, target node is not in the same network")
+		log.Warn("can not send message, target node is not in the same network ", target)
 		return errors.New("can not send message, target node is not in the same network")
 	}
 	streamStore, ok := node.stream.Load(target)
@@ -612,11 +612,13 @@ func (ns *NetService) checkNetworkID(target string) bool {
 func (ns *NetService) Hello(pid peer.ID) error {
 	node := ns.node
 
+	start := time.Now().Unix()
 	stream, err := node.host.NewStream(
 		node.context,
 		pid,
 		ProtocolID,
 	)
+	log.Error("HelloPerf ", time.Now().Unix()-start, " err ", err)
 	if err != nil {
 		return err
 	}

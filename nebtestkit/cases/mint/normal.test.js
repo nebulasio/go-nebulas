@@ -54,8 +54,9 @@ for (var i = 0; i < miners.length; i++) {
 var node = servers[0].Start()
 console.log(0);
 nodes.push(node)
+sleep(5000)
 
-describe('seed server start correctly', function () {
+/* describe('seed server start correctly', function () {
     before(function (done) {
         this.timeout(10000);
         setTimeout(done, 4000);
@@ -89,9 +90,9 @@ describe('normal servers start correctly', function () {
             expect(nodeInfo.route_table).to.be.have.contains({ "id": "QmPyr4ZbDmwF1nWxymTktdzspcBFPL6X1v3Q5nT7PGNtUN", "address": ["/ip4/127.0.0.1/tcp/10000"] });
         }
     });
-});
+}); */
 
-describe('check dump blocks', function () {
+/* describe('check dump blocks', function () {
     it('check no empty slots', function () {
         var size = miners.length;
         var block = null;
@@ -104,7 +105,7 @@ describe('check dump blocks', function () {
             console.log(blocks[0]);
             if (block == null) {
                 block = blocks[0]
-            } else {
+            } else if (block.height > 1) {
                 expect(blocks[0].height).to.be.gt(block.height)
                 expect(blocks[0].timestamp - block.timestamp).to.be.equal((blocks[0].height - block.height) * 5)
                 expect(now.getTime() / 1000).to.be.lte(blocks[0].timestamp + 7)
@@ -113,12 +114,23 @@ describe('check dump blocks', function () {
             sleep(5000);
         }
     });
-})
+}) */
 
-describe('quit', function () {
+/* describe('quit', function () {
     it('quit', function () {
         for (var i = 0; i < nodes.length; i++) {
             nodes[i].kill('SIGINT');
         }
     });
-});
+}); */
+
+for (var i = 1; i < servers.length; i++) {
+    var node = servers[i].Start()
+    console.log(i);
+    nodes.push(node)
+}
+sleep(10000)
+
+for (var i = 0; i < nodes.length; i++) {
+    nodes[i].kill('SIGINT');
+}
