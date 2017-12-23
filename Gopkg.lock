@@ -191,25 +191,31 @@
   branch = "master"
   name = "github.com/libp2p/go-libp2p"
   packages = ["p2p/host/basic","p2p/protocol/identify","p2p/protocol/identify/pb"]
-  revision = "7cb4b74841950fc7f48fd2d369f260f71210dfa1"
+  revision = "edb6434ddf456f58fbe2538d5336435a23915bd9"
 
 [[projects]]
   branch = "master"
   name = "github.com/libp2p/go-libp2p-circuit"
   packages = [".","pb"]
-  revision = "61b99f90ee19a1a28b1e491cc076920b8d437efd"
+  revision = "4730183d80def7bc574e1b486b1f6e97a5c67bb9"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/libp2p/go-libp2p-interface-connmgr"
+  packages = ["."]
+  revision = "2d407456dc007099a2eebf82037f645160952655"
 
 [[projects]]
   branch = "master"
   name = "github.com/libp2p/go-libp2p-conn"
   packages = ["."]
-  revision = "61ba9076bb8fb65ff24ad1242aa6f512da6ae695"
+  revision = "cac05849bae7557fcad8e3f42cc03c89bad45fb1"
 
 [[projects]]
   branch = "master"
   name = "github.com/libp2p/go-libp2p-connmgr"
   packages = ["."]
-  revision = "358a6a7cddb35e2494c98bb602a8e6901c0066bc"
+  revision = "9e07a19f917303b987adc8d6cfbe1fd87c8abc3d"
 
 [[projects]]
   branch = "master"
@@ -221,115 +227,115 @@
   branch = "master"
   name = "github.com/libp2p/go-libp2p-host"
   packages = ["."]
-  revision = "cb85161026a1612c8c9d132a654edf711839bd98"
+  revision = "75df99651313a12e380c25eb359856d6bcc3c332"
 
 [[projects]]
   branch = "master"
   name = "github.com/libp2p/go-libp2p-interface-conn"
   packages = ["."]
-  revision = "b3243beaa4d5ee07591b5b3e0a0f18e37b61b8f9"
+  revision = "e4aa48663dcc3f94df3e268ff986214ceb50fc96"
 
 [[projects]]
   branch = "master"
   name = "github.com/libp2p/go-libp2p-interface-pnet"
   packages = ["."]
-  revision = "28cd03f4a907f498f60a56a20de93320dc0b68c3"
+  revision = "5f0531425ec87d70c89f255de3bd96701dfcf562"
 
 [[projects]]
   branch = "master"
   name = "github.com/libp2p/go-libp2p-kbucket"
   packages = [".","keyspace"]
-  revision = "8dfe5c299a9e7440e59ea0a0e2c495bf02122119"
+  revision = "5ce3bb926eeeadf90708fec12343cbf858ed24b6"
 
 [[projects]]
   branch = "master"
   name = "github.com/libp2p/go-libp2p-loggables"
   packages = ["."]
-  revision = "bb8a0d998a5284b1ccbcea9dc07c2abe66d6451b"
+  revision = "6e6fb87d3d931c325ac557a00c24ec08e8aec3bf"
 
 [[projects]]
   branch = "master"
   name = "github.com/libp2p/go-libp2p-metrics"
   packages = [".","conn","stream"]
-  revision = "46a441d384f185669b32052794e40e0412dbbdff"
+  revision = "1ac87496e992290629575655bea4330dd4ab211e"
 
 [[projects]]
   branch = "master"
   name = "github.com/libp2p/go-libp2p-nat"
   packages = ["."]
-  revision = "9e4c905f5516e03f855f6fbd9e5e89823884d880"
+  revision = "22f3bbcb92c0542889c1ccad062e9157de062ffe"
 
 [[projects]]
   branch = "master"
   name = "github.com/libp2p/go-libp2p-net"
   packages = ["."]
-  revision = "77bfd37daa5a74bafe4567e12696e3ceeadbfede"
+  revision = "f4c6c7b7bcf224f75bc9bd547b83aaf9d2655dc3"
 
 [[projects]]
   branch = "master"
   name = "github.com/libp2p/go-libp2p-peer"
   packages = ["."]
-  revision = "d863b451638c441d046c53834ccfef13beebd025"
+  revision = "bbf6c212429f9c279d99a91d2e5fd3fa8f06b0f9"
 
 [[projects]]
   branch = "master"
   name = "github.com/libp2p/go-libp2p-peerstore"
   packages = [".","addr"]
-  revision = "b2087a91b1d6f5f0c4477c71a51a32eb68a8c685"
+  revision = "89838b9577a2b83eb3e1632c162cfd0daeee58e3"
 
 [[projects]]
   branch = "master"
   name = "github.com/libp2p/go-libp2p-protocol"
   packages = ["."]
-  revision = "86bfc440c3e51ec65a4629219623cc5c7e31f16a"
+  revision = "e34f0d7468b3519bf9bf4e43c1d028ce651eab51"
 
 [[projects]]
   branch = "master"
   name = "github.com/libp2p/go-libp2p-secio"
   packages = [".","pb"]
-  revision = "59400d5311f58f959ce2ebeb10a5e1d0deb6e7e5"
+  revision = "0cdc8339ad2e4f7f32e67b6a481bfbd48be5c704"
 
 [[projects]]
   branch = "master"
   name = "github.com/libp2p/go-libp2p-swarm"
   packages = ["."]
-  revision = "e5826f12654cdfad869cf3456ce3c89b4fd6c11d"
+  revision = "0c514e78b69fa48d1332d0fd252c83cf67724b87"
 
 [[projects]]
   branch = "master"
   name = "github.com/libp2p/go-libp2p-transport"
   packages = ["."]
-  revision = "1275f6d9b4355ca72bd7c8590c02ab0e043421fd"
+  revision = "6ab1c8a1eaa770e840dfc81050c0dd5199ed8103"
 
 [[projects]]
   branch = "master"
   name = "github.com/libp2p/go-maddr-filter"
   packages = ["."]
-  revision = "ac6a10c4e30dabf1a55aa0f51102ae4daed951fb"
+  revision = "4e9ea17d7a48d63e00b22a953357d1a335f80cf3"
 
 [[projects]]
   branch = "master"
   name = "github.com/libp2p/go-peerstream"
   packages = ["."]
-  revision = "f93b4def7e7299b4a591fe9ed4022b890f2bc254"
+  revision = "897bba6345df97eef1861f5ec4226f9c62697ac6"
 
 [[projects]]
   branch = "master"
   name = "github.com/libp2p/go-stream-muxer"
   packages = ["."]
-  revision = "6ebe3f58af097068454b167a89442050b023b571"
+  revision = "740c590020d83cffa5a092f6a08901ff0d96cc93"
 
 [[projects]]
   branch = "master"
   name = "github.com/libp2p/go-tcp-transport"
   packages = ["."]
-  revision = "6dbadcc9c57be74ad0ebfb2031e865cb902977d2"
+  revision = "67ea83433b542708c50b1fb76bc1e5e3a5a4c3f1"
 
 [[projects]]
   branch = "master"
   name = "github.com/libp2p/go-ws-transport"
   packages = ["."]
-  revision = "5bd7350ee4509a70ebec7c38ac5bae385e314a0a"
+  revision = "de6160a1d0a6c2df87ed00dd607353fb33932e48"
 
 [[projects]]
   branch = "master"
