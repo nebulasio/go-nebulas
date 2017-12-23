@@ -44,8 +44,8 @@ func LoadDeployPayload(bytes []byte) (*DeployPayload, error) {
 // NewDeployPayload with source & args
 func NewDeployPayload(source, sourceType, args string) *DeployPayload {
 	return &DeployPayload{
-		SourceType: sourceType,
 		Source:     source,
+		SourceType: sourceType,
 		Args:       args,
 	}
 }

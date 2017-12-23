@@ -214,7 +214,7 @@ func parseTransaction(neb Neblet, reqTx *rpcpb.TransactionRequest) (*core.Transa
 	)
 	if reqTx.Contract != nil && len(reqTx.Contract.Source) > 0 {
 		payloadType = core.TxPayloadDeployType
-		payload, err = core.NewDeployPayload(reqTx.Contract.SourceType, reqTx.Contract.Source, reqTx.Contract.Args).ToBytes()
+		payload, err = core.NewDeployPayload(reqTx.Contract.Source, reqTx.Contract.SourceType, reqTx.Contract.Args).ToBytes()
 	} else if reqTx.Contract != nil && len(reqTx.Contract.Function) > 0 {
 		payloadType = core.TxPayloadCallType
 		payload, err = core.NewCallPayload(reqTx.Contract.Function, reqTx.Contract.Args).ToBytes()

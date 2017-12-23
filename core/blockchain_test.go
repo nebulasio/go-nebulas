@@ -207,3 +207,67 @@ func TestBlockChain_FetchDescendantInCanonicalChain(t *testing.T) {
 	assert.Equal(t, len(blocks0), 0)
 	assert.Nil(t, err0)
 }
+
+func TestBlockChain_EstimateGas(t *testing.T) {
+	priv := secp256k1.GeneratePrivateKey()
+	pubdata, _ := priv.PublicKey().Encoded()
+	from, _ := NewAddressFromPublicKey(pubdata)
+	to := &Address{from.address}
+
+	source := `
+'use strict';
+
+var StandardToken = function () {
+    LocalContractStorage.defineProperties(this, {
+        name: null,
+        symbol: null,
+        totalSupply: null,
+        totalIssued: null
+    });
+    LocalContractStorage.defineMapProperty(this, "balances");
+};
+
+StandardToken.prototype = {
+    init: function (name, symbol, totalSupply) {
+        this.name = name;
+        this.symbol = symbol;
+        this.totalSupply = totalSupply;
+        this.totalIssued = 0;
+    },
+    totalSupply: function () {
+        return this.totalSupply;
+    },
+    balanceOf: function (owner) {
+        return this.balances.get(owner) || 0;
+    },
+    transfer: function (to, value) {
+        var balance = this.balanceOf(msg.sender);
+        if (balance < value) {
+            return false;
+        }
+
+        var finalBalance = balance - value;
+        this.balances.set(msg.sender, finalBalance);
+        this.balances.set(to, this.balanceOf(to) + value);
+        return true;
+    },
+    pay: function (msg, amount) {
+        if (this.totalIssued + amount > this.totalSupply) {
+            throw new Error("too much amount, exceed totalSupply");
+        }
+        this.balances.set(msg.sender, this.balanceOf(msg.sender) + amount);
+        this.totalIssued += amount;
+    }
+};
+
+module.exports = StandardToken;
+	`
+	payload, err := NewDeployPayload(source, "js", "[\"Nebulas\", \"NAS\", 1000000000]").ToBytes()
+	assert.Nil(t, err)
+
+	tx := NewTransaction(0, from, to, util.NewUint128FromInt(0), 1, TxPayloadDeployType, payload, TransactionGasPrice, util.NewUint128FromInt(200000))
+	bc, _ := NewBlockChain(testNeb())
+
+	_, err = bc.EstimateGas(tx)
+	assert.Nil(t, err)
+}

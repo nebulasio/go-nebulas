@@ -318,6 +318,13 @@ func (tx *Transaction) Execute(block *Block) (*util.Uint128, error) {
 		executeTxCounter.Inc(1)
 	}
 
+	log.WithFields(log.Fields{
+		"transaction": tx,
+		"txType": tx.data.Type,
+		"gasUsed": gasUsed.String(),
+		"gasExecution": gasExecution.String(),
+	}).Debug("Transaction Execute.")
+
 	// gas = tx.CalculateGas() +  gasExecution
 	gas := util.NewUint128FromBigInt(gasUsed.Add(gasUsed.Int, gasExecution.Int))
 	gasCost := util.NewUint128().Mul(tx.GasPrice().Int, gas.Int)
