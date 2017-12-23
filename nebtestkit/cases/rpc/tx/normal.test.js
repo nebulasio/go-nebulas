@@ -4,7 +4,7 @@ var Node = require('../../../node');
 var expect = require('chai').expect;
 var BigNumber = require('bignumber.js');
 
-var nodes = new Node(2);
+var nodes = new Node(6);
 nodes.Start();
 
 describe('normal transaction', function () {
