@@ -135,9 +135,20 @@ func (s *APIService) GetAccountState(ctx context.Context, req *rpcpb.GetAccountS
 		return nil, err
 	}
 
-	// TODO: handle specific block number.
-	balance := neb.BlockChain().TailBlock().GetBalance(addr.Bytes())
-	nonce := neb.BlockChain().TailBlock().GetNonce(addr.Bytes())
+	block := neb.BlockChain().TailBlock()
+	if len(req.Block) > 0 {
+		blockHash, err := byteutils.FromHex(req.Block)
+		if err != nil {
+			return nil, err
+		}
+		block = neb.BlockChain().GetBlock(blockHash)
+		if block == nil {
+			return nil, errors.New("block hash not found")
+		}
+	}
+
+	balance := block.GetBalance(addr.Bytes())
+	nonce := block.GetNonce(addr.Bytes())
 
 	return &rpcpb.GetAccountStateResponse{Balance: balance.String(), Nonce: fmt.Sprintf("%d", nonce)}, nil
 }

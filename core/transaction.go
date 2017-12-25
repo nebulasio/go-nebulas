@@ -319,9 +319,9 @@ func (tx *Transaction) Execute(block *Block) (*util.Uint128, error) {
 	}
 
 	log.WithFields(log.Fields{
-		"transaction": tx,
-		"txType": tx.data.Type,
-		"gasUsed": gasUsed.String(),
+		"transaction":  tx,
+		"txType":       tx.data.Type,
+		"gasUsed":      gasUsed.String(),
 		"gasExecution": gasExecution.String(),
 	}).Debug("Transaction Execute.")
 
