@@ -265,6 +265,8 @@ func (tx *Transaction) Execute(block *Block) (*util.Uint128, error) {
 			"error":       ErrOutofGasLimit,
 			"block":       block,
 			"transaction": tx,
+			"used":        gasUsed.Int64(),
+			"given":       tx.gasLimit.Int64(),
 		}).Error("Transaction Execute.")
 		// if gasUsed > gasLimit, burn the gas and do nothing
 		gas := util.NewUint128().Mul(tx.GasPrice().Int, tx.gasLimit.Int)
@@ -302,7 +304,7 @@ func (tx *Transaction) Execute(block *Block) (*util.Uint128, error) {
 	gasExecution, err := payload.Execute(tx, block)
 	if err != nil {
 		log.WithFields(log.Fields{
-			"error":       ErrTxExecutionFailed,
+			"error":       err,
 			"block":       block,
 			"transaction": tx,
 		}).Error("Transaction Execute.")
@@ -322,6 +324,7 @@ func (tx *Transaction) Execute(block *Block) (*util.Uint128, error) {
 		"txType":       tx.data.Type,
 		"gasUsed":      gasUsed.String(),
 		"gasExecution": gasExecution.String(),
+		"gasLimited":   tx.gasLimit.String(),
 	}).Debug("Transaction Execute.")
 
 	// gas = tx.CalculateGas() +  gasExecution

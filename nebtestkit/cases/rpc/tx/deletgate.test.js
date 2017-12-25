@@ -42,8 +42,8 @@ describe('change candidates & votes', function () {
         expect(resp).to.not.have.property("error");
         resp = node.RPC().api.sendTransaction(
             node.Coinbase(), node.Coinbase(),
-            0, 1, 0, 200000,
-            null, { Action: "logout" }, null);
+            0, 1, 0, 20000000,
+            null, { action: "logout" }, null);
         console.log(resp);
         expect(resp).to.be.have.property("txhash");
     });
@@ -55,8 +55,8 @@ describe('change candidates & votes', function () {
         expect(resp).to.not.have.property("error");
         resp = node.RPC().api.sendTransaction(
             node.Coinbase(), node.Coinbase(),
-            0, 2, 0, 200000,
-            null, null, { Action: "delegate", Delegatee: "fc751b484bd5296f8d267a8537d33f25a848f7f7af8cfcf6" });
+            0, 2, 0, 20000000,
+            null, null, { action: "do", delegatee: "fc751b484bd5296f8d267a8537d33f25a848f7f7af8cfcf6" });
         console.log(resp);
         expect(resp).to.be.have.property("txhash");
     });
@@ -67,12 +67,12 @@ describe('check dynasty', function () {
         var node = nodes.Node(0);
         for (var i = 0; i < 100; i++) {
             var dynasty = parseInt((new Date().getTime() / 1000 - now) / dynastyInterval);
-            var resp = node.RPC().api.getDynasty();
+            var resp = node.RPC().admin.getDynasty();
             console.log(dynasty);
             console.log(resp);
             if (dynasty > 2) {
                 console.log("fc751b484bd5296f8d267a8537d33f25a848f7f7af8cfcf6 is No.1")
-                console.log("1a263547d167c74cf4b8f9166cfa244de0481c514a45aa2c logout")
+                console.log("2fe3f9f51f9a05dd5f7c5329127f7c917917149b4e16b0b8 logout")
             }
             sleep(5000);
         }
