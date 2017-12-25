@@ -23,6 +23,10 @@ API.prototype.accounts = function () {
     return this.request("get", "/v1/user/accounts");
 };
 
+API.prototype.getDynasty = function () {
+    return this.request("get", "/v1/admin/dynasty");
+};
+
 API.prototype.blockDump = function (count) {
     var params = { "count": count };
     return this.request("post", "/v1/user/blockdump", params);
