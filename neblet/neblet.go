@@ -64,7 +64,6 @@ func New(config nebletpb.Config) (*Neblet, error) {
 	var err error
 	n := &Neblet{config: config}
 	n.genesis, err = core.LoadGenesisConf(config.Chain.Genesis)
-	log.Error(err)
 	if err != nil {
 		return nil, err
 	}
