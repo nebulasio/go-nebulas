@@ -15,6 +15,10 @@ var isObject = function (obj) {
     return obj !== null && typeof obj === 'object';
 };
 
+var isFunction = function (object) {
+    return typeof object === 'function';
+};
+
 var toBigNumber = function (number) {
 	number = number || 0;
 	if (isBigNumber(number)) {
@@ -42,6 +46,7 @@ module.exports = {
 	isBigNumber: isBigNumber,
 	isString: isString,
 	isObject: isObject,
+    isFunction: isFunction,
 	toBigNumber: toBigNumber,
 	toString: toString
 };
