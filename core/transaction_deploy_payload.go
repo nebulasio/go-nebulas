@@ -74,7 +74,7 @@ func (payload *DeployPayload) Execute(tx *Transaction, block *Block) (*util.Uint
 	if err == nil {
 		block.accState = ctx.State()
 	}
-	return util.NewUint128FromInt(int64(engine.ExecutionInstructions())), nil
+	return util.NewUint128FromInt(int64(engine.ExecutionInstructions())), err
 }
 
 func generateDeployContext(tx *Transaction, block *Block) (*nvm.Context, error) {

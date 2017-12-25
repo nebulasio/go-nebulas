@@ -72,7 +72,7 @@ func (payload *CallPayload) Execute(tx *Transaction, block *Block) (*util.Uint12
 	if err == nil {
 		block.accState = ctx.State()
 	}
-	return util.NewUint128FromInt(int64(engine.ExecutionInstructions())), nil
+	return util.NewUint128FromInt(int64(engine.ExecutionInstructions())), err
 }
 
 func generateCallContext(tx *Transaction, block *Block) (*nvm.Context, *DeployPayload, error) {

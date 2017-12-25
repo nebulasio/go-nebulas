@@ -44,6 +44,7 @@ var (
 	ErrInsufficientBalance               = errors.New("insufficient balance")
 	ErrBelowGasPrice                     = errors.New("below the gas price")
 	ErrOutofGasLimit                     = errors.New("out of gas limit")
+	ErrTxExecutionFailed                 = errors.New("transaction exexcution failed")
 	ErrInvalidSignature                  = errors.New("invalid transaction signature")
 	ErrInvalidTransactionHash            = errors.New("invalid transaction hash")
 	ErrMissingParentBlock                = errors.New("cannot find a on-chain block's parent block in storage")

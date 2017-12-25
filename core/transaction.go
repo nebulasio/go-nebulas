@@ -302,7 +302,7 @@ func (tx *Transaction) Execute(block *Block) (*util.Uint128, error) {
 	gasExecution, err := payload.Execute(tx, block)
 	if err != nil {
 		log.WithFields(log.Fields{
-			"error":       ErrOutofGasLimit,
+			"error":       ErrTxExecutionFailed,
 			"block":       block,
 			"transaction": tx,
 		}).Error("Transaction Execute.")
@@ -313,7 +313,6 @@ func (tx *Transaction) Execute(block *Block) (*util.Uint128, error) {
 		// accept the transaction
 		fromAcc.SubBalance(tx.value)
 		toAcc.AddBalance(tx.value)
-		fromAcc.IncreNonce()
 
 		executeTxCounter.Inc(1)
 	}
@@ -330,6 +329,8 @@ func (tx *Transaction) Execute(block *Block) (*util.Uint128, error) {
 	gasCost := util.NewUint128().Mul(tx.GasPrice().Int, gas.Int)
 	fromAcc.SubBalance(util.NewUint128FromBigInt(gasCost))
 	coinbaseAcc.AddBalance(util.NewUint128FromBigInt(gasCost))
+
+	fromAcc.IncreNonce()
 
 	// record tx execution success event
 	tx.triggerEvent(TopicExecuteTxSuccess, block)
