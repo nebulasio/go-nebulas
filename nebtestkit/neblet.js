@@ -1,7 +1,7 @@
 var config = require('./config');
 var fs = require('fs');
 var Neb = require('../cmd/console/neb.js/lib/neb.js');
-var HttpRequest = require("./node-request");
+var HttpRequest = require("../cmd/console/neb.js/lib/httprequest");
 
 var Neblet = function (ip, port, http_port, rpc_port, coinbase, miner, passphrase) {
     this.ip = ip;
