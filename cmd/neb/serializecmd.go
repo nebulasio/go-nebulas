@@ -108,7 +108,7 @@ type blockHeaderJSON struct {
 	ParentHash string `json:"parent_hash"`
 	Coinbase   string `json:"coinbase"`
 	Nonce      string `json:"nonce"`
-	timestamp  int64  `json:"timestamp"`
+	Timestamp  int64  `json:"timestamp"`
 	ChainID    uint32 `json:"chain_id"`
 }
 
@@ -116,7 +116,7 @@ type blockJSON struct {
 	Header       blockHeaderJSON `json:"header"`
 	Miner        string          `json:"miner"`
 	Transactions txJSON          `json:"transactions"`
-	height       uint64          `json:"height"`
+	Height       uint64          `json:"height"`
 
 	// from key file path
 	Keyfile string `json:"keyfile"`

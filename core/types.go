@@ -73,6 +73,7 @@ var (
 	ErrInitialDynastyNotEnough           = errors.New("the size of initial dynasty in genesis block is un-safe, should be greater than or equal " + strconv.Itoa(SafeSize))
 )
 
+// Default gas count
 var (
 	DefaultPayloadGas = util.NewUint128FromInt(1)
 )
