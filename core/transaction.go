@@ -255,28 +255,15 @@ func (tx *Transaction) Execute(block *Block) (*util.Uint128, error) {
 	toAcc := block.accState.GetOrCreateUserAccount(tx.to.address)
 	coinbaseAcc := block.accState.GetOrCreateUserAccount(block.CoinbaseHash())
 
+	// balance < tx's value + gasLimit*gasPric
 	if fromAcc.Balance().Cmp(tx.Cost().Int) < 0 {
 		return nil, ErrInsufficientBalance
 	}
 
 	gasUsed := tx.CalculateGas()
+	// gasLimit < gasUsed
 	if tx.gasLimit.Cmp(gasUsed.Int) < 0 {
-		log.WithFields(log.Fields{
-			"error":       ErrOutOfGasLimit,
-			"block":       block,
-			"transaction": tx,
-			"used":        gasUsed.Int64(),
-			"given":       tx.gasLimit.Int64(),
-		}).Error("Transaction Execute.")
-		// if gasUsed > gasLimit, burn the gas and do nothing
-		gas := util.NewUint128().Mul(tx.GasPrice().Int, tx.gasLimit.Int)
-		fromAcc.SubBalance(util.NewUint128FromBigInt(gas))
-		coinbaseAcc.AddBalance(util.NewUint128FromBigInt(gas))
-
-		fromAcc.IncrNonce()
-
-		tx.triggerEvent(TopicExecuteTxFailed, block)
-		return tx.gasLimit, nil
+		return nil, ErrOutOfGasLimit
 	}
 
 	// execute payload
@@ -312,7 +299,7 @@ func (tx *Transaction) Execute(block *Block) (*util.Uint128, error) {
 		}).Error("Transaction Execute.")
 
 		executeTxErrCounter.Inc(1)
-		tx.triggerEvent(TopicExecuteTxFailed, block)
+		tx.triggerEvent(TopicExecuteTxFailed, block, err)
 	} else {
 		// accept the transaction
 		fromAcc.SubBalance(tx.value)
@@ -338,12 +325,27 @@ func (tx *Transaction) Execute(block *Block) (*util.Uint128, error) {
 	fromAcc.IncrNonce()
 
 	// record tx execution success event
-	tx.triggerEvent(TopicExecuteTxSuccess, block)
+	tx.triggerEvent(TopicExecuteTxSuccess, block, nil)
 	return gas, nil
 }
 
-func (tx *Transaction) triggerEvent(topic string, block *Block) {
-	txData, _ := json.Marshal(tx)
+func (tx *Transaction) triggerEvent(topic string, block *Block, err error) {
+	var txData []byte
+	pbTx, _ := tx.ToProto()
+	if err != nil {
+		var (
+			txErrEvent struct {
+				Transaction proto.Message `json:"transaction"`
+				Error       error         `json:"error"`
+			}
+		)
+		txErrEvent.Transaction = pbTx
+		txErrEvent.Error = err
+		txData, _ = json.Marshal(txErrEvent)
+	} else {
+		txData, _ = json.Marshal(pbTx)
+	}
+
 	event := &Event{Topic: topic,
 		Data: string(txData)}
 	block.recordEvent(tx.hash, event)
