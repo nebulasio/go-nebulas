@@ -834,7 +834,7 @@ func (block *Block) acceptTransaction(tx *Transaction) error {
 	return nil
 }
 
-func (block *Block) executeTransaction(tx *Transaction) (giveback bool, err error) {
+func (block *Block) checkTransaction(tx *Transaction) (giveback bool, err error) {
 	// check duplication
 	if proof, _ := block.txsTrie.Prove(tx.hash); proof != nil {
 		return false, ErrDuplicatedTransaction
@@ -846,6 +846,13 @@ func (block *Block) executeTransaction(tx *Transaction) (giveback bool, err erro
 		return false, ErrSmallTransactionNonce
 	} else if tx.nonce > fromAcc.Nonce()+1 {
 		return true, ErrLargeTransactionNonce
+	}
+	return false, nil
+}
+
+func (block *Block) executeTransaction(tx *Transaction) (giveback bool, err error) {
+	if giveback, err := block.checkTransaction(tx); err != nil {
+		return giveback, err
 	}
 
 	if _, err := tx.VerifyExecution(block); err != nil {

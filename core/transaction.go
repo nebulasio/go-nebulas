@@ -55,6 +55,13 @@ var (
 	// GasCountPerByte per byte of data attached to a transaction gas cost
 	GasCountPerByte = util.NewUint128FromInt(1)
 
+	// DelegateBaseGasCount is base gas count of delegate transaction
+	DelegateBaseGasCount = util.NewUint128FromInt(20000)
+	// CandidateBaseGasCount is base gas count of candidate transaction
+	CandidateBaseGasCount = util.NewUint128FromInt(20000)
+	// ZeroGasCount is zero gas count
+	ZeroGasCount = util.NewUint128()
+
 	executeTxCounter    = metrics.GetOrRegisterCounter("tx_execute", nil)
 	executeTxErrCounter = metrics.GetOrRegisterCounter("tx_execute_err", nil)
 )
@@ -291,32 +298,39 @@ func (tx *Transaction) VerifyExecution(block *Block) (*util.Uint128, error) {
 		return nil, ErrInsufficientBalance
 	}
 
-	gasUsed := tx.GasCountOfTxBase()
 	// gasLimit < gasUsed
+	gasUsed := tx.GasCountOfTxBase()
 	if tx.gasLimit.Cmp(gasUsed.Int) < 0 {
 		return nil, ErrOutOfGasLimit
 	}
 
 	payload, err := tx.LoadPayload()
 	if err != nil {
-		tx.gasConsumption(fromAcc, coinbaseAcc, gasUsed)
-
-		fromAcc.IncrNonce()
-
+		log.WithFields(log.Fields{
+			"error":       err,
+			"block":       block,
+			"transaction": tx,
+			"func":        "Transaction.LoadPayload",
+		}).Error("Transaction Execute.")
 		executeTxErrCounter.Inc(1)
-		tx.triggerEvent(TopicExecuteTxFailed, block, err)
 
-		return gasUsed, err
+		tx.gasConsumption(fromAcc, coinbaseAcc, gasUsed)
+		tx.triggerEvent(TopicExecuteTxFailed, block, err)
+		return gasUsed, nil
 	}
 
 	if tx.gasLimit.Cmp(util.NewUint128().Add(gasUsed.Int, payload.BaseGasCount().Int)) < 0 {
-		tx.gasConsumption(fromAcc, coinbaseAcc, tx.gasLimit)
-
-		fromAcc.IncrNonce()
-
+		log.WithFields(log.Fields{
+			"error":       ErrOutOfGasLimit,
+			"block":       block,
+			"transaction": tx,
+			"func":        "Transaction.BaseGasCount",
+		}).Error("Transaction Execute.")
 		executeTxErrCounter.Inc(1)
+
+		tx.gasConsumption(fromAcc, coinbaseAcc, tx.gasLimit)
 		tx.triggerEvent(TopicExecuteTxFailed, block, err)
-		return tx.gasLimit, ErrOutOfGasLimit
+		return tx.gasLimit, nil
 	}
 
 	// execute smart contract and sub the calcute gas.
@@ -344,7 +358,6 @@ func (tx *Transaction) VerifyExecution(block *Block) (*util.Uint128, error) {
 		executeTxErrCounter.Inc(1)
 		tx.triggerEvent(TopicExecuteTxFailed, block, err)
 	} else {
-
 		if fromAcc.Balance().Cmp(tx.value.Int) < 0 {
 			log.WithFields(log.Fields{
 				"error":       ErrInsufficientBalance,
@@ -360,8 +373,6 @@ func (tx *Transaction) VerifyExecution(block *Block) (*util.Uint128, error) {
 			toAcc.AddBalance(tx.value)
 
 			executeTxCounter.Inc(1)
-
-			// record tx execution success event
 			tx.triggerEvent(TopicExecuteTxSuccess, block, nil)
 		}
 	}
