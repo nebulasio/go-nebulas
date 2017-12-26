@@ -212,7 +212,7 @@ func (pool *TransactionPool) push(tx *Transaction) error {
 	}
 
 	// verify hash & sign of tx
-	if err := tx.Verify(pool.bc.chainID); err != nil {
+	if err := tx.VerifyIntegrity(pool.bc.chainID); err != nil {
 		invalidTxCounter.Inc(1)
 		return err
 	}

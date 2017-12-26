@@ -371,7 +371,7 @@ func (bc *BlockChain) EstimateGas(tx *Transaction) (*util.Uint128, error) {
 	fromAcc.AddBalance(tx.MinBalanceRequired())
 	fromAcc.AddBalance(tx.value)
 	defer bc.tailBlock.accState.RollBack()
-	return tx.Execute(bc.tailBlock)
+	return tx.VerifyExecution(bc.tailBlock)
 }
 
 func (bc *BlockChain) getAncestorHash(number int) byteutils.Hash {

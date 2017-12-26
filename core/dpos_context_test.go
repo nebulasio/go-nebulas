@@ -40,6 +40,8 @@ func checkDynasty(t *testing.T, dynasty *trie.BatchTrie) {
 func TestBlock_NextDynastyContext(t *testing.T) {
 	neb := testNeb()
 	chain, _ := NewBlockChain(neb)
+	var c MockConsensus
+	chain.SetConsensusHandler(c)
 	block, _ := LoadBlockFromStorage(GenesisHash, chain.storage, chain.txPool, neb.emitter)
 
 	context, err := block.NextDynastyContext(BlockInterval)
@@ -85,7 +87,7 @@ func TestBlock_NextDynastyContext(t *testing.T) {
 	newBlock, _ = mockBlockFromNetwork(newBlock)
 	newBlock.LinkParentBlock(chain.tailBlock)
 	newBlock.SetMiner(coinbase)
-	assert.Nil(t, newBlock.Verify(chain.ChainID()))
+	assert.Nil(t, newBlock.VerifyExecution(chain.tailBlock, chain.ConsensusHandler()))
 }
 
 func TestBlock_ElectNewDynasty(t *testing.T) {
@@ -118,6 +120,8 @@ func TestBlock_ElectNewDynasty(t *testing.T) {
 func TestBlock_Kickout(t *testing.T) {
 	neb := testNeb()
 	chain, _ := NewBlockChain(neb)
+	var c MockConsensus
+	chain.SetConsensusHandler(c)
 	validators, _ := TraverseDynasty(chain.tailBlock.dposContext.dynastyTrie)
 	coinbase := &Address{validators[2]}
 
@@ -129,9 +133,9 @@ func TestBlock_Kickout(t *testing.T) {
 	block.SetMiner(coinbase)
 	assert.Equal(t, block.Seal(), nil)
 	block, _ = mockBlockFromNetwork(block)
-	assert.Equal(t, block.LinkParentBlock(chain.tailBlock), true)
+	assert.Equal(t, block.LinkParentBlock(chain.tailBlock), nil)
 	block.SetMiner(coinbase)
-	assert.Nil(t, block.Verify(0))
+	assert.Nil(t, block.VerifyExecution(chain.tailBlock, chain.ConsensusHandler()))
 	chain.SetTailBlock(block)
 	checkDynasty(t, chain.tailBlock.dposContext.dynastyTrie)
 	checkDynasty(t, chain.tailBlock.dposContext.nextDynastyTrie)
@@ -144,9 +148,9 @@ func TestBlock_Kickout(t *testing.T) {
 	block.SetMiner(coinbase)
 	assert.Equal(t, block.Seal(), nil)
 	block, _ = mockBlockFromNetwork(block)
-	assert.Equal(t, block.LinkParentBlock(chain.tailBlock), true)
+	assert.Equal(t, block.LinkParentBlock(chain.tailBlock), nil)
 	block.SetMiner(coinbase)
-	assert.Nil(t, block.Verify(0))
+	assert.Nil(t, block.VerifyExecution(chain.tailBlock, chain.ConsensusHandler()))
 	chain.SetTailBlock(block)
 	checkDynasty(t, chain.tailBlock.dposContext.dynastyTrie)
 	checkDynasty(t, chain.tailBlock.dposContext.nextDynastyTrie)

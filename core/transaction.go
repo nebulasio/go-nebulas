@@ -279,8 +279,8 @@ func (tx *Transaction) LoadPayload() (TxPayload, error) {
 	return payload, err
 }
 
-// Execute transaction and return result.
-func (tx *Transaction) Execute(block *Block) (*util.Uint128, error) {
+// VerifyExecution transaction and return result.
+func (tx *Transaction) VerifyExecution(block *Block) (*util.Uint128, error) {
 	// check balance.
 	fromAcc := block.accState.GetOrCreateUserAccount(tx.from.address)
 	toAcc := block.accState.GetOrCreateUserAccount(tx.to.address)
@@ -366,8 +366,8 @@ func (tx *Transaction) Execute(block *Block) (*util.Uint128, error) {
 		}
 	}
 
-	fromAcc.IncrNonce()
-
+	// record tx execution success event
+	tx.triggerEvent(TopicExecuteTxSuccess, block, nil)
 	return gas, nil
 }
 
@@ -415,8 +415,8 @@ func (tx *Transaction) Sign(signature keystore.Signature) error {
 	return nil
 }
 
-// Verify return transaction verify result, including Hash and Signature.
-func (tx *Transaction) Verify(chainID uint32) error {
+// VerifyIntegrity return transaction verify result, including Hash and Signature.
+func (tx *Transaction) VerifyIntegrity(chainID uint32) error {
 	// check ChainID.
 	if tx.chainID != chainID {
 		return ErrInvalidChainID

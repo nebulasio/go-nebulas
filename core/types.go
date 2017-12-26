@@ -40,6 +40,7 @@ const (
 // Error Types
 var (
 	ErrInvalidTxPayloadType              = errors.New("invalid transaction data payload type")
+	ErrLinkToWrongParentBlock            = errors.New("link the block to a block who is not its parent")
 	ErrInvalidContractAddress            = errors.New("invalid contract address")
 	ErrInsufficientBalance               = errors.New("insufficient balance")
 	ErrBelowGasPrice                     = errors.New("below the gas price")

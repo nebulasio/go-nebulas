@@ -368,9 +368,9 @@ func (block *Block) VerifyAddress(str string) bool {
 }
 
 // LinkParentBlock link parent block, return true if hash is the same; false otherwise.
-func (block *Block) LinkParentBlock(parentBlock *Block) bool {
+func (block *Block) LinkParentBlock(parentBlock *Block) error {
 	if block.ParentHash().Equals(parentBlock.Hash()) == false {
-		return false
+		return ErrLinkToWrongParentBlock
 	}
 
 	var err error
@@ -380,7 +380,7 @@ func (block *Block) LinkParentBlock(parentBlock *Block) bool {
 			"block": parentBlock,
 			"err":   err,
 		}).Error("cannot clone account state.")
-		return false
+		return err
 	}
 	if block.txsTrie, err = parentBlock.txsTrie.Clone(); err != nil {
 		log.WithFields(log.Fields{
@@ -388,7 +388,7 @@ func (block *Block) LinkParentBlock(parentBlock *Block) bool {
 			"block": parentBlock,
 			"err":   err,
 		}).Error("cannot clone txs state.")
-		return false
+		return err
 	}
 	if block.eventsTrie, err = parentBlock.eventsTrie.Clone(); err != nil {
 		log.WithFields(log.Fields{
@@ -396,7 +396,7 @@ func (block *Block) LinkParentBlock(parentBlock *Block) bool {
 			"block": parentBlock,
 			"err":   err,
 		}).Error("cannot clone events state.")
-		return false
+		return err
 	}
 	elapsedSecond := block.Timestamp() - parentBlock.Timestamp()
 	context, err := parentBlock.NextDynastyContext(elapsedSecond)
@@ -405,8 +405,8 @@ func (block *Block) LinkParentBlock(parentBlock *Block) bool {
 			"func":  "block.LinkParentBlock",
 			"block": parentBlock,
 			"err":   err,
-		}).Error("calculate next dynasty context.")
-		return false
+		}).Error("cannot generate next dynasty context.")
+		return err
 	}
 	block.LoadDynastyContext(context)
 	block.txPool = parentBlock.txPool
@@ -415,7 +415,7 @@ func (block *Block) LinkParentBlock(parentBlock *Block) bool {
 	block.height = parentBlock.height + 1
 	block.eventEmitter = parentBlock.eventEmitter
 
-	return true
+	return nil
 }
 
 func (block *Block) begin() {
@@ -543,16 +543,16 @@ func (block *Block) String() string {
 	)
 }
 
-// Verify return block verify result, including Hash, Nonce and StateRoot.
-func (block *Block) Verify(chainID uint32) error {
-	if err := block.verifyHash(chainID); err != nil {
+// VerifyExecution execute the block and verify the execution result.
+func (block *Block) VerifyExecution(parent *Block, consensus Consensus) error {
+	// verify the block is acceptable by consensus
+	if err := consensus.VerifyBlock(block, parent); err != nil {
 		return err
 	}
 
-	// begin state transaction.
 	block.begin()
 
-	if err := block.Execute(); err != nil {
+	if err := block.execute(); err != nil {
 		block.rollback()
 		return err
 	}
@@ -562,10 +562,9 @@ func (block *Block) Verify(chainID uint32) error {
 		return err
 	}
 
-	// commit.
 	block.commit()
 
-	// trigger event
+	// release all events
 	block.triggerEvent()
 
 	return nil
@@ -611,24 +610,30 @@ func (block *Block) triggerEvent() {
 	block.eventEmitter.Trigger(e)
 }
 
-// VerifyHash return hash verify result.
-func (block *Block) verifyHash(chainID uint32) error {
+// VerifyIntegrity verify block's hash, txs' integrity and consensus acceptable.
+func (block *Block) VerifyIntegrity(chainID uint32, consensus Consensus) error {
 	// check ChainID.
 	if block.header.chainID != chainID {
 		return ErrInvalidChainID
 	}
 
-	// verify hash.
+	// verify block hash.
 	wantedHash := HashBlock(block)
 	if !wantedHash.Equals(block.Hash()) {
 		return ErrInvalidBlockHash
 	}
 
-	// verify transactions, check ChainID, hash & sign
+	// verify transactions integrity.
 	for _, tx := range block.transactions {
-		if err := tx.Verify(block.header.chainID); err != nil {
+		if err := tx.VerifyIntegrity(block.header.chainID); err != nil {
 			return err
 		}
+	}
+
+	// verify the block is acceptable by consensus.
+	if err := consensus.FastVerifyBlock(block); err != nil {
+		invalidBlockCounter.Inc(1)
+		return err
 	}
 
 	return nil
@@ -662,7 +667,7 @@ func (block *Block) verifyState() error {
 }
 
 // Execute block and return result.
-func (block *Block) Execute() error {
+func (block *Block) execute() error {
 	// execute transactions.
 	for _, tx := range block.transactions {
 		giveback, err := block.executeTransaction(tx)
@@ -810,8 +815,8 @@ func (block *Block) GetTransaction(hash byteutils.Hash) (*Transaction, error) {
 	return tx, nil
 }
 
-// save tx in txs Trie
 func (block *Block) acceptTransaction(tx *Transaction) error {
+	// record tx
 	pbTx, err := tx.ToProto()
 	if err != nil {
 		return err
@@ -823,10 +828,12 @@ func (block *Block) acceptTransaction(tx *Transaction) error {
 	if _, err := block.txsTrie.Put(tx.hash, txBytes); err != nil {
 		return err
 	}
+	// incre nonce
+	fromAcc := block.accState.GetOrCreateUserAccount(tx.from.address)
+	fromAcc.IncrNonce()
 	return nil
 }
 
-// executeTransaction in block
 func (block *Block) executeTransaction(tx *Transaction) (giveback bool, err error) {
 	// check duplication
 	if proof, _ := block.txsTrie.Prove(tx.hash); proof != nil {
@@ -841,12 +848,10 @@ func (block *Block) executeTransaction(tx *Transaction) (giveback bool, err erro
 		return true, ErrLargeTransactionNonce
 	}
 
-	// execute.
-	if _, err := tx.Execute(block); err != nil {
+	if _, err := tx.VerifyExecution(block); err != nil {
 		return false, err
 	}
 
-	// save txs info in txs trie
 	if err := block.acceptTransaction(tx); err != nil {
 		return false, err
 	}

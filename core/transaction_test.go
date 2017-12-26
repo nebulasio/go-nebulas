@@ -131,7 +131,7 @@ func TestTransactionVerify(t *testing.T) {
 					t.Errorf("Sign() error = %v", err)
 					return
 				}
-				err = tt.tx.Verify(tt.tx.chainID)
+				err = tt.tx.VerifyIntegrity(tt.tx.chainID)
 				if err != nil {
 					t.Errorf("verify failed:%s", err)
 					return

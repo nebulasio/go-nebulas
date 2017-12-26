@@ -296,14 +296,8 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 		return ErrDuplicatedBlock
 	}
 
-	// verify block hash & txs
-	if err := block.verifyHash(pool.bc.chainID); err != nil {
-		invalidBlockCounter.Inc(1)
-		return err
-	}
-
-	// verify consensus.
-	if err := pool.bc.ConsensusHandler().FastVerifyBlock(block); err != nil {
+	// verify block integrity
+	if err := block.VerifyIntegrity(pool.bc.chainID, pool.bc.ConsensusHandler()); err != nil {
 		invalidBlockCounter.Inc(1)
 		return err
 	}
@@ -416,30 +410,22 @@ func (lb *linkedBlock) LinkParent(parentBlock *linkedBlock) {
 }
 
 func (lb *linkedBlock) travelToLinkAndReturnAllValidBlocks(parentBlock *Block) ([]*Block, []*Block) {
-	if lb.block.LinkParentBlock(parentBlock) == false {
+	if err := lb.block.LinkParentBlock(parentBlock); err != nil {
 		log.WithFields(log.Fields{
-			"func":        "linkedBlock.dfs",
+			"func":        "BlockPool.LinkParentBlock",
 			"parentBlock": parentBlock,
 			"block":       lb.block,
-		}).Fatal("link parent block fail.")
+			"err":         err,
+		}).Error("link parent block fail.")
 		return nil, nil
 	}
 
-	if err := lb.pool.bc.ConsensusHandler().VerifyBlock(lb.block, parentBlock); err != nil {
+	if err := lb.block.VerifyExecution(parentBlock, lb.pool.bc.ConsensusHandler()); err != nil {
 		log.WithFields(log.Fields{
-			"func":  "BlockPool.Verify",
+			"func":  "BlockPool.VerifyExecution",
 			"block": lb.block,
 			"err":   err,
-		}).Error("BlockPool.Verify: consensus verify block.")
-		return nil, nil
-	}
-
-	if err := lb.block.Verify(parentBlock.header.chainID); err != nil {
-		log.WithFields(log.Fields{
-			"func":  "BlockPool.Verify",
-			"block": lb.block,
-			"err":   err,
-		}).Error("BlockPool.Verify: verify block failed.")
+		}).Warn("block execution fail.")
 		return nil, nil
 	}
 

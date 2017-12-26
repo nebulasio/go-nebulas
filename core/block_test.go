@@ -178,7 +178,7 @@ func TestBlock_LinkParentBlock(t *testing.T) {
 		transactions: []*Transaction{},
 	}
 	assert.Equal(t, block1.Height(), uint64(0))
-	assert.Equal(t, block1.LinkParentBlock(genesis), true)
+	assert.Equal(t, block1.LinkParentBlock(genesis), nil)
 	assert.Equal(t, block1.Height(), uint64(2))
 	assert.Equal(t, block1.ParentHash(), genesis.Hash())
 	block2 := &Block{
@@ -200,12 +200,15 @@ func TestBlock_LinkParentBlock(t *testing.T) {
 		},
 		transactions: []*Transaction{},
 	}
-	assert.Equal(t, block2.LinkParentBlock(genesis), false)
+	assert.Equal(t, block2.LinkParentBlock(genesis), ErrLinkToWrongParentBlock)
 	assert.Equal(t, block2.Height(), uint64(0))
 }
 
 func TestBlock_CollectTransactions(t *testing.T) {
 	bc, _ := NewBlockChain(testNeb())
+	var c MockConsensus
+	bc.SetConsensusHandler(c)
+
 	tail := bc.tailBlock
 	assert.Panics(t, func() { tail.CollectTransactions(1) })
 
@@ -279,13 +282,16 @@ func TestBlock_CollectTransactions(t *testing.T) {
 	assert.NotEqual(t, balance.Cmp(BlockReward.Int), 0)
 	// mock net message
 	block, _ = mockBlockFromNetwork(block)
-	assert.Equal(t, block.LinkParentBlock(bc.tailBlock), true)
+	assert.Equal(t, block.LinkParentBlock(bc.tailBlock), nil)
 	block.SetMiner(coinbase)
-	assert.Nil(t, block.Verify(0))
+	assert.Nil(t, block.VerifyExecution(bc.tailBlock, bc.ConsensusHandler()))
 }
 
 func TestBlock_DposCandidates(t *testing.T) {
 	bc, _ := NewBlockChain(testNeb())
+	var c MockConsensus
+	bc.SetConsensusHandler(c)
+
 	tail := bc.tailBlock
 	assert.Panics(t, func() { tail.CollectTransactions(1) })
 
@@ -332,9 +338,9 @@ func TestBlock_DposCandidates(t *testing.T) {
 	block.SetMiner(coinbase)
 	assert.Equal(t, block.Seal(), nil)
 	block, _ = mockBlockFromNetwork(block)
-	assert.Equal(t, block.LinkParentBlock(bc.tailBlock), true)
+	assert.Equal(t, block.LinkParentBlock(bc.tailBlock), nil)
 	block.SetMiner(coinbase)
-	assert.Nil(t, block.Verify(0))
+	assert.Nil(t, block.VerifyExecution(bc.tailBlock, bc.ConsensusHandler()))
 	bytes, _ = block.dposContext.candidateTrie.Get(from.Bytes())
 	assert.Equal(t, bytes, from.Bytes())
 	bytes, _ = block.dposContext.voteTrie.Get(from.Bytes())
@@ -358,9 +364,9 @@ func TestBlock_DposCandidates(t *testing.T) {
 	block.SetMiner(coinbase)
 	assert.Equal(t, block.Seal(), nil)
 	block, _ = mockBlockFromNetwork(block)
-	assert.Equal(t, block.LinkParentBlock(bc.tailBlock), true)
+	assert.Equal(t, block.LinkParentBlock(bc.tailBlock), nil)
 	block.SetMiner(coinbase)
-	assert.Nil(t, block.Verify(0))
+	assert.Nil(t, block.VerifyExecution(bc.tailBlock, bc.ConsensusHandler()))
 	_, err := block.dposContext.candidateTrie.Get(from.Bytes())
 	assert.Equal(t, err, nil)
 	_, err = block.dposContext.voteTrie.Get(from.Bytes())
@@ -388,9 +394,9 @@ func TestBlock_DposCandidates(t *testing.T) {
 	block.SetMiner(coinbase)
 	assert.Equal(t, block.Seal(), nil)
 	block, _ = mockBlockFromNetwork(block)
-	assert.Equal(t, block.LinkParentBlock(bc.tailBlock), true)
+	assert.Equal(t, block.LinkParentBlock(bc.tailBlock), nil)
 	block.SetMiner(coinbase)
-	assert.Nil(t, block.Verify(0))
+	assert.Nil(t, block.VerifyExecution(bc.tailBlock, bc.ConsensusHandler()))
 	_, err = block.dposContext.candidateTrie.Get(from.Bytes())
 	assert.Equal(t, err, storage.ErrKeyNotFound)
 	_, err = block.dposContext.voteTrie.Get(from.Bytes())

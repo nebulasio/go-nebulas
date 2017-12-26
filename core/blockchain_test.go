@@ -42,8 +42,6 @@ func BlockFromNetwork(block *Block) *Block {
 
 func TestBlockChain_FindCommonAncestorWithTail(t *testing.T) {
 	bc, _ := NewBlockChain(testNeb())
-	var cons MockConsensus
-	bc.SetConsensusHandler(cons)
 	var c MockConsensus
 	bc.SetConsensusHandler(c)
 
