@@ -334,7 +334,8 @@ func (tx *Transaction) VerifyExecution(block *Block) (*util.Uint128, error) {
 	}
 
 	// execute smart contract and sub the calcute gas.
-	gasExecution, err := payload.Execute(tx, block)
+	ctx := NewPayloadContext(block, tx)
+	gasExecution, err := payload.Execute(ctx)
 
 	log.WithFields(log.Fields{
 		"transaction":  tx,

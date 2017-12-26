@@ -240,11 +240,7 @@ func (p *Dpos) FastVerifyBlock(block *core.Block) error {
 	if err != nil {
 		return err
 	}
-	if err := verifyBlockSign(miner, block); err != nil {
-		return err
-	}
-	return nil
-
+	return verifyBlockSign(miner, block)
 }
 
 // VerifyBlock verify the block with its parent found

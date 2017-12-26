@@ -63,28 +63,28 @@ func (payload *CandidatePayload) BaseGasCount() *util.Uint128 {
 }
 
 // Execute the candidate payload in tx
-func (payload *CandidatePayload) Execute(tx *Transaction, block *Block) (*util.Uint128, error) {
-	candidate := tx.from.Bytes()
+func (payload *CandidatePayload) Execute(ctx *PayloadContext) (*util.Uint128, error) {
+	candidate := ctx.tx.from.Bytes()
 	switch payload.Action {
 	case LoginAction:
-		if _, err := block.dposContext.candidateTrie.Put(candidate, candidate); err != nil {
+		if _, err := ctx.block.dposContext.candidateTrie.Put(candidate, candidate); err != nil {
 			return ZeroGasCount, err
 		}
 		log.WithFields(log.Fields{
 			"func":      "Payload.Candidate",
-			"block":     block,
-			"tx":        tx,
-			"candidate": tx.from.String(),
+			"block":     ctx.block,
+			"tx":        ctx.tx,
+			"candidate": ctx.tx.from.String(),
 		}).Info("Candidate Login.")
 	case LogoutAction:
-		if err := block.kickoutCandidate(candidate); err != nil {
+		if err := ctx.block.kickoutCandidate(candidate); err != nil {
 			return ZeroGasCount, err
 		}
 		log.WithFields(log.Fields{
 			"func":      "Payload.Candidate",
-			"block":     block,
-			"tx":        tx,
-			"candidate": tx.from.String(),
+			"block":     ctx.block,
+			"tx":        ctx.tx,
+			"candidate": ctx.tx.from.String(),
 		}).Info("Candidate Logout.")
 	default:
 		return ZeroGasCount, ErrInvalidCandidatePayloadAction

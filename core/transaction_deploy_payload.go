@@ -61,41 +61,44 @@ func (payload *DeployPayload) BaseGasCount() *util.Uint128 {
 }
 
 // Execute deploy payload in tx, deploy a new contract
-func (payload *DeployPayload) Execute(tx *Transaction, block *Block) (*util.Uint128, error) {
-	ctx, err := generateDeployContext(tx, block)
+func (payload *DeployPayload) Execute(ctx *PayloadContext) (*util.Uint128, error) {
+	err := ctx.BeginBatch()
 	if err != nil {
 		return util.NewUint128(), err
 	}
 
-	engine := nvm.NewV8Engine(ctx)
+	nvmctx, err := generateDeployContext(ctx)
+	if err != nil {
+		return util.NewUint128(), err
+	}
+
+	engine := nvm.NewV8Engine(nvmctx)
 	defer engine.Dispose()
 
-	engine.SetExecutionLimits(tx.PayloadGasLimit().Uint64(), nvm.DefaultLimitsOfTotalMemorySize)
+	engine.SetExecutionLimits(ctx.tx.PayloadGasLimit().Uint64(), nvm.DefaultLimitsOfTotalMemorySize)
 
 	// Deploy and Init.
 	err = engine.DeployAndInit(payload.Source, payload.SourceType, payload.Args)
-	if err == nil {
-		block.accState = ctx.State()
+	if err != nil {
+		ctx.RollBack()
+	} else {
+		ctx.Commit()
 	}
 	return util.NewUint128FromInt(int64(engine.ExecutionInstructions())), err
 }
 
-func generateDeployContext(tx *Transaction, block *Block) (*nvm.Context, error) {
-	addr, err := tx.GenerateContractAddress()
+func generateDeployContext(ctx *PayloadContext) (*nvm.Context, error) {
+	addr, err := ctx.tx.GenerateContractAddress()
 	if err != nil {
 		return nil, err
 	}
-	context, err := block.accState.Clone()
+	owner := ctx.accState.GetOrCreateUserAccount(ctx.tx.from.Bytes())
+	contract, err := ctx.accState.CreateContractAccount(addr.Bytes(), ctx.tx.Hash())
 	if err != nil {
 		return nil, err
 	}
-	owner := context.GetOrCreateUserAccount(tx.from.Bytes())
-	contract, err := context.CreateContractAccount(addr.Bytes(), tx.Hash())
-	if err != nil {
-		return nil, err
-	}
-	ctx := nvm.NewContext(block, convertNvmTx(tx), owner, contract, context)
-	return ctx, nil
+	nvmctx := nvm.NewContext(ctx.block, convertNvmTx(ctx.tx), owner, contract, ctx.accState)
+	return nvmctx, nil
 }
 
 func convertNvmTx(tx *Transaction) *nvm.ContextTransaction {

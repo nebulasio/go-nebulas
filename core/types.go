@@ -82,7 +82,7 @@ var (
 type TxPayload interface {
 	ToBytes() ([]byte, error)
 	BaseGasCount() *util.Uint128
-	Execute(tx *Transaction, block *Block) (*util.Uint128, error)
+	Execute(ctx *PayloadContext) (*util.Uint128, error)
 }
 
 // MessageType

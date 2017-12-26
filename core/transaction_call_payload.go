@@ -59,8 +59,14 @@ func (payload *CallPayload) BaseGasCount() *util.Uint128 {
 }
 
 // Execute the call payload in tx, call a function
-func (payload *CallPayload) Execute(tx *Transaction, block *Block) (*util.Uint128, error) {
-	ctx, deployPayload, err := generateCallContext(tx, block)
+func (payload *CallPayload) Execute(context *PayloadContext) (*util.Uint128, error) {
+
+	err := context.BeginBatch()
+	if err != nil {
+		return util.NewUint128(), err
+	}
+
+	ctx, deployPayload, err := generateCallContext(context)
 	if err != nil {
 		return util.NewUint128(), err
 	}
@@ -69,34 +75,33 @@ func (payload *CallPayload) Execute(tx *Transaction, block *Block) (*util.Uint12
 	defer engine.Dispose()
 
 	//add gas limit and memory use limit
-	engine.SetExecutionLimits(tx.PayloadGasLimit().Uint64(), nvm.DefaultLimitsOfTotalMemorySize)
+	engine.SetExecutionLimits(context.tx.PayloadGasLimit().Uint64(), nvm.DefaultLimitsOfTotalMemorySize)
 
 	err = engine.Call(deployPayload.Source, deployPayload.SourceType, payload.Function, payload.Args)
-	if err == nil {
-		block.accState = ctx.State()
+	if err != nil {
+		context.RollBack()
+	} else {
+		context.Commit()
 	}
 	return util.NewUint128FromInt(int64(engine.ExecutionInstructions())), err
 }
 
-func generateCallContext(tx *Transaction, block *Block) (*nvm.Context, *DeployPayload, error) {
-	context, err := block.accState.Clone()
+func generateCallContext(ctx *PayloadContext) (*nvm.Context, *DeployPayload, error) {
+
+	contract, err := ctx.accState.GetContractAccount(ctx.tx.to.Bytes())
 	if err != nil {
 		return nil, nil, err
 	}
-	contract, err := context.GetContractAccount(tx.to.Bytes())
+	birthTx, err := ctx.block.GetTransaction(contract.BirthPlace())
 	if err != nil {
 		return nil, nil, err
 	}
-	birthTx, err := block.GetTransaction(contract.BirthPlace())
-	if err != nil {
-		return nil, nil, err
-	}
-	owner := context.GetOrCreateUserAccount(birthTx.from.Bytes())
+	owner := ctx.accState.GetOrCreateUserAccount(birthTx.from.Bytes())
 	deploy, err := LoadDeployPayload(birthTx.data.Payload)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	ctx := nvm.NewContext(block, convertNvmTx(tx), owner, contract, context)
-	return ctx, deploy, nil
+	nvmctx := nvm.NewContext(ctx.block, convertNvmTx(ctx.tx), owner, contract, ctx.accState)
+	return nvmctx, deploy, nil
 }
