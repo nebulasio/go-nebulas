@@ -273,6 +273,8 @@ func (tx *Transaction) Execute(block *Block) (*util.Uint128, error) {
 		fromAcc.SubBalance(util.NewUint128FromBigInt(gas))
 		coinbaseAcc.AddBalance(util.NewUint128FromBigInt(gas))
 
+		fromAcc.IncreNonce()
+
 		tx.triggerEvent(TopicExecuteTxFailed, block)
 		return tx.gasLimit, nil
 	}
