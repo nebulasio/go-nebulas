@@ -358,7 +358,6 @@ func (dc *DynastyContext) chooseCandidates(votes map[string]*util.Uint128) (Cand
 		if v, ok := votes[address.String()]; ok {
 			vote = v
 		}
-		log.Debug("delete ", address.String())
 		bootstrapCandidates = append(bootstrapCandidates, &Candidate{address, vote})
 		delete(votes, address.String())
 	}
