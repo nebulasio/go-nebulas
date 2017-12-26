@@ -46,12 +46,12 @@ func (payload *BinaryPayload) ToBytes() ([]byte, error) {
 	return json.Marshal(payload)
 }
 
-// Execute the payload in tx
-func (payload *BinaryPayload) Execute(tx *Transaction, block *Block) (*util.Uint128, error) {
-	return util.NewUint128(), nil
+// BaseGasCount returns base gas count
+func (payload *BinaryPayload) BaseGasCount() *util.Uint128 {
+	return util.NewUint128()
 }
 
-// EstimateGas the payload in tx
-func (payload *BinaryPayload) EstimateGas(tx *Transaction, block *Block) (*util.Uint128, error) {
+// Execute the payload in tx
+func (payload *BinaryPayload) Execute(tx *Transaction, block *Block) (*util.Uint128, error) {
 	return util.NewUint128(), nil
 }

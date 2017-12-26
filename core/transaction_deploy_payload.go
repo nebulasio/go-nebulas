@@ -55,19 +55,22 @@ func (payload *DeployPayload) ToBytes() ([]byte, error) {
 	return json.Marshal(payload)
 }
 
+// BaseGasCount returns base gas count
+func (payload *DeployPayload) BaseGasCount() *util.Uint128 {
+	return util.NewUint128()
+}
+
 // Execute deploy payload in tx, deploy a new contract
 func (payload *DeployPayload) Execute(tx *Transaction, block *Block) (*util.Uint128, error) {
 	ctx, err := generateDeployContext(tx, block)
 	if err != nil {
-		return nil, err
+		return util.NewUint128(), err
 	}
 
 	engine := nvm.NewV8Engine(ctx)
 	defer engine.Dispose()
 
-	executionInstructions := util.NewUint128()
-	executionInstructions.Sub(tx.gasLimit.Int, tx.CalculateGas().Int)
-	engine.SetExecutionLimits(executionInstructions.Uint64(), nvm.DefaultLimitsOfTotalMemorySize)
+	engine.SetExecutionLimits(tx.PayloadGasLimit().Uint64(), nvm.DefaultLimitsOfTotalMemorySize)
 
 	// Deploy and Init.
 	err = engine.DeployAndInit(payload.Source, payload.SourceType, payload.Args)

@@ -73,12 +73,13 @@ var (
 )
 
 var (
-	one = util.NewUint128FromInt(1)
+	DefaultPayloadGas = util.NewUint128FromInt(1)
 )
 
 // TxPayload stored in tx
 type TxPayload interface {
 	ToBytes() ([]byte, error)
+	BaseGasCount() *util.Uint128
 	Execute(tx *Transaction, block *Block) (*util.Uint128, error)
 }
 

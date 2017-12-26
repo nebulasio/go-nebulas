@@ -368,7 +368,8 @@ func (bc *BlockChain) EstimateGas(tx *Transaction) (*util.Uint128, error) {
 
 	bc.tailBlock.accState.BeginBatch()
 	fromAcc := bc.tailBlock.accState.GetOrCreateUserAccount(tx.from.address)
-	fromAcc.AddBalance(tx.Cost())
+	fromAcc.AddBalance(tx.MinBalanceRequired())
+	fromAcc.AddBalance(tx.value)
 	defer bc.tailBlock.accState.RollBack()
 	return tx.Execute(bc.tailBlock)
 }

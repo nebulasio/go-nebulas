@@ -57,15 +57,18 @@ func (payload *CandidatePayload) ToBytes() ([]byte, error) {
 	return json.Marshal(payload)
 }
 
+// BaseGasCount returns base gas count
+func (payload *CandidatePayload) BaseGasCount() *util.Uint128 {
+	return util.NewUint128()
+}
+
 // Execute the candidate payload in tx
 func (payload *CandidatePayload) Execute(tx *Transaction, block *Block) (*util.Uint128, error) {
 	candidate := tx.from.Bytes()
-	counter := util.NewUint128()
 	switch payload.Action {
 	case LoginAction:
-		counter.Add(counter.Int, one.Int)
 		if _, err := block.dposContext.candidateTrie.Put(candidate, candidate); err != nil {
-			return counter, err
+			return DefaultPayloadGas, err
 		}
 		log.WithFields(log.Fields{
 			"func":      "Payload.Candidate",
@@ -74,9 +77,8 @@ func (payload *CandidatePayload) Execute(tx *Transaction, block *Block) (*util.U
 			"candidate": tx.from.String(),
 		}).Info("Candidate Login.")
 	case LogoutAction:
-		counter.Add(counter.Int, one.Int)
 		if err := block.kickoutCandidate(candidate); err != nil {
-			return counter, err
+			return DefaultPayloadGas, err
 		}
 		log.WithFields(log.Fields{
 			"func":      "Payload.Candidate",
@@ -85,7 +87,7 @@ func (payload *CandidatePayload) Execute(tx *Transaction, block *Block) (*util.U
 			"candidate": tx.from.String(),
 		}).Info("Candidate Logout.")
 	default:
-		return counter, ErrInvalidCandidatePayloadAction
+		return DefaultPayloadGas, ErrInvalidCandidatePayloadAction
 	}
-	return counter, nil
+	return DefaultPayloadGas, nil
 }

@@ -63,61 +63,58 @@ func (payload *DelegatePayload) ToBytes() ([]byte, error) {
 	return json.Marshal(payload)
 }
 
+// BaseGasCount returns base gas count
+func (payload *DelegatePayload) BaseGasCount() *util.Uint128 {
+	return util.NewUint128()
+}
+
 // Execute the call payload in tx, call a function
 func (payload *DelegatePayload) Execute(tx *Transaction, block *Block) (*util.Uint128, error) {
 	delegator := tx.from.Bytes()
-	counter := util.NewUint128()
 	delegatee, err := AddressParse(payload.Delegatee)
 	if err != nil {
-		return counter, err
+		return DefaultPayloadGas, err
 	}
-	counter.Add(counter.Int, one.Int)
 	// check delegatee valid
 	_, err = block.dposContext.candidateTrie.Get(delegatee.Bytes())
 	if err != nil && err != storage.ErrKeyNotFound {
-		return counter, err
+		return DefaultPayloadGas, err
 	}
 	if err == storage.ErrKeyNotFound {
-		return counter, ErrInvalidDelegateToNonCandidate
+		return DefaultPayloadGas, ErrInvalidDelegateToNonCandidate
 	}
-	counter.Add(counter.Int, one.Int)
 	pre, err := block.dposContext.voteTrie.Get(delegator)
 	if err != nil && err != storage.ErrKeyNotFound {
-		return counter, err
+		return DefaultPayloadGas, err
 	}
 	switch payload.Action {
 	case DelegateAction:
 		if err != storage.ErrKeyNotFound {
 			key := append(pre, delegator...)
-			counter.Add(counter.Int, one.Int)
 			if _, err = block.dposContext.delegateTrie.Del(key); err != nil {
-				return counter, err
+				return DefaultPayloadGas, err
 			}
 		}
 		key := append(delegatee.Bytes(), delegator...)
-		counter.Add(counter.Int, one.Int)
 		if _, err = block.dposContext.delegateTrie.Put(key, delegator); err != nil {
-			return counter, err
+			return DefaultPayloadGas, err
 		}
-		counter.Add(counter.Int, one.Int)
 		if _, err = block.dposContext.voteTrie.Put(delegator, delegatee.Bytes()); err != nil {
-			return counter, err
+			return DefaultPayloadGas, err
 		}
 	case UnDelegateAction:
 		if !delegatee.address.Equals(pre) {
-			return counter, ErrInvalidUnDelegateFromNonDelegatee
+			return DefaultPayloadGas, ErrInvalidUnDelegateFromNonDelegatee
 		}
 		key := append(delegatee.Bytes(), delegator...)
-		counter.Add(counter.Int, one.Int)
 		if _, err = block.dposContext.delegateTrie.Del(key); err != nil {
-			return counter, err
+			return DefaultPayloadGas, err
 		}
-		counter.Add(counter.Int, one.Int)
 		if _, err = block.dposContext.voteTrie.Del(delegator); err != nil {
-			return counter, err
+			return DefaultPayloadGas, err
 		}
 	default:
-		return counter, ErrInvalidDelegatePayloadAction
+		return DefaultPayloadGas, ErrInvalidDelegatePayloadAction
 	}
-	return counter, nil
+	return DefaultPayloadGas, nil
 }

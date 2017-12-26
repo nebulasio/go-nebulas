@@ -415,22 +415,6 @@ func (block *Block) LinkParentBlock(parentBlock *Block) bool {
 	block.height = parentBlock.height + 1
 	block.eventEmitter = parentBlock.eventEmitter
 
-	// travel to calculate block height.
-	depth := uint64(0)
-	ancestorHeight := uint64(0)
-	for ancestor := block; ancestor != nil; ancestor = ancestor.parenetBlock {
-		depth++
-		ancestorHeight = ancestor.height
-		if ancestor.height > 0 {
-			break
-		}
-	}
-
-	for ancestor := block; ancestor != nil && depth > 1; ancestor = ancestor.parenetBlock {
-		depth--
-		ancestor.height = ancestorHeight + depth
-	}
-
 	return true
 }
 
