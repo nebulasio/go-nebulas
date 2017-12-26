@@ -210,7 +210,6 @@ func (dc *DposContext) FromProto(msg *corepb.DposContext) error {
 // DynastyContext contains the dynasty context at given timestamp
 type DynastyContext struct {
 	TimeStamp       int64
-	Offset          int64
 	Proposer        byteutils.Hash
 	DynastyTrie     *trie.BatchTrie
 	NextDynastyTrie *trie.BatchTrie
@@ -664,6 +663,24 @@ func GenesisDynastyContext(storage storage.Storage, conf *corepb.Genesis) (*Dyna
 	}, nil
 }
 
+// FindProposer for now in given dynasty
+func FindProposer(now int64, dynasty *trie.BatchTrie) (proposer byteutils.Hash, err error) {
+	offset := now % DynastyInterval
+	if offset%BlockInterval != 0 {
+		return nil, ErrNotBlockForgTime
+	}
+	offset /= BlockInterval
+	offset %= DynastySize
+	delegatees, err := TraverseDynasty(dynasty)
+	if err != nil {
+		return nil, err
+	}
+	if int(offset) < len(delegatees) {
+		proposer = delegatees[offset]
+	}
+	return proposer, nil
+}
+
 // NextDynastyContext when some seconds elapsed
 func (block *Block) NextDynastyContext(elapsedSecond int64) (*DynastyContext, error) {
 	dynastyTrie, err := block.dposContext.dynastyTrie.Clone()
@@ -705,13 +722,6 @@ func (block *Block) NextDynastyContext(elapsedSecond int64) (*DynastyContext, er
 
 	baseDynastyID := block.header.timestamp / DynastyInterval
 	newDynastyID := context.TimeStamp / DynastyInterval
-	offset := context.TimeStamp % DynastyInterval
-	if offset%BlockInterval != 0 {
-		return nil, ErrNotBlockForgTime
-	}
-	offset /= BlockInterval
-	offset %= DynastySize
-
 	if baseDynastyID < newDynastyID {
 		if baseDynastyID+1 < newDynastyID {
 			// do not kickout genesis dynasty
@@ -726,15 +736,10 @@ func (block *Block) NextDynastyContext(elapsedSecond int64) (*DynastyContext, er
 			return nil, err
 		}
 	}
-	delegatees, err := TraverseDynasty(context.DynastyTrie)
+
+	context.Proposer, err = FindProposer(context.TimeStamp, context.DynastyTrie)
 	if err != nil {
 		return nil, err
-	}
-	context.Offset = offset
-	if int(offset) >= len(delegatees) {
-		context.Proposer = nil
-	} else {
-		context.Proposer = delegatees[offset]
 	}
 	return context, nil
 }

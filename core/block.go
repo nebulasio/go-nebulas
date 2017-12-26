@@ -305,6 +305,11 @@ func (block *Block) TxsRoot() byteutils.Hash {
 	return block.header.txsRoot
 }
 
+// Storage return storage.
+func (block *Block) Storage() storage.Storage {
+	return block.storage
+}
+
 // EventsRoot return events root hash.
 func (block *Block) EventsRoot() byteutils.Hash {
 	return block.header.eventsRoot
@@ -413,7 +418,14 @@ func (block *Block) LinkParentBlock(parentBlock *Block) error {
 		}).Error("cannot generate next dynasty context.")
 		return err
 	}
-	block.LoadDynastyContext(context)
+	if err := block.LoadDynastyContext(context); err != nil {
+		log.WithFields(log.Fields{
+			"func":  "block.LinkParentBlock",
+			"block": parentBlock,
+			"err":   err,
+		}).Error("cannot load next dynasty context.")
+		return err
+	}
 	block.txPool = parentBlock.txPool
 	block.parenetBlock = parentBlock
 	block.storage = parentBlock.storage

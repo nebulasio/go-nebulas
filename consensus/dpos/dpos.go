@@ -27,11 +27,13 @@ import (
 
 	"github.com/nebulasio/go-nebulas/account"
 
+	"github.com/nebulasio/go-nebulas/common/trie"
 	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/neblet/pb"
 	"github.com/nebulasio/go-nebulas/net"
 
 	"github.com/nebulasio/go-nebulas/net/p2p"
+	"github.com/nebulasio/go-nebulas/util/byteutils"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -218,37 +220,53 @@ func (p *Dpos) FastVerifyBlock(block *core.Block) error {
 	// check proposer
 	currentHour := block.Timestamp() / core.DynastyInterval
 	tailHour := tail.Timestamp() / core.DynastyInterval
-	if currentHour == tailHour || currentHour == tailHour+1 {
-		context, err := tail.NextDynastyContext(elapsedSecond)
-		if err != nil {
-			return err
-		}
-		proposer, err := core.AddressParseFromBytes(context.Proposer)
-		if err != nil {
-			return err
-		}
-		return verifyBlockSign(proposer, block)
+	var dynastyRoot byteutils.Hash
+	if currentHour == tailHour {
+		dynastyRoot = tail.DposContext().DynastyRoot
+	} else if currentHour == tailHour+1 {
+		dynastyRoot = tail.DposContext().NextDynastyRoot
+	} else {
+		return nil
+	}
+	dynasty, err := trie.NewBatchTrie(dynastyRoot, block.Storage())
+	if err != nil {
+		return err
+	}
+	proposer, err := core.FindProposer(block.Timestamp(), dynasty)
+	if err != nil {
+		return err
+	}
+	miner, err := core.AddressParseFromBytes(proposer)
+	if err != nil {
+		return err
+	}
+	if err := verifyBlockSign(miner, block); err != nil {
+		return err
 	}
 	return nil
+
 }
 
 // VerifyBlock verify the block with its parent found
 func (p *Dpos) VerifyBlock(block *core.Block, parent *core.Block) error {
-	// check timestamp
-	elapsedSecond := block.Timestamp() - parent.Timestamp()
-	if elapsedSecond%p.blockInterval != 0 {
-		return ErrInvalidBlockInterval
-	}
 	// check proposer
-	context, err := parent.NextDynastyContext(elapsedSecond)
+	dynasty, err := trie.NewBatchTrie(block.DposContext().DynastyRoot, block.Storage())
 	if err != nil {
 		return err
 	}
-	proposer, err := core.AddressParseFromBytes(context.Proposer)
+	proposer, err := core.FindProposer(block.Timestamp(), dynasty)
 	if err != nil {
 		return err
 	}
-	return verifyBlockSign(proposer, block)
+	miner, err := core.AddressParseFromBytes(proposer)
+	if err != nil {
+		return err
+	}
+	err = verifyBlockSign(miner, block)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (p *Dpos) mintBlock() {
@@ -287,7 +305,6 @@ func (p *Dpos) mintBlock() {
 		"func":     "Dpos.mintBlock",
 		"tail":     tail,
 		"elapsed":  elapsedSecond,
-		"offset":   context.Offset,
 		"expected": context.Proposer.Hex(),
 		"actual":   p.coinbase.String(),
 	}).Info("my turn")
