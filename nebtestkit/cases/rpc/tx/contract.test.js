@@ -129,6 +129,8 @@ describe('contract transaction', function () {
 
 describe('quit', function () {
     it('quit', function () {
-        nodes.Stop();
+        setTimeout(function () {
+            nodes.Stop();
+        }, 2000);
     });
 });

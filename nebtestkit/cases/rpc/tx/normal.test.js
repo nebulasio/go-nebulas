@@ -9,7 +9,7 @@ nodes.Start();
 
 describe('normal transaction', function () {
     before(function (done) {
-        this.timeout(6000);
+        this.timeout(10000);
         setTimeout(done, 5000);
     });
 
@@ -137,6 +137,8 @@ describe('normal transaction', function () {
 
 describe('quit', function () {
     it('quit', function () {
-        nodes.Stop();
+        setTimeout(function () {
+            nodes.Stop();
+        }, 2000);
     });
 });
