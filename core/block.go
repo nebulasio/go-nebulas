@@ -220,6 +220,11 @@ func NewBlock(chainID uint32, coinbase *Address, parent *Block) (*Block, error) 
 		storage:      parent.storage,
 		eventEmitter: parent.eventEmitter,
 	}
+
+	block.begin()
+	block.rewardCoinbase()
+	block.commit()
+
 	return block, nil
 }
 
@@ -509,13 +514,13 @@ func (block *Block) Seal() error {
 	}
 
 	block.begin()
-	block.rewardCoinbase()
 	err := block.recordMintCnt()
 	if err != nil {
 		block.rollback()
 		return err
 	}
 	block.commit()
+
 	block.header.stateRoot = block.accState.RootHash()
 	block.header.txsRoot = block.txsTrie.RootHash()
 	block.header.eventsRoot = block.eventsTrie.RootHash()
@@ -668,7 +673,8 @@ func (block *Block) verifyState() error {
 
 // Execute block and return result.
 func (block *Block) execute() error {
-	// execute transactions.
+	block.rewardCoinbase()
+
 	for _, tx := range block.transactions {
 		giveback, err := block.executeTransaction(tx)
 		if giveback {
@@ -679,7 +685,6 @@ func (block *Block) execute() error {
 		}
 	}
 
-	block.rewardCoinbase()
 	return block.recordMintCnt()
 }
 
