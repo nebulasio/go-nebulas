@@ -262,7 +262,7 @@ func (tx *Transaction) Execute(block *Block) (*util.Uint128, error) {
 	gasUsed := tx.CalculateGas()
 	if tx.gasLimit.Cmp(gasUsed.Int) < 0 {
 		log.WithFields(log.Fields{
-			"error":       ErrOutofGasLimit,
+			"error":       ErrOutOfGasLimit,
 			"block":       block,
 			"transaction": tx,
 			"used":        gasUsed.Int64(),
@@ -273,7 +273,7 @@ func (tx *Transaction) Execute(block *Block) (*util.Uint128, error) {
 		fromAcc.SubBalance(util.NewUint128FromBigInt(gas))
 		coinbaseAcc.AddBalance(util.NewUint128FromBigInt(gas))
 
-		fromAcc.IncreNonce()
+		fromAcc.IncrNonce()
 
 		tx.triggerEvent(TopicExecuteTxFailed, block)
 		return tx.gasLimit, nil
@@ -335,7 +335,7 @@ func (tx *Transaction) Execute(block *Block) (*util.Uint128, error) {
 	fromAcc.SubBalance(util.NewUint128FromBigInt(gasCost))
 	coinbaseAcc.AddBalance(util.NewUint128FromBigInt(gasCost))
 
-	fromAcc.IncreNonce()
+	fromAcc.IncrNonce()
 
 	// record tx execution success event
 	tx.triggerEvent(TopicExecuteTxSuccess, block)

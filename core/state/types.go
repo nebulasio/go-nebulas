@@ -45,7 +45,7 @@ type Account interface {
 	ToBytes() ([]byte, error)
 	FromBytes(bytes []byte, storage storage.Storage) error
 
-	IncreNonce()
+	IncrNonce()
 	AddBalance(value *util.Uint128)
 	SubBalance(value *util.Uint128) error
 	Put(key []byte, value []byte) error

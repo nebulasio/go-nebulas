@@ -208,7 +208,7 @@ func (pool *TransactionPool) push(tx *Transaction) error {
 	}
 	if tx.gasLimit.Cmp(pool.gasLimt.Int) > 0 {
 		outOfGasLimitTxCounter.Inc(1)
-		return ErrOutofGasLimit
+		return ErrOutOfGasLimit
 	}
 
 	// verify hash & sign of tx

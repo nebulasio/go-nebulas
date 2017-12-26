@@ -51,7 +51,7 @@ func TestAccountState(t *testing.T) {
 	assert.Equal(t, acc1.Balance(), util.NewUint128())
 	assert.Equal(t, acc1.Nonce(), uint64(0))
 	acc1.AddBalance(util.NewUint128FromInt(16))
-	acc1.IncreNonce()
+	acc1.IncrNonce()
 	acc1.Put([]byte("var0"), []byte("value0"))
 	as.Commit()
 	asClone, _ := as.Clone()

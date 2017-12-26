@@ -137,8 +137,8 @@ func (acc *account) RollBack() {
 	}).Info("Account RollBack.")
 }
 
-// IncreNonce by 1
-func (acc *account) IncreNonce() {
+// IncrNonce by 1
+func (acc *account) IncrNonce() {
 	acc.nonce++
 }
 
