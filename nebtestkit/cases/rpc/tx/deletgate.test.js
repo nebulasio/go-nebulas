@@ -70,9 +70,10 @@ describe('check dynasty', function () {
             var resp = node.RPC().admin.getDynasty();
             console.log(dynasty);
             console.log(resp);
-            if (dynasty > 2) {
-                console.log("fc751b484bd5296f8d267a8537d33f25a848f7f7af8cfcf6 is No.1")
-                console.log("2fe3f9f51f9a05dd5f7c5329127f7c917917149b4e16b0b8 logout")
+            if (dynasty > 3) {
+                expect(resp.delegatees[1]).to.be.equal("333cb3ed8c417971845382ede3cf67a0a96270c05fe2f700");
+                expect(resp.delegatees[validators - 1]).to.be.equal("fc751b484bd5296f8d267a8537d33f25a848f7f7af8cfcf6");
+                break;
             }
             sleep(5000);
         }

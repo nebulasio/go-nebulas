@@ -186,7 +186,14 @@ service AdminService {
 		option (google.api.http) = {
 			get: "/v1/admin/dynasty"
 		};
-	}
+    }
+    
+	rpc GetDelegateVoters (GetDelegateVotersRequest) returns (GetDelegateVotersResponse) {
+		option (google.api.http) = {
+            post: "/v1/admin/delegateVoters"
+            body: "*"
+		};
+	}    
 
     rpc ChangeNetworkID (ChangeNetworkIDRequest) returns (ChangeNetworkIDResponse) {
 		option (google.api.http) = {
@@ -321,6 +328,16 @@ message GetAccountStateResponse {
 // Response message of GetDynastyRequest rpc
 message GetDynastyResponse {
 	repeated string delegatees = 1;
+}	
+
+// Response message of GetDelegateVoters rpc
+message GetDelegateVotersRequest {
+	string delegatee = 1;
+}	
+
+// Response message of GetDelegateVoters rpc
+message GetDelegateVotersResponse {
+	repeated string voters = 1;
 }	
 
 // Request message of SendTransaction rpc.

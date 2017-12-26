@@ -157,13 +157,48 @@ func (s *APIService) GetAccountState(ctx context.Context, req *rpcpb.GetAccountS
 func (s *APIService) GetDynasty(ctx context.Context, req *rpcpb.NonParamsRequest) (*rpcpb.GetDynastyResponse, error) {
 	neb := s.server.Neblet()
 	dynastyRoot := neb.BlockChain().TailBlock().DposContext().DynastyRoot
-	dynastyTrie, _ := trie.NewBatchTrie(dynastyRoot, neb.BlockChain().Storage())
-	delegatees, _ := core.TraverseDynasty(dynastyTrie)
+	dynastyTrie, err := trie.NewBatchTrie(dynastyRoot, neb.BlockChain().Storage())
+	if err != nil {
+		return nil, err
+	}
+	delegatees, err := core.TraverseDynasty(dynastyTrie)
+	if err != nil {
+		return nil, err
+	}
 	result := []string{}
 	for _, v := range delegatees {
 		result = append(result, string(v.Hex()))
 	}
 	return &rpcpb.GetDynastyResponse{Delegatees: result}, nil
+}
+
+// GetDelegateVoters is the RPC API handler.
+func (s *APIService) GetDelegateVoters(ctx context.Context, req *rpcpb.GetDelegateVotersRequest) (*rpcpb.GetDelegateVotersResponse, error) {
+	neb := s.server.Neblet()
+	delegatee, err := core.AddressParse(req.Delegatee)
+	if err != nil {
+		return nil, err
+	}
+	delegateRoot := neb.BlockChain().TailBlock().DposContext().DelegateRoot
+	delegateTrie, _ := trie.NewBatchTrie(delegateRoot, neb.BlockChain().Storage())
+	iter, err := delegateTrie.Iterator(delegatee.Bytes())
+	if err != nil {
+		return nil, err
+	}
+	voters := []string{}
+	exist, err := iter.Next()
+	if err != nil {
+		return nil, err
+	}
+	for exist {
+		voter := byteutils.Hex(iter.Value())
+		voters = append(voters, voter)
+		exist, err = iter.Next()
+		if err != nil {
+			return nil, err
+		}
+	}
+	return &rpcpb.GetDelegateVotersResponse{Voters: voters}, nil
 }
 
 // SendTransaction is the RPC API handler.

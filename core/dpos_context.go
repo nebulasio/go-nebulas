@@ -313,7 +313,7 @@ func fetchActiveBootstapValidators(stor storage.Storage, candidates *trie.BatchT
 	if err != nil {
 		return nil, err
 	}
-	iter, err := genesis.dposContext.dynastyTrie.Iterator(nil)
+	iter, err := genesis.dposContext.candidateTrie.Iterator(nil)
 	if err != nil && err != storage.ErrKeyNotFound {
 		return nil, err
 	}
@@ -350,12 +350,17 @@ func (dc *DynastyContext) chooseCandidates(votes map[string]*util.Uint128) (Cand
 		return nil, err
 	}
 	for i := 0; i < len(activeBootstrapValidators); i++ {
-		delete(votes, activeBootstrapValidators[i].String())
 		address, err := AddressParseFromBytes(activeBootstrapValidators[i])
 		if err != nil {
 			return nil, err
 		}
-		bootstrapCandidates = append(bootstrapCandidates, &Candidate{address, util.NewUint128()})
+		vote := util.NewUint128()
+		if v, ok := votes[address.String()]; ok {
+			vote = v
+		}
+		log.Debug("delete ", address.String())
+		bootstrapCandidates = append(bootstrapCandidates, &Candidate{address, vote})
+		delete(votes, address.String())
 	}
 	sort.Sort(bootstrapCandidates)
 	// sort
@@ -378,7 +383,7 @@ func checkActiveBootstrapValidator(validator byteutils.Hash, stor storage.Storag
 	if err != nil {
 		return false, err
 	}
-	_, err = genesis.dposContext.dynastyTrie.Get(validator)
+	_, err = genesis.dposContext.candidateTrie.Get(validator)
 	if err != nil && err != storage.ErrKeyNotFound {
 		return false, err
 	}
@@ -545,6 +550,7 @@ func (dc *DynastyContext) electNextDynastyOnBaseDynasty(baseDynastyID int64, nex
 			result := int(hasher.Sum32()) % (len(candidates) - directSelected)
 			offset := result + DynastySize - 1
 			delegatee := candidates[offset].Address.Bytes()
+			log.Info(candidates[offset].Address.String())
 			_, err = nextDynastyTrie.Put(delegatee, delegatee)
 			if err != nil {
 				return err
