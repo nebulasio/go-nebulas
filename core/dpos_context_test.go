@@ -102,6 +102,7 @@ func TestBlock_ElectNewDynasty(t *testing.T) {
 	bytes, _ := delegatePayload.ToBytes()
 	tx := NewTransaction(0, kickout, kickout, util.NewUint128FromInt(1), 1, TxPayloadDelegateType, bytes, TransactionGasPrice, util.NewUint128FromInt(200000))
 	_, err := block.executeTransaction(tx)
+	assert.Nil(t, err)
 	candidatePayload := NewCandidatePayload(LogoutAction)
 	bytes, _ = candidatePayload.ToBytes()
 	tx = NewTransaction(0, kickout, kickout, util.NewUint128FromInt(1), 2, TxPayloadCandidateType, bytes, TransactionGasPrice, util.NewUint128FromInt(200000))
@@ -112,7 +113,7 @@ func TestBlock_ElectNewDynasty(t *testing.T) {
 	assert.Nil(t, err)
 	log.Info(v.String())
 	_, err = context.NextDynastyTrie.Get(kickout.Bytes())
-	assert.Equal(t, err, storage.ErrKeyNotFound)
+	assert.Equal(t, storage.ErrKeyNotFound, err)
 	_, err = context.NextDynastyTrie.Get(v.Bytes())
 	assert.Equal(t, err, nil)
 }

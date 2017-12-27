@@ -295,13 +295,13 @@ func (tx *Transaction) VerifyExecution(block *Block) (*util.Uint128, error) {
 
 	// balance < gasLimit*gasPric
 	if fromAcc.Balance().Cmp(tx.MinBalanceRequired().Int) < 0 {
-		return nil, ErrInsufficientBalance
+		return util.NewUint128(), ErrInsufficientBalance
 	}
 
 	// gasLimit < gasUsed
 	gasUsed := tx.GasCountOfTxBase()
 	if tx.gasLimit.Cmp(gasUsed.Int) < 0 {
-		return nil, ErrOutOfGasLimit
+		return util.NewUint128(), ErrOutOfGasLimit
 	}
 
 	payload, err := tx.LoadPayload()
@@ -319,7 +319,14 @@ func (tx *Transaction) VerifyExecution(block *Block) (*util.Uint128, error) {
 		return gasUsed, nil
 	}
 
-	if tx.gasLimit.Cmp(util.NewUint128().Add(gasUsed.Int, payload.BaseGasCount().Int)) < 0 {
+	ctx := NewPayloadContext(block, tx)
+	err = ctx.BeginBatch()
+	if err != nil {
+		return util.NewUint128(), err
+	}
+
+	gasUsed.Add(gasUsed.Int, payload.BaseGasCount().Int)
+	if tx.gasLimit.Cmp(gasUsed.Int) < 0 {
 		log.WithFields(log.Fields{
 			"error":       ErrOutOfGasLimit,
 			"block":       block,
@@ -334,8 +341,12 @@ func (tx *Transaction) VerifyExecution(block *Block) (*util.Uint128, error) {
 	}
 
 	// execute smart contract and sub the calcute gas.
-	ctx := NewPayloadContext(block, tx)
 	gasExecution, err := payload.Execute(ctx)
+	if err != nil {
+		ctx.RollBack()
+	} else {
+		ctx.Commit()
+	}
 
 	log.WithFields(log.Fields{
 		"transaction":  tx,
@@ -374,12 +385,11 @@ func (tx *Transaction) VerifyExecution(block *Block) (*util.Uint128, error) {
 			toAcc.AddBalance(tx.value)
 
 			executeTxCounter.Inc(1)
+			// record tx execution success event
 			tx.triggerEvent(TopicExecuteTxSuccess, block, nil)
 		}
 	}
 
-	// record tx execution success event
-	tx.triggerEvent(TopicExecuteTxSuccess, block, nil)
 	return gas, nil
 }
 

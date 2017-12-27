@@ -62,11 +62,6 @@ func (payload *DeployPayload) BaseGasCount() *util.Uint128 {
 
 // Execute deploy payload in tx, deploy a new contract
 func (payload *DeployPayload) Execute(ctx *PayloadContext) (*util.Uint128, error) {
-	err := ctx.BeginBatch()
-	if err != nil {
-		return util.NewUint128(), err
-	}
-
 	nvmctx, err := generateDeployContext(ctx)
 	if err != nil {
 		return util.NewUint128(), err
@@ -79,11 +74,6 @@ func (payload *DeployPayload) Execute(ctx *PayloadContext) (*util.Uint128, error
 
 	// Deploy and Init.
 	err = engine.DeployAndInit(payload.Source, payload.SourceType, payload.Args)
-	if err != nil {
-		ctx.RollBack()
-	} else {
-		ctx.Commit()
-	}
 	return util.NewUint128FromInt(int64(engine.ExecutionInstructions())), err
 }
 

@@ -67,7 +67,7 @@ func (payload *CandidatePayload) Execute(ctx *PayloadContext) (*util.Uint128, er
 	candidate := ctx.tx.from.Bytes()
 	switch payload.Action {
 	case LoginAction:
-		if _, err := ctx.block.dposContext.candidateTrie.Put(candidate, candidate); err != nil {
+		if _, err := ctx.dposContext.candidateTrie.Put(candidate, candidate); err != nil {
 			return ZeroGasCount, err
 		}
 		log.WithFields(log.Fields{

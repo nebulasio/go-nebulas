@@ -60,12 +60,6 @@ func (payload *CallPayload) BaseGasCount() *util.Uint128 {
 
 // Execute the call payload in tx, call a function
 func (payload *CallPayload) Execute(context *PayloadContext) (*util.Uint128, error) {
-
-	err := context.BeginBatch()
-	if err != nil {
-		return util.NewUint128(), err
-	}
-
 	ctx, deployPayload, err := generateCallContext(context)
 	if err != nil {
 		return util.NewUint128(), err
@@ -78,11 +72,6 @@ func (payload *CallPayload) Execute(context *PayloadContext) (*util.Uint128, err
 	engine.SetExecutionLimits(context.tx.PayloadGasLimit().Uint64(), nvm.DefaultLimitsOfTotalMemorySize)
 
 	err = engine.Call(deployPayload.Source, deployPayload.SourceType, payload.Function, payload.Args)
-	if err != nil {
-		context.RollBack()
-	} else {
-		context.Commit()
-	}
 	return util.NewUint128FromInt(int64(engine.ExecutionInstructions())), err
 }
 
