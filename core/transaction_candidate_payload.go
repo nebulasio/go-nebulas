@@ -77,7 +77,7 @@ func (payload *CandidatePayload) Execute(ctx *PayloadContext) (*util.Uint128, er
 			"candidate": ctx.tx.from.String(),
 		}).Info("Candidate Login.")
 	case LogoutAction:
-		if err := ctx.block.kickoutCandidate(candidate); err != nil {
+		if err := ctx.dposContext.kickoutCandidate(candidate); err != nil {
 			return ZeroGasCount, err
 		}
 		log.WithFields(log.Fields{

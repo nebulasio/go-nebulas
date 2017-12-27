@@ -444,6 +444,10 @@ func kickout(stor storage.Storage, candidatesTrie *trie.BatchTrie, delegateTrie 
 	return nil
 }
 
+func (dc *DposContext) kickoutCandidate(candidate byteutils.Hash) error {
+	return kickout(dc.storage, dc.candidateTrie, dc.delegateTrie, dc.voteTrie, candidate)
+}
+
 func (dc *DynastyContext) kickoutCandidate(candidate byteutils.Hash) error {
 	return kickout(dc.Storage, dc.CandidateTrie, dc.DelegateTrie, dc.VoteTrie, candidate)
 }
