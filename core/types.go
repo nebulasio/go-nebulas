@@ -71,6 +71,7 @@ var (
 	ErrInvalidUnDelegateFromNonDelegatee = errors.New("cannot un-delegate from non-delegatee")
 	ErrInvalidBaseAndNextDynastyID       = errors.New("cannot kickout from baseDynastyID to nextDynastyID if nextDynastyID <= baseDynastyID")
 	ErrInitialDynastyNotEnough           = errors.New("the size of initial dynasty in genesis block is un-safe, should be greater than or equal " + strconv.Itoa(SafeSize))
+	ErrInvalidTransactionSigner          = errors.New("Transaction recover public key address not equal to from. ")
 )
 
 // Default gas count

@@ -458,42 +458,38 @@ func (tx *Transaction) VerifyIntegrity(chainID uint32) error {
 	}
 
 	// check Signature.
-	signVerify, err := tx.verifySign()
-	if err != nil {
+	if err := tx.verifySign(); err != nil {
 		return err
-	}
-	if !signVerify {
-		return ErrInvalidSignature
 	}
 
 	return nil
 }
 
-func (tx *Transaction) verifySign() (bool, error) {
+func (tx *Transaction) verifySign() error {
 	signature, err := crypto.NewSignature(keystore.Algorithm(tx.alg))
 	if err != nil {
-		return false, err
+		return err
 	}
 	pub, err := signature.RecoverPublic(tx.hash, tx.sign)
 	if err != nil {
-		return false, err
+		return err
 	}
 	pubdata, err := pub.Encoded()
 	if err != nil {
-		return false, err
+		return err
 	}
 	addr, err := NewAddressFromPublicKey(pubdata)
 	if err != nil {
-		return false, err
+		return err
 	}
 	if !tx.from.Equals(addr) {
 		log.WithFields(log.Fields{
 			"recover address": addr.String(),
 			"tx":              tx,
 		}).Error("Transaction verifySign.")
-		return false, errors.New("Transaction recover public key address not equal to from. ")
+		return ErrInvalidTransactionSigner
 	}
-	return true, nil
+	return nil
 }
 
 // GenerateContractAddress according to tx.from and tx.nonce.

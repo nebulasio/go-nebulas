@@ -52,7 +52,7 @@ type TransactionPool struct {
 	mu sync.RWMutex
 
 	gasPrice *util.Uint128 // the lowest gasPrice.
-	gasLimt  *util.Uint128 // the maximum gasLimit.
+	gasLimit *util.Uint128 // the maximum gasLimit.
 }
 
 func less(a interface{}, b interface{}) bool {
@@ -81,7 +81,7 @@ func NewTransactionPool(size int) *TransactionPool {
 		cache:             pdeque.NewPriorityDeque(less),
 		all:               make(map[byteutils.HexHash]*Transaction),
 		gasPrice:          TransactionGasPrice,
-		gasLimt:           TransactionMaxGas,
+		gasLimit:          TransactionMaxGas,
 	}
 	return txPool
 }
@@ -94,7 +94,9 @@ func (pool *TransactionPool) SetGasConfig(gasPrice, gasLimit *util.Uint128) {
 		pool.gasPrice = gasPrice
 	}
 	if gasLimit == nil || gasLimit.Cmp(TransactionMaxGas.Int) > 0 {
-		pool.gasLimt = TransactionMaxGas
+		pool.gasLimit = TransactionMaxGas
+	} else {
+		pool.gasLimit = gasLimit
 	}
 }
 
@@ -206,7 +208,7 @@ func (pool *TransactionPool) push(tx *Transaction) error {
 		belowGasPriceTxCounter.Inc(1)
 		return ErrBelowGasPrice
 	}
-	if tx.gasLimit.Cmp(pool.gasLimt.Int) > 0 {
+	if tx.gasLimit.Cmp(pool.gasLimit.Int) > 0 {
 		outOfGasLimitTxCounter.Inc(1)
 		return ErrOutOfGasLimit
 	}

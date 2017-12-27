@@ -31,7 +31,6 @@ import (
 )
 
 func TestTransactionPool(t *testing.T) {
-
 	ks := keystore.DefaultKS
 	priv1 := secp256k1.GeneratePrivateKey()
 	pubdata1, _ := priv1.PublicKey().Encoded()
@@ -113,4 +112,50 @@ func TestTransactionPool(t *testing.T) {
 	txPool.Pop()
 	assert.Equal(t, txPool.Empty(), true)
 	assert.Nil(t, txPool.Pop())
+}
+
+func TestGasConfig(t *testing.T) {
+	txPool := NewTransactionPool(3)
+	txPool.SetGasConfig(nil, nil)
+	assert.Equal(t, txPool.gasPrice, TransactionGasPrice)
+	assert.Equal(t, txPool.gasLimit, TransactionMaxGas)
+	txPool.SetGasConfig(util.NewUint128FromInt(1), util.NewUint128FromInt(1))
+	assert.Equal(t, txPool.gasPrice, util.NewUint128FromInt(1))
+	assert.Equal(t, txPool.gasLimit, util.NewUint128FromInt(1))
+}
+
+func TestPushTxs(t *testing.T) {
+	ks := keystore.DefaultKS
+	priv1 := secp256k1.GeneratePrivateKey()
+	pubdata1, _ := priv1.PublicKey().Encoded()
+	from, _ := NewAddressFromPublicKey(pubdata1)
+	ks.SetKey(from.String(), priv1, []byte("passphrase"))
+	ks.Unlock(from.String(), []byte("passphrase"), time.Second*60*60*24*365)
+	key1, _ := ks.GetUnlocked(from.String())
+	signature1, _ := crypto.NewSignature(keystore.SECP256K1)
+	signature1.InitSign(key1.(keystore.PrivateKey))
+
+	priv2 := secp256k1.GeneratePrivateKey()
+	pubdata2, _ := priv2.PublicKey().Encoded()
+	to, _ := NewAddressFromPublicKey(pubdata2)
+	ks.SetKey(to.String(), priv2, []byte("passphrase"))
+	ks.Unlock(to.String(), []byte("passphrase"), time.Second*60*60*24*365)
+	key2, _ := ks.GetUnlocked(to.String())
+	signature2, _ := crypto.NewSignature(keystore.SECP256K1)
+	signature2.InitSign(key2.(keystore.PrivateKey))
+
+	txPool := NewTransactionPool(3)
+	bc, _ := NewBlockChain(testNeb())
+	txPool.setBlockChain(bc)
+	MaxGasPlus1 := util.NewUint128FromBigInt(util.NewUint128().Add(TransactionMaxGas.Int, util.NewUint128FromInt(1).Int))
+	txs := []*Transaction{
+		NewTransaction(bc.ChainID(), from, to, util.NewUint128(), 10, TxPayloadBinaryType, []byte("datadata"), util.NewUint128FromInt(10^6-1), TransactionMaxGas),
+		NewTransaction(bc.ChainID(), from, to, util.NewUint128(), 10, TxPayloadBinaryType, []byte("datadata"), TransactionGasPrice, MaxGasPlus1),
+	}
+	assert.Equal(t, txPool.push(txs[0]), ErrBelowGasPrice)
+	assert.Equal(t, txPool.push(txs[1]), ErrOutOfGasLimit)
+}
+
+func TestTransactionPoolSize(t *testing.T) {
+	assert.Panics(t, func() { NewTransactionPool(0) })
 }
