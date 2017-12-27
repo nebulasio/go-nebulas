@@ -425,3 +425,204 @@ func TestBlock_fetchEvents(t *testing.T) {
 		assert.Equal(t, events[idx], event)
 	}
 }
+
+func TestSerializeTxByHash(t *testing.T) {
+	bc, err := NewBlockChain(testNeb())
+	assert.Nil(t, err)
+	block := bc.tailBlock
+	tx := NewTransaction(bc.ChainID(), mockAddress(), mockAddress(), util.NewUint128(), 1, TxPayloadBinaryType, []byte(""), TransactionGasPrice, TransactionMaxGas)
+	hash, err := HashTransaction(tx)
+	assert.Nil(t, err)
+	tx.hash = hash
+	block.acceptTransaction(tx)
+	msg, err := block.SerializeTxByHash(hash)
+	assert.Nil(t, err)
+	bytes, err := pb.Marshal(msg)
+	assert.Nil(t, err)
+	msg2, err := tx.ToProto()
+	assert.Nil(t, err)
+	bytes2, err := pb.Marshal(msg2)
+	assert.Equal(t, bytes, bytes2)
+}
+
+func TestBlockSign(t *testing.T) {
+	bc, err := NewBlockChain(testNeb())
+	assert.Nil(t, err)
+	block := bc.tailBlock
+	ks := keystore.DefaultKS
+	signature, _ := crypto.NewSignature(keystore.SECP256K1)
+	signer := mockAddress()
+	key, _ := ks.GetUnlocked(signer.String())
+	signature.InitSign(key.(keystore.PrivateKey))
+	assert.Nil(t, block.Sign(signature))
+	assert.Equal(t, block.Alg(), uint8(keystore.SECP256K1))
+	assert.Equal(t, block.Signature(), block.header.sign)
+}
+
+func TestParentBlock(t *testing.T) {
+	bc, err := NewBlockChain(testNeb())
+	assert.Nil(t, err)
+	coinbase := mockAddress()
+	block, err := bc.NewBlock(coinbase)
+	assert.Nil(t, err)
+	parent, err := block.ParentBlock()
+	assert.Nil(t, err)
+	assert.Equal(t, parent.Hash(), bc.genesisBlock.Hash())
+	block.parenetBlock = nil
+	parent, err = block.ParentBlock()
+	assert.Nil(t, err)
+	assert.Equal(t, parent.Hash(), bc.genesisBlock.Hash())
+}
+
+func TestGivebackInvalidTx(t *testing.T) {
+	bc, err := NewBlockChain(testNeb())
+	assert.Nil(t, err)
+	from := mockAddress()
+	ks := keystore.DefaultKS
+	tx := NewTransaction(bc.ChainID(), from, from, util.NewUint128(), 2, TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, util.NewUint128FromInt(200000))
+	key, err := ks.GetUnlocked(from.String())
+	assert.Nil(t, err)
+	signature, err := crypto.NewSignature(keystore.SECP256K1)
+	assert.Nil(t, err)
+	signature.InitSign(key.(keystore.PrivateKey))
+	tx.Sign(signature)
+	assert.Nil(t, bc.txPool.Push(tx))
+	assert.Equal(t, len(bc.txPool.all), 1)
+	block, err := bc.NewBlock(from)
+	assert.Nil(t, err)
+	block.CollectTransactions(1)
+	assert.Equal(t, len(bc.txPool.all), 1)
+}
+
+func TestRecordEvent(t *testing.T) {
+	bc, err := NewBlockChain(testNeb())
+	assert.Nil(t, err)
+	txHash := []byte("hello")
+	assert.Nil(t, bc.tailBlock.RecordEvent(txHash, TopicSendTransaction, "world"))
+	events, err := bc.tailBlock.FetchEvents(txHash)
+	assert.Nil(t, err)
+	assert.Equal(t, len(events), 1)
+	assert.Equal(t, events[0].Topic, TopicSendTransaction)
+	assert.Equal(t, events[0].Data, "world")
+}
+
+func TestBlockVerifyIntegrity(t *testing.T) {
+	var cons MockConsensus
+	bc, err := NewBlockChain(testNeb())
+	bc.SetConsensusHandler(cons)
+	assert.Nil(t, err)
+	assert.Equal(t, bc.tailBlock.VerifyIntegrity(0, nil), ErrInvalidChainID)
+	bc.tailBlock.header.hash[0] = 1
+	assert.Equal(t, bc.tailBlock.VerifyIntegrity(bc.ChainID(), nil), ErrInvalidBlockHash)
+	ks := keystore.DefaultKS
+	from := mockAddress()
+	key, err := ks.GetUnlocked(from.String())
+	assert.Nil(t, err)
+	signature, err := crypto.NewSignature(keystore.SECP256K1)
+	assert.Nil(t, err)
+	signature.InitSign(key.(keystore.PrivateKey))
+	block, err := bc.NewBlock(from)
+	assert.Nil(t, err)
+	tx1 := NewTransaction(bc.ChainID(), from, from, util.NewUint128(), 1, TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, util.NewUint128FromInt(200000))
+	tx1.Sign(signature)
+	tx2 := NewTransaction(bc.ChainID(), from, from, util.NewUint128(), 2, TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, util.NewUint128FromInt(200000))
+	tx2.Sign(signature)
+	tx2.hash[0]++
+	block.transactions = append(block.transactions, tx1)
+	block.transactions = append(block.transactions, tx2)
+	block.miner = from
+	block.Seal()
+	block.Sign(signature)
+	assert.NotNil(t, block.VerifyIntegrity(bc.ChainID(), bc.ConsensusHandler()))
+}
+
+func TestBlockVerifyIntegrityDup(t *testing.T) {
+	var cons MockConsensus
+	bc, err := NewBlockChain(testNeb())
+	bc.SetConsensusHandler(cons)
+	assert.Nil(t, err)
+	assert.Equal(t, bc.tailBlock.VerifyIntegrity(0, nil), ErrInvalidChainID)
+	bc.tailBlock.header.hash[0] = 1
+	assert.Equal(t, bc.tailBlock.VerifyIntegrity(bc.ChainID(), nil), ErrInvalidBlockHash)
+	ks := keystore.DefaultKS
+	from := mockAddress()
+	key, err := ks.GetUnlocked(from.String())
+	assert.Nil(t, err)
+	signature, err := crypto.NewSignature(keystore.SECP256K1)
+	assert.Nil(t, err)
+	signature.InitSign(key.(keystore.PrivateKey))
+	block, err := bc.NewBlock(from)
+	assert.Nil(t, err)
+	tx1 := NewTransaction(bc.ChainID(), from, from, util.NewUint128(), 1, TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, util.NewUint128FromInt(200000))
+	tx1.Sign(signature)
+	block.transactions = append(block.transactions, tx1)
+	block.transactions = append(block.transactions, tx1)
+	block.miner = from
+	block.Seal()
+	block.Sign(signature)
+	assert.Equal(t, block.VerifyExecution(bc.tailBlock, bc.ConsensusHandler()), ErrDuplicatedTransaction)
+}
+
+func TestBlockVerifyExecution(t *testing.T) {
+	var cons MockConsensus
+	bc, err := NewBlockChain(testNeb())
+	bc.SetConsensusHandler(cons)
+	assert.Nil(t, err)
+	assert.Equal(t, bc.tailBlock.VerifyIntegrity(0, nil), ErrInvalidChainID)
+	bc.tailBlock.header.hash[0] = 1
+	assert.Equal(t, bc.tailBlock.VerifyIntegrity(bc.ChainID(), nil), ErrInvalidBlockHash)
+	ks := keystore.DefaultKS
+	from := mockAddress()
+	key, err := ks.GetUnlocked(from.String())
+	assert.Nil(t, err)
+	signature, err := crypto.NewSignature(keystore.SECP256K1)
+	assert.Nil(t, err)
+	signature.InitSign(key.(keystore.PrivateKey))
+	block, err := bc.NewBlock(from)
+	assert.Nil(t, err)
+	tx1 := NewTransaction(bc.ChainID(), from, from, util.NewUint128(), 1, TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, util.NewUint128FromInt(200000))
+	tx1.Sign(signature)
+	tx2 := NewTransaction(bc.ChainID(), from, from, util.NewUint128(), 3, TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, util.NewUint128FromInt(200000))
+	tx2.Sign(signature)
+	block.transactions = append(block.transactions, tx1)
+	block.transactions = append(block.transactions, tx2)
+	block.miner = from
+	block.Seal()
+	block.Sign(signature)
+	assert.Nil(t, block.VerifyIntegrity(bc.ChainID(), bc.ConsensusHandler()))
+	root1 := block.accState.RootHash()
+	assert.Equal(t, block.VerifyExecution(bc.tailBlock, bc.ConsensusHandler()), ErrLargeTransactionNonce)
+	root2 := block.accState.RootHash()
+	assert.Equal(t, root1, root2)
+}
+
+func TestBlockVerifyState(t *testing.T) {
+	var cons MockConsensus
+	bc, err := NewBlockChain(testNeb())
+	bc.SetConsensusHandler(cons)
+	assert.Nil(t, err)
+	assert.Equal(t, bc.tailBlock.VerifyIntegrity(0, nil), ErrInvalidChainID)
+	bc.tailBlock.header.hash[0] = 1
+	assert.Equal(t, bc.tailBlock.VerifyIntegrity(bc.ChainID(), nil), ErrInvalidBlockHash)
+	ks := keystore.DefaultKS
+	from := mockAddress()
+	key, err := ks.GetUnlocked(from.String())
+	assert.Nil(t, err)
+	signature, err := crypto.NewSignature(keystore.SECP256K1)
+	assert.Nil(t, err)
+	signature.InitSign(key.(keystore.PrivateKey))
+	block, err := bc.NewBlock(from)
+	assert.Nil(t, err)
+	tx1 := NewTransaction(bc.ChainID(), from, from, util.NewUint128(), 1, TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, util.NewUint128FromInt(200000))
+	tx1.Sign(signature)
+	tx2 := NewTransaction(bc.ChainID(), from, from, util.NewUint128(), 2, TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, util.NewUint128FromInt(200000))
+	tx2.Sign(signature)
+	block.transactions = append(block.transactions, tx1)
+	block.transactions = append(block.transactions, tx2)
+	block.miner = from
+	block.Seal()
+	block.Sign(signature)
+	assert.Nil(t, block.VerifyIntegrity(bc.ChainID(), bc.ConsensusHandler()))
+	block.header.stateRoot[0]++
+	assert.NotNil(t, block.VerifyExecution(bc.tailBlock, bc.ConsensusHandler()))
+}

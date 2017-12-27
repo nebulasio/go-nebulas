@@ -338,6 +338,28 @@ func fetchActiveBootstapValidators(stor storage.Storage, candidates *trie.BatchT
 	return activeBootstapValidators, nil
 }
 
+func checkActiveBootstrapValidator(validator byteutils.Hash, stor storage.Storage, candidates *trie.BatchTrie) (bool, error) {
+	genesis, err := LoadBlockFromStorage(GenesisHash, stor, nil, nil)
+	if err != nil {
+		return false, err
+	}
+	_, err = genesis.dposContext.candidateTrie.Get(validator)
+	if err != nil && err != storage.ErrKeyNotFound {
+		return false, err
+	}
+	if err != nil {
+		return false, nil
+	}
+	_, err = candidates.Get(validator)
+	if err != nil && err != storage.ErrKeyNotFound {
+		return false, err
+	}
+	if err != nil {
+		return false, nil
+	}
+	return true, nil
+}
+
 func (dc *DynastyContext) chooseCandidates(votes map[string]*util.Uint128) (Candidates, error) {
 	// active bootstrap validators
 	var bootstrapCandidates Candidates
@@ -371,28 +393,6 @@ func (dc *DynastyContext) chooseCandidates(votes map[string]*util.Uint128) (Cand
 	// merge
 	candidates = append(bootstrapCandidates, candidates...)
 	return candidates, nil
-}
-
-func checkActiveBootstrapValidator(validator byteutils.Hash, stor storage.Storage, candidates *trie.BatchTrie) (bool, error) {
-	genesis, err := LoadBlockFromStorage(GenesisHash, stor, nil, nil)
-	if err != nil {
-		return false, err
-	}
-	_, err = genesis.dposContext.candidateTrie.Get(validator)
-	if err != nil && err != storage.ErrKeyNotFound {
-		return false, err
-	}
-	if err != nil {
-		return false, nil
-	}
-	_, err = candidates.Get(validator)
-	if err != nil && err != storage.ErrKeyNotFound {
-		return false, err
-	}
-	if err != nil {
-		return false, nil
-	}
-	return true, nil
 }
 
 func kickout(stor storage.Storage, candidatesTrie *trie.BatchTrie, delegateTrie *trie.BatchTrie, voteTrie *trie.BatchTrie, candidate byteutils.Hash) error {

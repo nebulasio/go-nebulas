@@ -616,7 +616,6 @@ func (block *Block) triggerEvent() {
 				block.eventEmitter.Trigger(e)
 			}
 		}
-
 	}
 
 	blockData, _ := json.Marshal(block)
