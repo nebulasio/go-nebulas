@@ -73,17 +73,17 @@ func TestBlockPool(t *testing.T) {
 	assert.Nil(t, err)
 
 	addr := &Address{validators[1]}
-	block0, err := NewBlock(0, addr, bc.tailBlock)
+	block0, err := NewBlock(bc.ChainID(), addr, bc.tailBlock)
 	assert.Nil(t, err)
 	block0.header.timestamp = bc.tailBlock.header.timestamp + BlockInterval
 	block0.SetMiner(addr)
 	block0.Seal()
 
-	tx1 := NewTransaction(0, from, to, util.NewUint128FromInt(1), 1, TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, util.NewUint128FromInt(200000))
+	tx1 := NewTransaction(bc.ChainID(), from, to, util.NewUint128FromInt(1), 1, TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, util.NewUint128FromInt(200000))
 	tx1.Sign(signature)
-	tx2 := NewTransaction(0, from, to, util.NewUint128FromInt(2), 2, TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, util.NewUint128FromInt(200000))
+	tx2 := NewTransaction(bc.ChainID(), from, to, util.NewUint128FromInt(2), 2, TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, util.NewUint128FromInt(200000))
 	tx2.Sign(signature)
-	tx3 := NewTransaction(0, from, to, util.NewUint128FromInt(3), 3, TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, util.NewUint128FromInt(200000))
+	tx3 := NewTransaction(bc.ChainID(), from, to, util.NewUint128FromInt(3), 3, TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, util.NewUint128FromInt(200000))
 	tx3.Sign(signature)
 	err = bc.txPool.Push(tx1)
 	assert.NoError(t, err)
@@ -93,28 +93,28 @@ func TestBlockPool(t *testing.T) {
 	assert.NoError(t, err)
 
 	addr = &Address{validators[2]}
-	block1, _ := NewBlock(0, addr, block0)
+	block1, _ := NewBlock(bc.ChainID(), addr, block0)
 	block1.header.timestamp = block0.header.timestamp + BlockInterval
 	block1.CollectTransactions(1)
 	block1.SetMiner(addr)
 	block1.Seal()
 
 	addr = &Address{validators[3]}
-	block2, _ := NewBlock(0, addr, block1)
+	block2, _ := NewBlock(bc.ChainID(), addr, block1)
 	block2.header.timestamp = block1.header.timestamp + BlockInterval
 	block2.CollectTransactions(1)
 	block2.SetMiner(addr)
 	block2.Seal()
 
 	addr = &Address{validators[4]}
-	block3, _ := NewBlock(0, addr, block2)
+	block3, _ := NewBlock(bc.ChainID(), addr, block2)
 	block3.header.timestamp = block2.header.timestamp + BlockInterval
 	block3.CollectTransactions(1)
 	block3.SetMiner(addr)
 	block3.Seal()
 
 	addr = &Address{validators[5]}
-	block4, _ := NewBlock(0, addr, block3)
+	block4, _ := NewBlock(bc.ChainID(), addr, block3)
 	block4.header.timestamp = block3.header.timestamp + BlockInterval
 	block4.CollectTransactions(1)
 	block4.SetMiner(addr)

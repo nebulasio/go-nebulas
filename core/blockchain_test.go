@@ -65,12 +65,12 @@ func TestBlockChain_FindCommonAncestorWithTail(t *testing.T) {
 	assert.Nil(t, bc.BlockPool().Push(BlockFromNetwork(block0)))
 	bc.SetTailBlock(block0)
 
-	tx1 := NewTransaction(0, from, to, util.NewUint128FromInt(1), 1, TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, util.NewUint128FromInt(200000))
+	tx1 := NewTransaction(bc.ChainID(), from, to, util.NewUint128FromInt(1), 1, TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, util.NewUint128FromInt(200000))
 	tx1.Sign(signature)
-	tx2 := NewTransaction(0, from, to, util.NewUint128FromInt(1), 1, TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, util.NewUint128FromInt(200000))
+	tx2 := NewTransaction(bc.ChainID(), from, to, util.NewUint128FromInt(1), 1, TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, util.NewUint128FromInt(200000))
 	tx2.timestamp = tx1.timestamp + 1
 	tx2.Sign(signature)
-	tx3 := NewTransaction(0, from, to, util.NewUint128FromInt(1), 2, TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, util.NewUint128FromInt(200000))
+	tx3 := NewTransaction(bc.ChainID(), from, to, util.NewUint128FromInt(1), 2, TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, util.NewUint128FromInt(200000))
 	tx3.timestamp = tx3.timestamp + 1
 	tx3.Sign(signature)
 	bc.txPool.Push(tx1)
@@ -215,8 +215,8 @@ func TestBlockChain_EstimateGas(t *testing.T) {
 	payload, err := NewBinaryPayload(nil).ToBytes()
 	assert.Nil(t, err)
 
-	tx := NewTransaction(0, from, to, util.NewUint128FromInt(0), 1, TxPayloadBinaryType, payload, TransactionGasPrice, util.NewUint128FromInt(200000))
 	bc, _ := NewBlockChain(testNeb())
+	tx := NewTransaction(bc.ChainID(), from, to, util.NewUint128FromInt(0), 1, TxPayloadBinaryType, payload, TransactionGasPrice, util.NewUint128FromInt(200000))
 
 	_, err = bc.EstimateGas(tx)
 	assert.Nil(t, err)

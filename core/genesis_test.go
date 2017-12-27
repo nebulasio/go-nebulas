@@ -37,6 +37,7 @@ var (
 		"59fc526072b09af8a8ca9732dae17132c4e9127e43cf2232",
 		"75e4e5a71d647298b88928d8cb5da43d90ab1a6c52d0905f",
 		"7da9dabedb4c6e121146fb4250a9883d6180570e63d6b080",
+		"98a3eed687640b75ec55bf5c9e284371bdcaeab943524d51",
 		"a8f1f53952c535c6600c77cf92b65e0c9b64496a8a328569",
 		"b040353ec0f2c113d5639444f7253681aecda1f8b91f179f",
 		"b414432e15f21237013017fa6ee90fc99433dec82c1c8370",
@@ -56,7 +57,7 @@ var (
 // MockGenesisConf return mock genesis conf
 func MockGenesisConf() *corepb.Genesis {
 	return &corepb.Genesis{
-		Meta: &corepb.GenesisMeta{ChainId: 0},
+		Meta: &corepb.GenesisMeta{ChainId: 100},
 		Consensus: &corepb.GenesisConsensus{
 			Dpos: &corepb.GenesisConsensusDpos{
 				Dynasty: MockDynasty,
@@ -73,6 +74,24 @@ func MockGenesisConf() *corepb.Genesis {
 			},
 		},
 	}
+}
+
+func TestLoadGenesisConf(t *testing.T) {
+	conf, err := LoadGenesisConf("../conf/default/genesis.conf")
+	assert.Nil(t, err)
+	mockConf := MockGenesisConf()
+	assert.Equal(t, conf.Meta.ChainId, mockConf.Meta.ChainId)
+	assert.Equal(t, conf.Consensus.Dpos.Dynasty, mockConf.Consensus.Dpos.Dynasty)
+	assert.Equal(t, conf.TokenDistribution, mockConf.TokenDistribution)
+}
+
+func TestInvalidAddressInTokenDistribution(t *testing.T) {
+	mockConf := MockGenesisConf()
+	mockConf.TokenDistribution[0].Address = "1a263547d167c74cf4b8f9166cfa244de0481c514a45aa2"
+	storage, err := storage.NewMemoryStorage()
+	assert.Nil(t, err)
+	_, err = NewGenesisBlock(mockConf, &BlockChain{storage: storage})
+	assert.Equal(t, err, ErrInvalidAddress)
 }
 
 func TestNewGenesisBlock(t *testing.T) {

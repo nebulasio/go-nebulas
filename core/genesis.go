@@ -148,10 +148,7 @@ func DumpGenesis(stor storage.Storage) (*corepb.Genesis, error) {
 	for _, v := range accounts {
 		balance := v.Balance()
 		if v.Address().Equals(genesis.Coinbase().Bytes()) {
-			if v.Balance().Cmp(BlockReward.Int) == 0 {
-				continue
-			}
-			balance = util.NewUint128FromBigInt(v.Balance().Sub(v.Balance().Int, BlockReward.Int))
+			continue
 		}
 		distribution = append(distribution, &corepb.GenesisTokenDistribution{
 			Address: string(v.Address().Hex()),

@@ -91,7 +91,7 @@ func TestBlock(t *testing.T) {
 					nonce:     3546456,
 					coinbase:  &Address{[]byte("hello")},
 					timestamp: time.Now().Unix(),
-					chainID:   0,
+					chainID:   100,
 				},
 				Transactions{
 					&Transaction{
@@ -173,7 +173,7 @@ func TestBlock_LinkParentBlock(t *testing.T) {
 			nonce:     3546456,
 			coinbase:  &Address{[]byte("hello")},
 			timestamp: BlockInterval,
-			chainID:   0,
+			chainID:   100,
 		},
 		transactions: []*Transaction{},
 	}
@@ -196,7 +196,7 @@ func TestBlock_LinkParentBlock(t *testing.T) {
 			nonce:     3546456,
 			coinbase:  &Address{[]byte("hello")},
 			timestamp: BlockInterval * 2,
-			chainID:   0,
+			chainID:   100,
 		},
 		transactions: []*Transaction{},
 	}
@@ -230,35 +230,35 @@ func TestBlock_CollectTransactions(t *testing.T) {
 	pubdata2, _ := priv2.PublicKey().Encoded()
 	coinbase, _ := NewAddressFromPublicKey(pubdata2)
 
-	block0, _ := NewBlock(0, from, tail)
+	block0, _ := NewBlock(bc.ChainID(), from, tail)
 	block0.header.timestamp = BlockInterval
 	block0.SetMiner(from)
 	block0.Seal()
 	//bc.BlockPool().push(block0)
 	bc.SetTailBlock(block0)
 
-	block, _ := NewBlock(0, coinbase, block0)
+	block, _ := NewBlock(bc.ChainID(), coinbase, block0)
 	block.header.timestamp = BlockInterval * 2
 
-	tx1 := NewTransaction(0, from, to, util.NewUint128FromInt(1), 1, TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, util.NewUint128FromInt(200000))
+	tx1 := NewTransaction(bc.ChainID(), from, to, util.NewUint128FromInt(1), 1, TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, util.NewUint128FromInt(200000))
 	tx1.Sign(signature)
-	tx2 := NewTransaction(0, from, to, util.NewUint128FromInt(1), 2, TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, util.NewUint128FromInt(200000))
+	tx2 := NewTransaction(bc.ChainID(), from, to, util.NewUint128FromInt(1), 2, TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, util.NewUint128FromInt(200000))
 	tx2.Sign(signature)
-	tx3 := NewTransaction(0, from, to, util.NewUint128FromInt(1), 0, TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, util.NewUint128FromInt(200000))
+	tx3 := NewTransaction(bc.ChainID(), from, to, util.NewUint128FromInt(1), 0, TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, util.NewUint128FromInt(200000))
 	tx3.Sign(signature)
-	tx4 := NewTransaction(0, from, to, util.NewUint128FromInt(1), 4, TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, util.NewUint128FromInt(200000))
+	tx4 := NewTransaction(bc.ChainID(), from, to, util.NewUint128FromInt(1), 4, TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, util.NewUint128FromInt(200000))
 	tx4.Sign(signature)
-	tx5 := NewTransaction(0, from, to, util.NewUint128FromInt(1), 3, TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, util.NewUint128FromInt(200000))
+	tx5 := NewTransaction(bc.ChainID(), from, to, util.NewUint128FromInt(1), 3, TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, util.NewUint128FromInt(200000))
 	tx5.Sign(signature)
-	tx6 := NewTransaction(1, from, to, util.NewUint128FromInt(1), 1, TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, util.NewUint128FromInt(200000))
+	tx6 := NewTransaction(bc.ChainID()+1, from, to, util.NewUint128FromInt(1), 1, TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, util.NewUint128FromInt(200000))
 	tx6.Sign(signature)
 
-	bc.txPool.Push(tx1)
-	bc.txPool.Push(tx2)
-	bc.txPool.Push(tx3)
-	bc.txPool.Push(tx4)
-	bc.txPool.Push(tx5)
-	bc.txPool.Push(tx6)
+	assert.Nil(t, bc.txPool.Push(tx1))
+	assert.Nil(t, bc.txPool.Push(tx2))
+	assert.Nil(t, bc.txPool.Push(tx3))
+	assert.Nil(t, bc.txPool.Push(tx4))
+	assert.Nil(t, bc.txPool.Push(tx5))
+	assert.NotNil(t, bc.txPool.Push(tx6), ErrInvalidChainID)
 
 	assert.Equal(t, len(block.transactions), 0)
 	assert.Equal(t, bc.txPool.cache.Len(), 5)
@@ -313,21 +313,21 @@ func TestBlock_DposCandidates(t *testing.T) {
 	pubdata2, _ := priv2.PublicKey().Encoded()
 	coinbase, _ := NewAddressFromPublicKey(pubdata2)
 
-	block0, _ := NewBlock(0, from, tail)
+	block0, _ := NewBlock(bc.ChainID(), from, tail)
 	block0.header.timestamp = BlockInterval
 	block0.SetMiner(from)
 	block0.Seal()
 	bc.SetTailBlock(block0)
 
-	block, _ := NewBlock(0, coinbase, block0)
+	block, _ := NewBlock(bc.ChainID(), coinbase, block0)
 	block.header.timestamp = BlockInterval * 2
 	bytes, _ := NewCandidatePayload(LoginAction).ToBytes()
-	tx := NewTransaction(0, from, to, util.NewUint128FromInt(1), 1, TxPayloadCandidateType, bytes, TransactionGasPrice, util.NewUint128FromInt(200000))
+	tx := NewTransaction(bc.ChainID(), from, to, util.NewUint128FromInt(1), 1, TxPayloadCandidateType, bytes, TransactionGasPrice, util.NewUint128FromInt(200000))
 	tx.Sign(signature)
 	bc.txPool.Push(tx)
 	payload := NewDelegatePayload(DelegateAction, from.String())
 	bytes, _ = payload.ToBytes()
-	tx = NewTransaction(0, from, to, util.NewUint128FromInt(1), 2, TxPayloadDelegateType, bytes, TransactionGasPrice, util.NewUint128FromInt(200000))
+	tx = NewTransaction(bc.ChainID(), from, to, util.NewUint128FromInt(1), 2, TxPayloadDelegateType, bytes, TransactionGasPrice, util.NewUint128FromInt(200000))
 	tx.Sign(signature)
 	bc.txPool.Push(tx)
 	assert.Equal(t, len(block.transactions), 0)
@@ -349,11 +349,11 @@ func TestBlock_DposCandidates(t *testing.T) {
 	assert.Equal(t, bytes, from.Bytes())
 	bc.SetTailBlock(block)
 
-	block, _ = NewBlock(0, coinbase, block)
+	block, _ = NewBlock(bc.ChainID(), coinbase, block)
 	block.header.timestamp = BlockInterval * 3
 	payload = NewDelegatePayload(UnDelegateAction, from.String())
 	bytes, _ = payload.ToBytes()
-	tx = NewTransaction(0, from, to, util.NewUint128FromInt(1), 3, TxPayloadDelegateType, bytes, TransactionGasPrice, util.NewUint128FromInt(200000))
+	tx = NewTransaction(bc.ChainID(), from, to, util.NewUint128FromInt(1), 3, TxPayloadDelegateType, bytes, TransactionGasPrice, util.NewUint128FromInt(200000))
 	tx.Sign(signature)
 	bc.txPool.Push(tx)
 	assert.Equal(t, len(block.transactions), 0)
@@ -375,15 +375,15 @@ func TestBlock_DposCandidates(t *testing.T) {
 	assert.Equal(t, err, storage.ErrKeyNotFound)
 	bc.SetTailBlock(block)
 
-	block, _ = NewBlock(0, coinbase, block)
+	block, _ = NewBlock(bc.ChainID(), coinbase, block)
 	block.header.timestamp = BlockInterval * 4
 	payload = NewDelegatePayload(DelegateAction, from.String())
 	bytes, _ = payload.ToBytes()
-	tx = NewTransaction(0, from, to, util.NewUint128FromInt(1), 4, TxPayloadDelegateType, bytes, TransactionGasPrice, util.NewUint128FromInt(200000))
+	tx = NewTransaction(bc.ChainID(), from, to, util.NewUint128FromInt(1), 4, TxPayloadDelegateType, bytes, TransactionGasPrice, util.NewUint128FromInt(200000))
 	tx.Sign(signature)
 	bc.txPool.Push(tx)
 	bytes, _ = NewCandidatePayload(LogoutAction).ToBytes()
-	tx = NewTransaction(0, from, to, util.NewUint128FromInt(1), 5, TxPayloadCandidateType, bytes, TransactionGasPrice, util.NewUint128FromInt(200000))
+	tx = NewTransaction(bc.ChainID(), from, to, util.NewUint128FromInt(1), 5, TxPayloadCandidateType, bytes, TransactionGasPrice, util.NewUint128FromInt(200000))
 	tx.Sign(signature)
 	bc.txPool.Push(tx)
 	assert.Equal(t, len(block.transactions), 0)
