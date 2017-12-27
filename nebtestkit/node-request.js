@@ -1,7 +1,7 @@
 
 "use strict";
 
-var Request = require("sync-request");
+var rq = require("request-promise");
 
 var HttpRequest = function (host, timeout) {
     this.host = host || "http://localhost:8090";
@@ -18,29 +18,27 @@ HttpRequest.prototype._newRequest = function (method, api, payload) {
         m = "POST";
     }
     var url = this.host + api;
-    var resp = Request(m, url, { json: payload});
-    return resp.body;
+    var options = {
+        method: m,
+        uri: url,
+        body: payload,
+        json: true // Automatically stringifies the body to JSON
+    };
+    return options;
 };
 
 HttpRequest.prototype.request = function (method, api, payload) {
-    var result = this._newRequest(method, api, payload);
-    try {
-        result = JSON.parse(result);
-    } catch (e) {
-        throw e;
-    }
-
-    return result;
+    var options = this._newRequest(method, api, payload);
+    return rq(options);
 };
 
 HttpRequest.prototype.asyncRequest = function (method, api, payload, callback) {
-    var result = this._newRequest(method, api, payload);
-    try {
-        result = JSON.parse(result);
-    } catch (e) {
-        callback(error, result);
-    }
-    callback(null, result);
+    var options = this._newRequest(method, api, payload);
+    rq(options).then(function (resp) {
+        callback(null, resp);
+    }).catch(function (err) {
+        callback(err, null);
+    });
 };
 
 module.exports = HttpRequest;

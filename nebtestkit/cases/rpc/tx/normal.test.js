@@ -7,138 +7,211 @@ var BigNumber = require('bignumber.js');
 var nodes = new Node(6);
 nodes.Start();
 
+function checkTransaction(hash, done, count) {
+    if (count > 5) {
+        console.log("tx receipt timeout:"+hash);
+        done();
+        return;
+    }
+    var node = nodes.Node(0);
+    node.RPC().api.getTransactionReceipt(hash).then(function (resp) {
+        console.log(JSON.stringify(resp));
+        done();
+    }).catch(function (err) {
+        setTimeout(function () {
+            checkTransaction(hash, done, count+1);
+        }, 3000);
+    });
+}
+
 describe('normal transaction', function () {
     before(function (done) {
-        this.timeout(10000);
+        this.timeout(1000000);
         setTimeout(done, 5000);
     });
 
-    it('normal transfer', function () {
+    it('normal transfer', function (done) {
         var node = nodes.Node(0);
-        var state = node.RPC().api.getAccountState(node.Coinbase());
-        node.RPC().admin.unlockAccount(node.Coinbase(), node.Passphrase());
-
-        var resp = node.RPC(0).api.sendTransaction(node.Coinbase(), nodes.Coinbase(1), state.balance, parseInt(state.nonce) + 1);
-        expect(resp).to.be.have.property('txhash');
+        node.RPC().api.getAccountState(node.Coinbase()).then(function (state) {
+            console.log("resp:"+JSON.stringify(state));
+            node.RPC().admin.unlockAccount(node.Coinbase(), node.Passphrase()).then(function (resp) {
+                node.RPC().api.sendTransaction(node.Coinbase(), nodes.Coinbase(1), state.balance, parseInt(state.nonce) + 1).then(function (resp) {
+                    console.log("send:"+JSON.stringify(resp))
+                    expect(resp).to.be.have.property('txhash');
+                    // checkTransaction(resp.txhash, done, 1);
+                    done();
+                })
+            });
+        });
     });
 
-    it('from & to are same', function () {
+    it('from & to are same', function (done) {
         var node = nodes.Node(0);
-        // var nebState = node.RPC().api.getNebState();
-        var state = node.RPC().api.getAccountState(node.Coinbase());
-        // var gasPrice = node.RPC().api.gasPrice();
-        // var gas = node.RPC().api.estimateGas(node.Coinbase(), node.Coinbase(), state.balance, parseInt(state.nonce)+1);
-        node.RPC().admin.unlockAccount(node.Coinbase(), node.Passphrase());
-
-        // sendTransaction
-        var resp = node.RPC(0).api.sendTransaction(node.Coinbase(), node.Coinbase(), state.balance, parseInt(state.nonce) + 1);
-        expect(resp).to.be.have.property('txhash');
-        // var nextNebState = node.RPC().api.getNebState();
-
-        // block has been mined
-        // while (nextNebState.tail == nebState.tail) {
-        //     setTimeout(function(){
-        //         console.log('waiting over.');
-        //     }, 3000);
-        //     nextNebState = node.RPC().api.getNebState();
-        // }
-        // var nextState = node.RPC().api.getAccountState(node.Coinbase());
-        // var oldBalance = new BigNumber(nextState.balance).add(new BigNumber(gas.estimate_gas).mul(new BigNumber(gasPrice.gas_price)));
-        // console.log("balance:"+nextState.balance);
-        // console.log("new balance:"+oldBalance.toString());
-        // expect(nextState).to.be.have.property('balance').eq(oldBalance.toString());
+        node.RPC().api.getAccountState(node.Coinbase()).then(function (state) {
+            console.log("resp:"+JSON.stringify(state));
+            node.RPC().admin.unlockAccount(node.Coinbase(), node.Passphrase()).then(function (resp) {
+                node.RPC().api.sendTransaction(node.Coinbase(), nodes.Coinbase(0), state.balance, parseInt(state.nonce) + 1).then(function (resp) {
+                    console.log("send:"+JSON.stringify(resp))
+                    expect(resp).to.be.have.property('txhash');
+                    // checkTransaction(resp.txhash, done, 1);
+                    done();
+                })
+            });
+        });
     });
 
-    it('from balance is insufficient', function () {
-        var node = nodes.Node(0);
-        var state = node.RPC().api.getAccountState(node.Coinbase());
-        node.RPC().admin.unlockAccount(node.Coinbase(), node.Passphrase());
+    it('from balance is insufficient', function (done) {
 
-        var value = new BigNumber(state.balance).add("1");
-        var resp = node.RPC(0).api.sendTransaction(node.Coinbase(), nodes.Coinbase(1), value.toString(), parseInt(state.nonce) + 1);
-        expect(resp).to.be.have.property('txhash');
+        var node = nodes.Node(0);
+        node.RPC().api.getAccountState(node.Coinbase()).then(function (state) {
+            console.log("resp:"+JSON.stringify(state));
+            node.RPC().admin.unlockAccount(node.Coinbase(), node.Passphrase()).then(function (resp) {
+                var value = new BigNumber(state.balance).add("1");
+                node.RPC().api.sendTransaction(node.Coinbase(), nodes.Coinbase(0), value.toString(), parseInt(state.nonce) + 1).then(function (resp) {
+                    console.log("send:"+JSON.stringify(resp))
+                    expect(resp).to.be.have.property('txhash');
+                    // checkTransaction(resp.txhash, done, 1);
+                    done();
+                })
+            });
+        });
     });
 
-    it('gas is insufficient', function () {
-        var node = nodes.Node(0);
-        var state = node.RPC().api.getAccountState(node.Coinbase());
-        node.RPC().admin.unlockAccount(node.Coinbase(), node.Passphrase());
+    it('gas is insufficient', function (done) {
 
-        var price = node.RPC().api.gasPrice();
-        var gas = node.RPC().api.estimateGas(node.Coinbase(), node.Coinbase(), state.balance, parseInt(state.nonce) + 1);
-        gas = new BigNumber(gas.estimate_gas).sub(100);
-        var resp = node.RPC(0).api.sendTransaction(node.Coinbase(), nodes.Coinbase(1), state.balance, parseInt(state.nonce) + 1, price.gas_price, gas.toString());
-        expect(resp).to.be.have.property('txhash');
+        var node = nodes.Node(0);
+        node.RPC().api.getAccountState(node.Coinbase()).then(function (state) {
+            console.log("resp:"+JSON.stringify(state));
+            node.RPC().admin.unlockAccount(node.Coinbase(), node.Passphrase()).then(function (resp) {
+                node.RPC().api.sendTransaction(node.Coinbase(), nodes.Coinbase(0), state.balance, parseInt(state.nonce) + 1, "0", "1").then(function (resp) {
+                    console.log("send:"+JSON.stringify(resp))
+                    expect(resp).to.be.have.property('txhash');
+                    // checkTransaction(resp.txhash, done, 1);
+                    done();
+                })
+            });
+        });
     });
 
-    it('from is invalid address', function () {
+    it('from is invalid address', function (done) {
+
         var node = nodes.Node(0);
-        var state = node.RPC().api.getAccountState(node.Coinbase());
-        node.RPC().admin.unlockAccount(node.Coinbase(), node.Passphrase());
-        var resp = node.RPC(0).api.sendTransaction("0x00", nodes.Coinbase(1), state.balance, parseInt(state.nonce) + 1);
-        // console.log("resp:"+JSON.stringify(resp));
-        expect(resp).to.be.have.property('error').equal("address: invalid address");
+        node.RPC().api.getAccountState(node.Coinbase()).then(function (state) {
+            console.log("resp:"+JSON.stringify(state));
+            node.RPC().admin.unlockAccount(node.Coinbase(), node.Passphrase()).then(function (resp) {
+                node.RPC().api.sendTransaction("0x00", nodes.Coinbase(0), state.balance, parseInt(state.nonce) + 1).then(function (resp) {
+                    console.log("send:"+JSON.stringify(resp))
+                    expect(resp).to.be.have.property('txhash');
+                    // checkTransaction(resp.txhash, done, 1);
+                    done();
+                }).catch(function (err) {
+                    console.log("send err:"+JSON.stringify(err.error))
+                    done();
+                });
+            });
+        });
     });
 
-    it('to is invalid address', function () {
+    it('to is invalid address', function (done) {
+
         var node = nodes.Node(0);
-        var state = node.RPC().api.getAccountState(node.Coinbase());
-        node.RPC().admin.unlockAccount(node.Coinbase(), node.Passphrase());
-        var resp = node.RPC(0).api.sendTransaction(node.Coinbase(), "0x00", state.balance, parseInt(state.nonce) + 1);
-        expect(resp).to.be.have.property('error').equal("address: invalid address");
+        node.RPC().api.getAccountState(node.Coinbase()).then(function (state) {
+            console.log("resp:"+JSON.stringify(state));
+            node.RPC().admin.unlockAccount(node.Coinbase(), node.Passphrase()).then(function (resp) {
+                node.RPC().api.sendTransaction(node.Coinbase(), "0x00", state.balance, parseInt(state.nonce) + 1).then(function (resp) {
+                    console.log("send:"+JSON.stringify(resp))
+                    expect(resp).to.be.have.property('txhash');
+                    // checkTransaction(resp.txhash, done, 1);
+                    done();
+                }).catch(function (err) {
+                    console.log("send err:"+JSON.stringify(err.error))
+                    done();
+                });
+            });
+        });
     });
 
-    it('nonce is below', function () {
-        var node = nodes.Node(0);
-        var state = node.RPC().api.getAccountState(node.Coinbase());
-        node.RPC().admin.unlockAccount(node.Coinbase(), node.Passphrase());
+    it('nonce is below', function (done) {
 
-        var resp = node.RPC(0).api.sendTransaction(node.Coinbase(), nodes.Coinbase(1), state.balance, parseInt(state.nonce));
-        // console.log("resp:"+JSON.stringify(resp));
-        expect(resp).to.be.have.property('error').equal("nonce is invalid");
+        var node = nodes.Node(0);
+        node.RPC().api.getAccountState(node.Coinbase()).then(function (state) {
+            console.log("resp:"+JSON.stringify(state));
+            node.RPC().admin.unlockAccount(node.Coinbase(), node.Passphrase()).then(function (resp) {
+                node.RPC().api.sendTransaction(node.Coinbase(), nodes.Coinbase(1), state.balance, parseInt(state.nonce)).then(function (resp) {
+                    console.log("send:"+JSON.stringify(resp))
+                    expect(resp).to.be.have.property('txhash');
+                    // checkTransaction(resp.txhash, done, 1);
+                    done();
+                }).catch(function (err) {
+                    console.log("send err:"+JSON.stringify(err.error))
+                    done();
+                });
+            });
+        });
     });
 
-    it('nonce is heigher', function () {
-        var node = nodes.Node(0);
-        var state = node.RPC().api.getAccountState(node.Coinbase());
-        node.RPC().admin.unlockAccount(node.Coinbase(), node.Passphrase());
+    it('nonce is heigher', function (done) {
 
-        var nonce = new BigNumber(state.nonce).add(2);
-        var resp = node.RPC(0).api.sendTransaction(node.Coinbase(), nodes.Coinbase(1), state.balance, nonce.toNumber());
-        expect(resp).to.be.have.property('txhash');
+        var node = nodes.Node(0);
+        node.RPC().api.getAccountState(node.Coinbase()).then(function (state) {
+            console.log("resp:"+JSON.stringify(state));
+            node.RPC().admin.unlockAccount(node.Coinbase(), node.Passphrase()).then(function (resp) {
+                var nonce = new BigNumber(state.nonce).add(2);
+                node.RPC().api.sendTransaction(node.Coinbase(), nodes.Coinbase(1), state.balance, nonce.toNumber()).then(function (resp) {
+                    console.log("send:"+JSON.stringify(resp))
+                    expect(resp).to.be.have.property('txhash');
+                    // checkTransaction(resp.txhash, done, 1);
+                    done();
+                }).catch(function (err) {
+                    console.log("send err:"+JSON.stringify(err.error))
+                    done();
+                });
+            });
+        });
     });
 
-    it('gasPrice is below', function () {
+    it('gasPrice is below', function (done) {
+
         var node = nodes.Node(0);
-        var state = node.RPC().api.getAccountState(node.Coinbase());
-        node.RPC().admin.unlockAccount(node.Coinbase(), node.Passphrase());
-
-        var price = node.RPC().api.gasPrice();
-        var gas = node.RPC().api.estimateGas(node.Coinbase(), node.Coinbase(), state.balance, parseInt(state.nonce) + 1);
-
-        var gasPrice = new BigNumber(price.gas_price).sub(100);
-        var resp = node.RPC(0).api.sendTransaction(node.Coinbase(), nodes.Coinbase(1), state.balance, parseInt(state.nonce) + 1, gasPrice.toString(), gas.estimate_gas);
-        // console.log("resp:"+JSON.stringify(resp));
-        expect(resp).to.be.have.property('error').equal("below the gas price");
+        node.RPC().api.getAccountState(node.Coinbase()).then(function (state) {
+            console.log("resp:"+JSON.stringify(state));
+            node.RPC().admin.unlockAccount(node.Coinbase(), node.Passphrase()).then(function (resp) {
+                node.RPC().api.sendTransaction(node.Coinbase(), nodes.Coinbase(1), state.balance, parseInt(state.nonce) + 1, "1").then(function (resp) {
+                    console.log("send:"+JSON.stringify(resp))
+                    expect(resp).to.be.have.property('txhash');
+                    // checkTransaction(resp.txhash, done, 1);
+                    done();
+                }).catch(function (err) {
+                    console.log("send err:"+JSON.stringify(err.error))
+                    done();
+                });
+            });
+        });
     });
 
-    it('gas is higher than max', function () {
-        var node = nodes.Node(0);
-        var state = node.RPC().api.getAccountState(node.Coinbase());
-        node.RPC().admin.unlockAccount(node.Coinbase(), node.Passphrase());
+    it('gas is higher than max', function (done) {
 
-        var price = node.RPC().api.gasPrice();
-        var maxGas = new BigNumber(10).pow(9).mul(60);
-        var resp = node.RPC(0).api.sendTransaction(node.Coinbase(), nodes.Coinbase(1), state.balance, parseInt(state.nonce) + 1, price.gas_price, maxGas.toString());
-        // console.log("resp:"+JSON.stringify(resp));
-        expect(resp).to.be.have.property('error').equal("out of gas limit");
+        var node = nodes.Node(0);
+        node.RPC().api.getAccountState(node.Coinbase()).then(function (state) {
+            console.log("resp:"+JSON.stringify(state));
+            node.RPC().admin.unlockAccount(node.Coinbase(), node.Passphrase()).then(function (resp) {
+                var maxGas = new BigNumber(10).pow(9).mul(60);
+                node.RPC().api.sendTransaction(node.Coinbase(), nodes.Coinbase(1), state.balance, parseInt(state.nonce) + 1, "", maxGas.toString()).then(function (resp) {
+                    console.log("send:"+JSON.stringify(resp))
+                    expect(resp).to.be.have.property('txhash');
+                    // checkTransaction(resp.txhash, done, 1);
+                    done();
+                }).catch(function (err) {
+                    console.log("send err:"+JSON.stringify(err.error))
+                    done();
+                });
+            });
+        });
     });
 });
 
 describe('quit', function () {
     it('quit', function () {
-        setTimeout(function () {
-            nodes.Stop();
-        }, 2000);
+        nodes.Stop();
     });
 });
