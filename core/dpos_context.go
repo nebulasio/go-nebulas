@@ -226,9 +226,6 @@ func (dc *DynastyContext) tallyVotes() (map[string]*util.Uint128, error) {
 	delegate := dc.DelegateTrie
 	candidates := dc.CandidateTrie
 	accounts := dc.Accounts
-	if candidates.Empty() {
-		return votes, nil
-	}
 	iterCandidates, err := candidates.Iterator(nil)
 	if err != nil && err != storage.ErrKeyNotFound {
 		return nil, err
@@ -452,18 +449,16 @@ func (dc *DynastyContext) kickoutCandidate(candidate byteutils.Hash) error {
 	return kickout(dc.Storage, dc.CandidateTrie, dc.DelegateTrie, dc.VoteTrie, candidate)
 }
 
-func (block *Block) kickoutCandidate(candidate byteutils.Hash) error {
-	context := block.dposContext
-	return kickout(block.storage, context.candidateTrie, context.delegateTrie, context.voteTrie, candidate)
-}
-
 func (dc *DynastyContext) kickoutDynasty(dynastyID int64) error {
 	log.Info("Kickout Dynasty ", dynastyID)
 
 	dynastyTrie := dc.DynastyTrie
 	iter, err := dynastyTrie.Iterator(nil)
-	if err != nil {
+	if err != nil && err != storage.ErrKeyNotFound {
 		return err
+	}
+	if err != nil {
+		return nil
 	}
 	exist, err := iter.Next()
 	if err != nil {
@@ -751,15 +746,12 @@ func (block *Block) NextDynastyContext(elapsedSecond int64) (*DynastyContext, er
 // TraverseDynasty return all members in the dynasty
 func TraverseDynasty(dynasty *trie.BatchTrie) ([]byteutils.Hash, error) {
 	members := []byteutils.Hash{}
-	if dynasty.Empty() {
-		return members, nil
-	}
 	iter, err := dynasty.Iterator(nil)
-	if err == storage.ErrKeyNotFound {
-		return members, nil
+	if err != nil && err != storage.ErrKeyNotFound {
+		return nil, err
 	}
 	if err != nil {
-		return nil, err
+		return members, nil
 	}
 	exist, err := iter.Next()
 	for exist {

@@ -24,8 +24,10 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/nebulasio/go-nebulas/common/trie"
+	"github.com/nebulasio/go-nebulas/core/state"
 	"github.com/nebulasio/go-nebulas/storage"
 	"github.com/nebulasio/go-nebulas/util"
+	"github.com/nebulasio/go-nebulas/util/byteutils"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -155,4 +157,137 @@ func TestBlock_Kickout(t *testing.T) {
 	chain.SetTailBlock(block)
 	checkDynasty(t, chain.tailBlock.dposContext.dynastyTrie)
 	checkDynasty(t, chain.tailBlock.dposContext.nextDynastyTrie)
+}
+
+func TestTallyVotes(t *testing.T) {
+	stor, err := storage.NewMemoryStorage()
+	assert.Nil(t, err)
+	conf := MockGenesisConf()
+	dc, err := GenesisDynastyContext(stor, conf)
+	assert.Nil(t, err)
+	dc.Accounts, err = state.NewAccountState(nil, stor)
+	tester := "2fe3f9f51f9a05dd5f7c5329127f7c917917149b4e16b0b8"
+	candidate, err := AddressParse(tester)
+	assert.Nil(t, err)
+	dc.Accounts.BeginBatch()
+	dc.Accounts.GetOrCreateUserAccount(candidate.Bytes()).AddBalance(util.NewUint128FromInt(10000))
+	dc.Accounts.Commit()
+	assert.Nil(t, err)
+	// empty candidates
+	candidates := dc.CandidateTrie
+	dc.CandidateTrie, err = trie.NewBatchTrie(nil, stor)
+	votes, err := dc.tallyVotes()
+	assert.Nil(t, err)
+	assert.Equal(t, votes, make(map[string]*util.Uint128))
+	dc.CandidateTrie = candidates
+	dc.VoteTrie.Del(candidate.Bytes())
+	dc.DelegateTrie.Del(append(candidate.Bytes(), candidate.Bytes()...))
+	votes, err = dc.tallyVotes()
+	assert.Nil(t, err)
+	assert.Equal(t, votes[tester], util.NewUint128())
+}
+
+func TestChooseCandidates(t *testing.T) {
+	neb := testNeb()
+	chain, err := NewBlockChain(neb)
+	dc, err := chain.TailBlock().NextDynastyContext(0)
+	assert.Nil(t, err)
+	votes, err := dc.tallyVotes()
+	assert.Nil(t, err)
+	tester := "2fe3f9f51f9a05dd5f7c5329127f7c917917149b4e16b0b8"
+	candidate, err := AddressParse(tester)
+	assert.Nil(t, err)
+	genesis, err := chain.loadGenesisFromStorage()
+	assert.Nil(t, err)
+	genesis.dposContext.kickoutCandidate(candidate.Bytes())
+	genesis.header.dposContext, err = genesis.dposContext.ToProto()
+	assert.Nil(t, err)
+	chain.storeBlockToStorage(genesis)
+	lenVotes := len(votes)
+	votes2, err := dc.chooseCandidates(votes)
+	assert.Nil(t, err)
+	lenVotes2 := len(votes2)
+	assert.Equal(t, lenVotes, lenVotes2)
+	assert.Equal(t, votes2[lenVotes2-1].Address.String(), tester)
+}
+
+func TestKickoutDynastyActuallyKickoutCandidates(t *testing.T) {
+	neb := testNeb()
+	chain, err := NewBlockChain(neb)
+	dc, err := chain.TailBlock().NextDynastyContext(0)
+	assert.Nil(t, err)
+	tester := "2fe3f9f51f9a05dd5f7c5329127f7c917917149b4e16b0b8"
+	candidate, err := AddressParse(tester)
+	assert.Nil(t, err)
+	genesis, err := chain.loadGenesisFromStorage()
+	assert.Nil(t, err)
+	genesis.dposContext.kickoutCandidate(candidate.Bytes())
+	genesis.header.dposContext, err = genesis.dposContext.ToProto()
+	assert.Nil(t, err)
+	chain.storeBlockToStorage(genesis)
+	assert.Nil(t, dc.kickoutDynasty(0))
+	candidates, err := TraverseDynasty(dc.CandidateTrie)
+	assert.Nil(t, err)
+	assert.Equal(t, len(candidates), len(neb.Genesis().Consensus.Dpos.Dynasty)-1)
+}
+
+func TestCheckActiveBootstrapValidators(t *testing.T) {
+	stor, err := storage.NewMemoryStorage()
+	assert.Nil(t, err)
+	tester := "2fe3f9f51f9a05dd5f7c5329127f7c917917149b4e16b0b8"
+	candidate, err := AddressParse(tester)
+	assert.Nil(t, err)
+	candidates, err := trie.NewBatchTrie(nil, stor)
+	assert.Nil(t, err)
+	active, err := checkActiveBootstrapValidator(candidate.Bytes(), stor, candidates)
+	assert.Equal(t, active, false)
+	assert.Equal(t, err, storage.ErrKeyNotFound)
+
+	neb := testNeb()
+	chain, err := NewBlockChain(neb)
+	candidates = chain.TailBlock().dposContext.candidateTrie
+	genesis, err := chain.loadGenesisFromStorage()
+	assert.Nil(t, err)
+	genesis.dposContext.kickoutCandidate(candidate.Bytes())
+	genesis.header.dposContext, err = genesis.dposContext.ToProto()
+	assert.Nil(t, err)
+	chain.storeBlockToStorage(genesis)
+	active, err = checkActiveBootstrapValidator(candidate.Bytes(), chain.Storage(), candidates)
+	assert.Equal(t, active, false)
+	assert.Nil(t, err)
+
+	chain.storeBlockToStorage(chain.GenesisBlock())
+	candidates.Del(candidate.Bytes())
+	active, err = checkActiveBootstrapValidator(candidate.Bytes(), chain.Storage(), candidates)
+	assert.Equal(t, active, false)
+	assert.Nil(t, err)
+}
+
+func TestElectNextDynastyOnBaseDynastyWhenTooFewCandidates(t *testing.T) {
+	neb := testNeb()
+	chain, err := NewBlockChain(neb)
+	dc, err := chain.TailBlock().NextDynastyContext(0)
+	members, err := TraverseDynasty(dc.CandidateTrie)
+	assert.Nil(t, err)
+	for i := 0; i < len(members)-SafeSize+1; i++ {
+		assert.Nil(t, dc.kickoutCandidate(members[i]))
+	}
+	assert.Equal(t, dc.electNextDynastyOnBaseDynasty(0, 1, false), ErrTooFewCandidates)
+}
+
+func TestTraverseDynasty(t *testing.T) {
+	stor, err := storage.NewMemoryStorage()
+	assert.Nil(t, err)
+	dynasty, err := trie.NewBatchTrie(nil, stor)
+	assert.Nil(t, err)
+	members, err := TraverseDynasty(dynasty)
+	assert.Nil(t, err)
+	assert.Equal(t, members, []byteutils.Hash{})
+}
+
+func TestInitialDynastyNotEnough(t *testing.T) {
+	neb := testNeb()
+	neb.genesis.Consensus.Dpos.Dynasty = []string{}
+	_, err := NewBlockChain(neb)
+	assert.Equal(t, err, ErrInitialDynastyNotEnough)
 }

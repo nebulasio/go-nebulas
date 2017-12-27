@@ -166,3 +166,14 @@ func TestIterator2(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, next, false)
 }
+
+func TestIteratorEmpty(t *testing.T) {
+	stor, _ := storage.NewMemoryStorage()
+	tr, _ := NewTrie(nil, stor)
+	iter, err := tr.Iterator([]byte("he"))
+	assert.Nil(t, iter)
+	assert.Equal(t, err, storage.ErrKeyNotFound)
+	iter, err = tr.Iterator(nil)
+	assert.Nil(t, iter)
+	assert.Equal(t, err, storage.ErrKeyNotFound)
+}
