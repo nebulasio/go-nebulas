@@ -47,7 +47,8 @@ describe('start five nodes normally', function () {
         setTimeout(done, 4000);
     });
 
-    it('check status', function () {
+    it('check status', function (done) {
+        this.timeout(40000);
         while (true) {
             var nodeInfo = nodes.RPC(0).api.nodeInfo();
             console.log(nodeInfo);
@@ -56,14 +57,12 @@ describe('start five nodes normally', function () {
             }
             sleep(3000);
         }
-    });
 
-    it('make sure the height of current tail block is higher than 5 ', function (done) {
-        this.timeout(40000);
         while (true) {
             var block = JSON.parse(nodes.RPC(0).api.blockDump(1).data)[0];
             // console.log(block);
             if (block.height > 3) {
+                console.log("√ the height of current tail block is higher than 3");
                 done();
                 break;
             }
@@ -87,66 +86,51 @@ describe('start five nodes normally', function () {
             blockSeed = JSON.parse(resp.data)[0];
         });
 
-        // var blockSeed = JSON.parse(nodes.RPC(0).api.blockDump(1).data)[0];
         var block;
         server.NebJs().api.blockDump(1, function (err, resp) {
             block = JSON.parse(resp.data)[0];
         });
         sleep(3000);
         expect(blockSeed.height).to.be.equal(block.height);
+        console.log("√ start a new node and the new node has synced all the blocks");
         done();
     });
 
-    it('change a node network ID', function (done) {
-        this.timeout(60000);
-        nodes.RPC(5).admin.changeNetworkID(10, function (err, resp) {
-            if (resp.result) {
-                console.log(resp);
-                sleep(10000);
-                var blockSeed;
-                nodes.RPC(0).api.blockDump(1, function (err, resp) {
-                    blockSeed = JSON.parse(resp.data)[0];
-                });
-        
-                var blocknormal;
-                nodes.RPC(5).api.blockDump(1, function (err, resp) {
-                    blocknormal = JSON.parse(resp.data)[0];
-                });
-                sleep(10000);
-                console.log("blockSeed.hash: " + blockSeed.hash);
-                console.log("bolck.hash: " + blocknormal.hash);
-                expect(blockSeed.hash).not.to.be.equal(blocknormal.hash);
-                done();
-            }
-        });
-    });
+    it('verify block sync', function (done) {
+        this.timeout(150000);
+        nodes.RPC(5).admin.changeNetworkID(10);
 
-    it('restart the node', function (done) {
-        this.timeout(100000);
-        console.log("restart the node...");
+        sleep(10000);
+        var blockSeed;
+        nodes.RPC(0).api.blockDump(1, function (err, resp) {
+            blockSeed = JSON.parse(resp.data)[0];
+        });
+
+        var blocknormal;
+        nodes.RPC(5).api.blockDump(1, function (err, resp) {
+            blocknormal = JSON.parse(resp.data)[0];
+        });
+        sleep(10000);
+        expect(blockSeed.hash).not.to.be.equal(blocknormal.hash);
+        console.log("√ changed the new node networkID to 10 and the new node go to forked");
+
+        nodes.RPC(5).admin.changeNetworkID(1);
         sleep(60000);
-        nodes.RPC(5).admin.changeNetworkID(1, function (err, resp) {
-            if (resp.result) {
-                console.log(resp);
-                sleep(10000);
-                var blockSeed;
-                nodes.RPC(0).api.blockDump(1, function (err, resp) {
-                    blockSeed = JSON.parse(resp.data)[0];
-                });
-        
-                // var blockSeed = JSON.parse(nodes.RPC(0).api.blockDump(1).data)[0];
-                var blocknormal;
-                nodes.RPC(5).api.blockDump(1, function (err, resp) {
-                    blocknormal = JSON.parse(resp.data)[0];
-                });
-                sleep(10000);
-                console.log("blockSeed.hash: " + blockSeed.hash);
-                console.log("bolck.hash: " + blocknormal.hash);
-                expect(blockSeed.hash).to.be.equal(blocknormal.hash);
-                done();
-            }
+        nodes.RPC(0).api.blockDump(1, function (err, resp) {
+            blockSeed = JSON.parse(resp.data)[0];
         });
 
+        nodes.RPC(5).api.blockDump(1, function (err, resp) {
+            blocknormal = JSON.parse(resp.data)[0];
+        });
+
+        sleep(10000);
+
+        expect(blockSeed.hash).to.be.equal(blocknormal.hash);
+        console.log("√ recover the new node networkID to 1 and the new node is synchronized");
+        sleep(10000);
+        done();
+        
     });
 
 });

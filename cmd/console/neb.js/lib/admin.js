@@ -29,6 +29,11 @@ Admin.prototype.lockAccount = function (address, callback) {
     return this.request("post", "/v1/admin/account/lock", params, callback);
 };
 
+Admin.prototype.changeNetworkID = function (networkId, callback) {
+    var params = { "networkId": networkId };
+    return this.request("post", "/v1/admin/changeNetworkID", params, callback);
+};
+
 Admin.prototype.signTransaction = function (from, to, value, nonce, gasPrice, gasLimit, contract, candidate, delegate, callback) {
     var params = {
         "from": from,
