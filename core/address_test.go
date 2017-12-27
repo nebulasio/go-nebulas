@@ -71,7 +71,7 @@ func TestParse(t *testing.T) {
 		},
 		{
 			"invalid data",
-			args{"cf4d22611412132d3e9bd322f82e2940674ec1bc03b20e40"},
+			args{"0xcf4d22611412132d3e9bd322f82e2940674ec1bc03b20e40"},
 			nil,
 			true,
 		},
@@ -130,6 +130,43 @@ func TestNewAddress(t *testing.T) {
 			got, err := NewAddress(tt.args.s)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("NewAddress() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("NewAddress() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestNewContractAddress(t *testing.T) {
+	type args struct {
+		s []byte
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    *Address
+		wantErr bool
+	}{
+		{
+			"sample address",
+			args{[]byte{12, 23, 24, 109, 223, 77, 34, 97, 20, 18, 19, 45, 62, 155, 211, 34, 248, 46, 41, 64, 103, 78, 193, 188}},
+			&Address{[]byte{223, 77, 34, 97, 20, 18, 19, 45, 62, 155, 211, 34, 248, 46, 41, 64, 103, 78, 193, 188, 3, 178, 14, 64}},
+			false,
+		},
+		{
+			"insufficient length",
+			args{[]byte{223, 77, 34, 97, 20, 18, 19, 45, 62, 155, 211, 34, 248, 46, 41, 64, 103, 78, 193}},
+			nil,
+			true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := NewContractAddressFromHash(tt.args.s)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("NewContractAddressFromHash() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if !reflect.DeepEqual(got, tt.want) {

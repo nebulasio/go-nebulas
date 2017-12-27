@@ -74,6 +74,7 @@ func MockGenesisConf() *corepb.Genesis {
 		},
 	}
 }
+
 func TestNewGenesisBlock(t *testing.T) {
 	conf := MockGenesisConf()
 	storage, err := storage.NewMemoryStorage()

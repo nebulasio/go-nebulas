@@ -105,6 +105,9 @@ func NewAddressFromPublicKey(s []byte) (*Address, error) {
 // NewContractAddressFromHash return new contract address from bytes.
 func NewContractAddressFromHash(s []byte) (*Address, error) {
 	// TODO: contract address should not be the same with normal account address.
+	if len(s) < AddressDataLength {
+		return nil, ErrInvalidAddress
+	}
 	return NewAddress(s[len(s)-AddressDataLength:])
 }
 
