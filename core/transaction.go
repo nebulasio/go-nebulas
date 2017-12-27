@@ -350,16 +350,18 @@ func (tx *Transaction) VerifyExecution(block *Block) (*util.Uint128, error) {
 		ctx.Commit()
 	}
 
+	// gas = tx.GasCountOfTxBase() +  gasExecution
+	gas := util.NewUint128FromBigInt(util.NewUint128().Add(gasUsed.Int, gasExecution.Int))
+
 	log.WithFields(log.Fields{
 		"transaction":  tx,
 		"txType":       tx.data.Type,
 		"gasUsed":      gasUsed.String(),
 		"gasExecution": gasExecution.String(),
+		"gas":          gas.String(),
 		"gasLimited":   tx.gasLimit.String(),
-	}).Debug("Transaction Execute.")
+	}).Debug("Transaction Execute statics.")
 
-	// gas = tx.GasCountOfTxBase() +  gasExecution
-	gas := util.NewUint128FromBigInt(gasUsed.Add(gasUsed.Int, gasExecution.Int))
 	tx.gasConsumption(fromAcc, coinbaseAcc, gas)
 
 	if err != nil {
