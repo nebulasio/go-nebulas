@@ -25,7 +25,8 @@ type PayloadContext struct {
 	block *Block
 	tx    *Transaction
 
-	accState state.AccountState
+	accState    state.AccountState
+	dposContext *DposContext
 }
 
 // NewPayloadContext returns new payloadcontxt
@@ -47,12 +48,20 @@ func (ctx *PayloadContext) Transaction() *Transaction {
 // BeginBatch begin a batch task
 func (ctx *PayloadContext) BeginBatch() (err error) {
 	ctx.accState, err = ctx.block.accState.Clone()
-	return err
+	if err != nil {
+		return err
+	}
+	ctx.dposContext, err = ctx.block.dposContext.Clone()
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // Commit a batch task
 func (ctx *PayloadContext) Commit() {
 	ctx.block.accState = ctx.accState
+	ctx.block.dposContext = ctx.dposContext
 }
 
 // RollBack a batch task
