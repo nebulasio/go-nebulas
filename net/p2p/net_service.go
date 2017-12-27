@@ -612,13 +612,11 @@ func (ns *NetService) checkNetworkID(target string) bool {
 func (ns *NetService) Hello(pid peer.ID) error {
 	node := ns.node
 
-	start := time.Now().Unix()
 	stream, err := node.host.NewStream(
 		node.context,
 		pid,
 		ProtocolID,
 	)
-	log.Error("HelloPerf ", time.Now().Unix()-start, " err ", err)
 	if err != nil {
 		return err
 	}

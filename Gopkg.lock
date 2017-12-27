@@ -341,13 +341,19 @@
   branch = "master"
   name = "github.com/multiformats/go-multiaddr-dns"
   packages = ["."]
-  revision = "d974dec81f5fcad4c29a427d327afb5bc6c0f39a"
+  revision = "87ed7a0467713ec4204e073168e6e5adbed936de"
 
 [[projects]]
   branch = "master"
   name = "github.com/multiformats/go-multiaddr-net"
   packages = ["."]
-  revision = "376ba58703c84bfff9ca6e0057adf38ad48d3de5"
+  revision = "4ce984eed7a8f77535ce5d267d0a21bd5a3d8363"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/multiformats/go-multicodec"
+  packages = [".","json"]
+  revision = "65c82c261bfdac27035eb81f3b0f0fc55edbc536"
 
 [[projects]]
   branch = "master"
@@ -359,13 +365,13 @@
   branch = "master"
   name = "github.com/multiformats/go-multihash"
   packages = ["."]
-  revision = "a52a6a4768da72eba89ea7f59f70e9d42ddd3072"
+  revision = "baff12aecdc71b5b2e28c62514beba0298fef3cb"
 
 [[projects]]
   branch = "master"
   name = "github.com/multiformats/go-multistream"
   packages = ["."]
-  revision = "b8f1996688ab586031517919b49b1967fca8d5d9"
+  revision = "661a0b9a0e6d9e99e4552c431b0eb82f58fde5b3"
 
 [[projects]]
   branch = "master"
@@ -550,6 +556,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "f3ddf5fb02de0fe4ea5ae245f813e0bf50ab325b580cabda548f9d63334fcbf2"
+  inputs-digest = "aa2f63179639bef478af042e06903d32df0b3d8709e92877217a0c849fd9b4e8"
   solver-name = "gps-cdcl"
   solver-version = 1
