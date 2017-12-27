@@ -34,9 +34,6 @@ var miners = [
 ];
 
 var count = 6;
-var validators = 6;
-var blockInterval = 5;
-var dynastyInterval = 60;
 
 var nodes = new Node(count-1);
 nodes.Start();
@@ -53,6 +50,7 @@ describe('start five nodes normally', function () {
             var nodeInfo = nodes.RPC(0).api.nodeInfo();
             console.log(nodeInfo);
             if (nodeInfo.route_table.length == count - 2) {
+                console.log("√ all nodes have started");
                 break;
             }
             sleep(3000);
@@ -101,32 +99,32 @@ describe('start five nodes normally', function () {
         nodes.RPC(5).admin.changeNetworkID(10);
 
         sleep(10000);
-        var blockSeed;
+        var blockA;
         nodes.RPC(0).api.blockDump(1, function (err, resp) {
-            blockSeed = JSON.parse(resp.data)[0];
+            blockA = JSON.parse(resp.data)[0];
         });
 
-        var blocknormal;
+        var blockB;
         nodes.RPC(5).api.blockDump(1, function (err, resp) {
-            blocknormal = JSON.parse(resp.data)[0];
+            blockB = JSON.parse(resp.data)[0];
         });
         sleep(10000);
-        expect(blockSeed.hash).not.to.be.equal(blocknormal.hash);
+        expect(blockA.hash).not.to.be.equal(blockB.hash);
         console.log("√ changed the new node networkID to 10 and the new node go to forked");
 
         nodes.RPC(5).admin.changeNetworkID(1);
         sleep(60000);
         nodes.RPC(0).api.blockDump(1, function (err, resp) {
-            blockSeed = JSON.parse(resp.data)[0];
+            blockA = JSON.parse(resp.data)[0];
         });
 
         nodes.RPC(5).api.blockDump(1, function (err, resp) {
-            blocknormal = JSON.parse(resp.data)[0];
+            blockB = JSON.parse(resp.data)[0];
         });
 
         sleep(10000);
 
-        expect(blockSeed.hash).to.be.equal(blocknormal.hash);
+        expect(blockA.hash).to.be.equal(blockB.hash);
         console.log("√ recover the new node networkID to 1 and the new node is synchronized");
         sleep(10000);
         done();
