@@ -103,6 +103,7 @@ func TestBlockChain_FindCommonAncestorWithTail(t *testing.T) {
 	bc.SetTailBlock(block12)
 	assert.Equal(t, bc.txPool.cache.Len(), 1)
 	bc.SetTailBlock(block11)
+	assert.Equal(t, block11.transactions[0], bc.GetTransaction(block11.transactions[0].Hash()))
 	assert.Equal(t, bc.txPool.cache.Len(), 2)
 	block111, _ := bc.NewBlock(coinbase111)
 	block111.header.timestamp = BlockInterval * 4
@@ -131,13 +132,23 @@ func TestBlockChain_FindCommonAncestorWithTail(t *testing.T) {
 	block1111.Seal()
 	assert.Nil(t, bc.BlockPool().Push(BlockFromNetwork(block1111)))
 	bc.SetTailBlock(block222)
+	tails := bc.DetachedTailBlocks()
+	for _, v := range tails {
+		if v.Hash().Equals(block221.Hash()) ||
+			v.Hash().Equals(block222.Hash()) ||
+			v.Hash().Equals(block1111.Hash()) {
+			continue
+		}
+		assert.Equal(t, true, false)
+	}
+	assert.Equal(t, len(tails), 3)
 	test := &Block{
 		header: &BlockHeader{
 			coinbase: &Address{},
 		},
 	}
 	_, err := bc.FindCommonAncestorWithTail(BlockFromNetwork(test))
-	assert.NotNil(t, err)
+	assert.Equal(t, err, ErrMissingParentBlock)
 	common1, err := bc.FindCommonAncestorWithTail(BlockFromNetwork(block1111))
 	assert.Nil(t, err)
 	assert.Equal(t, BlockFromNetwork(common1), BlockFromNetwork(block0))
@@ -153,6 +164,10 @@ func TestBlockChain_FindCommonAncestorWithTail(t *testing.T) {
 	common5, err := bc.FindCommonAncestorWithTail(BlockFromNetwork(block12))
 	assert.Nil(t, err)
 	assert.Equal(t, BlockFromNetwork(common5), BlockFromNetwork(block12))
+
+	result := bc.Dump(4)
+	assert.Equal(t, result, "["+block222.String()+","+block12.String()+","+block0.String()+","+bc.genesisBlock.String()+"]")
+
 }
 
 func TestBlockChain_FetchDescendantInCanonicalChain(t *testing.T) {
@@ -220,4 +235,48 @@ func TestBlockChain_EstimateGas(t *testing.T) {
 
 	_, err = bc.EstimateGas(tx)
 	assert.Nil(t, err)
+}
+
+func TestTailBlock(t *testing.T) {
+	bc, err := NewBlockChain(testNeb())
+	assert.Nil(t, err)
+	block, err := bc.loadTailFromStorage()
+	assert.Nil(t, err)
+	assert.Equal(t, bc.tailBlock, block)
+}
+
+func TestGetPrice(t *testing.T) {
+	bc, err := NewBlockChain(testNeb())
+	assert.Nil(t, err)
+	assert.Equal(t, bc.GasPrice(), TransactionGasPrice)
+
+	ks := keystore.DefaultKS
+	from := mockAddress()
+	key, err := ks.GetUnlocked(from.String())
+	assert.Nil(t, err)
+	signature, err := crypto.NewSignature(keystore.SECP256K1)
+	assert.Nil(t, err)
+	signature.InitSign(key.(keystore.PrivateKey))
+	block, err := bc.NewBlock(from)
+	assert.Nil(t, err)
+	lowerGasPrice := util.NewUint128FromBigInt(util.NewUint128().Sub(TransactionGasPrice.Int, util.NewUint128FromInt(1).Int))
+	tx1 := NewTransaction(bc.ChainID(), from, from, util.NewUint128(), 1, TxPayloadBinaryType, []byte("nas"), lowerGasPrice, util.NewUint128FromInt(200000))
+	tx1.Sign(signature)
+	tx2 := NewTransaction(bc.ChainID(), from, from, util.NewUint128(), 2, TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, util.NewUint128FromInt(200000))
+	tx2.Sign(signature)
+	block.transactions = append(block.transactions, tx1)
+	block.transactions = append(block.transactions, tx2)
+	block.miner = from
+	block.Seal()
+	block.Sign(signature)
+	bc.SetTailBlock(block)
+	bc.storeBlockToStorage(block)
+	block, err = bc.NewBlock(from)
+	assert.Nil(t, err)
+	block.miner = from
+	block.Seal()
+	block.Sign(signature)
+	bc.SetTailBlock(block)
+	bc.storeBlockToStorage(block)
+	assert.Equal(t, bc.GasPrice(), lowerGasPrice)
 }
