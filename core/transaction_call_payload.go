@@ -69,7 +69,7 @@ func (payload *CallPayload) Execute(context *PayloadContext) (*util.Uint128, err
 	defer engine.Dispose()
 
 	//add gas limit and memory use limit
-	engine.SetExecutionLimits(context.tx.PayloadGasLimit().Uint64(), nvm.DefaultLimitsOfTotalMemorySize)
+	engine.SetExecutionLimits(context.tx.PayloadGasLimit(payload).Uint64(), nvm.DefaultLimitsOfTotalMemorySize)
 
 	err = engine.Call(deployPayload.Source, deployPayload.SourceType, payload.Function, payload.Args)
 	return util.NewUint128FromInt(int64(engine.ExecutionInstructions())), err

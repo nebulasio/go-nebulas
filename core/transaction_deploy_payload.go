@@ -70,7 +70,7 @@ func (payload *DeployPayload) Execute(ctx *PayloadContext) (*util.Uint128, error
 	engine := nvm.NewV8Engine(nvmctx)
 	defer engine.Dispose()
 
-	engine.SetExecutionLimits(ctx.tx.PayloadGasLimit().Uint64(), nvm.DefaultLimitsOfTotalMemorySize)
+	engine.SetExecutionLimits(ctx.tx.PayloadGasLimit(payload).Uint64(), nvm.DefaultLimitsOfTotalMemorySize)
 
 	// Deploy and Init.
 	err = engine.DeployAndInit(payload.Source, payload.SourceType, payload.Args)

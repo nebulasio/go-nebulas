@@ -233,9 +233,10 @@ func (tx *Transaction) GasLimit() *util.Uint128 {
 }
 
 // PayloadGasLimit returns payload gasLimit
-func (tx *Transaction) PayloadGasLimit() *util.Uint128 {
+func (tx *Transaction) PayloadGasLimit(payload TxPayload) *util.Uint128 {
 	// payloadGasLimit = tx.gasLimit - tx.GasCountOfTxBase
 	payloadGasLimit := util.NewUint128().Sub(tx.gasLimit.Int, tx.GasCountOfTxBase().Int)
+	payloadGasLimit.Sub(payloadGasLimit, payload.BaseGasCount().Int)
 	return util.NewUint128FromBigInt(payloadGasLimit)
 }
 
@@ -320,6 +321,7 @@ func (tx *Transaction) VerifyExecution(block *Block) (*util.Uint128, error) {
 	}
 
 	ctx := NewPayloadContext(block, tx)
+
 	err = ctx.BeginBatch()
 	if err != nil {
 		return util.NewUint128(), err
@@ -331,7 +333,7 @@ func (tx *Transaction) VerifyExecution(block *Block) (*util.Uint128, error) {
 			"error":       ErrOutOfGasLimit,
 			"block":       block,
 			"transaction": tx,
-			"func":        "Transaction.BaseGasCount",
+			"func":        "payload.BaseGasCount",
 		}).Error("Transaction Execute.")
 		executeTxErrCounter.Inc(1)
 
@@ -362,9 +364,11 @@ func (tx *Transaction) VerifyExecution(block *Block) (*util.Uint128, error) {
 
 	if err != nil {
 		log.WithFields(log.Fields{
-			"error":       err,
-			"block":       block,
-			"transaction": tx,
+			"error":        err,
+			"block":        block,
+			"transaction":  tx,
+			"gasUsed":      gasUsed.String(),
+			"gasExecution": gasExecution.String(),
 		}).Error("Transaction Execute.")
 
 		executeTxErrCounter.Inc(1)
