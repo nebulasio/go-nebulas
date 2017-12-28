@@ -39,7 +39,7 @@ func mockNormalTransaction(chainID uint32, nonce uint64) *Transaction {
 
 func mockDeployTransaction(chainID uint32, nonce uint64) *Transaction {
 	source := `
-	"use strict";var StandardToken=function(){LocalContractStorage.defineProperties(this,{name:null,symbol:null,totalSupply:null,totalIssued:null});LocalContractStorage.defineMapProperty(this,"balances")};StandardToken.prototype={init:function(name,symbol,totalSupply){this.name=name;this.symbol=symbol;this.totalSupply=totalSupply;this.totalIssued=0},totalSupply:function(){return this.totalSupply},balanceOf:function(owner){return this.balances.get(owner)||0},transfer:function(to,value){var balance=this.balanceOf(msg.sender);if(balance<value){return false}var finalBalance=balance-value;this.balances.set(msg.sender,finalBalance);this.balances.set(to,this.balanceOf(to)+value);return true},pay:function(msg,amount){if(this.totalIssued+amount>this.totalSupply){throw new Error("too much amount, exceed totalSupply")}this.balances.set(msg.sender,this.balanceOf(msg.sender)+amount);this.totalIssued+=amount}};module.exports=StandardToken;
+	"use strict";var StandardToken=function(){LocalContractStorage.defineProperties(this,{name:null,symbol:null,_totalSupply:null,totalIssued:null});LocalContractStorage.defineMapProperty(this,"balances")};StandardToken.prototype={init:function(name,symbol,totalSupply){this.name=name;this.symbol=symbol;this._totalSupply=totalSupply;this.totalIssued=0},totalSupply:function(){return this._totalSupply},balanceOf:function(owner){return this.balances.get(owner)||0},transfer:function(to,value){var balance=this.balanceOf(msg.sender);if(balance<value){return false}var finalBalance=balance-value;this.balances.set(msg.sender,finalBalance);this.balances.set(to,this.balanceOf(to)+value);return true},pay:function(msg,amount){if(this.totalIssued+amount>this._totalSupply){throw new Error("too much amount, exceed totalSupply")}this.balances.set(msg.sender,this.balanceOf(msg.sender)+amount);this.totalIssued+=amount}};module.exports=StandardToken;
 	`
 	sourceType := "js"
 	args := `["NebulasToken", "NAS", 1000000000]`
@@ -209,8 +209,8 @@ func TestTransaction_VerifyExecution(t *testing.T) {
 		name:         "contract deploy tx",
 		tx:           deployTx,
 		balance:      balance,
-		gas:          util.NewUint128FromInt(21227),
-		afterBalance: util.NewUint128FromBigInt(util.NewUint128().Sub(balance.Int, util.NewUint128().Mul(normalTx.gasPrice.Int, util.NewUint128FromInt(21227).Int))),
+		gas:          util.NewUint128FromInt(21232),
+		afterBalance: util.NewUint128FromBigInt(util.NewUint128().Sub(balance.Int, util.NewUint128().Mul(normalTx.gasPrice.Int, util.NewUint128FromInt(21232).Int))),
 		wanted:       nil,
 		eventTopic:   []string{TopicExecuteTxSuccess},
 	})
@@ -308,15 +308,15 @@ func TestTransaction_VerifyExecution(t *testing.T) {
 		name:         "execution insufficient balance after execution tx",
 		tx:           executionInsufficientBalanceTx,
 		balance:      balance,
-		gas:          util.NewUint128FromInt(21227),
-		afterBalance: util.NewUint128FromBigInt(util.NewUint128().Sub(balance.Int, util.NewUint128().Mul(normalTx.gasPrice.Int, util.NewUint128FromInt(21227).Int))),
+		gas:          util.NewUint128FromInt(21232),
+		afterBalance: util.NewUint128FromBigInt(util.NewUint128().Sub(balance.Int, util.NewUint128().Mul(normalTx.gasPrice.Int, util.NewUint128FromInt(21232).Int))),
 		wanted:       nil,
 		eventTopic:   []string{TopicExecuteTxFailed},
 	})
 
 	// tx execution equal balance after execution
 	executionEqualBalanceTx := mockDeployTransaction(bc.chainID, 0)
-	gas := util.NewUint128FromInt(21227)
+	gas := util.NewUint128FromInt(21232)
 	executionEqualBalanceTx.value = balance
 	gasCost := util.NewUint128FromBigInt(util.NewUint128().Mul(executionEqualBalanceTx.gasPrice.Int, gas.Int))
 	tests = append(tests, testTx{
