@@ -38,13 +38,14 @@ account, create a new account or update an existing account.`,
 
 		Subcommands: []cli.Command{
 			{
-				Name:   "new",
-				Usage:  "Create a new account",
-				Action: MergeFlags(accountCreate),
+				Name:      "new",
+				Usage:     "Create a new account",
+				Action:    MergeFlags(accountCreate),
+				ArgsUsage: "[passphrase]",
 				Description: `
     neb account new
 
-Creates a new account and prints the address.`,
+Creates a new account and prints the address. If passphrase not input, prompt input and confirm.`,
 			},
 			{
 				Name:   "list",
@@ -98,7 +99,12 @@ func accountCreate(ctx *cli.Context) error {
 		return err
 	}
 
-	passphrase := getPassPhrase("Your new account is locked with a passphrase. Please give a passphrase. Do not forget this passphrase.", true)
+	passphrase := ctx.Args().First()
+
+	if len(passphrase) == 0 {
+		passphrase = getPassPhrase("Your new account is locked with a passphrase. Please give a passphrase. Do not forget this passphrase.", true)
+	}
+
 	addr, err := neb.AccountManager().NewAccount([]byte(passphrase))
 	fmt.Printf("Address: %s\n", addr.String())
 	return err
