@@ -94,7 +94,7 @@ func (pool *TransactionPool) SetGasConfig(gasPrice, gasLimit *util.Uint128) {
 	} else {
 		pool.gasPrice = gasPrice
 	}
-	if gasLimit == nil || gasLimit.Cmp(TransactionMaxGas.Int) > 0 {
+	if gasLimit == nil || gasLimit.Cmp(util.NewUint128().Int) == 0 || gasLimit.Cmp(TransactionMaxGas.Int) > 0 {
 		pool.gasLimit = TransactionMaxGas
 	} else {
 		pool.gasLimit = gasLimit
