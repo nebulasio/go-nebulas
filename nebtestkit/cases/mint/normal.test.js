@@ -6,22 +6,27 @@ var expect = require('chai').expect;
 var sleep = require("system-sleep")
 var os = require('os');
 
-var count = 6;
+var nodeCnt = 6;
 var validators = 6;
 var blockInterval = 5;
 var dynastyInterval = 60;
 var reward = new BigNumber("48e16");
 var initial = new BigNumber("1e18");
-var nodes = new Node(count);
+var nodes = new Node(nodeCnt);
 var connected = 0;
 nodes.Start();
 
 describe('right miner', function () {
-    it('check', function () {
+    before(function (done) {
+        this.timeout(300000);
+        setTimeout(done, 5000);
+    });
+
+    it('check', function (done) {
         // start servers
-        sleep(5000);
+        console.log("start servers");
         while (true) {
-            if (connected == count - 1) break;
+            if (connected == nodeCnt - 1) break;
             var nodeInfo = nodes.RPC(0).api.nodeInfo().then(function (resp) {
                 console.log(resp)
                 connected = resp.route_table.length
@@ -30,8 +35,9 @@ describe('right miner', function () {
         }
 
         // check right miner
+        console.log("check right miner");
         var block = null;
-        for (var i = 0; i < count; i++) {
+        for (var i = 0; i < nodeCnt; i++) {
             nodes.RPC(0).api.blockDump(1).then(function (resp) {
                 var block = JSON.parse(resp.data)[0];
                 console.log(block);
@@ -47,8 +53,10 @@ describe('right miner', function () {
         }
 
         // check balances correct
-        nodes.RPC(0).api.blockDump(count * 10).then(function (resp) {
+        console.log("check balances correct")
+        nodes.RPC(0).api.blockDump(nodeCnt * 10).then(function (resp) {
             var blocks = JSON.parse(resp.data);
+            console.log(blocks);
             var balances = {}
             for (var i = 0; i < blocks.length; i++) {
                 var block = blocks[i];
@@ -61,14 +69,15 @@ describe('right miner', function () {
 
             var keys = Object.keys(balances);
             var tail = blocks[0].hash;
-            for (var i = 0; i < keys.length; i++) {
-                var address = keys[i];
+            var finished = 0;
+            for (let i = 0; i < keys.length; i++) {
                 // coinbase in genesis, skip it. it's not a valid address
-                if (address == "000000000000000000000000000000000000000000000000") {
+                if (keys[i] == "000000000000000000000000000000000000000000000000") {
+                    finished += 1;
                     continue
                 }
-                var index = i;
                 nodes.RPC(0).api.getAccountState(keys[i], tail).then(function (state) {
+                    var address = keys[i];
                     console.log(address, state);
                     var balance = new BigNumber(state.balance);
                     if (address == "1a263547d167c74cf4b8f9166cfa244de0481c514a45aa2c" ||
@@ -76,17 +85,14 @@ describe('right miner', function () {
                         balance = balance.minus(initial);
                     }
                     expect(balance.toString()).to.be.equal(balances[address].toString());
-                    if (index == keys.length) {
+                    finished += 1;
+                    if (finished == keys.length) {
+                        console.log("over")
+                        nodes.Stop();
                         done()
                     }
                 });
             }
         });
-    });
-});
-
-describe('quit', function () {
-    it('quit', function () {
-        nodes.Stop();
     });
 });
