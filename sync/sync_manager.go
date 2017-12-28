@@ -44,7 +44,7 @@ var (
 type Manager struct {
 	blockChain             *core.BlockChain
 	consensus              consensus.Consensus
-	ns                     *p2p.NetService
+	ns                     p2p.Manager
 	quitCh                 chan bool
 	syncCh                 chan bool
 	receiveTailCh          chan net.Message
@@ -57,7 +57,7 @@ type Manager struct {
 }
 
 // NewManager new sync manager
-func NewManager(blockChain *core.BlockChain, consensus consensus.Consensus, ns *p2p.NetService) *Manager {
+func NewManager(blockChain *core.BlockChain, consensus consensus.Consensus, ns p2p.Manager) *Manager {
 	m := &Manager{
 		blockChain,
 		consensus,
@@ -78,12 +78,12 @@ func NewManager(blockChain *core.BlockChain, consensus consensus.Consensus, ns *
 }
 
 // RegisterSyncBlockInNetwork register message subscriber in network.
-func (m *Manager) RegisterSyncBlockInNetwork(nm net.Manager) {
+func (m *Manager) RegisterSyncBlockInNetwork(nm p2p.Manager) {
 	nm.Register(net.NewSubscriber(m, m.receiveTailCh, net.MessageTypeSyncBlock))
 }
 
 // RegisterSyncReplyInNetwork register message subscriber in network.
-func (m *Manager) RegisterSyncReplyInNetwork(nm net.Manager) {
+func (m *Manager) RegisterSyncReplyInNetwork(nm p2p.Manager) {
 	nm.Register(net.NewSubscriber(m, m.receiveSyncReplyCh, net.MessageTypeSyncReply))
 }
 

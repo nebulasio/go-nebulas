@@ -25,6 +25,7 @@ import (
 	"github.com/nebulasio/go-nebulas/common/pdeque"
 	"github.com/nebulasio/go-nebulas/core/pb"
 	"github.com/nebulasio/go-nebulas/net"
+	"github.com/nebulasio/go-nebulas/net/p2p"
 	"github.com/nebulasio/go-nebulas/util"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
 	metrics "github.com/rcrowley/go-metrics"
@@ -48,7 +49,7 @@ type TransactionPool struct {
 	all   map[byteutils.HexHash]*Transaction
 	bc    *BlockChain
 
-	nm net.Manager
+	nm p2p.Manager
 	mu sync.RWMutex
 
 	gasPrice *util.Uint128 // the lowest gasPrice.
@@ -101,7 +102,7 @@ func (pool *TransactionPool) SetGasConfig(gasPrice, gasLimit *util.Uint128) {
 }
 
 // RegisterInNetwork register message subscriber in network.
-func (pool *TransactionPool) RegisterInNetwork(nm net.Manager) {
+func (pool *TransactionPool) RegisterInNetwork(nm p2p.Manager) {
 	nm.Register(net.NewSubscriber(pool, pool.receivedMessageCh, MessageTypeNewTx))
 	pool.nm = nm
 }

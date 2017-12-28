@@ -42,19 +42,6 @@ type Serializable interface {
 	FromProto(proto.Message) error
 }
 
-// Manager manager interface
-type Manager interface {
-	Start() error
-	Stop()
-
-	Register(subscribers ...*Subscriber)
-	Deregister(subscribers ...*Subscriber)
-
-	Broadcast(name string, msg Serializable)
-	Relay(name string, msg Serializable)
-	SendMsg(name string, msg []byte, target string) error
-}
-
 // Subscriber subscriber.
 type Subscriber struct {
 	// id usually the owner/creator, used for troubleshooting .

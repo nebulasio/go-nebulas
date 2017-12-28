@@ -128,8 +128,8 @@ type Protocol struct {
 	reserved       []byte
 }
 
-// NewNetService create netService
-func NewNetService(n Neblet) (*NetService, error) {
+// NewNetManager create netService
+func NewNetManager(n Neblet) (*NetService, error) {
 	config := NewP2PConfig(n)
 	node, err := NewNode(config)
 	if err != nil {
@@ -140,7 +140,7 @@ func NewNetService(n Neblet) (*NetService, error) {
 	return ns, nil
 }
 
-func (ns *NetService) registerNetService() *NetService {
+func (ns *NetService) registerNetManager() *NetService {
 	// register streamHandler to start loop to handle stream origined from remote node.
 	ns.node.host.SetStreamHandler(ProtocolID, ns.streamHandler)
 	log.Debug("RegisterNetService: register netservice success")
@@ -726,7 +726,7 @@ func (ns *NetService) start() error {
 	}
 	node.running = true
 
-	ns.registerNetService()
+	ns.registerNetManager()
 
 	// TODO: All fail handle
 	var success bool

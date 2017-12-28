@@ -30,9 +30,8 @@ import (
 	"github.com/nebulasio/go-nebulas/common/trie"
 	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/neblet/pb"
-	"github.com/nebulasio/go-nebulas/net"
-
 	"github.com/nebulasio/go-nebulas/net/p2p"
+
 	"github.com/nebulasio/go-nebulas/util/byteutils"
 	log "github.com/sirupsen/logrus"
 )
@@ -42,13 +41,14 @@ var (
 	ErrInvalidBlockInterval = errors.New("invalid block interval")
 	ErrMissingConfigForDpos = errors.New("missing configuration for Dpos")
 	ErrInvalidBlockProposer = errors.New("invalid block proposer")
+	ErrCannotMintBlockNow   = errors.New("cannot mint block now, waiting for sync over")
 )
 
 // Neblet interface breaks cycle import dependency and hides unused services.
 type Neblet interface {
 	Config() nebletpb.Config
 	BlockChain() *core.BlockChain
-	NetService() *p2p.NetService
+	NetManager() p2p.Manager
 	AccountManager() *account.Manager
 }
 
@@ -57,7 +57,7 @@ type Dpos struct {
 	quitCh chan bool
 
 	chain *core.BlockChain
-	nm    net.Manager
+	nm    p2p.Manager
 	am    *account.Manager
 
 	coinbase   *core.Address
@@ -77,7 +77,7 @@ func NewDpos(neblet Neblet) (*Dpos, error) {
 		quitCh: make(chan bool, 5),
 
 		chain: neblet.BlockChain(),
-		nm:    neblet.NetService(),
+		nm:    neblet.NetManager(),
 		am:    neblet.AccountManager(),
 
 		blockInterval:   core.BlockInterval,
@@ -265,14 +265,14 @@ func (p *Dpos) VerifyBlock(block *core.Block, parent *core.Block) error {
 	return nil
 }
 
-func (p *Dpos) mintBlock() {
+func (p *Dpos) mintBlock(now int64) error {
 	// check can do mining
 	if !p.canMining {
-		return
+		return ErrCannotMintBlockNow
 	}
 	// check proposer
 	tail := p.chain.TailBlock()
-	elapsedSecond := time.Now().Unix() - tail.Timestamp()
+	elapsedSecond := now - tail.Timestamp()
 	context, err := tail.NextDynastyContext(elapsedSecond)
 	if err != nil {
 		log.WithFields(log.Fields{
@@ -281,7 +281,7 @@ func (p *Dpos) mintBlock() {
 			"elapsed": elapsedSecond,
 			"err":     err,
 		}).Warn("mintBlock.")
-		return
+		return err
 	}
 	if context.Proposer == nil || !context.Proposer.Equals(p.miner.Bytes()) {
 		proposer := "nil"
@@ -295,7 +295,7 @@ func (p *Dpos) mintBlock() {
 			"expected": proposer,
 			"actual":   p.miner.String(),
 		}).Info("not my turn, waiting...")
-		return
+		return ErrInvalidBlockProposer
 	}
 	log.WithFields(log.Fields{
 		"func":     "Dpos.mintBlock",
@@ -312,7 +312,7 @@ func (p *Dpos) mintBlock() {
 			"tail": tail,
 			"err":  err,
 		}).Error("create block failed")
-		return
+		return err
 	}
 	block.LoadDynastyContext(context)
 	block.CollectTransactions(p.txsPerBlock)
@@ -324,7 +324,7 @@ func (p *Dpos) mintBlock() {
 			"block": block,
 			"err":   err,
 		}).Error("seal block failed")
-		return
+		return err
 	}
 	// TODO: move passphrase from config to console
 	if err = p.am.Unlock(p.miner, []byte(p.passphrase)); err != nil {
@@ -334,7 +334,7 @@ func (p *Dpos) mintBlock() {
 			"block": block,
 			"err":   err,
 		}).Error("unlock failed")
-		return
+		return err
 	}
 	if err = p.am.SignBlock(p.miner, block); err != nil {
 		log.WithFields(log.Fields{
@@ -343,18 +343,19 @@ func (p *Dpos) mintBlock() {
 			"block": block,
 			"err":   err,
 		}).Error("sign block failed")
-		return
+		return err
 	}
 	// broadcast it
 	p.chain.BlockPool().PushAndBroadcast(block)
+	return nil
 }
 
 func (p *Dpos) blockLoop() {
 	timeChan := time.NewTicker(time.Second).C
 	for {
 		select {
-		case <-timeChan:
-			p.mintBlock()
+		case now := <-timeChan:
+			p.mintBlock(now.Unix())
 		case <-p.chain.BlockPool().ReceivedLinkedBlockCh():
 			p.forkChoice()
 		case <-p.quitCh:

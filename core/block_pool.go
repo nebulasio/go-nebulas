@@ -27,6 +27,7 @@ import (
 	lru "github.com/hashicorp/golang-lru"
 	"github.com/nebulasio/go-nebulas/core/pb"
 	"github.com/nebulasio/go-nebulas/net"
+	"github.com/nebulasio/go-nebulas/net/p2p"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
 	metrics "github.com/rcrowley/go-metrics"
 	log "github.com/sirupsen/logrus"
@@ -55,7 +56,7 @@ type BlockPool struct {
 	cache *lru.Cache
 	slot  *lru.Cache
 
-	nm net.Manager
+	nm p2p.Manager
 	mu sync.RWMutex
 }
 
@@ -95,7 +96,7 @@ func (pool *BlockPool) ReceivedLinkedBlockCh() chan *Block {
 }
 
 // RegisterInNetwork register message subscriber in network.
-func (pool *BlockPool) RegisterInNetwork(nm net.Manager) {
+func (pool *BlockPool) RegisterInNetwork(nm p2p.Manager) {
 	nm.Register(net.NewSubscriber(pool, pool.receiveBlockMessageCh, MessageTypeNewBlock))
 	nm.Register(net.NewSubscriber(pool, pool.receiveBlockMessageCh, MessageTypeDownloadedBlockReply))
 	nm.Register(net.NewSubscriber(pool, pool.receiveDownloadBlockMessageCh, MessageTypeDownloadedBlock))
@@ -388,9 +389,11 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 
 	// found in BlockChain, then we can verify the state root, and tell the Consensus all the tails.
 	// performance depth-first search to verify state root, and get all tails.
-	allBlocks, tailBlocks := lb.travelToLinkAndReturnAllValidBlocks(parentBlock)
-	err := bc.PutVerifiedNewBlocks(allBlocks, tailBlocks)
+	allBlocks, tailBlocks, err := lb.travelToLinkAndReturnAllValidBlocks(parentBlock)
 	if err != nil {
+		return err
+	}
+	if err := bc.putVerifiedNewBlocks(parentBlock, allBlocks, tailBlocks); err != nil {
 		return err
 	}
 
@@ -426,7 +429,7 @@ func (lb *linkedBlock) LinkParent(parentBlock *linkedBlock) {
 	parentBlock.childBlocks[lb.hash.Hex()] = lb
 }
 
-func (lb *linkedBlock) travelToLinkAndReturnAllValidBlocks(parentBlock *Block) ([]*Block, []*Block) {
+func (lb *linkedBlock) travelToLinkAndReturnAllValidBlocks(parentBlock *Block) ([]*Block, []*Block, error) {
 	if err := lb.block.LinkParentBlock(parentBlock); err != nil {
 		log.WithFields(log.Fields{
 			"func":        "BlockPool.LinkParentBlock",
@@ -434,7 +437,7 @@ func (lb *linkedBlock) travelToLinkAndReturnAllValidBlocks(parentBlock *Block) (
 			"block":       lb.block,
 			"err":         err,
 		}).Error("link parent block fail.")
-		return nil, nil
+		return nil, nil, err
 	}
 
 	if err := lb.block.VerifyExecution(parentBlock, lb.pool.bc.ConsensusHandler()); err != nil {
@@ -443,7 +446,7 @@ func (lb *linkedBlock) travelToLinkAndReturnAllValidBlocks(parentBlock *Block) (
 			"block": lb.block,
 			"err":   err,
 		}).Warn("block execution fail.")
-		return nil, nil
+		return nil, nil, err
 	}
 
 	log.WithFields(log.Fields{
@@ -458,12 +461,12 @@ func (lb *linkedBlock) travelToLinkAndReturnAllValidBlocks(parentBlock *Block) (
 	}
 
 	for _, clb := range lb.childBlocks {
-		a, b := clb.travelToLinkAndReturnAllValidBlocks(lb.block)
-		if a != nil && b != nil {
+		a, b, err := clb.travelToLinkAndReturnAllValidBlocks(lb.block)
+		if err == nil {
 			allBlocks = append(allBlocks, a...)
 			tailBlocks = append(tailBlocks, b...)
 		}
 	}
 
-	return allBlocks, tailBlocks
+	return allBlocks, tailBlocks, nil
 }

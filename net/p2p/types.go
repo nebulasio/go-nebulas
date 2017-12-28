@@ -16,34 +16,29 @@
 // along with the go-nebulas library.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-package rpc
+package p2p
 
-import (
-	"github.com/nebulasio/go-nebulas/account"
-	"github.com/nebulasio/go-nebulas/core"
-	"github.com/nebulasio/go-nebulas/neblet/pb"
-	"github.com/nebulasio/go-nebulas/net/p2p"
-)
+import "github.com/nebulasio/go-nebulas/net"
 
-// Neblet interface breaks cycle import dependency and hides unused services.
-type Neblet interface {
-	Config() nebletpb.Config
-	BlockChain() *core.BlockChain
-	AccountManager() *account.Manager
-	NetManager() p2p.Manager
-	EventEmitter() *core.EventEmitter
-}
-
-// Server server interface for api & management etc.
-type Server interface {
-	// Start start server
+// Manager manager interface
+// TODO(leon): this interface should be in net package.
+type Manager interface {
 	Start() error
-
-	// Stop stop server
 	Stop()
 
-	// Neblet return neblet
-	Neblet() Neblet
+	Node() *Node
 
-	RunGateway() error
+	Sync(net.Serializable) error
+	SendSyncReply(string, net.Serializable)
+
+	Register(...*net.Subscriber)
+	Deregister(...*net.Subscriber)
+
+	Broadcast(string, net.Serializable)
+	Relay(string, net.Serializable)
+	SendMsg(string, []byte, string) error
+
+	BroadcastNetworkID([]byte)
+
+	BuildData([]byte, string) []byte
 }

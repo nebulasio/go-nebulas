@@ -146,7 +146,6 @@ func (bc *BlockChain) EventEmitter() *EventEmitter {
 // SetTailBlock set tail block.
 func (bc *BlockChain) SetTailBlock(newTail *Block) error {
 	oldTail := bc.tailBlock
-	bc.detachedTailBlocks.Remove(oldTail.Hash().Hex())
 	bc.tailBlock = newTail
 	bc.storeTailToStorage(bc.tailBlock)
 	// giveBack txs in reverted blocks to tx pool
@@ -288,7 +287,7 @@ func (bc *BlockChain) NewBlockFromParent(coinbase *Address, parentBlock *Block) 
 }
 
 // PutVerifiedNewBlocks put verified new blocks and tails.
-func (bc *BlockChain) PutVerifiedNewBlocks(allBlocks, tailBlocks []*Block) error {
+func (bc *BlockChain) putVerifiedNewBlocks(parent *Block, allBlocks, tailBlocks []*Block) error {
 	for _, v := range allBlocks {
 		bc.cachedBlocks.ContainsOrAdd(v.Hash().Hex(), v)
 		if err := bc.storeBlockToStorage(v); err != nil {
@@ -298,6 +297,9 @@ func (bc *BlockChain) PutVerifiedNewBlocks(allBlocks, tailBlocks []*Block) error
 	for _, v := range tailBlocks {
 		bc.detachedTailBlocks.ContainsOrAdd(v.Hash().Hex(), v)
 	}
+
+	bc.detachedTailBlocks.Remove(parent.Hash().Hex())
+
 	return nil
 }
 

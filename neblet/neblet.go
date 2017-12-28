@@ -38,7 +38,7 @@ type Neblet struct {
 
 	accountManager *account.Manager
 
-	netService *p2p.NetService
+	netService p2p.Manager
 
 	consensus consensus.Consensus
 
@@ -75,7 +75,7 @@ func New(config nebletpb.Config) (*Neblet, error) {
 func (n *Neblet) Setup() error {
 	var err error
 	//var err error
-	n.netService, err = p2p.NewNetService(n)
+	n.netService, err = p2p.NewNetManager(n)
 	if err != nil {
 		log.Error("new NetService occurs error ", err)
 		return err
@@ -236,8 +236,8 @@ func (n *Neblet) AccountManager() *account.Manager {
 	return n.accountManager
 }
 
-// NetService returns p2p manager reference.
-func (n *Neblet) NetService() *p2p.NetService {
+// NetManager returns p2p manager reference.
+func (n *Neblet) NetManager() p2p.Manager {
 	return n.netService
 }
 
