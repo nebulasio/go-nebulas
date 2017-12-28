@@ -53,7 +53,7 @@ type BlockPool struct {
 
 	bc    *BlockChain
 	cache *lru.Cache
-	slot  map[int64]*linkedBlock
+	slot  *lru.Cache
 
 	nm net.Manager
 	mu sync.RWMutex
@@ -70,16 +70,23 @@ type linkedBlock struct {
 }
 
 // NewBlockPool return new #BlockPool instance.
-func NewBlockPool() *BlockPool {
+func NewBlockPool(size int) (*BlockPool, error) {
 	bp := &BlockPool{
 		receiveBlockMessageCh:         make(chan net.Message, 128),
 		receiveDownloadBlockMessageCh: make(chan net.Message, 128),
 		receivedLinkedBlockCh:         make(chan *Block, 128),
 		quitCh:                        make(chan int, 1),
 	}
-	bp.cache, _ = lru.New(1024)
-	bp.slot = make(map[int64]*linkedBlock)
-	return bp
+	var err error
+	bp.cache, err = lru.New(size)
+	if err != nil {
+		return nil, err
+	}
+	bp.slot, _ = lru.New(size)
+	if err != nil {
+		return nil, err
+	}
+	return bp, nil
 }
 
 // ReceivedLinkedBlockCh return received block chan.
@@ -150,7 +157,7 @@ func (pool *BlockPool) handleBlock(msg net.Message) {
 func (pool *BlockPool) handleDownloadedBlock(msg net.Message) {
 	if msg.MessageType() != MessageTypeDownloadedBlock {
 		log.WithFields(log.Fields{
-			"func":        "BlockPool.loop",
+			"func":        "BlockPool.handleDownloadedBlock",
 			"messageType": msg.MessageType(),
 			"message":     msg,
 		}).Error("BlockPool.loop: received unregistered message, pls check code.")
@@ -159,13 +166,23 @@ func (pool *BlockPool) handleDownloadedBlock(msg net.Message) {
 
 	pbDownloadBlock := new(corepb.DownloadBlock)
 	if err := proto.Unmarshal(msg.Data().([]byte), pbDownloadBlock); err != nil {
-		log.Error("BlockPool.loop:: unmarshal data occurs error, ", err)
+		log.Error("BlockPool.loop: unmarshal data occurs error, ", err)
 		return
 	}
+
+	if byteutils.Equal(pbDownloadBlock.Hash, GenesisHash) {
+		log.WithFields(log.Fields{
+			"func":        "BlockPool.handleDownloadedBlock",
+			"messageType": msg.MessageType(),
+			"message":     msg,
+		}).Warn("BlockPool.loop: received genesis block, ignore it.")
+		return
+	}
+
 	block := pool.bc.GetBlock(pbDownloadBlock.Hash)
 	if block == nil {
 		log.WithFields(log.Fields{
-			"func":        "BlockPool.loop",
+			"func":        "BlockPool.handleDownloadedBlock",
 			"messageType": msg.MessageType(),
 			"wantedHash":  byteutils.Hex(pbDownloadBlock.Hash),
 		}).Error("BlockPool.loop: received download request, but cannot find the block.")
@@ -173,7 +190,7 @@ func (pool *BlockPool) handleDownloadedBlock(msg net.Message) {
 	}
 	if !block.Signature().Equals(pbDownloadBlock.Sign) {
 		log.WithFields(log.Fields{
-			"func":         "BlockPool.loop",
+			"func":         "BlockPool.handleDownloadedBlock",
 			"messageType":  msg.MessageType(),
 			"wantedSign":   byteutils.Hex(pbDownloadBlock.Sign),
 			"expectedSign": block.Signature().Hex(),
@@ -183,7 +200,7 @@ func (pool *BlockPool) handleDownloadedBlock(msg net.Message) {
 	parent, err := block.ParentBlock()
 	if err != nil {
 		log.WithFields(log.Fields{
-			"func":        "BlockPool.loop",
+			"func":        "BlockPool.handleDownloadedBlock",
 			"messageType": msg.MessageType(),
 			"block":       block,
 		}).Error("BlockPool.loop: received download request, but cannot find the block's parent.")
@@ -201,7 +218,7 @@ func (pool *BlockPool) handleDownloadedBlock(msg net.Message) {
 	}
 	pool.nm.SendMsg(MessageTypeDownloadedBlockReply, bytes, msg.MessageFrom())
 	log.WithFields(log.Fields{
-		"func":        "BlockPool.loop",
+		"func":        "BlockPool.handleDownloadedBlock",
 		"messageType": msg.MessageType(),
 		"block":       block,
 	}).Info("BlockPool.loop: received download request, send back the block's parent.")
@@ -308,11 +325,11 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 	var plb *linkedBlock
 	lb := newLinkedBlock(block, pool)
 
-	if _, exist := pool.slot[lb.block.Timestamp()]; exist {
+	if exist := pool.slot.Contains(lb.block.Timestamp()); exist {
 		invalidBlockCounter.Inc(1)
 		return ErrDoubleBlockMinted
 	}
-	pool.slot[lb.block.Timestamp()] = lb
+	pool.slot.Add(lb.block.Timestamp(), lb.block.Hash())
 	cache.Add(lb.hash.Hex(), lb)
 
 	// find child block in pool.

@@ -70,7 +70,7 @@ func less(a interface{}, b interface{}) bool {
 }
 
 // NewTransactionPool create a new TransactionPool
-func NewTransactionPool(size int) *TransactionPool {
+func NewTransactionPool(size int) (*TransactionPool, error) {
 	if size == 0 {
 		panic("cannot new txpool with size == 0")
 	}
@@ -83,7 +83,7 @@ func NewTransactionPool(size int) *TransactionPool {
 		gasPrice:          TransactionGasPrice,
 		gasLimit:          TransactionMaxGas,
 	}
-	return txPool
+	return txPool, nil
 }
 
 // SetGasConfig config the lowest gasPrice and the maximum gasLimit.

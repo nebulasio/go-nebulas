@@ -75,12 +75,20 @@ var (
 
 // NewBlockChain create new #BlockChain instance.
 func NewBlockChain(neb Neblet) (*BlockChain, error) {
+	blockPool, err := NewBlockPool(4096)
+	if err != nil {
+		return nil, err
+	}
+	txPool, err := NewTransactionPool(4096)
+	if err != nil {
+		return nil, err
+	}
 
 	var bc = &BlockChain{
 		chainID:      neb.Genesis().Meta.ChainId,
 		genesis:      neb.Genesis(),
-		bkPool:       NewBlockPool(),
-		txPool:       NewTransactionPool(4096),
+		bkPool:       blockPool,
+		txPool:       txPool,
 		storage:      neb.Storage(),
 		neb:          neb,
 		eventEmitter: neb.EventEmitter(),
@@ -89,7 +97,6 @@ func NewBlockChain(neb Neblet) (*BlockChain, error) {
 	bc.cachedBlocks, _ = lru.New(1024)
 	bc.detachedTailBlocks, _ = lru.New(64)
 
-	var err error
 	bc.genesisBlock, err = bc.loadGenesisFromStorage()
 	if err != nil {
 		return nil, err

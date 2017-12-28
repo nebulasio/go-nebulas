@@ -21,11 +21,16 @@ package core
 import (
 	"testing"
 
+	"github.com/nebulasio/go-nebulas/core/pb"
+
 	"time"
 
+	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/crypto"
 	"github.com/nebulasio/go-nebulas/crypto/keystore"
 	"github.com/nebulasio/go-nebulas/crypto/keystore/secp256k1"
+	"github.com/nebulasio/go-nebulas/net"
+	"github.com/nebulasio/go-nebulas/net/messages"
 	"github.com/nebulasio/go-nebulas/storage"
 	"github.com/nebulasio/go-nebulas/util"
 	"github.com/stretchr/testify/assert"
@@ -44,9 +49,31 @@ func (c MockConsensus) VerifyBlock(block *Block, parent *Block) error {
 	return nil
 }
 
+var (
+	received = []byte{}
+)
+
+type MockNetManager struct{}
+
+func (n MockNetManager) Start() error                  { return nil }
+func (n MockNetManager) Stop()                         {}
+func (n MockNetManager) Register(...*net.Subscriber)   {}
+func (n MockNetManager) Deregister(...*net.Subscriber) {}
+
+func (n MockNetManager) Broadcast(name string, msg net.Serializable) {}
+func (n MockNetManager) Relay(name string, msg net.Serializable)     {}
+func (n MockNetManager) SendMsg(name string, msg []byte, target string) error {
+	received = msg
+	return nil
+}
+
 func TestBlockPool(t *testing.T) {
+	received = []byte{}
+
 	neb := testNeb()
 	bc, err := NewBlockChain(neb)
+	var n MockNetManager
+	bc.bkPool.RegisterInNetwork(n)
 	cons := &MockConsensus{neb.storage}
 	bc.SetConsensusHandler(cons)
 	pool := bc.bkPool
@@ -123,6 +150,8 @@ func TestBlockPool(t *testing.T) {
 	err = pool.Push(block0)
 	assert.NoError(t, err)
 	assert.Equal(t, pool.cache.Len(), 0)
+	err = pool.PushAndBroadcast(block0)
+	assert.Equal(t, err, ErrDuplicatedBlock)
 
 	err = pool.Push(block3)
 	assert.Equal(t, pool.cache.Len(), 1)
@@ -152,4 +181,196 @@ func TestBlockPool(t *testing.T) {
 	nonce = bc.tailBlock.GetNonce(from.Bytes())
 	assert.Equal(t, nonce, uint64(3))
 
+	addr = &Address{validators[0]}
+	block5, _ := NewBlock(bc.ChainID(), addr, block4)
+	block5.header.timestamp = block4.header.timestamp + BlockInterval
+	block5.CollectTransactions(1)
+	block5.SetMiner(addr)
+	block5.Seal()
+	block5.header.hash[0]++
+	assert.Equal(t, pool.Push(block5), ErrInvalidBlockHash)
+
+	addr = &Address{validators[1]}
+	block41, _ := NewBlock(bc.ChainID(), addr, block3)
+	block41.header.timestamp = block3.header.timestamp + BlockInterval
+	block41.CollectTransactions(1)
+	block41.SetMiner(addr)
+	block41.Seal()
+	assert.Equal(t, pool.Push(block41), ErrDoubleBlockMinted)
+
+	addr = &Address{validators[0]}
+	block6, _ := NewBlock(bc.ChainID(), addr, block5)
+	block6.header.timestamp = block3.header.timestamp + BlockInterval*DynastySize - 1
+	block6.CollectTransactions(1)
+	block6.SetMiner(addr)
+	block6.Seal()
+	assert.Equal(t, pool.push("fake", block6), nil)
+	downloadMsg := &corepb.DownloadBlock{
+		Hash: block6.Hash(),
+		Sign: block6.Signature(),
+	}
+	bytes, _ := proto.Marshal(downloadMsg)
+	assert.Equal(t, received, bytes)
+
+	received = []byte{}
+	addr = &Address{validators[0]}
+	block7, _ := NewBlock(bc.ChainID(), addr, block5)
+	block7.header.timestamp = block3.header.timestamp + BlockInterval*DynastySize + 1
+	block7.CollectTransactions(1)
+	block7.SetMiner(addr)
+	block7.Seal()
+	assert.Equal(t, pool.push("fake", block7), nil)
+	assert.Equal(t, received, []byte{})
+}
+
+func TestHandleBlock(t *testing.T) {
+	neb := testNeb()
+	bc, err := NewBlockChain(neb)
+	var n MockNetManager
+	bc.bkPool.RegisterInNetwork(n)
+	assert.Nil(t, err)
+	cons := &MockConsensus{neb.storage}
+	bc.SetConsensusHandler(cons)
+	from := mockAddress()
+	ks := keystore.DefaultKS
+	key, err := ks.GetUnlocked(from.String())
+	signature, _ := crypto.NewSignature(keystore.SECP256K1)
+	signature.InitSign(key.(keystore.PrivateKey))
+
+	block, err := bc.NewBlock(from)
+	assert.Nil(t, err)
+	block.SetMiner(from)
+	block.Seal()
+	block.Sign(signature)
+	pbMsg, err := block.ToProto()
+	assert.Nil(t, err)
+	data, err := proto.Marshal(pbMsg)
+	assert.Nil(t, err)
+	msg := messages.NewBaseMessage(MessageTypeNewTx, "from", data)
+	bc.bkPool.handleBlock(msg)
+	assert.Nil(t, bc.GetBlock(block.Hash()))
+
+	block, err = bc.NewBlock(from)
+	assert.Nil(t, err)
+	block.header.timestamp = time.Now().Unix() - AcceptedNetWorkDelay - 1
+	block.SetMiner(from)
+	block.Seal()
+	block.Sign(signature)
+	pbMsg, err = block.ToProto()
+	assert.Nil(t, err)
+	data, err = proto.Marshal(pbMsg)
+	msg = messages.NewBaseMessage(MessageTypeNewBlock, "from", data)
+	bc.bkPool.handleBlock(msg)
+	assert.Nil(t, bc.GetBlock(block.Hash()))
+
+	block, err = bc.NewBlock(from)
+	assert.Nil(t, err)
+	block.header.timestamp = 0
+	assert.Nil(t, err)
+	block.SetMiner(from)
+	block.Seal()
+	block.Sign(signature)
+	pbMsg, err = block.ToProto()
+	assert.Nil(t, err)
+	data, err = proto.Marshal(pbMsg)
+	msg = messages.NewBaseMessage(MessageTypeNewBlock, "from", data)
+	bc.bkPool.handleBlock(msg)
+	assert.Nil(t, bc.GetBlock(block.Hash()))
+
+	block, err = bc.NewBlock(from)
+	assert.Nil(t, err)
+	block.header.timestamp = 0
+	assert.Nil(t, err)
+	block.SetMiner(from)
+	block.Seal()
+	block.Sign(signature)
+	pbMsg, err = block.ToProto()
+	assert.Nil(t, err)
+	data, err = proto.Marshal(pbMsg)
+	msg = messages.NewBaseMessage(MessageTypeDownloadedBlockReply, "from", data)
+	bc.bkPool.handleBlock(msg)
+	assert.NotNil(t, bc.GetBlock(block.Hash()))
+}
+
+func TestHandleDownloadedBlock(t *testing.T) {
+	received = []byte{}
+
+	neb := testNeb()
+	bc, err := NewBlockChain(neb)
+	assert.Nil(t, err)
+	var n MockNetManager
+	bc.bkPool.RegisterInNetwork(n)
+	assert.Equal(t, n, bc.bkPool.nm)
+	cons := &MockConsensus{neb.storage}
+	bc.SetConsensusHandler(cons)
+	from := mockAddress()
+	ks := keystore.DefaultKS
+	key, err := ks.GetUnlocked(from.String())
+	signature, _ := crypto.NewSignature(keystore.SECP256K1)
+	signature.InitSign(key.(keystore.PrivateKey))
+
+	block1, err := bc.NewBlock(from)
+	assert.Nil(t, err)
+	block1.SetMiner(from)
+	block1.Seal()
+	block1.Sign(signature)
+	bc.SetTailBlock(block1)
+
+	block2, err := bc.NewBlock(from)
+	assert.Nil(t, err)
+	block2.SetMiner(from)
+	block2.Seal()
+	block2.Sign(signature)
+	bc.SetTailBlock(block2)
+	bc.storeBlockToStorage(block2)
+
+	downloadBlock := new(corepb.DownloadBlock)
+	downloadBlock.Hash = block1.Hash()
+	downloadBlock.Sign = block1.Signature()
+	data, err := proto.Marshal(downloadBlock)
+	assert.Nil(t, err)
+	msg := messages.NewBaseMessage(MessageTypeNewBlock, "from", data)
+	bc.bkPool.handleDownloadedBlock(msg)
+	assert.Equal(t, received, []byte{})
+
+	downloadBlock = new(corepb.DownloadBlock)
+	downloadBlock.Hash = bc.genesisBlock.Hash()
+	downloadBlock.Sign = bc.genesisBlock.Signature()
+	data, err = proto.Marshal(downloadBlock)
+	assert.Nil(t, err)
+	msg = messages.NewBaseMessage(MessageTypeDownloadedBlock, "from", data)
+	bc.bkPool.handleDownloadedBlock(msg)
+	assert.Equal(t, received, []byte{})
+
+	downloadBlock = new(corepb.DownloadBlock)
+	downloadBlock.Hash = block1.Hash()
+	downloadBlock.Sign = block1.Signature()
+	data, err = proto.Marshal(downloadBlock)
+	assert.Nil(t, err)
+	msg = messages.NewBaseMessage(MessageTypeDownloadedBlock, "from", data)
+	bc.bkPool.handleDownloadedBlock(msg)
+	assert.Equal(t, received, []byte{})
+	bc.storeBlockToStorage(block1)
+
+	downloadBlock = new(corepb.DownloadBlock)
+	downloadBlock.Hash = block1.Hash()
+	downloadBlock.Sign = block2.Signature()
+	data, err = proto.Marshal(downloadBlock)
+	assert.Nil(t, err)
+	msg = messages.NewBaseMessage(MessageTypeDownloadedBlock, "from", data)
+	bc.bkPool.handleDownloadedBlock(msg)
+	assert.Equal(t, received, []byte{})
+
+	downloadBlock = new(corepb.DownloadBlock)
+	downloadBlock.Hash = block1.Hash()
+	downloadBlock.Sign = block1.Signature()
+	data, err = proto.Marshal(downloadBlock)
+	assert.Nil(t, err)
+	msg = messages.NewBaseMessage(MessageTypeDownloadedBlock, "from", data)
+	bc.bkPool.handleDownloadedBlock(msg)
+	pbGenesis, err := bc.genesisBlock.ToProto()
+	assert.Nil(t, err)
+	data, err = proto.Marshal(pbGenesis)
+	assert.Nil(t, err)
+	assert.Equal(t, received, data)
 }

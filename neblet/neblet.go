@@ -93,11 +93,11 @@ func (n *Neblet) Setup() error {
 	if err != nil {
 		return err
 	}
-
-	n.blockChain.BlockPool().RegisterInNetwork(n.netService)
 	gasPrice := util.NewUint128FromString(n.config.Chain.GasPrice)
 	gasLimit := util.NewUint128FromString(n.config.Chain.GasLimit)
 	n.blockChain.TransactionPool().SetGasConfig(gasPrice, gasLimit)
+
+	n.blockChain.BlockPool().RegisterInNetwork(n.netService)
 	n.blockChain.TransactionPool().RegisterInNetwork(n.netService)
 
 	n.consensus, err = dpos.NewDpos(n)
