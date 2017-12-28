@@ -228,7 +228,7 @@ func (p *Dpos) FastVerifyBlock(block *core.Block) error {
 	} else {
 		return nil
 	}
-	dynasty, err := trie.NewBatchTrie(dynastyRoot, block.Storage())
+	dynasty, err := trie.NewBatchTrie(dynastyRoot, p.chain.Storage())
 	if err != nil {
 		return err
 	}

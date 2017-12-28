@@ -393,6 +393,7 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 	if err != nil {
 		return err
 	}
+
 	if err := bc.putVerifiedNewBlocks(parentBlock, allBlocks, tailBlocks); err != nil {
 		return err
 	}
