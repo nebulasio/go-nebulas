@@ -8,6 +8,24 @@ var BigNumber = require('bignumber.js');
 var nodes = new Node(6);
 nodes.Start();
 
+function checkTransaction(hash, done, count) {
+    if (count > 6) {
+        console.log("tx receipt timeout:"+hash);
+        done();
+        return;
+    }
+
+    var node = nodes.Node(0);
+    node.RPC().api.getTransactionReceipt(hash).then(function (resp) {
+        console.log("tx receipt:" + JSON.stringify(resp));
+        done();
+    }).catch(function (err) {
+        setTimeout(function () {
+            checkTransaction(hash, done, count+1);
+        }, 2000);
+    });
+}
+
 describe('contract transaction', function () {
     before(function (done) {
         this.timeout(10000);
@@ -50,8 +68,9 @@ describe('contract transaction', function () {
         }).then(function (resp) {
 
             console.log("call resp:"+JSON.stringify(resp));
-            expect(resp).to.be.have.property('txhash');
-            done();
+            // expect(resp).to.be.have.property('txhash');
+            // done();
+            checkTransaction(resp.txhash, done, 1);
         }).catch(function (err) {
             console.log("send err:"+JSON.stringify(err.error))
             done();
@@ -94,8 +113,9 @@ describe('contract transaction', function () {
         }).then( function (resp) {
 
             console.log("resp:"+JSON.stringify(resp));
-            expect(resp).to.be.have.property('txhash');
-            done();
+            // expect(resp).to.be.have.property('txhash');
+            // done();
+            checkTransaction(resp.txhash, done, 1);
         }).catch(function (err) {
             console.log("send err:"+JSON.stringify(err.error))
             done();
@@ -136,9 +156,11 @@ describe('contract transaction', function () {
             // console.log("gas:"+gas.estimate_gas);
             return node.RPC().api.call(node.Coinbase(), resp.contract_address, state.balance, parseInt(state.nonce)+2, "0", "200000", call);
         }).then( function (resp) {
+
             console.log("resp:"+JSON.stringify(resp));
-            expect(resp).to.be.have.property('txhash');
-            done();
+            // expect(resp).to.be.have.property('txhash');
+            // done();
+            checkTransaction(resp.txhash, done, 1);
         }).catch(function (err) {
             console.log("send err:"+JSON.stringify(err.error))
             done();
