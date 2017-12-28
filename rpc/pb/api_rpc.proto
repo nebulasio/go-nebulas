@@ -443,23 +443,30 @@ message TransactionReceiptResponse {
     // Hex string of tx hash.
     string hash = 1;
 
+    uint32 chainId = 2;
+
     // Hex string of the sender account addresss.
-    string from = 2;
+    string from = 3;
 
     // Hex string of the receiver account addresss.
-    string to = 3;
+    string to = 4;
+
+    string value = 5;
 
     // Transaction nonce.
-    uint64 nonce = 4;
+    uint64 nonce = 6;
 
-    int64 timestamp = 5;
+    int64 timestamp = 7;
 
-    string data = 6;
+    string type = 8;
 
-    uint32 chainId = 7;
+    string data = 9;
 
-    string contract_address = 8;
+    string gas_price = 10;
 
+    string gas_limit = 11;
+
+    string contract_address = 12;
 }
 
 message NewAccountRequest {

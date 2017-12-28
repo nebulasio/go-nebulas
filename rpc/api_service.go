@@ -333,31 +333,28 @@ func (s *APIService) GetTransactionReceipt(ctx context.Context, req *rpcpb.GetTr
 	if tx == nil {
 		return nil, errors.New("transaction not found")
 	}
-	if tx.From().String() == tx.To().String() {
+
+	receipt := &rpcpb.TransactionReceiptResponse{
+		ChainId:   tx.ChainID(),
+		Hash:      byteutils.Hex(tx.Hash()),
+		From:      tx.From().String(),
+		To:        tx.To().String(),
+		Value:     tx.Value().String(),
+		Nonce:     tx.Nonce(),
+		Timestamp: tx.Timestamp(),
+		Type:      tx.Type(),
+		Data:      byteutils.Hex(tx.Data()),
+		GasPrice:  tx.GasPrice().String(),
+		GasLimit:  tx.GasLimit().String(),
+	}
+	if tx.Type() == core.TxPayloadDeployType {
 		contractAddr, err := tx.GenerateContractAddress()
 		if err != nil {
 			return nil, err
 		}
-		return &rpcpb.TransactionReceiptResponse{
-			Hash:            byteutils.Hex(tx.Hash()),
-			From:            tx.From().String(),
-			To:              tx.To().String(),
-			Nonce:           tx.Nonce(),
-			Timestamp:       tx.Timestamp(),
-			ChainId:         tx.ChainID(),
-			ContractAddress: contractAddr.String(),
-			Data:            string(tx.Data()),
-		}, nil
+		receipt.ContractAddress = contractAddr.String()
 	}
-
-	return &rpcpb.TransactionReceiptResponse{
-		Hash:      byteutils.Hex(tx.Hash()),
-		From:      tx.From().String(),
-		To:        tx.To().String(),
-		Nonce:     tx.Nonce(),
-		Timestamp: tx.Timestamp(),
-		ChainId:   tx.ChainID(),
-	}, nil
+	return receipt, nil
 }
 
 // NewAccount generate a new address with passphrase

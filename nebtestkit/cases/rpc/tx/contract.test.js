@@ -17,7 +17,11 @@ function checkTransaction(hash, done, count) {
 
     var node = nodes.Node(0);
     node.RPC().api.getTransactionReceipt(hash).then(function (resp) {
+
         console.log("tx receipt:" + JSON.stringify(resp));
+        return node.RPC().api.getAccountState(node.Coinbase());
+    }).then(function (resp) {
+        console.log("after state:" + JSON.stringify(resp));
         done();
     }).catch(function (err) {
         setTimeout(function () {

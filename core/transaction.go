@@ -104,6 +104,11 @@ func (tx *Transaction) ChainID() uint32 {
 	return tx.chainID
 }
 
+// Value return tx value
+func (tx *Transaction) Value() *util.Uint128 {
+	return tx.value
+}
+
 // Nonce return tx nonce
 func (tx *Transaction) Nonce() uint64 {
 	return tx.nonce
@@ -182,11 +187,14 @@ func (tx *Transaction) FromProto(msg proto.Message) error {
 }
 
 func (tx *Transaction) String() string {
-	return fmt.Sprintf("Tx {from:%s; to:%s; nonce:%d, value: %d}",
+	return fmt.Sprintf(`{"hash":%s, "from":%s, "to":%s, "nonce":%d, "value": %d, "timestamp":%d, "type":%s}`,
+		byteutils.Hex(tx.hash),
 		byteutils.Hex(tx.from.address),
 		byteutils.Hex(tx.to.address),
 		tx.nonce,
 		tx.value.Int64(),
+		tx.timestamp,
+		tx.Type(),
 	)
 }
 

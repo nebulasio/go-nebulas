@@ -16,7 +16,11 @@ function checkTransaction(hash, done, count) {
 
     var node = nodes.Node(0);
     node.RPC().api.getTransactionReceipt(hash).then(function (resp) {
+
         console.log("tx receipt:" + JSON.stringify(resp));
+        return node.RPC().api.getAccountState(node.Coinbase());
+    }).then(function (resp) {
+        console.log("after state:" + JSON.stringify(resp));
         done();
     }).catch(function (err) {
         setTimeout(function () {
@@ -43,7 +47,7 @@ describe('normal transaction', function () {
             return node.RPC().admin.unlockAccount(node.Coinbase(), node.Passphrase());
         }).then(function (resp) {
 
-            return node.RPC().api.sendTransaction(node.Coinbase(), nodes.Coinbase(1), state.balance, parseInt(state.nonce) + 1);
+            return node.RPC().api.sendTransaction(node.Coinbase(), nodes.Coinbase(1), "1", parseInt(state.nonce) + 1);
         }).then(function (resp) {
 
             console.log("send:"+JSON.stringify(resp))
@@ -67,7 +71,7 @@ describe('normal transaction', function () {
             return node.RPC().admin.unlockAccount(node.Coinbase(), node.Passphrase());
         }).then(function (resp) {
 
-            return node.RPC().api.sendTransaction(node.Coinbase(), nodes.Coinbase(0), state.balance, parseInt(state.nonce) + 1)
+            return node.RPC().api.sendTransaction(node.Coinbase(), nodes.Coinbase(0), "1", parseInt(state.nonce) + 1)
         }).then(function (resp) {
 
             console.log("send:"+JSON.stringify(resp))
