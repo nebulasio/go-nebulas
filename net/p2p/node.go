@@ -65,7 +65,6 @@ type Node struct {
 	version       uint8
 	config        *Config
 	running       bool
-	synchronized  bool
 	synchronizing bool
 	syncList      []string
 	// key: datachecksum value: peer.ID
@@ -124,16 +123,6 @@ func (node *Node) ID() string {
 // PeerStore return node peerstore
 func (node *Node) PeerStore() peerstore.Peerstore {
 	return node.peerstore
-}
-
-// SetSynchronized set node synchronized.
-func (node *Node) SetSynchronized(synchronized bool) {
-	node.synchronized = synchronized
-}
-
-// GetSynchronized return node synchronized status.
-func (node *Node) GetSynchronized() bool {
-	return node.synchronized
 }
 
 // GetSynchronizing return node synchronizing
@@ -241,7 +230,6 @@ func (node *Node) init() error {
 	node.stream = new(sync.Map)
 	node.streamCache = pdeque.NewPriorityDeque(less)
 	node.version = node.config.Version
-	node.synchronized = false
 	var multiaddrs []multiaddr.Multiaddr
 	for _, v := range node.config.Listen {
 		tcpAddr, err := net.ResolveTCPAddr("tcp", v)

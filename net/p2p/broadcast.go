@@ -32,7 +32,7 @@ import (
 // Broadcast broadcast message
 func (ns *NetService) Broadcast(name string, msg net.Serializable) {
 	node := ns.node
-	if !node.synchronized {
+	if node.synchronizing {
 		return
 	}
 	ns.distribute(name, msg, false)
@@ -41,7 +41,7 @@ func (ns *NetService) Broadcast(name string, msg net.Serializable) {
 // Relay relay message
 func (ns *NetService) Relay(name string, msg net.Serializable) {
 	node := ns.node
-	if !node.synchronized {
+	if node.synchronizing {
 		return
 	}
 	ns.distribute(name, msg, true)
@@ -131,7 +131,7 @@ func (ns *NetService) doRelay(nodes []peer.ID, relayness []peer.ID, dataChecksum
 // BroadcastNetworkID broadcast networkID when changed.
 func (ns *NetService) BroadcastNetworkID(msg []byte) {
 	node := ns.node
-	if !node.synchronized {
+	if node.synchronizing {
 		return
 	}
 
