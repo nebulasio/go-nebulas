@@ -103,9 +103,9 @@ func (m *Manager) Start() {
 	}
 	m.startMsgHandle()
 	if len(m.ns.Node().Config().BootNodes) > 0 {
+		m.ns.Node().SetSynchronizing(true)
 		m.startSync()
 		m.curTail = m.blockChain.TailBlock()
-		m.ns.Node().SetSynchronizing(true)
 	} else {
 		log.Info("Sync.Start: i am a seed node.")
 		m.consensus.SetCanMining(true)
@@ -180,6 +180,8 @@ func (m *Manager) goSyncParentWithPeers() {
 	if m.ns.Node().GetSynchronizing() && !core.CheckGenesisBlock(m.curTail) {
 		m.curTail = m.blockChain.GetBlock(m.curTail.ParentHash())
 		m.syncWithPeers(m.curTail)
+	} else {
+		m.endSyncCh <- true
 	}
 }
 
