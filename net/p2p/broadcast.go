@@ -71,9 +71,10 @@ func (ns *NetService) distribute(name string, msg net.Serializable, relay bool) 
 	if exists {
 		relayness = peers.([]peer.ID)
 	}
-	allNode := ns.nodeNotInRelayness(relayness, node.routeTable.ListPeers())
-	transfer := allNode
+	var allNode []peer.ID
+	transfer := node.routeTable.ListPeers()
 	if relay {
+		allNode = ns.nodeNotInRelayness(relayness, node.routeTable.ListPeers())
 		transfer = allNode[:int(math.Sqrt(float64(len(allNode))))]
 	}
 	log.WithFields(log.Fields{
