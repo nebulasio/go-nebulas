@@ -357,7 +357,7 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 		log.WithFields(log.Fields{
 			"func":  "BlockPool.push",
 			"block": block,
-		}).Error("BlockPool.loop: cannot find parent in cache & local.")
+		}).Error("BlockPool.loop: find parent but cannot find the grandparent.")
 		return nil
 	}
 
