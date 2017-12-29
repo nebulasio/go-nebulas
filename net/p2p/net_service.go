@@ -198,6 +198,10 @@ func (ns *NetService) streamHandler(s libnet.Stream) {
 				ns.handleReNetworkIDMsg(protocol.data, pid)
 			default:
 				var relayness []peer.ID
+				log.WithFields(log.Fields{
+					"msgName": protocol.msgName,
+					"pid":     pid.Pretty(),
+				}).Info("receive block & tx message.")
 				streamStore, ok := node.stream.Load(key)
 				if !ok {
 					ns.Bye(pid, []ma.Multiaddr{addrs}, s, key)
