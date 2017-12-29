@@ -137,8 +137,8 @@ func (n *Neblet) Start() error {
 	n.blockChain.TransactionPool().Start()
 	n.eventEmitter.Start()
 
-	n.consensus.Start()
 	n.syncManager.Start()
+	n.consensus.Start()
 
 	if n.config.Stats.EnableMetrics {
 		go metrics.Start(n)
