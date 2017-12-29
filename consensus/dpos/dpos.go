@@ -134,7 +134,7 @@ func (p *Dpos) forkChoice() {
 	// find the max depth.
 	log.WithFields(log.Fields{
 		"func": "Dpos.ForkChoice",
-	}).Debug("find the highest tail.")
+	}).Info("find the highest tail.")
 
 	newTailBlock := tailBlock
 
@@ -266,8 +266,14 @@ func (p *Dpos) VerifyBlock(block *core.Block, parent *core.Block) error {
 }
 
 func (p *Dpos) mintBlock(now int64) error {
+	log.Info("Try to Mint Block at", now)
+
 	// check can do mining
 	if !p.canMining {
+		log.WithFields(log.Fields{
+			"func": "Dpos.mintBlock",
+			"now":  now,
+		}).Warn("cannot mint now.")
 		return ErrCannotMintBlockNow
 	}
 	// check proposer
@@ -346,7 +352,16 @@ func (p *Dpos) mintBlock(now int64) error {
 		return err
 	}
 	// broadcast it
-	p.chain.BlockPool().PushAndBroadcast(block)
+	err = p.chain.BlockPool().PushAndBroadcast(block)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"func":  "Dpos.mintBlock",
+			"tail":  tail,
+			"block": block,
+			"err":   err,
+		}).Error("broadcast block failed")
+		return err
+	}
 	return nil
 }
 

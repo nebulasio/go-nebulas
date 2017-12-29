@@ -228,7 +228,7 @@ func (pool *BlockPool) handleDownloadedBlock(msg net.Message) {
 func (pool *BlockPool) loop() {
 	log.WithFields(log.Fields{
 		"func": "BlockPool.loop",
-	}).Debug("running.")
+	}).Info("running.")
 
 	for {
 		select {
@@ -307,6 +307,8 @@ func (pool *BlockPool) PushAndBroadcast(block *Block) error {
 }
 
 func (pool *BlockPool) push(sender string, block *Block) error {
+	log.Info("Push Block ", block)
+
 	// verify non-dup block
 	if pool.cache.Contains(block.Hash().Hex()) ||
 		pool.bc.GetBlock(block.Hash()) != nil {
@@ -319,6 +321,8 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 		invalidBlockCounter.Inc(1)
 		return err
 	}
+
+	log.Info("Block Integrity Verified ", block)
 
 	bc := pool.bc
 	cache := pool.cache
@@ -350,6 +354,10 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 		plb = v.(*linkedBlock)
 		lb.LinkParent(plb)
 
+		log.WithFields(log.Fields{
+			"func":  "BlockPool.push",
+			"block": block,
+		}).Error("BlockPool.loop: cannot find parent in cache & local.")
 		return nil
 	}
 

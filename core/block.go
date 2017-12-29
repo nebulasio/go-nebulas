@@ -510,7 +510,15 @@ func (block *Block) CollectTransactions(n int) {
 		}
 	}
 	for _, tx := range givebacks {
-		pool.Push(tx)
+		err := pool.Push(tx)
+		if err != nil {
+			log.WithFields(log.Fields{
+				"func":  "block.CollectionTransactions",
+				"block": block,
+				"tx":    tx,
+				"err":   err,
+			}).Error("giveback tx failed.")
+		}
 	}
 }
 
@@ -689,7 +697,10 @@ func (block *Block) execute() error {
 	for _, tx := range block.transactions {
 		giveback, err := block.executeTransaction(tx)
 		if giveback {
-			block.txPool.Push(tx)
+			err := block.txPool.Push(tx)
+			if err != nil {
+				return err
+			}
 		}
 		if err != nil {
 			return err
