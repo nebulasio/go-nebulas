@@ -374,6 +374,13 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 		}
 		// do sync if there are so many empty slots.
 		if lb.block.Timestamp()-bc.TailBlock().Timestamp() > BlockInterval*DynastySize {
+			log.WithFields(log.Fields{
+				"func":     "BlockPool.loop",
+				"tail":     bc.TailBlock().Timestamp(),
+				"received": lb.block.Timestamp(),
+				"limit":    BlockInterval * DynastySize,
+				"block":    block,
+			}).Info("BlockPool.loop: gap is too big, start sync.")
 			bc.Neb().StartSync()
 			return nil
 		}
