@@ -363,12 +363,12 @@ func (tx *Transaction) VerifyExecution(block *Block) (*util.Uint128, error) {
 
 	log.WithFields(log.Fields{
 		"transaction":  tx,
-		"txType":       tx.data.Type,
 		"gasUsed":      gasUsed.String(),
 		"gasExecution": gasExecution.String(),
 		"gas":          gas.String(),
+		"gasPrice":     tx.gasPrice.String(),
 		"gasLimited":   tx.gasLimit.String(),
-	}).Debug("Transaction Execute statics.")
+	}).Info("Transaction Execute statics.")
 
 	tx.gasConsumption(fromAcc, coinbaseAcc, gas)
 
