@@ -127,8 +127,9 @@ func (m *Manager) loop() {
 		case <-m.endSyncCh:
 			if m.ns.Node().GetSynchronizing() {
 				m.ns.Node().SetSynchronizing(false)
-				m.consensus.SetCanMining(true)
 			}
+			m.consensus.SetCanMining(true)
+			log.Info("sync finish.")
 		case <-m.syncCh:
 			if m.curTail == nil {
 				log.Warn("sync occurs error, the current tail is nil.")

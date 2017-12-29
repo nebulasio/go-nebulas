@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/hex"
-	"flag"
 	"fmt"
 	mrand "math/rand"
 	"time"
@@ -17,7 +16,6 @@ import (
 	ps "github.com/libp2p/go-libp2p-peerstore"
 	swarm "github.com/libp2p/go-libp2p-swarm"
 	ma "github.com/multiformats/go-multiaddr"
-	"github.com/nebulasio/go-nebulas/net/p2p"
 	log "github.com/sirupsen/logrus"
 
 	bhost "github.com/libp2p/go-libp2p/p2p/host/basic"
@@ -128,49 +126,49 @@ func makeRandomHost(port int) host.Host {
 }
 
 func main() {
-	port := flag.Int("p", 0, "port")
-	flag.Parse()
+	// port := flag.Int("p", 0, "port")
+	// flag.Parse()
 
-	// Choose random ports between 10000-10100
-	// rand.Seed(666)
-	// port1 := rand.Intn(100) + 10000
-	// port2 := port1 + 1
+	// // Choose random ports between 10000-10100
+	// // rand.Seed(666)
+	// // port1 := rand.Intn(100) + 10000
+	// // port2 := port1 + 1
 
-	// Make 2 hosts
-	// h1 := makeRandomHost(port1)
-	h := makeRandomHost(*port)
-	address, _ := ma.NewMultiaddr("/ip4/127.0.0.1/tcp/51413/ipfs/QmPyr4ZbDmwF1nWxymTktdzspcBFPL6X1v3Q5nT7PGNtUN")
-	bootAddr, bootID, err := p2p.ParseAddressFromMultiaddr(address)
-	// // h1.Peerstore().AddAddrs(h2.ID(), h2.Addrs(), ps.PermanentAddrTTL)
-	log.Info(bootAddr, "|", bootID)
-	h.Peerstore().AddAddrs(bootID, []ma.Multiaddr{bootAddr}, ps.PermanentAddrTTL)
+	// // Make 2 hosts
+	// // h1 := makeRandomHost(port1)
+	// h := makeRandomHost(*port)
+	// address, _ := ma.NewMultiaddr("/ip4/127.0.0.1/tcp/51413/ipfs/QmPyr4ZbDmwF1nWxymTktdzspcBFPL6X1v3Q5nT7PGNtUN")
+	// bootAddr, bootID, err := p2p.ParseAddressFromMultiaddr(address)
+	// // // h1.Peerstore().AddAddrs(h2.ID(), h2.Addrs(), ps.PermanentAddrTTL)
+	// log.Info(bootAddr, "|", bootID)
+	// h.Peerstore().AddAddrs(bootID, []ma.Multiaddr{bootAddr}, ps.PermanentAddrTTL)
 
-	// log.Printf("This is a conversation between %s and %s\n", h1.ID(), h2.ID())
+	// // log.Printf("This is a conversation between %s and %s\n", h1.ID(), h2.ID())
 
-	// Define a stream handler for host number 2
-	// h2.SetStreamHandler(proto, func(stream inet.Stream) {
-	// 	log.Printf("%s: Received a stream", h2.ID())
-	// 	wrappedStream := WrapStream(stream)
-	// 	defer stream.Close()
-	// 	handleStream(wrappedStream)
-	// })
+	// // Define a stream handler for host number 2
+	// // h2.SetStreamHandler(proto, func(stream inet.Stream) {
+	// // 	log.Printf("%s: Received a stream", h2.ID())
+	// // 	wrappedStream := WrapStream(stream)
+	// // 	defer stream.Close()
+	// // 	handleStream(wrappedStream)
+	// // })
 
-	// Create new stream from h1 to h2 and start the conversation
-	start := time.Now().Unix()
-	stream, err := h.NewStream(context.Background(), bootID, proto)
+	// // Create new stream from h1 to h2 and start the conversation
+	// start := time.Now().Unix()
+	// stream, err := h.NewStream(context.Background(), bootID, proto)
 
-	log.Error("HelloPerf ", time.Now().Unix()-start, "  err", err)
-	if err != nil {
-		log.Fatal(err)
-	}
-	// wrappedStream := WrapStream(stream)
-	// // // This sends the first message
-	// // sendMessage(0, wrappedStream)
-	// // // We keep the conversation on the created stream so we launch
-	// // // this to handle any responses
-	// handleStream(wrappedStream)
-	err = stream.Close()
-	log.Error(err)
+	// log.Error("HelloPerf ", time.Now().Unix()-start, "  err", err)
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+	// // wrappedStream := WrapStream(stream)
+	// // // // This sends the first message
+	// // // sendMessage(0, wrappedStream)
+	// // // // We keep the conversation on the created stream so we launch
+	// // // // this to handle any responses
+	// // handleStream(wrappedStream)
+	// err = stream.Close()
+	// log.Error(err)
 	// c := make(chan os.Signal, 1)
 	// signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 	// go func() {
