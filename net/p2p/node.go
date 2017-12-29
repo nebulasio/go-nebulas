@@ -58,15 +58,16 @@ type Node struct {
 	id        peer.ID
 	peerstore peerstore.Peerstore
 	// key: peer.ID: ip
-	streamCache  *pdeque.PriorityDeque
-	stream       *sync.Map
-	routeTable   *kbucket.RoutingTable
-	context      context.Context
-	version      uint8
-	config       *Config
-	running      bool
-	synchronized bool
-	syncList     []string
+	streamCache   *pdeque.PriorityDeque
+	stream        *sync.Map
+	routeTable    *kbucket.RoutingTable
+	context       context.Context
+	version       uint8
+	config        *Config
+	running       bool
+	synchronized  bool
+	synchronizing bool
+	syncList      []string
 	// key: datachecksum value: peer.ID
 	relayness      *lru.Cache
 	bootIds        []string
@@ -133,6 +134,16 @@ func (node *Node) SetSynchronized(synchronized bool) {
 // GetSynchronized return node synchronized status.
 func (node *Node) GetSynchronized() bool {
 	return node.synchronized
+}
+
+// GetSynchronizing return node synchronizing
+func (node *Node) GetSynchronizing() bool {
+	return node.synchronizing
+}
+
+// SetSynchronizing set node synchronizing.
+func (node *Node) SetSynchronizing(synchronizing bool) {
+	node.synchronizing = synchronizing
 }
 
 // GetStream return node stream.

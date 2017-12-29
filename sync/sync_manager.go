@@ -98,13 +98,14 @@ func (m *Manager) RegisterSyncReplyInNetwork(nm p2p.Manager) {
 */
 func (m *Manager) Start() {
 	// if the node is syncing, return.
-	if m.ns.Node().GetSynchronized() {
+	if m.ns.Node().GetSynchronizing() {
 		return
 	}
 	m.startMsgHandle()
 	if len(m.ns.Node().Config().BootNodes) > 0 {
 		m.startSync()
 		m.curTail = m.blockChain.TailBlock()
+		m.ns.Node().SetSynchronizing(true)
 	} else {
 		log.Info("Sync.Start: i am a seed node.")
 		m.ns.Node().SetSynchronized(true)
@@ -127,6 +128,7 @@ func (m *Manager) loop() {
 		case <-m.endSyncCh:
 			if !m.ns.Node().GetSynchronized() {
 				m.ns.Node().SetSynchronized(true)
+				m.ns.Node().SetSynchronizing(false)
 				m.consensus.SetCanMining(true)
 			}
 		case <-m.syncCh:
