@@ -215,7 +215,7 @@ func TestBlockPool(t *testing.T) {
 	block6.CollectTransactions(1)
 	block6.SetMiner(addr)
 	block6.Seal()
-	assert.Equal(t, pool.push("fake", block6), nil)
+	assert.Equal(t, pool.push("fake", block6), ErrInvalidBlockCannotFindParentInLocal)
 	downloadMsg := &corepb.DownloadBlock{
 		Hash: block6.Hash(),
 		Sign: block6.Signature(),

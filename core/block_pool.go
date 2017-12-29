@@ -399,7 +399,7 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 			"hash":   lb.block.Hash().Hex(),
 			"sign":   lb.block.Signature().Hex(),
 		}).Info("BlockPool.loop: send download request.")
-		return nil
+		return ErrInvalidBlockCannotFindParentInLocal
 	}
 
 	// found in BlockChain, then we can verify the state root, and tell the Consensus all the tails.
