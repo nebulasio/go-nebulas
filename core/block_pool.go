@@ -306,6 +306,25 @@ func (pool *BlockPool) PushAndBroadcast(block *Block) error {
 	return nil
 }
 
+func (pool *BlockPool) download(sender string, block *Block) error {
+	downloadMsg := &corepb.DownloadBlock{
+		Hash: block.Hash(),
+		Sign: block.Signature(),
+	}
+	bytes, err := proto.Marshal(downloadMsg)
+	if err != nil {
+		return err
+	}
+	pool.nm.SendMsg(MessageTypeDownloadedBlock, bytes, sender)
+	log.WithFields(log.Fields{
+		"func":   "BlockPool.loop",
+		"target": sender,
+		"hash":   block.Hash().Hex(),
+		"sign":   block.Signature().Hex(),
+	}).Info("BlockPool.loop: send download request.")
+	return nil
+}
+
 func (pool *BlockPool) push(sender string, block *Block) error {
 	log.Info("Push Block ", block)
 
@@ -354,10 +373,16 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 		plb = v.(*linkedBlock)
 		lb.LinkParent(plb)
 
-		log.WithFields(log.Fields{
-			"func":  "BlockPool.push",
-			"block": block,
-		}).Error("BlockPool.loop: find parent but cannot find the grandparent.")
+		for plb.parentBlock != nil {
+			log.WithFields(log.Fields{
+				"func":  "BlockPool.push",
+				"block": plb.block,
+			}).Error("BlockPool.loop: find unlinked ancestor.")
+			plb = plb.parentBlock
+		}
+		if err := pool.download(sender, plb.block); err != nil {
+			return err
+		}
 		return nil
 	}
 
@@ -384,21 +409,9 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 			bc.Neb().StartSync()
 			return nil
 		}
-		downloadMsg := &corepb.DownloadBlock{
-			Hash: lb.block.Hash(),
-			Sign: lb.block.Signature(),
-		}
-		bytes, err := proto.Marshal(downloadMsg)
-		if err != nil {
+		if err := pool.download(sender, lb.block); err != nil {
 			return err
 		}
-		pool.nm.SendMsg(MessageTypeDownloadedBlock, bytes, sender)
-		log.WithFields(log.Fields{
-			"func":   "BlockPool.loop",
-			"target": sender,
-			"hash":   lb.block.Hash().Hex(),
-			"sign":   lb.block.Signature().Hex(),
-		}).Info("BlockPool.loop: send download request.")
 		return ErrInvalidBlockCannotFindParentInLocal
 	}
 
