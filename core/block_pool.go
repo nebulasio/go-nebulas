@@ -27,6 +27,7 @@ import (
 	lru "github.com/hashicorp/golang-lru"
 	"github.com/nebulasio/go-nebulas/core/pb"
 	"github.com/nebulasio/go-nebulas/net"
+	"github.com/nebulasio/go-nebulas/net/p2p"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
 	metrics "github.com/rcrowley/go-metrics"
 	log "github.com/sirupsen/logrus"
@@ -53,9 +54,9 @@ type BlockPool struct {
 
 	bc    *BlockChain
 	cache *lru.Cache
-	slot  map[int64]*linkedBlock
+	slot  *lru.Cache
 
-	nm net.Manager
+	nm p2p.Manager
 	mu sync.RWMutex
 }
 
@@ -70,16 +71,23 @@ type linkedBlock struct {
 }
 
 // NewBlockPool return new #BlockPool instance.
-func NewBlockPool() *BlockPool {
+func NewBlockPool(size int) (*BlockPool, error) {
 	bp := &BlockPool{
 		receiveBlockMessageCh:         make(chan net.Message, 128),
 		receiveDownloadBlockMessageCh: make(chan net.Message, 128),
 		receivedLinkedBlockCh:         make(chan *Block, 128),
 		quitCh:                        make(chan int, 1),
 	}
-	bp.cache, _ = lru.New(1024)
-	bp.slot = make(map[int64]*linkedBlock)
-	return bp
+	var err error
+	bp.cache, err = lru.New(size)
+	if err != nil {
+		return nil, err
+	}
+	bp.slot, _ = lru.New(size)
+	if err != nil {
+		return nil, err
+	}
+	return bp, nil
 }
 
 // ReceivedLinkedBlockCh return received block chan.
@@ -88,7 +96,7 @@ func (pool *BlockPool) ReceivedLinkedBlockCh() chan *Block {
 }
 
 // RegisterInNetwork register message subscriber in network.
-func (pool *BlockPool) RegisterInNetwork(nm net.Manager) {
+func (pool *BlockPool) RegisterInNetwork(nm p2p.Manager) {
 	nm.Register(net.NewSubscriber(pool, pool.receiveBlockMessageCh, MessageTypeNewBlock))
 	nm.Register(net.NewSubscriber(pool, pool.receiveBlockMessageCh, MessageTypeDownloadedBlockReply))
 	nm.Register(net.NewSubscriber(pool, pool.receiveDownloadBlockMessageCh, MessageTypeDownloadedBlock))
@@ -150,7 +158,7 @@ func (pool *BlockPool) handleBlock(msg net.Message) {
 func (pool *BlockPool) handleDownloadedBlock(msg net.Message) {
 	if msg.MessageType() != MessageTypeDownloadedBlock {
 		log.WithFields(log.Fields{
-			"func":        "BlockPool.loop",
+			"func":        "BlockPool.handleDownloadedBlock",
 			"messageType": msg.MessageType(),
 			"message":     msg,
 		}).Error("BlockPool.loop: received unregistered message, pls check code.")
@@ -159,13 +167,23 @@ func (pool *BlockPool) handleDownloadedBlock(msg net.Message) {
 
 	pbDownloadBlock := new(corepb.DownloadBlock)
 	if err := proto.Unmarshal(msg.Data().([]byte), pbDownloadBlock); err != nil {
-		log.Error("BlockPool.loop:: unmarshal data occurs error, ", err)
+		log.Error("BlockPool.loop: unmarshal data occurs error, ", err)
 		return
 	}
+
+	if byteutils.Equal(pbDownloadBlock.Hash, GenesisHash) {
+		log.WithFields(log.Fields{
+			"func":        "BlockPool.handleDownloadedBlock",
+			"messageType": msg.MessageType(),
+			"message":     msg,
+		}).Warn("BlockPool.loop: received genesis block, ignore it.")
+		return
+	}
+
 	block := pool.bc.GetBlock(pbDownloadBlock.Hash)
 	if block == nil {
 		log.WithFields(log.Fields{
-			"func":        "BlockPool.loop",
+			"func":        "BlockPool.handleDownloadedBlock",
 			"messageType": msg.MessageType(),
 			"wantedHash":  byteutils.Hex(pbDownloadBlock.Hash),
 		}).Error("BlockPool.loop: received download request, but cannot find the block.")
@@ -173,7 +191,7 @@ func (pool *BlockPool) handleDownloadedBlock(msg net.Message) {
 	}
 	if !block.Signature().Equals(pbDownloadBlock.Sign) {
 		log.WithFields(log.Fields{
-			"func":         "BlockPool.loop",
+			"func":         "BlockPool.handleDownloadedBlock",
 			"messageType":  msg.MessageType(),
 			"wantedSign":   byteutils.Hex(pbDownloadBlock.Sign),
 			"expectedSign": block.Signature().Hex(),
@@ -183,7 +201,7 @@ func (pool *BlockPool) handleDownloadedBlock(msg net.Message) {
 	parent, err := block.ParentBlock()
 	if err != nil {
 		log.WithFields(log.Fields{
-			"func":        "BlockPool.loop",
+			"func":        "BlockPool.handleDownloadedBlock",
 			"messageType": msg.MessageType(),
 			"block":       block,
 		}).Error("BlockPool.loop: received download request, but cannot find the block's parent.")
@@ -201,7 +219,7 @@ func (pool *BlockPool) handleDownloadedBlock(msg net.Message) {
 	}
 	pool.nm.SendMsg(MessageTypeDownloadedBlockReply, bytes, msg.MessageFrom())
 	log.WithFields(log.Fields{
-		"func":        "BlockPool.loop",
+		"func":        "BlockPool.handleDownloadedBlock",
 		"messageType": msg.MessageType(),
 		"block":       block,
 	}).Info("BlockPool.loop: received download request, send back the block's parent.")
@@ -210,7 +228,7 @@ func (pool *BlockPool) handleDownloadedBlock(msg net.Message) {
 func (pool *BlockPool) loop() {
 	log.WithFields(log.Fields{
 		"func": "BlockPool.loop",
-	}).Debug("running.")
+	}).Info("running.")
 
 	for {
 		select {
@@ -288,7 +306,28 @@ func (pool *BlockPool) PushAndBroadcast(block *Block) error {
 	return nil
 }
 
+func (pool *BlockPool) download(sender string, block *Block) error {
+	downloadMsg := &corepb.DownloadBlock{
+		Hash: block.Hash(),
+		Sign: block.Signature(),
+	}
+	bytes, err := proto.Marshal(downloadMsg)
+	if err != nil {
+		return err
+	}
+	pool.nm.SendMsg(MessageTypeDownloadedBlock, bytes, sender)
+	log.WithFields(log.Fields{
+		"func":   "BlockPool.loop",
+		"target": sender,
+		"hash":   block.Hash().Hex(),
+		"sign":   block.Signature().Hex(),
+	}).Info("BlockPool.loop: send download request.")
+	return nil
+}
+
 func (pool *BlockPool) push(sender string, block *Block) error {
+	log.Info("Push Block ", block)
+
 	// verify non-dup block
 	if pool.cache.Contains(block.Hash().Hex()) ||
 		pool.bc.GetBlock(block.Hash()) != nil {
@@ -302,17 +341,19 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 		return err
 	}
 
+	log.Info("Block Integrity Verified ", block)
+
 	bc := pool.bc
 	cache := pool.cache
 
 	var plb *linkedBlock
 	lb := newLinkedBlock(block, pool)
 
-	if _, exist := pool.slot[lb.block.Timestamp()]; exist {
+	if exist := pool.slot.Contains(lb.block.Timestamp()); exist {
 		invalidBlockCounter.Inc(1)
 		return ErrDoubleBlockMinted
 	}
-	pool.slot[lb.block.Timestamp()] = lb
+	pool.slot.Add(lb.block.Timestamp(), lb.block.Hash())
 	cache.Add(lb.hash.Hex(), lb)
 
 	// find child block in pool.
@@ -332,6 +373,16 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 		plb = v.(*linkedBlock)
 		lb.LinkParent(plb)
 
+		for plb.parentBlock != nil {
+			log.WithFields(log.Fields{
+				"func":  "BlockPool.push",
+				"block": plb.block,
+			}).Error("BlockPool.loop: find unlinked ancestor.")
+			plb = plb.parentBlock
+		}
+		if err := pool.download(sender, plb.block); err != nil {
+			return err
+		}
 		return nil
 	}
 
@@ -348,32 +399,30 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 		}
 		// do sync if there are so many empty slots.
 		if lb.block.Timestamp()-bc.TailBlock().Timestamp() > BlockInterval*DynastySize {
+			log.WithFields(log.Fields{
+				"func":     "BlockPool.loop",
+				"tail":     bc.TailBlock().Timestamp(),
+				"received": lb.block.Timestamp(),
+				"limit":    BlockInterval * DynastySize,
+				"block":    block,
+			}).Info("BlockPool.loop: gap is too big, start sync.")
 			bc.Neb().StartSync()
 			return nil
 		}
-		downloadMsg := &corepb.DownloadBlock{
-			Hash: lb.block.Hash(),
-			Sign: lb.block.Signature(),
-		}
-		bytes, err := proto.Marshal(downloadMsg)
-		if err != nil {
+		if err := pool.download(sender, lb.block); err != nil {
 			return err
 		}
-		pool.nm.SendMsg(MessageTypeDownloadedBlock, bytes, sender)
-		log.WithFields(log.Fields{
-			"func":   "BlockPool.loop",
-			"target": sender,
-			"hash":   lb.block.Hash().Hex(),
-			"sign":   lb.block.Signature().Hex(),
-		}).Info("BlockPool.loop: send download request.")
-		return nil
+		return ErrInvalidBlockCannotFindParentInLocal
 	}
 
 	// found in BlockChain, then we can verify the state root, and tell the Consensus all the tails.
 	// performance depth-first search to verify state root, and get all tails.
-	allBlocks, tailBlocks := lb.travelToLinkAndReturnAllValidBlocks(parentBlock)
-	err := bc.PutVerifiedNewBlocks(allBlocks, tailBlocks)
+	allBlocks, tailBlocks, err := lb.travelToLinkAndReturnAllValidBlocks(parentBlock)
 	if err != nil {
+		return err
+	}
+
+	if err := bc.putVerifiedNewBlocks(parentBlock, allBlocks, tailBlocks); err != nil {
 		return err
 	}
 
@@ -409,7 +458,7 @@ func (lb *linkedBlock) LinkParent(parentBlock *linkedBlock) {
 	parentBlock.childBlocks[lb.hash.Hex()] = lb
 }
 
-func (lb *linkedBlock) travelToLinkAndReturnAllValidBlocks(parentBlock *Block) ([]*Block, []*Block) {
+func (lb *linkedBlock) travelToLinkAndReturnAllValidBlocks(parentBlock *Block) ([]*Block, []*Block, error) {
 	if err := lb.block.LinkParentBlock(parentBlock); err != nil {
 		log.WithFields(log.Fields{
 			"func":        "BlockPool.LinkParentBlock",
@@ -417,7 +466,7 @@ func (lb *linkedBlock) travelToLinkAndReturnAllValidBlocks(parentBlock *Block) (
 			"block":       lb.block,
 			"err":         err,
 		}).Error("link parent block fail.")
-		return nil, nil
+		return nil, nil, err
 	}
 
 	if err := lb.block.VerifyExecution(parentBlock, lb.pool.bc.ConsensusHandler()); err != nil {
@@ -426,7 +475,7 @@ func (lb *linkedBlock) travelToLinkAndReturnAllValidBlocks(parentBlock *Block) (
 			"block": lb.block,
 			"err":   err,
 		}).Warn("block execution fail.")
-		return nil, nil
+		return nil, nil, err
 	}
 
 	log.WithFields(log.Fields{
@@ -441,12 +490,12 @@ func (lb *linkedBlock) travelToLinkAndReturnAllValidBlocks(parentBlock *Block) (
 	}
 
 	for _, clb := range lb.childBlocks {
-		a, b := clb.travelToLinkAndReturnAllValidBlocks(lb.block)
-		if a != nil && b != nil {
+		a, b, err := clb.travelToLinkAndReturnAllValidBlocks(lb.block)
+		if err == nil {
 			allBlocks = append(allBlocks, a...)
 			tailBlocks = append(tailBlocks, b...)
 		}
 	}
 
-	return allBlocks, tailBlocks
+	return allBlocks, tailBlocks, nil
 }

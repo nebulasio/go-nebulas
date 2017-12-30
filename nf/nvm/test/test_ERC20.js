@@ -34,8 +34,8 @@ var assertInitStatus = function (instance) {
         throw new Error("symbol should be NAS, but is " + instance.symbol);
     }
 
-    if (instance.totalSupply !== 1000000) {
-        throw new Error("totalSupply should be 1000000, but is " + instance.totalSupply);
+    if (instance._totalSupply !== 1000000) {
+        throw new Error("totalSupply should be 1000000, but is " + instance._totalSupply);
     }
 
     if (instance.totalIssued !== 0) {

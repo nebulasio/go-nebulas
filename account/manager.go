@@ -292,6 +292,14 @@ func (m *Manager) SignTransactionWithPassphrase(addr *core.Address, tx *core.Tra
 	if !tx.From().Equals(addr) {
 		return ErrTxSignFrom
 	}
+	res, err := m.ks.ContainsAlias(addr.String())
+	if err != nil || res == false {
+		err = m.loadFile(addr, passphrase)
+		if err != nil {
+			return err
+		}
+	}
+
 	key, err := m.ks.GetKey(addr.String(), passphrase)
 	if err != nil {
 		log.WithFields(log.Fields{

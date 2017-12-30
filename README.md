@@ -68,81 +68,68 @@ Starting a Nebulas seed node is simple. After the build step above, run a comman
 You will see log message output like:
 
 ```
-time="2017-11-22T14:43:10+08:00" level=info msg="Starting neblet..." file=neblet.go func="neblet.(*Neblet).Start" line=68
-time="2017-11-22T14:43:11+08:00" level=debug msg="node init success" file=net_service.go func=p2p.NewNetService line=129 node.id=QmPyr4ZbDmwF1nWxymTktdzspcBFPL6X1v3Q5nT7PGNtUN node.port=51413
-time="2017-11-22T14:43:11+08:00" level=info msg="node start" addrs="[/ip4/192.168.1.13/tcp/51413]" file=net_service.go func="p2p.(*NetService).Start" id=QmPyr4ZbDmwF1nWxymTktdzspcBFPL6X1v3Q5nT7PGNtUN line=665
-time="2017-11-22T14:43:11+08:00" level=info msg="RegisterNetService: register netservice success" file=net_service.go func="p2p.(*NetService).registerNetService" line=142
-time="2017-11-22T14:43:11+08:00" level=info msg="net.start: node start and join to p2p network success and listening for connections on port 51413... " file=net_service.go func="p2p.(*NetService).start" line=731
-time="2017-11-22T14:43:11+08:00" level=info msg="Sync.Start: i am a seed node." file=sync_manager.go func="sync.(*Manager).Start" line=105
-time="2017-11-22T14:43:11+08:00" level=debug msg=running. file=asm_amd64.s func=runtime.goexit line=2338
-time="2017-11-22T14:43:11+08:00" level=debug msg=running. file=asm_amd64.s func=runtime.goexit line=2338
-time="2017-11-22T14:43:11+08:00" level=info msg="sync over, start mining" file=pow.go func="pow.(*Pow).SetCanMining" line=134
-time="2017-11-22T14:43:11+08:00" level=debug msg="StartState enter." file=start.go func="pow.(*StartState).Enter" line=57
-time="2017-11-22T14:43:11+08:00" level=info msg="Starting RPC server at: 127.0.0.1:52520" file=management_server.go func="rpc.(*ManagementServer).Start" line=51
-time="2017-11-22T14:43:11+08:00" level=debug msg="State Transition." current="StartState 0xc4205d2320" file=pow.go from="StartState 0xc4205d2320" func="pow.(*Pow).stateLoop" line=218 success=true to="PrepareState 0xc4205d0010"
-time="2017-11-22T14:43:11+08:00" level=debug msg="StartState leave." file=start.go func="pow.(*StartState).Leave" line=67
-time="2017-11-22T14:43:11+08:00" level=info msg="Starting RPC server at: 127.0.0.1:51510" file=api_server.go func="rpc.(*APIServer).Start" line=44
-time="2017-11-22T14:43:11+08:00" level=debug msg="PrepareState enter." file=prepare.go func="pow.(*PrepareState).Enter" line=55
+
+time="2017-12-29T23:25:17+08:00" level=info msg="Starting neblet..." file=neblet.go func="neblet.(*Neblet).Start" line=121
+time="2017-12-29T23:25:17+08:00" level=info msg="node start" addrs="[/ip4/127.0.0.1/tcp/8680 /ip4/127.94.0.1/tcp/8680 /ip4/127.94.0.2/tcp/8680 /ip4/192.168.1.13/tcp/8680 /ip4/169.254.66.0/tcp/8680]" file=net_service.go func="p2p.(*NetService).Start" id=QmP7HDFcYmJL12Ez4ZNVCKjKedfE7f48f1LAkUc3Whz4jP line=691
+time="2017-12-29T23:25:17+08:00" level=info msg="net.start: node start and join to p2p network success and listening for connections on [0.0.0.0:8680]... " file=net_service.go func="p2p.(*NetService).start" line=758
+time="2017-12-29T23:25:17+08:00" level=info msg="Sync.Start: i am a seed node." file=sync_manager.go func="sync.(*Manager).Start" line=109
+time="2017-12-29T23:25:17+08:00" level=info msg="Starting RPC server at: 127.0.0.1:8684" file=api_server.go func="rpc.(*APIServer).start" line=59
+time="2017-12-29T23:25:17+08:00" level=info msg="control mining." file=sync_manager.go func="sync.(*Manager).Start" line=111 start=true
+time="2017-12-29T23:25:18+08:00" level=warning msg=mintBlock. elapsed=17118 err="now is not time to forg block" file=dpos.go func="dpos.(*Dpos).blockLoop" line=357 tail="{\"height\":3, \"hash\":\"07052bac3c3f7efa673144710f98d02a9fda7369a096834939f81e42debe2fa6\", \"parentHash\":\"4343ed4818b5242cca6e4b350a082029279deb8730e496c789916e57536469d8\", \"accState\":\"3b607836efc991d59a9c1c11bba3f8be7c6632c55e08990a18c9df18c6a9915c\", \"nonce\":0, \"timestamp\": 1514544000, \"coinbase\": \"1a263547d167c74cf4b8f9166cfa244de0481c514a45aa2c\"}"
+time="2017-12-29T23:25:19+08:00" level=warning msg=mintBlock. elapsed=17119 err="now is not time to forg block" file=dpos.go func="dpos.(*Dpos).blockLoop" line=357 tail="{\"height\":3, \"hash\":\"07052bac3c3f7efa673144710f98d02a9fda7369a096834939f81e42debe2fa6\", \"parentHash\":\"4343ed4818b5242cca6e4b350a082029279deb8730e496c789916e57536469d8\", \"accState\":\"3b607836efc991d59a9c1c11bba3f8be7c6632c55e08990a18c9df18c6a9915c\", \"nonce\":0, \"timestamp\": 1514544000, \"coinbase\": \"1a263547d167c74cf4b8f9166cfa244de0481c514a45aa2c\"}"
 ```
 
 From the log, we can see the binary execution starts neblet, starts network service, starts RPC API server, and starts consensus state machine.
 
 
 ### Configurations
-Neb uses [Protocol Buffer](https://github.com/google/protobuf) to load configurations. The default config file is named as config.pb.txt and looks like following:
+Neb uses [Protocol Buffer](https://github.com/google/protobuf) to load configurations. The default config file is named as config.conf and looks like following:
 
 ```protobuf
-p2p {
-  # seed: "UNCOMMENT_AND_SET_SEED_NODE_ADDRESS"
-  port: 51413
+network {
+  listen: ["0.0.0.0:8680"]
+  private_key: "conf/network/ed25519key"
+  network_id: 1
+}
+
+chain {
   chain_id: 100
-  version: 1
+  datadir: "data.db"
+  keydir: "keydir"
+  genesis: "conf/default/genesis.conf"
+  coinbase: "eb31ad2d8a89a0ca6935c308d5425730430bc2d63f2573b8"
+  signature_ciphers: ["ECC_SECP256K1"]
+  miner: "9341709022928b38dae1f9e1cfbad25611e81f736fd192c5"
+  passphrase: "passphrase"
 }
 
 rpc {
-  api_port: 51510
-  management_port: 52520
-  api_http_port: 8090
-  management_http_port: 8191
+    rpc_listen: ["127.0.0.1:8684"]
+    http_listen: ["127.0.0.1:8685"]
+    http_module: ["api","admin"]
 }
 
-pow {
-  coinbase: "8a209cec02cbeab7e2f74ad969d2dfe8dd24416aa65589bf"
+app {
+    log_level: "info"
+    log_file: "logs"
+    enable_crash_report: false
 }
 
-storage {
-  location: "seed.db"
+stats {
+    enable_metrics: false
+    influxdb: {
+        host: "http://localhost:8086"
+        db: "nebulas"
+        user: "admin"
+        password: "admin"
+    }
 }
-
-account {
-  # keystore.SECP256K1 = 1
-  signature: 1
-
-  # keystore.SCRYPT = 1 << 4
-  encrypt: 16
-
-  key_dir: "keydir"
-
-  test_passphrase: "passphrase"
-}
-
-influxdb {
-  host: "http://localhost:8086"
-  db: "nebulas"
-  username: "test"
-  password: "test"
-}
-
-metrics {
-  enable: false
-}
-
 ```
 
 The configuration schema is defined in proto _neblet/pb/config.proto:Config_. To load a different config file when starting the neb binary, use flag -c. For example,
 
 ```bash
-./neb -c <path>/config-seed.pb.txt
+./neb -c <path>/config.conf
 ```
 
 Neb supports loading KeyStore file in Ethereum format. KeyStore files from config _key_dir_ are loaded during neb bootstrap. Example testing KeyStore looks like
@@ -152,39 +139,43 @@ Neb supports loading KeyStore file in Ethereum format. KeyStore files from confi
 
 ```
 
-### Run non-seed node
+### Run node
 Now we can get the seed address from the seed node log output above. Get pretty address and id from log starts with **"node start"**. The seed address from log above is
 
 ```
-time="2017-11-22T15:01:43+08:00" level=info msg="node start" addrs="[/ip4/192.168.1.13/tcp/51413]" file=net_service.go func="p2p.(*NetService).Start" id=QmPyr4ZbDmwF1nWxymTktdzspcBFPL6X1v3Q5nT7PGNtUN line=665
+time="2017-12-29T23:25:17+08:00" level=info msg="node start" addrs="[/ip4/127.0.0.1/tcp/8680 /ip4/127.94.0.1/tcp/8680 /ip4/127.94.0.2/tcp/8680 /ip4/192.168.1.13/tcp/8680 /ip4/169.254.66.0/tcp/8680]" file=net_service.go func="p2p.(*NetService).Start" id=QmP7HDFcYmJL12Ez4ZNVCKjKedfE7f48f1LAkUc3Whz4jP line=691
 ```
-To start a non-seed node on another machine, we need to update p2p seed configuration in _config-normal.pb.txt_:
+To start a node on another machine, we need to update p2p seed configuration in _config.conf_:
 
 ```protobuf
 p2p {
-  seed: "/ip4/192.168.1.13/tcp/51413/ipfs/QmPyr4ZbDmwF1nWxymTktdzspcBFPL6X1v3Q5nT7PGNtUN"
-  port: 51415
+  seed: "/ip4/127.0.0.1/tcp/8680/ipfs/QmP7HDFcYmJL12Ez4ZNVCKjKedfE7f48f1LAkUc3Whz4jP"
+  port: 8681
 }
 ...
 ```
 
-Note, if the non-seed node is running on the same machine, we need to use a different config file, and also assign different P2P and RPC server ports.
+Note, if the node is running on the same machine, we need to use a different config file, and also assign different P2P and RPC server ports.
 
-Now we can start the non-seed nodes by simply run command
+Now we can start the nodes by simply run command
 
 ```bash
-./neb -c config-normal.pb.txt
+./neb -c conf/example/config.2fe3f9.conf
 ```
 
 Then it will connect to the seed node started earlier to join that network. The log output will look like:
 
 ```
-time="2017-11-22T15:14:50+08:00" level=info msg="Starting neblet..." file=neblet.go func="neblet.(*Neblet).Start" line=68
-time="2017-11-22T15:14:50+08:00" level=debug msg="node init success" file=net_service.go func=p2p.NewNetService line=129 node.id=QmZTq1fopzbPU4dY3Bu12R89yHtjZb9GSM2FhcKYbA67fC node.port=10000
-time="2017-11-22T15:14:50+08:00" level=info msg="node start" addrs="[/ip4/192.168.1.13/tcp/10000]" file=net_service.go func="p2p.(*NetService).Start" id=QmZTq1fopzbPU4dY3Bu12R89yHtjZb9GSM2FhcKYbA67fC line=665
-time="2017-11-22T15:14:50+08:00" level=info msg="RegisterNetService: register netservice success" file=net_service.go func="p2p.(*NetService).registerNetService" line=142
-time="2017-11-22T15:14:50+08:00" level=debug msg="say hello to a node success" bootNode=/ip4/192.168.1.13/tcp/51413/ipfs/QmPyr4ZbDmwF1nWxymTktdzspcBFPL6X1v3Q5nT7PGNtUN file=net_service.go func="p2p.(*NetService).start.func1" line=712
-time="2017-11-22T15:14:50+08:00" level=info msg="net.start: node start and join to p2p network success and listening for connections on port 10000... " file=net_service.go func="p2p.(*NetService).start" line=731
+
+INFO[2017-12-29T23:28:28+08:00] Starting neblet...                            file=neblet.go func="neblet.(*Neblet).Start" line=121
+INFO[2017-12-29T23:28:28+08:00] node start                                    addrs="[/ip4/127.0.0.1/tcp/10002 /ip4/127.94.0.1/tcp/10002 /ip4/127.94.0.2/tcp/10002 /ip4/192.168.1.13/tcp/10002 /ip4/169.254.66.0/tcp/10002]" file=net_service.go func="p2p.(*NetService).Start" id=QmaQeoEG1XKztL7RnracUiWTVdxQX2QpybuXpnApCtYuwQ line=691
+INFO[2017-12-29T23:28:28+08:00] net.start: node start and join to p2p network success and listening for connections on [0.0.0.0:10002]...   file=net_service.go func="p2p.(*NetService).start" line=758
+INFO[2017-12-29T23:28:28+08:00] Starting RPC server at: 127.0.0.1:51512       file=api_server.go func="rpc.(*APIServer).start" line=59
+INFO[2017-12-29T23:28:28+08:00] syncWithPeers: got tail                       block="{\"height\":3, \"hash\":\"07052bac3c3f7efa673144710f98d02a9fda7369a096834939f81e42debe2fa6\", \"parentHash\":\"4343ed4818b5242cca6e4b350a082029279deb8730e496c789916e57536469d8\", \"accState\":\"3b607836efc991d59a9c1c11bba3f8be7c6632c55e08990a18c9df18c6a9915c\", \"nonce\":0, \"timestamp\": 1514544000, \"coinbase\": \"1a263547d167c74cf4b8f9166cfa244de0481c514a45aa2c\"}" file=sync_manager.go func="sync.(*Manager).startSync" line=119 tail="&{QmaQeoEG1XKztL7RnracUiWTVdxQX2QpybuXpnApCtYuwQ 1 0xc4201322d0}"
+INFO[2017-12-29T23:28:28+08:00] Sync: allNode -> [<peer.ID P7HDFc> <peer.ID aQeoEG>]  file=sync.go func="p2p.(*NetService).Sync" line=55
+INFO[2017-12-29T23:28:28+08:00] dispatcher.loop: recvMsgCount=%d1             file=dispatcher.go func="net.(*Dispatcher).Start.func1" line=84
+INFO[2017-12-29T23:28:28+08:00] StartMsgHandle.receiveSyncReplyCh: receive receiveSyncReplyCh message.  blocks="[{\"height\":3, \"hash\":\"07052bac3c3f7efa673144710f98d02a9fda7369a096834939f81e42debe2fa6\", \"parentHash\":\"4343ed4818b5242cca6e4b350a082029279deb8730e496c789916e57536469d8\", \"accState\":\"3b607836efc991d59a9c1c11bba3f8be7c6632c55e08990a18c9df18c6a9915c\", \"nonce\":0, \"timestamp\": 1514544000, \"coinbase\": \"1a263547d167c74cf4b8f9166cfa244de0481c514a45aa2c\"}]" file=asm_amd64.s from=QmP7HDFcYmJL12Ez4ZNVCKjKedfE7f48f1LAkUc3Whz4jP func=runtime.goexit line=2338
+INFO[2017-12-29T23:28:28+08:00] control mining.                               file=sync_manager.go func="sync.(*Manager).loop" line=128 start=true
 ...
 ```
 
@@ -199,29 +190,29 @@ We have API and admin two schemes to access the console cmds. Users can quickly 
 
 ```javascript
 > api.
-api.accounts              api.getBlockByHash        api.sendRawTransaction
-api.blockDump             api.getNebState           api.sendTransaction
-api.call                  api.getTransactionReceipt
-api.getAccountState       api.nodeInfo
+api.accounts              api.gasPrice              api.getNebState           api.sendTransaction
+api.blockDump             api.getAccountState       api.getTransactionReceipt api.setRequest
+api.call                  api.getBlockByHash        api.nodeInfo              api.subscribe
+api.estimateGas           api.getEventsByHash       api.sendRawTransaction
 
 > admin.
-admin.lockAccount                   admin.setHost
-admin.newAccount                    admin.signTransaction
-admin.sendTransactionWithPassphrase admin.unlockAccount
+admin.getDynasty                    admin.sendTransactionWithPassphrase admin.signTransaction
+admin.lockAccount                   admin.setHost                       admin.unlockAccount
+admin.newAccount                    admin.setRequest
 ```
 
-For example, if we want to unlock account 8a209cec02cbeab7e2f74ad969d2dfe8dd24416aa65589bf:
+For example, if we want to unlock account 1a263547d167c74cf4b8f9166cfa244de0481c514a45aa2c:
 
 ```javascript
-> admin.unlockAccount('8a209cec02cbeab7e2f74ad969d2dfe8dd24416aa65589bf')
-Unlock account 8a209cec02cbeab7e2f74ad969d2dfe8dd24416aa65589bf
+> admin.unlockAccount('1a263547d167c74cf4b8f9166cfa244de0481c514a45aa2c')
+Unlock account 1a263547d167c74cf4b8f9166cfa244de0481c514a45aa2c
 Passphrase:
 {
     "result": true
 }
 ```
 
-The command parameters of the command line are consistent with the parameters of the RPC interface. [NEB RPC](https://github.com/nebulasio/wiki/blob/master/json-rpc.md).
+The command parameters of the command line are consistent with the parameters of the RPC interface. [NEB RPC](https://github.com/nebulasio/wiki/blob/master/rpc.md).
 
 
 ## RPC
@@ -233,8 +224,8 @@ Default endpoints:
 
 | API | URL | Protocol |
 |-------|:------------:|:------------:|
-| gRPC |  http://localhost:52520 | Protobuf
-| RESTful |http://localhost:8191 | HTTP |
+| gRPC |  http://localhost:8684 | Protobuf
+| RESTful |http://localhost:8685 | HTTP |
 
 ##### gRPC API
 We can play the gRPC example testing client code:
@@ -263,18 +254,18 @@ make all
 ```
 
 The file that ends with gw.go is the mapping file.
-Now we can access the rpc API directly from our browser, you can update the *api-http-port* and *management-http-port* in _config.pb.txt_ to change HTTP default port.
+Now we can access the rpc API directly from our browser, you can update the *http_listen* in _config.conf_ to change HTTP default port.
 
 ###### Example:
 ```bash
 // call BlockDump api
-curl -i -H 'Accept: application/json' -X POST http://localhost:8191/v1/block/dump -H 'Content-Type: application/json' -d '{"count":10}'
+curl -i -H 'Accept: application/json' -X POST http://localhost:8685/v1/user/blockdump -H 'Content-Type: application/json' -d '{"count":1}'
 ```
 
 #### API list
 
 
-For more details, please refer to [NEB RPC](https://github.com/nebulasio/wiki/blob/master/json-rpc.md).
+For more details, please refer to [NEB RPC](https://github.com/nebulasio/wiki/blob/master/rpc.md).
 
 
 ## NVM
@@ -291,58 +282,105 @@ Now you can create & deploy & call smart contracts directly over HTTP/console ju
 If you want to create & deploy smart contracts:
 
 ```javascript
-"use strict";
+'use strict';
 
-var BankVaultContract = function() {
-    LocalContractStorage.defineMapProperty(this, "bankVault");
+var DepositeContent = function (text) {
+	if (text) {
+		let o = JSON.parse(text);
+		this.balance = new BigNumber(o.balance);
+		this.expiryHeight = new BigNumber(o.expiryHeight);
+	} else {
+		this.balance = new BigNumber(0);
+		this.expiryHeight = new BigNumber(0);
+	}
+};
+
+DepositeContent.prototype = {
+	toString: function () {
+		return JSON.stringify(this);
+	}
+};
+
+var BankVaultContract = function () {
+	LocalContractStorage.defineMapProperty(this, "bankVault", {
+		parse: function (text) {
+			return new DepositeContent(text);
+		},
+		stringify: function (o) {
+			return o.toString();
+		}
+	});
 };
 
 // save value to contract, only after height of block, users can takeout
 BankVaultContract.prototype = {
-    init:function() {},
-    save:function(height) {
-        var deposit = this.bankVault.get(Blockchain.transaction.from);
-        var value = new BigNumber(Blockchain.transaction.value);
-        if (deposit != null && deposit.balance.length > 0) {
-            var balance = new BigNumber(deposit.balance);
-            value = value.plus(balance);
-        }
-        var content = {
-            balance:value.toString(),
-            height:Blockchain.block.height + height
-        };
-        this.bankVault.put(Blockchain.transaction.from, content);
-    },
-    takeout:function(amount) {
-        var deposit = this.bankVault.get(Blockchain.transaction.from);
-        if (deposit == null) {
-            return 0;
-        }
-        if (Blockchain.block.height < deposit.height) {
-            return 0;
-        }
-        var balance = new BigNumber(deposit.balance);
-        var value = new BigNumber(amount);
-        if (balance.lessThan(value)) {
-            return 0;
-        }
-        var result = Blockchain.transfer(Blockchain.transaction.from, value);
-        if (result > 0) {
-            deposit.balance = balance.dividedBy(value).toString();
-            this.bankVault.put(Blockchain.transaction.from, deposit);
-        }
-        return result;
-    }
+	init: function () {
+		//TODO:
+	},
+
+	save: function (height) {
+		var from = Blockchain.transaction.from;
+		var value = Blockchain.transaction.value;
+		var bk_height = new BigNumber(Blockchain.block.height);
+
+		var orig_deposit = this.bankVault.get(from);
+		if (orig_deposit) {
+			value = value.plus(balance);
+		}
+
+		var deposit = new DepositeContent();
+		deposit.balance = value;
+		deposit.expiryHeight = bk_height.plus(height);
+
+		this.bankVault.put(from, deposit);
+	},
+
+	takeout: function (value) {
+		var from = Blockchain.transaction.from;
+		var bk_height = new BigNumber(Blockchain.block.height);
+		var amount = new BigNumber(value);
+
+		var deposit = this.bankVault.get(from);
+		if (!deposit) {
+			throw new Error("No deposit before.");
+		}
+
+		if (bk_height.lt(deposit.expiryHeight)) {
+			throw new Error("Can't takeout before expiryHeight.");
+		}
+
+		if (amount.gt(deposit.balance)) {
+			throw new Error("Insufficient balance.");
+		}
+
+		var result = Blockchain.transfer(from, amount);
+		if (result != 0) {
+			throw new Error("transfer failed.");
+		}
+        Event.Trigger("BankVault", {
+            Transfer: {
+                from: Blockchain.transaction.to,
+                to: from,
+                value: amount.toString(),
+            }
+        });
+
+		deposit.balance = deposit.balance.sub(amount);
+		this.bankVault.put(from, deposit);
+	}
 };
 
 module.exports = BankVaultContract;
+
 ```
 
 1. create your smart contracts source.
 2. call 'SendTransaction()', the params 'from' and 'to' must be the same.
 
 ```bash
-curl -i -H 'Accept: application/json' -X POST http://localhost:8191/v1/transaction -H 'Content-Type: application/json' -d '{"from":"8a209cec02cbeab7e2f74ad969d2dfe8dd24416aa65589bf","to":"8a209cec02cbeab7e2f74ad969d2dfe8dd24416aa65589bf","nonce":1,"source":"\"use strict\";var BankVaultContract=function(){LocalContractStorage.defineMapProperty(this,\"bankVault\")};BankVaultContract.prototype={init:function(){},save:function(height){var deposit=this.bankVault.get(Blockchain.transaction.from);var value=new BigNumber(Blockchain.transaction.value);if(deposit!=null&&deposit.balance.length>0){var balance=new BigNumber(deposit.balance);value=value.plus(balance)}var content={balance:value.toString(),height:Blockchain.block.height+height};this.bankVault.put(Blockchain.transaction.from,content)},takeout:function(amount){var deposit=this.bankVault.get(Blockchain.transaction.from);if(deposit==null){return 0}if(Blockchain.block.height<deposit.height){return 0}var balance=new BigNumber(deposit.balance);var value=new BigNumber(amount);if(balance.lessThan(value)){return 0}var result=Blockchain.transfer(Blockchain.transaction.from,value);if(result>0){deposit.balance=balance.dividedBy(value).toString();this.bankVault.put(Blockchain.transaction.from,deposit)}return result}};module.exports=BankVaultContract;", "args":""}'
+
+curl -i -H 'Accept: application/json' -X POST http://localhost:8685/v1/user/transaction -H 'Content-Type: application/json' -d '{"from":"1a263547d167c74cf4b8f9166cfa244de0481c514a45aa2c","to":"1a263547d167c74cf4b8f9166cfa244de0481c514a45aa2c", "value":"0","nonce":2,"gasPrice":"1000000","gasLimit":"2000000","contract":{
+"source":"\"use strict\";var BankVaultContract=function(){LocalContractStorage.defineMapProperty(this,\"bankVault\")};BankVaultContract.prototype={init:function(){},save:function(height){var deposit=this.bankVault.get(Blockchain.transaction.from);var value=new BigNumber(Blockchain.transaction.value);if(deposit!=null&&deposit.balance.length>0){var balance=new BigNumber(deposit.balance);value=value.plus(balance)}var content={balance:value.toString(),height:Blockchain.block.height+height};this.bankVault.put(Blockchain.transaction.from,content)},takeout:function(amount){var deposit=this.bankVault.get(Blockchain.transaction.from);if(deposit==null){return 0}if(Blockchain.block.height<deposit.height){return 0}var balance=new BigNumber(deposit.balance);var value=new BigNumber(amount);if(balance.lessThan(value)){return 0}var result=Blockchain.transfer(Blockchain.transaction.from,value);if(result>0){deposit.balance=balance.dividedBy(value).toString();this.bankVault.put(Blockchain.transaction.from,deposit)}return result}};module.exports=BankVaultContract;","sourceType":"js", "args":""}}'
 ```
 
 If you succeed in deploying a smart contract, you will get the contract address & transaction hash as response.
@@ -352,7 +390,8 @@ Then you can call this smart contract:
 2. give the 'function' you want to call.
 
 ```bash
-curl -i -H 'Accept: application/json' -X POST http://localhost:8191/v1/call -H 'Content-Type: application/json' -d '{"from":"8a209cec02cbeab7e2f74ad969d2dfe8dd24416aa65589bf","to":"4df690cad7727510f386cddb9416f601de69e48ac662c44c","nonce":2,"function":"save","args":"[0]"}'
+
+curl -i -H 'Accept: application/json' -X POST http://localhost:8685/v1/user/call -H 'Content-Type: application/json' -d '{"from":"1a263547d167c74cf4b8f9166cfa244de0481c514a45aa2c","to":"333cb3ed8c417971845382ede3cf67a0a96270c05fe2f700","value":"0","nonce":3,"gasPrice":"1000000","gasLimit":"2000000","contract":{"function":"save","args":"[0]"}}'
 ```
 
 ## Contribution

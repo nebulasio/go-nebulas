@@ -29,7 +29,7 @@ import (
 
 // const
 const (
-	DefaultBucketsize = 16
+	DefaultBucketsize = 64
 	DefaultLatency    = 10
 	// DefaultIP         = "127.0.0.1"
 	DefaultPrivateKey = ""

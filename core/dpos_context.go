@@ -682,6 +682,10 @@ func FindProposer(now int64, dynasty *trie.BatchTrie) (proposer byteutils.Hash, 
 
 // NextDynastyContext when some seconds elapsed
 func (block *Block) NextDynastyContext(elapsedSecond int64) (*DynastyContext, error) {
+	if elapsedSecond%BlockInterval != 0 {
+		return nil, ErrNotBlockForgTime
+	}
+
 	dynastyTrie, err := block.dposContext.dynastyTrie.Clone()
 	if err != nil {
 		return nil, err

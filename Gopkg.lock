@@ -188,7 +188,6 @@
   revision = "cac05849bae7557fcad8e3f42cc03c89bad45fb1"
 
 [[projects]]
-  branch = "master"
   name = "github.com/libp2p/go-libp2p-crypto"
   packages = [".","pb"]
   revision = "e89e1de117dd65c6129d99d1d853f48bc847cf17"
@@ -242,19 +241,16 @@
   revision = "22f3bbcb92c0542889c1ccad062e9157de062ffe"
 
 [[projects]]
-  branch = "master"
   name = "github.com/libp2p/go-libp2p-net"
   packages = ["."]
   revision = "f4c6c7b7bcf224f75bc9bd547b83aaf9d2655dc3"
 
 [[projects]]
-  branch = "master"
   name = "github.com/libp2p/go-libp2p-peer"
   packages = ["."]
   revision = "bbf6c212429f9c279d99a91d2e5fd3fa8f06b0f9"
 
 [[projects]]
-  branch = "master"
   name = "github.com/libp2p/go-libp2p-peerstore"
   packages = [".","addr"]
   revision = "89838b9577a2b83eb3e1632c162cfd0daeee58e3"
@@ -272,7 +268,6 @@
   revision = "0cdc8339ad2e4f7f32e67b6a481bfbd48be5c704"
 
 [[projects]]
-  branch = "master"
   name = "github.com/libp2p/go-libp2p-swarm"
   packages = ["."]
   revision = "0c514e78b69fa48d1332d0fd252c83cf67724b87"
@@ -333,9 +328,26 @@
 
 [[projects]]
   branch = "master"
+  name = "github.com/minio/blake2b-simd"
+  packages = ["."]
+  revision = "3f5f724cb5b182a5c278d6d3d55b40e7f8c2efb4"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/minio/sha256-simd"
+  packages = ["."]
+  revision = "ad98a36ba0da87206e3378c556abbfeaeaa98668"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/mr-tron/base58"
+  packages = ["base58"]
+  revision = "c1bdf7c52f59d6685ca597b9955a443ff95eeee6"
+
+[[projects]]
   name = "github.com/multiformats/go-multiaddr"
   packages = ["."]
-  revision = "6c0f82541bfd9b3363aad12276539591377de792"
+  revision = "fb72fb2a8ef8fa11c7955820a2c5f9600b279c58"
 
 [[projects]]
   branch = "master"
@@ -348,12 +360,6 @@
   name = "github.com/multiformats/go-multiaddr-net"
   packages = ["."]
   revision = "4ce984eed7a8f77535ce5d267d0a21bd5a3d8363"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/multiformats/go-multicodec"
-  packages = [".","json"]
-  revision = "65c82c261bfdac27035eb81f3b0f0fc55edbc536"
 
 [[projects]]
   branch = "master"
@@ -508,7 +514,7 @@
 [[projects]]
   branch = "master"
   name = "golang.org/x/crypto"
-  packages = ["blake2b","blake2s","blowfish","pbkdf2","ripemd160","scrypt","sha3","ssh/terminal"]
+  packages = ["blake2s","blowfish","pbkdf2","ripemd160","scrypt","sha3","ssh/terminal"]
   revision = "faadfbdc035307d901e69eea569f5dda451a3ee3"
 
 [[projects]]
@@ -556,6 +562,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "aa2f63179639bef478af042e06903d32df0b3d8709e92877217a0c849fd9b4e8"
+  inputs-digest = "ea24c102a9b0629c2555a082bf3cafd0681188ba1d8bce2c22874ee90cab8d3c"
   solver-name = "gps-cdcl"
   solver-version = 1

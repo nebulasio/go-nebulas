@@ -38,9 +38,10 @@ Manage neblas network, generate a private key for node.`,
 
 		Subcommands: []cli.Command{
 			{
-				Name:   "ssh-keygen",
-				Usage:  "Generate a private key for network node",
-				Action: generatePrivateKey,
+				Name:      "ssh-keygen",
+				Usage:     "Generate a private key for network node",
+				Action:    generatePrivateKey,
+				ArgsUsage: "<path>",
 				Description: `
 
 Generate a private key for network node.
@@ -57,8 +58,13 @@ Make sure that the seed node should have a private key.`,
 func generatePrivateKey(ctx *cli.Context) error {
 	priv, _, err := p2p.GenerateEd25519Key()
 	privb, err := crypto.MarshalPrivateKey(priv)
-	fmt.Printf("priv: %s\n", base64.StdEncoding.EncodeToString(privb))
+	fmt.Printf("private.key: %s\n", base64.StdEncoding.EncodeToString(privb))
 
-	account.WriteFile("id_ed25519", []byte(base64.StdEncoding.EncodeToString(privb)))
+	path := ctx.Args().First()
+	if len(path) == 0 {
+		path = "conf/network/ed25519key"
+	}
+
+	account.WriteFile(path, []byte(base64.StdEncoding.EncodeToString(privb)))
 	return err
 }

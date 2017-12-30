@@ -24,7 +24,6 @@ import (
 	"github.com/nebulasio/go-nebulas/consensus"
 	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/neblet/pb"
-	"github.com/nebulasio/go-nebulas/net"
 	"github.com/nebulasio/go-nebulas/net/p2p"
 	log "github.com/sirupsen/logrus"
 )
@@ -39,7 +38,7 @@ var (
 type Neblet interface {
 	Config() nebletpb.Config
 	BlockChain() *core.BlockChain
-	NetService() *p2p.NetService
+	NetManager() p2p.Manager
 }
 
 /*
@@ -61,7 +60,7 @@ type Pow struct {
 	quitCh chan bool
 
 	chain    *core.BlockChain
-	nm       net.Manager
+	nm       p2p.Manager
 	coinbase *core.Address
 
 	currentState      consensus.State
@@ -83,7 +82,7 @@ type stateTransitionArgs struct {
 func NewPow(neblet Neblet) *Pow {
 	p := &Pow{
 		chain:             neblet.BlockChain(),
-		nm:                neblet.NetService(),
+		nm:                neblet.NetManager(),
 		quitCh:            make(chan bool, 5),
 		stateTransitionCh: make(chan *stateTransitionArgs, 10),
 		canMining:         false,

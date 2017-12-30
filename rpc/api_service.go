@@ -53,8 +53,8 @@ func (s *APIService) GetNebState(ctx context.Context, req *rpcpb.NonParamsReques
 	resp.ChainId = neb.BlockChain().ChainID()
 	resp.Tail = tail.Hash().String()
 	resp.Coinbase = tail.Coinbase().String()
-	resp.Synchronized = neb.NetService().Node().GetSynchronized()
-	resp.PeerCount = getStreamCount(neb.NetService().Node().GetStream())
+	resp.Synchronized = neb.NetManager().Node().GetSynchronizing()
+	resp.PeerCount = getStreamCount(neb.NetManager().Node().GetStream())
 	resp.ProtocolVersion = p2p.ProtocolID
 
 	return resp, nil
@@ -64,7 +64,7 @@ func (s *APIService) GetNebState(ctx context.Context, req *rpcpb.NonParamsReques
 func (s *APIService) NodeInfo(ctx context.Context, req *rpcpb.NonParamsRequest) (*rpcpb.NodeInfoResponse, error) {
 	neb := s.server.Neblet()
 	resp := &rpcpb.NodeInfoResponse{}
-	node := neb.NetService().Node()
+	node := neb.NetManager().Node()
 	resp.Id = node.ID()
 	resp.ChainId = node.Config().ChainID
 	resp.BucketSize = int32(node.Config().Bucketsize)
@@ -92,7 +92,7 @@ func (s *APIService) NodeInfo(ctx context.Context, req *rpcpb.NonParamsRequest) 
 // StatisticsNodeInfo is the RPC API handler.
 func (s *APIService) StatisticsNodeInfo(ctx context.Context, req *rpcpb.NonParamsRequest) (*rpcpb.StatisticsNodeInfoResponse, error) {
 	neb := s.server.Neblet()
-	node := neb.NetService().Node()
+	node := neb.NetManager().Node()
 	tail := neb.BlockChain().TailBlock()
 	resp := &rpcpb.StatisticsNodeInfoResponse{}
 	resp.NodeID = node.ID()
@@ -299,6 +299,11 @@ func (s *APIService) SendRawTransaction(ctx context.Context, req *rpcpb.SendRawT
 		return nil, err
 	}
 
+	if tx.Type() == core.TxPayloadDeployType {
+		address, _ := core.NewContractAddressFromHash(hash.Sha3256(tx.From().Bytes(), byteutils.FromUint64(tx.Nonce())))
+		return &rpcpb.SendTransactionResponse{Txhash: tx.Hash().String(), ContractAddress: address.String()}, nil
+	}
+
 	return &rpcpb.SendTransactionResponse{Txhash: tx.Hash().String()}, nil
 }
 
@@ -333,31 +338,28 @@ func (s *APIService) GetTransactionReceipt(ctx context.Context, req *rpcpb.GetTr
 	if tx == nil {
 		return nil, errors.New("transaction not found")
 	}
-	if tx.From().String() == tx.To().String() {
+
+	receipt := &rpcpb.TransactionReceiptResponse{
+		ChainId:   tx.ChainID(),
+		Hash:      byteutils.Hex(tx.Hash()),
+		From:      tx.From().String(),
+		To:        tx.To().String(),
+		Value:     tx.Value().String(),
+		Nonce:     tx.Nonce(),
+		Timestamp: tx.Timestamp(),
+		Type:      tx.Type(),
+		Data:      byteutils.Hex(tx.Data()),
+		GasPrice:  tx.GasPrice().String(),
+		GasLimit:  tx.GasLimit().String(),
+	}
+	if tx.Type() == core.TxPayloadDeployType {
 		contractAddr, err := tx.GenerateContractAddress()
 		if err != nil {
 			return nil, err
 		}
-		return &rpcpb.TransactionReceiptResponse{
-			Hash:            byteutils.Hex(tx.Hash()),
-			From:            tx.From().String(),
-			To:              tx.To().String(),
-			Nonce:           tx.Nonce(),
-			Timestamp:       tx.Timestamp(),
-			ChainId:         tx.ChainID(),
-			ContractAddress: contractAddr.String(),
-			Data:            string(tx.Data()),
-		}, nil
+		receipt.ContractAddress = contractAddr.String()
 	}
-
-	return &rpcpb.TransactionReceiptResponse{
-		Hash:      byteutils.Hex(tx.Hash()),
-		From:      tx.From().String(),
-		To:        tx.To().String(),
-		Nonce:     tx.Nonce(),
-		Timestamp: tx.Timestamp(),
-		ChainId:   tx.ChainID(),
-	}, nil
+	return receipt, nil
 }
 
 // NewAccount generate a new address with passphrase
@@ -452,7 +454,7 @@ func (s *APIService) Subscribe(req *rpcpb.SubscribeRequest, gs rpcpb.ApiService_
 	})()
 
 	netEventCh := make(chan nnet.Message, 128)
-	net := neb.NetService()
+	net := neb.NetManager()
 	net.Register(nnet.NewSubscriber(s, netEventCh, core.MessageTypeNewBlock))
 	net.Register(nnet.NewSubscriber(s, netEventCh, core.MessageTypeNewTx))
 	defer net.Deregister(nnet.NewSubscriber(s, netEventCh, core.MessageTypeNewBlock))
@@ -560,8 +562,8 @@ func (s *APIService) GetEventsByHash(ctx context.Context, req *rpcpb.GetTransact
 // ChangeNetworkID change the network id
 func (s *APIService) ChangeNetworkID(ctx context.Context, req *rpcpb.ChangeNetworkIDRequest) (*rpcpb.ChangeNetworkIDResponse, error) {
 	neb := s.server.Neblet()
-	neb.NetService().Node().Config().NetworkID = req.NetworkId
+	neb.NetManager().Node().Config().NetworkID = req.NetworkId
 	// broadcast to all the node in the routetable.
-	neb.NetService().BroadcastNetworkID(byteutils.FromUint32(req.NetworkId))
+	neb.NetManager().BroadcastNetworkID(byteutils.FromUint32(req.NetworkId))
 	return &rpcpb.ChangeNetworkIDResponse{Result: true}, nil
 }

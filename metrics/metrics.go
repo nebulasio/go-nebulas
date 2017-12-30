@@ -38,13 +38,13 @@ var quitCh chan (bool)
 // Neblet interface breaks cycle import dependency.
 type Neblet interface {
 	Config() nebletpb.Config
-	NetService() *p2p.NetService
+	NetManager() p2p.Manager
 }
 
 // Start metrics monitor
 func Start(neb Neblet) {
 	tags := make(map[string]string)
-	tags[tagName] = neb.NetService().Node().ID()
+	tags[tagName] = neb.NetManager().Node().ID()
 	go collectSystemMetrics()
 	influxdb.InfluxDBWithTags(metrics.DefaultRegistry, duration, neb.Config().Stats.Influxdb.Host, neb.Config().Stats.Influxdb.Db, neb.Config().Stats.Influxdb.User, neb.Config().Stats.Influxdb.Password, tags)
 }

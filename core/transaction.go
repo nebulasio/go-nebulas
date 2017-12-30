@@ -104,6 +104,11 @@ func (tx *Transaction) ChainID() uint32 {
 	return tx.chainID
 }
 
+// Value return tx value
+func (tx *Transaction) Value() *util.Uint128 {
+	return tx.value
+}
+
 // Nonce return tx nonce
 func (tx *Transaction) Nonce() uint64 {
 	return tx.nonce
@@ -182,11 +187,14 @@ func (tx *Transaction) FromProto(msg proto.Message) error {
 }
 
 func (tx *Transaction) String() string {
-	return fmt.Sprintf("Tx {from:%s; to:%s; nonce:%d, value: %d}",
+	return fmt.Sprintf(`{"hash":%s, "from":%s, "to":%s, "nonce":%d, "value": %d, "timestamp":%d, "type":%s}`,
+		byteutils.Hex(tx.hash),
 		byteutils.Hex(tx.from.address),
 		byteutils.Hex(tx.to.address),
 		tx.nonce,
 		tx.value.Int64(),
+		tx.timestamp,
+		tx.Type(),
 	)
 }
 
@@ -350,16 +358,18 @@ func (tx *Transaction) VerifyExecution(block *Block) (*util.Uint128, error) {
 		ctx.Commit()
 	}
 
+	// gas = tx.GasCountOfTxBase() +  gasExecution
+	gas := util.NewUint128FromBigInt(util.NewUint128().Add(gasUsed.Int, gasExecution.Int))
+
 	log.WithFields(log.Fields{
 		"transaction":  tx,
-		"txType":       tx.data.Type,
 		"gasUsed":      gasUsed.String(),
 		"gasExecution": gasExecution.String(),
+		"gas":          gas.String(),
+		"gasPrice":     tx.gasPrice.String(),
 		"gasLimited":   tx.gasLimit.String(),
-	}).Debug("Transaction Execute.")
+	}).Info("Transaction Execute statics.")
 
-	// gas = tx.GasCountOfTxBase() +  gasExecution
-	gas := util.NewUint128FromBigInt(gasUsed.Add(gasUsed.Int, gasExecution.Int))
 	tx.gasConsumption(fromAcc, coinbaseAcc, gas)
 
 	if err != nil {

@@ -39,7 +39,7 @@ func mockNormalTransaction(chainID uint32, nonce uint64) *Transaction {
 
 func mockDeployTransaction(chainID uint32, nonce uint64) *Transaction {
 	source := `
-	"use strict";var StandardToken=function(){LocalContractStorage.defineProperties(this,{name:null,symbol:null,totalSupply:null,totalIssued:null});LocalContractStorage.defineMapProperty(this,"balances")};StandardToken.prototype={init:function(name,symbol,totalSupply){this.name=name;this.symbol=symbol;this.totalSupply=totalSupply;this.totalIssued=0},totalSupply:function(){return this.totalSupply},balanceOf:function(owner){return this.balances.get(owner)||0},transfer:function(to,value){var balance=this.balanceOf(msg.sender);if(balance<value){return false}var finalBalance=balance-value;this.balances.set(msg.sender,finalBalance);this.balances.set(to,this.balanceOf(to)+value);return true},pay:function(msg,amount){if(this.totalIssued+amount>this.totalSupply){throw new Error("too much amount, exceed totalSupply")}this.balances.set(msg.sender,this.balanceOf(msg.sender)+amount);this.totalIssued+=amount}};module.exports=StandardToken;
+	"use strict";var StandardToken=function(){LocalContractStorage.defineProperties(this,{name:null,symbol:null,_totalSupply:null,totalIssued:null});LocalContractStorage.defineMapProperty(this,"balances")};StandardToken.prototype={init:function(name,symbol,totalSupply){this.name=name;this.symbol=symbol;this._totalSupply=totalSupply;this.totalIssued=0},totalSupply:function(){return this._totalSupply},balanceOf:function(owner){return this.balances.get(owner)||0},transfer:function(to,value){var balance=this.balanceOf(msg.sender);if(balance<value){return false}var finalBalance=balance-value;this.balances.set(msg.sender,finalBalance);this.balances.set(to,this.balanceOf(to)+value);return true},pay:function(msg,amount){if(this.totalIssued+amount>this._totalSupply){throw new Error("too much amount, exceed totalSupply")}this.balances.set(msg.sender,this.balanceOf(msg.sender)+amount);this.totalIssued+=amount}};module.exports=StandardToken;
 	`
 	sourceType := "js"
 	args := `["NebulasToken", "NAS", 1000000000]`
@@ -176,11 +176,13 @@ func TestTransaction_VerifyIntegrity(t *testing.T) {
 
 func TestTransaction_VerifyExecution(t *testing.T) {
 	type testTx struct {
-		name    string
-		tx      *Transaction
-		balance *util.Uint128
-		gas     *util.Uint128
-		wanted  error
+		name         string
+		tx           *Transaction
+		balance      *util.Uint128
+		gas          *util.Uint128
+		wanted       error
+		afterBalance *util.Uint128
+		eventTopic   []string
 	}
 	tests := []testTx{}
 
@@ -189,101 +191,142 @@ func TestTransaction_VerifyExecution(t *testing.T) {
 	bc.SetConsensusHandler(c)
 
 	balance := util.NewUint128FromBigInt(util.NewUint128().Mul(TransactionMaxGas.Int, TransactionGasPrice.Int))
-
 	// normal tx
 	normalTx := mockNormalTransaction(bc.chainID, 0)
 	tests = append(tests, testTx{
-		name:    "normal tx",
-		tx:      normalTx,
-		balance: balance,
-		gas:     normalTx.GasCountOfTxBase(),
-		wanted:  nil,
+		name:         "normal tx",
+		tx:           normalTx,
+		balance:      balance,
+		gas:          normalTx.GasCountOfTxBase(),
+		afterBalance: util.NewUint128FromBigInt(util.NewUint128().Sub(balance.Int, util.NewUint128().Mul(normalTx.gasPrice.Int, normalTx.GasCountOfTxBase().Int))),
+		wanted:       nil,
+		eventTopic:   []string{TopicExecuteTxSuccess},
 	})
 
 	// contract deploy tx
 	deployTx := mockDeployTransaction(bc.chainID, 0)
 	tests = append(tests, testTx{
-		name:    "contract deploy tx",
-		tx:      deployTx,
-		balance: balance,
-		wanted:  nil,
+		name:         "contract deploy tx",
+		tx:           deployTx,
+		balance:      balance,
+		gas:          util.NewUint128FromInt(21232),
+		afterBalance: util.NewUint128FromBigInt(util.NewUint128().Sub(balance.Int, util.NewUint128().Mul(normalTx.gasPrice.Int, util.NewUint128FromInt(21232).Int))),
+		wanted:       nil,
+		eventTopic:   []string{TopicExecuteTxSuccess},
 	})
 
 	// contract call tx
 	callTx := mockCallTransaction(bc.chainID, 1, "totalSupply", "")
 	tests = append(tests, testTx{
-		name:    "contract call tx",
-		tx:      callTx,
-		balance: balance,
-		wanted:  nil,
+		name:         "contract call tx",
+		tx:           callTx,
+		balance:      balance,
+		gas:          util.NewUint128FromInt(20036),
+		afterBalance: util.NewUint128FromBigInt(util.NewUint128().Sub(balance.Int, util.NewUint128().Mul(normalTx.gasPrice.Int, util.NewUint128FromInt(20036).Int))),
+		wanted:       nil,
+		eventTopic:   []string{TopicExecuteTxFailed},
 	})
 
 	// candidate tx
 	candidateTx := mockCandidateTransaction(bc.chainID, 0, LoginAction)
 	tests = append(tests, testTx{
-		name:    "candidate tx",
-		tx:      candidateTx,
-		balance: balance,
-		wanted:  nil,
+		name:         "candidate tx",
+		tx:           candidateTx,
+		balance:      balance,
+		gas:          util.NewUint128FromInt(40018),
+		afterBalance: util.NewUint128FromBigInt(util.NewUint128().Sub(balance.Int, util.NewUint128().Mul(normalTx.gasPrice.Int, util.NewUint128FromInt(40018).Int))),
+		wanted:       nil,
+		eventTopic:   []string{TopicExecuteTxSuccess},
 	})
 
 	// delegate tx
 	delegateTx := mockDelegateTransaction(bc.chainID, 0, DelegateAction, mockAddress().String())
 	tests = append(tests, testTx{
-		name:    "delegate tx",
-		tx:      delegateTx,
-		balance: balance,
-		wanted:  nil,
+		name:         "delegate tx",
+		tx:           delegateTx,
+		balance:      balance,
+		gas:          util.NewUint128FromInt(40078),
+		afterBalance: util.NewUint128FromBigInt(util.NewUint128().Sub(balance.Int, util.NewUint128().Mul(normalTx.gasPrice.Int, util.NewUint128FromInt(40078).Int))),
+		wanted:       nil,
+		eventTopic:   []string{TopicExecuteTxFailed},
 	})
 
 	// normal tx insufficient balance before execution
 	insufficientBlanceTx := mockNormalTransaction(bc.chainID, 0)
 	tests = append(tests, testTx{
-		name:    "normal tx insufficient balance",
-		tx:      insufficientBlanceTx,
-		balance: util.NewUint128(),
-		wanted:  ErrInsufficientBalance,
+		name:         "normal tx insufficient balance",
+		tx:           insufficientBlanceTx,
+		balance:      util.NewUint128(),
+		gas:          util.NewUint128(),
+		afterBalance: util.NewUint128(),
+		wanted:       ErrInsufficientBalance,
+		eventTopic:   []string{TopicExecuteTxFailed},
 	})
 
 	// normal tx out of  gasLimit
 	outOfGasLimitTx := mockNormalTransaction(bc.chainID, 0)
 	outOfGasLimitTx.gasLimit = util.NewUint128FromInt(1)
 	tests = append(tests, testTx{
-		name:    "normal tx out of gasLimit",
-		tx:      outOfGasLimitTx,
-		balance: balance,
-		wanted:  ErrOutOfGasLimit,
+		name:         "normal tx out of gasLimit",
+		tx:           outOfGasLimitTx,
+		balance:      balance,
+		gas:          util.NewUint128(),
+		afterBalance: balance,
+		wanted:       ErrOutOfGasLimit,
+		eventTopic:   []string{TopicExecuteTxFailed},
 	})
 
 	// tx payload load err
 	payloadErrTx := mockDeployTransaction(bc.chainID, 0)
 	payloadErrTx.data.Payload = []byte("0x00")
 	tests = append(tests, testTx{
-		name:    "payload error tx",
-		tx:      payloadErrTx,
-		balance: balance,
-		gas:     payloadErrTx.GasCountOfTxBase(),
-		wanted:  nil,
+		name:         "payload error tx",
+		tx:           payloadErrTx,
+		balance:      balance,
+		gas:          payloadErrTx.GasCountOfTxBase(),
+		afterBalance: util.NewUint128FromBigInt(util.NewUint128().Sub(balance.Int, util.NewUint128().Mul(normalTx.gasPrice.Int, payloadErrTx.GasCountOfTxBase().Int))),
+		wanted:       nil,
+		eventTopic:   []string{TopicExecuteTxFailed},
 	})
 
 	// tx execution err
 	executionErrTx := mockCallTransaction(bc.chainID, 0, "test", "")
 	tests = append(tests, testTx{
-		name:    "execution err tx",
-		tx:      executionErrTx,
-		balance: balance,
-		wanted:  nil,
+		name:         "execution err tx",
+		tx:           executionErrTx,
+		balance:      balance,
+		gas:          util.NewUint128FromInt(20029),
+		afterBalance: util.NewUint128FromBigInt(util.NewUint128().Sub(balance.Int, util.NewUint128().Mul(normalTx.gasPrice.Int, util.NewUint128FromInt(20029).Int))),
+		wanted:       nil,
+		eventTopic:   []string{TopicExecuteTxFailed},
 	})
 
 	// tx execution insufficient balance after execution
-	executionInsufficientTx := mockDeployTransaction(bc.chainID, 0)
-	executionInsufficientTx.value = balance
-
+	executionInsufficientBalanceTx := mockDeployTransaction(bc.chainID, 0)
+	executionInsufficientBalanceTx.value = balance
 	tests = append(tests, testTx{
-		name:    "execution insufficient balance after execution tx",
-		tx:      executionInsufficientTx,
-		balance: balance,
-		wanted:  nil,
+		name:         "execution insufficient balance after execution tx",
+		tx:           executionInsufficientBalanceTx,
+		balance:      balance,
+		gas:          util.NewUint128FromInt(21232),
+		afterBalance: util.NewUint128FromBigInt(util.NewUint128().Sub(balance.Int, util.NewUint128().Mul(normalTx.gasPrice.Int, util.NewUint128FromInt(21232).Int))),
+		wanted:       nil,
+		eventTopic:   []string{TopicExecuteTxFailed},
+	})
+
+	// tx execution equal balance after execution
+	executionEqualBalanceTx := mockDeployTransaction(bc.chainID, 0)
+	gas := util.NewUint128FromInt(21232)
+	executionEqualBalanceTx.value = balance
+	gasCost := util.NewUint128FromBigInt(util.NewUint128().Mul(executionEqualBalanceTx.gasPrice.Int, gas.Int))
+	tests = append(tests, testTx{
+		name:         "execution equal balance after execution tx",
+		tx:           executionEqualBalanceTx,
+		balance:      util.NewUint128FromBigInt(util.NewUint128().Add(gasCost.Int, balance.Int)),
+		gas:          gas,
+		afterBalance: util.NewUint128FromInt(0),
+		wanted:       nil,
+		eventTopic:   []string{TopicExecuteTxSuccess},
 	})
 
 	ks := keystore.DefaultKS
@@ -301,11 +344,21 @@ func TestTransaction_VerifyExecution(t *testing.T) {
 			fromAcc := block.accState.GetOrCreateUserAccount(tt.tx.from.address)
 			fromAcc.AddBalance(tt.balance)
 			gasUsed, err := tt.tx.VerifyExecution(block)
-			block.rollback()
 			if tt.gas != nil {
 				assert.Equal(t, tt.gas, gasUsed)
 			}
+			if tt.afterBalance != nil {
+				assert.Equal(t, tt.afterBalance.Uint64(), fromAcc.Balance().Uint64())
+			}
 			assert.Equal(t, tt.wanted, err)
+
+			events, _ := block.FetchEvents(tt.tx.hash)
+
+			for index, event := range events {
+				assert.Equal(t, tt.eventTopic[index], event.Topic)
+			}
+
+			block.rollback()
 		})
 	}
 

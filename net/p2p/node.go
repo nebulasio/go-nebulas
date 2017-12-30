@@ -58,15 +58,15 @@ type Node struct {
 	id        peer.ID
 	peerstore peerstore.Peerstore
 	// key: peer.ID: ip
-	streamCache  *pdeque.PriorityDeque
-	stream       *sync.Map
-	routeTable   *kbucket.RoutingTable
-	context      context.Context
-	version      uint8
-	config       *Config
-	running      bool
-	synchronized bool
-	syncList     []string
+	streamCache   *pdeque.PriorityDeque
+	stream        *sync.Map
+	routeTable    *kbucket.RoutingTable
+	context       context.Context
+	version       uint8
+	config        *Config
+	running       bool
+	synchronizing bool
+	syncList      []string
 	// key: datachecksum value: peer.ID
 	relayness      *lru.Cache
 	bootIds        []string
@@ -125,14 +125,14 @@ func (node *Node) PeerStore() peerstore.Peerstore {
 	return node.peerstore
 }
 
-// SetSynchronized set node synchronized.
-func (node *Node) SetSynchronized(synchronized bool) {
-	node.synchronized = synchronized
+// GetSynchronizing return node synchronizing
+func (node *Node) GetSynchronizing() bool {
+	return node.synchronizing
 }
 
-// GetSynchronized return node synchronized status.
-func (node *Node) GetSynchronized() bool {
-	return node.synchronized
+// SetSynchronizing set node synchronizing.
+func (node *Node) SetSynchronizing(synchronizing bool) {
+	node.synchronizing = synchronizing
 }
 
 // GetStream return node stream.
@@ -230,7 +230,6 @@ func (node *Node) init() error {
 	node.stream = new(sync.Map)
 	node.streamCache = pdeque.NewPriorityDeque(less)
 	node.version = node.config.Version
-	node.synchronized = false
 	var multiaddrs []multiaddr.Multiaddr
 	for _, v := range node.config.Listen {
 		tcpAddr, err := net.ResolveTCPAddr("tcp", v)

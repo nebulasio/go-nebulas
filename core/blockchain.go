@@ -75,12 +75,20 @@ var (
 
 // NewBlockChain create new #BlockChain instance.
 func NewBlockChain(neb Neblet) (*BlockChain, error) {
+	blockPool, err := NewBlockPool(4096)
+	if err != nil {
+		return nil, err
+	}
+	txPool, err := NewTransactionPool(4096)
+	if err != nil {
+		return nil, err
+	}
 
 	var bc = &BlockChain{
 		chainID:      neb.Genesis().Meta.ChainId,
 		genesis:      neb.Genesis(),
-		bkPool:       NewBlockPool(),
-		txPool:       NewTransactionPool(4096),
+		bkPool:       blockPool,
+		txPool:       txPool,
 		storage:      neb.Storage(),
 		neb:          neb,
 		eventEmitter: neb.EventEmitter(),
@@ -89,7 +97,6 @@ func NewBlockChain(neb Neblet) (*BlockChain, error) {
 	bc.cachedBlocks, _ = lru.New(1024)
 	bc.detachedTailBlocks, _ = lru.New(64)
 
-	var err error
 	bc.genesisBlock, err = bc.loadGenesisFromStorage()
 	if err != nil {
 		return nil, err
@@ -139,7 +146,6 @@ func (bc *BlockChain) EventEmitter() *EventEmitter {
 // SetTailBlock set tail block.
 func (bc *BlockChain) SetTailBlock(newTail *Block) error {
 	oldTail := bc.tailBlock
-	bc.detachedTailBlocks.Remove(newTail.Hash().Hex())
 	bc.tailBlock = newTail
 	bc.storeTailToStorage(bc.tailBlock)
 	// giveBack txs in reverted blocks to tx pool
@@ -151,10 +157,13 @@ func (bc *BlockChain) SetTailBlock(newTail *Block) error {
 		// oldTail and newTail is on same chain, no reverted blocks
 		// when tail change, add metrics
 		blockHeightGauge.Update(int64(newTail.Height()))
-		hashStr := byteutils.Hex(bc.getAncestorHash(6))
-		hash, err := hashToInt64(hashStr)
+		ancestorKDegree, err := bc.getAncestorHash(6)
 		if err == nil {
-			blocktailHashGauge.Update(hash)
+			hashStr := byteutils.Hex(ancestorKDegree)
+			hash, err := hashToInt64(hashStr)
+			if err == nil {
+				blocktailHashGauge.Update(hash)
+			}
 		}
 		return nil
 	}
@@ -278,7 +287,7 @@ func (bc *BlockChain) NewBlockFromParent(coinbase *Address, parentBlock *Block) 
 }
 
 // PutVerifiedNewBlocks put verified new blocks and tails.
-func (bc *BlockChain) PutVerifiedNewBlocks(allBlocks, tailBlocks []*Block) error {
+func (bc *BlockChain) putVerifiedNewBlocks(parent *Block, allBlocks, tailBlocks []*Block) error {
 	for _, v := range allBlocks {
 		bc.cachedBlocks.ContainsOrAdd(v.Hash().Hex(), v)
 		if err := bc.storeBlockToStorage(v); err != nil {
@@ -288,6 +297,9 @@ func (bc *BlockChain) PutVerifiedNewBlocks(allBlocks, tailBlocks []*Block) error
 	for _, v := range tailBlocks {
 		bc.detachedTailBlocks.ContainsOrAdd(v.Hash().Hex(), v)
 	}
+
+	bc.detachedTailBlocks.Remove(parent.Hash().Hex())
+
 	return nil
 }
 
@@ -336,7 +348,7 @@ func (bc *BlockChain) GasPrice() *util.Uint128 {
 	tailBlock := bc.tailBlock
 	for {
 		// if the block is genesis, stop find the parent block
-		if tailBlock.Hash().Equals(GenesisHash) {
+		if CheckGenesisBlock(tailBlock) {
 			break
 		}
 
@@ -362,7 +374,6 @@ func (bc *BlockChain) GasPrice() *util.Uint128 {
 
 // EstimateGas returns the transaction gas cost
 func (bc *BlockChain) EstimateGas(tx *Transaction) (*util.Uint128, error) {
-
 	// update gas to max for estimate
 	tx.gasLimit = TransactionMaxGas
 
@@ -374,17 +385,17 @@ func (bc *BlockChain) EstimateGas(tx *Transaction) (*util.Uint128, error) {
 	return tx.VerifyExecution(bc.tailBlock)
 }
 
-func (bc *BlockChain) getAncestorHash(number int) byteutils.Hash {
+func (bc *BlockChain) getAncestorHash(number int) (byteutils.Hash, error) {
 	block := bc.tailBlock
 	for i := 0; i < number; i++ {
 		if !CheckGenesisBlock(block) {
 			block = bc.GetBlock(block.ParentHash())
 			if block == nil {
-				block = bc.genesisBlock
+				return nil, ErrMissingParentBlock
 			}
 		}
 	}
-	return block.Hash()
+	return block.Hash(), nil
 }
 
 // Dump dump full chain.

@@ -44,7 +44,7 @@ var (
 type Manager struct {
 	blockChain             *core.BlockChain
 	consensus              consensus.Consensus
-	ns                     *p2p.NetService
+	ns                     p2p.Manager
 	quitCh                 chan bool
 	syncCh                 chan bool
 	receiveTailCh          chan net.Message
@@ -57,7 +57,7 @@ type Manager struct {
 }
 
 // NewManager new sync manager
-func NewManager(blockChain *core.BlockChain, consensus consensus.Consensus, ns *p2p.NetService) *Manager {
+func NewManager(blockChain *core.BlockChain, consensus consensus.Consensus, ns p2p.Manager) *Manager {
 	m := &Manager{
 		blockChain,
 		consensus,
@@ -78,12 +78,12 @@ func NewManager(blockChain *core.BlockChain, consensus consensus.Consensus, ns *
 }
 
 // RegisterSyncBlockInNetwork register message subscriber in network.
-func (m *Manager) RegisterSyncBlockInNetwork(nm net.Manager) {
+func (m *Manager) RegisterSyncBlockInNetwork(nm p2p.Manager) {
 	nm.Register(net.NewSubscriber(m, m.receiveTailCh, net.MessageTypeSyncBlock))
 }
 
 // RegisterSyncReplyInNetwork register message subscriber in network.
-func (m *Manager) RegisterSyncReplyInNetwork(nm net.Manager) {
+func (m *Manager) RegisterSyncReplyInNetwork(nm p2p.Manager) {
 	nm.Register(net.NewSubscriber(m, m.receiveSyncReplyCh, net.MessageTypeSyncReply))
 }
 
@@ -98,16 +98,16 @@ func (m *Manager) RegisterSyncReplyInNetwork(nm net.Manager) {
 */
 func (m *Manager) Start() {
 	// if the node is syncing, return.
-	if m.ns.Node().GetSynchronized() {
+	if m.ns.Node().GetSynchronizing() {
 		return
 	}
 	m.startMsgHandle()
 	if len(m.ns.Node().Config().BootNodes) > 0 {
+		m.ns.Node().SetSynchronizing(true)
 		m.startSync()
 		m.curTail = m.blockChain.TailBlock()
 	} else {
 		log.Info("Sync.Start: i am a seed node.")
-		m.ns.Node().SetSynchronized(true)
 		m.consensus.SetCanMining(true)
 		go m.loop()
 	}
@@ -125,10 +125,11 @@ func (m *Manager) loop() {
 		case <-m.quitCh:
 			return
 		case <-m.endSyncCh:
-			if !m.ns.Node().GetSynchronized() {
-				m.ns.Node().SetSynchronized(true)
-				m.consensus.SetCanMining(true)
+			if m.ns.Node().GetSynchronizing() {
+				m.ns.Node().SetSynchronizing(false)
 			}
+			m.consensus.SetCanMining(true)
+			log.Info("sync finish.")
 		case <-m.syncCh:
 			if m.curTail == nil {
 				log.Warn("sync occurs error, the current tail is nil.")
@@ -151,7 +152,7 @@ func (m *Manager) syncWithPeers(block *core.Block) {
 	switch err {
 	case nil:
 	case p2p.ErrNodeNotEnough:
-		if !m.ns.Node().GetSynchronized() {
+		if m.ns.Node().GetSynchronizing() {
 			log.Warn("syncWithPeers: sleep for 5 second...")
 			time.Sleep(5 * time.Second)
 			m.syncCh <- true
@@ -176,9 +177,11 @@ func (m *Manager) syncWithPeers(block *core.Block) {
 }
 
 func (m *Manager) goSyncParentWithPeers() {
-	if !m.ns.Node().GetSynchronized() && !core.CheckGenesisBlock(m.curTail) {
+	if m.ns.Node().GetSynchronizing() && !core.CheckGenesisBlock(m.curTail) {
 		m.curTail = m.blockChain.GetBlock(m.curTail.ParentHash())
 		m.syncWithPeers(m.curTail)
+	} else {
+		m.endSyncCh <- true
 	}
 }
 
@@ -188,7 +191,7 @@ func (m *Manager) startMsgHandle() {
 		for {
 			select {
 			case msg := <-m.receiveTailCh:
-				if !m.ns.Node().GetSynchronized() {
+				if m.ns.Node().GetSynchronizing() {
 					log.Warn("node can not reply sync message when it is synchronizing")
 					continue
 				}

@@ -20,7 +20,6 @@ package p2p
 
 import (
 	"hash/crc32"
-	"math"
 
 	"github.com/gogo/protobuf/proto"
 	peer "github.com/libp2p/go-libp2p-peer"
@@ -32,7 +31,7 @@ import (
 // Broadcast broadcast message
 func (ns *NetService) Broadcast(name string, msg net.Serializable) {
 	node := ns.node
-	if !node.synchronized {
+	if node.synchronizing {
 		return
 	}
 	ns.distribute(name, msg, false)
@@ -41,7 +40,7 @@ func (ns *NetService) Broadcast(name string, msg net.Serializable) {
 // Relay relay message
 func (ns *NetService) Relay(name string, msg net.Serializable) {
 	node := ns.node
-	if !node.synchronized {
+	if node.synchronizing {
 		return
 	}
 	ns.distribute(name, msg, true)
@@ -71,10 +70,11 @@ func (ns *NetService) distribute(name string, msg net.Serializable, relay bool) 
 	if exists {
 		relayness = peers.([]peer.ID)
 	}
-	allNode := ns.nodeNotInRelayness(relayness, node.routeTable.ListPeers())
-	transfer := allNode
+	var allNode []peer.ID
+	transfer := node.routeTable.ListPeers()
 	if relay {
-		transfer = allNode[:int(math.Sqrt(float64(len(allNode))))]
+		allNode = ns.nodeNotInRelayness(relayness, node.routeTable.ListPeers())
+		transfer = allNode
 	}
 	log.WithFields(log.Fields{
 		"msg":      msg,
@@ -131,7 +131,7 @@ func (ns *NetService) doRelay(nodes []peer.ID, relayness []peer.ID, dataChecksum
 // BroadcastNetworkID broadcast networkID when changed.
 func (ns *NetService) BroadcastNetworkID(msg []byte) {
 	node := ns.node
-	if !node.synchronized {
+	if node.synchronizing {
 		return
 	}
 

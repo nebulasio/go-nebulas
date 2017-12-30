@@ -22,7 +22,7 @@ var StandardToken = function () {
     LocalContractStorage.defineProperties(this, {
         name: null,
         symbol: null,
-        totalSupply: null,
+        _totalSupply: null,
         totalIssued: null
     });
     LocalContractStorage.defineMapProperty(this, "balances");
@@ -32,11 +32,11 @@ StandardToken.prototype = {
     init: function (name, symbol, totalSupply) {
         this.name = name;
         this.symbol = symbol;
-        this.totalSupply = totalSupply;
+        this._totalSupply = totalSupply;
         this.totalIssued = 0;
     },
     totalSupply: function () {
-        return this.totalSupply;
+        return this._totalSupply;
     },
     balanceOf: function (owner) {
         return this.balances.get(owner) || 0;
@@ -53,7 +53,7 @@ StandardToken.prototype = {
         return true;
     },
     pay: function (msg, amount) {
-        if (this.totalIssued + amount > this.totalSupply) {
+        if (this.totalIssued + amount > this._totalSupply) {
             throw new Error("too much amount, exceed totalSupply");
         }
         this.balances.set(msg.sender, this.balanceOf(msg.sender) + amount);
