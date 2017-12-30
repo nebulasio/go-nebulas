@@ -299,6 +299,11 @@ func (s *APIService) SendRawTransaction(ctx context.Context, req *rpcpb.SendRawT
 		return nil, err
 	}
 
+	if tx.Type() == core.TxPayloadDeployType {
+		address, _ := core.NewContractAddressFromHash(hash.Sha3256(tx.From().Bytes(), byteutils.FromUint64(tx.Nonce())))
+		return &rpcpb.SendTransactionResponse{Txhash: tx.Hash().String(), ContractAddress: address.String()}, nil
+	}
+
 	return &rpcpb.SendTransactionResponse{Txhash: tx.Hash().String()}, nil
 }
 
