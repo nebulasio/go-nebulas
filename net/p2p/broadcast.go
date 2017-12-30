@@ -20,7 +20,6 @@ package p2p
 
 import (
 	"hash/crc32"
-	"math"
 
 	"github.com/gogo/protobuf/proto"
 	peer "github.com/libp2p/go-libp2p-peer"
@@ -75,7 +74,7 @@ func (ns *NetService) distribute(name string, msg net.Serializable, relay bool) 
 	transfer := node.routeTable.ListPeers()
 	if relay {
 		allNode = ns.nodeNotInRelayness(relayness, node.routeTable.ListPeers())
-		transfer = allNode[:int(math.Sqrt(float64(len(allNode))))]
+		transfer = allNode
 	}
 	log.WithFields(log.Fields{
 		"msg":      msg,
