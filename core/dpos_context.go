@@ -36,8 +36,8 @@ import (
 const (
 	BlockInterval        = int64(5)
 	AcceptedNetWorkDelay = int64(2)
-	DynastyInterval      = int64(60) // TODO(roy): 3600
-	DynastySize          = 6         // TODO(roy): 21
+	DynastyInterval      = int64(3600) // TODO(roy): 3600
+	DynastySize          = 21          // TODO(roy): 21
 	SafeSize             = DynastySize/3 + 1
 )
 

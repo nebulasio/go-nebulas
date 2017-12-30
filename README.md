@@ -8,6 +8,8 @@ For the roadmap of Nebulas, please visit the [Roadmap](https://github.com/nebula
 
 For more information of Nebulas protocol, design documents, please refer to our [wiki](https://github.com/nebulasio/wiki).
 
+TestNet is released, please check [here](https://github.com/nebulasio/wiki/blob/master/testnet.md) for more details
+
 ## Building from source
 
 ### Prerequisites
