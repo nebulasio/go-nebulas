@@ -79,7 +79,7 @@ func (ns *NetService) distribute(name string, msg net.Serializable, relay bool) 
 	log.WithFields(log.Fields{
 		"msg":      msg,
 		"transfer": transfer,
-	}).Info("distribute: start distribute msg.")
+	}).Debug("distribute: start distribute msg.")
 
 	ns.doMsgTransfer(transfer, relayness, dataChecksum, name, data)
 
@@ -93,12 +93,12 @@ func (ns *NetService) doMsgTransfer(transfer []peer.ID, relayness []peer.ID, dat
 	for i := 0; i < len(transfer); i++ {
 		nodeID := transfer[i]
 		if InArray(nodeID, relayness) {
-			log.Warnf("msgTransfer:  nodeID %s has already have the same message", nodeID)
+			log.Debugf("msgTransfer:  nodeID %s has already have the same message", nodeID)
 			continue
 		}
 		addrs := node.peerstore.PeerInfo(nodeID).Addrs
 		if len(addrs) == 0 || node.host.Addrs()[0].String() == addrs[0].String() {
-			log.Warn("msgTransfer: skip self")
+			log.Debugf("msgTransfer: skip self")
 			continue
 		}
 		if len(addrs) > 0 {
@@ -113,12 +113,12 @@ func (ns *NetService) doRelay(nodes []peer.ID, relayness []peer.ID, dataChecksum
 	for i := 0; i < len(nodes); i++ {
 		nodeID := nodes[i]
 		if InArray(nodeID, relayness) {
-			log.Warnf("distribute: relay nodeID %s has already have the same message", nodeID)
+			log.Debugf("distribute: relay nodeID %s has already have the same message", nodeID)
 			continue
 		}
 		addrs := node.peerstore.PeerInfo(nodeID).Addrs
 		if len(addrs) == 0 || node.host.Addrs()[0].String() == addrs[0].String() {
-			log.Warn("distribute: relay skip self")
+			log.Debugf("distribute: relay skip self")
 			continue
 		}
 		if len(addrs) > 0 {

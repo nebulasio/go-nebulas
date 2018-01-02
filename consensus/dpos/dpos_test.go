@@ -49,7 +49,7 @@ type Neb struct {
 
 func mockNeb() *Neb {
 	storage, _ := storage.NewMemoryStorage()
-	eventEmitter := core.NewEventEmitter()
+	eventEmitter := core.NewEventEmitter(1024)
 	genesisConf := MockGenesisConf()
 	neb := &Neb{
 		genesis: genesisConf,
@@ -304,7 +304,7 @@ func TestForkChoice(t *testing.T) {
 	block1111.SetTimestamp(core.BlockInterval * 5)
 	block1111.SetMiner(from)
 	block1111.Seal()
-	assert.Nil(t, dpos.chain.BlockPool().Push(block1111))
+	assert.Error(t, dpos.chain.BlockPool().Push(block1111), core.ErrMissingParentBlock)
 	assert.Equal(t, len(dpos.chain.DetachedTailBlocks()), 2)
 	assert.Nil(t, dpos.chain.BlockPool().Push(block111))
 	assert.Equal(t, len(dpos.chain.DetachedTailBlocks()), 2)

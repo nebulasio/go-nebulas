@@ -55,7 +55,7 @@ func (n *mockNeb) StartSync() {}
 
 func testNeb() *mockNeb {
 	storage, _ := storage.NewMemoryStorage()
-	eventEmitter := NewEventEmitter()
+	eventEmitter := NewEventEmitter(1024)
 	neb := &mockNeb{
 		genesis: MockGenesisConf(),
 		storage: storage,
@@ -210,7 +210,6 @@ func TestBlock_CollectTransactions(t *testing.T) {
 	bc.SetConsensusHandler(c)
 
 	tail := bc.tailBlock
-	assert.Panics(t, func() { tail.CollectTransactions(1) })
 
 	ks := keystore.DefaultKS
 	priv := secp256k1.GeneratePrivateKey()
@@ -293,7 +292,6 @@ func TestBlock_DposCandidates(t *testing.T) {
 	bc.SetConsensusHandler(c)
 
 	tail := bc.tailBlock
-	assert.Panics(t, func() { tail.CollectTransactions(1) })
 
 	ks := keystore.DefaultKS
 	priv := secp256k1.GeneratePrivateKey()

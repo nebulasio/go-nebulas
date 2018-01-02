@@ -205,7 +205,7 @@ func (e *V8Engine) SetExecutionLimits(limitsOfExecutionInstructions, limitsOfTot
 
 	// V8 needs at least 6M heap memory.
 	if limitsOfTotalMemorySize > 0 && limitsOfTotalMemorySize < 6000000 {
-		log.Warnf("V8 needs at least 6M (6000000) heap memory, your limitsOfTotalMemorySize (%d) is too low.", limitsOfTotalMemorySize)
+		log.Debugf("V8 needs at least 6M (6000000) heap memory, your limitsOfTotalMemorySize (%d) is too low.", limitsOfTotalMemorySize)
 	}
 }
 

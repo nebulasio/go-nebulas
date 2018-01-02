@@ -161,7 +161,7 @@ func (pool *BlockPool) handleBlock(msg net.Message) {
 			"diff":  diff,
 			"limit": AcceptedNetWorkDelay,
 			"err":   "timeout",
-		}).Debug("Failed to receive a block from network.")
+		}).Debug("Failed to accept a timeout block.")
 		return
 	}
 
@@ -255,11 +255,11 @@ func (pool *BlockPool) handleDownloadedBlock(msg net.Message) {
 }
 
 func (pool *BlockPool) loop() {
-	log.Info("Launch BlockPool.")
+	log.Info("Launched BlockPool.")
 	for {
 		select {
 		case <-pool.quitCh:
-			log.Info("Shutdown BlockPool.")
+			log.Info("Shutdowned BlockPool.")
 			return
 		case msg := <-pool.receiveBlockMessageCh:
 			pool.handleBlock(msg)

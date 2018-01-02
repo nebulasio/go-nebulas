@@ -386,47 +386,24 @@ func (block *Block) LinkParentBlock(parentBlock *Block) error {
 
 	var err error
 	if block.accState, err = parentBlock.accState.Clone(); err != nil {
-		log.WithFields(log.Fields{
-			"parent": parentBlock,
-			"block":  block,
-			"err":    err,
-		}).Debug("Failed to clone account state.")
-		return err
+		return ErrCloneAccountState
 	}
 	if block.txsTrie, err = parentBlock.txsTrie.Clone(); err != nil {
-		log.WithFields(log.Fields{
-			"parent": parentBlock,
-			"block":  block,
-			"err":    err,
-		}).Debug("Failed to clone txs state.")
-		return err
+		return ErrCloneTxsState
 	}
 	if block.eventsTrie, err = parentBlock.eventsTrie.Clone(); err != nil {
-		log.WithFields(log.Fields{
-			"parent": parentBlock,
-			"block":  block,
-			"err":    err,
-		}).Debug("Failed to clone events state.")
-		return err
+		return ErrCloneEventsState
 	}
+
 	elapsedSecond := block.Timestamp() - parentBlock.Timestamp()
 	context, err := parentBlock.NextDynastyContext(elapsedSecond)
 	if err != nil {
-		log.WithFields(log.Fields{
-			"parent": parentBlock,
-			"block":  block,
-			"err":    err,
-		}).Debug("Failed to generate next dynasty context.")
-		return err
+		return ErrGenerateNextDynastyContext
 	}
 	if err := block.LoadDynastyContext(context); err != nil {
-		log.WithFields(log.Fields{
-			"parent": parentBlock,
-			"block":  block,
-			"err":    err,
-		}).Debug("Failed to load next dynasty context.")
-		return err
+		return ErrLoadNextDynastyContext
 	}
+
 	block.txPool = parentBlock.txPool
 	block.parenetBlock = parentBlock
 	block.storage = parentBlock.storage
@@ -565,11 +542,10 @@ func (block *Block) Seal() error {
 }
 
 func (block *Block) String() string {
-	return fmt.Sprintf("{\"height\":%d, \"hash\":\"%s\", \"parentHash\":\"%s\", \"accState\":\"%s\", \"nonce\":%d, \"timestamp\": %d, \"coinbase\": \"%s\"}",
+	return fmt.Sprintf("{\"height\":%d, \"hash\":\"%s\", \"parentHash\":\"%s\", \"nonce\":%d, \"timestamp\": %d, \"coinbase\": \"%s\"}",
 		block.height,
 		byteutils.Hex(block.header.hash),
 		byteutils.Hex(block.header.parentHash),
-		byteutils.Hex(block.header.stateRoot),
 		block.header.nonce,
 		block.header.timestamp,
 		block.header.coinbase.String(),
@@ -649,24 +625,41 @@ func (block *Block) triggerEvent() {
 func (block *Block) VerifyIntegrity(chainID uint32, consensus Consensus) error {
 	// check ChainID.
 	if block.header.chainID != chainID {
+		log.WithFields(log.Fields{
+			"expect": chainID,
+			"actual": block.header.chainID,
+		}).Debug("Failed to check chainid.")
 		return ErrInvalidChainID
 	}
 
 	// verify block hash.
 	wantedHash := HashBlock(block)
 	if !wantedHash.Equals(block.Hash()) {
+		log.WithFields(log.Fields{
+			"expect": wantedHash,
+			"actual": block.Hash(),
+		}).Debug("Failed to check block's hash.")
 		return ErrInvalidBlockHash
 	}
 
 	// verify transactions integrity.
 	for _, tx := range block.transactions {
 		if err := tx.VerifyIntegrity(block.header.chainID); err != nil {
+			log.WithFields(log.Fields{
+				"tx":  tx,
+				"err": err,
+			}).Debug("Failed to verify tx's integrity.")
 			return err
 		}
 	}
 
 	// verify the block is acceptable by consensus.
 	if err := consensus.FastVerifyBlock(block); err != nil {
+		log.WithFields(log.Fields{
+			"block": block,
+			"err":   err,
+		}).Debug("Failed to fast verify block.")
+		invalidBlockCounter.Inc(1)
 		return err
 	}
 
@@ -676,8 +669,6 @@ func (block *Block) VerifyIntegrity(chainID uint32, consensus Consensus) error {
 // verifyState return state verify result.
 func (block *Block) verifyState() error {
 	// verify state root.
-	log.Info(block.accState.RootHash())
-	log.Info(block.StateRoot())
 	if !byteutils.Equal(block.accState.RootHash(), block.StateRoot()) {
 		return ErrInvalidBlockStateRoot
 	}

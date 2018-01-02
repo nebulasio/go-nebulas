@@ -71,21 +71,19 @@ func (payload *CandidatePayload) Execute(ctx *PayloadContext) (*util.Uint128, er
 			return ZeroGasCount, err
 		}
 		log.WithFields(log.Fields{
-			"func":      "Payload.Candidate",
 			"block":     ctx.block,
 			"tx":        ctx.tx,
 			"candidate": ctx.tx.from.String(),
-		}).Info("Candidate Login.")
+		}).Debug("Candidate login.")
 	case LogoutAction:
 		if err := ctx.dposContext.kickoutCandidate(candidate); err != nil {
 			return ZeroGasCount, err
 		}
 		log.WithFields(log.Fields{
-			"func":      "Payload.Candidate",
 			"block":     ctx.block,
 			"tx":        ctx.tx,
 			"candidate": ctx.tx.from.String(),
-		}).Info("Candidate Logout.")
+		}).Debug("Candidate logout.")
 	default:
 		return ZeroGasCount, ErrInvalidCandidatePayloadAction
 	}

@@ -26,6 +26,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// Metrics map for different in/out network msg types
 var (
 	PacketsInByTypes  = new(sync.Map)
 	PacketsOutByTypes = new(sync.Map)
@@ -89,7 +90,7 @@ func (dp *Dispatcher) Start() {
 
 			case msg := <-dp.receivedMessageCh:
 				count++
-				log.Info("dispatcher.loop: recvMsgCount=%d", count)
+				log.Debug("dispatcher.loop: recvMsgCount=%d", count)
 				msgType := msg.MessageType()
 				v, _ := dp.subscribersMap.Load(msgType)
 				m, _ := v.(*sync.Map)

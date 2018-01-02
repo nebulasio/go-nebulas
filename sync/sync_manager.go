@@ -132,7 +132,7 @@ func (m *Manager) loop() {
 			log.Info("sync finish.")
 		case <-m.syncCh:
 			if m.curTail == nil {
-				log.Warn("sync occurs error, the current tail is nil.")
+				log.Debug("sync occurs error, the current tail is nil.")
 				m.curTail = m.blockChain.TailBlock()
 			}
 			m.syncWithPeers(m.curTail)
@@ -153,7 +153,7 @@ func (m *Manager) syncWithPeers(block *core.Block) {
 	case nil:
 	case p2p.ErrNodeNotEnough:
 		if m.ns.Node().GetSynchronizing() {
-			log.Warn("syncWithPeers: sleep for 5 second...")
+			log.Debug("syncWithPeers: sleep for 5 second...")
 			time.Sleep(5 * time.Second)
 			m.syncCh <- true
 		}
@@ -192,7 +192,7 @@ func (m *Manager) startMsgHandle() {
 			select {
 			case msg := <-m.receiveTailCh:
 				if m.ns.Node().GetSynchronizing() {
-					log.Warn("node can not reply sync message when it is synchronizing")
+					log.Debug("node can not reply sync message when it is synchronizing")
 					continue
 				}
 				// 1.find the common ancestors
@@ -213,14 +213,14 @@ func (m *Manager) startMsgHandle() {
 				ancestor, err := m.blockChain.FindCommonAncestorWithTail(tail.block)
 				var emptyblocks []*core.Block
 				if err != nil {
-					log.Warn("StartMsgHandle.receiveTailCh: find common ancestor with tail occurs error, ", err)
+					log.Debug("StartMsgHandle.receiveTailCh: find common ancestor with tail occurs error, ", err)
 					netblocks := NewNetBlocks(key, tail.batch, emptyblocks)
 					m.ns.SendSyncReply(tail.from, netblocks)
 					continue
 				}
 				subsequentBlocks, err := m.blockChain.FetchDescendantInCanonicalChain(DescendantCount, ancestor)
 				if err != nil {
-					log.Warn("StartMsgHandle.receiveTailCh: FetchDescendantInCanonicalChain occurs error, ", err)
+					log.Debug("StartMsgHandle.receiveTailCh: FetchDescendantInCanonicalChain occurs error, ", err)
 					netblocks := NewNetBlocks(key, tail.batch, emptyblocks)
 					m.ns.SendSyncReply(tail.from, netblocks)
 					continue
@@ -231,7 +231,7 @@ func (m *Manager) startMsgHandle() {
 					"from":   blocks.from,
 					"batch":  blocks.batch,
 					"blocks": blocks.blocks,
-				}).Info("StartMsgHandle.receiveTailCh: receive receiveTailCh message.")
+				}).Debug("StartMsgHandle.receiveTailCh: receive receiveTailCh message.")
 				m.ns.SendSyncReply(tail.from, blocks)
 
 			case msg := <-m.receiveSyncReplyCh:
@@ -300,7 +300,7 @@ func (m *Manager) syncWithBlockList(list map[string]*NetBlocks) {
 
 func (m *Manager) doSyncBlocksWithCommonAncestor(addrsArray []string) {
 	if len(addrsArray) == 0 {
-		log.Warn("doSyncBlocksWithCommonAncestor: no common ancestor have been found")
+		log.Debug("doSyncBlocksWithCommonAncestor: no common ancestor have been found")
 		m.syncCh <- true
 		return
 	}
@@ -322,7 +322,7 @@ func (m *Manager) doSyncBlocksWithCommonAncestor(addrsArray []string) {
 				for k := range m.cacheList {
 					delete(m.cacheList, k)
 				}
-				log.Warn("doSyncBlocksWithCommonAncestor: push a block to pool occrus error, ", err)
+				log.Debug("doSyncBlocksWithCommonAncestor: push a block to pool occrus error, ", err)
 				m.syncCh <- true
 				return
 			}

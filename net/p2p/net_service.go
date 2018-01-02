@@ -205,7 +205,7 @@ func (ns *NetService) streamHandler(s libnet.Stream) {
 				log.WithFields(log.Fields{
 					"msgName": protocol.msgName,
 					"pid":     pid.Pretty(),
-				}).Info("receive block & tx message.")
+				}).Debug("receive block & tx message.")
 
 				m, ok := net.PacketsInByTypes.Load(protocol.msgName)
 				if ok {
@@ -444,7 +444,7 @@ func (ns *NetService) handleSyncRouteMsg(data []byte, pid peer.ID, s libnet.Stre
 		if len(peerInfo.Addrs) == 0 {
 			log.WithFields(log.Fields{
 				"nodeId": peerInfo.ID.Pretty(),
-			}).Warn("node addrs is nil")
+			}).Debug("node addrs is nil")
 			continue
 		}
 		var addres []string
@@ -497,7 +497,7 @@ func (ns *NetService) handleSyncRouteReplyMsg(data []byte, pid peer.ID, s libnet
 		if node.routeTable.Find(id) != "" || len(peers.Peers()[i].Addrs()) == 0 {
 			log.WithFields(log.Fields{
 				"id": id.Pretty(),
-			}).Warn("node is already exist in route table")
+			}).Debug("node is already exist in route table")
 			continue
 		}
 		var addres []ma.Multiaddr
@@ -598,7 +598,7 @@ func (ns *NetService) SendMsg(msgName string, msg []byte, target string) error {
 
 	node := ns.node
 	if msgName != NetworkID && !ns.checkNetworkID(target) {
-		log.Warn("can not send message, target node is not in the same network ", target)
+		log.Debug("can not send message, target node is not in the same network ", target)
 		return errors.New("can not send message, target node is not in the same network")
 	}
 	streamStore, ok := node.stream.Load(target)

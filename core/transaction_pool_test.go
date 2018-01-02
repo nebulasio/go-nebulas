@@ -155,7 +155,3 @@ func TestPushTxs(t *testing.T) {
 	assert.Equal(t, txPool.push(txs[0]), ErrBelowGasPrice)
 	assert.Equal(t, txPool.push(txs[1]), ErrOutOfGasLimit)
 }
-
-func TestTransactionPoolSize(t *testing.T) {
-	assert.Panics(t, func() { NewTransactionPool(0) })
-}

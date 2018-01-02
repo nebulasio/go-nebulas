@@ -62,24 +62,34 @@ type EventEmitter struct {
 	eventSubs *sync.Map
 	eventCh   chan *Event
 	quitCh    chan int
+	size      int
 }
 
 // NewEventEmitter return new EventEmitter.
-func NewEventEmitter() *EventEmitter {
+func NewEventEmitter(size int) *EventEmitter {
 	return &EventEmitter{
 		eventSubs: new(sync.Map),
-		eventCh:   make(chan *Event, 1024),
+		eventCh:   make(chan *Event, size),
 		quitCh:    make(chan int, 1),
+		size:      size,
 	}
 }
 
 // Start start emitter.
 func (emitter *EventEmitter) Start() {
+	log.WithFields(log.Fields{
+		"size": emitter.size,
+	}).Info("Start EventEmitter.")
+
 	go emitter.loop()
 }
 
 // Stop stop emitter.
 func (emitter *EventEmitter) Stop() {
+	log.WithFields(log.Fields{
+		"size": emitter.size,
+	}).Info("Stop EventEmitter.")
+
 	emitter.quitCh <- 1
 }
 
@@ -88,7 +98,7 @@ func (emitter *EventEmitter) Trigger(e *Event) {
 	log.WithFields(log.Fields{
 		"topic": e.Topic,
 		"data":  e.Data,
-	}).Debug("trigger new event")
+	}).Debug("Trigger new event")
 	emitter.eventCh <- e
 }
 
@@ -120,10 +130,12 @@ func (emitter *EventEmitter) Deregister(topic string, ch chan *Event) error {
 }
 
 func (emitter *EventEmitter) loop() {
+	log.Info("Launched EventEmitter.")
+
 	for {
 		select {
 		case <-emitter.quitCh:
-			log.Info("EventEmitter.loop: quit.")
+			log.Info("ShutDowned EventEmitter.")
 			return
 		case e := <-emitter.eventCh:
 

@@ -106,7 +106,7 @@ func (dc *DposContext) RootHash() byteutils.Hash {
 
 // BeginBatch starts a batch task
 func (dc *DposContext) BeginBatch() {
-	log.Info("DposContext Begin.")
+	log.Debug("DposContext Begin.")
 	dc.delegateTrie.BeginBatch()
 	dc.dynastyTrie.BeginBatch()
 	dc.nextDynastyTrie.BeginBatch()
@@ -123,7 +123,7 @@ func (dc *DposContext) Commit() {
 	dc.candidateTrie.Commit()
 	dc.voteTrie.Commit()
 	dc.mintCntTrie.Commit()
-	log.Info("DposContext Commit.")
+	log.Debug("DposContext Commit.")
 }
 
 // RollBack a batch task
@@ -134,7 +134,7 @@ func (dc *DposContext) RollBack() {
 	dc.candidateTrie.RollBack()
 	dc.voteTrie.RollBack()
 	dc.mintCntTrie.RollBack()
-	log.Info("DposContext RollBack.")
+	log.Debug("DposContext RollBack.")
 }
 
 // Clone a dpos context
@@ -145,28 +145,22 @@ func (dc *DposContext) Clone() (*DposContext, error) {
 		return nil, err
 	}
 	if context.dynastyTrie, err = dc.dynastyTrie.Clone(); err != nil {
-		log.Error("DynastyTrie Clone Error")
-		return nil, err
+		return nil, ErrCloneDynastyTrie
 	}
 	if context.nextDynastyTrie, err = dc.nextDynastyTrie.Clone(); err != nil {
-		log.Error("NextDynastyTrie Clone Error")
-		return nil, err
+		return nil, ErrCloneNextDynastyTrie
 	}
 	if context.delegateTrie, err = dc.delegateTrie.Clone(); err != nil {
-		log.Error("DelegateTrie Clone Error")
-		return nil, err
+		return nil, ErrCloneDelegateTrie
 	}
 	if context.candidateTrie, err = dc.candidateTrie.Clone(); err != nil {
-		log.Error("CandidatesTrie Clone Error")
-		return nil, err
+		return nil, ErrCloneCandidatesTrie
 	}
 	if context.voteTrie, err = dc.voteTrie.Clone(); err != nil {
-		log.Error("VoteTrie Clone Error")
-		return nil, err
+		return nil, ErrCloneVoteTrie
 	}
 	if context.mintCntTrie, err = dc.mintCntTrie.Clone(); err != nil {
-		log.Error("MintCntTrie Clone Error")
-		return nil, err
+		return nil, ErrCloneMintCntTrie
 	}
 	return context, nil
 }
@@ -424,8 +418,11 @@ func kickout(stor storage.Storage, candidatesTrie *trie.BatchTrie, delegateTrie 
 		if err != nil && err != storage.ErrKeyNotFound {
 			return err
 		}
-		if err != nil {
-			log.Error("unexpected voter who votes nobody appears in delegate trie")
+		if err == storage.ErrKeyNotFound {
+			log.WithFields(log.Fields{
+				"voter":     byteutils.Hex(delegator),
+				"candidate": candidate.Hex(),
+			}).Debug("Unexpected voter who votes nobody appears in delegate trie")
 		}
 		if err == nil && byteutils.Equal(bytes, candidate) {
 			if _, err := voteTrie.Del(delegator); err != nil && err != storage.ErrKeyNotFound {
@@ -437,7 +434,7 @@ func kickout(stor storage.Storage, candidatesTrie *trie.BatchTrie, delegateTrie 
 			return err
 		}
 	}
-	log.Info("Kickout Candidate: ", candidate.Hex())
+	log.Debug("Kickouted candidate: ", candidate.Hex())
 	return nil
 }
 
@@ -450,8 +447,6 @@ func (dc *DynastyContext) kickoutCandidate(candidate byteutils.Hash) error {
 }
 
 func (dc *DynastyContext) kickoutDynasty(dynastyID int64) error {
-	log.Info("Kickout Dynasty ", dynastyID)
-
 	dynastyTrie := dc.DynastyTrie
 	iter, err := dynastyTrie.Iterator(nil)
 	if err != nil && err != storage.ErrKeyNotFound {
@@ -490,7 +485,7 @@ func (dc *DynastyContext) kickoutDynasty(dynastyID int64) error {
 			if err != nil {
 				return err
 			}
-			log.Info("Cannot Kickout Active Bootstrap Candidate: ", addr)
+			log.Debug("Protect active bootstrap candidate: ", addr)
 		} else {
 			if err := dc.kickoutCandidate(validator); err != nil {
 				return err
@@ -501,11 +496,18 @@ func (dc *DynastyContext) kickoutDynasty(dynastyID int64) error {
 			return err
 		}
 	}
+
+	log.Debug("Kickouted dynasty: ", dynastyID)
 	return nil
 }
 
 func (dc *DynastyContext) electNextDynastyOnBaseDynasty(baseDynastyID int64, nextDynastyID int64, baseGenesis bool) error {
-	log.Info("elect ", nextDynastyID, " from ", baseDynastyID)
+	log.WithFields(log.Fields{
+		"base":            baseDynastyID,
+		"next":            nextDynastyID,
+		"base is genesis": baseGenesis,
+	}).Debug("Try to elect new dynasty")
+
 	if baseGenesis {
 		baseDynastyID = nextDynastyID - 1
 	}
@@ -529,15 +531,16 @@ func (dc *DynastyContext) electNextDynastyOnBaseDynasty(baseDynastyID int64, nex
 			return ErrTooFewCandidates
 		}
 		// Top 20 are selected directly
+		newDynasty := []string{}
 		nextDynastyTrie, err := trie.NewBatchTrie(nil, dc.Storage)
 		directSelected := DynastySize - 1
 		for i := 0; i < directSelected && i < len(candidates); i++ {
 			delegatee := candidates[i].Address.Bytes()
-			log.Info(candidates[i].Address.String())
 			_, err := nextDynastyTrie.Put(delegatee, delegatee)
 			if err != nil {
 				return err
 			}
+			newDynasty = append(newDynasty, candidates[i].Address.String())
 		}
 		// The last one is selected randomly
 		if len(candidates) > directSelected {
@@ -547,15 +550,19 @@ func (dc *DynastyContext) electNextDynastyOnBaseDynasty(baseDynastyID int64, nex
 			result := int(hasher.Sum32()) % (len(candidates) - directSelected)
 			offset := result + DynastySize - 1
 			delegatee := candidates[offset].Address.Bytes()
-			log.Info(candidates[offset].Address.String())
 			_, err = nextDynastyTrie.Put(delegatee, delegatee)
 			if err != nil {
 				return err
 			}
+			newDynasty = append(newDynasty, candidates[offset].Address.String())
 		}
-		log.Info("new dynasty")
 		dc.DynastyTrie = dc.NextDynastyTrie
 		dc.NextDynastyTrie = nextDynastyTrie
+
+		log.WithFields(log.Fields{
+			"dynasty.members": newDynasty,
+			"dynasty.id":      string(i + 1),
+		}).Debug("Elected new dynasty")
 	}
 	return nil
 }

@@ -36,7 +36,7 @@ func InitCrashReporter() {
 	os.Setenv("GOBACKTRACE", "crash")
 	dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
 	if err != nil {
-		log.Warn("InitCrashReporter ignore due to filepath failure")
+		log.Error("InitCrashReporter ignore due to filepath failure")
 		return
 	}
 	fp := fmt.Sprintf("%vcrash_%v.log", os.TempDir(), os.Getpid())
@@ -54,12 +54,12 @@ func InitCrashReporter() {
 	}
 
 	if err != nil {
-		log.Warn("InitCrashReporter ignore due to create tcp server failure")
+		log.Error("InitCrashReporter ignore due to create tcp server failure")
 		return
 	}
 	defer s.Close()
 
-	log.Debug("InitCrashReporter starting daemon...")
+	log.Info("InitCrashReporter starting daemon...")
 
 	code := rand.Intn(0xFFFF)
 	cmd := exec.Command(fmt.Sprintf("%v/nebulas_crashreporter", dir),
@@ -74,13 +74,13 @@ func InitCrashReporter() {
 
 	err = cmd.Start()
 	if err != nil {
-		log.Warn("InitCrashReporter ignore due to start daemon failure")
+		log.Error("InitCrashReporter ignore due to start daemon failure")
 		return
 	}
 
 	conn, err := s.Accept()
 	if err != nil {
-		log.Warn("InitCrashReporter ignore due to create tcp accept failure")
+		log.Error("InitCrashReporter ignore due to create tcp accept failure")
 		return
 	}
 	var buf = make([]byte, 10)
@@ -97,6 +97,6 @@ func InitCrashReporter() {
 			syscall.Dup2(int(crashFile.Fd()), 2)
 		}
 	} else {
-		log.Warn("InitCrashReporter ignore due to code not match")
+		log.Error("InitCrashReporter ignore due to code not match")
 	}
 }

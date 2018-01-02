@@ -102,10 +102,9 @@ func NewGenesisBlock(conf *corepb.Genesis, chain *BlockChain) (*Block, error) {
 		addr, err := AddressParse(v.Address)
 		if err != nil {
 			log.WithFields(log.Fields{
-				"func":  "GenerateGenesisBlock",
-				"block": v.Address,
-				"err":   err,
-			}).Error("wrong address in initial distribution.")
+				"address": v.Address,
+				"err":     err,
+			}).Error("Existed invalid address in genesis token distribution.")
 			return nil, err
 		}
 		acc := genesisBlock.accState.GetOrCreateUserAccount(addr.address)
@@ -113,7 +112,14 @@ func NewGenesisBlock(conf *corepb.Genesis, chain *BlockChain) (*Block, error) {
 	}
 	genesisBlock.commit()
 
-	genesisBlock.Seal()
+	if err := genesisBlock.Seal(); err != nil {
+		log.WithFields(log.Fields{
+			"gensis": genesisBlock,
+			"err":    err,
+		}).Error("Failed to seal genesis block.")
+		return nil, err
+	}
+
 	genesisBlock.header.hash = GenesisHash
 	return genesisBlock, nil
 }

@@ -72,11 +72,8 @@ func less(a interface{}, b interface{}) bool {
 
 // NewTransactionPool create a new TransactionPool
 func NewTransactionPool(size int) (*TransactionPool, error) {
-	if size == 0 {
-		panic("cannot new txpool with size == 0")
-	}
 	txPool := &TransactionPool{
-		receivedMessageCh: make(chan net.Message, 128),
+		receivedMessageCh: make(chan net.Message, size),
 		quitCh:            make(chan int, 1),
 		size:              size,
 		cache:             pdeque.NewPriorityDeque(less),
@@ -113,59 +110,75 @@ func (pool *TransactionPool) setBlockChain(bc *BlockChain) {
 
 // Start start loop.
 func (pool *TransactionPool) Start() {
+	log.WithFields(log.Fields{
+		"size": pool.size,
+	}).Info("Start TransactionPool.")
+
 	go pool.loop()
 }
 
 // Stop stop loop.
 func (pool *TransactionPool) Stop() {
+	log.WithFields(log.Fields{
+		"size": pool.size,
+	}).Info("Stop TransactionPool.")
+
 	pool.quitCh <- 0
 }
 
 func (pool *TransactionPool) loop() {
 	log.WithFields(log.Fields{
-		"func": "TxPool.loop",
-	}).Debug("running.")
+		"size": pool.size,
+	}).Info("Launched TransactionPool.")
 
-	count := 0
 	for {
 		select {
 		case <-pool.quitCh:
 			log.WithFields(log.Fields{
-				"func": "TxPool.loop",
-			}).Info("quit.")
+				"size": pool.size,
+			}).Info("Shutdowned TransactionPool.")
 			return
 		case msg := <-pool.receivedMessageCh:
-			count++
-			log.WithFields(log.Fields{
-				"func": "TxPool.loop",
-			}).Debugf("received message. Count=%d", count)
-
 			if msg.MessageType() != MessageTypeNewTx {
 				log.WithFields(log.Fields{
-					"func":        "TxPool.loop",
 					"messageType": msg.MessageType(),
 					"message":     msg,
-				}).Error("TxPool.loop: received unregistered message, pls check code.")
+					"err":         "not new tx msg",
+				}).Debug("Received unregistered message.")
 				continue
 			}
 
 			tx := new(Transaction)
 			pbTx := new(corepb.Transaction)
 			if err := proto.Unmarshal(msg.Data().([]byte), pbTx); err != nil {
-				log.Error("TxPool.loop:: unmarshal data occurs error, ", err)
+				log.WithFields(log.Fields{
+					"msgType": msg.MessageType(),
+					"msg":     msg,
+					"err":     err,
+				}).Debug("Failed to unmarshal data.")
 				continue
 			}
 			if err := tx.FromProto(pbTx); err != nil {
-				log.Error("TxPool.loop:: get block from proto occurs error: ", err)
+				log.WithFields(log.Fields{
+					"msgType": msg.MessageType(),
+					"msg":     msg,
+					"err":     err,
+				}).Debug("Failed to recover a tx from proto data.")
 				continue
 			}
+
+			log.WithFields(log.Fields{
+				"tx":   tx,
+				"type": msg.MessageType(),
+			}).Debug("Received a new tx.")
+
 			if err := pool.PushAndRelay(tx); err != nil {
 				log.WithFields(log.Fields{
 					"func":        "TxPool.loop",
 					"messageType": msg.MessageType(),
 					"transaction": tx,
 					"err":         err,
-				}).Warn("TxPool.loop: invalid transaction, drop it.")
+				}).Debug("Failed to push a tx into tx pool.")
 				continue
 			}
 		}

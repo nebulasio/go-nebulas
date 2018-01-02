@@ -206,7 +206,8 @@ func hashToInt64(hash string) (int64, error) {
 	if s, err = strconv.ParseInt(h, 16, 32); err != nil {
 		log.WithFields(log.Fields{
 			"hash": hash,
-		}).Debug("Failed to parseInt", "err", err)
+			"err":  err,
+		}).Debug("Failed to parseInt")
 		return 0, err
 	}
 	return s, nil
@@ -307,6 +308,11 @@ func (bc *BlockChain) putVerifiedNewBlocks(parent *Block, allBlocks, tailBlocks 
 		if err := bc.storeBlockToStorage(v); err != nil {
 			return err
 		}
+
+		log.WithFields(log.Fields{
+			"block": v,
+		}).Info("Accepted the new block on chain")
+
 		blockOnchainTimer.Update(time.Duration(time.Now().Unix() - v.Timestamp()))
 		for _, tx := range v.transactions {
 			txOnchainTimer.Update(time.Duration(time.Now().Unix() - tx.Timestamp()))

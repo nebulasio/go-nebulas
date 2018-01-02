@@ -53,7 +53,7 @@ func (ns *NetService) Sync(tail net.Serializable) error {
 	LimitToSync = int(math.Sqrt(float64(len(allNode))))
 	log.Info("Sync: allNode -> ", allNode)
 	if len(allNode) < LimitToSync {
-		log.Warn("Sync: node not enough.")
+		log.Debug("Sync: node not enough.")
 		return ErrNodeNotEnough
 	}
 
@@ -63,7 +63,7 @@ func (ns *NetService) Sync(tail net.Serializable) error {
 		addrs := node.peerstore.PeerInfo(nodeID).Addrs
 		if len(addrs) > 0 {
 			if node.host.Addrs()[0] == addrs[0] {
-				log.Warn("Sync: skip self")
+				log.Debug("Sync: skip self")
 				continue
 			}
 
@@ -94,6 +94,6 @@ func (ns *NetService) SendSyncReply(key string, blocks net.Serializable) {
 		}()
 		return
 	}
-	log.Warnf("send syncReply to addrs %s fail", key)
+	log.Debugf("send syncReply to addrs %s fail", key)
 
 }

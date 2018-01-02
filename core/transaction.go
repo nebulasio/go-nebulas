@@ -183,7 +183,7 @@ func (tx *Transaction) FromProto(msg proto.Message) error {
 		tx.sign = msg.Sign
 		return nil
 	}
-	return errors.New("Pb Message cannot be converted into Transaction")
+	return errors.New("Protobug Message cannot be converted into Transaction")
 }
 
 func (tx *Transaction) String() string {
@@ -319,8 +319,7 @@ func (tx *Transaction) VerifyExecution(block *Block) (*util.Uint128, error) {
 			"error":       err,
 			"block":       block,
 			"transaction": tx,
-			"func":        "Transaction.LoadPayload",
-		}).Error("Transaction Execute.")
+		}).Debug("Failed to load payload.")
 		executeTxErrCounter.Inc(1)
 
 		tx.gasConsumption(fromAcc, coinbaseAcc, gasUsed)
@@ -338,11 +337,10 @@ func (tx *Transaction) VerifyExecution(block *Block) (*util.Uint128, error) {
 	gasUsed.Add(gasUsed.Int, payload.BaseGasCount().Int)
 	if tx.gasLimit.Cmp(gasUsed.Int) < 0 {
 		log.WithFields(log.Fields{
-			"error":       ErrOutOfGasLimit,
-			"block":       block,
-			"transaction": tx,
-			"func":        "payload.BaseGasCount",
-		}).Error("Transaction Execute.")
+			"err":   ErrOutOfGasLimit,
+			"block": block,
+			"tx":    tx,
+		}).Debug("Failed to check base gas used.")
 		executeTxErrCounter.Inc(1)
 
 		tx.gasConsumption(fromAcc, coinbaseAcc, tx.gasLimit)
@@ -362,34 +360,34 @@ func (tx *Transaction) VerifyExecution(block *Block) (*util.Uint128, error) {
 	gas := util.NewUint128FromBigInt(util.NewUint128().Add(gasUsed.Int, gasExecution.Int))
 
 	log.WithFields(log.Fields{
-		"transaction":  tx,
+		"tx":           tx,
 		"gasUsed":      gasUsed.String(),
 		"gasExecution": gasExecution.String(),
 		"gas":          gas.String(),
 		"gasPrice":     tx.gasPrice.String(),
 		"gasLimited":   tx.gasLimit.String(),
-	}).Info("Transaction Execute statics.")
+	}).Debug("Transaction execution statics.")
 
 	tx.gasConsumption(fromAcc, coinbaseAcc, gas)
 
 	if err != nil {
 		log.WithFields(log.Fields{
-			"error":        err,
+			"err":          err,
 			"block":        block,
-			"transaction":  tx,
+			"tx":           tx,
 			"gasUsed":      gasUsed.String(),
 			"gasExecution": gasExecution.String(),
-		}).Error("Transaction Execute.")
+		}).Debug("Failed to execute payload.")
 
 		executeTxErrCounter.Inc(1)
 		tx.triggerEvent(TopicExecuteTxFailed, block, err)
 	} else {
 		if fromAcc.Balance().Cmp(tx.value.Int) < 0 {
 			log.WithFields(log.Fields{
-				"error":       ErrInsufficientBalance,
-				"block":       block,
-				"transaction": tx,
-			}).Error("Transaction Execute.")
+				"err":   ErrInsufficientBalance,
+				"block": block,
+				"tx":    tx,
+			}).Debug("Failed to check balance sufficient.")
 
 			executeTxErrCounter.Inc(1)
 			tx.triggerEvent(TopicExecuteTxFailed, block, ErrInsufficientBalance)
@@ -496,7 +494,7 @@ func (tx *Transaction) verifySign() error {
 		log.WithFields(log.Fields{
 			"recover address": addr.String(),
 			"tx":              tx,
-		}).Error("Transaction verifySign.")
+		}).Debug("Failed to verify tx's sign.")
 		return ErrInvalidTransactionSigner
 	}
 	return nil

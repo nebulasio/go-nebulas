@@ -37,7 +37,7 @@ func register(emitter *EventEmitter, topic string) chan *Event {
 
 func TestEventEmitter(t *testing.T) {
 	// create emitter.
-	emitter := NewEventEmitter()
+	emitter := NewEventEmitter(1024)
 	emitter.Start()
 
 	// topic & categories
@@ -107,7 +107,7 @@ func TestEventEmitter(t *testing.T) {
 
 func TestEventEmitterWithRunningRegDereg(t *testing.T) {
 	// create emitter.
-	emitter := NewEventEmitter()
+	emitter := NewEventEmitter(1024)
 	emitter.Start()
 
 	// topic
@@ -194,7 +194,7 @@ func TestEventEmitterWithRunningRegDereg(t *testing.T) {
 
 func TestEventEmitterDeregister(t *testing.T) {
 	// create emitter.
-	emitter := NewEventEmitter()
+	emitter := NewEventEmitter(1024)
 
 	ch := make(chan *Event, 1)
 	assert.Nil(t, emitter.Deregister("wow", ch))

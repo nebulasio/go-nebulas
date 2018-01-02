@@ -92,7 +92,7 @@ func (n *Neblet) Setup() error {
 	if err = n.checkSchemeVersion(n.storage); err != nil {
 		return err
 	}
-	n.eventEmitter = core.NewEventEmitter()
+	n.eventEmitter = core.NewEventEmitter(1024)
 	n.blockChain, err = core.NewBlockChain(n)
 	if err != nil {
 		return err

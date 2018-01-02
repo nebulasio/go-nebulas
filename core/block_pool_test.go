@@ -166,13 +166,13 @@ func TestBlockPool(t *testing.T) {
 
 	err = pool.Push(block3)
 	assert.Equal(t, pool.cache.Len(), 1)
-	assert.NoError(t, err)
+	assert.Error(t, ErrMissingParentBlock)
 	err = pool.Push(block4)
 	assert.Equal(t, pool.cache.Len(), 2)
 	assert.NoError(t, err)
 	err = pool.Push(block2)
 	assert.Equal(t, pool.cache.Len(), 3)
-	assert.NoError(t, err)
+	assert.Error(t, ErrMissingParentBlock)
 
 	err = pool.Push(block1)
 	assert.NoError(t, err)
