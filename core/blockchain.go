@@ -19,7 +19,6 @@
 package core
 
 import (
-	"errors"
 	"strconv"
 	"strings"
 	"time"
@@ -104,11 +103,23 @@ func NewBlockChain(neb Neblet) (*BlockChain, error) {
 	if err != nil {
 		return nil, err
 	}
+	genesisConf, err := DumpGenesis(bc.storage)
+	if err != nil {
+		return nil, err
+	}
+	log.WithFields(log.Fields{
+		"meta.chainid":           genesisConf.Meta.ChainId,
+		"consensus.dpos.dynasty": genesisConf.Consensus.Dpos.Dynasty,
+		"token.distribution":     genesisConf.TokenDistribution,
+	}).Info("Genesis Configuration.")
 
 	bc.tailBlock, err = bc.loadTailFromStorage()
 	if err != nil {
 		return nil, err
 	}
+	log.WithFields(log.Fields{
+		"block": bc.tailBlock,
+	}).Info("Tail Block.")
 
 	bc.bkPool.setBlockChain(bc)
 	bc.txPool.setBlockChain(bc)
@@ -195,7 +206,7 @@ func hashToInt64(hash string) (int64, error) {
 	if s, err = strconv.ParseInt(h, 16, 32); err != nil {
 		log.WithFields(log.Fields{
 			"hash": hash,
-		}).Error("parseInt error")
+		}).Debug("Failed to parseInt", "err", err)
 		return 0, err
 	}
 	return s, nil
@@ -243,7 +254,7 @@ func (bc *BlockChain) FetchDescendantInCanonicalChain(n int, block *Block) ([]*B
 	curBlock := bc.tailBlock
 	for curBlock != nil && !curBlock.Hash().Equals(block.Hash()) {
 		if CheckGenesisBlock(curBlock) {
-			return nil, errors.New("cannot find the block in canonical chain")
+			return nil, ErrNotBlockInCanonicalChain
 		}
 		curIdx = (curIdx + 1) % n
 		queue[curIdx] = curBlock
@@ -409,8 +420,6 @@ func (bc *BlockChain) getAncestorHash(number int) (byteutils.Hash, error) {
 func (bc *BlockChain) Dump(count int) string {
 	rl := []string{}
 	block := bc.tailBlock
-	log.Info("Dump ", count)
-	log.Info("Tail ", bc.tailBlock)
 	rl = append(rl, block.String())
 	for i := 1; i < count; i++ {
 		if !CheckGenesisBlock(block) {
@@ -420,7 +429,6 @@ func (bc *BlockChain) Dump(count int) string {
 	}
 
 	rls := "[" + strings.Join(rl, ",") + "]"
-	log.Info("Blocks ", rls)
 	return rls
 }
 
@@ -466,20 +474,15 @@ func (bc *BlockChain) loadTailFromStorage() (*Block, error) {
 
 func (bc *BlockChain) loadGenesisFromStorage() (*Block, error) {
 	genesis, err := LoadBlockFromStorage(GenesisHash, bc.storage, bc.txPool, bc.eventEmitter)
-	if err == nil {
-		return genesis, nil
-	}
-	if err != storage.ErrKeyNotFound {
-		return nil, err
-	}
-
-	genesis, err = NewGenesisBlock(bc.genesis, bc)
 	if err != nil {
-		return nil, err
-	}
-	if err := bc.storeBlockToStorage(genesis); err != nil {
-		return nil, err
-	}
+		genesis, err = NewGenesisBlock(bc.genesis, bc)
+		if err != nil {
+			return nil, err
+		}
+		if err := bc.storeBlockToStorage(genesis); err != nil {
+			return nil, err
+		}
 
+	}
 	return genesis, nil
 }

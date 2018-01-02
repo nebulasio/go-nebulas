@@ -105,7 +105,7 @@ func (b *BlockHeader) FromProto(msg proto.Message) error {
 		b.sign = msg.Sign
 		return nil
 	}
-	return errors.New("Pb Message cannot be converted into BlockHeader")
+	return errors.New("Protobuf message cannot be converted into BlockHeader")
 }
 
 // Block structure
@@ -140,7 +140,7 @@ func (block *Block) ToProto() (proto.Message, error) {
 			if tx, ok := tx.(*corepb.Transaction); ok {
 				txs = append(txs, tx)
 			} else {
-				return nil, errors.New("Pb Message cannot be converted into Transaction")
+				return nil, errors.New("Protobuf message cannot be converted into Transaction")
 			}
 		}
 		return &corepb.Block{
@@ -149,7 +149,7 @@ func (block *Block) ToProto() (proto.Message, error) {
 			Height:       block.height,
 		}, nil
 	}
-	return nil, errors.New("Pb Message cannot be converted into BlockHeader")
+	return nil, errors.New("Protobuf message cannot be converted into BlockHeader")
 }
 
 // FromProto converts proto Block to domain Block
@@ -169,7 +169,7 @@ func (block *Block) FromProto(msg proto.Message) error {
 		block.height = msg.Height
 		return nil
 	}
-	return errors.New("Pb Message cannot be converted into Block")
+	return errors.New("Protobuf message cannot be converted into Block")
 }
 
 // SerializeTxByHash returns tx serialized bytes
@@ -272,7 +272,10 @@ func (block *Block) Nonce() uint64 {
 // SetNonce set nonce.
 func (block *Block) SetNonce(nonce uint64) {
 	if block.sealed {
-		panic("Sealed block can't be changed.")
+		log.WithFields(log.Fields{
+			"block": block,
+		}).Error("Sealed block can't be changed.")
+		return
 	}
 	block.header.nonce = nonce
 }
@@ -285,7 +288,10 @@ func (block *Block) Timestamp() int64 {
 // SetTimestamp set timestamp
 func (block *Block) SetTimestamp(timestamp int64) {
 	if block.sealed {
-		panic("Sealed block can't be changed.")
+		log.WithFields(log.Fields{
+			"block": block,
+		}).Error("Sealed block can't be changed.")
+		return
 	}
 	block.header.timestamp = timestamp
 }
@@ -346,12 +352,7 @@ func (block *Block) ParentBlock() (*Block, error) {
 	}
 	parentBlock, err := LoadBlockFromStorage(block.ParentHash(), block.storage, block.txPool, block.eventEmitter)
 	if err != nil {
-		log.WithFields(log.Fields{
-			"func":  "block.ParentBlock",
-			"block": block,
-			"err":   err,
-		}).Error("cannot find the parent block.")
-		return nil, err
+		return nil, ErrMissingParentBlock
 	}
 	return parentBlock, nil
 }
@@ -386,44 +387,44 @@ func (block *Block) LinkParentBlock(parentBlock *Block) error {
 	var err error
 	if block.accState, err = parentBlock.accState.Clone(); err != nil {
 		log.WithFields(log.Fields{
-			"func":  "block.LinkParentBlock",
-			"block": parentBlock,
-			"err":   err,
-		}).Error("cannot clone account state.")
+			"parent": parentBlock,
+			"block":  block,
+			"err":    err,
+		}).Debug("Failed to clone account state.")
 		return err
 	}
 	if block.txsTrie, err = parentBlock.txsTrie.Clone(); err != nil {
 		log.WithFields(log.Fields{
-			"func":  "block.LinkParentBlock",
-			"block": parentBlock,
-			"err":   err,
-		}).Error("cannot clone txs state.")
+			"parent": parentBlock,
+			"block":  block,
+			"err":    err,
+		}).Debug("Failed to clone txs state.")
 		return err
 	}
 	if block.eventsTrie, err = parentBlock.eventsTrie.Clone(); err != nil {
 		log.WithFields(log.Fields{
-			"func":  "block.LinkParentBlock",
-			"block": parentBlock,
-			"err":   err,
-		}).Error("cannot clone events state.")
+			"parent": parentBlock,
+			"block":  block,
+			"err":    err,
+		}).Debug("Failed to clone events state.")
 		return err
 	}
 	elapsedSecond := block.Timestamp() - parentBlock.Timestamp()
 	context, err := parentBlock.NextDynastyContext(elapsedSecond)
 	if err != nil {
 		log.WithFields(log.Fields{
-			"func":  "block.LinkParentBlock",
-			"block": parentBlock,
-			"err":   err,
-		}).Error("cannot generate next dynasty context.")
+			"parent": parentBlock,
+			"block":  block,
+			"err":    err,
+		}).Debug("Failed to generate next dynasty context.")
 		return err
 	}
 	if err := block.LoadDynastyContext(context); err != nil {
 		log.WithFields(log.Fields{
-			"func":  "block.LinkParentBlock",
-			"block": parentBlock,
-			"err":   err,
-		}).Error("cannot load next dynasty context.")
+			"parent": parentBlock,
+			"block":  block,
+			"err":    err,
+		}).Debug("Failed to load next dynasty context.")
 		return err
 	}
 	block.txPool = parentBlock.txPool
@@ -432,11 +433,17 @@ func (block *Block) LinkParentBlock(parentBlock *Block) error {
 	block.height = parentBlock.height + 1
 	block.eventEmitter = parentBlock.eventEmitter
 
+	log.WithFields(log.Fields{
+		"parent": parentBlock,
+		"block":  block,
+		"err":    err,
+	}).Debug("Linked the parent block.")
+
 	return nil
 }
 
 func (block *Block) begin() {
-	log.Info("Block Begin.")
+	log.Debug("Block Begin.")
 	block.accState.BeginBatch()
 	block.txsTrie.BeginBatch()
 	block.eventsTrie.BeginBatch()
@@ -450,7 +457,7 @@ func (block *Block) commit() {
 	block.dposContext.Commit()
 	log.WithFields(log.Fields{
 		"block": block,
-	}).Info("Block Commit.")
+	}).Debug("Block Commit.")
 }
 
 func (block *Block) rollback() {
@@ -460,7 +467,7 @@ func (block *Block) rollback() {
 	block.dposContext.RollBack()
 	log.WithFields(log.Fields{
 		"block": block,
-	}).Info("Block RollBack.")
+	}).Debug("Block RollBack.")
 }
 
 // ReturnTransactions and giveback them to tx pool
@@ -476,7 +483,10 @@ func (block *Block) ReturnTransactions() {
 // CollectTransactions and add them to block.
 func (block *Block) CollectTransactions(n int) {
 	if block.sealed {
-		panic("Sealed block can't be changed.")
+		log.WithFields(log.Fields{
+			"block": block,
+		}).Error("Sealed block can't be changed.")
+		return
 	}
 
 	pool := block.txPool
@@ -490,22 +500,20 @@ func (block *Block) CollectTransactions(n int) {
 		}
 		if err == nil {
 			log.WithFields(log.Fields{
-				"func":     "block.CollectionTransactions",
 				"block":    block,
 				"tx":       tx,
 				"giveback": giveback,
-			}).Info("tx is packed.")
+			}).Debug("tx is packed.")
 			block.commit()
 			block.transactions = append(block.transactions, tx)
 			n--
 		} else {
 			log.WithFields(log.Fields{
-				"func":     "block.CollectionTransactions",
 				"block":    block,
 				"tx":       tx,
 				"err":      err,
 				"giveback": giveback,
-			}).Warn("invalid tx.")
+			}).Debug("invalid tx.")
 			block.rollback()
 		}
 	}
@@ -513,11 +521,10 @@ func (block *Block) CollectTransactions(n int) {
 		err := pool.Push(tx)
 		if err != nil {
 			log.WithFields(log.Fields{
-				"func":  "block.CollectionTransactions",
 				"block": block,
 				"tx":    tx,
 				"err":   err,
-			}).Error("giveback tx failed.")
+			}).Debug("Failed to giveback the tx.")
 		}
 	}
 }
@@ -552,7 +559,8 @@ func (block *Block) Seal() error {
 
 	log.WithFields(log.Fields{
 		"block": block,
-	}).Info("Block Seal.")
+	}).Debug("Sealed Block.")
+
 	return nil
 }
 
@@ -764,7 +772,7 @@ func (block *Block) recordEvent(txHash byteutils.Hash, event *Event) error {
 		"block": block,
 		"tx":    txHash.Hex(),
 		"event": event,
-	}).Debug("Record Event.")
+	}).Debug("Recorded event.")
 	return nil
 }
 
@@ -815,7 +823,7 @@ func (block *Block) recordMintCnt() error {
 		"dynasty": block.Timestamp() / DynastyInterval,
 		"miner":   block.miner.String(),
 		"count":   cnt,
-	}).Debug("Record Mint Count.")
+	}).Debug("Recorded the block minted by the miner in the dynasty.")
 	return nil
 }
 
@@ -826,7 +834,7 @@ func (block *Block) rewardCoinbase() {
 	log.WithFields(log.Fields{
 		"coinbase": coinbaseAddr.Hex(),
 		"balance":  coinbaseAcc.Balance().Int64(),
-	}).Debug("Coinbase Reward.")
+	}).Debug("Rewarded the coinbase.")
 }
 
 // GetTransaction from txs Trie

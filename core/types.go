@@ -49,7 +49,7 @@ var (
 	ErrTxExecutionFailed                   = errors.New("transaction execution failed")
 	ErrInvalidSignature                    = errors.New("invalid transaction signature")
 	ErrInvalidTransactionHash              = errors.New("invalid transaction hash")
-	ErrMissingParentBlock                  = errors.New("cannot find a on-chain block's parent block in storage")
+	ErrMissingParentBlock                  = errors.New("cannot find the block's parent block in storage")
 	ErrTooFewCandidates                    = errors.New("the size of candidates in consensus is un-safe, should be greater than or equal " + strconv.Itoa(SafeSize))
 	ErrNotBlockForgTime                    = errors.New("now is not time to forg block")
 	ErrInvalidBlockHash                    = errors.New("invalid block hash")
@@ -73,6 +73,7 @@ var (
 	ErrInvalidBaseAndNextDynastyID         = errors.New("cannot kickout from baseDynastyID to nextDynastyID if nextDynastyID <= baseDynastyID")
 	ErrInitialDynastyNotEnough             = errors.New("the size of initial dynasty in genesis block is un-safe, should be greater than or equal " + strconv.Itoa(SafeSize))
 	ErrInvalidTransactionSigner            = errors.New("Transaction recover public key address not equal to from. ")
+	ErrNotBlockInCanonicalChain            = errors.New("cannot find the block in canonical chain")
 )
 
 // Default gas count
