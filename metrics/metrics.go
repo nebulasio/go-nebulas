@@ -19,6 +19,7 @@
 package metrics
 
 import (
+	"fmt"
 	"runtime"
 	"time"
 
@@ -30,7 +31,8 @@ import (
 
 const (
 	duration = 2 * time.Second
-	tagName  = "nodeID"
+	nodeID   = "nodeID"
+	chainID  = "chainID"
 )
 
 var (
@@ -46,10 +48,16 @@ type Neblet interface {
 // Start metrics monitor
 func Start(neb Neblet) {
 	tags := make(map[string]string)
-	tags[tagName] = neb.NetManager().Node().ID()
+	tags[nodeID] = getSimpleNodeID(neb)
+	tags[chainID] = fmt.Sprintf("%d", neb.NetManager().Node().Config().ChainID)
 	go collectSystemMetrics()
 	influxdb.InfluxDBWithTags(metrics.DefaultRegistry, duration, neb.Config().Stats.Influxdb.Host, neb.Config().Stats.Influxdb.Db, neb.Config().Stats.Influxdb.User, neb.Config().Stats.Influxdb.Password, tags)
+}
 
+func getSimpleNodeID(neb Neblet) string {
+	rs := []rune(neb.NetManager().Node().ID())
+	rl := len(rs)
+	return string(rs[rl-6 : rl])
 }
 
 func collectSystemMetrics() {
