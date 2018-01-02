@@ -19,9 +19,16 @@
 package net
 
 import (
+	"fmt"
 	"sync"
 
+	metrics "github.com/rcrowley/go-metrics"
 	log "github.com/sirupsen/logrus"
+)
+
+var (
+	PacketsInByTypes  = new(sync.Map)
+	PacketsOutByTypes = new(sync.Map)
 )
 
 // Dispatcher a message dispatcher service.
@@ -44,9 +51,10 @@ func NewDispatcher() *Dispatcher {
 
 // Register register subscribers.
 func (dp *Dispatcher) Register(subscribers ...*Subscriber) {
-
 	for _, v := range subscribers {
 		for _, mt := range v.msgTypes {
+			PacketsInByTypes.LoadOrStore(mt, metrics.GetOrRegisterMeter(fmt.Sprintf("neb.net.packets.in.%s", mt), nil))
+			PacketsOutByTypes.LoadOrStore(mt, metrics.GetOrRegisterMeter(fmt.Sprintf("neb.net.packets.out.%s", mt), nil))
 			m, _ := dp.subscribersMap.LoadOrStore(mt, new(sync.Map))
 			m.(*sync.Map).Store(v, true)
 		}

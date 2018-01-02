@@ -74,8 +74,10 @@ var (
 )
 
 var (
-	packetInFromNet = metrics.GetOrRegisterMeter("packet_in_from_net", nil)
-	packetOut       = metrics.GetOrRegisterMeter("packet_out", nil)
+	packetsIn   = metrics.GetOrRegisterMeter("neb.net.packets.in", nil)
+	packetsOut  = metrics.GetOrRegisterMeter("neb.net.packets.out", nil)
+	netBytesIn  = metrics.GetOrRegisterMeter("neb.net.bytes.in", nil)
+	netBytesOut = metrics.GetOrRegisterMeter("neb.net.bytes.out", nil)
 )
 
 // NetService service for nebulas p2p network
@@ -178,6 +180,8 @@ func (ns *NetService) streamHandler(s libnet.Stream) {
 				ns.Bye(pid, []ma.Multiaddr{addrs}, s, key)
 				return
 			}
+			packetsIn.Mark(1)
+			netBytesIn.Mark(int64(len(protocol.data)))
 
 			switch protocol.msgName {
 			case HELLO:
@@ -202,6 +206,12 @@ func (ns *NetService) streamHandler(s libnet.Stream) {
 					"msgName": protocol.msgName,
 					"pid":     pid.Pretty(),
 				}).Info("receive block & tx message.")
+
+				m, ok := net.PacketsInByTypes.Load(protocol.msgName)
+				if ok {
+					m.(metrics.Meter).Mark(1)
+				}
+
 				streamStore, ok := node.stream.Load(key)
 				if !ok {
 					ns.Bye(pid, []ma.Multiaddr{addrs}, s, key)
@@ -214,7 +224,7 @@ func (ns *NetService) streamHandler(s libnet.Stream) {
 				}
 				msg := messages.NewBaseMessage(protocol.msgName, pid.Pretty(), protocol.data)
 				ns.PutMessage(msg)
-				packetInFromNet.Mark(1)
+
 				peers, exists := node.relayness.Get(byteutils.Uint32(protocol.dataChecksum))
 				if exists {
 					relayness = peers.([]peer.ID)
@@ -574,7 +584,12 @@ func (ns *NetService) sendMsg(msgName string, msg []byte, stream libnet.Stream) 
 		log.Error("SendMsg: write data occurs error, ", err)
 		return err
 	}
-	packetOut.Mark(1)
+	packetsOut.Mark(1)
+	m, ok := net.PacketsOutByTypes.Load(msgName)
+	if ok {
+		m.(metrics.Meter).Mark(1)
+	}
+	netBytesOut.Mark(int64(len(msg)))
 	return nil
 }
 
@@ -590,11 +605,7 @@ func (ns *NetService) SendMsg(msgName string, msg []byte, target string) error {
 	if !ok {
 		return errors.New("handleSyncRouteMsg occrus error, stream does not exist")
 	}
-	if err := ns.sendMsg(msgName, msg, streamStore.(*StreamStore).stream); err != nil {
-		return err
-	}
-	packetOut.Mark(1)
-	return nil
+	return ns.sendMsg(msgName, msg, streamStore.(*StreamStore).stream)
 }
 
 func (ns *NetService) checkNetworkID(target string) bool {

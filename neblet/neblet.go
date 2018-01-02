@@ -17,6 +17,7 @@ import (
 	nsync "github.com/nebulasio/go-nebulas/sync"
 	"github.com/nebulasio/go-nebulas/util"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
+	m "github.com/rcrowley/go-metrics"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -28,6 +29,7 @@ var (
 var (
 	storageSchemeVersionKey = []byte("scheme")
 	storageSchemeVersionVal = []byte("0.5.0")
+	nebstartGauge           = m.GetOrRegisterGauge("neb.start", nil)
 )
 
 // Neblet manages ldife cycle of blockchain services.
@@ -125,6 +127,10 @@ func (n *Neblet) Start() error {
 	}
 	n.running = true
 
+	if n.config.Stats.EnableMetrics {
+		go metrics.Start(n)
+	}
+
 	// start.
 	if err = n.netService.Start(); err != nil {
 		return err
@@ -140,10 +146,7 @@ func (n *Neblet) Start() error {
 	n.syncManager.Start()
 	n.consensus.Start()
 
-	if n.config.Stats.EnableMetrics {
-		go metrics.Start(n)
-	}
-
+	nebstartGauge.Update(1)
 	// TODO: error handling
 	return nil
 }

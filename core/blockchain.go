@@ -22,6 +22,7 @@ import (
 	"errors"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/gogo/protobuf/proto"
 	lru "github.com/hashicorp/golang-lru"
@@ -67,10 +68,12 @@ const (
 )
 
 var (
-	blockHeightGauge      = metrics.GetOrRegisterGauge("block_height", nil)
-	blocktailHashGauge    = metrics.GetOrRegisterGauge("blocktail_hash", nil)
-	blockRevertTimesGauge = metrics.GetOrRegisterGauge("block_revert_count", nil)
-	blockRevertMeter      = metrics.GetOrRegisterMeter("block_revert", nil)
+	blockHeightGauge      = metrics.GetOrRegisterGauge("neb.block.height", nil)
+	blocktailHashGauge    = metrics.GetOrRegisterGauge("neb.block.tailhash", nil)
+	blockRevertTimesGauge = metrics.GetOrRegisterGauge("neb.block.revertcount", nil)
+	blockRevertMeter      = metrics.GetOrRegisterMeter("neb.block.revert", nil)
+	blockOnchainTimer     = metrics.GetOrRegisterTimer("neb.block.onchain", nil)
+	txOnchainTimer        = metrics.GetOrRegisterTimer("neb.tx.onchain", nil)
 )
 
 // NewBlockChain create new #BlockChain instance.
@@ -292,6 +295,10 @@ func (bc *BlockChain) putVerifiedNewBlocks(parent *Block, allBlocks, tailBlocks 
 		bc.cachedBlocks.ContainsOrAdd(v.Hash().Hex(), v)
 		if err := bc.storeBlockToStorage(v); err != nil {
 			return err
+		}
+		blockOnchainTimer.Update(time.Duration(time.Now().Unix() - v.Timestamp()))
+		for _, tx := range v.transactions {
+			txOnchainTimer.Update(time.Duration(time.Now().Unix() - tx.Timestamp()))
 		}
 	}
 	for _, v := range tailBlocks {

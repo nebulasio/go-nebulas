@@ -33,7 +33,9 @@ const (
 	tagName  = "nodeID"
 )
 
-var quitCh chan (bool)
+var (
+	quitCh chan (bool)
+)
 
 // Neblet interface breaks cycle import dependency.
 type Neblet interface {
@@ -47,6 +49,7 @@ func Start(neb Neblet) {
 	tags[tagName] = neb.NetManager().Node().ID()
 	go collectSystemMetrics()
 	influxdb.InfluxDBWithTags(metrics.DefaultRegistry, duration, neb.Config().Stats.Influxdb.Host, neb.Config().Stats.Influxdb.Db, neb.Config().Stats.Influxdb.User, neb.Config().Stats.Influxdb.Password, tags)
+
 }
 
 func collectSystemMetrics() {

@@ -577,10 +577,13 @@ func (block *Block) VerifyExecution(parent *Block, consensus Consensus) error {
 
 	block.begin()
 
+	start := time.Now().Unix()
 	if err := block.execute(); err != nil {
 		block.rollback()
 		return err
 	}
+	end := time.Now().Unix()
+	BlockExecutedTimer.Update(time.Duration(end - start))
 
 	if err := block.verifyState(); err != nil {
 		block.rollback()
@@ -656,7 +659,6 @@ func (block *Block) VerifyIntegrity(chainID uint32, consensus Consensus) error {
 
 	// verify the block is acceptable by consensus.
 	if err := consensus.FastVerifyBlock(block); err != nil {
-		invalidBlockCounter.Inc(1)
 		return err
 	}
 
@@ -695,6 +697,7 @@ func (block *Block) execute() error {
 	block.rewardCoinbase()
 
 	for _, tx := range block.transactions {
+		start := time.Now().Unix()
 		giveback, err := block.executeTransaction(tx)
 		if giveback {
 			err := block.txPool.Push(tx)
@@ -705,6 +708,8 @@ func (block *Block) execute() error {
 		if err != nil {
 			return err
 		}
+		end := time.Now().Unix()
+		TxExecutedTimer.Update(time.Duration(end - start))
 	}
 
 	return block.recordMintCnt()

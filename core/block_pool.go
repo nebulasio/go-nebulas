@@ -40,8 +40,10 @@ const (
 
 // Errors in block
 var (
-	duplicateBlockCounter = metrics.GetOrRegisterCounter("bp_duplicate", nil)
-	invalidBlockCounter   = metrics.GetOrRegisterCounter("bp_invalid", nil)
+	duplicatedBlockCounter = metrics.GetOrRegisterCounter("neb.block.duplicated", nil)
+	invalidBlockCounter    = metrics.GetOrRegisterCounter("neb.block.invalid", nil)
+	BlockExecutedTimer     = metrics.GetOrRegisterTimer("neb.block.executed", nil)
+	TxExecutedTimer        = metrics.GetOrRegisterTimer("neb.tx.executed", nil)
 )
 
 // BlockPool a pool of all received blocks from network.
@@ -331,7 +333,7 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 	// verify non-dup block
 	if pool.cache.Contains(block.Hash().Hex()) ||
 		pool.bc.GetBlock(block.Hash()) != nil {
-		duplicateBlockCounter.Inc(1)
+		duplicatedBlockCounter.Inc(1)
 		return ErrDuplicatedBlock
 	}
 
