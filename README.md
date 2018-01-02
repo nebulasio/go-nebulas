@@ -394,6 +394,10 @@ Then you can call this smart contract:
 curl -i -H 'Accept: application/json' -X POST http://localhost:8685/v1/user/call -H 'Content-Type: application/json' -d '{"from":"1a263547d167c74cf4b8f9166cfa244de0481c514a45aa2c","to":"333cb3ed8c417971845382ede3cf67a0a96270c05fe2f700","value":"0","nonce":3,"gasPrice":"1000000","gasLimit":"2000000","contract":{"function":"save","args":"[0]"}}'
 ```
 
+## TestNet
+
+We are glad to release Nebulas Testnet. You can use and join our [TestNet](https://github.com/nebulasio/wiki/blob/master/testnet.md) right now. 
+
 ## Contribution
 
 We are very glad that you are considering to help Nebulas Team or go-nebulas project, including but not limited to source code, documents or others.
