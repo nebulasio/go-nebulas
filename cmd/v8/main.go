@@ -20,20 +20,16 @@ package main
 
 import (
 	"io/ioutil"
+	"log"
 	"os"
 	"time"
 
 	"github.com/nebulasio/go-nebulas/core/state"
 	"github.com/nebulasio/go-nebulas/nf/nvm"
 	"github.com/nebulasio/go-nebulas/storage"
-	"github.com/nebulasio/go-nebulas/util/logging"
-
-	log "github.com/sirupsen/logrus"
 )
 
 func main() {
-	logging.EnableFuncNameLogger()
-
 	data, _ := ioutil.ReadFile(os.Args[1])
 
 	mem, _ := storage.NewMemoryStorage()
@@ -45,7 +41,7 @@ func main() {
 	engine := nvm.NewV8Engine(ctx)
 	err := engine.RunScriptSource(string(data), 0)
 
-	log.Errorf("Err is %s", err)
+	log.Fatalf("Err is %s", err)
 
 	time.Sleep(10 * time.Second)
 	engine.Dispose()

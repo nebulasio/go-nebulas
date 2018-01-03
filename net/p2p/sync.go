@@ -25,7 +25,7 @@ import (
 	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/net"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/nebulasio/go-nebulas/util/logging"
 )
 
 // const
@@ -51,9 +51,9 @@ func (ns *NetService) Sync(tail net.Serializable) error {
 
 	allNode := node.routeTable.ListPeers()
 	LimitToSync = int(math.Sqrt(float64(len(allNode))))
-	log.Info("Sync: allNode -> ", allNode)
+	logging.VLog().Info("Sync: allNode -> ", allNode)
 	if len(allNode) < LimitToSync {
-		log.Debug("Sync: node not enough.")
+		logging.VLog().Debug("Sync: node not enough.")
 		return ErrNodeNotEnough
 	}
 
@@ -63,7 +63,7 @@ func (ns *NetService) Sync(tail net.Serializable) error {
 		addrs := node.peerstore.PeerInfo(nodeID).Addrs
 		if len(addrs) > 0 {
 			if node.host.Addrs()[0] == addrs[0] {
-				log.Debug("Sync: skip self")
+				logging.VLog().Debug("Sync: skip self")
 				continue
 			}
 
@@ -85,7 +85,7 @@ func (ns *NetService) Sync(tail net.Serializable) error {
 // SendSyncReply send sync reply message to remote peer
 func (ns *NetService) SendSyncReply(key string, blocks net.Serializable) {
 
-	log.Debug("SendSyncReply: send sync addrs -> ", key)
+	logging.VLog().Debug("SendSyncReply: send sync addrs -> ", key)
 	pb, _ := blocks.ToProto()
 	data, _ := proto.Marshal(pb)
 	if _, ok := ns.node.stream.Load(key); ok {
@@ -94,6 +94,6 @@ func (ns *NetService) SendSyncReply(key string, blocks net.Serializable) {
 		}()
 		return
 	}
-	log.Debugf("send syncReply to addrs %s fail", key)
+	logging.VLog().Debugf("send syncReply to addrs %s fail", key)
 
 }

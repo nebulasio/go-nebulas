@@ -35,15 +35,11 @@ import (
 	"github.com/nebulasio/go-nebulas/storage"
 	"github.com/nebulasio/go-nebulas/util"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
-	"github.com/nebulasio/go-nebulas/util/logging"
-	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestMain(m *testing.M) {
-	logging.EnableFuncNameLogger()
-
 	flag.Parse()
 	os.Exit(m.Run())
 }
@@ -441,7 +437,6 @@ func TestMultiEngine(t *testing.T) {
 	var wg sync.WaitGroup
 	for i := 0; i < 100; i++ {
 		wg.Add(1)
-		idx := i
 		go func() {
 			defer wg.Done()
 
@@ -452,7 +447,6 @@ func TestMultiEngine(t *testing.T) {
 			defer engine.Dispose()
 
 			err := engine.RunScriptSource("console.log('running.');", 0)
-			log.Infof("run script %d; err %v", idx, err)
 			assert.Nil(t, err)
 		}()
 	}
@@ -590,14 +584,11 @@ func TestRunMozillaJSTestSuite(t *testing.T) {
 				continue
 			}
 
-			log.Infof("Testing %s", filepath)
-
 			buf := bytes.NewBufferString("this.print = console.log;var native_eval = eval;eval = function (s) { try {  return native_eval(s); } catch (e) { return \"error\"; }};")
 
 			jsfiles := fmt.Sprintf("%s;%s;%s", shelljs, "test/mozilla_js_tests_loader.js", filepath)
 
 			for _, v := range strings.Split(jsfiles, ";") {
-				// log.Infof("v %s", v)
 				if len(v) == 0 {
 					continue
 				}

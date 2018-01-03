@@ -28,7 +28,6 @@ import (
 	"github.com/nebulasio/go-nebulas/storage"
 	"github.com/nebulasio/go-nebulas/util"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
-	log "github.com/sirupsen/logrus"
 )
 
 func checkDynasty(t *testing.T, dynasty *trie.BatchTrie) {
@@ -113,7 +112,6 @@ func TestBlock_ElectNewDynasty(t *testing.T) {
 	block.commit()
 	context, err := block.NextDynastyContext(DynastyInterval)
 	assert.Nil(t, err)
-	log.Info(v.String())
 	_, err = context.NextDynastyTrie.Get(kickout.Bytes())
 	assert.Equal(t, storage.ErrKeyNotFound, err)
 	_, err = context.NextDynastyTrie.Get(v.Bytes())

@@ -28,8 +28,9 @@ import (
 	"github.com/nebulasio/go-nebulas/net/p2p"
 	"github.com/nebulasio/go-nebulas/util"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
+	"github.com/nebulasio/go-nebulas/util/logging"
 	metrics "github.com/rcrowley/go-metrics"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 var (
@@ -110,7 +111,7 @@ func (pool *TransactionPool) setBlockChain(bc *BlockChain) {
 
 // Start start loop.
 func (pool *TransactionPool) Start() {
-	log.WithFields(log.Fields{
+	logging.CLog().WithFields(logrus.Fields{
 		"size": pool.size,
 	}).Info("Start TransactionPool.")
 
@@ -119,7 +120,7 @@ func (pool *TransactionPool) Start() {
 
 // Stop stop loop.
 func (pool *TransactionPool) Stop() {
-	log.WithFields(log.Fields{
+	logging.CLog().WithFields(logrus.Fields{
 		"size": pool.size,
 	}).Info("Stop TransactionPool.")
 
@@ -127,20 +128,20 @@ func (pool *TransactionPool) Stop() {
 }
 
 func (pool *TransactionPool) loop() {
-	log.WithFields(log.Fields{
+	logging.CLog().WithFields(logrus.Fields{
 		"size": pool.size,
 	}).Info("Launched TransactionPool.")
 
 	for {
 		select {
 		case <-pool.quitCh:
-			log.WithFields(log.Fields{
+			logging.CLog().WithFields(logrus.Fields{
 				"size": pool.size,
 			}).Info("Shutdowned TransactionPool.")
 			return
 		case msg := <-pool.receivedMessageCh:
 			if msg.MessageType() != MessageTypeNewTx {
-				log.WithFields(log.Fields{
+				logging.VLog().WithFields(logrus.Fields{
 					"messageType": msg.MessageType(),
 					"message":     msg,
 					"err":         "not new tx msg",
@@ -151,7 +152,7 @@ func (pool *TransactionPool) loop() {
 			tx := new(Transaction)
 			pbTx := new(corepb.Transaction)
 			if err := proto.Unmarshal(msg.Data().([]byte), pbTx); err != nil {
-				log.WithFields(log.Fields{
+				logging.VLog().WithFields(logrus.Fields{
 					"msgType": msg.MessageType(),
 					"msg":     msg,
 					"err":     err,
@@ -159,7 +160,7 @@ func (pool *TransactionPool) loop() {
 				continue
 			}
 			if err := tx.FromProto(pbTx); err != nil {
-				log.WithFields(log.Fields{
+				logging.VLog().WithFields(logrus.Fields{
 					"msgType": msg.MessageType(),
 					"msg":     msg,
 					"err":     err,
@@ -167,13 +168,13 @@ func (pool *TransactionPool) loop() {
 				continue
 			}
 
-			log.WithFields(log.Fields{
+			logging.VLog().WithFields(logrus.Fields{
 				"tx":   tx,
 				"type": msg.MessageType(),
 			}).Debug("Received a new tx.")
 
 			if err := pool.PushAndRelay(tx); err != nil {
-				log.WithFields(log.Fields{
+				logging.VLog().WithFields(logrus.Fields{
 					"func":        "TxPool.loop",
 					"messageType": msg.MessageType(),
 					"transaction": tx,

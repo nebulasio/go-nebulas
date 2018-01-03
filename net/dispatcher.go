@@ -22,8 +22,8 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/nebulasio/go-nebulas/util/logging"
 	metrics "github.com/rcrowley/go-metrics"
-	log "github.com/sirupsen/logrus"
 )
 
 // Metrics map for different in/out network msg types
@@ -82,15 +82,15 @@ func (dp *Dispatcher) Start() {
 	go (func() {
 		count := 0
 		for {
-			// log.Info("dispatcher in loop")
+			// logging.VLog().Info("dispatcher in loop")
 			select {
 			case <-dp.quitCh:
-				log.Info("dispatcher.loop: dispatcher is stopped.")
+				logging.VLog().Info("dispatcher.loop: dispatcher is stopped.")
 				return
 
 			case msg := <-dp.receivedMessageCh:
 				count++
-				log.Debug("dispatcher.loop: recvMsgCount=%d", count)
+				logging.VLog().Debug("dispatcher.loop: recvMsgCount=%d", count)
 				msgType := msg.MessageType()
 				v, _ := dp.subscribersMap.Load(msgType)
 				m, _ := v.(*sync.Map)

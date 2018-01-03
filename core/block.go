@@ -30,7 +30,8 @@ import (
 	"github.com/nebulasio/go-nebulas/common/trie"
 	"github.com/nebulasio/go-nebulas/core/pb"
 	"github.com/nebulasio/go-nebulas/core/state"
-	log "github.com/sirupsen/logrus"
+	"github.com/nebulasio/go-nebulas/util/logging"
+	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/sha3"
 
 	"github.com/nebulasio/go-nebulas/storage"
@@ -272,7 +273,7 @@ func (block *Block) Nonce() uint64 {
 // SetNonce set nonce.
 func (block *Block) SetNonce(nonce uint64) {
 	if block.sealed {
-		log.WithFields(log.Fields{
+		logging.VLog().WithFields(logrus.Fields{
 			"block": block,
 		}).Error("Sealed block can't be changed.")
 		return
@@ -288,7 +289,7 @@ func (block *Block) Timestamp() int64 {
 // SetTimestamp set timestamp
 func (block *Block) SetTimestamp(timestamp int64) {
 	if block.sealed {
-		log.WithFields(log.Fields{
+		logging.VLog().WithFields(logrus.Fields{
 			"block": block,
 		}).Error("Sealed block can't be changed.")
 		return
@@ -410,7 +411,7 @@ func (block *Block) LinkParentBlock(parentBlock *Block) error {
 	block.height = parentBlock.height + 1
 	block.eventEmitter = parentBlock.eventEmitter
 
-	log.WithFields(log.Fields{
+	logging.VLog().WithFields(logrus.Fields{
 		"parent": parentBlock,
 		"block":  block,
 		"err":    err,
@@ -420,7 +421,7 @@ func (block *Block) LinkParentBlock(parentBlock *Block) error {
 }
 
 func (block *Block) begin() {
-	log.Debug("Block Begin.")
+	logging.VLog().Debug("Block Begin.")
 	block.accState.BeginBatch()
 	block.txsTrie.BeginBatch()
 	block.eventsTrie.BeginBatch()
@@ -432,7 +433,7 @@ func (block *Block) commit() {
 	block.txsTrie.Commit()
 	block.eventsTrie.Commit()
 	block.dposContext.Commit()
-	log.WithFields(log.Fields{
+	logging.VLog().WithFields(logrus.Fields{
 		"block": block,
 	}).Debug("Block Commit.")
 }
@@ -442,7 +443,7 @@ func (block *Block) rollback() {
 	block.txsTrie.RollBack()
 	block.eventsTrie.RollBack()
 	block.dposContext.RollBack()
-	log.WithFields(log.Fields{
+	logging.VLog().WithFields(logrus.Fields{
 		"block": block,
 	}).Debug("Block RollBack.")
 }
@@ -460,7 +461,7 @@ func (block *Block) ReturnTransactions() {
 // CollectTransactions and add them to block.
 func (block *Block) CollectTransactions(n int) {
 	if block.sealed {
-		log.WithFields(log.Fields{
+		logging.VLog().WithFields(logrus.Fields{
 			"block": block,
 		}).Error("Sealed block can't be changed.")
 		return
@@ -476,7 +477,7 @@ func (block *Block) CollectTransactions(n int) {
 			givebacks = append(givebacks, tx)
 		}
 		if err == nil {
-			log.WithFields(log.Fields{
+			logging.VLog().WithFields(logrus.Fields{
 				"block":    block,
 				"tx":       tx,
 				"giveback": giveback,
@@ -485,7 +486,7 @@ func (block *Block) CollectTransactions(n int) {
 			block.transactions = append(block.transactions, tx)
 			n--
 		} else {
-			log.WithFields(log.Fields{
+			logging.VLog().WithFields(logrus.Fields{
 				"block":    block,
 				"tx":       tx,
 				"err":      err,
@@ -497,7 +498,7 @@ func (block *Block) CollectTransactions(n int) {
 	for _, tx := range givebacks {
 		err := pool.Push(tx)
 		if err != nil {
-			log.WithFields(log.Fields{
+			logging.VLog().WithFields(logrus.Fields{
 				"block": block,
 				"tx":    tx,
 				"err":   err,
@@ -534,7 +535,7 @@ func (block *Block) Seal() error {
 	block.header.hash = HashBlock(block)
 	block.sealed = true
 
-	log.WithFields(log.Fields{
+	logging.VLog().WithFields(logrus.Fields{
 		"block": block,
 	}).Debug("Sealed Block.")
 
@@ -625,7 +626,7 @@ func (block *Block) triggerEvent() {
 func (block *Block) VerifyIntegrity(chainID uint32, consensus Consensus) error {
 	// check ChainID.
 	if block.header.chainID != chainID {
-		log.WithFields(log.Fields{
+		logging.VLog().WithFields(logrus.Fields{
 			"expect": chainID,
 			"actual": block.header.chainID,
 		}).Debug("Failed to check chainid.")
@@ -635,7 +636,7 @@ func (block *Block) VerifyIntegrity(chainID uint32, consensus Consensus) error {
 	// verify block hash.
 	wantedHash := HashBlock(block)
 	if !wantedHash.Equals(block.Hash()) {
-		log.WithFields(log.Fields{
+		logging.VLog().WithFields(logrus.Fields{
 			"expect": wantedHash,
 			"actual": block.Hash(),
 		}).Debug("Failed to check block's hash.")
@@ -645,7 +646,7 @@ func (block *Block) VerifyIntegrity(chainID uint32, consensus Consensus) error {
 	// verify transactions integrity.
 	for _, tx := range block.transactions {
 		if err := tx.VerifyIntegrity(block.header.chainID); err != nil {
-			log.WithFields(log.Fields{
+			logging.VLog().WithFields(logrus.Fields{
 				"tx":  tx,
 				"err": err,
 			}).Debug("Failed to verify tx's integrity.")
@@ -655,7 +656,7 @@ func (block *Block) VerifyIntegrity(chainID uint32, consensus Consensus) error {
 
 	// verify the block is acceptable by consensus.
 	if err := consensus.FastVerifyBlock(block); err != nil {
-		log.WithFields(log.Fields{
+		logging.VLog().WithFields(logrus.Fields{
 			"block": block,
 			"err":   err,
 		}).Debug("Failed to fast verify block.")
@@ -759,7 +760,7 @@ func (block *Block) recordEvent(txHash byteutils.Hash, event *Event) error {
 	if err != nil {
 		return err
 	}
-	log.WithFields(log.Fields{
+	logging.VLog().WithFields(logrus.Fields{
 		"block": block,
 		"tx":    txHash.Hex(),
 		"event": event,
@@ -810,7 +811,7 @@ func (block *Block) recordMintCnt() error {
 	if err != nil {
 		return err
 	}
-	log.WithFields(log.Fields{
+	logging.VLog().WithFields(logrus.Fields{
 		"dynasty": block.Timestamp() / DynastyInterval,
 		"miner":   block.miner.String(),
 		"count":   cnt,
@@ -822,7 +823,7 @@ func (block *Block) rewardCoinbase() {
 	coinbaseAddr := block.header.coinbase.address
 	coinbaseAcc := block.accState.GetOrCreateUserAccount(coinbaseAddr)
 	coinbaseAcc.AddBalance(BlockReward)
-	log.WithFields(log.Fields{
+	logging.VLog().WithFields(logrus.Fields{
 		"coinbase": coinbaseAddr.Hex(),
 		"balance":  coinbaseAcc.Balance().Int64(),
 	}).Debug("Rewarded the coinbase.")

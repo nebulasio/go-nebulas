@@ -27,7 +27,8 @@ import (
 	"github.com/nebulasio/go-nebulas/core/state"
 	"github.com/nebulasio/go-nebulas/storage"
 	"github.com/nebulasio/go-nebulas/util"
-	log "github.com/sirupsen/logrus"
+	"github.com/nebulasio/go-nebulas/util/logging"
+	"github.com/sirupsen/logrus"
 )
 
 // Genesis Block Hash
@@ -101,7 +102,7 @@ func NewGenesisBlock(conf *corepb.Genesis, chain *BlockChain) (*Block, error) {
 	for _, v := range conf.TokenDistribution {
 		addr, err := AddressParse(v.Address)
 		if err != nil {
-			log.WithFields(log.Fields{
+			logging.CLog().WithFields(logrus.Fields{
 				"address": v.Address,
 				"err":     err,
 			}).Error("Existed invalid address in genesis token distribution.")
@@ -113,7 +114,7 @@ func NewGenesisBlock(conf *corepb.Genesis, chain *BlockChain) (*Block, error) {
 	genesisBlock.commit()
 
 	if err := genesisBlock.Seal(); err != nil {
-		log.WithFields(log.Fields{
+		logging.CLog().WithFields(logrus.Fields{
 			"gensis": genesisBlock,
 			"err":    err,
 		}).Error("Failed to seal genesis block.")

@@ -28,7 +28,8 @@ import (
 	"strconv"
 	"syscall"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/nebulasio/go-nebulas/util/logging"
+	"github.com/sirupsen/logrus"
 )
 
 // InitCrashReporter init crash reporter
@@ -36,7 +37,9 @@ func InitCrashReporter() {
 	os.Setenv("GOBACKTRACE", "crash")
 	dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
 	if err != nil {
-		log.Error("InitCrashReporter ignore due to filepath failure")
+		logging.CLog().WithFields(logrus.Fields{
+			"err": err,
+		}).Error("Failed to init crash reporter.")
 		return
 	}
 	fp := fmt.Sprintf("%vcrash_%v.log", os.TempDir(), os.Getpid())
@@ -54,12 +57,12 @@ func InitCrashReporter() {
 	}
 
 	if err != nil {
-		log.Error("InitCrashReporter ignore due to create tcp server failure")
+		logging.CLog().WithFields(logrus.Fields{
+			"err": err,
+		}).Error("Failed to init crash reporter.")
 		return
 	}
 	defer s.Close()
-
-	log.Info("InitCrashReporter starting daemon...")
 
 	code := rand.Intn(0xFFFF)
 	cmd := exec.Command(fmt.Sprintf("%v/nebulas_crashreporter", dir),
@@ -74,19 +77,23 @@ func InitCrashReporter() {
 
 	err = cmd.Start()
 	if err != nil {
-		log.Error("InitCrashReporter ignore due to start daemon failure")
+		logging.CLog().WithFields(logrus.Fields{
+			"err": err,
+		}).Error("Failed to start crash reporter daemon.")
 		return
 	}
 
 	conn, err := s.Accept()
 	if err != nil {
-		log.Error("InitCrashReporter ignore due to create tcp accept failure")
+		logging.CLog().WithFields(logrus.Fields{
+			"err": err,
+		}).Error("Failed to init crash reporter.")
 		return
 	}
 	var buf = make([]byte, 10)
 	n, berror := conn.Read(buf)
 	if berror != nil {
-		//log.Println("conn read error:", berror)
+		//logging.VLog().Println("conn read error:", berror)
 		return
 	}
 	rs := string(buf[:n])
@@ -97,6 +104,12 @@ func InitCrashReporter() {
 			syscall.Dup2(int(crashFile.Fd()), 2)
 		}
 	} else {
-		log.Error("InitCrashReporter ignore due to code not match")
+		logging.CLog().WithFields(logrus.Fields{
+			"rs":   rs,
+			"code": code,
+			"err":  "code not match",
+		}).Error("Failed to init crash reporter.")
 	}
+
+	logging.CLog().Info("Initialed crash reporter.")
 }

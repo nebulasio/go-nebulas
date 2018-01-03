@@ -25,7 +25,8 @@ import (
 	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/neblet/pb"
 	"github.com/nebulasio/go-nebulas/net/p2p"
-	log "github.com/sirupsen/logrus"
+	"github.com/nebulasio/go-nebulas/util/logging"
+	"github.com/sirupsen/logrus"
 )
 
 // Errors in PoW Consensus
@@ -92,7 +93,7 @@ func NewPow(neblet Neblet) *Pow {
 	if coinbaseConf != "" {
 		coinbase, err := core.AddressParse(coinbaseConf)
 		if err != nil {
-			log.WithFields(log.Fields{
+			logging.VLog().WithFields(logrus.Fields{
 				"err": err,
 			}).Info("Pow.NewPow: coinbase parse err.")
 			//panic("coinbase should be configed for pow")
@@ -130,7 +131,7 @@ func (p *Pow) CanMining() bool {
 
 // SetCanMining set if consensus can do mining now
 func (p *Pow) SetCanMining(canMining bool) {
-	log.Info("sync over, start mining")
+	logging.VLog().Info("sync over, start mining")
 	p.canMining = canMining
 	p.Event(consensus.NewBaseEvent(consensus.CanMiningEvent, nil))
 }
@@ -153,11 +154,11 @@ func (p *Pow) Event(e consensus.Event) {
 	switch et {
 	case consensus.NewBlockEvent:
 		block := e.Data().(*core.Block)
-		log.WithFields(log.Fields{
+		logging.VLog().WithFields(logrus.Fields{
 			"block": block,
 		}).Info("Pow.Event: handle BlockMessage.")
 	default:
-		log.WithFields(log.Fields{
+		logging.VLog().WithFields(logrus.Fields{
 			"eventType": e,
 		}).Info("Pow.Event: handle this event.")
 	}
@@ -171,7 +172,7 @@ func (p *Pow) Transit(from, to consensus.State, data interface{}) {
 // VerifyBlock return nil if nonce is right, otherwise return error.
 func (p *Pow) VerifyBlock(block *core.Block) error {
 	if block == nil {
-		log.WithFields(log.Fields{
+		logging.VLog().WithFields(logrus.Fields{
 			"func": "Pow.VerifyBlock",
 			"err":  ErrInvalidDataType,
 		}).Error("data is not valid block")
@@ -180,7 +181,7 @@ func (p *Pow) VerifyBlock(block *core.Block) error {
 
 	ret := HashAndVerify(block)
 	if ret == nil {
-		log.WithFields(log.Fields{
+		logging.VLog().WithFields(logrus.Fields{
 			"func":  "Pow.VerifyBlock",
 			"err":   ErrInvalidBlockNonce,
 			"block": block,
@@ -193,7 +194,7 @@ func (p *Pow) VerifyBlock(block *core.Block) error {
 
 func (p *Pow) checkValidTransit(from, to consensus.State) bool {
 	valid := from != nil && to != nil && from != to && p.currentState == from
-	log.WithFields(log.Fields{
+	logging.VLog().WithFields(logrus.Fields{
 		"func":    "Pow.CheckTransit",
 		"success": valid,
 		"current": p.currentState,
@@ -222,7 +223,7 @@ func (p *Pow) stateLoop() {
 			p.currentState.Enter(data)
 
 		case <-p.quitCh:
-			log.Info("quit Pow.loop.")
+			logging.VLog().Info("quit Pow.loop.")
 			return
 		}
 	}
@@ -234,32 +235,11 @@ func (p *Pow) blockLoop() {
 		select {
 		case block := <-p.chain.BlockPool().ReceivedLinkedBlockCh():
 			count++
-			log.Debugf("Pow.blockLoop: new block message received. Count=%d", count)
+			logging.VLog().Debugf("Pow.blockLoop: new block message received. Count=%d", count)
 			p.newBlockReceived = true
 			p.Event(consensus.NewBaseEvent(consensus.NewBlockEvent, block))
 		case <-p.quitCh:
-			// TODO: should provide base goroutine start/stop func to graceful stop them.
-			/*
-				for example,
-
-				type Stopper struct {
-					quitCh chan int // maybe int is better than bool, less confuss.
-					count int q		// should use thread-safe int, eg. AtomicInt.
-				}
-				func NewStopper() *Stopper {
-					s := &Stopper{quitCh: make(chan int，16), count : 0}
-					return s
-				}
-				func (s *Stopper) CountMe() {
-					s.count++
-				}
-				func (s *Stopper) QuitMe() {
-					for i :=0 ; i<s.count; i++ {
-						s.quitCh <- 0
-					}
-				}
-			*/
-			log.Info("Pow.blockLoop: quit.")
+			logging.VLog().Info("Pow.blockLoop: quit.")
 			return
 		}
 	}

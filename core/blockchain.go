@@ -29,8 +29,9 @@ import (
 	"github.com/nebulasio/go-nebulas/storage"
 	"github.com/nebulasio/go-nebulas/util"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
+	"github.com/nebulasio/go-nebulas/util/logging"
 	metrics "github.com/rcrowley/go-metrics"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 // BlockChain the BlockChain core type.
@@ -107,7 +108,7 @@ func NewBlockChain(neb Neblet) (*BlockChain, error) {
 	if err != nil {
 		return nil, err
 	}
-	log.WithFields(log.Fields{
+	logging.CLog().WithFields(logrus.Fields{
 		"meta.chainid":           genesisConf.Meta.ChainId,
 		"consensus.dpos.dynasty": genesisConf.Consensus.Dpos.Dynasty,
 		"token.distribution":     genesisConf.TokenDistribution,
@@ -117,7 +118,7 @@ func NewBlockChain(neb Neblet) (*BlockChain, error) {
 	if err != nil {
 		return nil, err
 	}
-	log.WithFields(log.Fields{
+	logging.CLog().WithFields(logrus.Fields{
 		"block": bc.tailBlock,
 	}).Info("Tail Block.")
 
@@ -204,7 +205,7 @@ func hashToInt64(hash string) (int64, error) {
 	var s int64
 	var err error
 	if s, err = strconv.ParseInt(h, 16, 32); err != nil {
-		log.WithFields(log.Fields{
+		logging.VLog().WithFields(logrus.Fields{
 			"hash": hash,
 			"err":  err,
 		}).Debug("Failed to parseInt")
@@ -309,7 +310,7 @@ func (bc *BlockChain) putVerifiedNewBlocks(parent *Block, allBlocks, tailBlocks 
 			return err
 		}
 
-		log.WithFields(log.Fields{
+		logging.CLog().WithFields(logrus.Fields{
 			"block": v,
 		}).Info("Accepted the new block on chain")
 

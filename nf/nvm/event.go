@@ -23,7 +23,8 @@ import (
 	"unsafe"
 
 	"github.com/nebulasio/go-nebulas/util/byteutils"
-	log "github.com/sirupsen/logrus"
+	"github.com/nebulasio/go-nebulas/util/logging"
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -40,7 +41,7 @@ func EventTriggerFunc(handler unsafe.Pointer, topic, data *C.char) {
 
 	e := getEngineByEngineHandler(handler)
 	if e == nil {
-		log.WithFields(log.Fields{
+		logging.VLog().WithFields(logrus.Fields{
 			"category": 0, // ChainEventCategory.
 			"topic":    gTopic,
 			"data":     gData,
@@ -48,7 +49,7 @@ func EventTriggerFunc(handler unsafe.Pointer, topic, data *C.char) {
 		return
 	}
 
-	log.WithFields(log.Fields{
+	logging.VLog().WithFields(logrus.Fields{
 		"category": 0, // ChainEventCategory.
 		"topic":    gTopic,
 		"data":     gData,

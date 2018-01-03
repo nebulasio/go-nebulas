@@ -22,7 +22,7 @@ import (
 	"fmt"
 
 	"github.com/nebulasio/go-nebulas/consensus"
-	log "github.com/sirupsen/logrus"
+	"github.com/nebulasio/go-nebulas/util/logging"
 )
 
 // StartState the initial state of @Pow state machine.
@@ -55,7 +55,7 @@ func (state *StartState) Event(e consensus.Event) (bool, consensus.State) {
 
 // Enter called when transiting to this state.
 func (state *StartState) Enter(data interface{}) {
-	log.Debug("StartState enter.")
+	logging.VLog().Debug("StartState enter.")
 	if state.p.CanMining() {
 		state.p.Transit(state, NewPrepareState(state.p), nil)
 	}
@@ -63,5 +63,5 @@ func (state *StartState) Enter(data interface{}) {
 
 // Leave called when leaving this state.
 func (state *StartState) Leave(data interface{}) {
-	log.Debug("StartState leave.")
+	logging.VLog().Debug("StartState leave.")
 }

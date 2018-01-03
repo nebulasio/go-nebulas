@@ -53,7 +53,8 @@ import (
 	"unsafe"
 
 	"github.com/nebulasio/go-nebulas/core/state"
-	log "github.com/sirupsen/logrus"
+	"github.com/nebulasio/go-nebulas/util/logging"
+	"github.com/sirupsen/logrus"
 )
 
 // Const.
@@ -194,7 +195,7 @@ func (e *V8Engine) SetExecutionLimits(limitsOfExecutionInstructions, limitsOfTot
 	e.v8engine.limits_of_executed_instructions = C.size_t(limitsOfExecutionInstructions)
 	e.v8engine.limits_of_total_memory_size = C.size_t(limitsOfTotalMemorySize)
 
-	log.WithFields(log.Fields{
+	logging.VLog().WithFields(logrus.Fields{
 		"limits_of_executed_instructions": e.v8engine.limits_of_executed_instructions,
 		"limits_of_total_memory_size":     e.v8engine.limits_of_total_memory_size,
 	}).Debug("set execution limits.")
@@ -205,7 +206,7 @@ func (e *V8Engine) SetExecutionLimits(limitsOfExecutionInstructions, limitsOfTot
 
 	// V8 needs at least 6M heap memory.
 	if limitsOfTotalMemorySize > 0 && limitsOfTotalMemorySize < 6000000 {
-		log.Debugf("V8 needs at least 6M (6000000) heap memory, your limitsOfTotalMemorySize (%d) is too low.", limitsOfTotalMemorySize)
+		logging.VLog().Debugf("V8 needs at least 6M (6000000) heap memory, your limitsOfTotalMemorySize (%d) is too low.", limitsOfTotalMemorySize)
 	}
 }
 
@@ -357,7 +358,7 @@ func (e *V8Engine) AddModule(id, source string, sourceLineOffset int) error {
 	if e.enableLimits {
 		traceableSource, lineOffset, err := e.InjectTracingInstructions(source)
 		if err != nil {
-			log.WithFields(log.Fields{
+			logging.VLog().WithFields(logrus.Fields{
 				"err": err,
 			}).Error("inject tracing instruction failed.")
 			return err
@@ -393,14 +394,12 @@ func (e *V8Engine) prepareRunnableContractScript(source, function, args string) 
 }
 
 func getEngineByStorageHandler(handler uint64) (*V8Engine, state.Account) {
-	// log.Errorf("[--------------] getEngineByStorageHandler, handler = %d", handler)
-
 	storagesLock.RLock()
 	engine := storages[handler]
 	storagesLock.RUnlock()
 
 	if engine == nil {
-		log.WithFields(log.Fields{
+		logging.VLog().WithFields(logrus.Fields{
 			"func":          "nvm.getEngineByStorageHandler",
 			"wantedHandler": handler,
 		}).Error("wantedHandler is not found.")
@@ -414,7 +413,7 @@ func getEngineByStorageHandler(handler uint64) (*V8Engine, state.Account) {
 		return nil, nil
 		// return engine, engine.ctx.owner
 	} else {
-		log.WithFields(log.Fields{
+		logging.VLog().WithFields(logrus.Fields{
 			"func":          "nvm.getEngineByStorageHandler",
 			"lcsHandler":    engine.lcsHandler,
 			"gcsHandler":    engine.gcsHandler,

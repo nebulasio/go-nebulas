@@ -21,7 +21,8 @@ package core
 import (
 	"sync"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/nebulasio/go-nebulas/util/logging"
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -77,7 +78,7 @@ func NewEventEmitter(size int) *EventEmitter {
 
 // Start start emitter.
 func (emitter *EventEmitter) Start() {
-	log.WithFields(log.Fields{
+	logging.CLog().WithFields(logrus.Fields{
 		"size": emitter.size,
 	}).Info("Start EventEmitter.")
 
@@ -86,7 +87,7 @@ func (emitter *EventEmitter) Start() {
 
 // Stop stop emitter.
 func (emitter *EventEmitter) Stop() {
-	log.WithFields(log.Fields{
+	logging.CLog().WithFields(logrus.Fields{
 		"size": emitter.size,
 	}).Info("Stop EventEmitter.")
 
@@ -95,10 +96,10 @@ func (emitter *EventEmitter) Stop() {
 
 // Trigger trigger event.
 func (emitter *EventEmitter) Trigger(e *Event) {
-	log.WithFields(log.Fields{
+	logging.VLog().WithFields(logrus.Fields{
 		"topic": e.Topic,
 		"data":  e.Data,
-	}).Debug("Trigger new event")
+	}).Info("Trigger new event")
 	emitter.eventCh <- e
 }
 
@@ -130,12 +131,12 @@ func (emitter *EventEmitter) Deregister(topic string, ch chan *Event) error {
 }
 
 func (emitter *EventEmitter) loop() {
-	log.Info("Launched EventEmitter.")
+	logging.CLog().Info("Launched EventEmitter.")
 
 	for {
 		select {
 		case <-emitter.quitCh:
-			log.Info("ShutDowned EventEmitter.")
+			logging.CLog().Info("ShutDowned EventEmitter.")
 			return
 		case e := <-emitter.eventCh:
 

@@ -7,7 +7,7 @@ import (
 
 	"github.com/nebulasio/go-nebulas/neblet/pb"
 	"github.com/nebulasio/go-nebulas/rpc/pb"
-	log "github.com/sirupsen/logrus"
+	"github.com/nebulasio/go-nebulas/util/logging"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 )
@@ -56,14 +56,14 @@ func (s *APIServer) Start() error {
 }
 
 func (s *APIServer) start(addr string) error {
-	log.Info("Starting RPC server at: ", addr)
+	logging.VLog().Info("Starting RPC server at: ", addr)
 	listener, err := net.Listen("tcp", addr)
 	if err != nil {
-		log.Error("RPC server failed to listen: ", err)
+		logging.VLog().Error("RPC server failed to listen: ", err)
 		return err
 	}
 	if err := s.rpcServer.Serve(listener); err != nil {
-		log.Error("RPC server failed to serve: ", err)
+		logging.VLog().Error("RPC server failed to serve: ", err)
 		return err
 	}
 	return nil
@@ -76,9 +76,9 @@ func (s *APIServer) RunGateway() error {
 	rpcListen := s.rpcConfig.RpcListen[0]
 	gatewayListen := s.rpcConfig.HttpListen
 	httpModule := s.rpcConfig.HttpModule
-	log.Info("Starting api gateway server bind rpc-server: ", rpcListen, " to:", gatewayListen)
+	logging.VLog().Info("Starting api gateway server bind rpc-server: ", rpcListen, " to:", gatewayListen)
 	if err := Run(rpcListen, gatewayListen, httpModule); err != nil {
-		log.Error("RPC server gateway failed to serve: ", err)
+		logging.VLog().Error("RPC server gateway failed to serve: ", err)
 		return err
 	}
 	return nil
@@ -86,7 +86,7 @@ func (s *APIServer) RunGateway() error {
 
 // Stop stops the rpc server and closes listener.
 func (s *APIServer) Stop() {
-	log.Info("Stopping RPC server at: ", s.rpcConfig.RpcListen)
+	logging.VLog().Info("Stopping RPC server at: ", s.rpcConfig.RpcListen)
 	s.rpcServer.Stop()
 }
 

@@ -23,22 +23,21 @@ import (
 	"path/filepath"
 	"time"
 
-	rotatelogs "github.com/lestrrat/go-file-rotatelogs"
+	"github.com/lestrrat/go-file-rotatelogs"
 	"github.com/rifflock/lfshook"
 	"github.com/sirupsen/logrus"
 )
 
-// EnableFileLogger enable log file output
-func EnableFileLogger(path string) (err error) {
+// LoadFileRotateHooker enable log file output
+func LoadFileRotateHooker(logger *logrus.Logger, path string) {
 	if len(path) == 0 {
-		// If the path is not set, the file log is not output
-		return nil
+		panic("Failed to parse logger folder:" + path + ".")
 	}
 	if !filepath.IsAbs(path) {
 		path, _ = filepath.Abs(path)
 	}
-	if err = os.MkdirAll(path, 0700); err != nil {
-		return err
+	if err := os.MkdirAll(path, 0700); err != nil {
+		panic("Failed to create logger folder:" + path + ". err:" + err.Error())
 	}
 	filePath := path + "/neb-%Y%m%d.log"
 	linkPath := path + "/neb.log"
@@ -50,14 +49,12 @@ func EnableFileLogger(path string) (err error) {
 	)
 
 	if err != nil {
-		return err
+		panic("Failed to create rotate logs. err:" + err.Error())
 	}
 
 	hook := lfshook.NewHook(lfshook.WriterMap{
 		logrus.InfoLevel:  writer,
 		logrus.ErrorLevel: writer,
 	}, nil)
-	logrus.AddHook(hook)
-	return nil
-
+	logger.Hooks.Add(hook)
 }

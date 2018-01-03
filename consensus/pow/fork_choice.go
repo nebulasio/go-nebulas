@@ -19,7 +19,8 @@
 package pow
 
 import (
-	log "github.com/sirupsen/logrus"
+	"github.com/nebulasio/go-nebulas/util/logging"
+	"github.com/sirupsen/logrus"
 )
 
 // ForkChoice Rule of PoW Consensus
@@ -30,7 +31,7 @@ func (p *Pow) ForkChoice() {
 	detachedTailBlocks := bc.DetachedTailBlocks()
 
 	// find the max depth.
-	log.WithFields(log.Fields{
+	logging.VLog().WithFields(logrus.Fields{
 		"func": "Pow.ForkChoice",
 	}).Debug("find the highest tail.")
 
@@ -47,18 +48,15 @@ func (p *Pow) ForkChoice() {
 	}
 
 	if newTailBlock == bc.TailBlock() {
-		log.WithFields(log.Fields{
+		logging.VLog().WithFields(logrus.Fields{
 			"func": "Pow.ForkChoice",
 		}).Info("current tail is the highest, no change.")
 	} else {
-		log.WithFields(log.Fields{
+		logging.VLog().WithFields(logrus.Fields{
 			"func":      "Pow.ForkChoice",
 			"maxHeight": maxHeight,
 			"tailBlock": newTailBlock,
 		}).Info("change to new tail.")
 		bc.SetTailBlock(newTailBlock)
 	}
-
-	// dump chain.
-	// log.Debug("Dump: ", bc.Dump())
 }

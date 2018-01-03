@@ -35,7 +35,8 @@ import (
 	"github.com/nebulasio/go-nebulas/rpc/pb"
 	"github.com/nebulasio/go-nebulas/util"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
-	log "github.com/sirupsen/logrus"
+	"github.com/nebulasio/go-nebulas/util/logging"
+	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 )
 
@@ -46,7 +47,7 @@ type APIService struct {
 
 // GetNebState is the RPC API handler.
 func (s *APIService) GetNebState(ctx context.Context, req *rpcpb.NonParamsRequest) (*rpcpb.GetNebStateResponse, error) {
-	log.WithFields(log.Fields{
+	logging.VLog().WithFields(logrus.Fields{
 		"api": "/v1/user/nebstate",
 	}).Info("Rpc request.")
 
@@ -67,7 +68,7 @@ func (s *APIService) GetNebState(ctx context.Context, req *rpcpb.NonParamsReques
 
 // NodeInfo is the PRC API handler
 func (s *APIService) NodeInfo(ctx context.Context, req *rpcpb.NonParamsRequest) (*rpcpb.NodeInfoResponse, error) {
-	log.WithFields(log.Fields{
+	logging.VLog().WithFields(logrus.Fields{
 		"api": "/v1/user/nodeinfo",
 	}).Info("Rpc request.")
 
@@ -100,7 +101,7 @@ func (s *APIService) NodeInfo(ctx context.Context, req *rpcpb.NonParamsRequest) 
 
 // StatisticsNodeInfo is the RPC API handler.
 func (s *APIService) StatisticsNodeInfo(ctx context.Context, req *rpcpb.NonParamsRequest) (*rpcpb.StatisticsNodeInfoResponse, error) {
-	log.WithFields(log.Fields{
+	logging.VLog().WithFields(logrus.Fields{
 		"api": "/v1/admin/statistics/nodeInfo",
 	}).Info("Rpc request.")
 
@@ -126,7 +127,7 @@ func getStreamCount(m *sync.Map) uint32 {
 
 // Accounts is the RPC API handler.
 func (s *APIService) Accounts(ctx context.Context, req *rpcpb.NonParamsRequest) (*rpcpb.AccountsResponse, error) {
-	log.WithFields(log.Fields{
+	logging.VLog().WithFields(logrus.Fields{
 		"api": "/v1/user/accounts",
 	}).Info("Rpc request.")
 
@@ -145,7 +146,7 @@ func (s *APIService) Accounts(ctx context.Context, req *rpcpb.NonParamsRequest) 
 
 // GetAccountState is the RPC API handler.
 func (s *APIService) GetAccountState(ctx context.Context, req *rpcpb.GetAccountStateRequest) (*rpcpb.GetAccountStateResponse, error) {
-	log.WithFields(log.Fields{
+	logging.VLog().WithFields(logrus.Fields{
 		"address": req.Address,
 		"block":   req.Block,
 		"api":     "/v1/user/accountstate",
@@ -178,7 +179,7 @@ func (s *APIService) GetAccountState(ctx context.Context, req *rpcpb.GetAccountS
 
 // GetDynasty is the RPC API handler.
 func (s *APIService) GetDynasty(ctx context.Context, req *rpcpb.NonParamsRequest) (*rpcpb.GetDynastyResponse, error) {
-	log.WithFields(log.Fields{
+	logging.VLog().WithFields(logrus.Fields{
 		"api": "/v1/admin/dynasty",
 	}).Info("Rpc request.")
 
@@ -201,7 +202,7 @@ func (s *APIService) GetDynasty(ctx context.Context, req *rpcpb.NonParamsRequest
 
 // GetDelegateVoters is the RPC API handler.
 func (s *APIService) GetDelegateVoters(ctx context.Context, req *rpcpb.GetDelegateVotersRequest) (*rpcpb.GetDelegateVotersResponse, error) {
-	log.WithFields(log.Fields{
+	logging.VLog().WithFields(logrus.Fields{
 		"delegatee": req.Delegatee,
 		"api":       "/v1/admin/delegateVoters",
 	}).Info("Rpc request.")
@@ -235,7 +236,7 @@ func (s *APIService) GetDelegateVoters(ctx context.Context, req *rpcpb.GetDelega
 
 // SendTransaction is the RPC API handler.
 func (s *APIService) SendTransaction(ctx context.Context, req *rpcpb.TransactionRequest) (*rpcpb.SendTransactionResponse, error) {
-	log.WithFields(log.Fields{
+	logging.VLog().WithFields(logrus.Fields{
 		"api": "/v1/user/transaction",
 	}).Info("Rpc request.")
 
@@ -244,7 +245,7 @@ func (s *APIService) SendTransaction(ctx context.Context, req *rpcpb.Transaction
 
 // Call is the RPC API handler.
 func (s *APIService) Call(ctx context.Context, req *rpcpb.TransactionRequest) (*rpcpb.SendTransactionResponse, error) {
-	log.WithFields(log.Fields{
+	logging.VLog().WithFields(logrus.Fields{
 		"api": "/v1/user/call",
 	}).Info("Rpc request.")
 
@@ -323,7 +324,7 @@ func parseTransaction(neb Neblet, reqTx *rpcpb.TransactionRequest) (*core.Transa
 
 // SendRawTransaction submit the signed transaction raw data to txpool
 func (s *APIService) SendRawTransaction(ctx context.Context, req *rpcpb.SendRawTransactionRequest) (*rpcpb.SendTransactionResponse, error) {
-	log.WithFields(log.Fields{
+	logging.VLog().WithFields(logrus.Fields{
 		"api": "/v1/user/rawtransaction",
 	}).Info("Rpc request.")
 
@@ -353,7 +354,7 @@ func (s *APIService) SendRawTransaction(ctx context.Context, req *rpcpb.SendRawT
 
 // GetBlockByHash get block info by the block hash
 func (s *APIService) GetBlockByHash(ctx context.Context, req *rpcpb.GetBlockByHashRequest) (*corepb.Block, error) {
-	log.WithFields(log.Fields{
+	logging.VLog().WithFields(logrus.Fields{
 		"hash": req.Hash,
 		"api":  "/v1/user/getBlockByHash",
 	}).Info("Rpc request.")
@@ -374,7 +375,7 @@ func (s *APIService) GetBlockByHash(ctx context.Context, req *rpcpb.GetBlockByHa
 
 // BlockDump is the RPC API handler.
 func (s *APIService) BlockDump(ctx context.Context, req *rpcpb.BlockDumpRequest) (*rpcpb.BlockDumpResponse, error) {
-	log.WithFields(log.Fields{
+	logging.VLog().WithFields(logrus.Fields{
 		"count": req.Count,
 		"api":   "/v1/user/transaction",
 	}).Info("Rpc request.")
@@ -386,7 +387,7 @@ func (s *APIService) BlockDump(ctx context.Context, req *rpcpb.BlockDumpRequest)
 
 // GetTransactionReceipt get transaction info by the transaction hash
 func (s *APIService) GetTransactionReceipt(ctx context.Context, req *rpcpb.GetTransactionByHashRequest) (*rpcpb.TransactionReceiptResponse, error) {
-	log.WithFields(log.Fields{
+	logging.VLog().WithFields(logrus.Fields{
 		"hash": req.Hash,
 		"api":  "/v1/user/getTransactionReceipt",
 	}).Info("Rpc request.")
@@ -423,7 +424,7 @@ func (s *APIService) GetTransactionReceipt(ctx context.Context, req *rpcpb.GetTr
 
 // NewAccount generate a new address with passphrase
 func (s *APIService) NewAccount(ctx context.Context, req *rpcpb.NewAccountRequest) (*rpcpb.NewAccountResponse, error) {
-	log.WithFields(log.Fields{
+	logging.VLog().WithFields(logrus.Fields{
 		"api": "/v1/admin/account/new",
 	}).Info("Rpc request.")
 
@@ -437,7 +438,7 @@ func (s *APIService) NewAccount(ctx context.Context, req *rpcpb.NewAccountReques
 
 // UnlockAccount unlock address with the passphrase
 func (s *APIService) UnlockAccount(ctx context.Context, req *rpcpb.UnlockAccountRequest) (*rpcpb.UnlockAccountResponse, error) {
-	log.WithFields(log.Fields{
+	logging.VLog().WithFields(logrus.Fields{
 		"api": "/v1/admin/account/unlock",
 	}).Info("Rpc request.")
 
@@ -455,7 +456,7 @@ func (s *APIService) UnlockAccount(ctx context.Context, req *rpcpb.UnlockAccount
 
 // LockAccount lock address
 func (s *APIService) LockAccount(ctx context.Context, req *rpcpb.LockAccountRequest) (*rpcpb.LockAccountResponse, error) {
-	log.WithFields(log.Fields{
+	logging.VLog().WithFields(logrus.Fields{
 		"api": "/v1/admin/account/lock",
 	}).Info("Rpc request.")
 
@@ -473,7 +474,7 @@ func (s *APIService) LockAccount(ctx context.Context, req *rpcpb.LockAccountRequ
 
 // SignTransaction sign transaction with the from addr passphrase
 func (s *APIService) SignTransaction(ctx context.Context, req *rpcpb.TransactionRequest) (*rpcpb.SignTransactionResponse, error) {
-	log.WithFields(log.Fields{
+	logging.VLog().WithFields(logrus.Fields{
 		"api": "/v1/admin/sign",
 	}).Info("Rpc request.")
 
@@ -498,7 +499,7 @@ func (s *APIService) SignTransaction(ctx context.Context, req *rpcpb.Transaction
 
 // SendTransactionWithPassphrase send transaction with the from addr passphrase
 func (s *APIService) SendTransactionWithPassphrase(ctx context.Context, req *rpcpb.SendTransactionPassphraseRequest) (*rpcpb.SendTransactionPassphraseResponse, error) {
-	log.WithFields(log.Fields{
+	logging.VLog().WithFields(logrus.Fields{
 		"api": "/v1/admin/transactionWithPassphrase",
 	}).Info("Rpc request.")
 
@@ -518,7 +519,7 @@ func (s *APIService) SendTransactionWithPassphrase(ctx context.Context, req *rpc
 
 // Subscribe ..
 func (s *APIService) Subscribe(req *rpcpb.SubscribeRequest, gs rpcpb.ApiService_SubscribeServer) error {
-	log.WithFields(log.Fields{
+	logging.VLog().WithFields(logrus.Fields{
 		"topic": req.Topic,
 		"api":   "/v1/user/subscribe",
 	}).Info("Rpc request.")
@@ -589,7 +590,7 @@ func (s *APIService) Subscribe(req *rpcpb.SubscribeRequest, gs rpcpb.ApiService_
 
 // GetGasPrice get gas price from chain.
 func (s *APIService) GetGasPrice(ctx context.Context, req *rpcpb.NonParamsRequest) (*rpcpb.GasPriceResponse, error) {
-	log.WithFields(log.Fields{
+	logging.VLog().WithFields(logrus.Fields{
 		"api": "/v1/user/getGasPrice",
 	}).Info("Rpc request.")
 
@@ -600,7 +601,7 @@ func (s *APIService) GetGasPrice(ctx context.Context, req *rpcpb.NonParamsReques
 
 // EstimateGas Compute the smart contract gas consumption.
 func (s *APIService) EstimateGas(ctx context.Context, req *rpcpb.TransactionRequest) (*rpcpb.EstimateGasResponse, error) {
-	log.WithFields(log.Fields{
+	logging.VLog().WithFields(logrus.Fields{
 		"api": "/v1/user/estimateGas",
 	}).Info("Rpc request.")
 
@@ -627,7 +628,7 @@ func (s *APIService) EstimateGas(ctx context.Context, req *rpcpb.TransactionRequ
 
 // GetEventsByHash return events by tx hash.
 func (s *APIService) GetEventsByHash(ctx context.Context, req *rpcpb.GetTransactionByHashRequest) (*rpcpb.EventsResponse, error) {
-	log.WithFields(log.Fields{
+	logging.VLog().WithFields(logrus.Fields{
 		"api": "/v1/user/getEventsByHash",
 	}).Info("Rpc request.")
 
@@ -657,7 +658,7 @@ func (s *APIService) GetEventsByHash(ctx context.Context, req *rpcpb.GetTransact
 
 // ChangeNetworkID change the network id
 func (s *APIService) ChangeNetworkID(ctx context.Context, req *rpcpb.ChangeNetworkIDRequest) (*rpcpb.ChangeNetworkIDResponse, error) {
-	log.WithFields(log.Fields{
+	logging.VLog().WithFields(logrus.Fields{
 		"api": "/v1/admin/changeNetworkID",
 	}).Info("Rpc request.")
 

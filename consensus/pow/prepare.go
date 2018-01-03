@@ -22,7 +22,7 @@ import (
 	"fmt"
 
 	"github.com/nebulasio/go-nebulas/consensus"
-	log "github.com/sirupsen/logrus"
+	"github.com/nebulasio/go-nebulas/util/logging"
 )
 
 const (
@@ -53,7 +53,7 @@ func (state *PrepareState) Event(e consensus.Event) (bool, consensus.State) {
 
 // Enter called when transiting to this state.
 func (state *PrepareState) Enter(data interface{}) {
-	log.Debug("PrepareState enter.")
+	logging.VLog().Debug("PrepareState enter.")
 
 	p := state.p
 
@@ -74,5 +74,5 @@ func (state *PrepareState) Enter(data interface{}) {
 
 // Leave called when leaving this state.
 func (state *PrepareState) Leave(data interface{}) {
-	log.Debug("PrepareState leave.")
+	logging.VLog().Debug("PrepareState leave.")
 }

@@ -25,7 +25,6 @@ import (
 	"testing"
 	"time"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -96,7 +95,6 @@ func TestEventEmitter(t *testing.T) {
 	wg.Wait()
 
 	at1c, at2c, at3c := eventCountDist[topics[0]], eventCountDist[topics[1]], eventCountDist[topics[2]]
-	log.Infof("actual vs. expected: %d vs. %d, %d vs. %d, %d vs. %d", at1c, t1c, at2c, t2c, at3c, t3c)
 	assert.Equal(t, at1c, t1c)
 	assert.Equal(t, at2c, t2c)
 	assert.Equal(t, at3c, t3c)
@@ -153,7 +151,6 @@ func TestEventEmitterWithRunningRegDereg(t *testing.T) {
 		for {
 			select {
 			case <-time.After(time.Second * 1):
-				log.Infof("timeout")
 				return
 			case e := <-t1ch:
 				assert.Equal(t, topics[0], e.Topic)
@@ -184,9 +181,7 @@ func TestEventEmitterWithRunningRegDereg(t *testing.T) {
 
 	wg.Wait()
 
-	at1c, at2c, at3c := eventCountDist[topics[0]], eventCountDist[topics[1]], eventCountDist[topics[2]]
-
-	log.Infof("actual vs. expected: %d vs. %d, %d vs. %d, %d vs. %d", at1c, t1c, at2c, t2c, at3c, t3c)
+	// TODO(Leon): check result
 
 	emitter.Stop()
 	time.Sleep(time.Millisecond * 100)
