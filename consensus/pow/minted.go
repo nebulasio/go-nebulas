@@ -22,7 +22,8 @@ import (
 	"fmt"
 
 	"github.com/nebulasio/go-nebulas/consensus"
-	log "github.com/sirupsen/logrus"
+	"github.com/nebulasio/go-nebulas/util/logging"
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -52,16 +53,16 @@ func (state *MintedState) Event(e consensus.Event) (bool, consensus.State) {
 
 // Enter called when transiting to this state.
 func (state *MintedState) Enter(data interface{}) {
-	log.Debug("MintedState.Enter: enter.")
+	logging.VLog().Debug("MintedState.Enter: enter.")
 
 	p := state.p
 	bkPool := p.chain.BlockPool()
 
 	// process minted block.
 	if p.miningBlock != nil && p.miningBlock.Sealed() {
-		log.Info("MintedState.Enter: process sealed block.")
+		logging.VLog().Info("MintedState.Enter: process sealed block.")
 
-		log.WithFields(log.Fields{
+		logging.VLog().WithFields(logrus.Fields{
 			"func":  "MintedState.Enter",
 			"block": p.miningBlock,
 		}).Info("seal new block, ready to broadcast.")
@@ -83,5 +84,5 @@ func (state *MintedState) Enter(data interface{}) {
 
 // Leave called when leaving this state.
 func (state *MintedState) Leave(data interface{}) {
-	log.Debug("MintedState.Leave: leave.")
+	logging.VLog().Debug("MintedState.Leave: leave.")
 }

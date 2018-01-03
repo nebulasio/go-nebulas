@@ -25,7 +25,8 @@ import (
 	"unsafe"
 
 	"github.com/nebulasio/go-nebulas/util"
-	log "github.com/sirupsen/logrus"
+	"github.com/nebulasio/go-nebulas/util/logging"
+	"github.com/sirupsen/logrus"
 )
 
 // GetTxByHashFunc returns tx info by hash
@@ -37,8 +38,7 @@ func GetTxByHashFunc(handler unsafe.Pointer, hash *C.char) *C.char {
 	}
 	tx, err := engine.ctx.SerializeTxByHash([]byte(C.GoString(hash)))
 	if err != nil {
-		log.WithFields(log.Fields{
-			"func":    "nvm.GetTxByHashFunc",
+		logging.VLog().WithFields(logrus.Fields{
 			"handler": uint64(uintptr(handler)),
 			"key":     C.GoString(hash),
 			"err":     err,
@@ -58,8 +58,7 @@ func GetAccountStateFunc(handler unsafe.Pointer, address *C.char) *C.char {
 	addr := C.GoString(address)
 	valid := engine.ctx.block.VerifyAddress(addr)
 	if !valid {
-		log.WithFields(log.Fields{
-			"func":    "nvm.GetAccountStateFunc",
+		logging.VLog().WithFields(logrus.Fields{
 			"handler": uint64(uintptr(handler)),
 			"key":     C.GoString(address),
 		}).Error("GetAccountStateFunc parse address failed.")
@@ -86,8 +85,7 @@ func TransferFunc(handler unsafe.Pointer, to *C.char, v *C.char) int {
 	addr := C.GoString(to)
 	valid := engine.ctx.block.VerifyAddress(addr)
 	if !valid {
-		log.WithFields(log.Fields{
-			"func":    "nvm.TransferFunc",
+		logging.VLog().WithFields(logrus.Fields{
 			"handler": uint64(uintptr(handler)),
 			"key":     C.GoString(to),
 		}).Error("TransferFunc parse address failed.")
@@ -105,8 +103,7 @@ func TransferFunc(handler unsafe.Pointer, to *C.char, v *C.char) int {
 	// update balance
 	err = engine.ctx.contract.SubBalance(amount)
 	if err != nil {
-		log.WithFields(log.Fields{
-			"func":    "nvm.TransferFunc",
+		logging.VLog().WithFields(logrus.Fields{
 			"handler": uint64(uintptr(handler)),
 			"key":     C.GoString(to),
 			"err":     err,

@@ -27,7 +27,8 @@ import (
 	"github.com/nebulasio/go-nebulas/core/pb"
 	"github.com/nebulasio/go-nebulas/net"
 	"github.com/nebulasio/go-nebulas/net/p2p"
-	log "github.com/sirupsen/logrus"
+	"github.com/nebulasio/go-nebulas/util/logging"
+	"github.com/sirupsen/logrus"
 )
 
 // const
@@ -107,7 +108,7 @@ func (m *Manager) Start() {
 		m.startSync()
 		m.curTail = m.blockChain.TailBlock()
 	} else {
-		log.Info("Sync.Start: i am a seed node.")
+		logging.VLog().Info("Sync.Start: i am a seed node.")
 		m.consensus.SetCanMining(true)
 		go m.loop()
 	}
@@ -129,10 +130,10 @@ func (m *Manager) loop() {
 				m.ns.Node().SetSynchronizing(false)
 			}
 			m.consensus.SetCanMining(true)
-			log.Info("sync finish.")
+			logging.VLog().Info("sync finish.")
 		case <-m.syncCh:
 			if m.curTail == nil {
-				log.Debug("sync occurs error, the current tail is nil.")
+				logging.VLog().Debug("sync occurs error, the current tail is nil.")
 				m.curTail = m.blockChain.TailBlock()
 			}
 			m.syncWithPeers(m.curTail)
@@ -143,7 +144,7 @@ func (m *Manager) loop() {
 func (m *Manager) syncWithPeers(block *core.Block) {
 	batch++
 	tail := NewNetBlock(m.ns.Node().ID(), batch, block)
-	log.WithFields(log.Fields{
+	logging.VLog().WithFields(logrus.Fields{
 		"tail":  tail,
 		"block": tail.block,
 	}).Info("syncWithPeers: got tail")
@@ -153,13 +154,13 @@ func (m *Manager) syncWithPeers(block *core.Block) {
 	case nil:
 	case p2p.ErrNodeNotEnough:
 		if m.ns.Node().GetSynchronizing() {
-			log.Debug("syncWithPeers: sleep for 5 second...")
+			logging.VLog().Debug("syncWithPeers: sleep for 5 second...")
 			time.Sleep(5 * time.Second)
 			m.syncCh <- true
 		}
 
 	default:
-		log.Error("syncWithPeers occurs error, sync has been terminated.")
+		logging.VLog().Error("syncWithPeers occurs error, sync has been terminated.")
 	}
 	go (func() {
 		timeout := 30 * time.Second
@@ -192,7 +193,7 @@ func (m *Manager) startMsgHandle() {
 			select {
 			case msg := <-m.receiveTailCh:
 				if m.ns.Node().GetSynchronizing() {
-					log.Debug("node can not reply sync message when it is synchronizing")
+					logging.VLog().Debug("node can not reply sync message when it is synchronizing")
 					continue
 				}
 				// 1.find the common ancestors
@@ -200,11 +201,11 @@ func (m *Manager) startMsgHandle() {
 				tail := new(NetBlock)
 				pbblock := new(corepb.NetBlock)
 				if err := pb.Unmarshal(msg.Data().([]byte), pbblock); err != nil {
-					log.Error("StartMsgHandle.receiveTailCh: unmarshal data occurs error, ", err)
+					logging.VLog().Error("StartMsgHandle.receiveTailCh: unmarshal data occurs error, ", err)
 					continue
 				}
 				if err := tail.FromProto(pbblock); err != nil {
-					log.Error("StartMsgHandle.receiveTailCh: get block from proto occurs error: ", err)
+					logging.VLog().Error("StartMsgHandle.receiveTailCh: get block from proto occurs error: ", err)
 					continue
 				}
 
@@ -213,21 +214,21 @@ func (m *Manager) startMsgHandle() {
 				ancestor, err := m.blockChain.FindCommonAncestorWithTail(tail.block)
 				var emptyblocks []*core.Block
 				if err != nil {
-					log.Debug("StartMsgHandle.receiveTailCh: find common ancestor with tail occurs error, ", err)
+					logging.VLog().Debug("StartMsgHandle.receiveTailCh: find common ancestor with tail occurs error, ", err)
 					netblocks := NewNetBlocks(key, tail.batch, emptyblocks)
 					m.ns.SendSyncReply(tail.from, netblocks)
 					continue
 				}
 				subsequentBlocks, err := m.blockChain.FetchDescendantInCanonicalChain(DescendantCount, ancestor)
 				if err != nil {
-					log.Debug("StartMsgHandle.receiveTailCh: FetchDescendantInCanonicalChain occurs error, ", err)
+					logging.VLog().Debug("StartMsgHandle.receiveTailCh: FetchDescendantInCanonicalChain occurs error, ", err)
 					netblocks := NewNetBlocks(key, tail.batch, emptyblocks)
 					m.ns.SendSyncReply(tail.from, netblocks)
 					continue
 				}
 				subsequentBlocks = append(subsequentBlocks, ancestor)
 				blocks := NewNetBlocks(key, tail.batch, subsequentBlocks)
-				log.WithFields(log.Fields{
+				logging.VLog().WithFields(logrus.Fields{
 					"from":   blocks.from,
 					"batch":  blocks.batch,
 					"blocks": blocks.blocks,
@@ -242,11 +243,11 @@ func (m *Manager) startMsgHandle() {
 				data := new(NetBlocks)
 				pbblocks := new(corepb.NetBlocks)
 				if err := pb.Unmarshal(msg.Data().([]byte), pbblocks); err != nil {
-					log.Error("StartMsgHandle.receiveSyncReplyCh: unmarshal data occurs error, ", err)
+					logging.VLog().Error("StartMsgHandle.receiveSyncReplyCh: unmarshal data occurs error, ", err)
 					continue
 				}
 				if err := data.FromProto(pbblocks); err != nil {
-					log.Error("StartMsgHandle.receiveSyncReplyCh: get blocks from proto occurs error: ", err)
+					logging.VLog().Error("StartMsgHandle.receiveSyncReplyCh: get blocks from proto occurs error: ", err)
 					continue
 				}
 				if data.batch < batch {
@@ -263,7 +264,7 @@ func (m *Manager) startMsgHandle() {
 					}
 				}
 
-				log.WithFields(log.Fields{
+				logging.VLog().WithFields(logrus.Fields{
 					"from":   data.from,
 					"blocks": blocks,
 				}).Info("StartMsgHandle.receiveSyncReplyCh: receive receiveSyncReplyCh message.")
@@ -300,7 +301,7 @@ func (m *Manager) syncWithBlockList(list map[string]*NetBlocks) {
 
 func (m *Manager) doSyncBlocksWithCommonAncestor(addrsArray []string) {
 	if len(addrsArray) == 0 {
-		log.Debug("doSyncBlocksWithCommonAncestor: no common ancestor have been found")
+		logging.VLog().Debug("doSyncBlocksWithCommonAncestor: no common ancestor have been found")
 		m.syncCh <- true
 		return
 	}
@@ -322,7 +323,7 @@ func (m *Manager) doSyncBlocksWithCommonAncestor(addrsArray []string) {
 				for k := range m.cacheList {
 					delete(m.cacheList, k)
 				}
-				log.Debug("doSyncBlocksWithCommonAncestor: push a block to pool occrus error, ", err)
+				logging.VLog().Debug("doSyncBlocksWithCommonAncestor: push a block to pool occrus error, ", err)
 				m.syncCh <- true
 				return
 			}
@@ -333,7 +334,7 @@ func (m *Manager) doSyncBlocksWithCommonAncestor(addrsArray []string) {
 	syncContinue := false
 	for i := 0; i < len(addrsArray); i++ {
 		if len(m.cacheList[addrsArray[i]].blocks) > DescendantCount {
-			log.Info("StartMsgHandle: more Descendant need to synchronize, go to next synchronization")
+			logging.VLog().Info("StartMsgHandle: more Descendant need to synchronize, go to next synchronization")
 			syncContinue = true
 		}
 	}

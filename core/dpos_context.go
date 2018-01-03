@@ -29,7 +29,8 @@ import (
 	"github.com/nebulasio/go-nebulas/storage"
 	"github.com/nebulasio/go-nebulas/util"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
-	log "github.com/sirupsen/logrus"
+	"github.com/nebulasio/go-nebulas/util/logging"
+	"github.com/sirupsen/logrus"
 )
 
 // Consensus Related Constants
@@ -106,7 +107,7 @@ func (dc *DposContext) RootHash() byteutils.Hash {
 
 // BeginBatch starts a batch task
 func (dc *DposContext) BeginBatch() {
-	log.Debug("DposContext Begin.")
+	logging.VLog().Debug("DposContext Begin.")
 	dc.delegateTrie.BeginBatch()
 	dc.dynastyTrie.BeginBatch()
 	dc.nextDynastyTrie.BeginBatch()
@@ -123,7 +124,7 @@ func (dc *DposContext) Commit() {
 	dc.candidateTrie.Commit()
 	dc.voteTrie.Commit()
 	dc.mintCntTrie.Commit()
-	log.Debug("DposContext Commit.")
+	logging.VLog().Debug("DposContext Commit.")
 }
 
 // RollBack a batch task
@@ -134,7 +135,7 @@ func (dc *DposContext) RollBack() {
 	dc.candidateTrie.RollBack()
 	dc.voteTrie.RollBack()
 	dc.mintCntTrie.RollBack()
-	log.Debug("DposContext RollBack.")
+	logging.VLog().Debug("DposContext RollBack.")
 }
 
 // Clone a dpos context
@@ -419,7 +420,7 @@ func kickout(stor storage.Storage, candidatesTrie *trie.BatchTrie, delegateTrie 
 			return err
 		}
 		if err == storage.ErrKeyNotFound {
-			log.WithFields(log.Fields{
+			logging.VLog().WithFields(logrus.Fields{
 				"voter":     byteutils.Hex(delegator),
 				"candidate": candidate.Hex(),
 			}).Debug("Unexpected voter who votes nobody appears in delegate trie")
@@ -434,7 +435,7 @@ func kickout(stor storage.Storage, candidatesTrie *trie.BatchTrie, delegateTrie 
 			return err
 		}
 	}
-	log.Debug("Kickouted candidate: ", candidate.Hex())
+	logging.VLog().Debug("Kickouted candidate: ", candidate.Hex())
 	return nil
 }
 
@@ -485,7 +486,7 @@ func (dc *DynastyContext) kickoutDynasty(dynastyID int64) error {
 			if err != nil {
 				return err
 			}
-			log.Debug("Protect active bootstrap candidate: ", addr)
+			logging.VLog().Debug("Protect active bootstrap candidate: ", addr)
 		} else {
 			if err := dc.kickoutCandidate(validator); err != nil {
 				return err
@@ -497,12 +498,12 @@ func (dc *DynastyContext) kickoutDynasty(dynastyID int64) error {
 		}
 	}
 
-	log.Debug("Kickouted dynasty: ", dynastyID)
+	logging.VLog().Debug("Kickouted dynasty: ", dynastyID)
 	return nil
 }
 
 func (dc *DynastyContext) electNextDynastyOnBaseDynasty(baseDynastyID int64, nextDynastyID int64, baseGenesis bool) error {
-	log.WithFields(log.Fields{
+	logging.VLog().WithFields(logrus.Fields{
 		"base":            baseDynastyID,
 		"next":            nextDynastyID,
 		"base is genesis": baseGenesis,
@@ -559,7 +560,7 @@ func (dc *DynastyContext) electNextDynastyOnBaseDynasty(baseDynastyID int64, nex
 		dc.DynastyTrie = dc.NextDynastyTrie
 		dc.NextDynastyTrie = nextDynastyTrie
 
-		log.WithFields(log.Fields{
+		logging.VLog().WithFields(logrus.Fields{
 			"dynasty.members": newDynasty,
 			"dynasty.id":      string(i + 1),
 		}).Debug("Elected new dynasty")

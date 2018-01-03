@@ -28,7 +28,8 @@ import (
 	"github.com/nebulasio/go-nebulas/storage"
 	"github.com/nebulasio/go-nebulas/util"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
-	log "github.com/sirupsen/logrus"
+	"github.com/nebulasio/go-nebulas/util/logging"
+	"github.com/sirupsen/logrus"
 )
 
 // Errors
@@ -117,14 +118,14 @@ func (acc *account) BirthPlace() byteutils.Hash {
 
 // BeginBatch begins a batch task
 func (acc *account) BeginBatch() {
-	log.Debug("Account Begin.")
+	logging.VLog().Debug("Account Begin.")
 	acc.variables.BeginBatch()
 }
 
 // Commit a batch task
 func (acc *account) Commit() {
 	acc.variables.Commit()
-	log.WithFields(log.Fields{
+	logging.VLog().WithFields(logrus.Fields{
 		"acc": acc,
 	}).Debug("Account Commit.")
 }
@@ -132,7 +133,7 @@ func (acc *account) Commit() {
 // RollBack a batch task
 func (acc *account) RollBack() {
 	acc.variables.RollBack()
-	log.WithFields(log.Fields{
+	logging.VLog().WithFields(logrus.Fields{
 		"acc": acc,
 	}).Debug("Account RollBack.")
 }
@@ -317,11 +318,13 @@ func (as *accountState) Accounts() ([]Account, error) {
 
 // BeginBatch begin a batch task
 func (as *accountState) BeginBatch() {
-	log.Debug("AccountState Begin.")
+	logging.VLog().Debug("AccountState Begin.")
 	as.batching = true
 	err := as.stateTrie.BeginBatch()
 	if err != nil {
-		log.Error(err)
+		logging.VLog().WithFields(logrus.Fields{
+			"err": err,
+		}).Debug("Failed to Begin AccountState Batch.")
 	}
 }
 
@@ -336,7 +339,7 @@ func (as *accountState) Commit() {
 	}
 	as.stateTrie.Commit()
 	as.batching = false
-	log.WithFields(log.Fields{
+	logging.VLog().WithFields(logrus.Fields{
 		"AccountState": as,
 	}).Debug("AccountState Commit.")
 }
@@ -349,7 +352,7 @@ func (as *accountState) RollBack() {
 		delete(as.dirtyAccount, addr)
 	}
 	as.batching = false
-	log.WithFields(log.Fields{
+	logging.VLog().WithFields(logrus.Fields{
 		"AccountState": as,
 	}).Debug("AccountState RollBack.")
 }

@@ -26,25 +26,12 @@ import (
 	logrus "github.com/sirupsen/logrus"
 )
 
-var std *logrus.Logger
-
-var enableFuncNameLog bool
-
-func init() {
-	std = newLogger()
-	enableFuncNameLog = true
-}
-
 type functionHooker struct {
 	innerLogger *logrus.Logger
 	file        string
 }
 
 func (h *functionHooker) Fire(entry *logrus.Entry) error {
-	if !enableFuncNameLog {
-		return nil
-	}
-
 	pc := make([]uintptr, 10)
 	runtime.Callers(6, pc)
 	for i := 0; i < 10; i++ {
@@ -68,7 +55,6 @@ func (h *functionHooker) Fire(entry *logrus.Entry) error {
 		entry.Data["file"] = filepath.Base(file)
 		break
 	}
-
 	return nil
 }
 
@@ -83,26 +69,15 @@ func (h *functionHooker) Levels() []logrus.Level {
 	}
 }
 
-func newLogger() *logrus.Logger {
+// LoadFunctionHooker loads a function hooker to the logger
+func LoadFunctionHooker(logger *logrus.Logger) {
 	_, file, _, ok := runtime.Caller(1)
 	if !ok {
 		file = "unknown"
 	}
-	ret := logrus.StandardLogger()
 	inst := &functionHooker{
-		innerLogger: ret,
+		innerLogger: logger,
 		file:        file,
 	}
-	ret.Hooks.Add(inst)
-	return ret
-}
-
-// EnableFuncNameLogger enable func name logger.
-func EnableFuncNameLogger() {
-	enableFuncNameLog = true
-}
-
-// DisableFuncNameLogger disable func name logger.
-func DisableFuncNameLogger() {
-	enableFuncNameLog = false
+	logger.Hooks.Add(inst)
 }

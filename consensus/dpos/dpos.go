@@ -33,7 +33,8 @@ import (
 	"github.com/nebulasio/go-nebulas/net/p2p"
 
 	"github.com/nebulasio/go-nebulas/util/byteutils"
-	log "github.com/sirupsen/logrus"
+	"github.com/nebulasio/go-nebulas/util/logging"
+	"github.com/sirupsen/logrus"
 )
 
 // Errors in PoW Consensus
@@ -90,7 +91,7 @@ func NewDpos(neblet Neblet) (*Dpos, error) {
 	config := neblet.Config().Chain
 	coinbase, err := core.AddressParse(config.Coinbase)
 	if err != nil {
-		log.WithFields(log.Fields{
+		logging.VLog().WithFields(logrus.Fields{
 			"address": config.Coinbase,
 			"err":     err,
 		}).Debug("Failed to parse coinbase address.")
@@ -98,7 +99,7 @@ func NewDpos(neblet Neblet) (*Dpos, error) {
 	}
 	miner, err := core.AddressParse(config.Miner)
 	if err != nil {
-		log.WithFields(log.Fields{
+		logging.VLog().WithFields(logrus.Fields{
 			"address": config.Miner,
 			"err":     err,
 		}).Debug("Failed to parse miner address.")
@@ -143,20 +144,20 @@ func (p *Dpos) forkChoice() {
 	}
 
 	if newTailBlock.Hash().Equals(tailBlock.Hash()) {
-		log.WithFields(log.Fields{
+		logging.VLog().WithFields(logrus.Fields{
 			"old tail": tailBlock,
 			"new tail": newTailBlock,
 		}).Info("Same blocks, no need to change.")
 	} else {
 		err := bc.SetTailBlock(newTailBlock)
 		if err != nil {
-			log.WithFields(log.Fields{
+			logging.VLog().WithFields(logrus.Fields{
 				"new tail": newTailBlock,
 				"old tail": tailBlock,
 				"err":      err,
 			}).Debug("Failed to set new tail block.")
 		} else {
-			log.WithFields(log.Fields{
+			logging.VLog().WithFields(logrus.Fields{
 				"new tail": newTailBlock,
 				"old tail": tailBlock,
 			}).Info("change to new tail.")
@@ -172,9 +173,9 @@ func (p *Dpos) CanMining() bool {
 // SetCanMining set if consensus can do mining now
 func (p *Dpos) SetCanMining(canMining bool) {
 	if canMining {
-		log.Info("Start Dpos Mining.")
+		logging.VLog().Info("Start Dpos Mining.")
 	} else {
-		log.Info("Stop Dpos Mining.")
+		logging.VLog().Info("Stop Dpos Mining.")
 	}
 	p.canMining = canMining
 }
@@ -197,7 +198,7 @@ func verifyBlockSign(miner *core.Address, block *core.Block) error {
 		return err
 	}
 	if !miner.Equals(addr) {
-		log.WithFields(log.Fields{
+		logging.VLog().WithFields(logrus.Fields{
 			"recover address": addr.String(),
 			"block":           block,
 		}).Debug("Failed to verify block's sign.")
@@ -268,7 +269,7 @@ func (p *Dpos) VerifyBlock(block *core.Block, parent *core.Block) error {
 func (p *Dpos) mintBlock(now int64) error {
 	// check can do mining
 	if !p.canMining {
-		log.WithFields(log.Fields{
+		logging.VLog().WithFields(logrus.Fields{
 			"now": now,
 		}).Debug("Sync is not over yet.")
 		return ErrCannotMintBlockNow
@@ -279,7 +280,7 @@ func (p *Dpos) mintBlock(now int64) error {
 	elapsedSecond := now - tail.Timestamp()
 	context, err := tail.NextDynastyContext(elapsedSecond)
 	if err != nil {
-		log.WithFields(log.Fields{
+		logging.VLog().WithFields(logrus.Fields{
 			"tail":    tail,
 			"elapsed": elapsedSecond,
 			"err":     err,
@@ -291,7 +292,7 @@ func (p *Dpos) mintBlock(now int64) error {
 		if context.Proposer != nil {
 			proposer = string(context.Proposer.Hex())
 		}
-		log.WithFields(log.Fields{
+		logging.VLog().WithFields(logrus.Fields{
 			"tail":     tail,
 			"elapsed":  elapsedSecond,
 			"expected": proposer,
@@ -299,7 +300,7 @@ func (p *Dpos) mintBlock(now int64) error {
 		}).Debug("Not my turn, waiting...")
 		return ErrInvalidBlockProposer
 	}
-	log.WithFields(log.Fields{
+	logging.VLog().WithFields(logrus.Fields{
 		"tail":     tail,
 		"elapsed":  elapsedSecond,
 		"expected": context.Proposer.Hex(),
@@ -309,7 +310,7 @@ func (p *Dpos) mintBlock(now int64) error {
 	// mint new block
 	block, err := core.NewBlock(p.chain.ChainID(), p.coinbase, tail)
 	if err != nil {
-		log.WithFields(log.Fields{
+		logging.VLog().WithFields(logrus.Fields{
 			"tail":     tail,
 			"coinbase": p.coinbase,
 			"chainid":  p.chain.ChainID(),
@@ -321,7 +322,7 @@ func (p *Dpos) mintBlock(now int64) error {
 	block.CollectTransactions(p.txsPerBlock)
 	block.SetMiner(p.miner)
 	if err = block.Seal(); err != nil {
-		log.WithFields(log.Fields{
+		logging.VLog().WithFields(logrus.Fields{
 			"block": block,
 			"err":   err,
 		}).Error("Failed to seal new block")
@@ -329,14 +330,14 @@ func (p *Dpos) mintBlock(now int64) error {
 	}
 	// TODO: move passphrase from config to console
 	if err = p.am.Unlock(p.miner, []byte(p.passphrase)); err != nil {
-		log.WithFields(log.Fields{
+		logging.VLog().WithFields(logrus.Fields{
 			"miner": p.miner.String(),
 			"err":   err,
 		}).Error("Failed to unlock the miner")
 		return err
 	}
 	if err = p.am.SignBlock(p.miner, block); err != nil {
-		log.WithFields(log.Fields{
+		logging.VLog().WithFields(logrus.Fields{
 			"miner": p.miner.String(),
 			"block": block,
 			"err":   err,
@@ -346,7 +347,7 @@ func (p *Dpos) mintBlock(now int64) error {
 	// broadcast it
 	err = p.chain.BlockPool().PushAndBroadcast(block)
 	if err != nil {
-		log.WithFields(log.Fields{
+		logging.VLog().WithFields(logrus.Fields{
 			"tail":  tail,
 			"block": block,
 			"err":   err,
@@ -354,7 +355,7 @@ func (p *Dpos) mintBlock(now int64) error {
 		return err
 	}
 
-	log.WithFields(log.Fields{
+	logging.VLog().WithFields(logrus.Fields{
 		"tail":  tail,
 		"block": block,
 	}).Info("Minted new block")
@@ -362,7 +363,7 @@ func (p *Dpos) mintBlock(now int64) error {
 }
 
 func (p *Dpos) blockLoop() {
-	log.Info("Launched Dpos Mining.")
+	logging.VLog().Info("Launched Dpos Mining.")
 
 	timeChan := time.NewTicker(time.Second).C
 	for {
@@ -372,7 +373,7 @@ func (p *Dpos) blockLoop() {
 		case <-p.chain.BlockPool().ReceivedLinkedBlockCh():
 			p.forkChoice()
 		case <-p.quitCh:
-			log.Info("Shutdowned Dpos Mining.")
+			logging.VLog().Info("Shutdowned Dpos Mining.")
 			return
 		}
 	}

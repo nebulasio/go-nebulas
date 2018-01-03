@@ -24,12 +24,12 @@ import (
 
 	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/neblet/pb"
-	log "github.com/sirupsen/logrus"
+	"github.com/nebulasio/go-nebulas/util/logging"
 )
 
 // LoadConfig loads configuration from the file.
 func LoadConfig(file string) *nebletpb.Config {
-	//log.Info("Loading Neb config from file ", file)
+	//logging.VLog().Info("Loading Neb config from file ", file)
 
 	var content string
 	if len(file) > 0 {
@@ -38,20 +38,20 @@ func LoadConfig(file string) *nebletpb.Config {
 		}
 		b, err := ioutil.ReadFile(file)
 		if err != nil {
-			log.Fatal(err)
+			logging.VLog().Fatal(err)
 		}
 
 		content = string(b)
 	} else {
 		content = defaultConfig()
 	}
-	//log.Info("Parsing Neb config text ", content)
+	//logging.VLog().Info("Parsing Neb config text ", content)
 
 	pb := new(nebletpb.Config)
 	if err := proto.UnmarshalText(content, pb); err != nil {
-		log.Fatal(err)
+		logging.VLog().Fatal(err)
 	}
-	//log.Info("Loaded Neb config proto ", pb)
+	//logging.VLog().Info("Loaded Neb config proto ", pb)
 	return pb
 }
 
@@ -95,7 +95,7 @@ func defaultConfig() string {
 // CreateDefaultConfigFile create a default config file.
 func CreateDefaultConfigFile(filename string) {
 	if err := ioutil.WriteFile(filename, []byte(defaultConfig()), 0644); err != nil {
-		log.Fatal(err)
+		logging.VLog().Fatal(err)
 	}
 }
 

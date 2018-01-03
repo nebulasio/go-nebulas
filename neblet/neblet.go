@@ -17,8 +17,8 @@ import (
 	nsync "github.com/nebulasio/go-nebulas/sync"
 	"github.com/nebulasio/go-nebulas/util"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
+	"github.com/nebulasio/go-nebulas/util/logging"
 	m "github.com/rcrowley/go-metrics"
-	log "github.com/sirupsen/logrus"
 )
 
 var (
@@ -122,7 +122,7 @@ func (n *Neblet) Start() error {
 	n.lock.Lock()
 	defer n.lock.Unlock()
 
-	log.Info("Starting neblet...")
+	logging.VLog().Info("Starting neblet...")
 
 	if n.running {
 		return ErrNebletAlreadyRunning
@@ -158,7 +158,7 @@ func (n *Neblet) Stop() error {
 	n.lock.Lock()
 	defer n.lock.Unlock()
 
-	log.Info("Stopping neblet...")
+	logging.VLog().Info("Stopping neblet...")
 
 	if n.consensus != nil {
 		n.consensus.Stop()

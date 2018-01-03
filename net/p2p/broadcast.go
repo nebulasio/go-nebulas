@@ -25,7 +25,8 @@ import (
 	peer "github.com/libp2p/go-libp2p-peer"
 	"github.com/nebulasio/go-nebulas/net"
 	byteutils "github.com/nebulasio/go-nebulas/util/byteutils"
-	log "github.com/sirupsen/logrus"
+	"github.com/nebulasio/go-nebulas/util/logging"
+	"github.com/sirupsen/logrus"
 )
 
 // Broadcast broadcast message
@@ -76,7 +77,7 @@ func (ns *NetService) distribute(name string, msg net.Serializable, relay bool) 
 		allNode = ns.nodeNotInRelayness(relayness, node.routeTable.ListPeers())
 		transfer = allNode
 	}
-	log.WithFields(log.Fields{
+	logging.VLog().WithFields(logrus.Fields{
 		"msg":      msg,
 		"transfer": transfer,
 	}).Debug("distribute: start distribute msg.")
@@ -93,12 +94,12 @@ func (ns *NetService) doMsgTransfer(transfer []peer.ID, relayness []peer.ID, dat
 	for i := 0; i < len(transfer); i++ {
 		nodeID := transfer[i]
 		if InArray(nodeID, relayness) {
-			log.Debugf("msgTransfer:  nodeID %s has already have the same message", nodeID)
+			logging.VLog().Debugf("msgTransfer:  nodeID %s has already have the same message", nodeID)
 			continue
 		}
 		addrs := node.peerstore.PeerInfo(nodeID).Addrs
 		if len(addrs) == 0 || node.host.Addrs()[0].String() == addrs[0].String() {
-			log.Debugf("msgTransfer: skip self")
+			logging.VLog().Debugf("msgTransfer: skip self")
 			continue
 		}
 		if len(addrs) > 0 {
@@ -113,12 +114,12 @@ func (ns *NetService) doRelay(nodes []peer.ID, relayness []peer.ID, dataChecksum
 	for i := 0; i < len(nodes); i++ {
 		nodeID := nodes[i]
 		if InArray(nodeID, relayness) {
-			log.Debugf("distribute: relay nodeID %s has already have the same message", nodeID)
+			logging.VLog().Debugf("distribute: relay nodeID %s has already have the same message", nodeID)
 			continue
 		}
 		addrs := node.peerstore.PeerInfo(nodeID).Addrs
 		if len(addrs) == 0 || node.host.Addrs()[0].String() == addrs[0].String() {
-			log.Debugf("distribute: relay skip self")
+			logging.VLog().Debugf("distribute: relay skip self")
 			continue
 		}
 		if len(addrs) > 0 {

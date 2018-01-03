@@ -28,7 +28,8 @@ import (
 
 	"time"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/nebulasio/go-nebulas/util/logging"
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -71,7 +72,7 @@ func (state *MiningState) Event(e consensus.Event) (bool, consensus.State) {
 
 // Enter called when transiting to this state.
 func (state *MiningState) Enter(data interface{}) {
-	log.Debug("MiningState.Enter: enter.")
+	logging.VLog().Debug("MiningState.Enter: enter.")
 
 	// start searching nonce.
 	go state.searchingNonce(state.p.miningBlock)
@@ -79,14 +80,14 @@ func (state *MiningState) Enter(data interface{}) {
 
 // Leave called when leaving this state.
 func (state *MiningState) Leave(data interface{}) {
-	log.Debug("MiningState.Leave: leave.")
+	logging.VLog().Debug("MiningState.Leave: leave.")
 	state.quitCh <- true
 }
 
 func (state *MiningState) searchingNonce(miningBlock *core.Block) {
 	// transit to MintedState if newBlockReceived is true.
 	if state.p.newBlockReceived {
-		log.Info("MiningState.Enter: new block received, transit to MintedState.")
+		logging.VLog().Info("MiningState.Enter: new block received, transit to MintedState.")
 		state.p.Transit(state, NewMintedState(state.p), nil)
 
 	} else {
@@ -98,7 +99,7 @@ func (state *MiningState) searchingNonce(miningBlock *core.Block) {
 		for {
 			select {
 			case <-state.quitCh:
-				log.Info("MiningState.searchingNonce: quit.")
+				logging.VLog().Info("MiningState.searchingNonce: quit.")
 				return
 
 			default:
@@ -109,7 +110,7 @@ func (state *MiningState) searchingNonce(miningBlock *core.Block) {
 				resultBytes := HashAndVerify(miningBlock)
 
 				if resultBytes != nil {
-					log.WithFields(log.Fields{
+					logging.VLog().WithFields(logrus.Fields{
 						"nonce":      nonce,
 						"parentHash": byteutils.Hex(parentHash),
 						"hashResult": byteutils.Hex(resultBytes),
@@ -132,5 +133,5 @@ func (state *MiningState) searchingNonce(miningBlock *core.Block) {
 
 	// wait for quit while transiting.
 	<-state.quitCh
-	log.Info("MiningState.searchingNonce: quit at the end.")
+	logging.VLog().Info("MiningState.searchingNonce: quit at the end.")
 }

@@ -28,7 +28,8 @@ import (
 	"github.com/nebulasio/go-nebulas/crypto/cipher"
 	"github.com/nebulasio/go-nebulas/crypto/keystore"
 	"github.com/nebulasio/go-nebulas/neblet/pb"
-	log "github.com/sirupsen/logrus"
+	"github.com/nebulasio/go-nebulas/util/logging"
+	"github.com/sirupsen/logrus"
 )
 
 // const SignatureCiphers
@@ -250,7 +251,7 @@ func (m *Manager) SignTransaction(addr *core.Address, tx *core.Transaction) erro
 	}
 	key, err := m.ks.GetUnlocked(addr.String())
 	if err != nil {
-		log.WithFields(log.Fields{
+		logging.VLog().WithFields(logrus.Fields{
 			"func": "SignTransaction",
 			"err":  ErrTxAddressLocked,
 			"tx":   tx,
@@ -270,7 +271,7 @@ func (m *Manager) SignTransaction(addr *core.Address, tx *core.Transaction) erro
 func (m *Manager) SignBlock(addr *core.Address, block *core.Block) error {
 	key, err := m.ks.GetUnlocked(addr.String())
 	if err != nil {
-		log.WithFields(log.Fields{
+		logging.VLog().WithFields(logrus.Fields{
 			"func":  "SignBlock",
 			"err":   ErrBlockAddressLocked,
 			"block": block,
@@ -302,7 +303,7 @@ func (m *Manager) SignTransactionWithPassphrase(addr *core.Address, tx *core.Tra
 
 	key, err := m.ks.GetKey(addr.String(), passphrase)
 	if err != nil {
-		log.WithFields(log.Fields{
+		logging.VLog().WithFields(logrus.Fields{
 			"func": "SignTransactionWithPassphrase",
 			"err":  ErrTxAddressLocked,
 			"tx":   tx,

@@ -33,8 +33,9 @@ import (
 	"github.com/nebulasio/go-nebulas/crypto/keystore"
 	"github.com/nebulasio/go-nebulas/util"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
+	"github.com/nebulasio/go-nebulas/util/logging"
 	metrics "github.com/rcrowley/go-metrics"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 var (
@@ -315,7 +316,7 @@ func (tx *Transaction) VerifyExecution(block *Block) (*util.Uint128, error) {
 
 	payload, err := tx.LoadPayload()
 	if err != nil {
-		log.WithFields(log.Fields{
+		logging.VLog().WithFields(logrus.Fields{
 			"error":       err,
 			"block":       block,
 			"transaction": tx,
@@ -336,7 +337,7 @@ func (tx *Transaction) VerifyExecution(block *Block) (*util.Uint128, error) {
 
 	gasUsed.Add(gasUsed.Int, payload.BaseGasCount().Int)
 	if tx.gasLimit.Cmp(gasUsed.Int) < 0 {
-		log.WithFields(log.Fields{
+		logging.VLog().WithFields(logrus.Fields{
 			"err":   ErrOutOfGasLimit,
 			"block": block,
 			"tx":    tx,
@@ -359,7 +360,7 @@ func (tx *Transaction) VerifyExecution(block *Block) (*util.Uint128, error) {
 	// gas = tx.GasCountOfTxBase() +  gasExecution
 	gas := util.NewUint128FromBigInt(util.NewUint128().Add(gasUsed.Int, gasExecution.Int))
 
-	log.WithFields(log.Fields{
+	logging.VLog().WithFields(logrus.Fields{
 		"tx":           tx,
 		"gasUsed":      gasUsed.String(),
 		"gasExecution": gasExecution.String(),
@@ -371,7 +372,7 @@ func (tx *Transaction) VerifyExecution(block *Block) (*util.Uint128, error) {
 	tx.gasConsumption(fromAcc, coinbaseAcc, gas)
 
 	if err != nil {
-		log.WithFields(log.Fields{
+		logging.VLog().WithFields(logrus.Fields{
 			"err":          err,
 			"block":        block,
 			"tx":           tx,
@@ -383,7 +384,7 @@ func (tx *Transaction) VerifyExecution(block *Block) (*util.Uint128, error) {
 		tx.triggerEvent(TopicExecuteTxFailed, block, err)
 	} else {
 		if fromAcc.Balance().Cmp(tx.value.Int) < 0 {
-			log.WithFields(log.Fields{
+			logging.VLog().WithFields(logrus.Fields{
 				"err":   ErrInsufficientBalance,
 				"block": block,
 				"tx":    tx,
@@ -491,7 +492,7 @@ func (tx *Transaction) verifySign() error {
 		return err
 	}
 	if !tx.from.Equals(addr) {
-		log.WithFields(log.Fields{
+		logging.VLog().WithFields(logrus.Fields{
 			"recover address": addr.String(),
 			"tx":              tx,
 		}).Debug("Failed to verify tx's sign.")

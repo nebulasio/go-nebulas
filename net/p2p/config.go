@@ -24,7 +24,7 @@ import (
 
 	"github.com/multiformats/go-multiaddr"
 	"github.com/nebulasio/go-nebulas/neblet/pb"
-	log "github.com/sirupsen/logrus"
+	"github.com/nebulasio/go-nebulas/util/logging"
 )
 
 // const
@@ -78,7 +78,7 @@ func NewP2PConfig(n Neblet) *Config {
 		for _, v := range seeds {
 			seed, err := multiaddr.NewMultiaddr(v)
 			if err != nil {
-				log.Error("param seed error, creating seed node fail", err)
+				logging.VLog().Error("param seed error, creating seed node fail", err)
 				return nil
 			}
 			config.BootNodes = append(config.BootNodes, seed)
