@@ -227,9 +227,11 @@ func (node *Node) init() error {
 	)
 
 	node.routeTable.Update(node.id)
+
 	node.stream = new(sync.Map)
 	node.streamCache = pdeque.NewPriorityDeque(less)
 	node.version = node.config.Version
+
 	var multiaddrs []multiaddr.Multiaddr
 	for _, v := range node.config.Listen {
 		tcpAddr, err := net.ResolveTCPAddr("tcp", v)
