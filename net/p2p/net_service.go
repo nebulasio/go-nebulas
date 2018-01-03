@@ -174,9 +174,13 @@ func (ns *NetService) streamHandler(s libnet.Stream) {
 			pid := s.Conn().RemotePeer()
 			addrs := s.Conn().RemoteMultiaddr()
 			key := pid.Pretty()
-			protocol, err := ns.parse(s)
+			protocol, err := ns.parseNebMsg(s)
 			if err != nil {
-				log.Error("streamHandler: parse network protocol occurs error, ", err)
+				log.WithFields(log.Fields{
+					"addrs": addrs.String(),
+					"pid":   pid.Pretty(),
+					"err":   err,
+				}).Error("invalid neb message")
 				ns.Bye(pid, []ma.Multiaddr{addrs}, s, key)
 				return
 			}
@@ -236,11 +240,9 @@ func (ns *NetService) streamHandler(s libnet.Stream) {
 
 }
 
-func (ns *NetService) parse(s libnet.Stream) (*Protocol, error) {
-
+func (ns *NetService) parseNebMsg(s libnet.Stream) (*Protocol, error) {
 	header, err := ReadBytes(s, uint32(offsetThirtySix))
 	if err != nil {
-		log.Error("parse protocol, read data header occurs error, ", err)
 		return nil, err
 	}
 
