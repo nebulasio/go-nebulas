@@ -200,7 +200,7 @@ func (p *Pow) checkValidTransit(from, to consensus.State) bool {
 		"current": p.currentState,
 		"from":    from,
 		"to":      to,
-	}).Debug("State Transition.")
+	}).Info("State Transition.")
 	return valid
 }
 
@@ -230,12 +230,9 @@ func (p *Pow) stateLoop() {
 }
 
 func (p *Pow) blockLoop() {
-	count := 0
 	for {
 		select {
 		case block := <-p.chain.BlockPool().ReceivedLinkedBlockCh():
-			count++
-			logging.VLog().Debugf("Pow.blockLoop: new block message received. Count=%d", count)
 			p.newBlockReceived = true
 			p.Event(consensus.NewBaseEvent(consensus.NewBlockEvent, block))
 		case <-p.quitCh:

@@ -53,7 +53,7 @@ func (state *MintedState) Event(e consensus.Event) (bool, consensus.State) {
 
 // Enter called when transiting to this state.
 func (state *MintedState) Enter(data interface{}) {
-	logging.VLog().Debug("MintedState.Enter: enter.")
+	logging.VLog().Info("MintedState.Enter: enter.")
 
 	p := state.p
 	bkPool := p.chain.BlockPool()
@@ -84,5 +84,5 @@ func (state *MintedState) Enter(data interface{}) {
 
 // Leave called when leaving this state.
 func (state *MintedState) Leave(data interface{}) {
-	logging.VLog().Debug("MintedState.Leave: leave.")
+	logging.VLog().Info("MintedState.Leave: leave.")
 }

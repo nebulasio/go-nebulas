@@ -55,7 +55,7 @@ func (state *StartState) Event(e consensus.Event) (bool, consensus.State) {
 
 // Enter called when transiting to this state.
 func (state *StartState) Enter(data interface{}) {
-	logging.VLog().Debug("StartState enter.")
+	logging.VLog().Info("StartState enter.")
 	if state.p.CanMining() {
 		state.p.Transit(state, NewPrepareState(state.p), nil)
 	}
@@ -63,5 +63,5 @@ func (state *StartState) Enter(data interface{}) {
 
 // Leave called when leaving this state.
 func (state *StartState) Leave(data interface{}) {
-	logging.VLog().Debug("StartState leave.")
+	logging.VLog().Info("StartState leave.")
 }

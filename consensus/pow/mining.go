@@ -72,7 +72,7 @@ func (state *MiningState) Event(e consensus.Event) (bool, consensus.State) {
 
 // Enter called when transiting to this state.
 func (state *MiningState) Enter(data interface{}) {
-	logging.VLog().Debug("MiningState.Enter: enter.")
+	logging.VLog().Info("MiningState.Enter: enter.")
 
 	// start searching nonce.
 	go state.searchingNonce(state.p.miningBlock)
@@ -80,7 +80,7 @@ func (state *MiningState) Enter(data interface{}) {
 
 // Leave called when leaving this state.
 func (state *MiningState) Leave(data interface{}) {
-	logging.VLog().Debug("MiningState.Leave: leave.")
+	logging.VLog().Info("MiningState.Leave: leave.")
 	state.quitCh <- true
 }
 

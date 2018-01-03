@@ -415,13 +415,13 @@ func (block *Block) LinkParentBlock(parentBlock *Block) error {
 		"parent": parentBlock,
 		"block":  block,
 		"err":    err,
-	}).Debug("Linked the parent block.")
+	}).Info("Linked the parent block.")
 
 	return nil
 }
 
 func (block *Block) begin() {
-	logging.VLog().Debug("Block Begin.")
+	logging.VLog().Info("Block Begin.")
 	block.accState.BeginBatch()
 	block.txsTrie.BeginBatch()
 	block.eventsTrie.BeginBatch()
@@ -435,7 +435,7 @@ func (block *Block) commit() {
 	block.dposContext.Commit()
 	logging.VLog().WithFields(logrus.Fields{
 		"block": block,
-	}).Debug("Block Commit.")
+	}).Info("Block Commit.")
 }
 
 func (block *Block) rollback() {
@@ -445,7 +445,7 @@ func (block *Block) rollback() {
 	block.dposContext.RollBack()
 	logging.VLog().WithFields(logrus.Fields{
 		"block": block,
-	}).Debug("Block RollBack.")
+	}).Info("Block RollBack.")
 }
 
 // ReturnTransactions and giveback them to tx pool
@@ -481,7 +481,7 @@ func (block *Block) CollectTransactions(n int) {
 				"block":    block,
 				"tx":       tx,
 				"giveback": giveback,
-			}).Debug("tx is packed.")
+			}).Info("tx is packed.")
 			block.commit()
 			block.transactions = append(block.transactions, tx)
 			n--
@@ -491,7 +491,7 @@ func (block *Block) CollectTransactions(n int) {
 				"tx":       tx,
 				"err":      err,
 				"giveback": giveback,
-			}).Debug("invalid tx.")
+			}).Warn("invalid tx.")
 			block.rollback()
 		}
 	}
@@ -502,7 +502,7 @@ func (block *Block) CollectTransactions(n int) {
 				"block": block,
 				"tx":    tx,
 				"err":   err,
-			}).Debug("Failed to giveback the tx.")
+			}).Error("Failed to giveback the tx.")
 		}
 	}
 }
@@ -537,7 +537,7 @@ func (block *Block) Seal() error {
 
 	logging.VLog().WithFields(logrus.Fields{
 		"block": block,
-	}).Debug("Sealed Block.")
+	}).Info("Sealed Block.")
 
 	return nil
 }
@@ -629,7 +629,7 @@ func (block *Block) VerifyIntegrity(chainID uint32, consensus Consensus) error {
 		logging.VLog().WithFields(logrus.Fields{
 			"expect": chainID,
 			"actual": block.header.chainID,
-		}).Debug("Failed to check chainid.")
+		}).Error("Failed to check chainid.")
 		return ErrInvalidChainID
 	}
 
@@ -639,7 +639,7 @@ func (block *Block) VerifyIntegrity(chainID uint32, consensus Consensus) error {
 		logging.VLog().WithFields(logrus.Fields{
 			"expect": wantedHash,
 			"actual": block.Hash(),
-		}).Debug("Failed to check block's hash.")
+		}).Error("Failed to check block's hash.")
 		return ErrInvalidBlockHash
 	}
 
@@ -649,7 +649,7 @@ func (block *Block) VerifyIntegrity(chainID uint32, consensus Consensus) error {
 			logging.VLog().WithFields(logrus.Fields{
 				"tx":  tx,
 				"err": err,
-			}).Debug("Failed to verify tx's integrity.")
+			}).Error("Failed to verify tx's integrity.")
 			return err
 		}
 	}
@@ -659,7 +659,7 @@ func (block *Block) VerifyIntegrity(chainID uint32, consensus Consensus) error {
 		logging.VLog().WithFields(logrus.Fields{
 			"block": block,
 			"err":   err,
-		}).Debug("Failed to fast verify block.")
+		}).Error("Failed to fast verify block.")
 		invalidBlockCounter.Inc(1)
 		return err
 	}
@@ -764,7 +764,7 @@ func (block *Block) recordEvent(txHash byteutils.Hash, event *Event) error {
 		"block": block,
 		"tx":    txHash.Hex(),
 		"event": event,
-	}).Debug("Recorded event.")
+	}).Info("Recorded event.")
 	return nil
 }
 
@@ -815,7 +815,7 @@ func (block *Block) recordMintCnt() error {
 		"dynasty": block.Timestamp() / DynastyInterval,
 		"miner":   block.miner.String(),
 		"count":   cnt,
-	}).Debug("Recorded the block minted by the miner in the dynasty.")
+	}).Info("Recorded the block minted by the miner in the dynasty.")
 	return nil
 }
 
@@ -826,7 +826,7 @@ func (block *Block) rewardCoinbase() {
 	logging.VLog().WithFields(logrus.Fields{
 		"coinbase": coinbaseAddr.Hex(),
 		"balance":  coinbaseAcc.Balance().Int64(),
-	}).Debug("Rewarded the coinbase.")
+	}).Info("Rewarded the coinbase.")
 }
 
 // GetTransaction from txs Trie

@@ -10,7 +10,7 @@ func Dial(target string) (*grpc.ClientConn, error) {
 	// TODO: support secure connection.
 	conn, err := grpc.Dial(target, grpc.WithInsecure())
 	if err != nil {
-		logging.VLog().Debug("rpc.Dial() failed: ", err)
+		logging.CLog().Error("rpc.Dial() failed: ", err)
 	}
 	return conn, err
 }

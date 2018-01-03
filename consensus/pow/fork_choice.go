@@ -30,11 +30,6 @@ func (p *Pow) ForkChoice() {
 	tailBlock := bc.TailBlock()
 	detachedTailBlocks := bc.DetachedTailBlocks()
 
-	// find the max depth.
-	logging.VLog().WithFields(logrus.Fields{
-		"func": "Pow.ForkChoice",
-	}).Debug("find the highest tail.")
-
 	newTailBlock := tailBlock
 	maxHeight := tailBlock.Height()
 
@@ -48,15 +43,20 @@ func (p *Pow) ForkChoice() {
 	}
 
 	if newTailBlock == bc.TailBlock() {
-		logging.VLog().WithFields(logrus.Fields{
-			"func": "Pow.ForkChoice",
-		}).Info("current tail is the highest, no change.")
+		logging.CLog().Info("Current tail is the best, no need to change it.")
 	} else {
-		logging.VLog().WithFields(logrus.Fields{
-			"func":      "Pow.ForkChoice",
-			"maxHeight": maxHeight,
-			"tailBlock": newTailBlock,
-		}).Info("change to new tail.")
-		bc.SetTailBlock(newTailBlock)
+		err := bc.SetTailBlock(newTailBlock)
+		if err != nil {
+			logging.CLog().WithFields(logrus.Fields{
+				"maxHeight": maxHeight,
+				"tailBlock": newTailBlock,
+				"err":       err,
+			}).Error("Failed to set tail block.")
+		} else {
+			logging.CLog().WithFields(logrus.Fields{
+				"maxHeight": maxHeight,
+				"tailBlock": newTailBlock,
+			}).Info("Succeed to change to new tail.")
+		}
 	}
 }

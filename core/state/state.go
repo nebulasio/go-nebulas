@@ -118,7 +118,7 @@ func (acc *account) BirthPlace() byteutils.Hash {
 
 // BeginBatch begins a batch task
 func (acc *account) BeginBatch() {
-	logging.VLog().Debug("Account Begin.")
+	logging.VLog().Info("Account Begin.")
 	acc.variables.BeginBatch()
 }
 
@@ -127,7 +127,7 @@ func (acc *account) Commit() {
 	acc.variables.Commit()
 	logging.VLog().WithFields(logrus.Fields{
 		"acc": acc,
-	}).Debug("Account Commit.")
+	}).Info("Account Commit.")
 }
 
 // RollBack a batch task
@@ -135,7 +135,7 @@ func (acc *account) RollBack() {
 	acc.variables.RollBack()
 	logging.VLog().WithFields(logrus.Fields{
 		"acc": acc,
-	}).Debug("Account RollBack.")
+	}).Info("Account RollBack.")
 }
 
 // IncrNonce by 1
@@ -318,13 +318,13 @@ func (as *accountState) Accounts() ([]Account, error) {
 
 // BeginBatch begin a batch task
 func (as *accountState) BeginBatch() {
-	logging.VLog().Debug("AccountState Begin.")
+	logging.VLog().Info("AccountState Begin.")
 	as.batching = true
 	err := as.stateTrie.BeginBatch()
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"err": err,
-		}).Debug("Failed to Begin AccountState Batch.")
+		}).Error("Failed to Begin AccountState Batch.")
 	}
 }
 
@@ -341,7 +341,7 @@ func (as *accountState) Commit() {
 	as.batching = false
 	logging.VLog().WithFields(logrus.Fields{
 		"AccountState": as,
-	}).Debug("AccountState Commit.")
+	}).Info("AccountState Commit.")
 }
 
 // RollBack a batch task
@@ -354,7 +354,7 @@ func (as *accountState) RollBack() {
 	as.batching = false
 	logging.VLog().WithFields(logrus.Fields{
 		"AccountState": as,
-	}).Debug("AccountState RollBack.")
+	}).Info("AccountState RollBack.")
 }
 
 // Clone an accountState

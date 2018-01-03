@@ -53,7 +53,7 @@ func (ns *NetService) Sync(tail net.Serializable) error {
 	LimitToSync = int(math.Sqrt(float64(len(allNode))))
 	logging.VLog().Info("Sync: allNode -> ", allNode)
 	if len(allNode) < LimitToSync {
-		logging.VLog().Debug("Sync: node not enough.")
+		logging.VLog().Warn("Sync: node not enough.")
 		return ErrNodeNotEnough
 	}
 
@@ -63,7 +63,7 @@ func (ns *NetService) Sync(tail net.Serializable) error {
 		addrs := node.peerstore.PeerInfo(nodeID).Addrs
 		if len(addrs) > 0 {
 			if node.host.Addrs()[0] == addrs[0] {
-				logging.VLog().Debug("Sync: skip self")
+				logging.VLog().Warn("Sync: skip self")
 				continue
 			}
 
@@ -85,7 +85,7 @@ func (ns *NetService) Sync(tail net.Serializable) error {
 // SendSyncReply send sync reply message to remote peer
 func (ns *NetService) SendSyncReply(key string, blocks net.Serializable) {
 
-	logging.VLog().Debug("SendSyncReply: send sync addrs -> ", key)
+	logging.VLog().Info("SendSyncReply: send sync addrs -> ", key)
 	pb, _ := blocks.ToProto()
 	data, _ := proto.Marshal(pb)
 	if _, ok := ns.node.stream.Load(key); ok {
@@ -94,6 +94,6 @@ func (ns *NetService) SendSyncReply(key string, blocks net.Serializable) {
 		}()
 		return
 	}
-	logging.VLog().Debugf("send syncReply to addrs %s fail", key)
+	logging.VLog().Errorf("send syncReply to addrs %s fail", key)
 
 }

@@ -198,7 +198,7 @@ func (e *V8Engine) SetExecutionLimits(limitsOfExecutionInstructions, limitsOfTot
 	logging.VLog().WithFields(logrus.Fields{
 		"limits_of_executed_instructions": e.v8engine.limits_of_executed_instructions,
 		"limits_of_total_memory_size":     e.v8engine.limits_of_total_memory_size,
-	}).Debug("set execution limits.")
+	}).Info("set execution limits.")
 
 	e.limitsOfExecutionInstructions = limitsOfExecutionInstructions
 	e.limitsOfTotalMemorySize = limitsOfTotalMemorySize
@@ -206,7 +206,7 @@ func (e *V8Engine) SetExecutionLimits(limitsOfExecutionInstructions, limitsOfTot
 
 	// V8 needs at least 6M heap memory.
 	if limitsOfTotalMemorySize > 0 && limitsOfTotalMemorySize < 6000000 {
-		logging.VLog().Debugf("V8 needs at least 6M (6000000) heap memory, your limitsOfTotalMemorySize (%d) is too low.", limitsOfTotalMemorySize)
+		logging.VLog().Warnf("V8 needs at least 6M (6000000) heap memory, your limitsOfTotalMemorySize (%d) is too low.", limitsOfTotalMemorySize)
 	}
 }
 

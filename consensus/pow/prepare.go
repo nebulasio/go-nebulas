@@ -53,7 +53,7 @@ func (state *PrepareState) Event(e consensus.Event) (bool, consensus.State) {
 
 // Enter called when transiting to this state.
 func (state *PrepareState) Enter(data interface{}) {
-	logging.VLog().Debug("PrepareState enter.")
+	logging.VLog().Info("PrepareState enter.")
 
 	p := state.p
 
@@ -74,5 +74,5 @@ func (state *PrepareState) Enter(data interface{}) {
 
 // Leave called when leaving this state.
 func (state *PrepareState) Leave(data interface{}) {
-	logging.VLog().Debug("PrepareState leave.")
+	logging.VLog().Info("PrepareState leave.")
 }

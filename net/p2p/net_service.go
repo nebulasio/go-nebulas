@@ -146,7 +146,7 @@ func NewNetManager(n Neblet) (*NetService, error) {
 func (ns *NetService) registerNetManager() *NetService {
 	// register streamHandler to start loop to handle stream origined from remote node.
 	ns.node.host.SetStreamHandler(ProtocolID, ns.streamHandler)
-	logging.VLog().Debug("RegisterNetService: register netservice success")
+	logging.VLog().Info("RegisterNetService: register netservice success")
 	return ns
 }
 
@@ -256,7 +256,7 @@ func (ns *NetService) streamHandler(s libnet.Stream) {
 				logging.VLog().WithFields(logrus.Fields{
 					"msgName": msg.msgName,
 					"pid":     pid.Pretty(),
-				}).Debug("receive block & tx message.")
+				}).Info("receive block & tx message.")
 
 				m, ok := net.PacketsInByTypes.Load(msg.msgName)
 				if ok {
@@ -320,7 +320,7 @@ func (ns *NetService) parseMsgHeader(streamBuffer []byte) (*NebMessage, error) {
 		"version":      nebMsg.version,
 		"dataChecksum": byteutils.Uint32(nebMsg.dataChecksum),
 		"dataLength":   byteutils.Uint32(nebMsg.dataLength),
-	}).Debug("parse protocol header data.")
+	}).Info("parse protocol header data.")
 	return nebMsg, nil
 }
 
@@ -488,7 +488,7 @@ func (ns *NetService) handleSyncRouteMsg(data []byte, pid peer.ID, s libnet.Stre
 		if len(peerInfo.Addrs) == 0 {
 			logging.VLog().WithFields(logrus.Fields{
 				"nodeId": peerInfo.ID.Pretty(),
-			}).Debug("node addrs is nil")
+			}).Warn("node addrs is nil")
 			continue
 		}
 		var addres []string
@@ -502,7 +502,7 @@ func (ns *NetService) handleSyncRouteMsg(data []byte, pid peer.ID, s libnet.Stre
 		"remoteId":    pid.Pretty(),
 		"remoteAddrs": addrs,
 		"count":       len(peerList),
-	}).Debug("reply sync route to remote node")
+	}).Info("reply sync route to remote node")
 
 	peersMessage := messages.NewPeersMessage(peerList)
 
@@ -541,7 +541,7 @@ func (ns *NetService) handleSyncRouteReplyMsg(data []byte, pid peer.ID, s libnet
 		if node.routeTable.Find(id) != "" || len(peers.Peers()[i].Addrs()) == 0 {
 			logging.VLog().WithFields(logrus.Fields{
 				"id": id.Pretty(),
-			}).Debug("node is already exist in route table")
+			}).Warn("node is already exist in route table")
 			continue
 		}
 		var addres []ma.Multiaddr
@@ -553,7 +553,7 @@ func (ns *NetService) handleSyncRouteReplyMsg(data []byte, pid peer.ID, s libnet
 		logging.VLog().WithFields(logrus.Fields{
 			"id":    id.Pretty(),
 			"addrs": addres,
-		}).Debug("discover new node")
+		}).Info("discover new node")
 
 		node.peerstore.AddAddrs(
 			id,
@@ -621,7 +621,7 @@ func (ns *NetService) sendMsg(msgName string, msg []byte, stream libnet.Stream) 
 
 	logging.VLog().WithFields(logrus.Fields{
 		"msgName": msgName,
-	}).Debug("SendMsg: send message to a peer.")
+	}).Info("SendMsg: send message to a peer.")
 	totalData := ns.buildData(msg, msgName)
 
 	if err := Write(stream, totalData); err != nil {
@@ -642,7 +642,7 @@ func (ns *NetService) SendMsg(msgName string, msg []byte, target string) error {
 
 	node := ns.node
 	if msgName != NetworkID && !ns.checkNetworkID(target) {
-		logging.VLog().Debug("can not send message, target node is not in the same network ", target)
+		logging.VLog().Warn("can not send message, target node is not in the same network ", target)
 		return errors.New("can not send message, target node is not in the same network")
 	}
 	streamStore, ok := node.stream.Load(target)
@@ -659,7 +659,7 @@ func (ns *NetService) checkNetworkID(target string) bool {
 		logging.VLog().WithFields(logrus.Fields{
 			"targetNetworkID": targetNetworkID,
 			"result":          node.config.NetworkID & targetNetworkID.(uint32),
-		}).Debug("checkNetworkID.")
+		}).Info("checkNetworkID.")
 		if node.config.NetworkID&targetNetworkID.(uint32) > 0 {
 			return true
 		}
@@ -776,7 +776,7 @@ func (ns *NetService) PutMessage(msg net.Message) {
 func (ns *NetService) start() error {
 
 	node := ns.node
-	logging.VLog().WithFields(logrus.Fields{
+	logging.CLog().WithFields(logrus.Fields{
 		"id":    node.ID(),
 		"addrs": node.host.Addrs(),
 	}).Info("node start")
@@ -798,7 +798,7 @@ func (ns *NetService) start() error {
 			if err != nil {
 				logging.VLog().Error("net.start: can not say hello to trusted node.", bootNode, err)
 			} else {
-				logging.VLog().Debug("net.start: say hello to trusted node.", bootNode)
+				logging.CLog().Info("net.start: say hello to trusted node.", bootNode)
 				success = true
 			}
 
@@ -809,7 +809,7 @@ func (ns *NetService) start() error {
 	if success || len(node.Config().BootNodes) == 0 {
 		go ns.discovery(node.context)
 		go ns.manageStreamStore()
-		logging.VLog().Infof("net.start: node start and join to p2p network success and listening for connections on %s... ", node.config.Listen)
+		logging.CLog().Infof("net.start: node start and join to p2p network success and listening for connections on %s... ", node.config.Listen)
 	} else {
 		logging.VLog().Error("net.start: node start occurs error, say hello to bootNode fail")
 		return errors.New("net.start: node start occurs error, say hello to bootNode fail")
@@ -911,9 +911,9 @@ func (ns *NetService) SayHello(bootNode ma.Multiaddr) error {
 			}).Error("say hello to bootNode failed")
 			return errors.New("say hello to bootNode failed")
 		}
-		logging.VLog().WithFields(logrus.Fields{
+		logging.CLog().WithFields(logrus.Fields{
 			"bootNode": bootNode,
-		}).Debug("say hello to a node success")
+		}).Info("say hello to a node success")
 		node.peerstore.AddAddr(
 			bootID,
 			bootAddr,

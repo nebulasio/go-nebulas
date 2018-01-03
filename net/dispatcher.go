@@ -79,18 +79,17 @@ func (dp *Dispatcher) Deregister(subscribers ...*Subscriber) {
 
 // Start start message dispatch goroutine.
 func (dp *Dispatcher) Start() {
+	logging.CLog().Info("Launched Dispatcher.")
+
 	go (func() {
-		count := 0
 		for {
 			// logging.VLog().Info("dispatcher in loop")
 			select {
 			case <-dp.quitCh:
-				logging.VLog().Info("dispatcher.loop: dispatcher is stopped.")
+				logging.CLog().Info("Shutdowned Dispatcher.")
 				return
 
 			case msg := <-dp.receivedMessageCh:
-				count++
-				logging.VLog().Debug("dispatcher.loop: recvMsgCount=%d", count)
 				msgType := msg.MessageType()
 				v, _ := dp.subscribersMap.Load(msgType)
 				m, _ := v.(*sync.Map)

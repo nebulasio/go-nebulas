@@ -105,9 +105,9 @@ func NewNode(config *Config) (*Node, error) {
 		logging.VLog().Error("start node fail, can not init node", err)
 		return nil, err
 	}
-	logging.VLog().WithFields(logrus.Fields{
+	logging.CLog().WithFields(logrus.Fields{
 		"node.listen": node.config.Listen,
-	}).Debug("node init success")
+	}).Info("node init success")
 	return node, nil
 }
 

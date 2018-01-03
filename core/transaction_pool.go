@@ -145,7 +145,7 @@ func (pool *TransactionPool) loop() {
 					"messageType": msg.MessageType(),
 					"message":     msg,
 					"err":         "not new tx msg",
-				}).Debug("Received unregistered message.")
+				}).Warn("Received unregistered message.")
 				continue
 			}
 
@@ -156,7 +156,7 @@ func (pool *TransactionPool) loop() {
 					"msgType": msg.MessageType(),
 					"msg":     msg,
 					"err":     err,
-				}).Debug("Failed to unmarshal data.")
+				}).Error("Failed to unmarshal data.")
 				continue
 			}
 			if err := tx.FromProto(pbTx); err != nil {
@@ -164,14 +164,14 @@ func (pool *TransactionPool) loop() {
 					"msgType": msg.MessageType(),
 					"msg":     msg,
 					"err":     err,
-				}).Debug("Failed to recover a tx from proto data.")
+				}).Error("Failed to recover a tx from proto data.")
 				continue
 			}
 
 			logging.VLog().WithFields(logrus.Fields{
 				"tx":   tx,
 				"type": msg.MessageType(),
-			}).Debug("Received a new tx.")
+			}).Info("Received a new tx.")
 
 			if err := pool.PushAndRelay(tx); err != nil {
 				logging.VLog().WithFields(logrus.Fields{
@@ -179,7 +179,7 @@ func (pool *TransactionPool) loop() {
 					"messageType": msg.MessageType(),
 					"transaction": tx,
 					"err":         err,
-				}).Debug("Failed to push a tx into tx pool.")
+				}).Error("Failed to push a tx into tx pool.")
 				continue
 			}
 		}

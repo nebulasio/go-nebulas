@@ -46,10 +46,10 @@ func (state *StoppedState) Event(e consensus.Event) (bool, consensus.State) {
 
 // Enter called when transiting to this state.
 func (state *StoppedState) Enter(data interface{}) {
-	logging.VLog().Debug("StoppedState enter.")
+	logging.VLog().Info("StoppedState enter.")
 }
 
 // Leave called when leaving this state.
 func (state *StoppedState) Leave(data interface{}) {
-	logging.VLog().Debug("StoppedState leave.")
+	logging.VLog().Info("StoppedState leave.")
 }

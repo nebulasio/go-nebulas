@@ -91,18 +91,18 @@ func NewDpos(neblet Neblet) (*Dpos, error) {
 	config := neblet.Config().Chain
 	coinbase, err := core.AddressParse(config.Coinbase)
 	if err != nil {
-		logging.VLog().WithFields(logrus.Fields{
+		logging.CLog().WithFields(logrus.Fields{
 			"address": config.Coinbase,
 			"err":     err,
-		}).Debug("Failed to parse coinbase address.")
+		}).Error("Failed to parse coinbase address.")
 		return nil, err
 	}
 	miner, err := core.AddressParse(config.Miner)
 	if err != nil {
-		logging.VLog().WithFields(logrus.Fields{
+		logging.CLog().WithFields(logrus.Fields{
 			"address": config.Miner,
 			"err":     err,
-		}).Debug("Failed to parse miner address.")
+		}).Error("Failed to parse miner address.")
 		return nil, err
 	}
 	p.coinbase = coinbase
@@ -144,20 +144,20 @@ func (p *Dpos) forkChoice() {
 	}
 
 	if newTailBlock.Hash().Equals(tailBlock.Hash()) {
-		logging.VLog().WithFields(logrus.Fields{
+		logging.CLog().WithFields(logrus.Fields{
 			"old tail": tailBlock,
 			"new tail": newTailBlock,
 		}).Info("Same blocks, no need to change.")
 	} else {
 		err := bc.SetTailBlock(newTailBlock)
 		if err != nil {
-			logging.VLog().WithFields(logrus.Fields{
+			logging.CLog().WithFields(logrus.Fields{
 				"new tail": newTailBlock,
 				"old tail": tailBlock,
 				"err":      err,
-			}).Debug("Failed to set new tail block.")
+			}).Error("Failed to set new tail block.")
 		} else {
-			logging.VLog().WithFields(logrus.Fields{
+			logging.CLog().WithFields(logrus.Fields{
 				"new tail": newTailBlock,
 				"old tail": tailBlock,
 			}).Info("change to new tail.")
@@ -173,9 +173,9 @@ func (p *Dpos) CanMining() bool {
 // SetCanMining set if consensus can do mining now
 func (p *Dpos) SetCanMining(canMining bool) {
 	if canMining {
-		logging.VLog().Info("Start Dpos Mining.")
+		logging.CLog().Info("Start Dpos Mining.")
 	} else {
-		logging.VLog().Info("Stop Dpos Mining.")
+		logging.CLog().Info("Stop Dpos Mining.")
 	}
 	p.canMining = canMining
 }
@@ -201,7 +201,7 @@ func verifyBlockSign(miner *core.Address, block *core.Block) error {
 		logging.VLog().WithFields(logrus.Fields{
 			"recover address": addr.String(),
 			"block":           block,
-		}).Debug("Failed to verify block's sign.")
+		}).Error("Failed to verify block's sign.")
 		return ErrInvalidBlockProposer
 	}
 	block.SetMiner(miner)
@@ -271,7 +271,7 @@ func (p *Dpos) mintBlock(now int64) error {
 	if !p.canMining {
 		logging.VLog().WithFields(logrus.Fields{
 			"now": now,
-		}).Debug("Sync is not over yet.")
+		}).Warn("Sync is not over yet.")
 		return ErrCannotMintBlockNow
 	}
 
@@ -284,7 +284,7 @@ func (p *Dpos) mintBlock(now int64) error {
 			"tail":    tail,
 			"elapsed": elapsedSecond,
 			"err":     err,
-		}).Debug("Failed to generate next dynasty context.")
+		}).Error("Failed to generate next dynasty context.")
 		return core.ErrGenerateNextDynastyContext
 	}
 	if context.Proposer == nil || !context.Proposer.Equals(p.miner.Bytes()) {
@@ -297,7 +297,7 @@ func (p *Dpos) mintBlock(now int64) error {
 			"elapsed":  elapsedSecond,
 			"expected": proposer,
 			"actual":   p.miner.String(),
-		}).Debug("Not my turn, waiting...")
+		}).Info("Not my turn, waiting...")
 		return ErrInvalidBlockProposer
 	}
 	logging.VLog().WithFields(logrus.Fields{
@@ -363,7 +363,7 @@ func (p *Dpos) mintBlock(now int64) error {
 }
 
 func (p *Dpos) blockLoop() {
-	logging.VLog().Info("Launched Dpos Mining.")
+	logging.CLog().Info("Launched Dpos Mining.")
 
 	timeChan := time.NewTicker(time.Second).C
 	for {
@@ -373,7 +373,7 @@ func (p *Dpos) blockLoop() {
 		case <-p.chain.BlockPool().ReceivedLinkedBlockCh():
 			p.forkChoice()
 		case <-p.quitCh:
-			logging.VLog().Info("Shutdowned Dpos Mining.")
+			logging.CLog().Info("Shutdowned Dpos Mining.")
 			return
 		}
 	}

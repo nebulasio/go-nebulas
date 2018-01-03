@@ -208,7 +208,7 @@ func hashToInt64(hash string) (int64, error) {
 		logging.VLog().WithFields(logrus.Fields{
 			"hash": hash,
 			"err":  err,
-		}).Debug("Failed to parseInt")
+		}).Error("Failed to parseInt")
 		return 0, err
 	}
 	return s, nil

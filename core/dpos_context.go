@@ -107,7 +107,7 @@ func (dc *DposContext) RootHash() byteutils.Hash {
 
 // BeginBatch starts a batch task
 func (dc *DposContext) BeginBatch() {
-	logging.VLog().Debug("DposContext Begin.")
+	logging.VLog().Info("DposContext Begin.")
 	dc.delegateTrie.BeginBatch()
 	dc.dynastyTrie.BeginBatch()
 	dc.nextDynastyTrie.BeginBatch()
@@ -124,7 +124,7 @@ func (dc *DposContext) Commit() {
 	dc.candidateTrie.Commit()
 	dc.voteTrie.Commit()
 	dc.mintCntTrie.Commit()
-	logging.VLog().Debug("DposContext Commit.")
+	logging.VLog().Info("DposContext Commit.")
 }
 
 // RollBack a batch task
@@ -135,7 +135,7 @@ func (dc *DposContext) RollBack() {
 	dc.candidateTrie.RollBack()
 	dc.voteTrie.RollBack()
 	dc.mintCntTrie.RollBack()
-	logging.VLog().Debug("DposContext RollBack.")
+	logging.VLog().Info("DposContext RollBack.")
 }
 
 // Clone a dpos context
@@ -423,7 +423,7 @@ func kickout(stor storage.Storage, candidatesTrie *trie.BatchTrie, delegateTrie 
 			logging.VLog().WithFields(logrus.Fields{
 				"voter":     byteutils.Hex(delegator),
 				"candidate": candidate.Hex(),
-			}).Debug("Unexpected voter who votes nobody appears in delegate trie")
+			}).Error("Unexpected voter who votes nobody appears in delegate trie")
 		}
 		if err == nil && byteutils.Equal(bytes, candidate) {
 			if _, err := voteTrie.Del(delegator); err != nil && err != storage.ErrKeyNotFound {
@@ -435,7 +435,7 @@ func kickout(stor storage.Storage, candidatesTrie *trie.BatchTrie, delegateTrie 
 			return err
 		}
 	}
-	logging.VLog().Debug("Kickouted candidate: ", candidate.Hex())
+	logging.VLog().Info("Kickouted candidate: ", candidate.Hex())
 	return nil
 }
 
@@ -486,7 +486,7 @@ func (dc *DynastyContext) kickoutDynasty(dynastyID int64) error {
 			if err != nil {
 				return err
 			}
-			logging.VLog().Debug("Protect active bootstrap candidate: ", addr)
+			logging.VLog().Info("Protect active bootstrap candidate: ", addr)
 		} else {
 			if err := dc.kickoutCandidate(validator); err != nil {
 				return err
@@ -498,7 +498,7 @@ func (dc *DynastyContext) kickoutDynasty(dynastyID int64) error {
 		}
 	}
 
-	logging.VLog().Debug("Kickouted dynasty: ", dynastyID)
+	logging.VLog().Info("Kickouted dynasty: ", dynastyID)
 	return nil
 }
 
@@ -507,7 +507,7 @@ func (dc *DynastyContext) electNextDynastyOnBaseDynasty(baseDynastyID int64, nex
 		"base":            baseDynastyID,
 		"next":            nextDynastyID,
 		"base is genesis": baseGenesis,
-	}).Debug("Try to elect new dynasty")
+	}).Info("Try to elect new dynasty")
 
 	if baseGenesis {
 		baseDynastyID = nextDynastyID - 1
@@ -563,7 +563,7 @@ func (dc *DynastyContext) electNextDynastyOnBaseDynasty(baseDynastyID int64, nex
 		logging.VLog().WithFields(logrus.Fields{
 			"dynasty.members": newDynasty,
 			"dynasty.id":      string(i + 1),
-		}).Debug("Elected new dynasty")
+		}).Info("Elected new dynasty")
 	}
 	return nil
 }

@@ -75,7 +75,7 @@ func (payload *CandidatePayload) Execute(ctx *PayloadContext) (*util.Uint128, er
 			"block":     ctx.block,
 			"tx":        ctx.tx,
 			"candidate": ctx.tx.from.String(),
-		}).Debug("Candidate login.")
+		}).Info("Candidate login.")
 	case LogoutAction:
 		if err := ctx.dposContext.kickoutCandidate(candidate); err != nil {
 			return ZeroGasCount, err
@@ -84,7 +84,7 @@ func (payload *CandidatePayload) Execute(ctx *PayloadContext) (*util.Uint128, er
 			"block":     ctx.block,
 			"tx":        ctx.tx,
 			"candidate": ctx.tx.from.String(),
-		}).Debug("Candidate logout.")
+		}).Info("Candidate logout.")
 	default:
 		return ZeroGasCount, ErrInvalidCandidatePayloadAction
 	}

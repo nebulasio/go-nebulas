@@ -28,6 +28,7 @@ import (
 	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
 	"github.com/nebulasio/go-nebulas/util/logging"
+	"github.com/sirupsen/logrus"
 )
 
 type account struct {
@@ -54,18 +55,26 @@ func (m *Manager) refreshAccounts() error {
 	for _, file := range files {
 		path := filepath.Join(m.keydir, file.Name())
 		if file.IsDir() || strings.HasPrefix(file.Name(), ".") || strings.HasSuffix(file.Name(), "~") {
-			logging.VLog().Debug("key file is skip:%s", path)
+			logging.VLog().WithFields(logrus.Fields{
+				"path": path,
+			}).Warn("Skipped this key file.")
 			continue
 		}
 		raw, err := ioutil.ReadFile(path)
 		if err != nil {
-			logging.VLog().Debug("key file read failed", err)
+			logging.VLog().WithFields(logrus.Fields{
+				"err":  err,
+				"path": path,
+			}).Error("Failed to parse the key file.")
 			continue
 		}
 		keyJSON.Address = ""
 		err = json.Unmarshal(raw, &keyJSON)
 		if err != nil {
-			logging.VLog().Debug("key file parse failed", err)
+			logging.VLog().WithFields(logrus.Fields{
+				"err":  err,
+				"path": path,
+			}).Error("Failed to parse the key file.")
 			continue
 		}
 		var (
@@ -80,7 +89,10 @@ func (m *Manager) refreshAccounts() error {
 			addr, err = core.AddressParse(keyJSON.Address)
 		}
 		if err != nil {
-			logging.VLog().Debug("key file address parse failed", err)
+			logging.VLog().WithFields(logrus.Fields{
+				"err":     err,
+				"address": addr.String(),
+			}).Error("Failed to parse the address.")
 			continue
 		}
 		accounts = append(accounts, &account{addr, path})

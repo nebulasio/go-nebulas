@@ -77,7 +77,6 @@ func (ms Modules) Get(id string) *Module {
 //export RequireDelegateFunc
 func RequireDelegateFunc(handler unsafe.Pointer, filename *C.char, lineOffset *C.size_t) *C.char {
 	id := C.GoString(filename)
-	// logging.VLog().Debugf("require load %s", id)
 
 	e := getEngineByEngineHandler(handler)
 	if e == nil {
