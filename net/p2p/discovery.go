@@ -38,6 +38,7 @@ func (net *NetService) discovery(ctx context.Context) {
 	//FIXME  the sync routing table rate can be dynamic
 	interval := 10 * time.Second
 	ticker := time.NewTicker(interval)
+	time.Sleep(1 * time.Second)
 	net.syncRoutingTable()
 	for {
 		select {
