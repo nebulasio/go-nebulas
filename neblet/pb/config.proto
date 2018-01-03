@@ -92,6 +92,8 @@ message AppConfig {
 	string log_file = 2;
 
 	bool enable_crash_report = 3;
+
+    string crash_report_url = 4;
 }
 
 

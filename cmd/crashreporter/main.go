@@ -25,16 +25,20 @@ import (
 	"net"
 	"os"
 	"os/user"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"syscall"
 	"time"
 
+	"bytes"
+	"crypto/md5"
+	"mime/multipart"
+	"net/http"
+
 	"github.com/VividCortex/godaemon"
 )
 
-func checkCrashFileAndUpload(fp string) error {
+func checkCrashFileAndUpload(fp string, url string) error {
 	if _, ferr := os.Stat(fp); ferr == nil {
 		bytes, err := ioutil.ReadFile(fp)
 		if err != nil {
@@ -50,12 +54,48 @@ func checkCrashFileAndUpload(fp string) error {
 		}
 		output := strings.Join(lines, "\n")
 
-		dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
-		ioutil.WriteFile(fmt.Sprintf("%v/crash.log", dir), []byte(output), 0644)
+		// write crash log to file
+		//dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
+		//ioutil.WriteFile(fmt.Sprintf("%v/crash.log", dir), []byte(output), 0644)
 
-		return nil
+		// upload crash file content
+		return postFile([]byte(output), url)
 	}
 	fmt.Println("no crash yet")
+	return nil
+}
+
+func postFile(content []byte, targetURL string) error {
+	bodyBuf := &bytes.Buffer{}
+	bodyWriter := multipart.NewWriter(bodyBuf)
+
+	hash := md5.Sum(content)
+	filename := fmt.Sprintf("UTC-%d-%s.log", time.Now().UTC().Unix(), hash)
+
+	fileWriter, err := bodyWriter.CreateFormFile("uploadfile", filename)
+	if err != nil {
+		fmt.Println("error writing to buffer")
+		return err
+	}
+
+	_, err = fileWriter.Write(content)
+	if err != nil {
+		fmt.Println("error write content")
+		return err
+	}
+
+	contentType := bodyWriter.FormDataContentType()
+	bodyWriter.Close()
+
+	resp, err := http.Post(targetURL, contentType, bodyBuf)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	_, err = ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -64,7 +104,8 @@ func main() {
 	logfp := flag.String("logfile", "", "log file path")
 	port := flag.Int("port", 0, "tcp port for notification")
 	code := flag.Int("code", 0, "verification code")
-	pid := flag.Int("pid", 0, "verification code")
+	pid := flag.Int("pid", 0, "verification pid")
+	url := flag.String("url", "", "upload url")
 	flag.Parse()
 	s, err := net.Dial("tcp", fmt.Sprintf(":%d", *port))
 	if err != nil {
@@ -80,14 +121,14 @@ func main() {
 		process, err := os.FindProcess(*pid)
 		if err != nil {
 			fmt.Printf("Failed to find process: %s\n", err)
-			checkCrashFileAndUpload(*logfp)
+			checkCrashFileAndUpload(*logfp, *url)
 			return
 		}
 		err = process.Signal(syscall.Signal(0))
 		if err == nil {
 			continue
 		} else {
-			checkCrashFileAndUpload(*logfp)
+			checkCrashFileAndUpload(*logfp, *url)
 			return
 		}
 	}

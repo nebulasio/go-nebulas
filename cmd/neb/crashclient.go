@@ -28,12 +28,13 @@ import (
 	"strconv"
 	"syscall"
 
+	"github.com/nebulasio/go-nebulas/neblet/pb"
 	"github.com/nebulasio/go-nebulas/util/logging"
 	"github.com/sirupsen/logrus"
 )
 
 // InitCrashReporter init crash reporter
-func InitCrashReporter() {
+func InitCrashReporter(conf *nebletpb.AppConfig) {
 	os.Setenv("GOBACKTRACE", "crash")
 	dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
 	if err != nil {
@@ -73,7 +74,9 @@ func InitCrashReporter() {
 		"-code",
 		strconv.Itoa(code),
 		"-pid",
-		strconv.Itoa(os.Getpid()))
+		strconv.Itoa(os.Getpid()),
+		"-url",
+		conf.CrashReportUrl)
 
 	err = cmd.Start()
 	if err != nil {

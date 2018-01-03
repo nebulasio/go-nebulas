@@ -84,8 +84,9 @@ func neb(ctx *cli.Context) error {
 
 	logging.Init(n.Config().App.LogFile, n.Config().App.LogLevel)
 
-	if n.Config().App.EnableCrashReport {
-		InitCrashReporter()
+	// enable crash report if open the switch and configure the url
+	if n.Config().App.EnableCrashReport && len(n.Config().App.CrashReportUrl) > 0 {
+		InitCrashReporter(n.Config().App)
 	}
 
 	runNeb(n)
