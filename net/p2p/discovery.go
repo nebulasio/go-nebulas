@@ -20,13 +20,23 @@ package p2p
 
 import (
 	"context"
+	"fmt"
+	"io/ioutil"
 	"math/rand"
+	"os"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/libp2p/go-libp2p-peer"
+	peerstore "github.com/libp2p/go-libp2p-peerstore"
 	ma "github.com/multiformats/go-multiaddr"
 	"github.com/nebulasio/go-nebulas/util/logging"
+	"github.com/sirupsen/logrus"
+)
+
+var (
+	filename = "/routingtable"
 )
 
 /*
@@ -36,10 +46,12 @@ and then update the routing table.
 func (net *NetService) discovery(ctx context.Context) {
 
 	//FIXME  the sync routing table rate can be dynamic
-	interval := 10 * time.Second
+	interval := 30 * time.Second
 	ticker := time.NewTicker(interval)
 	time.Sleep(1 * time.Second)
+	net.loadRoutingTableFromDisk()
 	net.syncRoutingTable()
+	go net.persistRoutingTable()
 	for {
 		select {
 		case <-ticker.C:
@@ -49,6 +61,86 @@ func (net *NetService) discovery(ctx context.Context) {
 			return
 		}
 	}
+}
+
+func (net *NetService) persistRoutingTable() {
+	ticker := time.NewTicker(60 * time.Second)
+	for {
+		select {
+		case <-ticker.C:
+			net.persistRt()
+		case <-net.quitCh:
+			return
+		}
+	}
+}
+
+func (net *NetService) persistRt() {
+	node := net.node
+	allnode := node.routeTable.ListPeers()
+	var nodes []string
+	for _, v := range allnode {
+		if len(node.PeerStore().Addrs(v)) > 0 {
+			addr := node.PeerStore().Addrs(v)[0]
+			tmp := fmt.Sprintf("%s/ipfs/%s", addr, v.Pretty())
+			nodes = append(nodes, tmp)
+		}
+	}
+	str := strings.Join(nodes, ",")
+	if err := ioutil.WriteFile(node.config.RoutingTableDir+filename, []byte(str), os.ModePerm); err != nil {
+		logging.VLog().Warn("failed to persist routing table")
+	}
+}
+
+func (net *NetService) loadRoutingTableFromDisk() {
+	node := net.node
+	b, err := ioutil.ReadFile(node.config.RoutingTableDir + filename)
+	if err != nil {
+		logging.VLog().Warn("failed to load routing table from disk")
+		return
+	}
+	contents := strings.Split(string(b), ",")
+	for _, v := range contents {
+
+		multiaddr, err := ma.NewMultiaddr(v)
+		if err != nil {
+			logging.VLog().WithFields(logrus.Fields{
+				"err": err,
+			}).Warn("new multiaddr failed")
+			continue
+		}
+
+		addr, ID, err := net.parseAddressFromMultiaddr(multiaddr)
+		if err != nil {
+			logging.VLog().WithFields(logrus.Fields{
+				"multiaddr": multiaddr,
+				"error":     err,
+			}).Warn("parse address failed")
+			continue
+		}
+
+		node.peerstore.AddAddr(
+			ID,
+			addr,
+			peerstore.ProviderAddrTTL,
+		)
+
+		if err := net.Hello(ID); err != nil {
+			logging.VLog().WithFields(logrus.Fields{
+				"ID":    ID,
+				"addr":  addr,
+				"error": err,
+			}).Warn("say hello to node failed")
+			continue
+		}
+
+		node.peerstore.AddAddr(
+			ID,
+			addr,
+			peerstore.PermanentAddrTTL)
+		node.routeTable.Update(ID)
+	}
+
 }
 
 //sync route table

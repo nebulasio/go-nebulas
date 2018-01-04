@@ -42,6 +42,7 @@ const (
 	DefaultStreamStoreSize       = 128
 	DefaultStreamStoreExtendSize = 32
 	DefaultNetworkID             = 1
+	DefaultRoutingTableDir       = ""
 )
 
 // Config TODO: move to proto config.
@@ -60,6 +61,7 @@ type Config struct {
 	StreamStoreSize       int
 	StreamStoreExtendSize int
 	NetworkID             uint32
+	RoutingTableDir       string
 }
 
 // Neblet interface breaks cycle import dependency.
@@ -94,6 +96,7 @@ func NewP2PConfig(n Neblet) *Config {
 	if networkID := n.Config().Network.NetworkId; networkID > 0 {
 		config.NetworkID = networkID
 	}
+	config.RoutingTableDir = n.Config().Chain.Datadir
 
 	return config
 }
@@ -130,5 +133,6 @@ func DefautConfig() *Config {
 		DefaultStreamStoreSize,
 		DefaultStreamStoreExtendSize,
 		DefaultNetworkID,
+		DefaultRoutingTableDir,
 	}
 }

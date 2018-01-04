@@ -133,9 +133,11 @@ func (m *Manager) loop() {
 			logging.VLog().Info("sync finish.")
 		case <-m.syncCh:
 			if m.curTail == nil {
-				logging.VLog().Error("sync occurs error, the current tail is nil.")
+				logging.VLog().Error("the current tail is nil.")
 				m.curTail = m.blockChain.TailBlock()
 			}
+			logging.VLog().Info("sync continue")
+			// sync continue
 			m.syncWithPeers(m.curTail)
 		}
 	}
@@ -147,20 +149,20 @@ func (m *Manager) syncWithPeers(block *core.Block) {
 	logging.VLog().WithFields(logrus.Fields{
 		"tail":  tail,
 		"block": tail.block,
-	}).Info("syncWithPeers: got tail")
+	}).Info("get current tail to sync")
 	err := m.ns.Sync(tail)
 
 	switch err {
 	case nil:
 	case p2p.ErrNodeNotEnough:
 		if m.ns.Node().GetSynchronizing() {
-			logging.VLog().Info("syncWithPeers: sleep for 5 second...")
+			logging.VLog().Info("sync target not enough, sleep for 5 second...")
 			time.Sleep(5 * time.Second)
 			m.syncCh <- true
 		}
-
 	default:
-		logging.VLog().Error("syncWithPeers occurs error, sync has been terminated.")
+		logging.VLog().Error("error occurs, sync has been terminated")
+		panic("error occurs, sync has been terminated")
 	}
 	go (func() {
 		timeout := 30 * time.Second
@@ -323,7 +325,9 @@ func (m *Manager) doSyncBlocksWithCommonAncestor(addrsArray []string) {
 				for k := range m.cacheList {
 					delete(m.cacheList, k)
 				}
-				logging.VLog().Error("doSyncBlocksWithCommonAncestor: push a block to pool occrus error, ", err)
+				logging.VLog().WithFields(logrus.Fields{
+					"err": err,
+				}).Error("fail to push a block to pool")
 				m.syncCh <- true
 				return
 			}
@@ -334,7 +338,7 @@ func (m *Manager) doSyncBlocksWithCommonAncestor(addrsArray []string) {
 	syncContinue := false
 	for i := 0; i < len(addrsArray); i++ {
 		if len(m.cacheList[addrsArray[i]].blocks) > DescendantCount {
-			logging.VLog().Info("StartMsgHandle: more Descendant need to synchronize, go to next synchronization")
+			logging.VLog().Info("go to next synchronization")
 			syncContinue = true
 		}
 	}
