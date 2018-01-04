@@ -159,6 +159,7 @@ func (m *Manager) syncWithPeers(block *core.Block) {
 			logging.VLog().Info("sync target not enough, sleep for 5 second...")
 			time.Sleep(5 * time.Second)
 			m.syncCh <- true
+			return
 		}
 	default:
 		logging.VLog().Error("error occurs, sync has been terminated")

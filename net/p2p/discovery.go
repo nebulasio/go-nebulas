@@ -23,7 +23,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"math/rand"
-	"os"
+	"path"
 	"strings"
 	"sync"
 	"time"
@@ -36,7 +36,7 @@ import (
 )
 
 var (
-	filename = "/routingtable"
+	routingTableCacheFile = "ROUTINGTABLE.TMP"
 )
 
 /*
@@ -68,14 +68,14 @@ func (net *NetService) persistRoutingTable() {
 	for {
 		select {
 		case <-ticker.C:
-			net.persistRt()
+			net.saveRoutingTableToDisk()
 		case <-net.quitCh:
 			return
 		}
 	}
 }
 
-func (net *NetService) persistRt() {
+func (net *NetService) saveRoutingTableToDisk() {
 	node := net.node
 	allnode := node.routeTable.ListPeers()
 	var nodes []string
@@ -87,19 +87,20 @@ func (net *NetService) persistRt() {
 		}
 	}
 	str := strings.Join(nodes, ",")
-	if err := ioutil.WriteFile(node.config.RoutingTableDir+filename, []byte(str), os.ModePerm); err != nil {
+	if err := ioutil.WriteFile(net.getRoutingTableCacheFilePath(), []byte(str), 0644); err != nil {
 		logging.VLog().Warn("failed to persist routing table")
 	}
 }
 
 func (net *NetService) loadRoutingTableFromDisk() {
 	node := net.node
-	b, err := ioutil.ReadFile(node.config.RoutingTableDir + filename)
+	b, err := ioutil.ReadFile(net.getRoutingTableCacheFilePath())
 	if err != nil {
 		logging.VLog().Warn("failed to load routing table from disk")
 		return
 	}
 	contents := strings.Split(string(b), ",")
+	count := 0
 	for _, v := range contents {
 
 		multiaddr, err := ma.NewMultiaddr(v)
@@ -139,8 +140,15 @@ func (net *NetService) loadRoutingTableFromDisk() {
 			addr,
 			peerstore.PermanentAddrTTL)
 		node.routeTable.Update(ID)
+		count++
 	}
 
+	logging.CLog().Infof("loaded %d nodes to routing table from disk.", count)
+
+}
+
+func (net *NetService) getRoutingTableCacheFilePath() string {
+	return path.Join(net.node.config.RoutingTableDir, routingTableCacheFile)
 }
 
 //sync route table
