@@ -110,8 +110,10 @@ message StatsConfig {
         Influxdb = 0;
     }
     repeated ReportingModule reporting_module = 2;
-    // Influxdb config.`
+    // Influxdb config.
     InfluxdbConfig influxdb = 11;
+    repeated string metrics_tags = 12;
+
 }
 
 message InfluxdbConfig {

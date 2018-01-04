@@ -21,6 +21,7 @@ package metrics
 import (
 	"fmt"
 	"runtime"
+	"strings"
 	"time"
 
 	"github.com/nebulasio/go-nebulas/neblet/pb"
@@ -48,6 +49,14 @@ type Neblet interface {
 // Start metrics monitor
 func Start(neb Neblet) {
 	tags := make(map[string]string)
+	metricsConfig := neb.Config().Stats.MetricsTags
+	for _, v := range metricsConfig {
+		values := strings.Split(v, ":")
+		if len(values) != 2 {
+			continue
+		}
+		tags[values[0]] = values[1]
+	}
 	tags[nodeID] = getSimpleNodeID(neb)
 	tags[chainID] = fmt.Sprintf("%d", neb.NetManager().Node().Config().ChainID)
 	go collectSystemMetrics()
