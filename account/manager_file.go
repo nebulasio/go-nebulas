@@ -115,12 +115,11 @@ func (m *Manager) loadFile(addr *core.Address, passphrase []byte) error {
 	return err
 }
 
-func (m *Manager) exportFile(addr *core.Address, passphrase []byte) error {
+func (m *Manager) exportFile(addr *core.Address, passphrase []byte) (path string, err error) {
 	raw, err := m.Export(addr, passphrase)
 	if err != nil {
-		return err
+		return "", err
 	}
-	var path string
 	acc := m.getAccount(addr)
 	if acc != nil {
 		path = acc.path
@@ -128,7 +127,7 @@ func (m *Manager) exportFile(addr *core.Address, passphrase []byte) error {
 		path = filepath.Join(m.keydir, addr.String())
 	}
 	WriteFile(path, raw)
-	return nil
+	return path, nil
 }
 
 func (m *Manager) getAccount(addr *core.Address) *account {
@@ -163,8 +162,15 @@ func WriteFile(file string, content []byte) error {
 func (m *Manager) deleteFile(addr *core.Address) error {
 	acc := m.getAccount(addr)
 	if acc != nil {
-		os.Remove(acc.path)
-		m.refreshAccounts()
+		err := os.Remove(acc.path)
+		if err != nil {
+			return err
+		}
+		err = m.refreshAccounts()
+		if err != nil {
+			return err
+		}
+		return nil
 	}
-	return nil
+	return ErrAddrNotFind
 }

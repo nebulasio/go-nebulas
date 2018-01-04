@@ -135,14 +135,32 @@ func (m *Manager) storeAddress(priv keystore.PrivateKey, passphrase []byte, writ
 	if err != nil {
 		return nil, err
 	}
+	var path string
 	if writeFile {
 		// export key to file in keydir
-		err = m.exportFile(addr, passphrase)
+		path, err = m.exportFile(addr, passphrase)
 		if err != nil {
 			return nil, err
 		}
 	}
+	if !m.Contains(addr) {
+		acc := &account{addr: addr, path: path}
+		m.accounts = append(m.accounts, acc)
+	} else if len(path) > 0 {
+		acc := m.getAccount(addr)
+		acc.path = path
+	}
 	return addr, nil
+}
+
+// Contains returns if contains address
+func (m *Manager) Contains(addr *core.Address) bool {
+	for _, acc := range m.accounts {
+		if acc.addr.Equals(addr) {
+			return true
+		}
+	}
+	return false
 }
 
 // Unlock unlock address with passphrase
@@ -230,12 +248,8 @@ func (m *Manager) Export(addr *core.Address, passphrase []byte) ([]byte, error) 
 }
 
 // Delete delete address
-func (m *Manager) Delete(a string, passphrase []byte) error {
-	addr, err := core.AddressParse(a)
-	if err != nil {
-		return err
-	}
-	err = m.ks.Delete(a, passphrase)
+func (m *Manager) Delete(addr *core.Address, passphrase []byte) error {
+	err := m.ks.Delete(addr.String(), passphrase)
 	if err != nil {
 		return err
 	}

@@ -21,8 +21,6 @@ package account
 import (
 	"testing"
 
-	"os"
-
 	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/util"
 	"github.com/stretchr/testify/assert"
@@ -53,9 +51,10 @@ func TestManager_NewAccount(t *testing.T) {
 			assert.Nil(t, err, "new address err")
 			addrs := manager.Accounts()
 			assert.Contains(t, addrs, got, "new account not in keystore")
+			err = manager.Delete(got, tt.passphrase)
+			assert.Nil(t, err)
 		})
 	}
-	os.RemoveAll(manager.keydir)
 }
 
 func TestManager_Unlock(t *testing.T) {
@@ -85,45 +84,10 @@ func TestManager_Unlock(t *testing.T) {
 			assert.Nil(t, err, "unlock err")
 			err = manager.Lock(got)
 			assert.Nil(t, err, "lock err")
+			err = manager.Delete(got, tt.passphrase)
+			assert.Nil(t, err)
 		})
 	}
-	os.RemoveAll(manager.keydir)
-}
-
-func TestManager_Lock(t *testing.T) {
-	manager := NewManager(nil)
-	tests := []struct {
-		name       string
-		passphrase []byte
-		unlock     bool
-		want       bool
-	}{
-		{
-			"address1",
-			[]byte("passphrase"),
-			true,
-			true,
-		},
-		{
-			"address2",
-			[]byte("passphrase"),
-			false,
-			false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := manager.NewAccount(tt.passphrase)
-			assert.Nil(t, err, "new address err")
-			if tt.unlock {
-				err = manager.Unlock(got, tt.passphrase)
-				assert.Nil(t, err, "unlock err")
-			}
-			err = manager.Lock(got)
-			assert.Equal(t, tt.want, err == nil, "lock err")
-		})
-	}
-	os.RemoveAll(manager.keydir)
 }
 
 func TestManager_Load(t *testing.T) {
@@ -179,10 +143,10 @@ func TestManager_Export(t *testing.T) {
 			assert.Nil(t, err, "new address err")
 			_, err = manager.Export(got, tt.passphrase)
 			assert.Nil(t, err, "export err")
-			//t.Log(string(f))
+			err = manager.Delete(got, tt.passphrase)
+			assert.Nil(t, err)
 		})
 	}
-	os.RemoveAll(manager.keydir)
 }
 
 func TestManager_SignTransaction(t *testing.T) {
@@ -213,7 +177,42 @@ func TestManager_SignTransaction(t *testing.T) {
 			tx := core.NewTransaction(0, got, got, util.NewUint128FromInt(5), 0, core.TxPayloadBinaryType, nil, util.NewUint128FromInt(1), util.NewUint128FromInt(5))
 			err = manager.SignTransaction(got, tx)
 			assert.Nil(t, err, "sign err")
+			err = manager.Delete(got, tt.passphrase)
+			assert.Nil(t, err)
 		})
 	}
-	os.RemoveAll(manager.keydir)
+}
+
+func TestManager_SignTransactionWithPassphrase(t *testing.T) {
+	manager := NewManager(nil)
+	tests := []struct {
+		name       string
+		passphrase []byte
+		unlock     bool
+		want       bool
+	}{
+		{
+			"address1",
+			[]byte("passphrase"),
+			true,
+			true,
+		},
+		{
+			"address2",
+			[]byte("passphrase"),
+			false,
+			false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := manager.NewAccount(tt.passphrase)
+			assert.Nil(t, err, "new address err")
+			tx := core.NewTransaction(0, got, got, util.NewUint128FromInt(5), 0, core.TxPayloadBinaryType, nil, util.NewUint128FromInt(1), util.NewUint128FromInt(5))
+			err = manager.SignTransactionWithPassphrase(got, tx, tt.passphrase)
+			assert.Nil(t, err, "sign with passphrase err")
+			err = manager.Delete(got, tt.passphrase)
+			assert.Nil(t, err)
+		})
+	}
 }
