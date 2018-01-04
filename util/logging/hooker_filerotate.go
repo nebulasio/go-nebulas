@@ -53,8 +53,11 @@ func LoadFileRotateHooker(logger *logrus.Logger, path string) {
 	}
 
 	hook := lfshook.NewHook(lfshook.WriterMap{
+		logrus.DebugLevel: writer,
 		logrus.InfoLevel:  writer,
+		logrus.WarnLevel:  writer,
 		logrus.ErrorLevel: writer,
+		logrus.FatalLevel: writer,
 	}, nil)
 	logger.Hooks.Add(hook)
 }

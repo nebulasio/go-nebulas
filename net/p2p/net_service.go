@@ -89,7 +89,7 @@ type NetService struct {
 }
 
 /*
-Protocol In Nebulas, we define our own wire protocol, as the following:
+NebMessage defines protocol in Nebulas, we define our own wire protocol, as the following:
 
  0               1               2               3              (bytes)
  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
