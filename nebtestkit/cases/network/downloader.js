@@ -1,83 +1,91 @@
 'use strict';
 
 var Node = require('../../Node');
+var BigNumber = require('bignumber.js');
 var expect = require('chai').expect;
-var sleep = require("system-sleep");
-var Neblet = require('../../neblet');
+var sleep = require("system-sleep")
 var os = require('os');
-var count = 6;
 
-var nodes = new Node(count);
+var nodeCnt = 6;
+var validators = 6;
+var blockInterval = 5;
+var dynastyInterval = 60;
+var reward = new BigNumber("48e16");
+var initial = new BigNumber("1e18");
+var nodes = new Node(nodeCnt);
+var connected = 0;
 nodes.Start();
 
-describe('start nodes', function () {
+describe('check downloader', function () {
     before(function (done) {
-        this.timeout(10000);
-        setTimeout(done, 4000);
+        this.timeout(300000);
+        setTimeout(done, 5000);
     });
 
-    it('check status', function (done) {
-        this.timeout(20000);
+    it('check', function (done) {
+        // start servers
+        console.log("start servers");
         while (true) {
-            var nodeInfo = nodes.RPC(0).api.nodeInfo();
-            if (nodeInfo.route_table.length == count - 1) {
-                console.log("√ all nodes have started");
-                break;
-            }
+            if (connected == nodeCnt - 1) break;
+            var nodeInfo = nodes.RPC(0).api.nodeInfo().then(function (resp) {
+                console.log(resp)
+                connected = resp.route_table.length
+            });
             sleep(3000);
         }
+
+        let height = 0;
         while (true) {
-            var block = JSON.parse(nodes.RPC(0).api.blockDump(1).data)[0];
-            // console.log(block);
-            if (block.height > 3) {
+            nodes.RPC(0).api.blockDump(1).then(function (resp) {
+                var block = JSON.parse(resp.data)[0];
+                console.log(block);
+                if (height < block.height) {
+                    height = block.height;
+                    console.log("H", height);
+                }
+            });
+            console.log(height);
+            if (height > 3) {
                 console.log("√ the height of current tail block is higher than 3");
-                done();
                 break;
             }
             sleep(3000);
         }
-    });
 
-    it('test downloader', function(done){
-        this.timeout(150000);
         nodes.RPC(5).admin.changeNetworkID(10);
         sleep(15000);
         var blockA;
-        nodes.RPC(0).api.blockDump(1, function (err, resp) {
+        nodes.RPC(0).api.blockDump(1).then(function (resp) {
             blockA = JSON.parse(resp.data)[0];
         });
 
         var blockB;
-        nodes.RPC(5).api.blockDump(1, function (err, resp) {
+        nodes.RPC(5).api.blockDump(1).then(function (resp) {
             blockB = JSON.parse(resp.data)[0];
         });
         sleep(3000);
+        console.log(blockA, " vs ", blockB);
         expect(blockA.hash).not.to.be.equal(blockB.hash);
         console.log("√ changed a node networkID to 10 and the node go to forked");
 
 
         nodes.RPC(5).admin.changeNetworkID(1);
         sleep(20000);
-        nodes.RPC(0).api.blockDump(1, function (err, resp) {
+        nodes.RPC(0).api.blockDump(1).then(function (resp) {
             blockA = JSON.parse(resp.data)[0];
         });
 
         // var blockSeed = JSON.parse(nodes.RPC(0).api.blockDump(1).data)[0];
-        nodes.RPC(5).api.blockDump(1, function (err, resp) {
+        nodes.RPC(5).api.blockDump(1).then(function (resp) {
             blockB = JSON.parse(resp.data)[0];
         });
         sleep(3000);
+        console.log(blockA, " vs ", blockB);
         expect(blockA.hash).to.be.equal(blockB.hash);
         console.log("√ recover the node networkID to 1 and the node is synchronized");
         sleep(10000);
-        done();
-    });
-});
 
-describe('quit', function () {
-    it('quit', function () {
-        setTimeout(function() {
-            nodes.Stop();
-        }, 20000);  
+        nodes.Stop();
+        done();
     });
 });

@@ -10,7 +10,7 @@ nodes.Start();
 
 function checkTransaction(hash, done, count) {
     if (count > 6) {
-        console.log("tx receipt timeout:"+hash);
+        console.log("tx receipt timeout:" + hash);
         done();
         return;
     }
@@ -25,7 +25,7 @@ function checkTransaction(hash, done, count) {
         done();
     }).catch(function (err) {
         setTimeout(function () {
-            checkTransaction(hash, done, count+1);
+            checkTransaction(hash, done, count + 1);
         }, 2000);
     });
 }
@@ -46,7 +46,7 @@ describe('contract transaction', function () {
             return node.RPC().admin.unlockAccount(node.Coinbase(), node.Passphrase());
         }).then(function (resp) {
 
-            var erc20 = FS.readFileSync("../nf/nvm/test/ERC20.js","utf-8");
+            var erc20 = FS.readFileSync("../nf/nvm/test/ERC20.js", "utf-8");
             // console.log("erc20:"+erc20);
             var contract = {
                 "source": erc20,
@@ -57,10 +57,10 @@ describe('contract transaction', function () {
             // var price = node.RPC().api.gasPrice();
             // var gas = node.RPC().api.estimateGas(node.Coinbase(), node.Coinbase(), "0", parseInt(state.nonce)+1, "0", "0", contract);
             // console.log("gas:"+gas.estimate_gas);
-            return node.RPC().api.sendTransaction(node.Coinbase(), nodes.Coinbase(1), "0", parseInt(state.nonce)+1, "0", "2000000", contract);
+            return node.RPC().api.sendTransaction(node.Coinbase(), nodes.Coinbase(1), "0", parseInt(state.nonce) + 1, "0", "2000000", contract);
         }).then(function (resp) {
 
-            console.log("send resp:"+JSON.stringify(resp));
+            console.log("send resp:" + JSON.stringify(resp));
             expect(resp).to.be.have.property('contract_address');
 
             var call = {
@@ -68,15 +68,15 @@ describe('contract transaction', function () {
             }
             // gas = node.RPC().api.estimateGas(node.Coinbase(), node.Coinbase(), "0", parseInt(state.nonce)+1, "0", "0", call);
             // console.log("gas:"+gas.estimate_gas);
-            return node.RPC().api.call(node.Coinbase(), resp.contract_address, "0", parseInt(state.nonce)+2, "0", "2000000", call);
+            return node.RPC().api.call(node.Coinbase(), resp.contract_address, "0", parseInt(state.nonce) + 2, "0", "2000000", call);
         }).then(function (resp) {
 
-            console.log("call resp:"+JSON.stringify(resp));
+            console.log("call resp:" + JSON.stringify(resp));
             // expect(resp).to.be.have.property('txhash');
             // done();
             checkTransaction(resp.txhash, done, 1);
         }).catch(function (err) {
-            console.log("send err:"+JSON.stringify(err.error))
+            console.log("send err:" + JSON.stringify(err.error))
             done();
         });
     });
@@ -89,9 +89,9 @@ describe('contract transaction', function () {
 
             state = resp;
             return node.RPC().admin.unlockAccount(node.Coinbase(), node.Passphrase());
-        }).then( function (resp) {
+        }).then(function (resp) {
 
-            var bank = FS.readFileSync("../nf/nvm/test/bank_vault_contract.js","utf-8");
+            var bank = FS.readFileSync("../nf/nvm/test/bank_vault_contract.js", "utf-8");
             // console.log("erc20:"+erc20);
             var contract = {
                 "source": bank,
@@ -101,27 +101,27 @@ describe('contract transaction', function () {
             // var price = node.RPC().api.gasPrice();
             // var gas = node.RPC().api.estimateGas(node.Coinbase(), node.Coinbase(), "0", parseInt(state.nonce)+1, "0", "0", contract);
             // // console.log("gas:"+gas.estimate_gas);
-            return node.RPC().api.sendTransaction(node.Coinbase(), nodes.Coinbase(1), "0", parseInt(state.nonce)+1, "0", "200000", contract);
-        }).then( function (resp) {
+            return node.RPC().api.sendTransaction(node.Coinbase(), nodes.Coinbase(1), "0", parseInt(state.nonce) + 1, "0", "200000", contract);
+        }).then(function (resp) {
 
-            console.log("resp:"+JSON.stringify(resp));
+            console.log("resp:" + JSON.stringify(resp));
             expect(resp).to.be.have.property('contract_address');
 
             var call = {
                 "function": "save",
-                "args":"[1]"
+                "args": "[1]"
             }
             // gas = node.RPC().api.estimateGas(node.Coinbase(), node.Coinbase(), "0", parseInt(state.nonce)+1, "0", "0", call);
             // console.log("gas:"+gas.estimate_gas);
-            return node.RPC().api.call(node.Coinbase(), resp.contract_address, state.balance, parseInt(state.nonce)+2, "0", "2000000", call);
-        }).then( function (resp) {
+            return node.RPC().api.call(node.Coinbase(), resp.contract_address, state.balance, parseInt(state.nonce) + 2, "0", "2000000", call);
+        }).then(function (resp) {
 
-            console.log("resp:"+JSON.stringify(resp));
+            console.log("resp:" + JSON.stringify(resp));
             // expect(resp).to.be.have.property('txhash');
             // done();
             checkTransaction(resp.txhash, done, 1);
         }).catch(function (err) {
-            console.log("send err:"+JSON.stringify(err.error))
+            console.log("send err:" + JSON.stringify(err.error))
             done();
         });
     });
@@ -134,9 +134,9 @@ describe('contract transaction', function () {
 
             state = resp;
             return node.RPC().admin.unlockAccount(node.Coinbase(), node.Passphrase());
-        }).then( function (resp) {
+        }).then(function (resp) {
 
-            var bank = FS.readFileSync("../nf/nvm/test/bank_vault_contract.ts","utf-8");
+            var bank = FS.readFileSync("../nf/nvm/test/bank_vault_contract.ts", "utf-8");
             // console.log("erc20:"+erc20);
             var contract = {
                 "source": bank,
@@ -146,27 +146,27 @@ describe('contract transaction', function () {
             // var price = node.RPC().api.gasPrice();
             // var gas = node.RPC().api.estimateGas(node.Coinbase(), node.Coinbase(), "0", parseInt(state.nonce)+1, "0", "0", contract);
             // console.log("gas:"+gas.estimate_gas);
-            return node.RPC().api.sendTransaction(node.Coinbase(), nodes.Coinbase(1), "0", parseInt(state.nonce)+1, "0", "2000000", contract);
-        }).then( function (resp) {
+            return node.RPC().api.sendTransaction(node.Coinbase(), nodes.Coinbase(1), "0", parseInt(state.nonce) + 1, "0", "2000000", contract);
+        }).then(function (resp) {
 
-            console.log("resp:"+JSON.stringify(resp));
+            console.log("resp:" + JSON.stringify(resp));
             expect(resp).to.be.have.property('contract_address');
 
             var call = {
                 "function": "save",
-                "args":"[1]"
+                "args": "[1]"
             }
             // gas = node.RPC().api.estimateGas(node.Coinbase(), node.Coinbase(), "0", parseInt(state.nonce)+1, "0", "0", call);
             // console.log("gas:"+gas.estimate_gas);
-            return node.RPC().api.call(node.Coinbase(), resp.contract_address, state.balance, parseInt(state.nonce)+2, "0", "200000", call);
-        }).then( function (resp) {
+            return node.RPC().api.call(node.Coinbase(), resp.contract_address, state.balance, parseInt(state.nonce) + 2, "0", "200000", call);
+        }).then(function (resp) {
 
-            console.log("resp:"+JSON.stringify(resp));
+            console.log("resp:" + JSON.stringify(resp));
             // expect(resp).to.be.have.property('txhash');
             // done();
             checkTransaction(resp.txhash, done, 1);
         }).catch(function (err) {
-            console.log("send err:"+JSON.stringify(err.error))
+            console.log("send err:" + JSON.stringify(err.error))
             done();
         });
     });

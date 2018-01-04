@@ -9,7 +9,7 @@ nodes.Start();
 
 function checkTransaction(hash, done, count) {
     if (count > 6) {
-        console.log("tx receipt timeout:"+hash);
+        console.log("tx receipt timeout:" + hash);
         done();
         return;
     }
@@ -24,14 +24,13 @@ function checkTransaction(hash, done, count) {
         done();
     }).catch(function (err) {
         setTimeout(function () {
-            checkTransaction(hash, done, count+1);
+            checkTransaction(hash, done, count + 1);
         }, 2000);
     });
 }
 
 describe('normal transaction', function () {
     before(function (done) {
-
         this.timeout(1000000);
         setTimeout(done, 5000);
     });
@@ -42,7 +41,7 @@ describe('normal transaction', function () {
         var node = nodes.Node(0);
         node.RPC().api.getAccountState(node.Coinbase()).then(function (resp) {
 
-            console.log("resp:"+JSON.stringify(resp));
+            console.log("resp:" + JSON.stringify(resp));
             state = resp;
             return node.RPC().admin.unlockAccount(node.Coinbase(), node.Passphrase());
         }).then(function (resp) {
@@ -50,12 +49,12 @@ describe('normal transaction', function () {
             return node.RPC().api.sendTransaction(node.Coinbase(), nodes.Coinbase(1), "1", parseInt(state.nonce) + 1);
         }).then(function (resp) {
 
-            console.log("send:"+JSON.stringify(resp))
+            console.log("send:" + JSON.stringify(resp))
             expect(resp).to.be.have.property('txhash');
             checkTransaction(resp.txhash, done, 1);
             // done();
         }).catch(function (err) {
-            console.log("send err:"+JSON.stringify(err.error))
+            console.log("send err:" + JSON.stringify(err.error))
             done();
         });
     });
@@ -66,7 +65,7 @@ describe('normal transaction', function () {
         var node = nodes.Node(0);
         node.RPC().api.getAccountState(node.Coinbase()).then(function (resp) {
 
-            console.log("resp:"+JSON.stringify(resp));
+            console.log("resp:" + JSON.stringify(resp));
             state = resp;
             return node.RPC().admin.unlockAccount(node.Coinbase(), node.Passphrase());
         }).then(function (resp) {
@@ -74,12 +73,12 @@ describe('normal transaction', function () {
             return node.RPC().api.sendTransaction(node.Coinbase(), nodes.Coinbase(0), "1", parseInt(state.nonce) + 1)
         }).then(function (resp) {
 
-            console.log("send:"+JSON.stringify(resp))
+            console.log("send:" + JSON.stringify(resp))
             expect(resp).to.be.have.property('txhash');
             checkTransaction(resp.txhash, done, 1);
             // done();
         }).catch(function (err) {
-            console.log("send err:"+JSON.stringify(err.error))
+            console.log("send err:" + JSON.stringify(err.error))
             done();
         });
     });
@@ -90,7 +89,7 @@ describe('normal transaction', function () {
         var node = nodes.Node(0);
         node.RPC().api.getAccountState(node.Coinbase()).then(function (resp) {
 
-            console.log("resp:"+JSON.stringify(resp));
+            console.log("resp:" + JSON.stringify(resp));
             state = resp;
             return node.RPC().admin.unlockAccount(node.Coinbase(), node.Passphrase());
         }).then(function (resp) {
@@ -99,12 +98,12 @@ describe('normal transaction', function () {
             return node.RPC().api.sendTransaction(node.Coinbase(), nodes.Coinbase(0), value.toString(), parseInt(state.nonce) + 1);
         }).then(function (resp) {
 
-            console.log("send:"+JSON.stringify(resp))
+            console.log("send:" + JSON.stringify(resp))
             expect(resp).to.be.have.property('txhash');
             checkTransaction(resp.txhash, done, 1);
             // done();
         }).catch(function (err) {
-            console.log("send err:"+JSON.stringify(err.error))
+            console.log("send err:" + JSON.stringify(err.error))
             done();
         });
     });
@@ -115,7 +114,7 @@ describe('normal transaction', function () {
         var node = nodes.Node(0);
         node.RPC().api.getAccountState(node.Coinbase()).then(function (resp) {
 
-            console.log("resp:"+JSON.stringify(resp));
+            console.log("resp:" + JSON.stringify(resp));
             state = resp;
             return node.RPC().admin.unlockAccount(node.Coinbase(), node.Passphrase())
         }).then(function (resp) {
@@ -123,12 +122,12 @@ describe('normal transaction', function () {
             return node.RPC().api.sendTransaction(node.Coinbase(), nodes.Coinbase(0), state.balance, parseInt(state.nonce) + 1, "0", "1");
         }).then(function (resp) {
 
-            console.log("send:"+JSON.stringify(resp))
+            console.log("send:" + JSON.stringify(resp))
             expect(resp).to.be.have.property('txhash');
             checkTransaction(resp.txhash, done, 1);
             // done();
         }).catch(function (err) {
-            console.log("send err:"+JSON.stringify(err.error))
+            console.log("send err:" + JSON.stringify(err.error))
             done();
         });
     });
@@ -139,7 +138,7 @@ describe('normal transaction', function () {
         var node = nodes.Node(0);
         node.RPC().api.getAccountState(node.Coinbase()).then(function (resp) {
 
-            console.log("resp:"+JSON.stringify(resp));
+            console.log("resp:" + JSON.stringify(resp));
             state = resp;
             return node.RPC().admin.unlockAccount(node.Coinbase(), node.Passphrase());
         }).then(function (resp) {
@@ -147,12 +146,12 @@ describe('normal transaction', function () {
             return node.RPC().api.sendTransaction("0x00", nodes.Coinbase(0), state.balance, parseInt(state.nonce) + 1)
         }).then(function (resp) {
 
-            console.log("send:"+JSON.stringify(resp))
+            console.log("send:" + JSON.stringify(resp))
             expect(resp).to.be.have.property('txhash');
             checkTransaction(resp.txhash, done, 1);
             // done();
         }).catch(function (err) {
-            console.log("send err:"+JSON.stringify(err.error))
+            console.log("send err:" + JSON.stringify(err.error))
             done();
         });
     });
@@ -163,7 +162,7 @@ describe('normal transaction', function () {
         var node = nodes.Node(0);
         node.RPC().api.getAccountState(node.Coinbase()).then(function (resp) {
 
-            console.log("resp:"+JSON.stringify(resp));
+            console.log("resp:" + JSON.stringify(resp));
             state = resp;
             return node.RPC().admin.unlockAccount(node.Coinbase(), node.Passphrase());
         }).then(function (resp) {
@@ -171,12 +170,12 @@ describe('normal transaction', function () {
             return node.RPC().api.sendTransaction(node.Coinbase(), "0x00", state.balance, parseInt(state.nonce) + 1);
         }).then(function (resp) {
 
-            console.log("send:"+JSON.stringify(resp))
+            console.log("send:" + JSON.stringify(resp))
             expect(resp).to.be.have.property('txhash');
             checkTransaction(resp.txhash, done, 1);
             // done();
         }).catch(function (err) {
-            console.log("send err:"+JSON.stringify(err.error))
+            console.log("send err:" + JSON.stringify(err.error))
             done();
         });
     });
@@ -187,7 +186,7 @@ describe('normal transaction', function () {
         var node = nodes.Node(0);
         node.RPC().api.getAccountState(node.Coinbase()).then(function (resp) {
 
-            console.log("resp:"+JSON.stringify(resp));
+            console.log("resp:" + JSON.stringify(resp));
             state = resp;
             return node.RPC().admin.unlockAccount(node.Coinbase(), node.Passphrase());
         }).then(function (resp) {
@@ -195,12 +194,12 @@ describe('normal transaction', function () {
             return node.RPC().api.sendTransaction(node.Coinbase(), nodes.Coinbase(1), state.balance, parseInt(state.nonce));
         }).then(function (resp) {
 
-            console.log("send:"+JSON.stringify(resp))
+            console.log("send:" + JSON.stringify(resp))
             expect(resp).to.be.have.property('txhash');
             checkTransaction(resp.txhash, done, 1);
             // done();
         }).catch(function (err) {
-            console.log("send err:"+JSON.stringify(err.error))
+            console.log("send err:" + JSON.stringify(err.error))
             done();
         });
     });
@@ -211,7 +210,7 @@ describe('normal transaction', function () {
         var node = nodes.Node(0);
         node.RPC().api.getAccountState(node.Coinbase()).then(function (resp) {
 
-            console.log("resp:"+JSON.stringify(resp));
+            console.log("resp:" + JSON.stringify(resp));
             state = resp;
             return node.RPC().admin.unlockAccount(node.Coinbase(), node.Passphrase());
         }).then(function (resp) {
@@ -220,12 +219,12 @@ describe('normal transaction', function () {
             return node.RPC().api.sendTransaction(node.Coinbase(), nodes.Coinbase(1), state.balance, nonce.toNumber());
         }).then(function (resp) {
 
-            console.log("send:"+JSON.stringify(resp))
+            console.log("send:" + JSON.stringify(resp))
             expect(resp).to.be.have.property('txhash');
             checkTransaction(resp.txhash, done, 1);
             // done();
         }).catch(function (err) {
-            console.log("send err:"+JSON.stringify(err.error))
+            console.log("send err:" + JSON.stringify(err.error))
             done();
         });
     });
@@ -236,7 +235,7 @@ describe('normal transaction', function () {
         var node = nodes.Node(0);
         node.RPC().api.getAccountState(node.Coinbase()).then(function (resp) {
 
-            console.log("resp:"+JSON.stringify(resp));
+            console.log("resp:" + JSON.stringify(resp));
             state = resp;
             return node.RPC().admin.unlockAccount(node.Coinbase(), node.Passphrase());
         }).then(function (resp) {
@@ -244,12 +243,12 @@ describe('normal transaction', function () {
             return node.RPC().api.sendTransaction(node.Coinbase(), nodes.Coinbase(1), state.balance, parseInt(state.nonce) + 1, "1");
         }).then(function (resp) {
 
-            console.log("send:"+JSON.stringify(resp))
+            console.log("send:" + JSON.stringify(resp))
             expect(resp).to.be.have.property('txhash');
             checkTransaction(resp.txhash, done, 1);
             // done();
         }).catch(function (err) {
-            console.log("send err:"+JSON.stringify(err.error))
+            console.log("send err:" + JSON.stringify(err.error))
             done();
         });
     });
@@ -260,7 +259,7 @@ describe('normal transaction', function () {
         var node = nodes.Node(0);
         node.RPC().api.getAccountState(node.Coinbase()).then(function (resp) {
 
-            console.log("resp:"+JSON.stringify(resp));
+            console.log("resp:" + JSON.stringify(resp));
             state = resp;
             return node.RPC().admin.unlockAccount(node.Coinbase(), node.Passphrase());
         }).then(function (resp) {
@@ -269,12 +268,12 @@ describe('normal transaction', function () {
             return node.RPC().api.sendTransaction(node.Coinbase(), nodes.Coinbase(1), state.balance, parseInt(state.nonce) + 1, "", maxGas.toString());
         }).then(function (resp) {
 
-            console.log("send:"+JSON.stringify(resp))
+            console.log("send:" + JSON.stringify(resp))
             expect(resp).to.be.have.property('txhash');
             checkTransaction(resp.txhash, done, 1);
             // done();
         }).catch(function (err) {
-            console.log("send err:"+JSON.stringify(err.error))
+            console.log("send err:" + JSON.stringify(err.error))
             done();
         });
     });
