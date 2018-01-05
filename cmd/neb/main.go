@@ -120,6 +120,7 @@ func runNeb(n *neblet.Neblet) {
 
 func makeNeb(ctx *cli.Context) (*neblet.Neblet, error) {
 	conf := neblet.LoadConfig(config)
+	conf.App.Version = version
 
 	// load config from cli args
 	networkConfig(ctx, conf.Network)

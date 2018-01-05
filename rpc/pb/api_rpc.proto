@@ -299,6 +299,8 @@ message GetNebStateResponse {
 
     // The peer sync status.
     bool synchronized = 7;
+
+    string version = 8;
 }
 
 // Response message of Accounts rpc.

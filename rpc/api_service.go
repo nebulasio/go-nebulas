@@ -62,6 +62,7 @@ func (s *APIService) GetNebState(ctx context.Context, req *rpcpb.NonParamsReques
 	resp.Synchronized = neb.NetManager().Node().GetSynchronizing()
 	resp.PeerCount = getStreamCount(neb.NetManager().Node().GetStream())
 	resp.ProtocolVersion = p2p.ProtocolID
+	resp.Version = neb.Config().App.Version
 
 	return resp, nil
 }

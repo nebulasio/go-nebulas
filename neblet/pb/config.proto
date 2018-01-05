@@ -94,6 +94,8 @@ message AppConfig {
 	bool enable_crash_report = 3;
 
     string crash_report_url = 4;
+
+    string version = 100;
 }
 
 
