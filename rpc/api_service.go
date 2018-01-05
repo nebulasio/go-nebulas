@@ -486,6 +486,7 @@ func (s *APIService) SignTransaction(ctx context.Context, req *rpcpb.Transaction
 	if err := neb.AccountManager().SignTransaction(tx.From(), tx); err != nil {
 		return nil, err
 	}
+	logging.CLog().Info(tx)
 	pbMsg, err := tx.ToProto()
 	if err != nil {
 		return nil, err

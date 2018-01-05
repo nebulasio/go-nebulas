@@ -11,7 +11,7 @@ var config_seed =
 	}
 	
 	chain {
-    chain_id: 100
+    chain_id: 1001
     datadir: {{data_location}}
     keydir: "keydir"
     genesis: "genesis.conf"
@@ -50,7 +50,7 @@ var config_normal =
   }
 
   chain {
-    chain_id: 100
+    chain_id: 1001
     datadir: {{data_location}}
     keydir: "keydir"
     genesis: "genesis.conf"

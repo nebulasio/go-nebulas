@@ -1,10 +1,10 @@
 'use strict';
 
-var Node = require('../../../node');
+var TestnetNodes = require('../../testnet-nodes');
 var expect = require('chai').expect;
 var BigNumber = require('bignumber.js');
 
-var nodes = new Node(6);
+var nodes = new TestnetNodes(6);
 nodes.Start();
 
 function checkTransaction(hash, done, count) {

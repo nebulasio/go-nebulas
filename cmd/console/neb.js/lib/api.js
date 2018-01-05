@@ -12,29 +12,30 @@ API.prototype.setRequest = function (request) {
 };
 
 API.prototype.getNebState = function (callback) {
-	return this.request("get", "/v1/user/nebstate", null, callback);
+    return this.request("get", "/v1/user/nebstate", null, callback);
 };
 
 API.prototype.nodeInfo = function (callback) {
-	return this.request("get", "/v1/user/nodeinfo", null, callback);
+    return this.request("get", "/v1/user/nodeinfo", null, callback);
 };
 
 API.prototype.accounts = function (callback) {
-	return this.request("get", "/v1/user/accounts", null, callback);
+    return this.request("get", "/v1/user/accounts", null, callback);
 };
 
 API.prototype.blockDump = function (count, callback) {
-	var params = { "count": count };
-	return this.request("post", "/v1/user/blockdump", params, callback);
+    var params = { "count": count };
+    return this.request("post", "/v1/user/blockdump", params, callback);
 };
 
 API.prototype.getAccountState = function (address, block, callback) {
     var params = { "address": address, "block": block };
-	return this.request("post", "/v1/user/accountstate", params, callback);
+    return this.request("post", "/v1/user/accountstate", params, callback);
 };
 
 API.prototype.sendTransaction = function (from, to, value, nonce, gasPrice, gasLimit, contract, candidate, delegate, callback) {
-	var params = {"from": from,
+    var params = {
+        "from": from,
         "to": to,
         "value": utils.toString(value),
         "nonce": nonce,
@@ -43,12 +44,13 @@ API.prototype.sendTransaction = function (from, to, value, nonce, gasPrice, gasL
         "contract": contract,
         "candidate": candidate,
         "delegate": delegate
-	};
-	return this.request("post", "/v1/user/transaction", params, callback);
+    };
+    return this.request("post", "/v1/user/transaction", params, callback);
 };
 
 API.prototype.call = function (from, to, value, nonce, gasPrice, gasLimit, contract, callback) {
-    var params = {"from": from,
+    var params = {
+        "from": from,
         "to": to,
         "value": utils.toString(value),
         "nonce": nonce,
@@ -56,22 +58,22 @@ API.prototype.call = function (from, to, value, nonce, gasPrice, gasLimit, contr
         "gasLimit": utils.toString(gasLimit),
         "contract": contract
     };
-	return this.request("post", "/v1/user/call", params, callback);
+    return this.request("post", "/v1/user/call", params, callback);
 };
 
 API.prototype.sendRawTransaction = function (data, callback) {
-	var params = { "data": data };
-	return this.request("post", "/v1/user/rawtransaction", params, callback);
+    var params = { "data": data };
+    return this.request("post", "/v1/user/rawtransaction", params, callback);
 };
 
 API.prototype.getBlockByHash = function (hash, callback) {
-	var params = { "hash": hash };
-	return this.request("post", "/v1/user/getBlockByHash", params, callback);
+    var params = { "hash": hash };
+    return this.request("post", "/v1/user/getBlockByHash", params, callback);
 };
 
 API.prototype.getTransactionReceipt = function (hash, callback) {
-	var params = { "hash": hash };
-	return this.request("post", "/v1/user/getTransactionReceipt", params, callback);
+    var params = { "hash": hash };
+    return this.request("post", "/v1/user/getTransactionReceipt", params, callback);
 };
 
 API.prototype.subscribe = function (topic, callback) {
@@ -84,7 +86,8 @@ API.prototype.gasPrice = function (callback) {
 };
 
 API.prototype.estimateGas = function (from, to, value, nonce, gasPrice, gasLimit, contract, candidate, delegate, callback) {
-    var params = {"from": from,
+    var params = {
+        "from": from,
         "to": to,
         "value": utils.toString(value),
         "nonce": nonce,

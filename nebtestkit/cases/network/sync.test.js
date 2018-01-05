@@ -1,7 +1,6 @@
 'use strict';
 
-var Node = require('../../Node');
-var Neblet = require('../../neblet');
+var LocalNodes = require('../../local-nodes');
 var BigNumber = require('bignumber.js');
 var expect = require('chai').expect;
 var sleep = require("system-sleep")
@@ -13,7 +12,7 @@ var blockInterval = 5;
 var dynastyInterval = 60;
 var reward = new BigNumber("48e16");
 var initial = new BigNumber("1e18");
-var nodes = new Node(nodeCnt - 1);
+var nodes = new LocalNodes(nodeCnt - 1);
 var connected = 0;
 nodes.Start();
 
@@ -45,15 +44,7 @@ describe('check sync', function () {
         }
 
         // start another node to test sync
-        var i = nodeCnt - 1;
-        var miner = "75e4e5a71d647298b88928d8cb5da43d90ab1a6c52d0905f";
-        var server = new Neblet(
-            "127.0.0.1", 10000 + i, 8090 + i, 9090 + i,
-            miner, miner, 'passphrase'
-        );
-        server.Init(nodes.Node(0));
-        server.Start();
-        nodes.Nodes().push(server);
+        nodes.NewNode(nodeCnt - 1);
         sleep(15000);
         var blockSeed;
         nodes.RPC(0).api.blockDump(1).then(function (resp) {
@@ -61,7 +52,7 @@ describe('check sync', function () {
         });
 
         var block;
-        server.RPC().api.blockDump(1).then(function (resp) {
+        nodes.RPC(5).api.blockDump(1).then(function (resp) {
             block = JSON.parse(resp.data)[0];
         });
         sleep(3000);
@@ -88,7 +79,7 @@ describe('check sync', function () {
         console.log("√ changed the new node networkID to 10 and the new node go to forked");
 
         nodes.RPC(5).admin.changeNetworkID(1);
-        sleep(10000);
+        sleep(20000);
         nodes.RPC(0).api.blockDump(1).then(function (resp) {
             blockA = JSON.parse(resp.data)[0];
         });
@@ -96,13 +87,11 @@ describe('check sync', function () {
         nodes.RPC(5).api.blockDump(1).then(function (resp) {
             blockB = JSON.parse(resp.data)[0];
         });
-
         sleep(10000);
 
         console.log(blockA, " vs ", blockB);
         expect(blockA.hash).to.be.equal(blockB.hash);
         console.log("√ recover the new node networkID to 1 and the new node is synchronized");
-        sleep(10000);
 
         // quit
         nodes.Stop();

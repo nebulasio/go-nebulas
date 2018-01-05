@@ -193,7 +193,6 @@
   revision = "e89e1de117dd65c6129d99d1d853f48bc847cf17"
 
 [[projects]]
-  branch = "master"
   name = "github.com/libp2p/go-libp2p-host"
   packages = ["."]
   revision = "75df99651313a12e380c25eb359856d6bcc3c332"
@@ -360,6 +359,12 @@
   name = "github.com/multiformats/go-multiaddr-net"
   packages = ["."]
   revision = "4ce984eed7a8f77535ce5d267d0a21bd5a3d8363"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/multiformats/go-multicodec"
+  packages = [".","json"]
+  revision = "fd289ac41fba9e574f214ab2a808a1678ef8810c"
 
 [[projects]]
   branch = "master"
@@ -562,6 +567,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "ea24c102a9b0629c2555a082bf3cafd0681188ba1d8bce2c22874ee90cab8d3c"
+  inputs-digest = "9a006f7a56dd7f451357aa081e497fde422979b41590d043467a7cf03f653290"
   solver-name = "gps-cdcl"
   solver-version = 1

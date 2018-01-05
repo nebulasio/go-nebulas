@@ -1,6 +1,6 @@
 'use strict';
 
-var Node = require('../../../Node');
+var LocalNodes = require('../../local-nodes');
 var BigNumber = require('bignumber.js');
 var expect = require('chai').expect;
 var sleep = require("system-sleep")
@@ -12,7 +12,7 @@ var blockInterval = 5;
 var dynastyInterval = 60;
 var reward = new BigNumber("48e16");
 var initial = new BigNumber("1e18");
-var nodes = new Node(nodeCnt);
+var nodes = new LocalNodes(nodeCnt);
 var now = new Date().getTime() / 1000;
 var connected = 0;
 nodes.Start();

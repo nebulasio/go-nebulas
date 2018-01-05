@@ -58,6 +58,20 @@ Node.prototype = {
         }
         this.nodes = nodes;
     },
+    NewNode: function (index) {
+        var i = index;
+        var server = new Neblet(
+            local, port + i, http_port + i, rpc_port + i,
+            miners[i], miners[i], 'passphrase'
+        );
+        if (i == 0) {
+            server.Init()
+        } else {
+            server.Init(this.nodes[0])
+        }
+        server.Start();
+        this.nodes.push(server);
+    },
     Nodes: function () {
         return this.nodes;
     },

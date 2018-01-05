@@ -699,10 +699,14 @@ func (ns *NetService) SyncRoutes(pid peer.ID) {
 	node := ns.node
 	addrs := node.peerstore.PeerInfo(pid).Addrs
 	if len(addrs) == 0 {
-		logging.VLog().Error("SyncRoutes: wrong pid addrs")
-		ns.clearPeerStore(pid, addrs)
+		logging.VLog().WithFields(logrus.Fields{
+			"pid": pid.Pretty(),
+		}).Error("SyncRoutes: wrong pid addrs.")
+		// ns.clearPeerStore(pid, addrs)
+		ns.Hello(pid)
 		return
 	}
+
 	data := []byte{}
 	if err := ns.SendMsg(SyncRoute, data, pid.Pretty()); err != nil {
 		logging.VLog().Error("SyncRoutes: write data occurs error, ", err)
