@@ -37,6 +37,7 @@ Node.prototype = {
         sleep(1000);
         return node.admin.signTransaction(from, to, value, nonce, gasprice, gaslimit, contract, candidate, delegate)
             .then(function (resp) {
+                console.log(resp);
                 return nodes[0].api.sendRawTransaction(resp.data);
             });
     },
