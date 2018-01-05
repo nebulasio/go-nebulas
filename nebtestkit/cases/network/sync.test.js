@@ -61,7 +61,7 @@ describe('check sync', function () {
         });
 
         var block;
-        server.NebJs().api.blockDump(1).then(function (resp) {
+        server.RPC().api.blockDump(1).then(function (resp) {
             block = JSON.parse(resp.data)[0];
         });
         sleep(3000);

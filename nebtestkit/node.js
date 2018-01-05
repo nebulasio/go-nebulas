@@ -3,6 +3,7 @@
 var Neblet = require('./neblet');
 
 var local = "127.0.0.1";
+var test_net = "https://testnet.nebulas.io"
 var port = 10000;
 var http_port = 8090;
 var rpc_port = 9090;
@@ -64,7 +65,7 @@ Node.prototype = {
         return this.nodes[index];
     },
     RPC: function (index) {
-        return this.nodes[index].NebJs();
+        return this.nodes[index].RPC();
     },
     Coinbase: function (index) {
         return this.nodes[index].Coinbase();

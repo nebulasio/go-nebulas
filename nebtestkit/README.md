@@ -13,7 +13,7 @@ npm install
 Start a seed server:
 ```javascript
 var seed = new Neblet("192.168.1.25", 51413, 8191);
-var seedJsAgent = seed.NebJs();
+var seedJsAgent = seed.RPC();
 seed.Init();
 var nebSeed = seed.Start();
 ```
@@ -21,7 +21,7 @@ var nebSeed = seed.Start();
 Start a common server and connect to seed server:
 ```javascript
 var server = new Neblet("192.168.1.25", 51414, 8192);
-var jsAgent = server.NebJs();
+var jsAgent = server.RPC();
 server.Init(seed);
 var neb = server.Start();
 ```
