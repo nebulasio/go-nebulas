@@ -7,8 +7,6 @@ var sleep = require("system-sleep");
 
 var testnet = ["https://testnet.nebulas.io"];
 
-var port = 8680;
-
 var Node = function () {
     this.local = new LocalNodes(1);
     this.local.Start();
@@ -30,16 +28,15 @@ Node.prototype = {
         return this.nodes[index];
     },
     SendTransaction: function (from, to, value, nonce, gasprice, gaslimit, contract, candidate, delegate) {
-        var node = this.local.RPC(0);
+        var local = this.local.RPC(0);
         var nodes = this.nodes;
-        let data = "";
-        node.admin.unlockAccount(from, "passphrase");
-        sleep(1000);
-        return node.admin.signTransaction(from, to, value, nonce, gasprice, gaslimit, contract, candidate, delegate)
-            .then(function (resp) {
-                console.log(resp);
-                return nodes[0].api.sendRawTransaction(resp.data);
-            });
+        return local.admin.unlockAccount(from, "passphrase").then(function (resp) {
+            console.log("unlock:"+JSON.stringify(resp));
+            return local.admin.signTransaction(from, to, value, nonce, gasprice, gaslimit, contract, candidate, delegate);
+        }).then(function (resp) {
+            // console.log(resp);
+            return nodes[0].api.sendRawTransaction(resp.data);
+        });
     },
 };
 
