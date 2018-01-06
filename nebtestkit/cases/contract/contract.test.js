@@ -5,20 +5,21 @@ var FS = require("fs");
 var expect = require('chai').expect;
 var BigNumber = require('bignumber.js');
 
-var nodes = new TestnetNodes(6);
+var from = "1a263547d167c74cf4b8f9166cfa244de0481c514a45aa2c";
+
+var nodes = new TestnetNodes();
 nodes.Start();
 
 function checkTransaction(hash, done, count) {
-    if (count > 6) {
+    if (count > 4) {
         console.log("tx receipt timeout:" + hash);
         done();
         return;
     }
 
-    var node = nodes.Node(0);
-    node.api.getTransactionReceipt(hash).then(function (resp) {
+    nodes.RPC(0).api.getTransactionReceipt(hash).then(function (resp) {
         console.log("tx receipt:" + JSON.stringify(resp));
-        return node.RPC().api.getAccountState(node.Coinbase());
+        return nodes.RPC(0).api.getAccountState(from);
     }).then(function (resp) {
         console.log("after state:" + JSON.stringify(resp));
         done();
@@ -36,12 +37,11 @@ describe('contract transaction', function () {
     });
 
     it('erc20 contract', function (done) {
+
         var state;
-        var node = nodes.Node(0);
-        node.api.getAccountState(node.Coinbase()).then(function (resp) {
+        nodes.RPC(0).api.getAccountState(from).then(function (resp) {
+
             state = resp;
-            return node.RPC().admin.unlockAccount(node.Coinbase(), node.Passphrase());
-        }).then(function (resp) {
             var erc20 = FS.readFileSync("../nf/nvm/test/ERC20.js", "utf-8");
             // console.log("erc20:"+erc20);
             var contract = {
@@ -49,19 +49,21 @@ describe('contract transaction', function () {
                 "sourceType": "js",
                 "args": '["NebulasToken", "NAS", 1000000000]'
             }
-            return node.api.sendTransaction(node.Coinbase(), nodes.Coinbase(1), "0", parseInt(state.nonce) + 1, "0", "2000000", contract);
+            return nodes.SendTransaction(from, from, "0", parseInt(resp.nonce) + 1, "0", "2000000", contract);
         }).then(function (resp) {
+
             console.log("send resp:" + JSON.stringify(resp));
             expect(resp).to.be.have.property('contract_address');
             var call = {
-                "function": "totalSupply"
+                "function": "totalSupply",
+                "args":""
             }
-            return node.RPC().api.call(node.Coinbase(), resp.contract_address, "0", parseInt(state.nonce) + 2, "0", "2000000", call);
+            return nodes.SendTransaction(from, resp.contract_address, "0", parseInt(state.nonce) + 2, "0", "200000000", call);
         }).then(function (resp) {
             console.log("call resp:" + JSON.stringify(resp));
             checkTransaction(resp.txhash, done, 1);
         }).catch(function (err) {
-            console.log("send err:" + JSON.stringify(err.error))
+            console.log(JSON.stringify(err.error))
             done();
         });
     });
@@ -69,13 +71,9 @@ describe('contract transaction', function () {
     it('bank vault js', function (done) {
 
         var state;
-        var node = nodes.Node(0);
-        node.RPC().api.getAccountState(node.Coinbase()).then(function (resp) {
+        nodes.RPC(0).api.getAccountState(from).then(function (resp) {
 
             state = resp;
-            return node.RPC().admin.unlockAccount(node.Coinbase(), node.Passphrase());
-        }).then(function (resp) {
-
             var bank = FS.readFileSync("../nf/nvm/test/bank_vault_contract.js", "utf-8");
             // console.log("erc20:"+erc20);
             var contract = {
@@ -86,7 +84,7 @@ describe('contract transaction', function () {
             // var price = node.RPC().api.gasPrice();
             // var gas = node.RPC().api.estimateGas(node.Coinbase(), node.Coinbase(), "0", parseInt(state.nonce)+1, "0", "0", contract);
             // // console.log("gas:"+gas.estimate_gas);
-            return node.RPC().api.sendTransaction(node.Coinbase(), nodes.Coinbase(1), "0", parseInt(state.nonce) + 1, "0", "200000", contract);
+            return nodes.SendTransaction(from, from, "0", parseInt(state.nonce) + 1, "0", "200000", contract);
         }).then(function (resp) {
 
             console.log("resp:" + JSON.stringify(resp));
@@ -98,7 +96,7 @@ describe('contract transaction', function () {
             }
             // gas = node.RPC().api.estimateGas(node.Coinbase(), node.Coinbase(), "0", parseInt(state.nonce)+1, "0", "0", call);
             // console.log("gas:"+gas.estimate_gas);
-            return node.RPC().api.call(node.Coinbase(), resp.contract_address, state.balance, parseInt(state.nonce) + 2, "0", "2000000", call);
+            return nodes.SendTransaction(from, resp.contract_address, "1", parseInt(state.nonce) + 2, "0", "2000000", call);
         }).then(function (resp) {
 
             console.log("resp:" + JSON.stringify(resp));
@@ -106,7 +104,7 @@ describe('contract transaction', function () {
             // done();
             checkTransaction(resp.txhash, done, 1);
         }).catch(function (err) {
-            console.log("send err:" + JSON.stringify(err.error))
+            console.log(JSON.stringify(err.error))
             done();
         });
     });
@@ -114,13 +112,9 @@ describe('contract transaction', function () {
     it('bank vault ts', function (done) {
 
         var state;
-        var node = nodes.Node(0);
-        node.RPC().api.getAccountState(node.Coinbase()).then(function (resp) {
+        nodes.RPC(0).api.getAccountState(from).then(function (resp) {
 
             state = resp;
-            return node.RPC().admin.unlockAccount(node.Coinbase(), node.Passphrase());
-        }).then(function (resp) {
-
             var bank = FS.readFileSync("../nf/nvm/test/bank_vault_contract.ts", "utf-8");
             // console.log("erc20:"+erc20);
             var contract = {
@@ -131,7 +125,7 @@ describe('contract transaction', function () {
             // var price = node.RPC().api.gasPrice();
             // var gas = node.RPC().api.estimateGas(node.Coinbase(), node.Coinbase(), "0", parseInt(state.nonce)+1, "0", "0", contract);
             // console.log("gas:"+gas.estimate_gas);
-            return node.RPC().api.sendTransaction(node.Coinbase(), nodes.Coinbase(1), "0", parseInt(state.nonce) + 1, "0", "2000000", contract);
+            return nodes.SendTransaction(from, from, "0", parseInt(state.nonce) + 1, "0", "2000000", contract);
         }).then(function (resp) {
 
             console.log("resp:" + JSON.stringify(resp));
@@ -143,7 +137,7 @@ describe('contract transaction', function () {
             }
             // gas = node.RPC().api.estimateGas(node.Coinbase(), node.Coinbase(), "0", parseInt(state.nonce)+1, "0", "0", call);
             // console.log("gas:"+gas.estimate_gas);
-            return node.RPC().api.call(node.Coinbase(), resp.contract_address, state.balance, parseInt(state.nonce) + 2, "0", "200000", call);
+            return nodes.SendTransaction(from, resp.contract_address, "1", parseInt(state.nonce) + 2, "0", "200000", call);
         }).then(function (resp) {
 
             console.log("resp:" + JSON.stringify(resp));
@@ -151,7 +145,7 @@ describe('contract transaction', function () {
             // done();
             checkTransaction(resp.txhash, done, 1);
         }).catch(function (err) {
-            console.log("send err:" + JSON.stringify(err.error))
+            console.log(JSON.stringify(err.error))
             done();
         });
     });
