@@ -24,35 +24,34 @@ import (
 
 	"github.com/multiformats/go-multiaddr"
 	"github.com/nebulasio/go-nebulas/neblet/pb"
-	"github.com/nebulasio/go-nebulas/util/logging"
 )
 
 // const
 const (
-	DefaultBucketsize = 64
-	DefaultLatency    = 10
-	// DefaultIP         = "127.0.0.1"
-	DefaultPrivateKey = ""
-	// DefaultRandseed              = 12345
-	// DefaultPort                  = 9999
-	DefaultMaxSyncNodes          = 16
-	DefaultChainID               = 1
-	DefaultVersion               = 0
-	DefaultRelayCacheSize        = 65536
-	DefaultStreamStoreSize       = 128
-	DefaultStreamStoreExtendSize = 32
-	DefaultNetworkID             = 1
-	DefaultRoutingTableDir       = ""
+	DefaultBucketCapacity         = 64
+	DefaultRoutingTableMaxLatency = 10
+	DefaultPrivateKeyPath         = "conf/network.key"
+	DefaultMaxSyncNodes           = 64
+	DefaultChainID                = 1
+	DefaultVersion                = 0
+	DefaultRelayCacheSize         = 65536
+	DefaultStreamStoreSize        = 128
+	DefaultStreamStoreExtendSize  = 32
+	DefaultNetworkID              = 1
+	DefaultRoutingTableDir        = ""
+)
+
+// DefaultListen default listen
+var (
+	DefaultListen = []string{"0.0.0.0:8680"}
 )
 
 // Config TODO: move to proto config.
 type Config struct {
-	Bucketsize int
-	Latency    time.Duration
-	BootNodes  []multiaddr.Multiaddr
-	PrivateKey string
-	// IP                    string
-	// Port                  uint32
+	Bucketsize            int
+	Latency               time.Duration
+	BootNodes             []multiaddr.Multiaddr
+	PrivateKeyPath        string
 	Listen                []string
 	MaxSyncNodes          int
 	ChainID               uint32
@@ -71,33 +70,33 @@ type Neblet interface {
 
 // NewP2PConfig new p2p network config
 func NewP2PConfig(n Neblet) *Config {
-	config := DefautConfig()
-	config.Listen = n.Config().Network.Listen
 
-	seeds := n.Config().Network.Seed
-	if len(seeds) > 0 {
-		config.BootNodes = []multiaddr.Multiaddr{}
-		for _, v := range seeds {
-			seed, err := multiaddr.NewMultiaddr(v)
-			if err != nil {
-				logging.VLog().Error("param seed error, creating seed node fail", err)
-				return nil
-			}
-			config.BootNodes = append(config.BootNodes, seed)
-		}
-	}
+	config := NewConfig()
+	network := n.Config().Network
+	config.Listen = network.Listen
 
-	config.PrivateKey = n.Config().Network.PrivateKey
+	config.PrivateKeyPath = network.PrivateKey
 
 	if chainID := n.Config().Chain.ChainId; chainID > 0 {
 		config.ChainID = chainID
 	}
 
-	if networkID := n.Config().Network.NetworkId; networkID > 0 {
+	if networkID := network.NetworkId; networkID > 0 {
 		config.NetworkID = networkID
 	}
 	config.RoutingTableDir = n.Config().Chain.Datadir
 
+	seeds := network.Seed
+	if len(seeds) > 0 {
+		config.BootNodes = []multiaddr.Multiaddr{}
+		for _, v := range seeds {
+			seed, err := multiaddr.NewMultiaddr(v)
+			if err != nil {
+				panic("failed to parse seed node")
+			}
+			config.BootNodes = append(config.BootNodes, seed)
+		}
+	}
 	return config
 }
 
@@ -117,15 +116,14 @@ func localHost() string {
 	return ""
 }
 
-// DefautConfig defautConfig is the p2p network defaut config
-func DefautConfig() *Config {
-	defaultListen := []string{"127.0.0.1:9999"}
+// NewConfig defautConfig is the p2p network defaut config
+func NewConfig() *Config {
 	return &Config{
-		DefaultBucketsize,
-		DefaultLatency,
+		DefaultBucketCapacity,
+		DefaultRoutingTableMaxLatency,
 		[]multiaddr.Multiaddr{},
-		DefaultPrivateKey,
-		defaultListen,
+		DefaultPrivateKeyPath,
+		DefaultListen,
 		DefaultMaxSyncNodes,
 		DefaultChainID,
 		DefaultVersion,

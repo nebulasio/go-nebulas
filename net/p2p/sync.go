@@ -71,7 +71,7 @@ func (ns *NetService) Sync(tail net.Serializable) error {
 			if _, ok := node.stream.Load(key); ok {
 				count++
 				go func() {
-					ns.SendMsg(SyncBlock, data, key)
+					node.sendMsg(SyncBlock, data, key)
 				}()
 			}
 		}
@@ -84,13 +84,13 @@ func (ns *NetService) Sync(tail net.Serializable) error {
 
 // SendSyncReply send sync reply message to remote peer
 func (ns *NetService) SendSyncReply(key string, blocks net.Serializable) {
-
+	node := ns.node
 	logging.VLog().Info("SendSyncReply: send sync addrs -> ", key)
 	pb, _ := blocks.ToProto()
 	data, _ := proto.Marshal(pb)
 	if _, ok := ns.node.stream.Load(key); ok {
 		go func() {
-			ns.SendMsg(SyncReply, data, key)
+			node.sendMsg(SyncReply, data, key)
 		}()
 		return
 	}

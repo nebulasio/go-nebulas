@@ -43,40 +43,39 @@ var (
 discovery node can discover other node or can be discovered by another node
 and then update the routing table.
 */
-func (net *NetService) discovery(ctx context.Context) {
+func (node *Node) discovery(ctx context.Context) {
 
 	//FIXME  the sync routing table rate can be dynamic
 	interval := 30 * time.Second
 	ticker := time.NewTicker(interval)
 	time.Sleep(1 * time.Second)
-	net.loadRoutingTableFromDisk()
-	net.syncRoutingTable()
-	go net.persistRoutingTable()
+	node.loadRoutingTableFromDisk()
+	node.syncRoutingTable()
+	go node.persistRoutingTable()
 	for {
 		select {
 		case <-ticker.C:
-			net.syncRoutingTable()
-		case <-net.quitCh:
+			node.syncRoutingTable()
+		case <-node.ns.quitCh:
 			logging.VLog().Info("discovery service halting")
 			return
 		}
 	}
 }
 
-func (net *NetService) persistRoutingTable() {
+func (node *Node) persistRoutingTable() {
 	ticker := time.NewTicker(60 * time.Second)
 	for {
 		select {
 		case <-ticker.C:
-			net.saveRoutingTableToDisk()
-		case <-net.quitCh:
+			node.saveRoutingTableToDisk()
+		case <-node.ns.quitCh:
 			return
 		}
 	}
 }
 
-func (net *NetService) saveRoutingTableToDisk() {
-	node := net.node
+func (node *Node) saveRoutingTableToDisk() {
 	allnode := node.routeTable.ListPeers()
 	var nodes []string
 	for _, v := range allnode {
@@ -87,14 +86,14 @@ func (net *NetService) saveRoutingTableToDisk() {
 		}
 	}
 	str := strings.Join(nodes, ",")
-	if err := ioutil.WriteFile(net.getRoutingTableCacheFilePath(), []byte(str), 0644); err != nil {
+	if err := ioutil.WriteFile(node.getRoutingTableCacheFilePath(), []byte(str), 0644); err != nil {
 		logging.VLog().Warn("failed to persist routing table")
 	}
 }
 
-func (net *NetService) loadRoutingTableFromDisk() {
-	node := net.node
-	b, err := ioutil.ReadFile(net.getRoutingTableCacheFilePath())
+func (node *Node) loadRoutingTableFromDisk() {
+
+	b, err := ioutil.ReadFile(node.getRoutingTableCacheFilePath())
 	if err != nil {
 		logging.VLog().Warn("failed to load routing table from disk")
 		return
@@ -107,16 +106,16 @@ func (net *NetService) loadRoutingTableFromDisk() {
 		if err != nil {
 			logging.VLog().WithFields(logrus.Fields{
 				"err": err,
-			}).Warn("new multiaddr failed")
+			}).Warn("failed to new multiaddr")
 			continue
 		}
 
-		addr, ID, err := net.parseAddressFromMultiaddr(multiaddr)
+		addr, ID, err := node.parseAddressFromMultiaddr(multiaddr)
 		if err != nil {
 			logging.VLog().WithFields(logrus.Fields{
 				"multiaddr": multiaddr,
 				"error":     err,
-			}).Warn("parse address failed")
+			}).Warn("failed to parse address")
 			continue
 		}
 
@@ -126,12 +125,12 @@ func (net *NetService) loadRoutingTableFromDisk() {
 			peerstore.ProviderAddrTTL,
 		)
 
-		if err := net.Hello(ID); err != nil {
+		if err := node.hello(ID); err != nil {
 			logging.VLog().WithFields(logrus.Fields{
 				"ID":    ID,
 				"addr":  addr,
 				"error": err,
-			}).Warn("say hello to node failed")
+			}).Warn("failed to say hello to node")
 			continue
 		}
 
@@ -147,13 +146,13 @@ func (net *NetService) loadRoutingTableFromDisk() {
 
 }
 
-func (net *NetService) getRoutingTableCacheFilePath() string {
-	return path.Join(net.node.config.RoutingTableDir, routingTableCacheFile)
+func (node *Node) getRoutingTableCacheFilePath() string {
+	return path.Join(node.config.RoutingTableDir, routingTableCacheFile)
 }
 
 //sync route table
-func (net *NetService) syncRoutingTable() {
-	node := net.node
+func (node *Node) syncRoutingTable() {
+
 	asked := make(map[peer.ID]bool)
 	allNode := node.routeTable.ListPeers()
 	rand.Seed(time.Now().UnixNano())
@@ -170,21 +169,24 @@ func (net *NetService) syncRoutingTable() {
 			nodeID := allNode[randomList[i]]
 			if !asked[nodeID] {
 				asked[nodeID] = true
-				go net.syncSingleNode(nodeID)
+				go node.syncSingleNode(nodeID)
 			}
 		}
 	} else if nodeAccount == 0 && len(node.Config().BootNodes) > 0 { // If disconnect from the network, say hello to seed node, reconnect to the network.
 		var wg sync.WaitGroup
-		for _, bootNode := range node.config.BootNodes {
+		for _, seed := range node.config.BootNodes {
 			wg.Add(1)
-			go func(bootNode ma.Multiaddr) {
+			go func(seed ma.Multiaddr) {
 				defer wg.Done()
-				err := net.SayHello(bootNode)
+				err := node.sayHelloToSeed(seed)
 				if err != nil {
-					logging.VLog().Error("net.start: can not say hello to trusted node.", bootNode, err)
+					logging.VLog().WithFields(logrus.Fields{
+						"seed": seed,
+						"err":  err,
+					}).Error("failed to say hello to seed")
 				}
 
-			}(bootNode)
+			}(seed)
 		}
 		wg.Wait()
 	}
@@ -192,17 +194,16 @@ func (net *NetService) syncRoutingTable() {
 }
 
 // sync single node routing table by peer.ID
-func (net *NetService) syncSingleNode(nodeID peer.ID) {
-	node := net.node
+func (node *Node) syncSingleNode(nodeID peer.ID) {
 	// skip self
 	if nodeID == node.id {
 		return
 	}
 
 	if _, ok := node.stream.Load(nodeID.Pretty()); ok {
-		net.SyncRoutes(nodeID)
+		node.SyncRoutes(nodeID)
 	} else {
 		// if stream not exist, create new connection to remote node.
-		net.Hello(nodeID)
+		node.hello(nodeID)
 	}
 }

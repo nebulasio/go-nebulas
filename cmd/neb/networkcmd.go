@@ -62,7 +62,7 @@ func generatePrivateKey(ctx *cli.Context) error {
 
 	path := ctx.Args().First()
 	if len(path) == 0 {
-		path = "conf/network/ed25519key"
+		path = p2p.DefaultPrivateKeyPath
 	}
 
 	account.WriteFile(path, []byte(base64.StdEncoding.EncodeToString(privb)))

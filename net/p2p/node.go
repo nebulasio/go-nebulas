@@ -19,22 +19,14 @@
 package p2p
 
 import (
-	"bytes"
 	"context"
-	"encoding/base64"
-	"encoding/hex"
 	"errors"
 	"fmt"
-	"io/ioutil"
-	mrand "math/rand"
 	"net"
 	"sync"
-	"time"
 
 	lru "github.com/hashicorp/golang-lru"
-	"github.com/libp2p/go-libp2p-crypto"
 	"github.com/libp2p/go-libp2p-kbucket"
-	libnet "github.com/libp2p/go-libp2p-net"
 	"github.com/libp2p/go-libp2p-peer"
 	"github.com/libp2p/go-libp2p-peerstore"
 	"github.com/libp2p/go-libp2p-swarm"
@@ -53,8 +45,17 @@ const (
 	letterIdxMax  = 63 / letterIdxBits   // # of letter indices fitting in 63 bits
 )
 
+// Error types
+var (
+	ErrPortInUse           = errors.New("the port is already in use")
+	ErrLoadKeypairFromFile = errors.New("failed to get Keypair from file")
+	ErrNodeIsRunning       = errors.New("node is already running")
+	ErrConnectToSeed       = errors.New("failed to say hello to seed")
+)
+
 // Node the node can be used as both the client and the server
 type Node struct {
+	ns        *NetService
 	host      *basichost.BasicHost
 	id        peer.ID
 	peerstore peerstore.Peerstore
@@ -74,25 +75,6 @@ type Node struct {
 	networkIDCache *lru.Cache
 }
 
-// StreamStore is for stream cache
-type StreamStore struct {
-	key       string
-	conn      int
-	stream    libnet.Stream
-	timestamp int64
-}
-
-func less(a interface{}, b interface{}) bool {
-	sa := a.(*StreamStore)
-	sb := b.(*StreamStore)
-	return sa.timestamp < sb.timestamp
-}
-
-// NewStreamStore return a new streamStore
-func NewStreamStore(key string, conn int, stream libnet.Stream) *StreamStore {
-	return &StreamStore{key, conn, stream, time.Now().Unix()}
-}
-
 // NewNode start a local node and join the node to network
 func NewNode(config *Config) (*Node, error) {
 
@@ -102,111 +84,15 @@ func NewNode(config *Config) (*Node, error) {
 
 	err := node.init()
 	if err != nil {
-		logging.VLog().Error("start node fail, can not init node", err)
+		logging.VLog().WithFields(logrus.Fields{
+			"err": err,
+		}).Error("node init failed.")
 		return nil, err
 	}
 	logging.CLog().WithFields(logrus.Fields{
 		"node.listen": node.config.Listen,
 	}).Info("node init success")
 	return node, nil
-}
-
-// Config return node config.
-func (node *Node) Config() *Config {
-	return node.config
-}
-
-// ID return node ID.
-func (node *Node) ID() string {
-	return node.id.Pretty()
-}
-
-// PeerStore return node peerstore
-func (node *Node) PeerStore() peerstore.Peerstore {
-	return node.peerstore
-}
-
-// GetSynchronizing return node synchronizing
-func (node *Node) GetSynchronizing() bool {
-	return node.synchronizing
-}
-
-// SetSynchronizing set node synchronizing.
-func (node *Node) SetSynchronizing(synchronizing bool) {
-	node.synchronizing = synchronizing
-}
-
-// GetStream return node stream.
-func (node *Node) GetStream() *sync.Map {
-	return node.stream
-}
-
-func (node *Node) checkPort() error {
-	for _, v := range node.config.Listen {
-		conn, err := net.Dial("tcp", v)
-		if err == nil {
-			conn.Close()
-			return errors.New("The port already in use")
-		}
-	}
-
-	return nil
-}
-
-// GenerateEd25519Key generate a privKey and pubKey by ed25519.
-func GenerateEd25519Key() (crypto.PrivKey, crypto.PubKey, error) {
-	randseedstr := randSeed(64)
-	randseed, err := hex.DecodeString(randseedstr)
-	priv, pub, err := crypto.GenerateEd25519Key(
-		bytes.NewReader(randseed),
-	)
-	return priv, pub, err
-}
-
-func (node *Node) generatePeerStore() error {
-	filename := node.Config().PrivateKey
-	priv, pub, err := getPeerstoreFromFile(filename)
-	if err != nil {
-		var randseedstr string
-		if len(node.Config().BootNodes) == 0 {
-			// seednode
-			randseedstr = letterBytes
-		} else {
-			randseedstr = randSeed(64)
-		}
-		randseed, err := hex.DecodeString(randseedstr)
-		priv, pub, err = crypto.GenerateEd25519Key(
-			bytes.NewReader(randseed),
-		)
-		if err != nil {
-			return err
-		}
-	}
-
-	// Obtain Peer ID from public key
-	node.id, err = peer.IDFromPublicKey(pub)
-	if err != nil {
-		return err
-	}
-	ps := peerstore.NewPeerstore()
-	ps.AddPrivKey(node.id, priv)
-	ps.AddPubKey(node.id, pub)
-	node.peerstore = ps
-	return nil
-}
-
-func getPeerstoreFromFile(filename string) (crypto.PrivKey, crypto.PubKey, error) {
-	b, err := ioutil.ReadFile(filename)
-	if err != nil {
-		return nil, nil, errors.New("get private_key from file error")
-	}
-	privb, err := base64.StdEncoding.DecodeString(string(b))
-	priv, err := crypto.UnmarshalPrivateKey(privb)
-	if err != nil {
-		return nil, nil, errors.New("get private_key from file error")
-	}
-	pub := priv.GetPublic()
-	return priv, pub, nil
 }
 
 func (node *Node) init() error {
@@ -230,7 +116,7 @@ func (node *Node) init() error {
 	node.routeTable.Update(node.id)
 
 	node.stream = new(sync.Map)
-	node.streamCache = pdeque.NewPriorityDeque(less)
+	node.streamCache = pdeque.NewPriorityDeque(streamEliminationAlgorithm)
 	node.version = node.config.Version
 
 	var multiaddrs []multiaddr.Multiaddr
@@ -267,20 +153,129 @@ func (node *Node) init() error {
 	return err
 }
 
-func randSeed(n int) string {
-	var src = mrand.NewSource(time.Now().UnixNano())
-	b := make([]byte, n)
-	for i, cache, remain := n-1, src.Int63(), letterIdxMax; i >= 0; {
-		if remain == 0 {
-			cache, remain = mrand.Int63(), letterIdxMax
+// Config return node config.
+func (node *Node) Config() *Config {
+	return node.config
+}
+
+// SetNs set netService
+func (node *Node) SetNs(ns *NetService) {
+	node.ns = ns
+}
+
+// ID return node ID.
+func (node *Node) ID() string {
+	return node.id.Pretty()
+}
+
+// PeerStore return node peerstore
+func (node *Node) PeerStore() peerstore.Peerstore {
+	return node.peerstore
+}
+
+// GetSynchronizing return node synchronizing
+func (node *Node) GetSynchronizing() bool {
+	return node.synchronizing
+}
+
+// SetSynchronizing set node synchronizing.
+func (node *Node) SetSynchronizing(synchronizing bool) {
+	node.synchronizing = synchronizing
+}
+
+// GetStream return node stream.
+func (node *Node) GetStream() *sync.Map {
+	return node.stream
+}
+
+func (node *Node) checkPort() error {
+	for _, v := range node.config.Listen {
+		conn, err := net.Dial("tcp", v)
+		if err == nil {
+			conn.Close()
+			return ErrPortInUse
 		}
-		if idx := int(cache & letterIdxMask); idx < len(letterBytes) {
-			b[i] = letterBytes[idx]
-			i--
-		}
-		cache >>= letterIdxBits
-		remain--
 	}
 
-	return string(b)
+	return nil
+}
+
+func (node *Node) generatePeerStore() error {
+
+	path := node.Config().PrivateKeyPath
+	priv, pub, err := getKeypairFromFile(path)
+	if err != nil {
+		priv, pub, err = GenerateEd25519Key()
+		if err != nil {
+			return err
+		}
+	}
+
+	// Obtain Peer ID from public key
+	node.id, err = peer.IDFromPublicKey(pub)
+	if err != nil {
+		return err
+	}
+
+	ps := peerstore.NewPeerstore()
+	ps.AddPrivKey(node.id, priv)
+	ps.AddPubKey(node.id, pub)
+	node.peerstore = ps
+
+	return nil
+}
+
+func (node *Node) setStreamHandler() *Node {
+	// register streamHandler to start loop to handle stream origined from remote node.
+	node.host.SetStreamHandler(ProtocolID, node.messageHandler)
+	return node
+}
+
+func (node *Node) start() error {
+
+	logging.CLog().WithFields(logrus.Fields{
+		"id":    node.ID(),
+		"addrs": node.host.Addrs(),
+	}).Info("node start")
+
+	if node.running {
+		return ErrNodeIsRunning
+	}
+	node.running = true
+
+	node.setStreamHandler()
+
+	var success bool
+	var wg sync.WaitGroup
+	for _, bootNode := range node.config.BootNodes {
+		wg.Add(1)
+		go func(bootNode multiaddr.Multiaddr) {
+			defer wg.Done()
+			err := node.sayHelloToSeed(bootNode)
+			if err != nil {
+				logging.VLog().WithFields(logrus.Fields{
+					"id":  bootNode,
+					"err": err,
+				}).Error("failed to say hello to seed")
+			} else {
+				logging.VLog().WithFields(logrus.Fields{
+					"id": bootNode,
+				}).Info("success to say hello to seed")
+				success = true
+			}
+
+		}(bootNode)
+	}
+	wg.Wait()
+
+	if success || len(node.Config().BootNodes) == 0 {
+		go node.discovery(node.context)
+		go node.manageStreamStore()
+		logging.CLog().WithFields(logrus.Fields{
+			"listen": node.config.Listen,
+		}).Info("node start and join to p2p network success")
+	} else {
+		return ErrConnectToSeed
+	}
+	return nil
 }

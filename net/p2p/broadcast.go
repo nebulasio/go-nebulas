@@ -29,25 +29,117 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// Broadcast broadcast message
-func (ns *NetService) Broadcast(name string, msg net.Serializable) {
-	node := ns.node
+// const
+const (
+	NewHashMsg = "newhashmsg"
+)
+
+func (node *Node) broadcast(name string, msg net.Serializable) {
+	// node can not broadcast or relay message if it is in synchronizing.
 	if node.synchronizing {
 		return
 	}
-	ns.distribute(name, msg, false)
+	node.distribute(name, msg, false)
 }
 
-// Relay relay message
-func (ns *NetService) Relay(name string, msg net.Serializable) {
-	node := ns.node
+func (node *Node) relay(name string, msg net.Serializable) {
 	if node.synchronizing {
 		return
 	}
-	ns.distribute(name, msg, true)
+	node.distribute(name, msg, true)
 }
 
-func (ns *NetService) nodeNotInRelayness(relayness []peer.ID, peers []peer.ID) []peer.ID {
+func (node *Node) distribute(name string, msg net.Serializable, relay bool) {
+
+	pbMsg, _ := msg.ToProto()
+	data, err := proto.Marshal(pbMsg)
+	if err != nil {
+		return
+	}
+
+	// check relay blacklist
+	var relayness []peer.ID
+	dataChecksum := crc32.ChecksumIEEE(data)
+	peers, exists := node.relayness.Get(dataChecksum)
+	if exists {
+		relayness = peers.([]peer.ID)
+	}
+
+	var allNode []peer.ID
+	transfer := node.routeTable.ListPeers()
+	if relay {
+		allNode = node.nodeNotInRelayness(relayness, node.routeTable.ListPeers())
+		transfer = allNode
+	}
+
+	logging.VLog().WithFields(logrus.Fields{
+		"msg":      msg,
+		"transfer": transfer,
+	}).Info("distribute msg")
+
+	node.doMsgTransfer(transfer, relayness, dataChecksum, name, data)
+
+	if relay {
+		// notice the node in my route table that i have received the message, when others received the message they won`t relay to me.
+		node.doNotice(allNode, relayness, dataChecksum)
+	}
+}
+
+func (node *Node) doMsgTransfer(transfer []peer.ID, relayness []peer.ID, dataChecksum uint32, name string, data []byte) {
+	for i := 0; i < len(transfer); i++ {
+		nodeID := transfer[i]
+		if InArray(nodeID, relayness) {
+			logging.VLog().WithFields(logrus.Fields{
+				"nodeID": nodeID.Pretty(),
+			}).Info("target node has received the same message")
+			continue
+		}
+		addrs := node.peerstore.PeerInfo(nodeID).Addrs
+		if len(addrs) == 0 || node.host.Addrs()[0].String() == addrs[0].String() {
+			continue
+		}
+		if len(addrs) > 0 {
+			node.relayness.Add(dataChecksum, append(relayness, nodeID))
+			go node.sendMsg(name, data, nodeID.Pretty())
+		}
+	}
+}
+
+func (node *Node) doNotice(nodes []peer.ID, relayness []peer.ID, dataChecksum uint32) {
+	for i := 0; i < len(nodes); i++ {
+		nodeID := nodes[i]
+		addrs := node.peerstore.PeerInfo(nodeID).Addrs
+		if len(addrs) == 0 || node.host.Addrs()[0].String() == addrs[0].String() {
+			continue
+		}
+		if len(addrs) > 0 {
+			node.relayness.Add(dataChecksum, append(relayness, nodeID))
+			go node.sendMsg(NewHashMsg, byteutils.FromUint32(dataChecksum), nodeID.Pretty())
+		}
+	}
+}
+
+func (node *Node) broadcastNetworkID(msg []byte) {
+	if node.synchronizing {
+		return
+	}
+
+	allNode := node.routeTable.ListPeers()
+	for _, v := range allNode {
+		go node.sendMsg(NetworkID, msg, v.Pretty())
+	}
+}
+
+func (node *Node) handleNewHashMsg(data []byte, pid peer.ID) {
+	var relayness []peer.ID
+	peers, exists := node.relayness.Get(byteutils.Uint32(data))
+	if exists {
+		relayness = peers.([]peer.ID)
+	}
+	node.relayness.Add(byteutils.Uint32(data), append(relayness, pid))
+}
+
+func (node *Node) nodeNotInRelayness(relayness []peer.ID, peers []peer.ID) []peer.ID {
 	var list []peer.ID
 	for _, p := range peers {
 		if !InArray(p, relayness) {
@@ -55,89 +147,4 @@ func (ns *NetService) nodeNotInRelayness(relayness []peer.ID, peers []peer.ID) [
 		}
 	}
 	return list
-}
-
-func (ns *NetService) distribute(name string, msg net.Serializable, relay bool) {
-	node := ns.node
-	pbMsg, _ := msg.ToProto()
-	data, err := proto.Marshal(pbMsg)
-	if err != nil {
-		return
-	}
-
-	var relayness []peer.ID
-	dataChecksum := crc32.ChecksumIEEE(data)
-	peers, exists := node.relayness.Get(dataChecksum)
-	if exists {
-		relayness = peers.([]peer.ID)
-	}
-	var allNode []peer.ID
-	transfer := node.routeTable.ListPeers()
-	if relay {
-		allNode = ns.nodeNotInRelayness(relayness, node.routeTable.ListPeers())
-		transfer = allNode
-	}
-	logging.VLog().WithFields(logrus.Fields{
-		"msg":      msg,
-		"transfer": transfer,
-	}).Info("distribute: start distribute msg.")
-
-	ns.doMsgTransfer(transfer, relayness, dataChecksum, name, data)
-
-	if relay {
-		ns.doRelay(allNode, relayness, dataChecksum)
-	}
-}
-
-func (ns *NetService) doMsgTransfer(transfer []peer.ID, relayness []peer.ID, dataChecksum uint32, name string, data []byte) {
-	node := ns.node
-	for i := 0; i < len(transfer); i++ {
-		nodeID := transfer[i]
-		if InArray(nodeID, relayness) {
-			logging.VLog().Infof("msgTransfer:  nodeID %s has already have the same message", nodeID)
-			continue
-		}
-		addrs := node.peerstore.PeerInfo(nodeID).Addrs
-		if len(addrs) == 0 || node.host.Addrs()[0].String() == addrs[0].String() {
-			logging.VLog().Info("msgTransfer: skip self")
-			continue
-		}
-		if len(addrs) > 0 {
-			node.relayness.Add(dataChecksum, append(relayness, nodeID))
-			go ns.SendMsg(name, data, nodeID.Pretty())
-		}
-	}
-}
-
-func (ns *NetService) doRelay(nodes []peer.ID, relayness []peer.ID, dataChecksum uint32) {
-	node := ns.node
-	for i := 0; i < len(nodes); i++ {
-		nodeID := nodes[i]
-		if InArray(nodeID, relayness) {
-			logging.VLog().Infof("distribute: relay nodeID %s has already have the same message", nodeID)
-			continue
-		}
-		addrs := node.peerstore.PeerInfo(nodeID).Addrs
-		if len(addrs) == 0 || node.host.Addrs()[0].String() == addrs[0].String() {
-			logging.VLog().Info("distribute: relay skip self")
-			continue
-		}
-		if len(addrs) > 0 {
-			node.relayness.Add(dataChecksum, append(relayness, nodeID))
-			go ns.SendMsg(NewHashMsg, byteutils.FromUint32(dataChecksum), nodeID.Pretty())
-		}
-	}
-}
-
-// BroadcastNetworkID broadcast networkID when changed.
-func (ns *NetService) BroadcastNetworkID(msg []byte) {
-	node := ns.node
-	if node.synchronizing {
-		return
-	}
-
-	allNode := node.routeTable.ListPeers()
-	for _, v := range allNode {
-		go ns.SendMsg(NetworkID, msg, v.Pretty())
-	}
 }
