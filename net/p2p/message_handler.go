@@ -60,7 +60,7 @@ func (node *Node) messageHandler(s libnet.Stream) {
 
 	for {
 		select {
-		case <-node.ns.quitCh:
+		case <-node.netService.quitCh:
 			return
 		default:
 			n, err := s.Read(sdata)
@@ -154,7 +154,7 @@ func (node *Node) messageHandler(s libnet.Stream) {
 					node.Bye(pid, []ma.Multiaddr{addrs}, s, key)
 					return
 				}
-				node.ns.PutMessage(messages.NewBaseMessage(msg.msgName, pid.Pretty(), msg.data))
+				node.netService.PutMessage(messages.NewBaseMessage(msg.msgName, pid.Pretty(), msg.data))
 
 				peers, exists := node.relayness.Get(byteutils.Uint32(msg.dataChecksum))
 				if exists {

@@ -46,7 +46,7 @@ func (node *Node) sayHelloToSeed(seed ma.Multiaddr) error {
 		logging.VLog().WithFields(logrus.Fields{
 			"seed":  seed,
 			"error": err,
-		}).Error("failed to parse Address from trustedNode")
+		}).Error("Failed to parse Address from trustedNode")
 		return err
 	}
 
@@ -61,7 +61,7 @@ func (node *Node) sayHelloToSeed(seed ma.Multiaddr) error {
 			logging.VLog().WithFields(logrus.Fields{
 				"seed": seed,
 				"err":  err,
-			}).Error("failed to say hello to seed")
+			}).Error("Failed to say hello to seed")
 			return err
 		}
 		logging.CLog().WithFields(logrus.Fields{
@@ -118,13 +118,13 @@ func (node *Node) handleOkMsg(data []byte, pid peer.ID, s libnet.Stream, addrs m
 	if err := proto.Unmarshal(data, pb); err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"err": err,
-		}).Error("failed to handle ok msg")
+		}).Error("Failed to handle ok msg")
 		return result
 	}
 	if err := ok.FromProto(pb); err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"err": err,
-		}).Error("failed to handle ok msg")
+		}).Error("Failed to handle ok msg")
 		return result
 	}
 
@@ -161,13 +161,13 @@ func (node *Node) handleHelloMsg(data []byte, pid peer.ID, s libnet.Stream, addr
 	if err := proto.Unmarshal(data, pb); err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"err": err,
-		}).Error("failed to handle hello msg")
+		}).Error("Failed to handle hello msg")
 		return result
 	}
 	if err := hello.FromProto(pb); err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"err": err,
-		}).Error("failed to handle hello msg")
+		}).Error("Failed to handle hello msg")
 		return result
 	}
 
@@ -186,7 +186,7 @@ func (node *Node) handleHelloMsg(data []byte, pid peer.ID, s libnet.Stream, addr
 		if err != nil {
 			logging.VLog().WithFields(logrus.Fields{
 				"err": err,
-			}).Error("failed to send ok message")
+			}).Error("Failed to send ok message")
 			return result
 		}
 
@@ -199,7 +199,7 @@ func (node *Node) handleHelloMsg(data []byte, pid peer.ID, s libnet.Stream, addr
 		if err := node.sendMsgWithStream(OK, okdata, s); err != nil {
 			logging.VLog().WithFields(logrus.Fields{
 				"err": err,
-			}).Error("failed to send ok message")
+			}).Error("Failed to send ok message")
 			return result
 		}
 
@@ -207,7 +207,7 @@ func (node *Node) handleHelloMsg(data []byte, pid peer.ID, s libnet.Stream, addr
 		if err := node.sendMsgWithStream(NetworkID, networkIDData, s); err != nil {
 			logging.VLog().WithFields(logrus.Fields{
 				"err": err,
-			}).Error("failed to send networkID message")
+			}).Error("Failed to send networkID message")
 			return result
 		}
 

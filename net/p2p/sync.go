@@ -24,6 +24,7 @@ import (
 
 	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/net"
+	"github.com/sirupsen/logrus"
 
 	"github.com/nebulasio/go-nebulas/util/logging"
 )
@@ -40,30 +41,36 @@ var (
 	ErrNodeNotEnough = errors.New("node is not enough")
 )
 
-// Sync do something ready to sync
-func (ns *NetService) Sync(tail net.Serializable) error {
-	node := ns.node
+// Sync sync block from remote nodes
+func (node *Node) Sync(tail net.Serializable) error {
 	pb, _ := tail.ToProto()
 	data, err := proto.Marshal(pb)
 	if err != nil {
 		return err
 	}
 
-	allNode := node.routeTable.ListPeers()
-	LimitToSync = int(math.Sqrt(float64(len(allNode))))
-	logging.VLog().Info("Sync: allNode -> ", allNode)
-	if len(allNode) < LimitToSync {
-		logging.VLog().Warn("Sync: node not enough.")
+	nodes := node.routeTable.ListPeers()
+	LimitToSync = int(math.Sqrt(float64(len(nodes))))
+
+	logging.VLog().WithFields(logrus.Fields{
+		"nodes": nodes,
+	}).Info("ready to sync block")
+
+	if GetCountOfMap(node.stream) < uint32(LimitToSync) {
+		logging.VLog().WithFields(logrus.Fields{
+			"nodeCount": GetCountOfMap(node.stream),
+			"limit":     uint32(LimitToSync),
+		}).Warn("Failed to sync because of node is not enough")
 		return ErrNodeNotEnough
 	}
 
 	count := 0
-	for i := 0; i < len(allNode); i++ {
-		nodeID := allNode[i]
+	for i := 0; i < len(nodes); i++ {
+		nodeID := nodes[i]
 		addrs := node.peerstore.PeerInfo(nodeID).Addrs
 		if len(addrs) > 0 {
 			if node.host.Addrs()[0] == addrs[0] {
-				logging.VLog().Warn("Sync: skip self")
+				logging.VLog().Warn("sync block skip self")
 				continue
 			}
 
@@ -74,6 +81,9 @@ func (ns *NetService) Sync(tail net.Serializable) error {
 					node.sendMsg(SyncBlock, data, key)
 				}()
 			}
+		} else {
+			node.clearPeerStore(nodeID, addrs)
+			node.stream.Delete(nodeID.Pretty())
 		}
 	}
 	if count < LimitToSync {
@@ -85,15 +95,18 @@ func (ns *NetService) Sync(tail net.Serializable) error {
 // SendSyncReply send sync reply message to remote peer
 func (ns *NetService) SendSyncReply(key string, blocks net.Serializable) {
 	node := ns.node
-	logging.VLog().Info("SendSyncReply: send sync addrs -> ", key)
 	pb, _ := blocks.ToProto()
 	data, _ := proto.Marshal(pb)
+
 	if _, ok := ns.node.stream.Load(key); ok {
 		go func() {
 			node.sendMsg(SyncReply, data, key)
 		}()
 		return
 	}
-	logging.VLog().Errorf("send syncReply to addrs %s fail", key)
+
+	logging.VLog().WithFields(logrus.Fields{
+		"pid": key,
+	}).Warn("Failed to send sync reply to node")
 
 }

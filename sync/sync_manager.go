@@ -150,14 +150,14 @@ func (m *Manager) syncWithPeers(block *core.Block) {
 		"tail":  tail,
 		"block": tail.block,
 	}).Info("get current tail to sync")
-	err := m.ns.Sync(tail)
+	err := m.ns.Node().Sync(tail)
 
 	switch err {
 	case nil:
 	case p2p.ErrNodeNotEnough:
 		if m.ns.Node().GetSynchronizing() {
-			logging.VLog().Info("sync target not enough, sleep for 5 second...")
-			time.Sleep(5 * time.Second)
+			logging.VLog().Info("sync target not enough, sleep for 30 second...")
+			time.Sleep(30 * time.Second)
 			m.syncCh <- true
 			return
 		}

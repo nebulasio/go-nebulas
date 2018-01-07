@@ -22,7 +22,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"sync"
 
 	"github.com/nebulasio/go-nebulas/common/trie"
 
@@ -60,7 +59,7 @@ func (s *APIService) GetNebState(ctx context.Context, req *rpcpb.NonParamsReques
 	resp.Tail = tail.Hash().String()
 	resp.Coinbase = tail.Coinbase().String()
 	resp.Synchronized = neb.NetManager().Node().GetSynchronizing()
-	resp.PeerCount = getStreamCount(neb.NetManager().Node().GetStream())
+	resp.PeerCount = p2p.GetCountOfMap(neb.NetManager().Node().GetStream())
 	resp.ProtocolVersion = p2p.ProtocolID
 	resp.Version = neb.Config().App.Version
 
@@ -83,7 +82,7 @@ func (s *APIService) NodeInfo(ctx context.Context, req *rpcpb.NonParamsRequest) 
 	resp.StreamStoreSize = int32(node.Config().StreamStoreSize)
 	resp.StreamStoreExtendSize = int32(node.Config().StreamStoreExtendSize)
 	resp.RelayCacheSize = int32(node.Config().RelayCacheSize)
-	resp.PeerCount = getStreamCount(node.GetStream())
+	resp.PeerCount = p2p.GetCountOfMap(node.GetStream())
 	resp.ProtocolVersion = p2p.ProtocolID
 	for _, v := range node.PeerStore().Peers() {
 		routeTable := &rpcpb.RouteTable{}
@@ -113,17 +112,8 @@ func (s *APIService) StatisticsNodeInfo(ctx context.Context, req *rpcpb.NonParam
 	resp.NodeID = node.ID()
 	resp.Height = tail.Height()
 	resp.Hash = byteutils.Hex(tail.Hash())
-	resp.PeerCount = getStreamCount(node.GetStream())
+	resp.PeerCount = p2p.GetCountOfMap(node.GetStream())
 	return resp, nil
-}
-
-func getStreamCount(m *sync.Map) uint32 {
-	length := 0
-	m.Range(func(_, _ interface{}) bool {
-		length++
-		return true
-	})
-	return uint32(length)
 }
 
 // Accounts is the RPC API handler.

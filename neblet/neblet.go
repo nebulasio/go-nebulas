@@ -80,7 +80,7 @@ func New(config nebletpb.Config) (*Neblet, error) {
 func (n *Neblet) Setup() error {
 	var err error
 	//var err error
-	n.netService, err = p2p.NewNetManager(n)
+	n.netService, err = p2p.NewNetService(n)
 	if err != nil {
 		return err
 	}

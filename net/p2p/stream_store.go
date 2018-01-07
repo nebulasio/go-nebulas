@@ -32,6 +32,7 @@ type StreamStore struct {
 	timestamp int64
 }
 
+// TODO: @leon adjust stream elimination algorithm.
 func streamEliminationAlgorithm(a interface{}, b interface{}) bool {
 	sa := a.(*StreamStore)
 	sb := b.(*StreamStore)
@@ -51,7 +52,7 @@ func (node *Node) manageStreamStore() {
 		case <-ticker.C:
 			node.clearStreamStore()
 			node.cleanPeerStore()
-		case <-node.ns.quitCh:
+		case <-node.netService.quitCh:
 			return
 		}
 	}

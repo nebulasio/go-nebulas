@@ -29,7 +29,7 @@ import (
 	"github.com/libp2p/go-libp2p-kbucket"
 	"github.com/libp2p/go-libp2p-peer"
 	"github.com/libp2p/go-libp2p-peerstore"
-	"github.com/libp2p/go-libp2p-swarm"
+	swarm "github.com/libp2p/go-libp2p-swarm"
 	"github.com/libp2p/go-libp2p/p2p/host/basic"
 	"github.com/multiformats/go-multiaddr"
 	"github.com/nebulasio/go-nebulas/common/pdeque"
@@ -55,10 +55,10 @@ var (
 
 // Node the node can be used as both the client and the server
 type Node struct {
-	ns        *NetService
-	host      *basichost.BasicHost
-	id        peer.ID
-	peerstore peerstore.Peerstore
+	netService *NetService
+	host       *basichost.BasicHost
+	id         peer.ID
+	peerstore  peerstore.Peerstore
 	// key: peer.ID: ip
 	streamCache   *pdeque.PriorityDeque
 	stream        *sync.Map
@@ -73,6 +73,7 @@ type Node struct {
 	relayness      *lru.Cache
 	bootIds        []string
 	networkIDCache *lru.Cache
+	network        *swarm.Network
 }
 
 // NewNode start a local node and join the node to network
@@ -84,14 +85,14 @@ func NewNode(config *Config) (*Node, error) {
 
 	err := node.init()
 	if err != nil {
-		logging.VLog().WithFields(logrus.Fields{
+		logging.CLog().WithFields(logrus.Fields{
 			"err": err,
-		}).Error("node init failed.")
+		}).Error("Failed to init node")
 		return nil, err
 	}
 	logging.CLog().WithFields(logrus.Fields{
 		"node.listen": node.config.Listen,
-	}).Info("node init success")
+	}).Info("Succeed to init node")
 	return node, nil
 }
 
@@ -106,6 +107,7 @@ func (node *Node) init() error {
 		return err
 	}
 
+	//TODO change name Latency
 	node.routeTable = kbucket.NewRoutingTable(
 		node.config.Bucketsize,
 		kbucket.ConvertPeerID(node.id),
@@ -118,6 +120,10 @@ func (node *Node) init() error {
 	node.stream = new(sync.Map)
 	node.streamCache = pdeque.NewPriorityDeque(streamEliminationAlgorithm)
 	node.version = node.config.Version
+	node.synchronizing = false
+
+	node.relayness, _ = lru.New(node.config.RelayCacheSize)
+	node.networkIDCache, _ = lru.New(node.config.StreamStoreSize)
 
 	var multiaddrs []multiaddr.Multiaddr
 	for _, v := range node.config.Listen {
@@ -125,7 +131,7 @@ func (node *Node) init() error {
 		if err != nil {
 			return err
 		}
-
+		// TODO: handle err
 		address, err := multiaddr.NewMultiaddr(
 			fmt.Sprintf(
 				"/ip4/%s/tcp/%d",
@@ -133,24 +139,54 @@ func (node *Node) init() error {
 				tcpAddr.Port,
 			),
 		)
+		if err != nil {
+			return err
+		}
 		multiaddrs = append(multiaddrs, address)
 	}
 
-	network, err := swarm.NewNetwork(
+	var err error
+	node.network, err = swarm.NewNetwork(
 		ctx,
 		multiaddrs,
 		node.id,
 		node.peerstore,
 		nil,
 	)
-	node.relayness, err = lru.New(node.config.RelayCacheSize)
-	node.networkIDCache, err = lru.New(node.config.StreamStoreSize)
-
-	options := &basichost.HostOpts{}
-	// add nat manager
-	options.NATManager = basichost.NewNATManager(network)
-	node.host, err = basichost.NewHost(node.context, network, options)
 	return err
+}
+
+// Start host & route table discovery
+func (node *Node) Start() error {
+	if err := node.startHost(); err != nil {
+		logging.CLog().WithFields(logrus.Fields{
+			"err": err,
+		}).Error("Failed to start Host")
+		return err
+	}
+	go node.discovery(node.context)
+	go node.manageStreamStore()
+
+	return nil
+}
+
+func (node *Node) startHost() error {
+	// add nat manager
+	options := &basichost.HostOpts{}
+	options.NATManager = basichost.NewNATManager(node.network)
+
+	var err error
+	node.host, err = basichost.NewHost(node.context, node.network, options)
+	if err != nil {
+		return err
+	}
+	node.host.SetStreamHandler(ProtocolID, node.messageHandler)
+
+	logging.CLog().WithFields(logrus.Fields{
+		"id":    node.ID(),
+		"addrs": node.host.Addrs(),
+	}).Info("Succeed to start node")
+	return nil
 }
 
 // Config return node config.
@@ -158,9 +194,9 @@ func (node *Node) Config() *Config {
 	return node.config
 }
 
-// SetNs set netService
-func (node *Node) SetNs(ns *NetService) {
-	node.ns = ns
+// SetNetService set netService
+func (node *Node) SetNetService(ns *NetService) {
+	node.netService = ns
 }
 
 // ID return node ID.
@@ -202,6 +238,7 @@ func (node *Node) checkPort() error {
 
 func (node *Node) generatePeerStore() error {
 
+	// TODO if path is not set then generate random key, otherwise check weather the path is valid.
 	path := node.Config().PrivateKeyPath
 	priv, pub, err := getKeypairFromFile(path)
 	if err != nil {
@@ -222,60 +259,5 @@ func (node *Node) generatePeerStore() error {
 	ps.AddPubKey(node.id, pub)
 	node.peerstore = ps
 
-	return nil
-}
-
-func (node *Node) setStreamHandler() *Node {
-	// register streamHandler to start loop to handle stream origined from remote node.
-	node.host.SetStreamHandler(ProtocolID, node.messageHandler)
-	return node
-}
-
-func (node *Node) start() error {
-
-	logging.CLog().WithFields(logrus.Fields{
-		"id":    node.ID(),
-		"addrs": node.host.Addrs(),
-	}).Info("node start")
-
-	if node.running {
-		return ErrNodeIsRunning
-	}
-	node.running = true
-
-	node.setStreamHandler()
-
-	var success bool
-	var wg sync.WaitGroup
-	for _, bootNode := range node.config.BootNodes {
-		wg.Add(1)
-		go func(bootNode multiaddr.Multiaddr) {
-			defer wg.Done()
-			err := node.sayHelloToSeed(bootNode)
-			if err != nil {
-				logging.VLog().WithFields(logrus.Fields{
-					"id":  bootNode,
-					"err": err,
-				}).Error("failed to say hello to seed")
-			} else {
-				logging.VLog().WithFields(logrus.Fields{
-					"id": bootNode,
-				}).Info("success to say hello to seed")
-				success = true
-			}
-
-		}(bootNode)
-	}
-	wg.Wait()
-
-	if success || len(node.Config().BootNodes) == 0 {
-		go node.discovery(node.context)
-		go node.manageStreamStore()
-		logging.CLog().WithFields(logrus.Fields{
-			"listen": node.config.Listen,
-		}).Info("node start and join to p2p network success")
-	} else {
-		return ErrConnectToSeed
-	}
 	return nil
 }

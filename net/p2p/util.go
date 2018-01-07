@@ -28,6 +28,7 @@ import (
 	mrand "math/rand"
 	"reflect"
 	"strings"
+	"sync"
 	"time"
 
 	crypto "github.com/libp2p/go-libp2p-crypto"
@@ -134,7 +135,6 @@ func GenerateEd25519Key() (crypto.PrivKey, crypto.PubKey, error) {
 }
 
 func getKeypairFromFile(filename string) (crypto.PrivKey, crypto.PubKey, error) {
-
 	b, err := ioutil.ReadFile(filename)
 	if err != nil {
 		return nil, nil, ErrLoadKeypairFromFile
@@ -151,4 +151,14 @@ func getKeypairFromFile(filename string) (crypto.PrivKey, crypto.PubKey, error) 
 	pub := priv.GetPublic()
 
 	return priv, pub, nil
+}
+
+//GetCountOfMap return the count of a map
+func GetCountOfMap(m *sync.Map) uint32 {
+	length := 0
+	m.Range(func(_, _ interface{}) bool {
+		length++
+		return true
+	})
+	return uint32(length)
 }

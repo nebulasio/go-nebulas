@@ -92,7 +92,7 @@ func NewP2PConfig(n Neblet) *Config {
 		for _, v := range seeds {
 			seed, err := multiaddr.NewMultiaddr(v)
 			if err != nil {
-				panic("failed to parse seed node")
+				panic("Failed to parse seed node")
 			}
 			config.BootNodes = append(config.BootNodes, seed)
 		}

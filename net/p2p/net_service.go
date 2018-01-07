@@ -31,18 +31,20 @@ type NetService struct {
 	dispatcher *net.Dispatcher
 }
 
-// NewNetManager create netService
-func NewNetManager(n Neblet) (*NetService, error) {
+// NewNetService create netService
+func NewNetService(n Neblet) (*NetService, error) {
 	config := NewP2PConfig(n)
 	node, err := NewNode(config)
 	if err != nil {
-		logging.VLog().WithFields(logrus.Fields{
+		logging.CLog().WithFields(logrus.Fields{
 			"err": err,
-		}).Error("failed to create node")
+		}).Error("Failed to create node")
 		return nil, err
 	}
+
 	ns := &NetService{node, make(chan bool, 1), net.NewDispatcher()}
-	node.SetNs(ns)
+	node.SetNetService(ns)
+
 	return ns, nil
 }
 
@@ -54,8 +56,11 @@ func (ns *NetService) Node() *Node {
 // Start start p2p manager.
 func (ns *NetService) Start() error {
 	ns.dispatcher.Start()
-	err := ns.node.start()
-	return err
+	if err := ns.node.Start(); err != nil {
+		ns.dispatcher.Stop()
+		return err
+	}
+	return nil
 }
 
 // Stop stop p2p manager.

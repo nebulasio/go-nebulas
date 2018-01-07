@@ -79,8 +79,6 @@ func (dp *Dispatcher) Deregister(subscribers ...*Subscriber) {
 
 // Start start message dispatch goroutine.
 func (dp *Dispatcher) Start() {
-	logging.CLog().Info("Launched Dispatcher.")
-
 	go (func() {
 		for {
 			// logging.VLog().Info("dispatcher in loop")
@@ -100,6 +98,8 @@ func (dp *Dispatcher) Start() {
 			}
 		}
 	})()
+
+	logging.CLog().Info("Launched Dispatcher.")
 }
 
 // Stop stop goroutine.

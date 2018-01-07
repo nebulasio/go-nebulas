@@ -51,7 +51,7 @@ func (node *Node) SyncRoutes(pid peer.ID) {
 	if err := node.sendMsg(SyncRoute, data, pid.Pretty()); err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"err": err,
-		}).Error("failed to send message")
+		}).Error("Failed to send message")
 		node.clearPeerStore(pid, addrs)
 		return
 	}
@@ -99,14 +99,14 @@ func (node *Node) handleSyncRouteMsg(data []byte, pid peer.ID, s libnet.Stream, 
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"err": err,
-		}).Error("failed to marshal proto")
+		}).Error("Failed to marshal proto")
 		return result
 	}
 
 	if err := node.sendMsg(SyncRouteReply, data, key); err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"err": err,
-		}).Error("failed to send msg")
+		}).Error("Failed to send msg")
 		return result
 	}
 
@@ -122,14 +122,14 @@ func (node *Node) handleSyncRouteReplyMsg(data []byte, pid peer.ID, s libnet.Str
 	if err := proto.Unmarshal(data, pb); err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"err": err,
-		}).Error("failed to unmarshal proto")
+		}).Error("Failed to unmarshal proto")
 		return false
 	}
 
 	if err := peers.FromProto(pb); err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"err": err,
-		}).Error("failed to get peers from proto.")
+		}).Error("Failed to get peers from proto.")
 		return false
 	}
 
@@ -161,7 +161,7 @@ func (node *Node) handleSyncRouteReplyMsg(data []byte, pid peer.ID, s libnet.Str
 			logging.VLog().WithFields(logrus.Fields{
 				"id":  id.Pretty(),
 				"err": err,
-			}).Error("failed to say hello to the peer")
+			}).Error("Failed to say hello to the peer")
 			continue
 		}
 

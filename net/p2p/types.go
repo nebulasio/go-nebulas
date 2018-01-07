@@ -28,7 +28,6 @@ type Manager interface {
 
 	Node() *Node
 
-	Sync(net.Serializable) error
 	SendSyncReply(string, net.Serializable)
 
 	Register(...*net.Subscriber)

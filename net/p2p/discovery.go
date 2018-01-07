@@ -48,15 +48,16 @@ func (node *Node) discovery(ctx context.Context) {
 	//FIXME  the sync routing table rate can be dynamic
 	interval := 30 * time.Second
 	ticker := time.NewTicker(interval)
-	time.Sleep(1 * time.Second)
+
+	node.sayHelloToSeeds()
 	node.loadRoutingTableFromDisk()
-	node.syncRoutingTable()
+
 	go node.persistRoutingTable()
 	for {
 		select {
 		case <-ticker.C:
 			node.syncRoutingTable()
-		case <-node.ns.quitCh:
+		case <-node.netService.quitCh:
 			logging.VLog().Info("discovery service halting")
 			return
 		}
@@ -69,7 +70,7 @@ func (node *Node) persistRoutingTable() {
 		select {
 		case <-ticker.C:
 			node.saveRoutingTableToDisk()
-		case <-node.ns.quitCh:
+		case <-node.netService.quitCh:
 			return
 		}
 	}
@@ -87,7 +88,7 @@ func (node *Node) saveRoutingTableToDisk() {
 	}
 	str := strings.Join(nodes, ",")
 	if err := ioutil.WriteFile(node.getRoutingTableCacheFilePath(), []byte(str), 0644); err != nil {
-		logging.VLog().Warn("failed to persist routing table")
+		logging.VLog().Warn("Failed to persist routing table")
 	}
 }
 
@@ -95,7 +96,7 @@ func (node *Node) loadRoutingTableFromDisk() {
 
 	b, err := ioutil.ReadFile(node.getRoutingTableCacheFilePath())
 	if err != nil {
-		logging.VLog().Warn("failed to load routing table from disk")
+		logging.VLog().Warn("Failed to load routing table from disk")
 		return
 	}
 	contents := strings.Split(string(b), ",")
@@ -106,7 +107,7 @@ func (node *Node) loadRoutingTableFromDisk() {
 		if err != nil {
 			logging.VLog().WithFields(logrus.Fields{
 				"err": err,
-			}).Warn("failed to new multiaddr")
+			}).Warn("Failed to new multiaddr")
 			continue
 		}
 
@@ -115,7 +116,11 @@ func (node *Node) loadRoutingTableFromDisk() {
 			logging.VLog().WithFields(logrus.Fields{
 				"multiaddr": multiaddr,
 				"error":     err,
-			}).Warn("failed to parse address")
+			}).Warn("Failed to parse address")
+			continue
+		}
+
+		if InArray(ID.Pretty(), node.bootIds) {
 			continue
 		}
 
@@ -130,7 +135,7 @@ func (node *Node) loadRoutingTableFromDisk() {
 				"ID":    ID,
 				"addr":  addr,
 				"error": err,
-			}).Warn("failed to say hello to node")
+			}).Warn("Failed to say hello to node")
 			continue
 		}
 
@@ -183,7 +188,7 @@ func (node *Node) syncRoutingTable() {
 					logging.VLog().WithFields(logrus.Fields{
 						"seed": seed,
 						"err":  err,
-					}).Error("failed to say hello to seed")
+					}).Error("Failed to say hello to seed")
 				}
 
 			}(seed)
@@ -205,5 +210,24 @@ func (node *Node) syncSingleNode(nodeID peer.ID) {
 	} else {
 		// if stream not exist, create new connection to remote node.
 		node.hello(nodeID)
+	}
+}
+
+func (node *Node) sayHelloToSeeds() {
+	for _, bootNode := range node.config.BootNodes {
+		go func(bootNode ma.Multiaddr) {
+			err := node.sayHelloToSeed(bootNode)
+			if err != nil {
+				logging.VLog().WithFields(logrus.Fields{
+					"id":  bootNode,
+					"err": err,
+				}).Error("Failed to say hello to seed")
+			} else {
+				logging.VLog().WithFields(logrus.Fields{
+					"id": bootNode,
+				}).Info("succeed to say hello to seed")
+			}
+
+		}(bootNode)
 	}
 }
