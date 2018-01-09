@@ -490,6 +490,16 @@ func (bc *BlockChain) loadGenesisFromStorage() (*Block, error) {
 			return nil, err
 		}
 
+	} else {
+		if bc.genesis.Meta.ChainId != genesis.ChainID() {
+			logging.CLog().WithFields(logrus.Fields{
+				"chainID": genesis.ChainID(),
+				"conf":    bc.genesis,
+				"storage": genesis,
+				"err":     ErrGenesisConfNotMatch,
+			}).Error("Failed to load genesis")
+			return nil, ErrGenesisConfNotMatch
+		}
 	}
 	return genesis, nil
 }

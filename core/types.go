@@ -84,6 +84,7 @@ var (
 	ErrCloneEventsState                    = errors.New("Failed to clone events state")
 	ErrGenerateNextDynastyContext          = errors.New("Failed to generate next dynasty context")
 	ErrLoadNextDynastyContext              = errors.New("Failed to load next dynasty context")
+	ErrGenesisConfNotMatch                 = errors.New("Failed to load genesis from sotrage, different with genesis conf")
 )
 
 // Default gas count
