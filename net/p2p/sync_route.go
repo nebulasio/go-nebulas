@@ -135,6 +135,10 @@ func (node *Node) handleSyncRouteReplyMsg(data []byte, pid peer.ID, s libnet.Str
 
 	for i := range peers.Peers() {
 		id := peers.Peers()[i].ID()
+		if node.id.Pretty() == id.Pretty() {
+			logging.VLog().Info("skip self")
+			continue
+		}
 		if node.routeTable.Find(id) != "" || len(peers.Peers()[i].Addrs()) == 0 {
 			logging.VLog().WithFields(logrus.Fields{
 				"id": id.Pretty(),

@@ -139,11 +139,11 @@ func (node *Node) loadRoutingTableFromDisk() {
 			continue
 		}
 
-		node.peerstore.AddAddr(
-			ID,
-			addr,
-			peerstore.PermanentAddrTTL)
-		node.routeTable.Update(ID)
+		// node.peerstore.AddAddr(
+		// 	ID,
+		// 	addr,
+		// 	peerstore.PermanentAddrTTL)
+		// node.routeTable.Update(ID)
 		count++
 	}
 
@@ -169,7 +169,7 @@ func (node *Node) syncRoutingTable() {
 		nodeAccount = len(allNode)
 	}
 
-	if nodeAccount > 0 {
+	if nodeAccount > 1 {
 		for i := 0; i < nodeAccount; i++ {
 			nodeID := allNode[randomList[i]]
 			if !asked[nodeID] {
@@ -177,7 +177,7 @@ func (node *Node) syncRoutingTable() {
 				go node.syncSingleNode(nodeID)
 			}
 		}
-	} else if nodeAccount == 0 && len(node.Config().BootNodes) > 0 { // If disconnect from the network, say hello to seed node, reconnect to the network.
+	} else if nodeAccount == 1 && len(node.Config().BootNodes) > 0 { // If disconnect from the network, say hello to seed node, reconnect to the network.
 		var wg sync.WaitGroup
 		for _, seed := range node.config.BootNodes {
 			wg.Add(1)

@@ -305,6 +305,7 @@ func (m *Manager) syncWithBlockList(list map[string]*NetBlocks) {
 func (m *Manager) doSyncBlocksWithCommonAncestor(addrsArray []string) {
 	if len(addrsArray) == 0 {
 		logging.VLog().Warn("doSyncBlocksWithCommonAncestor: no common ancestor have been found")
+		m.clearCacheList()
 		m.syncCh <- true
 		return
 	}
@@ -323,9 +324,7 @@ func (m *Manager) doSyncBlocksWithCommonAncestor(addrsArray []string) {
 		// suppose root[i] is a legal block
 		if count >= len(addrsArray) {
 			if err := m.blockChain.BlockPool().Push(root[i]); err != nil {
-				for k := range m.cacheList {
-					delete(m.cacheList, k)
-				}
+				m.clearCacheList()
 				logging.VLog().WithFields(logrus.Fields{
 					"err": err,
 				}).Error("fail to push a block to pool")
@@ -345,16 +344,18 @@ func (m *Manager) doSyncBlocksWithCommonAncestor(addrsArray []string) {
 	}
 
 	if syncContinue {
-		for k := range m.cacheList {
-			delete(m.cacheList, k)
-		}
+		m.clearCacheList()
 		m.curTail = tail
 		m.syncCh <- true
 	} else { // sync finish
-		for k := range m.cacheList {
-			delete(m.cacheList, k)
-		}
+		m.clearCacheList()
 		m.endSyncCh <- true
+	}
+}
+
+func (m *Manager) clearCacheList() {
+	for k := range m.cacheList {
+		delete(m.cacheList, k)
 	}
 }
 
