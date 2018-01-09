@@ -33,7 +33,7 @@ import (
 
 // const
 const (
-	DescendantCount = 3
+	DescendantCount = 10
 )
 
 var (
