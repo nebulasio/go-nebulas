@@ -78,11 +78,11 @@ var (
 
 // NewBlockChain create new #BlockChain instance.
 func NewBlockChain(neb Neblet) (*BlockChain, error) {
-	blockPool, err := NewBlockPool(4096)
+	blockPool, err := NewBlockPool(1024)
 	if err != nil {
 		return nil, err
 	}
-	txPool, err := NewTransactionPool(4096)
+	txPool, err := NewTransactionPool(65536)
 	if err != nil {
 		return nil, err
 	}

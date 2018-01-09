@@ -363,18 +363,22 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 	if pool.cache.Contains(block.Hash().Hex()) ||
 		pool.bc.GetBlock(block.Hash()) != nil {
 		duplicatedBlockCounter.Inc(1)
+		logging.VLog().WithFields(logrus.Fields{
+			"block": block,
+			"err":   "duplicated block",
+		}).Error("Failed to check duplication.")
 		return ErrDuplicatedBlock
 	}
 
 	// verify block integrity
 	if err := block.VerifyIntegrity(pool.bc.chainID, pool.bc.ConsensusHandler()); err != nil {
 		invalidBlockCounter.Inc(1)
+		logging.VLog().WithFields(logrus.Fields{
+			"block": block,
+			"err":   err,
+		}).Error("Failed to check integrity.")
 		return err
 	}
-
-	logging.VLog().WithFields(logrus.Fields{
-		"block": block,
-	}).Info("Block Integrity Verified.")
 
 	bc := pool.bc
 	cache := pool.cache
@@ -382,11 +386,16 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 	var plb *linkedBlock
 	lb := newLinkedBlock(block, pool)
 
-	if exist := pool.slot.Contains(lb.block.Timestamp()); exist {
+	if preBlock, exist := pool.slot.Get(lb.block.Timestamp()); exist {
 		invalidBlockCounter.Inc(1)
+		logging.VLog().WithFields(logrus.Fields{
+			"curBlock": lb.block,
+			"preBlock": preBlock.(*Block),
+			"err":      "double block minted",
+		}).Error("Failed to check double mint.")
 		return ErrDoubleBlockMinted
 	}
-	pool.slot.Add(lb.block.Timestamp(), lb.block.Hash())
+	pool.slot.Add(lb.block.Timestamp(), lb.block)
 	cache.Add(lb.hash.Hex(), lb)
 
 	// find child block in pool.
@@ -414,6 +423,10 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 		}
 
 		if err := pool.download(sender, plb.block); err != nil {
+			logging.VLog().WithFields(logrus.Fields{
+				"block": plb.block,
+				"err":   err,
+			}).Error("Failed to send download request.")
 			return err
 		}
 
@@ -434,12 +447,16 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 				"tail":    bc.tailBlock,
 				"offline": strconv.Itoa(int(lb.block.Timestamp()-bc.TailBlock().Timestamp())) + "s",
 				"limit":   strconv.Itoa(int(DynastyInterval)) + "s",
-			}).Warn("offline too long, restart sync from others.")
+			}).Warn("Offline too long, restart sync from others.")
 
 			bc.Neb().StartSync()
 			return ErrInvalidBlockCannotFindParentInLocalAndTrySync
 		}
 		if err := pool.download(sender, lb.block); err != nil {
+			logging.VLog().WithFields(logrus.Fields{
+				"block": block,
+				"err":   err,
+			}).Error("Failed to send download request.")
 			return err
 		}
 		return ErrInvalidBlockCannotFindParentInLocalAndTryDownload
@@ -449,10 +466,20 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 	// performance depth-first search to verify state root, and get all tails.
 	allBlocks, tailBlocks, err := lb.travelToLinkAndReturnAllValidBlocks(parentBlock)
 	if err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"block":    block,
+			"ancestor": parentBlock,
+			"err":      err,
+		}).Error("Failed to traverse all valid blocks.")
 		return err
 	}
 
 	if err := bc.putVerifiedNewBlocks(parentBlock, allBlocks, tailBlocks); err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"block":    block,
+			"ancestor": parentBlock,
+			"err":      err,
+		}).Error("Failed to put all verified blocks.")
 		return err
 	}
 

@@ -108,7 +108,7 @@ func (dc *DposContext) RootHash() byteutils.Hash {
 
 // BeginBatch starts a batch task
 func (dc *DposContext) BeginBatch() {
-	logging.VLog().Info("DposContext Begin.")
+	logging.VLog().Debug("DposContext Begin.")
 	dc.delegateTrie.BeginBatch()
 	dc.dynastyTrie.BeginBatch()
 	dc.nextDynastyTrie.BeginBatch()
@@ -125,7 +125,7 @@ func (dc *DposContext) Commit() {
 	dc.candidateTrie.Commit()
 	dc.voteTrie.Commit()
 	dc.mintCntTrie.Commit()
-	logging.VLog().Info("DposContext Commit.")
+	logging.VLog().Debug("DposContext Commit.")
 }
 
 // RollBack a batch task
@@ -136,7 +136,7 @@ func (dc *DposContext) RollBack() {
 	dc.candidateTrie.RollBack()
 	dc.voteTrie.RollBack()
 	dc.mintCntTrie.RollBack()
-	logging.VLog().Info("DposContext RollBack.")
+	logging.VLog().Debug("DposContext RollBack.")
 }
 
 // Clone a dpos context
@@ -487,7 +487,7 @@ func (dc *DynastyContext) kickoutDynasty(dynastyID int64) error {
 			if err != nil {
 				return err
 			}
-			logging.VLog().Info("Protect active bootstrap candidate: ", addr)
+			logging.VLog().Debug("Protect active bootstrap candidate: ", addr)
 		} else {
 			if err := dc.kickoutCandidate(validator); err != nil {
 				return err
@@ -499,7 +499,7 @@ func (dc *DynastyContext) kickoutDynasty(dynastyID int64) error {
 		}
 	}
 
-	logging.VLog().Info("Kickouted dynasty: ", dynastyID)
+	logging.VLog().Debug("Kickouted dynasty: ", dynastyID)
 	return nil
 }
 
