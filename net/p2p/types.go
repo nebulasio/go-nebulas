@@ -39,5 +39,5 @@ type Manager interface {
 
 	BroadcastNetworkID([]byte)
 
-	BuildData([]byte, string) []byte
+	BuildRawMessageData([]byte, string) []byte
 }

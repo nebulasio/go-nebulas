@@ -101,9 +101,9 @@ func (ns *NetService) BroadcastNetworkID(msg []byte) {
 	ns.node.broadcastNetworkID(msg)
 }
 
-// BuildData returns net service request data
-func (ns *NetService) BuildData(data []byte, msgName string) []byte {
-	return ns.node.buildData(data, msgName)
+// BuildRawMessageData returns net service request data
+func (ns *NetService) BuildRawMessageData(data []byte, msgName string) []byte {
+	return ns.node.BuildRawMessageData(data, msgName)
 }
 
 // SendMsg send message to a peer.

@@ -76,7 +76,7 @@ func (n MockNetManager) SendMsg(name string, msg []byte, target string) error {
 
 func (n MockNetManager) BroadcastNetworkID([]byte) {}
 
-func (n MockNetManager) BuildData([]byte, string) []byte { return nil }
+func (n MockNetManager) BuildRawMessageData([]byte, string) []byte { return nil }
 
 func TestBlockPool(t *testing.T) {
 	received = []byte{}

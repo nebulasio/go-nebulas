@@ -42,7 +42,7 @@ var (
 // SendMsg send message to a peer
 func (node *Node) sendMsgWithStream(msgName string, msg []byte, stream libnet.Stream) error {
 
-	totalData := node.buildData(msg, msgName)
+	totalData := node.BuildRawMessageData(msg, msgName)
 
 	if err := Write(stream, totalData); err != nil {
 		return err

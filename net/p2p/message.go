@@ -106,7 +106,7 @@ func buildHeader(chainID uint32, msgName string, version byte, dataLength uint32
 	return metaHeader
 }
 
-func (node *Node) buildData(data []byte, msgName string) []byte {
+func (node *Node) BuildRawMessageData(data []byte, msgName string) []byte {
 	dataChecksum := crc32.ChecksumIEEE(data)
 	reserved := []byte{0}
 	metaHeader := buildHeader(node.config.ChainID, msgName, node.config.Version, uint32(len(data)), dataChecksum, reserved)
