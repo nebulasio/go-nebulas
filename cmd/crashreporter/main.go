@@ -35,6 +35,8 @@ import (
 	"mime/multipart"
 	"net/http"
 
+	"path/filepath"
+
 	"github.com/VividCortex/godaemon"
 )
 
@@ -55,8 +57,8 @@ func checkCrashFileAndUpload(fp string, url string) error {
 		output := strings.Join(lines, "\n")
 
 		// write crash log to file
-		//dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
-		//ioutil.WriteFile(fmt.Sprintf("%v/crash.log", dir), []byte(output), 0644)
+		dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
+		ioutil.WriteFile(fmt.Sprintf("%v/crash.log", dir), []byte(output), 0644)
 
 		// upload crash file content
 		return postFile([]byte(output), url)

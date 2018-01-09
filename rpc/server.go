@@ -20,6 +20,7 @@ package rpc
 
 import (
 	"github.com/nebulasio/go-nebulas/account"
+	"github.com/nebulasio/go-nebulas/consensus"
 	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/neblet/pb"
 	"github.com/nebulasio/go-nebulas/net/p2p"
@@ -32,6 +33,7 @@ type Neblet interface {
 	AccountManager() *account.Manager
 	NetManager() p2p.Manager
 	EventEmitter() *core.EventEmitter
+	Consensus() consensus.Consensus
 }
 
 // Server server interface for api & management etc.

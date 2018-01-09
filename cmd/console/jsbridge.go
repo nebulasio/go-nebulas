@@ -38,13 +38,13 @@ type jsBridge struct {
 	host string
 
 	// terminal input prompter
-	prompter *terminalPrompter
+	prompter *TerminalPrompter
 
 	writer io.Writer
 }
 
 // newBirdge create a new jsbridge with given prompter and writer
-func newBirdge(config nebletpb.Config, prompter *terminalPrompter, writer io.Writer) *jsBridge {
+func newBirdge(config nebletpb.Config, prompter *TerminalPrompter, writer io.Writer) *jsBridge {
 	bridge := &jsBridge{prompter: prompter, writer: writer}
 	if config.GetRpc() != nil {
 		bridge.host = config.GetRpc().HttpListen[0]

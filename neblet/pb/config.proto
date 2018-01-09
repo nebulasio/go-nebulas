@@ -57,6 +57,10 @@ message ChainConfig {
     string datadir = 11;
     // Key dir.
     string keydir = 12;
+
+    // start mine at launch
+    bool start_mine = 20;
+
     // Coinbase.
     string coinbase = 21;
     // Miner.

@@ -52,7 +52,7 @@ type Neblet interface {
 type Console struct {
 
 	// terminal input prompter
-	prompter *terminalPrompter
+	prompter *TerminalPrompter
 
 	// Channel to send the next prompt on and receive the input
 	promptCh chan string

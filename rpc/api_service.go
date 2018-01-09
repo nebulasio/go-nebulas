@@ -25,10 +25,13 @@ import (
 
 	"github.com/nebulasio/go-nebulas/common/trie"
 
+	"time"
+
 	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/core"
 	corepb "github.com/nebulasio/go-nebulas/core/pb"
 	"github.com/nebulasio/go-nebulas/crypto/hash"
+	"github.com/nebulasio/go-nebulas/crypto/keystore"
 	nnet "github.com/nebulasio/go-nebulas/net"
 	"github.com/nebulasio/go-nebulas/net/p2p"
 	"github.com/nebulasio/go-nebulas/rpc/pb"
@@ -438,7 +441,11 @@ func (s *APIService) UnlockAccount(ctx context.Context, req *rpcpb.UnlockAccount
 	if err != nil {
 		return nil, err
 	}
-	err = neb.AccountManager().Unlock(addr, []byte(req.Passphrase))
+	duration := time.Duration(req.Duration)
+	if duration == 0 {
+		duration = keystore.DefaultUnlockDuration
+	}
+	err = neb.AccountManager().Unlock(addr, []byte(req.Passphrase), duration)
 	if err != nil {
 		return nil, err
 	}
@@ -659,4 +666,52 @@ func (s *APIService) ChangeNetworkID(ctx context.Context, req *rpcpb.ChangeNetwo
 	// broadcast to all the node in the routetable.
 	neb.NetManager().BroadcastNetworkID(byteutils.FromUint32(req.NetworkId))
 	return &rpcpb.ChangeNetworkIDResponse{Result: true}, nil
+}
+
+// StartMine start mine
+func (s *APIService) StartMine(ctx context.Context, req *rpcpb.StartMineRequest) (*rpcpb.MineResponse, error) {
+	logging.VLog().WithFields(logrus.Fields{
+		"api": "/v1/admin/startMine",
+	}).Info("Rpc request.")
+
+	neb := s.server.Neblet()
+
+	if neb.Consensus().Mining() {
+		return nil, errors.New("consensus have started")
+	}
+
+	addr, err := core.AddressParse(neb.Config().Chain.Miner)
+	if err != nil {
+		return nil, err
+	}
+	// miner address unlock a long time for mining
+	err = neb.AccountManager().Unlock(addr, []byte(req.Passphrase), keystore.YearUnlockDuration)
+	if err != nil {
+		return nil, err
+	}
+
+	neb.Consensus().Start()
+	return &rpcpb.MineResponse{Result: true}, nil
+}
+
+// StopMine stop mine
+func (s *APIService) StopMine(ctx context.Context, req *rpcpb.NonParamsRequest) (*rpcpb.MineResponse, error) {
+	logging.VLog().WithFields(logrus.Fields{
+		"api": "/v1/admin/stopMine",
+	}).Info("Rpc request.")
+
+	neb := s.server.Neblet()
+
+	if !neb.Consensus().Mining() {
+		return nil, errors.New("consensus not start yet")
+	}
+
+	addr, err := core.AddressParse(neb.Config().Chain.Miner)
+	if err != nil {
+		return nil, err
+	}
+	neb.AccountManager().Lock(addr)
+
+	neb.Consensus().Stop()
+	return &rpcpb.MineResponse{Result: true}, nil
 }

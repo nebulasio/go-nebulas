@@ -3,7 +3,6 @@ package rpc
 import (
 	"errors"
 	"net"
-	"time"
 
 	"github.com/sirupsen/logrus"
 
@@ -85,7 +84,7 @@ func (s *APIServer) start(addr string) error {
 // RunGateway run grpc mapping to http after apiserver have started.
 func (s *APIServer) RunGateway() error {
 	//todo make sure rpc server has run before gateway start.
-	time.Sleep(3 * time.Second)
+	//time.Sleep(3 * time.Second)
 	rpcListen := s.rpcConfig.RpcListen[0]
 	gatewayListen := s.rpcConfig.HttpListen
 	httpModule := s.rpcConfig.HttpModule

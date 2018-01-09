@@ -4,11 +4,15 @@ import (
 	"errors"
 	"sync"
 
+	"fmt"
+
 	"github.com/nebulasio/go-nebulas/account"
+	"github.com/nebulasio/go-nebulas/cmd/console"
 	"github.com/nebulasio/go-nebulas/consensus"
 	"github.com/nebulasio/go-nebulas/consensus/dpos"
 	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/core/pb"
+	"github.com/nebulasio/go-nebulas/crypto/keystore"
 	"github.com/nebulasio/go-nebulas/metrics"
 	"github.com/nebulasio/go-nebulas/neblet/pb"
 	"github.com/nebulasio/go-nebulas/net/p2p"
@@ -146,7 +150,34 @@ func (n *Neblet) Start() error {
 	n.eventEmitter.Start()
 
 	n.syncManager.Start()
-	n.consensus.Start()
+
+	if n.config.Chain.StartMine {
+		addr, err := core.AddressParse(n.config.Chain.Miner)
+		if err != nil {
+			return err
+		}
+
+		passphrase := n.config.Chain.Passphrase
+		if len(passphrase) == 0 {
+
+			fmt.Println("miner address:" + addr.String())
+
+			prompt := console.Stdin
+			passphrase, err = prompt.PromptPassphrase("Enter the miner's passphrase:")
+			if err != nil {
+				return err
+			}
+		}
+
+		// unlock miner address
+		err = n.AccountManager().Unlock(addr, []byte(passphrase), keystore.YearUnlockDuration)
+		if err != nil {
+			return err
+		}
+
+		// start consensus
+		n.consensus.Start()
+	}
 
 	nebstartGauge.Update(1)
 	// TODO: error handling
@@ -244,6 +275,11 @@ func (n *Neblet) AccountManager() *account.Manager {
 // NetManager returns p2p manager reference.
 func (n *Neblet) NetManager() p2p.Manager {
 	return n.netService
+}
+
+// Consensus returns consensus reference.
+func (n *Neblet) Consensus() consensus.Consensus {
+	return n.consensus
 }
 
 // checks if the storage scheme version is compatiable

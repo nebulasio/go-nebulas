@@ -202,6 +202,20 @@ service AdminService {
 		};
 	}
 
+    rpc StartMine (StartMineRequest) returns (MineResponse) {
+        option (google.api.http) = {
+			post: "/v1/admin/startMine"
+            body: "*"
+		};
+    }
+
+    rpc StopMine (NonParamsRequest) returns (MineResponse) {
+        option (google.api.http) = {
+			post: "/v1/admin/stopMine"
+            body: "*"
+		};
+    }
+
 }
 
 // Request message of Subscribe rpc
@@ -482,6 +496,7 @@ message NewAccountResponse {
 message UnlockAccountRequest {
     string address = 1;
     string passphrase = 2;
+    uint64 duration = 3;
 }
 
 message UnlockAccountResponse {
@@ -529,3 +544,13 @@ message Event {
     string topic = 1;
     string data = 2;
 }
+
+message StartMineRequest {
+    // miner address passphrase
+    string passphrase = 1;
+}
+
+message MineResponse {
+    bool result = 1;
+}
+

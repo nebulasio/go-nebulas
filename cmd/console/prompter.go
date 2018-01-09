@@ -27,18 +27,19 @@ import (
 )
 
 // Stdin holds the stdin line reader (also using stdout for printing prompts).
-var Stdin = newTerminalPrompter()
+var Stdin = NewTerminalPrompter()
 
-type terminalPrompter struct {
+// TerminalPrompter terminal prompter
+type TerminalPrompter struct {
 	liner     *liner.State
 	supported bool
 	origMode  liner.ModeApplier
 	rawMode   liner.ModeApplier
 }
 
-// newTerminalPrompter create a terminal prompter
-func newTerminalPrompter() *terminalPrompter {
-	p := new(terminalPrompter)
+// NewTerminalPrompter create a terminal prompter
+func NewTerminalPrompter() *TerminalPrompter {
+	p := new(TerminalPrompter)
 	// Get the original mode before calling NewLiner.
 	origMode, _ := liner.TerminalMode()
 	// Turn on liner.
@@ -61,7 +62,7 @@ func newTerminalPrompter() *terminalPrompter {
 
 // Prompt shows the prompt and requests text input
 // returning the input.
-func (p *terminalPrompter) Prompt(prompt string) (string, error) {
+func (p *TerminalPrompter) Prompt(prompt string) (string, error) {
 	if p.supported {
 		p.rawMode.ApplyMode()
 		defer p.origMode.ApplyMode()
@@ -74,7 +75,7 @@ func (p *terminalPrompter) Prompt(prompt string) (string, error) {
 
 // PromptPassphrase shows the prompt and request passphrase text input, the passphrase
 // not show, returns the passphrase
-func (p *terminalPrompter) PromptPassphrase(prompt string) (passwd string, err error) {
+func (p *TerminalPrompter) PromptPassphrase(prompt string) (passwd string, err error) {
 	if p.supported {
 		p.rawMode.ApplyMode()
 		defer p.origMode.ApplyMode()
@@ -89,7 +90,7 @@ func (p *terminalPrompter) PromptPassphrase(prompt string) (passwd string, err e
 
 // PromptConfirm shows the prompt to the user and requests a boolean
 // choice to be made, returning that choice.
-func (p *terminalPrompter) PromptConfirm(prompt string) (bool, error) {
+func (p *TerminalPrompter) PromptConfirm(prompt string) (bool, error) {
 	input, err := p.Prompt(prompt + " [y/N] ")
 	if len(input) > 0 && strings.ToUpper(input[:1]) == "Y" {
 		return true, nil
@@ -99,17 +100,17 @@ func (p *terminalPrompter) PromptConfirm(prompt string) (bool, error) {
 
 // SetHistory sets the history that the prompter will allow
 // the user to scroll back to.
-func (p *terminalPrompter) SetHistory(history []string) {
+func (p *TerminalPrompter) SetHistory(history []string) {
 	p.liner.ReadHistory(strings.NewReader(strings.Join(history, "\n")))
 }
 
 // AppendHistory appends an entry to the scrollback history.
-func (p *terminalPrompter) AppendHistory(command string) {
+func (p *TerminalPrompter) AppendHistory(command string) {
 	p.liner.AppendHistory(command)
 }
 
 // SetWordCompleter sets the completion function that the prompter will call to
 // fetch completion candidates when the user presses tab.
-func (p *terminalPrompter) SetWordCompleter(completer liner.WordCompleter) {
+func (p *TerminalPrompter) SetWordCompleter(completer liner.WordCompleter) {
 	p.liner.SetWordCompleter(completer)
 }

@@ -31,6 +31,7 @@ const (
 type Consensus interface {
 	Start()
 	Stop()
+	Mining() bool
 
 	CanMining() bool
 	SetCanMining(bool)

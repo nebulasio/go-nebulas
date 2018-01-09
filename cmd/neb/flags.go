@@ -75,6 +75,12 @@ var (
 		Usage: "chain key storage dirctory",
 	}
 
+	// ChainStartMineFlag chain start mine when launch
+	ChainStartMineFlag = cli.BoolFlag{
+		Name:  "chain.startmine",
+		Usage: "chain start mine when launching",
+	}
+
 	// ChainCoinbaseFlag chain coinbase
 	ChainCoinbaseFlag = cli.StringFlag{
 		Name:  "chain.coinbase",
@@ -87,13 +93,35 @@ var (
 		Usage: "chain signature ciphers, multi-value support.",
 	}
 
+	// ChainPassphraseFlag chain miner passphrase
+	ChainPassphraseFlag = cli.StringFlag{
+		Name:  "chain.passphrase",
+		Usage: "chain miner's passphrase.",
+	}
+
+	// ChainGasPriceFlag chain transaction pool min gasPrice
+	ChainGasPriceFlag = cli.StringFlag{
+		Name:  "chain.gasprice",
+		Usage: "chain transaction pool's min gasPrice.",
+	}
+
+	// ChainGasLimitFlag chain transaction pool max gasLimit
+	ChainGasLimitFlag = cli.StringFlag{
+		Name:  "chain.gaslimit",
+		Usage: "chain transaction pool's max gasLimit.",
+	}
+
 	// ChainFlags chain config list
 	ChainFlags = []cli.Flag{
 		ChainIDFlag,
 		ChainDataDirFlag,
 		ChainKeyDirFlag,
+		ChainStartMineFlag,
 		ChainCoinbaseFlag,
 		ChainCipherFlag,
+		ChainPassphraseFlag,
+		ChainGasPriceFlag,
+		ChainGasLimitFlag,
 	}
 
 	// RPCListenFlag rpc listen
@@ -183,8 +211,20 @@ func chainConfig(ctx *cli.Context, cfg *nebletpb.ChainConfig) {
 	if ctx.GlobalIsSet(ChainKeyDirFlag.Name) {
 		cfg.Keydir = ctx.GlobalString(ChainKeyDirFlag.Name)
 	}
+	if ctx.GlobalIsSet(ChainStartMineFlag.Name) {
+		cfg.StartMine = ctx.GlobalBool(ChainStartMineFlag.Name)
+	}
 	if ctx.GlobalIsSet(ChainCoinbaseFlag.Name) {
 		cfg.Coinbase = ctx.GlobalString(ChainCoinbaseFlag.Name)
+	}
+	if ctx.GlobalIsSet(ChainPassphraseFlag.Name) {
+		cfg.Passphrase = ctx.GlobalString(ChainPassphraseFlag.Name)
+	}
+	if ctx.GlobalIsSet(ChainGasPriceFlag.Name) {
+		cfg.GasPrice = ctx.GlobalString(ChainGasPriceFlag.Name)
+	}
+	if ctx.GlobalIsSet(ChainGasLimitFlag.Name) {
+		cfg.GasLimit = ctx.GlobalString(ChainGasLimitFlag.Name)
 	}
 	if ctx.GlobalIsSet(ChainCipherFlag.Name) {
 		cfg.SignatureCiphers = ctx.GlobalStringSlice(ChainCipherFlag.Name)

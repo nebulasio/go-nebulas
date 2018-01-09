@@ -30,6 +30,9 @@ var (
 
 	// DefaultUnlockDuration default lock 300s
 	DefaultUnlockDuration = time.Duration(300 * time.Second)
+
+	// YearUnlockDuration lock 1 year time
+	YearUnlockDuration = time.Duration(365 * 24 * 60 * 60 * time.Second)
 )
 
 var (

@@ -23,6 +23,8 @@ import (
 
 	"path/filepath"
 
+	"time"
+
 	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/crypto"
 	"github.com/nebulasio/go-nebulas/crypto/cipher"
@@ -164,7 +166,7 @@ func (m *Manager) Contains(addr *core.Address) bool {
 }
 
 // Unlock unlock address with passphrase
-func (m *Manager) Unlock(addr *core.Address, passphrase []byte) error {
+func (m *Manager) Unlock(addr *core.Address, passphrase []byte, duration time.Duration) error {
 	res, err := m.ks.ContainsAlias(addr.String())
 	if err != nil || res == false {
 		err = m.loadFile(addr, passphrase)
@@ -172,7 +174,7 @@ func (m *Manager) Unlock(addr *core.Address, passphrase []byte) error {
 			return err
 		}
 	}
-	return m.ks.Unlock(addr.String(), passphrase, keystore.DefaultUnlockDuration)
+	return m.ks.Unlock(addr.String(), passphrase, duration)
 }
 
 // Lock lock address

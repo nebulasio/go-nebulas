@@ -27,6 +27,7 @@ import (
 	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/core/pb"
+	"github.com/nebulasio/go-nebulas/crypto/keystore"
 	"github.com/nebulasio/go-nebulas/neblet"
 	"github.com/nebulasio/go-nebulas/util"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
@@ -185,7 +186,7 @@ func loadAndUnlockKey(neb *neblet.Neblet, keyfile, passphrase string) (*core.Add
 	if err != nil {
 		return nil, err
 	}
-	err = neb.AccountManager().Unlock(addr, []byte(passphrase))
+	err = neb.AccountManager().Unlock(addr, []byte(passphrase), keystore.DefaultUnlockDuration)
 	if err != nil {
 		return nil, err
 	}

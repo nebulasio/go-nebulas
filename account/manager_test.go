@@ -22,6 +22,7 @@ import (
 	"testing"
 
 	"github.com/nebulasio/go-nebulas/core"
+	"github.com/nebulasio/go-nebulas/crypto/keystore"
 	"github.com/nebulasio/go-nebulas/util"
 	"github.com/stretchr/testify/assert"
 )
@@ -80,7 +81,7 @@ func TestManager_Unlock(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := manager.NewAccount(tt.passphrase)
 			assert.Nil(t, err, "new address err")
-			err = manager.Unlock(got, tt.passphrase)
+			err = manager.Unlock(got, tt.passphrase, keystore.DefaultUnlockDuration)
 			assert.Nil(t, err, "unlock err")
 			err = manager.Lock(got)
 			assert.Nil(t, err, "lock err")
@@ -172,7 +173,7 @@ func TestManager_SignTransaction(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := manager.NewAccount(tt.passphrase)
 			assert.Nil(t, err, "new address err")
-			err = manager.Unlock(got, tt.passphrase)
+			err = manager.Unlock(got, tt.passphrase, keystore.DefaultUnlockDuration)
 			assert.Nil(t, err, "unlock err")
 			tx := core.NewTransaction(0, got, got, util.NewUint128FromInt(5), 0, core.TxPayloadBinaryType, nil, util.NewUint128FromInt(1), util.NewUint128FromInt(5))
 			err = manager.SignTransaction(got, tx)

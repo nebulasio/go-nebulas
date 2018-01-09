@@ -61,14 +61,14 @@ type Dpos struct {
 	nm    p2p.Manager
 	am    *account.Manager
 
-	coinbase   *core.Address
-	miner      *core.Address
-	passphrase string
+	coinbase *core.Address
+	miner    *core.Address
 
 	blockInterval   int64
 	dynastyInterval int64
 	txsPerBlock     int
 
+	mining    bool
 	canMining bool
 }
 
@@ -85,6 +85,7 @@ func NewDpos(neblet Neblet) (*Dpos, error) {
 		dynastyInterval: core.DynastyInterval,
 		txsPerBlock:     2000,
 
+		mining:    false,
 		canMining: false,
 	}
 
@@ -107,18 +108,24 @@ func NewDpos(neblet Neblet) (*Dpos, error) {
 	}
 	p.coinbase = coinbase
 	p.miner = miner
-	p.passphrase = config.Passphrase
 	return p, nil
 }
 
 // Start start pow service.
 func (p *Dpos) Start() {
+	p.mining = true
 	go p.blockLoop()
 }
 
 // Stop stop pow service.
 func (p *Dpos) Stop() {
+	p.mining = false
 	p.quitCh <- true
+}
+
+// Mining returns is mining
+func (p *Dpos) Mining() bool {
+	return p.mining
 }
 
 func less(a *core.Block, b *core.Block) bool {
@@ -173,9 +180,9 @@ func (p *Dpos) CanMining() bool {
 // SetCanMining set if consensus can do mining now
 func (p *Dpos) SetCanMining(canMining bool) {
 	if canMining {
-		logging.CLog().Info("Start Dpos Mining.")
+		logging.CLog().Info("Can Dpos Mining.")
 	} else {
-		logging.CLog().Info("Stop Dpos Mining.")
+		logging.CLog().Info("Can not Dpos Mining.")
 	}
 	p.canMining = canMining
 }
@@ -326,14 +333,6 @@ func (p *Dpos) mintBlock(now int64) error {
 			"block": block,
 			"err":   err,
 		}).Error("Failed to seal new block")
-		return err
-	}
-	// TODO: move passphrase from config to console
-	if err = p.am.Unlock(p.miner, []byte(p.passphrase)); err != nil {
-		logging.VLog().WithFields(logrus.Fields{
-			"miner": p.miner.String(),
-			"err":   err,
-		}).Error("Failed to unlock the miner")
 		return err
 	}
 	if err = p.am.SignBlock(p.miner, block); err != nil {

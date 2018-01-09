@@ -236,13 +236,13 @@ func TestDpos_VerifySign(t *testing.T) {
 	manager := account.NewManager(nil)
 	miner, err := core.AddressParseFromBytes(context.Proposer)
 	assert.Nil(t, err)
-	assert.Nil(t, manager.Unlock(miner, []byte("passphrase")))
+	assert.Nil(t, manager.Unlock(miner, []byte("passphrase"), keystore.DefaultUnlockDuration))
 	assert.Nil(t, manager.SignBlock(miner, block))
 	assert.Nil(t, dpos.VerifyBlock(block, tail))
 
 	miner, err = core.AddressParse("fc751b484bd5296f8d267a8537d33f25a848f7f7af8cfcf6")
 	assert.Nil(t, err)
-	assert.Nil(t, manager.Unlock(miner, []byte("passphrase")))
+	assert.Nil(t, manager.Unlock(miner, []byte("passphrase"), keystore.DefaultUnlockDuration))
 	assert.Nil(t, manager.SignBlock(miner, block))
 	assert.Equal(t, dpos.VerifyBlock(block, tail), ErrInvalidBlockProposer)
 }
@@ -343,7 +343,7 @@ func TestFastVerifyBlock(t *testing.T) {
 	coinbase, err := core.AddressParse("1a263547d167c74cf4b8f9166cfa244de0481c514a45aa2c")
 	assert.Nil(t, err)
 	manager := account.NewManager(nil)
-	assert.Nil(t, manager.Unlock(coinbase, []byte("passphrase")))
+	assert.Nil(t, manager.Unlock(coinbase, []byte("passphrase"), keystore.DefaultUnlockDuration))
 
 	elapsedSecond := int64(core.DynastyInterval)
 	context, err := tail.NextDynastyContext(elapsedSecond)
@@ -387,7 +387,7 @@ func TestDpos_MintBlock(t *testing.T) {
 	coinbase, err := core.AddressParse("1a263547d167c74cf4b8f9166cfa244de0481c514a45aa2c")
 	assert.Nil(t, err)
 	manager := account.NewManager(nil)
-	assert.Nil(t, manager.Unlock(coinbase, []byte("passphrase")))
+	assert.Nil(t, manager.Unlock(coinbase, []byte("passphrase"), keystore.DefaultUnlockDuration))
 
 	assert.Equal(t, dpos.mintBlock(0), ErrCannotMintBlockNow)
 
