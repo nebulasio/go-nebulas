@@ -172,9 +172,11 @@ func (m *Manager) syncWithPeers(block *core.Block) {
 		case <-m.canSyncWithBlockListCh:
 			m.syncWithBlockList(m.cacheList)
 		case <-m.goParentSyncCh:
+			logging.VLog().Info("sync with parent")
 			m.goSyncParentWithPeers()
 		case <-time.After(timeout):
-			m.goSyncParentWithPeers()
+			logging.VLog().Info("sync time out")
+			m.syncWithPeers(m.curTail)
 		}
 	})()
 
@@ -254,12 +256,23 @@ func (m *Manager) startMsgHandle() {
 					continue
 				}
 				if data.batch < batch {
+					logging.VLog().WithFields(logrus.Fields{
+						"from":   data.from,
+						"blocks": blocks,
+						"batch":  data.batch,
+					}).Info("batch is error")
 					continue
 				}
 				blocks := data.Blocks()
 
 				if len(blocks) == 0 {
 					msgErrCount++
+					logging.VLog().WithFields(logrus.Fields{
+						"from":   data.from,
+						"blocks": blocks,
+						"batch":  data.batch,
+					}).Info("Reveived sync reply message is wrong")
+
 					if msgErrCount >= p2p.LimitToSync/2 {
 						// go to next sync
 						msgErrCount = 0
@@ -270,7 +283,8 @@ func (m *Manager) startMsgHandle() {
 				logging.VLog().WithFields(logrus.Fields{
 					"from":   data.from,
 					"blocks": blocks,
-				}).Info("StartMsgHandle.receiveSyncReplyCh: receive receiveSyncReplyCh message.")
+					"batch":  data.batch,
+				}).Info("Reveived sync reply message")
 
 				if len(blocks) > 0 && len(m.cacheList) < p2p.LimitToSync {
 					m.checkSyncLimitHandler(data)
