@@ -23,8 +23,6 @@ import (
 	"testing"
 	"time"
 
-	"encoding/json"
-
 	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/core/pb"
 	"github.com/nebulasio/go-nebulas/crypto"
@@ -184,7 +182,7 @@ func TestTransaction_VerifyExecution(t *testing.T) {
 		gas          *util.Uint128
 		wanted       error
 		afterBalance *util.Uint128
-		eventTopic   []bool
+		eventTopic   []string
 	}
 	tests := []testTx{}
 
@@ -202,7 +200,7 @@ func TestTransaction_VerifyExecution(t *testing.T) {
 		gas:          normalTx.GasCountOfTxBase(),
 		afterBalance: util.NewUint128FromBigInt(util.NewUint128().Sub(balance.Int, util.NewUint128().Mul(normalTx.gasPrice.Int, normalTx.GasCountOfTxBase().Int))),
 		wanted:       nil,
-		eventTopic:   []bool{true},
+		eventTopic:   []string{TopicExecuteTxSuccess},
 	})
 
 	// contract deploy tx
@@ -214,7 +212,7 @@ func TestTransaction_VerifyExecution(t *testing.T) {
 		gas:          util.NewUint128FromInt(21232),
 		afterBalance: util.NewUint128FromBigInt(util.NewUint128().Sub(balance.Int, util.NewUint128().Mul(normalTx.gasPrice.Int, util.NewUint128FromInt(21232).Int))),
 		wanted:       nil,
-		eventTopic:   []bool{true},
+		eventTopic:   []string{TopicExecuteTxSuccess},
 	})
 
 	// contract call tx
@@ -226,7 +224,7 @@ func TestTransaction_VerifyExecution(t *testing.T) {
 		gas:          util.NewUint128FromInt(20036),
 		afterBalance: util.NewUint128FromBigInt(util.NewUint128().Sub(balance.Int, util.NewUint128().Mul(normalTx.gasPrice.Int, util.NewUint128FromInt(20036).Int))),
 		wanted:       nil,
-		eventTopic:   []bool{false},
+		eventTopic:   []string{TopicExecuteTxFailed},
 	})
 
 	// candidate tx
@@ -238,7 +236,7 @@ func TestTransaction_VerifyExecution(t *testing.T) {
 		gas:          util.NewUint128FromInt(40018),
 		afterBalance: util.NewUint128FromBigInt(util.NewUint128().Sub(balance.Int, util.NewUint128().Mul(normalTx.gasPrice.Int, util.NewUint128FromInt(40018).Int))),
 		wanted:       nil,
-		eventTopic:   []bool{true},
+		eventTopic:   []string{TopicExecuteTxSuccess},
 	})
 
 	// delegate tx
@@ -250,7 +248,7 @@ func TestTransaction_VerifyExecution(t *testing.T) {
 		gas:          util.NewUint128FromInt(40078),
 		afterBalance: util.NewUint128FromBigInt(util.NewUint128().Sub(balance.Int, util.NewUint128().Mul(normalTx.gasPrice.Int, util.NewUint128FromInt(40078).Int))),
 		wanted:       nil,
-		eventTopic:   []bool{false},
+		eventTopic:   []string{TopicExecuteTxFailed},
 	})
 
 	// normal tx insufficient balance before execution
@@ -262,7 +260,7 @@ func TestTransaction_VerifyExecution(t *testing.T) {
 		gas:          util.NewUint128(),
 		afterBalance: util.NewUint128(),
 		wanted:       ErrInsufficientBalance,
-		eventTopic:   []bool{false},
+		eventTopic:   []string{TopicExecuteTxFailed},
 	})
 
 	// normal tx out of  gasLimit
@@ -275,7 +273,7 @@ func TestTransaction_VerifyExecution(t *testing.T) {
 		gas:          util.NewUint128(),
 		afterBalance: balance,
 		wanted:       ErrOutOfGasLimit,
-		eventTopic:   []bool{false},
+		eventTopic:   []string{TopicExecuteTxFailed},
 	})
 
 	// tx payload load err
@@ -288,7 +286,7 @@ func TestTransaction_VerifyExecution(t *testing.T) {
 		gas:          payloadErrTx.GasCountOfTxBase(),
 		afterBalance: util.NewUint128FromBigInt(util.NewUint128().Sub(balance.Int, util.NewUint128().Mul(normalTx.gasPrice.Int, payloadErrTx.GasCountOfTxBase().Int))),
 		wanted:       nil,
-		eventTopic:   []bool{false},
+		eventTopic:   []string{TopicExecuteTxFailed},
 	})
 
 	// tx execution err
@@ -300,7 +298,7 @@ func TestTransaction_VerifyExecution(t *testing.T) {
 		gas:          util.NewUint128FromInt(20029),
 		afterBalance: util.NewUint128FromBigInt(util.NewUint128().Sub(balance.Int, util.NewUint128().Mul(normalTx.gasPrice.Int, util.NewUint128FromInt(20029).Int))),
 		wanted:       nil,
-		eventTopic:   []bool{false},
+		eventTopic:   []string{TopicExecuteTxFailed},
 	})
 
 	// tx execution insufficient balance after execution
@@ -313,7 +311,7 @@ func TestTransaction_VerifyExecution(t *testing.T) {
 		gas:          util.NewUint128FromInt(21232),
 		afterBalance: util.NewUint128FromBigInt(util.NewUint128().Sub(balance.Int, util.NewUint128().Mul(normalTx.gasPrice.Int, util.NewUint128FromInt(21232).Int))),
 		wanted:       nil,
-		eventTopic:   []bool{false},
+		eventTopic:   []string{TopicExecuteTxFailed},
 	})
 
 	// tx execution equal balance after execution
@@ -328,7 +326,7 @@ func TestTransaction_VerifyExecution(t *testing.T) {
 		gas:          gas,
 		afterBalance: util.NewUint128FromInt(0),
 		wanted:       nil,
-		eventTopic:   []bool{true},
+		eventTopic:   []string{TopicExecuteTxSuccess},
 	})
 
 	ks := keystore.DefaultKS
@@ -357,12 +355,7 @@ func TestTransaction_VerifyExecution(t *testing.T) {
 			events, _ := block.FetchEvents(tt.tx.hash)
 
 			for index, event := range events {
-				type txEvent struct {
-					Status bool `json:"status"`
-				}
-				var txEv = new(txEvent)
-				json.Unmarshal([]byte(event.Data), txEv)
-				assert.Equal(t, tt.eventTopic[index], txEv.Status)
+				assert.Equal(t, tt.eventTopic[index], event.Topic)
 			}
 
 			block.rollback()
