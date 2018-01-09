@@ -105,7 +105,7 @@ func (m *Manager) Start() {
 	m.startMsgHandle()
 	if len(m.ns.Node().Config().BootNodes) > 0 {
 		m.ns.Node().SetSynchronizing(true)
-		m.startSync()
+		go m.startSync()
 		m.curTail = m.blockChain.TailBlock()
 	} else {
 		logging.VLog().Info("Sync.Start: i am a seed node.")
