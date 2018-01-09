@@ -52,7 +52,7 @@ func (node *Node) sendMsgWithStream(msgName string, msg []byte, stream libnet.St
 	if ok {
 		m.(metrics.Meter).Mark(1)
 	}
-	netBytesOut.Mark(int64(len(msg)))
+	netBytesOut.Mark(int64(len(totalData)))
 
 	logging.VLog().WithFields(logrus.Fields{
 		"msgName": msgName,

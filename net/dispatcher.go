@@ -24,6 +24,7 @@ import (
 
 	"github.com/nebulasio/go-nebulas/util/logging"
 	metrics "github.com/rcrowley/go-metrics"
+	"github.com/sirupsen/logrus"
 )
 
 // Metrics map for different in/out network msg types
@@ -81,7 +82,6 @@ func (dp *Dispatcher) Deregister(subscribers ...*Subscriber) {
 func (dp *Dispatcher) Start() {
 	go (func() {
 		for {
-			// logging.VLog().Info("dispatcher in loop")
 			select {
 			case <-dp.quitCh:
 				logging.CLog().Info("Shutdowned Dispatcher.")
@@ -91,8 +91,14 @@ func (dp *Dispatcher) Start() {
 				msgType := msg.MessageType()
 				v, _ := dp.subscribersMap.Load(msgType)
 				m, _ := v.(*sync.Map)
+				logging.VLog().WithFields(logrus.Fields{
+					"msgType": msgType,
+				}).Info("dispatcher received message")
 				m.Range(func(key, value interface{}) bool {
 					key.(*Subscriber).msgChan <- msg
+					logging.VLog().WithFields(logrus.Fields{
+						"msgType": msgType,
+					}).Info("succeed dispatcher received message")
 					return true
 				})
 			}

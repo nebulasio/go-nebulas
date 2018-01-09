@@ -90,8 +90,8 @@ func (node *Node) hello(pid peer.ID) error {
 		return err
 	}
 
-	hello := messages.NewHelloMessage(node.id.String(), ClientVersion)
-	pb, _ := hello.ToProto()
+	message := messages.NewHelloMessage(node.id.String(), ClientVersion)
+	pb, _ := message.ToProto()
 	data, err := proto.Marshal(pb)
 	if err != nil {
 		return err
@@ -224,6 +224,10 @@ func (node *Node) handleHelloMsg(data []byte, pid peer.ID, s libnet.Stream, addr
 
 // Bye say bye to a peer, and close connection.
 func (node *Node) Bye(pid peer.ID, addrs []ma.Multiaddr, s libnet.Stream, key string) {
+	logging.VLog().WithFields(logrus.Fields{
+		"pid":  pid.Pretty(),
+		"addr": addrs,
+	}).Info("Say bye to a node")
 	node.clearPeerStore(pid, addrs)
 	node.stream.Delete(key)
 	s.Close()
