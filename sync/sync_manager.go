@@ -255,15 +255,17 @@ func (m *Manager) startMsgHandle() {
 					logging.VLog().Error("StartMsgHandle.receiveSyncReplyCh: get blocks from proto occurs error: ", err)
 					continue
 				}
+
+				blocks := data.Blocks()
+
 				if data.batch < batch {
 					logging.VLog().WithFields(logrus.Fields{
 						"from":   data.from,
-						"blocks": blocks,
+						"blocks": data.Blocks(),
 						"batch":  data.batch,
 					}).Info("batch is error")
 					continue
 				}
-				blocks := data.Blocks()
 
 				if len(blocks) == 0 {
 					msgErrCount++
