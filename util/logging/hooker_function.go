@@ -23,6 +23,7 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/huandu/goroutine"
 	logrus "github.com/sirupsen/logrus"
 )
 
@@ -53,6 +54,7 @@ func (h *functionHooker) Fire(entry *logrus.Entry) error {
 		}
 		entry.Data["line"] = line
 		entry.Data["file"] = filepath.Base(file)
+		entry.Data["goroutine"] = goroutine.GoroutineId()
 		break
 	}
 	return nil

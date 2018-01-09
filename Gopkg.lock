@@ -99,6 +99,12 @@
 
 [[projects]]
   branch = "master"
+  name = "github.com/huandu/goroutine"
+  packages = [".","hack/go1_5/runtime","hack/go1_5_1/runtime","hack/go1_5_2/runtime","hack/go1_5_3/runtime","hack/go1_5_4/runtime","hack/go1_6/runtime","hack/go1_6/runtime/internal/sys","hack/go1_6_1/runtime","hack/go1_6_1/runtime/internal/sys","hack/go1_6_2/runtime","hack/go1_6_2/runtime/internal/sys","hack/go1_6_3/runtime","hack/go1_6_3/runtime/internal/sys","hack/go1_7/runtime","hack/go1_7/runtime/internal/sys","hack/go1_7_1/runtime","hack/go1_7_1/runtime/internal/sys","hack/go1_7_2/runtime","hack/go1_7_2/runtime/internal/sys","hack/go1_7_3/runtime","hack/go1_7_3/runtime/internal/sys","hack/go1_7_4/runtime","hack/go1_7_4/runtime/internal/sys","hack/go1_7_5/runtime","hack/go1_7_5/runtime/internal/sys","hack/go1_8/runtime","hack/go1_8/runtime/internal/sys","hack/go1_8_1/runtime","hack/go1_8_1/runtime/internal/sys","hack/go1_8_2/runtime","hack/go1_8_2/runtime/internal/sys","hack/go1_8_3/runtime","hack/go1_8_3/runtime/internal/sys","hack/go1_9/runtime","hack/go1_9/runtime/internal/sys","hack/go1_9_1/runtime","hack/go1_9_1/runtime/internal/sys","hack/go1_9_2/runtime","hack/go1_9_2/runtime/internal/sys","version"]
+  revision = "33b5bb92fef44f38087323f192ddc4890d229da7"
+
+[[projects]]
+  branch = "master"
   name = "github.com/huin/goupnp"
   packages = [".","dcps/internetgateway1","dcps/internetgateway2","httpu","scpd","soap","ssdp"]
   revision = "5b7801abd885f2f7458add715aee47e7df5370a0"
@@ -567,6 +573,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "9a006f7a56dd7f451357aa081e497fde422979b41590d043467a7cf03f653290"
+  inputs-digest = "365c30c5d001d60d8950a2404efbbbde7acb7d20bdc3f43b316836faf27fae39"
   solver-name = "gps-cdcl"
   solver-version = 1
