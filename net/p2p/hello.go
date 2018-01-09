@@ -80,7 +80,6 @@ func (node *Node) sayHelloToSeed(seed ma.Multiaddr) error {
 
 // say hello to a peer
 func (node *Node) hello(pid peer.ID) error {
-
 	stream, err := node.host.NewStream(
 		node.context,
 		pid,

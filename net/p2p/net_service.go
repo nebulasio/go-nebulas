@@ -20,8 +20,6 @@ package p2p
 
 import (
 	"github.com/nebulasio/go-nebulas/net"
-	"github.com/nebulasio/go-nebulas/util/logging"
-	"github.com/sirupsen/logrus"
 )
 
 // NetService service for nebulas p2p network
@@ -33,16 +31,16 @@ type NetService struct {
 
 // NewNetService create netService
 func NewNetService(n Neblet) (*NetService, error) {
-	config := NewP2PConfig(n)
-	node, err := NewNode(config)
+	node, err := NewNode(NewP2PConfig(n))
 	if err != nil {
-		logging.CLog().WithFields(logrus.Fields{
-			"err": err,
-		}).Error("Failed to create node")
 		return nil, err
 	}
 
-	ns := &NetService{node, make(chan bool, 1), net.NewDispatcher()}
+	ns := &NetService{
+		node:       node,
+		quitCh:     make(chan bool, 10),
+		dispatcher: net.NewDispatcher(),
+	}
 	node.SetNetService(ns)
 
 	return ns, nil
@@ -55,18 +53,22 @@ func (ns *NetService) Node() *Node {
 
 // Start start p2p manager.
 func (ns *NetService) Start() error {
+	// start dispatcher.
 	ns.dispatcher.Start()
+
+	// start node.
 	if err := ns.node.Start(); err != nil {
 		ns.dispatcher.Stop()
 		return err
 	}
+
 	return nil
 }
 
 // Stop stop p2p manager.
 func (ns *NetService) Stop() {
 	ns.dispatcher.Stop()
-	ns.quitCh <- true
+	ns.quitCh <- true // TODO: @robin quitCh is used by multi goroutine.
 }
 
 // Register register the subscribers.

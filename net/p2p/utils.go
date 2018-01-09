@@ -19,21 +19,22 @@
 package p2p
 
 import (
-	"bytes"
-	"encoding/base64"
-	"encoding/hex"
 	"errors"
 	"io"
-	"io/ioutil"
 	mrand "math/rand"
+	"net"
+	"os"
 	"reflect"
 	"strings"
 	"sync"
 	"time"
 
-	crypto "github.com/libp2p/go-libp2p-crypto"
 	peer "github.com/libp2p/go-libp2p-peer"
 	ma "github.com/multiformats/go-multiaddr"
+)
+
+var (
+	ErrListenPortIsNotAvailable = errors.New("listen port is not available")
 )
 
 func (node *Node) parseAddressFromMultiaddr(address ma.Multiaddr) (ma.Multiaddr, peer.ID, error) {
@@ -124,35 +125,6 @@ func randSeed(n int) string {
 	return string(b)
 }
 
-// GenerateEd25519Key generate a privKey and pubKey by ed25519.
-func GenerateEd25519Key() (crypto.PrivKey, crypto.PubKey, error) {
-	randseedstr := randSeed(64)
-	randseed, err := hex.DecodeString(randseedstr)
-	priv, pub, err := crypto.GenerateEd25519Key(
-		bytes.NewReader(randseed),
-	)
-	return priv, pub, err
-}
-
-func getKeypairFromFile(filename string) (crypto.PrivKey, crypto.PubKey, error) {
-	b, err := ioutil.ReadFile(filename)
-	if err != nil {
-		return nil, nil, ErrLoadKeypairFromFile
-	}
-
-	privb, err := base64.StdEncoding.DecodeString(string(b))
-	if err != nil {
-		return nil, nil, err
-	}
-	priv, err := crypto.UnmarshalPrivateKey(privb)
-	if err != nil {
-		return nil, nil, err
-	}
-	pub := priv.GetPublic()
-
-	return priv, pub, nil
-}
-
 //GetCountOfMap return the count of a map
 func GetCountOfMap(m *sync.Map) uint32 {
 	length := 0
@@ -161,4 +133,37 @@ func GetCountOfMap(m *sync.Map) uint32 {
 		return true
 	})
 	return uint32(length)
+}
+
+func verifyListenAddress(listen []string) error {
+	for _, v := range listen {
+		_, err := net.ResolveTCPAddr("tcp", v)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func checkPathConfig(path string) bool {
+	if path == "" {
+		return true
+	}
+
+	if _, err := os.Stat(path); os.IsExist(err) {
+		return true
+	}
+
+	return false
+}
+
+func checkPortAvailable(listen []string) error {
+	for _, v := range listen {
+		conn, err := net.DialTimeout("tcp", v, time.Second*1)
+		if err == nil {
+			conn.Close()
+			return ErrListenPortIsNotAvailable
+		}
+	}
+	return nil
 }

@@ -31,7 +31,7 @@ import (
 	"github.com/libp2p/go-libp2p-peerstore"
 	swarm "github.com/libp2p/go-libp2p-swarm"
 	"github.com/libp2p/go-libp2p/p2p/host/basic"
-	"github.com/multiformats/go-multiaddr"
+	multiaddr "github.com/multiformats/go-multiaddr"
 	"github.com/nebulasio/go-nebulas/common/pdeque"
 	"github.com/nebulasio/go-nebulas/util/logging"
 	"github.com/sirupsen/logrus"
@@ -47,7 +47,6 @@ const (
 
 // Error types
 var (
-	ErrPortInUse           = errors.New("the port is already in use")
 	ErrLoadKeypairFromFile = errors.New("failed to get Keypair from file")
 	ErrNodeIsRunning       = errors.New("node is already running")
 	ErrConnectToSeed       = errors.New("failed to say hello to seed")
@@ -55,117 +54,68 @@ var (
 
 // Node the node can be used as both the client and the server
 type Node struct {
-	netService *NetService
-	host       *basichost.BasicHost
-	id         peer.ID
-	peerstore  peerstore.Peerstore
-	// key: peer.ID: ip
-	streamCache   *pdeque.PriorityDeque
-	stream        *sync.Map
-	routeTable    *kbucket.RoutingTable
-	context       context.Context
-	version       uint8
-	config        *Config
-	running       bool
-	synchronizing bool
-	syncList      []string
-	// key: datachecksum value: peer.ID
+	quitCh         chan bool
+	netService     *NetService
+	host           *basichost.BasicHost
+	id             peer.ID
+	peerstore      peerstore.Peerstore
+	streamCache    *pdeque.PriorityDeque
+	stream         *sync.Map
+	routeTable     *kbucket.RoutingTable
+	context        context.Context
+	config         *Config
+	running        bool
+	synchronizing  bool
 	relayness      *lru.Cache
 	bootIds        []string
 	networkIDCache *lru.Cache
 	network        *swarm.Network
 }
 
-// NewNode start a local node and join the node to network
+// NewNode return new Node according to the config.
 func NewNode(config *Config) (*Node, error) {
-
-	node := &Node{}
-	node.config = config
-	node.context = context.Background()
-
-	err := node.init()
-	if err != nil {
+	// check Listen port.
+	if err := checkPortAvailable(config.Listen); err != nil {
 		logging.CLog().WithFields(logrus.Fields{
-			"err": err,
-		}).Error("Failed to init node")
+			"err":    err,
+			"listen": config.Listen,
+		}).Error("Listen port is not available.")
 		return nil, err
 	}
-	logging.CLog().WithFields(logrus.Fields{
-		"node.listen": node.config.Listen,
-	}).Info("Succeed to init node")
+
+	node := &Node{
+		quitCh:        make(chan bool, 10),
+		config:        config,
+		context:       context.Background(),
+		stream:        new(sync.Map),
+		streamCache:   pdeque.NewPriorityDeque(streamEliminationAlgorithm),
+		peerstore:     peerstore.NewPeerstore(),
+		synchronizing: false,
+		running:       false,
+	}
+	node.relayness, _ = lru.New(config.RelayCacheSize)
+	node.networkIDCache, _ = lru.New(config.StreamStoreSize)
+
+	initP2PNetworkKey(config, node)
+	initP2PRouteTable(config, node)
+	initP2PSwarmNetwork(config, node)
+
 	return node, nil
-}
-
-func (node *Node) init() error {
-
-	ctx := node.context
-
-	if err := node.checkPort(); err != nil {
-		return err
-	}
-	if err := node.generatePeerStore(); err != nil {
-		return err
-	}
-
-	//TODO change name Latency
-	node.routeTable = kbucket.NewRoutingTable(
-		node.config.Bucketsize,
-		kbucket.ConvertPeerID(node.id),
-		node.config.Latency,
-		node.peerstore,
-	)
-
-	node.routeTable.Update(node.id)
-
-	node.stream = new(sync.Map)
-	node.streamCache = pdeque.NewPriorityDeque(streamEliminationAlgorithm)
-	node.version = node.config.Version
-	node.synchronizing = false
-
-	node.relayness, _ = lru.New(node.config.RelayCacheSize)
-	node.networkIDCache, _ = lru.New(node.config.StreamStoreSize)
-
-	var multiaddrs []multiaddr.Multiaddr
-	for _, v := range node.config.Listen {
-		tcpAddr, err := net.ResolveTCPAddr("tcp", v)
-		if err != nil {
-			return err
-		}
-		// TODO: handle err
-		address, err := multiaddr.NewMultiaddr(
-			fmt.Sprintf(
-				"/ip4/%s/tcp/%d",
-				tcpAddr.IP,
-				tcpAddr.Port,
-			),
-		)
-		if err != nil {
-			return err
-		}
-		multiaddrs = append(multiaddrs, address)
-	}
-
-	var err error
-	node.network, err = swarm.NewNetwork(
-		ctx,
-		multiaddrs,
-		node.id,
-		node.peerstore,
-		nil,
-	)
-	return err
 }
 
 // Start host & route table discovery
 func (node *Node) Start() error {
 	if err := node.startHost(); err != nil {
-		logging.CLog().WithFields(logrus.Fields{
-			"err": err,
-		}).Error("Failed to start Host")
 		return err
 	}
+
 	go node.discovery(node.context)
 	go node.manageStreamStore()
+
+	logging.CLog().WithFields(logrus.Fields{
+		"id":                node.ID(),
+		"listening address": node.host.Addrs(),
+	}).Info("Succeed to start node.")
 
 	return nil
 }
@@ -174,18 +124,17 @@ func (node *Node) startHost() error {
 	// add nat manager
 	options := &basichost.HostOpts{}
 	options.NATManager = basichost.NewNATManager(node.network)
-
-	var err error
-	node.host, err = basichost.NewHost(node.context, node.network, options)
+	host, err := basichost.NewHost(node.context, node.network, options)
 	if err != nil {
+		logging.CLog().WithFields(logrus.Fields{
+			"err":            err,
+			"listen address": node.config.Listen,
+		}).Error("Failed to start node.")
 		return err
 	}
-	node.host.SetStreamHandler(ProtocolID, node.messageHandler)
+	host.SetStreamHandler(ProtocolID, node.messageHandler)
 
-	logging.CLog().WithFields(logrus.Fields{
-		"id":    node.ID(),
-		"addrs": node.host.Addrs(),
-	}).Info("Succeed to start node")
+	node.host = host
 	return nil
 }
 
@@ -209,8 +158,8 @@ func (node *Node) PeerStore() peerstore.Peerstore {
 	return node.peerstore
 }
 
-// GetSynchronizing return node synchronizing
-func (node *Node) GetSynchronizing() bool {
+// IsSynchronizing return node synchronizing
+func (node *Node) IsSynchronizing() bool {
 	return node.synchronizing
 }
 
@@ -224,40 +173,91 @@ func (node *Node) GetStream() *sync.Map {
 	return node.stream
 }
 
-func (node *Node) checkPort() error {
-	for _, v := range node.config.Listen {
-		conn, err := net.Dial("tcp", v)
-		if err == nil {
-			conn.Close()
-			return ErrPortInUse
-		}
+func initP2PNetworkKey(config *Config, node *Node) error {
+	// init p2p network key.
+	networkKey, err := LoadNetworkKeyFromFileOrCreateNew(config.PrivateKeyPath)
+	if err != nil {
+		logging.CLog().WithFields(logrus.Fields{
+			"err":        err,
+			"NetworkKey": config.PrivateKeyPath,
+		}).Error("Failed to load network private key from file.")
+		return err
 	}
+
+	node.id, err = peer.IDFromPublicKey(networkKey.GetPublic())
+	if err != nil {
+		logging.CLog().WithFields(logrus.Fields{
+			"err":        err,
+			"NetworkKey": config.PrivateKeyPath,
+		}).Error("Failed to generate ID from network key file.")
+		return err
+	}
+
+	node.peerstore.AddPubKey(node.id, networkKey.GetPublic())
+	node.peerstore.AddPrivKey(node.id, networkKey)
 
 	return nil
 }
 
-func (node *Node) generatePeerStore() error {
+func initP2PRouteTable(config *Config, node *Node) error {
+	// init p2p route table.
+	node.routeTable = kbucket.NewRoutingTable(
+		node.config.Bucketsize,
+		kbucket.ConvertPeerID(node.id),
+		node.config.Latency,
+		node.peerstore,
+	)
+	node.routeTable.Update(node.id)
 
-	// TODO if path is not set then generate random key, otherwise check weather the path is valid.
-	path := node.Config().PrivateKeyPath
-	priv, pub, err := getKeypairFromFile(path)
-	if err != nil {
-		priv, pub, err = GenerateEd25519Key()
+	return nil
+}
+
+func initP2PSwarmNetwork(config *Config, node *Node) error {
+	// init p2p multiaddr and swarm network.
+	multiaddrs := make([]multiaddr.Multiaddr, len(config.Listen))
+	for idx, v := range node.config.Listen {
+		tcpAddr, err := net.ResolveTCPAddr("tcp", v)
 		if err != nil {
+			logging.CLog().WithFields(logrus.Fields{
+				"err":            err,
+				"listen address": v,
+			}).Error("Invalid listen address.")
 			return err
 		}
+
+		addr, err := multiaddr.NewMultiaddr(
+			fmt.Sprintf(
+				"/ip4/%s/tcp/%d",
+				tcpAddr.IP,
+				tcpAddr.Port,
+			),
+		)
+		if err != nil {
+			logging.CLog().WithFields(logrus.Fields{
+				"err":            err,
+				"listen address": v,
+			}).Error("Invalid listen address.")
+			return err
+		}
+
+		multiaddrs[idx] = addr
 	}
 
-	// Obtain Peer ID from public key
-	node.id, err = peer.IDFromPublicKey(pub)
+	network, err := swarm.NewNetwork(
+		node.context,
+		multiaddrs,
+		node.id,
+		node.peerstore,
+		nil, // TODO: @robin integrate metrics.Reporter.
+	)
 	if err != nil {
+		logging.CLog().WithFields(logrus.Fields{
+			"err":            err,
+			"listen address": config.Listen,
+			"node.id":        node.id.Pretty(),
+		}).Error("Failed to create swarm network.")
 		return err
 	}
-
-	ps := peerstore.NewPeerstore()
-	ps.AddPrivKey(node.id, priv)
-	ps.AddPubKey(node.id, pub)
-	node.peerstore = ps
-
+	node.network = network
 	return nil
 }

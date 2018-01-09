@@ -19,6 +19,7 @@
 package p2p
 
 import (
+	"fmt"
 	"net"
 	"time"
 
@@ -68,35 +69,53 @@ type Neblet interface {
 	Config() nebletpb.Config
 }
 
-// NewP2PConfig new p2p network config
+// NewP2PConfig return new config object.
 func NewP2PConfig(n Neblet) *Config {
+	chainConf := n.Config().Chain
+	networkConf := n.Config().Network
+	config := NewConfigFromDefaults()
 
-	config := NewConfig()
-	network := n.Config().Network
-	config.Listen = network.Listen
-
-	config.PrivateKeyPath = network.PrivateKey
-
-	if chainID := n.Config().Chain.ChainId; chainID > 0 {
-		config.ChainID = chainID
+	// listen.
+	if len(networkConf.Listen) == 0 {
+		panic("Missing network.listen config.")
 	}
-
-	if networkID := network.NetworkId; networkID > 0 {
-		config.NetworkID = networkID
+	if err := verifyListenAddress(networkConf.Listen); err != nil {
+		panic(fmt.Sprintf("Invalid network.listen config: err is %s, config value is %s.", err, networkConf.Listen))
 	}
-	config.RoutingTableDir = n.Config().Chain.Datadir
+	config.Listen = networkConf.Listen
 
-	seeds := network.Seed
+	// private key path.
+	if checkPathConfig(networkConf.PrivateKey) == false {
+		panic(fmt.Sprintf("The network private key path %s is not exist.", networkConf.PrivateKey))
+	}
+	config.PrivateKeyPath = networkConf.PrivateKey
+
+	// Chain ID.
+	config.ChainID = chainConf.ChainId
+
+	// TODO: @robin set networkid when --debug.
+	config.NetworkID = networkConf.NetworkId
+
+	// routing table dir.
+	// TODO: @robin using diff dir for temp files.
+	if checkPathConfig(chainConf.Datadir) == false {
+		panic(fmt.Sprintf("The chain data directory %s is not exist.", chainConf.Datadir))
+	}
+	config.RoutingTableDir = chainConf.Datadir
+
+	// seed server address.
+	seeds := networkConf.Seed
 	if len(seeds) > 0 {
-		config.BootNodes = []multiaddr.Multiaddr{}
-		for _, v := range seeds {
-			seed, err := multiaddr.NewMultiaddr(v)
+		config.BootNodes = make([]multiaddr.Multiaddr, len(seeds))
+		for i, v := range seeds {
+			addr, err := multiaddr.NewMultiaddr(v)
 			if err != nil {
-				panic("Failed to parse seed node")
+				panic(fmt.Sprintf("Invalid seed address config: err is %s, config value is %s.", err, v))
 			}
-			config.BootNodes = append(config.BootNodes, seed)
+			config.BootNodes[i] = addr
 		}
 	}
+
 	return config
 }
 
@@ -116,8 +135,8 @@ func localHost() string {
 	return ""
 }
 
-// NewConfig defautConfig is the p2p network defaut config
-func NewConfig() *Config {
+// NewConfigFromDefaults return new config from defaults.
+func NewConfigFromDefaults() *Config {
 	return &Config{
 		DefaultBucketCapacity,
 		DefaultRoutingTableMaxLatency,

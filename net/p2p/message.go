@@ -109,7 +109,7 @@ func buildHeader(chainID uint32, msgName string, version byte, dataLength uint32
 func (node *Node) buildData(data []byte, msgName string) []byte {
 	dataChecksum := crc32.ChecksumIEEE(data)
 	reserved := []byte{0}
-	metaHeader := buildHeader(node.config.ChainID, msgName, node.version, uint32(len(data)), dataChecksum, reserved)
+	metaHeader := buildHeader(node.config.ChainID, msgName, node.config.Version, uint32(len(data)), dataChecksum, reserved)
 	headerChecksum := crc32.ChecksumIEEE(metaHeader)
 	metaHeader = append(metaHeader[:], byteutils.FromUint32(headerChecksum)...)
 	totalData := append(metaHeader[:], data...)
@@ -136,9 +136,9 @@ func (node *Node) verifyHeader(nebMsg *NebMessage) bool {
 		return false
 	}
 
-	if node.version != nebMsg.version {
+	if node.config.Version != nebMsg.version {
 		logging.VLog().WithFields(logrus.Fields{
-			"expect": node.version,
+			"expect": node.config.Version,
 			"actual": nebMsg.version,
 		}).Error("invalid version")
 		return false
