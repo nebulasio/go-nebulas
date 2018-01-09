@@ -21,6 +21,7 @@ package core
 import (
 	"hash/fnv"
 	"sort"
+	"strconv"
 
 	"github.com/nebulasio/go-nebulas/common/trie"
 	"github.com/nebulasio/go-nebulas/core/pb"
@@ -562,7 +563,7 @@ func (dc *DynastyContext) electNextDynastyOnBaseDynasty(baseDynastyID int64, nex
 
 		logging.VLog().WithFields(logrus.Fields{
 			"dynasty.members": newDynasty,
-			"dynasty.id":      i + 1,
+			"dynasty.id":      strconv.Itoa(int(i + 1)),
 		}).Info("Elected new dynasty")
 	}
 	return nil

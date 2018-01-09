@@ -346,6 +346,9 @@ func (pool *BlockPool) download(sender string, block *Block) error {
 	logging.VLog().WithFields(logrus.Fields{
 		"target": sender,
 		"block":  block,
+		"tail":   pool.bc.TailBlock(),
+		"gap":    strconv.Itoa(int(block.Timestamp()-pool.bc.TailBlock().Timestamp())) + "s",
+		"limit":  strconv.Itoa(int(DynastyInterval)) + "s",
 	}).Info("Send download request.")
 
 	return nil
@@ -425,21 +428,21 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 			return ErrMissingParentBlock
 		}
 		// do sync if there are so many empty slots.
-		if lb.block.Timestamp()-bc.TailBlock().Timestamp() > BlockInterval*DynastySize {
+		if lb.block.Timestamp()-bc.TailBlock().Timestamp() > DynastyInterval {
 
 			logging.CLog().WithFields(logrus.Fields{
 				"tail":    bc.tailBlock,
 				"offline": strconv.Itoa(int(lb.block.Timestamp()-bc.TailBlock().Timestamp())) + "s",
-				"limit":   strconv.Itoa(int(BlockInterval*DynastySize)) + "s",
+				"limit":   strconv.Itoa(int(DynastyInterval)) + "s",
 			}).Warn("offline too long, restart sync from others.")
 
 			bc.Neb().StartSync()
-			return nil
+			return ErrInvalidBlockCannotFindParentInLocalAndTrySync
 		}
 		if err := pool.download(sender, lb.block); err != nil {
 			return err
 		}
-		return ErrInvalidBlockCannotFindParentInLocal
+		return ErrInvalidBlockCannotFindParentInLocalAndTryDownload
 	}
 
 	// found in BlockChain, then we can verify the state root, and tell the Consensus all the tails.
