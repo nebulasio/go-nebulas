@@ -211,11 +211,11 @@ func TestBlockPool(t *testing.T) {
 
 	addr = &Address{validators[0]}
 	block6, _ := NewBlock(bc.ChainID(), addr, block5)
-	block6.header.timestamp = block3.header.timestamp + BlockInterval*DynastySize - 1
+	block6.header.timestamp = block3.header.timestamp + DynastyInterval - 1
 	block6.CollectTransactions(1)
 	block6.SetMiner(addr)
 	block6.Seal()
-	assert.Equal(t, pool.push("fake", block6), ErrInvalidBlockCannotFindParentInLocal)
+	assert.Equal(t, pool.push("fake", block6), ErrInvalidBlockCannotFindParentInLocalAndTryDownload)
 	downloadMsg := &corepb.DownloadBlock{
 		Hash: block6.Hash(),
 		Sign: block6.Signature(),
@@ -226,11 +226,11 @@ func TestBlockPool(t *testing.T) {
 	received = []byte{}
 	addr = &Address{validators[0]}
 	block7, _ := NewBlock(bc.ChainID(), addr, block5)
-	block7.header.timestamp = block3.header.timestamp + BlockInterval*DynastySize + 1
+	block7.header.timestamp = block3.header.timestamp + DynastyInterval + 1
 	block7.CollectTransactions(1)
 	block7.SetMiner(addr)
 	block7.Seal()
-	assert.Equal(t, pool.push("fake", block7), nil)
+	assert.Equal(t, pool.push("fake", block7), ErrInvalidBlockCannotFindParentInLocalAndTrySync)
 	assert.Equal(t, received, []byte{})
 }
 
