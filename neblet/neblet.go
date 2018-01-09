@@ -148,7 +148,6 @@ func (n *Neblet) Start() error {
 	n.blockChain.BlockPool().Start()
 	n.blockChain.TransactionPool().Start()
 	n.eventEmitter.Start()
-
 	n.syncManager.Start()
 
 	if n.config.Chain.StartMine {
@@ -157,6 +156,7 @@ func (n *Neblet) Start() error {
 			return err
 		}
 
+		// prompt for passphrase of miner
 		passphrase := n.config.Chain.Passphrase
 		if len(passphrase) == 0 {
 

@@ -113,12 +113,14 @@ func NewDpos(neblet Neblet) (*Dpos, error) {
 
 // Start start pow service.
 func (p *Dpos) Start() {
+	logging.CLog().Info("Start Dpos.")
 	p.mining = true
 	go p.blockLoop()
 }
 
 // Stop stop pow service.
 func (p *Dpos) Stop() {
+	logging.CLog().Info("Stop Dpos.")
 	p.mining = false
 	p.quitCh <- true
 }
