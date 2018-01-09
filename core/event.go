@@ -45,11 +45,8 @@ const (
 	// TopicLinkBlock the topic of link a block.
 	TopicLinkBlock = "chain.linkBlock"
 
-	// TopicExecuteTxFailed the topic of execute a transaction failed.
-	TopicExecuteTxFailed = "chain.executeTxFailed"
-
-	// TopicExecuteTxSuccess the topic of execute a transaction success.
-	TopicExecuteTxSuccess = "chain.executeTxSuccess"
+	// TopicTransactionExecute the topic of execute a transaction.
+	TopicTransactionExecute = "chain.transaction.execute"
 )
 
 // Event event structure.

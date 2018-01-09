@@ -325,7 +325,7 @@ func (tx *Transaction) VerifyExecution(block *Block) (*util.Uint128, error) {
 		executeTxErrCounter.Inc(1)
 
 		tx.gasConsumption(fromAcc, coinbaseAcc, gasUsed)
-		tx.triggerEvent(TopicExecuteTxFailed, block, err)
+		tx.triggerEvent(TopicTransactionExecute, block, err)
 		return gasUsed, nil
 	}
 
@@ -346,7 +346,7 @@ func (tx *Transaction) VerifyExecution(block *Block) (*util.Uint128, error) {
 		executeTxErrCounter.Inc(1)
 
 		tx.gasConsumption(fromAcc, coinbaseAcc, tx.gasLimit)
-		tx.triggerEvent(TopicExecuteTxFailed, block, err)
+		tx.triggerEvent(TopicTransactionExecute, block, err)
 		return tx.gasLimit, nil
 	}
 
@@ -382,7 +382,7 @@ func (tx *Transaction) VerifyExecution(block *Block) (*util.Uint128, error) {
 		}).Error("Failed to execute payload.")
 
 		executeTxErrCounter.Inc(1)
-		tx.triggerEvent(TopicExecuteTxFailed, block, err)
+		tx.triggerEvent(TopicTransactionExecute, block, err)
 	} else {
 		if fromAcc.Balance().Cmp(tx.value.Int) < 0 {
 			logging.VLog().WithFields(logrus.Fields{
@@ -392,7 +392,7 @@ func (tx *Transaction) VerifyExecution(block *Block) (*util.Uint128, error) {
 			}).Error("Failed to check balance sufficient.")
 
 			executeTxErrCounter.Inc(1)
-			tx.triggerEvent(TopicExecuteTxFailed, block, ErrInsufficientBalance)
+			tx.triggerEvent(TopicTransactionExecute, block, ErrInsufficientBalance)
 		} else {
 			// accept the transaction
 			fromAcc.SubBalance(tx.value)
@@ -400,7 +400,7 @@ func (tx *Transaction) VerifyExecution(block *Block) (*util.Uint128, error) {
 
 			executeTxCounter.Inc(1)
 			// record tx execution success event
-			tx.triggerEvent(TopicExecuteTxSuccess, block, nil)
+			tx.triggerEvent(TopicTransactionExecute, block, nil)
 		}
 	}
 
@@ -414,21 +414,17 @@ func (tx *Transaction) gasConsumption(from, coinbase state.Account, gas *util.Ui
 }
 
 func (tx *Transaction) triggerEvent(topic string, block *Block, err error) {
-	var txData []byte
-	pbTx, _ := tx.ToProto()
-	if err != nil {
-		var (
-			txErrEvent struct {
-				Transaction proto.Message `json:"transaction"`
-				Error       error         `json:"error"`
-			}
-		)
-		txErrEvent.Transaction = pbTx
-		txErrEvent.Error = err
-		txData, _ = json.Marshal(txErrEvent)
-	} else {
-		txData, _ = json.Marshal(pbTx)
-	}
+	var (
+		txEvent struct {
+			Transaction string `json:"transaction"`
+			Status      bool   `json:"status"`
+			Error       error  `json:"error"`
+		}
+	)
+	txEvent.Transaction = tx.String()
+	txEvent.Status = err == nil
+	txEvent.Error = err
+	txData, _ := json.Marshal(txEvent)
 
 	event := &Event{Topic: topic,
 		Data: string(txData)}
