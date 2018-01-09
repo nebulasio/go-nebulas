@@ -677,7 +677,7 @@ func (s *APIService) StartMine(ctx context.Context, req *rpcpb.StartMineRequest)
 	neb := s.server.Neblet()
 
 	if neb.Consensus().Mining() {
-		return nil, errors.New("consensus have started")
+		return nil, errors.New("consensus has already been started")
 	}
 
 	addr, err := core.AddressParse(neb.Config().Chain.Miner)
@@ -710,7 +710,10 @@ func (s *APIService) StopMine(ctx context.Context, req *rpcpb.NonParamsRequest) 
 	if err != nil {
 		return nil, err
 	}
-	neb.AccountManager().Lock(addr)
+	err = neb.AccountManager().Lock(addr)
+	if err != nil {
+		return nil, err
+	}
 
 	neb.Consensus().Stop()
 	return &rpcpb.MineResponse{Result: true}, nil

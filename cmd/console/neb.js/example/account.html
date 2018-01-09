@@ -5,12 +5,12 @@
 <!-- <script type="text/javascript" src="../node_modules/bignumber.js/bignumber.min.js"></script> -->
 <script type="text/javascript" src="../dist/neb.js"></script>
 <script type="text/javascript">
-   
+
     var Neb = require('neb');
     var neb = new Neb();
+    neb.setRequest(new Neb.HttpRequest("http://localhost:8685"))
 
     function createExampleAccount() {
-        // var account = web3.personal.newAccount('111111');
         var allAccounts = neb.api.accounts();
         var content = "";
         for (var i = 0; i < allAccounts.addresses.length; i++) {

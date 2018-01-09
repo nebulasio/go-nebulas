@@ -73,8 +73,17 @@ Admin.prototype.getDynasty = function (callback) {
 };
 
 Admin.prototype.getDelegateVoters = function (delegatee, callback) {
-    var params = { "delegatee": delegatee }
+    var params = { "delegatee": delegatee };
     return this.request("post", "/v1/admin/delegateVoters", params, callback);
+};
+
+Admin.prototype.startMine = function (passphrase, callback) {
+    var params = { "passphrase": passphrase };
+    return this.request("post", "/v1/admin/startMine", params, callback);
+};
+
+Admin.prototype.stopMine = function (callback) {
+    return this.request("get", "/v1/admin/stopMine", null, callback);
 };
 
 Admin.prototype.request = function (method, api, params, callback) {

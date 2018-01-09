@@ -211,8 +211,7 @@ service AdminService {
 
     rpc StopMine (NonParamsRequest) returns (MineResponse) {
         option (google.api.http) = {
-			post: "/v1/admin/stopMine"
-            body: "*"
+			get: "/v1/admin/stopMine"
 		};
     }
 
