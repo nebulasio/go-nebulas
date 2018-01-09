@@ -290,7 +290,7 @@ func (pool *BlockPool) Push(block *Block) error {
 	defer pool.mu.Unlock()
 	block, err := mockBlockFromNetwork(block)
 	if err != nil {
-		return nil
+		return err
 	}
 	pushErr := pool.push(NoSender, block)
 	if pushErr != nil && pushErr != ErrDuplicatedBlock {
@@ -306,7 +306,7 @@ func (pool *BlockPool) PushAndRelay(sender string, block *Block) error {
 
 	block, err := mockBlockFromNetwork(block)
 	if err != nil {
-		return nil
+		return err
 	}
 	if err := pool.push(sender, block); err != nil {
 		return err
@@ -322,7 +322,7 @@ func (pool *BlockPool) PushAndBroadcast(block *Block) error {
 
 	block, err := mockBlockFromNetwork(block)
 	if err != nil {
-		return nil
+		return err
 	}
 	if err := pool.push(NoSender, block); err != nil {
 		return err
