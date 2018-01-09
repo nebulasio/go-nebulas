@@ -1,4 +1,4 @@
-// Copyright (C) 2017 go-nebulas authors
+// Copyright (C) 2018 go-nebulas authors
 //
 // This file is part of the go-nebulas library.
 //
@@ -15,24 +15,37 @@
 // You should have received a copy of the GNU General Public License
 // along with the go-nebulas library.  If not, see <http://www.gnu.org/licenses/>.
 //
-syntax = "proto3";
-package netpb;
 
-message Hello {
-    string node_id = 1;
-    string client_version = 2;
+package netpb
+
+import (
+	"github.com/gogo/protobuf/proto"
+	"github.com/nebulasio/go-nebulas/util/logging"
+	"github.com/sirupsen/logrus"
+)
+
+func HelloMessageFromProto(data []byte) (*Hello, error) {
+	pb := new(Hello)
+
+	if err := proto.Unmarshal(data, pb); err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"err": err,
+		}).Debug("Invalid Hello proto message.")
+		return nil, err
+	}
+
+	return pb, nil
 }
 
-message OK {
-    string node_id = 1;
-    string client_version = 2;
-}
+func OKMessageFromProto(data []byte) (*OK, error) {
+	pb := new(OK)
 
-message Peers {
-    repeated PeerInfo peers = 1;
-}
+	if err := proto.Unmarshal(data, pb); err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"err": err,
+		}).Debug("Invalid OK proto message.")
+		return nil, err
+	}
 
-message PeerInfo {
-    string id = 1;
-    repeated string addrs = 2;
+	return pb, nil
 }

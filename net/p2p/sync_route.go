@@ -31,12 +31,6 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// const message name
-const (
-	SyncRoute      = "syncroute"
-	SyncRouteReply = "resyncroute"
-)
-
 // SyncRoutes sync routing table from a peer
 func (node *Node) SyncRoutes(pid peer.ID) {
 	addrs := node.peerstore.PeerInfo(pid).Addrs

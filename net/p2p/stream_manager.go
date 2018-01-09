@@ -1,4 +1,4 @@
-// Copyright (C) 2017 go-nebulas authors
+// Copyright (C) 2018 go-nebulas authors
 //
 // This file is part of the go-nebulas library.
 //
@@ -15,24 +15,44 @@
 // You should have received a copy of the GNU General Public License
 // along with the go-nebulas library.  If not, see <http://www.gnu.org/licenses/>.
 //
-syntax = "proto3";
-package netpb;
 
-message Hello {
-    string node_id = 1;
-    string client_version = 2;
+package p2p
+
+import (
+	"sync"
+
+	libnet "github.com/libp2p/go-libp2p-net"
+)
+
+type StreamManager struct {
+	quitCh     chan bool
+	allStreams *sync.Map
 }
 
-message OK {
-    string node_id = 1;
-    string client_version = 2;
+func NewStreamManager() *StreamManager {
+	return &StreamManager{
+		quitCh:     make(chan bool, 1),
+		allStreams: new(sync.Map),
+	}
 }
 
-message Peers {
-    repeated PeerInfo peers = 1;
+func (sm *StreamManager) Start() {
+
 }
 
-message PeerInfo {
-    string id = 1;
-    repeated string addrs = 2;
+func (sm *StreamManager) Stop() {
+
+}
+
+func (sm *StreamManager) Add(node *Node, s libnet.Stream) {
+	sID := s.Conn().RemotePeer()
+	stream := NewStream(sID, s, node)
+
+	sm.allStreams.Store(sID, stream)
+	stream.StartLoop()
+}
+
+func (sm *StreamManager) Remove(s *Stream) {
+	sID := s.pid
+	sm.allStreams.Delete(sID)
 }

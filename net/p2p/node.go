@@ -20,19 +20,17 @@ package p2p
 
 import (
 	"context"
+	"crypto"
 	"errors"
 	"fmt"
 	"net"
-	"sync"
 
 	lru "github.com/hashicorp/golang-lru"
-	"github.com/libp2p/go-libp2p-kbucket"
+	libnet "github.com/libp2p/go-libp2p-net"
 	"github.com/libp2p/go-libp2p-peer"
-	"github.com/libp2p/go-libp2p-peerstore"
 	swarm "github.com/libp2p/go-libp2p-swarm"
 	"github.com/libp2p/go-libp2p/p2p/host/basic"
 	multiaddr "github.com/multiformats/go-multiaddr"
-	"github.com/nebulasio/go-nebulas/common/pdeque"
 	"github.com/nebulasio/go-nebulas/util/logging"
 	"github.com/sirupsen/logrus"
 )
@@ -54,22 +52,19 @@ var (
 
 // Node the node can be used as both the client and the server
 type Node struct {
-	quitCh         chan bool
-	netService     *NetService
-	host           *basichost.BasicHost
-	id             peer.ID
-	peerstore      peerstore.Peerstore
-	streamCache    *pdeque.PriorityDeque
-	stream         *sync.Map
-	routeTable     *kbucket.RoutingTable
-	context        context.Context
-	config         *Config
-	running        bool
-	synchronizing  bool
-	relayness      *lru.Cache
-	bootIds        []string
-	networkIDCache *lru.Cache
-	network        *swarm.Network
+	running       bool
+	synchronizing bool
+	quitCh        chan bool
+	netService    *NetService
+	config        *Config
+	context       context.Context
+	id            peer.ID
+	networkKey    crypto.PrivateKey
+	relayness     *lru.Cache
+	network       *swarm.Network
+	host          *basichost.BasicHost
+	streamManager *StreamManager
+	routeTable    *RouteTable
 }
 
 // NewNode return new Node according to the config.
@@ -87,9 +82,7 @@ func NewNode(config *Config) (*Node, error) {
 		quitCh:        make(chan bool, 10),
 		config:        config,
 		context:       context.Background(),
-		stream:        new(sync.Map),
-		streamCache:   pdeque.NewPriorityDeque(streamEliminationAlgorithm),
-		peerstore:     peerstore.NewPeerstore(),
+		streamManager: NewStreamManager(),
 		synchronizing: false,
 		running:       false,
 	}
@@ -112,6 +105,8 @@ func (node *Node) Start() error {
 	go node.discovery(node.context)
 	go node.manageStreamStore()
 
+	node.streamManager.Start()
+
 	logging.CLog().WithFields(logrus.Fields{
 		"id":                node.ID(),
 		"listening address": node.host.Addrs(),
@@ -132,7 +127,7 @@ func (node *Node) startHost() error {
 		}).Error("Failed to start node.")
 		return err
 	}
-	host.SetStreamHandler(ProtocolID, node.messageHandler)
+	host.SetStreamHandler(ProtocolID, node.onStreamConnected)
 
 	node.host = host
 	return nil
@@ -153,11 +148,6 @@ func (node *Node) ID() string {
 	return node.id.Pretty()
 }
 
-// PeerStore return node peerstore
-func (node *Node) PeerStore() peerstore.Peerstore {
-	return node.peerstore
-}
-
 // IsSynchronizing return node synchronizing
 func (node *Node) IsSynchronizing() bool {
 	return node.synchronizing
@@ -166,11 +156,6 @@ func (node *Node) IsSynchronizing() bool {
 // SetSynchronizing set node synchronizing.
 func (node *Node) SetSynchronizing(synchronizing bool) {
 	node.synchronizing = synchronizing
-}
-
-// GetStream return node stream.
-func (node *Node) GetStream() *sync.Map {
-	return node.stream
 }
 
 func initP2PNetworkKey(config *Config, node *Node) error {
@@ -184,6 +169,7 @@ func initP2PNetworkKey(config *Config, node *Node) error {
 		return err
 	}
 
+	node.networkKey = networkKey
 	node.id, err = peer.IDFromPublicKey(networkKey.GetPublic())
 	if err != nil {
 		logging.CLog().WithFields(logrus.Fields{
@@ -193,22 +179,12 @@ func initP2PNetworkKey(config *Config, node *Node) error {
 		return err
 	}
 
-	node.peerstore.AddPubKey(node.id, networkKey.GetPublic())
-	node.peerstore.AddPrivKey(node.id, networkKey)
-
 	return nil
 }
 
 func initP2PRouteTable(config *Config, node *Node) error {
 	// init p2p route table.
-	node.routeTable = kbucket.NewRoutingTable(
-		node.config.Bucketsize,
-		kbucket.ConvertPeerID(node.id),
-		node.config.Latency,
-		node.peerstore,
-	)
-	node.routeTable.Update(node.id)
-
+	node.routeTable = NewRouteTable(config, node.id, node.networkKey)
 	return nil
 }
 
@@ -260,4 +236,8 @@ func initP2PSwarmNetwork(config *Config, node *Node) error {
 	}
 	node.network = network
 	return nil
+}
+
+func (node *Node) onStreamConnected(s libnet.Stream) {
+	node.streamManager.Add(node, s)
 }
