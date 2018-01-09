@@ -163,8 +163,7 @@ func (pool *BlockPool) handleBlock(msg net.Message) {
 			"diff":  diff,
 			"limit": AcceptedNetWorkDelay,
 			"err":   "timeout",
-		}).Warn("Failed to accept a timeout block.")
-		return
+		}).Warn("Found a timeout block.")
 	}
 
 	logging.VLog().WithFields(logrus.Fields{

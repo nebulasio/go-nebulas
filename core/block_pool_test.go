@@ -286,7 +286,7 @@ func TestHandleBlock(t *testing.T) {
 	data, err = proto.Marshal(pbMsg)
 	msg = messages.NewBaseMessage(MessageTypeNewBlock, "from", data)
 	bc.bkPool.handleBlock(msg)
-	assert.Nil(t, bc.GetBlock(block.Hash()))
+	assert.NotNil(t, bc.GetBlock(block.Hash()))
 
 	block, err = bc.NewBlock(from)
 	assert.Nil(t, err)

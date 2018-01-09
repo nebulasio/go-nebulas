@@ -22,6 +22,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"encoding/hex"
+	"hash/fnv"
 )
 
 // Hash by Sha3-256
@@ -156,4 +157,15 @@ func Equal(a []byte, b []byte) bool {
 		}
 	}
 	return true
+}
+
+// Less return if a < b
+func Less(a []byte, b []byte) bool {
+	hasherA := fnv.New32a()
+	hasherA.Write(a)
+	scoreA := hasherA.Sum32()
+	hasherB := fnv.New32a()
+	hasherB.Write(b)
+	scoreB := hasherB.Sum32()
+	return scoreA < scoreB
 }

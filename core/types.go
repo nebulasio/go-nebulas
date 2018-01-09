@@ -20,7 +20,6 @@ package core
 
 import (
 	"errors"
-	"hash/fnv"
 	"strconv"
 
 	"github.com/nebulasio/go-nebulas/core/pb"
@@ -111,17 +110,6 @@ const (
 type Consensus interface {
 	VerifyBlock(block *Block, parent *Block) error
 	FastVerifyBlock(block *Block) error
-}
-
-// Less return if a < b
-func Less(a *Block, b *Block) bool {
-	hasherA := fnv.New32a()
-	hasherA.Write(a.Hash())
-	scoreA := hasherA.Sum32()
-	hasherB := fnv.New32a()
-	hasherB.Write(b.Hash())
-	scoreB := hasherB.Sum32()
-	return scoreA < scoreB
 }
 
 // Neblet interface breaks cycle import dependency and hides unused services.

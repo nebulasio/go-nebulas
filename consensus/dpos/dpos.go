@@ -125,7 +125,7 @@ func less(a *core.Block, b *core.Block) bool {
 	if a.Height() != b.Height() {
 		return a.Height() < b.Height()
 	}
-	return core.Less(a, b)
+	return byteutils.Less(a.Hash(), b.Hash())
 }
 
 // do fork choice
@@ -271,7 +271,7 @@ func (p *Dpos) mintBlock(now int64) error {
 	if !p.canMining {
 		logging.VLog().WithFields(logrus.Fields{
 			"now": now,
-		}).Warn("Sync is not over yet.")
+		}).Warn("Mining is disabled.")
 		return ErrCannotMintBlockNow
 	}
 

@@ -21,6 +21,8 @@ package dpos
 import (
 	"testing"
 
+	"github.com/nebulasio/go-nebulas/util/byteutils"
+
 	"time"
 
 	"github.com/gogo/protobuf/proto"
@@ -289,7 +291,7 @@ func TestForkChoice(t *testing.T) {
 	assert.Equal(t, len(dpos.chain.DetachedTailBlocks()), 2)
 	dpos.forkChoice()
 	tail := block11
-	if core.Less(block11, block12) {
+	if byteutils.Less(block11.Hash(), block12.Hash()) {
 		tail = block12
 	}
 	assert.Equal(t, dpos.chain.TailBlock().Hash(), tail.Hash())
