@@ -28,8 +28,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// LoadFileRotateHooker enable log file output
-func LoadFileRotateHooker(logger *logrus.Logger, path string) {
+// NewFileRotateHooker enable log file output
+func NewFileRotateHooker(path string) logrus.Hook {
 	if len(path) == 0 {
 		panic("Failed to parse logger folder:" + path + ".")
 	}
@@ -39,12 +39,11 @@ func LoadFileRotateHooker(logger *logrus.Logger, path string) {
 	if err := os.MkdirAll(path, 0700); err != nil {
 		panic("Failed to create logger folder:" + path + ". err:" + err.Error())
 	}
-	filePath := path + "/neb-%Y%m%d%H.log"
+	filePath := path + "/neb-%Y%m%d-%H.log"
 	linkPath := path + "/neb.log"
 	writer, err := rotatelogs.New(
 		filePath,
 		rotatelogs.WithLinkName(linkPath),
-		//rotatelogs.WithMaxAge(time.Duration(604800) * time.Second),
 		rotatelogs.WithRotationTime(time.Duration(3600)*time.Second),
 	)
 
@@ -59,5 +58,5 @@ func LoadFileRotateHooker(logger *logrus.Logger, path string) {
 		logrus.ErrorLevel: writer,
 		logrus.FatalLevel: writer,
 	}, nil)
-	logger.Hooks.Add(hook)
+	return hook
 }

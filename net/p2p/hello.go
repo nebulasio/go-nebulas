@@ -58,7 +58,7 @@ func (node *Node) sayHelloToSeed(seed ma.Multiaddr) error {
 	)
 	if node.host.Addrs()[0].String() != addr.String() {
 		if err := node.hello(ID); err != nil {
-			logging.VLog().WithFields(logrus.Fields{
+			logging.CLog().WithFields(logrus.Fields{
 				"seed": seed,
 				"err":  err,
 			}).Error("Failed to say hello to seed")

@@ -162,7 +162,9 @@ func (bc *BlockChain) EventEmitter() *EventEmitter {
 func (bc *BlockChain) SetTailBlock(newTail *Block) error {
 	oldTail := bc.tailBlock
 	bc.tailBlock = newTail
-	bc.storeTailToStorage(bc.tailBlock)
+	if err := bc.storeTailToStorage(bc.tailBlock); err != nil {
+		return err
+	}
 	// giveBack txs in reverted blocks to tx pool
 	ancestor, err := bc.FindCommonAncestorWithTail(oldTail)
 	if err != nil {
@@ -455,8 +457,8 @@ func (bc *BlockChain) storeBlockToStorage(block *Block) error {
 	return nil
 }
 
-func (bc *BlockChain) storeTailToStorage(block *Block) {
-	bc.storage.Put([]byte(Tail), block.Hash())
+func (bc *BlockChain) storeTailToStorage(block *Block) error {
+	return bc.storage.Put([]byte(Tail), block.Hash())
 }
 
 func (bc *BlockChain) loadTailFromStorage() (*Block, error) {
@@ -471,7 +473,9 @@ func (bc *BlockChain) loadTailFromStorage() (*Block, error) {
 			return nil, err
 		}
 
-		bc.storeTailToStorage(genesis)
+		if err := bc.storeTailToStorage(genesis); err != nil {
+			return nil, err
+		}
 
 		return genesis, nil
 	}

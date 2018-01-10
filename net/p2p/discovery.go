@@ -131,7 +131,7 @@ func (node *Node) loadRoutingTableFromDisk() {
 		)
 
 		if err := node.hello(ID); err != nil {
-			logging.VLog().WithFields(logrus.Fields{
+			logging.CLog().WithFields(logrus.Fields{
 				"ID":    ID,
 				"addr":  addr,
 				"error": err,
@@ -185,7 +185,7 @@ func (node *Node) syncRoutingTable() {
 				defer wg.Done()
 				err := node.sayHelloToSeed(seed)
 				if err != nil {
-					logging.VLog().WithFields(logrus.Fields{
+					logging.CLog().WithFields(logrus.Fields{
 						"seed": seed,
 						"err":  err,
 					}).Error("Failed to say hello to seed")
@@ -218,12 +218,12 @@ func (node *Node) sayHelloToSeeds() {
 		go func(bootNode ma.Multiaddr) {
 			err := node.sayHelloToSeed(bootNode)
 			if err != nil {
-				logging.VLog().WithFields(logrus.Fields{
+				logging.CLog().WithFields(logrus.Fields{
 					"id":  bootNode,
 					"err": err,
 				}).Error("Failed to say hello to seed")
 			} else {
-				logging.VLog().WithFields(logrus.Fields{
+				logging.CLog().WithFields(logrus.Fields{
 					"id": bootNode,
 				}).Info("succeed to say hello to seed")
 			}

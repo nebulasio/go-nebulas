@@ -162,7 +162,7 @@ func (node *Node) handleSyncRouteReplyMsg(data []byte, pid peer.ID, s libnet.Str
 			peerstore.ProviderAddrTTL,
 		)
 		if err := node.hello(id); err != nil {
-			logging.VLog().WithFields(logrus.Fields{
+			logging.CLog().WithFields(logrus.Fields{
 				"id":  id.Pretty(),
 				"err": err,
 			}).Error("Failed to say hello to the peer")
