@@ -65,41 +65,38 @@ func (node *Node) distribute(name string, msg net.Serializable, relay bool) {
 		relayness = peers.([]peer.ID)
 	}
 
-	var allNode []peer.ID
 	transfer := node.routeTable.ListPeers()
-	if relay {
-		allNode = node.nodeNotInRelayness(relayness, node.routeTable.ListPeers())
-		transfer = allNode
-	}
+	// if relay {
+	// 	transfer = node.nodeNotInRelayness(relayness, transfer)
+	// }
 
 	logging.VLog().WithFields(logrus.Fields{
-		"msg":      msg,
-		"transfer": transfer,
+		"msg":        msg,
+		"transfer":   transfer,
+		"node_count": len(transfer),
 	}).Info("distribute msg")
 
+	// if relay {
+	// 	// notice the node in my route table that i have received the message, when others received the message they won`t relay to me.
+	// 	node.doNotice(transfer, relayness, dataChecksum)
+	// }
 	node.doMsgTransfer(transfer, relayness, dataChecksum, name, data)
-
-	if relay {
-		// notice the node in my route table that i have received the message, when others received the message they won`t relay to me.
-		node.doNotice(allNode, relayness, dataChecksum)
-	}
 }
 
 func (node *Node) doMsgTransfer(transfer []peer.ID, relayness []peer.ID, dataChecksum uint32, name string, data []byte) {
 	for i := 0; i < len(transfer); i++ {
 		nodeID := transfer[i]
-		if InArray(nodeID, relayness) {
-			logging.VLog().WithFields(logrus.Fields{
-				"nodeID": nodeID.Pretty(),
-			}).Info("target node has received the same message")
-			continue
-		}
+		// if InArray(nodeID, relayness) {
+		// 	logging.VLog().WithFields(logrus.Fields{
+		// 		"nodeID": nodeID.Pretty(),
+		// 	}).Info("target node has received the same message")
+		// 	continue
+		// }
 		addrs := node.peerstore.PeerInfo(nodeID).Addrs
 		if len(addrs) == 0 || node.host.Addrs()[0].String() == addrs[0].String() {
 			continue
 		}
 		if len(addrs) > 0 {
-			node.relayness.Add(dataChecksum, append(relayness, nodeID))
 			go node.sendMsg(name, data, nodeID.Pretty())
 		}
 	}
@@ -113,7 +110,6 @@ func (node *Node) doNotice(nodes []peer.ID, relayness []peer.ID, dataChecksum ui
 			continue
 		}
 		if len(addrs) > 0 {
-			node.relayness.Add(dataChecksum, append(relayness, nodeID))
 			go node.sendMsg(NewHashMsg, byteutils.FromUint32(dataChecksum), nodeID.Pretty())
 		}
 	}
