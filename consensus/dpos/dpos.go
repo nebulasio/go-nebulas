@@ -172,7 +172,7 @@ func (p *Dpos) forkChoice() {
 		logging.CLog().WithFields(logrus.Fields{
 			"old tail": tailBlock,
 			"new tail": newTailBlock,
-		}).Info("Same blocks, no need to change.")
+		}).Info("Current tail is best, no need to change.")
 	} else {
 		err := bc.SetTailBlock(newTailBlock)
 		if err != nil {

@@ -132,28 +132,6 @@ func NewBlockChain(neb Neblet) (*BlockChain, error) {
 	bc.bkPool.setBlockChain(bc)
 	bc.txPool.setBlockChain(bc)
 
-	// Temp, build index for old version
-	cur := bc.tailBlock
-	for cur != nil && !CheckGenesisBlock(cur) {
-		err := bc.storage.Put(byteutils.FromUint64(cur.height), cur.Hash())
-		if err != nil {
-			logging.CLog().WithFields(logrus.Fields{
-				"block": cur,
-			}).Error("Failed to build height index")
-			return nil, err
-		}
-		cur = bc.GetBlock(cur.header.parentHash)
-		if cur == nil {
-			logging.CLog().WithFields(logrus.Fields{
-				"block": cur,
-			}).Error("Failed to get parent block")
-			return nil, ErrMissingParentBlock
-		}
-		logging.CLog().WithFields(logrus.Fields{
-			"block": cur,
-		}).Info("Succeed to build height index")
-	}
-
 	return bc, nil
 }
 
