@@ -146,16 +146,6 @@ func (node *Node) messageHandler(s libnet.Stream) {
 					m.(metrics.Meter).Mark(1)
 				}
 
-				streamStore, ok := node.stream.Load(key)
-				if !ok {
-					node.Bye(pid, []ma.Multiaddr{addrs}, s, key)
-					return
-				}
-				if streamStore.(*StreamStore).conn != SOK {
-					logging.VLog().Error("peer not shake hand before send message.")
-					node.Bye(pid, []ma.Multiaddr{addrs}, s, key)
-					return
-				}
 				node.netService.PutMessage(messages.NewBaseMessage(msg.msgName, pid.Pretty(), msg.data))
 
 				peers, exists := node.relayness.Get(byteutils.Uint32(msg.dataChecksum))
