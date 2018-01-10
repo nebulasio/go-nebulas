@@ -411,11 +411,12 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 		lb.LinkParent(plb)
 
 		for plb.parentBlock != nil {
-			logging.VLog().WithFields(logrus.Fields{
-				"block": plb.block,
-			}).Warn("Found unlinked ancestor.")
 			plb = plb.parentBlock
 		}
+
+		logging.VLog().WithFields(logrus.Fields{
+			"block": plb.block,
+		}).Warn("Found unlinked ancestor.")
 
 		if err := pool.download(sender, plb.block); err != nil {
 			logging.VLog().WithFields(logrus.Fields{
