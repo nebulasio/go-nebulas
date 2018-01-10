@@ -260,9 +260,10 @@ func (m *Manager) startMsgHandle() {
 
 				if data.batch < batch {
 					logging.VLog().WithFields(logrus.Fields{
-						"from":   data.from,
-						"blocks": data.Blocks(),
-						"batch":  data.batch,
+						"from":       data.from,
+						"blocks":     data.Blocks(),
+						"data.batch": data.batch,
+						"batch":      batch,
 					}).Info("batch is error")
 					continue
 				}
@@ -270,9 +271,10 @@ func (m *Manager) startMsgHandle() {
 				if len(blocks) == 0 {
 					msgErrCount++
 					logging.VLog().WithFields(logrus.Fields{
-						"from":   data.from,
-						"blocks": blocks,
-						"batch":  data.batch,
+						"from":       data.from,
+						"blocks":     blocks,
+						"data.batch": data.batch,
+						"batch":      batch,
 					}).Info("Reveived sync reply message is wrong")
 
 					if msgErrCount >= p2p.LimitToSync/2 {
@@ -283,9 +285,10 @@ func (m *Manager) startMsgHandle() {
 				}
 
 				logging.VLog().WithFields(logrus.Fields{
-					"from":   data.from,
-					"blocks": blocks,
-					"batch":  data.batch,
+					"from":       data.from,
+					"blocks":     blocks,
+					"data.batch": data.batch,
+					"batch":      batch,
 				}).Info("Reveived sync reply message")
 
 				if len(blocks) > 0 && len(m.cacheList) < p2p.LimitToSync {

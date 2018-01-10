@@ -66,11 +66,13 @@ func (node *Node) messageHandler(s libnet.Stream) {
 			n, err := s.Read(sdata)
 			if err != nil {
 				logging.VLog().WithFields(logrus.Fields{
+					"count": n,
 					"err":   err,
 					"addrs": addrs,
-				}).Error("Connectoin closed.")
-				node.Bye(pid, []ma.Multiaddr{addrs}, s, key)
-				return
+				}).Warn("Read EOF.")
+				// node.Bye(pid, []ma.Multiaddr{addrs}, s, key)
+				// return
+				continue
 			}
 			streamBuffer = append(streamBuffer, sdata[:n]...)
 
