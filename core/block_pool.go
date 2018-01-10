@@ -171,12 +171,7 @@ func (pool *BlockPool) handleBlock(msg net.Message) {
 		"type":  msg.MessageType(),
 	}).Info("Received a new block.")
 
-	if err := pool.PushAndRelay(msg.MessageFrom(), block); err != nil {
-		logging.VLog().WithFields(logrus.Fields{
-			"block": block,
-			"err":   err,
-		}).Error("Failed to push a block into block pool.")
-	}
+	pool.PushAndRelay(msg.MessageFrom(), block)
 }
 
 func (pool *BlockPool) handleDownloadedBlock(msg net.Message) {
@@ -442,14 +437,12 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 		}
 		// do sync if there are so many empty slots.
 		if lb.block.Timestamp()-bc.TailBlock().Timestamp() > DynastyInterval {
-
+			bc.Neb().StartSync()
 			logging.CLog().WithFields(logrus.Fields{
 				"tail":    bc.tailBlock,
 				"offline": strconv.Itoa(int(lb.block.Timestamp()-bc.TailBlock().Timestamp())) + "s",
 				"limit":   strconv.Itoa(int(DynastyInterval)) + "s",
 			}).Warn("Offline too long, restart sync from others.")
-
-			bc.Neb().StartSync()
 			return ErrInvalidBlockCannotFindParentInLocalAndTrySync
 		}
 		if err := pool.download(sender, lb.block); err != nil {

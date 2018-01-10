@@ -159,13 +159,14 @@ func Equal(a []byte, b []byte) bool {
 	return true
 }
 
-// Less return if a < b
-func Less(a []byte, b []byte) bool {
+// HashBytes return bytes hash
+func HashBytes(a []byte) uint32 {
 	hasherA := fnv.New32a()
 	hasherA.Write(a)
-	scoreA := hasherA.Sum32()
-	hasherB := fnv.New32a()
-	hasherB.Write(b)
-	scoreB := hasherB.Sum32()
-	return scoreA < scoreB
+	return hasherA.Sum32()
+}
+
+// Less return if a < b
+func Less(a []byte, b []byte) bool {
+	return HashBytes(a) < HashBytes(b)
 }

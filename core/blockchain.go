@@ -34,6 +34,13 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// storage: key -> value
+// scheme -> scheme version
+// genesis hash -> genesis block
+// blockchain_tail -> tail block hash
+// block hash -> block
+// height -> block hash
+
 // BlockChain the BlockChain core type.
 type BlockChain struct {
 	chainID uint32
@@ -158,42 +165,23 @@ func (bc *BlockChain) EventEmitter() *EventEmitter {
 	return bc.eventEmitter
 }
 
-// SetTailBlock set tail block.
-func (bc *BlockChain) SetTailBlock(newTail *Block) error {
-	oldTail := bc.tailBlock
-	bc.tailBlock = newTail
-	if err := bc.storeTailToStorage(bc.tailBlock); err != nil {
-		return err
-	}
-	// giveBack txs in reverted blocks to tx pool
-	ancestor, err := bc.FindCommonAncestorWithTail(oldTail)
-	if err != nil {
-		return err
-	}
-	if ancestor.Hash().Equals(oldTail.Hash()) {
-		// oldTail and newTail is on same chain, no reverted blocks
-		// when tail change, add metrics
-		blockHeightGauge.Update(int64(newTail.Height()))
-		ancestorKDegree, err := bc.getAncestorHash(6)
-		if err == nil {
-			hashStr := byteutils.Hex(ancestorKDegree)
-			hash, err := hashToInt64(hashStr)
-			if err == nil {
-				blocktailHashGauge.Update(hash)
-			}
-		}
-		return nil
-	}
-	reverted := oldTail
+func (bc *BlockChain) revertBlocks(from *Block, to *Block) error {
+	reverted := to
 	var revertTimes int64
-	for revertTimes = 0; !reverted.Hash().Equals(ancestor.Hash()); {
-		revertTimes++
+	for revertTimes = 0; !reverted.Hash().Equals(from.Hash()); {
+		// TODO(roy): delete blocks from storage
 		reverted.ReturnTransactions()
+		logging.VLog().WithFields(logrus.Fields{
+			"block": reverted,
+		}).Warn("Succeed to revert block.")
+		revertTimes++
+
 		reverted = bc.GetBlock(reverted.header.parentHash)
 		if reverted == nil {
 			return ErrMissingParentBlock
 		}
 	}
+	// record count of reverted blocks
 	if revertTimes > 0 {
 		blockRevertTimesGauge.Update(revertTimes)
 		blockRevertMeter.Mark(1)
@@ -201,19 +189,57 @@ func (bc *BlockChain) SetTailBlock(newTail *Block) error {
 	return nil
 }
 
-func hashToInt64(hash string) (int64, error) {
-	rs := []rune(hash)
-	h := string(rs[len(hash)-4 : len(hash)])
-	var s int64
-	var err error
-	if s, err = strconv.ParseInt(h, 16, 32); err != nil {
-		logging.VLog().WithFields(logrus.Fields{
-			"hash": hash,
-			"err":  err,
-		}).Error("Failed to parseInt")
-		return 0, err
+func (bc *BlockChain) buildIndexByBlockHeight(from *Block, to *Block) error {
+	cur := to
+	for !to.Hash().Equals(from.Hash()) {
+		err := bc.storage.Put(byteutils.FromUint64(cur.height), to.Hash())
+		if err != nil {
+			return err
+		}
+		to = bc.GetBlock(to.header.parentHash)
+		if to == nil {
+			return ErrMissingParentBlock
+		}
 	}
-	return s, nil
+	return nil
+}
+
+// SetTailBlock set tail block.
+func (bc *BlockChain) SetTailBlock(newTail *Block) error {
+	oldTail := bc.tailBlock
+	ancestor, err := bc.FindCommonAncestorWithTail(newTail)
+	if err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"target": newTail,
+			"tail":   oldTail,
+		}).Error("Failed to find common ancestor with tail")
+		return err
+	}
+	if err := bc.revertBlocks(ancestor, oldTail); err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"from":  ancestor,
+			"to":    oldTail,
+			"range": "(from, to]",
+		}).Error("Failed to revert blocks.")
+		// the errors can be skipped
+	}
+	// build index by block height
+	if err := bc.buildIndexByBlockHeight(ancestor, newTail); err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"from":  ancestor,
+			"to":    newTail,
+			"range": "(from, to]",
+		}).Error("Failed to build index by block height.")
+		return err
+	}
+	// record new tail
+	if err := bc.storeTailToStorage(newTail); err != nil {
+		return err
+	}
+	bc.tailBlock = newTail
+	blockHeightGauge.Update(int64(newTail.Height()))
+	blocktailHashGauge.Update(int64(byteutils.HashBytes(newTail.Hash())))
+	return nil
 }
 
 // FindCommonAncestorWithTail return the block's common ancestor with current tail
@@ -249,27 +275,23 @@ func (bc *BlockChain) FindCommonAncestorWithTail(block *Block) (*Block, error) {
 }
 
 // FetchDescendantInCanonicalChain return the subsequent blocks of the block
-// lookup the block's descendant from tail to genesis
-// if the block is not in canonical chain, return err
 func (bc *BlockChain) FetchDescendantInCanonicalChain(n int, block *Block) ([]*Block, error) {
-	curIdx := -1
-	queue := make([]*Block, n)
 	// get tail in canonical chain
-	curBlock := bc.tailBlock
-	for curBlock != nil && !curBlock.Hash().Equals(block.Hash()) {
-		if CheckGenesisBlock(curBlock) {
-			return nil, ErrNotBlockInCanonicalChain
+	curHeight := block.height + 1
+	tailHeight := bc.tailBlock.height
+	index := uint64(0)
+	res := []*Block{}
+	for curHeight+index <= tailHeight && index < uint64(n) {
+		block := bc.GetBlockByHeight(curHeight + index)
+		if block == nil {
+			logging.VLog().WithFields(logrus.Fields{
+				"err":    ErrCannotFindBlockAtGivenHeight,
+				"height": strconv.Itoa(int(curHeight + index)),
+			}).Error("Failed to fetch descendant.")
+			return nil, ErrCannotFindBlockAtGivenHeight
 		}
-		curIdx = (curIdx + 1) % n
-		queue[curIdx] = curBlock
-		curBlock = bc.GetBlock(curBlock.header.parentHash)
-	}
-	var res []*Block
-	for i := 0; curIdx >= 0 && i < n; i++ {
-		if queue[curIdx] != nil {
-			res = append(res, queue[curIdx])
-		}
-		curIdx = (curIdx + n - 1) % n
+		res = append(res, block)
+		index++
 	}
 	return res, nil
 }
@@ -359,6 +381,15 @@ func (bc *BlockChain) GetBlock(hash byteutils.Hash) *Block {
 	return block
 }
 
+// GetBlockByHeight return block in given height
+func (bc *BlockChain) GetBlockByHeight(height uint64) *Block {
+	blockHash, err := bc.storage.Get(byteutils.FromUint64(height))
+	if err != nil {
+		return nil
+	}
+	return bc.GetBlock(blockHash)
+}
+
 // GetTransaction return transaction of given hash from local storage.
 func (bc *BlockChain) GetTransaction(hash byteutils.Hash) *Transaction {
 	// TODO: get transaction err handle.
@@ -410,19 +441,6 @@ func (bc *BlockChain) EstimateGas(tx *Transaction) (*util.Uint128, error) {
 	fromAcc.AddBalance(tx.value)
 	defer bc.tailBlock.accState.RollBack()
 	return tx.VerifyExecution(bc.tailBlock)
-}
-
-func (bc *BlockChain) getAncestorHash(number int) (byteutils.Hash, error) {
-	block := bc.tailBlock
-	for i := 0; i < number; i++ {
-		if !CheckGenesisBlock(block) {
-			block = bc.GetBlock(block.ParentHash())
-			if block == nil {
-				return nil, ErrMissingParentBlock
-			}
-		}
-	}
-	return block.Hash(), nil
 }
 
 // Dump dump full chain.
@@ -493,7 +511,10 @@ func (bc *BlockChain) loadGenesisFromStorage() (*Block, error) {
 		if err := bc.storeBlockToStorage(genesis); err != nil {
 			return nil, err
 		}
-
+		heightKey := byteutils.FromUint64(genesis.height)
+		if err := bc.storage.Put(heightKey, genesis.Hash()); err != nil {
+			return nil, err
+		}
 	} else {
 		if bc.genesis.Meta.ChainId != genesis.ChainID() {
 			logging.CLog().WithFields(logrus.Fields{

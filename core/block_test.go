@@ -315,7 +315,8 @@ func TestBlock_DposCandidates(t *testing.T) {
 	block0.header.timestamp = BlockInterval
 	block0.SetMiner(from)
 	block0.Seal()
-	bc.SetTailBlock(block0)
+	assert.Nil(t, bc.storeBlockToStorage(block0))
+	assert.Nil(t, bc.SetTailBlock(block0))
 
 	block, _ := NewBlock(bc.ChainID(), coinbase, block0)
 	block.header.timestamp = BlockInterval * 2
@@ -345,7 +346,8 @@ func TestBlock_DposCandidates(t *testing.T) {
 	assert.Equal(t, bytes, from.Bytes())
 	bytes, _ = block.dposContext.delegateTrie.Get(append(from.Bytes(), from.Bytes()...))
 	assert.Equal(t, bytes, from.Bytes())
-	bc.SetTailBlock(block)
+	assert.Nil(t, bc.storeBlockToStorage(block))
+	assert.Nil(t, bc.SetTailBlock(block))
 
 	block, _ = NewBlock(bc.ChainID(), coinbase, block)
 	block.header.timestamp = BlockInterval * 3
@@ -371,7 +373,8 @@ func TestBlock_DposCandidates(t *testing.T) {
 	assert.Equal(t, err, storage.ErrKeyNotFound)
 	_, err = block.dposContext.delegateTrie.Iterator(from.Bytes())
 	assert.Equal(t, err, storage.ErrKeyNotFound)
-	bc.SetTailBlock(block)
+	assert.Nil(t, bc.storeBlockToStorage(block))
+	assert.Nil(t, bc.SetTailBlock(block))
 
 	block, _ = NewBlock(bc.ChainID(), coinbase, block)
 	block.header.timestamp = BlockInterval * 4
@@ -401,7 +404,8 @@ func TestBlock_DposCandidates(t *testing.T) {
 	assert.Equal(t, err, storage.ErrKeyNotFound)
 	_, err = block.dposContext.delegateTrie.Iterator(from.Bytes())
 	assert.Equal(t, err, storage.ErrKeyNotFound)
-	bc.SetTailBlock(block)
+	assert.Nil(t, bc.storeBlockToStorage(block))
+	assert.Nil(t, bc.SetTailBlock(block))
 }
 
 func TestBlock_fetchEvents(t *testing.T) {

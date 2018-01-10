@@ -40,6 +40,7 @@ const (
 var (
 	ErrInvalidTxPayloadType                              = errors.New("invalid transaction data payload type")
 	ErrInvalidBlockCannotFindParentInLocal               = errors.New("invalid block received, download its parent from others")
+	ErrCannotFindBlockAtGivenHeight                      = errors.New("cannot find a block at given height which is less than tail block's height")
 	ErrLinkToWrongParentBlock                            = errors.New("link the block to a block who is not its parent")
 	ErrInvalidContractAddress                            = errors.New("invalid contract address")
 	ErrInsufficientBalance                               = errors.New("insufficient balance")

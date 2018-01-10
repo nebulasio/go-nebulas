@@ -185,12 +185,15 @@ func TestBlockChain_FetchDescendantInCanonicalChain(t *testing.T) {
 	block.SetMiner(coinbase)
 	block.Seal()
 	bc.BlockPool().Push(block)
+	bc.SetTailBlock(block)
+
 	block1, _ := bc.NewBlock(coinbase)
 	block1.header.timestamp = BlockInterval * 2
 	block1.CollectTransactions(0)
 	block1.SetMiner(coinbase)
 	block1.Seal()
 	bc.BlockPool().Push(block1)
+	bc.SetTailBlock(block1)
 
 	var blocks []*Block
 	for i := 0; i < 6; i++ {
@@ -214,8 +217,6 @@ func TestBlockChain_FetchDescendantInCanonicalChain(t *testing.T) {
 	assert.Equal(t, BlockFromNetwork(blocks46[2]), BlockFromNetwork(blocks[5]))
 	blocks13, _ := bc.FetchDescendantInCanonicalChain(3, bc.genesisBlock)
 	assert.Equal(t, len(blocks13), 3)
-	_, err := bc.FetchDescendantInCanonicalChain(3, block)
-	assert.NotNil(t, err)
 	blocks0, err0 := bc.FetchDescendantInCanonicalChain(3, blocks[5])
 	assert.Equal(t, len(blocks0), 0)
 	assert.Nil(t, err0)
