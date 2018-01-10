@@ -343,7 +343,7 @@ func TestFastVerifyBlock(t *testing.T) {
 	coinbase, err := core.AddressParse("1a263547d167c74cf4b8f9166cfa244de0481c514a45aa2c")
 	assert.Nil(t, err)
 	manager := account.NewManager(nil)
-	assert.Nil(t, manager.Unlock(coinbase, []byte("passphrase"), keystore.DefaultUnlockDuration))
+	assert.Nil(t, dpos.StartMining([]byte("passphrase")))
 
 	elapsedSecond := int64(core.DynastyInterval)
 	context, err := tail.NextDynastyContext(elapsedSecond)
@@ -384,10 +384,7 @@ func TestDpos_MintBlock(t *testing.T) {
 	var c MockConsensus
 	dpos.chain.SetConsensusHandler(c)
 
-	coinbase, err := core.AddressParse("1a263547d167c74cf4b8f9166cfa244de0481c514a45aa2c")
-	assert.Nil(t, err)
-	manager := account.NewManager(nil)
-	assert.Nil(t, manager.Unlock(coinbase, []byte("passphrase"), keystore.DefaultUnlockDuration))
+	assert.Nil(t, dpos.StartMining([]byte("passphrase")))
 
 	assert.Equal(t, dpos.mintBlock(0), ErrCannotMintBlockNow)
 

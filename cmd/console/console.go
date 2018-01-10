@@ -138,10 +138,14 @@ func (c *Console) methodSwizzling() error {
 			if _, err = c.jsvm.Run(`bridge.sendTransactionWithPassphrase = admin.sendTransactionWithPassphrase;`); err != nil {
 				return fmt.Errorf("admin.sendTransactionWithPassphrase: %v", err)
 			}
+			if _, err = c.jsvm.Run(`bridge.startMine = admin.startMine;`); err != nil {
+				return fmt.Errorf("admin.startMine: %v", err)
+			}
 			obj.Set("setHost", c.jsBridge.setHost)
 			obj.Set("newAccount", c.jsBridge.newAccount)
 			obj.Set("unlockAccount", c.jsBridge.unlockAccount)
 			obj.Set("sendTransactionWithPassphrase", c.jsBridge.sendTransactionWithPassphrase)
+			obj.Set("startMine", c.jsBridge.startMine)
 		}
 	}
 	return nil

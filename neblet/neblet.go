@@ -12,7 +12,6 @@ import (
 	"github.com/nebulasio/go-nebulas/consensus/dpos"
 	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/core/pb"
-	"github.com/nebulasio/go-nebulas/crypto/keystore"
 	"github.com/nebulasio/go-nebulas/metrics"
 	"github.com/nebulasio/go-nebulas/neblet/pb"
 	"github.com/nebulasio/go-nebulas/net/p2p"
@@ -150,33 +149,25 @@ func (n *Neblet) Start() error {
 	n.eventEmitter.Start()
 	n.syncManager.Start()
 
+	// start consensus
+	n.consensus.Start()
 	if n.config.Chain.StartMine {
-		addr, err := core.AddressParse(n.config.Chain.Miner)
-		if err != nil {
-			return err
-		}
-
 		// prompt for passphrase of miner
 		passphrase := n.config.Chain.Passphrase
 		if len(passphrase) == 0 {
 
-			fmt.Println("miner address:" + addr.String())
+			fmt.Println("***********************************************")
+			fmt.Println("miner address:" + n.config.Chain.Miner)
 
 			prompt := console.Stdin
-			passphrase, err = prompt.PromptPassphrase("Enter the miner's passphrase:")
-			if err != nil {
-				return err
-			}
+			passphrase, _ = prompt.PromptPassphrase("Enter the miner's passphrase:")
+			fmt.Println("***********************************************")
 		}
 
-		// unlock miner address
-		err = n.AccountManager().Unlock(addr, []byte(passphrase), keystore.YearUnlockDuration)
+		err := n.consensus.StartMining([]byte(passphrase))
 		if err != nil {
 			return err
 		}
-
-		// start consensus
-		n.consensus.Start()
 	}
 
 	nebstartGauge.Update(1)

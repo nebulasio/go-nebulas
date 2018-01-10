@@ -31,6 +31,9 @@ const (
 type Consensus interface {
 	Start()
 	Stop()
+
+	StartMining([]byte) error
+	StopMining()
 	Mining() bool
 
 	CanMining() bool

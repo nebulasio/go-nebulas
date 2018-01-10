@@ -680,17 +680,10 @@ func (s *APIService) StartMine(ctx context.Context, req *rpcpb.StartMineRequest)
 		return nil, errors.New("consensus has already been started")
 	}
 
-	addr, err := core.AddressParse(neb.Config().Chain.Miner)
+	err := neb.Consensus().StartMining([]byte(req.Passphrase))
 	if err != nil {
 		return nil, err
 	}
-	// miner address unlock a long time for mining
-	err = neb.AccountManager().Unlock(addr, []byte(req.Passphrase), keystore.YearUnlockDuration)
-	if err != nil {
-		return nil, err
-	}
-
-	neb.Consensus().Start()
 	return &rpcpb.MineResponse{Result: true}, nil
 }
 
@@ -706,15 +699,6 @@ func (s *APIService) StopMine(ctx context.Context, req *rpcpb.NonParamsRequest) 
 		return nil, errors.New("consensus not start yet")
 	}
 
-	addr, err := core.AddressParse(neb.Config().Chain.Miner)
-	if err != nil {
-		return nil, err
-	}
-	err = neb.AccountManager().Lock(addr)
-	if err != nil {
-		return nil, err
-	}
-
-	neb.Consensus().Stop()
+	neb.Consensus().StopMining()
 	return &rpcpb.MineResponse{Result: true}, nil
 }

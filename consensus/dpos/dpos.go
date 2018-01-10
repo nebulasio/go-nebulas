@@ -113,16 +113,32 @@ func NewDpos(neblet Neblet) (*Dpos, error) {
 
 // Start start pow service.
 func (p *Dpos) Start() {
-	logging.CLog().Info("Start Dpos.")
-	p.mining = true
+	logging.CLog().Info("Start dpos consensus.")
 	go p.blockLoop()
 }
 
 // Stop stop pow service.
 func (p *Dpos) Stop() {
-	logging.CLog().Info("Stop Dpos.")
-	p.mining = false
+	logging.CLog().Info("Stop dpos consensus.")
+	p.StopMining()
 	p.quitCh <- true
+}
+
+// StartMining start the consensus
+func (p *Dpos) StartMining(passphrase []byte) error {
+	if err := p.am.Unlock(p.miner, passphrase, keystore.YearUnlockDuration); err != nil {
+		return err
+	}
+	p.mining = true
+	logging.CLog().Info("Start Dpos Mining.")
+	return nil
+}
+
+// StopMining stop the consensus
+func (p *Dpos) StopMining() {
+	logging.CLog().Info("Stop Dpos Mining.")
+	p.mining = false
+	p.am.Lock(p.miner)
 }
 
 // Mining returns is mining
@@ -277,10 +293,12 @@ func (p *Dpos) VerifyBlock(block *core.Block, parent *core.Block) error {
 
 func (p *Dpos) mintBlock(now int64) error {
 	// check can do mining
-	if !p.canMining {
-		logging.VLog().WithFields(logrus.Fields{
-			"now": now,
-		}).Warn("Mining is disabled.")
+	if !p.mining || !p.canMining {
+		if !p.canMining {
+			logging.VLog().WithFields(logrus.Fields{
+				"now": now,
+			}).Warn("Mining is disabled.")
+		}
 		return ErrCannotMintBlockNow
 	}
 
@@ -364,8 +382,7 @@ func (p *Dpos) mintBlock(now int64) error {
 }
 
 func (p *Dpos) blockLoop() {
-	logging.CLog().Info("Launched Dpos Mining.")
-
+	logging.VLog().Info("Launched Dpos Mining.")
 	timeChan := time.NewTicker(time.Second).C
 	for {
 		select {
