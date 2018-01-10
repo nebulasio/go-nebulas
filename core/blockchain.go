@@ -121,6 +121,12 @@ func NewBlockChain(neb Neblet) (*BlockChain, error) {
 		"token.distribution":     genesisConf.TokenDistribution,
 	}).Info("Genesis Configuration.")
 
+	// temp code for building height index
+	heightKey := byteutils.FromUint64(bc.genesisBlock.height)
+	if err := bc.storage.Put(heightKey, bc.genesisBlock.Hash()); err != nil {
+		return nil, err
+	}
+
 	bc.tailBlock, err = bc.loadTailFromStorage()
 	if err != nil {
 		return nil, err
@@ -251,6 +257,10 @@ func (bc *BlockChain) CheckBlockOnCanonicalChain(block *Block) error {
 			return nil
 		}
 	}
+	logging.VLog().WithFields(logrus.Fields{
+		"tail":  tail,
+		"block": block,
+	}).Warn("Failed to check a block on canonical chain.")
 	return ErrInvalidBlockOnCanonicalChain
 }
 
