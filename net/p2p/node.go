@@ -102,10 +102,8 @@ func (node *Node) Start() error {
 		return err
 	}
 
-	go node.discovery(node.context)
-	go node.manageStreamStore()
-
 	node.streamManager.Start()
+	go node.discovery(node.context)
 
 	logging.CLog().WithFields(logrus.Fields{
 		"id":                node.ID(),

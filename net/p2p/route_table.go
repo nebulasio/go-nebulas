@@ -21,6 +21,8 @@ package p2p
 import (
 	"crypto"
 
+	"github.com/multiformats/go-multiaddr"
+
 	kbucket "github.com/libp2p/go-libp2p-kbucket"
 	peer "github.com/libp2p/go-libp2p-peer"
 	peerstore "github.com/libp2p/go-libp2p-peerstore"
@@ -28,13 +30,15 @@ import (
 )
 
 type RouteTable struct {
-	peerStore  peerstore.Peerstore
-	routeTable *kbucket.RoutingTable
+	peerStore                   peerstore.Peerstore
+	routeTable                  *kbucket.RoutingTable
+	MaxNearestPeersCountForSync int
 }
 
 func NewRouteTable(config *Config, id peer.ID, networkKey crypto.PrivateKey) *RouteTable {
 	table := &RouteTable{
-		peerStore: peerstore.NewPeerstore(),
+		peerStore:                   peerstore.NewPeerstore(),
+		MaxNearestPeersCountForSync: config.MaxSyncNodes,
 	}
 
 	table.routeTable = kbucket.NewRoutingTable(
@@ -49,6 +53,28 @@ func NewRouteTable(config *Config, id peer.ID, networkKey crypto.PrivateKey) *Ro
 	table.peerStore.AddPrivKey(id, networkKey)
 
 	return table
+}
+
+func (table *RouteTable) AddPeerInfo(pidStr string, addrStr []string) error {
+	pid := pidStr.(peer.ID)
+	if table.routeTable.Find(pid) != "" {
+		return nil
+	}
+
+	var err error
+
+	addrs := make([]ma.Multiaddr, len(addrStr))
+	for i, v := range addrStr {
+		addrs[i], err = multiaddr.NewMultiaddr(v)
+		if err != nil {
+			return err
+		}
+	}
+
+	table.peerStore.AddAddrs(pid, addrs)
+	table.routeTable.Update(pid)
+
+	return nil
 }
 
 func (table *RouteTable) AddPeer(pid peer.ID, addr ma.Multiaddr) {
@@ -72,4 +98,14 @@ func (table *RouteTable) AddPeerStream(s *Stream) {
 func (table *RouteTable) RemovePeerStream(s *Stream) {
 	table.peerStore.AddAddr(s.pid, s.addr, 0)
 	table.routeTable.Remove(s.pid)
+}
+
+func (table *RouteTable) GetNearestPeers(pid peer.ID) []peerstore.PeerInfo {
+	peers := table.routeTable.NearestPeers(kbucket.ConvertPeerID(pid), table.MaxNearestPeersCountForSync)
+
+	ret := make([]peerstore.PeerInfo, len(peers))
+	for i, v := range peers {
+		ret[i] = table.peerStore.PeerInfo(v)
+	}
+	return ret
 }

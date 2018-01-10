@@ -20,8 +20,10 @@ package p2p
 
 import (
 	"sync"
+	"time"
 
 	libnet "github.com/libp2p/go-libp2p-net"
+	"github.com/nebulasio/go-nebulas/util/logging"
 )
 
 type StreamManager struct {
@@ -37,11 +39,11 @@ func NewStreamManager() *StreamManager {
 }
 
 func (sm *StreamManager) Start() {
-
+	go sm.loop()
 }
 
 func (sm *StreamManager) Stop() {
-
+	sm.quitCh <- true
 }
 
 func (sm *StreamManager) Add(node *Node, s libnet.Stream) {
@@ -55,4 +57,20 @@ func (sm *StreamManager) Add(node *Node, s libnet.Stream) {
 func (sm *StreamManager) Remove(s *Stream) {
 	sID := s.pid
 	sm.allStreams.Delete(sID)
+}
+
+func (sm *StreamManager) loop() {
+	logging.CLog().Info("Starting Stream Manager Loop.")
+
+	ticker := time.NewTicker(time.Second * 5)
+	for {
+		select {
+		case <-sm.quitCh:
+			logging.CLog().Info("Stopped Stream Manager Loop.")
+			return
+		case <-ticker.C:
+			// TODO: @robin cleanup connections.
+			logging.VLog().Warn("TODO: cleanup connections is not implemented.")
+		}
+	}
 }

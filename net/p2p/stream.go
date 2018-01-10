@@ -21,7 +21,6 @@ package p2p
 import (
 	"errors"
 	"fmt"
-	"net"
 	"time"
 
 	"github.com/gogo/protobuf/proto"
@@ -30,20 +29,22 @@ import (
 	ma "github.com/multiformats/go-multiaddr"
 	"github.com/nebulasio/go-nebulas/net/messages"
 	netpb "github.com/nebulasio/go-nebulas/net/pb"
-	byteutils "github.com/nebulasio/go-nebulas/util/byteutils"
 	"github.com/nebulasio/go-nebulas/util/logging"
-	metrics "github.com/rcrowley/go-metrics"
 	"github.com/sirupsen/logrus"
 )
 
 const (
 	NebProtocolID = "/neb/1.0.0"
 
-	HELLO          = "hello"
-	OK             = "ok"
-	BYE            = "bye"
-	SyncRoute      = "syncroute"
-	SyncRouteReply = "resyncroute"
+	HELLO = "hello"
+	OK    = "ok"
+	BYE   = "bye"
+
+	SYNCROUTE  = "syncroute"
+	ROUTETABLE = "routetable"
+
+	// @deprecated.
+	SYNCROUTEREPLY = "resyncroute"
 
 	ClientVersion = "0.2.0"
 )
@@ -53,21 +54,27 @@ var (
 )
 
 type Stream struct {
-	pid         peer.ID
-	addr        ma.Multiaddr
-	stream      libnet.Stream
-	node        *Node
-	connectedAt int64
+	pid              peer.ID
+	addr             ma.Multiaddr
+	stream           libnet.Stream
+	node             *Node
+	handshakeSucceed bool
+	connectedAt      int64
+	latestReadAt     int64
+	latestWriteAt    int64
 }
 
 // NewStream return a new StreamInfo
 func NewStream(pid peer.ID, stream libnet.Stream, node *Node) *Stream {
 	return &Stream{
-		pid:         pid,
-		addr:        stream.Conn().RemoteMultiaddr(),
-		stream:      stream,
-		node:        node,
-		connectedAt: time.Now().Unix(),
+		pid:              pid,
+		addr:             stream.Conn().RemoteMultiaddr(),
+		stream:           stream,
+		node:             node,
+		handshakeSucceed: false,
+		connectedAt:      time.Now().Unix(),
+		latestReadAt:     0,
+		latestWriteAt:    0,
 	}
 }
 
@@ -133,6 +140,7 @@ func (s *Stream) Send(data []byte) error {
 		s.Close()
 		return err
 	}
+	s.latestWriteAt = time.Now().Unix()
 
 	metricsPacketsOut.Mark(1)
 	metricsBytesOut.Mark(int64(n))
@@ -152,9 +160,11 @@ func (s *Stream) StartLoop() {
 		// send Hello to host if stream is not connected.
 		if !s.IsConnected() {
 			if err := s.Connect(); err != nil {
+				s.Close()
 				return
 			}
 			if err := s.Hello(); err != nil {
+				s.Close()
 				return
 			}
 		}
@@ -173,8 +183,8 @@ func (s *Stream) StartLoop() {
 					s.Close()
 					return
 				}
-
 				messageBuffer = append(messageBuffer, buf[:n]...)
+				s.latestReadAt = time.Now().Unix()
 
 				if message == nil {
 					// waiting for header data.
@@ -237,60 +247,44 @@ func (s *Stream) StartLoop() {
 }
 
 func (s *Stream) handleMessage(message *NebMessage) error {
-	switch message.MessageName() {
+	messageName := message.MessageName()
+	switch messageName {
 	case HELLO:
 		return s.onHello(message)
 	case OK:
 		return s.onOk(message)
 	case BYE:
 		return s.onBye(message)
-	case SyncRoute:
-		node.handleSyncRouteMsg(msg.data, pid, s, addrs, key)
+	}
+
+	//
+	if s.handshakeSucceed == false {
+		return ErrShouldCloseConnectionAndExitLoop
+	}
+
+	switch messageName {
+	case SYNCROUTE:
+		return s.onSyncRoute(message)
 	case SyncRouteReply:
-		node.handleSyncRouteReplyMsg(msg.data, pid, s, addrs)
-	case NewHashMsg:
-		node.handleNewHashMsg(msg.data, pid)
-	case NetworkID:
-		node.handleNetworkIDMsg(msg.data, pid, s)
-	case NetworkIDReply:
-		node.handleReNetworkIDMsg(msg.data, pid)
+	case ROUTETABLE:
+		return s.onRouteTable(message)
 	default:
-		var relayness []peer.ID
 		logging.VLog().WithFields(logrus.Fields{
-			"msgName": msg.msgName,
-			"pid":     pid.Pretty(),
-		}).Info("receive block & tx message.")
+			"messageName": messageName,
+			"stream":      s.String(),
+		}).Debugf("Received %s message from peer.", messageName)
 
-		m, ok := net.PacketsInByTypes.Load(msg.msgName)
-		if ok {
-			m.(metrics.Meter).Mark(1)
-		}
-
-		streamStore, ok := node.stream.Load(key)
-		if !ok {
-			node.Bye(pid, []ma.Multiaddr{addrs}, s, key)
-			return
-		}
-		if streamStore.(*StreamStore).conn != SOK {
-			logging.VLog().Error("peer not shake hand before send message.")
-			node.Bye(pid, []ma.Multiaddr{addrs}, s, key)
-			return
-		}
-		node.netService.PutMessage(messages.NewBaseMessage(msg.msgName, pid.Pretty(), msg.data))
-
-		peers, exists := node.relayness.Get(byteutils.Uint32(msg.dataChecksum))
-		if exists {
-			relayness = peers.([]peer.ID)
-		}
-		node.relayness.Add(byteutils.Uint32(msg.dataChecksum), append(relayness, pid))
+		s.node.netService.PutMessage(messages.NewBaseMessage(msg.msgName, s.pid.Pretty(), message.Data()))
 	}
 }
 
 func (s *Stream) Close() {
-	s.stream.Close()
+	if s.stream != nil {
+		s.stream.Close()
+	}
+	s.stream = nil
 	s.node.streamManager.Remove(s)
 	s.node.routeTable.RemovePeerStream(s)
-	s.stream = nil
 }
 
 func (s *Stream) Bye() {
@@ -333,6 +327,9 @@ func (s *Stream) onHello(message *NebMessage) bool {
 	// add to route table.
 	s.node.routeTable.AddPeerStream(s)
 
+	// handshake finished.
+	s.handshakeSucceed = true
+
 	// send OK response.
 	resp := &netpb.OK{
 		NodeId:        s.node.id.String(),
@@ -361,6 +358,53 @@ func (s *Stream) onOk(message *NebMessage) {
 
 	// add to route table.
 	s.node.routeTable.AddPeerStream(s)
+
+	// handshake finished.
+	s.handshakeSucceed = true
+
+	return nil
+}
+
+func (s *Stream) onSyncRoute(message *NebMessage) error {
+	// get nearest peers from routeTable
+	peers := s.node.routeTable.GetNearestPeers(s.pid)
+
+	// prepare the protobuf message.
+	msg := &netpb.Peers{
+		Peers: make([]netpb.PeerInfo, len(peers)),
+	}
+
+	for _, v := range peers {
+		pi := &netpb.PeerInfo{
+			Id:    v.ID,
+			Addrs: v.Addrs,
+		}
+		msg.Peers[i] = pi
+	}
+
+	logging.VLog().WithFields(logrus.Fields{
+		"stream":          s.String(),
+		"routetableCount": len(peers),
+	}).Debug("Replied sync route message.")
+
+	// @deprecated.
+	s.SendProtoMessage(SYNCROUTEREPLY, msg)
+
+	return s.SendProtoMessage(ROUTETABLE, msg)
+}
+
+func (s *Stream) onRouteTable(message *NebMessage) error {
+	peers := new(netpb.Peers)
+	if err := proto.Unmarshal(message.Data(), peers); err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"err": err,
+		}).Debug("Invalid Peers proto message.")
+		return ErrShouldCloseConnectionAndExitLoop
+	}
+
+	for _, v := range peers.Peers {
+		s.node.routeTable.AddPeerInfo(v.Id, v.Addrs)
+	}
 
 	return nil
 }

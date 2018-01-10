@@ -20,8 +20,6 @@ package p2p
 
 import (
 	"errors"
-	"io"
-	mrand "math/rand"
 	"net"
 	"os"
 	"reflect"
@@ -67,33 +65,6 @@ func (node *Node) clearPeerStore(pid peer.ID, addrs []ma.Multiaddr) {
 	}
 }
 
-// Write write bytes to stream
-func Write(writer io.Writer, data []byte) error {
-	result := make(chan error, 1)
-	go func(writer io.Writer, data []byte) {
-		if writer == nil {
-			result <- errors.New("write data occurs error, write is nil")
-			return
-		}
-		_, err := writer.Write(data)
-		result <- err
-	}(writer, data)
-	err := <-result
-	return err
-}
-
-// ReadBytes read bytes from a stream
-func ReadBytes(reader io.Reader, n uint32) ([]byte, error) {
-	data := make([]byte, n)
-	result := make(chan error, 1)
-	go func(reader io.Reader) {
-		_, err := io.ReadFull(reader, data)
-		result <- err
-	}(reader)
-	err := <-result
-	return data, err
-}
-
 // InArray returns whether an object exists in an array.
 func InArray(obj interface{}, array interface{}) bool {
 	arrayValue := reflect.ValueOf(array)
@@ -105,24 +76,6 @@ func InArray(obj interface{}, array interface{}) bool {
 		}
 	}
 	return false
-}
-
-func randSeed(n int) string {
-	var src = mrand.NewSource(time.Now().UnixNano())
-	b := make([]byte, n)
-	for i, cache, remain := n-1, src.Int63(), letterIdxMax; i >= 0; {
-		if remain == 0 {
-			cache, remain = mrand.Int63(), letterIdxMax
-		}
-		if idx := int(cache & letterIdxMask); idx < len(letterBytes) {
-			b[i] = letterBytes[idx]
-			i--
-		}
-		cache >>= letterIdxBits
-		remain--
-	}
-
-	return string(b)
 }
 
 //GetCountOfMap return the count of a map

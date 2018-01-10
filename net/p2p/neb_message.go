@@ -242,4 +242,5 @@ func (message *NebMessage) VerifyData() error {
 		}).Error("Invalid data checksum.")
 		return ErrInvalidDataCheckSum
 	}
+	return nil
 }
