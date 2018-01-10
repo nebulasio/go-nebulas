@@ -56,6 +56,7 @@ func main() {
 	app.Flags = append(app.Flags, NetworkFlags...)
 	app.Flags = append(app.Flags, ChainFlags...)
 	app.Flags = append(app.Flags, RPCFlags...)
+	app.Flags = append(app.Flags, AppFlags...)
 	app.Flags = append(app.Flags, StatsFlags...)
 
 	sort.Sort(cli.FlagsByName(app.Flags))
@@ -133,6 +134,7 @@ func makeNeb(ctx *cli.Context) (*neblet.Neblet, error) {
 	networkConfig(ctx, conf.Network)
 	chainConfig(ctx, conf.Chain)
 	rpcConfig(ctx, conf.Rpc)
+	appConfig(ctx, conf.App)
 	statsConfig(ctx, conf.Stats)
 
 	n, err := neblet.New(*conf)

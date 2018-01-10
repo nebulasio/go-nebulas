@@ -149,6 +149,38 @@ var (
 		RPCModuleFlag,
 	}
 
+	// AppLogLevelFlag app log level
+	AppLogLevelFlag = cli.StringFlag{
+		Name:  "app.loglevel",
+		Usage: "app log level for neb run.",
+	}
+
+	// AppLogFileFlag app log file dir
+	AppLogFileFlag = cli.StringFlag{
+		Name:  "app.logfile",
+		Usage: "app log file folder for neb run.",
+	}
+
+	// AppCrashReportFlag enable app crash report
+	AppCrashReportFlag = cli.BoolFlag{
+		Name:  "app.crashreport",
+		Usage: "app enable crash report.",
+	}
+
+	// AppCrashReportURLFlag app log level
+	AppCrashReportURLFlag = cli.StringFlag{
+		Name:  "app.reporturl",
+		Usage: "app crash report url.",
+	}
+
+	// AppFlags app config list
+	AppFlags = []cli.Flag{
+		AppLogLevelFlag,
+		AppLogFileFlag,
+		AppCrashReportFlag,
+		AppCrashReportURLFlag,
+	}
+
 	// StatsEnableFlag stats enable
 	StatsEnableFlag = cli.BoolFlag{
 		Name:  "stats.enable",
@@ -240,6 +272,21 @@ func rpcConfig(ctx *cli.Context, cfg *nebletpb.RPCConfig) {
 	}
 	if ctx.GlobalIsSet(RPCModuleFlag.Name) {
 		cfg.HttpModule = ctx.GlobalStringSlice(RPCModuleFlag.Name)
+	}
+}
+
+func appConfig(ctx *cli.Context, cfg *nebletpb.AppConfig) {
+	if ctx.GlobalIsSet(AppLogLevelFlag.Name) {
+		cfg.LogLevel = ctx.GlobalString(AppLogLevelFlag.Name)
+	}
+	if ctx.GlobalIsSet(AppLogFileFlag.Name) {
+		cfg.LogFile = ctx.GlobalString(AppLogFileFlag.Name)
+	}
+	if ctx.GlobalIsSet(AppCrashReportFlag.Name) {
+		cfg.EnableCrashReport = ctx.GlobalBool(AppCrashReportFlag.Name)
+	}
+	if ctx.GlobalIsSet(AppCrashReportURLFlag.Name) {
+		cfg.CrashReportUrl = ctx.GlobalString(AppCrashReportURLFlag.Name)
 	}
 }
 
