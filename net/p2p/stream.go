@@ -65,11 +65,24 @@ type Stream struct {
 }
 
 // NewStream return a new StreamInfo
-func NewStream(pid peer.ID, stream libnet.Stream, node *Node) *Stream {
+func NewStream(stream libnet.Stream, node *Node) *Stream {
 	return &Stream{
-		pid:              pid,
+		pid:              stream.Conn().RemotePeer(),
 		addr:             stream.Conn().RemoteMultiaddr(),
 		stream:           stream,
+		node:             node,
+		handshakeSucceed: false,
+		connectedAt:      time.Now().Unix(),
+		latestReadAt:     0,
+		latestWriteAt:    0,
+	}
+}
+
+func NewStreamFromPID(pid peer.ID, node *Node) *Stream {
+	return &Stream{
+		pid:              pid,
+		addr:             nil,
+		stream:           nil,
 		node:             node,
 		handshakeSucceed: false,
 		connectedAt:      time.Now().Unix(),
@@ -92,6 +105,7 @@ func (s *Stream) Connect() error {
 		return err
 	}
 	s.stream = stream
+	s.addr = stream.Conn().RemoteMultiaddr()
 
 	return nil
 }
@@ -101,7 +115,12 @@ func (s *Stream) IsConnected() bool {
 }
 
 func (s *Stream) String() string {
-	return fmt.Sprintf("Peer Stream: %s , %s", s.pid.Pretty(), s.addr.String())
+	addrStr := ""
+	if s.addr != nil {
+		addrStr = s.addr.String()
+	}
+
+	return fmt.Sprintf("Peer Stream: %s , %s", s.pid.Pretty(), addrStr)
 }
 
 func (s *Stream) SendProtoMessage(messageName string, pb proto.Message) error {
@@ -131,6 +150,8 @@ func (s *Stream) SendMessage(messageName string, data []byte) error {
 }
 
 func (s *Stream) Send(data []byte) error {
+	// TODO: @robin message should be sent after handshake succeed.
+	// and should also add QoS functionality.
 	n, err := s.stream.Write(data)
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
@@ -151,9 +172,6 @@ func (s *Stream) StartLoop() {
 	go func() {
 		buf := make([]byte, 1024*4)
 		messageBuffer := []byte{}
-
-		pid := s.pid
-		addr := s.addr
 
 		var message *NebMessage
 
@@ -176,9 +194,8 @@ func (s *Stream) StartLoop() {
 				n, err := s.stream.Read(buf)
 				if err != nil {
 					logging.VLog().WithFields(logrus.Fields{
-						"err":     err,
-						"pid":     pid.Pretty(),
-						"address": addr,
+						"err":    err,
+						"stream": s.String(),
 					}).Error("Error occurred when reading data from network connection.")
 					s.Close()
 					return
@@ -203,8 +220,7 @@ func (s *Stream) StartLoop() {
 					if s.node.config.ChainID != message.ChainID() {
 						logging.VLog().WithFields(logrus.Fields{
 							"err":             err,
-							"pid":             pid.Pretty(),
-							"address":         addr,
+							"stream":          s.String(),
 							"conf.chainID":    s.node.config.ChainID,
 							"message.chainID": message.ChainID(),
 						}).Error("Invalid chainID, disconnect the connection.")
@@ -248,6 +264,7 @@ func (s *Stream) StartLoop() {
 
 func (s *Stream) handleMessage(message *NebMessage) error {
 	messageName := message.MessageName()
+
 	switch messageName {
 	case HELLO:
 		return s.onHello(message)
@@ -257,7 +274,7 @@ func (s *Stream) handleMessage(message *NebMessage) error {
 		return s.onBye(message)
 	}
 
-	//
+	// check handshake status.
 	if s.handshakeSucceed == false {
 		return ErrShouldCloseConnectionAndExitLoop
 	}
@@ -298,6 +315,10 @@ func (s *Stream) Hello() error {
 		ClientVersion: ClientVersion,
 	}
 	return s.SendProtoMessage(HELLO, msg)
+}
+
+func (s *Stream) SyncRoute() error {
+	return s.SendMessage(SYNCROUTE, []byte{})
 }
 
 func (s *Stream) onBye(message *NebMessage) error {

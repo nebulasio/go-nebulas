@@ -23,6 +23,7 @@ import (
 	"time"
 
 	libnet "github.com/libp2p/go-libp2p-net"
+	peer "github.com/libp2p/go-libp2p-peer"
 	"github.com/nebulasio/go-nebulas/util/logging"
 )
 
@@ -46,17 +47,26 @@ func (sm *StreamManager) Stop() {
 	sm.quitCh <- true
 }
 
-func (sm *StreamManager) Add(node *Node, s libnet.Stream) {
-	sID := s.Conn().RemotePeer()
-	stream := NewStream(sID, s, node)
+func (sm *StreamManager) Add(s libnet.Stream, node *Node) {
+	stream := NewStream(s.Conn().RemotePeer(), s, node)
+	sm.AddStream(stream)
+}
 
-	sm.allStreams.Store(sID, stream)
+func (sm *StreamManager) AddStream(stream *Stream) {
+	sm.allStreams.Store(stream.pid, stream)
 	stream.StartLoop()
 }
 
-func (sm *StreamManager) Remove(s *Stream) {
-	sID := s.pid
-	sm.allStreams.Delete(sID)
+func (sm *StreamManager) Remove(pid peer.ID) {
+	sm.allStreams.Delete(pid)
+}
+
+func (sm *StreamManager) RemoveStream(s *Stream) {
+	sm.Remove(s.pid)
+}
+
+func (sm *StreamManager) Find(pid peer.ID) *Stream {
+	return sm.allStreams.Load(pid)
 }
 
 func (sm *StreamManager) loop() {
@@ -66,7 +76,7 @@ func (sm *StreamManager) loop() {
 	for {
 		select {
 		case <-sm.quitCh:
-			logging.CLog().Info("Stopped Stream Manager Loop.")
+			logging.CLog().Info("Stopping Stream Manager Loop.")
 			return
 		case <-ticker.C:
 			// TODO: @robin cleanup connections.

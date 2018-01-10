@@ -98,12 +98,13 @@ func NewNode(config *Config) (*Node, error) {
 
 // Start host & route table discovery
 func (node *Node) Start() error {
+	node.streamManager.Start()
+
 	if err := node.startHost(); err != nil {
 		return err
 	}
 
-	node.streamManager.Start()
-	go node.discovery(node.context)
+	node.routeTable.Start()
 
 	logging.CLog().WithFields(logrus.Fields{
 		"id":                node.ID(),
@@ -111,6 +112,12 @@ func (node *Node) Start() error {
 	}).Info("Succeed to start node.")
 
 	return nil
+}
+
+func (node *Node) Stop() error {
+	node.routeTable.Stop()
+	node.stopHost()
+	node.streamManager.Stop()
 }
 
 func (node *Node) startHost() error {
@@ -129,6 +136,14 @@ func (node *Node) startHost() error {
 
 	node.host = host
 	return nil
+}
+
+func (node *Node) stopHost() {
+	if node.host == nil {
+		return
+	}
+
+	node.host.Close()
 }
 
 // Config return node config.
@@ -182,7 +197,7 @@ func initP2PNetworkKey(config *Config, node *Node) error {
 
 func initP2PRouteTable(config *Config, node *Node) error {
 	// init p2p route table.
-	node.routeTable = NewRouteTable(config, node.id, node.networkKey)
+	node.routeTable = NewRouteTable(config, node)
 	return nil
 }
 

@@ -42,9 +42,15 @@ const (
 	DefaultRoutingTableDir        = ""
 )
 
-// DefaultListen default listen
 var (
+	// DefaultListen default listen
 	DefaultListen = []string{"0.0.0.0:8680"}
+
+	RouteTableSyncLoopInterval   = 60 * time.Second
+	RouteTableSaveToDiskInterval = 3 * 60 * time.Second
+	RouteTableCacheFileName      = "routetable.cache"
+
+	MaxPeersCountForSyncResp = 32
 )
 
 // Config TODO: move to proto config.

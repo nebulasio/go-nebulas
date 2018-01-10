@@ -19,9 +19,18 @@
 package p2p
 
 import (
-	"crypto"
+	"bufio"
+	"fmt"
+	"math/rand"
+	"os"
+	"path"
+	"strings"
+	"time"
+
+	"github.com/sirupsen/logrus"
 
 	"github.com/multiformats/go-multiaddr"
+	"github.com/nebulasio/go-nebulas/util/logging"
 
 	kbucket "github.com/libp2p/go-libp2p-kbucket"
 	peer "github.com/libp2p/go-libp2p-peer"
@@ -30,15 +39,29 @@ import (
 )
 
 type RouteTable struct {
-	peerStore                   peerstore.Peerstore
-	routeTable                  *kbucket.RoutingTable
-	MaxNearestPeersCountForSync int
+	quitCh                   chan bool
+	peerStore                peerstore.Peerstore
+	routeTable               *kbucket.RoutingTable
+	maxPeersCountForSyncResp int
+	maxPeersCountToSync      int
+	cacheFilePath            string
+	seedNodes                []ma.Multiaddr
+	node                     *Node
+	streamManager            *StreamManager
+	latestUpdatedAt          int64
 }
 
-func NewRouteTable(config *Config, id peer.ID, networkKey crypto.PrivateKey) *RouteTable {
+func NewRouteTable(config *Config, node *Node) *RouteTable {
 	table := &RouteTable{
-		peerStore:                   peerstore.NewPeerstore(),
-		MaxNearestPeersCountForSync: config.MaxSyncNodes,
+		quitCh:                   make(chan bool, 1),
+		peerStore:                peerstore.NewPeerstore(),
+		maxPeersCountForSyncResp: MaxPeersCountForSyncResp,
+		maxPeersCountToSync:      config.MaxSyncNodes,
+		cacheFilePath:            path.Join(config.RoutingTableDir(), RouteTableCacheFileName),
+		seedNodes:                config.BootNodes,
+		node:                     node,
+		streamManager:            node.streamManager,
+		latestUpdatedAt:          0,
 	}
 
 	table.routeTable = kbucket.NewRoutingTable(
@@ -48,11 +71,46 @@ func NewRouteTable(config *Config, id peer.ID, networkKey crypto.PrivateKey) *Ro
 		table.peerstore,
 	)
 
-	table.routeTable.Update(id)
-	table.peerStore.AddPubKey(id, networkKey.GetPublic())
-	table.peerStore.AddPrivKey(id, networkKey)
+	table.routeTable.Update(node.id)
+	table.peerStore.AddPubKey(node.id, networkKey.GetPublic())
+	table.peerStore.AddPrivKey(node.id, networkKey)
 
 	return table
+}
+
+func (table *RouteTable) Start() {
+	go table.syncLoop()
+}
+
+func (table *RouteTable) Stop() {
+	table.quitCh <- true
+}
+
+func (table *RouteTable) syncLoop() {
+	// Load Route Table.
+	table.LoadSeedNodes()
+	table.LoadRouteTableFromFile()
+
+	// trigger first sync.
+	table.SyncRouteTable()
+
+	syncLoopTicker := time.NewTicker(RouteTableSyncLoopInterval)
+	saveRouteTableToDiskTicker := time.NewTicker(RouteTableSaveToDiskInterval)
+	latestUpdatedAt := table.latestUpdatedAt
+
+	for {
+		select {
+		case <-table.quitCh:
+			logging.CLog().Info("Stopping Route Table Sync Loop.")
+			return
+		case <-syncLoopTicker.C:
+			table.SyncRouteTable()
+		case <-saveRouteTableToDiskTicker.C:
+			if latestUpdatedAt < table.latestUpdatedAt {
+				table.SaveRouteTableToFile()
+			}
+		}
+	}
 }
 
 func (table *RouteTable) AddPeerInfo(pidStr string, addrStr []string) error {
@@ -86,6 +144,14 @@ func (table *RouteTable) AddPeer(pid peer.ID, addr ma.Multiaddr) {
 	table.routeTable.Update(pid)
 }
 
+func (table *RouteTable) AddPeerAddr(addr ma.Multiaddr) {
+	id, err := MultiaddrToPeerID(addr)
+	if err != nil {
+		return
+	}
+	table.AddPeer(id, addr)
+}
+
 func (table *RouteTable) AddPeerStream(s *Stream) {
 	table.peerStore.AddAddr(
 		s.pid,
@@ -101,11 +167,113 @@ func (table *RouteTable) RemovePeerStream(s *Stream) {
 }
 
 func (table *RouteTable) GetNearestPeers(pid peer.ID) []peerstore.PeerInfo {
-	peers := table.routeTable.NearestPeers(kbucket.ConvertPeerID(pid), table.MaxNearestPeersCountForSync)
+	peers := table.routeTable.NearestPeers(kbucket.ConvertPeerID(pid), table.maxPeersCountForSyncResp)
 
 	ret := make([]peerstore.PeerInfo, len(peers))
 	for i, v := range peers {
 		ret[i] = table.peerStore.PeerInfo(v)
 	}
 	return ret
+}
+
+func (table *RouteTable) LoadSeedNodes() {
+	for _, addr := range table.seedNodes {
+		table.AddPeerAddr(addr)
+	}
+}
+
+func (table *RouteTable) LoadRouteTableFromFile() {
+	file, err := os.Open(table.cacheFilePath)
+	if err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"cacheFilePath": table.cacheFilePath,
+			"err":           err,
+		}).Warn("Failed to open Route Table Cache file.")
+		return
+	}
+	defer file.Close()
+
+	// read line by line.
+	scanner := bufio.NewScanner(file)
+	scanner.Split(bufio.ScanLines)
+
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		if strings.HasPrefix("#") {
+			continue
+		}
+
+		addr, err := ma.NewMultiaddr(v)
+		if err != nil {
+			// ignore.
+			logging.VLog().WithFields(logrus.Fields{
+				"err":  err,
+				"text": v,
+			}).Warn("Invalid address in Route Table Cache file.")
+			continue
+		}
+
+		table.AddPeerAddr(addr)
+	}
+}
+
+func (table *RouteTable) SaveRouteTableToFile() {
+	file, err := os.Create(table.cacheFilePath)
+	if err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"cacheFilePath": table.cacheFilePath,
+			"err":           err,
+		}).Warn("Failed to open Route Table Cache file.")
+		return
+	}
+	defer file.Close()
+
+	// write header.
+	file.WriteString(fmt.Sprintf("# %s\n", time.Now().String()))
+
+	peers := table.routeTable.ListPeers()
+	for _, v := range peers {
+		for _, addr := range table.peerStore.Addrs(v) {
+			file.WriteString(addr.String())
+		}
+	}
+}
+
+func (table *RouteTable) SyncRouteTable() {
+
+	// sync with seed nodes.
+	for _, addr := range table.seedNodes {
+		table.SyncWithPeer(MultiaddrToPeerID(addr))
+	}
+
+	// random peer selection.
+	rand.Seed(time.Now().UnixNano())
+	selectedPeersCount := table.maxPeersCountToSync
+	peers := table.routeTable.ListPeers()
+	peersCount := len(peers)
+
+	selectedPeersIdx := make(map[int]bool)
+	for i := 0; i < selectedPeersCount; i++ {
+		ri := 0
+		for {
+			ri := rand.Intn(peersCount)
+			if selectedPeersIdx[ri] == false {
+				break
+			}
+		}
+		selectedPeersIdx[ri] = true
+		pid := peers[ri]
+
+		table.SyncWithPeer(pid)
+	}
+}
+
+func (table *RouteTable) SyncWithPeer(pid peer.ID) {
+	stream := table.streamManager.Find(pid)
+	if stream == nil {
+		stream := NewStreamFromPID(pid, table.node)
+		table.streamManager.AddStream(stream)
+	}
+
+	stream.SyncRoute()
 }
