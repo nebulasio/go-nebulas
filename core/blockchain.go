@@ -243,6 +243,16 @@ func (bc *BlockChain) SetTailBlock(newTail *Block) error {
 
 // FindCommonAncestorWithTail return the block's common ancestor with current tail
 func (bc *BlockChain) FindCommonAncestorWithTail(block *Block) (*Block, error) {
+	tail := bc.TailBlock()
+	// fast check if the block is an ancestor of current tail
+	if tail.height >= block.height {
+		localBlock := bc.GetBlockByHeight(block.height)
+		if localBlock != nil && localBlock.Hash().Equals(block.Hash()) {
+			return block, nil
+		}
+	}
+	// check if the block can be found in local storage
+	// if existed, then find the common ancestor
 	target := bc.GetBlock(block.Hash())
 	if target == nil {
 		target = bc.GetBlock(block.ParentHash())
@@ -250,7 +260,6 @@ func (bc *BlockChain) FindCommonAncestorWithTail(block *Block) (*Block, error) {
 	if target == nil {
 		return nil, ErrMissingParentBlock
 	}
-	tail := bc.TailBlock()
 	for tail.Height() > target.Height() {
 		tail = bc.GetBlock(tail.header.parentHash)
 		if tail == nil {
