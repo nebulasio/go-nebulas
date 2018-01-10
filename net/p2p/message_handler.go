@@ -72,7 +72,7 @@ func (node *Node) messageHandler(s libnet.Stream) {
 				}).Warn("Read EOF.")
 				// node.Bye(pid, []ma.Multiaddr{addrs}, s, key)
 				// return
-				continue
+				return
 			}
 			streamBuffer = append(streamBuffer, sdata[:n]...)
 
