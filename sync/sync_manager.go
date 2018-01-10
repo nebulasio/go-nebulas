@@ -216,7 +216,7 @@ func (m *Manager) startMsgHandle() {
 
 				key := m.ns.Node().ID()
 
-				ancestor, err := m.blockChain.FindCommonAncestorWithTail(tail.block)
+				err := m.blockChain.CheckBlockOnCanonicalChain(tail.block)
 				var emptyblocks []*core.Block
 				if err != nil {
 					logging.VLog().Error("StartMsgHandle.receiveTailCh: find common ancestor with tail occurs error, ", err)
@@ -224,14 +224,14 @@ func (m *Manager) startMsgHandle() {
 					m.ns.SendSyncReply(tail.from, netblocks)
 					continue
 				}
-				subsequentBlocks, err := m.blockChain.FetchDescendantInCanonicalChain(DescendantCount, ancestor)
+				subsequentBlocks, err := m.blockChain.FetchDescendantInCanonicalChain(DescendantCount, tail.block)
 				if err != nil {
 					logging.VLog().Error("StartMsgHandle.receiveTailCh: FetchDescendantInCanonicalChain occurs error, ", err)
 					netblocks := NewNetBlocks(key, tail.batch, emptyblocks)
 					m.ns.SendSyncReply(tail.from, netblocks)
 					continue
 				}
-				subsequentBlocks = append(subsequentBlocks, ancestor)
+				subsequentBlocks = append(subsequentBlocks, tail.block)
 				blocks := NewNetBlocks(key, tail.batch, subsequentBlocks)
 				logging.VLog().WithFields(logrus.Fields{
 					"from":   blocks.from,

@@ -38,6 +38,7 @@ const (
 
 // Error Types
 var (
+	ErrInvalidBlockOnCanonicalChain                      = errors.New("invalid block, it's not on canonical chain")
 	ErrInvalidTxPayloadType                              = errors.New("invalid transaction data payload type")
 	ErrInvalidBlockCannotFindParentInLocal               = errors.New("invalid block received, download its parent from others")
 	ErrCannotFindBlockAtGivenHeight                      = errors.New("cannot find a block at given height which is less than tail block's height")

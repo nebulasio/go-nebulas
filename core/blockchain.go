@@ -241,18 +241,21 @@ func (bc *BlockChain) SetTailBlock(newTail *Block) error {
 	return nil
 }
 
-// FindCommonAncestorWithTail return the block's common ancestor with current tail
-func (bc *BlockChain) FindCommonAncestorWithTail(block *Block) (*Block, error) {
+// CheckBlockOnCanonicalChain check if a block is on canonical chain
+func (bc *BlockChain) CheckBlockOnCanonicalChain(block *Block) error {
 	tail := bc.TailBlock()
 	// fast check if the block is an ancestor of current tail
 	if tail.height >= block.height {
 		localBlock := bc.GetBlockByHeight(block.height)
 		if localBlock != nil && localBlock.Hash().Equals(block.Hash()) {
-			return block, nil
+			return nil
 		}
 	}
-	// check if the block can be found in local storage
-	// if existed, then find the common ancestor
+	return ErrInvalidBlockOnCanonicalChain
+}
+
+// FindCommonAncestorWithTail return the block's common ancestor with current tail
+func (bc *BlockChain) FindCommonAncestorWithTail(block *Block) (*Block, error) {
 	target := bc.GetBlock(block.Hash())
 	if target == nil {
 		target = bc.GetBlock(block.ParentHash())
@@ -260,6 +263,8 @@ func (bc *BlockChain) FindCommonAncestorWithTail(block *Block) (*Block, error) {
 	if target == nil {
 		return nil, ErrMissingParentBlock
 	}
+
+	tail := bc.TailBlock()
 	for tail.Height() > target.Height() {
 		tail = bc.GetBlock(tail.header.parentHash)
 		if tail == nil {
@@ -272,6 +277,7 @@ func (bc *BlockChain) FindCommonAncestorWithTail(block *Block) (*Block, error) {
 			return nil, ErrMissingParentBlock
 		}
 	}
+
 	for !tail.Hash().Equals(target.Hash()) {
 		tail = bc.GetBlock(tail.header.parentHash)
 		target = bc.GetBlock(target.header.parentHash)
@@ -279,6 +285,7 @@ func (bc *BlockChain) FindCommonAncestorWithTail(block *Block) (*Block, error) {
 			return nil, ErrMissingParentBlock
 		}
 	}
+
 	return target, nil
 }
 
