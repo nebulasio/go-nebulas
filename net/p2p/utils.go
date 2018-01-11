@@ -23,6 +23,7 @@ import (
 	"net"
 	"os"
 	"reflect"
+	"strings"
 	"sync"
 	"time"
 
@@ -34,19 +35,24 @@ var (
 	ErrListenPortIsNotAvailable = errors.New("listen port is not available")
 )
 
-func MultiaddrToPeerID(addr ma.Multiaddr) (peer.ID, error) {
-	// TODO: @robin we should register neb multicodecs.
-	b58, err := addr.ValueForProtocol(ma.P_IPFS)
+func ParseFromIPFSAddr(ipfsAddr ma.Multiaddr) (peer.ID, ma.Multiaddr, error) {
+	addr, err := ma.NewMultiaddr(strings.Split(ipfsAddr.String(), "/ipfs/")[0])
 	if err != nil {
-		return "", err
+		return "", nil, err
+	}
+
+	// TODO: @robin we should register neb multicodecs.
+	b58, err := ipfsAddr.ValueForProtocol(ma.P_IPFS)
+	if err != nil {
+		return "", nil, err
 	}
 
 	id, err := peer.IDB58Decode(b58)
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
 
-	return id, nil
+	return id, addr, nil
 }
 
 // InArray returns whether an object exists in an array.

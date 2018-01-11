@@ -149,8 +149,8 @@ func (table *RouteTable) AddPeer(pid peer.ID, addr ma.Multiaddr) {
 	table.routeTable.Update(pid)
 }
 
-func (table *RouteTable) AddPeerAddr(addr ma.Multiaddr) {
-	id, err := MultiaddrToPeerID(addr)
+func (table *RouteTable) AddIPFSPeerAddr(addr ma.Multiaddr) {
+	id, addr, err := ParseFromIPFSAddr(addr)
 	if err != nil {
 		return
 	}
@@ -182,8 +182,8 @@ func (table *RouteTable) GetNearestPeers(pid peer.ID) []peerstore.PeerInfo {
 }
 
 func (table *RouteTable) LoadSeedNodes() {
-	for _, addr := range table.seedNodes {
-		table.AddPeerAddr(addr)
+	for _, ipfsAddr := range table.seedNodes {
+		table.AddIPFSPeerAddr(ipfsAddr)
 	}
 }
 
@@ -218,7 +218,7 @@ func (table *RouteTable) LoadRouteTableFromFile() {
 			continue
 		}
 
-		table.AddPeerAddr(addr)
+		table.AddIPFSPeerAddr(addr)
 	}
 }
 
@@ -239,15 +239,16 @@ func (table *RouteTable) SaveRouteTableToFile() {
 	peers := table.routeTable.ListPeers()
 	for _, v := range peers {
 		for _, addr := range table.peerStore.Addrs(v) {
-			file.WriteString(addr.String())
+			line := fmt.Sprintf("%s/ipfs/%s\n", addr, v.Pretty())
+			file.WriteString(line)
 		}
 	}
 }
 
 func (table *RouteTable) SyncRouteTable() {
 	// sync with seed nodes.
-	for _, addr := range table.seedNodes {
-		pid, err := MultiaddrToPeerID(addr)
+	for _, ipfsAddr := range table.seedNodes {
+		pid, _, err := ParseFromIPFSAddr(ipfsAddr)
 		if err != nil {
 			continue
 		}
