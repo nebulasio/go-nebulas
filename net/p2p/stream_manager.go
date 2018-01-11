@@ -84,7 +84,7 @@ func (sm *StreamManager) Find(pid peer.ID) *Stream {
 func (sm *StreamManager) loop() {
 	logging.CLog().Info("Starting Stream Manager Loop.")
 
-	ticker := time.NewTicker(time.Second * 5)
+	ticker := time.NewTicker(time.Second * 30)
 	for {
 		select {
 		case <-sm.quitCh:

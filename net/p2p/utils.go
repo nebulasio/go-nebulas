@@ -22,9 +22,7 @@ import (
 	"errors"
 	"net"
 	"os"
-	"reflect"
 	"strings"
-	"sync"
 	"time"
 
 	peer "github.com/libp2p/go-libp2p-peer"
@@ -53,29 +51,6 @@ func ParseFromIPFSAddr(ipfsAddr ma.Multiaddr) (peer.ID, ma.Multiaddr, error) {
 	}
 
 	return id, addr, nil
-}
-
-// InArray returns whether an object exists in an array.
-func InArray(obj interface{}, array interface{}) bool {
-	arrayValue := reflect.ValueOf(array)
-	if reflect.TypeOf(array).Kind() == reflect.Array || reflect.TypeOf(array).Kind() == reflect.Slice {
-		for i := 0; i < arrayValue.Len(); i++ {
-			if arrayValue.Index(i).Interface() == obj {
-				return true
-			}
-		}
-	}
-	return false
-}
-
-//GetCountOfMap return the count of a map
-func GetCountOfMap(m *sync.Map) uint32 {
-	length := 0
-	m.Range(func(_, _ interface{}) bool {
-		length++
-		return true
-	})
-	return uint32(length)
 }
 
 func verifyListenAddress(listen []string) error {

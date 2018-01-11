@@ -126,13 +126,16 @@ func (node *Node) startHost() error {
 		}).Error("Failed to start node.")
 		return err
 	}
-	host.SetStreamHandler(NebProtocolID, node.onStreamConnected)
 
+	host.SetStreamHandler(NebProtocolID, node.onStreamConnected)
 	node.host = host
+
 	return nil
 }
 
 func (node *Node) stopHost() {
+	node.network.Close()
+
 	if node.host == nil {
 		return
 	}

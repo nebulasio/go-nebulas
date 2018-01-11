@@ -20,12 +20,12 @@ package p2p
 
 import (
 	"github.com/nebulasio/go-nebulas/net"
+	"github.com/nebulasio/go-nebulas/util/logging"
 )
 
 // NetService service for nebulas p2p network
 type NetService struct {
 	node       *Node
-	quitCh     chan bool
 	dispatcher *net.Dispatcher
 }
 
@@ -38,7 +38,6 @@ func NewNetService(n Neblet) (*NetService, error) {
 
 	ns := &NetService{
 		node:       node,
-		quitCh:     make(chan bool, 10),
 		dispatcher: net.NewDispatcher(),
 	}
 	node.SetNetService(ns)
@@ -53,12 +52,15 @@ func (ns *NetService) Node() *Node {
 
 // Start start p2p manager.
 func (ns *NetService) Start() error {
+	logging.CLog().Info("Start NetService.")
+
 	// start dispatcher.
 	ns.dispatcher.Start()
 
 	// start node.
 	if err := ns.node.Start(); err != nil {
 		ns.dispatcher.Stop()
+		logging.CLog().Info("Failed to start NetService.")
 		return err
 	}
 
@@ -67,8 +69,9 @@ func (ns *NetService) Start() error {
 
 // Stop stop p2p manager.
 func (ns *NetService) Stop() {
+	logging.CLog().Info("Stop NetService.")
+	ns.node.Stop()
 	ns.dispatcher.Stop()
-	ns.quitCh <- true // TODO: @robin quitCh is used by multi goroutine.
 }
 
 // Register register the subscribers.
