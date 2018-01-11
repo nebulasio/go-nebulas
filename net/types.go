@@ -18,12 +18,26 @@
 
 package net
 
-import "github.com/gogo/protobuf/proto"
+import (
+	"errors"
 
-// MessageType
+	"github.com/gogo/protobuf/proto"
+)
+
 const (
-	MessageTypeSyncBlock = "syncblock"
-	MessageTypeSyncReply = "syncreply"
+	// Message Priority.
+	MessagePriorityHigh = iota
+	MessagePriorityNormal
+	MessagePriorityLow
+
+	// Message.
+	SyncBlock      = "syncblock"
+	SyncReply      = "syncreply"
+	PeersSyncCount = 16
+)
+
+var (
+	ErrPeersIsNotEnough = errors.New("peers is not enough")
 )
 
 // MessageType a string for message type.

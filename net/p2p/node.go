@@ -165,6 +165,14 @@ func (node *Node) SetSynchronizing(synchronizing bool) {
 	node.synchronizing = synchronizing
 }
 
+func (node *Node) PeersCount() int32 {
+	return node.streamManager.Count()
+}
+
+func (node *Node) RouteTable() *RouteTable {
+	return node.routeTable
+}
+
 func initP2PNetworkKey(config *Config, node *Node) error {
 	// init p2p network key.
 	networkKey, err := LoadNetworkKeyFromFileOrCreateNew(config.PrivateKeyPath)
@@ -274,4 +282,9 @@ func (node *Node) RelayMessage(messageName string, data nebnet.Serializable, pri
 	}
 
 	node.streamManager.RelayMessage(messageName, data, priority)
+}
+
+func (node *Node) Sync(tail nebnet.Serializable) error {
+	node.streamManager.SendSyncMessageToPeers(tail)
+	return nil
 }

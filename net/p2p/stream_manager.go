@@ -21,24 +21,27 @@ package p2p
 import (
 	"hash/crc32"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/gogo/protobuf/proto"
 	libnet "github.com/libp2p/go-libp2p-net"
 	peer "github.com/libp2p/go-libp2p-peer"
-	nebnet "github.com/nebulasio/go-nebulas/net"
+	"github.com/nebulasio/go-nebulas/net"
 	"github.com/nebulasio/go-nebulas/util/logging"
 )
 
 type StreamManager struct {
-	quitCh     chan bool
-	allStreams *sync.Map
+	quitCh           chan bool
+	allStreams       *sync.Map
+	activePeersCount int32
 }
 
 func NewStreamManager() *StreamManager {
 	return &StreamManager{
-		quitCh:     make(chan bool, 1),
-		allStreams: new(sync.Map),
+		quitCh:           make(chan bool, 1),
+		allStreams:       new(sync.Map),
+		activePeersCount: 0,
 	}
 }
 
@@ -56,11 +59,13 @@ func (sm *StreamManager) Add(s libnet.Stream, node *Node) {
 }
 
 func (sm *StreamManager) AddStream(stream *Stream) {
+	atomic.AddInt32(&sm.activePeersCount, 1)
 	sm.allStreams.Store(stream.pid, stream)
 	stream.StartLoop()
 }
 
 func (sm *StreamManager) Remove(pid peer.ID) {
+	atomic.AddInt32(&sm.activePeersCount, -1)
 	sm.allStreams.Delete(pid)
 }
 
@@ -70,6 +75,9 @@ func (sm *StreamManager) RemoveStream(s *Stream) {
 
 func (sm *StreamManager) Find(pid peer.ID) *Stream {
 	v, _ := sm.allStreams.Load(pid)
+	if v == nil {
+		return nil
+	}
 	return v.(*Stream)
 }
 
@@ -89,7 +97,7 @@ func (sm *StreamManager) loop() {
 	}
 }
 
-func (sm *StreamManager) BroadcastMessage(messageName string, messageContent nebnet.Serializable, priority int) {
+func (sm *StreamManager) BroadcastMessage(messageName string, messageContent net.Serializable, priority int) {
 	pb, _ := messageContent.ToProto()
 	data, err := proto.Marshal(pb)
 	if err != nil {
@@ -107,7 +115,7 @@ func (sm *StreamManager) BroadcastMessage(messageName string, messageContent neb
 	})
 }
 
-func (sm *StreamManager) RelayMessage(messageName string, messageContent nebnet.Serializable, priority int) {
+func (sm *StreamManager) RelayMessage(messageName string, messageContent net.Serializable, priority int) {
 	pb, _ := messageContent.ToProto()
 	data, err := proto.Marshal(pb)
 	if err != nil {
@@ -123,4 +131,23 @@ func (sm *StreamManager) RelayMessage(messageName string, messageContent nebnet.
 		}
 		return true
 	})
+}
+
+func (sm *StreamManager) SendSyncMessageToPeers(messageContent net.Serializable) {
+	pb, _ := messageContent.ToProto()
+	data, err := proto.Marshal(pb)
+	if err != nil {
+		return
+	}
+
+	// TODO: random select net.PeersSyncCount
+	sm.allStreams.Range(func(key, value interface{}) bool {
+		stream := value.(*Stream)
+		stream.SendMessage(net.SyncBlock, data, net.MessagePriorityHigh)
+		return true
+	})
+}
+
+func (sm *StreamManager) Count() int32 {
+	return sm.activePeersCount
 }

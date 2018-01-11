@@ -59,8 +59,8 @@ func (s *APIService) GetNebState(ctx context.Context, req *rpcpb.NonParamsReques
 	resp.Tail = tail.Hash().String()
 	resp.Coinbase = tail.Coinbase().String()
 	resp.Synchronized = neb.NetManager().Node().IsSynchronizing()
-	resp.PeerCount = p2p.GetCountOfMap(neb.NetManager().Node().GetStream())
-	resp.ProtocolVersion = p2p.ProtocolID
+	resp.PeerCount = uint32(neb.NetManager().Node().PeersCount())
+	resp.ProtocolVersion = p2p.NebProtocolID
 	resp.Version = neb.Config().App.Version
 
 	return resp, nil
@@ -82,20 +82,20 @@ func (s *APIService) NodeInfo(ctx context.Context, req *rpcpb.NonParamsRequest) 
 	resp.StreamStoreSize = int32(node.Config().StreamStoreSize)
 	resp.StreamStoreExtendSize = int32(node.Config().StreamStoreExtendSize)
 	resp.RelayCacheSize = int32(node.Config().RelayCacheSize)
-	resp.PeerCount = p2p.GetCountOfMap(node.GetStream())
-	resp.ProtocolVersion = p2p.ProtocolID
-	for _, v := range node.PeerStore().Peers() {
+	resp.PeerCount = uint32(node.PeersCount())
+	resp.ProtocolVersion = p2p.NebProtocolID
+
+	for k, v := range node.RouteTable().Peers() {
 		routeTable := &rpcpb.RouteTable{}
-		routeTable.Id = v.Pretty()
-		if len(node.PeerStore().Addrs(v)) > 0 {
-			var addrs []string
-			for _, val := range node.PeerStore().Addrs(v) {
-				addrs = append(addrs, val.String())
-			}
-			routeTable.Address = addrs
-			resp.RouteTable = append(resp.RouteTable, routeTable)
+		routeTable.Id = k.Pretty()
+		routeTable.Address = make([]string, len(v))
+
+		for i, addr := range v {
+			routeTable.Address[i] = addr.String()
 		}
+		resp.RouteTable = append(resp.RouteTable, routeTable)
 	}
+
 	return resp, nil
 }
 
@@ -112,7 +112,7 @@ func (s *APIService) StatisticsNodeInfo(ctx context.Context, req *rpcpb.NonParam
 	resp.NodeID = node.ID()
 	resp.Height = tail.Height()
 	resp.Hash = byteutils.Hex(tail.Hash())
-	resp.PeerCount = p2p.GetCountOfMap(node.GetStream())
+	resp.PeerCount = uint32(node.PeersCount())
 	return resp, nil
 }
 

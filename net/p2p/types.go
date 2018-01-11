@@ -28,13 +28,11 @@ type Manager interface {
 
 	Node() *Node
 
-	SendSyncReply(string, net.Serializable)
-
 	Register(...*net.Subscriber)
 	Deregister(...*net.Subscriber)
 
-	Broadcast(string, net.Serializable)
-	Relay(string, net.Serializable)
+	Broadcast(string, net.Serializable, int)
+	Relay(string, net.Serializable, int)
 	SendMsg(string, []byte, string, int) error
 
 	BroadcastNetworkID([]byte)

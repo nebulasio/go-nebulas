@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/nebulasio/go-nebulas/net"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
 
 	"github.com/gogo/protobuf/proto"
@@ -47,13 +48,6 @@ const (
 
 	// @deprecated.
 	SYNCROUTEREPLY = "resyncroute"
-)
-
-const (
-	// Message Priority.
-	MessagePriorityHigh = iota
-	MessagePriorityNormal
-	MessagePriorityLow
 )
 
 var (
@@ -162,9 +156,9 @@ func (s *Stream) SendMessage(messageName string, data []byte, priority int) erro
 	metricsPacketsOutByMessageName(messageName, uint64(len(data)+NebMessageHeaderLength))
 
 	switch priority {
-	case MessagePriorityHigh:
+	case net.MessagePriorityHigh:
 		s.highPriorityMessageChan <- message.Content()
-	case MessagePriorityNormal:
+	case net.MessagePriorityNormal:
 		s.normalPriorityMessageChan <- message.Content()
 	default:
 		s.lowPriorityMessageChan <- message.Content()
@@ -196,6 +190,20 @@ func (s *Stream) Write(data []byte) error {
 	metricsBytesOut.Mark(int64(n))
 
 	return nil
+}
+
+func (s *Stream) WriteProtoMessage(messageName string, pb proto.Message) error {
+	data, err := proto.Marshal(pb)
+	if err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"err":         err,
+			"messageName": messageName,
+			"stream":      s.String(),
+		}).Warn("Failed to marshal proto message.")
+		return err
+	}
+
+	return s.WriteMessage(messageName, data)
 }
 
 func (s *Stream) WriteMessage(messageName string, data []byte) error {
@@ -431,7 +439,7 @@ func (s *Stream) Hello() error {
 		NodeId:        s.node.id.String(),
 		ClientVersion: ClientVersion,
 	}
-	return s.SendProtoMessage(HELLO, msg, MessagePriorityHigh)
+	return s.WriteProtoMessage(HELLO, msg)
 }
 
 func (s *Stream) onHello(message *NebMessage) error {
@@ -457,13 +465,17 @@ func (s *Stream) onHello(message *NebMessage) error {
 	// handshake finished.
 	s.finishHandshake()
 
-	// send OK response.
+	return s.Ok()
+}
+
+func (s *Stream) Ok() error {
+	// send OK.
 	resp := &netpb.OK{
 		NodeId:        s.node.id.String(),
 		ClientVersion: ClientVersion,
 	}
 
-	return s.SendProtoMessage(OK, resp, MessagePriorityHigh)
+	return s.WriteProtoMessage(OK, resp)
 }
 
 func (s *Stream) onOk(message *NebMessage) error {
@@ -493,7 +505,7 @@ func (s *Stream) onOk(message *NebMessage) error {
 }
 
 func (s *Stream) SyncRoute() error {
-	return s.SendMessage(SYNCROUTE, []byte{}, MessagePriorityHigh)
+	return s.SendMessage(SYNCROUTE, []byte{}, net.MessagePriorityHigh)
 }
 
 func (s *Stream) onSyncRoute(message *NebMessage) error {
@@ -526,9 +538,9 @@ func (s *Stream) RouteTable() error {
 	}).Debug("Replied sync route message.")
 
 	// @deprecated.
-	s.SendProtoMessage(SYNCROUTEREPLY, msg, MessagePriorityHigh)
+	s.SendProtoMessage(SYNCROUTEREPLY, msg, net.MessagePriorityHigh)
 
-	return s.SendProtoMessage(ROUTETABLE, msg, MessagePriorityHigh)
+	return s.SendProtoMessage(ROUTETABLE, msg, net.MessagePriorityHigh)
 }
 
 func (s *Stream) onRouteTable(message *NebMessage) error {
@@ -548,7 +560,7 @@ func (s *Stream) onRouteTable(message *NebMessage) error {
 }
 
 func (s *Stream) RecvedMsg(hash uint32) error {
-	return s.SendMessage(RECVEDMSG, byteutils.FromUint32(hash), MessagePriorityHigh)
+	return s.SendMessage(RECVEDMSG, byteutils.FromUint32(hash), net.MessagePriorityHigh)
 }
 
 func (s *Stream) OnRecvedMsg(message *NebMessage) error {

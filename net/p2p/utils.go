@@ -38,12 +38,12 @@ func MultiaddrToPeerID(addr ma.Multiaddr) (peer.ID, error) {
 	// TODO: @robin we should register neb multicodecs.
 	b58, err := addr.ValueForProtocol(ma.P_IPFS)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
 	id, err := peer.IDB58Decode(b58)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
 	return id, nil
@@ -87,11 +87,11 @@ func checkPathConfig(path string) bool {
 		return true
 	}
 
-	if _, err := os.Stat(path); os.IsExist(err) {
-		return true
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		return false
 	}
 
-	return false
+	return true
 }
 
 func checkPortAvailable(listen []string) error {

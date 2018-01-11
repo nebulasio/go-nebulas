@@ -86,6 +86,14 @@ func (table *RouteTable) Stop() {
 	table.quitCh <- true
 }
 
+func (table *RouteTable) Peers() map[peer.ID][]ma.Multiaddr {
+	peers := make(map[peer.ID][]ma.Multiaddr)
+	for _, pid := range table.peerStore.Peers() {
+		peers[pid] = table.peerStore.Addrs(pid)
+	}
+	return peers
+}
+
 func (table *RouteTable) syncLoop() {
 	// Load Route Table.
 	table.LoadSeedNodes()
@@ -269,8 +277,9 @@ func (table *RouteTable) SyncRouteTable() {
 
 func (table *RouteTable) SyncWithPeer(pid peer.ID) {
 	stream := table.streamManager.Find(pid)
+
 	if stream == nil {
-		stream := NewStreamFromPID(pid, table.node)
+		stream = NewStreamFromPID(pid, table.node)
 		table.streamManager.AddStream(stream)
 	}
 

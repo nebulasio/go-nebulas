@@ -21,7 +21,7 @@ package sync
 import (
 	"time"
 
-	pb "github.com/gogo/protobuf/proto"
+	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/consensus"
 	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/core/pb"
@@ -80,12 +80,12 @@ func NewManager(blockChain *core.BlockChain, consensus consensus.Consensus, ns p
 
 // RegisterSyncBlockInNetwork register message subscriber in network.
 func (m *Manager) RegisterSyncBlockInNetwork(nm p2p.Manager) {
-	nm.Register(net.NewSubscriber(m, m.receiveTailCh, net.MessageTypeSyncBlock))
+	nm.Register(net.NewSubscriber(m, m.receiveTailCh, net.SyncBlock))
 }
 
 // RegisterSyncReplyInNetwork register message subscriber in network.
 func (m *Manager) RegisterSyncReplyInNetwork(nm p2p.Manager) {
-	nm.Register(net.NewSubscriber(m, m.receiveSyncReplyCh, net.MessageTypeSyncReply))
+	nm.Register(net.NewSubscriber(m, m.receiveSyncReplyCh, net.SyncReply))
 }
 
 // Start start sync service
@@ -154,7 +154,7 @@ func (m *Manager) syncWithPeers(block *core.Block) {
 
 	switch err {
 	case nil:
-	case p2p.ErrNodeNotEnough:
+	case net.ErrPeersIsNotEnough:
 		if m.ns.Node().IsSynchronizing() {
 			logging.VLog().Info("sync target not enough, sleep for 30 second...")
 			time.Sleep(30 * time.Second)
@@ -203,7 +203,7 @@ func (m *Manager) startMsgHandle() {
 				// 2.find 10 blocks after ancestors if exist
 				tail := new(NetBlock)
 				pbblock := new(corepb.NetBlock)
-				if err := pb.Unmarshal(msg.Data().([]byte), pbblock); err != nil {
+				if err := proto.Unmarshal(msg.Data().([]byte), pbblock); err != nil {
 					logging.VLog().Error("StartMsgHandle.receiveTailCh: unmarshal data occurs error, ", err)
 					continue
 				}
@@ -219,16 +219,27 @@ func (m *Manager) startMsgHandle() {
 				if err != nil {
 					logging.VLog().Error("StartMsgHandle.receiveTailCh: find common ancestor with tail occurs error, ", err)
 					netblocks := NewNetBlocks(key, tail.batch, emptyblocks)
-					m.ns.SendSyncReply(tail.from, netblocks)
+					pb, _ := netblocks.ToProto()
+					data, err := proto.Marshal(pb)
+					if err != nil {
+						continue
+					}
+					m.ns.SendMsg(net.SyncReply, data, tail.from, net.MessagePriorityHigh)
 					continue
 				}
 				subsequentBlocks, err := m.blockChain.FetchDescendantInCanonicalChain(DescendantCount, ancestor)
 				if err != nil {
 					logging.VLog().Error("StartMsgHandle.receiveTailCh: FetchDescendantInCanonicalChain occurs error, ", err)
 					netblocks := NewNetBlocks(key, tail.batch, emptyblocks)
-					m.ns.SendSyncReply(tail.from, netblocks)
+					pb, _ := netblocks.ToProto()
+					data, err := proto.Marshal(pb)
+					if err != nil {
+						continue
+					}
+					m.ns.SendMsg(net.SyncReply, data, tail.from, net.MessagePriorityHigh)
 					continue
 				}
+
 				subsequentBlocks = append(subsequentBlocks, ancestor)
 				blocks := NewNetBlocks(key, tail.batch, subsequentBlocks)
 				logging.VLog().WithFields(logrus.Fields{
@@ -236,7 +247,13 @@ func (m *Manager) startMsgHandle() {
 					"batch":  blocks.batch,
 					"blocks": blocks.blocks,
 				}).Info("StartMsgHandle.receiveTailCh: receive receiveTailCh message.")
-				m.ns.SendSyncReply(tail.from, blocks)
+
+				pb, _ := blocks.ToProto()
+				data, err := proto.Marshal(pb)
+				if err != nil {
+					continue
+				}
+				m.ns.SendMsg(net.SyncReply, data, tail.from, net.MessagePriorityHigh)
 
 			case msg := <-m.receiveSyncReplyCh:
 				// 1. compare the common ancestors, if over n+1 are the same, suppose the ancestor is the right ancestor
@@ -245,7 +262,7 @@ func (m *Manager) startMsgHandle() {
 				// 4. if all remote peers return the number of blocks less than 10, end sync
 				data := new(NetBlocks)
 				pbblocks := new(corepb.NetBlocks)
-				if err := pb.Unmarshal(msg.Data().([]byte), pbblocks); err != nil {
+				if err := proto.Unmarshal(msg.Data().([]byte), pbblocks); err != nil {
 					logging.VLog().Error("StartMsgHandle.receiveSyncReplyCh: unmarshal data occurs error, ", err)
 					continue
 				}
@@ -260,7 +277,7 @@ func (m *Manager) startMsgHandle() {
 
 				if len(blocks) == 0 {
 					msgErrCount++
-					if msgErrCount >= p2p.LimitToSync/2 {
+					if msgErrCount >= net.PeersSyncCount/2 {
 						// go to next sync
 						msgErrCount = 0
 						m.goParentSyncCh <- true
@@ -272,7 +289,7 @@ func (m *Manager) startMsgHandle() {
 					"blocks": blocks,
 				}).Info("StartMsgHandle.receiveSyncReplyCh: receive receiveSyncReplyCh message.")
 
-				if len(blocks) > 0 && len(m.cacheList) < p2p.LimitToSync {
+				if len(blocks) > 0 && len(m.cacheList) < net.PeersSyncCount {
 					m.checkSyncLimitHandler(data)
 				} else {
 					continue
@@ -285,7 +302,7 @@ func (m *Manager) startMsgHandle() {
 
 func (m *Manager) checkSyncLimitHandler(data *NetBlocks) {
 	m.cacheList[data.from] = data
-	if len(m.cacheList) >= p2p.LimitToSync {
+	if len(m.cacheList) >= net.PeersSyncCount {
 		// m.syncWithBlockList(m.cacheList)
 		m.canSyncWithBlockListCh <- true
 	}
@@ -372,7 +389,7 @@ func (m *Manager) findBlocksWithCommonAncestor() []string {
 		}
 	}
 
-	limitLen := p2p.LimitToSync/2 + 1
+	limitLen := net.PeersSyncCount/2 + 1
 	var addrsArray []string
 
 	for key, value := range tempList {
