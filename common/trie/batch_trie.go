@@ -140,6 +140,24 @@ func (bt *BatchTrie) Iterator(prefix []byte) (*Iterator, error) {
 	return bt.trie.Iterator(prefix)
 }
 
+// Count return count of members with the prefix in this trie
+func (bt *BatchTrie) Count(prefix []byte) (int64, error) {
+	count := int64(0)
+	iter, err := bt.Iterator(prefix)
+	if err != nil && err != storage.ErrKeyNotFound {
+		return 0, err
+	}
+	if err != nil {
+		return 0, nil
+	}
+	exist, err := iter.Next()
+	for exist {
+		count++
+		exist, err = iter.Next()
+	}
+	return count, nil
+}
+
 // BeginBatch to process a batch task
 func (bt *BatchTrie) BeginBatch() error {
 	if bt.batching {

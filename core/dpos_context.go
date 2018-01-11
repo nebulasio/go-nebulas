@@ -41,6 +41,7 @@ const (
 	DynastyInterval      = int64(60) // TODO(roy): 3600
 	DynastySize          = 6         // TODO(roy): 21
 	SafeSize             = DynastySize/3 + 1
+	ConsensusSize        = DynastySize*2/3 + 1
 )
 
 // DposContext carry context in dpos consensus

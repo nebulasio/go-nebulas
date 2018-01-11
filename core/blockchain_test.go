@@ -64,6 +64,7 @@ func TestBlockChain_FindCommonAncestorWithTail(t *testing.T) {
 	block0.Seal()
 	assert.Nil(t, bc.BlockPool().Push(BlockFromNetwork(block0)))
 	bc.SetTailBlock(block0)
+	assert.Equal(t, bc.latestIrreversibleBlock, bc.genesisBlock)
 
 	tx1 := NewTransaction(bc.ChainID(), from, to, util.NewUint128FromInt(1), 1, TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, util.NewUint128FromInt(200000))
 	tx1.Sign(signature)
@@ -101,8 +102,10 @@ func TestBlockChain_FindCommonAncestorWithTail(t *testing.T) {
 	assert.Nil(t, bc.BlockPool().Push(BlockFromNetwork(block11)))
 	assert.Nil(t, bc.BlockPool().Push(BlockFromNetwork(block12)))
 	bc.SetTailBlock(block12)
+	assert.Equal(t, bc.latestIrreversibleBlock, bc.genesisBlock)
 	assert.Equal(t, bc.txPool.cache.Len(), 1)
 	bc.SetTailBlock(block11)
+	assert.Equal(t, bc.latestIrreversibleBlock, bc.genesisBlock)
 	assert.Equal(t, block11.transactions[0], bc.GetTransaction(block11.transactions[0].Hash()))
 	assert.Equal(t, bc.txPool.cache.Len(), 2)
 	block111, _ := bc.NewBlock(coinbase111)
@@ -112,6 +115,7 @@ func TestBlockChain_FindCommonAncestorWithTail(t *testing.T) {
 	block111.Seal()
 	assert.Nil(t, bc.BlockPool().Push(BlockFromNetwork(block111)))
 	bc.SetTailBlock(block12)
+	assert.Equal(t, bc.latestIrreversibleBlock, bc.genesisBlock)
 	block221, _ := bc.NewBlock(coinbase221)
 	block221.header.timestamp = BlockInterval * 5
 	block222, _ := bc.NewBlock(coinbase222)
@@ -125,6 +129,7 @@ func TestBlockChain_FindCommonAncestorWithTail(t *testing.T) {
 	assert.Nil(t, bc.BlockPool().Push(BlockFromNetwork(block221)))
 	assert.Nil(t, bc.BlockPool().Push(BlockFromNetwork(block222)))
 	bc.SetTailBlock(block111)
+	assert.Equal(t, bc.latestIrreversibleBlock, bc.genesisBlock)
 	block1111, _ := bc.NewBlock(coinbase1111)
 	block1111.header.timestamp = BlockInterval * 7
 	block1111.CollectTransactions(0)
@@ -132,6 +137,7 @@ func TestBlockChain_FindCommonAncestorWithTail(t *testing.T) {
 	block1111.Seal()
 	assert.Nil(t, bc.BlockPool().Push(BlockFromNetwork(block1111)))
 	bc.SetTailBlock(block222)
+	assert.Equal(t, bc.latestIrreversibleBlock, bc.genesisBlock)
 	tails := bc.DetachedTailBlocks()
 	for _, v := range tails {
 		if v.Hash().Equals(block221.Hash()) ||
@@ -142,11 +148,7 @@ func TestBlockChain_FindCommonAncestorWithTail(t *testing.T) {
 		assert.Equal(t, true, false)
 	}
 	assert.Equal(t, len(tails), 3)
-	test := &Block{
-		header: &BlockHeader{
-			coinbase: &Address{},
-		},
-	}
+	test := &Block{header: &BlockHeader{coinbase: &Address{}}}
 	_, err := bc.FindCommonAncestorWithTail(BlockFromNetwork(test))
 	assert.Equal(t, err, ErrMissingParentBlock)
 	common1, err := bc.FindCommonAncestorWithTail(BlockFromNetwork(block1111))
@@ -168,6 +170,8 @@ func TestBlockChain_FindCommonAncestorWithTail(t *testing.T) {
 	result := bc.Dump(4)
 	assert.Equal(t, result, "["+block222.String()+","+block12.String()+","+block0.String()+","+bc.genesisBlock.String()+"]")
 
+	bc.SetTailBlock(block1111)
+	assert.Equal(t, bc.latestIrreversibleBlock, block1111)
 }
 
 func TestBlockChain_FetchDescendantInCanonicalChain(t *testing.T) {

@@ -57,6 +57,8 @@ type BlockChain struct {
 	cachedBlocks       *lru.Cache
 	detachedTailBlocks *lru.Cache
 
+	latestIrreversibleBlock *Block
+
 	storage storage.Storage
 	neb     Neblet
 
@@ -72,6 +74,9 @@ const (
 
 	// Tail Key in storage
 	Tail = "blockchain_tail"
+
+	// LIB (latest irreversible block) in storage
+	LIB = "blockchain_lib"
 )
 
 var (
@@ -121,19 +126,21 @@ func NewBlockChain(neb Neblet) (*BlockChain, error) {
 		"token.distribution":     genesisConf.TokenDistribution,
 	}).Info("Genesis Configuration.")
 
-	// temp code for building height index
-	heightKey := byteutils.FromUint64(bc.genesisBlock.height)
-	if err := bc.storage.Put(heightKey, bc.genesisBlock.Hash()); err != nil {
-		return nil, err
-	}
-
 	bc.tailBlock, err = bc.loadTailFromStorage()
 	if err != nil {
 		return nil, err
 	}
 	logging.CLog().WithFields(logrus.Fields{
-		"block": bc.tailBlock,
+		"tail": bc.tailBlock,
 	}).Info("Tail Block.")
+
+	bc.latestIrreversibleBlock, err = bc.loadLIBFromStorage()
+	if err != nil {
+		return nil, err
+	}
+	logging.CLog().WithFields(logrus.Fields{
+		"lib": bc.latestIrreversibleBlock,
+	}).Info("Latest Irreversible Block.")
 
 	bc.bkPool.setBlockChain(bc)
 	bc.txPool.setBlockChain(bc)
@@ -214,27 +221,37 @@ func (bc *BlockChain) SetTailBlock(newTail *Block) error {
 	oldTail := bc.tailBlock
 	ancestor, err := bc.FindCommonAncestorWithTail(newTail)
 	if err != nil {
-		logging.VLog().WithFields(logrus.Fields{
+		logging.CLog().WithFields(logrus.Fields{
 			"target": newTail,
 			"tail":   oldTail,
 		}).Error("Failed to find common ancestor with tail")
 		return err
 	}
 	if err := bc.revertBlocks(ancestor, oldTail); err != nil {
-		logging.VLog().WithFields(logrus.Fields{
+		logging.CLog().WithFields(logrus.Fields{
 			"from":  ancestor,
 			"to":    oldTail,
 			"range": "(from, to]",
-		}).Error("Failed to revert blocks.")
+		}).Warn("Failed to revert blocks.")
 		// the errors can be skipped
 	}
 	// build index by block height
 	if err := bc.buildIndexByBlockHeight(ancestor, newTail); err != nil {
-		logging.VLog().WithFields(logrus.Fields{
+		logging.CLog().WithFields(logrus.Fields{
 			"from":  ancestor,
 			"to":    newTail,
 			"range": "(from, to]",
 		}).Error("Failed to build index by block height.")
+		return err
+	}
+	// update LIB
+	if err := bc.updateLatestIrreversibleBlock(ancestor, newTail); err != nil {
+		logging.CLog().WithFields(logrus.Fields{
+			"ancestor": ancestor,
+			"oldTail":  oldTail,
+			"newTail":  newTail,
+			"err":      err,
+		}).Error("Failed to update latest irreversible block.")
 		return err
 	}
 	// record new tail
@@ -245,6 +262,33 @@ func (bc *BlockChain) SetTailBlock(newTail *Block) error {
 	blockHeightGauge.Update(int64(newTail.Height()))
 	blocktailHashGauge.Update(int64(byteutils.HashBytes(newTail.Hash())))
 	return nil
+}
+
+func (bc *BlockChain) updateLatestIrreversibleBlock(from *Block, to *Block) error {
+	for !to.Hash().Equals(from.Hash()) {
+		dynasty := byteutils.FromInt64(to.header.timestamp / DynastyInterval)
+		count, err := to.dposContext.mintCntTrie.Count(dynasty)
+		if err != nil {
+			return err
+		}
+		if count >= ConsensusSize {
+			if err := bc.storeLIBToStorage(to); err != nil {
+				return err
+			}
+			bc.latestIrreversibleBlock = to
+			return nil
+		}
+		to = bc.GetBlock(to.header.parentHash)
+		if to == nil {
+			return ErrMissingParentBlock
+		}
+	}
+	return nil
+}
+
+// LatestIrreversibleBlock return the latest irreversible block
+func (bc *BlockChain) LatestIrreversibleBlock() *Block {
+	return bc.latestIrreversibleBlock
 }
 
 // CheckBlockOnCanonicalChain check if a block is on canonical chain
@@ -504,6 +548,10 @@ func (bc *BlockChain) storeTailToStorage(block *Block) error {
 	return bc.storage.Put([]byte(Tail), block.Hash())
 }
 
+func (bc *BlockChain) storeLIBToStorage(block *Block) error {
+	return bc.storage.Put([]byte(LIB), block.Hash())
+}
+
 func (bc *BlockChain) loadTailFromStorage() (*Block, error) {
 	hash, err := bc.storage.Get([]byte(Tail))
 	if err != nil && err != storage.ErrKeyNotFound {
@@ -552,4 +600,17 @@ func (bc *BlockChain) loadGenesisFromStorage() (*Block, error) {
 		}
 	}
 	return genesis, nil
+}
+
+func (bc *BlockChain) loadLIBFromStorage() (*Block, error) {
+	hash, err := bc.storage.Get([]byte(LIB))
+	if err != nil && err != storage.ErrKeyNotFound {
+		return nil, err
+	}
+
+	if err == storage.ErrKeyNotFound {
+		return bc.genesisBlock, nil
+	}
+
+	return LoadBlockFromStorage(hash, bc.storage, bc.txPool, bc.eventEmitter)
 }

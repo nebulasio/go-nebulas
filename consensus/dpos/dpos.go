@@ -311,7 +311,7 @@ func (p *Dpos) mintBlock(now int64) error {
 			"tail":    tail,
 			"elapsed": elapsedSecond,
 			"err":     err,
-		}).Error("Failed to generate next dynasty context.")
+		}).Warn("Failed to generate next dynasty context.")
 		return core.ErrGenerateNextDynastyContext
 	}
 	if context.Proposer == nil || !context.Proposer.Equals(p.miner.Bytes()) {
