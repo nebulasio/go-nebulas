@@ -24,6 +24,14 @@ import (
 
 // Metrics for core
 var (
+	// block metrics
+	metricsBlockHeightGauge      = metrics.GetOrRegisterGauge("neb.block.height", nil)
+	metricsBlocktailHashGauge    = metrics.GetOrRegisterGauge("neb.block.tailhash", nil)
+	metricsBlockRevertTimesGauge = metrics.GetOrRegisterGauge("neb.block.revertcount", nil)
+	metricsBlockRevertMeter      = metrics.GetOrRegisterMeter("neb.block.revert", nil)
+	metricsBlockOnchainTimer     = metrics.GetOrRegisterTimer("neb.block.onchain", nil)
+	metricsTxOnchainTimer        = metrics.GetOrRegisterTimer("neb.tx.onchain", nil)
+
 	// block_pool metrics
 	metricsDuplicatedBlock    = metrics.GetOrRegisterCounter("neb.block.duplicated", nil)
 	metricsInvalidBlock       = metrics.GetOrRegisterCounter("neb.block.invalid", nil)

@@ -32,7 +32,6 @@ import (
 	"github.com/nebulasio/go-nebulas/util"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
 	"github.com/nebulasio/go-nebulas/util/logging"
-	metrics "github.com/rcrowley/go-metrics"
 	"github.com/sirupsen/logrus"
 )
 
@@ -79,15 +78,6 @@ const (
 
 	// LIB (latest irreversible block) in storage
 	LIB = "blockchain_lib"
-)
-
-var (
-	blockHeightGauge      = metrics.GetOrRegisterGauge("neb.block.height", nil)
-	blocktailHashGauge    = metrics.GetOrRegisterGauge("neb.block.tailhash", nil)
-	blockRevertTimesGauge = metrics.GetOrRegisterGauge("neb.block.revertcount", nil)
-	blockRevertMeter      = metrics.GetOrRegisterMeter("neb.block.revert", nil)
-	blockOnchainTimer     = metrics.GetOrRegisterTimer("neb.block.onchain", nil)
-	txOnchainTimer        = metrics.GetOrRegisterTimer("neb.tx.onchain", nil)
 )
 
 // NewBlockChain create new #BlockChain instance.
@@ -216,8 +206,8 @@ func (bc *BlockChain) revertBlocks(from *Block, to *Block) error {
 	}
 	// record count of reverted blocks
 	if revertTimes > 0 {
-		blockRevertTimesGauge.Update(revertTimes)
-		blockRevertMeter.Mark(1)
+		metricsBlockRevertTimesGauge.Update(revertTimes)
+		metricsBlockRevertMeter.Mark(1)
 	}
 	return nil
 }
@@ -279,8 +269,8 @@ func (bc *BlockChain) SetTailBlock(newTail *Block) error {
 		return err
 	}
 	bc.tailBlock = newTail
-	blockHeightGauge.Update(int64(newTail.Height()))
-	blocktailHashGauge.Update(int64(byteutils.HashBytes(newTail.Hash())))
+	metricsBlockHeightGauge.Update(int64(newTail.Height()))
+	metricsBlocktailHashGauge.Update(int64(byteutils.HashBytes(newTail.Hash())))
 	return nil
 }
 
@@ -427,9 +417,9 @@ func (bc *BlockChain) putVerifiedNewBlocks(parent *Block, allBlocks, tailBlocks 
 			"block": v,
 		}).Info("Accepted the new block on chain")
 
-		blockOnchainTimer.Update(time.Duration(time.Now().Unix() - v.Timestamp()))
+		metricsBlockOnchainTimer.Update(time.Duration(time.Now().Unix() - v.Timestamp()))
 		for _, tx := range v.transactions {
-			txOnchainTimer.Update(time.Duration(time.Now().Unix() - tx.Timestamp()))
+			metricsTxOnchainTimer.Update(time.Duration(time.Now().Unix() - tx.Timestamp()))
 		}
 	}
 	for _, v := range tailBlocks {
