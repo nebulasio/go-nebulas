@@ -29,15 +29,7 @@ import (
 	"github.com/nebulasio/go-nebulas/util"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
 	"github.com/nebulasio/go-nebulas/util/logging"
-	metrics "github.com/rcrowley/go-metrics"
 	"github.com/sirupsen/logrus"
-)
-
-var (
-	invalidTxCounter       = metrics.GetOrRegisterCounter("txpool_invalid", nil)
-	duplicateTxCounter     = metrics.GetOrRegisterCounter("txpool_duplicate", nil)
-	belowGasPriceTxCounter = metrics.GetOrRegisterCounter("txpool_below_gas_price", nil)
-	outOfGasLimitTxCounter = metrics.GetOrRegisterCounter("txpool_out_of_gas_limit", nil)
 )
 
 // TransactionPool cache txs, is thread safe
@@ -214,23 +206,23 @@ func (pool *TransactionPool) PushAndBroadcast(tx *Transaction) error {
 func (pool *TransactionPool) push(tx *Transaction) error {
 	// verify non-dup tx
 	if _, ok := pool.all[tx.hash.Hex()]; ok {
-		duplicateTxCounter.Inc(1)
+		metricsDuplicateTx.Inc(1)
 		return ErrDuplicatedTransaction
 	}
 
 	// if tx's gasPrice below the pool config lowest gasPrice, return ErrBelowGasPrice
 	if tx.gasPrice.Cmp(pool.gasPrice.Int) < 0 {
-		belowGasPriceTxCounter.Inc(1)
+		metricsTxPoolBelowGasPrice.Inc(1)
 		return ErrBelowGasPrice
 	}
 	if tx.gasLimit.Cmp(pool.gasLimit.Int) > 0 {
-		outOfGasLimitTxCounter.Inc(1)
+		metricsTxPoolOutOfGasLimit.Inc(1)
 		return ErrOutOfGasLimit
 	}
 
 	// verify hash & sign of tx
 	if err := tx.VerifyIntegrity(pool.bc.chainID); err != nil {
-		invalidTxCounter.Inc(1)
+		metricsInvalidTx.Inc(1)
 		return err
 	}
 

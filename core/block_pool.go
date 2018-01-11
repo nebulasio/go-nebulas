@@ -31,21 +31,12 @@ import (
 	"github.com/nebulasio/go-nebulas/net/p2p"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
 	"github.com/nebulasio/go-nebulas/util/logging"
-	metrics "github.com/rcrowley/go-metrics"
 	"github.com/sirupsen/logrus"
 )
 
 // constants
 const (
 	NoSender = ""
-)
-
-// Errors in block
-var (
-	duplicatedBlockCounter = metrics.GetOrRegisterCounter("neb.block.duplicated", nil)
-	invalidBlockCounter    = metrics.GetOrRegisterCounter("neb.block.invalid", nil)
-	BlockExecutedTimer     = metrics.GetOrRegisterTimer("neb.block.executed", nil)
-	TxExecutedTimer        = metrics.GetOrRegisterTimer("neb.tx.executed", nil)
 )
 
 // BlockPool a pool of all received blocks from network.
@@ -357,7 +348,7 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 	// verify non-dup block
 	if pool.cache.Contains(block.Hash().Hex()) ||
 		pool.bc.GetBlock(block.Hash()) != nil {
-		duplicatedBlockCounter.Inc(1)
+		metricsDuplicatedBlock.Inc(1)
 		logging.VLog().WithFields(logrus.Fields{
 			"block": block,
 			"err":   "duplicated block",
@@ -367,7 +358,7 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 
 	// verify block integrity
 	if err := block.VerifyIntegrity(pool.bc.chainID, pool.bc.ConsensusHandler()); err != nil {
-		invalidBlockCounter.Inc(1)
+		metricsInvalidBlock.Inc(1)
 		logging.VLog().WithFields(logrus.Fields{
 			"block": block,
 			"err":   err,
@@ -382,7 +373,7 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 	lb := newLinkedBlock(block, pool)
 
 	if preBlock, exist := pool.slot.Get(lb.block.Timestamp()); exist {
-		invalidBlockCounter.Inc(1)
+		metricsInvalidBlock.Inc(1)
 		logging.VLog().WithFields(logrus.Fields{
 			"curBlock": lb.block,
 			"preBlock": preBlock.(*Block),

@@ -472,6 +472,7 @@ func (block *Block) CollectTransactions(n int) {
 	for !pool.Empty() && n > 0 {
 		tx := pool.Pop()
 		block.begin()
+		metricsTxSubmit.Inc(1)
 		giveback, err := block.executeTransaction(tx)
 		if giveback {
 			givebacks = append(givebacks, tx)
@@ -568,7 +569,7 @@ func (block *Block) VerifyExecution(parent *Block, consensus Consensus) error {
 		return err
 	}
 	end := time.Now().Unix()
-	BlockExecutedTimer.Update(time.Duration(end - start))
+	metricsBlockExecutedTimer.Update(time.Duration(end - start))
 
 	if err := block.verifyState(); err != nil {
 		block.rollback()
@@ -660,7 +661,7 @@ func (block *Block) VerifyIntegrity(chainID uint32, consensus Consensus) error {
 			"block": block,
 			"err":   err,
 		}).Error("Failed to fast verify block.")
-		invalidBlockCounter.Inc(1)
+		metricsInvalidBlock.Inc(1)
 		return err
 	}
 
@@ -698,6 +699,7 @@ func (block *Block) execute() error {
 
 	for _, tx := range block.transactions {
 		start := time.Now().Unix()
+		metricsTxExecute.Inc(1)
 		giveback, err := block.executeTransaction(tx)
 		if giveback {
 			err := block.txPool.Push(tx)
@@ -709,7 +711,7 @@ func (block *Block) execute() error {
 			return err
 		}
 		end := time.Now().Unix()
-		TxExecutedTimer.Update(time.Duration(end - start))
+		metricsTxExecutedTimer.Update(time.Duration(end - start))
 	}
 
 	return block.recordMintCnt()

@@ -52,6 +52,7 @@ func (s *APIService) GetNebState(ctx context.Context, req *rpcpb.NonParamsReques
 	logging.VLog().WithFields(logrus.Fields{
 		"api": "/v1/user/nebstate",
 	}).Info("Rpc request.")
+	metricsRPCCounter.Inc(1)
 
 	neb := s.server.Neblet()
 
@@ -74,6 +75,7 @@ func (s *APIService) NodeInfo(ctx context.Context, req *rpcpb.NonParamsRequest) 
 	logging.VLog().WithFields(logrus.Fields{
 		"api": "/v1/user/nodeinfo",
 	}).Info("Rpc request.")
+	metricsRPCCounter.Inc(1)
 
 	neb := s.server.Neblet()
 	resp := &rpcpb.NodeInfoResponse{}
@@ -107,6 +109,7 @@ func (s *APIService) StatisticsNodeInfo(ctx context.Context, req *rpcpb.NonParam
 	logging.VLog().WithFields(logrus.Fields{
 		"api": "/v1/admin/statistics/nodeInfo",
 	}).Info("Rpc request.")
+	metricsRPCCounter.Inc(1)
 
 	neb := s.server.Neblet()
 	node := neb.NetManager().Node()
@@ -124,6 +127,7 @@ func (s *APIService) Accounts(ctx context.Context, req *rpcpb.NonParamsRequest) 
 	logging.VLog().WithFields(logrus.Fields{
 		"api": "/v1/user/accounts",
 	}).Info("Rpc request.")
+	metricsRPCCounter.Inc(1)
 
 	neb := s.server.Neblet()
 
@@ -145,11 +149,13 @@ func (s *APIService) GetAccountState(ctx context.Context, req *rpcpb.GetAccountS
 		"block":   req.Block,
 		"api":     "/v1/user/accountstate",
 	}).Info("Rpc request.")
+	metricsRPCCounter.Inc(1)
 
 	neb := s.server.Neblet()
 
 	addr, err := core.AddressParse(req.Address)
 	if err != nil {
+		metricsAccountStateFailed.Inc(1)
 		return nil, err
 	}
 
@@ -157,10 +163,12 @@ func (s *APIService) GetAccountState(ctx context.Context, req *rpcpb.GetAccountS
 	if len(req.Block) > 0 {
 		blockHash, err := byteutils.FromHex(req.Block)
 		if err != nil {
+			metricsAccountStateFailed.Inc(1)
 			return nil, err
 		}
 		block = neb.BlockChain().GetBlock(blockHash)
 		if block == nil {
+			metricsAccountStateFailed.Inc(1)
 			return nil, errors.New("block hash not found")
 		}
 	}
@@ -168,6 +176,7 @@ func (s *APIService) GetAccountState(ctx context.Context, req *rpcpb.GetAccountS
 	balance := block.GetBalance(addr.Bytes())
 	nonce := block.GetNonce(addr.Bytes())
 
+	metricsAccountStateSuccess.Inc(1)
 	return &rpcpb.GetAccountStateResponse{Balance: balance.String(), Nonce: fmt.Sprintf("%d", nonce)}, nil
 }
 
@@ -176,6 +185,7 @@ func (s *APIService) GetDynasty(ctx context.Context, req *rpcpb.NonParamsRequest
 	logging.VLog().WithFields(logrus.Fields{
 		"api": "/v1/admin/dynasty",
 	}).Info("Rpc request.")
+	metricsRPCCounter.Inc(1)
 
 	neb := s.server.Neblet()
 	dynastyRoot := neb.BlockChain().TailBlock().DposContext().DynastyRoot
@@ -200,6 +210,7 @@ func (s *APIService) GetDelegateVoters(ctx context.Context, req *rpcpb.GetDelega
 		"delegatee": req.Delegatee,
 		"api":       "/v1/admin/delegateVoters",
 	}).Info("Rpc request.")
+	metricsRPCCounter.Inc(1)
 
 	neb := s.server.Neblet()
 	delegatee, err := core.AddressParse(req.Delegatee)
@@ -233,6 +244,7 @@ func (s *APIService) SendTransaction(ctx context.Context, req *rpcpb.Transaction
 	logging.VLog().WithFields(logrus.Fields{
 		"api": "/v1/user/transaction",
 	}).Info("Rpc request.")
+	metricsRPCCounter.Inc(1)
 
 	return s.sendTransaction(req)
 }
@@ -242,6 +254,7 @@ func (s *APIService) Call(ctx context.Context, req *rpcpb.TransactionRequest) (*
 	logging.VLog().WithFields(logrus.Fields{
 		"api": "/v1/user/call",
 	}).Info("Rpc request.")
+	metricsRPCCounter.Inc(1)
 
 	return s.sendTransaction(req)
 }
@@ -251,27 +264,34 @@ func (s *APIService) sendTransaction(req *rpcpb.TransactionRequest) (*rpcpb.Send
 	tail := neb.BlockChain().TailBlock()
 	addr, err := core.AddressParse(req.From)
 	if err != nil {
+		metricsSendTxFailed.Inc(1)
 		return nil, err
 	}
 	if req.Nonce <= tail.GetNonce(addr.Bytes()) {
+		metricsSendTxFailed.Inc(1)
 		return nil, errors.New("nonce is invalid")
 	}
 
 	tx, err := parseTransaction(neb, req)
 	if err != nil {
+		metricsSendTxFailed.Inc(1)
 		return nil, err
 	}
 	if err := neb.AccountManager().SignTransaction(tx.From(), tx); err != nil {
+		metricsSendTxFailed.Inc(1)
 		return nil, err
 	}
 	if err := neb.BlockChain().TransactionPool().PushAndBroadcast(tx); err != nil {
+		metricsSendTxFailed.Inc(1)
 		return nil, err
 	}
 	if tx.Type() == core.TxPayloadDeployType {
 		address, _ := core.NewContractAddressFromHash(hash.Sha3256(tx.From().Bytes(), byteutils.FromUint64(tx.Nonce())))
+		metricsSendTxSuccess.Inc(1)
 		return &rpcpb.SendTransactionResponse{Txhash: tx.Hash().String(), ContractAddress: address.String()}, nil
 	}
 
+	metricsSendTxSuccess.Inc(1)
 	return &rpcpb.SendTransactionResponse{Txhash: tx.Hash().String()}, nil
 }
 
@@ -321,28 +341,34 @@ func (s *APIService) SendRawTransaction(ctx context.Context, req *rpcpb.SendRawT
 	logging.VLog().WithFields(logrus.Fields{
 		"api": "/v1/user/rawtransaction",
 	}).Info("Rpc request.")
+	metricsRPCCounter.Inc(1)
 
 	// Validate and sign the tx, then submit it to the tx pool.
 	neb := s.server.Neblet()
 
 	pbTx := new(corepb.Transaction)
 	if err := proto.Unmarshal(req.GetData(), pbTx); err != nil {
+		metricsSendRawTxFailed.Inc(1)
 		return nil, err
 	}
 	tx := new(core.Transaction)
 	if err := tx.FromProto(pbTx); err != nil {
+		metricsSendRawTxFailed.Inc(1)
 		return nil, err
 	}
 
 	if err := neb.BlockChain().TransactionPool().PushAndBroadcast(tx); err != nil {
+		metricsSendRawTxFailed.Inc(1)
 		return nil, err
 	}
 
 	if tx.Type() == core.TxPayloadDeployType {
+		metricsSendRawTxSuccess.Inc(1)
 		address, _ := core.NewContractAddressFromHash(hash.Sha3256(tx.From().Bytes(), byteutils.FromUint64(tx.Nonce())))
 		return &rpcpb.SendTransactionResponse{Txhash: tx.Hash().String(), ContractAddress: address.String()}, nil
 	}
 
+	metricsSendRawTxSuccess.Inc(1)
 	return &rpcpb.SendTransactionResponse{Txhash: tx.Hash().String()}, nil
 }
 
@@ -352,6 +378,7 @@ func (s *APIService) GetBlockByHash(ctx context.Context, req *rpcpb.GetBlockByHa
 		"hash": req.Hash,
 		"api":  "/v1/user/getBlockByHash",
 	}).Info("Rpc request.")
+	metricsRPCCounter.Inc(1)
 
 	neb := s.server.Neblet()
 
@@ -373,6 +400,7 @@ func (s *APIService) BlockDump(ctx context.Context, req *rpcpb.BlockDumpRequest)
 		"count": req.Count,
 		"api":   "/v1/user/transaction",
 	}).Info("Rpc request.")
+	metricsRPCCounter.Inc(1)
 
 	neb := s.server.Neblet()
 	data := neb.BlockChain().Dump(int(req.Count))
@@ -385,6 +413,7 @@ func (s *APIService) GetTransactionReceipt(ctx context.Context, req *rpcpb.GetTr
 		"hash": req.Hash,
 		"api":  "/v1/user/getTransactionReceipt",
 	}).Info("Rpc request.")
+	metricsRPCCounter.Inc(1)
 
 	neb := s.server.Neblet()
 	bhash, _ := byteutils.FromHex(req.GetHash())
@@ -421,6 +450,7 @@ func (s *APIService) NewAccount(ctx context.Context, req *rpcpb.NewAccountReques
 	logging.VLog().WithFields(logrus.Fields{
 		"api": "/v1/admin/account/new",
 	}).Info("Rpc request.")
+	metricsRPCCounter.Inc(1)
 
 	neb := s.server.Neblet()
 	addr, err := neb.AccountManager().NewAccount([]byte(req.Passphrase))
@@ -435,10 +465,12 @@ func (s *APIService) UnlockAccount(ctx context.Context, req *rpcpb.UnlockAccount
 	logging.VLog().WithFields(logrus.Fields{
 		"api": "/v1/admin/account/unlock",
 	}).Info("Rpc request.")
+	metricsRPCCounter.Inc(1)
 
 	neb := s.server.Neblet()
 	addr, err := core.AddressParse(req.Address)
 	if err != nil {
+		metricsUnlockFailed.Inc(1)
 		return nil, err
 	}
 	duration := time.Duration(req.Duration)
@@ -447,8 +479,11 @@ func (s *APIService) UnlockAccount(ctx context.Context, req *rpcpb.UnlockAccount
 	}
 	err = neb.AccountManager().Unlock(addr, []byte(req.Passphrase), duration)
 	if err != nil {
+		metricsUnlockFailed.Inc(1)
 		return nil, err
 	}
+
+	metricsUnlockSuccess.Inc(1)
 	return &rpcpb.UnlockAccountResponse{Result: true}, nil
 }
 
@@ -457,6 +492,7 @@ func (s *APIService) LockAccount(ctx context.Context, req *rpcpb.LockAccountRequ
 	logging.VLog().WithFields(logrus.Fields{
 		"api": "/v1/admin/account/lock",
 	}).Info("Rpc request.")
+	metricsRPCCounter.Inc(1)
 
 	neb := s.server.Neblet()
 	addr, err := core.AddressParse(req.Address)
@@ -475,24 +511,31 @@ func (s *APIService) SignTransaction(ctx context.Context, req *rpcpb.Transaction
 	logging.VLog().WithFields(logrus.Fields{
 		"api": "/v1/admin/sign",
 	}).Info("Rpc request.")
+	metricsRPCCounter.Inc(1)
 
 	neb := s.server.Neblet()
 	tx, err := parseTransaction(neb, req)
 	if err != nil {
+		metricsSignTxFailed.Inc(1)
 		return nil, err
 	}
 	if err := neb.AccountManager().SignTransaction(tx.From(), tx); err != nil {
+		metricsSignTxFailed.Inc(1)
 		return nil, err
 	}
 	logging.CLog().Info(tx)
 	pbMsg, err := tx.ToProto()
 	if err != nil {
+		metricsSignTxFailed.Inc(1)
 		return nil, err
 	}
 	data, err := proto.Marshal(pbMsg)
 	if err != nil {
+		metricsSignTxFailed.Inc(1)
 		return nil, err
 	}
+
+	metricsSignTxSuccess.Inc(1)
 	return &rpcpb.SignTransactionResponse{Data: data}, nil
 }
 
@@ -501,6 +544,7 @@ func (s *APIService) SendTransactionWithPassphrase(ctx context.Context, req *rpc
 	logging.VLog().WithFields(logrus.Fields{
 		"api": "/v1/admin/transactionWithPassphrase",
 	}).Info("Rpc request.")
+	metricsRPCCounter.Inc(1)
 
 	neb := s.server.Neblet()
 	tx, err := parseTransaction(neb, req.Transaction)
@@ -522,6 +566,7 @@ func (s *APIService) Subscribe(req *rpcpb.SubscribeRequest, gs rpcpb.ApiService_
 		"topic": req.Topic,
 		"api":   "/v1/user/subscribe",
 	}).Info("Rpc request.")
+	metricsRPCCounter.Inc(1)
 
 	neb := s.server.Neblet()
 
@@ -592,6 +637,7 @@ func (s *APIService) GetGasPrice(ctx context.Context, req *rpcpb.NonParamsReques
 	logging.VLog().WithFields(logrus.Fields{
 		"api": "/v1/user/getGasPrice",
 	}).Info("Rpc request.")
+	metricsRPCCounter.Inc(1)
 
 	neb := s.server.Neblet()
 	gasPrice := neb.BlockChain().GasPrice()
@@ -603,6 +649,7 @@ func (s *APIService) EstimateGas(ctx context.Context, req *rpcpb.TransactionRequ
 	logging.VLog().WithFields(logrus.Fields{
 		"api": "/v1/user/estimateGas",
 	}).Info("Rpc request.")
+	metricsRPCCounter.Inc(1)
 
 	neb := s.server.Neblet()
 	tail := neb.BlockChain().TailBlock()
@@ -630,6 +677,7 @@ func (s *APIService) GetEventsByHash(ctx context.Context, req *rpcpb.GetTransact
 	logging.VLog().WithFields(logrus.Fields{
 		"api": "/v1/user/getEventsByHash",
 	}).Info("Rpc request.")
+	metricsRPCCounter.Inc(1)
 
 	neb := s.server.Neblet()
 	bhash, _ := byteutils.FromHex(req.GetHash())
@@ -660,6 +708,7 @@ func (s *APIService) ChangeNetworkID(ctx context.Context, req *rpcpb.ChangeNetwo
 	logging.VLog().WithFields(logrus.Fields{
 		"api": "/v1/admin/changeNetworkID",
 	}).Info("Rpc request.")
+	metricsRPCCounter.Inc(1)
 
 	neb := s.server.Neblet()
 	neb.NetManager().Node().Config().NetworkID = req.NetworkId
@@ -673,6 +722,7 @@ func (s *APIService) StartMine(ctx context.Context, req *rpcpb.StartMineRequest)
 	logging.VLog().WithFields(logrus.Fields{
 		"api": "/v1/admin/startMine",
 	}).Info("Rpc request.")
+	metricsRPCCounter.Inc(1)
 
 	neb := s.server.Neblet()
 
@@ -692,6 +742,7 @@ func (s *APIService) StopMine(ctx context.Context, req *rpcpb.NonParamsRequest) 
 	logging.VLog().WithFields(logrus.Fields{
 		"api": "/v1/admin/stopMine",
 	}).Info("Rpc request.")
+	metricsRPCCounter.Inc(1)
 
 	neb := s.server.Neblet()
 

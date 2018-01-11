@@ -34,7 +34,6 @@ import (
 	"github.com/nebulasio/go-nebulas/util"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
 	"github.com/nebulasio/go-nebulas/util/logging"
-	metrics "github.com/rcrowley/go-metrics"
 	"github.com/sirupsen/logrus"
 )
 
@@ -62,9 +61,6 @@ var (
 	CandidateBaseGasCount = util.NewUint128FromInt(20000)
 	// ZeroGasCount is zero gas count
 	ZeroGasCount = util.NewUint128()
-
-	executeTxCounter    = metrics.GetOrRegisterCounter("tx_execute", nil)
-	executeTxErrCounter = metrics.GetOrRegisterCounter("tx_execute_err", nil)
 )
 
 // Transaction type is used to handle all transaction data.
@@ -322,7 +318,7 @@ func (tx *Transaction) VerifyExecution(block *Block) (*util.Uint128, error) {
 			"block":       block,
 			"transaction": tx,
 		}).Error("Failed to load payload.")
-		executeTxErrCounter.Inc(1)
+		metricsTxExeFailed.Inc(1)
 
 		tx.gasConsumption(fromAcc, coinbaseAcc, gasUsed)
 		tx.triggerEvent(TopicExecuteTxFailed, block, err)
@@ -343,7 +339,7 @@ func (tx *Transaction) VerifyExecution(block *Block) (*util.Uint128, error) {
 			"block": block,
 			"tx":    tx,
 		}).Error("Failed to check base gas used.")
-		executeTxErrCounter.Inc(1)
+		metricsTxExeFailed.Inc(1)
 
 		tx.gasConsumption(fromAcc, coinbaseAcc, tx.gasLimit)
 		tx.triggerEvent(TopicExecuteTxFailed, block, err)
@@ -381,7 +377,7 @@ func (tx *Transaction) VerifyExecution(block *Block) (*util.Uint128, error) {
 			"gasExecution": gasExecution.String(),
 		}).Error("Failed to execute payload.")
 
-		executeTxErrCounter.Inc(1)
+		metricsTxExeFailed.Inc(1)
 		tx.triggerEvent(TopicExecuteTxFailed, block, err)
 	} else {
 		if fromAcc.Balance().Cmp(tx.value.Int) < 0 {
@@ -391,14 +387,14 @@ func (tx *Transaction) VerifyExecution(block *Block) (*util.Uint128, error) {
 				"tx":    tx,
 			}).Error("Failed to check balance sufficient.")
 
-			executeTxErrCounter.Inc(1)
+			metricsTxExeFailed.Inc(1)
 			tx.triggerEvent(TopicExecuteTxFailed, block, ErrInsufficientBalance)
 		} else {
 			// accept the transaction
 			fromAcc.SubBalance(tx.value)
 			toAcc.AddBalance(tx.value)
 
-			executeTxCounter.Inc(1)
+			metricsTxExeSuccess.Inc(1)
 			// record tx execution success event
 			tx.triggerEvent(TopicExecuteTxSuccess, block, nil)
 		}
