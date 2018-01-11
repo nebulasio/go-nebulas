@@ -144,7 +144,7 @@ func (table *RouteTable) AddPeerInfo(pidStr string, addrStr []string) error {
 }
 
 func (table *RouteTable) AddPeer(pid peer.ID, addr ma.Multiaddr) {
-	logging.CLog().Infof("Adding: %s,%s", pid.Pretty(), addr.String())
+	logging.CLog().Infof("Adding Peer: %s,%s", pid.Pretty(), addr.String())
 	table.peerStore.AddAddr(pid, addr, peerstore.PermanentAddrTTL)
 	table.routeTable.Update(pid)
 }
@@ -255,10 +255,14 @@ func (table *RouteTable) SyncRouteTable() {
 	}
 
 	// random peer selection.
-	rand.Seed(time.Now().UnixNano())
-	selectedPeersCount := table.maxPeersCountToSync
 	peers := table.routeTable.ListPeers()
 	peersCount := len(peers)
+	if peersCount <= 1 {
+		return
+	}
+
+	rand.Seed(time.Now().UnixNano())
+	selectedPeersCount := table.maxPeersCountToSync
 
 	selectedPeersIdx := make(map[int]bool)
 	for i := 0; i < selectedPeersCount; i++ {
@@ -277,6 +281,10 @@ func (table *RouteTable) SyncRouteTable() {
 }
 
 func (table *RouteTable) SyncWithPeer(pid peer.ID) {
+	if pid == table.node.id {
+		return
+	}
+
 	stream := table.streamManager.Find(pid)
 
 	if stream == nil {

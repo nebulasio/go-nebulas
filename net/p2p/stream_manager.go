@@ -29,7 +29,6 @@ import (
 	peer "github.com/libp2p/go-libp2p-peer"
 	"github.com/nebulasio/go-nebulas/net"
 	"github.com/nebulasio/go-nebulas/util/logging"
-	"github.com/sirupsen/logrus"
 )
 
 type StreamManager struct {
@@ -63,10 +62,6 @@ func (sm *StreamManager) AddStream(stream *Stream) {
 	atomic.AddInt32(&sm.activePeersCount, 1)
 	sm.allStreams.Store(stream.pid, stream)
 	stream.StartLoop()
-
-	logging.VLog().WithFields(logrus.Fields{
-		"stream": stream.String(),
-	}).Debug("New peer is connected.")
 }
 
 func (sm *StreamManager) Remove(pid peer.ID) {

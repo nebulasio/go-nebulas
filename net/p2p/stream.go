@@ -108,7 +108,6 @@ func (s *Stream) Connect() error {
 		s.pid,
 		NebProtocolID,
 	)
-	logging.CLog().Debugf("Connected %s", s.String())
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"stream": s.String(),
@@ -119,7 +118,7 @@ func (s *Stream) Connect() error {
 	s.stream = stream
 	s.addr = stream.Conn().RemoteMultiaddr()
 
-	logging.CLog().Debugf("Connected_2 %s", s.String())
+	logging.CLog().Debugf("Connected %s", s.String())
 
 	return nil
 }
