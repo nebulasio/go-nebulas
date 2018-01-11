@@ -58,35 +58,32 @@ func LoadConfig(file string) *nebletpb.Config {
 func defaultConfig() string {
 	content := `
 	network {
-		listen: ["127.0.0.1:51413"]
+		listen: ["127.0.0.1:8680"]
 	}
 
 	chain {
 		chain_id: 100
-		datadir: "seed.db"
+		datadir: "data.db"
+		genesis: "conf/default/genesis.conf"
 		keydir: "keydir"
 		coinbase: "eb31ad2d8a89a0ca6935c308d5425730430bc2d63f2573b8"
 		signature_ciphers: ["ECC_SECP256K1"]
 	}
 
 	rpc {
-		rpc_listen: ["127.0.0.1:51510"]
-		http_listen: ["127.0.0.1:8090"]
+		rpc_listen: ["127.0.0.1:8684"]
+		http_listen: ["127.0.0.1:8685"]
 		http_module: ["api","admin"]
 	}
 
-  app {
-    enable_crash_report: true
-  }
+  	app {
+		log_level: "info"
+    	log_file: "logs"
+    	enable_crash_report: false
+  	}
 
 	stats {
 		enable_metrics: false
-		influxdb: {
-			host: "http://localhost:8086"
-			db: "nebulas"
-			user: "admin"
-			password: "admin"
-		}
 	}
 	`
 	return content

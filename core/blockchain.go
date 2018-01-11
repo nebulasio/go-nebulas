@@ -23,6 +23,8 @@ import (
 	"strings"
 	"time"
 
+	"reflect"
+
 	"github.com/gogo/protobuf/proto"
 	lru "github.com/hashicorp/golang-lru"
 	"github.com/nebulasio/go-nebulas/core/pb"
@@ -112,6 +114,10 @@ func NewBlockChain(neb Neblet) (*BlockChain, error) {
 	bc.cachedBlocks, _ = lru.New(1024)
 	bc.detachedTailBlocks, _ = lru.New(64)
 
+	if err := bc.CheckChainConfig(neb); err != nil {
+		return nil, err
+	}
+
 	bc.genesisBlock, err = bc.loadGenesisFromStorage()
 	if err != nil {
 		return nil, err
@@ -146,6 +152,20 @@ func NewBlockChain(neb Neblet) (*BlockChain, error) {
 	bc.txPool.setBlockChain(bc)
 
 	return bc, nil
+}
+
+// CheckChainConfig check if the genesis and config is valid
+func (bc *BlockChain) CheckChainConfig(neb Neblet) error {
+	if neb.Config().Chain.ChainId != neb.Genesis().Meta.ChainId {
+		return ErrInvalidConfigChainID
+	}
+
+	if genesis, _ := DumpGenesis(bc.storage); genesis != nil {
+		if !reflect.DeepEqual(genesis, neb.Genesis()) {
+			return ErrGenesisConfNotMatch
+		}
+	}
+	return nil
 }
 
 // ChainID return the chainID.
@@ -587,16 +607,6 @@ func (bc *BlockChain) loadGenesisFromStorage() (*Block, error) {
 		heightKey := byteutils.FromUint64(genesis.height)
 		if err := bc.storage.Put(heightKey, genesis.Hash()); err != nil {
 			return nil, err
-		}
-	} else {
-		if bc.genesis.Meta.ChainId != genesis.ChainID() {
-			logging.CLog().WithFields(logrus.Fields{
-				"chainID": genesis.ChainID(),
-				"conf":    bc.genesis,
-				"storage": genesis,
-				"err":     ErrGenesisConfNotMatch,
-			}).Error("Failed to load genesis")
-			return nil, ErrGenesisConfNotMatch
 		}
 	}
 	return genesis, nil

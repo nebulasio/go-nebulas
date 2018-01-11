@@ -23,6 +23,7 @@ import (
 	"strconv"
 
 	"github.com/nebulasio/go-nebulas/core/pb"
+	"github.com/nebulasio/go-nebulas/neblet/pb"
 	"github.com/nebulasio/go-nebulas/storage"
 	"github.com/nebulasio/go-nebulas/util"
 )
@@ -89,6 +90,7 @@ var (
 	ErrGenesisConfNotMatch                               = errors.New("Failed to load genesis from sotrage, different with genesis conf")
 	ErrInvalidBlockCannotFindParentInLocalAndTryDownload = errors.New("invalid block received, download its parent from others")
 	ErrInvalidBlockCannotFindParentInLocalAndTrySync     = errors.New("invalid block received, sync its parent from others")
+	ErrInvalidConfigChainID                              = errors.New("invalid chainID, genesis chainID not equal to chainID in config")
 )
 
 // Default gas count
@@ -120,6 +122,7 @@ type Consensus interface {
 // Neblet interface breaks cycle import dependency and hides unused services.
 type Neblet interface {
 	Genesis() *corepb.Genesis
+	Config() nebletpb.Config
 	Storage() storage.Storage
 	EventEmitter() *EventEmitter
 	StartSync()

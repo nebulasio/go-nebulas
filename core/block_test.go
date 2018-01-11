@@ -28,6 +28,7 @@ import (
 	"github.com/nebulasio/go-nebulas/crypto"
 	"github.com/nebulasio/go-nebulas/crypto/keystore"
 	"github.com/nebulasio/go-nebulas/crypto/keystore/secp256k1"
+	"github.com/nebulasio/go-nebulas/neblet/pb"
 	"github.com/nebulasio/go-nebulas/storage"
 	"github.com/nebulasio/go-nebulas/util"
 	"github.com/stretchr/testify/assert"
@@ -35,12 +36,17 @@ import (
 
 type mockNeb struct {
 	genesis *corepb.Genesis
+	config  nebletpb.Config
 	storage storage.Storage
 	emitter *EventEmitter
 }
 
 func (n *mockNeb) Genesis() *corepb.Genesis {
 	return n.genesis
+}
+
+func (n *mockNeb) Config() nebletpb.Config {
+	return n.config
 }
 
 func (n *mockNeb) Storage() storage.Storage {
@@ -58,6 +64,7 @@ func testNeb() *mockNeb {
 	eventEmitter := NewEventEmitter(1024)
 	neb := &mockNeb{
 		genesis: MockGenesisConf(),
+		config:  nebletpb.Config{Chain: &nebletpb.ChainConfig{ChainId: MockGenesisConf().Meta.ChainId}},
 		storage: storage,
 		emitter: eventEmitter,
 	}
