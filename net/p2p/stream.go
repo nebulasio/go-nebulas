@@ -316,6 +316,9 @@ func (s *Stream) readLoop() {
 				s.Bye()
 				return
 			}
+
+			// reset message.
+			message = nil
 		}
 	}
 }

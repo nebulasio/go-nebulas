@@ -246,6 +246,8 @@ func (table *RouteTable) SaveRouteTableToFile() {
 }
 
 func (table *RouteTable) SyncRouteTable() {
+	syncedPeers := make(map[peer.ID]bool)
+
 	// sync with seed nodes.
 	for _, ipfsAddr := range table.seedNodes {
 		pid, _, err := ParseFromIPFSAddr(ipfsAddr)
@@ -253,6 +255,7 @@ func (table *RouteTable) SyncRouteTable() {
 			continue
 		}
 		table.SyncWithPeer(pid)
+		syncedPeers[pid] = true
 	}
 
 	// random peer selection.
@@ -277,7 +280,10 @@ func (table *RouteTable) SyncRouteTable() {
 		selectedPeersIdx[ri] = true
 		pid := peers[ri]
 
-		table.SyncWithPeer(pid)
+		if syncedPeers[pid] == false {
+			table.SyncWithPeer(pid)
+			syncedPeers[pid] = true
+		}
 	}
 }
 
