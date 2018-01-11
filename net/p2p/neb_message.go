@@ -19,6 +19,7 @@
 package p2p
 
 import (
+	"bytes"
 	"errors"
 	"hash/crc32"
 
@@ -107,6 +108,10 @@ func (message *NebMessage) Version() byte {
 
 func (message *NebMessage) MessageName() string {
 	data := message.content[NebMessageVersionEndIdx:NebMessageNameEndIdx]
+	pos := bytes.IndexByte(data, 0)
+	if pos != -1 {
+		return string(data[0:pos])
+	}
 	return string(data)
 }
 
