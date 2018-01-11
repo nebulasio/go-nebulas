@@ -183,14 +183,14 @@ func TestRunScriptSourceWithLimits(t *testing.T) {
 		expectedErr                   error
 	}{
 		{"test/test_oom_1.js", 100000, 0, ErrInsufficientGas},
-		{"test/test_oom_1.js", 0, 50000000, ErrExceedMemoryLimits},
+		{"test/test_oom_1.js", 0, 500000, ErrExceedMemoryLimits},
 		{"test/test_oom_1.js", 1000000, 50000000, ErrInsufficientGas},
-		{"test/test_oom_1.js", 5000000, 7000000, ErrExceedMemoryLimits},
+		{"test/test_oom_1.js", 5000000, 70000, ErrExceedMemoryLimits},
 
 		{"test/test_oom_2.js", 100000, 0, ErrInsufficientGas},
-		{"test/test_oom_2.js", 0, 8000000, ErrExceedMemoryLimits},
+		{"test/test_oom_2.js", 0, 80000, ErrExceedMemoryLimits},
 		{"test/test_oom_2.js", 10000000, 10000000, ErrInsufficientGas},
-		{"test/test_oom_2.js", 10000000, 7000000, ErrExceedMemoryLimits},
+		{"test/test_oom_2.js", 10000000, 70000, ErrExceedMemoryLimits},
 	}
 
 	for _, tt := range tests {
