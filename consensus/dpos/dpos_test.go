@@ -177,18 +177,17 @@ func (n MockNetManager) Stop()        {}
 
 func (n MockNetManager) Node() *p2p.Node { return nil }
 
-func (n MockNetManager) Sync(net.Serializable) error            { return nil }
-func (n MockNetManager) SendSyncReply(string, net.Serializable) {}
+func (n MockNetManager) Sync(net.Serializable) error { return nil }
 
 func (n MockNetManager) Register(...*net.Subscriber)   {}
 func (n MockNetManager) Deregister(...*net.Subscriber) {}
 
-func (n MockNetManager) Broadcast(name string, msg net.Serializable) {
+func (n MockNetManager) Broadcast(name string, msg net.Serializable, priority int) {
 	pb, _ := msg.ToProto()
 	bytes, _ := proto.Marshal(pb)
 	received = bytes
 }
-func (n MockNetManager) Relay(name string, msg net.Serializable) {
+func (n MockNetManager) Relay(name string, msg net.Serializable, priority int) {
 	pb, _ := msg.ToProto()
 	bytes, _ := proto.Marshal(pb)
 	received = bytes

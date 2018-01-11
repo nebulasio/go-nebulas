@@ -144,6 +144,7 @@ func (table *RouteTable) AddPeerInfo(pidStr string, addrStr []string) error {
 }
 
 func (table *RouteTable) AddPeer(pid peer.ID, addr ma.Multiaddr) {
+	logging.CLog().Infof("Adding: %s,%s", pid.Pretty(), addr.String())
 	table.peerStore.AddAddr(pid, addr, peerstore.PermanentAddrTTL)
 	table.routeTable.Update(pid)
 }

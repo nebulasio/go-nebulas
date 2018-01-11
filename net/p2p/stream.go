@@ -101,20 +101,25 @@ func newStreamInstance(pid peer.ID, addr ma.Multiaddr, stream libnet.Stream, nod
 }
 
 func (s *Stream) Connect() error {
+	logging.CLog().Debugf("Connecting %s", s.String())
 	// connect to host.
 	stream, err := s.node.host.NewStream(
 		s.node.context,
 		s.pid,
 		NebProtocolID,
 	)
+	logging.CLog().Debugf("Connected %s", s.String())
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"stream": s.String(),
+			"err":    err,
 		}).Debug("Failed to connect to host.")
 		return err
 	}
 	s.stream = stream
 	s.addr = stream.Conn().RemoteMultiaddr()
+
+	logging.CLog().Debugf("Connected_2 %s", s.String())
 
 	return nil
 }
@@ -129,7 +134,7 @@ func (s *Stream) String() string {
 		addrStr = s.addr.String()
 	}
 
-	return fmt.Sprintf("Peer Stream: %s , %s", s.pid.Pretty(), addrStr)
+	return fmt.Sprintf("Peer Stream: %s,%s", s.pid.Pretty(), addrStr)
 }
 
 func (s *Stream) SendProtoMessage(messageName string, pb proto.Message, priority int) error {
