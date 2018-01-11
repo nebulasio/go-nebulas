@@ -25,20 +25,20 @@ import (
 
 // Metrics for rpc
 var (
-	metricsRPCCounter = metrics.GetOrRegisterCounter("rpc_request", nil)
+	metricsRPCCounter = metrics.GetOrRegisterMeter("rpc.request", nil)
 
-	metricsAccountStateSuccess = metrics.GetOrRegisterCounter("rpc_account_state_success", nil)
-	metricsAccountStateFailed  = metrics.GetOrRegisterCounter("rpc_account_state_failed", nil)
+	metricsAccountStateSuccess = metrics.GetOrRegisterMeter("rpc.account.success", nil)
+	metricsAccountStateFailed  = metrics.GetOrRegisterMeter("rpc.account.failed", nil)
 
-	metricsSendTxSuccess = metrics.GetOrRegisterCounter("rpc_sendTx_success", nil)
-	metricsSendTxFailed  = metrics.GetOrRegisterCounter("rpc_sendTx_failed", nil)
+	metricsSendTxSuccess = metrics.GetOrRegisterMeter("rpc.sendTx.success", nil)
+	metricsSendTxFailed  = metrics.GetOrRegisterMeter("rpc.sendTx.failed", nil)
 
-	metricsSendRawTxSuccess = metrics.GetOrRegisterCounter("rpc_sendRawTx_success", nil)
-	metricsSendRawTxFailed  = metrics.GetOrRegisterCounter("rpc_sendRawTx_failed", nil)
+	metricsSendRawTxSuccess = metrics.GetOrRegisterMeter("rpc.sendRawTx.success", nil)
+	metricsSendRawTxFailed  = metrics.GetOrRegisterMeter("rpc.sendRawTx.failed", nil)
 
-	metricsSignTxSuccess = metrics.GetOrRegisterCounter("rpc_signTx_success", nil)
-	metricsSignTxFailed  = metrics.GetOrRegisterCounter("rpc_signTx_failed", nil)
+	metricsSignTxSuccess = metrics.GetOrRegisterMeter("rpc.signTx.success", nil)
+	metricsSignTxFailed  = metrics.GetOrRegisterMeter("rpc.signTx.failed", nil)
 
-	metricsUnlockSuccess = metrics.GetOrRegisterCounter("rpc_unlock_success", nil)
-	metricsUnlockFailed  = metrics.GetOrRegisterCounter("rpc_unlock_failed", nil)
+	metricsUnlockSuccess = metrics.GetOrRegisterMeter("rpc.unlock.success", nil)
+	metricsUnlockFailed  = metrics.GetOrRegisterMeter("rpc.unlock.failed", nil)
 )

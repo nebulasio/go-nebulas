@@ -31,14 +31,14 @@ var (
 	metricsTxExecutedTimer    = metrics.GetOrRegisterTimer("neb.tx.executed", nil)
 
 	// txpool metrics
-	metricsInvalidTx           = metrics.GetOrRegisterCounter("txpool_invalid", nil)
-	metricsDuplicateTx         = metrics.GetOrRegisterCounter("txpool_duplicate", nil)
-	metricsTxPoolBelowGasPrice = metrics.GetOrRegisterCounter("txpool_below_gas_price", nil)
-	metricsTxPoolOutOfGasLimit = metrics.GetOrRegisterCounter("txpool_out_of_gas_limit", nil)
+	metricsInvalidTx           = metrics.GetOrRegisterCounter("txpool.invalid", nil)
+	metricsDuplicateTx         = metrics.GetOrRegisterCounter("txpool.duplicate", nil)
+	metricsTxPoolBelowGasPrice = metrics.GetOrRegisterCounter("txpool.below_gas_price", nil)
+	metricsTxPoolOutOfGasLimit = metrics.GetOrRegisterCounter("txpool.out_of_gas_limit", nil)
 
 	// transaction metrics
-	metricsTxSubmit     = metrics.GetOrRegisterMeter("tx_submit", nil)
-	metricsTxExecute    = metrics.GetOrRegisterMeter("tx_execute", nil)
-	metricsTxExeSuccess = metrics.GetOrRegisterMeter("tx_execute_success", nil)
-	metricsTxExeFailed  = metrics.GetOrRegisterMeter("tx_execute_failed", nil)
+	metricsTxSubmit     = metrics.GetOrRegisterMeter("tx.submit", nil)
+	metricsTxExecute    = metrics.GetOrRegisterMeter("tx.execute", nil)
+	metricsTxExeSuccess = metrics.GetOrRegisterMeter("tx.execute.success", nil)
+	metricsTxExeFailed  = metrics.GetOrRegisterMeter("tx.execute.failed", nil)
 )
