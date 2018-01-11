@@ -45,7 +45,7 @@ func NewDispatcher() *Dispatcher {
 	dp := &Dispatcher{
 		subscribersMap:    new(sync.Map),
 		quitCh:            make(chan bool, 10),
-		receivedMessageCh: make(chan Message, 1024),
+		receivedMessageCh: make(chan Message, 65536),
 	}
 
 	return dp
@@ -89,11 +89,13 @@ func (dp *Dispatcher) Start() {
 
 			case msg := <-dp.receivedMessageCh:
 				msgType := msg.MessageType()
-				v, _ := dp.subscribersMap.Load(msgType)
-				m, _ := v.(*sync.Map)
 				logging.VLog().WithFields(logrus.Fields{
 					"msgType": msgType,
 				}).Info("dispatcher received message")
+
+				v, _ := dp.subscribersMap.Load(msgType)
+				m, _ := v.(*sync.Map)
+
 				m.Range(func(key, value interface{}) bool {
 					key.(*Subscriber).msgChan <- msg
 					logging.VLog().WithFields(logrus.Fields{

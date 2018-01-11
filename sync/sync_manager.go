@@ -149,7 +149,8 @@ func (m *Manager) syncWithPeers(block *core.Block) {
 	logging.VLog().WithFields(logrus.Fields{
 		"tail":  tail,
 		"block": tail.block,
-	}).Info("get current tail to sync")
+		"batch": batch,
+	}).Info("sync with current tail")
 	err := m.ns.Node().Sync(tail)
 
 	switch err {
@@ -198,7 +199,7 @@ func (m *Manager) startMsgHandle() {
 			select {
 			case msg := <-m.receiveTailCh:
 				if m.ns.Node().GetSynchronizing() {
-					logging.VLog().Warn("node can not reply sync message when it is synchronizing")
+					logging.VLog().Warn("Failed to reply sync message when synchronizing")
 					continue
 				}
 				// 1.find the common ancestors
@@ -206,11 +207,15 @@ func (m *Manager) startMsgHandle() {
 				tail := new(NetBlock)
 				pbblock := new(corepb.NetBlock)
 				if err := pb.Unmarshal(msg.Data().([]byte), pbblock); err != nil {
-					logging.VLog().Error("StartMsgHandle.receiveTailCh: unmarshal data occurs error, ", err)
+					logging.VLog().WithFields(logrus.Fields{
+						"err": err,
+					}).Error("Failed to reply sync message")
 					continue
 				}
 				if err := tail.FromProto(pbblock); err != nil {
-					logging.VLog().Error("StartMsgHandle.receiveTailCh: get block from proto occurs error: ", err)
+					logging.VLog().WithFields(logrus.Fields{
+						"err": err,
+					}).Error("Failed to reply sync message")
 					continue
 				}
 
@@ -219,14 +224,18 @@ func (m *Manager) startMsgHandle() {
 				err := m.blockChain.CheckBlockOnCanonicalChain(tail.block)
 				var emptyblocks []*core.Block
 				if err != nil {
-					logging.VLog().Error("StartMsgHandle.receiveTailCh: find common ancestor with tail occurs error, ", err)
+					logging.VLog().WithFields(logrus.Fields{
+						"err": err,
+					}).Error("Failed to reply sync message, failed to find common ancestor")
 					netblocks := NewNetBlocks(key, tail.batch, emptyblocks)
 					m.ns.SendSyncReply(tail.from, netblocks)
 					continue
 				}
 				subsequentBlocks, err := m.blockChain.FetchDescendantInCanonicalChain(DescendantCount, tail.block)
 				if err != nil {
-					logging.VLog().Error("StartMsgHandle.receiveTailCh: FetchDescendantInCanonicalChain occurs error, ", err)
+					logging.VLog().WithFields(logrus.Fields{
+						"err": err,
+					}).Error("Failed to reply sync message, failed to fetch descendant in canonical chain")
 					netblocks := NewNetBlocks(key, tail.batch, emptyblocks)
 					m.ns.SendSyncReply(tail.from, netblocks)
 					continue
@@ -237,7 +246,7 @@ func (m *Manager) startMsgHandle() {
 					"from":   blocks.from,
 					"batch":  blocks.batch,
 					"blocks": blocks.blocks,
-				}).Info("StartMsgHandle.receiveTailCh: receive receiveTailCh message.")
+				}).Info("Send sync block response message")
 				m.ns.SendSyncReply(tail.from, blocks)
 
 			case msg := <-m.receiveSyncReplyCh:
@@ -248,11 +257,15 @@ func (m *Manager) startMsgHandle() {
 				data := new(NetBlocks)
 				pbblocks := new(corepb.NetBlocks)
 				if err := pb.Unmarshal(msg.Data().([]byte), pbblocks); err != nil {
-					logging.VLog().Error("StartMsgHandle.receiveSyncReplyCh: unmarshal data occurs error, ", err)
+					logging.VLog().WithFields(logrus.Fields{
+						"err": err,
+					}).Error("Failed to receive sync reply message")
 					continue
 				}
 				if err := data.FromProto(pbblocks); err != nil {
-					logging.VLog().Error("StartMsgHandle.receiveSyncReplyCh: get blocks from proto occurs error: ", err)
+					logging.VLog().WithFields(logrus.Fields{
+						"err": err,
+					}).Error("Failed to receive sync reply message")
 					continue
 				}
 
@@ -275,7 +288,7 @@ func (m *Manager) startMsgHandle() {
 						"blocks":     blocks,
 						"data.batch": data.batch,
 						"batch":      batch,
-					}).Info("Reveived sync reply message is wrong")
+					}).Info("Received sync reply message is wrong")
 
 					if msgErrCount >= p2p.LimitToSync/2 {
 						// go to next sync
@@ -289,7 +302,7 @@ func (m *Manager) startMsgHandle() {
 					"blocks":     blocks,
 					"data.batch": data.batch,
 					"batch":      batch,
-				}).Info("Reveived sync reply message")
+				}).Info("Received sync reply message")
 
 				if len(blocks) > 0 && len(m.cacheList) < p2p.LimitToSync {
 					m.checkSyncLimitHandler(data)
@@ -323,7 +336,7 @@ func (m *Manager) syncWithBlockList(list map[string]*NetBlocks) {
 
 func (m *Manager) doSyncBlocksWithCommonAncestor(addrsArray []string) {
 	if len(addrsArray) == 0 {
-		logging.VLog().Warn("doSyncBlocksWithCommonAncestor: no common ancestor have been found")
+		logging.VLog().Warn("Failed to find common ancestor")
 		m.clearCacheList()
 		m.syncCh <- true
 		return
@@ -346,7 +359,7 @@ func (m *Manager) doSyncBlocksWithCommonAncestor(addrsArray []string) {
 				m.clearCacheList()
 				logging.VLog().WithFields(logrus.Fields{
 					"err": err,
-				}).Error("fail to push a block to pool")
+				}).Error("Failed to push a block to pool")
 				m.syncCh <- true
 				return
 			}
