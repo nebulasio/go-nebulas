@@ -192,7 +192,9 @@ func (bc *BlockChain) revertBlocks(from *Block, to *Block) error {
 	reverted := to
 	var revertTimes int64
 	for revertTimes = 0; !reverted.Hash().Equals(from.Hash()); {
-		// TODO(roy): delete blocks from storage
+		if reverted.Hash().Equals(bc.latestIrreversibleBlock.Hash()) {
+			return ErrCannotRevertLIB
+		}
 		reverted.ReturnTransactions()
 		logging.VLog().WithFields(logrus.Fields{
 			"block": reverted,
@@ -242,8 +244,8 @@ func (bc *BlockChain) SetTailBlock(newTail *Block) error {
 			"from":  ancestor,
 			"to":    oldTail,
 			"range": "(from, to]",
-		}).Warn("Failed to revert blocks.")
-		// the errors can be skipped
+		}).Error("Failed to revert blocks.")
+		return err
 	}
 	// build index by block height
 	if err := bc.buildIndexByBlockHeight(ancestor, newTail); err != nil {
@@ -255,7 +257,7 @@ func (bc *BlockChain) SetTailBlock(newTail *Block) error {
 		return err
 	}
 	// update LIB
-	if err := bc.updateLatestIrreversibleBlock(ancestor, newTail); err != nil {
+	if err := bc.updateLatestIrreversibleBlock(newTail); err != nil {
 		logging.CLog().WithFields(logrus.Fields{
 			"ancestor": ancestor,
 			"oldTail":  oldTail,
@@ -274,22 +276,35 @@ func (bc *BlockChain) SetTailBlock(newTail *Block) error {
 	return nil
 }
 
-func (bc *BlockChain) updateLatestIrreversibleBlock(from *Block, to *Block) error {
-	for !to.Hash().Equals(from.Hash()) {
-		dynasty := byteutils.FromInt64(to.header.timestamp / DynastyInterval)
-		count, err := to.dposContext.mintCntTrie.Count(dynasty)
-		if err != nil {
-			return err
+func (bc *BlockChain) updateLatestIrreversibleBlock(tail *Block) error {
+	lib := bc.latestIrreversibleBlock
+	cur := tail
+	miners := make(map[string]bool)
+	dynasty := int64(0)
+	for !cur.Hash().Equals(lib.Hash()) {
+		curDynasty := cur.header.timestamp / DynastyInterval
+		if curDynasty != dynasty {
+			miners = make(map[string]bool)
+			dynasty = curDynasty
 		}
-		if count >= ConsensusSize {
-			if err := bc.storeLIBToStorage(to); err != nil {
-				return err
-			}
-			bc.latestIrreversibleBlock = to
+		if int(cur.height-lib.height) < ConsensusSize-len(miners) {
 			return nil
 		}
-		to = bc.GetBlock(to.header.parentHash)
-		if to == nil {
+		miners[cur.miner.String()] = true
+		if len(miners) >= ConsensusSize {
+			if err := bc.storeLIBToStorage(cur); err != nil {
+				return err
+			}
+			logging.CLog().WithFields(logrus.Fields{
+				"new lib": cur,
+				"old lib": bc.latestIrreversibleBlock,
+				"tail":    tail,
+			}).Info("Succeed to update latest irreversible block.")
+			bc.latestIrreversibleBlock = cur
+			return nil
+		}
+		cur = bc.GetBlock(cur.header.parentHash)
+		if cur == nil {
 			return ErrMissingParentBlock
 		}
 	}

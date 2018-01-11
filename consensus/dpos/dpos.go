@@ -22,7 +22,6 @@ import (
 	"errors"
 	"time"
 
-	"github.com/nebulasio/go-nebulas/crypto"
 	"github.com/nebulasio/go-nebulas/crypto/keystore"
 
 	"github.com/nebulasio/go-nebulas/account"
@@ -206,19 +205,7 @@ func (p *Dpos) SetCanMining(canMining bool) {
 }
 
 func verifyBlockSign(miner *core.Address, block *core.Block) error {
-	signature, err := crypto.NewSignature(keystore.Algorithm(block.Alg()))
-	if err != nil {
-		return err
-	}
-	pub, err := signature.RecoverPublic(block.Hash(), block.Signature())
-	if err != nil {
-		return err
-	}
-	pubdata, err := pub.Encoded()
-	if err != nil {
-		return err
-	}
-	addr, err := core.NewAddressFromPublicKey(pubdata)
+	addr, err := core.RecoverMiner(block)
 	if err != nil {
 		return err
 	}

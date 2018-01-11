@@ -49,7 +49,7 @@ type Neb struct {
 	emitter *core.EventEmitter
 }
 
-func mockNeb() *Neb {
+func mockNeb(t *testing.T) *Neb {
 	storage, _ := storage.NewMemoryStorage()
 	eventEmitter := core.NewEventEmitter(1024)
 	genesisConf := MockGenesisConf()
@@ -68,7 +68,8 @@ func mockNeb() *Neb {
 	}
 	am := account.NewManager(neb)
 	var nm MockNetManager
-	chain, _ := core.NewBlockChain(neb)
+	chain, err := core.NewBlockChain(neb)
+	assert.Nil(t, err)
 	neb.chain = chain
 	neb.am = am
 	neb.ns = nm
@@ -203,7 +204,7 @@ func (n MockNetManager) BroadcastNetworkID([]byte) {}
 func (n MockNetManager) BuildData([]byte, string) []byte { return nil }
 
 func TestDpos_New(t *testing.T) {
-	neb := mockNeb()
+	neb := mockNeb(t)
 	_, err := NewDpos(neb)
 	assert.Nil(t, err)
 	coinbase := neb.config.Chain.Coinbase
@@ -217,7 +218,7 @@ func TestDpos_New(t *testing.T) {
 }
 
 func TestDpos_VerifySign(t *testing.T) {
-	dpos, err := NewDpos(mockNeb())
+	dpos, err := NewDpos(mockNeb(t))
 	assert.Nil(t, err)
 	var c MockConsensus
 	dpos.chain.SetConsensusHandler(c)
@@ -248,7 +249,7 @@ func TestDpos_VerifySign(t *testing.T) {
 }
 
 func TestForkChoice(t *testing.T) {
-	dpos, err := NewDpos(mockNeb())
+	dpos, err := NewDpos(mockNeb(t))
 	assert.Nil(t, err)
 	var c MockConsensus
 	dpos.chain.SetConsensusHandler(c)
@@ -326,7 +327,7 @@ func TestForkChoice(t *testing.T) {
 }
 
 func TestCanMining(t *testing.T) {
-	dpos, err := NewDpos(mockNeb())
+	dpos, err := NewDpos(mockNeb(t))
 	assert.Nil(t, err)
 	assert.Equal(t, dpos.CanMining(), false)
 	dpos.SetCanMining(true)
@@ -334,7 +335,7 @@ func TestCanMining(t *testing.T) {
 }
 
 func TestFastVerifyBlock(t *testing.T) {
-	dpos, err := NewDpos(mockNeb())
+	dpos, err := NewDpos(mockNeb(t))
 	assert.Nil(t, err)
 	var c MockConsensus
 	dpos.chain.SetConsensusHandler(c)
@@ -379,7 +380,7 @@ func TestFastVerifyBlock(t *testing.T) {
 }
 
 func TestDpos_MintBlock(t *testing.T) {
-	dpos, err := NewDpos(mockNeb())
+	dpos, err := NewDpos(mockNeb(t))
 	assert.Nil(t, err)
 	var c MockConsensus
 	dpos.chain.SetConsensusHandler(c)

@@ -74,6 +74,8 @@ func testNeb() *mockNeb {
 func TestBlock(t *testing.T) {
 	type fields struct {
 		header       *BlockHeader
+		miner        *Address
+		height       uint64
 		transactions Transactions
 	}
 	tests := []struct {
@@ -100,6 +102,8 @@ func TestBlock(t *testing.T) {
 					timestamp: time.Now().Unix(),
 					chainID:   100,
 				},
+				&Address{[]byte("hello")},
+				1,
 				Transactions{
 					&Transaction{
 						[]byte("123455"),
@@ -138,6 +142,8 @@ func TestBlock(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			b := &Block{
 				header:       tt.fields.header,
+				miner:        tt.fields.miner,
+				height:       tt.fields.height,
 				transactions: tt.fields.transactions,
 			}
 			proto, _ := b.ToProto()

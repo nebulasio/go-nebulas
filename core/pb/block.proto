@@ -75,6 +75,7 @@ message Block {
     BlockHeader header = 1;
     repeated Transaction transactions = 2;
     uint64 height = 3;
+    bytes miner = 4;
 }
 
 message NetBlocks {

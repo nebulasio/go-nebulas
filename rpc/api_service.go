@@ -407,6 +407,18 @@ func (s *APIService) BlockDump(ctx context.Context, req *rpcpb.BlockDumpRequest)
 	return &rpcpb.BlockDumpResponse{Data: data}, nil
 }
 
+// LatestIrreversibleBlock is the RPC API handler.
+func (s *APIService) LatestIrreversibleBlock(ctx context.Context, req *rpcpb.NonParamsRequest) (*rpcpb.BlockResponse, error) {
+	logging.VLog().WithFields(logrus.Fields{
+		"api": "/v1/user/lib",
+	}).Info("Rpc request.")
+	metricsRPCCounter.Mark(1)
+
+	neb := s.server.Neblet()
+	data := neb.BlockChain().LatestIrreversibleBlock().String()
+	return &rpcpb.BlockResponse{Data: data}, nil
+}
+
 // GetTransactionReceipt get transaction info by the transaction hash
 func (s *APIService) GetTransactionReceipt(ctx context.Context, req *rpcpb.GetTransactionByHashRequest) (*rpcpb.TransactionReceiptResponse, error) {
 	logging.VLog().WithFields(logrus.Fields{

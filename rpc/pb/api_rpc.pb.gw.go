@@ -59,6 +59,15 @@ func request_ApiService_BlockDump_0(ctx context.Context, marshaler runtime.Marsh
 
 }
 
+func request_ApiService_LatestIrreversibleBlock_0(ctx context.Context, marshaler runtime.Marshaler, client ApiServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
+	var protoReq NonParamsRequest
+	var metadata runtime.ServerMetadata
+
+	msg, err := client.LatestIrreversibleBlock(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
+	return msg, metadata, err
+
+}
+
 func request_ApiService_Accounts_0(ctx context.Context, marshaler runtime.Marshaler, client ApiServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
 	var protoReq NonParamsRequest
 	var metadata runtime.ServerMetadata
@@ -372,7 +381,7 @@ func RegisterApiServiceHandler(ctx context.Context, mux *runtime.ServeMux, conn 
 func RegisterApiServiceHandlerClient(ctx context.Context, mux *runtime.ServeMux, client ApiServiceClient) error {
 
 	mux.Handle("GET", pattern_ApiService_GetNebState_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
-		ctx, cancel := context.WithCancel(ctx)
+		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		if cn, ok := w.(http.CloseNotifier); ok {
 			go func(done <-chan struct{}, closed <-chan bool) {
@@ -401,7 +410,7 @@ func RegisterApiServiceHandlerClient(ctx context.Context, mux *runtime.ServeMux,
 	})
 
 	mux.Handle("GET", pattern_ApiService_NodeInfo_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
-		ctx, cancel := context.WithCancel(ctx)
+		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		if cn, ok := w.(http.CloseNotifier); ok {
 			go func(done <-chan struct{}, closed <-chan bool) {
@@ -430,7 +439,7 @@ func RegisterApiServiceHandlerClient(ctx context.Context, mux *runtime.ServeMux,
 	})
 
 	mux.Handle("POST", pattern_ApiService_BlockDump_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
-		ctx, cancel := context.WithCancel(ctx)
+		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		if cn, ok := w.(http.CloseNotifier); ok {
 			go func(done <-chan struct{}, closed <-chan bool) {
@@ -458,8 +467,37 @@ func RegisterApiServiceHandlerClient(ctx context.Context, mux *runtime.ServeMux,
 
 	})
 
+	mux.Handle("GET", pattern_ApiService_LatestIrreversibleBlock_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+		ctx, cancel := context.WithCancel(req.Context())
+		defer cancel()
+		if cn, ok := w.(http.CloseNotifier); ok {
+			go func(done <-chan struct{}, closed <-chan bool) {
+				select {
+				case <-done:
+				case <-closed:
+					cancel()
+				}
+			}(ctx.Done(), cn.CloseNotify())
+		}
+		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
+		rctx, err := runtime.AnnotateContext(ctx, mux, req)
+		if err != nil {
+			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
+			return
+		}
+		resp, md, err := request_ApiService_LatestIrreversibleBlock_0(rctx, inboundMarshaler, client, req, pathParams)
+		ctx = runtime.NewServerMetadataContext(ctx, md)
+		if err != nil {
+			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
+			return
+		}
+
+		forward_ApiService_LatestIrreversibleBlock_0(ctx, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
+
+	})
+
 	mux.Handle("GET", pattern_ApiService_Accounts_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
-		ctx, cancel := context.WithCancel(ctx)
+		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		if cn, ok := w.(http.CloseNotifier); ok {
 			go func(done <-chan struct{}, closed <-chan bool) {
@@ -488,7 +526,7 @@ func RegisterApiServiceHandlerClient(ctx context.Context, mux *runtime.ServeMux,
 	})
 
 	mux.Handle("POST", pattern_ApiService_GetAccountState_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
-		ctx, cancel := context.WithCancel(ctx)
+		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		if cn, ok := w.(http.CloseNotifier); ok {
 			go func(done <-chan struct{}, closed <-chan bool) {
@@ -517,7 +555,7 @@ func RegisterApiServiceHandlerClient(ctx context.Context, mux *runtime.ServeMux,
 	})
 
 	mux.Handle("POST", pattern_ApiService_SendTransaction_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
-		ctx, cancel := context.WithCancel(ctx)
+		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		if cn, ok := w.(http.CloseNotifier); ok {
 			go func(done <-chan struct{}, closed <-chan bool) {
@@ -546,7 +584,7 @@ func RegisterApiServiceHandlerClient(ctx context.Context, mux *runtime.ServeMux,
 	})
 
 	mux.Handle("POST", pattern_ApiService_Call_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
-		ctx, cancel := context.WithCancel(ctx)
+		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		if cn, ok := w.(http.CloseNotifier); ok {
 			go func(done <-chan struct{}, closed <-chan bool) {
@@ -575,7 +613,7 @@ func RegisterApiServiceHandlerClient(ctx context.Context, mux *runtime.ServeMux,
 	})
 
 	mux.Handle("POST", pattern_ApiService_SendRawTransaction_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
-		ctx, cancel := context.WithCancel(ctx)
+		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		if cn, ok := w.(http.CloseNotifier); ok {
 			go func(done <-chan struct{}, closed <-chan bool) {
@@ -604,7 +642,7 @@ func RegisterApiServiceHandlerClient(ctx context.Context, mux *runtime.ServeMux,
 	})
 
 	mux.Handle("POST", pattern_ApiService_GetBlockByHash_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
-		ctx, cancel := context.WithCancel(ctx)
+		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		if cn, ok := w.(http.CloseNotifier); ok {
 			go func(done <-chan struct{}, closed <-chan bool) {
@@ -633,7 +671,7 @@ func RegisterApiServiceHandlerClient(ctx context.Context, mux *runtime.ServeMux,
 	})
 
 	mux.Handle("POST", pattern_ApiService_GetTransactionReceipt_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
-		ctx, cancel := context.WithCancel(ctx)
+		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		if cn, ok := w.(http.CloseNotifier); ok {
 			go func(done <-chan struct{}, closed <-chan bool) {
@@ -662,7 +700,7 @@ func RegisterApiServiceHandlerClient(ctx context.Context, mux *runtime.ServeMux,
 	})
 
 	mux.Handle("POST", pattern_ApiService_Subscribe_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
-		ctx, cancel := context.WithCancel(ctx)
+		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		if cn, ok := w.(http.CloseNotifier); ok {
 			go func(done <-chan struct{}, closed <-chan bool) {
@@ -691,7 +729,7 @@ func RegisterApiServiceHandlerClient(ctx context.Context, mux *runtime.ServeMux,
 	})
 
 	mux.Handle("GET", pattern_ApiService_GetGasPrice_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
-		ctx, cancel := context.WithCancel(ctx)
+		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		if cn, ok := w.(http.CloseNotifier); ok {
 			go func(done <-chan struct{}, closed <-chan bool) {
@@ -720,7 +758,7 @@ func RegisterApiServiceHandlerClient(ctx context.Context, mux *runtime.ServeMux,
 	})
 
 	mux.Handle("POST", pattern_ApiService_EstimateGas_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
-		ctx, cancel := context.WithCancel(ctx)
+		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		if cn, ok := w.(http.CloseNotifier); ok {
 			go func(done <-chan struct{}, closed <-chan bool) {
@@ -749,7 +787,7 @@ func RegisterApiServiceHandlerClient(ctx context.Context, mux *runtime.ServeMux,
 	})
 
 	mux.Handle("POST", pattern_ApiService_GetEventsByHash_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
-		ctx, cancel := context.WithCancel(ctx)
+		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		if cn, ok := w.(http.CloseNotifier); ok {
 			go func(done <-chan struct{}, closed <-chan bool) {
@@ -787,6 +825,8 @@ var (
 
 	pattern_ApiService_BlockDump_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2}, []string{"v1", "user", "blockdump"}, ""))
 
+	pattern_ApiService_LatestIrreversibleBlock_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2}, []string{"v1", "user", "lib"}, ""))
+
 	pattern_ApiService_Accounts_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2}, []string{"v1", "user", "accounts"}, ""))
 
 	pattern_ApiService_GetAccountState_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2}, []string{"v1", "user", "accountstate"}, ""))
@@ -816,6 +856,8 @@ var (
 	forward_ApiService_NodeInfo_0 = runtime.ForwardResponseMessage
 
 	forward_ApiService_BlockDump_0 = runtime.ForwardResponseMessage
+
+	forward_ApiService_LatestIrreversibleBlock_0 = runtime.ForwardResponseMessage
 
 	forward_ApiService_Accounts_0 = runtime.ForwardResponseMessage
 
@@ -879,7 +921,7 @@ func RegisterAdminServiceHandler(ctx context.Context, mux *runtime.ServeMux, con
 func RegisterAdminServiceHandlerClient(ctx context.Context, mux *runtime.ServeMux, client AdminServiceClient) error {
 
 	mux.Handle("POST", pattern_AdminService_NewAccount_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
-		ctx, cancel := context.WithCancel(ctx)
+		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		if cn, ok := w.(http.CloseNotifier); ok {
 			go func(done <-chan struct{}, closed <-chan bool) {
@@ -908,7 +950,7 @@ func RegisterAdminServiceHandlerClient(ctx context.Context, mux *runtime.ServeMu
 	})
 
 	mux.Handle("POST", pattern_AdminService_UnlockAccount_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
-		ctx, cancel := context.WithCancel(ctx)
+		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		if cn, ok := w.(http.CloseNotifier); ok {
 			go func(done <-chan struct{}, closed <-chan bool) {
@@ -937,7 +979,7 @@ func RegisterAdminServiceHandlerClient(ctx context.Context, mux *runtime.ServeMu
 	})
 
 	mux.Handle("POST", pattern_AdminService_LockAccount_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
-		ctx, cancel := context.WithCancel(ctx)
+		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		if cn, ok := w.(http.CloseNotifier); ok {
 			go func(done <-chan struct{}, closed <-chan bool) {
@@ -966,7 +1008,7 @@ func RegisterAdminServiceHandlerClient(ctx context.Context, mux *runtime.ServeMu
 	})
 
 	mux.Handle("POST", pattern_AdminService_SignTransaction_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
-		ctx, cancel := context.WithCancel(ctx)
+		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		if cn, ok := w.(http.CloseNotifier); ok {
 			go func(done <-chan struct{}, closed <-chan bool) {
@@ -995,7 +1037,7 @@ func RegisterAdminServiceHandlerClient(ctx context.Context, mux *runtime.ServeMu
 	})
 
 	mux.Handle("POST", pattern_AdminService_SendTransactionWithPassphrase_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
-		ctx, cancel := context.WithCancel(ctx)
+		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		if cn, ok := w.(http.CloseNotifier); ok {
 			go func(done <-chan struct{}, closed <-chan bool) {
@@ -1024,7 +1066,7 @@ func RegisterAdminServiceHandlerClient(ctx context.Context, mux *runtime.ServeMu
 	})
 
 	mux.Handle("GET", pattern_AdminService_StatisticsNodeInfo_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
-		ctx, cancel := context.WithCancel(ctx)
+		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		if cn, ok := w.(http.CloseNotifier); ok {
 			go func(done <-chan struct{}, closed <-chan bool) {
@@ -1053,7 +1095,7 @@ func RegisterAdminServiceHandlerClient(ctx context.Context, mux *runtime.ServeMu
 	})
 
 	mux.Handle("GET", pattern_AdminService_GetDynasty_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
-		ctx, cancel := context.WithCancel(ctx)
+		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		if cn, ok := w.(http.CloseNotifier); ok {
 			go func(done <-chan struct{}, closed <-chan bool) {
@@ -1082,7 +1124,7 @@ func RegisterAdminServiceHandlerClient(ctx context.Context, mux *runtime.ServeMu
 	})
 
 	mux.Handle("POST", pattern_AdminService_GetDelegateVoters_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
-		ctx, cancel := context.WithCancel(ctx)
+		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		if cn, ok := w.(http.CloseNotifier); ok {
 			go func(done <-chan struct{}, closed <-chan bool) {
@@ -1111,7 +1153,7 @@ func RegisterAdminServiceHandlerClient(ctx context.Context, mux *runtime.ServeMu
 	})
 
 	mux.Handle("POST", pattern_AdminService_ChangeNetworkID_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
-		ctx, cancel := context.WithCancel(ctx)
+		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		if cn, ok := w.(http.CloseNotifier); ok {
 			go func(done <-chan struct{}, closed <-chan bool) {
@@ -1140,7 +1182,7 @@ func RegisterAdminServiceHandlerClient(ctx context.Context, mux *runtime.ServeMu
 	})
 
 	mux.Handle("POST", pattern_AdminService_StartMine_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
-		ctx, cancel := context.WithCancel(ctx)
+		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		if cn, ok := w.(http.CloseNotifier); ok {
 			go func(done <-chan struct{}, closed <-chan bool) {
@@ -1169,7 +1211,7 @@ func RegisterAdminServiceHandlerClient(ctx context.Context, mux *runtime.ServeMu
 	})
 
 	mux.Handle("GET", pattern_AdminService_StopMine_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
-		ctx, cancel := context.WithCancel(ctx)
+		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		if cn, ok := w.(http.CloseNotifier); ok {
 			go func(done <-chan struct{}, closed <-chan bool) {

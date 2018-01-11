@@ -47,6 +47,13 @@ service ApiService {
         };
     }
 
+    // Return the dump info of blockchain.
+    rpc LatestIrreversibleBlock (NonParamsRequest) returns (BlockResponse) {
+        option (google.api.http) = {
+            get: "/v1/user/lib"
+        };
+    }
+
     // Accounts return account list.
     rpc Accounts (NonParamsRequest) returns (AccountsResponse) {
         option (google.api.http) = {
@@ -449,6 +456,12 @@ message BlockDumpRequest {
 // Response message of BlockDump.
 message BlockDumpResponse {
     // block dump info.
+    string data = 1;
+}
+
+// Response message of Block.
+message BlockResponse {
+    // block info.
     string data = 1;
 }
 

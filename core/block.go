@@ -24,6 +24,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/nebulasio/go-nebulas/crypto"
+
 	"github.com/nebulasio/go-nebulas/crypto/keystore"
 
 	"github.com/gogo/protobuf/proto"
@@ -148,6 +150,7 @@ func (block *Block) ToProto() (proto.Message, error) {
 			Header:       header,
 			Transactions: txs,
 			Height:       block.height,
+			Miner:        block.miner.Bytes(),
 		}, nil
 	}
 	return nil, errors.New("Protobuf message cannot be converted into BlockHeader")
@@ -168,6 +171,7 @@ func (block *Block) FromProto(msg proto.Message) error {
 			block.transactions = append(block.transactions, tx)
 		}
 		block.height = msg.Height
+		block.miner = &Address{msg.Miner}
 		return nil
 	}
 	return errors.New("Protobuf message cannot be converted into Block")
@@ -919,6 +923,27 @@ func HashBlock(block *Block) byteutils.Hash {
 	}
 
 	return hasher.Sum(nil)
+}
+
+// RecoverMiner return miner from block
+func RecoverMiner(block *Block) (*Address, error) {
+	signature, err := crypto.NewSignature(keystore.Algorithm(block.Alg()))
+	if err != nil {
+		return nil, err
+	}
+	pub, err := signature.RecoverPublic(block.Hash(), block.Signature())
+	if err != nil {
+		return nil, err
+	}
+	pubdata, err := pub.Encoded()
+	if err != nil {
+		return nil, err
+	}
+	addr, err := NewAddressFromPublicKey(pubdata)
+	if err != nil {
+		return nil, err
+	}
+	return addr, nil
 }
 
 // LoadBlockFromStorage return a block from storage

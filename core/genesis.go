@@ -35,6 +35,7 @@ import (
 var (
 	GenesisHash      = make([]byte, BlockHashLength)
 	GenesisTimestamp = int64(0)
+	GenesisCoinbase  = &Address{make([]byte, AddressLength)}
 )
 
 // LoadGenesisConf load genesis conf for file
@@ -70,13 +71,12 @@ func NewGenesisBlock(conf *corepb.Genesis, chain *BlockChain) (*Block, error) {
 	if err != nil {
 		return nil, err
 	}
-	coinbase := &Address{make([]byte, AddressLength)}
 	genesisBlock := &Block{
 		header: &BlockHeader{
 			chainID:     conf.Meta.ChainId,
 			parentHash:  GenesisHash,
 			dposContext: &corepb.DposContext{},
-			coinbase:    coinbase,
+			coinbase:    GenesisCoinbase,
 			timestamp:   GenesisTimestamp,
 			nonce:       0,
 		},
@@ -95,7 +95,7 @@ func NewGenesisBlock(conf *corepb.Genesis, chain *BlockChain) (*Block, error) {
 		return nil, err
 	}
 	genesisBlock.LoadDynastyContext(context)
-	genesisBlock.SetMiner(coinbase)
+	genesisBlock.SetMiner(GenesisCoinbase)
 
 	genesisBlock.begin()
 	// add token distribution for genesis
