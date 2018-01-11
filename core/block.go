@@ -472,7 +472,7 @@ func (block *Block) CollectTransactions(n int) {
 	for !pool.Empty() && n > 0 {
 		tx := pool.Pop()
 		block.begin()
-		metricsTxSubmit.Inc(1)
+		metricsTxSubmit.Mark(1)
 		giveback, err := block.executeTransaction(tx)
 		if giveback {
 			givebacks = append(givebacks, tx)
@@ -699,7 +699,7 @@ func (block *Block) execute() error {
 
 	for _, tx := range block.transactions {
 		start := time.Now().Unix()
-		metricsTxExecute.Inc(1)
+		metricsTxExecute.Mark(1)
 		giveback, err := block.executeTransaction(tx)
 		if giveback {
 			err := block.txPool.Push(tx)

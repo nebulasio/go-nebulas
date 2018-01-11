@@ -318,7 +318,7 @@ func (tx *Transaction) VerifyExecution(block *Block) (*util.Uint128, error) {
 			"block":       block,
 			"transaction": tx,
 		}).Error("Failed to load payload.")
-		metricsTxExeFailed.Inc(1)
+		metricsTxExeFailed.Mark(1)
 
 		tx.gasConsumption(fromAcc, coinbaseAcc, gasUsed)
 		tx.triggerEvent(TopicExecuteTxFailed, block, err)
@@ -339,7 +339,7 @@ func (tx *Transaction) VerifyExecution(block *Block) (*util.Uint128, error) {
 			"block": block,
 			"tx":    tx,
 		}).Error("Failed to check base gas used.")
-		metricsTxExeFailed.Inc(1)
+		metricsTxExeFailed.Mark(1)
 
 		tx.gasConsumption(fromAcc, coinbaseAcc, tx.gasLimit)
 		tx.triggerEvent(TopicExecuteTxFailed, block, err)
@@ -377,7 +377,7 @@ func (tx *Transaction) VerifyExecution(block *Block) (*util.Uint128, error) {
 			"gasExecution": gasExecution.String(),
 		}).Error("Failed to execute payload.")
 
-		metricsTxExeFailed.Inc(1)
+		metricsTxExeFailed.Mark(1)
 		tx.triggerEvent(TopicExecuteTxFailed, block, err)
 	} else {
 		if fromAcc.Balance().Cmp(tx.value.Int) < 0 {
@@ -387,14 +387,14 @@ func (tx *Transaction) VerifyExecution(block *Block) (*util.Uint128, error) {
 				"tx":    tx,
 			}).Error("Failed to check balance sufficient.")
 
-			metricsTxExeFailed.Inc(1)
+			metricsTxExeFailed.Mark(1)
 			tx.triggerEvent(TopicExecuteTxFailed, block, ErrInsufficientBalance)
 		} else {
 			// accept the transaction
 			fromAcc.SubBalance(tx.value)
 			toAcc.AddBalance(tx.value)
 
-			metricsTxExeSuccess.Inc(1)
+			metricsTxExeSuccess.Mark(1)
 			// record tx execution success event
 			tx.triggerEvent(TopicExecuteTxSuccess, block, nil)
 		}

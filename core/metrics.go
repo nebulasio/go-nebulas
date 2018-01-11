@@ -37,8 +37,8 @@ var (
 	metricsTxPoolOutOfGasLimit = metrics.GetOrRegisterCounter("txpool_out_of_gas_limit", nil)
 
 	// transaction metrics
-	metricsTxSubmit     = metrics.GetOrRegisterCounter("tx_submit", nil)
-	metricsTxExecute    = metrics.GetOrRegisterCounter("tx_execute", nil)
-	metricsTxExeSuccess = metrics.GetOrRegisterCounter("tx_execute_success", nil)
-	metricsTxExeFailed  = metrics.GetOrRegisterCounter("tx_execute_failed", nil)
+	metricsTxSubmit     = metrics.GetOrRegisterMeter("tx_submit", nil)
+	metricsTxExecute    = metrics.GetOrRegisterMeter("tx_execute", nil)
+	metricsTxExeSuccess = metrics.GetOrRegisterMeter("tx_execute_success", nil)
+	metricsTxExeFailed  = metrics.GetOrRegisterMeter("tx_execute_failed", nil)
 )
