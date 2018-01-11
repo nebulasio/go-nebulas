@@ -240,7 +240,6 @@ func (table *RouteTable) SaveRouteTableToFile() {
 }
 
 func (table *RouteTable) SyncRouteTable() {
-
 	// sync with seed nodes.
 	for _, addr := range table.seedNodes {
 		table.SyncWithPeer(MultiaddrToPeerID(addr))

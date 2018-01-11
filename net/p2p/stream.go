@@ -49,45 +49,60 @@ const (
 	ClientVersion = "0.2.0"
 )
 
+const (
+	// Message Priority.
+	MessagePriorityHigh = iota
+	MessagePriorityNormal
+	MessagePriorityLow
+)
+
 var (
 	ErrShouldCloseConnectionAndExitLoop = errors.New("should close connection and exit loop")
+	ErrStreamIsNotConnected             = errors.New("stream is not connected")
 )
 
 type Stream struct {
-	pid              peer.ID
-	addr             ma.Multiaddr
-	stream           libnet.Stream
-	node             *Node
-	handshakeSucceed bool
-	connectedAt      int64
-	latestReadAt     int64
-	latestWriteAt    int64
+	pid                       peer.ID
+	addr                      ma.Multiaddr
+	stream                    libnet.Stream
+	node                      *Node
+	handshakeSucceedCh        chan []bool
+	messageNotifChan          chan []int
+	highPriorityMessageChan   chan []byte
+	normalPriorityMessageChan chan []byte
+	lowPriorityMessageChan    chan []byte
+	quitWriteCh               chan bool
+	handshakeSucceed          bool
+	connectedAt               int64
+	latestReadAt              int64
+	latestWriteAt             int64
 }
 
 // NewStream return a new StreamInfo
 func NewStream(stream libnet.Stream, node *Node) *Stream {
-	return &Stream{
-		pid:              stream.Conn().RemotePeer(),
-		addr:             stream.Conn().RemoteMultiaddr(),
-		stream:           stream,
-		node:             node,
-		handshakeSucceed: false,
-		connectedAt:      time.Now().Unix(),
-		latestReadAt:     0,
-		latestWriteAt:    0,
-	}
+	return newStreamInstance(stream.Conn().RemotePeer(), stream.Conn().RemoteMultiaddr(), stream, node)
 }
 
 func NewStreamFromPID(pid peer.ID, node *Node) *Stream {
+	return newStreamInstance(pid, nil, nil, node)
+}
+
+func newStreamInstance(pid peer.ID, addr ma.Multiaddr, stream libnet.Stream, node *Node) *Stream {
 	return &Stream{
-		pid:              pid,
-		addr:             nil,
-		stream:           nil,
-		node:             node,
-		handshakeSucceed: false,
-		connectedAt:      time.Now().Unix(),
-		latestReadAt:     0,
-		latestWriteAt:    0,
+		pid:                       pid,
+		addr:                      addr,
+		stream:                    stream,
+		node:                      node,
+		handshakeSucceedCh:        make(chan []bool, 1),
+		messageNotifChan:          make(chan []int, 4*1024),
+		highPriorityMessageChan:   make(chan []byte, 1024),
+		normalPriorityMessageChan: make(chan []byte, 4*1024),
+		lowPriorityMessageChan:    make(chan []byte, 4*1024),
+		quitWriteCh:               make(chan []bool, 1),
+		handshakeSucceed:          false,
+		connectedAt:               time.Now().Unix(),
+		latestReadAt:              0,
+		latestWriteAt:             0,
 	}
 }
 
@@ -123,7 +138,7 @@ func (s *Stream) String() string {
 	return fmt.Sprintf("Peer Stream: %s , %s", s.pid.Pretty(), addrStr)
 }
 
-func (s *Stream) SendProtoMessage(messageName string, pb proto.Message) error {
+func (s *Stream) SendProtoMessage(messageName string, pb proto.Message, priority int) error {
 	data, err := proto.Marshal(pb)
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
@@ -134,10 +149,10 @@ func (s *Stream) SendProtoMessage(messageName string, pb proto.Message) error {
 		return err
 	}
 
-	return s.SendMessage(messageName, data)
+	return s.SendMessage(messageName, data, priority)
 }
 
-func (s *Stream) SendMessage(messageName string, data []byte) error {
+func (s *Stream) SendMessage(messageName string, data []byte, priority int) error {
 	message, err := NewNebMessage(s.node.config.ChainID, DefaultReserved, 0, messageName, data)
 	if err != nil {
 		return err
@@ -146,12 +161,23 @@ func (s *Stream) SendMessage(messageName string, data []byte) error {
 	// metrics.
 	metricsPacketsOutByMessageName(messageName, data)
 
-	return s.Send(message.Content())
+	switch priority {
+	case MessagePriorityHigh:
+		s.highPriorityMessageChan <- message.content()
+	case MessagePriorityNormal:
+		s.normalPriorityMessageChan <- message.content()
+	default:
+		s.lowPriorityMessageChan <- message.content()
+	}
+	s.messageNotifChan <- 1
 }
 
-func (s *Stream) Send(data []byte) error {
-	// TODO: @robin message should be sent after handshake succeed.
-	// and should also add QoS functionality.
+func (s *Stream) Write(data []byte) error {
+	if s.stream == nil {
+		s.Close()
+		return ErrStreamIsNotConnected
+	}
+
 	n, err := s.stream.Write(data)
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
@@ -167,99 +193,155 @@ func (s *Stream) Send(data []byte) error {
 	metricsBytesOut.Mark(int64(n))
 }
 
+func (s *Stream) WriteMessage(messageName string, data []byte) {
+	message, err := NewNebMessage(s.node.config.ChainID, DefaultReserved, 0, messageName, data)
+	if err != nil {
+		return err
+	}
+
+	// metrics.
+	metricsPacketsOutByMessageName(messageName, data)
+
+	// write.
+	s.Write(message.Content())
+}
+
 // StartLoop start stream handling loop.
 func (s *Stream) StartLoop() {
-	go func() {
-		buf := make([]byte, 1024*4)
-		messageBuffer := []byte{}
+	go s.writeLoop()
+	go s.readLoop()
+}
 
-		var message *NebMessage
+func (s *Stream) readLoop() {
+	buf := make([]byte, 1024*4)
+	messageBuffer := []byte{}
 
-		// send Hello to host if stream is not connected.
-		if !s.IsConnected() {
-			if err := s.Connect(); err != nil {
-				s.Close()
-				return
-			}
-			if err := s.Hello(); err != nil {
-				s.Close()
-				return
-			}
+	var message *NebMessage
+
+	// send Hello to host if stream is not connected.
+	if !s.IsConnected() {
+		if err := s.Connect(); err != nil {
+			s.Close()
+			return
 		}
+		if err := s.Hello(); err != nil {
+			s.Close()
+			return
+		}
+	}
 
-		// loop.
-		for {
-			select {
-			default:
-				n, err := s.stream.Read(buf)
-				if err != nil {
-					logging.VLog().WithFields(logrus.Fields{
-						"err":    err,
-						"stream": s.String(),
-					}).Error("Error occurred when reading data from network connection.")
-					s.Close()
-					return
-				}
-				messageBuffer = append(messageBuffer, buf[:n]...)
-				s.latestReadAt = time.Now().Unix()
+	// loop.
+	for {
+		select {
+		default:
+			n, err := s.stream.Read(buf)
+			if err != nil {
+				logging.VLog().WithFields(logrus.Fields{
+					"err":    err,
+					"stream": s.String(),
+				}).Error("Error occurred when reading data from network connection.")
+				s.Close()
+				return
+			}
+			messageBuffer = append(messageBuffer, buf[:n]...)
+			s.latestReadAt = time.Now().Unix()
 
-				if message == nil {
-					// waiting for header data.
-					if len(messageBuffer) < NebMessageHeaderLength {
-						// continue reading.
-						continue
-					}
-
-					message, err = ParseNebMessage(messageBuffer)
-					if err != nil {
-						s.Bye()
-						return
-					}
-
-					// check ChainID.
-					if s.node.config.ChainID != message.ChainID() {
-						logging.VLog().WithFields(logrus.Fields{
-							"err":             err,
-							"stream":          s.String(),
-							"conf.chainID":    s.node.config.ChainID,
-							"message.chainID": message.ChainID(),
-						}).Error("Invalid chainID, disconnect the connection.")
-						s.Bye()
-						return
-					}
-
-					// remove header from buffer.
-					messageBuffer = messageBuffer[NebMessageHeaderLength:]
-				}
-
-				// waiting for data.
-				if uint32(len(messageBuffer)) < message.DataLength() {
+			if message == nil {
+				// waiting for header data.
+				if len(messageBuffer) < NebMessageHeaderLength {
 					// continue reading.
 					continue
 				}
 
-				if err = message.ParseMessageData(messageBuffer); err != nil {
+				message, err = ParseNebMessage(messageBuffer)
+				if err != nil {
 					s.Bye()
 					return
 				}
 
-				// remove data from buffer.
-				messageBuffer = messageBuffer[message.DataLength():]
-
-				// metrics.
-				packetsIn.Mark(1)
-				netBytesIn.Mark(message.Length())
-				metricsPacketsInByMessageName(message.MessageName(), message.Length())
-
-				// handle message.
-				if err := s.handleMessage(message); err == ErrShouldCloseConnectionAndExitLoop {
+				// check ChainID.
+				if s.node.config.ChainID != message.ChainID() {
+					logging.VLog().WithFields(logrus.Fields{
+						"err":             err,
+						"stream":          s.String(),
+						"conf.chainID":    s.node.config.ChainID,
+						"message.chainID": message.ChainID(),
+					}).Error("Invalid chainID, disconnect the connection.")
 					s.Bye()
 					return
 				}
+
+				// remove header from buffer.
+				messageBuffer = messageBuffer[NebMessageHeaderLength:]
+			}
+
+			// waiting for data.
+			if uint32(len(messageBuffer)) < message.DataLength() {
+				// continue reading.
+				continue
+			}
+
+			if err = message.ParseMessageData(messageBuffer); err != nil {
+				s.Bye()
+				return
+			}
+
+			// remove data from buffer.
+			messageBuffer = messageBuffer[message.DataLength():]
+
+			// metrics.
+			packetsIn.Mark(1)
+			netBytesIn.Mark(message.Length())
+			metricsPacketsInByMessageName(message.MessageName(), message.Length())
+
+			// handle message.
+			if err := s.handleMessage(message); err == ErrShouldCloseConnectionAndExitLoop {
+				s.Bye()
+				return
 			}
 		}
+	}
+}
 
-	}()
+func (s *Stream) writeLoop() {
+	// waiting for handshake succeed.
+	select {
+	case <-s.handshakeSucceedCh:
+		// handshake succeed.
+	case <-s.quitWriteCh:
+		logging.VLog().WithFields(logurs.Fields{
+			"stream": s.String(),
+		}).Debug("Quiting Stream Write Loop.")
+		return
+	}
+
+	for {
+		select {
+		case <-s.quitWriteCh:
+			logging.VLog().WithFields(logurs.Fields{
+				"stream": s.String(),
+			}).Debug("Quiting Stream Write Loop.")
+			return
+		case <-s.messageNotifChan:
+			select {
+			case data <- s.highPriorityMessageChan:
+				s.Write(data)
+			default:
+			}
+
+			select {
+			case data <- s.normalPriorityMessageChan:
+				s.Write(data)
+			default:
+			}
+
+			select {
+			case data <- s.lowPriorityMessageChan:
+				s.Write(data)
+			default:
+			}
+		}
+	}
 }
 
 func (s *Stream) handleMessage(message *NebMessage) error {
@@ -296,16 +378,21 @@ func (s *Stream) handleMessage(message *NebMessage) error {
 }
 
 func (s *Stream) Close() {
+	// quit.
+	s.quitWriteCh <- true
+
+	// close stream.
 	if s.stream != nil {
 		s.stream.Close()
 	}
-	s.stream = nil
+
+	// cleanup.
 	s.node.streamManager.Remove(s)
 	s.node.routeTable.RemovePeerStream(s)
 }
 
 func (s *Stream) Bye() {
-	s.SendMessage(BYE, []byte{})
+	s.WriteMessage(BYE, []byte{})
 	s.Close()
 }
 
@@ -314,7 +401,7 @@ func (s *Stream) Hello() error {
 		NodeId:        s.node.id.String(),
 		ClientVersion: ClientVersion,
 	}
-	return s.SendProtoMessage(HELLO, msg)
+	return s.SendProtoMessage(HELLO, msg, MessagePriorityHigh)
 }
 
 func (s *Stream) SyncRoute() error {
@@ -349,7 +436,7 @@ func (s *Stream) onHello(message *NebMessage) bool {
 	s.node.routeTable.AddPeerStream(s)
 
 	// handshake finished.
-	s.handshakeSucceed = true
+	s.finishHandshake()
 
 	// send OK response.
 	resp := &netpb.OK{
@@ -357,7 +444,7 @@ func (s *Stream) onHello(message *NebMessage) bool {
 		ClientVersion: ClientVersion,
 	}
 
-	return s.SendProtoMessage(OK, resp)
+	return s.SendProtoMessage(OK, resp, MessagePriorityHigh)
 }
 
 func (s *Stream) onOk(message *NebMessage) {
@@ -381,7 +468,7 @@ func (s *Stream) onOk(message *NebMessage) {
 	s.node.routeTable.AddPeerStream(s)
 
 	// handshake finished.
-	s.handshakeSucceed = true
+	s.finishHandshake()
 
 	return nil
 }
@@ -409,9 +496,9 @@ func (s *Stream) onSyncRoute(message *NebMessage) error {
 	}).Debug("Replied sync route message.")
 
 	// @deprecated.
-	s.SendProtoMessage(SYNCROUTEREPLY, msg)
+	s.SendProtoMessage(SYNCROUTEREPLY, msg, MessagePriorityHigh)
 
-	return s.SendProtoMessage(ROUTETABLE, msg)
+	return s.SendProtoMessage(ROUTETABLE, msg, MessagePriorityHigh)
 }
 
 func (s *Stream) onRouteTable(message *NebMessage) error {
@@ -428,6 +515,11 @@ func (s *Stream) onRouteTable(message *NebMessage) error {
 	}
 
 	return nil
+}
+
+func (s *Stream) finishHandshake() {
+	s.handshakeSucceed = true
+	s.handshakeSucceedCh <- true
 }
 
 func CheckClientVersionCompability(v1, v2 string) bool {
