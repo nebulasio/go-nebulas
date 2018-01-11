@@ -23,6 +23,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/nebulasio/go-nebulas/util/byteutils"
+
 	"github.com/gogo/protobuf/proto"
 	libnet "github.com/libp2p/go-libp2p-net"
 	peer "github.com/libp2p/go-libp2p-peer"
@@ -34,19 +36,17 @@ import (
 )
 
 const (
+	ClientVersion = "0.2.0"
 	NebProtocolID = "/neb/1.0.0"
-
-	HELLO = "hello"
-	OK    = "ok"
-	BYE   = "bye"
-
-	SYNCROUTE  = "syncroute"
-	ROUTETABLE = "routetable"
+	HELLO         = "hello"
+	OK            = "ok"
+	BYE           = "bye"
+	SYNCROUTE     = "syncroute"
+	ROUTETABLE    = "routetable"
+	RECVEDMSG     = "recvedmsg"
 
 	// @deprecated.
 	SYNCROUTEREPLY = "resyncroute"
-
-	ClientVersion = "0.2.0"
 )
 
 const (
@@ -66,8 +66,8 @@ type Stream struct {
 	addr                      ma.Multiaddr
 	stream                    libnet.Stream
 	node                      *Node
-	handshakeSucceedCh        chan []bool
-	messageNotifChan          chan []int
+	handshakeSucceedCh        chan bool
+	messageNotifChan          chan int
 	highPriorityMessageChan   chan []byte
 	normalPriorityMessageChan chan []byte
 	lowPriorityMessageChan    chan []byte
@@ -93,12 +93,12 @@ func newStreamInstance(pid peer.ID, addr ma.Multiaddr, stream libnet.Stream, nod
 		addr:                      addr,
 		stream:                    stream,
 		node:                      node,
-		handshakeSucceedCh:        make(chan []bool, 1),
-		messageNotifChan:          make(chan []int, 4*1024),
+		handshakeSucceedCh:        make(chan bool, 1),
+		messageNotifChan:          make(chan int, 4*1024),
 		highPriorityMessageChan:   make(chan []byte, 1024),
 		normalPriorityMessageChan: make(chan []byte, 4*1024),
 		lowPriorityMessageChan:    make(chan []byte, 4*1024),
-		quitWriteCh:               make(chan []bool, 1),
+		quitWriteCh:               make(chan bool, 1),
 		handshakeSucceed:          false,
 		connectedAt:               time.Now().Unix(),
 		latestReadAt:              0,
@@ -159,17 +159,19 @@ func (s *Stream) SendMessage(messageName string, data []byte, priority int) erro
 	}
 
 	// metrics.
-	metricsPacketsOutByMessageName(messageName, data)
+	metricsPacketsOutByMessageName(messageName, uint64(len(data)+NebMessageHeaderLength))
 
 	switch priority {
 	case MessagePriorityHigh:
-		s.highPriorityMessageChan <- message.content()
+		s.highPriorityMessageChan <- message.Content()
 	case MessagePriorityNormal:
-		s.normalPriorityMessageChan <- message.content()
+		s.normalPriorityMessageChan <- message.Content()
 	default:
-		s.lowPriorityMessageChan <- message.content()
+		s.lowPriorityMessageChan <- message.Content()
 	}
 	s.messageNotifChan <- 1
+
+	return nil
 }
 
 func (s *Stream) Write(data []byte) error {
@@ -189,21 +191,24 @@ func (s *Stream) Write(data []byte) error {
 	}
 	s.latestWriteAt = time.Now().Unix()
 
+	// metrics.
 	metricsPacketsOut.Mark(1)
 	metricsBytesOut.Mark(int64(n))
+
+	return nil
 }
 
-func (s *Stream) WriteMessage(messageName string, data []byte) {
+func (s *Stream) WriteMessage(messageName string, data []byte) error {
 	message, err := NewNebMessage(s.node.config.ChainID, DefaultReserved, 0, messageName, data)
 	if err != nil {
 		return err
 	}
 
 	// metrics.
-	metricsPacketsOutByMessageName(messageName, data)
+	metricsPacketsOutByMessageName(messageName, uint64(len(data)+NebMessageHeaderLength))
 
 	// write.
-	s.Write(message.Content())
+	return s.Write(message.Content())
 }
 
 // StartLoop start stream handling loop.
@@ -290,8 +295,8 @@ func (s *Stream) readLoop() {
 			messageBuffer = messageBuffer[message.DataLength():]
 
 			// metrics.
-			packetsIn.Mark(1)
-			netBytesIn.Mark(message.Length())
+			metricsPacketsIn.Mark(1)
+			metricsBytesIn.Mark(int64(message.Length()))
 			metricsPacketsInByMessageName(message.MessageName(), message.Length())
 
 			// handle message.
@@ -305,39 +310,49 @@ func (s *Stream) readLoop() {
 
 func (s *Stream) writeLoop() {
 	// waiting for handshake succeed.
+	handshakeTimeoutTicker := time.NewTicker(30 * time.Second)
 	select {
 	case <-s.handshakeSucceedCh:
 		// handshake succeed.
 	case <-s.quitWriteCh:
-		logging.VLog().WithFields(logurs.Fields{
+		logging.VLog().WithFields(logrus.Fields{
 			"stream": s.String(),
 		}).Debug("Quiting Stream Write Loop.")
+		return
+	case <-handshakeTimeoutTicker.C:
+		logging.VLog().WithFields(logrus.Fields{
+			"stream": s.String(),
+		}).Debug("Handshaking Stream timeout, quiting.")
+		s.Close()
 		return
 	}
 
 	for {
 		select {
 		case <-s.quitWriteCh:
-			logging.VLog().WithFields(logurs.Fields{
+			logging.VLog().WithFields(logrus.Fields{
 				"stream": s.String(),
 			}).Debug("Quiting Stream Write Loop.")
 			return
 		case <-s.messageNotifChan:
 			select {
-			case data <- s.highPriorityMessageChan:
+			case data := <-s.highPriorityMessageChan:
 				s.Write(data)
+				continue
 			default:
 			}
 
 			select {
-			case data <- s.normalPriorityMessageChan:
+			case data := <-s.normalPriorityMessageChan:
 				s.Write(data)
+				continue
 			default:
 			}
 
 			select {
-			case data <- s.lowPriorityMessageChan:
+			case data := <-s.lowPriorityMessageChan:
 				s.Write(data)
+				continue
 			default:
 			}
 		}
@@ -364,17 +379,25 @@ func (s *Stream) handleMessage(message *NebMessage) error {
 	switch messageName {
 	case SYNCROUTE:
 		return s.onSyncRoute(message)
-	case SyncRouteReply:
+	case SYNCROUTEREPLY:
+		return s.onRouteTable(message)
 	case ROUTETABLE:
 		return s.onRouteTable(message)
+	case RECVEDMSG:
+		return s.OnRecvedMsg(message)
 	default:
 		logging.VLog().WithFields(logrus.Fields{
 			"messageName": messageName,
 			"stream":      s.String(),
 		}).Debugf("Received %s message from peer.", messageName)
 
-		s.node.netService.PutMessage(messages.NewBaseMessage(msg.msgName, s.pid.Pretty(), message.Data()))
+		s.node.netService.PutMessage(messages.NewBaseMessage(message.MessageName(), s.pid.Pretty(), message.Data()))
+
+		// record recv message.
+		RecordRecvMessage(s, message.DataCheckSum())
 	}
+
+	return nil
 }
 
 func (s *Stream) Close() {
@@ -387,13 +410,20 @@ func (s *Stream) Close() {
 	}
 
 	// cleanup.
-	s.node.streamManager.Remove(s)
+	s.node.streamManager.RemoveStream(s)
 	s.node.routeTable.RemovePeerStream(s)
 }
 
 func (s *Stream) Bye() {
 	s.WriteMessage(BYE, []byte{})
 	s.Close()
+}
+
+func (s *Stream) onBye(message *NebMessage) error {
+	logging.VLog().WithFields(logrus.Fields{
+		"stream": s.String(),
+	}).Debug("Received Bye message, close the connection.")
+	return ErrShouldCloseConnectionAndExitLoop
 }
 
 func (s *Stream) Hello() error {
@@ -404,24 +434,13 @@ func (s *Stream) Hello() error {
 	return s.SendProtoMessage(HELLO, msg, MessagePriorityHigh)
 }
 
-func (s *Stream) SyncRoute() error {
-	return s.SendMessage(SYNCROUTE, []byte{})
-}
-
-func (s *Stream) onBye(message *NebMessage) error {
-	logging.VLog().WithFields(logrus.Fields{
-		"stream": s.String(),
-	}).Debug("Received Bye message, close the connection.")
-	return ErrShouldCloseConnectionAndExitLoop
-}
-
-func (s *Stream) onHello(message *NebMessage) bool {
-	msg, err := netpb.HelloMessageFromProto(message.data)
+func (s *Stream) onHello(message *NebMessage) error {
+	msg, err := netpb.HelloMessageFromProto(message.Data())
 	if err != nil {
 		return ErrShouldCloseConnectionAndExitLoop
 	}
 
-	if msg.NodeID != s.pid.String() || !CheckClientVersionCompability(clientVersion, msg.ClientVersion) {
+	if msg.NodeId != s.pid.String() || !CheckClientVersionCompability(ClientVersion, msg.ClientVersion) {
 		// invalid client, bye().
 		logging.VLog().WithFields(logrus.Fields{
 			"pid":               s.pid.Pretty(),
@@ -447,13 +466,13 @@ func (s *Stream) onHello(message *NebMessage) bool {
 	return s.SendProtoMessage(OK, resp, MessagePriorityHigh)
 }
 
-func (s *Stream) onOk(message *NebMessage) {
-	msg, err := netpb.OKMessageFromProto(message.data)
+func (s *Stream) onOk(message *NebMessage) error {
+	msg, err := netpb.OKMessageFromProto(message.Data())
 	if err != nil {
 		return ErrShouldCloseConnectionAndExitLoop
 	}
 
-	if msg.NodeId != s.pid.String() || !CheckClientVersionCompability(clientVersion, msg.ClientVersion) {
+	if msg.NodeId != s.pid.String() || !CheckClientVersionCompability(ClientVersion, msg.ClientVersion) {
 		// invalid client, bye().
 		logging.VLog().WithFields(logrus.Fields{
 			"pid":               s.pid.Pretty(),
@@ -473,19 +492,30 @@ func (s *Stream) onOk(message *NebMessage) {
 	return nil
 }
 
+func (s *Stream) SyncRoute() error {
+	return s.SendMessage(SYNCROUTE, []byte{}, MessagePriorityHigh)
+}
+
 func (s *Stream) onSyncRoute(message *NebMessage) error {
+	return s.RouteTable()
+}
+
+func (s *Stream) RouteTable() error {
 	// get nearest peers from routeTable
 	peers := s.node.routeTable.GetNearestPeers(s.pid)
 
 	// prepare the protobuf message.
 	msg := &netpb.Peers{
-		Peers: make([]netpb.PeerInfo, len(peers)),
+		Peers: make([]*netpb.PeerInfo, len(peers)),
 	}
 
-	for _, v := range peers {
+	for i, v := range peers {
 		pi := &netpb.PeerInfo{
-			Id:    v.ID,
-			Addrs: v.Addrs,
+			Id:    string(v.ID),
+			Addrs: make([]string, len(v.Addrs)),
+		}
+		for j, addr := range v.Addrs {
+			pi.Addrs[j] = addr.String()
 		}
 		msg.Peers[i] = pi
 	}
@@ -513,6 +543,17 @@ func (s *Stream) onRouteTable(message *NebMessage) error {
 	for _, v := range peers.Peers {
 		s.node.routeTable.AddPeerInfo(v.Id, v.Addrs)
 	}
+
+	return nil
+}
+
+func (s *Stream) RecvedMsg(hash uint32) error {
+	return s.SendMessage(RECVEDMSG, byteutils.FromUint32(hash), MessagePriorityHigh)
+}
+
+func (s *Stream) OnRecvedMsg(message *NebMessage) error {
+	hash := byteutils.Uint32(message.Data())
+	RecordRecvMessage(s, hash)
 
 	return nil
 }

@@ -33,18 +33,18 @@ var (
 	metricsBytesOut   = metrics.GetOrRegisterMeter("neb.net.bytes.out", nil)
 )
 
-func metricsPacketsInByMessageName(messageName string, data []byte) {
-	meter := metrics.GetOrRegisterMeter(fmt.Sprintf("neb.net.packets.in.%s", messageName))
+func metricsPacketsInByMessageName(messageName string, size uint64) {
+	meter := metrics.GetOrRegisterMeter(fmt.Sprintf("neb.net.packets.in.%s", messageName), nil)
 	meter.Mark(1)
 
-	meter = metrics.GetOrRegisterMeter(fmt.Sprintf("neb.net.bytes.in.%s", messageName))
-	meter.Mark(len(data) + NebMessageHeaderLength)
+	meter = metrics.GetOrRegisterMeter(fmt.Sprintf("neb.net.bytes.in.%s", messageName), nil)
+	meter.Mark(int64(size))
 }
 
-func metricsPacketsOutByMessageName(messageName string, data []byte) {
-	meter := metrics.GetOrRegisterMeter(fmt.Sprintf("neb.net.packets.out.%s", messageName))
+func metricsPacketsOutByMessageName(messageName string, size uint64) {
+	meter := metrics.GetOrRegisterMeter(fmt.Sprintf("neb.net.packets.out.%s", messageName), nil)
 	meter.Mark(1)
 
-	meter = metrics.GetOrRegisterMeter(fmt.Sprintf("neb.net.bytes.out.%s", messageName))
-	meter.Mark(len(data) + NebMessageHeaderLength)
+	meter = metrics.GetOrRegisterMeter(fmt.Sprintf("neb.net.bytes.out.%s", messageName), nil)
+	meter.Mark(int64(size))
 }

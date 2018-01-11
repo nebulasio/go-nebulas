@@ -35,7 +35,7 @@ type Manager interface {
 
 	Broadcast(string, net.Serializable)
 	Relay(string, net.Serializable)
-	SendMsg(string, []byte, string) error
+	SendMsg(string, []byte, string, int) error
 
 	BroadcastNetworkID([]byte)
 

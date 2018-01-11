@@ -87,26 +87,31 @@ func (ns *NetService) PutMessage(msg net.Message) {
 }
 
 // Broadcast message.
-func (ns *NetService) Broadcast(name string, msg net.Serializable) {
-	ns.node.broadcast(name, msg)
+func (ns *NetService) Broadcast(name string, msg net.Serializable, priority int) {
+	ns.node.BroadcastMessage(name, msg, priority)
 }
 
 // Relay message.
-func (ns *NetService) Relay(name string, msg net.Serializable) {
-	ns.node.relay(name, msg)
+func (ns *NetService) Relay(name string, msg net.Serializable, priority int) {
+	ns.node.RelayMessage(name, msg, priority)
 }
 
 // BroadcastNetworkID broadcast networkID when changed.
 func (ns *NetService) BroadcastNetworkID(msg []byte) {
-	ns.node.broadcastNetworkID(msg)
+	// TODO: @robin networkID.
 }
 
-// BuildRawMessageData returns net service request data
+// BuildRawMessageData return the raw NebMessage content data.
 func (ns *NetService) BuildRawMessageData(data []byte, msgName string) []byte {
-	return ns.node.BuildRawMessageData(data, msgName)
+	message, err := NewNebMessage(ns.node.config.ChainID, DefaultReserved, 0, msgName, data)
+	if err != nil {
+		return nil
+	}
+
+	return message.Content()
 }
 
 // SendMsg send message to a peer.
-func (ns *NetService) SendMsg(msgName string, msg []byte, target string) error {
-	return ns.node.sendMsg(msgName, msg, target)
+func (ns *NetService) SendMsg(msgName string, msg []byte, target string, priority int) error {
+	return ns.node.SendMessageToPeer(target, msgName, msg, priority)
 }

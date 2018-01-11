@@ -247,7 +247,7 @@ func (pool *BlockPool) handleDownloadedBlock(msg net.Message) {
 		}).Error("Failed to marshal the block's parent.")
 		return
 	}
-	pool.nm.SendMsg(MessageTypeDownloadedBlockReply, bytes, msg.MessageFrom())
+	pool.nm.SendMsg(MessageTypeDownloadedBlockReply, bytes, msg.MessageFrom(), p2p.MessagePriorityNormal)
 
 	logging.VLog().WithFields(logrus.Fields{
 		"block":  block,
@@ -341,7 +341,7 @@ func (pool *BlockPool) download(sender string, block *Block) error {
 		return err
 	}
 
-	pool.nm.SendMsg(MessageTypeDownloadedBlock, bytes, sender)
+	pool.nm.SendMsg(MessageTypeDownloadedBlock, bytes, sender, p2p.MessagePriorityNormal)
 
 	logging.VLog().WithFields(logrus.Fields{
 		"target": sender,

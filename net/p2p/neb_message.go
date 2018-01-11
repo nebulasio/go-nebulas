@@ -140,7 +140,7 @@ func (message *NebMessage) Length() uint64 {
 
 func NewNebMessage(chainID uint32, reserved []byte, version byte, messageName string, data []byte) (*NebMessage, error) {
 	if len(data) > MaxNebMessageDataLength {
-		logging.VLog().WithFields(logurs.Fields{
+		logging.VLog().WithFields(logrus.Fields{
 			"messageName": messageName,
 			"dataLength":  len(data),
 		}).Warn("Exceeded max data length.")
@@ -159,12 +159,12 @@ func NewNebMessage(chainID uint32, reserved []byte, version byte, messageName st
 	copy(message.content[NebMessageChainIDEndIdx:NebMessageReservedEndIdx], reserved)
 	message.content[NebMessageVersionIndex] = version
 	copy(message.content[NebMessageVersionEndIdx:NebMessageNameEndIdx], []byte(messageName))
-	copy(message.content[NebMessageNameEndIdx:NebMessageDataLengthEndIdx], byteutils.FromUint32(len(data)))
+	copy(message.content[NebMessageNameEndIdx:NebMessageDataLengthEndIdx], byteutils.FromUint32(uint32(len(data))))
 	copy(message.content[NebMessageDataLengthEndIdx:NebMessageDataCheckSumEndIdx], byteutils.FromUint32(dataCheckSum))
 
 	// header checksum.
 	headerCheckSum := crc32.ChecksumIEEE(message.HeaderWithoutCheckSum())
-	copy(message.content[NebMessageDataCheckSumEndIdx:NebMessageHeaderCheckSumEndIdx], headerCheckSum)
+	copy(message.content[NebMessageDataCheckSumEndIdx:NebMessageHeaderCheckSumEndIdx], byteutils.FromUint32(headerCheckSum))
 
 	// copy data.
 	copy(message.content[NebMessageHeaderCheckSumEndIdx:], data)
@@ -190,18 +190,12 @@ func ParseNebMessage(data []byte) (*NebMessage, error) {
 }
 
 func (message *NebMessage) ParseMessageData(data []byte) error {
-	if len(data) < message.DataLength() {
-		return nil, ErrInsufficientMessageDataLength
+	if uint32(len(data)) < message.DataLength() {
+		return ErrInsufficientMessageDataLength
 	}
 
 	message.content = append(message.content, data[:message.DataLength()]...)
-
-	// verify checksum.
-	if err := message.VerifyData(); err != nil {
-		return err
-	}
-
-	return nil
+	return message.VerifyData()
 }
 
 func (message *NebMessage) VerifyHeader() error {
@@ -223,9 +217,9 @@ func (message *NebMessage) VerifyHeader() error {
 	}
 
 	if message.DataLength() > MaxNebMessageDataLength {
-		logging.VLog().WithFields(logurs.Fields{
-			"messageName": messageName,
-			"dataLength":  len(data),
+		logging.VLog().WithFields(logrus.Fields{
+			"messageName": message.MessageName(),
+			"dataLength":  message.DataLength(),
 		}).Warn("Exceeded max data length.")
 		return ErrExceededMaxDataLength
 	}

@@ -57,7 +57,7 @@ func NewRouteTable(config *Config, node *Node) *RouteTable {
 		peerStore:                peerstore.NewPeerstore(),
 		maxPeersCountForSyncResp: MaxPeersCountForSyncResp,
 		maxPeersCountToSync:      config.MaxSyncNodes,
-		cacheFilePath:            path.Join(config.RoutingTableDir(), RouteTableCacheFileName),
+		cacheFilePath:            path.Join(config.RoutingTableDir, RouteTableCacheFileName),
 		seedNodes:                config.BootNodes,
 		node:                     node,
 		streamManager:            node.streamManager,
@@ -66,14 +66,14 @@ func NewRouteTable(config *Config, node *Node) *RouteTable {
 
 	table.routeTable = kbucket.NewRoutingTable(
 		config.Bucketsize,
-		kbucket.ConvertPeerID(id),
+		kbucket.ConvertPeerID(node.id),
 		config.Latency,
-		table.peerstore,
+		table.peerStore,
 	)
 
 	table.routeTable.Update(node.id)
-	table.peerStore.AddPubKey(node.id, networkKey.GetPublic())
-	table.peerStore.AddPrivKey(node.id, networkKey)
+	table.peerStore.AddPubKey(node.id, node.networkKey.GetPublic())
+	table.peerStore.AddPrivKey(node.id, node.networkKey)
 
 	return table
 }
@@ -114,7 +114,7 @@ func (table *RouteTable) syncLoop() {
 }
 
 func (table *RouteTable) AddPeerInfo(pidStr string, addrStr []string) error {
-	pid := pidStr.(peer.ID)
+	pid := peer.ID(pidStr)
 	if table.routeTable.Find(pid) != "" {
 		return nil
 	}
@@ -129,18 +129,14 @@ func (table *RouteTable) AddPeerInfo(pidStr string, addrStr []string) error {
 		}
 	}
 
-	table.peerStore.AddAddrs(pid, addrs)
+	table.peerStore.AddAddrs(pid, addrs, peerstore.PermanentAddrTTL)
 	table.routeTable.Update(pid)
 
 	return nil
 }
 
 func (table *RouteTable) AddPeer(pid peer.ID, addr ma.Multiaddr) {
-	table.peerStore.AddAddr(
-		pid,
-		addr,
-		peerstore.PermanentAddrTTL,
-	)
+	table.peerStore.AddAddr(pid, addr, peerstore.PermanentAddrTTL)
 	table.routeTable.Update(pid)
 }
 
@@ -199,16 +195,16 @@ func (table *RouteTable) LoadRouteTableFromFile() {
 
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
-		if strings.HasPrefix("#") {
+		if strings.HasPrefix(line, "#") {
 			continue
 		}
 
-		addr, err := ma.NewMultiaddr(v)
+		addr, err := ma.NewMultiaddr(line)
 		if err != nil {
 			// ignore.
 			logging.VLog().WithFields(logrus.Fields{
 				"err":  err,
-				"text": v,
+				"text": line,
 			}).Warn("Invalid address in Route Table Cache file.")
 			continue
 		}
@@ -242,7 +238,11 @@ func (table *RouteTable) SaveRouteTableToFile() {
 func (table *RouteTable) SyncRouteTable() {
 	// sync with seed nodes.
 	for _, addr := range table.seedNodes {
-		table.SyncWithPeer(MultiaddrToPeerID(addr))
+		pid, err := MultiaddrToPeerID(addr)
+		if err != nil {
+			continue
+		}
+		table.SyncWithPeer(pid)
 	}
 
 	// random peer selection.

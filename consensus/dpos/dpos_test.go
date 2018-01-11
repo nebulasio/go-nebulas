@@ -193,7 +193,7 @@ func (n MockNetManager) Relay(name string, msg net.Serializable) {
 	bytes, _ := proto.Marshal(pb)
 	received = bytes
 }
-func (n MockNetManager) SendMsg(name string, msg []byte, target string) error {
+func (n MockNetManager) SendMsg(name string, msg []byte, target string, priority int) error {
 	received = msg
 	return nil
 }

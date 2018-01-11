@@ -19,11 +19,14 @@
 package p2p
 
 import (
+	"hash/crc32"
 	"sync"
 	"time"
 
+	"github.com/gogo/protobuf/proto"
 	libnet "github.com/libp2p/go-libp2p-net"
 	peer "github.com/libp2p/go-libp2p-peer"
+	nebnet "github.com/nebulasio/go-nebulas/net"
 	"github.com/nebulasio/go-nebulas/util/logging"
 )
 
@@ -48,7 +51,7 @@ func (sm *StreamManager) Stop() {
 }
 
 func (sm *StreamManager) Add(s libnet.Stream, node *Node) {
-	stream := NewStream(s.Conn().RemotePeer(), s, node)
+	stream := NewStream(s, node)
 	sm.AddStream(stream)
 }
 
@@ -66,7 +69,8 @@ func (sm *StreamManager) RemoveStream(s *Stream) {
 }
 
 func (sm *StreamManager) Find(pid peer.ID) *Stream {
-	return sm.allStreams.Load(pid)
+	v, _ := sm.allStreams.Load(pid)
+	return v.(*Stream)
 }
 
 func (sm *StreamManager) loop() {
@@ -83,4 +87,40 @@ func (sm *StreamManager) loop() {
 			logging.VLog().Warn("TODO: cleanup connections is not implemented.")
 		}
 	}
+}
+
+func (sm *StreamManager) BroadcastMessage(messageName string, messageContent nebnet.Serializable, priority int) {
+	pb, _ := messageContent.ToProto()
+	data, err := proto.Marshal(pb)
+	if err != nil {
+		return
+	}
+
+	dataCheckSum := crc32.ChecksumIEEE(data)
+
+	sm.allStreams.Range(func(key, value interface{}) bool {
+		stream := value.(*Stream)
+		if !HasRecvMessage(stream, dataCheckSum) {
+			stream.SendMessage(messageName, data, priority)
+		}
+		return true
+	})
+}
+
+func (sm *StreamManager) RelayMessage(messageName string, messageContent nebnet.Serializable, priority int) {
+	pb, _ := messageContent.ToProto()
+	data, err := proto.Marshal(pb)
+	if err != nil {
+		return
+	}
+
+	dataCheckSum := crc32.ChecksumIEEE(data)
+
+	sm.allStreams.Range(func(key, value interface{}) bool {
+		stream := value.(*Stream)
+		if !HasRecvMessage(stream, dataCheckSum) {
+			stream.SendMessage(messageName, data, priority)
+		}
+		return true
+	})
 }

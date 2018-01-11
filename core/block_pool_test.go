@@ -69,7 +69,7 @@ func (n MockNetManager) Deregister(...*net.Subscriber) {}
 
 func (n MockNetManager) Broadcast(name string, msg net.Serializable) {}
 func (n MockNetManager) Relay(name string, msg net.Serializable)     {}
-func (n MockNetManager) SendMsg(name string, msg []byte, target string) error {
+func (n MockNetManager) SendMsg(name string, msg []byte, target string, priority int) error {
 	received = msg
 	return nil
 }

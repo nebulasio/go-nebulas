@@ -20,17 +20,18 @@ package p2p
 
 import (
 	"context"
-	"crypto"
+
 	"errors"
 	"fmt"
 	"net"
 
-	lru "github.com/hashicorp/golang-lru"
+	crypto "github.com/libp2p/go-libp2p-crypto"
 	libnet "github.com/libp2p/go-libp2p-net"
 	"github.com/libp2p/go-libp2p-peer"
 	swarm "github.com/libp2p/go-libp2p-swarm"
 	"github.com/libp2p/go-libp2p/p2p/host/basic"
 	multiaddr "github.com/multiformats/go-multiaddr"
+	nebnet "github.com/nebulasio/go-nebulas/net"
 	"github.com/nebulasio/go-nebulas/util/logging"
 	"github.com/sirupsen/logrus"
 )
@@ -45,22 +46,18 @@ const (
 
 // Error types
 var (
-	ErrLoadKeypairFromFile = errors.New("failed to get Keypair from file")
-	ErrNodeIsRunning       = errors.New("node is already running")
-	ErrConnectToSeed       = errors.New("failed to say hello to seed")
+	ErrPeerIsNotConnected = errors.New("peer is not connected")
 )
 
 // Node the node can be used as both the client and the server
 type Node struct {
-	running       bool
 	synchronizing bool
 	quitCh        chan bool
 	netService    *NetService
 	config        *Config
 	context       context.Context
 	id            peer.ID
-	networkKey    crypto.PrivateKey
-	relayness     *lru.Cache
+	networkKey    crypto.PrivKey
 	network       *swarm.Network
 	host          *basichost.BasicHost
 	streamManager *StreamManager
@@ -84,10 +81,7 @@ func NewNode(config *Config) (*Node, error) {
 		context:       context.Background(),
 		streamManager: NewStreamManager(),
 		synchronizing: false,
-		running:       false,
 	}
-	node.relayness, _ = lru.New(config.RelayCacheSize)
-	node.networkIDCache, _ = lru.New(config.StreamStoreSize)
 
 	initP2PNetworkKey(config, node)
 	initP2PRouteTable(config, node)
@@ -114,7 +108,7 @@ func (node *Node) Start() error {
 	return nil
 }
 
-func (node *Node) Stop() error {
+func (node *Node) Stop() {
 	node.routeTable.Stop()
 	node.stopHost()
 	node.streamManager.Stop()
@@ -132,7 +126,7 @@ func (node *Node) startHost() error {
 		}).Error("Failed to start node.")
 		return err
 	}
-	host.SetStreamHandler(ProtocolID, node.onStreamConnected)
+	host.SetStreamHandler(NebProtocolID, node.onStreamConnected)
 
 	node.host = host
 	return nil
@@ -236,7 +230,7 @@ func initP2PSwarmNetwork(config *Config, node *Node) error {
 		node.context,
 		multiaddrs,
 		node.id,
-		node.peerstore,
+		node.routeTable.peerStore,
 		nil, // TODO: @robin integrate metrics.Reporter.
 	)
 	if err != nil {
@@ -252,5 +246,32 @@ func initP2PSwarmNetwork(config *Config, node *Node) error {
 }
 
 func (node *Node) onStreamConnected(s libnet.Stream) {
-	node.streamManager.Add(node, s)
+	node.streamManager.Add(s, node)
+}
+
+func (node *Node) SendMessageToPeer(pidStr, messageName string, data []byte, priority int) error {
+	stream := node.streamManager.Find(peer.ID(pidStr))
+	if stream == nil {
+		return ErrPeerIsNotConnected
+	}
+
+	return stream.SendMessage(messageName, data, priority)
+}
+
+func (node *Node) BroadcastMessage(messageName string, data nebnet.Serializable, priority int) {
+	// node can not broadcast or relay message if it is in synchronizing.
+	if node.synchronizing {
+		return
+	}
+
+	node.streamManager.BroadcastMessage(messageName, data, priority)
+}
+
+func (node *Node) RelayMessage(messageName string, data nebnet.Serializable, priority int) {
+	// node can not broadcast or relay message if it is in synchronizing.
+	if node.synchronizing {
+		return
+	}
+
+	node.streamManager.RelayMessage(messageName, data, priority)
 }

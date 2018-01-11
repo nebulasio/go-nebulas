@@ -23,7 +23,6 @@ import (
 	"net"
 	"os"
 	"reflect"
-	"strings"
 	"sync"
 	"time"
 
@@ -34,35 +33,6 @@ import (
 var (
 	ErrListenPortIsNotAvailable = errors.New("listen port is not available")
 )
-
-func (node *Node) ParseAddressFromMultiaddr(address ma.Multiaddr) (ma.Multiaddr, peer.ID, error) {
-	addr, err := ma.NewMultiaddr(
-		strings.Split(address.String(), "/ipfs/")[0],
-	)
-
-	if err != nil {
-		return nil, "", err
-	}
-
-	b58, err := address.ValueForProtocol(ma.P_IPFS)
-	if err != nil {
-		return nil, "", err
-	}
-
-	id, err := peer.IDB58Decode(b58)
-	if err != nil {
-		return nil, "", err
-	}
-
-	return addr, id, nil
-}
-
-func (node *Node) clearPeerStore(pid peer.ID, addrs []ma.Multiaddr) {
-	node.peerstore.SetAddrs(pid, addrs, 0)
-	if !InArray(pid.Pretty(), node.bootIds) {
-		node.routeTable.Remove(pid)
-	}
-}
 
 func MultiaddrToPeerID(addr ma.Multiaddr) (peer.ID, error) {
 	// TODO: @robin we should register neb multicodecs.
