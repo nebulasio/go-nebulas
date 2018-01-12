@@ -62,9 +62,9 @@ type Stream struct {
 	node                      *Node
 	handshakeSucceedCh        chan bool
 	messageNotifChan          chan int
-	highPriorityMessageChan   chan []byte
-	normalPriorityMessageChan chan []byte
-	lowPriorityMessageChan    chan []byte
+	highPriorityMessageChan   chan *NebMessage
+	normalPriorityMessageChan chan *NebMessage
+	lowPriorityMessageChan    chan *NebMessage
 	quitWriteCh               chan bool
 	handshakeSucceed          bool
 	connectedAt               int64
@@ -89,9 +89,9 @@ func newStreamInstance(pid peer.ID, addr ma.Multiaddr, stream libnet.Stream, nod
 		node:                      node,
 		handshakeSucceedCh:        make(chan bool, 1),
 		messageNotifChan:          make(chan int, 4*1024),
-		highPriorityMessageChan:   make(chan []byte, 1024),
-		normalPriorityMessageChan: make(chan []byte, 4*1024),
-		lowPriorityMessageChan:    make(chan []byte, 4*1024),
+		highPriorityMessageChan:   make(chan *NebMessage, 2*1024),
+		normalPriorityMessageChan: make(chan *NebMessage, 2*1024),
+		lowPriorityMessageChan:    make(chan *NebMessage, 2*1024),
 		quitWriteCh:               make(chan bool, 1),
 		handshakeSucceed:          false,
 		connectedAt:               time.Now().Unix(),
@@ -157,15 +157,18 @@ func (s *Stream) SendMessage(messageName string, data []byte, priority int) erro
 	}
 
 	// metrics.
-	metricsPacketsOutByMessageName(messageName, uint64(len(data)+NebMessageHeaderLength))
+	metricsPacketsOutByMessageName(messageName, message.Length())
+
+	// send to pool.
+	message.FlagSendMessageAt()
 
 	switch priority {
 	case net.MessagePriorityHigh:
-		s.highPriorityMessageChan <- message.Content()
+		s.highPriorityMessageChan <- message
 	case net.MessagePriorityNormal:
-		s.normalPriorityMessageChan <- message.Content()
+		s.normalPriorityMessageChan <- message
 	default:
-		s.lowPriorityMessageChan <- message.Content()
+		s.lowPriorityMessageChan <- message
 	}
 	s.messageNotifChan <- 1
 
@@ -196,6 +199,24 @@ func (s *Stream) Write(data []byte) error {
 	return nil
 }
 
+func (s *Stream) WriteNebMessage(message *NebMessage) error {
+	// metrics.
+	metricsPacketsOutByMessageName(message.MessageName(), message.Length())
+
+	message.FlagWriteMessageAt()
+
+	err := s.Write(message.Content())
+
+	// debug logs.
+	logging.VLog().WithFields(logrus.Fields{
+		"stream":      s.String(),
+		"messageName": message.MessageName(),
+		"latency":     message.LatencyFromSendToWrite(),
+	}).Debug("[Perf] latency of write message.")
+
+	return err
+}
+
 func (s *Stream) WriteProtoMessage(messageName string, pb proto.Message) error {
 	data, err := proto.Marshal(pb)
 	if err != nil {
@@ -216,11 +237,7 @@ func (s *Stream) WriteMessage(messageName string, data []byte) error {
 		return err
 	}
 
-	// metrics.
-	metricsPacketsOutByMessageName(messageName, uint64(len(data)+NebMessageHeaderLength))
-
-	// write.
-	return s.Write(message.Content())
+	return s.WriteNebMessage(message)
 }
 
 // StartLoop start stream handling loop.
@@ -351,22 +368,22 @@ func (s *Stream) writeLoop() {
 			return
 		case <-s.messageNotifChan:
 			select {
-			case data := <-s.highPriorityMessageChan:
-				s.Write(data)
+			case message := <-s.highPriorityMessageChan:
+				s.WriteNebMessage(message)
 				continue
 			default:
 			}
 
 			select {
-			case data := <-s.normalPriorityMessageChan:
-				s.Write(data)
+			case message := <-s.normalPriorityMessageChan:
+				s.WriteNebMessage(message)
 				continue
 			default:
 			}
 
 			select {
-			case data := <-s.lowPriorityMessageChan:
-				s.Write(data)
+			case message := <-s.lowPriorityMessageChan:
+				s.WriteNebMessage(message)
 				continue
 			default:
 			}
@@ -416,6 +433,10 @@ func (s *Stream) handleMessage(message *NebMessage) error {
 }
 
 func (s *Stream) Close() {
+	logging.VLog().WithFields(logrus.Fields{
+		"stream": s.String(),
+	}).Debug("Closing connection stream.")
+
 	// quit.
 	s.quitWriteCh <- true
 

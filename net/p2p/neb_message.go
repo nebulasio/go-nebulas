@@ -22,6 +22,7 @@ import (
 	"bytes"
 	"errors"
 	"hash/crc32"
+	"time"
 
 	byteutils "github.com/nebulasio/go-nebulas/util/byteutils"
 	"github.com/nebulasio/go-nebulas/util/logging"
@@ -87,7 +88,12 @@ var (
 )
 
 type NebMessage struct {
-	content []byte
+	content     []byte
+	messageName string
+
+	// debug fields.
+	sendMessageAt  int64
+	writeMessageAt int64
 }
 
 func (message *NebMessage) MagicNumber() []byte {
@@ -107,12 +113,16 @@ func (message *NebMessage) Version() byte {
 }
 
 func (message *NebMessage) MessageName() string {
-	data := message.content[NebMessageVersionEndIdx:NebMessageNameEndIdx]
-	pos := bytes.IndexByte(data, 0)
-	if pos != -1 {
-		return string(data[0:pos])
+	if message.messageName == "" {
+		data := message.content[NebMessageVersionEndIdx:NebMessageNameEndIdx]
+		pos := bytes.IndexByte(data, 0)
+		if pos != -1 {
+			message.messageName = string(data[0:pos])
+		} else {
+			message.messageName = string(data)
+		}
 	}
-	return string(data)
+	return message.messageName
 }
 
 func (message *NebMessage) DataLength() uint32 {
@@ -242,4 +252,22 @@ func (message *NebMessage) VerifyData() error {
 		return ErrInvalidDataCheckSum
 	}
 	return nil
+}
+
+func (message *NebMessage) FlagSendMessageAt() {
+	message.sendMessageAt = time.Now().Unix()
+}
+
+func (message *NebMessage) FlagWriteMessageAt() {
+	message.writeMessageAt = time.Now().Unix()
+}
+
+func (message *NebMessage) LatencyFromSendToWrite() int64 {
+	if message.sendMessageAt == 0 {
+		return -1
+	} else if message.writeMessageAt == 0 {
+		message.FlagWriteMessageAt()
+	}
+
+	return message.writeMessageAt - message.sendMessageAt
 }
