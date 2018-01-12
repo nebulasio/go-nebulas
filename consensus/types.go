@@ -32,12 +32,13 @@ type Consensus interface {
 	Start()
 	Stop()
 
-	StartMining([]byte) error
-	StopMining()
-	Mining() bool
+	EnableMining(string) error
+	DisableMining() error
+	Enable() bool
 
-	CanMining() bool
-	SetCanMining(bool)
+	ContinueMining()
+	PendMining()
+	Pending() bool
 
 	VerifyBlock(block *core.Block, parent *core.Block) error
 	FastVerifyBlock(block *core.Block) error

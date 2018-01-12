@@ -45,10 +45,13 @@ func (c MockConsensus) FastVerifyBlock(block *Block) error {
 	block.miner = block.Coinbase()
 	return nil
 }
+
 func (c MockConsensus) VerifyBlock(block *Block, parent *Block) error {
 	block.miner = block.Coinbase()
 	return nil
 }
+
+func (c MockConsensus) PendMining() {}
 
 var (
 	received = []byte{}

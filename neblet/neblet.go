@@ -2,12 +2,12 @@ package neblet
 
 import (
 	"errors"
+	"fmt"
 	"sync"
 
-	"fmt"
+	"github.com/nebulasio/go-nebulas/cmd/console"
 
 	"github.com/nebulasio/go-nebulas/account"
-	"github.com/nebulasio/go-nebulas/cmd/console"
 	"github.com/nebulasio/go-nebulas/consensus"
 	"github.com/nebulasio/go-nebulas/consensus/dpos"
 	"github.com/nebulasio/go-nebulas/core"
@@ -150,28 +150,24 @@ func (n *Neblet) Start() error {
 	n.syncManager.Start()
 
 	// start consensus
+	chainConf := n.config.Chain
 	n.consensus.Start()
-	if n.config.Chain.StartMine {
-		// prompt for passphrase of miner
+	if chainConf.StartMine {
 		passphrase := n.config.Chain.Passphrase
 		if len(passphrase) == 0 {
-
 			fmt.Println("***********************************************")
 			fmt.Println("miner address:" + n.config.Chain.Miner)
-
 			prompt := console.Stdin
 			passphrase, _ = prompt.PromptPassphrase("Enter the miner's passphrase:")
 			fmt.Println("***********************************************")
 		}
-
-		err := n.consensus.StartMining([]byte(passphrase))
+		err := n.consensus.EnableMining(chainConf.Passphrase)
 		if err != nil {
 			return err
 		}
 	}
 
 	nebstartGauge.Update(1)
-	// TODO: error handling
 	return nil
 }
 

@@ -114,8 +114,9 @@ const (
 	MessageTypeNewTx                = "newtx"
 )
 
-// Consensus interface
+// Consensus interface of consensus algorithm.
 type Consensus interface {
+	PendMining()
 	VerifyBlock(block *Block, parent *Block) error
 	FastVerifyBlock(block *Block) error
 }

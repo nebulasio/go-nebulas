@@ -109,7 +109,7 @@ func (m *Manager) Start() {
 		m.curTail = m.blockChain.TailBlock()
 	} else {
 		logging.VLog().Info("Sync.Start: i am a seed node.")
-		m.consensus.SetCanMining(true)
+		m.consensus.ContinueMining()
 		go m.loop()
 	}
 }
@@ -129,7 +129,7 @@ func (m *Manager) loop() {
 			if m.ns.Node().IsSynchronizing() {
 				m.ns.Node().SetSynchronizing(false)
 			}
-			m.consensus.SetCanMining(true)
+			m.consensus.PendMining()
 			logging.VLog().Info("sync finish.")
 		case <-m.syncCh:
 			if m.curTail == nil {

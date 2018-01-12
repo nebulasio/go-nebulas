@@ -738,11 +738,11 @@ func (s *APIService) StartMine(ctx context.Context, req *rpcpb.StartMineRequest)
 
 	neb := s.server.Neblet()
 
-	if neb.Consensus().Mining() {
+	if neb.Consensus().Enable() {
 		return nil, errors.New("consensus has already been started")
 	}
 
-	err := neb.Consensus().StartMining([]byte(req.Passphrase))
+	err := neb.Consensus().EnableMining(req.Passphrase)
 	if err != nil {
 		return nil, err
 	}
@@ -758,10 +758,12 @@ func (s *APIService) StopMine(ctx context.Context, req *rpcpb.NonParamsRequest) 
 
 	neb := s.server.Neblet()
 
-	if !neb.Consensus().Mining() {
+	if !neb.Consensus().Enable() {
 		return nil, errors.New("consensus not start yet")
 	}
 
-	neb.Consensus().StopMining()
+	if err := neb.Consensus().DisableMining(); err != nil {
+		return nil, err
+	}
 	return &rpcpb.MineResponse{Result: true}, nil
 }

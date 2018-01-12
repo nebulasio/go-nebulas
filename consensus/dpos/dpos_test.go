@@ -158,6 +158,8 @@ type MockConsensus struct {
 	storage storage.Storage
 }
 
+func (c MockConsensus) PendMining() {}
+
 func (c MockConsensus) FastVerifyBlock(block *core.Block) error {
 	block.SetMiner(block.Coinbase())
 	return nil
@@ -328,9 +330,9 @@ func TestForkChoice(t *testing.T) {
 func TestCanMining(t *testing.T) {
 	dpos, err := NewDpos(mockNeb(t))
 	assert.Nil(t, err)
-	assert.Equal(t, dpos.CanMining(), false)
-	dpos.SetCanMining(true)
-	assert.Equal(t, dpos.CanMining(), true)
+	assert.Equal(t, dpos.Pending(), true)
+	dpos.ContinueMining()
+	assert.Equal(t, dpos.Pending(), false)
 }
 
 func TestFastVerifyBlock(t *testing.T) {
@@ -343,7 +345,7 @@ func TestFastVerifyBlock(t *testing.T) {
 	coinbase, err := core.AddressParse("1a263547d167c74cf4b8f9166cfa244de0481c514a45aa2c")
 	assert.Nil(t, err)
 	manager := account.NewManager(nil)
-	assert.Nil(t, dpos.StartMining([]byte("passphrase")))
+	assert.Nil(t, dpos.EnableMining("passphrase"))
 
 	elapsedSecond := int64(core.DynastyInterval)
 	context, err := tail.NextDynastyContext(elapsedSecond)
@@ -384,11 +386,11 @@ func TestDpos_MintBlock(t *testing.T) {
 	var c MockConsensus
 	dpos.chain.SetConsensusHandler(c)
 
-	assert.Nil(t, dpos.StartMining([]byte("passphrase")))
+	assert.Nil(t, dpos.EnableMining("passphrase"))
 
 	assert.Equal(t, dpos.mintBlock(0), ErrCannotMintBlockNow)
 
-	dpos.SetCanMining(true)
+	dpos.ContinueMining()
 	assert.Equal(t, dpos.mintBlock(core.BlockInterval), ErrInvalidBlockProposer)
 
 	received = []byte{}
