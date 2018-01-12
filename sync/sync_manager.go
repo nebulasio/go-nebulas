@@ -19,6 +19,7 @@
 package sync
 
 import (
+	"math"
 	"time"
 
 	"github.com/gogo/protobuf/proto"
@@ -297,6 +298,7 @@ func (m *Manager) startMsgHandle() {
 					continue
 				}
 
+				limit := m.syncLimit()
 				if len(blocks) == 0 {
 					msgErrCount++
 					logging.VLog().WithFields(logrus.Fields{
@@ -306,7 +308,7 @@ func (m *Manager) startMsgHandle() {
 						"batch":      batch,
 					}).Info("Received sync reply message is wrong")
 
-					if msgErrCount >= net.PeersSyncCount/2 {
+					if msgErrCount >= limit/2 {
 						// go to next sync
 						msgErrCount = 0
 						m.goParentSyncCh <- true
@@ -318,9 +320,9 @@ func (m *Manager) startMsgHandle() {
 					"blocks":     blocks,
 					"data.batch": data.batch,
 					"batch":      batch,
-				}).Info("Received sync reply message")
+				}).Infof("Received sync reply message, %d/%d", len(m.cacheList), limit)
 
-				if len(blocks) > 0 && len(m.cacheList) < net.PeersSyncCount {
+				if len(blocks) > 0 && len(m.cacheList) < limit {
 					m.checkSyncLimitHandler(data)
 				} else {
 					continue
@@ -331,10 +333,13 @@ func (m *Manager) startMsgHandle() {
 	})()
 }
 
+func (m *Manager) syncLimit() int {
+	return int(math.Sqrt(float64(m.ns.Node().PeersCount())))
+}
+
 func (m *Manager) checkSyncLimitHandler(data *NetBlocks) {
 	m.cacheList[data.from] = data
-	if len(m.cacheList) >= net.PeersSyncCount {
-		// m.syncWithBlockList(m.cacheList)
+	if len(m.cacheList) >= m.syncLimit() {
 		m.canSyncWithBlockListCh <- true
 	}
 
@@ -421,7 +426,7 @@ func (m *Manager) findBlocksWithCommonAncestor() []string {
 		}
 	}
 
-	limitLen := net.PeersSyncCount/2 + 1
+	limitLen := m.syncLimit()/2 + 1
 	var addrsArray []string
 
 	for key, value := range tempList {

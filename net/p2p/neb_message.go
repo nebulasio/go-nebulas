@@ -255,11 +255,11 @@ func (message *NebMessage) VerifyData() error {
 }
 
 func (message *NebMessage) FlagSendMessageAt() {
-	message.sendMessageAt = time.Now().Unix()
+	message.sendMessageAt = time.Now().UnixNano()
 }
 
 func (message *NebMessage) FlagWriteMessageAt() {
-	message.writeMessageAt = time.Now().Unix()
+	message.writeMessageAt = time.Now().UnixNano()
 }
 
 func (message *NebMessage) LatencyFromSendToWrite() int64 {
