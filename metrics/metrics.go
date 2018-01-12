@@ -26,6 +26,7 @@ import (
 
 	"github.com/nebulasio/go-nebulas/neblet/pb"
 	"github.com/nebulasio/go-nebulas/net/p2p"
+	"github.com/nebulasio/go-nebulas/util/logging"
 	metrics "github.com/rcrowley/go-metrics"
 	influxdb "github.com/vrischmann/go-metrics-influxdb"
 )
@@ -48,19 +49,27 @@ type Neblet interface {
 
 // Start metrics monitor
 func Start(neb Neblet) {
-	tags := make(map[string]string)
-	metricsConfig := neb.Config().Stats.MetricsTags
-	for _, v := range metricsConfig {
-		values := strings.Split(v, ":")
-		if len(values) != 2 {
-			continue
+	logging.CLog().Info("Starting Metrics...")
+
+	go (func() {
+		tags := make(map[string]string)
+		metricsConfig := neb.Config().Stats.MetricsTags
+		for _, v := range metricsConfig {
+			values := strings.Split(v, ":")
+			if len(values) != 2 {
+				continue
+			}
+			tags[values[0]] = values[1]
 		}
-		tags[values[0]] = values[1]
-	}
-	tags[nodeID] = getSimpleNodeID(neb)
-	tags[chainID] = fmt.Sprintf("%d", neb.NetManager().Node().Config().ChainID)
-	go collectSystemMetrics()
-	influxdb.InfluxDBWithTags(metrics.DefaultRegistry, duration, neb.Config().Stats.Influxdb.Host, neb.Config().Stats.Influxdb.Db, neb.Config().Stats.Influxdb.User, neb.Config().Stats.Influxdb.Password, tags)
+		tags[nodeID] = getSimpleNodeID(neb)
+		tags[chainID] = fmt.Sprintf("%d", neb.NetManager().Node().Config().ChainID)
+		go collectSystemMetrics()
+		influxdb.InfluxDBWithTags(metrics.DefaultRegistry, duration, neb.Config().Stats.Influxdb.Host, neb.Config().Stats.Influxdb.Db, neb.Config().Stats.Influxdb.User, neb.Config().Stats.Influxdb.Password, tags)
+
+	})()
+}
+
+func start(neb Neblet) {
 }
 
 func getSimpleNodeID(neb Neblet) string {
@@ -100,5 +109,7 @@ func collectSystemMetrics() {
 
 // Stop metrics monitor
 func Stop() {
+	logging.CLog().Info("Stopping Metrics...")
+
 	quitCh <- true
 }

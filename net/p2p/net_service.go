@@ -52,7 +52,7 @@ func (ns *NetService) Node() *Node {
 
 // Start start p2p manager.
 func (ns *NetService) Start() error {
-	logging.CLog().Info("Start NetService.")
+	logging.CLog().Info("Starting NetService...")
 
 	// start dispatcher.
 	ns.dispatcher.Start()
@@ -69,7 +69,8 @@ func (ns *NetService) Start() error {
 
 // Stop stop p2p manager.
 func (ns *NetService) Stop() {
-	logging.CLog().Info("Stop NetService.")
+	logging.CLog().Info("Stopping NetService...")
+
 	ns.node.Stop()
 	ns.dispatcher.Stop()
 }

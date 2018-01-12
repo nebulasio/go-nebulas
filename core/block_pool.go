@@ -104,7 +104,7 @@ func (pool *BlockPool) RegisterInNetwork(nm p2p.Manager) {
 func (pool *BlockPool) Start() {
 	logging.CLog().WithFields(logrus.Fields{
 		"size": pool.size,
-	}).Info("Start BlockPool.")
+	}).Info("Starting BlockPool...")
 
 	go pool.loop()
 }
@@ -113,7 +113,7 @@ func (pool *BlockPool) Start() {
 func (pool *BlockPool) Stop() {
 	logging.CLog().WithFields(logrus.Fields{
 		"size": pool.size,
-	}).Info("Stop BlockPool.")
+	}).Info("Stopping BlockPool...")
 
 	pool.quitCh <- 0
 }
@@ -242,7 +242,7 @@ func (pool *BlockPool) handleDownloadedBlock(msg net.Message) {
 }
 
 func (pool *BlockPool) loop() {
-	logging.CLog().Info("Launched BlockPool.")
+	logging.CLog().Info("Started BlockPool.")
 	for {
 		select {
 		case <-pool.quitCh:

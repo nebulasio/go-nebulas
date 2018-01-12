@@ -48,10 +48,14 @@ func NewStreamManager() *StreamManager {
 }
 
 func (sm *StreamManager) Start() {
+	logging.CLog().Info("Starting NetService StreamManager...")
+
 	go sm.loop()
 }
 
 func (sm *StreamManager) Stop() {
+	logging.CLog().Info("Stopping NetService StreamManager...")
+
 	sm.quitCh <- true
 }
 
@@ -96,13 +100,12 @@ func (sm *StreamManager) Find(pid peer.ID) *Stream {
 }
 
 func (sm *StreamManager) loop() {
-	logging.CLog().Info("Starting Stream Manager Loop.")
 
 	ticker := time.NewTicker(time.Second * 30)
 	for {
 		select {
 		case <-sm.quitCh:
-			logging.CLog().Info("Stopping Stream Manager Loop.")
+			logging.CLog().Info("Stopped Stream Manager Loop.")
 			return
 		case <-ticker.C:
 			// TODO: @robin cleanup connections.

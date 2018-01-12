@@ -80,7 +80,7 @@ func NewEventEmitter(size int) *EventEmitter {
 func (emitter *EventEmitter) Start() {
 	logging.CLog().WithFields(logrus.Fields{
 		"size": emitter.size,
-	}).Info("Start EventEmitter.")
+	}).Info("Starting EventEmitter...")
 
 	go emitter.loop()
 }
@@ -89,7 +89,7 @@ func (emitter *EventEmitter) Start() {
 func (emitter *EventEmitter) Stop() {
 	logging.CLog().WithFields(logrus.Fields{
 		"size": emitter.size,
-	}).Info("Stop EventEmitter.")
+	}).Info("Stopping EventEmitter...")
 
 	emitter.quitCh <- 1
 }
@@ -131,7 +131,7 @@ func (emitter *EventEmitter) Deregister(topic string, ch chan *Event) error {
 }
 
 func (emitter *EventEmitter) loop() {
-	logging.CLog().Info("Launched EventEmitter.")
+	logging.CLog().Info("Started EventEmitter.")
 
 	for {
 		select {

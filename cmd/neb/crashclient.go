@@ -114,5 +114,5 @@ func InitCrashReporter(conf *nebletpb.AppConfig) {
 		}).Error("Failed to init crash reporter.")
 	}
 
-	logging.CLog().Info("Initialed crash reporter.")
+	logging.CLog().Info("Started crash reporter.")
 }

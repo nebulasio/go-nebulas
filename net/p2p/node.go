@@ -92,6 +92,8 @@ func NewNode(config *Config) (*Node, error) {
 
 // Start host & route table discovery
 func (node *Node) Start() error {
+	logging.CLog().Info("Starting NetService Node...")
+
 	node.streamManager.Start()
 
 	if err := node.startHost(); err != nil {
@@ -103,12 +105,17 @@ func (node *Node) Start() error {
 	logging.CLog().WithFields(logrus.Fields{
 		"id":                node.ID(),
 		"listening address": node.host.Addrs(),
-	}).Info("Succeed to start node.")
+	}).Info("Started node.")
 
 	return nil
 }
 
 func (node *Node) Stop() {
+	logging.CLog().WithFields(logrus.Fields{
+		"id":                node.ID(),
+		"listening address": node.host.Addrs(),
+	}).Info("Stopping NetService Node...")
+
 	node.routeTable.Stop()
 	node.stopHost()
 	node.streamManager.Stop()

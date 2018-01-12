@@ -42,23 +42,26 @@ func NewAPIServer(neblet Neblet) *APIServer {
 
 // Start starts the rpc server and serves incoming requests.
 func (s *APIServer) Start() error {
-	logging.CLog().Info("Starting RPC Server")
-	if len(s.rpcConfig.RpcListen) > 0 {
+	logging.CLog().Info("Starting RPC Server...")
+
+	if len(s.rpcConfig.RpcListen) == 0 {
+		logging.CLog().WithFields(logrus.Fields{
+			"err": "empty rpc listen list",
+		}).Error("Failed to start RPC Server")
+		return errors.New("parse rpc-config rpc-listen occurs error")
+	}
+
+	go (func() {
 		for _, v := range s.rpcConfig.RpcListen {
 			err := s.start(v)
 			if err != nil {
 				logging.CLog().WithFields(logrus.Fields{
 					"err": err,
 				}).Error("Failed to start RPC Server")
-				return errors.New("parse rpc-config rpc-listen occurs error")
+				break
 			}
 		}
-	} else {
-		logging.CLog().WithFields(logrus.Fields{
-			"err": "empty rpc listen list",
-		}).Error("Failed to start RPC Server")
-		return errors.New("parse rpc-config rpc-listen occurs error")
-	}
+	})()
 
 	return nil
 }
@@ -71,11 +74,15 @@ func (s *APIServer) start(addr string) error {
 		}).Error("Failed to listen to RPC Server")
 		return err
 	}
-	logging.CLog().Info("Launched RPC server at: ", addr)
+
+	logging.CLog().WithFields(logrus.Fields{
+		"address": addr,
+	}).Info("Started RPC Server.")
+
 	if err := s.rpcServer.Serve(listener); err != nil {
 		logging.CLog().WithFields(logrus.Fields{
 			"err": err,
-		}).Error("Failed to serve RPC Server")
+		}).Error("Failed to serve RPC Server.")
 		return err
 	}
 	return nil
@@ -83,22 +90,31 @@ func (s *APIServer) start(addr string) error {
 
 // RunGateway run grpc mapping to http after apiserver have started.
 func (s *APIServer) RunGateway() error {
-	//todo make sure rpc server has run before gateway start.
 	//time.Sleep(3 * time.Second)
 	rpcListen := s.rpcConfig.RpcListen[0]
 	gatewayListen := s.rpcConfig.HttpListen
 	httpModule := s.rpcConfig.HttpModule
-	logging.CLog().Info("Starting api gateway server bind rpc-server: ", rpcListen, " to:", gatewayListen)
-	if err := Run(rpcListen, gatewayListen, httpModule); err != nil {
-		logging.CLog().Error("RPC server gateway failed to serve: ", err)
-		return err
-	}
+	logging.CLog().WithFields(logrus.Fields{
+		"rpc-server":  rpcListen,
+		"http-server": gatewayListen,
+	}).Info("Starting RPC Gateway Server...")
+
+	go (func() {
+		if err := Run(rpcListen, gatewayListen, httpModule); err != nil {
+			logging.CLog().WithFields(logrus.Fields{
+				"error": err,
+			}).Error("Failed to start RPC Gateway.")
+		}
+	})()
 	return nil
 }
 
 // Stop stops the rpc server and closes listener.
 func (s *APIServer) Stop() {
-	logging.CLog().Info("Stopping RPC server at: ", s.rpcConfig.RpcListen)
+	logging.CLog().WithFields(logrus.Fields{
+		"listen": s.rpcConfig.RpcListen,
+	}).Info("Stopping RPC Server and Gateway...")
+
 	s.rpcServer.Stop()
 }
 

@@ -35,7 +35,7 @@ var (
 var (
 	storageSchemeVersionKey = []byte("scheme")
 	storageSchemeVersionVal = []byte("0.5.0")
-	nebstartGauge           = m.GetOrRegisterGauge("neb.start", nil)
+	metricsNebstartGauge    = m.GetOrRegisterGauge("neb.start", nil)
 )
 
 // Neblet manages ldife cycle of blockchain services.
@@ -129,7 +129,7 @@ func (n *Neblet) Start() error {
 	n.lock.Lock()
 	defer n.lock.Unlock()
 
-	logging.VLog().Info("Starting neblet...")
+	logging.CLog().Info("Starting Neblet...")
 
 	if n.running {
 		return ErrNebletAlreadyRunning
@@ -137,16 +137,20 @@ func (n *Neblet) Start() error {
 	n.running = true
 
 	if n.config.Stats.EnableMetrics {
-		go metrics.Start(n)
+		metrics.Start(n)
 	}
 
-	// start.
 	if err := n.netService.Start(); err != nil {
 		return err
 	}
 
-	go n.apiServer.Start()
-	go n.apiServer.RunGateway()
+	if err := n.apiServer.Start(); err != nil {
+		return err
+	}
+
+	if err := n.apiServer.RunGateway(); err != nil {
+		return err
+	}
 
 	n.blockChain.BlockPool().Start()
 	n.blockChain.TransactionPool().Start()
@@ -171,7 +175,7 @@ func (n *Neblet) Start() error {
 		}
 	}
 
-	nebstartGauge.Update(1)
+	metricsNebstartGauge.Update(1)
 	return nil
 }
 
@@ -180,7 +184,7 @@ func (n *Neblet) Stop() error {
 	n.lock.Lock()
 	defer n.lock.Unlock()
 
-	logging.VLog().Info("Stopping neblet...")
+	logging.CLog().Info("Stopping neblet...")
 
 	if n.consensus != nil {
 		n.consensus.Stop()

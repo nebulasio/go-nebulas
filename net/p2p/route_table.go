@@ -79,10 +79,14 @@ func NewRouteTable(config *Config, node *Node) *RouteTable {
 }
 
 func (table *RouteTable) Start() {
+	logging.CLog().Info("Starting NetService RouteTable Sync...")
+
 	go table.syncLoop()
 }
 
 func (table *RouteTable) Stop() {
+	logging.CLog().Info("Stopping NetService RouteTable Sync...")
+
 	table.quitCh <- true
 }
 
@@ -109,7 +113,7 @@ func (table *RouteTable) syncLoop() {
 	for {
 		select {
 		case <-table.quitCh:
-			logging.CLog().Info("Stopping Route Table Sync Loop.")
+			logging.CLog().Info("Stopped RouteTable Sync.")
 			return
 		case <-syncLoopTicker.C:
 			table.SyncRouteTable()

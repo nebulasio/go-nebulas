@@ -105,7 +105,7 @@ func (pool *TransactionPool) setBlockChain(bc *BlockChain) {
 func (pool *TransactionPool) Start() {
 	logging.CLog().WithFields(logrus.Fields{
 		"size": pool.size,
-	}).Info("Start TransactionPool.")
+	}).Info("Starting TransactionPool...")
 
 	go pool.loop()
 }
@@ -122,7 +122,7 @@ func (pool *TransactionPool) Stop() {
 func (pool *TransactionPool) loop() {
 	logging.CLog().WithFields(logrus.Fields{
 		"size": pool.size,
-	}).Info("Launched TransactionPool.")
+	}).Info("Started TransactionPool.")
 
 	for {
 		select {

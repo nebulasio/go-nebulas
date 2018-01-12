@@ -112,13 +112,13 @@ func NewDpos(neblet Neblet) (*Dpos, error) {
 
 // Start start pow service.
 func (p *Dpos) Start() {
-	logging.CLog().Info("Start dpos consensus.")
+	logging.CLog().Info("Starting dpos consensus...")
 	go p.blockLoop()
 }
 
 // Stop stop pow service.
 func (p *Dpos) Stop() {
-	logging.CLog().Info("Stop dpos consensus.")
+	logging.CLog().Info("Stopping dpos consensus...")
 	p.DisableMining()
 	p.quitCh <- true
 }
@@ -129,13 +129,13 @@ func (p *Dpos) EnableMining(passphrase string) error {
 		return err
 	}
 	p.enable = true
-	logging.CLog().Info("Enable Dpos Mining.")
+	logging.CLog().Info("Enable Dpos Mining...")
 	return nil
 }
 
 // DisableMining stop the consensus
 func (p *Dpos) DisableMining() error {
-	logging.CLog().Info("Disable Dpos Mining.")
+	logging.CLog().Info("Disable Dpos Mining...")
 	p.enable = false
 	return p.am.Lock(p.miner)
 }

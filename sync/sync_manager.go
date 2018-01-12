@@ -103,6 +103,9 @@ func (m *Manager) Start() {
 	if m.ns.Node().IsSynchronizing() {
 		return
 	}
+
+	logging.CLog().Info("Starting Sync...")
+
 	m.startMsgHandle()
 	if len(m.ns.Node().Config().BootNodes) > 0 {
 		m.ns.Node().SetSynchronizing(true)

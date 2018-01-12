@@ -70,11 +70,13 @@ func (dp *Dispatcher) Deregister(subscribers ...*Subscriber) {
 
 // Start start message dispatch goroutine.
 func (dp *Dispatcher) Start() {
+	logging.CLog().Info("Starting NetService Dispatcher...")
+
 	go (func() {
 		for {
 			select {
 			case <-dp.quitCh:
-				logging.CLog().Info("Shutdowned Dispatcher.")
+				logging.CLog().Info("Stoping NetService Dispatcher...")
 				return
 
 			case msg := <-dp.receivedMessageCh:
@@ -96,12 +98,12 @@ func (dp *Dispatcher) Start() {
 			}
 		}
 	})()
-
-	logging.CLog().Info("Launched Dispatcher.")
 }
 
 // Stop stop goroutine.
 func (dp *Dispatcher) Stop() {
+	logging.CLog().Info("Stopping NetService Dispatcher...")
+
 	dp.quitCh <- true
 }
 
