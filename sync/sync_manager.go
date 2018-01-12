@@ -22,12 +22,17 @@ import (
 	"math"
 	"time"
 
+	"github.com/nebulasio/go-nebulas/util/byteutils"
+
 	"github.com/gogo/protobuf/proto"
+	"github.com/nebulasio/go-nebulas/common/trie"
 	"github.com/nebulasio/go-nebulas/consensus"
 	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/core/pb"
 	"github.com/nebulasio/go-nebulas/net"
 	"github.com/nebulasio/go-nebulas/net/p2p"
+	"github.com/nebulasio/go-nebulas/storage"
+	"github.com/nebulasio/go-nebulas/sync/pb"
 	"github.com/nebulasio/go-nebulas/util/logging"
 	"github.com/sirupsen/logrus"
 )
@@ -447,4 +452,113 @@ func (m *Manager) findBlocksWithCommonAncestor() []string {
 		}
 	}
 	return addrsArray
+}
+
+func (m *Manager) generateChunkMeta(syncpoint *core.Block) (*syncpb.ChunksMeta, error) {
+	if err := m.blockChain.CheckBlockOnCanonicalChain(syncpoint); err != nil {
+		return nil, err
+	}
+	tail := m.blockChain.TailBlock()
+	if tail.Timestamp()-syncpoint.Timestamp() < core.DynastyInterval {
+		logging.VLog().WithFields(logrus.Fields{
+			"err": ErrTooSmallGapToSync,
+		}).Warn("Failed to generate sync blocks meta info")
+		return nil, ErrTooSmallGapToSync
+	}
+
+	chunks := [][]byte{}
+	stor, err := storage.NewMemoryStorage()
+	if err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"err": err,
+		}).Error("Failed to create memory storage")
+		return nil, err
+	}
+	chunksTrie, err := trie.NewBatchTrie(nil, stor)
+	if err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"err": err,
+		}).Error("Failed to create merkle tree")
+		return nil, err
+	}
+
+	curBlock := syncpoint
+	target := int64(tail.Timestamp()/core.DynastyInterval) * core.DynastyInterval
+	for curBlock.Timestamp() < target {
+		hash := curBlock.Hash()
+		height := curBlock.Height() + 1
+		chunks = append(chunks, hash)
+		chunksTrie.Put(hash, hash)
+		curBlock = m.blockChain.GetBlockByHeight(height)
+		if curBlock == nil {
+			logging.VLog().WithFields(logrus.Fields{
+				"err":    err,
+				"height": height,
+			}).Error("Failed to find the block on canonical chain.")
+			return nil, ErrCannotFindBlockByHeight
+		}
+	}
+
+	logging.VLog().WithFields(logrus.Fields{
+		"syncpoint": syncpoint,
+		"root":      chunksTrie.RootHash(),
+		"chunks":    chunks,
+	}).Debug("Succeed to generate chunks meta info.")
+	return &syncpb.ChunksMeta{ChunksRoot: chunks, Root: chunksTrie.RootHash()}, nil
+}
+
+func (m *Manager) generateChunk(chunkRoot [][]byte) (*syncpb.Chunk, error) {
+	blocks := []*corepb.Block{}
+	for k, v := range chunkRoot {
+		block := m.blockChain.GetBlock(v)
+		if block == nil {
+			logging.VLog().WithFields(logrus.Fields{
+				"index": k,
+				"hash":  byteutils.Hex(v),
+				"err":   ErrCannotFindBlockByHash,
+			}).Error("Failed to find the block on canonical chain.")
+			return nil, ErrCannotFindBlockByHash
+		}
+		pbBlock, err := block.ToProto()
+		if err != nil {
+			logging.VLog().WithFields(logrus.Fields{
+				"block": block,
+				"err":   err,
+			}).Error("Failed to serialize block.")
+			return nil, err
+		}
+		blocks = append(blocks, pbBlock.(*corepb.Block))
+	}
+
+	logging.VLog().WithFields(logrus.Fields{
+		"chunk": blocks,
+	}).Debug("Succeed to generate chunk.")
+	return &syncpb.Chunk{Blocks: blocks}, nil
+}
+
+func (m *Manager) processChunk(chunk *syncpb.Chunk) error {
+	for k, v := range chunk.Blocks {
+		block := new(core.Block)
+		if err := block.FromProto(v); err != nil {
+			logging.VLog().WithFields(logrus.Fields{
+				"index": k,
+				"hash":  v.Header.Hash,
+				"err":   err,
+			}).Error("Failed to recover a block from proto data.")
+			return err
+		}
+		if err := m.blockChain.BlockPool().Push(block); err != nil {
+			logging.VLog().WithFields(logrus.Fields{
+				"index": k,
+				"hash":  v.Header.Hash,
+				"err":   err,
+			}).Error("Failed to recover a block from proto data.")
+			return err
+		}
+	}
+
+	logging.VLog().WithFields(logrus.Fields{
+		"chunk": chunk,
+	}).Debug("Succeed to process chunk.")
+	return nil
 }

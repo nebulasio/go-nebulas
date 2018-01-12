@@ -1,0 +1,16 @@
+
+
+syntax = "proto3";
+
+import "github.com/nebulasio/go-nebulas/core/pb/block.proto";
+
+package syncpb;
+
+message ChunksMeta {
+    repeated bytes chunks_root = 1;
+    bytes root = 2;
+}
+
+message Chunk {
+    repeated corepb.Block blocks = 1;
+}
