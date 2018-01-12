@@ -429,12 +429,13 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 		}
 		// do sync if there are so many empty slots.
 		if lb.block.Timestamp()-bc.TailBlock().Timestamp() > DynastyInterval {
+			bc.ConsensusHandler().PendMining()
 			bc.Neb().StartSync()
 			logging.CLog().WithFields(logrus.Fields{
 				"tail":    bc.tailBlock,
 				"offline": strconv.Itoa(int(lb.block.Timestamp()-bc.TailBlock().Timestamp())) + "s",
 				"limit":   strconv.Itoa(int(DynastyInterval)) + "s",
-			}).Warn("Offline too long, restart sync from others.")
+			}).Warn("Offline too long, pend mining and restart sync from others.")
 			return ErrInvalidBlockCannotFindParentInLocalAndTrySync
 		}
 		if err := pool.download(sender, lb.block); err != nil {

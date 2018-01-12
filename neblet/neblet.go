@@ -2,12 +2,12 @@ package neblet
 
 import (
 	"errors"
+	"fmt"
 	"sync"
 
-	"fmt"
+	"github.com/nebulasio/go-nebulas/cmd/console"
 
 	"github.com/nebulasio/go-nebulas/account"
-	"github.com/nebulasio/go-nebulas/cmd/console"
 	"github.com/nebulasio/go-nebulas/consensus"
 	"github.com/nebulasio/go-nebulas/consensus/dpos"
 	"github.com/nebulasio/go-nebulas/core"
@@ -82,19 +82,22 @@ func New(config nebletpb.Config) (*Neblet, error) {
 // Setup setup neblet
 func (n *Neblet) Setup() error {
 	var err error
-	//var err error
-	n.netService, err = p2p.NewNetService(n)
-	if err != nil {
-		return err
-	}
+	// storage
 	n.storage, err = storage.NewDiskStorage(n.config.Chain.Datadir)
-	// storage, err := storage.NewMemoryStorage()
 	if err != nil {
 		return err
 	}
 	if err = n.checkSchemeVersion(n.storage); err != nil {
 		return err
 	}
+
+	// net
+	n.netService, err = p2p.NewNetService(n)
+	if err != nil {
+		return err
+	}
+
+	// core
 	n.eventEmitter = core.NewEventEmitter(1024)
 	n.blockChain, err = core.NewBlockChain(n)
 	if err != nil {
@@ -103,19 +106,20 @@ func (n *Neblet) Setup() error {
 	gasPrice := util.NewUint128FromString(n.config.Chain.GasPrice)
 	gasLimit := util.NewUint128FromString(n.config.Chain.GasLimit)
 	n.blockChain.TransactionPool().SetGasConfig(gasPrice, gasLimit)
-
 	n.blockChain.BlockPool().RegisterInNetwork(n.netService)
 	n.blockChain.TransactionPool().RegisterInNetwork(n.netService)
 
+	// consensus
 	n.consensus, err = dpos.NewDpos(n)
 	if err != nil {
 		return err
 	}
 	n.blockChain.SetConsensusHandler(n.consensus)
 
-	// start sync service
+	// sync
 	n.syncManager = nsync.NewManager(n.blockChain, n.consensus, n.netService)
 
+	// api
 	n.apiServer = rpc.NewAPIServer(n)
 	return nil
 }
@@ -150,28 +154,24 @@ func (n *Neblet) Start() error {
 	n.syncManager.Start()
 
 	// start consensus
+	chainConf := n.config.Chain
 	n.consensus.Start()
-	if n.config.Chain.StartMine {
-		// prompt for passphrase of miner
+	if chainConf.StartMine {
 		passphrase := n.config.Chain.Passphrase
 		if len(passphrase) == 0 {
-
 			fmt.Println("***********************************************")
 			fmt.Println("miner address:" + n.config.Chain.Miner)
-
 			prompt := console.Stdin
 			passphrase, _ = prompt.PromptPassphrase("Enter the miner's passphrase:")
 			fmt.Println("***********************************************")
 		}
-
-		err := n.consensus.StartMining([]byte(passphrase))
+		err := n.consensus.EnableMining(chainConf.Passphrase)
 		if err != nil {
 			return err
 		}
 	}
 
 	nebstartGauge.Update(1)
-	// TODO: error handling
 	return nil
 }
 

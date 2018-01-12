@@ -67,8 +67,8 @@ type Dpos struct {
 	dynastyInterval int64
 	txsPerBlock     int
 
-	mining    bool
-	canMining bool
+	enable  bool
+	pending bool
 }
 
 // NewDpos create Dpos instance.
@@ -84,8 +84,8 @@ func NewDpos(neblet Neblet) (*Dpos, error) {
 		dynastyInterval: core.DynastyInterval,
 		txsPerBlock:     2000,
 
-		mining:    false,
-		canMining: false,
+		enable:  false,
+		pending: true,
 	}
 
 	config := neblet.Config().Chain
@@ -119,30 +119,30 @@ func (p *Dpos) Start() {
 // Stop stop pow service.
 func (p *Dpos) Stop() {
 	logging.CLog().Info("Stop dpos consensus.")
-	p.StopMining()
+	p.DisableMining()
 	p.quitCh <- true
 }
 
-// StartMining start the consensus
-func (p *Dpos) StartMining(passphrase []byte) error {
-	if err := p.am.Unlock(p.miner, passphrase, keystore.YearUnlockDuration); err != nil {
+// EnableMining start the consensus
+func (p *Dpos) EnableMining(passphrase string) error {
+	if err := p.am.Unlock(p.miner, []byte(passphrase), keystore.YearUnlockDuration); err != nil {
 		return err
 	}
-	p.mining = true
-	logging.CLog().Info("Start Dpos Mining.")
+	p.enable = true
+	logging.CLog().Info("Enable Dpos Mining.")
 	return nil
 }
 
-// StopMining stop the consensus
-func (p *Dpos) StopMining() {
-	logging.CLog().Info("Stop Dpos Mining.")
-	p.mining = false
-	p.am.Lock(p.miner)
+// DisableMining stop the consensus
+func (p *Dpos) DisableMining() error {
+	logging.CLog().Info("Disable Dpos Mining.")
+	p.enable = false
+	return p.am.Lock(p.miner)
 }
 
-// Mining returns is mining
-func (p *Dpos) Mining() bool {
-	return p.mining
+// Enable returns is mining
+func (p *Dpos) Enable() bool {
+	return p.enable
 }
 
 func less(a *core.Block, b *core.Block) bool {
@@ -189,19 +189,21 @@ func (p *Dpos) forkChoice() {
 	}
 }
 
-// CanMining return if consensus can do mining now
-func (p *Dpos) CanMining() bool {
-	return p.canMining
+// Pending return if consensus can do mining now
+func (p *Dpos) Pending() bool {
+	return p.pending
 }
 
-// SetCanMining set if consensus can do mining now
-func (p *Dpos) SetCanMining(canMining bool) {
-	if canMining {
-		logging.CLog().Info("Can Dpos Mining.")
-	} else {
-		logging.CLog().Info("Can not Dpos Mining.")
-	}
-	p.canMining = canMining
+// PendMining pend dpos mining
+func (p *Dpos) PendMining() {
+	logging.CLog().Info("Pend Dpos Mining.")
+	p.pending = true
+}
+
+// ContinueMining continue dpos mining
+func (p *Dpos) ContinueMining() {
+	logging.CLog().Info("Continue Dpos Mining.")
+	p.pending = false
 }
 
 func verifyBlockSign(miner *core.Address, block *core.Block) error {
@@ -279,13 +281,13 @@ func (p *Dpos) VerifyBlock(block *core.Block, parent *core.Block) error {
 }
 
 func (p *Dpos) mintBlock(now int64) error {
-	// check can do mining
-	if !p.mining || !p.canMining {
-		if !p.canMining {
-			logging.VLog().WithFields(logrus.Fields{
-				"now": now,
-			}).Warn("Mining is disabled.")
-		}
+	// check mining enable
+	if !p.enable {
+		return nil
+	}
+
+	// check mining pending
+	if p.pending {
 		return ErrCannotMintBlockNow
 	}
 
@@ -294,11 +296,13 @@ func (p *Dpos) mintBlock(now int64) error {
 	elapsedSecond := now - tail.Timestamp()
 	context, err := tail.NextDynastyContext(elapsedSecond)
 	if err != nil {
-		logging.VLog().WithFields(logrus.Fields{
-			"tail":    tail,
-			"elapsed": elapsedSecond,
-			"err":     err,
-		}).Warn("Failed to generate next dynasty context.")
+		if err != core.ErrNotBlockForgTime {
+			logging.VLog().WithFields(logrus.Fields{
+				"tail":    tail,
+				"elapsed": elapsedSecond,
+				"err":     err,
+			}).Error("Failed to generate next dynasty context.")
+		}
 		return core.ErrGenerateNextDynastyContext
 	}
 	if context.Proposer == nil || !context.Proposer.Equals(p.miner.Bytes()) {
