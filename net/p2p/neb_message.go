@@ -72,7 +72,8 @@ const (
 	NebMessageHeaderCheckSumEndIdx = 36
 	NebMessageHeaderLength         = 36
 
-	MaxNebMessageDataLength = 32 * 1024 * 1024 //32m.
+	MaxNebMessageDataLength = 32 * 1024 * 1024 // 32m.
+	MaxNebMessageNameLength = 24 - 12          // 12.
 )
 
 var (
@@ -84,7 +85,8 @@ var (
 	ErrInvalidMagicNumber              = errors.New("invalid magic number")
 	ErrInvalidHeaderCheckSum           = errors.New("invalid header checksum")
 	ErrInvalidDataCheckSum             = errors.New("invalid data checksum")
-	ErrExceededMaxDataLength           = errors.New("exceeded max data length")
+	ErrExceedMaxDataLength             = errors.New("exceed max data length")
+	ErrExceedMaxMessageNameLength      = errors.New("exceed max message name length")
 )
 
 type NebMessage struct {
@@ -158,8 +160,19 @@ func NewNebMessage(chainID uint32, reserved []byte, version byte, messageName st
 		logging.VLog().WithFields(logrus.Fields{
 			"messageName": messageName,
 			"dataLength":  len(data),
+			"limits":      MaxNebMessageDataLength,
 		}).Warn("Exceeded max data length.")
-		return nil, ErrExceededMaxDataLength
+		return nil, ErrExceedMaxDataLength
+	}
+
+	if len(messageName) > MaxNebMessageNameLength {
+		logging.VLog().WithFields(logrus.Fields{
+			"messageName":      messageName,
+			"len(messageName)": len(messageName),
+			"limits":           MaxNebMessageNameLength,
+		}).Warn("Exceeded max message name length.")
+		return nil, ErrExceedMaxMessageNameLength
+
 	}
 
 	dataCheckSum := crc32.ChecksumIEEE(data)
@@ -236,7 +249,7 @@ func (message *NebMessage) VerifyHeader() error {
 			"messageName": message.MessageName(),
 			"dataLength":  message.DataLength(),
 		}).Warn("Exceeded max data length.")
-		return ErrExceededMaxDataLength
+		return ErrExceedMaxDataLength
 	}
 
 	return nil

@@ -267,11 +267,11 @@ func (node *Node) onStreamConnected(s libnet.Stream) {
 	node.streamManager.Add(s, node)
 }
 
-func (node *Node) SendMessageToPeer(prettyID, messageName string, data []byte, priority int) error {
-	stream := node.streamManager.FindByPrettyID(prettyID)
+func (node *Node) SendMessageToPeer(messageName string, data []byte, priority int, peerID string) error {
+	stream := node.streamManager.FindByPeerID(peerID)
 	if stream == nil {
 		logging.VLog().WithFields(logrus.Fields{
-			"pid": prettyID,
+			"pid": peerID,
 			"err": ErrPeerIsNotConnected,
 		}).Debug("Failed to send msg")
 		return ErrPeerIsNotConnected
@@ -296,9 +296,4 @@ func (node *Node) RelayMessage(messageName string, data nebnet.Serializable, pri
 	}
 
 	node.streamManager.RelayMessage(messageName, data, priority)
-}
-
-func (node *Node) Sync(tail nebnet.Serializable) error {
-	node.streamManager.SendSyncMessageToPeers(tail)
-	return nil
 }

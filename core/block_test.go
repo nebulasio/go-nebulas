@@ -57,7 +57,7 @@ func (n *mockNeb) EventEmitter() *EventEmitter {
 	return n.emitter
 }
 
-func (n *mockNeb) StartSync() {}
+func (n *mockNeb) StartActiveSync() {}
 
 func testNeb() *mockNeb {
 	storage, _ := storage.NewMemoryStorage()

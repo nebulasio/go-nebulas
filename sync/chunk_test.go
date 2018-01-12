@@ -84,7 +84,7 @@ func (n *mockNeb) EventEmitter() *core.EventEmitter {
 	return n.emitter
 }
 
-func (n *mockNeb) StartSync() {}
+func (n *mockNeb) StartActiveSync() {}
 
 func testNeb() *mockNeb {
 	storage, _ := storage.NewMemoryStorage()
@@ -146,24 +146,33 @@ func MockGenesisConf() *corepb.Genesis {
 	}
 }
 
-type MockP2pManager struct {
+type MockNetManager struct {
 }
 
-func (pm MockP2pManager) Start() error { return nil }
-func (pm MockP2pManager) Stop()        {}
+func (n MockNetManager) Start() error { return nil }
+func (n MockNetManager) Stop()        {}
 
-func (pm MockP2pManager) Node() *p2p.Node { return nil }
+func (n MockNetManager) Node() *p2p.Node { return nil }
 
-func (pm MockP2pManager) Register(...*net.Subscriber)   {}
-func (pm MockP2pManager) Deregister(...*net.Subscriber) {}
+func (n MockNetManager) Register(...*net.Subscriber)   {}
+func (n MockNetManager) Deregister(...*net.Subscriber) {}
 
-func (pm MockP2pManager) Broadcast(string, net.Serializable, int)   {}
-func (pm MockP2pManager) Relay(string, net.Serializable, int)       {}
-func (pm MockP2pManager) SendMsg(string, []byte, string, int) error { return nil }
+func (n MockNetManager) Broadcast(string, net.Serializable, int)   {}
+func (n MockNetManager) Relay(string, net.Serializable, int)       {}
+func (n MockNetManager) SendMsg(string, []byte, string, int) error { return nil }
 
-func (pm MockP2pManager) BroadcastNetworkID([]byte) {}
+func (n MockNetManager) SendMessageToPeers(messageName string, data []byte, priority int, filter net.PeerFilterAlgorithm) int {
+	return 0
+}
+func (n MockNetManager) SendMessageToPeer(messageName string, data []byte, priority int, peerID string) error {
+	return nil
+}
 
-func (pm MockP2pManager) BuildRawMessageData([]byte, string) []byte { return nil }
+func (n MockNetManager) ClosePeer(peerID string, reason error) {}
+
+func (n MockNetManager) BroadcastNetworkID([]byte) {}
+
+func (n MockNetManager) BuildRawMessageData([]byte, string) []byte { return nil }
 
 func BlockFromNetwork(block *core.Block) *core.Block {
 	pb, _ := block.ToProto()
@@ -174,14 +183,14 @@ func BlockFromNetwork(block *core.Block) *core.Block {
 	return b
 }
 
-func TestManager_generateChunkMeta(t *testing.T) {
+func TestChunk_generateChunkMeta(t *testing.T) {
 	var cons MockConsensus
-	var pm MockP2pManager
+	var n MockNetManager
 	chain, err := core.NewBlockChain(testNeb())
 	chain.SetConsensusHandler(cons)
-	chain.BlockPool().RegisterInNetwork(pm)
+	chain.BlockPool().RegisterInNetwork(n)
 	assert.Nil(t, err)
-	sm := NewManager(chain, cons, pm)
+	ck := NewChunk(chain)
 
 	ks := keystore.DefaultKS
 	priv := secp256k1.GeneratePrivateKey()
@@ -209,10 +218,10 @@ func TestManager_generateChunkMeta(t *testing.T) {
 		blocks = append(blocks, block)
 	}
 
-	meta, err := sm.generateChunkHeaders(blocks[1])
+	meta, err := ck.generateChunkHeaders(blocks[1])
 	assert.Nil(t, err)
 	assert.Equal(t, len(meta.ChunkHeaders), 3)
-	chunks, err := sm.generateChunkData(meta.ChunkHeaders[1])
+	chunks, err := ck.generateChunkData(meta.ChunkHeaders[1])
 	assert.Nil(t, err)
 	assert.Equal(t, len(chunks.Blocks), core.ChunkSize)
 	for i := 0; i < core.ChunkSize; i++ {
@@ -220,28 +229,28 @@ func TestManager_generateChunkMeta(t *testing.T) {
 		assert.Equal(t, int(chunks.Blocks[i].Height), index)
 	}
 
-	meta, err = sm.generateChunkHeaders(blocks[0])
+	meta, err = ck.generateChunkHeaders(blocks[0])
 	assert.Nil(t, err)
 	assert.Equal(t, len(meta.ChunkHeaders), 3)
 
-	meta, err = sm.generateChunkHeaders(blocks[31])
+	meta, err = ck.generateChunkHeaders(blocks[31])
 	assert.Nil(t, err)
 	assert.Equal(t, int(blocks[31].Height()), 33)
 	assert.Equal(t, len(meta.ChunkHeaders), 2)
 
-	meta, err = sm.generateChunkHeaders(blocks[62])
+	meta, err = ck.generateChunkHeaders(blocks[62])
 	assert.Nil(t, err)
 	assert.Equal(t, int(blocks[62].Height()), 64)
 	assert.Equal(t, len(meta.ChunkHeaders), 2)
 
 	chain2, err := core.NewBlockChain(testNeb())
 	chain2.SetConsensusHandler(cons)
-	chain2.BlockPool().RegisterInNetwork(pm)
+	chain2.BlockPool().RegisterInNetwork(n)
 	assert.Nil(t, err)
-	meta, err = sm.generateChunkHeaders(blocks[0])
+	meta, err = ck.generateChunkHeaders(blocks[0])
 	assert.Nil(t, err)
 	for _, header := range meta.ChunkHeaders {
-		chunk, err := sm.generateChunkData(header)
+		chunk, err := ck.generateChunkData(header)
 		assert.Nil(t, err)
 		for _, v := range chunk.Blocks {
 			block := new(core.Block)

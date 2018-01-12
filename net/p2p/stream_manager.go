@@ -47,6 +47,10 @@ func NewStreamManager() *StreamManager {
 	}
 }
 
+func (sm *StreamManager) Count() int32 {
+	return sm.activePeersCount
+}
+
 func (sm *StreamManager) Start() {
 	logging.CLog().Info("Starting NetService StreamManager...")
 
@@ -87,8 +91,8 @@ func (sm *StreamManager) RemoveStream(s *Stream) {
 	sm.Remove(s.pid)
 }
 
-func (sm *StreamManager) FindByPrettyID(prettyID string) *Stream {
-	v, _ := sm.allStreams.Load(prettyID)
+func (sm *StreamManager) FindByPeerID(peerID string) *Stream {
+	v, _ := sm.allStreams.Load(peerID)
 	if v == nil {
 		return nil
 	}
@@ -96,7 +100,7 @@ func (sm *StreamManager) FindByPrettyID(prettyID string) *Stream {
 }
 
 func (sm *StreamManager) Find(pid peer.ID) *Stream {
-	return sm.FindByPrettyID(pid.Pretty())
+	return sm.FindByPeerID(pid.Pretty())
 }
 
 func (sm *StreamManager) loop() {
@@ -150,21 +154,26 @@ func (sm *StreamManager) RelayMessage(messageName string, messageContent net.Ser
 	})
 }
 
-func (sm *StreamManager) SendSyncMessageToPeers(messageContent net.Serializable) {
-	pb, _ := messageContent.ToProto()
-	data, err := proto.Marshal(pb)
-	if err != nil {
-		return
-	}
+func (sm *StreamManager) SendMessageToPeers(messageName string, data []byte, priority int, filter net.PeerFilterAlgorithm) int {
+	allPeers := make(net.PeersSlice, 0)
 
-	// TODO: random select net.PeersSyncCount
 	sm.allStreams.Range(func(key, value interface{}) bool {
-		stream := value.(*Stream)
-		stream.SendMessage(net.SyncBlock, data, net.MessagePriorityHigh)
+		allPeers = append(allPeers, value)
 		return true
 	})
+
+	selectedPeers := filter.Filter(allPeers)
+	for _, v := range selectedPeers {
+		stream := v.(*Stream)
+		stream.SendMessage(messageName, data, priority)
+	}
+
+	return len(selectedPeers)
 }
 
-func (sm *StreamManager) Count() int32 {
-	return sm.activePeersCount
+func (sm *StreamManager) CloseStream(peerID string, reason error) {
+	stream := sm.FindByPeerID(peerID)
+	if stream != nil {
+		stream.Close(reason)
+	}
 }

@@ -117,5 +117,17 @@ func (ns *NetService) BuildRawMessageData(data []byte, msgName string) []byte {
 
 // SendMsg send message to a peer.
 func (ns *NetService) SendMsg(msgName string, msg []byte, target string, priority int) error {
-	return ns.node.SendMessageToPeer(target, msgName, msg, priority)
+	return ns.node.SendMessageToPeer(msgName, msg, priority, target)
+}
+
+func (ns *NetService) SendMessageToPeers(messageName string, data []byte, priority int, filter net.PeerFilterAlgorithm) int {
+	return ns.node.streamManager.SendMessageToPeers(messageName, data, priority, filter)
+}
+
+func (ns *NetService) SendMessageToPeer(messageName string, data []byte, priority int, peerID string) error {
+	return ns.node.SendMessageToPeer(messageName, data, priority, peerID)
+}
+
+func (ns *NetService) ClosePeer(peerID string, reason error) {
+	ns.node.streamManager.CloseStream(peerID, reason)
 }

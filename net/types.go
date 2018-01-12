@@ -31,8 +31,11 @@ const (
 	MessagePriorityLow
 
 	// Message.
-	SyncBlock      = "syncblock"
-	SyncReply      = "syncreply"
+	ChainSync      = "sync"
+	ChainChunks    = "chunks"
+	ChainGetChunk  = "getchunk"
+	ChainChunkData = "chunkdata"
+
 	PeersSyncCount = 16
 )
 
@@ -54,6 +57,12 @@ type Message interface {
 type Serializable interface {
 	ToProto() (proto.Message, error)
 	FromProto(proto.Message) error
+}
+
+type PeersSlice []interface{}
+
+type PeerFilterAlgorithm interface {
+	Filter(PeersSlice) PeersSlice
 }
 
 // Subscriber subscriber.

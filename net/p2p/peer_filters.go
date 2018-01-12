@@ -1,4 +1,4 @@
-// Copyright (C) 2017 go-nebulas authors
+// Copyright (C) 2018 go-nebulas authors
 //
 // This file is part of the go-nebulas library.
 //
@@ -16,13 +16,26 @@
 // along with the go-nebulas library.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-package sync
+package p2p
 
-// Error Types
-var ()
+import (
+	"math/rand"
 
-// Contants
-const (
-	MaxChunkPerSyncRequest       = 10
-	ConcurrentSyncChunkDataCount = 8
+	"github.com/nebulasio/go-nebulas/net"
 )
+
+type ChainSyncPeersFilter struct {
+}
+
+func (filter *ChainSyncPeersFilter) Filter(peers net.PeersSlice) net.PeersSlice {
+	// send to all peers.
+	return peers
+}
+
+type RandomPeerFilter struct {
+}
+
+func (filter *RandomPeerFilter) Filter(peers net.PeersSlice) net.PeersSlice {
+	selection := rand.Intn(len(peers))
+	return peers[selection : selection+1]
+}

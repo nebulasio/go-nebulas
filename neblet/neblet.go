@@ -3,7 +3,9 @@ package neblet
 import (
 	"errors"
 	"fmt"
+	"math/rand"
 	"sync"
+	"time"
 
 	"github.com/nebulasio/go-nebulas/cmd/console"
 
@@ -54,7 +56,7 @@ type Neblet struct {
 
 	blockChain *core.BlockChain
 
-	syncManager *nsync.Manager
+	syncService *nsync.SyncService
 
 	apiServer rpc.Server
 
@@ -82,6 +84,10 @@ func New(config nebletpb.Config) (*Neblet, error) {
 // Setup setup neblet
 func (n *Neblet) Setup() error {
 	var err error
+
+	// init random seed.
+	rand.Seed(time.Now().UTC().UnixNano())
+
 	// storage
 	n.storage, err = storage.NewDiskStorage(n.config.Chain.Datadir)
 	if err != nil {
@@ -117,7 +123,7 @@ func (n *Neblet) Setup() error {
 	n.blockChain.SetConsensusHandler(n.consensus)
 
 	// sync
-	n.syncManager = nsync.NewManager(n.blockChain, n.consensus, n.netService)
+	n.syncService = nsync.NewSyncService(n.blockChain, n.netService)
 
 	// api
 	n.apiServer = rpc.NewAPIServer(n)
@@ -155,7 +161,7 @@ func (n *Neblet) Start() error {
 	n.blockChain.BlockPool().Start()
 	n.blockChain.TransactionPool().Start()
 	n.eventEmitter.Start()
-	n.syncManager.Start()
+	n.syncService.Start()
 
 	// start consensus
 	chainConf := n.config.Chain
@@ -247,11 +253,6 @@ func (n *Neblet) Storage() storage.Storage {
 	return n.storage
 }
 
-// StartSync starts sync
-func (n *Neblet) StartSync() {
-	n.syncManager.Start()
-}
-
 // BlockChain returns block chain reference.
 func (n *Neblet) BlockChain() *core.BlockChain {
 	return n.blockChain
@@ -275,6 +276,11 @@ func (n *Neblet) NetManager() p2p.Manager {
 // Consensus returns consensus reference.
 func (n *Neblet) Consensus() consensus.Consensus {
 	return n.consensus
+}
+
+// StartActiveSync start active sync from peers.
+func (n *Neblet) StartActiveSync() {
+	n.syncService.StartActiveSync()
 }
 
 // checks if the storage scheme version is compatiable

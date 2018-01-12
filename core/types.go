@@ -127,5 +127,5 @@ type Neblet interface {
 	Config() nebletpb.Config
 	Storage() storage.Storage
 	EventEmitter() *EventEmitter
-	StartSync()
+	StartActiveSync()
 }

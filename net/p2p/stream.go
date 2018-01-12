@@ -178,7 +178,7 @@ func (s *Stream) SendMessage(messageName string, data []byte, priority int) erro
 
 func (s *Stream) Write(data []byte) error {
 	if s.stream == nil {
-		s.Close()
+		s.Close(ErrStreamIsNotConnected)
 		return ErrStreamIsNotConnected
 	}
 
@@ -188,7 +188,7 @@ func (s *Stream) Write(data []byte) error {
 			"err":    err,
 			"stream": s.String(),
 		}).Warn("Failed to send message to peer.")
-		s.Close()
+		s.Close(err)
 		return err
 	}
 	s.latestWriteAt = time.Now().Unix()
@@ -256,11 +256,11 @@ func (s *Stream) readLoop() {
 	// send Hello to host if stream is not connected.
 	if !s.IsConnected() {
 		if err := s.Connect(); err != nil {
-			s.Close()
+			s.Close(err)
 			return
 		}
 		if err := s.Hello(); err != nil {
-			s.Close()
+			s.Close(err)
 			return
 		}
 	}
@@ -275,7 +275,7 @@ func (s *Stream) readLoop() {
 					"err":    err,
 					"stream": s.String(),
 				}).Error("Error occurred when reading data from network connection.")
-				s.Close()
+				s.Close(err)
 				return
 			}
 			messageBuffer = append(messageBuffer, buf[:n]...)
@@ -356,7 +356,7 @@ func (s *Stream) writeLoop() {
 		logging.VLog().WithFields(logrus.Fields{
 			"stream": s.String(),
 		}).Debug("Handshaking Stream timeout, quiting.")
-		s.Close()
+		s.Close(errors.New("Handshake timeout"))
 		return
 	}
 
@@ -433,9 +433,10 @@ func (s *Stream) handleMessage(message *NebMessage) error {
 	return nil
 }
 
-func (s *Stream) Close() {
+func (s *Stream) Close(reason error) {
 	logging.VLog().WithFields(logrus.Fields{
 		"stream": s.String(),
+		"reason": reason,
 	}).Debug("Disconnecting stream.")
 
 	// quit.
@@ -453,7 +454,7 @@ func (s *Stream) Close() {
 
 func (s *Stream) Bye() {
 	s.WriteMessage(BYE, []byte{})
-	s.Close()
+	s.Close(errors.New("bye: force close"))
 }
 
 func (s *Stream) onBye(message *NebMessage) error {

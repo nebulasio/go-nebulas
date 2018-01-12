@@ -105,7 +105,7 @@ func (n *Neb) EventEmitter() *core.EventEmitter {
 	return n.emitter
 }
 
-func (n *Neb) StartSync() {}
+func (n *Neb) StartActiveSync() {}
 
 var (
 	DefaultOpenDynasty = []string{
@@ -199,6 +199,15 @@ func (n MockNetManager) SendMsg(name string, msg []byte, target string, priority
 	received = msg
 	return nil
 }
+
+func (n MockNetManager) SendMessageToPeers(messageName string, data []byte, priority int, filter net.PeerFilterAlgorithm) int {
+	return 0
+}
+func (n MockNetManager) SendMessageToPeer(messageName string, data []byte, priority int, peerID string) error {
+	return nil
+}
+
+func (n MockNetManager) ClosePeer(peerID string, reason error) {}
 
 func (n MockNetManager) BroadcastNetworkID([]byte) {}
 

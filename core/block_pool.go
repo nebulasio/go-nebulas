@@ -430,7 +430,7 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 		// do sync if there are so many empty slots.
 		if lb.block.Timestamp()-bc.TailBlock().Timestamp() > DynastyInterval {
 			bc.ConsensusHandler().PendMining()
-			bc.Neb().StartSync()
+			bc.Neb().StartActiveSync()
 			logging.CLog().WithFields(logrus.Fields{
 				"tail":    bc.tailBlock,
 				"offline": strconv.Itoa(int(lb.block.Timestamp()-bc.TailBlock().Timestamp())) + "s",

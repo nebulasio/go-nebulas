@@ -21,7 +21,7 @@ package p2p
 import "github.com/nebulasio/go-nebulas/net"
 
 // Manager manager interface
-// TODO(leon): this interface should be in net package.
+// TODO: @robin move Manager to net and rename to NetService.
 type Manager interface {
 	Start() error
 	Stop()
@@ -34,6 +34,11 @@ type Manager interface {
 	Broadcast(string, net.Serializable, int)
 	Relay(string, net.Serializable, int)
 	SendMsg(string, []byte, string, int) error
+
+	SendMessageToPeers(messageName string, data []byte, priority int, filter net.PeerFilterAlgorithm) int
+	SendMessageToPeer(messageName string, data []byte, priority int, peerID string) error
+
+	ClosePeer(peerID string, reason error)
 
 	BroadcastNetworkID([]byte)
 
