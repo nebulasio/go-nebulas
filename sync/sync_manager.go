@@ -129,7 +129,7 @@ func (m *Manager) loop() {
 			if m.ns.Node().IsSynchronizing() {
 				m.ns.Node().SetSynchronizing(false)
 			}
-			m.consensus.PendMining()
+			m.consensus.ContinueMining()
 			logging.VLog().Info("sync finish.")
 		case <-m.syncCh:
 			if m.curTail == nil {

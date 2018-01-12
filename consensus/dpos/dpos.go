@@ -129,13 +129,13 @@ func (p *Dpos) EnableMining(passphrase string) error {
 		return err
 	}
 	p.enable = true
-	logging.CLog().Info("Start Dpos Mining.")
+	logging.CLog().Info("Enable Dpos Mining.")
 	return nil
 }
 
 // DisableMining stop the consensus
 func (p *Dpos) DisableMining() error {
-	logging.CLog().Info("Stop Dpos Mining.")
+	logging.CLog().Info("Disable Dpos Mining.")
 	p.enable = false
 	return p.am.Lock(p.miner)
 }
@@ -288,9 +288,6 @@ func (p *Dpos) mintBlock(now int64) error {
 
 	// check mining pending
 	if p.pending {
-		logging.VLog().WithFields(logrus.Fields{
-			"now": now,
-		}).Warn("Dpos Mining is on pending.")
 		return ErrCannotMintBlockNow
 	}
 
@@ -299,11 +296,13 @@ func (p *Dpos) mintBlock(now int64) error {
 	elapsedSecond := now - tail.Timestamp()
 	context, err := tail.NextDynastyContext(elapsedSecond)
 	if err != nil {
-		logging.VLog().WithFields(logrus.Fields{
-			"tail":    tail,
-			"elapsed": elapsedSecond,
-			"err":     err,
-		}).Warn("Failed to generate next dynasty context.")
+		if err != core.ErrNotBlockForgTime {
+			logging.VLog().WithFields(logrus.Fields{
+				"tail":    tail,
+				"elapsed": elapsedSecond,
+				"err":     err,
+			}).Error("Failed to generate next dynasty context.")
+		}
 		return core.ErrGenerateNextDynastyContext
 	}
 	if context.Proposer == nil || !context.Proposer.Equals(p.miner.Bytes()) {

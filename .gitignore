@@ -35,3 +35,6 @@ mozilla_js_tests*
 
 #node_modules
 node_modules
+
+#log
+logs/
