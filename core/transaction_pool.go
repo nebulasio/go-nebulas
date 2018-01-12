@@ -190,7 +190,7 @@ func (pool *TransactionPool) PushAndRelay(tx *Transaction) error {
 	if err := pool.Push(tx); err != nil {
 		return err
 	}
-	pool.nm.Relay(MessageTypeNewTx, tx)
+	pool.nm.Relay(MessageTypeNewTx, tx, net.MessagePriorityNormal)
 	return nil
 }
 
@@ -199,7 +199,7 @@ func (pool *TransactionPool) PushAndBroadcast(tx *Transaction) error {
 	if err := pool.Push(tx); err != nil {
 		return err
 	}
-	pool.nm.Broadcast(MessageTypeNewTx, tx)
+	pool.nm.Broadcast(MessageTypeNewTx, tx, net.MessagePriorityNormal)
 	return nil
 }
 

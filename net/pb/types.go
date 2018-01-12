@@ -1,4 +1,4 @@
-// Copyright (C) 2017 go-nebulas authors
+// Copyright (C) 2018 go-nebulas authors
 //
 // This file is part of the go-nebulas library.
 //
@@ -16,26 +16,36 @@
 // along with the go-nebulas library.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-package p2p
+package netpb
 
-import "github.com/nebulasio/go-nebulas/net"
+import (
+	"github.com/gogo/protobuf/proto"
+	"github.com/nebulasio/go-nebulas/util/logging"
+	"github.com/sirupsen/logrus"
+)
 
-// Manager manager interface
-// TODO(leon): this interface should be in net package.
-type Manager interface {
-	Start() error
-	Stop()
+func HelloMessageFromProto(data []byte) (*Hello, error) {
+	pb := new(Hello)
 
-	Node() *Node
+	if err := proto.Unmarshal(data, pb); err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"err": err,
+		}).Debug("Invalid Hello proto message.")
+		return nil, err
+	}
 
-	Register(...*net.Subscriber)
-	Deregister(...*net.Subscriber)
+	return pb, nil
+}
 
-	Broadcast(string, net.Serializable, int)
-	Relay(string, net.Serializable, int)
-	SendMsg(string, []byte, string, int) error
+func OKMessageFromProto(data []byte) (*OK, error) {
+	pb := new(OK)
 
-	BroadcastNetworkID([]byte)
+	if err := proto.Unmarshal(data, pb); err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"err": err,
+		}).Debug("Invalid OK proto message.")
+		return nil, err
+	}
 
-	BuildRawMessageData([]byte, string) []byte
+	return pb, nil
 }

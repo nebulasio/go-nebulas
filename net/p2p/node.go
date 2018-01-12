@@ -20,19 +20,18 @@ package p2p
 
 import (
 	"context"
+
 	"errors"
 	"fmt"
 	"net"
-	"sync"
 
-	lru "github.com/hashicorp/golang-lru"
-	"github.com/libp2p/go-libp2p-kbucket"
+	crypto "github.com/libp2p/go-libp2p-crypto"
+	libnet "github.com/libp2p/go-libp2p-net"
 	"github.com/libp2p/go-libp2p-peer"
-	"github.com/libp2p/go-libp2p-peerstore"
 	swarm "github.com/libp2p/go-libp2p-swarm"
 	"github.com/libp2p/go-libp2p/p2p/host/basic"
-	"github.com/multiformats/go-multiaddr"
-	"github.com/nebulasio/go-nebulas/common/pdeque"
+	multiaddr "github.com/multiformats/go-multiaddr"
+	nebnet "github.com/nebulasio/go-nebulas/net"
 	"github.com/nebulasio/go-nebulas/util/logging"
 	"github.com/sirupsen/logrus"
 )
@@ -47,146 +46,101 @@ const (
 
 // Error types
 var (
-	ErrPortInUse           = errors.New("the port is already in use")
-	ErrLoadKeypairFromFile = errors.New("failed to get Keypair from file")
-	ErrNodeIsRunning       = errors.New("node is already running")
-	ErrConnectToSeed       = errors.New("failed to say hello to seed")
+	ErrPeerIsNotConnected = errors.New("peer is not connected")
 )
 
 // Node the node can be used as both the client and the server
 type Node struct {
-	netService *NetService
-	host       *basichost.BasicHost
-	id         peer.ID
-	peerstore  peerstore.Peerstore
-	// key: peer.ID: ip
-	streamCache   *pdeque.PriorityDeque
-	stream        *sync.Map
-	routeTable    *kbucket.RoutingTable
-	context       context.Context
-	version       uint8
-	config        *Config
-	running       bool
 	synchronizing bool
-	syncList      []string
-	// key: datachecksum value: peer.ID
-	relayness      *lru.Cache
-	bootIds        []string
-	networkIDCache *lru.Cache
-	network        *swarm.Network
+	quitCh        chan bool
+	netService    *NetService
+	config        *Config
+	context       context.Context
+	id            peer.ID
+	networkKey    crypto.PrivKey
+	network       *swarm.Network
+	host          *basichost.BasicHost
+	streamManager *StreamManager
+	routeTable    *RouteTable
 }
 
-// NewNode start a local node and join the node to network
+// NewNode return new Node according to the config.
 func NewNode(config *Config) (*Node, error) {
-
-	node := &Node{}
-	node.config = config
-	node.context = context.Background()
-
-	err := node.init()
-	if err != nil {
+	// check Listen port.
+	if err := checkPortAvailable(config.Listen); err != nil {
 		logging.CLog().WithFields(logrus.Fields{
-			"err": err,
-		}).Error("Failed to init node")
+			"err":    err,
+			"listen": config.Listen,
+		}).Error("Listen port is not available.")
 		return nil, err
 	}
-	logging.CLog().WithFields(logrus.Fields{
-		"node.listen": node.config.Listen,
-	}).Info("Succeed to init node")
+
+	node := &Node{
+		quitCh:        make(chan bool, 10),
+		config:        config,
+		context:       context.Background(),
+		streamManager: NewStreamManager(),
+		synchronizing: false,
+	}
+
+	initP2PNetworkKey(config, node)
+	initP2PRouteTable(config, node)
+	initP2PSwarmNetwork(config, node)
+
 	return node, nil
-}
-
-func (node *Node) init() error {
-
-	ctx := node.context
-
-	if err := node.checkPort(); err != nil {
-		return err
-	}
-	if err := node.generatePeerStore(); err != nil {
-		return err
-	}
-
-	//TODO change name Latency
-	node.routeTable = kbucket.NewRoutingTable(
-		node.config.Bucketsize,
-		kbucket.ConvertPeerID(node.id),
-		node.config.Latency,
-		node.peerstore,
-	)
-
-	node.routeTable.Update(node.id)
-
-	node.stream = new(sync.Map)
-	node.streamCache = pdeque.NewPriorityDeque(streamEliminationAlgorithm)
-	node.version = node.config.Version
-	node.synchronizing = false
-
-	node.relayness, _ = lru.New(node.config.RelayCacheSize)
-	node.networkIDCache, _ = lru.New(node.config.StreamStoreSize)
-
-	var multiaddrs []multiaddr.Multiaddr
-	for _, v := range node.config.Listen {
-		tcpAddr, err := net.ResolveTCPAddr("tcp", v)
-		if err != nil {
-			return err
-		}
-		// TODO: handle err
-		address, err := multiaddr.NewMultiaddr(
-			fmt.Sprintf(
-				"/ip4/%s/tcp/%d",
-				tcpAddr.IP,
-				tcpAddr.Port,
-			),
-		)
-		if err != nil {
-			return err
-		}
-		multiaddrs = append(multiaddrs, address)
-	}
-
-	var err error
-	node.network, err = swarm.NewNetwork(
-		ctx,
-		multiaddrs,
-		node.id,
-		node.peerstore,
-		nil,
-	)
-	return err
 }
 
 // Start host & route table discovery
 func (node *Node) Start() error {
+	node.streamManager.Start()
+
 	if err := node.startHost(); err != nil {
-		logging.CLog().WithFields(logrus.Fields{
-			"err": err,
-		}).Error("Failed to start Host")
 		return err
 	}
-	go node.discovery(node.context)
-	go node.manageStreamStore()
+
+	node.routeTable.Start()
+
+	logging.CLog().WithFields(logrus.Fields{
+		"id":                node.ID(),
+		"listening address": node.host.Addrs(),
+	}).Info("Succeed to start node.")
 
 	return nil
+}
+
+func (node *Node) Stop() {
+	node.routeTable.Stop()
+	node.stopHost()
+	node.streamManager.Stop()
 }
 
 func (node *Node) startHost() error {
 	// add nat manager
 	options := &basichost.HostOpts{}
 	options.NATManager = basichost.NewNATManager(node.network)
-
-	var err error
-	node.host, err = basichost.NewHost(node.context, node.network, options)
+	host, err := basichost.NewHost(node.context, node.network, options)
 	if err != nil {
+		logging.CLog().WithFields(logrus.Fields{
+			"err":            err,
+			"listen address": node.config.Listen,
+		}).Error("Failed to start node.")
 		return err
 	}
-	node.host.SetStreamHandler(ProtocolID, node.messageHandler)
 
-	logging.CLog().WithFields(logrus.Fields{
-		"id":    node.ID(),
-		"addrs": node.host.Addrs(),
-	}).Info("Succeed to start node")
+	host.SetStreamHandler(NebProtocolID, node.onStreamConnected)
+	node.host = host
+
 	return nil
+}
+
+func (node *Node) stopHost() {
+	node.network.Close()
+
+	if node.host == nil {
+		return
+	}
+
+	node.host.Close()
 }
 
 // Config return node config.
@@ -204,13 +158,8 @@ func (node *Node) ID() string {
 	return node.id.Pretty()
 }
 
-// PeerStore return node peerstore
-func (node *Node) PeerStore() peerstore.Peerstore {
-	return node.peerstore
-}
-
-// GetSynchronizing return node synchronizing
-func (node *Node) GetSynchronizing() bool {
+// IsSynchronizing return node synchronizing
+func (node *Node) IsSynchronizing() bool {
 	return node.synchronizing
 }
 
@@ -219,45 +168,126 @@ func (node *Node) SetSynchronizing(synchronizing bool) {
 	node.synchronizing = synchronizing
 }
 
-// GetStream return node stream.
-func (node *Node) GetStream() *sync.Map {
-	return node.stream
+func (node *Node) PeersCount() int32 {
+	return node.streamManager.Count()
 }
 
-func (node *Node) checkPort() error {
-	for _, v := range node.config.Listen {
-		conn, err := net.Dial("tcp", v)
-		if err == nil {
-			conn.Close()
-			return ErrPortInUse
-		}
+func (node *Node) RouteTable() *RouteTable {
+	return node.routeTable
+}
+
+func initP2PNetworkKey(config *Config, node *Node) error {
+	// init p2p network key.
+	networkKey, err := LoadNetworkKeyFromFileOrCreateNew(config.PrivateKeyPath)
+	if err != nil {
+		logging.CLog().WithFields(logrus.Fields{
+			"err":        err,
+			"NetworkKey": config.PrivateKeyPath,
+		}).Error("Failed to load network private key from file.")
+		return err
+	}
+
+	node.networkKey = networkKey
+	node.id, err = peer.IDFromPublicKey(networkKey.GetPublic())
+	if err != nil {
+		logging.CLog().WithFields(logrus.Fields{
+			"err":        err,
+			"NetworkKey": config.PrivateKeyPath,
+		}).Error("Failed to generate ID from network key file.")
+		return err
 	}
 
 	return nil
 }
 
-func (node *Node) generatePeerStore() error {
+func initP2PRouteTable(config *Config, node *Node) error {
+	// init p2p route table.
+	node.routeTable = NewRouteTable(config, node)
+	return nil
+}
 
-	// TODO if path is not set then generate random key, otherwise check weather the path is valid.
-	path := node.Config().PrivateKeyPath
-	priv, pub, err := getKeypairFromFile(path)
-	if err != nil {
-		priv, pub, err = GenerateEd25519Key()
+func initP2PSwarmNetwork(config *Config, node *Node) error {
+	// init p2p multiaddr and swarm network.
+	multiaddrs := make([]multiaddr.Multiaddr, len(config.Listen))
+	for idx, v := range node.config.Listen {
+		tcpAddr, err := net.ResolveTCPAddr("tcp", v)
 		if err != nil {
+			logging.CLog().WithFields(logrus.Fields{
+				"err":            err,
+				"listen address": v,
+			}).Error("Invalid listen address.")
 			return err
 		}
+
+		addr, err := multiaddr.NewMultiaddr(
+			fmt.Sprintf(
+				"/ip4/%s/tcp/%d",
+				tcpAddr.IP,
+				tcpAddr.Port,
+			),
+		)
+		if err != nil {
+			logging.CLog().WithFields(logrus.Fields{
+				"err":            err,
+				"listen address": v,
+			}).Error("Invalid listen address.")
+			return err
+		}
+
+		multiaddrs[idx] = addr
 	}
 
-	// Obtain Peer ID from public key
-	node.id, err = peer.IDFromPublicKey(pub)
+	network, err := swarm.NewNetwork(
+		node.context,
+		multiaddrs,
+		node.id,
+		node.routeTable.peerStore,
+		nil, // TODO: @robin integrate metrics.Reporter.
+	)
 	if err != nil {
+		logging.CLog().WithFields(logrus.Fields{
+			"err":            err,
+			"listen address": config.Listen,
+			"node.id":        node.id.Pretty(),
+		}).Error("Failed to create swarm network.")
 		return err
 	}
+	node.network = network
+	return nil
+}
 
-	ps := peerstore.NewPeerstore()
-	ps.AddPrivKey(node.id, priv)
-	ps.AddPubKey(node.id, pub)
-	node.peerstore = ps
+func (node *Node) onStreamConnected(s libnet.Stream) {
+	node.streamManager.Add(s, node)
+}
 
+func (node *Node) SendMessageToPeer(pidStr, messageName string, data []byte, priority int) error {
+	stream := node.streamManager.Find(peer.ID(pidStr))
+	if stream == nil {
+		return ErrPeerIsNotConnected
+	}
+
+	return stream.SendMessage(messageName, data, priority)
+}
+
+func (node *Node) BroadcastMessage(messageName string, data nebnet.Serializable, priority int) {
+	// node can not broadcast or relay message if it is in synchronizing.
+	if node.synchronizing {
+		return
+	}
+
+	node.streamManager.BroadcastMessage(messageName, data, priority)
+}
+
+func (node *Node) RelayMessage(messageName string, data nebnet.Serializable, priority int) {
+	// node can not broadcast or relay message if it is in synchronizing.
+	if node.synchronizing {
+		return
+	}
+
+	node.streamManager.RelayMessage(messageName, data, priority)
+}
+
+func (node *Node) Sync(tail nebnet.Serializable) error {
+	node.streamManager.SendSyncMessageToPeers(tail)
 	return nil
 }

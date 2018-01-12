@@ -21,28 +21,25 @@ package p2p
 import (
 	"github.com/nebulasio/go-nebulas/net"
 	"github.com/nebulasio/go-nebulas/util/logging"
-	"github.com/sirupsen/logrus"
 )
 
 // NetService service for nebulas p2p network
 type NetService struct {
 	node       *Node
-	quitCh     chan bool
 	dispatcher *net.Dispatcher
 }
 
 // NewNetService create netService
 func NewNetService(n Neblet) (*NetService, error) {
-	config := NewP2PConfig(n)
-	node, err := NewNode(config)
+	node, err := NewNode(NewP2PConfig(n))
 	if err != nil {
-		logging.CLog().WithFields(logrus.Fields{
-			"err": err,
-		}).Error("Failed to create node")
 		return nil, err
 	}
 
-	ns := &NetService{node, make(chan bool, 1), net.NewDispatcher()}
+	ns := &NetService{
+		node:       node,
+		dispatcher: net.NewDispatcher(),
+	}
 	node.SetNetService(ns)
 
 	return ns, nil
@@ -55,18 +52,26 @@ func (ns *NetService) Node() *Node {
 
 // Start start p2p manager.
 func (ns *NetService) Start() error {
+	logging.CLog().Info("Start NetService.")
+
+	// start dispatcher.
 	ns.dispatcher.Start()
+
+	// start node.
 	if err := ns.node.Start(); err != nil {
 		ns.dispatcher.Stop()
+		logging.CLog().Info("Failed to start NetService.")
 		return err
 	}
+
 	return nil
 }
 
 // Stop stop p2p manager.
 func (ns *NetService) Stop() {
+	logging.CLog().Info("Stop NetService.")
+	ns.node.Stop()
 	ns.dispatcher.Stop()
-	ns.quitCh <- true
 }
 
 // Register register the subscribers.
@@ -85,26 +90,31 @@ func (ns *NetService) PutMessage(msg net.Message) {
 }
 
 // Broadcast message.
-func (ns *NetService) Broadcast(name string, msg net.Serializable) {
-	ns.node.broadcast(name, msg)
+func (ns *NetService) Broadcast(name string, msg net.Serializable, priority int) {
+	ns.node.BroadcastMessage(name, msg, priority)
 }
 
 // Relay message.
-func (ns *NetService) Relay(name string, msg net.Serializable) {
-	ns.node.relay(name, msg)
+func (ns *NetService) Relay(name string, msg net.Serializable, priority int) {
+	ns.node.RelayMessage(name, msg, priority)
 }
 
 // BroadcastNetworkID broadcast networkID when changed.
 func (ns *NetService) BroadcastNetworkID(msg []byte) {
-	ns.node.broadcastNetworkID(msg)
+	// TODO: @robin networkID.
 }
 
-// BuildData returns net service request data
-func (ns *NetService) BuildData(data []byte, msgName string) []byte {
-	return ns.node.buildData(data, msgName)
+// BuildRawMessageData return the raw NebMessage content data.
+func (ns *NetService) BuildRawMessageData(data []byte, msgName string) []byte {
+	message, err := NewNebMessage(ns.node.config.ChainID, DefaultReserved, 0, msgName, data)
+	if err != nil {
+		return nil
+	}
+
+	return message.Content()
 }
 
 // SendMsg send message to a peer.
-func (ns *NetService) SendMsg(msgName string, msg []byte, target string) error {
-	return ns.node.sendMsg(msgName, msg, target)
+func (ns *NetService) SendMsg(msgName string, msg []byte, target string, priority int) error {
+	return ns.node.SendMessageToPeer(target, msgName, msg, priority)
 }
