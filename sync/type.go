@@ -28,3 +28,8 @@ var (
 	ErrCannotFindBlockByHeight = errors.New("cannot find the block at given height")
 	ErrCannotFindBlockByHash   = errors.New("cannot find the block with the given hash")
 )
+
+// Contants
+const (
+	MaxChunkPerSyncRequest = 10
+)

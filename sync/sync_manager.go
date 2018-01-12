@@ -454,7 +454,7 @@ func (m *Manager) findBlocksWithCommonAncestor() []string {
 	return addrsArray
 }
 
-func (m *Manager) generateChunks(syncpoint *core.Block) (*syncpb.Chunks, error) {
+func (m *Manager) generateChunkHeaders(syncpoint *core.Block) (*syncpb.ChunkHeaders, error) {
 	if err := m.blockChain.CheckBlockOnCanonicalChain(syncpoint); err != nil {
 		return nil, err
 	}
@@ -466,7 +466,7 @@ func (m *Manager) generateChunks(syncpoint *core.Block) (*syncpb.Chunks, error) 
 		return nil, ErrTooSmallGapToSync
 	}
 
-	chunks := [][]byte{}
+	chunkHeaders := []*syncpb.ChunkHeader{}
 	stor, err := storage.NewMemoryStorage()
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
@@ -482,34 +482,53 @@ func (m *Manager) generateChunks(syncpoint *core.Block) (*syncpb.Chunks, error) 
 		return nil, err
 	}
 
-	curBlock := syncpoint
-	target := int64(tail.Timestamp()/core.DynastyInterval) * core.DynastyInterval
-	for curBlock.Timestamp() < target {
-		hash := curBlock.Hash()
-		height := curBlock.Height() + 1
-		chunks = append(chunks, hash)
-		chunksTrie.Put(hash, hash)
-		curBlock = m.blockChain.GetBlockByHeight(height)
-		if curBlock == nil {
+	startChunk := (syncpoint.Height() - 1) / core.ChunkSize
+	endChunk := (tail.Height() - 1) / core.ChunkSize
+	curChunk := startChunk
+	for curChunk < endChunk && curChunk-startChunk < MaxChunkPerSyncRequest {
+		headers := [][]byte{}
+		blocksTrie, err := trie.NewBatchTrie(nil, stor)
+		if err != nil {
 			logging.VLog().WithFields(logrus.Fields{
-				"err":    err,
-				"height": height,
-			}).Error("Failed to find the block on canonical chain.")
-			return nil, ErrCannotFindBlockByHeight
+				"err": err,
+			}).Error("Failed to create merkle tree")
+			return nil, err
 		}
+
+		startHeight := curChunk*core.ChunkSize + 2
+		endHeight := (curChunk+1)*core.ChunkSize + 2
+		curHeight := startHeight
+		for curHeight < endHeight {
+			block := m.blockChain.GetBlockByHeight(curHeight)
+			if block == nil {
+				logging.VLog().WithFields(logrus.Fields{
+					"height": curHeight + 1,
+				}).Error("Failed to find the block on canonical chain.")
+				return nil, ErrCannotFindBlockByHeight
+			}
+			headers = append(headers, block.Hash())
+			blocksTrie.Put(block.Hash(), block.Hash())
+			curHeight++
+		}
+		chunkHeaders = append(chunkHeaders, &syncpb.ChunkHeader{Headers: headers, Root: blocksTrie.RootHash()})
+		chunksTrie.Put(blocksTrie.RootHash(), blocksTrie.RootHash())
+
+		curChunk++
 	}
 
 	logging.VLog().WithFields(logrus.Fields{
 		"syncpoint": syncpoint,
-		"root":      chunksTrie.RootHash(),
-		"chunks":    chunks,
+		"start":     startChunk,
+		"end":       endChunk,
+		"limit":     MaxChunkPerSyncRequest,
+		"synced":    len(chunkHeaders),
 	}).Debug("Succeed to generate chunks meta info.")
-	return &syncpb.Chunks{ChunksRoot: chunks, Root: chunksTrie.RootHash()}, nil
+	return &syncpb.ChunkHeaders{ChunkHeaders: chunkHeaders, Root: chunksTrie.RootHash()}, nil
 }
 
-func (m *Manager) generateChunkData(chunkRoot [][]byte) (*syncpb.ChunkData, error) {
+func (m *Manager) generateChunkData(chunkHeaders *syncpb.ChunkHeader) (*syncpb.ChunkData, error) {
 	blocks := []*corepb.Block{}
-	for k, v := range chunkRoot {
+	for k, v := range chunkHeaders.Headers {
 		block := m.blockChain.GetBlock(v)
 		if block == nil {
 			logging.VLog().WithFields(logrus.Fields{

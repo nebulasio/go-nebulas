@@ -19,8 +19,14 @@
 package sync
 
 import (
+	"time"
+
+	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/core/pb"
+	"github.com/nebulasio/go-nebulas/crypto"
+	"github.com/nebulasio/go-nebulas/crypto/keystore"
+	"github.com/nebulasio/go-nebulas/crypto/keystore/secp256k1"
 	"github.com/nebulasio/go-nebulas/neblet/pb"
 	"github.com/nebulasio/go-nebulas/net"
 	"github.com/nebulasio/go-nebulas/net/p2p"
@@ -159,10 +165,96 @@ func (pm MockP2pManager) BroadcastNetworkID([]byte) {}
 
 func (pm MockP2pManager) BuildRawMessageData([]byte, string) []byte { return nil }
 
+func BlockFromNetwork(block *core.Block) *core.Block {
+	pb, _ := block.ToProto()
+	ir, _ := proto.Marshal(pb)
+	proto.Unmarshal(ir, pb)
+	b := new(core.Block)
+	b.FromProto(pb)
+	return b
+}
+
 func TestManager_generateChunkMeta(t *testing.T) {
-	/* 	chain, err := core.NewBlockChain(testNeb())
-	   	assert.Nil(t, err)
-	   	var cons MockConsensus
-	   	var pm MockP2pManager
-	   	sm := NewManager(chain, cons, pm) */
+	var cons MockConsensus
+	var pm MockP2pManager
+	chain, err := core.NewBlockChain(testNeb())
+	chain.SetConsensusHandler(cons)
+	chain.BlockPool().RegisterInNetwork(pm)
+	assert.Nil(t, err)
+	sm := NewManager(chain, cons, pm)
+
+	ks := keystore.DefaultKS
+	priv := secp256k1.GeneratePrivateKey()
+	pubdata, _ := priv.PublicKey().Encoded()
+	coinbase, _ := core.NewAddressFromPublicKey(pubdata)
+	ks.SetKey(coinbase.String(), priv, []byte("passphrase"))
+	ks.Unlock(coinbase.String(), []byte("passphrase"), time.Second*60*60*24*365)
+	key, _ := ks.GetUnlocked(coinbase.String())
+	signature, _ := crypto.NewSignature(keystore.SECP256K1)
+	signature.InitSign(key.(keystore.PrivateKey))
+
+	blocks := []*core.Block{}
+	for i := 0; i < 96; i++ {
+		context, err := chain.TailBlock().NextDynastyContext(core.BlockInterval)
+		assert.Nil(t, err)
+		block, err := chain.NewBlock(coinbase)
+		assert.Nil(t, err)
+		block.LoadDynastyContext(context)
+		block.SetTimestamp(core.BlockInterval * int64(i+1))
+		block.SetMiner(coinbase)
+		block.Sign(signature)
+		assert.Nil(t, block.Seal())
+		assert.Nil(t, chain.BlockPool().Push(BlockFromNetwork(block)))
+		assert.Nil(t, chain.SetTailBlock(block))
+		blocks = append(blocks, block)
+	}
+
+	meta, err := sm.generateChunkHeaders(blocks[1])
+	assert.Nil(t, err)
+	assert.Equal(t, len(meta.ChunkHeaders), 3)
+	chunks, err := sm.generateChunkData(meta.ChunkHeaders[1])
+	assert.Nil(t, err)
+	assert.Equal(t, len(chunks.Blocks), core.ChunkSize)
+	for i := 0; i < core.ChunkSize; i++ {
+		index := core.ChunkSize + 2 + i
+		assert.Equal(t, int(chunks.Blocks[i].Height), index)
+	}
+
+	meta, err = sm.generateChunkHeaders(blocks[0])
+	assert.Nil(t, err)
+	assert.Equal(t, len(meta.ChunkHeaders), 3)
+
+	meta, err = sm.generateChunkHeaders(blocks[31])
+	assert.Nil(t, err)
+	assert.Equal(t, int(blocks[31].Height()), 33)
+	assert.Equal(t, len(meta.ChunkHeaders), 2)
+
+	meta, err = sm.generateChunkHeaders(blocks[62])
+	assert.Nil(t, err)
+	assert.Equal(t, int(blocks[62].Height()), 64)
+	assert.Equal(t, len(meta.ChunkHeaders), 2)
+
+	chain2, err := core.NewBlockChain(testNeb())
+	chain2.SetConsensusHandler(cons)
+	chain2.BlockPool().RegisterInNetwork(pm)
+	assert.Nil(t, err)
+	meta, err = sm.generateChunkHeaders(blocks[0])
+	assert.Nil(t, err)
+	for _, header := range meta.ChunkHeaders {
+		chunk, err := sm.generateChunkData(header)
+		assert.Nil(t, err)
+		for _, v := range chunk.Blocks {
+			block := new(core.Block)
+			assert.Nil(t, block.FromProto(v))
+			assert.Nil(t, chain2.BlockPool().Push(block))
+		}
+	}
+	tail := blocks[len(blocks)-1]
+	bytes, err := chain2.Storage().Get(tail.Hash())
+	assert.Nil(t, err)
+	pbBlock := new(corepb.Block)
+	checkBlock := new(core.Block)
+	assert.Nil(t, proto.Unmarshal(bytes, pbBlock))
+	assert.Nil(t, checkBlock.FromProto(pbBlock))
+	assert.Equal(t, checkBlock.Hash(), tail.Hash())
 }
