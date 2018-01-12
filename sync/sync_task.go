@@ -138,6 +138,7 @@ func (st *SyncTask) startSyncLoop() {
 					st.checkChainGetChunkTimeout()
 				case <-st.chinGetChunkDataDoneCh:
 					// finished.
+					st.statusCh <- nil
 					return
 				}
 			}
@@ -321,11 +322,42 @@ func (st *SyncTask) processChunkData(message net.Message) {
 			"pid": message.MessageFrom(),
 		}).Debug("Wrong ChainChunkData message data.")
 		st.netService.ClosePeer(message.MessageFrom(), err)
+
+		// retry.
+		st.sendChainGetChunkMessage(chunkDataIndex)
+		return
+	}
+
+	err := st.chunk.processChunkData(chunkData)
+	if err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"err": err,
+			"pid": message.MessageFrom(),
+		}).Debug("Wrong ChainChunkData message data.")
+		st.netService.ClosePeer(message.MessageFrom(), err)
+
+		// retry.
+		st.sendChainGetChunkMessage(chunkDataIndex)
 		return
 	}
 
 	st.chainChunkDataStatus[chunkDataIndex] = true
-	st.chunk.processChunkData(chunkData)
+
+	// sync next chunk.
+	st.sendChainGetChunkForNext()
+}
+
+func (st *SyncTask) sendChainGetChunkForNext() {
+	nextPos := st.chainChunkDataSyncPosition + 1
+	if nextPos >= len(st.maxConsistentChunkHeaders.ChunkHeaders) {
+		if st.hasFinishedGetAllChunkData() {
+			st.chinGetChunkDataDoneCh <- true
+		}
+		return
+	}
+
+	st.chainChunkDataSyncPosition = nextPos
+	st.sendChainGetChunkMessage(nextPos)
 }
 
 func (st *SyncTask) hasEnoughChunkHeaders() bool {
@@ -339,4 +371,26 @@ func (st *SyncTask) hasEnoughChunkHeaders() bool {
 		}).Debug("Received enough chunk headers.")
 	}
 	return ret
+}
+
+func (st *SyncTask) hasFinishedGetAllChunkData() bool {
+	total := len(st.maxConsistentChunkHeaders.ChunkHeaders)
+	missing := 0
+	for i := 0; i < total; i++ {
+		if st.chainChunkDataStatus[i] == false {
+			missing++
+		}
+	}
+
+	if missing > 0 {
+		logging.VLog().WithFields(logrus.Fields{
+			"totalSyncingChunkHeaders": total,
+			"missingCount":             missing,
+		}).Debug("Waiting for ChunkData.")
+		return false
+	} else {
+		logging.VLog().Debug("Received enough chunk data.")
+	}
+
+	return true
 }
