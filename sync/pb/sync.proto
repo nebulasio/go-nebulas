@@ -6,11 +6,12 @@ import "github.com/nebulasio/go-nebulas/core/pb/block.proto";
 
 package syncpb;
 
-message ChunksMeta {
+message Chunks {
     repeated bytes chunks_root = 1;
     bytes root = 2;
 }
 
-message Chunk {
+message ChunkData {
     repeated corepb.Block blocks = 1;
+    bytes root = 2;
 }

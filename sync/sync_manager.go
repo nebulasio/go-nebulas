@@ -454,7 +454,7 @@ func (m *Manager) findBlocksWithCommonAncestor() []string {
 	return addrsArray
 }
 
-func (m *Manager) generateChunkMeta(syncpoint *core.Block) (*syncpb.ChunksMeta, error) {
+func (m *Manager) generateChunks(syncpoint *core.Block) (*syncpb.Chunks, error) {
 	if err := m.blockChain.CheckBlockOnCanonicalChain(syncpoint); err != nil {
 		return nil, err
 	}
@@ -504,10 +504,10 @@ func (m *Manager) generateChunkMeta(syncpoint *core.Block) (*syncpb.ChunksMeta, 
 		"root":      chunksTrie.RootHash(),
 		"chunks":    chunks,
 	}).Debug("Succeed to generate chunks meta info.")
-	return &syncpb.ChunksMeta{ChunksRoot: chunks, Root: chunksTrie.RootHash()}, nil
+	return &syncpb.Chunks{ChunksRoot: chunks, Root: chunksTrie.RootHash()}, nil
 }
 
-func (m *Manager) generateChunk(chunkRoot [][]byte) (*syncpb.Chunk, error) {
+func (m *Manager) generateChunkData(chunkRoot [][]byte) (*syncpb.ChunkData, error) {
 	blocks := []*corepb.Block{}
 	for k, v := range chunkRoot {
 		block := m.blockChain.GetBlock(v)
@@ -533,10 +533,10 @@ func (m *Manager) generateChunk(chunkRoot [][]byte) (*syncpb.Chunk, error) {
 	logging.VLog().WithFields(logrus.Fields{
 		"chunk": blocks,
 	}).Debug("Succeed to generate chunk.")
-	return &syncpb.Chunk{Blocks: blocks}, nil
+	return &syncpb.ChunkData{Blocks: blocks}, nil
 }
 
-func (m *Manager) processChunk(chunk *syncpb.Chunk) error {
+func (m *Manager) processChunkData(chunk *syncpb.ChunkData) error {
 	for k, v := range chunk.Blocks {
 		block := new(core.Block)
 		if err := block.FromProto(v); err != nil {
