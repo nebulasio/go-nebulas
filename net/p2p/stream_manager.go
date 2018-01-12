@@ -24,6 +24,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/sirupsen/logrus"
+
 	"github.com/gogo/protobuf/proto"
 	libnet "github.com/libp2p/go-libp2p-net"
 	peer "github.com/libp2p/go-libp2p-peer"
@@ -59,26 +61,38 @@ func (sm *StreamManager) Add(s libnet.Stream, node *Node) {
 }
 
 func (sm *StreamManager) AddStream(stream *Stream) {
+	logging.VLog().WithFields(logrus.Fields{
+		"steam": stream.String(),
+	}).Debug("Added a new stream.")
+
 	atomic.AddInt32(&sm.activePeersCount, 1)
-	sm.allStreams.Store(stream.pid, stream)
+	sm.allStreams.Store(stream.pid.Pretty(), stream)
 	stream.StartLoop()
 }
 
 func (sm *StreamManager) Remove(pid peer.ID) {
+	logging.VLog().WithFields(logrus.Fields{
+		"pid": pid.Pretty(),
+	}).Debug("Removing a stream.")
+
 	atomic.AddInt32(&sm.activePeersCount, -1)
-	sm.allStreams.Delete(pid)
+	sm.allStreams.Delete(pid.Pretty())
 }
 
 func (sm *StreamManager) RemoveStream(s *Stream) {
 	sm.Remove(s.pid)
 }
 
-func (sm *StreamManager) Find(pid peer.ID) *Stream {
-	v, _ := sm.allStreams.Load(pid)
+func (sm *StreamManager) FindByPrettyID(prettyID string) *Stream {
+	v, _ := sm.allStreams.Load(prettyID)
 	if v == nil {
 		return nil
 	}
 	return v.(*Stream)
+}
+
+func (sm *StreamManager) Find(pid peer.ID) *Stream {
+	return sm.FindByPrettyID(pid.Pretty())
 }
 
 func (sm *StreamManager) loop() {

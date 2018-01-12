@@ -101,7 +101,10 @@ func newStreamInstance(pid peer.ID, addr ma.Multiaddr, stream libnet.Stream, nod
 }
 
 func (s *Stream) Connect() error {
-	logging.CLog().Debugf("Connecting %s", s.String())
+	logging.VLog().WithFields(logrus.Fields{
+		"stream": s.String(),
+	}).Debug("Connecting to peer.")
+
 	// connect to host.
 	stream, err := s.node.host.NewStream(
 		s.node.context,
@@ -117,8 +120,6 @@ func (s *Stream) Connect() error {
 	}
 	s.stream = stream
 	s.addr = stream.Conn().RemoteMultiaddr()
-
-	logging.CLog().Debugf("Connected %s", s.String())
 
 	return nil
 }
@@ -435,7 +436,7 @@ func (s *Stream) handleMessage(message *NebMessage) error {
 func (s *Stream) Close() {
 	logging.VLog().WithFields(logrus.Fields{
 		"stream": s.String(),
-	}).Debug("Closing connection stream.")
+	}).Debug("Disconnecting stream.")
 
 	// quit.
 	s.quitWriteCh <- true
@@ -599,6 +600,10 @@ func (s *Stream) OnRecvedMsg(message *NebMessage) error {
 }
 
 func (s *Stream) finishHandshake() {
+	logging.VLog().WithFields(logrus.Fields{
+		"stream": s.String(),
+	}).Debug("Finished handshake.")
+
 	s.handshakeSucceed = true
 	s.handshakeSucceedCh <- true
 }
