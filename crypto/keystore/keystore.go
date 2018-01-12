@@ -39,8 +39,11 @@ var (
 	// ErrUninitialized uninitialized provider error.
 	ErrUninitialized = errors.New("uninitialized the provider")
 
-	// ErrNotUnlocked not unlocked
+	// ErrNotUnlocked key not unlocked
 	ErrNotUnlocked = errors.New("key not unlocked")
+
+	// ErrInvalidPassphrase invalid passphrase
+	ErrInvalidPassphrase = errors.New("passphrase is invalid")
 )
 
 // unlock item

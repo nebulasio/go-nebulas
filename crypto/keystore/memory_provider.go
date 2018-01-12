@@ -72,9 +72,13 @@ func (p *MemoryProvider) Aliases() []string {
 
 // SetKey assigns the given key (that has already been protected) to the given alias.
 func (p *MemoryProvider) SetKey(a string, key Key, passphrase []byte) error {
-	if &a == nil {
+	if len(a) == 0 {
 		return ErrNeedAlias
 	}
+	if len(passphrase) == 0 {
+		return ErrInvalidPassphrase
+	}
+
 	encoded, err := key.Encoded()
 	if err != nil {
 		return nil
@@ -94,6 +98,9 @@ func (p *MemoryProvider) SetKey(a string, key Key, passphrase []byte) error {
 func (p *MemoryProvider) GetKey(a string, passphrase []byte) (Key, error) {
 	if len(a) == 0 {
 		return nil, ErrNeedAlias
+	}
+	if len(passphrase) == 0 {
+		return nil, ErrInvalidPassphrase
 	}
 
 	entry, ok := p.entries[a]
