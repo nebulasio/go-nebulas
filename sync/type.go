@@ -25,4 +25,5 @@ var ()
 const (
 	MaxChunkPerSyncRequest       = 10
 	ConcurrentSyncChunkDataCount = 8
+	GetChunkDataTimeout          = 2 * 60 // 2m.
 )
