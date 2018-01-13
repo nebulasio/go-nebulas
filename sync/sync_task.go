@@ -47,7 +47,8 @@ var (
 type SyncTask struct {
 	quitCh                         chan bool
 	statusCh                       chan error
-	tailBlock                      *core.Block
+	blockChain                     *core.BlockChain
+	syncPointBlock                 *core.Block
 	netService                     p2p.Manager
 	chunk                          *Chunk
 	syncMutex                      sync.Mutex
@@ -65,11 +66,12 @@ type SyncTask struct {
 	chainSyncRetryCount int
 }
 
-func NewSyncTask(tailBlock *core.Block, netService p2p.Manager, chunk *Chunk) *SyncTask {
+func NewSyncTask(blockChain *core.BlockChain, netService p2p.Manager, chunk *Chunk) *SyncTask {
 	return &SyncTask{
 		quitCh:                         make(chan bool, 1),
 		statusCh:                       make(chan error, 1),
-		tailBlock:                      tailBlock,
+		blockChain:                     blockChain,
+		syncPointBlock:                 blockChain.TailBlock(),
 		netService:                     netService,
 		chunk:                          chunk,
 		chainSyncPeersCount:            0,
@@ -87,11 +89,6 @@ func NewSyncTask(tailBlock *core.Block, netService p2p.Manager, chunk *Chunk) *S
 }
 
 func (st *SyncTask) Start() {
-	logging.VLog().WithFields(logrus.Fields{
-		"tailBlockHeight": st.tailBlock.Height(),
-		"tailBlockHash":   st.tailBlock.Hash().String(),
-	}).Info("Starting active syncing process.")
-
 	st.startSyncLoop()
 }
 
@@ -114,6 +111,7 @@ func (st *SyncTask) startSyncLoop() {
 				case <-syncTicker.C:
 					if !st.hasEnoughChunkHeaders() {
 						st.reset()
+						st.setSyncPointToLastChunk()
 						st.sendChainSync()
 						continue
 					}
@@ -159,11 +157,22 @@ func (st *SyncTask) reset() {
 	st.chainChunkDataSyncPosition = 0
 }
 
-func (st *SyncTask) sendChainSync() {
-	st.chainSyncRetryCount++
-	logging.VLog().Debugf("Starting ChainSync at %d times.", st.chainSyncRetryCount)
+func (st *SyncTask) setSyncPointToLastChunk() {
+	lastChunkBlockHeight := uint64(1)
+	if st.syncPointBlock.Height()+1 > core.ChunkSize {
+		lastChunkBlockHeight = st.syncPointBlock.Height() - uint64(core.ChunkSize)
+	}
 
-	pbBlock, err := st.tailBlock.ToProto()
+	st.syncPointBlock = st.blockChain.GetBlockByHeight(lastChunkBlockHeight)
+}
+
+func (st *SyncTask) sendChainSync() {
+	logging.VLog().WithFields(logrus.Fields{
+		"syncPointBlockHeight": st.syncPointBlock.Height(),
+		"syncPointBlockHash":   st.syncPointBlock.Hash().String(),
+	}).Info("Starting ChainSync at %d times.", st.chainSyncRetryCount)
+
+	pbBlock, err := st.syncPointBlock.ToProto()
 	if err != nil {
 		return
 	}

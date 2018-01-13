@@ -76,15 +76,28 @@ func (ss *SyncService) StartActiveSync() {
 		return
 	}
 
-	ss.activeSyncTask = NewSyncTask(ss.blockChain.TailBlock(), ss.netService, ss.chunk)
+	ss.activeSyncTask = NewSyncTask(ss.blockChain, ss.netService, ss.chunk)
 	ss.activeSyncTask.Start()
+}
+
+func (ss *SyncService) StopActiveSync() {
+	if ss.activeSyncTask == nil {
+		return
+	}
+
+	ss.activeSyncTask.Stop()
+	ss.activeSyncTask = nil
 }
 
 func (ss *SyncService) WaitingForFinish() error {
 	if ss.activeSyncTask == nil {
 		return nil
 	}
-	return <-ss.activeSyncTask.statusCh
+
+	err := <-ss.activeSyncTask.statusCh
+	ss.activeSyncTask = nil
+
+	return err
 }
 
 func (ss *SyncService) startLoop() {
