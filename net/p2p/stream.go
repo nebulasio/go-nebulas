@@ -258,6 +258,7 @@ func (s *Stream) readLoop() {
 	messageBuffer := []byte{}
 
 	var message *NebMessage
+	readAt := time.Now().UnixNano()
 
 	// send Hello to host if stream is not connected.
 	if !s.IsConnected() {
@@ -330,6 +331,13 @@ func (s *Stream) readLoop() {
 			// remove data from buffer.
 			messageBuffer = messageBuffer[message.DataLength():]
 
+			logging.VLog().WithFields(logrus.Fields{
+				"messageName":  message.MessageName(),
+				"checksum":     message.DataCheckSum(),
+				"stream":       s.String(),
+				"duration(ms)": (time.Now().UnixNano() - readAt) / int64(time.Millisecond),
+			}).Debugf("Received %s message from peer.", message.MessageName())
+
 			// metrics.
 			metricsPacketsIn.Mark(1)
 			metricsBytesIn.Mark(int64(message.Length()))
@@ -343,6 +351,7 @@ func (s *Stream) readLoop() {
 
 			// reset message.
 			message = nil
+			readAt = time.Now().UnixNano()
 		}
 	}
 }
@@ -425,11 +434,6 @@ func (s *Stream) handleMessage(message *NebMessage) error {
 	case RECVEDMSG:
 		return s.OnRecvedMsg(message)
 	default:
-		logging.VLog().WithFields(logrus.Fields{
-			"messageName": messageName,
-			"checksum":    message.DataCheckSum(),
-			"stream":      s.String(),
-		}).Debugf("Received %s message from peer.", messageName)
 
 		s.node.netService.PutMessage(messages.NewBaseMessage(message.MessageName(), s.pid.Pretty(), message.Data()))
 
