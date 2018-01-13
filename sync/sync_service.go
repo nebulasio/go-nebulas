@@ -72,7 +72,7 @@ func (ss *SyncService) Start() {
 }
 
 func (ss *SyncService) StartActiveSync() {
-	if ss.activeSyncTask != nil {
+	if ss.IsActiveSyncing() {
 		return
 	}
 
@@ -87,6 +87,14 @@ func (ss *SyncService) StopActiveSync() {
 
 	ss.activeSyncTask.Stop()
 	ss.activeSyncTask = nil
+}
+
+func (ss *SyncService) IsActiveSyncing() bool {
+	if ss.activeSyncTask == nil {
+		return false
+	}
+
+	return ss.activeSyncTask.IsSyncing()
 }
 
 func (ss *SyncService) WaitingForFinish() error {

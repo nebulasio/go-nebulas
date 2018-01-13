@@ -52,6 +52,7 @@ var (
 type SyncTask struct {
 	quitCh                         chan bool
 	statusCh                       chan error
+	isSyncing                      bool
 	blockChain                     *core.BlockChain
 	syncPointBlock                 *core.Block
 	netService                     p2p.Manager
@@ -75,6 +76,7 @@ func NewSyncTask(blockChain *core.BlockChain, netService p2p.Manager, chunk *Chu
 	return &SyncTask{
 		quitCh:                         make(chan bool, 1),
 		statusCh:                       make(chan error, 1),
+		isSyncing:                      false,
 		blockChain:                     blockChain,
 		syncPointBlock:                 blockChain.TailBlock(),
 		netService:                     netService,
@@ -99,6 +101,10 @@ func (st *SyncTask) Start() {
 
 func (st *SyncTask) Stop() {
 	st.quitCh <- true
+}
+
+func (st *SyncTask) IsSyncing() bool {
+	return st.isSyncing
 }
 
 func (st *SyncTask) startSyncLoop() {
@@ -144,6 +150,7 @@ func (st *SyncTask) startSyncLoop() {
 					st.checkChainGetChunkTimeout()
 				case <-st.chinGetChunkDataDoneCh:
 					// finished.
+					st.isSyncing = true
 					st.statusCh <- nil
 					return
 				}
