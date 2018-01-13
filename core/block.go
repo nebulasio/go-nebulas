@@ -925,6 +925,13 @@ func HashBlock(block *Block) byteutils.Hash {
 	return hasher.Sum(nil)
 }
 
+// HashPbBlock return the hash of pb block.
+func HashPbBlock(pbBlock *corepb.Block) byteutils.Hash {
+	block := new(Block)
+	block.FromProto(pbBlock)
+	return block.Hash()
+}
+
 // RecoverMiner return miner from block
 func RecoverMiner(block *Block) (*Address, error) {
 	signature, err := crypto.NewSignature(keystore.Algorithm(block.Alg()))

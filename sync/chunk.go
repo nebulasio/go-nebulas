@@ -20,7 +20,6 @@ package sync
 
 import (
 	"bytes"
-	"errors"
 
 	"github.com/nebulasio/go-nebulas/common/trie"
 	"github.com/nebulasio/go-nebulas/core"
@@ -31,14 +30,6 @@ import (
 	"github.com/nebulasio/go-nebulas/util/byteutils"
 	"github.com/nebulasio/go-nebulas/util/logging"
 	"github.com/sirupsen/logrus"
-)
-
-var (
-	ErrTooSmallGapToSync        = errors.New("the gap between syncpoint and current tail is smaller than a dynasty interval, ignore the sync task")
-	ErrCannotFindBlockByHeight  = errors.New("cannot find the block at given height")
-	ErrCannotFindBlockByHash    = errors.New("cannot find the block with the given hash")
-	ErrWrongChunkHeaderRootHash = errors.New("wrong chunk header root hash")
-	ErrWrongChunkDataRootHash   = errors.New("wrong chunk data root hash")
 )
 
 type Chunk struct {
@@ -235,7 +226,40 @@ func VerifyChunkData(chunkHeader *syncpb.ChunkHeader, chunkData *syncpb.ChunkDat
 		return false, err
 	}
 
-	for _, block := range chunkData.Blocks {
+	if len(chunkHeader.Headers) != len(chunkData.Blocks) {
+		logging.VLog().WithFields(logrus.Fields{
+			"chunkData.size":   len(chunkData.Blocks),
+			"chunkHeader.size": len(chunkHeader.Headers),
+			"err":              ErrWrongChunkDataSize,
+		}).Debug("Wrong chunk data size.")
+		return false, ErrWrongChunkDataSize
+	}
+
+	for k, block := range chunkData.Blocks {
+		hash := chunkHeader.Headers[k]
+		calculated := core.HashPbBlock(block)
+		if bytes.Compare(calculated, block.Header.Hash) != 0 {
+			logging.VLog().WithFields(logrus.Fields{
+				"index":                k,
+				"chunkData.size":       len(chunkData.Blocks),
+				"chunkHeader.size":     len(chunkHeader.Headers),
+				"data.header.hash":     byteutils.Hex(block.Header.Hash),
+				"data.calculated.hash": byteutils.Hex(calculated),
+				"err": ErrInvalidBlockHashInChunk,
+			}).Debug("Invalid block hash.")
+			return false, ErrInvalidBlockHashInChunk
+		}
+		if bytes.Compare(hash, block.Header.Hash) != 0 {
+			logging.VLog().WithFields(logrus.Fields{
+				"index":            k,
+				"chunkData.size":   len(chunkData.Blocks),
+				"chunkHeader.size": len(chunkHeader.Headers),
+				"data.hash":        byteutils.Hex(block.Header.Hash),
+				"header.hash":      byteutils.Hex(hash),
+				"err":              ErrWrongBlockHashInChunk,
+			}).Debug("Wrong block hash.")
+			return false, ErrWrongBlockHashInChunk
+		}
 		blocksTrie.Put(block.Header.Hash, block.Header.Hash)
 	}
 
