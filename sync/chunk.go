@@ -202,12 +202,12 @@ func (c *Chunk) generateChunkData(chunkHeader *syncpb.ChunkHeader) (*syncpb.Chun
 	}
 
 	logging.VLog().WithFields(logrus.Fields{
-		"chunk": blocks,
+		"size": len(blocks),
 	}).Debug("Succeed to generate chunk.")
 
 	if bytes.Compare(blocksTrie.RootHash(), chunkHeader.Root) != 0 {
 		logging.VLog().WithFields(logrus.Fields{
-			"chunk":               blocks,
+			"size":                len(blocks),
 			"localChunkRootHash":  byteutils.Hex(blocksTrie.RootHash()),
 			"chunkHeader":         chunkHeader,
 			"chunkHeaderRootHash": byteutils.Hex(chunkHeader.Root),
@@ -241,7 +241,7 @@ func VerifyChunkData(chunkHeader *syncpb.ChunkHeader, chunkData *syncpb.ChunkDat
 
 	if bytes.Compare(blocksTrie.RootHash(), chunkHeader.Root) != 0 {
 		logging.VLog().WithFields(logrus.Fields{
-			"chunk":               chunkData.Blocks,
+			"size":                len(chunkData.Blocks),
 			"localChunkRootHash":  byteutils.Hex(blocksTrie.RootHash()),
 			"chunkHeader":         chunkHeader,
 			"chunkHeaderRootHash": byteutils.Hex(chunkHeader.Root),
@@ -274,7 +274,7 @@ func (c *Chunk) processChunkData(chunk *syncpb.ChunkData) error {
 	}
 
 	logging.VLog().WithFields(logrus.Fields{
-		"chunk": chunk.Blocks,
+		"size": len(chunk.Blocks),
 	}).Debug("Succeed to process chunk.")
 	return nil
 }

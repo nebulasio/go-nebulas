@@ -293,6 +293,7 @@ func (st *SyncTask) sendChainGetChunkMessage(chunkHeaderIndex int) {
 		return
 	}
 	st.netService.SendMessageToPeers(net.ChainGetChunk, data, net.MessagePriorityLow, new(p2p.RandomPeerFilter))
+	st.chainChunkDataStatus[chunkHeaderIndex] = time.Now().Unix()
 }
 
 func (st *SyncTask) processChunkData(message net.Message) {
@@ -395,7 +396,7 @@ func (st *SyncTask) hasFinishedGetAllChunkData() bool {
 	total := len(st.maxConsistentChunkHeaders.ChunkHeaders)
 	missing := 0
 	for i := 0; i < total; i++ {
-		if st.chainChunkDataStatus[i] == false {
+		if st.chainChunkDataStatus[i] != chunkDataStatusFinished {
 			missing++
 		}
 	}

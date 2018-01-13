@@ -215,9 +215,11 @@ func (s *Stream) WriteNebMessage(message *NebMessage) error {
 	// debug logs.
 	logging.VLog().WithFields(logrus.Fields{
 		"stream":      s.String(),
+		"err":         err,
+		"checksum":    message.DataCheckSum(),
 		"messageName": message.MessageName(),
 		"latency(ms)": message.LatencyFromSendToWrite(),
-	}).Debug("[Perf] latency of write message.")
+	}).Debugf("Sent %s message to peer.", message.MessageName())
 
 	return err
 }
@@ -425,6 +427,7 @@ func (s *Stream) handleMessage(message *NebMessage) error {
 	default:
 		logging.VLog().WithFields(logrus.Fields{
 			"messageName": messageName,
+			"checksum":    message.DataCheckSum(),
 			"stream":      s.String(),
 		}).Debugf("Received %s message from peer.", messageName)
 
