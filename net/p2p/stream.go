@@ -216,7 +216,7 @@ func (s *Stream) WriteNebMessage(message *NebMessage) error {
 	logging.VLog().WithFields(logrus.Fields{
 		"stream":      s.String(),
 		"messageName": message.MessageName(),
-		"latency":     message.LatencyFromSendToWrite(),
+		"latency(ms)": message.LatencyFromSendToWrite(),
 	}).Debug("[Perf] latency of write message.")
 
 	return err

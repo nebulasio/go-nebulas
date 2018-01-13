@@ -282,5 +282,6 @@ func (message *NebMessage) LatencyFromSendToWrite() int64 {
 		message.FlagWriteMessageAt()
 	}
 
-	return message.writeMessageAt - message.sendMessageAt
+	// convert from nano to millisecond.
+	return (message.writeMessageAt - message.sendMessageAt) / int64(time.Millisecond)
 }
