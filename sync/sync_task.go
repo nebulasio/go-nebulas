@@ -103,6 +103,8 @@ func (st *SyncTask) startSyncLoop() {
 			st.sendChainSync()
 
 			syncTicker := time.NewTicker(30 * time.Second)
+
+		SYNC_STEP_1:
 			for {
 				select {
 				case <-st.quitCh:
@@ -117,12 +119,13 @@ func (st *SyncTask) startSyncLoop() {
 					}
 				case <-st.chainSyncDoneCh:
 					// go to next step.
-					break
+					logging.VLog().Debug("Sync Done.")
+					break SYNC_STEP_1
 				}
 			}
 
 			// start get chunk data.
-			logging.VLog().Debug("Starting GetChain from peers.")
+			logging.VLog().Debug("Starting GetChainData from peers.")
 			st.sendChainGetChunk()
 
 			getChunkTimeoutTicker := time.NewTicker(10 * time.Second)

@@ -74,7 +74,7 @@ const (
 	EagleNebula = 1 << 4
 
 	// ChunkSize is the size of blocks in a chunk
-	ChunkSize = 32
+	ChunkSize = 4
 
 	// Tail Key in storage
 	Tail = "blockchain_tail"

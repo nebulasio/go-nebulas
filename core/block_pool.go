@@ -428,11 +428,12 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 			return ErrMissingParentBlock
 		}
 		// do sync if there are so many empty slots.
-		if lb.block.Height()-bc.TailBlock().Height() > ChunkSize {
+		if int(lb.block.Height())-int(bc.TailBlock().Height()) > ChunkSize {
 			bc.ConsensusHandler().PendMining()
 			bc.Neb().StartActiveSync()
 			logging.CLog().WithFields(logrus.Fields{
 				"tail":    bc.tailBlock,
+				"block":   block,
 				"offline": strconv.Itoa(int(lb.block.Timestamp()-bc.TailBlock().Timestamp())) + "s",
 				"limit":   strconv.Itoa(int(DynastyInterval)) + "s",
 			}).Warn("Offline too long, pend mining and restart sync from others.")
