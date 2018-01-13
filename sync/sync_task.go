@@ -158,8 +158,9 @@ func (st *SyncTask) reset() {
 }
 
 func (st *SyncTask) setSyncPointToLastChunk() {
-	lastChunkBlockHeight := uint64(1)
-	if st.syncPointBlock.Height()+1 > core.ChunkSize {
+	// the first block height of chunk is 2.
+	lastChunkBlockHeight := uint64(2)
+	if st.syncPointBlock.Height()+2 > core.ChunkSize {
 		lastChunkBlockHeight = st.syncPointBlock.Height() - uint64(core.ChunkSize)
 	}
 
