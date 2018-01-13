@@ -49,7 +49,7 @@ func (c *Chunk) generateChunkHeaders(syncpoint *core.Block) (*syncpb.ChunkHeader
 		return nil, err
 	}
 	tail := c.blockChain.TailBlock()
-	if tail.Timestamp()-syncpoint.Timestamp() < core.DynastyInterval {
+	if int(tail.Height())-int(syncpoint.Height()) <= core.ChunkSize {
 		logging.VLog().WithFields(logrus.Fields{
 			"err": ErrTooSmallGapToSync,
 		}).Warn("Failed to generate sync blocks meta info")
@@ -245,7 +245,7 @@ func VerifyChunkData(chunkHeader *syncpb.ChunkHeader, chunkData *syncpb.ChunkDat
 				"chunkHeader.size":     len(chunkHeader.Headers),
 				"data.header.hash":     byteutils.Hex(block.Header.Hash),
 				"data.calculated.hash": byteutils.Hex(calculated),
-				"err": ErrInvalidBlockHashInChunk,
+				"err": ErrInvsalidBlockHashInChunk,
 			}).Debug("Invalid block hash.")
 			return false, ErrInvalidBlockHashInChunk
 		}
