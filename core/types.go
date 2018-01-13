@@ -25,6 +25,7 @@ import (
 	"github.com/nebulasio/go-nebulas/core/pb"
 	"github.com/nebulasio/go-nebulas/neblet/pb"
 	"github.com/nebulasio/go-nebulas/storage"
+	nsync "github.com/nebulasio/go-nebulas/sync"
 	"github.com/nebulasio/go-nebulas/util"
 )
 
@@ -127,5 +128,5 @@ type Neblet interface {
 	Config() nebletpb.Config
 	Storage() storage.Storage
 	EventEmitter() *EventEmitter
-	StartActiveSync()
+	SyncService() *nsync.SyncService
 }

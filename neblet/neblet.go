@@ -278,9 +278,9 @@ func (n *Neblet) Consensus() consensus.Consensus {
 	return n.consensus
 }
 
-// StartActiveSync start active sync from peers.
-func (n *Neblet) StartActiveSync() {
-	n.syncService.StartActiveSync()
+// SyncService return sync service
+func (n *Neblet) SyncService() *nsync.SyncService {
+	return n.syncService
 }
 
 // checks if the storage scheme version is compatiable

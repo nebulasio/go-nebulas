@@ -430,7 +430,7 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 		// do sync if there are so many empty slots.
 		if int(lb.block.Height())-int(bc.TailBlock().Height()) > ChunkSize {
 			bc.ConsensusHandler().PendMining()
-			bc.Neb().StartActiveSync()
+			bc.Neb().SyncService().StartActiveSync()
 			logging.CLog().WithFields(logrus.Fields{
 				"tail":    bc.tailBlock,
 				"block":   block,
