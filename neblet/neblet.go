@@ -124,6 +124,7 @@ func (n *Neblet) Setup() error {
 
 	// sync
 	n.syncService = nsync.NewSyncService(n.blockChain, n.netService)
+	n.blockChain.SetSyncService(n.syncService)
 
 	// api
 	n.apiServer = rpc.NewAPIServer(n)
@@ -197,9 +198,9 @@ func (n *Neblet) Stop() error {
 		n.consensus = nil
 	}
 
-	if n.blockChain != nil {
-		n.blockChain.BlockPool().Stop()
-		n.blockChain = nil
+	if n.syncService != nil {
+		n.syncService.Stop()
+		n.syncService = nil
 	}
 
 	if n.eventEmitter != nil {
@@ -207,9 +208,10 @@ func (n *Neblet) Stop() error {
 		n.eventEmitter = nil
 	}
 
-	if n.netService != nil {
-		n.netService.Stop()
-		n.netService = nil
+	if n.blockChain != nil {
+		n.blockChain.TransactionPool().Stop()
+		n.blockChain.BlockPool().Stop()
+		n.blockChain = nil
 	}
 
 	if n.apiServer != nil {
@@ -220,6 +222,11 @@ func (n *Neblet) Stop() error {
 	if n.managementServer != nil {
 		n.managementServer.Stop()
 		n.managementServer = nil
+	}
+
+	if n.netService != nil {
+		n.netService.Stop()
+		n.netService = nil
 	}
 
 	if n.config.Stats.EnableMetrics {

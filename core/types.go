@@ -25,7 +25,6 @@ import (
 	"github.com/nebulasio/go-nebulas/core/pb"
 	"github.com/nebulasio/go-nebulas/neblet/pb"
 	"github.com/nebulasio/go-nebulas/storage"
-	nsync "github.com/nebulasio/go-nebulas/sync"
 	"github.com/nebulasio/go-nebulas/util"
 )
 
@@ -118,8 +117,20 @@ const (
 // Consensus interface of consensus algorithm.
 type Consensus interface {
 	PendMining()
+	ContinueMining()
 	VerifyBlock(block *Block, parent *Block) error
 	FastVerifyBlock(block *Block) error
+}
+
+// SyncService interface of sync service
+type SyncService interface {
+	Start()
+	Stop()
+
+	StartActiveSync()
+	StopActiveSync()
+	WaitingForFinish() error
+	IsActiveSync() bool
 }
 
 // Neblet interface breaks cycle import dependency and hides unused services.
@@ -128,5 +139,4 @@ type Neblet interface {
 	Config() nebletpb.Config
 	Storage() storage.Storage
 	EventEmitter() *EventEmitter
-	SyncService() *nsync.SyncService
 }

@@ -51,9 +51,11 @@ type BlockChain struct {
 	genesisBlock *Block
 	tailBlock    *Block
 
-	bkPool           *BlockPool
-	txPool           *TransactionPool
+	bkPool *BlockPool
+	txPool *TransactionPool
+
 	consensusHandler Consensus
+	syncService      SyncService
 
 	cachedBlocks       *lru.Cache
 	detachedTailBlocks *lru.Cache
@@ -406,6 +408,25 @@ func (bc *BlockChain) TransactionPool() *TransactionPool {
 // SetConsensusHandler set consensus handler.
 func (bc *BlockChain) SetConsensusHandler(handler Consensus) {
 	bc.consensusHandler = handler
+}
+
+// SetSyncService set sync service.
+func (bc *BlockChain) SetSyncService(syncService SyncService) {
+	bc.syncService = syncService
+}
+
+// StartActiveSync start active sync task
+func (bc *BlockChain) StartActiveSync() {
+	if bc.syncService.IsActiveSync() {
+		return
+	}
+
+	bc.consensusHandler.PendMining()
+	bc.syncService.StartActiveSync()
+	go func() {
+		bc.syncService.WaitingForFinish()
+		bc.consensusHandler.ContinueMining()
+	}()
 }
 
 // ConsensusHandler return consensus handler.

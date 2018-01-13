@@ -71,6 +71,20 @@ func (ss *SyncService) Start() {
 	ss.startLoop()
 }
 
+// Stop stop sync service.
+func (ss *SyncService) Stop() {
+	// deregister the network handler.
+	netService := ss.netService
+	netService.Deregister(net.NewSubscriber(ss, ss.messageCh, net.ChainSync))
+	netService.Deregister(net.NewSubscriber(ss, ss.messageCh, net.ChainChunks))
+	netService.Deregister(net.NewSubscriber(ss, ss.messageCh, net.ChainGetChunk))
+	netService.Deregister(net.NewSubscriber(ss, ss.messageCh, net.ChainChunkData))
+
+	ss.StopActiveSync()
+
+	ss.quitCh <- true
+}
+
 func (ss *SyncService) StartActiveSync() {
 	if ss.IsActiveSyncing() {
 		return
