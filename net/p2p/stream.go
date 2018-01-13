@@ -219,7 +219,7 @@ func (s *Stream) WriteNebMessage(message *NebMessage) error {
 		"checksum":    message.DataCheckSum(),
 		"messageName": message.MessageName(),
 		"latency(ms)": message.LatencyFromSendToWrite(),
-	}).Debugf("Sent %s message to peer.", message.MessageName())
+	}).Debugf("Written %s message to peer.", message.MessageName())
 
 	return err
 }
