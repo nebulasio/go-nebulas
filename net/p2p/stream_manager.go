@@ -129,7 +129,7 @@ func (sm *StreamManager) BroadcastMessage(messageName string, messageContent net
 
 	sm.allStreams.Range(func(key, value interface{}) bool {
 		stream := value.(*Stream)
-		if !HasRecvMessage(stream, dataCheckSum) {
+		if stream.IsHandshakeSucceed() && !HasRecvMessage(stream, dataCheckSum) {
 			stream.SendMessage(messageName, data, priority)
 		}
 		return true
@@ -147,7 +147,7 @@ func (sm *StreamManager) RelayMessage(messageName string, messageContent net.Ser
 
 	sm.allStreams.Range(func(key, value interface{}) bool {
 		stream := value.(*Stream)
-		if !HasRecvMessage(stream, dataCheckSum) {
+		if stream.IsHandshakeSucceed() && !HasRecvMessage(stream, dataCheckSum) {
 			stream.SendMessage(messageName, data, priority)
 		}
 		return true
@@ -158,7 +158,10 @@ func (sm *StreamManager) SendMessageToPeers(messageName string, data []byte, pri
 	allPeers := make(net.PeersSlice, 0)
 
 	sm.allStreams.Range(func(key, value interface{}) bool {
-		allPeers = append(allPeers, value)
+		stream := value.(*Stream)
+		if stream.IsHandshakeSucceed() {
+			allPeers = append(allPeers, value)
+		}
 		return true
 	})
 

@@ -128,6 +128,10 @@ func (s *Stream) IsConnected() bool {
 	return s.stream != nil
 }
 
+func (s *Stream) IsHandshakeSucceed() bool {
+	return s.handshakeSucceed
+}
+
 func (s *Stream) String() string {
 	addrStr := ""
 	if s.addr != nil {

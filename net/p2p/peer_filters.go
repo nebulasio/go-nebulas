@@ -28,7 +28,6 @@ type ChainSyncPeersFilter struct {
 }
 
 func (filter *ChainSyncPeersFilter) Filter(peers net.PeersSlice) net.PeersSlice {
-	// send to all peers.
 	return peers
 }
 
@@ -36,6 +35,10 @@ type RandomPeerFilter struct {
 }
 
 func (filter *RandomPeerFilter) Filter(peers net.PeersSlice) net.PeersSlice {
+	if len(peers) == 0 {
+		return peers
+	}
+
 	selection := rand.Intn(len(peers))
 	return peers[selection : selection+1]
 }
