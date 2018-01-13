@@ -245,7 +245,7 @@ func VerifyChunkData(chunkHeader *syncpb.ChunkHeader, chunkData *syncpb.ChunkDat
 				"chunkHeader.size":     len(chunkHeader.Headers),
 				"data.header.hash":     byteutils.Hex(block.Header.Hash),
 				"data.calculated.hash": byteutils.Hex(calculated),
-				"err": ErrInvsalidBlockHashInChunk,
+				"err": ErrInvalidBlockHashInChunk,
 			}).Debug("Invalid block hash.")
 			return false, ErrInvalidBlockHashInChunk
 		}
