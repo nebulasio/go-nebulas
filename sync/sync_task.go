@@ -388,9 +388,8 @@ func (st *SyncTask) hasFinishedGetAllChunkData() bool {
 			"missingCount":             missing,
 		}).Debug("Waiting for ChunkData.")
 		return false
-	} else {
-		logging.VLog().Debug("Received enough chunk data.")
 	}
 
+	logging.VLog().Debug("Received enough chunk data.")
 	return true
 }

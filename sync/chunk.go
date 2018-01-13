@@ -274,7 +274,7 @@ func (c *Chunk) processChunkData(chunk *syncpb.ChunkData) error {
 	}
 
 	logging.VLog().WithFields(logrus.Fields{
-		"chunk": chunk,
+		"chunk": chunk.Blocks,
 	}).Debug("Succeed to process chunk.")
 	return nil
 }

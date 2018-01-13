@@ -143,6 +143,11 @@ func (ss *SyncService) onChainSync(message net.Message) {
 
 	chunks, err := ss.chunk.generateChunkHeaders(syncpoint)
 	if err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"err":   err,
+			"pid":   message.MessageFrom(),
+			"block": syncpoint,
+		}).Debug("Failed to generate chunk headers.")
 		// TODO: @roy should let the node know the error. Or the node retry after 30s later + parent block hash.
 		return
 	}

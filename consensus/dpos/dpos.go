@@ -85,7 +85,7 @@ func NewDpos(neblet Neblet) (*Dpos, error) {
 		txsPerBlock:     2000,
 
 		enable:  false,
-		pending: true,
+		pending: false,
 	}
 
 	config := neblet.Config().Chain
