@@ -259,6 +259,7 @@ func (s *Stream) readLoop() {
 
 	var message *NebMessage
 	readAt := time.Now().UnixNano()
+	readDataAt := int64(0)
 
 	// send Hello to host if stream is not connected.
 	if !s.IsConnected() {
@@ -287,6 +288,10 @@ func (s *Stream) readLoop() {
 			}
 			messageBuffer = append(messageBuffer, buf[:n]...)
 			s.latestReadAt = time.Now().Unix()
+
+			if readDataAt == 0 {
+				readDataAt = time.Now().UnixNano()
+			}
 
 			if message == nil {
 				// waiting for header data.
@@ -331,11 +336,13 @@ func (s *Stream) readLoop() {
 			// remove data from buffer.
 			messageBuffer = messageBuffer[message.DataLength():]
 
+			nowAt := time.Now().UnixNano()
 			logging.VLog().WithFields(logrus.Fields{
-				"messageName":  message.MessageName(),
-				"checksum":     message.DataCheckSum(),
-				"stream":       s.String(),
-				"duration(ms)": (time.Now().UnixNano() - readAt) / int64(time.Millisecond),
+				"messageName":                    message.MessageName(),
+				"checksum":                       message.DataCheckSum(),
+				"stream":                         s.String(),
+				"duration from Read(ms)":         (nowAt - readDataAt) / int64(time.Millisecond),
+				"duration from last Message(ms)": (nowAt - readAt) / int64(time.Millisecond),
 			}).Debugf("Received %s message from peer.", message.MessageName())
 
 			// metrics.
@@ -352,6 +359,7 @@ func (s *Stream) readLoop() {
 			// reset message.
 			message = nil
 			readAt = time.Now().UnixNano()
+			readDataAt = 0
 		}
 	}
 }
