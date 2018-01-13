@@ -38,10 +38,11 @@ import (
 
 // Errors in PoW Consensus
 var (
-	ErrInvalidBlockInterval = errors.New("invalid block interval")
-	ErrMissingConfigForDpos = errors.New("missing configuration for Dpos")
-	ErrInvalidBlockProposer = errors.New("invalid block proposer")
-	ErrCannotMintBlockNow   = errors.New("cannot mint block now, waiting for sync over")
+	ErrInvalidBlockInterval  = errors.New("invalid block interval")
+	ErrMissingConfigForDpos  = errors.New("missing configuration for Dpos")
+	ErrInvalidBlockProposer  = errors.New("invalid block proposer")
+	ErrCannotMintWhenPending = errors.New("cannot mint block now, waiting for cancel pending again")
+	ErrCannotMintWhenDiable  = errors.New("cannot mint block now, waiting for enable it again")
 )
 
 // Neblet interface breaks cycle import dependency and hides unused services.
@@ -87,6 +88,8 @@ func NewDpos(neblet Neblet) (*Dpos, error) {
 		enable:  false,
 		pending: false,
 	}
+
+	logging.CLog().Info(p.am.Accounts())
 
 	config := neblet.Config().Chain
 	coinbase, err := core.AddressParse(config.Coinbase)
@@ -283,12 +286,12 @@ func (p *Dpos) VerifyBlock(block *core.Block, parent *core.Block) error {
 func (p *Dpos) mintBlock(now int64) error {
 	// check mining enable
 	if !p.enable {
-		return nil
+		return ErrCannotMintWhenDiable
 	}
 
 	// check mining pending
 	if p.pending {
-		return ErrCannotMintBlockNow
+		return ErrCannotMintWhenPending
 	}
 
 	// check proposer

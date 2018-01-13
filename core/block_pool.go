@@ -428,7 +428,7 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 			return ErrMissingParentBlock
 		}
 		// do sync if there are so many empty slots.
-		if lb.block.Timestamp()-bc.TailBlock().Timestamp() > DynastyInterval {
+		if lb.block.Height()-bc.TailBlock().Height() > ChunkSize {
 			bc.ConsensusHandler().PendMining()
 			bc.Neb().StartActiveSync()
 			logging.CLog().WithFields(logrus.Fields{

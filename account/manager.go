@@ -102,13 +102,6 @@ func NewManager(neblet Neblet) *Manager {
 				m.signatureAlg = keystore.Algorithm(EccSecp256K1Value)
 			}
 		}
-
-		// if conf.GetSignature() > 0 {
-		// 	m.signatureAlg = keystore.Algorithm(conf.GetSignature())
-		// }
-		// if conf.GetEncrypt() > 0 {
-		// 	m.encryptAlg = keystore.Algorithm(conf.GetEncrypt())
-		// }
 	}
 	m.refreshAccounts()
 	return m

@@ -60,6 +60,7 @@ func mockNeb(t *testing.T) *Neb {
 		config: nebletpb.Config{
 			Chain: &nebletpb.ChainConfig{
 				ChainId:    genesisConf.Meta.ChainId,
+				Keydir:     "keydir",
 				Coinbase:   "1a263547d167c74cf4b8f9166cfa244de0481c514a45aa2c",
 				Miner:      "1a263547d167c74cf4b8f9166cfa244de0481c514a45aa2c",
 				Passphrase: "passphrase",
@@ -339,6 +340,8 @@ func TestForkChoice(t *testing.T) {
 func TestCanMining(t *testing.T) {
 	dpos, err := NewDpos(mockNeb(t))
 	assert.Nil(t, err)
+	assert.Equal(t, dpos.Pending(), false)
+	dpos.PendMining()
 	assert.Equal(t, dpos.Pending(), true)
 	dpos.ContinueMining()
 	assert.Equal(t, dpos.Pending(), false)
@@ -395,9 +398,11 @@ func TestDpos_MintBlock(t *testing.T) {
 	var c MockConsensus
 	dpos.chain.SetConsensusHandler(c)
 
-	assert.Nil(t, dpos.EnableMining("passphrase"))
+	assert.Equal(t, dpos.mintBlock(0), ErrCannotMintWhenDiable)
 
-	assert.Equal(t, dpos.mintBlock(0), ErrCannotMintBlockNow)
+	assert.Nil(t, dpos.EnableMining("passphrase"))
+	dpos.PendMining()
+	assert.Equal(t, dpos.mintBlock(0), ErrCannotMintWhenPending)
 
 	dpos.ContinueMining()
 	assert.Equal(t, dpos.mintBlock(core.BlockInterval), ErrInvalidBlockProposer)
