@@ -178,6 +178,11 @@ func (st *SyncTask) reset() {
 }
 
 func (st *SyncTask) setSyncPointToLastChunk() {
+	if st.chainSyncRetryCount < 2 {
+		// for the first retry, keep current tail.
+		return
+	}
+
 	// the first block height of chunk is 1.
 	lastChunkBlockHeight := uint64(1)
 	if st.syncPointBlock.Height()+1 > core.ChunkSize {
