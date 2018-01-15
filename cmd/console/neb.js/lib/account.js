@@ -1,6 +1,7 @@
 
 "use strict";
 
+var Buffer = require('safe-buffer').Buffer;
 var cryptoUtils = require('./utils/crypto-utils.js');
 
 var Account = function (priv, path) {

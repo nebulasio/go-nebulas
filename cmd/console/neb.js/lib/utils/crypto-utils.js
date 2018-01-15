@@ -1,10 +1,11 @@
 
 "use strict";
 
+var Buffer = require('safe-buffer').Buffer;
+
 var sha3256 = require('js-sha3').sha3_256; // jshint ignore: line
 var keccak256 = require('js-sha3').keccak256;
 var secp256k1 = require('secp256k1');
-var Buffer = require('safe-buffer').Buffer;
 var crypto = require('crypto');
 var scrypt = require('scryptsy');
 

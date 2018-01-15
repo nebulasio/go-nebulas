@@ -4,11 +4,14 @@
 <head>
 <!-- <script type="text/javascript" src="../node_modules/bignumber.js/bignumber.min.js"></script> -->
 <script type="text/javascript" src="../dist/neb.js"></script>
+    <script type="text/javascript" src="../dist/neb-account.js"></script>
 <script type="text/javascript">
 
     var Neb = require('neb');
     var neb = new Neb();
-    neb.setRequest(new Neb.HttpRequest("http://localhost:8685"))
+    neb.setRequest(new Neb.HttpRequest("http://localhost:8685"));
+
+    var Account = require('neb-account');
 
     function createExampleAccount() {
         var allAccounts = neb.api.accounts();
@@ -21,6 +24,13 @@
         document.getElementById('all-account').innerText = content;
     }
 
+    function generateAddress() {
+        console.log(Account);
+
+        var account = Account.NewAccount();
+        document.getElementById('new-account').innerText = account.getAddressString();
+    }
+
 </script>
 </head>
 <body>
@@ -30,6 +40,11 @@
     </div>
     <div id="result"></div>
     <div id="all-account"></div>
+
+    <div>
+        <button type="button" onClick="generateAddress();">new account</button>
+    </div>
+    <div id="new-account"></div>
 </body>
 </html>
 
