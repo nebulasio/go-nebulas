@@ -254,12 +254,6 @@ func (s *Stream) StartLoop() {
 }
 
 func (s *Stream) readLoop() {
-	buf := make([]byte, 1024*4)
-	messageBuffer := []byte{}
-
-	var message *NebMessage
-	readAt := time.Now().UnixNano()
-	readDataAt := int64(0)
 
 	// send Hello to host if stream is not connected.
 	if !s.IsConnected() {
@@ -274,30 +268,39 @@ func (s *Stream) readLoop() {
 	}
 
 	// loop.
+	buf := make([]byte, 1024*4)
+	messageBuffer := make([]byte, 0)
+
+	var message *NebMessage
+	readAt := time.Now().UnixNano()
+	readDataAt := int64(0)
+
 	for {
-		select {
-		default:
-			n, err := s.stream.Read(buf)
-			if err != nil {
-				logging.VLog().WithFields(logrus.Fields{
-					"err":    err,
-					"stream": s.String(),
-				}).Error("Error occurred when reading data from network connection.")
-				s.Close(err)
-				return
-			}
-			messageBuffer = append(messageBuffer, buf[:n]...)
-			s.latestReadAt = time.Now().Unix()
+		n, err := s.stream.Read(buf)
+		if err != nil {
+			logging.VLog().WithFields(logrus.Fields{
+				"err":    err,
+				"stream": s.String(),
+			}).Error("Error occurred when reading data from network connection.")
+			s.Close(err)
+			return
+		}
 
-			if readDataAt == 0 {
-				readDataAt = time.Now().UnixNano()
-			}
+		messageBuffer = append(messageBuffer, buf[:n]...)
+		s.latestReadAt = time.Now().Unix()
 
+		if readDataAt == 0 {
+			readDataAt = time.Now().UnixNano()
+		}
+
+		for {
 			if message == nil {
+				var err error
+
 				// waiting for header data.
 				if len(messageBuffer) < NebMessageHeaderLength {
 					// continue reading.
-					continue
+					break
 				}
 
 				message, err = ParseNebMessage(messageBuffer)
@@ -323,12 +326,12 @@ func (s *Stream) readLoop() {
 			}
 
 			// waiting for data.
-			if uint32(len(messageBuffer)) < message.DataLength() {
+			if len(messageBuffer) < int(message.DataLength()) {
 				// continue reading.
-				continue
+				break
 			}
 
-			if err = message.ParseMessageData(messageBuffer); err != nil {
+			if err := message.ParseMessageData(messageBuffer); err != nil {
 				s.Bye()
 				return
 			}
@@ -343,6 +346,7 @@ func (s *Stream) readLoop() {
 				"stream":                         s.String(),
 				"duration from Read(ms)":         (nowAt - readDataAt) / int64(time.Millisecond),
 				"duration from last Message(ms)": (nowAt - readAt) / int64(time.Millisecond),
+				"len(messageBuffer)":             len(messageBuffer),
 			}).Debugf("Received %s message from peer.", message.MessageName())
 
 			// metrics.
@@ -442,9 +446,7 @@ func (s *Stream) handleMessage(message *NebMessage) error {
 	case RECVEDMSG:
 		return s.OnRecvedMsg(message)
 	default:
-
 		s.node.netService.PutMessage(messages.NewBaseMessage(message.MessageName(), s.pid.Pretty(), message.Data()))
-
 		// record recv message.
 		RecordRecvMessage(s, message.DataCheckSum())
 	}
@@ -572,7 +574,7 @@ func (s *Stream) RouteTable() error {
 
 	for i, v := range peers {
 		pi := &netpb.PeerInfo{
-			Id:    string(v.ID),
+			Id:    v.ID.Pretty(),
 			Addrs: make([]string, len(v.Addrs)),
 		}
 		for j, addr := range v.Addrs {

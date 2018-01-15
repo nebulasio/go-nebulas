@@ -10,6 +10,7 @@ vendor
 
 # build files
 neb
+cmd/network/network
 nebulas_crashreporter
 !cmd/neb
 debug

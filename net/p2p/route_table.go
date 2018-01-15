@@ -125,13 +125,11 @@ func (table *RouteTable) syncLoop() {
 	}
 }
 
-func (table *RouteTable) AddPeerInfo(pidStr string, addrStr []string) error {
-	pid := peer.ID(pidStr)
-	if table.routeTable.Find(pid) != "" {
+func (table *RouteTable) AddPeerInfo(prettyID string, addrStr []string) error {
+	pid, err := peer.IDB58Decode(prettyID)
+	if err != nil {
 		return nil
 	}
-
-	var err error
 
 	addrs := make([]ma.Multiaddr, len(addrStr))
 	for i, v := range addrStr {
@@ -141,7 +139,11 @@ func (table *RouteTable) AddPeerInfo(pidStr string, addrStr []string) error {
 		}
 	}
 
-	table.peerStore.AddAddrs(pid, addrs, peerstore.PermanentAddrTTL)
+	if table.routeTable.Find(pid) != "" {
+		table.peerStore.SetAddrs(pid, addrs, peerstore.PermanentAddrTTL)
+	} else {
+		table.peerStore.AddAddrs(pid, addrs, peerstore.PermanentAddrTTL)
+	}
 	table.routeTable.Update(pid)
 
 	return nil
