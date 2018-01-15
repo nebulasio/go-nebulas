@@ -21,6 +21,8 @@ package sync
 import (
 	"errors"
 
+	"github.com/nebulasio/go-nebulas/util/byteutils"
+
 	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/net"
@@ -166,30 +168,14 @@ func (ss *SyncService) onChainSync(message net.Message) {
 	}
 
 	// generate Chunks message.
-	syncpoint := new(core.Block)
-	if err := syncpoint.FromProto(chunkSync.GetTailBlock()); err != nil {
-		logging.VLog().WithFields(logrus.Fields{
-			"err": err,
-			"pid": message.MessageFrom(),
-		}).Debug("Invalid ChainSync message data.")
-		ss.netService.ClosePeer(message.MessageFrom(), ErrInvalidChainSyncMessageData)
-		return
-	}
-
-	chunks, err := ss.chunk.generateChunkHeaders(syncpoint)
+	chunks, err := ss.chunk.generateChunkHeaders(chunkSync.TailBlockHash)
 	if err != nil && err != ErrTooSmallGapToSync {
 		logging.VLog().WithFields(logrus.Fields{
-			"err":   err,
-			"pid":   message.MessageFrom(),
-			"block": syncpoint,
+			"err":  err,
+			"pid":  message.MessageFrom(),
+			"hash": byteutils.Hex(chunkSync.TailBlockHash),
 		}).Debug("Failed to generate chunk headers.")
-		// TODO: @roy should let the node know the error. Or the node retry after 30s later + parent block hash.
 		return
-	}
-	if err == ErrTooSmallGapToSync {
-		chunks.Done = true
-	} else {
-		chunks.Done = false
 	}
 
 	ss.sendChainChunks(message.MessageFrom(), chunks)

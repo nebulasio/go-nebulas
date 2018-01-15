@@ -29,7 +29,6 @@ import (
 
 	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/core"
-	"github.com/nebulasio/go-nebulas/core/pb"
 	"github.com/nebulasio/go-nebulas/net"
 	"github.com/nebulasio/go-nebulas/net/p2p"
 	"github.com/nebulasio/go-nebulas/sync/pb"
@@ -179,7 +178,7 @@ func (st *SyncTask) setSyncPointToLastChunk() {
 		lastChunkBlockHeight = st.syncPointBlock.Height() - uint64(core.ChunkSize)
 	}
 
-	st.syncPointBlock = st.blockChain.GetBlockByHeight(lastChunkBlockHeight)
+	st.syncPointBlock = st.blockChain.GetBlockOnCanonicalChainByHeight(lastChunkBlockHeight)
 }
 
 func (st *SyncTask) sendChainSync() {
@@ -188,13 +187,8 @@ func (st *SyncTask) sendChainSync() {
 		"syncPointBlockHash":   st.syncPointBlock.Hash().String(),
 	}).Info("Starting ChainSync at %d times.", st.chainSyncRetryCount)
 
-	pbBlock, err := st.syncPointBlock.ToProto()
-	if err != nil {
-		return
-	}
-
 	chunkSync := &syncpb.Sync{
-		TailBlock: pbBlock.(*corepb.Block),
+		TailBlockHash: st.syncPointBlock.Hash(),
 	}
 
 	data, err := proto.Marshal(chunkSync)

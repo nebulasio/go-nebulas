@@ -23,7 +23,7 @@ import "github.com/nebulasio/go-nebulas/core/pb/block.proto";
 package syncpb;
 
 message Sync {
-    corepb.Block tail_block = 1;
+    bytes tail_block_hash = 1;
 }
 
 message ChunkHeader {
@@ -34,7 +34,6 @@ message ChunkHeader {
 message ChunkHeaders {
     repeated ChunkHeader chunkHeaders = 1;
 	bytes root = 2;
-	bool done = 3;
 }
 
 message ChunkData {

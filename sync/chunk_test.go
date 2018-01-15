@@ -218,7 +218,7 @@ func TestChunk_generateChunkMeta(t *testing.T) {
 		blocks = append(blocks, block)
 	}
 
-	meta, err := ck.generateChunkHeaders(blocks[1])
+	meta, err := ck.generateChunkHeaders(blocks[1].Hash())
 	assert.Nil(t, err)
 	assert.Equal(t, len(meta.ChunkHeaders), 3)
 	chunks, err := ck.generateChunkData(meta.ChunkHeaders[1])
@@ -229,16 +229,16 @@ func TestChunk_generateChunkMeta(t *testing.T) {
 		assert.Equal(t, int(chunks.Blocks[i].Height), index)
 	}
 
-	meta, err = ck.generateChunkHeaders(blocks[0])
+	meta, err = ck.generateChunkHeaders(blocks[0].Hash())
 	assert.Nil(t, err)
 	assert.Equal(t, len(meta.ChunkHeaders), 3)
 
-	meta, err = ck.generateChunkHeaders(blocks[31])
+	meta, err = ck.generateChunkHeaders(blocks[31].Hash())
 	assert.Nil(t, err)
 	assert.Equal(t, int(blocks[31].Height()), 33)
 	assert.Equal(t, len(meta.ChunkHeaders), 2)
 
-	meta, err = ck.generateChunkHeaders(blocks[62])
+	meta, err = ck.generateChunkHeaders(blocks[62].Hash())
 	assert.Nil(t, err)
 	assert.Equal(t, int(blocks[62].Height()), 64)
 	assert.Equal(t, len(meta.ChunkHeaders), 2)
@@ -247,7 +247,7 @@ func TestChunk_generateChunkMeta(t *testing.T) {
 	chain2.SetConsensusHandler(cons)
 	chain2.BlockPool().RegisterInNetwork(n)
 	assert.Nil(t, err)
-	meta, err = ck.generateChunkHeaders(blocks[0])
+	meta, err = ck.generateChunkHeaders(blocks[0].Hash())
 	assert.Nil(t, err)
 	for _, header := range meta.ChunkHeaders {
 		chunk, err := ck.generateChunkData(header)

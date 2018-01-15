@@ -321,21 +321,45 @@ func (bc *BlockChain) LatestIrreversibleBlock() *Block {
 	return bc.latestIrreversibleBlock
 }
 
-// CheckBlockOnCanonicalChain check if a block is on canonical chain
-func (bc *BlockChain) CheckBlockOnCanonicalChain(block *Block) error {
-	tail := bc.TailBlock()
-	// fast check if the block is an ancestor of current tail
-	if tail.height >= block.height {
-		localBlock := bc.GetBlockByHeight(block.height)
-		if localBlock != nil && localBlock.Hash().Equals(block.Hash()) {
-			return nil
-		}
+// GetBlockOnCanonicalChainByHeight return block in given height
+func (bc *BlockChain) GetBlockOnCanonicalChainByHeight(height uint64) *Block {
+	blockHash, err := bc.storage.Get(byteutils.FromUint64(height))
+	if err != nil {
+		return nil
 	}
-	logging.VLog().WithFields(logrus.Fields{
-		"tail":  tail,
-		"block": block,
-	}).Warn("Failed to check a block on canonical chain.")
-	return ErrInvalidBlockOnCanonicalChain
+	return bc.GetBlock(blockHash)
+}
+
+// GetBlockOnCanonicalChainByHash check if a block is on canonical chain
+func (bc *BlockChain) GetBlockOnCanonicalChainByHash(blockHash byteutils.Hash) *Block {
+	blockByHash := bc.GetBlock(blockHash)
+	if blockByHash == nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"hash": blockHash.Hex(),
+			"tail": bc.tailBlock,
+			"err":  "cannot find block with the given hash in local storage",
+		}).Warn("Failed to check a block on canonical chain.")
+		return nil
+	}
+	blockByHeight := bc.GetBlockOnCanonicalChainByHeight(blockByHash.height)
+	if blockByHeight == nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"height": blockByHeight.Height(),
+			"tail":   bc.tailBlock,
+			"err":    "cannot find block with the given height in local storage",
+		}).Warn("Failed to check a block on canonical chain.")
+		return nil
+	}
+	if !blockByHeight.Hash().Equals(blockByHash.Hash()) {
+		logging.VLog().WithFields(logrus.Fields{
+			"blockByHash":   blockByHash,
+			"blockByHeight": blockByHeight,
+			"tail":          bc.tailBlock,
+			"err":           "block with the given hash isn't on canonical chain",
+		}).Warn("Failed to check a block on canonical chain.")
+		return nil
+	}
+	return blockByHeight
 }
 
 // FindCommonAncestorWithTail return the block's common ancestor with current tail
@@ -381,7 +405,7 @@ func (bc *BlockChain) FetchDescendantInCanonicalChain(n int, block *Block) ([]*B
 	index := uint64(0)
 	res := []*Block{}
 	for curHeight+index <= tailHeight && index < uint64(n) {
-		block := bc.GetBlockByHeight(curHeight + index)
+		block := bc.GetBlockOnCanonicalChainByHeight(curHeight + index)
 		if block == nil {
 			logging.VLog().WithFields(logrus.Fields{
 				"err":    ErrCannotFindBlockAtGivenHeight,
@@ -497,15 +521,6 @@ func (bc *BlockChain) GetBlock(hash byteutils.Hash) *Block {
 
 	block := v.(*Block)
 	return block
-}
-
-// GetBlockByHeight return block in given height
-func (bc *BlockChain) GetBlockByHeight(height uint64) *Block {
-	blockHash, err := bc.storage.Get(byteutils.FromUint64(height))
-	if err != nil {
-		return nil
-	}
-	return bc.GetBlock(blockHash)
 }
 
 // GetTransaction return transaction of given hash from local storage.

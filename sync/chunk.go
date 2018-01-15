@@ -44,16 +44,17 @@ func NewChunk(blockChain *core.BlockChain) *Chunk {
 	}
 }
 
-func (c *Chunk) generateChunkHeaders(syncpoint *core.Block) (*syncpb.ChunkHeaders, error) {
-	if err := c.blockChain.CheckBlockOnCanonicalChain(syncpoint); err != nil {
-		return nil, err
+func (c *Chunk) generateChunkHeaders(syncpointHash byteutils.Hash) (*syncpb.ChunkHeaders, error) {
+	syncpoint := c.blockChain.GetBlockOnCanonicalChainByHash(syncpointHash)
+	if syncpoint == nil {
+		return nil, ErrCannotFindBlockByHash
 	}
 	tail := c.blockChain.TailBlock()
 	if int(tail.Height())-int(syncpoint.Height()) <= core.ChunkSize {
 		logging.VLog().WithFields(logrus.Fields{
 			"err": ErrTooSmallGapToSync,
 		}).Warn("Failed to generate sync blocks meta info")
-		return nil, ErrTooSmallGapToSync
+		return &syncpb.ChunkHeaders{}, ErrTooSmallGapToSync
 	}
 
 	chunkHeaders := []*syncpb.ChunkHeader{}
@@ -89,7 +90,7 @@ func (c *Chunk) generateChunkHeaders(syncpoint *core.Block) (*syncpb.ChunkHeader
 		endHeight := (curChunk+1)*core.ChunkSize + 2
 		curHeight := startHeight
 		for curHeight < endHeight {
-			block := c.blockChain.GetBlockByHeight(curHeight)
+			block := c.blockChain.GetBlockOnCanonicalChainByHeight(curHeight)
 			if block == nil {
 				logging.VLog().WithFields(logrus.Fields{
 					"height": curHeight + 1,
@@ -117,6 +118,11 @@ func (c *Chunk) generateChunkHeaders(syncpoint *core.Block) (*syncpb.ChunkHeader
 }
 
 func VerifyChunkHeaders(chunkHeaders *syncpb.ChunkHeaders) (bool, error) {
+	if len(chunkHeaders.ChunkHeaders) == 0 && len(chunkHeaders.Root) == 0 {
+		// fast quit.
+		return true, nil
+	}
+
 	stor, err := storage.NewMemoryStorage()
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
