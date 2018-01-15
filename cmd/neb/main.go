@@ -137,7 +137,7 @@ func makeNeb(ctx *cli.Context) (*neblet.Neblet, error) {
 	appConfig(ctx, conf.App)
 	statsConfig(ctx, conf.Stats)
 
-	n, err := neblet.New(*conf)
+	n, err := neblet.New(conf)
 	if err != nil {
 		return nil, err
 	}

@@ -42,7 +42,7 @@ var (
 
 // Neblet manages ldife cycle of blockchain services.
 type Neblet struct {
-	config nebletpb.Config
+	config *nebletpb.Config
 
 	genesis *corepb.Genesis
 
@@ -70,7 +70,7 @@ type Neblet struct {
 }
 
 // New returns a new neblet.
-func New(config nebletpb.Config) (*Neblet, error) {
+func New(config *nebletpb.Config) (*Neblet, error) {
 	var err error
 	n := &Neblet{config: config}
 	n.genesis, err = core.LoadGenesisConf(config.Chain.Genesis)
@@ -78,15 +78,16 @@ func New(config nebletpb.Config) (*Neblet, error) {
 		return nil, err
 	}
 	n.accountManager = account.NewManager(n)
+
+	// init random seed.
+	rand.Seed(time.Now().UTC().UnixNano())
+
 	return n, nil
 }
 
 // Setup setup neblet
 func (n *Neblet) Setup() error {
 	var err error
-
-	// init random seed.
-	rand.Seed(time.Now().UTC().UnixNano())
 
 	// storage
 	n.storage, err = storage.NewDiskStorage(n.config.Chain.Datadir)
@@ -251,7 +252,7 @@ func (n *Neblet) Genesis() *corepb.Genesis {
 }
 
 // Config returns neblet configuration.
-func (n *Neblet) Config() nebletpb.Config {
+func (n *Neblet) Config() *nebletpb.Config {
 	return n.config
 }
 

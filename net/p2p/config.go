@@ -72,7 +72,7 @@ type Config struct {
 
 // Neblet interface breaks cycle import dependency.
 type Neblet interface {
-	Config() nebletpb.Config
+	Config() *nebletpb.Config
 }
 
 // NewP2PConfig return new config object.

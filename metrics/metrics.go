@@ -43,7 +43,7 @@ var (
 
 // Neblet interface breaks cycle import dependency.
 type Neblet interface {
-	Config() nebletpb.Config
+	Config() *nebletpb.Config
 	NetManager() p2p.Manager
 }
 

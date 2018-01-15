@@ -40,7 +40,7 @@ import (
 )
 
 type Neb struct {
-	config  nebletpb.Config
+	config  *nebletpb.Config
 	chain   *core.BlockChain
 	ns      p2p.Manager
 	am      *account.Manager
@@ -57,7 +57,7 @@ func mockNeb(t *testing.T) *Neb {
 		genesis: genesisConf,
 		storage: storage,
 		emitter: eventEmitter,
-		config: nebletpb.Config{
+		config: &nebletpb.Config{
 			Chain: &nebletpb.ChainConfig{
 				ChainId:    genesisConf.Meta.ChainId,
 				Keydir:     "keydir",
@@ -78,7 +78,7 @@ func mockNeb(t *testing.T) *Neb {
 	return neb
 }
 
-func (n *Neb) Config() nebletpb.Config {
+func (n *Neb) Config() *nebletpb.Config {
 	return n.config
 }
 

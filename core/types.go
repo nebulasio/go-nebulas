@@ -136,7 +136,7 @@ type SyncService interface {
 // Neblet interface breaks cycle import dependency and hides unused services.
 type Neblet interface {
 	Genesis() *corepb.Genesis
-	Config() nebletpb.Config
+	Config() *nebletpb.Config
 	Storage() storage.Storage
 	EventEmitter() *EventEmitter
 }

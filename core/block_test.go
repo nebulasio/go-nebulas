@@ -36,7 +36,7 @@ import (
 
 type mockNeb struct {
 	genesis *corepb.Genesis
-	config  nebletpb.Config
+	config  *nebletpb.Config
 	storage storage.Storage
 	emitter *EventEmitter
 }
@@ -45,7 +45,7 @@ func (n *mockNeb) Genesis() *corepb.Genesis {
 	return n.genesis
 }
 
-func (n *mockNeb) Config() nebletpb.Config {
+func (n *mockNeb) Config() *nebletpb.Config {
 	return n.config
 }
 
@@ -64,7 +64,7 @@ func testNeb() *mockNeb {
 	eventEmitter := NewEventEmitter(1024)
 	neb := &mockNeb{
 		genesis: MockGenesisConf(),
-		config:  nebletpb.Config{Chain: &nebletpb.ChainConfig{ChainId: MockGenesisConf().Meta.ChainId}},
+		config:  &nebletpb.Config{Chain: &nebletpb.ChainConfig{ChainId: MockGenesisConf().Meta.ChainId}},
 		storage: storage,
 		emitter: eventEmitter,
 	}

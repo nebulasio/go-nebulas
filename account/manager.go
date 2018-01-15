@@ -56,7 +56,7 @@ var (
 
 // Neblet interface breaks cycle import dependency and hides unused services.
 type Neblet interface {
-	Config() nebletpb.Config
+	Config() *nebletpb.Config
 }
 
 // Manager accounts manager ,handle account generate and storage

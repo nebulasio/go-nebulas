@@ -37,7 +37,7 @@ var (
 
 // Neblet interface breaks cycle import dependency and hides unused services.
 type Neblet interface {
-	Config() nebletpb.Config
+	Config() *nebletpb.Config
 	BlockChain() *core.BlockChain
 	NetManager() p2p.Manager
 }
