@@ -33,7 +33,8 @@ message ChunkHeader {
 
 message ChunkHeaders {
     repeated ChunkHeader chunkHeaders = 1;
-    bytes root = 2;
+	bytes root = 2;
+	bool done = 3;
 }
 
 message ChunkData {

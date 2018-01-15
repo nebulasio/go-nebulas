@@ -183,6 +183,13 @@ func (n *Neblet) Start() error {
 		}
 	}
 
+	// first sync
+	if len(n.Config().Network.Seed) > 0 {
+		n.blockChain.StartActiveSync()
+	} else {
+		n.Consensus().ResumeMining()
+	}
+
 	metricsNebstartGauge.Update(1)
 	return nil
 }

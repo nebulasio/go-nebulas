@@ -177,7 +177,7 @@ func (ss *SyncService) onChainSync(message net.Message) {
 	}
 
 	chunks, err := ss.chunk.generateChunkHeaders(syncpoint)
-	if err != nil {
+	if err != nil && err != ErrTooSmallGapToSync {
 		logging.VLog().WithFields(logrus.Fields{
 			"err":   err,
 			"pid":   message.MessageFrom(),
@@ -185,6 +185,11 @@ func (ss *SyncService) onChainSync(message net.Message) {
 		}).Debug("Failed to generate chunk headers.")
 		// TODO: @roy should let the node know the error. Or the node retry after 30s later + parent block hash.
 		return
+	}
+	if err == ErrTooSmallGapToSync {
+		chunks.Done = true
+	} else {
+		chunks.Done = false
 	}
 
 	ss.sendChainChunks(message.MessageFrom(), chunks)

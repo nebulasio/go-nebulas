@@ -173,9 +173,9 @@ func (st *SyncTask) reset() {
 }
 
 func (st *SyncTask) setSyncPointToLastChunk() {
-	// the first block height of chunk is 2.
-	lastChunkBlockHeight := uint64(2)
-	if st.syncPointBlock.Height()+2 > core.ChunkSize {
+	// the first block height of chunk is 1.
+	lastChunkBlockHeight := uint64(1)
+	if st.syncPointBlock.Height()+1 > core.ChunkSize {
 		lastChunkBlockHeight = st.syncPointBlock.Height() - uint64(core.ChunkSize)
 	}
 
@@ -387,7 +387,7 @@ func (st *SyncTask) sendChainGetChunkForNext() {
 }
 
 func (st *SyncTask) hasEnoughChunkHeaders() bool {
-	ret := st.maxConsistentChunkHeadersCount >= int(math.Sqrt(float64(st.chainSyncPeersCount)))
+	ret := st.chainSyncPeersCount > 0 && st.maxConsistentChunkHeadersCount >= int(math.Sqrt(float64(st.chainSyncPeersCount)))
 	if ret {
 		logging.VLog().WithFields(logrus.Fields{
 			"chainSyncPeersCount":               st.chainSyncPeersCount,
