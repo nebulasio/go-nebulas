@@ -20,9 +20,15 @@ package net
 
 import (
 	"sync"
+	"time"
 
 	"github.com/nebulasio/go-nebulas/util/logging"
+	metrics "github.com/rcrowley/go-metrics"
 	"github.com/sirupsen/logrus"
+)
+
+var (
+	metricsDispatcherCached = metrics.GetOrRegisterGauge("neb.net.dispatcher.cached", nil)
 )
 
 // Dispatcher a message dispatcher service.
@@ -71,33 +77,37 @@ func (dp *Dispatcher) Deregister(subscribers ...*Subscriber) {
 // Start start message dispatch goroutine.
 func (dp *Dispatcher) Start() {
 	logging.CLog().Info("Starting NetService Dispatcher...")
+	go dp.loop()
+}
 
-	go (func() {
-		for {
-			select {
-			case <-dp.quitCh:
-				logging.CLog().Info("Stoping NetService Dispatcher...")
-				return
+func (dp *Dispatcher) loop() {
+	logging.CLog().Info("Started NewService Dispatcher.")
+	timerChan := time.NewTicker(time.Second).C
+	for {
+		select {
+		case <-timerChan:
+			metricsDispatcherCached.Update(int64(len(dp.receivedMessageCh)))
+		case <-dp.quitCh:
+			logging.CLog().Info("Stoping NetService Dispatcher...")
+			return
+		case msg := <-dp.receivedMessageCh:
+			msgType := msg.MessageType()
+			logging.VLog().WithFields(logrus.Fields{
+				"msgType": msgType,
+			}).Info("dispatcher received message")
 
-			case msg := <-dp.receivedMessageCh:
-				msgType := msg.MessageType()
+			v, _ := dp.subscribersMap.Load(msgType)
+			m, _ := v.(*sync.Map)
+
+			m.Range(func(key, value interface{}) bool {
+				key.(*Subscriber).msgChan <- msg
 				logging.VLog().WithFields(logrus.Fields{
 					"msgType": msgType,
-				}).Info("dispatcher received message")
-
-				v, _ := dp.subscribersMap.Load(msgType)
-				m, _ := v.(*sync.Map)
-
-				m.Range(func(key, value interface{}) bool {
-					key.(*Subscriber).msgChan <- msg
-					logging.VLog().WithFields(logrus.Fields{
-						"msgType": msgType,
-					}).Info("succeed dispatcher received message")
-					return true
-				})
-			}
+				}).Info("succeed dispatcher received message")
+				return true
+			})
 		}
-	})()
+	}
 }
 
 // Stop stop goroutine.

@@ -350,18 +350,6 @@ func (block *Block) ParentHash() byteutils.Hash {
 	return block.header.parentHash
 }
 
-// ParentBlock return the parent block.
-func (block *Block) ParentBlock() (*Block, error) {
-	if block.parenetBlock != nil {
-		return block.parenetBlock, nil
-	}
-	parentBlock, err := LoadBlockFromStorage(block.ParentHash(), block.storage, block.txPool, block.eventEmitter)
-	if err != nil {
-		return nil, ErrMissingParentBlock
-	}
-	return parentBlock, nil
-}
-
 // Height return height
 func (block *Block) Height() uint64 {
 	return block.height

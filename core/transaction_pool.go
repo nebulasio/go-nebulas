@@ -20,6 +20,7 @@ package core
 
 import (
 	"sync"
+	"time"
 
 	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/common/pdeque"
@@ -124,8 +125,11 @@ func (pool *TransactionPool) loop() {
 		"size": pool.size,
 	}).Info("Started TransactionPool.")
 
+	timerChan := time.NewTicker(time.Second).C
 	for {
 		select {
+		case <-timerChan:
+			metricsCachedTx.Update(int64(len(pool.receivedMessageCh)))
 		case <-pool.quitCh:
 			logging.CLog().WithFields(logrus.Fields{
 				"size": pool.size,

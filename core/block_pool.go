@@ -209,8 +209,8 @@ func (pool *BlockPool) handleDownloadedBlock(msg net.Message) {
 		return
 	}
 
-	parent, err := block.ParentBlock()
-	if err != nil {
+	parent := pool.bc.GetBlock(block.header.parentHash)
+	if parent == nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"block": block,
 		}).Error("Failed to find the block's parent.")
@@ -243,8 +243,12 @@ func (pool *BlockPool) handleDownloadedBlock(msg net.Message) {
 
 func (pool *BlockPool) loop() {
 	logging.CLog().Info("Started BlockPool.")
+	timerChan := time.NewTimer(time.Second).C
 	for {
 		select {
+		case <-timerChan:
+			metricsCachedNewBlock.Update(int64(len(pool.receiveBlockMessageCh)))
+			metricsCachedDownloadBlock.Update(int64(len(pool.receiveDownloadBlockMessageCh)))
 		case <-pool.quitCh:
 			logging.CLog().Info("Shutdowned BlockPool.")
 			return

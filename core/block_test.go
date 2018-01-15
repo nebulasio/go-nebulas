@@ -474,21 +474,6 @@ func TestBlockSign(t *testing.T) {
 	assert.Equal(t, block.Signature(), block.header.sign)
 }
 
-func TestParentBlock(t *testing.T) {
-	bc, err := NewBlockChain(testNeb())
-	assert.Nil(t, err)
-	coinbase := mockAddress()
-	block, err := bc.NewBlock(coinbase)
-	assert.Nil(t, err)
-	parent, err := block.ParentBlock()
-	assert.Nil(t, err)
-	assert.Equal(t, parent.Hash(), bc.genesisBlock.Hash())
-	block.parenetBlock = nil
-	parent, err = block.ParentBlock()
-	assert.Nil(t, err)
-	assert.Equal(t, parent.Hash(), bc.genesisBlock.Hash())
-}
-
 func TestGivebackInvalidTx(t *testing.T) {
 	bc, err := NewBlockChain(testNeb())
 	assert.Nil(t, err)

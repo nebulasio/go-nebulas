@@ -33,12 +33,15 @@ var (
 	metricsTxOnchainTimer        = metrics.GetOrRegisterTimer("neb.tx.onchain", nil)
 
 	// block_pool metrics
-	metricsDuplicatedBlock    = metrics.GetOrRegisterCounter("neb.block.duplicated", nil)
-	metricsInvalidBlock       = metrics.GetOrRegisterCounter("neb.block.invalid", nil)
-	metricsBlockExecutedTimer = metrics.GetOrRegisterTimer("neb.block.executed", nil)
-	metricsTxExecutedTimer    = metrics.GetOrRegisterTimer("neb.tx.executed", nil)
+	metricsCachedNewBlock      = metrics.GetOrRegisterGauge("neb.block.new.cached", nil)
+	metricsCachedDownloadBlock = metrics.GetOrRegisterGauge("neb.block.download.cached", nil)
+	metricsDuplicatedBlock     = metrics.GetOrRegisterCounter("neb.block.duplicated", nil)
+	metricsInvalidBlock        = metrics.GetOrRegisterCounter("neb.block.invalid", nil)
+	metricsBlockExecutedTimer  = metrics.GetOrRegisterTimer("neb.block.executed", nil)
+	metricsTxExecutedTimer     = metrics.GetOrRegisterTimer("neb.tx.executed", nil)
 
 	// txpool metrics
+	metricsCachedTx            = metrics.GetOrRegisterGauge("txpool.cached", nil)
 	metricsInvalidTx           = metrics.GetOrRegisterCounter("txpool.invalid", nil)
 	metricsDuplicateTx         = metrics.GetOrRegisterCounter("txpool.duplicate", nil)
 	metricsTxPoolBelowGasPrice = metrics.GetOrRegisterCounter("txpool.below_gas_price", nil)
