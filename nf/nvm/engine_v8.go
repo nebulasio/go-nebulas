@@ -256,11 +256,11 @@ func (e *V8Engine) CollectTracingStats() {
 }
 
 // RunScriptSource run js source.
-func (e *V8Engine) RunScriptSource(source string, sourceLineOffset int) (err error) {
+func (e *V8Engine) RunScriptSource(source string, sourceLineOffset int) (result string, err error) {
 	if e.enableLimits {
 		traceableSource, traceableSourceLineOffset, err := e.InjectTracingInstructions(source)
 		if err != nil {
-			return err
+			return "", err
 		}
 		source = traceableSource
 		sourceLineOffset += traceableSourceLineOffset
@@ -268,11 +268,19 @@ func (e *V8Engine) RunScriptSource(source string, sourceLineOffset int) (err err
 
 	cSource := C.CString(source)
 	defer C.free(unsafe.Pointer(cSource))
+
 	var ret C.int
+	var cJSONResult *C.char
+	defer func() {
+		if cJSONResult != nil {
+			result = C.GoString(cJSONResult)
+			C.free(unsafe.Pointer(cJSONResult))
+		}
+	}()
 
 	done := make(chan bool, 1)
 	go func() {
-		ret = C.RunScriptSource(e.v8engine, cSource, C.int(sourceLineOffset), C.uintptr_t(e.lcsHandler),
+		ret = C.RunScriptSource(&cJSONResult, e.v8engine, cSource, C.int(sourceLineOffset), C.uintptr_t(e.lcsHandler),
 			C.uintptr_t(e.gcsHandler))
 		done <- true
 	}()
@@ -313,20 +321,20 @@ func (e *V8Engine) RunScriptSource(source string, sourceLineOffset int) (err err
 }
 
 // Call function in a script
-func (e *V8Engine) Call(source, sourceType, function, args string) error {
+func (e *V8Engine) Call(source, sourceType, function, args string) (string, error) {
 	if publicFuncNameChecker.MatchString(function) == false || strings.EqualFold("init", function) == true {
-		return ErrDisallowCallPrivateFunction
+		return "", ErrDisallowCallPrivateFunction
 	}
 	return e.RunContractScript(source, sourceType, function, args)
 }
 
 // DeployAndInit a contract
-func (e *V8Engine) DeployAndInit(source, sourceType, args string) error {
+func (e *V8Engine) DeployAndInit(source, sourceType, args string) (string, error) {
 	return e.RunContractScript(source, sourceType, "init", args)
 }
 
 // RunContractScript execute script in Smart Contract's way.
-func (e *V8Engine) RunContractScript(source, sourceType, function, args string) error {
+func (e *V8Engine) RunContractScript(source, sourceType, function, args string) (string, error) {
 	var runnableSource string
 	var sourceLineOffset int
 	var err error
@@ -338,15 +346,15 @@ func (e *V8Engine) RunContractScript(source, sourceType, function, args string) 
 		// transpile to javascript.
 		jsSource, _, err := e.TranspileTypeScript(source)
 		if err != nil {
-			return err
+			return "", err
 		}
 		runnableSource, sourceLineOffset, err = e.prepareRunnableContractScript(jsSource, function, args)
 	default:
-		return ErrUnsupportedSourceType
+		return "", ErrUnsupportedSourceType
 	}
 
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	return e.RunScriptSource(runnableSource, sourceLineOffset)

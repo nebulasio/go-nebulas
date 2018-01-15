@@ -433,7 +433,7 @@ func TestPayload_Execute(t *testing.T) {
 			ctx := NewPayloadContext(tt.block, tt.tx)
 			ctx.BeginBatch()
 
-			got, err := tt.payload.Execute(ctx)
+			got, _, err := tt.payload.Execute(ctx)
 			assert.Equal(t, tt.wantErr, err)
 			assert.Equal(t, tt.want, got)
 

@@ -347,7 +347,7 @@ func (tx *Transaction) VerifyExecution(block *Block) (*util.Uint128, error) {
 	}
 
 	// execute smart contract and sub the calcute gas.
-	gasExecution, err := payload.Execute(ctx)
+	gasExecution, _, err := payload.Execute(ctx)
 	if err != nil {
 		ctx.RollBack()
 	} else {

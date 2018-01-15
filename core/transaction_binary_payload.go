@@ -52,6 +52,6 @@ func (payload *BinaryPayload) BaseGasCount() *util.Uint128 {
 }
 
 // Execute the payload in tx
-func (payload *BinaryPayload) Execute(ctx *PayloadContext) (*util.Uint128, error) {
-	return util.NewUint128(), nil
+func (payload *BinaryPayload) Execute(ctx *PayloadContext) (*util.Uint128, string, error) {
+	return util.NewUint128(), "", nil
 }

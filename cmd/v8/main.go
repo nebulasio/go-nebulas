@@ -39,9 +39,9 @@ func main() {
 
 	ctx := nvm.NewContext(nil, nil, owner, contract, context)
 	engine := nvm.NewV8Engine(ctx)
-	err := engine.RunScriptSource(string(data), 0)
+	result, err := engine.RunScriptSource(string(data), 0)
 
-	log.Fatalf("Err is %s", err)
+	log.Fatalf("Result is %s. Err is %s", result, err)
 
 	time.Sleep(10 * time.Second)
 	engine.Dispose()
