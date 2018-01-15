@@ -1,4 +1,5 @@
 
+"use strict";
 
 var BigNumber = require('bignumber.js');
 

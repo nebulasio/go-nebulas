@@ -24,7 +24,13 @@
   },
   "dependencies": {
     "bignumber.js": "*",
-    "xmlhttprequest": "*"
+    "xmlhttprequest": "*",
+    "js-sha3": "*",
+    "secp256k1": "*",
+    "safe-buffer": "*",
+    "assert": "*",
+    "uuid": "^3.0.1",
+    "scryptsy": "^2.0.0"
   },
   "devDependencies": {
     "browserify": ">=10.0",

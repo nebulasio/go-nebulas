@@ -20,6 +20,7 @@ var DEST = path.join(__dirname, 'dist/');
 var src = 'index';
 var dst = 'neb';
 var lightDst = 'neb-light';
+var accountDst = 'neb-account';
 
 var browserifyOptions = {
     debug: true,
@@ -72,9 +73,23 @@ gulp.task('neb', ['clean'], function () {
         .pipe(gulp.dest( DEST ));
 });
 
+
+gulp.task('account', ['clean'], function () {
+    return browserify(browserifyOptions)
+        .require('./lib/account.js')
+        .add('./lib/account.js')
+        .bundle()
+        .pipe(exorcist(path.join( DEST, accountDst + '.js.map')))
+        .pipe(source(accountDst + '.js'))
+        .pipe(gulp.dest( DEST ))
+        .pipe(streamify(uglify()))
+        .pipe(rename(accountDst + '.min.js'))
+        .pipe(gulp.dest( DEST ));
+});
+
 gulp.task('watch', function() {
     gulp.watch(['./lib/*.js'], ['lint', 'build']);
 });
 
-gulp.task('default', ['version', 'lint', 'clean', 'light', 'neb']);
+gulp.task('default', ['version', 'lint', 'clean', 'light', 'neb', 'account']);
 
