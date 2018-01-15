@@ -276,6 +276,18 @@ func (st *SyncTask) sendChainGetChunk() {
 	st.syncMutex.Lock()
 	defer st.syncMutex.Unlock()
 
+	if len(st.maxConsistentChunkHeaders.ChunkHeaders) == 0 {
+		logging.VLog().WithFields(logrus.Fields{
+			"maxConsistentChunkHeadersCount":    st.maxConsistentChunkHeadersCount,
+			"maxConsistentChunkHeadersRootHash": byteutils.Hex(st.maxConsistentChunkHeaders.Root),
+			"countOfChunkHeaders":               len(st.maxConsistentChunkHeaders.ChunkHeaders),
+		}).Debug("ChunkHeaders is empty, no need to sync.")
+
+		// done.
+		st.chinGetChunkDataDoneCh <- true
+		return
+	}
+
 	currentSyncChunkDataCount := 0
 	chainChunkDataSyncPosition := 0
 	for i := 0; i < len(st.maxConsistentChunkHeaders.ChunkHeaders) && currentSyncChunkDataCount < ConcurrentSyncChunkDataCount; i++ {
@@ -413,6 +425,7 @@ func (st *SyncTask) hasEnoughChunkHeaders() bool {
 			"chainSyncRetryCount":               st.chainSyncRetryCount,
 			"maxConsistentChunkHeadersCount":    st.maxConsistentChunkHeadersCount,
 			"maxConsistentChunkHeadersRootHash": byteutils.Hex(st.maxConsistentChunkHeaders.Root),
+			"countOfChunkHeaders":               len(st.maxConsistentChunkHeaders.ChunkHeaders),
 		}).Debug("Received enough chunk headers.")
 	}
 	return ret
