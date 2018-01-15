@@ -649,13 +649,14 @@ func TestBankVaultContract(t *testing.T) {
 	}
 
 	tests := []struct {
-		name         string
-		contractPath string
-		sourceType   string
-		saveArgs     string
-		takeoutTests []TakeoutTest
+		name              string
+		contractPath      string
+		sourceType        string
+		saveArgs          string
+		expectedBalanceOf string
+		takeoutTests      []TakeoutTest
 	}{
-		{"deploy bank_vault_contract.js", "./test/bank_vault_contract.js", "js", "[0]",
+		{"deploy bank_vault_contract.js", "./test/bank_vault_contract.js", "js", "[0]", "{\"balance\":\"5\",\"expiryHeight\":\"2\"}",
 			[]TakeoutTest{
 				{"[1]", nil},
 				{"[5]", ErrExecutionFailed},
@@ -663,7 +664,7 @@ func TestBankVaultContract(t *testing.T) {
 				{"[1]", ErrExecutionFailed},
 			},
 		},
-		{"deploy bank_vault_contract.ts", "./test/bank_vault_contract.ts", "ts", "[0]",
+		{"deploy bank_vault_contract.ts", "./test/bank_vault_contract.ts", "ts", "[0]", "{\"balance\":\"5\",\"expiryHeight\":\"2\"}",
 			[]TakeoutTest{
 				{"[1]", nil},
 				{"[5]", ErrExecutionFailed},
@@ -697,12 +698,22 @@ func TestBankVaultContract(t *testing.T) {
 			assert.Nil(t, err)
 			engine.Dispose()
 
+			// call save.
 			engine = NewV8Engine(ctx)
 			engine.SetExecutionLimits(10000, 100000000)
 			_, err = engine.Call(string(data), tt.sourceType, "save", tt.saveArgs)
 			assert.Nil(t, err)
 			engine.Dispose()
 
+			// call balanceOf.
+			engine = NewV8Engine(ctx)
+			engine.SetExecutionLimits(10000, 100000000)
+			balance, err := engine.Call(string(data), tt.sourceType, "balanceOf", "")
+			assert.Nil(t, err)
+			assert.Equal(t, tt.expectedBalanceOf, balance)
+			engine.Dispose()
+
+			// call takeout.
 			for _, tot := range tt.takeoutTests {
 				engine = NewV8Engine(ctx)
 				engine.SetExecutionLimits(10000, 100000000)

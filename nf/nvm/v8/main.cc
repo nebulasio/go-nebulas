@@ -94,20 +94,13 @@ void RunScriptSourceDelegate(V8Engine *e, const char *data,
                                 (uintptr_t)lcsHandler, (uintptr_t)gcsHandler);
       free(traceableSource);
 
-      if (ret == 0) {
-        fprintf(stdout, "[V8] Execution ret = %d, out = %s\n", ret, out);
-      } else {
-        fprintf(stdout, "[V8] Execution ret = %d\n", ret);
-      }
+      fprintf(stdout, "[V8] Execution ret = %d, out = %s\n", ret, out);
+      free(out);
 
       ret = IsEngineLimitsExceeded(e);
       if (ret) {
         fprintf(stdout, "[V8Error] Exceed %s limits, ret = %d\n",
                 ret == 1 ? "Instructions" : "Memory", ret);
-      }
-
-      if (out != NULL) {
-        free(out);
       }
 
       // print tracing stats.
@@ -135,8 +128,10 @@ void RunScriptSourceDelegate(V8Engine *e, const char *data,
     }
   } else {
     char *out = NULL;
-    RunScriptSource(&out, e, data, lineOffset, (uintptr_t)lcsHandler,
-                    (uintptr_t)gcsHandler);
+    int ret = RunScriptSource(&out, e, data, lineOffset, (uintptr_t)lcsHandler,
+                              (uintptr_t)gcsHandler);
+    fprintf(stdout, "[V8] Execution ret = %d, out = %s\n", ret, out);
+    free(out);
   }
 }
 

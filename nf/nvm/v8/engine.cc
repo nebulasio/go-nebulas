@@ -136,7 +136,7 @@ int ExecuteSourceDataDelegate(char **result, Isolate *isolate,
   }
 
   // set result.
-  if (*result != NULL) {
+  if (result != NULL) {
     MaybeLocal<String> json_result =
         v8::JSON::Stringify(context, ret.ToLocalChecked().As<Object>());
     if (!json_result.IsEmpty()) {

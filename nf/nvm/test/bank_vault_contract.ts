@@ -100,6 +100,11 @@ class BankVaultContract {
         deposit.balance = deposit.balance.sub(amount);
         this.bankVault.put(from, deposit);
     }
+
+    balanceOf() {
+        let from = Blockchain.transaction.from;
+        return this.bankVault.get(from);
+    }
 }
 
 module.exports = BankVaultContract;
