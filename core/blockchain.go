@@ -417,15 +417,15 @@ func (bc *BlockChain) SetSyncService(syncService SyncService) {
 
 // StartActiveSync start active sync task
 func (bc *BlockChain) StartActiveSync() {
-	if bc.syncService.IsActiveSync() {
+	if bc.syncService.IsActiveSyncing() {
 		return
 	}
 
-	bc.consensusHandler.PendMining()
+	bc.consensusHandler.SuspendMining()
 	bc.syncService.StartActiveSync()
 	go func() {
 		bc.syncService.WaitingForFinish()
-		bc.consensusHandler.ContinueMining()
+		bc.consensusHandler.ResumeMining()
 	}()
 }
 

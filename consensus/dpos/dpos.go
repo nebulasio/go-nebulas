@@ -197,14 +197,14 @@ func (p *Dpos) Pending() bool {
 	return p.pending
 }
 
-// PendMining pend dpos mining
-func (p *Dpos) PendMining() {
+// SuspendMining pend dpos mining
+func (p *Dpos) SuspendMining() {
 	logging.CLog().Info("Pend Dpos Mining.")
 	p.pending = true
 }
 
-// ContinueMining continue dpos mining
-func (p *Dpos) ContinueMining() {
+// ResumeMining continue dpos mining
+func (p *Dpos) ResumeMining() {
 	logging.CLog().Info("Continue Dpos Mining.")
 	p.pending = false
 }

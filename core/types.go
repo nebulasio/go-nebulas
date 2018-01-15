@@ -116,8 +116,8 @@ const (
 
 // Consensus interface of consensus algorithm.
 type Consensus interface {
-	PendMining()
-	ContinueMining()
+	SuspendMining()
+	ResumeMining()
 	VerifyBlock(block *Block, parent *Block) error
 	FastVerifyBlock(block *Block) error
 }
@@ -130,7 +130,7 @@ type SyncService interface {
 	StartActiveSync()
 	StopActiveSync()
 	WaitingForFinish() error
-	IsActiveSync() bool
+	IsActiveSyncing() bool
 }
 
 // Neblet interface breaks cycle import dependency and hides unused services.

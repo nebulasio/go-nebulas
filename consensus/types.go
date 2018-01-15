@@ -36,8 +36,8 @@ type Consensus interface {
 	DisableMining() error
 	Enable() bool
 
-	ContinueMining()
-	PendMining()
+	ResumeMining()
+	SuspendMining()
 	Pending() bool
 
 	VerifyBlock(block *core.Block, parent *core.Block) error

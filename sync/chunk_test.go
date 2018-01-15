@@ -47,9 +47,9 @@ func (c MockConsensus) EnableMining(string) error { return nil }
 func (c MockConsensus) DisableMining() error      { return nil }
 func (c MockConsensus) Enable() bool              { return true }
 
-func (c MockConsensus) ContinueMining() {}
-func (c MockConsensus) PendMining()     {}
-func (c MockConsensus) Pending() bool   { return false }
+func (c MockConsensus) ResumeMining()  {}
+func (c MockConsensus) SuspendMining() {}
+func (c MockConsensus) Pending() bool  { return false }
 
 func (c MockConsensus) FastVerifyBlock(block *core.Block) error {
 	block.SetMiner(block.Coinbase())

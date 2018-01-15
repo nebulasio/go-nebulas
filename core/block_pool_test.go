@@ -51,7 +51,9 @@ func (c MockConsensus) VerifyBlock(block *Block, parent *Block) error {
 	return nil
 }
 
-func (c MockConsensus) PendMining() {}
+func (c MockConsensus) SuspendMining() {}
+
+func (c MockConsensus) ResumeMining() {}
 
 var (
 	received = []byte{}

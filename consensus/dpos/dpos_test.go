@@ -159,7 +159,9 @@ type MockConsensus struct {
 	storage storage.Storage
 }
 
-func (c MockConsensus) PendMining() {}
+func (c MockConsensus) SuspendMining() {}
+
+func (c MockConsensus) ResumeMining() {}
 
 func (c MockConsensus) FastVerifyBlock(block *core.Block) error {
 	block.SetMiner(block.Coinbase())
@@ -341,9 +343,9 @@ func TestCanMining(t *testing.T) {
 	dpos, err := NewDpos(mockNeb(t))
 	assert.Nil(t, err)
 	assert.Equal(t, dpos.Pending(), false)
-	dpos.PendMining()
+	dpos.SuspendMining()
 	assert.Equal(t, dpos.Pending(), true)
-	dpos.ContinueMining()
+	dpos.ResumeMining()
 	assert.Equal(t, dpos.Pending(), false)
 }
 
@@ -401,10 +403,10 @@ func TestDpos_MintBlock(t *testing.T) {
 	assert.Equal(t, dpos.mintBlock(0), ErrCannotMintWhenDiable)
 
 	assert.Nil(t, dpos.EnableMining("passphrase"))
-	dpos.PendMining()
+	dpos.SuspendMining()
 	assert.Equal(t, dpos.mintBlock(0), ErrCannotMintWhenPending)
 
-	dpos.ContinueMining()
+	dpos.ResumeMining()
 	assert.Equal(t, dpos.mintBlock(core.BlockInterval), ErrInvalidBlockProposer)
 
 	received = []byte{}
