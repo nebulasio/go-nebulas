@@ -21,6 +21,7 @@ package sync
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"math"
 	"sync"
 	"time"
@@ -49,23 +50,25 @@ var (
 )
 
 type SyncTask struct {
-	quitCh                         chan bool
-	statusCh                       chan error
-	isSyncing                      bool
-	blockChain                     *core.BlockChain
-	syncPointBlock                 *core.Block
-	netService                     p2p.Manager
-	chunk                          *Chunk
-	syncMutex                      sync.Mutex
-	chainSyncPeersCount            int
-	maxConsistentChunkHeadersCount int
-	maxConsistentChunkHeaders      *syncpb.ChunkHeaders
-	allChunkHeaders                map[string]*syncpb.ChunkHeaders
-	chunkHeadersRootHashCounter    map[string]int
-	chainSyncDoneCh                chan bool
-	chainChunkDataSyncPosition     int
-	chainChunkDataStatus           map[int]int64
-	chinGetChunkDataDoneCh         chan bool
+	quitCh                            chan bool
+	statusCh                          chan error
+	isSyncing                         bool
+	blockChain                        *core.BlockChain
+	syncPointBlock                    *core.Block
+	netService                        p2p.Manager
+	chunk                             *Chunk
+	syncMutex                         sync.Mutex
+	chainSyncPeersCount               int
+	maxConsistentChunkHeadersCount    int
+	maxConsistentChunkHeaders         *syncpb.ChunkHeaders
+	allChunkHeaders                   map[string]*syncpb.ChunkHeaders
+	chunkHeadersRootHashCounter       map[string]int
+	receivedChunkHeadersRootHashPeers map[string]bool
+
+	chainSyncDoneCh            chan bool
+	chainChunkDataSyncPosition int
+	chainChunkDataStatus       map[int]int64
+	chinGetChunkDataDoneCh     chan bool
 
 	// debug fields.
 	chainSyncRetryCount int
@@ -73,22 +76,23 @@ type SyncTask struct {
 
 func NewSyncTask(blockChain *core.BlockChain, netService p2p.Manager, chunk *Chunk) *SyncTask {
 	return &SyncTask{
-		quitCh:                         make(chan bool, 1),
-		statusCh:                       make(chan error, 1),
-		isSyncing:                      false,
-		blockChain:                     blockChain,
-		syncPointBlock:                 blockChain.TailBlock(),
-		netService:                     netService,
-		chunk:                          chunk,
-		chainSyncPeersCount:            0,
-		maxConsistentChunkHeadersCount: 0,
-		maxConsistentChunkHeaders:      nil,
-		allChunkHeaders:                make(map[string]*syncpb.ChunkHeaders),
-		chunkHeadersRootHashCounter:    make(map[string]int),
-		chainSyncDoneCh:                make(chan bool, 1),
-		chainChunkDataSyncPosition:     0,
-		chainChunkDataStatus:           make(map[int]int64),
-		chinGetChunkDataDoneCh:         make(chan bool, 1),
+		quitCh:                            make(chan bool, 1),
+		statusCh:                          make(chan error, 1),
+		isSyncing:                         false,
+		blockChain:                        blockChain,
+		syncPointBlock:                    blockChain.TailBlock(),
+		netService:                        netService,
+		chunk:                             chunk,
+		chainSyncPeersCount:               0,
+		maxConsistentChunkHeadersCount:    0,
+		maxConsistentChunkHeaders:         nil,
+		allChunkHeaders:                   make(map[string]*syncpb.ChunkHeaders),
+		chunkHeadersRootHashCounter:       make(map[string]int),
+		receivedChunkHeadersRootHashPeers: make(map[string]bool),
+		chainSyncDoneCh:                   make(chan bool, 1),
+		chainChunkDataSyncPosition:        0,
+		chainChunkDataStatus:              make(map[int]int64),
+		chinGetChunkDataDoneCh:            make(chan bool, 1),
 		// debug fields.
 		chainSyncRetryCount: 0,
 	}
@@ -167,6 +171,7 @@ func (st *SyncTask) reset() {
 	st.maxConsistentChunkHeaders = nil
 	st.allChunkHeaders = make(map[string]*syncpb.ChunkHeaders)
 	st.chunkHeadersRootHashCounter = make(map[string]int)
+	st.receivedChunkHeadersRootHashPeers = make(map[string]bool)
 	st.chainChunkDataStatus = make(map[int]int64)
 	st.chainChunkDataSyncPosition = 0
 }
@@ -231,15 +236,35 @@ func (st *SyncTask) processChunkHeaders(message net.Message) {
 	defer st.syncMutex.Unlock()
 
 	rootHash := byteutils.Hex(chunkHeaders.Root)
+
+	hashPeerKey := fmt.Sprintf("%s-%s", rootHash, message.MessageFrom())
+	if st.receivedChunkHeadersRootHashPeers[hashPeerKey] == true {
+		logging.VLog().WithFields(logrus.Fields{
+			"rootHash": rootHash,
+			"pid":      message.MessageFrom(),
+		}).Debug("Duplicated ChainChunkHeaders message data.")
+		return
+	}
+
 	count := st.chunkHeadersRootHashCounter[rootHash] + 1
 	st.chunkHeadersRootHashCounter[rootHash] = count
+	st.receivedChunkHeadersRootHashPeers[hashPeerKey] = true
 
+	isMax := false
 	if count > st.maxConsistentChunkHeadersCount {
+		isMax = true
 		st.maxConsistentChunkHeadersCount = count
 		st.maxConsistentChunkHeaders = chunkHeaders
 	}
 
 	st.allChunkHeaders[rootHash] = chunkHeaders
+
+	logging.VLog().WithFields(logrus.Fields{
+		"rootHash": rootHash,
+		"count":    count,
+		"isMax":    isMax,
+		"pid":      message.MessageFrom(),
+	}).Debug("Processed ChainChunkHeaders message data.")
 
 	if st.hasEnoughChunkHeaders() {
 		st.chainSyncDoneCh <- true
