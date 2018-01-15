@@ -25,15 +25,16 @@
 
 using namespace v8;
 
-typedef int (*ExecutionDelegate)(Isolate *isolate, const char *source,
-                                 int source_line_offset, Local<Context> context,
-                                 TryCatch &trycatch, void *delegateContext);
+typedef int (*ExecutionDelegate)(char **result, Isolate *isolate,
+                                 const char *source, int source_line_offset,
+                                 Local<Context> context, TryCatch &trycatch,
+                                 void *delegateContext);
 
-int Execute(V8Engine *e, const char *data, int source_line_offset,
+int Execute(char **result, V8Engine *e, const char *data, int source_line_offset,
             void *lcsHandler, void *gcsHandler, ExecutionDelegate delegate,
             void *delegateContext);
 
-int ExecuteSourceDataDelegate(Isolate *isolate, const char *source,
+int ExecuteSourceDataDelegate(char **result, Isolate *isolate, const char *source,
                               int source_line_offset, Local<Context> context,
                               TryCatch &trycatch, void *delegateContext);
 

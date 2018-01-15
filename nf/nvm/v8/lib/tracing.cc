@@ -35,8 +35,8 @@ static char inject_tracer_source_template[] =
     "return instCounter.processScript(source);\n"
     "})();";
 
-int InjectTracingInstructionDelegate(Isolate *isolate, const char *source,
-                                     int source_line_offset,
+int InjectTracingInstructionDelegate(char **result, Isolate *isolate,
+                                     const char *source, int source_line_offset,
                                      Local<Context> context, TryCatch &trycatch,
                                      void *delegateContext) {
   TracingContext *tContext = static_cast<TracingContext *>(delegateContext);

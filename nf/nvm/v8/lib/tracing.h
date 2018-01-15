@@ -29,8 +29,8 @@ typedef struct {
   char *tracable_source;
 } TracingContext;
 
-int InjectTracingInstructionDelegate(Isolate *isolate, const char *source,
-                                     int source_line_offset,
+int InjectTracingInstructionDelegate(char **result, Isolate *isolate,
+                                     const char *source, int source_line_offset,
                                      Local<Context> context, TryCatch &trycatch,
                                      void *delegateContext);
 
