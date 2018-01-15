@@ -46,7 +46,7 @@ var (
 	// DefaultListen default listen
 	DefaultListen = []string{"0.0.0.0:8680"}
 
-	RouteTableSyncLoopInterval   = 60 * time.Second
+	RouteTableSyncLoopInterval   = 30 * time.Second
 	RouteTableSaveToDiskInterval = 3 * 60 * time.Second
 	RouteTableCacheFileName      = "routetable.cache"
 

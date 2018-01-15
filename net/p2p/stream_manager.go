@@ -104,7 +104,6 @@ func (sm *StreamManager) Find(pid peer.ID) *Stream {
 }
 
 func (sm *StreamManager) loop() {
-
 	ticker := time.NewTicker(time.Second * 30)
 	for {
 		select {
@@ -112,8 +111,8 @@ func (sm *StreamManager) loop() {
 			logging.CLog().Info("Stopped Stream Manager Loop.")
 			return
 		case <-ticker.C:
-			// TODO: @robin cleanup connections.
-			logging.VLog().Warn("TODO: cleanup connections is not implemented.")
+			// TODO: @robin streams cleanup if needed.
+			logging.VLog().Warn("TODO: streams cleanup is not implemented.")
 		}
 	}
 }

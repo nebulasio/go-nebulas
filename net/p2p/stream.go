@@ -458,7 +458,11 @@ func (s *Stream) Close(reason error) {
 	logging.VLog().WithFields(logrus.Fields{
 		"stream": s.String(),
 		"reason": reason,
-	}).Debug("Disconnecting stream.")
+	}).Debug("Closing stream.")
+
+	// cleanup.
+	s.node.streamManager.RemoveStream(s)
+	s.node.routeTable.RemovePeerStream(s)
 
 	// quit.
 	s.quitWriteCh <- true
@@ -467,10 +471,6 @@ func (s *Stream) Close(reason error) {
 	if s.stream != nil {
 		s.stream.Close()
 	}
-
-	// cleanup.
-	s.node.streamManager.RemoveStream(s)
-	s.node.routeTable.RemovePeerStream(s)
 }
 
 func (s *Stream) Bye() {
