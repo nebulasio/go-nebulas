@@ -78,7 +78,7 @@ service ApiService {
     }
 
     // Call smart contract.
-    rpc Call (TransactionRequest) returns (SendTransactionResponse) {
+    rpc Call (TransactionRequest) returns (CallResponse) {
         option (google.api.http) = {
             post: "/v1/user/call"
             body: "*"
@@ -345,6 +345,12 @@ message GetAccountStateResponse {
 
     // Current transaction count.
     string nonce = 2;
+}
+
+// Response message of Call rpc.
+message CallResponse {
+    // result of smart contract method call.
+    string result = 1;
 }
 
 // Response message of GetDynastyRequest rpc

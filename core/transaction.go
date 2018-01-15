@@ -293,6 +293,31 @@ func (tx *Transaction) LoadPayload() (TxPayload, error) {
 	return payload, err
 }
 
+// LocalExecution returns tx local execution
+func (tx *Transaction) LocalExecution(block *Block) (*util.Uint128, string, error) {
+	// update gas to max for estimate
+	tx.gasLimit = TransactionMaxGas
+
+	block.accState.BeginBatch()
+	fromAcc := block.accState.GetOrCreateUserAccount(tx.from.address)
+	fromAcc.AddBalance(tx.MinBalanceRequired())
+	fromAcc.AddBalance(tx.value)
+	defer block.accState.RollBack()
+
+	payload, err := tx.LoadPayload()
+	if err != nil {
+		return util.NewUint128(), "", err
+	}
+
+	gasUsed := tx.GasCountOfTxBase()
+	gasUsed.Add(gasUsed.Int, payload.BaseGasCount().Int)
+
+	ctx := NewPayloadContext(block, tx)
+	gasExecution, result, err := payload.Execute(ctx)
+	gas := util.NewUint128FromBigInt(util.NewUint128().Add(gasUsed.Int, gasExecution.Int))
+	return gas, result, err
+}
+
 // VerifyExecution transaction and return result.
 func (tx *Transaction) VerifyExecution(block *Block) (*util.Uint128, error) {
 	// check balance.

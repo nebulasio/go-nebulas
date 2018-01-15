@@ -550,15 +550,14 @@ func (bc *BlockChain) GasPrice() *util.Uint128 {
 
 // EstimateGas returns the transaction gas cost
 func (bc *BlockChain) EstimateGas(tx *Transaction) (*util.Uint128, error) {
-	// update gas to max for estimate
-	tx.gasLimit = TransactionMaxGas
+	gas, _, err := tx.LocalExecution(bc.tailBlock)
+	return gas, err
+}
 
-	bc.tailBlock.accState.BeginBatch()
-	fromAcc := bc.tailBlock.accState.GetOrCreateUserAccount(tx.from.address)
-	fromAcc.AddBalance(tx.MinBalanceRequired())
-	fromAcc.AddBalance(tx.value)
-	defer bc.tailBlock.accState.RollBack()
-	return tx.VerifyExecution(bc.tailBlock)
+// Call returns the transaction call result
+func (bc *BlockChain) Call(tx *Transaction) (string, error) {
+	_, result, err := tx.LocalExecution(bc.tailBlock)
+	return result, err
 }
 
 // Dump dump full chain.

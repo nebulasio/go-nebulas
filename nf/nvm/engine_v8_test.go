@@ -29,6 +29,8 @@ import (
 	"sync"
 	"testing"
 
+	"encoding/json"
+
 	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/core/pb"
 	"github.com/nebulasio/go-nebulas/core/state"
@@ -644,32 +646,34 @@ func TestBlockChain(t *testing.T) {
 
 func TestBankVaultContract(t *testing.T) {
 	type TakeoutTest struct {
-		args        string
-		expectedErr error
+		args          string
+		expectedErr   error
+		beforeBalance string
+		afterBalance  string
 	}
 
 	tests := []struct {
-		name              string
-		contractPath      string
-		sourceType        string
-		saveArgs          string
-		expectedBalanceOf string
-		takeoutTests      []TakeoutTest
+		name         string
+		contractPath string
+		sourceType   string
+		saveValue    string
+		saveArgs     string
+		takeoutTests []TakeoutTest
 	}{
-		{"deploy bank_vault_contract.js", "./test/bank_vault_contract.js", "js", "[0]", "{\"balance\":\"5\",\"expiryHeight\":\"2\"}",
+		{"deploy bank_vault_contract.js", "./test/bank_vault_contract.js", "js", "5", "[0]",
 			[]TakeoutTest{
-				{"[1]", nil},
-				{"[5]", ErrExecutionFailed},
-				{"[4]", nil},
-				{"[1]", ErrExecutionFailed},
+				{"[1]", nil, "5", "4"},
+				{"[5]", ErrExecutionFailed, "4", "4"},
+				{"[4]", nil, "4", "0"},
+				{"[1]", ErrExecutionFailed, "0", "0"},
 			},
 		},
-		{"deploy bank_vault_contract.ts", "./test/bank_vault_contract.ts", "ts", "[0]", "{\"balance\":\"5\",\"expiryHeight\":\"2\"}",
+		{"deploy bank_vault_contract.ts", "./test/bank_vault_contract.ts", "ts", "5", "[0]",
 			[]TakeoutTest{
-				{"[1]", nil},
-				{"[5]", ErrExecutionFailed},
-				{"[4]", nil},
-				{"[1]", ErrExecutionFailed},
+				{"[1]", nil, "5", "4"},
+				{"[5]", ErrExecutionFailed, "4", "4"},
+				{"[4]", nil, "4", "0"},
+				{"[1]", ErrExecutionFailed, "0", "0"},
 			},
 		},
 	}
@@ -689,7 +693,9 @@ func TestBankVaultContract(t *testing.T) {
 			contract.AddBalance(util.NewUint128FromInt(5))
 
 			// parepare env, block & transactions.
-			ctx := NewContext(testContextBlock(), testContextTransaction(), owner, contract, context)
+			tx := testContextTransaction()
+			tx.Value = tt.saveValue
+			ctx := NewContext(testContextBlock(), tx, owner, contract, context)
 
 			// execute.
 			engine := NewV8Engine(ctx)
@@ -705,20 +711,40 @@ func TestBankVaultContract(t *testing.T) {
 			assert.Nil(t, err)
 			engine.Dispose()
 
-			// call balanceOf.
-			engine = NewV8Engine(ctx)
-			engine.SetExecutionLimits(10000, 100000000)
-			balance, err := engine.Call(string(data), tt.sourceType, "balanceOf", "")
-			assert.Nil(t, err)
-			assert.Equal(t, tt.expectedBalanceOf, balance)
-			engine.Dispose()
+			var (
+				bal struct {
+					Balance string `json:"balance"`
+				}
+			)
 
 			// call takeout.
 			for _, tot := range tt.takeoutTests {
+				// call balanceOf.
+				engine = NewV8Engine(ctx)
+				engine.SetExecutionLimits(10000, 100000000)
+				balance, err := engine.Call(string(data), tt.sourceType, "balanceOf", "")
+				assert.Nil(t, err)
+				bal.Balance = ""
+				err = json.Unmarshal([]byte(balance), &bal)
+				assert.Nil(t, err)
+				assert.Equal(t, tot.beforeBalance, bal.Balance)
+				engine.Dispose()
+
 				engine = NewV8Engine(ctx)
 				engine.SetExecutionLimits(10000, 100000000)
 				_, err = engine.Call(string(data), tt.sourceType, "takeout", tot.args)
 				assert.Equal(t, err, tot.expectedErr)
+				engine.Dispose()
+
+				// call balanceOf.
+				engine = NewV8Engine(ctx)
+				engine.SetExecutionLimits(10000, 100000000)
+				balance, err = engine.Call(string(data), tt.sourceType, "balanceOf", "")
+				assert.Nil(t, err)
+				bal.Balance = ""
+				err = json.Unmarshal([]byte(balance), &bal)
+				assert.Nil(t, err)
+				assert.Equal(t, tot.afterBalance, bal.Balance)
 				engine.Dispose()
 			}
 		})

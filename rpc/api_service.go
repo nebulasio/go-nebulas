@@ -250,13 +250,22 @@ func (s *APIService) SendTransaction(ctx context.Context, req *rpcpb.Transaction
 }
 
 // Call is the RPC API handler.
-func (s *APIService) Call(ctx context.Context, req *rpcpb.TransactionRequest) (*rpcpb.SendTransactionResponse, error) {
+func (s *APIService) Call(ctx context.Context, req *rpcpb.TransactionRequest) (*rpcpb.CallResponse, error) {
 	logging.VLog().WithFields(logrus.Fields{
 		"api": "/v1/user/call",
 	}).Info("Rpc request.")
 	metricsRPCCounter.Mark(1)
 
-	return s.sendTransaction(req)
+	neb := s.server.Neblet()
+	tx, err := parseTransaction(neb, req)
+	if err != nil {
+		return nil, err
+	}
+	result, err := neb.BlockChain().Call(tx)
+	if err != nil {
+		return nil, err
+	}
+	return &rpcpb.CallResponse{Result: result}, nil
 }
 
 func (s *APIService) sendTransaction(req *rpcpb.TransactionRequest) (*rpcpb.SendTransactionResponse, error) {
@@ -664,15 +673,6 @@ func (s *APIService) EstimateGas(ctx context.Context, req *rpcpb.TransactionRequ
 	metricsRPCCounter.Mark(1)
 
 	neb := s.server.Neblet()
-	tail := neb.BlockChain().TailBlock()
-	addr, err := core.AddressParse(req.From)
-	if err != nil {
-		return nil, err
-	}
-	if req.Nonce <= tail.GetNonce(addr.Bytes()) {
-		return nil, errors.New("nonce is invalid")
-	}
-
 	tx, err := parseTransaction(neb, req)
 	if err != nil {
 		return nil, err
