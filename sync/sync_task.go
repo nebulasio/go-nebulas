@@ -191,7 +191,9 @@ func (st *SyncTask) sendChainSync() {
 	logging.VLog().WithFields(logrus.Fields{
 		"syncPointBlockHeight": st.syncPointBlock.Height(),
 		"syncPointBlockHash":   st.syncPointBlock.Hash().String(),
-	}).Info("Starting ChainSync at %d times.", st.chainSyncRetryCount)
+	}).Infof("Starting ChainSync at %d times.", st.chainSyncRetryCount)
+
+	st.chainSyncRetryCount++
 
 	chunkSync := &syncpb.Sync{
 		TailBlockHash: st.syncPointBlock.Hash(),
