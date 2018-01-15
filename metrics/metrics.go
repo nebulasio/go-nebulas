@@ -32,7 +32,7 @@ import (
 )
 
 const (
-	duration = 2 * time.Second
+	interval = 5 * time.Second
 	nodeID   = "nodeID"
 	chainID  = "chainID"
 )
@@ -64,7 +64,7 @@ func Start(neb Neblet) {
 		tags[nodeID] = getSimpleNodeID(neb)
 		tags[chainID] = fmt.Sprintf("%d", neb.NetManager().Node().Config().ChainID)
 		go collectSystemMetrics()
-		influxdb.InfluxDBWithTags(metrics.DefaultRegistry, duration, neb.Config().Stats.Influxdb.Host, neb.Config().Stats.Influxdb.Db, neb.Config().Stats.Influxdb.User, neb.Config().Stats.Influxdb.Password, tags)
+		influxdb.InfluxDBWithTags(metrics.DefaultRegistry, interval, neb.Config().Stats.Influxdb.Host, neb.Config().Stats.Influxdb.Db, neb.Config().Stats.Influxdb.User, neb.Config().Stats.Influxdb.Password, tags)
 
 	})()
 }
