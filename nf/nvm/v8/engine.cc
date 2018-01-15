@@ -32,6 +32,7 @@
 #include <v8.h>
 
 #include <assert.h>
+#include <string.h>
 
 using namespace v8;
 
