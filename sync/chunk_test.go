@@ -229,6 +229,10 @@ func TestChunk_generateChunkMeta(t *testing.T) {
 		assert.Equal(t, int(chunks.Blocks[i].Height), index)
 	}
 
+	meta, err = ck.generateChunkHeaders(chain.GenesisBlock().Hash())
+	assert.Nil(t, err)
+	assert.Equal(t, len(meta.ChunkHeaders), 3)
+
 	meta, err = ck.generateChunkHeaders(blocks[0].Hash())
 	assert.Nil(t, err)
 	assert.Equal(t, len(meta.ChunkHeaders), 3)
