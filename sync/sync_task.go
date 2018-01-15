@@ -133,7 +133,7 @@ func (st *SyncTask) startSyncLoop() {
 					}
 				case <-st.chainSyncDoneCh:
 					// go to next step.
-					logging.VLog().Debug("Sync Done.")
+					logging.VLog().Debug("ChainSync Finished. Move to GetChainData.")
 					break SYNC_STEP_1
 				}
 			}
@@ -155,6 +155,7 @@ func (st *SyncTask) startSyncLoop() {
 					// finished.
 					st.isSyncing = true
 					st.statusCh <- nil
+					logging.VLog().Debug("GetChainData Finished.")
 					return
 				}
 			}
@@ -401,6 +402,7 @@ func (st *SyncTask) processChunkData(message net.Message) {
 	st.chainChunkDataStatus[chunkDataIndex] = chunkDataStatusFinished
 
 	// sync next chunk.
+	logging.VLog().Debugf("Succeed to get chain chunk %d.")
 	st.sendChainGetChunkForNext()
 }
 

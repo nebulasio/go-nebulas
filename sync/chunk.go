@@ -47,13 +47,16 @@ func NewChunk(blockChain *core.BlockChain) *Chunk {
 func (c *Chunk) generateChunkHeaders(syncpointHash byteutils.Hash) (*syncpb.ChunkHeaders, error) {
 	syncpoint := c.blockChain.GetBlockOnCanonicalChainByHash(syncpointHash)
 	if syncpoint == nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"syncpointHash": syncpointHash.Hex(),
+		}).Debug("Failed to find the block on canonical chain")
 		return nil, ErrCannotFindBlockByHash
 	}
 	tail := c.blockChain.TailBlock()
 	if int(tail.Height())-int(syncpoint.Height()) <= core.ChunkSize {
 		logging.VLog().WithFields(logrus.Fields{
 			"err": ErrTooSmallGapToSync,
-		}).Warn("Failed to generate sync blocks meta info")
+		}).Debug("Failed to generate sync blocks meta info")
 		return &syncpb.ChunkHeaders{}, ErrTooSmallGapToSync
 	}
 
