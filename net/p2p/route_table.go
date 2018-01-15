@@ -38,6 +38,7 @@ import (
 	ma "github.com/multiformats/go-multiaddr"
 )
 
+// RouteTable route table struct.
 type RouteTable struct {
 	quitCh                   chan bool
 	peerStore                peerstore.Peerstore
@@ -51,6 +52,7 @@ type RouteTable struct {
 	latestUpdatedAt          int64
 }
 
+// NewRouteTable new route table.
 func NewRouteTable(config *Config, node *Node) *RouteTable {
 	table := &RouteTable{
 		quitCh:                   make(chan bool, 1),
@@ -78,18 +80,21 @@ func NewRouteTable(config *Config, node *Node) *RouteTable {
 	return table
 }
 
+// Start start route table syncLoop.
 func (table *RouteTable) Start() {
 	logging.CLog().Info("Starting NetService RouteTable Sync...")
 
 	go table.syncLoop()
 }
 
+// Stop quit route table syncLoop.
 func (table *RouteTable) Stop() {
 	logging.CLog().Info("Stopping NetService RouteTable Sync...")
 
 	table.quitCh <- true
 }
 
+// Peers return peers in route table.
 func (table *RouteTable) Peers() map[peer.ID][]ma.Multiaddr {
 	peers := make(map[peer.ID][]ma.Multiaddr)
 	for _, pid := range table.peerStore.Peers() {
@@ -125,6 +130,7 @@ func (table *RouteTable) syncLoop() {
 	}
 }
 
+// AddPeerInfo add peer to route table.
 func (table *RouteTable) AddPeerInfo(prettyID string, addrStr []string) error {
 	pid, err := peer.IDB58Decode(prettyID)
 	if err != nil {
@@ -149,12 +155,14 @@ func (table *RouteTable) AddPeerInfo(prettyID string, addrStr []string) error {
 	return nil
 }
 
+// AddPeer add peer to route table.
 func (table *RouteTable) AddPeer(pid peer.ID, addr ma.Multiaddr) {
 	logging.CLog().Infof("Adding Peer: %s,%s", pid.Pretty(), addr.String())
 	table.peerStore.AddAddr(pid, addr, peerstore.PermanentAddrTTL)
 	table.routeTable.Update(pid)
 }
 
+// AddIPFSPeerAddr add a peer to route table with ipfs address.
 func (table *RouteTable) AddIPFSPeerAddr(addr ma.Multiaddr) {
 	id, addr, err := ParseFromIPFSAddr(addr)
 	if err != nil {
@@ -163,6 +171,7 @@ func (table *RouteTable) AddIPFSPeerAddr(addr ma.Multiaddr) {
 	table.AddPeer(id, addr)
 }
 
+// AddPeerStream add peer stream to peerStore.
 func (table *RouteTable) AddPeerStream(s *Stream) {
 	table.peerStore.AddAddr(
 		s.pid,
@@ -172,11 +181,13 @@ func (table *RouteTable) AddPeerStream(s *Stream) {
 	table.routeTable.Update(s.pid)
 }
 
+// RemovePeerStream remove peerStream from peerStore.
 func (table *RouteTable) RemovePeerStream(s *Stream) {
 	table.peerStore.AddAddr(s.pid, s.addr, 0)
 	table.routeTable.Remove(s.pid)
 }
 
+// GetNearestPeers get nearest peers
 func (table *RouteTable) GetNearestPeers(pid peer.ID) []peerstore.PeerInfo {
 	peers := table.routeTable.NearestPeers(kbucket.ConvertPeerID(pid), table.maxPeersCountForSyncResp)
 
@@ -187,12 +198,14 @@ func (table *RouteTable) GetNearestPeers(pid peer.ID) []peerstore.PeerInfo {
 	return ret
 }
 
+// LoadSeedNodes load seed nodes.
 func (table *RouteTable) LoadSeedNodes() {
 	for _, ipfsAddr := range table.seedNodes {
 		table.AddIPFSPeerAddr(ipfsAddr)
 	}
 }
 
+// LoadRouteTableFromFile load route table from file.
 func (table *RouteTable) LoadRouteTableFromFile() {
 	file, err := os.Open(table.cacheFilePath)
 	if err != nil {
@@ -228,6 +241,7 @@ func (table *RouteTable) LoadRouteTableFromFile() {
 	}
 }
 
+// SaveRouteTableToFile save route table to file.
 func (table *RouteTable) SaveRouteTableToFile() {
 	file, err := os.Create(table.cacheFilePath)
 	if err != nil {
@@ -251,6 +265,7 @@ func (table *RouteTable) SaveRouteTableToFile() {
 	}
 }
 
+// SyncRouteTable sync route table.
 func (table *RouteTable) SyncRouteTable() {
 	syncedPeers := make(map[peer.ID]bool)
 
@@ -293,6 +308,7 @@ func (table *RouteTable) SyncRouteTable() {
 	}
 }
 
+// SyncWithPeer sync route table with a peer.
 func (table *RouteTable) SyncWithPeer(pid peer.ID) {
 	if pid == table.node.id {
 		return

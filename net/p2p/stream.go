@@ -101,7 +101,7 @@ func newStreamInstance(pid peer.ID, addr ma.Multiaddr, stream libnet.Stream, nod
 }
 
 func (s *Stream) Connect() error {
-	logging.VLog().WithFields(logrus.Fields{
+	logging.CLog().WithFields(logrus.Fields{
 		"stream": s.String(),
 	}).Debug("Connecting to peer.")
 
@@ -112,7 +112,7 @@ func (s *Stream) Connect() error {
 		NebProtocolID,
 	)
 	if err != nil {
-		logging.VLog().WithFields(logrus.Fields{
+		logging.CLog().WithFields(logrus.Fields{
 			"stream": s.String(),
 			"err":    err,
 		}).Debug("Failed to connect to host.")
@@ -421,7 +421,7 @@ func (s *Stream) writeLoop() {
 
 func (s *Stream) handleMessage(message *NebMessage) error {
 	messageName := message.MessageName()
-
+	count := 0
 	switch messageName {
 	case HELLO:
 		return s.onHello(message)
@@ -449,6 +449,10 @@ func (s *Stream) handleMessage(message *NebMessage) error {
 		s.node.netService.PutMessage(messages.NewBaseMessage(message.MessageName(), s.pid.Pretty(), message.Data()))
 		// record recv message.
 		RecordRecvMessage(s, message.DataCheckSum())
+		logging.VLog().WithFields(logrus.Fields{
+			"count": count,
+		}).Debug("receive test message.")
+		count++
 	}
 
 	return nil

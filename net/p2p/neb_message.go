@@ -59,7 +59,7 @@ NebMessage defines protocol in Nebulas, we define our own wire protocol, as the 
 |                                                               |
 +---------------------------------------------------------------+
 */
-
+// const
 const (
 	NebMessageMagicNumberEndIdx    = 4
 	NebMessageChainIDEndIdx        = 8
@@ -76,6 +76,7 @@ const (
 	MaxNebMessageNameLength = 24 - 12          // 12.
 )
 
+// Error types
 var (
 	MagicNumber     = []byte{0x4e, 0x45, 0x42, 0x31}
 	DefaultReserved = []byte{0x0, 0x0, 0x0}
@@ -89,6 +90,7 @@ var (
 	ErrExceedMaxMessageNameLength      = errors.New("exceed max message name length")
 )
 
+//NebMessage struct
 type NebMessage struct {
 	content     []byte
 	messageName string
@@ -98,22 +100,27 @@ type NebMessage struct {
 	writeMessageAt int64
 }
 
+// MagicNumber return magicNumber
 func (message *NebMessage) MagicNumber() []byte {
 	return message.content[0:NebMessageMagicNumberEndIdx]
 }
 
+// ChainID return chainID
 func (message *NebMessage) ChainID() uint32 {
 	return byteutils.Uint32(message.content[NebMessageMagicNumberEndIdx:NebMessageChainIDEndIdx])
 }
 
+// Reserved return reserved
 func (message *NebMessage) Reserved() []byte {
 	return message.content[NebMessageChainIDEndIdx:NebMessageReservedEndIdx]
 }
 
+// Version return version
 func (message *NebMessage) Version() byte {
 	return message.content[NebMessageVersionIndex]
 }
 
+// MessageName return message name
 func (message *NebMessage) MessageName() string {
 	if message.messageName == "" {
 		data := message.content[NebMessageVersionEndIdx:NebMessageNameEndIdx]
@@ -127,34 +134,42 @@ func (message *NebMessage) MessageName() string {
 	return message.messageName
 }
 
+// DataLength return dataLength
 func (message *NebMessage) DataLength() uint32 {
 	return byteutils.Uint32(message.content[NebMessageNameEndIdx:NebMessageDataLengthEndIdx])
 }
 
+// DataCheckSum return data checkSum
 func (message *NebMessage) DataCheckSum() uint32 {
 	return byteutils.Uint32(message.content[NebMessageDataLengthEndIdx:NebMessageDataCheckSumEndIdx])
 }
 
+// HeaderCheckSum return header checkSum
 func (message *NebMessage) HeaderCheckSum() uint32 {
 	return byteutils.Uint32(message.content[NebMessageDataCheckSumEndIdx:NebMessageHeaderCheckSumEndIdx])
 }
 
+// HeaderWithoutCheckSum return header without checkSum
 func (message *NebMessage) HeaderWithoutCheckSum() []byte {
 	return message.content[:NebMessageDataCheckSumEndIdx]
 }
 
+// Data return data
 func (message *NebMessage) Data() []byte {
 	return message.content[NebMessageHeaderLength:]
 }
 
+// Content return message content
 func (message *NebMessage) Content() []byte {
 	return message.content
 }
 
+// Length return message Length
 func (message *NebMessage) Length() uint64 {
 	return uint64(len(message.content))
 }
 
+// NewNebMessage new neb message
 func NewNebMessage(chainID uint32, reserved []byte, version byte, messageName string, data []byte) (*NebMessage, error) {
 	if len(data) > MaxNebMessageDataLength {
 		logging.VLog().WithFields(logrus.Fields{
@@ -200,6 +215,7 @@ func NewNebMessage(chainID uint32, reserved []byte, version byte, messageName st
 	return message, nil
 }
 
+// ParseNebMessage parse neb message
 func ParseNebMessage(data []byte) (*NebMessage, error) {
 	if len(data) < NebMessageHeaderLength {
 		return nil, ErrInsufficientMessageHeaderLength
@@ -217,6 +233,7 @@ func ParseNebMessage(data []byte) (*NebMessage, error) {
 	return message, nil
 }
 
+// ParseMessageData parse neb message data
 func (message *NebMessage) ParseMessageData(data []byte) error {
 	if uint32(len(data)) < message.DataLength() {
 		return ErrInsufficientMessageDataLength
@@ -226,6 +243,7 @@ func (message *NebMessage) ParseMessageData(data []byte) error {
 	return message.VerifyData()
 }
 
+// VerifyHeader verify message header
 func (message *NebMessage) VerifyHeader() error {
 	if !byteutils.Equal(MagicNumber, message.MagicNumber()) {
 		logging.VLog().WithFields(logrus.Fields{
@@ -255,6 +273,7 @@ func (message *NebMessage) VerifyHeader() error {
 	return nil
 }
 
+// VerifyData verify message data
 func (message *NebMessage) VerifyData() error {
 	expectedCheckSum := crc32.ChecksumIEEE(message.Data())
 	if expectedCheckSum != message.DataCheckSum() {
@@ -267,14 +286,17 @@ func (message *NebMessage) VerifyData() error {
 	return nil
 }
 
+// FlagSendMessageAt flag of send message time
 func (message *NebMessage) FlagSendMessageAt() {
 	message.sendMessageAt = time.Now().UnixNano()
 }
 
+// FlagWriteMessageAt flag of write message time
 func (message *NebMessage) FlagWriteMessageAt() {
 	message.writeMessageAt = time.Now().UnixNano()
 }
 
+// LatencyFromSendToWrite latency from sendMessage to writeMessage
 func (message *NebMessage) LatencyFromSendToWrite() int64 {
 	if message.sendMessageAt == 0 {
 		return -1

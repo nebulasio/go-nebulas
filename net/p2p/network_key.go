@@ -26,6 +26,7 @@ import (
 	crypto "github.com/libp2p/go-libp2p-crypto"
 )
 
+// LoadNetworkKeyFromFile load network priv key from file.
 func LoadNetworkKeyFromFile(path string) (crypto.PrivKey, error) {
 	data, err := ioutil.ReadFile(path)
 	if err != nil {
@@ -34,6 +35,7 @@ func LoadNetworkKeyFromFile(path string) (crypto.PrivKey, error) {
 	return UnmarshalNetworkKey(string(data))
 }
 
+// LoadNetworkKeyFromFileOrCreateNew load network priv key from file or create new one.
 func LoadNetworkKeyFromFileOrCreateNew(path string) (crypto.PrivKey, error) {
 	if path == "" {
 		return GenerateEd25519Key()
@@ -42,6 +44,7 @@ func LoadNetworkKeyFromFileOrCreateNew(path string) (crypto.PrivKey, error) {
 	}
 }
 
+// UnmarshalNetworkKey unmarshal network key.
 func UnmarshalNetworkKey(data string) (crypto.PrivKey, error) {
 	binaryData, err := base64.StdEncoding.DecodeString(data)
 	if err != nil {
@@ -51,6 +54,7 @@ func UnmarshalNetworkKey(data string) (crypto.PrivKey, error) {
 	return crypto.UnmarshalPrivateKey(binaryData)
 }
 
+// MarshalNetworkKey marshal network key.
 func MarshalNetworkKey(key crypto.PrivKey) (string, error) {
 	binaryData, err := crypto.MarshalPrivateKey(key)
 	if err != nil {

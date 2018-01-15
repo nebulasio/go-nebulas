@@ -120,14 +120,17 @@ func (ns *NetService) SendMsg(msgName string, msg []byte, target string, priorit
 	return ns.node.SendMessageToPeer(msgName, msg, priority, target)
 }
 
+// SendMessageToPeers send message to peers.
 func (ns *NetService) SendMessageToPeers(messageName string, data []byte, priority int, filter net.PeerFilterAlgorithm) int {
 	return ns.node.streamManager.SendMessageToPeers(messageName, data, priority, filter)
 }
 
+// SendMessageToPeer send message to a peer.
 func (ns *NetService) SendMessageToPeer(messageName string, data []byte, priority int, peerID string) error {
 	return ns.node.SendMessageToPeer(messageName, data, priority, peerID)
 }
 
+// ClosePeer close the stream to a peer.
 func (ns *NetService) ClosePeer(peerID string, reason error) {
 	ns.node.streamManager.CloseStream(peerID, reason)
 }

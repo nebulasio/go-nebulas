@@ -110,6 +110,7 @@ func (node *Node) Start() error {
 	return nil
 }
 
+// Stop stop a node.
 func (node *Node) Stop() {
 	logging.CLog().WithFields(logrus.Fields{
 		"id":                node.ID(),
@@ -175,10 +176,12 @@ func (node *Node) SetSynchronizing(synchronizing bool) {
 	node.synchronizing = synchronizing
 }
 
+// PeersCount return stream count.
 func (node *Node) PeersCount() int32 {
 	return node.streamManager.Count()
 }
 
+// RouteTable return route table.
 func (node *Node) RouteTable() *RouteTable {
 	return node.routeTable
 }
@@ -267,19 +270,24 @@ func (node *Node) onStreamConnected(s libnet.Stream) {
 	node.streamManager.Add(s, node)
 }
 
+// SendMessageToPeer send message to a peer.
 func (node *Node) SendMessageToPeer(messageName string, data []byte, priority int, peerID string) error {
 	stream := node.streamManager.FindByPeerID(peerID)
 	if stream == nil {
-		logging.VLog().WithFields(logrus.Fields{
+		logging.CLog().WithFields(logrus.Fields{
 			"pid": peerID,
 			"err": ErrPeerIsNotConnected,
 		}).Debug("Failed to send msg")
 		return ErrPeerIsNotConnected
 	}
+	logging.CLog().WithFields(logrus.Fields{
+		"pid": peerID,
+	}).Info("send message to peer")
 
 	return stream.SendMessage(messageName, data, priority)
 }
 
+// BroadcastMessage broadcast message.
 func (node *Node) BroadcastMessage(messageName string, data nebnet.Serializable, priority int) {
 	// node can not broadcast or relay message if it is in synchronizing.
 	if node.synchronizing {
@@ -289,6 +297,7 @@ func (node *Node) BroadcastMessage(messageName string, data nebnet.Serializable,
 	node.streamManager.BroadcastMessage(messageName, data, priority)
 }
 
+// RelayMessage relay message.
 func (node *Node) RelayMessage(messageName string, data nebnet.Serializable, priority int) {
 	// node can not broadcast or relay message if it is in synchronizing.
 	if node.synchronizing {
