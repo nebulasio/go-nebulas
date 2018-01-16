@@ -296,10 +296,8 @@ func (table *RouteTable) SyncRouteTable() {
 		return
 	}
 
-	rand.Seed(time.Now().UnixNano())
-
 	selectedPeersIdx := make(map[int]bool)
-	for i := 0; i < peersCount; i++ {
+	for i := 0; i < peersCount/2; i++ {
 		ri := 0
 
 		for {
