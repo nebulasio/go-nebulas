@@ -23,8 +23,6 @@ import (
 	"strings"
 	"time"
 
-	"reflect"
-
 	"github.com/gogo/protobuf/proto"
 	lru "github.com/hashicorp/golang-lru"
 	"github.com/nebulasio/go-nebulas/core/pb"
@@ -153,8 +151,46 @@ func (bc *BlockChain) CheckChainConfig(neb Neblet) error {
 			"token.distribution":     genesis.TokenDistribution,
 		}).Info("Genesis Configuration.")
 
-		if !reflect.DeepEqual(genesis, neb.Genesis()) {
+		if neb.Genesis().Meta.ChainId != genesis.Meta.ChainId {
 			return ErrGenesisConfNotMatch
+		}
+
+		if len(neb.Genesis().Consensus.Dpos.Dynasty) != len(genesis.Consensus.Dpos.Dynasty) {
+			return ErrGenesisConfNotMatch
+		}
+
+		if len(neb.Genesis().TokenDistribution) != len(genesis.TokenDistribution) {
+			return ErrGenesisConfNotMatch
+		}
+
+		// check dpos equal
+		for _, confDposAddr := range neb.Genesis().Consensus.Dpos.Dynasty {
+			contains := false
+			for _, dposAddr := range genesis.Consensus.Dpos.Dynasty {
+				if dposAddr == confDposAddr {
+					contains = true
+					break
+				}
+			}
+			if !contains {
+				return ErrGenesisConfNotMatch
+			}
+
+		}
+
+		// check distribution equal
+		for _, confDistribution := range neb.Genesis().TokenDistribution {
+			contains := false
+			for _, distribution := range genesis.TokenDistribution {
+				if distribution.Address == confDistribution.Address &&
+					distribution.Value == confDistribution.Value {
+					contains = true
+					break
+				}
+			}
+			if !contains {
+				return ErrGenesisConfNotMatch
+			}
 		}
 	}
 	return nil
