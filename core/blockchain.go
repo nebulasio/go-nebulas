@@ -268,6 +268,8 @@ func (bc *BlockChain) buildIndexByBlockHeight(from *Block, to *Block) error {
 
 // SetTailBlock set tail block.
 func (bc *BlockChain) SetTailBlock(newTail *Block) error {
+	startAt := time.Now().Unix()
+
 	oldTail := bc.tailBlock
 	ancestor, err := bc.FindCommonAncestorWithTail(newTail)
 	if err != nil {
@@ -277,6 +279,8 @@ func (bc *BlockChain) SetTailBlock(newTail *Block) error {
 		}).Error("Failed to find common ancestor with tail")
 		return err
 	}
+	foundAt := time.Now().Unix()
+
 	if err := bc.revertBlocks(ancestor, oldTail); err != nil {
 		logging.CLog().WithFields(logrus.Fields{
 			"from":  ancestor,
@@ -285,6 +289,8 @@ func (bc *BlockChain) SetTailBlock(newTail *Block) error {
 		}).Error("Failed to revert blocks.")
 		return err
 	}
+	revertedAt := time.Now().Unix()
+
 	// build index by block height
 	if err := bc.buildIndexByBlockHeight(ancestor, newTail); err != nil {
 		logging.CLog().WithFields(logrus.Fields{
@@ -294,6 +300,8 @@ func (bc *BlockChain) SetTailBlock(newTail *Block) error {
 		}).Error("Failed to build index by block height.")
 		return err
 	}
+	builtAt := time.Now().Unix()
+
 	// update LIB
 	if err := bc.updateLatestIrreversibleBlock(newTail); err != nil {
 		logging.CLog().WithFields(logrus.Fields{
@@ -304,13 +312,29 @@ func (bc *BlockChain) SetTailBlock(newTail *Block) error {
 		}).Error("Failed to update latest irreversible block.")
 		return err
 	}
+	updatedAt := time.Now().Unix()
+
 	// record new tail
 	if err := bc.storeTailToStorage(newTail); err != nil {
 		return err
 	}
 	bc.tailBlock = newTail
+	storedAt := time.Now().Unix()
+
 	metricsBlockHeightGauge.Update(int64(newTail.Height()))
 	metricsBlocktailHashGauge.Update(int64(byteutils.HashBytes(newTail.Hash())))
+	recordedAt := time.Now().Unix()
+
+	logging.CLog().WithFields(logrus.Fields{
+		"startAt":      startAt,
+		"foundUsed":    foundAt - startAt,
+		"revertedUsed": revertedAt - foundAt,
+		"builtUsed":    builtAt - revertedAt,
+		"updateUsed":   updatedAt - builtAt,
+		"storedUsed":   storedAt - updatedAt,
+		"recordUsed":   recordedAt - storedAt,
+	}).Info("SetTailBlock time consumption.")
+
 	return nil
 }
 
@@ -346,6 +370,10 @@ func (bc *BlockChain) updateLatestIrreversibleBlock(tail *Block) error {
 			return ErrMissingParentBlock
 		}
 	}
+	logging.CLog().WithFields(logrus.Fields{
+		"old lib": bc.latestIrreversibleBlock,
+		"tail":    tail,
+	}).Info("Failed to update latest irreversible block.")
 	return nil
 }
 

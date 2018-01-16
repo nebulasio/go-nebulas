@@ -197,7 +197,7 @@ func (p *Dpos) forkChoice() {
 
 	logging.CLog().WithFields(logrus.Fields{
 		"tails": len(bc.DetachedTailBlocks()),
-	}).Info("Forkchoice Over. %d -> %d -> %d", startAt, endAt-startAt, time.Now().Unix()-endAt)
+	}).Infof("Forkchoice Over. %d -> %d -> %d", startAt, endAt-startAt, time.Now().Unix()-endAt)
 }
 
 // Pending return if consensus can do mining now
@@ -335,7 +335,7 @@ func (p *Dpos) mintBlock(now int64) error {
 		}).Info("Not my turn, waiting...")
 		return ErrInvalidBlockProposer
 	}
-	logging.VLog().WithFields(logrus.Fields{
+	logging.CLog().WithFields(logrus.Fields{
 		"tail":     tail,
 		"elapsed":  elapsedSecond,
 		"expected": context.Proposer.Hex(),
@@ -345,7 +345,7 @@ func (p *Dpos) mintBlock(now int64) error {
 	// mint new block
 	block, err := core.NewBlock(p.chain.ChainID(), p.coinbase, tail)
 	if err != nil {
-		logging.VLog().WithFields(logrus.Fields{
+		logging.CLog().WithFields(logrus.Fields{
 			"tail":     tail,
 			"coinbase": p.coinbase,
 			"chainid":  p.chain.ChainID(),
@@ -357,14 +357,14 @@ func (p *Dpos) mintBlock(now int64) error {
 	block.CollectTransactions(p.txsPerBlock)
 	block.SetMiner(p.miner)
 	if err = block.Seal(); err != nil {
-		logging.VLog().WithFields(logrus.Fields{
+		logging.CLog().WithFields(logrus.Fields{
 			"block": block,
 			"err":   err,
 		}).Error("Failed to seal new block")
 		return err
 	}
 	if err = p.am.SignBlock(p.miner, block); err != nil {
-		logging.VLog().WithFields(logrus.Fields{
+		logging.CLog().WithFields(logrus.Fields{
 			"miner": p.miner.String(),
 			"block": block,
 			"err":   err,
@@ -374,7 +374,7 @@ func (p *Dpos) mintBlock(now int64) error {
 	// broadcast it
 	err = p.chain.BlockPool().PushAndBroadcast(block)
 	if err != nil {
-		logging.VLog().WithFields(logrus.Fields{
+		logging.CLog().WithFields(logrus.Fields{
 			"tail":  tail,
 			"block": block,
 			"err":   err,
@@ -382,7 +382,7 @@ func (p *Dpos) mintBlock(now int64) error {
 		return err
 	}
 
-	logging.VLog().WithFields(logrus.Fields{
+	logging.CLog().WithFields(logrus.Fields{
 		"tail":  tail,
 		"block": block,
 	}).Info("Minted new block")
@@ -390,7 +390,7 @@ func (p *Dpos) mintBlock(now int64) error {
 }
 
 func (p *Dpos) blockLoop() {
-	logging.VLog().Info("Launched Dpos Mining.")
+	logging.CLog().Info("Launched Dpos Mining.")
 	timeChan := time.NewTicker(time.Second).C
 	for {
 		select {
