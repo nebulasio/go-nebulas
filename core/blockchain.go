@@ -124,10 +124,6 @@ func NewBlockChain(neb Neblet) (*BlockChain, error) {
 		"tail": bc.tailBlock,
 	}).Info("Tail Block.")
 
-	// temp code
-	fakeLIB := bc.GetBlockOnCanonicalChainByHeight(246442)
-	bc.storeLIBToStorage(fakeLIB)
-
 	bc.latestIrreversibleBlock, err = bc.loadLIBFromStorage()
 	if err != nil {
 		return nil, err
@@ -329,7 +325,7 @@ func (bc *BlockChain) SetTailBlock(newTail *Block) error {
 	metricsBlocktailHashGauge.Update(int64(byteutils.HashBytes(newTail.Hash())))
 	recordedAt := time.Now().Unix()
 
-	logging.CLog().WithFields(logrus.Fields{
+	logging.VLog().WithFields(logrus.Fields{
 		"startAt":      startAt,
 		"foundUsed":    foundAt - startAt,
 		"revertedUsed": revertedAt - foundAt,
@@ -337,7 +333,9 @@ func (bc *BlockChain) SetTailBlock(newTail *Block) error {
 		"updateUsed":   updatedAt - builtAt,
 		"storedUsed":   storedAt - updatedAt,
 		"recordUsed":   recordedAt - storedAt,
-	}).Info("SetTailBlock time consumption.")
+		"old":          oldTail,
+		"new":          newTail,
+	}).Debug("Succeed to set tail block.")
 
 	return nil
 }
