@@ -482,6 +482,7 @@ func (bc *BlockChain) StartActiveSync() {
 	bc.syncService.StartActiveSync()
 	go func() {
 		bc.syncService.WaitingForFinish()
+		logging.VLog().Debug("Sync Finished.")
 		bc.consensusHandler.ResumeMining()
 	}()
 }

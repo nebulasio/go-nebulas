@@ -86,7 +86,7 @@ func NewDpos(neblet Neblet) (*Dpos, error) {
 		txsPerBlock:     2000,
 
 		enable:  false,
-		pending: false,
+		pending: true,
 	}
 
 	logging.CLog().Info(p.am.Accounts())
@@ -286,11 +286,17 @@ func (p *Dpos) VerifyBlock(block *core.Block, parent *core.Block) error {
 func (p *Dpos) mintBlock(now int64) error {
 	// check mining enable
 	if !p.enable {
+		logging.VLog().WithFields(logrus.Fields{
+			"enable": p.enable,
+		}).Error("Failed to mint when dpos is disable.")
 		return ErrCannotMintWhenDiable
 	}
 
 	// check mining pending
 	if p.pending {
+		logging.VLog().WithFields(logrus.Fields{
+			"enable": p.pending,
+		}).Error("Failed to mint when dpos is suspending.")
 		return ErrCannotMintWhenPending
 	}
 

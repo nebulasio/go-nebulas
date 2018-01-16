@@ -342,7 +342,7 @@ func TestForkChoice(t *testing.T) {
 func TestCanMining(t *testing.T) {
 	dpos, err := NewDpos(mockNeb(t))
 	assert.Nil(t, err)
-	assert.Equal(t, dpos.Pending(), false)
+	assert.Equal(t, dpos.Pending(), true)
 	dpos.SuspendMining()
 	assert.Equal(t, dpos.Pending(), true)
 	dpos.ResumeMining()
