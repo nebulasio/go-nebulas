@@ -11,7 +11,7 @@
     var neb = new Neb();
     neb.setRequest(new Neb.HttpRequest("http://localhost:8685"));
 
-    var Account = require('neb-account');
+    var Account = require('account');
 
     function createExampleAccount() {
         var allAccounts = neb.api.accounts();

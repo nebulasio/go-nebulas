@@ -19,12 +19,13 @@ var Account = require("../lib/account");
 
 var account = Account.NewAccount();
 console.log(account.getPrivateKeyString());
+console.log(account.getPublicKeyString());
 console.log(account.getAddressString());
-var key = account.toKey("passphrase");
-console.log(key);
-console.log("********************");
-var a1 = new Account();
-a1 = a1.fromKey(key, "passphrase");
-console.log(a1.getPrivateKeyString());
+// var key = account.toKey("passphrase");
+// console.log(key);
+// console.log("********************");
+// var a1 = new Account();
+// a1 = a1.fromKey(key, "passphrase");
+// console.log(a1.getPrivateKeyString());
 
 

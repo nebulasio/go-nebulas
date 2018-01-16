@@ -3,8 +3,8 @@
 
 var Buffer = require('safe-buffer').Buffer;
 
-var sha3256 = require('js-sha3').sha3_256; // jshint ignore: line
-var keccak256 = require('js-sha3').keccak256;
+var jsSHA = require('jssha');
+var createKeccakHash = require('keccak');
 var secp256k1 = require('secp256k1');
 var crypto = require('crypto');
 var scrypt = require('scryptsy');
@@ -15,10 +15,18 @@ var assert = require('assert');
 
 var utils = require('./utils.js');
 
+var keccak = function (a, bits) {
+    a = toBuffer(a);
+    if (!bits) bits = 256;
+
+    return createKeccakHash('keccak' + bits).update(a).digest();
+};
+
 var sha3 = function (v) {
     v = toBuffer(v);
-    v = v.toString("hex");
-    return Buffer.from(sha3256(v), "hex");
+    var shaObj = new jsSHA("SHA3-256", "HEX");
+    shaObj.update(v.toString("hex"));
+    return Buffer.from(shaObj.getHash("HEX"), "hex");
 };
 
 // check if hex string
@@ -126,10 +134,16 @@ var privateToPublic = function (privateKey) {
 
 var publicToAddress = function (pubKey, sanitize) {
     pubKey = toBuffer(pubKey);
+
     if (sanitize && (pubKey.length !== 64)) {
         pubKey = secp256k1.publicKeyConvert(pubKey, false).slice(1);
     }
     assert(pubKey.length === 64);
+
+    // The uncompressed form consists of a 0x04 (in analogy to the DER OCTET STRING tag) plus
+    // the concatenation of the binary representation of the X coordinate plus the binary
+    // representation of the y coordinate of the public point.
+    pubKey = Buffer.concat([toBuffer(4), pubKey]);
 
     // Only take the lower 160bits of the hash
     var content = sha3(pubKey).slice(-20);
@@ -154,7 +168,7 @@ var isValidPublic = function (publicKey, sanitize) {
 
 module.exports = {
     secp256k1: secp256k1,
-    keccak256: keccak256,
+    keccak: keccak,
     sha3: sha3,
     crypto: crypto,
     scrypt: scrypt,
