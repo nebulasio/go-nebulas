@@ -195,7 +195,9 @@ func (p *Dpos) forkChoice() {
 		}
 	}
 
-	logging.CLog().Info("Forkchoice Over. %d -> %d -> %d", startAt, endAt-startAt, time.Now().Unix()-endAt)
+	logging.CLog().WithFields(logrus.Fields{
+		"tails": len(bc.DetachedTailBlocks()),
+	}).Info("Forkchoice Over. %d -> %d -> %d", startAt, endAt-startAt, time.Now().Unix()-endAt)
 }
 
 // Pending return if consensus can do mining now
