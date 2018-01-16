@@ -117,15 +117,6 @@ func NewBlockChain(neb Neblet) (*BlockChain, error) {
 	if err != nil {
 		return nil, err
 	}
-	genesisConf, err := DumpGenesis(bc.storage)
-	if err != nil {
-		return nil, err
-	}
-	logging.CLog().WithFields(logrus.Fields{
-		"meta.chainid":           genesisConf.Meta.ChainId,
-		"consensus.dpos.dynasty": genesisConf.Consensus.Dpos.Dynasty,
-		"token.distribution":     genesisConf.TokenDistribution,
-	}).Info("Genesis Configuration.")
 
 	bc.tailBlock, err = bc.loadTailFromStorage()
 	if err != nil {
@@ -156,6 +147,12 @@ func (bc *BlockChain) CheckChainConfig(neb Neblet) error {
 	}
 
 	if genesis, _ := DumpGenesis(bc.storage); genesis != nil {
+		logging.CLog().WithFields(logrus.Fields{
+			"meta.chainid":           genesis.Meta.ChainId,
+			"consensus.dpos.dynasty": genesis.Consensus.Dpos.Dynasty,
+			"token.distribution":     genesis.TokenDistribution,
+		}).Info("Genesis Configuration.")
+
 		if !reflect.DeepEqual(genesis, neb.Genesis()) {
 			return ErrGenesisConfNotMatch
 		}
