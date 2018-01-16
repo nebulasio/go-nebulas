@@ -124,6 +124,10 @@ func NewBlockChain(neb Neblet) (*BlockChain, error) {
 		"tail": bc.tailBlock,
 	}).Info("Tail Block.")
 
+	// temp code
+	fakeLIB := bc.GetBlockOnCanonicalChainByHeight(246442)
+	bc.storeLIBToStorage(fakeLIB)
+
 	bc.latestIrreversibleBlock, err = bc.loadLIBFromStorage()
 	if err != nil {
 		return nil, err
