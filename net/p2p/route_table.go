@@ -125,6 +125,7 @@ func (table *RouteTable) syncLoop() {
 		case <-saveRouteTableToDiskTicker.C:
 			if latestUpdatedAt < table.latestUpdatedAt {
 				table.SaveRouteTableToFile()
+				latestUpdatedAt = table.latestUpdatedAt
 			}
 		}
 	}
@@ -151,6 +152,7 @@ func (table *RouteTable) AddPeerInfo(prettyID string, addrStr []string) error {
 		table.peerStore.AddAddrs(pid, addrs, peerstore.PermanentAddrTTL)
 	}
 	table.routeTable.Update(pid)
+	table.onRouteTableChange()
 
 	return nil
 }
@@ -160,6 +162,8 @@ func (table *RouteTable) AddPeer(pid peer.ID, addr ma.Multiaddr) {
 	logging.CLog().Infof("Adding Peer: %s,%s", pid.Pretty(), addr.String())
 	table.peerStore.AddAddr(pid, addr, peerstore.PermanentAddrTTL)
 	table.routeTable.Update(pid)
+	table.onRouteTableChange()
+
 }
 
 // AddIPFSPeerAddr add a peer to route table with ipfs address.
@@ -179,12 +183,18 @@ func (table *RouteTable) AddPeerStream(s *Stream) {
 		peerstore.PermanentAddrTTL,
 	)
 	table.routeTable.Update(s.pid)
+	table.onRouteTableChange()
 }
 
 // RemovePeerStream remove peerStream from peerStore.
 func (table *RouteTable) RemovePeerStream(s *Stream) {
 	table.peerStore.AddAddr(s.pid, s.addr, 0)
 	table.routeTable.Remove(s.pid)
+	table.onRouteTableChange()
+}
+
+func (table *RouteTable) onRouteTableChange() {
+	table.latestUpdatedAt = time.Now().Unix()
 }
 
 // GetNearestPeers get nearest peers
@@ -287,17 +297,18 @@ func (table *RouteTable) SyncRouteTable() {
 	}
 
 	rand.Seed(time.Now().UnixNano())
-	selectedPeersCount := table.maxPeersCountToSync
 
 	selectedPeersIdx := make(map[int]bool)
-	for i := 0; i < selectedPeersCount; i++ {
+	for i := 0; i < peersCount; i++ {
 		ri := 0
+
 		for {
-			ri := rand.Intn(peersCount)
+			ri = rand.Intn(peersCount)
 			if selectedPeersIdx[ri] == false {
 				break
 			}
 		}
+
 		selectedPeersIdx[ri] = true
 		pid := peers[ri]
 

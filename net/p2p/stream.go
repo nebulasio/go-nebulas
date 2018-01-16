@@ -45,9 +45,6 @@ const (
 	SYNCROUTE     = "syncroute"
 	ROUTETABLE    = "routetable"
 	RECVEDMSG     = "recvedmsg"
-
-	// @deprecated.
-	SYNCROUTEREPLY = "resyncroute"
 )
 
 var (
@@ -438,8 +435,6 @@ func (s *Stream) handleMessage(message *NebMessage) error {
 	switch messageName {
 	case SYNCROUTE:
 		return s.onSyncRoute(message)
-	case SYNCROUTEREPLY:
-		return s.onRouteTable(message)
 	case ROUTETABLE:
 		return s.onRouteTable(message)
 	case RECVEDMSG:
@@ -586,9 +581,6 @@ func (s *Stream) RouteTable() error {
 		"stream":          s.String(),
 		"routetableCount": len(peers),
 	}).Debug("Replied sync route message.")
-
-	// @deprecated.
-	s.SendProtoMessage(SYNCROUTEREPLY, msg, net.MessagePriorityHigh)
 
 	return s.SendProtoMessage(ROUTETABLE, msg, net.MessagePriorityHigh)
 }
