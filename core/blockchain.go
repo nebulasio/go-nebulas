@@ -339,6 +339,12 @@ func (bc *BlockChain) SetTailBlock(newTail *Block) error {
 }
 
 func (bc *BlockChain) updateLatestIrreversibleBlock(tail *Block) error {
+	logging.CLog().WithFields(logrus.Fields{
+		"old lib": bc.latestIrreversibleBlock,
+		"tail":    tail,
+	}).Info("Begin to update latest irreversible block.")
+	startAt := time.Now().Unix()
+
 	lib := bc.latestIrreversibleBlock
 	cur := tail
 	miners := make(map[string]bool)
@@ -349,7 +355,14 @@ func (bc *BlockChain) updateLatestIrreversibleBlock(tail *Block) error {
 			miners = make(map[string]bool)
 			dynasty = curDynasty
 		}
-		if int(cur.height-lib.height) < ConsensusSize-len(miners) {
+		if int(cur.height)-int(lib.height) < ConsensusSize-len(miners) {
+			logging.CLog().WithFields(logrus.Fields{
+				"curHeight": cur.Height,
+				"libHeight": lib.Height,
+				"size":      ConsensusSize,
+				"miners":    len(miners),
+				"time":      time.Now().Unix() - startAt,
+			}).Info("Failed to update latest irreversible block.")
 			return nil
 		}
 		miners[cur.miner.String()] = true
@@ -361,6 +374,7 @@ func (bc *BlockChain) updateLatestIrreversibleBlock(tail *Block) error {
 				"new lib": cur,
 				"old lib": bc.latestIrreversibleBlock,
 				"tail":    tail,
+				"time":    time.Now().Unix() - startAt,
 			}).Info("Succeed to update latest irreversible block.")
 			bc.latestIrreversibleBlock = cur
 			return nil
@@ -370,9 +384,13 @@ func (bc *BlockChain) updateLatestIrreversibleBlock(tail *Block) error {
 			return ErrMissingParentBlock
 		}
 	}
+
 	logging.CLog().WithFields(logrus.Fields{
 		"old lib": bc.latestIrreversibleBlock,
 		"tail":    tail,
+		"miners":  len(miners),
+		"size":    ConsensusSize,
+		"time":    time.Now().Unix() - startAt,
 	}).Info("Failed to update latest irreversible block.")
 	return nil
 }
