@@ -32,7 +32,7 @@ import (
 )
 
 const (
-	interval = 5 * time.Second
+	interval = 2 * time.Second
 	nodeID   = "nodeID"
 	chainID  = "chainID"
 )
