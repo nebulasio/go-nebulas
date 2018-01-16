@@ -157,6 +157,8 @@ func less(a *core.Block, b *core.Block) bool {
 
 // do fork choice
 func (p *Dpos) forkChoice() {
+	startAt := time.Now().Unix()
+
 	bc := p.chain
 	tailBlock := bc.TailBlock()
 	detachedTailBlocks := bc.DetachedTailBlocks()
@@ -169,6 +171,8 @@ func (p *Dpos) forkChoice() {
 			newTailBlock = v
 		}
 	}
+
+	endAt := time.Now().Unix()
 
 	if newTailBlock.Hash().Equals(tailBlock.Hash()) {
 		logging.CLog().WithFields(logrus.Fields{
@@ -190,6 +194,8 @@ func (p *Dpos) forkChoice() {
 			}).Info("change to new tail.")
 		}
 	}
+
+	logging.CLog().Info("Forkchoice Over. %d -> %d -> %d", startAt, endAt-startAt, time.Now().Unix()-endAt)
 }
 
 // Pending return if consensus can do mining now
