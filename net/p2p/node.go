@@ -274,15 +274,12 @@ func (node *Node) onStreamConnected(s libnet.Stream) {
 func (node *Node) SendMessageToPeer(messageName string, data []byte, priority int, peerID string) error {
 	stream := node.streamManager.FindByPeerID(peerID)
 	if stream == nil {
-		logging.CLog().WithFields(logrus.Fields{
+		logging.VLog().WithFields(logrus.Fields{
 			"pid": peerID,
 			"err": ErrPeerIsNotConnected,
 		}).Debug("Failed to send msg")
 		return ErrPeerIsNotConnected
 	}
-	logging.CLog().WithFields(logrus.Fields{
-		"pid": peerID,
-	}).Info("send message to peer")
 
 	return stream.SendMessage(messageName, data, priority)
 }
