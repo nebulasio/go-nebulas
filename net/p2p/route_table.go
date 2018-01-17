@@ -20,6 +20,7 @@ package p2p
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"math/rand"
 	"os"
@@ -30,12 +31,17 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/multiformats/go-multiaddr"
+	netpb "github.com/nebulasio/go-nebulas/net/pb"
 	"github.com/nebulasio/go-nebulas/util/logging"
 
 	kbucket "github.com/libp2p/go-libp2p-kbucket"
 	peer "github.com/libp2p/go-libp2p-peer"
 	peerstore "github.com/libp2p/go-libp2p-peerstore"
 	ma "github.com/multiformats/go-multiaddr"
+)
+
+var (
+	ErrExceedMaxSyncRouteResponse = errors.New("too many sync route table response")
 )
 
 // RouteTable route table struct.
@@ -164,6 +170,16 @@ func (table *RouteTable) AddPeer(pid peer.ID, addr ma.Multiaddr) {
 	table.routeTable.Update(pid)
 	table.onRouteTableChange()
 
+}
+
+func (table *RouteTable) AddPeers(pid string, peers *netpb.Peers) {
+	// recv too many peers info. say Bye.
+	if len(peers.Peers) > table.maxPeersCountForSyncResp {
+		table.streamManager.CloseStream(pid, ErrExceedMaxSyncRouteResponse)
+	}
+	for _, v := range peers.Peers {
+		table.AddPeerInfo(v.Id, v.Addrs)
+	}
 }
 
 // AddIPFSPeerAddr add a peer to route table with ipfs address.
@@ -296,12 +312,17 @@ func (table *RouteTable) SyncRouteTable() {
 		return
 	}
 
+	peersCountToSync := table.maxPeersCountToSync
+
+	if peersCount < peersCountToSync {
+		peersCountToSync = peersCount
+	}
 	selectedPeersIdx := make(map[int]bool)
-	for i := 0; i < peersCount/2; i++ {
+	for i := 0; i < peersCountToSync/2; i++ {
 		ri := 0
 
 		for {
-			ri = rand.Intn(peersCount)
+			ri = rand.Intn(peersCountToSync)
 			if selectedPeersIdx[ri] == false {
 				break
 			}

@@ -594,9 +594,7 @@ func (s *Stream) onRouteTable(message *NebMessage) error {
 		return ErrShouldCloseConnectionAndExitLoop
 	}
 
-	for _, v := range peers.Peers {
-		s.node.routeTable.AddPeerInfo(v.Id, v.Addrs)
-	}
+	s.node.routeTable.AddPeers(s.node.ID(), peers)
 
 	return nil
 }
