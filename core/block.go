@@ -536,13 +536,14 @@ func (block *Block) Seal() error {
 }
 
 func (block *Block) String() string {
-	return fmt.Sprintf("{\"height\":%d, \"hash\":\"%s\", \"parentHash\":\"%s\", \"nonce\":%d, \"timestamp\": %d, \"coinbase\": \"%s\"}",
+	return fmt.Sprintf("{\"height\":%d, \"hash\":\"%s\", \"parentHash\":\"%s\", \"nonce\":%d, \"timestamp\": %d, \"coinbase\": \"%s\", \"tx\": %d}",
 		block.height,
 		byteutils.Hex(block.header.hash),
 		byteutils.Hex(block.header.parentHash),
 		block.header.nonce,
 		block.header.timestamp,
 		block.header.coinbase.String(),
+		len(block.transactions),
 	)
 }
 

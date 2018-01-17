@@ -20,6 +20,7 @@ package sync
 
 import (
 	"errors"
+	"sync"
 
 	"github.com/nebulasio/go-nebulas/util/byteutils"
 
@@ -38,12 +39,14 @@ var (
 )
 
 type SyncService struct {
-	blockChain     *core.BlockChain
-	netService     p2p.Manager
-	chunk          *Chunk
-	quitCh         chan bool
-	activeSyncTask *SyncTask
-	messageCh      chan net.Message
+	blockChain *core.BlockChain
+	netService p2p.Manager
+	chunk      *Chunk
+	quitCh     chan bool
+	messageCh  chan net.Message
+
+	activeSyncTask      *SyncTask
+	activeSyncTaskMutex sync.Mutex
 }
 
 // NewSyncService return new SyncService.
@@ -88,6 +91,10 @@ func (ss *SyncService) Stop() {
 }
 
 func (ss *SyncService) StartActiveSync() {
+	// lock.
+	ss.activeSyncTaskMutex.Lock()
+	defer ss.activeSyncTaskMutex.Unlock()
+
 	if ss.IsActiveSyncing() {
 		return
 	}
@@ -110,7 +117,7 @@ func (ss *SyncService) IsActiveSyncing() bool {
 		return false
 	}
 
-	return ss.activeSyncTask.IsSyncing()
+	return true
 }
 
 func (ss *SyncService) WaitingForFinish() error {

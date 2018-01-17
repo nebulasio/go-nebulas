@@ -145,12 +145,6 @@ func (bc *BlockChain) CheckChainConfig(neb Neblet) error {
 	}
 
 	if genesis, _ := DumpGenesis(bc.storage); genesis != nil {
-		logging.CLog().WithFields(logrus.Fields{
-			"meta.chainid":           genesis.Meta.ChainId,
-			"consensus.dpos.dynasty": genesis.Consensus.Dpos.Dynasty,
-			"token.distribution":     genesis.TokenDistribution,
-		}).Info("Genesis Configuration.")
-
 		if neb.Genesis().Meta.ChainId != genesis.Meta.ChainId {
 			return ErrGenesisConfNotMatch
 		}
@@ -193,6 +187,12 @@ func (bc *BlockChain) CheckChainConfig(neb Neblet) error {
 			}
 		}
 	}
+
+	logging.CLog().WithFields(logrus.Fields{
+		"meta.chainid":           neb.Genesis().Meta.ChainId,
+		"consensus.dpos.dynasty": neb.Genesis().Consensus.Dpos.Dynasty,
+		"token.distribution":     neb.Genesis().TokenDistribution,
+	}).Info("Genesis Configuration.")
 	return nil
 }
 

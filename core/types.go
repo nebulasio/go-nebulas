@@ -120,6 +120,7 @@ type Consensus interface {
 	ResumeMining()
 	VerifyBlock(block *Block, parent *Block) error
 	FastVerifyBlock(block *Block) error
+	ForkChoice() error
 }
 
 // SyncService interface of sync service

@@ -291,7 +291,7 @@ func (c *Chunk) processChunkData(chunk *syncpb.ChunkData) error {
 		if err := block.FromProto(v); err != nil {
 			logging.VLog().WithFields(logrus.Fields{
 				"index": k,
-				"hash":  v.Header.Hash,
+				"hash":  byteutils.Hex(v.Header.Hash),
 				"err":   err,
 			}).Error("Failed to recover a block from proto data.")
 			return err
@@ -299,9 +299,9 @@ func (c *Chunk) processChunkData(chunk *syncpb.ChunkData) error {
 		if err := c.blockChain.BlockPool().Push(block); err != nil {
 			logging.VLog().WithFields(logrus.Fields{
 				"index": k,
-				"hash":  v.Header.Hash,
+				"hash":  byteutils.Hex(v.Header.Hash),
 				"err":   err,
-			}).Error("Failed to recover a block from proto data.")
+			}).Error("Failed to push a block into block pool.")
 			return err
 		}
 	}

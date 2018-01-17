@@ -21,17 +21,13 @@ package dpos
 import (
 	"testing"
 
-	"github.com/nebulasio/go-nebulas/util/byteutils"
-
 	"time"
 
 	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/account"
 	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/core/pb"
-	"github.com/nebulasio/go-nebulas/crypto"
 	"github.com/nebulasio/go-nebulas/crypto/keystore"
-	"github.com/nebulasio/go-nebulas/crypto/keystore/secp256k1"
 	"github.com/nebulasio/go-nebulas/neblet/pb"
 	"github.com/nebulasio/go-nebulas/net"
 	"github.com/nebulasio/go-nebulas/net/p2p"
@@ -155,23 +151,6 @@ func MockGenesisConf() *corepb.Genesis {
 	}
 }
 
-type MockConsensus struct {
-	storage storage.Storage
-}
-
-func (c MockConsensus) SuspendMining() {}
-
-func (c MockConsensus) ResumeMining() {}
-
-func (c MockConsensus) FastVerifyBlock(block *core.Block) error {
-	block.SetMiner(block.Coinbase())
-	return nil
-}
-func (c MockConsensus) VerifyBlock(block *core.Block, parent *core.Block) error {
-	block.SetMiner(block.Coinbase())
-	return nil
-}
-
 var (
 	received = []byte{}
 )
@@ -233,8 +212,7 @@ func TestDpos_New(t *testing.T) {
 func TestDpos_VerifySign(t *testing.T) {
 	dpos, err := NewDpos(mockNeb(t))
 	assert.Nil(t, err)
-	var c MockConsensus
-	dpos.chain.SetConsensusHandler(c)
+	dpos.chain.SetConsensusHandler(dpos)
 	tail := dpos.chain.TailBlock()
 
 	elapsedSecond := int64(core.DynastySize*core.BlockInterval + core.DynastyInterval)
@@ -261,81 +239,71 @@ func TestDpos_VerifySign(t *testing.T) {
 	assert.Equal(t, dpos.VerifyBlock(block, tail), ErrInvalidBlockProposer)
 }
 
-func TestForkChoice(t *testing.T) {
-	dpos, err := NewDpos(mockNeb(t))
+func GetUnlockAddress(t *testing.T, am *account.Manager, addr string) *core.Address {
+	address, err := core.AddressParse(addr)
 	assert.Nil(t, err)
-	var c MockConsensus
-	dpos.chain.SetConsensusHandler(c)
+	assert.Nil(t, am.Unlock(address, []byte("passphrase"), time.Second*60*60*24*365))
+	return address
+}
 
-	ks := keystore.DefaultKS
-	priv := secp256k1.GeneratePrivateKey()
-	pubdata, _ := priv.PublicKey().Encoded()
-	from, _ := core.NewAddressFromPublicKey(pubdata)
-	ks.SetKey(from.String(), priv, []byte("passphrase"))
-	ks.Unlock(from.String(), []byte("passphrase"), time.Second*60*60*24*365)
-	key, _ := ks.GetUnlocked(from.String())
-	signature, _ := crypto.NewSignature(keystore.SECP256K1)
-	signature.InitSign(key.(keystore.PrivateKey))
+func TestForkChoice(t *testing.T) {
+	neb := mockNeb(t)
+	dpos, err := NewDpos(neb)
+	assert.Nil(t, err)
+	dpos.chain.SetConsensusHandler(dpos)
+
+	am := account.NewManager(neb)
 
 	/*
 		genesis -- 0 -- 11 -- 111 -- 1111
 					 \_ 12 -- 221
 	*/
 
-	block0, _ := dpos.chain.NewBlock(from)
+	addr0 := GetUnlockAddress(t, am, "2fe3f9f51f9a05dd5f7c5329127f7c917917149b4e16b0b8")
+	block0, _ := dpos.chain.NewBlock(addr0)
 	block0.SetTimestamp(core.BlockInterval)
-	block0.SetMiner(from)
+	block0.SetMiner(addr0)
 	block0.Seal()
+	am.SignBlock(addr0, block0)
 	assert.Nil(t, dpos.chain.BlockPool().Push(block0))
-	dpos.forkChoice()
 	assert.Equal(t, block0.Hash(), dpos.chain.TailBlock().Hash())
 
-	block11, _ := dpos.chain.NewBlock(from)
+	addr1 := GetUnlockAddress(t, am, "333cb3ed8c417971845382ede3cf67a0a96270c05fe2f700")
+	block11, _ := dpos.chain.NewBlock(addr1)
 	block11.SetTimestamp(core.BlockInterval * 2)
-	block11.SetMiner(from)
+	block11.SetMiner(addr1)
 	block11.Seal()
+	am.SignBlock(addr1, block11)
 	assert.Nil(t, dpos.chain.BlockPool().Push(block11))
 
-	block12, _ := dpos.chain.NewBlock(from)
-	block12.SetTimestamp(core.BlockInterval * 3)
-	block12.SetMiner(from)
+	block12, _ := dpos.chain.NewBlock(addr1)
+	block12.SetTimestamp(core.BlockInterval * 2)
+	block12.SetMiner(addr1)
 	block12.Seal()
-	assert.Nil(t, dpos.chain.BlockPool().Push(block12))
+	am.SignBlock(addr1, block12)
+	assert.Error(t, dpos.chain.BlockPool().Push(block12), core.ErrDoubleBlockMinted)
 
-	assert.Equal(t, len(dpos.chain.DetachedTailBlocks()), 2)
-	dpos.forkChoice()
-	tail := block11
-	if byteutils.Less(block11.Hash(), block12.Hash()) {
-		tail = block12
-	}
-	assert.Equal(t, dpos.chain.TailBlock().Hash(), tail.Hash())
-	assert.Equal(t, len(dpos.chain.DetachedTailBlocks()), 2)
+	assert.Equal(t, len(dpos.chain.DetachedTailBlocks()), 1)
+	assert.Equal(t, dpos.chain.TailBlock().Hash(), block11.Hash())
 
-	block111, _ := dpos.chain.NewBlockFromParent(from, block11)
-	block111.SetTimestamp(core.BlockInterval * 4)
-	block111.SetMiner(from)
+	addr2 := GetUnlockAddress(t, am, "48f981ed38910f1232c1bab124f650c482a57271632db9e3")
+	block111, _ := dpos.chain.NewBlockFromParent(addr2, block11)
+	block111.SetTimestamp(core.BlockInterval * 3)
+	block111.SetMiner(addr2)
 	block111.Seal()
+	am.SignBlock(addr2, block111)
+	assert.Equal(t, len(dpos.chain.DetachedTailBlocks()), 1)
 
-	block1111, _ := dpos.chain.NewBlockFromParent(from, block111)
-	block1111.SetTimestamp(core.BlockInterval * 5)
-	block1111.SetMiner(from)
+	addr3 := GetUnlockAddress(t, am, "59fc526072b09af8a8ca9732dae17132c4e9127e43cf2232")
+	block1111, _ := dpos.chain.NewBlockFromParent(addr3, block111)
+	block1111.SetTimestamp(core.BlockInterval * 4)
+	block1111.SetMiner(addr3)
 	block1111.Seal()
+	am.SignBlock(addr3, block1111)
 	assert.Error(t, dpos.chain.BlockPool().Push(block1111), core.ErrMissingParentBlock)
-	assert.Equal(t, len(dpos.chain.DetachedTailBlocks()), 2)
+	assert.Equal(t, len(dpos.chain.DetachedTailBlocks()), 1)
 	assert.Nil(t, dpos.chain.BlockPool().Push(block111))
-	assert.Equal(t, len(dpos.chain.DetachedTailBlocks()), 2)
-	dpos.forkChoice()
-	assert.Equal(t, len(dpos.chain.DetachedTailBlocks()), 2)
-	assert.Equal(t, dpos.chain.TailBlock().Hash(), block1111.Hash())
-
-	block221, _ := dpos.chain.NewBlockFromParent(from, block12)
-	block221.SetTimestamp(core.BlockInterval * 6)
-	block221.SetMiner(from)
-	block221.Seal()
-	assert.Nil(t, dpos.chain.BlockPool().Push(block221))
-	assert.Equal(t, len(dpos.chain.DetachedTailBlocks()), 2)
-	dpos.forkChoice()
-	assert.Equal(t, len(dpos.chain.DetachedTailBlocks()), 2)
+	assert.Equal(t, len(dpos.chain.DetachedTailBlocks()), 1)
 	assert.Equal(t, dpos.chain.TailBlock().Hash(), block1111.Hash())
 }
 
@@ -352,8 +320,7 @@ func TestCanMining(t *testing.T) {
 func TestFastVerifyBlock(t *testing.T) {
 	dpos, err := NewDpos(mockNeb(t))
 	assert.Nil(t, err)
-	var c MockConsensus
-	dpos.chain.SetConsensusHandler(c)
+	dpos.chain.SetConsensusHandler(dpos)
 	tail := dpos.chain.TailBlock()
 
 	coinbase, err := core.AddressParse("1a263547d167c74cf4b8f9166cfa244de0481c514a45aa2c")
@@ -397,8 +364,7 @@ func TestFastVerifyBlock(t *testing.T) {
 func TestDpos_MintBlock(t *testing.T) {
 	dpos, err := NewDpos(mockNeb(t))
 	assert.Nil(t, err)
-	var c MockConsensus
-	dpos.chain.SetConsensusHandler(c)
+	dpos.chain.SetConsensusHandler(dpos)
 
 	assert.Equal(t, dpos.mintBlock(0), ErrCannotMintWhenDiable)
 

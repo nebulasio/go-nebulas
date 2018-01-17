@@ -53,7 +53,6 @@ var (
 type SyncTask struct {
 	quitCh                            chan bool
 	statusCh                          chan error
-	isSyncing                         bool
 	blockChain                        *core.BlockChain
 	syncPointBlock                    *core.Block
 	netService                        p2p.Manager
@@ -66,10 +65,12 @@ type SyncTask struct {
 	chunkHeadersRootHashCounter       map[string]int
 	receivedChunkHeadersRootHashPeers map[string]bool
 
-	chainSyncDoneCh            chan bool
-	chainChunkDataSyncPosition int
-	chainChunkDataStatus       map[int]int64
-	chinGetChunkDataDoneCh     chan bool
+	chainSyncDoneCh               chan bool
+	chainChunkDataSyncPosition    int
+	chainChunkDataProcessPosition int
+	chainChunkData                map[int]*syncpb.ChunkData
+	chainChunkDataStatus          map[int]int64
+	chinGetChunkDataDoneCh        chan bool
 
 	// debug fields.
 	chainSyncRetryCount int
@@ -79,7 +80,6 @@ func NewSyncTask(blockChain *core.BlockChain, netService p2p.Manager, chunk *Chu
 	return &SyncTask{
 		quitCh:                            make(chan bool, 1),
 		statusCh:                          make(chan error, 1),
-		isSyncing:                         false,
 		blockChain:                        blockChain,
 		syncPointBlock:                    blockChain.TailBlock(),
 		netService:                        netService,
@@ -92,6 +92,8 @@ func NewSyncTask(blockChain *core.BlockChain, netService p2p.Manager, chunk *Chu
 		receivedChunkHeadersRootHashPeers: make(map[string]bool),
 		chainSyncDoneCh:                   make(chan bool, 1),
 		chainChunkDataSyncPosition:        0,
+		chainChunkDataProcessPosition:     0,
+		chainChunkData:                    make(map[int]*syncpb.ChunkData),
 		chainChunkDataStatus:              make(map[int]int64),
 		chinGetChunkDataDoneCh:            make(chan bool, 1),
 		// debug fields.
@@ -105,10 +107,6 @@ func (st *SyncTask) Start() {
 
 func (st *SyncTask) Stop() {
 	st.quitCh <- true
-}
-
-func (st *SyncTask) IsSyncing() bool {
-	return st.isSyncing
 }
 
 func (st *SyncTask) startSyncLoop() {
@@ -141,9 +139,12 @@ func (st *SyncTask) startSyncLoop() {
 
 			// start get chunk data.
 			logging.VLog().Debug("Starting GetChainData from peers.")
+
 			st.sendChainGetChunk()
 
 			getChunkTimeoutTicker := time.NewTicker(10 * time.Second)
+
+		SYNC_STEP_2:
 			for {
 				select {
 				case <-st.quitCh:
@@ -154,10 +155,14 @@ func (st *SyncTask) startSyncLoop() {
 					st.checkChainGetChunkTimeout()
 				case <-st.chinGetChunkDataDoneCh:
 					// finished.
-					st.isSyncing = true
-					st.statusCh <- nil
 					logging.VLog().Debug("GetChainData Finished.")
-					return
+					if len(st.maxConsistentChunkHeaders.ChunkHeaders) == 0 {
+						st.statusCh <- nil
+						return
+					}
+					st.reset()
+					st.setSyncPointToNewTail()
+					break SYNC_STEP_2
 				}
 			}
 		}
@@ -176,6 +181,12 @@ func (st *SyncTask) reset() {
 	st.receivedChunkHeadersRootHashPeers = make(map[string]bool)
 	st.chainChunkDataStatus = make(map[int]int64)
 	st.chainChunkDataSyncPosition = 0
+	st.chainChunkDataProcessPosition = 0
+	st.chainChunkData = make(map[int]*syncpb.ChunkData)
+}
+
+func (st *SyncTask) setSyncPointToNewTail() {
+	st.syncPointBlock = st.blockChain.TailBlock()
 }
 
 func (st *SyncTask) setSyncPointToLastChunk() {
@@ -422,15 +433,20 @@ func (st *SyncTask) processChunkData(message net.Message) {
 		return
 	}
 
-	err := st.chunk.processChunkData(chunkData)
-	if err != nil {
-		logging.VLog().WithFields(logrus.Fields{
-			"err": err,
-			"pid": message.MessageFrom(),
-		}).Debug("Wrong ChainChunkData message data, retry.")
-		st.netService.ClosePeer(message.MessageFrom(), err)
-		st.sendChainGetChunkMessage(chunkDataIndex)
-		return
+	st.chainChunkData[chunkDataIndex] = chunkData
+	chunk, ok := st.chainChunkData[st.chainChunkDataProcessPosition]
+	for ok {
+		if err := st.chunk.processChunkData(chunk); err != nil {
+			logging.VLog().WithFields(logrus.Fields{
+				"err": err,
+				"pid": message.MessageFrom(),
+			}).Debug("Wrong ChainChunkData message data, retry.")
+			st.netService.ClosePeer(message.MessageFrom(), err)
+			st.sendChainGetChunkMessage(chunkDataIndex)
+			return
+		}
+		st.chainChunkDataProcessPosition++
+		chunk, ok = st.chainChunkData[st.chainChunkDataProcessPosition]
 	}
 
 	// mark done.

@@ -45,7 +45,6 @@ type BlockPool struct {
 	size                          int
 	receiveBlockMessageCh         chan net.Message
 	receiveDownloadBlockMessageCh chan net.Message
-	receivedLinkedBlockCh         chan *Block
 	quitCh                        chan int
 
 	bc    *BlockChain
@@ -72,8 +71,7 @@ func NewBlockPool(size int) (*BlockPool, error) {
 		size: size,
 		receiveBlockMessageCh:         make(chan net.Message, size),
 		receiveDownloadBlockMessageCh: make(chan net.Message, size),
-		receivedLinkedBlockCh:         make(chan *Block, size),
-		quitCh:                        make(chan int, 1),
+		quitCh: make(chan int, 1),
 	}
 	var err error
 	bp.cache, err = lru.New(size)
@@ -85,11 +83,6 @@ func NewBlockPool(size int) (*BlockPool, error) {
 		return nil, err
 	}
 	return bp, nil
-}
-
-// ReceivedLinkedBlockCh return received block chan.
-func (pool *BlockPool) ReceivedLinkedBlockCh() chan *Block {
-	return pool.receivedLinkedBlockCh
 }
 
 // RegisterInNetwork register message subscriber in network.
@@ -413,6 +406,10 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 			"block": plb.block,
 		}).Warn("Found unlinked ancestor.")
 
+		if sender == NoSender {
+			return ErrMissingParentBlock
+		}
+
 		if err := pool.download(sender, plb.block); err != nil {
 			logging.VLog().WithFields(logrus.Fields{
 				"block": plb.block,
@@ -431,6 +428,7 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 		if sender == NoSender {
 			return ErrMissingParentBlock
 		}
+
 		// do sync if there are so many empty slots.
 		if int(lb.block.Height())-int(bc.TailBlock().Height()) > ChunkSize {
 			bc.StartActiveSync()
@@ -479,9 +477,7 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 	}
 
 	// notify consensus to handle new block.
-	pool.receivedLinkedBlockCh <- block
-
-	return nil
+	return pool.bc.ConsensusHandler().ForkChoice()
 }
 
 func (pool *BlockPool) setBlockChain(bc *BlockChain) {

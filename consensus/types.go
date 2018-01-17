@@ -42,6 +42,7 @@ type Consensus interface {
 
 	VerifyBlock(block *core.Block, parent *core.Block) error
 	FastVerifyBlock(block *core.Block) error
+	ForkChoice() error
 }
 
 // EventType of Events in Consensus State-Machine

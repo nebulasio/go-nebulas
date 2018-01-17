@@ -155,8 +155,8 @@ func less(a *core.Block, b *core.Block) bool {
 	return byteutils.Less(a.Hash(), b.Hash())
 }
 
-// do fork choice
-func (p *Dpos) forkChoice() {
+// ForkChoice select new tail
+func (p *Dpos) ForkChoice() error {
 	bc := p.chain
 	tailBlock := bc.TailBlock()
 	detachedTailBlocks := bc.DetachedTailBlocks()
@@ -175,21 +175,24 @@ func (p *Dpos) forkChoice() {
 			"old tail": tailBlock,
 			"new tail": newTailBlock,
 		}).Info("Current tail is best, no need to change.")
-	} else {
-		err := bc.SetTailBlock(newTailBlock)
-		if err != nil {
-			logging.CLog().WithFields(logrus.Fields{
-				"new tail": newTailBlock,
-				"old tail": tailBlock,
-				"err":      err,
-			}).Error("Failed to set new tail block.")
-		} else {
-			logging.CLog().WithFields(logrus.Fields{
-				"new tail": newTailBlock,
-				"old tail": tailBlock,
-			}).Info("change to new tail.")
-		}
+		return nil
 	}
+
+	err := bc.SetTailBlock(newTailBlock)
+	if err != nil {
+		logging.CLog().WithFields(logrus.Fields{
+			"new tail": newTailBlock,
+			"old tail": tailBlock,
+			"err":      err,
+		}).Error("Failed to set new tail block.")
+		return err
+	}
+
+	logging.CLog().WithFields(logrus.Fields{
+		"new tail": newTailBlock,
+		"old tail": tailBlock,
+	}).Info("change to new tail.")
+	return nil
 }
 
 // Pending return if consensus can do mining now
@@ -388,8 +391,6 @@ func (p *Dpos) blockLoop() {
 		select {
 		case now := <-timeChan:
 			p.mintBlock(now.Unix())
-		case <-p.chain.BlockPool().ReceivedLinkedBlockCh():
-			p.forkChoice()
 		case <-p.quitCh:
 			logging.CLog().Info("Shutdowned Dpos Mining.")
 			return

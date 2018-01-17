@@ -116,6 +116,6 @@ func GenerateTime() []byte {
 }
 
 func help() {
-	fmt.Printf("%s [server|client] [config] [delay(ms)]\n", os.Args[0])
+	fmt.Printf("%s [server|client] [config] [(bytes)]\n", os.Args[0])
 	os.Exit(1)
 }

@@ -61,6 +61,10 @@ func (c MockConsensus) VerifyBlock(block *core.Block, parent *core.Block) error 
 	return nil
 }
 
+func (c MockConsensus) ForkChoice() error {
+	return nil
+}
+
 type mockNeb struct {
 	genesis *corepb.Genesis
 	config  *nebletpb.Config

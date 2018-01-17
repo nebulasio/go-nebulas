@@ -51,6 +51,10 @@ func (c MockConsensus) VerifyBlock(block *Block, parent *Block) error {
 	return nil
 }
 
+func (c MockConsensus) ForkChoice() error {
+	return nil
+}
+
 func (c MockConsensus) SuspendMining() {}
 
 func (c MockConsensus) ResumeMining() {}
@@ -179,30 +183,21 @@ func TestBlockPool(t *testing.T) {
 
 	err = pool.Push(block3)
 	assert.Equal(t, pool.cache.Len(), 1)
-	assert.Error(t, ErrMissingParentBlock)
+	assert.Error(t, err, ErrMissingParentBlock)
 	err = pool.Push(block4)
 	assert.Equal(t, pool.cache.Len(), 2)
-	assert.NoError(t, err)
+	assert.Error(t, err, ErrMissingParentBlock)
 	err = pool.Push(block2)
 	assert.Equal(t, pool.cache.Len(), 3)
-	assert.Error(t, ErrMissingParentBlock)
+	assert.Error(t, err, ErrMissingParentBlock)
 
 	err = pool.Push(block1)
 	assert.NoError(t, err)
 	assert.Equal(t, pool.cache.Len(), 0)
 
-	bc.SetTailBlock(block0)
+	bc.SetTailBlock(block4)
+	assert.Equal(t, bc.tailBlock.Hash(), block4.Hash())
 	nonce := bc.tailBlock.GetNonce(from.Bytes())
-	assert.Equal(t, nonce, uint64(0))
-
-	bc.SetTailBlock(block1)
-	nonce = bc.tailBlock.GetNonce(from.Bytes())
-	assert.Equal(t, nonce, uint64(1))
-	bc.SetTailBlock(block2)
-	nonce = bc.tailBlock.GetNonce(from.Bytes())
-	assert.Equal(t, nonce, uint64(2))
-	bc.SetTailBlock(block3)
-	nonce = bc.tailBlock.GetNonce(from.Bytes())
 	assert.Equal(t, nonce, uint64(3))
 
 	addr = &Address{validators[0]}
