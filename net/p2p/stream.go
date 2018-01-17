@@ -109,7 +109,7 @@ func (s *Stream) Connect() error {
 		NebProtocolID,
 	)
 	if err != nil {
-		logging.CLog().WithFields(logrus.Fields{
+		logging.VLog().WithFields(logrus.Fields{
 			"stream": s.String(),
 			"err":    err,
 		}).Debug("Failed to connect to host.")
@@ -145,7 +145,7 @@ func (s *Stream) SendProtoMessage(messageName string, pb proto.Message, priority
 			"err":         err,
 			"messageName": messageName,
 			"stream":      s.String(),
-		}).Warn("Failed to marshal proto message.")
+		}).Debug("Failed to marshal proto message.")
 		return err
 	}
 
@@ -228,7 +228,7 @@ func (s *Stream) WriteProtoMessage(messageName string, pb proto.Message) error {
 			"err":         err,
 			"messageName": messageName,
 			"stream":      s.String(),
-		}).Warn("Failed to marshal proto message.")
+		}).Debug("Failed to marshal proto message.")
 		return err
 	}
 
@@ -278,7 +278,7 @@ func (s *Stream) readLoop() {
 			logging.VLog().WithFields(logrus.Fields{
 				"err":    err,
 				"stream": s.String(),
-			}).Error("Error occurred when reading data from network connection.")
+			}).Debug("Error occurred when reading data from network connection.")
 			s.Close(err)
 			return
 		}
@@ -313,7 +313,7 @@ func (s *Stream) readLoop() {
 						"stream":          s.String(),
 						"conf.chainID":    s.node.config.ChainID,
 						"message.chainID": message.ChainID(),
-					}).Error("Invalid chainID, disconnect the connection.")
+					}).Warn("Invalid chainID, disconnect the connection.")
 					s.Bye()
 					return
 				}
@@ -500,7 +500,7 @@ func (s *Stream) onHello(message *NebMessage) error {
 			"address":           s.addr,
 			"ok.node_id":        msg.NodeId,
 			"ok.client_version": msg.ClientVersion,
-		}).Debug("Invalid NodeId or incompatible client version.")
+		}).Warn("Invalid NodeId or incompatible client version.")
 		return ErrShouldCloseConnectionAndExitLoop
 	}
 
@@ -536,7 +536,7 @@ func (s *Stream) onOk(message *NebMessage) error {
 			"address":           s.addr,
 			"ok.node_id":        msg.NodeId,
 			"ok.client_version": msg.ClientVersion,
-		}).Debug("Invalid NodeId or incompatible client version.")
+		}).Warn("Invalid NodeId or incompatible client version.")
 		return ErrShouldCloseConnectionAndExitLoop
 	}
 

@@ -30,7 +30,7 @@ func HelloMessageFromProto(data []byte) (*Hello, error) {
 	if err := proto.Unmarshal(data, pb); err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"err": err,
-		}).Debug("Invalid Hello proto message.")
+		}).Debug("Failed to unmarshal Hello message.")
 		return nil, err
 	}
 
@@ -43,7 +43,7 @@ func OKMessageFromProto(data []byte) (*OK, error) {
 	if err := proto.Unmarshal(data, pb); err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"err": err,
-		}).Debug("Invalid OK proto message.")
+		}).Debug("Failed to unmarshal OK message.")
 		return nil, err
 	}
 

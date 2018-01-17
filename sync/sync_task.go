@@ -102,7 +102,7 @@ func NewSyncTask(blockChain *core.BlockChain, netService p2p.Manager, chunk *Chu
 }
 
 func (st *SyncTask) Start() {
-	st.startSyncLoop()
+	go st.startSyncLoop()
 }
 
 func (st *SyncTask) Stop() {
@@ -110,63 +110,65 @@ func (st *SyncTask) Stop() {
 }
 
 func (st *SyncTask) startSyncLoop() {
-	go func() {
+	for {
+		// start chain sync.
+		st.sendChainSync()
+
+		syncTicker := time.NewTicker(30 * time.Second)
+
+	SYNC_STEP_1:
 		for {
-			// start chain sync.
-			st.sendChainSync()
-
-			syncTicker := time.NewTicker(30 * time.Second)
-
-		SYNC_STEP_1:
-			for {
-				select {
-				case <-st.quitCh:
-					logging.VLog().Debug("Stopping sync loop.")
-					return
-				case <-syncTicker.C:
-					if !st.hasEnoughChunkHeaders() {
-						st.reset()
-						st.setSyncPointToLastChunk()
-						st.sendChainSync()
-						continue
-					}
-				case <-st.chainSyncDoneCh:
-					// go to next step.
-					logging.VLog().Debug("ChainSync Finished. Move to GetChainData.")
-					break SYNC_STEP_1
-				}
-			}
-
-			// start get chunk data.
-			logging.VLog().Debug("Starting GetChainData from peers.")
-
-			st.sendChainGetChunk()
-
-			getChunkTimeoutTicker := time.NewTicker(10 * time.Second)
-
-		SYNC_STEP_2:
-			for {
-				select {
-				case <-st.quitCh:
-					logging.VLog().Debug("Stopping sync loop.")
-					return
-				case <-getChunkTimeoutTicker.C:
-					// for the timeout peer, send message again.
-					st.checkChainGetChunkTimeout()
-				case <-st.chinGetChunkDataDoneCh:
-					// finished.
-					logging.VLog().Debug("GetChainData Finished.")
-					if len(st.maxConsistentChunkHeaders.ChunkHeaders) == 0 {
-						st.statusCh <- nil
-						return
-					}
+			select {
+			case <-st.quitCh:
+				logging.VLog().Info("Stopped sync loop.")
+				return
+			case <-syncTicker.C:
+				if !st.hasEnoughChunkHeaders() {
 					st.reset()
-					st.setSyncPointToNewTail()
-					break SYNC_STEP_2
+					st.setSyncPointToLastChunk()
+					st.sendChainSync()
+					continue
 				}
+			case <-st.chainSyncDoneCh:
+				// go to next step.
+				logging.VLog().Info("ChainSync Finished. Move to GetChainData.")
+				break SYNC_STEP_1
 			}
 		}
-	}()
+
+		// start get chunk data.
+		logging.VLog().Info("Starting GetChainData from peers.")
+
+		st.sendChainGetChunk()
+
+		getChunkTimeoutTicker := time.NewTicker(10 * time.Second)
+
+	SYNC_STEP_2:
+		for {
+			select {
+			case <-st.quitCh:
+				logging.VLog().Info("Stopped sync loop.")
+				return
+			case <-getChunkTimeoutTicker.C:
+				// for the timeout peer, send message again.
+				st.checkChainGetChunkTimeout()
+			case <-st.chinGetChunkDataDoneCh:
+				// finished.
+				logging.VLog().Info("GetChainData Finished.")
+				if len(st.maxConsistentChunkHeaders.ChunkHeaders) == 0 {
+					st.statusCh <- nil
+					return
+				}
+				logging.CLog().WithFields(logrus.Fields{
+					"from": st.syncPointBlock,
+					"to":   st.blockChain.TailBlock(),
+				}).Info("Finish a sync subtask. Go to next one.")
+				st.reset()
+				st.setSyncPointToNewTail()
+				break SYNC_STEP_2
+			}
+		}
+	}
 }
 
 func (st *SyncTask) reset() {
@@ -218,6 +220,10 @@ func (st *SyncTask) sendChainSync() {
 
 	data, err := proto.Marshal(chunkSync)
 	if err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"err":       err,
+			"syncpoint": st.syncPointBlock,
+		}).Warn("Failed to serialize sync message")
 		return
 	}
 
@@ -328,7 +334,7 @@ func (st *SyncTask) sendChainGetChunk() {
 			"maxConsistentChunkHeadersCount":    st.maxConsistentChunkHeadersCount,
 			"maxConsistentChunkHeadersRootHash": byteutils.Hex(st.maxConsistentChunkHeaders.Root),
 			"countOfChunkHeaders":               len(st.maxConsistentChunkHeaders.ChunkHeaders),
-		}).Debug("ChunkHeaders is empty, no need to sync.")
+		}).Info("ChunkHeaders is empty, no need to sync.")
 
 		// done.
 		st.chinGetChunkDataDoneCh <- true
@@ -485,7 +491,7 @@ func (st *SyncTask) hasEnoughChunkHeaders() bool {
 			"maxConsistentChunkHeadersCount":    st.maxConsistentChunkHeadersCount,
 			"maxConsistentChunkHeadersRootHash": byteutils.Hex(st.maxConsistentChunkHeaders.Root),
 			"countOfChunkHeaders":               len(st.maxConsistentChunkHeaders.ChunkHeaders),
-		}).Debug("Received enough chunk headers.")
+		}).Info("Received enough chunk headers.")
 	}
 	return ret
 }
@@ -507,6 +513,6 @@ func (st *SyncTask) hasFinishedGetAllChunkData() bool {
 		return false
 	}
 
-	logging.VLog().Debug("Received enough chunk data.")
+	logging.VLog().Info("Received enough chunk data.")
 	return true
 }

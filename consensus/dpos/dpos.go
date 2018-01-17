@@ -89,8 +89,6 @@ func NewDpos(neblet Neblet) (*Dpos, error) {
 		pending: true,
 	}
 
-	logging.CLog().Info(p.am.Accounts())
-
 	config := neblet.Config().Chain
 	coinbase, err := core.AddressParse(config.Coinbase)
 	if err != nil {
@@ -115,13 +113,13 @@ func NewDpos(neblet Neblet) (*Dpos, error) {
 
 // Start start pow service.
 func (p *Dpos) Start() {
-	logging.CLog().Info("Starting dpos consensus...")
+	logging.CLog().Info("Starting Dpos Mining...")
 	go p.blockLoop()
 }
 
 // Stop stop pow service.
 func (p *Dpos) Stop() {
-	logging.CLog().Info("Stopping dpos consensus...")
+	logging.CLog().Info("Stopping Dpos Mining...")
 	p.DisableMining()
 	p.quitCh <- true
 }
@@ -132,15 +130,18 @@ func (p *Dpos) EnableMining(passphrase string) error {
 		return err
 	}
 	p.enable = true
-	logging.CLog().Info("Enable Dpos Mining...")
+	logging.CLog().Info("Enabled Dpos Mining...")
 	return nil
 }
 
 // DisableMining stop the consensus
 func (p *Dpos) DisableMining() error {
-	logging.CLog().Info("Disable Dpos Mining...")
+	if err := p.am.Lock(p.miner); err != nil {
+		return err
+	}
 	p.enable = false
-	return p.am.Lock(p.miner)
+	logging.CLog().Info("Disable Dpos Mining...")
+	return nil
 }
 
 // Enable returns is mining
@@ -171,7 +172,7 @@ func (p *Dpos) ForkChoice() error {
 	}
 
 	if newTailBlock.Hash().Equals(tailBlock.Hash()) {
-		logging.CLog().WithFields(logrus.Fields{
+		logging.VLog().WithFields(logrus.Fields{
 			"old tail": tailBlock,
 			"new tail": newTailBlock,
 		}).Info("Current tail is best, no need to change.")
@@ -180,7 +181,7 @@ func (p *Dpos) ForkChoice() error {
 
 	err := bc.SetTailBlock(newTailBlock)
 	if err != nil {
-		logging.CLog().WithFields(logrus.Fields{
+		logging.VLog().WithFields(logrus.Fields{
 			"new tail": newTailBlock,
 			"old tail": tailBlock,
 			"err":      err,
@@ -188,7 +189,7 @@ func (p *Dpos) ForkChoice() error {
 		return err
 	}
 
-	logging.CLog().WithFields(logrus.Fields{
+	logging.VLog().WithFields(logrus.Fields{
 		"new tail": newTailBlock,
 		"old tail": tailBlock,
 	}).Info("change to new tail.")
@@ -202,13 +203,13 @@ func (p *Dpos) Pending() bool {
 
 // SuspendMining pend dpos mining
 func (p *Dpos) SuspendMining() {
-	logging.CLog().Info("Pend Dpos Mining.")
+	logging.CLog().Info("Suspended Dpos Mining.")
 	p.pending = true
 }
 
 // ResumeMining continue dpos mining
 func (p *Dpos) ResumeMining() {
-	logging.CLog().Info("Continue Dpos Mining.")
+	logging.CLog().Info("Resumed Dpos Mining.")
 	p.pending = false
 }
 
@@ -221,7 +222,7 @@ func verifyBlockSign(miner *core.Address, block *core.Block) error {
 		logging.VLog().WithFields(logrus.Fields{
 			"recover address": addr.String(),
 			"block":           block,
-		}).Error("Failed to verify block's sign.")
+		}).Debug("Failed to verify block's sign.")
 		return ErrInvalidBlockProposer
 	}
 	block.SetMiner(miner)
@@ -289,17 +290,11 @@ func (p *Dpos) VerifyBlock(block *core.Block, parent *core.Block) error {
 func (p *Dpos) mintBlock(now int64) error {
 	// check mining enable
 	if !p.enable {
-		logging.VLog().WithFields(logrus.Fields{
-			"enable": p.enable,
-		}).Error("Failed to mint when dpos is disable.")
 		return ErrCannotMintWhenDiable
 	}
 
 	// check mining pending
 	if p.pending {
-		logging.VLog().WithFields(logrus.Fields{
-			"enable": p.pending,
-		}).Error("Failed to mint when dpos is suspending.")
 		return ErrCannotMintWhenPending
 	}
 
@@ -313,7 +308,7 @@ func (p *Dpos) mintBlock(now int64) error {
 				"tail":    tail,
 				"elapsed": elapsedSecond,
 				"err":     err,
-			}).Error("Failed to generate next dynasty context.")
+			}).Debug("Failed to generate next dynasty context.")
 		}
 		return core.ErrGenerateNextDynastyContext
 	}
@@ -327,9 +322,10 @@ func (p *Dpos) mintBlock(now int64) error {
 			"elapsed":  elapsedSecond,
 			"expected": proposer,
 			"actual":   p.miner.String(),
-		}).Info("Not my turn, waiting...")
+		}).Debug("Not my turn, waiting...")
 		return ErrInvalidBlockProposer
 	}
+
 	logging.CLog().WithFields(logrus.Fields{
 		"tail":     tail,
 		"elapsed":  elapsedSecond,
@@ -385,14 +381,14 @@ func (p *Dpos) mintBlock(now int64) error {
 }
 
 func (p *Dpos) blockLoop() {
-	logging.CLog().Info("Launched Dpos Mining.")
+	logging.CLog().Info("Started Dpos Mining.")
 	timeChan := time.NewTicker(time.Second).C
 	for {
 		select {
 		case now := <-timeChan:
 			p.mintBlock(now.Unix())
 		case <-p.quitCh:
-			logging.CLog().Info("Shutdowned Dpos Mining.")
+			logging.CLog().Info("Stopped Dpos Mining.")
 			return
 		}
 	}

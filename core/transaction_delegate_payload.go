@@ -106,7 +106,7 @@ func (payload *DelegatePayload) Execute(ctx *PayloadContext) (*util.Uint128, str
 			"tx":        ctx.tx,
 			"delegatee": delegatee.String(),
 			"pre":       byteutils.Hex(pre),
-		}).Info("Delegate candidate.")
+		}).Debug("Delegate candidate.")
 	case UnDelegateAction:
 		if !delegatee.address.Equals(pre) {
 			return ZeroGasCount, "", ErrInvalidUnDelegateFromNonDelegatee
@@ -123,7 +123,7 @@ func (payload *DelegatePayload) Execute(ctx *PayloadContext) (*util.Uint128, str
 			"tx":        ctx.tx,
 			"delegatee": delegatee.String(),
 			"pre":       byteutils.Hex(pre),
-		}).Info("Undelegate candidate.")
+		}).Debug("Undelegate candidate.")
 	default:
 		return ZeroGasCount, "", ErrInvalidDelegatePayloadAction
 	}

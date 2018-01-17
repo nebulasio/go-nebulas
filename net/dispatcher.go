@@ -89,13 +89,13 @@ func (dp *Dispatcher) loop() {
 		case <-timerChan:
 			metricsDispatcherCached.Update(int64(len(dp.receivedMessageCh)))
 		case <-dp.quitCh:
-			logging.CLog().Info("Stoping NetService Dispatcher...")
+			logging.CLog().Info("Stoped NetService Dispatcher.")
 			return
 		case msg := <-dp.receivedMessageCh:
 			msgType := msg.MessageType()
 			logging.VLog().WithFields(logrus.Fields{
 				"msgType": msgType,
-			}).Info("dispatcher received message")
+			}).Debug("dispatcher received message")
 
 			v, _ := dp.subscribersMap.Load(msgType)
 			m, _ := v.(*sync.Map)
@@ -104,7 +104,7 @@ func (dp *Dispatcher) loop() {
 				key.(*Subscriber).msgChan <- msg
 				logging.VLog().WithFields(logrus.Fields{
 					"msgType": msgType,
-				}).Info("succeed dispatcher received message")
+				}).Debug("succeed dispatcher received message")
 				return true
 			})
 		}

@@ -65,14 +65,14 @@ func (c *Chunk) generateChunkHeaders(syncpointHash byteutils.Hash) (*syncpb.Chun
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"err": err,
-		}).Error("Failed to create memory storage")
+		}).Warn("Failed to create memory storage")
 		return nil, err
 	}
 	chunksTrie, err := trie.NewBatchTrie(nil, stor)
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"err": err,
-		}).Error("Failed to create merkle tree")
+		}).Debug("Failed to create merkle tree")
 		return nil, err
 	}
 
@@ -85,7 +85,7 @@ func (c *Chunk) generateChunkHeaders(syncpointHash byteutils.Hash) (*syncpb.Chun
 		if err != nil {
 			logging.VLog().WithFields(logrus.Fields{
 				"err": err,
-			}).Error("Failed to create merkle tree")
+			}).Debug("Failed to create merkle tree")
 			return nil, err
 		}
 
@@ -97,7 +97,7 @@ func (c *Chunk) generateChunkHeaders(syncpointHash byteutils.Hash) (*syncpb.Chun
 			if block == nil {
 				logging.VLog().WithFields(logrus.Fields{
 					"height": curHeight + 1,
-				}).Error("Failed to find the block on canonical chain.")
+				}).Debug("Failed to find the block on canonical chain.")
 				return nil, ErrCannotFindBlockByHeight
 			}
 			headers = append(headers, block.Hash())
@@ -130,7 +130,7 @@ func VerifyChunkHeaders(chunkHeaders *syncpb.ChunkHeaders) (bool, error) {
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"err": err,
-		}).Error("Failed to create memory storage")
+		}).Warn("Failed to create memory storage")
 		return false, err
 	}
 
@@ -138,7 +138,7 @@ func VerifyChunkHeaders(chunkHeaders *syncpb.ChunkHeaders) (bool, error) {
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"err": err,
-		}).Error("Failed to create merkle tree")
+		}).Debug("Failed to create merkle tree")
 		return false, err
 	}
 
@@ -147,7 +147,7 @@ func VerifyChunkHeaders(chunkHeaders *syncpb.ChunkHeaders) (bool, error) {
 		if err != nil {
 			logging.VLog().WithFields(logrus.Fields{
 				"err": err,
-			}).Error("Failed to create merkle tree")
+			}).Debug("Failed to create merkle tree")
 			return false, err
 		}
 
@@ -166,7 +166,7 @@ func (c *Chunk) generateChunkData(chunkHeader *syncpb.ChunkHeader) (*syncpb.Chun
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"err": err,
-		}).Error("Failed to create memory storage")
+		}).Warn("Failed to create memory storage")
 		return nil, err
 	}
 
@@ -174,7 +174,7 @@ func (c *Chunk) generateChunkData(chunkHeader *syncpb.ChunkHeader) (*syncpb.Chun
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"err": err,
-		}).Error("Failed to create merkle tree")
+		}).Debug("Failed to create merkle tree")
 		return nil, err
 	}
 
@@ -186,7 +186,7 @@ func (c *Chunk) generateChunkData(chunkHeader *syncpb.ChunkHeader) (*syncpb.Chun
 				"index": k,
 				"hash":  byteutils.Hex(v),
 				"err":   ErrCannotFindBlockByHash,
-			}).Error("Failed to find the block on canonical chain.")
+			}).Debug("Failed to find the block on canonical chain.")
 			return nil, ErrCannotFindBlockByHash
 		}
 		pbBlock, err := block.ToProto()
@@ -194,7 +194,7 @@ func (c *Chunk) generateChunkData(chunkHeader *syncpb.ChunkHeader) (*syncpb.Chun
 			logging.VLog().WithFields(logrus.Fields{
 				"block": block,
 				"err":   err,
-			}).Error("Failed to serialize block.")
+			}).Debug("Failed to serialize block.")
 			return nil, err
 		}
 		blocks = append(blocks, pbBlock.(*corepb.Block))
@@ -223,7 +223,7 @@ func VerifyChunkData(chunkHeader *syncpb.ChunkHeader, chunkData *syncpb.ChunkDat
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"err": err,
-		}).Error("Failed to create memory storage")
+		}).Warn("Failed to create memory storage")
 		return false, err
 	}
 
@@ -231,7 +231,7 @@ func VerifyChunkData(chunkHeader *syncpb.ChunkHeader, chunkData *syncpb.ChunkDat
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"err": err,
-		}).Error("Failed to create merkle tree")
+		}).Debug("Failed to create merkle tree")
 		return false, err
 	}
 
@@ -293,7 +293,7 @@ func (c *Chunk) processChunkData(chunk *syncpb.ChunkData) error {
 				"index": k,
 				"hash":  byteutils.Hex(v.Header.Hash),
 				"err":   err,
-			}).Error("Failed to recover a block from proto data.")
+			}).Debug("Failed to recover a block from proto data.")
 			return err
 		}
 		if err := c.blockChain.BlockPool().Push(block); err != nil {
@@ -301,7 +301,7 @@ func (c *Chunk) processChunkData(chunk *syncpb.ChunkData) error {
 				"index": k,
 				"hash":  byteutils.Hex(v.Header.Hash),
 				"err":   err,
-			}).Error("Failed to push a block into block pool.")
+			}).Debug("Failed to push a block into block pool.")
 			return err
 		}
 	}

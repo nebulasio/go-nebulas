@@ -105,7 +105,7 @@ func NewGenesisBlock(conf *corepb.Genesis, chain *BlockChain) (*Block, error) {
 			logging.CLog().WithFields(logrus.Fields{
 				"address": v.Address,
 				"err":     err,
-			}).Error("Existed invalid address in genesis token distribution.")
+			}).Error("Found invalid address in genesis token distribution.")
 			return nil, err
 		}
 		acc := genesisBlock.accState.GetOrCreateUserAccount(addr.address)

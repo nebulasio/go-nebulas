@@ -117,7 +117,7 @@ func (pool *BlockPool) handleBlock(msg net.Message) {
 			"msgType": msg.MessageType(),
 			"msg":     msg,
 			"err":     "neither new block nor download block response msg",
-		}).Warn("Received unregistered message.")
+		}).Debug("Received unregistered message.")
 		return
 	}
 
@@ -128,7 +128,7 @@ func (pool *BlockPool) handleBlock(msg net.Message) {
 			"msgType": msg.MessageType(),
 			"msg":     msg,
 			"err":     err,
-		}).Error("Failed to unmarshal data.")
+		}).Debug("Failed to unmarshal data.")
 		return
 	}
 	if err := block.FromProto(pbblock); err != nil {
@@ -136,7 +136,7 @@ func (pool *BlockPool) handleBlock(msg net.Message) {
 			"msgType": msg.MessageType(),
 			"msg":     msg,
 			"err":     err,
-		}).Error("Failed to recover a block from proto data.")
+		}).Debug("Failed to recover a block from proto data.")
 		return
 	}
 
@@ -147,13 +147,13 @@ func (pool *BlockPool) handleBlock(msg net.Message) {
 			"diff":  diff,
 			"limit": AcceptedNetWorkDelay,
 			"err":   "timeout",
-		}).Warn("Found a timeout block.")
+		}).Debug("Found a timeout block.")
 	}
 
 	logging.VLog().WithFields(logrus.Fields{
 		"block": block,
 		"type":  msg.MessageType(),
-	}).Info("Received a new block.")
+	}).Debug("Received a new block.")
 
 	pool.PushAndRelay(msg.MessageFrom(), block)
 }
@@ -163,8 +163,8 @@ func (pool *BlockPool) handleDownloadedBlock(msg net.Message) {
 		logging.VLog().WithFields(logrus.Fields{
 			"messageType": msg.MessageType(),
 			"message":     msg,
-			"err":         "not download block request msg",
-		}).Warn("Received unregistered message.")
+			"err":         "wrong msg type",
+		}).Debug("Failed to received a download request.")
 		return
 	}
 
@@ -174,14 +174,14 @@ func (pool *BlockPool) handleDownloadedBlock(msg net.Message) {
 			"msgType": msg.MessageType(),
 			"msg":     msg,
 			"err":     err,
-		}).Error("Failed to unmarshal data.")
+		}).Debug("Failed to unmarshal data.")
 		return
 	}
 
 	if byteutils.Equal(pbDownloadBlock.Hash, GenesisHash) {
 		logging.VLog().WithFields(logrus.Fields{
 			"download.hash": byteutils.Hex(pbDownloadBlock.Hash),
-		}).Warn("Asked to download genesis's parent, ignore it.")
+		}).Debug("Asked to download genesis's parent, ignore it.")
 		return
 	}
 
@@ -189,7 +189,7 @@ func (pool *BlockPool) handleDownloadedBlock(msg net.Message) {
 	if block == nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"download.hash": byteutils.Hex(pbDownloadBlock.Hash),
-		}).Error("Failed to find the block asked for.")
+		}).Debug("Failed to find the block asked for.")
 		return
 	}
 
@@ -198,7 +198,7 @@ func (pool *BlockPool) handleDownloadedBlock(msg net.Message) {
 			"download.hash": byteutils.Hex(pbDownloadBlock.Hash),
 			"download.sign": byteutils.Hex(pbDownloadBlock.Sign),
 			"expect.sign":   block.Signature().Hex(),
-		}).Error("Failed to check the block's signature.")
+		}).Debug("Failed to check the block's signature.")
 		return
 	}
 
@@ -206,7 +206,7 @@ func (pool *BlockPool) handleDownloadedBlock(msg net.Message) {
 	if parent == nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"block": block,
-		}).Error("Failed to find the block's parent.")
+		}).Debug("Failed to find the block's parent.")
 		return
 	}
 
@@ -215,7 +215,7 @@ func (pool *BlockPool) handleDownloadedBlock(msg net.Message) {
 		logging.VLog().WithFields(logrus.Fields{
 			"parent": parent,
 			"err":    err,
-		}).Error("Failed to convert the block's parent to proto data.")
+		}).Debug("Failed to convert the block's parent to proto data.")
 		return
 	}
 	bytes, err := proto.Marshal(pbBlock)
@@ -223,7 +223,7 @@ func (pool *BlockPool) handleDownloadedBlock(msg net.Message) {
 		logging.VLog().WithFields(logrus.Fields{
 			"parent": parent,
 			"err":    err,
-		}).Error("Failed to marshal the block's parent.")
+		}).Debug("Failed to marshal the block's parent.")
 		return
 	}
 	pool.nm.SendMsg(MessageTypeDownloadedBlockReply, bytes, msg.MessageFrom(), net.MessagePriorityNormal)
@@ -231,7 +231,7 @@ func (pool *BlockPool) handleDownloadedBlock(msg net.Message) {
 	logging.VLog().WithFields(logrus.Fields{
 		"block":  block,
 		"parent": parent,
-	}).Info("Responsed to the download request.")
+	}).Debug("Responsed to the download request.")
 }
 
 func (pool *BlockPool) loop() {
@@ -243,7 +243,7 @@ func (pool *BlockPool) loop() {
 			metricsCachedNewBlock.Update(int64(len(pool.receiveBlockMessageCh)))
 			metricsCachedDownloadBlock.Update(int64(len(pool.receiveDownloadBlockMessageCh)))
 		case <-pool.quitCh:
-			logging.CLog().Info("Shutdowned BlockPool.")
+			logging.CLog().Info("Stopped BlockPool.")
 			return
 		case msg := <-pool.receiveBlockMessageCh:
 			pool.handleBlock(msg)
@@ -321,6 +321,10 @@ func (pool *BlockPool) download(sender string, block *Block) error {
 	}
 	bytes, err := proto.Marshal(downloadMsg)
 	if err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"block": block,
+			"err":   err,
+		}).Debug("Failed to send download request.")
 		return err
 	}
 
@@ -340,7 +344,7 @@ func (pool *BlockPool) download(sender string, block *Block) error {
 func (pool *BlockPool) push(sender string, block *Block) error {
 	logging.VLog().WithFields(logrus.Fields{
 		"block": block,
-	}).Info("Try to push a new block.")
+	}).Debug("Try to push a new block.")
 
 	// verify non-dup block
 	if pool.cache.Contains(block.Hash().Hex()) ||
@@ -348,8 +352,7 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 		metricsDuplicatedBlock.Inc(1)
 		logging.VLog().WithFields(logrus.Fields{
 			"block": block,
-			"err":   "duplicated block",
-		}).Error("Failed to check duplication.")
+		}).Debug("Found duplicated block.")
 		return ErrDuplicatedBlock
 	}
 
@@ -359,7 +362,7 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 		logging.VLog().WithFields(logrus.Fields{
 			"block": block,
 			"err":   err,
-		}).Error("Failed to check integrity.")
+		}).Debug("Failed to check block integrity.")
 		return err
 	}
 
@@ -374,8 +377,8 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 		logging.VLog().WithFields(logrus.Fields{
 			"curBlock": lb.block,
 			"preBlock": preBlock.(*Block),
-			"err":      "double block minted",
-		}).Error("Failed to check double mint.")
+			"sender":   sender,
+		}).Warn("Found someone minted multiple blocks at same time.")
 		return ErrDoubleBlockMinted
 	}
 	pool.slot.Add(lb.block.Timestamp(), lb.block)
@@ -411,10 +414,6 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 		}
 
 		if err := pool.download(sender, plb.block); err != nil {
-			logging.VLog().WithFields(logrus.Fields{
-				"block": plb.block,
-				"err":   err,
-			}).Error("Failed to send download request.")
 			return err
 		}
 
@@ -431,20 +430,18 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 
 		// do sync if there are so many empty slots.
 		if int(lb.block.Height())-int(bc.TailBlock().Height()) > ChunkSize {
-			bc.StartActiveSync()
-			logging.CLog().WithFields(logrus.Fields{
-				"tail":    bc.tailBlock,
-				"block":   block,
-				"offline": strconv.Itoa(int(lb.block.Timestamp()-bc.TailBlock().Timestamp())) + "s",
-				"limit":   strconv.Itoa(int(DynastyInterval)) + "s",
-			}).Warn("Offline too long, pend mining and restart sync from others.")
+			if bc.StartActiveSync() {
+				logging.CLog().WithFields(logrus.Fields{
+					"tail":    bc.tailBlock,
+					"block":   block,
+					"offline": strconv.Itoa(int(lb.block.Timestamp()-bc.TailBlock().Timestamp())) + "s",
+					"limit":   strconv.Itoa(int(DynastyInterval)) + "s",
+				}).Warn("Offline too long, pend mining and restart sync from others.")
+			}
 			return ErrInvalidBlockCannotFindParentInLocalAndTrySync
 		}
+
 		if err := pool.download(sender, lb.block); err != nil {
-			logging.VLog().WithFields(logrus.Fields{
-				"block": block,
-				"err":   err,
-			}).Error("Failed to send download request.")
 			return err
 		}
 		return ErrInvalidBlockCannotFindParentInLocalAndTryDownload
@@ -454,20 +451,10 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 	// performance depth-first search to verify state root, and get all tails.
 	allBlocks, tailBlocks, err := lb.travelToLinkAndReturnAllValidBlocks(parentBlock)
 	if err != nil {
-		logging.VLog().WithFields(logrus.Fields{
-			"block":    block,
-			"ancestor": parentBlock,
-			"err":      err,
-		}).Error("Failed to traverse all valid blocks.")
 		return err
 	}
 
 	if err := bc.putVerifiedNewBlocks(parentBlock, allBlocks, tailBlocks); err != nil {
-		logging.VLog().WithFields(logrus.Fields{
-			"block":    block,
-			"ancestor": parentBlock,
-			"err":      err,
-		}).Error("Failed to put all verified blocks.")
 		return err
 	}
 

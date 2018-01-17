@@ -29,7 +29,6 @@ import (
 
 	"github.com/nebulasio/go-nebulas/neblet"
 	"github.com/nebulasio/go-nebulas/util/logging"
-	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 )
 
@@ -103,19 +102,8 @@ func runNeb(n *neblet.Neblet) {
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 
-	if err := n.Setup(); err != nil {
-		logging.CLog().WithFields(logrus.Fields{
-			"err": err,
-		}).Error("Setup Neblet Failed.")
-		panic("Setup Neblet Failed: " + err.Error())
-	}
-
-	if err := n.Start(); err != nil {
-		logging.CLog().WithFields(logrus.Fields{
-			"err": err,
-		}).Error("Start Neblet Failed.")
-		panic("Start Neblet Failed: " + err.Error())
-	}
+	n.Setup()
+	n.Start()
 
 	go func() {
 		<-c

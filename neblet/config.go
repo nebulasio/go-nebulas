@@ -29,8 +29,6 @@ import (
 
 // LoadConfig loads configuration from the file.
 func LoadConfig(file string) *nebletpb.Config {
-	//logging.VLog().Info("Loading Neb config from file ", file)
-
 	var content string
 	if len(file) > 0 {
 		if !pathExist(file) {
@@ -45,13 +43,11 @@ func LoadConfig(file string) *nebletpb.Config {
 	} else {
 		content = defaultConfig()
 	}
-	//logging.VLog().Info("Parsing Neb config text ", content)
 
 	pb := new(nebletpb.Config)
 	if err := proto.UnmarshalText(content, pb); err != nil {
 		logging.VLog().Fatal(err)
 	}
-	//logging.VLog().Info("Loaded Neb config proto ", pb)
 	return pb
 }
 

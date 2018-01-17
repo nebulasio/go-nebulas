@@ -45,7 +45,7 @@ func EventTriggerFunc(handler unsafe.Pointer, topic, data *C.char) {
 			"category": 0, // ChainEventCategory.
 			"topic":    gTopic,
 			"data":     gData,
-		}).Error("Event.Trigger delegate handler does not found.")
+		}).Debug("Event.Trigger delegate handler does not found.")
 		return
 	}
 
@@ -53,7 +53,7 @@ func EventTriggerFunc(handler unsafe.Pointer, topic, data *C.char) {
 		"category": 0, // ChainEventCategory.
 		"topic":    gTopic,
 		"data":     gData,
-	}).Info("Event triggered from V8 engine.")
+	}).Debug("Event triggered from V8 engine.")
 
 	txHash, _ := byteutils.FromHex(e.ctx.tx.Hash)
 	contractTopic := EventNameSpaceContract + "." + gTopic

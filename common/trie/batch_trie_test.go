@@ -22,8 +22,7 @@ func TestBatchTrie_Batch(t *testing.T) {
 	tr, _ := NewBatchTrie(nil, storage)
 	assert.Equal(t, []byte(nil), tr.trie.RootHash())
 
-	err1 := tr.BeginBatch()
-	assert.Nil(t, err1)
+	tr.BeginBatch()
 
 	// add a new leaf node
 	addr1, _ := byteutils.FromHex("1f345678e9")
@@ -36,8 +35,7 @@ func TestBatchTrie_Batch(t *testing.T) {
 	tr.Put(addr2, val2)
 
 	tr.Commit()
-	err3 := tr.BeginBatch()
-	assert.Nil(t, err3)
+	tr.BeginBatch()
 
 	// add a new node with 2-length common prefix
 	addr3, _ := byteutils.FromHex("1f555678e9")

@@ -170,10 +170,7 @@ func setupNeb(ctx *cli.Context) (*neblet.Neblet, error) {
 		return nil, err
 	}
 
-	err = neb.Setup()
-	if err != nil {
-		return nil, err
-	}
+	neb.Setup()
 	return neb, nil
 }
 

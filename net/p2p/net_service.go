@@ -21,6 +21,7 @@ package p2p
 import (
 	"github.com/nebulasio/go-nebulas/net"
 	"github.com/nebulasio/go-nebulas/util/logging"
+	"github.com/sirupsen/logrus"
 )
 
 // NetService service for nebulas p2p network
@@ -60,7 +61,9 @@ func (ns *NetService) Start() error {
 	// start node.
 	if err := ns.node.Start(); err != nil {
 		ns.dispatcher.Stop()
-		logging.CLog().Info("Failed to start NetService.")
+		logging.CLog().WithFields(logrus.Fields{
+			"err": err,
+		}).Error("Failed to start NetService.")
 		return err
 	}
 

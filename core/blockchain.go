@@ -108,8 +108,19 @@ func NewBlockChain(neb Neblet) (*BlockChain, error) {
 	bc.detachedTailBlocks, _ = lru.New(64)
 
 	if err := bc.CheckChainConfig(neb); err != nil {
+		logging.CLog().WithFields(logrus.Fields{
+			"meta.chainid":           neb.Genesis().Meta.ChainId,
+			"consensus.dpos.dynasty": neb.Genesis().Consensus.Dpos.Dynasty,
+			"token.distribution":     neb.Genesis().TokenDistribution,
+		}).Error("Found unmatched genesis configuration.")
 		return nil, err
 	}
+
+	logging.CLog().WithFields(logrus.Fields{
+		"meta.chainid":           neb.Genesis().Meta.ChainId,
+		"consensus.dpos.dynasty": neb.Genesis().Consensus.Dpos.Dynasty,
+		"token.distribution":     neb.Genesis().TokenDistribution,
+	}).Info("Genesis Configuration.")
 
 	bc.genesisBlock, err = bc.loadGenesisFromStorage()
 	if err != nil {
@@ -129,7 +140,7 @@ func NewBlockChain(neb Neblet) (*BlockChain, error) {
 		return nil, err
 	}
 	logging.CLog().WithFields(logrus.Fields{
-		"lib": bc.latestIrreversibleBlock,
+		"block": bc.latestIrreversibleBlock,
 	}).Info("Latest Irreversible Block.")
 
 	bc.bkPool.setBlockChain(bc)
@@ -188,11 +199,6 @@ func (bc *BlockChain) CheckChainConfig(neb Neblet) error {
 		}
 	}
 
-	logging.CLog().WithFields(logrus.Fields{
-		"meta.chainid":           neb.Genesis().Meta.ChainId,
-		"consensus.dpos.dynasty": neb.Genesis().Consensus.Dpos.Dynasty,
-		"token.distribution":     neb.Genesis().TokenDistribution,
-	}).Info("Genesis Configuration.")
 	return nil
 }
 
@@ -236,7 +242,7 @@ func (bc *BlockChain) revertBlocks(from *Block, to *Block) error {
 		reverted.ReturnTransactions()
 		logging.VLog().WithFields(logrus.Fields{
 			"block": reverted,
-		}).Warn("Succeed to revert block.")
+		}).Warn("A block is reverted.")
 		revertTimes++
 
 		reverted = bc.GetBlock(reverted.header.parentHash)
@@ -273,43 +279,43 @@ func (bc *BlockChain) SetTailBlock(newTail *Block) error {
 	oldTail := bc.tailBlock
 	ancestor, err := bc.FindCommonAncestorWithTail(newTail)
 	if err != nil {
-		logging.CLog().WithFields(logrus.Fields{
+		logging.VLog().WithFields(logrus.Fields{
 			"target": newTail,
 			"tail":   oldTail,
-		}).Error("Failed to find common ancestor with tail")
+		}).Debug("Failed to find common ancestor with tail")
 		return err
 	}
 	foundAt := time.Now().Unix()
 
 	if err := bc.revertBlocks(ancestor, oldTail); err != nil {
-		logging.CLog().WithFields(logrus.Fields{
+		logging.VLog().WithFields(logrus.Fields{
 			"from":  ancestor,
 			"to":    oldTail,
 			"range": "(from, to]",
-		}).Error("Failed to revert blocks.")
+		}).Debug("Failed to revert blocks.")
 		return err
 	}
 	revertedAt := time.Now().Unix()
 
 	// build index by block height
 	if err := bc.buildIndexByBlockHeight(ancestor, newTail); err != nil {
-		logging.CLog().WithFields(logrus.Fields{
+		logging.VLog().WithFields(logrus.Fields{
 			"from":  ancestor,
 			"to":    newTail,
 			"range": "(from, to]",
-		}).Error("Failed to build index by block height.")
+		}).Debug("Failed to build index by block height.")
 		return err
 	}
 	builtAt := time.Now().Unix()
 
 	// update LIB
 	if err := bc.updateLatestIrreversibleBlock(newTail); err != nil {
-		logging.CLog().WithFields(logrus.Fields{
+		logging.VLog().WithFields(logrus.Fields{
 			"ancestor": ancestor,
 			"oldTail":  oldTail,
 			"newTail":  newTail,
 			"err":      err,
-		}).Error("Failed to update latest irreversible block.")
+		}).Debug("Failed to update latest irreversible block.")
 		return err
 	}
 	updatedAt := time.Now().Unix()
@@ -323,28 +329,24 @@ func (bc *BlockChain) SetTailBlock(newTail *Block) error {
 
 	metricsBlockHeightGauge.Update(int64(newTail.Height()))
 	metricsBlocktailHashGauge.Update(int64(byteutils.HashBytes(newTail.Hash())))
-	recordedAt := time.Now().Unix()
 
+	endAt := time.Now().Unix()
 	logging.VLog().WithFields(logrus.Fields{
-		"startAt":      startAt,
-		"foundUsed":    foundAt - startAt,
-		"revertedUsed": revertedAt - foundAt,
-		"builtUsed":    builtAt - revertedAt,
-		"updateUsed":   updatedAt - builtAt,
-		"storedUsed":   storedAt - updatedAt,
-		"recordUsed":   recordedAt - storedAt,
-		"old":          oldTail,
-		"new":          newTail,
-	}).Debug("Succeed to set tail block.")
+		"startAt":               startAt,
+		"time.foundAncestor":    foundAt - startAt,
+		"time.revertBlocks":     revertedAt - foundAt,
+		"time.buildHeightIndex": builtAt - revertedAt,
+		"time.updateLIB":        updatedAt - builtAt,
+		"time.storeNewTail":     storedAt - updatedAt,
+		"time.all":              endAt,
+		"tail.old":              oldTail,
+		"tail.net":              newTail,
+	}).Info("Succeed to set tail block.")
 
 	return nil
 }
 
 func (bc *BlockChain) updateLatestIrreversibleBlock(tail *Block) error {
-	logging.CLog().WithFields(logrus.Fields{
-		"old lib": bc.latestIrreversibleBlock,
-		"tail":    tail,
-	}).Info("Begin to update latest irreversible block.")
 	startAt := time.Now().Unix()
 
 	lib := bc.latestIrreversibleBlock
@@ -358,13 +360,15 @@ func (bc *BlockChain) updateLatestIrreversibleBlock(tail *Block) error {
 			dynasty = curDynasty
 		}
 		if int(cur.height)-int(lib.height) < ConsensusSize-len(miners) {
-			logging.CLog().WithFields(logrus.Fields{
-				"curHeight": cur.Height,
-				"libHeight": lib.Height,
-				"size":      ConsensusSize,
-				"miners":    len(miners),
-				"time":      time.Now().Unix() - startAt,
-			}).Info("Failed to update latest irreversible block.")
+			logging.VLog().WithFields(logrus.Fields{
+				"tail":             tail,
+				"lib":              lib,
+				"cur":              cur,
+				"time":             time.Now().Unix() - startAt,
+				"err":              "supported miners is not enough",
+				"miners.limit":     ConsensusSize,
+				"miners.supported": len(miners),
+			}).Debug("Failed to update latest irreversible block.")
 			return nil
 		}
 		miners[cur.miner.String()] = true
@@ -372,11 +376,13 @@ func (bc *BlockChain) updateLatestIrreversibleBlock(tail *Block) error {
 			if err := bc.storeLIBToStorage(cur); err != nil {
 				return err
 			}
-			logging.CLog().WithFields(logrus.Fields{
-				"new lib": cur,
-				"old lib": bc.latestIrreversibleBlock,
-				"tail":    tail,
-				"time":    time.Now().Unix() - startAt,
+			logging.VLog().WithFields(logrus.Fields{
+				"lib.new":          cur,
+				"lib.old":          bc.latestIrreversibleBlock,
+				"tail":             tail,
+				"time":             time.Now().Unix() - startAt,
+				"miners.limit":     ConsensusSize,
+				"miners.supported": len(miners),
 			}).Info("Succeed to update latest irreversible block.")
 			bc.latestIrreversibleBlock = cur
 			return nil
@@ -387,13 +393,15 @@ func (bc *BlockChain) updateLatestIrreversibleBlock(tail *Block) error {
 		}
 	}
 
-	logging.CLog().WithFields(logrus.Fields{
-		"old lib": bc.latestIrreversibleBlock,
-		"tail":    tail,
-		"miners":  len(miners),
-		"size":    ConsensusSize,
-		"time":    time.Now().Unix() - startAt,
-	}).Info("Failed to update latest irreversible block.")
+	logging.VLog().WithFields(logrus.Fields{
+		"cur":              cur,
+		"lib":              bc.latestIrreversibleBlock,
+		"tail":             tail,
+		"time":             time.Now().Unix() - startAt,
+		"err":              "supported miners is not enough",
+		"miners.limit":     ConsensusSize,
+		"miners.supported": len(miners),
+	}).Warn("Failed to update latest irreversible block.")
 	return nil
 }
 
@@ -419,7 +427,7 @@ func (bc *BlockChain) GetBlockOnCanonicalChainByHash(blockHash byteutils.Hash) *
 			"hash": blockHash.Hex(),
 			"tail": bc.tailBlock,
 			"err":  "cannot find block with the given hash in local storage",
-		}).Warn("Failed to check a block on canonical chain.")
+		}).Debug("Failed to check a block on canonical chain.")
 		return nil
 	}
 	blockByHeight := bc.GetBlockOnCanonicalChainByHeight(blockByHash.height)
@@ -428,7 +436,7 @@ func (bc *BlockChain) GetBlockOnCanonicalChainByHash(blockHash byteutils.Hash) *
 			"height": blockByHeight.Height(),
 			"tail":   bc.tailBlock,
 			"err":    "cannot find block with the given height in local storage",
-		}).Warn("Failed to check a block on canonical chain.")
+		}).Debug("Failed to check a block on canonical chain.")
 		return nil
 	}
 	if !blockByHeight.Hash().Equals(blockByHash.Hash()) {
@@ -437,7 +445,7 @@ func (bc *BlockChain) GetBlockOnCanonicalChainByHash(blockHash byteutils.Hash) *
 			"blockByHeight": blockByHeight,
 			"tail":          bc.tailBlock,
 			"err":           "block with the given hash isn't on canonical chain",
-		}).Warn("Failed to check a block on canonical chain.")
+		}).Debug("Failed to check a block on canonical chain.")
 		return nil
 	}
 	return blockByHeight
@@ -491,7 +499,7 @@ func (bc *BlockChain) FetchDescendantInCanonicalChain(n int, block *Block) ([]*B
 			logging.VLog().WithFields(logrus.Fields{
 				"err":    ErrCannotFindBlockAtGivenHeight,
 				"height": strconv.Itoa(int(curHeight + index)),
-			}).Error("Failed to fetch descendant.")
+			}).Debug("Failed to fetch descendant.")
 			return nil, ErrCannotFindBlockAtGivenHeight
 		}
 		res = append(res, block)
@@ -521,18 +529,16 @@ func (bc *BlockChain) SetSyncService(syncService SyncService) {
 }
 
 // StartActiveSync start active sync task
-func (bc *BlockChain) StartActiveSync() {
-	if bc.syncService.IsActiveSyncing() {
-		return
+func (bc *BlockChain) StartActiveSync() bool {
+	if bc.syncService.StartActiveSync() {
+		bc.consensusHandler.SuspendMining()
+		go func() {
+			bc.syncService.WaitingForFinish()
+			bc.consensusHandler.ResumeMining()
+		}()
+		return true
 	}
-
-	bc.consensusHandler.SuspendMining()
-	bc.syncService.StartActiveSync()
-	go func() {
-		bc.syncService.WaitingForFinish()
-		logging.VLog().Debug("Sync Finished.")
-		bc.consensusHandler.ResumeMining()
-	}()
+	return false
 }
 
 // ConsensusHandler return consensus handler.
@@ -555,10 +561,14 @@ func (bc *BlockChain) putVerifiedNewBlocks(parent *Block, allBlocks, tailBlocks 
 	for _, v := range allBlocks {
 		bc.cachedBlocks.ContainsOrAdd(v.Hash().Hex(), v)
 		if err := bc.storeBlockToStorage(v); err != nil {
+			logging.VLog().WithFields(logrus.Fields{
+				"block": v,
+				"err":   err,
+			}).Error("Failed to store the verified block.")
 			return err
 		}
 
-		logging.CLog().WithFields(logrus.Fields{
+		logging.VLog().WithFields(logrus.Fields{
 			"block": v,
 		}).Info("Accepted the new block on chain")
 

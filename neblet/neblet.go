@@ -7,6 +7,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/sirupsen/logrus"
+
 	"github.com/nebulasio/go-nebulas/cmd/console"
 
 	"github.com/nebulasio/go-nebulas/account"
@@ -21,7 +23,6 @@ import (
 	"github.com/nebulasio/go-nebulas/storage"
 	nsync "github.com/nebulasio/go-nebulas/sync"
 	"github.com/nebulasio/go-nebulas/util"
-	"github.com/nebulasio/go-nebulas/util/byteutils"
 	"github.com/nebulasio/go-nebulas/util/logging"
 	m "github.com/rcrowley/go-metrics"
 )
@@ -35,9 +36,7 @@ var (
 )
 
 var (
-	storageSchemeVersionKey = []byte("scheme")
-	storageSchemeVersionVal = []byte("0.5.0")
-	metricsNebstartGauge    = m.GetOrRegisterGauge("neb.start", nil)
+	metricsNebstartGauge = m.GetOrRegisterGauge("neb.start", nil)
 )
 
 // Neblet manages ldife cycle of blockchain services.
@@ -86,30 +85,34 @@ func New(config *nebletpb.Config) (*Neblet, error) {
 }
 
 // Setup setup neblet
-func (n *Neblet) Setup() error {
+func (n *Neblet) Setup() {
 	var err error
 	logging.CLog().Info("Setuping Neblet...")
 
 	// storage
 	n.storage, err = storage.NewDiskStorage(n.config.Chain.Datadir)
 	if err != nil {
-		return err
-	}
-	if err = n.checkSchemeVersion(n.storage); err != nil {
-		return err
+		logging.CLog().WithFields(logrus.Fields{
+			"dir": n.config.Chain.Datadir,
+			"err": err,
+		}).Fatal("Failed to open disk storage.")
 	}
 
 	// net
 	n.netService, err = p2p.NewNetService(n)
 	if err != nil {
-		return err
+		logging.CLog().WithFields(logrus.Fields{
+			"err": err,
+		}).Fatal("Failed to setup net service.")
 	}
 
 	// core
 	n.eventEmitter = core.NewEventEmitter(1024)
 	n.blockChain, err = core.NewBlockChain(n)
 	if err != nil {
-		return err
+		logging.CLog().WithFields(logrus.Fields{
+			"err": err,
+		}).Fatal("Failed to setup blockchain.")
 	}
 	gasPrice := util.NewUint128FromString(n.config.Chain.GasPrice)
 	gasLimit := util.NewUint128FromString(n.config.Chain.GasLimit)
@@ -120,7 +123,9 @@ func (n *Neblet) Setup() error {
 	// consensus
 	n.consensus, err = dpos.NewDpos(n)
 	if err != nil {
-		return err
+		logging.CLog().WithFields(logrus.Fields{
+			"err": err,
+		}).Fatal("Failed to setup consensus.")
 	}
 	n.blockChain.SetConsensusHandler(n.consensus)
 
@@ -130,18 +135,21 @@ func (n *Neblet) Setup() error {
 
 	// api
 	n.apiServer = rpc.NewAPIServer(n)
-	return nil
+
+	logging.CLog().Info("Setuped Neblet.")
 }
 
 // Start starts the services of the neblet.
-func (n *Neblet) Start() error {
+func (n *Neblet) Start() {
 	n.lock.Lock()
 	defer n.lock.Unlock()
 
 	logging.CLog().Info("Starting Neblet...")
 
 	if n.running {
-		return ErrNebletAlreadyRunning
+		logging.CLog().WithFields(logrus.Fields{
+			"err": "neblet is already running",
+		}).Fatal("Failed to start neblet.")
 	}
 	n.running = true
 
@@ -150,15 +158,21 @@ func (n *Neblet) Start() error {
 	}
 
 	if err := n.netService.Start(); err != nil {
-		return err
+		logging.CLog().WithFields(logrus.Fields{
+			"err": err,
+		}).Fatal("Failed to start net service.")
 	}
 
 	if err := n.apiServer.Start(); err != nil {
-		return err
+		logging.CLog().WithFields(logrus.Fields{
+			"err": err,
+		}).Fatal("Failed to start api server.")
 	}
 
 	if err := n.apiServer.RunGateway(); err != nil {
-		return err
+		logging.CLog().WithFields(logrus.Fields{
+			"err": err,
+		}).Fatal("Failed to start api gateway.")
 	}
 
 	n.blockChain.BlockPool().Start()
@@ -180,7 +194,9 @@ func (n *Neblet) Start() error {
 		}
 		err := n.consensus.EnableMining(chainConf.Passphrase)
 		if err != nil {
-			return err
+			logging.CLog().WithFields(logrus.Fields{
+				"err": err,
+			}).Fatal("Failed to enable mining.")
 		}
 	}
 
@@ -188,19 +204,21 @@ func (n *Neblet) Start() error {
 	if len(n.Config().Network.Seed) > 0 {
 		n.blockChain.StartActiveSync()
 	} else {
+		logging.CLog().Info("This is a seed node.")
 		n.Consensus().ResumeMining()
 	}
 
 	metricsNebstartGauge.Update(1)
-	return nil
+
+	logging.CLog().Info("Started Neblet.")
 }
 
 // Stop stops the services of the neblet.
-func (n *Neblet) Stop() error {
+func (n *Neblet) Stop() {
 	n.lock.Lock()
 	defer n.lock.Unlock()
 
-	logging.CLog().Info("Stopping neblet...")
+	logging.CLog().Info("Stopping Neblet...")
 
 	if n.consensus != nil {
 		n.consensus.Stop()
@@ -246,7 +264,7 @@ func (n *Neblet) Stop() error {
 
 	n.running = false
 
-	return nil
+	logging.CLog().Info("Stopped Neblet.")
 }
 
 // SetGenesis set genesis conf
@@ -297,20 +315,4 @@ func (n *Neblet) Consensus() consensus.Consensus {
 // SyncService return sync service
 func (n *Neblet) SyncService() *nsync.SyncService {
 	return n.syncService
-}
-
-// checks if the storage scheme version is compatiable
-func (n *Neblet) checkSchemeVersion(stor storage.Storage) error {
-	version, err := stor.Get(storageSchemeVersionKey)
-	if err != nil && err != storage.ErrKeyNotFound {
-		return err
-	}
-	if err == storage.ErrKeyNotFound {
-		stor.Put(storageSchemeVersionKey, storageSchemeVersionVal)
-		return nil
-	}
-	if !byteutils.Equal(version, storageSchemeVersionVal) {
-		return ErrIncompatibleStorageSchemeVersion
-	}
-	return nil
 }

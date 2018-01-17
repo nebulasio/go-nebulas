@@ -133,7 +133,7 @@ func (pool *TransactionPool) loop() {
 		case <-pool.quitCh:
 			logging.CLog().WithFields(logrus.Fields{
 				"size": pool.size,
-			}).Info("Shutdowned TransactionPool.")
+			}).Info("Stopped TransactionPool.")
 			return
 		case msg := <-pool.receivedMessageCh:
 			if msg.MessageType() != MessageTypeNewTx {
@@ -141,7 +141,7 @@ func (pool *TransactionPool) loop() {
 					"messageType": msg.MessageType(),
 					"message":     msg,
 					"err":         "not new tx msg",
-				}).Warn("Received unregistered message.")
+				}).Debug("Received unregistered message.")
 				continue
 			}
 
@@ -152,7 +152,7 @@ func (pool *TransactionPool) loop() {
 					"msgType": msg.MessageType(),
 					"msg":     msg,
 					"err":     err,
-				}).Error("Failed to unmarshal data.")
+				}).Debug("Failed to unmarshal data.")
 				continue
 			}
 			if err := tx.FromProto(pbTx); err != nil {
@@ -160,14 +160,14 @@ func (pool *TransactionPool) loop() {
 					"msgType": msg.MessageType(),
 					"msg":     msg,
 					"err":     err,
-				}).Error("Failed to recover a tx from proto data.")
+				}).Debug("Failed to recover a tx from proto data.")
 				continue
 			}
 
 			logging.VLog().WithFields(logrus.Fields{
 				"tx":   tx,
 				"type": msg.MessageType(),
-			}).Info("Received a new tx.")
+			}).Debug("Received a new tx.")
 
 			if err := pool.PushAndRelay(tx); err != nil {
 				logging.VLog().WithFields(logrus.Fields{
@@ -175,7 +175,7 @@ func (pool *TransactionPool) loop() {
 					"messageType": msg.MessageType(),
 					"transaction": tx,
 					"err":         err,
-				}).Error("Failed to push a tx into tx pool.")
+				}).Debug("Failed to push a tx into tx pool.")
 				continue
 			}
 		}

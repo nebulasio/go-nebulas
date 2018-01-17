@@ -319,13 +319,8 @@ func (as *accountState) Accounts() ([]Account, error) {
 // BeginBatch begin a batch task
 func (as *accountState) BeginBatch() {
 	logging.VLog().Debug("AccountState Begin.")
+	as.stateTrie.BeginBatch()
 	as.batching = true
-	err := as.stateTrie.BeginBatch()
-	if err != nil {
-		logging.VLog().WithFields(logrus.Fields{
-			"err": err,
-		}).Error("Failed to Begin AccountState Batch.")
-	}
 }
 
 // Commit a batch task

@@ -342,7 +342,7 @@ func (tx *Transaction) VerifyExecution(block *Block) (*util.Uint128, error) {
 			"error":       err,
 			"block":       block,
 			"transaction": tx,
-		}).Error("Failed to load payload.")
+		}).Debug("Failed to load payload.")
 		metricsTxExeFailed.Mark(1)
 
 		tx.gasConsumption(fromAcc, coinbaseAcc, gasUsed)
@@ -363,7 +363,7 @@ func (tx *Transaction) VerifyExecution(block *Block) (*util.Uint128, error) {
 			"err":   ErrOutOfGasLimit,
 			"block": block,
 			"tx":    tx,
-		}).Error("Failed to check base gas used.")
+		}).Debug("Failed to check base gas used.")
 		metricsTxExeFailed.Mark(1)
 
 		tx.gasConsumption(fromAcc, coinbaseAcc, tx.gasLimit)
@@ -389,7 +389,7 @@ func (tx *Transaction) VerifyExecution(block *Block) (*util.Uint128, error) {
 		"gas":          gas.String(),
 		"gasPrice":     tx.gasPrice.String(),
 		"gasLimited":   tx.gasLimit.String(),
-	}).Info("Transaction execution statics.")
+	}).Debug("Transaction execution statics.")
 
 	tx.gasConsumption(fromAcc, coinbaseAcc, gas)
 
@@ -400,7 +400,7 @@ func (tx *Transaction) VerifyExecution(block *Block) (*util.Uint128, error) {
 			"tx":           tx,
 			"gasUsed":      gasUsed.String(),
 			"gasExecution": gasExecution.String(),
-		}).Error("Failed to execute payload.")
+		}).Debug("Failed to execute payload.")
 
 		metricsTxExeFailed.Mark(1)
 		tx.triggerEvent(TopicExecuteTxFailed, block, err)
@@ -410,7 +410,7 @@ func (tx *Transaction) VerifyExecution(block *Block) (*util.Uint128, error) {
 				"err":   ErrInsufficientBalance,
 				"block": block,
 				"tx":    tx,
-			}).Error("Failed to check balance sufficient.")
+			}).Debug("Failed to check balance sufficient.")
 
 			metricsTxExeFailed.Mark(1)
 			tx.triggerEvent(TopicExecuteTxFailed, block, ErrInsufficientBalance)
@@ -517,7 +517,7 @@ func (tx *Transaction) verifySign() error {
 		logging.VLog().WithFields(logrus.Fields{
 			"recover address": addr.String(),
 			"tx":              tx,
-		}).Error("Failed to verify tx's sign.")
+		}).Debug("Failed to verify tx's sign.")
 		return ErrInvalidTransactionSigner
 	}
 	return nil

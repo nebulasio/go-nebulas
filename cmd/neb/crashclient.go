@@ -40,8 +40,7 @@ func InitCrashReporter(conf *nebletpb.AppConfig) {
 	if err != nil {
 		logging.CLog().WithFields(logrus.Fields{
 			"err": err,
-		}).Error("Failed to init crash reporter.")
-		return
+		}).Fatal("Failed to init crash reporter.")
 	}
 	fp := fmt.Sprintf("%vcrash_%v.log", os.TempDir(), os.Getpid())
 
@@ -60,8 +59,7 @@ func InitCrashReporter(conf *nebletpb.AppConfig) {
 	if err != nil {
 		logging.CLog().WithFields(logrus.Fields{
 			"err": err,
-		}).Error("Failed to init crash reporter.")
-		return
+		}).Fatal("Failed to init crash reporter.")
 	}
 	defer s.Close()
 
@@ -82,22 +80,19 @@ func InitCrashReporter(conf *nebletpb.AppConfig) {
 	if err != nil {
 		logging.CLog().WithFields(logrus.Fields{
 			"err": err,
-		}).Error("Failed to start crash reporter daemon.")
-		return
+		}).Fatal("Failed to start crash reporter daemon.")
 	}
 
 	conn, err := s.Accept()
 	if err != nil {
 		logging.CLog().WithFields(logrus.Fields{
 			"err": err,
-		}).Error("Failed to init crash reporter.")
-		return
+		}).Fatal("Failed to init crash reporter.")
 	}
 	var buf = make([]byte, 10)
 	n, berror := conn.Read(buf)
 	if berror != nil {
-		//logging.VLog().Println("conn read error:", berror)
-		return
+		logging.CLog().Fatalf("conn read error: %s", berror)
 	}
 	rs := string(buf[:n])
 
@@ -111,7 +106,7 @@ func InitCrashReporter(conf *nebletpb.AppConfig) {
 			"rs":   rs,
 			"code": code,
 			"err":  "code not match",
-		}).Error("Failed to init crash reporter.")
+		}).Fatal("Failed to init crash reporter.")
 	}
 
 	logging.CLog().Info("Started crash reporter.")

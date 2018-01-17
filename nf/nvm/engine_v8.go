@@ -198,7 +198,7 @@ func (e *V8Engine) SetExecutionLimits(limitsOfExecutionInstructions, limitsOfTot
 	logging.VLog().WithFields(logrus.Fields{
 		"limits_of_executed_instructions": e.v8engine.limits_of_executed_instructions,
 		"limits_of_total_memory_size":     e.v8engine.limits_of_total_memory_size,
-	}).Info("set execution limits.")
+	}).Debug("set execution limits.")
 
 	e.limitsOfExecutionInstructions = limitsOfExecutionInstructions
 	e.limitsOfTotalMemorySize = limitsOfTotalMemorySize
@@ -368,7 +368,7 @@ func (e *V8Engine) AddModule(id, source string, sourceLineOffset int) error {
 		if err != nil {
 			logging.VLog().WithFields(logrus.Fields{
 				"err": err,
-			}).Error("inject tracing instruction failed.")
+			}).Debug("inject tracing instruction failed.")
 			return err
 		}
 		source = traceableSource
@@ -410,7 +410,7 @@ func getEngineByStorageHandler(handler uint64) (*V8Engine, state.Account) {
 		logging.VLog().WithFields(logrus.Fields{
 			"func":          "nvm.getEngineByStorageHandler",
 			"wantedHandler": handler,
-		}).Error("wantedHandler is not found.")
+		}).Debug("wantedHandler is not found.")
 		return nil, nil
 	}
 
@@ -426,7 +426,7 @@ func getEngineByStorageHandler(handler uint64) (*V8Engine, state.Account) {
 			"lcsHandler":    engine.lcsHandler,
 			"gcsHandler":    engine.gcsHandler,
 			"wantedHandler": handler,
-		}).Error("in-consistent storage handler.")
+		}).Debug("in-consistent storage handler.")
 		return nil, nil
 	}
 }

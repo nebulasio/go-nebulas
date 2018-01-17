@@ -99,7 +99,7 @@ func (emitter *EventEmitter) Trigger(e *Event) {
 	logging.VLog().WithFields(logrus.Fields{
 		"topic": e.Topic,
 		"data":  e.Data,
-	}).Info("Trigger new event")
+	}).Debug("Trigger new event")
 	emitter.eventCh <- e
 }
 
@@ -136,7 +136,7 @@ func (emitter *EventEmitter) loop() {
 	for {
 		select {
 		case <-emitter.quitCh:
-			logging.CLog().Info("ShutDowned EventEmitter.")
+			logging.CLog().Info("Stopped EventEmitter.")
 			return
 		case e := <-emitter.eventCh:
 

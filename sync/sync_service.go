@@ -73,7 +73,7 @@ func (ss *SyncService) Start() {
 	netService.Register(net.NewSubscriber(ss, ss.messageCh, net.ChainChunkData))
 
 	// start loop().
-	ss.startLoop()
+	go ss.startLoop()
 }
 
 // Stop stop sync service.
@@ -90,17 +90,22 @@ func (ss *SyncService) Stop() {
 	ss.quitCh <- true
 }
 
-func (ss *SyncService) StartActiveSync() {
+func (ss *SyncService) StartActiveSync() bool {
 	// lock.
 	ss.activeSyncTaskMutex.Lock()
 	defer ss.activeSyncTaskMutex.Unlock()
 
 	if ss.IsActiveSyncing() {
-		return
+		return false
 	}
 
 	ss.activeSyncTask = NewSyncTask(ss.blockChain, ss.netService, ss.chunk)
 	ss.activeSyncTask.Start()
+
+	logging.CLog().WithFields(logrus.Fields{
+		"syncpoint": ss.activeSyncTask.syncPointBlock,
+	}).Info("Started ActiveSyncTask.")
+	return true
 }
 
 func (ss *SyncService) StopActiveSync() {
@@ -126,39 +131,43 @@ func (ss *SyncService) WaitingForFinish() error {
 	}
 
 	err := <-ss.activeSyncTask.statusCh
-	ss.activeSyncTask = nil
 
+	logging.CLog().WithFields(logrus.Fields{
+		"syncpoint": ss.activeSyncTask.syncPointBlock,
+		"tail":      ss.blockChain.TailBlock(),
+	}).Info("ActiveSyncTask Finished.")
+
+	ss.activeSyncTask = nil
 	return err
 }
 
 func (ss *SyncService) startLoop() {
-	go func() {
-		for {
-			select {
-			case <-ss.quitCh:
-				logging.VLog().Info("Stopping Sync Service.")
-				if ss.activeSyncTask != nil {
-					ss.activeSyncTask.Stop()
-				}
-				return
-			case message := <-ss.messageCh:
-				switch message.MessageType() {
-				case net.ChainSync:
-					ss.onChainSync(message)
-				case net.ChainChunks:
-					ss.onChainChunks(message)
-				case net.ChainGetChunk:
-					ss.onChainGetChunk(message)
-				case net.ChainChunkData:
-					ss.onChainChunkData(message)
-				default:
-					logging.VLog().WithFields(logrus.Fields{
-						"messageName": message.MessageType(),
-					}).Warn("Received unknown message.")
-				}
+	logging.CLog().Info("Started Sync Service.")
+	for {
+		select {
+		case <-ss.quitCh:
+			if ss.activeSyncTask != nil {
+				ss.activeSyncTask.Stop()
+			}
+			logging.CLog().Info("Stopped Sync Service.")
+			return
+		case message := <-ss.messageCh:
+			switch message.MessageType() {
+			case net.ChainSync:
+				ss.onChainSync(message)
+			case net.ChainChunks:
+				ss.onChainChunks(message)
+			case net.ChainGetChunk:
+				ss.onChainGetChunk(message)
+			case net.ChainChunkData:
+				ss.onChainChunkData(message)
+			default:
+				logging.VLog().WithFields(logrus.Fields{
+					"messageName": message.MessageType(),
+				}).Debug("Received unknown message.")
 			}
 		}
-	}()
+	}
 }
 
 func (ss *SyncService) onChainSync(message net.Message) {
@@ -233,7 +242,7 @@ func (ss *SyncService) sendChainChunks(peerID string, chunks *syncpb.ChunkHeader
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"err": err,
-		}).Debug("Failed marshal syncpb.ChunkHeaders to []bytes.")
+		}).Debug("Failed to marshal syncpb.ChunkHeaders.")
 		return
 	}
 
@@ -245,7 +254,7 @@ func (ss *SyncService) sendChainChunkData(peerID string, chunkData *syncpb.Chunk
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"err": err,
-		}).Debug("Failed marshal syncpb.ChunkData to []bytes.")
+		}).Debug("Failed to marshal syncpb.ChunkData.")
 		return
 	}
 

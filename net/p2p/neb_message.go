@@ -176,7 +176,7 @@ func NewNebMessage(chainID uint32, reserved []byte, version byte, messageName st
 			"messageName": messageName,
 			"dataLength":  len(data),
 			"limits":      MaxNebMessageDataLength,
-		}).Warn("Exceeded max data length.")
+		}).Error("Exceeded max data length.")
 		return nil, ErrExceedMaxDataLength
 	}
 
@@ -185,7 +185,7 @@ func NewNebMessage(chainID uint32, reserved []byte, version byte, messageName st
 			"messageName":      messageName,
 			"len(messageName)": len(messageName),
 			"limits":           MaxNebMessageNameLength,
-		}).Warn("Exceeded max message name length.")
+		}).Error("Exceeded max message name length.")
 		return nil, ErrExceedMaxMessageNameLength
 
 	}
@@ -249,7 +249,8 @@ func (message *NebMessage) VerifyHeader() error {
 		logging.VLog().WithFields(logrus.Fields{
 			"expect": MagicNumber,
 			"actual": message.MagicNumber(),
-		}).Debug("Invalid magic number.")
+			"err":    "invalid magic number",
+		}).Debug("Failed to verify header.")
 		return ErrInvalidMagicNumber
 	}
 
@@ -258,7 +259,8 @@ func (message *NebMessage) VerifyHeader() error {
 		logging.VLog().WithFields(logrus.Fields{
 			"expect": expectedCheckSum,
 			"actual": message.HeaderCheckSum(),
-		}).Error("Invalid header checksum.")
+			"err":    "invalid header checksum",
+		}).Debug("Failed to verify header.")
 		return ErrInvalidHeaderCheckSum
 	}
 
@@ -266,7 +268,9 @@ func (message *NebMessage) VerifyHeader() error {
 		logging.VLog().WithFields(logrus.Fields{
 			"messageName": message.MessageName(),
 			"dataLength":  message.DataLength(),
-		}).Warn("Exceeded max data length.")
+			"limit":       MaxNebMessageDataLength,
+			"err":         "exceeded max data length",
+		}).Debug("Failed to verify header.")
 		return ErrExceedMaxDataLength
 	}
 
@@ -280,7 +284,8 @@ func (message *NebMessage) VerifyData() error {
 		logging.VLog().WithFields(logrus.Fields{
 			"expect": expectedCheckSum,
 			"actual": message.DataCheckSum(),
-		}).Error("Invalid data checksum.")
+			"err":    "invalid data checksum",
+		}).Debug("Failed to verify data")
 		return ErrInvalidDataCheckSum
 	}
 	return nil

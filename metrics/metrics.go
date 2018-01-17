@@ -49,7 +49,7 @@ type Neblet interface {
 
 // Start metrics monitor
 func Start(neb Neblet) {
-	logging.CLog().Info("Starting Metrics...")
+	logging.VLog().Info("Starting Metrics...")
 
 	go (func() {
 		tags := make(map[string]string)
@@ -66,9 +66,11 @@ func Start(neb Neblet) {
 		go collectSystemMetrics()
 		influxdb.InfluxDBWithTags(metrics.DefaultRegistry, interval, neb.Config().Stats.Influxdb.Host, neb.Config().Stats.Influxdb.Db, neb.Config().Stats.Influxdb.User, neb.Config().Stats.Influxdb.Password, tags)
 
+		logging.VLog().Info("Started Metrics.")
+
 	})()
 
-	logging.CLog().Info("Started Metrics.")
+	logging.VLog().Info("Started Metrics.")
 }
 
 func start(neb Neblet) {
@@ -111,7 +113,7 @@ func collectSystemMetrics() {
 
 // Stop metrics monitor
 func Stop() {
-	logging.CLog().Info("Stopping Metrics...")
+	logging.VLog().Info("Stopping Metrics...")
 
 	quitCh <- true
 }

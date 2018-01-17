@@ -128,7 +128,7 @@ type SyncService interface {
 	Start()
 	Stop()
 
-	StartActiveSync()
+	StartActiveSync() bool
 	StopActiveSync()
 	WaitingForFinish() error
 	IsActiveSyncing() bool

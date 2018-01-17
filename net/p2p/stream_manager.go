@@ -114,7 +114,7 @@ func (sm *StreamManager) loop() {
 			return
 		case <-ticker.C:
 			// TODO: @robin streams cleanup if needed.
-			logging.VLog().Warn("TODO: streams cleanup is not implemented.")
+			logging.CLog().Info("TODO: streams cleanup is not implemented.")
 		}
 	}
 }

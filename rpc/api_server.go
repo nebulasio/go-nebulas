@@ -13,6 +13,11 @@ import (
 	"google.golang.org/grpc/reflection"
 )
 
+// Errors
+var (
+	ErrEmptyRPCListenList = errors.New("empty rpc listen list")
+)
+
 // APIServer is the RPC server type.
 type APIServer struct {
 	neblet Neblet
@@ -45,23 +50,14 @@ func (s *APIServer) Start() error {
 	logging.CLog().Info("Starting RPC Server...")
 
 	if len(s.rpcConfig.RpcListen) == 0 {
-		logging.CLog().WithFields(logrus.Fields{
-			"err": "empty rpc listen list",
-		}).Error("Failed to start RPC Server")
-		return errors.New("parse rpc-config rpc-listen occurs error")
+		return ErrEmptyRPCListenList
 	}
 
-	go (func() {
-		for _, v := range s.rpcConfig.RpcListen {
-			err := s.start(v)
-			if err != nil {
-				logging.CLog().WithFields(logrus.Fields{
-					"err": err,
-				}).Error("Failed to start RPC Server")
-				break
-			}
+	for _, v := range s.rpcConfig.RpcListen {
+		if err := s.start(v); err != nil {
+			return err
 		}
-	})()
+	}
 
 	return nil
 }
@@ -79,12 +75,14 @@ func (s *APIServer) start(addr string) error {
 		"address": addr,
 	}).Info("Started RPC Server.")
 
-	if err := s.rpcServer.Serve(listener); err != nil {
-		logging.CLog().WithFields(logrus.Fields{
-			"err": err,
-		}).Error("Failed to serve RPC Server.")
-		return err
-	}
+	go func() {
+		if err := s.rpcServer.Serve(listener); err != nil {
+			logging.CLog().WithFields(logrus.Fields{
+				"err": err,
+			}).Fatal("Failed to serve RPC Server.")
+		}
+	}()
+
 	return nil
 }
 
@@ -103,7 +101,7 @@ func (s *APIServer) RunGateway() error {
 		if err := Run(rpcListen, gatewayListen, httpModule); err != nil {
 			logging.CLog().WithFields(logrus.Fields{
 				"error": err,
-			}).Error("Failed to start RPC Gateway.")
+			}).Fatal("Failed to start RPC Gateway.")
 		}
 	})()
 	return nil
@@ -116,6 +114,8 @@ func (s *APIServer) Stop() {
 	}).Info("Stopping RPC Server and Gateway...")
 
 	s.rpcServer.Stop()
+
+	logging.CLog().Info("Stopped RPC Server and Gateway.")
 }
 
 // Neblet returns weak reference to Neblet.

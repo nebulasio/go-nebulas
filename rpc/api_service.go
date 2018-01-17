@@ -544,7 +544,6 @@ func (s *APIService) SignTransaction(ctx context.Context, req *rpcpb.Transaction
 		metricsSignTxFailed.Mark(1)
 		return nil, err
 	}
-	logging.CLog().Info(tx)
 	pbMsg, err := tx.ToProto()
 	if err != nil {
 		metricsSignTxFailed.Mark(1)

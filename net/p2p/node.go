@@ -85,7 +85,10 @@ func NewNode(config *Config) (*Node, error) {
 
 	initP2PNetworkKey(config, node)
 	initP2PRouteTable(config, node)
-	initP2PSwarmNetwork(config, node)
+
+	if err := initP2PSwarmNetwork(config, node); err != nil {
+		return nil, err
+	}
 
 	return node, nil
 }
@@ -186,15 +189,14 @@ func (node *Node) RouteTable() *RouteTable {
 	return node.routeTable
 }
 
-func initP2PNetworkKey(config *Config, node *Node) error {
+func initP2PNetworkKey(config *Config, node *Node) {
 	// init p2p network key.
 	networkKey, err := LoadNetworkKeyFromFileOrCreateNew(config.PrivateKeyPath)
 	if err != nil {
 		logging.CLog().WithFields(logrus.Fields{
 			"err":        err,
 			"NetworkKey": config.PrivateKeyPath,
-		}).Error("Failed to load network private key from file.")
-		return err
+		}).Warn("Failed to load network private key from file.")
 	}
 
 	node.networkKey = networkKey
@@ -203,11 +205,8 @@ func initP2PNetworkKey(config *Config, node *Node) error {
 		logging.CLog().WithFields(logrus.Fields{
 			"err":        err,
 			"NetworkKey": config.PrivateKeyPath,
-		}).Error("Failed to generate ID from network key file.")
-		return err
+		}).Warn("Failed to generate ID from network key file.")
 	}
-
-	return nil
 }
 
 func initP2PRouteTable(config *Config, node *Node) error {

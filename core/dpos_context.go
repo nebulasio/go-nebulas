@@ -425,7 +425,7 @@ func kickout(stor storage.Storage, candidatesTrie *trie.BatchTrie, delegateTrie 
 			logging.VLog().WithFields(logrus.Fields{
 				"voter":     byteutils.Hex(delegator),
 				"candidate": candidate.Hex(),
-			}).Error("Unexpected voter who votes nobody appears in delegate trie")
+			}).Debug("Unexpected voter who votes nobody appears in delegate trie")
 		}
 		if err == nil && byteutils.Equal(bytes, candidate) {
 			if _, err := voteTrie.Del(delegator); err != nil && err != storage.ErrKeyNotFound {
@@ -437,7 +437,7 @@ func kickout(stor storage.Storage, candidatesTrie *trie.BatchTrie, delegateTrie 
 			return err
 		}
 	}
-	logging.VLog().Info("Kickouted candidate: ", candidate.Hex())
+	logging.VLog().Debug("Kickouted candidate: ", candidate.Hex())
 	return nil
 }
 
@@ -509,7 +509,7 @@ func (dc *DynastyContext) electNextDynastyOnBaseDynasty(baseDynastyID int64, nex
 		"base":            baseDynastyID,
 		"next":            nextDynastyID,
 		"base is genesis": baseGenesis,
-	}).Info("Try to elect new dynasty")
+	}).Debug("Try to elect new dynasty")
 
 	if baseGenesis {
 		baseDynastyID = nextDynastyID - 1
@@ -565,7 +565,7 @@ func (dc *DynastyContext) electNextDynastyOnBaseDynasty(baseDynastyID int64, nex
 		logging.VLog().WithFields(logrus.Fields{
 			"dynasty.members": newDynasty,
 			"dynasty.id":      strconv.Itoa(int(i + 1)),
-		}).Info("Elected new dynasty")
+		}).Debug("Elected new dynasty")
 	}
 	return nil
 }

@@ -42,7 +42,7 @@ func GetTxByHashFunc(handler unsafe.Pointer, hash *C.char) *C.char {
 			"handler": uint64(uintptr(handler)),
 			"key":     C.GoString(hash),
 			"err":     err,
-		}).Error("GetTxByHashFunc get tx failed.")
+		}).Debug("GetTxByHashFunc get tx failed.")
 		return nil
 	}
 	return C.CString(string(tx))
@@ -61,7 +61,7 @@ func GetAccountStateFunc(handler unsafe.Pointer, address *C.char) *C.char {
 		logging.VLog().WithFields(logrus.Fields{
 			"handler": uint64(uintptr(handler)),
 			"key":     C.GoString(address),
-		}).Error("GetAccountStateFunc parse address failed.")
+		}).Debug("GetAccountStateFunc parse address failed.")
 		return nil
 	}
 
@@ -88,7 +88,7 @@ func TransferFunc(handler unsafe.Pointer, to *C.char, v *C.char) int {
 		logging.VLog().WithFields(logrus.Fields{
 			"handler": uint64(uintptr(handler)),
 			"key":     C.GoString(to),
-		}).Error("TransferFunc parse address failed.")
+		}).Debug("TransferFunc parse address failed.")
 		return 1
 	}
 
@@ -107,7 +107,7 @@ func TransferFunc(handler unsafe.Pointer, to *C.char, v *C.char) int {
 			"handler": uint64(uintptr(handler)),
 			"key":     C.GoString(to),
 			"err":     err,
-		}).Error("TransferFunc SubBalance failed.")
+		}).Debug("TransferFunc SubBalance failed.")
 		return 1
 	}
 
