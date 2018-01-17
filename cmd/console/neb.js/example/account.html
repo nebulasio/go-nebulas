@@ -3,15 +3,19 @@
 
 <head>
 <!-- <script type="text/javascript" src="../node_modules/bignumber.js/bignumber.min.js"></script> -->
-<script type="text/javascript" src="../dist/neb.js"></script>
-    <script type="text/javascript" src="../dist/neb-account.js"></script>
+<!--<script type="text/javascript" src="../dist/neb.js"></script>-->
+    <!--<script type="text/javascript" src="../dist/account.js"></script>-->
+    <script type="text/javascript" src="../dist/wallet.js"></script>
 <script type="text/javascript">
 
-    var Neb = require('neb');
-    var neb = new Neb();
-    neb.setRequest(new Neb.HttpRequest("http://localhost:8685"));
 
-    var Account = require('account');
+    var Wallet = require("wallet");
+    var neb = new Wallet.Neb();
+    neb.setRequest(new Wallet.Neb.HttpRequest("http://localhost:8685"));
+
+//    var Account = require('account');
+//
+//    var Transaction = require('transaction');
 
     function createExampleAccount() {
         var allAccounts = neb.api.accounts();
@@ -25,10 +29,27 @@
     }
 
     function generateAddress() {
-        console.log(Account);
+//        var account = Account.newAccount();
+//        document.getElementById('new-account').innerText = account.getAddressString();
+//
+//        var tx = new Transaction(100, account, account, "10", 1);
+//        tx.signTransaction();
+//        console.log(JSON.stringify(tx));
+//        var data = tx.toProto();
+//        console.log(data);
 
-        var account = Account.NewAccount();
+        var account = Wallet.Account.NewAccount();
         document.getElementById('new-account').innerText = account.getAddressString();
+        var tx = new Wallet.Transaction(100, account, account, "10", 1);
+        tx.signTransaction();
+//        console.log("price:"+tx.gasPrice.toString());
+//        console.log("time:"+tx.timestamp);
+//        console.log("hash:"+tx.hash.toString("hex"));
+//        console.log("hash:"+tx.hash.toString("hex"));
+        console.log(JSON.stringify(tx));
+        var data = tx.toProto();
+//        console.log("data:"+data);
+        document.getElementById('tx-data').innerText = data;
     }
 
 </script>
@@ -45,6 +66,7 @@
         <button type="button" onClick="generateAddress();">new account</button>
     </div>
     <div id="new-account"></div>
+    <div id="tx-data"></div>
 </body>
 </html>
 

@@ -1,0 +1,72 @@
+{
+  "nested": {
+    "corepb": {
+      "nested": {
+        "Data": {
+          "fields": {
+            "type": {
+              "type": "string",
+              "id": 1
+            },
+            "payload": {
+              "type": "bytes",
+              "id": 2
+            }
+          }
+        },
+        "Transaction": {
+          "fields": {
+            "hash": {
+              "type": "bytes",
+              "id": 1
+            },
+            "from": {
+              "type": "bytes",
+              "id": 2
+            },
+            "to": {
+              "type": "bytes",
+              "id": 3
+            },
+            "value": {
+              "type": "bytes",
+              "id": 4
+            },
+            "nonce": {
+              "type": "uint64",
+              "id": 5
+            },
+            "timestamp": {
+              "type": "int64",
+              "id": 6
+            },
+            "data": {
+              "type": "Data",
+              "id": 7
+            },
+            "chainId": {
+              "type": "uint32",
+              "id": 8
+            },
+            "gasPrice": {
+              "type": "bytes",
+              "id": 9
+            },
+            "gasLimit": {
+              "type": "bytes",
+              "id": 10
+            },
+            "alg": {
+              "type": "uint32",
+              "id": 11
+            },
+            "sign": {
+              "type": "bytes",
+              "id": 12
+            }
+          }
+        }
+      }
+    }
+  }
+}

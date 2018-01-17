@@ -3,9 +3,10 @@
 
 var Buffer = require('safe-buffer').Buffer;
 var cryptoUtils = require('./utils/crypto-utils.js');
+var utils = require('./utils/utils.js');
 
 var Account = function (priv, path) {
-    if (typeof priv !== "undefined") {
+    if (utils.isObject(priv)) {
         this.privKey = priv.length === 32 ? priv : Buffer(priv, 'hex');
     }
     this.path = path;
@@ -16,22 +17,55 @@ Account.NewAccount = function () {
     // return new Account(new Buffer("ac3773e06ae74c0fa566b0e421d4e391333f31aef90b383f0c0e83e4873609d6", "hex"))
 };
 
+Account.isValidAddress = function (addr) {
+    if (typeof addr === 'string') {
+        addr = cryptoUtils.isHexPrefixed(addr) ? addr : "0x" + addr;
+    }
+    addr = cryptoUtils.toBuffer(addr);
+    // address not equal to 24
+    if (addr.length !== 24) {
+        return false;
+    }
+    var content = addr.slice(0, 20);
+    var checksum = addr.slice(-4);
+    return Buffer.compare(cryptoUtils.sha3(content).slice(0, 4), checksum) === 0;
+};
+
+Account.fromAddress = function (addr) {
+    var acc = new Account();
+    if (addr instanceof Account) {
+        acc.setPrivateKey(addr.getPrivateKey());
+    } else if (this.isValidAddress(addr)) {
+        if (typeof addr === 'string') {
+            addr = cryptoUtils.isHexPrefixed(addr) ? addr : "0x" + addr;
+        }
+        acc.address = cryptoUtils.toBuffer(addr);
+    } else {
+        throw new Error("invalid address");
+    }
+    return acc;
+};
+
 Account.prototype = {
+
+    setPrivateKey: function (priv) {
+        if (utils.isObject(priv)) {
+            this.privKey = priv.length === 32 ? priv : Buffer(priv, 'hex');
+            this.pubKey = null;
+            this.address = null;
+        }
+    },
 
     getPrivateKey: function () {
         return this.privKey;
     },
 
     getPrivateKeyString: function () {
-        if (typeof this.privKey !== "undefined") {
-            return this.getPrivateKey().toString('hex');
-        } else {
-            return "";
-        }
+        return this.getPrivateKey().toString('hex');
     },
 
     getPublicKey: function () {
-        if (typeof this.pubKey === "undefined") {
+        if (utils.isNull(this.pubKey)) {
             this.pubKey = cryptoUtils.privateToPublic(this.privKey);
         }
         return this.pubKey;
@@ -42,7 +76,24 @@ Account.prototype = {
     },
 
     getAddress: function () {
-        return cryptoUtils.publicToAddress(this.getPublicKey(), true);
+        if (utils.isNull(this.address)) {
+
+            var pubKey = this.getPublicKey();
+            if (pubKey.length !== 64) {
+                pubKey = cryptoUtils.secp256k1.publicKeyConvert(pubKey, false).slice(1);
+            }
+
+            // The uncompressed form consists of a 0x04 (in analogy to the DER OCTET STRING tag) plus
+            // the concatenation of the binary representation of the X coordinate plus the binary
+            // representation of the y coordinate of the public point.
+            pubKey = Buffer.concat([cryptoUtils.toBuffer(4), pubKey]);
+
+            // Only take the lower 160bits of the hash
+            var content = cryptoUtils.sha3(pubKey).slice(-20);
+            var checksum = cryptoUtils.sha3(content).slice(0,4);
+            this.address = Buffer.concat([content, checksum]);
+        }
+        return this.address;
     },
 
     getAddressString: function () {
@@ -93,7 +144,8 @@ Account.prototype = {
                 cipher: opts.cipher || 'aes-128-ctr',
                 kdf: kdf,
                 kdfparams: kdfparams,
-                mac: mac.toString('hex')
+                mac: mac.toString('hex'),
+                machash: "sha3256"
             }
         };
     },
@@ -134,7 +186,8 @@ Account.prototype = {
             var nullBuff = new Buffer([0x00]);
             seed = Buffer.concat([nullBuff, seed]);
         }
-        return new Account(seed);
+        this.setPrivateKey(seed);
+        return this;
     }
 
 };

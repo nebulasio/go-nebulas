@@ -25,7 +25,9 @@ var DEST = path.join(__dirname, 'dist/');
 var src = 'index';
 var dst = 'neb';
 var lightDst = 'neb-light';
-var accountDst = 'neb-account';
+var accountDst = 'account';
+var transactionDst = 'transaction';
+var walletDst = 'wallet';
 
 // Error / Success Handling
 var onError = function(err) {
@@ -103,18 +105,6 @@ gulp.task('neb', ['clean'], function () {
 });
 
 gulp.task('account', ['clean'], function () {
-    // return browserify(browserifyOptions)
-    //     .require('./lib/account.js', {expose: 'account'})
-    //     .add('./lib/account.js')
-    //     .transform(babelify)
-    //     .transform(html2js)
-    //     .bundle()
-    //     .pipe(exorcist(path.join( DEST, accountDst + '.js.map')))
-    //     .pipe(source(accountDst + '.js'))
-    //     .pipe(gulp.dest( DEST ))
-    //     .pipe(streamify(uglify()))
-    //     .pipe(rename(accountDst + '.min.js'))
-    //     .pipe(gulp.dest( DEST ));
     return browserify()
         .require('./lib/account.js', {expose: 'account'})
         .transform(babelify)
@@ -128,9 +118,37 @@ gulp.task('account', ['clean'], function () {
         .pipe(gulp.dest(DEST));
 });
 
+gulp.task('transaction', ['clean'], function () {
+    return browserify()
+        .require('./lib/transaction.js', {expose: 'transaction'})
+        .transform(babelify)
+        .transform(html2js)
+        .bundle()
+        .pipe(plumber({ errorHandler: onError }))
+        // .pipe(exorcist(path.join( DEST, accountDst + '.js.map')))
+        .pipe(source('transaction.js'))
+        .pipe(buffer())
+        .pipe(rename(transactionDst + '.js'))
+        .pipe(gulp.dest(DEST));
+});
+
+gulp.task('wallet', ['clean'], function () {
+    return browserify()
+        .require('./lib/wallet.js', {expose: 'wallet'})
+        .transform(babelify)
+        .transform(html2js)
+        .bundle()
+        .pipe(plumber({ errorHandler: onError }))
+        // .pipe(exorcist(path.join( DEST, accountDst + '.js.map')))
+        .pipe(source('wallet.js'))
+        .pipe(buffer())
+        .pipe(rename(walletDst + '.js'))
+        .pipe(gulp.dest(DEST));
+});
+
 gulp.task('watch', function() {
     gulp.watch(['./lib/*.js'], ['lint', 'build']);
 });
 
-gulp.task('default', ['version', 'lint', 'clean', 'light', 'neb', 'account']);
+gulp.task('default', ['version', 'lint', 'clean', 'light', 'neb', 'account', 'transaction', 'wallet']);
 
