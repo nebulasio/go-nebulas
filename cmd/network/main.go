@@ -123,14 +123,10 @@ func main() {
 				latencyVal := (nowAt - sendAt) / int64(1000000)
 				latency.Update(latencyVal)
 
-				if latencyVal > 10 {
-					logging.CLog().Infof("Duration(ms): |%9d|, from %d to %d", (nowAt-sendAt)/int64(1000000), sendAt, nowAt)
-				}
-
 				netService.SendMessageToPeer(PingMessage, GenerateData(packageSize), net.MessagePriorityNormal, message.MessageFrom())
 			}
 		case <-ticker.C:
-			fmt.Printf("[Perf] tps: %6f/s; throughput: %6fk/s; latency p95: %6f\n", tps.Rate1(), throughput.Rate1()/1000, latency.Percentile(float64(0.95)))
+			fmt.Printf("[Perf] tps: %6f/s; throughput: %6fk/s; latency p95: %6f\n", tps.Rate1(), throughput.Rate1()/1000, latency.Percentile(0.95))
 		}
 	}
 }
@@ -142,10 +138,6 @@ func ParseData(data []byte) int64 {
 func GenerateData(packageSize int64) []byte {
 	data := make([]byte, 8+packageSize)
 	copy(data, byteutils.FromInt64(time.Now().UnixNano()))
-
-	for i := int64(0); i < packageSize; i++ {
-		data[8+i] = byte(rand.Intn(2 ^ 8))
-	}
 
 	return data
 }
