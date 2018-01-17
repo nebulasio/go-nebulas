@@ -121,7 +121,7 @@ func (ns *NetService) SendMsg(msgName string, msg []byte, target string, priorit
 }
 
 // SendMessageToPeers send message to peers.
-func (ns *NetService) SendMessageToPeers(messageName string, data []byte, priority int, filter net.PeerFilterAlgorithm) int {
+func (ns *NetService) SendMessageToPeers(messageName string, data []byte, priority int, filter net.PeerFilterAlgorithm) []string {
 	return ns.node.streamManager.SendMessageToPeers(messageName, data, priority, filter)
 }
 

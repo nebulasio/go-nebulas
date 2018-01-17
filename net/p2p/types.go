@@ -35,7 +35,7 @@ type Manager interface {
 	Relay(string, net.Serializable, int)
 	SendMsg(string, []byte, string, int) error
 
-	SendMessageToPeers(messageName string, data []byte, priority int, filter net.PeerFilterAlgorithm) int
+	SendMessageToPeers(messageName string, data []byte, priority int, filter net.PeerFilterAlgorithm) []string
 	SendMessageToPeer(messageName string, data []byte, priority int, peerID string) error
 
 	ClosePeer(peerID string, reason error)

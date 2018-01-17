@@ -153,7 +153,7 @@ func (sm *StreamManager) RelayMessage(messageName string, messageContent net.Ser
 	})
 }
 
-func (sm *StreamManager) SendMessageToPeers(messageName string, data []byte, priority int, filter net.PeerFilterAlgorithm) int {
+func (sm *StreamManager) SendMessageToPeers(messageName string, data []byte, priority int, filter net.PeerFilterAlgorithm) []string {
 	allPeers := make(net.PeersSlice, 0)
 
 	sm.allStreams.Range(func(key, value interface{}) bool {
@@ -165,12 +165,16 @@ func (sm *StreamManager) SendMessageToPeers(messageName string, data []byte, pri
 	})
 
 	selectedPeers := filter.Filter(allPeers)
+	selectedPeersPrettyID := make([]string, 0)
+
 	for _, v := range selectedPeers {
 		stream := v.(*Stream)
-		stream.SendMessage(messageName, data, priority)
+		if err := stream.SendMessage(messageName, data, priority); err == nil {
+			selectedPeersPrettyID = append(selectedPeersPrettyID, stream.pid.Pretty())
+		}
 	}
 
-	return len(selectedPeers)
+	return selectedPeersPrettyID
 }
 
 func (sm *StreamManager) CloseStream(peerID string, reason error) {

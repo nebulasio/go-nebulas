@@ -161,8 +161,8 @@ func (n MockNetManager) Broadcast(string, net.Serializable, int)   {}
 func (n MockNetManager) Relay(string, net.Serializable, int)       {}
 func (n MockNetManager) SendMsg(string, []byte, string, int) error { return nil }
 
-func (n MockNetManager) SendMessageToPeers(messageName string, data []byte, priority int, filter net.PeerFilterAlgorithm) int {
-	return 0
+func (n MockNetManager) SendMessageToPeers(messageName string, data []byte, priority int, filter net.PeerFilterAlgorithm) []string {
+	return make([]string, 0)
 }
 func (n MockNetManager) SendMessageToPeer(messageName string, data []byte, priority int, peerID string) error {
 	return nil

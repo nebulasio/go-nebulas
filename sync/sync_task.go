@@ -47,6 +47,7 @@ var (
 	ErrWrongChainChunksMessageData      = errors.New("wrong ChainChunks message data")
 	ErrInvalidChainChunkDataMessageData = errors.New("invalid ChainChunkData message data")
 	ErrWrongChainChunkDataMessageData   = errors.New("wrong ChainChunkData message data")
+	ErrInvalidChunkHeaderSourcePeer     = errors.New("invalid chunk headers source peer")
 )
 
 type SyncTask struct {
@@ -58,7 +59,7 @@ type SyncTask struct {
 	netService                        p2p.Manager
 	chunk                             *Chunk
 	syncMutex                         sync.Mutex
-	chainSyncPeersCount               int
+	chainSyncPeers                    []string
 	maxConsistentChunkHeadersCount    int
 	maxConsistentChunkHeaders         *syncpb.ChunkHeaders
 	allChunkHeaders                   map[string]*syncpb.ChunkHeaders
@@ -83,7 +84,7 @@ func NewSyncTask(blockChain *core.BlockChain, netService p2p.Manager, chunk *Chu
 		syncPointBlock:                    blockChain.TailBlock(),
 		netService:                        netService,
 		chunk:                             chunk,
-		chainSyncPeersCount:               0,
+		chainSyncPeers:                    nil,
 		maxConsistentChunkHeadersCount:    0,
 		maxConsistentChunkHeaders:         nil,
 		allChunkHeaders:                   make(map[string]*syncpb.ChunkHeaders),
@@ -167,7 +168,7 @@ func (st *SyncTask) reset() {
 	st.syncMutex.Lock()
 	defer st.syncMutex.Unlock()
 
-	st.chainSyncPeersCount = 0
+	st.chainSyncPeers = nil
 	st.maxConsistentChunkHeadersCount = 0
 	st.maxConsistentChunkHeaders = nil
 	st.allChunkHeaders = make(map[string]*syncpb.ChunkHeaders)
@@ -210,12 +211,43 @@ func (st *SyncTask) sendChainSync() {
 	}
 
 	// send message to peers.
-	st.chainSyncPeersCount = st.netService.SendMessageToPeers(net.ChainSync, data,
+	st.chainSyncPeers = st.netService.SendMessageToPeers(net.ChainSync, data,
 		net.MessagePriorityLow, new(p2p.ChainSyncPeersFilter))
 }
 
 func (st *SyncTask) processChunkHeaders(message net.Message) {
+	// lock.
+	st.syncMutex.Lock()
+	defer st.syncMutex.Unlock()
+
 	if st.hasEnoughChunkHeaders() {
+		return
+	}
+
+	// verify the peers.
+	if st.chainSyncPeers == nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"err": ErrInvalidChunkHeaderSourcePeer,
+			"pid": message.MessageFrom(),
+		}).Debug("Invalid ChainChunkHeaders message source peer, chinSyncPeers is NIL.")
+		st.netService.ClosePeer(message.MessageFrom(), ErrInvalidChunkHeaderSourcePeer)
+		return
+	}
+
+	isValidSourcePeer := false
+	for _, prettyID := range st.chainSyncPeers {
+		if prettyID == message.MessageFrom() {
+			isValidSourcePeer = true
+			break
+		}
+	}
+
+	if isValidSourcePeer == false {
+		logging.VLog().WithFields(logrus.Fields{
+			"err": ErrInvalidChunkHeaderSourcePeer,
+			"pid": message.MessageFrom(),
+		}).Debug("Invalid ChainChunkHeaders message source peer.")
+		st.netService.ClosePeer(message.MessageFrom(), ErrInvalidChunkHeaderSourcePeer)
 		return
 	}
 
@@ -238,10 +270,6 @@ func (st *SyncTask) processChunkHeaders(message net.Message) {
 		st.netService.ClosePeer(message.MessageFrom(), ErrWrongChainChunksMessageData)
 		return
 	}
-
-	// lock.
-	st.syncMutex.Lock()
-	defer st.syncMutex.Unlock()
 
 	rootHash := byteutils.Hex(chunkHeaders.Root)
 
@@ -427,10 +455,16 @@ func (st *SyncTask) sendChainGetChunkForNext() {
 }
 
 func (st *SyncTask) hasEnoughChunkHeaders() bool {
-	ret := st.chainSyncPeersCount > 0 && st.maxConsistentChunkHeadersCount >= int(math.Sqrt(float64(st.chainSyncPeersCount)))
+	chainSyncPeersCount := 0
+	if st.chainSyncPeers != nil {
+		chainSyncPeersCount = len(st.chainSyncPeers)
+	}
+
+	ret := chainSyncPeersCount > 0 && st.maxConsistentChunkHeadersCount >= int(math.Sqrt(float64(chainSyncPeersCount)))
 	if ret {
 		logging.VLog().WithFields(logrus.Fields{
-			"chainSyncPeersCount":               st.chainSyncPeersCount,
+			"chainSyncPeers":                    st.chainSyncPeers,
+			"chainSyncPeersCount":               chainSyncPeersCount,
 			"chainSyncRetryCount":               st.chainSyncRetryCount,
 			"maxConsistentChunkHeadersCount":    st.maxConsistentChunkHeadersCount,
 			"maxConsistentChunkHeadersRootHash": byteutils.Hex(st.maxConsistentChunkHeaders.Root),

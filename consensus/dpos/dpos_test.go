@@ -203,8 +203,8 @@ func (n MockNetManager) SendMsg(name string, msg []byte, target string, priority
 	return nil
 }
 
-func (n MockNetManager) SendMessageToPeers(messageName string, data []byte, priority int, filter net.PeerFilterAlgorithm) int {
-	return 0
+func (n MockNetManager) SendMessageToPeers(messageName string, data []byte, priority int, filter net.PeerFilterAlgorithm) []string {
+	return make([]string, 0)
 }
 func (n MockNetManager) SendMessageToPeer(messageName string, data []byte, priority int, peerID string) error {
 	return nil
