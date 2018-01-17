@@ -31,7 +31,11 @@ type BinaryPayload struct {
 
 // LoadBinaryPayload from bytes
 func LoadBinaryPayload(bytes []byte) (*BinaryPayload, error) {
-	return NewBinaryPayload(bytes), nil
+	payload := &BinaryPayload{}
+	if err := json.Unmarshal(bytes, payload); err != nil {
+		return nil, err
+	}
+	return payload, nil
 }
 
 // NewBinaryPayload with data

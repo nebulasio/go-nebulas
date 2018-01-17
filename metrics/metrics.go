@@ -67,6 +67,8 @@ func Start(neb Neblet) {
 		influxdb.InfluxDBWithTags(metrics.DefaultRegistry, interval, neb.Config().Stats.Influxdb.Host, neb.Config().Stats.Influxdb.Db, neb.Config().Stats.Influxdb.User, neb.Config().Stats.Influxdb.Password, tags)
 
 	})()
+
+	logging.CLog().Info("Started Metrics.")
 }
 
 func start(neb Neblet) {

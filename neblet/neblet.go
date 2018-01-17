@@ -88,6 +88,7 @@ func New(config *nebletpb.Config) (*Neblet, error) {
 // Setup setup neblet
 func (n *Neblet) Setup() error {
 	var err error
+	logging.CLog().Info("Setuping Neblet...")
 
 	// storage
 	n.storage, err = storage.NewDiskStorage(n.config.Chain.Datadir)

@@ -104,6 +104,8 @@ func (sm *StreamManager) Find(pid peer.ID) *Stream {
 }
 
 func (sm *StreamManager) loop() {
+	logging.CLog().Info("Started NetService StreamManager.")
+
 	ticker := time.NewTicker(time.Second * 30)
 	for {
 		select {

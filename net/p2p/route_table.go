@@ -117,6 +117,8 @@ func (table *RouteTable) syncLoop() {
 	// trigger first sync.
 	table.SyncRouteTable()
 
+	logging.CLog().Info("Started NetService RouteTable Sync.")
+
 	syncLoopTicker := time.NewTicker(RouteTableSyncLoopInterval)
 	saveRouteTableToDiskTicker := time.NewTicker(RouteTableSaveToDiskInterval)
 	latestUpdatedAt := table.latestUpdatedAt
@@ -124,7 +126,7 @@ func (table *RouteTable) syncLoop() {
 	for {
 		select {
 		case <-table.quitCh:
-			logging.CLog().Info("Stopped RouteTable Sync.")
+			logging.CLog().Info("Stopped NetService RouteTable Sync.")
 			return
 		case <-syncLoopTicker.C:
 			table.SyncRouteTable()

@@ -82,6 +82,7 @@ func (dp *Dispatcher) Start() {
 
 func (dp *Dispatcher) loop() {
 	logging.CLog().Info("Started NewService Dispatcher.")
+
 	timerChan := time.NewTicker(time.Second).C
 	for {
 		select {

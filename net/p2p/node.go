@@ -105,7 +105,7 @@ func (node *Node) Start() error {
 	logging.CLog().WithFields(logrus.Fields{
 		"id":                node.ID(),
 		"listening address": node.host.Addrs(),
-	}).Info("Started node.")
+	}).Info("Started NetService Node.")
 
 	return nil
 }

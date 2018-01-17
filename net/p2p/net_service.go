@@ -64,6 +64,7 @@ func (ns *NetService) Start() error {
 		return err
 	}
 
+	logging.CLog().Info("Started NetService.")
 	return nil
 }
 
