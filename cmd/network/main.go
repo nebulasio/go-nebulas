@@ -85,7 +85,7 @@ func main() {
 	// metrics.
 	tps := metrics.GetOrRegisterMeter("tps", nil)
 	throughput := metrics.GetOrRegisterMeter("throughput", nil)
-	latency := metrics.GetOrRegisterHistogram("latency", nil, metrics.NewUniformSample(1024))
+	latency := metrics.GetOrRegisterHistogram("latency", nil, metrics.NewUniformSample(100))
 
 	// first trigger.
 	if mode == "client" {
@@ -104,29 +104,37 @@ func main() {
 			switch messageName {
 			case PingMessage:
 				data := message.Data().([]byte)
+				sendAt := ParseData(data)
+				nowAt := time.Now().UnixNano()
+
+				latencyVal := (nowAt - sendAt) / int64(1000000)
 
 				// metrics.
 				tps.Mark(2)
 				throughput.Mark(2 * int64(p2p.NebMessageHeaderLength+len(data)))
+				latency.Update(latencyVal)
 
 				netService.SendMessageToPeer(PongMessage, message.Data().([]byte), net.MessagePriorityNormal, message.MessageFrom())
 			case PongMessage:
 				data := message.Data().([]byte)
 
+				sendAt := ParseData(data)
+				nowAt := time.Now().UnixNano()
+				latencyVal := (nowAt - sendAt) / int64(1000000)
+
 				// metrics.
 				tps.Mark(2)
 				throughput.Mark(2 * int64(p2p.NebMessageHeaderLength+len(data)))
-
-				sendAt := ParseData(data)
-				nowAt := time.Now().UnixNano()
-
-				latencyVal := (nowAt - sendAt) / int64(1000000)
 				latency.Update(latencyVal)
+
+				// if latencyVal > 10 {
+				// 	logging.CLog().Infof("Duration(ms): |%9d|, from %d to %d", (nowAt-sendAt)/int64(1000000), sendAt, nowAt)
+				// }
 
 				netService.SendMessageToPeer(PingMessage, GenerateData(packageSize), net.MessagePriorityNormal, message.MessageFrom())
 			}
 		case <-ticker.C:
-			fmt.Printf("[Perf] tps: %6f/s; throughput: %6fk/s; latency p95: %6f\n", tps.Rate1(), throughput.Rate1()/1000, latency.Percentile(0.95))
+			fmt.Printf("[Perf] tps: %6.2f/s; throughput: %6.2fk/s; latency p95: %6.2f\n", tps.Rate1(), throughput.Rate1()/1000, latency.Percentile(float64(0.50)))
 		}
 	}
 }
@@ -138,7 +146,6 @@ func ParseData(data []byte) int64 {
 func GenerateData(packageSize int64) []byte {
 	data := make([]byte, 8+packageSize)
 	copy(data, byteutils.FromInt64(time.Now().UnixNano()))
-
 	return data
 }
 
