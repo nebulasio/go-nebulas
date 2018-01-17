@@ -29,7 +29,7 @@ import (
 )
 
 // NewFileRotateHooker enable log file output
-func NewFileRotateHooker(path string) logrus.Hook {
+func NewFileRotateHooker(path string, age uint32) logrus.Hook {
 	if len(path) == 0 {
 		panic("Failed to parse logger folder:" + path + ".")
 	}
@@ -46,6 +46,10 @@ func NewFileRotateHooker(path string) logrus.Hook {
 		rotatelogs.WithLinkName(linkPath),
 		rotatelogs.WithRotationTime(time.Duration(3600)*time.Second),
 	)
+	// set log file max age
+	if age > 0 {
+		rotatelogs.WithMaxAge(time.Duration(age) * time.Second).Configure(writer)
+	}
 
 	if err != nil {
 		panic("Failed to create rotate logs. err:" + err.Error())

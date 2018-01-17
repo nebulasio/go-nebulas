@@ -95,9 +95,12 @@ message AppConfig {
 
 	string log_file = 2;
 
-	bool enable_crash_report = 3;
+    // log file age, unit is s.
+    uint32 log_age = 3;
 
-    string crash_report_url = 4;
+	bool enable_crash_report = 4;
+
+    string crash_report_url = 5;
 
     string version = 100;
 }

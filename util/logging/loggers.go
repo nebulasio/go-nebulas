@@ -46,7 +46,7 @@ var vlog *logrus.Logger
 // CLog return console logger
 func CLog() *logrus.Logger {
 	if clog == nil {
-		Init("/tmp", "info")
+		Init("/tmp", "info", 0)
 	}
 	return clog
 }
@@ -54,7 +54,7 @@ func CLog() *logrus.Logger {
 // VLog return verbose logger
 func VLog() *logrus.Logger {
 	if vlog == nil {
-		Init("/tmp", "info")
+		Init("/tmp", "info", 0)
 	}
 	return vlog
 }
@@ -79,8 +79,8 @@ func convertLevel(level string) logrus.Level {
 }
 
 // Init loggers
-func Init(path string, level string) {
-	fileHooker := NewFileRotateHooker(path)
+func Init(path string, level string, age uint32) {
+	fileHooker := NewFileRotateHooker(path, age)
 
 	clog = logrus.New()
 	LoadFunctionHooker(clog)

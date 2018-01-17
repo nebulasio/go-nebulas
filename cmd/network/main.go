@@ -59,7 +59,7 @@ func main() {
 	config := neblet.LoadConfig(configPath)
 
 	// init log.
-	logging.Init(config.App.LogFile, config.App.LogLevel)
+	logging.Init(config.App.LogFile, config.App.LogLevel, config.App.LogAge)
 
 	// neblet.
 	neblet, _ := neblet.New(config)
