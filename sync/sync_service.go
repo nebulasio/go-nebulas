@@ -133,8 +133,7 @@ func (ss *SyncService) WaitingForFinish() error {
 	err := <-ss.activeSyncTask.statusCh
 
 	logging.CLog().WithFields(logrus.Fields{
-		"syncpoint": ss.activeSyncTask.syncPointBlock,
-		"tail":      ss.blockChain.TailBlock(),
+		"tail": ss.blockChain.TailBlock(),
 	}).Info("ActiveSyncTask Finished.")
 
 	ss.activeSyncTask = nil
