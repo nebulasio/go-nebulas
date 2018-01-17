@@ -20,6 +20,7 @@ package main
 
 import (
 	"fmt"
+	"math/rand"
 	"os"
 	"strconv"
 	"time"
@@ -31,6 +32,7 @@ import (
 	"github.com/nebulasio/go-nebulas/net/p2p"
 
 	"github.com/nebulasio/go-nebulas/util/logging"
+	metrics "github.com/rcrowley/go-metrics"
 )
 
 var (
@@ -46,13 +48,16 @@ func main() {
 		return
 	}
 
+	// rand.
+	rand.Seed(time.Now().UnixNano())
+
 	// mode
 	mode := os.Args[1]
 	configPath := os.Args[2]
-	delayMs := int64(0)
+	packageSize := int64(0)
 
 	if len(os.Args) >= 4 {
-		delayMs, _ = strconv.ParseInt(os.Args[3], 10, 64)
+		packageSize, _ = strconv.ParseInt(os.Args[3], 10, 64)
 	}
 
 	// config.
@@ -77,13 +82,20 @@ func main() {
 	// start server.
 	netService.Start()
 
+	// metrics.
+	tps := metrics.GetOrRegisterMeter("tps", nil)
+	throughput := metrics.GetOrRegisterMeter("throughput", nil)
+	latency := metrics.GetOrRegisterHistogram("latency", nil, metrics.NewUniformSample(1024))
+
 	// first trigger.
 	if mode == "client" {
 		go func() {
 			time.Sleep(10 * time.Second)
-			netService.SendMessageToPeers(PingMessage, GenerateTime(), net.MessagePriorityNormal, new(p2p.ChainSyncPeersFilter))
+			netService.SendMessageToPeers(PingMessage, GenerateData(packageSize), net.MessagePriorityNormal, new(p2p.ChainSyncPeersFilter))
 		}()
 	}
+
+	ticker := time.NewTicker(5 * time.Second)
 
 	for {
 		select {
@@ -91,31 +103,54 @@ func main() {
 			messageName := message.MessageType()
 			switch messageName {
 			case PingMessage:
+				data := message.Data().([]byte)
+
+				// metrics.
+				tps.Mark(2)
+				throughput.Mark(2 * int64(p2p.NebMessageHeaderLength+len(data)))
+
 				netService.SendMessageToPeer(PongMessage, message.Data().([]byte), net.MessagePriorityNormal, message.MessageFrom())
 			case PongMessage:
-				sendAt := ParseTime(message.Data().([]byte))
-				nowAt := time.Now().UnixNano()
-				logging.CLog().Infof("Duration(ms): |%9d|, from %d to %d", (nowAt-sendAt)/int64(1000000), sendAt, nowAt)
+				data := message.Data().([]byte)
 
-				if delayMs > 0 {
-					time.Sleep(time.Millisecond * time.Duration(delayMs))
+				// metrics.
+				tps.Mark(2)
+				throughput.Mark(2 * int64(p2p.NebMessageHeaderLength+len(data)))
+
+				sendAt := ParseData(data)
+				nowAt := time.Now().UnixNano()
+
+				latencyVal := (nowAt - sendAt) / int64(1000000)
+				latency.Update(latencyVal)
+
+				if latencyVal > 10 {
+					logging.CLog().Infof("Duration(ms): |%9d|, from %d to %d", (nowAt-sendAt)/int64(1000000), sendAt, nowAt)
 				}
 
-				netService.SendMessageToPeers(PingMessage, GenerateTime(), net.MessagePriorityNormal, new(p2p.ChainSyncPeersFilter))
+				netService.SendMessageToPeer(PingMessage, GenerateData(packageSize), net.MessagePriorityNormal, message.MessageFrom())
 			}
+		case <-ticker.C:
+			fmt.Printf("[Perf] tps: %6f/s; throughput: %6fk/s; latency p95: %6f\n", tps.Rate1(), throughput.Rate1()/1000, latency.Percentile(float64(0.95)))
 		}
 	}
 }
 
-func ParseTime(data []byte) int64 {
+func ParseData(data []byte) int64 {
 	return byteutils.Int64(data)
 }
 
-func GenerateTime() []byte {
-	return byteutils.FromInt64(time.Now().UnixNano())
+func GenerateData(packageSize int64) []byte {
+	data := make([]byte, 8+packageSize)
+	copy(data, byteutils.FromInt64(time.Now().UnixNano()))
+
+	for i := int64(0); i < packageSize; i++ {
+		data[8+i] = byte(rand.Intn(2 ^ 8))
+	}
+
+	return data
 }
 
 func help() {
-	fmt.Printf("%s [server|client] [config] [(bytes)]\n", os.Args[0])
+	fmt.Printf("%s [server|client] [config] [package size]\n", os.Args[0])
 	os.Exit(1)
 }
