@@ -24,21 +24,22 @@ import (
 	"github.com/gogo/protobuf/proto"
 )
 
+// Message Priority.
 const (
-	// Message Priority.
 	MessagePriorityHigh = iota
 	MessagePriorityNormal
 	MessagePriorityLow
+)
 
-	// Message.
+// Sync Message Type
+const (
 	ChainSync      = "sync"
 	ChainChunks    = "chunks"
 	ChainGetChunk  = "getchunk"
 	ChainChunkData = "chunkdata"
-
-	PeersSyncCount = 16
 )
 
+// Sync Errors
 var (
 	ErrPeersIsNotEnough = errors.New("peers is not enough")
 )
@@ -59,8 +60,10 @@ type Serializable interface {
 	FromProto(proto.Message) error
 }
 
+// PeersSlice is a slice which contains peers
 type PeersSlice []interface{}
 
+// PeerFilterAlgorithm is the algorithm used to filter peers
 type PeerFilterAlgorithm interface {
 	Filter(PeersSlice) PeersSlice
 }

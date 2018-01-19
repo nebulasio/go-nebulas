@@ -55,7 +55,7 @@ type Neblet struct {
 
 	blockChain *core.BlockChain
 
-	syncService *nsync.SyncService
+	syncService *nsync.Service
 
 	apiServer rpc.Server
 
@@ -130,7 +130,7 @@ func (n *Neblet) Setup() {
 	n.blockChain.SetConsensusHandler(n.consensus)
 
 	// sync
-	n.syncService = nsync.NewSyncService(n.blockChain, n.netService)
+	n.syncService = nsync.NewService(n.blockChain, n.netService)
 	n.blockChain.SetSyncService(n.syncService)
 
 	// api
@@ -313,6 +313,6 @@ func (n *Neblet) Consensus() consensus.Consensus {
 }
 
 // SyncService return sync service
-func (n *Neblet) SyncService() *nsync.SyncService {
+func (n *Neblet) SyncService() *nsync.Service {
 	return n.syncService
 }

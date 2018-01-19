@@ -42,8 +42,8 @@ const (
 	DefaultRoutingTableDir        = ""
 )
 
+// Default Configuration in P2P network
 var (
-	// DefaultListen default listen
 	DefaultListen = []string{"0.0.0.0:8680"}
 
 	RouteTableSyncLoopInterval   = 30 * time.Second

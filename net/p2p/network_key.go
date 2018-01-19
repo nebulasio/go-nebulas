@@ -39,9 +39,8 @@ func LoadNetworkKeyFromFile(path string) (crypto.PrivKey, error) {
 func LoadNetworkKeyFromFileOrCreateNew(path string) (crypto.PrivKey, error) {
 	if path == "" {
 		return GenerateEd25519Key()
-	} else {
-		return LoadNetworkKeyFromFile(path)
 	}
+	return LoadNetworkKeyFromFile(path)
 }
 
 // UnmarshalNetworkKey unmarshal network key.

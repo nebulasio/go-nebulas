@@ -24,16 +24,20 @@ import (
 	"github.com/nebulasio/go-nebulas/net"
 )
 
+// ChainSyncPeersFilter will filter some peers randomly
 type ChainSyncPeersFilter struct {
 }
 
+// Filter implemets PeerFilterAlgorithm interface
 func (filter *ChainSyncPeersFilter) Filter(peers net.PeersSlice) net.PeersSlice {
 	return peers
 }
 
+// RandomPeerFilter will filter a peer randomly
 type RandomPeerFilter struct {
 }
 
+// Filter implemets PeerFilterAlgorithm interface
 func (filter *RandomPeerFilter) Filter(peers net.PeersSlice) net.PeersSlice {
 	if len(peers) == 0 {
 		return peers

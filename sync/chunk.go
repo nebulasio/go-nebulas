@@ -32,11 +32,13 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// Chunk packs some blocks
 type Chunk struct {
 	blockChain *core.BlockChain
 	chunksTrie *trie.BatchTrie
 }
 
+// NewChunk return a new chunk
 func NewChunk(blockChain *core.BlockChain) *Chunk {
 	return &Chunk{
 		blockChain: blockChain,
@@ -120,7 +122,7 @@ func (c *Chunk) generateChunkHeaders(syncpointHash byteutils.Hash) (*syncpb.Chun
 	return &syncpb.ChunkHeaders{ChunkHeaders: chunkHeaders, Root: chunksTrie.RootHash()}, nil
 }
 
-func VerifyChunkHeaders(chunkHeaders *syncpb.ChunkHeaders) (bool, error) {
+func verifyChunkHeaders(chunkHeaders *syncpb.ChunkHeaders) (bool, error) {
 	if len(chunkHeaders.ChunkHeaders) == 0 && len(chunkHeaders.Root) == 0 {
 		// fast quit.
 		return true, nil
@@ -218,7 +220,7 @@ func (c *Chunk) generateChunkData(chunkHeader *syncpb.ChunkHeader) (*syncpb.Chun
 	return &syncpb.ChunkData{Blocks: blocks, Root: blocksTrie.RootHash()}, nil
 }
 
-func VerifyChunkData(chunkHeader *syncpb.ChunkHeader, chunkData *syncpb.ChunkData) (bool, error) {
+func verifyChunkData(chunkHeader *syncpb.ChunkHeader, chunkData *syncpb.ChunkData) (bool, error) {
 	stor, err := storage.NewMemoryStorage()
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{

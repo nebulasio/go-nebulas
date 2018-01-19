@@ -36,6 +36,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// Stream Message Type
 const (
 	ClientVersion = "0.2.0"
 	NebProtocolID = "/neb/1.0.0"
@@ -47,11 +48,13 @@ const (
 	RECVEDMSG     = "recvedmsg"
 )
 
+// Stream Errors
 var (
 	ErrShouldCloseConnectionAndExitLoop = errors.New("should close connection and exit loop")
 	ErrStreamIsNotConnected             = errors.New("stream is not connected")
 )
 
+// Stream define the structure of a stream in p2p network
 type Stream struct {
 	pid                       peer.ID
 	addr                      ma.Multiaddr
@@ -69,11 +72,12 @@ type Stream struct {
 	latestWriteAt             int64
 }
 
-// NewStream return a new StreamInfo
+// NewStream return a new Stream
 func NewStream(stream libnet.Stream, node *Node) *Stream {
 	return newStreamInstance(stream.Conn().RemotePeer(), stream.Conn().RemoteMultiaddr(), stream, node)
 }
 
+// NewStreamFromPID return a new Stream based on the pid
 func NewStreamFromPID(pid peer.ID, node *Node) *Stream {
 	return newStreamInstance(pid, nil, nil, node)
 }
@@ -97,6 +101,7 @@ func newStreamInstance(pid peer.ID, addr ma.Multiaddr, stream libnet.Stream, nod
 	}
 }
 
+// Connect to the stream
 func (s *Stream) Connect() error {
 	logging.VLog().WithFields(logrus.Fields{
 		"stream": s.String(),
@@ -121,10 +126,12 @@ func (s *Stream) Connect() error {
 	return nil
 }
 
+// IsConnected return if the stream is connected
 func (s *Stream) IsConnected() bool {
 	return s.stream != nil
 }
 
+// IsHandshakeSucceed return if the handshake in the stream succeed
 func (s *Stream) IsHandshakeSucceed() bool {
 	return s.handshakeSucceed
 }
@@ -138,6 +145,7 @@ func (s *Stream) String() string {
 	return fmt.Sprintf("Peer Stream: %s,%s", s.pid.Pretty(), addrStr)
 }
 
+// SendProtoMessage send proto msg to buffer
 func (s *Stream) SendProtoMessage(messageName string, pb proto.Message, priority int) error {
 	data, err := proto.Marshal(pb)
 	if err != nil {
@@ -152,6 +160,7 @@ func (s *Stream) SendProtoMessage(messageName string, pb proto.Message, priority
 	return s.SendMessage(messageName, data, priority)
 }
 
+// SendMessage send msg to buffer
 func (s *Stream) SendMessage(messageName string, data []byte, priority int) error {
 	message, err := NewNebMessage(s.node.config.ChainID, DefaultReserved, 0, messageName, data)
 	if err != nil {
@@ -201,6 +210,7 @@ func (s *Stream) Write(data []byte) error {
 	return nil
 }
 
+// WriteNebMessage write neb msg in the stream
 func (s *Stream) WriteNebMessage(message *NebMessage) error {
 	// metrics.
 	metricsPacketsOutByMessageName(message.MessageName(), message.Length())
@@ -221,6 +231,7 @@ func (s *Stream) WriteNebMessage(message *NebMessage) error {
 	return err
 }
 
+// WriteProtoMessage write proto msg in the stream
 func (s *Stream) WriteProtoMessage(messageName string, pb proto.Message) error {
 	data, err := proto.Marshal(pb)
 	if err != nil {
@@ -235,6 +246,7 @@ func (s *Stream) WriteProtoMessage(messageName string, pb proto.Message) error {
 	return s.WriteMessage(messageName, data)
 }
 
+// WriteMessage write raw msg in the stream
 func (s *Stream) WriteMessage(messageName string, data []byte) error {
 	message, err := NewNebMessage(s.node.config.ChainID, DefaultReserved, 0, messageName, data)
 	if err != nil {
@@ -438,7 +450,7 @@ func (s *Stream) handleMessage(message *NebMessage) error {
 	case ROUTETABLE:
 		return s.onRouteTable(message)
 	case RECVEDMSG:
-		return s.OnRecvedMsg(message)
+		return s.onRecvedMsg(message)
 	default:
 		s.node.netService.PutMessage(messages.NewBaseMessage(message.MessageName(), s.pid.Pretty(), message.Data()))
 		// record recv message.
@@ -448,6 +460,7 @@ func (s *Stream) handleMessage(message *NebMessage) error {
 	return nil
 }
 
+// Close close the stream
 func (s *Stream) Close(reason error) {
 	logging.VLog().WithFields(logrus.Fields{
 		"stream": s.String(),
@@ -467,6 +480,7 @@ func (s *Stream) Close(reason error) {
 	}
 }
 
+// Bye say bye in the stream
 func (s *Stream) Bye() {
 	s.WriteMessage(BYE, []byte{})
 	s.Close(errors.New("bye: force close"))
@@ -479,6 +493,7 @@ func (s *Stream) onBye(message *NebMessage) error {
 	return ErrShouldCloseConnectionAndExitLoop
 }
 
+// Hello say hello in the stream
 func (s *Stream) Hello() error {
 	msg := &netpb.Hello{
 		NodeId:        s.node.id.String(),
@@ -493,7 +508,7 @@ func (s *Stream) onHello(message *NebMessage) error {
 		return ErrShouldCloseConnectionAndExitLoop
 	}
 
-	if msg.NodeId != s.pid.String() || !CheckClientVersionCompability(ClientVersion, msg.ClientVersion) {
+	if msg.NodeId != s.pid.String() || !CheckClientVersionCompatibility(ClientVersion, msg.ClientVersion) {
 		// invalid client, bye().
 		logging.VLog().WithFields(logrus.Fields{
 			"pid":               s.pid.Pretty(),
@@ -513,6 +528,7 @@ func (s *Stream) onHello(message *NebMessage) error {
 	return s.Ok()
 }
 
+// Ok say ok in the stream
 func (s *Stream) Ok() error {
 	// send OK.
 	resp := &netpb.OK{
@@ -529,7 +545,7 @@ func (s *Stream) onOk(message *NebMessage) error {
 		return ErrShouldCloseConnectionAndExitLoop
 	}
 
-	if msg.NodeId != s.pid.String() || !CheckClientVersionCompability(ClientVersion, msg.ClientVersion) {
+	if msg.NodeId != s.pid.String() || !CheckClientVersionCompatibility(ClientVersion, msg.ClientVersion) {
 		// invalid client, bye().
 		logging.VLog().WithFields(logrus.Fields{
 			"pid":               s.pid.Pretty(),
@@ -549,6 +565,7 @@ func (s *Stream) onOk(message *NebMessage) error {
 	return nil
 }
 
+// SyncRoute send sync route request
 func (s *Stream) SyncRoute() error {
 	return s.SendMessage(SYNCROUTE, []byte{}, net.MessagePriorityHigh)
 }
@@ -557,6 +574,7 @@ func (s *Stream) onSyncRoute(message *NebMessage) error {
 	return s.RouteTable()
 }
 
+// RouteTable send sync table request
 func (s *Stream) RouteTable() error {
 	// get nearest peers from routeTable
 	peers := s.node.routeTable.GetNearestPeers(s.pid)
@@ -599,11 +617,12 @@ func (s *Stream) onRouteTable(message *NebMessage) error {
 	return nil
 }
 
+// RecvedMsg send received msg
 func (s *Stream) RecvedMsg(hash uint32) error {
 	return s.SendMessage(RECVEDMSG, byteutils.FromUint32(hash), net.MessagePriorityHigh)
 }
 
-func (s *Stream) OnRecvedMsg(message *NebMessage) error {
+func (s *Stream) onRecvedMsg(message *NebMessage) error {
 	hash := byteutils.Uint32(message.Data())
 	RecordRecvMessage(s, hash)
 
@@ -619,6 +638,7 @@ func (s *Stream) finishHandshake() {
 	s.handshakeSucceedCh <- true
 }
 
-func CheckClientVersionCompability(v1, v2 string) bool {
+// CheckClientVersionCompatibility if two clients are compatible
+func CheckClientVersionCompatibility(v1, v2 string) bool {
 	return v1 == v2
 }

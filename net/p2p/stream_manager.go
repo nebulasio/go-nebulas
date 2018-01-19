@@ -33,12 +33,14 @@ import (
 	"github.com/nebulasio/go-nebulas/util/logging"
 )
 
+// StreamManager manages all streams
 type StreamManager struct {
 	quitCh           chan bool
 	allStreams       *sync.Map
 	activePeersCount int32
 }
 
+// NewStreamManager return a new stream manager
 func NewStreamManager() *StreamManager {
 	return &StreamManager{
 		quitCh:           make(chan bool, 1),
@@ -47,27 +49,32 @@ func NewStreamManager() *StreamManager {
 	}
 }
 
+// Count return active peers count in the stream manager
 func (sm *StreamManager) Count() int32 {
 	return sm.activePeersCount
 }
 
+// Start stream manager service
 func (sm *StreamManager) Start() {
 	logging.CLog().Info("Starting NetService StreamManager...")
 
 	go sm.loop()
 }
 
+// Stop stream manager service
 func (sm *StreamManager) Stop() {
 	logging.CLog().Info("Stopping NetService StreamManager...")
 
 	sm.quitCh <- true
 }
 
+// Add a new stream into the stream manager
 func (sm *StreamManager) Add(s libnet.Stream, node *Node) {
 	stream := NewStream(s, node)
 	sm.AddStream(stream)
 }
 
+// AddStream into the stream manager
 func (sm *StreamManager) AddStream(stream *Stream) {
 	logging.VLog().WithFields(logrus.Fields{
 		"steam": stream.String(),
@@ -78,6 +85,7 @@ func (sm *StreamManager) AddStream(stream *Stream) {
 	stream.StartLoop()
 }
 
+// Remove the stream with the given pid from the stream manager
 func (sm *StreamManager) Remove(pid peer.ID) {
 	logging.VLog().WithFields(logrus.Fields{
 		"pid": pid.Pretty(),
@@ -87,10 +95,12 @@ func (sm *StreamManager) Remove(pid peer.ID) {
 	sm.allStreams.Delete(pid.Pretty())
 }
 
+// RemoveStream from the stream manager
 func (sm *StreamManager) RemoveStream(s *Stream) {
 	sm.Remove(s.pid)
 }
 
+// FindByPeerID find the stream with the given peerID
 func (sm *StreamManager) FindByPeerID(peerID string) *Stream {
 	v, _ := sm.allStreams.Load(peerID)
 	if v == nil {
@@ -99,6 +109,7 @@ func (sm *StreamManager) FindByPeerID(peerID string) *Stream {
 	return v.(*Stream)
 }
 
+// Find the stream with the given pid
 func (sm *StreamManager) Find(pid peer.ID) *Stream {
 	return sm.FindByPeerID(pid.Pretty())
 }
@@ -119,6 +130,7 @@ func (sm *StreamManager) loop() {
 	}
 }
 
+// BroadcastMessage broadcast the meesage
 func (sm *StreamManager) BroadcastMessage(messageName string, messageContent net.Serializable, priority int) {
 	pb, _ := messageContent.ToProto()
 	data, err := proto.Marshal(pb)
@@ -137,6 +149,7 @@ func (sm *StreamManager) BroadcastMessage(messageName string, messageContent net
 	})
 }
 
+// RelayMessage relay the message
 func (sm *StreamManager) RelayMessage(messageName string, messageContent net.Serializable, priority int) {
 	pb, _ := messageContent.ToProto()
 	data, err := proto.Marshal(pb)
@@ -155,6 +168,7 @@ func (sm *StreamManager) RelayMessage(messageName string, messageContent net.Ser
 	})
 }
 
+// SendMessageToPeers send the message to the peers filtered by the filter algorithm
 func (sm *StreamManager) SendMessageToPeers(messageName string, data []byte, priority int, filter net.PeerFilterAlgorithm) []string {
 	allPeers := make(net.PeersSlice, 0)
 
@@ -179,6 +193,7 @@ func (sm *StreamManager) SendMessageToPeers(messageName string, data []byte, pri
 	return selectedPeersPrettyID
 }
 
+// CloseStream with the given pid and reason
 func (sm *StreamManager) CloseStream(peerID string, reason error) {
 	stream := sm.FindByPeerID(peerID)
 	if stream != nil {

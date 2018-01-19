@@ -42,6 +42,7 @@ const (
 	chunkDataStatusNotStart = int64(0)
 )
 
+// Errors
 var (
 	ErrInvalidChainChunksMessageData    = errors.New("invalid ChainChunks message data")
 	ErrWrongChainChunksMessageData      = errors.New("wrong ChainChunks message data")
@@ -50,7 +51,8 @@ var (
 	ErrInvalidChunkHeaderSourcePeer     = errors.New("invalid chunk headers source peer")
 )
 
-type SyncTask struct {
+// Task is a sync task
+type Task struct {
 	quitCh                            chan bool
 	statusCh                          chan error
 	blockChain                        *core.BlockChain
@@ -76,8 +78,9 @@ type SyncTask struct {
 	chainSyncRetryCount int
 }
 
-func NewSyncTask(blockChain *core.BlockChain, netService p2p.Manager, chunk *Chunk) *SyncTask {
-	return &SyncTask{
+// NewTask return a new sync task
+func NewTask(blockChain *core.BlockChain, netService p2p.Manager, chunk *Chunk) *Task {
+	return &Task{
 		quitCh:                            make(chan bool, 1),
 		statusCh:                          make(chan error, 1),
 		blockChain:                        blockChain,
@@ -101,15 +104,17 @@ func NewSyncTask(blockChain *core.BlockChain, netService p2p.Manager, chunk *Chu
 	}
 }
 
-func (st *SyncTask) Start() {
+// Start the sync task
+func (st *Task) Start() {
 	go st.startSyncLoop()
 }
 
-func (st *SyncTask) Stop() {
+// Stop the sync task
+func (st *Task) Stop() {
 	st.quitCh <- true
 }
 
-func (st *SyncTask) startSyncLoop() {
+func (st *Task) startSyncLoop() {
 	for {
 		// start chain sync.
 		st.sendChainSync()
@@ -171,7 +176,7 @@ func (st *SyncTask) startSyncLoop() {
 	}
 }
 
-func (st *SyncTask) reset() {
+func (st *Task) reset() {
 	st.syncMutex.Lock()
 	defer st.syncMutex.Unlock()
 
@@ -187,11 +192,11 @@ func (st *SyncTask) reset() {
 	st.chainChunkData = make(map[int]*syncpb.ChunkData)
 }
 
-func (st *SyncTask) setSyncPointToNewTail() {
+func (st *Task) setSyncPointToNewTail() {
 	st.syncPointBlock = st.blockChain.TailBlock()
 }
 
-func (st *SyncTask) setSyncPointToLastChunk() {
+func (st *Task) setSyncPointToLastChunk() {
 	if st.chainSyncRetryCount < 2 {
 		// for the first retry, keep current tail.
 		return
@@ -206,7 +211,7 @@ func (st *SyncTask) setSyncPointToLastChunk() {
 	st.syncPointBlock = st.blockChain.GetBlockOnCanonicalChainByHeight(lastChunkBlockHeight)
 }
 
-func (st *SyncTask) sendChainSync() {
+func (st *Task) sendChainSync() {
 	logging.VLog().WithFields(logrus.Fields{
 		"syncPointBlockHeight": st.syncPointBlock.Height(),
 		"syncPointBlockHash":   st.syncPointBlock.Hash().String(),
@@ -232,7 +237,7 @@ func (st *SyncTask) sendChainSync() {
 		net.MessagePriorityLow, new(p2p.ChainSyncPeersFilter))
 }
 
-func (st *SyncTask) processChunkHeaders(message net.Message) {
+func (st *Task) processChunkHeaders(message net.Message) {
 	// lock.
 	st.syncMutex.Lock()
 	defer st.syncMutex.Unlock()
@@ -279,7 +284,7 @@ func (st *SyncTask) processChunkHeaders(message net.Message) {
 	}
 
 	// verify data.
-	if ok, err := VerifyChunkHeaders(chunkHeaders); ok == false {
+	if ok, err := verifyChunkHeaders(chunkHeaders); ok == false {
 		logging.VLog().WithFields(logrus.Fields{
 			"err": err,
 			"pid": message.MessageFrom(),
@@ -324,7 +329,7 @@ func (st *SyncTask) processChunkHeaders(message net.Message) {
 	}
 }
 
-func (st *SyncTask) sendChainGetChunk() {
+func (st *Task) sendChainGetChunk() {
 	// lock.
 	st.syncMutex.Lock()
 	defer st.syncMutex.Unlock()
@@ -354,7 +359,7 @@ func (st *SyncTask) sendChainGetChunk() {
 	st.chainChunkDataSyncPosition = chainChunkDataSyncPosition
 }
 
-func (st *SyncTask) checkChainGetChunkTimeout() {
+func (st *Task) checkChainGetChunkTimeout() {
 	// lock.
 	st.syncMutex.Lock()
 	defer st.syncMutex.Unlock()
@@ -374,7 +379,7 @@ func (st *SyncTask) checkChainGetChunkTimeout() {
 	}
 }
 
-func (st *SyncTask) sendChainGetChunkMessage(chunkHeaderIndex int) {
+func (st *Task) sendChainGetChunkMessage(chunkHeaderIndex int) {
 	chunkHeader := st.maxConsistentChunkHeaders.ChunkHeaders[chunkHeaderIndex]
 	data, err := proto.Marshal(chunkHeader)
 	if err != nil {
@@ -387,7 +392,7 @@ func (st *SyncTask) sendChainGetChunkMessage(chunkHeaderIndex int) {
 	st.chainChunkDataStatus[chunkHeaderIndex] = time.Now().Unix()
 }
 
-func (st *SyncTask) processChunkData(message net.Message) {
+func (st *Task) processChunkData(message net.Message) {
 	chunkData := new(syncpb.ChunkData)
 	if err := proto.Unmarshal(message.Data().([]byte), chunkData); err != nil {
 		logging.VLog().WithFields(logrus.Fields{
@@ -429,7 +434,7 @@ func (st *SyncTask) processChunkData(message net.Message) {
 		return
 	}
 
-	if ok, err := VerifyChunkData(chunkHeader, chunkData); ok == false {
+	if ok, err := verifyChunkData(chunkHeader, chunkData); ok == false {
 		logging.VLog().WithFields(logrus.Fields{
 			"err": err,
 			"pid": message.MessageFrom(),
@@ -463,7 +468,7 @@ func (st *SyncTask) processChunkData(message net.Message) {
 	st.sendChainGetChunkForNext()
 }
 
-func (st *SyncTask) sendChainGetChunkForNext() {
+func (st *Task) sendChainGetChunkForNext() {
 	nextPos := st.chainChunkDataSyncPosition + 1
 	if nextPos >= len(st.maxConsistentChunkHeaders.ChunkHeaders) {
 		if st.hasFinishedGetAllChunkData() {
@@ -476,7 +481,7 @@ func (st *SyncTask) sendChainGetChunkForNext() {
 	st.sendChainGetChunkMessage(nextPos)
 }
 
-func (st *SyncTask) hasEnoughChunkHeaders() bool {
+func (st *Task) hasEnoughChunkHeaders() bool {
 	chainSyncPeersCount := 0
 	if st.chainSyncPeers != nil {
 		chainSyncPeersCount = len(st.chainSyncPeers)
@@ -496,7 +501,7 @@ func (st *SyncTask) hasEnoughChunkHeaders() bool {
 	return ret
 }
 
-func (st *SyncTask) hasFinishedGetAllChunkData() bool {
+func (st *Task) hasFinishedGetAllChunkData() bool {
 	total := len(st.maxConsistentChunkHeaders.ChunkHeaders)
 	missing := 0
 	for i := 0; i < total; i++ {

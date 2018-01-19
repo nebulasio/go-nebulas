@@ -35,6 +35,7 @@ import (
 	metrics "github.com/rcrowley/go-metrics"
 )
 
+// Message Type
 var (
 	PingMessage = "ping"
 	PongMessage = "pong"
@@ -151,10 +152,12 @@ func main() {
 	}
 }
 
+// ParseData parse int64 from bytes
 func ParseData(data []byte) int64 {
 	return byteutils.Int64(data)
 }
 
+// GenerateData convert int64 into bytes
 func GenerateData(packageSize int64) []byte {
 	data := make([]byte, 8+packageSize)
 	copy(data, byteutils.FromInt64(time.Now().UnixNano()))

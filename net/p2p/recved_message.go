@@ -53,6 +53,7 @@ func RecordKey(key string) {
 	bloomFilterOfRecvMessage.AddString(key)
 }
 
+// HasKey use bloom filter to check if the key exists quickly
 func HasKey(key string) bool {
 	bloomFilterMutex.Lock()
 	defer bloomFilterMutex.Unlock()
@@ -60,10 +61,12 @@ func HasKey(key string) bool {
 	return bloomFilterOfRecvMessage.TestString(key)
 }
 
+// RecordRecvMessage records received message
 func RecordRecvMessage(s *Stream, hash uint32) {
 	RecordKey(fmt.Sprintf("%s-%d", s.pid, hash))
 }
 
+// HasRecvMessage check if the received message exists before
 func HasRecvMessage(s *Stream, hash uint32) bool {
 	return HasKey(fmt.Sprintf("%s-%d", s.pid, hash))
 }

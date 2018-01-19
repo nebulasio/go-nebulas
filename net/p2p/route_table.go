@@ -40,6 +40,7 @@ import (
 	ma "github.com/multiformats/go-multiaddr"
 )
 
+// Route Table Errors
 var (
 	ErrExceedMaxSyncRouteResponse = errors.New("too many sync route table response")
 )
@@ -174,6 +175,7 @@ func (table *RouteTable) AddPeer(pid peer.ID, addr ma.Multiaddr) {
 
 }
 
+// AddPeers add peers to route table
 func (table *RouteTable) AddPeers(pid string, peers *netpb.Peers) {
 	// recv too many peers info. say Bye.
 	if len(peers.Peers) > table.maxPeersCountForSyncResp {

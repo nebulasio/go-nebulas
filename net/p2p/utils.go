@@ -29,10 +29,12 @@ import (
 	ma "github.com/multiformats/go-multiaddr"
 )
 
+// Errors
 var (
 	ErrListenPortIsNotAvailable = errors.New("listen port is not available")
 )
 
+// ParseFromIPFSAddr return pid and address parsed from ipfs address
 func ParseFromIPFSAddr(ipfsAddr ma.Multiaddr) (peer.ID, ma.Multiaddr, error) {
 	addr, err := ma.NewMultiaddr(strings.Split(ipfsAddr.String(), "/ipfs/")[0])
 	if err != nil {

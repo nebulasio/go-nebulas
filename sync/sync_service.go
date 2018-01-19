@@ -33,36 +33,38 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// Errors
 var (
 	ErrInvalidChainSyncMessageData     = errors.New("invalid ChainSync message data")
 	ErrInvalidChainGetChunkMessageData = errors.New("invalid ChainGetChunk message data")
 )
 
-type SyncService struct {
+// Service manage sync tasks
+type Service struct {
 	blockChain *core.BlockChain
 	netService p2p.Manager
 	chunk      *Chunk
 	quitCh     chan bool
 	messageCh  chan net.Message
 
-	activeSyncTask      *SyncTask
-	activeSyncTaskMutex sync.Mutex
+	activeTask      *Task
+	activeTaskMutex sync.Mutex
 }
 
-// NewSyncService return new SyncService.
-func NewSyncService(blockChain *core.BlockChain, netService p2p.Manager) *SyncService {
-	return &SyncService{
-		blockChain:     blockChain,
-		netService:     netService,
-		chunk:          NewChunk(blockChain),
-		quitCh:         make(chan bool, 1),
-		activeSyncTask: nil,
-		messageCh:      make(chan net.Message, 128),
+// NewService return new Service.
+func NewService(blockChain *core.BlockChain, netService p2p.Manager) *Service {
+	return &Service{
+		blockChain: blockChain,
+		netService: netService,
+		chunk:      NewChunk(blockChain),
+		quitCh:     make(chan bool, 1),
+		activeTask: nil,
+		messageCh:  make(chan net.Message, 128),
 	}
 }
 
 // Start start sync service.
-func (ss *SyncService) Start() {
+func (ss *Service) Start() {
 	logging.VLog().Info("Starting Sync Service.")
 
 	// register the network handler.
@@ -77,7 +79,7 @@ func (ss *SyncService) Start() {
 }
 
 // Stop stop sync service.
-func (ss *SyncService) Stop() {
+func (ss *Service) Stop() {
 	// deregister the network handler.
 	netService := ss.netService
 	netService.Deregister(net.NewSubscriber(ss, ss.messageCh, net.ChainSync))
@@ -90,63 +92,67 @@ func (ss *SyncService) Stop() {
 	ss.quitCh <- true
 }
 
-func (ss *SyncService) StartActiveSync() bool {
+// StartActiveSync starts an active sync task
+func (ss *Service) StartActiveSync() bool {
 	// lock.
-	ss.activeSyncTaskMutex.Lock()
-	defer ss.activeSyncTaskMutex.Unlock()
+	ss.activeTaskMutex.Lock()
+	defer ss.activeTaskMutex.Unlock()
 
 	if ss.IsActiveSyncing() {
 		return false
 	}
 
-	ss.activeSyncTask = NewSyncTask(ss.blockChain, ss.netService, ss.chunk)
-	ss.activeSyncTask.Start()
+	ss.activeTask = NewTask(ss.blockChain, ss.netService, ss.chunk)
+	ss.activeTask.Start()
 
 	logging.CLog().WithFields(logrus.Fields{
-		"syncpoint": ss.activeSyncTask.syncPointBlock,
-	}).Info("Started ActiveSyncTask.")
+		"syncpoint": ss.activeTask.syncPointBlock,
+	}).Info("Started Active Sync Task.")
 	return true
 }
 
-func (ss *SyncService) StopActiveSync() {
-	if ss.activeSyncTask == nil {
+// StopActiveSync stops current sync task
+func (ss *Service) StopActiveSync() {
+	if ss.activeTask == nil {
 		return
 	}
 
-	ss.activeSyncTask.Stop()
-	ss.activeSyncTask = nil
+	ss.activeTask.Stop()
+	ss.activeTask = nil
 }
 
-func (ss *SyncService) IsActiveSyncing() bool {
-	if ss.activeSyncTask == nil {
+// IsActiveSyncing return if there is active task now
+func (ss *Service) IsActiveSyncing() bool {
+	if ss.activeTask == nil {
 		return false
 	}
 
 	return true
 }
 
-func (ss *SyncService) WaitingForFinish() error {
-	if ss.activeSyncTask == nil {
+// WaitingForFinish wait for finishing current sync task
+func (ss *Service) WaitingForFinish() error {
+	if ss.activeTask == nil {
 		return nil
 	}
 
-	err := <-ss.activeSyncTask.statusCh
+	err := <-ss.activeTask.statusCh
 
 	logging.CLog().WithFields(logrus.Fields{
 		"tail": ss.blockChain.TailBlock(),
-	}).Info("ActiveSyncTask Finished.")
+	}).Info("Active Sync Task Finished.")
 
-	ss.activeSyncTask = nil
+	ss.activeTask = nil
 	return err
 }
 
-func (ss *SyncService) startLoop() {
+func (ss *Service) startLoop() {
 	logging.CLog().Info("Started Sync Service.")
 	for {
 		select {
 		case <-ss.quitCh:
-			if ss.activeSyncTask != nil {
-				ss.activeSyncTask.Stop()
+			if ss.activeTask != nil {
+				ss.activeTask.Stop()
 			}
 			logging.CLog().Info("Stopped Sync Service.")
 			return
@@ -169,7 +175,7 @@ func (ss *SyncService) startLoop() {
 	}
 }
 
-func (ss *SyncService) onChainSync(message net.Message) {
+func (ss *Service) onChainSync(message net.Message) {
 	// handle ChainSync message.
 	chunkSync := new(syncpb.Sync)
 	err := proto.Unmarshal(message.Data().([]byte), chunkSync)
@@ -196,15 +202,15 @@ func (ss *SyncService) onChainSync(message net.Message) {
 	ss.sendChainChunks(message.MessageFrom(), chunks)
 }
 
-func (ss *SyncService) onChainChunks(message net.Message) {
-	if ss.activeSyncTask == nil {
+func (ss *Service) onChainChunks(message net.Message) {
+	if ss.activeTask == nil {
 		return
 	}
 
-	ss.activeSyncTask.processChunkHeaders(message)
+	ss.activeTask.processChunkHeaders(message)
 }
 
-func (ss *SyncService) onChainGetChunk(message net.Message) {
+func (ss *Service) onChainGetChunk(message net.Message) {
 	// handle ChainGetChunk message.
 	chunkHeader := new(syncpb.ChunkHeader)
 	err := proto.Unmarshal(message.Data().([]byte), chunkHeader)
@@ -228,15 +234,15 @@ func (ss *SyncService) onChainGetChunk(message net.Message) {
 	ss.sendChainChunkData(message.MessageFrom(), chunkData)
 }
 
-func (ss *SyncService) onChainChunkData(message net.Message) {
-	if ss.activeSyncTask == nil {
+func (ss *Service) onChainChunkData(message net.Message) {
+	if ss.activeTask == nil {
 		return
 	}
 
-	ss.activeSyncTask.processChunkData(message)
+	ss.activeTask.processChunkData(message)
 }
 
-func (ss *SyncService) sendChainChunks(peerID string, chunks *syncpb.ChunkHeaders) {
+func (ss *Service) sendChainChunks(peerID string, chunks *syncpb.ChunkHeaders) {
 	data, err := proto.Marshal(chunks)
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
@@ -248,7 +254,7 @@ func (ss *SyncService) sendChainChunks(peerID string, chunks *syncpb.ChunkHeader
 	ss.netService.SendMessageToPeer(net.ChainChunks, data, net.MessagePriorityLow, peerID)
 }
 
-func (ss *SyncService) sendChainChunkData(peerID string, chunkData *syncpb.ChunkData) {
+func (ss *Service) sendChainChunkData(peerID string, chunkData *syncpb.ChunkData) {
 	data, err := proto.Marshal(chunkData)
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
