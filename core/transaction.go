@@ -184,13 +184,13 @@ func (tx *Transaction) FromProto(msg proto.Message) error {
 }
 
 func (tx *Transaction) String() string {
-	return fmt.Sprintf(`{"chainID":%d, "hash":%s, "from":%s, "to":%s, "nonce":%d, "value": %d, "timestamp":%d, "type":%s}`,
+	return fmt.Sprintf(`{"chainID":%d, "hash":%s, "from":%s, "to":%s, "nonce":%d, "value": %s, "timestamp":%d, "type":%s}`,
 		tx.chainID,
 		byteutils.Hex(tx.hash),
 		byteutils.Hex(tx.from.address),
 		byteutils.Hex(tx.to.address),
 		tx.nonce,
-		tx.value.Int64(),
+		tx.value.String(),
 		tx.timestamp,
 		tx.Type(),
 	)
@@ -270,7 +270,7 @@ func (tx *Transaction) DataLen() int {
 }
 
 // LoadPayload returns tx's payload
-func (tx *Transaction) LoadPayload() (TxPayload, error) {
+func (tx *Transaction) LoadPayload(block *Block) (TxPayload, error) {
 	// execute payload
 	var (
 		payload TxPayload
@@ -278,7 +278,11 @@ func (tx *Transaction) LoadPayload() (TxPayload, error) {
 	)
 	switch tx.data.Type {
 	case TxPayloadBinaryType:
-		payload, err = LoadBinaryPayload(tx.data.Payload)
+		if block.Height() > 280920 {
+			payload, err = LoadBinaryPayloadVer6(tx.data.Payload)
+		} else {
+			payload, err = LoadBinaryPayloadVer5(tx.data.Payload)
+		}
 	case TxPayloadDeployType:
 		payload, err = LoadDeployPayload(tx.data.Payload)
 	case TxPayloadCallType:
@@ -304,7 +308,7 @@ func (tx *Transaction) LocalExecution(block *Block) (*util.Uint128, string, erro
 	fromAcc.AddBalance(tx.value)
 	defer block.accState.RollBack()
 
-	payload, err := tx.LoadPayload()
+	payload, err := tx.LoadPayload(block)
 	if err != nil {
 		return util.NewUint128(), "", err
 	}
@@ -336,7 +340,7 @@ func (tx *Transaction) VerifyExecution(block *Block) (*util.Uint128, error) {
 		return util.NewUint128(), ErrOutOfGasLimit
 	}
 
-	payload, err := tx.LoadPayload()
+	payload, err := tx.LoadPayload(block)
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"error":       err,

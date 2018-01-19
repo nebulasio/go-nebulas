@@ -29,13 +29,15 @@ type BinaryPayload struct {
 	Data []byte
 }
 
-// LoadBinaryPayload from bytes
-func LoadBinaryPayload(bytes []byte) (*BinaryPayload, error) {
+// LoadBinaryPayloadVer5 from bytes, version 0.5.0
+func LoadBinaryPayloadVer5(bytes []byte) (*BinaryPayload, error) {
+	return NewBinaryPayload(bytes), nil
+}
+
+// LoadBinaryPayloadVer6 from bytes, version 0.6.0
+func LoadBinaryPayloadVer6(bytes []byte) (*BinaryPayload, error) {
 	payload := &BinaryPayload{}
 	if err := json.Unmarshal(bytes, payload); err != nil {
-		// FixMe(roy): Make binary payload compatible with old version
-		// TODO(roy): return err if unmarshal occurs errors
-		// return nil, err
 		return payload, nil
 	}
 	return payload, nil
