@@ -266,7 +266,7 @@ func TestLoadDelegatePayload(t *testing.T) {
 func TestLoadDeployPayload(t *testing.T) {
 
 	deployTx := mockDeployTransaction(0, 0)
-	deployPayload, _ := deployTx.LoadPayload()
+	deployPayload, _ := deployTx.LoadPayload(nil)
 	deployData, _ := deployPayload.ToBytes()
 
 	tests := []struct {
@@ -354,7 +354,7 @@ func TestPayload_Execute(t *testing.T) {
 	}
 
 	deployTx := mockDeployTransaction(bc.chainID, 0)
-	deployPayload, _ := deployTx.LoadPayload()
+	deployPayload, _ := deployTx.LoadPayload(nil)
 	tests = append(tests, testPayload{
 		name:    "deploy",
 		payload: deployPayload,
@@ -366,7 +366,7 @@ func TestPayload_Execute(t *testing.T) {
 
 	callTx := mockCallTransaction(bc.chainID, 1, "totalSupply", "")
 	callTx.to, _ = deployTx.GenerateContractAddress()
-	callPayload, _ := callTx.LoadPayload()
+	callPayload, _ := callTx.LoadPayload(nil)
 	tests = append(tests, testPayload{
 		name:    "call",
 		payload: callPayload,
@@ -377,7 +377,7 @@ func TestPayload_Execute(t *testing.T) {
 	})
 
 	delegateTx := mockDelegateTransaction(bc.chainID, 0, DelegateAction, mockAddress().String())
-	delegatePayload, _ := delegateTx.LoadPayload()
+	delegatePayload, _ := delegateTx.LoadPayload(nil)
 	tests = append(tests, testPayload{
 		name:    "delegate no candidate",
 		payload: delegatePayload,
@@ -388,7 +388,7 @@ func TestPayload_Execute(t *testing.T) {
 	})
 
 	candidateInTx := mockCandidateTransaction(bc.chainID, 0, LoginAction)
-	candidateInPayload, _ := candidateInTx.LoadPayload()
+	candidateInPayload, _ := candidateInTx.LoadPayload(nil)
 	tests = append(tests, testPayload{
 		name:    "candidate login",
 		payload: candidateInPayload,
@@ -399,7 +399,7 @@ func TestPayload_Execute(t *testing.T) {
 	})
 
 	delegateCandidateTx := mockDelegateTransaction(bc.chainID, 0, DelegateAction, candidateInTx.from.String())
-	delegateCandidatePayload, _ := delegateCandidateTx.LoadPayload()
+	delegateCandidatePayload, _ := delegateCandidateTx.LoadPayload(nil)
 	tests = append(tests, testPayload{
 		name:    "delegate candidate",
 		payload: delegateCandidatePayload,
@@ -411,7 +411,7 @@ func TestPayload_Execute(t *testing.T) {
 
 	candidateOutTx := mockCandidateTransaction(bc.chainID, 0, LogoutAction)
 	candidateOutTx.from = candidateInTx.from
-	candidateOutPayload, _ := candidateOutTx.LoadPayload()
+	candidateOutPayload, _ := candidateOutTx.LoadPayload(nil)
 	tests = append(tests, testPayload{
 		name:    "candidate logout",
 		payload: candidateOutPayload,

@@ -43,6 +43,11 @@ func LoadBinaryPayloadVer6(bytes []byte) (*BinaryPayload, error) {
 	return payload, nil
 }
 
+// LoadBinaryPayload from bytes, version 0.6.0
+func LoadBinaryPayload(bytes []byte) (*BinaryPayload, error) {
+	return LoadBinaryPayloadVer6(bytes)
+}
+
 // NewBinaryPayload with data
 func NewBinaryPayload(data []byte) *BinaryPayload {
 	return &BinaryPayload{
