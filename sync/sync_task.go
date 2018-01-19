@@ -459,7 +459,7 @@ func (st *SyncTask) processChunkData(message net.Message) {
 	st.chainChunkDataStatus[chunkDataIndex] = chunkDataStatusFinished
 
 	// sync next chunk.
-	logging.VLog().Debugf("Succeed to get chain chunk %d.")
+	logging.VLog().Debugf("Succeed to get chain chunk %d.", chunkDataIndex)
 	st.sendChainGetChunkForNext()
 }
 
