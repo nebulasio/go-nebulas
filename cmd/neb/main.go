@@ -94,20 +94,20 @@ func neb(ctx *cli.Context) error {
 		InitCrashReporter(n.Config().App)
 	}
 
-	runNeb(ctx, n)
-
-	// TODO: just use the signal to block main.
-	for {
-		time.Sleep(60 * time.Second) // or runtime.Gosched() or similar per @misterbee
+	select {
+	case <-runNeb(ctx, n):
+		return nil
 	}
 }
 
-func runNeb(ctx *cli.Context, n *neblet.Neblet) {
+func runNeb(ctx *cli.Context, n *neblet.Neblet) chan bool {
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 
 	n.Setup()
 	n.Start()
+
+	quitCh := make(chan bool, 1)
 
 	go func() {
 		<-c
@@ -126,9 +126,15 @@ func runNeb(ctx *cli.Context, n *neblet.Neblet) {
 			f.Close()
 		}
 
-		// TODO: remove this once p2pManager handles stop properly.
-		os.Exit(1)
+		if cpuprofile := ctx.GlobalString(CPUProfile.Name); cpuprofile != "" {
+			pprof.StopCPUProfile()
+		}
+
+		quitCh <- true
+		return
 	}()
+
+	return quitCh
 }
 
 func makeNeb(ctx *cli.Context) (*neblet.Neblet, error) {
@@ -144,7 +150,6 @@ func makeNeb(ctx *cli.Context) (*neblet.Neblet, error) {
 		if err := pprof.StartCPUProfile(f); err != nil {
 			log.Fatal("could not start CPU profile: ", err)
 		}
-		defer pprof.StopCPUProfile()
 	}
 
 	// load config from cli args
