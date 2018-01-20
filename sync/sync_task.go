@@ -367,9 +367,13 @@ func (st *Task) sendChainGetChunk() {
 }
 
 func (st *Task) checkChainGetChunkTimeout() {
+	logging.VLog().Debug("Chunk Timeout Before")
+
 	// lock.
 	st.syncMutex.Lock()
 	defer st.syncMutex.Unlock()
+
+	logging.VLog().Debug("Chunk Timeout After")
 
 	for i := 0; i < st.chainChunkDataSyncPosition; i++ {
 		t := st.chainChunkDataStatus[i]
