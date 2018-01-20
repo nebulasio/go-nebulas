@@ -136,7 +136,13 @@ func (st *Task) startSyncLoop() {
 				}
 			case <-st.chainSyncDoneCh:
 				// go to next step.
-				logging.VLog().Info("ChainSync Finished. Move to GetChainData.")
+				logging.VLog().WithFields(logrus.Fields{
+					"chainSyncPeers":                    st.chainSyncPeers,
+					"chainSyncRetryCount":               st.chainSyncRetryCount,
+					"maxConsistentChunkHeadersCount":    st.maxConsistentChunkHeadersCount,
+					"maxConsistentChunkHeadersRootHash": byteutils.Hex(st.maxConsistentChunkHeaders.Root),
+					"countOfChunkHeaders":               len(st.maxConsistentChunkHeaders.ChunkHeaders),
+				}).Info("ChainSync Finished. Move to GetChainData.")
 				break SYNC_STEP_1
 			}
 		}
@@ -193,6 +199,7 @@ func (st *Task) reset() {
 }
 
 func (st *Task) setSyncPointToNewTail() {
+	st.chainSyncRetryCount = 0
 	st.syncPointBlock = st.blockChain.TailBlock()
 }
 
@@ -388,8 +395,12 @@ func (st *Task) sendChainGetChunkMessage(chunkHeaderIndex int) {
 		}).Warn("Failed to marshal ChunkHeader.")
 		return
 	}
-	st.netService.SendMessageToPeers(net.ChainGetChunk, data, net.MessagePriorityLow, new(p2p.RandomPeerFilter))
+	peers := st.netService.SendMessageToPeers(net.ChainGetChunk, data, net.MessagePriorityLow, new(p2p.RandomPeerFilter))
 	st.chainChunkDataStatus[chunkHeaderIndex] = time.Now().Unix()
+
+	logging.VLog().WithFields(logrus.Fields{
+		"peers": peers,
+	}).Debugf("Send to get chain chunk %d.", chunkHeaderIndex)
 }
 
 func (st *Task) processChunkData(message net.Message) {
@@ -487,18 +498,7 @@ func (st *Task) hasEnoughChunkHeaders() bool {
 		chainSyncPeersCount = len(st.chainSyncPeers)
 	}
 
-	ret := chainSyncPeersCount > 0 && st.maxConsistentChunkHeadersCount >= int(math.Sqrt(float64(chainSyncPeersCount)))
-	if ret {
-		logging.VLog().WithFields(logrus.Fields{
-			"chainSyncPeers":                    st.chainSyncPeers,
-			"chainSyncPeersCount":               chainSyncPeersCount,
-			"chainSyncRetryCount":               st.chainSyncRetryCount,
-			"maxConsistentChunkHeadersCount":    st.maxConsistentChunkHeadersCount,
-			"maxConsistentChunkHeadersRootHash": byteutils.Hex(st.maxConsistentChunkHeaders.Root),
-			"countOfChunkHeaders":               len(st.maxConsistentChunkHeaders.ChunkHeaders),
-		}).Info("Received enough chunk headers.")
-	}
-	return ret
+	return chainSyncPeersCount > 0 && st.maxConsistentChunkHeadersCount >= int(math.Sqrt(float64(chainSyncPeersCount)))
 }
 
 func (st *Task) hasFinishedGetAllChunkData() bool {
