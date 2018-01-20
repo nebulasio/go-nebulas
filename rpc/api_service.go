@@ -407,7 +407,7 @@ func (s *APIService) GetBlockByHash(ctx context.Context, req *rpcpb.GetBlockByHa
 func (s *APIService) BlockDump(ctx context.Context, req *rpcpb.BlockDumpRequest) (*rpcpb.BlockDumpResponse, error) {
 	logging.VLog().WithFields(logrus.Fields{
 		"count": req.Count,
-		"api":   "/v1/user/transaction",
+		"api":   "/v1/user/blockdump",
 	}).Info("Rpc request.")
 	metricsRPCCounter.Mark(1)
 
