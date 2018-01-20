@@ -340,7 +340,7 @@ func (bc *BlockChain) SetTailBlock(newTail *Block) error {
 		"time.storeNewTail":     storedAt - updatedAt,
 		"time.all":              endAt,
 		"tail.old":              oldTail,
-		"tail.net":              newTail,
+		"tail.new":              newTail,
 	}).Info("Succeed to set tail block.")
 
 	return nil

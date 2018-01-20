@@ -533,10 +533,11 @@ func (block *Block) Seal() error {
 }
 
 func (block *Block) String() string {
-	return fmt.Sprintf("{\"height\":%d, \"hash\":\"%s\", \"parentHash\":\"%s\", \"nonce\":%d, \"timestamp\": %d, \"coinbase\": \"%s\", \"tx\": %d}",
+	return fmt.Sprintf("{\"height\":%d, \"hash\":\"%s\", \"parentHash\":\"%s\", \"state\": %s, \"nonce\":%d, \"timestamp\": %d, \"coinbase\": \"%s\", \"tx\": %d}",
 		block.height,
 		byteutils.Hex(block.header.hash),
 		byteutils.Hex(block.header.parentHash),
+		block.accState.RootHash().String(),
 		block.header.nonce,
 		block.header.timestamp,
 		block.header.coinbase.String(),
@@ -814,10 +815,12 @@ func (block *Block) recordMintCnt() error {
 func (block *Block) rewardCoinbase() {
 	coinbaseAddr := block.header.coinbase.address
 	coinbaseAcc := block.accState.GetOrCreateUserAccount(coinbaseAddr)
+	balance := coinbaseAcc.Balance()
 	coinbaseAcc.AddBalance(BlockReward)
 	logging.VLog().WithFields(logrus.Fields{
-		"coinbase": coinbaseAddr.Hex(),
-		"balance":  coinbaseAcc.Balance().Int64(),
+		"coinbase":       coinbaseAddr.Hex(),
+		"balance.before": balance.String(),
+		"balance.after":  coinbaseAcc.Balance().String(),
 	}).Info("Rewarded the coinbase.")
 }
 
