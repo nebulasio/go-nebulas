@@ -53,6 +53,16 @@
         document.getElementById('key').value = keyStr;
     }
 
+    function fromkey() {
+        var passphrase = document.getElementById("passphrase").value;
+        if (passphrase.length == 0) {
+            passphrase = "passphrase";
+        }
+        var key = document.getElementById('key').value;
+        account.fromKey(key, passphrase);
+        document.getElementById('address').innerText = account.getAddressString();
+    }
+
     function generateTransaction() {
         var testnetchainID = 1001;
         tx = new Transaction(testnetchainID, account, account, neb.nasToBasic("1"), parseInt(state.nonce)+1);
@@ -103,6 +113,7 @@
     <div style="display: inline-block">
         <input type="password" id="passphrase" placeholder="passphrase"/>
         <button type="button" onClick="generatekey();">generatekey</button>
+        <button type="button" onClick="fromkey();">fromkey</button>
     </div>
     <div>key file:</div>
     <textarea id="key" readonly></textarea>

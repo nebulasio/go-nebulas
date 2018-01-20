@@ -117,7 +117,7 @@ Account.prototype = {
             kdfparams.prf = 'hmac-sha256';
             derivedKey = cryptoUtils.crypto.pbkdf2Sync(new Buffer(password), salt, kdfparams.c, kdfparams.dklen, 'sha256');
         } else if (kdf === 'scrypt') {
-            kdfparams.n = opts.n || 262144;
+            kdfparams.n = opts.n || 4096;
             kdfparams.r = opts.r || 8;
             kdfparams.p = opts.p || 1;
             derivedKey = cryptoUtils.scrypt(new Buffer(password), salt, kdfparams.n, kdfparams.r, kdfparams.p, kdfparams.dklen);
