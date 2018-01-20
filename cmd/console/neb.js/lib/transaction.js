@@ -22,7 +22,8 @@ var Transaction = function (chainID, from, to, value, nonce, gasPrice, gasLimit,
     this.to = account.fromAddress(to);
     this.value = utils.toBigNumber(value);
     this.nonce = nonce;
-    this.timestamp =  1516256439;//Math.floor(new Date().getTime()/1000);
+    this.timestamp = Math.floor(new Date().getTime()/1000);
+    // this.timestamp = 1516256439;//test cases
     this.data = parsePayload(contract, candidate, delegate);
     this.gasPrice = utils.toBigNumber(gasPrice);
     this.gasLimit = utils.toBigNumber(gasLimit);
@@ -105,6 +106,25 @@ Transaction.prototype = {
         }
     },
 
+    toString: function () {
+        var tx = {
+            chainID: this.chainID,
+            from: this.from.getAddressString(),
+            to: this.to.getAddressString(),
+            value: this.value.toString(),
+            nonce: this.nonce,
+            timestamp: this.timestamp,
+            data: {payloadType: this.data.payloadType, payload:JSON.parse(this.data.payload.toString())},
+            gasPrice: this.gasPrice.toString(),
+            gasLimit: this.gasLimit.toString(),
+            hash: this.hash.toString("hex"),
+            alg: this.alg,
+            sign: this.sign.toString("hex")
+
+        };
+        return JSON.stringify(tx);
+    },
+
     toProto: function () {
         var Data = root.lookup("corepb.Data");
         var err = Data.verify(this.data);
@@ -137,22 +157,28 @@ Transaction.prototype = {
         var tx = TransactionProto.create(txData);
 
         var txBuffer = TransactionProto.encode(tx).finish();
-        return utils.isBrowser() ? protobuf.util.base64.encode(txBuffer, 0, txBuffer.length) : txBuffer;
+        return txBuffer;
+    },
+
+    toProtoString: function () {
+        var txBuffer = this.toProto();
+        return protobuf.util.base64.encode(txBuffer, 0, txBuffer.length);
     },
 
     fromProto: function (data) {
 
-        var txBuffer = data;
-        if (utils.isBrowser()) {
+        var txBuffer;
+        if (utils.isString(data)) {
             txBuffer = new Array(protobuf.util.base64.length(data));
             protobuf.util.base64.decode(data, txBuffer, 0);
+        } else {
+            txBuffer = data;
         }
 
         var TransactionProto = root.lookup("corepb.Transaction");
         var txProto = TransactionProto.decode(txBuffer);
 
         this.hash = cryptoUtils.toBuffer(txProto.hash);
-        this.chainID = txProto.chainId;
         this.from = account.fromAddress(txProto.from);
         this.to = account.fromAddress(txProto.to);
         this.value = utils.toBigNumber("0x" + cryptoUtils.toBuffer(txProto.value).toString("hex"));
@@ -160,8 +186,11 @@ Transaction.prototype = {
         this.nonce = parseInt(txProto.nonce.toString());
         this.timestamp = parseInt(txProto.timestamp.toString());
         this.data = txProto.data;
+        this.chainID = txProto.chainId;
         this.gasPrice = utils.toBigNumber("0x" + cryptoUtils.toBuffer(txProto.gasPrice).toString("hex"));
         this.gasLimit = utils.toBigNumber("0x" + cryptoUtils.toBuffer(txProto.gasLimit).toString("hex"));
+        this.alg = txProto.alg;
+        this.sign = cryptoUtils.toBuffer(txProto.sign);
 
         return this;
     }

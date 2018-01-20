@@ -9,64 +9,101 @@
 <script type="text/javascript">
 
 
-    var Wallet = require("wallet");
-    var neb = new Wallet.Neb();
-    neb.setRequest(new Wallet.Neb.HttpRequest("http://localhost:8685"));
+    var Neb = require("wallet").Neb;
+    var Account = require("wallet").Account;
+    var Transaction = require("wallet").Transaction;
+    var neb = new Neb();
+    neb.setRequest(new Neb.HttpRequest("https://testnet.nebulas.io"));
 
-//    var Account = require('account');
-//
-//    var Transaction = require('transaction');
+    var account, state;
 
     function createExampleAccount() {
-        var allAccounts = neb.api.accounts();
-        var content = "";
-        for (var i = 0; i < allAccounts.addresses.length; i++) {
-            content += '<li>'+allAccounts.addresses[i]+'</li>'
-        }
+        account = Account.NewAccount();
+        document.getElementById('private').innerText = account.getPrivateKeyString();
+        document.getElementById('public').innerText = account.getPublicKeyString();
+        document.getElementById('address').innerText = account.getAddressString();
 
-        // document.getElementById('result').innerText = 'create: ' + account;
-        document.getElementById('all-account').innerText = content;
+        state = neb.api.getAccountState(account.getAddressString());
+
+        document.getElementById('balance').innerText = state.balance;
+        document.getElementById('nonce').innerText = state.nonce;
     }
 
-    function generateAddress() {
-//        var account = Account.newAccount();
-//        document.getElementById('new-account').innerText = account.getAddressString();
-//
-//        var tx = new Transaction(100, account, account, "10", 1);
-//        tx.signTransaction();
-//        console.log(JSON.stringify(tx));
-//        var data = tx.toProto();
-//        console.log(data);
+    function claimToken() {
+        var email = Math.random() + "test@demo.io";
+        var url = "https://testnet.nebulas.io/claim/api/claim/"+ email+ "/"+ account.getAddressString() +"/";
+        var request = new window.XMLHttpRequest();
+        request.open("GET", url, false);
+        request.send();
+        result = JSON.parse(request.responseText);
 
-        var account = Wallet.Account.NewAccount();
-        document.getElementById('new-account').innerText = account.getAddressString();
-        var tx = new Wallet.Transaction(100, account, account, "10", 1);
+        setTimeout(function () {
+            state = neb.api.getAccountState(account.getAddressString());
+            document.getElementById('balance').innerText = state.balance;
+            document.getElementById('nonce').innerText = state.nonce;
+        }, 5000);
+    }
+
+    function generatekey() {
+        var passphrase = document.getElementById("passphrase").value;
+        if (passphrase.length == 0) {
+            passphrase = "passphrase";
+        }
+        var keyStr = account.toKeyString(passphrase);
+        document.getElementById('key').value = keyStr;
+    }
+
+    function generateTransaction() {
+        var testnetchainID = 100;
+        var tx = new Transaction(testnetchainID, account, account, "10", parseInt(state.nonce)+1);//neb.nasToBasic("1")
         tx.signTransaction();
-//        console.log("price:"+tx.gasPrice.toString());
-//        console.log("time:"+tx.timestamp);
-//        console.log("hash:"+tx.hash.toString("hex"));
-//        console.log("hash:"+tx.hash.toString("hex"));
-        console.log(JSON.stringify(tx));
-        var data = tx.toProto();
-//        console.log("data:"+data);
-        document.getElementById('tx-data').innerText = data;
+        document.getElementById('transaction').value = tx.toString();
+        document.getElementById('rawdata').value = tx.toProtoString();
     }
 
 </script>
+    <style>
+        textarea {
+            width: 400px;
+            height: 100px;
+        }
+    </style>
 </head>
 <body>
-    <h1>List account</h1>
+    <h1>Demo</h1>
     <div>
-        <button type="button" onClick="createExampleAccount();">list account</button>
+        <button type="button" onClick="createExampleAccount();">new account</button>
     </div>
-    <div id="result"></div>
-    <div id="all-account"></div>
+    <div>Account Info</div>
+
+    <div>private key:<label id="private"></label></div>
+    <div>public key:<label id="public"></label></div>
+    <div>address:<label id="address"></label></div>
+    <div>state:
+        <span style="display: inline">
+            balance:<label id="balance">0</label>
+            nonce:<label id="nonce">0</label>
+        </span>
+    </div>
+    <div>
+        <button type="button" onClick="claimToken();">claim tokens</button>
+    </div>
+    <div style="display: inline-block">
+        <input type="password" id="passphrase" placeholder="passphrase"/>
+        <button type="button" onClick="generatekey();">generatekey</button>
+    </div>
+    <div>key file:</div>
+    <textarea id="key" readonly></textarea>
 
     <div>
-        <button type="button" onClick="generateAddress();">new account</button>
+        <button type="button" onClick="generateTransaction();">new transaction</button>
     </div>
-    <div id="new-account"></div>
-    <div id="tx-data"></div>
+    <div style="display: inline-block">
+        <div>transaction:</div>
+        <textarea readonly id="transaction"></textarea>
+        <div>transaction raw data:</div>
+        <textarea id="rawdata" readonly></textarea>
+    </div>
 </body>
 </html>
 
