@@ -119,7 +119,7 @@ func (st *Task) startSyncLoop() {
 		// start chain sync.
 		st.sendChainSync()
 
-		syncTicker := time.NewTicker(30 * time.Second)
+		syncTicker := time.NewTicker(10 * time.Second)
 
 	SYNC_STEP_1:
 		for {
@@ -376,6 +376,11 @@ func (st *Task) checkChainGetChunkTimeout() {
 		if t == chunkDataStatusFinished || t == chunkDataStatusNotStart {
 			continue
 		}
+
+		logging.VLog().WithFields(logrus.Fields{
+			"rootHash": byteutils.Hex(st.maxConsistentChunkHeaders.Root),
+			"timout":   time.Now().Unix() - st.chainChunkDataStatus[i],
+		}).Debugf("Get Chunk %d Timout. Retry.", i)
 
 		st.sendChainGetChunkMessage(i)
 	}
