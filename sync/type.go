@@ -18,7 +18,11 @@
 
 package sync
 
-import "errors"
+import (
+	"errors"
+
+	metrics "github.com/rcrowley/go-metrics"
+)
 
 // Error Types
 var (
@@ -37,4 +41,9 @@ const (
 	MaxChunkPerSyncRequest       = 10
 	ConcurrentSyncChunkDataCount = 10
 	GetChunkDataTimeout          = 10 // 10s.
+)
+
+// Metrics
+var (
+	metricsCachedSync = metrics.GetOrRegisterGauge("sync.cached", nil)
 )
