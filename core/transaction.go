@@ -278,11 +278,7 @@ func (tx *Transaction) LoadPayload(block *Block) (TxPayload, error) {
 	)
 	switch tx.data.Type {
 	case TxPayloadBinaryType:
-		if block.Height() > 280920 {
-			payload, err = LoadBinaryPayloadVer6(tx.data.Payload)
-		} else {
-			payload, err = LoadBinaryPayloadVer5(tx.data.Payload)
-		}
+		payload, err = LoadBinaryPayload(tx.data.Payload)
 	case TxPayloadDeployType:
 		payload, err = LoadDeployPayload(tx.data.Payload)
 	case TxPayloadCallType:
@@ -337,6 +333,12 @@ func (tx *Transaction) VerifyExecution(block *Block) (*util.Uint128, error) {
 	// gasLimit < gasUsed
 	gasUsed := tx.GasCountOfTxBase()
 	if tx.gasLimit.Cmp(gasUsed.Int) < 0 {
+		logging.VLog().WithFields(logrus.Fields{
+			"error":       ErrOutOfGasLimit,
+			"transaction": tx,
+			"limit":       tx.gasLimit.String(),
+			"used":        gasUsed.String(),
+		}).Debug("Failed to store the payload on chain.")
 		return util.NewUint128(), ErrOutOfGasLimit
 	}
 

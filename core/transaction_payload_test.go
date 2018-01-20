@@ -59,10 +59,7 @@ func TestLoadBinaryPayload(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tx := NewBinaryPayload(tt.bytes)
-			bytes, err := tx.ToBytes()
-			assert.Nil(t, err)
-			got, err := LoadBinaryPayload(bytes)
+			got, err := LoadBinaryPayload(tt.bytes)
 			assert.Nil(t, err)
 			if tt.wantEqual {
 				assert.Equal(t, tt.want, got)
