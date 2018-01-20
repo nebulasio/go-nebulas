@@ -34,6 +34,16 @@ func LoadBinaryPayload(bytes []byte) (*BinaryPayload, error) {
 	return NewBinaryPayload(bytes), nil
 }
 
+// LoadBinaryPayloadFail from bytes
+func LoadBinaryPayloadFail(bytes []byte) (*BinaryPayload, error) {
+	payload := &BinaryPayload{}
+	err := json.Unmarshal(bytes, payload)
+	if err != nil {
+		return nil, err
+	}
+	return payload, nil
+}
+
 // NewBinaryPayload with data
 func NewBinaryPayload(data []byte) *BinaryPayload {
 	return &BinaryPayload{
