@@ -501,6 +501,8 @@ message TransactionReceiptResponse {
     string gas_limit = 11;
 
     string contract_address = 12;
+
+    uint32 status = 13;
 }
 
 message NewAccountRequest {

@@ -443,6 +443,14 @@ func (s *APIService) GetTransactionReceipt(ctx context.Context, req *rpcpb.GetTr
 		return nil, errors.New("transaction not found")
 	}
 
+	var status uint32
+	events, _ := neb.BlockChain().TailBlock().FetchEvents(tx.Hash())
+	for _, v := range events {
+		if v.Topic == core.TopicExecuteTxSuccess {
+			status = 1
+		}
+	}
+
 	receipt := &rpcpb.TransactionReceiptResponse{
 		ChainId:   tx.ChainID(),
 		Hash:      byteutils.Hex(tx.Hash()),
@@ -455,7 +463,9 @@ func (s *APIService) GetTransactionReceipt(ctx context.Context, req *rpcpb.GetTr
 		Data:      byteutils.Hex(tx.Data()),
 		GasPrice:  tx.GasPrice().String(),
 		GasLimit:  tx.GasLimit().String(),
+		Status:    status,
 	}
+
 	if tx.Type() == core.TxPayloadDeployType {
 		contractAddr, err := tx.GenerateContractAddress()
 		if err != nil {

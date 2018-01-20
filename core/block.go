@@ -620,10 +620,9 @@ func (block *Block) triggerEvent() {
 		case TxPayloadCandidateType:
 			topic = TopicCandidate
 		}
-		data, err := json.Marshal(v)
 		event := &Event{
 			Topic: topic,
-			Data:  string(data),
+			Data:  v.String(),
 		}
 		block.eventEmitter.Trigger(event)
 
@@ -635,10 +634,9 @@ func (block *Block) triggerEvent() {
 		}
 	}
 
-	blockData, _ := json.Marshal(block)
 	e := &Event{
 		Topic: TopicLinkBlock,
-		Data:  string(blockData),
+		Data:  block.String(),
 	}
 	block.eventEmitter.Trigger(e)
 }
