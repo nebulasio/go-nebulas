@@ -65,12 +65,13 @@ var parsePayload = function (contract, candidate, delegate) {
         };
     } else {
         payloadType = TxPayloadBinaryType;
-        payload = {
-            Data: null
-        };
+        // payload = {
+        //     Data: null
+        // };
     }
-    payload = cryptoUtils.toBuffer(JSON.stringify(payload));
-    return {type: payloadType, payload: payload};
+    var payloadData = utils.isNull(payload) ? null : cryptoUtils.toBuffer(JSON.stringify(payload));
+
+    return {type: payloadType, payload: payloadData};
 };
 
 Transaction.prototype = {
@@ -107,6 +108,7 @@ Transaction.prototype = {
     },
 
     toString: function () {
+        var payload = utils.isNull(this.data.payload) ? null : JSON.parse(this.data.payload.toString());
         var tx = {
             chainID: this.chainID,
             from: this.from.getAddressString(),
@@ -114,7 +116,7 @@ Transaction.prototype = {
             value: this.value.toString(),
             nonce: this.nonce,
             timestamp: this.timestamp,
-            data: {payloadType: this.data.payloadType, payload:JSON.parse(this.data.payload.toString())},
+            data: {payloadType: this.data.payloadType, payload:payload},
             gasPrice: this.gasPrice.toString(),
             gasLimit: this.gasLimit.toString(),
             hash: this.hash.toString("hex"),
@@ -139,13 +141,13 @@ Transaction.prototype = {
             hash: this.hash,
             from: this.from.getAddress(),
             to: this.to.getAddress(),
-            value: cryptoUtils.toBuffer(this.value),
+            value: cryptoUtils.padToBigEndian(this.value, 128),
             nonce: this.nonce,
             timestamp: this.timestamp,
             data: data,
             chainId: this.chainID,
-            gasPrice: cryptoUtils.toBuffer(this.gasPrice),
-            gasLimit: cryptoUtils.toBuffer(this.gasLimit),
+            gasPrice: cryptoUtils.padToBigEndian(this.gasPrice, 128),
+            gasLimit: cryptoUtils.padToBigEndian(this.gasLimit, 128),
             alg: this.alg,
             sign: this.sign
         };
@@ -186,6 +188,9 @@ Transaction.prototype = {
         this.nonce = parseInt(txProto.nonce.toString());
         this.timestamp = parseInt(txProto.timestamp.toString());
         this.data = txProto.data;
+        if (this.data.payload.length === 0) {
+            this.data.payload = null;
+        }
         this.chainID = txProto.chainId;
         this.gasPrice = utils.toBigNumber("0x" + cryptoUtils.toBuffer(txProto.gasPrice).toString("hex"));
         this.gasLimit = utils.toBigNumber("0x" + cryptoUtils.toBuffer(txProto.gasLimit).toString("hex"));

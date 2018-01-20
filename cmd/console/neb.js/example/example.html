@@ -15,7 +15,7 @@
     var neb = new Neb();
     neb.setRequest(new Neb.HttpRequest("https://testnet.nebulas.io"));
 
-    var account, state;
+    var account, state, tx, txhash;
 
     function createExampleAccount() {
         account = Account.NewAccount();
@@ -54,11 +54,23 @@
     }
 
     function generateTransaction() {
-        var testnetchainID = 100;
-        var tx = new Transaction(testnetchainID, account, account, "10", parseInt(state.nonce)+1);//neb.nasToBasic("1")
+        var testnetchainID = 1001;
+        tx = new Transaction(testnetchainID, account, account, neb.nasToBasic("1"), parseInt(state.nonce)+1);
         tx.signTransaction();
         document.getElementById('transaction').value = tx.toString();
         document.getElementById('rawdata').value = tx.toProtoString();
+    }
+
+    function submitTransaction() {
+        var resp = neb.api.sendRawTransaction(tx.toProtoString());
+        txhash = resp.txhash;
+        document.getElementById('receipt').value = txhash;
+    }
+
+    function receiptTransaction() {
+        neb.api.getTransactionReceipt(txhash, function (err, resp) {
+            document.getElementById('receipt').value = resp;
+        });
     }
 
 </script>
@@ -103,6 +115,14 @@
         <textarea readonly id="transaction"></textarea>
         <div>transaction raw data:</div>
         <textarea id="rawdata" readonly></textarea>
+    </div>
+    <div>
+        <button type="button" onClick="submitTransaction();">submit transaction</button>
+        <button type="button" onClick="receiptTransaction();">receipt transaction</button>
+    </div>
+    <div>
+        <div>transaction receipt:</div>
+        <textarea readonly id="receipt"></textarea>
     </div>
 </body>
 </html>

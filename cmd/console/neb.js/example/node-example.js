@@ -35,11 +35,11 @@ var tx = new Transaction(100, account, account, "10", 1);
 tx.signTransaction();
 console.log("hash:" + tx.hash.toString("hex"));
 console.log("sign:" + tx.sign.toString("hex"));
-console.log(JSON.stringify(tx));
-var data = tx.toProto();
+console.log(tx.toString());
+var data = tx.toProtoString();
 console.log(data);
 tx.fromProto(data);
-console.log(JSON.stringify(tx));
+console.log(tx.toString());
 console.log("address:"+tx.from.getAddressString());
 
 
