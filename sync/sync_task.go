@@ -371,18 +371,13 @@ func (st *Task) checkChainGetChunkTimeout() {
 	st.syncMutex.Lock()
 	defer st.syncMutex.Unlock()
 
-	timeoutAtThreshold := time.Now().Unix() - GetChunkDataTimeout
-
 	for i := 0; i < st.chainChunkDataSyncPosition; i++ {
 		t := st.chainChunkDataStatus[i]
 		if t == chunkDataStatusFinished || t == chunkDataStatusNotStart {
 			continue
 		}
 
-		if t <= timeoutAtThreshold {
-			// timeout, send again.
-			st.sendChainGetChunkMessage(i)
-		}
+		st.sendChainGetChunkMessage(i)
 	}
 }
 
@@ -475,7 +470,9 @@ func (st *Task) processChunkData(message net.Message) {
 	st.chainChunkDataStatus[chunkDataIndex] = chunkDataStatusFinished
 
 	// sync next chunk.
-	logging.VLog().Debugf("Succeed to get chain chunk %d.", chunkDataIndex)
+	logging.VLog().WithFields(logrus.Fields{
+		"rootHash": byteutils.Hex(st.maxConsistentChunkHeaders.Root),
+	}).Debugf("Succeed to get chain chunk %d.", chunkDataIndex)
 	st.sendChainGetChunkForNext()
 }
 
