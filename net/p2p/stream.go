@@ -38,7 +38,7 @@ import (
 
 // Stream Message Type
 const (
-	ClientVersion = "0.2.0"
+	ClientVersion = "0.3.0"
 	NebProtocolID = "/neb/1.0.0"
 	HELLO         = "hello"
 	OK            = "ok"

@@ -36,7 +36,7 @@ func LoadConfig(file string) *nebletpb.Config {
 		}
 		b, err := ioutil.ReadFile(file)
 		if err != nil {
-			logging.VLog().Fatal(err)
+			logging.CLog().Fatalf("Failed to read the config file: %s. error: %s", file, err)
 		}
 
 		content = string(b)
@@ -46,7 +46,7 @@ func LoadConfig(file string) *nebletpb.Config {
 
 	pb := new(nebletpb.Config)
 	if err := proto.UnmarshalText(content, pb); err != nil {
-		logging.VLog().Fatal(err)
+		logging.CLog().Fatalf("Failed to parse the config file: %s. error: %s", file, err)
 	}
 	return pb
 }
