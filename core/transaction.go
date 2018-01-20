@@ -318,7 +318,14 @@ func (tx *Transaction) LocalExecution(block *Block) (*util.Uint128, string, erro
 	gasUsed.Add(gasUsed.Int, payload.BaseGasCount().Int)
 
 	ctx := NewPayloadContext(block, tx)
+	err = ctx.BeginBatch()
+	if err != nil {
+		return gasUsed, "", err
+	}
+	defer ctx.RollBack()
+
 	gasExecution, result, err := payload.Execute(ctx)
+
 	gas := util.NewUint128FromBigInt(util.NewUint128().Add(gasUsed.Int, gasExecution.Int))
 	return gas, result, err
 }
