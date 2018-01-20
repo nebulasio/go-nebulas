@@ -184,7 +184,7 @@ func (tx *Transaction) FromProto(msg proto.Message) error {
 }
 
 func (tx *Transaction) String() string {
-	return fmt.Sprintf(`{"chainID":%d, "hash":%s, "from":%s, "to":%s, "nonce":%d, "value": %s, "timestamp":%d, "type":%s}`,
+	return fmt.Sprintf(`{"chainID":%d, "hash":%s, "from":%s, "to":%s, "nonce":%d, "value": %s, "timestamp":%d, "payload": %d, "type":%s}`,
 		tx.chainID,
 		byteutils.Hex(tx.hash),
 		byteutils.Hex(tx.from.address),
@@ -192,6 +192,7 @@ func (tx *Transaction) String() string {
 		tx.nonce,
 		tx.value.String(),
 		tx.timestamp,
+		len(tx.data.Payload),
 		tx.Type(),
 	)
 }

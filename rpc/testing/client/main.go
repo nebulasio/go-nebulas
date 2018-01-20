@@ -34,8 +34,8 @@ import (
 // TODO: add command line flag.
 const (
 	//config = "../../../../config.pb.txt"
-	from  = "8a209cec02cbeab7e2f74ad969d2dfe8dd24416aa65589bf"
-	to    = "22ac3a9a2b1c31b7a9084e46eae16e761f83f02324092b09"
+	from  = "1a263547d167c74cf4b8f9166cfa244de0481c514a45aa2c"
+	to    = "2fe3f9f51f9a05dd5f7c5329127f7c917917149b4e16b0b8"
 	value = 2
 )
 
@@ -43,7 +43,7 @@ const (
 func main() {
 	// Set up a connection to the server.
 	//cfg := neblet.LoadConfig(config).Rpc
-	addr := fmt.Sprintf("127.0.0.1:%d", uint32(51510))
+	addr := fmt.Sprintf("127.0.0.1:%d", uint32(8684))
 	conn, err := rpc.Dial(addr)
 	if err != nil {
 		log.Fatal(err)
@@ -72,6 +72,27 @@ func main() {
 			nonce, _ = strconv.ParseUint(r.Nonce, 10, 64)
 			// nonce = r.Nonce
 			log.Println("GetAccountState", from, "nonce", r.Nonce, "value", val)
+		}
+	}
+
+	{
+		r, err := ac.GetAccountState(context.Background(), &rpcpb.GetAccountStateRequest{Address: to})
+		if err != nil {
+			log.Println("GetAccountState", to, "failed", err)
+		} else {
+			val := util.NewUint128FromString(r.GetBalance())
+			// nonce = r.Nonce
+			log.Println("GetAccountState", to, "nonce", r.Nonce, "value", val)
+		}
+	}
+
+	admin := rpcpb.NewAdminServiceClient(conn)
+	{
+		_, err := admin.UnlockAccount(context.Background(), &rpcpb.UnlockAccountRequest{Address: from, Passphrase: "passphrase"})
+		if err != nil {
+			log.Println("Unlock failed:", err)
+		} else {
+			log.Println("Unlock")
 		}
 	}
 
