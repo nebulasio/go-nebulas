@@ -377,6 +377,12 @@ func (st *Task) checkChainGetChunkTimeout() {
 
 	for i := 0; i < st.chainChunkDataSyncPosition; i++ {
 		t := st.chainChunkDataStatus[i]
+
+		logging.VLog().WithFields(logrus.Fields{
+			"pos":    st.chainChunkDataProcessPosition,
+			"status": t,
+		}).Debug("Chunk Status.")
+
 		if t == chunkDataStatusFinished || t == chunkDataStatusNotStart {
 			continue
 		}
