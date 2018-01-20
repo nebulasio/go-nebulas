@@ -30,7 +30,7 @@ var (
 	metricsBlockRevertTimesGauge = metrics.GetOrRegisterGauge("neb.block.revertcount", nil)
 	metricsBlockRevertMeter      = metrics.GetOrRegisterMeter("neb.block.revert", nil)
 	metricsBlockOnchainTimer     = metrics.GetOrRegisterTimer("neb.block.onchain", nil)
-	metricsTxOnchainTimer        = metrics.GetOrRegisterTimer("neb.tx.onchain", nil)
+	metricsTxOnchainTimer        = metrics.GetOrRegisterTimer("neb.transaction.onchain", nil)
 
 	// block_pool metrics
 	metricsCachedNewBlock      = metrics.GetOrRegisterGauge("neb.block.new.cached", nil)
@@ -41,15 +41,15 @@ var (
 	metricsTxExecutedTimer     = metrics.GetOrRegisterTimer("neb.tx.executed", nil)
 
 	// txpool metrics
-	metricsCachedTx            = metrics.GetOrRegisterGauge("txpool.cached", nil)
-	metricsInvalidTx           = metrics.GetOrRegisterCounter("txpool.invalid", nil)
-	metricsDuplicateTx         = metrics.GetOrRegisterCounter("txpool.duplicate", nil)
-	metricsTxPoolBelowGasPrice = metrics.GetOrRegisterCounter("txpool.below_gas_price", nil)
-	metricsTxPoolOutOfGasLimit = metrics.GetOrRegisterCounter("txpool.out_of_gas_limit", nil)
+	metricsCachedTx            = metrics.GetOrRegisterGauge("neb.txpool.cached", nil)
+	metricsInvalidTx           = metrics.GetOrRegisterCounter("neb.txpool.invalid", nil)
+	metricsDuplicateTx         = metrics.GetOrRegisterCounter("neb.txpool.duplicate", nil)
+	metricsTxPoolBelowGasPrice = metrics.GetOrRegisterCounter("neb.txpool.below_gas_price", nil)
+	metricsTxPoolOutOfGasLimit = metrics.GetOrRegisterCounter("neb.txpool.out_of_gas_limit", nil)
 
 	// transaction metrics
-	metricsTxSubmit     = metrics.GetOrRegisterMeter("tx.submit", nil)
-	metricsTxExecute    = metrics.GetOrRegisterMeter("tx.execute", nil)
-	metricsTxExeSuccess = metrics.GetOrRegisterMeter("tx.execute.success", nil)
-	metricsTxExeFailed  = metrics.GetOrRegisterMeter("tx.execute.failed", nil)
+	metricsTxSubmit     = metrics.GetOrRegisterMeter("neb.transaction.submit", nil)
+	metricsTxExecute    = metrics.GetOrRegisterMeter("neb.transaction.execute", nil)
+	metricsTxExeSuccess = metrics.GetOrRegisterMeter("neb.transaction.execute.success", nil)
+	metricsTxExeFailed  = metrics.GetOrRegisterMeter("neb.transaction.execute.failed", nil)
 )

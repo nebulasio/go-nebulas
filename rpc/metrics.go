@@ -25,20 +25,20 @@ import (
 
 // Metrics for rpc
 var (
-	metricsRPCCounter = metrics.GetOrRegisterMeter("rpc.request", nil)
+	metricsRPCCounter = metrics.GetOrRegisterMeter("neb.rpc.request", nil)
 
-	metricsAccountStateSuccess = metrics.GetOrRegisterMeter("rpc.account.success", nil)
-	metricsAccountStateFailed  = metrics.GetOrRegisterMeter("rpc.account.failed", nil)
+	metricsAccountStateSuccess = metrics.GetOrRegisterMeter("neb.rpc.account.success", nil)
+	metricsAccountStateFailed  = metrics.GetOrRegisterMeter("neb.rpc.account.failed", nil)
 
-	metricsSendTxSuccess = metrics.GetOrRegisterMeter("rpc.sendTx.success", nil)
-	metricsSendTxFailed  = metrics.GetOrRegisterMeter("rpc.sendTx.failed", nil)
+	metricsSendTxSuccess = metrics.GetOrRegisterMeter("neb.rpc.sendTx.success", nil)
+	metricsSendTxFailed  = metrics.GetOrRegisterMeter("neb.rpc.sendTx.failed", nil)
 
-	metricsSendRawTxSuccess = metrics.GetOrRegisterMeter("rpc.sendRawTx.success", nil)
-	metricsSendRawTxFailed  = metrics.GetOrRegisterMeter("rpc.sendRawTx.failed", nil)
+	metricsSendRawTxSuccess = metrics.GetOrRegisterMeter("neb.rpc.sendRawTx.success", nil)
+	metricsSendRawTxFailed  = metrics.GetOrRegisterMeter("neb.rpc.sendRawTx.failed", nil)
 
-	metricsSignTxSuccess = metrics.GetOrRegisterMeter("rpc.signTx.success", nil)
-	metricsSignTxFailed  = metrics.GetOrRegisterMeter("rpc.signTx.failed", nil)
+	metricsSignTxSuccess = metrics.GetOrRegisterMeter("neb.rpc.signTx.success", nil)
+	metricsSignTxFailed  = metrics.GetOrRegisterMeter("neb.rpc.signTx.failed", nil)
 
-	metricsUnlockSuccess = metrics.GetOrRegisterMeter("rpc.unlock.success", nil)
-	metricsUnlockFailed  = metrics.GetOrRegisterMeter("rpc.unlock.failed", nil)
+	metricsUnlockSuccess = metrics.GetOrRegisterMeter("neb.rpc.unlock.success", nil)
+	metricsUnlockFailed  = metrics.GetOrRegisterMeter("neb.rpc.unlock.failed", nil)
 )
