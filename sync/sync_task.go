@@ -375,7 +375,7 @@ func (st *Task) checkChainGetChunkTimeout() {
 
 	logging.VLog().Debug("Chunk Timeout After")
 
-	for i := 0; i < st.chainChunkDataSyncPosition; i++ {
+	for i := 0; i <= st.chainChunkDataSyncPosition; i++ {
 		t := st.chainChunkDataStatus[i]
 
 		logging.VLog().WithFields(logrus.Fields{
