@@ -90,21 +90,16 @@ func main() {
 
 	// first trigger.
 	if mode == "client" {
+		concurrentMessageCount := int64(1)
 		if len(os.Args) >= 5 {
-			gorautineNumber, _ := strconv.ParseInt(os.Args[4], 10, 64)
-			time.Sleep(10 * time.Second)
-			go func() {
-				for i := 0; i < int(gorautineNumber); i++ {
-					netService.SendMessageToPeers(PingMessage, GenerateData(packageSize), net.MessagePriorityNormal, new(p2p.ChainSyncPeersFilter))
-				}
-			}()
-
-		} else {
-			go func() {
-				time.Sleep(10 * time.Second)
-				netService.SendMessageToPeers(PingMessage, GenerateData(packageSize), net.MessagePriorityNormal, new(p2p.ChainSyncPeersFilter))
-			}()
+			concurrentMessageCount, _ = strconv.ParseInt(os.Args[4], 10, 64)
 		}
+		time.Sleep(10 * time.Second)
+		go func() {
+			for i := 0; i < int(concurrentMessageCount); i++ {
+				netService.SendMessageToPeers(PingMessage, GenerateData(packageSize), net.MessagePriorityNormal, new(p2p.ChainSyncPeersFilter))
+			}
+		}()
 
 	}
 
