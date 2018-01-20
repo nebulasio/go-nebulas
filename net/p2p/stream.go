@@ -215,9 +215,8 @@ func (s *Stream) WriteNebMessage(message *NebMessage) error {
 	// metrics.
 	metricsPacketsOutByMessageName(message.MessageName(), message.Length())
 
-	message.FlagWriteMessageAt()
-
 	err := s.Write(message.Content())
+	message.FlagWriteMessageAt()
 
 	// debug logs.
 	logging.VLog().WithFields(logrus.Fields{
