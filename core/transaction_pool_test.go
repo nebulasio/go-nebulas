@@ -30,6 +30,28 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestTransactionPoolStree(t *testing.T) {
+	ks := keystore.DefaultKS
+	priv1 := secp256k1.GeneratePrivateKey()
+	pubdata1, _ := priv1.PublicKey().Encoded()
+	from, _ := NewAddressFromPublicKey(pubdata1)
+	ks.SetKey(from.String(), priv1, []byte("passphrase"))
+	ks.Unlock(from.String(), []byte("passphrase"), time.Second*60*60*24*365)
+	key1, _ := ks.GetUnlocked(from.String())
+	signature1, _ := crypto.NewSignature(keystore.SECP256K1)
+	signature1.InitSign(key1.(keystore.PrivateKey))
+
+	heighPrice := util.NewUint128FromBigInt(util.NewUint128().Mul(TransactionGasPrice.Int, util.NewUint128FromInt(2).Int))
+	txPool, _ := NewTransactionPool(3)
+	bc, _ := NewBlockChain(testNeb())
+	txPool.setBlockChain(bc)
+
+	for 
+	txs := []*Transaction{
+		NewTransaction(bc.ChainID(), from, &Address{[]byte("to")}, util.NewUint128(), 10, TxPayloadBinaryType, []byte("datadata"), TransactionGasPrice, util.NewUint128FromInt(200000)),
+	}
+}
+
 func TestTransactionPool(t *testing.T) {
 	ks := keystore.DefaultKS
 	priv1 := secp256k1.GeneratePrivateKey()

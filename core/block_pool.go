@@ -236,7 +236,7 @@ func (pool *BlockPool) handleDownloadedBlock(msg net.Message) {
 
 func (pool *BlockPool) loop() {
 	logging.CLog().Info("Started BlockPool.")
-	timerChan := time.NewTimer(time.Second).C
+	timerChan := time.NewTicker(time.Second).C
 	for {
 		select {
 		case <-timerChan:
