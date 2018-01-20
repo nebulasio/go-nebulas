@@ -134,14 +134,14 @@ type Block struct {
 func (block *Block) ToProto() (proto.Message, error) {
 	header, _ := block.header.ToProto()
 	if header, ok := header.(*corepb.BlockHeader); ok {
-		var txs []*corepb.Transaction
-		for _, v := range block.transactions {
+		txs := make([]*corepb.Transaction, len(block.transactions))
+		for idx, v := range block.transactions {
 			tx, err := v.ToProto()
 			if err != nil {
 				return nil, err
 			}
 			if tx, ok := tx.(*corepb.Transaction); ok {
-				txs = append(txs, tx)
+				txs[idx] = tx
 			} else {
 				return nil, errors.New("Protobuf message cannot be converted into Transaction")
 			}
@@ -163,12 +163,14 @@ func (block *Block) FromProto(msg proto.Message) error {
 		if err := block.header.FromProto(msg.Header); err != nil {
 			return err
 		}
-		for _, v := range msg.Transactions {
+
+		block.transactions = make(Transactions, len(msg.Transactions))
+		for idx, v := range msg.Transactions {
 			tx := new(Transaction)
 			if err := tx.FromProto(v); err != nil {
 				return err
 			}
-			block.transactions = append(block.transactions, tx)
+			block.transactions[idx] = tx
 		}
 		block.height = msg.Height
 		block.miner = &Address{msg.Miner}
@@ -533,11 +535,13 @@ func (block *Block) Seal() error {
 }
 
 func (block *Block) String() string {
-	return fmt.Sprintf("{\"height\":%d, \"hash\":\"%s\", \"parentHash\":\"%s\", \"state\": %s, \"nonce\":%d, \"timestamp\": %d, \"coinbase\": \"%s\", \"tx\": %d}",
+	return fmt.Sprintf("{\"height\":%d, \"hash\":\"%s\", \"parentHash\":\"%s\", \"state\": %s, \"txs\": %s, \"events\": %s, \"nonce\":%d, \"timestamp\": %d, \"coinbase\": \"%s\", \"tx\": %d}",
 		block.height,
 		byteutils.Hex(block.header.hash),
 		byteutils.Hex(block.header.parentHash),
-		block.accState.RootHash().String(),
+		block.header.stateRoot,
+		block.header.txsRoot,
+		block.header.eventsRoot,
 		block.header.nonce,
 		block.header.timestamp,
 		block.header.coinbase.String(),
@@ -688,9 +692,16 @@ func (block *Block) verifyState() error {
 func (block *Block) execute() error {
 	block.rewardCoinbase()
 
-	for _, tx := range block.transactions {
+	for idx, tx := range block.transactions {
 		start := time.Now().Unix()
 		metricsTxExecute.Mark(1)
+
+		logging.VLog().WithFields(logrus.Fields{
+			"tx":    tx,
+			"idx":   idx,
+			"block": block,
+		}).Debug("Choose tx.")
+
 		giveback, err := block.executeTransaction(tx)
 		if giveback {
 			err := block.txPool.Push(tx)
@@ -701,6 +712,7 @@ func (block *Block) execute() error {
 		if err != nil {
 			return err
 		}
+
 		end := time.Now().Unix()
 		metricsTxExecutedTimer.Update(time.Duration(end - start))
 	}
@@ -882,13 +894,25 @@ func (block *Block) executeTransaction(tx *Transaction) (giveback bool, err erro
 		return giveback, err
 	}
 
+	logging.VLog().WithFields(logrus.Fields{
+		"tx": tx,
+	}).Debug("Checked tx.")
+
 	if _, err := tx.VerifyExecution(block); err != nil {
 		return false, err
 	}
 
+	logging.VLog().WithFields(logrus.Fields{
+		"tx": tx,
+	}).Debug("Executed tx.")
+
 	if err := block.acceptTransaction(tx); err != nil {
 		return false, err
 	}
+
+	logging.VLog().WithFields(logrus.Fields{
+		"tx": tx,
+	}).Debug("Accepted tx.")
 
 	return false, nil
 }

@@ -106,12 +106,12 @@ func TestBlock(t *testing.T) {
 				1,
 				Transactions{
 					&Transaction{
-						[]byte("123455"),
-						&Address{[]byte("1235")},
+						[]byte("123452"),
+						&Address{[]byte("1335")},
 						&Address{[]byte("1245")},
 						util.NewUint128(),
 						456,
-						time.Now().Unix(),
+						1516464510,
 						&corepb.Data{Type: TxPayloadBinaryType, Payload: []byte("hello")},
 						1,
 						util.NewUint128(),
@@ -122,12 +122,12 @@ func TestBlock(t *testing.T) {
 					&Transaction{
 						[]byte("123455"),
 						&Address{[]byte("1235")},
-						&Address{[]byte("1245")},
+						&Address{[]byte("1425")},
 						util.NewUint128(),
-						456,
-						time.Now().Unix(),
-						&corepb.Data{Type: TxPayloadBinaryType, Payload: []byte("hello")},
-						1,
+						446,
+						1516464511,
+						&corepb.Data{Type: TxPayloadBinaryType, Payload: []byte("hllo")},
+						2,
 						util.NewUint128(),
 						util.NewUint128(),
 						uint8(keystore.SECP256K1),
@@ -152,8 +152,6 @@ func TestBlock(t *testing.T) {
 			pb.Unmarshal(ir, proto)
 			nb.FromProto(proto)
 			b.header.timestamp = nb.header.timestamp
-			b.transactions[0].timestamp = nb.transactions[0].timestamp
-			b.transactions[1].timestamp = nb.transactions[1].timestamp
 			if !reflect.DeepEqual(*b.header, *nb.header) {
 				t.Errorf("Transaction.Serialize() = %v, want %v", *b.header, *nb.header)
 			}
