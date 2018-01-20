@@ -69,7 +69,7 @@
 
     function receiptTransaction() {
         neb.api.getTransactionReceipt(txhash, function (err, resp) {
-            document.getElementById('receipt').value = resp;
+            document.getElementById('receipt').value = JSON.stringify(resp);
         });
     }
 
