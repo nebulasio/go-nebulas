@@ -478,6 +478,7 @@ func (st *Task) processChunkData(message net.Message) {
 	st.chainChunkData[chunkDataIndex] = chunkData
 	chunk, ok := st.chainChunkData[st.chainChunkDataProcessPosition]
 	for ok {
+		startAt := time.Now().Unix()
 		if err := st.chunk.processChunkData(chunk); err != nil {
 			logging.VLog().WithFields(logrus.Fields{
 				"err": err,
@@ -487,6 +488,12 @@ func (st *Task) processChunkData(message net.Message) {
 			st.sendChainGetChunkMessage(chunkDataIndex)
 			return
 		}
+
+		logging.VLog().WithFields(logrus.Fields{
+			"received": chunkDataIndex,
+			"time":     time.Now().Unix() - startAt,
+		}).Debugf("Succeed to get chain chunk %d.", st.chainChunkDataProcessPosition)
+
 		st.chainChunkDataProcessPosition++
 		chunk, ok = st.chainChunkData[st.chainChunkDataProcessPosition]
 	}
@@ -495,9 +502,6 @@ func (st *Task) processChunkData(message net.Message) {
 	st.chainChunkDataStatus[chunkDataIndex] = chunkDataStatusFinished
 
 	// sync next chunk.
-	logging.VLog().WithFields(logrus.Fields{
-		"rootHash": byteutils.Hex(st.maxConsistentChunkHeaders.Root),
-	}).Debugf("Succeed to get chain chunk %d.", chunkDataIndex)
 	st.sendChainGetChunkForNext()
 }
 

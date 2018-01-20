@@ -269,6 +269,12 @@ func mockBlockFromNetwork(block *Block) (*Block, error) {
 
 // Push block into block pool
 func (pool *BlockPool) Push(block *Block) error {
+	startAt := time.Now().Unix()
+	defer logging.VLog().WithFields(logrus.Fields{
+		"block": block,
+		"time":  time.Now().Unix() - startAt,
+	}).Debug("Push Block Over.")
+
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
 	block, err := mockBlockFromNetwork(block)
@@ -284,6 +290,12 @@ func (pool *BlockPool) Push(block *Block) error {
 
 // PushAndRelay push block into block pool and relay it.
 func (pool *BlockPool) PushAndRelay(sender string, block *Block) error {
+	startAt := time.Now().Unix()
+	defer logging.VLog().WithFields(logrus.Fields{
+		"block": block,
+		"time":  time.Now().Unix() - startAt,
+	}).Debug("Push&Relay Block Over.")
+
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
 
@@ -300,6 +312,12 @@ func (pool *BlockPool) PushAndRelay(sender string, block *Block) error {
 
 // PushAndBroadcast push block into block pool and broadcast it.
 func (pool *BlockPool) PushAndBroadcast(block *Block) error {
+	startAt := time.Now().Unix()
+	defer logging.VLog().WithFields(logrus.Fields{
+		"block": block,
+		"time":  time.Now().Unix() - startAt,
+	}).Debug("Push&Broadcast Block Over.")
+
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
 
