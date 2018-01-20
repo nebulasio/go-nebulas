@@ -20,8 +20,11 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"os/signal"
+	"runtime"
+	"runtime/pprof"
 	"sort"
 	"strconv"
 	"syscall"
@@ -57,6 +60,7 @@ func main() {
 	app.Flags = append(app.Flags, RPCFlags...)
 	app.Flags = append(app.Flags, AppFlags...)
 	app.Flags = append(app.Flags, StatsFlags...)
+	app.Flags = append(app.Flags, CPUProfile, MemProfile)
 
 	sort.Sort(cli.FlagsByName(app.Flags))
 
@@ -90,7 +94,7 @@ func neb(ctx *cli.Context) error {
 		InitCrashReporter(n.Config().App)
 	}
 
-	runNeb(n)
+	runNeb(ctx, n)
 
 	// TODO: just use the signal to block main.
 	for {
@@ -98,7 +102,7 @@ func neb(ctx *cli.Context) error {
 	}
 }
 
-func runNeb(n *neblet.Neblet) {
+func runNeb(ctx *cli.Context, n *neblet.Neblet) {
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 
@@ -109,6 +113,19 @@ func runNeb(n *neblet.Neblet) {
 		<-c
 		n.Stop()
 
+		// memory profile
+		if memprofile := ctx.GlobalString(MemProfile.Name); memprofile != "" {
+			f, err := os.Create(memprofile)
+			if err != nil {
+				log.Fatal("could not create memory profile: ", err)
+			}
+			runtime.GC() // get up-to-date statistics
+			if err := pprof.WriteHeapProfile(f); err != nil {
+				log.Fatal("could not write memory profile: ", err)
+			}
+			f.Close()
+		}
+
 		// TODO: remove this once p2pManager handles stop properly.
 		os.Exit(1)
 	}()
@@ -117,6 +134,18 @@ func runNeb(n *neblet.Neblet) {
 func makeNeb(ctx *cli.Context) (*neblet.Neblet, error) {
 	conf := neblet.LoadConfig(config)
 	conf.App.Version = version
+
+	// cpu profile.
+	if cpuprofile := ctx.GlobalString(CPUProfile.Name); cpuprofile != "" {
+		f, err := os.Create(cpuprofile)
+		if err != nil {
+			log.Fatal("could not create CPU profile: ", err)
+		}
+		if err := pprof.StartCPUProfile(f); err != nil {
+			log.Fatal("could not start CPU profile: ", err)
+		}
+		defer pprof.StopCPUProfile()
+	}
 
 	// load config from cli args
 	networkConfig(ctx, conf.Network)
