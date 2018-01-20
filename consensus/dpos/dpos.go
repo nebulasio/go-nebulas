@@ -83,7 +83,7 @@ func NewDpos(neblet Neblet) (*Dpos, error) {
 
 		blockInterval:   core.BlockInterval,
 		dynastyInterval: core.DynastyInterval,
-		txsPerBlock:     2000,
+		txsPerBlock:     10000,
 
 		enable:  false,
 		pending: true,

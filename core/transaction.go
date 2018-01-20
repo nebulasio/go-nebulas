@@ -279,7 +279,7 @@ func (tx *Transaction) LoadPayload(block *Block) (TxPayload, error) {
 	)
 	switch tx.data.Type {
 	case TxPayloadBinaryType:
-		if block.Height() > 280920 && block.Height() < 300000 {
+		if block.Height() > 280920 && block.Height() < 297680 {
 			payload, err = LoadBinaryPayloadFail(tx.data.Payload)
 		} else {
 			payload, err = LoadBinaryPayload(tx.data.Payload)
