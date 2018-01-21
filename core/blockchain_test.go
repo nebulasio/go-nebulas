@@ -181,6 +181,8 @@ func TestBlockChain_FindCommonAncestorWithTail(t *testing.T) {
 	block11111.Seal()
 	assert.Nil(t, bc.BlockPool().Push(BlockFromNetwork(block11111)))
 	bc.SetTailBlock(block11111)
+
+	bc.updateLatestIrreversibleBlock(block11111)
 	assert.Equal(t, bc.latestIrreversibleBlock.Hash(), block0.Hash())
 }
 

@@ -175,6 +175,7 @@ func (n *Neblet) Start() {
 		}).Fatal("Failed to start api gateway.")
 	}
 
+	n.blockChain.Start()
 	n.blockChain.BlockPool().Start()
 	n.blockChain.TransactionPool().Start()
 	n.eventEmitter.Start()
@@ -238,6 +239,7 @@ func (n *Neblet) Stop() {
 	if n.blockChain != nil {
 		n.blockChain.TransactionPool().Stop()
 		n.blockChain.BlockPool().Stop()
+		n.blockChain.Stop()
 		n.blockChain = nil
 	}
 
