@@ -498,7 +498,6 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 	forkchoiceAt := time.Now().UnixNano()
 
 	logging.VLog().WithFields(logrus.Fields{
-		"startAt":             startAt,
 		"time.checkdup":       checkDupAt - startAt,
 		"time.checkintegrity": checkIntegrityAt - checkDupAt,
 		"time.slot":           checkSlotAt - checkIntegrityAt,
@@ -508,7 +507,7 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 		"time.verify":         verifyAt - getParentAt,
 		"time.block.push":     putAt - verifyAt,
 		"time.forkchoice":     forkchoiceAt - putAt,
-		"time.push":           time.Now().UnixNano() - startAt,
+		"time.all":            time.Now().UnixNano() - startAt,
 	}).Info("Succeed to put a block on chain.")
 
 	return nil
@@ -557,10 +556,10 @@ func (lb *linkedBlock) travelToLinkAndReturnAllValidBlocks(parentBlock *Block) (
 	executionAt := time.Now().UnixNano()
 
 	logging.VLog().WithFields(logrus.Fields{
-		"block":               lb.block,
-		"time.link":           linkAt - startAt,
-		"time.execution":      executionAt - linkAt,
-		"time.block.verified": time.Now().UnixNano() - startAt,
+		"block":          lb.block,
+		"time.link":      linkAt - startAt,
+		"time.execution": executionAt - linkAt,
+		"time.all":       time.Now().UnixNano() - startAt,
 	}).Info("Block Verified.")
 
 	allBlocks := []*Block{lb.block}

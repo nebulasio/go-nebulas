@@ -462,6 +462,8 @@ func (dc *DynastyContext) kickoutCandidate(candidate byteutils.Hash) error {
 }
 
 func (dc *DynastyContext) kickoutDynasty(dynastyID int64) error {
+	startAt := time.Now().UnixNano()
+
 	dynastyTrie := dc.DynastyTrie
 	iter, err := dynastyTrie.Iterator(nil)
 	if err != nil && err != storage.ErrKeyNotFound {
@@ -474,7 +476,12 @@ func (dc *DynastyContext) kickoutDynasty(dynastyID int64) error {
 	if err != nil {
 		return err
 	}
+
+	prepareAt := time.Now().UnixNano()
+
 	for exist {
+		vStartAt := time.Now().UnixNano()
+
 		validator := iter.Value()
 		key := append(byteutils.FromInt64(dynastyID), validator...)
 		bytes, err := dc.MintCntTrie.Get(key)
@@ -491,28 +498,43 @@ func (dc *DynastyContext) kickoutDynasty(dynastyID int64) error {
 				continue
 			}
 		}
+		vCheckAt := time.Now().UnixNano()
+
 		isActiveBootstrapValidator, err := checkActiveBootstrapValidator(validator, dc.ProtectTrie, dc.CandidateTrie)
 		if err != nil {
 			return err
 		}
-		if isActiveBootstrapValidator {
-			addr, err := AddressParseFromBytes(validator)
-			if err != nil {
-				return err
-			}
-			logging.VLog().Debug("Protect active bootstrap candidate: ", addr)
-		} else {
+		vCheckProtectAt := time.Now().UnixNano()
+
+		if !isActiveBootstrapValidator {
 			if err := dc.kickoutCandidate(validator); err != nil {
 				return err
 			}
 		}
+		vKickoutAt := time.Now().UnixNano()
+
 		exist, err = iter.Next()
 		if err != nil {
 			return err
 		}
+		vNextAt := time.Now().UnixNano()
+
+		logging.VLog().WithFields(logrus.Fields{
+			"time.check.mint":        vCheckAt - vStartAt,
+			"time.check.protect":     vCheckProtectAt - vCheckAt,
+			"time.validator.kickout": vKickoutAt - vCheckProtectAt,
+			"time.validator.next":    vNextAt - vKickoutAt,
+			"time.kickout":           vNextAt - vStartAt,
+		}).Debug("Kickouted Validator: ", byteutils.Hex(validator))
 	}
 
-	logging.VLog().Debug("Kickouted dynasty: ", dynastyID)
+	endAt := time.Now().UnixNano()
+
+	logging.VLog().WithFields(logrus.Fields{
+		"time.prepare":         prepareAt - startAt,
+		"time.member.kickout":  endAt - prepareAt,
+		"time.dynasty.kickout": endAt - startAt,
+	}).Debug("Kickouted dynasty: ", dynastyID)
 	return nil
 }
 

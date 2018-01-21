@@ -373,6 +373,8 @@ func (block *Block) VerifyAddress(str string) bool {
 
 // LinkParentBlock link parent block, return true if hash is the same; false otherwise.
 func (block *Block) LinkParentBlock(chain *BlockChain, parentBlock *Block) error {
+	startAt := time.Now().UnixNano()
+
 	if block.ParentHash().Equals(parentBlock.Hash()) == false {
 		return ErrLinkToWrongParentBlock
 	}
@@ -393,9 +395,12 @@ func (block *Block) LinkParentBlock(chain *BlockChain, parentBlock *Block) error
 	if err != nil {
 		return ErrGenerateNextDynastyContext
 	}
+	nextAt := time.Now().UnixNano()
+
 	if err := block.LoadDynastyContext(context); err != nil {
 		return ErrLoadNextDynastyContext
 	}
+	loadAt := time.Now().UnixNano()
 
 	block.txPool = parentBlock.txPool
 	block.parenetBlock = parentBlock
@@ -404,9 +409,12 @@ func (block *Block) LinkParentBlock(chain *BlockChain, parentBlock *Block) error
 	block.eventEmitter = parentBlock.eventEmitter
 
 	logging.VLog().WithFields(logrus.Fields{
-		"parent": parentBlock,
-		"block":  block,
-		"err":    err,
+		"parent":    parentBlock,
+		"block":     block,
+		"err":       err,
+		"time.next": nextAt - startAt,
+		"time.load": loadAt - nextAt,
+		"time.all":  time.Now().UnixNano() - startAt,
 	}).Info("Linked the parent block.")
 
 	return nil
@@ -551,31 +559,48 @@ func (block *Block) String() string {
 
 // VerifyExecution execute the block and verify the execution result.
 func (block *Block) VerifyExecution(parent *Block, consensus Consensus) error {
+	startAt := time.Now().UnixNano()
+
 	// verify the block is acceptable by consensus
 	if err := consensus.VerifyBlock(block, parent); err != nil {
 		return err
 	}
+	verifyAt := time.Now().UnixNano()
 
 	block.begin()
+	beginAt := time.Now().UnixNano()
 
-	start := time.Now().Unix()
 	if err := block.execute(); err != nil {
 		block.rollback()
 		return err
 	}
-	end := time.Now().Unix()
-	metricsBlockExecutedTimer.Update(time.Duration(end - start))
+	executeAt := time.Now().UnixNano()
 
 	if err := block.verifyState(); err != nil {
 		block.rollback()
 		return err
 	}
+	stateAt := time.Now().UnixNano()
 
 	block.commit()
+	commitAt := time.Now().UnixNano()
 
 	// release all events
 	block.triggerEvent()
+	endAt := time.Now().UnixNano()
 
+	metricsBlockExecutedTimer.Update(time.Duration((endAt - startAt) / int64(time.Second)))
+
+	logging.VLog().WithFields(logrus.Fields{
+		"time.verify":  verifyAt - startAt,
+		"time.begin":   beginAt - verifyAt,
+		"time.execute": executeAt - beginAt,
+		"time.state":   stateAt - executeAt,
+		"time.commit":  commitAt - stateAt,
+		"time.event":   endAt - commitAt,
+		"tail.all":     endAt - startAt,
+		"block":        block,
+	}).Info("Succeed to verify the block.")
 	return nil
 }
 
@@ -802,6 +827,7 @@ func (block *Block) FetchEvents(txHash byteutils.Hash) ([]*Event, error) {
 }
 
 func (block *Block) recordMintCnt() error {
+	startAt := time.Now().UnixNano()
 	key := append(byteutils.FromInt64(block.Timestamp()/DynastyInterval), block.miner.Bytes()...)
 	bytes, err := block.dposContext.mintCntTrie.Get(key)
 	if err != nil && err != storage.ErrKeyNotFound {
@@ -816,23 +842,30 @@ func (block *Block) recordMintCnt() error {
 	if err != nil {
 		return err
 	}
+	endAt := time.Now().UnixNano()
+
 	logging.VLog().WithFields(logrus.Fields{
 		"dynasty": block.Timestamp() / DynastyInterval,
 		"miner":   block.miner.String(),
 		"count":   cnt,
+		"time":    endAt - startAt,
 	}).Debug("Recorded the block minted by the miner in the dynasty.")
 	return nil
 }
 
 func (block *Block) rewardCoinbase() {
+	startAt := time.Now().UnixNano()
 	coinbaseAddr := block.header.coinbase.address
 	coinbaseAcc := block.accState.GetOrCreateUserAccount(coinbaseAddr)
 	balance := coinbaseAcc.Balance()
 	coinbaseAcc.AddBalance(BlockReward)
+	endAt := time.Now().UnixNano()
+
 	logging.VLog().WithFields(logrus.Fields{
 		"coinbase":       coinbaseAddr.Hex(),
 		"balance.before": balance.String(),
 		"balance.after":  coinbaseAcc.Balance().String(),
+		"time":           endAt - startAt,
 	}).Info("Rewarded the coinbase.")
 }
 

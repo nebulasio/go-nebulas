@@ -350,12 +350,11 @@ func (bc *BlockChain) SetTailBlock(newTail *Block) error {
 
 	endAt := time.Now().UnixNano()
 	logging.VLog().WithFields(logrus.Fields{
-		"startAt":               startAt,
 		"time.foundAncestor":    foundAt - startAt,
 		"time.revertBlocks":     revertedAt - foundAt,
 		"time.buildHeightIndex": builtAt - revertedAt,
 		"time.storeNewTail":     storedAt - builtAt,
-		"time.set.tail":         endAt - startAt,
+		"time.all":              endAt - startAt,
 		"tail.old":              oldTail,
 		"tail.new":              newTail,
 	}).Info("Succeed to set tail block.")
