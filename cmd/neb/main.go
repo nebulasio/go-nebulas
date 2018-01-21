@@ -111,7 +111,6 @@ func runNeb(ctx *cli.Context, n *neblet.Neblet) chan bool {
 
 	go func() {
 		<-c
-		n.Stop()
 
 		// memory profile
 		if memprofile := ctx.GlobalString(MemProfile.Name); memprofile != "" {
@@ -129,6 +128,8 @@ func runNeb(ctx *cli.Context, n *neblet.Neblet) chan bool {
 		if cpuprofile := ctx.GlobalString(CPUProfile.Name); cpuprofile != "" {
 			pprof.StopCPUProfile()
 		}
+
+		n.Stop()
 
 		quitCh <- true
 		return
