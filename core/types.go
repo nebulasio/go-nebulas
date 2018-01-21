@@ -92,6 +92,9 @@ var (
 	ErrInvalidBlockCannotFindParentInLocalAndTrySync     = errors.New("invalid block received, sync its parent from others")
 	ErrInvalidConfigChainID                              = errors.New("invalid chainID, genesis chainID not equal to chainID in config")
 	ErrCannotRevertLIB                                   = errors.New("cannot revert latest irreversible block")
+	ErrCannotLoadGenesisBlock                            = errors.New("cannot load genesis block from storage")
+	ErrCannotLoadLIBBlock                                = errors.New("cannot load tail block from storage")
+	ErrCannotLoadTailBlock                               = errors.New("cannot load latest irreversible block from storage")
 )
 
 // Default gas count

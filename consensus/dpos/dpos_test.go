@@ -216,7 +216,7 @@ func TestDpos_VerifySign(t *testing.T) {
 	tail := dpos.chain.TailBlock()
 
 	elapsedSecond := int64(core.DynastySize*core.BlockInterval + core.DynastyInterval)
-	context, err := tail.NextDynastyContext(elapsedSecond)
+	context, err := tail.NextDynastyContext(dpos.chain, elapsedSecond)
 	assert.Nil(t, err)
 	coinbase, err := core.AddressParse("1a263547d167c74cf4b8f9166cfa244de0481c514a45aa2c")
 	assert.Nil(t, err)
@@ -329,7 +329,7 @@ func TestFastVerifyBlock(t *testing.T) {
 	assert.Nil(t, dpos.EnableMining("passphrase"))
 
 	elapsedSecond := int64(core.DynastyInterval)
-	context, err := tail.NextDynastyContext(elapsedSecond)
+	context, err := tail.NextDynastyContext(dpos.chain, elapsedSecond)
 	assert.Nil(t, err)
 	block, err := core.NewBlock(dpos.chain.ChainID(), coinbase, tail)
 	block.SetTimestamp(block.Timestamp() + 1)
@@ -341,7 +341,7 @@ func TestFastVerifyBlock(t *testing.T) {
 	assert.Nil(t, dpos.FastVerifyBlock(block))
 
 	elapsedSecond = int64(core.DynastyInterval)
-	context, err = tail.NextDynastyContext(elapsedSecond)
+	context, err = tail.NextDynastyContext(dpos.chain, elapsedSecond)
 	block, err = core.NewBlock(dpos.chain.ChainID(), coinbase, tail)
 	assert.Nil(t, err)
 	block.LoadDynastyContext(context)
@@ -351,7 +351,7 @@ func TestFastVerifyBlock(t *testing.T) {
 	assert.Nil(t, dpos.FastVerifyBlock(block))
 
 	elapsedSecond = int64(core.DynastySize*core.BlockInterval + core.DynastyInterval)
-	context, err = tail.NextDynastyContext(elapsedSecond)
+	context, err = tail.NextDynastyContext(dpos.chain, elapsedSecond)
 	block, err = core.NewBlock(dpos.chain.ChainID(), coinbase, tail)
 	assert.Nil(t, err)
 	block.LoadDynastyContext(context)

@@ -301,7 +301,7 @@ func (p *Dpos) mintBlock(now int64) error {
 	// check proposer
 	tail := p.chain.TailBlock()
 	elapsedSecond := now - tail.Timestamp()
-	context, err := tail.NextDynastyContext(elapsedSecond)
+	context, err := tail.NextDynastyContext(p.chain, elapsedSecond)
 	if err != nil {
 		if err != core.ErrNotBlockForgTime {
 			logging.VLog().WithFields(logrus.Fields{

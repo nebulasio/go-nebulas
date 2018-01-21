@@ -89,7 +89,7 @@ func NewBlockChain(neb Neblet) (*BlockChain, error) {
 	if err != nil {
 		return nil, err
 	}
-	txPool, err := NewTransactionPool(65535)
+	txPool, err := NewTransactionPool(40960)
 	if err != nil {
 		return nil, err
 	}
@@ -338,7 +338,7 @@ func (bc *BlockChain) SetTailBlock(newTail *Block) error {
 		"time.buildHeightIndex": builtAt - revertedAt,
 		"time.updateLIB":        updatedAt - builtAt,
 		"time.storeNewTail":     storedAt - updatedAt,
-		"time.set":              endAt - startAt,
+		"time.set.tail":         endAt - startAt,
 		"tail.old":              oldTail,
 		"tail.new":              newTail,
 	}).Info("Succeed to set tail block.")
@@ -604,7 +604,6 @@ func (bc *BlockChain) GetBlock(hash byteutils.Hash) *Block {
 	// TODO: get block from local storage.
 	v, _ := bc.cachedBlocks.Get(hash.Hex())
 	if v == nil {
-		logging.VLog().Debug("Load Block From Storage")
 		block, err := LoadBlockFromStorage(hash, bc.storage, bc.txPool, bc.eventEmitter)
 		if err != nil {
 			return nil

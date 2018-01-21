@@ -213,6 +213,7 @@ type DynastyContext struct {
 	NextDynastyTrie *trie.BatchTrie
 	DelegateTrie    *trie.BatchTrie
 	CandidateTrie   *trie.BatchTrie
+	ProtectTrie     *trie.BatchTrie
 	VoteTrie        *trie.BatchTrie
 	MintCntTrie     *trie.BatchTrie
 	Accounts        state.AccountState
@@ -302,12 +303,8 @@ func (p Candidates) Less(i, j int) bool {
 	}
 }
 
-func fetchActiveBootstapValidators(stor storage.Storage, candidates *trie.BatchTrie) ([]byteutils.Hash, error) {
-	genesis, err := LoadBlockFromStorage(GenesisHash, stor, nil, nil)
-	if err != nil {
-		return nil, err
-	}
-	iter, err := genesis.dposContext.candidateTrie.Iterator(nil)
+func fetchActiveBootstapValidators(protect *trie.BatchTrie, candidates *trie.BatchTrie) ([]byteutils.Hash, error) {
+	iter, err := protect.Iterator(nil)
 	if err != nil && err != storage.ErrKeyNotFound {
 		return nil, err
 	}
@@ -336,12 +333,8 @@ func fetchActiveBootstapValidators(stor storage.Storage, candidates *trie.BatchT
 	return activeBootstapValidators, nil
 }
 
-func checkActiveBootstrapValidator(validator byteutils.Hash, stor storage.Storage, candidates *trie.BatchTrie) (bool, error) {
-	genesis, err := LoadBlockFromStorage(GenesisHash, stor, nil, nil)
-	if err != nil {
-		return false, err
-	}
-	_, err = genesis.dposContext.candidateTrie.Get(validator)
+func checkActiveBootstrapValidator(validator byteutils.Hash, protect *trie.BatchTrie, candidates *trie.BatchTrie) (bool, error) {
+	_, err := protect.Get(validator)
 	if err != nil && err != storage.ErrKeyNotFound {
 		return false, err
 	}
@@ -359,12 +352,14 @@ func checkActiveBootstrapValidator(validator byteutils.Hash, stor storage.Storag
 }
 
 func (dc *DynastyContext) chooseCandidates(votes map[string]*util.Uint128) (Candidates, error) {
+	startAt := time.Now().UnixNano()
 	// active bootstrap validators
 	var bootstrapCandidates Candidates
-	activeBootstrapValidators, err := fetchActiveBootstapValidators(dc.Storage, dc.CandidateTrie)
+	activeBootstrapValidators, err := fetchActiveBootstapValidators(dc.ProtectTrie, dc.CandidateTrie)
 	if err != nil {
 		return nil, err
 	}
+	fetchAt := time.Now().UnixNano()
 	for i := 0; i < len(activeBootstrapValidators); i++ {
 		address, err := AddressParseFromBytes(activeBootstrapValidators[i])
 		if err != nil {
@@ -377,7 +372,9 @@ func (dc *DynastyContext) chooseCandidates(votes map[string]*util.Uint128) (Cand
 		bootstrapCandidates = append(bootstrapCandidates, &Candidate{address, vote})
 		delete(votes, address.String())
 	}
+	bootstrapAt := time.Now().UnixNano()
 	sort.Sort(bootstrapCandidates)
+	sortBootStrapAt := time.Now().UnixNano()
 	// sort
 	var candidates Candidates
 	for k, v := range votes {
@@ -387,9 +384,23 @@ func (dc *DynastyContext) chooseCandidates(votes map[string]*util.Uint128) (Cand
 		}
 		candidates = append(candidates, &Candidate{addr, v})
 	}
+	candidateAt := time.Now().UnixNano()
 	sort.Sort(candidates)
+	sortCandidateAt := time.Now().UnixNano()
 	// merge
 	candidates = append(bootstrapCandidates, candidates...)
+
+	logging.VLog().WithFields(logrus.Fields{
+		"bootstrap.size":      bootstrapCandidates.Len(),
+		"candidate.size":      len(candidates) - bootstrapCandidates.Len(),
+		"time.fetch":          fetchAt - startAt,
+		"time.bootstrap":      bootstrapAt - fetchAt,
+		"time.sort.bootstrap": sortBootStrapAt - bootstrapAt,
+		"time.candidate":      candidateAt - sortBootStrapAt,
+		"time.sort.candidate": sortCandidateAt - candidateAt,
+		"time.choose":         time.Now().UnixNano() - startAt,
+	}).Debug("Choose candidates.")
+
 	return candidates, nil
 }
 
@@ -480,7 +491,7 @@ func (dc *DynastyContext) kickoutDynasty(dynastyID int64) error {
 				continue
 			}
 		}
-		isActiveBootstrapValidator, err := checkActiveBootstrapValidator(validator, dc.Storage, dc.CandidateTrie)
+		isActiveBootstrapValidator, err := checkActiveBootstrapValidator(validator, dc.ProtectTrie, dc.CandidateTrie)
 		if err != nil {
 			return err
 		}
@@ -518,6 +529,7 @@ func (dc *DynastyContext) electNextDynastyOnBaseDynasty(baseDynastyID int64, nex
 		baseDynastyID = nextDynastyID - 1
 	}
 	for i := baseDynastyID; i < nextDynastyID; i++ {
+		electAt := time.Now().UnixNano()
 		// collect candidates
 		if !baseGenesis {
 			err := dc.kickoutDynasty(i)
@@ -525,10 +537,14 @@ func (dc *DynastyContext) electNextDynastyOnBaseDynasty(baseDynastyID int64, nex
 				return err
 			}
 		}
+		kickAt := time.Now().UnixNano()
+
 		votes, err := dc.tallyVotes()
 		if err != nil {
 			return err
 		}
+		tallyAt := time.Now().UnixNano()
+
 		candidates, err := dc.chooseCandidates(votes)
 		if err != nil {
 			return err
@@ -536,6 +552,8 @@ func (dc *DynastyContext) electNextDynastyOnBaseDynasty(baseDynastyID int64, nex
 		if len(candidates) < SafeSize {
 			return ErrTooFewCandidates
 		}
+		chooseAt := time.Now().UnixNano()
+
 		// Top 20 are selected directly
 		newDynasty := []string{}
 		nextDynastyTrie, err := trie.NewBatchTrie(nil, dc.Storage)
@@ -548,6 +566,8 @@ func (dc *DynastyContext) electNextDynastyOnBaseDynasty(baseDynastyID int64, nex
 			}
 			newDynasty = append(newDynasty, candidates[i].Address.String())
 		}
+		topAt := time.Now().UnixNano()
+
 		// The last one is selected randomly
 		if len(candidates) > directSelected {
 			hasher := fnv.New32a()
@@ -562,17 +582,25 @@ func (dc *DynastyContext) electNextDynastyOnBaseDynasty(baseDynastyID int64, nex
 			}
 			newDynasty = append(newDynasty, candidates[offset].Address.String())
 		}
+		lastAt := time.Now().UnixNano()
+
 		dc.DynastyTrie = dc.NextDynastyTrie
 		dc.NextDynastyTrie = nextDynastyTrie
 
 		logging.VLog().WithFields(logrus.Fields{
-			"dynasty.members": newDynasty,
-			"dynasty.id":      strconv.Itoa(int(i + 1)),
+			"dynasty.members":    newDynasty,
+			"dynasty.id":         strconv.Itoa(int(i + 1)),
+			"time.kickout":       kickAt - electAt,
+			"time.tally":         tallyAt - kickAt,
+			"time.choose":        chooseAt - tallyAt,
+			"time.elect.top":     topAt - chooseAt,
+			"time.elect.last":    lastAt - topAt,
+			"time.elect.dynasty": time.Now().UnixNano() - electAt,
 		}).Debug("Elected new dynasty")
 	}
 
 	logging.VLog().WithFields(logrus.Fields{
-		"time.elect": time.Now().UnixNano() - startAt,
+		"time.elect.over": time.Now().UnixNano() - startAt,
 	}).Debug("Elected Over")
 	return nil
 }
@@ -617,24 +645,24 @@ func (block *Block) LoadDynastyContext(context *DynastyContext) error {
 }
 
 // GenesisDynastyContext return dynasty context in genesis
-func GenesisDynastyContext(storage storage.Storage, conf *corepb.Genesis) (*DynastyContext, error) {
-	dynasty, err := trie.NewBatchTrie(nil, storage)
+func GenesisDynastyContext(chain *BlockChain, conf *corepb.Genesis) (*DynastyContext, error) {
+	dynastyTrie, err := trie.NewBatchTrie(nil, chain.storage)
 	if err != nil {
 		return nil, err
 	}
-	delegate, err := trie.NewBatchTrie(nil, storage)
+	delegateTrie, err := trie.NewBatchTrie(nil, chain.storage)
 	if err != nil {
 		return nil, err
 	}
-	candidate, err := trie.NewBatchTrie(nil, storage)
+	candidateTrie, err := trie.NewBatchTrie(nil, chain.storage)
 	if err != nil {
 		return nil, err
 	}
-	vote, err := trie.NewBatchTrie(nil, storage)
+	voteTrie, err := trie.NewBatchTrie(nil, chain.storage)
 	if err != nil {
 		return nil, err
 	}
-	mint, err := trie.NewBatchTrie(nil, storage)
+	mintTrie, err := trie.NewBatchTrie(nil, chain.storage)
 	if err != nil {
 		return nil, err
 	}
@@ -649,33 +677,38 @@ func GenesisDynastyContext(storage storage.Storage, conf *corepb.Genesis) (*Dyna
 		}
 		v := member.Bytes()
 		if i < DynastySize {
-			if _, err = dynasty.Put(v, v); err != nil {
+			if _, err = dynastyTrie.Put(v, v); err != nil {
 				return nil, err
 			}
 		}
-		if _, err = vote.Put(v, v); err != nil {
+		if _, err = voteTrie.Put(v, v); err != nil {
 			return nil, err
 		}
 		key := append(v, v...)
-		if _, err = delegate.Put(key, v); err != nil {
+		if _, err = delegateTrie.Put(key, v); err != nil {
 			return nil, err
 		}
-		if _, err = candidate.Put(v, v); err != nil {
+		if _, err = candidateTrie.Put(v, v); err != nil {
 			return nil, err
 		}
 	}
-	nextDynasty, err := dynasty.Clone()
+	nextDynastyTrie, err := dynastyTrie.Clone()
+	if err != nil {
+		return nil, err
+	}
+	protectTrie, err := candidateTrie.Clone()
 	if err != nil {
 		return nil, err
 	}
 	return &DynastyContext{
 		TimeStamp:       GenesisTimestamp,
-		DynastyTrie:     dynasty,
-		NextDynastyTrie: nextDynasty,
-		DelegateTrie:    delegate,
-		CandidateTrie:   candidate,
-		MintCntTrie:     mint,
-		VoteTrie:        vote,
+		DynastyTrie:     dynastyTrie,
+		NextDynastyTrie: nextDynastyTrie,
+		DelegateTrie:    delegateTrie,
+		CandidateTrie:   candidateTrie,
+		ProtectTrie:     protectTrie,
+		MintCntTrie:     mintTrie,
+		VoteTrie:        voteTrie,
 	}, nil
 }
 
@@ -698,7 +731,7 @@ func FindProposer(now int64, dynasty *trie.BatchTrie) (proposer byteutils.Hash, 
 }
 
 // NextDynastyContext when some seconds elapsed
-func (block *Block) NextDynastyContext(elapsedSecond int64) (*DynastyContext, error) {
+func (block *Block) NextDynastyContext(chain *BlockChain, elapsedSecond int64) (*DynastyContext, error) {
 	if elapsedSecond%BlockInterval != 0 {
 		return nil, ErrNotBlockForgTime
 	}
@@ -719,6 +752,10 @@ func (block *Block) NextDynastyContext(elapsedSecond int64) (*DynastyContext, er
 	if err != nil {
 		return nil, err
 	}
+	protectTrie, err := chain.genesisBlock.dposContext.candidateTrie.Clone()
+	if err != nil {
+		return nil, err
+	}
 	voteTrie, err := block.dposContext.voteTrie.Clone()
 	if err != nil {
 		return nil, err
@@ -734,6 +771,7 @@ func (block *Block) NextDynastyContext(elapsedSecond int64) (*DynastyContext, er
 		NextDynastyTrie: nextDynastyTrie,
 		DelegateTrie:    delegateTrie,
 		CandidateTrie:   candidateTrie,
+		ProtectTrie:     protectTrie,
 		VoteTrie:        voteTrie,
 		MintCntTrie:     mintCntTrie,
 		Accounts:        block.accState,

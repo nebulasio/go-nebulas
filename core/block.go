@@ -372,7 +372,7 @@ func (block *Block) VerifyAddress(str string) bool {
 }
 
 // LinkParentBlock link parent block, return true if hash is the same; false otherwise.
-func (block *Block) LinkParentBlock(parentBlock *Block) error {
+func (block *Block) LinkParentBlock(chain *BlockChain, parentBlock *Block) error {
 	if block.ParentHash().Equals(parentBlock.Hash()) == false {
 		return ErrLinkToWrongParentBlock
 	}
@@ -389,7 +389,7 @@ func (block *Block) LinkParentBlock(parentBlock *Block) error {
 	}
 
 	elapsedSecond := block.Timestamp() - parentBlock.Timestamp()
-	context, err := parentBlock.NextDynastyContext(elapsedSecond)
+	context, err := parentBlock.NextDynastyContext(chain, elapsedSecond)
 	if err != nil {
 		return ErrGenerateNextDynastyContext
 	}

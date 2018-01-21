@@ -220,14 +220,14 @@ var (
 		StatsDBPasswordFlag,
 	}
 
-	// cpu profile
+	// CPUProfile stats cpu profile
 	CPUProfile = cli.StringFlag{
 		Name:  "cpuprofile",
 		Usage: "write cpu profile `file`",
 		Value: "",
 	}
 
-	// memory profile.
+	// MemProfile stats memory profile
 	MemProfile = cli.StringFlag{
 		Name:  "memprofile",
 		Usage: "write memory profile `file`",

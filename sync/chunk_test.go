@@ -208,7 +208,7 @@ func TestChunk_generateChunkMeta(t *testing.T) {
 
 	blocks := []*core.Block{}
 	for i := 0; i < 96; i++ {
-		context, err := chain.TailBlock().NextDynastyContext(core.BlockInterval)
+		context, err := chain.TailBlock().NextDynastyContext(chain, core.BlockInterval)
 		assert.Nil(t, err)
 		block, err := chain.NewBlock(coinbase)
 		assert.Nil(t, err)
