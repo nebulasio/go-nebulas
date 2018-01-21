@@ -364,6 +364,8 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 		"block": block,
 	}).Debug("Try to push a new block.")
 
+	startAt := time.Now().UnixNano()
+
 	// verify non-dup block
 	if pool.cache.Contains(block.Hash().Hex()) ||
 		pool.bc.GetBlock(block.Hash()) != nil {
@@ -373,6 +375,7 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 		}).Debug("Found duplicated block.")
 		return ErrDuplicatedBlock
 	}
+	checkDupAt := time.Now().UnixNano()
 
 	// verify block integrity
 	if err := block.VerifyIntegrity(pool.bc.chainID, pool.bc.ConsensusHandler()); err != nil {
@@ -383,6 +386,7 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 		}).Debug("Failed to check block integrity.")
 		return err
 	}
+	checkIntegrityAt := time.Now().UnixNano()
 
 	bc := pool.bc
 	cache := pool.cache
@@ -401,6 +405,7 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 	}
 	pool.slot.Add(lb.block.Timestamp(), lb.block)
 	cache.Add(lb.hash.Hex(), lb)
+	checkSlotAt := time.Now().UnixNano()
 
 	// find child block in pool.
 	for _, k := range cache.Keys() {
@@ -411,6 +416,7 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 			c.LinkParent(lb)
 		}
 	}
+	findChildrenAt := time.Now().UnixNano()
 
 	// find parent block in cache.
 	v, _ := cache.Get(lb.parentHash.Hex())
@@ -437,6 +443,7 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 
 		return nil
 	}
+	findParentAt := time.Now().UnixNano()
 
 	// find parent in Chain.
 	var parentBlock *Block
@@ -464,6 +471,7 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 		}
 		return ErrInvalidBlockCannotFindParentInLocalAndTryDownload
 	}
+	getParentAt := time.Now().UnixNano()
 
 	// found in BlockChain, then we can verify the state root, and tell the Consensus all the tails.
 	// performance depth-first search to verify state root, and get all tails.
@@ -471,10 +479,12 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 	if err != nil {
 		return err
 	}
+	verifyAt := time.Now().UnixNano()
 
 	if err := bc.putVerifiedNewBlocks(parentBlock, allBlocks, tailBlocks); err != nil {
 		return err
 	}
+	putAt := time.Now().UnixNano()
 
 	// remove allBlocks from cache.
 	for _, v := range allBlocks {
@@ -482,7 +492,26 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 	}
 
 	// notify consensus to handle new block.
-	return pool.bc.ConsensusHandler().ForkChoice()
+	if err := pool.bc.ConsensusHandler().ForkChoice(); err != nil {
+		return err
+	}
+	forkchoiceAt := time.Now().UnixNano()
+
+	logging.VLog().WithFields(logrus.Fields{
+		"startAt":             startAt,
+		"time.checkdup":       checkDupAt - startAt,
+		"time.checkintegrity": checkIntegrityAt - checkDupAt,
+		"time.slot":           checkSlotAt - checkIntegrityAt,
+		"time.findchildern":   findChildrenAt - checkSlotAt,
+		"time.findparent":     findParentAt - findChildrenAt,
+		"time.getparent":      getParentAt - findParentAt,
+		"time.verify":         verifyAt - getParentAt,
+		"time.put":            putAt - verifyAt,
+		"time.forkchoice":     forkchoiceAt - putAt,
+		"time.push":           time.Now().UnixNano() - startAt,
+	}).Info("Succeed to put a block on chain.")
+
+	return nil
 }
 
 func (pool *BlockPool) setBlockChain(bc *BlockChain) {
@@ -506,6 +535,8 @@ func (lb *linkedBlock) LinkParent(parentBlock *linkedBlock) {
 }
 
 func (lb *linkedBlock) travelToLinkAndReturnAllValidBlocks(parentBlock *Block) ([]*Block, []*Block, error) {
+	startAt := time.Now().UnixNano()
+
 	if err := lb.block.LinkParentBlock(parentBlock); err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"parent": parentBlock,
@@ -514,6 +545,7 @@ func (lb *linkedBlock) travelToLinkAndReturnAllValidBlocks(parentBlock *Block) (
 		}).Error("Failed to link the block with its parent.")
 		return nil, nil, err
 	}
+	linkAt := time.Now().UnixNano()
 
 	if err := lb.block.VerifyExecution(parentBlock, lb.pool.bc.ConsensusHandler()); err != nil {
 		logging.VLog().WithFields(logrus.Fields{
@@ -522,9 +554,13 @@ func (lb *linkedBlock) travelToLinkAndReturnAllValidBlocks(parentBlock *Block) (
 		}).Error("Failed to execute block.")
 		return nil, nil, err
 	}
+	executionAt := time.Now().UnixNano()
 
 	logging.VLog().WithFields(logrus.Fields{
-		"block": lb.block,
+		"block":          lb.block,
+		"time.link":      linkAt - startAt,
+		"time.execution": executionAt - linkAt,
+		"time.verified":  time.Now().UnixNano() - startAt,
 	}).Info("Block Verified.")
 
 	allBlocks := []*Block{lb.block}

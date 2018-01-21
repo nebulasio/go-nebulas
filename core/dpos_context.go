@@ -22,6 +22,7 @@ import (
 	"hash/fnv"
 	"sort"
 	"strconv"
+	"time"
 
 	"github.com/nebulasio/go-nebulas/common/trie"
 	"github.com/nebulasio/go-nebulas/core/pb"
@@ -511,6 +512,8 @@ func (dc *DynastyContext) electNextDynastyOnBaseDynasty(baseDynastyID int64, nex
 		"base is genesis": baseGenesis,
 	}).Debug("Try to elect new dynasty")
 
+	startAt := time.Now().UnixNano()
+
 	if baseGenesis {
 		baseDynastyID = nextDynastyID - 1
 	}
@@ -567,6 +570,10 @@ func (dc *DynastyContext) electNextDynastyOnBaseDynasty(baseDynastyID int64, nex
 			"dynasty.id":      strconv.Itoa(int(i + 1)),
 		}).Debug("Elected new dynasty")
 	}
+
+	logging.VLog().WithFields(logrus.Fields{
+		"time.elect": time.Now().UnixNano() - startAt,
+	}).Debug("Elected Over")
 	return nil
 }
 
