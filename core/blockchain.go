@@ -584,7 +584,7 @@ func (bc *BlockChain) NewBlockFromParent(coinbase *Address, parentBlock *Block) 
 // PutVerifiedNewBlocks put verified new blocks and tails.
 func (bc *BlockChain) putVerifiedNewBlocks(parent *Block, allBlocks, tailBlocks []*Block) error {
 	for _, v := range allBlocks {
-		bc.cachedBlocks.ContainsOrAdd(v.Hash().Hex(), v)
+		bc.cachedBlocks.Add(v.Hash().Hex(), v)
 		if err := bc.storeBlockToStorage(v); err != nil {
 			logging.VLog().WithFields(logrus.Fields{
 				"block": v,
@@ -603,7 +603,7 @@ func (bc *BlockChain) putVerifiedNewBlocks(parent *Block, allBlocks, tailBlocks 
 		}
 	}
 	for _, v := range tailBlocks {
-		bc.detachedTailBlocks.ContainsOrAdd(v.Hash().Hex(), v)
+		bc.detachedTailBlocks.Add(v.Hash().Hex(), v)
 	}
 
 	bc.detachedTailBlocks.Remove(parent.Hash().Hex())

@@ -76,7 +76,7 @@ func (storage *DiskStorage) Put(key []byte, value []byte) error {
 	if err := storage.db.Put(key, value, nil); err != nil {
 		return err
 	}
-	storage.cache.ContainsOrAdd(byteutils.Hex(key), value)
+	storage.cache.Add(byteutils.Hex(key), value)
 	return nil
 }
 
