@@ -21,6 +21,8 @@ package main
 import (
 	"fmt"
 	"log"
+	"net/http"
+	_ "net/http/pprof"
 	"os"
 	"os/signal"
 	"runtime"
@@ -114,6 +116,10 @@ func runNeb(ctx *cli.Context, n *neblet.Neblet) chan bool {
 
 		// memory profile
 		if memprofile := ctx.GlobalString(MemProfile.Name); memprofile != "" {
+			go func() {
+				http.ListenAndServe("localhost:7777", nil)
+			}()
+
 			f, err := os.Create(memprofile)
 			if err != nil {
 				log.Fatal("could not create memory profile: ", err)

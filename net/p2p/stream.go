@@ -168,7 +168,7 @@ func (s *Stream) SendMessage(messageName string, data []byte, priority int) erro
 	}
 
 	// metrics.
-	// metricsPacketsOutByMessageName(messageName, message.Length())
+	metricsPacketsOutByMessageName(messageName, message.Length())
 
 	// send to pool.
 	message.FlagSendMessageAt()
@@ -213,7 +213,7 @@ func (s *Stream) Write(data []byte) error {
 // WriteNebMessage write neb msg in the stream
 func (s *Stream) WriteNebMessage(message *NebMessage) error {
 	// metrics.
-	// metricsPacketsOutByMessageName(message.MessageName(), message.Length())
+	metricsPacketsOutByMessageName(message.MessageName(), message.Length())
 
 	err := s.Write(message.Content())
 	message.FlagWriteMessageAt()
@@ -360,7 +360,7 @@ func (s *Stream) readLoop() {
 			// metrics.
 			metricsPacketsIn.Mark(1)
 			metricsBytesIn.Mark(int64(message.Length()))
-			// metricsPacketsInByMessageName(message.MessageName(), message.Length())
+			metricsPacketsInByMessageName(message.MessageName(), message.Length())
 
 			// handle message.
 			if err := s.handleMessage(message); err == ErrShouldCloseConnectionAndExitLoop {
