@@ -22,6 +22,8 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/nebulasio/go-nebulas/util/logging"
+
 	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/common/trie"
 	"github.com/nebulasio/go-nebulas/core/pb"
@@ -138,6 +140,21 @@ func (acc *account) RollBack() {
 	}).Debug("Account RollBack.") */
 }
 
+// Clone account
+func (acc *account) Clone() (Account, error) {
+	varibles, err := acc.variables.Clone()
+	if err != nil {
+		return nil, err
+	}
+	return &account{
+		address:    acc.address,
+		balance:    util.NewUint128FromBigInt(acc.balance.Int),
+		nonce:      acc.nonce,
+		variables:  varibles,
+		birthPlace: acc.birthPlace,
+	}, nil
+}
+
 // IncrNonce by 1
 func (acc *account) IncrNonce() {
 	acc.nonce++
@@ -145,7 +162,9 @@ func (acc *account) IncrNonce() {
 
 // AddBalance to an account
 func (acc *account) AddBalance(value *util.Uint128) {
-	acc.balance.Add(acc.balance.Int, value.Int)
+	afterBalance := util.NewUint128()
+	afterBalance.Add(acc.balance.Int, value.Int)
+	acc.balance = afterBalance
 }
 
 // SubBalance to an account
@@ -153,7 +172,11 @@ func (acc *account) SubBalance(value *util.Uint128) error {
 	if acc.balance.Cmp(value.Int) < 0 {
 		return ErrBalanceInsufficient
 	}
-	acc.balance.Sub(acc.balance.Int, value.Int)
+
+	afterBalance := util.NewUint128()
+	afterBalance.Sub(acc.balance.Int, value.Int)
+	acc.balance = afterBalance
+
 	return nil
 }
 
@@ -318,7 +341,6 @@ func (as *accountState) Accounts() ([]Account, error) {
 
 // BeginBatch begin a batch task
 func (as *accountState) BeginBatch() {
-	// logging.VLog().Debug("AccountState Begin.")
 	as.stateTrie.BeginBatch()
 	as.batching = true
 }
@@ -327,11 +349,11 @@ func (as *accountState) BeginBatch() {
 func (as *accountState) Commit() {
 	for addr, acc := range as.dirtyAccount {
 		acc.Commit()
-		delete(as.dirtyAccount, addr)
 		bytes, _ := acc.ToBytes()
 		key, _ := addr.Hash()
 		as.stateTrie.Put(key, bytes)
 	}
+	as.dirtyAccount = make(map[byteutils.HexHash]Account)
 	as.stateTrie.Commit()
 	as.batching = false
 	/* 	logging.VLog().WithFields(logrus.Fields{
@@ -342,10 +364,10 @@ func (as *accountState) Commit() {
 // RollBack a batch task
 func (as *accountState) RollBack() {
 	as.stateTrie.RollBack()
-	for addr, acc := range as.dirtyAccount {
+	for _, acc := range as.dirtyAccount {
 		acc.RollBack()
-		delete(as.dirtyAccount, addr)
 	}
+	as.dirtyAccount = make(map[byteutils.HexHash]Account)
 	as.batching = false
 	/* 	logging.VLog().WithFields(logrus.Fields{
 		"AccountState": as,
@@ -358,9 +380,19 @@ func (as *accountState) Clone() (AccountState, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	dirtyAccount := make(map[byteutils.HexHash]Account)
+	for addr, acc := range as.dirtyAccount {
+		logging.VLog().Error(len(as.dirtyAccount))
+		dirtyAccount[addr], err = acc.Clone()
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	return &accountState{
 		stateTrie:    stateTrie,
-		dirtyAccount: as.dirtyAccount,
+		dirtyAccount: dirtyAccount,
 		batching:     as.batching,
 		storage:      as.storage,
 	}, nil

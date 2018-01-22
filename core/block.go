@@ -715,15 +715,9 @@ func (block *Block) verifyState() error {
 func (block *Block) execute() error {
 	block.rewardCoinbase()
 
-	for idx, tx := range block.transactions {
+	for _, tx := range block.transactions {
 		start := time.Now().Unix()
 		metricsTxExecute.Mark(1)
-
-		logging.VLog().WithFields(logrus.Fields{
-			"tx":    tx,
-			"idx":   idx,
-			"block": block,
-		}).Debug("Choose tx.")
 
 		giveback, err := block.executeTransaction(tx)
 		if giveback {
@@ -852,19 +846,22 @@ func (block *Block) recordMintCnt() error {
 }
 
 func (block *Block) rewardCoinbase() {
-	// startAt := time.Now().Unix()
 	coinbaseAddr := block.header.coinbase.address
+	stateOld := block.accState.RootHash().String()
 	coinbaseAcc := block.accState.GetOrCreateUserAccount(coinbaseAddr)
-	// balance := coinbaseAcc.Balance()
+	balanceOld := coinbaseAcc.Balance().String()
 	coinbaseAcc.AddBalance(BlockReward)
-	// endAt := time.Now().Unix()
+	balanceNew := coinbaseAcc.Balance().String()
+	stateNew := block.accState.RootHash().String()
 
-	/* 	logging.VLog().WithFields(logrus.Fields{
+	logging.VLog().WithFields(logrus.Fields{
 		"coinbase":       coinbaseAddr.Hex(),
-		"balance.before": balance.String(),
-		"balance.after":  coinbaseAcc.Balance().String(),
-		"time":           endAt - startAt,
-	}).Info("Rewarded the coinbase.") */
+		"balance.before": balanceOld,
+		"balance.after":  balanceNew,
+		"state.before":   stateOld,
+		"state.after":    stateNew,
+		"reward":         BlockReward.String(),
+	}).Info("Rewarded the coinbase.")
 }
 
 // GetTransaction from txs Trie
@@ -912,6 +909,7 @@ func (block *Block) checkTransaction(tx *Transaction) (giveback bool, err error)
 
 	// check nonce
 	fromAcc := block.accState.GetOrCreateUserAccount(tx.from.address)
+
 	if tx.nonce < fromAcc.Nonce()+1 {
 		return false, ErrSmallTransactionNonce
 	} else if tx.nonce > fromAcc.Nonce()+1 {

@@ -269,7 +269,8 @@ func TestForkChoice(t *testing.T) {
 	assert.Equal(t, block0.Hash(), dpos.chain.TailBlock().Hash())
 
 	addr1 := GetUnlockAddress(t, am, "333cb3ed8c417971845382ede3cf67a0a96270c05fe2f700")
-	block11, _ := dpos.chain.NewBlock(addr1)
+	block11, err := dpos.chain.NewBlock(addr1)
+	assert.Nil(t, err)
 	block11.SetTimestamp(core.BlockInterval * 2)
 	block11.SetMiner(addr1)
 	block11.Seal()

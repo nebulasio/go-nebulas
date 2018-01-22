@@ -23,6 +23,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/nebulasio/go-nebulas/util/logging"
+
 	pb "github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/core/pb"
 	"github.com/nebulasio/go-nebulas/crypto"
@@ -289,6 +291,8 @@ func TestBlock_CollectTransactions(t *testing.T) {
 	balance = block.GetBalance(block.header.coinbase.address)
 	// balance > BlockReward (BlockReward + gas)
 	//gas, _ := bc.EstimateGas(tx1)
+	logging.CLog().Info(balance.String())
+	logging.CLog().Info(BlockReward.String())
 	assert.NotEqual(t, balance.Cmp(BlockReward.Int), 0)
 	// mock net message
 	block, _ = mockBlockFromNetwork(block)

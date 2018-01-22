@@ -32,16 +32,16 @@ import (
 
 // TODO: add command line flag.
 const (
-	from  = "333cb3ed8c417971845382ede3cf67a0a96270c05fe2f700"
+	from  = "1a263547d167c74cf4b8f9166cfa244de0481c514a45aa2c"
 	to    = "fbcef590704577fa307198bf6edc6272df451610b5744bfe"
-	value = 0
+	value = 2
 )
 
 // RPC testing client.
 func main() {
 	// Set up a connection to the server.
 	//cfg := neblet.LoadConfig(config).Rpc
-	addr := fmt.Sprintf("127.0.0.1:%d", uint32(51510))
+	addr := fmt.Sprintf("127.0.0.1:%d", uint32(8684))
 	conn, err := rpc.Dial(addr)
 	if err != nil {
 		log.Fatal(err)
@@ -50,7 +50,19 @@ func main() {
 
 	admin := rpcpb.NewAdminServiceClient(conn)
 	api := rpcpb.NewApiServiceClient(conn)
-	start := time.Now().Unix()
+	var nonce uint64
+
+	{
+		r, err := api.GetAccountState(context.Background(), &rpcpb.GetAccountStateRequest{Address: from})
+		if err != nil {
+			log.Println("GetAccountState", from, "failed", err)
+		} else {
+			val := util.NewUint128FromString(r.GetBalance())
+			nonce, _ = strconv.ParseUint(r.Nonce, 10, 64)
+			log.Println("GetAccountState", from, "nonce", r.Nonce, "value", val)
+		}
+	}
+
 	{
 		_, err := admin.UnlockAccount(context.Background(), &rpcpb.UnlockAccountRequest{Address: from, Passphrase: "passphrase"})
 		if err != nil {
@@ -60,19 +72,19 @@ func main() {
 		}
 	}
 
+	start := time.Now().Unix()
+	nonce++
 	{
 		v := util.NewUint128FromInt(value)
-		nonce := uint64(1)
-		for i := 0; i < 10000; i++ {
-			r, err := api.SendTransaction(context.Background(), &rpcpb.TransactionRequest{From: from, To: to, Value: v.String(), Nonce: nonce})
+		for i := 0; i < 1000; i++ {
+			_, err := api.SendTransaction(context.Background(), &rpcpb.TransactionRequest{From: from, To: to, Value: v.String(), Nonce: nonce})
 			if err != nil {
 				log.Println("SendTransaction failed:", err)
-			} else {
-				log.Println("SendTransaction", from, "->", to, "value", value, r)
 			}
 			nonce++
 		}
 	}
+	log.Println("SendTransaction ", 1000)
 
 	{
 		for true {
