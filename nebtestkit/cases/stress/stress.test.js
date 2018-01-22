@@ -5,8 +5,8 @@ var Wallet = require('../../../cmd/console/neb.js/lib/wallet.js');
 var sleep = require("system-sleep");
 const https = require("https");
 
-const AddressNumber = 5;
-const SendTimes = 1;
+const AddressNumber = 50;
+const SendTimes = 10;
 
 
 var nodes = new TestnetNodes();

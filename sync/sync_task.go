@@ -424,6 +424,14 @@ func (st *Task) sendChainGetChunkMessage(chunkHeaderIndex int) {
 }
 
 func (st *Task) processChunkData(message net.Message) {
+	// if maxConsistentChunkHeaders is nil, return
+	if st.maxConsistentChunkHeaders == nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"pid": message.MessageFrom(),
+		}).Debug("Invalid ChainChunkData message data.")
+		st.netService.ClosePeer(message.MessageFrom(), ErrInvalidChainChunkDataMessageData)
+		return
+	}
 	chunkData := new(syncpb.ChunkData)
 	if err := proto.Unmarshal(message.Data().([]byte), chunkData); err != nil {
 		logging.VLog().WithFields(logrus.Fields{
