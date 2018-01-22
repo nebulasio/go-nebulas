@@ -1,3 +1,7 @@
+# profile
+*.profile
+profile/
+
 # vendor dir.
 vendor
 
