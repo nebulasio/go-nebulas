@@ -304,7 +304,7 @@ func (bc *BlockChain) buildIndexByBlockHeight(from *Block, to *Block) error {
 
 // SetTailBlock set tail block.
 func (bc *BlockChain) SetTailBlock(newTail *Block) error {
-	startAt := time.Now().UnixNano()
+	// startAt := time.Now().Unix()
 
 	oldTail := bc.tailBlock
 	ancestor, err := bc.FindCommonAncestorWithTail(newTail)
@@ -315,7 +315,7 @@ func (bc *BlockChain) SetTailBlock(newTail *Block) error {
 		}).Debug("Failed to find common ancestor with tail")
 		return err
 	}
-	foundAt := time.Now().UnixNano()
+	// foundAt := time.Now().Unix()
 
 	if err := bc.revertBlocks(ancestor, oldTail); err != nil {
 		logging.VLog().WithFields(logrus.Fields{
@@ -325,7 +325,7 @@ func (bc *BlockChain) SetTailBlock(newTail *Block) error {
 		}).Debug("Failed to revert blocks.")
 		return err
 	}
-	revertedAt := time.Now().UnixNano()
+	// revertedAt := time.Now().Unix()
 
 	// build index by block height
 	if err := bc.buildIndexByBlockHeight(ancestor, newTail); err != nil {
@@ -336,34 +336,34 @@ func (bc *BlockChain) SetTailBlock(newTail *Block) error {
 		}).Debug("Failed to build index by block height.")
 		return err
 	}
-	builtAt := time.Now().UnixNano()
+	// builtAt := time.Now().Unix()
 
 	// record new tail
 	if err := bc.storeTailToStorage(newTail); err != nil {
 		return err
 	}
 	bc.tailBlock = newTail
-	storedAt := time.Now().UnixNano()
+	// storedAt := time.Now().Unix()
 
 	metricsBlockHeightGauge.Update(int64(newTail.Height()))
 	metricsBlocktailHashGauge.Update(int64(byteutils.HashBytes(newTail.Hash())))
 
-	endAt := time.Now().UnixNano()
+	// endAt := time.Now().Unix()
 	logging.VLog().WithFields(logrus.Fields{
-		"time.foundAncestor":    foundAt - startAt,
-		"time.revertBlocks":     revertedAt - foundAt,
-		"time.buildHeightIndex": builtAt - revertedAt,
-		"time.storeNewTail":     storedAt - builtAt,
-		"time.all":              endAt - startAt,
-		"tail.old":              oldTail,
-		"tail.new":              newTail,
+		/* 		"time.foundAncestor":    foundAt - startAt,
+		   		"time.revertBlocks":     revertedAt - foundAt,
+		   		"time.buildHeightIndex": builtAt - revertedAt,
+		   		"time.storeNewTail":     storedAt - builtAt,
+		   		"time.all":              endAt - startAt, */
+		"tail.old": oldTail,
+		"tail.new": newTail,
 	}).Info("Succeed to set tail block.")
 
 	return nil
 }
 
 func (bc *BlockChain) updateLatestIrreversibleBlock(tail *Block) {
-	startAt := time.Now().UnixNano()
+	// startAt := time.Now().Unix()
 
 	lib := bc.latestIrreversibleBlock
 	cur := tail
@@ -377,10 +377,10 @@ func (bc *BlockChain) updateLatestIrreversibleBlock(tail *Block) {
 		}
 		if int(cur.height)-int(lib.height) < ConsensusSize-len(miners) {
 			logging.VLog().WithFields(logrus.Fields{
-				"tail":             tail,
-				"lib":              lib,
-				"cur":              cur,
-				"time":             time.Now().UnixNano() - startAt,
+				"tail": tail,
+				"lib":  lib,
+				"cur":  cur,
+				// "time":             time.Now().Unix() - startAt,
 				"err":              "supported miners is not enough",
 				"miners.limit":     ConsensusSize,
 				"miners.supported": len(miners),
@@ -397,10 +397,10 @@ func (bc *BlockChain) updateLatestIrreversibleBlock(tail *Block) {
 				return
 			}
 			logging.VLog().WithFields(logrus.Fields{
-				"lib.new":          cur,
-				"lib.old":          bc.latestIrreversibleBlock,
-				"tail":             tail,
-				"time":             time.Now().UnixNano() - startAt,
+				"lib.new": cur,
+				"lib.old": bc.latestIrreversibleBlock,
+				"tail":    tail,
+				// "time":             time.Now().Unix() - startAt,
 				"miners.limit":     ConsensusSize,
 				"miners.supported": len(miners),
 			}).Info("Succeed to update latest irreversible block.")
@@ -420,10 +420,10 @@ func (bc *BlockChain) updateLatestIrreversibleBlock(tail *Block) {
 	}
 
 	logging.VLog().WithFields(logrus.Fields{
-		"cur":              cur,
-		"lib":              bc.latestIrreversibleBlock,
-		"tail":             tail,
-		"time":             time.Now().UnixNano() - startAt,
+		"cur":  cur,
+		"lib":  bc.latestIrreversibleBlock,
+		"tail": tail,
+		// "time":             time.Now().Unix() - startAt,
 		"err":              "supported miners is not enough",
 		"miners.limit":     ConsensusSize,
 		"miners.supported": len(miners),

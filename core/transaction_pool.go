@@ -164,10 +164,10 @@ func (pool *TransactionPool) loop() {
 				continue
 			}
 
-			logging.VLog().WithFields(logrus.Fields{
+			/* 			logging.VLog().WithFields(logrus.Fields{
 				"tx":   tx,
 				"type": msg.MessageType(),
-			}).Debug("Received a new tx.")
+			}).Debug("Received a new tx.") */
 
 			if err := pool.PushAndRelay(tx); err != nil {
 				logging.VLog().WithFields(logrus.Fields{
@@ -198,9 +198,9 @@ func (pool *TransactionPool) PushAndRelay(tx *Transaction) error {
 		return err
 	}
 
-	logging.VLog().WithFields(logrus.Fields{
+	/* 	logging.VLog().WithFields(logrus.Fields{
 		"tx": tx,
-	}).Debug("Succeed to relay the tx")
+	}).Debug("Succeed to relay the tx") */
 
 	pool.nm.Relay(MessageTypeNewTx, tx, net.MessagePriorityNormal)
 	return nil
@@ -215,9 +215,9 @@ func (pool *TransactionPool) PushAndBroadcast(tx *Transaction) error {
 		return err
 	}
 
-	logging.VLog().WithFields(logrus.Fields{
+	/* 	logging.VLog().WithFields(logrus.Fields{
 		"tx": tx,
-	}).Debug("Succeed to broadcast the tx")
+	}).Debug("Succeed to broadcast the tx") */
 
 	pool.nm.Broadcast(MessageTypeNewTx, tx, net.MessagePriorityNormal)
 	return nil

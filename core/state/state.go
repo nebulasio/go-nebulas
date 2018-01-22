@@ -28,8 +28,8 @@ import (
 	"github.com/nebulasio/go-nebulas/storage"
 	"github.com/nebulasio/go-nebulas/util"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
-	"github.com/nebulasio/go-nebulas/util/logging"
-	"github.com/sirupsen/logrus"
+	// "github.com/nebulasio/go-nebulas/util/logging"
+	// "github.com/sirupsen/logrus"
 )
 
 // Errors
@@ -118,24 +118,24 @@ func (acc *account) BirthPlace() byteutils.Hash {
 
 // BeginBatch begins a batch task
 func (acc *account) BeginBatch() {
-	logging.VLog().Debug("Account Begin.")
+	// logging.VLog().Debug("Account Begin.")
 	acc.variables.BeginBatch()
 }
 
 // Commit a batch task
 func (acc *account) Commit() {
 	acc.variables.Commit()
-	logging.VLog().WithFields(logrus.Fields{
+	/* 	logging.VLog().WithFields(logrus.Fields{
 		"acc": acc,
-	}).Debug("Account Commit.")
+	}).Debug("Account Commit.") */
 }
 
 // RollBack a batch task
 func (acc *account) RollBack() {
 	acc.variables.RollBack()
-	logging.VLog().WithFields(logrus.Fields{
+	/* 	logging.VLog().WithFields(logrus.Fields{
 		"acc": acc,
-	}).Debug("Account RollBack.")
+	}).Debug("Account RollBack.") */
 }
 
 // IncrNonce by 1
@@ -318,7 +318,7 @@ func (as *accountState) Accounts() ([]Account, error) {
 
 // BeginBatch begin a batch task
 func (as *accountState) BeginBatch() {
-	logging.VLog().Debug("AccountState Begin.")
+	// logging.VLog().Debug("AccountState Begin.")
 	as.stateTrie.BeginBatch()
 	as.batching = true
 }
@@ -334,9 +334,9 @@ func (as *accountState) Commit() {
 	}
 	as.stateTrie.Commit()
 	as.batching = false
-	logging.VLog().WithFields(logrus.Fields{
+	/* 	logging.VLog().WithFields(logrus.Fields{
 		"AccountState": as,
-	}).Debug("AccountState Commit.")
+	}).Debug("AccountState Commit.") */
 }
 
 // RollBack a batch task
@@ -347,9 +347,9 @@ func (as *accountState) RollBack() {
 		delete(as.dirtyAccount, addr)
 	}
 	as.batching = false
-	logging.VLog().WithFields(logrus.Fields{
+	/* 	logging.VLog().WithFields(logrus.Fields{
 		"AccountState": as,
-	}).Debug("AccountState RollBack.")
+	}).Debug("AccountState RollBack.") */
 }
 
 // Clone an accountState

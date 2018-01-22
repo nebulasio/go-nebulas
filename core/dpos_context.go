@@ -21,8 +21,7 @@ package core
 import (
 	"hash/fnv"
 	"sort"
-	"strconv"
-	"time"
+	// "strconv"
 
 	"github.com/nebulasio/go-nebulas/common/trie"
 	"github.com/nebulasio/go-nebulas/core/pb"
@@ -110,7 +109,7 @@ func (dc *DposContext) RootHash() byteutils.Hash {
 
 // BeginBatch starts a batch task
 func (dc *DposContext) BeginBatch() {
-	logging.VLog().Debug("DposContext Begin.")
+	// logging.VLog().Debug("DposContext Begin.")
 	dc.delegateTrie.BeginBatch()
 	dc.dynastyTrie.BeginBatch()
 	dc.nextDynastyTrie.BeginBatch()
@@ -127,7 +126,7 @@ func (dc *DposContext) Commit() {
 	dc.candidateTrie.Commit()
 	dc.voteTrie.Commit()
 	dc.mintCntTrie.Commit()
-	logging.VLog().Debug("DposContext Commit.")
+	// logging.VLog().Debug("DposContext Commit.")
 }
 
 // RollBack a batch task
@@ -138,7 +137,7 @@ func (dc *DposContext) RollBack() {
 	dc.candidateTrie.RollBack()
 	dc.voteTrie.RollBack()
 	dc.mintCntTrie.RollBack()
-	logging.VLog().Debug("DposContext RollBack.")
+	// logging.VLog().Debug("DposContext RollBack.")
 }
 
 // Clone a dpos context
@@ -352,14 +351,14 @@ func checkActiveBootstrapValidator(validator byteutils.Hash, protect *trie.Batch
 }
 
 func (dc *DynastyContext) chooseCandidates(votes map[string]*util.Uint128) (Candidates, error) {
-	startAt := time.Now().UnixNano()
+	// startAt := time.Now().Unix()
 	// active bootstrap validators
 	var bootstrapCandidates Candidates
 	activeBootstrapValidators, err := fetchActiveBootstapValidators(dc.ProtectTrie, dc.CandidateTrie)
 	if err != nil {
 		return nil, err
 	}
-	fetchAt := time.Now().UnixNano()
+	// fetchAt := time.Now().Unix()
 	for i := 0; i < len(activeBootstrapValidators); i++ {
 		address, err := AddressParseFromBytes(activeBootstrapValidators[i])
 		if err != nil {
@@ -372,9 +371,9 @@ func (dc *DynastyContext) chooseCandidates(votes map[string]*util.Uint128) (Cand
 		bootstrapCandidates = append(bootstrapCandidates, &Candidate{address, vote})
 		delete(votes, address.String())
 	}
-	bootstrapAt := time.Now().UnixNano()
+	// bootstrapAt := time.Now().Unix()
 	sort.Sort(bootstrapCandidates)
-	sortBootStrapAt := time.Now().UnixNano()
+	// sortBootStrapAt := time.Now().Unix()
 	// sort
 	var candidates Candidates
 	for k, v := range votes {
@@ -384,13 +383,13 @@ func (dc *DynastyContext) chooseCandidates(votes map[string]*util.Uint128) (Cand
 		}
 		candidates = append(candidates, &Candidate{addr, v})
 	}
-	candidateAt := time.Now().UnixNano()
+	// candidateAt := time.Now().Unix()
 	sort.Sort(candidates)
-	sortCandidateAt := time.Now().UnixNano()
+	// sortCandidateAt := time.Now().Unix()
 	// merge
 	candidates = append(bootstrapCandidates, candidates...)
 
-	logging.VLog().WithFields(logrus.Fields{
+	/* 	logging.VLog().WithFields(logrus.Fields{
 		"bootstrap.size":      bootstrapCandidates.Len(),
 		"candidate.size":      len(candidates) - bootstrapCandidates.Len(),
 		"time.fetch":          fetchAt - startAt,
@@ -398,8 +397,8 @@ func (dc *DynastyContext) chooseCandidates(votes map[string]*util.Uint128) (Cand
 		"time.sort.bootstrap": sortBootStrapAt - bootstrapAt,
 		"time.candidate":      candidateAt - sortBootStrapAt,
 		"time.sort.candidate": sortCandidateAt - candidateAt,
-		"time.choose":         time.Now().UnixNano() - startAt,
-	}).Debug("Choose candidates.")
+		"time.choose":         time.Now().Unix() - startAt,
+	}).Debug("Choose candidates.") */
 
 	return candidates, nil
 }
@@ -437,7 +436,7 @@ func kickout(stor storage.Storage, candidatesTrie *trie.BatchTrie, delegateTrie 
 			logging.VLog().WithFields(logrus.Fields{
 				"voter":     byteutils.Hex(delegator),
 				"candidate": candidate.Hex(),
-			}).Debug("Unexpected voter who votes nobody appears in delegate trie")
+			}).Debug("Errors: unexpected voter who votes nobody appears in delegate trie")
 		}
 		if err == nil && byteutils.Equal(bytes, candidate) {
 			if _, err := voteTrie.Del(delegator); err != nil && err != storage.ErrKeyNotFound {
@@ -449,7 +448,7 @@ func kickout(stor storage.Storage, candidatesTrie *trie.BatchTrie, delegateTrie 
 			return err
 		}
 	}
-	logging.VLog().Debug("Kickouted candidate: ", candidate.Hex())
+	// logging.VLog().Info("Kickouted candidate: ", candidate.Hex())
 	return nil
 }
 
@@ -462,7 +461,7 @@ func (dc *DynastyContext) kickoutCandidate(candidate byteutils.Hash) error {
 }
 
 func (dc *DynastyContext) kickoutDynasty(dynastyID int64) error {
-	startAt := time.Now().UnixNano()
+	// startAt := time.Now().Unix()
 
 	dynastyTrie := dc.DynastyTrie
 	iter, err := dynastyTrie.Iterator(nil)
@@ -477,10 +476,10 @@ func (dc *DynastyContext) kickoutDynasty(dynastyID int64) error {
 		return err
 	}
 
-	prepareAt := time.Now().UnixNano()
+	// prepareAt := time.Now().Unix()
 
 	for exist {
-		vStartAt := time.Now().UnixNano()
+		// vStartAt := time.Now().Unix()
 
 		validator := iter.Value()
 		key := append(byteutils.FromInt64(dynastyID), validator...)
@@ -498,60 +497,60 @@ func (dc *DynastyContext) kickoutDynasty(dynastyID int64) error {
 				continue
 			}
 		}
-		vCheckAt := time.Now().UnixNano()
+		// vCheckAt := time.Now().Unix()
 
 		isActiveBootstrapValidator, err := checkActiveBootstrapValidator(validator, dc.ProtectTrie, dc.CandidateTrie)
 		if err != nil {
 			return err
 		}
-		vCheckProtectAt := time.Now().UnixNano()
+		// vCheckProtectAt := time.Now().Unix()
 
 		if !isActiveBootstrapValidator {
 			if err := dc.kickoutCandidate(validator); err != nil {
 				return err
 			}
 		}
-		vKickoutAt := time.Now().UnixNano()
+		// vKickoutAt := time.Now().Unix()
 
 		exist, err = iter.Next()
 		if err != nil {
 			return err
 		}
-		vNextAt := time.Now().UnixNano()
+		// vNextAt := time.Now().Unix()
 
-		logging.VLog().WithFields(logrus.Fields{
+		/* 		logging.VLog().WithFields(logrus.Fields{
 			"time.check.mint":        vCheckAt - vStartAt,
 			"time.check.protect":     vCheckProtectAt - vCheckAt,
 			"time.validator.kickout": vKickoutAt - vCheckProtectAt,
 			"time.validator.next":    vNextAt - vKickoutAt,
 			"time.kickout":           vNextAt - vStartAt,
-		}).Debug("Kickouted Validator: ", byteutils.Hex(validator))
+		}).Debug("Kickouted Validator: ", byteutils.Hex(validator)) */
 	}
 
-	endAt := time.Now().UnixNano()
+	// endAt := time.Now().Unix()
 
-	logging.VLog().WithFields(logrus.Fields{
+	/* 	logging.VLog().WithFields(logrus.Fields{
 		"time.prepare":         prepareAt - startAt,
 		"time.member.kickout":  endAt - prepareAt,
 		"time.dynasty.kickout": endAt - startAt,
-	}).Debug("Kickouted dynasty: ", dynastyID)
+	}).Debug("Kickouted dynasty: ", dynastyID) */
 	return nil
 }
 
 func (dc *DynastyContext) electNextDynastyOnBaseDynasty(baseDynastyID int64, nextDynastyID int64, baseGenesis bool) error {
-	logging.VLog().WithFields(logrus.Fields{
+	/* 	logging.VLog().WithFields(logrus.Fields{
 		"base":            baseDynastyID,
 		"next":            nextDynastyID,
 		"base is genesis": baseGenesis,
-	}).Debug("Try to elect new dynasty")
+	}).Debug("Try to elect new dynasty") */
 
-	startAt := time.Now().UnixNano()
+	// startAt := time.Now().Unix()
 
 	if baseGenesis {
 		baseDynastyID = nextDynastyID - 1
 	}
 	for i := baseDynastyID; i < nextDynastyID; i++ {
-		electAt := time.Now().UnixNano()
+		// electAt := time.Now().Unix()
 		// collect candidates
 		if !baseGenesis {
 			err := dc.kickoutDynasty(i)
@@ -559,13 +558,13 @@ func (dc *DynastyContext) electNextDynastyOnBaseDynasty(baseDynastyID int64, nex
 				return err
 			}
 		}
-		kickAt := time.Now().UnixNano()
+		// kickAt := time.Now().Unix()
 
 		votes, err := dc.tallyVotes()
 		if err != nil {
 			return err
 		}
-		tallyAt := time.Now().UnixNano()
+		// tallyAt := time.Now().Unix()
 
 		candidates, err := dc.chooseCandidates(votes)
 		if err != nil {
@@ -574,7 +573,7 @@ func (dc *DynastyContext) electNextDynastyOnBaseDynasty(baseDynastyID int64, nex
 		if len(candidates) < SafeSize {
 			return ErrTooFewCandidates
 		}
-		chooseAt := time.Now().UnixNano()
+		// chooseAt := time.Now().Unix()
 
 		// Top 20 are selected directly
 		newDynasty := []string{}
@@ -588,7 +587,7 @@ func (dc *DynastyContext) electNextDynastyOnBaseDynasty(baseDynastyID int64, nex
 			}
 			newDynasty = append(newDynasty, candidates[i].Address.String())
 		}
-		topAt := time.Now().UnixNano()
+		// topAt := time.Now().Unix()
 
 		// The last one is selected randomly
 		if len(candidates) > directSelected {
@@ -604,12 +603,12 @@ func (dc *DynastyContext) electNextDynastyOnBaseDynasty(baseDynastyID int64, nex
 			}
 			newDynasty = append(newDynasty, candidates[offset].Address.String())
 		}
-		lastAt := time.Now().UnixNano()
+		// lastAt := time.Now().Unix()
 
 		dc.DynastyTrie = dc.NextDynastyTrie
 		dc.NextDynastyTrie = nextDynastyTrie
 
-		logging.VLog().WithFields(logrus.Fields{
+		/* 		logging.VLog().WithFields(logrus.Fields{
 			"dynasty.members":    newDynasty,
 			"dynasty.id":         strconv.Itoa(int(i + 1)),
 			"time.kickout":       kickAt - electAt,
@@ -617,13 +616,14 @@ func (dc *DynastyContext) electNextDynastyOnBaseDynasty(baseDynastyID int64, nex
 			"time.choose":        chooseAt - tallyAt,
 			"time.elect.top":     topAt - chooseAt,
 			"time.elect.last":    lastAt - topAt,
-			"time.elect.dynasty": time.Now().UnixNano() - electAt,
-		}).Debug("Elected new dynasty")
+			"time.elect.dynasty": time.Now().Unix() - electAt,
+		}).Debug("Elected new dynasty") */
 	}
 
-	logging.VLog().WithFields(logrus.Fields{
-		"time.elect.over": time.Now().UnixNano() - startAt,
-	}).Debug("Elected Over")
+	/* 	logging.VLog().WithFields(logrus.Fields{
+		"time.elect.over": time.Now().Unix() - startAt,
+	}).Debug("Elected Over") */
+
 	return nil
 }
 

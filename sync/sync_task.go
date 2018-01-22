@@ -372,21 +372,17 @@ func (st *Task) sendChainGetChunk() {
 }
 
 func (st *Task) checkChainGetChunkTimeout() {
-	logging.VLog().Debug("Chunk Timeout Before")
-
 	// lock.
 	st.syncMutex.Lock()
 	defer st.syncMutex.Unlock()
 
-	logging.VLog().Debug("Chunk Timeout After")
-
 	for i := 0; i <= st.chainChunkDataSyncPosition; i++ {
 		t := st.chainChunkDataStatus[i]
 
-		logging.VLog().WithFields(logrus.Fields{
+		/* 		logging.VLog().WithFields(logrus.Fields{
 			"pos":    st.chainChunkDataProcessPosition,
 			"status": t,
-		}).Debug("Chunk Status.")
+		}).Debug("Chunk Status.") */
 
 		if t == chunkDataStatusFinished || t == chunkDataStatusNotStart {
 			continue
@@ -486,7 +482,7 @@ func (st *Task) processChunkData(message net.Message) {
 	st.chainChunkData[chunkDataIndex] = chunkData
 	chunk, ok := st.chainChunkData[st.chainChunkDataProcessPosition]
 	for ok {
-		startAt := time.Now().Unix()
+		// startAt := time.Now().Unix()
 		if err := st.chunk.processChunkData(chunk); err != nil {
 			logging.VLog().WithFields(logrus.Fields{
 				"err": err,
@@ -497,10 +493,10 @@ func (st *Task) processChunkData(message net.Message) {
 			return
 		}
 
-		logging.VLog().WithFields(logrus.Fields{
+		/* 		logging.VLog().WithFields(logrus.Fields{
 			"received": chunkDataIndex,
 			"time":     time.Now().Unix() - startAt,
-		}).Debugf("Succeed to get chain chunk %d.", st.chainChunkDataProcessPosition)
+		}).Debugf("Succeed to get chain chunk %d.", st.chainChunkDataProcessPosition) */
 
 		st.chainChunkDataProcessPosition++
 		chunk, ok = st.chainChunkData[st.chainChunkDataProcessPosition]

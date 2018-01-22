@@ -269,12 +269,6 @@ func mockBlockFromNetwork(block *Block) (*Block, error) {
 
 // Push block into block pool
 func (pool *BlockPool) Push(block *Block) error {
-	startAt := time.Now().Unix()
-	defer logging.VLog().WithFields(logrus.Fields{
-		"block": block,
-		"time":  time.Now().Unix() - startAt,
-	}).Debug("Push Block Over.")
-
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
 	block, err := mockBlockFromNetwork(block)
@@ -290,12 +284,6 @@ func (pool *BlockPool) Push(block *Block) error {
 
 // PushAndRelay push block into block pool and relay it.
 func (pool *BlockPool) PushAndRelay(sender string, block *Block) error {
-	startAt := time.Now().Unix()
-	defer logging.VLog().WithFields(logrus.Fields{
-		"block": block,
-		"time":  time.Now().Unix() - startAt,
-	}).Debug("Push&Relay Block Over.")
-
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
 
@@ -312,12 +300,6 @@ func (pool *BlockPool) PushAndRelay(sender string, block *Block) error {
 
 // PushAndBroadcast push block into block pool and broadcast it.
 func (pool *BlockPool) PushAndBroadcast(block *Block) error {
-	startAt := time.Now().Unix()
-	defer logging.VLog().WithFields(logrus.Fields{
-		"block": block,
-		"time":  time.Now().Unix() - startAt,
-	}).Debug("Push&Broadcast Block Over.")
-
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
 
@@ -360,11 +342,11 @@ func (pool *BlockPool) download(sender string, block *Block) error {
 }
 
 func (pool *BlockPool) push(sender string, block *Block) error {
-	logging.VLog().WithFields(logrus.Fields{
+	/* 	logging.VLog().WithFields(logrus.Fields{
 		"block": block,
-	}).Debug("Try to push a new block.")
+	}).Debug("Try to push a new block.") */
 
-	startAt := time.Now().UnixNano()
+	// startAt := time.Now().Unix()
 
 	// verify non-dup block
 	if pool.cache.Contains(block.Hash().Hex()) ||
@@ -375,7 +357,7 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 		}).Debug("Found duplicated block.")
 		return ErrDuplicatedBlock
 	}
-	checkDupAt := time.Now().UnixNano()
+	// checkDupAt := time.Now().Unix()
 
 	// verify block integrity
 	if err := block.VerifyIntegrity(pool.bc.chainID, pool.bc.ConsensusHandler()); err != nil {
@@ -386,7 +368,7 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 		}).Debug("Failed to check block integrity.")
 		return err
 	}
-	checkIntegrityAt := time.Now().UnixNano()
+	// checkIntegrityAt := time.Now().Unix()
 
 	bc := pool.bc
 	cache := pool.cache
@@ -405,7 +387,7 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 	}
 	pool.slot.Add(lb.block.Timestamp(), lb.block)
 	cache.Add(lb.hash.Hex(), lb)
-	checkSlotAt := time.Now().UnixNano()
+	// checkSlotAt := time.Now().Unix()
 
 	// find child block in pool.
 	for _, k := range cache.Keys() {
@@ -416,7 +398,7 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 			c.LinkParent(lb)
 		}
 	}
-	findChildrenAt := time.Now().UnixNano()
+	// findChildrenAt := time.Now().Unix()
 
 	// find parent block in cache.
 	v, _ := cache.Get(lb.parentHash.Hex())
@@ -443,7 +425,7 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 
 		return nil
 	}
-	findParentAt := time.Now().UnixNano()
+	// findParentAt := time.Now().Unix()
 
 	// find parent in Chain.
 	var parentBlock *Block
@@ -471,7 +453,7 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 		}
 		return ErrInvalidBlockCannotFindParentInLocalAndTryDownload
 	}
-	getParentAt := time.Now().UnixNano()
+	// getParentAt := time.Now().Unix()
 
 	// found in BlockChain, then we can verify the state root, and tell the Consensus all the tails.
 	// performance depth-first search to verify state root, and get all tails.
@@ -479,12 +461,12 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 	if err != nil {
 		return err
 	}
-	verifyAt := time.Now().UnixNano()
+	// verifyAt := time.Now().Unix()
 
 	if err := bc.putVerifiedNewBlocks(parentBlock, allBlocks, tailBlocks); err != nil {
 		return err
 	}
-	putAt := time.Now().UnixNano()
+	// putAt := time.Now().Unix()
 
 	// remove allBlocks from cache.
 	for _, v := range allBlocks {
@@ -495,9 +477,9 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 	if err := pool.bc.ConsensusHandler().ForkChoice(); err != nil {
 		return err
 	}
-	forkchoiceAt := time.Now().UnixNano()
+	// forkchoiceAt := time.Now().Unix()
 
-	logging.VLog().WithFields(logrus.Fields{
+	/* 	logging.VLog().WithFields(logrus.Fields{
 		"time.checkdup":       checkDupAt - startAt,
 		"time.checkintegrity": checkIntegrityAt - checkDupAt,
 		"time.slot":           checkSlotAt - checkIntegrityAt,
@@ -507,8 +489,8 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 		"time.verify":         verifyAt - getParentAt,
 		"time.block.push":     putAt - verifyAt,
 		"time.forkchoice":     forkchoiceAt - putAt,
-		"time.all":            time.Now().UnixNano() - startAt,
-	}).Info("Succeed to put a block on chain.")
+		"time.all":            time.Now().Unix() - startAt,
+	}).Info("Succeed to put a block on chain.") */
 
 	return nil
 }
@@ -534,7 +516,7 @@ func (lb *linkedBlock) LinkParent(parentBlock *linkedBlock) {
 }
 
 func (lb *linkedBlock) travelToLinkAndReturnAllValidBlocks(parentBlock *Block) ([]*Block, []*Block, error) {
-	startAt := time.Now().UnixNano()
+	// startAt := time.Now().Unix()
 
 	if err := lb.block.LinkParentBlock(lb.chain, parentBlock); err != nil {
 		logging.VLog().WithFields(logrus.Fields{
@@ -544,7 +526,7 @@ func (lb *linkedBlock) travelToLinkAndReturnAllValidBlocks(parentBlock *Block) (
 		}).Error("Failed to link the block with its parent.")
 		return nil, nil, err
 	}
-	linkAt := time.Now().UnixNano()
+	// linkAt := time.Now().Unix()
 
 	if err := lb.block.VerifyExecution(parentBlock, lb.chain.ConsensusHandler()); err != nil {
 		logging.VLog().WithFields(logrus.Fields{
@@ -553,14 +535,14 @@ func (lb *linkedBlock) travelToLinkAndReturnAllValidBlocks(parentBlock *Block) (
 		}).Error("Failed to execute block.")
 		return nil, nil, err
 	}
-	executionAt := time.Now().UnixNano()
+	// executionAt := time.Now().Unix()
 
-	logging.VLog().WithFields(logrus.Fields{
+	/* 	logging.VLog().WithFields(logrus.Fields{
 		"block":          lb.block,
 		"time.link":      linkAt - startAt,
 		"time.execution": executionAt - linkAt,
-		"time.all":       time.Now().UnixNano() - startAt,
-	}).Info("Block Verified.")
+		"time.all":       time.Now().Unix() - startAt,
+	}).Info("Block Verified.") */
 
 	allBlocks := []*Block{lb.block}
 	tailBlocks := []*Block{}

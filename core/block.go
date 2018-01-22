@@ -373,7 +373,7 @@ func (block *Block) VerifyAddress(str string) bool {
 
 // LinkParentBlock link parent block, return true if hash is the same; false otherwise.
 func (block *Block) LinkParentBlock(chain *BlockChain, parentBlock *Block) error {
-	startAt := time.Now().UnixNano()
+	// startAt := time.Now().Unix()
 
 	if block.ParentHash().Equals(parentBlock.Hash()) == false {
 		return ErrLinkToWrongParentBlock
@@ -395,12 +395,12 @@ func (block *Block) LinkParentBlock(chain *BlockChain, parentBlock *Block) error
 	if err != nil {
 		return ErrGenerateNextDynastyContext
 	}
-	nextAt := time.Now().UnixNano()
+	// nextAt := time.Now().Unix()
 
 	if err := block.LoadDynastyContext(context); err != nil {
 		return ErrLoadNextDynastyContext
 	}
-	loadAt := time.Now().UnixNano()
+	// loadAt := time.Now().Unix()
 
 	block.txPool = parentBlock.txPool
 	block.parenetBlock = parentBlock
@@ -408,20 +408,20 @@ func (block *Block) LinkParentBlock(chain *BlockChain, parentBlock *Block) error
 	block.height = parentBlock.height + 1
 	block.eventEmitter = parentBlock.eventEmitter
 
-	logging.VLog().WithFields(logrus.Fields{
+	/* 	logging.VLog().WithFields(logrus.Fields{
 		"parent":    parentBlock,
 		"block":     block,
 		"err":       err,
 		"time.next": nextAt - startAt,
 		"time.load": loadAt - nextAt,
-		"time.all":  time.Now().UnixNano() - startAt,
-	}).Info("Linked the parent block.")
+		"time.all":  time.Now().Unix() - startAt,
+	}).Info("Linked the parent block.") */
 
 	return nil
 }
 
 func (block *Block) begin() {
-	logging.VLog().Debug("Block Begin.")
+	// logging.VLog().Debug("Block Begin.")
 	block.accState.BeginBatch()
 	block.txsTrie.BeginBatch()
 	block.eventsTrie.BeginBatch()
@@ -433,9 +433,9 @@ func (block *Block) commit() {
 	block.txsTrie.Commit()
 	block.eventsTrie.Commit()
 	block.dposContext.Commit()
-	logging.VLog().WithFields(logrus.Fields{
+	/* 	logging.VLog().WithFields(logrus.Fields{
 		"block": block,
-	}).Debug("Block Commit.")
+	}).Debug("Block Commit.") */
 }
 
 func (block *Block) rollback() {
@@ -443,9 +443,9 @@ func (block *Block) rollback() {
 	block.txsTrie.RollBack()
 	block.eventsTrie.RollBack()
 	block.dposContext.RollBack()
-	logging.VLog().WithFields(logrus.Fields{
+	/* 	logging.VLog().WithFields(logrus.Fields{
 		"block": block,
-	}).Debug("Block RollBack.")
+	}).Debug("Block RollBack.") */
 }
 
 // ReturnTransactions and giveback them to tx pool
@@ -559,39 +559,39 @@ func (block *Block) String() string {
 
 // VerifyExecution execute the block and verify the execution result.
 func (block *Block) VerifyExecution(parent *Block, consensus Consensus) error {
-	startAt := time.Now().UnixNano()
+	startAt := time.Now().Unix()
 
 	// verify the block is acceptable by consensus
 	if err := consensus.VerifyBlock(block, parent); err != nil {
 		return err
 	}
-	verifyAt := time.Now().UnixNano()
+	// verifyAt := time.Now().Unix()
 
 	block.begin()
-	beginAt := time.Now().UnixNano()
+	// beginAt := time.Now().Unix()
 
 	if err := block.execute(); err != nil {
 		block.rollback()
 		return err
 	}
-	executeAt := time.Now().UnixNano()
+	// executeAt := time.Now().Unix()
 
 	if err := block.verifyState(); err != nil {
 		block.rollback()
 		return err
 	}
-	stateAt := time.Now().UnixNano()
+	// stateAt := time.Now().Unix()
 
 	block.commit()
-	commitAt := time.Now().UnixNano()
+	// commitAt := time.Now().Unix()
 
 	// release all events
 	block.triggerEvent()
-	endAt := time.Now().UnixNano()
+	endAt := time.Now().Unix()
 
 	metricsBlockExecutedTimer.Update(time.Duration((endAt - startAt) / int64(time.Second)))
 
-	logging.VLog().WithFields(logrus.Fields{
+	/* 	logging.VLog().WithFields(logrus.Fields{
 		"time.verify":  verifyAt - startAt,
 		"time.begin":   beginAt - verifyAt,
 		"time.execute": executeAt - beginAt,
@@ -600,7 +600,7 @@ func (block *Block) VerifyExecution(parent *Block, consensus Consensus) error {
 		"time.event":   endAt - commitAt,
 		"tail.all":     endAt - startAt,
 		"block":        block,
-	}).Info("Succeed to verify the block.")
+	}).Info("Succeed to verify the block.") */
 	return nil
 }
 
@@ -788,11 +788,11 @@ func (block *Block) recordEvent(txHash byteutils.Hash, event *Event) error {
 	if err != nil {
 		return err
 	}
-	logging.VLog().WithFields(logrus.Fields{
+	/* 	logging.VLog().WithFields(logrus.Fields{
 		"block": block,
 		"tx":    txHash.Hex(),
 		"event": event,
-	}).Info("Recorded event.")
+	}).Info("Recorded event.") */
 	return nil
 }
 
@@ -825,7 +825,7 @@ func (block *Block) FetchEvents(txHash byteutils.Hash) ([]*Event, error) {
 }
 
 func (block *Block) recordMintCnt() error {
-	startAt := time.Now().UnixNano()
+	// startAt := time.Now().Unix()
 	key := append(byteutils.FromInt64(block.Timestamp()/DynastyInterval), block.miner.Bytes()...)
 	bytes, err := block.dposContext.mintCntTrie.Get(key)
 	if err != nil && err != storage.ErrKeyNotFound {
@@ -840,31 +840,31 @@ func (block *Block) recordMintCnt() error {
 	if err != nil {
 		return err
 	}
-	endAt := time.Now().UnixNano()
+	// endAt := time.Now().Unix()
 
-	logging.VLog().WithFields(logrus.Fields{
+	/* 	logging.VLog().WithFields(logrus.Fields{
 		"dynasty": block.Timestamp() / DynastyInterval,
 		"miner":   block.miner.String(),
 		"count":   cnt,
 		"time":    endAt - startAt,
-	}).Debug("Recorded the block minted by the miner in the dynasty.")
+	}).Debug("Recorded the block minted by the miner in the dynasty.") */
 	return nil
 }
 
 func (block *Block) rewardCoinbase() {
-	startAt := time.Now().UnixNano()
+	// startAt := time.Now().Unix()
 	coinbaseAddr := block.header.coinbase.address
 	coinbaseAcc := block.accState.GetOrCreateUserAccount(coinbaseAddr)
-	balance := coinbaseAcc.Balance()
+	// balance := coinbaseAcc.Balance()
 	coinbaseAcc.AddBalance(BlockReward)
-	endAt := time.Now().UnixNano()
+	// endAt := time.Now().Unix()
 
-	logging.VLog().WithFields(logrus.Fields{
+	/* 	logging.VLog().WithFields(logrus.Fields{
 		"coinbase":       coinbaseAddr.Hex(),
 		"balance.before": balance.String(),
 		"balance.after":  coinbaseAcc.Balance().String(),
 		"time":           endAt - startAt,
-	}).Info("Rewarded the coinbase.")
+	}).Info("Rewarded the coinbase.") */
 }
 
 // GetTransaction from txs Trie
@@ -925,25 +925,13 @@ func (block *Block) executeTransaction(tx *Transaction) (giveback bool, err erro
 		return giveback, err
 	}
 
-	logging.VLog().WithFields(logrus.Fields{
-		"tx": tx,
-	}).Debug("Checked tx.")
-
 	if _, err := tx.VerifyExecution(block); err != nil {
 		return false, err
 	}
 
-	logging.VLog().WithFields(logrus.Fields{
-		"tx": tx,
-	}).Debug("Executed tx.")
-
 	if err := block.acceptTransaction(tx); err != nil {
 		return false, err
 	}
-
-	logging.VLog().WithFields(logrus.Fields{
-		"tx": tx,
-	}).Debug("Accepted tx.")
 
 	return false, nil
 }

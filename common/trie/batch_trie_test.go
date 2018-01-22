@@ -1,7 +1,9 @@
 package trie
 
 import (
+	"fmt"
 	"testing"
+	"time"
 
 	"github.com/nebulasio/go-nebulas/storage"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
@@ -168,4 +170,74 @@ func TestBatchTrie_Iterator(t *testing.T) {
 	// nothing
 	it, err = tr.Iterator(HashDomainsPrefix("b"))
 	assert.NotNil(t, err)
+}
+
+func TestBatchTrie_Stress_1(t *testing.T) {
+	COUNT := int64(10000)
+	storage, _ := storage.NewMemoryStorage()
+	tr, _ := NewBatchTrie(nil, storage)
+
+	keys := make([][]byte, COUNT)
+	for i := int64(0); i < COUNT; i++ {
+		bytes := byteutils.FromInt64(i)
+		for j := 0; j < 4; j++ {
+			bytes = append(bytes, bytes...)
+		}
+		keys[i] = bytes
+	}
+	fmt.Println(len(keys[0]))
+	// 128
+
+	startAt := time.Now().UnixNano()
+	for i := int64(0); i < COUNT; i++ {
+		tr.Put(keys[i], keys[i])
+	}
+	endAt := time.Now().UnixNano()
+	fmt.Printf("%d Put, cost %d\n", COUNT, endAt-startAt)
+	// 10000 Put, cost 762181000
+
+	startAt = time.Now().UnixNano()
+	for i := int64(0); i < COUNT; i++ {
+		tr.Get(keys[i])
+	}
+	endAt = time.Now().UnixNano()
+	fmt.Printf("%d Get, cost %d\n", COUNT, endAt-startAt)
+	// 10000 Get, cost 385232000
+}
+
+func TestBatchTrie_Stress_2(t *testing.T) {
+	COUNT := int64(10000)
+	storage, _ := storage.NewMemoryStorage()
+	tr, _ := NewBatchTrie(nil, storage)
+
+	keys := make([][]byte, COUNT)
+	for i := int64(0); i < COUNT; i++ {
+		bytes := byteutils.FromInt64(i)
+		for j := 0; j < 4; j++ {
+			bytes = append(bytes, bytes...)
+		}
+		keys[i] = bytes
+	}
+	fmt.Println(len(keys[0]))
+	// 128
+
+	startAt := time.Now().UnixNano()
+	tr.BeginBatch()
+	for i := int64(0); i < COUNT; i++ {
+		tr.Put(keys[i], keys[i])
+	}
+	tr.Commit()
+	endAt := time.Now().UnixNano()
+	fmt.Printf("%d Put, cost %d\n", COUNT, endAt-startAt)
+	// 10000 Put, cost 760037000
+
+	startAt = time.Now().UnixNano()
+	tr.BeginBatch()
+	for i := int64(0); i < COUNT; i++ {
+		tr.Get(keys[i])
+	}
+	tr.Commit()
+	endAt = time.Now().UnixNano()
+	fmt.Printf("%d Get, cost %d\n", COUNT, endAt-startAt)
+	// 10000 Get, cost 423994000
 }
