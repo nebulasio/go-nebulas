@@ -80,18 +80,18 @@ func convertLevel(level string) logrus.Level {
 
 // Init loggers
 func Init(path string, level string, age uint32) {
-	// fileHooker := NewFileRotateHooker(path, age)
+	fileHooker := NewFileRotateHooker(path, age)
 
 	clog = logrus.New()
-	// LoadFunctionHooker(clog)
-	// clog.Hooks.Add(fileHooker)
+	LoadFunctionHooker(clog)
+	clog.Hooks.Add(fileHooker)
 	clog.Out = os.Stdout
 	clog.Formatter = &logrus.TextFormatter{FullTimestamp: true}
 	clog.Level = convertLevel("debug")
 
 	vlog = logrus.New()
-	// LoadFunctionHooker(vlog)
-	// vlog.Hooks.Add(fileHooker)
+	LoadFunctionHooker(vlog)
+	vlog.Hooks.Add(fileHooker)
 	vlog.Out = &emptyWriter{}
 	vlog.Formatter = &logrus.TextFormatter{FullTimestamp: true}
 	vlog.Level = convertLevel(level)
