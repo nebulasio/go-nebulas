@@ -421,7 +421,7 @@ func (st *Task) sendChainGetChunkMessage(chunkHeaderIndex int) {
 
 func (st *Task) processChunkData(message net.Message) {
 	// if maxConsistentChunkHeaders is nil, return
-	if st.maxConsistentChunkHeaders == nil {
+	if st.maxConsistentChunkHeaders == nil || st.maxConsistentChunkHeaders.ChunkHeaders == nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"pid": message.MessageFrom(),
 		}).Debug("Invalid ChainChunkData message data.")
