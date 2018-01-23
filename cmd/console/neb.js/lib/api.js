@@ -71,6 +71,11 @@ API.prototype.getBlockByHash = function (hash, callback) {
     return this.request("post", "/v1/user/getBlockByHash", params, callback);
 };
 
+API.prototype.getBlockByHeight = function (height, callback) {
+    var params = { "height": height };
+    return this.request("post", "/v1/user/getBlockByHeight", params, callback);
+};
+
 API.prototype.getTransactionReceipt = function (hash, callback) {
     var params = { "hash": hash };
     return this.request("post", "/v1/user/getTransactionReceipt", params, callback);
