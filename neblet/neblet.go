@@ -89,6 +89,8 @@ func (n *Neblet) Setup() {
 	var err error
 	logging.CLog().Info("Setuping Neblet...")
 
+	metrics.Setup(n)
+
 	// storage
 	// n.storage, err = storage.NewMemoryStorage()
 	n.storage, err = storage.NewDiskStorage(n.config.Chain.Datadir)

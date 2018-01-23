@@ -45,9 +45,13 @@ type Neblet interface {
 	Config() *nebletpb.Config
 }
 
+// Setup enable metrics
+func Setup(neb Neblet) {
+	enable = neb.Config().Stats.EnableMetrics
+}
+
 // Start metrics monitor
 func Start(neb Neblet) {
-	enable = true
 	logging.VLog().Info("Starting Metrics...")
 
 	go (func() {
