@@ -20,19 +20,23 @@ package metrics
 
 import (
 	"fmt"
+	"os"
 	"runtime"
 	"strings"
 	"time"
 
+	"github.com/go-ethereum/log"
 	"github.com/nebulasio/go-nebulas/neblet/pb"
 	"github.com/nebulasio/go-nebulas/util/logging"
 	metrics "github.com/rcrowley/go-metrics"
+	"github.com/rcrowley/go-metrics/exp"
 	influxdb "github.com/vrischmann/go-metrics-influxdb"
 )
 
 const (
-	interval = 2 * time.Second
-	chainID  = "chainID"
+	interval           = 2 * time.Second
+	chainID            = "chainID"
+	MetricsEnabledFlag = "metrics"
 )
 
 var (
@@ -45,9 +49,14 @@ type Neblet interface {
 	Config() *nebletpb.Config
 }
 
-// Setup enable metrics
-func Setup(neb Neblet) {
-	enable = neb.Config().Stats.EnableMetrics
+func init() {
+	for _, arg := range os.Args {
+		if strings.TrimLeft(arg, "-") == MetricsEnabledFlag {
+			log.Info("Enabling metrics collection")
+			enable = true
+		}
+	}
+	exp.Exp(metrics.DefaultRegistry)
 }
 
 // Start metrics monitor
@@ -138,6 +147,7 @@ func NewTimer(name string) metrics.Timer {
 // NewGauge create a new metrics Gauge
 func NewGauge(name string) metrics.Gauge {
 	if !enable {
+		logging.CLog().Error("i am enable")
 		return new(metrics.NilGauge)
 	}
 	return metrics.GetOrRegisterGauge(name, metrics.DefaultRegistry)
