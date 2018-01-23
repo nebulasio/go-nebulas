@@ -420,6 +420,10 @@ func (st *Task) sendChainGetChunkMessage(chunkHeaderIndex int) {
 }
 
 func (st *Task) processChunkData(message net.Message) {
+	// lock.
+	st.syncMutex.Lock()
+	defer st.syncMutex.Unlock()
+
 	// if maxConsistentChunkHeaders is nil, return
 	if st.maxConsistentChunkHeaders == nil || st.maxConsistentChunkHeaders.ChunkHeaders == nil {
 		logging.VLog().WithFields(logrus.Fields{
@@ -428,6 +432,7 @@ func (st *Task) processChunkData(message net.Message) {
 		st.netService.ClosePeer(message.MessageFrom(), ErrInvalidChainChunkDataMessageData)
 		return
 	}
+
 	chunkData := new(syncpb.ChunkData)
 	if err := proto.Unmarshal(message.Data().([]byte), chunkData); err != nil {
 		logging.VLog().WithFields(logrus.Fields{
@@ -437,10 +442,6 @@ func (st *Task) processChunkData(message net.Message) {
 		st.netService.ClosePeer(message.MessageFrom(), ErrInvalidChainChunkDataMessageData)
 		return
 	}
-
-	// lock.
-	st.syncMutex.Lock()
-	defer st.syncMutex.Unlock()
 
 	// verify chunk data.
 	chunkDataIndex := -1

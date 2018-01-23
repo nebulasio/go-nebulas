@@ -22,8 +22,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/nebulasio/go-nebulas/util/logging"
-
 	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/common/trie"
 	"github.com/nebulasio/go-nebulas/core/pb"
@@ -383,7 +381,6 @@ func (as *accountState) Clone() (AccountState, error) {
 
 	dirtyAccount := make(map[byteutils.HexHash]Account)
 	for addr, acc := range as.dirtyAccount {
-		logging.VLog().Error(len(as.dirtyAccount))
 		dirtyAccount[addr], err = acc.Clone()
 		if err != nil {
 			return nil, err
