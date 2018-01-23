@@ -147,7 +147,6 @@ func NewTimer(name string) metrics.Timer {
 // NewGauge create a new metrics Gauge
 func NewGauge(name string) metrics.Gauge {
 	if !enable {
-		logging.CLog().Error("i am enable")
 		return new(metrics.NilGauge)
 	}
 	return metrics.GetOrRegisterGauge(name, metrics.DefaultRegistry)
