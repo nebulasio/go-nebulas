@@ -66,13 +66,13 @@ API.prototype.sendRawTransaction = function (data, callback) {
     return this.request("post", "/v1/user/rawtransaction", params, callback);
 };
 
-API.prototype.getBlockByHash = function (hash, callback) {
-    var params = { "hash": hash };
+API.prototype.getBlockByHash = function (hash, fullTransaction, callback) {
+    var params = { "hash": hash, "fullTransaction": fullTransaction };
     return this.request("post", "/v1/user/getBlockByHash", params, callback);
 };
 
-API.prototype.getBlockByHeight = function (height, callback) {
-    var params = { "height": height };
+API.prototype.getBlockByHeight = function (height, fullTransaction, callback) {
+    var params = { "height": height, "fullTransaction": fullTransaction };
     return this.request("post", "/v1/user/getBlockByHeight", params, callback);
 };
 
