@@ -112,13 +112,14 @@ func runNeb(ctx *cli.Context, n *neblet.Neblet) chan bool {
 	quitCh := make(chan bool, 1)
 
 	go func() {
+		http.ListenAndServe("localhost:7777", nil)
+	}()
+
+	go func() {
 		<-c
 
 		// memory profile
 		if memprofile := ctx.GlobalString(MemProfile.Name); memprofile != "" {
-			go func() {
-				http.ListenAndServe("localhost:7777", nil)
-			}()
 
 			f, err := os.Create(memprofile)
 			if err != nil {
