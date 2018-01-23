@@ -25,7 +25,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-ethereum/log"
 	"github.com/nebulasio/go-nebulas/neblet/pb"
 	"github.com/nebulasio/go-nebulas/util/logging"
 	metrics "github.com/rcrowley/go-metrics"
@@ -52,7 +51,6 @@ type Neblet interface {
 func init() {
 	for _, arg := range os.Args {
 		if strings.TrimLeft(arg, "-") == MetricsEnabledFlag {
-			log.Info("Enabling metrics collection")
 			enable = true
 		}
 	}
