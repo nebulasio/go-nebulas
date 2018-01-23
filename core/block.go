@@ -355,6 +355,11 @@ func (block *Block) Height() uint64 {
 	return block.height
 }
 
+// Transactions returns block transactions
+func (block *Block) Transactions() Transactions {
+	return block.transactions
+}
+
 // Miner return miner
 func (block *Block) Miner() *Address {
 	return block.miner

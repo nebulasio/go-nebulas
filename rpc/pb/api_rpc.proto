@@ -19,7 +19,6 @@
 syntax = "proto3";
 
 import "google/api/annotations.proto";
-import "github.com/nebulasio/go-nebulas/core/pb/block.proto";
 
 package rpcpb;
 
@@ -93,16 +92,24 @@ service ApiService {
         };
     }
 
-    // Get block header info by the block hash.
-    rpc GetBlockByHash (GetBlockByHashRequest) returns (corepb.Block) {
+    // Get block info by the block hash.
+    rpc GetBlockByHash (GetBlockByHashRequest) returns (BlockResponse) {
         option (google.api.http) = {
             post: "/v1/user/getBlockByHash"
             body: "*"
         };
     }
 
+    // Get block info by the block height.
+    rpc GetBlockByHeight (GetBlockByHeightRequest) returns (BlockResponse) {
+        option (google.api.http) = {
+            post: "/v1/user/getBlockByHeight"
+            body: "*"
+        };
+    }
+
     // Get transactionReceipt info by tansaction hash.
-    rpc GetTransactionReceipt (GetTransactionByHashRequest) returns (TransactionReceiptResponse) {
+    rpc GetTransactionReceipt (GetTransactionByHashRequest) returns (TransactionResponse) {
         option (google.api.http) = {
             post: "/v1/user/getTransactionReceipt"
             body: "*"
@@ -445,6 +452,18 @@ message SendTransactionResponse {
 message GetBlockByHashRequest {
     // Hex string of block hash.
     string hash = 1;
+
+    // If true it returns the full transaction objects, if false only the hashes of the transactions.
+    bool fullTransaction = 2;
+}
+
+// Request message of GetBlockByHeight rpc.
+message GetBlockByHeightRequest {
+    // block height.
+    uint64 height = 1;
+
+    // If true it returns the full transaction objects, if false only the hashes of the transactions.
+    bool fullTransaction = 2;
 }
 
 // Request message of GetTransactionByHash rpc.
@@ -467,12 +486,71 @@ message BlockDumpResponse {
 
 // Response message of Block.
 message BlockResponse {
-    // block info.
-    string data = 1;
+
+    // Hex string of block hash.
+    string hash = 1;
+
+    // Hex string of block parent hash.
+    string parent_hash = 2;
+
+    // block height
+    uint64 height = 3;
+
+    // block nonce
+    uint64 nonce = 4;
+
+    // Hex string of coinbase address.
+    string coinbase = 5;
+
+    // Hex string of miner address.
+    string miner = 6;
+
+    // block timestamp.
+    int64 timestamp = 7;
+
+    // block chain id
+    uint32 chain_id = 8;
+
+    // Hex string of state root.
+    string state_root = 11;
+
+    // Hex string of txs root.
+    string txs_root = 12;
+
+    // Hex string of event root.
+    string events_root = 13;
+
+    // dpos context
+    DposContext dpos_context = 14;
+
+    // transaction slice
+    repeated TransactionResponse transactions = 100;
+}
+
+// dpos context
+message DposContext {
+
+    // dynasty root
+    string dynasty_root = 1;
+
+    // next dynasty
+    string next_dynasty_root = 2;
+
+    // delegate root
+    string delegate_root = 3;
+
+    // candidate root
+    string candidate_root = 4;
+
+    // vote root
+    string vote_root = 5;
+
+    // mint cnt root
+    string mint_cnt_root = 6;
 }
 
 // Response message of TransactionReceipt.
-message TransactionReceiptResponse {
+message TransactionResponse {
 
     // Hex string of tx hash.
     string hash = 1;
@@ -494,7 +572,7 @@ message TransactionReceiptResponse {
 
     string type = 8;
 
-    string data = 9;
+    bytes data = 9;
 
     string gas_price = 10;
 

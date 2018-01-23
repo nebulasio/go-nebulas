@@ -29,7 +29,7 @@ import (
 
 	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/core"
-	corepb "github.com/nebulasio/go-nebulas/core/pb"
+	"github.com/nebulasio/go-nebulas/core/pb"
 	"github.com/nebulasio/go-nebulas/crypto/hash"
 	"github.com/nebulasio/go-nebulas/crypto/keystore"
 	nnet "github.com/nebulasio/go-nebulas/net"
@@ -382,7 +382,7 @@ func (s *APIService) SendRawTransaction(ctx context.Context, req *rpcpb.SendRawT
 }
 
 // GetBlockByHash get block info by the block hash
-func (s *APIService) GetBlockByHash(ctx context.Context, req *rpcpb.GetBlockByHashRequest) (*corepb.Block, error) {
+func (s *APIService) GetBlockByHash(ctx context.Context, req *rpcpb.GetBlockByHashRequest) (*rpcpb.BlockResponse, error) {
 	logging.VLog().WithFields(logrus.Fields{
 		"hash": req.Hash,
 		"api":  "/v1/user/getBlockByHash",
@@ -391,16 +391,74 @@ func (s *APIService) GetBlockByHash(ctx context.Context, req *rpcpb.GetBlockByHa
 
 	neb := s.server.Neblet()
 
-	bhash, _ := byteutils.FromHex(req.GetHash())
-	block := neb.BlockChain().GetBlock(bhash)
-	if block == nil {
-		return nil, errors.New("block not found")
-	}
-	pbBlock, err := block.ToProto()
+	bhash, err := byteutils.FromHex(req.GetHash())
 	if err != nil {
 		return nil, err
 	}
-	return pbBlock.(*corepb.Block), nil
+
+	block := neb.BlockChain().GetBlock(bhash)
+
+	return s.toBlockResponse(block, req.FullTransaction)
+}
+
+// GetBlockByHeight get block info by the block hash
+func (s *APIService) GetBlockByHeight(ctx context.Context, req *rpcpb.GetBlockByHeightRequest) (*rpcpb.BlockResponse, error) {
+	logging.VLog().WithFields(logrus.Fields{
+		"height": req.Height,
+		"api":    "/v1/user/getBlockByHash",
+	}).Info("Rpc request.")
+	metricsRPCCounter.Mark(1)
+
+	neb := s.server.Neblet()
+
+	block := neb.BlockChain().GetBlockOnCanonicalChainByHeight(req.Height)
+
+	return s.toBlockResponse(block, req.FullTransaction)
+}
+
+func (s *APIService) toBlockResponse(block *core.Block, fullTransaction bool) (*rpcpb.BlockResponse, error) {
+	if block == nil {
+		return nil, errors.New("block not found")
+	}
+
+	resp := &rpcpb.BlockResponse{
+		Hash:       block.Hash().String(),
+		ParentHash: block.ParentHash().String(),
+		Height:     block.Height(),
+		Nonce:      block.Nonce(),
+		Coinbase:   block.Coinbase().String(),
+		Miner:      block.Miner().String(),
+		Timestamp:  block.Timestamp(),
+		ChainId:    block.ChainID(),
+		StateRoot:  block.StateRoot().String(),
+		TxsRoot:    block.TxsRoot().String(),
+		EventsRoot: block.EventsRoot().String(),
+	}
+
+	// dpos context
+	dposContextResp := &rpcpb.DposContext{
+		DynastyRoot:     byteutils.Hex(block.DposContext().DynastyRoot),
+		NextDynastyRoot: byteutils.Hex(block.DposContext().NextDynastyRoot),
+		DelegateRoot:    byteutils.Hex(block.DposContext().DelegateRoot),
+		CandidateRoot:   byteutils.Hex(block.DposContext().CandidateRoot),
+		VoteRoot:        byteutils.Hex(block.DposContext().VoteRoot),
+		MintCntRoot:     byteutils.Hex(block.DposContext().MintCntRoot),
+	}
+	resp.DposContext = dposContextResp
+
+	// add block transactions
+	txs := []*rpcpb.TransactionResponse{}
+	for _, v := range block.Transactions() {
+		var tx *rpcpb.TransactionResponse
+		if fullTransaction {
+			tx, _ = s.toTransactionResponse(v)
+		} else {
+			tx = &rpcpb.TransactionResponse{Hash: v.Hash().String()}
+		}
+		txs = append(txs, tx)
+	}
+
+	return resp, nil
 }
 
 // BlockDump is the RPC API handler.
@@ -424,12 +482,13 @@ func (s *APIService) LatestIrreversibleBlock(ctx context.Context, req *rpcpb.Non
 	metricsRPCCounter.Mark(1)
 
 	neb := s.server.Neblet()
-	data := neb.BlockChain().LatestIrreversibleBlock().String()
-	return &rpcpb.BlockResponse{Data: data}, nil
+	block := neb.BlockChain().LatestIrreversibleBlock()
+
+	return s.toBlockResponse(block, false)
 }
 
 // GetTransactionReceipt get transaction info by the transaction hash
-func (s *APIService) GetTransactionReceipt(ctx context.Context, req *rpcpb.GetTransactionByHashRequest) (*rpcpb.TransactionReceiptResponse, error) {
+func (s *APIService) GetTransactionReceipt(ctx context.Context, req *rpcpb.GetTransactionByHashRequest) (*rpcpb.TransactionResponse, error) {
 	logging.VLog().WithFields(logrus.Fields{
 		"hash": req.Hash,
 		"api":  "/v1/user/getTransactionReceipt",
@@ -443,24 +502,32 @@ func (s *APIService) GetTransactionReceipt(ctx context.Context, req *rpcpb.GetTr
 		return nil, errors.New("transaction not found")
 	}
 
+	return s.toTransactionResponse(tx)
+}
+
+func (s *APIService) toTransactionResponse(tx *core.Transaction) (*rpcpb.TransactionResponse, error) {
 	var status uint32
+	neb := s.server.Neblet()
 	events, _ := neb.BlockChain().TailBlock().FetchEvents(tx.Hash())
+
 	for _, v := range events {
+		// TODO: transaction execution topic need change later.
 		if v.Topic == core.TopicExecuteTxSuccess {
 			status = 1
+			break
 		}
 	}
 
-	receipt := &rpcpb.TransactionReceiptResponse{
+	resp := &rpcpb.TransactionResponse{
 		ChainId:   tx.ChainID(),
-		Hash:      byteutils.Hex(tx.Hash()),
+		Hash:      tx.Hash().String(),
 		From:      tx.From().String(),
 		To:        tx.To().String(),
 		Value:     tx.Value().String(),
 		Nonce:     tx.Nonce(),
 		Timestamp: tx.Timestamp(),
 		Type:      tx.Type(),
-		Data:      byteutils.Hex(tx.Data()),
+		Data:      tx.Data(),
 		GasPrice:  tx.GasPrice().String(),
 		GasLimit:  tx.GasLimit().String(),
 		Status:    status,
@@ -471,9 +538,9 @@ func (s *APIService) GetTransactionReceipt(ctx context.Context, req *rpcpb.GetTr
 		if err != nil {
 			return nil, err
 		}
-		receipt.ContractAddress = contractAddr.String()
+		resp.ContractAddress = contractAddr.String()
 	}
-	return receipt, nil
+	return resp, nil
 }
 
 // NewAccount generate a new address with passphrase
