@@ -112,10 +112,6 @@ func runNeb(ctx *cli.Context, n *neblet.Neblet) chan bool {
 	quitCh := make(chan bool, 1)
 
 	go func() {
-		http.ListenAndServe("localhost:7777", nil)
-	}()
-
-	go func() {
 		<-c
 
 		// memory profile
@@ -158,6 +154,10 @@ func makeNeb(ctx *cli.Context) (*neblet.Neblet, error) {
 		if err := pprof.StartCPUProfile(f); err != nil {
 			log.Fatal("could not start CPU profile: ", err)
 		}
+
+		go func() {
+			http.ListenAndServe("0.0.0.0:7777", nil)
+		}()
 	}
 
 	// load config from cli args
