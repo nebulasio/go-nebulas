@@ -1166,6 +1166,6 @@ func (block *Block) Merge(source *Block) {
 
 // Dispose dispose block.
 func (block *Block) Dispose() {
-	// cut down the parent block reference, prevent memory leak.
+	// cut off the parent block reference, prevent memory leak.
 	block.parenetBlock = nil
 }
