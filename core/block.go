@@ -464,60 +464,134 @@ func (block *Block) ReturnTransactions() {
 }
 
 // CollectTransactions and add them to block.
-func (block *Block) CollectTransactions(n int) {
+func (block *Block) CollectTransactions(deadline int64) {
 	if block.sealed {
 		logging.VLog().WithFields(logrus.Fields{
 			"block": block,
 		}).Fatal("Sealed block can't be changed.")
 	}
 
-	pool := block.txPool
-	var givebacks []*Transaction
-	for !pool.Empty() && n > 0 {
-		tx := pool.Pop()
-		metricsTxSubmit.Mark(1)
-
-		cBlock, err := block.Clone()
-		if err != nil {
-			return
-		}
-
-		cBlock.begin()
-		giveback, err := cBlock.executeTransaction(tx)
-		if giveback {
-			givebacks = append(givebacks, tx)
-		}
-
-		if err == nil {
-			logging.VLog().WithFields(logrus.Fields{
-				"block":    block,
-				"tx":       tx,
-				"giveback": giveback,
-			}).Info("tx is packed.")
-			cBlock.commit()
-
-			block.Merge(cBlock)
-			block.transactions = append(block.transactions, tx)
-			n--
-		} else {
-			logging.VLog().WithFields(logrus.Fields{
-				"block":    block,
-				"tx":       tx,
-				"err":      err,
-				"giveback": giveback,
-			}).Debug("invalid tx.")
-			cBlock.rollback()
-		}
+	elapse := deadline - time.Now().Unix()
+	if elapse <= 0 {
+		return
 	}
 
-	for _, tx := range givebacks {
-		err := pool.Push(tx)
-		if err != nil {
-			logging.VLog().WithFields(logrus.Fields{
-				"block": block,
-				"tx":    tx,
-				"err":   err,
-			}).Debug("Failed to giveback the tx.")
+	deadlineTimer := time.NewTimer(time.Duration(elapse))
+	executedTxBlocksCh := make(chan *Block, 64)
+	notifyCh := make(chan bool, 1)
+
+	var givebacks []*Transaction
+	pool := block.txPool
+
+	// execute transaction.
+	go func() {
+		for !pool.Empty() {
+			tx := pool.Pop()
+
+			txBlock, err := block.Clone()
+			if err != nil {
+				return
+			}
+
+			txBlock.begin()
+
+			giveback, err := txBlock.executeTransaction(tx)
+			if giveback {
+				givebacks = append(givebacks, tx)
+			}
+
+			if err != nil {
+				logging.VLog().WithFields(logrus.Fields{
+					"block":    block,
+					"tx":       tx,
+					"err":      err,
+					"giveback": giveback,
+				}).Debug("invalid tx.")
+				txBlock.rollback()
+				executedTxBlocksCh <- nil
+			} else {
+				logging.VLog().WithFields(logrus.Fields{
+					"block":    block,
+					"tx":       tx,
+					"giveback": giveback,
+				}).Info("tx is packed.")
+				txBlock.commit()
+				txBlock.transactions = append(txBlock.transactions, tx)
+				executedTxBlocksCh <- txBlock
+			}
+
+			select {
+			case flag := <-notifyCh:
+				if flag == true {
+					// deadline is up, put current tx back and quit.
+					if giveback == false && err == nil {
+						err := pool.Push(tx)
+						if err != nil {
+							logging.VLog().WithFields(logrus.Fields{
+								"block": block,
+								"tx":    tx,
+								"err":   err,
+							}).Debug("Failed to giveback the tx.")
+						}
+					}
+					return
+				}
+			}
+		}
+	}()
+
+	// consume the executedTxBlocksCh, or wait for the deadline.
+	for {
+		select {
+		case <-deadlineTimer.C:
+			// notify transaction execution goroutine to quit.
+			notifyCh <- true
+
+			// put tx back to transaction_pool.
+			go func() {
+				// giveback transactions.
+				for _, tx := range givebacks {
+					err := pool.Push(tx)
+					if err != nil {
+						logging.VLog().WithFields(logrus.Fields{
+							"block": block,
+							"tx":    tx,
+							"err":   err,
+						}).Debug("Failed to giveback the tx.")
+					}
+				}
+
+				// execute succeed but not included in block.
+				for {
+					select {
+					case txBlock := <-executedTxBlocksCh:
+						if txBlock != nil {
+							for _, tx := range txBlock.transactions {
+								err := pool.Push(tx)
+								if err != nil {
+									logging.VLog().WithFields(logrus.Fields{
+										"block": block,
+										"tx":    tx,
+										"err":   err,
+									}).Debug("Failed to giveback the tx.")
+								}
+							}
+						}
+					default:
+						return
+					}
+				}
+
+			}()
+			return
+		case txBlock := <-executedTxBlocksCh:
+			if txBlock != nil {
+				metricsTxSubmit.Mark(1)
+				block.Merge(txBlock)
+			}
+
+			// continue.
+			notifyCh <- false
 		}
 	}
 }
@@ -1068,6 +1142,7 @@ func (block *Block) Clone() (*Block, error) {
 		miner:        block.miner,
 		storage:      block.storage,
 		eventEmitter: block.eventEmitter,
+		transactions: make(Transactions, 0),
 
 		accState:    accState,
 		txsTrie:     txsTrie,
@@ -1082,4 +1157,5 @@ func (block *Block) Merge(source *Block) {
 	block.txsTrie = source.txsTrie
 	block.eventsTrie = source.eventsTrie
 	block.dposContext = source.dposContext
+	block.transactions = append(block.transactions, source.transactions...)
 }
