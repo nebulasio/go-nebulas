@@ -61,6 +61,7 @@ func (s *APIService) GetNebState(ctx context.Context, req *rpcpb.NonParamsReques
 	resp := &rpcpb.GetNebStateResponse{}
 	resp.ChainId = neb.BlockChain().ChainID()
 	resp.Tail = tail.Hash().String()
+	resp.Height = tail.Height()
 	resp.Coinbase = tail.Coinbase().String()
 	resp.Synchronized = neb.NetManager().Node().IsSynchronizing()
 	resp.PeerCount = uint32(neb.NetManager().Node().PeersCount())
@@ -742,7 +743,7 @@ func (s *APIService) GetGasPrice(ctx context.Context, req *rpcpb.NonParamsReques
 }
 
 // EstimateGas Compute the smart contract gas consumption.
-func (s *APIService) EstimateGas(ctx context.Context, req *rpcpb.TransactionRequest) (*rpcpb.EstimateGasResponse, error) {
+func (s *APIService) EstimateGas(ctx context.Context, req *rpcpb.TransactionRequest) (*rpcpb.GasResponse, error) {
 	logging.VLog().WithFields(logrus.Fields{
 		"api": "/v1/user/estimateGas",
 	}).Info("Rpc request.")
@@ -757,11 +758,37 @@ func (s *APIService) EstimateGas(ctx context.Context, req *rpcpb.TransactionRequ
 	if err != nil {
 		return nil, err
 	}
-	return &rpcpb.EstimateGasResponse{EstimateGas: estimateGas.String()}, nil
+	return &rpcpb.GasResponse{Gas: estimateGas.String()}, nil
+}
+
+// GetGasUsed Compute the transaction gasused.
+func (s *APIService) GetGasUsed(ctx context.Context, req *rpcpb.HashRequest) (*rpcpb.GasResponse, error) {
+	logging.VLog().WithFields(logrus.Fields{
+		"api": "/v1/user/GetGasUsed",
+	}).Info("Rpc request.")
+	metricsRPCCounter.Mark(1)
+
+	neb := s.server.Neblet()
+	hash, err := byteutils.FromHex(req.GetHash())
+	if err != nil {
+		return nil, err
+	}
+
+	tx := neb.BlockChain().GetTransaction(hash)
+	if tx == nil {
+		return nil, errors.New("transaction not found")
+	}
+
+	gas, err := neb.BlockChain().EstimateGas(tx)
+	if err != nil {
+		return nil, err
+	}
+
+	return &rpcpb.GasResponse{Gas: gas.String()}, nil
 }
 
 // GetEventsByHash return events by tx hash.
-func (s *APIService) GetEventsByHash(ctx context.Context, req *rpcpb.GetTransactionByHashRequest) (*rpcpb.EventsResponse, error) {
+func (s *APIService) GetEventsByHash(ctx context.Context, req *rpcpb.HashRequest) (*rpcpb.EventsResponse, error) {
 	logging.VLog().WithFields(logrus.Fields{
 		"api": "/v1/user/getEventsByHash",
 	}).Info("Rpc request.")

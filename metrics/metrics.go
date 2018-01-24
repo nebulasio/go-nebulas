@@ -33,8 +33,9 @@ import (
 )
 
 const (
-	interval           = 2 * time.Second
-	chainID            = "chainID"
+	interval = 2 * time.Second
+	chainID  = "chainID"
+	// MetricsEnabledFlag metrics enable flag
 	MetricsEnabledFlag = "metrics"
 )
 

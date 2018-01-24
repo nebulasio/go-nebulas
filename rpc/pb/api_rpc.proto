@@ -132,14 +132,21 @@ service ApiService {
     }
 
     // EstimateGas
-    rpc EstimateGas(TransactionRequest) returns (EstimateGasResponse) {
+    rpc EstimateGas(TransactionRequest) returns (GasResponse) {
         option (google.api.http) = {
             post: "/v1/user/estimateGas"
             body: "*"
         };
     }
 
-    rpc GetEventsByHash(GetTransactionByHashRequest) returns (EventsResponse) {
+    // Get GasUsed
+    rpc GetGasUsed(HashRequest) returns (GasResponse) {
+        option (google.api.http) = {
+            get: "/v1/user/getGasUsed"
+        };
+    }
+
+    rpc GetEventsByHash(HashRequest) returns (EventsResponse) {
         option (google.api.http) = {
             post: "/v1/user/getEventsByHash"
             body: "*"
@@ -312,22 +319,26 @@ message GetNebStateResponse {
     // Current neb tail hash
     string tail = 2;
 
+    // Current neb tail block height
+    uint64 height = 3;
+
     // Neb coinbase
-    string coinbase = 3;
+    string coinbase = 4;
 
     // Number of peers currenly connected
-    uint32 peer_count = 4;
+    uint32 peer_count = 5;
 
     // Neb mine status, minging is true ,otherwise false
-    bool is_mining = 5;
+    bool is_mining = 6;
 
     // The current neb protocol version.
-    string protocol_version = 6;
+    string protocol_version = 7;
 
     // The peer sync status.
-    bool synchronized = 7;
+    bool synchronized = 8;
 
-    string version = 8;
+    // neb version
+    string version = 9;
 }
 
 // Response message of Accounts rpc.
@@ -630,8 +641,14 @@ message GasPriceResponse {
     string gas_price = 1;
 }
 
-message EstimateGasResponse {
-    string estimate_gas = 1;
+// Request message of GetTransactionByHash rpc.
+message HashRequest {
+    // Hex string of block/transaction hash.
+    string hash = 1;
+}
+
+message GasResponse {
+    string gas = 1;
 }
 
 message EventsResponse {
