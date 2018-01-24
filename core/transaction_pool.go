@@ -193,7 +193,8 @@ func (pool *TransactionPool) Push(tx *Transaction) error {
 func (pool *TransactionPool) PushAndRelay(tx *Transaction) error {
 	if err := pool.Push(tx); err != nil {
 		logging.VLog().WithFields(logrus.Fields{
-			"tx": tx,
+			"tx":  tx,
+			"err": err,
 		}).Debug("Failed to push a new tx into tx pool")
 		return err
 	}
@@ -210,7 +211,8 @@ func (pool *TransactionPool) PushAndRelay(tx *Transaction) error {
 func (pool *TransactionPool) PushAndBroadcast(tx *Transaction) error {
 	if err := pool.Push(tx); err != nil {
 		logging.VLog().WithFields(logrus.Fields{
-			"tx": tx,
+			"tx":  tx,
+			"err": err,
 		}).Debug("Failed to push a new tx into tx pool")
 		return err
 	}
