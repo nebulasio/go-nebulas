@@ -218,6 +218,11 @@ func (p *Dpos) ResumeMining() {
 func verifyBlockSign(miner *core.Address, block *core.Block) error {
 	addr, err := core.RecoverMiner(block)
 	if err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"address": addr.String(),
+			"err":     err,
+			"block":   block,
+		}).Debug("Failed to recover block's miner.")
 		return err
 	}
 	if !miner.Equals(addr) {
@@ -305,11 +310,7 @@ func (p *Dpos) VerifyBlock(block *core.Block, parent *core.Block) error {
 		}).Debug("Failed to parse proposer.")
 		return err
 	}
-	err = verifyBlockSign(miner, block)
-	if err != nil {
-		return err
-	}
-	return nil
+	return verifyBlockSign(miner, block)
 }
 
 func (p *Dpos) newBlock(tail *core.Block, context *core.DynastyContext, deadline int64) (*core.Block, error) {
