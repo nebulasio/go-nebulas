@@ -192,16 +192,8 @@ func (pool *TransactionPool) Push(tx *Transaction) error {
 // PushAndRelay push tx into pool and relay it
 func (pool *TransactionPool) PushAndRelay(tx *Transaction) error {
 	if err := pool.Push(tx); err != nil {
-		logging.VLog().WithFields(logrus.Fields{
-			"tx":  tx,
-			"err": err,
-		}).Debug("Failed to push a new tx into tx pool")
 		return err
 	}
-
-	logging.VLog().WithFields(logrus.Fields{
-		"tx": tx,
-	}).Debug("Succeed to relay the tx")
 
 	pool.nm.Relay(MessageTypeNewTx, tx, net.MessagePriorityNormal)
 	return nil
@@ -216,10 +208,6 @@ func (pool *TransactionPool) PushAndBroadcast(tx *Transaction) error {
 		}).Debug("Failed to push a new tx into tx pool")
 		return err
 	}
-
-	logging.VLog().WithFields(logrus.Fields{
-		"tx": tx,
-	}).Debug("Succeed to broadcast the tx")
 
 	pool.nm.Broadcast(MessageTypeNewTx, tx, net.MessagePriorityNormal)
 	return nil
@@ -255,9 +243,6 @@ func (pool *TransactionPool) push(tx *Transaction) error {
 	if pool.cache.Len() > pool.size {
 		tx := pool.cache.PopMax().(*Transaction)
 		delete(pool.all, tx.hash.Hex())
-		logging.VLog().WithFields(logrus.Fields{
-			"tx": tx,
-		}).Debug("Delete the tx from tx pool.")
 	}
 	return nil
 }
