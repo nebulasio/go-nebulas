@@ -475,19 +475,28 @@ func (block *Block) CollectTransactions(n int) {
 	var givebacks []*Transaction
 	for !pool.Empty() && n > 0 {
 		tx := pool.Pop()
-		block.begin()
 		metricsTxSubmit.Mark(1)
-		giveback, err := block.executeTransaction(tx)
+
+		cBlock, err := block.Clone()
+		if err != nil {
+			return
+		}
+
+		cBlock.begin()
+		giveback, err := cBlock.executeTransaction(tx)
 		if giveback {
 			givebacks = append(givebacks, tx)
 		}
+
 		if err == nil {
 			logging.VLog().WithFields(logrus.Fields{
 				"block":    block,
 				"tx":       tx,
 				"giveback": giveback,
 			}).Info("tx is packed.")
-			block.commit()
+			cBlock.commit()
+
+			block.Merge(cBlock)
 			block.transactions = append(block.transactions, tx)
 			n--
 		} else {
@@ -497,9 +506,10 @@ func (block *Block) CollectTransactions(n int) {
 				"err":      err,
 				"giveback": giveback,
 			}).Debug("invalid tx.")
-			block.rollback()
+			cBlock.rollback()
 		}
 	}
+
 	for _, tx := range givebacks {
 		err := pool.Push(tx)
 		if err != nil {
@@ -1025,4 +1035,51 @@ func LoadBlockFromStorage(hash byteutils.Hash, storage storage.Storage, txPool *
 	block.sealed = true
 	block.eventEmitter = eventEmitter
 	return block, nil
+}
+
+// Clone return new Block, with cloned state.
+func (block *Block) Clone() (*Block, error) {
+	accState, err := block.accState.Clone()
+	if err != nil {
+		return nil, ErrCloneAccountState
+	}
+
+	txsTrie, err := block.txsTrie.Clone()
+	if err != nil {
+		return nil, ErrCloneTxsState
+	}
+
+	eventsTrie, err := block.eventsTrie.Clone()
+	if err != nil {
+		return nil, ErrCloneEventsState
+	}
+
+	dposContext, err := block.dposContext.Clone()
+	if err != nil {
+		return nil, err
+	}
+
+	return &Block{
+		header:       block.header,
+		sealed:       block.sealed,
+		height:       block.height,
+		parenetBlock: block.parenetBlock,
+		txPool:       block.txPool,
+		miner:        block.miner,
+		storage:      block.storage,
+		eventEmitter: block.eventEmitter,
+
+		accState:    accState,
+		txsTrie:     txsTrie,
+		eventsTrie:  eventsTrie,
+		dposContext: dposContext,
+	}, nil
+}
+
+// Merge merge the state from source block.
+func (block *Block) Merge(source *Block) {
+	block.accState = source.accState
+	block.txsTrie = source.txsTrie
+	block.eventsTrie = source.eventsTrie
+	block.dposContext = source.dposContext
 }
