@@ -339,11 +339,10 @@ func nextSlot(now int64) int64 {
 func deadline(now int64) int64 {
 	nextSlot := nextSlot(now)
 	remain := nextSlot - now
-	maxDuration := core.AcceptedNetWorkDelay
-	if maxDuration > remain {
+	if core.MaxMintDuration > remain {
 		return nextSlot
 	}
-	return now + maxDuration
+	return now + core.MaxMintDuration
 }
 
 func (p *Dpos) checkDeadline(tail *core.Block, now int64) (int64, error) {
@@ -357,6 +356,9 @@ func (p *Dpos) checkDeadline(tail *core.Block, now int64) (int64, error) {
 		return deadline(now), nil
 	}
 	if nextSlot == now {
+		return deadline(now), nil
+	}
+	if nextSlot-now <= core.MinMintDuration {
 		return deadline(now), nil
 	}
 	return 0, ErrWaitingBlockInLastSlot
