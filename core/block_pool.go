@@ -148,6 +148,7 @@ func (pool *BlockPool) handleBlock(msg net.Message) {
 			"limit": AcceptedNetWorkDelay,
 			"err":   "timeout",
 		}).Debug("Found a timeout block.")
+		return
 	}
 
 	logging.VLog().WithFields(logrus.Fields{
@@ -294,7 +295,6 @@ func (pool *BlockPool) PushAndRelay(sender string, block *Block) error {
 	if err := pool.push(sender, block); err != nil {
 		return err
 	}
-	pool.nm.Relay(MessageTypeNewBlock, block, net.MessagePriorityHigh)
 	return nil
 }
 
@@ -307,10 +307,13 @@ func (pool *BlockPool) PushAndBroadcast(block *Block) error {
 	if err != nil {
 		return err
 	}
+
+	pool.nm.Broadcast(MessageTypeNewBlock, block, net.MessagePriorityHigh)
+
 	if err := pool.push(NoSender, block); err != nil {
 		return err
 	}
-	pool.nm.Broadcast(MessageTypeNewBlock, block, net.MessagePriorityHigh)
+
 	return nil
 }
 
@@ -388,6 +391,10 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 	pool.slot.Add(lb.block.Timestamp(), lb.block)
 	cache.Add(lb.hash.Hex(), lb)
 	// checkSlotAt := time.Now().Unix()
+
+	if sender != NoSender {
+		pool.nm.Relay(MessageTypeNewBlock, block, net.MessagePriorityHigh)
+	}
 
 	// find child block in pool.
 	for _, k := range cache.Keys() {

@@ -471,12 +471,14 @@ func (block *Block) CollectTransactions(deadline int64) {
 		}).Fatal("Sealed block can't be changed.")
 	}
 
-	elapse := deadline - time.Now().Unix()
+	now := time.Now().Unix()
+	elapse := deadline - now
+	logging.CLog().Infof("Deadline %d, Now %d, Consumed %ds", deadline, now, elapse)
 	if elapse <= 0 {
 		return
 	}
 
-	deadlineTimer := time.NewTimer(time.Duration(elapse))
+	deadlineTimer := time.NewTimer(time.Duration(elapse) * time.Second)
 	executedTxBlocksCh := make(chan *Block, 64)
 	notifyCh := make(chan bool, 1)
 
