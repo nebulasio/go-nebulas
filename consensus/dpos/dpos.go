@@ -265,7 +265,7 @@ func (p *Dpos) FastVerifyBlock(block *core.Block) error {
 	proposer, err := core.FindProposer(block.Timestamp(), dynasty)
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
-			"proposer": proposer.String(),
+			"proposer": proposer,
 			"err":      err,
 			"block":    block,
 		}).Debug("Failed to find proposer.")
@@ -274,8 +274,7 @@ func (p *Dpos) FastVerifyBlock(block *core.Block) error {
 	miner, err := core.AddressParseFromBytes(proposer)
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
-			"proposer": proposer.String(),
-			"miner":    miner.String(),
+			"proposer": proposer,
 			"err":      err,
 			"block":    block,
 		}).Debug("Failed to parse proposer.")
@@ -294,7 +293,7 @@ func (p *Dpos) VerifyBlock(block *core.Block, parent *core.Block) error {
 	proposer, err := core.FindProposer(block.Timestamp(), dynasty)
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
-			"proposer": proposer.String(),
+			"proposer": proposer,
 			"err":      err,
 			"block":    block,
 		}).Debug("Failed to find proposer.")
@@ -303,8 +302,7 @@ func (p *Dpos) VerifyBlock(block *core.Block, parent *core.Block) error {
 	miner, err := core.AddressParseFromBytes(proposer)
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
-			"proposer": proposer.String(),
-			"miner":    miner.String(),
+			"proposer": proposer,
 			"err":      err,
 			"block":    block,
 		}).Debug("Failed to parse proposer.")

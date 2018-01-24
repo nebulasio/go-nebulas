@@ -750,6 +750,12 @@ func FindProposer(now int64, dynasty *trie.BatchTrie) (proposer byteutils.Hash, 
 	}
 	if int(offset) < len(delegatees) {
 		proposer = delegatees[offset]
+	} else {
+		logging.VLog().WithFields(logrus.Fields{
+			"proposer":  proposer,
+			"offset":    offset,
+			"delegatee": len(delegatees),
+		}).Debug("Find Nil Proposer.")
 	}
 	return proposer, nil
 }
