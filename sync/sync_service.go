@@ -181,6 +181,10 @@ func (ss *Service) startLoop() {
 }
 
 func (ss *Service) onChainSync(message net.Message) {
+	if ss.IsActiveSyncing() {
+		return
+	}
+
 	// handle ChainSync message.
 	chunkSync := new(syncpb.Sync)
 	err := proto.Unmarshal(message.Data().([]byte), chunkSync)
@@ -216,6 +220,10 @@ func (ss *Service) onChainChunks(message net.Message) {
 }
 
 func (ss *Service) onChainGetChunk(message net.Message) {
+	if ss.IsActiveSyncing() {
+		return
+	}
+
 	// handle ChainGetChunk message.
 	chunkHeader := new(syncpb.ChunkHeader)
 	err := proto.Unmarshal(message.Data().([]byte), chunkHeader)

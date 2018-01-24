@@ -79,7 +79,7 @@ func (s *APIServer) start(addr string) error {
 		if err := s.rpcServer.Serve(listener); err != nil {
 			logging.CLog().WithFields(logrus.Fields{
 				"err": err,
-			}).Fatal("Failed to serve RPC Server.")
+			}).Info("RPC server exited.")
 		}
 	}()
 

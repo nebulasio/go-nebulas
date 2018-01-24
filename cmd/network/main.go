@@ -19,18 +19,20 @@
 package main
 
 import (
+	"flag"
 	"fmt"
+	"log"
 	"math/rand"
 	"os"
-	"strconv"
+	"runtime"
+	"runtime/pprof"
 	"time"
 
-	"github.com/nebulasio/go-nebulas/util/byteutils"
-
+	"github.com/libp2p/go-libp2p-interface-conn"
 	"github.com/nebulasio/go-nebulas/neblet"
 	"github.com/nebulasio/go-nebulas/net"
 	"github.com/nebulasio/go-nebulas/net/p2p"
-
+	"github.com/nebulasio/go-nebulas/util/byteutils"
 	"github.com/nebulasio/go-nebulas/util/logging"
 	metrics "github.com/rcrowley/go-metrics"
 )
@@ -40,27 +42,67 @@ var (
 	PingMessage = "ping"
 	PongMessage = "pong"
 	messageCh   = make(chan net.Message, 4096)
+
+	cpuprofile      = flag.String("cpuprofile", "", "write cpu profile `file`")
+	memprofile      = flag.String("memprofile", "", "write memory profile to `file`")
+	packageSize     = flag.Int64("package_size", 0, "package size, default is 0")
+	concurrentCount = flag.Int64("concurrent", 0, "concurrent count, default is 0")
+	limitCount      = flag.Int64("limit", 0, "limits of sent message, default is 0, no limit")
 )
 
 func main() {
+	flag.Parse()
 
-	if len(os.Args) < 3 {
+	if *cpuprofile != "" {
+		f, err := os.Create(*cpuprofile)
+		if err != nil {
+			log.Fatal("could not create CPU profile: ", err)
+		}
+		if err := pprof.StartCPUProfile(f); err != nil {
+			log.Fatal("could not start CPU profile: ", err)
+		}
+		defer pprof.StopCPUProfile()
+	}
+
+	// fmt.Printf("%v", flag.Args())
+	if len(flag.Args()) < 2 {
 		help()
 		return
 	}
+
+	// when set to false, NodeID check in stream.go should be ignore.
+	conn.EncryptConnections = true
 
 	// rand.
 	rand.Seed(time.Now().UnixNano())
 
 	// mode
-	mode := os.Args[1]
-	configPath := os.Args[2]
-	packageSize := int64(0)
+	mode := flag.Args()[0]
+	configPath := flag.Args()[1]
 
-	if len(os.Args) >= 4 {
-		packageSize, _ = strconv.ParseInt(os.Args[3], 10, 64)
+	run(mode, configPath, *packageSize, *concurrentCount, *limitCount)
+
+	fmt.Printf("done...")
+
+	if *memprofile != "" {
+		f, err := os.Create(*memprofile)
+		if err != nil {
+			log.Fatal("could not create memory profile: ", err)
+		}
+		runtime.GC() // get up-to-date statistics
+		if err := pprof.WriteHeapProfile(f); err != nil {
+			log.Fatal("could not write memory profile: ", err)
+		}
+		f.Close()
 	}
+}
 
+func help() {
+	fmt.Printf("%s [server|client] [config] [package size]\n", os.Args[0])
+	os.Exit(1)
+}
+
+func run(mode, configPath string, packageSize, concurrentMessageCount, totalMessageCount int64) {
 	// config.
 	config := neblet.LoadConfig(configPath)
 
@@ -88,19 +130,17 @@ func main() {
 	throughput := metrics.GetOrRegisterMeter("throughput", nil)
 	latency := metrics.GetOrRegisterHistogram("latency", nil, metrics.NewUniformSample(100))
 
+	sentMessageCount := int64(0)
+
 	// first trigger.
 	if mode == "client" {
-		concurrentMessageCount := int64(1)
-		if len(os.Args) >= 5 {
-			concurrentMessageCount, _ = strconv.ParseInt(os.Args[4], 10, 64)
-		}
+		sentMessageCount += concurrentMessageCount
 		time.Sleep(10 * time.Second)
 		go func() {
 			for i := 0; i < int(concurrentMessageCount); i++ {
 				netService.SendMessageToPeers(PingMessage, GenerateData(packageSize), net.MessagePriorityNormal, new(p2p.ChainSyncPeersFilter))
 			}
 		}()
-
 	}
 
 	ticker := time.NewTicker(5 * time.Second)
@@ -118,8 +158,8 @@ func main() {
 				latencyVal := (nowAt - sendAt) / int64(1000000)
 
 				// metrics.
-				tps.Mark(2)
-				throughput.Mark(2 * int64(p2p.NebMessageHeaderLength+len(data)))
+				tps.Mark(1)
+				throughput.Mark(1 * int64(p2p.NebMessageHeaderLength+len(data)))
 				latency.Update(latencyVal)
 
 				netService.SendMessageToPeer(PongMessage, message.Data().([]byte), net.MessagePriorityNormal, message.MessageFrom())
@@ -131,13 +171,14 @@ func main() {
 				latencyVal := (nowAt - sendAt) / int64(1000000)
 
 				// metrics.
-				tps.Mark(2)
-				throughput.Mark(2 * int64(p2p.NebMessageHeaderLength+len(data)))
+				tps.Mark(1)
+				throughput.Mark(1 * int64(p2p.NebMessageHeaderLength+len(data)))
 				latency.Update(latencyVal)
 
-				// if latencyVal > 10 {
-				// 	logging.CLog().Infof("Duration(ms): |%9d|, from %d to %d", (nowAt-sendAt)/int64(1000000), sendAt, nowAt)
-				// }
+				sentMessageCount++
+				if totalMessageCount > 0 && sentMessageCount >= totalMessageCount {
+					return
+				}
 
 				netService.SendMessageToPeer(PingMessage, GenerateData(packageSize), net.MessagePriorityNormal, message.MessageFrom())
 			}
@@ -157,9 +198,4 @@ func GenerateData(packageSize int64) []byte {
 	data := make([]byte, 8+packageSize)
 	copy(data, byteutils.FromInt64(time.Now().UnixNano()))
 	return data
-}
-
-func help() {
-	fmt.Printf("%s [server|client] [config] [package size]\n", os.Args[0])
-	os.Exit(1)
 }

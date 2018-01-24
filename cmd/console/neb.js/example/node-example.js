@@ -22,12 +22,12 @@ console.log(account.getPrivateKeyString());
 console.log(account.getPublicKeyString());
 console.log(account.getAddressString());
 console.log(Account.isValidAddress(account.getAddressString()));
-// var key = account.toKey("passphrase");
-// console.log(JSON.stringify(key));
-// console.log("********************");
-// var a1 = new Account();
-// a1 = a1.fromKey(key, "passphrase");
-// console.log(a1.getPrivateKeyString());
+var key = account.toKey("passphrase");
+console.log(JSON.stringify(key));
+console.log("********************");
+var a1 = new Account();
+a1 = a1.fromKey(key, "passphrase");
+console.log(a1.getPrivateKeyString());
 
 var Transaction = require("../lib/transaction");
 

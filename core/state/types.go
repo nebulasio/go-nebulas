@@ -41,6 +41,7 @@ type Account interface {
 	BeginBatch()
 	Commit()
 	RollBack()
+	Clone() (Account, error)
 
 	ToBytes() ([]byte, error)
 	FromBytes(bytes []byte, storage storage.Storage) error

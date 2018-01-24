@@ -23,9 +23,9 @@ import (
 
 	"github.com/nebulasio/go-nebulas/storage"
 	"github.com/nebulasio/go-nebulas/util"
-	"github.com/nebulasio/go-nebulas/util/byteutils"
-	"github.com/nebulasio/go-nebulas/util/logging"
-	"github.com/sirupsen/logrus"
+	// "github.com/nebulasio/go-nebulas/util/byteutils"
+	// "github.com/nebulasio/go-nebulas/util/logging"
+	// "github.com/sirupsen/logrus"
 )
 
 // Action Constants
@@ -101,12 +101,12 @@ func (payload *DelegatePayload) Execute(ctx *PayloadContext) (*util.Uint128, str
 		if _, err = ctx.dposContext.voteTrie.Put(delegator, delegatee.Bytes()); err != nil {
 			return ZeroGasCount, "", err
 		}
-		logging.VLog().WithFields(logrus.Fields{
+		/* 		logging.VLog().WithFields(logrus.Fields{
 			"block":     ctx.block,
 			"tx":        ctx.tx,
 			"delegatee": delegatee.String(),
 			"pre":       byteutils.Hex(pre),
-		}).Debug("Delegate candidate.")
+		}).Debug("Delegate candidate.") */
 	case UnDelegateAction:
 		if !delegatee.address.Equals(pre) {
 			return ZeroGasCount, "", ErrInvalidUnDelegateFromNonDelegatee
@@ -118,12 +118,12 @@ func (payload *DelegatePayload) Execute(ctx *PayloadContext) (*util.Uint128, str
 		if _, err = ctx.dposContext.voteTrie.Del(delegator); err != nil {
 			return ZeroGasCount, "", err
 		}
-		logging.VLog().WithFields(logrus.Fields{
+		/* 		logging.VLog().WithFields(logrus.Fields{
 			"block":     ctx.block,
 			"tx":        ctx.tx,
 			"delegatee": delegatee.String(),
 			"pre":       byteutils.Hex(pre),
-		}).Debug("Undelegate candidate.")
+		}).Debug("Undelegate candidate.") */
 	default:
 		return ZeroGasCount, "", ErrInvalidDelegatePayloadAction
 	}

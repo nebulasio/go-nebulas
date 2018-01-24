@@ -397,17 +397,21 @@ func (tx *Transaction) VerifyExecution(block *Block) (*util.Uint128, error) {
 		ctx.Commit()
 	}
 
+	fromAcc = block.accState.GetOrCreateUserAccount(tx.from.address)
+	toAcc = block.accState.GetOrCreateUserAccount(tx.to.address)
+	coinbaseAcc = block.accState.GetOrCreateUserAccount(block.CoinbaseHash())
+
 	// gas = tx.GasCountOfTxBase() +  gasExecution
 	gas := util.NewUint128FromBigInt(util.NewUint128().Add(gasUsed.Int, gasExecution.Int))
 
-	logging.VLog().WithFields(logrus.Fields{
+	/* 	logging.VLog().WithFields(logrus.Fields{
 		"tx":           tx,
 		"gasUsed":      gasUsed.String(),
 		"gasExecution": gasExecution.String(),
 		"gas":          gas.String(),
 		"gasPrice":     tx.gasPrice.String(),
 		"gasLimited":   tx.gasLimit.String(),
-	}).Debug("Transaction execution statics.")
+	}).Debug("Transaction execution statics.") */
 
 	tx.gasConsumption(fromAcc, coinbaseAcc, gas)
 

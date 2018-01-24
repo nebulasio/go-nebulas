@@ -90,7 +90,7 @@ func NewGenesisBlock(conf *corepb.Genesis, chain *BlockChain) (*Block, error) {
 		sealed:      false,
 	}
 
-	context, err := GenesisDynastyContext(chain.storage, conf)
+	context, err := GenesisDynastyContext(chain, conf)
 	if err != nil {
 		return nil, err
 	}

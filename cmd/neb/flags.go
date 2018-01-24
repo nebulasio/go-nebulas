@@ -219,6 +219,20 @@ var (
 		StatsDBUserFlag,
 		StatsDBPasswordFlag,
 	}
+
+	// CPUProfile stats cpu profile
+	CPUProfile = cli.StringFlag{
+		Name:  "cpuprofile",
+		Usage: "write cpu profile `file`",
+		Value: "",
+	}
+
+	// MemProfile stats memory profile
+	MemProfile = cli.StringFlag{
+		Name:  "memprofile",
+		Usage: "write memory profile `file`",
+		Value: "",
+	}
 )
 
 func networkConfig(ctx *cli.Context, cfg *nebletpb.NetworkConfig) {

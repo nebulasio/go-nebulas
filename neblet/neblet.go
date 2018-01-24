@@ -90,6 +90,7 @@ func (n *Neblet) Setup() {
 	logging.CLog().Info("Setuping Neblet...")
 
 	// storage
+	// n.storage, err = storage.NewMemoryStorage()
 	n.storage, err = storage.NewDiskStorage(n.config.Chain.Datadir)
 	if err != nil {
 		logging.CLog().WithFields(logrus.Fields{
@@ -175,6 +176,7 @@ func (n *Neblet) Start() {
 		}).Fatal("Failed to start api gateway.")
 	}
 
+	n.blockChain.Start()
 	n.blockChain.BlockPool().Start()
 	n.blockChain.TransactionPool().Start()
 	n.eventEmitter.Start()
@@ -238,6 +240,7 @@ func (n *Neblet) Stop() {
 	if n.blockChain != nil {
 		n.blockChain.TransactionPool().Stop()
 		n.blockChain.BlockPool().Stop()
+		n.blockChain.Stop()
 		n.blockChain = nil
 	}
 

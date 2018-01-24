@@ -203,9 +203,9 @@ func (c *Chunk) generateChunkData(chunkHeader *syncpb.ChunkHeader) (*syncpb.Chun
 		blocksTrie.Put(block.Hash(), block.Hash())
 	}
 
-	logging.VLog().WithFields(logrus.Fields{
+	/* 	logging.VLog().WithFields(logrus.Fields{
 		"size": len(blocks),
-	}).Debug("Succeed to generate chunk.")
+	}).Debug("Succeed to generate chunk.") */
 
 	if bytes.Compare(blocksTrie.RootHash(), chunkHeader.Root) != 0 {
 		logging.VLog().WithFields(logrus.Fields{

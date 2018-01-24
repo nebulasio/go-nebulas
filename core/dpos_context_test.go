@@ -45,7 +45,7 @@ func TestBlock_NextDynastyContext(t *testing.T) {
 	chain.SetConsensusHandler(c)
 	block, _ := LoadBlockFromStorage(GenesisHash, chain.storage, chain.txPool, neb.emitter)
 
-	context, err := block.NextDynastyContext(BlockInterval)
+	context, err := block.NextDynastyContext(chain, BlockInterval)
 	assert.Nil(t, err)
 	validators, _ := TraverseDynasty(block.dposContext.dynastyTrie)
 	assert.Equal(t, context.Proposer, validators[1])
@@ -53,7 +53,7 @@ func TestBlock_NextDynastyContext(t *testing.T) {
 	checkDynasty(t, context.DynastyTrie)
 	checkDynasty(t, context.NextDynastyTrie)
 
-	context, err = block.NextDynastyContext(BlockInterval + DynastyInterval)
+	context, err = block.NextDynastyContext(chain, BlockInterval+DynastyInterval)
 	assert.Nil(t, err)
 	validators, _ = TraverseDynasty(block.dposContext.dynastyTrie)
 	assert.Equal(t, context.Proposer, validators[1])
@@ -61,7 +61,7 @@ func TestBlock_NextDynastyContext(t *testing.T) {
 	checkDynasty(t, context.DynastyTrie)
 	checkDynasty(t, context.NextDynastyTrie)
 
-	context, err = block.NextDynastyContext(DynastyInterval / 2)
+	context, err = block.NextDynastyContext(chain, DynastyInterval/2)
 	assert.Nil(t, err)
 	validators, _ = TraverseDynasty(block.dposContext.dynastyTrie)
 	assert.Equal(t, context.Proposer, validators[int(DynastyInterval/2/BlockInterval)%DynastySize])
@@ -69,7 +69,7 @@ func TestBlock_NextDynastyContext(t *testing.T) {
 	checkDynasty(t, context.DynastyTrie)
 	checkDynasty(t, context.NextDynastyTrie)
 
-	context, err = block.NextDynastyContext(DynastyInterval*2 + DynastyInterval/3)
+	context, err = block.NextDynastyContext(chain, DynastyInterval*2+DynastyInterval/3)
 	assert.Nil(t, err)
 	validators, _ = TraverseDynasty(block.dposContext.dynastyTrie)
 	index := int((DynastyInterval*2+DynastyInterval/3)%DynastyInterval) / int(BlockInterval) % DynastySize
@@ -82,11 +82,10 @@ func TestBlock_NextDynastyContext(t *testing.T) {
 	coinbase := &Address{validators[1]}
 	newBlock, _ := NewBlock(chain.ChainID(), coinbase, chain.tailBlock)
 	newBlock.LoadDynastyContext(context)
-	newBlock.CollectTransactions(500)
 	newBlock.SetMiner(coinbase)
 	newBlock.Seal()
 	newBlock, _ = mockBlockFromNetwork(newBlock)
-	newBlock.LinkParentBlock(chain.tailBlock)
+	newBlock.LinkParentBlock(chain, chain.tailBlock)
 	newBlock.SetMiner(coinbase)
 	assert.Nil(t, newBlock.VerifyExecution(chain.tailBlock, chain.ConsensusHandler()))
 }
@@ -110,7 +109,7 @@ func TestBlock_ElectNewDynasty(t *testing.T) {
 	_, err = block.executeTransaction(tx)
 	assert.Nil(t, err)
 	block.commit()
-	context, err := block.NextDynastyContext(DynastyInterval)
+	context, err := block.NextDynastyContext(chain, DynastyInterval)
 	assert.Nil(t, err)
 	_, err = context.NextDynastyTrie.Get(kickout.Bytes())
 	assert.Equal(t, storage.ErrKeyNotFound, err)
@@ -128,13 +127,13 @@ func TestBlock_Kickout(t *testing.T) {
 
 	block, _ := NewBlock(0, coinbase, chain.tailBlock)
 	block.header.timestamp = DynastyInterval
-	context, err := chain.tailBlock.NextDynastyContext(block.Timestamp() - chain.tailBlock.Timestamp())
+	context, err := chain.tailBlock.NextDynastyContext(chain, block.Timestamp()-chain.tailBlock.Timestamp())
 	assert.Nil(t, err)
 	block.LoadDynastyContext(context)
 	block.SetMiner(coinbase)
 	assert.Equal(t, block.Seal(), nil)
 	block, _ = mockBlockFromNetwork(block)
-	assert.Equal(t, block.LinkParentBlock(chain.tailBlock), nil)
+	assert.Equal(t, block.LinkParentBlock(chain, chain.tailBlock), nil)
 	block.SetMiner(coinbase)
 	assert.Nil(t, block.VerifyExecution(chain.tailBlock, chain.ConsensusHandler()))
 	chain.SetTailBlock(block)
@@ -143,13 +142,13 @@ func TestBlock_Kickout(t *testing.T) {
 
 	block, _ = NewBlock(0, coinbase, block)
 	block.header.timestamp = DynastyInterval * 2
-	context, err = chain.tailBlock.NextDynastyContext(block.Timestamp() - chain.tailBlock.Timestamp())
+	context, err = chain.tailBlock.NextDynastyContext(chain, block.Timestamp()-chain.tailBlock.Timestamp())
 	assert.Nil(t, err)
 	block.LoadDynastyContext(context)
 	block.SetMiner(coinbase)
 	assert.Equal(t, block.Seal(), nil)
 	block, _ = mockBlockFromNetwork(block)
-	assert.Equal(t, block.LinkParentBlock(chain.tailBlock), nil)
+	assert.Equal(t, block.LinkParentBlock(chain, chain.tailBlock), nil)
 	block.SetMiner(coinbase)
 	assert.Nil(t, block.VerifyExecution(chain.tailBlock, chain.ConsensusHandler()))
 	chain.SetTailBlock(block)
@@ -158,12 +157,14 @@ func TestBlock_Kickout(t *testing.T) {
 }
 
 func TestTallyVotes(t *testing.T) {
-	stor, err := storage.NewMemoryStorage()
+	neb := testNeb()
+	chain, _ := NewBlockChain(neb)
+	var c MockConsensus
+	chain.SetConsensusHandler(c)
+
+	dc, err := GenesisDynastyContext(chain, neb.Genesis())
 	assert.Nil(t, err)
-	conf := MockGenesisConf()
-	dc, err := GenesisDynastyContext(stor, conf)
-	assert.Nil(t, err)
-	dc.Accounts, err = state.NewAccountState(nil, stor)
+	dc.Accounts, err = state.NewAccountState(nil, neb.storage)
 	tester := "2fe3f9f51f9a05dd5f7c5329127f7c917917149b4e16b0b8"
 	candidate, err := AddressParse(tester)
 	assert.Nil(t, err)
@@ -173,7 +174,7 @@ func TestTallyVotes(t *testing.T) {
 	assert.Nil(t, err)
 	// empty candidates
 	candidates := dc.CandidateTrie
-	dc.CandidateTrie, err = trie.NewBatchTrie(nil, stor)
+	dc.CandidateTrie, err = trie.NewBatchTrie(nil, neb.storage)
 	votes, err := dc.tallyVotes()
 	assert.Nil(t, err)
 	assert.Equal(t, votes, make(map[string]*util.Uint128))
@@ -188,19 +189,15 @@ func TestTallyVotes(t *testing.T) {
 func TestChooseCandidates(t *testing.T) {
 	neb := testNeb()
 	chain, err := NewBlockChain(neb)
-	dc, err := chain.TailBlock().NextDynastyContext(0)
+	dc, err := chain.TailBlock().NextDynastyContext(chain, 0)
 	assert.Nil(t, err)
 	votes, err := dc.tallyVotes()
 	assert.Nil(t, err)
 	tester := "2fe3f9f51f9a05dd5f7c5329127f7c917917149b4e16b0b8"
 	candidate, err := AddressParse(tester)
 	assert.Nil(t, err)
-	genesis, err := chain.loadGenesisFromStorage()
-	assert.Nil(t, err)
-	genesis.dposContext.kickoutCandidate(candidate.Bytes())
-	genesis.header.dposContext, err = genesis.dposContext.ToProto()
-	assert.Nil(t, err)
-	chain.storeBlockToStorage(genesis)
+	chain.genesisBlock.dposContext.kickoutCandidate(candidate.Bytes())
+	dc.ProtectTrie = chain.genesisBlock.dposContext.candidateTrie
 	lenVotes := len(votes)
 	votes2, err := dc.chooseCandidates(votes)
 	assert.Nil(t, err)
@@ -212,17 +209,13 @@ func TestChooseCandidates(t *testing.T) {
 func TestKickoutDynastyActuallyKickoutCandidates(t *testing.T) {
 	neb := testNeb()
 	chain, err := NewBlockChain(neb)
-	dc, err := chain.TailBlock().NextDynastyContext(0)
+	dc, err := chain.TailBlock().NextDynastyContext(chain, 0)
 	assert.Nil(t, err)
 	tester := "2fe3f9f51f9a05dd5f7c5329127f7c917917149b4e16b0b8"
 	candidate, err := AddressParse(tester)
 	assert.Nil(t, err)
-	genesis, err := chain.loadGenesisFromStorage()
-	assert.Nil(t, err)
-	genesis.dposContext.kickoutCandidate(candidate.Bytes())
-	genesis.header.dposContext, err = genesis.dposContext.ToProto()
-	assert.Nil(t, err)
-	chain.storeBlockToStorage(genesis)
+	chain.genesisBlock.dposContext.kickoutCandidate(candidate.Bytes())
+	dc.ProtectTrie = chain.genesisBlock.dposContext.candidateTrie
 	assert.Nil(t, dc.kickoutDynasty(0))
 	candidates, err := TraverseDynasty(dc.CandidateTrie)
 	assert.Nil(t, err)
@@ -230,33 +223,27 @@ func TestKickoutDynastyActuallyKickoutCandidates(t *testing.T) {
 }
 
 func TestCheckActiveBootstrapValidators(t *testing.T) {
-	stor, err := storage.NewMemoryStorage()
-	assert.Nil(t, err)
+	neb := testNeb()
+	chain, err := NewBlockChain(neb)
+	protect := chain.genesisBlock.dposContext.candidateTrie
+
 	tester := "2fe3f9f51f9a05dd5f7c5329127f7c917917149b4e16b0b8"
 	candidate, err := AddressParse(tester)
 	assert.Nil(t, err)
-	candidates, err := trie.NewBatchTrie(nil, stor)
+	candidates, err := trie.NewBatchTrie(nil, neb.storage)
 	assert.Nil(t, err)
-	active, err := checkActiveBootstrapValidator(candidate.Bytes(), stor, candidates)
+	active, err := checkActiveBootstrapValidator(candidate.Bytes(), protect, candidates)
 	assert.Equal(t, active, false)
-	assert.Equal(t, err, storage.ErrKeyNotFound)
 
-	neb := testNeb()
-	chain, err := NewBlockChain(neb)
 	candidates = chain.TailBlock().dposContext.candidateTrie
-	genesis, err := chain.loadGenesisFromStorage()
-	assert.Nil(t, err)
-	genesis.dposContext.kickoutCandidate(candidate.Bytes())
-	genesis.header.dposContext, err = genesis.dposContext.ToProto()
-	assert.Nil(t, err)
-	chain.storeBlockToStorage(genesis)
-	active, err = checkActiveBootstrapValidator(candidate.Bytes(), chain.Storage(), candidates)
+	chain.genesisBlock.dposContext.kickoutCandidate(candidate.Bytes())
+	protect = chain.genesisBlock.dposContext.candidateTrie
+	active, err = checkActiveBootstrapValidator(candidate.Bytes(), protect, candidates)
 	assert.Equal(t, active, false)
 	assert.Nil(t, err)
 
-	chain.storeBlockToStorage(chain.GenesisBlock())
 	candidates.Del(candidate.Bytes())
-	active, err = checkActiveBootstrapValidator(candidate.Bytes(), chain.Storage(), candidates)
+	active, err = checkActiveBootstrapValidator(candidate.Bytes(), protect, candidates)
 	assert.Equal(t, active, false)
 	assert.Nil(t, err)
 }
@@ -264,7 +251,7 @@ func TestCheckActiveBootstrapValidators(t *testing.T) {
 func TestElectNextDynastyOnBaseDynastyWhenTooFewCandidates(t *testing.T) {
 	neb := testNeb()
 	chain, err := NewBlockChain(neb)
-	dc, err := chain.TailBlock().NextDynastyContext(0)
+	dc, err := chain.TailBlock().NextDynastyContext(chain, 0)
 	members, err := TraverseDynasty(dc.CandidateTrie)
 	assert.Nil(t, err)
 	for i := 0; i < len(members)-SafeSize+1; i++ {

@@ -20,8 +20,13 @@ package main
 
 import (
 	"fmt"
+	"log"
+	"net/http"
+	_ "net/http/pprof"
 	"os"
 	"os/signal"
+	"runtime"
+	"runtime/pprof"
 	"sort"
 	"strconv"
 	"syscall"
@@ -57,6 +62,7 @@ func main() {
 	app.Flags = append(app.Flags, RPCFlags...)
 	app.Flags = append(app.Flags, AppFlags...)
 	app.Flags = append(app.Flags, StatsFlags...)
+	app.Flags = append(app.Flags, CPUProfile, MemProfile)
 
 	sort.Sort(cli.FlagsByName(app.Flags))
 
@@ -90,33 +96,69 @@ func neb(ctx *cli.Context) error {
 		InitCrashReporter(n.Config().App)
 	}
 
-	runNeb(n)
-
-	// TODO: just use the signal to block main.
-	for {
-		time.Sleep(60 * time.Second) // or runtime.Gosched() or similar per @misterbee
+	select {
+	case <-runNeb(ctx, n):
+		return nil
 	}
 }
 
-func runNeb(n *neblet.Neblet) {
+func runNeb(ctx *cli.Context, n *neblet.Neblet) chan bool {
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 
 	n.Setup()
 	n.Start()
 
+	quitCh := make(chan bool, 1)
+
 	go func() {
 		<-c
+
+		// memory profile
+		if memprofile := ctx.GlobalString(MemProfile.Name); memprofile != "" {
+
+			f, err := os.Create(memprofile)
+			if err != nil {
+				log.Fatal("could not create memory profile: ", err)
+			}
+			runtime.GC() // get up-to-date statistics
+			if err := pprof.WriteHeapProfile(f); err != nil {
+				log.Fatal("could not write memory profile: ", err)
+			}
+			f.Close()
+		}
+
+		if cpuprofile := ctx.GlobalString(CPUProfile.Name); cpuprofile != "" {
+			pprof.StopCPUProfile()
+		}
+
 		n.Stop()
 
-		// TODO: remove this once p2pManager handles stop properly.
-		os.Exit(1)
+		quitCh <- true
+		return
 	}()
+
+	return quitCh
 }
 
 func makeNeb(ctx *cli.Context) (*neblet.Neblet, error) {
 	conf := neblet.LoadConfig(config)
 	conf.App.Version = version
+
+	// cpu profile.
+	if cpuprofile := ctx.GlobalString(CPUProfile.Name); cpuprofile != "" {
+		f, err := os.Create(cpuprofile)
+		if err != nil {
+			log.Fatal("could not create CPU profile: ", err)
+		}
+		if err := pprof.StartCPUProfile(f); err != nil {
+			log.Fatal("could not start CPU profile: ", err)
+		}
+
+		go func() {
+			http.ListenAndServe("0.0.0.0:7777", nil)
+		}()
+	}
 
 	// load config from cli args
 	networkConfig(ctx, conf.Network)

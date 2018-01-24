@@ -59,7 +59,7 @@ func (bt *BatchTrie) Clone() (*BatchTrie, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &BatchTrie{trie: tr, batching: bt.batching}, nil
+	return &BatchTrie{trie: tr, changelog: bt.changelog, batching: bt.batching}, nil
 }
 
 // Get the value to the key in BatchTrie

@@ -134,14 +134,14 @@ type Block struct {
 func (block *Block) ToProto() (proto.Message, error) {
 	header, _ := block.header.ToProto()
 	if header, ok := header.(*corepb.BlockHeader); ok {
-		var txs []*corepb.Transaction
-		for _, v := range block.transactions {
+		txs := make([]*corepb.Transaction, len(block.transactions))
+		for idx, v := range block.transactions {
 			tx, err := v.ToProto()
 			if err != nil {
 				return nil, err
 			}
 			if tx, ok := tx.(*corepb.Transaction); ok {
-				txs = append(txs, tx)
+				txs[idx] = tx
 			} else {
 				return nil, errors.New("Protobuf message cannot be converted into Transaction")
 			}
@@ -163,12 +163,14 @@ func (block *Block) FromProto(msg proto.Message) error {
 		if err := block.header.FromProto(msg.Header); err != nil {
 			return err
 		}
-		for _, v := range msg.Transactions {
+
+		block.transactions = make(Transactions, len(msg.Transactions))
+		for idx, v := range msg.Transactions {
 			tx := new(Transaction)
 			if err := tx.FromProto(v); err != nil {
 				return err
 			}
-			block.transactions = append(block.transactions, tx)
+			block.transactions[idx] = tx
 		}
 		block.height = msg.Height
 		block.miner = &Address{msg.Miner}
@@ -353,6 +355,11 @@ func (block *Block) Height() uint64 {
 	return block.height
 }
 
+// Transactions returns block transactions
+func (block *Block) Transactions() Transactions {
+	return block.transactions
+}
+
 // Miner return miner
 func (block *Block) Miner() *Address {
 	return block.miner
@@ -370,7 +377,9 @@ func (block *Block) VerifyAddress(str string) bool {
 }
 
 // LinkParentBlock link parent block, return true if hash is the same; false otherwise.
-func (block *Block) LinkParentBlock(parentBlock *Block) error {
+func (block *Block) LinkParentBlock(chain *BlockChain, parentBlock *Block) error {
+	// startAt := time.Now().Unix()
+
 	if block.ParentHash().Equals(parentBlock.Hash()) == false {
 		return ErrLinkToWrongParentBlock
 	}
@@ -387,13 +396,16 @@ func (block *Block) LinkParentBlock(parentBlock *Block) error {
 	}
 
 	elapsedSecond := block.Timestamp() - parentBlock.Timestamp()
-	context, err := parentBlock.NextDynastyContext(elapsedSecond)
+	context, err := parentBlock.NextDynastyContext(chain, elapsedSecond)
 	if err != nil {
 		return ErrGenerateNextDynastyContext
 	}
+	// nextAt := time.Now().Unix()
+
 	if err := block.LoadDynastyContext(context); err != nil {
 		return ErrLoadNextDynastyContext
 	}
+	// loadAt := time.Now().Unix()
 
 	block.txPool = parentBlock.txPool
 	block.parenetBlock = parentBlock
@@ -401,17 +413,20 @@ func (block *Block) LinkParentBlock(parentBlock *Block) error {
 	block.height = parentBlock.height + 1
 	block.eventEmitter = parentBlock.eventEmitter
 
-	logging.VLog().WithFields(logrus.Fields{
-		"parent": parentBlock,
-		"block":  block,
-		"err":    err,
-	}).Info("Linked the parent block.")
+	/* 	logging.VLog().WithFields(logrus.Fields{
+		"parent":    parentBlock,
+		"block":     block,
+		"err":       err,
+		"time.next": nextAt - startAt,
+		"time.load": loadAt - nextAt,
+		"time.all":  time.Now().Unix() - startAt,
+	}).Info("Linked the parent block.") */
 
 	return nil
 }
 
 func (block *Block) begin() {
-	logging.VLog().Debug("Block Begin.")
+	// logging.VLog().Debug("Block Begin.")
 	block.accState.BeginBatch()
 	block.txsTrie.BeginBatch()
 	block.eventsTrie.BeginBatch()
@@ -423,9 +438,9 @@ func (block *Block) commit() {
 	block.txsTrie.Commit()
 	block.eventsTrie.Commit()
 	block.dposContext.Commit()
-	logging.VLog().WithFields(logrus.Fields{
+	/* 	logging.VLog().WithFields(logrus.Fields{
 		"block": block,
-	}).Debug("Block Commit.")
+	}).Debug("Block Commit.") */
 }
 
 func (block *Block) rollback() {
@@ -433,9 +448,9 @@ func (block *Block) rollback() {
 	block.txsTrie.RollBack()
 	block.eventsTrie.RollBack()
 	block.dposContext.RollBack()
-	logging.VLog().WithFields(logrus.Fields{
+	/* 	logging.VLog().WithFields(logrus.Fields{
 		"block": block,
-	}).Debug("Block RollBack.")
+	}).Debug("Block RollBack.") */
 }
 
 // ReturnTransactions and giveback them to tx pool
@@ -449,50 +464,136 @@ func (block *Block) ReturnTransactions() {
 }
 
 // CollectTransactions and add them to block.
-func (block *Block) CollectTransactions(n int) {
+func (block *Block) CollectTransactions(deadline int64) {
 	if block.sealed {
 		logging.VLog().WithFields(logrus.Fields{
 			"block": block,
 		}).Fatal("Sealed block can't be changed.")
 	}
 
-	pool := block.txPool
-	var givebacks []*Transaction
-	for !pool.Empty() && n > 0 {
-		tx := pool.Pop()
-		block.begin()
-		metricsTxSubmit.Mark(1)
-		giveback, err := block.executeTransaction(tx)
-		if giveback {
-			givebacks = append(givebacks, tx)
-		}
-		if err == nil {
-			logging.VLog().WithFields(logrus.Fields{
-				"block":    block,
-				"tx":       tx,
-				"giveback": giveback,
-			}).Info("tx is packed.")
-			block.commit()
-			block.transactions = append(block.transactions, tx)
-			n--
-		} else {
-			logging.VLog().WithFields(logrus.Fields{
-				"block":    block,
-				"tx":       tx,
-				"err":      err,
-				"giveback": giveback,
-			}).Debug("invalid tx.")
-			block.rollback()
-		}
+	now := time.Now().Unix()
+	elapse := deadline - now
+	logging.VLog().Debugf("Deadline %d, Now %d, Consumed %ds", deadline, now, elapse)
+	if elapse <= 0 {
+		return
 	}
-	for _, tx := range givebacks {
-		err := pool.Push(tx)
-		if err != nil {
-			logging.VLog().WithFields(logrus.Fields{
-				"block": block,
-				"tx":    tx,
-				"err":   err,
-			}).Debug("Failed to giveback the tx.")
+
+	deadlineTimer := time.NewTimer(time.Duration(elapse) * time.Second)
+	executedTxBlocksCh := make(chan *Block, 64)
+	notifyCh := make(chan bool, 1)
+
+	var givebacks []*Transaction
+	pool := block.txPool
+
+	// execute transaction.
+	go func() {
+		for !pool.Empty() {
+			tx := pool.Pop()
+
+			txBlock, err := block.Clone()
+			if err != nil {
+				return
+			}
+
+			txBlock.begin()
+
+			giveback, err := txBlock.executeTransaction(tx)
+			if giveback {
+				givebacks = append(givebacks, tx)
+			}
+
+			if err != nil {
+				logging.VLog().WithFields(logrus.Fields{
+					"block":    block,
+					"tx":       tx,
+					"err":      err,
+					"giveback": giveback,
+				}).Debug("invalid tx.")
+				txBlock.rollback()
+				executedTxBlocksCh <- nil
+			} else {
+				logging.VLog().WithFields(logrus.Fields{
+					"block":    block,
+					"tx":       tx,
+					"giveback": giveback,
+				}).Info("tx is packed.")
+				txBlock.commit()
+				txBlock.transactions = append(txBlock.transactions, tx)
+				executedTxBlocksCh <- txBlock
+			}
+
+			select {
+			case flag := <-notifyCh:
+				if flag == true {
+					// deadline is up, put current tx back and quit.
+					if giveback == false && err == nil {
+						err := pool.Push(tx)
+						if err != nil {
+							logging.VLog().WithFields(logrus.Fields{
+								"block": block,
+								"tx":    tx,
+								"err":   err,
+							}).Debug("Failed to giveback the tx.")
+						}
+					}
+					return
+				}
+			}
+		}
+	}()
+
+	// consume the executedTxBlocksCh, or wait for the deadline.
+	for {
+		select {
+		case <-deadlineTimer.C:
+			// notify transaction execution goroutine to quit.
+			notifyCh <- true
+
+			// put tx back to transaction_pool.
+			go func() {
+				// giveback transactions.
+				for _, tx := range givebacks {
+					err := pool.Push(tx)
+					if err != nil {
+						logging.VLog().WithFields(logrus.Fields{
+							"block": block,
+							"tx":    tx,
+							"err":   err,
+						}).Debug("Failed to giveback the tx.")
+					}
+				}
+
+				// execute succeed but not included in block.
+				for {
+					select {
+					case txBlock := <-executedTxBlocksCh:
+						if txBlock != nil {
+							for _, tx := range txBlock.transactions {
+								err := pool.Push(tx)
+								if err != nil {
+									logging.VLog().WithFields(logrus.Fields{
+										"block": block,
+										"tx":    tx,
+										"err":   err,
+									}).Debug("Failed to giveback the tx.")
+								}
+							}
+						}
+					default:
+						return
+					}
+				}
+
+			}()
+			return
+		case txBlock := <-executedTxBlocksCh:
+			if txBlock != nil {
+				metricsTxSubmit.Mark(1)
+				block.Merge(txBlock)
+			}
+
+			// continue.
+			notifyCh <- false
 		}
 	}
 }
@@ -533,11 +634,13 @@ func (block *Block) Seal() error {
 }
 
 func (block *Block) String() string {
-	return fmt.Sprintf("{\"height\":%d, \"hash\":%q, \"parentHash\":%q, \"state\":%q, \"nonce\":%d, \"timestamp\":%d, \"coinbase\":%q, \"tx\": %d}",
+	return fmt.Sprintf("{\"height\":%d, \"hash\":%q, \"parentHash\":%q, \"state\": %q, \"txs\": %q, \"events\": %q, \"nonce\":%d, \"timestamp\": %d, \"coinbase\": %q, \"tx\": %d}",
 		block.height,
 		byteutils.Hex(block.header.hash),
 		byteutils.Hex(block.header.parentHash),
-		block.accState.RootHash().String(),
+		block.header.stateRoot,
+		block.header.txsRoot,
+		block.header.eventsRoot,
 		block.header.nonce,
 		block.header.timestamp,
 		block.header.coinbase.String(),
@@ -547,31 +650,48 @@ func (block *Block) String() string {
 
 // VerifyExecution execute the block and verify the execution result.
 func (block *Block) VerifyExecution(parent *Block, consensus Consensus) error {
+	startAt := time.Now().Unix()
+
 	// verify the block is acceptable by consensus
 	if err := consensus.VerifyBlock(block, parent); err != nil {
 		return err
 	}
+	// verifyAt := time.Now().Unix()
 
 	block.begin()
+	// beginAt := time.Now().Unix()
 
-	start := time.Now().Unix()
 	if err := block.execute(); err != nil {
 		block.rollback()
 		return err
 	}
-	end := time.Now().Unix()
-	metricsBlockExecutedTimer.Update(time.Duration(end - start))
+	// executeAt := time.Now().Unix()
 
 	if err := block.verifyState(); err != nil {
 		block.rollback()
 		return err
 	}
+	// stateAt := time.Now().Unix()
 
 	block.commit()
+	// commitAt := time.Now().Unix()
 
 	// release all events
 	block.triggerEvent()
+	endAt := time.Now().Unix()
 
+	metricsBlockExecutedTimer.Update(time.Duration((endAt - startAt) / int64(time.Second)))
+
+	/* 	logging.VLog().WithFields(logrus.Fields{
+		"time.verify":  verifyAt - startAt,
+		"time.begin":   beginAt - verifyAt,
+		"time.execute": executeAt - beginAt,
+		"time.state":   stateAt - executeAt,
+		"time.commit":  commitAt - stateAt,
+		"time.event":   endAt - commitAt,
+		"tail.all":     endAt - startAt,
+		"block":        block,
+	}).Info("Succeed to verify the block.") */
 	return nil
 }
 
@@ -591,10 +711,9 @@ func (block *Block) triggerEvent() {
 		case TxPayloadCandidateType:
 			topic = TopicCandidate
 		}
-		data, err := json.Marshal(v)
 		event := &Event{
 			Topic: topic,
-			Data:  string(data),
+			Data:  v.String(),
 		}
 		block.eventEmitter.Trigger(event)
 
@@ -606,10 +725,9 @@ func (block *Block) triggerEvent() {
 		}
 	}
 
-	blockData, _ := json.Marshal(block)
 	e := &Event{
 		Topic: TopicLinkBlock,
-		Data:  string(blockData),
+		Data:  block.String(),
 	}
 	block.eventEmitter.Trigger(e)
 }
@@ -691,6 +809,7 @@ func (block *Block) execute() error {
 	for _, tx := range block.transactions {
 		start := time.Now().Unix()
 		metricsTxExecute.Mark(1)
+
 		giveback, err := block.executeTransaction(tx)
 		if giveback {
 			err := block.txPool.Push(tx)
@@ -701,6 +820,7 @@ func (block *Block) execute() error {
 		if err != nil {
 			return err
 		}
+
 		end := time.Now().Unix()
 		metricsTxExecutedTimer.Update(time.Duration(end - start))
 	}
@@ -753,11 +873,11 @@ func (block *Block) recordEvent(txHash byteutils.Hash, event *Event) error {
 	if err != nil {
 		return err
 	}
-	logging.VLog().WithFields(logrus.Fields{
+	/* 	logging.VLog().WithFields(logrus.Fields{
 		"block": block,
 		"tx":    txHash.Hex(),
 		"event": event,
-	}).Info("Recorded event.")
+	}).Info("Recorded event.") */
 	return nil
 }
 
@@ -790,6 +910,7 @@ func (block *Block) FetchEvents(txHash byteutils.Hash) ([]*Event, error) {
 }
 
 func (block *Block) recordMintCnt() error {
+	// startAt := time.Now().Unix()
 	key := append(byteutils.FromInt64(block.Timestamp()/DynastyInterval), block.miner.Bytes()...)
 	bytes, err := block.dposContext.mintCntTrie.Get(key)
 	if err != nil && err != storage.ErrKeyNotFound {
@@ -804,23 +925,33 @@ func (block *Block) recordMintCnt() error {
 	if err != nil {
 		return err
 	}
-	logging.VLog().WithFields(logrus.Fields{
+	// endAt := time.Now().Unix()
+
+	/* 	logging.VLog().WithFields(logrus.Fields{
 		"dynasty": block.Timestamp() / DynastyInterval,
 		"miner":   block.miner.String(),
 		"count":   cnt,
-	}).Debug("Recorded the block minted by the miner in the dynasty.")
+		"time":    endAt - startAt,
+	}).Debug("Recorded the block minted by the miner in the dynasty.") */
 	return nil
 }
 
 func (block *Block) rewardCoinbase() {
 	coinbaseAddr := block.header.coinbase.address
+	stateOld := block.accState.RootHash().String()
 	coinbaseAcc := block.accState.GetOrCreateUserAccount(coinbaseAddr)
-	balance := coinbaseAcc.Balance()
+	balanceOld := coinbaseAcc.Balance().String()
 	coinbaseAcc.AddBalance(BlockReward)
+	balanceNew := coinbaseAcc.Balance().String()
+	stateNew := block.accState.RootHash().String()
+
 	logging.VLog().WithFields(logrus.Fields{
 		"coinbase":       coinbaseAddr.Hex(),
-		"balance.before": balance.String(),
-		"balance.after":  coinbaseAcc.Balance().String(),
+		"balance.before": balanceOld,
+		"balance.after":  balanceNew,
+		"state.before":   stateOld,
+		"state.after":    stateNew,
+		"reward":         BlockReward.String(),
 	}).Info("Rewarded the coinbase.")
 }
 
@@ -869,6 +1000,7 @@ func (block *Block) checkTransaction(tx *Transaction) (giveback bool, err error)
 
 	// check nonce
 	fromAcc := block.accState.GetOrCreateUserAccount(tx.from.address)
+
 	if tx.nonce < fromAcc.Nonce()+1 {
 		return false, ErrSmallTransactionNonce
 	} else if tx.nonce > fromAcc.Nonce()+1 {
@@ -979,4 +1111,53 @@ func LoadBlockFromStorage(hash byteutils.Hash, storage storage.Storage, txPool *
 	block.sealed = true
 	block.eventEmitter = eventEmitter
 	return block, nil
+}
+
+// Clone return new Block, with cloned state.
+func (block *Block) Clone() (*Block, error) {
+	accState, err := block.accState.Clone()
+	if err != nil {
+		return nil, ErrCloneAccountState
+	}
+
+	txsTrie, err := block.txsTrie.Clone()
+	if err != nil {
+		return nil, ErrCloneTxsState
+	}
+
+	eventsTrie, err := block.eventsTrie.Clone()
+	if err != nil {
+		return nil, ErrCloneEventsState
+	}
+
+	dposContext, err := block.dposContext.Clone()
+	if err != nil {
+		return nil, err
+	}
+
+	return &Block{
+		header:       block.header,
+		sealed:       block.sealed,
+		height:       block.height,
+		parenetBlock: block.parenetBlock,
+		txPool:       block.txPool,
+		miner:        block.miner,
+		storage:      block.storage,
+		eventEmitter: block.eventEmitter,
+		transactions: make(Transactions, 0),
+
+		accState:    accState,
+		txsTrie:     txsTrie,
+		eventsTrie:  eventsTrie,
+		dposContext: dposContext,
+	}, nil
+}
+
+// Merge merge the state from source block.
+func (block *Block) Merge(source *Block) {
+	block.accState = source.accState
+	block.txsTrie = source.txsTrie
+	block.eventsTrie = source.eventsTrie
+	block.dposContext = source.dposContext
+	block.transactions = append(block.transactions, source.transactions...)
 }

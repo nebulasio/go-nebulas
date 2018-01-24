@@ -21,30 +21,30 @@ package p2p
 import (
 	"fmt"
 
-	metrics "github.com/rcrowley/go-metrics"
+	metrics "github.com/nebulasio/go-nebulas/metrics"
 )
 
 // Metrics map for different in/out network msg types
 var (
-	metricsPacketsIn = metrics.GetOrRegisterMeter("neb.net.packets.in", nil)
-	metricsBytesIn   = metrics.GetOrRegisterMeter("neb.net.bytes.in", nil)
+	metricsPacketsIn = metrics.NewMeter("neb.net.packets.in")
+	metricsBytesIn   = metrics.NewMeter("neb.net.bytes.in")
 
-	metricsPacketsOut = metrics.GetOrRegisterMeter("neb.net.packets.out", nil)
-	metricsBytesOut   = metrics.GetOrRegisterMeter("neb.net.bytes.out", nil)
+	metricsPacketsOut = metrics.NewMeter("neb.net.packets.out")
+	metricsBytesOut   = metrics.NewMeter("neb.net.bytes.out")
 )
 
 func metricsPacketsInByMessageName(messageName string, size uint64) {
-	meter := metrics.GetOrRegisterMeter(fmt.Sprintf("neb.net.packets.in.%s", messageName), nil)
+	meter := metrics.NewMeter(fmt.Sprintf("neb.net.packets.in.%s", messageName))
 	meter.Mark(1)
 
-	meter = metrics.GetOrRegisterMeter(fmt.Sprintf("neb.net.bytes.in.%s", messageName), nil)
+	meter = metrics.NewMeter(fmt.Sprintf("neb.net.bytes.in.%s", messageName))
 	meter.Mark(int64(size))
 }
 
 func metricsPacketsOutByMessageName(messageName string, size uint64) {
-	meter := metrics.GetOrRegisterMeter(fmt.Sprintf("neb.net.packets.out.%s", messageName), nil)
+	meter := metrics.NewMeter(fmt.Sprintf("neb.net.packets.out.%s", messageName))
 	meter.Mark(1)
 
-	meter = metrics.GetOrRegisterMeter(fmt.Sprintf("neb.net.bytes.out.%s", messageName), nil)
+	meter = metrics.NewMeter(fmt.Sprintf("neb.net.bytes.out.%s", messageName))
 	meter.Mark(int64(size))
 }

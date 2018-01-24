@@ -27,6 +27,9 @@ import (
 
 const (
 
+	// TopicPendingTransaction the topic of pending a transaction in transaction_pool.
+	TopicPendingTransaction = "chain.pendingTransaction"
+
 	// TopicSendTransaction the topic of send a transaction.
 	TopicSendTransaction = "chain.sendTransaction"
 
@@ -96,10 +99,10 @@ func (emitter *EventEmitter) Stop() {
 
 // Trigger trigger event.
 func (emitter *EventEmitter) Trigger(e *Event) {
-	logging.VLog().WithFields(logrus.Fields{
+	/* 	logging.VLog().WithFields(logrus.Fields{
 		"topic": e.Topic,
 		"data":  e.Data,
-	}).Debug("Trigger new event")
+	}).Debug("Trigger new event") */
 	emitter.eventCh <- e
 }
 

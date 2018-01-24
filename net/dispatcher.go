@@ -24,7 +24,7 @@ import (
 
 	"github.com/nebulasio/go-nebulas/util/logging"
 	metrics "github.com/rcrowley/go-metrics"
-	"github.com/sirupsen/logrus"
+	// "github.com/sirupsen/logrus"
 )
 
 var (
@@ -93,18 +93,18 @@ func (dp *Dispatcher) loop() {
 			return
 		case msg := <-dp.receivedMessageCh:
 			msgType := msg.MessageType()
-			logging.VLog().WithFields(logrus.Fields{
+			/* 			logging.VLog().WithFields(logrus.Fields{
 				"msgType": msgType,
-			}).Debug("dispatcher received message")
+			}).Debug("dispatcher received message") */
 
 			v, _ := dp.subscribersMap.Load(msgType)
 			m, _ := v.(*sync.Map)
 
 			m.Range(func(key, value interface{}) bool {
 				key.(*Subscriber).msgChan <- msg
-				logging.VLog().WithFields(logrus.Fields{
+				/* 				logging.VLog().WithFields(logrus.Fields{
 					"msgType": msgType,
-				}).Debug("succeed dispatcher received message")
+				}).Debug("succeed dispatcher received message") */
 				return true
 			})
 		}

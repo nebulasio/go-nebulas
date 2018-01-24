@@ -48,6 +48,8 @@ type TransactionPool struct {
 
 	gasPrice *util.Uint128 // the lowest gasPrice.
 	gasLimit *util.Uint128 // the maximum gasLimit.
+
+	eventEmitter *EventEmitter
 }
 
 func less(a interface{}, b interface{}) bool {
@@ -100,6 +102,10 @@ func (pool *TransactionPool) RegisterInNetwork(nm p2p.Manager) {
 
 func (pool *TransactionPool) setBlockChain(bc *BlockChain) {
 	pool.bc = bc
+}
+
+func (pool *TransactionPool) setEventEmitter(emitter *EventEmitter) {
+	pool.eventEmitter = emitter
 }
 
 // Start start loop.
@@ -164,10 +170,10 @@ func (pool *TransactionPool) loop() {
 				continue
 			}
 
-			logging.VLog().WithFields(logrus.Fields{
+			/* 			logging.VLog().WithFields(logrus.Fields{
 				"tx":   tx,
 				"type": msg.MessageType(),
-			}).Debug("Received a new tx.")
+			}).Debug("Received a new tx.") */
 
 			if err := pool.PushAndRelay(tx); err != nil {
 				logging.VLog().WithFields(logrus.Fields{
@@ -192,15 +198,8 @@ func (pool *TransactionPool) Push(tx *Transaction) error {
 // PushAndRelay push tx into pool and relay it
 func (pool *TransactionPool) PushAndRelay(tx *Transaction) error {
 	if err := pool.Push(tx); err != nil {
-		logging.VLog().WithFields(logrus.Fields{
-			"tx": tx,
-		}).Debug("Failed to push a new tx into tx pool")
 		return err
 	}
-
-	logging.VLog().WithFields(logrus.Fields{
-		"tx": tx,
-	}).Debug("Succeed to relay the tx")
 
 	pool.nm.Relay(MessageTypeNewTx, tx, net.MessagePriorityNormal)
 	return nil
@@ -210,14 +209,11 @@ func (pool *TransactionPool) PushAndRelay(tx *Transaction) error {
 func (pool *TransactionPool) PushAndBroadcast(tx *Transaction) error {
 	if err := pool.Push(tx); err != nil {
 		logging.VLog().WithFields(logrus.Fields{
-			"tx": tx,
+			"tx":  tx,
+			"err": err,
 		}).Debug("Failed to push a new tx into tx pool")
 		return err
 	}
-
-	logging.VLog().WithFields(logrus.Fields{
-		"tx": tx,
-	}).Debug("Succeed to broadcast the tx")
 
 	pool.nm.Broadcast(MessageTypeNewTx, tx, net.MessagePriorityNormal)
 	return nil
@@ -254,6 +250,14 @@ func (pool *TransactionPool) push(tx *Transaction) error {
 		tx := pool.cache.PopMax().(*Transaction)
 		delete(pool.all, tx.hash.Hex())
 	}
+
+	// trigger pending transaction
+	event := &Event{
+		Topic: TopicPendingTransaction,
+		Data:  tx.String(),
+	}
+	pool.eventEmitter.Trigger(event)
+
 	return nil
 }
 

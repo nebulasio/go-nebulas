@@ -19,37 +19,37 @@
 package core
 
 import (
-	metrics "github.com/rcrowley/go-metrics"
+	metrics "github.com/nebulasio/go-nebulas/metrics"
 )
 
 // Metrics for core
 var (
 	// block metrics
-	metricsBlockHeightGauge      = metrics.GetOrRegisterGauge("neb.block.height", nil)
-	metricsBlocktailHashGauge    = metrics.GetOrRegisterGauge("neb.block.tailhash", nil)
-	metricsBlockRevertTimesGauge = metrics.GetOrRegisterGauge("neb.block.revertcount", nil)
-	metricsBlockRevertMeter      = metrics.GetOrRegisterMeter("neb.block.revert", nil)
-	metricsBlockOnchainTimer     = metrics.GetOrRegisterTimer("neb.block.onchain", nil)
-	metricsTxOnchainTimer        = metrics.GetOrRegisterTimer("neb.transaction.onchain", nil)
+	metricsBlockHeightGauge      = metrics.NewGauge("neb.block.height")
+	metricsBlocktailHashGauge    = metrics.NewGauge("neb.block.tailhash")
+	metricsBlockRevertTimesGauge = metrics.NewGauge("neb.block.revertcount")
+	metricsBlockRevertMeter      = metrics.NewMeter("neb.block.revert")
+	metricsBlockOnchainTimer     = metrics.NewTimer("neb.block.onchain")
+	metricsTxOnchainTimer        = metrics.NewTimer("neb.transaction.onchain")
 
 	// block_pool metrics
-	metricsCachedNewBlock      = metrics.GetOrRegisterGauge("neb.block.new.cached", nil)
-	metricsCachedDownloadBlock = metrics.GetOrRegisterGauge("neb.block.download.cached", nil)
-	metricsDuplicatedBlock     = metrics.GetOrRegisterCounter("neb.block.duplicated", nil)
-	metricsInvalidBlock        = metrics.GetOrRegisterCounter("neb.block.invalid", nil)
-	metricsBlockExecutedTimer  = metrics.GetOrRegisterTimer("neb.block.executed", nil)
-	metricsTxExecutedTimer     = metrics.GetOrRegisterTimer("neb.tx.executed", nil)
+	metricsCachedNewBlock      = metrics.NewGauge("neb.block.new.cached")
+	metricsCachedDownloadBlock = metrics.NewGauge("neb.block.download.cached")
+	metricsDuplicatedBlock     = metrics.NewCounter("neb.block.duplicated")
+	metricsInvalidBlock        = metrics.NewCounter("neb.block.invalid")
+	metricsBlockExecutedTimer  = metrics.NewTimer("neb.block.executed")
+	metricsTxExecutedTimer     = metrics.NewTimer("neb.tx.executed")
 
 	// txpool metrics
-	metricsCachedTx            = metrics.GetOrRegisterGauge("neb.txpool.cached", nil)
-	metricsInvalidTx           = metrics.GetOrRegisterCounter("neb.txpool.invalid", nil)
-	metricsDuplicateTx         = metrics.GetOrRegisterCounter("neb.txpool.duplicate", nil)
-	metricsTxPoolBelowGasPrice = metrics.GetOrRegisterCounter("neb.txpool.below_gas_price", nil)
-	metricsTxPoolOutOfGasLimit = metrics.GetOrRegisterCounter("neb.txpool.out_of_gas_limit", nil)
+	metricsCachedTx            = metrics.NewGauge("neb.txpool.cached")
+	metricsInvalidTx           = metrics.NewCounter("neb.txpool.invalid")
+	metricsDuplicateTx         = metrics.NewCounter("neb.txpool.duplicate")
+	metricsTxPoolBelowGasPrice = metrics.NewCounter("neb.txpool.below_gas_price")
+	metricsTxPoolOutOfGasLimit = metrics.NewCounter("neb.txpool.out_of_gas_limit")
 
 	// transaction metrics
-	metricsTxSubmit     = metrics.GetOrRegisterMeter("neb.transaction.submit", nil)
-	metricsTxExecute    = metrics.GetOrRegisterMeter("neb.transaction.execute", nil)
-	metricsTxExeSuccess = metrics.GetOrRegisterMeter("neb.transaction.execute.success", nil)
-	metricsTxExeFailed  = metrics.GetOrRegisterMeter("neb.transaction.execute.failed", nil)
+	metricsTxSubmit     = metrics.NewMeter("neb.transaction.submit")
+	metricsTxExecute    = metrics.NewMeter("neb.transaction.execute")
+	metricsTxExeSuccess = metrics.NewMeter("neb.transaction.execute.success")
+	metricsTxExeFailed  = metrics.NewMeter("neb.transaction.execute.failed")
 )

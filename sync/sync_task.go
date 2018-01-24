@@ -23,6 +23,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"math/rand"
 	"sync"
 	"time"
 
@@ -53,19 +54,20 @@ var (
 
 // Task is a sync task
 type Task struct {
-	quitCh                            chan bool
-	statusCh                          chan error
-	blockChain                        *core.BlockChain
-	syncPointBlock                    *core.Block
-	netService                        p2p.Manager
-	chunk                             *Chunk
-	syncMutex                         sync.Mutex
-	chainSyncPeers                    []string
-	maxConsistentChunkHeadersCount    int
-	maxConsistentChunkHeaders         *syncpb.ChunkHeaders
-	allChunkHeaders                   map[string]*syncpb.ChunkHeaders
-	chunkHeadersRootHashCounter       map[string]int
-	receivedChunkHeadersRootHashPeers map[string]bool
+	quitCh                                  chan bool
+	statusCh                                chan error
+	blockChain                              *core.BlockChain
+	syncPointBlock                          *core.Block
+	netService                              p2p.Manager
+	chunk                                   *Chunk
+	syncMutex                               sync.Mutex
+	chainSyncPeers                          []string
+	maxConsistentChunkHeadersCount          int
+	maxConsistentChunkHeaders               *syncpb.ChunkHeaders
+	maxConsistentChunkHeadersChainSyncPeers map[string][]string
+	allChunkHeaders                         map[string]*syncpb.ChunkHeaders
+	chunkHeadersRootHashCounter             map[string]int
+	receivedChunkHeadersRootHashPeers       map[string]bool
 
 	chainSyncDoneCh               chan bool
 	chainChunkDataSyncPosition    int
@@ -81,24 +83,25 @@ type Task struct {
 // NewTask return a new sync task
 func NewTask(blockChain *core.BlockChain, netService p2p.Manager, chunk *Chunk) *Task {
 	return &Task{
-		quitCh:                            make(chan bool, 1),
-		statusCh:                          make(chan error, 1),
-		blockChain:                        blockChain,
-		syncPointBlock:                    blockChain.TailBlock(),
-		netService:                        netService,
-		chunk:                             chunk,
-		chainSyncPeers:                    nil,
-		maxConsistentChunkHeadersCount:    0,
-		maxConsistentChunkHeaders:         nil,
-		allChunkHeaders:                   make(map[string]*syncpb.ChunkHeaders),
-		chunkHeadersRootHashCounter:       make(map[string]int),
-		receivedChunkHeadersRootHashPeers: make(map[string]bool),
-		chainSyncDoneCh:                   make(chan bool, 1),
-		chainChunkDataSyncPosition:        0,
-		chainChunkDataProcessPosition:     0,
-		chainChunkData:                    make(map[int]*syncpb.ChunkData),
-		chainChunkDataStatus:              make(map[int]int64),
-		chinGetChunkDataDoneCh:            make(chan bool, 1),
+		quitCh:                                  make(chan bool, 1),
+		statusCh:                                make(chan error, 1),
+		blockChain:                              blockChain,
+		syncPointBlock:                          blockChain.TailBlock(),
+		netService:                              netService,
+		chunk:                                   chunk,
+		chainSyncPeers:                          nil,
+		maxConsistentChunkHeadersCount:          0,
+		maxConsistentChunkHeaders:               nil,
+		maxConsistentChunkHeadersChainSyncPeers: make(map[string][]string),
+		allChunkHeaders:                         make(map[string]*syncpb.ChunkHeaders),
+		chunkHeadersRootHashCounter:             make(map[string]int),
+		receivedChunkHeadersRootHashPeers:       make(map[string]bool),
+		chainSyncDoneCh:                         make(chan bool, 1),
+		chainChunkDataSyncPosition:              0,
+		chainChunkDataProcessPosition:           0,
+		chainChunkData:                          make(map[int]*syncpb.ChunkData),
+		chainChunkDataStatus:                    make(map[int]int64),
+		chinGetChunkDataDoneCh:                  make(chan bool, 1),
 		// debug fields.
 		chainSyncRetryCount: 0,
 	}
@@ -189,6 +192,7 @@ func (st *Task) reset() {
 	st.chainSyncPeers = nil
 	st.maxConsistentChunkHeadersCount = 0
 	st.maxConsistentChunkHeaders = nil
+	st.maxConsistentChunkHeadersChainSyncPeers = make(map[string][]string)
 	st.allChunkHeaders = make(map[string]*syncpb.ChunkHeaders)
 	st.chunkHeadersRootHashCounter = make(map[string]int)
 	st.receivedChunkHeadersRootHashPeers = make(map[string]bool)
@@ -314,6 +318,7 @@ func (st *Task) processChunkHeaders(message net.Message) {
 	count := st.chunkHeadersRootHashCounter[rootHash] + 1
 	st.chunkHeadersRootHashCounter[rootHash] = count
 	st.receivedChunkHeadersRootHashPeers[hashPeerKey] = true
+	st.maxConsistentChunkHeadersChainSyncPeers[rootHash] = append(st.maxConsistentChunkHeadersChainSyncPeers[rootHash], message.MessageFrom())
 
 	isMax := false
 	if count > st.maxConsistentChunkHeadersCount {
@@ -371,8 +376,14 @@ func (st *Task) checkChainGetChunkTimeout() {
 	st.syncMutex.Lock()
 	defer st.syncMutex.Unlock()
 
-	for i := 0; i < st.chainChunkDataSyncPosition; i++ {
+	for i := 0; i <= st.chainChunkDataSyncPosition; i++ {
 		t := st.chainChunkDataStatus[i]
+
+		/* 		logging.VLog().WithFields(logrus.Fields{
+			"pos":    st.chainChunkDataProcessPosition,
+			"status": t,
+		}).Debug("Chunk Status.") */
+
 		if t == chunkDataStatusFinished || t == chunkDataStatusNotStart {
 			continue
 		}
@@ -395,7 +406,12 @@ func (st *Task) sendChainGetChunkMessage(chunkHeaderIndex int) {
 		}).Warn("Failed to marshal ChunkHeader.")
 		return
 	}
-	peers := st.netService.SendMessageToPeers(net.ChainGetChunk, data, net.MessagePriorityLow, new(p2p.RandomPeerFilter))
+
+	// random
+	peers := st.maxConsistentChunkHeadersChainSyncPeers[byteutils.Hex(st.maxConsistentChunkHeaders.Root)]
+	idx := rand.Intn(len(peers))
+	st.netService.SendMessageToPeer(net.ChainGetChunk, data, net.MessagePriorityLow, peers[idx])
+
 	st.chainChunkDataStatus[chunkHeaderIndex] = time.Now().Unix()
 
 	logging.VLog().WithFields(logrus.Fields{
@@ -404,6 +420,19 @@ func (st *Task) sendChainGetChunkMessage(chunkHeaderIndex int) {
 }
 
 func (st *Task) processChunkData(message net.Message) {
+	// lock.
+	st.syncMutex.Lock()
+	defer st.syncMutex.Unlock()
+
+	// if maxConsistentChunkHeaders is nil, return
+	if st.maxConsistentChunkHeaders == nil || st.maxConsistentChunkHeaders.ChunkHeaders == nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"pid": message.MessageFrom(),
+		}).Debug("Invalid ChainChunkData message data.")
+		st.netService.ClosePeer(message.MessageFrom(), ErrInvalidChainChunkDataMessageData)
+		return
+	}
+
 	chunkData := new(syncpb.ChunkData)
 	if err := proto.Unmarshal(message.Data().([]byte), chunkData); err != nil {
 		logging.VLog().WithFields(logrus.Fields{
@@ -413,10 +442,6 @@ func (st *Task) processChunkData(message net.Message) {
 		st.netService.ClosePeer(message.MessageFrom(), ErrInvalidChainChunkDataMessageData)
 		return
 	}
-
-	// lock.
-	st.syncMutex.Lock()
-	defer st.syncMutex.Unlock()
 
 	// verify chunk data.
 	chunkDataIndex := -1
@@ -458,6 +483,7 @@ func (st *Task) processChunkData(message net.Message) {
 	st.chainChunkData[chunkDataIndex] = chunkData
 	chunk, ok := st.chainChunkData[st.chainChunkDataProcessPosition]
 	for ok {
+		// startAt := time.Now().Unix()
 		if err := st.chunk.processChunkData(chunk); err != nil {
 			logging.VLog().WithFields(logrus.Fields{
 				"err": err,
@@ -467,6 +493,12 @@ func (st *Task) processChunkData(message net.Message) {
 			st.sendChainGetChunkMessage(chunkDataIndex)
 			return
 		}
+
+		/* 		logging.VLog().WithFields(logrus.Fields{
+			"received": chunkDataIndex,
+			"time":     time.Now().Unix() - startAt,
+		}).Debugf("Succeed to get chain chunk %d.", st.chainChunkDataProcessPosition) */
+
 		st.chainChunkDataProcessPosition++
 		chunk, ok = st.chainChunkData[st.chainChunkDataProcessPosition]
 	}
@@ -475,9 +507,6 @@ func (st *Task) processChunkData(message net.Message) {
 	st.chainChunkDataStatus[chunkDataIndex] = chunkDataStatusFinished
 
 	// sync next chunk.
-	logging.VLog().WithFields(logrus.Fields{
-		"rootHash": byteutils.Hex(st.maxConsistentChunkHeaders.Root),
-	}).Debugf("Succeed to get chain chunk %d.", chunkDataIndex)
 	st.sendChainGetChunkForNext()
 }
 

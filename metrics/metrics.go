@@ -20,31 +20,42 @@ package metrics
 
 import (
 	"fmt"
+	"os"
 	"runtime"
 	"strings"
 	"time"
 
 	"github.com/nebulasio/go-nebulas/neblet/pb"
-	"github.com/nebulasio/go-nebulas/net/p2p"
 	"github.com/nebulasio/go-nebulas/util/logging"
 	metrics "github.com/rcrowley/go-metrics"
+	"github.com/rcrowley/go-metrics/exp"
 	influxdb "github.com/vrischmann/go-metrics-influxdb"
 )
 
 const (
 	interval = 2 * time.Second
-	nodeID   = "nodeID"
 	chainID  = "chainID"
+	// MetricsEnabledFlag metrics enable flag
+	MetricsEnabledFlag = "metrics"
 )
 
 var (
+	enable = false
 	quitCh chan (bool)
 )
 
 // Neblet interface breaks cycle import dependency.
 type Neblet interface {
 	Config() *nebletpb.Config
-	NetManager() p2p.Manager
+}
+
+func init() {
+	for _, arg := range os.Args {
+		if strings.TrimLeft(arg, "-") == MetricsEnabledFlag {
+			enable = true
+		}
+	}
+	exp.Exp(metrics.DefaultRegistry)
 }
 
 // Start metrics monitor
@@ -61,8 +72,7 @@ func Start(neb Neblet) {
 			}
 			tags[values[0]] = values[1]
 		}
-		tags[nodeID] = getSimpleNodeID(neb)
-		tags[chainID] = fmt.Sprintf("%d", neb.NetManager().Node().Config().ChainID)
+		tags[chainID] = fmt.Sprintf("%d", neb.Config().Chain.ChainId)
 		go collectSystemMetrics()
 		influxdb.InfluxDBWithTags(metrics.DefaultRegistry, interval, neb.Config().Stats.Influxdb.Host, neb.Config().Stats.Influxdb.Db, neb.Config().Stats.Influxdb.User, neb.Config().Stats.Influxdb.Password, tags)
 
@@ -71,15 +81,6 @@ func Start(neb Neblet) {
 	})()
 
 	logging.VLog().Info("Started Metrics.")
-}
-
-func start(neb Neblet) {
-}
-
-func getSimpleNodeID(neb Neblet) string {
-	rs := []rune(neb.NetManager().Node().ID())
-	rl := len(rs)
-	return string(rs[rl-6 : rl])
 }
 
 func collectSystemMetrics() {
@@ -116,4 +117,36 @@ func Stop() {
 	logging.VLog().Info("Stopping Metrics...")
 
 	quitCh <- true
+}
+
+// NewCounter create a new metrics Counter
+func NewCounter(name string) metrics.Counter {
+	if !enable {
+		return new(metrics.NilCounter)
+	}
+	return metrics.GetOrRegisterCounter(name, metrics.DefaultRegistry)
+}
+
+// NewMeter create a new metrics Meter
+func NewMeter(name string) metrics.Meter {
+	if !enable {
+		return new(metrics.NilMeter)
+	}
+	return metrics.GetOrRegisterMeter(name, metrics.DefaultRegistry)
+}
+
+// NewTimer create a new metrics Timer
+func NewTimer(name string) metrics.Timer {
+	if !enable {
+		return new(metrics.NilTimer)
+	}
+	return metrics.GetOrRegisterTimer(name, metrics.DefaultRegistry)
+}
+
+// NewGauge create a new metrics Gauge
+func NewGauge(name string) metrics.Gauge {
+	if !enable {
+		return new(metrics.NilGauge)
+	}
+	return metrics.GetOrRegisterGauge(name, metrics.DefaultRegistry)
 }

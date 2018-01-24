@@ -38,6 +38,8 @@ var Transaction = function (chainID, from, to, value, nonce, gasPrice, gasLimit,
 };
 
 var parsePayload = function (contract, candidate, delegate) {
+    /*jshint maxcomplexity:6 */
+
     var payloadType, payload;
     if (utils.isObject(contract) && contract.source.length > 0) {
         payloadType = TxPayloadDeployType;

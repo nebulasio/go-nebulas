@@ -19,7 +19,6 @@
 package core
 
 import (
-	"math"
 	"strconv"
 	"sync"
 	"time"
@@ -57,7 +56,7 @@ type BlockPool struct {
 
 type linkedBlock struct {
 	block      *Block
-	pool       *BlockPool
+	chain      *BlockChain
 	hash       byteutils.Hash
 	parentHash byteutils.Hash
 
@@ -140,14 +139,15 @@ func (pool *BlockPool) handleBlock(msg net.Message) {
 		return
 	}
 
-	diff := time.Now().Unix() - block.Timestamp()
-	if msg.MessageType() == MessageTypeNewBlock && int64(math.Abs(float64(diff))) > AcceptedNetWorkDelay {
+	behind := time.Now().Unix() - block.Timestamp()
+	if msg.MessageType() == MessageTypeNewBlock && behind > AcceptedNetWorkDelay {
 		logging.VLog().WithFields(logrus.Fields{
 			"block": block,
-			"diff":  diff,
+			"diff":  behind,
 			"limit": AcceptedNetWorkDelay,
 			"err":   "timeout",
 		}).Debug("Found a timeout block.")
+		return
 	}
 
 	logging.VLog().WithFields(logrus.Fields{
@@ -294,7 +294,6 @@ func (pool *BlockPool) PushAndRelay(sender string, block *Block) error {
 	if err := pool.push(sender, block); err != nil {
 		return err
 	}
-	pool.nm.Relay(MessageTypeNewBlock, block, net.MessagePriorityHigh)
 	return nil
 }
 
@@ -307,10 +306,13 @@ func (pool *BlockPool) PushAndBroadcast(block *Block) error {
 	if err != nil {
 		return err
 	}
+
+	pool.nm.Broadcast(MessageTypeNewBlock, block, net.MessagePriorityHigh)
+
 	if err := pool.push(NoSender, block); err != nil {
 		return err
 	}
-	pool.nm.Broadcast(MessageTypeNewBlock, block, net.MessagePriorityHigh)
+
 	return nil
 }
 
@@ -342,9 +344,11 @@ func (pool *BlockPool) download(sender string, block *Block) error {
 }
 
 func (pool *BlockPool) push(sender string, block *Block) error {
-	logging.VLog().WithFields(logrus.Fields{
+	/* 	logging.VLog().WithFields(logrus.Fields{
 		"block": block,
-	}).Debug("Try to push a new block.")
+	}).Debug("Try to push a new block.") */
+
+	// startAt := time.Now().Unix()
 
 	// verify non-dup block
 	if pool.cache.Contains(block.Hash().Hex()) ||
@@ -355,6 +359,7 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 		}).Debug("Found duplicated block.")
 		return ErrDuplicatedBlock
 	}
+	// checkDupAt := time.Now().Unix()
 
 	// verify block integrity
 	if err := block.VerifyIntegrity(pool.bc.chainID, pool.bc.ConsensusHandler()); err != nil {
@@ -365,12 +370,13 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 		}).Debug("Failed to check block integrity.")
 		return err
 	}
+	// checkIntegrityAt := time.Now().Unix()
 
 	bc := pool.bc
 	cache := pool.cache
 
 	var plb *linkedBlock
-	lb := newLinkedBlock(block, pool)
+	lb := newLinkedBlock(block, pool.bc)
 
 	if preBlock, exist := pool.slot.Get(lb.block.Timestamp()); exist {
 		metricsInvalidBlock.Inc(1)
@@ -383,6 +389,7 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 	}
 	pool.slot.Add(lb.block.Timestamp(), lb.block)
 	cache.Add(lb.hash.Hex(), lb)
+	// checkSlotAt := time.Now().Unix()
 
 	// find child block in pool.
 	for _, k := range cache.Keys() {
@@ -393,6 +400,7 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 			c.LinkParent(lb)
 		}
 	}
+	// findChildrenAt := time.Now().Unix()
 
 	// find parent block in cache.
 	v, _ := cache.Get(lb.parentHash.Hex())
@@ -419,6 +427,7 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 
 		return nil
 	}
+	// findParentAt := time.Now().Unix()
 
 	// find parent in Chain.
 	var parentBlock *Block
@@ -446,6 +455,11 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 		}
 		return ErrInvalidBlockCannotFindParentInLocalAndTryDownload
 	}
+	// getParentAt := time.Now().Unix()
+
+	if sender != NoSender {
+		pool.nm.Relay(MessageTypeNewBlock, block, net.MessagePriorityHigh)
+	}
 
 	// found in BlockChain, then we can verify the state root, and tell the Consensus all the tails.
 	// performance depth-first search to verify state root, and get all tails.
@@ -453,10 +467,12 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 	if err != nil {
 		return err
 	}
+	// verifyAt := time.Now().Unix()
 
 	if err := bc.putVerifiedNewBlocks(parentBlock, allBlocks, tailBlocks); err != nil {
 		return err
 	}
+	// putAt := time.Now().Unix()
 
 	// remove allBlocks from cache.
 	for _, v := range allBlocks {
@@ -464,17 +480,35 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 	}
 
 	// notify consensus to handle new block.
-	return pool.bc.ConsensusHandler().ForkChoice()
+	if err := pool.bc.ConsensusHandler().ForkChoice(); err != nil {
+		return err
+	}
+	// forkchoiceAt := time.Now().Unix()
+
+	/* 	logging.VLog().WithFields(logrus.Fields{
+		"time.checkdup":       checkDupAt - startAt,
+		"time.checkintegrity": checkIntegrityAt - checkDupAt,
+		"time.slot":           checkSlotAt - checkIntegrityAt,
+		"time.findchildern":   findChildrenAt - checkSlotAt,
+		"time.findparent":     findParentAt - findChildrenAt,
+		"time.getparent":      getParentAt - findParentAt,
+		"time.verify":         verifyAt - getParentAt,
+		"time.block.push":     putAt - verifyAt,
+		"time.forkchoice":     forkchoiceAt - putAt,
+		"time.all":            time.Now().Unix() - startAt,
+	}).Info("Succeed to put a block on chain.") */
+
+	return nil
 }
 
 func (pool *BlockPool) setBlockChain(bc *BlockChain) {
 	pool.bc = bc
 }
 
-func newLinkedBlock(block *Block, pool *BlockPool) *linkedBlock {
+func newLinkedBlock(block *Block, chain *BlockChain) *linkedBlock {
 	return &linkedBlock{
 		block:       block,
-		pool:        pool,
+		chain:       chain,
 		hash:        block.Hash(),
 		parentHash:  block.ParentHash(),
 		parentBlock: nil,
@@ -488,7 +522,9 @@ func (lb *linkedBlock) LinkParent(parentBlock *linkedBlock) {
 }
 
 func (lb *linkedBlock) travelToLinkAndReturnAllValidBlocks(parentBlock *Block) ([]*Block, []*Block, error) {
-	if err := lb.block.LinkParentBlock(parentBlock); err != nil {
+	// startAt := time.Now().Unix()
+
+	if err := lb.block.LinkParentBlock(lb.chain, parentBlock); err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"parent": parentBlock,
 			"block":  lb.block,
@@ -496,18 +532,23 @@ func (lb *linkedBlock) travelToLinkAndReturnAllValidBlocks(parentBlock *Block) (
 		}).Error("Failed to link the block with its parent.")
 		return nil, nil, err
 	}
+	// linkAt := time.Now().Unix()
 
-	if err := lb.block.VerifyExecution(parentBlock, lb.pool.bc.ConsensusHandler()); err != nil {
+	if err := lb.block.VerifyExecution(parentBlock, lb.chain.ConsensusHandler()); err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"block": lb.block,
 			"err":   err,
 		}).Error("Failed to execute block.")
 		return nil, nil, err
 	}
+	// executionAt := time.Now().Unix()
 
-	logging.VLog().WithFields(logrus.Fields{
-		"block": lb.block,
-	}).Info("Block Verified.")
+	/* 	logging.VLog().WithFields(logrus.Fields{
+		"block":          lb.block,
+		"time.link":      linkAt - startAt,
+		"time.execution": executionAt - linkAt,
+		"time.all":       time.Now().Unix() - startAt,
+	}).Info("Block Verified.") */
 
 	allBlocks := []*Block{lb.block}
 	tailBlocks := []*Block{}
