@@ -184,15 +184,16 @@ func (tx *Transaction) FromProto(msg proto.Message) error {
 }
 
 func (tx *Transaction) String() string {
-	return fmt.Sprintf(`{"chainID":%d, "hash":%s, "from":%s, "to":%s, "nonce":%d, "value": %s, "timestamp":%d, "payload": %d, "type":%s}`,
+	return fmt.Sprintf(`{"chainID":%d, "hash":"%s", "from":"%s", "to":"%s", "nonce":%d, "value":"%s", "timestamp":%d, "gasprice": "%s", "gaslimit":"%s", "type":"%s"}`,
 		tx.chainID,
-		byteutils.Hex(tx.hash),
-		byteutils.Hex(tx.from.address),
-		byteutils.Hex(tx.to.address),
+		tx.hash.String(),
+		tx.from.String(),
+		tx.to.String(),
 		tx.nonce,
 		tx.value.String(),
 		tx.timestamp,
-		len(tx.data.Payload),
+		tx.gasPrice.String(),
+		tx.gasLimit.String(),
 		tx.Type(),
 	)
 }

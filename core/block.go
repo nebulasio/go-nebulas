@@ -634,13 +634,13 @@ func (block *Block) Seal() error {
 }
 
 func (block *Block) String() string {
-	return fmt.Sprintf("{\"height\":%d, \"hash\":%q, \"parentHash\":%q, \"state\": %q, \"txs\": %q, \"events\": %q, \"nonce\":%d, \"timestamp\": %d, \"coinbase\": %q, \"tx\": %d}",
+	return fmt.Sprintf(`{"height": %d, "hash": "%s", "parent_hash": "%s", "state": "%s", "txs": "%s", "events": "%s", "nonce": %d, "timestamp": %d, "coinbase": "%s", "tx": %d}`,
 		block.height,
-		byteutils.Hex(block.header.hash),
-		byteutils.Hex(block.header.parentHash),
-		block.header.stateRoot,
-		block.header.txsRoot,
-		block.header.eventsRoot,
+		block.header.hash.String(),
+		block.header.parentHash.String(),
+		block.header.stateRoot.String(),
+		block.header.txsRoot.String(),
+		block.header.eventsRoot.String(),
 		block.header.nonce,
 		block.header.timestamp,
 		block.header.coinbase.String(),
