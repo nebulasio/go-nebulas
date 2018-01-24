@@ -406,6 +406,8 @@ func (dc *DynastyContext) chooseCandidates(votes map[string]*util.Uint128) (Cand
 }
 
 func kickout(stor storage.Storage, candidatesTrie *trie.BatchTrie, delegateTrie *trie.BatchTrie, voteTrie *trie.BatchTrie, candidate byteutils.Hash) error {
+	logging.VLog().Debugf("Kickout %s", candidate.String())
+
 	_, err := candidatesTrie.Del(candidate)
 	if err != nil && err != storage.ErrKeyNotFound {
 		return err
