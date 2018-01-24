@@ -253,6 +253,9 @@ func (pool *TransactionPool) push(tx *Transaction) error {
 	if pool.cache.Len() > pool.size {
 		tx := pool.cache.PopMax().(*Transaction)
 		delete(pool.all, tx.hash.Hex())
+		logging.VLog().WithFields(logrus.Fields{
+			"tx": tx,
+		}).Debug("Delete the tx from tx pool.")
 	}
 	return nil
 }
