@@ -95,6 +95,7 @@ func NewBlockChain(neb Neblet) (*BlockChain, error) {
 	if err != nil {
 		return nil, err
 	}
+	txPool.setEventEmitter(neb.EventEmitter())
 
 	var bc = &BlockChain{
 		chainID:      neb.Genesis().Meta.ChainId,
