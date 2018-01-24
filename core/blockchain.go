@@ -108,8 +108,19 @@ func NewBlockChain(neb Neblet) (*BlockChain, error) {
 		quitCh:       make(chan int, 1),
 	}
 
-	bc.cachedBlocks, _ = lru.New(4096)
-	bc.detachedTailBlocks, _ = lru.New(1024)
+	bc.cachedBlocks, _ = lru.NewWithEvict(4096, func(key interface{}, value interface{}) {
+		block := value.(*Block)
+		if block != nil {
+			block.Dispose()
+		}
+	})
+
+	bc.detachedTailBlocks, _ = lru.NewWithEvict(1024, func(key interface{}, value interface{}) {
+		block := value.(*Block)
+		if block != nil {
+			block.Dispose()
+		}
+	})
 
 	if err := bc.CheckChainConfig(neb); err != nil {
 		logging.CLog().WithFields(logrus.Fields{

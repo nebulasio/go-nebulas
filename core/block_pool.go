@@ -73,11 +73,24 @@ func NewBlockPool(size int) (*BlockPool, error) {
 		quitCh: make(chan int, 1),
 	}
 	var err error
-	bp.cache, err = lru.New(size)
+	bp.cache, err = lru.NewWithEvict(size, func(key interface{}, value interface{}) {
+		lb := value.(*linkedBlock)
+		if lb != nil {
+			lb.Dispose()
+		}
+	})
+
 	if err != nil {
 		return nil, err
 	}
-	bp.slot, _ = lru.New(size)
+
+	bp.slot, _ = lru.NewWithEvict(size, func(key interface{}, value interface{}) {
+		block := value.(*Block)
+		if block != nil {
+			block.Dispose()
+		}
+	})
+
 	if err != nil {
 		return nil, err
 	}
@@ -566,4 +579,15 @@ func (lb *linkedBlock) travelToLinkAndReturnAllValidBlocks(parentBlock *Block) (
 	}
 
 	return allBlocks, tailBlocks, nil
+}
+
+// Dispose dispose linkedBlock
+func (lb *linkedBlock) Dispose() {
+	// cut down the reference to prevent memory leak.
+	lb.block = nil
+	lb.chain = nil
+	lb.parentBlock = nil
+	for k := range lb.childBlocks {
+		delete(lb.childBlocks, k)
+	}
 }

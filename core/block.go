@@ -1163,3 +1163,9 @@ func (block *Block) Merge(source *Block) {
 	block.dposContext = source.dposContext
 	block.transactions = append(block.transactions, source.transactions...)
 }
+
+// Dispose dispose block.
+func (block *Block) Dispose() {
+	// cut down the parent block reference, prevent memory leak.
+	block.parenetBlock = nil
+}
