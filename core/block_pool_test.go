@@ -113,7 +113,6 @@ func TestBlockPool(t *testing.T) {
 	from, _ := NewAddressFromPublicKey(pubdata)
 	ks.SetKey(from.String(), priv, []byte("passphrase"))
 	ks.Unlock(from.String(), []byte("passphrase"), time.Second*60*60*24*365)
-	to := &Address{from.address}
 	key, _ := ks.GetUnlocked(from.String())
 	signature, _ := crypto.NewSignature(keystore.SECP256K1)
 	signature.InitSign(key.(keystore.PrivateKey))
@@ -134,44 +133,27 @@ func TestBlockPool(t *testing.T) {
 	block0.SetMiner(addr)
 	block0.Seal()
 
-	tx1 := NewTransaction(bc.ChainID(), from, to, util.NewUint128FromInt(1), 1, TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, util.NewUint128FromInt(200000))
-	tx1.Sign(signature)
-	tx2 := NewTransaction(bc.ChainID(), from, to, util.NewUint128FromInt(2), 2, TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, util.NewUint128FromInt(200000))
-	tx2.Sign(signature)
-	tx3 := NewTransaction(bc.ChainID(), from, to, util.NewUint128FromInt(3), 3, TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, util.NewUint128FromInt(200000))
-	tx3.Sign(signature)
-	err = bc.txPool.Push(tx1)
-	assert.NoError(t, err)
-	err = bc.txPool.Push(tx2)
-	assert.NoError(t, err)
-	err = bc.txPool.Push(tx3)
-	assert.NoError(t, err)
-
 	addr = &Address{validators[2]}
 	block1, _ := NewBlock(bc.ChainID(), addr, block0)
 	block1.header.timestamp = block0.header.timestamp + BlockInterval
-	block1.CollectTransactions(1)
 	block1.SetMiner(addr)
 	block1.Seal()
 
 	addr = &Address{validators[3]}
 	block2, _ := NewBlock(bc.ChainID(), addr, block1)
 	block2.header.timestamp = block1.header.timestamp + BlockInterval
-	block2.CollectTransactions(1)
 	block2.SetMiner(addr)
 	block2.Seal()
 
 	addr = &Address{validators[4]}
 	block3, _ := NewBlock(bc.ChainID(), addr, block2)
 	block3.header.timestamp = block2.header.timestamp + BlockInterval
-	block3.CollectTransactions(1)
 	block3.SetMiner(addr)
 	block3.Seal()
 
 	addr = &Address{validators[5]}
 	block4, _ := NewBlock(bc.ChainID(), addr, block3)
 	block4.header.timestamp = block3.header.timestamp + BlockInterval
-	block4.CollectTransactions(1)
 	block4.SetMiner(addr)
 	block4.Seal()
 
@@ -197,13 +179,10 @@ func TestBlockPool(t *testing.T) {
 
 	bc.SetTailBlock(block4)
 	assert.Equal(t, bc.tailBlock.Hash(), block4.Hash())
-	nonce := bc.tailBlock.GetNonce(from.Bytes())
-	assert.Equal(t, nonce, uint64(3))
 
 	addr = &Address{validators[0]}
 	block5, _ := NewBlock(bc.ChainID(), addr, block4)
 	block5.header.timestamp = block4.header.timestamp + BlockInterval
-	block5.CollectTransactions(1)
 	block5.SetMiner(addr)
 	block5.Seal()
 	block5.header.hash[0]++
@@ -212,7 +191,6 @@ func TestBlockPool(t *testing.T) {
 	addr = &Address{validators[1]}
 	block41, _ := NewBlock(bc.ChainID(), addr, block3)
 	block41.header.timestamp = block3.header.timestamp + BlockInterval
-	block41.CollectTransactions(1)
 	block41.SetMiner(addr)
 	block41.Seal()
 	assert.Equal(t, pool.Push(block41), ErrDoubleBlockMinted)
@@ -270,7 +248,7 @@ func TestHandleBlock(t *testing.T) {
 	data, err = proto.Marshal(pbMsg)
 	msg = messages.NewBaseMessage(MessageTypeNewBlock, "from", data)
 	bc.bkPool.handleBlock(msg)
-	assert.NotNil(t, bc.GetBlock(block.Hash()))
+	assert.Nil(t, bc.GetBlock(block.Hash()))
 
 	block, err = bc.NewBlock(from)
 	assert.Nil(t, err)

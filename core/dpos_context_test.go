@@ -82,7 +82,6 @@ func TestBlock_NextDynastyContext(t *testing.T) {
 	coinbase := &Address{validators[1]}
 	newBlock, _ := NewBlock(chain.ChainID(), coinbase, chain.tailBlock)
 	newBlock.LoadDynastyContext(context)
-	newBlock.CollectTransactions(500)
 	newBlock.SetMiner(coinbase)
 	newBlock.Seal()
 	newBlock, _ = mockBlockFromNetwork(newBlock)

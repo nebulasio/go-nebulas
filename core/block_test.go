@@ -274,7 +274,7 @@ func TestBlock_CollectTransactions(t *testing.T) {
 
 	assert.Equal(t, len(block.transactions), 0)
 	assert.Equal(t, bc.txPool.cache.Len(), 5)
-	block.CollectTransactions(bc.txPool.cache.Len())
+	block.CollectTransactions(time.Now().Unix() + 2)
 	assert.Equal(t, len(block.transactions), 4)
 	assert.Equal(t, block.txPool.cache.Len(), 0)
 
@@ -346,7 +346,7 @@ func TestBlock_DposCandidates(t *testing.T) {
 	bc.txPool.Push(tx)
 	assert.Equal(t, len(block.transactions), 0)
 	assert.Equal(t, bc.txPool.cache.Len(), 2)
-	block.CollectTransactions(2)
+	block.CollectTransactions(time.Now().Unix() + 2)
 	assert.Equal(t, len(block.transactions), 2)
 	assert.Equal(t, block.txPool.cache.Len(), 0)
 	block.SetMiner(coinbase)
@@ -373,7 +373,7 @@ func TestBlock_DposCandidates(t *testing.T) {
 	bc.txPool.Push(tx)
 	assert.Equal(t, len(block.transactions), 0)
 	assert.Equal(t, bc.txPool.cache.Len(), 1)
-	block.CollectTransactions(1)
+	block.CollectTransactions(time.Now().Unix() + 2)
 	assert.Equal(t, len(block.transactions), 1)
 	assert.Equal(t, block.txPool.cache.Len(), 0)
 	block.SetMiner(coinbase)
@@ -404,7 +404,7 @@ func TestBlock_DposCandidates(t *testing.T) {
 	bc.txPool.Push(tx)
 	assert.Equal(t, len(block.transactions), 0)
 	assert.Equal(t, bc.txPool.cache.Len(), 2)
-	block.CollectTransactions(2)
+	block.CollectTransactions(time.Now().Unix() + 2)
 	assert.Equal(t, len(block.transactions), 2)
 	assert.Equal(t, block.txPool.cache.Len(), 0)
 	block.SetMiner(coinbase)
@@ -492,7 +492,9 @@ func TestGivebackInvalidTx(t *testing.T) {
 	assert.Equal(t, len(bc.txPool.all), 1)
 	block, err := bc.NewBlock(from)
 	assert.Nil(t, err)
-	block.CollectTransactions(1)
+	block.CollectTransactions(time.Now().Unix() + 2)
+	timer := time.NewTimer(time.Second).C
+	<-timer
 	assert.Equal(t, len(bc.txPool.all), 1)
 }
 

@@ -473,7 +473,7 @@ func (block *Block) CollectTransactions(deadline int64) {
 
 	now := time.Now().Unix()
 	elapse := deadline - now
-	logging.CLog().Infof("Deadline %d, Now %d, Consumed %ds", deadline, now, elapse)
+	logging.VLog().Debug("Deadline %d, Now %d, Consumed %ds", deadline, now, elapse)
 	if elapse <= 0 {
 		return
 	}
