@@ -339,7 +339,7 @@ func nextSlot(now int64) int64 {
 func deadline(now int64) int64 {
 	nextSlot := nextSlot(now)
 	remain := nextSlot - now
-	maxDuration := core.BlockInterval / 2
+	maxDuration := core.AcceptedNetWorkDelay
 	if maxDuration > remain {
 		return nextSlot
 	}
@@ -362,8 +362,9 @@ func (p *Dpos) checkDeadline(tail *core.Block, now int64) (int64, error) {
 	return 0, ErrWaitingBlockInLastSlot
 }
 
-func (p *Dpos) checkProposer(tail *core.Block, deadline int64) (*core.DynastyContext, error) {
-	elapsed := deadline - tail.Timestamp()
+func (p *Dpos) checkProposer(tail *core.Block, now int64) (*core.DynastyContext, error) {
+	slot := nextSlot(now)
+	elapsed := slot - tail.Timestamp()
 	context, err := tail.NextDynastyContext(p.chain, elapsed)
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
@@ -419,7 +420,7 @@ func (p *Dpos) mintBlock(now int64) error {
 		return err
 	}
 
-	context, err := p.checkProposer(tail, deadline)
+	context, err := p.checkProposer(tail, now)
 	if err != nil {
 		return err
 	}

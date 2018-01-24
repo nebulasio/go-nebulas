@@ -197,10 +197,10 @@ func (pool *TransactionPool) PushAndRelay(tx *Transaction) error {
 		}).Debug("Failed to push a new tx into tx pool")
 		return err
 	}
-
-	logging.VLog().WithFields(logrus.Fields{
-		"tx": tx,
-	}).Debug("Succeed to relay the tx")
+	/*
+		logging.VLog().WithFields(logrus.Fields{
+			"tx": tx,
+		}).Debug("Succeed to relay the tx") */
 
 	pool.nm.Relay(MessageTypeNewTx, tx, net.MessagePriorityNormal)
 	return nil
@@ -215,9 +215,9 @@ func (pool *TransactionPool) PushAndBroadcast(tx *Transaction) error {
 		return err
 	}
 
-	logging.VLog().WithFields(logrus.Fields{
+	/* 	logging.VLog().WithFields(logrus.Fields{
 		"tx": tx,
-	}).Debug("Succeed to broadcast the tx")
+	}).Debug("Succeed to broadcast the tx") */
 
 	pool.nm.Broadcast(MessageTypeNewTx, tx, net.MessagePriorityNormal)
 	return nil
