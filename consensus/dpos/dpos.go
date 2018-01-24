@@ -222,8 +222,9 @@ func verifyBlockSign(miner *core.Address, block *core.Block) error {
 	}
 	if !miner.Equals(addr) {
 		logging.VLog().WithFields(logrus.Fields{
-			"recover address": addr.String(),
-			"block":           block,
+			"address": addr.String(),
+			"miner":   miner.String(),
+			"block":   block,
 		}).Debug("Failed to verify block's sign.")
 		return ErrInvalidBlockProposer
 	}
@@ -353,9 +354,6 @@ func (p *Dpos) checkDeadline(tail *core.Block, now int64) (int64, error) {
 		return 0, ErrBlockMintedInNextSlot
 	}
 	if tail.Timestamp() == lastSlot {
-		return deadline(now), nil
-	}
-	if nextSlot == now {
 		return deadline(now), nil
 	}
 	if nextSlot-now <= core.MinMintDuration {
