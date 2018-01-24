@@ -336,17 +336,28 @@ func nextSlot(now int64) int64 {
 	return int64((now+core.BlockInterval-1)/core.BlockInterval) * core.BlockInterval
 }
 
+func deadline(now int64) int64 {
+	nextSlot := nextSlot(now)
+	remain := nextSlot - now
+	maxDuration := core.BlockInterval / 2
+	if maxDuration > remain {
+		return nextSlot
+	}
+	return now + maxDuration
+}
+
 func (p *Dpos) checkDeadline(tail *core.Block, now int64) (int64, error) {
 	lastSlot := lastSlot(now)
 	nextSlot := nextSlot(now)
+
 	if tail.Timestamp() == nextSlot {
 		return 0, ErrBlockMintedInNextSlot
 	}
-	if now-lastSlot > core.AcceptedNetWorkDelay {
-		return nextSlot, nil
-	}
 	if tail.Timestamp() == lastSlot {
-		return nextSlot, nil
+		return deadline(now), nil
+	}
+	if nextSlot == now {
+		return deadline(now), nil
 	}
 	return 0, ErrWaitingBlockInLastSlot
 }
@@ -424,6 +435,19 @@ func (p *Dpos) mintBlock(now int64) error {
 	block, err := p.newBlock(tail, context, deadline)
 	if err != nil {
 		return err
+	}
+
+	logging.CLog().WithFields(logrus.Fields{
+		"tail":     tail,
+		"now":      time.Now().Unix(),
+		"deadline": deadline,
+	}).Info("All tx are packed.")
+
+	slot := nextSlot(now)
+	current := time.Now().Unix()
+	if slot > current {
+		timer := time.NewTimer(time.Duration(slot-current) * time.Second).C
+		<-timer
 	}
 
 	if err := p.broadcast(tail, block); err != nil {

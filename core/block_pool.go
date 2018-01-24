@@ -19,7 +19,6 @@
 package core
 
 import (
-	"math"
 	"strconv"
 	"sync"
 	"time"
@@ -140,11 +139,11 @@ func (pool *BlockPool) handleBlock(msg net.Message) {
 		return
 	}
 
-	diff := time.Now().Unix() - block.Timestamp()
-	if msg.MessageType() == MessageTypeNewBlock && int64(math.Abs(float64(diff))) > AcceptedNetWorkDelay {
+	behind := time.Now().Unix() - block.Timestamp()
+	if msg.MessageType() == MessageTypeNewBlock && behind > AcceptedNetWorkDelay {
 		logging.VLog().WithFields(logrus.Fields{
 			"block": block,
-			"diff":  diff,
+			"diff":  behind,
 			"limit": AcceptedNetWorkDelay,
 			"err":   "timeout",
 		}).Debug("Found a timeout block.")
@@ -392,10 +391,6 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 	cache.Add(lb.hash.Hex(), lb)
 	// checkSlotAt := time.Now().Unix()
 
-	if sender != NoSender {
-		pool.nm.Relay(MessageTypeNewBlock, block, net.MessagePriorityHigh)
-	}
-
 	// find child block in pool.
 	for _, k := range cache.Keys() {
 		v, _ := cache.Get(k)
@@ -461,6 +456,10 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 		return ErrInvalidBlockCannotFindParentInLocalAndTryDownload
 	}
 	// getParentAt := time.Now().Unix()
+
+	if sender != NoSender {
+		pool.nm.Relay(MessageTypeNewBlock, block, net.MessagePriorityHigh)
+	}
 
 	// found in BlockChain, then we can verify the state root, and tell the Consensus all the tails.
 	// performance depth-first search to verify state root, and get all tails.
