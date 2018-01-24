@@ -277,10 +277,21 @@ func (p *Dpos) VerifyBlock(block *core.Block, parent *core.Block) error {
 	}
 	proposer, err := core.FindProposer(block.Timestamp(), dynasty)
 	if err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"proposer": proposer.String(),
+			"err":      err,
+			"block":    block,
+		}).Debug("Failed to find proposer.")
 		return err
 	}
 	miner, err := core.AddressParseFromBytes(proposer)
 	if err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"proposer": proposer.String(),
+			"miner":    miner.String(),
+			"err":      err,
+			"block":    block,
+		}).Debug("Failed to parse proposer.")
 		return err
 	}
 	err = verifyBlockSign(miner, block)
