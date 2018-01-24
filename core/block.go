@@ -634,7 +634,7 @@ func (block *Block) Seal() error {
 }
 
 func (block *Block) String() string {
-	return fmt.Sprintf("{\"height\":%d, \"hash\":\"%s\", \"parentHash\":\"%s\", \"state\": %s, \"txs\": %s, \"events\": %s, \"nonce\":%d, \"timestamp\": %d, \"coinbase\": \"%s\", \"tx\": %d}",
+	return fmt.Sprintf("{\"height\":%d, \"hash\":%q, \"parentHash\":%q, \"state\": %q, \"txs\": %q, \"events\": %q, \"nonce\":%d, \"timestamp\": %d, \"coinbase\": %q, \"tx\": %d}",
 		block.height,
 		byteutils.Hex(block.header.hash),
 		byteutils.Hex(block.header.parentHash),
