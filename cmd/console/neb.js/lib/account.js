@@ -6,9 +6,7 @@ var cryptoUtils = require('./utils/crypto-utils.js');
 var utils = require('./utils/utils.js');
 
 var Account = function (priv, path) {
-    if (utils.isObject(priv)) {
-        this.privKey = priv.length === 32 ? priv : Buffer(priv, 'hex');
-    }
+    this.setPrivateKey(priv);
     this.path = path;
 };
 
@@ -49,7 +47,7 @@ Account.fromAddress = function (addr) {
 Account.prototype = {
 
     setPrivateKey: function (priv) {
-        if (utils.isObject(priv)) {
+        if (utils.isString(priv) || Buffer.isBuffer(priv)) {
             this.privKey = priv.length === 32 ? priv : Buffer(priv, 'hex');
             this.pubKey = null;
             this.address = null;
