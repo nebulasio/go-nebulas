@@ -610,6 +610,7 @@ message TransactionResponse {
 
     string contract_address = 12;
 
+    // transaction status 0 failed, 1 success, 2 pending
     uint32 status = 13;
 }
 

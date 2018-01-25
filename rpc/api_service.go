@@ -549,11 +549,18 @@ func (s *APIService) toTransactionResponse(tx *core.Transaction) (*rpcpb.Transac
 	neb := s.server.Neblet()
 	events, _ := neb.BlockChain().TailBlock().FetchEvents(tx.Hash())
 
-	for _, v := range events {
-		// TODO: transaction execution topic need change later.
-		if v.Topic == core.TopicExecuteTxSuccess {
-			status = 1
-			break
+	if events == nil {
+		status = 2
+	} else {
+		for _, v := range events {
+			// TODO: transaction execution topic need change later.
+			if v.Topic == core.TopicExecuteTxSuccess {
+				status = 1
+				break
+			} else if v.Topic == core.TopicExecuteTxFailed {
+				status = 0
+				break
+			}
 		}
 	}
 
