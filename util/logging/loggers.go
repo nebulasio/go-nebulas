@@ -96,7 +96,7 @@ func Init(path string, level string, age uint32) {
 	vlog.Formatter = &logrus.TextFormatter{FullTimestamp: true}
 	vlog.Level = convertLevel(level)
 
-	CLog().WithFields(logrus.Fields{
+	VLog().WithFields(logrus.Fields{
 		"path":  path,
 		"level": level,
 	}).Info("Logger Configuration.")

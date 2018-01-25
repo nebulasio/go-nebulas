@@ -241,8 +241,8 @@ func (b *jsBridge) sendTransactionWithPassphrase(call otto.FunctionCall) otto.Va
 	return val
 }
 
-// startMine handle the start mining with passphrase input
-func (b *jsBridge) startMine(call otto.FunctionCall) otto.Value {
+// startMining handle the start mining with passphrase input
+func (b *jsBridge) startMining(call otto.FunctionCall) otto.Value {
 	var (
 		password string
 		err      error
@@ -260,7 +260,7 @@ func (b *jsBridge) startMine(call otto.FunctionCall) otto.Value {
 		fmt.Fprintln(b.writer, errors.New("unexpected argument count"))
 		return otto.NullValue()
 	}
-	ret, err := call.Otto.Call("bridge.startMine", nil, password)
+	ret, err := call.Otto.Call("bridge.startMining", nil, password)
 	if err != nil {
 		fmt.Fprintln(b.writer, err)
 		return otto.NullValue()
