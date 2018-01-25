@@ -402,7 +402,8 @@ func (p *Dpos) checkProposer(tail *core.Block, now int64) (*core.DynastyContext,
 		}
 		logging.VLog().WithFields(logrus.Fields{
 			"tail":     tail,
-			"elapsed":  elapsed,
+			"now":      now,
+			"slot":     slot,
 			"expected": proposer,
 			"actual":   p.miner.String(),
 		}).Debug("Not my turn, waiting...")
