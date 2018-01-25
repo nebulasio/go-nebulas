@@ -57,9 +57,7 @@ type Neblet struct {
 
 	syncService *nsync.Service
 
-	apiServer rpc.Server
-
-	managementServer rpc.Server
+	rpcServer rpc.GRPCServer
 
 	lock sync.RWMutex
 
@@ -134,8 +132,8 @@ func (n *Neblet) Setup() {
 	n.syncService = nsync.NewService(n.blockChain, n.netService)
 	n.blockChain.SetSyncService(n.syncService)
 
-	// api
-	n.apiServer = rpc.NewAPIServer(n)
+	// rpc
+	n.rpcServer = rpc.NewServer(n)
 
 	logging.CLog().Info("Setuped Neblet.")
 }
@@ -164,13 +162,13 @@ func (n *Neblet) Start() {
 		}).Fatal("Failed to start net service.")
 	}
 
-	if err := n.apiServer.Start(); err != nil {
+	if err := n.rpcServer.Start(); err != nil {
 		logging.CLog().WithFields(logrus.Fields{
 			"err": err,
 		}).Fatal("Failed to start api server.")
 	}
 
-	if err := n.apiServer.RunGateway(); err != nil {
+	if err := n.rpcServer.RunGateway(); err != nil {
 		logging.CLog().WithFields(logrus.Fields{
 			"err": err,
 		}).Fatal("Failed to start api gateway.")
@@ -244,14 +242,9 @@ func (n *Neblet) Stop() {
 		n.blockChain = nil
 	}
 
-	if n.apiServer != nil {
-		n.apiServer.Stop()
-		n.apiServer = nil
-	}
-
-	if n.managementServer != nil {
-		n.managementServer.Stop()
-		n.managementServer = nil
+	if n.rpcServer != nil {
+		n.rpcServer.Stop()
+		n.rpcServer = nil
 	}
 
 	if n.netService != nil {
