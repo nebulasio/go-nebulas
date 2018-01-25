@@ -147,7 +147,7 @@ func (s *APIService) Accounts(ctx context.Context, req *rpcpb.NonParamsRequest) 
 func (s *APIService) GetAccountState(ctx context.Context, req *rpcpb.GetAccountStateRequest) (*rpcpb.GetAccountStateResponse, error) {
 	logging.VLog().WithFields(logrus.Fields{
 		"address": req.Address,
-		"block":   req.Block,
+		"height":  req.Height,
 		"api":     "/v1/user/accountstate",
 	}).Info("Rpc request.")
 	metricsRPCCounter.Mark(1)
@@ -161,16 +161,11 @@ func (s *APIService) GetAccountState(ctx context.Context, req *rpcpb.GetAccountS
 	}
 
 	block := neb.BlockChain().TailBlock()
-	if len(req.Block) > 0 {
-		blockHash, err := byteutils.FromHex(req.Block)
-		if err != nil {
-			metricsAccountStateFailed.Mark(1)
-			return nil, err
-		}
-		block = neb.BlockChain().GetBlock(blockHash)
+	if req.Height > 0 {
+		block = neb.BlockChain().GetBlockOnCanonicalChainByHeight(req.Height)
 		if block == nil {
 			metricsAccountStateFailed.Mark(1)
-			return nil, errors.New("block hash not found")
+			return nil, errors.New("block not found")
 		}
 	}
 
@@ -877,10 +872,10 @@ func (s *APIService) ChangeNetworkID(ctx context.Context, req *rpcpb.ChangeNetwo
 	return &rpcpb.ChangeNetworkIDResponse{Result: true}, nil
 }
 
-// StartMine start mine
-func (s *APIService) StartMine(ctx context.Context, req *rpcpb.StartMineRequest) (*rpcpb.MineResponse, error) {
+// StartMining start mining
+func (s *APIService) StartMining(ctx context.Context, req *rpcpb.StartMiningRequest) (*rpcpb.MiningResponse, error) {
 	logging.VLog().WithFields(logrus.Fields{
-		"api": "/v1/admin/startMine",
+		"api": "/v1/admin/startMining",
 	}).Info("Rpc request.")
 	metricsRPCCounter.Mark(1)
 
@@ -894,13 +889,13 @@ func (s *APIService) StartMine(ctx context.Context, req *rpcpb.StartMineRequest)
 	if err != nil {
 		return nil, err
 	}
-	return &rpcpb.MineResponse{Result: true}, nil
+	return &rpcpb.MiningResponse{Result: true}, nil
 }
 
-// StopMine stop mine
-func (s *APIService) StopMine(ctx context.Context, req *rpcpb.NonParamsRequest) (*rpcpb.MineResponse, error) {
+// StopMining stop mining
+func (s *APIService) StopMining(ctx context.Context, req *rpcpb.NonParamsRequest) (*rpcpb.MiningResponse, error) {
 	logging.VLog().WithFields(logrus.Fields{
-		"api": "/v1/admin/stopMine",
+		"api": "/v1/admin/stopMining",
 	}).Info("Rpc request.")
 	metricsRPCCounter.Mark(1)
 
@@ -913,5 +908,5 @@ func (s *APIService) StopMine(ctx context.Context, req *rpcpb.NonParamsRequest) 
 	if err := neb.Consensus().DisableMining(); err != nil {
 		return nil, err
 	}
-	return &rpcpb.MineResponse{Result: true}, nil
+	return &rpcpb.MiningResponse{Result: true}, nil
 }

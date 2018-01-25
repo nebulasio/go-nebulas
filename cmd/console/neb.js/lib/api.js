@@ -105,6 +105,11 @@ API.prototype.estimateGas = function (from, to, value, nonce, gasPrice, gasLimit
     return this.request("post", "/v1/user/estimateGas", params, callback);
 };
 
+API.prototype.getGasUsed = function (hash, callback) {
+    var params = { "hash": hash };
+    return this.request("post", "/v1/user/getGasUsed", params, callback);
+};
+
 API.prototype.getEventsByHash = function (hash, callback) {
     var params = { "hash": hash };
     return this.request("post", "/v1/user/getEventsByHash", params, callback);

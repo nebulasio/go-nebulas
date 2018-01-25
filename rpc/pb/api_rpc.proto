@@ -231,16 +231,16 @@ service AdminService {
 		};
 	}
 
-    rpc StartMine (StartMineRequest) returns (MineResponse) {
+    rpc StartMining (StartMiningRequest) returns (MiningResponse) {
         option (google.api.http) = {
-			post: "/v1/admin/startMine"
+			post: "/v1/admin/startMining"
             body: "*"
 		};
     }
 
-    rpc StopMine (NonParamsRequest) returns (MineResponse) {
+    rpc StopMining (NonParamsRequest) returns (MiningResponse) {
         option (google.api.http) = {
-			get: "/v1/admin/stopMine"
+			get: "/v1/admin/stopMining"
 		};
     }
 
@@ -360,8 +360,8 @@ message GetAccountStateRequest {
     // Hex string of the account addresss.
     string address = 1;
 
-    // Hex string block number, or one of "latest", "earliest" or "pending". If not specified, use "latest".
-    string block = 2;
+    // block account state with height. If not specified, use 0 as tail height.
+    uint64 height = 2;
 }
 
 // Response message of GetAccountState rpc.
@@ -680,12 +680,12 @@ message Event {
     string data = 2;
 }
 
-message StartMineRequest {
+message StartMiningRequest {
     // miner address passphrase
     string passphrase = 1;
 }
 
-message MineResponse {
+message MiningResponse {
     bool result = 1;
 }
 
