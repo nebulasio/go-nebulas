@@ -28,8 +28,8 @@ API.prototype.blockDump = function (count, callback) {
     return this.request("post", "/v1/user/blockdump", params, callback);
 };
 
-API.prototype.getAccountState = function (address, block, callback) {
-    var params = { "address": address, "block": block };
+API.prototype.getAccountState = function (address, height, callback) {
+    var params = { "address": address, "height": height };
     return this.request("post", "/v1/user/accountstate", params, callback);
 };
 
