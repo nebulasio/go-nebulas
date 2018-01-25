@@ -203,9 +203,17 @@ service AdminService {
         };
 	}
 	
-	rpc GetDynasty (NonParamsRequest) returns (GetDynastyResponse) {
+	rpc GetDynasty (ByBlockHeightRequest) returns (GetDynastyResponse) {
 		option (google.api.http) = {
-			get: "/v1/admin/dynasty"
+            post: "/v1/admin/dynasty"
+            body: "*"
+		};
+    }
+
+    rpc GetCandidates (ByBlockHeightRequest) returns (GetCandidatesResponse) {
+		option (google.api.http) = {
+            post: "/v1/admin/candidates"
+            body: "*"
 		};
     }
     
@@ -371,6 +379,16 @@ message CallResponse {
     string result = 1;
 }
 
+// ByBlockHeightRequest message
+message ByBlockHeightRequest {
+    uint64 height = 1;
+}
+
+// GetCandidatesRequest message
+message GetCandidatesResponse {
+    repeated string candidates = 1;
+}
+
 // Response message of GetDynastyRequest rpc
 message GetDynastyResponse {
 	repeated string delegatees = 1;
@@ -378,7 +396,8 @@ message GetDynastyResponse {
 
 // Response message of GetDelegateVoters rpc
 message GetDelegateVotersRequest {
-	string delegatee = 1;
+    string delegatee = 1;
+    uint64 height = 2;
 }	
 
 // Response message of GetDelegateVoters rpc
