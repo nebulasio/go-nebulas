@@ -21,6 +21,7 @@ package p2p
 import (
 	"errors"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/nebulasio/go-nebulas/net"
@@ -48,6 +49,13 @@ const (
 	RECVEDMSG     = "recvedmsg"
 )
 
+// Stream Status
+const (
+	streamStatusInit = iota
+	streamStatusHandshakeSucceed
+	streamStatusClosed
+)
+
 // Stream Errors
 var (
 	ErrShouldCloseConnectionAndExitLoop = errors.New("should close connection and exit loop")
@@ -56,6 +64,7 @@ var (
 
 // Stream define the structure of a stream in p2p network
 type Stream struct {
+	syncMutex                 sync.Mutex
 	pid                       peer.ID
 	addr                      ma.Multiaddr
 	stream                    libnet.Stream
@@ -66,7 +75,7 @@ type Stream struct {
 	normalPriorityMessageChan chan *NebMessage
 	lowPriorityMessageChan    chan *NebMessage
 	quitWriteCh               chan bool
-	handshakeSucceed          bool
+	status                    int
 	connectedAt               int64
 	latestReadAt              int64
 	latestWriteAt             int64
@@ -94,7 +103,7 @@ func newStreamInstance(pid peer.ID, addr ma.Multiaddr, stream libnet.Stream, nod
 		normalPriorityMessageChan: make(chan *NebMessage, 2*1024),
 		lowPriorityMessageChan:    make(chan *NebMessage, 2*1024),
 		quitWriteCh:               make(chan bool, 1),
-		handshakeSucceed:          false,
+		status:                    streamStatusInit,
 		connectedAt:               time.Now().Unix(),
 		latestReadAt:              0,
 		latestWriteAt:             0,
@@ -133,7 +142,7 @@ func (s *Stream) IsConnected() bool {
 
 // IsHandshakeSucceed return if the handshake in the stream succeed
 func (s *Stream) IsHandshakeSucceed() bool {
-	return s.handshakeSucceed
+	return s.status == streamStatusHandshakeSucceed
 }
 
 func (s *Stream) String() string {
@@ -262,7 +271,6 @@ func (s *Stream) StartLoop() {
 }
 
 func (s *Stream) readLoop() {
-
 	// send Hello to host if stream is not connected.
 	if !s.IsConnected() {
 		if err := s.Connect(); err != nil {
@@ -439,7 +447,7 @@ func (s *Stream) handleMessage(message *NebMessage) error {
 	}
 
 	// check handshake status.
-	if s.handshakeSucceed == false {
+	if s.status == streamStatusHandshakeSucceed {
 		return ErrShouldCloseConnectionAndExitLoop
 	}
 
@@ -461,6 +469,15 @@ func (s *Stream) handleMessage(message *NebMessage) error {
 
 // Close close the stream
 func (s *Stream) Close(reason error) {
+	// Add lock & close flag to prevent multi call.
+	s.syncMutex.Lock()
+	defer s.syncMutex.Unlock()
+
+	if s.status == streamStatusClosed {
+		return
+	}
+	s.status = streamStatusClosed
+
 	logging.VLog().WithFields(logrus.Fields{
 		"stream": s.String(),
 		"reason": reason,
@@ -633,7 +650,7 @@ func (s *Stream) finishHandshake() {
 		"stream": s.String(),
 	}).Debug("Finished handshake.")
 
-	s.handshakeSucceed = true
+	s.status = streamStatusHandshakeSucceed
 	s.handshakeSucceedCh <- true
 }
 
