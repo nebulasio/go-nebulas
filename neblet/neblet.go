@@ -7,9 +7,17 @@ import (
 	"sync"
 	"time"
 
+	"net/http"
+	_ "net/http/pprof" // Register some standard stuff
+
 	"github.com/sirupsen/logrus"
 
 	"github.com/nebulasio/go-nebulas/cmd/console"
+
+	"net"
+	"os"
+	"runtime"
+	"runtime/pprof"
 
 	"github.com/nebulasio/go-nebulas/account"
 	"github.com/nebulasio/go-nebulas/consensus"
@@ -68,6 +76,18 @@ type Neblet struct {
 
 // New returns a new neblet.
 func New(config *nebletpb.Config) (*Neblet, error) {
+
+	// cpu profile.
+	if len(config.App.Pprof.Cpuprofile) > 0 {
+		f, err := os.Create(config.App.Pprof.Cpuprofile)
+		if err != nil {
+			logging.CLog().Fatal("could not create CPU profile: ", err)
+		}
+		if err := pprof.StartCPUProfile(f); err != nil {
+			logging.CLog().Fatal("could not create CPU profile: ", err)
+		}
+	}
+
 	var err error
 	n := &Neblet{config: config}
 	n.genesis, err = core.LoadGenesisConf(config.Chain.Genesis)
@@ -136,6 +156,25 @@ func (n *Neblet) Setup() {
 	n.rpcServer = rpc.NewServer(n)
 
 	logging.CLog().Info("Setuped Neblet.")
+}
+
+// StartPprof start pprof http listen
+func (n *Neblet) StartPprof(listen string) error {
+	if len(listen) > 0 {
+		conn, err := net.DialTimeout("tcp", listen, time.Second*1)
+		if err == nil {
+			conn.Close()
+			return errors.New("pprof http listen port is not available")
+		}
+
+		go func() {
+			logging.CLog().WithFields(logrus.Fields{
+				"listen": listen,
+			}).Info("Starting pprof...")
+			http.ListenAndServe(listen, nil)
+		}()
+	}
+	return nil
 }
 
 // Start starts the services of the neblet.
@@ -259,6 +298,24 @@ func (n *Neblet) Stop() {
 	n.accountManager = nil
 
 	n.running = false
+
+	// memory profile
+	if len(n.config.App.Pprof.Memprofile) > 0 {
+
+		f, err := os.Create(n.config.App.Pprof.Memprofile)
+		if err != nil {
+			logging.CLog().Fatal("could not create memory profile: ", err)
+		}
+		runtime.GC() // get up-to-date statistics
+		if err := pprof.WriteHeapProfile(f); err != nil {
+			logging.CLog().Fatal("could not write memory profile: ", err)
+		}
+		f.Close()
+	}
+
+	if len(n.config.App.Pprof.Cpuprofile) > 0 {
+		pprof.StopCPUProfile()
+	}
 
 	logging.CLog().Info("Stopped Neblet.")
 }

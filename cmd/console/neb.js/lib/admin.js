@@ -86,6 +86,11 @@ Admin.prototype.stopMining = function (callback) {
     return this.request("get", "/v1/admin/stopMining", null, callback);
 };
 
+Admin.prototype.startPprof = function (listen, callback) {
+    var params = { "listen": listen };
+    return this.request("post", "/v1/admin/pprof", params, callback);
+};
+
 Admin.prototype.request = function (method, api, params, callback) {
     if (utils.isFunction(callback)) {
         this._request.asyncRequest(method, api, params, callback);

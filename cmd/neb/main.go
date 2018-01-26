@@ -20,13 +20,8 @@ package main
 
 import (
 	"fmt"
-	"log"
-	"net/http"
-	_ "net/http/pprof"
 	"os"
 	"os/signal"
-	"runtime"
-	"runtime/pprof"
 	"sort"
 	"strconv"
 	"syscall"
@@ -62,7 +57,6 @@ func main() {
 	app.Flags = append(app.Flags, RPCFlags...)
 	app.Flags = append(app.Flags, AppFlags...)
 	app.Flags = append(app.Flags, StatsFlags...)
-	app.Flags = append(app.Flags, CPUProfile, MemProfile)
 
 	sort.Sort(cli.FlagsByName(app.Flags))
 
@@ -106,6 +100,12 @@ func runNeb(ctx *cli.Context, n *neblet.Neblet) chan bool {
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 
+	// start net pprof if config.App.Pprof.HttpListen configured
+	err := n.StartPprof(n.Config().App.Pprof.HttpListen)
+	if err != nil {
+		FatalF("start pprof failed:%s", err)
+	}
+
 	n.Setup()
 	n.Start()
 
@@ -113,24 +113,6 @@ func runNeb(ctx *cli.Context, n *neblet.Neblet) chan bool {
 
 	go func() {
 		<-c
-
-		// memory profile
-		if memprofile := ctx.GlobalString(MemProfile.Name); memprofile != "" {
-
-			f, err := os.Create(memprofile)
-			if err != nil {
-				log.Fatal("could not create memory profile: ", err)
-			}
-			runtime.GC() // get up-to-date statistics
-			if err := pprof.WriteHeapProfile(f); err != nil {
-				log.Fatal("could not write memory profile: ", err)
-			}
-			f.Close()
-		}
-
-		if cpuprofile := ctx.GlobalString(CPUProfile.Name); cpuprofile != "" {
-			pprof.StopCPUProfile()
-		}
 
 		n.Stop()
 
@@ -144,21 +126,6 @@ func runNeb(ctx *cli.Context, n *neblet.Neblet) chan bool {
 func makeNeb(ctx *cli.Context) (*neblet.Neblet, error) {
 	conf := neblet.LoadConfig(config)
 	conf.App.Version = version
-
-	// cpu profile.
-	if cpuprofile := ctx.GlobalString(CPUProfile.Name); cpuprofile != "" {
-		f, err := os.Create(cpuprofile)
-		if err != nil {
-			log.Fatal("could not create CPU profile: ", err)
-		}
-		if err := pprof.StartCPUProfile(f); err != nil {
-			log.Fatal("could not start CPU profile: ", err)
-		}
-
-		go func() {
-			http.ListenAndServe("0.0.0.0:7777", nil)
-		}()
-	}
 
 	// load config from cli args
 	networkConfig(ctx, conf.Network)

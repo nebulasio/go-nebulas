@@ -319,3 +319,18 @@ func (s *AdminService) StopMining(ctx context.Context, req *rpcpb.NonParamsReque
 	}
 	return &rpcpb.MiningResponse{Result: true}, nil
 }
+
+// StartPprof start pprof
+func (s *AdminService) StartPprof(ctx context.Context, req *rpcpb.PprofRequest) (*rpcpb.PprofResponse, error) {
+	logging.VLog().WithFields(logrus.Fields{
+		"api": "/v1/admin/pprof",
+	}).Info("Rpc request.")
+	metricsRPCCounter.Mark(1)
+
+	neb := s.server.Neblet()
+
+	if err := neb.StartPprof(req.Listen); err != nil {
+		return nil, err
+	}
+	return &rpcpb.PprofResponse{Result: true}, nil
+}

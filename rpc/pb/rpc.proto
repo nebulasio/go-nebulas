@@ -244,6 +244,13 @@ service AdminService {
 		};
     }
 
+    rpc StartPprof (PprofRequest) returns (PprofResponse) {
+        option (google.api.http) = {
+			post: "/v1/admin/pprof"
+			body: "*"
+		};
+    }
+
 }
 
 // Request message of Subscribe rpc
@@ -686,6 +693,14 @@ message StartMiningRequest {
 }
 
 message MiningResponse {
+    bool result = 1;
+}
+
+message PprofRequest {
+    string listen = 1;
+}
+
+message PprofResponse {
     bool result = 1;
 }
 

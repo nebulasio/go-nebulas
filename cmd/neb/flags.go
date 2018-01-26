@@ -173,12 +173,36 @@ var (
 		Usage: "app crash report url.",
 	}
 
+	// AppProfileListen pprof http listen
+	AppProfileListen = cli.StringFlag{
+		Name:  "app.pprof.listen",
+		Usage: "pprof net listen address",
+		Value: "",
+	}
+
+	// AppCPUProfile stats cpu profile
+	AppCPUProfile = cli.StringFlag{
+		Name:  "app.pprof.cpuprofile",
+		Usage: "pprof write cpu profile `file`",
+		Value: "",
+	}
+
+	// AppMemProfile stats memory profile
+	AppMemProfile = cli.StringFlag{
+		Name:  "app.pprof.memprofile",
+		Usage: "pprof write memory profile `file`",
+		Value: "",
+	}
+
 	// AppFlags app config list
 	AppFlags = []cli.Flag{
 		AppLogLevelFlag,
 		AppLogFileFlag,
 		AppCrashReportFlag,
 		AppCrashReportURLFlag,
+		AppProfileListen,
+		AppCPUProfile,
+		AppMemProfile,
 	}
 
 	// StatsEnableFlag stats enable
@@ -218,20 +242,6 @@ var (
 		StatsDBNameFlag,
 		StatsDBUserFlag,
 		StatsDBPasswordFlag,
-	}
-
-	// CPUProfile stats cpu profile
-	CPUProfile = cli.StringFlag{
-		Name:  "cpuprofile",
-		Usage: "write cpu profile `file`",
-		Value: "",
-	}
-
-	// MemProfile stats memory profile
-	MemProfile = cli.StringFlag{
-		Name:  "memprofile",
-		Usage: "write memory profile `file`",
-		Value: "",
 	}
 )
 
@@ -301,6 +311,19 @@ func appConfig(ctx *cli.Context, cfg *nebletpb.AppConfig) {
 	}
 	if ctx.GlobalIsSet(AppCrashReportURLFlag.Name) {
 		cfg.CrashReportUrl = ctx.GlobalString(AppCrashReportURLFlag.Name)
+	}
+
+	if cfg.Pprof == nil {
+		cfg.Pprof = &nebletpb.PprofConfig{}
+	}
+	if ctx.GlobalIsSet(AppProfileListen.Name) {
+		cfg.Pprof.HttpListen = ctx.GlobalString(AppProfileListen.Name)
+	}
+	if ctx.GlobalIsSet(AppCPUProfile.Name) {
+		cfg.Pprof.Cpuprofile = ctx.GlobalString(AppCPUProfile.Name)
+	}
+	if ctx.GlobalIsSet(AppMemProfile.Name) {
+		cfg.Pprof.Memprofile = ctx.GlobalString(AppMemProfile.Name)
 	}
 }
 
