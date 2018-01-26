@@ -447,7 +447,7 @@ func (s *Stream) handleMessage(message *NebMessage) error {
 	}
 
 	// check handshake status.
-	if s.status == streamStatusHandshakeSucceed {
+	if s.status != streamStatusHandshakeSucceed {
 		return ErrShouldCloseConnectionAndExitLoop
 	}
 
