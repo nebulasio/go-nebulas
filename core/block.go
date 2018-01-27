@@ -822,7 +822,9 @@ func (block *Block) execute() error {
 	}
 	txs := int64(len(block.transactions))
 	end := time.Now().UnixNano()
-	metricsTxVerifiedTime.Update((end - start) / txs)
+	if txs != 0 {
+		metricsTxVerifiedTime.Update((end - start) / txs)
+	}
 
 	if err := block.recordMintCnt(); err != nil {
 		return err
