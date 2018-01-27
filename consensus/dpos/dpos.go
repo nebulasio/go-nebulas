@@ -260,6 +260,11 @@ func (p *Dpos) FastVerifyBlock(block *core.Block) error {
 	}
 	dynasty, err := trie.NewBatchTrie(dynastyRoot, p.chain.Storage())
 	if err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"err":   err,
+			"root":  dynastyRoot.String(),
+			"block": block,
+		}).Debug("Failed to create new trie.")
 		return err
 	}
 	proposer, err := core.FindProposer(block.Timestamp(), dynasty)
