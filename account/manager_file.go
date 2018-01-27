@@ -91,7 +91,7 @@ func (m *Manager) refreshAccounts() error {
 		if err != nil {
 			logging.VLog().WithFields(logrus.Fields{
 				"err":     err,
-				"address": addr.String(),
+				"address": addr,
 			}).Error("Failed to parse the address.")
 			continue
 		}

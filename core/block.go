@@ -938,7 +938,7 @@ func (block *Block) recordMintCnt() error {
 
 	/* 	logging.VLog().WithFields(logrus.Fields{
 		"dynasty": block.Timestamp() / DynastyInterval,
-		"miner":   block.miner.String(),
+		"miner":   block.miner,
 		"count":   cnt,
 		"time":    endAt - startAt,
 	}).Debug("Recorded the block minted by the miner in the dynasty.") */
@@ -947,20 +947,12 @@ func (block *Block) recordMintCnt() error {
 
 func (block *Block) rewardCoinbase() {
 	coinbaseAddr := block.header.coinbase.address
-	stateOld := block.accState.RootHash().String()
 	coinbaseAcc := block.accState.GetOrCreateUserAccount(coinbaseAddr)
-	balanceOld := coinbaseAcc.Balance().String()
 	coinbaseAcc.AddBalance(BlockReward)
-	balanceNew := coinbaseAcc.Balance().String()
-	stateNew := block.accState.RootHash().String()
 
 	logging.VLog().WithFields(logrus.Fields{
-		"coinbase":       coinbaseAddr.Hex(),
-		"balance.before": balanceOld,
-		"balance.after":  balanceNew,
-		"state.before":   stateOld,
-		"state.after":    stateNew,
-		"reward":         BlockReward.String(),
+		"coinbase": coinbaseAddr.Hex(),
+		"reward":   BlockReward,
 	}).Info("Rewarded the coinbase.")
 }
 

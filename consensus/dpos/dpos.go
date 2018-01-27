@@ -219,7 +219,7 @@ func verifyBlockSign(miner *core.Address, block *core.Block) error {
 	addr, err := core.RecoverMiner(block)
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
-			"address": addr.String(),
+			"address": addr,
 			"err":     err,
 			"block":   block,
 		}).Debug("Failed to recover block's miner.")
@@ -227,8 +227,8 @@ func verifyBlockSign(miner *core.Address, block *core.Block) error {
 	}
 	if !miner.Equals(addr) {
 		logging.VLog().WithFields(logrus.Fields{
-			"address": addr.String(),
-			"miner":   miner.String(),
+			"address": addr,
+			"miner":   miner,
 			"block":   block,
 		}).Debug("Failed to verify block's sign.")
 		return ErrInvalidBlockProposer
@@ -262,7 +262,7 @@ func (p *Dpos) FastVerifyBlock(block *core.Block) error {
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"err":   err,
-			"root":  dynastyRoot.String(),
+			"root":  dynastyRoot,
 			"block": block,
 		}).Debug("Failed to create new trie.")
 		return err
@@ -345,7 +345,7 @@ func (p *Dpos) newBlock(tail *core.Block, context *core.DynastyContext, deadline
 	}
 	if err = p.am.SignBlock(p.miner, block); err != nil {
 		logging.CLog().WithFields(logrus.Fields{
-			"miner": p.miner.String(),
+			"miner": p.miner,
 			"block": block,
 			"err":   err,
 		}).Error("Failed to sign new block")
@@ -410,7 +410,7 @@ func (p *Dpos) checkProposer(tail *core.Block, now int64) (*core.DynastyContext,
 			"now":      now,
 			"slot":     slot,
 			"expected": proposer,
-			"actual":   p.miner.String(),
+			"actual":   p.miner,
 		}).Debug("Not my turn, waiting...")
 		return nil, ErrInvalidBlockProposer
 	}
@@ -457,7 +457,7 @@ func (p *Dpos) mintBlock(now int64) error {
 		"now":      now,
 		"deadline": deadline,
 		"expected": context.Proposer.Hex(),
-		"actual":   p.coinbase.String(),
+		"actual":   p.coinbase,
 	}).Info("My turn to mint block")
 
 	block, err := p.newBlock(tail, context, deadline)
