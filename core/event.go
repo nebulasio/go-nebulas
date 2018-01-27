@@ -34,10 +34,10 @@ const (
 	TopicSendTransaction = "chain.sendTransaction"
 
 	// TopicDeploySmartContract the topic of deploy a smart contract.
-	TopicDeploySmartContract = "chain.deploySmartContract"
+	TopicDeploySmartContract = "chain.deployContract"
 
 	// TopicCallSmartContract the topic of call a smart contract.
-	TopicCallSmartContract = "chain.callSmartContract"
+	TopicCallSmartContract = "chain.callContract"
 
 	// TopicDelegate the topic of delegate.
 	TopicDelegate = "chain.delegate"

@@ -132,7 +132,7 @@ func main() {
 			if err != nil {
 				log.Printf("failed to recv: %v", err)
 			}
-			log.Println("recv notification: ", reply.MsgType, reply.Data)
+			log.Println("recv notification: ", reply.Topic, reply.Data)
 		}
 	}
 }

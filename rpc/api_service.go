@@ -22,8 +22,6 @@ import (
 	"errors"
 	"fmt"
 
-	"encoding/json"
-
 	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/core/pb"
@@ -35,8 +33,6 @@ import (
 	"github.com/nebulasio/go-nebulas/util/logging"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
-
-	nnet "github.com/nebulasio/go-nebulas/net"
 )
 
 // APIService implements the RPC API service interface.
@@ -412,10 +408,18 @@ func (s *APIService) GetTransactionReceipt(ctx context.Context, req *rpcpb.GetTr
 	metricsRPCCounter.Mark(1)
 
 	neb := s.server.Neblet()
-	bhash, _ := byteutils.FromHex(req.GetHash())
-	tx := neb.BlockChain().GetTransaction(bhash)
+	hash, err := byteutils.FromHex(req.GetHash())
+	if err != nil {
+		return nil, err
+	}
+	tx := neb.BlockChain().GetTransaction(hash)
+
+	// if tx is nil, check it in transaction pool.
 	if tx == nil {
-		return nil, errors.New("transaction not found")
+		tx = neb.BlockChain().TransactionPool().GetTransaction(hash)
+		if tx == nil {
+			return nil, errors.New("transaction not found")
+		}
 	}
 
 	return s.toTransactionResponse(tx)
@@ -469,8 +473,8 @@ func (s *APIService) toTransactionResponse(tx *core.Transaction) (*rpcpb.Transac
 // Subscribe ..
 func (s *APIService) Subscribe(req *rpcpb.SubscribeRequest, gs rpcpb.ApiService_SubscribeServer) error {
 	logging.VLog().WithFields(logrus.Fields{
-		"topic": req.Topic,
-		"api":   "/v1/user/subscribe",
+		"topics": req.Topics,
+		"api":    "/v1/user/subscribe",
 	}).Info("Rpc request.")
 	metricsRPCCounter.Mark(1)
 
@@ -478,62 +482,62 @@ func (s *APIService) Subscribe(req *rpcpb.SubscribeRequest, gs rpcpb.ApiService_
 
 	chainEventCh := make(chan *core.Event, 128)
 	emitter := neb.EventEmitter()
-	for _, v := range req.Topic {
+	for _, v := range req.Topics {
 		emitter.Register(v, chainEventCh)
 	}
 
 	defer (func() {
-		for _, v := range req.Topic {
+		for _, v := range req.Topics {
 			emitter.Deregister(v, chainEventCh)
 		}
 	})()
 
-	netEventCh := make(chan nnet.Message, 128)
-	net := neb.NetManager()
-	net.Register(nnet.NewSubscriber(s, netEventCh, core.MessageTypeNewBlock))
-	net.Register(nnet.NewSubscriber(s, netEventCh, core.MessageTypeNewTx))
-	defer net.Deregister(nnet.NewSubscriber(s, netEventCh, core.MessageTypeNewBlock))
-	defer net.Deregister(nnet.NewSubscriber(s, netEventCh, core.MessageTypeNewTx))
+	//netEventCh := make(chan nnet.Message, 128)
+	//net := neb.NetManager()
+	//net.Register(nnet.NewSubscriber(s, netEventCh, core.MessageTypeNewBlock))
+	//net.Register(nnet.NewSubscriber(s, netEventCh, core.MessageTypeNewTx))
+	//defer net.Deregister(nnet.NewSubscriber(s, netEventCh, core.MessageTypeNewBlock))
+	//defer net.Deregister(nnet.NewSubscriber(s, netEventCh, core.MessageTypeNewTx))
 
 	var err error
 	for {
 		select {
 		case event := <-chainEventCh:
-			err = gs.Send(&rpcpb.SubscribeResponse{MsgType: event.Topic, Data: event.Data})
+			err = gs.Send(&rpcpb.SubscribeResponse{Topic: event.Topic, Data: event.Data})
 			if err != nil {
 				return err
 			}
-		case event := <-netEventCh:
-			switch event.MessageType() {
-			case core.MessageTypeNewBlock:
-				block := new(core.Block)
-				pbblock := new(corepb.Block)
-				if err := proto.Unmarshal(event.Data().([]byte), pbblock); err != nil {
-					return err
-				}
-				if err := block.FromProto(pbblock); err != nil {
-					return err
-				}
-				blockjson, err := json.Marshal(block)
-				if err != nil {
-					return err
-				}
-				err = gs.Send(&rpcpb.SubscribeResponse{MsgType: event.MessageType(), Data: string(blockjson)})
-			case core.MessageTypeNewTx:
-				tx := new(core.Transaction)
-				pbTx := new(corepb.Transaction)
-				if err := proto.Unmarshal(event.Data().([]byte), pbTx); err != nil {
-					return err
-				}
-				if err := tx.FromProto(pbTx); err != nil {
-					return err
-				}
-				txjson, err := json.Marshal(tx)
-				if err != nil {
-					return err
-				}
-				err = gs.Send(&rpcpb.SubscribeResponse{MsgType: event.MessageType(), Data: string(txjson)})
-			}
+			//case event := <-netEventCh:
+			//	switch event.MessageType() {
+			//	case core.MessageTypeNewBlock:
+			//		block := new(core.Block)
+			//		pbblock := new(corepb.Block)
+			//		if err := proto.Unmarshal(event.Data().([]byte), pbblock); err != nil {
+			//			return err
+			//		}
+			//		if err := block.FromProto(pbblock); err != nil {
+			//			return err
+			//		}
+			//		blockjson, err := json.Marshal(block)
+			//		if err != nil {
+			//			return err
+			//		}
+			//		err = gs.Send(&rpcpb.SubscribeResponse{Topic: event.MessageType(), Data: string(blockjson)})
+			//	case core.MessageTypeNewTx:
+			//		tx := new(core.Transaction)
+			//		pbTx := new(corepb.Transaction)
+			//		if err := proto.Unmarshal(event.Data().([]byte), pbTx); err != nil {
+			//			return err
+			//		}
+			//		if err := tx.FromProto(pbTx); err != nil {
+			//			return err
+			//		}
+			//		txjson, err := json.Marshal(tx)
+			//		if err != nil {
+			//			return err
+			//		}
+			//		err = gs.Send(&rpcpb.SubscribeResponse{Topic: event.MessageType(), Data: string(txjson)})
+			//	}
 		}
 	}
 }

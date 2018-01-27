@@ -188,6 +188,11 @@ func (pool *TransactionPool) loop() {
 	}
 }
 
+// GetTransaction return transaction of given hash from transaction pool.
+func (pool *TransactionPool) GetTransaction(hash byteutils.Hash) *Transaction {
+	return pool.all[hash.Hex()]
+}
+
 // Push tx into pool
 func (pool *TransactionPool) Push(tx *Transaction) error {
 	pool.mu.Lock()

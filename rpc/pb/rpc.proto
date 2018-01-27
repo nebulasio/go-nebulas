@@ -46,7 +46,7 @@ service ApiService {
         };
     }
 
-    // Return the dump info of blockchain.
+    // Return the latest irreversible block.
     rpc LatestIrreversibleBlock (NonParamsRequest) returns (BlockResponse) {
         option (google.api.http) = {
             get: "/v1/user/lib"
@@ -142,7 +142,8 @@ service ApiService {
     // Get GasUsed
     rpc GetGasUsed(HashRequest) returns (GasResponse) {
         option (google.api.http) = {
-            get: "/v1/user/getGasUsed"
+            post: "/v1/user/getGasUsed"
+            body: "*"
         };
     }
 
@@ -152,7 +153,6 @@ service ApiService {
             body: "*"
         };
     }
-
 
 }
 
@@ -255,22 +255,12 @@ service AdminService {
 
 // Request message of Subscribe rpc
 message SubscribeRequest {
-    repeated string topic = 1;
-}
-
-// Request message of change networkID.
-message ChangeNetworkIDRequest {
-    uint32 network_id = 1;
-}
-
-// Response message of change networkID.
-message ChangeNetworkIDResponse {
-    bool result = 1;
+    repeated string topics = 1;
 }
 
 // Request message of Subscribe rpc
 message SubscribeResponse {
-    string msg_type = 1;
+    string topic = 1;
     string data = 2;
 }
 
@@ -685,6 +675,16 @@ message EventsResponse {
 message Event {
     string topic = 1;
     string data = 2;
+}
+
+// Request message of change networkID.
+message ChangeNetworkIDRequest {
+    uint32 network_id = 1;
+}
+
+// Response message of change networkID.
+message ChangeNetworkIDResponse {
+    bool result = 1;
 }
 
 message StartMiningRequest {
