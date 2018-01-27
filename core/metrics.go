@@ -37,8 +37,9 @@ var (
 	metricsCachedDownloadBlock = metrics.NewGauge("neb.block.download.cached")
 	metricsDuplicatedBlock     = metrics.NewCounter("neb.block.duplicated")
 	metricsInvalidBlock        = metrics.NewCounter("neb.block.invalid")
-	metricsBlockExecutedTimer  = metrics.NewTimer("neb.block.executed")
-	metricsTxExecutedTimer     = metrics.NewTimer("neb.tx.executed")
+	metricsTxsInBlock          = metrics.NewGauge("neb.block.txs")
+	metricsBlockVerifiedTime   = metrics.NewGauge("neb.block.executed")
+	metricsTxVerifiedTime      = metrics.NewGauge("neb.tx.executed")
 
 	// txpool metrics
 	metricsCachedTx            = metrics.NewGauge("neb.txpool.cached")

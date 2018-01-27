@@ -652,8 +652,6 @@ func (block *Block) String() string {
 
 // VerifyExecution execute the block and verify the execution result.
 func (block *Block) VerifyExecution(parent *Block, consensus Consensus) error {
-	startAt := time.Now().Unix()
-
 	// verify the block is acceptable by consensus
 	if err := consensus.VerifyBlock(block, parent); err != nil {
 		return err
@@ -680,9 +678,6 @@ func (block *Block) VerifyExecution(parent *Block, consensus Consensus) error {
 
 	// release all events
 	block.triggerEvent()
-	endAt := time.Now().Unix()
-
-	metricsBlockExecutedTimer.Update(time.Duration((endAt - startAt) / int64(time.Second)))
 
 	/* 	logging.VLog().WithFields(logrus.Fields{
 		"time.verify":  verifyAt - startAt,
@@ -808,6 +803,7 @@ func (block *Block) verifyState() error {
 func (block *Block) execute() error {
 	block.rewardCoinbase()
 
+	startAt := time.Now().Unix()
 	for _, tx := range block.transactions {
 		start := time.Now().Unix()
 		metricsTxExecute.Mark(1)
@@ -824,8 +820,11 @@ func (block *Block) execute() error {
 		}
 
 		end := time.Now().Unix()
-		metricsTxExecutedTimer.Update(time.Duration(end - start))
+		metricsTxVerifiedTime.Update(end - start)
 	}
+	endAt := time.Now().Unix()
+	metricsBlockVerifiedTime.Update(endAt - startAt)
+	metricsTxsInBlock.Update(int64(len(block.transactions)))
 
 	return block.recordMintCnt()
 }
