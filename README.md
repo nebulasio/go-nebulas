@@ -81,6 +81,15 @@ time="2017-12-29T23:25:19+08:00" level=warning msg=mintBlock. elapsed=17119 err=
 
 From the log, we can see the binary execution starts neblet, starts network service, starts RPC API server, and starts consensus state machine.
 
+## Docker
+
+### Build
+
+`docker build -t nebulas`
+
+### Run
+
+`docker run -it -v $(pwd)/data.db:/nebulas/data.db nebulas`
 
 ### Configurations
 Neb uses [Protocol Buffer](https://github.com/google/protobuf) to load configurations. The default config file is named as config.conf and looks like following:
