@@ -398,7 +398,7 @@ func (block *Block) LinkParentBlock(chain *BlockChain, parentBlock *Block) error
 	elapsedSecond := block.Timestamp() - parentBlock.Timestamp()
 	context, err := parentBlock.NextDynastyContext(chain, elapsedSecond)
 	if err != nil {
-		return ErrGenerateNextDynastyContext
+		return err
 	}
 	// nextAt := time.Now().Unix()
 

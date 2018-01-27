@@ -95,6 +95,7 @@ var (
 	ErrCannotLoadGenesisBlock                            = errors.New("cannot load genesis block from storage")
 	ErrCannotLoadLIBBlock                                = errors.New("cannot load tail block from storage")
 	ErrCannotLoadTailBlock                               = errors.New("cannot load latest irreversible block from storage")
+	ErrFoundNilProposer                                  = errors.New("found a nil proposer")
 )
 
 // Default gas count

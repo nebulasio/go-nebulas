@@ -423,7 +423,7 @@ func (p *Dpos) broadcast(tail *core.Block, block *core.Block) error {
 			"tail":  tail,
 			"block": block,
 			"err":   err,
-		}).Error("Failed to broadcast new block")
+		}).Error("Failed to push new minted block into block pool")
 		return err
 	}
 	return nil

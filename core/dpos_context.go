@@ -758,6 +758,7 @@ func FindProposer(now int64, dynasty *trie.BatchTrie) (proposer byteutils.Hash, 
 			"offset":    offset,
 			"delegatee": len(delegatees),
 		}).Debug("Find Nil Proposer.")
+		return nil, ErrFoundNilProposer
 	}
 	return proposer, nil
 }
