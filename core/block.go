@@ -801,11 +801,11 @@ func (block *Block) verifyState() error {
 
 // Execute block and return result.
 func (block *Block) execute() error {
+	startAt := time.Now().UnixNano()
 	block.rewardCoinbase()
 
-	startAt := time.Now().Unix()
+	start := time.Now().UnixNano()
 	for _, tx := range block.transactions {
-		start := time.Now().Unix()
 		metricsTxExecute.Mark(1)
 
 		giveback, err := block.executeTransaction(tx)
@@ -819,14 +819,20 @@ func (block *Block) execute() error {
 			return err
 		}
 
-		end := time.Now().Unix()
-		metricsTxVerifiedTime.Update(end - start)
 	}
-	endAt := time.Now().Unix()
-	metricsBlockVerifiedTime.Update(endAt - startAt)
-	metricsTxsInBlock.Update(int64(len(block.transactions)))
+	txs := int64(len(block.transactions))
+	end := time.Now().UnixNano()
+	metricsTxVerifiedTime.Update((end - start) / txs)
 
-	return block.recordMintCnt()
+	if err := block.recordMintCnt(); err != nil {
+		return err
+	}
+
+	endAt := time.Now().UnixNano()
+	metricsBlockVerifiedTime.Update(endAt - startAt)
+	metricsTxsInBlock.Update(txs)
+
+	return nil
 }
 
 // GetBalance returns balance for the given address on this block.
