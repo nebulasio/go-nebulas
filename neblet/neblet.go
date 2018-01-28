@@ -4,6 +4,9 @@ import (
 	"errors"
 	"fmt"
 	"math/rand"
+	"os"
+	"runtime"
+	"runtime/pprof"
 	"sync"
 	"time"
 
@@ -15,9 +18,6 @@ import (
 	"github.com/nebulasio/go-nebulas/cmd/console"
 
 	"net"
-	"os"
-	"runtime"
-	"runtime/pprof"
 
 	"github.com/nebulasio/go-nebulas/account"
 	"github.com/nebulasio/go-nebulas/consensus"
@@ -76,20 +76,12 @@ type Neblet struct {
 
 // New returns a new neblet.
 func New(config *nebletpb.Config) (*Neblet, error) {
-
-	// cpu profile.
-	if len(config.App.Pprof.Cpuprofile) > 0 {
-		f, err := os.Create(config.App.Pprof.Cpuprofile)
-		if err != nil {
-			logging.CLog().Fatal("could not create CPU profile: ", err)
-		}
-		if err := pprof.StartCPUProfile(f); err != nil {
-			logging.CLog().Fatal("could not create CPU profile: ", err)
-		}
-	}
-
 	var err error
 	n := &Neblet{config: config}
+
+	// try enable profile.
+	n.TryStartProfiling()
+
 	n.genesis, err = core.LoadGenesisConf(config.Chain.Genesis)
 	if err != nil {
 		return nil, err
@@ -259,6 +251,9 @@ func (n *Neblet) Stop() {
 
 	logging.CLog().Info("Stopping Neblet...")
 
+	// try Stop Profiling.
+	n.TryStopProfiling()
+
 	if n.consensus != nil {
 		n.consensus.Stop()
 		n.consensus = nil
@@ -298,24 +293,6 @@ func (n *Neblet) Stop() {
 	n.accountManager = nil
 
 	n.running = false
-
-	// memory profile
-	if len(n.config.App.Pprof.Memprofile) > 0 {
-
-		f, err := os.Create(n.config.App.Pprof.Memprofile)
-		if err != nil {
-			logging.CLog().Fatal("could not create memory profile: ", err)
-		}
-		runtime.GC() // get up-to-date statistics
-		if err := pprof.WriteHeapProfile(f); err != nil {
-			logging.CLog().Fatal("could not write memory profile: ", err)
-		}
-		f.Close()
-	}
-
-	if len(n.config.App.Pprof.Cpuprofile) > 0 {
-		pprof.StopCPUProfile()
-	}
 
 	logging.CLog().Info("Stopped Neblet.")
 }
@@ -368,4 +345,45 @@ func (n *Neblet) Consensus() consensus.Consensus {
 // SyncService return sync service
 func (n *Neblet) SyncService() *nsync.Service {
 	return n.syncService
+}
+
+func (n *Neblet) TryStartProfiling() {
+	if n.config.App.Pprof == nil {
+		return
+	}
+
+	cpuProfile := n.config.App.Pprof.Cpuprofile
+	if len(cpuProfile) > 0 {
+		f, err := os.Create(cpuProfile)
+		if err != nil {
+			logging.CLog().Fatalf("Could not create CPU profile %s, err is %s", cpuProfile, err)
+		}
+		if err := pprof.StartCPUProfile(f); err != nil {
+			logging.CLog().Fatalf("Failed to start cpu profile, err is %s", err)
+		}
+	}
+}
+
+func (n *Neblet) TryStopProfiling() {
+	if n.config.App.Pprof == nil {
+		return
+	}
+
+	memProfile := n.config.App.Pprof.Memprofile
+	if len(memProfile) > 0 {
+		f, err := os.Create(memProfile)
+		if err != nil {
+			logging.CLog().Errorf("Could not create memory profile %s, err is %s", memProfile, err)
+		}
+		runtime.GC() // get up-to-date statistics
+		if err := pprof.WriteHeapProfile(f); err != nil {
+			logging.CLog().Errorf("Failed to write memory profile, err is %s", err)
+		}
+		f.Close()
+	}
+
+	cpuProfile := n.config.App.Pprof.Cpuprofile
+	if len(cpuProfile) > 0 {
+		pprof.StopCPUProfile()
+	}
 }
