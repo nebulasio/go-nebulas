@@ -25,7 +25,6 @@ import (
 	"github.com/nebulasio/go-nebulas/util/logging"
 	metrics "github.com/rcrowley/go-metrics"
 	"github.com/sirupsen/logrus"
-	// "github.com/sirupsen/logrus"
 )
 
 var (
