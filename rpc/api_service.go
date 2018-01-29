@@ -30,8 +30,6 @@ import (
 	"github.com/nebulasio/go-nebulas/rpc/pb"
 	"github.com/nebulasio/go-nebulas/util"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
-	"github.com/nebulasio/go-nebulas/util/logging"
-	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 )
 
@@ -42,10 +40,6 @@ type APIService struct {
 
 // GetNebState is the RPC API handler.
 func (s *APIService) GetNebState(ctx context.Context, req *rpcpb.NonParamsRequest) (*rpcpb.GetNebStateResponse, error) {
-	logging.VLog().WithFields(logrus.Fields{
-		"api": "/v1/user/nebstate",
-	}).Info("Rpc request.")
-	metricsRPCCounter.Mark(1)
 
 	neb := s.server.Neblet()
 
@@ -66,10 +60,6 @@ func (s *APIService) GetNebState(ctx context.Context, req *rpcpb.NonParamsReques
 
 // NodeInfo is the PRC API handler
 func (s *APIService) NodeInfo(ctx context.Context, req *rpcpb.NonParamsRequest) (*rpcpb.NodeInfoResponse, error) {
-	logging.VLog().WithFields(logrus.Fields{
-		"api": "/v1/user/nodeinfo",
-	}).Info("Rpc request.")
-	metricsRPCCounter.Mark(1)
 
 	neb := s.server.Neblet()
 	resp := &rpcpb.NodeInfoResponse{}
@@ -100,13 +90,8 @@ func (s *APIService) NodeInfo(ctx context.Context, req *rpcpb.NonParamsRequest) 
 
 // Accounts is the RPC API handler.
 func (s *APIService) Accounts(ctx context.Context, req *rpcpb.NonParamsRequest) (*rpcpb.AccountsResponse, error) {
-	logging.VLog().WithFields(logrus.Fields{
-		"api": "/v1/user/accounts",
-	}).Info("Rpc request.")
-	metricsRPCCounter.Mark(1)
 
 	neb := s.server.Neblet()
-
 	accs := neb.AccountManager().Accounts()
 
 	resp := new(rpcpb.AccountsResponse)
@@ -120,12 +105,6 @@ func (s *APIService) Accounts(ctx context.Context, req *rpcpb.NonParamsRequest) 
 
 // GetAccountState is the RPC API handler.
 func (s *APIService) GetAccountState(ctx context.Context, req *rpcpb.GetAccountStateRequest) (*rpcpb.GetAccountStateResponse, error) {
-	logging.VLog().WithFields(logrus.Fields{
-		"address": req.Address,
-		"height":  req.Height,
-		"api":     "/v1/user/accountstate",
-	}).Info("Rpc request.")
-	metricsRPCCounter.Mark(1)
 
 	neb := s.server.Neblet()
 
@@ -153,20 +132,12 @@ func (s *APIService) GetAccountState(ctx context.Context, req *rpcpb.GetAccountS
 
 // SendTransaction is the RPC API handler.
 func (s *APIService) SendTransaction(ctx context.Context, req *rpcpb.TransactionRequest) (*rpcpb.SendTransactionResponse, error) {
-	logging.VLog().WithFields(logrus.Fields{
-		"api": "/v1/user/transaction",
-	}).Info("Rpc request.")
-	metricsRPCCounter.Mark(1)
 
 	return s.sendTransaction(req)
 }
 
 // Call is the RPC API handler.
 func (s *APIService) Call(ctx context.Context, req *rpcpb.TransactionRequest) (*rpcpb.CallResponse, error) {
-	logging.VLog().WithFields(logrus.Fields{
-		"api": "/v1/user/call",
-	}).Info("Rpc request.")
-	metricsRPCCounter.Mark(1)
 
 	neb := s.server.Neblet()
 	tx, err := parseTransaction(neb, req)
@@ -259,10 +230,6 @@ func parseTransaction(neb Neblet, reqTx *rpcpb.TransactionRequest) (*core.Transa
 
 // SendRawTransaction submit the signed transaction raw data to txpool
 func (s *APIService) SendRawTransaction(ctx context.Context, req *rpcpb.SendRawTransactionRequest) (*rpcpb.SendTransactionResponse, error) {
-	logging.VLog().WithFields(logrus.Fields{
-		"api": "/v1/user/rawtransaction",
-	}).Info("Rpc request.")
-	metricsRPCCounter.Mark(1)
 
 	// Validate and sign the tx, then submit it to the tx pool.
 	neb := s.server.Neblet()
@@ -295,11 +262,6 @@ func (s *APIService) SendRawTransaction(ctx context.Context, req *rpcpb.SendRawT
 
 // GetBlockByHash get block info by the block hash
 func (s *APIService) GetBlockByHash(ctx context.Context, req *rpcpb.GetBlockByHashRequest) (*rpcpb.BlockResponse, error) {
-	logging.VLog().WithFields(logrus.Fields{
-		"hash": req.Hash,
-		"api":  "/v1/user/getBlockByHash",
-	}).Info("Rpc request.")
-	metricsRPCCounter.Mark(1)
 
 	neb := s.server.Neblet()
 
@@ -315,11 +277,6 @@ func (s *APIService) GetBlockByHash(ctx context.Context, req *rpcpb.GetBlockByHa
 
 // GetBlockByHeight get block info by the block hash
 func (s *APIService) GetBlockByHeight(ctx context.Context, req *rpcpb.GetBlockByHeightRequest) (*rpcpb.BlockResponse, error) {
-	logging.VLog().WithFields(logrus.Fields{
-		"height": req.Height,
-		"api":    "/v1/user/getBlockByHash",
-	}).Info("Rpc request.")
-	metricsRPCCounter.Mark(1)
 
 	neb := s.server.Neblet()
 
@@ -376,11 +333,6 @@ func (s *APIService) toBlockResponse(block *core.Block, fullTransaction bool) (*
 
 // BlockDump is the RPC API handler.
 func (s *APIService) BlockDump(ctx context.Context, req *rpcpb.BlockDumpRequest) (*rpcpb.BlockDumpResponse, error) {
-	logging.VLog().WithFields(logrus.Fields{
-		"count": req.Count,
-		"api":   "/v1/user/blockdump",
-	}).Info("Rpc request.")
-	metricsRPCCounter.Mark(1)
 
 	neb := s.server.Neblet()
 	data := neb.BlockChain().Dump(int(req.Count))
@@ -389,10 +341,6 @@ func (s *APIService) BlockDump(ctx context.Context, req *rpcpb.BlockDumpRequest)
 
 // LatestIrreversibleBlock is the RPC API handler.
 func (s *APIService) LatestIrreversibleBlock(ctx context.Context, req *rpcpb.NonParamsRequest) (*rpcpb.BlockResponse, error) {
-	logging.VLog().WithFields(logrus.Fields{
-		"api": "/v1/user/lib",
-	}).Info("Rpc request.")
-	metricsRPCCounter.Mark(1)
 
 	neb := s.server.Neblet()
 	block := neb.BlockChain().LatestIrreversibleBlock()
@@ -402,11 +350,6 @@ func (s *APIService) LatestIrreversibleBlock(ctx context.Context, req *rpcpb.Non
 
 // GetTransactionReceipt get transaction info by the transaction hash
 func (s *APIService) GetTransactionReceipt(ctx context.Context, req *rpcpb.GetTransactionByHashRequest) (*rpcpb.TransactionResponse, error) {
-	logging.VLog().WithFields(logrus.Fields{
-		"hash": req.Hash,
-		"api":  "/v1/user/getTransactionReceipt",
-	}).Info("Rpc request.")
-	metricsRPCCounter.Mark(1)
 
 	neb := s.server.Neblet()
 	hash, err := byteutils.FromHex(req.GetHash())
@@ -473,11 +416,6 @@ func (s *APIService) toTransactionResponse(tx *core.Transaction) (*rpcpb.Transac
 
 // Subscribe ..
 func (s *APIService) Subscribe(req *rpcpb.SubscribeRequest, gs rpcpb.ApiService_SubscribeServer) error {
-	logging.VLog().WithFields(logrus.Fields{
-		"topics": req.Topics,
-		"api":    "/v1/user/subscribe",
-	}).Info("Rpc request.")
-	metricsRPCCounter.Mark(1)
 
 	neb := s.server.Neblet()
 
@@ -545,10 +483,6 @@ func (s *APIService) Subscribe(req *rpcpb.SubscribeRequest, gs rpcpb.ApiService_
 
 // GetGasPrice get gas price from chain.
 func (s *APIService) GetGasPrice(ctx context.Context, req *rpcpb.NonParamsRequest) (*rpcpb.GasPriceResponse, error) {
-	logging.VLog().WithFields(logrus.Fields{
-		"api": "/v1/user/getGasPrice",
-	}).Info("Rpc request.")
-	metricsRPCCounter.Mark(1)
 
 	neb := s.server.Neblet()
 	gasPrice := neb.BlockChain().GasPrice()
@@ -557,10 +491,6 @@ func (s *APIService) GetGasPrice(ctx context.Context, req *rpcpb.NonParamsReques
 
 // EstimateGas Compute the smart contract gas consumption.
 func (s *APIService) EstimateGas(ctx context.Context, req *rpcpb.TransactionRequest) (*rpcpb.GasResponse, error) {
-	logging.VLog().WithFields(logrus.Fields{
-		"api": "/v1/user/estimateGas",
-	}).Info("Rpc request.")
-	metricsRPCCounter.Mark(1)
 
 	neb := s.server.Neblet()
 	tx, err := parseTransaction(neb, req)
@@ -576,10 +506,6 @@ func (s *APIService) EstimateGas(ctx context.Context, req *rpcpb.TransactionRequ
 
 // GetGasUsed Compute the transaction gasused.
 func (s *APIService) GetGasUsed(ctx context.Context, req *rpcpb.HashRequest) (*rpcpb.GasResponse, error) {
-	logging.VLog().WithFields(logrus.Fields{
-		"api": "/v1/user/GetGasUsed",
-	}).Info("Rpc request.")
-	metricsRPCCounter.Mark(1)
 
 	neb := s.server.Neblet()
 	hash, err := byteutils.FromHex(req.GetHash())
@@ -602,10 +528,6 @@ func (s *APIService) GetGasUsed(ctx context.Context, req *rpcpb.HashRequest) (*r
 
 // GetEventsByHash return events by tx hash.
 func (s *APIService) GetEventsByHash(ctx context.Context, req *rpcpb.HashRequest) (*rpcpb.EventsResponse, error) {
-	logging.VLog().WithFields(logrus.Fields{
-		"api": "/v1/user/getEventsByHash",
-	}).Info("Rpc request.")
-	metricsRPCCounter.Mark(1)
 
 	neb := s.server.Neblet()
 	bhash, _ := byteutils.FromHex(req.GetHash())

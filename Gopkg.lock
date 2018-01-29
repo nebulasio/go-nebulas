@@ -10,11 +10,7 @@
 [[projects]]
   branch = "master"
   name = "github.com/agl/ed25519"
-  packages = [
-    ".",
-    "edwards25519",
-    "extra25519"
-  ]
+  packages = [".","edwards25519","extra25519"]
   revision = "5312a61534124124185d41f09206b9fef1d88403"
 
 [[projects]]
@@ -38,10 +34,7 @@
 [[projects]]
   branch = "master"
   name = "github.com/docker/spdystream"
-  packages = [
-    ".",
-    "spdy"
-  ]
+  packages = [".","spdy"]
   revision = "bc6354cbbc295e925e4c611ffe90c1f287ee54db"
 
 [[projects]]
@@ -52,10 +45,7 @@
 
 [[projects]]
   name = "github.com/gogo/protobuf"
-  packages = [
-    "io",
-    "proto"
-  ]
+  packages = ["io","proto"]
   revision = "100ba4e885062801d56799d78530b73b178a78f3"
   version = "v0.4"
 
@@ -68,16 +58,7 @@
 [[projects]]
   branch = "master"
   name = "github.com/golang/protobuf"
-  packages = [
-    "jsonpb",
-    "proto",
-    "protoc-gen-go/descriptor",
-    "ptypes",
-    "ptypes/any",
-    "ptypes/duration",
-    "ptypes/struct",
-    "ptypes/timestamp"
-  ]
+  packages = ["jsonpb","proto","protoc-gen-go/descriptor","ptypes","ptypes/any","ptypes/duration","ptypes/struct","ptypes/timestamp"]
   revision = "ae59567b9aab61b50b2590679a62c3c044030b61"
 
 [[projects]]
@@ -93,13 +74,15 @@
   version = "v1.2.0"
 
 [[projects]]
+  branch = "better_docs"
+  name = "github.com/grpc-ecosystem/go-grpc-middleware"
+  packages = ["."]
+  revision = "63e69ea2fcaa6764e67826381756e528db9203ab"
+
+[[projects]]
   branch = "master"
   name = "github.com/grpc-ecosystem/grpc-gateway"
-  packages = [
-    "runtime",
-    "runtime/internal",
-    "utilities"
-  ]
+  packages = ["runtime","runtime/internal","utilities"]
   revision = "b0be3cdef0ed27e3c420795e2efbfe9c27e839cc"
 
 [[projects]]
@@ -117,33 +100,18 @@
 [[projects]]
   branch = "master"
   name = "github.com/hashicorp/golang-lru"
-  packages = [
-    ".",
-    "simplelru"
-  ]
+  packages = [".","simplelru"]
   revision = "0a025b7e63adc15a622f29b0b2c4c3848243bbf6"
 
 [[projects]]
   branch = "master"
   name = "github.com/huin/goupnp"
-  packages = [
-    ".",
-    "dcps/internetgateway1",
-    "dcps/internetgateway2",
-    "httpu",
-    "scpd",
-    "soap",
-    "ssdp"
-  ]
+  packages = [".","dcps/internetgateway1","dcps/internetgateway2","httpu","scpd","soap","ssdp"]
   revision = "5b7801abd885f2f7458add715aee47e7df5370a0"
 
 [[projects]]
   name = "github.com/influxdata/influxdb"
-  packages = [
-    "client",
-    "models",
-    "pkg/escape"
-  ]
+  packages = ["client","models","pkg/escape"]
   revision = "6d2685d1738277a1c2672fc58df7994627769be6"
   version = "v1.4.2"
 
@@ -186,12 +154,7 @@
 [[projects]]
   branch = "master"
   name = "github.com/jbenet/goprocess"
-  packages = [
-    ".",
-    "context",
-    "periodic",
-    "ratelimit"
-  ]
+  packages = [".","context","periodic","ratelimit"]
   revision = "b497e2f366b8624394fb2e89c10ab607bebdde0b"
 
 [[projects]]
@@ -215,20 +178,13 @@
 [[projects]]
   branch = "master"
   name = "github.com/libp2p/go-libp2p"
-  packages = [
-    "p2p/host/basic",
-    "p2p/protocol/identify",
-    "p2p/protocol/identify/pb"
-  ]
+  packages = ["p2p/host/basic","p2p/protocol/identify","p2p/protocol/identify/pb"]
   revision = "edb6434ddf456f58fbe2538d5336435a23915bd9"
 
 [[projects]]
   branch = "master"
   name = "github.com/libp2p/go-libp2p-circuit"
-  packages = [
-    ".",
-    "pb"
-  ]
+  packages = [".","pb"]
   revision = "4730183d80def7bc574e1b486b1f6e97a5c67bb9"
 
 [[projects]]
@@ -239,10 +195,7 @@
 
 [[projects]]
   name = "github.com/libp2p/go-libp2p-crypto"
-  packages = [
-    ".",
-    "pb"
-  ]
+  packages = [".","pb"]
   revision = "e89e1de117dd65c6129d99d1d853f48bc847cf17"
 
 [[projects]]
@@ -270,10 +223,7 @@
 [[projects]]
   branch = "master"
   name = "github.com/libp2p/go-libp2p-kbucket"
-  packages = [
-    ".",
-    "keyspace"
-  ]
+  packages = [".","keyspace"]
   revision = "5ce3bb926eeeadf90708fec12343cbf858ed24b6"
 
 [[projects]]
@@ -285,11 +235,7 @@
 [[projects]]
   branch = "master"
   name = "github.com/libp2p/go-libp2p-metrics"
-  packages = [
-    ".",
-    "conn",
-    "stream"
-  ]
+  packages = [".","conn","stream"]
   revision = "1ac87496e992290629575655bea4330dd4ab211e"
 
 [[projects]]
@@ -310,10 +256,7 @@
 
 [[projects]]
   name = "github.com/libp2p/go-libp2p-peerstore"
-  packages = [
-    ".",
-    "addr"
-  ]
+  packages = [".","addr"]
   revision = "89838b9577a2b83eb3e1632c162cfd0daeee58e3"
 
 [[projects]]
@@ -325,10 +268,7 @@
 [[projects]]
   branch = "master"
   name = "github.com/libp2p/go-libp2p-secio"
-  packages = [
-    ".",
-    "pb"
-  ]
+  packages = [".","pb"]
   revision = "0cdc8339ad2e4f7f32e67b6a481bfbd48be5c704"
 
 [[projects]]
@@ -351,10 +291,7 @@
 [[projects]]
   branch = "master"
   name = "github.com/libp2p/go-msgio"
-  packages = [
-    ".",
-    "mpool"
-  ]
+  packages = [".","mpool"]
   revision = "d82125c9907e1365775356505f14277d47dfd4d6"
 
 [[projects]]
@@ -366,11 +303,7 @@
 [[projects]]
   branch = "master"
   name = "github.com/libp2p/go-reuseport"
-  packages = [
-    ".",
-    "poll",
-    "singlepoll"
-  ]
+  packages = [".","poll","singlepoll"]
   revision = "2a863ed0ff1167e16ff48dd1de862b180af3bf27"
 
 [[projects]]
@@ -435,10 +368,7 @@
 [[projects]]
   branch = "master"
   name = "github.com/multiformats/go-multicodec"
-  packages = [
-    ".",
-    "json"
-  ]
+  packages = [".","json"]
   revision = "fd289ac41fba9e574f214ab2a808a1678ef8810c"
 
 [[projects]]
@@ -480,10 +410,7 @@
 [[projects]]
   branch = "master"
   name = "github.com/rcrowley/go-metrics"
-  packages = [
-    ".",
-    "exp"
-  ]
+  packages = [".","exp"]
   revision = "1f30fe9094a513ce4c700b9a54458bbb0c96996c"
 
 [[projects]]
@@ -495,15 +422,7 @@
 [[projects]]
   branch = "master"
   name = "github.com/robertkrimen/otto"
-  packages = [
-    ".",
-    "ast",
-    "dbg",
-    "file",
-    "parser",
-    "registry",
-    "token"
-  ]
+  packages = [".","ast","dbg","file","parser","registry","token"]
   revision = "68a29f5e29b18d7367e686c43cf74eba1900f548"
 
 [[projects]]
@@ -527,29 +446,13 @@
 [[projects]]
   branch = "master"
   name = "github.com/stretchr/testify"
-  packages = [
-    "assert",
-    "require"
-  ]
+  packages = ["assert","require"]
   revision = "890a5c3458b43e6104ff5da8dfa139d013d77544"
 
 [[projects]]
   branch = "master"
   name = "github.com/syndtr/goleveldb"
-  packages = [
-    "leveldb",
-    "leveldb/cache",
-    "leveldb/comparer",
-    "leveldb/errors",
-    "leveldb/filter",
-    "leveldb/iterator",
-    "leveldb/journal",
-    "leveldb/memdb",
-    "leveldb/opt",
-    "leveldb/storage",
-    "leveldb/table",
-    "leveldb/util"
-  ]
+  packages = ["leveldb","leveldb/cache","leveldb/comparer","leveldb/errors","leveldb/filter","leveldb/iterator","leveldb/journal","leveldb/memdb","leveldb/opt","leveldb/storage","leveldb/table","leveldb/util"]
   revision = "b89cc31ef7977104127d34c1bd31ebd1a9db2199"
 
 [[projects]]
@@ -633,115 +536,42 @@
 [[projects]]
   branch = "master"
   name = "golang.org/x/crypto"
-  packages = [
-    "blake2s",
-    "blowfish",
-    "pbkdf2",
-    "ripemd160",
-    "scrypt",
-    "sha3",
-    "ssh/terminal"
-  ]
+  packages = ["blake2s","blowfish","pbkdf2","ripemd160","scrypt","sha3","ssh/terminal"]
   revision = "faadfbdc035307d901e69eea569f5dda451a3ee3"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/net"
-  packages = [
-    "context",
-    "html",
-    "html/atom",
-    "html/charset",
-    "http2",
-    "http2/hpack",
-    "idna",
-    "internal/timeseries",
-    "lex/httplex",
-    "trace"
-  ]
+  packages = ["context","html","html/atom","html/charset","http2","http2/hpack","idna","internal/timeseries","lex/httplex","trace"]
   revision = "8351a756f30f1297fe94bbf4b767ec589c6ea6d0"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/sys"
-  packages = [
-    "unix",
-    "windows"
-  ]
+  packages = ["unix","windows"]
   revision = "062cd7e4e68206d8bab9b18396626e855c992658"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/text"
-  packages = [
-    "collate",
-    "collate/build",
-    "encoding",
-    "encoding/charmap",
-    "encoding/htmlindex",
-    "encoding/internal",
-    "encoding/internal/identifier",
-    "encoding/japanese",
-    "encoding/korean",
-    "encoding/simplifiedchinese",
-    "encoding/traditionalchinese",
-    "encoding/unicode",
-    "internal/colltab",
-    "internal/gen",
-    "internal/tag",
-    "internal/triegen",
-    "internal/ucd",
-    "internal/utf8internal",
-    "language",
-    "runes",
-    "secure/bidirule",
-    "transform",
-    "unicode/bidi",
-    "unicode/cldr",
-    "unicode/norm",
-    "unicode/rangetable"
-  ]
+  packages = ["collate","collate/build","encoding","encoding/charmap","encoding/htmlindex","encoding/internal","encoding/internal/identifier","encoding/japanese","encoding/korean","encoding/simplifiedchinese","encoding/traditionalchinese","encoding/unicode","internal/colltab","internal/gen","internal/tag","internal/triegen","internal/ucd","internal/utf8internal","language","runes","secure/bidirule","transform","unicode/bidi","unicode/cldr","unicode/norm","unicode/rangetable"]
   revision = "1cbadb444a806fd9430d14ad08967ed91da4fa0a"
 
 [[projects]]
   branch = "master"
   name = "google.golang.org/genproto"
-  packages = [
-    "googleapis/api/annotations",
-    "googleapis/rpc/status"
-  ]
+  packages = ["googleapis/api/annotations","googleapis/rpc/status"]
   revision = "f676e0f3ac6395ff1a529ae59a6670878a8371a6"
 
 [[projects]]
   name = "google.golang.org/grpc"
-  packages = [
-    ".",
-    "codes",
-    "connectivity",
-    "credentials",
-    "grpclb/grpc_lb_v1/messages",
-    "grpclog",
-    "internal",
-    "keepalive",
-    "metadata",
-    "naming",
-    "peer",
-    "reflection",
-    "reflection/grpc_reflection_v1alpha",
-    "stats",
-    "status",
-    "tap",
-    "transport"
-  ]
+  packages = [".","codes","connectivity","credentials","grpclb/grpc_lb_v1/messages","grpclog","internal","keepalive","metadata","naming","peer","reflection","reflection/grpc_reflection_v1alpha","stats","status","tap","transport"]
   revision = "f92cdcd7dcdc69e81b2d7b338479a19a8723cfa3"
   version = "v1.6.0"
 
 [[projects]]
   name = "gopkg.in/sourcemap.v1"
-  packages = [
-    ".",
-    "base64vlq"
-  ]
+  packages = [".","base64vlq"]
   revision = "6e83acea0053641eff084973fee085f0c193c61a"
   version = "v1.0.5"
 
@@ -754,6 +584,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "5774479efef4fb7d55513d384db3e86c97625a3208730cf0660c6e7806a8d511"
+  inputs-digest = "962c9930ea4b9621a8e6768aa0908964dcc3fbe39cbce0215e370a3d1fee091e"
   solver-name = "gps-cdcl"
   solver-version = 1

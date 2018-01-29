@@ -28,8 +28,6 @@ import (
 	"github.com/nebulasio/go-nebulas/crypto/keystore"
 	"github.com/nebulasio/go-nebulas/rpc/pb"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
-	"github.com/nebulasio/go-nebulas/util/logging"
-	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 )
 
@@ -40,10 +38,6 @@ type AdminService struct {
 
 // NewAccount generate a new address with passphrase
 func (s *AdminService) NewAccount(ctx context.Context, req *rpcpb.NewAccountRequest) (*rpcpb.NewAccountResponse, error) {
-	logging.VLog().WithFields(logrus.Fields{
-		"api": "/v1/admin/account/new",
-	}).Info("Rpc request.")
-	metricsRPCCounter.Mark(1)
 
 	neb := s.server.Neblet()
 	addr, err := neb.AccountManager().NewAccount([]byte(req.Passphrase))
@@ -55,10 +49,6 @@ func (s *AdminService) NewAccount(ctx context.Context, req *rpcpb.NewAccountRequ
 
 // UnlockAccount unlock address with the passphrase
 func (s *AdminService) UnlockAccount(ctx context.Context, req *rpcpb.UnlockAccountRequest) (*rpcpb.UnlockAccountResponse, error) {
-	logging.VLog().WithFields(logrus.Fields{
-		"api": "/v1/admin/account/unlock",
-	}).Info("Rpc request.")
-	metricsRPCCounter.Mark(1)
 
 	neb := s.server.Neblet()
 	addr, err := core.AddressParse(req.Address)
@@ -82,10 +72,6 @@ func (s *AdminService) UnlockAccount(ctx context.Context, req *rpcpb.UnlockAccou
 
 // LockAccount lock address
 func (s *AdminService) LockAccount(ctx context.Context, req *rpcpb.LockAccountRequest) (*rpcpb.LockAccountResponse, error) {
-	logging.VLog().WithFields(logrus.Fields{
-		"api": "/v1/admin/account/lock",
-	}).Info("Rpc request.")
-	metricsRPCCounter.Mark(1)
 
 	neb := s.server.Neblet()
 	addr, err := core.AddressParse(req.Address)
@@ -101,10 +87,6 @@ func (s *AdminService) LockAccount(ctx context.Context, req *rpcpb.LockAccountRe
 
 // SignTransaction sign transaction with the from addr passphrase
 func (s *AdminService) SignTransaction(ctx context.Context, req *rpcpb.TransactionRequest) (*rpcpb.SignTransactionResponse, error) {
-	logging.VLog().WithFields(logrus.Fields{
-		"api": "/v1/admin/sign",
-	}).Info("Rpc request.")
-	metricsRPCCounter.Mark(1)
 
 	neb := s.server.Neblet()
 	tx, err := parseTransaction(neb, req)
@@ -133,10 +115,6 @@ func (s *AdminService) SignTransaction(ctx context.Context, req *rpcpb.Transacti
 
 // SendTransactionWithPassphrase send transaction with the from addr passphrase
 func (s *AdminService) SendTransactionWithPassphrase(ctx context.Context, req *rpcpb.SendTransactionPassphraseRequest) (*rpcpb.SendTransactionPassphraseResponse, error) {
-	logging.VLog().WithFields(logrus.Fields{
-		"api": "/v1/admin/transactionWithPassphrase",
-	}).Info("Rpc request.")
-	metricsRPCCounter.Mark(1)
 
 	neb := s.server.Neblet()
 	tx, err := parseTransaction(neb, req.Transaction)
@@ -154,10 +132,6 @@ func (s *AdminService) SendTransactionWithPassphrase(ctx context.Context, req *r
 
 // StatisticsNodeInfo is the RPC API handler.
 func (s *AdminService) StatisticsNodeInfo(ctx context.Context, req *rpcpb.NonParamsRequest) (*rpcpb.StatisticsNodeInfoResponse, error) {
-	logging.VLog().WithFields(logrus.Fields{
-		"api": "/v1/admin/statistics/nodeInfo",
-	}).Info("Rpc request.")
-	metricsRPCCounter.Mark(1)
 
 	neb := s.server.Neblet()
 	node := neb.NetManager().Node()
@@ -172,11 +146,6 @@ func (s *AdminService) StatisticsNodeInfo(ctx context.Context, req *rpcpb.NonPar
 
 // GetDynasty is the RPC API handler.
 func (s *AdminService) GetDynasty(ctx context.Context, req *rpcpb.ByBlockHeightRequest) (*rpcpb.GetDynastyResponse, error) {
-	logging.VLog().WithFields(logrus.Fields{
-		"api":    "/v1/admin/dynasty",
-		"height": req.Height,
-	}).Info("Rpc request.")
-	metricsRPCCounter.Mark(1)
 
 	neb := s.server.Neblet()
 	block := neb.BlockChain().GetBlockOnCanonicalChainByHeight(req.Height)
@@ -201,11 +170,6 @@ func (s *AdminService) GetDynasty(ctx context.Context, req *rpcpb.ByBlockHeightR
 
 // GetCandidates is the RPC API handler.
 func (s *AdminService) GetCandidates(ctx context.Context, req *rpcpb.ByBlockHeightRequest) (*rpcpb.GetCandidatesResponse, error) {
-	logging.VLog().WithFields(logrus.Fields{
-		"api":    "/v1/admin/candidates",
-		"height": req.Height,
-	}).Info("Rpc request.")
-	metricsRPCCounter.Mark(1)
 
 	neb := s.server.Neblet()
 	block := neb.BlockChain().GetBlockOnCanonicalChainByHeight(req.Height)
@@ -230,11 +194,6 @@ func (s *AdminService) GetCandidates(ctx context.Context, req *rpcpb.ByBlockHeig
 
 // GetDelegateVoters is the RPC API handler.
 func (s *AdminService) GetDelegateVoters(ctx context.Context, req *rpcpb.GetDelegateVotersRequest) (*rpcpb.GetDelegateVotersResponse, error) {
-	logging.VLog().WithFields(logrus.Fields{
-		"delegatee": req.Delegatee,
-		"api":       "/v1/admin/delegateVoters",
-	}).Info("Rpc request.")
-	metricsRPCCounter.Mark(1)
 
 	neb := s.server.Neblet()
 	delegatee, err := core.AddressParse(req.Delegatee)
@@ -269,10 +228,6 @@ func (s *AdminService) GetDelegateVoters(ctx context.Context, req *rpcpb.GetDele
 
 // ChangeNetworkID change the network id
 func (s *AdminService) ChangeNetworkID(ctx context.Context, req *rpcpb.ChangeNetworkIDRequest) (*rpcpb.ChangeNetworkIDResponse, error) {
-	logging.VLog().WithFields(logrus.Fields{
-		"api": "/v1/admin/changeNetworkID",
-	}).Info("Rpc request.")
-	metricsRPCCounter.Mark(1)
 
 	neb := s.server.Neblet()
 	neb.NetManager().Node().Config().NetworkID = req.NetworkId
@@ -283,10 +238,6 @@ func (s *AdminService) ChangeNetworkID(ctx context.Context, req *rpcpb.ChangeNet
 
 // StartMining start mining
 func (s *AdminService) StartMining(ctx context.Context, req *rpcpb.StartMiningRequest) (*rpcpb.MiningResponse, error) {
-	logging.VLog().WithFields(logrus.Fields{
-		"api": "/v1/admin/startMining",
-	}).Info("Rpc request.")
-	metricsRPCCounter.Mark(1)
 
 	neb := s.server.Neblet()
 
@@ -303,10 +254,6 @@ func (s *AdminService) StartMining(ctx context.Context, req *rpcpb.StartMiningRe
 
 // StopMining stop mining
 func (s *AdminService) StopMining(ctx context.Context, req *rpcpb.NonParamsRequest) (*rpcpb.MiningResponse, error) {
-	logging.VLog().WithFields(logrus.Fields{
-		"api": "/v1/admin/stopMining",
-	}).Info("Rpc request.")
-	metricsRPCCounter.Mark(1)
 
 	neb := s.server.Neblet()
 
@@ -322,10 +269,6 @@ func (s *AdminService) StopMining(ctx context.Context, req *rpcpb.NonParamsReque
 
 // StartPprof start pprof
 func (s *AdminService) StartPprof(ctx context.Context, req *rpcpb.PprofRequest) (*rpcpb.PprofResponse, error) {
-	logging.VLog().WithFields(logrus.Fields{
-		"api": "/v1/admin/pprof",
-	}).Info("Rpc request.")
-	metricsRPCCounter.Mark(1)
 
 	neb := s.server.Neblet()
 

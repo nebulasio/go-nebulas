@@ -6,6 +6,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 
+	"github.com/grpc-ecosystem/go-grpc-middleware"
 	"github.com/nebulasio/go-nebulas/account"
 	"github.com/nebulasio/go-nebulas/consensus"
 	"github.com/nebulasio/go-nebulas/core"
@@ -60,7 +61,8 @@ type Server struct {
 func NewServer(neblet Neblet) *Server {
 	cfg := neblet.Config().Rpc
 
-	rpc := grpc.NewServer()
+	rpc := grpc.NewServer(grpc.StreamInterceptor(grpc_middleware.ChainStreamServer(loggingStream)),
+		grpc.UnaryInterceptor(grpc_middleware.ChainUnaryServer(loggingUnary)))
 
 	srv := &Server{neblet: neblet, rpcServer: rpc, rpcConfig: cfg}
 	api := &APIService{server: srv}
