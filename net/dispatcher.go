@@ -24,6 +24,7 @@ import (
 
 	"github.com/nebulasio/go-nebulas/util/logging"
 	metrics "github.com/rcrowley/go-metrics"
+	"github.com/sirupsen/logrus"
 	// "github.com/sirupsen/logrus"
 )
 
@@ -101,10 +102,16 @@ func (dp *Dispatcher) loop() {
 			m, _ := v.(*sync.Map)
 
 			m.Range(func(key, value interface{}) bool {
-				key.(*Subscriber).msgChan <- msg
-				/* 				logging.VLog().WithFields(logrus.Fields{
-					"msgType": msgType,
-				}).Debug("succeed dispatcher received message") */
+				select {
+				case key.(*Subscriber).msgChan <- msg:
+				default:
+					logging.VLog().WithFields(logrus.Fields{
+						"msgType": msgType,
+					}).Debug("timeout to dispatch message.")
+				}
+				// logging.VLog().WithFields(logrus.Fields{
+				// 	"msgType": msgType,
+				// }).Debug("succeed dispatcher received message")
 				return true
 			})
 		}
