@@ -5,8 +5,8 @@ var Wallet = require('../../../cmd/console/neb.js/lib/wallet.js');
 var sleep = require("system-sleep");
 const https = require("https");
 
-const AddressNumber = 50;
-const SendTimes = 100;
+const AddressNumber = 500;
+const SendTimes = 10;
 var lastnonce = 0;
 
 
@@ -15,10 +15,6 @@ nodes.Start();
 
 // var master = Wallet.Account.NewAccount();
 var from = new Wallet.Account("43181d58178263837a9a6b08f06379a348a5b362bfab3631ac78d2ac771c5df3");
-
-// var email = Math.random() + "test@demo.io";
-// var url = "https://testnet.nebulas.io/claim/api/claim/" + email + "/" + from + "/";
-// https.get(url, res => {});
 
 
 nodes.RPC(0).api.getAccountState(from.getAddressString()).then(function (resp) {
@@ -39,14 +35,8 @@ for (var i = 0; i < AddressNumber; i++) {
 var nonce = lastnonce;
 var t1 = new Date().getTime();
 for (var j = 0; j < AddressNumber; j++) {
-    for (var k = 0; k < SendTimes; k++) {
-        var transaction = new Wallet.Transaction(1001, from, accountArray[j], "1", ++nonce);
-        transaction.signTransaction();
-        var rawTx = transaction.toProtoString();
-        nodes.RPC(0).api.sendRawTransaction(rawTx).then(function (resp) {
-            console.log("send raw transaction resp:" + JSON.stringify(resp));
-        });
-    }
+    sendTransaction(0, nonce, accountArray[j]);
+    nonce = nonce + SendTimes;
 }
 
 sleep(2000);
@@ -68,3 +58,19 @@ var interval = setInterval(function () {
     });
 
 }, 2000);
+
+function sendTransaction(sendtimes, nonce, address) {
+    if(sendtimes < SendTimes) {
+        var transaction = new Wallet.Transaction(1002, from, address, "1", ++nonce);
+        transaction.signTransaction();
+        var rawTx = transaction.toProtoString();
+        nodes.RPC(0).api.sendRawTransaction(rawTx).then(function (resp) {
+            console.log("send raw transaction resp:" + JSON.stringify(resp));
+            sendtimes++;
+            if(resp.txhash) {
+                sendTransaction(sendtimes, nonce, address);
+            }
+        });
+    } 
+    
+}
