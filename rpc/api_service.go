@@ -369,6 +369,7 @@ func (s *APIService) toBlockResponse(block *core.Block, fullTransaction bool) (*
 		}
 		txs = append(txs, tx)
 	}
+	resp.Transactions = txs
 
 	return resp, nil
 }

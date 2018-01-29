@@ -347,6 +347,7 @@ func (n *Neblet) SyncService() *nsync.Service {
 	return n.syncService
 }
 
+// TryStartProfiling try start pprof
 func (n *Neblet) TryStartProfiling() {
 	if n.config.App.Pprof == nil {
 		return
@@ -364,6 +365,7 @@ func (n *Neblet) TryStartProfiling() {
 	}
 }
 
+// TryStopProfiling try stop pprof
 func (n *Neblet) TryStopProfiling() {
 	if n.config.App.Pprof == nil {
 		return
