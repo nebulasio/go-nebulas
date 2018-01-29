@@ -454,7 +454,7 @@
   branch = "master"
   name = "github.com/syndtr/goleveldb"
   packages = ["leveldb","leveldb/cache","leveldb/comparer","leveldb/errors","leveldb/filter","leveldb/iterator","leveldb/journal","leveldb/memdb","leveldb/opt","leveldb/storage","leveldb/table","leveldb/util"]
-  revision = "211f780988068502fe874c44dae530528ebd840f"
+  revision = "b89cc31ef7977104127d34c1bd31ebd1a9db2199"
 
 [[projects]]
   name = "github.com/urfave/cli"

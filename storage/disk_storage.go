@@ -45,9 +45,10 @@ func NewDiskStorage(path string) (*DiskStorage, error) {
 	}
 
 	db, err := leveldb.OpenFile(path, &opt.Options{
-		BlockCacheCapacity: 8 * opt.MiB,
-		WriteBuffer:        4 * opt.MiB,
-		Filter:             filter.NewBloomFilter(10),
+		OpenFilesCacheCapacity: 1024,
+		BlockCacheCapacity:     8 * opt.MiB,
+		WriteBuffer:            4 * opt.MiB,
+		Filter:                 filter.NewBloomFilter(10),
 	})
 	if err != nil {
 		return nil, err
