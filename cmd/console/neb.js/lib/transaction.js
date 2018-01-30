@@ -41,14 +41,14 @@ var parsePayload = function (contract, candidate, delegate) {
     /*jshint maxcomplexity:6 */
 
     var payloadType, payload;
-    if (utils.isObject(contract) && contract.source.length > 0) {
+    if (utils.isObject(contract) && utils.isString(contract.source) && contract.source.length > 0) {
         payloadType = TxPayloadDeployType;
         payload = {
             SourceType: contract.sourceType,
             Source: contract.source,
             Args: contract.args
         };
-    } else if (utils.isObject(contract) && contract.function.length > 0) {
+    } else if (utils.isObject(contract) && utils.isString(contract.function) && contract.function.length > 0) {
         payloadType = TxPayloadCallType;
         payload = {
             Function: contract.function,
