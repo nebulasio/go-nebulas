@@ -19,17 +19,19 @@
 package net
 
 import (
+	"fmt"
 	"sync"
 	"time"
 
 	lru "github.com/hashicorp/golang-lru"
+	"github.com/nebulasio/go-nebulas/metrics"
 	"github.com/nebulasio/go-nebulas/util/logging"
-	metrics "github.com/rcrowley/go-metrics"
 	"github.com/sirupsen/logrus"
 )
 
 var (
-	metricsDispatcherCached = metrics.GetOrRegisterGauge("neb.net.dispatcher.cached", nil)
+	metricsDispatcherCached     = metrics.NewGauge("neb.net.dispatcher.cached")
+	metricsDispatcherDuplicated = metrics.NewMeter("neb.net.dispatcher.duplicated")
 )
 
 // Dispatcher a message dispatcher service.
@@ -134,8 +136,15 @@ func (dp *Dispatcher) PutMessage(msg Message) {
 	hash := msg.Hash()
 	if exist, _ := dp.dispatchedMessages.ContainsOrAdd(hash, hash); exist == true {
 		// duplicated message, ignore.
+		metricsDuplicatedMessage(msg.MessageType())
 		return
 	}
 
 	dp.receivedMessageCh <- msg
+}
+
+func metricsDuplicatedMessage(messageName string) {
+	metricsDispatcherDuplicated.Mark(int64(1))
+	meter := metrics.NewMeter(fmt.Sprintf("neb.net.dispatcher.duplicated.%s", messageName))
+	meter.Mark(int64(1))
 }
