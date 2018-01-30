@@ -40,6 +40,7 @@ type Dispatcher struct {
 	quitCh             chan bool
 	receivedMessageCh  chan Message
 	dispatchedMessages *lru.Cache
+	filters            map[string]bool
 }
 
 // NewDispatcher create Dispatcher instance.
@@ -48,6 +49,7 @@ func NewDispatcher() *Dispatcher {
 		subscribersMap:    new(sync.Map),
 		quitCh:            make(chan bool, 10),
 		receivedMessageCh: make(chan Message, 65536),
+		filters:           make(map[string]bool),
 	}
 
 	dp.dispatchedMessages, _ = lru.New(10240)
@@ -61,6 +63,7 @@ func (dp *Dispatcher) Register(subscribers ...*Subscriber) {
 		for _, mt := range v.msgTypes {
 			m, _ := dp.subscribersMap.LoadOrStore(mt, new(sync.Map))
 			m.(*sync.Map).Store(v, true)
+			dp.filters[mt] = v.DoFilter()
 		}
 	}
 }
@@ -76,6 +79,7 @@ func (dp *Dispatcher) Deregister(subscribers ...*Subscriber) {
 			}
 			m.(*sync.Map).Delete(v)
 			dp.subscribersMap.Delete(mt)
+			delete(dp.filters, mt)
 		}
 	}
 }
@@ -134,10 +138,12 @@ func (dp *Dispatcher) Stop() {
 func (dp *Dispatcher) PutMessage(msg Message) {
 	// it's a optimize strategy for message dispatch, according to https://github.com/nebulasio/go-nebulas/issues/50
 	hash := msg.Hash()
-	if exist, _ := dp.dispatchedMessages.ContainsOrAdd(hash, hash); exist == true {
-		// duplicated message, ignore.
-		metricsDuplicatedMessage(msg.MessageType())
-		return
+	if dp.filters[msg.MessageType()] {
+		if exist, _ := dp.dispatchedMessages.ContainsOrAdd(hash, hash); exist == true {
+			// duplicated message, ignore.
+			metricsDuplicatedMessage(msg.MessageType())
+			return
+		}
 	}
 
 	dp.receivedMessageCh <- msg

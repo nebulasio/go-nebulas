@@ -69,10 +69,10 @@ func (ss *Service) Start() {
 
 	// register the network handler.
 	netService := ss.netService
-	netService.Register(net.NewSubscriber(ss, ss.messageCh, net.ChainSync))
-	netService.Register(net.NewSubscriber(ss, ss.messageCh, net.ChainChunks))
-	netService.Register(net.NewSubscriber(ss, ss.messageCh, net.ChainGetChunk))
-	netService.Register(net.NewSubscriber(ss, ss.messageCh, net.ChainChunkData))
+	netService.Register(net.NewSubscriber(ss, ss.messageCh, false, net.ChainSync))
+	netService.Register(net.NewSubscriber(ss, ss.messageCh, false, net.ChainChunks))
+	netService.Register(net.NewSubscriber(ss, ss.messageCh, false, net.ChainGetChunk))
+	netService.Register(net.NewSubscriber(ss, ss.messageCh, false, net.ChainChunkData))
 
 	// start loop().
 	go ss.startLoop()
@@ -82,10 +82,10 @@ func (ss *Service) Start() {
 func (ss *Service) Stop() {
 	// deregister the network handler.
 	netService := ss.netService
-	netService.Deregister(net.NewSubscriber(ss, ss.messageCh, net.ChainSync))
-	netService.Deregister(net.NewSubscriber(ss, ss.messageCh, net.ChainChunks))
-	netService.Deregister(net.NewSubscriber(ss, ss.messageCh, net.ChainGetChunk))
-	netService.Deregister(net.NewSubscriber(ss, ss.messageCh, net.ChainChunkData))
+	netService.Deregister(net.NewSubscriber(ss, ss.messageCh, false, net.ChainSync))
+	netService.Deregister(net.NewSubscriber(ss, ss.messageCh, false, net.ChainChunks))
+	netService.Deregister(net.NewSubscriber(ss, ss.messageCh, false, net.ChainGetChunk))
+	netService.Deregister(net.NewSubscriber(ss, ss.messageCh, false, net.ChainChunkData))
 
 	ss.StopActiveSync()
 

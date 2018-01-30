@@ -99,9 +99,9 @@ func NewBlockPool(size int) (*BlockPool, error) {
 
 // RegisterInNetwork register message subscriber in network.
 func (pool *BlockPool) RegisterInNetwork(ns net.Service) {
-	ns.Register(net.NewSubscriber(pool, pool.receiveBlockMessageCh, MessageTypeNewBlock))
-	ns.Register(net.NewSubscriber(pool, pool.receiveBlockMessageCh, MessageTypeDownloadedBlockReply))
-	ns.Register(net.NewSubscriber(pool, pool.receiveDownloadBlockMessageCh, MessageTypeDownloadedBlock))
+	ns.Register(net.NewSubscriber(pool, pool.receiveBlockMessageCh, true, MessageTypeNewBlock))
+	ns.Register(net.NewSubscriber(pool, pool.receiveBlockMessageCh, true, MessageTypeDownloadedBlockReply))
+	ns.Register(net.NewSubscriber(pool, pool.receiveDownloadBlockMessageCh, true, MessageTypeDownloadedBlock))
 	pool.ns = ns
 }
 

@@ -106,11 +106,14 @@ type Subscriber struct {
 
 	// msgType message types to subscribe
 	msgTypes []string
+
+	// doFilter dup message
+	doFilter bool
 }
 
 // NewSubscriber return new Subscriber instance.
-func NewSubscriber(id interface{}, msgChan chan Message, msgTypes ...string) *Subscriber {
-	return &Subscriber{id, msgChan, msgTypes}
+func NewSubscriber(id interface{}, msgChan chan Message, doFilter bool, msgTypes ...string) *Subscriber {
+	return &Subscriber{id, msgChan, msgTypes, doFilter}
 }
 
 // ID return id.
@@ -126,6 +129,11 @@ func (s *Subscriber) MessageType() []string {
 // MessageChan return msgChan.
 func (s *Subscriber) MessageChan() chan Message {
 	return s.msgChan
+}
+
+// DoFilter return doFilter
+func (s *Subscriber) DoFilter() bool {
+	return s.doFilter
 }
 
 // BaseMessage base message
