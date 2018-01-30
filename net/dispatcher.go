@@ -22,6 +22,7 @@ import (
 	"sync"
 	"time"
 
+	lru "github.com/hashicorp/golang-lru"
 	"github.com/nebulasio/go-nebulas/util/logging"
 	metrics "github.com/rcrowley/go-metrics"
 	"github.com/sirupsen/logrus"
@@ -33,9 +34,10 @@ var (
 
 // Dispatcher a message dispatcher service.
 type Dispatcher struct {
-	subscribersMap    *sync.Map
-	quitCh            chan bool
-	receivedMessageCh chan Message
+	subscribersMap     *sync.Map
+	quitCh             chan bool
+	receivedMessageCh  chan Message
+	dispatchedMessages *lru.Cache
 }
 
 // NewDispatcher create Dispatcher instance.
@@ -45,6 +47,8 @@ func NewDispatcher() *Dispatcher {
 		quitCh:            make(chan bool, 10),
 		receivedMessageCh: make(chan Message, 65536),
 	}
+
+	dp.dispatchedMessages, _ = lru.New(10240)
 
 	return dp
 }
@@ -126,5 +130,12 @@ func (dp *Dispatcher) Stop() {
 
 // PutMessage put new message to chan, then subscribers will be notified to process.
 func (dp *Dispatcher) PutMessage(msg Message) {
+	// it's a optimize strategy for message dispatch, according to https://github.com/nebulasio/go-nebulas/issues/50
+	hash := msg.Hash()
+	if exist, _ := dp.dispatchedMessages.ContainsOrAdd(hash, hash); exist == true {
+		// duplicated message, ignore.
+		return
+	}
+
 	dp.receivedMessageCh <- msg
 }
