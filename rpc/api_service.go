@@ -374,9 +374,7 @@ func (s *APIService) toTransactionResponse(tx *core.Transaction) (*rpcpb.Transac
 	neb := s.server.Neblet()
 	events, _ := neb.BlockChain().TailBlock().FetchEvents(tx.Hash())
 
-	if events == nil {
-		status = 2
-	} else {
+	if events != nil && len(events) > 0 {
 		for _, v := range events {
 			// TODO: transaction execution topic need change later.
 			if v.Topic == core.TopicExecuteTxSuccess {
@@ -387,6 +385,8 @@ func (s *APIService) toTransactionResponse(tx *core.Transaction) (*rpcpb.Transac
 				break
 			}
 		}
+	} else {
+		status = 2
 	}
 
 	resp := &rpcpb.TransactionResponse{
