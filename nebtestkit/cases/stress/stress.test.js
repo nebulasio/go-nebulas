@@ -6,7 +6,7 @@ var sleep = require("system-sleep");
 const https = require("https");
 
 const AddressNumber = 500;
-const SendTimes = 10;
+const SendTimes = 50;
 var lastnonce = 0;
 
 
@@ -60,17 +60,17 @@ var interval = setInterval(function () {
 }, 2000);
 
 function sendTransaction(sendtimes, nonce, address) {
-    if(sendtimes < SendTimes) {
+    if (sendtimes < SendTimes) {
         var transaction = new Wallet.Transaction(1002, from, address, "1", ++nonce);
         transaction.signTransaction();
         var rawTx = transaction.toProtoString();
         nodes.RPC(0).api.sendRawTransaction(rawTx).then(function (resp) {
             console.log("send raw transaction resp:" + JSON.stringify(resp));
             sendtimes++;
-            if(resp.txhash) {
+            if (resp.txhash) {
                 sendTransaction(sendtimes, nonce, address);
             }
         });
-    } 
-    
+    }
+
 }

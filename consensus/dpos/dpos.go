@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"github.com/nebulasio/go-nebulas/crypto/keystore"
+	metrics "github.com/nebulasio/go-nebulas/metrics"
 
 	"github.com/nebulasio/go-nebulas/account"
 
@@ -45,6 +46,11 @@ var (
 	ErrCannotMintWhenDiable   = errors.New("cannot mint block now, waiting for enable it again")
 	ErrWaitingBlockInLastSlot = errors.New("cannot mint block now, waiting for last block")
 	ErrBlockMintedInNextSlot  = errors.New("cannot mint block now, there is a block minted in current slot")
+)
+
+// Metrics
+var (
+	metricsBlockPackingTime = metrics.NewGauge("neb.block.packing")
 )
 
 // Neblet interface breaks cycle import dependency and hides unused services.
@@ -432,6 +438,8 @@ func (p *Dpos) broadcast(tail *core.Block, block *core.Block) error {
 }
 
 func (p *Dpos) mintBlock(now int64) error {
+	metricsBlockPackingTime.Update(0)
+
 	// check mining enable
 	if !p.enable {
 		return ErrCannotMintWhenDiable
@@ -461,6 +469,7 @@ func (p *Dpos) mintBlock(now int64) error {
 		"expected": context.Proposer.Hex(),
 		"actual":   p.coinbase,
 	}).Info("My turn to mint block")
+	metricsBlockPackingTime.Update(deadline - now)
 
 	block, err := p.newBlock(tail, context, deadline)
 	if err != nil {

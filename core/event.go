@@ -103,7 +103,7 @@ func (emitter *EventEmitter) Trigger(e *Event) {
 		"topic": e.Topic,
 		"data":  e.Data,
 	}).Debug("Trigger new event") */
-	// emitter.eventCh <- e
+	emitter.eventCh <- e
 }
 
 // Register register event chan.

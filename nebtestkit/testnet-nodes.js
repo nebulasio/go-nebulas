@@ -6,7 +6,7 @@ var LocalNodes = require("./local-nodes");
 var sleep = require("system-sleep");
 
 // var testnet = ["https://testnet.nebulas.io"];
-var testnet = ["http://35.182.48.19:8685"];
+var testnet = ["http://34.205.26.12:8685"];
 
 var Node = function () {
     this.local = new LocalNodes(1);
@@ -32,7 +32,7 @@ Node.prototype = {
         var local = this.local.RPC(0);
         var nodes = this.nodes;
         return local.admin.unlockAccount(from, "passphrase").then(function (resp) {
-            console.log("unlock:"+JSON.stringify(resp));
+            console.log("unlock:" + JSON.stringify(resp));
             return local.admin.signTransaction(from, to, value, nonce, gasprice, gaslimit, contract, candidate, delegate);
         }).then(function (resp) {
             // console.log(resp);

@@ -76,7 +76,7 @@ func main() {
 	nonce++
 	{
 		v := util.NewUint128FromInt(value)
-		for i := 0; i < 10000; i++ {
+		for i := 0; i < 40000; i++ {
 			_, err := api.SendTransaction(context.Background(), &rpcpb.TransactionRequest{From: from, To: to, Value: v.String(), Nonce: nonce})
 			if err != nil {
 				log.Println("SendTransaction failed:", err)
@@ -84,7 +84,7 @@ func main() {
 			nonce++
 		}
 	}
-	log.Println("SendTransaction ", 10000)
+	log.Println("SendTransaction ", 40000)
 
 	{
 		for true {

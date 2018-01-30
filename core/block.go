@@ -824,6 +824,8 @@ func (block *Block) execute() error {
 	end := time.Now().UnixNano()
 	if txs != 0 {
 		metricsTxVerifiedTime.Update((end - start) / txs)
+	} else {
+		metricsTxVerifiedTime.Update(0)
 	}
 
 	if err := block.recordMintCnt(); err != nil {
