@@ -32,9 +32,10 @@ import (
 
 // TODO: add command line flag.
 const (
-	from  = "1a263547d167c74cf4b8f9166cfa244de0481c514a45aa2c"
-	to    = "fbcef590704577fa307198bf6edc6272df451610b5744bfe"
-	value = 2
+	from      = "1a263547d167c74cf4b8f9166cfa244de0481c514a45aa2c"
+	to        = "fbcef590704577fa307198bf6edc6272df451610b5744bfe"
+	value     = 2
+	sendtimes = 10000
 )
 
 // RPC testing client.
@@ -51,6 +52,7 @@ func main() {
 	admin := rpcpb.NewAdminServiceClient(conn)
 	api := rpcpb.NewApiServiceClient(conn)
 	var nonce uint64
+	var lastnonce uint64
 
 	{
 		r, err := api.GetAccountState(context.Background(), &rpcpb.GetAccountStateRequest{Address: from})
@@ -59,6 +61,7 @@ func main() {
 		} else {
 			val := util.NewUint128FromString(r.GetBalance())
 			nonce, _ = strconv.ParseUint(r.Nonce, 10, 64)
+			lastnonce = nonce
 			log.Println("GetAccountState", from, "nonce", r.Nonce, "value", val)
 		}
 	}
@@ -76,7 +79,7 @@ func main() {
 	nonce++
 	{
 		v := util.NewUint128FromInt(value)
-		for i := 0; i < 40000; i++ {
+		for i := 0; i < sendtimes; i++ {
 			_, err := api.SendTransaction(context.Background(), &rpcpb.TransactionRequest{From: from, To: to, Value: v.String(), Nonce: nonce})
 			if err != nil {
 				log.Println("SendTransaction failed:", err)
@@ -84,7 +87,7 @@ func main() {
 			nonce++
 		}
 	}
-	log.Println("SendTransaction ", 40000)
+	log.Println("SendTransaction ", sendtimes)
 
 	{
 		for true {
@@ -94,6 +97,10 @@ func main() {
 			} else {
 				val := util.NewUint128FromString(a.GetBalance())
 				nonce, _ := strconv.ParseUint(a.Nonce, 10, 64)
+				if nonce == lastnonce+sendtimes {
+					log.Println("Tps: ", sendtimes/(time.Now().Unix()-start))
+					return
+				}
 				log.Println("GetAccountState", from, "nonce", nonce, "value", val, "Unix", time.Now().Unix(), "Start", start)
 			}
 			time.Sleep(1 * time.Second)
