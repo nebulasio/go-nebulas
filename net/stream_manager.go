@@ -129,7 +129,7 @@ func (sm *StreamManager) loop() {
 	}
 }
 
-// BroadcastMessage broadcast the meesage
+// BroadcastMessage broadcast the message
 func (sm *StreamManager) BroadcastMessage(messageName string, messageContent Serializable, priority int) {
 	pb, _ := messageContent.ToProto()
 	data, err := proto.Marshal(pb)
