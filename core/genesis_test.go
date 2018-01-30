@@ -76,15 +76,6 @@ func MockGenesisConf() *corepb.Genesis {
 	}
 }
 
-func TestLoadGenesisConf(t *testing.T) {
-	conf, err := LoadGenesisConf("../conf/default/genesis.conf")
-	assert.Nil(t, err)
-	mockConf := MockGenesisConf()
-	assert.Equal(t, conf.Meta.ChainId, mockConf.Meta.ChainId)
-	assert.Equal(t, conf.Consensus.Dpos.Dynasty, mockConf.Consensus.Dpos.Dynasty)
-	assert.Equal(t, conf.TokenDistribution, mockConf.TokenDistribution)
-}
-
 func TestInvalidAddressInTokenDistribution(t *testing.T) {
 	mockConf := MockGenesisConf()
 	mockConf.TokenDistribution[0].Address = "1a263547d167c74cf4b8f9166cfa244de0481c514a45aa2"
