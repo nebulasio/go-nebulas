@@ -473,7 +473,6 @@ func (block *Block) CollectTransactions(deadline int64) {
 
 	now := time.Now().Unix()
 	elapse := deadline - now
-	logging.VLog().Debugf("Deadline %d, Now %d, Consumed %ds", deadline, now, elapse)
 	if elapse <= 0 {
 		return
 	}
@@ -484,6 +483,9 @@ func (block *Block) CollectTransactions(deadline int64) {
 
 	var givebacks []*Transaction
 	pool := block.txPool
+
+	packed := int64(0)
+	unpacked := int64(0)
 
 	// execute transaction.
 	go func() {
@@ -503,20 +505,22 @@ func (block *Block) CollectTransactions(deadline int64) {
 			}
 
 			if err != nil {
-				logging.VLog().WithFields(logrus.Fields{
+				/* 				logging.VLog().WithFields(logrus.Fields{
 					"block":    block,
 					"tx":       tx,
 					"err":      err,
 					"giveback": giveback,
-				}).Debug("invalid tx.")
+				}).Debug("invalid tx.") */
+				unpacked++
 				txBlock.rollback()
 				executedTxBlocksCh <- nil
 			} else {
-				logging.VLog().WithFields(logrus.Fields{
+				/* 				logging.VLog().WithFields(logrus.Fields{
 					"block":    block,
 					"tx":       tx,
 					"giveback": giveback,
-				}).Info("tx is packed.")
+				}).Info("tx is packed.") */
+				packed++
 				txBlock.commit()
 				txBlock.transactions = append(txBlock.transactions, tx)
 				executedTxBlocksCh <- txBlock
@@ -525,6 +529,8 @@ func (block *Block) CollectTransactions(deadline int64) {
 			select {
 			case flag := <-notifyCh:
 				if flag == true {
+					metricsTxPackedCount.Update(packed)
+					metricsTxUnpackedCount.Update(unpacked)
 					// deadline is up, put current tx back and quit.
 					if giveback == false && err == nil {
 						err := pool.Push(tx)
@@ -629,6 +635,8 @@ func (block *Block) Seal() error {
 	logging.VLog().WithFields(logrus.Fields{
 		"block": block,
 	}).Info("Sealed Block.")
+	metricsTxPackedCount.Update(0)
+	metricsTxUnpackedCount.Update(0)
 
 	return nil
 }
