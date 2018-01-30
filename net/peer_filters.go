@@ -16,12 +16,10 @@
 // along with the go-nebulas library.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-package p2p
+package net
 
 import (
 	"math/rand"
-
-	"github.com/nebulasio/go-nebulas/net"
 )
 
 // ChainSyncPeersFilter will filter some peers randomly
@@ -29,7 +27,7 @@ type ChainSyncPeersFilter struct {
 }
 
 // Filter implemets PeerFilterAlgorithm interface
-func (filter *ChainSyncPeersFilter) Filter(peers net.PeersSlice) net.PeersSlice {
+func (filter *ChainSyncPeersFilter) Filter(peers PeersSlice) PeersSlice {
 	return peers
 }
 
@@ -38,7 +36,7 @@ type RandomPeerFilter struct {
 }
 
 // Filter implemets PeerFilterAlgorithm interface
-func (filter *RandomPeerFilter) Filter(peers net.PeersSlice) net.PeersSlice {
+func (filter *RandomPeerFilter) Filter(peers PeersSlice) PeersSlice {
 	if len(peers) == 0 {
 		return peers
 	}

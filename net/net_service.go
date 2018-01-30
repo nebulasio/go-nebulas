@@ -16,10 +16,9 @@
 // along with the go-nebulas library.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-package p2p
+package net
 
 import (
-	"github.com/nebulasio/go-nebulas/net"
 	"github.com/nebulasio/go-nebulas/util/logging"
 	"github.com/sirupsen/logrus"
 )
@@ -27,7 +26,7 @@ import (
 // NetService service for nebulas p2p network
 type NetService struct {
 	node       *Node
-	dispatcher *net.Dispatcher
+	dispatcher *Dispatcher
 }
 
 // NewNetService create netService
@@ -39,7 +38,7 @@ func NewNetService(n Neblet) (*NetService, error) {
 
 	ns := &NetService{
 		node:       node,
-		dispatcher: net.NewDispatcher(),
+		dispatcher: NewDispatcher(),
 	}
 	node.SetNetService(ns)
 
@@ -80,27 +79,27 @@ func (ns *NetService) Stop() {
 }
 
 // Register register the subscribers.
-func (ns *NetService) Register(subscribers ...*net.Subscriber) {
+func (ns *NetService) Register(subscribers ...*Subscriber) {
 	ns.dispatcher.Register(subscribers...)
 }
 
 // Deregister Deregister the subscribers.
-func (ns *NetService) Deregister(subscribers ...*net.Subscriber) {
+func (ns *NetService) Deregister(subscribers ...*Subscriber) {
 	ns.dispatcher.Deregister(subscribers...)
 }
 
 // PutMessage put message to dispatcher.
-func (ns *NetService) PutMessage(msg net.Message) {
+func (ns *NetService) PutMessage(msg Message) {
 	ns.dispatcher.PutMessage(msg)
 }
 
 // Broadcast message.
-func (ns *NetService) Broadcast(name string, msg net.Serializable, priority int) {
+func (ns *NetService) Broadcast(name string, msg Serializable, priority int) {
 	ns.node.BroadcastMessage(name, msg, priority)
 }
 
 // Relay message.
-func (ns *NetService) Relay(name string, msg net.Serializable, priority int) {
+func (ns *NetService) Relay(name string, msg Serializable, priority int) {
 	ns.node.RelayMessage(name, msg, priority)
 }
 
@@ -125,7 +124,7 @@ func (ns *NetService) SendMsg(msgName string, msg []byte, target string, priorit
 }
 
 // SendMessageToPeers send message to peers.
-func (ns *NetService) SendMessageToPeers(messageName string, data []byte, priority int, filter net.PeerFilterAlgorithm) []string {
+func (ns *NetService) SendMessageToPeers(messageName string, data []byte, priority int, filter PeerFilterAlgorithm) []string {
 	return ns.node.streamManager.SendMessageToPeers(messageName, data, priority, filter)
 }
 

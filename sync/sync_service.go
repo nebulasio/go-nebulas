@@ -28,7 +28,6 @@ import (
 	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/net"
-	"github.com/nebulasio/go-nebulas/net/p2p"
 	"github.com/nebulasio/go-nebulas/sync/pb"
 	"github.com/nebulasio/go-nebulas/util/logging"
 	"github.com/sirupsen/logrus"
@@ -43,7 +42,7 @@ var (
 // Service manage sync tasks
 type Service struct {
 	blockChain *core.BlockChain
-	netService p2p.Manager
+	netService net.Service
 	chunk      *Chunk
 	quitCh     chan bool
 	messageCh  chan net.Message
@@ -53,7 +52,7 @@ type Service struct {
 }
 
 // NewService return new Service.
-func NewService(blockChain *core.BlockChain, netService p2p.Manager) *Service {
+func NewService(blockChain *core.BlockChain, netService net.Service) *Service {
 	return &Service{
 		blockChain: blockChain,
 		netService: netService,

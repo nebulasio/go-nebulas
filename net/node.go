@@ -16,7 +16,7 @@
 // along with the go-nebulas library.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-package p2p
+package net
 
 import (
 	"context"
@@ -31,7 +31,6 @@ import (
 	swarm "github.com/libp2p/go-libp2p-swarm"
 	"github.com/libp2p/go-libp2p/p2p/host/basic"
 	multiaddr "github.com/multiformats/go-multiaddr"
-	nebnet "github.com/nebulasio/go-nebulas/net"
 	"github.com/nebulasio/go-nebulas/util/logging"
 	"github.com/sirupsen/logrus"
 )
@@ -284,7 +283,7 @@ func (node *Node) SendMessageToPeer(messageName string, data []byte, priority in
 }
 
 // BroadcastMessage broadcast message.
-func (node *Node) BroadcastMessage(messageName string, data nebnet.Serializable, priority int) {
+func (node *Node) BroadcastMessage(messageName string, data Serializable, priority int) {
 	// node can not broadcast or relay message if it is in synchronizing.
 	if node.synchronizing {
 		return
@@ -294,7 +293,7 @@ func (node *Node) BroadcastMessage(messageName string, data nebnet.Serializable,
 }
 
 // RelayMessage relay message.
-func (node *Node) RelayMessage(messageName string, data nebnet.Serializable, priority int) {
+func (node *Node) RelayMessage(messageName string, data Serializable, priority int) {
 	// node can not broadcast or relay message if it is in synchronizing.
 	if node.synchronizing {
 		return

@@ -22,7 +22,7 @@ import (
 	"fmt"
 
 	"github.com/nebulasio/go-nebulas/account"
-	"github.com/nebulasio/go-nebulas/net/p2p"
+	"github.com/nebulasio/go-nebulas/net"
 	"github.com/urfave/cli"
 )
 
@@ -54,17 +54,17 @@ Make sure that the seed node should have a private key.`,
 
 // accountCreate creates a new account into the keystore
 func generatePrivateKey(ctx *cli.Context) error {
-	key, err := p2p.GenerateEd25519Key()
+	key, err := net.GenerateEd25519Key()
 	if err != nil {
 		return err
 	}
 
-	str, _ := p2p.MarshalNetworkKey(key)
+	str, _ := net.MarshalNetworkKey(key)
 	fmt.Printf("private.key: %s\n", key)
 
 	path := ctx.Args().First()
 	if len(path) == 0 {
-		path = p2p.DefaultPrivateKeyPath
+		path = net.DefaultPrivateKeyPath
 	}
 
 	account.WriteFile(path, []byte(str))

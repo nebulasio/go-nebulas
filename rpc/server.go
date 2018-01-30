@@ -11,7 +11,7 @@ import (
 	"github.com/nebulasio/go-nebulas/consensus"
 	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/neblet/pb"
-	"github.com/nebulasio/go-nebulas/net/p2p"
+	nebnet "github.com/nebulasio/go-nebulas/net"
 	"github.com/nebulasio/go-nebulas/rpc/pb"
 	"github.com/nebulasio/go-nebulas/util/logging"
 	"google.golang.org/grpc"
@@ -29,7 +29,7 @@ type Neblet interface {
 	StartPprof(string) error
 	BlockChain() *core.BlockChain
 	AccountManager() *account.Manager
-	NetManager() p2p.Manager
+	NetService() nebnet.Service
 	EventEmitter() *core.EventEmitter
 	Consensus() consensus.Consensus
 }

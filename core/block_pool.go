@@ -27,7 +27,7 @@ import (
 	lru "github.com/hashicorp/golang-lru"
 	"github.com/nebulasio/go-nebulas/core/pb"
 	"github.com/nebulasio/go-nebulas/net"
-	"github.com/nebulasio/go-nebulas/net/p2p"
+
 	"github.com/nebulasio/go-nebulas/util/byteutils"
 	"github.com/nebulasio/go-nebulas/util/logging"
 	"github.com/sirupsen/logrus"
@@ -50,7 +50,7 @@ type BlockPool struct {
 	cache *lru.Cache
 	slot  *lru.Cache
 
-	nm p2p.Manager
+	ns net.Service
 	mu sync.RWMutex
 }
 
@@ -98,11 +98,11 @@ func NewBlockPool(size int) (*BlockPool, error) {
 }
 
 // RegisterInNetwork register message subscriber in network.
-func (pool *BlockPool) RegisterInNetwork(nm p2p.Manager) {
-	nm.Register(net.NewSubscriber(pool, pool.receiveBlockMessageCh, MessageTypeNewBlock))
-	nm.Register(net.NewSubscriber(pool, pool.receiveBlockMessageCh, MessageTypeDownloadedBlockReply))
-	nm.Register(net.NewSubscriber(pool, pool.receiveDownloadBlockMessageCh, MessageTypeDownloadedBlock))
-	pool.nm = nm
+func (pool *BlockPool) RegisterInNetwork(ns net.Service) {
+	ns.Register(net.NewSubscriber(pool, pool.receiveBlockMessageCh, MessageTypeNewBlock))
+	ns.Register(net.NewSubscriber(pool, pool.receiveBlockMessageCh, MessageTypeDownloadedBlockReply))
+	ns.Register(net.NewSubscriber(pool, pool.receiveDownloadBlockMessageCh, MessageTypeDownloadedBlock))
+	pool.ns = ns
 }
 
 // Start start loop.
@@ -239,7 +239,7 @@ func (pool *BlockPool) handleDownloadedBlock(msg net.Message) {
 		}).Debug("Failed to marshal the block's parent.")
 		return
 	}
-	pool.nm.SendMsg(MessageTypeDownloadedBlockReply, bytes, msg.MessageFrom(), net.MessagePriorityNormal)
+	pool.ns.SendMsg(MessageTypeDownloadedBlockReply, bytes, msg.MessageFrom(), net.MessagePriorityNormal)
 
 	logging.VLog().WithFields(logrus.Fields{
 		"block":  block,
@@ -320,7 +320,7 @@ func (pool *BlockPool) PushAndBroadcast(block *Block) error {
 		return err
 	}
 
-	pool.nm.Broadcast(MessageTypeNewBlock, block, net.MessagePriorityHigh)
+	pool.ns.Broadcast(MessageTypeNewBlock, block, net.MessagePriorityHigh)
 
 	if err := pool.push(NoSender, block); err != nil {
 		return err
@@ -343,7 +343,7 @@ func (pool *BlockPool) download(sender string, block *Block) error {
 		return err
 	}
 
-	pool.nm.SendMsg(MessageTypeDownloadedBlock, bytes, sender, net.MessagePriorityNormal)
+	pool.ns.SendMsg(MessageTypeDownloadedBlock, bytes, sender, net.MessagePriorityNormal)
 
 	logging.VLog().WithFields(logrus.Fields{
 		"target": sender,
@@ -471,7 +471,7 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 	// getParentAt := time.Now().Unix()
 
 	if sender != NoSender {
-		pool.nm.Relay(MessageTypeNewBlock, block, net.MessagePriorityHigh)
+		pool.ns.Relay(MessageTypeNewBlock, block, net.MessagePriorityHigh)
 	}
 
 	// found in BlockChain, then we can verify the state root, and tell the Consensus all the tails.

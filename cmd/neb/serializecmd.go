@@ -159,7 +159,7 @@ func serializeTx(ctx *cli.Context) error {
 
 	pbMsg, _ := tx.ToProto()
 	data, _ := proto.Marshal(pbMsg)
-	data = neb.NetManager().BuildRawMessageData(data, core.MessageTypeNewTx)
+	data = neb.NetService().BuildRawMessageData(data, core.MessageTypeNewTx)
 	fmt.Println(base64.StdEncoding.EncodeToString(data))
 	return nil
 }
@@ -248,7 +248,7 @@ func serializeDownload(ctx *cli.Context) error {
 		Sign: sign,
 	}
 	data, _ := proto.Marshal(downloadMsg)
-	data = neb.NetManager().BuildRawMessageData(data, core.MessageTypeDownloadedBlock)
+	data = neb.NetService().BuildRawMessageData(data, core.MessageTypeDownloadedBlock)
 	fmt.Println(base64.StdEncoding.EncodeToString(data))
 	return nil
 }

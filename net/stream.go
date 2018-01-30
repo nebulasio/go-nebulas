@@ -16,7 +16,7 @@
 // along with the go-nebulas library.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-package p2p
+package net
 
 import (
 	"errors"
@@ -24,14 +24,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/nebulasio/go-nebulas/net"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
 
 	"github.com/gogo/protobuf/proto"
 	libnet "github.com/libp2p/go-libp2p-net"
 	peer "github.com/libp2p/go-libp2p-peer"
 	ma "github.com/multiformats/go-multiaddr"
-	"github.com/nebulasio/go-nebulas/net/messages"
 	netpb "github.com/nebulasio/go-nebulas/net/pb"
 	"github.com/nebulasio/go-nebulas/util/logging"
 	"github.com/sirupsen/logrus"
@@ -183,9 +181,9 @@ func (s *Stream) SendMessage(messageName string, data []byte, priority int) erro
 	message.FlagSendMessageAt()
 
 	switch priority {
-	case net.MessagePriorityHigh:
+	case MessagePriorityHigh:
 		s.highPriorityMessageChan <- message
-	case net.MessagePriorityNormal:
+	case MessagePriorityNormal:
 		s.normalPriorityMessageChan <- message
 	default:
 		s.lowPriorityMessageChan <- message
@@ -459,7 +457,7 @@ func (s *Stream) handleMessage(message *NebMessage) error {
 	case RECVEDMSG:
 		return s.onRecvedMsg(message)
 	default:
-		s.node.netService.PutMessage(messages.NewBaseMessage(message.MessageName(), s.pid.Pretty(), message.Data()))
+		s.node.netService.PutMessage(NewBaseMessage(message.MessageName(), s.pid.Pretty(), message.Data()))
 		// record recv message.
 		RecordRecvMessage(s, message.DataCheckSum())
 	}
@@ -583,7 +581,7 @@ func (s *Stream) onOk(message *NebMessage) error {
 
 // SyncRoute send sync route request
 func (s *Stream) SyncRoute() error {
-	return s.SendMessage(SYNCROUTE, []byte{}, net.MessagePriorityHigh)
+	return s.SendMessage(SYNCROUTE, []byte{}, MessagePriorityHigh)
 }
 
 func (s *Stream) onSyncRoute(message *NebMessage) error {
@@ -616,7 +614,7 @@ func (s *Stream) RouteTable() error {
 		"routetableCount": len(peers),
 	}).Debug("Replied sync route message.")
 
-	return s.SendProtoMessage(ROUTETABLE, msg, net.MessagePriorityHigh)
+	return s.SendProtoMessage(ROUTETABLE, msg, MessagePriorityHigh)
 }
 
 func (s *Stream) onRouteTable(message *NebMessage) error {
@@ -635,7 +633,7 @@ func (s *Stream) onRouteTable(message *NebMessage) error {
 
 // RecvedMsg send received msg
 func (s *Stream) RecvedMsg(hash uint32) error {
-	return s.SendMessage(RECVEDMSG, byteutils.FromUint32(hash), net.MessagePriorityHigh)
+	return s.SendMessage(RECVEDMSG, byteutils.FromUint32(hash), MessagePriorityHigh)
 }
 
 func (s *Stream) onRecvedMsg(message *NebMessage) error {

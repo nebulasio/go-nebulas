@@ -16,7 +16,7 @@
 // along with the go-nebulas library.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-package p2p
+package net
 
 import (
 	"hash/crc32"
@@ -29,7 +29,6 @@ import (
 	"github.com/gogo/protobuf/proto"
 	libnet "github.com/libp2p/go-libp2p-net"
 	peer "github.com/libp2p/go-libp2p-peer"
-	"github.com/nebulasio/go-nebulas/net"
 	"github.com/nebulasio/go-nebulas/util/logging"
 )
 
@@ -131,7 +130,7 @@ func (sm *StreamManager) loop() {
 }
 
 // BroadcastMessage broadcast the meesage
-func (sm *StreamManager) BroadcastMessage(messageName string, messageContent net.Serializable, priority int) {
+func (sm *StreamManager) BroadcastMessage(messageName string, messageContent Serializable, priority int) {
 	pb, _ := messageContent.ToProto()
 	data, err := proto.Marshal(pb)
 	if err != nil {
@@ -150,7 +149,7 @@ func (sm *StreamManager) BroadcastMessage(messageName string, messageContent net
 }
 
 // RelayMessage relay the message
-func (sm *StreamManager) RelayMessage(messageName string, messageContent net.Serializable, priority int) {
+func (sm *StreamManager) RelayMessage(messageName string, messageContent Serializable, priority int) {
 	pb, _ := messageContent.ToProto()
 	data, err := proto.Marshal(pb)
 	if err != nil {
@@ -169,8 +168,8 @@ func (sm *StreamManager) RelayMessage(messageName string, messageContent net.Ser
 }
 
 // SendMessageToPeers send the message to the peers filtered by the filter algorithm
-func (sm *StreamManager) SendMessageToPeers(messageName string, data []byte, priority int, filter net.PeerFilterAlgorithm) []string {
-	allPeers := make(net.PeersSlice, 0)
+func (sm *StreamManager) SendMessageToPeers(messageName string, data []byte, priority int, filter PeerFilterAlgorithm) []string {
+	allPeers := make(PeersSlice, 0)
 
 	sm.allStreams.Range(func(key, value interface{}) bool {
 		stream := value.(*Stream)

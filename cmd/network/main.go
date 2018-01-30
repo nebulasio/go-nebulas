@@ -31,7 +31,6 @@ import (
 	"github.com/libp2p/go-libp2p-interface-conn"
 	"github.com/nebulasio/go-nebulas/neblet"
 	"github.com/nebulasio/go-nebulas/net"
-	"github.com/nebulasio/go-nebulas/net/p2p"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
 	"github.com/nebulasio/go-nebulas/util/logging"
 	metrics "github.com/rcrowley/go-metrics"
@@ -111,7 +110,7 @@ func run(mode, configPath string, packageSize, concurrentMessageCount, totalMess
 
 	// neblet.
 	neblet, _ := neblet.New(config)
-	netService, err := p2p.NewNetService(neblet)
+	netService, err := net.NewNetService(neblet)
 
 	if err != nil {
 		fmt.Printf("Error: %s", err)
@@ -138,7 +137,7 @@ func run(mode, configPath string, packageSize, concurrentMessageCount, totalMess
 		time.Sleep(10 * time.Second)
 		go func() {
 			for i := 0; i < int(concurrentMessageCount); i++ {
-				netService.SendMessageToPeers(PingMessage, GenerateData(packageSize), net.MessagePriorityNormal, new(p2p.ChainSyncPeersFilter))
+				netService.SendMessageToPeers(PingMessage, GenerateData(packageSize), net.MessagePriorityNormal, new(net.ChainSyncPeersFilter))
 			}
 		}()
 	}
@@ -159,7 +158,7 @@ func run(mode, configPath string, packageSize, concurrentMessageCount, totalMess
 
 				// metrics.
 				tps.Mark(1)
-				throughput.Mark(1 * int64(p2p.NebMessageHeaderLength+len(data)))
+				throughput.Mark(1 * int64(net.NebMessageHeaderLength+len(data)))
 				latency.Update(latencyVal)
 
 				netService.SendMessageToPeer(PongMessage, message.Data(), net.MessagePriorityNormal, message.MessageFrom())
@@ -171,7 +170,7 @@ func run(mode, configPath string, packageSize, concurrentMessageCount, totalMess
 
 				// metrics.
 				tps.Mark(1)
-				throughput.Mark(1 * int64(p2p.NebMessageHeaderLength+len(data)))
+				throughput.Mark(1 * int64(net.NebMessageHeaderLength+len(data)))
 				latency.Update(latencyVal)
 
 				sentMessageCount++

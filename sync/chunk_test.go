@@ -29,7 +29,6 @@ import (
 	"github.com/nebulasio/go-nebulas/crypto/keystore/secp256k1"
 	"github.com/nebulasio/go-nebulas/neblet/pb"
 	"github.com/nebulasio/go-nebulas/net"
-	"github.com/nebulasio/go-nebulas/net/p2p"
 	"github.com/nebulasio/go-nebulas/storage"
 	"github.com/stretchr/testify/assert"
 
@@ -150,33 +149,33 @@ func MockGenesisConf() *corepb.Genesis {
 	}
 }
 
-type MockNetManager struct {
+type MockNetService struct {
 }
 
-func (n MockNetManager) Start() error { return nil }
-func (n MockNetManager) Stop()        {}
+func (n MockNetService) Start() error { return nil }
+func (n MockNetService) Stop()        {}
 
-func (n MockNetManager) Node() *p2p.Node { return nil }
+func (n MockNetService) Node() *net.Node { return nil }
 
-func (n MockNetManager) Register(...*net.Subscriber)   {}
-func (n MockNetManager) Deregister(...*net.Subscriber) {}
+func (n MockNetService) Register(...*net.Subscriber)   {}
+func (n MockNetService) Deregister(...*net.Subscriber) {}
 
-func (n MockNetManager) Broadcast(string, net.Serializable, int)   {}
-func (n MockNetManager) Relay(string, net.Serializable, int)       {}
-func (n MockNetManager) SendMsg(string, []byte, string, int) error { return nil }
+func (n MockNetService) Broadcast(string, net.Serializable, int)   {}
+func (n MockNetService) Relay(string, net.Serializable, int)       {}
+func (n MockNetService) SendMsg(string, []byte, string, int) error { return nil }
 
-func (n MockNetManager) SendMessageToPeers(messageName string, data []byte, priority int, filter net.PeerFilterAlgorithm) []string {
+func (n MockNetService) SendMessageToPeers(messageName string, data []byte, priority int, filter net.PeerFilterAlgorithm) []string {
 	return make([]string, 0)
 }
-func (n MockNetManager) SendMessageToPeer(messageName string, data []byte, priority int, peerID string) error {
+func (n MockNetService) SendMessageToPeer(messageName string, data []byte, priority int, peerID string) error {
 	return nil
 }
 
-func (n MockNetManager) ClosePeer(peerID string, reason error) {}
+func (n MockNetService) ClosePeer(peerID string, reason error) {}
 
-func (n MockNetManager) BroadcastNetworkID([]byte) {}
+func (n MockNetService) BroadcastNetworkID([]byte) {}
 
-func (n MockNetManager) BuildRawMessageData([]byte, string) []byte { return nil }
+func (n MockNetService) BuildRawMessageData([]byte, string) []byte { return nil }
 
 func BlockFromNetwork(block *core.Block) *core.Block {
 	pb, _ := block.ToProto()
@@ -189,7 +188,7 @@ func BlockFromNetwork(block *core.Block) *core.Block {
 
 func TestChunk_generateChunkMeta(t *testing.T) {
 	var cons MockConsensus
-	var n MockNetManager
+	var n MockNetService
 	chain, err := core.NewBlockChain(testNeb())
 	chain.SetConsensusHandler(cons)
 	chain.BlockPool().RegisterInNetwork(n)

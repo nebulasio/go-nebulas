@@ -30,7 +30,6 @@ import (
 	"github.com/nebulasio/go-nebulas/crypto/keystore"
 	"github.com/nebulasio/go-nebulas/neblet/pb"
 	"github.com/nebulasio/go-nebulas/net"
-	"github.com/nebulasio/go-nebulas/net/p2p"
 	"github.com/nebulasio/go-nebulas/storage"
 	"github.com/stretchr/testify/assert"
 )
@@ -38,7 +37,7 @@ import (
 type Neb struct {
 	config  *nebletpb.Config
 	chain   *core.BlockChain
-	ns      p2p.Manager
+	ns      net.Service
 	am      *account.Manager
 	genesis *corepb.Genesis
 	storage storage.Storage
@@ -64,13 +63,13 @@ func mockNeb(t *testing.T) *Neb {
 		},
 	}
 	am := account.NewManager(neb)
-	var nm MockNetManager
+	var ns MockNetService
 	chain, err := core.NewBlockChain(neb)
 	assert.Nil(t, err)
 	neb.chain = chain
 	neb.am = am
-	neb.ns = nm
-	neb.chain.BlockPool().RegisterInNetwork(nm)
+	neb.ns = ns
+	neb.chain.BlockPool().RegisterInNetwork(ns)
 	return neb
 }
 
@@ -82,7 +81,7 @@ func (n *Neb) BlockChain() *core.BlockChain {
 	return n.chain
 }
 
-func (n *Neb) NetManager() p2p.Manager {
+func (n *Neb) NetService() net.Service {
 	return n.ns
 }
 
@@ -155,45 +154,45 @@ var (
 	received = []byte{}
 )
 
-type MockNetManager struct{}
+type MockNetService struct{}
 
-func (n MockNetManager) Start() error { return nil }
-func (n MockNetManager) Stop()        {}
+func (n MockNetService) Start() error { return nil }
+func (n MockNetService) Stop()        {}
 
-func (n MockNetManager) Node() *p2p.Node { return nil }
+func (n MockNetService) Node() *net.Node { return nil }
 
-func (n MockNetManager) Sync(net.Serializable) error { return nil }
+func (n MockNetService) Sync(net.Serializable) error { return nil }
 
-func (n MockNetManager) Register(...*net.Subscriber)   {}
-func (n MockNetManager) Deregister(...*net.Subscriber) {}
+func (n MockNetService) Register(...*net.Subscriber)   {}
+func (n MockNetService) Deregister(...*net.Subscriber) {}
 
-func (n MockNetManager) Broadcast(name string, msg net.Serializable, priority int) {
+func (n MockNetService) Broadcast(name string, msg net.Serializable, priority int) {
 	pb, _ := msg.ToProto()
 	bytes, _ := proto.Marshal(pb)
 	received = bytes
 }
-func (n MockNetManager) Relay(name string, msg net.Serializable, priority int) {
+func (n MockNetService) Relay(name string, msg net.Serializable, priority int) {
 	pb, _ := msg.ToProto()
 	bytes, _ := proto.Marshal(pb)
 	received = bytes
 }
-func (n MockNetManager) SendMsg(name string, msg []byte, target string, priority int) error {
+func (n MockNetService) SendMsg(name string, msg []byte, target string, priority int) error {
 	received = msg
 	return nil
 }
 
-func (n MockNetManager) SendMessageToPeers(messageName string, data []byte, priority int, filter net.PeerFilterAlgorithm) []string {
+func (n MockNetService) SendMessageToPeers(messageName string, data []byte, priority int, filter net.PeerFilterAlgorithm) []string {
 	return make([]string, 0)
 }
-func (n MockNetManager) SendMessageToPeer(messageName string, data []byte, priority int, peerID string) error {
+func (n MockNetService) SendMessageToPeer(messageName string, data []byte, priority int, peerID string) error {
 	return nil
 }
 
-func (n MockNetManager) ClosePeer(peerID string, reason error) {}
+func (n MockNetService) ClosePeer(peerID string, reason error) {}
 
-func (n MockNetManager) BroadcastNetworkID([]byte) {}
+func (n MockNetService) BroadcastNetworkID([]byte) {}
 
-func (n MockNetManager) BuildRawMessageData([]byte, string) []byte { return nil }
+func (n MockNetService) BuildRawMessageData([]byte, string) []byte { return nil }
 
 func TestDpos_New(t *testing.T) {
 	neb := mockNeb(t)

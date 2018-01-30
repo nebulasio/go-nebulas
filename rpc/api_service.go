@@ -26,7 +26,7 @@ import (
 	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/core/pb"
 	"github.com/nebulasio/go-nebulas/crypto/hash"
-	"github.com/nebulasio/go-nebulas/net/p2p"
+	"github.com/nebulasio/go-nebulas/net"
 	"github.com/nebulasio/go-nebulas/rpc/pb"
 	"github.com/nebulasio/go-nebulas/util"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
@@ -50,9 +50,9 @@ func (s *APIService) GetNebState(ctx context.Context, req *rpcpb.NonParamsReques
 	resp.Tail = tail.Hash().String()
 	resp.Height = tail.Height()
 	resp.Coinbase = tail.Coinbase().String()
-	resp.Synchronized = neb.NetManager().Node().IsSynchronizing()
-	resp.PeerCount = uint32(neb.NetManager().Node().PeersCount())
-	resp.ProtocolVersion = p2p.NebProtocolID
+	resp.Synchronized = neb.NetService().Node().IsSynchronizing()
+	resp.PeerCount = uint32(neb.NetService().Node().PeersCount())
+	resp.ProtocolVersion = net.NebProtocolID
 	resp.Version = neb.Config().App.Version
 
 	return resp, nil
@@ -63,7 +63,7 @@ func (s *APIService) NodeInfo(ctx context.Context, req *rpcpb.NonParamsRequest) 
 
 	neb := s.server.Neblet()
 	resp := &rpcpb.NodeInfoResponse{}
-	node := neb.NetManager().Node()
+	node := neb.NetService().Node()
 	resp.Id = node.ID()
 	resp.ChainId = node.Config().ChainID
 	resp.BucketSize = int32(node.Config().Bucketsize)
@@ -72,7 +72,7 @@ func (s *APIService) NodeInfo(ctx context.Context, req *rpcpb.NonParamsRequest) 
 	resp.StreamStoreExtendSize = int32(node.Config().StreamStoreExtendSize)
 	resp.RelayCacheSize = int32(node.Config().RelayCacheSize)
 	resp.PeerCount = uint32(node.PeersCount())
-	resp.ProtocolVersion = p2p.NebProtocolID
+	resp.ProtocolVersion = net.NebProtocolID
 
 	for k, v := range node.RouteTable().Peers() {
 		routeTable := &rpcpb.RouteTable{}
@@ -432,7 +432,7 @@ func (s *APIService) Subscribe(req *rpcpb.SubscribeRequest, gs rpcpb.ApiService_
 	})()
 
 	//netEventCh := make(chan nnet.Message, 128)
-	//net := neb.NetManager()
+	//net := neb.NetService()
 	//net.Register(nnet.NewSubscriber(s, netEventCh, core.MessageTypeNewBlock))
 	//net.Register(nnet.NewSubscriber(s, netEventCh, core.MessageTypeNewTx))
 	//defer net.Deregister(nnet.NewSubscriber(s, netEventCh, core.MessageTypeNewBlock))

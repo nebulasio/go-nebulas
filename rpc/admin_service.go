@@ -134,7 +134,7 @@ func (s *AdminService) SendTransactionWithPassphrase(ctx context.Context, req *r
 func (s *AdminService) StatisticsNodeInfo(ctx context.Context, req *rpcpb.NonParamsRequest) (*rpcpb.StatisticsNodeInfoResponse, error) {
 
 	neb := s.server.Neblet()
-	node := neb.NetManager().Node()
+	node := neb.NetService().Node()
 	tail := neb.BlockChain().TailBlock()
 	resp := &rpcpb.StatisticsNodeInfoResponse{}
 	resp.NodeID = node.ID()
@@ -230,9 +230,9 @@ func (s *AdminService) GetDelegateVoters(ctx context.Context, req *rpcpb.GetDele
 func (s *AdminService) ChangeNetworkID(ctx context.Context, req *rpcpb.ChangeNetworkIDRequest) (*rpcpb.ChangeNetworkIDResponse, error) {
 
 	neb := s.server.Neblet()
-	neb.NetManager().Node().Config().NetworkID = req.NetworkId
+	neb.NetService().Node().Config().NetworkID = req.NetworkId
 	// broadcast to all the node in the routetable.
-	neb.NetManager().BroadcastNetworkID(byteutils.FromUint32(req.NetworkId))
+	neb.NetService().BroadcastNetworkID(byteutils.FromUint32(req.NetworkId))
 	return &rpcpb.ChangeNetworkIDResponse{Result: true}, nil
 }
 

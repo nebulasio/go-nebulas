@@ -30,7 +30,7 @@ import (
 	"github.com/nebulasio/go-nebulas/common/trie"
 	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/neblet/pb"
-	"github.com/nebulasio/go-nebulas/net/p2p"
+	"github.com/nebulasio/go-nebulas/net"
 
 	"github.com/nebulasio/go-nebulas/util/byteutils"
 	"github.com/nebulasio/go-nebulas/util/logging"
@@ -57,7 +57,7 @@ var (
 type Neblet interface {
 	Config() *nebletpb.Config
 	BlockChain() *core.BlockChain
-	NetManager() p2p.Manager
+	NetService() net.Service
 	AccountManager() *account.Manager
 }
 
@@ -66,7 +66,7 @@ type Dpos struct {
 	quitCh chan bool
 
 	chain *core.BlockChain
-	nm    p2p.Manager
+	ns    net.Service
 	am    *account.Manager
 
 	coinbase *core.Address
@@ -86,7 +86,7 @@ func NewDpos(neblet Neblet) (*Dpos, error) {
 		quitCh: make(chan bool, 5),
 
 		chain: neblet.BlockChain(),
-		nm:    neblet.NetManager(),
+		ns:    neblet.NetService(),
 		am:    neblet.AccountManager(),
 
 		blockInterval:   core.BlockInterval,

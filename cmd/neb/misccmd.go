@@ -23,7 +23,7 @@ import (
 	"os"
 	"runtime"
 
-	"github.com/nebulasio/go-nebulas/net/p2p"
+	"github.com/nebulasio/go-nebulas/net"
 	"github.com/urfave/cli"
 )
 
@@ -54,8 +54,8 @@ func _version(ctx *cli.Context) error {
 	if commit != "" {
 		fmt.Println("Git Commit:", commit)
 	}
-	fmt.Println("Protocol Versions:", p2p.NebProtocolID)
-	fmt.Println("Protocol ClientVersion:", p2p.ClientVersion)
+	fmt.Println("Protocol Versions:", net.NebProtocolID)
+	fmt.Println("Protocol ClientVersion:", net.ClientVersion)
 	fmt.Printf("Chain Id: %d\n", neb.Config().Chain.ChainId)
 	fmt.Println("Go Version:", runtime.Version())
 	fmt.Println("Operating System:", runtime.GOOS)

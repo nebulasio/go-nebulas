@@ -30,8 +30,6 @@ import (
 	"github.com/nebulasio/go-nebulas/crypto/keystore"
 	"github.com/nebulasio/go-nebulas/crypto/keystore/secp256k1"
 	"github.com/nebulasio/go-nebulas/net"
-	"github.com/nebulasio/go-nebulas/net/messages"
-	"github.com/nebulasio/go-nebulas/net/p2p"
 	"github.com/nebulasio/go-nebulas/storage"
 	"github.com/nebulasio/go-nebulas/util"
 	"github.com/stretchr/testify/assert"
@@ -63,44 +61,44 @@ var (
 	received = []byte{}
 )
 
-type MockNetManager struct{}
+type MockNetService struct{}
 
-func (n MockNetManager) Start() error { return nil }
-func (n MockNetManager) Stop()        {}
+func (n MockNetService) Start() error { return nil }
+func (n MockNetService) Stop()        {}
 
-func (n MockNetManager) Node() *p2p.Node { return nil }
+func (n MockNetService) Node() *net.Node { return nil }
 
-func (n MockNetManager) Sync(net.Serializable) error { return nil }
+func (n MockNetService) Sync(net.Serializable) error { return nil }
 
-func (n MockNetManager) Register(...*net.Subscriber)   {}
-func (n MockNetManager) Deregister(...*net.Subscriber) {}
+func (n MockNetService) Register(...*net.Subscriber)   {}
+func (n MockNetService) Deregister(...*net.Subscriber) {}
 
-func (n MockNetManager) Broadcast(name string, msg net.Serializable, priority int) {}
-func (n MockNetManager) Relay(name string, msg net.Serializable, priority int)     {}
-func (n MockNetManager) SendMsg(name string, msg []byte, target string, priority int) error {
+func (n MockNetService) Broadcast(name string, msg net.Serializable, priority int) {}
+func (n MockNetService) Relay(name string, msg net.Serializable, priority int)     {}
+func (n MockNetService) SendMsg(name string, msg []byte, target string, priority int) error {
 	received = msg
 	return nil
 }
 
-func (n MockNetManager) SendMessageToPeers(messageName string, data []byte, priority int, filter net.PeerFilterAlgorithm) []string {
+func (n MockNetService) SendMessageToPeers(messageName string, data []byte, priority int, filter net.PeerFilterAlgorithm) []string {
 	return make([]string, 0)
 }
-func (n MockNetManager) SendMessageToPeer(messageName string, data []byte, priority int, peerID string) error {
+func (n MockNetService) SendMessageToPeer(messageName string, data []byte, priority int, peerID string) error {
 	return nil
 }
 
-func (n MockNetManager) ClosePeer(peerID string, reason error) {}
+func (n MockNetService) ClosePeer(peerID string, reason error) {}
 
-func (n MockNetManager) BroadcastNetworkID([]byte) {}
+func (n MockNetService) BroadcastNetworkID([]byte) {}
 
-func (n MockNetManager) BuildRawMessageData([]byte, string) []byte { return nil }
+func (n MockNetService) BuildRawMessageData([]byte, string) []byte { return nil }
 
 func TestBlockPool(t *testing.T) {
 	received = []byte{}
 
 	neb := testNeb()
 	bc, err := NewBlockChain(neb)
-	var n MockNetManager
+	var n MockNetService
 	bc.bkPool.RegisterInNetwork(n)
 	cons := &MockConsensus{neb.storage}
 	bc.SetConsensusHandler(cons)
@@ -199,7 +197,7 @@ func TestBlockPool(t *testing.T) {
 func TestHandleBlock(t *testing.T) {
 	neb := testNeb()
 	bc, err := NewBlockChain(neb)
-	var n MockNetManager
+	var n MockNetService
 	bc.bkPool.RegisterInNetwork(n)
 	assert.Nil(t, err)
 	cons := &MockConsensus{neb.storage}
@@ -219,7 +217,7 @@ func TestHandleBlock(t *testing.T) {
 	assert.Nil(t, err)
 	data, err := proto.Marshal(pbMsg)
 	assert.Nil(t, err)
-	msg := messages.NewBaseMessage(MessageTypeNewTx, "from", data)
+	msg := net.NewBaseMessage(MessageTypeNewTx, "from", data)
 	bc.bkPool.handleBlock(msg)
 	assert.Nil(t, bc.GetBlock(block.Hash()))
 
@@ -232,7 +230,7 @@ func TestHandleBlock(t *testing.T) {
 	pbMsg, err = block.ToProto()
 	assert.Nil(t, err)
 	data, err = proto.Marshal(pbMsg)
-	msg = messages.NewBaseMessage(MessageTypeNewBlock, "from", data)
+	msg = net.NewBaseMessage(MessageTypeNewBlock, "from", data)
 	bc.bkPool.handleBlock(msg)
 	assert.Nil(t, bc.GetBlock(block.Hash()))
 
@@ -246,7 +244,7 @@ func TestHandleBlock(t *testing.T) {
 	pbMsg, err = block.ToProto()
 	assert.Nil(t, err)
 	data, err = proto.Marshal(pbMsg)
-	msg = messages.NewBaseMessage(MessageTypeNewBlock, "from", data)
+	msg = net.NewBaseMessage(MessageTypeNewBlock, "from", data)
 	bc.bkPool.handleBlock(msg)
 	assert.Nil(t, bc.GetBlock(block.Hash()))
 
@@ -260,7 +258,7 @@ func TestHandleBlock(t *testing.T) {
 	pbMsg, err = block.ToProto()
 	assert.Nil(t, err)
 	data, err = proto.Marshal(pbMsg)
-	msg = messages.NewBaseMessage(MessageTypeDownloadedBlockReply, "from", data)
+	msg = net.NewBaseMessage(MessageTypeDownloadedBlockReply, "from", data)
 	bc.bkPool.handleBlock(msg)
 	assert.NotNil(t, bc.GetBlock(block.Hash()))
 }
@@ -271,9 +269,9 @@ func TestHandleDownloadedBlock(t *testing.T) {
 	neb := testNeb()
 	bc, err := NewBlockChain(neb)
 	assert.Nil(t, err)
-	var n MockNetManager
+	var n MockNetService
 	bc.bkPool.RegisterInNetwork(n)
-	assert.Equal(t, n, bc.bkPool.nm)
+	assert.Equal(t, n, bc.bkPool.ns)
 	cons := &MockConsensus{neb.storage}
 	bc.SetConsensusHandler(cons)
 	from := mockAddress()
@@ -302,7 +300,7 @@ func TestHandleDownloadedBlock(t *testing.T) {
 	downloadBlock.Sign = block1.Signature()
 	data, err := proto.Marshal(downloadBlock)
 	assert.Nil(t, err)
-	msg := messages.NewBaseMessage(MessageTypeNewBlock, "from", data)
+	msg := net.NewBaseMessage(MessageTypeNewBlock, "from", data)
 	bc.bkPool.handleDownloadedBlock(msg)
 	assert.Equal(t, received, []byte{})
 
@@ -311,7 +309,7 @@ func TestHandleDownloadedBlock(t *testing.T) {
 	downloadBlock.Sign = bc.genesisBlock.Signature()
 	data, err = proto.Marshal(downloadBlock)
 	assert.Nil(t, err)
-	msg = messages.NewBaseMessage(MessageTypeDownloadedBlock, "from", data)
+	msg = net.NewBaseMessage(MessageTypeDownloadedBlock, "from", data)
 	bc.bkPool.handleDownloadedBlock(msg)
 	assert.Equal(t, received, []byte{})
 
@@ -320,7 +318,7 @@ func TestHandleDownloadedBlock(t *testing.T) {
 	downloadBlock.Sign = block1.Signature()
 	data, err = proto.Marshal(downloadBlock)
 	assert.Nil(t, err)
-	msg = messages.NewBaseMessage(MessageTypeDownloadedBlock, "from", data)
+	msg = net.NewBaseMessage(MessageTypeDownloadedBlock, "from", data)
 	bc.bkPool.handleDownloadedBlock(msg)
 	assert.Equal(t, received, []byte{})
 	bc.storeBlockToStorage(block1)
@@ -330,7 +328,7 @@ func TestHandleDownloadedBlock(t *testing.T) {
 	downloadBlock.Sign = block2.Signature()
 	data, err = proto.Marshal(downloadBlock)
 	assert.Nil(t, err)
-	msg = messages.NewBaseMessage(MessageTypeDownloadedBlock, "from", data)
+	msg = net.NewBaseMessage(MessageTypeDownloadedBlock, "from", data)
 	bc.bkPool.handleDownloadedBlock(msg)
 	assert.Equal(t, received, []byte{})
 
@@ -339,7 +337,7 @@ func TestHandleDownloadedBlock(t *testing.T) {
 	downloadBlock.Sign = block1.Signature()
 	data, err = proto.Marshal(downloadBlock)
 	assert.Nil(t, err)
-	msg = messages.NewBaseMessage(MessageTypeDownloadedBlock, "from", data)
+	msg = net.NewBaseMessage(MessageTypeDownloadedBlock, "from", data)
 	bc.bkPool.handleDownloadedBlock(msg)
 	pbGenesis, err := bc.genesisBlock.ToProto()
 	assert.Nil(t, err)

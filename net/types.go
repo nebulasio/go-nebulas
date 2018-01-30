@@ -20,8 +20,11 @@ package net
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/gogo/protobuf/proto"
+	"github.com/nebulasio/go-nebulas/crypto/hash"
+	"github.com/nebulasio/go-nebulas/util/byteutils"
 )
 
 // Message Priority.
@@ -69,6 +72,30 @@ type PeerFilterAlgorithm interface {
 	Filter(PeersSlice) PeersSlice
 }
 
+// Manager manager interface
+type Service interface {
+	Start() error
+	Stop()
+
+	Node() *Node
+
+	Register(...*Subscriber)
+	Deregister(...*Subscriber)
+
+	Broadcast(string, Serializable, int)
+	Relay(string, Serializable, int)
+	SendMsg(string, []byte, string, int) error
+
+	SendMessageToPeers(messageName string, data []byte, priority int, filter PeerFilterAlgorithm) []string
+	SendMessageToPeer(messageName string, data []byte, priority int, peerID string) error
+
+	ClosePeer(peerID string, reason error)
+
+	BroadcastNetworkID([]byte)
+
+	BuildRawMessageData([]byte, string) []byte
+}
+
 // Subscriber subscriber.
 type Subscriber struct {
 	// id usually the owner/creator, used for troubleshooting .
@@ -99,4 +126,45 @@ func (s *Subscriber) MessageType() []string {
 // MessageChan return msgChan.
 func (s *Subscriber) MessageChan() chan Message {
 	return s.msgChan
+}
+
+// BaseMessage base message
+type BaseMessage struct {
+	t    string
+	from string
+	data []byte
+}
+
+// NewBaseMessage new base message
+func NewBaseMessage(t string, from string, data []byte) Message {
+	return &BaseMessage{t: t, from: from, data: data}
+}
+
+// MessageType get message type
+func (msg *BaseMessage) MessageType() string {
+	return msg.t
+}
+
+// MessageFrom get message who send
+func (msg *BaseMessage) MessageFrom() string {
+	return msg.from
+}
+
+// Data get the message data
+func (msg *BaseMessage) Data() []byte {
+	return msg.data
+}
+
+// Hash return the message hash
+func (msg *BaseMessage) Hash() string {
+	return byteutils.Hex(hash.Sha3256(msg.data))
+}
+
+// String get the message to string
+func (msg *BaseMessage) String() string {
+	return fmt.Sprintf("BaseMessage {type:%s; data:%s; from:%s}",
+		msg.t,
+		msg.data,
+		msg.from,
+	)
 }

@@ -26,7 +26,6 @@ import (
 	"github.com/nebulasio/go-nebulas/common/pdeque"
 	"github.com/nebulasio/go-nebulas/core/pb"
 	"github.com/nebulasio/go-nebulas/net"
-	"github.com/nebulasio/go-nebulas/net/p2p"
 	"github.com/nebulasio/go-nebulas/util"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
 	"github.com/nebulasio/go-nebulas/util/logging"
@@ -43,7 +42,7 @@ type TransactionPool struct {
 	all   map[byteutils.HexHash]*Transaction
 	bc    *BlockChain
 
-	nm p2p.Manager
+	ns net.Service
 	mu sync.RWMutex
 
 	gasPrice *util.Uint128 // the lowest gasPrice.
@@ -95,9 +94,9 @@ func (pool *TransactionPool) SetGasConfig(gasPrice, gasLimit *util.Uint128) {
 }
 
 // RegisterInNetwork register message subscriber in network.
-func (pool *TransactionPool) RegisterInNetwork(nm p2p.Manager) {
-	nm.Register(net.NewSubscriber(pool, pool.receivedMessageCh, MessageTypeNewTx))
-	pool.nm = nm
+func (pool *TransactionPool) RegisterInNetwork(ns net.Service) {
+	ns.Register(net.NewSubscriber(pool, pool.receivedMessageCh, MessageTypeNewTx))
+	pool.ns = ns
 }
 
 func (pool *TransactionPool) setBlockChain(bc *BlockChain) {
@@ -206,7 +205,7 @@ func (pool *TransactionPool) PushAndRelay(tx *Transaction) error {
 		return err
 	}
 
-	pool.nm.Relay(MessageTypeNewTx, tx, net.MessagePriorityNormal)
+	pool.ns.Relay(MessageTypeNewTx, tx, net.MessagePriorityNormal)
 	return nil
 }
 
@@ -220,7 +219,7 @@ func (pool *TransactionPool) PushAndBroadcast(tx *Transaction) error {
 		return err
 	}
 
-	pool.nm.Broadcast(MessageTypeNewTx, tx, net.MessagePriorityNormal)
+	pool.ns.Broadcast(MessageTypeNewTx, tx, net.MessagePriorityNormal)
 	return nil
 }
 

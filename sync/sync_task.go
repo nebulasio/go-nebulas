@@ -32,7 +32,6 @@ import (
 	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/net"
-	"github.com/nebulasio/go-nebulas/net/p2p"
 	"github.com/nebulasio/go-nebulas/sync/pb"
 	"github.com/nebulasio/go-nebulas/util/logging"
 	"github.com/sirupsen/logrus"
@@ -58,7 +57,7 @@ type Task struct {
 	statusCh                                chan error
 	blockChain                              *core.BlockChain
 	syncPointBlock                          *core.Block
-	netService                              p2p.Manager
+	netService                              net.Service
 	chunk                                   *Chunk
 	syncMutex                               sync.Mutex
 	chainSyncPeers                          []string
@@ -81,7 +80,7 @@ type Task struct {
 }
 
 // NewTask return a new sync task
-func NewTask(blockChain *core.BlockChain, netService p2p.Manager, chunk *Chunk) *Task {
+func NewTask(blockChain *core.BlockChain, netService net.Service, chunk *Chunk) *Task {
 	return &Task{
 		quitCh:                                  make(chan bool, 1),
 		statusCh:                                make(chan error, 1),
@@ -245,7 +244,7 @@ func (st *Task) sendChainSync() {
 
 	// send message to peers.
 	st.chainSyncPeers = st.netService.SendMessageToPeers(net.ChainSync, data,
-		net.MessagePriorityLow, new(p2p.ChainSyncPeersFilter))
+		net.MessagePriorityLow, new(net.ChainSyncPeersFilter))
 }
 
 func (st *Task) processChunkHeaders(message net.Message) {

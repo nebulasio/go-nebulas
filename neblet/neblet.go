@@ -26,7 +26,7 @@ import (
 	"github.com/nebulasio/go-nebulas/core/pb"
 	"github.com/nebulasio/go-nebulas/metrics"
 	"github.com/nebulasio/go-nebulas/neblet/pb"
-	"github.com/nebulasio/go-nebulas/net/p2p"
+	nebnet "github.com/nebulasio/go-nebulas/net"
 	"github.com/nebulasio/go-nebulas/rpc"
 	"github.com/nebulasio/go-nebulas/storage"
 	nsync "github.com/nebulasio/go-nebulas/sync"
@@ -55,7 +55,7 @@ type Neblet struct {
 
 	accountManager *account.Manager
 
-	netService p2p.Manager
+	netService nebnet.Service
 
 	consensus consensus.Consensus
 
@@ -110,7 +110,7 @@ func (n *Neblet) Setup() {
 	}
 
 	// net
-	n.netService, err = p2p.NewNetService(n)
+	n.netService, err = nebnet.NewNetService(n)
 	if err != nil {
 		logging.CLog().WithFields(logrus.Fields{
 			"err": err,
@@ -332,8 +332,8 @@ func (n *Neblet) AccountManager() *account.Manager {
 	return n.accountManager
 }
 
-// NetManager returns p2p manager reference.
-func (n *Neblet) NetManager() p2p.Manager {
+// NetService returns p2p manager reference.
+func (n *Neblet) NetService() nebnet.Service {
 	return n.netService
 }
 
