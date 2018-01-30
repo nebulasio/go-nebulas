@@ -187,7 +187,7 @@ func (ss *Service) onChainSync(message net.Message) {
 
 	// handle ChainSync message.
 	chunkSync := new(syncpb.Sync)
-	err := proto.Unmarshal(message.Data().([]byte), chunkSync)
+	err := proto.Unmarshal(message.Data(), chunkSync)
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"err": err,
@@ -226,7 +226,7 @@ func (ss *Service) onChainGetChunk(message net.Message) {
 
 	// handle ChainGetChunk message.
 	chunkHeader := new(syncpb.ChunkHeader)
-	err := proto.Unmarshal(message.Data().([]byte), chunkHeader)
+	err := proto.Unmarshal(message.Data(), chunkHeader)
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"err": err,

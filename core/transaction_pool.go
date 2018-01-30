@@ -153,7 +153,7 @@ func (pool *TransactionPool) loop() {
 
 			tx := new(Transaction)
 			pbTx := new(corepb.Transaction)
-			if err := proto.Unmarshal(msg.Data().([]byte), pbTx); err != nil {
+			if err := proto.Unmarshal(msg.Data(), pbTx); err != nil {
 				logging.VLog().WithFields(logrus.Fields{
 					"msgType": msg.MessageType(),
 					"msg":     msg,

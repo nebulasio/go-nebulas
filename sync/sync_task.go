@@ -285,7 +285,7 @@ func (st *Task) processChunkHeaders(message net.Message) {
 	}
 
 	chunkHeaders := new(syncpb.ChunkHeaders)
-	if err := proto.Unmarshal(message.Data().([]byte), chunkHeaders); err != nil {
+	if err := proto.Unmarshal(message.Data(), chunkHeaders); err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"err": err,
 			"pid": message.MessageFrom(),
@@ -434,7 +434,7 @@ func (st *Task) processChunkData(message net.Message) {
 	}
 
 	chunkData := new(syncpb.ChunkData)
-	if err := proto.Unmarshal(message.Data().([]byte), chunkData); err != nil {
+	if err := proto.Unmarshal(message.Data(), chunkData); err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"err": err,
 			"pid": message.MessageFrom(),

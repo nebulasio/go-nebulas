@@ -135,7 +135,7 @@ func (pool *BlockPool) handleBlock(msg net.Message) {
 
 	block := new(Block)
 	pbblock := new(corepb.Block)
-	if err := proto.Unmarshal(msg.Data().([]byte), pbblock); err != nil {
+	if err := proto.Unmarshal(msg.Data(), pbblock); err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"msgType": msg.MessageType(),
 			"msg":     msg,
@@ -182,7 +182,7 @@ func (pool *BlockPool) handleDownloadedBlock(msg net.Message) {
 	}
 
 	pbDownloadBlock := new(corepb.DownloadBlock)
-	if err := proto.Unmarshal(msg.Data().([]byte), pbDownloadBlock); err != nil {
+	if err := proto.Unmarshal(msg.Data(), pbDownloadBlock); err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"msgType": msg.MessageType(),
 			"msg":     msg,

@@ -151,7 +151,7 @@ func run(mode, configPath string, packageSize, concurrentMessageCount, totalMess
 			messageName := message.MessageType()
 			switch messageName {
 			case PingMessage:
-				data := message.Data().([]byte)
+				data := message.Data()
 				sendAt := ParseData(data)
 				nowAt := time.Now().UnixNano()
 
@@ -162,10 +162,9 @@ func run(mode, configPath string, packageSize, concurrentMessageCount, totalMess
 				throughput.Mark(1 * int64(p2p.NebMessageHeaderLength+len(data)))
 				latency.Update(latencyVal)
 
-				netService.SendMessageToPeer(PongMessage, message.Data().([]byte), net.MessagePriorityNormal, message.MessageFrom())
+				netService.SendMessageToPeer(PongMessage, message.Data(), net.MessagePriorityNormal, message.MessageFrom())
 			case PongMessage:
-				data := message.Data().([]byte)
-
+				data := message.Data()
 				sendAt := ParseData(data)
 				nowAt := time.Now().UnixNano()
 				latencyVal := (nowAt - sendAt) / int64(1000000)

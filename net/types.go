@@ -50,8 +50,9 @@ type MessageType string
 // Message interface for message.
 type Message interface {
 	MessageType() string
-	Data() interface{}
 	MessageFrom() string
+	Data() []byte
+	Hash() string
 }
 
 // Serializable model

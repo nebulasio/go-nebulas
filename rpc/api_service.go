@@ -513,7 +513,7 @@ func (s *APIService) Subscribe(req *rpcpb.SubscribeRequest, gs rpcpb.ApiService_
 			//	case core.MessageTypeNewBlock:
 			//		block := new(core.Block)
 			//		pbblock := new(corepb.Block)
-			//		if err := proto.Unmarshal(event.Data().([]byte), pbblock); err != nil {
+			//		if err := proto.Unmarshal(event.Data(), pbblock); err != nil {
 			//			return err
 			//		}
 			//		if err := block.FromProto(pbblock); err != nil {
@@ -527,7 +527,7 @@ func (s *APIService) Subscribe(req *rpcpb.SubscribeRequest, gs rpcpb.ApiService_
 			//	case core.MessageTypeNewTx:
 			//		tx := new(core.Transaction)
 			//		pbTx := new(corepb.Transaction)
-			//		if err := proto.Unmarshal(event.Data().([]byte), pbTx); err != nil {
+			//		if err := proto.Unmarshal(event.Data(), pbTx); err != nil {
 			//			return err
 			//		}
 			//		if err := tx.FromProto(pbTx); err != nil {

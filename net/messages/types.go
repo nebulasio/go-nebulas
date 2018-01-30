@@ -21,6 +21,9 @@ package messages
 import (
 	"fmt"
 
+	"github.com/nebulasio/go-nebulas/crypto/hash"
+	"github.com/nebulasio/go-nebulas/util/byteutils"
+
 	"github.com/nebulasio/go-nebulas/net"
 )
 
@@ -28,11 +31,11 @@ import (
 type BaseMessage struct {
 	t    string
 	from string
-	data interface{}
+	data []byte
 }
 
 // NewBaseMessage new base message
-func NewBaseMessage(t string, from string, data interface{}) net.Message {
+func NewBaseMessage(t string, from string, data []byte) net.Message {
 	return &BaseMessage{t: t, from: from, data: data}
 }
 
@@ -47,8 +50,13 @@ func (msg *BaseMessage) MessageFrom() string {
 }
 
 // Data get the message data
-func (msg *BaseMessage) Data() interface{} {
+func (msg *BaseMessage) Data() []byte {
 	return msg.data
+}
+
+// Hash return the message hash
+func (msg *BaseMessage) Hash() string {
+	return byteutils.Hex(hash.Sha3256(msg.data))
 }
 
 // String get the message to string
