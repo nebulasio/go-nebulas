@@ -487,10 +487,19 @@ func (block *Block) CollectTransactions(deadline int64) {
 	packed := int64(0)
 	unpacked := int64(0)
 
+	// fast skip small nonce tx.
+	currentNonceOfFromAddress := make(map[string]uint64)
+
 	// execute transaction.
 	go func() {
 		for !pool.Empty() {
 			tx := pool.Pop()
+
+			// get current nonce for fast skip.
+			currentNonce := currentNonceOfFromAddress[tx.From().String()]
+			if tx.nonce <= currentNonce {
+				continue
+			}
 
 			txBlock, err := block.Clone()
 			if err != nil {
@@ -499,10 +508,13 @@ func (block *Block) CollectTransactions(deadline int64) {
 
 			txBlock.begin()
 
-			giveback, err := txBlock.executeTransaction(tx)
+			giveback, currentNonce, err := txBlock.executeTransaction(tx)
 			if giveback {
 				givebacks = append(givebacks, tx)
 			}
+
+			// set current nonce.
+			currentNonceOfFromAddress[tx.From().String()] = currentNonce
 
 			if err != nil {
 				/* 				logging.VLog().WithFields(logrus.Fields{
@@ -819,7 +831,7 @@ func (block *Block) execute() error {
 	for _, tx := range block.transactions {
 		metricsTxExecute.Mark(1)
 
-		giveback, err := block.executeTransaction(tx)
+		giveback, _, err := block.executeTransaction(tx)
 		if giveback {
 			err := block.txPool.Push(tx)
 			if err != nil {
@@ -1006,7 +1018,7 @@ func (block *Block) acceptTransaction(tx *Transaction) error {
 	return nil
 }
 
-func (block *Block) checkTransaction(tx *Transaction) (giveback bool, err error) {
+func (block *Block) checkTransaction(tx *Transaction) (bool, uint64, error) {
 	// check duplication
 	/* 	if proof, _ := block.txsTrie.Prove(tx.hash); proof != nil {
 		return false, ErrDuplicatedTransaction
@@ -1015,28 +1027,32 @@ func (block *Block) checkTransaction(tx *Transaction) (giveback bool, err error)
 	// check nonce
 	fromAcc := block.accState.GetOrCreateUserAccount(tx.from.address)
 
-	if tx.nonce < fromAcc.Nonce()+1 {
-		return false, ErrSmallTransactionNonce
-	} else if tx.nonce > fromAcc.Nonce()+1 {
-		return true, ErrLargeTransactionNonce
+	// pass current Nonce.
+	currentNonce := fromAcc.Nonce()
+
+	if tx.nonce < currentNonce+1 {
+		return false, currentNonce, ErrSmallTransactionNonce
+	} else if tx.nonce > currentNonce+1 {
+		return true, currentNonce, ErrLargeTransactionNonce
 	}
-	return false, nil
+
+	return false, currentNonce, nil
 }
 
-func (block *Block) executeTransaction(tx *Transaction) (giveback bool, err error) {
-	if giveback, err := block.checkTransaction(tx); err != nil {
-		return giveback, err
+func (block *Block) executeTransaction(tx *Transaction) (bool, uint64, error) {
+	if giveback, currentNonce, err := block.checkTransaction(tx); err != nil {
+		return giveback, currentNonce, err
 	}
 
 	if _, err := tx.VerifyExecution(block); err != nil {
-		return false, err
+		return false, uint64(0), err
 	}
 
 	if err := block.acceptTransaction(tx); err != nil {
-		return false, err
+		return false, uint64(0), err
 	}
 
-	return false, nil
+	return false, uint64(0), nil
 }
 
 // HashBlock return the hash of block.
