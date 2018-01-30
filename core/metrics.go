@@ -42,6 +42,7 @@ var (
 	metricsTxVerifiedTime      = metrics.NewGauge("neb.tx.executed")
 	metricsTxPackedCount       = metrics.NewGauge("neb.tx.packed")
 	metricsTxUnpackedCount     = metrics.NewGauge("neb.tx.unpacked")
+	metricsTxGivebackCount     = metrics.NewGauge("neb.tx.giveback")
 
 	// txpool metrics
 	metricsCachedTx            = metrics.NewGauge("neb.txpool.cached")

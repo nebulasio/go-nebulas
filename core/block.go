@@ -531,6 +531,7 @@ func (block *Block) CollectTransactions(deadline int64) {
 				if flag == true {
 					metricsTxPackedCount.Update(packed)
 					metricsTxUnpackedCount.Update(unpacked)
+					metricsTxGivebackCount.Update(int64(len(givebacks)))
 					// deadline is up, put current tx back and quit.
 					if giveback == false && err == nil {
 						err := pool.Push(tx)
@@ -635,8 +636,10 @@ func (block *Block) Seal() error {
 	logging.VLog().WithFields(logrus.Fields{
 		"block": block,
 	}).Info("Sealed Block.")
+
 	metricsTxPackedCount.Update(0)
 	metricsTxUnpackedCount.Update(0)
+	metricsTxGivebackCount.Update(0)
 
 	return nil
 }
@@ -1005,9 +1008,9 @@ func (block *Block) acceptTransaction(tx *Transaction) error {
 
 func (block *Block) checkTransaction(tx *Transaction) (giveback bool, err error) {
 	// check duplication
-	if proof, _ := block.txsTrie.Prove(tx.hash); proof != nil {
+	/* 	if proof, _ := block.txsTrie.Prove(tx.hash); proof != nil {
 		return false, ErrDuplicatedTransaction
-	}
+	} */
 
 	// check nonce
 	fromAcc := block.accState.GetOrCreateUserAccount(tx.from.address)

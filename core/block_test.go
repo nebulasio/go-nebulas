@@ -564,7 +564,7 @@ func TestBlockVerifyIntegrityDup(t *testing.T) {
 	block.miner = from
 	block.Seal()
 	block.Sign(signature)
-	assert.Equal(t, block.VerifyExecution(bc.tailBlock, bc.ConsensusHandler()), ErrDuplicatedTransaction)
+	assert.Equal(t, block.VerifyExecution(bc.tailBlock, bc.ConsensusHandler()), ErrSmallTransactionNonce)
 }
 
 func TestBlockVerifyExecution(t *testing.T) {
