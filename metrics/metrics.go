@@ -150,3 +150,11 @@ func NewGauge(name string) metrics.Gauge {
 	}
 	return metrics.GetOrRegisterGauge(name, metrics.DefaultRegistry)
 }
+
+// NewHistogramWithUniformSample create a new metrics History with Uniform Sample algorithm.
+func NewHistogramWithUniformSample(name string, reservoirSize int) metrics.Histogram {
+	if !enable {
+		return new(metrics.NilHistogram)
+	}
+	return metrics.GetOrRegisterHistogram(name, nil, metrics.NewUniformSample(reservoirSize))
+}

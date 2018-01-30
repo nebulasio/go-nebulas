@@ -20,25 +20,25 @@
 package rpc
 
 import (
-	metrics "github.com/rcrowley/go-metrics"
+	"github.com/nebulasio/go-nebulas/metrics"
 )
 
 // Metrics for rpc
 var (
-	metricsRPCCounter = metrics.GetOrRegisterMeter("neb.rpc.request", nil)
+	metricsRPCCounter = metrics.NewMeter("neb.rpc.request")
 
-	metricsAccountStateSuccess = metrics.GetOrRegisterMeter("neb.rpc.account.success", nil)
-	metricsAccountStateFailed  = metrics.GetOrRegisterMeter("neb.rpc.account.failed", nil)
+	metricsAccountStateSuccess = metrics.NewMeter("neb.rpc.account.success")
+	metricsAccountStateFailed  = metrics.NewMeter("neb.rpc.account.failed")
 
-	metricsSendTxSuccess = metrics.GetOrRegisterMeter("neb.rpc.sendTx.success", nil)
-	metricsSendTxFailed  = metrics.GetOrRegisterMeter("neb.rpc.sendTx.failed", nil)
+	metricsSendTxSuccess = metrics.NewMeter("neb.rpc.sendTx.success")
+	metricsSendTxFailed  = metrics.NewMeter("neb.rpc.sendTx.failed")
 
-	metricsSendRawTxSuccess = metrics.GetOrRegisterMeter("neb.rpc.sendRawTx.success", nil)
-	metricsSendRawTxFailed  = metrics.GetOrRegisterMeter("neb.rpc.sendRawTx.failed", nil)
+	metricsSendRawTxSuccess = metrics.NewMeter("neb.rpc.sendRawTx.success")
+	metricsSendRawTxFailed  = metrics.NewMeter("neb.rpc.sendRawTx.failed")
 
-	metricsSignTxSuccess = metrics.GetOrRegisterMeter("neb.rpc.signTx.success", nil)
-	metricsSignTxFailed  = metrics.GetOrRegisterMeter("neb.rpc.signTx.failed", nil)
+	metricsSignTxSuccess = metrics.NewMeter("neb.rpc.signTx.success")
+	metricsSignTxFailed  = metrics.NewMeter("neb.rpc.signTx.failed")
 
-	metricsUnlockSuccess = metrics.GetOrRegisterMeter("neb.rpc.unlock.success", nil)
-	metricsUnlockFailed  = metrics.GetOrRegisterMeter("neb.rpc.unlock.failed", nil)
+	metricsUnlockSuccess = metrics.NewMeter("neb.rpc.unlock.success")
+	metricsUnlockFailed  = metrics.NewMeter("neb.rpc.unlock.failed")
 )

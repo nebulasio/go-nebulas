@@ -21,7 +21,7 @@ package sync
 import (
 	"errors"
 
-	metrics "github.com/rcrowley/go-metrics"
+	"github.com/nebulasio/go-nebulas/metrics"
 )
 
 // Error Types
@@ -45,5 +45,5 @@ const (
 
 // Metrics
 var (
-	metricsCachedSync = metrics.GetOrRegisterGauge("sync.cached", nil)
+	metricsCachedSync = metrics.NewGauge("neb.sync.cached")
 )

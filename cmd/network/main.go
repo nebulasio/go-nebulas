@@ -29,11 +29,11 @@ import (
 	"time"
 
 	"github.com/libp2p/go-libp2p-interface-conn"
+	"github.com/nebulasio/go-nebulas/metrics"
 	"github.com/nebulasio/go-nebulas/neblet"
 	"github.com/nebulasio/go-nebulas/net"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
 	"github.com/nebulasio/go-nebulas/util/logging"
-	metrics "github.com/rcrowley/go-metrics"
 )
 
 // Message Type
@@ -125,9 +125,9 @@ func run(mode, configPath string, packageSize, concurrentMessageCount, totalMess
 	netService.Start()
 
 	// metrics.
-	tps := metrics.GetOrRegisterMeter("tps", nil)
-	throughput := metrics.GetOrRegisterMeter("throughput", nil)
-	latency := metrics.GetOrRegisterHistogram("latency", nil, metrics.NewUniformSample(100))
+	tps := metrics.NewMeter("tps")
+	throughput := metrics.NewMeter("throughput")
+	latency := metrics.NewHistogramWithUniformSample("latency", 100)
 
 	sentMessageCount := int64(0)
 

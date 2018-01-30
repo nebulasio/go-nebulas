@@ -72,7 +72,7 @@ type PeerFilterAlgorithm interface {
 	Filter(PeersSlice) PeersSlice
 }
 
-// Manager manager interface
+// Service net Service interface
 type Service interface {
 	Start() error
 	Stop()
