@@ -777,3 +777,150 @@ func TestEvent(t *testing.T) {
 		})
 	}
 }
+
+func TestNRC20Contract(t *testing.T) {
+	type TransferTest struct {
+		to     string
+		result bool
+		value  string
+	}
+
+	tests := []struct {
+		test          string
+		contractPath  string
+		sourceType    string
+		name          string
+		symbol        string
+		decimals      int
+		totalSupply   string
+		from          string
+		transferTests []TransferTest
+	}{
+		{"nrc20", "./test/NRC20.js", "js", "StandardToken", "ST", 18, "1000000000",
+			"9f19bd5379fc34658946aaa820f597a21ec86a3222a82843",
+			[]TransferTest{
+				{"6fb70b1d824be33e593dbc36d7405d61e44889fd8cb76e31", true, "5"},
+				{"2fe3f9f51f9a05dd5f7c5329127f7c917917149b4e16b0b8", true, "10"},
+				{"7da9dabedb4c6e121146fb4250a9883d6180570e63d6b080", true, "15"},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			data, err := ioutil.ReadFile(tt.contractPath)
+			assert.Nil(t, err, "contract path read error")
+
+			mem, _ := storage.NewMemoryStorage()
+			context, _ := state.NewAccountState(nil, mem)
+			owner := context.GetOrCreateUserAccount([]byte(tt.from))
+			owner.AddBalance(util.NewUint128FromInt(10000000))
+
+			// prepare the contract.
+			contract, _ := context.CreateContractAccount([]byte("account2"), nil)
+			contract.AddBalance(util.NewUint128FromInt(5))
+
+			// parepare env, block & transactions.
+			tx := testContextTransaction()
+			tx.From = tt.from
+			ctx := NewContext(testContextBlock(), tx, owner, contract, context)
+
+			// execute.
+			engine := NewV8Engine(ctx)
+			engine.SetExecutionLimits(10000, 100000000)
+			args := fmt.Sprintf("[\"%s\", \"%s\", %d, \"%s\"]", tt.name, tt.symbol, tt.decimals, tt.totalSupply)
+			_, err = engine.DeployAndInit(string(data), tt.sourceType, args)
+			assert.Nil(t, err)
+			engine.Dispose()
+
+			// call name.
+			engine = NewV8Engine(ctx)
+			engine.SetExecutionLimits(10000, 100000000)
+			name, err := engine.Call(string(data), tt.sourceType, "name", "")
+			assert.Nil(t, err)
+			var nameStr string
+			err = json.Unmarshal([]byte(name), &nameStr)
+			assert.Nil(t, err)
+			assert.Equal(t, tt.name, nameStr)
+			engine.Dispose()
+
+			// call symbol.
+			engine = NewV8Engine(ctx)
+			engine.SetExecutionLimits(10000, 100000000)
+			symbol, err := engine.Call(string(data), tt.sourceType, "symbol", "")
+			assert.Nil(t, err)
+			var symbolStr string
+			err = json.Unmarshal([]byte(symbol), &symbolStr)
+			assert.Nil(t, err)
+			assert.Equal(t, tt.symbol, symbolStr)
+			assert.Nil(t, err)
+			engine.Dispose()
+
+			// call decimals.
+			engine = NewV8Engine(ctx)
+			engine.SetExecutionLimits(10000, 100000000)
+			decimals, err := engine.Call(string(data), tt.sourceType, "decimals", "")
+			assert.Nil(t, err)
+			var decimalsInt int
+			err = json.Unmarshal([]byte(decimals), &decimalsInt)
+			assert.Nil(t, err)
+			assert.Equal(t, tt.decimals, decimalsInt)
+			assert.Nil(t, err)
+			engine.Dispose()
+
+			// call totalSupply.
+			engine = NewV8Engine(ctx)
+			engine.SetExecutionLimits(10000, 100000000)
+			totalSupply, err := engine.Call(string(data), tt.sourceType, "totalSupply", "")
+			assert.Nil(t, err)
+			var totalSupplyStr string
+			err = json.Unmarshal([]byte(totalSupply), &totalSupplyStr)
+			assert.Nil(t, err)
+			assert.Equal(t, tt.totalSupply, totalSupplyStr)
+			assert.Nil(t, err)
+			engine.Dispose()
+
+			// call takeout.
+			for _, tot := range tt.transferTests {
+				// call balanceOf.
+				engine = NewV8Engine(ctx)
+				engine.SetExecutionLimits(10000, 100000000)
+				balArgs := fmt.Sprintf("[\"%s\"]", tt.from)
+				_, err := engine.Call(string(data), tt.sourceType, "balanceOf", balArgs)
+				assert.Nil(t, err)
+				engine.Dispose()
+
+				engine = NewV8Engine(ctx)
+				engine.SetExecutionLimits(10000, 100000000)
+				transferArgs := fmt.Sprintf("[\"%s\", \"%s\"]", tot.to, tot.value)
+				result, err := engine.Call(string(data), tt.sourceType, "transfer", transferArgs)
+				assert.Nil(t, err)
+				var resultStr bool
+				err = json.Unmarshal([]byte(result), &resultStr)
+				assert.Nil(t, err)
+				assert.Equal(t, tot.result, resultStr)
+				engine.Dispose()
+
+				engine = NewV8Engine(ctx)
+				engine.SetExecutionLimits(10000, 100000000)
+				result, err = engine.Call(string(data), tt.sourceType, "approve", transferArgs)
+				assert.Nil(t, err)
+				err = json.Unmarshal([]byte(result), &resultStr)
+				assert.Nil(t, err)
+				assert.Equal(t, tot.result, resultStr)
+				engine.Dispose()
+
+				engine = NewV8Engine(ctx)
+				engine.SetExecutionLimits(10000, 100000000)
+				allowanceArgs := fmt.Sprintf("[\"%s\", \"%s\"]", tt.from, tot.to)
+				amount, err := engine.Call(string(data), tt.sourceType, "allowance", allowanceArgs)
+				assert.Nil(t, err)
+				var amountStr string
+				err = json.Unmarshal([]byte(amount), &amountStr)
+				assert.Nil(t, err)
+				assert.Equal(t, tot.value, amountStr)
+				engine.Dispose()
+			}
+		})
+	}
+}
