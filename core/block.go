@@ -465,6 +465,7 @@ func (block *Block) ReturnTransactions() {
 
 // CollectTransactions and add them to block.
 func (block *Block) CollectTransactions(deadline int64) {
+	metricsBlockPackTxTime.Update(0)
 	if block.sealed {
 		logging.VLog().WithFields(logrus.Fields{
 			"block": block,
@@ -473,6 +474,7 @@ func (block *Block) CollectTransactions(deadline int64) {
 
 	now := time.Now().Unix()
 	elapse := deadline - now
+	metricsBlockPackTxTime.Update(elapse)
 	if elapse <= 0 {
 		return
 	}

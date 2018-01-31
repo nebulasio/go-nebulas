@@ -31,6 +31,7 @@ var (
 	metricsBlockRevertMeter      = metrics.NewMeter("neb.block.revert")
 	metricsBlockOnchainTimer     = metrics.NewTimer("neb.block.onchain")
 	metricsTxOnchainTimer        = metrics.NewTimer("neb.transaction.onchain")
+	metricsBlockPackTxTime       = metrics.NewGauge("neb.block.packtx")
 
 	// block_pool metrics
 	metricsCachedNewBlock      = metrics.NewGauge("neb.block.new.cached")

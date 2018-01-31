@@ -373,10 +373,8 @@ func deadline(now int64) int64 {
 	nextSlot := nextSlot(now)
 	remain := nextSlot - now
 	if core.MaxMintDuration > remain {
-		metricsTxPack.Update(nextSlot - now)
 		return nextSlot
 	}
-	metricsTxPack.Update(core.MaxMintDuration)
 	return now + core.MaxMintDuration
 }
 
