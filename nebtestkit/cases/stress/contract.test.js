@@ -11,7 +11,7 @@ if (args.length !=3 ){
 	return;
 }
 
-var env = args[0];
+var env = args[0]; // local testneb1 testneb2
 
 const AddressNumber = parseInt(args[1]);
 const SendTimes = parseInt(args[2]);
@@ -21,7 +21,6 @@ if (AddressNumber <=0 || SendTimes <=0 ){
 	console.log("please input correct AddressNumber and SendTimes");
 	return;
 }
-var env = 'testneb2' // local testneb1 testneb2
 
 var Neb = Wallet.Neb;
 var neb = new Neb();
