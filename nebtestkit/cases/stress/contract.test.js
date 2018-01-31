@@ -4,29 +4,51 @@ var Wallet = require('../../../cmd/console/neb.js/lib/wallet.js');
 var sleep = require("system-sleep");
 var HttpRequest = require("../../node-request");
 
+var args = process.argv.splice(2);
+
+if (args.length !=3 ){
+	console.log("please input args 0:env(local,testneb1,testneb2) 1:address number(concurrency) 2:sendtimes")
+	return;
+}
+
+var env = args[0];
+
+const AddressNumber = parseInt(args[1]);
+const SendTimes = parseInt(args[2]);
+
+if (AddressNumber <=0 || SendTimes <=0 ){
+	
+	console.log("please input correct AddressNumber and SendTimes");
+	return;
+}
+var env = 'testneb2' // local testneb1 testneb2
+
 var Neb = Wallet.Neb;
 var neb = new Neb();
-//http://34.205.26.12:8685
 
+var ChainID;
+var from;
 
 //local
-//neb.setRequest(new HttpRequest("http://127.0.0.1:8685"));//https://testnet.nebulas.io
-//var ChainID = 100;
-//var from = new Wallet.Account("a6e5eb290e1438fce79f5cb8774a72621637c2c9654c8b2525ed1d7e4e73653f");
-
-//test
-neb.setRequest(new HttpRequest("http://34.205.26.12:8685"));
-var ChainID = 1002;
-
-//neb.setRequest(new HttpRequest("http://35.182.48.19:8685"));
-//var ChainID = 1001;
-
-var from = new Wallet.Account("43181d58178263837a9a6b08f06379a348a5b362bfab3631ac78d2ac771c5df3");
+if (env == 'local'){
+	neb.setRequest(new HttpRequest("http://127.0.0.1:8685"));//https://testnet.nebulas.io
+	ChainID = 100;
+	from = new Wallet.Account("a6e5eb290e1438fce79f5cb8774a72621637c2c9654c8b2525ed1d7e4e73653f");
+}else if(env == 'testneb1'){
+	neb.setRequest(new HttpRequest("http://35.182.48.19:8685"));
+	ChainID = 1001;
+	from = new Wallet.Account("43181d58178263837a9a6b08f06379a348a5b362bfab3631ac78d2ac771c5df3");
+}else if(env == "testneb2"){
+	neb.setRequest(new HttpRequest("http://34.205.26.12:8685"));
+	ChainID = 1002;
+	from = new Wallet.Account("43181d58178263837a9a6b08f06379a348a5b362bfab3631ac78d2ac771c5df3");
+}else{
+	console.log("please input correct env local testneb1 testneb2")
+	return;
+}
 
 var FS = require("fs");
 
-const AddressNumber = 100;
-const SendTimes = 10;
 var lastnonce = 0;
 
 // new account  to get address
@@ -172,11 +194,11 @@ function sendContractTransaction(sendtimes, nonce, from_address, contract_addres
     if(sendtimes < SendTimes) {
         var call = {
             "function": "save",
-            "args":"[1]"
+            "args":"[10000]"
         }
 
 		console.log("send contract nonce:",nonce);
-        var transaction = new Wallet.Transaction(ChainID, from_address, contract_address, "0", ++nonce, "0", "2000", call);
+        var transaction = new Wallet.Transaction(ChainID, from_address, contract_address, "0", ++nonce, "0", "2000000000", call);
         transaction.signTransaction();
         var rawTx = transaction.toProtoString();
         neb.api.sendRawTransaction(rawTx).then(function (resp) {
@@ -202,23 +224,45 @@ function getTransactionNumberByHeight(){
 				clearInterval(intervalHeight)
 				sleep(2000)
 				neb.api.getNebState().then(function (resp) {
-					console.log("====================") 
 					var EndHeight = resp.height
 					console.log("BeginHeight:"+BeginHeight+ " EndHeight:"+EndHeight)
 					
+					var sum = 0;
+					var max = 0;
 					var height = BeginHeight
+					var h = EndHeight - BeginHeight
 					for(;height<=EndHeight;height++){
 						neb.api.getBlockByHeight(height, false).then(function (resp) {
 							if(resp.transactions){
 								//console.log("master accountState resp:" + JSON.stringify(resp));
 								console.log(resp.height, resp.transactions.length)
-								return;
+								sum += resp.transactions.length
+								max = resp.transactions.length > max?resp.transactions.length:max
 							}else{
 								console.log(resp.height, 0)
 							}
+							--h;
 						});
 						sleep(10)
 					}
+
+					sleep(1000)
+					var intervalH = setInterval(function () {
+						if(h<0){
+							clearInterval(intervalH);
+							console.log("====================") 
+							console.log("env is ", env)
+							console.log("concurrency number is ", AddressNumber)
+							console.log("total number is ", AddressNumber*SendTimes)
+							console.log("height from ", BeginHeight, " to ", EndHeight)
+							console.log("max of block is ", max)
+							console.log("avg of block is ", sum/(EndHeight-BeginHeight))
+							console.log("max of tps is ", max/5)
+							console.log("avg of tps is ", sum/(5*(EndHeight-BeginHeight)))
+							console.log("====================") 
+						}
+					},2000);
+
 				});
 			}
 		})
