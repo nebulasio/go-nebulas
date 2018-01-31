@@ -474,6 +474,9 @@ func (block *Block) CollectTransactions(deadline int64) {
 
 	now := time.Now().Unix()
 	elapse := deadline - now
+	logging.VLog().WithFields(logrus.Fields{
+		"elapse": elapse,
+	}).Info("Packing tx elapsed time.")
 	metricsBlockPackTxTime.Update(elapse)
 	if elapse <= 0 {
 		return
