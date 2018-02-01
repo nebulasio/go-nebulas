@@ -57,6 +57,10 @@ message ChainConfig {
     string datadir = 11;
     // Key dir.
     string keydir = 12;
+
+    // start mine at launch
+    bool start_mine = 20;
+
     // Coinbase.
     string coinbase = 21;
     // Miner.
@@ -91,25 +95,53 @@ message AppConfig {
 
 	string log_file = 2;
 
-	bool enable_crash_report = 3;
+    // log file age, unit is s.
+    uint32 log_age = 3;
+
+	bool enable_crash_report = 4;
+
+    string crash_report_url = 5;
+
+    // pprof config
+    PprofConfig pprof = 6;
+
+    string version = 100;
 }
 
+message PprofConfig {
+
+    // pprof listen address, if not configured, the function closes.
+    string http_listen = 1;
+
+    // cpu profiling file, if not configured, the profiling not start
+    string cpuprofile = 2;
+
+    // memory profiling file, if not configured, the profiling not start
+    string memprofile = 3;
+}
 
 message MiscConfig {
+
     // Default encryption ciper when create new keystore file.
     string default_keystore_file_ciper = 1;
 }
 
 message StatsConfig {
+
     // Enable metrics or not.
     bool enable_metrics = 1;
+
     // Reporting modules.
     enum ReportingModule {
         Influxdb = 0;
     }
     repeated ReportingModule reporting_module = 2;
-    // Influxdb config.`
+
+    // Influxdb config.
     InfluxdbConfig influxdb = 11;
+
+    repeated string metrics_tags = 12;
+
 }
 
 message InfluxdbConfig {

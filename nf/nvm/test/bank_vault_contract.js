@@ -1,8 +1,8 @@
-'use strict';
+"use strict";
 
 var DepositeContent = function (text) {
 	if (text) {
-		let o = JSON.parse(text);
+		var o = JSON.parse(text);
 		this.balance = new BigNumber(o.balance);
 		this.expiryHeight = new BigNumber(o.expiryHeight);
 	} else {
@@ -41,7 +41,7 @@ BankVaultContract.prototype = {
 
 		var orig_deposit = this.bankVault.get(from);
 		if (orig_deposit) {
-			value = value.plus(balance);
+			value = value.plus(orig_deposit.balance);
 		}
 
 		var deposit = new DepositeContent();
@@ -62,7 +62,7 @@ BankVaultContract.prototype = {
 		}
 
 		if (bk_height.lt(deposit.expiryHeight)) {
-			throw new Error("Can't takeout before expiryHeight.");
+			throw new Error("Can not takeout before expiryHeight.");
 		}
 
 		if (amount.gt(deposit.balance)) {
@@ -73,16 +73,21 @@ BankVaultContract.prototype = {
 		if (result != 0) {
 			throw new Error("transfer failed.");
 		}
-        Event.Trigger("BankVault", {
-            Transfer: {
-                from: Blockchain.transaction.to,
-                to: from,
-                value: amount.toString(),
-            }
-        });
+		Event.Trigger("BankVault", {
+			Transfer: {
+				from: Blockchain.transaction.to,
+				to: from,
+				value: amount.toString()
+			}
+		});
 
 		deposit.balance = deposit.balance.sub(amount);
 		this.bankVault.put(from, deposit);
+	},
+
+	balanceOf: function () {
+		var from = Blockchain.transaction.from;
+		return this.bankVault.get(from);
 	}
 };
 

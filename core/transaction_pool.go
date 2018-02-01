@@ -20,23 +20,16 @@ package core
 
 import (
 	"sync"
+	"time"
 
 	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/common/pdeque"
 	"github.com/nebulasio/go-nebulas/core/pb"
 	"github.com/nebulasio/go-nebulas/net"
-	"github.com/nebulasio/go-nebulas/net/p2p"
 	"github.com/nebulasio/go-nebulas/util"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
-	metrics "github.com/rcrowley/go-metrics"
-	log "github.com/sirupsen/logrus"
-)
-
-var (
-	invalidTxCounter       = metrics.GetOrRegisterCounter("txpool_invalid", nil)
-	duplicateTxCounter     = metrics.GetOrRegisterCounter("txpool_duplicate", nil)
-	belowGasPriceTxCounter = metrics.GetOrRegisterCounter("txpool_below_gas_price", nil)
-	outOfGasLimitTxCounter = metrics.GetOrRegisterCounter("txpool_out_of_gas_limit", nil)
+	"github.com/nebulasio/go-nebulas/util/logging"
+	"github.com/sirupsen/logrus"
 )
 
 // TransactionPool cache txs, is thread safe
@@ -49,11 +42,13 @@ type TransactionPool struct {
 	all   map[byteutils.HexHash]*Transaction
 	bc    *BlockChain
 
-	nm p2p.Manager
+	ns net.Service
 	mu sync.RWMutex
 
 	gasPrice *util.Uint128 // the lowest gasPrice.
 	gasLimit *util.Uint128 // the maximum gasLimit.
+
+	eventEmitter *EventEmitter
 }
 
 func less(a interface{}, b interface{}) bool {
@@ -72,11 +67,8 @@ func less(a interface{}, b interface{}) bool {
 
 // NewTransactionPool create a new TransactionPool
 func NewTransactionPool(size int) (*TransactionPool, error) {
-	if size == 0 {
-		panic("cannot new txpool with size == 0")
-	}
 	txPool := &TransactionPool{
-		receivedMessageCh: make(chan net.Message, 128),
+		receivedMessageCh: make(chan net.Message, size),
 		quitCh:            make(chan int, 1),
 		size:              size,
 		cache:             pdeque.NewPriorityDeque(less),
@@ -102,74 +94,102 @@ func (pool *TransactionPool) SetGasConfig(gasPrice, gasLimit *util.Uint128) {
 }
 
 // RegisterInNetwork register message subscriber in network.
-func (pool *TransactionPool) RegisterInNetwork(nm p2p.Manager) {
-	nm.Register(net.NewSubscriber(pool, pool.receivedMessageCh, MessageTypeNewTx))
-	pool.nm = nm
+func (pool *TransactionPool) RegisterInNetwork(ns net.Service) {
+	ns.Register(net.NewSubscriber(pool, pool.receivedMessageCh, true, MessageTypeNewTx))
+	pool.ns = ns
 }
 
 func (pool *TransactionPool) setBlockChain(bc *BlockChain) {
 	pool.bc = bc
 }
 
+func (pool *TransactionPool) setEventEmitter(emitter *EventEmitter) {
+	pool.eventEmitter = emitter
+}
+
 // Start start loop.
 func (pool *TransactionPool) Start() {
+	logging.CLog().WithFields(logrus.Fields{
+		"size": pool.size,
+	}).Info("Starting TransactionPool...")
+
 	go pool.loop()
 }
 
 // Stop stop loop.
 func (pool *TransactionPool) Stop() {
+	logging.CLog().WithFields(logrus.Fields{
+		"size": pool.size,
+	}).Info("Stop TransactionPool.")
+
 	pool.quitCh <- 0
 }
 
 func (pool *TransactionPool) loop() {
-	log.WithFields(log.Fields{
-		"func": "TxPool.loop",
-	}).Debug("running.")
+	logging.CLog().WithFields(logrus.Fields{
+		"size": pool.size,
+	}).Info("Started TransactionPool.")
 
-	count := 0
+	timerChan := time.NewTicker(time.Second).C
 	for {
 		select {
+		case <-timerChan:
+			metricsCachedTx.Update(int64(len(pool.receivedMessageCh)))
 		case <-pool.quitCh:
-			log.WithFields(log.Fields{
-				"func": "TxPool.loop",
-			}).Info("quit.")
+			logging.CLog().WithFields(logrus.Fields{
+				"size": pool.size,
+			}).Info("Stopped TransactionPool.")
 			return
 		case msg := <-pool.receivedMessageCh:
-			count++
-			log.WithFields(log.Fields{
-				"func": "TxPool.loop",
-			}).Debugf("received message. Count=%d", count)
-
 			if msg.MessageType() != MessageTypeNewTx {
-				log.WithFields(log.Fields{
-					"func":        "TxPool.loop",
+				logging.VLog().WithFields(logrus.Fields{
 					"messageType": msg.MessageType(),
 					"message":     msg,
-				}).Error("TxPool.loop: received unregistered message, pls check code.")
+					"err":         "not new tx msg",
+				}).Debug("Received unregistered message.")
 				continue
 			}
 
 			tx := new(Transaction)
 			pbTx := new(corepb.Transaction)
-			if err := proto.Unmarshal(msg.Data().([]byte), pbTx); err != nil {
-				log.Error("TxPool.loop:: unmarshal data occurs error, ", err)
+			if err := proto.Unmarshal(msg.Data(), pbTx); err != nil {
+				logging.VLog().WithFields(logrus.Fields{
+					"msgType": msg.MessageType(),
+					"msg":     msg,
+					"err":     err,
+				}).Debug("Failed to unmarshal data.")
 				continue
 			}
 			if err := tx.FromProto(pbTx); err != nil {
-				log.Error("TxPool.loop:: get block from proto occurs error: ", err)
+				logging.VLog().WithFields(logrus.Fields{
+					"msgType": msg.MessageType(),
+					"msg":     msg,
+					"err":     err,
+				}).Debug("Failed to recover a tx from proto data.")
 				continue
 			}
+
+			/* 			logging.VLog().WithFields(logrus.Fields{
+				"tx":   tx,
+				"type": msg.MessageType(),
+			}).Debug("Received a new tx.") */
+
 			if err := pool.PushAndRelay(tx); err != nil {
-				log.WithFields(log.Fields{
+				logging.VLog().WithFields(logrus.Fields{
 					"func":        "TxPool.loop",
 					"messageType": msg.MessageType(),
 					"transaction": tx,
 					"err":         err,
-				}).Warn("TxPool.loop: invalid transaction, drop it.")
+				}).Debug("Failed to push a tx into tx pool.")
 				continue
 			}
 		}
 	}
+}
+
+// GetTransaction return transaction of given hash from transaction pool.
+func (pool *TransactionPool) GetTransaction(hash byteutils.Hash) *Transaction {
+	return pool.all[hash.Hex()]
 }
 
 // Push tx into pool
@@ -184,39 +204,45 @@ func (pool *TransactionPool) PushAndRelay(tx *Transaction) error {
 	if err := pool.Push(tx); err != nil {
 		return err
 	}
-	pool.nm.Relay(MessageTypeNewTx, tx)
+
+	pool.ns.Relay(MessageTypeNewTx, tx, net.MessagePriorityNormal)
 	return nil
 }
 
 // PushAndBroadcast push tx into pool and broadcast it
 func (pool *TransactionPool) PushAndBroadcast(tx *Transaction) error {
 	if err := pool.Push(tx); err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"tx":  tx,
+			"err": err,
+		}).Debug("Failed to push a new tx into tx pool")
 		return err
 	}
-	pool.nm.Broadcast(MessageTypeNewTx, tx)
+
+	pool.ns.Broadcast(MessageTypeNewTx, tx, net.MessagePriorityNormal)
 	return nil
 }
 
 func (pool *TransactionPool) push(tx *Transaction) error {
 	// verify non-dup tx
 	if _, ok := pool.all[tx.hash.Hex()]; ok {
-		duplicateTxCounter.Inc(1)
+		metricsDuplicateTx.Inc(1)
 		return ErrDuplicatedTransaction
 	}
 
 	// if tx's gasPrice below the pool config lowest gasPrice, return ErrBelowGasPrice
 	if tx.gasPrice.Cmp(pool.gasPrice.Int) < 0 {
-		belowGasPriceTxCounter.Inc(1)
+		metricsTxPoolBelowGasPrice.Inc(1)
 		return ErrBelowGasPrice
 	}
 	if tx.gasLimit.Cmp(pool.gasLimit.Int) > 0 {
-		outOfGasLimitTxCounter.Inc(1)
+		metricsTxPoolOutOfGasLimit.Inc(1)
 		return ErrOutOfGasLimit
 	}
 
 	// verify hash & sign of tx
 	if err := tx.VerifyIntegrity(pool.bc.chainID); err != nil {
-		invalidTxCounter.Inc(1)
+		metricsInvalidTx.Inc(1)
 		return err
 	}
 
@@ -228,6 +254,14 @@ func (pool *TransactionPool) push(tx *Transaction) error {
 		tx := pool.cache.PopMax().(*Transaction)
 		delete(pool.all, tx.hash.Hex())
 	}
+
+	// trigger pending transaction
+	event := &Event{
+		Topic: TopicPendingTransaction,
+		Data:  tx.String(),
+	}
+	pool.eventEmitter.Trigger(event)
+
 	return nil
 }
 

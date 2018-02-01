@@ -1,12 +1,14 @@
 
+"use strict";
+
 var BigNumber = require('bignumber.js');
 var utils = require('./utils.js');
 
 var unitMap = {
     'none':       '0',
-    'particle':        '1',
-    'kparticle':       '1000',
-    'mparticle':       '1000000',
+    'nis':        '1',
+    'knis':       '1000',
+    'mnis':       '1000000',
     'nanonas':    '1000000000',
     'micronas':   '1000000000000',
     'millinas':   '1000000000000000',

@@ -22,33 +22,42 @@ import (
 	"errors"
 	"time"
 
-	"github.com/nebulasio/go-nebulas/crypto"
 	"github.com/nebulasio/go-nebulas/crypto/keystore"
+	metrics "github.com/nebulasio/go-nebulas/metrics"
 
 	"github.com/nebulasio/go-nebulas/account"
 
 	"github.com/nebulasio/go-nebulas/common/trie"
 	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/neblet/pb"
-	"github.com/nebulasio/go-nebulas/net/p2p"
+	"github.com/nebulasio/go-nebulas/net"
 
 	"github.com/nebulasio/go-nebulas/util/byteutils"
-	log "github.com/sirupsen/logrus"
+	"github.com/nebulasio/go-nebulas/util/logging"
+	"github.com/sirupsen/logrus"
 )
 
 // Errors in PoW Consensus
 var (
-	ErrInvalidBlockInterval = errors.New("invalid block interval")
-	ErrMissingConfigForDpos = errors.New("missing configuration for Dpos")
-	ErrInvalidBlockProposer = errors.New("invalid block proposer")
-	ErrCannotMintBlockNow   = errors.New("cannot mint block now, waiting for sync over")
+	ErrInvalidBlockInterval   = errors.New("invalid block interval")
+	ErrMissingConfigForDpos   = errors.New("missing configuration for Dpos")
+	ErrInvalidBlockProposer   = errors.New("invalid block proposer")
+	ErrCannotMintWhenPending  = errors.New("cannot mint block now, waiting for cancel pending again")
+	ErrCannotMintWhenDiable   = errors.New("cannot mint block now, waiting for enable it again")
+	ErrWaitingBlockInLastSlot = errors.New("cannot mint block now, waiting for last block")
+	ErrBlockMintedInNextSlot  = errors.New("cannot mint block now, there is a block minted in current slot")
+)
+
+// Metrics
+var (
+	metricsBlockPackingTime = metrics.NewGauge("neb.block.packing")
 )
 
 // Neblet interface breaks cycle import dependency and hides unused services.
 type Neblet interface {
-	Config() nebletpb.Config
+	Config() *nebletpb.Config
 	BlockChain() *core.BlockChain
-	NetManager() p2p.Manager
+	NetService() net.Service
 	AccountManager() *account.Manager
 }
 
@@ -57,18 +66,18 @@ type Dpos struct {
 	quitCh chan bool
 
 	chain *core.BlockChain
-	nm    p2p.Manager
+	ns    net.Service
 	am    *account.Manager
 
-	coinbase   *core.Address
-	miner      *core.Address
-	passphrase string
+	coinbase *core.Address
+	miner    *core.Address
 
 	blockInterval   int64
 	dynastyInterval int64
 	txsPerBlock     int
 
-	canMining bool
+	enable  bool
+	pending bool
 }
 
 // NewDpos create Dpos instance.
@@ -77,65 +86,91 @@ func NewDpos(neblet Neblet) (*Dpos, error) {
 		quitCh: make(chan bool, 5),
 
 		chain: neblet.BlockChain(),
-		nm:    neblet.NetManager(),
+		ns:    neblet.NetService(),
 		am:    neblet.AccountManager(),
 
 		blockInterval:   core.BlockInterval,
 		dynastyInterval: core.DynastyInterval,
-		txsPerBlock:     2000,
+		txsPerBlock:     10000,
 
-		canMining: false,
+		enable:  false,
+		pending: true,
 	}
 
 	config := neblet.Config().Chain
 	coinbase, err := core.AddressParse(config.Coinbase)
 	if err != nil {
-		log.WithFields(log.Fields{
-			"err": err,
-		}).Error("Dpos.NewDpos: coinbase parse err.")
+		logging.CLog().WithFields(logrus.Fields{
+			"address": config.Coinbase,
+			"err":     err,
+		}).Error("Failed to parse coinbase address.")
 		return nil, err
 	}
 	miner, err := core.AddressParse(config.Miner)
 	if err != nil {
-		log.WithFields(log.Fields{
-			"err": err,
-		}).Error("Dpos.NewDpos: miner parse err.")
+		logging.CLog().WithFields(logrus.Fields{
+			"address": config.Miner,
+			"err":     err,
+		}).Error("Failed to parse miner address.")
 		return nil, err
 	}
 	p.coinbase = coinbase
 	p.miner = miner
-	p.passphrase = config.Passphrase
 	return p, nil
 }
 
 // Start start pow service.
 func (p *Dpos) Start() {
+	logging.CLog().Info("Starting Dpos Mining...")
 	go p.blockLoop()
 }
 
 // Stop stop pow service.
 func (p *Dpos) Stop() {
+	logging.CLog().Info("Stopping Dpos Mining...")
+	p.DisableMining()
 	p.quitCh <- true
+}
+
+// EnableMining start the consensus
+func (p *Dpos) EnableMining(passphrase string) error {
+	if err := p.am.Unlock(p.miner, []byte(passphrase), keystore.YearUnlockDuration); err != nil {
+		return err
+	}
+	p.enable = true
+	logging.CLog().Info("Enabled Dpos Mining...")
+	return nil
+}
+
+// DisableMining stop the consensus
+func (p *Dpos) DisableMining() error {
+	if err := p.am.Lock(p.miner); err != nil {
+		return err
+	}
+	p.enable = false
+	logging.CLog().Info("Disable Dpos Mining...")
+	return nil
+}
+
+// Enable returns is mining
+func (p *Dpos) Enable() bool {
+	return p.enable
 }
 
 func less(a *core.Block, b *core.Block) bool {
 	if a.Height() != b.Height() {
 		return a.Height() < b.Height()
 	}
-	return core.Less(a, b)
+	return byteutils.Less(a.Hash(), b.Hash())
 }
 
-// do fork choice
-func (p *Dpos) forkChoice() {
+// ForkChoice select new tail
+func (p *Dpos) ForkChoice() error {
 	bc := p.chain
 	tailBlock := bc.TailBlock()
 	detachedTailBlocks := bc.DetachedTailBlocks()
 
 	// find the max depth.
-	log.WithFields(log.Fields{
-		"func": "Dpos.ForkChoice",
-	}).Info("find the highest tail.")
-
 	newTailBlock := tailBlock
 
 	for _, v := range detachedTailBlocks {
@@ -144,63 +179,64 @@ func (p *Dpos) forkChoice() {
 		}
 	}
 
-	if newTailBlock == bc.TailBlock() {
-		log.WithFields(log.Fields{
-			"func": "Dpos.ForkChoice",
-		}).Info("current tail is the highest, no change.")
-	} else {
-		err := bc.SetTailBlock(newTailBlock)
-		if err != nil {
-			log.WithFields(log.Fields{
-				"func":      "Dpos.ForkChoice",
-				"tailBlock": newTailBlock,
-				"err":       err,
-			}).Error("set tail failed.")
-		} else {
-			log.WithFields(log.Fields{
-				"func":      "Dpos.ForkChoice",
-				"tailBlock": newTailBlock,
-			}).Info("change to new tail.")
-		}
+	if newTailBlock.Hash().Equals(tailBlock.Hash()) {
+		logging.VLog().WithFields(logrus.Fields{
+			"old tail": tailBlock,
+			"new tail": newTailBlock,
+		}).Info("Current tail is best, no need to change.")
+		return nil
 	}
+
+	err := bc.SetTailBlock(newTailBlock)
+	if err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"new tail": newTailBlock,
+			"old tail": tailBlock,
+			"err":      err,
+		}).Error("Failed to set new tail block.")
+		return err
+	}
+
+	logging.VLog().WithFields(logrus.Fields{
+		"new tail": newTailBlock,
+		"old tail": tailBlock,
+	}).Info("change to new tail.")
+	return nil
 }
 
-// CanMining return if consensus can do mining now
-func (p *Dpos) CanMining() bool {
-	return p.canMining
+// Pending return if consensus can do mining now
+func (p *Dpos) Pending() bool {
+	return p.pending
 }
 
-// SetCanMining set if consensus can do mining now
-func (p *Dpos) SetCanMining(canMining bool) {
-	log.WithFields(log.Fields{
-		"func":  "Dpos.SetCanMining",
-		"start": canMining,
-	}).Info("control mining.")
-	p.canMining = canMining
+// SuspendMining pend dpos mining
+func (p *Dpos) SuspendMining() {
+	logging.CLog().Info("Suspended Dpos Mining.")
+	p.pending = true
+}
+
+// ResumeMining continue dpos mining
+func (p *Dpos) ResumeMining() {
+	logging.CLog().Info("Resumed Dpos Mining.")
+	p.pending = false
 }
 
 func verifyBlockSign(miner *core.Address, block *core.Block) error {
-	signature, err := crypto.NewSignature(keystore.Algorithm(block.Alg()))
+	addr, err := core.RecoverMiner(block)
 	if err != nil {
-		return err
-	}
-	pub, err := signature.RecoverPublic(block.Hash(), block.Signature())
-	if err != nil {
-		return err
-	}
-	pubdata, err := pub.Encoded()
-	if err != nil {
-		return err
-	}
-	addr, err := core.NewAddressFromPublicKey(pubdata)
-	if err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"address": addr,
+			"err":     err,
+			"block":   block,
+		}).Debug("Failed to recover block's miner.")
 		return err
 	}
 	if !miner.Equals(addr) {
-		log.WithFields(log.Fields{
-			"recover address": addr.String(),
-			"block":           block,
-		}).Error("verify block sign failed.")
+		logging.VLog().WithFields(logrus.Fields{
+			"address": addr,
+			"miner":   miner,
+			"block":   block,
+		}).Debug("Failed to verify block's sign.")
 		return ErrInvalidBlockProposer
 	}
 	block.SetMiner(miner)
@@ -230,14 +266,29 @@ func (p *Dpos) FastVerifyBlock(block *core.Block) error {
 	}
 	dynasty, err := trie.NewBatchTrie(dynastyRoot, p.chain.Storage())
 	if err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"err":   err,
+			"root":  dynastyRoot,
+			"block": block,
+		}).Debug("Failed to create new trie.")
 		return err
 	}
 	proposer, err := core.FindProposer(block.Timestamp(), dynasty)
 	if err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"proposer": proposer,
+			"err":      err,
+			"block":    block,
+		}).Debug("Failed to find proposer.")
 		return err
 	}
 	miner, err := core.AddressParseFromBytes(proposer)
 	if err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"proposer": proposer,
+			"err":      err,
+			"block":    block,
+		}).Debug("Failed to parse proposer.")
 		return err
 	}
 	return verifyBlockSign(miner, block)
@@ -252,129 +303,212 @@ func (p *Dpos) VerifyBlock(block *core.Block, parent *core.Block) error {
 	}
 	proposer, err := core.FindProposer(block.Timestamp(), dynasty)
 	if err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"proposer": proposer,
+			"err":      err,
+			"block":    block,
+		}).Debug("Failed to find proposer.")
 		return err
 	}
 	miner, err := core.AddressParseFromBytes(proposer)
 	if err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"proposer": proposer,
+			"err":      err,
+			"block":    block,
+		}).Debug("Failed to parse proposer.")
 		return err
 	}
-	err = verifyBlockSign(miner, block)
-	if err != nil {
-		return err
-	}
-	return nil
+	return verifyBlockSign(miner, block)
 }
 
-func (p *Dpos) mintBlock(now int64) error {
-	log.Info("Try to Mint Block at", now)
-
-	// check can do mining
-	if !p.canMining {
-		log.WithFields(log.Fields{
-			"func": "Dpos.mintBlock",
-			"now":  now,
-		}).Warn("cannot mint now.")
-		return ErrCannotMintBlockNow
-	}
-	// check proposer
-	tail := p.chain.TailBlock()
-	elapsedSecond := now - tail.Timestamp()
-	context, err := tail.NextDynastyContext(elapsedSecond)
+func (p *Dpos) newBlock(tail *core.Block, context *core.DynastyContext, deadline int64) (*core.Block, error) {
+	block, err := core.NewBlock(p.chain.ChainID(), p.coinbase, tail)
 	if err != nil {
-		log.WithFields(log.Fields{
-			"func":    "Dpos.mintBlock",
+		logging.CLog().WithFields(logrus.Fields{
+			"tail":     tail,
+			"coinbase": p.coinbase,
+			"chainid":  p.chain.ChainID(),
+			"err":      err,
+		}).Error("Failed to create new block")
+		return nil, err
+	}
+	if err := block.LoadDynastyContext(context); err != nil {
+		logging.CLog().WithFields(logrus.Fields{
+			"block": block,
+			"err":   err,
+		}).Error("Failed to load dynasty context")
+		return nil, err
+	}
+	block.CollectTransactions(deadline)
+	block.SetMiner(p.miner)
+	if err = block.Seal(); err != nil {
+		logging.CLog().WithFields(logrus.Fields{
+			"block": block,
+			"err":   err,
+		}).Error("Failed to seal new block")
+		return nil, err
+	}
+	if err = p.am.SignBlock(p.miner, block); err != nil {
+		logging.CLog().WithFields(logrus.Fields{
+			"miner": p.miner,
+			"block": block,
+			"err":   err,
+		}).Error("Failed to sign new block")
+		return nil, err
+	}
+
+	return block, nil
+}
+
+func lastSlot(now int64) int64 {
+	return int64((now-1)/core.BlockInterval) * core.BlockInterval
+}
+
+func nextSlot(now int64) int64 {
+	return int64((now+core.BlockInterval-1)/core.BlockInterval) * core.BlockInterval
+}
+
+func deadline(now int64) int64 {
+	nextSlot := nextSlot(now)
+	remain := nextSlot - now
+	if core.MaxMintDuration > remain {
+		return nextSlot
+	}
+	return now + core.MaxMintDuration
+}
+
+func (p *Dpos) checkDeadline(tail *core.Block, now int64) (int64, error) {
+	lastSlot := lastSlot(now)
+	nextSlot := nextSlot(now)
+
+	if tail.Timestamp() == nextSlot {
+		return 0, ErrBlockMintedInNextSlot
+	}
+	if tail.Timestamp() == lastSlot {
+		return deadline(now), nil
+	}
+	if nextSlot-now <= core.MinMintDuration {
+		return deadline(now), nil
+	}
+	return 0, ErrWaitingBlockInLastSlot
+}
+
+func (p *Dpos) checkProposer(tail *core.Block, now int64) (*core.DynastyContext, error) {
+	slot := nextSlot(now)
+	elapsed := slot - tail.Timestamp()
+	context, err := tail.NextDynastyContext(p.chain, elapsed)
+	if err != nil {
+		logging.VLog().WithFields(logrus.Fields{
 			"tail":    tail,
-			"elapsed": elapsedSecond,
+			"elapsed": elapsed,
 			"err":     err,
-		}).Warn("mintBlock.")
-		return err
+		}).Debug("Failed to generate next dynasty context.")
+		return nil, core.ErrGenerateNextDynastyContext
 	}
 	if context.Proposer == nil || !context.Proposer.Equals(p.miner.Bytes()) {
 		proposer := "nil"
 		if context.Proposer != nil {
 			proposer = string(context.Proposer.Hex())
 		}
-		log.WithFields(log.Fields{
-			"func":     "Dpos.mintBlock",
+		logging.VLog().WithFields(logrus.Fields{
 			"tail":     tail,
-			"elapsed":  elapsedSecond,
+			"now":      now,
+			"slot":     slot,
 			"expected": proposer,
-			"actual":   p.miner.String(),
-		}).Info("not my turn, waiting...")
-		return ErrInvalidBlockProposer
+			"actual":   p.miner,
+		}).Debug("Not my turn, waiting...")
+		return nil, ErrInvalidBlockProposer
 	}
-	log.WithFields(log.Fields{
-		"func":     "Dpos.mintBlock",
-		"tail":     tail,
-		"elapsed":  elapsedSecond,
-		"expected": context.Proposer.Hex(),
-		"actual":   p.coinbase.String(),
-	}).Info("my turn")
-	// mint new block
-	block, err := core.NewBlock(p.chain.ChainID(), p.coinbase, tail)
-	if err != nil {
-		log.WithFields(log.Fields{
-			"func": "Dpos.mintBlock",
-			"tail": tail,
-			"err":  err,
-		}).Error("create block failed")
-		return err
-	}
-	block.LoadDynastyContext(context)
-	block.CollectTransactions(p.txsPerBlock)
-	block.SetMiner(p.miner)
-	if err = block.Seal(); err != nil {
-		log.WithFields(log.Fields{
-			"func":  "Dpos.mintBlock",
+	return context, nil
+}
+
+func (p *Dpos) broadcast(tail *core.Block, block *core.Block) error {
+	if err := p.chain.BlockPool().PushAndBroadcast(block); err != nil {
+		logging.CLog().WithFields(logrus.Fields{
 			"tail":  tail,
 			"block": block,
 			"err":   err,
-		}).Error("seal block failed")
-		return err
-	}
-	// TODO: move passphrase from config to console
-	if err = p.am.Unlock(p.miner, []byte(p.passphrase)); err != nil {
-		log.WithFields(log.Fields{
-			"func":  "Dpos.mintBlock",
-			"tail":  tail,
-			"block": block,
-			"err":   err,
-		}).Error("unlock failed")
-		return err
-	}
-	if err = p.am.SignBlock(p.miner, block); err != nil {
-		log.WithFields(log.Fields{
-			"func":  "Dpos.mintBlock",
-			"tail":  tail,
-			"block": block,
-			"err":   err,
-		}).Error("sign block failed")
-		return err
-	}
-	// broadcast it
-	err = p.chain.BlockPool().PushAndBroadcast(block)
-	if err != nil {
-		log.WithFields(log.Fields{
-			"func":  "Dpos.mintBlock",
-			"tail":  tail,
-			"block": block,
-			"err":   err,
-		}).Error("broadcast block failed")
+		}).Error("Failed to push new minted block into block pool")
 		return err
 	}
 	return nil
 }
 
+func (p *Dpos) mintBlock(now int64) error {
+	metricsBlockPackingTime.Update(0)
+
+	// check mining enable
+	if !p.enable {
+		return ErrCannotMintWhenDiable
+	}
+
+	// check mining pending
+	if p.pending {
+		return ErrCannotMintWhenPending
+	}
+
+	tail := p.chain.TailBlock()
+
+	deadline, err := p.checkDeadline(tail, now)
+	if err != nil {
+		return err
+	}
+
+	context, err := p.checkProposer(tail, now)
+	if err != nil {
+		return err
+	}
+
+	logging.CLog().WithFields(logrus.Fields{
+		"tail":     tail,
+		"now":      now,
+		"deadline": deadline,
+		"expected": context.Proposer.Hex(),
+		"actual":   p.coinbase,
+	}).Info("My turn to mint block")
+	metricsBlockPackingTime.Update(deadline - now)
+
+	block, err := p.newBlock(tail, context, deadline)
+	if err != nil {
+		return err
+	}
+
+	logging.CLog().WithFields(logrus.Fields{
+		"tail":     tail,
+		"now":      time.Now().Unix(),
+		"deadline": deadline,
+	}).Info("All tx are packed.")
+
+	slot := nextSlot(now)
+	current := time.Now().Unix()
+	if slot > current {
+		timer := time.NewTimer(time.Duration(slot-current) * time.Second).C
+		<-timer
+	}
+
+	if err := p.broadcast(tail, block); err != nil {
+		return err
+	}
+
+	logging.CLog().WithFields(logrus.Fields{
+		"tail":     tail,
+		"block":    block,
+		"now":      time.Now().Unix(),
+		"deadline": deadline,
+	}).Info("Minted new block")
+	return nil
+}
+
 func (p *Dpos) blockLoop() {
+	logging.CLog().Info("Started Dpos Mining.")
 	timeChan := time.NewTicker(time.Second).C
 	for {
 		select {
 		case now := <-timeChan:
 			p.mintBlock(now.Unix())
-		case <-p.chain.BlockPool().ReceivedLinkedBlockCh():
-			p.forkChoice()
 		case <-p.quitCh:
-			log.Info("Dpos.blockLoop: quit.")
+			logging.CLog().Info("Stopped Dpos Mining.")
 			return
 		}
 	}

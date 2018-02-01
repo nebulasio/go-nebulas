@@ -344,6 +344,7 @@ func TestTransaction_VerifyExecution(t *testing.T) {
 			fromAcc := block.accState.GetOrCreateUserAccount(tt.tx.from.address)
 			fromAcc.AddBalance(tt.balance)
 			gasUsed, err := tt.tx.VerifyExecution(block)
+			fromAcc = block.accState.GetOrCreateUserAccount(tt.tx.from.address)
 			if tt.gas != nil {
 				assert.Equal(t, tt.gas, gasUsed)
 			}

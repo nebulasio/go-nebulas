@@ -27,6 +27,7 @@ import (
 	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/core/pb"
+	"github.com/nebulasio/go-nebulas/crypto/keystore"
 	"github.com/nebulasio/go-nebulas/neblet"
 	"github.com/nebulasio/go-nebulas/util"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
@@ -158,7 +159,7 @@ func serializeTx(ctx *cli.Context) error {
 
 	pbMsg, _ := tx.ToProto()
 	data, _ := proto.Marshal(pbMsg)
-	data = neb.NetManager().BuildData(data, core.MessageTypeNewTx)
+	data = neb.NetService().BuildRawMessageData(data, core.MessageTypeNewTx)
 	fmt.Println(base64.StdEncoding.EncodeToString(data))
 	return nil
 }
@@ -169,10 +170,7 @@ func setupNeb(ctx *cli.Context) (*neblet.Neblet, error) {
 		return nil, err
 	}
 
-	err = neb.Setup()
-	if err != nil {
-		return nil, err
-	}
+	neb.Setup()
 	return neb, nil
 }
 
@@ -185,7 +183,7 @@ func loadAndUnlockKey(neb *neblet.Neblet, keyfile, passphrase string) (*core.Add
 	if err != nil {
 		return nil, err
 	}
-	err = neb.AccountManager().Unlock(addr, []byte(passphrase))
+	err = neb.AccountManager().Unlock(addr, []byte(passphrase), keystore.DefaultUnlockDuration)
 	if err != nil {
 		return nil, err
 	}
@@ -250,7 +248,7 @@ func serializeDownload(ctx *cli.Context) error {
 		Sign: sign,
 	}
 	data, _ := proto.Marshal(downloadMsg)
-	data = neb.NetManager().BuildData(data, core.MessageTypeDownloadedBlock)
+	data = neb.NetService().BuildRawMessageData(data, core.MessageTypeDownloadedBlock)
 	fmt.Println(base64.StdEncoding.EncodeToString(data))
 	return nil
 }

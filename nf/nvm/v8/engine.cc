@@ -32,6 +32,7 @@
 #include <v8.h>
 
 #include <assert.h>
+#include <string.h>
 
 using namespace v8;
 
@@ -107,9 +108,10 @@ void DeleteEngine(V8Engine *e) {
   free(e);
 }
 
-int ExecuteSourceDataDelegate(Isolate *isolate, const char *source,
-                              int source_line_offset, Local<Context> context,
-                              TryCatch &trycatch, void *delegateContext) {
+int ExecuteSourceDataDelegate(char **result, Isolate *isolate,
+                              const char *source, int source_line_offset,
+                              Local<Context> context, TryCatch &trycatch,
+                              void *delegateContext) {
   // Create a string containing the JavaScript source code.
   Local<String> src =
       String::NewFromUtf8(isolate, source, NewStringType::kNormal)
@@ -133,6 +135,17 @@ int ExecuteSourceDataDelegate(Isolate *isolate, const char *source,
     return 1;
   }
 
+  // set result.
+  if (result != NULL) {
+    MaybeLocal<String> json_result =
+        v8::JSON::Stringify(context, ret.ToLocalChecked().As<Object>());
+    if (!json_result.IsEmpty()) {
+      String::Utf8Value str(json_result.ToLocalChecked());
+      *result = (char *)malloc(str.length() + 1);
+      strcpy(*result, *str);
+    }
+  }
+
   return 0;
 }
 
@@ -142,7 +155,7 @@ char *InjectTracingInstructions(V8Engine *e, const char *source,
   tContext.source_line_offset = 0;
   tContext.tracable_source = NULL;
 
-  Execute(e, source, 0, 0L, 0L, InjectTracingInstructionDelegate,
+  Execute(NULL, e, source, 0, 0L, 0L, InjectTracingInstructionDelegate,
           (void *)&tContext);
 
   *source_line_offset = tContext.source_line_offset;
@@ -155,21 +168,23 @@ char *TranspileTypeScriptModule(V8Engine *e, const char *source,
   tContext.source_line_offset = 0;
   tContext.js_source = NULL;
 
-  Execute(e, source, 0, 0L, 0L, TypeScriptTranspileDelegate, (void *)&tContext);
+  Execute(NULL, e, source, 0, 0L, 0L, TypeScriptTranspileDelegate,
+          (void *)&tContext);
 
   *source_line_offset = tContext.source_line_offset;
   return static_cast<char *>(tContext.js_source);
 }
 
-int RunScriptSource(V8Engine *e, const char *source, int source_line_offset,
-                    uintptr_t lcsHandler, uintptr_t gcsHandler) {
-  return Execute(e, source, source_line_offset, (void *)lcsHandler,
+int RunScriptSource(char **result, V8Engine *e, const char *source,
+                    int source_line_offset, uintptr_t lcsHandler,
+                    uintptr_t gcsHandler) {
+  return Execute(result, e, source, source_line_offset, (void *)lcsHandler,
                  (void *)gcsHandler, ExecuteSourceDataDelegate, NULL);
 }
 
-int Execute(V8Engine *e, const char *source, int source_line_offset,
-            void *lcsHandler, void *gcsHandler, ExecutionDelegate delegate,
-            void *delegateContext) {
+int Execute(char **result, V8Engine *e, const char *source,
+            int source_line_offset, void *lcsHandler, void *gcsHandler,
+            ExecutionDelegate delegate, void *delegateContext) {
   Isolate *isolate = static_cast<Isolate *>(e->isolate);
   assert(isolate);
 
@@ -201,8 +216,8 @@ int Execute(V8Engine *e, const char *source, int source_line_offset,
     return 1;
   }
 
-  return delegate(isolate, source, source_line_offset, context, trycatch,
-                  delegateContext);
+  return delegate(result, isolate, source, source_line_offset, context,
+                  trycatch, delegateContext);
 }
 
 void PrintException(Local<Context> context, TryCatch &trycatch) {

@@ -19,10 +19,8 @@
 package main
 
 import (
-	"log"
-	/* 	"strconv" */
-
 	"fmt"
+	"log"
 
 	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/rpc"

@@ -18,9 +18,12 @@
 syntax = "proto3";
 package netpb;
 
-
-// TODO: change field name to lowercase with _
 message Hello {
+    string node_id = 1;
+    string client_version = 2;
+}
+
+message OK {
     string node_id = 1;
     string client_version = 2;
 }

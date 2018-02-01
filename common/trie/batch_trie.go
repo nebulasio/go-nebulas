@@ -59,7 +59,7 @@ func (bt *BatchTrie) Clone() (*BatchTrie, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &BatchTrie{trie: tr, batching: bt.batching}, nil
+	return &BatchTrie{trie: tr, changelog: bt.changelog, batching: bt.batching}, nil
 }
 
 // Get the value to the key in BatchTrie
@@ -140,13 +140,27 @@ func (bt *BatchTrie) Iterator(prefix []byte) (*Iterator, error) {
 	return bt.trie.Iterator(prefix)
 }
 
-// BeginBatch to process a batch task
-func (bt *BatchTrie) BeginBatch() error {
-	if bt.batching {
-		return ErrBeginAgainInBatch
+// Count return count of members with the prefix in this trie
+func (bt *BatchTrie) Count(prefix []byte) (int64, error) {
+	count := int64(0)
+	iter, err := bt.Iterator(prefix)
+	if err != nil && err != storage.ErrKeyNotFound {
+		return 0, err
 	}
+	if err != nil {
+		return 0, nil
+	}
+	exist, err := iter.Next()
+	for exist {
+		count++
+		exist, err = iter.Next()
+	}
+	return count, nil
+}
+
+// BeginBatch to process a batch task
+func (bt *BatchTrie) BeginBatch() {
 	bt.batching = true
-	return nil
 }
 
 // Commit a batch task

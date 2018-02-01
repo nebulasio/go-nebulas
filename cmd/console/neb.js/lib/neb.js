@@ -25,6 +25,8 @@ Neb.prototype.setRequest = function (request) {
 	this.admin.setRequest(request);
 };
 
+Neb.HttpRequest = HttpRequest;
+
 Neb.prototype.toBasic = Unit.toBasic;
 Neb.prototype.fromBasic = Unit.fromBasic;
 Neb.prototype.nasToBasic = Unit.nasToBasic;

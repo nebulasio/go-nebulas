@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	"log"
 	mrand "math/rand"
 	"time"
 
@@ -16,7 +17,6 @@ import (
 	ps "github.com/libp2p/go-libp2p-peerstore"
 	swarm "github.com/libp2p/go-libp2p-swarm"
 	ma "github.com/multiformats/go-multiaddr"
-	log "github.com/sirupsen/logrus"
 
 	bhost "github.com/libp2p/go-libp2p/p2p/host/basic"
 	multicodec "github.com/multiformats/go-multicodec"

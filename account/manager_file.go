@@ -27,7 +27,8 @@ import (
 
 	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
-	log "github.com/sirupsen/logrus"
+	"github.com/nebulasio/go-nebulas/util/logging"
+	"github.com/sirupsen/logrus"
 )
 
 type account struct {
@@ -43,9 +44,6 @@ type account struct {
 func (m *Manager) refreshAccounts() error {
 	files, err := ioutil.ReadDir(m.keydir)
 	if err != nil {
-		log.WithFields(log.Fields{
-			"func": "manager.refreshAccounts",
-		}).Info("key dir read failed", err)
 		return err
 	}
 	var (
@@ -57,18 +55,26 @@ func (m *Manager) refreshAccounts() error {
 	for _, file := range files {
 		path := filepath.Join(m.keydir, file.Name())
 		if file.IsDir() || strings.HasPrefix(file.Name(), ".") || strings.HasSuffix(file.Name(), "~") {
-			log.Debug("key file is skip:%s", path)
+			logging.VLog().WithFields(logrus.Fields{
+				"path": path,
+			}).Warn("Skipped this key file.")
 			continue
 		}
 		raw, err := ioutil.ReadFile(path)
 		if err != nil {
-			log.Debug("key file read failed", err)
+			logging.VLog().WithFields(logrus.Fields{
+				"err":  err,
+				"path": path,
+			}).Error("Failed to parse the key file.")
 			continue
 		}
 		keyJSON.Address = ""
 		err = json.Unmarshal(raw, &keyJSON)
 		if err != nil {
-			log.Debug("key file parse failed", err)
+			logging.VLog().WithFields(logrus.Fields{
+				"err":  err,
+				"path": path,
+			}).Error("Failed to parse the key file.")
 			continue
 		}
 		var (
@@ -83,7 +89,10 @@ func (m *Manager) refreshAccounts() error {
 			addr, err = core.AddressParse(keyJSON.Address)
 		}
 		if err != nil {
-			log.Debug("key file address parse failed", err)
+			logging.VLog().WithFields(logrus.Fields{
+				"err":     err,
+				"address": addr,
+			}).Error("Failed to parse the address.")
 			continue
 		}
 		accounts = append(accounts, &account{addr, path})
@@ -106,12 +115,11 @@ func (m *Manager) loadFile(addr *core.Address, passphrase []byte) error {
 	return err
 }
 
-func (m *Manager) exportFile(addr *core.Address, passphrase []byte) error {
+func (m *Manager) exportFile(addr *core.Address, passphrase []byte) (path string, err error) {
 	raw, err := m.Export(addr, passphrase)
 	if err != nil {
-		return err
+		return "", err
 	}
-	var path string
 	acc := m.getAccount(addr)
 	if acc != nil {
 		path = acc.path
@@ -119,7 +127,7 @@ func (m *Manager) exportFile(addr *core.Address, passphrase []byte) error {
 		path = filepath.Join(m.keydir, addr.String())
 	}
 	WriteFile(path, raw)
-	return nil
+	return path, nil
 }
 
 func (m *Manager) getAccount(addr *core.Address) *account {
@@ -154,8 +162,15 @@ func WriteFile(file string, content []byte) error {
 func (m *Manager) deleteFile(addr *core.Address) error {
 	acc := m.getAccount(addr)
 	if acc != nil {
-		os.Remove(acc.path)
-		m.refreshAccounts()
+		err := os.Remove(acc.path)
+		if err != nil {
+			return err
+		}
+		err = m.refreshAccounts()
+		if err != nil {
+			return err
+		}
+		return nil
 	}
-	return nil
+	return ErrAddrNotFind
 }

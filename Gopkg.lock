@@ -75,6 +75,12 @@
 
 [[projects]]
   branch = "master"
+  name = "github.com/grpc-ecosystem/go-grpc-middleware"
+  packages = ["."]
+  revision = "d0c54e68681ec7999ac17864470f3bee6521ba2b"
+
+[[projects]]
+  branch = "master"
   name = "github.com/grpc-ecosystem/grpc-gateway"
   packages = ["runtime","runtime/internal","utilities"]
   revision = "b0be3cdef0ed27e3c420795e2efbfe9c27e839cc"
@@ -193,13 +199,11 @@
   revision = "e89e1de117dd65c6129d99d1d853f48bc847cf17"
 
 [[projects]]
-  branch = "master"
   name = "github.com/libp2p/go-libp2p-host"
   packages = ["."]
   revision = "75df99651313a12e380c25eb359856d6bcc3c332"
 
 [[projects]]
-  branch = "master"
   name = "github.com/libp2p/go-libp2p-interface-conn"
   packages = ["."]
   revision = "e4aa48663dcc3f94df3e268ff986214ceb50fc96"
@@ -363,6 +367,12 @@
 
 [[projects]]
   branch = "master"
+  name = "github.com/multiformats/go-multicodec"
+  packages = [".","json"]
+  revision = "fd289ac41fba9e574f214ab2a808a1678ef8810c"
+
+[[projects]]
+  branch = "master"
   name = "github.com/multiformats/go-multicodec-packed"
   packages = ["."]
   revision = "0ee69486dc1c9087aacfcc575e333f305009997e"
@@ -400,7 +410,7 @@
 [[projects]]
   branch = "master"
   name = "github.com/rcrowley/go-metrics"
-  packages = ["."]
+  packages = [".","exp"]
   revision = "1f30fe9094a513ce4c700b9a54458bbb0c96996c"
 
 [[projects]]
@@ -512,6 +522,18 @@
   revision = "74057c4936c275b645fd51200c33a9c8a223be61"
 
 [[projects]]
+  name = "github.com/willf/bitset"
+  packages = ["."]
+  revision = "d860f346b89450988a379d7d705e83c58d1ea227"
+  version = "v1.1.3"
+
+[[projects]]
+  name = "github.com/willf/bloom"
+  packages = ["."]
+  revision = "54e3b963ee1652b06c4562cb9b6020ebc6e36e59"
+  version = "v2.0.3"
+
+[[projects]]
   branch = "master"
   name = "golang.org/x/crypto"
   packages = ["blake2s","blowfish","pbkdf2","ripemd160","scrypt","sha3","ssh/terminal"]
@@ -543,9 +565,9 @@
 
 [[projects]]
   name = "google.golang.org/grpc"
-  packages = [".","codes","connectivity","credentials","grpclb/grpc_lb_v1/messages","grpclog","internal","keepalive","metadata","naming","peer","reflection","reflection/grpc_reflection_v1alpha","stats","status","tap","transport"]
-  revision = "f92cdcd7dcdc69e81b2d7b338479a19a8723cfa3"
-  version = "v1.6.0"
+  packages = [".","balancer","balancer/base","balancer/roundrobin","codes","connectivity","credentials","encoding","grpclb/grpc_lb_v1/messages","grpclog","internal","keepalive","metadata","naming","peer","reflection","reflection/grpc_reflection_v1alpha","resolver","resolver/dns","resolver/passthrough","stats","status","tap","transport"]
+  revision = "6b51017f791ae1cfbec89c52efdf444b13b550ef"
+  version = "v1.9.2"
 
 [[projects]]
   name = "gopkg.in/sourcemap.v1"
@@ -562,6 +584,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "ea24c102a9b0629c2555a082bf3cafd0681188ba1d8bce2c22874ee90cab8d3c"
+  inputs-digest = "962c9930ea4b9621a8e6768aa0908964dcc3fbe39cbce0215e370a3d1fee091e"
   solver-name = "gps-cdcl"
   solver-version = 1

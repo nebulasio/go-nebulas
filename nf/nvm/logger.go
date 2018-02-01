@@ -21,7 +21,7 @@ package nvm
 import "C"
 
 import (
-	log "github.com/sirupsen/logrus"
+	"github.com/nebulasio/go-nebulas/util/logging"
 )
 
 // V8Log export V8Log
@@ -31,14 +31,14 @@ func V8Log(level int, msg *C.char) {
 
 	switch level {
 	case 1:
-		log.Debug(s)
+		logging.VLog().Debug(s)
 	case 2:
-		log.Warn(s)
+		logging.VLog().Warn(s)
 	case 3:
-		log.Info(s)
+		logging.VLog().Info(s)
 	case 4:
-		log.Error(s)
+		logging.VLog().Error(s)
 	default:
-		log.Error(s)
+		logging.VLog().Error(s)
 	}
 }

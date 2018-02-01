@@ -14,10 +14,11 @@
   },
   "dependencies": {
     "bignumber.js": "*",
+    "node-schedule": "^1.3.0",
+    "request": "*",
+    "request-promise": "*",
     "shelljs": "^0.7.8",
     "sync-request": "^4.1.0",
-    "system-sleep": "^1.3.6",
-    "request": "*",
-    "request-promise": "*"
+    "system-sleep": "^1.3.6"
   }
 }

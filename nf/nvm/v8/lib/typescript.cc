@@ -32,9 +32,10 @@ static char ts_transpile_source_template[] =
     "return tsc.transpileModule(source);\n"
     "})();";
 
-int TypeScriptTranspileDelegate(Isolate *isolate, const char *source,
-                                int source_line_offset, Local<Context> context,
-                                TryCatch &trycatch, void *delegateContext) {
+int TypeScriptTranspileDelegate(char **result, Isolate *isolate,
+                                const char *source, int source_line_offset,
+                                Local<Context> context, TryCatch &trycatch,
+                                void *delegateContext) {
   TypeScriptContext *tContext =
       static_cast<TypeScriptContext *>(delegateContext);
   tContext->js_source = NULL;

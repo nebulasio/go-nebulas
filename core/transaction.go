@@ -33,8 +33,8 @@ import (
 	"github.com/nebulasio/go-nebulas/crypto/keystore"
 	"github.com/nebulasio/go-nebulas/util"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
-	metrics "github.com/rcrowley/go-metrics"
-	log "github.com/sirupsen/logrus"
+	"github.com/nebulasio/go-nebulas/util/logging"
+	"github.com/sirupsen/logrus"
 )
 
 var (
@@ -61,9 +61,6 @@ var (
 	CandidateBaseGasCount = util.NewUint128FromInt(20000)
 	// ZeroGasCount is zero gas count
 	ZeroGasCount = util.NewUint128()
-
-	executeTxCounter    = metrics.GetOrRegisterCounter("tx_execute", nil)
-	executeTxErrCounter = metrics.GetOrRegisterCounter("tx_execute_err", nil)
 )
 
 // Transaction type is used to handle all transaction data.
@@ -183,17 +180,20 @@ func (tx *Transaction) FromProto(msg proto.Message) error {
 		tx.sign = msg.Sign
 		return nil
 	}
-	return errors.New("Pb Message cannot be converted into Transaction")
+	return errors.New("Protobug Message cannot be converted into Transaction")
 }
 
 func (tx *Transaction) String() string {
-	return fmt.Sprintf(`{"hash":%s, "from":%s, "to":%s, "nonce":%d, "value": %d, "timestamp":%d, "type":%s}`,
-		byteutils.Hex(tx.hash),
-		byteutils.Hex(tx.from.address),
-		byteutils.Hex(tx.to.address),
+	return fmt.Sprintf(`{"chainID":%d, "hash":"%s", "from":"%s", "to":"%s", "nonce":%d, "value":"%s", "timestamp":%d, "gasprice": "%s", "gaslimit":"%s", "type":"%s"}`,
+		tx.chainID,
+		tx.hash.String(),
+		tx.from.String(),
+		tx.to.String(),
 		tx.nonce,
-		tx.value.Int64(),
+		tx.value.String(),
 		tx.timestamp,
+		tx.gasPrice.String(),
+		tx.gasLimit.String(),
 		tx.Type(),
 	)
 }
@@ -272,7 +272,7 @@ func (tx *Transaction) DataLen() int {
 }
 
 // LoadPayload returns tx's payload
-func (tx *Transaction) LoadPayload() (TxPayload, error) {
+func (tx *Transaction) LoadPayload(block *Block) (TxPayload, error) {
 	// execute payload
 	var (
 		payload TxPayload
@@ -280,7 +280,11 @@ func (tx *Transaction) LoadPayload() (TxPayload, error) {
 	)
 	switch tx.data.Type {
 	case TxPayloadBinaryType:
-		payload, err = LoadBinaryPayload(tx.data.Payload)
+		if block.Height() >= 280921 && block.Height() <= 297680 || block.Height() >= 300087 && block.Height() <= 302302 {
+			payload, err = LoadBinaryPayloadFail(tx.data.Payload)
+		} else {
+			payload, err = LoadBinaryPayload(tx.data.Payload)
+		}
 	case TxPayloadDeployType:
 		payload, err = LoadDeployPayload(tx.data.Payload)
 	case TxPayloadCallType:
@@ -293,6 +297,38 @@ func (tx *Transaction) LoadPayload() (TxPayload, error) {
 		err = ErrInvalidTxPayloadType
 	}
 	return payload, err
+}
+
+// LocalExecution returns tx local execution
+func (tx *Transaction) LocalExecution(block *Block) (*util.Uint128, string, error) {
+	// update gas to max for estimate
+	tx.gasLimit = TransactionMaxGas
+
+	block.accState.BeginBatch()
+	fromAcc := block.accState.GetOrCreateUserAccount(tx.from.address)
+	fromAcc.AddBalance(tx.MinBalanceRequired())
+	fromAcc.AddBalance(tx.value)
+	defer block.accState.RollBack()
+
+	payload, err := tx.LoadPayload(block)
+	if err != nil {
+		return util.NewUint128(), "", err
+	}
+
+	gasUsed := tx.GasCountOfTxBase()
+	gasUsed.Add(gasUsed.Int, payload.BaseGasCount().Int)
+
+	ctx := NewPayloadContext(block, tx)
+	err = ctx.BeginBatch()
+	if err != nil {
+		return gasUsed, "", err
+	}
+	defer ctx.RollBack()
+
+	gasExecution, result, err := payload.Execute(ctx)
+
+	gas := util.NewUint128FromBigInt(util.NewUint128().Add(gasUsed.Int, gasExecution.Int))
+	return gas, result, err
 }
 
 // VerifyExecution transaction and return result.
@@ -310,18 +346,23 @@ func (tx *Transaction) VerifyExecution(block *Block) (*util.Uint128, error) {
 	// gasLimit < gasUsed
 	gasUsed := tx.GasCountOfTxBase()
 	if tx.gasLimit.Cmp(gasUsed.Int) < 0 {
+		logging.VLog().WithFields(logrus.Fields{
+			"error":       ErrOutOfGasLimit,
+			"transaction": tx,
+			"limit":       tx.gasLimit.String(),
+			"used":        gasUsed.String(),
+		}).Debug("Failed to store the payload on chain.")
 		return util.NewUint128(), ErrOutOfGasLimit
 	}
 
-	payload, err := tx.LoadPayload()
+	payload, err := tx.LoadPayload(block)
 	if err != nil {
-		log.WithFields(log.Fields{
+		logging.VLog().WithFields(logrus.Fields{
 			"error":       err,
 			"block":       block,
 			"transaction": tx,
-			"func":        "Transaction.LoadPayload",
-		}).Error("Transaction Execute.")
-		executeTxErrCounter.Inc(1)
+		}).Debug("Failed to load payload.")
+		metricsTxExeFailed.Mark(1)
 
 		tx.gasConsumption(fromAcc, coinbaseAcc, gasUsed)
 		tx.triggerEvent(TopicExecuteTxFailed, block, err)
@@ -337,13 +378,12 @@ func (tx *Transaction) VerifyExecution(block *Block) (*util.Uint128, error) {
 
 	gasUsed.Add(gasUsed.Int, payload.BaseGasCount().Int)
 	if tx.gasLimit.Cmp(gasUsed.Int) < 0 {
-		log.WithFields(log.Fields{
-			"error":       ErrOutOfGasLimit,
-			"block":       block,
-			"transaction": tx,
-			"func":        "payload.BaseGasCount",
-		}).Error("Transaction Execute.")
-		executeTxErrCounter.Inc(1)
+		logging.VLog().WithFields(logrus.Fields{
+			"err":   ErrOutOfGasLimit,
+			"block": block,
+			"tx":    tx,
+		}).Debug("Failed to check base gas used.")
+		metricsTxExeFailed.Mark(1)
 
 		tx.gasConsumption(fromAcc, coinbaseAcc, tx.gasLimit)
 		tx.triggerEvent(TopicExecuteTxFailed, block, err)
@@ -351,54 +391,58 @@ func (tx *Transaction) VerifyExecution(block *Block) (*util.Uint128, error) {
 	}
 
 	// execute smart contract and sub the calcute gas.
-	gasExecution, err := payload.Execute(ctx)
+	gasExecution, _, err := payload.Execute(ctx)
 	if err != nil {
 		ctx.RollBack()
 	} else {
 		ctx.Commit()
 	}
 
+	fromAcc = block.accState.GetOrCreateUserAccount(tx.from.address)
+	toAcc = block.accState.GetOrCreateUserAccount(tx.to.address)
+	coinbaseAcc = block.accState.GetOrCreateUserAccount(block.CoinbaseHash())
+
 	// gas = tx.GasCountOfTxBase() +  gasExecution
 	gas := util.NewUint128FromBigInt(util.NewUint128().Add(gasUsed.Int, gasExecution.Int))
 
-	log.WithFields(log.Fields{
-		"transaction":  tx,
+	/* 	logging.VLog().WithFields(logrus.Fields{
+		"tx":           tx,
 		"gasUsed":      gasUsed.String(),
 		"gasExecution": gasExecution.String(),
 		"gas":          gas.String(),
 		"gasPrice":     tx.gasPrice.String(),
 		"gasLimited":   tx.gasLimit.String(),
-	}).Info("Transaction Execute statics.")
+	}).Debug("Transaction execution statics.") */
 
 	tx.gasConsumption(fromAcc, coinbaseAcc, gas)
 
 	if err != nil {
-		log.WithFields(log.Fields{
-			"error":        err,
+		logging.VLog().WithFields(logrus.Fields{
+			"err":          err,
 			"block":        block,
-			"transaction":  tx,
+			"tx":           tx,
 			"gasUsed":      gasUsed.String(),
 			"gasExecution": gasExecution.String(),
-		}).Error("Transaction Execute.")
+		}).Debug("Failed to execute payload.")
 
-		executeTxErrCounter.Inc(1)
+		metricsTxExeFailed.Mark(1)
 		tx.triggerEvent(TopicExecuteTxFailed, block, err)
 	} else {
 		if fromAcc.Balance().Cmp(tx.value.Int) < 0 {
-			log.WithFields(log.Fields{
-				"error":       ErrInsufficientBalance,
-				"block":       block,
-				"transaction": tx,
-			}).Error("Transaction Execute.")
+			logging.VLog().WithFields(logrus.Fields{
+				"err":   ErrInsufficientBalance,
+				"block": block,
+				"tx":    tx,
+			}).Debug("Failed to check balance sufficient.")
 
-			executeTxErrCounter.Inc(1)
+			metricsTxExeFailed.Mark(1)
 			tx.triggerEvent(TopicExecuteTxFailed, block, ErrInsufficientBalance)
 		} else {
 			// accept the transaction
 			fromAcc.SubBalance(tx.value)
 			toAcc.AddBalance(tx.value)
 
-			executeTxCounter.Inc(1)
+			metricsTxExeSuccess.Mark(1)
 			// record tx execution success event
 			tx.triggerEvent(TopicExecuteTxSuccess, block, nil)
 		}
@@ -493,10 +537,10 @@ func (tx *Transaction) verifySign() error {
 		return err
 	}
 	if !tx.from.Equals(addr) {
-		log.WithFields(log.Fields{
+		logging.VLog().WithFields(logrus.Fields{
 			"recover address": addr.String(),
 			"tx":              tx,
-		}).Error("Transaction verifySign.")
+		}).Debug("Failed to verify tx's sign.")
 		return ErrInvalidTransactionSigner
 	}
 	return nil

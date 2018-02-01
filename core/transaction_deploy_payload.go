@@ -61,10 +61,10 @@ func (payload *DeployPayload) BaseGasCount() *util.Uint128 {
 }
 
 // Execute deploy payload in tx, deploy a new contract
-func (payload *DeployPayload) Execute(ctx *PayloadContext) (*util.Uint128, error) {
+func (payload *DeployPayload) Execute(ctx *PayloadContext) (*util.Uint128, string, error) {
 	nvmctx, err := generateDeployContext(ctx)
 	if err != nil {
-		return util.NewUint128(), err
+		return util.NewUint128(), "", err
 	}
 
 	engine := nvm.NewV8Engine(nvmctx)
@@ -73,8 +73,8 @@ func (payload *DeployPayload) Execute(ctx *PayloadContext) (*util.Uint128, error
 	engine.SetExecutionLimits(ctx.tx.PayloadGasLimit(payload).Uint64(), nvm.DefaultLimitsOfTotalMemorySize)
 
 	// Deploy and Init.
-	err = engine.DeployAndInit(payload.Source, payload.SourceType, payload.Args)
-	return util.NewUint128FromInt(int64(engine.ExecutionInstructions())), err
+	result, err := engine.DeployAndInit(payload.Source, payload.SourceType, payload.Args)
+	return util.NewUint128FromInt(int64(engine.ExecutionInstructions())), result, err
 }
 
 func generateDeployContext(ctx *PayloadContext) (*nvm.Context, error) {

@@ -16,7 +16,7 @@
 # along with the go-nebulas library.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-VERSION?=0.5.0
+VERSION?=0.6.0
 
 COMMIT=$(shell git rev-parse HEAD)
 BRANCH=$(shell git rev-parse --abbrev-ref HEAD)
@@ -61,8 +61,10 @@ deploy-libs:
 	$(LDCONFIG)
 
 build:
-	cd cmd/neb; go build $(LDFLAGS) -o ../../$(BINARY)
+	cd cmd/neb; go build $(LDFLAGS) -o ../../$(BINARY)-$(COMMIT)
 	cd cmd/crashreporter; go build $(LDFLAGS) -o ../../nebulas_crashreporter
+	rm $(BINARY)
+	ln -s $(BINARY)-$(COMMIT) $(BINARY)
 
 build-linux:
 	cd cmd/neb; GOOS=linux GOARCH=amd64 go build $(LDFLAGS) -o ../../$(BINARY)-linux

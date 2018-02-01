@@ -29,21 +29,19 @@ import (
 	"sync"
 	"testing"
 
+	"encoding/json"
+
 	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/core/pb"
 	"github.com/nebulasio/go-nebulas/core/state"
 	"github.com/nebulasio/go-nebulas/storage"
 	"github.com/nebulasio/go-nebulas/util"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
-	"github.com/nebulasio/go-nebulas/util/logging"
-	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestMain(m *testing.M) {
-	logging.EnableFuncNameLogger()
-
 	flag.Parse()
 	os.Exit(m.Run())
 }
@@ -135,7 +133,7 @@ func TestRunScriptSource(t *testing.T) {
 
 			engine := NewV8Engine(ctx)
 			engine.SetExecutionLimits(900000, 10000000)
-			err = engine.RunScriptSource(string(data), 0)
+			_, err = engine.RunScriptSource(string(data), 0)
 			assert.Equal(t, tt.expectedErr, err)
 			engine.Dispose()
 		})
@@ -172,7 +170,7 @@ func TestRunScriptSourceInModule(t *testing.T) {
 			engine.SetExecutionLimits(100000, 10000000)
 			engine.AddModule(tt.filepath, string(data), 0)
 			runnableSource := fmt.Sprintf("require(\"%s\");", tt.filepath)
-			err = engine.RunScriptSource(runnableSource, 0)
+			_, err = engine.RunScriptSource(runnableSource, 0)
 			assert.Equal(t, tt.expectedErr, err)
 			engine.Dispose()
 		})
@@ -187,14 +185,14 @@ func TestRunScriptSourceWithLimits(t *testing.T) {
 		expectedErr                   error
 	}{
 		{"test/test_oom_1.js", 100000, 0, ErrInsufficientGas},
-		{"test/test_oom_1.js", 0, 50000000, ErrExceedMemoryLimits},
+		{"test/test_oom_1.js", 0, 500000, ErrExceedMemoryLimits},
 		{"test/test_oom_1.js", 1000000, 50000000, ErrInsufficientGas},
-		{"test/test_oom_1.js", 5000000, 7000000, ErrExceedMemoryLimits},
+		{"test/test_oom_1.js", 5000000, 70000, ErrExceedMemoryLimits},
 
 		{"test/test_oom_2.js", 100000, 0, ErrInsufficientGas},
-		{"test/test_oom_2.js", 0, 8000000, ErrExceedMemoryLimits},
+		{"test/test_oom_2.js", 0, 80000, ErrExceedMemoryLimits},
 		{"test/test_oom_2.js", 10000000, 10000000, ErrInsufficientGas},
-		{"test/test_oom_2.js", 10000000, 7000000, ErrExceedMemoryLimits},
+		{"test/test_oom_2.js", 10000000, 70000, ErrExceedMemoryLimits},
 	}
 
 	for _, tt := range tests {
@@ -213,7 +211,7 @@ func TestRunScriptSourceWithLimits(t *testing.T) {
 			(func() {
 				engine := NewV8Engine(ctx)
 				engine.SetExecutionLimits(tt.limitsOfExecutionInstructions, tt.limitsOfTotalMemorySize)
-				err = engine.RunScriptSource(string(data), 0)
+				_, err = engine.RunScriptSource(string(data), 0)
 				assert.Equal(t, tt.expectedErr, err)
 				engine.Dispose()
 			})()
@@ -226,7 +224,7 @@ func TestRunScriptSourceWithLimits(t *testing.T) {
 				engine := NewV8Engine(ctx)
 				engine.SetExecutionLimits(tt.limitsOfExecutionInstructions, tt.limitsOfTotalMemorySize)
 				engine.AddModule(moduleID, string(data), 0)
-				err = engine.RunScriptSource(runnableSource, 0)
+				_, err = engine.RunScriptSource(runnableSource, 0)
 				assert.Equal(t, tt.expectedErr, err)
 				engine.Dispose()
 			})()
@@ -255,7 +253,7 @@ func TestRunScriptSourceTimeout(t *testing.T) {
 			// direct run.
 			(func() {
 				engine := NewV8Engine(ctx)
-				err = engine.RunScriptSource(string(data), 0)
+				_, err = engine.RunScriptSource(string(data), 0)
 				assert.Equal(t, ErrExecutionTimeout, err)
 				engine.Dispose()
 			})()
@@ -267,7 +265,7 @@ func TestRunScriptSourceTimeout(t *testing.T) {
 
 				engine := NewV8Engine(ctx)
 				engine.AddModule(moduleID, string(data), 0)
-				err = engine.RunScriptSource(runnableSource, 0)
+				_, err = engine.RunScriptSource(runnableSource, 0)
 				assert.Equal(t, ErrExecutionTimeout, err)
 				engine.Dispose()
 			})()
@@ -300,19 +298,19 @@ func TestDeployAndInitAndCall(t *testing.T) {
 			ctx := NewContext(testContextBlock(), testContextTransaction(), owner, contract, context)
 			engine := NewV8Engine(ctx)
 			engine.SetExecutionLimits(10000, 10000000)
-			err = engine.DeployAndInit(string(data), tt.sourceType, tt.initArgs)
+			_, err = engine.DeployAndInit(string(data), tt.sourceType, tt.initArgs)
 			assert.Nil(t, err)
 			engine.Dispose()
 
 			engine = NewV8Engine(ctx)
 			engine.SetExecutionLimits(10000, 10000000)
-			err = engine.Call(string(data), tt.sourceType, "dump", "")
+			_, err = engine.Call(string(data), tt.sourceType, "dump", "")
 			assert.Nil(t, err)
 			engine.Dispose()
 
 			engine = NewV8Engine(ctx)
 			engine.SetExecutionLimits(10000, 10000000)
-			err = engine.Call(string(data), tt.sourceType, "verify", tt.verifyArgs)
+			_, err = engine.Call(string(data), tt.sourceType, "verify", tt.verifyArgs)
 			assert.Nil(t, err)
 			engine.Dispose()
 
@@ -325,7 +323,7 @@ func TestDeployAndInitAndCall(t *testing.T) {
 			ctx = NewContext(testContextBlock(), testContextTransaction(), owner, contract, context)
 			engine = NewV8Engine(ctx)
 			engine.SetExecutionLimits(10000, 10000000)
-			err = engine.Call(string(data), tt.sourceType, "verify", tt.verifyArgs)
+			_, err = engine.Call(string(data), tt.sourceType, "verify", tt.verifyArgs)
 			assert.NotNil(t, err)
 			engine.Dispose()
 		})
@@ -378,7 +376,7 @@ func TestContracts(t *testing.T) {
 			// deploy and init.
 			engine := NewV8Engine(ctx)
 			engine.SetExecutionLimits(1000, 10000000)
-			err = engine.DeployAndInit(string(data), tt.sourceType, tt.initArgs)
+			_, err = engine.DeployAndInit(string(data), tt.sourceType, tt.initArgs)
 			assert.Nil(t, err)
 			engine.Dispose()
 
@@ -386,7 +384,7 @@ func TestContracts(t *testing.T) {
 			for _, fields := range tt.calls {
 				engine = NewV8Engine(ctx)
 				engine.SetExecutionLimits(1000, 10000000)
-				err = engine.Call(string(data), tt.sourceType, fields.function, fields.args)
+				_, err = engine.Call(string(data), tt.sourceType, fields.function, fields.args)
 				assert.Nil(t, err)
 				engine.Dispose()
 			}
@@ -424,7 +422,7 @@ func TestFunctionNameCheck(t *testing.T) {
 
 			engine := NewV8Engine(ctx)
 			engine.SetExecutionLimits(1000, 10000000)
-			err = engine.Call(string(data), sourceType, tt.function, tt.args)
+			_, err = engine.Call(string(data), sourceType, tt.function, tt.args)
 			assert.Equal(t, tt.expectedErr, err)
 			engine.Dispose()
 		})
@@ -441,7 +439,6 @@ func TestMultiEngine(t *testing.T) {
 	var wg sync.WaitGroup
 	for i := 0; i < 100; i++ {
 		wg.Add(1)
-		idx := i
 		go func() {
 			defer wg.Done()
 
@@ -451,8 +448,7 @@ func TestMultiEngine(t *testing.T) {
 			engine.SetExecutionLimits(1000, 10000000)
 			defer engine.Dispose()
 
-			err := engine.RunScriptSource("console.log('running.');", 0)
-			log.Infof("run script %d; err %v", idx, err)
+			_, err := engine.RunScriptSource("console.log('running.');", 0)
 			assert.Nil(t, err)
 		}()
 	}
@@ -502,7 +498,7 @@ func TestInstructionCounterTestSuite(t *testing.T) {
 			if err != nil {
 				assert.Equal(t, tt.expectedErr, err)
 			} else {
-				err = engine.RunScriptSource(runnableSource, 0)
+				_, err = engine.RunScriptSource(runnableSource, 0)
 				assert.Equal(t, tt.expectedErr, err)
 			}
 			engine.Dispose()
@@ -547,7 +543,7 @@ func TestTypeScriptExecution(t *testing.T) {
 			if err != nil {
 				assert.Equal(t, tt.expectedErr, err)
 			} else {
-				err = engine.RunScriptSource(runnableSource, 0)
+				_, err = engine.RunScriptSource(runnableSource, 0)
 				assert.Equal(t, tt.expectedErr, err)
 			}
 		})
@@ -590,14 +586,11 @@ func TestRunMozillaJSTestSuite(t *testing.T) {
 				continue
 			}
 
-			log.Infof("Testing %s", filepath)
-
 			buf := bytes.NewBufferString("this.print = console.log;var native_eval = eval;eval = function (s) { try {  return native_eval(s); } catch (e) { return \"error\"; }};")
 
 			jsfiles := fmt.Sprintf("%s;%s;%s", shelljs, "test/mozilla_js_tests_loader.js", filepath)
 
 			for _, v := range strings.Split(jsfiles, ";") {
-				// log.Infof("v %s", v)
 				if len(v) == 0 {
 					continue
 				}
@@ -614,7 +607,7 @@ func TestRunMozillaJSTestSuite(t *testing.T) {
 			engine := NewV8Engine(ctx)
 			engine.SetTestingFlag(true)
 			engine.enableLimits = true
-			err = engine.RunScriptSource(buf.String(), 0)
+			_, err = engine.RunScriptSource(buf.String(), 0)
 			assert.Nil(t, err)
 		}
 	}
@@ -644,7 +637,7 @@ func TestBlockChain(t *testing.T) {
 			ctx := NewContext(testContextBlock(), testContextTransaction(), owner, contract, context)
 			engine := NewV8Engine(ctx)
 			engine.SetExecutionLimits(100000, 10000000)
-			err = engine.RunScriptSource(string(data), 0)
+			_, err = engine.RunScriptSource(string(data), 0)
 			assert.Equal(t, tt.expectedErr, err)
 			engine.Dispose()
 		})
@@ -653,31 +646,34 @@ func TestBlockChain(t *testing.T) {
 
 func TestBankVaultContract(t *testing.T) {
 	type TakeoutTest struct {
-		args        string
-		expectedErr error
+		args          string
+		expectedErr   error
+		beforeBalance string
+		afterBalance  string
 	}
 
 	tests := []struct {
 		name         string
 		contractPath string
 		sourceType   string
+		saveValue    string
 		saveArgs     string
 		takeoutTests []TakeoutTest
 	}{
-		{"deploy bank_vault_contract.js", "./test/bank_vault_contract.js", "js", "[0]",
+		{"deploy bank_vault_contract.js", "./test/bank_vault_contract.js", "js", "5", "[0]",
 			[]TakeoutTest{
-				{"[1]", nil},
-				{"[5]", ErrExecutionFailed},
-				{"[4]", nil},
-				{"[1]", ErrExecutionFailed},
+				{"[1]", nil, "5", "4"},
+				{"[5]", ErrExecutionFailed, "4", "4"},
+				{"[4]", nil, "4", "0"},
+				{"[1]", ErrExecutionFailed, "0", "0"},
 			},
 		},
-		{"deploy bank_vault_contract.ts", "./test/bank_vault_contract.ts", "ts", "[0]",
+		{"deploy bank_vault_contract.ts", "./test/bank_vault_contract.ts", "ts", "5", "[0]",
 			[]TakeoutTest{
-				{"[1]", nil},
-				{"[5]", ErrExecutionFailed},
-				{"[4]", nil},
-				{"[1]", ErrExecutionFailed},
+				{"[1]", nil, "5", "4"},
+				{"[5]", ErrExecutionFailed, "4", "4"},
+				{"[4]", nil, "4", "0"},
+				{"[1]", ErrExecutionFailed, "0", "0"},
 			},
 		},
 	}
@@ -697,26 +693,58 @@ func TestBankVaultContract(t *testing.T) {
 			contract.AddBalance(util.NewUint128FromInt(5))
 
 			// parepare env, block & transactions.
-			ctx := NewContext(testContextBlock(), testContextTransaction(), owner, contract, context)
+			tx := testContextTransaction()
+			tx.Value = tt.saveValue
+			ctx := NewContext(testContextBlock(), tx, owner, contract, context)
 
 			// execute.
 			engine := NewV8Engine(ctx)
 			engine.SetExecutionLimits(10000, 100000000)
-			err = engine.DeployAndInit(string(data), tt.sourceType, "")
+			_, err = engine.DeployAndInit(string(data), tt.sourceType, "")
 			assert.Nil(t, err)
 			engine.Dispose()
 
+			// call save.
 			engine = NewV8Engine(ctx)
 			engine.SetExecutionLimits(10000, 100000000)
-			err = engine.Call(string(data), tt.sourceType, "save", tt.saveArgs)
+			_, err = engine.Call(string(data), tt.sourceType, "save", tt.saveArgs)
 			assert.Nil(t, err)
 			engine.Dispose()
 
+			var (
+				bal struct {
+					Balance string `json:"balance"`
+				}
+			)
+
+			// call takeout.
 			for _, tot := range tt.takeoutTests {
+				// call balanceOf.
 				engine = NewV8Engine(ctx)
 				engine.SetExecutionLimits(10000, 100000000)
-				err = engine.Call(string(data), tt.sourceType, "takeout", tot.args)
+				balance, err := engine.Call(string(data), tt.sourceType, "balanceOf", "")
+				assert.Nil(t, err)
+				bal.Balance = ""
+				err = json.Unmarshal([]byte(balance), &bal)
+				assert.Nil(t, err)
+				assert.Equal(t, tot.beforeBalance, bal.Balance)
+				engine.Dispose()
+
+				engine = NewV8Engine(ctx)
+				engine.SetExecutionLimits(10000, 100000000)
+				_, err = engine.Call(string(data), tt.sourceType, "takeout", tot.args)
 				assert.Equal(t, err, tot.expectedErr)
+				engine.Dispose()
+
+				// call balanceOf.
+				engine = NewV8Engine(ctx)
+				engine.SetExecutionLimits(10000, 100000000)
+				balance, err = engine.Call(string(data), tt.sourceType, "balanceOf", "")
+				assert.Nil(t, err)
+				bal.Balance = ""
+				err = json.Unmarshal([]byte(balance), &bal)
+				assert.Nil(t, err)
+				assert.Equal(t, tot.afterBalance, bal.Balance)
 				engine.Dispose()
 			}
 		})
@@ -744,8 +772,167 @@ func TestEvent(t *testing.T) {
 			ctx := NewContext(testContextBlock(), testContextTransaction(), owner, contract, context)
 			engine := NewV8Engine(ctx)
 			engine.SetExecutionLimits(100000, 10000000)
-			err = engine.RunScriptSource(string(data), 0)
+			_, err = engine.RunScriptSource(string(data), 0)
 			engine.Dispose()
+		})
+	}
+}
+
+func TestNRC20Contract(t *testing.T) {
+	type TransferTest struct {
+		to     string
+		result bool
+		value  string
+	}
+
+	tests := []struct {
+		test          string
+		contractPath  string
+		sourceType    string
+		name          string
+		symbol        string
+		decimals      int
+		totalSupply   string
+		from          string
+		transferTests []TransferTest
+	}{
+		{"nrc20", "./test/NRC20.js", "js", "StandardToken", "ST", 18, "1000000000",
+			"9f19bd5379fc34658946aaa820f597a21ec86a3222a82843",
+			[]TransferTest{
+				{"6fb70b1d824be33e593dbc36d7405d61e44889fd8cb76e31", true, "5"},
+				{"2fe3f9f51f9a05dd5f7c5329127f7c917917149b4e16b0b8", true, "10"},
+				{"7da9dabedb4c6e121146fb4250a9883d6180570e63d6b080", true, "15"},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			data, err := ioutil.ReadFile(tt.contractPath)
+			assert.Nil(t, err, "contract path read error")
+
+			mem, _ := storage.NewMemoryStorage()
+			context, _ := state.NewAccountState(nil, mem)
+			owner := context.GetOrCreateUserAccount([]byte(tt.from))
+			owner.AddBalance(util.NewUint128FromInt(10000000))
+
+			// prepare the contract.
+			contract, _ := context.CreateContractAccount([]byte("account2"), nil)
+			contract.AddBalance(util.NewUint128FromInt(5))
+
+			// parepare env, block & transactions.
+			tx := testContextTransaction()
+			tx.From = tt.from
+			ctx := NewContext(testContextBlock(), tx, owner, contract, context)
+
+			// execute.
+			engine := NewV8Engine(ctx)
+			engine.SetExecutionLimits(10000, 100000000)
+			args := fmt.Sprintf("[\"%s\", \"%s\", %d, \"%s\"]", tt.name, tt.symbol, tt.decimals, tt.totalSupply)
+			_, err = engine.DeployAndInit(string(data), tt.sourceType, args)
+			assert.Nil(t, err)
+			engine.Dispose()
+
+			// call name.
+			engine = NewV8Engine(ctx)
+			engine.SetExecutionLimits(10000, 100000000)
+			name, err := engine.Call(string(data), tt.sourceType, "name", "")
+			assert.Nil(t, err)
+			var nameStr string
+			err = json.Unmarshal([]byte(name), &nameStr)
+			assert.Nil(t, err)
+			assert.Equal(t, tt.name, nameStr)
+			engine.Dispose()
+
+			// call symbol.
+			engine = NewV8Engine(ctx)
+			engine.SetExecutionLimits(10000, 100000000)
+			symbol, err := engine.Call(string(data), tt.sourceType, "symbol", "")
+			assert.Nil(t, err)
+			var symbolStr string
+			err = json.Unmarshal([]byte(symbol), &symbolStr)
+			assert.Nil(t, err)
+			assert.Equal(t, tt.symbol, symbolStr)
+			assert.Nil(t, err)
+			engine.Dispose()
+
+			// call decimals.
+			engine = NewV8Engine(ctx)
+			engine.SetExecutionLimits(10000, 100000000)
+			decimals, err := engine.Call(string(data), tt.sourceType, "decimals", "")
+			assert.Nil(t, err)
+			var decimalsInt int
+			err = json.Unmarshal([]byte(decimals), &decimalsInt)
+			assert.Nil(t, err)
+			assert.Equal(t, tt.decimals, decimalsInt)
+			assert.Nil(t, err)
+			engine.Dispose()
+
+			// call totalSupply.
+			engine = NewV8Engine(ctx)
+			engine.SetExecutionLimits(10000, 100000000)
+			totalSupply, err := engine.Call(string(data), tt.sourceType, "totalSupply", "")
+			assert.Nil(t, err)
+			var totalSupplyStr string
+			err = json.Unmarshal([]byte(totalSupply), &totalSupplyStr)
+			assert.Nil(t, err)
+			assert.Equal(t, tt.totalSupply, totalSupplyStr)
+			assert.Nil(t, err)
+			engine.Dispose()
+
+			// call takeout.
+			for _, tot := range tt.transferTests {
+				// call balanceOf.
+				ctx.tx.From = tt.from
+				engine = NewV8Engine(ctx)
+				engine.SetExecutionLimits(10000, 100000000)
+				balArgs := fmt.Sprintf("[\"%s\"]", tt.from)
+				_, err := engine.Call(string(data), tt.sourceType, "balanceOf", balArgs)
+				assert.Nil(t, err)
+				engine.Dispose()
+
+				engine = NewV8Engine(ctx)
+				engine.SetExecutionLimits(10000, 100000000)
+				transferArgs := fmt.Sprintf("[\"%s\", \"%s\"]", tot.to, tot.value)
+				result, err := engine.Call(string(data), tt.sourceType, "transfer", transferArgs)
+				assert.Nil(t, err)
+				var resultStatus bool
+				err = json.Unmarshal([]byte(result), &resultStatus)
+				assert.Nil(t, err)
+				assert.Equal(t, tot.result, resultStatus)
+				engine.Dispose()
+
+				engine = NewV8Engine(ctx)
+				engine.SetExecutionLimits(10000, 100000000)
+				result, err = engine.Call(string(data), tt.sourceType, "approve", transferArgs)
+				assert.Nil(t, err)
+				err = json.Unmarshal([]byte(result), &resultStatus)
+				assert.Nil(t, err)
+				assert.Equal(t, tot.result, resultStatus)
+				engine.Dispose()
+
+				engine = NewV8Engine(ctx)
+				engine.SetExecutionLimits(10000, 100000000)
+				allowanceArgs := fmt.Sprintf("[\"%s\", \"%s\"]", tt.from, tot.to)
+				amount, err := engine.Call(string(data), tt.sourceType, "allowance", allowanceArgs)
+				assert.Nil(t, err)
+				var amountStr string
+				err = json.Unmarshal([]byte(amount), &amountStr)
+				assert.Nil(t, err)
+				assert.Equal(t, tot.value, amountStr)
+				engine.Dispose()
+
+				ctx.tx.From = tot.to
+				engine = NewV8Engine(ctx)
+				engine.SetExecutionLimits(10000, 100000000)
+				transferFromArgs := fmt.Sprintf("[\"%s\", \"%s\", \"%s\"]", tt.from, tot.to, tot.value)
+				result, err = engine.Call(string(data), tt.sourceType, "transferFrom", transferFromArgs)
+				assert.Nil(t, err)
+				err = json.Unmarshal([]byte(result), &resultStatus)
+				assert.Nil(t, err)
+				assert.Equal(t, tot.result, resultStatus)
+				engine.Dispose()
+			}
 		})
 	}
 }

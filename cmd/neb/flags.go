@@ -75,6 +75,12 @@ var (
 		Usage: "chain key storage dirctory",
 	}
 
+	// ChainStartMineFlag chain start mine when launch
+	ChainStartMineFlag = cli.BoolFlag{
+		Name:  "chain.startmine",
+		Usage: "chain start mine when launching",
+	}
+
 	// ChainCoinbaseFlag chain coinbase
 	ChainCoinbaseFlag = cli.StringFlag{
 		Name:  "chain.coinbase",
@@ -87,13 +93,35 @@ var (
 		Usage: "chain signature ciphers, multi-value support.",
 	}
 
+	// ChainPassphraseFlag chain miner passphrase
+	ChainPassphraseFlag = cli.StringFlag{
+		Name:  "chain.passphrase",
+		Usage: "chain miner's passphrase.",
+	}
+
+	// ChainGasPriceFlag chain transaction pool min gasPrice
+	ChainGasPriceFlag = cli.StringFlag{
+		Name:  "chain.gasprice",
+		Usage: "chain transaction pool's min gasPrice.",
+	}
+
+	// ChainGasLimitFlag chain transaction pool max gasLimit
+	ChainGasLimitFlag = cli.StringFlag{
+		Name:  "chain.gaslimit",
+		Usage: "chain transaction pool's max gasLimit.",
+	}
+
 	// ChainFlags chain config list
 	ChainFlags = []cli.Flag{
 		ChainIDFlag,
 		ChainDataDirFlag,
 		ChainKeyDirFlag,
+		ChainStartMineFlag,
 		ChainCoinbaseFlag,
 		ChainCipherFlag,
+		ChainPassphraseFlag,
+		ChainGasPriceFlag,
+		ChainGasLimitFlag,
 	}
 
 	// RPCListenFlag rpc listen
@@ -119,6 +147,62 @@ var (
 		RPCListenFlag,
 		RPCHTTPFlag,
 		RPCModuleFlag,
+	}
+
+	// AppLogLevelFlag app log level
+	AppLogLevelFlag = cli.StringFlag{
+		Name:  "app.loglevel",
+		Usage: "app log level for neb run.",
+	}
+
+	// AppLogFileFlag app log file dir
+	AppLogFileFlag = cli.StringFlag{
+		Name:  "app.logfile",
+		Usage: "app log file folder for neb run.",
+	}
+
+	// AppCrashReportFlag enable app crash report
+	AppCrashReportFlag = cli.BoolFlag{
+		Name:  "app.crashreport",
+		Usage: "app enable crash report.",
+	}
+
+	// AppCrashReportURLFlag app log level
+	AppCrashReportURLFlag = cli.StringFlag{
+		Name:  "app.reporturl",
+		Usage: "app crash report url.",
+	}
+
+	// AppProfileListen pprof http listen
+	AppProfileListen = cli.StringFlag{
+		Name:  "app.pprof.listen",
+		Usage: "pprof net listen address",
+		Value: "",
+	}
+
+	// AppCPUProfile stats cpu profile
+	AppCPUProfile = cli.StringFlag{
+		Name:  "app.pprof.cpuprofile",
+		Usage: "pprof write cpu profile `file`",
+		Value: "",
+	}
+
+	// AppMemProfile stats memory profile
+	AppMemProfile = cli.StringFlag{
+		Name:  "app.pprof.memprofile",
+		Usage: "pprof write memory profile `file`",
+		Value: "",
+	}
+
+	// AppFlags app config list
+	AppFlags = []cli.Flag{
+		AppLogLevelFlag,
+		AppLogFileFlag,
+		AppCrashReportFlag,
+		AppCrashReportURLFlag,
+		AppProfileListen,
+		AppCPUProfile,
+		AppMemProfile,
 	}
 
 	// StatsEnableFlag stats enable
@@ -183,8 +267,20 @@ func chainConfig(ctx *cli.Context, cfg *nebletpb.ChainConfig) {
 	if ctx.GlobalIsSet(ChainKeyDirFlag.Name) {
 		cfg.Keydir = ctx.GlobalString(ChainKeyDirFlag.Name)
 	}
+	if ctx.GlobalIsSet(ChainStartMineFlag.Name) {
+		cfg.StartMine = ctx.GlobalBool(ChainStartMineFlag.Name)
+	}
 	if ctx.GlobalIsSet(ChainCoinbaseFlag.Name) {
 		cfg.Coinbase = ctx.GlobalString(ChainCoinbaseFlag.Name)
+	}
+	if ctx.GlobalIsSet(ChainPassphraseFlag.Name) {
+		cfg.Passphrase = ctx.GlobalString(ChainPassphraseFlag.Name)
+	}
+	if ctx.GlobalIsSet(ChainGasPriceFlag.Name) {
+		cfg.GasPrice = ctx.GlobalString(ChainGasPriceFlag.Name)
+	}
+	if ctx.GlobalIsSet(ChainGasLimitFlag.Name) {
+		cfg.GasLimit = ctx.GlobalString(ChainGasLimitFlag.Name)
 	}
 	if ctx.GlobalIsSet(ChainCipherFlag.Name) {
 		cfg.SignatureCiphers = ctx.GlobalStringSlice(ChainCipherFlag.Name)
@@ -200,6 +296,34 @@ func rpcConfig(ctx *cli.Context, cfg *nebletpb.RPCConfig) {
 	}
 	if ctx.GlobalIsSet(RPCModuleFlag.Name) {
 		cfg.HttpModule = ctx.GlobalStringSlice(RPCModuleFlag.Name)
+	}
+}
+
+func appConfig(ctx *cli.Context, cfg *nebletpb.AppConfig) {
+	if ctx.GlobalIsSet(AppLogLevelFlag.Name) {
+		cfg.LogLevel = ctx.GlobalString(AppLogLevelFlag.Name)
+	}
+	if ctx.GlobalIsSet(AppLogFileFlag.Name) {
+		cfg.LogFile = ctx.GlobalString(AppLogFileFlag.Name)
+	}
+	if ctx.GlobalIsSet(AppCrashReportFlag.Name) {
+		cfg.EnableCrashReport = ctx.GlobalBool(AppCrashReportFlag.Name)
+	}
+	if ctx.GlobalIsSet(AppCrashReportURLFlag.Name) {
+		cfg.CrashReportUrl = ctx.GlobalString(AppCrashReportURLFlag.Name)
+	}
+
+	if cfg.Pprof == nil {
+		cfg.Pprof = &nebletpb.PprofConfig{}
+	}
+	if ctx.GlobalIsSet(AppProfileListen.Name) {
+		cfg.Pprof.HttpListen = ctx.GlobalString(AppProfileListen.Name)
+	}
+	if ctx.GlobalIsSet(AppCPUProfile.Name) {
+		cfg.Pprof.Cpuprofile = ctx.GlobalString(AppCPUProfile.Name)
+	}
+	if ctx.GlobalIsSet(AppMemProfile.Name) {
+		cfg.Pprof.Memprofile = ctx.GlobalString(AppMemProfile.Name)
 	}
 }
 

@@ -1,6 +1,15 @@
 
+"use strict";
 
 var BigNumber = require('bignumber.js');
+
+var isNull = function (v) {
+    return v === null || typeof v === "undefined";
+};
+
+var isBrowser = function () {
+    return (typeof window !== "undefined");
+};
 
 var isBigNumber = function (obj) {
     return obj instanceof BigNumber ||
@@ -43,6 +52,8 @@ var toString = function (obj) {
 };
 
 module.exports = {
+    isNull: isNull,
+    isBrowser: isBrowser,
 	isBigNumber: isBigNumber,
 	isString: isString,
 	isObject: isObject,

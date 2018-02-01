@@ -23,12 +23,15 @@ import (
 
 	"path/filepath"
 
+	"time"
+
 	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/crypto"
 	"github.com/nebulasio/go-nebulas/crypto/cipher"
 	"github.com/nebulasio/go-nebulas/crypto/keystore"
 	"github.com/nebulasio/go-nebulas/neblet/pb"
-	log "github.com/sirupsen/logrus"
+	"github.com/nebulasio/go-nebulas/util/logging"
+	"github.com/sirupsen/logrus"
 )
 
 // const SignatureCiphers
@@ -53,7 +56,7 @@ var (
 
 // Neblet interface breaks cycle import dependency and hides unused services.
 type Neblet interface {
-	Config() nebletpb.Config
+	Config() *nebletpb.Config
 }
 
 // Manager accounts manager ,handle account generate and storage
@@ -99,13 +102,6 @@ func NewManager(neblet Neblet) *Manager {
 				m.signatureAlg = keystore.Algorithm(EccSecp256K1Value)
 			}
 		}
-
-		// if conf.GetSignature() > 0 {
-		// 	m.signatureAlg = keystore.Algorithm(conf.GetSignature())
-		// }
-		// if conf.GetEncrypt() > 0 {
-		// 	m.encryptAlg = keystore.Algorithm(conf.GetEncrypt())
-		// }
 	}
 	m.refreshAccounts()
 	return m
@@ -134,18 +130,36 @@ func (m *Manager) storeAddress(priv keystore.PrivateKey, passphrase []byte, writ
 	if err != nil {
 		return nil, err
 	}
+	var path string
 	if writeFile {
 		// export key to file in keydir
-		err = m.exportFile(addr, passphrase)
+		path, err = m.exportFile(addr, passphrase)
 		if err != nil {
 			return nil, err
 		}
 	}
+	if !m.Contains(addr) {
+		acc := &account{addr: addr, path: path}
+		m.accounts = append(m.accounts, acc)
+	} else if len(path) > 0 {
+		acc := m.getAccount(addr)
+		acc.path = path
+	}
 	return addr, nil
 }
 
+// Contains returns if contains address
+func (m *Manager) Contains(addr *core.Address) bool {
+	for _, acc := range m.accounts {
+		if acc.addr.Equals(addr) {
+			return true
+		}
+	}
+	return false
+}
+
 // Unlock unlock address with passphrase
-func (m *Manager) Unlock(addr *core.Address, passphrase []byte) error {
+func (m *Manager) Unlock(addr *core.Address, passphrase []byte, duration time.Duration) error {
 	res, err := m.ks.ContainsAlias(addr.String())
 	if err != nil || res == false {
 		err = m.loadFile(addr, passphrase)
@@ -153,7 +167,7 @@ func (m *Manager) Unlock(addr *core.Address, passphrase []byte) error {
 			return err
 		}
 	}
-	return m.ks.Unlock(addr.String(), passphrase, keystore.DefaultUnlockDuration)
+	return m.ks.Unlock(addr.String(), passphrase, duration)
 }
 
 // Lock lock address
@@ -229,12 +243,8 @@ func (m *Manager) Export(addr *core.Address, passphrase []byte) ([]byte, error) 
 }
 
 // Delete delete address
-func (m *Manager) Delete(a string, passphrase []byte) error {
-	addr, err := core.AddressParse(a)
-	if err != nil {
-		return err
-	}
-	err = m.ks.Delete(a, passphrase)
+func (m *Manager) Delete(addr *core.Address, passphrase []byte) error {
+	err := m.ks.Delete(addr.String(), passphrase)
 	if err != nil {
 		return err
 	}
@@ -250,7 +260,7 @@ func (m *Manager) SignTransaction(addr *core.Address, tx *core.Transaction) erro
 	}
 	key, err := m.ks.GetUnlocked(addr.String())
 	if err != nil {
-		log.WithFields(log.Fields{
+		logging.VLog().WithFields(logrus.Fields{
 			"func": "SignTransaction",
 			"err":  ErrTxAddressLocked,
 			"tx":   tx,
@@ -270,7 +280,7 @@ func (m *Manager) SignTransaction(addr *core.Address, tx *core.Transaction) erro
 func (m *Manager) SignBlock(addr *core.Address, block *core.Block) error {
 	key, err := m.ks.GetUnlocked(addr.String())
 	if err != nil {
-		log.WithFields(log.Fields{
+		logging.VLog().WithFields(logrus.Fields{
 			"func":  "SignBlock",
 			"err":   ErrBlockAddressLocked,
 			"block": block,
@@ -302,7 +312,7 @@ func (m *Manager) SignTransactionWithPassphrase(addr *core.Address, tx *core.Tra
 
 	key, err := m.ks.GetKey(addr.String(), passphrase)
 	if err != nil {
-		log.WithFields(log.Fields{
+		logging.VLog().WithFields(logrus.Fields{
 			"func": "SignTransactionWithPassphrase",
 			"err":  ErrTxAddressLocked,
 			"tx":   tx,

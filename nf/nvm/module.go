@@ -26,7 +26,8 @@ import (
 	"strings"
 	"unsafe"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/nebulasio/go-nebulas/util/logging"
+	"github.com/sirupsen/logrus"
 )
 
 var (
@@ -76,13 +77,12 @@ func (ms Modules) Get(id string) *Module {
 //export RequireDelegateFunc
 func RequireDelegateFunc(handler unsafe.Pointer, filename *C.char, lineOffset *C.size_t) *C.char {
 	id := C.GoString(filename)
-	// log.Debugf("require load %s", id)
 
 	e := getEngineByEngineHandler(handler)
 	if e == nil {
-		log.WithFields(log.Fields{
+		logging.VLog().WithFields(logrus.Fields{
 			"filename": id,
-		}).Error("require delegate handler does not found.")
+		}).Debug("require delegate handler does not found.")
 		return nil
 	}
 

@@ -27,13 +27,15 @@ import (
 	"github.com/nebulasio/go-nebulas/core/state"
 	"github.com/nebulasio/go-nebulas/storage"
 	"github.com/nebulasio/go-nebulas/util"
-	log "github.com/sirupsen/logrus"
+	"github.com/nebulasio/go-nebulas/util/logging"
+	"github.com/sirupsen/logrus"
 )
 
 // Genesis Block Hash
 var (
 	GenesisHash      = make([]byte, BlockHashLength)
 	GenesisTimestamp = int64(0)
+	GenesisCoinbase  = &Address{make([]byte, AddressLength)}
 )
 
 // LoadGenesisConf load genesis conf for file
@@ -69,13 +71,12 @@ func NewGenesisBlock(conf *corepb.Genesis, chain *BlockChain) (*Block, error) {
 	if err != nil {
 		return nil, err
 	}
-	coinbase := &Address{make([]byte, AddressLength)}
 	genesisBlock := &Block{
 		header: &BlockHeader{
 			chainID:     conf.Meta.ChainId,
 			parentHash:  GenesisHash,
 			dposContext: &corepb.DposContext{},
-			coinbase:    coinbase,
+			coinbase:    GenesisCoinbase,
 			timestamp:   GenesisTimestamp,
 			nonce:       0,
 		},
@@ -89,23 +90,22 @@ func NewGenesisBlock(conf *corepb.Genesis, chain *BlockChain) (*Block, error) {
 		sealed:      false,
 	}
 
-	context, err := GenesisDynastyContext(chain.storage, conf)
+	context, err := GenesisDynastyContext(chain, conf)
 	if err != nil {
 		return nil, err
 	}
 	genesisBlock.LoadDynastyContext(context)
-	genesisBlock.SetMiner(coinbase)
+	genesisBlock.SetMiner(GenesisCoinbase)
 
 	genesisBlock.begin()
 	// add token distribution for genesis
 	for _, v := range conf.TokenDistribution {
 		addr, err := AddressParse(v.Address)
 		if err != nil {
-			log.WithFields(log.Fields{
-				"func":  "GenerateGenesisBlock",
-				"block": v.Address,
-				"err":   err,
-			}).Error("wrong address in initial distribution.")
+			logging.CLog().WithFields(logrus.Fields{
+				"address": v.Address,
+				"err":     err,
+			}).Error("Found invalid address in genesis token distribution.")
 			return nil, err
 		}
 		acc := genesisBlock.accState.GetOrCreateUserAccount(addr.address)
@@ -113,7 +113,14 @@ func NewGenesisBlock(conf *corepb.Genesis, chain *BlockChain) (*Block, error) {
 	}
 	genesisBlock.commit()
 
-	genesisBlock.Seal()
+	if err := genesisBlock.Seal(); err != nil {
+		logging.CLog().WithFields(logrus.Fields{
+			"gensis": genesisBlock,
+			"err":    err,
+		}).Error("Failed to seal genesis block.")
+		return nil, err
+	}
+
 	genesisBlock.header.hash = GenesisHash
 	return genesisBlock, nil
 }

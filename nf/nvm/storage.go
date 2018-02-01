@@ -26,7 +26,8 @@ import (
 
 	"github.com/nebulasio/go-nebulas/common/trie"
 	"github.com/nebulasio/go-nebulas/storage"
-	log "github.com/sirupsen/logrus"
+	"github.com/nebulasio/go-nebulas/util/logging"
+	"github.com/sirupsen/logrus"
 )
 
 // Errors
@@ -70,12 +71,11 @@ func StorageGetFunc(handler unsafe.Pointer, key *C.char) *C.char {
 	val, err := storage.Get([]byte(hashStorageKey(C.GoString(key))))
 	if err != nil {
 		if err != ErrKeyNotFound {
-			log.WithFields(log.Fields{
-				"func":    "nvm.StorageGetFunc",
+			logging.VLog().WithFields(logrus.Fields{
 				"handler": uint64(uintptr(handler)),
 				"key":     C.GoString(key),
 				"err":     err,
-			}).Error("StorageGetFunc get key failed.")
+			}).Debug("StorageGetFunc get key failed.")
 		}
 		return nil
 	}
@@ -91,16 +91,13 @@ func StoragePutFunc(handler unsafe.Pointer, key *C.char, value *C.char) int {
 		return 1
 	}
 
-	// log.Errorf("[--------------] StoragePutFunc, storage = %v; {%v: %v}", storage, C.GoString(key), C.GoString(value))
-
 	err := storage.Put([]byte(hashStorageKey(C.GoString(key))), []byte(C.GoString(value)))
 	if err != nil && err != ErrKeyNotFound {
-		log.WithFields(log.Fields{
-			"func":    "nvm.StoragePutFunc",
+		logging.VLog().WithFields(logrus.Fields{
 			"handler": uint64(uintptr(handler)),
 			"key":     C.GoString(key),
 			"err":     err,
-		}).Error("StoragePutFunc put key failed.")
+		}).Debug("StoragePutFunc put key failed.")
 		return 1
 	}
 	return 0
@@ -117,12 +114,11 @@ func StorageDelFunc(handler unsafe.Pointer, key *C.char) int {
 	err := storage.Del([]byte(hashStorageKey(C.GoString(key))))
 
 	if err != nil && err != ErrKeyNotFound {
-		log.WithFields(log.Fields{
-			"func":    "nvm.StorageDelFunc",
+		logging.VLog().WithFields(logrus.Fields{
 			"handler": uint64(uintptr(handler)),
 			"key":     C.GoString(key),
 			"err":     err,
-		}).Warn("StorageDelFunc del key failed.")
+		}).Debug("StorageDelFunc del key failed.")
 		return 1
 	}
 

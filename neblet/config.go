@@ -24,13 +24,11 @@ import (
 
 	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/neblet/pb"
-	log "github.com/sirupsen/logrus"
+	"github.com/nebulasio/go-nebulas/util/logging"
 )
 
 // LoadConfig loads configuration from the file.
 func LoadConfig(file string) *nebletpb.Config {
-	//log.Info("Loading Neb config from file ", file)
-
 	var content string
 	if len(file) > 0 {
 		if !pathExist(file) {
@@ -38,55 +36,50 @@ func LoadConfig(file string) *nebletpb.Config {
 		}
 		b, err := ioutil.ReadFile(file)
 		if err != nil {
-			log.Fatal(err)
+			logging.CLog().Fatalf("Failed to read the config file: %s. error: %s", file, err)
 		}
 
 		content = string(b)
 	} else {
 		content = defaultConfig()
 	}
-	//log.Info("Parsing Neb config text ", content)
 
 	pb := new(nebletpb.Config)
 	if err := proto.UnmarshalText(content, pb); err != nil {
-		log.Fatal(err)
+		logging.CLog().Fatalf("Failed to parse the config file: %s. error: %s", file, err)
 	}
-	//log.Info("Loaded Neb config proto ", pb)
 	return pb
 }
 
 func defaultConfig() string {
 	content := `
 	network {
-		listen: ["127.0.0.1:51413"]
+		listen: ["127.0.0.1:8680"]
 	}
 
 	chain {
 		chain_id: 100
-		datadir: "seed.db"
+		datadir: "data.db"
+		genesis: "conf/default/genesis.conf"
 		keydir: "keydir"
 		coinbase: "eb31ad2d8a89a0ca6935c308d5425730430bc2d63f2573b8"
 		signature_ciphers: ["ECC_SECP256K1"]
 	}
 
 	rpc {
-		rpc_listen: ["127.0.0.1:51510"]
-		http_listen: ["127.0.0.1:8090"]
+		rpc_listen: ["127.0.0.1:8684"]
+		http_listen: ["127.0.0.1:8685"]
 		http_module: ["api","admin"]
 	}
 
-  app {
-    enable_crash_report: true
-  }
+  	app {
+		log_level: "info"
+    	log_file: "logs"
+    	enable_crash_report: false
+  	}
 
 	stats {
 		enable_metrics: false
-		influxdb: {
-			host: "http://localhost:8086"
-			db: "nebulas"
-			user: "admin"
-			password: "admin"
-		}
 	}
 	`
 	return content
@@ -95,7 +88,7 @@ func defaultConfig() string {
 // CreateDefaultConfigFile create a default config file.
 func CreateDefaultConfigFile(filename string) {
 	if err := ioutil.WriteFile(filename, []byte(defaultConfig()), 0644); err != nil {
-		log.Fatal(err)
+		logging.VLog().Fatal(err)
 	}
 }
 

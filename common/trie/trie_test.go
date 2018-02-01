@@ -19,8 +19,10 @@
 package trie
 
 import (
+	"fmt"
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/common/trie/pb"
@@ -237,4 +239,37 @@ func TestTrie_Operation(t *testing.T) {
 	if !reflect.DeepEqual([]byte(nil), tr.rootHash) {
 		t.Errorf("3 Trie.Del() = %v, want %v", nil, tr.rootHash)
 	}
+}
+
+func TestTrie_Stress(t *testing.T) {
+	COUNT := int64(10000)
+	storage, _ := storage.NewMemoryStorage()
+	tr, _ := NewTrie(nil, storage)
+
+	keys := make([][]byte, COUNT)
+	for i := int64(0); i < COUNT; i++ {
+		bytes := byteutils.FromInt64(i)
+		for j := 0; j < 4; j++ {
+			bytes = append(bytes, bytes...)
+		}
+		keys[i] = bytes
+	}
+	fmt.Println(len(keys[0]))
+	// 128
+
+	startAt := time.Now().UnixNano()
+	for i := int64(0); i < COUNT; i++ {
+		tr.Put(keys[i], keys[i])
+	}
+	endAt := time.Now().UnixNano()
+	fmt.Printf("%d Put, cost %d\n", COUNT, endAt-startAt)
+	// 10000 Put, cost 509313000
+
+	startAt = time.Now().UnixNano()
+	for i := int64(0); i < COUNT; i++ {
+		tr.Get(keys[i])
+	}
+	endAt = time.Now().UnixNano()
+	fmt.Printf("%d Get, cost %d\n", COUNT, endAt-startAt)
+	// 10000 Get, cost 396201000
 }

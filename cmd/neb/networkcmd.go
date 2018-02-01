@@ -19,12 +19,10 @@
 package main
 
 import (
-	"encoding/base64"
 	"fmt"
 
-	"github.com/libp2p/go-libp2p-crypto"
 	"github.com/nebulasio/go-nebulas/account"
-	"github.com/nebulasio/go-nebulas/net/p2p"
+	"github.com/nebulasio/go-nebulas/net"
 	"github.com/urfave/cli"
 )
 
@@ -56,15 +54,20 @@ Make sure that the seed node should have a private key.`,
 
 // accountCreate creates a new account into the keystore
 func generatePrivateKey(ctx *cli.Context) error {
-	priv, _, err := p2p.GenerateEd25519Key()
-	privb, err := crypto.MarshalPrivateKey(priv)
-	fmt.Printf("private.key: %s\n", base64.StdEncoding.EncodeToString(privb))
+	key, err := net.GenerateEd25519Key()
+	if err != nil {
+		return err
+	}
+
+	str, _ := net.MarshalNetworkKey(key)
+	fmt.Printf("private.key: %s\n", key)
 
 	path := ctx.Args().First()
 	if len(path) == 0 {
-		path = "conf/network/ed25519key"
+		path = net.DefaultPrivateKeyPath
 	}
 
-	account.WriteFile(path, []byte(base64.StdEncoding.EncodeToString(privb)))
-	return err
+	account.WriteFile(path, []byte(str))
+
+	return nil
 }

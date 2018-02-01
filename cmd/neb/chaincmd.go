@@ -82,12 +82,7 @@ func initGenesis(ctx *cli.Context) error {
 	}
 
 	neb.SetGenesis(genesis)
-
-	err = neb.Setup()
-	if err != nil {
-		FatalF("update genesis conf faild: %v", err)
-	}
-	fmt.Println("init genesis success.")
+	neb.Setup()
 	return nil
 }
 
@@ -96,9 +91,8 @@ func dumpGenesis(ctx *cli.Context) error {
 	if err != nil {
 		FatalF("dump genesis conf faild: %v", err)
 	}
-	if err := neb.Setup(); err != nil {
-		FatalF("dump genesis conf faild: %v", err)
-	}
+
+	neb.Setup()
 
 	genesis, err := core.DumpGenesis(neb.Storage())
 	if err != nil {
@@ -121,9 +115,8 @@ func dumpblock(ctx *cli.Context) error {
 		return err
 	}
 
-	if err := neb.Setup(); err != nil {
-		return err
-	}
+	neb.Setup()
+
 	count, err := strconv.Atoi(ctx.Args().First())
 	if err != nil {
 		return err

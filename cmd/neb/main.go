@@ -29,18 +29,7 @@ import (
 
 	"github.com/nebulasio/go-nebulas/neblet"
 	"github.com/nebulasio/go-nebulas/util/logging"
-	log "github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
-)
-
-// const
-const (
-	PanicLevel = "panic"
-	FatalLevel = "fatal"
-	ErrorLevel = "error"
-	WarnLevel  = "warn"
-	InfoLevel  = "info"
-	DebugLevel = "debug"
 )
 
 var (
@@ -66,6 +55,7 @@ func main() {
 	app.Flags = append(app.Flags, NetworkFlags...)
 	app.Flags = append(app.Flags, ChainFlags...)
 	app.Flags = append(app.Flags, RPCFlags...)
+	app.Flags = append(app.Flags, AppFlags...)
 	app.Flags = append(app.Flags, StatsFlags...)
 
 	sort.Sort(cli.FlagsByName(app.Flags))
@@ -88,83 +78,63 @@ func main() {
 }
 
 func neb(ctx *cli.Context) error {
-	logging.EnableFuncNameLogger()
-
 	n, err := makeNeb(ctx)
 	if err != nil {
 		return err
 	}
 
-	if n.Config().App.EnableCrashReport {
-		InitCrashReporter()
+	logging.Init(n.Config().App.LogFile, n.Config().App.LogLevel, n.Config().App.LogAge)
+
+	// enable crash report if open the switch and configure the url
+	if n.Config().App.EnableCrashReport && len(n.Config().App.CrashReportUrl) > 0 {
+		InitCrashReporter(n.Config().App)
 	}
 
-	err = logging.EnableFileLogger(n.Config().App.LogFile)
-	if err != nil {
-		return err
-	}
-
-	log.SetFormatter(&log.TextFormatter{FullTimestamp: true})
-	log.SetOutput(os.Stdout)
-
-	if n.Config().App.LogLevel != "" {
-		switch n.Config().App.LogLevel {
-		case PanicLevel:
-			log.SetLevel(log.PanicLevel)
-		case FatalLevel:
-			log.SetLevel(log.FatalLevel)
-		case ErrorLevel:
-			log.SetLevel(log.ErrorLevel)
-		case WarnLevel:
-			log.SetLevel(log.WarnLevel)
-		case InfoLevel:
-			log.SetLevel(log.InfoLevel)
-		case DebugLevel:
-			log.SetLevel(log.DebugLevel)
-		default:
-			log.SetLevel(log.InfoLevel)
-		}
-	}
-
-	runNeb(n)
-
-	// TODO: just use the signal to block main.
-	for {
-		time.Sleep(60 * time.Second) // or runtime.Gosched() or similar per @misterbee
+	select {
+	case <-runNeb(ctx, n):
+		return nil
 	}
 }
 
-func runNeb(n *neblet.Neblet) {
+func runNeb(ctx *cli.Context, n *neblet.Neblet) chan bool {
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 
-	if err := n.Setup(); err != nil {
-		panic("Setup Neblet Failed: " + err.Error())
+	// start net pprof if config.App.Pprof.HttpListen configured
+	err := n.StartPprof(n.Config().App.Pprof.HttpListen)
+	if err != nil {
+		FatalF("start pprof failed:%s", err)
 	}
 
-	if err := n.Start(); err != nil {
-		panic("Start Neblet Failed: " + err.Error())
-	}
+	n.Setup()
+	n.Start()
+
+	quitCh := make(chan bool, 1)
 
 	go func() {
 		<-c
+
 		n.Stop()
 
-		// TODO: remove this once p2pManager handles stop properly.
-		os.Exit(1)
+		quitCh <- true
+		return
 	}()
+
+	return quitCh
 }
 
 func makeNeb(ctx *cli.Context) (*neblet.Neblet, error) {
 	conf := neblet.LoadConfig(config)
+	conf.App.Version = version
 
 	// load config from cli args
 	networkConfig(ctx, conf.Network)
 	chainConfig(ctx, conf.Chain)
 	rpcConfig(ctx, conf.Rpc)
+	appConfig(ctx, conf.App)
 	statsConfig(ctx, conf.Stats)
 
-	n, err := neblet.New(*conf)
+	n, err := neblet.New(conf)
 	if err != nil {
 		return nil, err
 	}

@@ -29,6 +29,13 @@ type PrivateKey struct {
 	privateKey *ecdsa.PrivateKey
 }
 
+// NewPrivateKey new a private key with ecdsa.PrivateKey
+func NewPrivateKey(key *ecdsa.PrivateKey) *PrivateKey {
+	priv := new(PrivateKey)
+	priv.privateKey = key
+	return priv
+}
+
 // GeneratePrivateKey generate a new private key
 func GeneratePrivateKey() *PrivateKey {
 	priv := new(PrivateKey)

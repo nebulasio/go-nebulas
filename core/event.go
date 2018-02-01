@@ -21,19 +21,23 @@ package core
 import (
 	"sync"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/nebulasio/go-nebulas/util/logging"
+	"github.com/sirupsen/logrus"
 )
 
 const (
+
+	// TopicPendingTransaction the topic of pending a transaction in transaction_pool.
+	TopicPendingTransaction = "chain.pendingTransaction"
 
 	// TopicSendTransaction the topic of send a transaction.
 	TopicSendTransaction = "chain.sendTransaction"
 
 	// TopicDeploySmartContract the topic of deploy a smart contract.
-	TopicDeploySmartContract = "chain.deploySmartContract"
+	TopicDeploySmartContract = "chain.deployContract"
 
 	// TopicCallSmartContract the topic of call a smart contract.
-	TopicCallSmartContract = "chain.callSmartContract"
+	TopicCallSmartContract = "chain.callContract"
 
 	// TopicDelegate the topic of delegate.
 	TopicDelegate = "chain.delegate"
@@ -62,33 +66,43 @@ type EventEmitter struct {
 	eventSubs *sync.Map
 	eventCh   chan *Event
 	quitCh    chan int
+	size      int
 }
 
 // NewEventEmitter return new EventEmitter.
-func NewEventEmitter() *EventEmitter {
+func NewEventEmitter(size int) *EventEmitter {
 	return &EventEmitter{
 		eventSubs: new(sync.Map),
-		eventCh:   make(chan *Event, 1024),
+		eventCh:   make(chan *Event, size),
 		quitCh:    make(chan int, 1),
+		size:      size,
 	}
 }
 
 // Start start emitter.
 func (emitter *EventEmitter) Start() {
+	logging.CLog().WithFields(logrus.Fields{
+		"size": emitter.size,
+	}).Info("Starting EventEmitter...")
+
 	go emitter.loop()
 }
 
 // Stop stop emitter.
 func (emitter *EventEmitter) Stop() {
+	logging.CLog().WithFields(logrus.Fields{
+		"size": emitter.size,
+	}).Info("Stopping EventEmitter...")
+
 	emitter.quitCh <- 1
 }
 
 // Trigger trigger event.
 func (emitter *EventEmitter) Trigger(e *Event) {
-	log.WithFields(log.Fields{
+	/* 	logging.VLog().WithFields(logrus.Fields{
 		"topic": e.Topic,
 		"data":  e.Data,
-	}).Debug("trigger new event")
+	}).Debug("Trigger new event") */
 	emitter.eventCh <- e
 }
 
@@ -120,10 +134,12 @@ func (emitter *EventEmitter) Deregister(topic string, ch chan *Event) error {
 }
 
 func (emitter *EventEmitter) loop() {
+	logging.CLog().Info("Started EventEmitter.")
+
 	for {
 		select {
 		case <-emitter.quitCh:
-			log.Info("EventEmitter.loop: quit.")
+			logging.CLog().Info("Stopped EventEmitter.")
 			return
 		case e := <-emitter.eventCh:
 

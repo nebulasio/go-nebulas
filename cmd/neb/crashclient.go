@@ -28,16 +28,19 @@ import (
 	"strconv"
 	"syscall"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/nebulasio/go-nebulas/neblet/pb"
+	"github.com/nebulasio/go-nebulas/util/logging"
+	"github.com/sirupsen/logrus"
 )
 
 // InitCrashReporter init crash reporter
-func InitCrashReporter() {
+func InitCrashReporter(conf *nebletpb.AppConfig) {
 	os.Setenv("GOBACKTRACE", "crash")
 	dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
 	if err != nil {
-		log.Warn("InitCrashReporter ignore due to filepath failure")
-		return
+		logging.CLog().WithFields(logrus.Fields{
+			"err": err,
+		}).Fatal("Failed to init crash reporter.")
 	}
 	fp := fmt.Sprintf("%vcrash_%v.log", os.TempDir(), os.Getpid())
 
@@ -54,12 +57,11 @@ func InitCrashReporter() {
 	}
 
 	if err != nil {
-		log.Warn("InitCrashReporter ignore due to create tcp server failure")
-		return
+		logging.CLog().WithFields(logrus.Fields{
+			"err": err,
+		}).Fatal("Failed to init crash reporter.")
 	}
 	defer s.Close()
-
-	log.Debug("InitCrashReporter starting daemon...")
 
 	code := rand.Intn(0xFFFF)
 	cmd := exec.Command(fmt.Sprintf("%v/nebulas_crashreporter", dir),
@@ -70,24 +72,27 @@ func InitCrashReporter() {
 		"-code",
 		strconv.Itoa(code),
 		"-pid",
-		strconv.Itoa(os.Getpid()))
+		strconv.Itoa(os.Getpid()),
+		"-url",
+		conf.CrashReportUrl)
 
 	err = cmd.Start()
 	if err != nil {
-		log.Warn("InitCrashReporter ignore due to start daemon failure")
-		return
+		logging.CLog().WithFields(logrus.Fields{
+			"err": err,
+		}).Fatal("Failed to start crash reporter daemon.")
 	}
 
 	conn, err := s.Accept()
 	if err != nil {
-		log.Warn("InitCrashReporter ignore due to create tcp accept failure")
-		return
+		logging.CLog().WithFields(logrus.Fields{
+			"err": err,
+		}).Fatal("Failed to init crash reporter.")
 	}
 	var buf = make([]byte, 10)
 	n, berror := conn.Read(buf)
 	if berror != nil {
-		//log.Println("conn read error:", berror)
-		return
+		logging.CLog().Fatalf("conn read error: %s", berror)
 	}
 	rs := string(buf[:n])
 
@@ -97,6 +102,12 @@ func InitCrashReporter() {
 			syscall.Dup2(int(crashFile.Fd()), 2)
 		}
 	} else {
-		log.Warn("InitCrashReporter ignore due to code not match")
+		logging.CLog().WithFields(logrus.Fields{
+			"rs":   rs,
+			"code": code,
+			"err":  "code not match",
+		}).Fatal("Failed to init crash reporter.")
 	}
+
+	logging.CLog().Info("Started crash reporter.")
 }

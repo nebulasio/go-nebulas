@@ -53,7 +53,8 @@ import (
 	"unsafe"
 
 	"github.com/nebulasio/go-nebulas/core/state"
-	log "github.com/sirupsen/logrus"
+	"github.com/nebulasio/go-nebulas/util/logging"
+	"github.com/sirupsen/logrus"
 )
 
 // Const.
@@ -194,7 +195,7 @@ func (e *V8Engine) SetExecutionLimits(limitsOfExecutionInstructions, limitsOfTot
 	e.v8engine.limits_of_executed_instructions = C.size_t(limitsOfExecutionInstructions)
 	e.v8engine.limits_of_total_memory_size = C.size_t(limitsOfTotalMemorySize)
 
-	log.WithFields(log.Fields{
+	logging.VLog().WithFields(logrus.Fields{
 		"limits_of_executed_instructions": e.v8engine.limits_of_executed_instructions,
 		"limits_of_total_memory_size":     e.v8engine.limits_of_total_memory_size,
 	}).Debug("set execution limits.")
@@ -205,7 +206,7 @@ func (e *V8Engine) SetExecutionLimits(limitsOfExecutionInstructions, limitsOfTot
 
 	// V8 needs at least 6M heap memory.
 	if limitsOfTotalMemorySize > 0 && limitsOfTotalMemorySize < 6000000 {
-		log.Warnf("V8 needs at least 6M (6000000) heap memory, your limitsOfTotalMemorySize (%d) is too low.", limitsOfTotalMemorySize)
+		logging.VLog().Warnf("V8 needs at least 6M (6000000) heap memory, your limitsOfTotalMemorySize (%d) is too low.", limitsOfTotalMemorySize)
 	}
 }
 
@@ -255,11 +256,11 @@ func (e *V8Engine) CollectTracingStats() {
 }
 
 // RunScriptSource run js source.
-func (e *V8Engine) RunScriptSource(source string, sourceLineOffset int) (err error) {
+func (e *V8Engine) RunScriptSource(source string, sourceLineOffset int) (result string, err error) {
 	if e.enableLimits {
 		traceableSource, traceableSourceLineOffset, err := e.InjectTracingInstructions(source)
 		if err != nil {
-			return err
+			return "", err
 		}
 		source = traceableSource
 		sourceLineOffset += traceableSourceLineOffset
@@ -267,11 +268,19 @@ func (e *V8Engine) RunScriptSource(source string, sourceLineOffset int) (err err
 
 	cSource := C.CString(source)
 	defer C.free(unsafe.Pointer(cSource))
+
 	var ret C.int
+	var cJSONResult *C.char
+	defer func() {
+		if cJSONResult != nil {
+			result = C.GoString(cJSONResult)
+			C.free(unsafe.Pointer(cJSONResult))
+		}
+	}()
 
 	done := make(chan bool, 1)
 	go func() {
-		ret = C.RunScriptSource(e.v8engine, cSource, C.int(sourceLineOffset), C.uintptr_t(e.lcsHandler),
+		ret = C.RunScriptSource(&cJSONResult, e.v8engine, cSource, C.int(sourceLineOffset), C.uintptr_t(e.lcsHandler),
 			C.uintptr_t(e.gcsHandler))
 		done <- true
 	}()
@@ -312,20 +321,20 @@ func (e *V8Engine) RunScriptSource(source string, sourceLineOffset int) (err err
 }
 
 // Call function in a script
-func (e *V8Engine) Call(source, sourceType, function, args string) error {
+func (e *V8Engine) Call(source, sourceType, function, args string) (string, error) {
 	if publicFuncNameChecker.MatchString(function) == false || strings.EqualFold("init", function) == true {
-		return ErrDisallowCallPrivateFunction
+		return "", ErrDisallowCallPrivateFunction
 	}
 	return e.RunContractScript(source, sourceType, function, args)
 }
 
 // DeployAndInit a contract
-func (e *V8Engine) DeployAndInit(source, sourceType, args string) error {
+func (e *V8Engine) DeployAndInit(source, sourceType, args string) (string, error) {
 	return e.RunContractScript(source, sourceType, "init", args)
 }
 
 // RunContractScript execute script in Smart Contract's way.
-func (e *V8Engine) RunContractScript(source, sourceType, function, args string) error {
+func (e *V8Engine) RunContractScript(source, sourceType, function, args string) (string, error) {
 	var runnableSource string
 	var sourceLineOffset int
 	var err error
@@ -337,15 +346,15 @@ func (e *V8Engine) RunContractScript(source, sourceType, function, args string) 
 		// transpile to javascript.
 		jsSource, _, err := e.TranspileTypeScript(source)
 		if err != nil {
-			return err
+			return "", err
 		}
 		runnableSource, sourceLineOffset, err = e.prepareRunnableContractScript(jsSource, function, args)
 	default:
-		return ErrUnsupportedSourceType
+		return "", ErrUnsupportedSourceType
 	}
 
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	return e.RunScriptSource(runnableSource, sourceLineOffset)
@@ -357,9 +366,9 @@ func (e *V8Engine) AddModule(id, source string, sourceLineOffset int) error {
 	if e.enableLimits {
 		traceableSource, lineOffset, err := e.InjectTracingInstructions(source)
 		if err != nil {
-			log.WithFields(log.Fields{
+			logging.VLog().WithFields(logrus.Fields{
 				"err": err,
-			}).Error("inject tracing instruction failed.")
+			}).Debug("inject tracing instruction failed.")
 			return err
 		}
 		source = traceableSource
@@ -393,17 +402,15 @@ func (e *V8Engine) prepareRunnableContractScript(source, function, args string) 
 }
 
 func getEngineByStorageHandler(handler uint64) (*V8Engine, state.Account) {
-	// log.Errorf("[--------------] getEngineByStorageHandler, handler = %d", handler)
-
 	storagesLock.RLock()
 	engine := storages[handler]
 	storagesLock.RUnlock()
 
 	if engine == nil {
-		log.WithFields(log.Fields{
+		logging.VLog().WithFields(logrus.Fields{
 			"func":          "nvm.getEngineByStorageHandler",
 			"wantedHandler": handler,
-		}).Error("wantedHandler is not found.")
+		}).Debug("wantedHandler is not found.")
 		return nil, nil
 	}
 
@@ -414,12 +421,12 @@ func getEngineByStorageHandler(handler uint64) (*V8Engine, state.Account) {
 		return nil, nil
 		// return engine, engine.ctx.owner
 	} else {
-		log.WithFields(log.Fields{
+		logging.VLog().WithFields(logrus.Fields{
 			"func":          "nvm.getEngineByStorageHandler",
 			"lcsHandler":    engine.lcsHandler,
 			"gcsHandler":    engine.gcsHandler,
 			"wantedHandler": handler,
-		}).Error("in-consistent storage handler.")
+		}).Debug("in-consistent storage handler.")
 		return nil, nil
 	}
 }

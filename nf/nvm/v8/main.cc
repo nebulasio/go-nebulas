@@ -89,11 +89,13 @@ void RunScriptSourceDelegate(V8Engine *e, const char *data,
     if (traceableSource == NULL) {
       fprintf(stderr, "Inject tracing instructions failed.\n");
     } else {
-      int ret = RunScriptSource(e, traceableSource, lineOffset,
+      char *out = NULL;
+      int ret = RunScriptSource(&out, e, traceableSource, lineOffset,
                                 (uintptr_t)lcsHandler, (uintptr_t)gcsHandler);
       free(traceableSource);
 
-      fprintf(stdout, "[V8] Execution ret = %d\n", ret);
+      fprintf(stdout, "[V8] Execution ret = %d, out = %s\n", ret, out);
+      free(out);
 
       ret = IsEngineLimitsExceeded(e);
       if (ret) {
@@ -125,8 +127,11 @@ void RunScriptSourceDelegate(V8Engine *e, const char *data,
               e->stats.peak_array_buffer_size);
     }
   } else {
-    RunScriptSource(e, data, lineOffset, (uintptr_t)lcsHandler,
-                    (uintptr_t)gcsHandler);
+    char *out = NULL;
+    int ret = RunScriptSource(&out, e, data, lineOffset, (uintptr_t)lcsHandler,
+                              (uintptr_t)gcsHandler);
+    fprintf(stdout, "[V8] Execution ret = %d, out = %s\n", ret, out);
+    free(out);
   }
 }
 

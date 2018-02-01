@@ -30,14 +30,20 @@ var (
 
 	// DefaultUnlockDuration default lock 300s
 	DefaultUnlockDuration = time.Duration(300 * time.Second)
+
+	// YearUnlockDuration lock 1 year time
+	YearUnlockDuration = time.Duration(365 * 24 * 60 * 60 * time.Second)
 )
 
 var (
 	// ErrUninitialized uninitialized provider error.
 	ErrUninitialized = errors.New("uninitialized the provider")
 
-	// ErrNotUnlocked not unlocked
+	// ErrNotUnlocked key not unlocked
 	ErrNotUnlocked = errors.New("key not unlocked")
+
+	// ErrInvalidPassphrase invalid passphrase
+	ErrInvalidPassphrase = errors.New("passphrase is invalid")
 )
 
 // unlock item

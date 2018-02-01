@@ -54,6 +54,7 @@ func TestTransactionPool(t *testing.T) {
 	txPool, _ := NewTransactionPool(3)
 	bc, _ := NewBlockChain(testNeb())
 	txPool.setBlockChain(bc)
+	txPool.setEventEmitter(bc.eventEmitter)
 
 	txs := []*Transaction{
 		NewTransaction(bc.ChainID(), from, &Address{[]byte("to")}, util.NewUint128(), 10, TxPayloadBinaryType, []byte("datadata"), TransactionGasPrice, util.NewUint128FromInt(200000)),
@@ -147,6 +148,7 @@ func TestPushTxs(t *testing.T) {
 	txPool, _ := NewTransactionPool(3)
 	bc, _ := NewBlockChain(testNeb())
 	txPool.setBlockChain(bc)
+	txPool.setEventEmitter(bc.eventEmitter)
 	MaxGasPlus1 := util.NewUint128FromBigInt(util.NewUint128().Add(TransactionMaxGas.Int, util.NewUint128FromInt(1).Int))
 	txs := []*Transaction{
 		NewTransaction(bc.ChainID(), from, to, util.NewUint128(), 10, TxPayloadBinaryType, []byte("datadata"), util.NewUint128FromInt(10^6-1), TransactionMaxGas),
@@ -154,8 +156,4 @@ func TestPushTxs(t *testing.T) {
 	}
 	assert.Equal(t, txPool.push(txs[0]), ErrBelowGasPrice)
 	assert.Equal(t, txPool.push(txs[1]), ErrOutOfGasLimit)
-}
-
-func TestTransactionPoolSize(t *testing.T) {
-	assert.Panics(t, func() { NewTransactionPool(0) })
 }

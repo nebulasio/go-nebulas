@@ -1,3 +1,7 @@
+# profile
+*.profile
+profile/
+
 # vendor dir.
 vendor
 
@@ -10,6 +14,8 @@ vendor
 
 # build files
 neb
+neb-*
+cmd/network/network
 nebulas_crashreporter
 !cmd/neb
 debug
@@ -35,3 +41,6 @@ mozilla_js_tests*
 
 #node_modules
 node_modules
+
+#log
+logs/

@@ -22,7 +22,8 @@ import (
 	"encoding/json"
 
 	"github.com/nebulasio/go-nebulas/util"
-	log "github.com/sirupsen/logrus"
+	// "github.com/nebulasio/go-nebulas/util/logging"
+	// "github.com/sirupsen/logrus"
 )
 
 // Candidate Action
@@ -63,31 +64,29 @@ func (payload *CandidatePayload) BaseGasCount() *util.Uint128 {
 }
 
 // Execute the candidate payload in tx
-func (payload *CandidatePayload) Execute(ctx *PayloadContext) (*util.Uint128, error) {
+func (payload *CandidatePayload) Execute(ctx *PayloadContext) (*util.Uint128, string, error) {
 	candidate := ctx.tx.from.Bytes()
 	switch payload.Action {
 	case LoginAction:
 		if _, err := ctx.dposContext.candidateTrie.Put(candidate, candidate); err != nil {
-			return ZeroGasCount, err
+			return ZeroGasCount, "", err
 		}
-		log.WithFields(log.Fields{
-			"func":      "Payload.Candidate",
+		/* 		logging.VLog().WithFields(logrus.Fields{
 			"block":     ctx.block,
 			"tx":        ctx.tx,
 			"candidate": ctx.tx.from.String(),
-		}).Info("Candidate Login.")
+		}).Debug("Candidate login.") */
 	case LogoutAction:
 		if err := ctx.dposContext.kickoutCandidate(candidate); err != nil {
-			return ZeroGasCount, err
+			return ZeroGasCount, "", err
 		}
-		log.WithFields(log.Fields{
-			"func":      "Payload.Candidate",
+		/* 		logging.VLog().WithFields(logrus.Fields{
 			"block":     ctx.block,
 			"tx":        ctx.tx,
 			"candidate": ctx.tx.from.String(),
-		}).Info("Candidate Logout.")
+		}).Debug("Candidate logout.") */
 	default:
-		return ZeroGasCount, ErrInvalidCandidatePayloadAction
+		return ZeroGasCount, "", ErrInvalidCandidatePayloadAction
 	}
-	return ZeroGasCount, nil
+	return ZeroGasCount, "", nil
 }

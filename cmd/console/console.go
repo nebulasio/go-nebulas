@@ -45,14 +45,14 @@ var (
 
 // Neblet interface breaks cycle import dependency and hides unused services.
 type Neblet interface {
-	Config() nebletpb.Config
+	Config() *nebletpb.Config
 }
 
 // Console console handler
 type Console struct {
 
 	// terminal input prompter
-	prompter *terminalPrompter
+	prompter *TerminalPrompter
 
 	// Channel to send the next prompt on and receive the input
 	promptCh chan string
@@ -138,10 +138,14 @@ func (c *Console) methodSwizzling() error {
 			if _, err = c.jsvm.Run(`bridge.sendTransactionWithPassphrase = admin.sendTransactionWithPassphrase;`); err != nil {
 				return fmt.Errorf("admin.sendTransactionWithPassphrase: %v", err)
 			}
+			if _, err = c.jsvm.Run(`bridge.startMining = admin.startMining;`); err != nil {
+				return fmt.Errorf("admin.startMining: %v", err)
+			}
 			obj.Set("setHost", c.jsBridge.setHost)
 			obj.Set("newAccount", c.jsBridge.newAccount)
 			obj.Set("unlockAccount", c.jsBridge.unlockAccount)
 			obj.Set("sendTransactionWithPassphrase", c.jsBridge.sendTransactionWithPassphrase)
+			obj.Set("startMining", c.jsBridge.startMining)
 		}
 	}
 	return nil
@@ -185,7 +189,7 @@ func (c *Console) Interactive() {
 			line, err := c.prompter.Prompt(<-c.promptCh)
 			if err != nil {
 				if err == liner.ErrPromptAborted { // ctrl-C
-					c.promptCh <- ""
+					c.promptCh <- exitCmd
 					continue
 				}
 				close(c.promptCh)

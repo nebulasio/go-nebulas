@@ -107,7 +107,7 @@ EXPORT void Dispose();
 
 EXPORT V8Engine *CreateEngine();
 
-EXPORT int RunScriptSource(V8Engine *e, const char *source,
+EXPORT int RunScriptSource(char **result, V8Engine *e, const char *source,
                            int source_line_offset, uintptr_t lcsHandler,
                            uintptr_t gcsHandler);
 

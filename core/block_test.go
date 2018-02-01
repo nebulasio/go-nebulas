@@ -23,11 +23,14 @@ import (
 	"testing"
 	"time"
 
+	"github.com/nebulasio/go-nebulas/util/logging"
+
 	pb "github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/core/pb"
 	"github.com/nebulasio/go-nebulas/crypto"
 	"github.com/nebulasio/go-nebulas/crypto/keystore"
 	"github.com/nebulasio/go-nebulas/crypto/keystore/secp256k1"
+	"github.com/nebulasio/go-nebulas/neblet/pb"
 	"github.com/nebulasio/go-nebulas/storage"
 	"github.com/nebulasio/go-nebulas/util"
 	"github.com/stretchr/testify/assert"
@@ -35,12 +38,17 @@ import (
 
 type mockNeb struct {
 	genesis *corepb.Genesis
+	config  *nebletpb.Config
 	storage storage.Storage
 	emitter *EventEmitter
 }
 
 func (n *mockNeb) Genesis() *corepb.Genesis {
 	return n.genesis
+}
+
+func (n *mockNeb) Config() *nebletpb.Config {
+	return n.config
 }
 
 func (n *mockNeb) Storage() storage.Storage {
@@ -51,13 +59,14 @@ func (n *mockNeb) EventEmitter() *EventEmitter {
 	return n.emitter
 }
 
-func (n *mockNeb) StartSync() {}
+func (n *mockNeb) StartActiveSync() {}
 
 func testNeb() *mockNeb {
 	storage, _ := storage.NewMemoryStorage()
-	eventEmitter := NewEventEmitter()
+	eventEmitter := NewEventEmitter(1024)
 	neb := &mockNeb{
 		genesis: MockGenesisConf(),
+		config:  &nebletpb.Config{Chain: &nebletpb.ChainConfig{ChainId: MockGenesisConf().Meta.ChainId}},
 		storage: storage,
 		emitter: eventEmitter,
 	}
@@ -67,6 +76,8 @@ func testNeb() *mockNeb {
 func TestBlock(t *testing.T) {
 	type fields struct {
 		header       *BlockHeader
+		miner        *Address
+		height       uint64
 		transactions Transactions
 	}
 	tests := []struct {
@@ -93,14 +104,16 @@ func TestBlock(t *testing.T) {
 					timestamp: time.Now().Unix(),
 					chainID:   100,
 				},
+				&Address{[]byte("hello")},
+				1,
 				Transactions{
 					&Transaction{
-						[]byte("123455"),
-						&Address{[]byte("1235")},
+						[]byte("123452"),
+						&Address{[]byte("1335")},
 						&Address{[]byte("1245")},
 						util.NewUint128(),
 						456,
-						time.Now().Unix(),
+						1516464510,
 						&corepb.Data{Type: TxPayloadBinaryType, Payload: []byte("hello")},
 						1,
 						util.NewUint128(),
@@ -111,12 +124,12 @@ func TestBlock(t *testing.T) {
 					&Transaction{
 						[]byte("123455"),
 						&Address{[]byte("1235")},
-						&Address{[]byte("1245")},
+						&Address{[]byte("1425")},
 						util.NewUint128(),
-						456,
-						time.Now().Unix(),
-						&corepb.Data{Type: TxPayloadBinaryType, Payload: []byte("hello")},
-						1,
+						446,
+						1516464511,
+						&corepb.Data{Type: TxPayloadBinaryType, Payload: []byte("hllo")},
+						2,
 						util.NewUint128(),
 						util.NewUint128(),
 						uint8(keystore.SECP256K1),
@@ -131,6 +144,8 @@ func TestBlock(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			b := &Block{
 				header:       tt.fields.header,
+				miner:        tt.fields.miner,
+				height:       tt.fields.height,
 				transactions: tt.fields.transactions,
 			}
 			proto, _ := b.ToProto()
@@ -139,8 +154,6 @@ func TestBlock(t *testing.T) {
 			pb.Unmarshal(ir, proto)
 			nb.FromProto(proto)
 			b.header.timestamp = nb.header.timestamp
-			b.transactions[0].timestamp = nb.transactions[0].timestamp
-			b.transactions[1].timestamp = nb.transactions[1].timestamp
 			if !reflect.DeepEqual(*b.header, *nb.header) {
 				t.Errorf("Transaction.Serialize() = %v, want %v", *b.header, *nb.header)
 			}
@@ -178,7 +191,7 @@ func TestBlock_LinkParentBlock(t *testing.T) {
 		transactions: []*Transaction{},
 	}
 	assert.Equal(t, block1.Height(), uint64(0))
-	assert.Equal(t, block1.LinkParentBlock(genesis), nil)
+	assert.Equal(t, block1.LinkParentBlock(bc, genesis), nil)
 	assert.Equal(t, block1.Height(), uint64(2))
 	assert.Equal(t, block1.ParentHash(), genesis.Hash())
 	block2 := &Block{
@@ -200,7 +213,7 @@ func TestBlock_LinkParentBlock(t *testing.T) {
 		},
 		transactions: []*Transaction{},
 	}
-	assert.Equal(t, block2.LinkParentBlock(genesis), ErrLinkToWrongParentBlock)
+	assert.Equal(t, block2.LinkParentBlock(bc, genesis), ErrLinkToWrongParentBlock)
 	assert.Equal(t, block2.Height(), uint64(0))
 }
 
@@ -210,7 +223,6 @@ func TestBlock_CollectTransactions(t *testing.T) {
 	bc.SetConsensusHandler(c)
 
 	tail := bc.tailBlock
-	assert.Panics(t, func() { tail.CollectTransactions(1) })
 
 	ks := keystore.DefaultKS
 	priv := secp256k1.GeneratePrivateKey()
@@ -262,7 +274,7 @@ func TestBlock_CollectTransactions(t *testing.T) {
 
 	assert.Equal(t, len(block.transactions), 0)
 	assert.Equal(t, bc.txPool.cache.Len(), 5)
-	block.CollectTransactions(bc.txPool.cache.Len())
+	block.CollectTransactions(time.Now().Unix() + 2)
 	assert.Equal(t, len(block.transactions), 4)
 	assert.Equal(t, block.txPool.cache.Len(), 0)
 
@@ -279,10 +291,12 @@ func TestBlock_CollectTransactions(t *testing.T) {
 	balance = block.GetBalance(block.header.coinbase.address)
 	// balance > BlockReward (BlockReward + gas)
 	//gas, _ := bc.EstimateGas(tx1)
+	logging.CLog().Info(balance.String())
+	logging.CLog().Info(BlockReward.String())
 	assert.NotEqual(t, balance.Cmp(BlockReward.Int), 0)
 	// mock net message
 	block, _ = mockBlockFromNetwork(block)
-	assert.Equal(t, block.LinkParentBlock(bc.tailBlock), nil)
+	assert.Equal(t, block.LinkParentBlock(bc, bc.tailBlock), nil)
 	block.SetMiner(coinbase)
 	assert.Nil(t, block.VerifyExecution(bc.tailBlock, bc.ConsensusHandler()))
 }
@@ -293,7 +307,6 @@ func TestBlock_DposCandidates(t *testing.T) {
 	bc.SetConsensusHandler(c)
 
 	tail := bc.tailBlock
-	assert.Panics(t, func() { tail.CollectTransactions(1) })
 
 	ks := keystore.DefaultKS
 	priv := secp256k1.GeneratePrivateKey()
@@ -317,7 +330,8 @@ func TestBlock_DposCandidates(t *testing.T) {
 	block0.header.timestamp = BlockInterval
 	block0.SetMiner(from)
 	block0.Seal()
-	bc.SetTailBlock(block0)
+	assert.Nil(t, bc.storeBlockToStorage(block0))
+	assert.Nil(t, bc.SetTailBlock(block0))
 
 	block, _ := NewBlock(bc.ChainID(), coinbase, block0)
 	block.header.timestamp = BlockInterval * 2
@@ -332,13 +346,13 @@ func TestBlock_DposCandidates(t *testing.T) {
 	bc.txPool.Push(tx)
 	assert.Equal(t, len(block.transactions), 0)
 	assert.Equal(t, bc.txPool.cache.Len(), 2)
-	block.CollectTransactions(2)
+	block.CollectTransactions(time.Now().Unix() + 2)
 	assert.Equal(t, len(block.transactions), 2)
 	assert.Equal(t, block.txPool.cache.Len(), 0)
 	block.SetMiner(coinbase)
 	assert.Equal(t, block.Seal(), nil)
 	block, _ = mockBlockFromNetwork(block)
-	assert.Equal(t, block.LinkParentBlock(bc.tailBlock), nil)
+	assert.Equal(t, block.LinkParentBlock(bc, bc.tailBlock), nil)
 	block.SetMiner(coinbase)
 	assert.Nil(t, block.VerifyExecution(bc.tailBlock, bc.ConsensusHandler()))
 	bytes, _ = block.dposContext.candidateTrie.Get(from.Bytes())
@@ -347,7 +361,8 @@ func TestBlock_DposCandidates(t *testing.T) {
 	assert.Equal(t, bytes, from.Bytes())
 	bytes, _ = block.dposContext.delegateTrie.Get(append(from.Bytes(), from.Bytes()...))
 	assert.Equal(t, bytes, from.Bytes())
-	bc.SetTailBlock(block)
+	assert.Nil(t, bc.storeBlockToStorage(block))
+	assert.Nil(t, bc.SetTailBlock(block))
 
 	block, _ = NewBlock(bc.ChainID(), coinbase, block)
 	block.header.timestamp = BlockInterval * 3
@@ -358,13 +373,13 @@ func TestBlock_DposCandidates(t *testing.T) {
 	bc.txPool.Push(tx)
 	assert.Equal(t, len(block.transactions), 0)
 	assert.Equal(t, bc.txPool.cache.Len(), 1)
-	block.CollectTransactions(1)
+	block.CollectTransactions(time.Now().Unix() + 2)
 	assert.Equal(t, len(block.transactions), 1)
 	assert.Equal(t, block.txPool.cache.Len(), 0)
 	block.SetMiner(coinbase)
 	assert.Equal(t, block.Seal(), nil)
 	block, _ = mockBlockFromNetwork(block)
-	assert.Equal(t, block.LinkParentBlock(bc.tailBlock), nil)
+	assert.Equal(t, block.LinkParentBlock(bc, bc.tailBlock), nil)
 	block.SetMiner(coinbase)
 	assert.Nil(t, block.VerifyExecution(bc.tailBlock, bc.ConsensusHandler()))
 	_, err := block.dposContext.candidateTrie.Get(from.Bytes())
@@ -373,7 +388,8 @@ func TestBlock_DposCandidates(t *testing.T) {
 	assert.Equal(t, err, storage.ErrKeyNotFound)
 	_, err = block.dposContext.delegateTrie.Iterator(from.Bytes())
 	assert.Equal(t, err, storage.ErrKeyNotFound)
-	bc.SetTailBlock(block)
+	assert.Nil(t, bc.storeBlockToStorage(block))
+	assert.Nil(t, bc.SetTailBlock(block))
 
 	block, _ = NewBlock(bc.ChainID(), coinbase, block)
 	block.header.timestamp = BlockInterval * 4
@@ -388,13 +404,13 @@ func TestBlock_DposCandidates(t *testing.T) {
 	bc.txPool.Push(tx)
 	assert.Equal(t, len(block.transactions), 0)
 	assert.Equal(t, bc.txPool.cache.Len(), 2)
-	block.CollectTransactions(2)
+	block.CollectTransactions(time.Now().Unix() + 2)
 	assert.Equal(t, len(block.transactions), 2)
 	assert.Equal(t, block.txPool.cache.Len(), 0)
 	block.SetMiner(coinbase)
 	assert.Equal(t, block.Seal(), nil)
 	block, _ = mockBlockFromNetwork(block)
-	assert.Equal(t, block.LinkParentBlock(bc.tailBlock), nil)
+	assert.Equal(t, block.LinkParentBlock(bc, bc.tailBlock), nil)
 	block.SetMiner(coinbase)
 	assert.Nil(t, block.VerifyExecution(bc.tailBlock, bc.ConsensusHandler()))
 	_, err = block.dposContext.candidateTrie.Get(from.Bytes())
@@ -403,7 +419,8 @@ func TestBlock_DposCandidates(t *testing.T) {
 	assert.Equal(t, err, storage.ErrKeyNotFound)
 	_, err = block.dposContext.delegateTrie.Iterator(from.Bytes())
 	assert.Equal(t, err, storage.ErrKeyNotFound)
-	bc.SetTailBlock(block)
+	assert.Nil(t, bc.storeBlockToStorage(block))
+	assert.Nil(t, bc.SetTailBlock(block))
 }
 
 func TestBlock_fetchEvents(t *testing.T) {
@@ -459,21 +476,6 @@ func TestBlockSign(t *testing.T) {
 	assert.Equal(t, block.Signature(), block.header.sign)
 }
 
-func TestParentBlock(t *testing.T) {
-	bc, err := NewBlockChain(testNeb())
-	assert.Nil(t, err)
-	coinbase := mockAddress()
-	block, err := bc.NewBlock(coinbase)
-	assert.Nil(t, err)
-	parent, err := block.ParentBlock()
-	assert.Nil(t, err)
-	assert.Equal(t, parent.Hash(), bc.genesisBlock.Hash())
-	block.parenetBlock = nil
-	parent, err = block.ParentBlock()
-	assert.Nil(t, err)
-	assert.Equal(t, parent.Hash(), bc.genesisBlock.Hash())
-}
-
 func TestGivebackInvalidTx(t *testing.T) {
 	bc, err := NewBlockChain(testNeb())
 	assert.Nil(t, err)
@@ -490,7 +492,9 @@ func TestGivebackInvalidTx(t *testing.T) {
 	assert.Equal(t, len(bc.txPool.all), 1)
 	block, err := bc.NewBlock(from)
 	assert.Nil(t, err)
-	block.CollectTransactions(1)
+	block.CollectTransactions(time.Now().Unix() + 2)
+	timer := time.NewTimer(time.Second).C
+	<-timer
 	assert.Equal(t, len(bc.txPool.all), 1)
 }
 
@@ -560,7 +564,7 @@ func TestBlockVerifyIntegrityDup(t *testing.T) {
 	block.miner = from
 	block.Seal()
 	block.Sign(signature)
-	assert.Equal(t, block.VerifyExecution(bc.tailBlock, bc.ConsensusHandler()), ErrDuplicatedTransaction)
+	assert.Equal(t, block.VerifyExecution(bc.tailBlock, bc.ConsensusHandler()), ErrSmallTransactionNonce)
 }
 
 func TestBlockVerifyExecution(t *testing.T) {
