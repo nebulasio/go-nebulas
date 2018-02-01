@@ -883,6 +883,7 @@ func TestNRC20Contract(t *testing.T) {
 			// call takeout.
 			for _, tot := range tt.transferTests {
 				// call balanceOf.
+				ctx.tx.From = tt.from
 				engine = NewV8Engine(ctx)
 				engine.SetExecutionLimits(10000, 100000000)
 				balArgs := fmt.Sprintf("[\"%s\"]", tt.from)
@@ -895,19 +896,19 @@ func TestNRC20Contract(t *testing.T) {
 				transferArgs := fmt.Sprintf("[\"%s\", \"%s\"]", tot.to, tot.value)
 				result, err := engine.Call(string(data), tt.sourceType, "transfer", transferArgs)
 				assert.Nil(t, err)
-				var resultStr bool
-				err = json.Unmarshal([]byte(result), &resultStr)
+				var resultStatus bool
+				err = json.Unmarshal([]byte(result), &resultStatus)
 				assert.Nil(t, err)
-				assert.Equal(t, tot.result, resultStr)
+				assert.Equal(t, tot.result, resultStatus)
 				engine.Dispose()
 
 				engine = NewV8Engine(ctx)
 				engine.SetExecutionLimits(10000, 100000000)
 				result, err = engine.Call(string(data), tt.sourceType, "approve", transferArgs)
 				assert.Nil(t, err)
-				err = json.Unmarshal([]byte(result), &resultStr)
+				err = json.Unmarshal([]byte(result), &resultStatus)
 				assert.Nil(t, err)
-				assert.Equal(t, tot.result, resultStr)
+				assert.Equal(t, tot.result, resultStatus)
 				engine.Dispose()
 
 				engine = NewV8Engine(ctx)
@@ -919,6 +920,17 @@ func TestNRC20Contract(t *testing.T) {
 				err = json.Unmarshal([]byte(amount), &amountStr)
 				assert.Nil(t, err)
 				assert.Equal(t, tot.value, amountStr)
+				engine.Dispose()
+
+				ctx.tx.From = tot.to
+				engine = NewV8Engine(ctx)
+				engine.SetExecutionLimits(10000, 100000000)
+				transferFromArgs := fmt.Sprintf("[\"%s\", \"%s\", \"%s\"]", tt.from, tot.to, tot.value)
+				result, err = engine.Call(string(data), tt.sourceType, "transferFrom", transferFromArgs)
+				assert.Nil(t, err)
+				err = json.Unmarshal([]byte(result), &resultStatus)
+				assert.Nil(t, err)
+				assert.Equal(t, tot.result, resultStatus)
 				engine.Dispose()
 			}
 		})
