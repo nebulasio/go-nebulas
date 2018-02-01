@@ -63,7 +63,7 @@ deploy-libs:
 build:
 	cd cmd/neb; go build $(LDFLAGS) -o ../../$(BINARY)-$(COMMIT)
 	cd cmd/crashreporter; go build $(LDFLAGS) -o ../../nebulas_crashreporter
-	rm $(BINARY)
+	rm -rf $(BINARY)
 	ln -s $(BINARY)-$(COMMIT) $(BINARY)
 
 build-linux:
