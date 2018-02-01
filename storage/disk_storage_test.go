@@ -22,6 +22,14 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+
+	"math/rand"
+	"os"
+	"time"
+
+	"github.com/syndtr/goleveldb/leveldb"
+	"github.com/syndtr/goleveldb/leveldb/filter"
+	"github.com/syndtr/goleveldb/leveldb/opt"
 )
 
 func TestNewDiskStorage(t *testing.T) {
@@ -36,4 +44,63 @@ func TestNewDiskStorage(t *testing.T) {
 	storage.Del(keys[1])
 	_, err2 := storage.Get(keys[1])
 	assert.NotNil(t, err2)
+}
+
+const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+
+func randBytes(n int) []byte {
+	b := make([]byte, n)
+	for i := range b {
+		b[i] = letterBytes[rand.Intn(len(letterBytes))]
+	}
+	return b
+}
+
+func TestLeveldbBenchmark(t *testing.T) {
+	file := "benchmark.db"
+	db, err := leveldb.OpenFile(file, &opt.Options{
+		OpenFilesCacheCapacity: 500,
+		BlockCacheCapacity:     8 * opt.MiB,
+		WriteBuffer:            4 * opt.MiB,
+		Filter:                 filter.NewBloomFilter(10),
+	})
+	assert.Nil(t, err)
+
+	tests := []struct {
+		name  string
+		key   []byte
+		value []byte
+		count int64
+	}{
+		{"1", []byte("key1"), []byte("value1"), 0},
+		//{"2", []byte("key2"), []byte("value2"), 10000},
+		//{"3", []byte("key3"), []byte("value3"), 100000},
+		//{"4", []byte("key4"), []byte("value4"), 1000000},
+		//{"5", []byte("key5"), []byte("value5"), 10000000},
+	}
+
+	count := int64(0)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+
+			err := db.Put(tt.key, tt.value, nil)
+			assert.Nil(t, err)
+
+			count = count + tt.count
+			for i := int64(0); i < tt.count; i++ {
+				err := db.Put(randBytes(10), randBytes(10), nil)
+				assert.Nil(t, err)
+			}
+
+			start := time.Now().UnixNano()
+			value, err := db.Get(tt.key, nil)
+			duration := time.Now().UnixNano() - start
+			assert.Nil(t, err)
+			assert.Equal(t, tt.value, value)
+
+			t.Log("count:", count, "duration:", duration, " Nano")
+		})
+	}
+	db.Close()
+	os.Remove(file)
 }
