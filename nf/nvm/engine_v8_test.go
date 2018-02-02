@@ -932,6 +932,17 @@ func TestNRC20Contract(t *testing.T) {
 				assert.Nil(t, err)
 				assert.Equal(t, tot.result, resultStatus)
 				engine.Dispose()
+
+				ctx.tx.From = tot.to
+				engine = NewV8Engine(ctx)
+				engine.SetExecutionLimits(10000, 100000000)
+				transferFromArgs = fmt.Sprintf("[\"%s\", \"%s\", \"%s\"]", tt.from, tot.to, tot.value)
+				result, err = engine.Call(string(data), tt.sourceType, "transferFrom", transferFromArgs)
+				assert.Nil(t, err)
+				err = json.Unmarshal([]byte(result), &resultStatus)
+				assert.Nil(t, err)
+				assert.Equal(t, false, resultStatus)
+				engine.Dispose()
 			}
 		})
 	}
