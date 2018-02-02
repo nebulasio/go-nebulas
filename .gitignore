@@ -14,6 +14,7 @@ vendor
 
 # build files
 neb
+neb-*
 cmd/network/network
 nebulas_crashreporter
 !cmd/neb
