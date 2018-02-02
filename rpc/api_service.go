@@ -23,6 +23,7 @@ import (
 	"fmt"
 
 	"github.com/gogo/protobuf/proto"
+	"github.com/nebulasio/go-nebulas/common/trie"
 	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/core/pb"
 	"github.com/nebulasio/go-nebulas/crypto/hash"
@@ -551,4 +552,86 @@ func (s *APIService) GetEventsByHash(ctx context.Context, req *rpcpb.HashRequest
 
 	return nil, nil
 
+}
+
+// GetDynasty is the RPC API handler.
+func (s *APIService) GetDynasty(ctx context.Context, req *rpcpb.ByBlockHeightRequest) (*rpcpb.GetDynastyResponse, error) {
+
+	neb := s.server.Neblet()
+	block := neb.BlockChain().GetBlockOnCanonicalChainByHeight(req.Height)
+	if block == nil {
+		block = neb.BlockChain().TailBlock()
+	}
+	dynastyRoot := block.DposContext().DynastyRoot
+	dynastyTrie, err := trie.NewBatchTrie(dynastyRoot, neb.BlockChain().Storage())
+	if err != nil {
+		return nil, err
+	}
+	delegatees, err := core.TraverseDynasty(dynastyTrie)
+	if err != nil {
+		return nil, err
+	}
+	result := []string{}
+	for _, v := range delegatees {
+		result = append(result, string(v.Hex()))
+	}
+	return &rpcpb.GetDynastyResponse{Delegatees: result}, nil
+}
+
+// GetCandidates is the RPC API handler.
+func (s *APIService) GetCandidates(ctx context.Context, req *rpcpb.ByBlockHeightRequest) (*rpcpb.GetCandidatesResponse, error) {
+
+	neb := s.server.Neblet()
+	block := neb.BlockChain().GetBlockOnCanonicalChainByHeight(req.Height)
+	if block == nil {
+		block = neb.BlockChain().TailBlock()
+	}
+	candidateRoot := block.DposContext().CandidateRoot
+	candidateTrie, err := trie.NewBatchTrie(candidateRoot, neb.BlockChain().Storage())
+	if err != nil {
+		return nil, err
+	}
+	candidates, err := core.TraverseDynasty(candidateTrie)
+	if err != nil {
+		return nil, err
+	}
+	result := []string{}
+	for _, v := range candidates {
+		result = append(result, string(v.Hex()))
+	}
+	return &rpcpb.GetCandidatesResponse{Candidates: result}, nil
+}
+
+// GetDelegateVoters is the RPC API handler.
+func (s *APIService) GetDelegateVoters(ctx context.Context, req *rpcpb.GetDelegateVotersRequest) (*rpcpb.GetDelegateVotersResponse, error) {
+
+	neb := s.server.Neblet()
+	delegatee, err := core.AddressParse(req.Delegatee)
+	if err != nil {
+		return nil, err
+	}
+	block := neb.BlockChain().GetBlockOnCanonicalChainByHeight(req.Height)
+	if block == nil {
+		block = neb.BlockChain().TailBlock()
+	}
+	delegateRoot := block.DposContext().DelegateRoot
+	delegateTrie, _ := trie.NewBatchTrie(delegateRoot, neb.BlockChain().Storage())
+	iter, err := delegateTrie.Iterator(delegatee.Bytes())
+	if err != nil {
+		return nil, err
+	}
+	voters := []string{}
+	exist, err := iter.Next()
+	if err != nil {
+		return nil, err
+	}
+	for exist {
+		voter := byteutils.Hex(iter.Value())
+		voters = append(voters, voter)
+		exist, err = iter.Next()
+		if err != nil {
+			return nil, err
+		}
+	}
+	return &rpcpb.GetDelegateVotersResponse{Voters: voters}, nil
 }

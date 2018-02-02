@@ -662,14 +662,13 @@ func (block *Block) Seal() error {
 }
 
 func (block *Block) String() string {
-	return fmt.Sprintf(`{"height": %d, "hash": "%s", "parent_hash": "%s", "state": "%s", "txs": "%s", "events": "%s", "nonce": %d, "timestamp": %d, "dynasty": "%s", "tx": %d}`,
+	return fmt.Sprintf(`{"height": %d, "hash": "%s", "parent_hash": "%s", "state": "%s", "txs": "%s", "events": "%s", "timestamp": %d, "dynasty": "%s", "tx": %d}`,
 		block.height,
 		block.header.hash,
 		block.header.parentHash,
 		block.header.stateRoot,
 		block.header.txsRoot,
 		block.header.eventsRoot,
-		block.header.nonce,
 		block.header.timestamp,
 		byteutils.Hex(block.header.dposContext.DynastyRoot),
 		len(block.transactions),

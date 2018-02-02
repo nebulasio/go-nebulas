@@ -154,6 +154,27 @@ service ApiService {
         };
     }
 
+    rpc GetDynasty (ByBlockHeightRequest) returns (GetDynastyResponse) {
+		option (google.api.http) = {
+            post: "/v1/user/dynasty"
+            body: "*"
+		};
+    }
+
+    rpc GetCandidates (ByBlockHeightRequest) returns (GetCandidatesResponse) {
+		option (google.api.http) = {
+            post: "/v1/user/candidates"
+            body: "*"
+		};
+    }
+    
+	rpc GetDelegateVoters (GetDelegateVotersRequest) returns (GetDelegateVotersResponse) {
+		option (google.api.http) = {
+            post: "/v1/user/delegateVoters"
+            body: "*"
+		};
+	}    
+
 }
 
 service AdminService {
@@ -202,27 +223,6 @@ service AdminService {
             get: "/v1/admin/statistics/nodeInfo"
         };
 	}
-	
-	rpc GetDynasty (ByBlockHeightRequest) returns (GetDynastyResponse) {
-		option (google.api.http) = {
-            post: "/v1/admin/dynasty"
-            body: "*"
-		};
-    }
-
-    rpc GetCandidates (ByBlockHeightRequest) returns (GetCandidatesResponse) {
-		option (google.api.http) = {
-            post: "/v1/admin/candidates"
-            body: "*"
-		};
-    }
-    
-	rpc GetDelegateVoters (GetDelegateVotersRequest) returns (GetDelegateVotersResponse) {
-		option (google.api.http) = {
-            post: "/v1/admin/delegateVoters"
-            body: "*"
-		};
-	}    
 
     rpc ChangeNetworkID (ChangeNetworkIDRequest) returns (ChangeNetworkIDResponse) {
 		option (google.api.http) = {
