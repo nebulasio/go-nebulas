@@ -101,7 +101,7 @@ func NewBlockPool(size int) (*BlockPool, error) {
 func (pool *BlockPool) RegisterInNetwork(ns net.Service) {
 	ns.Register(net.NewSubscriber(pool, pool.receiveBlockMessageCh, true, MessageTypeNewBlock))
 	ns.Register(net.NewSubscriber(pool, pool.receiveBlockMessageCh, true, MessageTypeDownloadedBlockReply))
-	ns.Register(net.NewSubscriber(pool, pool.receiveDownloadBlockMessageCh, true, MessageTypeDownloadedBlock))
+	ns.Register(net.NewSubscriber(pool, pool.receiveDownloadBlockMessageCh, false, MessageTypeDownloadedBlock))
 	pool.ns = ns
 }
 

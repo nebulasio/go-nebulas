@@ -62,8 +62,8 @@ deploy-libs:
 
 build:
 	cd cmd/neb; go build $(LDFLAGS) -o ../../$(BINARY)-$(COMMIT)
-	cd cmd/crashreporter; go build $(LDFLAGS) -o ../../nebulas_crashreporter
-	rm -rf $(BINARY)
+	cd cmd/crashreporter; go build $(LDFLAGS) -o ../../neb-crashreporter
+	-rm -f $(BINARY)
 	ln -s $(BINARY)-$(COMMIT) $(BINARY)
 
 build-linux:
@@ -87,4 +87,5 @@ clean:
 	-rm -f $(TEST_REPORT)
 	-rm -f $(TEST_XUNIT_REPORT)
 	-rm -f $(BINARY)
+	-rm -f $(BINARY)-$(COMMIT)
 
