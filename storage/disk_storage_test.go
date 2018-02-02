@@ -24,8 +24,9 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"math/rand"
-	"os"
 	"time"
+
+	"os"
 
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/filter"
@@ -76,7 +77,7 @@ func TestLeveldbBenchmark(t *testing.T) {
 		//{"2", []byte("key2"), []byte("value2"), 10000},
 		//{"3", []byte("key3"), []byte("value3"), 100000},
 		//{"4", []byte("key4"), []byte("value4"), 1000000},
-		//{"5", []byte("key5"), []byte("value5"), 10000000},
+		//{"5", []byte("key5"), []byte("value5"), 4000000},
 	}
 
 	count := int64(0)
@@ -88,7 +89,7 @@ func TestLeveldbBenchmark(t *testing.T) {
 
 			count = count + tt.count
 			for i := int64(0); i < tt.count; i++ {
-				err := db.Put(randBytes(10), randBytes(10), nil)
+				err := db.Put(randBytes(32), randBytes(rand.Intn(1024)), nil)
 				assert.Nil(t, err)
 			}
 

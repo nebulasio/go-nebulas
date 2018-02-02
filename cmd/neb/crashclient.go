@@ -64,7 +64,7 @@ func InitCrashReporter(conf *nebletpb.AppConfig) {
 	defer s.Close()
 
 	code := rand.Intn(0xFFFF)
-	cmd := exec.Command(fmt.Sprintf("%v/nebulas_crashreporter", dir),
+	cmd := exec.Command(fmt.Sprintf("%v/neb-crashreporter", dir),
 		"-logfile",
 		fp,
 		"-port",
