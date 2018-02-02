@@ -85,7 +85,7 @@ From the log, we can see the binary execution starts neblet, starts network serv
 
 ### Build
 
-`docker build -t nebulas`
+`docker build -t nebulas .`
 
 ### Run
 
