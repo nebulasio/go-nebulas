@@ -556,12 +556,12 @@ func (lb *linkedBlock) travelToLinkAndReturnAllValidBlocks(parentBlock *Block) (
 	}
 	// executionAt := time.Now().Unix()
 
-	/* 	logging.VLog().WithFields(logrus.Fields{
-		"block":          lb.block,
-		"time.link":      linkAt - startAt,
-		"time.execution": executionAt - linkAt,
-		"time.all":       time.Now().Unix() - startAt,
-	}).Info("Block Verified.") */
+	logging.VLog().WithFields(logrus.Fields{
+		"block": lb.block,
+		/* 		"time.link":      linkAt - startAt,
+		   		"time.execution": executionAt - linkAt,
+		   		"time.all":       time.Now().Unix() - startAt, */
+	}).Info("Block Verified.")
 
 	allBlocks := []*Block{lb.block}
 	tailBlocks := []*Block{}

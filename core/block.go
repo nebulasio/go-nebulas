@@ -718,6 +718,9 @@ func (block *Block) VerifyExecution(parent *Block, consensus Consensus) error {
 }
 
 func (block *Block) triggerEvent() {
+	logging.VLog().WithFields(logrus.Fields{
+		"count": len(block.eventEmitter.eventCh),
+	}).Debug("Start TriggerEvent")
 
 	for _, v := range block.transactions {
 		var topic string
@@ -752,6 +755,10 @@ func (block *Block) triggerEvent() {
 		Data:  block.String(),
 	}
 	block.eventEmitter.Trigger(e)
+
+	logging.VLog().WithFields(logrus.Fields{
+		"count": len(block.eventEmitter.eventCh),
+	}).Debug("Stop TriggerEvent")
 }
 
 // VerifyIntegrity verify block's hash, txs' integrity and consensus acceptable.

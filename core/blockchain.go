@@ -361,15 +361,15 @@ func (bc *BlockChain) SetTailBlock(newTail *Block) error {
 	metricsBlocktailHashGauge.Update(int64(byteutils.HashBytes(newTail.Hash())))
 
 	// endAt := time.Now().Unix()
-	logging.VLog().WithFields(logrus.Fields{
-		/* 		"time.foundAncestor":    foundAt - startAt,
-		   		"time.revertBlocks":     revertedAt - foundAt,
-		   		"time.buildHeightIndex": builtAt - revertedAt,
-		   		"time.storeNewTail":     storedAt - builtAt,
-		   		"time.all":              endAt - startAt, */
-		"tail.old": oldTail,
-		"tail.new": newTail,
-	}).Info("Succeed to set tail block.")
+	/* 	logging.VLog().WithFields(logrus.Fields{
+		"time.foundAncestor":    foundAt - startAt,
+		"time.revertBlocks":     revertedAt - foundAt,
+		"time.buildHeightIndex": builtAt - revertedAt,
+		"time.storeNewTail":     storedAt - builtAt,
+		"time.all":              endAt - startAt,
+		"tail.old":              oldTail,
+		"tail.new":              newTail,
+	}).Info("Succeed to set tail block.") */
 
 	return nil
 }
