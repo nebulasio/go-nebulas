@@ -21,6 +21,8 @@ package core
 import (
 	"sync"
 
+	"time"
+
 	"github.com/nebulasio/go-nebulas/util/logging"
 	"github.com/sirupsen/logrus"
 )
@@ -102,11 +104,16 @@ func (emitter *EventEmitter) Stop() {
 
 // Trigger trigger event.
 func (emitter *EventEmitter) Trigger(e *Event) {
-	/* 	logging.VLog().WithFields(logrus.Fields{
+
+	// TODO: event subscribe maybe slow, change it in goroutine to avoid block the chain execution.
+	// later to solve the data out of channel problems.
+	go func() {
+		/* 	logging.VLog().WithFields(logrus.Fields{
 		"topic": e.Topic,
 		"data":  e.Data,
-	}).Debug("Trigger new event") */
-	emitter.eventCh <- e
+		}).Debug("Trigger new event") */
+		emitter.eventCh <- e
+	}()
 }
 
 // Register register event chan.
@@ -139,8 +146,11 @@ func (emitter *EventEmitter) Deregister(topic string, ch chan *Event) error {
 func (emitter *EventEmitter) loop() {
 	logging.CLog().Info("Started EventEmitter.")
 
+	timerChan := time.NewTicker(time.Second).C
 	for {
 		select {
+		case <-timerChan:
+			metricsCachedEvent.Update(int64(len(emitter.eventCh)))
 		case <-emitter.quitCh:
 			logging.CLog().Info("Stopped EventEmitter.")
 			return
