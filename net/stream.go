@@ -45,7 +45,6 @@ const (
 	SYNCROUTE     = "syncroute"
 	ROUTETABLE    = "routetable"
 	RECVEDMSG     = "recvedmsg"
-	NEWTX         = "newtx"
 )
 
 // Stream Status
@@ -177,9 +176,6 @@ func (s *Stream) SendMessage(messageName string, data []byte, priority int) erro
 
 	// metrics.
 	metricsPacketsOutByMessageName(messageName, message.Length())
-	if messageName == NEWTX {
-		metricsSendTx.Inc(1)
-	}
 
 	// send to pool.
 	message.FlagSendMessageAt()
@@ -371,9 +367,6 @@ func (s *Stream) readLoop() {
 			metricsPacketsIn.Mark(1)
 			metricsBytesIn.Mark(int64(message.Length()))
 			metricsPacketsInByMessageName(message.MessageName(), message.Length())
-			if message.MessageName() == NEWTX {
-				metricsReceiveTx.Inc(1)
-			}
 
 			// handle message.
 			if err := s.handleMessage(message); err == ErrShouldCloseConnectionAndExitLoop {

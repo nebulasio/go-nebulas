@@ -19,11 +19,28 @@
 package rpc
 
 import (
+	"time"
+
+	"errors"
+
+	"github.com/juju/ratelimit"
 	"github.com/nebulasio/go-nebulas/util/logging"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 )
+
+var (
+	tokenBucket *ratelimit.Bucket
+	// ErrRequestTooOften err
+	ErrRequestTooOften = errors.New("request too often")
+)
+
+func init() {
+	bucketFillDuring := time.Millisecond * 5
+	bucketMax := 100
+	tokenBucket = ratelimit.NewBucket(bucketFillDuring, int64(bucketMax))
+}
 
 func loggingStream(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
 	logging.VLog().WithFields(logrus.Fields{
@@ -38,6 +55,10 @@ func loggingUnary(ctx context.Context, req interface{}, info *grpc.UnaryServerIn
 	logging.VLog().WithFields(logrus.Fields{
 		"method": info.FullMethod,
 	}).Info("Rpc request.")
+	available := tokenBucket.TakeAvailable(1)
+	if available <= 0 {
+		return nil, ErrRequestTooOften
+	}
 	metricsRPCCounter.Mark(1)
 
 	return handler(ctx, req)
