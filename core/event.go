@@ -48,6 +48,9 @@ const (
 	// TopicLinkBlock the topic of link a block.
 	TopicLinkBlock = "chain.linkBlock"
 
+	// TopicLibBlock the topic of latest irreversible block.
+	TopicLibBlock = "chain.latestIrreversibleBlock"
+
 	// TopicExecuteTxFailed the topic of execute a transaction failed.
 	TopicExecuteTxFailed = "chain.executeTxFailed"
 

@@ -440,6 +440,12 @@ func (bc *BlockChain) updateLatestIrreversibleBlock(tail *Block) {
 		"miners.limit":     ConsensusSize,
 		"miners.supported": len(miners),
 	}).Warn("Failed to update latest irreversible block.")
+
+	e := &Event{
+		Topic: TopicLibBlock,
+		Data:  bc.latestIrreversibleBlock.String(),
+	}
+	bc.eventEmitter.Trigger(e)
 }
 
 // LatestIrreversibleBlock return the latest irreversible block
