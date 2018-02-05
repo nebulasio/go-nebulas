@@ -78,7 +78,6 @@ func (dp *Dispatcher) Deregister(subscribers ...*Subscriber) {
 				continue
 			}
 			m.(*sync.Map).Delete(v)
-			dp.subscribersMap.Delete(mt)
 			delete(dp.filters, mt)
 		}
 	}

@@ -28,10 +28,10 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func register(emitter *EventEmitter, topic string) chan *Event {
-	ch := make(chan *Event, 128)
-	emitter.Register(topic, ch)
-	return ch
+func register(emitter *EventEmitter, topic string) *EventSubscriber {
+	eventSub := NewEventSubscriber(128, []string{topic})
+	emitter.Register(eventSub)
+	return eventSub
 }
 
 func TestEventEmitter(t *testing.T) {
@@ -79,13 +79,13 @@ func TestEventEmitter(t *testing.T) {
 			select {
 			case <-time.After(time.Second * 1):
 				return
-			case e := <-t1ch:
+			case e := <-t1ch.eventCh:
 				assert.Equal(t, topics[0], e.Topic)
 				t1c++
-			case e := <-t2ch:
+			case e := <-t2ch.eventCh:
 				assert.Equal(t, topics[1], e.Topic)
 				t2c++
-			case e := <-t3ch:
+			case e := <-t3ch.eventCh:
 				assert.Equal(t, topics[2], e.Topic)
 				t3c++
 			}
@@ -152,27 +152,27 @@ func TestEventEmitterWithRunningRegDereg(t *testing.T) {
 			select {
 			case <-time.After(time.Second * 1):
 				return
-			case e := <-t1ch:
+			case e := <-t1ch.eventCh:
 				assert.Equal(t, topics[0], e.Topic)
 				t1c++
 
 				if t1c%13 == 2 {
-					emitter.Deregister(topics[1], t2ch)
+					emitter.Deregister(t2ch)
 				} else if t1c%13 == 9 {
-					emitter.Register(topics[1], t2ch)
+					emitter.Register(t2ch)
 				}
 
-			case e := <-t2ch:
+			case e := <-t2ch.eventCh:
 				assert.Equal(t, topics[1], e.Topic)
 				t2c++
 
 				if t2c%13 == 4 {
-					emitter.Deregister(topics[2], t3ch)
+					emitter.Deregister(t3ch)
 				} else if t2c%13 == 12 {
-					emitter.Register(topics[2], t3ch)
+					emitter.Register(t3ch)
 				}
 
-			case e := <-t3ch:
+			case e := <-t3ch.eventCh:
 				assert.Equal(t, topics[2], e.Topic)
 				t3c++
 			}
@@ -185,12 +185,4 @@ func TestEventEmitterWithRunningRegDereg(t *testing.T) {
 
 	emitter.Stop()
 	time.Sleep(time.Millisecond * 100)
-}
-
-func TestEventEmitterDeregister(t *testing.T) {
-	// create emitter.
-	emitter := NewEventEmitter(1024)
-
-	ch := make(chan *Event, 1)
-	assert.Nil(t, emitter.Deregister("wow", ch))
 }

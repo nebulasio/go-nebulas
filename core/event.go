@@ -66,6 +66,27 @@ type Event struct {
 	Data  string
 }
 
+// EventSubscriber subscriber object
+type EventSubscriber struct {
+	eventCh chan *Event
+	topics  []string
+}
+
+// NewEventSubscriber returns an EventSubscriber
+func NewEventSubscriber(size int, topics []string) *EventSubscriber {
+	eventCh := make(chan *Event, size)
+	subscriber := &EventSubscriber{
+		eventCh: eventCh,
+		topics:  topics,
+	}
+	return subscriber
+}
+
+// EventChan returns subscriber's eventCh
+func (s *EventSubscriber) EventChan() chan *Event {
+	return s.eventCh
+}
+
 // EventEmitter provide event functionality for Nebulas.
 type EventEmitter struct {
 	eventSubs *sync.Map
@@ -105,42 +126,36 @@ func (emitter *EventEmitter) Stop() {
 // Trigger trigger event.
 func (emitter *EventEmitter) Trigger(e *Event) {
 
-	// TODO: event subscribe maybe slow, change it in goroutine to avoid block the chain execution.
-	// later to solve the data out of channel problems.
-	go func() {
-		/* 	logging.VLog().WithFields(logrus.Fields{
-		"topic": e.Topic,
-		"data":  e.Data,
-		}).Debug("Trigger new event") */
-		emitter.eventCh <- e
-	}()
+	//logging.VLog().WithFields(logrus.Fields{
+	//	"topic": e.Topic,
+	//	"data":  e.Data,
+	//	}).Debug("Trigger new event")
+	emitter.eventCh <- e
 }
 
 // Register register event chan.
-func (emitter *EventEmitter) Register(topic string, ch chan *Event) error {
+func (emitter *EventEmitter) Register(subscribers ...*EventSubscriber) {
 
-	v, ok := emitter.eventSubs.Load(topic)
-	if !ok {
-		v, _ = emitter.eventSubs.LoadOrStore(topic, new(sync.Map))
+	for _, v := range subscribers {
+		for _, topic := range v.topics {
+			m, _ := emitter.eventSubs.LoadOrStore(topic, new(sync.Map))
+			m.(*sync.Map).Store(v, true)
+		}
 	}
-
-	m, _ := v.(*sync.Map)
-	m.Store(ch, true)
-
-	return nil
 }
 
 // Deregister deregister event chan.
-func (emitter *EventEmitter) Deregister(topic string, ch chan *Event) error {
+func (emitter *EventEmitter) Deregister(subscribers ...*EventSubscriber) {
 
-	v, ok := emitter.eventSubs.Load(topic)
-	if !ok {
-		return nil
+	for _, v := range subscribers {
+		for _, topic := range v.topics {
+			m, _ := emitter.eventSubs.Load(topic)
+			if m == nil {
+				continue
+			}
+			m.(*sync.Map).Delete(v)
+		}
 	}
-	m, _ := v.(*sync.Map)
-	m.Delete(ch)
-
-	return nil
 }
 
 func (emitter *EventEmitter) loop() {
@@ -164,7 +179,13 @@ func (emitter *EventEmitter) loop() {
 
 			m, _ := v.(*sync.Map)
 			m.Range(func(key, value interface{}) bool {
-				key.(chan *Event) <- e
+				select {
+				case key.(*EventSubscriber).eventCh <- e:
+				default:
+					logging.VLog().WithFields(logrus.Fields{
+						"topic": topic,
+					}).Debug("timeout to dispatch event.")
+				}
 				return true
 			})
 		}

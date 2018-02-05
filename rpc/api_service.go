@@ -420,17 +420,9 @@ func (s *APIService) Subscribe(req *rpcpb.SubscribeRequest, gs rpcpb.ApiService_
 
 	neb := s.server.Neblet()
 
-	chainEventCh := make(chan *core.Event, 128)
-	emitter := neb.EventEmitter()
-	for _, v := range req.Topics {
-		emitter.Register(v, chainEventCh)
-	}
-
-	defer (func() {
-		for _, v := range req.Topics {
-			emitter.Deregister(v, chainEventCh)
-		}
-	})()
+	eventSub := core.NewEventSubscriber(1024, req.Topics)
+	neb.EventEmitter().Register(eventSub)
+	defer neb.EventEmitter().Deregister(eventSub)
 
 	//netEventCh := make(chan nnet.Message, 128)
 	//net := neb.NetService()
@@ -442,7 +434,7 @@ func (s *APIService) Subscribe(req *rpcpb.SubscribeRequest, gs rpcpb.ApiService_
 	var err error
 	for {
 		select {
-		case event := <-chainEventCh:
+		case event := <-eventSub.EventChan():
 			err = gs.Send(&rpcpb.SubscribeResponse{Topic: event.Topic, Data: event.Data})
 			if err != nil {
 				return err
