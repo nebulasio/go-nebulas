@@ -522,12 +522,12 @@ func (block *Block) CollectTransactions(deadline int64) {
 			currentNonceOfFromAddress[tx.From().String()] = currentNonce
 
 			if err != nil {
-				/* 				logging.VLog().WithFields(logrus.Fields{
+				logging.VLog().WithFields(logrus.Fields{
 					"block":    block,
 					"tx":       tx,
 					"err":      err,
 					"giveback": giveback,
-				}).Debug("invalid tx.") */
+				}).Debug("invalid tx.")
 				unpacked++
 				txBlock.rollback()
 				executedTxBlocksCh <- nil
@@ -662,7 +662,7 @@ func (block *Block) Seal() error {
 }
 
 func (block *Block) String() string {
-	return fmt.Sprintf(`{"height": %d, "hash": "%s", "parent_hash": "%s", "state": "%s", "txs": "%s", "events": "%s", "timestamp": %d, "dynasty": "%s", "tx": %d}`,
+	return fmt.Sprintf(`{"height": %d, "hash": "%s", "parent_hash": "%s", "state": "%s", "txs": "%s", "events": "%s", "timestamp": %d, "dynasty": "%s", "tx": %d, "miner": "%s"}`,
 		block.height,
 		block.header.hash,
 		block.header.parentHash,
@@ -672,6 +672,7 @@ func (block *Block) String() string {
 		block.header.timestamp,
 		byteutils.Hex(block.header.dposContext.DynastyRoot),
 		len(block.transactions),
+		block.miner,
 	)
 }
 
@@ -986,6 +987,7 @@ func (block *Block) rewardCoinbase() {
 
 	logging.VLog().WithFields(logrus.Fields{
 		"coinbase": coinbaseAddr.Hex(),
+		"balance":  coinbaseAcc.Balance,
 		"reward":   BlockReward,
 	}).Info("Rewarded the coinbase.")
 }
