@@ -34,7 +34,7 @@ func main() {
 
 	mem, _ := storage.NewMemoryStorage()
 	context, _ := state.NewAccountState(nil, mem)
-	owner := context.GetOrCreateUserAccount([]byte("account1"))
+	owner, _ := context.GetOrCreateUserAccount([]byte("account1"))
 	contract, _ := context.CreateContractAccount([]byte("account2"), nil)
 
 	ctx := nvm.NewContext(nil, nil, owner, contract, context)

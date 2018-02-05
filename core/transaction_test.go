@@ -370,11 +370,14 @@ func TestTransaction_VerifyExecution(t *testing.T) {
 
 			block := bc.tailBlock
 			block.begin()
-			fromAcc := block.accState.GetOrCreateUserAccount(tt.tx.from.address)
+			fromAcc, err := block.accState.GetOrCreateUserAccount(tt.tx.from.address)
+			assert.Nil(t, err)
 			fromAcc.AddBalance(tt.fromBalance)
-			gasUsed, err := tt.tx.VerifyExecution(block)
-			fromAcc = block.accState.GetOrCreateUserAccount(tt.tx.from.address)
-			toAcc := block.accState.GetOrCreateUserAccount(tt.tx.to.address)
+			gasUsed, executionErr := tt.tx.VerifyExecution(block)
+			fromAcc, err = block.accState.GetOrCreateUserAccount(tt.tx.from.address)
+			assert.Nil(t, err)
+			toAcc, err := block.accState.GetOrCreateUserAccount(tt.tx.to.address)
+			assert.Nil(t, err)
 			if tt.gasUsed != nil {
 				assert.Equal(t, tt.gasUsed, gasUsed)
 			}
@@ -384,7 +387,7 @@ func TestTransaction_VerifyExecution(t *testing.T) {
 			if tt.toBalance != nil {
 				assert.Equal(t, tt.toBalance, toAcc.Balance())
 			}
-			assert.Equal(t, tt.wanted, err)
+			assert.Equal(t, tt.wanted, executionErr)
 
 			events, _ := block.FetchEvents(tt.tx.hash)
 

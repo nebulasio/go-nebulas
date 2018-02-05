@@ -116,8 +116,11 @@ func TestBlockPool(t *testing.T) {
 	signature.InitSign(key.(keystore.PrivateKey))
 	bc.tailBlock.begin()
 	balance := util.NewUint128FromBigInt(util.NewUint128().Mul(TransactionGasPrice.Int, util.NewUint128FromInt(2000000).Int))
-	bc.tailBlock.accState.GetOrCreateUserAccount(from.Bytes()).AddBalance(balance)
-	bc.tailBlock.header.stateRoot = bc.tailBlock.accState.RootHash()
+	acc, err := bc.tailBlock.accState.GetOrCreateUserAccount(from.Bytes())
+	assert.Nil(t, err)
+	acc.AddBalance(balance)
+	bc.tailBlock.header.stateRoot, err = bc.tailBlock.accState.RootHash()
+	assert.Nil(t, err)
 	bc.tailBlock.commit()
 	bc.storeBlockToStorage(bc.tailBlock)
 
@@ -132,25 +135,29 @@ func TestBlockPool(t *testing.T) {
 	block0.Seal()
 
 	addr = &Address{validators[2]}
-	block1, _ := NewBlock(bc.ChainID(), addr, block0)
+	block1, err := NewBlock(bc.ChainID(), addr, block0)
+	assert.Nil(t, err)
 	block1.header.timestamp = block0.header.timestamp + BlockInterval
 	block1.SetMiner(addr)
 	block1.Seal()
 
 	addr = &Address{validators[3]}
-	block2, _ := NewBlock(bc.ChainID(), addr, block1)
+	block2, err := NewBlock(bc.ChainID(), addr, block1)
+	assert.Nil(t, err)
 	block2.header.timestamp = block1.header.timestamp + BlockInterval
 	block2.SetMiner(addr)
 	block2.Seal()
 
 	addr = &Address{validators[4]}
-	block3, _ := NewBlock(bc.ChainID(), addr, block2)
+	block3, err := NewBlock(bc.ChainID(), addr, block2)
+	assert.Nil(t, err)
 	block3.header.timestamp = block2.header.timestamp + BlockInterval
 	block3.SetMiner(addr)
 	block3.Seal()
 
 	addr = &Address{validators[5]}
-	block4, _ := NewBlock(bc.ChainID(), addr, block3)
+	block4, err := NewBlock(bc.ChainID(), addr, block3)
+	assert.Nil(t, err)
 	block4.header.timestamp = block3.header.timestamp + BlockInterval
 	block4.SetMiner(addr)
 	block4.Seal()
@@ -179,7 +186,8 @@ func TestBlockPool(t *testing.T) {
 	assert.Equal(t, bc.tailBlock.Hash(), block4.Hash())
 
 	addr = &Address{validators[0]}
-	block5, _ := NewBlock(bc.ChainID(), addr, block4)
+	block5, err := NewBlock(bc.ChainID(), addr, block4)
+	assert.Nil(t, err)
 	block5.header.timestamp = block4.header.timestamp + BlockInterval
 	block5.SetMiner(addr)
 	block5.Seal()
@@ -187,7 +195,8 @@ func TestBlockPool(t *testing.T) {
 	assert.Equal(t, pool.Push(block5), ErrInvalidBlockHash)
 
 	addr = &Address{validators[1]}
-	block41, _ := NewBlock(bc.ChainID(), addr, block3)
+	block41, err := NewBlock(bc.ChainID(), addr, block3)
+	assert.Nil(t, err)
 	block41.header.timestamp = block3.header.timestamp + BlockInterval
 	block41.SetMiner(addr)
 	block41.Seal()
@@ -205,7 +214,8 @@ func TestHandleBlock(t *testing.T) {
 	from := mockAddress()
 	ks := keystore.DefaultKS
 	key, err := ks.GetUnlocked(from.String())
-	signature, _ := crypto.NewSignature(keystore.SECP256K1)
+	signature, err := crypto.NewSignature(keystore.SECP256K1)
+	assert.Nil(t, err)
 	signature.InitSign(key.(keystore.PrivateKey))
 
 	block, err := bc.NewBlock(from)
@@ -277,7 +287,8 @@ func TestHandleDownloadedBlock(t *testing.T) {
 	from := mockAddress()
 	ks := keystore.DefaultKS
 	key, err := ks.GetUnlocked(from.String())
-	signature, _ := crypto.NewSignature(keystore.SECP256K1)
+	signature, err := crypto.NewSignature(keystore.SECP256K1)
+	assert.Nil(t, err)
 	signature.InitSign(key.(keystore.PrivateKey))
 
 	block1, err := bc.NewBlock(from)

@@ -242,8 +242,11 @@ func (as *accountState) recordDirtyAccount(addr byteutils.Hash, acc Account) {
 	}
 }
 
-func (as *accountState) newAccount(addr byteutils.Hash, birthPlace byteutils.Hash) Account {
-	varTrie, _ := trie.NewBatchTrie(nil, as.storage)
+func (as *accountState) newAccount(addr byteutils.Hash, birthPlace byteutils.Hash) (Account, error) {
+	varTrie, err := trie.NewBatchTrie(nil, as.storage)
+	if err != nil {
+		return nil, err
+	}
 	acc := &account{
 		address:    addr,
 		balance:    util.NewUint128(),
@@ -252,7 +255,7 @@ func (as *accountState) newAccount(addr byteutils.Hash, birthPlace byteutils.Has
 		birthPlace: birthPlace,
 	}
 	as.recordDirtyAccount(addr, acc)
-	return acc
+	return acc, nil
 }
 
 func (as *accountState) getAccount(addr byteutils.Hash) (Account, error) {
@@ -275,23 +278,32 @@ func (as *accountState) getAccount(addr byteutils.Hash) (Account, error) {
 }
 
 // RootHash return root hash of account state
-func (as *accountState) RootHash() byteutils.Hash {
+func (as *accountState) RootHash() (byteutils.Hash, error) {
 	for addr, acc := range as.dirtyAccount {
-		bytes, _ := acc.ToBytes()
-		key, _ := addr.Hash()
+		bytes, err := acc.ToBytes()
+		if err != nil {
+			return nil, err
+		}
+		key, err := addr.Hash()
+		if err != nil {
+			return nil, err
+		}
 		as.stateTrie.Put(key, bytes)
 	}
-	return as.stateTrie.RootHash()
+	return as.stateTrie.RootHash(), nil
 }
 
 // GetOrCreateUserAccount according to the addr
-func (as *accountState) GetOrCreateUserAccount(addr []byte) Account {
+func (as *accountState) GetOrCreateUserAccount(addr []byte) (Account, error) {
 	acc, err := as.getAccount(addr)
 	if err != nil {
-		acc := as.newAccount(addr, nil)
-		return acc
+		acc, err := as.newAccount(addr, nil)
+		if err != nil {
+			return nil, err
+		}
+		return acc, nil
 	}
-	return acc
+	return acc, nil
 }
 
 // GetContractAccount from current AccountState
@@ -305,8 +317,7 @@ func (as *accountState) GetContractAccount(addr []byte) (Account, error) {
 
 // CreateContractAccount according to the addr, and set birthPlace as creation tx hash
 func (as *accountState) CreateContractAccount(addr []byte, birthPlace []byte) (Account, error) {
-	acc := as.newAccount(addr, birthPlace)
-	return acc, nil
+	return as.newAccount(addr, birthPlace)
 }
 
 func (as *accountState) Accounts() ([]Account, error) {
@@ -344,11 +355,17 @@ func (as *accountState) BeginBatch() {
 }
 
 // Commit a batch task
-func (as *accountState) Commit() {
+func (as *accountState) Commit() error {
 	for addr, acc := range as.dirtyAccount {
 		acc.Commit()
-		bytes, _ := acc.ToBytes()
-		key, _ := addr.Hash()
+		bytes, err := acc.ToBytes()
+		if err != nil {
+			return err
+		}
+		key, err := addr.Hash()
+		if err != nil {
+			return err
+		}
 		as.stateTrie.Put(key, bytes)
 	}
 	as.dirtyAccount = make(map[byteutils.HexHash]Account)
@@ -357,6 +374,7 @@ func (as *accountState) Commit() {
 	/* 	logging.VLog().WithFields(logrus.Fields{
 		"AccountState": as,
 	}).Debug("AccountState Commit.") */
+	return nil
 }
 
 // RollBack a batch task

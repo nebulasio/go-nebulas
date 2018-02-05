@@ -124,8 +124,14 @@ func (s *APIService) GetAccountState(ctx context.Context, req *rpcpb.GetAccountS
 		}
 	}
 
-	balance := block.GetBalance(addr.Bytes())
-	nonce := block.GetNonce(addr.Bytes())
+	balance, err := block.GetBalance(addr.Bytes())
+	if err != nil {
+		return nil, err
+	}
+	nonce, err := block.GetNonce(addr.Bytes())
+	if err != nil {
+		return nil, err
+	}
 
 	metricsAccountStateSuccess.Mark(1)
 	return &rpcpb.GetAccountStateResponse{Balance: balance.String(), Nonce: fmt.Sprintf("%d", nonce)}, nil
@@ -160,7 +166,11 @@ func (s *APIService) sendTransaction(req *rpcpb.TransactionRequest) (*rpcpb.Send
 		metricsSendTxFailed.Mark(1)
 		return nil, err
 	}
-	if req.Nonce <= tail.GetNonce(addr.Bytes()) {
+	nonce, err := tail.GetNonce(addr.Bytes())
+	if err != nil {
+		return nil, err
+	}
+	if req.Nonce <= nonce {
 		metricsSendTxFailed.Mark(1)
 		return nil, errors.New("nonce is invalid")
 	}

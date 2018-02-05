@@ -267,7 +267,11 @@ func (dc *DynastyContext) tallyVotes() (map[string]*util.Uint128, error) {
 			if !ok {
 				score = util.NewUint128()
 			}
-			weight := accounts.GetOrCreateUserAccount(delegator.Bytes()).Balance()
+			acc, err := accounts.GetOrCreateUserAccount(delegator.Bytes())
+			if err != nil {
+				return nil, err
+			}
+			weight := acc.Balance()
 			score.Add(score.Int, weight.Int)
 			votes[delegatee.String()] = score
 			existDelegate, err = iterDelegate.Next()
@@ -595,9 +599,13 @@ func (dc *DynastyContext) electNextDynastyOnBaseDynasty(baseDynastyID int64, nex
 
 		// The last one is selected randomly
 		if len(candidates) > directSelected {
+			accState, err := dc.Accounts.RootHash()
+			if err != nil {
+				return err
+			}
 			hasher := fnv.New32a()
 			hasher.Write(byteutils.FromInt64(nextDynastyID))
-			hasher.Write(dc.Accounts.RootHash())
+			hasher.Write(accState)
 			result := int(hasher.Sum32()) % (len(candidates) - directSelected)
 			offset := result + DynastySize - 1
 			delegatee := candidates[offset].Address.Bytes()

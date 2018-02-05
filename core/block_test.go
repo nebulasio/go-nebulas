@@ -23,8 +23,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/nebulasio/go-nebulas/util/logging"
-
 	pb "github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/core/pb"
 	"github.com/nebulasio/go-nebulas/crypto"
@@ -33,6 +31,7 @@ import (
 	"github.com/nebulasio/go-nebulas/neblet/pb"
 	"github.com/nebulasio/go-nebulas/storage"
 	"github.com/nebulasio/go-nebulas/util"
+	"github.com/nebulasio/go-nebulas/util/logging"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -279,16 +278,20 @@ func TestBlock_CollectTransactions(t *testing.T) {
 	assert.Equal(t, block.txPool.cache.Len(), 0)
 
 	assert.Equal(t, block.Sealed(), false)
-	balance := block.GetBalance(block.header.coinbase.address)
+	balance, err := block.GetBalance(block.header.coinbase.address)
+	assert.Nil(t, err)
 	assert.Equal(t, balance.Cmp(util.NewUint128().Int), 1)
 	block.SetMiner(coinbase)
 	block.Seal()
 	assert.Equal(t, block.Sealed(), true)
 	assert.Equal(t, block.transactions[0], tx1)
 	assert.Equal(t, block.transactions[1], tx2)
-	assert.Equal(t, block.StateRoot().Equals(block.accState.RootHash()), true)
+	stateRoot, err := block.accState.RootHash()
+	assert.Nil(t, err)
+	assert.Equal(t, block.StateRoot().Equals(stateRoot), true)
 	assert.Equal(t, block.TxsRoot().Equals(block.txsTrie.RootHash()), true)
-	balance = block.GetBalance(block.header.coinbase.address)
+	balance, err = block.GetBalance(block.header.coinbase.address)
+	assert.Nil(t, err)
 	// balance > BlockReward (BlockReward + gas)
 	//gas, _ := bc.EstimateGas(tx1)
 	logging.CLog().Info(balance.String())
@@ -594,9 +597,11 @@ func TestBlockVerifyExecution(t *testing.T) {
 	block.Seal()
 	block.Sign(signature)
 	assert.Nil(t, block.VerifyIntegrity(bc.ChainID(), bc.ConsensusHandler()))
-	root1 := block.accState.RootHash()
+	root1, err := block.accState.RootHash()
+	assert.Nil(t, err)
 	assert.Equal(t, block.VerifyExecution(bc.tailBlock, bc.ConsensusHandler()), ErrLargeTransactionNonce)
-	root2 := block.accState.RootHash()
+	root2, err := block.accState.RootHash()
+	assert.Nil(t, err)
 	assert.Equal(t, root1, root2)
 }
 
@@ -629,4 +634,12 @@ func TestBlockVerifyState(t *testing.T) {
 	assert.Nil(t, block.VerifyIntegrity(bc.ChainID(), bc.ConsensusHandler()))
 	block.header.stateRoot[0]++
 	assert.NotNil(t, block.VerifyExecution(bc.tailBlock, bc.ConsensusHandler()))
+}
+
+func TestBlock_String(t *testing.T) {
+	bc, err := NewBlockChain(testNeb())
+	assert.Nil(t, err)
+	bc.genesisBlock.miner = nil
+	logging.CLog().Info(bc.genesisBlock)
+	assert.NotNil(t, bc.genesisBlock.String())
 }

@@ -96,12 +96,15 @@ func TestBlock_ElectNewDynasty(t *testing.T) {
 	block, _ := LoadBlockFromStorage(GenesisHash, chain.storage, chain.txPool, neb.emitter)
 	block.begin()
 	kickout, _ := AddressParse(MockDynasty[1])
-	v, _ := AddressParse(MockDynasty[len(MockDynasty)-1])
-	block.accState.GetOrCreateUserAccount(v.Bytes()).AddBalance(util.NewUint128FromInt(2000000))
+	v, err := AddressParse(MockDynasty[len(MockDynasty)-1])
+	assert.Nil(t, err)
+	acc, err := block.accState.GetOrCreateUserAccount(v.Bytes())
+	assert.Nil(t, err)
+	acc.AddBalance(util.NewUint128FromInt(2000000))
 	delegatePayload := NewDelegatePayload(DelegateAction, v.String())
 	bytes, _ := delegatePayload.ToBytes()
 	tx := NewTransaction(0, kickout, kickout, util.NewUint128FromInt(1), 1, TxPayloadDelegateType, bytes, TransactionGasPrice, util.NewUint128FromInt(200000))
-	_, _, err := block.executeTransaction(tx)
+	_, _, err = block.executeTransaction(tx)
 	assert.Nil(t, err)
 	candidatePayload := NewCandidatePayload(LogoutAction)
 	bytes, _ = candidatePayload.ToBytes()
@@ -158,7 +161,8 @@ func TestBlock_Kickout(t *testing.T) {
 
 func TestTallyVotes(t *testing.T) {
 	neb := testNeb()
-	chain, _ := NewBlockChain(neb)
+	chain, err := NewBlockChain(neb)
+	assert.Nil(t, err)
 	var c MockConsensus
 	chain.SetConsensusHandler(c)
 
@@ -169,7 +173,9 @@ func TestTallyVotes(t *testing.T) {
 	candidate, err := AddressParse(tester)
 	assert.Nil(t, err)
 	dc.Accounts.BeginBatch()
-	dc.Accounts.GetOrCreateUserAccount(candidate.Bytes()).AddBalance(util.NewUint128FromInt(10000))
+	acc, err := dc.Accounts.GetOrCreateUserAccount(candidate.Bytes())
+	assert.Nil(t, err)
+	acc.AddBalance(util.NewUint128FromInt(10000))
 	dc.Accounts.Commit()
 	assert.Nil(t, err)
 	// empty candidates

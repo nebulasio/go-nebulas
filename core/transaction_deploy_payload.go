@@ -82,7 +82,10 @@ func generateDeployContext(ctx *PayloadContext) (*nvm.Context, error) {
 	if err != nil {
 		return nil, err
 	}
-	owner := ctx.accState.GetOrCreateUserAccount(ctx.tx.from.Bytes())
+	owner, err := ctx.accState.GetOrCreateUserAccount(ctx.tx.from.Bytes())
+	if err != nil {
+		return nil, err
+	}
 	contract, err := ctx.accState.CreateContractAccount(addr.Bytes(), ctx.tx.Hash())
 	if err != nil {
 		return nil, err

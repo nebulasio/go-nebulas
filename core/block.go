@@ -132,7 +132,10 @@ type Block struct {
 
 // ToProto converts domain Block into proto Block
 func (block *Block) ToProto() (proto.Message, error) {
-	header, _ := block.header.ToProto()
+	header, err := block.header.ToProto()
+	if err != nil {
+		return nil, err
+	}
 	if header, ok := header.(*corepb.BlockHeader); ok {
 		txs := make([]*corepb.Transaction, len(block.transactions))
 		for idx, v := range block.transactions {
@@ -519,7 +522,9 @@ func (block *Block) CollectTransactions(deadline int64) {
 			}
 
 			// set current nonce.
-			currentNonceOfFromAddress[tx.From().String()] = currentNonce
+			if currentNonce > 0 {
+				currentNonceOfFromAddress[tx.From().String()] = currentNonce
+			}
 
 			if err != nil {
 				logging.VLog().WithFields(logrus.Fields{
@@ -641,7 +646,10 @@ func (block *Block) Seal() error {
 	}
 	block.commit()
 
-	block.header.stateRoot = block.accState.RootHash()
+	block.header.stateRoot, err = block.accState.RootHash()
+	if err != nil {
+		return err
+	}
 	block.header.txsRoot = block.txsTrie.RootHash()
 	block.header.eventsRoot = block.eventsTrie.RootHash()
 	if block.header.dposContext, err = block.dposContext.ToProto(); err != nil {
@@ -662,6 +670,10 @@ func (block *Block) Seal() error {
 }
 
 func (block *Block) String() string {
+	miner := ""
+	if block.miner != nil {
+		miner = block.miner.String()
+	}
 	return fmt.Sprintf(`{"height": %d, "hash": "%s", "parent_hash": "%s", "state": "%s", "txs": "%s", "events": "%s", "timestamp": %d, "dynasty": "%s", "tx": %d, "miner": "%s"}`,
 		block.height,
 		block.header.hash,
@@ -672,7 +684,7 @@ func (block *Block) String() string {
 		block.header.timestamp,
 		byteutils.Hex(block.header.dposContext.DynastyRoot),
 		len(block.transactions),
-		block.miner,
+		miner,
 	)
 }
 
@@ -810,22 +822,42 @@ func (block *Block) VerifyIntegrity(chainID uint32, consensus Consensus) error {
 // verifyState return state verify result.
 func (block *Block) verifyState() error {
 	// verify state root.
-	if !byteutils.Equal(block.accState.RootHash(), block.StateRoot()) {
+	stateRoot, err := block.accState.RootHash()
+	if err != nil {
+		return err
+	}
+	if !byteutils.Equal(stateRoot, block.StateRoot()) {
+		logging.VLog().WithFields(logrus.Fields{
+			"expect": block.StateRoot(),
+			"actual": stateRoot,
+		}).Debug("Failed to verify state.")
 		return ErrInvalidBlockStateRoot
 	}
 
 	// verify transaction root.
 	if !byteutils.Equal(block.txsTrie.RootHash(), block.TxsRoot()) {
+		logging.VLog().WithFields(logrus.Fields{
+			"expect": block.TxsRoot(),
+			"actual": block.txsTrie.RootHash(),
+		}).Debug("Failed to verify txs.")
 		return ErrInvalidBlockTxsRoot
 	}
 
 	// verify events root.
 	if !byteutils.Equal(block.eventsTrie.RootHash(), block.EventsRoot()) {
+		logging.VLog().WithFields(logrus.Fields{
+			"expect": block.EventsRoot(),
+			"actual": block.eventsTrie.RootHash(),
+		}).Debug("Failed to verify events.")
 		return ErrInvalidBlockEventsRoot
 	}
 
 	// verify transaction root.
 	if !byteutils.Equal(block.dposContext.RootHash(), block.DposContextHash()) {
+		logging.VLog().WithFields(logrus.Fields{
+			"expect": block.DposContextHash(),
+			"actual": block.dposContext.RootHash(),
+		}).Debug("Failed to verify dpos context.")
 		return ErrInvalidBlockDposContextRoot
 	}
 
@@ -873,13 +905,21 @@ func (block *Block) execute() error {
 }
 
 // GetBalance returns balance for the given address on this block.
-func (block *Block) GetBalance(address byteutils.Hash) *util.Uint128 {
-	return block.accState.GetOrCreateUserAccount(address).Balance()
+func (block *Block) GetBalance(address byteutils.Hash) (*util.Uint128, error) {
+	account, err := block.accState.GetOrCreateUserAccount(address)
+	if err != nil {
+		return nil, err
+	}
+	return account.Balance(), nil
 }
 
 // GetNonce returns nonce for the given address on this block.
-func (block *Block) GetNonce(address byteutils.Hash) uint64 {
-	return block.accState.GetOrCreateUserAccount(address).Nonce()
+func (block *Block) GetNonce(address byteutils.Hash) (uint64, error) {
+	account, err := block.accState.GetOrCreateUserAccount(address)
+	if err != nil {
+		return 0, err
+	}
+	return account.Nonce(), nil
 }
 
 // RecordEvent record event's topic and data with txHash
@@ -980,9 +1020,12 @@ func (block *Block) recordMintCnt() error {
 	return nil
 }
 
-func (block *Block) rewardCoinbase() {
+func (block *Block) rewardCoinbase() error {
 	coinbaseAddr := block.header.coinbase.address
-	coinbaseAcc := block.accState.GetOrCreateUserAccount(coinbaseAddr)
+	coinbaseAcc, err := block.accState.GetOrCreateUserAccount(coinbaseAddr)
+	if err != nil {
+		return err
+	}
 	coinbaseAcc.AddBalance(BlockReward)
 
 	logging.VLog().WithFields(logrus.Fields{
@@ -990,6 +1033,7 @@ func (block *Block) rewardCoinbase() {
 		"balance":  coinbaseAcc.Balance(),
 		"reward":   BlockReward,
 	}).Info("Rewarded the coinbase.")
+	return nil
 }
 
 // GetTransaction from txs Trie
@@ -1024,7 +1068,10 @@ func (block *Block) acceptTransaction(tx *Transaction) error {
 		return err
 	}
 	// incre nonce
-	fromAcc := block.accState.GetOrCreateUserAccount(tx.from.address)
+	fromAcc, err := block.accState.GetOrCreateUserAccount(tx.from.address)
+	if err != nil {
+		return err
+	}
 	fromAcc.IncrNonce()
 	return nil
 }
@@ -1036,7 +1083,10 @@ func (block *Block) checkTransaction(tx *Transaction) (bool, uint64, error) {
 	} */
 
 	// check nonce
-	fromAcc := block.accState.GetOrCreateUserAccount(tx.from.address)
+	fromAcc, err := block.accState.GetOrCreateUserAccount(tx.from.address)
+	if err != nil {
+		return true, 0, err
+	}
 
 	// pass current Nonce.
 	currentNonce := fromAcc.Nonce()

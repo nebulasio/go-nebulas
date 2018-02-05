@@ -85,7 +85,10 @@ func generateCallContext(ctx *PayloadContext) (*nvm.Context, *DeployPayload, err
 	if err != nil {
 		return nil, nil, err
 	}
-	owner := ctx.accState.GetOrCreateUserAccount(birthTx.from.Bytes())
+	owner, err := ctx.accState.GetOrCreateUserAccount(birthTx.from.Bytes())
+	if err != nil {
+		return nil, nil, err
+	}
 	deploy, err := LoadDeployPayload(birthTx.data.Payload)
 	if err != nil {
 		return nil, nil, err

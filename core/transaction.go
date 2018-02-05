@@ -305,7 +305,10 @@ func (tx *Transaction) LocalExecution(block *Block) (*util.Uint128, string, erro
 	tx.gasLimit = TransactionMaxGas
 
 	block.accState.BeginBatch()
-	fromAcc := block.accState.GetOrCreateUserAccount(tx.from.address)
+	fromAcc, err := block.accState.GetOrCreateUserAccount(tx.from.address)
+	if err != nil {
+		return nil, "", err
+	}
 	fromAcc.AddBalance(tx.MinBalanceRequired())
 	fromAcc.AddBalance(tx.value)
 	defer block.accState.RollBack()
@@ -334,9 +337,18 @@ func (tx *Transaction) LocalExecution(block *Block) (*util.Uint128, string, erro
 // VerifyExecution transaction and return result.
 func (tx *Transaction) VerifyExecution(block *Block) (*util.Uint128, error) {
 	// check balance.
-	fromAcc := block.accState.GetOrCreateUserAccount(tx.from.address)
-	toAcc := block.accState.GetOrCreateUserAccount(tx.to.address)
-	coinbaseAcc := block.accState.GetOrCreateUserAccount(block.CoinbaseHash())
+	fromAcc, err := block.accState.GetOrCreateUserAccount(tx.from.address)
+	if err != nil {
+		return nil, err
+	}
+	toAcc, err := block.accState.GetOrCreateUserAccount(tx.to.address)
+	if err != nil {
+		return nil, err
+	}
+	coinbaseAcc, err := block.accState.GetOrCreateUserAccount(block.CoinbaseHash())
+	if err != nil {
+		return nil, err
+	}
 
 	// balance < gasLimit*gasPric
 	if fromAcc.Balance().Cmp(tx.MinBalanceRequired().Int) < 0 {
@@ -391,16 +403,25 @@ func (tx *Transaction) VerifyExecution(block *Block) (*util.Uint128, error) {
 	}
 
 	// execute smart contract and sub the calcute gas.
-	gasExecution, _, err := payload.Execute(ctx)
+	gasExecution, _, payloadErr := payload.Execute(ctx)
 	if err != nil {
 		ctx.RollBack()
 	} else {
 		ctx.Commit()
 	}
 
-	fromAcc = block.accState.GetOrCreateUserAccount(tx.from.address)
-	toAcc = block.accState.GetOrCreateUserAccount(tx.to.address)
-	coinbaseAcc = block.accState.GetOrCreateUserAccount(block.CoinbaseHash())
+	fromAcc, err = block.accState.GetOrCreateUserAccount(tx.from.address)
+	if err != nil {
+		return nil, err
+	}
+	toAcc, err = block.accState.GetOrCreateUserAccount(tx.to.address)
+	if err != nil {
+		return nil, err
+	}
+	coinbaseAcc, err = block.accState.GetOrCreateUserAccount(block.CoinbaseHash())
+	if err != nil {
+		return nil, err
+	}
 
 	// gas = tx.GasCountOfTxBase() +  gasExecution
 	gas := util.NewUint128FromBigInt(util.NewUint128().Add(gasUsed.Int, gasExecution.Int))
@@ -416,7 +437,7 @@ func (tx *Transaction) VerifyExecution(block *Block) (*util.Uint128, error) {
 
 	tx.gasConsumption(fromAcc, coinbaseAcc, gas)
 
-	if err != nil {
+	if payloadErr != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"err":          err,
 			"block":        block,

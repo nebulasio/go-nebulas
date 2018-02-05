@@ -65,7 +65,15 @@ func GetAccountStateFunc(handler unsafe.Pointer, address *C.char) *C.char {
 		return nil
 	}
 
-	acc := engine.ctx.state.GetOrCreateUserAccount([]byte(addr))
+	acc, err := engine.ctx.state.GetOrCreateUserAccount([]byte(addr))
+	if err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"handler": uint64(uintptr(handler)),
+			"address": addr,
+			"err":     err,
+		}).Debug("GetAccountStateFunc get account state failed.")
+		return nil
+	}
 	state := &AccountState{
 		Nonce:   acc.Nonce(),
 		Balance: acc.Balance().String(),
@@ -92,13 +100,17 @@ func TransferFunc(handler unsafe.Pointer, to *C.char, v *C.char) int {
 		return 1
 	}
 
-	toAcc := engine.ctx.state.GetOrCreateUserAccount([]byte(addr))
+	toAcc, err := engine.ctx.state.GetOrCreateUserAccount([]byte(addr))
+	if err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"handler": uint64(uintptr(handler)),
+			"address": addr,
+			"err":     err,
+		}).Debug("GetAccountStateFunc get account state failed.")
+		return 1
+	}
 
-	var (
-		amount *util.Uint128
-		err    error
-	)
-	amount = util.NewUint128FromString(C.GoString(v))
+	amount := util.NewUint128FromString(C.GoString(v))
 
 	// update balance
 	err = engine.ctx.contract.SubBalance(amount)
