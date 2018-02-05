@@ -987,7 +987,7 @@ func (block *Block) rewardCoinbase() {
 
 	logging.VLog().WithFields(logrus.Fields{
 		"coinbase": coinbaseAddr.Hex(),
-		"balance":  coinbaseAcc.Balance,
+		"balance":  coinbaseAcc.Balance(),
 		"reward":   BlockReward,
 	}).Info("Rewarded the coinbase.")
 }
