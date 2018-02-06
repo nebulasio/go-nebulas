@@ -176,14 +176,15 @@ func TestTransaction_VerifyIntegrity(t *testing.T) {
 
 func TestTransaction_VerifyExecution(t *testing.T) {
 	type testTx struct {
-		name         string
-		tx           *Transaction
-		fromBalance  *util.Uint128
-		gasUsed      *util.Uint128
-		wanted       error
-		afterBalance *util.Uint128
-		toBalance    *util.Uint128
-		eventTopic   []string
+		name            string
+		tx              *Transaction
+		fromBalance     *util.Uint128
+		gasUsed         *util.Uint128
+		wanted          error
+		afterBalance    *util.Uint128
+		toBalance       *util.Uint128
+		coinbaseBalance *util.Uint128
+		eventTopic      []string
 	}
 	tests := []testTx{}
 
@@ -197,75 +198,85 @@ func TestTransaction_VerifyExecution(t *testing.T) {
 	normalTx := mockNormalTransaction(bc.chainID, 0)
 	normalTx.value = util.NewUint128FromInt(1000000)
 	afterBalance := util.NewUint128FromBigInt(util.NewUint128().Sub(balance.Int, util.NewUint128().Mul(normalTx.gasPrice.Int, MinGasCountPerTransaction.Int)))
+	coinbaseBalance := util.NewUint128FromBigInt(util.NewUint128().Mul(normalTx.gasPrice.Int, MinGasCountPerTransaction.Int))
 	tests = append(tests, testTx{
-		name:         "normal tx",
-		tx:           normalTx,
-		fromBalance:  balance,
-		gasUsed:      MinGasCountPerTransaction,
-		afterBalance: util.NewUint128FromBigInt(util.NewUint128().Sub(afterBalance.Int, normalTx.value.Int)),
-		toBalance:    normalTx.value,
-		wanted:       nil,
-		eventTopic:   []string{TopicExecuteTxSuccess},
+		name:            "normal tx",
+		tx:              normalTx,
+		fromBalance:     balance,
+		gasUsed:         MinGasCountPerTransaction,
+		afterBalance:    util.NewUint128FromBigInt(util.NewUint128().Sub(afterBalance.Int, normalTx.value.Int)),
+		toBalance:       normalTx.value,
+		coinbaseBalance: coinbaseBalance,
+		wanted:          nil,
+		eventTopic:      []string{TopicExecuteTxSuccess},
 	})
 
 	// contract deploy tx
 	deployTx := mockDeployTransaction(bc.chainID, 0)
 	deployTx.value = util.NewUint128()
 	gasUsed := util.NewUint128FromInt(21232)
+	coinbaseBalance = util.NewUint128FromBigInt(util.NewUint128().Mul(deployTx.gasPrice.Int, gasUsed.Int))
 	tests = append(tests, testTx{
-		name:         "contract deploy tx",
-		tx:           deployTx,
-		fromBalance:  balance,
-		gasUsed:      gasUsed,
-		afterBalance: util.NewUint128FromBigInt(util.NewUint128().Sub(balance.Int, util.NewUint128().Mul(deployTx.gasPrice.Int, gasUsed.Int))),
-		toBalance:    deployTx.value,
-		wanted:       nil,
-		eventTopic:   []string{TopicExecuteTxSuccess},
+		name:            "contract deploy tx",
+		tx:              deployTx,
+		fromBalance:     balance,
+		gasUsed:         gasUsed,
+		afterBalance:    util.NewUint128FromBigInt(util.NewUint128().Sub(balance.Int, util.NewUint128().Mul(deployTx.gasPrice.Int, gasUsed.Int))),
+		toBalance:       deployTx.value,
+		coinbaseBalance: coinbaseBalance,
+		wanted:          nil,
+		eventTopic:      []string{TopicExecuteTxSuccess},
 	})
 
 	// contract call tx
 	callTx := mockCallTransaction(bc.chainID, 1, "totalSupply", "")
 	callTx.value = util.NewUint128()
 	gasUsed = util.NewUint128FromInt(20036)
+	coinbaseBalance = util.NewUint128FromBigInt(util.NewUint128().Mul(callTx.gasPrice.Int, gasUsed.Int))
 	tests = append(tests, testTx{
-		name:         "contract call tx",
-		tx:           callTx,
-		fromBalance:  balance,
-		gasUsed:      gasUsed,
-		afterBalance: util.NewUint128FromBigInt(util.NewUint128().Sub(balance.Int, util.NewUint128().Mul(callTx.gasPrice.Int, gasUsed.Int))),
-		toBalance:    callTx.value,
-		wanted:       nil,
-		eventTopic:   []string{TopicExecuteTxFailed},
+		name:            "contract call tx",
+		tx:              callTx,
+		fromBalance:     balance,
+		gasUsed:         gasUsed,
+		afterBalance:    util.NewUint128FromBigInt(util.NewUint128().Sub(balance.Int, util.NewUint128().Mul(callTx.gasPrice.Int, gasUsed.Int))),
+		toBalance:       callTx.value,
+		coinbaseBalance: coinbaseBalance,
+		wanted:          nil,
+		eventTopic:      []string{TopicExecuteTxFailed},
 	})
 
 	// candidate tx
 	candidateTx := mockCandidateTransaction(bc.chainID, 0, LoginAction)
 	candidateTx.value = util.NewUint128()
 	gasUsed = util.NewUint128FromInt(40018)
+	coinbaseBalance = util.NewUint128FromBigInt(util.NewUint128().Mul(candidateTx.gasPrice.Int, gasUsed.Int))
 	tests = append(tests, testTx{
-		name:         "candidate tx",
-		tx:           candidateTx,
-		fromBalance:  balance,
-		gasUsed:      gasUsed,
-		afterBalance: util.NewUint128FromBigInt(util.NewUint128().Sub(balance.Int, util.NewUint128().Mul(candidateTx.gasPrice.Int, gasUsed.Int))),
-		toBalance:    candidateTx.value,
-		wanted:       nil,
-		eventTopic:   []string{TopicExecuteTxSuccess},
+		name:            "candidate tx",
+		tx:              candidateTx,
+		fromBalance:     balance,
+		gasUsed:         gasUsed,
+		afterBalance:    util.NewUint128FromBigInt(util.NewUint128().Sub(balance.Int, util.NewUint128().Mul(candidateTx.gasPrice.Int, gasUsed.Int))),
+		toBalance:       candidateTx.value,
+		coinbaseBalance: coinbaseBalance,
+		wanted:          nil,
+		eventTopic:      []string{TopicExecuteTxSuccess},
 	})
 
 	// delegate tx
 	delegateTx := mockDelegateTransaction(bc.chainID, 0, DelegateAction, mockAddress().String())
 	delegateTx.value = util.NewUint128()
 	gasUsed = util.NewUint128FromInt(40078)
+	coinbaseBalance = util.NewUint128FromBigInt(util.NewUint128().Mul(delegateTx.gasPrice.Int, gasUsed.Int))
 	tests = append(tests, testTx{
-		name:         "delegate tx",
-		tx:           delegateTx,
-		fromBalance:  balance,
-		gasUsed:      gasUsed,
-		afterBalance: util.NewUint128FromBigInt(util.NewUint128().Sub(balance.Int, util.NewUint128().Mul(delegateTx.gasPrice.Int, gasUsed.Int))),
-		toBalance:    delegateTx.value,
-		wanted:       nil,
-		eventTopic:   []string{TopicExecuteTxFailed},
+		name:            "delegate tx",
+		tx:              delegateTx,
+		fromBalance:     balance,
+		gasUsed:         gasUsed,
+		afterBalance:    util.NewUint128FromBigInt(util.NewUint128().Sub(balance.Int, util.NewUint128().Mul(delegateTx.gasPrice.Int, gasUsed.Int))),
+		toBalance:       delegateTx.value,
+		coinbaseBalance: coinbaseBalance,
+		wanted:          nil,
+		eventTopic:      []string{TopicExecuteTxFailed},
 	})
 
 	// normal tx insufficient fromBalance before execution
@@ -301,61 +312,69 @@ func TestTransaction_VerifyExecution(t *testing.T) {
 	payloadErrTx := mockDeployTransaction(bc.chainID, 0)
 	payloadErrTx.value = util.NewUint128()
 	payloadErrTx.data.Payload = []byte("0x00")
+	coinbaseBalance = util.NewUint128FromBigInt(util.NewUint128().Mul(delegateTx.gasPrice.Int, payloadErrTx.GasCountOfTxBase().Int))
 	tests = append(tests, testTx{
-		name:         "payload error tx",
-		tx:           payloadErrTx,
-		fromBalance:  balance,
-		gasUsed:      payloadErrTx.GasCountOfTxBase(),
-		afterBalance: util.NewUint128FromBigInt(util.NewUint128().Sub(balance.Int, util.NewUint128().Mul(payloadErrTx.gasPrice.Int, payloadErrTx.GasCountOfTxBase().Int))),
-		toBalance:    util.NewUint128(),
-		wanted:       nil,
-		eventTopic:   []string{TopicExecuteTxFailed},
+		name:            "payload error tx",
+		tx:              payloadErrTx,
+		fromBalance:     balance,
+		gasUsed:         payloadErrTx.GasCountOfTxBase(),
+		afterBalance:    util.NewUint128FromBigInt(util.NewUint128().Sub(balance.Int, util.NewUint128().Mul(payloadErrTx.gasPrice.Int, payloadErrTx.GasCountOfTxBase().Int))),
+		toBalance:       util.NewUint128(),
+		coinbaseBalance: coinbaseBalance,
+		wanted:          nil,
+		eventTopic:      []string{TopicExecuteTxFailed},
 	})
 
 	// tx execution err
 	executionErrTx := mockCallTransaction(bc.chainID, 0, "test", "")
 	executionErrTx.value = util.NewUint128()
 	gasUsed = util.NewUint128FromInt(20029)
+	coinbaseBalance = util.NewUint128FromBigInt(util.NewUint128().Mul(executionErrTx.gasPrice.Int, gasUsed.Int))
 	tests = append(tests, testTx{
-		name:         "execution err tx",
-		tx:           executionErrTx,
-		fromBalance:  balance,
-		gasUsed:      gasUsed,
-		afterBalance: util.NewUint128FromBigInt(util.NewUint128().Sub(balance.Int, util.NewUint128().Mul(executionErrTx.gasPrice.Int, gasUsed.Int))),
-		toBalance:    util.NewUint128(),
-		wanted:       nil,
-		eventTopic:   []string{TopicExecuteTxFailed},
+		name:            "execution err tx",
+		tx:              executionErrTx,
+		fromBalance:     balance,
+		gasUsed:         gasUsed,
+		afterBalance:    util.NewUint128FromBigInt(util.NewUint128().Sub(balance.Int, util.NewUint128().Mul(executionErrTx.gasPrice.Int, gasUsed.Int))),
+		toBalance:       util.NewUint128(),
+		coinbaseBalance: coinbaseBalance,
+		wanted:          nil,
+		eventTopic:      []string{TopicExecuteTxFailed},
 	})
 
 	// tx execution insufficient fromBalance after execution
 	executionInsufficientBalanceTx := mockDeployTransaction(bc.chainID, 0)
 	executionInsufficientBalanceTx.value = balance
 	gasUsed = util.NewUint128FromInt(21232)
+	coinbaseBalance = util.NewUint128FromBigInt(util.NewUint128().Mul(executionInsufficientBalanceTx.gasPrice.Int, gasUsed.Int))
 	tests = append(tests, testTx{
-		name:         "execution insufficient fromBalance after execution tx",
-		tx:           executionInsufficientBalanceTx,
-		fromBalance:  balance,
-		gasUsed:      gasUsed,
-		afterBalance: util.NewUint128FromBigInt(util.NewUint128().Sub(balance.Int, util.NewUint128().Mul(normalTx.gasPrice.Int, gasUsed.Int))),
-		toBalance:    util.NewUint128(),
-		wanted:       nil,
-		eventTopic:   []string{TopicExecuteTxFailed},
+		name:            "execution insufficient fromBalance after execution tx",
+		tx:              executionInsufficientBalanceTx,
+		fromBalance:     balance,
+		gasUsed:         gasUsed,
+		afterBalance:    util.NewUint128FromBigInt(util.NewUint128().Sub(balance.Int, util.NewUint128().Mul(normalTx.gasPrice.Int, gasUsed.Int))),
+		toBalance:       util.NewUint128(),
+		coinbaseBalance: coinbaseBalance,
+		wanted:          nil,
+		eventTopic:      []string{TopicExecuteTxFailed},
 	})
 
 	// tx execution equal fromBalance after execution
 	executionEqualBalanceTx := mockDeployTransaction(bc.chainID, 0)
 	gasUsed = util.NewUint128FromInt(21232)
+	coinbaseBalance = util.NewUint128FromBigInt(util.NewUint128().Mul(executionInsufficientBalanceTx.gasPrice.Int, gasUsed.Int))
 	executionEqualBalanceTx.value = balance
 	gasCost := util.NewUint128FromBigInt(util.NewUint128().Mul(executionEqualBalanceTx.gasPrice.Int, gasUsed.Int))
 	tests = append(tests, testTx{
-		name:         "execution equal fromBalance after execution tx",
-		tx:           executionEqualBalanceTx,
-		fromBalance:  util.NewUint128FromBigInt(util.NewUint128().Add(gasCost.Int, balance.Int)),
-		gasUsed:      gasUsed,
-		afterBalance: util.NewUint128(),
-		toBalance:    balance,
-		wanted:       nil,
-		eventTopic:   []string{TopicExecuteTxSuccess},
+		name:            "execution equal fromBalance after execution tx",
+		tx:              executionEqualBalanceTx,
+		fromBalance:     util.NewUint128FromBigInt(util.NewUint128().Add(gasCost.Int, balance.Int)),
+		gasUsed:         gasUsed,
+		afterBalance:    util.NewUint128(),
+		toBalance:       balance,
+		coinbaseBalance: coinbaseBalance,
+		wanted:          nil,
+		eventTopic:      []string{TopicExecuteTxSuccess},
 	})
 
 	ks := keystore.DefaultKS
@@ -378,6 +397,8 @@ func TestTransaction_VerifyExecution(t *testing.T) {
 			assert.Nil(t, err)
 			toAcc, err := block.accState.GetOrCreateUserAccount(tt.tx.to.address)
 			assert.Nil(t, err)
+			coinbaseAcc, err := block.accState.GetOrCreateUserAccount(block.header.coinbase.address)
+			assert.Nil(t, err)
 			if tt.gasUsed != nil {
 				assert.Equal(t, tt.gasUsed, gasUsed)
 			}
@@ -387,6 +408,10 @@ func TestTransaction_VerifyExecution(t *testing.T) {
 			if tt.toBalance != nil {
 				assert.Equal(t, tt.toBalance, toAcc.Balance())
 			}
+			if tt.coinbaseBalance != nil {
+				assert.Equal(t, tt.coinbaseBalance, coinbaseAcc.Balance())
+			}
+
 			assert.Equal(t, tt.wanted, executionErr)
 
 			events, _ := block.FetchEvents(tt.tx.hash)
