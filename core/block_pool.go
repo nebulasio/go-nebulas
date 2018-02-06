@@ -511,7 +511,12 @@ func (lb *linkedBlock) LinkParent(parentBlock *linkedBlock) {
 }
 
 func (lb *linkedBlock) travelToLinkAndReturnAllValidBlocks(parentBlock *Block) ([]*Block, []*Block, error) {
-	// startAt := time.Now().Unix()
+	stateRoot, err := parentBlock.accState.RootHash()
+	logging.VLog().WithFields(logrus.Fields{
+		"state": stateRoot,
+		"dirty": parentBlock.accState.DirtyAccountSize(),
+		"err":   err,
+	}).Info("before link.")
 
 	if err := lb.block.LinkParentBlock(lb.chain, parentBlock); err != nil {
 		logging.VLog().WithFields(logrus.Fields{
@@ -521,7 +526,13 @@ func (lb *linkedBlock) travelToLinkAndReturnAllValidBlocks(parentBlock *Block) (
 		}).Error("Failed to link the block with its parent.")
 		return nil, nil, err
 	}
-	// linkAt := time.Now().Unix()
+
+	stateRoot, err = parentBlock.accState.RootHash()
+	logging.VLog().WithFields(logrus.Fields{
+		"state": stateRoot,
+		"dirty": parentBlock.accState.DirtyAccountSize(),
+		"err":   err,
+	}).Info("after link.")
 
 	if err := lb.block.VerifyExecution(parentBlock, lb.chain.ConsensusHandler()); err != nil {
 		logging.VLog().WithFields(logrus.Fields{
