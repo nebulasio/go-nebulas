@@ -6,7 +6,7 @@ var LocalNodes = require("./local-nodes");
 var sleep = require("system-sleep");
 
 // var testnet = ["https://testnet.nebulas.io"];
-var testnet = ["http://34.205.26.12:8685"];
+var testnet = ["http://35.182.48.19:8685"];
 
 var Node = function () {
     this.local = new LocalNodes(1);

@@ -60,6 +60,8 @@ type AccountState interface {
 	RootHash() (byteutils.Hash, error)
 	Accounts() ([]Account, error)
 
+	DirtyAccountSize() int
+
 	BeginBatch()
 	Commit() error
 	RollBack()

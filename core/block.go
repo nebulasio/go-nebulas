@@ -116,15 +116,15 @@ type Block struct {
 	header       *BlockHeader
 	transactions Transactions
 
-	sealed       bool
-	height       uint64
-	parenetBlock *Block
-	accState     state.AccountState
-	txsTrie      *trie.BatchTrie
-	eventsTrie   *trie.BatchTrie
-	dposContext  *DposContext
-	txPool       *TransactionPool
-	miner        *Address
+	sealed      bool
+	height      uint64
+	parentBlock *Block
+	accState    state.AccountState
+	txsTrie     *trie.BatchTrie
+	eventsTrie  *trie.BatchTrie
+	dposContext *DposContext
+	txPool      *TransactionPool
+	miner       *Address
 
 	storage      storage.Storage
 	eventEmitter *EventEmitter
@@ -219,7 +219,7 @@ func NewBlock(chainID uint32, coinbase *Address, parent *Block) (*Block, error) 
 			chainID:     chainID,
 		},
 		transactions: make(Transactions, 0),
-		parenetBlock: parent,
+		parentBlock:  parent,
 		accState:     accState,
 		txsTrie:      txsTrie,
 		eventsTrie:   eventsTrie,
@@ -411,7 +411,7 @@ func (block *Block) LinkParentBlock(chain *BlockChain, parentBlock *Block) error
 	// loadAt := time.Now().Unix()
 
 	block.txPool = parentBlock.txPool
-	block.parenetBlock = parentBlock
+	block.parentBlock = parentBlock
 	block.storage = parentBlock.storage
 	block.height = parentBlock.height + 1
 	block.eventEmitter = parentBlock.eventEmitter
@@ -1021,6 +1021,13 @@ func (block *Block) recordMintCnt() error {
 }
 
 func (block *Block) rewardCoinbase() error {
+	stateRoot, err := block.accState.RootHash()
+	logging.VLog().WithFields(logrus.Fields{
+		"state": stateRoot,
+		"dirty": block.accState.DirtyAccountSize(),
+		"err":   err,
+	}).Info("block execution.")
+
 	coinbaseAddr := block.header.coinbase.address
 	coinbaseAcc, err := block.accState.GetOrCreateUserAccount(coinbaseAddr)
 	if err != nil {
@@ -1028,7 +1035,10 @@ func (block *Block) rewardCoinbase() error {
 	}
 	coinbaseAcc.AddBalance(BlockReward)
 
+	stateRoot, err = block.accState.RootHash()
 	logging.VLog().WithFields(logrus.Fields{
+		"state":    stateRoot,
+		"dirty":    block.accState.DirtyAccountSize(),
 		"coinbase": coinbaseAddr.Hex(),
 		"balance":  coinbaseAcc.Balance(),
 		"reward":   BlockReward,
@@ -1257,7 +1267,7 @@ func (block *Block) Clone() (*Block, error) {
 		header:       block.header,
 		sealed:       block.sealed,
 		height:       block.height,
-		parenetBlock: block.parenetBlock,
+		parentBlock:  block.parentBlock,
 		txPool:       block.txPool,
 		miner:        block.miner,
 		storage:      block.storage,
@@ -1283,5 +1293,5 @@ func (block *Block) Merge(source *Block) {
 // Dispose dispose block.
 func (block *Block) Dispose() {
 	// cut off the parent block reference, prevent memory leak.
-	block.parenetBlock = nil
+	block.parentBlock = nil
 }

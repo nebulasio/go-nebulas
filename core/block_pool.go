@@ -361,8 +361,6 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 		"block": block,
 	}).Debug("Try to push a new block.") */
 
-	// startAt := time.Now().Unix()
-
 	// verify non-dup block
 	if pool.cache.Contains(block.Hash().Hex()) ||
 		pool.bc.GetBlock(block.Hash()) != nil {
@@ -372,7 +370,6 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 		}).Debug("Found duplicated block.")
 		return ErrDuplicatedBlock
 	}
-	// checkDupAt := time.Now().Unix()
 
 	// verify block integrity
 	if err := block.VerifyIntegrity(pool.bc.chainID, pool.bc.ConsensusHandler()); err != nil {
@@ -383,7 +380,6 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 		}).Debug("Failed to check block integrity.")
 		return err
 	}
-	// checkIntegrityAt := time.Now().Unix()
 
 	bc := pool.bc
 	cache := pool.cache
@@ -402,7 +398,6 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 	}
 	pool.slot.Add(lb.block.Timestamp(), lb.block)
 	cache.Add(lb.hash.Hex(), lb)
-	// checkSlotAt := time.Now().Unix()
 
 	// find child block in pool.
 	for _, k := range cache.Keys() {
@@ -413,7 +408,6 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 			c.LinkParent(lb)
 		}
 	}
-	// findChildrenAt := time.Now().Unix()
 
 	// find parent block in cache.
 	v, _ := cache.Get(lb.parentHash.Hex())
@@ -440,7 +434,6 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 
 		return nil
 	}
-	// findParentAt := time.Now().Unix()
 
 	// find parent in Chain.
 	var parentBlock *Block
@@ -468,7 +461,6 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 		}
 		return ErrInvalidBlockCannotFindParentInLocalAndTryDownload
 	}
-	// getParentAt := time.Now().Unix()
 
 	if sender != NoSender {
 		pool.ns.Relay(MessageTypeNewBlock, block, net.MessagePriorityHigh)
@@ -480,12 +472,10 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 	if err != nil {
 		return err
 	}
-	// verifyAt := time.Now().Unix()
 
 	if err := bc.putVerifiedNewBlocks(parentBlock, allBlocks, tailBlocks); err != nil {
 		return err
 	}
-	// putAt := time.Now().Unix()
 
 	// remove allBlocks from cache.
 	for _, v := range allBlocks {
@@ -496,20 +486,6 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 	if err := pool.bc.ConsensusHandler().ForkChoice(); err != nil {
 		return err
 	}
-	// forkchoiceAt := time.Now().Unix()
-
-	/* 	logging.VLog().WithFields(logrus.Fields{
-		"time.checkdup":       checkDupAt - startAt,
-		"time.checkintegrity": checkIntegrityAt - checkDupAt,
-		"time.slot":           checkSlotAt - checkIntegrityAt,
-		"time.findchildern":   findChildrenAt - checkSlotAt,
-		"time.findparent":     findParentAt - findChildrenAt,
-		"time.getparent":      getParentAt - findParentAt,
-		"time.verify":         verifyAt - getParentAt,
-		"time.block.push":     putAt - verifyAt,
-		"time.forkchoice":     forkchoiceAt - putAt,
-		"time.all":            time.Now().Unix() - startAt,
-	}).Info("Succeed to put a block on chain.") */
 
 	return nil
 }
