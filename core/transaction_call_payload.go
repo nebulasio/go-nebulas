@@ -81,6 +81,10 @@ func generateCallContext(ctx *PayloadContext) (*nvm.Context, *DeployPayload, err
 	if err != nil {
 		return nil, nil, err
 	}
+	if err := ctx.block.CheckContract(ctx.tx.to); err != nil {
+		return nil, nil, err
+	}
+
 	birthTx, err := ctx.block.GetTransaction(contract.BirthPlace())
 	if err != nil {
 		return nil, nil, err

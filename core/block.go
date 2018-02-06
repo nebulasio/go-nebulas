@@ -1116,6 +1116,33 @@ func (block *Block) executeTransaction(tx *Transaction) (bool, uint64, error) {
 	return false, uint64(0), nil
 }
 
+// CheckContract check if contract is valid
+func (block *Block) CheckContract(addr *Address) error {
+	contract, err := block.accState.GetContractAccount(addr.Bytes())
+	if err != nil {
+		return err
+	}
+
+	birthEvents, err := block.FetchEvents(contract.BirthPlace())
+	if err != nil {
+		return err
+	}
+
+	result := false
+	for _, v := range birthEvents {
+		// TODO: later update event change topic
+		if v.Topic == TopicExecuteTxSuccess {
+			result = true
+			break
+		}
+	}
+	if !result {
+		return ErrContractDeployFailed
+	}
+
+	return nil
+}
+
 // HashBlock return the hash of block.
 func HashBlock(block *Block) byteutils.Hash {
 	hasher := sha3.New256()

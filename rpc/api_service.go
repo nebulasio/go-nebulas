@@ -160,20 +160,6 @@ func (s *APIService) Call(ctx context.Context, req *rpcpb.TransactionRequest) (*
 
 func (s *APIService) sendTransaction(req *rpcpb.TransactionRequest) (*rpcpb.SendTransactionResponse, error) {
 	neb := s.server.Neblet()
-	tail := neb.BlockChain().TailBlock()
-	addr, err := core.AddressParse(req.From)
-	if err != nil {
-		metricsSendTxFailed.Mark(1)
-		return nil, err
-	}
-	nonce, err := tail.GetNonce(addr.Bytes())
-	if err != nil {
-		return nil, err
-	}
-	if req.Nonce <= nonce {
-		metricsSendTxFailed.Mark(1)
-		return nil, errors.New("nonce is invalid")
-	}
 
 	tx, err := parseTransaction(neb, req)
 	if err != nil {
@@ -184,18 +170,8 @@ func (s *APIService) sendTransaction(req *rpcpb.TransactionRequest) (*rpcpb.Send
 		metricsSendTxFailed.Mark(1)
 		return nil, err
 	}
-	if err := neb.BlockChain().TransactionPool().PushAndBroadcast(tx); err != nil {
-		metricsSendTxFailed.Mark(1)
-		return nil, err
-	}
-	if tx.Type() == core.TxPayloadDeployType {
-		address, _ := core.NewContractAddressFromHash(hash.Sha3256(tx.From().Bytes(), byteutils.FromUint64(tx.Nonce())))
-		metricsSendTxSuccess.Mark(1)
-		return &rpcpb.SendTransactionResponse{Txhash: tx.Hash().String(), ContractAddress: address.String()}, nil
-	}
 
-	metricsSendTxSuccess.Mark(1)
-	return &rpcpb.SendTransactionResponse{Txhash: tx.Hash().String()}, nil
+	return handleTransactionResponse(neb, tx)
 }
 
 func parseTransaction(neb Neblet, reqTx *rpcpb.TransactionRequest) (*core.Transaction, error) {
@@ -239,6 +215,48 @@ func parseTransaction(neb Neblet, reqTx *rpcpb.TransactionRequest) (*core.Transa
 	return tx, nil
 }
 
+func handleTransactionResponse(neb Neblet, tx *core.Transaction) (resp *rpcpb.SendTransactionResponse, err error) {
+	defer func() {
+		if err != nil {
+			metricsSendTxFailed.Mark(1)
+		} else {
+			metricsSendTxSuccess.Mark(1)
+		}
+	}()
+
+	nonce, err := neb.BlockChain().TailBlock().GetNonce(tx.From().Bytes())
+	if err != nil {
+		return nil, err
+	}
+	if tx.Nonce() <= nonce {
+
+		return nil, errors.New("transaction's nonce is invalid, should bigger than the from's nonce")
+	}
+
+	// check if the contract is valid
+	if tx.Type() == core.TxPayloadCallType {
+		if err := neb.BlockChain().TailBlock().CheckContract(tx.To()); err != nil {
+			return nil, err
+		}
+	}
+
+	// push and broadcast tx
+	if err := neb.BlockChain().TransactionPool().PushAndBroadcast(tx); err != nil {
+		return nil, err
+	}
+
+	var contract string
+	if tx.Type() == core.TxPayloadDeployType {
+		addr, err := core.NewContractAddressFromHash(hash.Sha3256(tx.From().Bytes(), byteutils.FromUint64(tx.Nonce())))
+		if err != nil {
+			return nil, err
+		}
+		contract = addr.String()
+	}
+
+	return &rpcpb.SendTransactionResponse{Txhash: tx.Hash().String(), ContractAddress: contract}, nil
+}
+
 // SendRawTransaction submit the signed transaction raw data to txpool
 func (s *APIService) SendRawTransaction(ctx context.Context, req *rpcpb.SendRawTransactionRequest) (*rpcpb.SendTransactionResponse, error) {
 
@@ -247,28 +265,16 @@ func (s *APIService) SendRawTransaction(ctx context.Context, req *rpcpb.SendRawT
 
 	pbTx := new(corepb.Transaction)
 	if err := proto.Unmarshal(req.GetData(), pbTx); err != nil {
-		metricsSendRawTxFailed.Mark(1)
+		metricsSendTxFailed.Mark(1)
 		return nil, err
 	}
 	tx := new(core.Transaction)
 	if err := tx.FromProto(pbTx); err != nil {
-		metricsSendRawTxFailed.Mark(1)
+		metricsSendTxFailed.Mark(1)
 		return nil, err
 	}
 
-	if err := neb.BlockChain().TransactionPool().PushAndBroadcast(tx); err != nil {
-		metricsSendRawTxFailed.Mark(1)
-		return nil, err
-	}
-
-	if tx.Type() == core.TxPayloadDeployType {
-		metricsSendRawTxSuccess.Mark(1)
-		address, _ := core.NewContractAddressFromHash(hash.Sha3256(tx.From().Bytes(), byteutils.FromUint64(tx.Nonce())))
-		return &rpcpb.SendTransactionResponse{Txhash: tx.Hash().String(), ContractAddress: address.String()}, nil
-	}
-
-	metricsSendRawTxSuccess.Mark(1)
-	return &rpcpb.SendTransactionResponse{Txhash: tx.Hash().String()}, nil
+	return handleTransactionResponse(neb, tx)
 }
 
 // GetBlockByHash get block info by the block hash

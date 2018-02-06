@@ -211,7 +211,7 @@ service AdminService {
     }
 
     // SendTransactionWithPassphrase send transaction with passphrase
-    rpc SendTransactionWithPassphrase(SendTransactionPassphraseRequest) returns (SendTransactionPassphraseResponse) {
+    rpc SendTransactionWithPassphrase(SendTransactionPassphraseRequest) returns (SendTransactionResponse) {
         option (google.api.http) = {
             post: "/v1/admin/transactionWithPassphrase"
             body: "*"
@@ -471,8 +471,9 @@ message SendRawTransactionRequest {
 message SendTransactionResponse {
     // Hex string of transaction hash.
     string txhash = 1;
+
+    // Hex string of contract address if transaction is deploy type
     string contract_address = 2;
-    bool result = 3;
 }
 
 // Request message of GetBlockByHash rpc.
@@ -647,11 +648,6 @@ message SendTransactionPassphraseRequest {
 
     // from account passphrase
     string passphrase = 2;
-}
-
-message SendTransactionPassphraseResponse {
-    // Hex string of transaction hash.
-    string hash = 1;
 }
 
 message GasPriceResponse {

@@ -369,8 +369,8 @@ func TestPayload_Execute(t *testing.T) {
 		payload: callPayload,
 		tx:      callTx,
 		block:   block,
-		want:    util.NewUint128FromInt(90),
-		wantErr: nil,
+		want:    util.NewUint128(),
+		wantErr: ErrContractDeployFailed,
 	})
 
 	delegateTx := mockDelegateTransaction(bc.chainID, 0, DelegateAction, mockAddress().String())

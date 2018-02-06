@@ -113,7 +113,7 @@ func (s *AdminService) SignTransaction(ctx context.Context, req *rpcpb.Transacti
 }
 
 // SendTransactionWithPassphrase send transaction with the from addr passphrase
-func (s *AdminService) SendTransactionWithPassphrase(ctx context.Context, req *rpcpb.SendTransactionPassphraseRequest) (*rpcpb.SendTransactionPassphraseResponse, error) {
+func (s *AdminService) SendTransactionWithPassphrase(ctx context.Context, req *rpcpb.SendTransactionPassphraseRequest) (*rpcpb.SendTransactionResponse, error) {
 
 	neb := s.server.Neblet()
 	tx, err := parseTransaction(neb, req.Transaction)
@@ -123,10 +123,8 @@ func (s *AdminService) SendTransactionWithPassphrase(ctx context.Context, req *r
 	if err := neb.AccountManager().SignTransactionWithPassphrase(tx.From(), tx, []byte(req.Passphrase)); err != nil {
 		return nil, err
 	}
-	if err := neb.BlockChain().TransactionPool().PushAndBroadcast(tx); err != nil {
-		return nil, err
-	}
-	return &rpcpb.SendTransactionPassphraseResponse{Hash: tx.Hash().String()}, nil
+
+	return handleTransactionResponse(neb, tx)
 }
 
 // StatisticsNodeInfo is the RPC API handler.
