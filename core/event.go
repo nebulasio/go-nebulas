@@ -58,6 +58,9 @@ const (
 
 	// TopicExecuteTxSuccess the topic of execute a transaction success.
 	TopicExecuteTxSuccess = "chain.executeTxSuccess"
+
+	// TopicTransactionExecutionResult the topic of transaction execution result
+	TopicTransactionExecutionResult = "chain.transactionResult"
 )
 
 // Event event structure.

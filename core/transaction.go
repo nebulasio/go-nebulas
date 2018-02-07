@@ -57,8 +57,10 @@ var (
 
 	// DelegateBaseGasCount is base gas count of delegate transaction
 	DelegateBaseGasCount = util.NewUint128FromInt(20000)
+
 	// CandidateBaseGasCount is base gas count of candidate transaction
 	CandidateBaseGasCount = util.NewUint128FromInt(20000)
+
 	// ZeroGasCount is zero gas count
 	ZeroGasCount = util.NewUint128()
 )
@@ -376,7 +378,7 @@ func (tx *Transaction) VerifyExecution(block *Block) (*util.Uint128, error) {
 		metricsTxExeFailed.Mark(1)
 
 		tx.gasConsumption(fromAcc, coinbaseAcc, gasUsed)
-		tx.triggerEvent(TopicExecuteTxFailed, block, err)
+		tx.triggerEvent(TopicExecuteTxFailed, block, gasUsed, err)
 		return gasUsed, nil
 	}
 
@@ -390,7 +392,7 @@ func (tx *Transaction) VerifyExecution(block *Block) (*util.Uint128, error) {
 		metricsTxExeFailed.Mark(1)
 
 		tx.gasConsumption(fromAcc, coinbaseAcc, tx.gasLimit)
-		tx.triggerEvent(TopicExecuteTxFailed, block, err)
+		tx.triggerEvent(TopicExecuteTxFailed, block, tx.gasLimit, ErrOutOfGasLimit)
 		return tx.gasLimit, nil
 	}
 
@@ -436,7 +438,7 @@ func (tx *Transaction) VerifyExecution(block *Block) (*util.Uint128, error) {
 		}).Debug("Failed to execute payload.")
 
 		metricsTxExeFailed.Mark(1)
-		tx.triggerEvent(TopicExecuteTxFailed, block, err)
+		tx.triggerEvent(TopicExecuteTxFailed, block, gas, err)
 	} else {
 		if fromAcc.Balance().Cmp(tx.value.Int) < 0 {
 			logging.VLog().WithFields(logrus.Fields{
@@ -446,7 +448,7 @@ func (tx *Transaction) VerifyExecution(block *Block) (*util.Uint128, error) {
 			}).Debug("Failed to check balance sufficient.")
 
 			metricsTxExeFailed.Mark(1)
-			tx.triggerEvent(TopicExecuteTxFailed, block, ErrInsufficientBalance)
+			tx.triggerEvent(TopicExecuteTxFailed, block, gas, ErrInsufficientBalance)
 		} else {
 			// accept the transaction
 			fromAcc.SubBalance(tx.value)
@@ -454,7 +456,7 @@ func (tx *Transaction) VerifyExecution(block *Block) (*util.Uint128, error) {
 
 			metricsTxExeSuccess.Mark(1)
 			// record tx execution success event
-			tx.triggerEvent(TopicExecuteTxSuccess, block, nil)
+			tx.triggerEvent(TopicExecuteTxSuccess, block, gas, nil)
 		}
 	}
 
@@ -467,7 +469,16 @@ func (tx *Transaction) gasConsumption(from, coinbase state.Account, gas *util.Ui
 	coinbase.AddBalance(util.NewUint128FromBigInt(gasCost))
 }
 
-func (tx *Transaction) triggerEvent(topic string, block *Block, err error) {
+func (tx *Transaction) triggerEvent(topic string, block *Block, gasUsed *util.Uint128, err error) {
+
+	// Notice: We updated the definition of the transaction result event,
+	// and the event is recorded on the chain, so it needs to be compatible.
+	if block.Height() > OptimizeHeight {
+		tx.recordResultEvent(block, gasUsed, err)
+		return
+	}
+
+	// deprecated for new block mined
 	var txData []byte
 	pbTx, _ := tx.ToProto()
 	if err != nil {
@@ -485,6 +496,30 @@ func (tx *Transaction) triggerEvent(topic string, block *Block, err error) {
 	}
 
 	event := &Event{Topic: topic,
+		Data: string(txData)}
+	block.recordEvent(tx.hash, event)
+}
+
+func (tx *Transaction) recordResultEvent(block *Block, gasUsed *util.Uint128, err error) {
+	var (
+		txResult struct {
+			Hash    string `json:"hash"`
+			Status  int8   `json:"status"` //0 failed, 1 success
+			GasUsed string `json:"gas_used"`
+			Error   error  `json:"error"`
+		}
+	)
+
+	txResult.Hash = tx.hash.String()
+	txResult.Status = 0
+	if err != nil {
+		txResult.Status = 1
+	}
+	txResult.GasUsed = gasUsed.String()
+	txResult.Error = err
+
+	txData, _ := json.Marshal(txResult)
+	event := &Event{Topic: TopicTransactionExecutionResult,
 		Data: string(txData)}
 	block.recordEvent(tx.hash, event)
 }

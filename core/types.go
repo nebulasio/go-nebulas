@@ -28,6 +28,15 @@ import (
 	"github.com/nebulasio/go-nebulas/util"
 )
 
+// const definition
+const (
+	// OptimizeHeight after this height,
+	// update transaction execution result event,
+	// remove block nonce,
+	// update binary transaction payload.
+	OptimizeHeight = 500000
+)
+
 // Payload Types
 const (
 	TxPayloadBinaryType    = "binary"
