@@ -358,6 +358,11 @@ func (p *Dpos) newBlock(tail *core.Block, context *core.DynastyContext, deadline
 		return nil, err
 	}
 
+	logging.CLog().WithFields(logrus.Fields{
+		"coinbase": p.coinbase,
+		"reward":   core.BlockReward,
+	}).Info("Rewarded the coinbase.")
+
 	return block, nil
 }
 

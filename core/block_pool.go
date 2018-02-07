@@ -357,10 +357,6 @@ func (pool *BlockPool) download(sender string, block *Block) error {
 }
 
 func (pool *BlockPool) push(sender string, block *Block) error {
-	/* 	logging.VLog().WithFields(logrus.Fields{
-		"block": block,
-	}).Debug("Try to push a new block.") */
-
 	// verify non-dup block
 	if pool.cache.Contains(block.Hash().Hex()) ||
 		pool.bc.GetBlock(block.Hash()) != nil {
@@ -511,13 +507,6 @@ func (lb *linkedBlock) LinkParent(parentBlock *linkedBlock) {
 }
 
 func (lb *linkedBlock) travelToLinkAndReturnAllValidBlocks(parentBlock *Block) ([]*Block, []*Block, error) {
-	stateRoot, err := parentBlock.accState.RootHash()
-	logging.VLog().WithFields(logrus.Fields{
-		"state": stateRoot,
-		"dirty": parentBlock.accState.DirtyAccountSize(),
-		"err":   err,
-	}).Info("before link.")
-
 	if err := lb.block.LinkParentBlock(lb.chain, parentBlock); err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"parent": parentBlock,
@@ -527,13 +516,6 @@ func (lb *linkedBlock) travelToLinkAndReturnAllValidBlocks(parentBlock *Block) (
 		return nil, nil, err
 	}
 
-	stateRoot, err = parentBlock.accState.RootHash()
-	logging.VLog().WithFields(logrus.Fields{
-		"state": stateRoot,
-		"dirty": parentBlock.accState.DirtyAccountSize(),
-		"err":   err,
-	}).Info("after link.")
-
 	if err := lb.block.VerifyExecution(parentBlock, lb.chain.ConsensusHandler()); err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"block": lb.block,
@@ -541,13 +523,9 @@ func (lb *linkedBlock) travelToLinkAndReturnAllValidBlocks(parentBlock *Block) (
 		}).Error("Failed to execute block.")
 		return nil, nil, err
 	}
-	// executionAt := time.Now().Unix()
 
 	logging.VLog().WithFields(logrus.Fields{
 		"block": lb.block,
-		/* 		"time.link":      linkAt - startAt,
-		   		"time.execution": executionAt - linkAt,
-		   		"time.all":       time.Now().Unix() - startAt, */
 	}).Info("Block Verified.")
 
 	allBlocks := []*Block{lb.block}

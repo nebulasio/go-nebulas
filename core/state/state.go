@@ -235,10 +235,6 @@ func NewAccountState(root byteutils.Hash, storage storage.Storage) (AccountState
 	}, nil
 }
 
-func (as *accountState) DirtyAccountSize() int {
-	return len(as.dirtyAccount)
-}
-
 func (as *accountState) recordDirtyAccount(addr byteutils.Hash, acc Account) {
 	if as.batching {
 		acc.BeginBatch()

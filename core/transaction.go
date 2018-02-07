@@ -424,16 +424,6 @@ func (tx *Transaction) VerifyExecution(block *Block) (*util.Uint128, error) {
 
 	// gas = tx.GasCountOfTxBase() +  gasExecution
 	gas := util.NewUint128FromBigInt(util.NewUint128().Add(gasUsed.Int, gasExecution.Int))
-
-	/* 	logging.VLog().WithFields(logrus.Fields{
-		"tx":           tx,
-		"gasUsed":      gasUsed.String(),
-		"gasExecution": gasExecution.String(),
-		"gas":          gas.String(),
-		"gasPrice":     tx.gasPrice.String(),
-		"gasLimited":   tx.gasLimit.String(),
-	}).Debug("Transaction execution statics.") */
-
 	tx.gasConsumption(fromAcc, coinbaseAcc, gas)
 
 	if exeErr != nil {

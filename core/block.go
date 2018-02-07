@@ -381,8 +381,6 @@ func (block *Block) VerifyAddress(str string) bool {
 
 // LinkParentBlock link parent block, return true if hash is the same; false otherwise.
 func (block *Block) LinkParentBlock(chain *BlockChain, parentBlock *Block) error {
-	// startAt := time.Now().Unix()
-
 	if block.ParentHash().Equals(parentBlock.Hash()) == false {
 		return ErrLinkToWrongParentBlock
 	}
@@ -403,12 +401,10 @@ func (block *Block) LinkParentBlock(chain *BlockChain, parentBlock *Block) error
 	if err != nil {
 		return err
 	}
-	// nextAt := time.Now().Unix()
 
 	if err := block.LoadDynastyContext(context); err != nil {
 		return ErrLoadNextDynastyContext
 	}
-	// loadAt := time.Now().Unix()
 
 	block.txPool = parentBlock.txPool
 	block.parentBlock = parentBlock
@@ -416,20 +412,10 @@ func (block *Block) LinkParentBlock(chain *BlockChain, parentBlock *Block) error
 	block.height = parentBlock.height + 1
 	block.eventEmitter = parentBlock.eventEmitter
 
-	/* 	logging.VLog().WithFields(logrus.Fields{
-		"parent":    parentBlock,
-		"block":     block,
-		"err":       err,
-		"time.next": nextAt - startAt,
-		"time.load": loadAt - nextAt,
-		"time.all":  time.Now().Unix() - startAt,
-	}).Info("Linked the parent block.") */
-
 	return nil
 }
 
 func (block *Block) begin() {
-	// logging.VLog().Debug("Block Begin.")
 	block.accState.BeginBatch()
 	block.txsTrie.BeginBatch()
 	block.eventsTrie.BeginBatch()
@@ -441,9 +427,6 @@ func (block *Block) commit() {
 	block.txsTrie.Commit()
 	block.eventsTrie.Commit()
 	block.dposContext.Commit()
-	/* 	logging.VLog().WithFields(logrus.Fields{
-		"block": block,
-	}).Debug("Block Commit.") */
 }
 
 func (block *Block) rollback() {
@@ -451,9 +434,6 @@ func (block *Block) rollback() {
 	block.txsTrie.RollBack()
 	block.eventsTrie.RollBack()
 	block.dposContext.RollBack()
-	/* 	logging.VLog().WithFields(logrus.Fields{
-		"block": block,
-	}).Debug("Block RollBack.") */
 }
 
 // ReturnTransactions and giveback them to tx pool
@@ -537,11 +517,6 @@ func (block *Block) CollectTransactions(deadline int64) {
 				txBlock.rollback()
 				executedTxBlocksCh <- nil
 			} else {
-				/* 				logging.VLog().WithFields(logrus.Fields{
-					"block":    block,
-					"tx":       tx,
-					"giveback": giveback,
-				}).Info("tx is packed.") */
 				packed++
 				txBlock.commit()
 				txBlock.transactions = append(txBlock.transactions, tx)
@@ -694,39 +669,24 @@ func (block *Block) VerifyExecution(parent *Block, consensus Consensus) error {
 	if err := consensus.VerifyBlock(block, parent); err != nil {
 		return err
 	}
-	// verifyAt := time.Now().Unix()
 
 	block.begin()
-	// beginAt := time.Now().Unix()
 
 	if err := block.execute(); err != nil {
 		block.rollback()
 		return err
 	}
-	// executeAt := time.Now().Unix()
 
 	if err := block.verifyState(); err != nil {
 		block.rollback()
 		return err
 	}
-	// stateAt := time.Now().Unix()
 
 	block.commit()
-	// commitAt := time.Now().Unix()
 
 	// release all events
 	block.triggerEvent()
 
-	/* 	logging.VLog().WithFields(logrus.Fields{
-		"time.verify":  verifyAt - startAt,
-		"time.begin":   beginAt - verifyAt,
-		"time.execute": executeAt - beginAt,
-		"time.state":   stateAt - executeAt,
-		"time.commit":  commitAt - stateAt,
-		"time.event":   endAt - commitAt,
-		"tail.all":     endAt - startAt,
-		"block":        block,
-	}).Info("Succeed to verify the block.") */
 	return nil
 }
 
@@ -957,11 +917,6 @@ func (block *Block) recordEvent(txHash byteutils.Hash, event *Event) error {
 	if err != nil {
 		return err
 	}
-	/* 	logging.VLog().WithFields(logrus.Fields{
-		"block": block,
-		"tx":    txHash.Hex(),
-		"event": event,
-	}).Info("Recorded event.") */
 	return nil
 }
 
@@ -994,7 +949,6 @@ func (block *Block) FetchEvents(txHash byteutils.Hash) ([]*Event, error) {
 }
 
 func (block *Block) recordMintCnt() error {
-	// startAt := time.Now().Unix()
 	key := append(byteutils.FromInt64(block.Timestamp()/DynastyInterval), block.miner.Bytes()...)
 	bytes, err := block.dposContext.mintCntTrie.Get(key)
 	if err != nil && err != storage.ErrKeyNotFound {
@@ -1009,40 +963,17 @@ func (block *Block) recordMintCnt() error {
 	if err != nil {
 		return err
 	}
-	// endAt := time.Now().Unix()
 
-	/* 	logging.VLog().WithFields(logrus.Fields{
-		"dynasty": block.Timestamp() / DynastyInterval,
-		"miner":   block.miner,
-		"count":   cnt,
-		"time":    endAt - startAt,
-	}).Debug("Recorded the block minted by the miner in the dynasty.") */
 	return nil
 }
 
 func (block *Block) rewardCoinbase() error {
-	stateRoot, err := block.accState.RootHash()
-	logging.VLog().WithFields(logrus.Fields{
-		"state": stateRoot,
-		"dirty": block.accState.DirtyAccountSize(),
-		"err":   err,
-	}).Info("block execution.")
-
 	coinbaseAddr := block.header.coinbase.address
 	coinbaseAcc, err := block.accState.GetOrCreateUserAccount(coinbaseAddr)
 	if err != nil {
 		return err
 	}
 	coinbaseAcc.AddBalance(BlockReward)
-
-	stateRoot, err = block.accState.RootHash()
-	logging.VLog().WithFields(logrus.Fields{
-		"state":    stateRoot,
-		"dirty":    block.accState.DirtyAccountSize(),
-		"coinbase": coinbaseAddr.Hex(),
-		"balance":  coinbaseAcc.Balance(),
-		"reward":   BlockReward,
-	}).Info("Rewarded the coinbase.")
 	return nil
 }
 
@@ -1087,11 +1018,6 @@ func (block *Block) acceptTransaction(tx *Transaction) error {
 }
 
 func (block *Block) checkTransaction(tx *Transaction) (bool, uint64, error) {
-	// check duplication
-	/* 	if proof, _ := block.txsTrie.Prove(tx.hash); proof != nil {
-		return false, ErrDuplicatedTransaction
-	} */
-
 	// check nonce
 	fromAcc, err := block.accState.GetOrCreateUserAccount(tx.from.address)
 	if err != nil {
