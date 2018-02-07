@@ -25,6 +25,7 @@ import (
 
 	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/core/pb"
+	"github.com/nebulasio/go-nebulas/core/state"
 	"github.com/nebulasio/go-nebulas/crypto"
 	"github.com/nebulasio/go-nebulas/crypto/keystore"
 	"github.com/nebulasio/go-nebulas/util"
@@ -392,7 +393,9 @@ func TestTransaction_VerifyExecution(t *testing.T) {
 			fromAcc, err := block.accState.GetOrCreateUserAccount(tt.tx.from.address)
 			assert.Nil(t, err)
 			fromAcc.AddBalance(tt.fromBalance)
+
 			gasUsed, executionErr := tt.tx.VerifyExecution(block)
+
 			fromAcc, err = block.accState.GetOrCreateUserAccount(tt.tx.from.address)
 			assert.Nil(t, err)
 			toAcc, err := block.accState.GetOrCreateUserAccount(tt.tx.to.address)
@@ -424,4 +427,113 @@ func TestTransaction_VerifyExecution(t *testing.T) {
 		})
 	}
 
+}
+
+func TestTransaction_LocalExecution(t *testing.T) {
+	type testCase struct {
+		name    string
+		tx      *Transaction
+		gasUsed *util.Uint128
+		result  string
+		wanted  error
+	}
+
+	tests := []testCase{}
+
+	bc, _ := NewBlockChain(testNeb())
+	var c MockConsensus
+	bc.SetConsensusHandler(c)
+
+	normalTx := mockNormalTransaction(bc.chainID, 0)
+	normalTx.value = util.NewUint128FromInt(1000000)
+	tests = append(tests, testCase{
+		name:    "normal tx",
+		tx:      normalTx,
+		gasUsed: MinGasCountPerTransaction,
+		result:  "",
+		wanted:  nil,
+	})
+
+	deployTx := mockDeployTransaction(bc.chainID, 0)
+	deployTx.value = util.NewUint128()
+	gasUsed := util.NewUint128FromInt(21232)
+	tests = append(tests, testCase{
+		name:    "contract deploy tx",
+		tx:      deployTx,
+		gasUsed: gasUsed,
+		result:  "undefined",
+		wanted:  nil,
+	})
+
+	// contract call tx
+	callTx := mockCallTransaction(bc.chainID, 1, "totalSupply", "")
+	callTx.value = util.NewUint128()
+	gasUsed = util.NewUint128FromInt(20036)
+	tests = append(tests, testCase{
+		name:    "contract call tx",
+		tx:      callTx,
+		gasUsed: gasUsed,
+		result:  "",
+		wanted:  state.ErrAccountNotFound,
+	})
+
+	// candidate tx
+	candidateTx := mockCandidateTransaction(bc.chainID, 0, LoginAction)
+	candidateTx.value = util.NewUint128()
+	gasUsed = util.NewUint128FromInt(40018)
+	tests = append(tests, testCase{
+		name:    "candidate tx",
+		tx:      candidateTx,
+		gasUsed: gasUsed,
+		result:  "",
+		wanted:  nil,
+	})
+
+	// delegate tx
+	delegateTx := mockDelegateTransaction(bc.chainID, 0, DelegateAction, mockAddress().String())
+	delegateTx.value = util.NewUint128()
+	gasUsed = util.NewUint128FromInt(40078)
+	tests = append(tests, testCase{
+		name:    "delegate tx",
+		tx:      delegateTx,
+		gasUsed: gasUsed,
+		wanted:  ErrInvalidDelegateToNonCandidate,
+	})
+
+	block := bc.tailBlock
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+
+			fromAcc, err := block.accState.GetOrCreateUserAccount(tt.tx.from.address)
+			assert.Nil(t, err)
+			fromBefore := fromAcc.Balance()
+
+			toAcc, err := block.accState.GetOrCreateUserAccount(tt.tx.to.address)
+			assert.Nil(t, err)
+			toBefore := toAcc.Balance()
+
+			coinbaseAcc, err := block.accState.GetOrCreateUserAccount(block.header.coinbase.address)
+			assert.Nil(t, err)
+			coinbaseBefore := coinbaseAcc.Balance()
+
+			gasUsed, result, err := tt.tx.LocalExecution(block)
+
+			assert.Equal(t, tt.wanted, err)
+			assert.Equal(t, tt.result, result)
+			assert.Equal(t, tt.gasUsed, gasUsed)
+
+			fromAcc, err = block.accState.GetOrCreateUserAccount(tt.tx.from.address)
+			assert.Nil(t, err)
+			assert.Equal(t, fromBefore, fromAcc.Balance())
+
+			toAcc, err = block.accState.GetOrCreateUserAccount(tt.tx.to.address)
+			assert.Nil(t, err)
+			assert.Equal(t, toBefore, toAcc.Balance())
+
+			coinbaseAcc, err = block.accState.GetOrCreateUserAccount(block.header.coinbase.address)
+			assert.Nil(t, err)
+			assert.Equal(t, coinbaseBefore, coinbaseAcc.Balance())
+		})
+	}
 }

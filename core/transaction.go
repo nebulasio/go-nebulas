@@ -300,11 +300,11 @@ func (tx *Transaction) LoadPayload(block *Block) (TxPayload, error) {
 }
 
 // LocalExecution returns tx local execution
-func (tx *Transaction) LocalExecution(x *Block) (*util.Uint128, string, error) {
+func (tx *Transaction) LocalExecution(block *Block) (*util.Uint128, string, error) {
 	// update gas to max for estimate
 	tx.gasLimit = TransactionMaxGas
 
-	txBlock, err := x.Clone()
+	txBlock, err := block.Clone()
 	if err != nil {
 		return nil, "", err
 	}
@@ -327,8 +327,7 @@ func (tx *Transaction) LocalExecution(x *Block) (*util.Uint128, string, error) {
 	gasUsed := tx.GasCountOfTxBase()
 	gasUsed.Add(gasUsed.Int, payload.BaseGasCount().Int)
 
-	ctx := NewPayloadContext(txBlock, tx)
-	gasExecution, result, err := payload.Execute(ctx)
+	gasExecution, result, err := payload.Execute(txBlock, tx)
 
 	gas := util.NewUint128FromBigInt(util.NewUint128().Add(gasUsed.Int, gasExecution.Int))
 	return gas, result, err
@@ -381,13 +380,6 @@ func (tx *Transaction) VerifyExecution(block *Block) (*util.Uint128, error) {
 		return gasUsed, nil
 	}
 
-	ctx := NewPayloadContext(block, tx)
-
-	err = ctx.BeginBatch()
-	if err != nil {
-		return util.NewUint128(), err
-	}
-
 	gasUsed.Add(gasUsed.Int, payload.BaseGasCount().Int)
 	if tx.gasLimit.Cmp(gasUsed.Int) < 0 {
 		logging.VLog().WithFields(logrus.Fields{
@@ -402,12 +394,19 @@ func (tx *Transaction) VerifyExecution(block *Block) (*util.Uint128, error) {
 		return tx.gasLimit, nil
 	}
 
-	// execute smart contract and sub the calcute gas.
-	gasExecution, _, payloadErr := payload.Execute(ctx)
+	// block begin
+	txBlock, err := block.Clone()
 	if err != nil {
-		ctx.RollBack()
+		return util.NewUint128(), err
+	}
+
+	// execute smart contract and sub the calcute gas.
+	gasExecution, _, exeErr := payload.Execute(txBlock, tx)
+
+	if exeErr != nil {
+		txBlock.rollback()
 	} else {
-		ctx.Commit()
+		block.Merge(txBlock)
 	}
 
 	fromAcc, err = block.accState.GetOrCreateUserAccount(tx.from.address)
@@ -437,7 +436,7 @@ func (tx *Transaction) VerifyExecution(block *Block) (*util.Uint128, error) {
 
 	tx.gasConsumption(fromAcc, coinbaseAcc, gas)
 
-	if payloadErr != nil {
+	if exeErr != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"err":          err,
 			"block":        block,

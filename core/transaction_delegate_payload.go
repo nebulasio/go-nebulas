@@ -68,21 +68,21 @@ func (payload *DelegatePayload) BaseGasCount() *util.Uint128 {
 }
 
 // Execute the call payload in tx, call a function
-func (payload *DelegatePayload) Execute(ctx *PayloadContext) (*util.Uint128, string, error) {
-	delegator := ctx.tx.from.Bytes()
+func (payload *DelegatePayload) Execute(block *Block, tx *Transaction) (*util.Uint128, string, error) {
+	delegator := tx.from.Bytes()
 	delegatee, err := AddressParse(payload.Delegatee)
 	if err != nil {
 		return ZeroGasCount, "", err
 	}
 	// check delegatee valid
-	_, err = ctx.dposContext.candidateTrie.Get(delegatee.Bytes())
+	_, err = block.dposContext.candidateTrie.Get(delegatee.Bytes())
 	if err != nil && err != storage.ErrKeyNotFound {
 		return ZeroGasCount, "", err
 	}
 	if err == storage.ErrKeyNotFound {
 		return ZeroGasCount, "", ErrInvalidDelegateToNonCandidate
 	}
-	pre, err := ctx.dposContext.voteTrie.Get(delegator)
+	pre, err := block.dposContext.voteTrie.Get(delegator)
 	if err != nil && err != storage.ErrKeyNotFound {
 		return ZeroGasCount, "", err
 	}
@@ -90,15 +90,15 @@ func (payload *DelegatePayload) Execute(ctx *PayloadContext) (*util.Uint128, str
 	case DelegateAction:
 		if err != storage.ErrKeyNotFound {
 			key := append(pre, delegator...)
-			if _, err = ctx.dposContext.delegateTrie.Del(key); err != nil {
+			if _, err = block.dposContext.delegateTrie.Del(key); err != nil {
 				return ZeroGasCount, "", err
 			}
 		}
 		key := append(delegatee.Bytes(), delegator...)
-		if _, err = ctx.dposContext.delegateTrie.Put(key, delegator); err != nil {
+		if _, err = block.dposContext.delegateTrie.Put(key, delegator); err != nil {
 			return ZeroGasCount, "", err
 		}
-		if _, err = ctx.dposContext.voteTrie.Put(delegator, delegatee.Bytes()); err != nil {
+		if _, err = block.dposContext.voteTrie.Put(delegator, delegatee.Bytes()); err != nil {
 			return ZeroGasCount, "", err
 		}
 		/* 		logging.VLog().WithFields(logrus.Fields{
@@ -112,10 +112,10 @@ func (payload *DelegatePayload) Execute(ctx *PayloadContext) (*util.Uint128, str
 			return ZeroGasCount, "", ErrInvalidUnDelegateFromNonDelegatee
 		}
 		key := append(delegatee.Bytes(), delegator...)
-		if _, err = ctx.dposContext.delegateTrie.Del(key); err != nil {
+		if _, err = block.dposContext.delegateTrie.Del(key); err != nil {
 			return ZeroGasCount, "", err
 		}
-		if _, err = ctx.dposContext.voteTrie.Del(delegator); err != nil {
+		if _, err = block.dposContext.voteTrie.Del(delegator); err != nil {
 			return ZeroGasCount, "", err
 		}
 		/* 		logging.VLog().WithFields(logrus.Fields{
