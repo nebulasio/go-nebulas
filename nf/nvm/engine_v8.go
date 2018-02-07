@@ -52,7 +52,10 @@ import (
 	"time"
 	"unsafe"
 
+	lru "github.com/hashicorp/golang-lru"
 	"github.com/nebulasio/go-nebulas/core/state"
+	"github.com/nebulasio/go-nebulas/crypto/hash"
+	"github.com/nebulasio/go-nebulas/util/byteutils"
 	"github.com/nebulasio/go-nebulas/util/logging"
 	"github.com/sirupsen/logrus"
 )
@@ -77,12 +80,13 @@ var (
 
 var (
 	v8engineOnce          = sync.Once{}
-	storages              = make(map[uint64]*V8Engine, 256)
+	storages              = make(map[uint64]*V8Engine, 1024)
 	storagesIdx           = uint64(0)
 	storagesLock          = sync.RWMutex{}
-	engines               = make(map[*C.V8Engine]*V8Engine, 256)
+	engines               = make(map[*C.V8Engine]*V8Engine, 1024)
 	enginesLock           = sync.RWMutex{}
 	publicFuncNameChecker = regexp.MustCompile("^[a-zA-Z$][A-Za-z0-9_$]*$")
+	sourceModuleCache, _  = lru.New(4096)
 )
 
 // V8Engine v8 engine.
@@ -97,6 +101,13 @@ type V8Engine struct {
 	actualTotalMemorySize              uint64
 	lcsHandler                         uint64
 	gcsHandler                         uint64
+}
+
+type sourceModuleItem struct {
+	source                    string
+	sourceLineOffset          int
+	traceableSource           string
+	traceableSourceLineOffset int
 }
 
 // InitV8Engine initialize the v8 engine.
@@ -364,15 +375,37 @@ func (e *V8Engine) RunContractScript(source, sourceType, function, args string) 
 func (e *V8Engine) AddModule(id, source string, sourceLineOffset int) error {
 	// inject tracing instruction when enable limits.
 	if e.enableLimits {
-		traceableSource, lineOffset, err := e.InjectTracingInstructions(source)
-		if err != nil {
-			logging.VLog().WithFields(logrus.Fields{
-				"err": err,
-			}).Debug("inject tracing instruction failed.")
-			return err
+		var item *sourceModuleItem
+		sourceHash := byteutils.Hex(hash.Sha3256([]byte(source)))
+
+		// try read from cache.
+		if sourceModuleCache.Contains(sourceHash) {
+			value, _ := sourceModuleCache.Get(sourceHash)
+			item = value.(*sourceModuleItem)
 		}
-		source = traceableSource
-		sourceLineOffset = lineOffset
+
+		if item == nil {
+			traceableSource, lineOffset, err := e.InjectTracingInstructions(source)
+			if err != nil {
+				logging.VLog().WithFields(logrus.Fields{
+					"err": err,
+				}).Debug("inject tracing instruction failed.")
+				return err
+			}
+
+			item = &sourceModuleItem{
+				source:                    source,
+				sourceLineOffset:          sourceLineOffset,
+				traceableSource:           traceableSource,
+				traceableSourceLineOffset: lineOffset,
+			}
+
+			// put to cache.
+			sourceModuleCache.Add(sourceHash, item)
+		}
+
+		source = item.traceableSource
+		sourceLineOffset = item.traceableSourceLineOffset
 	}
 
 	e.modules.Add(NewModule(id, source, sourceLineOffset))

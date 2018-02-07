@@ -969,3 +969,9 @@ func TestNRC20Contract(t *testing.T) {
 		})
 	}
 }
+
+func TestNRC20ContractMultitimes(t *testing.T) {
+	for i := 0; i < 10; i++ {
+		TestNRC20Contract(t)
+	}
+}
