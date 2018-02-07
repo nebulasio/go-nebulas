@@ -72,27 +72,21 @@ func TestEventEmitter(t *testing.T) {
 	}()
 
 	t1c, t2c, t3c := 0, 0, 0
-	go func() {
-		defer wg.Done()
-
-		for {
-			select {
-			case <-time.After(time.Second * 1):
-				return
-			case e := <-t1ch.eventCh:
-				assert.Equal(t, topics[0], e.Topic)
-				t1c++
-			case e := <-t2ch.eventCh:
-				assert.Equal(t, topics[1], e.Topic)
-				t2c++
-			case e := <-t3ch.eventCh:
-				assert.Equal(t, topics[2], e.Topic)
-				t3c++
-			}
-		}
-	}()
-
-	wg.Wait()
+	for len(t1ch.eventCh) > 0 {
+		e := <-t1ch.eventCh
+		assert.Equal(t, topics[0], e.Topic)
+		t1c++
+	}
+	for len(t2ch.eventCh) > 0 {
+		e := <-t2ch.eventCh
+		assert.Equal(t, topics[1], e.Topic)
+		t2c++
+	}
+	for len(t3ch.eventCh) > 0 {
+		e := <-t3ch.eventCh
+		assert.Equal(t, topics[2], e.Topic)
+		t3c++
+	}
 
 	at1c, at2c, at3c := eventCountDist[topics[0]], eventCountDist[topics[1]], eventCountDist[topics[2]]
 	assert.Equal(t, at1c, t1c)
