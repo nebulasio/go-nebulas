@@ -300,20 +300,26 @@ func (tx *Transaction) LoadPayload(block *Block) (TxPayload, error) {
 }
 
 // LocalExecution returns tx local execution
-func (tx *Transaction) LocalExecution(block *Block) (*util.Uint128, string, error) {
+func (tx *Transaction) LocalExecution(x *Block) (*util.Uint128, string, error) {
 	// update gas to max for estimate
 	tx.gasLimit = TransactionMaxGas
 
-	block.accState.BeginBatch()
-	fromAcc, err := block.accState.GetOrCreateUserAccount(tx.from.address)
+	txBlock, err := x.Clone()
+	if err != nil {
+		return nil, "", err
+	}
+
+	txBlock.begin()
+	defer txBlock.rollback()
+
+	fromAcc, err := txBlock.accState.GetOrCreateUserAccount(tx.from.address)
 	if err != nil {
 		return nil, "", err
 	}
 	fromAcc.AddBalance(tx.MinBalanceRequired())
 	fromAcc.AddBalance(tx.value)
-	defer block.accState.RollBack()
 
-	payload, err := tx.LoadPayload(block)
+	payload, err := tx.LoadPayload(txBlock)
 	if err != nil {
 		return util.NewUint128(), "", err
 	}
@@ -321,13 +327,7 @@ func (tx *Transaction) LocalExecution(block *Block) (*util.Uint128, string, erro
 	gasUsed := tx.GasCountOfTxBase()
 	gasUsed.Add(gasUsed.Int, payload.BaseGasCount().Int)
 
-	ctx := NewPayloadContext(block, tx)
-	err = ctx.BeginBatch()
-	if err != nil {
-		return gasUsed, "", err
-	}
-	defer ctx.RollBack()
-
+	ctx := NewPayloadContext(txBlock, tx)
 	gasExecution, result, err := payload.Execute(ctx)
 
 	gas := util.NewUint128FromBigInt(util.NewUint128().Add(gasUsed.Int, gasExecution.Int))
