@@ -86,8 +86,8 @@ func (n *node) Type() (ty, error) {
 	}
 }
 
-// Trie is a Merkle Patricia Triee, consists of three kinds of nodes,
-// Branch Node: 16-elements array, value is [hash_0, hash_1, ..., hash_f, hash]
+// Trie is a Merkle Patricia Trie, consists of three kinds of nodes,
+// Branch Node: 16-elements array, value is [hash_0, hash_1, ..., hash_f]
 // Extension Node: 3-elements array, value is [ext flag, prefix path, next hash]
 // Leaf Node: 3-elements array, value is [leaf flag, suffix path, value]
 type Trie struct {
