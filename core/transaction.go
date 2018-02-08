@@ -282,10 +282,14 @@ func (tx *Transaction) LoadPayload(block *Block) (TxPayload, error) {
 	)
 	switch tx.data.Type {
 	case TxPayloadBinaryType:
-		if block.Height() >= 280921 && block.Height() <= 297680 || block.Height() >= 300087 && block.Height() <= 302302 {
-			payload, err = LoadBinaryPayloadFail(tx.data.Payload)
-		} else {
+		if block.height > OptimizeHeight {
 			payload, err = LoadBinaryPayload(tx.data.Payload)
+		} else {
+			if block.Height() >= 280921 && block.Height() <= 297680 || block.Height() >= 300087 && block.Height() <= 302302 {
+				payload, err = LoadBinaryPayloadDeprecatedFail(tx.data.Payload)
+			} else {
+				payload, err = LoadBinaryPayloadDeprecated(tx.data.Payload)
+			}
 		}
 	case TxPayloadDeployType:
 		payload, err = LoadDeployPayload(tx.data.Payload)

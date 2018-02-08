@@ -34,7 +34,7 @@ Admin.prototype.changeNetworkID = function (networkId, callback) {
     return this.request("post", "/v1/admin/changeNetworkID", params, callback);
 };
 
-Admin.prototype.signTransaction = function (from, to, value, nonce, gasPrice, gasLimit, contract, candidate, delegate, callback) {
+Admin.prototype.signTransaction = function (from, to, value, nonce, gasPrice, gasLimit, contract, candidate, delegate, binary, callback) {
     var params = {
         "from": from,
         "to": to,
@@ -44,12 +44,13 @@ Admin.prototype.signTransaction = function (from, to, value, nonce, gasPrice, ga
         "gasLimit": utils.toString(gasLimit),
         "contract": contract,
         "candidate": candidate,
-        "delegate": delegate
+        "delegate": delegate,
+        "binary": binary
     };
     return this.request("post", "/v1/admin/sign", params, callback);
 };
 
-Admin.prototype.sendTransactionWithPassphrase = function (from, to, value, nonce, gasPrice, gasLimit, contract, candidate, delegate, passphrase, callback) {
+Admin.prototype.sendTransactionWithPassphrase = function (from, to, value, nonce, gasPrice, gasLimit, contract, candidate, delegate, binary, passphrase, callback) {
     var tx = {
         "from": from,
         "to": to,
@@ -59,7 +60,8 @@ Admin.prototype.sendTransactionWithPassphrase = function (from, to, value, nonce
         "gasLimit": utils.toString(gasLimit),
         "contract": contract,
         "candidate": candidate,
-        "delegate": delegate
+        "delegate": delegate,
+        "binary": binary
     };
     var params = {
         "transaction": tx,

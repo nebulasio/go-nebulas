@@ -16,7 +16,7 @@ var TxPayloadCallType      = "call";
 var TxPayloadDelegateType  = "delegate";
 var TxPayloadCandidateType = "candidate";
 
-var Transaction = function (chainID, from, to, value, nonce, gasPrice, gasLimit, contract, candidate, delegate) {
+var Transaction = function (chainID, from, to, value, nonce, gasPrice, gasLimit, contract, candidate, delegate, binary) {
     this.chainID = chainID;
     this.from = account.fromAddress(from);
     this.to = account.fromAddress(to);
@@ -24,7 +24,7 @@ var Transaction = function (chainID, from, to, value, nonce, gasPrice, gasLimit,
     this.nonce = nonce;
     this.timestamp = Math.floor(new Date().getTime()/1000);
     // this.timestamp = 1516256439;//test cases
-    this.data = parsePayload(contract, candidate, delegate);
+    this.data = parsePayload(contract, candidate, delegate, binary);
     this.gasPrice = utils.toBigNumber(gasPrice);
     this.gasLimit = utils.toBigNumber(gasLimit);
 
@@ -37,7 +37,7 @@ var Transaction = function (chainID, from, to, value, nonce, gasPrice, gasLimit,
     }
 };
 
-var parsePayload = function (contract, candidate, delegate) {
+var parsePayload = function (contract, candidate, delegate, binary) {
     /*jshint maxcomplexity:6 */
 
     var payloadType, payload;
@@ -70,6 +70,7 @@ var parsePayload = function (contract, candidate, delegate) {
         // payload = {
         //     Data: null
         // };
+        //TODO: after block height > 500000, add binary data
     }
     var payloadData = utils.isNull(payload) ? null : cryptoUtils.toBuffer(JSON.stringify(payload));
 
