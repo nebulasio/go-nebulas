@@ -25,6 +25,7 @@ import (
 	"github.com/nebulasio/go-nebulas/common/trie/pb"
 	"github.com/nebulasio/go-nebulas/crypto/hash"
 	"github.com/nebulasio/go-nebulas/storage"
+	"github.com/nebulasio/go-nebulas/util/byteutils"
 )
 
 // Flag to identify the type of node
@@ -87,12 +88,15 @@ func (n *node) Type() (ty, error) {
 }
 
 // Trie is a Merkle Patricia Trie, consists of three kinds of nodes,
-// Branch Node: 16-elements array, value is [hash_0, hash_1, ..., hash_f]
-// Extension Node: 3-elements array, value is [ext flag, prefix path, next hash]
+// Branch Node: 16-elements array, value is [hash_0, hash_1, ..., hash_f, hash]
+// Extension Node: 3-elements array, value is [ext flag, prefi path, next hash]
 // Leaf Node: 3-elements array, value is [leaf flag, suffix path, value]
 type Trie struct {
 	rootHash []byte
 	storage  storage.Storage
+	batching bool
+	initalRootHash []byte
+	data     map[string]*node
 }
 
 // CreateNode in trie
@@ -106,10 +110,27 @@ func (t *Trie) createNode(val [][]byte) (*node, error) {
 
 // FetchNode in trie
 func (t *Trie) fetchNode(hash []byte) (*node, error) {
-	ir, err := t.storage.Get(hash)
-	if err != nil {
-		return nil, err
+	ir := []byte("")
+
+	if t.batching {
+		n, ok := t.data[byteutils.Hex(hash)]
+		if !ok {
+			v, err := t.storage.Get(hash)
+			if err != nil {
+				return nil, err
+			}
+			ir = v
+		} else {
+			ir = n.Bytes
+		}
+	} else {
+		v, err := t.storage.Get(hash)
+		if err != nil {
+			return nil, err
+		}
+		ir = v
 	}
+
 	pb := new(triepb.Node)
 	if err := proto.Unmarshal(ir, pb); err != nil {
 		return nil, err
@@ -132,12 +153,18 @@ func (t *Trie) commitNode(n *node) error {
 		return err
 	}
 	n.Hash = hash.Sha3256(n.Bytes)
-	return t.storage.Put(n.Hash, n.Bytes)
+
+	if t.batching {
+		t.data[byteutils.Hex(n.Hash)] = n
+		return nil
+	} else {
+		return t.storage.Put(n.Hash, n.Bytes)
+	}
 }
 
 // NewTrie if rootHash is nil, create a new Trie, otherwise, build an existed trie
 func NewTrie(rootHash []byte, storage storage.Storage) (*Trie, error) {
-	t := &Trie{rootHash, storage}
+	t := &Trie{rootHash, storage, false, rootHash, nil}
 	if t.rootHash == nil {
 		return t, nil
 	} else if _, err := t.storage.Get(rootHash); err != nil {
@@ -154,6 +181,37 @@ func (t *Trie) RootHash() []byte {
 // Empty return if the trie is empty
 func (t *Trie) Empty() bool {
 	return t.rootHash == nil
+}
+
+// BeginBatch
+func (t *Trie) BeginBatch() {
+	if t.batching {
+		t.data = nil
+	}
+	t.batching = true
+	t.initalRootHash = t.rootHash
+	t.data = make(map[string]*node)
+}
+
+// Commit a batch task
+func (t *Trie) Commit() error {
+	// clear changelog
+	for _, n := range t.data {
+		err := t.storage.Put(n.Hash, n.Bytes)
+		if err != nil {
+			return err
+		}
+	}
+	t.initalRootHash = t.rootHash
+	t.batching = false
+	return nil
+}
+
+// RollBack a batch task
+func (t *Trie) RollBack() {
+	t.rootHash = t.initalRootHash
+	t.data = nil
+	t.batching = false
 }
 
 // Get the value to the key in trie
@@ -452,7 +510,7 @@ func (t *Trie) del(root []byte, route []byte) ([]byte, error) {
 
 // Clone the trie to create a new trie sharing the same storage
 func (t *Trie) Clone() (*Trie, error) {
-	return &Trie{t.rootHash, t.storage}, nil
+	return &Trie{t.rootHash, t.storage, t.batching, t.initalRootHash, t.data}, nil
 }
 
 // prefixLen returns the length of the common prefix between a and b.

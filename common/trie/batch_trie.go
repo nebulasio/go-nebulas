@@ -5,7 +5,6 @@ import (
 
 	"github.com/nebulasio/go-nebulas/crypto/hash"
 	"github.com/nebulasio/go-nebulas/storage"
-	"github.com/nebulasio/go-nebulas/util/byteutils"
 )
 
 // Errors
@@ -24,7 +23,7 @@ const (
 	Delete
 )
 
-// Entry in changelog, [key, old value, new value]
+// Entry in log, [key, old value, new value]
 type Entry struct {
 	action Action
 	key    []byte
@@ -35,7 +34,6 @@ type Entry struct {
 // BatchTrie is a trie that supports batch task
 type BatchTrie struct {
 	trie      *Trie
-	changelog []*Entry
 	batching  bool
 }
 
@@ -59,7 +57,7 @@ func (bt *BatchTrie) Clone() (*BatchTrie, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &BatchTrie{trie: tr, changelog: bt.changelog, batching: bt.batching}, nil
+	return &BatchTrie{trie: tr, batching: bt.batching}, nil
 }
 
 // Get the value to the key in BatchTrie
@@ -82,9 +80,6 @@ func (bt *BatchTrie) Put(key []byte, val []byte) ([]byte, error) {
 	if putErr != nil {
 		return nil, putErr
 	}
-	if bt.batching {
-		bt.changelog = append(bt.changelog, entry)
-	}
 	return rootHash, nil
 }
 
@@ -99,9 +94,6 @@ func (bt *BatchTrie) Del(key []byte) ([]byte, error) {
 	rootHash, err := bt.trie.Del(key)
 	if err != nil {
 		return nil, err
-	}
-	if bt.batching {
-		bt.changelog = append(bt.changelog, entry)
 	}
 	return rootHash, nil
 }
@@ -161,36 +153,23 @@ func (bt *BatchTrie) Count(prefix []byte) (int64, error) {
 // BeginBatch to process a batch task
 func (bt *BatchTrie) BeginBatch() {
 	bt.batching = true
+	bt.trie.BeginBatch()
 }
 
 // Commit a batch task
 func (bt *BatchTrie) Commit() {
-	// clear changelog
-	bt.changelog = bt.changelog[:0]
 	bt.batching = false
+	err := bt.trie.Commit()
+
+	if err != nil {
+		//return nil todo
+	}
 }
 
 // RollBack a batch task
 func (bt *BatchTrie) RollBack() {
-	// compress changelog
-	changelog := make(map[string]*Entry)
-	for _, entry := range bt.changelog {
-		if _, ok := changelog[byteutils.Hex(entry.key)]; !ok {
-			changelog[byteutils.Hex(entry.key)] = entry
-		}
-	}
-	// clear changelog
-	bt.changelog = bt.changelog[:0]
-	// rollback
-	for _, entry := range changelog {
-		switch entry.action {
-		case Insert:
-			bt.trie.Del(entry.key)
-		case Update, Delete:
-			bt.trie.Put(entry.key, entry.old)
-		}
-	}
 	bt.batching = false
+	bt.trie.RollBack()
 }
 
 // HashDomains for each variable in contract
