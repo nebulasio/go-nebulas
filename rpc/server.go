@@ -5,6 +5,7 @@ import (
 	"net"
 
 	"github.com/sirupsen/logrus"
+	"golang.org/x/net/netutil"
 
 	"github.com/grpc-ecosystem/go-grpc-middleware"
 	"github.com/nebulasio/go-nebulas/account"
@@ -21,6 +22,11 @@ import (
 // Errors
 var (
 	ErrEmptyRPCListenList = errors.New("empty rpc listen list")
+)
+
+// Const
+const (
+	DefaultConnectionLimits = 128
 )
 
 // Neblet interface breaks cycle import dependency and hides unused services.
@@ -106,6 +112,14 @@ func (s *Server) start(addr string) error {
 	logging.CLog().WithFields(logrus.Fields{
 		"address": addr,
 	}).Info("Started RPC GRPCServer.")
+
+	// Limit the total number of grpc connections.
+	connectionLimits := s.rpcConfig.ConnectionLimits
+	if connectionLimits == 0 {
+		connectionLimits = DefaultConnectionLimits
+	}
+
+	listener = netutil.LimitListener(listener, int(connectionLimits))
 
 	go func() {
 		if err := s.rpcServer.Serve(listener); err != nil {

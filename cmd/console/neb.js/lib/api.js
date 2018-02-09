@@ -33,7 +33,7 @@ API.prototype.getAccountState = function (address, height, callback) {
     return this.request("post", "/v1/user/accountstate", params, callback);
 };
 
-API.prototype.sendTransaction = function (from, to, value, nonce, gasPrice, gasLimit, contract, candidate, delegate, callback) {
+API.prototype.sendTransaction = function (from, to, value, nonce, gasPrice, gasLimit, contract, candidate, delegate, binary, callback) {
     var params = {
         "from": from,
         "to": to,
@@ -43,7 +43,8 @@ API.prototype.sendTransaction = function (from, to, value, nonce, gasPrice, gasL
         "gasLimit": utils.toString(gasLimit),
         "contract": contract,
         "candidate": candidate,
-        "delegate": delegate
+        "delegate": delegate,
+        "binary": binary
     };
     return this.request("post", "/v1/user/transaction", params, callback);
 };
@@ -90,7 +91,7 @@ API.prototype.gasPrice = function (callback) {
     return this.request("get", "/v1/user/getGasPrice", null, callback);
 };
 
-API.prototype.estimateGas = function (from, to, value, nonce, gasPrice, gasLimit, contract, candidate, delegate, callback) {
+API.prototype.estimateGas = function (from, to, value, nonce, gasPrice, gasLimit, contract, candidate, delegate, binary, callback) {
     var params = {
         "from": from,
         "to": to,
@@ -100,7 +101,8 @@ API.prototype.estimateGas = function (from, to, value, nonce, gasPrice, gasLimit
         "gasLimit": utils.toString(gasLimit),
         "contract": contract,
         "candidate": candidate,
-        "delegate": delegate
+        "delegate": delegate,
+        "binary": binary
     };
     return this.request("post", "/v1/user/estimateGas", params, callback);
 };

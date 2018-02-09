@@ -1,23 +1,23 @@
 'use strict';
 
-var TestnetNodes = require('../../testnet-nodes');
+var HttpRequest = require("../../node-request");
 var Wallet = require('../../../cmd/console/neb.js/lib/wallet.js');
-var sleep = require("system-sleep");
-const https = require("https");
+var neb = new Wallet.Neb(new HttpRequest("http://35.182.48.19:8685"));
 
-const AddressNumber = 500;
-const SendTimes = 50;
+
+var sleep = require("system-sleep");
+
+const AddressNumber = 200;
+const SendTimes = 40;
 var lastnonce = 0;
 
-
-var nodes = new TestnetNodes();
-nodes.Start();
+var chainID = 1001;
 
 // var master = Wallet.Account.NewAccount();
 var from = new Wallet.Account("43181d58178263837a9a6b08f06379a348a5b362bfab3631ac78d2ac771c5df3");
 
 
-nodes.RPC(0).api.getAccountState(from.getAddressString()).then(function (resp) {
+neb.api.getAccountState(from.getAddressString()).then(function (resp) {
     console.log("master accountState resp:" + JSON.stringify(resp));
     lastnonce = parseInt(resp.nonce);
     console.log("lastnonce:", lastnonce);
@@ -43,11 +43,11 @@ sleep(2000);
 
 var interval = setInterval(function () {
     // for (var i = 0; i < AddressNumber; i++) {
-    //     nodes.RPC(0).api.getAccountState(accountArray[i]).then(function (resp) {
+    //     neb.api.getAccountState(accountArray[i]).then(function (resp) {
     //         console.log("accountState resp:" + JSON.stringify(resp));
     //     });
     // }
-    nodes.RPC(0).api.getAccountState(from.getAddressString()).then(function (resp) {
+    neb.api.getAccountState(from.getAddressString()).then(function (resp) {
         console.log("master accountState resp:" + JSON.stringify(resp));
         if (resp.nonce == lastnonce + AddressNumber * SendTimes) {
             var t2 = new Date().getTime();
@@ -61,10 +61,10 @@ var interval = setInterval(function () {
 
 function sendTransaction(sendtimes, nonce, address) {
     if (sendtimes < SendTimes) {
-        var transaction = new Wallet.Transaction(1002, from, address, "1", ++nonce);
+        var transaction = new Wallet.Transaction(chainID, from, address, "1", ++nonce);
         transaction.signTransaction();
         var rawTx = transaction.toProtoString();
-        nodes.RPC(0).api.sendRawTransaction(rawTx).then(function (resp) {
+        neb.api.sendRawTransaction(rawTx).then(function (resp) {
             console.log("send raw transaction resp:" + JSON.stringify(resp));
             sendtimes++;
             if (resp.txhash) {

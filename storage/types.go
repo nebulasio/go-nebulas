@@ -25,6 +25,11 @@ var (
 	ErrKeyNotFound = errors.New("not found")
 )
 
+type KvEntry struct {
+	Key []byte
+	Val []byte
+}
+
 // Storage interface of Storage.
 type Storage interface {
 	// Get return the value to the key in Storage.
@@ -32,6 +37,9 @@ type Storage interface {
 
 	// Put put the key-value entry to Storage.
 	Put(key []byte, value []byte) error
+
+	// Batch put multi key-value entries to Storage
+	BatchPut(data map[string]*KvEntry) error
 
 	// Del delete the key entry in Storage.
 	Del(key []byte) error

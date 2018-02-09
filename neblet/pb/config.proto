@@ -87,6 +87,8 @@ message RPCConfig {
 
 	// Enabled HTTP modules.["api", "admin"]
 	repeated string http_module = 3;
+
+    int32 connection_limits = 4;
 }
 
 message AppConfig {

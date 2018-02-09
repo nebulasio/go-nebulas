@@ -430,6 +430,9 @@ message TransactionRequest {
 
 	// delegate vote sending with this transaction.	
 	DelegateRequest delegate = 9;
+
+    // binary data for transaction
+    bytes binary = 10;
 }
 
 message ContractRequest {

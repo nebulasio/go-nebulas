@@ -24,7 +24,7 @@ const (
 	Delete
 )
 
-// Entry in changelog, [key, old value, new value]
+// Entry in log, [key, old value, new value]
 type Entry struct {
 	action Action
 	key    []byte
@@ -34,9 +34,9 @@ type Entry struct {
 
 // BatchTrie is a trie that supports batch task
 type BatchTrie struct {
-	trie      *Trie
-	changelog []*Entry
-	batching  bool
+	trie     *Trie
+	changelog    []*Entry
+	batching bool
 }
 
 // NewBatchTrie if rootHash is nil, create a new BatchTrie, otherwise, build an existed BatchTrie
@@ -82,9 +82,10 @@ func (bt *BatchTrie) Put(key []byte, val []byte) ([]byte, error) {
 	if putErr != nil {
 		return nil, putErr
 	}
+
 	if bt.batching {
-		bt.changelog = append(bt.changelog, entry)
-	}
+        bt.changelog = append(bt.changelog, entry)
+    }
 	return rootHash, nil
 }
 
@@ -100,9 +101,10 @@ func (bt *BatchTrie) Del(key []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	if bt.batching {
-		bt.changelog = append(bt.changelog, entry)
-	}
+        bt.changelog = append(bt.changelog, entry)
+    }
 	return rootHash, nil
 }
 
@@ -161,17 +163,25 @@ func (bt *BatchTrie) Count(prefix []byte) (int64, error) {
 // BeginBatch to process a batch task
 func (bt *BatchTrie) BeginBatch() {
 	bt.batching = true
+	//bt.trie.BeginBatch()
 }
 
 // Commit a batch task
 func (bt *BatchTrie) Commit() {
-	// clear changelog
-	bt.changelog = bt.changelog[:0]
 	bt.batching = false
+	bt.changelog = bt.changelog[:0]
+	/*
+	err := bt.trie.Commit()
+
+	if err != nil {
+		//return nil todo
+	}
+	*/
 }
 
 // RollBack a batch task
 func (bt *BatchTrie) RollBack() {
+	bt.batching = false
 	// compress changelog
 	changelog := make(map[string]*Entry)
 	for _, entry := range bt.changelog {
@@ -181,6 +191,7 @@ func (bt *BatchTrie) RollBack() {
 	}
 	// clear changelog
 	bt.changelog = bt.changelog[:0]
+
 	// rollback
 	for _, entry := range changelog {
 		switch entry.action {
@@ -190,7 +201,7 @@ func (bt *BatchTrie) RollBack() {
 			bt.trie.Put(entry.key, entry.old)
 		}
 	}
-	bt.batching = false
+	//bt.trie.RollBack()
 }
 
 // HashDomains for each variable in contract

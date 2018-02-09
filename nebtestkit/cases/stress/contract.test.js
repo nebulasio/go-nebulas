@@ -97,7 +97,7 @@ function cliamTokens() {
 
 function deployContract(){
 
-	var nonce = lastnonce
+	var nonce = lastnonce;
 	console.log("nonce:"+nonce);
     // create contract
     var bank = FS.readFileSync("../nf/nvm/test/bank_vault_contract.js", "utf-8");
