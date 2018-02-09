@@ -510,7 +510,11 @@ func (t *Trie) del(root []byte, route []byte) ([]byte, error) {
 
 // Clone the trie to create a new trie sharing the same storage
 func (t *Trie) Clone() (*Trie, error) {
-	return &Trie{t.rootHash, t.storage, t.batching, t.initalRootHash, t.data}, nil
+	data := make(map[string]*node)
+	for k,v := range t.data {
+		data[k] = v
+	}
+	return &Trie{t.rootHash, t.storage, t.batching, t.initalRootHash, data}, nil
 }
 
 // prefixLen returns the length of the common prefix between a and b.
