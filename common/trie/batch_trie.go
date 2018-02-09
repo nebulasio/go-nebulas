@@ -34,9 +34,9 @@ type Entry struct {
 
 // BatchTrie is a trie that supports batch task
 type BatchTrie struct {
-	trie     *Trie
-	changelog    []*Entry
-	batching bool
+	trie      *Trie
+	changelog []*Entry
+	batching  bool
 }
 
 // NewBatchTrie if rootHash is nil, create a new BatchTrie, otherwise, build an existed BatchTrie
@@ -84,8 +84,8 @@ func (bt *BatchTrie) Put(key []byte, val []byte) ([]byte, error) {
 	}
 
 	if bt.batching {
-        bt.changelog = append(bt.changelog, entry)
-    }
+		bt.changelog = append(bt.changelog, entry)
+	}
 	return rootHash, nil
 }
 
@@ -103,8 +103,8 @@ func (bt *BatchTrie) Del(key []byte) ([]byte, error) {
 	}
 
 	if bt.batching {
-        bt.changelog = append(bt.changelog, entry)
-    }
+		bt.changelog = append(bt.changelog, entry)
+	}
 	return rootHash, nil
 }
 
@@ -171,11 +171,11 @@ func (bt *BatchTrie) Commit() {
 	bt.batching = false
 	bt.changelog = bt.changelog[:0]
 	/*
-	err := bt.trie.Commit()
+		err := bt.trie.Commit()
 
-	if err != nil {
-		//return nil todo
-	}
+		if err != nil {
+			//return nil todo
+		}
 	*/
 }
 

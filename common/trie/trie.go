@@ -197,15 +197,15 @@ func (t *Trie) BeginBatch() {
 func (t *Trie) Commit() error {
 	data := make(map[string]*storage.KvEntry)
 
-    for k, n := range t.data {
-        item := &storage.KvEntry{Key: n.Hash, Val: n.Bytes}
-        data[k] = item
-    }
+	for k, n := range t.data {
+		item := &storage.KvEntry{Key: n.Hash, Val: n.Bytes}
+		data[k] = item
+	}
 
-    err := t.storage.BatchPut(data)
-    if err != nil {
-        return err
-    }
+	err := t.storage.BatchPut(data)
+	if err != nil {
+		return err
+	}
 	t.initalRootHash = t.rootHash
 	t.batching = false
 	t.data = nil

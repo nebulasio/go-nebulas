@@ -96,14 +96,16 @@ type Service interface {
 	BuildRawMessageData([]byte, string) []byte
 }
 
-// MessageWeight 
+// MessageWeight float64
 type MessageWeight float64
+
+// const
 const (
 	MessageWeightZero = MessageWeight(0)
-	MessageNewTx
+	MessageWeightNewTx
 	MessageWeightNewBlock = MessageWeight(0.5)
-	MessageWeightRouteTable 
-	MessageWeightChainChunks 
+	MessageWeightRouteTable
+	MessageWeightChainChunks
 	MessageWeightChainChunkData
 )
 
@@ -115,8 +117,11 @@ type Subscriber struct {
 	// msgChan chan for subscribed message.
 	msgChan chan Message
 
-	// msgType message types to subscribe with weight
-	msgTypes map[string]MessageWeight
+	// msgType message type to subscribe
+	msgType string
+
+	// msgWeight weight of msgType
+	msgWeight MessageWeight
 
 	// doFilter dup message
 	doFilter bool
@@ -125,9 +130,10 @@ type Subscriber struct {
 // func NewSubscriber(id interface{}, msgChan chan Message, doFilter bool, msgTypes ...string) *Subscriber {
 // 	return &Subscriber{id, msgChan, msgTypes, doFilter}
 // }
+
 // NewSubscriber return new Subscriber instance.
-func NewSubscriber(id interface{}, msgChan chan Message, doFilter bool, msgTypes map[string]MessageWeight) *Subscriber {
-	return &Subscriber{id, msgChan, msgTypes, doFilter}
+func NewSubscriber(id interface{}, msgChan chan Message, doFilter bool, msgType string, weight MessageWeight) *Subscriber {
+	return &Subscriber{id, msgChan, msgType, weight, doFilter}
 }
 
 // ID return id.
@@ -136,12 +142,8 @@ func (s *Subscriber) ID() interface{} {
 }
 
 // MessageType return msgTypes.
-func (s *Subscriber) MessageType() []string {
-	types := make([]string, 0)
-	for k, _ := range s.msgTypes {
-		types = append(types, k)
-	}
-	return types
+func (s *Subscriber) MessageType() string {
+	return s.msgType
 }
 
 // MessageChan return msgChan.
@@ -150,11 +152,8 @@ func (s *Subscriber) MessageChan() chan Message {
 }
 
 // MessageWeight return weight of msgType
-func (s *Subscriber) MessageWeight(msgType string) (MessageWeight, bool) {
-	if w, ok := s.msgTypes[msgType]; ok {
-		return w, true
-	}
-	return MessageWeightZero, false
+func (s *Subscriber) MessageWeight() MessageWeight {
+	return s.msgWeight
 }
 
 // DoFilter return doFilter

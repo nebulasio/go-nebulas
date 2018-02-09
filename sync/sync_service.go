@@ -69,22 +69,10 @@ func (ss *Service) Start() {
 
 	// register the network handler.
 	netService := ss.netService
-	netService.Register(net.NewSubscriber(ss, ss.messageCh, false, 
-		map[string]net.MessageWeight{
-			net.ChainSync : net.MessageWeightZero,
-		}))
-	netService.Register(net.NewSubscriber(ss, ss.messageCh, false, 
-		map[string]net.MessageWeight{
-			net.ChainChunks : net.MessageWeightChainChunks,
-		}))
-	netService.Register(net.NewSubscriber(ss, ss.messageCh, false, 
-		map[string]net.MessageWeight{
-			net.ChainGetChunk : net.MessageWeightZero,
-		}))
-	netService.Register(net.NewSubscriber(ss, ss.messageCh, false, 
-		map[string]net.MessageWeight{
-			net.ChainChunkData : net.MessageWeightChainChunkData,
-		}))
+	netService.Register(net.NewSubscriber(ss, ss.messageCh, false, net.ChainSync, net.MessageWeightZero))
+	netService.Register(net.NewSubscriber(ss, ss.messageCh, false, net.ChainChunks, net.MessageWeightChainChunks))
+	netService.Register(net.NewSubscriber(ss, ss.messageCh, false, net.ChainGetChunk, net.MessageWeightZero))
+	netService.Register(net.NewSubscriber(ss, ss.messageCh, false, net.ChainChunkData, net.MessageWeightChainChunkData))
 
 	// start loop().
 	go ss.startLoop()
@@ -94,22 +82,10 @@ func (ss *Service) Start() {
 func (ss *Service) Stop() {
 	// deregister the network handler.
 	netService := ss.netService
-	netService.Register(net.NewSubscriber(ss, ss.messageCh, false, 
-		map[string]net.MessageWeight{
-			net.ChainSync : net.MessageWeightZero,
-		}))
-	netService.Register(net.NewSubscriber(ss, ss.messageCh, false, 
-		map[string]net.MessageWeight{
-			net.ChainChunks : net.MessageWeightChainChunks,
-		}))
-	netService.Register(net.NewSubscriber(ss, ss.messageCh, false, 
-		map[string]net.MessageWeight{
-			net.ChainGetChunk : net.MessageWeightZero,
-		}))
-	netService.Register(net.NewSubscriber(ss, ss.messageCh, false, 
-		map[string]net.MessageWeight{
-			net.ChainChunkData : net.MessageWeightChainChunkData,
-		}))
+	netService.Deregister(net.NewSubscriber(ss, ss.messageCh, false, net.ChainSync, net.MessageWeightZero))
+	netService.Deregister(net.NewSubscriber(ss, ss.messageCh, false, net.ChainChunks, net.MessageWeightChainChunks))
+	netService.Deregister(net.NewSubscriber(ss, ss.messageCh, false, net.ChainGetChunk, net.MessageWeightZero))
+	netService.Deregister(net.NewSubscriber(ss, ss.messageCh, false, net.ChainChunkData, net.MessageWeightChainChunkData))
 
 	ss.StopActiveSync()
 

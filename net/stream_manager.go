@@ -19,14 +19,14 @@
 package net
 
 import (
-	"strconv"
-	"sort"
+	"errors"
+	"fmt"
 	"hash/crc32"
+	"sort"
+	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
-	"errors"
-	"fmt"
 
 	"github.com/sirupsen/logrus"
 
@@ -38,14 +38,15 @@ import (
 
 // const
 const (
-	CleanupInterval = time.Second * 60
-	MaxStreamNum = 100
-	ReservedStreamNum = 20	// of MaxStreamNum
+	CleanupInterval   = time.Second * 60
+	MaxStreamNum      = 100
+	ReservedStreamNum = 20 // of MaxStreamNum
 )
 
+// var
 var (
 	ErrExceedMaxStreamNum = errors.New("too many streams connected")
-	ErrElimination = errors.New("eliminated for low value")
+	ErrElimination        = errors.New("eliminated for low value")
 )
 
 // StreamManager manages all streams
@@ -230,9 +231,9 @@ func (sm *StreamManager) cleanup() {
 
 	if sm.activePeersCount < MaxStreamNum {
 		logging.CLog().WithFields(logrus.Fields{
-			"maxNum": MaxStreamNum,
+			"maxNum":      MaxStreamNum,
 			"reservedNum": ReservedStreamNum,
-			"currentNum": sm.activePeersCount,
+			"currentNum":  sm.activePeersCount,
 		}).Debug("No need for streams cleanup.")
 		return
 	}
@@ -242,12 +243,13 @@ func (sm *StreamManager) cleanup() {
 
 	// weight of each msg type
 	msgWeight := make(map[string]MessageWeight)
+	msgWeight[ROUTETABLE] = MessageWeightRouteTable
 
 	svs := make(StreamValueSlice, 0)
 
 	sm.allStreams.Range(func(key, value interface{}) bool {
 		stream := value.(*Stream)
-		
+
 		// t type, c count
 		for t, c := range stream.msgCount {
 			msgTotal[t] += c
@@ -258,17 +260,14 @@ func (sm *StreamManager) cleanup() {
 			v, _ := stream.node.netService.dispatcher.subscribersMap.Load(t)
 			if m, ok := v.(*sync.Map); ok {
 				m.Range(func(key, value interface{}) bool {
-					if w, ok := key.(*Subscriber).MessageWeight(t); ok {
-						msgWeight[t] = w
-						return false
-					}
-					return true
+					msgWeight[t] = key.(*Subscriber).MessageWeight()
+					return false
 				})
 			}
 		}
 
 		svs = append(svs, &StreamValue{
-			stream:	stream,
+			stream: stream,
 		})
 
 		return true
@@ -283,39 +282,40 @@ func (sm *StreamManager) cleanup() {
 
 	sort.Sort(sort.Reverse(svs))
 	logging.CLog().WithFields(logrus.Fields{
-		"maxNum": MaxStreamNum,
-		"reservedNum": ReservedStreamNum,
-		"currentNum": sm.activePeersCount,
-		"msgTotal": msgTotal,
-		"msgWeight": msgWeight,
-		"streamValueSlice" : svs,
+		"maxNum":           MaxStreamNum,
+		"reservedNum":      ReservedStreamNum,
+		"currentNum":       sm.activePeersCount,
+		"msgTotal":         msgTotal,
+		"msgWeight":        msgWeight,
+		"streamValueSlice": svs,
 	}).Debug("Sorting streams before the cleanup.")
 
-	eliminated := svs[MaxStreamNum - ReservedStreamNum:]
+	eliminated := svs[MaxStreamNum-ReservedStreamNum:]
 	for _, sv := range eliminated {
 		sv.stream.Close(ErrElimination)
 	}
 
-	svs = svs[:MaxStreamNum - ReservedStreamNum]
+	svs = svs[:MaxStreamNum-ReservedStreamNum]
 	logging.VLog().WithFields(logrus.Fields{
 		"eliminatedNum": len(eliminated),
-		"retained": svs,
+		"retained":      svs,
 	}).Debug("Streams cleanup is done.")
 }
 
 // StreamValue value of stream in the past CleanupInterval
 type StreamValue struct {
 	stream *Stream
-	value float64
+	value  float64
 }
 
+// StreamValueSlice StreamValue slice
 type StreamValueSlice []*StreamValue
 
-func (s StreamValueSlice) Len() int {return len(s)}
-func (s StreamValueSlice) Less(i, j int) bool {return s[i].value < s[j].value}
-func (s StreamValueSlice) Swap(i, j int) {s[i], s[j] = s[j], s[i]}
+func (s StreamValueSlice) Len() int           { return len(s) }
+func (s StreamValueSlice) Less(i, j int) bool { return s[i].value < s[j].value }
+func (s StreamValueSlice) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
 func (s *StreamValue) String() string {
-	return s.stream.addr.String() + ":" + 
+	return s.stream.addr.String() + ":" +
 		strconv.FormatFloat(s.value, 'f', 3, 64) + ":" +
 		fmt.Sprintf("%v", s.stream.msgCount)
 }
