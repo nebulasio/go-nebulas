@@ -60,7 +60,7 @@ func NewDispatcher() *Dispatcher {
 // Register register subscribers.
 func (dp *Dispatcher) Register(subscribers ...*Subscriber) {
 	for _, v := range subscribers {
-		for _, mt := range v.msgTypes {
+		for _, mt := range v.MessageType() {
 			m, _ := dp.subscribersMap.LoadOrStore(mt, new(sync.Map))
 			m.(*sync.Map).Store(v, true)
 			dp.filters[mt] = v.DoFilter()
@@ -72,7 +72,7 @@ func (dp *Dispatcher) Register(subscribers ...*Subscriber) {
 func (dp *Dispatcher) Deregister(subscribers ...*Subscriber) {
 
 	for _, v := range subscribers {
-		for _, mt := range v.msgTypes {
+		for _, mt := range v.MessageType() {
 			m, _ := dp.subscribersMap.Load(mt)
 			if m == nil {
 				continue

@@ -95,7 +95,10 @@ func (pool *TransactionPool) SetGasConfig(gasPrice, gasLimit *util.Uint128) {
 
 // RegisterInNetwork register message subscriber in network.
 func (pool *TransactionPool) RegisterInNetwork(ns net.Service) {
-	ns.Register(net.NewSubscriber(pool, pool.receivedMessageCh, true, MessageTypeNewTx))
+	ns.Register(net.NewSubscriber(pool, pool.receivedMessageCh, true, 
+		map[string]net.MessageWeight{
+			MessageTypeNewTx : net.MessageNewTx,
+		}))
 	pool.ns = ns
 }
 

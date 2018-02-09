@@ -96,6 +96,17 @@ type Service interface {
 	BuildRawMessageData([]byte, string) []byte
 }
 
+// MessageWeight 
+type MessageWeight float64
+const (
+	MessageWeightZero = MessageWeight(0)
+	MessageNewTx
+	MessageWeightNewBlock = MessageWeight(0.5)
+	MessageWeightRouteTable 
+	MessageWeightChainChunks 
+	MessageWeightChainChunkData
+)
+
 // Subscriber subscriber.
 type Subscriber struct {
 	// id usually the owner/creator, used for troubleshooting .
@@ -104,15 +115,18 @@ type Subscriber struct {
 	// msgChan chan for subscribed message.
 	msgChan chan Message
 
-	// msgType message types to subscribe
-	msgTypes []string
+	// msgType message types to subscribe with weight
+	msgTypes map[string]MessageWeight
 
 	// doFilter dup message
 	doFilter bool
 }
 
+// func NewSubscriber(id interface{}, msgChan chan Message, doFilter bool, msgTypes ...string) *Subscriber {
+// 	return &Subscriber{id, msgChan, msgTypes, doFilter}
+// }
 // NewSubscriber return new Subscriber instance.
-func NewSubscriber(id interface{}, msgChan chan Message, doFilter bool, msgTypes ...string) *Subscriber {
+func NewSubscriber(id interface{}, msgChan chan Message, doFilter bool, msgTypes map[string]MessageWeight) *Subscriber {
 	return &Subscriber{id, msgChan, msgTypes, doFilter}
 }
 
@@ -123,12 +137,24 @@ func (s *Subscriber) ID() interface{} {
 
 // MessageType return msgTypes.
 func (s *Subscriber) MessageType() []string {
-	return s.msgTypes
+	types := make([]string, 0)
+	for k, _ := range s.msgTypes {
+		types = append(types, k)
+	}
+	return types
 }
 
 // MessageChan return msgChan.
 func (s *Subscriber) MessageChan() chan Message {
 	return s.msgChan
+}
+
+// MessageWeight return weight of msgType
+func (s *Subscriber) MessageWeight(msgType string) (MessageWeight, bool) {
+	if w, ok := s.msgTypes[msgType]; ok {
+		return w, true
+	}
+	return MessageWeightZero, false
 }
 
 // DoFilter return doFilter

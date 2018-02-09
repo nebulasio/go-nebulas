@@ -77,6 +77,7 @@ type Stream struct {
 	connectedAt               int64
 	latestReadAt              int64
 	latestWriteAt             int64
+	msgCount				  map[string]int
 }
 
 // NewStream return a new Stream
@@ -105,6 +106,7 @@ func newStreamInstance(pid peer.ID, addr ma.Multiaddr, stream libnet.Stream, nod
 		connectedAt:               time.Now().Unix(),
 		latestReadAt:              0,
 		latestWriteAt:             0,
+		msgCount:				   make(map[string]int),
 	}
 }
 
@@ -453,10 +455,12 @@ func (s *Stream) handleMessage(message *NebMessage) error {
 	case SYNCROUTE:
 		return s.onSyncRoute(message)
 	case ROUTETABLE:
+		s.msgCount[messageName]++
 		return s.onRouteTable(message)
 	case RECVEDMSG:
 		return s.onRecvedMsg(message)
 	default:
+		s.msgCount[messageName]++
 		s.node.netService.PutMessage(NewBaseMessage(message.MessageName(), s.pid.Pretty(), message.Data()))
 		// record recv message.
 		RecordRecvMessage(s, message.DataCheckSum())

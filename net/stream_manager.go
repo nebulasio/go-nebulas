@@ -19,10 +19,14 @@
 package net
 
 import (
+	"strconv"
+	"sort"
 	"hash/crc32"
 	"sync"
 	"sync/atomic"
 	"time"
+	"errors"
+	"fmt"
 
 	"github.com/sirupsen/logrus"
 
@@ -30,6 +34,18 @@ import (
 	libnet "github.com/libp2p/go-libp2p-net"
 	peer "github.com/libp2p/go-libp2p-peer"
 	"github.com/nebulasio/go-nebulas/util/logging"
+)
+
+// const
+const (
+	CleanupInterval = time.Second * 60
+	MaxStreamNum = 100
+	ReservedStreamNum = 20	// of MaxStreamNum
+)
+
+var (
+	ErrExceedMaxStreamNum = errors.New("too many streams connected")
+	ErrElimination = errors.New("eliminated for low value")
 )
 
 // StreamManager manages all streams
@@ -75,6 +91,12 @@ func (sm *StreamManager) Add(s libnet.Stream, node *Node) {
 
 // AddStream into the stream manager
 func (sm *StreamManager) AddStream(stream *Stream) {
+
+	if sm.activePeersCount >= MaxStreamNum {
+		stream.Close(ErrExceedMaxStreamNum)
+		return
+	}
+
 	logging.VLog().WithFields(logrus.Fields{
 		"steam": stream.String(),
 	}).Debug("Added a new stream.")
@@ -90,6 +112,10 @@ func (sm *StreamManager) Remove(pid peer.ID) {
 		"pid": pid.Pretty(),
 	}).Debug("Removing a stream.")
 
+	if _, ok := sm.allStreams.Load(pid.Pretty()); !ok {
+		// caused by close in AddStream
+		return
+	}
 	atomic.AddInt32(&sm.activePeersCount, -1)
 	sm.allStreams.Delete(pid.Pretty())
 }
@@ -116,15 +142,14 @@ func (sm *StreamManager) Find(pid peer.ID) *Stream {
 func (sm *StreamManager) loop() {
 	logging.CLog().Info("Started NetService StreamManager.")
 
-	ticker := time.NewTicker(time.Second * 30)
+	ticker := time.NewTicker(CleanupInterval)
 	for {
 		select {
 		case <-sm.quitCh:
 			logging.CLog().Info("Stopped Stream Manager Loop.")
 			return
 		case <-ticker.C:
-			// TODO: @robin streams cleanup if needed.
-			logging.CLog().Info("TODO: streams cleanup is not implemented.")
+			sm.cleanup()
 		}
 	}
 }
@@ -198,4 +223,99 @@ func (sm *StreamManager) CloseStream(peerID string, reason error) {
 	if stream != nil {
 		stream.Close(reason)
 	}
+}
+
+// cleanup eliminating low value streams if reaching the limit
+func (sm *StreamManager) cleanup() {
+
+	if sm.activePeersCount < MaxStreamNum {
+		logging.CLog().WithFields(logrus.Fields{
+			"maxNum": MaxStreamNum,
+			"reservedNum": ReservedStreamNum,
+			"currentNum": sm.activePeersCount,
+		}).Debug("No need for streams cleanup.")
+		return
+	}
+
+	// total number of each msg type
+	msgTotal := make(map[string]int)
+
+	// weight of each msg type
+	msgWeight := make(map[string]MessageWeight)
+
+	svs := make(StreamValueSlice, 0)
+
+	sm.allStreams.Range(func(key, value interface{}) bool {
+		stream := value.(*Stream)
+		
+		// t type, c count
+		for t, c := range stream.msgCount {
+			msgTotal[t] += c
+			if _, ok := msgWeight[t]; ok {
+				continue
+			}
+
+			v, _ := stream.node.netService.dispatcher.subscribersMap.Load(t)
+			if m, ok := v.(*sync.Map); ok {
+				m.Range(func(key, value interface{}) bool {
+					if w, ok := key.(*Subscriber).MessageWeight(t); ok {
+						msgWeight[t] = w
+						return false
+					}
+					return true
+				})
+			}
+		}
+
+		svs = append(svs, &StreamValue{
+			stream:	stream,
+		})
+
+		return true
+	})
+
+	for _, sv := range svs {
+		for t, c := range sv.stream.msgCount {
+			w, _ := msgWeight[t]
+			sv.value += float64(c) * float64(w) / float64(msgTotal[t])
+		}
+	}
+
+	sort.Sort(sort.Reverse(svs))
+	logging.CLog().WithFields(logrus.Fields{
+		"maxNum": MaxStreamNum,
+		"reservedNum": ReservedStreamNum,
+		"currentNum": sm.activePeersCount,
+		"msgTotal": msgTotal,
+		"msgWeight": msgWeight,
+		"streamValueSlice" : svs,
+	}).Debug("Sorting streams before the cleanup.")
+
+	eliminated := svs[MaxStreamNum - ReservedStreamNum:]
+	for _, sv := range eliminated {
+		sv.stream.Close(ErrElimination)
+	}
+
+	svs = svs[:MaxStreamNum - ReservedStreamNum]
+	logging.VLog().WithFields(logrus.Fields{
+		"eliminatedNum": len(eliminated),
+		"retained": svs,
+	}).Debug("Streams cleanup is done.")
+}
+
+// StreamValue value of stream in the past CleanupInterval
+type StreamValue struct {
+	stream *Stream
+	value float64
+}
+
+type StreamValueSlice []*StreamValue
+
+func (s StreamValueSlice) Len() int {return len(s)}
+func (s StreamValueSlice) Less(i, j int) bool {return s[i].value < s[j].value}
+func (s StreamValueSlice) Swap(i, j int) {s[i], s[j] = s[j], s[i]}
+func (s *StreamValue) String() string {
+	return s.stream.addr.String() + ":" + 
+		strconv.FormatFloat(s.value, 'f', 3, 64) + ":" +
+		fmt.Sprintf("%v", s.stream.msgCount)
 }
