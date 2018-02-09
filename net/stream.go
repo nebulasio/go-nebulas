@@ -437,6 +437,8 @@ func (s *Stream) writeLoop() {
 
 func (s *Stream) handleMessage(message *NebMessage) error {
 	messageName := message.MessageName()
+	s.msgCount[messageName]++
+
 	switch messageName {
 	case HELLO:
 		return s.onHello(message)
@@ -455,12 +457,10 @@ func (s *Stream) handleMessage(message *NebMessage) error {
 	case SYNCROUTE:
 		return s.onSyncRoute(message)
 	case ROUTETABLE:
-		s.msgCount[messageName]++
 		return s.onRouteTable(message)
 	case RECVEDMSG:
 		return s.onRecvedMsg(message)
 	default:
-		s.msgCount[messageName]++
 		s.node.netService.PutMessage(NewBaseMessage(message.MessageName(), s.pid.Pretty(), message.Data()))
 		// record recv message.
 		RecordRecvMessage(s, message.DataCheckSum())
