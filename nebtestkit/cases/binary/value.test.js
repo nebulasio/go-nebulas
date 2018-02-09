@@ -12,23 +12,31 @@ var Unit = Wallet.Unit;
 
 var expect = require('chai').expect;
 var BigNumber = require('bignumber.js');
-/*
- * use your own test net address to substitute the address below
- * as well as  your own chain id.
- */
 neb.setRequest(new HttpRequest("http://localhost:8685"));
 var ChainID = 100;
 var sourceAccount = new Account("a6e5eb290e1438fce79f5cb8774a72621637c2c9654c8b2525ed1d7e4e73653f");
-
-var from;
-var fromState;
-var initFromBalance = 10;
-
 /*
  * make sure every node of testnet has the same coinbase, and substitute the address below
  */
 var coinbase = "eb31ad2d8a89a0ca6935c308d5425730430bc2d63f2573b8";
 var coinState;
+
+var env = 'testneb2';
+if (env === 'testneb1') {
+    neb.setRequest(new HttpRequest("http://35.182.48.19:8685"));
+    ChainID = 1001;
+    sourceAccount = new Wallet.Account("43181d58178263837a9a6b08f06379a348a5b362bfab3631ac78d2ac771c5df3");
+    coinbase = "0b9cd051a6d7129ab44b17833c63fe4abead40c3714cde6d";
+} else if (env === "testneb2") {
+    neb.setRequest(new HttpRequest("http://34.205.26.12:8685"));
+    ChainID = 1002;
+    sourceAccount = new Wallet.Account("43181d58178263837a9a6b08f06379a348a5b362bfab3631ac78d2ac771c5df3");
+    coinbase = "0b9cd051a6d7129ab44b17833c63fe4abead40c3714cde6d";
+}
+
+var from;
+var fromState;
+var initFromBalance = 10;
 
 /*
  * set this value according to the status of your testnet.
