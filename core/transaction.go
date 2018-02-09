@@ -409,9 +409,8 @@ func (tx *Transaction) VerifyExecution(block *Block) (*util.Uint128, error) {
 	// execute smart contract and sub the calcute gas.
 	gasExecution, _, exeErr := payload.Execute(txBlock, tx)
 
-	if exeErr != nil {
-		txBlock.rollback()
-	} else {
+	// only execute success, merge the state to use
+	if exeErr == nil {
 		block.Merge(txBlock)
 	}
 

@@ -92,11 +92,11 @@ func (n *node) Type() (ty, error) {
 // Extension Node: 3-elements array, value is [ext flag, prefi path, next hash]
 // Leaf Node: 3-elements array, value is [leaf flag, suffix path, value]
 type Trie struct {
-	rootHash []byte
-	storage  storage.Storage
-	batching bool
+	rootHash       []byte
+	storage        storage.Storage
+	batching       bool
 	initalRootHash []byte
-	data     map[string]*node
+	data           map[string]*node
 }
 
 // CreateNode in trie
@@ -511,7 +511,7 @@ func (t *Trie) del(root []byte, route []byte) ([]byte, error) {
 // Clone the trie to create a new trie sharing the same storage
 func (t *Trie) Clone() (*Trie, error) {
 	data := make(map[string]*node)
-	for k,v := range t.data {
+	for k, v := range t.data {
 		data[k] = v
 	}
 	return &Trie{t.rootHash, t.storage, t.batching, t.initalRootHash, data}, nil

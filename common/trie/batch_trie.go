@@ -33,8 +33,8 @@ type Entry struct {
 
 // BatchTrie is a trie that supports batch task
 type BatchTrie struct {
-	trie      *Trie
-	batching  bool
+	trie     *Trie
+	batching bool
 }
 
 // NewBatchTrie if rootHash is nil, create a new BatchTrie, otherwise, build an existed BatchTrie
