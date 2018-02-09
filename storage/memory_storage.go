@@ -50,6 +50,14 @@ func (db *MemoryStorage) Put(key []byte, value []byte) error {
 	return nil
 }
 
+// BatchPut batch put multi key-value entries to Storage
+func (db *MemoryStorage) BatchPut(data map[string]*KvEntry) error {
+	for _, entry := range data {
+		db.data.Store(byteutils.Hex(entry.Key), entry.Val)
+	}
+	return nil
+}
+
 // Del delete the key in Storage.
 func (db *MemoryStorage) Del(key []byte) error {
 	db.data.Delete(byteutils.Hex(key))

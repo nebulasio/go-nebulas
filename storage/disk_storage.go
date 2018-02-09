@@ -62,6 +62,21 @@ func (storage *DiskStorage) Put(key []byte, value []byte) error {
 	return nil
 }
 
+// BatchPut batch put multi key-value entries to Storage
+func (storage *DiskStorage) BatchPut(data map[string]*KvEntry) error {
+	batch := new(leveldb.Batch)
+
+	for _, entry := range data {
+		batch.Put(entry.Key, entry.Val)
+	}
+
+	if err := storage.db.Write(batch, nil); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // Del delete the key in Storage.
 func (storage *DiskStorage) Del(key []byte) error {
 	if err := storage.db.Delete(key, nil); err != nil {
