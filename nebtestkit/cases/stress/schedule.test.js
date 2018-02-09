@@ -4,17 +4,23 @@ var Wallet = require('../../../cmd/console/neb.js/lib/wallet.js');
 var HttpRequest = require("../../node-request");
 var FS = require("fs");
 
+var env; // local testneb1 testneb2
+var AddressNumber;
+var SendTimes;
+
 var args = process.argv.splice(2);
 
 if (args.length !=3 ){
-    console.log("please input args 0:env(local,testneb1,testneb2) 1:address number(concurrency) 2:sendtimes")
-    return;
+    // give default config
+    env = "testneb1";
+    AddressNumber = 200;
+    SendTimes = 20;
+} else {
+    env = args[0]; // local testneb1 testneb2
+
+    AddressNumber = parseInt(args[1]);
+    SendTimes = parseInt(args[2]);
 }
-
-var env = args[0]; // local testneb1 testneb2
-
-const AddressNumber = parseInt(args[1]);
-const SendTimes = parseInt(args[2]);
 
 if (AddressNumber <=0 || SendTimes <=0 ){
 
