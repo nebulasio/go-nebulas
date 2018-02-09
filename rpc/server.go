@@ -26,7 +26,7 @@ var (
 
 // Const
 const (
-	ConnectionLimits = 400
+	DefaultConnectionLimits = 128
 )
 
 // Neblet interface breaks cycle import dependency and hides unused services.
@@ -114,7 +114,12 @@ func (s *Server) start(addr string) error {
 	}).Info("Started RPC GRPCServer.")
 
 	// Limit the total number of grpc connections.
-	listener = netutil.LimitListener(listener, ConnectionLimits)
+	connectionLimits := s.rpcConfig.ConnectionLimits
+	if connectionLimits == 0 {
+		connectionLimits = DefaultConnectionLimits
+	}
+
+	listener = netutil.LimitListener(listener, int(connectionLimits))
 
 	go func() {
 		if err := s.rpcServer.Serve(listener); err != nil {
