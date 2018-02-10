@@ -49,3 +49,6 @@ crash.log
 #pprof
 cpuprofile.log
 memprofile.log
+
+#testnet
+testnet/conf/network.key
