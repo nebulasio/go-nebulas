@@ -30,8 +30,8 @@ type DiskStorage struct {
 }
 
 type DiskBatch struct {
-	db   *leveldb.DB
-	b    *leveldb.Batch
+	db *leveldb.DB
+	b  *leveldb.Batch
 }
 
 // NewDiskStorage init a storage
@@ -81,7 +81,7 @@ func (storage *DiskStorage) Close() error {
 }
 
 // NewBatch new leveldb batch
-func (storage *DiskStorage) NewBatch() Batch{
+func (storage *DiskStorage) NewBatch() Batch {
 	return &DiskBatch{db: storage.db, b: new(leveldb.Batch)}
 }
 
@@ -91,7 +91,7 @@ func (b *DiskBatch) Put(key, value []byte) error {
 	return nil
 }
 
-// Write write multi key-value entries to storage 
+// Write write multi key-value entries to storage
 func (b *DiskBatch) Write() error {
 	return b.db.Write(b.b, nil)
 }

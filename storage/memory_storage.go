@@ -32,9 +32,9 @@ type MemoryStorage struct {
 // kv entry
 type kv struct{ k, v []byte }
 
-// MemoryBatch 
+// MemoryBatch
 type MemoryBatch struct {
-	db   *MemoryStorage
+	db      *MemoryStorage
 	entries []*kv
 }
 
@@ -76,7 +76,6 @@ func (b *MemoryBatch) Put(key, value []byte) error {
 	b.entries = append(b.entries, entry)
 	return nil
 }
-
 
 func (b *MemoryBatch) Write() error {
 

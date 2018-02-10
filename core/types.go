@@ -34,7 +34,7 @@ const (
 	// update transaction execution result event,
 	// remove block nonce,
 	// update binary transaction payload.
-	OptimizeHeight = 500000
+	OptimizeHeight = 480000
 )
 
 // Payload Types
@@ -44,6 +44,17 @@ const (
 	TxPayloadCallType      = "call"
 	TxPayloadDelegateType  = "delegate"
 	TxPayloadCandidateType = "candidate"
+)
+
+const (
+	// TxExecutionFailed failed status for transaction execute result.
+	TxExecutionFailed = 0
+
+	// TxExecutionSuccess success status for transaction execute result.
+	TxExecutionSuccess = 1
+
+	// TxExecutionPendding pendding status when transaction in transaction pool.
+	TxExecutionPendding = 2
 )
 
 // Error Types

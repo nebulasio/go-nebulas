@@ -22,6 +22,8 @@ import (
 	"errors"
 	"fmt"
 
+	"encoding/json"
+
 	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/common/trie"
 	"github.com/nebulasio/go-nebulas/core"
@@ -390,23 +392,36 @@ func (s *APIService) GetTransactionReceipt(ctx context.Context, req *rpcpb.GetTr
 }
 
 func (s *APIService) toTransactionResponse(tx *core.Transaction) (*rpcpb.TransactionResponse, error) {
-	var status uint32
+	var (
+		status    int32
+		blockHash string
+	)
 	neb := s.server.Neblet()
 	events, _ := neb.BlockChain().TailBlock().FetchEvents(tx.Hash())
 
 	if events != nil && len(events) > 0 {
 		for _, v := range events {
-			// TODO: transaction execution topic need change later.
-			if v.Topic == core.TopicExecuteTxSuccess {
-				status = 1
-				break
-			} else if v.Topic == core.TopicExecuteTxFailed {
-				status = 0
-				break
+			if neb.BlockChain().TailBlock().Height() > core.OptimizeHeight {
+				if v.Topic == core.TopicTransactionExecutionResult {
+					txEvent := core.TransactionEvent{}
+					json.Unmarshal([]byte(v.Data), &txEvent)
+					status = int32(txEvent.Status)
+					blockHash = txEvent.BlockHash
+					break
+				}
+			} else {
+				// TODO: transaction execution topic need change later.
+				if v.Topic == core.TopicExecuteTxSuccess {
+					status = core.TxExecutionSuccess
+					break
+				} else if v.Topic == core.TopicExecuteTxFailed {
+					status = core.TxExecutionFailed
+					break
+				}
 			}
 		}
 	} else {
-		status = 2
+		status = core.TxExecutionPendding
 	}
 
 	resp := &rpcpb.TransactionResponse{
@@ -422,6 +437,7 @@ func (s *APIService) toTransactionResponse(tx *core.Transaction) (*rpcpb.Transac
 		GasPrice:  tx.GasPrice().String(),
 		GasLimit:  tx.GasLimit().String(),
 		Status:    status,
+		BlockHash: blockHash,
 	}
 
 	if tx.Type() == core.TxPayloadDeployType {

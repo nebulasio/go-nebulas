@@ -40,9 +40,7 @@ type Storage interface {
 	Del(key []byte) error
 }
 
-
-
-// Batch Put and Write 
+// Batch Put and Write
 type Batch interface {
 	Put(key []byte, value []byte) error
 

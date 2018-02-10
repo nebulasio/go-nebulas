@@ -65,6 +65,15 @@ var (
 	ZeroGasCount = util.NewUint128()
 )
 
+// TransactionEvent transaction event
+type TransactionEvent struct {
+	Hash      string `json:"hash"`
+	Status    int8   `json:"status"`
+	GasUsed   string `json:"gas_used"`
+	BlockHash string `json:"block_hash"`
+	Error     error  `json:"error"`
+}
+
 // Transaction type is used to handle all transaction data.
 type Transaction struct {
 	hash      byteutils.Hash
@@ -504,24 +513,20 @@ func (tx *Transaction) triggerEvent(topic string, block *Block, gasUsed *util.Ui
 }
 
 func (tx *Transaction) recordResultEvent(block *Block, gasUsed *util.Uint128, err error) {
-	var (
-		txResult struct {
-			Hash    string `json:"hash"`
-			Status  int8   `json:"status"` //0 failed, 1 success
-			GasUsed string `json:"gas_used"`
-			Error   error  `json:"error"`
-		}
-	)
 
-	txResult.Hash = tx.hash.String()
-	txResult.Status = 0
-	if err != nil {
-		txResult.Status = 1
+	txEvent := &TransactionEvent{
+		Hash:      tx.hash.String(),
+		GasUsed:   gasUsed.String(),
+		BlockHash: block.Hash().String(),
+		Error:     err,
 	}
-	txResult.GasUsed = gasUsed.String()
-	txResult.Error = err
+	if err != nil {
+		txEvent.Status = TxExecutionFailed
+	} else {
+		txEvent.Status = TxExecutionSuccess
+	}
 
-	txData, _ := json.Marshal(txResult)
+	txData, _ := json.Marshal(txEvent)
 	event := &Event{Topic: TopicTransactionExecutionResult,
 		Data: string(txData)}
 	block.recordEvent(tx.hash, event)

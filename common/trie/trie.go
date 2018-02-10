@@ -197,15 +197,15 @@ func (t *Trie) BeginBatch() {
 func (t *Trie) Commit() error {
 	b := t.storage.NewBatch()
 
-    for _, n := range t.data {
+	for _, n := range t.data {
 		b.Put(n.Hash, n.Bytes)
-    }
-
-    err := b.Write()
-    if err != nil {
-        return err
 	}
-	
+
+	err := b.Write()
+	if err != nil {
+		return err
+	}
+
 	t.initalRootHash = t.rootHash
 	t.batching = false
 	t.data = nil
