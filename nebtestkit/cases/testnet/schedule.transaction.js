@@ -11,7 +11,7 @@ var Account = require("../../../cmd/console/neb.js/lib/wallet").Account;
 var Transaction = require("../../../cmd/console/neb.js/lib/wallet").Transaction;
 var Utils = require("../../../cmd/console/neb.js/lib/wallet").Utils;
 
-var txCount = 1;
+var txCount = 8;
 var TestnetChainID = 1001;
 
 // send transactions per 2 minute.
