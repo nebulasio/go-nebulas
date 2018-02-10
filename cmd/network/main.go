@@ -118,8 +118,8 @@ func run(mode, configPath string, packageSize, concurrentMessageCount, totalMess
 	}
 
 	// register dispatcher.
-	netService.Register(net.NewSubscriber(netService, messageCh, false, PingMessage))
-	netService.Register(net.NewSubscriber(netService, messageCh, false, PongMessage))
+	netService.Register(net.NewSubscriber(netService, messageCh, false, PingMessage, net.MessageWeightZero))
+	netService.Register(net.NewSubscriber(netService, messageCh, false, PongMessage, net.MessageWeightZero))
 
 	// start server.
 	netService.Start()

@@ -77,6 +77,7 @@ type Stream struct {
 	connectedAt               int64
 	latestReadAt              int64
 	latestWriteAt             int64
+	msgCount                  map[string]int
 }
 
 // NewStream return a new Stream
@@ -105,6 +106,7 @@ func newStreamInstance(pid peer.ID, addr ma.Multiaddr, stream libnet.Stream, nod
 		connectedAt:               time.Now().Unix(),
 		latestReadAt:              0,
 		latestWriteAt:             0,
+		msgCount:                  make(map[string]int),
 	}
 }
 
@@ -435,6 +437,8 @@ func (s *Stream) writeLoop() {
 
 func (s *Stream) handleMessage(message *NebMessage) error {
 	messageName := message.MessageName()
+	s.msgCount[messageName]++
+
 	switch messageName {
 	case HELLO:
 		return s.onHello(message)

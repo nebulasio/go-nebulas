@@ -96,6 +96,19 @@ type Service interface {
 	BuildRawMessageData([]byte, string) []byte
 }
 
+// MessageWeight float64
+type MessageWeight float64
+
+// const
+const (
+	MessageWeightZero = MessageWeight(0)
+	MessageWeightNewTx
+	MessageWeightNewBlock = MessageWeight(0.5)
+	MessageWeightRouteTable
+	MessageWeightChainChunks
+	MessageWeightChainChunkData
+)
+
 // Subscriber subscriber.
 type Subscriber struct {
 	// id usually the owner/creator, used for troubleshooting .
@@ -104,16 +117,23 @@ type Subscriber struct {
 	// msgChan chan for subscribed message.
 	msgChan chan Message
 
-	// msgType message types to subscribe
-	msgTypes []string
+	// msgType message type to subscribe
+	msgType string
+
+	// msgWeight weight of msgType
+	msgWeight MessageWeight
 
 	// doFilter dup message
 	doFilter bool
 }
 
+// func NewSubscriber(id interface{}, msgChan chan Message, doFilter bool, msgTypes ...string) *Subscriber {
+// 	return &Subscriber{id, msgChan, msgTypes, doFilter}
+// }
+
 // NewSubscriber return new Subscriber instance.
-func NewSubscriber(id interface{}, msgChan chan Message, doFilter bool, msgTypes ...string) *Subscriber {
-	return &Subscriber{id, msgChan, msgTypes, doFilter}
+func NewSubscriber(id interface{}, msgChan chan Message, doFilter bool, msgType string, weight MessageWeight) *Subscriber {
+	return &Subscriber{id, msgChan, msgType, weight, doFilter}
 }
 
 // ID return id.
@@ -122,13 +142,18 @@ func (s *Subscriber) ID() interface{} {
 }
 
 // MessageType return msgTypes.
-func (s *Subscriber) MessageType() []string {
-	return s.msgTypes
+func (s *Subscriber) MessageType() string {
+	return s.msgType
 }
 
 // MessageChan return msgChan.
 func (s *Subscriber) MessageChan() chan Message {
 	return s.msgChan
+}
+
+// MessageWeight return weight of msgType
+func (s *Subscriber) MessageWeight() MessageWeight {
+	return s.msgWeight
 }
 
 // DoFilter return doFilter
