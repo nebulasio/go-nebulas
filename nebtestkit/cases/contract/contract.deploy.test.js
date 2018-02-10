@@ -12,6 +12,8 @@ var Unit = Wallet.Unit;
 
 var expect = require('chai').expect;
 var BigNumber = require('bignumber.js');
+var FS = require("fs");
+
 neb.setRequest(new HttpRequest("http://localhost:8685"));
 var ChainID = 100;
 var sourceAccount = new Account("a6e5eb290e1438fce79f5cb8774a72621637c2c9654c8b2525ed1d7e4e73653f");
@@ -38,16 +40,21 @@ var from;
 var fromState;
 var initFromBalance = 10;
 
+var contractAddr;
+
 /*
  * set this value according to the status of your testnet.
  * the smaller the value, the faster the test, with the risk of causing error
  */
 var maxCheckTime = 10;
 var checkTimes = 0;
+var beginCheckTime;
 
 function checkTransaction(hash, callback) {
+    if (checkTimes === 0) {
+        beginCheckTime = new Date().getTime();
+    }
     checkTimes += 1;
-
     if (checkTimes > maxCheckTime) {
         console.log("check tx receipt timeout:" + hash);
         checkTimes = 0;
@@ -64,6 +71,8 @@ function checkTransaction(hash, callback) {
             }, 2000);
         } else {
             checkTimes = 0;
+            var endCheckTime = new Date().getTime();
+            console.log("check tx time: : " + (endCheckTime - beginCheckTime) / 1000);
             callback(resp);
         }
     }).catch(function (err) {
@@ -76,24 +85,34 @@ function checkTransaction(hash, callback) {
     });
 }
 
-function test_transfer(testInput, testExpect, done) {
+function testContractDeploy(testInput, testExpect, done) {
     neb.api.getAccountState(from.getAddressString()).then(function (state) {
 
         fromState = state;
         console.log("from state:" + JSON.stringify(state));
         return neb.api.getAccountState(coinbase);
     }).then(function (resp) {
-
+        coinState = resp;
+        console.log("get coinbase state before tx:" + JSON.stringify(resp));
+        var erc20 = FS.readFileSync("./nf/nvm/test/ERC20.js", "utf-8");
+        // console.log("erc20:"+erc20);
+        var contract = {
+            "source": erc20,
+            "sourceType": "js",
+            "args": '["NebulasToken", "NAS", 1000000000]'
+        };
+        if (!testInput.canInit) {
+            contract.source = FS.readFileSync("./nf/nvm/test/ERC20.initError.js", "utf-8");
+        }
         var toAddr = Account.NewAccount();
         if (testInput.isSameAddr === true) {
             toAddr = from;
         }
-        coinState = resp;
-        console.log("get coinbase state before tx:" + JSON.stringify(resp));
-        var tx = new Transaction(ChainID, from, toAddr, Unit.nasToBasic(testInput.transferValue), parseInt(fromState.nonce) + testInput.nonceIncrement, testInput.gasPrice, testInput.gasLimit);
+        var tx = new Transaction(ChainID, from, toAddr, Unit.nasToBasic(testInput.transferValue), parseInt(fromState.nonce) + testInput.nonceIncrement, testInput.gasPrice, testInput.gasLimit, contract);
         tx.signTransaction();
         return neb.api.sendRawTransaction(tx.toProtoString());
     }).catch(function (err) {
+        console.log(err.error);
         if (true === testExpect.canSendTx) {
             done(err);
         } else {
@@ -104,6 +123,8 @@ function test_transfer(testInput, testExpect, done) {
         if (true === testExpect.canSendTx) {
             console.log("send Rax Tx:" + JSON.stringify(resp));
             expect(resp).to.be.have.property('txhash');
+            expect(resp).to.be.have.property('contract_address');
+            contractAddr = resp.contract_address;
             checkTransaction(resp.txhash, function (receipt) {
 
                 try {
@@ -119,10 +140,10 @@ function test_transfer(testInput, testExpect, done) {
 
                             console.log("get from account state :" + JSON.stringify(state));
                             expect(state.balance).to.equal(testExpect.fromBalanceAfterTx);
-                            return neb.api.getAccountState(receipt.to);
+                            return neb.api.getAccountState(contractAddr);
                         }).then(function (state) {
 
-                            console.log("get to account state :" + JSON.stringify(state));
+                            console.log("get contractAddr account state :" + JSON.stringify(state));
                             expect(state.balance).to.equal(testExpect.toBalanceAfterTx);
                             return neb.api.getAccountState(coinbase);
                         }).then(function (state) {
@@ -157,7 +178,7 @@ function test_transfer(testInput, testExpect, done) {
     });
 }
 
-describe('normal transaction', function () {
+describe('contract deploy', function () {
     beforeEach(function (done) {
         from = Account.NewAccount();
         neb.api.getAccountState(sourceAccount.getAddressString()).then(function (resp) {
@@ -184,35 +205,13 @@ describe('normal transaction', function () {
         });
     });
 
-    it('normal transfer', function (done) {
-
-        var testInput = {
-            transferValue: 1,
-            isSameAddr: false,
-            isAddressValid: true,
-            gasLimit: -1,
-            gasPrice: -1,
-            nonceIncrement: 1
-        };
-        //can calc value by previous params
-        var testExpect = {
-            canSendTx: true,
-            canSubmitTx: true,
-            canExcuteTx: true,
-            fromBalanceAfterTx: '8999999980000000000',
-            toBalanceAfterTx: '1000000000000000000',
-            transferReward: '20000000000'
-        };
-        test_transfer(testInput, testExpect, done);
-    });
-
-    it('from & to are same', function (done) {
+    it('normal deploy', function (done) {
 
         var testInput = {
             transferValue: 1,
             isSameAddr: true,
-            isAddressValid: true,
-            gasLimit: -1,
+            canInit: true,
+            gasLimit: 2000000,
             gasPrice: -1,
             nonceIncrement: 1
         };
@@ -221,20 +220,42 @@ describe('normal transaction', function () {
             canSendTx: true,
             canSubmitTx: true,
             canExcuteTx: true,
-            fromBalanceAfterTx: '9999999980000000000',
-            toBalanceAfterTx: '9999999980000000000',
-            transferReward: '20000000000'
+            fromBalanceAfterTx: '9999999977583000000',
+            toBalanceAfterTx: '0',
+            transferReward: '22417000000'
         };
-        test_transfer(testInput, testExpect, done);
+        testContractDeploy(testInput, testExpect, done);
+    });
+
+    it('from & to is different', function (done) {
+
+        var testInput = {
+            transferValue: 1,
+            isSameAddr: false,
+            canInit: true,
+            gasLimit: 2000000,
+            gasPrice: -1,
+            nonceIncrement: 1
+        };
+        //can calc value by previous params
+        var testExpect = {
+            canSendTx: true,
+            canSubmitTx: true,
+            canExcuteTx: true,
+            fromBalanceAfterTx: '8999999977583000000',
+            toBalanceAfterTx: '0',
+            transferReward: '22417000000'
+        };
+        testContractDeploy(testInput, testExpect, done);
     });
 
     it('from balance is insufficient', function (done) {
 
         var testInput = {
             transferValue: 11,
-            isSameAddr: false,
-            isAddressValid: true,
-            gasLimit: -1,
+            isSameAddr: true,
+            canInit: true,
+            gasLimit: 2000000,
             gasPrice: -1,
             nonceIncrement: 1
         };
@@ -243,20 +264,20 @@ describe('normal transaction', function () {
             canSendTx: true,
             canSubmitTx: true,
             canExcuteTx: false,
-            fromBalanceAfterTx: '9999999980000000000',
+            fromBalanceAfterTx: '9999999977583000000',
             toBalanceAfterTx: '0',
-            transferReward: '20000000000'
+            transferReward: '22417000000'
         };
-        test_transfer(testInput, testExpect, done);
+        testContractDeploy(testInput, testExpect, done);
     });
-
+    
     it('the sum of gas and balance is insufficient', function (done) {
 
         var testInput = {
             transferValue: 9.999999999999,
-            isSameAddr: false,
-            isAddressValid: true,
-            gasLimit: -1,
+            isSameAddr: true,
+            canInit: true,
+            gasLimit: 2000000,
             gasPrice: -1,
             nonceIncrement: 1
         };
@@ -265,11 +286,11 @@ describe('normal transaction', function () {
             canSendTx: true,
             canSubmitTx: true,
             canExcuteTx: false,
-            fromBalanceAfterTx: '9999999980000000000',
+            fromBalanceAfterTx: '9999999977583000000',
             toBalanceAfterTx: '0',
-            transferReward: '20000000000'
+            transferReward: '22417000000'
         };
-        test_transfer(testInput, testExpect, done);
+        testContractDeploy(testInput, testExpect, done);
     });
 
     it('gas cost is more then fromBalance', function (done) {
@@ -277,8 +298,8 @@ describe('normal transaction', function () {
         var testInput = {
             transferValue: 1,
             isSameAddr: false,
-            isAddressValid: true,
-            gasLimit: -1,
+            canInit: true,
+            gasLimit: 2000000,
             gasPrice: 1000000000000000000,
             nonceIncrement: 1
         };
@@ -291,7 +312,7 @@ describe('normal transaction', function () {
             toBalanceAfterTx: '-1',
             transferReward: '-1'
         };
-        test_transfer(testInput, testExpect, done);
+        testContractDeploy(testInput, testExpect, done);
     });
 
     it('gas price is too samll', function (done) {
@@ -299,8 +320,8 @@ describe('normal transaction', function () {
         var testInput = {
             transferValue: 1,
             isSameAddr: false,
-            isAddressValid: true,
-            gasLimit: -1,
+            canInit: true,
+            gasLimit: 2000000,
             gasPrice: 1,
             nonceIncrement: 1
         };
@@ -313,7 +334,7 @@ describe('normal transaction', function () {
             toBalanceAfterTx: '-1',
             transferReward: '-1'
         };
-        test_transfer(testInput, testExpect, done);
+        testContractDeploy(testInput, testExpect, done);
     });
 
     it('gas Limit is too large', function (done) {
@@ -321,7 +342,7 @@ describe('normal transaction', function () {
         var testInput = {
             transferValue: 1,
             isSameAddr: false,
-            isAddressValid: true,
+            canInit: true,
             gasLimit: 1000000000000000000,
             gasPrice: -1,
             nonceIncrement: 1
@@ -335,7 +356,7 @@ describe('normal transaction', function () {
             toBalanceAfterTx: '-1',
             transferReward: '-1'
         };
-        test_transfer(testInput, testExpect, done);
+        testContractDeploy(testInput, testExpect, done);
     });
 
     it('gas Limit is too samll', function (done) {
@@ -343,7 +364,7 @@ describe('normal transaction', function () {
         var testInput = {
             transferValue: 1,
             isSameAddr: false,
-            isAddressValid: true,
+            canInit: false,
             gasLimit: 1,
             gasPrice: -1,
             nonceIncrement: 1
@@ -357,7 +378,7 @@ describe('normal transaction', function () {
             toBalanceAfterTx: '-1',
             transferReward: '-1'
         };
-        test_transfer(testInput, testExpect, done);
+        testContractDeploy(testInput, testExpect, done);
     });
 
     it('nonce is below', function (done) {
@@ -365,8 +386,7 @@ describe('normal transaction', function () {
         var testInput = {
             transferValue: 1,
             isSameAddr: false,
-            isAddressValid: true,
-            gasLimit: 1,
+            gasLimit: 2000000,
             gasPrice: -1,
             nonceIncrement: 0
         };
@@ -379,7 +399,7 @@ describe('normal transaction', function () {
             toBalanceAfterTx: '-1',
             transferReward: '-1'
         };
-        test_transfer(testInput, testExpect, done);
+        testContractDeploy(testInput, testExpect, done);
     });
 
     it('nonce is bigger', function (done) {
@@ -387,8 +407,8 @@ describe('normal transaction', function () {
         var testInput = {
             transferValue: 1,
             isSameAddr: false,
-            isAddressValid: true,
-            gasLimit: 1,
+            canInit: true,
+            gasLimit: 2000000,
             gasPrice: -1,
             nonceIncrement: 2
         };
@@ -401,6 +421,27 @@ describe('normal transaction', function () {
             toBalanceAfterTx: '-1',
             transferReward: '-1'
         };
-        test_transfer(testInput, testExpect, done);
+        testContractDeploy(testInput, testExpect, done);
+    });
+
+    it('contract fail to init ', function (done) {
+        var testInput = {
+            transferValue: 1,
+            isSameAddr: false,
+            canInit: false,
+            gasLimit: 2000000,
+            gasPrice: -1,
+            nonceIncrement: 1
+        };
+
+        var testExpect = {
+            canSendTx: true,
+            canSubmitTx: true,
+            canExcuteTx: false,
+            fromBalanceAfterTx: '9999999977546000000',
+            toBalanceAfterTx: '0',
+            transferReward: '22454000000'
+        };
+        testContractDeploy(testInput, testExpect, done);
     });
 });
