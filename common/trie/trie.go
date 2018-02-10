@@ -195,17 +195,17 @@ func (t *Trie) BeginBatch() {
 
 // Commit a batch task
 func (t *Trie) Commit() error {
-	data := make(map[string]*storage.KvEntry)
+	b := t.storage.NewBatch()
 
-    for k, n := range t.data {
-        item := &storage.KvEntry{Key: n.Hash, Val: n.Bytes}
-        data[k] = item
+    for _, n := range t.data {
+		b.Put(n.Hash, n.Bytes)
     }
 
-    err := t.storage.BatchPut(data)
+    err := b.Write()
     if err != nil {
         return err
-    }
+	}
+	
 	t.initalRootHash = t.rootHash
 	t.batching = false
 	t.data = nil
