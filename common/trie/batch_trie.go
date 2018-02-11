@@ -163,20 +163,12 @@ func (bt *BatchTrie) Count(prefix []byte) (int64, error) {
 // BeginBatch to process a batch task
 func (bt *BatchTrie) BeginBatch() {
 	bt.batching = true
-	//bt.trie.BeginBatch()
 }
 
 // Commit a batch task
 func (bt *BatchTrie) Commit() {
 	bt.batching = false
 	bt.changelog = bt.changelog[:0]
-	/*
-		err := bt.trie.Commit()
-
-		if err != nil {
-			//return nil todo
-		}
-	*/
 }
 
 // RollBack a batch task
@@ -201,7 +193,6 @@ func (bt *BatchTrie) RollBack() {
 			bt.trie.Put(entry.key, entry.old)
 		}
 	}
-	//bt.trie.RollBack()
 }
 
 // HashDomains for each variable in contract
