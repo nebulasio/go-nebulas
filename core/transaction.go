@@ -527,6 +527,10 @@ func (tx *Transaction) recordResultEvent(block *Block, gasUsed *util.Uint128, er
 	}
 
 	txData, _ := json.Marshal(txEvent)
+	logging.VLog().WithFields(logrus.Fields{
+		"topic": TopicTransactionExecutionResult,
+		"event": string(txData),
+	}).Debug("record event.")
 	event := &Event{Topic: TopicTransactionExecutionResult,
 		Data: string(txData)}
 	block.recordEvent(tx.hash, event)
