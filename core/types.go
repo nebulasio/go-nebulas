@@ -32,7 +32,6 @@ import (
 const (
 	// OptimizeHeight after this height,
 	// update transaction execution result event,
-	// remove block nonce,
 	// update binary transaction payload.
 	OptimizeHeight = 480000
 )

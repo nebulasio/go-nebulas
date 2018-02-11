@@ -393,8 +393,7 @@ func (s *APIService) GetTransactionReceipt(ctx context.Context, req *rpcpb.GetTr
 
 func (s *APIService) toTransactionResponse(tx *core.Transaction) (*rpcpb.TransactionResponse, error) {
 	var (
-		status    int32
-		blockHash string
+		status int32
 	)
 	neb := s.server.Neblet()
 	events, _ := neb.BlockChain().TailBlock().FetchEvents(tx.Hash())
@@ -406,7 +405,6 @@ func (s *APIService) toTransactionResponse(tx *core.Transaction) (*rpcpb.Transac
 					txEvent := core.TransactionEvent{}
 					json.Unmarshal([]byte(v.Data), &txEvent)
 					status = int32(txEvent.Status)
-					blockHash = txEvent.BlockHash
 					break
 				}
 			} else {
@@ -437,7 +435,6 @@ func (s *APIService) toTransactionResponse(tx *core.Transaction) (*rpcpb.Transac
 		GasPrice:  tx.GasPrice().String(),
 		GasLimit:  tx.GasLimit().String(),
 		Status:    status,
-		BlockHash: blockHash,
 	}
 
 	if tx.Type() == core.TxPayloadDeployType {

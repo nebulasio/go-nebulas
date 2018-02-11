@@ -67,11 +67,10 @@ var (
 
 // TransactionEvent transaction event
 type TransactionEvent struct {
-	Hash      string `json:"hash"`
-	Status    int8   `json:"status"`
-	GasUsed   string `json:"gas_used"`
-	BlockHash string `json:"block_hash"`
-	Error     error  `json:"error"`
+	Hash    string `json:"hash"`
+	Status  int8   `json:"status"`
+	GasUsed string `json:"gas_used"`
+	Error   string `json:"error"`
 }
 
 // Transaction type is used to handle all transaction data.
@@ -515,22 +514,21 @@ func (tx *Transaction) triggerEvent(topic string, block *Block, gasUsed *util.Ui
 func (tx *Transaction) recordResultEvent(block *Block, gasUsed *util.Uint128, err error) {
 
 	txEvent := &TransactionEvent{
-		Hash:      tx.hash.String(),
-		GasUsed:   gasUsed.String(),
-		BlockHash: block.Hash().String(),
-		Error:     err,
+		Hash:    tx.hash.String(),
+		GasUsed: gasUsed.String(),
 	}
 	if err != nil {
 		txEvent.Status = TxExecutionFailed
+		txEvent.Error = err.Error()
 	} else {
 		txEvent.Status = TxExecutionSuccess
 	}
 
 	txData, _ := json.Marshal(txEvent)
-	logging.VLog().WithFields(logrus.Fields{
-		"topic": TopicTransactionExecutionResult,
-		"event": string(txData),
-	}).Debug("record event.")
+	//logging.VLog().WithFields(logrus.Fields{
+	//	"topic": TopicTransactionExecutionResult,
+	//	"event": string(txData),
+	//}).Debug("record event.")
 	event := &Event{Topic: TopicTransactionExecutionResult,
 		Data: string(txData)}
 	block.recordEvent(tx.hash, event)

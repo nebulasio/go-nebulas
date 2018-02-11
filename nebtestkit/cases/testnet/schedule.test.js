@@ -420,7 +420,7 @@ function doTest() {
     testCase(0);
 }
 
-var j = schedule.scheduleJob('*/3 * * * *', function(){
+var j = schedule.scheduleJob('*/5 * * * *', function(){
     console.log("start transaction test case");
     doTest();
 });
