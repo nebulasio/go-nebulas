@@ -1,7 +1,8 @@
 'use strict';
 
 var HttpRequest = require("../../node-request");
-var FS = require("fs");
+var schedule = require('node-schedule');
+var fs = require("fs");
 var Wallet = require("../../../cmd/console/neb.js/lib/wallet");
 var Neb = Wallet.Neb;
 var neb = new Neb();
@@ -398,13 +399,28 @@ function testCase(index) {
 }
 
 function testResult(name, err) {
+    const filePath = "/neb/app/logs/testResult.txt";
     console.log("*****************************");
-    console.log("result:" + name);
-    console.log(err);
+    var testName = "case:" + name;
+    var testResult = "result:" + (err ? false : true);
+    var content = testName + "\n" + testResult + "\n";
+    if (err) {
+        content = content + err + "\n";
+    }
+
+    fs.appendFile(filePath, content,'utf8',function(err){
+        if(err)
+        {
+            console.log(err);
+        }
+    });
 }
 
 function doTest() {
     testCase(0);
 }
 
-doTest();
+var j = schedule.scheduleJob('*/3 * * * *', function(){
+    console.log("start transaction test case");
+    doTest();
+});
