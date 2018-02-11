@@ -91,8 +91,8 @@ func (n *node) Type() (ty, error) {
 // Extension Node: 3-elements array, value is [ext flag, prefi path, next hash]
 // Leaf Node: 3-elements array, value is [leaf flag, suffix path, value]
 type Trie struct {
-	rootHash       []byte
-	storage        storage.Storage
+	rootHash []byte
+	storage  storage.Storage
 }
 
 // CreateNode in trie

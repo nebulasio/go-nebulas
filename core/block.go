@@ -508,7 +508,6 @@ func (block *Block) CollectTransactions(deadline int64) {
 
 			if err != nil {
 				logging.VLog().WithFields(logrus.Fields{
-					"block":    block,
 					"tx":       tx,
 					"err":      err,
 					"giveback": giveback,
@@ -517,6 +516,9 @@ func (block *Block) CollectTransactions(deadline int64) {
 				txBlock.rollback()
 				executedTxBlocksCh <- nil
 			} else {
+				logging.VLog().WithFields(logrus.Fields{
+					"tx": tx,
+				}).Debug("packed tx.")
 				packed++
 				txBlock.commit()
 				txBlock.transactions = append(txBlock.transactions, tx)
