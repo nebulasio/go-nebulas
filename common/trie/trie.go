@@ -88,7 +88,7 @@ func (n *node) Type() (ty, error) {
 
 // Trie is a Merkle Patricia Trie, consists of three kinds of nodes,
 // Branch Node: 16-elements array, value is [hash_0, hash_1, ..., hash_f, hash]
-// Extension Node: 3-elements array, value is [ext flag, prefi path, next hash]
+// Extension Node: 3-elements array, value is [ext flag, prefix path, next hash]
 // Leaf Node: 3-elements array, value is [leaf flag, suffix path, value]
 type Trie struct {
 	rootHash []byte
@@ -149,7 +149,7 @@ func NewTrie(rootHash []byte, storage storage.Storage) (*Trie, error) {
 	return t, nil
 }
 
-// RootHash return trie's rootHash
+// RootHash return the rootHash of trie
 func (t *Trie) RootHash() []byte {
 	return t.rootHash
 }
