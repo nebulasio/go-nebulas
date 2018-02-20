@@ -28,8 +28,6 @@ import (
 	"github.com/nebulasio/go-nebulas/storage"
 	"github.com/nebulasio/go-nebulas/util"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
-	// "github.com/nebulasio/go-nebulas/util/logging"
-	// "github.com/sirupsen/logrus"
 )
 
 // Errors
@@ -140,7 +138,7 @@ func (acc *account) RollBack() {
 
 // Clone account
 func (acc *account) Clone() (Account, error) {
-	varibles, err := acc.variables.Clone()
+	variables, err := acc.variables.Clone()
 	if err != nil {
 		return nil, err
 	}
@@ -148,7 +146,7 @@ func (acc *account) Clone() (Account, error) {
 		address:    acc.address,
 		balance:    util.NewUint128FromBigInt(acc.balance.Int),
 		nonce:      acc.nonce,
-		variables:  varibles,
+		variables:  variables,
 		birthPlace: acc.birthPlace,
 	}, nil
 }
