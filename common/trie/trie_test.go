@@ -29,6 +29,7 @@ import (
 	"github.com/nebulasio/go-nebulas/crypto/hash"
 	"github.com/nebulasio/go-nebulas/storage"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestNewTrie(t *testing.T) {
@@ -272,4 +273,37 @@ func TestTrie_Stress(t *testing.T) {
 	endAt = time.Now().UnixNano()
 	fmt.Printf("%d Get, cost %d\n", COUNT, endAt-startAt)
 	// 10000 Get, cost 396201000
+}
+
+func TestTrie_GetAfterPut(t *testing.T) {
+	storage, _ := storage.NewMemoryStorage()
+	tr, _ := NewTrie(nil, storage)
+	assert.Equal(t, []byte(nil), tr.RootHash())
+
+	var err error
+
+	// put key1.
+	_, err = tr.Put([]byte("key1"), []byte("value1"))
+	assert.Nil(t, err)
+
+	// get key1, should pass.
+	val, err := tr.Get([]byte("key1"))
+	assert.Nil(t, err)
+	assert.Equal(t, []byte("value1"), val)
+
+	// put key2, change the t.RootHash.
+	_, err = tr.Put([]byte("key2"), []byte("value2"))
+	assert.Nil(t, err)
+
+	// get key1, should pass.
+	val, err = tr.Get([]byte("key1"))
+	assert.Nil(t, err)
+	assert.Equal(t, []byte("value1"), val)
+
+	// del key1.
+	_, err = tr.Del([]byte("key1"))
+	assert.Nil(t, err)
+
+	_, err = tr.Get([]byte("key1"))
+	assert.NotNil(t, err)
 }
