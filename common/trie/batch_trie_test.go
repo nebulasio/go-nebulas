@@ -241,3 +241,36 @@ func TestBatchTrie_Stress_2(t *testing.T) {
 	fmt.Printf("%d Get, cost %d\n", COUNT, endAt-startAt)
 	// 10000 Get, cost 423994000
 }
+
+func TestBatchTrie_Test1(t *testing.T) {
+	storage, _ := storage.NewMemoryStorage()
+	tr, _ := NewTrie(nil, storage)
+	assert.Equal(t, []byte(nil), tr.RootHash())
+
+	var err error
+
+	// put key1.
+	_, err = tr.Put([]byte("key1"), []byte("value1"))
+	assert.Nil(t, err)
+
+	// get key1, should pass.
+	val, err := tr.Get([]byte("key1"))
+	assert.Nil(t, err)
+	assert.Equal(t, []byte("value1"), val)
+
+	// put key2, change the t.RootHash.
+	_, err = tr.Put([]byte("key2"), []byte("value2"))
+	assert.Nil(t, err)
+
+	// get key1, should pass.
+	val, err = tr.Get([]byte("key1"))
+	assert.Nil(t, err)
+	assert.Equal(t, []byte("value1"), val)
+
+	// del key1.
+	_, err = tr.Del([]byte("key1"))
+	assert.Nil(t, err)
+
+	_, err = tr.Get([]byte("key1"))
+	assert.NotNil(t, err)
+}

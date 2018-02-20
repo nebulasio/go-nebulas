@@ -167,7 +167,7 @@ func (t *Trie) Get(key []byte) ([]byte, error) {
 func (t *Trie) get(rootHash []byte, route []byte) ([]byte, error) {
 	curRootHash := rootHash
 	curRoute := route
-	for i := 0; i < len(curRoute); i++ {
+	for len(curRoute) >= 0 {
 		rootNode, err := t.fetchNode(curRootHash)
 		if err != nil {
 			return nil, err
