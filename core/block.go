@@ -1069,21 +1069,16 @@ func (block *Block) CheckContract(addr *Address) error {
 	result := false
 	for _, v := range birthEvents {
 
-		if block.Height() > OptimizeHeight {
-			if v.Topic == TopicTransactionExecutionResult {
-				txEvent := TransactionEvent{}
-				json.Unmarshal([]byte(v.Data), &txEvent)
-				if txEvent.Status == TxExecutionSuccess {
-					result = true
-					break
-				}
-			}
-		} else {
-			// TODO: later update event change topic
-			if v.Topic == TopicExecuteTxSuccess {
+		if v.Topic == TopicTransactionExecutionResult {
+			txEvent := TransactionEvent{}
+			json.Unmarshal([]byte(v.Data), &txEvent)
+			if txEvent.Status == TxExecutionSuccess {
 				result = true
 				break
 			}
+		} else if v.Topic == TopicExecuteTxSuccess {
+			result = true
+			break
 		}
 	}
 	if !result {
