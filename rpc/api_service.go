@@ -400,22 +400,17 @@ func (s *APIService) toTransactionResponse(tx *core.Transaction) (*rpcpb.Transac
 
 	if events != nil && len(events) > 0 {
 		for _, v := range events {
-			if neb.BlockChain().TailBlock().Height() > core.OptimizeHeight {
-				if v.Topic == core.TopicTransactionExecutionResult {
-					txEvent := core.TransactionEvent{}
-					json.Unmarshal([]byte(v.Data), &txEvent)
-					status = int32(txEvent.Status)
-					break
-				}
-			} else {
-				// TODO: transaction execution topic need change later.
-				if v.Topic == core.TopicExecuteTxSuccess {
-					status = core.TxExecutionSuccess
-					break
-				} else if v.Topic == core.TopicExecuteTxFailed {
-					status = core.TxExecutionFailed
-					break
-				}
+			if v.Topic == core.TopicTransactionExecutionResult {
+				txEvent := core.TransactionEvent{}
+				json.Unmarshal([]byte(v.Data), &txEvent)
+				status = int32(txEvent.Status)
+				break
+			} else if v.Topic == core.TopicExecuteTxSuccess {
+				status = core.TxExecutionSuccess
+				break
+			} else if v.Topic == core.TopicExecuteTxFailed {
+				status = core.TxExecutionFailed
+				break
 			}
 		}
 	} else {
