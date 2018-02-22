@@ -1056,6 +1056,12 @@ func (block *Block) executeTransaction(tx *Transaction) (bool, uint64, error) {
 
 // CheckContract check if contract is valid
 func (block *Block) CheckContract(addr *Address) error {
+
+	logging.VLog().Debug("start check contract")
+	defer func() {
+		logging.VLog().Debug("end check contract")
+	}()
+
 	contract, err := block.accState.GetContractAccount(addr.Bytes())
 	if err != nil {
 		return err
