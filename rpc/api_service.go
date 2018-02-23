@@ -550,7 +550,12 @@ func (s *APIService) GetGasUsed(ctx context.Context, req *rpcpb.HashRequest) (*r
 func (s *APIService) GetEventsByHash(ctx context.Context, req *rpcpb.HashRequest) (*rpcpb.EventsResponse, error) {
 
 	neb := s.server.Neblet()
-	bhash, _ := byteutils.FromHex(req.GetHash())
+
+	bhash, err := byteutils.FromHex(req.GetHash())
+	if err != nil {
+		return nil, err
+	}
+
 	tx, err := neb.BlockChain().TailBlock().GetTransaction(bhash)
 	if err != nil {
 		return nil, err

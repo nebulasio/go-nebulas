@@ -1057,14 +1057,13 @@ func (block *Block) executeTransaction(tx *Transaction) (bool, uint64, error) {
 // CheckContract check if contract is valid
 func (block *Block) CheckContract(addr *Address) error {
 
-	logging.VLog().Debug("start check contract")
-	defer func() {
-		logging.VLog().Debug("end check contract")
-	}()
-
 	contract, err := block.accState.GetContractAccount(addr.Bytes())
 	if err != nil {
 		return err
+	}
+
+	if len(contract.BirthPlace()) == 0 {
+		return ErrContractNotFound
 	}
 
 	birthEvents, err := block.FetchEvents(contract.BirthPlace())
@@ -1088,7 +1087,7 @@ func (block *Block) CheckContract(addr *Address) error {
 		}
 	}
 	if !result {
-		return ErrContractDeployFailed
+		return ErrContractNotFound
 	}
 
 	return nil
