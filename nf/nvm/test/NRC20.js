@@ -56,7 +56,7 @@ var StandardToken = function () {
                 return new BigNumber(value);
             },
             stringify: function (o) {
-                return o.toString();
+                return o.toString(10);
             }
         }
     });
@@ -67,7 +67,7 @@ var StandardToken = function () {
                 return new BigNumber(value);
             },
             stringify: function (o) {
-                return o.toString();
+                return o.toString(10);
             }
         },
         "allowed": {
@@ -86,10 +86,10 @@ StandardToken.prototype = {
         this._name = name;
         this._symbol = symbol;
         this._decimals = decimals | 0;
-        this._totalSupply = new BigNumber(totalSupply);
+        this._totalSupply = new BigNumber(totalSupply).mul(new BigNumber(10).pow(decimals));
 
         var from = Blockchain.transaction.from;
-        this.balances.set(from, new BigNumber(totalSupply));
+        this.balances.set(from, this._totalSupply);
     },
 
     // Returns the name of the token
@@ -115,7 +115,7 @@ StandardToken.prototype = {
         var balance = this.balances.get(owner);
 
         if (balance instanceof BigNumber) {
-            return balance.toString();
+            return balance.toString(10);
         } else {
             return "0";
         }
@@ -128,6 +128,8 @@ StandardToken.prototype = {
         var balance = this.balances.get(from) || new BigNumber(0);
 
         if (balance.lt(value)) {
+
+            this.transferEvent(false, from, to, value);
             return false;
         }
 
@@ -135,13 +137,7 @@ StandardToken.prototype = {
         var toBalance = this.balances.get(to) || new BigNumber(0);
         this.balances.set(to, toBalance.add(value));
 
-        Event.Trigger(this.name(), {
-            Transfer: {
-                from: from,
-                to: to,
-                value: value
-            }
-        });
+        this.transferEvent(true, from, to, value);
         return true;
     },
 
@@ -163,17 +159,23 @@ StandardToken.prototype = {
             var toBalance = this.balances.get(to) || new BigNumber(0);
             this.balances.set(to, toBalance.add(value));
 
-            Event.Trigger(this.name(), {
-                Transfer: {
-                    from: from,
-                    to: to,
-                    value: value
-                }
-            });
+            this.transferEvent(true, from, to, value);
             return true;
         } else {
+            this.transferEvent(false, from, to, value);
             return false;
         }
+    },
+
+    transferEvent: function(result, from, to, value) {
+        Event.Trigger(this.name(), {
+            Status: result,
+            Transfer: {
+                from: from,
+                to: to,
+                value: value
+            }
+        });
     },
 
     approve: function (spender, value) {
@@ -201,7 +203,7 @@ StandardToken.prototype = {
         if (owned instanceof Allowed) {
             var spender = owned.get(spender);
             if ( typeof spender != "undefined") {
-                return spender.toString();
+                return spender.toString(10);
             }
         }
         return "0";
