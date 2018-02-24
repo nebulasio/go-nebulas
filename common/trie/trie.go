@@ -106,7 +106,6 @@ func (t *Trie) createNode(val [][]byte) (*node, error) {
 
 // FetchNode in trie
 func (t *Trie) fetchNode(hash []byte) (*node, error) {
-
 	ir, err := t.storage.Get(hash)
 	if err != nil {
 		return nil, err

@@ -275,7 +275,7 @@ func TestTrie_Stress(t *testing.T) {
 	// 10000 Get, cost 396201000
 }
 
-func TestTrie_GetAfterPut(t *testing.T) {
+func TestTrie_VerifyOldKeyValueFromNewRootHash(t *testing.T) {
 	storage, _ := storage.NewMemoryStorage()
 	tr, _ := NewTrie(nil, storage)
 	assert.Equal(t, []byte(nil), tr.RootHash())
@@ -292,7 +292,7 @@ func TestTrie_GetAfterPut(t *testing.T) {
 	assert.Equal(t, []byte("value1"), val)
 
 	// put key2, change the t.RootHash.
-	_, err = tr.Put([]byte("key2"), []byte("value2"))
+	_, err = tr.Put([]byte("key2"), []byte("kv2"))
 	assert.Nil(t, err)
 
 	// get key1, should pass.
@@ -306,4 +306,67 @@ func TestTrie_GetAfterPut(t *testing.T) {
 
 	_, err = tr.Get([]byte("key1"))
 	assert.NotNil(t, err)
+}
+
+func TestTrie_VerifyKeyValueInDiffRootHashs(t *testing.T) {
+	storage, _ := storage.NewMemoryStorage()
+	tr, _ := NewTrie(nil, storage)
+	assert.Equal(t, []byte(nil), tr.RootHash())
+
+	var err error
+
+	// put key1.
+	_, err = tr.Put([]byte("key1"), []byte("value1"))
+	assert.Nil(t, err)
+	rootHash1 := tr.RootHash()
+
+	// get key1, should pass.
+	val, err := tr.Get([]byte("key1"))
+	assert.Nil(t, err)
+	assert.Equal(t, []byte("value1"), val)
+
+	// put key2, change the t.RootHash.
+	_, err = tr.Put([]byte("key2"), []byte("kv2"))
+	assert.Nil(t, err)
+	rootHash1_5 := tr.RootHash()
+
+	// update value of key1.
+	_, err = tr.Put([]byte("key1"), []byte("value2"))
+	assert.Nil(t, err)
+	rootHash2 := tr.RootHash()
+
+	val, err = tr.Get([]byte("key1"))
+	assert.Nil(t, err)
+	assert.Equal(t, []byte("value2"), val)
+
+	// verify rootHash1:
+	ttr, _ := NewTrie(rootHash1, storage)
+	val, err = ttr.Get([]byte("key1"))
+	assert.Nil(t, err)
+	assert.Equal(t, []byte("value1"), val)
+
+	val, err = ttr.Get([]byte("key2"))
+	assert.NotNil(t, err)
+	assert.Nil(t, val)
+
+	// verify rootHash1_5:
+	ttr, _ = NewTrie(rootHash1_5, storage)
+	val, err = ttr.Get([]byte("key1"))
+	assert.Nil(t, err)
+	assert.Equal(t, []byte("value1"), val)
+
+	val, err = ttr.Get([]byte("key2"))
+	assert.Nil(t, err)
+	assert.Equal(t, []byte("kv2"), val)
+
+	// verify rootHash2:
+	ttr, _ = NewTrie(rootHash2, storage)
+	val, err = ttr.Get([]byte("key1"))
+	assert.Nil(t, err)
+	assert.Equal(t, []byte("value2"), val)
+
+	val, err = ttr.Get([]byte("key2"))
+	assert.Nil(t, err)
+	assert.Equal(t, []byte("kv2"), val)
+
 }
