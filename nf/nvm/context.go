@@ -46,6 +46,10 @@ type Block interface {
 	RecordEvent(txHash byteutils.Hash, topic, data string) error
 }
 
+type WorldState interface {
+	GetOrCreateUserAccount(addr byteutils.Hash) (state.Account, error)
+}
+
 // AccountState context account state
 type AccountState struct {
 	Nonce   uint64 `json:"nonce"`
@@ -74,28 +78,28 @@ type ContextTransaction struct {
 
 // Context nvm engine context
 type Context struct {
-	block    Block
-	tx       *ContextTransaction
-	owner    state.Account
-	contract state.Account
-	state    state.AccountState
+	block      Block
+	tx         *ContextTransaction
+	owner      state.Account
+	contract   state.Account
+	worldState WorldState
 }
 
 // NewContext create a engine context
-func NewContext(block Block, tx *ContextTransaction, owner state.Account, contract state.Account, state state.AccountState) *Context {
+func NewContext(block Block, tx *ContextTransaction, owner state.Account, contract state.Account, worldState WorldState) *Context {
 	ctx := &Context{
-		block:    block,
-		tx:       tx,
-		owner:    owner,
-		contract: contract,
-		state:    state,
+		block:      block,
+		tx:         tx,
+		owner:      owner,
+		contract:   contract,
+		worldState: worldState,
 	}
 	return ctx
 }
 
 // State returns account state
-func (ctx *Context) State() state.AccountState {
-	return ctx.state
+func (ctx *Context) State() WorldState {
+	return ctx.worldState
 }
 
 // Owner returns contract owner account

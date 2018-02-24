@@ -75,30 +75,28 @@ func (payload *DelegatePayload) Execute(block *Block, tx *Transaction) (*util.Ui
 		return ZeroGasCount, "", err
 	}
 	// check delegatee valid
-	_, err = block.dposContext.candidateTrie.Get(delegatee.Bytes())
+	_, err = block.worldState.GetCandidate(delegatee.Bytes())
 	if err != nil && err != storage.ErrKeyNotFound {
 		return ZeroGasCount, "", err
 	}
 	if err == storage.ErrKeyNotFound {
 		return ZeroGasCount, "", ErrInvalidDelegateToNonCandidate
 	}
-	pre, err := block.dposContext.voteTrie.Get(delegator)
+	pre, err := block.worldState.GetVote(delegator)
 	if err != nil && err != storage.ErrKeyNotFound {
 		return ZeroGasCount, "", err
 	}
 	switch payload.Action {
 	case DelegateAction:
 		if err != storage.ErrKeyNotFound {
-			key := append(pre, delegator...)
-			if _, err = block.dposContext.delegateTrie.Del(key); err != nil {
+			if err = block.worldState.DelDelegate(delegator, pre); err != nil {
 				return ZeroGasCount, "", err
 			}
 		}
-		key := append(delegatee.Bytes(), delegator...)
-		if _, err = block.dposContext.delegateTrie.Put(key, delegator); err != nil {
+		if err = block.worldState.AddDelegate(delegator, delegatee.Bytes()); err != nil {
 			return ZeroGasCount, "", err
 		}
-		if _, err = block.dposContext.voteTrie.Put(delegator, delegatee.Bytes()); err != nil {
+		if err = block.worldState.AddVote(delegator, delegatee.Bytes()); err != nil {
 			return ZeroGasCount, "", err
 		}
 		/* 		logging.VLog().WithFields(logrus.Fields{
@@ -111,11 +109,10 @@ func (payload *DelegatePayload) Execute(block *Block, tx *Transaction) (*util.Ui
 		if !delegatee.address.Equals(pre) {
 			return ZeroGasCount, "", ErrInvalidUnDelegateFromNonDelegatee
 		}
-		key := append(delegatee.Bytes(), delegator...)
-		if _, err = block.dposContext.delegateTrie.Del(key); err != nil {
+		if err = block.worldState.DelDelegate(delegator, delegatee.Bytes()); err != nil {
 			return ZeroGasCount, "", err
 		}
-		if _, err = block.dposContext.voteTrie.Del(delegator); err != nil {
+		if err = block.worldState.DelVote(delegator); err != nil {
 			return ZeroGasCount, "", err
 		}
 		/* 		logging.VLog().WithFields(logrus.Fields{

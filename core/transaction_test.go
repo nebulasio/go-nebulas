@@ -390,17 +390,17 @@ func TestTransaction_VerifyExecution(t *testing.T) {
 
 			block := bc.tailBlock
 			block.begin()
-			fromAcc, err := block.accState.GetOrCreateUserAccount(tt.tx.from.address)
+			fromAcc, err := block.worldState.GetOrCreateUserAccount(tt.tx.from.address)
 			assert.Nil(t, err)
 			fromAcc.AddBalance(tt.fromBalance)
 
 			gasUsed, executionErr := tt.tx.VerifyExecution(block)
 
-			fromAcc, err = block.accState.GetOrCreateUserAccount(tt.tx.from.address)
+			fromAcc, err = block.worldState.GetOrCreateUserAccount(tt.tx.from.address)
 			assert.Nil(t, err)
-			toAcc, err := block.accState.GetOrCreateUserAccount(tt.tx.to.address)
+			toAcc, err := block.worldState.GetOrCreateUserAccount(tt.tx.to.address)
 			assert.Nil(t, err)
-			coinbaseAcc, err := block.accState.GetOrCreateUserAccount(block.header.coinbase.address)
+			coinbaseAcc, err := block.worldState.GetOrCreateUserAccount(block.header.coinbase.address)
 			assert.Nil(t, err)
 			if tt.gasUsed != nil {
 				assert.Equal(t, tt.gasUsed, gasUsed)
@@ -505,15 +505,15 @@ func TestTransaction_LocalExecution(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 
-			fromAcc, err := block.accState.GetOrCreateUserAccount(tt.tx.from.address)
+			fromAcc, err := block.worldState.GetOrCreateUserAccount(tt.tx.from.address)
 			assert.Nil(t, err)
 			fromBefore := fromAcc.Balance()
 
-			toAcc, err := block.accState.GetOrCreateUserAccount(tt.tx.to.address)
+			toAcc, err := block.worldState.GetOrCreateUserAccount(tt.tx.to.address)
 			assert.Nil(t, err)
 			toBefore := toAcc.Balance()
 
-			coinbaseAcc, err := block.accState.GetOrCreateUserAccount(block.header.coinbase.address)
+			coinbaseAcc, err := block.worldState.GetOrCreateUserAccount(block.header.coinbase.address)
 			assert.Nil(t, err)
 			coinbaseBefore := coinbaseAcc.Balance()
 
@@ -523,15 +523,15 @@ func TestTransaction_LocalExecution(t *testing.T) {
 			assert.Equal(t, tt.result, result)
 			assert.Equal(t, tt.gasUsed, gasUsed)
 
-			fromAcc, err = block.accState.GetOrCreateUserAccount(tt.tx.from.address)
+			fromAcc, err = block.worldState.GetOrCreateUserAccount(tt.tx.from.address)
 			assert.Nil(t, err)
 			assert.Equal(t, fromBefore, fromAcc.Balance())
 
-			toAcc, err = block.accState.GetOrCreateUserAccount(tt.tx.to.address)
+			toAcc, err = block.worldState.GetOrCreateUserAccount(tt.tx.to.address)
 			assert.Nil(t, err)
 			assert.Equal(t, toBefore, toAcc.Balance())
 
-			coinbaseAcc, err = block.accState.GetOrCreateUserAccount(block.header.coinbase.address)
+			coinbaseAcc, err = block.worldState.GetOrCreateUserAccount(block.header.coinbase.address)
 			assert.Nil(t, err)
 			assert.Equal(t, coinbaseBefore, coinbaseAcc.Balance())
 		})

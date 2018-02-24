@@ -65,7 +65,7 @@ func GetAccountStateFunc(handler unsafe.Pointer, address *C.char) *C.char {
 		return nil
 	}
 
-	acc, err := engine.ctx.state.GetOrCreateUserAccount([]byte(addr))
+	acc, err := engine.ctx.worldState.GetOrCreateUserAccount([]byte(addr))
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"handler": uint64(uintptr(handler)),
@@ -100,7 +100,7 @@ func TransferFunc(handler unsafe.Pointer, to *C.char, v *C.char) int {
 		return 1
 	}
 
-	toAcc, err := engine.ctx.state.GetOrCreateUserAccount([]byte(addr))
+	toAcc, err := engine.ctx.worldState.GetOrCreateUserAccount([]byte(addr))
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"handler": uint64(uintptr(handler)),

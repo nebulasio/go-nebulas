@@ -94,7 +94,9 @@ func TestNewGenesisBlock(t *testing.T) {
 	assert.Nil(t, chain.storeBlockToStorage(genesis))
 	assert.Nil(t, err)
 
-	iter, err := genesis.dposContext.dynastyTrie.Iterator(nil)
+	checkDynasty(t, genesis.worldState.consensusState.delegateTrie)
+
+	iter, err := genesis.worldState.IterVote(nil)
 	assert.Nil(t, err)
 	exist, err := iter.Next()
 	i := 0
@@ -106,19 +108,7 @@ func TestNewGenesisBlock(t *testing.T) {
 		exist, err = iter.Next()
 	}
 
-	iter, err = genesis.dposContext.voteTrie.Iterator(nil)
-	assert.Nil(t, err)
-	exist, err = iter.Next()
-	i = 0
-	for exist {
-		var addr byteutils.Hash
-		addr, _ = byteutils.FromHex(MockDynasty[i])
-		assert.Equal(t, addr, byteutils.Hash(iter.Value()))
-		i++
-		exist, err = iter.Next()
-	}
-
-	iter, err = genesis.dposContext.delegateTrie.Iterator(nil)
+	iter, err = genesis.worldState.IterDelegate(nil)
 	assert.Nil(t, err)
 	exist, err = iter.Next()
 	i = 0
@@ -132,7 +122,7 @@ func TestNewGenesisBlock(t *testing.T) {
 
 	for _, v := range conf.TokenDistribution {
 		addr, _ := byteutils.FromHex(v.Address)
-		acc, err := genesis.accState.GetOrCreateUserAccount(addr)
+		acc, err := genesis.worldState.GetOrCreateUserAccount(addr)
 		assert.Nil(t, err)
 		assert.Equal(t, acc.Balance().String(), v.Value)
 	}

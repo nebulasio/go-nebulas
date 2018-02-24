@@ -77,7 +77,7 @@ func (payload *CallPayload) Execute(block *Block, tx *Transaction) (*util.Uint12
 
 func generateCallContext(block *Block, tx *Transaction) (*nvm.Context, *DeployPayload, error) {
 
-	contract, err := block.accState.GetContractAccount(tx.to.Bytes())
+	contract, err := block.worldState.GetContractAccount(tx.to.Bytes())
 	if err != nil {
 		return nil, nil, err
 	}
@@ -89,7 +89,7 @@ func generateCallContext(block *Block, tx *Transaction) (*nvm.Context, *DeployPa
 	if err != nil {
 		return nil, nil, err
 	}
-	owner, err := block.accState.GetOrCreateUserAccount(birthTx.from.Bytes())
+	owner, err := block.worldState.GetOrCreateUserAccount(birthTx.from.Bytes())
 	if err != nil {
 		return nil, nil, err
 	}
@@ -98,6 +98,6 @@ func generateCallContext(block *Block, tx *Transaction) (*nvm.Context, *DeployPa
 		return nil, nil, err
 	}
 
-	nvmctx := nvm.NewContext(block, convertNvmTx(tx), owner, contract, block.accState)
+	nvmctx := nvm.NewContext(block, convertNvmTx(tx), owner, contract, block.worldState)
 	return nvmctx, deploy, nil
 }

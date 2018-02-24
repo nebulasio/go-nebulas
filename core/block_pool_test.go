@@ -116,15 +116,17 @@ func TestBlockPool(t *testing.T) {
 	signature.InitSign(key.(keystore.PrivateKey))
 	bc.tailBlock.begin()
 	balance := util.NewUint128FromBigInt(util.NewUint128().Mul(TransactionGasPrice.Int, util.NewUint128FromInt(2000000).Int))
-	acc, err := bc.tailBlock.accState.GetOrCreateUserAccount(from.Bytes())
+	acc, err := bc.tailBlock.worldState.GetOrCreateUserAccount(from.Bytes())
 	assert.Nil(t, err)
 	acc.AddBalance(balance)
-	bc.tailBlock.header.stateRoot, err = bc.tailBlock.accState.RootHash()
+	headers, err := bc.tailBlock.worldState.ToHeaders()
+	assert.Nil(t, err)
+	bc.tailBlock.header.stateRoot = headers.accStateRoot
 	assert.Nil(t, err)
 	bc.tailBlock.commit()
 	bc.storeBlockToStorage(bc.tailBlock)
 
-	validators, err := TraverseDynasty(bc.tailBlock.dposContext.dynastyTrie)
+	validators, err := bc.tailBlock.worldState.dynasty()
 	assert.Nil(t, err)
 
 	addr := &Address{validators[1]}

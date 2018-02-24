@@ -82,15 +82,15 @@ func generateDeployContext(block *Block, tx *Transaction) (*nvm.Context, error) 
 	if err != nil {
 		return nil, err
 	}
-	owner, err := block.accState.GetOrCreateUserAccount(tx.from.Bytes())
+	owner, err := block.worldState.GetOrCreateUserAccount(tx.from.Bytes())
 	if err != nil {
 		return nil, err
 	}
-	contract, err := block.accState.CreateContractAccount(addr.Bytes(), tx.Hash())
+	contract, err := block.worldState.CreateContractAccount(addr.Bytes(), tx.Hash())
 	if err != nil {
 		return nil, err
 	}
-	nvmctx := nvm.NewContext(block, convertNvmTx(tx), owner, contract, block.accState)
+	nvmctx := nvm.NewContext(block, convertNvmTx(tx), owner, contract, block.worldState)
 	return nvmctx, nil
 }
 

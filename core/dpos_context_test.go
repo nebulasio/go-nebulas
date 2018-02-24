@@ -24,7 +24,6 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/nebulasio/go-nebulas/common/trie"
-	"github.com/nebulasio/go-nebulas/core/state"
 	"github.com/nebulasio/go-nebulas/storage"
 	"github.com/nebulasio/go-nebulas/util"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
@@ -47,7 +46,7 @@ func TestBlock_NextDynastyContext(t *testing.T) {
 
 	context, err := block.NextDynastyContext(chain, BlockInterval)
 	assert.Nil(t, err)
-	validators, _ := TraverseDynasty(block.dposContext.dynastyTrie)
+	validators, _ := block.worldState.dynasty()
 	assert.Equal(t, context.Proposer, validators[1])
 	// check dynasty
 	checkDynasty(t, context.DynastyTrie)
@@ -55,7 +54,7 @@ func TestBlock_NextDynastyContext(t *testing.T) {
 
 	context, err = block.NextDynastyContext(chain, BlockInterval+DynastyInterval)
 	assert.Nil(t, err)
-	validators, _ = TraverseDynasty(block.dposContext.dynastyTrie)
+	validators, _ = block.worldState.dynasty()
 	assert.Equal(t, context.Proposer, validators[1])
 	// check dynasty
 	checkDynasty(t, context.DynastyTrie)
@@ -63,7 +62,7 @@ func TestBlock_NextDynastyContext(t *testing.T) {
 
 	context, err = block.NextDynastyContext(chain, DynastyInterval/2)
 	assert.Nil(t, err)
-	validators, _ = TraverseDynasty(block.dposContext.dynastyTrie)
+	validators, _ = block.worldState.dynasty()
 	assert.Equal(t, context.Proposer, validators[int(DynastyInterval/2/BlockInterval)%DynastySize])
 	// check dynasty
 	checkDynasty(t, context.DynastyTrie)
@@ -71,7 +70,7 @@ func TestBlock_NextDynastyContext(t *testing.T) {
 
 	context, err = block.NextDynastyContext(chain, DynastyInterval*2+DynastyInterval/3)
 	assert.Nil(t, err)
-	validators, _ = TraverseDynasty(block.dposContext.dynastyTrie)
+	validators, _ = block.worldState.dynasty()
 	index := int((DynastyInterval*2+DynastyInterval/3)%DynastyInterval) / int(BlockInterval) % DynastySize
 	assert.Equal(t, context.Proposer, validators[index])
 	// check dynasty
@@ -98,7 +97,7 @@ func TestBlock_ElectNewDynasty(t *testing.T) {
 	kickout, _ := AddressParse(MockDynasty[1])
 	v, err := AddressParse(MockDynasty[len(MockDynasty)-1])
 	assert.Nil(t, err)
-	acc, err := block.accState.GetOrCreateUserAccount(v.Bytes())
+	acc, err := block.worldState.GetOrCreateUserAccount(v.Bytes())
 	assert.Nil(t, err)
 	acc.AddBalance(util.NewUint128FromInt(2000000))
 	delegatePayload := NewDelegatePayload(DelegateAction, v.String())
@@ -125,7 +124,7 @@ func TestBlock_Kickout(t *testing.T) {
 	chain, _ := NewBlockChain(neb)
 	var c MockConsensus
 	chain.SetConsensusHandler(c)
-	validators, _ := TraverseDynasty(chain.tailBlock.dposContext.dynastyTrie)
+	validators, _ := chain.tailBlock.worldState.dynasty()
 	coinbase := &Address{validators[2]}
 
 	block, _ := NewBlock(0, coinbase, chain.tailBlock)
@@ -140,8 +139,8 @@ func TestBlock_Kickout(t *testing.T) {
 	block.SetMiner(coinbase)
 	assert.Nil(t, block.VerifyExecution(chain.tailBlock, chain.ConsensusHandler()))
 	chain.SetTailBlock(block)
-	checkDynasty(t, chain.tailBlock.dposContext.dynastyTrie)
-	checkDynasty(t, chain.tailBlock.dposContext.nextDynastyTrie)
+	checkDynasty(t, chain.tailBlock.worldState.consensusState.dynastyTrie)
+	checkDynasty(t, chain.tailBlock.worldState.consensusState.nextDynastyTrie)
 
 	block, _ = NewBlock(0, coinbase, block)
 	block.header.timestamp = DynastyInterval * 2
@@ -155,8 +154,8 @@ func TestBlock_Kickout(t *testing.T) {
 	block.SetMiner(coinbase)
 	assert.Nil(t, block.VerifyExecution(chain.tailBlock, chain.ConsensusHandler()))
 	chain.SetTailBlock(block)
-	checkDynasty(t, chain.tailBlock.dposContext.dynastyTrie)
-	checkDynasty(t, chain.tailBlock.dposContext.nextDynastyTrie)
+	checkDynasty(t, chain.tailBlock.worldState.consensusState.dynastyTrie)
+	checkDynasty(t, chain.tailBlock.worldState.consensusState.nextDynastyTrie)
 }
 
 func TestTallyVotes(t *testing.T) {
@@ -168,15 +167,15 @@ func TestTallyVotes(t *testing.T) {
 
 	dc, err := GenesisDynastyContext(chain, neb.Genesis())
 	assert.Nil(t, err)
-	dc.Accounts, err = state.NewAccountState(nil, neb.storage)
+	dc.WorldState, err = NewWorldState(chain.storage)
 	tester := "2fe3f9f51f9a05dd5f7c5329127f7c917917149b4e16b0b8"
 	candidate, err := AddressParse(tester)
 	assert.Nil(t, err)
-	dc.Accounts.BeginBatch()
-	acc, err := dc.Accounts.GetOrCreateUserAccount(candidate.Bytes())
+	dc.WorldState.Begin()
+	acc, err := dc.WorldState.GetOrCreateUserAccount(candidate.Bytes())
 	assert.Nil(t, err)
 	acc.AddBalance(util.NewUint128FromInt(10000))
-	dc.Accounts.Commit()
+	dc.WorldState.Commit()
 	assert.Nil(t, err)
 	// empty candidates
 	candidates := dc.CandidateTrie
@@ -202,8 +201,8 @@ func TestChooseCandidates(t *testing.T) {
 	tester := "2fe3f9f51f9a05dd5f7c5329127f7c917917149b4e16b0b8"
 	candidate, err := AddressParse(tester)
 	assert.Nil(t, err)
-	chain.genesisBlock.dposContext.kickoutCandidate(candidate.Bytes())
-	dc.ProtectTrie = chain.genesisBlock.dposContext.candidateTrie
+	chain.genesisBlock.worldState.consensusState.kickoutCandidate(candidate.Bytes())
+	dc.ProtectTrie = chain.genesisBlock.worldState.consensusState.candidateTrie
 	lenVotes := len(votes)
 	votes2, err := dc.chooseCandidates(votes)
 	assert.Nil(t, err)
@@ -220,8 +219,8 @@ func TestKickoutDynastyActuallyKickoutCandidates(t *testing.T) {
 	tester := "2fe3f9f51f9a05dd5f7c5329127f7c917917149b4e16b0b8"
 	candidate, err := AddressParse(tester)
 	assert.Nil(t, err)
-	chain.genesisBlock.dposContext.kickoutCandidate(candidate.Bytes())
-	dc.ProtectTrie = chain.genesisBlock.dposContext.candidateTrie
+	chain.genesisBlock.worldState.consensusState.kickoutCandidate(candidate.Bytes())
+	dc.ProtectTrie = chain.genesisBlock.worldState.consensusState.candidateTrie
 	assert.Nil(t, dc.kickoutDynasty(0))
 	candidates, err := TraverseDynasty(dc.CandidateTrie)
 	assert.Nil(t, err)
@@ -231,7 +230,7 @@ func TestKickoutDynastyActuallyKickoutCandidates(t *testing.T) {
 func TestCheckActiveBootstrapValidators(t *testing.T) {
 	neb := testNeb()
 	chain, err := NewBlockChain(neb)
-	protect := chain.genesisBlock.dposContext.candidateTrie
+	protect := chain.genesisBlock.worldState.consensusState.candidateTrie
 
 	tester := "2fe3f9f51f9a05dd5f7c5329127f7c917917149b4e16b0b8"
 	candidate, err := AddressParse(tester)
@@ -241,9 +240,9 @@ func TestCheckActiveBootstrapValidators(t *testing.T) {
 	active, err := checkActiveBootstrapValidator(candidate.Bytes(), protect, candidates)
 	assert.Equal(t, active, false)
 
-	candidates = chain.TailBlock().dposContext.candidateTrie
-	chain.genesisBlock.dposContext.kickoutCandidate(candidate.Bytes())
-	protect = chain.genesisBlock.dposContext.candidateTrie
+	candidates = chain.TailBlock().worldState.consensusState.candidateTrie
+	chain.genesisBlock.worldState.consensusState.kickoutCandidate(candidate.Bytes())
+	protect = chain.genesisBlock.worldState.consensusState.candidateTrie
 	active, err = checkActiveBootstrapValidator(candidate.Bytes(), protect, candidates)
 	assert.Equal(t, active, false)
 	assert.Nil(t, err)

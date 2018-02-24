@@ -25,7 +25,6 @@ import (
 
 	"github.com/nebulasio/go-nebulas/common/trie"
 	"github.com/nebulasio/go-nebulas/core/pb"
-	"github.com/nebulasio/go-nebulas/core/state"
 	"github.com/nebulasio/go-nebulas/crypto/sha3"
 	"github.com/nebulasio/go-nebulas/storage"
 	"github.com/nebulasio/go-nebulas/util"
@@ -95,16 +94,16 @@ func NewDposContext(storage storage.Storage) (*DposContext, error) {
 	}, nil
 }
 
-// RootHash hash dpos context root hash
-func (dc *DposContext) RootHash() byteutils.Hash {
+// HashDposContext hash dpos context root hash
+func HashDposContext(dc *corepb.DposContext) byteutils.Hash {
 	hasher := sha3.New256()
 
-	hasher.Write(dc.dynastyTrie.RootHash())
-	hasher.Write(dc.nextDynastyTrie.RootHash())
-	hasher.Write(dc.delegateTrie.RootHash())
-	hasher.Write(dc.voteTrie.RootHash())
-	hasher.Write(dc.candidateTrie.RootHash())
-	hasher.Write(dc.mintCntTrie.RootHash())
+	hasher.Write(dc.DynastyRoot)
+	hasher.Write(dc.NextDynastyRoot)
+	hasher.Write(dc.DelegateRoot)
+	hasher.Write(dc.VoteRoot)
+	hasher.Write(dc.CandidateRoot)
+	hasher.Write(dc.MintCntRoot)
 
 	return hasher.Sum(nil)
 }
@@ -217,7 +216,7 @@ type DynastyContext struct {
 	ProtectTrie     *trie.BatchTrie
 	VoteTrie        *trie.BatchTrie
 	MintCntTrie     *trie.BatchTrie
-	Accounts        state.AccountState
+	WorldState      *WorldState
 	Storage         storage.Storage
 }
 
@@ -225,7 +224,7 @@ func (dc *DynastyContext) tallyVotes() (map[string]*util.Uint128, error) {
 	votes := make(map[string]*util.Uint128)
 	delegate := dc.DelegateTrie
 	candidates := dc.CandidateTrie
-	accounts := dc.Accounts
+	worldState := dc.WorldState
 	iterCandidates, err := candidates.Iterator(nil)
 	if err != nil && err != storage.ErrKeyNotFound {
 		return nil, err
@@ -267,7 +266,7 @@ func (dc *DynastyContext) tallyVotes() (map[string]*util.Uint128, error) {
 			if !ok {
 				score = util.NewUint128()
 			}
-			acc, err := accounts.GetOrCreateUserAccount(delegator.Bytes())
+			acc, err := worldState.GetOrCreateUserAccount(delegator.Bytes())
 			if err != nil {
 				return nil, err
 			}
@@ -599,13 +598,13 @@ func (dc *DynastyContext) electNextDynastyOnBaseDynasty(baseDynastyID int64, nex
 
 		// The last one is selected randomly
 		if len(candidates) > directSelected {
-			accState, err := dc.Accounts.RootHash()
+			accStateRoot, err := dc.WorldState.accState.RootHash()
 			if err != nil {
 				return err
 			}
 			hasher := fnv.New32a()
 			hasher.Write(byteutils.FromInt64(nextDynastyID))
-			hasher.Write(accState)
+			hasher.Write(accStateRoot)
 			result := int(hasher.Sum32()) % (len(candidates) - directSelected)
 			offset := result + DynastySize - 1
 			delegatee := candidates[offset].Address.Bytes()
@@ -642,40 +641,7 @@ func (dc *DynastyContext) electNextDynastyOnBaseDynasty(baseDynastyID int64, nex
 // LoadDynastyContext from a given context
 func (block *Block) LoadDynastyContext(context *DynastyContext) error {
 	block.header.timestamp = context.TimeStamp
-	dynastyTrie, err := context.DynastyTrie.Clone()
-	if err != nil {
-		return err
-	}
-	nextDynastyTrie, err := context.NextDynastyTrie.Clone()
-	if err != nil {
-		return err
-	}
-	delegateTrie, err := context.DelegateTrie.Clone()
-	if err != nil {
-		return err
-	}
-	candidateTrie, err := context.CandidateTrie.Clone()
-	if err != nil {
-		return err
-	}
-	voteTrie, err := context.VoteTrie.Clone()
-	if err != nil {
-		return err
-	}
-	mintCntTrie, err := context.MintCntTrie.Clone()
-	if err != nil {
-		return err
-	}
-	block.dposContext = &DposContext{
-		dynastyTrie:     dynastyTrie,
-		nextDynastyTrie: nextDynastyTrie,
-		delegateTrie:    delegateTrie,
-		candidateTrie:   candidateTrie,
-		voteTrie:        voteTrie,
-		mintCntTrie:     mintCntTrie,
-		storage:         block.storage,
-	}
-	return nil
+	return block.worldState.loadConsensusContext(context)
 }
 
 // GenesisDynastyContext return dynasty context in genesis
@@ -777,31 +743,33 @@ func (block *Block) NextDynastyContext(chain *BlockChain, elapsedSecond int64) (
 		return nil, ErrNotBlockForgTime
 	}
 
-	dynastyTrie, err := block.dposContext.dynastyTrie.Clone()
+	dposContext := block.worldState.consensusState
+	genesisDposContext := chain.genesisBlock.worldState.consensusState
+	dynastyTrie, err := dposContext.dynastyTrie.Clone()
 	if err != nil {
 		return nil, err
 	}
-	nextDynastyTrie, err := block.dposContext.nextDynastyTrie.Clone()
+	nextDynastyTrie, err := dposContext.nextDynastyTrie.Clone()
 	if err != nil {
 		return nil, err
 	}
-	delegateTrie, err := block.dposContext.delegateTrie.Clone()
+	delegateTrie, err := dposContext.delegateTrie.Clone()
 	if err != nil {
 		return nil, err
 	}
-	candidateTrie, err := block.dposContext.candidateTrie.Clone()
+	candidateTrie, err := dposContext.candidateTrie.Clone()
 	if err != nil {
 		return nil, err
 	}
-	protectTrie, err := chain.genesisBlock.dposContext.candidateTrie.Clone()
+	protectTrie, err := genesisDposContext.candidateTrie.Clone()
 	if err != nil {
 		return nil, err
 	}
-	voteTrie, err := block.dposContext.voteTrie.Clone()
+	voteTrie, err := dposContext.voteTrie.Clone()
 	if err != nil {
 		return nil, err
 	}
-	mintCntTrie, err := block.dposContext.mintCntTrie.Clone()
+	mintCntTrie, err := dposContext.mintCntTrie.Clone()
 	if err != nil {
 		return nil, err
 	}
@@ -815,7 +783,7 @@ func (block *Block) NextDynastyContext(chain *BlockChain, elapsedSecond int64) (
 		ProtectTrie:     protectTrie,
 		VoteTrie:        voteTrie,
 		MintCntTrie:     mintCntTrie,
-		Accounts:        block.accState,
+		WorldState:      block.worldState,
 		Storage:         block.storage,
 	}
 

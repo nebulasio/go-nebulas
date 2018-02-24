@@ -68,7 +68,7 @@ func (payload *CandidatePayload) Execute(block *Block, tx *Transaction) (*util.U
 	candidate := tx.from.Bytes()
 	switch payload.Action {
 	case LoginAction:
-		if _, err := block.dposContext.candidateTrie.Put(candidate, candidate); err != nil {
+		if err := block.worldState.AddCandidate(candidate); err != nil {
 			return ZeroGasCount, "", err
 		}
 		/* 		logging.VLog().WithFields(logrus.Fields{
@@ -77,7 +77,7 @@ func (payload *CandidatePayload) Execute(block *Block, tx *Transaction) (*util.U
 			"candidate": ctx.tx.from.String(),
 		}).Debug("Candidate login.") */
 	case LogoutAction:
-		if err := block.dposContext.kickoutCandidate(candidate); err != nil {
+		if err := block.worldState.DelCandidate(candidate); err != nil {
 			return ZeroGasCount, "", err
 		}
 		/* 		logging.VLog().WithFields(logrus.Fields{

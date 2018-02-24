@@ -95,6 +95,7 @@ var (
 	ErrInitialDynastyNotEnough                           = errors.New("the size of initial dynasty in genesis block is un-safe, should be greater than or equal " + strconv.Itoa(SafeSize))
 	ErrInvalidTransactionSigner                          = errors.New("transaction recover public key address not equal to from")
 	ErrNotBlockInCanonicalChain                          = errors.New("cannot find the block in canonical chain")
+	ErrCloneWorldState                                   = errors.New("Failed to clone world state")
 	ErrCloneAccountState                                 = errors.New("Failed to clone account state")
 	ErrCloneTxsState                                     = errors.New("Failed to clone txs state")
 	ErrCloneDynastyTrie                                  = errors.New("Failed to clone dynasty trie")

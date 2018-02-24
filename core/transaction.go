@@ -326,7 +326,7 @@ func (tx *Transaction) LocalExecution(block *Block) (*util.Uint128, string, erro
 	txBlock.begin()
 	defer txBlock.rollback()
 
-	fromAcc, err := txBlock.accState.GetOrCreateUserAccount(tx.from.address)
+	fromAcc, err := txBlock.worldState.GetOrCreateUserAccount(tx.from.address)
 	if err != nil {
 		return nil, "", err
 	}
@@ -350,15 +350,15 @@ func (tx *Transaction) LocalExecution(block *Block) (*util.Uint128, string, erro
 // VerifyExecution transaction and return result.
 func (tx *Transaction) VerifyExecution(block *Block) (*util.Uint128, error) {
 	// check balance.
-	fromAcc, err := block.accState.GetOrCreateUserAccount(tx.from.address)
+	fromAcc, err := block.worldState.GetOrCreateUserAccount(tx.from.address)
 	if err != nil {
 		return nil, err
 	}
-	toAcc, err := block.accState.GetOrCreateUserAccount(tx.to.address)
+	toAcc, err := block.worldState.GetOrCreateUserAccount(tx.to.address)
 	if err != nil {
 		return nil, err
 	}
-	coinbaseAcc, err := block.accState.GetOrCreateUserAccount(block.CoinbaseHash())
+	coinbaseAcc, err := block.worldState.GetOrCreateUserAccount(block.CoinbaseHash())
 	if err != nil {
 		return nil, err
 	}
@@ -422,15 +422,15 @@ func (tx *Transaction) VerifyExecution(block *Block) (*util.Uint128, error) {
 		block.Merge(txBlock)
 	}
 
-	fromAcc, err = block.accState.GetOrCreateUserAccount(tx.from.address)
+	fromAcc, err = block.worldState.GetOrCreateUserAccount(tx.from.address)
 	if err != nil {
 		return nil, err
 	}
-	toAcc, err = block.accState.GetOrCreateUserAccount(tx.to.address)
+	toAcc, err = block.worldState.GetOrCreateUserAccount(tx.to.address)
 	if err != nil {
 		return nil, err
 	}
-	coinbaseAcc, err = block.accState.GetOrCreateUserAccount(block.CoinbaseHash())
+	coinbaseAcc, err = block.worldState.GetOrCreateUserAccount(block.CoinbaseHash())
 	if err != nil {
 		return nil, err
 	}
@@ -508,7 +508,7 @@ func (tx *Transaction) triggerEvent(topic string, block *Block, gasUsed *util.Ui
 
 	event := &Event{Topic: topic,
 		Data: string(txData)}
-	block.recordEvent(tx.hash, event)
+	block.worldState.RecordEvent(tx.hash, event)
 }
 
 func (tx *Transaction) recordResultEvent(block *Block, gasUsed *util.Uint128, err error) {
@@ -531,7 +531,7 @@ func (tx *Transaction) recordResultEvent(block *Block, gasUsed *util.Uint128, er
 	//}).Debug("record event.")
 	event := &Event{Topic: TopicTransactionExecutionResult,
 		Data: string(txData)}
-	block.recordEvent(tx.hash, event)
+	block.worldState.RecordEvent(tx.hash, event)
 }
 
 // Sign sign transaction,sign algorithm is

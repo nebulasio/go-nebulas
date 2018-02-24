@@ -22,9 +22,7 @@ import (
 	"io/ioutil"
 
 	"github.com/gogo/protobuf/proto"
-	"github.com/nebulasio/go-nebulas/common/trie"
 	"github.com/nebulasio/go-nebulas/core/pb"
-	"github.com/nebulasio/go-nebulas/core/state"
 	"github.com/nebulasio/go-nebulas/storage"
 	"github.com/nebulasio/go-nebulas/util"
 	"github.com/nebulasio/go-nebulas/util/logging"
@@ -55,19 +53,7 @@ func LoadGenesisConf(filePath string) (*corepb.Genesis, error) {
 
 // NewGenesisBlock create genesis @Block from file.
 func NewGenesisBlock(conf *corepb.Genesis, chain *BlockChain) (*Block, error) {
-	accState, err := state.NewAccountState(nil, chain.storage)
-	if err != nil {
-		return nil, err
-	}
-	txsTrie, err := trie.NewBatchTrie(nil, chain.storage)
-	if err != nil {
-		return nil, err
-	}
-	eventsTrie, err := trie.NewBatchTrie(nil, chain.storage)
-	if err != nil {
-		return nil, err
-	}
-	dposContext, err := NewDposContext(chain.storage)
+	worldState, err := NewWorldState(chain.storage)
 	if err != nil {
 		return nil, err
 	}
@@ -80,14 +66,11 @@ func NewGenesisBlock(conf *corepb.Genesis, chain *BlockChain) (*Block, error) {
 			timestamp:   GenesisTimestamp,
 			nonce:       0,
 		},
-		accState:    accState,
-		txsTrie:     txsTrie,
-		eventsTrie:  eventsTrie,
-		dposContext: dposContext,
-		txPool:      chain.txPool,
-		storage:     chain.storage,
-		height:      1,
-		sealed:      false,
+		worldState: worldState,
+		txPool:     chain.txPool,
+		storage:    chain.storage,
+		height:     1,
+		sealed:     false,
 	}
 
 	context, err := GenesisDynastyContext(chain, conf)
@@ -109,7 +92,7 @@ func NewGenesisBlock(conf *corepb.Genesis, chain *BlockChain) (*Block, error) {
 			genesisBlock.rollback()
 			return nil, err
 		}
-		acc, err := genesisBlock.accState.GetOrCreateUserAccount(addr.address)
+		acc, err := genesisBlock.worldState.GetOrCreateUserAccount(addr.address)
 		if err != nil {
 			genesisBlock.rollback()
 			return nil, err
@@ -147,7 +130,7 @@ func DumpGenesis(stor storage.Storage) (*corepb.Genesis, error) {
 	if err != nil {
 		return nil, err
 	}
-	dynasty, err := TraverseDynasty(genesis.dposContext.candidateTrie)
+	dynasty, err := genesis.worldState.candidates()
 	if err != nil {
 		return nil, err
 	}
@@ -156,7 +139,7 @@ func DumpGenesis(stor storage.Storage) (*corepb.Genesis, error) {
 		bootstrap = append(bootstrap, v.String())
 	}
 	distribution := []*corepb.GenesisTokenDistribution{}
-	accounts, err := genesis.accState.Accounts()
+	accounts, err := genesis.worldState.accounts()
 	for _, v := range accounts {
 		balance := v.Balance()
 		if v.Address().Equals(genesis.Coinbase().Bytes()) {
