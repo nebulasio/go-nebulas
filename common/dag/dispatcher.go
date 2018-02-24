@@ -19,12 +19,12 @@ import (
 	"github.com/nebulasio/go-nebulas/util/logging"
 )
 
-type Callback func(*Vertex) error
+type Callback func(*Node) error
 
 // Task struct
 type Task struct {
 	dependence int
-	vertex     *Vertex
+	node       *Node
 }
 
 // Dispatcher struct a message dispatcher dag.
@@ -34,7 +34,7 @@ type Dispatcher struct {
 	muTask      sync.Mutex
 	dag         *Dag
 	quitCh      chan bool
-	queueCh     chan *Vertex
+	queueCh     chan *Node
 	tasks       map[string]*Task
 	cursor      int
 	err         error
@@ -48,7 +48,7 @@ func NewDispatcher(dag *Dag, concurrency int, cb Callback) *Dispatcher {
 		cb:          cb,
 		tasks:       make(map[string]*Task, 0),
 		quitCh:      make(chan bool, 10),
-		queueCh:     make(chan *Vertex, 100),
+		queueCh:     make(chan *Node, 100),
 		cursor:      0,
 	}
 	return dp
@@ -58,18 +58,18 @@ func NewDispatcher(dag *Dag, concurrency int, cb Callback) *Dispatcher {
 func (dp *Dispatcher) Run() error {
 	logging.CLog().Info("Starting Dag Dispatcher...")
 
-	vertices := dp.dag.GetVertices()
+	vertices := dp.dag.GetNodes()
 
-	for _, vertex := range vertices {
+	for _, node := range vertices {
 		task := &Task{
-			dependence: vertex.ParentCounter,
-			vertex:     vertex,
+			dependence: node.ParentCounter,
+			node:       node,
 		}
-		task.dependence = vertex.ParentCounter
-		dp.tasks[vertex.Key] = task
+		task.dependence = node.ParentCounter
+		dp.tasks[node.Key] = task
 
 		if task.dependence == 0 {
-			dp.push(vertex)
+			dp.push(node)
 		}
 	}
 
@@ -100,8 +100,8 @@ func (dp *Dispatcher) loop() {
 					return
 				case msg := <-dp.queueCh:
 					// callback todo
-					vertex := msg
-					err := dp.cb(vertex)
+					node := msg
+					err := dp.cb(node)
 
 					if err != nil {
 						dp.err = err
@@ -127,20 +127,20 @@ func (dp *Dispatcher) Stop() {
 }
 
 // push queue channel
-func (dp *Dispatcher) push(vertx *Vertex) {
+func (dp *Dispatcher) push(vertx *Node) {
 	dp.queueCh <- vertx
 }
 
 // CompleteParentTask completed parent tasks
-func (dp *Dispatcher) CompleteParentTask(vertex *Vertex) {
+func (dp *Dispatcher) CompleteParentTask(node *Node) {
 	dp.muTask.Lock()
 	defer dp.muTask.Unlock()
 
-	key := vertex.Key
+	key := node.Key
 
-	vertices := dp.dag.GetChildrenVertices(key)
-	for _, vertex := range vertices {
-		dp.updateDependenceTask(vertex.Key)
+	vertices := dp.dag.GetChildrenNodes(key)
+	for _, node := range vertices {
+		dp.updateDependenceTask(node.Key)
 	}
 
 	dp.cursor++
@@ -157,7 +157,7 @@ func (dp *Dispatcher) updateDependenceTask(key string) {
 		dp.tasks[key].dependence--
 		//fmt.Println("Key:", key, " dependence:", dp.tasks[key].dependence)
 		if dp.tasks[key].dependence == 0 {
-			dp.push(dp.tasks[key].vertex)
+			dp.push(dp.tasks[key].node)
 		}
 	}
 }

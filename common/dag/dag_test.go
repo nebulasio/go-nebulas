@@ -26,30 +26,30 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestDag_AddVertex(t *testing.T) {
+func TestDag_AddNode(t *testing.T) {
 	dag := NewDag()
 
-	dag.AddVertex("1", nil)
-	dag.AddVertex("2", nil)
-	dag.AddVertex("3", nil)
-	dag.AddVertex("4", nil)
+	dag.AddNode("1", nil)
+	dag.AddNode("2", nil)
+	dag.AddNode("3", nil)
+	dag.AddNode("4", nil)
 
-	// Add the edges (Note that given vertices must exist before adding an
+	// Add the edges (Note that given Nodes must exist before adding an
 	// edge between them)
 	dag.AddEdge("1", "2")
 	dag.AddEdge("1", "3")
 	dag.AddEdge("2", "4")
 	dag.AddEdge("3", "4")
 
-	vertex := dag.GetVertex("1")
+	node := dag.GetNode("1")
 
-	assert.Equal(t, "1", vertex.Key)
-	assert.Equal(t, 0, vertex.ParentCounter)
+	assert.Equal(t, "1", node.Key)
+	assert.Equal(t, 0, node.ParentCounter)
 
-	vertex4 := dag.GetVertex("4")
-	assert.Equal(t, 2, vertex4.ParentCounter)
+	node4 := dag.GetNode("4")
+	assert.Equal(t, 2, node4.ParentCounter)
 
-	dag.AddVertex("5", nil)
+	dag.AddNode("5", nil)
 	msg, err := dag.ToProto()
 
 	assert.Nil(t, err)
@@ -58,9 +58,9 @@ func TestDag_AddVertex(t *testing.T) {
 
 	assert.Nil(t, err)
 
-	vertex1 := dag.GetVertex("5")
+	node1 := dag.GetNode("5")
 
-	assert.Equal(t, "5", vertex1.Key)
+	assert.Equal(t, "5", node1.Key)
 }
 
 func TestNewDag(t *testing.T) {
@@ -81,7 +81,7 @@ func TestNewDag(t *testing.T) {
 
 func TestDag_FromProto(t *testing.T) {
 	type fields struct {
-		Vertices map[string]*Vertex
+		Nodes map[string]*Node
 	}
 	type args struct {
 		msg proto.Message
@@ -97,7 +97,7 @@ func TestDag_FromProto(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			dag := &Dag{
-				Vertices: tt.fields.Vertices,
+				Nodes: tt.fields.Nodes,
 			}
 			if err := dag.FromProto(tt.args.msg); (err != nil) != tt.wantErr {
 				t.Errorf("Dag.FromProto() error = %v, wantErr %v", err, tt.wantErr)

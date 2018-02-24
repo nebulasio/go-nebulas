@@ -25,11 +25,11 @@ import (
 	"github.com/nebulasio/go-nebulas/common/dag/pb"
 )
 
-// Vertex struct
-type Vertex struct {
+// Node struct
+type Node struct {
 	Key           string
 	Value         interface{}
-	Children      []*Vertex
+	Children      []*Node
 	ParentCounter int
 }
 
@@ -38,40 +38,40 @@ var (
 	ErrKeyIsExisted = errors.New("already existed")
 )
 
-// NewVertex new vertex
-func NewVertex(key string, value interface{}) *Vertex {
-	return &Vertex{
+// NewNode new node
+func NewNode(key string, value interface{}) *Node {
+	return &Node{
 		Key:           key,
 		Value:         value,
 		ParentCounter: 0,
-		Children:      make([]*Vertex, 0),
+		Children:      make([]*Node, 0),
 	}
 }
 
 // Dag struct
 type Dag struct {
-	Vertices map[string]*Vertex
+	Nodes map[string]*Node
 }
 
 // ToProto converts domain Dag into proto Dag
 func (dag *Dag) ToProto() (proto.Message, error) {
-	vertices := make([]*dagpb.Vertex, len(dag.Vertices))
+	nodes := make([]*dagpb.Node, len(dag.Nodes))
 
 	idx := 0
-	for _, v := range dag.Vertices {
-		vertex := new(dagpb.Vertex)
-		vertex.Key = v.Key
-		vertex.Children = make([]string, len(v.Children))
+	for _, v := range dag.Nodes {
+		node := new(dagpb.Node)
+		node.Key = v.Key
+		node.Children = make([]string, len(v.Children))
 		for i, child := range v.Children {
-			vertex.Children[i] = child.Key
+			node.Children[i] = child.Key
 		}
 
-		vertices[idx] = vertex
+		nodes[idx] = node
 		idx++
 	}
 
 	return &dagpb.Dag{
-		Vertices: vertices,
+		Nodes: nodes,
 	}, nil
 }
 
@@ -79,13 +79,13 @@ func (dag *Dag) ToProto() (proto.Message, error) {
 func (dag *Dag) FromProto(msg proto.Message) error {
 	if msg, ok := msg.(*dagpb.Dag); ok {
 		//dag.cont
-		dag.Vertices = make(map[string]*Vertex, len(msg.Vertices))
+		dag.Nodes = make(map[string]*Node, len(msg.Nodes))
 
-		for _, v := range msg.Vertices {
-			dag.AddVertex(v.Key, nil)
+		for _, v := range msg.Nodes {
+			dag.AddNode(v.Key, nil)
 		}
 
-		for _, v := range msg.Vertices {
+		for _, v := range msg.Nodes {
 			for _, child := range v.Children {
 				dag.AddEdge(v.Key, child)
 			}
@@ -99,81 +99,81 @@ func (dag *Dag) FromProto(msg proto.Message) error {
 // NewDag new dag
 func NewDag() *Dag {
 	return &Dag{
-		Vertices: make(map[string]*Vertex, 0),
+		Nodes: make(map[string]*Node, 0),
 	}
 }
 
 // Len Dag len
 func (dag *Dag) Len() int {
-	return len(dag.Vertices)
+	return len(dag.Nodes)
 }
 
-// GetVertex get vertex with key
-func (dag *Dag) GetVertex(key string) *Vertex {
-	if v, ok := dag.Vertices[key]; ok {
+// GetNode get node by key
+func (dag *Dag) GetNode(key string) *Node {
+	if v, ok := dag.Nodes[key]; ok {
 		return v
 	}
 	return nil
 }
 
-// GetChildrenVertices get children vertex with key
-func (dag *Dag) GetChildrenVertices(key string) []*Vertex {
-	if v, ok := dag.Vertices[key]; ok {
+// GetChildrenNodes get children nodes with key
+func (dag *Dag) GetChildrenNodes(key string) []*Node {
+	if v, ok := dag.Nodes[key]; ok {
 		return v.Children
 	}
 	return nil
 }
 
-// GetRootVertices get root vertices
-func (dag *Dag) GetRootVertices() []*Vertex {
-	vertices := make([]*Vertex, 0)
-	for _, vertex := range dag.Vertices {
-		if vertex.ParentCounter == 0 {
-			vertices = append(vertices, vertex)
+// GetRootNodes get root nodes
+func (dag *Dag) GetRootNodes() []*Node {
+	nodes := make([]*Node, 0)
+	for _, node := range dag.Nodes {
+		if node.ParentCounter == 0 {
+			nodes = append(nodes, node)
 		}
 	}
-	return vertices
+	return nodes
 }
 
-// GetVertices get all vertices
-func (dag *Dag) GetVertices() []*Vertex {
-	vertices := make([]*Vertex, 0)
-	for _, vertex := range dag.Vertices {
-		vertices = append(vertices, vertex)
+// GetNodes get all nodes
+func (dag *Dag) GetNodes() []*Node {
+	nodes := make([]*Node, 0)
+	for _, node := range dag.Nodes {
+		nodes = append(nodes, node)
 	}
-	return vertices
+	return nodes
 }
 
-// AddVertex add vertex
-func (dag *Dag) AddVertex(key string, value interface{}) error {
-	if _, ok := dag.Vertices[key]; ok {
+// AddNode add node
+func (dag *Dag) AddNode(key string, value interface{}) error {
+	if _, ok := dag.Nodes[key]; ok {
 		return ErrKeyIsExisted
 	}
 
-	dag.Vertices[key] = NewVertex(key, value)
+	dag.Nodes[key] = NewNode(key, value)
 	return nil
 }
 
 // AddEdge add edge fromKey toKey
 func (dag *Dag) AddEdge(fromKey, toKey string) error {
-	var from, to *Vertex
+	var from, to *Node
 	var ok bool
 
-	if from, ok = dag.Vertices[fromKey]; !ok {
+	if from, ok = dag.Nodes[fromKey]; !ok {
 		return ErrKeyNotFound
 	}
 
-	if to, ok = dag.Vertices[toKey]; !ok {
+	if to, ok = dag.Nodes[toKey]; !ok {
 		return ErrKeyNotFound
 	}
 
-	for _, childVertex := range from.Children {
-		if childVertex == to {
+	for _, childNode := range from.Children {
+		if childNode == to {
 			return ErrKeyIsExisted //todo
 		}
 	}
 
-	dag.Vertices[toKey].ParentCounter++
+	dag.Nodes[toKey].ParentCounter++
 	from.Children = append(from.Children, to)
 	return nil
 }

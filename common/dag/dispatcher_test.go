@@ -30,7 +30,7 @@ func TestDispatcher_Start(t *testing.T) {
 		muTask      sync.Mutex
 		dag         *Dag
 		quitCh      chan bool
-		queueCh     chan *Vertex
+		queueCh     chan *Node
 		tasks       map[string]*Task
 		cursor      int
 	}
@@ -64,25 +64,25 @@ func TestDispatcher_Start1(t *testing.T) {
 
 	dag := NewDag()
 
-	dag.AddVertex("1", nil)
-	dag.AddVertex("2", nil)
-	dag.AddVertex("3", nil)
-	dag.AddVertex("4", nil)
-	dag.AddVertex("5", nil)
-	dag.AddVertex("6", nil)
-	dag.AddVertex("7", nil)
-	dag.AddVertex("8", nil)
-	dag.AddVertex("9", nil)
-	dag.AddVertex("10", nil)
-	dag.AddVertex("11", nil)
-	dag.AddVertex("12", nil)
-	dag.AddVertex("13", nil)
-	dag.AddVertex("14", nil)
-	dag.AddVertex("15", nil)
-	dag.AddVertex("16", nil)
-	dag.AddVertex("17", nil)
-	dag.AddVertex("18", nil)
-	dag.AddVertex("19", nil)
+	dag.AddNode("1", nil)
+	dag.AddNode("2", nil)
+	dag.AddNode("3", nil)
+	dag.AddNode("4", nil)
+	dag.AddNode("5", nil)
+	dag.AddNode("6", nil)
+	dag.AddNode("7", nil)
+	dag.AddNode("8", nil)
+	dag.AddNode("9", nil)
+	dag.AddNode("10", nil)
+	dag.AddNode("11", nil)
+	dag.AddNode("12", nil)
+	dag.AddNode("13", nil)
+	dag.AddNode("14", nil)
+	dag.AddNode("15", nil)
+	dag.AddNode("16", nil)
+	dag.AddNode("17", nil)
+	dag.AddNode("18", nil)
+	dag.AddNode("19", nil)
 	// Add the edges (Note that given vertices must exist before adding an
 	// edge between them)
 	dag.AddEdge("1", "2")
@@ -106,10 +106,16 @@ func TestDispatcher_Start1(t *testing.T) {
 
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
+	msg, err := dag.ToProto()
+	assert.Nil(t, err)
+
+	dag1 := NewDag()
+	dag1.FromProto(msg)
+
 	fmt.Println("runtime.NumCPU():", runtime.NumCPU())
-	dp := NewDispatcher(dag, runtime.NumCPU(), func(vertex *Vertex) error {
-		fmt.Println("key:", vertex.Key)
-		if vertex.Key == "12" {
+	dp := NewDispatcher(dag, runtime.NumCPU(), func(node *Node) error {
+		fmt.Println("key:", node.Key)
+		if node.Key == "12" {
 			time.Sleep(time.Millisecond * 3000)
 			//return errors.New("test")
 			return nil
@@ -118,7 +124,6 @@ func TestDispatcher_Start1(t *testing.T) {
 		return nil
 	})
 
-	err := dp.Run()
-
+	err = dp.Run()
 	assert.Nil(t, err)
 }
