@@ -69,7 +69,6 @@ func _license(_ *cli.Context) error {
 
 	However, we also aware that big corporations is favoured by other licenses, for example, Apache Software License 2.0 (“Apache v2.0”), which is more commercial friendly. For the Nebulas Team, we are very glad to see the source code and protocol of Nebulas is widely used both in open source applications and non-open source applications.
 
-	In this way, we are still considering the license choice, which kind of license is the best for nebulas ecosystem. We expect to select one of the LGPL v3, the Apache v2.0 or the MIT license. If the latter is chosen, it will come with an amendment allowing it to be used more widely.
-`)
+	In this way, we are still considering the license choice, which kind of license is the best for nebulas ecosystem. We expect to select one of the LGPL v3, the Apache v2.0 or the MIT license. If the latter is chosen, it will come with an amendment allowing it to be used more widely.`)
 	return nil
 }

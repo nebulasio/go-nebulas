@@ -308,7 +308,7 @@ func TestTrie_VerifyOldKeyValueFromNewRootHash(t *testing.T) {
 	assert.NotNil(t, err)
 }
 
-func TestTrie_VerifyKeyValueInDiffRootHashs(t *testing.T) {
+func TestTrie_VerifyKeyValueInDiffRootHashes(t *testing.T) {
 	storage, _ := storage.NewMemoryStorage()
 	tr, _ := NewTrie(nil, storage)
 	assert.Equal(t, []byte(nil), tr.RootHash())
