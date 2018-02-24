@@ -20,18 +20,18 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestDispatcher_Start(t *testing.T) {
 	type fields struct {
 		concurrency int
-		muQueue     sync.Mutex
 		muTask      sync.Mutex
 		dag         *Dag
 		quitCh      chan bool
 		queueCh     chan *Vertex
 		tasks       map[string]*Task
-		queues      []*Vertex
 		cursor      int
 	}
 	tests := []struct {
@@ -44,16 +44,14 @@ func TestDispatcher_Start(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			dp := &Dispatcher{
 				concurrency: tt.fields.concurrency,
-				muQueue:     tt.fields.muQueue,
 				muTask:      tt.fields.muTask,
 				dag:         tt.fields.dag,
 				quitCh:      tt.fields.quitCh,
 				queueCh:     tt.fields.queueCh,
 				tasks:       tt.fields.tasks,
-				queues:      tt.fields.queues,
 				cursor:      tt.fields.cursor,
 			}
-			dp.Start()
+			dp.Run()
 		})
 	}
 }
@@ -102,16 +100,25 @@ func TestDispatcher_Start1(t *testing.T) {
 	dag.AddEdge("12", "13")
 	dag.AddEdge("13", "15")
 	dag.AddEdge("12", "14")
+	dag.AddEdge("16", "17")
+	dag.AddEdge("16", "18")
+	dag.AddEdge("18", "19")
 
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
-	dp := NewDispatcher(dag, 4, func(vertex *Vertex) error {
+	fmt.Println("runtime.NumCPU():", runtime.NumCPU())
+	dp := NewDispatcher(dag, runtime.NumCPU(), func(vertex *Vertex) error {
 		fmt.Println("key:", vertex.Key)
-		if vertex.Key == "16" {
-			time.Sleep(time.Millisecond * 10)
+		if vertex.Key == "12" {
+			time.Sleep(time.Millisecond * 3000)
+			//return errors.New("test")
+			return nil
 		}
+		time.Sleep(time.Millisecond * 1000)
 		return nil
 	})
 
-	dp.Start()
+	err := dp.Run()
+
+	assert.Nil(t, err)
 }

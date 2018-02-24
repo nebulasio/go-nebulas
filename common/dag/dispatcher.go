@@ -14,9 +14,7 @@
 package dag
 
 import (
-	"fmt"
 	"sync"
-	"time"
 
 	"github.com/nebulasio/go-nebulas/util/logging"
 )
@@ -33,14 +31,13 @@ type Task struct {
 type Dispatcher struct {
 	concurrency int
 	cb          Callback
-	muQueue     sync.Mutex
 	muTask      sync.Mutex
 	dag         *Dag
 	quitCh      chan bool
 	queueCh     chan *Vertex
 	tasks       map[string]*Task
-	queues      []*Vertex
 	cursor      int
+	err         error
 }
 
 // NewDispatcher create Dag Dispatcher instance.
@@ -50,15 +47,15 @@ func NewDispatcher(dag *Dag, concurrency int, cb Callback) *Dispatcher {
 		dag:         dag,
 		cb:          cb,
 		tasks:       make(map[string]*Task, 0),
-		queues:      make([]*Vertex, 0),
 		quitCh:      make(chan bool, 10),
 		queueCh:     make(chan *Vertex, 100),
+		cursor:      0,
 	}
 	return dp
 }
 
-// Start start message dispatch goroutine.
-func (dp *Dispatcher) Start() {
+// Run dag dispatch goroutine.
+func (dp *Dispatcher) Run() error {
 	logging.CLog().Info("Starting Dag Dispatcher...")
 
 	vertices := dp.dag.GetVertices()
@@ -70,34 +67,34 @@ func (dp *Dispatcher) Start() {
 		}
 		task.dependence = vertex.ParentCounter
 		dp.tasks[vertex.Key] = task
-	}
 
-	rootVertices := dp.dag.GetRootVertices()
-
-	for _, vertex := range rootVertices {
-		dp.push(vertex)
+		if task.dependence == 0 {
+			dp.push(vertex)
+		}
 	}
 
 	dp.loop()
+
+	return dp.err
 }
 
 // loop
 func (dp *Dispatcher) loop() {
 	logging.CLog().Info("loop Dag Dispatcher.")
 
-	timerChan := time.NewTicker(time.Second).C
+	//timerChan := time.NewTicker(time.Second).C
 	wg := new(sync.WaitGroup)
 	wg.Add(dp.concurrency)
 
 	for i := 0; i < dp.concurrency; i++ {
 		//logging.CLog().Info("loop Dag Dispatcher i:", i)
-		go func() {
+		go func(i int) {
 			defer wg.Done()
 			for {
 				select {
-				case <-timerChan:
-					//fmt.Printf("====numGo:==%d i=%d\n", runtime.NumGoroutine(), i)
-					//metricsDispatcherCached.Update(int64(len(dp.receivedMessageCh)))
+				//case <-timerChan:
+				//fmt.Printf("====numGo:==%d i=%d\n", runtime.NumGoroutine(), i)
+				//metricsDispatcherCached.Update(int64(len(dp.receivedMessageCh)))
 				case <-dp.quitCh:
 					logging.CLog().Info("Stoped Dag Dispatcher.")
 					return
@@ -107,13 +104,14 @@ func (dp *Dispatcher) loop() {
 					err := dp.cb(vertex)
 
 					if err != nil {
-						//dp.Stop() todo
+						dp.err = err
+						dp.Stop()
 						return
 					}
 					dp.CompleteParentTask(msg)
 				}
 			}
-		}()
+		}(i)
 	}
 
 	wg.Wait()
@@ -128,34 +126,16 @@ func (dp *Dispatcher) Stop() {
 	}
 }
 
-// push queues
+// push queue channel
 func (dp *Dispatcher) push(vertx *Vertex) {
-	dp.muQueue.Lock()
-	defer dp.muQueue.Unlock()
-
-	dp.queues = append(dp.queues, vertx)
-
 	dp.queueCh <- vertx
 }
 
-/*
-// pop task
-func (dp *Dispatcher) pop() *Vertex {
-	dp.muQueue.Lock()
-	defer dp.muQueue.Unlock()
-
-	if dp.cursor > len(dp.queues) {
-		return nil
-	}
-
-	cursor := dp.cursor
-	dp.cursor++
-	return dp.queues[cursor]
-}
-*/
-
 // CompleteParentTask completed parent tasks
 func (dp *Dispatcher) CompleteParentTask(vertex *Vertex) {
+	dp.muTask.Lock()
+	defer dp.muTask.Unlock()
+
 	key := vertex.Key
 
 	vertices := dp.dag.GetChildrenVertices(key)
@@ -166,18 +146,16 @@ func (dp *Dispatcher) CompleteParentTask(vertex *Vertex) {
 	dp.cursor++
 
 	if dp.cursor == dp.dag.Len() {
-		fmt.Println("cursor:", dp.cursor, " key:", key)
+		//fmt.Println("cursor:", dp.cursor, " key:", key)
 		dp.Stop()
 	}
 }
 
 // updateDependenceTask task counter
 func (dp *Dispatcher) updateDependenceTask(key string) {
-	dp.muTask.Lock()
-	defer dp.muTask.Unlock()
-
 	if _, ok := dp.tasks[key]; ok {
 		dp.tasks[key].dependence--
+		//fmt.Println("Key:", key, " dependence:", dp.tasks[key].dependence)
 		if dp.tasks[key].dependence == 0 {
 			dp.push(dp.tasks[key].vertex)
 		}
