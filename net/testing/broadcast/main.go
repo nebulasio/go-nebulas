@@ -3,23 +3,43 @@ package main
 import (
 	"flag"
 	"fmt"
+	"hash/fnv"
 	"math"
 	"math/rand"
 	"reflect"
+	"sort"
 	"time"
 )
 
+type nodeIdx []int
+
+// Len returns the size of nodeIdx
+func (idx nodeIdx) Len() int {
+	return len(idx)
+}
+
+// Swap swaps the ith with jth
+func (idx nodeIdx) Swap(i, j int) {
+	idx[i], idx[j] = idx[j], idx[i]
+}
+
+// Less returns true if ith <= jth else false
+func (idx nodeIdx) Less(i, j int) bool {
+	return idx[i] <= idx[j]
+}
+
 //
 var (
-	NodeCount     = flag.Int("node_count", 1000, "node count in network, default is 1000")
+	NodeCount     = flag.Int("node_count", 500, "node count in network, default is 1000")
 	NeighborCount = flag.Int64("neighbor_count", 50, "neighbor count in route table, default is 50")
-	MaxTTL        = flag.Int64("max_ttl", 3, "max ttl, default is 3")
+	MaxTTL        = flag.Int64("max_ttl", 10, "max ttl, default is 3")
 	LoopTimes     = flag.Int("loop_times", 20, "number of loop times, default is 20")
 )
 
 // Node the simulation of the node
 type Node struct {
-	id       int
+	id int
+	// name     string
 	neighbor []int
 	bingo    bool
 	ttl      int
@@ -87,8 +107,11 @@ func initRouteTable(nodeCount int, nodes []*Node) []*Node {
 }
 
 func newNode(id int) *Node {
+	// networkKey, _ := net.GenerateEd25519Key()
+	// name, _ := peer.IDFromPublicKey(networkKey.GetPublic())
 	node := &Node{
-		id:       id,
+		id: id,
+		// name:     name.Pretty(),
 		neighbor: []int{},
 		bingo:    false,
 		ttl:      0,
@@ -131,17 +154,48 @@ func syncRoute(node *Node, target *Node, nodes []*Node) {
 		return
 	}
 
-	target.neighbor = shuffle(target.neighbor)
-	for i := 0; i < neighborCount/2; i++ {
-		id := target.neighbor[i]
-		node.neighbor = addNewNode(node.neighbor, id, neighborCount)
-
-		tempnode := nodes[id]
+	// target.neighbor = shuffle(target.neighbor)
+	ret := getNearestNode(node, target.neighbor)
+	for _, retID := range ret {
+		node.neighbor = addNewNode(node.neighbor, int(retID), neighborCount)
+		tempnode := nodes[int(retID)]
 		tempnode.neighbor = addNewNode(tempnode.neighbor, node.id, neighborCount)
 	}
 
 	target.neighbor = addNewNode(target.neighbor, node.id, neighborCount)
 	return
+}
+
+func getNearestNode(node *Node, ids []int) nodeIdx {
+	var ret nodeIdx
+	var tmp nodeIdx
+	var tmpMap = make(map[int]int)
+	// fmt.Println("nearest id:", len(ids))
+	for _, id := range ids {
+		// tempnode := nodes[id]
+		// nodeNameInt := int(hash(node.name))
+		// tempnodeNameInt := int(hash(tempnode.name))
+		// distance := nodeNameInt ^ tempnodeNameInt
+		distance := node.id ^ id
+		tmp = append(tmp, distance)
+		sort.Sort(tmp)
+		tmpMap[distance] = id
+		if len(tmp) > len(ids)/2 {
+			delete(tmpMap, tmp[len(tmp)-1])
+			tmp = tmp[:len(tmp)-1]
+		}
+	}
+	for _, v := range tmpMap {
+		ret = append(ret, v)
+	}
+
+	return ret
+}
+
+func hash(str string) uint32 {
+	h := fnv.New32a()
+	h.Write([]byte(str))
+	return h.Sum32()
 }
 
 func addNewNode(ids []int, id int, limit int) []int {
