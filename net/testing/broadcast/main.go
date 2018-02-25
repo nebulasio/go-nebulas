@@ -30,9 +30,9 @@ func (idx nodeIdx) Less(i, j int) bool {
 
 //
 var (
-	NodeCount     = flag.Int("node_count", 500, "node count in network, default is 1000")
+	NodeCount     = flag.Int("node_count", 1000, "node count in network, default is 1000")
 	NeighborCount = flag.Int64("neighbor_count", 50, "neighbor count in route table, default is 50")
-	MaxTTL        = flag.Int64("max_ttl", 10, "max ttl, default is 3")
+	MaxTTL        = flag.Int64("max_ttl", 3, "max ttl, default is 3")
 	LoopTimes     = flag.Int("loop_times", 20, "number of loop times, default is 20")
 )
 
