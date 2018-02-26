@@ -62,11 +62,6 @@
 [[constraint]]
   name = "github.com/ipfs/go-ipfs-util"
   revision = "ecb455b230ce7cb40510186fa723aa19af133aaf"
-								
-
-[[constraint]]
-  branch = "master"
-  name = "leb.io/hashland"
 
 
 [[constraint]]
