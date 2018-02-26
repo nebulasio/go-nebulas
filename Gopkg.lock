@@ -360,10 +360,10 @@
   revision = "0ee69486dc1c9087aacfcc575e333f305009997e"
 
 [[projects]]
+  branch = "master"
   name = "github.com/multiformats/go-multihash"
   packages = ["."]
-  revision = "baff12aecdc71b5b2e28c62514beba0298fef3cb"
-  version = "1.0.7"
+  revision = "468a1b73e980e5aff011d308623e43e28c582b16"
 
 [[projects]]
   branch = "master"
