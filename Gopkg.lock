@@ -367,6 +367,12 @@
 
 [[projects]]
   branch = "master"
+  name = "github.com/gxed/hashland"
+  packages = ["."]
+  revision = "d9f6b97f8db22dd1e090fd0bbbe98f09cc7dd0a8"
+
+[[projects]]
+  branch = "master"
   name = "github.com/multiformats/go-multistream"
   packages = ["."]
   revision = "661a0b9a0e6d9e99e4552c431b0eb82f58fde5b3"
