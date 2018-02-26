@@ -9,6 +9,9 @@ import (
 	"reflect"
 	"sort"
 	"time"
+
+	peer "github.com/libp2p/go-libp2p-peer"
+	"github.com/nebulasio/go-nebulas/net"
 )
 
 type nodeIdx []int
@@ -38,8 +41,8 @@ var (
 
 // Node the simulation of the node
 type Node struct {
-	id int
-	// name     string
+	id       int
+	name     string
 	neighbor []int
 	bingo    bool
 	ttl      int
@@ -107,11 +110,11 @@ func initRouteTable(nodeCount int, nodes []*Node) []*Node {
 }
 
 func newNode(id int) *Node {
-	// networkKey, _ := net.GenerateEd25519Key()
-	// name, _ := peer.IDFromPublicKey(networkKey.GetPublic())
+	networkKey, _ := net.GenerateEd25519Key()
+	name, _ := peer.IDFromPublicKey(networkKey.GetPublic())
 	node := &Node{
-		id: id,
-		// name:     name.Pretty(),
+		id:       id,
+		name:     name.Pretty(),
 		neighbor: []int{},
 		bingo:    false,
 		ttl:      0,
@@ -155,7 +158,7 @@ func syncRoute(node *Node, target *Node, nodes []*Node) {
 	}
 
 	// target.neighbor = shuffle(target.neighbor)
-	ret := getNearestNode(node, target.neighbor)
+	ret := getNearestNode(node, target.neighbor, nodes)
 	for _, retID := range ret {
 		node.neighbor = addNewNode(node.neighbor, int(retID), neighborCount)
 		tempnode := nodes[int(retID)]
@@ -166,17 +169,17 @@ func syncRoute(node *Node, target *Node, nodes []*Node) {
 	return
 }
 
-func getNearestNode(node *Node, ids []int) nodeIdx {
+func getNearestNode(node *Node, ids []int, nodes []*Node) nodeIdx {
 	var ret nodeIdx
 	var tmp nodeIdx
 	var tmpMap = make(map[int]int)
 	// fmt.Println("nearest id:", len(ids))
 	for _, id := range ids {
-		// tempnode := nodes[id]
-		// nodeNameInt := int(hash(node.name))
-		// tempnodeNameInt := int(hash(tempnode.name))
-		// distance := nodeNameInt ^ tempnodeNameInt
-		distance := node.id ^ id
+		tempnode := nodes[id]
+		nodeNameInt := int(hash(node.name))
+		tempnodeNameInt := int(hash(tempnode.name))
+		distance := nodeNameInt ^ tempnodeNameInt
+		// distance := node.id ^ id
 		tmp = append(tmp, distance)
 		sort.Sort(tmp)
 		tmpMap[distance] = id
