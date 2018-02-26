@@ -263,6 +263,10 @@ name = "golang.org/x/sys"
   name = "github.com/multiformats/go-multistream"
   revision = "661a0b9a0e6d9e99e4552c431b0eb82f58fde5b3"
 
+[[constraint]]
+  name = "github.com/multiformats/go-multihash"
+  revision = "baff12aecdc71b5b2e28c62514beba0298fef3cb"
+
 
 [[constraint]]
   name = "github.com/multiformats/go-multiaddr-net"
