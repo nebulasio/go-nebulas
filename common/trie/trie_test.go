@@ -21,6 +21,7 @@ package trie
 import (
 	"fmt"
 	"reflect"
+	"strconv"
 	"testing"
 	"time"
 
@@ -369,4 +370,90 @@ func TestTrie_VerifyKeyValueInDiffRootHashes(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, []byte("kv2"), val)
 
+}
+
+// check roothash different order of  put keys
+func TestTrie_PutAfterGetRootHash(t *testing.T) {
+	storage1, _ := storage.NewMemoryStorage()
+	tr1, _ := NewTrie(nil, storage1)
+	assert.Equal(t, []byte(nil), tr1.RootHash())
+
+	var err error
+
+	for i := 999; i >= 100; i-- {
+		a := "abcdeffkey" + strconv.Itoa(i)
+		_, err = tr1.Put([]byte(a), []byte("value1"+a))
+		assert.Nil(t, err)
+
+		b := strconv.Itoa(i) + "abcdeffkey"
+		_, err = tr1.Put([]byte(b), []byte("value1"+b))
+		assert.Nil(t, err)
+
+		c := "abcdeagkey" + strconv.Itoa(i)
+		_, err = tr1.Put([]byte(c), []byte("value1"+c))
+		assert.Nil(t, err)
+	}
+
+	storage2, _ := storage.NewMemoryStorage()
+	tr2, _ := NewTrie(nil, storage2)
+	assert.Equal(t, []byte(nil), tr2.RootHash())
+
+	for i := 100; i < 1000; i++ {
+		b := strconv.Itoa(i) + "abcdeffkey"
+		_, err = tr2.Put([]byte(b), []byte("value1"+b))
+		assert.Nil(t, err)
+
+		a := "abcdeffkey" + strconv.Itoa(i)
+		_, err = tr2.Put([]byte(a), []byte("value1"+a))
+		assert.Nil(t, err)
+
+		c := "abcdeagkey" + strconv.Itoa(i)
+		_, err = tr2.Put([]byte(c), []byte("value1"+c))
+		assert.Nil(t, err)
+	}
+
+	assert.Equal(t, tr1.RootHash(), tr2.RootHash())
+}
+
+func TestTrie_PutDeleteAfterGetRootHash(t *testing.T) {
+	/*
+			   abcd
+			/   	\
+		   efgab0	efgb
+			   		/ \
+			   		a1 a2
+
+			acbdefgbc
+			/	\
+			abc	hij
+	*/
+
+	storage1, _ := storage.NewMemoryStorage()
+	tr1, _ := NewTrie(nil, storage1)
+	assert.Equal(t, []byte(nil), tr1.RootHash())
+
+	var err error
+
+	// put key1.
+	_, err = tr1.Put([]byte("abcdefgab0"), []byte("value0"))
+	assert.Nil(t, err)
+
+	_, err = tr1.Put([]byte("abcdefgba1"), []byte("value1"))
+	assert.Nil(t, err)
+	_, err = tr1.Put([]byte("abcdefgba2"), []byte("value2"))
+	assert.Nil(t, err)
+
+	_, err = tr1.Del([]byte("abcdefgab0"))
+	assert.Nil(t, err)
+
+	storage2, _ := storage.NewMemoryStorage()
+	tr2, _ := NewTrie(nil, storage2)
+	assert.Equal(t, []byte(nil), tr2.RootHash())
+
+	_, err = tr2.Put([]byte("abcdefgba1"), []byte("value1"))
+	assert.Nil(t, err)
+	_, err = tr2.Put([]byte("abcdefgba2"), []byte("value2"))
+	assert.Nil(t, err)
+
+	//assert.Equal(t, tr1.RootHash(), tr2.RootHash()) //todo
 }
