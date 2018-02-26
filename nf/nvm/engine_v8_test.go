@@ -24,6 +24,7 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
+	"math/big"
 	"os"
 	"strings"
 	"sync"
@@ -898,7 +899,9 @@ func TestNRC20Contract(t *testing.T) {
 			var totalSupplyStr string
 			err = json.Unmarshal([]byte(totalSupply), &totalSupplyStr)
 			assert.Nil(t, err)
-			assert.Equal(t, tt.totalSupply, totalSupplyStr)
+			expect, _ := big.NewInt(0).SetString(tt.totalSupply, 10)
+			expect = expect.Mul(expect, big.NewInt(0).Exp(big.NewInt(10), big.NewInt(int64(tt.decimals)), nil))
+			assert.Equal(t, expect.String(), totalSupplyStr)
 			assert.Nil(t, err)
 			engine.Dispose()
 

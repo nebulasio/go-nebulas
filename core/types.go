@@ -34,6 +34,9 @@ const (
 	// update transaction execution result event,
 	// update binary transaction payload.
 	OptimizeHeight = 480000
+
+	// update deploy execution, from & to must equal
+	NewOptimizeHeight = 750000
 )
 
 // Payload Types
@@ -116,6 +119,7 @@ var (
 	ErrCannotLoadTailBlock                               = errors.New("cannot load latest irreversible block from storage")
 	ErrFoundNilProposer                                  = errors.New("found a nil proposer")
 	ErrContractNotFound                                  = errors.New("contract not found")
+	ErrContractTransactionAddressNotEqual                = errors.New("contract transaction from-address not equal to to-address")
 )
 
 // Default gas count

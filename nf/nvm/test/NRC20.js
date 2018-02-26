@@ -108,7 +108,7 @@ StandardToken.prototype = {
     },
 
     totalSupply: function () {
-        return this._totalSupply.toString();
+        return this._totalSupply.toString(10);
     },
 
     balanceOf: function (owner) {

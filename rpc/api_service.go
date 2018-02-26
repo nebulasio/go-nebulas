@@ -238,8 +238,11 @@ func handleTransactionResponse(neb Neblet, tx *core.Transaction) (resp *rpcpb.Se
 		return nil, errors.New("transaction's nonce is invalid, should bigger than the from's nonce")
 	}
 
-	// check if the contract is valid
-	if tx.Type() == core.TxPayloadCallType {
+	if tx.Type() == core.TxPayloadDeployType {
+		if !tx.From().Equals(tx.To()) {
+			return nil, core.ErrContractTransactionAddressNotEqual
+		}
+	} else if tx.Type() == core.TxPayloadCallType {
 		if err := neb.BlockChain().TailBlock().CheckContract(tx.To()); err != nil {
 			return nil, err
 		}
