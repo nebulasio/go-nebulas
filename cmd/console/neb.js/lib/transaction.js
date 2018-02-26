@@ -53,16 +53,16 @@ var parsePayload = function (obj) {
             Function: obj.function,
             Args: obj.args
         };
-    } else if (obj && utils.isString(obj.action) && obj.action.length > 0) {
-        payloadType = TxPayloadCandidateType;
-        payload = {
-            Action: obj.action
-        };
     } else if (obj && utils.isString(obj.delegatee) && obj.delegatee.length > 0) {
         payloadType = TxPayloadDelegateType;
         payload = {
             Action: obj.action,
             Delegatee: obj.delegatee
+        };
+    } else if (obj && utils.isString(obj.action) && obj.action.length > 0) {
+        payloadType = TxPayloadCandidateType;
+        payload = {
+            Action: obj.action
         };
     } else {
         payloadType = TxPayloadBinaryType;
