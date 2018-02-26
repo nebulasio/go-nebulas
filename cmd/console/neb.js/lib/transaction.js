@@ -16,15 +16,14 @@ var TxPayloadCallType      = "call";
 var TxPayloadDelegateType  = "delegate";
 var TxPayloadCandidateType = "candidate";
 
-var Transaction = function (chainID, from, to, value, nonce, gasPrice, gasLimit, contract, candidate, delegate, binary) {
+var Transaction = function (chainID, from, to, value, nonce, gasPrice, gasLimit, payload) {
     this.chainID = chainID;
     this.from = account.fromAddress(from);
     this.to = account.fromAddress(to);
     this.value = utils.toBigNumber(value);
     this.nonce = nonce;
     this.timestamp = Math.floor(new Date().getTime()/1000);
-    // this.timestamp = 1516256439;//test cases
-    this.data = parsePayload(contract, candidate, delegate, binary);
+    this.data = parsePayload(payload);
     this.gasPrice = utils.toBigNumber(gasPrice);
     this.gasLimit = utils.toBigNumber(gasLimit);
 
@@ -37,40 +36,41 @@ var Transaction = function (chainID, from, to, value, nonce, gasPrice, gasLimit,
     }
 };
 
-var parsePayload = function (contract, candidate, delegate, binary) {
-    /*jshint maxcomplexity:6 */
+var parsePayload = function (obj) {
+    /*jshint maxcomplexity:7 */
 
     var payloadType, payload;
-    if (utils.isObject(contract) && utils.isString(contract.source) && contract.source.length > 0) {
+    if (obj && utils.isString(obj.source) && obj.source.length > 0) {
         payloadType = TxPayloadDeployType;
         payload = {
-            SourceType: contract.sourceType,
-            Source: contract.source,
-            Args: contract.args
+            SourceType: obj.sourceType,
+            Source: obj.source,
+            Args: obj.args
         };
-    } else if (utils.isObject(contract) && utils.isString(contract.function) && contract.function.length > 0) {
+    } else if (obj && utils.isString(obj.function) && obj.function.length > 0) {
         payloadType = TxPayloadCallType;
         payload = {
-            Function: contract.function,
-            Args: contract.args
+            Function: obj.function,
+            Args: obj.args
         };
-    } else if (utils.isObject(candidate)) {
+    } else if (obj && utils.isString(obj.action) && obj.action.length > 0) {
         payloadType = TxPayloadCandidateType;
         payload = {
-            Action: candidate.action
+            Action: obj.action
         };
-    } else if (utils.isObject(delegate)) {
+    } else if (obj && utils.isString(obj.delegatee) && obj.delegatee.length > 0) {
         payloadType = TxPayloadDelegateType;
         payload = {
-            Action: delegate.action,
-            Delegatee: delegate.delegatee
+            Action: obj.action,
+            Delegatee: obj.delegatee
         };
     } else {
         payloadType = TxPayloadBinaryType;
-        // payload = {
-        //     Data: null
-        // };
-        //TODO: after block height > 500000, add binary data
+        if (obj) {
+            payload = {
+                Data: cryptoUtils.toBuffer(obj.binary)
+            };
+        }
     }
     var payloadData = utils.isNull(payload) ? null : cryptoUtils.toBuffer(JSON.stringify(payload));
 
@@ -119,7 +119,7 @@ Transaction.prototype = {
             value: this.value.toString(),
             nonce: this.nonce,
             timestamp: this.timestamp,
-            data: {payloadType: this.data.payloadType, payload:payload},
+            data: {payloadType: this.data.type, payload:payload},
             gasPrice: this.gasPrice.toString(),
             gasLimit: this.gasLimit.toString(),
             hash: this.hash.toString("hex"),
