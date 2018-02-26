@@ -19,6 +19,7 @@
 package core
 
 import (
+	"github.com/nebulasio/go-nebulas/core/state"
 	"sync"
 	"time"
 
@@ -256,7 +257,7 @@ func (pool *TransactionPool) push(tx *Transaction) error {
 	}
 
 	// trigger pending transaction
-	event := &Event{
+	event := &state.Event{
 		Topic: TopicPendingTransaction,
 		Data:  tx.String(),
 	}

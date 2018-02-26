@@ -20,7 +20,8 @@ package core
 
 import (
 	"errors"
-	"strconv"
+	"github.com/nebulasio/go-nebulas/core/state"
+	"github.com/nebulasio/go-nebulas/util/byteutils"
 
 	"github.com/nebulasio/go-nebulas/core/pb"
 	"github.com/nebulasio/go-nebulas/neblet/pb"
@@ -71,8 +72,6 @@ var (
 	ErrInvalidSignature                                  = errors.New("invalid transaction signature")
 	ErrInvalidTransactionHash                            = errors.New("invalid transaction hash")
 	ErrMissingParentBlock                                = errors.New("cannot find the block's parent block in storage")
-	ErrTooFewCandidates                                  = errors.New("the size of candidates in consensus is un-safe, should be greater than or equal " + strconv.Itoa(SafeSize))
-	ErrNotBlockForgTime                                  = errors.New("now is not time to forg block")
 	ErrInvalidBlockHash                                  = errors.New("invalid block hash")
 	ErrInvalidBlockStateRoot                             = errors.New("invalid block state root hash")
 	ErrInvalidBlockTxsRoot                               = errors.New("invalid block txs root hash")
@@ -92,18 +91,11 @@ var (
 	ErrInvalidDelegateToNonCandidate                     = errors.New("cannot delegate to non-candidate")
 	ErrInvalidUnDelegateFromNonDelegatee                 = errors.New("cannot un-delegate from non-delegatee")
 	ErrInvalidBaseAndNextDynastyID                       = errors.New("cannot kickout from baseDynastyID to nextDynastyID if nextDynastyID <= baseDynastyID")
-	ErrInitialDynastyNotEnough                           = errors.New("the size of initial dynasty in genesis block is un-safe, should be greater than or equal " + strconv.Itoa(SafeSize))
 	ErrInvalidTransactionSigner                          = errors.New("transaction recover public key address not equal to from")
 	ErrNotBlockInCanonicalChain                          = errors.New("cannot find the block in canonical chain")
 	ErrCloneWorldState                                   = errors.New("Failed to clone world state")
 	ErrCloneAccountState                                 = errors.New("Failed to clone account state")
 	ErrCloneTxsState                                     = errors.New("Failed to clone txs state")
-	ErrCloneDynastyTrie                                  = errors.New("Failed to clone dynasty trie")
-	ErrCloneNextDynastyTrie                              = errors.New("Failed to clone next dynasty trie")
-	ErrCloneDelegateTrie                                 = errors.New("Failed to clone delegate trie")
-	ErrCloneCandidatesTrie                               = errors.New("Failed to clone candidates trie")
-	ErrCloneVoteTrie                                     = errors.New("Failed to clone vote trie")
-	ErrCloneMintCntTrie                                  = errors.New("Failed to clone mint count trie")
 	ErrCloneEventsState                                  = errors.New("Failed to clone events state")
 	ErrGenerateNextDynastyContext                        = errors.New("Failed to generate next dynasty context")
 	ErrLoadNextDynastyContext                            = errors.New("Failed to load next dynasty context")
@@ -115,7 +107,6 @@ var (
 	ErrCannotLoadGenesisBlock                            = errors.New("cannot load genesis block from storage")
 	ErrCannotLoadLIBBlock                                = errors.New("cannot load tail block from storage")
 	ErrCannotLoadTailBlock                               = errors.New("cannot load latest irreversible block from storage")
-	ErrFoundNilProposer                                  = errors.New("found a nil proposer")
 	ErrContractDeployFailed                              = errors.New("contract deploy failed")
 )
 
@@ -146,6 +137,12 @@ type Consensus interface {
 	VerifyBlock(block *Block, parent *Block) error
 	FastVerifyBlock(block *Block) error
 	ForkChoice() error
+
+	UpdateLIB()
+	CheckTimeout(block *Block) bool
+
+	NewState(byteutils.Hash, storage.Storage) (state.ConsensusState, error)
+	GenesisConsensusState(*BlockChain, *corepb.Genesis) (state.ConsensusState, error)
 }
 
 // SyncService interface of sync service

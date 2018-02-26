@@ -22,6 +22,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/nebulasio/go-nebulas/core/state"
 	"time"
 
 	"github.com/nebulasio/go-nebulas/crypto"
@@ -56,10 +57,10 @@ type BlockHeader struct {
 	parentHash byteutils.Hash
 
 	// world state
-	stateRoot   byteutils.Hash
-	txsRoot     byteutils.Hash
-	eventsRoot  byteutils.Hash
-	dposContext *corepb.DposContext
+	stateRoot     byteutils.Hash
+	txsRoot       byteutils.Hash
+	eventsRoot    byteutils.Hash
+	consensusRoot byteutils.Hash
 
 	coinbase  *Address
 	nonce     uint64
@@ -74,18 +75,18 @@ type BlockHeader struct {
 // ToProto converts domain BlockHeader to proto BlockHeader
 func (b *BlockHeader) ToProto() (proto.Message, error) {
 	return &corepb.BlockHeader{
-		Hash:        b.hash,
-		ParentHash:  b.parentHash,
-		StateRoot:   b.stateRoot,
-		TxsRoot:     b.txsRoot,
-		EventsRoot:  b.eventsRoot,
-		DposContext: b.dposContext,
-		Nonce:       b.nonce,
-		Coinbase:    b.coinbase.address,
-		Timestamp:   b.timestamp,
-		ChainId:     b.chainID,
-		Alg:         uint32(b.alg),
-		Sign:        b.sign,
+		Hash:          b.hash,
+		ParentHash:    b.parentHash,
+		StateRoot:     b.stateRoot,
+		TxsRoot:       b.txsRoot,
+		EventsRoot:    b.eventsRoot,
+		ConsensusRoot: b.consensusRoot,
+		Nonce:         b.nonce,
+		Coinbase:      b.coinbase.address,
+		Timestamp:     b.timestamp,
+		ChainId:       b.chainID,
+		Alg:           uint32(b.alg),
+		Sign:          b.sign,
 	}, nil
 }
 
@@ -97,7 +98,7 @@ func (b *BlockHeader) FromProto(msg proto.Message) error {
 		b.stateRoot = msg.StateRoot
 		b.txsRoot = msg.TxsRoot
 		b.eventsRoot = msg.EventsRoot
-		b.dposContext = msg.DposContext
+		b.consensusRoot = msg.ConsensusRoot
 		b.nonce = msg.Nonce
 		b.coinbase = &Address{msg.Coinbase}
 		b.timestamp = msg.Timestamp
@@ -118,7 +119,7 @@ type Block struct {
 	height      uint64
 	parentBlock *Block
 
-	worldState *WorldState
+	worldState state.WorldState
 
 	txPool *TransactionPool
 	miner  *Address
@@ -197,12 +198,11 @@ func NewBlock(chainID uint32, coinbase *Address, parent *Block) (*Block, error) 
 
 	block := &Block{
 		header: &BlockHeader{
-			parentHash:  parent.Hash(),
-			dposContext: &corepb.DposContext{},
-			coinbase:    coinbase,
-			nonce:       0,
-			timestamp:   time.Now().Unix(),
-			chainID:     chainID,
+			parentHash: parent.Hash(),
+			coinbase:   coinbase,
+			nonce:      0,
+			timestamp:  time.Now().Unix(),
+			chainID:    chainID,
 		},
 		transactions: make(Transactions, 0),
 		parentBlock:  parent,
@@ -307,28 +307,18 @@ func (block *Block) Storage() storage.Storage {
 	return block.storage
 }
 
+func (block *Block) WorldState() state.WorldState {
+	return block.worldState
+}
+
 // EventsRoot return events root hash.
 func (block *Block) EventsRoot() byteutils.Hash {
 	return block.header.eventsRoot
 }
 
 // DposContext return dpos context
-func (block *Block) DposContext() *corepb.DposContext {
-	return block.header.dposContext
-}
-
-// DposContextHash hash dpos context
-func (block *Block) DposContextHash() byteutils.Hash {
-	hasher := sha3.New256()
-
-	hasher.Write(block.header.dposContext.DynastyRoot)
-	hasher.Write(block.header.dposContext.NextDynastyRoot)
-	hasher.Write(block.header.dposContext.DelegateRoot)
-	hasher.Write(block.header.dposContext.VoteRoot)
-	hasher.Write(block.header.dposContext.CandidateRoot)
-	hasher.Write(block.header.dposContext.MintCntRoot)
-
-	return hasher.Sum(nil)
+func (block *Block) ConsensusRoot() byteutils.Hash {
+	return block.header.consensusRoot
 }
 
 // ParentHash return parent hash.
@@ -374,12 +364,15 @@ func (block *Block) LinkParentBlock(chain *BlockChain, parentBlock *Block) error
 	}
 
 	elapsedSecond := block.Timestamp() - parentBlock.Timestamp()
-	context, err := parentBlock.NextDynastyContext(chain, elapsedSecond)
+	consensusState, err := parentBlock.worldState.NextConsensusState(elapsedSecond)
 	if err != nil {
 		return err
 	}
-
-	if err := block.LoadDynastyContext(context); err != nil {
+	consensusRoot, err := consensusState.RootHash()
+	if err != nil {
+		return err
+	}
+	if err := block.worldState.LoadConsensusRoot(consensusRoot); err != nil {
 		return ErrLoadNextDynastyContext
 	}
 
@@ -591,14 +584,22 @@ func (block *Block) Seal() error {
 	}
 	block.commit()
 
-	headers, err := block.worldState.ToHeaders()
+	block.header.stateRoot, err = block.worldState.AccountsRoot()
 	if err != nil {
 		return err
 	}
-	block.header.stateRoot = headers.accStateRoot
-	block.header.txsRoot = headers.txsStateRoot
-	block.header.eventsRoot = headers.eventsStateRoot
-	block.header.dposContext = headers.consensusStateRoot
+	block.header.txsRoot, err = block.worldState.TxsRoot()
+	if err != nil {
+		return err
+	}
+	block.header.eventsRoot, err = block.worldState.EventsRoot()
+	if err != nil {
+		return err
+	}
+	block.header.consensusRoot, err = block.worldState.ConsensusRoot()
+	if err != nil {
+		return err
+	}
 
 	block.header.hash = HashBlock(block)
 	block.sealed = true
@@ -619,7 +620,7 @@ func (block *Block) String() string {
 	if block.miner != nil {
 		miner = block.miner.String()
 	}
-	return fmt.Sprintf(`{"height": %d, "hash": "%s", "parent_hash": "%s", "state": "%s", "txs": "%s", "events": "%s", "timestamp": %d, "dynasty": "%s", "tx": %d, "miner": "%s"}`,
+	return fmt.Sprintf(`{"height": %d, "hash": "%s", "parent_hash": "%s", "state": "%s", "txs": "%s", "events": "%s", "timestamp": %d, "consensus": "%s", "tx": %d, "miner": "%s"}`,
 		block.height,
 		block.header.hash,
 		block.header.parentHash,
@@ -627,7 +628,7 @@ func (block *Block) String() string {
 		block.header.txsRoot,
 		block.header.eventsRoot,
 		block.header.timestamp,
-		byteutils.Hex(block.header.dposContext.DynastyRoot),
+		block.header.consensusRoot,
 		len(block.transactions),
 		miner,
 	)
@@ -679,7 +680,7 @@ func (block *Block) triggerEvent() {
 		case TxPayloadCandidateType:
 			topic = TopicCandidate
 		}
-		event := &Event{
+		event := &state.Event{
 			Topic: topic,
 			Data:  v.String(),
 		}
@@ -693,7 +694,7 @@ func (block *Block) triggerEvent() {
 		}
 	}
 
-	e := &Event{
+	e := &state.Event{
 		Topic: TopicLinkBlock,
 		Data:  block.String(),
 	}
@@ -751,43 +752,54 @@ func (block *Block) VerifyIntegrity(chainID uint32, consensus Consensus) error {
 
 // verifyState return state verify result.
 func (block *Block) verifyState() error {
-	headers, err := block.worldState.ToHeaders()
+	// verify state root.
+	accountsRoot, err := block.worldState.AccountsRoot()
 	if err != nil {
 		return err
 	}
-	// verify state root.
-	if !byteutils.Equal(headers.accStateRoot, block.StateRoot()) {
+	if !byteutils.Equal(accountsRoot, block.StateRoot()) {
 		logging.VLog().WithFields(logrus.Fields{
 			"expect": block.StateRoot(),
-			"actual": headers.accStateRoot,
+			"actual": accountsRoot,
 		}).Debug("Failed to verify state.")
 		return ErrInvalidBlockStateRoot
 	}
 
 	// verify transaction root.
-	if !byteutils.Equal(headers.txsStateRoot, block.TxsRoot()) {
+	txsRoot, err := block.worldState.TxsRoot()
+	if err != nil {
+		return err
+	}
+	if !byteutils.Equal(txsRoot, block.TxsRoot()) {
 		logging.VLog().WithFields(logrus.Fields{
 			"expect": block.TxsRoot(),
-			"actual": headers.txsStateRoot,
+			"actual": txsRoot,
 		}).Debug("Failed to verify txs.")
 		return ErrInvalidBlockTxsRoot
 	}
 
 	// verify events root.
-	if !byteutils.Equal(headers.eventsStateRoot, block.EventsRoot()) {
+	eventsRoot, err := block.worldState.EventsRoot()
+	if err != nil {
+		return err
+	}
+	if !byteutils.Equal(eventsRoot, block.EventsRoot()) {
 		logging.VLog().WithFields(logrus.Fields{
 			"expect": block.EventsRoot(),
-			"actual": headers.eventsStateRoot,
+			"actual": eventsRoot,
 		}).Debug("Failed to verify events.")
 		return ErrInvalidBlockEventsRoot
 	}
 
 	// verify transaction root.
-	consensusStateRoot := HashDposContext(headers.consensusStateRoot)
-	if !byteutils.Equal(consensusStateRoot, block.DposContextHash()) {
+	consensusRoot, err := block.worldState.ConsensusRoot()
+	if err != nil {
+		return err
+	}
+	if !byteutils.Equal(consensusRoot, block.ConsensusRoot()) {
 		logging.VLog().WithFields(logrus.Fields{
-			"expect": block.DposContextHash(),
-			"actual": consensusStateRoot,
+			"expect": block.ConsensusRoot(),
+			"actual": consensusRoot,
 		}).Debug("Failed to verify dpos context.")
 		return ErrInvalidBlockDposContextRoot
 	}
@@ -855,24 +867,23 @@ func (block *Block) GetNonce(address byteutils.Hash) (uint64, error) {
 
 // RecordEvent record event's topic and data with txHash
 func (block *Block) RecordEvent(txHash byteutils.Hash, topic, data string) error {
-	event := &Event{Topic: topic, Data: data}
+	event := &state.Event{Topic: topic, Data: data}
 	return block.worldState.RecordEvent(txHash, event)
 }
 
 // FetchEvents fetch events by txHash.
-func (block *Block) FetchEvents(txHash byteutils.Hash) ([]*Event, error) {
+func (block *Block) FetchEvents(txHash byteutils.Hash) ([]*state.Event, error) {
 	return block.worldState.FetchEvents(txHash)
 }
 
 func (block *Block) recordMintCnt() error {
-	dynasty := block.Timestamp() / DynastyInterval
 	miner := block.miner
-	cnt, err := block.worldState.GetMintCnt(dynasty, miner)
+	cnt, err := block.worldState.GetMintCnt(block.Timestamp(), miner.address)
 	if err != nil {
 		return err
 	}
 	cnt++
-	return block.worldState.PutMintCnt(dynasty, miner, cnt)
+	return block.worldState.PutMintCnt(block.Timestamp(), miner.address, cnt)
 }
 
 func (block *Block) rewardCoinbase() error {
@@ -887,12 +898,32 @@ func (block *Block) rewardCoinbase() error {
 
 // GetTransaction from txs Trie
 func (block *Block) GetTransaction(hash byteutils.Hash) (*Transaction, error) {
-	return block.worldState.GetTx(hash)
+	bytes, err := block.worldState.GetTx(hash)
+	if err != nil {
+		return nil, err
+	}
+	pbTx := new(corepb.Transaction)
+	if err := proto.Unmarshal(bytes, pbTx); err != nil {
+		return nil, err
+	}
+	tx := new(Transaction)
+	if err = tx.FromProto(pbTx); err != nil {
+		return nil, err
+	}
+	return tx, nil
 }
 
 func (block *Block) acceptTransaction(tx *Transaction) error {
 	// record tx
-	if err := block.worldState.PutTx(tx); err != nil {
+	pbTx, err := tx.ToProto()
+	if err != nil {
+		return err
+	}
+	txBytes, err := proto.Marshal(pbTx)
+	if err != nil {
+		return err
+	}
+	if err := block.worldState.PutTx(tx.hash, txBytes); err != nil {
 		return err
 	}
 	// incre nonce
@@ -986,7 +1017,7 @@ func HashBlock(block *Block) byteutils.Hash {
 	hasher.Write(block.StateRoot())
 	hasher.Write(block.TxsRoot())
 	hasher.Write(block.EventsRoot())
-	hasher.Write(block.DposContextHash())
+	hasher.Write(block.ConsensusRoot())
 	hasher.Write(byteutils.FromUint64(block.header.nonce))
 	hasher.Write(block.header.coinbase.address)
 	hasher.Write(byteutils.FromInt64(block.header.timestamp))
@@ -1028,8 +1059,8 @@ func RecoverMiner(block *Block) (*Address, error) {
 }
 
 // LoadBlockFromStorage return a block from storage
-func LoadBlockFromStorage(hash byteutils.Hash, storage storage.Storage, txPool *TransactionPool, eventEmitter *EventEmitter) (*Block, error) {
-	value, err := storage.Get(hash)
+func LoadBlockFromStorage(hash byteutils.Hash, chain *BlockChain) (*Block, error) {
+	value, err := chain.storage.Get(hash)
 	if err != nil {
 		return nil, err
 	}
@@ -1042,20 +1073,27 @@ func LoadBlockFromStorage(hash byteutils.Hash, storage storage.Storage, txPool *
 		return nil, err
 	}
 
-	block.worldState, err = NewWorldStateFromHeader(storage, &WorldStateHeader{
-		accStateRoot:       block.StateRoot(),
-		txsStateRoot:       block.TxsRoot(),
-		eventsStateRoot:    block.EventsRoot(),
-		consensusStateRoot: block.DposContext(),
-	})
+	block.worldState, err = state.NewWorldState(chain.ConsensusHandler(), chain.storage)
 	if err != nil {
 		return nil, err
 	}
+	if err := block.worldState.LoadAccountsRoot(block.StateRoot()); err != nil {
+		return nil, err
+	}
+	if err := block.worldState.LoadTxsRoot(block.TxsRoot()); err != nil {
+		return nil, err
+	}
+	if err := block.worldState.LoadEventsRoot(block.EventsRoot()); err != nil {
+		return nil, err
+	}
+	if err := block.worldState.LoadConsensusRoot(block.ConsensusRoot()); err != nil {
+		return nil, err
+	}
 
-	block.txPool = txPool
-	block.storage = storage
+	block.txPool = chain.txPool
+	block.storage = chain.storage
 	block.sealed = true
-	block.eventEmitter = eventEmitter
+	block.eventEmitter = chain.eventEmitter
 	return block, nil
 }
 

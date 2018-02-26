@@ -70,3 +70,101 @@ type AccountState interface {
 	GetContractAccount(addr []byte) (Account, error)
 	CreateContractAccount(addr []byte, birthPlace []byte) (Account, error)
 }
+
+// Event event structure.
+type Event struct {
+	Topic string
+	Data  string
+}
+
+type Consensus interface {
+	NewState(byteutils.Hash, storage.Storage) (ConsensusState, error)
+}
+
+type ConsensusState interface {
+	BeginBatch()
+	Commit()
+	RollBack()
+
+	RootHash() (byteutils.Hash, error)
+	Clone() (ConsensusState, error)
+
+	Proposer() byteutils.Hash
+	NextConsensusState(int64, WorldState) (ConsensusState, error)
+
+	GetMintCnt(int64, byteutils.Hash) (int64, error)
+	PutMintCnt(int64, byteutils.Hash, int64) error
+
+	Candidates() ([]byteutils.Hash, error)
+	GetCandidate(byteutils.Hash) (byteutils.Hash, error)
+	AddCandidate(byteutils.Hash) error
+	DelCandidate(byteutils.Hash) error
+
+	GetVote(byteutils.Hash) (byteutils.Hash, error)
+	AddVote(byteutils.Hash, byteutils.Hash) error
+	DelVote(byteutils.Hash) error
+	IterVote() (Iterator, error)
+
+	HasDelegate(byteutils.Hash, byteutils.Hash) (bool, error)
+	AddDelegate(byteutils.Hash, byteutils.Hash) error
+	DelDelegate(byteutils.Hash, byteutils.Hash) error
+	IterDelegate(byteutils.Hash) (Iterator, error)
+
+	Dynasty() ([]byteutils.Hash, error)
+	DynastyRoot() byteutils.Hash
+	NextDynasty() ([]byteutils.Hash, error)
+	NextDynastyRoot() byteutils.Hash
+}
+
+type WorldState interface {
+	Begin()
+	Commit()
+	RollBack()
+
+	AccountsRoot() (byteutils.Hash, error)
+	TxsRoot() (byteutils.Hash, error)
+	EventsRoot() (byteutils.Hash, error)
+	ConsensusRoot() (byteutils.Hash, error)
+	LoadAccountsRoot(byteutils.Hash) error
+	LoadTxsRoot(byteutils.Hash) error
+	LoadEventsRoot(byteutils.Hash) error
+	LoadConsensusRoot(byteutils.Hash) error
+
+	Clone() (WorldState, error)
+
+	NextConsensusState(int64) (ConsensusState, error)
+
+	Accounts() ([]Account, error)
+	GetOrCreateUserAccount(addr byteutils.Hash) (Account, error)
+	GetContractAccount(addr byteutils.Hash) (Account, error)
+	CreateContractAccount(owner byteutils.Hash, birthPlace byteutils.Hash) (Account, error)
+
+	GetTx(txHash byteutils.Hash) ([]byte, error)
+	PutTx(txHash byteutils.Hash, txBytes []byte) error
+
+	RecordEvent(txHash byteutils.Hash, event *Event) error
+	FetchEvents(byteutils.Hash) ([]*Event, error)
+
+	GetMintCnt(int64, byteutils.Hash) (int64, error)
+	PutMintCnt(int64, byteutils.Hash, int64) error
+
+	Candidates() ([]byteutils.Hash, error)
+	GetCandidate(byteutils.Hash) (byteutils.Hash, error)
+	AddCandidate(byteutils.Hash) error
+	DelCandidate(byteutils.Hash) error
+
+	GetVote(byteutils.Hash) (byteutils.Hash, error)
+	AddVote(byteutils.Hash, byteutils.Hash) error
+	DelVote(byteutils.Hash) error
+	IterVote() (Iterator, error)
+
+	HasDelegate(byteutils.Hash, byteutils.Hash) (bool, error)
+	AddDelegate(byteutils.Hash, byteutils.Hash) error
+	DelDelegate(byteutils.Hash, byteutils.Hash) error
+	IterDelegate(byteutils.Hash) (Iterator, error)
+
+	Dynasty() ([]byteutils.Hash, error)
+	DynastyRoot() byteutils.Hash
+	NextDynasty() ([]byteutils.Hash, error)
+	NextDynastyRoot() byteutils.Hash
+}

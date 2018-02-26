@@ -16,15 +16,21 @@
 // along with the go-nebulas library.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-package core
+package dpos
 
 import (
+	"errors"
+	"github.com/nebulasio/go-nebulas/consensus"
+	"github.com/nebulasio/go-nebulas/core"
+	"github.com/nebulasio/go-nebulas/core/pb"
+	"github.com/nebulasio/go-nebulas/core/state"
 	"hash/fnv"
 	"sort"
-	// "strconv"
+	"strconv"
+	"time"
 
 	"github.com/nebulasio/go-nebulas/common/trie"
-	"github.com/nebulasio/go-nebulas/core/pb"
+	"github.com/nebulasio/go-nebulas/consensus/dpos/pb"
 	"github.com/nebulasio/go-nebulas/crypto/sha3"
 	"github.com/nebulasio/go-nebulas/storage"
 	"github.com/nebulasio/go-nebulas/util"
@@ -45,20 +51,37 @@ const (
 	ConsensusSize        = DynastySize*2/3 + 1
 )
 
-// DposContext carry context in dpos consensus
-type DposContext struct {
+var (
+	ErrTooFewCandidates        = errors.New("the size of candidates in consensus is un-safe, should be greater than or equal " + strconv.Itoa(SafeSize))
+	ErrInitialDynastyNotEnough = errors.New("the size of initial dynasty in genesis block is un-safe, should be greater than or equal " + strconv.Itoa(SafeSize))
+	ErrCloneDynastyTrie        = errors.New("Failed to clone dynasty trie")
+	ErrCloneNextDynastyTrie    = errors.New("Failed to clone next dynasty trie")
+	ErrCloneDelegateTrie       = errors.New("Failed to clone delegate trie")
+	ErrCloneCandidatesTrie     = errors.New("Failed to clone candidates trie")
+	ErrCloneVoteTrie           = errors.New("Failed to clone vote trie")
+	ErrCloneMintCntTrie        = errors.New("Failed to clone mint count trie")
+	ErrNotBlockForgTime        = errors.New("now is not time to forg block")
+	ErrFoundNilProposer        = errors.New("found a nil proposer")
+)
+
+// DposState carry context in dpos consensus
+type DposState struct {
+	timeStamp int64
+	proposer  byteutils.Hash
+
 	dynastyTrie     *trie.BatchTrie // key: delegatee, val: delegatee
 	nextDynastyTrie *trie.BatchTrie // key: delegatee, val: delegatee
 	delegateTrie    *trie.BatchTrie // key: delegatee + delegator, val: delegator
 	voteTrie        *trie.BatchTrie // key: delegator, val: delegatee
 	candidateTrie   *trie.BatchTrie // key: delegatee, val: delegatee
 	mintCntTrie     *trie.BatchTrie // key: dynastyId + delegatee, val: count
+	protectTrie     *trie.BatchTrie // key: delegatee, val: delegatee
 
-	storage storage.Storage
+	chain     *core.BlockChain
+	consensus consensus.Consensus
 }
 
-// NewDposContext create a new dpos context
-func NewDposContext(storage storage.Storage) (*DposContext, error) {
+func (dpos *Dpos) NewState(root byteutils.Hash, storage storage.Storage) (state.ConsensusState, error) {
 	dynastyTrie, err := trie.NewBatchTrie(nil, storage)
 	if err != nil {
 		return nil, err
@@ -79,152 +102,367 @@ func NewDposContext(storage storage.Storage) (*DposContext, error) {
 	if err != nil {
 		return nil, err
 	}
+	protectTrie, err := trie.NewBatchTrie(nil, storage)
+	if err != nil {
+		return nil, err
+	}
 	mintCntTrie, err := trie.NewBatchTrie(nil, storage)
 	if err != nil {
 		return nil, err
 	}
-	return &DposContext{
+	return &DposState{
+		timeStamp: 0,
+		proposer:  nil,
+
 		dynastyTrie:     dynastyTrie,
 		nextDynastyTrie: nextDynastyTrie,
 		delegateTrie:    delegateTrie,
 		voteTrie:        voteTrie,
 		candidateTrie:   candidateTrie,
 		mintCntTrie:     mintCntTrie,
-		storage:         storage,
+		protectTrie:     protectTrie,
+
+		chain:     dpos.chain,
+		consensus: dpos,
 	}, nil
 }
 
-// HashDposContext hash dpos context root hash
-func HashDposContext(dc *corepb.DposContext) byteutils.Hash {
-	hasher := sha3.New256()
-
-	hasher.Write(dc.DynastyRoot)
-	hasher.Write(dc.NextDynastyRoot)
-	hasher.Write(dc.DelegateRoot)
-	hasher.Write(dc.VoteRoot)
-	hasher.Write(dc.CandidateRoot)
-	hasher.Write(dc.MintCntRoot)
-
-	return hasher.Sum(nil)
+func (dpos *Dpos) CheckTimeout(block *core.Block) bool {
+	behind := time.Now().Unix() - block.Timestamp()
+	if behind > AcceptedNetWorkDelay {
+		logging.VLog().WithFields(logrus.Fields{
+			"block": block,
+			"diff":  behind,
+			"limit": AcceptedNetWorkDelay,
+			"err":   "timeout",
+		}).Debug("Found a timeout block.")
+		return true
+	}
+	return false
 }
 
-// BeginBatch starts a batch task
-func (dc *DposContext) BeginBatch() {
-	// logging.VLog().Debug("DposContext Begin.")
-	dc.delegateTrie.BeginBatch()
-	dc.dynastyTrie.BeginBatch()
-	dc.nextDynastyTrie.BeginBatch()
-	dc.candidateTrie.BeginBatch()
-	dc.voteTrie.BeginBatch()
-	dc.mintCntTrie.BeginBatch()
-}
-
-// Commit a batch task
-func (dc *DposContext) Commit() {
-	dc.delegateTrie.Commit()
-	dc.dynastyTrie.Commit()
-	dc.nextDynastyTrie.Commit()
-	dc.candidateTrie.Commit()
-	dc.voteTrie.Commit()
-	dc.mintCntTrie.Commit()
-	// logging.VLog().Debug("DposContext Commit.")
-}
-
-// RollBack a batch task
-func (dc *DposContext) RollBack() {
-	dc.delegateTrie.RollBack()
-	dc.dynastyTrie.RollBack()
-	dc.nextDynastyTrie.RollBack()
-	dc.candidateTrie.RollBack()
-	dc.voteTrie.RollBack()
-	dc.mintCntTrie.RollBack()
-	// logging.VLog().Debug("DposContext RollBack.")
-}
-
-// Clone a dpos context
-func (dc *DposContext) Clone() (*DposContext, error) {
-	var err error
-	context, err := NewDposContext(dc.storage)
+// GenesisDynastyContext return dynasty context in genesis
+func (dpos *Dpos) GenesisConsensusState(chain *core.BlockChain, conf *corepb.Genesis) (state.ConsensusState, error) {
+	dynastyTrie, err := trie.NewBatchTrie(nil, chain.Storage())
 	if err != nil {
 		return nil, err
 	}
-	if context.dynastyTrie, err = dc.dynastyTrie.Clone(); err != nil {
-		return nil, ErrCloneDynastyTrie
+	delegateTrie, err := trie.NewBatchTrie(nil, chain.Storage())
+	if err != nil {
+		return nil, err
 	}
-	if context.nextDynastyTrie, err = dc.nextDynastyTrie.Clone(); err != nil {
-		return nil, ErrCloneNextDynastyTrie
+	candidateTrie, err := trie.NewBatchTrie(nil, chain.Storage())
+	if err != nil {
+		return nil, err
 	}
-	if context.delegateTrie, err = dc.delegateTrie.Clone(); err != nil {
-		return nil, ErrCloneDelegateTrie
+	voteTrie, err := trie.NewBatchTrie(nil, chain.Storage())
+	if err != nil {
+		return nil, err
 	}
-	if context.candidateTrie, err = dc.candidateTrie.Clone(); err != nil {
-		return nil, ErrCloneCandidatesTrie
+	mintTrie, err := trie.NewBatchTrie(nil, chain.Storage())
+	if err != nil {
+		return nil, err
 	}
-	if context.voteTrie, err = dc.voteTrie.Clone(); err != nil {
-		return nil, ErrCloneVoteTrie
+	if len(conf.Consensus.Dpos.Dynasty) < SafeSize {
+		return nil, ErrInitialDynastyNotEnough
 	}
-	if context.mintCntTrie, err = dc.mintCntTrie.Clone(); err != nil {
-		return nil, ErrCloneMintCntTrie
+	for i := 0; i < len(conf.Consensus.Dpos.Dynasty); i++ {
+		addr := conf.Consensus.Dpos.Dynasty[i]
+		member, err := core.AddressParse(addr)
+		if err != nil {
+			return nil, err
+		}
+		v := member.Bytes()
+		if i < DynastySize {
+			if _, err = dynastyTrie.Put(v, v); err != nil {
+				return nil, err
+			}
+		}
+		if _, err = voteTrie.Put(v, v); err != nil {
+			return nil, err
+		}
+		key := append(v, v...)
+		if _, err = delegateTrie.Put(key, v); err != nil {
+			return nil, err
+		}
+		if _, err = candidateTrie.Put(v, v); err != nil {
+			return nil, err
+		}
 	}
-	return context, nil
-}
+	nextDynastyTrie, err := dynastyTrie.Clone()
+	if err != nil {
+		return nil, err
+	}
+	protectTrie, err := candidateTrie.Clone()
+	if err != nil {
+		return nil, err
+	}
+	return &DposState{
+		timeStamp: core.GenesisTimestamp,
+		proposer:  nil,
 
-// ToProto converts domain DposContext to proto DposContext
-func (dc *DposContext) ToProto() (*corepb.DposContext, error) {
-	return &corepb.DposContext{
-		DynastyRoot:     dc.dynastyTrie.RootHash(),
-		NextDynastyRoot: dc.nextDynastyTrie.RootHash(),
-		DelegateRoot:    dc.delegateTrie.RootHash(),
-		CandidateRoot:   dc.candidateTrie.RootHash(),
-		VoteRoot:        dc.voteTrie.RootHash(),
-		MintCntRoot:     dc.mintCntTrie.RootHash(),
+		dynastyTrie:     dynastyTrie,
+		nextDynastyTrie: nextDynastyTrie,
+		delegateTrie:    delegateTrie,
+		voteTrie:        voteTrie,
+		candidateTrie:   candidateTrie,
+		mintCntTrie:     mintTrie,
+		protectTrie:     protectTrie,
+
+		chain:     chain,
+		consensus: dpos,
 	}, nil
 }
 
-// FromProto converts proto DposContext to domain DposContext
-func (dc *DposContext) FromProto(msg *corepb.DposContext) error {
+// HashDposState hash dpos context root hash
+/* func HashDposState(ds *dpospb.DposState) byteutils.Hash {
+	hasher := sha3.New256()
+
+	hasher.Write(ds.DynastyRoot)
+	hasher.Write(ds.NextDynastyRoot)
+	hasher.Write(ds.DelegateRoot)
+	hasher.Write(ds.VoteRoot)
+	hasher.Write(ds.CandidateRoot)
+	hasher.Write(ds.MintCntRoot)
+
+	return hasher.Sum(nil)
+} */
+
+// BeginBatch starts a batch task
+func (ds *DposState) BeginBatch() {
+	// logging.VLog().Debug("DposState Begin.")
+	ds.delegateTrie.BeginBatch()
+	ds.dynastyTrie.BeginBatch()
+	ds.nextDynastyTrie.BeginBatch()
+	ds.candidateTrie.BeginBatch()
+	ds.voteTrie.BeginBatch()
+	ds.mintCntTrie.BeginBatch()
+}
+
+// Commit a batch task
+func (ds *DposState) Commit() {
+	ds.delegateTrie.Commit()
+	ds.dynastyTrie.Commit()
+	ds.nextDynastyTrie.Commit()
+	ds.candidateTrie.Commit()
+	ds.voteTrie.Commit()
+	ds.mintCntTrie.Commit()
+	// logging.VLog().Debug("DposState Commit.")
+}
+
+// RollBack a batch task
+func (ds *DposState) RollBack() {
+	ds.delegateTrie.RollBack()
+	ds.dynastyTrie.RollBack()
+	ds.nextDynastyTrie.RollBack()
+	ds.candidateTrie.RollBack()
+	ds.voteTrie.RollBack()
+	ds.mintCntTrie.RollBack()
+	// logging.VLog().Debug("DposState RollBack.")
+}
+
+// Clone a dpos context
+func (ds *DposState) Clone() (state.ConsensusState, error) {
 	var err error
-	if dc.dynastyTrie, err = trie.NewBatchTrie(msg.DynastyRoot, dc.storage); err != nil {
+	dynastyTrie, err := ds.dynastyTrie.Clone()
+	if err != nil {
+		return nil, ErrCloneDynastyTrie
+	}
+	nextDynastyTrie, err := ds.nextDynastyTrie.Clone()
+	if err != nil {
+		return nil, ErrCloneNextDynastyTrie
+	}
+	delegateTrie, err := ds.delegateTrie.Clone()
+	if err != nil {
+		return nil, ErrCloneDelegateTrie
+	}
+	candidateTrie, err := ds.candidateTrie.Clone()
+	if err != nil {
+		return nil, ErrCloneCandidatesTrie
+	}
+	voteTrie, err := ds.voteTrie.Clone()
+	if err != nil {
+		return nil, ErrCloneVoteTrie
+	}
+	mintCntTrie, err := ds.mintCntTrie.Clone()
+	if err != nil {
+		return nil, ErrCloneMintCntTrie
+	}
+	return &DposState{
+		timeStamp: ds.timeStamp,
+		proposer:  ds.proposer,
+
+		dynastyTrie:     dynastyTrie,
+		nextDynastyTrie: nextDynastyTrie,
+		delegateTrie:    delegateTrie,
+		candidateTrie:   candidateTrie,
+		voteTrie:        voteTrie,
+		mintCntTrie:     mintCntTrie,
+		protectTrie:     ds.protectTrie,
+
+		chain:     ds.chain,
+		consensus: ds.consensus,
+	}, nil
+}
+
+// ToProto converts domain DposState to proto DposState
+func (ds *DposState) ToProto() (*dpospb.DposState, error) {
+	return &dpospb.DposState{
+		DynastyRoot:     ds.dynastyTrie.RootHash(),
+		NextDynastyRoot: ds.nextDynastyTrie.RootHash(),
+		DelegateRoot:    ds.delegateTrie.RootHash(),
+		CandidateRoot:   ds.candidateTrie.RootHash(),
+		VoteRoot:        ds.voteTrie.RootHash(),
+		MintCntRoot:     ds.mintCntTrie.RootHash(),
+	}, nil
+}
+
+// FromProto converts proto DposState to domain DposState
+func (ds *DposState) FromProto(msg *dpospb.DposState) error {
+	var err error
+	storage := ds.chain.Storage()
+	if ds.dynastyTrie, err = trie.NewBatchTrie(msg.DynastyRoot, storage); err != nil {
 		return err
 	}
-	if dc.nextDynastyTrie, err = trie.NewBatchTrie(msg.NextDynastyRoot, dc.storage); err != nil {
+	if ds.nextDynastyTrie, err = trie.NewBatchTrie(msg.NextDynastyRoot, storage); err != nil {
 		return err
 	}
-	if dc.delegateTrie, err = trie.NewBatchTrie(msg.DelegateRoot, dc.storage); err != nil {
+	if ds.delegateTrie, err = trie.NewBatchTrie(msg.DelegateRoot, storage); err != nil {
 		return err
 	}
-	if dc.candidateTrie, err = trie.NewBatchTrie(msg.CandidateRoot, dc.storage); err != nil {
+	if ds.candidateTrie, err = trie.NewBatchTrie(msg.CandidateRoot, storage); err != nil {
 		return err
 	}
-	if dc.voteTrie, err = trie.NewBatchTrie(msg.VoteRoot, dc.storage); err != nil {
+	if ds.voteTrie, err = trie.NewBatchTrie(msg.VoteRoot, storage); err != nil {
 		return err
 	}
-	if dc.mintCntTrie, err = trie.NewBatchTrie(msg.MintCntRoot, dc.storage); err != nil {
+	if ds.mintCntTrie, err = trie.NewBatchTrie(msg.MintCntRoot, storage); err != nil {
 		return err
 	}
 	return nil
 }
 
-// DynastyContext contains the dynasty context at given timestamp
-type DynastyContext struct {
-	TimeStamp       int64
-	Proposer        byteutils.Hash
-	DynastyTrie     *trie.BatchTrie
-	NextDynastyTrie *trie.BatchTrie
-	DelegateTrie    *trie.BatchTrie
-	CandidateTrie   *trie.BatchTrie
-	ProtectTrie     *trie.BatchTrie
-	VoteTrie        *trie.BatchTrie
-	MintCntTrie     *trie.BatchTrie
-	WorldState      *WorldState
-	Storage         storage.Storage
+// DposContextHash hash dpos context
+func (ds *DposState) RootHash() (byteutils.Hash, error) {
+	hasher := sha3.New256()
+
+	hasher.Write(ds.dynastyTrie.RootHash())
+	hasher.Write(ds.nextDynastyTrie.RootHash())
+	hasher.Write(ds.delegateTrie.RootHash())
+	hasher.Write(ds.voteTrie.RootHash())
+	hasher.Write(ds.candidateTrie.RootHash())
+	hasher.Write(ds.mintCntTrie.RootHash())
+
+	return hasher.Sum(nil), nil
 }
 
-func (dc *DynastyContext) tallyVotes() (map[string]*util.Uint128, error) {
+func (ds *DposState) GetMintCnt(timestamp int64, miner byteutils.Hash) (int64, error) {
+	dynasty := timestamp / DynastyInterval
+	key := append(byteutils.FromInt64(dynasty), miner...)
+	bytes, err := ds.mintCntTrie.Get(key)
+	if err != nil && err != storage.ErrKeyNotFound {
+		return 0, err
+	}
+	cnt := int64(0)
+	if err != storage.ErrKeyNotFound {
+		cnt = byteutils.Int64(bytes)
+	}
+	return cnt, nil
+}
+
+func (ds *DposState) PutMintCnt(timestamp int64, miner byteutils.Hash, cnt int64) error {
+	dynasty := timestamp / DynastyInterval
+	key := append(byteutils.FromInt64(dynasty), miner...)
+	_, err := ds.mintCntTrie.Put(key, byteutils.FromInt64(cnt))
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (ds *DposState) GetCandidate(candidate byteutils.Hash) (byteutils.Hash, error) {
+	return ds.candidateTrie.Get(candidate)
+}
+
+func (ds *DposState) AddCandidate(candidate byteutils.Hash) error {
+	_, err := ds.candidateTrie.Put(candidate, candidate)
+	return err
+}
+
+func (ds *DposState) DelCandidate(candidate byteutils.Hash) error {
+	return ds.kickoutCandidate(candidate)
+}
+
+func (ds *DposState) GetVote(voter byteutils.Hash) (byteutils.Hash, error) {
+	return ds.GetVote(voter)
+}
+
+func (ds *DposState) AddVote(voter byteutils.Hash, votee byteutils.Hash) error {
+	_, err := ds.voteTrie.Put(voter, votee)
+	return err
+}
+
+func (ds *DposState) DelVote(voter byteutils.Hash) error {
+	_, err := ds.voteTrie.Del(voter)
+	return err
+}
+
+func (ds *DposState) IterVote() (state.Iterator, error) {
+	return ds.voteTrie.Iterator(nil)
+}
+
+func (ds *DposState) HasDelegate(delegator byteutils.Hash, delegatee byteutils.Hash) (bool, error) {
+	key := append(delegatee, delegator...)
+	_, err := ds.delegateTrie.Get(key)
+	if err != nil && err != storage.ErrKeyNotFound {
+		return false, err
+	}
+	if err == storage.ErrKeyNotFound {
+		return false, nil
+	}
+	return true, nil
+}
+
+func (ds *DposState) AddDelegate(delegator byteutils.Hash, delegatee byteutils.Hash) error {
+	key := append(delegatee, delegator...)
+	_, err := ds.delegateTrie.Put(key, delegator)
+	return err
+}
+
+func (ds *DposState) DelDelegate(delegator byteutils.Hash, delegatee byteutils.Hash) error {
+	key := append(delegatee, delegator...)
+	_, err := ds.delegateTrie.Del(key)
+	return err
+}
+
+func (ds *DposState) IterDelegate(delegatee byteutils.Hash) (state.Iterator, error) {
+	return ds.delegateTrie.Iterator(delegatee)
+}
+
+func (ds *DposState) Dynasty() ([]byteutils.Hash, error) {
+	return TraverseDynasty(ds.dynastyTrie)
+}
+
+func (ds *DposState) DynastyRoot() byteutils.Hash {
+	return ds.dynastyTrie.RootHash()
+}
+
+func (ds *DposState) NextDynasty() ([]byteutils.Hash, error) {
+	return TraverseDynasty(ds.nextDynastyTrie)
+}
+
+func (ds *DposState) NextDynastyRoot() byteutils.Hash {
+	return ds.nextDynastyTrie.RootHash()
+}
+
+func (ds *DposState) Candidates() ([]byteutils.Hash, error) {
+	return TraverseDynasty(ds.candidateTrie)
+}
+
+func (ds *DposState) tallyVotes(worldState state.WorldState) (map[string]*util.Uint128, error) {
 	votes := make(map[string]*util.Uint128)
-	delegate := dc.DelegateTrie
-	candidates := dc.CandidateTrie
-	worldState := dc.WorldState
+	delegate := ds.delegateTrie
+	candidates := ds.candidateTrie
 	iterCandidates, err := candidates.Iterator(nil)
 	if err != nil && err != storage.ErrKeyNotFound {
 		return nil, err
@@ -237,7 +475,7 @@ func (dc *DynastyContext) tallyVotes() (map[string]*util.Uint128, error) {
 		return nil, err
 	}
 	for existCandidates {
-		delegatee, err := AddressParseFromBytes(iterCandidates.Value())
+		delegatee, err := core.AddressParseFromBytes(iterCandidates.Value())
 		if err != nil {
 			return nil, err
 		}
@@ -258,7 +496,7 @@ func (dc *DynastyContext) tallyVotes() (map[string]*util.Uint128, error) {
 			return nil, err
 		}
 		for existDelegate {
-			delegator, err := AddressParseFromBytes(iterDelegate.Value())
+			delegator, err := core.AddressParseFromBytes(iterDelegate.Value())
 			if err != nil {
 				return nil, err
 			}
@@ -288,7 +526,7 @@ func (dc *DynastyContext) tallyVotes() (map[string]*util.Uint128, error) {
 
 // Candidate is a data structure to hold candidate's info.
 type Candidate struct {
-	Address *Address
+	Address *core.Address
 	Votes   *util.Uint128
 }
 
@@ -355,17 +593,17 @@ func checkActiveBootstrapValidator(validator byteutils.Hash, protect *trie.Batch
 	return true, nil
 }
 
-func (dc *DynastyContext) chooseCandidates(votes map[string]*util.Uint128) (Candidates, error) {
+func (ds *DposState) chooseCandidates(votes map[string]*util.Uint128) (Candidates, error) {
 	// startAt := time.Now().Unix()
 	// active bootstrap validators
 	var bootstrapCandidates Candidates
-	activeBootstrapValidators, err := fetchActiveBootstapValidators(dc.ProtectTrie, dc.CandidateTrie)
+	activeBootstrapValidators, err := fetchActiveBootstapValidators(ds.protectTrie, ds.candidateTrie)
 	if err != nil {
 		return nil, err
 	}
 	// fetchAt := time.Now().Unix()
 	for i := 0; i < len(activeBootstrapValidators); i++ {
-		address, err := AddressParseFromBytes(activeBootstrapValidators[i])
+		address, err := core.AddressParseFromBytes(activeBootstrapValidators[i])
 		if err != nil {
 			return nil, err
 		}
@@ -382,7 +620,7 @@ func (dc *DynastyContext) chooseCandidates(votes map[string]*util.Uint128) (Cand
 	// sort
 	var candidates Candidates
 	for k, v := range votes {
-		addr, err := AddressParse(k)
+		addr, err := core.AddressParse(k)
 		if err != nil {
 			return nil, err
 		}
@@ -459,18 +697,14 @@ func kickout(stor storage.Storage, candidatesTrie *trie.BatchTrie, delegateTrie 
 	return nil
 }
 
-func (dc *DposContext) kickoutCandidate(candidate byteutils.Hash) error {
-	return kickout(dc.storage, dc.candidateTrie, dc.delegateTrie, dc.voteTrie, candidate)
+func (ds *DposState) kickoutCandidate(candidate byteutils.Hash) error {
+	return kickout(ds.chain.Storage(), ds.candidateTrie, ds.delegateTrie, ds.voteTrie, candidate)
 }
 
-func (dc *DynastyContext) kickoutCandidate(candidate byteutils.Hash) error {
-	return kickout(dc.Storage, dc.CandidateTrie, dc.DelegateTrie, dc.VoteTrie, candidate)
-}
-
-func (dc *DynastyContext) kickoutDynasty(dynastyID int64) error {
+func (ds *DposState) kickoutDynasty(dynastyID int64) error {
 	// startAt := time.Now().Unix()
 
-	dynastyTrie := dc.DynastyTrie
+	dynastyTrie := ds.dynastyTrie
 	iter, err := dynastyTrie.Iterator(nil)
 	if err != nil && err != storage.ErrKeyNotFound {
 		return err
@@ -490,7 +724,7 @@ func (dc *DynastyContext) kickoutDynasty(dynastyID int64) error {
 
 		validator := iter.Value()
 		key := append(byteutils.FromInt64(dynastyID), validator...)
-		bytes, err := dc.MintCntTrie.Get(key)
+		bytes, err := ds.mintCntTrie.Get(key)
 		if err != nil && err != storage.ErrKeyNotFound {
 			return err
 		}
@@ -506,14 +740,14 @@ func (dc *DynastyContext) kickoutDynasty(dynastyID int64) error {
 		}
 		// vCheckAt := time.Now().Unix()
 
-		isActiveBootstrapValidator, err := checkActiveBootstrapValidator(validator, dc.ProtectTrie, dc.CandidateTrie)
+		isActiveBootstrapValidator, err := checkActiveBootstrapValidator(validator, ds.protectTrie, ds.candidateTrie)
 		if err != nil {
 			return err
 		}
 		// vCheckProtectAt := time.Now().Unix()
 
 		if !isActiveBootstrapValidator {
-			if err := dc.kickoutCandidate(validator); err != nil {
+			if err := ds.kickoutCandidate(validator); err != nil {
 				return err
 			}
 		}
@@ -544,7 +778,7 @@ func (dc *DynastyContext) kickoutDynasty(dynastyID int64) error {
 	return nil
 }
 
-func (dc *DynastyContext) electNextDynastyOnBaseDynasty(baseDynastyID int64, nextDynastyID int64, baseGenesis bool) error {
+func (ds *DposState) electNextDynastyOnBaseDynasty(worldState state.WorldState, baseDynastyID int64, nextDynastyID int64, baseGenesis bool) error {
 	/* 	logging.VLog().WithFields(logrus.Fields{
 		"base":            baseDynastyID,
 		"next":            nextDynastyID,
@@ -560,20 +794,20 @@ func (dc *DynastyContext) electNextDynastyOnBaseDynasty(baseDynastyID int64, nex
 		// electAt := time.Now().Unix()
 		// collect candidates
 		if !baseGenesis {
-			err := dc.kickoutDynasty(i)
+			err := ds.kickoutDynasty(i)
 			if err != nil {
 				return err
 			}
 		}
 		// kickAt := time.Now().Unix()
 
-		votes, err := dc.tallyVotes()
+		votes, err := ds.tallyVotes(worldState)
 		if err != nil {
 			return err
 		}
 		// tallyAt := time.Now().Unix()
 
-		candidates, err := dc.chooseCandidates(votes)
+		candidates, err := ds.chooseCandidates(votes)
 		if err != nil {
 			return err
 		}
@@ -584,7 +818,7 @@ func (dc *DynastyContext) electNextDynastyOnBaseDynasty(baseDynastyID int64, nex
 
 		// Top 20 are selected directly
 		newDynasty := []string{}
-		nextDynastyTrie, err := trie.NewBatchTrie(nil, dc.Storage)
+		nextDynastyTrie, err := trie.NewBatchTrie(nil, ds.chain.Storage())
 		directSelected := DynastySize - 1
 		for i := 0; i < directSelected && i < len(candidates); i++ {
 			delegatee := candidates[i].Address.Bytes()
@@ -598,7 +832,7 @@ func (dc *DynastyContext) electNextDynastyOnBaseDynasty(baseDynastyID int64, nex
 
 		// The last one is selected randomly
 		if len(candidates) > directSelected {
-			accStateRoot, err := dc.WorldState.accState.RootHash()
+			accStateRoot, err := worldState.AccountsRoot()
 			if err != nil {
 				return err
 			}
@@ -616,8 +850,8 @@ func (dc *DynastyContext) electNextDynastyOnBaseDynasty(baseDynastyID int64, nex
 		}
 		// lastAt := time.Now().Unix()
 
-		dc.DynastyTrie = dc.NextDynastyTrie
-		dc.NextDynastyTrie = nextDynastyTrie
+		ds.dynastyTrie = ds.nextDynastyTrie
+		ds.nextDynastyTrie = nextDynastyTrie
 
 		/* 		logging.VLog().WithFields(logrus.Fields{
 			"dynasty.members":    newDynasty,
@@ -636,80 +870,6 @@ func (dc *DynastyContext) electNextDynastyOnBaseDynasty(baseDynastyID int64, nex
 	}).Debug("Elected Over") */
 
 	return nil
-}
-
-// LoadDynastyContext from a given context
-func (block *Block) LoadDynastyContext(context *DynastyContext) error {
-	block.header.timestamp = context.TimeStamp
-	return block.worldState.loadConsensusContext(context)
-}
-
-// GenesisDynastyContext return dynasty context in genesis
-func GenesisDynastyContext(chain *BlockChain, conf *corepb.Genesis) (*DynastyContext, error) {
-	dynastyTrie, err := trie.NewBatchTrie(nil, chain.storage)
-	if err != nil {
-		return nil, err
-	}
-	delegateTrie, err := trie.NewBatchTrie(nil, chain.storage)
-	if err != nil {
-		return nil, err
-	}
-	candidateTrie, err := trie.NewBatchTrie(nil, chain.storage)
-	if err != nil {
-		return nil, err
-	}
-	voteTrie, err := trie.NewBatchTrie(nil, chain.storage)
-	if err != nil {
-		return nil, err
-	}
-	mintTrie, err := trie.NewBatchTrie(nil, chain.storage)
-	if err != nil {
-		return nil, err
-	}
-	if len(conf.Consensus.Dpos.Dynasty) < SafeSize {
-		return nil, ErrInitialDynastyNotEnough
-	}
-	for i := 0; i < len(conf.Consensus.Dpos.Dynasty); i++ {
-		addr := conf.Consensus.Dpos.Dynasty[i]
-		member, err := AddressParse(addr)
-		if err != nil {
-			return nil, err
-		}
-		v := member.Bytes()
-		if i < DynastySize {
-			if _, err = dynastyTrie.Put(v, v); err != nil {
-				return nil, err
-			}
-		}
-		if _, err = voteTrie.Put(v, v); err != nil {
-			return nil, err
-		}
-		key := append(v, v...)
-		if _, err = delegateTrie.Put(key, v); err != nil {
-			return nil, err
-		}
-		if _, err = candidateTrie.Put(v, v); err != nil {
-			return nil, err
-		}
-	}
-	nextDynastyTrie, err := dynastyTrie.Clone()
-	if err != nil {
-		return nil, err
-	}
-	protectTrie, err := candidateTrie.Clone()
-	if err != nil {
-		return nil, err
-	}
-	return &DynastyContext{
-		TimeStamp:       GenesisTimestamp,
-		DynastyTrie:     dynastyTrie,
-		NextDynastyTrie: nextDynastyTrie,
-		DelegateTrie:    delegateTrie,
-		CandidateTrie:   candidateTrie,
-		ProtectTrie:     protectTrie,
-		MintCntTrie:     mintTrie,
-		VoteTrie:        voteTrie,
-	}, nil
 }
 
 // FindProposer for now in given dynasty
@@ -731,84 +891,88 @@ func FindProposer(now int64, dynasty *trie.BatchTrie) (proposer byteutils.Hash, 
 			"proposer":  proposer,
 			"offset":    offset,
 			"delegatee": len(delegatees),
-		}).Debug("Find Nil Proposer.")
+		}).Debug("Found Nil Proposer.")
 		return nil, ErrFoundNilProposer
 	}
 	return proposer, nil
 }
 
+func (ds *DposState) Proposer() byteutils.Hash {
+	return ds.proposer
+}
+
 // NextDynastyContext when some seconds elapsed
-func (block *Block) NextDynastyContext(chain *BlockChain, elapsedSecond int64) (*DynastyContext, error) {
+func (ds *DposState) NextConsensusState(elapsedSecond int64, worldState state.WorldState) (state.ConsensusState, error) {
 	if elapsedSecond%BlockInterval != 0 {
 		return nil, ErrNotBlockForgTime
 	}
 
-	dposContext := block.worldState.consensusState
-	genesisDposContext := chain.genesisBlock.worldState.consensusState
-	dynastyTrie, err := dposContext.dynastyTrie.Clone()
+	dynastyTrie, err := ds.dynastyTrie.Clone()
 	if err != nil {
 		return nil, err
 	}
-	nextDynastyTrie, err := dposContext.nextDynastyTrie.Clone()
+	nextDynastyTrie, err := ds.nextDynastyTrie.Clone()
 	if err != nil {
 		return nil, err
 	}
-	delegateTrie, err := dposContext.delegateTrie.Clone()
+	delegateTrie, err := ds.delegateTrie.Clone()
 	if err != nil {
 		return nil, err
 	}
-	candidateTrie, err := dposContext.candidateTrie.Clone()
+	candidateTrie, err := ds.candidateTrie.Clone()
 	if err != nil {
 		return nil, err
 	}
-	protectTrie, err := genesisDposContext.candidateTrie.Clone()
+	protectTrie, err := ds.protectTrie.Clone()
 	if err != nil {
 		return nil, err
 	}
-	voteTrie, err := dposContext.voteTrie.Clone()
+	voteTrie, err := ds.voteTrie.Clone()
 	if err != nil {
 		return nil, err
 	}
-	mintCntTrie, err := dposContext.mintCntTrie.Clone()
+	mintCntTrie, err := ds.mintCntTrie.Clone()
 	if err != nil {
 		return nil, err
 	}
 
-	context := &DynastyContext{
-		TimeStamp:       block.header.timestamp + elapsedSecond,
-		DynastyTrie:     dynastyTrie,
-		NextDynastyTrie: nextDynastyTrie,
-		DelegateTrie:    delegateTrie,
-		CandidateTrie:   candidateTrie,
-		ProtectTrie:     protectTrie,
-		VoteTrie:        voteTrie,
-		MintCntTrie:     mintCntTrie,
-		WorldState:      block.worldState,
-		Storage:         block.storage,
+	consensusState := &DposState{
+		timeStamp: ds.timeStamp + elapsedSecond,
+
+		dynastyTrie:     dynastyTrie,
+		nextDynastyTrie: nextDynastyTrie,
+		delegateTrie:    delegateTrie,
+		candidateTrie:   candidateTrie,
+		protectTrie:     protectTrie,
+		voteTrie:        voteTrie,
+		mintCntTrie:     mintCntTrie,
+
+		chain:     ds.chain,
+		consensus: ds.consensus,
 	}
 
-	baseDynastyID := block.header.timestamp / DynastyInterval
-	newDynastyID := context.TimeStamp / DynastyInterval
+	baseDynastyID := ds.timeStamp / DynastyInterval
+	newDynastyID := consensusState.timeStamp / DynastyInterval
 	if baseDynastyID < newDynastyID {
 		if baseDynastyID+1 < newDynastyID {
 			// do not kickout genesis dynasty
-			err = context.electNextDynastyOnBaseDynasty(baseDynastyID, newDynastyID-1, baseDynastyID == 0)
+			err = consensusState.electNextDynastyOnBaseDynasty(worldState, baseDynastyID, newDynastyID-1, baseDynastyID == 0)
 			if err != nil {
 				return nil, err
 			}
 		}
 		// do not kickout genesis's next dynasty
-		err = context.electNextDynastyOnBaseDynasty(newDynastyID-1, newDynastyID, baseDynastyID == 0)
+		err = consensusState.electNextDynastyOnBaseDynasty(worldState, newDynastyID-1, newDynastyID, baseDynastyID == 0)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	context.Proposer, err = FindProposer(context.TimeStamp, context.DynastyTrie)
+	consensusState.proposer, err = FindProposer(consensusState.timeStamp, consensusState.dynastyTrie)
 	if err != nil {
 		return nil, err
 	}
-	return context, nil
+	return consensusState, nil
 }
 
 // TraverseDynasty return all members in the dynasty

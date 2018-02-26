@@ -15,34 +15,14 @@
 // You should have received a copy of the GNU General Public License
 // along with the go-nebulas library.  If not, see <http://www.gnu.org/licenses/>.
 //
+syntax = "proto3";
+package dpospb;
 
-package main
-
-import (
-	"io/ioutil"
-	"log"
-	"os"
-	"time"
-
-	"github.com/nebulasio/go-nebulas/core"
-	"github.com/nebulasio/go-nebulas/nf/nvm"
-	"github.com/nebulasio/go-nebulas/storage"
-)
-
-func main() {
-	data, _ := ioutil.ReadFile(os.Args[1])
-
-	mem, _ := storage.NewMemoryStorage()
-	context, _ := core.NewWorldState(mem)
-	owner, _ := context.GetOrCreateUserAccount([]byte("account1"))
-	contract, _ := context.CreateContractAccount([]byte("account2"), nil)
-
-	ctx := nvm.NewContext(nil, nil, owner, contract, context)
-	engine := nvm.NewV8Engine(ctx)
-	result, err := engine.RunScriptSource(string(data), 0)
-
-	log.Fatalf("Result is %s. Err is %s", result, err)
-
-	time.Sleep(10 * time.Second)
-	engine.Dispose()
+message DposState {
+    bytes dynasty_root = 1;
+    bytes next_dynasty_root = 2;
+    bytes delegate_root = 3;
+    bytes candidate_root = 4;
+    bytes vote_root = 5;
+    bytes mint_cnt_root = 6;
 }

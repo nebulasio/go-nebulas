@@ -25,7 +25,6 @@ import (
 	"encoding/json"
 
 	"github.com/gogo/protobuf/proto"
-	"github.com/nebulasio/go-nebulas/common/trie"
 	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/core/pb"
 	"github.com/nebulasio/go-nebulas/crypto/hash"
@@ -313,29 +312,19 @@ func (s *APIService) toBlockResponse(block *core.Block, fullTransaction bool) (*
 	}
 
 	resp := &rpcpb.BlockResponse{
-		Hash:       block.Hash().String(),
-		ParentHash: block.ParentHash().String(),
-		Height:     block.Height(),
-		Nonce:      block.Nonce(),
-		Coinbase:   block.Coinbase().String(),
-		Miner:      block.Miner().String(),
-		Timestamp:  block.Timestamp(),
-		ChainId:    block.ChainID(),
-		StateRoot:  block.StateRoot().String(),
-		TxsRoot:    block.TxsRoot().String(),
-		EventsRoot: block.EventsRoot().String(),
+		Hash:          block.Hash().String(),
+		ParentHash:    block.ParentHash().String(),
+		Height:        block.Height(),
+		Nonce:         block.Nonce(),
+		Coinbase:      block.Coinbase().String(),
+		Miner:         block.Miner().String(),
+		Timestamp:     block.Timestamp(),
+		ChainId:       block.ChainID(),
+		StateRoot:     block.StateRoot().String(),
+		TxsRoot:       block.TxsRoot().String(),
+		EventsRoot:    block.EventsRoot().String(),
+		ConsensusRoot: block.ConsensusRoot().String(),
 	}
-
-	// dpos context
-	dposContextResp := &rpcpb.DposContext{
-		DynastyRoot:     byteutils.Hex(block.DposContext().DynastyRoot),
-		NextDynastyRoot: byteutils.Hex(block.DposContext().NextDynastyRoot),
-		DelegateRoot:    byteutils.Hex(block.DposContext().DelegateRoot),
-		CandidateRoot:   byteutils.Hex(block.DposContext().CandidateRoot),
-		VoteRoot:        byteutils.Hex(block.DposContext().VoteRoot),
-		MintCntRoot:     byteutils.Hex(block.DposContext().MintCntRoot),
-	}
-	resp.DposContext = dposContextResp
 
 	// add block transactions
 	txs := []*rpcpb.TransactionResponse{}
@@ -586,12 +575,7 @@ func (s *APIService) GetDynasty(ctx context.Context, req *rpcpb.ByBlockHeightReq
 	if block == nil {
 		block = neb.BlockChain().TailBlock()
 	}
-	dynastyRoot := block.DposContext().DynastyRoot
-	dynastyTrie, err := trie.NewBatchTrie(dynastyRoot, neb.BlockChain().Storage())
-	if err != nil {
-		return nil, err
-	}
-	delegatees, err := core.TraverseDynasty(dynastyTrie)
+	delegatees, err := block.WorldState().Dynasty()
 	if err != nil {
 		return nil, err
 	}
@@ -610,12 +594,7 @@ func (s *APIService) GetCandidates(ctx context.Context, req *rpcpb.ByBlockHeight
 	if block == nil {
 		block = neb.BlockChain().TailBlock()
 	}
-	candidateRoot := block.DposContext().CandidateRoot
-	candidateTrie, err := trie.NewBatchTrie(candidateRoot, neb.BlockChain().Storage())
-	if err != nil {
-		return nil, err
-	}
-	candidates, err := core.TraverseDynasty(candidateTrie)
+	candidates, err := block.WorldState().Candidates()
 	if err != nil {
 		return nil, err
 	}
@@ -638,9 +617,7 @@ func (s *APIService) GetDelegateVoters(ctx context.Context, req *rpcpb.GetDelega
 	if block == nil {
 		block = neb.BlockChain().TailBlock()
 	}
-	delegateRoot := block.DposContext().DelegateRoot
-	delegateTrie, _ := trie.NewBatchTrie(delegateRoot, neb.BlockChain().Storage())
-	iter, err := delegateTrie.Iterator(delegatee.Bytes())
+	iter, err := block.WorldState().IterDelegate(delegatee.Bytes())
 	if err != nil {
 		return nil, err
 	}

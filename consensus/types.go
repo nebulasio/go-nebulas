@@ -18,7 +18,13 @@
 
 package consensus
 
-import "github.com/nebulasio/go-nebulas/core"
+import (
+	"github.com/nebulasio/go-nebulas/core"
+	"github.com/nebulasio/go-nebulas/core/pb"
+	"github.com/nebulasio/go-nebulas/core/state"
+	"github.com/nebulasio/go-nebulas/storage"
+	"github.com/nebulasio/go-nebulas/util/byteutils"
+)
 
 // EventType list
 const (
@@ -43,6 +49,12 @@ type Consensus interface {
 	VerifyBlock(block *core.Block, parent *core.Block) error
 	FastVerifyBlock(block *core.Block) error
 	ForkChoice() error
+	UpdateLIB()
+
+	NewState(byteutils.Hash, storage.Storage) (state.ConsensusState, error)
+	CheckTimeout(*core.Block) bool
+
+	GenesisConsensusState(*core.BlockChain, *corepb.Genesis) (state.ConsensusState, error)
 }
 
 // EventType of Events in Consensus State-Machine

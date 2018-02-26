@@ -506,7 +506,7 @@ func (tx *Transaction) triggerEvent(topic string, block *Block, gasUsed *util.Ui
 		txData, _ = json.Marshal(pbTx)
 	}
 
-	event := &Event{Topic: topic,
+	event := &state.Event{Topic: topic,
 		Data: string(txData)}
 	block.worldState.RecordEvent(tx.hash, event)
 }
@@ -529,7 +529,7 @@ func (tx *Transaction) recordResultEvent(block *Block, gasUsed *util.Uint128, er
 	//	"topic": TopicTransactionExecutionResult,
 	//	"event": string(txData),
 	//}).Debug("record event.")
-	event := &Event{Topic: TopicTransactionExecutionResult,
+	event := &state.Event{Topic: TopicTransactionExecutionResult,
 		Data: string(txData)}
 	block.worldState.RecordEvent(tx.hash, event)
 }

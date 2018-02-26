@@ -19,11 +19,11 @@
 package core
 
 import (
+	"github.com/nebulasio/go-nebulas/core/state"
 	"io/ioutil"
 
 	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/core/pb"
-	"github.com/nebulasio/go-nebulas/storage"
 	"github.com/nebulasio/go-nebulas/util"
 	"github.com/nebulasio/go-nebulas/util/logging"
 	"github.com/sirupsen/logrus"
@@ -53,18 +53,17 @@ func LoadGenesisConf(filePath string) (*corepb.Genesis, error) {
 
 // NewGenesisBlock create genesis @Block from file.
 func NewGenesisBlock(conf *corepb.Genesis, chain *BlockChain) (*Block, error) {
-	worldState, err := NewWorldState(chain.storage)
+	worldState, err := state.NewWorldState(chain.ConsensusHandler(), chain.storage)
 	if err != nil {
 		return nil, err
 	}
 	genesisBlock := &Block{
 		header: &BlockHeader{
-			chainID:     conf.Meta.ChainId,
-			parentHash:  GenesisHash,
-			dposContext: &corepb.DposContext{},
-			coinbase:    GenesisCoinbase,
-			timestamp:   GenesisTimestamp,
-			nonce:       0,
+			chainID:    conf.Meta.ChainId,
+			parentHash: GenesisHash,
+			coinbase:   GenesisCoinbase,
+			timestamp:  GenesisTimestamp,
+			nonce:      0,
 		},
 		worldState: worldState,
 		txPool:     chain.txPool,
@@ -73,11 +72,17 @@ func NewGenesisBlock(conf *corepb.Genesis, chain *BlockChain) (*Block, error) {
 		sealed:     false,
 	}
 
-	context, err := GenesisDynastyContext(chain, conf)
+	consensusState, err := chain.ConsensusHandler().GenesisConsensusState(chain, conf)
 	if err != nil {
 		return nil, err
 	}
-	genesisBlock.LoadDynastyContext(context)
+	consensusRoot, err := consensusState.RootHash()
+	if err != nil {
+		return nil, err
+	}
+	if err := genesisBlock.worldState.LoadConsensusRoot(consensusRoot); err != nil {
+		return nil, err
+	}
 	genesisBlock.SetMiner(GenesisCoinbase)
 
 	genesisBlock.begin()
@@ -125,12 +130,12 @@ func CheckGenesisBlock(block *Block) bool {
 }
 
 // DumpGenesis return the configuration of the genesis block in the storage
-func DumpGenesis(stor storage.Storage) (*corepb.Genesis, error) {
-	genesis, err := LoadBlockFromStorage(GenesisHash, stor, nil, nil)
+func DumpGenesis(chain *BlockChain) (*corepb.Genesis, error) {
+	genesis, err := LoadBlockFromStorage(GenesisHash, chain)
 	if err != nil {
 		return nil, err
 	}
-	dynasty, err := genesis.worldState.candidates()
+	dynasty, err := genesis.worldState.Dynasty()
 	if err != nil {
 		return nil, err
 	}
@@ -139,7 +144,7 @@ func DumpGenesis(stor storage.Storage) (*corepb.Genesis, error) {
 		bootstrap = append(bootstrap, v.String())
 	}
 	distribution := []*corepb.GenesisTokenDistribution{}
-	accounts, err := genesis.worldState.accounts()
+	accounts, err := genesis.worldState.Accounts()
 	for _, v := range accounts {
 		balance := v.Balance()
 		if v.Address().Equals(genesis.Coinbase().Bytes()) {

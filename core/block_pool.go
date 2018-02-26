@@ -19,7 +19,6 @@
 package core
 
 import (
-	"strconv"
 	"sync"
 	"time"
 
@@ -152,14 +151,7 @@ func (pool *BlockPool) handleBlock(msg net.Message) {
 		return
 	}
 
-	behind := time.Now().Unix() - block.Timestamp()
-	if msg.MessageType() == MessageTypeNewBlock && behind > AcceptedNetWorkDelay {
-		logging.VLog().WithFields(logrus.Fields{
-			"block": block,
-			"diff":  behind,
-			"limit": AcceptedNetWorkDelay,
-			"err":   "timeout",
-		}).Debug("Found a timeout block.")
+	if msg.MessageType() == MessageTypeNewBlock && pool.bc.ConsensusHandler().CheckTimeout(block) {
 		return
 	}
 
@@ -349,8 +341,8 @@ func (pool *BlockPool) download(sender string, block *Block) error {
 		"target": sender,
 		"block":  block,
 		"tail":   pool.bc.TailBlock(),
-		"gap":    strconv.Itoa(int(block.Timestamp()-pool.bc.TailBlock().Timestamp())) + "s",
-		"limit":  strconv.Itoa(int(DynastyInterval)) + "s",
+		"gap":    block.Height() - pool.bc.TailBlock().Height(),
+		"limit":  ChunkSize,
 	}).Info("Send download request.")
 
 	return nil
@@ -445,8 +437,8 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 				logging.CLog().WithFields(logrus.Fields{
 					"tail":    bc.tailBlock,
 					"block":   block,
-					"offline": strconv.Itoa(int(lb.block.Timestamp()-bc.TailBlock().Timestamp())) + "s",
-					"limit":   strconv.Itoa(int(DynastyInterval)) + "s",
+					"offline": lb.block.Height() - bc.TailBlock().Height(),
+					"limit":   ChunkSize,
 				}).Warn("Offline too long, pend mining and restart sync from others.")
 			}
 			return ErrInvalidBlockCannotFindParentInLocalAndTrySync
