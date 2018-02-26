@@ -32,9 +32,30 @@ type Uint128 struct {
 	*big.Int
 }
 
+// Validate returns error if u is not a valid uint128, otherwise returns nil.
+func (u *Uint128) Validate() error {
+	if u.Sign() < 0 {
+		return ErrUint128Underflow
+	}
+	if u.BitLen() > Uint128Bits {
+		return ErrUint128Overflow
+	}
+	return nil
+}
+
 // NewUint128 returns a new Uint128 struct with default value.
 func NewUint128() *Uint128 {
 	return &Uint128{big.NewInt(0)}
+}
+
+// NewUint128FromStringSafe returns a new Uint128 struct with given value and have a check.
+func NewUint128FromStringSafe(str string) (*Uint128, error) {
+	big := new(big.Int)
+	big.SetString(str, 10)
+	if err := (&Uint128{big}).Validate(); nil != err {
+		return nil, err
+	}
+	return &Uint128{big}, nil
 }
 
 // NewUint128FromString returns a new Uint128 struct with given value.
@@ -44,9 +65,27 @@ func NewUint128FromString(str string) *Uint128 {
 	return &Uint128{big}
 }
 
+// NewUint128FromIntSafe returns a new Uint128 struct with given value and have a check.
+func NewUint128FromIntSafe(i int64) (*Uint128, error) {
+	obj := &Uint128{big.NewInt(i)}
+	if err := obj.Validate(); nil != err {
+		return nil, err
+	}
+	return obj, nil
+}
+
 // NewUint128FromInt returns a new Uint128 struct with given value.
 func NewUint128FromInt(i int64) *Uint128 {
 	return &Uint128{big.NewInt(i)}
+}
+
+// NewUint128FromBigIntSafe returns a new Uint128 struct with given value and have a check.
+func NewUint128FromBigIntSafe(i *big.Int) (*Uint128, error) {
+	obj := &Uint128{i}
+	if err := obj.Validate(); nil != err {
+		return nil, err
+	}
+	return obj, nil
 }
 
 // NewUint128FromBigInt returns a new Uint128 struct with given value.
@@ -64,17 +103,6 @@ func NewUint128FromFixedSizeBytes(bytes [16]byte) *Uint128 {
 func NewUint128FromFixedSizeByteSlice(bytes []byte) (*Uint128, error) {
 	u := NewUint128()
 	return u.FromFixedSizeByteSlice(bytes)
-}
-
-// Validate returns error if u is not a valid uint128, otherwise returns nil.
-func (u *Uint128) Validate() error {
-	if u.Sign() < 0 {
-		return ErrUint128Underflow
-	}
-	if u.BitLen() > Uint128Bits {
-		return ErrUint128Overflow
-	}
-	return nil
 }
 
 // ToFixedSizeBytes converts Uint128 to Big-Endian fixed size bytes.
@@ -135,4 +163,29 @@ func (u *Uint128) FromFixedSizeByteSlice(bytes []byte) (*Uint128, error) {
 		u.SetUint64(0)
 	}
 	return u, nil
+}
+
+//Add returns u + x
+func (u *Uint128) Add(x *Uint128) *Uint128 {
+	return &Uint128{NewUint128().Int.Add(u.Int, x.Int)}
+}
+
+//Sub returns u - x
+func (u *Uint128) Sub(x *Uint128) *Uint128 {
+	return &Uint128{NewUint128().Int.Sub(u.Int, x.Int)}
+}
+
+//Mul returns u * x
+func (u *Uint128) Mul(x *Uint128) *Uint128 {
+	return &Uint128{NewUint128().Int.Mul(u.Int, x.Int)}
+}
+
+//Div returns u / x
+func (u *Uint128) Div(x *Uint128) *Uint128 {
+	return &Uint128{NewUint128().Int.Div(u.Int, x.Int)}
+}
+
+//Exp returns u^x
+func (u *Uint128) Exp(x *Uint128) *Uint128 {
+	return &Uint128{NewUint128().Int.Exp(u.Int, x.Int, nil)}
 }

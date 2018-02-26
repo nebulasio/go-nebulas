@@ -272,7 +272,7 @@ func (dc *DynastyContext) tallyVotes() (map[string]*util.Uint128, error) {
 				return nil, err
 			}
 			weight := acc.Balance()
-			score.Add(score.Int, weight.Int)
+			score = score.Add(weight)
 			votes[delegatee.String()] = score
 			existDelegate, err = iterDelegate.Next()
 			if err != nil {

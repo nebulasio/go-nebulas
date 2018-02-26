@@ -250,7 +250,7 @@ func TestGetPrice(t *testing.T) {
 	signature.InitSign(key.(keystore.PrivateKey))
 	block, err := bc.NewBlock(from)
 	assert.Nil(t, err)
-	lowerGasPrice := util.NewUint128FromBigInt(util.NewUint128().Sub(TransactionGasPrice.Int, util.NewUint128FromInt(1).Int))
+	lowerGasPrice := TransactionGasPrice.Sub(util.NewUint128FromInt(1))
 	tx1 := NewTransaction(bc.ChainID(), from, from, util.NewUint128(), 1, TxPayloadBinaryType, []byte("nas"), lowerGasPrice, util.NewUint128FromInt(200000))
 	tx1.Sign(signature)
 	tx2 := NewTransaction(bc.ChainID(), from, from, util.NewUint128(), 2, TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, util.NewUint128FromInt(200000))

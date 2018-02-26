@@ -64,11 +64,13 @@ func main() {
 	}
 
 	{
+		var val *util.Uint128
 		r, err := ac.GetAccountState(context.Background(), &rpcpb.GetAccountStateRequest{Address: from})
 		if err != nil {
 			log.Println("GetAccountState", from, "failed", err)
+		} else if val, err = util.NewUint128FromStringSafe(r.GetBalance()); err != nil {
+			log.Println("GetAccountState", from, "failed to get balance", err)
 		} else {
-			val := util.NewUint128FromString(r.GetBalance())
 			nonce, _ = strconv.ParseUint(r.Nonce, 10, 64)
 			// nonce = r.Nonce
 			log.Println("GetAccountState", from, "nonce", r.Nonce, "value", val)
@@ -76,11 +78,13 @@ func main() {
 	}
 
 	{
+		var val *util.Uint128
 		r, err := ac.GetAccountState(context.Background(), &rpcpb.GetAccountStateRequest{Address: to})
 		if err != nil {
 			log.Println("GetAccountState", to, "failed", err)
+		} else if val, err = util.NewUint128FromStringSafe(r.GetBalance()); err != nil {
+			log.Println("GetAccountState", from, "failed to get balance", err)
 		} else {
-			val := util.NewUint128FromString(r.GetBalance())
 			// nonce = r.Nonce
 			log.Println("GetAccountState", to, "nonce", r.Nonce, "value", val)
 		}
@@ -107,11 +111,13 @@ func main() {
 	}
 
 	{
+		var val *util.Uint128
 		r, err := ac.GetAccountState(context.Background(), &rpcpb.GetAccountStateRequest{Address: to})
 		if err != nil {
 			log.Println("GetAccountState", to, "failed", err)
+		} else if val, err = util.NewUint128FromStringSafe(r.GetBalance()); err != nil {
+			log.Println("GetAccountState", from, "failed to get balance", err)
 		} else {
-			val := util.NewUint128FromString(r.GetBalance())
 			nonce, _ = strconv.ParseUint(r.Nonce, 10, 64)
 			// nonce = r.Nonce
 			log.Println("GetAccountState", to, "nonce", r.Nonce, "value", val)

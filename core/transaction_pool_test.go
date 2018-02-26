@@ -50,7 +50,7 @@ func TestTransactionPool(t *testing.T) {
 	signature2, _ := crypto.NewSignature(keystore.SECP256K1)
 	signature2.InitSign(key2.(keystore.PrivateKey))
 
-	heighPrice := util.NewUint128FromBigInt(util.NewUint128().Mul(TransactionGasPrice.Int, util.NewUint128FromInt(2).Int))
+	heighPrice := TransactionGasPrice.Mul(util.NewUint128FromInt(2))
 	txPool, _ := NewTransactionPool(3)
 	bc, _ := NewBlockChain(testNeb())
 	txPool.setBlockChain(bc)
@@ -149,7 +149,7 @@ func TestPushTxs(t *testing.T) {
 	bc, _ := NewBlockChain(testNeb())
 	txPool.setBlockChain(bc)
 	txPool.setEventEmitter(bc.eventEmitter)
-	MaxGasPlus1 := util.NewUint128FromBigInt(util.NewUint128().Add(TransactionMaxGas.Int, util.NewUint128FromInt(1).Int))
+	MaxGasPlus1 := TransactionMaxGas.Add(util.NewUint128FromInt(1))
 	txs := []*Transaction{
 		NewTransaction(bc.ChainID(), from, to, util.NewUint128(), 10, TxPayloadBinaryType, []byte("datadata"), util.NewUint128FromInt(10^6-1), TransactionMaxGas),
 		NewTransaction(bc.ChainID(), from, to, util.NewUint128(), 10, TxPayloadBinaryType, []byte("datadata"), TransactionGasPrice, MaxGasPlus1),

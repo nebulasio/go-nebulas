@@ -39,15 +39,13 @@ import (
 
 var (
 	// TransactionMaxGasPrice max gasPrice:50 * 10 ** 9
-	TransactionMaxGasPrice = util.NewUint128FromBigInt(util.NewUint128().Mul(util.NewUint128FromInt(50).Int,
-		util.NewUint128().Exp(util.NewUint128FromInt(10).Int, util.NewUint128FromInt(9).Int, nil)))
+	TransactionMaxGasPrice = util.NewUint128FromInt(50).Mul(util.NewUint128FromInt(10).Exp(util.NewUint128FromInt(9)))
 
 	// TransactionMaxGas max gas:50 * 10 ** 9
-	TransactionMaxGas = util.NewUint128FromBigInt(util.NewUint128().Mul(util.NewUint128FromInt(50).Int,
-		util.NewUint128().Exp(util.NewUint128FromInt(10).Int, util.NewUint128FromInt(9).Int, nil)))
+	TransactionMaxGas = util.NewUint128FromInt(50).Mul(util.NewUint128FromInt(10).Exp(util.NewUint128FromInt(9)))
 
 	// TransactionGasPrice default gasPrice : 10**6
-	TransactionGasPrice = util.NewUint128FromBigInt(util.NewUint128().Exp(util.NewUint128FromInt(10).Int, util.NewUint128FromInt(6).Int, nil))
+	TransactionGasPrice = util.NewUint128FromInt(10).Exp(util.NewUint128FromInt(6))
 
 	// MinGasCountPerTransaction default gas for normal transaction
 	MinGasCountPerTransaction = util.NewUint128FromInt(20000)
@@ -253,25 +251,23 @@ func (tx *Transaction) GasLimit() *util.Uint128 {
 // PayloadGasLimit returns payload gasLimit
 func (tx *Transaction) PayloadGasLimit(payload TxPayload) *util.Uint128 {
 	// payloadGasLimit = tx.gasLimit - tx.GasCountOfTxBase
-	payloadGasLimit := util.NewUint128().Sub(tx.gasLimit.Int, tx.GasCountOfTxBase().Int)
-	payloadGasLimit.Sub(payloadGasLimit, payload.BaseGasCount().Int)
-	return util.NewUint128FromBigInt(payloadGasLimit)
+	payloadGasLimit := tx.gasLimit.Sub(tx.GasCountOfTxBase())
+	return payloadGasLimit.Sub(payload.BaseGasCount())
 }
 
 // MinBalanceRequired returns gasprice * gaslimit.
 func (tx *Transaction) MinBalanceRequired() *util.Uint128 {
-	total := util.NewUint128().Mul(tx.GasPrice().Int, tx.GasLimit().Int)
-	return util.NewUint128FromBigInt(total)
+	total := tx.GasPrice().Mul(tx.GasLimit())
+	return total
 }
 
 // GasCountOfTxBase calculate the actual amount for a tx with data
 func (tx *Transaction) GasCountOfTxBase() *util.Uint128 {
 	txGas := util.NewUint128()
-	txGas.Add(txGas.Int, MinGasCountPerTransaction.Int)
+	txGas = txGas.Add(MinGasCountPerTransaction)
 	if tx.DataLen() > 0 {
-		dataGas := util.NewUint128()
-		dataGas.Mul(util.NewUint128FromInt(int64(tx.DataLen())).Int, GasCountPerByte.Int)
-		txGas.Add(txGas.Int, dataGas.Int)
+		dataGas := util.NewUint128FromInt(int64(tx.DataLen())).Mul(GasCountPerByte)
+		txGas = txGas.Add(dataGas)
 	}
 	return txGas
 }
@@ -339,11 +335,11 @@ func (tx *Transaction) LocalExecution(block *Block) (*util.Uint128, string, erro
 	}
 
 	gasUsed := tx.GasCountOfTxBase()
-	gasUsed.Add(gasUsed.Int, payload.BaseGasCount().Int)
+	gasUsed = gasUsed.Add(payload.BaseGasCount())
 
 	gasExecution, result, err := payload.Execute(txBlock, tx)
 
-	gas := util.NewUint128FromBigInt(util.NewUint128().Add(gasUsed.Int, gasExecution.Int))
+	gas := gasUsed.Add(gasExecution)
 	return gas, result, err
 }
 
@@ -394,7 +390,7 @@ func (tx *Transaction) VerifyExecution(block *Block) (*util.Uint128, error) {
 		return gasUsed, nil
 	}
 
-	gasUsed.Add(gasUsed.Int, payload.BaseGasCount().Int)
+	gasUsed = gasUsed.Add(payload.BaseGasCount())
 	if tx.gasLimit.Cmp(gasUsed.Int) < 0 {
 		logging.VLog().WithFields(logrus.Fields{
 			"err":   ErrOutOfGasLimit,
@@ -436,7 +432,7 @@ func (tx *Transaction) VerifyExecution(block *Block) (*util.Uint128, error) {
 	}
 
 	// gas = tx.GasCountOfTxBase() +  gasExecution
-	gas := util.NewUint128FromBigInt(util.NewUint128().Add(gasUsed.Int, gasExecution.Int))
+	gas := gasUsed.Add(gasExecution)
 	tx.gasConsumption(fromAcc, coinbaseAcc, gas)
 
 	if exeErr != nil {
@@ -475,9 +471,9 @@ func (tx *Transaction) VerifyExecution(block *Block) (*util.Uint128, error) {
 }
 
 func (tx *Transaction) gasConsumption(from, coinbase state.Account, gas *util.Uint128) {
-	gasCost := util.NewUint128().Mul(tx.GasPrice().Int, gas.Int)
-	from.SubBalance(util.NewUint128FromBigInt(gasCost))
-	coinbase.AddBalance(util.NewUint128FromBigInt(gasCost))
+	gasCost := tx.GasPrice().Mul(gas)
+	from.SubBalance(gasCost)
+	coinbase.AddBalance(gasCost)
 }
 
 func (tx *Transaction) triggerEvent(topic string, block *Block, gasUsed *util.Uint128, err error) {

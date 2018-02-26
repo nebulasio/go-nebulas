@@ -194,18 +194,18 @@ func TestTransaction_VerifyExecution(t *testing.T) {
 	bc.SetConsensusHandler(c)
 
 	// 1NAS = 10^18
-	balance := util.NewUint128FromBigInt(util.NewUint128().Exp(util.NewUint128FromInt(10).Int, util.NewUint128FromInt(18).Int, nil))
+	balance := util.NewUint128FromInt(10).Exp(util.NewUint128FromInt(18))
 	// normal tx
 	normalTx := mockNormalTransaction(bc.chainID, 0)
 	normalTx.value = util.NewUint128FromInt(1000000)
-	afterBalance := util.NewUint128FromBigInt(util.NewUint128().Sub(balance.Int, util.NewUint128().Mul(normalTx.gasPrice.Int, MinGasCountPerTransaction.Int)))
-	coinbaseBalance := util.NewUint128FromBigInt(util.NewUint128().Mul(normalTx.gasPrice.Int, MinGasCountPerTransaction.Int))
+	afterBalance := balance.Sub(normalTx.gasPrice.Mul(MinGasCountPerTransaction))
+	coinbaseBalance := normalTx.gasPrice.Mul(MinGasCountPerTransaction)
 	tests = append(tests, testTx{
 		name:            "normal tx",
 		tx:              normalTx,
 		fromBalance:     balance,
 		gasUsed:         MinGasCountPerTransaction,
-		afterBalance:    util.NewUint128FromBigInt(util.NewUint128().Sub(afterBalance.Int, normalTx.value.Int)),
+		afterBalance:    afterBalance.Sub(normalTx.value),
 		toBalance:       normalTx.value,
 		coinbaseBalance: coinbaseBalance,
 		wanted:          nil,
@@ -216,13 +216,13 @@ func TestTransaction_VerifyExecution(t *testing.T) {
 	deployTx := mockDeployTransaction(bc.chainID, 0)
 	deployTx.value = util.NewUint128()
 	gasUsed := util.NewUint128FromInt(21232)
-	coinbaseBalance = util.NewUint128FromBigInt(util.NewUint128().Mul(deployTx.gasPrice.Int, gasUsed.Int))
+	coinbaseBalance = deployTx.gasPrice.Mul(gasUsed)
 	tests = append(tests, testTx{
 		name:            "contract deploy tx",
 		tx:              deployTx,
 		fromBalance:     balance,
 		gasUsed:         gasUsed,
-		afterBalance:    util.NewUint128FromBigInt(util.NewUint128().Sub(balance.Int, util.NewUint128().Mul(deployTx.gasPrice.Int, gasUsed.Int))),
+		afterBalance:    balance.Sub(deployTx.gasPrice.Mul(gasUsed)),
 		toBalance:       deployTx.value,
 		coinbaseBalance: coinbaseBalance,
 		wanted:          nil,
@@ -233,13 +233,13 @@ func TestTransaction_VerifyExecution(t *testing.T) {
 	callTx := mockCallTransaction(bc.chainID, 1, "totalSupply", "")
 	callTx.value = util.NewUint128()
 	gasUsed = util.NewUint128FromInt(20036)
-	coinbaseBalance = util.NewUint128FromBigInt(util.NewUint128().Mul(callTx.gasPrice.Int, gasUsed.Int))
+	coinbaseBalance = callTx.gasPrice.Mul(gasUsed)
 	tests = append(tests, testTx{
 		name:            "contract call tx",
 		tx:              callTx,
 		fromBalance:     balance,
 		gasUsed:         gasUsed,
-		afterBalance:    util.NewUint128FromBigInt(util.NewUint128().Sub(balance.Int, util.NewUint128().Mul(callTx.gasPrice.Int, gasUsed.Int))),
+		afterBalance:    balance.Sub(callTx.gasPrice.Mul(gasUsed)),
 		toBalance:       callTx.value,
 		coinbaseBalance: coinbaseBalance,
 		wanted:          nil,
@@ -250,13 +250,13 @@ func TestTransaction_VerifyExecution(t *testing.T) {
 	candidateTx := mockCandidateTransaction(bc.chainID, 0, LoginAction)
 	candidateTx.value = util.NewUint128()
 	gasUsed = util.NewUint128FromInt(40018)
-	coinbaseBalance = util.NewUint128FromBigInt(util.NewUint128().Mul(candidateTx.gasPrice.Int, gasUsed.Int))
+	coinbaseBalance = candidateTx.gasPrice.Mul(gasUsed)
 	tests = append(tests, testTx{
 		name:            "candidate tx",
 		tx:              candidateTx,
 		fromBalance:     balance,
 		gasUsed:         gasUsed,
-		afterBalance:    util.NewUint128FromBigInt(util.NewUint128().Sub(balance.Int, util.NewUint128().Mul(candidateTx.gasPrice.Int, gasUsed.Int))),
+		afterBalance:    balance.Sub(candidateTx.gasPrice.Mul(gasUsed)),
 		toBalance:       candidateTx.value,
 		coinbaseBalance: coinbaseBalance,
 		wanted:          nil,
@@ -267,13 +267,13 @@ func TestTransaction_VerifyExecution(t *testing.T) {
 	delegateTx := mockDelegateTransaction(bc.chainID, 0, DelegateAction, mockAddress().String())
 	delegateTx.value = util.NewUint128()
 	gasUsed = util.NewUint128FromInt(40078)
-	coinbaseBalance = util.NewUint128FromBigInt(util.NewUint128().Mul(delegateTx.gasPrice.Int, gasUsed.Int))
+	coinbaseBalance = delegateTx.gasPrice.Mul(gasUsed)
 	tests = append(tests, testTx{
 		name:            "delegate tx",
 		tx:              delegateTx,
 		fromBalance:     balance,
 		gasUsed:         gasUsed,
-		afterBalance:    util.NewUint128FromBigInt(util.NewUint128().Sub(balance.Int, util.NewUint128().Mul(delegateTx.gasPrice.Int, gasUsed.Int))),
+		afterBalance:    balance.Sub(delegateTx.gasPrice.Mul(gasUsed)),
 		toBalance:       delegateTx.value,
 		coinbaseBalance: coinbaseBalance,
 		wanted:          nil,
@@ -313,13 +313,13 @@ func TestTransaction_VerifyExecution(t *testing.T) {
 	payloadErrTx := mockDeployTransaction(bc.chainID, 0)
 	payloadErrTx.value = util.NewUint128()
 	payloadErrTx.data.Payload = []byte("0x00")
-	coinbaseBalance = util.NewUint128FromBigInt(util.NewUint128().Mul(delegateTx.gasPrice.Int, payloadErrTx.GasCountOfTxBase().Int))
+	coinbaseBalance = delegateTx.gasPrice.Mul(payloadErrTx.GasCountOfTxBase())
 	tests = append(tests, testTx{
 		name:            "payload error tx",
 		tx:              payloadErrTx,
 		fromBalance:     balance,
 		gasUsed:         payloadErrTx.GasCountOfTxBase(),
-		afterBalance:    util.NewUint128FromBigInt(util.NewUint128().Sub(balance.Int, util.NewUint128().Mul(payloadErrTx.gasPrice.Int, payloadErrTx.GasCountOfTxBase().Int))),
+		afterBalance:    balance.Sub(payloadErrTx.gasPrice.Mul(payloadErrTx.GasCountOfTxBase())),
 		toBalance:       util.NewUint128(),
 		coinbaseBalance: coinbaseBalance,
 		wanted:          nil,
@@ -330,13 +330,13 @@ func TestTransaction_VerifyExecution(t *testing.T) {
 	executionErrTx := mockCallTransaction(bc.chainID, 0, "test", "")
 	executionErrTx.value = util.NewUint128()
 	gasUsed = util.NewUint128FromInt(20029)
-	coinbaseBalance = util.NewUint128FromBigInt(util.NewUint128().Mul(executionErrTx.gasPrice.Int, gasUsed.Int))
+	coinbaseBalance = executionErrTx.gasPrice.Mul(gasUsed)
 	tests = append(tests, testTx{
 		name:            "execution err tx",
 		tx:              executionErrTx,
 		fromBalance:     balance,
 		gasUsed:         gasUsed,
-		afterBalance:    util.NewUint128FromBigInt(util.NewUint128().Sub(balance.Int, util.NewUint128().Mul(executionErrTx.gasPrice.Int, gasUsed.Int))),
+		afterBalance:    balance.Sub(executionErrTx.gasPrice.Mul(gasUsed)),
 		toBalance:       util.NewUint128(),
 		coinbaseBalance: coinbaseBalance,
 		wanted:          nil,
@@ -347,13 +347,13 @@ func TestTransaction_VerifyExecution(t *testing.T) {
 	executionInsufficientBalanceTx := mockDeployTransaction(bc.chainID, 0)
 	executionInsufficientBalanceTx.value = balance
 	gasUsed = util.NewUint128FromInt(21232)
-	coinbaseBalance = util.NewUint128FromBigInt(util.NewUint128().Mul(executionInsufficientBalanceTx.gasPrice.Int, gasUsed.Int))
+	coinbaseBalance = executionInsufficientBalanceTx.gasPrice.Mul(gasUsed)
 	tests = append(tests, testTx{
 		name:            "execution insufficient fromBalance after execution tx",
 		tx:              executionInsufficientBalanceTx,
 		fromBalance:     balance,
 		gasUsed:         gasUsed,
-		afterBalance:    util.NewUint128FromBigInt(util.NewUint128().Sub(balance.Int, util.NewUint128().Mul(normalTx.gasPrice.Int, gasUsed.Int))),
+		afterBalance:    balance.Sub(normalTx.gasPrice.Mul(gasUsed)),
 		toBalance:       util.NewUint128(),
 		coinbaseBalance: coinbaseBalance,
 		wanted:          nil,
@@ -363,13 +363,13 @@ func TestTransaction_VerifyExecution(t *testing.T) {
 	// tx execution equal fromBalance after execution
 	executionEqualBalanceTx := mockDeployTransaction(bc.chainID, 0)
 	gasUsed = util.NewUint128FromInt(21232)
-	coinbaseBalance = util.NewUint128FromBigInt(util.NewUint128().Mul(executionInsufficientBalanceTx.gasPrice.Int, gasUsed.Int))
+	coinbaseBalance = executionInsufficientBalanceTx.gasPrice.Mul(gasUsed)
 	executionEqualBalanceTx.value = balance
-	gasCost := util.NewUint128FromBigInt(util.NewUint128().Mul(executionEqualBalanceTx.gasPrice.Int, gasUsed.Int))
+	gasCost := executionEqualBalanceTx.gasPrice.Mul(gasUsed)
 	tests = append(tests, testTx{
 		name:            "execution equal fromBalance after execution tx",
 		tx:              executionEqualBalanceTx,
-		fromBalance:     util.NewUint128FromBigInt(util.NewUint128().Add(gasCost.Int, balance.Int)),
+		fromBalance:     gasCost.Add(balance),
 		gasUsed:         gasUsed,
 		afterBalance:    util.NewUint128(),
 		toBalance:       balance,

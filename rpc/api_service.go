@@ -162,7 +162,6 @@ func (s *APIService) Call(ctx context.Context, req *rpcpb.TransactionRequest) (*
 
 func (s *APIService) sendTransaction(req *rpcpb.TransactionRequest) (*rpcpb.SendTransactionResponse, error) {
 	neb := s.server.Neblet()
-
 	tx, err := parseTransaction(neb, req)
 	if err != nil {
 		metricsSendTxFailed.Mark(1)
@@ -186,10 +185,18 @@ func parseTransaction(neb Neblet, reqTx *rpcpb.TransactionRequest) (*core.Transa
 		return nil, err
 	}
 
-	value := util.NewUint128FromString(reqTx.Value)
-	gasPrice := util.NewUint128FromString(reqTx.GasPrice)
-	gasLimit := util.NewUint128FromString(reqTx.GasLimit)
-
+	value, err := util.NewUint128FromStringSafe(reqTx.Value)
+	if err != nil {
+		return nil, err
+	}
+	gasPrice, err := util.NewUint128FromStringSafe(reqTx.GasPrice)
+	if err != nil {
+		return nil, err
+	}
+	gasLimit, err := util.NewUint128FromStringSafe(reqTx.GasLimit)
+	if err != nil {
+		return nil, err
+	}
 	var (
 		payloadType string
 		payload     []byte
@@ -228,7 +235,6 @@ func handleTransactionResponse(neb Neblet, tx *core.Transaction) (resp *rpcpb.Se
 			metricsSendTxSuccess.Mark(1)
 		}
 	}()
-
 	nonce, err := neb.BlockChain().TailBlock().GetNonce(tx.From().Bytes())
 	if err != nil {
 		return nil, err

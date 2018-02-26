@@ -125,8 +125,18 @@ func (n *Neblet) Setup() {
 			"err": err,
 		}).Fatal("Failed to setup blockchain.")
 	}
-	gasPrice := util.NewUint128FromString(n.config.Chain.GasPrice)
-	gasLimit := util.NewUint128FromString(n.config.Chain.GasLimit)
+	gasPrice, err := util.NewUint128FromStringSafe(n.config.Chain.GasPrice)
+	if err != nil {
+		logging.CLog().WithFields(logrus.Fields{
+			"err": err,
+		}).Fatal("Failed to get gasPrice")
+	}
+	gasLimit, err := util.NewUint128FromStringSafe(n.config.Chain.GasLimit)
+	if err != nil {
+		logging.CLog().WithFields(logrus.Fields{
+			"err": err,
+		}).Fatal("Failed to get gasLimit")
+	}
 	n.blockChain.TransactionPool().SetGasConfig(gasPrice, gasLimit)
 	n.blockChain.BlockPool().RegisterInNetwork(n.netService)
 	n.blockChain.TransactionPool().RegisterInNetwork(n.netService)

@@ -200,9 +200,18 @@ func parseTransaction(neb *neblet.Neblet, txJSON *txJSON) (*core.Transaction, er
 		return nil, err
 	}
 
-	value := util.NewUint128FromString(txJSON.Value)
-	gasPrice := util.NewUint128FromString(txJSON.GasPrice)
-	gasLimit := util.NewUint128FromString(txJSON.GasLimit)
+	value, err := util.NewUint128FromStringSafe(txJSON.Value)
+	if err != nil {
+		return nil, err
+	}
+	gasPrice, err := util.NewUint128FromStringSafe(txJSON.GasPrice)
+	if err != nil {
+		return nil, err
+	}
+	gasLimit, err := util.NewUint128FromStringSafe(txJSON.GasLimit)
+	if err != nil {
+		return nil, err
+	}
 
 	var (
 		payloadType string

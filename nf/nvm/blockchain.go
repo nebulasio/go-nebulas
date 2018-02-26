@@ -110,7 +110,15 @@ func TransferFunc(handler unsafe.Pointer, to *C.char, v *C.char) int {
 		return 1
 	}
 
-	amount := util.NewUint128FromString(C.GoString(v))
+	amount, err := util.NewUint128FromStringSafe(C.GoString(v))
+	if err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"handler": uint64(uintptr(handler)),
+			"address": addr,
+			"err":     err,
+		}).Debug("GetAmountFunc get amount failed.")
+		return 1
+	}
 
 	// update balance
 	err = engine.ctx.contract.SubBalance(amount)

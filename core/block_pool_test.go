@@ -115,7 +115,7 @@ func TestBlockPool(t *testing.T) {
 	signature, _ := crypto.NewSignature(keystore.SECP256K1)
 	signature.InitSign(key.(keystore.PrivateKey))
 	bc.tailBlock.begin()
-	balance := util.NewUint128FromBigInt(util.NewUint128().Mul(TransactionGasPrice.Int, util.NewUint128FromInt(2000000).Int))
+	balance := TransactionGasPrice.Mul(util.NewUint128FromInt(2000000))
 	acc, err := bc.tailBlock.accState.GetOrCreateUserAccount(from.Bytes())
 	assert.Nil(t, err)
 	acc.AddBalance(balance)
