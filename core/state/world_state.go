@@ -51,15 +51,11 @@ func NewWorldState(consensus Consensus, storage storage.Storage) (WorldState, er
 	if err != nil {
 		return nil, err
 	}
-	consensusState, err := consensus.NewState(nil, storage)
-	if err != nil {
-		return nil, err
-	}
 	return &worldState{
 		accState:       accState,
 		txsState:       txsState,
 		eventsState:    eventsState,
-		consensusState: consensusState,
+		consensusState: nil,
 
 		storage:   storage,
 		consensus: consensus,
@@ -102,6 +98,10 @@ func (ws *worldState) LoadConsensusRoot(root byteutils.Hash) error {
 	return nil
 }
 
+func (ws *worldState) SetConsensusState(consensusState ConsensusState) {
+	ws.consensusState = consensusState
+}
+
 // Clone a new WorldState
 func (ws *worldState) Clone() (WorldState, error) {
 	accState, err := ws.accState.Clone()
@@ -125,6 +125,9 @@ func (ws *worldState) Clone() (WorldState, error) {
 		txsState:       txsState,
 		eventsState:    eventsState,
 		consensusState: consensusState,
+
+		storage:   ws.storage,
+		consensus: ws.consensus,
 	}, nil
 }
 
@@ -303,6 +306,10 @@ func (ws *worldState) IterDelegate(delgatee byteutils.Hash) (Iterator, error) {
 
 func (ws *worldState) Candidates() ([]byteutils.Hash, error) {
 	return ws.consensusState.Candidates()
+}
+
+func (ws *worldState) CandidatesRoot() byteutils.Hash {
+	return ws.consensusState.CandidatesRoot()
 }
 
 func (ws *worldState) Dynasty() ([]byteutils.Hash, error) {

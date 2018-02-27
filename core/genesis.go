@@ -19,8 +19,9 @@
 package core
 
 import (
-	"github.com/nebulasio/go-nebulas/core/state"
 	"io/ioutil"
+
+	"github.com/nebulasio/go-nebulas/core/state"
 
 	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/core/pb"
@@ -63,29 +64,25 @@ func NewGenesisBlock(conf *corepb.Genesis, chain *BlockChain) (*Block, error) {
 			parentHash: GenesisHash,
 			coinbase:   GenesisCoinbase,
 			timestamp:  GenesisTimestamp,
-			nonce:      0,
 		},
-		worldState: worldState,
-		txPool:     chain.txPool,
-		storage:    chain.storage,
-		height:     1,
-		sealed:     false,
+		transactions: make(Transactions, 0),
+		parentBlock:  nil,
+		worldState:   worldState,
+		txPool:       chain.txPool,
+		height:       1,
+		sealed:       false,
+		storage:      chain.storage,
+		eventEmitter: chain.eventEmitter,
 	}
 
 	consensusState, err := chain.ConsensusHandler().GenesisConsensusState(chain, conf)
 	if err != nil {
 		return nil, err
 	}
-	consensusRoot, err := consensusState.RootHash()
-	if err != nil {
-		return nil, err
-	}
-	if err := genesisBlock.worldState.LoadConsensusRoot(consensusRoot); err != nil {
-		return nil, err
-	}
+	genesisBlock.worldState.SetConsensusState(consensusState)
 	genesisBlock.SetMiner(GenesisCoinbase)
 
-	genesisBlock.begin()
+	genesisBlock.Begin()
 	// add token distribution for genesis
 	for _, v := range conf.TokenDistribution {
 		addr, err := AddressParse(v.Address)
@@ -94,17 +91,17 @@ func NewGenesisBlock(conf *corepb.Genesis, chain *BlockChain) (*Block, error) {
 				"address": v.Address,
 				"err":     err,
 			}).Error("Found invalid address in genesis token distribution.")
-			genesisBlock.rollback()
+			genesisBlock.Rollback()
 			return nil, err
 		}
 		acc, err := genesisBlock.worldState.GetOrCreateUserAccount(addr.address)
 		if err != nil {
-			genesisBlock.rollback()
+			genesisBlock.Rollback()
 			return nil, err
 		}
 		acc.AddBalance(util.NewUint128FromString(v.Value))
 	}
-	genesisBlock.commit()
+	genesisBlock.Commit()
 
 	if err := genesisBlock.Seal(); err != nil {
 		logging.CLog().WithFields(logrus.Fields{

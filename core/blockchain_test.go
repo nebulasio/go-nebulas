@@ -27,23 +27,12 @@ import (
 	"github.com/nebulasio/go-nebulas/crypto/keystore/secp256k1"
 	"github.com/nebulasio/go-nebulas/util"
 
-	"github.com/gogo/protobuf/proto"
 	"github.com/stretchr/testify/assert"
 )
 
-func BlockFromNetwork(block *Block) *Block {
-	pb, _ := block.ToProto()
-	ir, _ := proto.Marshal(pb)
-	proto.Unmarshal(ir, pb)
-	b := new(Block)
-	b.FromProto(pb)
-	return b
-}
-
 func TestBlockChain_FindCommonAncestorWithTail(t *testing.T) {
-	bc, _ := NewBlockChain(testNeb())
-	var c MockConsensus
-	bc.SetConsensusHandler(c)
+	neb := testNeb(t)
+	bc := neb.chain
 
 	ks := keystore.DefaultKS
 	priv := secp256k1.GeneratePrivateKey()
@@ -61,7 +50,9 @@ func TestBlockChain_FindCommonAncestorWithTail(t *testing.T) {
 	block0.header.timestamp = BlockInterval
 	block0.SetMiner(from)
 	block0.Seal()
-	assert.Nil(t, bc.BlockPool().Push(BlockFromNetwork(block0)))
+	netBlock0, err := mockBlockFromNetwork(block0)
+	assert.Nil(t, err)
+	assert.Nil(t, bc.BlockPool().Push(netBlock0))
 	bc.SetTailBlock(block0)
 	assert.Equal(t, bc.latestIrreversibleBlock, bc.genesisBlock)
 
@@ -85,8 +76,12 @@ func TestBlockChain_FindCommonAncestorWithTail(t *testing.T) {
 	block11.Seal()
 	block12.SetMiner(coinbase12)
 	block12.Seal()
-	assert.Nil(t, bc.BlockPool().Push(BlockFromNetwork(block11)))
-	assert.Nil(t, bc.BlockPool().Push(BlockFromNetwork(block12)))
+	netBlock11, err := mockBlockFromNetwork(block11)
+	assert.Nil(t, err)
+	assert.Nil(t, bc.BlockPool().Push(netBlock11))
+	netBlock12, err := mockBlockFromNetwork(block12)
+	assert.Nil(t, err)
+	assert.Nil(t, bc.BlockPool().Push(netBlock12))
 	bc.SetTailBlock(block12)
 	assert.Equal(t, bc.latestIrreversibleBlock, bc.genesisBlock)
 	bc.SetTailBlock(block11)
@@ -95,7 +90,9 @@ func TestBlockChain_FindCommonAncestorWithTail(t *testing.T) {
 	block111.header.timestamp = BlockInterval * 4
 	block111.SetMiner(coinbase111)
 	block111.Seal()
-	assert.Nil(t, bc.BlockPool().Push(BlockFromNetwork(block111)))
+	netBlock111, err := mockBlockFromNetwork(block111)
+	assert.Nil(t, err)
+	assert.Nil(t, bc.BlockPool().Push(netBlock111))
 	bc.SetTailBlock(block12)
 	assert.Equal(t, bc.latestIrreversibleBlock, bc.genesisBlock)
 	block221, _ := bc.NewBlock(coinbase221)
@@ -106,15 +103,21 @@ func TestBlockChain_FindCommonAncestorWithTail(t *testing.T) {
 	block221.Seal()
 	block222.SetMiner(coinbase222)
 	block222.Seal()
-	assert.Nil(t, bc.BlockPool().Push(BlockFromNetwork(block221)))
-	assert.Nil(t, bc.BlockPool().Push(BlockFromNetwork(block222)))
+	netBlock221, err := mockBlockFromNetwork(block221)
+	assert.Nil(t, err)
+	assert.Nil(t, bc.BlockPool().Push(netBlock221))
+	netBlock222, err := mockBlockFromNetwork(block222)
+	assert.Nil(t, err)
+	assert.Nil(t, bc.BlockPool().Push(netBlock222))
 	bc.SetTailBlock(block111)
 	assert.Equal(t, bc.latestIrreversibleBlock, bc.genesisBlock)
 	block1111, _ := bc.NewBlock(coinbase1111)
 	block1111.header.timestamp = BlockInterval * 7
 	block1111.SetMiner(coinbase1111)
 	block1111.Seal()
-	assert.Nil(t, bc.BlockPool().Push(BlockFromNetwork(block1111)))
+	netBlock1111, err := mockBlockFromNetwork(block1111)
+	assert.Nil(t, err)
+	assert.Nil(t, bc.BlockPool().Push(netBlock1111))
 	bc.SetTailBlock(block222)
 	assert.Equal(t, bc.latestIrreversibleBlock, bc.genesisBlock)
 	tails := bc.DetachedTailBlocks()
@@ -127,24 +130,57 @@ func TestBlockChain_FindCommonAncestorWithTail(t *testing.T) {
 		assert.Equal(t, true, false)
 	}
 	assert.Equal(t, len(tails), 3)
+
 	test := &Block{header: &BlockHeader{coinbase: &Address{}}, miner: &Address{}}
-	_, err := bc.FindCommonAncestorWithTail(BlockFromNetwork(test))
+	netTest, err := mockBlockFromNetwork(test)
+	assert.Nil(t, err)
+	_, err = bc.FindCommonAncestorWithTail(netTest)
 	assert.Equal(t, err, ErrMissingParentBlock)
-	common1, err := bc.FindCommonAncestorWithTail(BlockFromNetwork(block1111))
+
+	netBlock1111, err = mockBlockFromNetwork(block1111)
 	assert.Nil(t, err)
-	assert.Equal(t, BlockFromNetwork(common1), BlockFromNetwork(block0))
-	common2, err := bc.FindCommonAncestorWithTail(BlockFromNetwork(block221))
+	common1, err := bc.FindCommonAncestorWithTail(netBlock1111)
 	assert.Nil(t, err)
-	assert.Equal(t, BlockFromNetwork(common2), BlockFromNetwork(block12))
-	common3, err := bc.FindCommonAncestorWithTail(BlockFromNetwork(block222))
+
+	netBlock0, err = mockBlockFromNetwork(block0)
 	assert.Nil(t, err)
-	assert.Equal(t, BlockFromNetwork(common3), BlockFromNetwork(block222))
-	common4, err := bc.FindCommonAncestorWithTail(BlockFromNetwork(bc.tailBlock))
+	netCommon1, err := mockBlockFromNetwork(common1)
 	assert.Nil(t, err)
-	assert.Equal(t, BlockFromNetwork(common4), BlockFromNetwork(bc.tailBlock))
-	common5, err := bc.FindCommonAncestorWithTail(BlockFromNetwork(block12))
+	assert.Equal(t, netCommon1, netBlock0)
+
+	netBlock221, err = mockBlockFromNetwork(block221)
 	assert.Nil(t, err)
-	assert.Equal(t, BlockFromNetwork(common5), BlockFromNetwork(block12))
+	common2, err := bc.FindCommonAncestorWithTail(netBlock221)
+	assert.Nil(t, err)
+	netCommon2, err := mockBlockFromNetwork(common2)
+	assert.Nil(t, err)
+	netBlock12, err = mockBlockFromNetwork(block12)
+	assert.Nil(t, err)
+	assert.Equal(t, netCommon2, netBlock12)
+
+	netBlock222, err = mockBlockFromNetwork(block222)
+	assert.Nil(t, err)
+	common3, err := bc.FindCommonAncestorWithTail(netBlock222)
+	assert.Nil(t, err)
+	netCommon3, err := mockBlockFromNetwork(common3)
+	assert.Nil(t, err)
+	assert.Equal(t, netCommon3, netBlock222)
+
+	netTail, err := mockBlockFromNetwork(bc.tailBlock)
+	assert.Nil(t, err)
+	common4, err := bc.FindCommonAncestorWithTail(netTail)
+	assert.Nil(t, err)
+	netCommon4, err := mockBlockFromNetwork(common4)
+	assert.Nil(t, err)
+	assert.Equal(t, netCommon4, netTail)
+
+	netBlock12, err = mockBlockFromNetwork(block12)
+	assert.Nil(t, err)
+	common5, err := bc.FindCommonAncestorWithTail(netBlock12)
+	assert.Nil(t, err)
+	netCommon5, err := mockBlockFromNetwork(common5)
+	assert.Nil(t, err)
+	assert.Equal(t, netCommon5, netBlock12)
 
 	result := bc.Dump(4)
 	assert.Equal(t, result, "["+block222.String()+","+block12.String()+","+block0.String()+","+bc.genesisBlock.String()+"]")
@@ -156,17 +192,16 @@ func TestBlockChain_FindCommonAncestorWithTail(t *testing.T) {
 	block11111.header.timestamp = BlockInterval * 8
 	block11111.SetMiner(coinbase11111)
 	block11111.Seal()
-	assert.Nil(t, bc.BlockPool().Push(BlockFromNetwork(block11111)))
+	netBlock11111, err := mockBlockFromNetwork(block11111)
+	assert.Nil(t, err)
+	assert.Nil(t, bc.BlockPool().Push(netBlock11111))
 	bc.SetTailBlock(block11111)
-
-	bc.updateLatestIrreversibleBlock(block11111)
-	assert.Equal(t, bc.latestIrreversibleBlock.Hash(), block0.Hash())
 }
 
 func TestBlockChain_FetchDescendantInCanonicalChain(t *testing.T) {
-	bc, _ := NewBlockChain(testNeb())
-	var c MockConsensus
-	bc.SetConsensusHandler(c)
+	neb := testNeb(t)
+	bc := neb.chain
+
 	coinbase := &Address{[]byte("012345678901234567890000")}
 	/*
 		genesisi -- 1 - 2 - 3 - 4 - 5 - 6
@@ -197,14 +232,14 @@ func TestBlockChain_FetchDescendantInCanonicalChain(t *testing.T) {
 		bc.SetTailBlock(block)
 	}
 	blocks24, _ := bc.FetchDescendantInCanonicalChain(3, blocks[0])
-	assert.Equal(t, BlockFromNetwork(blocks24[0]), BlockFromNetwork(blocks[1]))
-	assert.Equal(t, BlockFromNetwork(blocks24[1]), BlockFromNetwork(blocks[2]))
-	assert.Equal(t, BlockFromNetwork(blocks24[2]), BlockFromNetwork(blocks[3]))
+	assert.Equal(t, blocks24[0].Hash(), blocks[1].Hash())
+	assert.Equal(t, blocks24[1].Hash(), blocks[2].Hash())
+	assert.Equal(t, blocks24[2].Hash(), blocks[3].Hash())
 	blocks46, _ := bc.FetchDescendantInCanonicalChain(10, blocks[2])
 	assert.Equal(t, len(blocks46), 3)
-	assert.Equal(t, BlockFromNetwork(blocks46[0]), BlockFromNetwork(blocks[3]))
-	assert.Equal(t, BlockFromNetwork(blocks46[1]), BlockFromNetwork(blocks[4]))
-	assert.Equal(t, BlockFromNetwork(blocks46[2]), BlockFromNetwork(blocks[5]))
+	assert.Equal(t, blocks46[0].Hash(), blocks[3].Hash())
+	assert.Equal(t, blocks46[1].Hash(), blocks[4].Hash())
+	assert.Equal(t, blocks46[2].Hash(), blocks[5].Hash())
 	blocks13, _ := bc.FetchDescendantInCanonicalChain(3, bc.genesisBlock)
 	assert.Equal(t, len(blocks13), 3)
 	blocks0, err0 := bc.FetchDescendantInCanonicalChain(3, blocks[5])
@@ -221,7 +256,8 @@ func TestBlockChain_EstimateGas(t *testing.T) {
 	payload, err := NewBinaryPayload(nil).ToBytes()
 	assert.Nil(t, err)
 
-	bc, _ := NewBlockChain(testNeb())
+	neb := testNeb(t)
+	bc := neb.chain
 	tx := NewTransaction(bc.ChainID(), from, to, util.NewUint128FromInt(0), 1, TxPayloadBinaryType, payload, TransactionGasPrice, util.NewUint128FromInt(200000))
 
 	_, err = bc.EstimateGas(tx)
@@ -229,16 +265,16 @@ func TestBlockChain_EstimateGas(t *testing.T) {
 }
 
 func TestTailBlock(t *testing.T) {
-	bc, err := NewBlockChain(testNeb())
+	neb := testNeb(t)
+	bc := neb.chain
+	block, err := bc.LoadTailFromStorage()
 	assert.Nil(t, err)
-	block, err := bc.loadTailFromStorage()
-	assert.Nil(t, err)
-	assert.Equal(t, bc.tailBlock, block)
+	assert.Equal(t, bc.tailBlock.Hash(), block.Hash())
 }
 
 func TestGetPrice(t *testing.T) {
-	bc, err := NewBlockChain(testNeb())
-	assert.Nil(t, err)
+	neb := testNeb(t)
+	bc := neb.chain
 	assert.Equal(t, bc.GasPrice(), TransactionGasPrice)
 
 	ks := keystore.DefaultKS

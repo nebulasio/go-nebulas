@@ -22,8 +22,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/nebulasio/go-nebulas/core/state"
 	"time"
+
+	"github.com/nebulasio/go-nebulas/core/state"
 
 	"github.com/nebulasio/go-nebulas/crypto"
 
@@ -198,11 +199,10 @@ func NewBlock(chainID uint32, coinbase *Address, parent *Block) (*Block, error) 
 
 	block := &Block{
 		header: &BlockHeader{
+			chainID:    chainID,
 			parentHash: parent.Hash(),
 			coinbase:   coinbase,
-			nonce:      0,
 			timestamp:  time.Now().Unix(),
-			chainID:    chainID,
 		},
 		transactions: make(Transactions, 0),
 		parentBlock:  parent,
@@ -214,9 +214,9 @@ func NewBlock(chainID uint32, coinbase *Address, parent *Block) (*Block, error) 
 		eventEmitter: parent.eventEmitter,
 	}
 
-	block.begin()
+	block.Begin()
 	block.rewardCoinbase()
-	block.commit()
+	block.Commit()
 
 	return block, nil
 }
@@ -368,13 +368,7 @@ func (block *Block) LinkParentBlock(chain *BlockChain, parentBlock *Block) error
 	if err != nil {
 		return err
 	}
-	consensusRoot, err := consensusState.RootHash()
-	if err != nil {
-		return err
-	}
-	if err := block.worldState.LoadConsensusRoot(consensusRoot); err != nil {
-		return ErrLoadNextDynastyContext
-	}
+	block.worldState.SetConsensusState(consensusState)
 
 	block.txPool = parentBlock.txPool
 	block.parentBlock = parentBlock
@@ -385,15 +379,15 @@ func (block *Block) LinkParentBlock(chain *BlockChain, parentBlock *Block) error
 	return nil
 }
 
-func (block *Block) begin() {
+func (block *Block) Begin() {
 	block.worldState.Begin()
 }
 
-func (block *Block) commit() {
+func (block *Block) Commit() {
 	block.worldState.Commit()
 }
 
-func (block *Block) rollback() {
+func (block *Block) Rollback() {
 	block.worldState.RollBack()
 }
 
@@ -455,9 +449,9 @@ func (block *Block) CollectTransactions(deadline int64) {
 				return
 			}
 
-			txBlock.begin()
+			txBlock.Begin()
 
-			giveback, currentNonce, err := txBlock.executeTransaction(tx)
+			giveback, currentNonce, err := txBlock.ExecuteTransaction(tx)
 			if giveback {
 				givebacks = append(givebacks, tx)
 			}
@@ -474,14 +468,14 @@ func (block *Block) CollectTransactions(deadline int64) {
 					"giveback": giveback,
 				}).Debug("invalid tx.")
 				unpacked++
-				txBlock.rollback()
+				txBlock.Rollback()
 				executedTxBlocksCh <- nil
 			} else {
 				//logging.VLog().WithFields(logrus.Fields{
 				//	"tx": tx,
 				//}).Debug("packed tx.")
 				packed++
-				txBlock.commit()
+				txBlock.Commit()
 				txBlock.transactions = append(txBlock.transactions, tx)
 				executedTxBlocksCh <- txBlock
 			}
@@ -576,13 +570,13 @@ func (block *Block) Seal() error {
 		return ErrDoubleSealBlock
 	}
 
-	block.begin()
+	block.Begin()
 	err := block.recordMintCnt()
 	if err != nil {
-		block.rollback()
+		block.Rollback()
 		return err
 	}
-	block.commit()
+	block.Commit()
 
 	block.header.stateRoot, err = block.worldState.AccountsRoot()
 	if err != nil {
@@ -641,19 +635,19 @@ func (block *Block) VerifyExecution(parent *Block, consensus Consensus) error {
 		return err
 	}
 
-	block.begin()
+	block.Begin()
 
 	if err := block.execute(); err != nil {
-		block.rollback()
+		block.Rollback()
 		return err
 	}
 
 	if err := block.verifyState(); err != nil {
-		block.rollback()
+		block.Rollback()
 		return err
 	}
 
-	block.commit()
+	block.Commit()
 
 	// release all events
 	block.triggerEvent()
@@ -816,7 +810,7 @@ func (block *Block) execute() error {
 	for _, tx := range block.transactions {
 		metricsTxExecute.Mark(1)
 
-		giveback, _, err := block.executeTransaction(tx)
+		giveback, _, err := block.ExecuteTransaction(tx)
 		if giveback {
 			err := block.txPool.Push(tx)
 			if err != nil {
@@ -954,7 +948,7 @@ func (block *Block) checkTransaction(tx *Transaction) (bool, uint64, error) {
 	return false, currentNonce, nil
 }
 
-func (block *Block) executeTransaction(tx *Transaction) (bool, uint64, error) {
+func (block *Block) ExecuteTransaction(tx *Transaction) (bool, uint64, error) {
 	if giveback, currentNonce, err := block.checkTransaction(tx); err != nil {
 		return giveback, currentNonce, err
 	}

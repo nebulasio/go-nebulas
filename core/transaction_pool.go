@@ -19,9 +19,10 @@
 package core
 
 import (
-	"github.com/nebulasio/go-nebulas/core/state"
 	"sync"
 	"time"
+
+	"github.com/nebulasio/go-nebulas/core/state"
 
 	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/common/pdeque"

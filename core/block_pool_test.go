@@ -30,78 +30,15 @@ import (
 	"github.com/nebulasio/go-nebulas/crypto/keystore"
 	"github.com/nebulasio/go-nebulas/crypto/keystore/secp256k1"
 	"github.com/nebulasio/go-nebulas/net"
-	"github.com/nebulasio/go-nebulas/storage"
 	"github.com/nebulasio/go-nebulas/util"
 	"github.com/stretchr/testify/assert"
 )
 
-type MockConsensus struct {
-	storage storage.Storage
-}
-
-func (c MockConsensus) FastVerifyBlock(block *Block) error {
-	block.miner = block.Coinbase()
-	return nil
-}
-
-func (c MockConsensus) VerifyBlock(block *Block, parent *Block) error {
-	block.miner = block.Coinbase()
-	return nil
-}
-
-func (c MockConsensus) ForkChoice() error {
-	return nil
-}
-
-func (c MockConsensus) SuspendMining() {}
-
-func (c MockConsensus) ResumeMining() {}
-
-var (
-	received = []byte{}
-)
-
-type MockNetService struct{}
-
-func (n MockNetService) Start() error { return nil }
-func (n MockNetService) Stop()        {}
-
-func (n MockNetService) Node() *net.Node { return nil }
-
-func (n MockNetService) Sync(net.Serializable) error { return nil }
-
-func (n MockNetService) Register(...*net.Subscriber)   {}
-func (n MockNetService) Deregister(...*net.Subscriber) {}
-
-func (n MockNetService) Broadcast(name string, msg net.Serializable, priority int) {}
-func (n MockNetService) Relay(name string, msg net.Serializable, priority int)     {}
-func (n MockNetService) SendMsg(name string, msg []byte, target string, priority int) error {
-	received = msg
-	return nil
-}
-
-func (n MockNetService) SendMessageToPeers(messageName string, data []byte, priority int, filter net.PeerFilterAlgorithm) []string {
-	return make([]string, 0)
-}
-func (n MockNetService) SendMessageToPeer(messageName string, data []byte, priority int, peerID string) error {
-	return nil
-}
-
-func (n MockNetService) ClosePeer(peerID string, reason error) {}
-
-func (n MockNetService) BroadcastNetworkID([]byte) {}
-
-func (n MockNetService) BuildRawMessageData([]byte, string) []byte { return nil }
-
 func TestBlockPool(t *testing.T) {
 	received = []byte{}
 
-	neb := testNeb()
-	bc, err := NewBlockChain(neb)
-	var n MockNetService
-	bc.bkPool.RegisterInNetwork(n)
-	cons := &MockConsensus{neb.storage}
-	bc.SetConsensusHandler(cons)
+	neb := testNeb(t)
+	bc := neb.chain
 	pool := bc.bkPool
 	assert.Equal(t, pool.cache.Len(), 0)
 
@@ -114,50 +51,50 @@ func TestBlockPool(t *testing.T) {
 	key, _ := ks.GetUnlocked(from.String())
 	signature, _ := crypto.NewSignature(keystore.SECP256K1)
 	signature.InitSign(key.(keystore.PrivateKey))
-	bc.tailBlock.begin()
+	bc.tailBlock.Begin()
 	balance := util.NewUint128FromBigInt(util.NewUint128().Mul(TransactionGasPrice.Int, util.NewUint128FromInt(2000000).Int))
 	acc, err := bc.tailBlock.worldState.GetOrCreateUserAccount(from.Bytes())
 	assert.Nil(t, err)
 	acc.AddBalance(balance)
-	headers, err := bc.tailBlock.worldState.ToHeaders()
+	bc.tailBlock.header.stateRoot, err = bc.tailBlock.worldState.AccountsRoot()
 	assert.Nil(t, err)
-	bc.tailBlock.header.stateRoot = headers.accStateRoot
-	assert.Nil(t, err)
-	bc.tailBlock.commit()
+	bc.tailBlock.Commit()
 	bc.storeBlockToStorage(bc.tailBlock)
 
-	validators, err := bc.tailBlock.worldState.dynasty()
+	addr, err := AddressParse(MockDynasty[1])
 	assert.Nil(t, err)
-
-	addr := &Address{validators[1]}
 	block0, err := NewBlock(bc.ChainID(), addr, bc.tailBlock)
 	assert.Nil(t, err)
 	block0.header.timestamp = bc.tailBlock.header.timestamp + BlockInterval
 	block0.SetMiner(addr)
 	block0.Seal()
 
-	addr = &Address{validators[2]}
+	addr, err = AddressParse(MockDynasty[2])
+	assert.Nil(t, err)
 	block1, err := NewBlock(bc.ChainID(), addr, block0)
 	assert.Nil(t, err)
 	block1.header.timestamp = block0.header.timestamp + BlockInterval
 	block1.SetMiner(addr)
 	block1.Seal()
 
-	addr = &Address{validators[3]}
+	addr, err = AddressParse(MockDynasty[3])
+	assert.Nil(t, err)
 	block2, err := NewBlock(bc.ChainID(), addr, block1)
 	assert.Nil(t, err)
 	block2.header.timestamp = block1.header.timestamp + BlockInterval
 	block2.SetMiner(addr)
 	block2.Seal()
 
-	addr = &Address{validators[4]}
+	addr, err = AddressParse(MockDynasty[4])
+	assert.Nil(t, err)
 	block3, err := NewBlock(bc.ChainID(), addr, block2)
 	assert.Nil(t, err)
 	block3.header.timestamp = block2.header.timestamp + BlockInterval
 	block3.SetMiner(addr)
 	block3.Seal()
 
-	addr = &Address{validators[5]}
+	addr, err = AddressParse(MockDynasty[5])
+	assert.Nil(t, err)
 	block4, err := NewBlock(bc.ChainID(), addr, block3)
 	assert.Nil(t, err)
 	block4.header.timestamp = block3.header.timestamp + BlockInterval
@@ -187,7 +124,8 @@ func TestBlockPool(t *testing.T) {
 	bc.SetTailBlock(block4)
 	assert.Equal(t, bc.tailBlock.Hash(), block4.Hash())
 
-	addr = &Address{validators[0]}
+	addr, err = AddressParse(MockDynasty[0])
+	assert.Nil(t, err)
 	block5, err := NewBlock(bc.ChainID(), addr, block4)
 	assert.Nil(t, err)
 	block5.header.timestamp = block4.header.timestamp + BlockInterval
@@ -196,7 +134,8 @@ func TestBlockPool(t *testing.T) {
 	block5.header.hash[0]++
 	assert.Equal(t, pool.Push(block5), ErrInvalidBlockHash)
 
-	addr = &Address{validators[1]}
+	addr, err = AddressParse(MockDynasty[3])
+	assert.Nil(t, err)
 	block41, err := NewBlock(bc.ChainID(), addr, block3)
 	assert.Nil(t, err)
 	block41.header.timestamp = block3.header.timestamp + BlockInterval
@@ -206,13 +145,8 @@ func TestBlockPool(t *testing.T) {
 }
 
 func TestHandleBlock(t *testing.T) {
-	neb := testNeb()
-	bc, err := NewBlockChain(neb)
-	var n MockNetService
-	bc.bkPool.RegisterInNetwork(n)
-	assert.Nil(t, err)
-	cons := &MockConsensus{neb.storage}
-	bc.SetConsensusHandler(cons)
+	neb := testNeb(t)
+	bc := neb.chain
 	from := mockAddress()
 	ks := keystore.DefaultKS
 	key, err := ks.GetUnlocked(from.String())
@@ -278,14 +212,8 @@ func TestHandleBlock(t *testing.T) {
 func TestHandleDownloadedBlock(t *testing.T) {
 	received = []byte{}
 
-	neb := testNeb()
-	bc, err := NewBlockChain(neb)
-	assert.Nil(t, err)
-	var n MockNetService
-	bc.bkPool.RegisterInNetwork(n)
-	assert.Equal(t, n, bc.bkPool.ns)
-	cons := &MockConsensus{neb.storage}
-	bc.SetConsensusHandler(cons)
+	neb := testNeb(t)
+	bc := neb.chain
 	from := mockAddress()
 	ks := keystore.DefaultKS
 	key, err := ks.GetUnlocked(from.String())

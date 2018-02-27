@@ -8,8 +8,6 @@ import (
 	"golang.org/x/net/netutil"
 
 	"github.com/grpc-ecosystem/go-grpc-middleware"
-	"github.com/nebulasio/go-nebulas/account"
-	"github.com/nebulasio/go-nebulas/consensus"
 	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/neblet/pb"
 	nebnet "github.com/nebulasio/go-nebulas/net"
@@ -34,10 +32,10 @@ type Neblet interface {
 	Config() *nebletpb.Config
 	StartPprof(string) error
 	BlockChain() *core.BlockChain
-	AccountManager() *account.Manager
+	AccountManager() core.Manager
 	NetService() nebnet.Service
 	EventEmitter() *core.EventEmitter
-	Consensus() consensus.Consensus
+	Consensus() core.Consensus
 }
 
 // GRPCServer server interface for api & management etc.

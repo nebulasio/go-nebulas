@@ -24,7 +24,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/nebulasio/go-nebulas/core"
+	"github.com/nebulasio/go-nebulas/core/state"
 	"github.com/nebulasio/go-nebulas/nf/nvm"
 	"github.com/nebulasio/go-nebulas/storage"
 )
@@ -33,7 +33,7 @@ func main() {
 	data, _ := ioutil.ReadFile(os.Args[1])
 
 	mem, _ := storage.NewMemoryStorage()
-	context, _ := core.NewWorldState(mem)
+	context, _ := state.NewWorldState(nil, mem)
 	owner, _ := context.GetOrCreateUserAccount([]byte("account1"))
 	contract, _ := context.CreateContractAccount([]byte("account2"), nil)
 

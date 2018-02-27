@@ -90,11 +90,13 @@ type ConsensusState interface {
 	Clone() (ConsensusState, error)
 
 	Proposer() byteutils.Hash
+	TimeStamp() int64
 	NextConsensusState(int64, WorldState) (ConsensusState, error)
 
 	GetMintCnt(int64, byteutils.Hash) (int64, error)
 	PutMintCnt(int64, byteutils.Hash, int64) error
 
+	CandidatesRoot() byteutils.Hash
 	Candidates() ([]byteutils.Hash, error)
 	GetCandidate(byteutils.Hash) (byteutils.Hash, error)
 	AddCandidate(byteutils.Hash) error
@@ -129,6 +131,7 @@ type WorldState interface {
 	LoadTxsRoot(byteutils.Hash) error
 	LoadEventsRoot(byteutils.Hash) error
 	LoadConsensusRoot(byteutils.Hash) error
+	SetConsensusState(ConsensusState)
 
 	Clone() (WorldState, error)
 
@@ -148,6 +151,7 @@ type WorldState interface {
 	GetMintCnt(int64, byteutils.Hash) (int64, error)
 	PutMintCnt(int64, byteutils.Hash, int64) error
 
+	CandidatesRoot() byteutils.Hash
 	Candidates() ([]byteutils.Hash, error)
 	GetCandidate(byteutils.Hash) (byteutils.Hash, error)
 	AddCandidate(byteutils.Hash) error

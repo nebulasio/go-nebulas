@@ -140,7 +140,7 @@ func (t *Trie) commitNode(n *node) error {
 // NewTrie if rootHash is nil, create a new Trie, otherwise, build an existed trie
 func NewTrie(rootHash []byte, storage storage.Storage) (*Trie, error) {
 	t := &Trie{rootHash, storage}
-	if t.rootHash == nil {
+	if t.rootHash == nil || len(t.rootHash) == 0 {
 		return t, nil
 	} else if _, err := t.storage.Get(rootHash); err != nil {
 		return nil, err

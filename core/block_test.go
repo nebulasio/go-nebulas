@@ -23,6 +23,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/nebulasio/go-nebulas/common/trie"
+	"github.com/nebulasio/go-nebulas/core/state"
+	"github.com/nebulasio/go-nebulas/net"
+	"github.com/nebulasio/go-nebulas/util/byteutils"
+
 	pb "github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/core/pb"
 	"github.com/nebulasio/go-nebulas/crypto"
@@ -35,11 +40,289 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+const (
+	BlockInterval        = 5
+	AcceptedNetWorkDelay = 2
+)
+
+var (
+	stor, _ = storage.NewMemoryStorage()
+)
+
+var (
+	MockDynasty = []string{
+		"1a263547d167c74cf4b8f9166cfa244de0481c514a45aa2c",
+		"2fe3f9f51f9a05dd5f7c5329127f7c917917149b4e16b0b8",
+		"333cb3ed8c417971845382ede3cf67a0a96270c05fe2f700",
+		"48f981ed38910f1232c1bab124f650c482a57271632db9e3",
+		"59fc526072b09af8a8ca9732dae17132c4e9127e43cf2232",
+		"75e4e5a71d647298b88928d8cb5da43d90ab1a6c52d0905f",
+		"7da9dabedb4c6e121146fb4250a9883d6180570e63d6b080",
+		"98a3eed687640b75ec55bf5c9e284371bdcaeab943524d51",
+		"a8f1f53952c535c6600c77cf92b65e0c9b64496a8a328569",
+		"b040353ec0f2c113d5639444f7253681aecda1f8b91f179f",
+		"b414432e15f21237013017fa6ee90fc99433dec82c1c8370",
+		"b49f30d0e5c9c88cade54cd1adecf6bc2c7e0e5af646d903",
+		"b7d83b44a3719720ec54cdb9f54c0202de68f1ebcb927b4f",
+		"ba56cc452e450551b7b9cffe25084a069e8c1e94412aad22",
+		"c5bcfcb3fa8250be4f2bf2b1e70e1da500c668377ba8cd4a",
+		"c79d9667c71bb09d6ca7c3ed12bfe5e7be24e2ffe13a833d",
+		"d1abde197e97398864ba74511f02832726edad596775420a",
+		"d86f99d97a394fa7a623fdf84fdc7446b99c3cb335fca4bf",
+		"e0f78b011e639ce6d8b76f97712118f3fe4a12dd954eba49",
+		"f38db3b6c801dddd624d6ddc2088aa64b5a24936619e4848",
+		"fc751b484bd5296f8d267a8537d33f25a848f7f7af8cfcf6",
+	}
+)
+
+// MockGenesisConf return mock genesis conf
+func MockGenesisConf() *corepb.Genesis {
+	return &corepb.Genesis{
+		Meta: &corepb.GenesisMeta{ChainId: 100},
+		Consensus: &corepb.GenesisConsensus{
+			Dpos: &corepb.GenesisConsensusDpos{
+				Dynasty: MockDynasty,
+			},
+		},
+		TokenDistribution: []*corepb.GenesisTokenDistribution{
+			&corepb.GenesisTokenDistribution{
+				Address: "1a263547d167c74cf4b8f9166cfa244de0481c514a45aa2c",
+				Value:   "10000000000000000000000",
+			},
+			&corepb.GenesisTokenDistribution{
+				Address: "2fe3f9f51f9a05dd5f7c5329127f7c917917149b4e16b0b8",
+				Value:   "10000000000000000000000",
+			},
+		},
+	}
+}
+
+type mockConsensusState struct {
+	votes      *trie.BatchTrie
+	delegates  *trie.BatchTrie
+	candidates *trie.BatchTrie
+}
+
+func NewMockConsensusState() (*mockConsensusState, error) {
+	votes, err := trie.NewBatchTrie(nil, stor)
+	if err != nil {
+		return nil, err
+	}
+	delegates, err := trie.NewBatchTrie(nil, stor)
+	if err != nil {
+		return nil, err
+	}
+	candidates, err := trie.NewBatchTrie(nil, stor)
+	if err != nil {
+		return nil, err
+	}
+	return &mockConsensusState{
+		votes:      votes,
+		delegates:  delegates,
+		candidates: candidates,
+	}, nil
+}
+
+func (cs *mockConsensusState) BeginBatch() {}
+func (cs *mockConsensusState) Commit()     {}
+func (cs *mockConsensusState) RollBack()   {}
+
+func (cs *mockConsensusState) RootHash() (byteutils.Hash, error)    { return nil, nil }
+func (cs *mockConsensusState) Clone() (state.ConsensusState, error) { return cs, nil }
+
+func (cs *mockConsensusState) Proposer() byteutils.Hash { return nil }
+func (cs *mockConsensusState) TimeStamp() int64         { return 0 }
+func (cs *mockConsensusState) NextConsensusState(int64, state.WorldState) (state.ConsensusState, error) {
+	return cs, nil
+}
+
+func (cs *mockConsensusState) GetMintCnt(int64, byteutils.Hash) (int64, error) { return 0, nil }
+func (cs *mockConsensusState) PutMintCnt(int64, byteutils.Hash, int64) error   { return nil }
+
+func (cs *mockConsensusState) CandidatesRoot() byteutils.Hash {
+	return cs.candidates.RootHash()
+}
+func (cs *mockConsensusState) Candidates() ([]byteutils.Hash, error) {
+	members := []byteutils.Hash{}
+	iter, err := cs.candidates.Iterator(nil)
+	if err != nil && err != storage.ErrKeyNotFound {
+		return nil, err
+	}
+	if err != nil {
+		return members, nil
+	}
+	exist, err := iter.Next()
+	for exist {
+		members = append(members, iter.Value())
+		exist, err = iter.Next()
+	}
+	return members, nil
+}
+func (cs *mockConsensusState) GetCandidate(candidate byteutils.Hash) (byteutils.Hash, error) {
+	return cs.candidates.Get(candidate)
+}
+func (cs *mockConsensusState) AddCandidate(candidate byteutils.Hash) error {
+	_, err := cs.candidates.Put(candidate, candidate)
+	return err
+}
+func (cs *mockConsensusState) DelCandidate(candidate byteutils.Hash) error {
+	_, err := cs.candidates.Del(candidate)
+	return err
+}
+
+func (cs *mockConsensusState) GetVote(voter byteutils.Hash) (byteutils.Hash, error) {
+	return cs.votes.Get(voter)
+}
+func (cs *mockConsensusState) AddVote(voter byteutils.Hash, votee byteutils.Hash) error {
+	_, err := cs.votes.Put(voter, votee)
+	return err
+}
+func (cs *mockConsensusState) DelVote(voter byteutils.Hash) error {
+	_, err := cs.votes.Del(voter)
+	return err
+}
+func (cs *mockConsensusState) IterVote() (state.Iterator, error) {
+	return cs.votes.Iterator(nil)
+}
+
+func (cs *mockConsensusState) HasDelegate(delegator byteutils.Hash, delegatee byteutils.Hash) (bool, error) {
+	key := append(delegatee, delegator...)
+	_, err := cs.delegates.Get(key)
+	if err != nil && err != storage.ErrKeyNotFound {
+		return false, err
+	}
+	if err == storage.ErrKeyNotFound {
+		return false, nil
+	}
+	return true, nil
+}
+func (cs *mockConsensusState) AddDelegate(delegator byteutils.Hash, delegatee byteutils.Hash) error {
+	key := append(delegatee, delegator...)
+	_, err := cs.delegates.Put(key, delegator)
+	return err
+}
+func (cs *mockConsensusState) DelDelegate(delegator byteutils.Hash, delegatee byteutils.Hash) error {
+	key := append(delegatee, delegator...)
+	_, err := cs.delegates.Del(key)
+	return err
+}
+func (cs *mockConsensusState) IterDelegate(delegatee byteutils.Hash) (state.Iterator, error) {
+	return cs.delegates.Iterator(delegatee)
+}
+
+func (cs *mockConsensusState) Dynasty() ([]byteutils.Hash, error)     { return nil, nil }
+func (cs *mockConsensusState) DynastyRoot() byteutils.Hash            { return nil }
+func (cs *mockConsensusState) NextDynasty() ([]byteutils.Hash, error) { return nil, nil }
+func (cs *mockConsensusState) NextDynastyRoot() byteutils.Hash        { return nil }
+
+type mockConsensus struct {
+	chain *BlockChain
+}
+
+func (c mockConsensus) Setup(neb Neblet) error {
+	c.chain = neb.BlockChain()
+	return nil
+}
+
+func (c mockConsensus) Start() {}
+func (c mockConsensus) Stop()  {}
+
+func (c mockConsensus) FastVerifyBlock(block *Block) error {
+	block.miner = block.Coinbase()
+	return nil
+}
+
+func (c mockConsensus) VerifyBlock(block *Block, parent *Block) error {
+	block.miner = block.Coinbase()
+	return nil
+}
+
+func (c mockConsensus) ForkChoice() error {
+	return nil
+}
+
+func (c mockConsensus) UpdateLIB() {}
+
+func (c mockConsensus) SuspendMining() {}
+func (c mockConsensus) ResumeMining()  {}
+func (c mockConsensus) Pending() bool  { return false }
+
+func (c mockConsensus) EnableMining(passphrase string) error { return nil }
+func (c mockConsensus) DisableMining() error                 { return nil }
+func (c mockConsensus) Enable() bool                         { return true }
+
+func (c mockConsensus) CheckTimeout(block *Block) bool {
+	return time.Now().Unix()-block.Timestamp() > AcceptedNetWorkDelay
+}
+func (c mockConsensus) NewState(byteutils.Hash, storage.Storage) (state.ConsensusState, error) {
+	return NewMockConsensusState()
+}
+func (c mockConsensus) GenesisConsensusState(*BlockChain, *corepb.Genesis) (state.ConsensusState, error) {
+	return NewMockConsensusState()
+}
+
+type mockManager struct{}
+
+func (m mockManager) NewAccount([]byte) (*Address, error) { return nil, nil }
+func (m mockManager) Accounts() []*Address                { return nil }
+
+func (m mockManager) Unlock(addr *Address, passphrase []byte, expire time.Duration) error { return nil }
+func (m mockManager) Lock(addr *Address) error                                            { return nil }
+
+func (m mockManager) SignBlock(addr *Address, block *Block) error                        { return nil }
+func (m mockManager) SignTransaction(*Address, *Transaction) error                       { return nil }
+func (m mockManager) SignTransactionWithPassphrase(*Address, *Transaction, []byte) error { return nil }
+
+func (m mockManager) Update(*Address, []byte, []byte) error   { return nil }
+func (m mockManager) Load([]byte, []byte) (*Address, error)   { return nil, nil }
+func (m mockManager) Import([]byte, []byte) (*Address, error) { return nil, nil }
+func (m mockManager) Delete(*Address, []byte) error           { return nil }
+
+var (
+	received = []byte{}
+)
+
+type mockNetService struct{}
+
+func (n mockNetService) Start() error { return nil }
+func (n mockNetService) Stop()        {}
+
+func (n mockNetService) Node() *net.Node { return nil }
+
+func (n mockNetService) Sync(net.Serializable) error { return nil }
+
+func (n mockNetService) Register(...*net.Subscriber)   {}
+func (n mockNetService) Deregister(...*net.Subscriber) {}
+
+func (n mockNetService) Broadcast(name string, msg net.Serializable, priority int) {}
+func (n mockNetService) Relay(name string, msg net.Serializable, priority int)     {}
+func (n mockNetService) SendMsg(name string, msg []byte, target string, priority int) error {
+	received = msg
+	return nil
+}
+
+func (n mockNetService) SendMessageToPeers(messageName string, data []byte, priority int, filter net.PeerFilterAlgorithm) []string {
+	return make([]string, 0)
+}
+func (n mockNetService) SendMessageToPeer(messageName string, data []byte, priority int, peerID string) error {
+	return nil
+}
+
+func (n mockNetService) ClosePeer(peerID string, reason error) {}
+
+func (n mockNetService) BroadcastNetworkID([]byte) {}
+
+func (n mockNetService) BuildRawMessageData([]byte, string) []byte { return nil }
+
 type mockNeb struct {
-	genesis *corepb.Genesis
-	config  *nebletpb.Config
-	storage storage.Storage
-	emitter *EventEmitter
+	config    *nebletpb.Config
+	chain     *BlockChain
+	ns        net.Service
+	am        Manager
+	genesis   *corepb.Genesis
+	storage   storage.Storage
+	consensus Consensus
+	emitter   *EventEmitter
 }
 
 func (n *mockNeb) Genesis() *corepb.Genesis {
@@ -58,17 +341,45 @@ func (n *mockNeb) EventEmitter() *EventEmitter {
 	return n.emitter
 }
 
+func (n *mockNeb) Consensus() Consensus {
+	return n.consensus
+}
+
+func (n *mockNeb) BlockChain() *BlockChain {
+	return n.chain
+}
+
+func (n *mockNeb) NetService() net.Service {
+	return n.ns
+}
+
+func (n *mockNeb) AccountManager() Manager {
+	return n.am
+}
+
 func (n *mockNeb) StartActiveSync() {}
 
-func testNeb() *mockNeb {
+func testNeb(t *testing.T) *mockNeb {
 	storage, _ := storage.NewMemoryStorage()
 	eventEmitter := NewEventEmitter(1024)
+	var consensus mockConsensus
+	var am mockManager
+	var ns mockNetService
 	neb := &mockNeb{
-		genesis: MockGenesisConf(),
-		config:  &nebletpb.Config{Chain: &nebletpb.ChainConfig{ChainId: MockGenesisConf().Meta.ChainId}},
-		storage: storage,
-		emitter: eventEmitter,
+		genesis:   MockGenesisConf(),
+		config:    &nebletpb.Config{Chain: &nebletpb.ChainConfig{ChainId: MockGenesisConf().Meta.ChainId}},
+		storage:   storage,
+		emitter:   eventEmitter,
+		consensus: consensus,
+		am:        am,
+		ns:        ns,
 	}
+	chain, err := NewBlockChain(neb)
+	assert.Nil(t, err)
+	chain.bkPool.RegisterInNetwork(ns)
+	neb.chain = chain
+	consensus.Setup(neb)
+	chain.Setup(neb)
 	return neb
 }
 
@@ -88,20 +399,16 @@ func TestBlock(t *testing.T) {
 			"full struct",
 			fields{
 				&BlockHeader{
-					hash:       []byte("124546"),
-					parentHash: []byte("344543"),
-					stateRoot:  []byte("43656"),
-					txsRoot:    []byte("43656"),
-					eventsRoot: []byte("43656"),
-					dposContext: &corepb.DposContext{
-						DynastyRoot:     []byte("43656"),
-						NextDynastyRoot: []byte("43656"),
-						DelegateRoot:    []byte("43656"),
-					},
-					nonce:     3546456,
-					coinbase:  &Address{[]byte("hello")},
-					timestamp: time.Now().Unix(),
-					chainID:   100,
+					hash:          []byte("124546"),
+					parentHash:    []byte("344543"),
+					stateRoot:     []byte("43656"),
+					txsRoot:       []byte("43656"),
+					eventsRoot:    []byte("43656"),
+					consensusRoot: []byte("43656"),
+					nonce:         3546456,
+					coinbase:      &Address{[]byte("hello")},
+					timestamp:     time.Now().Unix(),
+					chainID:       100,
 				},
 				&Address{[]byte("hello")},
 				1,
@@ -167,25 +474,22 @@ func TestBlock(t *testing.T) {
 }
 
 func TestBlock_LinkParentBlock(t *testing.T) {
-	bc, _ := NewBlockChain(testNeb())
+	neb := testNeb(t)
+	bc := neb.chain
 	genesis := bc.genesisBlock
 	assert.Equal(t, genesis.Height(), uint64(1))
 	block1 := &Block{
 		header: &BlockHeader{
-			hash:       []byte("124546"),
-			parentHash: GenesisHash,
-			stateRoot:  []byte("43656"),
-			txsRoot:    []byte("43656"),
-			eventsRoot: []byte("43656"),
-			dposContext: &corepb.DposContext{
-				DynastyRoot:     []byte("43656"),
-				NextDynastyRoot: []byte("43656"),
-				DelegateRoot:    []byte("43656"),
-			},
-			nonce:     3546456,
-			coinbase:  &Address{[]byte("hello")},
-			timestamp: BlockInterval,
-			chainID:   100,
+			hash:          []byte("124546"),
+			parentHash:    GenesisHash,
+			stateRoot:     []byte("43656"),
+			txsRoot:       []byte("43656"),
+			eventsRoot:    []byte("43656"),
+			consensusRoot: []byte("43656"),
+			nonce:         3546456,
+			coinbase:      &Address{[]byte("hello")},
+			timestamp:     BlockInterval,
+			chainID:       100,
 		},
 		transactions: []*Transaction{},
 	}
@@ -195,20 +499,16 @@ func TestBlock_LinkParentBlock(t *testing.T) {
 	assert.Equal(t, block1.ParentHash(), genesis.Hash())
 	block2 := &Block{
 		header: &BlockHeader{
-			hash:       []byte("124546"),
-			parentHash: []byte("344543"),
-			stateRoot:  []byte("43656"),
-			txsRoot:    []byte("43656"),
-			eventsRoot: []byte("43656"),
-			dposContext: &corepb.DposContext{
-				DynastyRoot:     []byte("43656"),
-				NextDynastyRoot: []byte("43656"),
-				DelegateRoot:    []byte("43656"),
-			},
-			nonce:     3546456,
-			coinbase:  &Address{[]byte("hello")},
-			timestamp: BlockInterval * 2,
-			chainID:   100,
+			hash:          []byte("124546"),
+			parentHash:    []byte("344543"),
+			stateRoot:     []byte("43656"),
+			txsRoot:       []byte("43656"),
+			eventsRoot:    []byte("43656"),
+			consensusRoot: []byte("43656"),
+			nonce:         3546456,
+			coinbase:      &Address{[]byte("hello")},
+			timestamp:     BlockInterval * 2,
+			chainID:       100,
 		},
 		transactions: []*Transaction{},
 	}
@@ -217,9 +517,8 @@ func TestBlock_LinkParentBlock(t *testing.T) {
 }
 
 func TestBlock_CollectTransactions(t *testing.T) {
-	bc, _ := NewBlockChain(testNeb())
-	var c MockConsensus
-	bc.SetConsensusHandler(c)
+	neb := testNeb(t)
+	bc := neb.chain
 
 	tail := bc.tailBlock
 
@@ -286,10 +585,12 @@ func TestBlock_CollectTransactions(t *testing.T) {
 	assert.Equal(t, block.Sealed(), true)
 	assert.Equal(t, block.transactions[0], tx1)
 	assert.Equal(t, block.transactions[1], tx2)
-	headers, err := block.worldState.ToHeaders()
+	accStateRoot, err := block.worldState.AccountsRoot()
 	assert.Nil(t, err)
-	assert.Equal(t, block.StateRoot().Equals(headers.accStateRoot), true)
-	assert.Equal(t, block.TxsRoot().Equals(headers.txsStateRoot), true)
+	txsRoot, err := block.worldState.TxsRoot()
+	assert.Nil(t, err)
+	assert.Equal(t, block.StateRoot().Equals(accStateRoot), true)
+	assert.Equal(t, block.TxsRoot().Equals(txsRoot), true)
 	balance, err = block.GetBalance(block.header.coinbase.address)
 	assert.Nil(t, err)
 	// balance > BlockReward (BlockReward + gas)
@@ -304,136 +605,16 @@ func TestBlock_CollectTransactions(t *testing.T) {
 	assert.Nil(t, block.VerifyExecution(bc.tailBlock, bc.ConsensusHandler()))
 }
 
-func TestBlock_DposCandidates(t *testing.T) {
-	bc, _ := NewBlockChain(testNeb())
-	var c MockConsensus
-	bc.SetConsensusHandler(c)
-
-	tail := bc.tailBlock
-
-	ks := keystore.DefaultKS
-	priv := secp256k1.GeneratePrivateKey()
-	pubdata, _ := priv.PublicKey().Encoded()
-	from, _ := NewAddressFromPublicKey(pubdata)
-	ks.SetKey(from.String(), priv, []byte("passphrase"))
-	ks.Unlock(from.String(), []byte("passphrase"), time.Second*60*60*24*365)
-
-	key, _ := ks.GetUnlocked(from.String())
-	signature, _ := crypto.NewSignature(keystore.SECP256K1)
-	signature.InitSign(key.(keystore.PrivateKey))
-
-	priv1 := secp256k1.GeneratePrivateKey()
-	pubdata1, _ := priv1.PublicKey().Encoded()
-	to, _ := NewAddressFromPublicKey(pubdata1)
-	priv2 := secp256k1.GeneratePrivateKey()
-	pubdata2, _ := priv2.PublicKey().Encoded()
-	coinbase, _ := NewAddressFromPublicKey(pubdata2)
-
-	block0, _ := NewBlock(bc.ChainID(), from, tail)
-	block0.header.timestamp = BlockInterval
-	block0.SetMiner(from)
-	block0.Seal()
-	assert.Nil(t, bc.storeBlockToStorage(block0))
-	assert.Nil(t, bc.SetTailBlock(block0))
-
-	block, _ := NewBlock(bc.ChainID(), coinbase, block0)
-	block.header.timestamp = BlockInterval * 2
-	bytes, _ := NewCandidatePayload(LoginAction).ToBytes()
-	tx := NewTransaction(bc.ChainID(), from, to, util.NewUint128FromInt(1), 1, TxPayloadCandidateType, bytes, TransactionGasPrice, util.NewUint128FromInt(200000))
-	tx.Sign(signature)
-	bc.txPool.Push(tx)
-	payload := NewDelegatePayload(DelegateAction, from.String())
-	bytes, _ = payload.ToBytes()
-	tx = NewTransaction(bc.ChainID(), from, to, util.NewUint128FromInt(1), 2, TxPayloadDelegateType, bytes, TransactionGasPrice, util.NewUint128FromInt(200000))
-	tx.Sign(signature)
-	bc.txPool.Push(tx)
-	assert.Equal(t, len(block.transactions), 0)
-	assert.Equal(t, bc.txPool.cache.Len(), 2)
-	block.CollectTransactions(time.Now().Unix() + 2)
-	assert.Equal(t, len(block.transactions), 2)
-	assert.Equal(t, block.txPool.cache.Len(), 0)
-	block.SetMiner(coinbase)
-	assert.Equal(t, block.Seal(), nil)
-	block, _ = mockBlockFromNetwork(block)
-	assert.Equal(t, block.LinkParentBlock(bc, bc.tailBlock), nil)
-	block.SetMiner(coinbase)
-	assert.Nil(t, block.VerifyExecution(bc.tailBlock, bc.ConsensusHandler()))
-	bytes, _ = block.worldState.GetCandidate(from.Bytes())
-	assert.Equal(t, bytes, from.Bytes())
-	bytes, _ = block.worldState.GetVote(from.Bytes())
-	assert.Equal(t, bytes, from.Bytes())
-	bytes, _ = block.worldState.GetDelegate(from.Bytes(), from.Bytes())
-	assert.Equal(t, bytes, from.Bytes())
-	assert.Nil(t, bc.storeBlockToStorage(block))
-	assert.Nil(t, bc.SetTailBlock(block))
-
-	block, _ = NewBlock(bc.ChainID(), coinbase, block)
-	block.header.timestamp = BlockInterval * 3
-	payload = NewDelegatePayload(UnDelegateAction, from.String())
-	bytes, _ = payload.ToBytes()
-	tx = NewTransaction(bc.ChainID(), from, to, util.NewUint128FromInt(1), 3, TxPayloadDelegateType, bytes, TransactionGasPrice, util.NewUint128FromInt(200000))
-	tx.Sign(signature)
-	bc.txPool.Push(tx)
-	assert.Equal(t, len(block.transactions), 0)
-	assert.Equal(t, bc.txPool.cache.Len(), 1)
-	block.CollectTransactions(time.Now().Unix() + 2)
-	assert.Equal(t, len(block.transactions), 1)
-	assert.Equal(t, block.txPool.cache.Len(), 0)
-	block.SetMiner(coinbase)
-	assert.Equal(t, block.Seal(), nil)
-	block, _ = mockBlockFromNetwork(block)
-	assert.Equal(t, block.LinkParentBlock(bc, bc.tailBlock), nil)
-	block.SetMiner(coinbase)
-	assert.Nil(t, block.VerifyExecution(bc.tailBlock, bc.ConsensusHandler()))
-	_, err := block.worldState.GetCandidate(from.Bytes())
-	assert.Equal(t, err, nil)
-	_, err = block.worldState.GetVote(from.Bytes())
-	assert.Equal(t, err, storage.ErrKeyNotFound)
-	_, err = block.worldState.IterDelegate(from.Bytes())
-	assert.Equal(t, err, storage.ErrKeyNotFound)
-	assert.Nil(t, bc.storeBlockToStorage(block))
-	assert.Nil(t, bc.SetTailBlock(block))
-
-	block, _ = NewBlock(bc.ChainID(), coinbase, block)
-	block.header.timestamp = BlockInterval * 4
-	payload = NewDelegatePayload(DelegateAction, from.String())
-	bytes, _ = payload.ToBytes()
-	tx = NewTransaction(bc.ChainID(), from, to, util.NewUint128FromInt(1), 4, TxPayloadDelegateType, bytes, TransactionGasPrice, util.NewUint128FromInt(200000))
-	tx.Sign(signature)
-	bc.txPool.Push(tx)
-	bytes, _ = NewCandidatePayload(LogoutAction).ToBytes()
-	tx = NewTransaction(bc.ChainID(), from, to, util.NewUint128FromInt(1), 5, TxPayloadCandidateType, bytes, TransactionGasPrice, util.NewUint128FromInt(200000))
-	tx.Sign(signature)
-	bc.txPool.Push(tx)
-	assert.Equal(t, len(block.transactions), 0)
-	assert.Equal(t, bc.txPool.cache.Len(), 2)
-	block.CollectTransactions(time.Now().Unix() + 2)
-	assert.Equal(t, len(block.transactions), 2)
-	assert.Equal(t, block.txPool.cache.Len(), 0)
-	block.SetMiner(coinbase)
-	assert.Equal(t, block.Seal(), nil)
-	block, _ = mockBlockFromNetwork(block)
-	assert.Equal(t, block.LinkParentBlock(bc, bc.tailBlock), nil)
-	block.SetMiner(coinbase)
-	assert.Nil(t, block.VerifyExecution(bc.tailBlock, bc.ConsensusHandler()))
-	_, err = block.worldState.GetCandidate(from.Bytes())
-	assert.Equal(t, err, storage.ErrKeyNotFound)
-	_, err = block.worldState.GetVote(from.Bytes())
-	assert.Equal(t, err, storage.ErrKeyNotFound)
-	_, err = block.worldState.IterDelegate(from.Bytes())
-	assert.Equal(t, err, storage.ErrKeyNotFound)
-	assert.Nil(t, bc.storeBlockToStorage(block))
-	assert.Nil(t, bc.SetTailBlock(block))
-}
-
 func TestBlock_fetchEvents(t *testing.T) {
-	bc, _ := NewBlockChain(testNeb())
+	neb := testNeb(t)
+	bc := neb.chain
+
 	tail := bc.tailBlock
-	events := []*Event{
-		&Event{Topic: "chain.block", Data: "hello"},
-		&Event{Topic: "chain.tx", Data: "hello"},
-		&Event{Topic: "chain.block", Data: "hello"},
-		&Event{Topic: "chain.block", Data: "hello"},
+	events := []*state.Event{
+		&state.Event{Topic: "chain.block", Data: "hello"},
+		&state.Event{Topic: "chain.tx", Data: "hello"},
+		&state.Event{Topic: "chain.block", Data: "hello"},
+		&state.Event{Topic: "chain.block", Data: "hello"},
 	}
 	tx := &Transaction{hash: []byte("tx")}
 	for _, event := range events {
@@ -447,8 +628,8 @@ func TestBlock_fetchEvents(t *testing.T) {
 }
 
 func TestSerializeTxByHash(t *testing.T) {
-	bc, err := NewBlockChain(testNeb())
-	assert.Nil(t, err)
+	neb := testNeb(t)
+	bc := neb.chain
 	block := bc.tailBlock
 	tx := NewTransaction(bc.ChainID(), mockAddress(), mockAddress(), util.NewUint128(), 1, TxPayloadBinaryType, []byte(""), TransactionGasPrice, TransactionMaxGas)
 	hash, err := HashTransaction(tx)
@@ -466,8 +647,8 @@ func TestSerializeTxByHash(t *testing.T) {
 }
 
 func TestBlockSign(t *testing.T) {
-	bc, err := NewBlockChain(testNeb())
-	assert.Nil(t, err)
+	neb := testNeb(t)
+	bc := neb.chain
 	block := bc.tailBlock
 	ks := keystore.DefaultKS
 	signature, _ := crypto.NewSignature(keystore.SECP256K1)
@@ -480,8 +661,8 @@ func TestBlockSign(t *testing.T) {
 }
 
 func TestGivebackInvalidTx(t *testing.T) {
-	bc, err := NewBlockChain(testNeb())
-	assert.Nil(t, err)
+	neb := testNeb(t)
+	bc := neb.chain
 	from := mockAddress()
 	ks := keystore.DefaultKS
 	tx := NewTransaction(bc.ChainID(), from, from, util.NewUint128(), 2, TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, util.NewUint128FromInt(200000))
@@ -502,8 +683,8 @@ func TestGivebackInvalidTx(t *testing.T) {
 }
 
 func TestRecordEvent(t *testing.T) {
-	bc, err := NewBlockChain(testNeb())
-	assert.Nil(t, err)
+	neb := testNeb(t)
+	bc := neb.chain
 	txHash := []byte("hello")
 	assert.Nil(t, bc.tailBlock.RecordEvent(txHash, TopicSendTransaction, "world"))
 	events, err := bc.tailBlock.FetchEvents(txHash)
@@ -514,10 +695,8 @@ func TestRecordEvent(t *testing.T) {
 }
 
 func TestBlockVerifyIntegrity(t *testing.T) {
-	var cons MockConsensus
-	bc, err := NewBlockChain(testNeb())
-	bc.SetConsensusHandler(cons)
-	assert.Nil(t, err)
+	neb := testNeb(t)
+	bc := neb.chain
 	assert.Equal(t, bc.tailBlock.VerifyIntegrity(0, nil), ErrInvalidChainID)
 	bc.tailBlock.header.hash[0] = 1
 	assert.Equal(t, bc.tailBlock.VerifyIntegrity(bc.ChainID(), nil), ErrInvalidBlockHash)
@@ -544,10 +723,8 @@ func TestBlockVerifyIntegrity(t *testing.T) {
 }
 
 func TestBlockVerifyIntegrityDup(t *testing.T) {
-	var cons MockConsensus
-	bc, err := NewBlockChain(testNeb())
-	bc.SetConsensusHandler(cons)
-	assert.Nil(t, err)
+	neb := testNeb(t)
+	bc := neb.chain
 	assert.Equal(t, bc.tailBlock.VerifyIntegrity(0, nil), ErrInvalidChainID)
 	bc.tailBlock.header.hash[0] = 1
 	assert.Equal(t, bc.tailBlock.VerifyIntegrity(bc.ChainID(), nil), ErrInvalidBlockHash)
@@ -571,10 +748,8 @@ func TestBlockVerifyIntegrityDup(t *testing.T) {
 }
 
 func TestBlockVerifyExecution(t *testing.T) {
-	var cons MockConsensus
-	bc, err := NewBlockChain(testNeb())
-	bc.SetConsensusHandler(cons)
-	assert.Nil(t, err)
+	neb := testNeb(t)
+	bc := neb.chain
 	assert.Equal(t, bc.tailBlock.VerifyIntegrity(0, nil), ErrInvalidChainID)
 	bc.tailBlock.header.hash[0] = 1
 	assert.Equal(t, bc.tailBlock.VerifyIntegrity(bc.ChainID(), nil), ErrInvalidBlockHash)
@@ -597,19 +772,17 @@ func TestBlockVerifyExecution(t *testing.T) {
 	block.Seal()
 	block.Sign(signature)
 	assert.Nil(t, block.VerifyIntegrity(bc.ChainID(), bc.ConsensusHandler()))
-	header1, err := block.worldState.ToHeaders()
+	header1, err := block.worldState.AccountsRoot()
 	assert.Nil(t, err)
 	assert.Equal(t, block.VerifyExecution(bc.tailBlock, bc.ConsensusHandler()), ErrLargeTransactionNonce)
-	header2, err := block.worldState.ToHeaders()
+	header2, err := block.worldState.AccountsRoot()
 	assert.Nil(t, err)
-	assert.Equal(t, header1.accStateRoot, header2.accStateRoot)
+	assert.Equal(t, header1, header2)
 }
 
 func TestBlockVerifyState(t *testing.T) {
-	var cons MockConsensus
-	bc, err := NewBlockChain(testNeb())
-	bc.SetConsensusHandler(cons)
-	assert.Nil(t, err)
+	neb := testNeb(t)
+	bc := neb.chain
 	assert.Equal(t, bc.tailBlock.VerifyIntegrity(0, nil), ErrInvalidChainID)
 	bc.tailBlock.header.hash[0] = 1
 	assert.Equal(t, bc.tailBlock.VerifyIntegrity(bc.ChainID(), nil), ErrInvalidBlockHash)
@@ -637,8 +810,8 @@ func TestBlockVerifyState(t *testing.T) {
 }
 
 func TestBlock_String(t *testing.T) {
-	bc, err := NewBlockChain(testNeb())
-	assert.Nil(t, err)
+	neb := testNeb(t)
+	bc := neb.chain
 	bc.genesisBlock.miner = nil
 	logging.CLog().Info(bc.genesisBlock)
 	assert.NotNil(t, bc.genesisBlock.String())

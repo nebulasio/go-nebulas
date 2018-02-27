@@ -20,17 +20,15 @@ package dpos
 
 import (
 	"errors"
-	"github.com/nebulasio/go-nebulas/core/state"
 	"time"
+
+	"github.com/nebulasio/go-nebulas/core/state"
 
 	"github.com/nebulasio/go-nebulas/crypto/keystore"
 	metrics "github.com/nebulasio/go-nebulas/metrics"
 
-	"github.com/nebulasio/go-nebulas/account"
-
 	"github.com/nebulasio/go-nebulas/common/trie"
 	"github.com/nebulasio/go-nebulas/core"
-	"github.com/nebulasio/go-nebulas/neblet/pb"
 	"github.com/nebulasio/go-nebulas/net"
 
 	"github.com/nebulasio/go-nebulas/util/byteutils"
@@ -54,49 +52,35 @@ var (
 	metricsBlockPackingTime = metrics.NewGauge("neb.block.packing")
 )
 
-// Neblet interface breaks cycle import dependency and hides unused services.
-type Neblet interface {
-	Config() *nebletpb.Config
-	BlockChain() *core.BlockChain
-	NetService() net.Service
-	AccountManager() *account.Manager
-}
-
 // Dpos Delegate Proof-of-Stake
 type Dpos struct {
 	quitCh chan bool
 
 	chain *core.BlockChain
 	ns    net.Service
-	am    *account.Manager
+	am    core.Manager
 
 	coinbase *core.Address
 	miner    *core.Address
-
-	blockInterval   int64
-	dynastyInterval int64
-	txsPerBlock     int
 
 	enable  bool
 	pending bool
 }
 
 // NewDpos create Dpos instance.
-func NewDpos(neblet Neblet) (*Dpos, error) {
-	p := &Dpos{
-		quitCh: make(chan bool, 5),
-
-		chain: neblet.BlockChain(),
-		ns:    neblet.NetService(),
-		am:    neblet.AccountManager(),
-
-		blockInterval:   BlockInterval,
-		dynastyInterval: DynastyInterval,
-		txsPerBlock:     10000,
-
+func NewDpos() *Dpos {
+	dpos := &Dpos{
+		quitCh:  make(chan bool, 5),
 		enable:  false,
 		pending: true,
 	}
+	return dpos
+}
+
+func (dpos *Dpos) Setup(neblet core.Neblet) error {
+	dpos.chain = neblet.BlockChain()
+	dpos.ns = neblet.NetService()
+	dpos.am = neblet.AccountManager()
 
 	config := neblet.Config().Chain
 	coinbase, err := core.AddressParse(config.Coinbase)
@@ -105,7 +89,7 @@ func NewDpos(neblet Neblet) (*Dpos, error) {
 			"address": config.Coinbase,
 			"err":     err,
 		}).Error("Failed to parse coinbase address.")
-		return nil, err
+		return err
 	}
 	miner, err := core.AddressParse(config.Miner)
 	if err != nil {
@@ -113,11 +97,11 @@ func NewDpos(neblet Neblet) (*Dpos, error) {
 			"address": config.Miner,
 			"err":     err,
 		}).Error("Failed to parse miner address.")
-		return nil, err
+		return err
 	}
-	p.coinbase = coinbase
-	p.miner = miner
-	return p, nil
+	dpos.coinbase = coinbase
+	dpos.miner = miner
+	return nil
 }
 
 // Start start pow service.
@@ -314,7 +298,7 @@ func (p *Dpos) FastVerifyBlock(block *core.Block) error {
 	tail := p.chain.TailBlock()
 	// check timestamp
 	elapsedSecond := block.Timestamp() - tail.Timestamp()
-	if elapsedSecond%p.blockInterval != 0 {
+	if elapsedSecond%BlockInterval != 0 {
 		return ErrInvalidBlockInterval
 	}
 	// check proposer
@@ -403,17 +387,8 @@ func (p *Dpos) newBlock(tail *core.Block, consensusState state.ConsensusState, d
 		"reward":   core.BlockReward,
 	}).Info("Rewarded the coinbase.")
 
-	consensusRoot, err := consensusState.RootHash()
-	if err != nil {
-		return nil, err
-	}
-	if err := block.WorldState().LoadConsensusRoot(consensusRoot); err != nil {
-		logging.CLog().WithFields(logrus.Fields{
-			"block": block,
-			"err":   err,
-		}).Error("Failed to load dynasty context")
-		return nil, err
-	}
+	block.WorldState().SetConsensusState(consensusState)
+	block.SetTimestamp(consensusState.TimeStamp())
 	block.CollectTransactions(deadline)
 	block.SetMiner(p.miner)
 	if err = block.Seal(); err != nil {

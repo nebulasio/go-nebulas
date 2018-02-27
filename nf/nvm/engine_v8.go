@@ -301,7 +301,7 @@ func (e *V8Engine) RunScriptSource(source string, sourceLineOffset int) (result 
 		if ret != 0 {
 			err = ErrExecutionFailed
 		}
-	case <-time.After(10 * time.Second):
+	case <-time.After(2 * time.Second):
 		C.TerminateExecution(e.v8engine)
 		err = ErrExecutionTimeout
 

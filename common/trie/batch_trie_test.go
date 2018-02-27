@@ -19,6 +19,16 @@ func TestBatchTrie_Clone(t *testing.T) {
 	assert.Equal(t, tr1.trie == tr2.trie, false)
 }
 
+func TestBatchTrie_Empty(t *testing.T) {
+	storage, _ := storage.NewMemoryStorage()
+	tr1, err := NewBatchTrie(nil, storage)
+	assert.Nil(t, err)
+	root := tr1.RootHash()
+	tr2, err := NewBatchTrie(root, storage)
+	assert.Nil(t, err)
+	assert.Equal(t, tr1.trie.RootHash(), tr2.trie.RootHash())
+}
+
 func TestBatchTrie_Batch(t *testing.T) {
 	storage, _ := storage.NewMemoryStorage()
 	tr, _ := NewBatchTrie(nil, storage)

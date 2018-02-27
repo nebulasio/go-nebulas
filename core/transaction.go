@@ -323,8 +323,8 @@ func (tx *Transaction) LocalExecution(block *Block) (*util.Uint128, string, erro
 		return nil, "", err
 	}
 
-	txBlock.begin()
-	defer txBlock.rollback()
+	txBlock.Begin()
+	defer txBlock.Rollback()
 
 	fromAcc, err := txBlock.worldState.GetOrCreateUserAccount(tx.from.address)
 	if err != nil {

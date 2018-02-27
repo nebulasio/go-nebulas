@@ -326,10 +326,10 @@ func TestPayload_Execute(t *testing.T) {
 		wantErr error
 	}
 
-	neb := testNeb()
-	bc, _ := NewBlockChain(neb)
+	neb := testNeb(t)
+	bc := neb.chain
 	block := bc.tailBlock
-	block.begin()
+	block.Begin()
 
 	tests := []testPayload{
 		{
@@ -437,12 +437,12 @@ func TestPayload_Execute(t *testing.T) {
 			assert.Equal(t, tt.want, got)
 
 			if err != nil {
-				txblock.rollback()
+				txblock.Rollback()
 			} else {
 				block.Merge(txblock)
 			}
 		})
 	}
 
-	block.rollback()
+	block.Rollback()
 }

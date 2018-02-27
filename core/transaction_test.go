@@ -189,9 +189,8 @@ func TestTransaction_VerifyExecution(t *testing.T) {
 	}
 	tests := []testTx{}
 
-	bc, _ := NewBlockChain(testNeb())
-	var c MockConsensus
-	bc.SetConsensusHandler(c)
+	neb := testNeb(t)
+	bc := neb.chain
 
 	// 1NAS = 10^18
 	balance := util.NewUint128FromBigInt(util.NewUint128().Exp(util.NewUint128FromInt(10).Int, util.NewUint128FromInt(18).Int, nil))
@@ -389,7 +388,7 @@ func TestTransaction_VerifyExecution(t *testing.T) {
 			assert.Nil(t, err)
 
 			block := bc.tailBlock
-			block.begin()
+			block.Begin()
 			fromAcc, err := block.worldState.GetOrCreateUserAccount(tt.tx.from.address)
 			assert.Nil(t, err)
 			fromAcc.AddBalance(tt.fromBalance)
@@ -423,7 +422,7 @@ func TestTransaction_VerifyExecution(t *testing.T) {
 				assert.Equal(t, tt.eventTopic[index], event.Topic)
 			}
 
-			block.rollback()
+			block.Rollback()
 		})
 	}
 
@@ -440,9 +439,8 @@ func TestTransaction_LocalExecution(t *testing.T) {
 
 	tests := []testCase{}
 
-	bc, _ := NewBlockChain(testNeb())
-	var c MockConsensus
-	bc.SetConsensusHandler(c)
+	neb := testNeb(t)
+	bc := neb.chain
 
 	normalTx := mockNormalTransaction(bc.chainID, 0)
 	normalTx.value = util.NewUint128FromInt(1000000)

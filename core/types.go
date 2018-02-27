@@ -20,7 +20,10 @@ package core
 
 import (
 	"errors"
+	"time"
+
 	"github.com/nebulasio/go-nebulas/core/state"
+	"github.com/nebulasio/go-nebulas/net"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
 
 	"github.com/nebulasio/go-nebulas/core/pb"
@@ -99,7 +102,7 @@ var (
 	ErrCloneEventsState                                  = errors.New("Failed to clone events state")
 	ErrGenerateNextDynastyContext                        = errors.New("Failed to generate next dynasty context")
 	ErrLoadNextDynastyContext                            = errors.New("Failed to load next dynasty context")
-	ErrGenesisConfNotMatch                               = errors.New("Failed to load genesis from sotrage, different with genesis conf")
+	ErrGenesisConfNotMatch                               = errors.New("Failed to load genesis from storage, different with genesis conf")
 	ErrInvalidBlockCannotFindParentInLocalAndTryDownload = errors.New("invalid block received, download its parent from others")
 	ErrInvalidBlockCannotFindParentInLocalAndTrySync     = errors.New("invalid block received, sync its parent from others")
 	ErrInvalidConfigChainID                              = errors.New("invalid chainID, genesis chainID not equal to chainID in config")
@@ -132,16 +135,26 @@ const (
 
 // Consensus interface of consensus algorithm.
 type Consensus interface {
-	SuspendMining()
-	ResumeMining()
-	VerifyBlock(block *Block, parent *Block) error
-	FastVerifyBlock(block *Block) error
-	ForkChoice() error
+	Setup(Neblet) error
+	Start()
+	Stop()
 
+	EnableMining(string) error
+	DisableMining() error
+	Enable() bool
+
+	ResumeMining()
+	SuspendMining()
+	Pending() bool
+
+	VerifyBlock(*Block, *Block) error
+	FastVerifyBlock(*Block) error
+	ForkChoice() error
 	UpdateLIB()
-	CheckTimeout(block *Block) bool
 
 	NewState(byteutils.Hash, storage.Storage) (state.ConsensusState, error)
+	CheckTimeout(*Block) bool
+
 	GenesisConsensusState(*BlockChain, *corepb.Genesis) (state.ConsensusState, error)
 }
 
@@ -156,10 +169,31 @@ type SyncService interface {
 	IsActiveSyncing() bool
 }
 
+type Manager interface {
+	NewAccount([]byte) (*Address, error)
+	Accounts() []*Address
+
+	Unlock(*Address, []byte, time.Duration) error
+	Lock(*Address) error
+
+	SignBlock(*Address, *Block) error
+	SignTransaction(*Address, *Transaction) error
+	SignTransactionWithPassphrase(*Address, *Transaction, []byte) error
+
+	Update(*Address, []byte, []byte) error
+	Load([]byte, []byte) (*Address, error)
+	Import([]byte, []byte) (*Address, error)
+	Delete(*Address, []byte) error
+}
+
 // Neblet interface breaks cycle import dependency and hides unused services.
 type Neblet interface {
 	Genesis() *corepb.Genesis
 	Config() *nebletpb.Config
 	Storage() storage.Storage
 	EventEmitter() *EventEmitter
+	Consensus() Consensus
+	BlockChain() *BlockChain
+	NetService() net.Service
+	AccountManager() Manager
 }

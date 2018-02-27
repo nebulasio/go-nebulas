@@ -558,28 +558,6 @@ message BlockResponse {
     repeated TransactionResponse transactions = 100;
 }
 
-// dpos context
-message DposContext {
-
-    // dynasty root
-    string dynasty_root = 1;
-
-    // next dynasty
-    string next_dynasty_root = 2;
-
-    // delegate root
-    string delegate_root = 3;
-
-    // candidate root
-    string candidate_root = 4;
-
-    // vote root
-    string vote_root = 5;
-
-    // mint cnt root
-    string mint_cnt_root = 6;
-}
-
 // Response message of TransactionReceipt.
 message TransactionResponse {
 
