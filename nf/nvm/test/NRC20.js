@@ -90,6 +90,7 @@ StandardToken.prototype = {
 
         var from = Blockchain.transaction.from;
         this.balances.set(from, this._totalSupply);
+        this.transferEvent(true, from, from, this._totalSupply);
     },
 
     // Returns the name of the token
@@ -130,7 +131,7 @@ StandardToken.prototype = {
         if (balance.lt(value)) {
 
             this.transferEvent(false, from, to, value);
-            return false;
+            throw new Error("transfer failed.");
         }
 
         this.balances.set(from, balance.sub(value));
@@ -163,13 +164,13 @@ StandardToken.prototype = {
             return true;
         } else {
             this.transferEvent(false, from, to, value);
-            return false;
+            throw new Error("transfer failed.");
         }
     },
 
-    transferEvent: function(result, from, to, value) {
+    transferEvent: function(status, from, to, value) {
         Event.Trigger(this.name(), {
-            Status: result,
+            Status: status,
             Transfer: {
                 from: from,
                 to: to,
@@ -178,23 +179,35 @@ StandardToken.prototype = {
         });
     },
 
-    approve: function (spender, value) {
+    approve: function (spender, currentValue, value) {
         var from = Blockchain.transaction.from;
+
+        var oldValue = this.allowance(from, spender);
+        if (oldValue != currentValue.toString()) {
+            this.approveEvent(false, from, spender, value);
+            throw new Error("approve failed.");
+        }
+
         var owned = this.allowed.get(from) || new Allowed();
 
         owned.set(spender, new BigNumber(value));
 
         this.allowed.set(from, owned);
 
+        this.approveEvent(true, from, spender, value);
+        
+        return true;
+    },
+
+    approveEvent: function(status, from, spender, value) {
         Event.Trigger(this.name(), {
+            Status: status,
 			Approve: {
 				owner: from,
 				spender: spender,
 				value: value
 			}
         });
-        
-        return true;
     },
 
     allowance: function (owner, spender) {

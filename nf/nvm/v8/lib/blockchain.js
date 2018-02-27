@@ -70,7 +70,10 @@ Blockchain.prototype = {
     //     return acc
     // },
     transfer: function (address, value) {
-        return this.nativeBlockchain.transfer(address, value.toString());
+        if (!(value instanceof BigNumber)) {
+            value = new BigNumber(value);
+        }
+        return this.nativeBlockchain.transfer(address, value.toString(10));
     },
     verifyAddress: function (address) {
         return this.nativeBlockchain.verifyAddress(address);
