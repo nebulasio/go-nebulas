@@ -82,7 +82,11 @@ func TestUint128(t *testing.T) {
 		{bigMaxUint128Add1, [16]byte{}, ErrUint128Overflow},
 	}
 	for _, tt := range tests {
-		u1 := NewUint128FromBigInt(tt.input)
+		u1, err := NewUint128FromBigInt(tt.input)
+		if err != nil {
+			assert.Equal(t, tt.expectedErr, err)
+			continue
+		}
 		fsb, err := u1.ToFixedSizeBytes()
 		fmt.Println("uint128.Int =", u1.Int, "bitlen =", u1.BitLen(), "[]bytes =", u1.Bytes(), "[16]bytes =", fsb, "err =", err)
 

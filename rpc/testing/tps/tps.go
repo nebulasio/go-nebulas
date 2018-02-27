@@ -59,7 +59,7 @@ func main() {
 		r, err := api.GetAccountState(context.Background(), &rpcpb.GetAccountStateRequest{Address: from})
 		if err != nil {
 			log.Println("GetAccountState", from, "failed", err)
-		} else if val, err = util.NewUint128FromStringSafe(r.GetBalance()); err != nil {
+		} else if val, err = util.NewUint128FromString(r.GetBalance()); err != nil {
 			log.Println("GetAccountState", from, "failed to get balance", err)
 		} else {
 			nonce, _ = strconv.ParseUint(r.Nonce, 10, 64)
@@ -80,7 +80,10 @@ func main() {
 	start := time.Now().Unix()
 	nonce++
 	{
-		v := util.NewUint128FromInt(value)
+		v, err := util.NewUint128FromInt(value)
+		if err != nil {
+			log.Println("newUint128 failed:", err)
+		}
 		for i := 0; i < sendtimes; i++ {
 			_, err := api.SendTransaction(context.Background(), &rpcpb.TransactionRequest{From: from, To: to, Value: v.String(), Nonce: nonce})
 			if err != nil {
@@ -97,7 +100,7 @@ func main() {
 			a, err := api.GetAccountState(context.Background(), &rpcpb.GetAccountStateRequest{Address: from})
 			if err != nil {
 				log.Println("GetAccountState", from, "failed", err)
-			} else if val, err = util.NewUint128FromStringSafe(a.GetBalance()); err != nil {
+			} else if val, err = util.NewUint128FromString(a.GetBalance()); err != nil {
 				log.Println("GetAccountState", from, "failed to get balance", err)
 			} else {
 				nonce, _ := strconv.ParseUint(a.Nonce, 10, 64)

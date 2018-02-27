@@ -110,7 +110,7 @@ func TransferFunc(handler unsafe.Pointer, to *C.char, v *C.char) int {
 		return 1
 	}
 
-	amount, err := util.NewUint128FromStringSafe(C.GoString(v))
+	amount, err := util.NewUint128FromString(C.GoString(v))
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"handler": uint64(uintptr(handler)),
@@ -131,7 +131,16 @@ func TransferFunc(handler unsafe.Pointer, to *C.char, v *C.char) int {
 		return 1
 	}
 
-	toAcc.AddBalance(amount)
+	err = toAcc.AddBalance(amount)
+	if err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"account": toAcc,
+			"amout":   amount,
+			"address": addr,
+			"err":     err,
+		}).Debug("failed to add balance")
+		return 1
+	}
 	return 0
 }
 

@@ -48,7 +48,7 @@ var (
 	// BlockReward given to coinbase
 	// rule: 3% per year, 3,000,000. 1 block per 5 seconds
 	// value: 10^8 * 3% / (365*24*3600/5) * 10^18 ≈ 16 * 3% * 10*18 = 48 * 10^16
-	BlockReward, _ = util.NewUint128FromStringSafe("480000000000000000")
+	BlockReward, _ = util.NewUint128FromString("480000000000000000")
 )
 
 // BlockHeader of a block
@@ -974,8 +974,7 @@ func (block *Block) rewardCoinbase() error {
 	if err != nil {
 		return err
 	}
-	coinbaseAcc.AddBalance(BlockReward)
-	return nil
+	return coinbaseAcc.AddBalance(BlockReward)
 }
 
 // GetTransaction from txs Trie

@@ -48,8 +48,8 @@ func NewUint128() *Uint128 {
 	return &Uint128{big.NewInt(0)}
 }
 
-// NewUint128FromStringSafe returns a new Uint128 struct with given value and have a check.
-func NewUint128FromStringSafe(str string) (*Uint128, error) {
+// NewUint128FromString returns a new Uint128 struct with given value and have a check.
+func NewUint128FromString(str string) (*Uint128, error) {
 	big := new(big.Int)
 	big.SetString(str, 10)
 	if err := (&Uint128{big}).Validate(); nil != err {
@@ -58,15 +58,8 @@ func NewUint128FromStringSafe(str string) (*Uint128, error) {
 	return &Uint128{big}, nil
 }
 
-// NewUint128FromString returns a new Uint128 struct with given value.
-func NewUint128FromString(str string) *Uint128 {
-	big := new(big.Int)
-	big.SetString(str, 10)
-	return &Uint128{big}
-}
-
-// NewUint128FromIntSafe returns a new Uint128 struct with given value and have a check.
-func NewUint128FromIntSafe(i int64) (*Uint128, error) {
+// NewUint128FromInt returns a new Uint128 struct with given value and have a check.
+func NewUint128FromInt(i int64) (*Uint128, error) {
 	obj := &Uint128{big.NewInt(i)}
 	if err := obj.Validate(); nil != err {
 		return nil, err
@@ -74,23 +67,13 @@ func NewUint128FromIntSafe(i int64) (*Uint128, error) {
 	return obj, nil
 }
 
-// NewUint128FromInt returns a new Uint128 struct with given value.
-func NewUint128FromInt(i int64) *Uint128 {
-	return &Uint128{big.NewInt(i)}
-}
-
-// NewUint128FromBigIntSafe returns a new Uint128 struct with given value and have a check.
-func NewUint128FromBigIntSafe(i *big.Int) (*Uint128, error) {
+// NewUint128FromBigInt returns a new Uint128 struct with given value and have a check.
+func NewUint128FromBigInt(i *big.Int) (*Uint128, error) {
 	obj := &Uint128{i}
 	if err := obj.Validate(); nil != err {
 		return nil, err
 	}
 	return obj, nil
-}
-
-// NewUint128FromBigInt returns a new Uint128 struct with given value.
-func NewUint128FromBigInt(i *big.Int) *Uint128 {
-	return &Uint128{i}
 }
 
 // NewUint128FromFixedSizeBytes returns a new Uint128 struct with given fixed size byte array.
@@ -166,26 +149,53 @@ func (u *Uint128) FromFixedSizeByteSlice(bytes []byte) (*Uint128, error) {
 }
 
 //Add returns u + x
-func (u *Uint128) Add(x *Uint128) *Uint128 {
-	return &Uint128{NewUint128().Int.Add(u.Int, x.Int)}
+func (u *Uint128) Add(x *Uint128) (*Uint128, error) {
+	obj := &Uint128{NewUint128().Int.Add(u.Int, x.Int)}
+	if err := obj.Validate(); nil != err {
+		return nil, err
+	}
+	return obj, nil
 }
 
 //Sub returns u - x
-func (u *Uint128) Sub(x *Uint128) *Uint128 {
-	return &Uint128{NewUint128().Int.Sub(u.Int, x.Int)}
+func (u *Uint128) Sub(x *Uint128) (*Uint128, error) {
+	obj := &Uint128{NewUint128().Int.Sub(u.Int, x.Int)}
+	if err := obj.Validate(); nil != err {
+		return nil, err
+	}
+	return obj, nil
 }
 
 //Mul returns u * x
-func (u *Uint128) Mul(x *Uint128) *Uint128 {
-	return &Uint128{NewUint128().Int.Mul(u.Int, x.Int)}
+func (u *Uint128) Mul(x *Uint128) (*Uint128, error) {
+	obj := &Uint128{NewUint128().Int.Mul(u.Int, x.Int)}
+	if err := obj.Validate(); nil != err {
+		return nil, err
+	}
+	return obj, nil
 }
 
 //Div returns u / x
-func (u *Uint128) Div(x *Uint128) *Uint128 {
-	return &Uint128{NewUint128().Int.Div(u.Int, x.Int)}
+func (u *Uint128) Div(x *Uint128) (*Uint128, error) {
+	obj := &Uint128{NewUint128().Int.Div(u.Int, x.Int)}
+	if err := obj.Validate(); nil != err {
+		return nil, err
+	}
+	return obj, nil
 }
 
 //Exp returns u^x
-func (u *Uint128) Exp(x *Uint128) *Uint128 {
-	return &Uint128{NewUint128().Int.Exp(u.Int, x.Int, nil)}
+func (u *Uint128) Exp(x *Uint128) (*Uint128, error) {
+	obj := &Uint128{NewUint128().Int.Exp(u.Int, x.Int, nil)}
+	if err := obj.Validate(); nil != err {
+		return nil, err
+	}
+	return obj, nil
+}
+
+//DeepCopy returns a deep copy of u
+func (u *Uint128) DeepCopy() *Uint128 {
+	z := new(big.Int)
+	z.Set(u.Int)
+	return &Uint128{z}
 }

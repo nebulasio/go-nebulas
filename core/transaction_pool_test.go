@@ -49,23 +49,25 @@ func TestTransactionPool(t *testing.T) {
 	key2, _ := ks.GetUnlocked(other.String())
 	signature2, _ := crypto.NewSignature(keystore.SECP256K1)
 	signature2.InitSign(key2.(keystore.PrivateKey))
-
-	heighPrice := TransactionGasPrice.Mul(util.NewUint128FromInt(2))
+	gasCount, _ := util.NewUint128FromInt(2)
+	heighPrice, err := TransactionGasPrice.Mul(gasCount)
+	assert.Nil(t, err)
 	txPool, _ := NewTransactionPool(3)
 	bc, _ := NewBlockChain(testNeb())
 	txPool.setBlockChain(bc)
 	txPool.setEventEmitter(bc.eventEmitter)
 
+	gasLimit, _ := util.NewUint128FromInt(200000)
 	txs := []*Transaction{
-		NewTransaction(bc.ChainID(), from, &Address{[]byte("to")}, util.NewUint128(), 10, TxPayloadBinaryType, []byte("datadata"), TransactionGasPrice, util.NewUint128FromInt(200000)),
-		NewTransaction(bc.ChainID(), other, &Address{[]byte("to")}, util.NewUint128(), 1, TxPayloadBinaryType, []byte("datadata"), heighPrice, util.NewUint128FromInt(200000)),
-		NewTransaction(bc.ChainID(), from, &Address{[]byte("to")}, util.NewUint128(), 1, TxPayloadBinaryType, []byte("da"), TransactionGasPrice, util.NewUint128FromInt(200000)),
+		NewTransaction(bc.ChainID(), from, &Address{[]byte("to")}, util.NewUint128(), 10, TxPayloadBinaryType, []byte("datadata"), TransactionGasPrice, gasLimit),
+		NewTransaction(bc.ChainID(), other, &Address{[]byte("to")}, util.NewUint128(), 1, TxPayloadBinaryType, []byte("datadata"), heighPrice, gasLimit),
+		NewTransaction(bc.ChainID(), from, &Address{[]byte("to")}, util.NewUint128(), 1, TxPayloadBinaryType, []byte("da"), TransactionGasPrice, gasLimit),
 
-		NewTransaction(bc.ChainID(), from, &Address{[]byte("to")}, util.NewUint128(), 2, TxPayloadBinaryType, []byte("da"), TransactionGasPrice, util.NewUint128FromInt(200000)),
-		NewTransaction(bc.ChainID()+1, from, &Address{[]byte("to")}, util.NewUint128(), 0, TxPayloadBinaryType, []byte("da"), TransactionGasPrice, util.NewUint128FromInt(200000)),
+		NewTransaction(bc.ChainID(), from, &Address{[]byte("to")}, util.NewUint128(), 2, TxPayloadBinaryType, []byte("da"), TransactionGasPrice, gasLimit),
+		NewTransaction(bc.ChainID()+1, from, &Address{[]byte("to")}, util.NewUint128(), 0, TxPayloadBinaryType, []byte("da"), TransactionGasPrice, gasLimit),
 
-		NewTransaction(bc.ChainID(), other, &Address{[]byte("to")}, util.NewUint128(), 1, TxPayloadBinaryType, []byte("data"), TransactionGasPrice, util.NewUint128FromInt(200000)),
-		NewTransaction(bc.ChainID(), from, &Address{[]byte("to")}, util.NewUint128(), 1, TxPayloadBinaryType, []byte("datadata"), heighPrice, util.NewUint128FromInt(200000)),
+		NewTransaction(bc.ChainID(), other, &Address{[]byte("to")}, util.NewUint128(), 1, TxPayloadBinaryType, []byte("data"), TransactionGasPrice, gasLimit),
+		NewTransaction(bc.ChainID(), from, &Address{[]byte("to")}, util.NewUint128(), 1, TxPayloadBinaryType, []byte("datadata"), heighPrice, gasLimit),
 	}
 
 	assert.Nil(t, txs[0].Sign(signature1))
@@ -120,9 +122,11 @@ func TestGasConfig(t *testing.T) {
 	txPool.SetGasConfig(nil, nil)
 	assert.Equal(t, txPool.gasPrice, TransactionGasPrice)
 	assert.Equal(t, txPool.gasLimit, TransactionMaxGas)
-	txPool.SetGasConfig(util.NewUint128FromInt(1), util.NewUint128FromInt(1))
-	assert.Equal(t, txPool.gasPrice, util.NewUint128FromInt(1))
-	assert.Equal(t, txPool.gasLimit, util.NewUint128FromInt(1))
+	gasPrice, _ := util.NewUint128FromInt(1)
+	gasLimit, _ := util.NewUint128FromInt(1)
+	txPool.SetGasConfig(gasPrice, gasLimit)
+	assert.Equal(t, txPool.gasPrice, gasPrice)
+	assert.Equal(t, txPool.gasLimit, gasLimit)
 }
 
 func TestPushTxs(t *testing.T) {
@@ -149,9 +153,11 @@ func TestPushTxs(t *testing.T) {
 	bc, _ := NewBlockChain(testNeb())
 	txPool.setBlockChain(bc)
 	txPool.setEventEmitter(bc.eventEmitter)
-	MaxGasPlus1 := TransactionMaxGas.Add(util.NewUint128FromInt(1))
+	uint128Number1, _ := util.NewUint128FromInt(1)
+	MaxGasPlus1, _ := TransactionMaxGas.Add(uint128Number1)
+	gasPrice, _ := util.NewUint128FromInt(1000000 - 1)
 	txs := []*Transaction{
-		NewTransaction(bc.ChainID(), from, to, util.NewUint128(), 10, TxPayloadBinaryType, []byte("datadata"), util.NewUint128FromInt(10^6-1), TransactionMaxGas),
+		NewTransaction(bc.ChainID(), from, to, util.NewUint128(), 10, TxPayloadBinaryType, []byte("datadata"), gasPrice, TransactionMaxGas),
 		NewTransaction(bc.ChainID(), from, to, util.NewUint128(), 10, TxPayloadBinaryType, []byte("datadata"), TransactionGasPrice, MaxGasPlus1),
 	}
 	assert.Equal(t, txPool.push(txs[0]), ErrBelowGasPrice)

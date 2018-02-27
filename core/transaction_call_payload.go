@@ -69,10 +69,18 @@ func (payload *CallPayload) Execute(block *Block, tx *Transaction) (*util.Uint12
 	defer engine.Dispose()
 
 	//add gas limit and memory use limit
-	engine.SetExecutionLimits(tx.PayloadGasLimit(payload).Uint64(), nvm.DefaultLimitsOfTotalMemorySize)
+	payloadGasLimit, err := tx.PayloadGasLimit(payload)
+	if err != nil {
+		return util.NewUint128(), "", err
+	}
+	engine.SetExecutionLimits(payloadGasLimit.Uint64(), nvm.DefaultLimitsOfTotalMemorySize)
 
 	result, err := engine.Call(deployPayload.Source, deployPayload.SourceType, payload.Function, payload.Args)
-	return util.NewUint128FromInt(int64(engine.ExecutionInstructions())), result, err
+	instructions, err := util.NewUint128FromInt(int64(engine.ExecutionInstructions()))
+	if err != nil {
+		return util.NewUint128(), "", err
+	}
+	return instructions, result, err
 }
 
 func generateCallContext(block *Block, tx *Transaction) (*nvm.Context, *DeployPayload, error) {

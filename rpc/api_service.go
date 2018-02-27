@@ -185,15 +185,15 @@ func parseTransaction(neb Neblet, reqTx *rpcpb.TransactionRequest) (*core.Transa
 		return nil, err
 	}
 
-	value, err := util.NewUint128FromStringSafe(reqTx.Value)
+	value, err := util.NewUint128FromString(reqTx.Value)
 	if err != nil {
 		return nil, err
 	}
-	gasPrice, err := util.NewUint128FromStringSafe(reqTx.GasPrice)
+	gasPrice, err := util.NewUint128FromString(reqTx.GasPrice)
 	if err != nil {
 		return nil, err
 	}
-	gasLimit, err := util.NewUint128FromStringSafe(reqTx.GasLimit)
+	gasLimit, err := util.NewUint128FromString(reqTx.GasLimit)
 	if err != nil {
 		return nil, err
 	}

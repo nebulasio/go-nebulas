@@ -125,13 +125,13 @@ func (n *Neblet) Setup() {
 			"err": err,
 		}).Fatal("Failed to setup blockchain.")
 	}
-	gasPrice, err := util.NewUint128FromStringSafe(n.config.Chain.GasPrice)
+	gasPrice, err := util.NewUint128FromString(n.config.Chain.GasPrice)
 	if err != nil {
 		logging.CLog().WithFields(logrus.Fields{
 			"err": err,
 		}).Fatal("Failed to get gasPrice")
 	}
-	gasLimit, err := util.NewUint128FromStringSafe(n.config.Chain.GasLimit)
+	gasLimit, err := util.NewUint128FromString(n.config.Chain.GasLimit)
 	if err != nil {
 		logging.CLog().WithFields(logrus.Fields{
 			"err": err,

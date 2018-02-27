@@ -47,6 +47,11 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
+func newUint128FromIntWrapper(a int64) *util.Uint128 {
+	b, _ := util.NewUint128FromInt(a)
+	return b
+}
+
 type mockBlock struct {
 }
 
@@ -76,16 +81,19 @@ func (m *mockBlock) RecordEvent(txHash byteutils.Hash, topic, data string) error
 
 func (m *mockBlock) SerializeTxByHash(hash byteutils.Hash) (proto.Message, error) {
 	from, _ := byteutils.FromHex("8a209cec02cbeab7e2f74ad969d2dfe8dd24416aa65589bf")
-	to, _ := byteutils.FromHex("22ac3a9a2b1c31b7a9084e46eae16e761f83f02324092b09")
-	value, _ := util.NewUint128FromString("10").ToFixedSizeByteSlice()
-	gasPrice, _ := util.NewUint128FromString("1").ToFixedSizeByteSlice()
-	gasLimit, _ := util.NewUint128FromString("100").ToFixedSizeByteSlice()
+	to, _ := byteutils.FromHex("22ac3a9a2b1c31b7a9084e46eae16e761f83f0234092b09")
+	value, _ := util.NewUint128FromString("10")
+	valueBytes, _ := value.ToFixedSizeByteSlice()
+	gasPrice, _ := util.NewUint128FromString("1")
+	gasPriceBytes, _ := gasPrice.ToFixedSizeByteSlice()
+	gasLimit, _ := util.NewUint128FromString("100")
+	gasLimitBytes, _ := gasLimit.ToFixedSizeByteSlice()
 	block := &corepb.Transaction{
 		From:     from,
 		To:       to,
-		Value:    value,
-		GasPrice: gasPrice,
-		GasLimit: gasLimit,
+		Value:    valueBytes,
+		GasPrice: gasPriceBytes,
+		GasLimit: gasLimitBytes,
 		Hash:     hash,
 	}
 	return proto.Message(block), nil
@@ -102,8 +110,8 @@ func testContextTransaction() *ContextTransaction {
 		Value:    "5",
 		Nonce:    3,
 		Hash:     "c7174759e86c59dcb7df87def82f61eb",
-		GasPrice: util.NewUint128FromInt(1).String(),
-		GasLimit: util.NewUint128FromInt(10).String(),
+		GasPrice: newUint128FromIntWrapper(1).String(),
+		GasLimit: newUint128FromIntWrapper(10).String(),
 	}
 }
 
@@ -129,7 +137,7 @@ func TestRunScriptSource(t *testing.T) {
 			context, _ := state.NewAccountState(nil, mem)
 			owner, err := context.GetOrCreateUserAccount([]byte("account1"))
 			assert.Nil(t, err)
-			owner.AddBalance(util.NewUint128FromInt(1000000000))
+			owner.AddBalance(newUint128FromIntWrapper(1000000000))
 			contract, _ := context.CreateContractAccount([]byte("account2"), nil)
 			ctx := NewContext(testContextBlock(), testContextTransaction(), owner, contract, context)
 
@@ -165,7 +173,7 @@ func TestRunScriptSourceInModule(t *testing.T) {
 			context, _ := state.NewAccountState(nil, mem)
 			owner, err := context.GetOrCreateUserAccount([]byte("account1"))
 			assert.Nil(t, err)
-			owner.AddBalance(util.NewUint128FromInt(1000000000))
+			owner.AddBalance(newUint128FromIntWrapper(1000000000))
 			contract, _ := context.CreateContractAccount([]byte("account2"), nil)
 			ctx := NewContext(testContextBlock(), testContextTransaction(), owner, contract, context)
 
@@ -207,7 +215,7 @@ func TestRunScriptSourceWithLimits(t *testing.T) {
 			context, _ := state.NewAccountState(nil, mem)
 			owner, err := context.GetOrCreateUserAccount([]byte("account1"))
 			assert.Nil(t, err)
-			owner.AddBalance(util.NewUint128FromInt(100000))
+			owner.AddBalance(newUint128FromIntWrapper(100000))
 			contract, _ := context.CreateContractAccount([]byte("account2"), nil)
 			ctx := NewContext(testContextBlock(), testContextTransaction(), owner, contract, context)
 
@@ -298,7 +306,7 @@ func TestDeployAndInitAndCall(t *testing.T) {
 			context, _ := state.NewAccountState(nil, mem)
 			owner, err := context.GetOrCreateUserAccount([]byte("account1"))
 			assert.Nil(t, err)
-			owner.AddBalance(util.NewUint128FromInt(10000000))
+			owner.AddBalance(newUint128FromIntWrapper(10000000))
 			contract, _ := context.CreateContractAccount([]byte("account2"), nil)
 
 			ctx := NewContext(testContextBlock(), testContextTransaction(), owner, contract, context)
@@ -378,7 +386,7 @@ func TestContracts(t *testing.T) {
 			context, _ := state.NewAccountState(nil, mem)
 			owner, err := context.GetOrCreateUserAccount([]byte("account1"))
 			assert.Nil(t, err)
-			owner.AddBalance(util.NewUint128FromInt(10000000))
+			owner.AddBalance(newUint128FromIntWrapper(10000000))
 			contract, err := context.CreateContractAccount([]byte("account2"), nil)
 			assert.Nil(t, err)
 			ctx := NewContext(testContextBlock(), testContextTransaction(), owner, contract, context)
@@ -427,7 +435,7 @@ func TestFunctionNameCheck(t *testing.T) {
 			context, _ := state.NewAccountState(nil, mem)
 			owner, err := context.GetOrCreateUserAccount([]byte("account1"))
 			assert.Nil(t, err)
-			owner.AddBalance(util.NewUint128FromInt(1000000))
+			owner.AddBalance(newUint128FromIntWrapper(1000000))
 			contract, _ := context.CreateContractAccount([]byte("account2"), nil)
 			ctx := NewContext(testContextBlock(), testContextTransaction(), owner, contract, context)
 
@@ -445,7 +453,7 @@ func TestMultiEngine(t *testing.T) {
 	context, _ := state.NewAccountState(nil, mem)
 	owner, err := context.GetOrCreateUserAccount([]byte("account1"))
 	assert.Nil(t, err)
-	owner.AddBalance(util.NewUint128FromInt(1000000))
+	owner.AddBalance(newUint128FromIntWrapper(1000000))
 	contract, _ := context.CreateContractAccount([]byte("account2"), nil)
 
 	var wg sync.WaitGroup
@@ -498,7 +506,7 @@ func TestInstructionCounterTestSuite(t *testing.T) {
 			context, _ := state.NewAccountState(nil, mem)
 			owner, err := context.GetOrCreateUserAccount([]byte("account1"))
 			assert.Nil(t, err)
-			owner.AddBalance(util.NewUint128FromInt(1000000000))
+			owner.AddBalance(newUint128FromIntWrapper(1000000000))
 			contract, err := context.CreateContractAccount([]byte("account2"), nil)
 			assert.Nil(t, err)
 			ctx := NewContext(testContextBlock(), testContextTransaction(), owner, contract, context)
@@ -537,7 +545,7 @@ func TestTypeScriptExecution(t *testing.T) {
 			context, _ := state.NewAccountState(nil, mem)
 			owner, err := context.GetOrCreateUserAccount([]byte("account1"))
 			assert.Nil(t, err)
-			owner.AddBalance(util.NewUint128FromInt(1000000000))
+			owner.AddBalance(newUint128FromIntWrapper(1000000000))
 			contract, err := context.CreateContractAccount([]byte("account2"), nil)
 			assert.Nil(t, err)
 			ctx := NewContext(testContextBlock(), testContextTransaction(), owner, contract, context)
@@ -571,7 +579,7 @@ func TestRunMozillaJSTestSuite(t *testing.T) {
 	context, _ := state.NewAccountState(nil, mem)
 	owner, err := context.GetOrCreateUserAccount([]byte("account1"))
 	assert.Nil(t, err)
-	owner.AddBalance(util.NewUint128FromInt(1000000000))
+	owner.AddBalance(newUint128FromIntWrapper(1000000000))
 
 	contract, err := context.CreateContractAccount([]byte("account2"), nil)
 	assert.Nil(t, err)
@@ -650,7 +658,7 @@ func TestBlockChain(t *testing.T) {
 			context, _ := state.NewAccountState(nil, mem)
 			owner, err := context.GetOrCreateUserAccount([]byte("8a209cec02cbeab7e2f74ad969d2dfe8dd24416aa65589bf"))
 			assert.Nil(t, err)
-			owner.AddBalance(util.NewUint128FromInt(1000000000))
+			owner.AddBalance(newUint128FromIntWrapper(1000000000))
 			contract, err := context.CreateContractAccount([]byte("16464b93292d7c99099d4d982a05140f12779f5e299d6eb4"), nil)
 			assert.Nil(t, err)
 
@@ -707,11 +715,11 @@ func TestBankVaultContract(t *testing.T) {
 			context, _ := state.NewAccountState(nil, mem)
 			owner, err := context.GetOrCreateUserAccount([]byte("account1"))
 			assert.Nil(t, err)
-			owner.AddBalance(util.NewUint128FromInt(10000000))
+			owner.AddBalance(newUint128FromIntWrapper(10000000))
 
 			// prepare the contract.
 			contract, _ := context.CreateContractAccount([]byte("account2"), nil)
-			contract.AddBalance(util.NewUint128FromInt(5))
+			contract.AddBalance(newUint128FromIntWrapper(5))
 
 			// parepare env, block & transactions.
 			tx := testContextTransaction()
@@ -788,7 +796,7 @@ func TestEvent(t *testing.T) {
 			context, _ := state.NewAccountState(nil, mem)
 			owner, err := context.GetOrCreateUserAccount([]byte("8a209cec02cbeab7e2f74ad969d2dfe8dd24416aa65589bf"))
 			assert.Nil(t, err)
-			owner.AddBalance(util.NewUint128FromInt(1000000000))
+			owner.AddBalance(newUint128FromIntWrapper(1000000000))
 			contract, _ := context.CreateContractAccount([]byte("16464b93292d7c99099d4d982a05140f12779f5e299d6eb4"), nil)
 
 			ctx := NewContext(testContextBlock(), testContextTransaction(), owner, contract, context)
@@ -837,11 +845,11 @@ func TestNRC20Contract(t *testing.T) {
 			context, _ := state.NewAccountState(nil, mem)
 			owner, err := context.GetOrCreateUserAccount([]byte(tt.from))
 			assert.Nil(t, err)
-			owner.AddBalance(util.NewUint128FromInt(10000000))
+			owner.AddBalance(newUint128FromIntWrapper(10000000))
 
 			// prepare the contract.
 			contract, _ := context.CreateContractAccount([]byte("account2"), nil)
-			contract.AddBalance(util.NewUint128FromInt(5))
+			contract.AddBalance(newUint128FromIntWrapper(5))
 
 			// parepare env, block & transactions.
 			tx := testContextTransaction()

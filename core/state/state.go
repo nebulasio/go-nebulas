@@ -160,18 +160,21 @@ func (acc *account) IncrNonce() {
 }
 
 // AddBalance to an account
-func (acc *account) AddBalance(value *util.Uint128) {
-	acc.balance = acc.balance.Add(value)
+func (acc *account) AddBalance(value *util.Uint128) error {
+	var err error
+	acc.balance, err = acc.balance.Add(value)
+	return err
 }
 
 // SubBalance to an account
 func (acc *account) SubBalance(value *util.Uint128) error {
+	var err error
 	if acc.balance.Cmp(value.Int) < 0 {
-		return ErrBalanceInsufficient
+		err = ErrBalanceInsufficient
+	} else {
+		acc.balance, err = acc.balance.Sub(value)
 	}
-	acc.balance = acc.balance.Sub(value)
-
-	return nil
+	return err
 }
 
 // Put into account's storage

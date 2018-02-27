@@ -124,7 +124,7 @@ var (
 
 // Default gas count
 var (
-	DefaultPayloadGas = util.NewUint128FromInt(1)
+	DefaultPayloadGas, _ = util.NewUint128FromInt(1)
 )
 
 // TxPayload stored in tx
