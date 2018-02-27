@@ -17,44 +17,11 @@ import (
 	"flag"
 	"fmt"
 	"runtime"
-	"sync"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 )
-
-func TestDispatcher_Start(t *testing.T) {
-	type fields struct {
-		concurrency int
-		muTask      sync.Mutex
-		dag         *Dag
-		quitCh      chan bool
-		queueCh     chan *Node
-		tasks       map[string]*Task
-		cursor      int
-	}
-	tests := []struct {
-		name   string
-		fields fields
-	}{
-	// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			dp := &Dispatcher{
-				concurrency: tt.fields.concurrency,
-				muTask:      tt.fields.muTask,
-				dag:         tt.fields.dag,
-				quitCh:      tt.fields.quitCh,
-				queueCh:     tt.fields.queueCh,
-				tasks:       tt.fields.tasks,
-				cursor:      tt.fields.cursor,
-			}
-			dp.Run()
-		})
-	}
-}
 
 func TestDispatcher_Start1(t *testing.T) {
 	flag.Set("v", "true")
@@ -62,6 +29,21 @@ func TestDispatcher_Start1(t *testing.T) {
 	flag.Set("v", "3")
 	flag.Parse()
 
+	/*
+				 1				16
+				/ \				/ \
+			   2   3		   17 18
+			  /	  /  \			   \
+			 4	 5	  6 		   19
+			/	/ \	  / \
+		   7   8   9 10 11
+		   			\/
+					12
+					/ \
+				   13 14
+				   /
+				  15
+	*/
 	dag := NewDag()
 
 	dag.AddNode("1", nil)
@@ -112,15 +94,21 @@ func TestDispatcher_Start1(t *testing.T) {
 	dag1 := NewDag()
 	dag1.FromProto(msg)
 
+	txs := make([]string, 2)
+	txs[0] = "a"
+	txs[1] = "b"
+
 	fmt.Println("runtime.NumCPU():", runtime.NumCPU())
-	dp := NewDispatcher(dag, runtime.NumCPU(), func(node *Node) error {
+	dp := NewDispatcher(dag, runtime.NumCPU(), txs, func(node *Node, a interface{}) error {
 		fmt.Println("key:", node.Key)
+
 		if node.Key == "12" {
-			time.Sleep(time.Millisecond * 3000)
+			fmt.Println(a)
+			time.Sleep(time.Millisecond * 300)
 			//return errors.New("test")
 			return nil
 		}
-		time.Sleep(time.Millisecond * 1000)
+		time.Sleep(time.Millisecond * 100)
 		return nil
 	})
 

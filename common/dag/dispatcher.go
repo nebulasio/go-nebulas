@@ -19,7 +19,10 @@ import (
 	"github.com/nebulasio/go-nebulas/util/logging"
 )
 
-type Callback func(*Node) error
+//type value interface{}
+
+// Callback func node
+type Callback func(*Node, interface{}) error
 
 // Task struct
 type Task struct {
@@ -38,10 +41,11 @@ type Dispatcher struct {
 	tasks       map[string]*Task
 	cursor      int
 	err         error
+	data        interface{}
 }
 
 // NewDispatcher create Dag Dispatcher instance.
-func NewDispatcher(dag *Dag, concurrency int, cb Callback) *Dispatcher {
+func NewDispatcher(dag *Dag, concurrency int, data interface{}, cb Callback) *Dispatcher {
 	dp := &Dispatcher{
 		concurrency: concurrency,
 		dag:         dag,
@@ -50,6 +54,7 @@ func NewDispatcher(dag *Dag, concurrency int, cb Callback) *Dispatcher {
 		quitCh:      make(chan bool, 10),
 		queueCh:     make(chan *Node, 100),
 		cursor:      0,
+		data:        data,
 	}
 	return dp
 }
@@ -100,8 +105,7 @@ func (dp *Dispatcher) loop() {
 					return
 				case msg := <-dp.queueCh:
 					// callback todo
-					node := msg
-					err := dp.cb(node)
+					err := dp.cb(msg, dp.data)
 
 					if err != nil {
 						dp.err = err

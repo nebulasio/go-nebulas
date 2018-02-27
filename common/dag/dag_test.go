@@ -19,10 +19,8 @@
 package dag
 
 import (
-	"reflect"
 	"testing"
 
-	"github.com/gogo/protobuf/proto"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -61,47 +59,4 @@ func TestDag_AddNode(t *testing.T) {
 	node1 := dag.GetNode("5")
 
 	assert.Equal(t, "5", node1.Key)
-}
-
-func TestNewDag(t *testing.T) {
-	tests := []struct {
-		name string
-		want *Dag
-	}{
-	// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := NewDag(); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("NewDag() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func TestDag_FromProto(t *testing.T) {
-	type fields struct {
-		Nodes map[string]*Node
-	}
-	type args struct {
-		msg proto.Message
-	}
-	tests := []struct {
-		name    string
-		fields  fields
-		args    args
-		wantErr bool
-	}{
-	// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			dag := &Dag{
-				Nodes: tt.fields.Nodes,
-			}
-			if err := dag.FromProto(tt.args.msg); (err != nil) != tt.wantErr {
-				t.Errorf("Dag.FromProto() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
 }

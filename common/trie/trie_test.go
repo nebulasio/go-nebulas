@@ -213,13 +213,22 @@ func TestTrie_Operation(t *testing.T) {
 	}
 	// del node "1f345678e9"
 	hash5, _ := tr.Del(addr1)
-	branch9 := [][]byte{nil, nil, nil, nil, nil, leaf2H, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil}
+
+	// key2 := []byte{0x1, 0xf, 0x3, 0x5, 0x5, 0x6, 0x7, 0x8, 0xe, 0x9} 1f355678e9
+	leaf9 := [][]byte{[]byte{byte(leaf)}, key2[3:], val2}
+	leaf9IR, _ := proto.Marshal(&triepb.Node{Val: leaf9})
+	leaf9H := hash.Sha3256(leaf9IR)
+
+	// key3 := []byte{0x1, 0xf, 0x5, 0x5, 0x5, 0x6, 0x7, 0x8, 0xe, 0x9}  1f555678e9
+	leaf10 := [][]byte{[]byte{byte(leaf)}, key3[3:], val3}
+	leaf10IR, _ := proto.Marshal(&triepb.Node{Val: leaf10})
+	leaf10H := hash.Sha3256(leaf10IR)
+
+	branch9 := [][]byte{nil, nil, nil, leaf9H, nil, leaf10H, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil}
 	branch9IR, _ := proto.Marshal(&triepb.Node{Val: branch9})
 	branch9H := hash.Sha3256(branch9IR)
-	branch10 := [][]byte{nil, nil, nil, branch9H, nil, leaf4H, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil}
-	branch10IR, _ := proto.Marshal(&triepb.Node{Val: branch10})
-	branch10H := hash.Sha3256(branch10IR)
-	ext4 := [][]byte{[]byte{(byte(ext))}, key3[:2], branch10H}
+
+	ext4 := [][]byte{[]byte{(byte(ext))}, key3[:2], branch9H}
 	ext4IR, _ := proto.Marshal(&triepb.Node{Val: ext4})
 	ext4H := hash.Sha3256(ext4IR)
 	if !reflect.DeepEqual(ext4H, hash5) {
@@ -227,10 +236,7 @@ func TestTrie_Operation(t *testing.T) {
 	}
 	// del node "1f355678e9"
 	hash6, _ := tr.Del(addr2)
-	branch12 := [][]byte{nil, nil, nil, nil, nil, leaf4H, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil}
-	branch12IR, _ := proto.Marshal(&triepb.Node{Val: branch12})
-	branch12H := hash.Sha3256(branch12IR)
-	ext5 := [][]byte{[]byte{(byte(ext))}, key3[0:2], branch12H}
+	ext5 := [][]byte{[]byte{(byte(leaf))}, key3, val3}
 	ext5IR, _ := proto.Marshal(&triepb.Node{Val: ext5})
 	ext5H := hash.Sha3256(ext5IR)
 	if !reflect.DeepEqual(ext5H, hash6) {
@@ -435,25 +441,63 @@ func TestTrie_PutDeleteAfterGetRootHash(t *testing.T) {
 	var err error
 
 	// put key1.
-	_, err = tr1.Put([]byte("abcdefgab0"), []byte("value0"))
+	_, err = tr1.Put([]byte("abcexyzz"), []byte("abcexyzz"))
 	assert.Nil(t, err)
 
-	_, err = tr1.Put([]byte("abcdefgba1"), []byte("value1"))
+	_, err = tr1.Put([]byte("abcexabb"), []byte("abcexabb"))
 	assert.Nil(t, err)
-	_, err = tr1.Put([]byte("abcdefgba2"), []byte("value2"))
+	_, err = tr1.Put([]byte("abcexacc"), []byte("abcexacc"))
+	assert.Nil(t, err)
+	_, err = tr1.Put([]byte("abcexacd"), []byte("abcexacd"))
 	assert.Nil(t, err)
 
-	_, err = tr1.Del([]byte("abcdefgab0"))
+	//_, err = tr1.Put([]byte("abceefgab2"), []byte("value2"))
+	//assert.Nil(t, err)
+
+	_, err = tr1.Put([]byte("abcfopqq"), []byte("abcfopqq"))
 	assert.Nil(t, err)
+
+	_, err = tr1.Put([]byte("abcfxyzz"), []byte("abcfxyzz"))
+	assert.Nil(t, err)
+
+	_, err = tr1.Get([]byte("abcfxyzz"))
+
+	//_, err = tr1.Put([]byte("abcdefgba4"), []byte("value4"))
+	//assert.Nil(t, err)
+
+	_, err = tr1.Del([]byte("abcexabb")) // branch->leaf --> leaf
+	assert.Nil(t, err)
+	_, err = tr1.Del([]byte("abcexacc")) // branch->leaf --> leaf
+	assert.Nil(t, err)
+	_, err = tr1.Del([]byte("abcexacd")) // branch->leaf --> leaf
+	assert.Nil(t, err)
+	_, err = tr1.Del([]byte("abcexyzz")) //branch->branch --> ext->branch
+	assert.Nil(t, err)
+
+	//_, err = tr1.Del([]byte("accdeagba1"))
+	//assert.Nil(t, err)
+	//_, err = tr1.Del([]byte("abceefgab2"))
+	//assert.Nil(t, err)
 
 	storage2, _ := storage.NewMemoryStorage()
 	tr2, _ := NewTrie(nil, storage2)
 	assert.Equal(t, []byte(nil), tr2.RootHash())
 
-	_, err = tr2.Put([]byte("abcdefgba1"), []byte("value1"))
-	assert.Nil(t, err)
-	_, err = tr2.Put([]byte("abcdefgba2"), []byte("value2"))
+	_, err = tr2.Put([]byte("abcfopqq"), []byte("abcfopqq"))
 	assert.Nil(t, err)
 
-	//assert.Equal(t, tr1.RootHash(), tr2.RootHash()) //todo
+	_, err = tr2.Put([]byte("abcfxyzz"), []byte("abcfxyzz"))
+	assert.Nil(t, err)
+	//_, err = tr2.Put([]byte("abcdefgba4"), []byte("value4"))
+	//assert.Nil(t, err)
+
+	fmt.Println("GET:abcfxyzz")
+	v1, err1 := tr1.Get([]byte("abcfxyzz"))
+	assert.Nil(t, err1)
+	v2, err2 := tr2.Get([]byte("abcfxyzz"))
+	assert.Nil(t, err2)
+
+	assert.Equal(t, v1, v2)
+	assert.Equal(t, tr1.RootHash(), tr2.RootHash())
+
 }
