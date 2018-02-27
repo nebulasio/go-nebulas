@@ -132,8 +132,16 @@ func (n *Neblet) Setup() {
 	n.blockChain.TransactionPool().RegisterInNetwork(n.netService)
 
 	// consensus
-	n.consensus.Setup(n)
-	n.blockChain.Setup(n)
+	if err := n.consensus.Setup(n); err != nil {
+		logging.CLog().WithFields(logrus.Fields{
+			"err": err,
+		}).Fatal("Failed to setup consensus.")
+	}
+	if err := n.blockChain.Setup(n); err != nil {
+		logging.CLog().WithFields(logrus.Fields{
+			"err": err,
+		}).Fatal("Failed to setup blockchain.")
+	}
 
 	// sync
 	n.syncService = nsync.NewService(n.blockChain, n.netService)

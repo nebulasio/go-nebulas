@@ -128,6 +128,7 @@ func (cs *mockConsensusState) Commit()     {}
 func (cs *mockConsensusState) RollBack()   {}
 
 func (cs *mockConsensusState) RootHash() (byteutils.Hash, error)    { return nil, nil }
+func (cs *mockConsensusState) String() string                       { return "" }
 func (cs *mockConsensusState) Clone() (state.ConsensusState, error) { return cs, nil }
 
 func (cs *mockConsensusState) Proposer() byteutils.Hash { return nil }

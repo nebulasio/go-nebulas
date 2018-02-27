@@ -686,14 +686,12 @@ func (bc *BlockChain) LoadTailFromStorage() (*Block, error) {
 	if err != nil && err != storage.ErrKeyNotFound {
 		return nil, err
 	}
-
 	if err == storage.ErrKeyNotFound {
 		if err := bc.StoreTailToStorage(bc.genesisBlock); err != nil {
 			return nil, err
 		}
 		return bc.genesisBlock, nil
 	}
-
 	return LoadBlockFromStorage(hash, bc)
 }
 

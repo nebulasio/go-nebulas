@@ -1071,7 +1071,6 @@ func LoadBlockFromStorage(hash byteutils.Hash, chain *BlockChain) (*Block, error
 	if err = block.FromProto(pbBlock); err != nil {
 		return nil, err
 	}
-
 	block.worldState, err = state.NewWorldState(chain.ConsensusHandler(), chain.storage)
 	if err != nil {
 		return nil, err

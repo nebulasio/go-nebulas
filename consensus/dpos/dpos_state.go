@@ -20,6 +20,7 @@ package dpos
 
 import (
 	"errors"
+	"fmt"
 	"hash/fnv"
 	"sort"
 	"strconv"
@@ -74,10 +75,10 @@ type State struct {
 	voteTrie        *trie.BatchTrie // key: delegator, val: delegatee
 	candidateTrie   *trie.BatchTrie // key: delegatee, val: delegatee
 	mintCntTrie     *trie.BatchTrie // key: dynastyId + delegatee, val: count
+	protectTrie     *trie.BatchTrie // key: delegatee, val: delegatee
 
-	chain       *core.BlockChain
-	consensus   core.Consensus
-	protectTrie *trie.BatchTrie // key: delegatee, val: delegatee
+	chain     *core.BlockChain
+	consensus core.Consensus
 }
 
 // NewState create a new dpos state
@@ -88,6 +89,19 @@ func (dpos *Dpos) NewState(root byteutils.Hash, stor storage.Storage) (state.Con
 	}
 
 	var index int16
+	bytes, err := stateTrie.Get(byteutils.FromInt16(index))
+	if err != nil {
+		return nil, err
+	}
+	timestamp := byteutils.Int64(bytes)
+
+	index++
+	proposer, err := stateTrie.Get(byteutils.FromInt16(index))
+	if err != nil {
+		return nil, err
+	}
+
+	index++
 	dynastyRoot, err := stateTrie.Get(byteutils.FromInt16(index))
 	if err != nil && root != nil {
 		return nil, err
@@ -147,15 +161,19 @@ func (dpos *Dpos) NewState(root byteutils.Hash, stor storage.Storage) (state.Con
 		return nil, err
 	}
 
-	protectRoot := dpos.chain.GenesisBlock().WorldState().CandidatesRoot()
+	index++
+	protectRoot, err := stateTrie.Get(byteutils.FromInt16(index))
+	if err != nil && root != nil {
+		return nil, err
+	}
 	protectTrie, err := trie.NewBatchTrie(protectRoot, stor)
 	if err != nil {
 		return nil, err
 	}
 
 	return &State{
-		timeStamp: 0,
-		proposer:  nil,
+		timeStamp: timestamp,
+		proposer:  proposer,
 
 		dynastyTrie:     dynastyTrie,
 		nextDynastyTrie: nextDynastyTrie,
@@ -163,10 +181,10 @@ func (dpos *Dpos) NewState(root byteutils.Hash, stor storage.Storage) (state.Con
 		voteTrie:        voteTrie,
 		candidateTrie:   candidateTrie,
 		mintCntTrie:     mintCntTrie,
+		protectTrie:     protectTrie,
 
-		chain:       dpos.chain,
-		consensus:   dpos,
-		protectTrie: protectTrie,
+		chain:     dpos.chain,
+		consensus: dpos,
 	}, nil
 }
 
@@ -251,11 +269,29 @@ func (dpos *Dpos) GenesisConsensusState(chain *core.BlockChain, conf *corepb.Gen
 		voteTrie:        voteTrie,
 		candidateTrie:   candidateTrie,
 		mintCntTrie:     mintTrie,
+		protectTrie:     protectTrie,
 
-		chain:       chain,
-		consensus:   dpos,
-		protectTrie: protectTrie,
+		chain:     chain,
+		consensus: dpos,
 	}, nil
+}
+
+func (ds *State) String() string {
+	proposer := ""
+	if ds.proposer != nil {
+		proposer = ds.proposer.String()
+	}
+	return fmt.Sprintf(`{"timestamp": %d, "proposer": "%s", "dynasty": "%s", "next_dynasty": "%s", "delegate": "%s", "vote": "%s", "candidate": "%s", "mintcnt": "%s", "protect": "%s"}`,
+		ds.timeStamp,
+		proposer,
+		byteutils.Hex(ds.dynastyTrie.RootHash()),
+		byteutils.Hex(ds.nextDynastyTrie.RootHash()),
+		byteutils.Hex(ds.delegateTrie.RootHash()),
+		byteutils.Hex(ds.voteTrie.RootHash()),
+		byteutils.Hex(ds.candidateTrie.RootHash()),
+		byteutils.Hex(ds.mintCntTrie.RootHash()),
+		byteutils.Hex(ds.protectTrie.RootHash()),
+	)
 }
 
 // BeginBatch starts a batch task
@@ -328,10 +364,10 @@ func (ds *State) Clone() (state.ConsensusState, error) {
 		candidateTrie:   candidateTrie,
 		voteTrie:        voteTrie,
 		mintCntTrie:     mintCntTrie,
+		protectTrie:     ds.protectTrie,
 
-		chain:       ds.chain,
-		consensus:   ds.consensus,
-		protectTrie: ds.protectTrie,
+		chain:     ds.chain,
+		consensus: ds.consensus,
 	}, nil
 }
 
@@ -342,6 +378,10 @@ func (ds *State) RootHash() (byteutils.Hash, error) {
 		return nil, err
 	}
 	var cnt int16
+	stateTrie.Put(byteutils.FromInt16(cnt), byteutils.FromInt64(ds.timeStamp))
+	cnt++
+	stateTrie.Put(byteutils.FromInt16(cnt), ds.proposer)
+	cnt++
 	stateTrie.Put(byteutils.FromInt16(cnt), ds.dynastyTrie.RootHash())
 	cnt++
 	stateTrie.Put(byteutils.FromInt16(cnt), ds.nextDynastyTrie.RootHash())
@@ -353,6 +393,8 @@ func (ds *State) RootHash() (byteutils.Hash, error) {
 	stateTrie.Put(byteutils.FromInt16(cnt), ds.candidateTrie.RootHash())
 	cnt++
 	stateTrie.Put(byteutils.FromInt16(cnt), ds.mintCntTrie.RootHash())
+	cnt++
+	stateTrie.Put(byteutils.FromInt16(cnt), ds.protectTrie.RootHash())
 
 	return stateTrie.RootHash(), nil
 }
@@ -915,6 +957,7 @@ func FindProposer(now int64, dynasty *trie.BatchTrie) (proposer byteutils.Hash, 
 	if err != nil {
 		return nil, err
 	}
+
 	if int(offset) < len(delegatees) {
 		proposer = delegatees[offset]
 	} else {
@@ -978,10 +1021,10 @@ func (ds *State) NextConsensusState(elapsedSecond int64, worldState state.WorldS
 		candidateTrie:   candidateTrie,
 		voteTrie:        voteTrie,
 		mintCntTrie:     mintCntTrie,
+		protectTrie:     ds.protectTrie,
 
-		chain:       ds.chain,
-		consensus:   ds.consensus,
-		protectTrie: ds.protectTrie,
+		chain:     ds.chain,
+		consensus: ds.consensus,
 	}
 
 	baseDynastyID := ds.timeStamp / DynastyInterval

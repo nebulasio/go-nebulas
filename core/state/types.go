@@ -89,6 +89,7 @@ type ConsensusState interface {
 	RollBack()
 
 	RootHash() (byteutils.Hash, error)
+	String() string
 	Clone() (ConsensusState, error)
 
 	Proposer() byteutils.Hash
