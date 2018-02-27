@@ -102,3 +102,32 @@ func TestUint128(t *testing.T) {
 		assert.Equal(t, u1.Bytes(), u2.Bytes(), "FromFixedSizeBytes result doesn't match.")
 	}
 }
+
+func TestUint128Operation(t *testing.T) {
+	a, _ := NewUint128FromInt(10)
+	b, _ := NewUint128FromInt(9)
+	
+	sumExpect, _ := NewUint128FromInt(19)
+	sumResult, _ := a.Add(b)
+	assert.Equal(t, sumExpect.Bytes(), sumResult.Bytes())
+
+	diffExpect, _ := NewUint128FromInt(1)
+	diffResult, _ := a.Sub(b)
+	assert.Equal(t, diffExpect.Bytes(), diffResult.Bytes())
+
+	productExpect, _ := NewUint128FromInt(90)
+	productResult, _ := a.Mul(b)
+	assert.Equal(t, productExpect.Bytes(), productResult.Bytes())
+
+	quotientExpect, _ := NewUint128FromInt(1)
+	quotientResult, _ := a.Div(b)
+	assert.Equal(t, quotientExpect.Bytes(), quotientResult.Bytes())
+
+	powerExpect, _ := NewUint128FromInt(1000000000)
+	powerResult, _ := a.Exp(b)
+	assert.Equal(t, powerExpect.Bytes(), powerResult.Bytes())
+
+	c := a.DeepCopy()
+	c.Int.SetUint64(2)
+	assert.NotEqual(t, a.Bytes(), c.Bytes())
+}
