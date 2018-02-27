@@ -78,6 +78,13 @@ func (payload *DeployPayload) Execute(block *Block, tx *Transaction) (*util.Uint
 }
 
 func generateDeployContext(block *Block, tx *Transaction) (*nvm.Context, error) {
+
+	if block.height > NewOptimizeHeight {
+		if !tx.From().Equals(tx.To()) {
+			return nil, ErrContractTransactionAddressNotEqual
+		}
+	}
+
 	addr, err := tx.GenerateContractAddress()
 	if err != nil {
 		return nil, err

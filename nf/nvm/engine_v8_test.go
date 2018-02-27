@@ -24,6 +24,7 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
+	"math/big"
 	"os"
 	"strings"
 	"sync"
@@ -898,7 +899,9 @@ func TestNRC20Contract(t *testing.T) {
 			var totalSupplyStr string
 			err = json.Unmarshal([]byte(totalSupply), &totalSupplyStr)
 			assert.Nil(t, err)
-			assert.Equal(t, tt.totalSupply, totalSupplyStr)
+			expect, _ := big.NewInt(0).SetString(tt.totalSupply, 10)
+			expect = expect.Mul(expect, big.NewInt(0).Exp(big.NewInt(10), big.NewInt(int64(tt.decimals)), nil))
+			assert.Equal(t, expect.String(), totalSupplyStr)
 			assert.Nil(t, err)
 			engine.Dispose()
 
@@ -926,7 +929,8 @@ func TestNRC20Contract(t *testing.T) {
 
 				engine = NewV8Engine(ctx)
 				engine.SetExecutionLimits(10000, 100000000)
-				result, err = engine.Call(string(data), tt.sourceType, "approve", transferArgs)
+				approveArgs := fmt.Sprintf("[\"%s\", \"0\", \"%s\"]", tot.to, tot.value)
+				result, err = engine.Call(string(data), tt.sourceType, "approve", approveArgs)
 				assert.Nil(t, err)
 				err = json.Unmarshal([]byte(result), &resultStatus)
 				assert.Nil(t, err)
@@ -959,11 +963,8 @@ func TestNRC20Contract(t *testing.T) {
 				engine = NewV8Engine(ctx)
 				engine.SetExecutionLimits(10000, 100000000)
 				transferFromArgs = fmt.Sprintf("[\"%s\", \"%s\", \"%s\"]", tt.from, tot.to, tot.value)
-				result, err = engine.Call(string(data), tt.sourceType, "transferFrom", transferFromArgs)
-				assert.Nil(t, err)
-				err = json.Unmarshal([]byte(result), &resultStatus)
-				assert.Nil(t, err)
-				assert.Equal(t, false, resultStatus)
+				_, err = engine.Call(string(data), tt.sourceType, "transferFrom", transferFromArgs)
+				assert.NotNil(t, err)
 				engine.Dispose()
 			}
 		})

@@ -62,11 +62,6 @@
 [[constraint]]
   name = "github.com/ipfs/go-ipfs-util"
   revision = "ecb455b230ce7cb40510186fa723aa19af133aaf"
-								
-
-[[constraint]]
-  branch = "master"
-  name = "leb.io/hashland"
 
 
 [[constraint]]
@@ -267,6 +262,14 @@ name = "golang.org/x/sys"
 [[constraint]]
   name = "github.com/multiformats/go-multistream"
   revision = "661a0b9a0e6d9e99e4552c431b0eb82f58fde5b3"
+
+[[constraint]]
+  name = "github.com/gxed/hashland"
+  revision = "d9f6b97f8db22dd1e090fd0bbbe98f09cc7dd0a8"
+
+[[constraint]]
+  name = "github.com/multiformats/go-multihash"
+  revision = "468a1b73e980e5aff011d308623e43e28c582b16"
 
 
 [[constraint]]

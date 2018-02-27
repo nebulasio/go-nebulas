@@ -18,7 +18,6 @@ SampleContract.prototype = {
         // console.log('init: this.name = ' + this.name);
         // console.log('init: this.count = ' + this.count);
         console.log('init: Blockchain.block.coinbase = ' + Blockchain.block.coinbase);
-        console.log('init: Blockchain.block.nonce = ' + Blockchain.block.nonce);
         console.log('init: Blockchain.block.hash = ' + Blockchain.block.hash);
         console.log('init: Blockchain.block.height = ' + Blockchain.block.height);
         console.log('init: Blockchain.transaction.from = ' + Blockchain.transaction.from);

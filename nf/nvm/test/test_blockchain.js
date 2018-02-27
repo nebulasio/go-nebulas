@@ -22,11 +22,11 @@ if (typeof _native_blockchain === "undefined") {
     throw new Error("_native_blockchain is undefined.");
 }
 
-var tx = Blockchain.getTransactionByHash("5e6d587f26121f96a07cf4b8b569aac1");
-console.log("tx:" + JSON.stringify(tx));
+// var tx = Blockchain.getTransactionByHash("5e6d587f26121f96a07cf4b8b569aac1");
+// console.log("tx:" + JSON.stringify(tx));
 
-var accState = Blockchain.getAccountState("5e6d587f26121f96a07cf4b8b569aac1");
-console.log("accState:" + JSON.stringify(accState));
+// var accState = Blockchain.getAccountState("5e6d587f26121f96a07cf4b8b569aac1");
+// console.log("accState:" + JSON.stringify(accState));
 
 var ok = Blockchain.transfer("5e6d587f26121f96a07cf4b8b569aac1", "1");
 console.log("transfer:" + ok)

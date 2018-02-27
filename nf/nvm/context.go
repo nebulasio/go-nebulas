@@ -38,7 +38,6 @@ const (
 // Block interface breaks cycle import dependency and hides unused services.
 type Block interface {
 	CoinbaseHash() byteutils.Hash
-	Nonce() uint64
 	Hash() byteutils.Hash
 	Height() uint64
 	VerifyAddress(str string) bool
@@ -60,7 +59,6 @@ type AccountState struct {
 // ContextBlock warpper block
 type ContextBlock struct {
 	Coinbase string `json:"coinbase"`
-	Nonce    uint64 `json:"nonce"`
 	Hash     string `json:"hash"`
 	Height   uint64 `json:"height"`
 }
@@ -119,7 +117,6 @@ func (ctx *Context) SerializeContextBlock() ([]byte, error) {
 	if ctx.block != nil {
 		block := &ContextBlock{
 			Coinbase: ctx.block.CoinbaseHash().String(),
-			Nonce:    ctx.block.Nonce(),
 			Hash:     ctx.block.Hash().String(),
 			Height:   ctx.block.Height(),
 		}

@@ -56,7 +56,7 @@ var StandardToken = function () {
                 return new BigNumber(value);
             },
             stringify: function (o) {
-                return o.toString();
+                return o.toString(10);
             }
         }
     });
@@ -67,7 +67,7 @@ var StandardToken = function () {
                 return new BigNumber(value);
             },
             stringify: function (o) {
-                return o.toString();
+                return o.toString(10);
             }
         },
         "allowed": {
@@ -86,10 +86,11 @@ StandardToken.prototype = {
         this._name = name;
         this._symbol = symbol;
         this._decimals = decimals | 0;
-        this._totalSupply = new BigNumber(totalSupply);
+        this._totalSupply = new BigNumber(totalSupply).mul(new BigNumber(10).pow(decimals));
 
         var from = Blockchain.transaction.from;
-        this.balances.set(from, new BigNumber(totalSupply));
+        this.balances.set(from, this._totalSupply);
+        this.transferEvent(true, from, from, this._totalSupply);
     },
 
     // Returns the name of the token
@@ -108,14 +109,14 @@ StandardToken.prototype = {
     },
 
     totalSupply: function () {
-        return this._totalSupply.toString();
+        return this._totalSupply.toString(10);
     },
 
     balanceOf: function (owner) {
         var balance = this.balances.get(owner);
 
         if (balance instanceof BigNumber) {
-            return balance.toString();
+            return balance.toString(10);
         } else {
             return "0";
         }
@@ -128,20 +129,16 @@ StandardToken.prototype = {
         var balance = this.balances.get(from) || new BigNumber(0);
 
         if (balance.lt(value)) {
-            return false;
+
+            this.transferEvent(false, from, to, value);
+            throw new Error("transfer failed.");
         }
 
         this.balances.set(from, balance.sub(value));
         var toBalance = this.balances.get(to) || new BigNumber(0);
         this.balances.set(to, toBalance.add(value));
 
-        Event.Trigger(this.name(), {
-            Transfer: {
-                from: from,
-                to: to,
-                value: value
-            }
-        });
+        this.transferEvent(true, from, to, value);
         return true;
     },
 
@@ -163,36 +160,54 @@ StandardToken.prototype = {
             var toBalance = this.balances.get(to) || new BigNumber(0);
             this.balances.set(to, toBalance.add(value));
 
-            Event.Trigger(this.name(), {
-                Transfer: {
-                    from: from,
-                    to: to,
-                    value: value
-                }
-            });
+            this.transferEvent(true, from, to, value);
             return true;
         } else {
-            return false;
+            this.transferEvent(false, from, to, value);
+            throw new Error("transfer failed.");
         }
     },
 
-    approve: function (spender, value) {
+    transferEvent: function(status, from, to, value) {
+        Event.Trigger(this.name(), {
+            Status: status,
+            Transfer: {
+                from: from,
+                to: to,
+                value: value
+            }
+        });
+    },
+
+    approve: function (spender, currentValue, value) {
         var from = Blockchain.transaction.from;
+
+        var oldValue = this.allowance(from, spender);
+        if (oldValue != currentValue.toString()) {
+            this.approveEvent(false, from, spender, value);
+            throw new Error("approve failed.");
+        }
+
         var owned = this.allowed.get(from) || new Allowed();
 
         owned.set(spender, new BigNumber(value));
 
         this.allowed.set(from, owned);
 
+        this.approveEvent(true, from, spender, value);
+        
+        return true;
+    },
+
+    approveEvent: function(status, from, spender, value) {
         Event.Trigger(this.name(), {
+            Status: status,
 			Approve: {
 				owner: from,
 				spender: spender,
 				value: value
 			}
         });
-        
-        return true;
     },
 
     allowance: function (owner, spender) {
@@ -201,7 +216,7 @@ StandardToken.prototype = {
         if (owned instanceof Allowed) {
             var spender = owned.get(spender);
             if ( typeof spender != "undefined") {
-                return spender.toString();
+                return spender.toString(10);
             }
         }
         return "0";

@@ -237,8 +237,11 @@ func handleTransactionResponse(neb Neblet, tx *core.Transaction) (resp *rpcpb.Se
 		return nil, errors.New("transaction's nonce is invalid, should bigger than the from's nonce")
 	}
 
-	// check if the contract is valid
-	if tx.Type() == core.TxPayloadCallType {
+	if tx.Type() == core.TxPayloadDeployType {
+		if !tx.From().Equals(tx.To()) {
+			return nil, core.ErrContractTransactionAddressNotEqual
+		}
+	} else if tx.Type() == core.TxPayloadCallType {
 		if err := neb.BlockChain().TailBlock().CheckContract(tx.To()); err != nil {
 			return nil, err
 		}
@@ -389,22 +392,17 @@ func (s *APIService) toTransactionResponse(tx *core.Transaction) (*rpcpb.Transac
 
 	if events != nil && len(events) > 0 {
 		for _, v := range events {
-			if neb.BlockChain().TailBlock().Height() > core.OptimizeHeight {
-				if v.Topic == core.TopicTransactionExecutionResult {
-					txEvent := core.TransactionEvent{}
-					json.Unmarshal([]byte(v.Data), &txEvent)
-					status = int32(txEvent.Status)
-					break
-				}
-			} else {
-				// TODO: transaction execution topic need change later.
-				if v.Topic == core.TopicExecuteTxSuccess {
-					status = core.TxExecutionSuccess
-					break
-				} else if v.Topic == core.TopicExecuteTxFailed {
-					status = core.TxExecutionFailed
-					break
-				}
+			if v.Topic == core.TopicTransactionExecutionResult {
+				txEvent := core.TransactionEvent{}
+				json.Unmarshal([]byte(v.Data), &txEvent)
+				status = int32(txEvent.Status)
+				break
+			} else if v.Topic == core.TopicExecuteTxSuccess {
+				status = core.TxExecutionSuccess
+				break
+			} else if v.Topic == core.TopicExecuteTxFailed {
+				status = core.TxExecutionFailed
+				break
 			}
 		}
 	} else {
@@ -544,7 +542,12 @@ func (s *APIService) GetGasUsed(ctx context.Context, req *rpcpb.HashRequest) (*r
 func (s *APIService) GetEventsByHash(ctx context.Context, req *rpcpb.HashRequest) (*rpcpb.EventsResponse, error) {
 
 	neb := s.server.Neblet()
-	bhash, _ := byteutils.FromHex(req.GetHash())
+
+	bhash, err := byteutils.FromHex(req.GetHash())
+	if err != nil {
+		return nil, err
+	}
+
 	tx, err := neb.BlockChain().TailBlock().GetTransaction(bhash)
 	if err != nil {
 		return nil, err

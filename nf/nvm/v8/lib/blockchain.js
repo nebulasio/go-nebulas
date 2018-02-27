@@ -41,35 +41,39 @@ Blockchain.prototype = {
             this.transaction = tx;
         }
     },
-    getTransactionByHash: function (hash) {
-        var tx = this.nativeBlockchain.getTransactionByHash(hash);
-        if (tx === null) {
-            return null
-        }
-        tx = JSON.parse(tx);
-        var value = tx.value === undefined || tx.value.length === 0 ? "0" : tx.value;
-        tx.value = new BigNumber(value);
-        var gasPrice = tx.gasPrice === undefined || tx.gasPrice.length === 0 ? "0" : tx.gasPrice;
-        tx.gasPrice = new BigNumber(gasPrice);
-        var gasLimit = tx.gasLimit === undefined || tx.gasLimit.length === 0 ? "0" : tx.gasLimit;
-        tx.gasLimit = new BigNumber(gasLimit);
-        return tx
-    },
-    getAccountState: function (address) {
-        var acc = this.nativeBlockchain.getAccountState(address);
-        if (acc === null) {
-            return null
-        }
-        acc = JSON.parse(acc);
-        var balance = acc.balance === undefined || acc.balance.length === 0 ? "0" : acc.balance;
-        acc.balance = new BigNumber(balance);
-        if (acc.nonce === undefined) {
-            acc.nonce = 0;
-        }
-        return acc
-    },
+    // The current NVM does not support.
+    // getTransactionByHash: function (hash) {
+    //     var tx = this.nativeBlockchain.getTransactionByHash(hash);
+    //     if (tx === null) {
+    //         return null
+    //     }
+    //     tx = JSON.parse(tx);
+    //     var value = tx.value === undefined || tx.value.length === 0 ? "0" : tx.value;
+    //     tx.value = new BigNumber(value);
+    //     var gasPrice = tx.gasPrice === undefined || tx.gasPrice.length === 0 ? "0" : tx.gasPrice;
+    //     tx.gasPrice = new BigNumber(gasPrice);
+    //     var gasLimit = tx.gasLimit === undefined || tx.gasLimit.length === 0 ? "0" : tx.gasLimit;
+    //     tx.gasLimit = new BigNumber(gasLimit);
+    //     return tx
+    // },
+    // getAccountState: function (address) {
+    //     var acc = this.nativeBlockchain.getAccountState(address);
+    //     if (acc === null) {
+    //         return null
+    //     }
+    //     acc = JSON.parse(acc);
+    //     var balance = acc.balance === undefined || acc.balance.length === 0 ? "0" : acc.balance;
+    //     acc.balance = new BigNumber(balance);
+    //     if (acc.nonce === undefined) {
+    //         acc.nonce = 0;
+    //     }
+    //     return acc
+    // },
     transfer: function (address, value) {
-        return this.nativeBlockchain.transfer(address, value.toString());
+        if (!(value instanceof BigNumber)) {
+            value = new BigNumber(value);
+        }
+        return this.nativeBlockchain.transfer(address, value.toString(10));
     },
     verifyAddress: function (address) {
         return this.nativeBlockchain.verifyAddress(address);
