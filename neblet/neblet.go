@@ -118,7 +118,7 @@ func (n *Neblet) Setup() {
 	}
 
 	// core
-	n.eventEmitter = core.NewEventEmitter(1024)
+	n.eventEmitter = core.NewEventEmitter(40960)
 	n.blockChain, err = core.NewBlockChain(n)
 	if err != nil {
 		logging.CLog().WithFields(logrus.Fields{

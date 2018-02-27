@@ -116,15 +116,15 @@ type Block struct {
 	header       *BlockHeader
 	transactions Transactions
 
-	sealed       bool
-	height       uint64
-	parenetBlock *Block
-	accState     state.AccountState
-	txsTrie      *trie.BatchTrie
-	eventsTrie   *trie.BatchTrie
-	dposContext  *DposContext
-	txPool       *TransactionPool
-	miner        *Address
+	sealed      bool
+	height      uint64
+	parentBlock *Block
+	accState    state.AccountState
+	txsTrie     *trie.BatchTrie
+	eventsTrie  *trie.BatchTrie
+	dposContext *DposContext
+	txPool      *TransactionPool
+	miner       *Address
 
 	storage      storage.Storage
 	eventEmitter *EventEmitter
@@ -132,7 +132,10 @@ type Block struct {
 
 // ToProto converts domain Block into proto Block
 func (block *Block) ToProto() (proto.Message, error) {
-	header, _ := block.header.ToProto()
+	header, err := block.header.ToProto()
+	if err != nil {
+		return nil, err
+	}
 	if header, ok := header.(*corepb.BlockHeader); ok {
 		txs := make([]*corepb.Transaction, len(block.transactions))
 		for idx, v := range block.transactions {
@@ -216,7 +219,7 @@ func NewBlock(chainID uint32, coinbase *Address, parent *Block) (*Block, error) 
 			chainID:     chainID,
 		},
 		transactions: make(Transactions, 0),
-		parenetBlock: parent,
+		parentBlock:  parent,
 		accState:     accState,
 		txsTrie:      txsTrie,
 		eventsTrie:   eventsTrie,
@@ -378,8 +381,6 @@ func (block *Block) VerifyAddress(str string) bool {
 
 // LinkParentBlock link parent block, return true if hash is the same; false otherwise.
 func (block *Block) LinkParentBlock(chain *BlockChain, parentBlock *Block) error {
-	// startAt := time.Now().Unix()
-
 	if block.ParentHash().Equals(parentBlock.Hash()) == false {
 		return ErrLinkToWrongParentBlock
 	}
@@ -400,33 +401,21 @@ func (block *Block) LinkParentBlock(chain *BlockChain, parentBlock *Block) error
 	if err != nil {
 		return err
 	}
-	// nextAt := time.Now().Unix()
 
 	if err := block.LoadDynastyContext(context); err != nil {
 		return ErrLoadNextDynastyContext
 	}
-	// loadAt := time.Now().Unix()
 
 	block.txPool = parentBlock.txPool
-	block.parenetBlock = parentBlock
+	block.parentBlock = parentBlock
 	block.storage = parentBlock.storage
 	block.height = parentBlock.height + 1
 	block.eventEmitter = parentBlock.eventEmitter
-
-	/* 	logging.VLog().WithFields(logrus.Fields{
-		"parent":    parentBlock,
-		"block":     block,
-		"err":       err,
-		"time.next": nextAt - startAt,
-		"time.load": loadAt - nextAt,
-		"time.all":  time.Now().Unix() - startAt,
-	}).Info("Linked the parent block.") */
 
 	return nil
 }
 
 func (block *Block) begin() {
-	// logging.VLog().Debug("Block Begin.")
 	block.accState.BeginBatch()
 	block.txsTrie.BeginBatch()
 	block.eventsTrie.BeginBatch()
@@ -438,9 +427,6 @@ func (block *Block) commit() {
 	block.txsTrie.Commit()
 	block.eventsTrie.Commit()
 	block.dposContext.Commit()
-	/* 	logging.VLog().WithFields(logrus.Fields{
-		"block": block,
-	}).Debug("Block Commit.") */
 }
 
 func (block *Block) rollback() {
@@ -448,9 +434,6 @@ func (block *Block) rollback() {
 	block.txsTrie.RollBack()
 	block.eventsTrie.RollBack()
 	block.dposContext.RollBack()
-	/* 	logging.VLog().WithFields(logrus.Fields{
-		"block": block,
-	}).Debug("Block RollBack.") */
 }
 
 // ReturnTransactions and giveback them to tx pool
@@ -519,24 +502,23 @@ func (block *Block) CollectTransactions(deadline int64) {
 			}
 
 			// set current nonce.
-			currentNonceOfFromAddress[tx.From().String()] = currentNonce
+			if currentNonce > 0 {
+				currentNonceOfFromAddress[tx.From().String()] = currentNonce
+			}
 
 			if err != nil {
-				/* 				logging.VLog().WithFields(logrus.Fields{
-					"block":    block,
+				logging.VLog().WithFields(logrus.Fields{
 					"tx":       tx,
 					"err":      err,
 					"giveback": giveback,
-				}).Debug("invalid tx.") */
+				}).Debug("invalid tx.")
 				unpacked++
 				txBlock.rollback()
 				executedTxBlocksCh <- nil
 			} else {
-				/* 				logging.VLog().WithFields(logrus.Fields{
-					"block":    block,
-					"tx":       tx,
-					"giveback": giveback,
-				}).Info("tx is packed.") */
+				//logging.VLog().WithFields(logrus.Fields{
+				//	"tx": tx,
+				//}).Debug("packed tx.")
 				packed++
 				txBlock.commit()
 				txBlock.transactions = append(txBlock.transactions, tx)
@@ -641,7 +623,10 @@ func (block *Block) Seal() error {
 	}
 	block.commit()
 
-	block.header.stateRoot = block.accState.RootHash()
+	block.header.stateRoot, err = block.accState.RootHash()
+	if err != nil {
+		return err
+	}
 	block.header.txsRoot = block.txsTrie.RootHash()
 	block.header.eventsRoot = block.eventsTrie.RootHash()
 	if block.header.dposContext, err = block.dposContext.ToProto(); err != nil {
@@ -662,7 +647,11 @@ func (block *Block) Seal() error {
 }
 
 func (block *Block) String() string {
-	return fmt.Sprintf(`{"height": %d, "hash": "%s", "parent_hash": "%s", "state": "%s", "txs": "%s", "events": "%s", "timestamp": %d, "dynasty": "%s", "tx": %d}`,
+	miner := ""
+	if block.miner != nil {
+		miner = block.miner.String()
+	}
+	return fmt.Sprintf(`{"height": %d, "hash": "%s", "parent_hash": "%s", "state": "%s", "txs": "%s", "events": "%s", "timestamp": %d, "dynasty": "%s", "tx": %d, "miner": "%s"}`,
 		block.height,
 		block.header.hash,
 		block.header.parentHash,
@@ -672,6 +661,7 @@ func (block *Block) String() string {
 		block.header.timestamp,
 		byteutils.Hex(block.header.dposContext.DynastyRoot),
 		len(block.transactions),
+		miner,
 	)
 }
 
@@ -681,43 +671,31 @@ func (block *Block) VerifyExecution(parent *Block, consensus Consensus) error {
 	if err := consensus.VerifyBlock(block, parent); err != nil {
 		return err
 	}
-	// verifyAt := time.Now().Unix()
 
 	block.begin()
-	// beginAt := time.Now().Unix()
 
 	if err := block.execute(); err != nil {
 		block.rollback()
 		return err
 	}
-	// executeAt := time.Now().Unix()
 
 	if err := block.verifyState(); err != nil {
 		block.rollback()
 		return err
 	}
-	// stateAt := time.Now().Unix()
 
 	block.commit()
-	// commitAt := time.Now().Unix()
 
 	// release all events
 	block.triggerEvent()
 
-	/* 	logging.VLog().WithFields(logrus.Fields{
-		"time.verify":  verifyAt - startAt,
-		"time.begin":   beginAt - verifyAt,
-		"time.execute": executeAt - beginAt,
-		"time.state":   stateAt - executeAt,
-		"time.commit":  commitAt - stateAt,
-		"time.event":   endAt - commitAt,
-		"tail.all":     endAt - startAt,
-		"block":        block,
-	}).Info("Succeed to verify the block.") */
 	return nil
 }
 
 func (block *Block) triggerEvent() {
+	logging.VLog().WithFields(logrus.Fields{
+		"count": len(block.eventEmitter.eventCh),
+	}).Debug("Start TriggerEvent")
 
 	for _, v := range block.transactions {
 		var topic string
@@ -752,6 +730,10 @@ func (block *Block) triggerEvent() {
 		Data:  block.String(),
 	}
 	block.eventEmitter.Trigger(e)
+
+	logging.VLog().WithFields(logrus.Fields{
+		"count": len(block.eventEmitter.eventCh),
+	}).Debug("Stop TriggerEvent")
 }
 
 // VerifyIntegrity verify block's hash, txs' integrity and consensus acceptable.
@@ -802,22 +784,42 @@ func (block *Block) VerifyIntegrity(chainID uint32, consensus Consensus) error {
 // verifyState return state verify result.
 func (block *Block) verifyState() error {
 	// verify state root.
-	if !byteutils.Equal(block.accState.RootHash(), block.StateRoot()) {
+	stateRoot, err := block.accState.RootHash()
+	if err != nil {
+		return err
+	}
+	if !byteutils.Equal(stateRoot, block.StateRoot()) {
+		logging.VLog().WithFields(logrus.Fields{
+			"expect": block.StateRoot(),
+			"actual": stateRoot,
+		}).Debug("Failed to verify state.")
 		return ErrInvalidBlockStateRoot
 	}
 
 	// verify transaction root.
 	if !byteutils.Equal(block.txsTrie.RootHash(), block.TxsRoot()) {
+		logging.VLog().WithFields(logrus.Fields{
+			"expect": block.TxsRoot(),
+			"actual": block.txsTrie.RootHash(),
+		}).Debug("Failed to verify txs.")
 		return ErrInvalidBlockTxsRoot
 	}
 
 	// verify events root.
 	if !byteutils.Equal(block.eventsTrie.RootHash(), block.EventsRoot()) {
+		logging.VLog().WithFields(logrus.Fields{
+			"expect": block.EventsRoot(),
+			"actual": block.eventsTrie.RootHash(),
+		}).Debug("Failed to verify events.")
 		return ErrInvalidBlockEventsRoot
 	}
 
 	// verify transaction root.
 	if !byteutils.Equal(block.dposContext.RootHash(), block.DposContextHash()) {
+		logging.VLog().WithFields(logrus.Fields{
+			"expect": block.DposContextHash(),
+			"actual": block.dposContext.RootHash(),
+		}).Debug("Failed to verify dpos context.")
 		return ErrInvalidBlockDposContextRoot
 	}
 
@@ -865,13 +867,21 @@ func (block *Block) execute() error {
 }
 
 // GetBalance returns balance for the given address on this block.
-func (block *Block) GetBalance(address byteutils.Hash) *util.Uint128 {
-	return block.accState.GetOrCreateUserAccount(address).Balance()
+func (block *Block) GetBalance(address byteutils.Hash) (*util.Uint128, error) {
+	account, err := block.accState.GetOrCreateUserAccount(address)
+	if err != nil {
+		return nil, err
+	}
+	return account.Balance(), nil
 }
 
 // GetNonce returns nonce for the given address on this block.
-func (block *Block) GetNonce(address byteutils.Hash) uint64 {
-	return block.accState.GetOrCreateUserAccount(address).Nonce()
+func (block *Block) GetNonce(address byteutils.Hash) (uint64, error) {
+	account, err := block.accState.GetOrCreateUserAccount(address)
+	if err != nil {
+		return 0, err
+	}
+	return account.Nonce(), nil
 }
 
 // RecordEvent record event's topic and data with txHash
@@ -909,11 +919,6 @@ func (block *Block) recordEvent(txHash byteutils.Hash, event *Event) error {
 	if err != nil {
 		return err
 	}
-	/* 	logging.VLog().WithFields(logrus.Fields{
-		"block": block,
-		"tx":    txHash.Hex(),
-		"event": event,
-	}).Info("Recorded event.") */
 	return nil
 }
 
@@ -946,7 +951,6 @@ func (block *Block) FetchEvents(txHash byteutils.Hash) ([]*Event, error) {
 }
 
 func (block *Block) recordMintCnt() error {
-	// startAt := time.Now().Unix()
 	key := append(byteutils.FromInt64(block.Timestamp()/DynastyInterval), block.miner.Bytes()...)
 	bytes, err := block.dposContext.mintCntTrie.Get(key)
 	if err != nil && err != storage.ErrKeyNotFound {
@@ -961,26 +965,18 @@ func (block *Block) recordMintCnt() error {
 	if err != nil {
 		return err
 	}
-	// endAt := time.Now().Unix()
 
-	/* 	logging.VLog().WithFields(logrus.Fields{
-		"dynasty": block.Timestamp() / DynastyInterval,
-		"miner":   block.miner,
-		"count":   cnt,
-		"time":    endAt - startAt,
-	}).Debug("Recorded the block minted by the miner in the dynasty.") */
 	return nil
 }
 
-func (block *Block) rewardCoinbase() {
+func (block *Block) rewardCoinbase() error {
 	coinbaseAddr := block.header.coinbase.address
-	coinbaseAcc := block.accState.GetOrCreateUserAccount(coinbaseAddr)
+	coinbaseAcc, err := block.accState.GetOrCreateUserAccount(coinbaseAddr)
+	if err != nil {
+		return err
+	}
 	coinbaseAcc.AddBalance(BlockReward)
-
-	logging.VLog().WithFields(logrus.Fields{
-		"coinbase": coinbaseAddr.Hex(),
-		"reward":   BlockReward,
-	}).Info("Rewarded the coinbase.")
+	return nil
 }
 
 // GetTransaction from txs Trie
@@ -1015,19 +1011,20 @@ func (block *Block) acceptTransaction(tx *Transaction) error {
 		return err
 	}
 	// incre nonce
-	fromAcc := block.accState.GetOrCreateUserAccount(tx.from.address)
+	fromAcc, err := block.accState.GetOrCreateUserAccount(tx.from.address)
+	if err != nil {
+		return err
+	}
 	fromAcc.IncrNonce()
 	return nil
 }
 
 func (block *Block) checkTransaction(tx *Transaction) (bool, uint64, error) {
-	// check duplication
-	/* 	if proof, _ := block.txsTrie.Prove(tx.hash); proof != nil {
-		return false, ErrDuplicatedTransaction
-	} */
-
 	// check nonce
-	fromAcc := block.accState.GetOrCreateUserAccount(tx.from.address)
+	fromAcc, err := block.accState.GetOrCreateUserAccount(tx.from.address)
+	if err != nil {
+		return true, 0, err
+	}
 
 	// pass current Nonce.
 	currentNonce := fromAcc.Nonce()
@@ -1055,6 +1052,45 @@ func (block *Block) executeTransaction(tx *Transaction) (bool, uint64, error) {
 	}
 
 	return false, uint64(0), nil
+}
+
+// CheckContract check if contract is valid
+func (block *Block) CheckContract(addr *Address) error {
+
+	contract, err := block.accState.GetContractAccount(addr.Bytes())
+	if err != nil {
+		return err
+	}
+
+	if len(contract.BirthPlace()) == 0 {
+		return ErrContractNotFound
+	}
+
+	birthEvents, err := block.FetchEvents(contract.BirthPlace())
+	if err != nil {
+		return err
+	}
+
+	result := false
+	for _, v := range birthEvents {
+
+		if v.Topic == TopicTransactionExecutionResult {
+			txEvent := TransactionEvent{}
+			json.Unmarshal([]byte(v.Data), &txEvent)
+			if txEvent.Status == TxExecutionSuccess {
+				result = true
+				break
+			}
+		} else if v.Topic == TopicExecuteTxSuccess {
+			result = true
+			break
+		}
+	}
+	if !result {
+		return ErrContractNotFound
+	}
+
+	return nil
 }
 
 // HashBlock return the hash of block.
@@ -1171,7 +1207,7 @@ func (block *Block) Clone() (*Block, error) {
 		header:       block.header,
 		sealed:       block.sealed,
 		height:       block.height,
-		parenetBlock: block.parenetBlock,
+		parentBlock:  block.parentBlock,
 		txPool:       block.txPool,
 		miner:        block.miner,
 		storage:      block.storage,
@@ -1197,5 +1233,5 @@ func (block *Block) Merge(source *Block) {
 // Dispose dispose block.
 func (block *Block) Dispose() {
 	// cut off the parent block reference, prevent memory leak.
-	block.parenetBlock = nil
+	block.parentBlock = nil
 }

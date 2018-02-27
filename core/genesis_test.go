@@ -132,7 +132,8 @@ func TestNewGenesisBlock(t *testing.T) {
 
 	for _, v := range conf.TokenDistribution {
 		addr, _ := byteutils.FromHex(v.Address)
-		acc := genesis.accState.GetOrCreateUserAccount(addr)
+		acc, err := genesis.accState.GetOrCreateUserAccount(addr)
+		assert.Nil(t, err)
 		assert.Equal(t, acc.Balance().String(), v.Value)
 	}
 

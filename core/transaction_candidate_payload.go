@@ -64,11 +64,11 @@ func (payload *CandidatePayload) BaseGasCount() *util.Uint128 {
 }
 
 // Execute the candidate payload in tx
-func (payload *CandidatePayload) Execute(ctx *PayloadContext) (*util.Uint128, string, error) {
-	candidate := ctx.tx.from.Bytes()
+func (payload *CandidatePayload) Execute(block *Block, tx *Transaction) (*util.Uint128, string, error) {
+	candidate := tx.from.Bytes()
 	switch payload.Action {
 	case LoginAction:
-		if _, err := ctx.dposContext.candidateTrie.Put(candidate, candidate); err != nil {
+		if _, err := block.dposContext.candidateTrie.Put(candidate, candidate); err != nil {
 			return ZeroGasCount, "", err
 		}
 		/* 		logging.VLog().WithFields(logrus.Fields{
@@ -77,7 +77,7 @@ func (payload *CandidatePayload) Execute(ctx *PayloadContext) (*util.Uint128, st
 			"candidate": ctx.tx.from.String(),
 		}).Debug("Candidate login.") */
 	case LogoutAction:
-		if err := ctx.dposContext.kickoutCandidate(candidate); err != nil {
+		if err := block.dposContext.kickoutCandidate(candidate); err != nil {
 			return ZeroGasCount, "", err
 		}
 		/* 		logging.VLog().WithFields(logrus.Fields{

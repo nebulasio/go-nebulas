@@ -22,6 +22,8 @@ import (
 	"errors"
 	"fmt"
 
+	"encoding/json"
+
 	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/common/trie"
 	"github.com/nebulasio/go-nebulas/core"
@@ -124,8 +126,14 @@ func (s *APIService) GetAccountState(ctx context.Context, req *rpcpb.GetAccountS
 		}
 	}
 
-	balance := block.GetBalance(addr.Bytes())
-	nonce := block.GetNonce(addr.Bytes())
+	balance, err := block.GetBalance(addr.Bytes())
+	if err != nil {
+		return nil, err
+	}
+	nonce, err := block.GetNonce(addr.Bytes())
+	if err != nil {
+		return nil, err
+	}
 
 	metricsAccountStateSuccess.Mark(1)
 	return &rpcpb.GetAccountStateResponse{Balance: balance.String(), Nonce: fmt.Sprintf("%d", nonce)}, nil
@@ -154,16 +162,6 @@ func (s *APIService) Call(ctx context.Context, req *rpcpb.TransactionRequest) (*
 
 func (s *APIService) sendTransaction(req *rpcpb.TransactionRequest) (*rpcpb.SendTransactionResponse, error) {
 	neb := s.server.Neblet()
-	tail := neb.BlockChain().TailBlock()
-	addr, err := core.AddressParse(req.From)
-	if err != nil {
-		metricsSendTxFailed.Mark(1)
-		return nil, err
-	}
-	if req.Nonce <= tail.GetNonce(addr.Bytes()) {
-		metricsSendTxFailed.Mark(1)
-		return nil, errors.New("nonce is invalid")
-	}
 
 	tx, err := parseTransaction(neb, req)
 	if err != nil {
@@ -174,18 +172,8 @@ func (s *APIService) sendTransaction(req *rpcpb.TransactionRequest) (*rpcpb.Send
 		metricsSendTxFailed.Mark(1)
 		return nil, err
 	}
-	if err := neb.BlockChain().TransactionPool().PushAndBroadcast(tx); err != nil {
-		metricsSendTxFailed.Mark(1)
-		return nil, err
-	}
-	if tx.Type() == core.TxPayloadDeployType {
-		address, _ := core.NewContractAddressFromHash(hash.Sha3256(tx.From().Bytes(), byteutils.FromUint64(tx.Nonce())))
-		metricsSendTxSuccess.Mark(1)
-		return &rpcpb.SendTransactionResponse{Txhash: tx.Hash().String(), ContractAddress: address.String()}, nil
-	}
 
-	metricsSendTxSuccess.Mark(1)
-	return &rpcpb.SendTransactionResponse{Txhash: tx.Hash().String()}, nil
+	return handleTransactionResponse(neb, tx)
 }
 
 func parseTransaction(neb Neblet, reqTx *rpcpb.TransactionRequest) (*core.Transaction, error) {
@@ -220,6 +208,9 @@ func parseTransaction(neb Neblet, reqTx *rpcpb.TransactionRequest) (*core.Transa
 		payload, err = core.NewDelegatePayload(reqTx.Delegate.Action, reqTx.Delegate.Delegatee).ToBytes()
 	} else {
 		payloadType = core.TxPayloadBinaryType
+		if neb.BlockChain().TailBlock().Height() > core.OptimizeHeight {
+			payload, err = core.NewBinaryPayload(reqTx.Binary).ToBytes()
+		}
 	}
 	if err != nil {
 		return nil, err
@@ -227,6 +218,51 @@ func parseTransaction(neb Neblet, reqTx *rpcpb.TransactionRequest) (*core.Transa
 
 	tx := core.NewTransaction(neb.BlockChain().ChainID(), fromAddr, toAddr, value, reqTx.Nonce, payloadType, payload, gasPrice, gasLimit)
 	return tx, nil
+}
+
+func handleTransactionResponse(neb Neblet, tx *core.Transaction) (resp *rpcpb.SendTransactionResponse, err error) {
+	defer func() {
+		if err != nil {
+			metricsSendTxFailed.Mark(1)
+		} else {
+			metricsSendTxSuccess.Mark(1)
+		}
+	}()
+
+	nonce, err := neb.BlockChain().TailBlock().GetNonce(tx.From().Bytes())
+	if err != nil {
+		return nil, err
+	}
+	if tx.Nonce() <= nonce {
+
+		return nil, errors.New("transaction's nonce is invalid, should bigger than the from's nonce")
+	}
+
+	if tx.Type() == core.TxPayloadDeployType {
+		if !tx.From().Equals(tx.To()) {
+			return nil, core.ErrContractTransactionAddressNotEqual
+		}
+	} else if tx.Type() == core.TxPayloadCallType {
+		if err := neb.BlockChain().TailBlock().CheckContract(tx.To()); err != nil {
+			return nil, err
+		}
+	}
+
+	// push and broadcast tx
+	if err := neb.BlockChain().TransactionPool().PushAndBroadcast(tx); err != nil {
+		return nil, err
+	}
+
+	var contract string
+	if tx.Type() == core.TxPayloadDeployType {
+		addr, err := core.NewContractAddressFromHash(hash.Sha3256(tx.From().Bytes(), byteutils.FromUint64(tx.Nonce())))
+		if err != nil {
+			return nil, err
+		}
+		contract = addr.String()
+	}
+
+	return &rpcpb.SendTransactionResponse{Txhash: tx.Hash().String(), ContractAddress: contract}, nil
 }
 
 // SendRawTransaction submit the signed transaction raw data to txpool
@@ -237,28 +273,16 @@ func (s *APIService) SendRawTransaction(ctx context.Context, req *rpcpb.SendRawT
 
 	pbTx := new(corepb.Transaction)
 	if err := proto.Unmarshal(req.GetData(), pbTx); err != nil {
-		metricsSendRawTxFailed.Mark(1)
+		metricsSendTxFailed.Mark(1)
 		return nil, err
 	}
 	tx := new(core.Transaction)
 	if err := tx.FromProto(pbTx); err != nil {
-		metricsSendRawTxFailed.Mark(1)
+		metricsSendTxFailed.Mark(1)
 		return nil, err
 	}
 
-	if err := neb.BlockChain().TransactionPool().PushAndBroadcast(tx); err != nil {
-		metricsSendRawTxFailed.Mark(1)
-		return nil, err
-	}
-
-	if tx.Type() == core.TxPayloadDeployType {
-		metricsSendRawTxSuccess.Mark(1)
-		address, _ := core.NewContractAddressFromHash(hash.Sha3256(tx.From().Bytes(), byteutils.FromUint64(tx.Nonce())))
-		return &rpcpb.SendTransactionResponse{Txhash: tx.Hash().String(), ContractAddress: address.String()}, nil
-	}
-
-	metricsSendRawTxSuccess.Mark(1)
-	return &rpcpb.SendTransactionResponse{Txhash: tx.Hash().String()}, nil
+	return handleTransactionResponse(neb, tx)
 }
 
 // GetBlockByHash get block info by the block hash
@@ -371,23 +395,29 @@ func (s *APIService) GetTransactionReceipt(ctx context.Context, req *rpcpb.GetTr
 }
 
 func (s *APIService) toTransactionResponse(tx *core.Transaction) (*rpcpb.TransactionResponse, error) {
-	var status uint32
+	var (
+		status int32
+	)
 	neb := s.server.Neblet()
 	events, _ := neb.BlockChain().TailBlock().FetchEvents(tx.Hash())
 
 	if events != nil && len(events) > 0 {
 		for _, v := range events {
-			// TODO: transaction execution topic need change later.
-			if v.Topic == core.TopicExecuteTxSuccess {
-				status = 1
+			if v.Topic == core.TopicTransactionExecutionResult {
+				txEvent := core.TransactionEvent{}
+				json.Unmarshal([]byte(v.Data), &txEvent)
+				status = int32(txEvent.Status)
+				break
+			} else if v.Topic == core.TopicExecuteTxSuccess {
+				status = core.TxExecutionSuccess
 				break
 			} else if v.Topic == core.TopicExecuteTxFailed {
-				status = 0
+				status = core.TxExecutionFailed
 				break
 			}
 		}
 	} else {
-		status = 2
+		status = core.TxExecutionPendding
 	}
 
 	resp := &rpcpb.TransactionResponse{
@@ -420,17 +450,9 @@ func (s *APIService) Subscribe(req *rpcpb.SubscribeRequest, gs rpcpb.ApiService_
 
 	neb := s.server.Neblet()
 
-	chainEventCh := make(chan *core.Event, 128)
-	emitter := neb.EventEmitter()
-	for _, v := range req.Topics {
-		emitter.Register(v, chainEventCh)
-	}
-
-	defer (func() {
-		for _, v := range req.Topics {
-			emitter.Deregister(v, chainEventCh)
-		}
-	})()
+	eventSub := core.NewEventSubscriber(1024, req.Topics)
+	neb.EventEmitter().Register(eventSub)
+	defer neb.EventEmitter().Deregister(eventSub)
 
 	//netEventCh := make(chan nnet.Message, 128)
 	//net := neb.NetService()
@@ -442,7 +464,7 @@ func (s *APIService) Subscribe(req *rpcpb.SubscribeRequest, gs rpcpb.ApiService_
 	var err error
 	for {
 		select {
-		case event := <-chainEventCh:
+		case event := <-eventSub.EventChan():
 			err = gs.Send(&rpcpb.SubscribeResponse{Topic: event.Topic, Data: event.Data})
 			if err != nil {
 				return err
@@ -531,7 +553,12 @@ func (s *APIService) GetGasUsed(ctx context.Context, req *rpcpb.HashRequest) (*r
 func (s *APIService) GetEventsByHash(ctx context.Context, req *rpcpb.HashRequest) (*rpcpb.EventsResponse, error) {
 
 	neb := s.server.Neblet()
-	bhash, _ := byteutils.FromHex(req.GetHash())
+
+	bhash, err := byteutils.FromHex(req.GetHash())
+	if err != nil {
+		return nil, err
+	}
+
 	tx, err := neb.BlockChain().TailBlock().GetTransaction(bhash)
 	if err != nil {
 		return nil, err

@@ -57,11 +57,21 @@ var (
 
 	// DelegateBaseGasCount is base gas count of delegate transaction
 	DelegateBaseGasCount = util.NewUint128FromInt(20000)
+
 	// CandidateBaseGasCount is base gas count of candidate transaction
 	CandidateBaseGasCount = util.NewUint128FromInt(20000)
+
 	// ZeroGasCount is zero gas count
 	ZeroGasCount = util.NewUint128()
 )
+
+// TransactionEvent transaction event
+type TransactionEvent struct {
+	Hash    string `json:"hash"`
+	Status  int8   `json:"status"`
+	GasUsed string `json:"gas_used"`
+	Error   string `json:"error"`
+}
 
 // Transaction type is used to handle all transaction data.
 type Transaction struct {
@@ -280,10 +290,14 @@ func (tx *Transaction) LoadPayload(block *Block) (TxPayload, error) {
 	)
 	switch tx.data.Type {
 	case TxPayloadBinaryType:
-		if block.Height() >= 280921 && block.Height() <= 297680 || block.Height() >= 300087 && block.Height() <= 302302 {
-			payload, err = LoadBinaryPayloadFail(tx.data.Payload)
-		} else {
+		if block.height > OptimizeHeight {
 			payload, err = LoadBinaryPayload(tx.data.Payload)
+		} else {
+			if block.Height() >= 280921 && block.Height() <= 297680 || block.Height() >= 300087 && block.Height() <= 302302 {
+				payload, err = LoadBinaryPayloadDeprecatedFail(tx.data.Payload)
+			} else {
+				payload, err = LoadBinaryPayloadDeprecated(tx.data.Payload)
+			}
 		}
 	case TxPayloadDeployType:
 		payload, err = LoadDeployPayload(tx.data.Payload)
@@ -304,13 +318,22 @@ func (tx *Transaction) LocalExecution(block *Block) (*util.Uint128, string, erro
 	// update gas to max for estimate
 	tx.gasLimit = TransactionMaxGas
 
-	block.accState.BeginBatch()
-	fromAcc := block.accState.GetOrCreateUserAccount(tx.from.address)
+	txBlock, err := block.Clone()
+	if err != nil {
+		return nil, "", err
+	}
+
+	txBlock.begin()
+	defer txBlock.rollback()
+
+	fromAcc, err := txBlock.accState.GetOrCreateUserAccount(tx.from.address)
+	if err != nil {
+		return nil, "", err
+	}
 	fromAcc.AddBalance(tx.MinBalanceRequired())
 	fromAcc.AddBalance(tx.value)
-	defer block.accState.RollBack()
 
-	payload, err := tx.LoadPayload(block)
+	payload, err := tx.LoadPayload(txBlock)
 	if err != nil {
 		return util.NewUint128(), "", err
 	}
@@ -318,14 +341,7 @@ func (tx *Transaction) LocalExecution(block *Block) (*util.Uint128, string, erro
 	gasUsed := tx.GasCountOfTxBase()
 	gasUsed.Add(gasUsed.Int, payload.BaseGasCount().Int)
 
-	ctx := NewPayloadContext(block, tx)
-	err = ctx.BeginBatch()
-	if err != nil {
-		return gasUsed, "", err
-	}
-	defer ctx.RollBack()
-
-	gasExecution, result, err := payload.Execute(ctx)
+	gasExecution, result, err := payload.Execute(txBlock, tx)
 
 	gas := util.NewUint128FromBigInt(util.NewUint128().Add(gasUsed.Int, gasExecution.Int))
 	return gas, result, err
@@ -334,9 +350,18 @@ func (tx *Transaction) LocalExecution(block *Block) (*util.Uint128, string, erro
 // VerifyExecution transaction and return result.
 func (tx *Transaction) VerifyExecution(block *Block) (*util.Uint128, error) {
 	// check balance.
-	fromAcc := block.accState.GetOrCreateUserAccount(tx.from.address)
-	toAcc := block.accState.GetOrCreateUserAccount(tx.to.address)
-	coinbaseAcc := block.accState.GetOrCreateUserAccount(block.CoinbaseHash())
+	fromAcc, err := block.accState.GetOrCreateUserAccount(tx.from.address)
+	if err != nil {
+		return nil, err
+	}
+	toAcc, err := block.accState.GetOrCreateUserAccount(tx.to.address)
+	if err != nil {
+		return nil, err
+	}
+	coinbaseAcc, err := block.accState.GetOrCreateUserAccount(block.CoinbaseHash())
+	if err != nil {
+		return nil, err
+	}
 
 	// balance < gasLimit*gasPric
 	if fromAcc.Balance().Cmp(tx.MinBalanceRequired().Int) < 0 {
@@ -365,15 +390,8 @@ func (tx *Transaction) VerifyExecution(block *Block) (*util.Uint128, error) {
 		metricsTxExeFailed.Mark(1)
 
 		tx.gasConsumption(fromAcc, coinbaseAcc, gasUsed)
-		tx.triggerEvent(TopicExecuteTxFailed, block, err)
+		tx.triggerEvent(TopicExecuteTxFailed, block, gasUsed, err)
 		return gasUsed, nil
-	}
-
-	ctx := NewPayloadContext(block, tx)
-
-	err = ctx.BeginBatch()
-	if err != nil {
-		return util.NewUint128(), err
 	}
 
 	gasUsed.Add(gasUsed.Int, payload.BaseGasCount().Int)
@@ -386,37 +404,42 @@ func (tx *Transaction) VerifyExecution(block *Block) (*util.Uint128, error) {
 		metricsTxExeFailed.Mark(1)
 
 		tx.gasConsumption(fromAcc, coinbaseAcc, tx.gasLimit)
-		tx.triggerEvent(TopicExecuteTxFailed, block, err)
+		tx.triggerEvent(TopicExecuteTxFailed, block, tx.gasLimit, ErrOutOfGasLimit)
 		return tx.gasLimit, nil
 	}
 
-	// execute smart contract and sub the calcute gas.
-	gasExecution, _, err := payload.Execute(ctx)
+	// block begin
+	txBlock, err := block.Clone()
 	if err != nil {
-		ctx.RollBack()
-	} else {
-		ctx.Commit()
+		return util.NewUint128(), err
 	}
 
-	fromAcc = block.accState.GetOrCreateUserAccount(tx.from.address)
-	toAcc = block.accState.GetOrCreateUserAccount(tx.to.address)
-	coinbaseAcc = block.accState.GetOrCreateUserAccount(block.CoinbaseHash())
+	// execute smart contract and sub the calcute gas.
+	gasExecution, _, exeErr := payload.Execute(txBlock, tx)
+
+	// only execute success, merge the state to use
+	if exeErr == nil {
+		block.Merge(txBlock)
+	}
+
+	fromAcc, err = block.accState.GetOrCreateUserAccount(tx.from.address)
+	if err != nil {
+		return nil, err
+	}
+	toAcc, err = block.accState.GetOrCreateUserAccount(tx.to.address)
+	if err != nil {
+		return nil, err
+	}
+	coinbaseAcc, err = block.accState.GetOrCreateUserAccount(block.CoinbaseHash())
+	if err != nil {
+		return nil, err
+	}
 
 	// gas = tx.GasCountOfTxBase() +  gasExecution
 	gas := util.NewUint128FromBigInt(util.NewUint128().Add(gasUsed.Int, gasExecution.Int))
-
-	/* 	logging.VLog().WithFields(logrus.Fields{
-		"tx":           tx,
-		"gasUsed":      gasUsed.String(),
-		"gasExecution": gasExecution.String(),
-		"gas":          gas.String(),
-		"gasPrice":     tx.gasPrice.String(),
-		"gasLimited":   tx.gasLimit.String(),
-	}).Debug("Transaction execution statics.") */
-
 	tx.gasConsumption(fromAcc, coinbaseAcc, gas)
 
-	if err != nil {
+	if exeErr != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"err":          err,
 			"block":        block,
@@ -426,7 +449,7 @@ func (tx *Transaction) VerifyExecution(block *Block) (*util.Uint128, error) {
 		}).Debug("Failed to execute payload.")
 
 		metricsTxExeFailed.Mark(1)
-		tx.triggerEvent(TopicExecuteTxFailed, block, err)
+		tx.triggerEvent(TopicExecuteTxFailed, block, gas, err)
 	} else {
 		if fromAcc.Balance().Cmp(tx.value.Int) < 0 {
 			logging.VLog().WithFields(logrus.Fields{
@@ -436,7 +459,7 @@ func (tx *Transaction) VerifyExecution(block *Block) (*util.Uint128, error) {
 			}).Debug("Failed to check balance sufficient.")
 
 			metricsTxExeFailed.Mark(1)
-			tx.triggerEvent(TopicExecuteTxFailed, block, ErrInsufficientBalance)
+			tx.triggerEvent(TopicExecuteTxFailed, block, gas, ErrInsufficientBalance)
 		} else {
 			// accept the transaction
 			fromAcc.SubBalance(tx.value)
@@ -444,7 +467,7 @@ func (tx *Transaction) VerifyExecution(block *Block) (*util.Uint128, error) {
 
 			metricsTxExeSuccess.Mark(1)
 			// record tx execution success event
-			tx.triggerEvent(TopicExecuteTxSuccess, block, nil)
+			tx.triggerEvent(TopicExecuteTxSuccess, block, gas, nil)
 		}
 	}
 
@@ -457,7 +480,16 @@ func (tx *Transaction) gasConsumption(from, coinbase state.Account, gas *util.Ui
 	coinbase.AddBalance(util.NewUint128FromBigInt(gasCost))
 }
 
-func (tx *Transaction) triggerEvent(topic string, block *Block, err error) {
+func (tx *Transaction) triggerEvent(topic string, block *Block, gasUsed *util.Uint128, err error) {
+
+	// Notice: We updated the definition of the transaction result event,
+	// and the event is recorded on the chain, so it needs to be compatible.
+	if block.Height() > OptimizeHeight {
+		tx.recordResultEvent(block, gasUsed, err)
+		return
+	}
+
+	// deprecated for new block mined
 	var txData []byte
 	pbTx, _ := tx.ToProto()
 	if err != nil {
@@ -475,6 +507,29 @@ func (tx *Transaction) triggerEvent(topic string, block *Block, err error) {
 	}
 
 	event := &Event{Topic: topic,
+		Data: string(txData)}
+	block.recordEvent(tx.hash, event)
+}
+
+func (tx *Transaction) recordResultEvent(block *Block, gasUsed *util.Uint128, err error) {
+
+	txEvent := &TransactionEvent{
+		Hash:    tx.hash.String(),
+		GasUsed: gasUsed.String(),
+	}
+	if err != nil {
+		txEvent.Status = TxExecutionFailed
+		txEvent.Error = err.Error()
+	} else {
+		txEvent.Status = TxExecutionSuccess
+	}
+
+	txData, _ := json.Marshal(txEvent)
+	//logging.VLog().WithFields(logrus.Fields{
+	//	"topic": TopicTransactionExecutionResult,
+	//	"event": string(txData),
+	//}).Debug("record event.")
+	event := &Event{Topic: TopicTransactionExecutionResult,
 		Data: string(txData)}
 	block.recordEvent(tx.hash, event)
 }

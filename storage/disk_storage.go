@@ -19,31 +19,23 @@
 package storage
 
 import (
-	lru "github.com/hashicorp/golang-lru"
-	"github.com/nebulasio/go-nebulas/util/byteutils"
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/filter"
 	"github.com/syndtr/goleveldb/leveldb/opt"
 )
 
-var (
-	count = 0.1
-	hit   = 0.0
-)
-
 // DiskStorage the nodes in trie.
 type DiskStorage struct {
-	db    *leveldb.DB
-	cache *lru.Cache
+	db *leveldb.DB
+}
+
+type DiskBatch struct {
+	db *leveldb.DB
+	b  *leveldb.Batch
 }
 
 // NewDiskStorage init a storage
 func NewDiskStorage(path string) (*DiskStorage, error) {
-	cache, err := lru.New(40960)
-	if err != nil {
-		return nil, err
-	}
-
 	db, err := leveldb.OpenFile(path, &opt.Options{
 		OpenFilesCacheCapacity: 500,
 		BlockCacheCapacity:     8 * opt.MiB,
@@ -54,16 +46,12 @@ func NewDiskStorage(path string) (*DiskStorage, error) {
 		return nil, err
 	}
 	return &DiskStorage{
-		db:    db,
-		cache: cache,
+		db: db,
 	}, nil
 }
 
 // Get return value to the key in Storage
 func (storage *DiskStorage) Get(key []byte) ([]byte, error) {
-	if value, exist := storage.cache.Get(byteutils.Hex(key)); exist {
-		return value.([]byte), nil
-	}
 	value, err := storage.db.Get(key, nil)
 	if err != nil && err == leveldb.ErrNotFound {
 		return nil, ErrKeyNotFound
@@ -76,7 +64,6 @@ func (storage *DiskStorage) Put(key []byte, value []byte) error {
 	if err := storage.db.Put(key, value, nil); err != nil {
 		return err
 	}
-	storage.cache.Add(byteutils.Hex(key), value)
 	return nil
 }
 
@@ -85,11 +72,31 @@ func (storage *DiskStorage) Del(key []byte) error {
 	if err := storage.db.Delete(key, nil); err != nil {
 		return err
 	}
-	storage.cache.Remove(byteutils.Hex(key))
 	return nil
 }
 
 // Close levelDB
 func (storage *DiskStorage) Close() error {
 	return storage.db.Close()
+}
+
+// NewBatch new leveldb batch
+func (storage *DiskStorage) NewBatch() Batch {
+	return &DiskBatch{db: storage.db, b: new(leveldb.Batch)}
+}
+
+// Put put the key-value entry to batch
+func (b *DiskBatch) Put(key, value []byte) error {
+	b.b.Put(key, value)
+	return nil
+}
+
+// Write write multi key-value entries to storage
+func (b *DiskBatch) Write() error {
+	return b.db.Write(b.b, nil)
+}
+
+// Reset reset batch
+func (b *DiskBatch) Reset() {
+	b.b.Reset()
 }

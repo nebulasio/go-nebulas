@@ -33,6 +33,16 @@ type Storage interface {
 	// Put put the key-value entry to Storage.
 	Put(key []byte, value []byte) error
 
+	// Batch put multi key-value entries to Storage
+	NewBatch() Batch
+
 	// Del delete the key entry in Storage.
 	Del(key []byte) error
+}
+
+// Batch Put and Write
+type Batch interface {
+	Put(key []byte, value []byte) error
+
+	Write() error
 }

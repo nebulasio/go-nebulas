@@ -333,6 +333,12 @@ func (p *Dpos) newBlock(tail *core.Block, context *core.DynastyContext, deadline
 		}).Error("Failed to create new block")
 		return nil, err
 	}
+
+	logging.CLog().WithFields(logrus.Fields{
+		"coinbase": p.coinbase,
+		"reward":   core.BlockReward,
+	}).Info("Rewarded the coinbase.")
+
 	if err := block.LoadDynastyContext(context); err != nil {
 		logging.CLog().WithFields(logrus.Fields{
 			"block": block,
@@ -357,6 +363,12 @@ func (p *Dpos) newBlock(tail *core.Block, context *core.DynastyContext, deadline
 		}).Error("Failed to sign new block")
 		return nil, err
 	}
+
+	logging.CLog().WithFields(logrus.Fields{
+		"now":      time.Now().Unix(),
+		"deadline": deadline,
+		"txs":      len(block.Transactions()),
+	}).Info("Packed txs.")
 
 	return block, nil
 }
@@ -462,7 +474,7 @@ func (p *Dpos) mintBlock(now int64) error {
 
 	logging.CLog().WithFields(logrus.Fields{
 		"tail":     tail,
-		"now":      now,
+		"start":    now,
 		"deadline": deadline,
 		"expected": context.Proposer.Hex(),
 		"actual":   p.coinbase,
@@ -474,12 +486,6 @@ func (p *Dpos) mintBlock(now int64) error {
 		return err
 	}
 
-	logging.CLog().WithFields(logrus.Fields{
-		"tail":     tail,
-		"now":      time.Now().Unix(),
-		"deadline": deadline,
-	}).Info("All tx are packed.")
-
 	slot := nextSlot(now)
 	current := time.Now().Unix()
 	if slot > current {
@@ -487,16 +493,24 @@ func (p *Dpos) mintBlock(now int64) error {
 		<-timer
 	}
 
+	logging.CLog().WithFields(logrus.Fields{
+		"tail":     tail,
+		"block":    block,
+		"start":    now,
+		"packed":   current,
+		"deadline": deadline,
+		"slot":     slot,
+		"end":      time.Now().Unix(),
+	}).Info("Minted new block")
+
 	if err := p.broadcast(tail, block); err != nil {
 		return err
 	}
 
 	logging.CLog().WithFields(logrus.Fields{
-		"tail":     tail,
-		"block":    block,
-		"now":      time.Now().Unix(),
-		"deadline": deadline,
-	}).Info("Minted new block")
+		"tail":  tail,
+		"block": block,
+	}).Info("Broadcasted new block")
 	return nil
 }
 

@@ -33,9 +33,6 @@ var (
 	metricsSendTxSuccess = metrics.NewMeter("neb.rpc.sendTx.success")
 	metricsSendTxFailed  = metrics.NewMeter("neb.rpc.sendTx.failed")
 
-	metricsSendRawTxSuccess = metrics.NewMeter("neb.rpc.sendRawTx.success")
-	metricsSendRawTxFailed  = metrics.NewMeter("neb.rpc.sendRawTx.failed")
-
 	metricsSignTxSuccess = metrics.NewMeter("neb.rpc.signTx.success")
 	metricsSignTxFailed  = metrics.NewMeter("neb.rpc.signTx.failed")
 

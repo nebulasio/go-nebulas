@@ -331,24 +331,6 @@
   revision = "de6160a1d0a6c2df87ed00dd607353fb33932e48"
 
 [[projects]]
-  branch = "master"
-  name = "github.com/minio/blake2b-simd"
-  packages = ["."]
-  revision = "3f5f724cb5b182a5c278d6d3d55b40e7f8c2efb4"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/minio/sha256-simd"
-  packages = ["."]
-  revision = "ad98a36ba0da87206e3378c556abbfeaeaa98668"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/mr-tron/base58"
-  packages = ["base58"]
-  revision = "c1bdf7c52f59d6685ca597b9955a443ff95eeee6"
-
-[[projects]]
   name = "github.com/multiformats/go-multiaddr"
   packages = ["."]
   revision = "fb72fb2a8ef8fa11c7955820a2c5f9600b279c58"
@@ -381,7 +363,31 @@
   branch = "master"
   name = "github.com/multiformats/go-multihash"
   packages = ["."]
-  revision = "baff12aecdc71b5b2e28c62514beba0298fef3cb"
+  revision = "468a1b73e980e5aff011d308623e43e28c582b16"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/gxed/hashland"
+  packages = ["."]
+  revision = "d9f6b97f8db22dd1e090fd0bbbe98f09cc7dd0a8"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/minio/blake2b-simd"
+  packages = ["."]
+  revision = "3f5f724cb5b182a5c278d6d3d55b40e7f8c2efb4"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/minio/sha256-simd"
+  packages = ["."]
+  revision = "ad98a36ba0da87206e3378c556abbfeaeaa98668"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/mr-tron/base58"
+  packages = ["."]
+  revision = "c1bdf7c52f59d6685ca597b9955a443ff95eeee6"
 
 [[projects]]
   branch = "master"
@@ -536,13 +542,13 @@
 [[projects]]
   branch = "master"
   name = "golang.org/x/crypto"
-  packages = ["blake2s","blowfish","pbkdf2","ripemd160","scrypt","sha3","ssh/terminal"]
+  packages = ["blowfish","pbkdf2","ripemd160","scrypt","sha3","ssh/terminal"]
   revision = "faadfbdc035307d901e69eea569f5dda451a3ee3"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/net"
-  packages = ["context","html","html/atom","html/charset","http2","http2/hpack","idna","internal/timeseries","lex/httplex","trace"]
+  packages = ["context","html","html/atom","html/charset","http2","http2/hpack","idna","internal/timeseries","lex/httplex","netutil","trace"]
   revision = "8351a756f30f1297fe94bbf4b767ec589c6ea6d0"
 
 [[projects]]
@@ -575,15 +581,9 @@
   revision = "6e83acea0053641eff084973fee085f0c193c61a"
   version = "v1.0.5"
 
-[[projects]]
-  branch = "master"
-  name = "leb.io/hashland"
-  packages = ["keccakpg"]
-  revision = "e13accbe55f7fa03c73c74ace4cca4c425e47260"
-
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "962c9930ea4b9621a8e6768aa0908964dcc3fbe39cbce0215e370a3d1fee091e"
+  inputs-digest = "3b0a70f7321cee6cf7a3ad6fd6438f5c0da72a08623844631bd53b5537f11bfe"
   solver-name = "gps-cdcl"
   solver-version = 1

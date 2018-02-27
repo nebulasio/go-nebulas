@@ -24,7 +24,7 @@ const (
 	Delete
 )
 
-// Entry in changelog, [key, old value, new value]
+// Entry in log, [key, old value, new value]
 type Entry struct {
 	action Action
 	key    []byte
@@ -82,6 +82,7 @@ func (bt *BatchTrie) Put(key []byte, val []byte) ([]byte, error) {
 	if putErr != nil {
 		return nil, putErr
 	}
+
 	if bt.batching {
 		bt.changelog = append(bt.changelog, entry)
 	}
@@ -100,6 +101,7 @@ func (bt *BatchTrie) Del(key []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	if bt.batching {
 		bt.changelog = append(bt.changelog, entry)
 	}
@@ -165,13 +167,13 @@ func (bt *BatchTrie) BeginBatch() {
 
 // Commit a batch task
 func (bt *BatchTrie) Commit() {
-	// clear changelog
-	bt.changelog = bt.changelog[:0]
 	bt.batching = false
+	bt.changelog = bt.changelog[:0]
 }
 
 // RollBack a batch task
 func (bt *BatchTrie) RollBack() {
+	bt.batching = false
 	// compress changelog
 	changelog := make(map[string]*Entry)
 	for _, entry := range bt.changelog {
@@ -181,6 +183,7 @@ func (bt *BatchTrie) RollBack() {
 	}
 	// clear changelog
 	bt.changelog = bt.changelog[:0]
+
 	// rollback
 	for _, entry := range changelog {
 		switch entry.action {
@@ -190,7 +193,6 @@ func (bt *BatchTrie) RollBack() {
 			bt.trie.Put(entry.key, entry.old)
 		}
 	}
-	bt.batching = false
 }
 
 // HashDomains for each variable in contract

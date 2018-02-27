@@ -61,8 +61,8 @@ func (payload *DeployPayload) BaseGasCount() *util.Uint128 {
 }
 
 // Execute deploy payload in tx, deploy a new contract
-func (payload *DeployPayload) Execute(ctx *PayloadContext) (*util.Uint128, string, error) {
-	nvmctx, err := generateDeployContext(ctx)
+func (payload *DeployPayload) Execute(block *Block, tx *Transaction) (*util.Uint128, string, error) {
+	nvmctx, err := generateDeployContext(block, tx)
 	if err != nil {
 		return util.NewUint128(), "", err
 	}
@@ -70,24 +70,34 @@ func (payload *DeployPayload) Execute(ctx *PayloadContext) (*util.Uint128, strin
 	engine := nvm.NewV8Engine(nvmctx)
 	defer engine.Dispose()
 
-	engine.SetExecutionLimits(ctx.tx.PayloadGasLimit(payload).Uint64(), nvm.DefaultLimitsOfTotalMemorySize)
+	engine.SetExecutionLimits(tx.PayloadGasLimit(payload).Uint64(), nvm.DefaultLimitsOfTotalMemorySize)
 
 	// Deploy and Init.
 	result, err := engine.DeployAndInit(payload.Source, payload.SourceType, payload.Args)
 	return util.NewUint128FromInt(int64(engine.ExecutionInstructions())), result, err
 }
 
-func generateDeployContext(ctx *PayloadContext) (*nvm.Context, error) {
-	addr, err := ctx.tx.GenerateContractAddress()
+func generateDeployContext(block *Block, tx *Transaction) (*nvm.Context, error) {
+
+	if block.height > NewOptimizeHeight {
+		if !tx.From().Equals(tx.To()) {
+			return nil, ErrContractTransactionAddressNotEqual
+		}
+	}
+
+	addr, err := tx.GenerateContractAddress()
 	if err != nil {
 		return nil, err
 	}
-	owner := ctx.accState.GetOrCreateUserAccount(ctx.tx.from.Bytes())
-	contract, err := ctx.accState.CreateContractAccount(addr.Bytes(), ctx.tx.Hash())
+	owner, err := block.accState.GetOrCreateUserAccount(tx.from.Bytes())
 	if err != nil {
 		return nil, err
 	}
-	nvmctx := nvm.NewContext(ctx.block, convertNvmTx(ctx.tx), owner, contract, ctx.accState)
+	contract, err := block.accState.CreateContractAccount(addr.Bytes(), tx.Hash())
+	if err != nil {
+		return nil, err
+	}
+	nvmctx := nvm.NewContext(block, convertNvmTx(tx), owner, contract, block.accState)
 	return nvmctx, nil
 }
 

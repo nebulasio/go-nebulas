@@ -57,16 +57,16 @@ type Account interface {
 
 // AccountState Interface
 type AccountState interface {
-	RootHash() byteutils.Hash
+	RootHash() (byteutils.Hash, error)
 	Accounts() ([]Account, error)
 
 	BeginBatch()
-	Commit()
+	Commit() error
 	RollBack()
 
 	Clone() (AccountState, error)
 
-	GetOrCreateUserAccount(addr []byte) Account
+	GetOrCreateUserAccount(addr []byte) (Account, error)
 	GetContractAccount(addr []byte) (Account, error)
 	CreateContractAccount(addr []byte, birthPlace []byte) (Account, error)
 }

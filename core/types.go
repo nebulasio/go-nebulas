@@ -28,6 +28,17 @@ import (
 	"github.com/nebulasio/go-nebulas/util"
 )
 
+// const definition
+const (
+	// OptimizeHeight after this height,
+	// update transaction execution result event,
+	// update binary transaction payload.
+	OptimizeHeight = 480000
+
+	// update deploy execution, from & to must equal
+	NewOptimizeHeight = 750000
+)
+
 // Payload Types
 const (
 	TxPayloadBinaryType    = "binary"
@@ -35,6 +46,17 @@ const (
 	TxPayloadCallType      = "call"
 	TxPayloadDelegateType  = "delegate"
 	TxPayloadCandidateType = "candidate"
+)
+
+const (
+	// TxExecutionFailed failed status for transaction execute result.
+	TxExecutionFailed = 0
+
+	// TxExecutionSuccess success status for transaction execute result.
+	TxExecutionSuccess = 1
+
+	// TxExecutionPendding pendding status when transaction in transaction pool.
+	TxExecutionPendding = 2
 )
 
 // Error Types
@@ -96,6 +118,8 @@ var (
 	ErrCannotLoadLIBBlock                                = errors.New("cannot load tail block from storage")
 	ErrCannotLoadTailBlock                               = errors.New("cannot load latest irreversible block from storage")
 	ErrFoundNilProposer                                  = errors.New("found a nil proposer")
+	ErrContractNotFound                                  = errors.New("contract not found")
+	ErrContractTransactionAddressNotEqual                = errors.New("contract transaction from-address not equal to to-address")
 )
 
 // Default gas count
@@ -107,7 +131,7 @@ var (
 type TxPayload interface {
 	ToBytes() ([]byte, error)
 	BaseGasCount() *util.Uint128
-	Execute(ctx *PayloadContext) (*util.Uint128, string, error)
+	Execute(block *Block, tx *Transaction) (*util.Uint128, string, error)
 }
 
 // MessageType

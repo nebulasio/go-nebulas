@@ -21,6 +21,8 @@ package core
 import (
 	"sync"
 
+	"time"
+
 	"github.com/nebulasio/go-nebulas/util/logging"
 	"github.com/sirupsen/logrus"
 )
@@ -48,17 +50,44 @@ const (
 	// TopicLinkBlock the topic of link a block.
 	TopicLinkBlock = "chain.linkBlock"
 
+	// TopicLibBlock the topic of latest irreversible block.
+	TopicLibBlock = "chain.latestIrreversibleBlock"
+
 	// TopicExecuteTxFailed the topic of execute a transaction failed.
 	TopicExecuteTxFailed = "chain.executeTxFailed"
 
 	// TopicExecuteTxSuccess the topic of execute a transaction success.
 	TopicExecuteTxSuccess = "chain.executeTxSuccess"
+
+	// TopicTransactionExecutionResult the topic of transaction execution result
+	TopicTransactionExecutionResult = "chain.transactionResult"
 )
 
 // Event event structure.
 type Event struct {
 	Topic string
 	Data  string
+}
+
+// EventSubscriber subscriber object
+type EventSubscriber struct {
+	eventCh chan *Event
+	topics  []string
+}
+
+// NewEventSubscriber returns an EventSubscriber
+func NewEventSubscriber(size int, topics []string) *EventSubscriber {
+	eventCh := make(chan *Event, size)
+	subscriber := &EventSubscriber{
+		eventCh: eventCh,
+		topics:  topics,
+	}
+	return subscriber
+}
+
+// EventChan returns subscriber's eventCh
+func (s *EventSubscriber) EventChan() chan *Event {
+	return s.eventCh
 }
 
 // EventEmitter provide event functionality for Nebulas.
@@ -99,45 +128,47 @@ func (emitter *EventEmitter) Stop() {
 
 // Trigger trigger event.
 func (emitter *EventEmitter) Trigger(e *Event) {
-	/* 	logging.VLog().WithFields(logrus.Fields{
-		"topic": e.Topic,
-		"data":  e.Data,
-	}).Debug("Trigger new event") */
+
+	//logging.VLog().WithFields(logrus.Fields{
+	//	"topic": e.Topic,
+	//	"data":  e.Data,
+	//	}).Debug("Trigger new event")
 	emitter.eventCh <- e
 }
 
 // Register register event chan.
-func (emitter *EventEmitter) Register(topic string, ch chan *Event) error {
+func (emitter *EventEmitter) Register(subscribers ...*EventSubscriber) {
 
-	v, ok := emitter.eventSubs.Load(topic)
-	if !ok {
-		v, _ = emitter.eventSubs.LoadOrStore(topic, new(sync.Map))
+	for _, v := range subscribers {
+		for _, topic := range v.topics {
+			m, _ := emitter.eventSubs.LoadOrStore(topic, new(sync.Map))
+			m.(*sync.Map).Store(v, true)
+		}
 	}
-
-	m, _ := v.(*sync.Map)
-	m.Store(ch, true)
-
-	return nil
 }
 
 // Deregister deregister event chan.
-func (emitter *EventEmitter) Deregister(topic string, ch chan *Event) error {
+func (emitter *EventEmitter) Deregister(subscribers ...*EventSubscriber) {
 
-	v, ok := emitter.eventSubs.Load(topic)
-	if !ok {
-		return nil
+	for _, v := range subscribers {
+		for _, topic := range v.topics {
+			m, _ := emitter.eventSubs.Load(topic)
+			if m == nil {
+				continue
+			}
+			m.(*sync.Map).Delete(v)
+		}
 	}
-	m, _ := v.(*sync.Map)
-	m.Delete(ch)
-
-	return nil
 }
 
 func (emitter *EventEmitter) loop() {
 	logging.CLog().Info("Started EventEmitter.")
 
+	timerChan := time.NewTicker(time.Second).C
 	for {
 		select {
+		case <-timerChan:
+			metricsCachedEvent.Update(int64(len(emitter.eventCh)))
 		case <-emitter.quitCh:
 			logging.CLog().Info("Stopped EventEmitter.")
 			return
@@ -151,7 +182,13 @@ func (emitter *EventEmitter) loop() {
 
 			m, _ := v.(*sync.Map)
 			m.Range(func(key, value interface{}) bool {
-				key.(chan *Event) <- e
+				select {
+				case key.(*EventSubscriber).eventCh <- e:
+				default:
+					logging.VLog().WithFields(logrus.Fields{
+						"topic": topic,
+					}).Debug("timeout to dispatch event.")
+				}
 				return true
 			})
 		}

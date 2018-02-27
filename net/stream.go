@@ -45,7 +45,6 @@ const (
 	SYNCROUTE     = "syncroute"
 	ROUTETABLE    = "routetable"
 	RECVEDMSG     = "recvedmsg"
-	NEWTX         = "newtx"
 )
 
 // Stream Status
@@ -78,6 +77,7 @@ type Stream struct {
 	connectedAt               int64
 	latestReadAt              int64
 	latestWriteAt             int64
+	msgCount                  map[string]int
 }
 
 // NewStream return a new Stream
@@ -106,6 +106,7 @@ func newStreamInstance(pid peer.ID, addr ma.Multiaddr, stream libnet.Stream, nod
 		connectedAt:               time.Now().Unix(),
 		latestReadAt:              0,
 		latestWriteAt:             0,
+		msgCount:                  make(map[string]int),
 	}
 }
 
@@ -177,9 +178,6 @@ func (s *Stream) SendMessage(messageName string, data []byte, priority int) erro
 
 	// metrics.
 	metricsPacketsOutByMessageName(messageName, message.Length())
-	if messageName == NEWTX {
-		metricsSendTx.Inc(1)
-	}
 
 	// send to pool.
 	message.FlagSendMessageAt()
@@ -371,9 +369,6 @@ func (s *Stream) readLoop() {
 			metricsPacketsIn.Mark(1)
 			metricsBytesIn.Mark(int64(message.Length()))
 			metricsPacketsInByMessageName(message.MessageName(), message.Length())
-			if message.MessageName() == NEWTX {
-				metricsReceiveTx.Inc(1)
-			}
 
 			// handle message.
 			if err := s.handleMessage(message); err == ErrShouldCloseConnectionAndExitLoop {
@@ -442,6 +437,8 @@ func (s *Stream) writeLoop() {
 
 func (s *Stream) handleMessage(message *NebMessage) error {
 	messageName := message.MessageName()
+	s.msgCount[messageName]++
+
 	switch messageName {
 	case HELLO:
 		return s.onHello(message)

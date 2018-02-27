@@ -329,7 +329,7 @@ func TestPayload_Execute(t *testing.T) {
 	neb := testNeb()
 	bc, _ := NewBlockChain(neb)
 	block := bc.tailBlock
-	block.accState.BeginBatch()
+	block.begin()
 
 	tests := []testPayload{
 		{
@@ -369,8 +369,8 @@ func TestPayload_Execute(t *testing.T) {
 		payload: callPayload,
 		tx:      callTx,
 		block:   block,
-		want:    util.NewUint128FromInt(90),
-		wantErr: nil,
+		want:    util.NewUint128(),
+		wantErr: ErrContractNotFound,
 	})
 
 	delegateTx := mockDelegateTransaction(bc.chainID, 0, DelegateAction, mockAddress().String())
@@ -430,20 +430,19 @@ func TestPayload_Execute(t *testing.T) {
 
 			block.acceptTransaction(tt.tx)
 
-			ctx := NewPayloadContext(tt.block, tt.tx)
-			ctx.BeginBatch()
+			txblock, _ := block.Clone()
 
-			got, _, err := tt.payload.Execute(ctx)
+			got, _, err := tt.payload.Execute(txblock, tt.tx)
 			assert.Equal(t, tt.wantErr, err)
 			assert.Equal(t, tt.want, got)
 
-			if err == nil {
-				ctx.Commit()
+			if err != nil {
+				txblock.rollback()
 			} else {
-				ctx.RollBack()
+				block.Merge(txblock)
 			}
 		})
 	}
 
-	block.accState.Commit()
+	block.rollback()
 }

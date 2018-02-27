@@ -57,4 +57,7 @@ var (
 	metricsTxExecute    = metrics.NewMeter("neb.transaction.execute")
 	metricsTxExeSuccess = metrics.NewMeter("neb.transaction.execute.success")
 	metricsTxExeFailed  = metrics.NewMeter("neb.transaction.execute.failed")
+
+	// event metrics
+	metricsCachedEvent = metrics.NewGauge("neb.event.cached")
 )

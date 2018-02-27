@@ -86,9 +86,9 @@ func (n *node) Type() (ty, error) {
 	}
 }
 
-// Trie is a Merkle Patricia Triee, consists of three kinds of nodes,
+// Trie is a Merkle Patricia Trie, consists of three kinds of nodes,
 // Branch Node: 16-elements array, value is [hash_0, hash_1, ..., hash_f, hash]
-// Extension Node: 3-elements array, value is [ext flag, prefix path, next hash]
+// Extension Node: 3-elements array, value is [ext flag, prefi path, next hash]
 // Leaf Node: 3-elements array, value is [leaf flag, suffix path, value]
 type Trie struct {
 	rootHash []byte
@@ -106,10 +106,12 @@ func (t *Trie) createNode(val [][]byte) (*node, error) {
 
 // FetchNode in trie
 func (t *Trie) fetchNode(hash []byte) (*node, error) {
+
 	ir, err := t.storage.Get(hash)
 	if err != nil {
 		return nil, err
 	}
+
 	pb := new(triepb.Node)
 	if err := proto.Unmarshal(ir, pb); err != nil {
 		return nil, err
@@ -132,6 +134,7 @@ func (t *Trie) commitNode(n *node) error {
 		return err
 	}
 	n.Hash = hash.Sha3256(n.Bytes)
+
 	return t.storage.Put(n.Hash, n.Bytes)
 }
 
@@ -164,7 +167,7 @@ func (t *Trie) Get(key []byte) ([]byte, error) {
 func (t *Trie) get(rootHash []byte, route []byte) ([]byte, error) {
 	curRootHash := rootHash
 	curRoute := route
-	for i := 0; i < len(curRoute); i++ {
+	for len(curRoute) >= 0 {
 		rootNode, err := t.fetchNode(curRootHash)
 		if err != nil {
 			return nil, err

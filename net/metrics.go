@@ -31,9 +31,6 @@ var (
 
 	metricsPacketsOut = metrics.NewMeter("neb.net.packets.out")
 	metricsBytesOut   = metrics.NewMeter("neb.net.bytes.out")
-
-	metricsSendTx    = metrics.NewCounter("neb.net.sendtx")
-	metricsReceiveTx = metrics.NewCounter("neb.net.receivetx")
 )
 
 func metricsPacketsInByMessageName(messageName string, size uint64) {
