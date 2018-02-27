@@ -830,8 +830,8 @@ func TestNRC20Contract(t *testing.T) {
 			"9f19bd5379fc34658946aaa820f597a21ec86a3222a82843",
 			[]TransferTest{
 				{"6fb70b1d824be33e593dbc36d7405d61e44889fd8cb76e31", true, "5"},
-				 {"2fe3f9f51f9a05dd5f7c5329127f7c917917149b4e16b0b8", true, "10"},
-				 {"7da9dabedb4c6e121146fb4250a9883d6180570e63d6b080", true, "15"},
+				{"2fe3f9f51f9a05dd5f7c5329127f7c917917149b4e16b0b8", true, "10"},
+				{"7da9dabedb4c6e121146fb4250a9883d6180570e63d6b080", true, "15"},
 			},
 		},
 	}

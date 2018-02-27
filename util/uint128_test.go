@@ -106,7 +106,7 @@ func TestUint128(t *testing.T) {
 func TestUint128Operation(t *testing.T) {
 	a, _ := NewUint128FromInt(10)
 	b, _ := NewUint128FromInt(9)
-	
+
 	sumExpect, _ := NewUint128FromInt(19)
 	sumResult, _ := a.Add(b)
 	assert.Equal(t, sumExpect.Bytes(), sumResult.Bytes())

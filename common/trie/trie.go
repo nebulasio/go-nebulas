@@ -176,6 +176,9 @@ func (t *Trie) get(rootHash []byte, route []byte) ([]byte, error) {
 		if err != nil {
 			return nil, err
 		}
+		if len(curRoute) == 0 && flag != leaf {
+			return nil, errors.New("wrong key, too short")
+		}
 		switch flag {
 		case branch:
 			curRootHash = rootNode.Val[curRoute[0]]
