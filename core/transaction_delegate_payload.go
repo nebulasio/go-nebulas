@@ -75,11 +75,11 @@ func (payload *DelegatePayload) Execute(block *Block, tx *Transaction) (*util.Ui
 		return ZeroGasCount, "", err
 	}
 	// check delegatee valid
-	_, err = block.worldState.GetCandidate(delegatee.Bytes())
-	if err != nil && err != storage.ErrKeyNotFound {
+	exist, err := block.worldState.HasCandidate(delegatee.Bytes())
+	if err != nil {
 		return ZeroGasCount, "", err
 	}
-	if err == storage.ErrKeyNotFound {
+	if !exist {
 		return ZeroGasCount, "", ErrInvalidDelegateToNonCandidate
 	}
 	pre, err := block.worldState.GetVote(delegator)

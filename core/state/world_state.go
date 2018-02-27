@@ -260,8 +260,8 @@ func (ws *worldState) PutMintCnt(timestamp int64, miner byteutils.Hash, cnt int6
 	return ws.consensusState.PutMintCnt(timestamp, miner, cnt)
 }
 
-func (ws *worldState) GetCandidate(candidate byteutils.Hash) (byteutils.Hash, error) {
-	return ws.consensusState.GetCandidate(candidate)
+func (ws *worldState) HasCandidate(candidate byteutils.Hash) (bool, error) {
+	return ws.consensusState.HasCandidate(candidate)
 }
 
 func (ws *worldState) AddCandidate(candidate byteutils.Hash) error {

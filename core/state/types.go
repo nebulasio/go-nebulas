@@ -77,10 +77,12 @@ type Event struct {
 	Data  string
 }
 
+// Consensus interface
 type Consensus interface {
 	NewState(byteutils.Hash, storage.Storage) (ConsensusState, error)
 }
 
+// ConsensusState interface of consensus state
 type ConsensusState interface {
 	BeginBatch()
 	Commit()
@@ -98,7 +100,7 @@ type ConsensusState interface {
 
 	CandidatesRoot() byteutils.Hash
 	Candidates() ([]byteutils.Hash, error)
-	GetCandidate(byteutils.Hash) (byteutils.Hash, error)
+	HasCandidate(byteutils.Hash) (bool, error)
 	AddCandidate(byteutils.Hash) error
 	DelCandidate(byteutils.Hash) error
 
@@ -118,6 +120,7 @@ type ConsensusState interface {
 	NextDynastyRoot() byteutils.Hash
 }
 
+// WorldState interface of world state
 type WorldState interface {
 	Begin()
 	Commit()
@@ -153,7 +156,7 @@ type WorldState interface {
 
 	CandidatesRoot() byteutils.Hash
 	Candidates() ([]byteutils.Hash, error)
-	GetCandidate(byteutils.Hash) (byteutils.Hash, error)
+	HasCandidate(byteutils.Hash) (bool, error)
 	AddCandidate(byteutils.Hash) error
 	DelCandidate(byteutils.Hash) error
 

@@ -307,6 +307,7 @@ func (block *Block) Storage() storage.Storage {
 	return block.storage
 }
 
+// WorldState return the world state of the block
 func (block *Block) WorldState() state.WorldState {
 	return block.worldState
 }
@@ -316,7 +317,7 @@ func (block *Block) EventsRoot() byteutils.Hash {
 	return block.header.eventsRoot
 }
 
-// DposContext return dpos context
+// ConsensusRoot return the roothash of consensus state
 func (block *Block) ConsensusRoot() byteutils.Hash {
 	return block.header.consensusRoot
 }
@@ -379,14 +380,17 @@ func (block *Block) LinkParentBlock(chain *BlockChain, parentBlock *Block) error
 	return nil
 }
 
+// Begin a database transaction
 func (block *Block) Begin() {
 	block.worldState.Begin()
 }
 
+// Commit a database transaction
 func (block *Block) Commit() {
 	block.worldState.Commit()
 }
 
+// Rollback a database transaction
 func (block *Block) Rollback() {
 	block.worldState.RollBack()
 }
@@ -948,6 +952,7 @@ func (block *Block) checkTransaction(tx *Transaction) (bool, uint64, error) {
 	return false, currentNonce, nil
 }
 
+// ExecuteTransaction execute the transaction
 func (block *Block) ExecuteTransaction(tx *Transaction) (bool, uint64, error) {
 	if giveback, currentNonce, err := block.checkTransaction(tx); err != nil {
 		return giveback, currentNonce, err

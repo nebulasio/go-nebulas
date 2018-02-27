@@ -169,6 +169,7 @@ type SyncService interface {
 	IsActiveSyncing() bool
 }
 
+// Manager interface of account mananger
 type Manager interface {
 	NewAccount([]byte) (*Address, error)
 	Accounts() []*Address

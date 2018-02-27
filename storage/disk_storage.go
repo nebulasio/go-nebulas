@@ -29,6 +29,7 @@ type DiskStorage struct {
 	db *leveldb.DB
 }
 
+// DiskBatch do batch task in disk storage
 type DiskBatch struct {
 	db *leveldb.DB
 	b  *leveldb.Batch

@@ -103,7 +103,7 @@ type mockConsensusState struct {
 	candidates *trie.BatchTrie
 }
 
-func NewMockConsensusState() (*mockConsensusState, error) {
+func newMockConsensusState() (*mockConsensusState, error) {
 	votes, err := trie.NewBatchTrie(nil, stor)
 	if err != nil {
 		return nil, err
@@ -158,8 +158,15 @@ func (cs *mockConsensusState) Candidates() ([]byteutils.Hash, error) {
 	}
 	return members, nil
 }
-func (cs *mockConsensusState) GetCandidate(candidate byteutils.Hash) (byteutils.Hash, error) {
-	return cs.candidates.Get(candidate)
+func (cs *mockConsensusState) HasCandidate(candidate byteutils.Hash) (bool, error) {
+	_, err := cs.candidates.Get(candidate)
+	if err != nil && err != storage.ErrKeyNotFound {
+		return false, err
+	}
+	if err == storage.ErrKeyNotFound {
+		return false, nil
+	}
+	return true, nil
 }
 func (cs *mockConsensusState) AddCandidate(candidate byteutils.Hash) error {
 	_, err := cs.candidates.Put(candidate, candidate)
@@ -255,10 +262,10 @@ func (c mockConsensus) CheckTimeout(block *Block) bool {
 	return time.Now().Unix()-block.Timestamp() > AcceptedNetWorkDelay
 }
 func (c mockConsensus) NewState(byteutils.Hash, storage.Storage) (state.ConsensusState, error) {
-	return NewMockConsensusState()
+	return newMockConsensusState()
 }
 func (c mockConsensus) GenesisConsensusState(*BlockChain, *corepb.Genesis) (state.ConsensusState, error) {
-	return NewMockConsensusState()
+	return newMockConsensusState()
 }
 
 type mockManager struct{}

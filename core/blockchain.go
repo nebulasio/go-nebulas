@@ -129,6 +129,7 @@ func NewBlockChain(neb Neblet) (*BlockChain, error) {
 	return bc, nil
 }
 
+// Setup the blockchain
 func (bc *BlockChain) Setup(neb Neblet) error {
 	bc.consensusHandler = neb.Consensus()
 
@@ -277,10 +278,12 @@ func (bc *BlockChain) TailBlock() *Block {
 	return bc.tailBlock
 }
 
+// LIB return the latest irrversible block
 func (bc *BlockChain) LIB() *Block {
 	return bc.latestIrreversibleBlock
 }
 
+// SetLIB update the latest irrversible block
 func (bc *BlockChain) SetLIB(lib *Block) {
 	bc.latestIrreversibleBlock = lib
 }
@@ -667,14 +670,17 @@ func (bc *BlockChain) storeBlockToStorage(block *Block) error {
 	return nil
 }
 
+// StoreTailToStorage store the tail to storage
 func (bc *BlockChain) StoreTailToStorage(block *Block) error {
 	return bc.storage.Put([]byte(Tail), block.Hash())
 }
 
+// StoreLIBToStorage store the LIB th storage
 func (bc *BlockChain) StoreLIBToStorage(block *Block) error {
 	return bc.storage.Put([]byte(LIB), block.Hash())
 }
 
+// LoadTailFromStorage load the tail from storage
 func (bc *BlockChain) LoadTailFromStorage() (*Block, error) {
 	hash, err := bc.storage.Get([]byte(Tail))
 	if err != nil && err != storage.ErrKeyNotFound {
@@ -691,6 +697,7 @@ func (bc *BlockChain) LoadTailFromStorage() (*Block, error) {
 	return LoadBlockFromStorage(hash, bc)
 }
 
+// LoadGenesisFromStorage load the genesis block from storage
 func (bc *BlockChain) LoadGenesisFromStorage() (*Block, error) {
 	genesis, err := LoadBlockFromStorage(GenesisHash, bc)
 	if err != nil {
@@ -709,6 +716,7 @@ func (bc *BlockChain) LoadGenesisFromStorage() (*Block, error) {
 	return genesis, nil
 }
 
+// LoadLIBFromStorage load the LIB from storage
 func (bc *BlockChain) LoadLIBFromStorage() (*Block, error) {
 	hash, err := bc.storage.Get([]byte(LIB))
 	if err != nil && err != storage.ErrKeyNotFound {

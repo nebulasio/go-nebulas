@@ -32,7 +32,7 @@ type MemoryStorage struct {
 // kv entry
 type kv struct{ k, v []byte }
 
-// MemoryBatch
+// MemoryBatch do batch task in memory storage
 type MemoryBatch struct {
 	db      *MemoryStorage
 	entries []*kv
@@ -65,7 +65,7 @@ func (db *MemoryStorage) Del(key []byte) error {
 	return nil
 }
 
-// NewBatch
+// NewBatch create a new batch task in memory storage
 func (db *MemoryStorage) NewBatch() Batch {
 	return &MemoryBatch{db: db}
 }
@@ -77,6 +77,7 @@ func (b *MemoryBatch) Put(key, value []byte) error {
 	return nil
 }
 
+// Write write multi key-value entries to storage
 func (b *MemoryBatch) Write() error {
 
 	for _, kv := range b.entries {
@@ -85,6 +86,7 @@ func (b *MemoryBatch) Write() error {
 	return nil
 }
 
+// Reset the batch task
 func (b *MemoryBatch) Reset() {
 	b.entries = b.entries[:0]
 }

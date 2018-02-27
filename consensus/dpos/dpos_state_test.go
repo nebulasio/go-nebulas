@@ -206,12 +206,12 @@ func TestTallyVotes(t *testing.T) {
 	worldState.Commit()
 	assert.Nil(t, err)
 	// empty candidates
-	votes, err := consensusState.(*DposState).tallyVotes(worldState)
+	votes, err := consensusState.(*State).tallyVotes(worldState)
 	assert.Nil(t, err)
 	assert.Equal(t, votes[tester].String(), "10000000000000000010000")
 	consensusState.DelVote(candidate.Bytes())
 	consensusState.DelDelegate(candidate.Bytes(), candidate.Bytes())
-	votes, err = consensusState.(*DposState).tallyVotes(worldState)
+	votes, err = consensusState.(*State).tallyVotes(worldState)
 	assert.Nil(t, err)
 	assert.Equal(t, votes[tester], util.NewUint128())
 }
@@ -222,7 +222,7 @@ func TestChooseCandidates(t *testing.T) {
 	worldState := chain.TailBlock().WorldState()
 	consensusState, err := worldState.NextConsensusState(0)
 	assert.Nil(t, err)
-	dposState := consensusState.(*DposState)
+	dposState := consensusState.(*State)
 	protectTrie := dposState.candidateTrie
 	votes, err := dposState.tallyVotes(worldState)
 	assert.Nil(t, err)
@@ -244,7 +244,7 @@ func TestKickoutDynastyActuallyKickoutCandidates(t *testing.T) {
 	chain := neb.chain
 	consensusState, err := chain.TailBlock().WorldState().NextConsensusState(0)
 	assert.Nil(t, err)
-	dposState := consensusState.(*DposState)
+	dposState := consensusState.(*State)
 	protectTrie := dposState.candidateTrie
 	tester := "2fe3f9f51f9a05dd5f7c5329127f7c917917149b4e16b0b8"
 	candidate, err := core.AddressParse(tester)
@@ -262,7 +262,7 @@ func TestCheckActiveBootstrapValidators(t *testing.T) {
 	chain := neb.chain
 	consensusState, err := chain.TailBlock().WorldState().NextConsensusState(0)
 	assert.Nil(t, err)
-	dposState := consensusState.(*DposState)
+	dposState := consensusState.(*State)
 	protectTrie := dposState.candidateTrie
 	tester := "2fe3f9f51f9a05dd5f7c5329127f7c917917149b4e16b0b8"
 	candidate, err := core.AddressParse(tester)
@@ -291,7 +291,7 @@ func TestElectNextDynastyOnBaseDynastyWhenTooFewCandidates(t *testing.T) {
 	worldState := chain.TailBlock().WorldState()
 	consensusState, err := worldState.NextConsensusState(0)
 	assert.Nil(t, err)
-	dposState := consensusState.(*DposState)
+	dposState := consensusState.(*State)
 	members, err := TraverseDynasty(dposState.candidateTrie)
 	assert.Nil(t, err)
 	for i := 0; i < len(members)-SafeSize+1; i++ {

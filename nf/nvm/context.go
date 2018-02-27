@@ -46,6 +46,7 @@ type Block interface {
 	RecordEvent(txHash byteutils.Hash, topic, data string) error
 }
 
+// WorldState interface of world state
 type WorldState interface {
 	GetOrCreateUserAccount(addr byteutils.Hash) (state.Account, error)
 }

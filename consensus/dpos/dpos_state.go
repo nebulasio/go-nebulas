@@ -49,6 +49,7 @@ const (
 	ConsensusSize        = DynastySize*2/3 + 1
 )
 
+// Errors in dpos state
 var (
 	ErrTooFewCandidates        = errors.New("the size of candidates in consensus is un-safe, should be greater than or equal " + strconv.Itoa(SafeSize))
 	ErrInitialDynastyNotEnough = errors.New("the size of initial dynasty in genesis block is un-safe, should be greater than or equal " + strconv.Itoa(SafeSize))
@@ -62,8 +63,8 @@ var (
 	ErrFoundNilProposer        = errors.New("found a nil proposer")
 )
 
-// DposState carry context in dpos consensus
-type DposState struct {
+// State carry context in dpos consensus
+type State struct {
 	timeStamp int64
 	proposer  byteutils.Hash
 
@@ -79,6 +80,7 @@ type DposState struct {
 	protectTrie *trie.BatchTrie // key: delegatee, val: delegatee
 }
 
+// NewState create a new dpos state
 func (dpos *Dpos) NewState(root byteutils.Hash, stor storage.Storage) (state.ConsensusState, error) {
 	stateTrie, err := trie.NewTrie(root, stor)
 	if err != nil {
@@ -151,7 +153,7 @@ func (dpos *Dpos) NewState(root byteutils.Hash, stor storage.Storage) (state.Con
 		return nil, err
 	}
 
-	return &DposState{
+	return &State{
 		timeStamp: 0,
 		proposer:  nil,
 
@@ -168,6 +170,7 @@ func (dpos *Dpos) NewState(root byteutils.Hash, stor storage.Storage) (state.Con
 	}, nil
 }
 
+// CheckTimeout check whether the block is timeout
 func (dpos *Dpos) CheckTimeout(block *core.Block) bool {
 	behind := time.Now().Unix() - block.Timestamp()
 	if behind > AcceptedNetWorkDelay {
@@ -182,7 +185,7 @@ func (dpos *Dpos) CheckTimeout(block *core.Block) bool {
 	return false
 }
 
-// GenesisDynastyContext return dynasty context in genesis
+// GenesisConsensusState create a new genesis dpos state
 func (dpos *Dpos) GenesisConsensusState(chain *core.BlockChain, conf *corepb.Genesis) (state.ConsensusState, error) {
 	dynastyTrie, err := trie.NewBatchTrie(nil, chain.Storage())
 	if err != nil {
@@ -238,7 +241,7 @@ func (dpos *Dpos) GenesisConsensusState(chain *core.BlockChain, conf *corepb.Gen
 	if err != nil {
 		return nil, err
 	}
-	return &DposState{
+	return &State{
 		timeStamp: core.GenesisTimestamp,
 		proposer:  nil,
 
@@ -255,23 +258,9 @@ func (dpos *Dpos) GenesisConsensusState(chain *core.BlockChain, conf *corepb.Gen
 	}, nil
 }
 
-// HashDposState hash dpos context root hash
-/* func HashDposState(ds *dpospb.DposState) byteutils.Hash {
-	hasher := sha3.New256()
-
-	hasher.Write(ds.DynastyRoot)
-	hasher.Write(ds.NextDynastyRoot)
-	hasher.Write(ds.DelegateRoot)
-	hasher.Write(ds.VoteRoot)
-	hasher.Write(ds.CandidateRoot)
-	hasher.Write(ds.MintCntRoot)
-
-	return hasher.Sum(nil)
-} */
-
 // BeginBatch starts a batch task
-func (ds *DposState) BeginBatch() {
-	// logging.VLog().Debug("DposState Begin.")
+func (ds *State) BeginBatch() {
+	// logging.VLog().Debug("State Begin.")
 	ds.delegateTrie.BeginBatch()
 	ds.dynastyTrie.BeginBatch()
 	ds.nextDynastyTrie.BeginBatch()
@@ -281,29 +270,29 @@ func (ds *DposState) BeginBatch() {
 }
 
 // Commit a batch task
-func (ds *DposState) Commit() {
+func (ds *State) Commit() {
 	ds.delegateTrie.Commit()
 	ds.dynastyTrie.Commit()
 	ds.nextDynastyTrie.Commit()
 	ds.candidateTrie.Commit()
 	ds.voteTrie.Commit()
 	ds.mintCntTrie.Commit()
-	// logging.VLog().Debug("DposState Commit.")
+	// logging.VLog().Debug("State Commit.")
 }
 
 // RollBack a batch task
-func (ds *DposState) RollBack() {
+func (ds *State) RollBack() {
 	ds.delegateTrie.RollBack()
 	ds.dynastyTrie.RollBack()
 	ds.nextDynastyTrie.RollBack()
 	ds.candidateTrie.RollBack()
 	ds.voteTrie.RollBack()
 	ds.mintCntTrie.RollBack()
-	// logging.VLog().Debug("DposState RollBack.")
+	// logging.VLog().Debug("State RollBack.")
 }
 
 // Clone a dpos context
-func (ds *DposState) Clone() (state.ConsensusState, error) {
+func (ds *State) Clone() (state.ConsensusState, error) {
 	var err error
 	dynastyTrie, err := ds.dynastyTrie.Clone()
 	if err != nil {
@@ -329,7 +318,7 @@ func (ds *DposState) Clone() (state.ConsensusState, error) {
 	if err != nil {
 		return nil, ErrCloneMintCntTrie
 	}
-	return &DposState{
+	return &State{
 		timeStamp: ds.timeStamp,
 		proposer:  ds.proposer,
 
@@ -346,8 +335,8 @@ func (ds *DposState) Clone() (state.ConsensusState, error) {
 	}, nil
 }
 
-// DposContextHash hash dpos context
-func (ds *DposState) RootHash() (byteutils.Hash, error) {
+// RootHash hash dpos state
+func (ds *State) RootHash() (byteutils.Hash, error) {
 	stateTrie, err := trie.NewTrie(nil, ds.chain.Storage())
 	if err != nil {
 		return nil, err
@@ -368,7 +357,8 @@ func (ds *DposState) RootHash() (byteutils.Hash, error) {
 	return stateTrie.RootHash(), nil
 }
 
-func (ds *DposState) GetMintCnt(timestamp int64, miner byteutils.Hash) (int64, error) {
+// GetMintCnt return the count of blocks minted by the miner in given dynasty
+func (ds *State) GetMintCnt(timestamp int64, miner byteutils.Hash) (int64, error) {
 	dynasty := timestamp / DynastyInterval
 	key := append(byteutils.FromInt64(dynasty), miner...)
 	bytes, err := ds.mintCntTrie.Get(key)
@@ -382,7 +372,8 @@ func (ds *DposState) GetMintCnt(timestamp int64, miner byteutils.Hash) (int64, e
 	return cnt, nil
 }
 
-func (ds *DposState) PutMintCnt(timestamp int64, miner byteutils.Hash, cnt int64) error {
+// PutMintCnt update the count of blocks minted by the miner in given dynasty
+func (ds *State) PutMintCnt(timestamp int64, miner byteutils.Hash, cnt int64) error {
 	dynasty := timestamp / DynastyInterval
 	key := append(byteutils.FromInt64(dynasty), miner...)
 	_, err := ds.mintCntTrie.Put(key, byteutils.FromInt64(cnt))
@@ -392,38 +383,53 @@ func (ds *DposState) PutMintCnt(timestamp int64, miner byteutils.Hash, cnt int64
 	return nil
 }
 
-func (ds *DposState) GetCandidate(candidate byteutils.Hash) (byteutils.Hash, error) {
-	return ds.candidateTrie.Get(candidate)
+// HasCandidate return whether the candidate exists
+func (ds *State) HasCandidate(candidate byteutils.Hash) (bool, error) {
+	_, err := ds.candidateTrie.Get(candidate)
+	if err != nil && err != storage.ErrKeyNotFound {
+		return false, err
+	}
+	if err == storage.ErrKeyNotFound {
+		return false, nil
+	}
+	return true, nil
 }
 
-func (ds *DposState) AddCandidate(candidate byteutils.Hash) error {
+// AddCandidate add a new candidate
+func (ds *State) AddCandidate(candidate byteutils.Hash) error {
 	_, err := ds.candidateTrie.Put(candidate, candidate)
 	return err
 }
 
-func (ds *DposState) DelCandidate(candidate byteutils.Hash) error {
+// DelCandidate kickout the candidate
+func (ds *State) DelCandidate(candidate byteutils.Hash) error {
 	return ds.kickoutCandidate(candidate)
 }
 
-func (ds *DposState) GetVote(voter byteutils.Hash) (byteutils.Hash, error) {
+// GetVote return who the voters votes
+func (ds *State) GetVote(voter byteutils.Hash) (byteutils.Hash, error) {
 	return ds.voteTrie.Get(voter)
 }
 
-func (ds *DposState) AddVote(voter byteutils.Hash, votee byteutils.Hash) error {
+// AddVote add a new vote
+func (ds *State) AddVote(voter byteutils.Hash, votee byteutils.Hash) error {
 	_, err := ds.voteTrie.Put(voter, votee)
 	return err
 }
 
-func (ds *DposState) DelVote(voter byteutils.Hash) error {
+// DelVote del the voter's vote
+func (ds *State) DelVote(voter byteutils.Hash) error {
 	_, err := ds.voteTrie.Del(voter)
 	return err
 }
 
-func (ds *DposState) IterVote() (state.Iterator, error) {
+// IterVote return the iterator of all votes
+func (ds *State) IterVote() (state.Iterator, error) {
 	return ds.voteTrie.Iterator(nil)
 }
 
-func (ds *DposState) HasDelegate(delegator byteutils.Hash, delegatee byteutils.Hash) (bool, error) {
+// HasDelegate return whether the delegate exists
+func (ds *State) HasDelegate(delegator byteutils.Hash, delegatee byteutils.Hash) (bool, error) {
 	key := append(delegatee, delegator...)
 	_, err := ds.delegateTrie.Get(key)
 	if err != nil && err != storage.ErrKeyNotFound {
@@ -435,47 +441,56 @@ func (ds *DposState) HasDelegate(delegator byteutils.Hash, delegatee byteutils.H
 	return true, nil
 }
 
-func (ds *DposState) AddDelegate(delegator byteutils.Hash, delegatee byteutils.Hash) error {
+// AddDelegate add a new delegate
+func (ds *State) AddDelegate(delegator byteutils.Hash, delegatee byteutils.Hash) error {
 	key := append(delegatee, delegator...)
 	_, err := ds.delegateTrie.Put(key, delegator)
 	return err
 }
 
-func (ds *DposState) DelDelegate(delegator byteutils.Hash, delegatee byteutils.Hash) error {
+// DelDelegate del the delegate
+func (ds *State) DelDelegate(delegator byteutils.Hash, delegatee byteutils.Hash) error {
 	key := append(delegatee, delegator...)
 	_, err := ds.delegateTrie.Del(key)
 	return err
 }
 
-func (ds *DposState) IterDelegate(delegatee byteutils.Hash) (state.Iterator, error) {
+// IterDelegate return the iterator by delegatee
+func (ds *State) IterDelegate(delegatee byteutils.Hash) (state.Iterator, error) {
 	return ds.delegateTrie.Iterator(delegatee)
 }
 
-func (ds *DposState) Dynasty() ([]byteutils.Hash, error) {
+// Dynasty return the current dynasty
+func (ds *State) Dynasty() ([]byteutils.Hash, error) {
 	return TraverseDynasty(ds.dynastyTrie)
 }
 
-func (ds *DposState) DynastyRoot() byteutils.Hash {
+// DynastyRoot return the roothash of current dynasty
+func (ds *State) DynastyRoot() byteutils.Hash {
 	return ds.dynastyTrie.RootHash()
 }
 
-func (ds *DposState) NextDynasty() ([]byteutils.Hash, error) {
+// NextDynasty return the next dynasty
+func (ds *State) NextDynasty() ([]byteutils.Hash, error) {
 	return TraverseDynasty(ds.nextDynastyTrie)
 }
 
-func (ds *DposState) NextDynastyRoot() byteutils.Hash {
+// NextDynastyRoot return the roothash of next dynasty
+func (ds *State) NextDynastyRoot() byteutils.Hash {
 	return ds.nextDynastyTrie.RootHash()
 }
 
-func (ds *DposState) CandidatesRoot() byteutils.Hash {
+// CandidatesRoot return the roothash of current candidates
+func (ds *State) CandidatesRoot() byteutils.Hash {
 	return ds.candidateTrie.RootHash()
 }
 
-func (ds *DposState) Candidates() ([]byteutils.Hash, error) {
+// Candidates return the current candidates
+func (ds *State) Candidates() ([]byteutils.Hash, error) {
 	return TraverseDynasty(ds.candidateTrie)
 }
 
-func (ds *DposState) tallyVotes(worldState state.WorldState) (map[string]*util.Uint128, error) {
+func (ds *State) tallyVotes(worldState state.WorldState) (map[string]*util.Uint128, error) {
 	votes := make(map[string]*util.Uint128)
 	delegate := ds.delegateTrie
 	candidates := ds.candidateTrie
@@ -609,7 +624,7 @@ func checkActiveBootstrapValidator(validator byteutils.Hash, protect *trie.Batch
 	return true, nil
 }
 
-func (ds *DposState) chooseCandidates(votes map[string]*util.Uint128) (Candidates, error) {
+func (ds *State) chooseCandidates(votes map[string]*util.Uint128) (Candidates, error) {
 	// startAt := time.Now().Unix()
 	// active bootstrap validators
 	var bootstrapCandidates Candidates
@@ -713,11 +728,11 @@ func kickout(stor storage.Storage, candidatesTrie *trie.BatchTrie, delegateTrie 
 	return nil
 }
 
-func (ds *DposState) kickoutCandidate(candidate byteutils.Hash) error {
+func (ds *State) kickoutCandidate(candidate byteutils.Hash) error {
 	return kickout(ds.chain.Storage(), ds.candidateTrie, ds.delegateTrie, ds.voteTrie, candidate)
 }
 
-func (ds *DposState) kickoutDynasty(dynastyID int64) error {
+func (ds *State) kickoutDynasty(dynastyID int64) error {
 	// startAt := time.Now().Unix()
 
 	dynastyTrie := ds.dynastyTrie
@@ -794,7 +809,7 @@ func (ds *DposState) kickoutDynasty(dynastyID int64) error {
 	return nil
 }
 
-func (ds *DposState) electNextDynastyOnBaseDynasty(worldState state.WorldState, baseDynastyID int64, nextDynastyID int64, baseGenesis bool) error {
+func (ds *State) electNextDynastyOnBaseDynasty(worldState state.WorldState, baseDynastyID int64, nextDynastyID int64, baseGenesis bool) error {
 	/* 	logging.VLog().WithFields(logrus.Fields{
 		"base":            baseDynastyID,
 		"next":            nextDynastyID,
@@ -913,16 +928,18 @@ func FindProposer(now int64, dynasty *trie.BatchTrie) (proposer byteutils.Hash, 
 	return proposer, nil
 }
 
-func (ds *DposState) Proposer() byteutils.Hash {
+// Proposer return the current proposer
+func (ds *State) Proposer() byteutils.Hash {
 	return ds.proposer
 }
 
-func (ds *DposState) TimeStamp() int64 {
+// TimeStamp return the current timestamp
+func (ds *State) TimeStamp() int64 {
 	return ds.timeStamp
 }
 
-// NextDynastyContext when some seconds elapsed
-func (ds *DposState) NextConsensusState(elapsedSecond int64, worldState state.WorldState) (state.ConsensusState, error) {
+// NextConsensusState return the new state after some seconds elapsed
+func (ds *State) NextConsensusState(elapsedSecond int64, worldState state.WorldState) (state.ConsensusState, error) {
 	if elapsedSecond%BlockInterval != 0 {
 		return nil, ErrNotBlockForgTime
 	}
@@ -952,7 +969,7 @@ func (ds *DposState) NextConsensusState(elapsedSecond int64, worldState state.Wo
 		return nil, err
 	}
 
-	consensusState := &DposState{
+	consensusState := &State{
 		timeStamp: ds.timeStamp + elapsedSecond,
 
 		dynastyTrie:     dynastyTrie,
