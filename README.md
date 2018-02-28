@@ -2,7 +2,7 @@
 
 Official Go implementation of the Nebulas protocol.
 
-[![Build Status](https://travis-ci.org/nebulasio/go-nebulas.svg?branch=master)](https://travis-ci.org/nebulasio/go-nebulas)
+[![Build Status](https://travis-ci.org/nebulasio/go-nebulas.svg?branch=develop)](https://travis-ci.org/nebulasio/go-nebulas)
 
 For the roadmap of Nebulas, please visit the [Roadmap](https://github.com/nebulasio/wiki/blob/master/roadmap.md) page.
 
