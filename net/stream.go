@@ -58,6 +58,7 @@ const (
 var (
 	ErrShouldCloseConnectionAndExitLoop = errors.New("should close connection and exit loop")
 	ErrStreamIsNotConnected             = errors.New("stream is not connected")
+	EOF                                 = errors.New("EOF")
 )
 
 // Stream define the structure of a stream in p2p network
@@ -298,7 +299,9 @@ func (s *Stream) readLoop() {
 				"err":    err,
 				"stream": s.String(),
 			}).Debug("Error occurred when reading data from network connection.")
-			s.Close(err)
+			if err != EOF {
+				s.Close(err)
+			}
 			return
 		}
 
