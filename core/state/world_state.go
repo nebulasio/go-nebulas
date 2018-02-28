@@ -20,25 +20,23 @@ package state
 
 import (
 	"encoding/json"
+	"github.com/nebulasio/go-nebulas/common/mvccdb"
 
 	"github.com/nebulasio/go-nebulas/common/trie"
 	"github.com/nebulasio/go-nebulas/storage"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
 )
 
-// WorldState manange all current states in Blockchain
-type worldState struct {
+type states struct {
 	accState       AccountState
 	txsState       *trie.BatchTrie
 	eventsState    *trie.BatchTrie
 	consensusState ConsensusState
 
-	storage   storage.Storage
 	consensus Consensus
 }
 
-// NewWorldState create a new empty WorldState
-func NewWorldState(consensus Consensus, storage storage.Storage) (WorldState, error) {
+func newStates(consensus Consensus, storage storage.Storage) (*states, error) {
 	accState, err := NewAccountState(nil, storage)
 	if err != nil {
 		return nil, err
@@ -51,146 +49,121 @@ func NewWorldState(consensus Consensus, storage storage.Storage) (WorldState, er
 	if err != nil {
 		return nil, err
 	}
-	return &worldState{
+	return &states{
 		accState:       accState,
 		txsState:       txsState,
 		eventsState:    eventsState,
 		consensusState: nil,
-
-		storage:   storage,
-		consensus: consensus,
+		consensus:      consensus,
 	}, nil
 }
 
-func (ws *worldState) LoadAccountsRoot(root byteutils.Hash) error {
-	accState, err := NewAccountState(root, ws.storage)
-	if err != nil {
-		return err
-	}
-	ws.accState = accState
-	return nil
-}
-
-func (ws *worldState) LoadTxsRoot(root byteutils.Hash) error {
-	txsState, err := trie.NewBatchTrie(root, ws.storage)
-	if err != nil {
-		return err
-	}
-	ws.txsState = txsState
-	return nil
-}
-
-func (ws *worldState) LoadEventsRoot(root byteutils.Hash) error {
-	eventsState, err := trie.NewBatchTrie(root, ws.storage)
-	if err != nil {
-		return err
-	}
-	ws.eventsState = eventsState
-	return nil
-}
-
-func (ws *worldState) LoadConsensusRoot(root byteutils.Hash) error {
-	consensusState, err := ws.consensus.NewState(root, ws.storage)
-	if err != nil {
-		return err
-	}
-	ws.consensusState = consensusState
-	return nil
-}
-
-func (ws *worldState) SetConsensusState(consensusState ConsensusState) {
-	ws.consensusState = consensusState
-}
-
-// Clone a new WorldState
-func (ws *worldState) Clone() (WorldState, error) {
-	accState, err := ws.accState.Clone()
+func (s *states) Clone() (*states, error) {
+	accState, err := s.accState.Clone()
 	if err != nil {
 		return nil, err
 	}
-	txsState, err := ws.txsState.Clone()
+	txsState, err := s.txsState.Clone()
 	if err != nil {
 		return nil, err
 	}
-	eventsState, err := ws.eventsState.Clone()
+	eventsState, err := s.eventsState.Clone()
 	if err != nil {
 		return nil, err
 	}
-	consensusState, err := ws.consensusState.Clone()
+	consensusState, err := s.consensusState.Clone()
 	if err != nil {
 		return nil, err
 	}
-	return &worldState{
+	return &states{
 		accState:       accState,
 		txsState:       txsState,
 		eventsState:    eventsState,
 		consensusState: consensusState,
-
-		storage:   ws.storage,
-		consensus: ws.consensus,
+		consensus:      s.consensus,
 	}, nil
 }
 
-func (ws *worldState) Begin() {
-	ws.accState.BeginBatch()
-	ws.txsState.BeginBatch()
-	ws.eventsState.BeginBatch()
-	ws.consensusState.BeginBatch()
+func (s *states) ReplaceDB(storage storage.Storage) (*states, error) {
+	accRoot, err := s.AccountsRoot()
+	if err != nil {
+		return nil, err
+	}
+	accState, err := NewAccountState(accRoot, storage)
+	if err != nil {
+		return nil, err
+	}
+	txsRoot, err := s.TxsRoot()
+	if err != nil {
+		return nil, err
+	}
+	txsState, err := trie.NewBatchTrie(txsRoot, storage)
+	if err != nil {
+		return nil, err
+	}
+	eventsRoot, err := s.EventsRoot()
+	if err != nil {
+		return nil, err
+	}
+	eventsState, err := trie.NewBatchTrie(eventsRoot, storage)
+	if err != nil {
+		return nil, err
+	}
+	consensusRoot, err := s.ConsensusRoot()
+	if err != nil {
+		return nil, err
+	}
+	consensusState, err := s.consensus.NewState(consensusRoot, storage)
+	if err != nil {
+		return nil, err
+	}
+	return &states{
+		accState:       accState,
+		txsState:       txsState,
+		eventsState:    eventsState,
+		consensusState: consensusState,
+	}, nil
 }
 
-func (ws *worldState) Commit() {
-	ws.accState.Commit()
-	ws.txsState.Commit()
-	ws.eventsState.Commit()
-	ws.consensusState.Commit()
+func (s *states) AccountsRoot() (byteutils.Hash, error) {
+	return s.accState.RootHash()
 }
 
-func (ws *worldState) RollBack() {
-	ws.accState.RollBack()
-	ws.txsState.RollBack()
-	ws.eventsState.RollBack()
-	ws.consensusState.RollBack()
+func (s *states) TxsRoot() (byteutils.Hash, error) {
+	return s.txsState.RootHash(), nil
 }
 
-func (ws *worldState) AccountsRoot() (byteutils.Hash, error) {
-	return ws.accState.RootHash()
+func (s *states) EventsRoot() (byteutils.Hash, error) {
+	return s.eventsState.RootHash(), nil
 }
 
-func (ws *worldState) TxsRoot() (byteutils.Hash, error) {
-	return ws.txsState.RootHash(), nil
+func (s *states) ConsensusRoot() (byteutils.Hash, error) {
+	return s.consensusState.RootHash()
 }
 
-func (ws *worldState) EventsRoot() (byteutils.Hash, error) {
-	return ws.eventsState.RootHash(), nil
+func (s *states) GetOrCreateUserAccount(addr byteutils.Hash) (Account, error) {
+	return s.accState.GetOrCreateUserAccount(addr)
 }
 
-func (ws *worldState) ConsensusRoot() (byteutils.Hash, error) {
-	return ws.consensusState.RootHash()
+func (s *states) GetContractAccount(addr byteutils.Hash) (Account, error) {
+	return s.accState.GetContractAccount(addr)
 }
 
-func (ws *worldState) GetOrCreateUserAccount(addr byteutils.Hash) (Account, error) {
-	return ws.accState.GetOrCreateUserAccount(addr)
+func (s *states) CreateContractAccount(owner byteutils.Hash, birthPlace byteutils.Hash) (Account, error) {
+	return s.accState.CreateContractAccount(owner, birthPlace)
 }
 
-func (ws *worldState) GetContractAccount(addr byteutils.Hash) (Account, error) {
-	return ws.accState.GetContractAccount(addr)
+func (s *states) GetTx(txHash byteutils.Hash) ([]byte, error) {
+	return s.txsState.Get(txHash)
 }
 
-func (ws *worldState) CreateContractAccount(owner byteutils.Hash, birthPlace byteutils.Hash) (Account, error) {
-	return ws.accState.CreateContractAccount(owner, birthPlace)
-}
-
-func (ws *worldState) GetTx(txHash byteutils.Hash) ([]byte, error) {
-	return ws.txsState.Get(txHash)
-}
-
-func (ws *worldState) PutTx(txHash byteutils.Hash, txBytes []byte) error {
-	_, err := ws.txsState.Put(txHash, txBytes)
+func (s *states) PutTx(txHash byteutils.Hash, txBytes []byte) error {
+	_, err := s.txsState.Put(txHash, txBytes)
 	return err
 }
 
-func (ws *worldState) RecordEvent(txHash byteutils.Hash, event *Event) error {
-	iter, err := ws.eventsState.Iterator(txHash)
+func (s *states) RecordEvent(txHash byteutils.Hash, event *Event) error {
+	iter, err := s.eventsState.Iterator(txHash)
 	if err != nil && err != storage.ErrKeyNotFound {
 		return err
 	}
@@ -214,16 +187,16 @@ func (ws *worldState) RecordEvent(txHash byteutils.Hash, event *Event) error {
 	if err != nil {
 		return err
 	}
-	_, err = ws.eventsState.Put(key, bytes)
+	_, err = s.eventsState.Put(key, bytes)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (ws *worldState) FetchEvents(txHash byteutils.Hash) ([]*Event, error) {
+func (s *states) FetchEvents(txHash byteutils.Hash) ([]*Event, error) {
 	events := []*Event{}
-	iter, err := ws.eventsState.Iterator(txHash)
+	iter, err := s.eventsState.Iterator(txHash)
 	if err != nil && err != storage.ErrKeyNotFound {
 		return nil, err
 	}
@@ -248,86 +221,225 @@ func (ws *worldState) FetchEvents(txHash byteutils.Hash) ([]*Event, error) {
 	return events, nil
 }
 
+func (s *states) GetMintCnt(timestamp int64, miner byteutils.Hash) (int64, error) {
+	return s.consensusState.GetMintCnt(timestamp, miner)
+}
+
+func (s *states) PutMintCnt(timestamp int64, miner byteutils.Hash, cnt int64) error {
+	return s.consensusState.PutMintCnt(timestamp, miner, cnt)
+}
+
+func (s *states) HasCandidate(candidate byteutils.Hash) (bool, error) {
+	return s.consensusState.HasCandidate(candidate)
+}
+
+func (s *states) AddCandidate(candidate byteutils.Hash) error {
+	return s.consensusState.AddCandidate(candidate)
+}
+
+func (s *states) DelCandidate(candidate byteutils.Hash) error {
+	return s.consensusState.DelCandidate(candidate)
+}
+
+func (s *states) GetVote(voter byteutils.Hash) (byteutils.Hash, error) {
+	return s.consensusState.GetVote(voter)
+}
+
+func (s *states) AddVote(voter byteutils.Hash, votee byteutils.Hash) error {
+	return s.consensusState.AddVote(voter, votee)
+}
+
+func (s *states) DelVote(voter byteutils.Hash) error {
+	return s.consensusState.DelVote(voter)
+}
+
+func (s *states) IterVote() (Iterator, error) {
+	return s.consensusState.IterVote()
+}
+
+func (s *states) AddDelegate(delegator byteutils.Hash, delegatee byteutils.Hash) error {
+	return s.consensusState.AddDelegate(delegator, delegatee)
+}
+
+func (s *states) HasDelegate(delegator byteutils.Hash, delegatee byteutils.Hash) (bool, error) {
+	return s.consensusState.HasDelegate(delegator, delegatee)
+}
+
+func (s *states) DelDelegate(delegator byteutils.Hash, delegatee byteutils.Hash) error {
+	return s.consensusState.DelDelegate(delegator, delegatee)
+}
+
+func (s *states) IterDelegate(delgatee byteutils.Hash) (Iterator, error) {
+	return s.consensusState.IterDelegate(delgatee)
+}
+
+func (s *states) Candidates() ([]byteutils.Hash, error) {
+	return s.consensusState.Candidates()
+}
+
+func (s *states) CandidatesRoot() byteutils.Hash {
+	return s.consensusState.CandidatesRoot()
+}
+
+func (s *states) Dynasty() ([]byteutils.Hash, error) {
+	return s.consensusState.Dynasty()
+}
+
+func (s *states) NextDynasty() ([]byteutils.Hash, error) {
+	return s.consensusState.NextDynasty()
+}
+
+func (s *states) DynastyRoot() byteutils.Hash {
+	return s.consensusState.DynastyRoot()
+}
+
+func (s *states) NextDynastyRoot() byteutils.Hash {
+	return s.consensusState.NextDynastyRoot()
+}
+
+func (s *states) Accounts() ([]Account, error) {
+	return s.accState.Accounts()
+}
+
+// WorldState manange all current states in Blockchain
+type worldState struct {
+	*states
+
+	txStates map[string]*txState
+	mvccdb   *mvccdb.MVCCDB
+}
+
+// NewWorldState create a new empty WorldState
+func NewWorldState(consensus Consensus, storage storage.Storage) (WorldState, error) {
+	mvccdb, err := mvccdb.NewMVCCDB(storage)
+	if err != nil {
+		return nil, err
+	}
+	states, err := newStates(consensus, mvccdb)
+	if err != nil {
+		return nil, err
+	}
+	return &worldState{
+		states: states,
+		mvccdb: mvccdb,
+	}, nil
+}
+
+func (ws *worldState) LoadAccountsRoot(root byteutils.Hash) error {
+	accState, err := NewAccountState(root, ws.mvccdb)
+	if err != nil {
+		return err
+	}
+	ws.accState = accState
+	return nil
+}
+
+func (ws *worldState) LoadTxsRoot(root byteutils.Hash) error {
+	txsState, err := trie.NewBatchTrie(root, ws.mvccdb)
+	if err != nil {
+		return err
+	}
+	ws.txsState = txsState
+	return nil
+}
+
+func (ws *worldState) LoadEventsRoot(root byteutils.Hash) error {
+	eventsState, err := trie.NewBatchTrie(root, ws.mvccdb)
+	if err != nil {
+		return err
+	}
+	ws.eventsState = eventsState
+	return nil
+}
+
+func (ws *worldState) LoadConsensusRoot(root byteutils.Hash) error {
+	consensusState, err := ws.consensus.NewState(root, ws.mvccdb)
+	if err != nil {
+		return err
+	}
+	ws.consensusState = consensusState
+	return nil
+}
+
 func (ws *worldState) NextConsensusState(elapsedSecond int64) (ConsensusState, error) {
 	return ws.consensusState.NextConsensusState(elapsedSecond, ws)
 }
 
-func (ws *worldState) GetMintCnt(timestamp int64, miner byteutils.Hash) (int64, error) {
-	return ws.consensusState.GetMintCnt(timestamp, miner)
+func (ws *worldState) SetConsensusState(consensusState ConsensusState) {
+	ws.consensusState = consensusState
 }
 
-func (ws *worldState) PutMintCnt(timestamp int64, miner byteutils.Hash, cnt int64) error {
-	return ws.consensusState.PutMintCnt(timestamp, miner, cnt)
+// Clone a new WorldState
+func (ws *worldState) Clone() (WorldState, error) {
+	states, err := ws.states.Clone()
+	if err != nil {
+		return nil, err
+	}
+	return &worldState{
+		states: states,
+		mvccdb: ws.mvccdb,
+	}, nil
 }
 
-func (ws *worldState) HasCandidate(candidate byteutils.Hash) (bool, error) {
-	return ws.consensusState.HasCandidate(candidate)
+func (ws *worldState) Begin() error {
+	return ws.mvccdb.Begin()
 }
 
-func (ws *worldState) AddCandidate(candidate byteutils.Hash) error {
-	return ws.consensusState.AddCandidate(candidate)
+func (ws *worldState) Commit() error {
+	return ws.mvccdb.Commit()
 }
 
-func (ws *worldState) DelCandidate(candidate byteutils.Hash) error {
-	return ws.consensusState.DelCandidate(candidate)
+func (ws *worldState) RollBack() error {
+	return ws.mvccdb.RollBack()
 }
 
-func (ws *worldState) GetVote(voter byteutils.Hash) (byteutils.Hash, error) {
-	return ws.consensusState.GetVote(voter)
+type txState struct {
+	*states
+
+	txid string
+	db   *mvccdb.DB
 }
 
-func (ws *worldState) AddVote(voter byteutils.Hash, votee byteutils.Hash) error {
-	return ws.consensusState.AddVote(voter, votee)
+func (ws *worldState) Prepare(txid string) (TxState, error) {
+	if _, ok := ws.txStates[txid]; ok {
+		return nil, ErrCannotPrepareTxStateTwice
+	}
+	db, err := ws.mvccdb.Prepare(txid)
+	if err != nil {
+		return nil, err
+	}
+	states, err := ws.states.ReplaceDB(db)
+	if err != nil {
+		return nil, err
+	}
+	txState := &txState{
+		db:     db,
+		txid:   txid,
+		states: states,
+	}
+	ws.txStates[txid] = txState
+	return txState, nil
 }
 
-func (ws *worldState) DelVote(voter byteutils.Hash) error {
-	return ws.consensusState.DelVote(voter)
+func (ws *worldState) Update(txid string) error {
+	if _, ok := ws.txStates[txid]; ok {
+		return ErrCannotUpdateTxStateBeforePrepare
+	}
+	if err := ws.mvccdb.Update(txid); err != nil {
+		return err
+	}
+	states, err := ws.txStates[txid].states.ReplaceDB(ws.mvccdb)
+	if err != nil {
+		return err
+	}
+	ws.states = states
+	return nil
 }
 
-func (ws *worldState) IterVote() (Iterator, error) {
-	return ws.consensusState.IterVote()
+func (ws *worldState) Check(txid string) (bool, error) {
+	return false, nil
 }
 
-func (ws *worldState) AddDelegate(delegator byteutils.Hash, delegatee byteutils.Hash) error {
-	return ws.consensusState.AddDelegate(delegator, delegatee)
-}
-
-func (ws *worldState) HasDelegate(delegator byteutils.Hash, delegatee byteutils.Hash) (bool, error) {
-	return ws.consensusState.HasDelegate(delegator, delegatee)
-}
-
-func (ws *worldState) DelDelegate(delegator byteutils.Hash, delegatee byteutils.Hash) error {
-	return ws.consensusState.DelDelegate(delegator, delegatee)
-}
-
-func (ws *worldState) IterDelegate(delgatee byteutils.Hash) (Iterator, error) {
-	return ws.consensusState.IterDelegate(delgatee)
-}
-
-func (ws *worldState) Candidates() ([]byteutils.Hash, error) {
-	return ws.consensusState.Candidates()
-}
-
-func (ws *worldState) CandidatesRoot() byteutils.Hash {
-	return ws.consensusState.CandidatesRoot()
-}
-
-func (ws *worldState) Dynasty() ([]byteutils.Hash, error) {
-	return ws.consensusState.Dynasty()
-}
-
-func (ws *worldState) NextDynasty() ([]byteutils.Hash, error) {
-	return ws.consensusState.NextDynasty()
-}
-
-func (ws *worldState) DynastyRoot() byteutils.Hash {
-	return ws.consensusState.DynastyRoot()
-}
-
-func (ws *worldState) NextDynastyRoot() byteutils.Hash {
-	return ws.consensusState.NextDynastyRoot()
-}
-
-func (ws *worldState) Accounts() ([]Account, error) {
-	return ws.accState.Accounts()
+func (ts *txState) TxID() string {
+	return ts.txid
 }
