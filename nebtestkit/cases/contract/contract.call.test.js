@@ -12,10 +12,11 @@ var Neb = Wallet.Neb;
 var neb = new Neb();
 
 var ChainID;
-var source, deploy, from, fromState, contract;
+var source, deploy, from, fromState, contractAddr;
 
 var coinbase, coinState;
 var testCases = new Array();
+var caseIndex = 0;
 
 //local
 var env = "local";
@@ -41,22 +42,26 @@ if (env == 'local'){
 
 var lastnonce = 0;
 
-function prepareContractCall(done) {
+function prepareContractCall(testCase, done) {
     neb.api.getAccountState(source.getAddressString()).then(function (resp) {
         console.log("source account state:" + JSON.stringify(resp));
         lastnonce = parseInt(resp.nonce);
 
         var accounts = new Array();
-        if (typeof contract === "undefined") {
+        var values = new Array();
+        if (typeof contractAddr === "undefined") {
             deploy = Wallet.Account.NewAccount();
             accounts.push(deploy);
+            values.push(neb.nasToBasic(1));
         }
 
         from = Wallet.Account.NewAccount();
         accounts.push(from);
 
-        cliamTokens(accounts, neb.nasToBasic(1), function () {
-            if (typeof contract === "undefined") {
+        var fromBalance = (typeof testCase.testInput.fromBalance === "undefined") ? neb.nasToBasic(1) : testCase.testInput.fromBalance;
+        values.push(fromBalance);
+        cliamTokens(accounts, values, function () {
+            if (typeof contractAddr === "undefined") {
                 deployContract(done);
             } else {
                 done();
@@ -68,7 +73,7 @@ function prepareContractCall(done) {
 
 function testContractCall(testInput, testExpect, done) {
     var fromAcc = (typeof testInput.from === "undefined") ? from : testInput.from;
-    var to = (typeof testInput.to === "undefined") ? contract : testInput.to;
+    var to = (typeof testInput.to === "undefined") ? Wallet.Account.fromAddress(contractAddr) : testInput.to;
 
     neb.api.getAccountState(from.getAddressString()).then(function (resp) {
         fromState = resp;
@@ -81,6 +86,11 @@ function testContractCall(testInput, testExpect, done) {
         coinState = resp;
 
         var tx = new Wallet.Transaction(ChainID, fromAcc, to, testInput.value, parseInt(fromState.nonce) + testInput.nonce, testInput.gasPrice, testInput.gasLimit, testInput.contract);
+        // test invalid address
+        tx.from.address = fromAcc.address;
+        tx.to.address = to.address;
+        tx.gasPrice = new BigNumber(testInput.gasPrice);
+        tx.gasLimit = new BigNumber(testInput.gasLimit);
         if (testInput.sign) {
             tx.signTransaction();
         }
@@ -88,24 +98,25 @@ function testContractCall(testInput, testExpect, done) {
         return neb.api.sendRawTransaction(tx.toProtoString());
     }).then(function (rawResp) {
         if (true === testExpect.canSendTx) {
-            console.log("send Rax Tx:" + JSON.stringify(rawResp));
+            console.log("send Raw Tx:" + JSON.stringify(rawResp));
             expect(rawResp).to.be.have.property('txhash');
             checkTransaction(rawResp.txhash, function (receipt) {
-
+                console.log("tx receipt : " + JSON.stringify(receipt));
                 try {
                     if (true === testExpect.canSubmitTx) {
                         expect(receipt).to.not.be.a('undefined');
                         if (true === testExpect.canExcuteTx) {
                             expect(receipt).to.be.have.property('status').equal(1);
                         } else {
+                            expect(receipt.from).to.not.be.a('undefined');
                             expect(receipt).to.not.have.property('status');
                         }
-                        console.log("tx receipt : " + JSON.stringify(receipt));
+
                         neb.api.getAccountState(receipt.from).then(function (state) {
 
                             console.log("get from account state :" + JSON.stringify(state));
                             expect(state.balance).to.equal(testExpect.fromBalanceAfterTx);
-                            return neb.api.getAccountState(contract);
+                            return neb.api.getAccountState(contractAddr);
                         }).then(function (state) {
 
                             console.log("get contractAddr account state :" + JSON.stringify(state));
@@ -139,32 +150,36 @@ function testContractCall(testInput, testExpect, done) {
                             done(err);
                         });
                     } else {
-                        expect(receipt).to.be.a('undefined');
+                        if (receipt.status) {
+                            expect(receipt.status).to.equal(2);
+                        }
+                        console.log("transaction can send but submit failed");
                         done();
                     }
                 } catch (err) {
-                    console.log("submit tx err:", err);
+                    console.log("submit tx err:", err.message);
                     done(err);
                 }
             });
         } else {
-            console.log("send tx:", rawResp);
+            console.log("send tx unexpected:", rawResp);
             done(new Error("send tx should failed"));
         }
     }).catch(function (err) {
         if (true === testExpect.canSendTx) {
             done(err);
         } else {
-            console.log("send tx err:", err);
+            console.log("send tx err:", err.message);
             done();
         }
     });
 
 }
 
-function cliamTokens(accounts, value, done) {
+function cliamTokens(accounts, values, done) {
     for (var i = 0; i < accounts.length; i++) {
-        sendTransaction(source, accounts[i], value, ++lastnonce);
+        // console.log("acc:"+accounts[i].getAddressString()+"value:"+values[i]);
+        sendTransaction(source, accounts[i], values[i], ++lastnonce);
         sleep(30);
     }
     checkCliamTokens(done);
@@ -222,11 +237,13 @@ function deployContract(done){
 function checkTransaction(txhash, done){
 
     var retry = 0;
+    var maxRetry = 15;
 
     // contract status and get contract_address 
     var interval = setInterval(function () {
 		// console.log("getTransactionReceipt hash:"+txhash);
 		neb.api.getTransactionReceipt(txhash).then(function (resp) {
+            retry++;
 
 			console.log("check transaction status:" + resp.status);
 			
@@ -239,17 +256,27 @@ function checkTransaction(txhash, done){
                     console.log("deploy contract address:" + resp.contract_address);
                     // console.log("deploy receipt:" + JSON.stringify(resp));
 
-                    contract = resp.contract_address;
+                    contractAddr = resp.contract_address;
 
                     // checkNRCBalance(resp.from, resp.contract_address);
                 }
 
                 done(resp);
-			}
+			} else if (resp.status && resp.status === 2) {
+                if (retry > maxRetry) {
+                    console.log("check transaction time out");
+                    clearInterval(interval);
+                    done(resp);
+                }
+            } else {
+                clearInterval(interval);
+			    console.log("transaction execution failed");
+                done(resp);
+            }
 		}).catch(function (err) {
 			retry++;
-			console.log("check transaction retry:", retry);
-			if (retry > 10) {
+			console.log("check transaction not found retry");
+			if (retry > maxRetry) {
 				console.log(JSON.stringify(err.error));
 				clearInterval(interval);
                 done(err);
@@ -271,11 +298,11 @@ function checkNRCBalance(address, contractAddress) {
 }
 
 var testCase = {
-    "name": "normal call",
+    "name": "1. normal call",
     "testInput": {
         sign: true,
         from: from,
-        to: contract,
+        to: contractAddr,
         value: "1",
         nonce: 1,
         gasPrice: 1000000,
@@ -301,11 +328,11 @@ testCases.push(testCase);
 var invalidFrom = Wallet.Account.NewAccount();
 invalidFrom.address = Wallet.CryptoUtils.toBuffer("12af");
 testCase = {
-    "name": "from address invalid",
+    "name": "2. from address invalid",
     "testInput": {
         sign: true,
         from: invalidFrom,
-        to: contract,
+        to: contractAddr,
         value: "1",
         nonce: 1,
         gasPrice: 1000000,
@@ -330,7 +357,7 @@ testCases.push(testCase);
 var invalidTo = Wallet.Account.NewAccount();
 invalidTo.address = Wallet.CryptoUtils.toBuffer("12af");
 testCase = {
-    "name": "to address invalid",
+    "name": "3. to address invalid",
     "testInput": {
         sign: true,
         from: from,
@@ -357,7 +384,7 @@ testCase = {
 testCases.push(testCase);
 
 testCase = {
-    "name": "not contract address",
+    "name": "4. not contract address",
     "testInput": {
         sign: true,
         from: from,
@@ -384,11 +411,11 @@ testCase = {
 testCases.push(testCase);
 
 testCase = {
-    "name": "signature invalid",
+    "name": "5. signature invalid",
     "testInput": {
         sign: false,
         from: from,
-        to: contract,
+        to: contractAddr,
         value: "1",
         nonce: 1,
         gasPrice: 1000000,
@@ -411,11 +438,11 @@ testCase = {
 testCases.push(testCase);
 
 testCase = {
-    "name": "nonce < from.nonce + 1",
+    "name": "6. nonce < from.nonce + 1",
     "testInput": {
         sign: true,
         from: from,
-        to: contract,
+        to: contractAddr,
         value: "1",
         nonce: 0,
         gasPrice: 1000000,
@@ -438,11 +465,11 @@ testCase = {
 testCases.push(testCase);
 
 testCase = {
-    "name": "nonce = from.nonce + 1",
+    "name": "7. nonce = from.nonce + 1",
     "testInput": {
         sign: true,
         from: from,
-        to: contract,
+        to: contractAddr,
         value: "1",
         nonce: 1,
         gasPrice: 1000000,
@@ -465,11 +492,11 @@ testCase = {
 testCases.push(testCase);
 
 testCase = {
-    "name": "nonce > from.nonce + 1",
+    "name": "8. nonce > from.nonce + 1",
     "testInput": {
         sign: true,
         from: from,
-        to: contract,
+        to: contractAddr,
         value: "1",
         nonce: 2,
         gasPrice: 1000000,
@@ -492,11 +519,11 @@ testCase = {
 testCases.push(testCase);
 
 testCase = {
-    "name": "gasPrice = 0",
+    "name": "9. gasPrice = 0",
     "testInput": {
         sign: true,
         from: from,
-        to: contract,
+        to: contractAddr,
         value: "1",
         nonce: 1,
         gasPrice: 0,
@@ -519,11 +546,11 @@ testCase = {
 testCases.push(testCase);
 
 testCase = {
-    "name": "gasPrice > 0 && gasPrice < txpool.gasPrice",
+    "name": "10. gasPrice > 0 && gasPrice < txpool.gasPrice",
     "testInput": {
         sign: true,
         from: from,
-        to: contract,
+        to: contractAddr,
         value: "1",
         nonce: 1,
         gasPrice: 10000,
@@ -546,11 +573,11 @@ testCase = {
 testCases.push(testCase);
 
 testCase = {
-    "name": "gasPrice = txpool.gasPrice",
+    "name": "11. gasPrice = txpool.gasPrice",
     "testInput": {
         sign: true,
         from: from,
-        to: contract,
+        to: contractAddr,
         value: "1",
         nonce: 1,
         gasPrice: 1000000,
@@ -561,10 +588,10 @@ testCase = {
         }
     },
     "testExpect": {
-        canSendTx: false,
-        canSubmitTx: false,
-        canExcuteTx: false,
-        status: 0,
+        canSendTx: true,
+        canSubmitTx: true,
+        canExcuteTx: true,
+        status: 1,
         fromBalanceAfterTx: "999999979873999999",
         toBalanceAfterTx: '1',
         transferReward: '20126000000'
@@ -573,11 +600,11 @@ testCase = {
 testCases.push(testCase);
 
 testCase = {
-    "name": "gasPrice > txpool.gasPrice",
+    "name": "12. gasPrice > txpool.gasPrice",
     "testInput": {
         sign: true,
         from: from,
-        to: contract,
+        to: contractAddr,
         value: "1",
         nonce: 1,
         gasPrice: 2000000,
@@ -588,10 +615,145 @@ testCase = {
         }
     },
     "testExpect": {
-        canSendTx: false,
+        canSendTx: true,
+        canSubmitTx: true,
+        canExcuteTx: true,
+        status: 1,
+        fromBalanceAfterTx: "999999959747999999",
+        toBalanceAfterTx: '1',
+        transferReward: '40252000000'
+    }
+};
+testCases.push(testCase);
+
+testCase = {
+    "name": "13. gasLimit = 0",
+    "testInput": {
+        sign: true,
+        from: from,
+        to: contractAddr,
+        value: "1",
+        nonce: 1,
+        gasPrice: 1000000,
+        gasLimit: 0,
+        contract: {
+            "function": "name",
+            "args": ""
+        }
+    },
+    "testExpect": {
+        canSendTx: true,
         canSubmitTx: false,
         canExcuteTx: false,
         status: 0,
+        fromBalanceAfterTx: neb.nasToBasic(1),
+        toBalanceAfterTx: '0',
+        transferReward: '0'
+    }
+};
+testCases.push(testCase);
+
+testCase = {
+    "name": "14. gasLimit < TxBaseGasCount + gasCountOfPayload",
+    "testInput": {
+        sign: true,
+        from: from,
+        to: contractAddr,
+        value: "1",
+        nonce: 1,
+        gasPrice: 1000000,
+        gasLimit: 20000,
+        contract: {
+            "function": "name",
+            "args": ""
+        }
+    },
+    "testExpect": {
+        canSendTx: true,
+        canSubmitTx: false,
+        canExcuteTx: false,
+        status: 0,
+        fromBalanceAfterTx: neb.nasToBasic(1),
+        toBalanceAfterTx: '0',
+        transferReward: '0'
+    }
+};
+testCases.push(testCase);
+
+testCase = {
+    "name": "15. gasLimit = TxBaseGasCount + gasCountOfPayload",
+    "testInput": {
+        sign: true,
+        from: from,
+        to: contractAddr,
+        value: "1",
+        nonce: 1,
+        gasPrice: 1000000,
+        gasLimit: 20029,
+        contract: {
+            "function": "name",
+            "args": ""
+        }
+    },
+    "testExpect": {
+        canSendTx: true,
+        canSubmitTx: true,
+        canExcuteTx: false,
+        status: 1,
+        fromBalanceAfterTx: "999999979873999999",
+        toBalanceAfterTx: '0',
+        transferReward: '20029000000'
+    }
+};
+testCases.push(testCase);
+
+testCase = {
+    "name": "16. gasLimit < TxBaseGasCount + gasCountOfPayload + gasCountOfpayloadExecuted",
+    "testInput": {
+        sign: true,
+        from: from,
+        to: contractAddr,
+        value: "1",
+        nonce: 1,
+        gasPrice: 1000000,
+        gasLimit: 20100,
+        contract: {
+            "function": "name",
+            "args": ""
+        }
+    },
+    "testExpect": {
+        canSendTx: true,
+        canSubmitTx: true,
+        canExcuteTx: false,
+        status: 0,
+        fromBalanceAfterTx: "999999979873999999",
+        toBalanceAfterTx: '0',
+        transferReward: '20100000000'
+    }
+};
+testCases.push(testCase);
+
+testCase = {
+    "name": "17. gasLimit = TxBaseGasCount + gasCountOfPayload + gasCountOfpayloadExecuted",
+    "testInput": {
+        sign: true,
+        from: from,
+        to: contractAddr,
+        value: "1",
+        nonce: 1,
+        gasPrice: 1000000,
+        gasLimit: 20126,
+        contract: {
+            "function": "name",
+            "args": ""
+        }
+    },
+    "testExpect": {
+        canSendTx: true,
+        canSubmitTx: true,
+        canExcuteTx: true,
+        status: 1,
         fromBalanceAfterTx: "999999979873999999",
         toBalanceAfterTx: '1',
         transferReward: '20126000000'
@@ -600,15 +762,42 @@ testCase = {
 testCases.push(testCase);
 
 testCase = {
-    "name": "gasLimit = 0",
+    "name": "18. gasLimit > TxBaseGasCount + gasCountOfPayload + gasCountOfpayloadExecuted",
     "testInput": {
         sign: true,
         from: from,
-        to: contract,
+        to: contractAddr,
         value: "1",
         nonce: 1,
-        gasPrice: 2000000,
+        gasPrice: 1000000,
         gasLimit: 2000000,
+        contract: {
+            "function": "name",
+            "args": ""
+        }
+    },
+    "testExpect": {
+        canSendTx: true,
+        canSubmitTx: true,
+        canExcuteTx: true,
+        status: 1,
+        fromBalanceAfterTx: "999999979873999999",
+        toBalanceAfterTx: '1',
+        transferReward: '20126000000'
+    }
+};
+testCases.push(testCase);
+
+testCase = {
+    "name": "19. gasLimit > txpool.gasLimit",
+    "testInput": {
+        sign: true,
+        from: from,
+        to: contractAddr,
+        value: "1",
+        nonce: 1,
+        gasPrice: 1000000,
+        gasLimit: "500000000000",
         contract: {
             "function": "name",
             "args": ""
@@ -619,29 +808,349 @@ testCase = {
         canSubmitTx: false,
         canExcuteTx: false,
         status: 0,
-        fromBalanceAfterTx: "999999979873999999",
-        toBalanceAfterTx: '1',
+        fromBalanceAfterTx: neb.nasToBasic(1),
+        toBalanceAfterTx: '0',
+        transferReward: '0'
+    }
+};
+testCases.push(testCase);
+
+testCase = {
+    "name": "20. balanceOfFrom < gasPrice*gasLimit",
+    "testInput": {
+        fromBalance: "1",
+        sign: true,
+        from: from,
+        to: contractAddr,
+        value: "1",
+        nonce: 1,
+        gasPrice: 1000000,
+        gasLimit: 2000000,
+        contract: {
+            "function": "name",
+            "args": ""
+        }
+    },
+    "testExpect": {
+        canSendTx: true,
+        canSubmitTx: false,
+        canExcuteTx: false,
+        status: 0,
+        fromBalanceAfterTx: "1",
+        toBalanceAfterTx: '0',
+        transferReward: '0'
+    }
+};
+testCases.push(testCase);
+
+testCase = {
+    "name": "21. balanceOfFrom = gasPrice*gasLimit",
+    "testInput": {
+        fromBalance: "20126000000",
+        sign: true,
+        from: from,
+        to: contractAddr,
+        value: neb.nasToBasic(0.1),
+        nonce: 1,
+        gasPrice: 1000000,
+        gasLimit: 20126,
+        contract: {
+            "function": "name",
+            "args": ""
+        }
+    },
+    "testExpect": {
+        canSendTx: true,
+        canSubmitTx: true,
+        canExcuteTx: false,
+        status: 0,
+        fromBalanceAfterTx: "0",
+        toBalanceAfterTx: '0',
         transferReward: '20126000000'
     }
 };
 testCases.push(testCase);
+
+testCase = {
+    "name": "22. balanceOfFrom < (TxBaseGasCount + TxPayloadBaseGasCount[payloadType] + gasCountOfPayload + gasCountOfPayloadExecuted) * gasPrice + valueOfTx",
+    "testInput": {
+        fromBalance: "20126100000",
+        sign: true,
+        from: from,
+        to: contractAddr,
+        value: "1000000",
+        nonce: 1,
+        gasPrice: 1000000,
+        gasLimit: 2000000,
+        contract: {
+            "function": "name",
+            "args": ""
+        }
+    },
+    "testExpect": {
+        canSendTx: true,
+        canSubmitTx: true,
+        canExcuteTx: false,
+        status: 0,
+        fromBalanceAfterTx: "100000",
+        toBalanceAfterTx: '0',
+        transferReward: '20126000000'
+    }
+};
+testCases.push(testCase);
+
+testCase = {
+    "name": "23. balanceOfFrom = (TxBaseGasCount + TxPayloadBaseGasCount[payloadType] + gasCountOfPayload + gasCountOfPayloadExecuted) * gasPrice + valueOfTx",
+    "testInput": {
+        fromBalance: "2012700000",
+        sign: true,
+        from: from,
+        to: contractAddr,
+        value: "1000000",
+        nonce: 1,
+        gasPrice: 1000000,
+        gasLimit: 2000000,
+        contract: {
+            "function": "name",
+            "args": ""
+        }
+    },
+    "testExpect": {
+        canSendTx: true,
+        canSubmitTx: true,
+        canExcuteTx: true,
+        status: 1,
+        fromBalanceAfterTx: "0",
+        toBalanceAfterTx: '1000000',
+        transferReward: '20126000000'
+    }
+};
+testCases.push(testCase);
+
+testCase = {
+    "name": "24. balanceOfFrom > (TxBaseGasCount + TxPayloadBaseGasCount[payloadType] + gasCountOfPayload + gasCountOfPayloadExecuted) * gasPrice + valueOfTx",
+    "testInput": {
+        fromBalance: "2012800000",
+        sign: true,
+        from: from,
+        to: contractAddr,
+        value: "1000000",
+        nonce: 1,
+        gasPrice: 1000000,
+        gasLimit: 2000000,
+        contract: {
+            "function": "name",
+            "args": ""
+        }
+    },
+    "testExpect": {
+        canSendTx: true,
+        canSubmitTx: true,
+        canExcuteTx: true,
+        status: 1,
+        fromBalanceAfterTx: "1000000",
+        toBalanceAfterTx: '1000000',
+        transferReward: '20126000000'
+    }
+};
+testCases.push(testCase);
+
+testCase = {
+    "name": "25. function not found",
+    "testInput": {
+        sign: true,
+        from: from,
+        to: contractAddr,
+        value: "1",
+        nonce: 1,
+        gasPrice: 1000000,
+        gasLimit: 2000000,
+        contract: {
+            "function": "functionNotFound",
+            "args": ""
+        }
+    },
+    "testExpect": {
+        canSendTx: true,
+        canSubmitTx: true,
+        canExcuteTx: false,
+        status: 0,
+        fromBalanceAfterTx: "999999979873999999",
+        toBalanceAfterTx: '0',
+        transferReward: '20126000000'
+    }
+};
+testCases.push(testCase);
+
+testCase = {
+    "name": "26. args more",
+    "testInput": {
+        sign: true,
+        from: from,
+        to: contractAddr,
+        value: "1",
+        nonce: 1,
+        gasPrice: 1000000,
+        gasLimit: 2000000,
+        contract: {
+            "function": "name",
+            "args": "[1]"
+        }
+    },
+    "testExpect": {
+        canSendTx: true,
+        canSubmitTx: true,
+        canExcuteTx: true,
+        status: 1,
+        fromBalanceAfterTx: "999999979858999999",
+        toBalanceAfterTx: '1',
+        transferReward: '20141000000'
+    }
+};
+testCases.push(testCase);
+
+testCase = {
+    "name": "27. args less",
+    "testInput": {
+        sign: true,
+        from: from,
+        to: contractAddr,
+        value: "1",
+        nonce: 1,
+        gasPrice: 1000000,
+        gasLimit: 2000000,
+        contract: {
+            "function": "balanceOf",
+            "args": ""
+        }
+    },
+    "testExpect": {
+        canSendTx: true,
+        canSubmitTx: true,
+        canExcuteTx: false,
+        status: 1,
+        fromBalanceAfterTx: "999999979873999999",
+        toBalanceAfterTx: '0',
+        transferReward: '20126000000'
+    }
+};
+testCases.push(testCase);
+
+testCase = {
+    "name": "28. args err",
+    "testInput": {
+        sign: true,
+        from: from,
+        to: contractAddr,
+        value: "1",
+        nonce: 1,
+        gasPrice: 1000000,
+        gasLimit: 2000000,
+        contract: {
+            "function": "transfer",
+            "args": "[\"asda\", \"asda\"]"
+        }
+    },
+    "testExpect": {
+        canSendTx: true,
+        canSubmitTx: true,
+        canExcuteTx: false,
+        status: 1,
+        fromBalanceAfterTx: "999999979873999999",
+        toBalanceAfterTx: '0',
+        transferReward: '20126000000'
+    }
+};
+testCases.push(testCase);
+
+testCase = {
+    "name": "29. execution failed",
+    "testInput": {
+        sign: true,
+        from: from,
+        to: contractAddr,
+        value: "1",
+        nonce: 1,
+        gasPrice: 1000000,
+        gasLimit: 2000000,
+        contract: {
+            "function": "transfer",
+            "args": "[\"0b9cd051a6d7129ab44b17833c63fe4abead40c3714cde6d\", 1]"
+        }
+    },
+    "testExpect": {
+        canSendTx: true,
+        canSubmitTx: true,
+        canExcuteTx: false,
+        status: 0,
+        fromBalanceAfterTx: "999999979873999999",
+        toBalanceAfterTx: '0',
+        transferReward: '20126000000'
+    }
+};
+testCases.push(testCase);
+
+testCase = {
+    "name": "30. execution success",
+    "testInput": {
+        sign: true,
+        from: from,
+        to: contractAddr,
+        value: "1",
+        nonce: 1,
+        gasPrice: 1000000,
+        gasLimit: 2000000,
+        contract: {
+            "function": "balanceOf",
+            "args": "[\"0b9cd051a6d7129ab44b17833c63fe4abead40c3714cde6d\"]"
+        }
+    },
+    "testExpect": {
+        canSendTx: true,
+        canSubmitTx: true,
+        canExcuteTx: true,
+        status: 1,
+        fromBalanceAfterTx: "999999979873999999",
+        toBalanceAfterTx: '0',
+        transferReward: '20126000000'
+    }
+};
+testCases.push(testCase);
+
 
 describe('contract call test', function () {
-    beforeEach(function (done) {
-        prepareContractCall(function (result) {
-            if (result instanceof Error) {
-                done(result);
-            } else {
-                done();
-            }
+    // beforeEach(function (done) {
+    //     prepareContractCall(function (result) {
+    //         if (result instanceof Error) {
+    //             done(result);
+    //         } else {
+    //             done();
+    //         }
+    //     });
+    // });
+
+    // for (var i = 0; i < testCases.length; i++) {
+    //     it(testCases[i].name, function (done) {
+    //         testContractCall(testCases[caseIndex].testInput, testCases[caseIndex].testExpect, done);
+    //     });
+    // }
+
+    for (var i = 0; i < testCases.length; i++) {
+
+        it(testCases[i].name, function (done) {
+            var testCase = testCases[caseIndex];
+            prepareContractCall(testCase, function (err) {
+                if (err instanceof Error) {
+                    done(err);
+                } else {
+                    testContractCall(testCase.testInput, testCase.testExpect, done);
+                }
+            });
         });
-    });
+    }
 
-    it(testCases[0].name, function (done) {
-        testContractCall(testCases[0].testInput, testCases[0].testExpect, done);
-    });
-
-    it(testCases[1].name, function (done) {
-        testContractCall(testCases[1].testInput, testCases[1].testExpect, done);
+    afterEach(function () {
+        caseIndex++;
+        console.log("case index:", caseIndex);
     });
 });
