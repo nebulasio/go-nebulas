@@ -50,12 +50,6 @@ type MVCCDB struct {
 	storage storage.Storage
 }
 
-// DB schema
-type DB struct {
-	txid   string
-	mvccdb *MVCCDB
-}
-
 // NewMVCCDB create a new change log
 func NewMVCCDB(storage storage.Storage) (*MVCCDB, error) {
 	return &MVCCDB{
@@ -75,13 +69,19 @@ func (mvccdb *MVCCDB) Commit() error { return nil }
 func (mvccdb *MVCCDB) RollBack() error { return nil }
 
 // Get value
-func (mvccdb *MVCCDB) Get(key []byte) ([]byte, error) { return nil, nil }
+func (mvccdb *MVCCDB) Get(key []byte) ([]byte, error) {
+	return mvccdb.storage.Get(key)
+}
 
 // Put value
-func (mvccdb *MVCCDB) Put(key []byte, val []byte) error { return nil }
+func (mvccdb *MVCCDB) Put(key []byte, val []byte) error {
+	return mvccdb.storage.Put(key, val)
+}
 
 // Del value
-func (mvccdb *MVCCDB) Del(key []byte) error { return nil }
+func (mvccdb *MVCCDB) Del(key []byte) error {
+	return mvccdb.storage.Del(key)
+}
 
 // Prepare a nested transaction
 func (mvccdb *MVCCDB) Prepare(txid string) (*DB, error) { return nil, nil }
@@ -92,11 +92,23 @@ func (mvccdb *MVCCDB) Update(txid string) error { return nil }
 // Check whether the nested transaction conflicts
 func (mvccdb *MVCCDB) Check(txid string) (bool, error) { return false, nil }
 
+// DB schema
+type DB struct {
+	txid   string
+	mvccdb *MVCCDB
+}
+
 // Get value
-func (db *DB) Get(key []byte) ([]byte, error) { return nil, nil }
+func (db *DB) Get(key []byte) ([]byte, error) {
+	return db.mvccdb.storage.Get(key)
+}
 
 // Put value
-func (db *DB) Put(key []byte, val []byte) error { return nil }
+func (db *DB) Put(key []byte, val []byte) error {
+	return db.mvccdb.storage.Put(key, val)
+}
 
 // Del value
-func (db *DB) Del(key []byte) error { return nil }
+func (db *DB) Del(key []byte) error {
+	return db.mvccdb.storage.Del(key)
+}
