@@ -89,6 +89,9 @@ func (mvccdb *MVCCDB) Prepare(txid string) (*DB, error) { return nil, nil }
 // Update the nested transaction
 func (mvccdb *MVCCDB) Update(txid string) error { return nil }
 
+// Reset the nested transaction
+func (mvccdb *MVCCDB) Reset(txid string) error { return nil }
+
 // Check whether the nested transaction conflicts
 func (mvccdb *MVCCDB) Check(txid string) (bool, error) { return false, nil }
 
