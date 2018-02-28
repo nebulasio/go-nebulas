@@ -402,7 +402,8 @@ func (s *APIService) GetTransactionReceipt(ctx context.Context, req *rpcpb.GetTr
 
 func (s *APIService) toTransactionResponse(tx *core.Transaction) (*rpcpb.TransactionResponse, error) {
 	var (
-		status int32
+		status  int32
+		gasUsed string
 	)
 	neb := s.server.Neblet()
 	events, _ := neb.BlockChain().TailBlock().FetchEvents(tx.Hash())
@@ -413,6 +414,7 @@ func (s *APIService) toTransactionResponse(tx *core.Transaction) (*rpcpb.Transac
 				txEvent := core.TransactionEvent{}
 				json.Unmarshal([]byte(v.Data), &txEvent)
 				status = int32(txEvent.Status)
+				gasUsed = txEvent.GasUsed
 				break
 			} else if v.Topic == core.TopicExecuteTxSuccess {
 				status = core.TxExecutionSuccess
@@ -439,6 +441,7 @@ func (s *APIService) toTransactionResponse(tx *core.Transaction) (*rpcpb.Transac
 		GasPrice:  tx.GasPrice().String(),
 		GasLimit:  tx.GasLimit().String(),
 		Status:    status,
+		GasUsed:   gasUsed,
 	}
 
 	if tx.Type() == core.TxPayloadDeployType {
@@ -560,7 +563,11 @@ func (s *APIService) GetEventsByHash(ctx context.Context, req *rpcpb.HashRequest
 
 	neb := s.server.Neblet()
 
-	bhash, err := byteutils.FromHex(req.GetHash())
+	if len(req.Hash) == 0 {
+		return nil, errors.New("please input valid hash")
+	}
+
+	bhash, err := byteutils.FromHex(req.Hash)
 	if err != nil {
 		return nil, err
 	}
@@ -569,11 +576,13 @@ func (s *APIService) GetEventsByHash(ctx context.Context, req *rpcpb.HashRequest
 	if err != nil {
 		return nil, err
 	}
+
 	if tx != nil {
 		result, err := neb.BlockChain().TailBlock().FetchEvents(tx.Hash())
 		if err != nil {
 			return nil, err
 		}
+
 		events := []*rpcpb.Event{}
 		for _, v := range result {
 			event := &rpcpb.Event{Topic: v.Topic, Data: v.Data}

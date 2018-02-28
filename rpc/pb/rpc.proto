@@ -613,6 +613,9 @@ message TransactionResponse {
 
     // transaction status 0 failed, 1 success, 2 pending
     int32 status = 13;
+
+    // transaction gas used
+    string gas_used = 14;
 }
 
 message NewAccountRequest {
