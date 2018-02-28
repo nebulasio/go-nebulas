@@ -64,29 +64,3 @@ func (db *MemoryStorage) Del(key []byte) error {
 	db.data.Delete(byteutils.Hex(key))
 	return nil
 }
-
-// NewBatch create a new batch task in memory storage
-func (db *MemoryStorage) NewBatch() Batch {
-	return &MemoryBatch{db: db}
-}
-
-// Put batch put key-value entry to batch
-func (b *MemoryBatch) Put(key, value []byte) error {
-	entry := &kv{key, value}
-	b.entries = append(b.entries, entry)
-	return nil
-}
-
-// Write write multi key-value entries to storage
-func (b *MemoryBatch) Write() error {
-
-	for _, kv := range b.entries {
-		b.db.Put(kv.k, kv.v)
-	}
-	return nil
-}
-
-// Reset the batch task
-func (b *MemoryBatch) Reset() {
-	b.entries = b.entries[:0]
-}

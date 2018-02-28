@@ -80,24 +80,3 @@ func (storage *DiskStorage) Del(key []byte) error {
 func (storage *DiskStorage) Close() error {
 	return storage.db.Close()
 }
-
-// NewBatch new leveldb batch
-func (storage *DiskStorage) NewBatch() Batch {
-	return &DiskBatch{db: storage.db, b: new(leveldb.Batch)}
-}
-
-// Put put the key-value entry to batch
-func (b *DiskBatch) Put(key, value []byte) error {
-	b.b.Put(key, value)
-	return nil
-}
-
-// Write write multi key-value entries to storage
-func (b *DiskBatch) Write() error {
-	return b.db.Write(b.b, nil)
-}
-
-// Reset reset batch
-func (b *DiskBatch) Reset() {
-	b.b.Reset()
-}

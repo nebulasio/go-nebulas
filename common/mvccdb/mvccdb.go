@@ -33,6 +33,13 @@ type transaction struct {
 	logs map[string]*value
 }
 
+/* How to use MVCCDB
+It should support three situations as following,
+1. directly Get/Put/Del.
+2. begin - Get/Put/Del - commit/rollback.
+3. begin - prepare - Get/Put/Del - update - commit/rollback
+*/
+
 // MVCCDB schema
 type MVCCDB struct {
 	// txid - (key - value)
@@ -59,22 +66,31 @@ func NewMVCCDB(storage storage.Storage) (*MVCCDB, error) {
 }
 
 // Begin a transaction
-func (cl *MVCCDB) Begin() error { return nil }
+func (mvccdb *MVCCDB) Begin() error { return nil }
 
 // Commit the transaction to storage
-func (cl *MVCCDB) Commit() error { return nil }
+func (mvccdb *MVCCDB) Commit() error { return nil }
 
 // RollBack the transaction
-func (cl *MVCCDB) RollBack() error { return nil }
+func (mvccdb *MVCCDB) RollBack() error { return nil }
+
+// Get value
+func (mvccdb *MVCCDB) Get(key []byte) ([]byte, error) { return nil, nil }
+
+// Put value
+func (mvccdb *MVCCDB) Put(key []byte, val []byte) error { return nil }
+
+// Del value
+func (mvccdb *MVCCDB) Del(key []byte) error { return nil }
 
 // Prepare a nested transaction
-func (cl *MVCCDB) Prepare(txid string) (*DB, error) { return nil, nil }
+func (mvccdb *MVCCDB) Prepare(txid string) (*DB, error) { return nil, nil }
 
 // Update the nested transaction
-func (cl *MVCCDB) Update(txid string) error { return nil }
+func (mvccdb *MVCCDB) Update(txid string) error { return nil }
 
 // Check whether the nested transaction conflicts
-func (cl *MVCCDB) Check(txid string) (bool, error) { return false, nil }
+func (mvccdb *MVCCDB) Check(txid string) (bool, error) { return false, nil }
 
 // Get value
 func (db *DB) Get(key []byte) ([]byte, error) { return nil, nil }
