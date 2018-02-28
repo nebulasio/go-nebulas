@@ -16,7 +16,7 @@
 // along with the go-nebulas library.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-package changelog
+package mvccdb
 
 import (
 	"github.com/nebulasio/go-nebulas/storage"
@@ -24,15 +24,17 @@ import (
 
 type value struct {
 	content []byte
-	version int32
+	old     int32
+	new     int32
+	flag    bool
 }
 
 type transaction struct {
 	logs map[string]*value
 }
 
-// ChangeLog schema
-type ChangeLog struct {
+// MVCCDB schema
+type MVCCDB struct {
 	// txid - (key - value)
 	transactions map[string]*transaction
 	// txid - flag (valid or not)
@@ -41,35 +43,44 @@ type ChangeLog struct {
 	storage storage.Storage
 }
 
-// NewChangeLog create a new change log
-func NewChangeLog(storage storage.Storage) (*ChangeLog, error) {
-	return &ChangeLog{
+// DB schema
+type DB struct {
+	txid   string
+	mvccdb *MVCCDB
+}
+
+// NewMVCCDB create a new change log
+func NewMVCCDB(storage storage.Storage) (*MVCCDB, error) {
+	return &MVCCDB{
 		transactions: make(map[string]*transaction),
 		status:       make(map[string]bool),
 		storage:      storage,
 	}, nil
 }
 
-// Begin a change transaction
-func (cl *ChangeLog) Begin() error { return nil }
+// Begin a transaction
+func (cl *MVCCDB) Begin() error { return nil }
 
-// Commit the change transaction to storage
-func (cl *ChangeLog) Commit() error { return nil }
+// Commit the transaction to storage
+func (cl *MVCCDB) Commit() error { return nil }
 
-// RollBack the change transaction
-func (cl *ChangeLog) RollBack() error { return nil }
+// RollBack the transaction
+func (cl *MVCCDB) RollBack() error { return nil }
 
 // Prepare a nested transaction
-func (cl *ChangeLog) Prepare(txid []byte) error { return nil }
+func (cl *MVCCDB) Prepare(txid string) (*DB, error) { return nil, nil }
 
 // Update the nested transaction
-func (cl *ChangeLog) Update(txid []byte) error { return nil }
+func (cl *MVCCDB) Update(txid string) error { return nil }
 
 // Check whether the nested transaction conflicts
-func (cl *ChangeLog) Check(txid []byte) (bool, error) { return false, nil }
+func (cl *MVCCDB) Check(txid string) (bool, error) { return false, nil }
 
-// Get value from changelog in given nested transaction
-func (cl *ChangeLog) Get(txid []byte, key []byte) ([]byte, error) { return nil, nil }
+// Get value
+func (db *DB) Get(key []byte) ([]byte, error) { return nil, nil }
 
-// Put value to changelog in given nested transaction
-func (cl *ChangeLog) Put(txid []byte, key []byte, val []byte) error { return nil }
+// Put value
+func (db *DB) Put(key []byte, val []byte) error { return nil }
+
+// Del value
+func (db *DB) Del(key []byte) error { return nil }
