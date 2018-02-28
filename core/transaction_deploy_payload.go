@@ -74,6 +74,11 @@ func (payload *DeployPayload) Execute(block *Block, tx *Transaction) (*util.Uint
 	if err != nil {
 		return util.NewUint128(), "", err
 	}
+	// payloadGasLimit <= 0, v8 engine not limit the execution instructions
+	if payloadGasLimit.Cmp(util.NewUint128().Int) <= 0 {
+		return util.NewUint128(), "", ErrOutOfGasLimit
+	}
+
 	engine.SetExecutionLimits(payloadGasLimit.Uint64(), nvm.DefaultLimitsOfTotalMemorySize)
 
 	// Deploy and Init.iutu

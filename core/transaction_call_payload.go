@@ -73,6 +73,11 @@ func (payload *CallPayload) Execute(block *Block, tx *Transaction) (*util.Uint12
 	if err != nil {
 		return util.NewUint128(), "", err
 	}
+	// payloadGasLimit <= 0, v8 engine not limit the execution instructions
+	if payloadGasLimit.Cmp(util.NewUint128().Int) <= 0 {
+		return util.NewUint128(), "", ErrOutOfGasLimit
+	}
+
 	engine.SetExecutionLimits(payloadGasLimit.Uint64(), nvm.DefaultLimitsOfTotalMemorySize)
 
 	result, err := engine.Call(deployPayload.Source, deployPayload.SourceType, payload.Function, payload.Args)

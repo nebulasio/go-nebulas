@@ -507,7 +507,7 @@ func (tx *Transaction) VerifyExecution(block *Block) (*util.Uint128, error) {
 		}).Debug("Failed to execute payload.")
 
 		metricsTxExeFailed.Mark(1)
-		tx.triggerEvent(TopicExecuteTxFailed, block, gas, err)
+		tx.triggerEvent(TopicExecuteTxFailed, block, gas, exeErr)
 	} else {
 		if fromAcc.Balance().Cmp(tx.value.Int) < 0 {
 			logging.VLog().WithFields(logrus.Fields{
