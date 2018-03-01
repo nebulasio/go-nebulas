@@ -1,5 +1,3 @@
-// Copyright (C) 2017 go-nebulas authors
-//
 // This file is part of the go-nebulas library.
 //
 // the go-nebulas library is free software: you can redistribute it and/or modify
@@ -27,8 +25,8 @@ import (
 
 // Node struct
 type Node struct {
-	Key           string
-	Value         interface{}
+	Key           interface{}
+	Index         int
 	Children      []*Node
 	ParentCounter int
 }
@@ -39,10 +37,10 @@ var (
 )
 
 // NewNode new node
-func NewNode(key string, value interface{}) *Node {
+func NewNode(key interface{}, index int) *Node {
 	return &Node{
 		Key:           key,
-		Value:         value,
+		Index:         index,
 		ParentCounter: 0,
 		Children:      make([]*Node, 0),
 	}
@@ -50,7 +48,8 @@ func NewNode(key string, value interface{}) *Node {
 
 // Dag struct
 type Dag struct {
-	Nodes map[string]*Node
+	Nodes map[interface{}]*Node
+	Index int
 }
 
 // ToProto converts domain Dag into proto Dag
@@ -60,10 +59,10 @@ func (dag *Dag) ToProto() (proto.Message, error) {
 	idx := 0
 	for _, v := range dag.Nodes {
 		node := new(dagpb.Node)
-		node.Key = v.Key
-		node.Children = make([]string, len(v.Children))
+		node.Index = int32(v.Index)
+		node.Children = make([]int32, len(v.Children))
 		for i, child := range v.Children {
-			node.Children[i] = child.Key
+			node.Children[i] = int32(child.Index)
 		}
 
 		nodes[idx] = node
@@ -78,19 +77,18 @@ func (dag *Dag) ToProto() (proto.Message, error) {
 // FromProto converts proto Dag to domain Dag
 func (dag *Dag) FromProto(msg proto.Message) error {
 	if msg, ok := msg.(*dagpb.Dag); ok {
-		//dag.cont
-		dag.Nodes = make(map[string]*Node, len(msg.Nodes))
+
+		//dag.Nodes = make(map[interface{}]*Node, len(msg.Nodes))
 
 		for _, v := range msg.Nodes {
-			dag.AddNode(v.Key, nil)
+			dag.AddNodeWithIndex(int(v.Index), int(v.Index))
 		}
 
 		for _, v := range msg.Nodes {
 			for _, child := range v.Children {
-				dag.AddEdge(v.Key, child)
+				dag.AddEdge(int(v.Index), int(child))
 			}
 		}
-
 		return nil
 	}
 	return errors.New("Protobuf message cannot be converted into Dag")
@@ -99,7 +97,8 @@ func (dag *Dag) FromProto(msg proto.Message) error {
 // NewDag new dag
 func NewDag() *Dag {
 	return &Dag{
-		Nodes: make(map[string]*Node, 0),
+		Nodes: make(map[interface{}]*Node, 0),
+		Index: 0,
 	}
 }
 
@@ -109,7 +108,7 @@ func (dag *Dag) Len() int {
 }
 
 // GetNode get node by key
-func (dag *Dag) GetNode(key string) *Node {
+func (dag *Dag) GetNode(key interface{}) *Node {
 	if v, ok := dag.Nodes[key]; ok {
 		return v
 	}
@@ -117,10 +116,11 @@ func (dag *Dag) GetNode(key string) *Node {
 }
 
 // GetChildrenNodes get children nodes with key
-func (dag *Dag) GetChildrenNodes(key string) []*Node {
+func (dag *Dag) GetChildrenNodes(key interface{}) []*Node {
 	if v, ok := dag.Nodes[key]; ok {
 		return v.Children
 	}
+
 	return nil
 }
 
@@ -145,17 +145,29 @@ func (dag *Dag) GetNodes() []*Node {
 }
 
 // AddNode add node
-func (dag *Dag) AddNode(key string, value interface{}) error {
+func (dag *Dag) AddNode(key interface{}) error {
 	if _, ok := dag.Nodes[key]; ok {
 		return ErrKeyIsExisted
 	}
 
-	dag.Nodes[key] = NewNode(key, value)
+	dag.Nodes[key] = NewNode(key, dag.Index)
+	dag.Index++
+	return nil
+}
+
+// AddNode add node
+func (dag *Dag) AddNodeWithIndex(key interface{}, index int) error {
+	if _, ok := dag.Nodes[key]; ok {
+		return ErrKeyIsExisted
+	}
+
+	dag.Nodes[key] = NewNode(key, index)
+	dag.Index = index
 	return nil
 }
 
 // AddEdge add edge fromKey toKey
-func (dag *Dag) AddEdge(fromKey, toKey string) error {
+func (dag *Dag) AddEdge(fromKey, toKey interface{}) error {
 	var from, to *Node
 	var ok bool
 
@@ -169,11 +181,12 @@ func (dag *Dag) AddEdge(fromKey, toKey string) error {
 
 	for _, childNode := range from.Children {
 		if childNode == to {
-			return ErrKeyIsExisted //todo
+			return ErrKeyIsExisted
 		}
 	}
 
 	dag.Nodes[toKey].ParentCounter++
-	from.Children = append(from.Children, to)
+	dag.Nodes[fromKey].Children = append(from.Children, to)
+
 	return nil
 }

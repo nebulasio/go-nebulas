@@ -38,7 +38,7 @@ type Dispatcher struct {
 	dag         *Dag
 	quitCh      chan bool
 	queueCh     chan *Node
-	tasks       map[string]*Task
+	tasks       map[interface{}]*Task
 	cursor      int
 	err         error
 	data        interface{}
@@ -50,7 +50,7 @@ func NewDispatcher(dag *Dag, concurrency int, data interface{}, cb Callback) *Di
 		concurrency: concurrency,
 		dag:         dag,
 		cb:          cb,
-		tasks:       make(map[string]*Task, 0),
+		tasks:       make(map[interface{}]*Task, 0),
 		quitCh:      make(chan bool, 10),
 		queueCh:     make(chan *Node, 100),
 		cursor:      0,
@@ -156,7 +156,7 @@ func (dp *Dispatcher) CompleteParentTask(node *Node) {
 }
 
 // updateDependenceTask task counter
-func (dp *Dispatcher) updateDependenceTask(key string) {
+func (dp *Dispatcher) updateDependenceTask(key interface{}) {
 	if _, ok := dp.tasks[key]; ok {
 		dp.tasks[key].dependence--
 		//fmt.Println("Key:", key, " dependence:", dp.tasks[key].dependence)

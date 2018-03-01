@@ -46,25 +46,25 @@ func TestDispatcher_Start1(t *testing.T) {
 	*/
 	dag := NewDag()
 
-	dag.AddNode("1", nil)
-	dag.AddNode("2", nil)
-	dag.AddNode("3", nil)
-	dag.AddNode("4", nil)
-	dag.AddNode("5", nil)
-	dag.AddNode("6", nil)
-	dag.AddNode("7", nil)
-	dag.AddNode("8", nil)
-	dag.AddNode("9", nil)
-	dag.AddNode("10", nil)
-	dag.AddNode("11", nil)
-	dag.AddNode("12", nil)
-	dag.AddNode("13", nil)
-	dag.AddNode("14", nil)
-	dag.AddNode("15", nil)
-	dag.AddNode("16", nil)
-	dag.AddNode("17", nil)
-	dag.AddNode("18", nil)
-	dag.AddNode("19", nil)
+	dag.AddNode("1")
+	dag.AddNode("2")
+	dag.AddNode("3")
+	dag.AddNode("4")
+	dag.AddNode("5")
+	dag.AddNode("6")
+	dag.AddNode("7")
+	dag.AddNode("8")
+	dag.AddNode("9")
+	dag.AddNode("10")
+	dag.AddNode("11")
+	dag.AddNode("12")
+	dag.AddNode("13")
+	dag.AddNode("14")
+	dag.AddNode("15")
+	dag.AddNode("16")
+	dag.AddNode("17")
+	dag.AddNode("18")
+	dag.AddNode("19")
 	// Add the edges (Note that given vertices must exist before adding an
 	// edge between them)
 	dag.AddEdge("1", "2")
@@ -99,10 +99,10 @@ func TestDispatcher_Start1(t *testing.T) {
 	txs[1] = "b"
 
 	fmt.Println("runtime.NumCPU():", runtime.NumCPU())
-	dp := NewDispatcher(dag, runtime.NumCPU(), txs, func(node *Node, a interface{}) error {
-		fmt.Println("key:", node.Key)
+	dp := NewDispatcher(dag1, runtime.NumCPU(), txs, func(node *Node, a interface{}) error {
+		fmt.Println("key:", node.Key, node.Index)
 
-		if node.Key == "12" {
+		if node.Key == 12 {
 			fmt.Println(a)
 			time.Sleep(time.Millisecond * 300)
 			//return errors.New("test")
@@ -113,5 +113,21 @@ func TestDispatcher_Start1(t *testing.T) {
 	})
 
 	err = dp.Run()
+	assert.Nil(t, err)
+
+	dp1 := NewDispatcher(dag, runtime.NumCPU(), txs, func(node *Node, a interface{}) error {
+		fmt.Println("key:", node.Key, node.Index)
+
+		if node.Key == 12 {
+			fmt.Println(a)
+			time.Sleep(time.Millisecond * 300)
+			//return errors.New("test")
+			return nil
+		}
+		time.Sleep(time.Millisecond * 100)
+		return nil
+	})
+
+	err = dp1.Run()
 	assert.Nil(t, err)
 }

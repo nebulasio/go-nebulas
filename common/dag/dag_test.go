@@ -27,10 +27,10 @@ import (
 func TestDag_AddNode(t *testing.T) {
 	dag := NewDag()
 
-	dag.AddNode("1", nil)
-	dag.AddNode("2", nil)
-	dag.AddNode("3", nil)
-	dag.AddNode("4", nil)
+	dag.AddNode("1")
+	dag.AddNode("2")
+	dag.AddNode("3")
+	dag.AddNode("4")
 
 	// Add the edges (Note that given Nodes must exist before adding an
 	// edge between them)
@@ -42,21 +42,34 @@ func TestDag_AddNode(t *testing.T) {
 	node := dag.GetNode("1")
 
 	assert.Equal(t, "1", node.Key)
+	assert.Equal(t, 0, node.Index)
+
 	assert.Equal(t, 0, node.ParentCounter)
 
 	node4 := dag.GetNode("4")
 	assert.Equal(t, 2, node4.ParentCounter)
 
-	dag.AddNode("5", nil)
+	dag.AddNode("5")
 	msg, err := dag.ToProto()
-
-	assert.Nil(t, err)
-
-	err = dag.FromProto(msg)
 
 	assert.Nil(t, err)
 
 	node1 := dag.GetNode("5")
 
 	assert.Equal(t, "5", node1.Key)
+
+	msg, err1 := dag.ToProto()
+	assert.Nil(t, err1)
+
+	dag1 := NewDag()
+	err = dag1.FromProto(msg)
+
+	node1 = dag1.GetNode(int(0))
+
+	//fmt.Println(err, node1)
+	assert.Equal(t, 0, node1.Key)
+
+	children := dag1.GetChildrenNodes(int(0))
+
+	assert.Equal(t, 2, len(children))
 }
