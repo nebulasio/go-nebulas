@@ -58,6 +58,10 @@ func newStates(consensus Consensus, storage storage.Storage) (*states, error) {
 	}, nil
 }
 
+func (s *states) Merge(done *states) error {
+	return nil
+}
+
 func (s *states) Clone() (*states, error) {
 	accState, err := s.accState.Clone()
 	if err != nil {
@@ -423,23 +427,19 @@ func (ws *worldState) Prepare(txid string) (TxWorldState, error) {
 	return txState, nil
 }
 
-func (ws *worldState) Update(txid string) error {
-	if _, ok := ws.txStates[txid]; ok {
-		return ErrCannotUpdateTxStateBeforePrepare
+func (ws *worldState) CheckAndUpdate(txid string) ([]string, error) {
+	txWorldState, ok := ws.txStates[txid]
+	if !ok {
+		return nil, ErrCannotUpdateTxStateBeforePrepare
 	}
-	if err := ws.mvccdb.Update(txid); err != nil {
-		return err
-	}
-	states, err := ws.txStates[txid].states.ReplaceDB(ws.mvccdb)
+	dependencies, err := ws.mvccdb.CheckAndUpdate(txid)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	ws.states = states
-	return nil
-}
-
-func (ws *worldState) Check(txid string) (bool, error) {
-	return false, nil
+	if err := ws.states.Merge(txWorldState.states); err != nil {
+		return nil, err
+	}
+	return dependencies, nil
 }
 
 func (ws *worldState) Reset(txid string) error {

@@ -21,6 +21,8 @@ package core
 import (
 	"errors"
 	"fmt"
+	"github.com/nebulasio/go-nebulas/common/dag"
+	"github.com/nebulasio/go-nebulas/common/dag/pb"
 	"time"
 
 	"github.com/nebulasio/go-nebulas/core/state"
@@ -114,6 +116,7 @@ func (b *BlockHeader) FromProto(msg proto.Message) error {
 type Block struct {
 	header       *BlockHeader
 	transactions Transactions
+	dependency   *dag.Dag
 
 	sealed      bool
 	height      uint64
@@ -147,12 +150,20 @@ func (block *Block) ToProto() (proto.Message, error) {
 				return nil, errors.New("Protobuf message cannot be converted into Transaction")
 			}
 		}
-		return &corepb.Block{
-			Header:       header,
-			Transactions: txs,
-			Height:       block.height,
-			Miner:        block.miner.Bytes(),
-		}, nil
+		dependency, err := block.dependency.ToProto()
+		if err != nil {
+			return nil, err
+		}
+		if dependency := dependency.(*dagpb.Dag); ok {
+			return &corepb.Block{
+				Header:       header,
+				Transactions: txs,
+				Dependency:   dependency,
+				Height:       block.height,
+				Miner:        block.miner.Bytes(),
+			}, nil
+		}
+		return nil, errors.New("Protobuf message cannot be converted into Dag")
 	}
 	return nil, errors.New("Protobuf message cannot be converted into BlockHeader")
 }
@@ -172,6 +183,10 @@ func (block *Block) FromProto(msg proto.Message) error {
 				return err
 			}
 			block.transactions[idx] = tx
+		}
+		block.dependency = new(dag.Dag)
+		if err := block.dependency.FromProto(msg.Dependency); err != nil {
+			return err
 		}
 		block.height = msg.Height
 		block.miner = &Address{msg.Miner}
@@ -385,13 +400,13 @@ func (block *Block) Begin() error {
 }
 
 // Commit a batch task
-func (block *Block) Commit() error {
-	return block.WorldState().Commit()
+func (block *Block) Commit() {
+	block.WorldState().Commit()
 }
 
 // RollBack a batch task
-func (block *Block) RollBack() error {
-	return block.WorldState().RollBack()
+func (block *Block) RollBack() {
+	block.WorldState().RollBack()
 }
 
 // Prepare a sub batch task
@@ -399,19 +414,14 @@ func (block *Block) Prepare(tx *Transaction) (state.TxWorldState, error) {
 	return block.WorldState().Prepare(tx.Hash().String())
 }
 
-// Update a batch task
-func (block *Block) Update(tx *Transaction) error {
-	return block.WorldState().Update(tx.Hash().String())
+// CheckAndUpdate a batch task, threadsafe
+func (block *Block) CheckAndUpdate(tx *Transaction) ([]string, error) {
+	return block.WorldState().CheckAndUpdate(tx.Hash().String())
 }
 
 // Reset a batch task
 func (block *Block) Reset(tx *Transaction) error {
 	return block.WorldState().Reset(tx.Hash().String())
-}
-
-// Check a batch task
-func (block *Block) Check(tx *Transaction) (bool, error) {
-	return block.WorldState().Check(tx.Hash().String())
 }
 
 // ReturnTransactions and giveback them to tx pool
@@ -424,8 +434,135 @@ func (block *Block) ReturnTransactions() {
 	}
 }
 
+type executedResult struct {
+	transaction *Transaction
+	dependency  []string
+}
+
 // CollectTransactions and add them to block.
 func (block *Block) CollectTransactions(deadline int64) {
+	metricsBlockPackTxTime.Update(0)
+	if block.sealed {
+		logging.VLog().WithFields(logrus.Fields{
+			"block": block,
+		}).Fatal("Sealed block can't be changed.")
+	}
+
+	elapse := deadline - time.Now().Unix()
+	logging.VLog().WithFields(logrus.Fields{
+		"elapse": elapse,
+	}).Info("Time to pack txs.")
+	metricsBlockPackTxTime.Update(elapse)
+	if elapse <= 0 {
+		return
+	}
+	deadlineTimer := time.NewTimer(time.Duration(elapse) * time.Second)
+
+	var givebacks []*Transaction
+	pool := block.txPool
+
+	packed := int64(0)
+	unpacked := int64(0)
+
+	if err := block.Begin(); err != nil {
+		return
+	}
+	dag := dag.NewDag()
+	transactions := []*Transaction{}
+
+	// execute transaction.
+	parallelCh := make(chan bool, 32)
+	executedCh := make(chan *executedResult, 32)
+	mergeCh := make(chan bool, 1)
+	quitCh := make(chan bool, 1)
+	go func() {
+		for !pool.Empty() {
+			tx := pool.Pop()
+
+			parallelCh <- true
+			go func() {
+				giveback, err := block.ExecuteTransaction(tx)
+				if giveback {
+					givebacks = append(givebacks, tx)
+				}
+
+				if err != nil {
+					logging.CLog().WithFields(logrus.Fields{
+						"tx":       tx,
+						"err":      err,
+						"giveback": giveback,
+					}).Debug("invalid tx.")
+					unpacked++
+				} else {
+					mergeCh <- true
+					dependency, err := block.CheckAndUpdate(tx)
+					if err != nil {
+						logging.CLog().WithFields(logrus.Fields{
+							"tx":       tx,
+							"err":      err,
+							"giveback": giveback,
+						}).Debug("invalid tx.")
+						unpacked++
+					} else {
+						logging.CLog().WithFields(logrus.Fields{
+							"tx": tx,
+						}).Debug("packed tx.")
+						packed++
+						executedCh <- &executedResult{
+							transaction: tx,
+							dependency:  dependency,
+						}
+					}
+					<-mergeCh
+				}
+				<-parallelCh
+			}()
+
+			select {
+			case <-quitCh:
+				return
+			default:
+			}
+		}
+	}()
+
+	// consume the executedTxBlocksCh, or wait for the deadline.
+	for {
+		select {
+		case <-deadlineTimer.C:
+			quitCh <- true
+			// put tx back to transaction_pool.
+			go func() {
+				// giveback transactions.
+				for _, tx := range givebacks {
+					err := pool.Push(tx)
+					if err != nil {
+						logging.VLog().WithFields(logrus.Fields{
+							"block": block,
+							"tx":    tx,
+							"err":   err,
+						}).Debug("Failed to giveback the tx.")
+					}
+				}
+			}()
+
+			block.Commit()
+			block.transactions = transactions
+			block.dependency = dag
+			return
+		case result := <-executedCh:
+			transactions = append(transactions, result.transaction)
+			txid := result.transaction.Hash().String()
+			dag.AddNode(txid, txid)
+			for _, node := range result.dependency {
+				dag.AddEdge(node, txid)
+			}
+		}
+	}
+}
+
+// CollectTransactionsDeprecated and add them to block.
+func (block *Block) CollectTransactionsDeprecated(deadline int64) {
 	metricsBlockPackTxTime.Update(0)
 	if block.sealed {
 		logging.VLog().WithFields(logrus.Fields{
@@ -798,7 +935,7 @@ func (block *Block) verifyState() error {
 			"expect": block.ConsensusRoot(),
 			"actual": consensusRoot,
 		}).Debug("Failed to verify dpos context.")
-		return ErrInvalidBlockDposContextRoot
+		return ErrInvalidBlockConsensusRoot
 	}
 
 	return nil
@@ -889,7 +1026,7 @@ func (block *Block) rewardCoinbase() error {
 func (block *Block) ExecuteTransaction(tx *Transaction) (bool, error) {
 	txWorldState, err := block.Prepare(tx)
 	if err != nil {
-		return false, err
+		return true, err
 	}
 
 	if giveback, err := CheckTransaction(tx, txWorldState); err != nil {

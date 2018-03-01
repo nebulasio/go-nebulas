@@ -120,6 +120,8 @@ var (
 	ErrCannotLoadTailBlock    = errors.New("cannot load latest irreversible block from storage")
 	ErrGenesisConfNotMatch    = errors.New("Failed to load genesis from storage, different with genesis conf")
 	ErrInvalidConfigChainID   = errors.New("invalid chainID, genesis chainID not equal to chainID in config")
+
+	ErrNoTimeToPackTransactions = errors.New("no time left to pack transactions in a block")
 )
 
 // Default gas count

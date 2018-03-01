@@ -462,7 +462,7 @@ func (dpos *Dpos) checkProposer(tail *core.Block, now int64) (state.ConsensusSta
 			"elapsed": elapsed,
 			"err":     err,
 		}).Debug("Failed to generate next dynasty context.")
-		return nil, ErrGenerateNextDynastyContext
+		return nil, ErrGenerateNextConsensusState
 	}
 	if consensusState.Proposer() == nil || !consensusState.Proposer().Equals(dpos.miner.Bytes()) {
 		proposer := "nil"

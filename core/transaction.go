@@ -404,7 +404,9 @@ func VerifyExecution(tx *Transaction, block *Block, txWorldState state.TxWorldSt
 	// execute smart contract and sub the calcute gas.
 	gasExecution, _, exeErr := payload.Execute(tx, block, txWorldState)
 	if exeErr != nil {
-		block.Reset(tx)
+		if err := block.Reset(tx); err != nil {
+			return err
+		}
 	}
 
 	allGas := util.NewUint128FromBigInt(util.NewUint128().Add(gasUsed.Int, gasExecution.Int))
@@ -416,6 +418,9 @@ func VerifyExecution(tx *Transaction, block *Block, txWorldState state.TxWorldSt
 		}).Debug("Failed to check gas executed.")
 		metricsTxExeFailed.Mark(1)
 
+		if err := block.Reset(tx); err != nil {
+			return err
+		}
 		if err := tx.consumeGas(coinbase, tx.gasLimit, txWorldState); err != nil {
 			return err
 		}

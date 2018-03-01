@@ -86,14 +86,11 @@ func (mvccdb *MVCCDB) Del(key []byte) error {
 // Prepare a nested transaction
 func (mvccdb *MVCCDB) Prepare(txid string) (*DB, error) { return nil, nil }
 
-// Update the nested transaction
-func (mvccdb *MVCCDB) Update(txid string) error { return nil }
+// CheckAndUpdate the nested transaction
+func (mvccdb *MVCCDB) CheckAndUpdate(txid string) ([]string, error) { return []string{}, nil }
 
 // Reset the nested transaction
 func (mvccdb *MVCCDB) Reset(txid string) error { return nil }
-
-// Check whether the nested transaction conflicts
-func (mvccdb *MVCCDB) Check(txid string) (bool, error) { return false, nil }
 
 // DB schema
 type DB struct {
