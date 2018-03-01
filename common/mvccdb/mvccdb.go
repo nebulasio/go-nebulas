@@ -19,19 +19,16 @@
 package mvccdb
 
 import (
+	"errors"
+	"sync"
+
 	"github.com/nebulasio/go-nebulas/storage"
 )
 
-type value struct {
-	content []byte
-	old     int32
-	new     int32
-	flag    bool
-}
-
-type transaction struct {
-	logs map[string]*value
-}
+var (
+	ErrUnsupportedNestedTransaction = errors.New("unsupported nested transaction")
+	ErrTransactionNotStarted        = errors.New("transaction is not started")
+)
 
 /* How to use MVCCDB
 It should support three situations as following,
@@ -42,73 +39,167 @@ It should support three situations as following,
 
 // MVCCDB schema
 type MVCCDB struct {
-	// txid - (key - value)
-	transactions map[string]*transaction
-	// txid - flag (valid or not)
-	status map[string]bool
-
-	storage storage.Storage
+	tid             interface{}
+	storage         storage.Storage
+	stagingTable    *StagingTable
+	mutex           sync.Mutex
+	isInTransaction bool
 }
 
 // NewMVCCDB create a new change log
 func NewMVCCDB(storage storage.Storage) (*MVCCDB, error) {
-	return &MVCCDB{
-		transactions: make(map[string]*transaction),
-		status:       make(map[string]bool),
-		storage:      storage,
-	}, nil
+	db := &MVCCDB{
+		tid:             nil,
+		storage:         storage,
+		stagingTable:    NewStagingTable(),
+		isInTransaction: false,
+	}
+
+	return db, nil
 }
 
 // Begin a transaction
-func (mvccdb *MVCCDB) Begin() error { return nil }
+func (db *MVCCDB) Begin() error {
+	db.mutex.Lock()
+	defer db.mutex.Lock()
+
+	if db.isInTransaction {
+		return ErrUnsupportedNestedTransaction
+	}
+
+	db.isInTransaction = true
+
+	return nil
+}
 
 // Commit the transaction to storage
-func (mvccdb *MVCCDB) Commit() error { return nil }
+func (db *MVCCDB) Commit() error {
+	db.mutex.Lock()
+	defer db.mutex.Lock()
+
+	if !db.isInTransaction {
+		return ErrTransactionNotStarted
+	}
+
+	// commit.
+	db.stagingTable.LockFinalVersionValue()
+	defer db.stagingTable.UnlockFinalVersionValue()
+	for _, value := range db.stagingTable.finalVersionValue {
+		if value.dirty == false {
+			continue
+		}
+
+		if value.deleted == true {
+			db.delFromStorage(value.key)
+		} else {
+			db.putToStorage(value.key, value.val)
+		}
+	}
+
+	// done.
+	db.isInTransaction = false
+
+	return nil
+}
 
 // RollBack the transaction
-func (mvccdb *MVCCDB) RollBack() error { return nil }
+func (db *MVCCDB) RollBack() error {
+	db.mutex.Lock()
+	defer db.mutex.Lock()
+
+	if !db.isInTransaction {
+		return ErrTransactionNotStarted
+	}
+
+	// rollback.
+	db.stagingTable.Purge(db.tid)
+
+	// done.
+	db.isInTransaction = false
+
+	return nil
+}
 
 // Get value
-func (mvccdb *MVCCDB) Get(key []byte) ([]byte, error) {
-	return mvccdb.storage.Get(key)
+func (db *MVCCDB) Get(key []byte) ([]byte, error) {
+	db.mutex.Lock()
+	defer db.mutex.Lock()
+
+	if !db.isInTransaction {
+		return db.getFromStorage(key)
+	}
+
+	value := db.stagingTable.Get(db.tid, key)
+	if value == nil {
+		// get from storage.
+		data, err := db.getFromStorage(key)
+		if err != nil {
+			return nil, err
+		}
+
+		value = db.stagingTable.Put(db.tid, key, data, false)
+	}
+
+	return value.val, nil
 }
 
 // Put value
-func (mvccdb *MVCCDB) Put(key []byte, val []byte) error {
-	return mvccdb.storage.Put(key, val)
+func (db *MVCCDB) Put(key []byte, val []byte) error {
+	db.mutex.Lock()
+	defer db.mutex.Lock()
+
+	if !db.isInTransaction {
+		return db.putToStorage(key, val)
+	}
+
+	db.stagingTable.Put(db.tid, key, val, true)
+	return nil
 }
 
 // Del value
-func (mvccdb *MVCCDB) Del(key []byte) error {
-	return mvccdb.storage.Del(key)
+func (db *MVCCDB) Del(key []byte) error {
+	db.mutex.Lock()
+	defer db.mutex.Lock()
+
+	if !db.isInTransaction {
+		return db.delFromStorage(key)
+	}
+
+	db.stagingTable.Del(db.tid, key)
+	return nil
 }
 
 // Prepare a nested transaction
-func (mvccdb *MVCCDB) Prepare(txid string) (*DB, error) { return nil, nil }
+func (db *MVCCDB) Prepare(tid interface{}) (*MVCCDB, error) {
+	if !db.isInTransaction {
+		return nil, ErrTransactionNotStarted
+	}
+
+	return &MVCCDB{
+		tid:             tid,
+		storage:         db.storage,
+		stagingTable:    db.stagingTable,
+		isInTransaction: true,
+	}, nil
+}
 
 // CheckAndUpdate the nested transaction
 func (mvccdb *MVCCDB) CheckAndUpdate(txid string) ([]string, error) { return []string{}, nil }
 
 // Reset the nested transaction
-func (mvccdb *MVCCDB) Reset(txid string) error { return nil }
-
-// DB schema
-type DB struct {
-	txid   string
-	mvccdb *MVCCDB
+func (db *MVCCDB) Reset(txid string) error {
+	db.stagingTable.Purge(db.tid)
+	return nil
 }
 
-// Get value
-func (db *DB) Get(key []byte) ([]byte, error) {
-	return db.mvccdb.storage.Get(key)
+func (db *MVCCDB) getFromStorage(key []byte) ([]byte, error) {
+	return db.storage.Get(key)
 }
 
-// Put value
-func (db *DB) Put(key []byte, val []byte) error {
-	return db.mvccdb.storage.Put(key, val)
+func (db *MVCCDB) putToStorage(key []byte, val []byte) error {
+	return db.storage.Put(key, val)
 }
 
-// Del value
-func (db *DB) Del(key []byte) error {
-	return db.mvccdb.storage.Del(key)
+func (db *MVCCDB) delFromStorage(key []byte) error {
+	return db.storage.Del(key)
 }
