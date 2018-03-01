@@ -70,6 +70,7 @@ var (
 	ErrInsufficientBalance                               = errors.New("insufficient balance")
 	ErrBelowGasPrice                                     = errors.New("below the gas price")
 	ErrOutOfGasLimit                                     = errors.New("out of gas limit")
+	ErrGasLimitLessOrEqualToZero                         = errors.New("gas limit less or equal to 0")
 	ErrTxExecutionFailed                                 = errors.New("transaction execution failed")
 	ErrInvalidSignature                                  = errors.New("invalid transaction signature")
 	ErrInvalidTransactionHash                            = errors.New("invalid transaction hash")

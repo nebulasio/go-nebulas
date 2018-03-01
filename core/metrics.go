@@ -46,11 +46,12 @@ var (
 	metricsTxGivebackCount     = metrics.NewGauge("neb.tx.giveback")
 
 	// txpool metrics
-	metricsCachedTx            = metrics.NewGauge("neb.txpool.cached")
-	metricsInvalidTx           = metrics.NewCounter("neb.txpool.invalid")
-	metricsDuplicateTx         = metrics.NewCounter("neb.txpool.duplicate")
-	metricsTxPoolBelowGasPrice = metrics.NewCounter("neb.txpool.below_gas_price")
-	metricsTxPoolOutOfGasLimit = metrics.NewCounter("neb.txpool.out_of_gas_limit")
+	metricsCachedTx                        = metrics.NewGauge("neb.txpool.cached")
+	metricsInvalidTx                       = metrics.NewCounter("neb.txpool.invalid")
+	metricsDuplicateTx                     = metrics.NewCounter("neb.txpool.duplicate")
+	metricsTxPoolBelowGasPrice             = metrics.NewCounter("neb.txpool.below_gas_price")
+	metricsTxPoolOutOfGasLimit             = metrics.NewCounter("neb.txpool.out_of_gas_limit")
+	metricsTxPoolGasLimitLessOrEqualToZero = metrics.NewCounter("neb.txpool.gas_limit_less_equal_zero")
 
 	// transaction metrics
 	metricsTxSubmit     = metrics.NewMeter("neb.transaction.submit")

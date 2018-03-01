@@ -235,6 +235,12 @@ func (pool *TransactionPool) push(tx *Transaction) error {
 		metricsTxPoolBelowGasPrice.Inc(1)
 		return ErrBelowGasPrice
 	}
+
+	if tx.gasLimit.Cmp(util.NewUint128().Int) <= 0 {
+		metricsTxPoolGasLimitLessOrEqualToZero.Inc(1)
+		return ErrGasLimitLessOrEqualToZero
+	}
+
 	if tx.gasLimit.Cmp(pool.gasLimit.Int) > 0 {
 		metricsTxPoolOutOfGasLimit.Inc(1)
 		return ErrOutOfGasLimit
