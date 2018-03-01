@@ -156,6 +156,7 @@ func TestRunScriptSourceInModule(t *testing.T) {
 		expectedErr error
 	}{
 		{"./test/test_require.js", nil},
+		{"./test/test_setTimeout.js", ErrExecutionFailed},
 		{"./test/test_console.js", nil},
 		{"./test/test_storage_handlers.js", nil},
 		{"./test/test_storage_class.js", nil},
