@@ -799,7 +799,7 @@ func (block *Block) verifyState() error {
 	if !byteutils.Equal(block.txsTrie.RootHash(), block.TxsRoot()) {
 		logging.VLog().WithFields(logrus.Fields{
 			"expect": block.TxsRoot(),
-			"actual": block.txsTrie.RootHash(),
+			"actual": byteutils.Hex(block.txsTrie.RootHash()),
 		}).Debug("Failed to verify txs.")
 		return ErrInvalidBlockTxsRoot
 	}
@@ -808,7 +808,7 @@ func (block *Block) verifyState() error {
 	if !byteutils.Equal(block.eventsTrie.RootHash(), block.EventsRoot()) {
 		logging.VLog().WithFields(logrus.Fields{
 			"expect": block.EventsRoot(),
-			"actual": block.eventsTrie.RootHash(),
+			"actual": byteutils.Hex(block.eventsTrie.RootHash()),
 		}).Debug("Failed to verify events.")
 		return ErrInvalidBlockEventsRoot
 	}
