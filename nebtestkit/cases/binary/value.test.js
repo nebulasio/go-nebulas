@@ -101,7 +101,7 @@ function testTransfer(testInput, testExpect, done) {
             console.log("--> override tx.from.address: " + tx.from.address);
         }
 
-        if(testInput.hasOwnProperty("isToAddrValid") && false === testInput.isTo) {
+        if(testInput.hasOwnProperty("isToAddrValid") && false === testInput.isToAddrValid) {
             tx.to.address = Wallet.CryptoUtils.bufferToHex("invalid_to_addr");
             console.log("--> override tx.to.address: " + tx.to.address);
         }
@@ -132,6 +132,8 @@ function testTransfer(testInput, testExpect, done) {
             done();
         }
     }).then(function (resp) {
+
+        console.log("resp:" + JSON.stringify(resp));
 
         if (true === testExpect.canSendTx) {
             console.log("send Rax Tx:" + JSON.stringify(resp));
@@ -209,7 +211,6 @@ describe('normal transaction', function () {
             // console.log("source tx:" + tx.toString());
             return neb.api.sendRawTransaction(tx.toProtoString());
         }).then(function (resp) {
-
             checkTransaction(resp.txhash, function (resp) {
                 try {
                     expect(resp).to.be.have.property('status').equal(1);
@@ -363,8 +364,8 @@ describe('normal transaction', function () {
         };
         //can calc value by previous params
         var testExpect = {
-            canSendTx: false,
-            canSubmitTx: true,
+            canSendTx: true,
+            canSubmitTx: false,
             canExcuteTx: true,
             fromBalanceAfterTx: '8999999980000000000',
             toBalanceAfterTx: '1000000000000000000',
@@ -385,8 +386,8 @@ describe('normal transaction', function () {
         //can calc value by previous params
         var testExpect = {
             canSendTx: true,
-            canSubmitTx: true,
-            canExcuteTx: true,
+            canSubmitTx: false,
+            canExcuteTx: false,
             fromBalanceAfterTx: '8999999980000000000',
             toBalanceAfterTx: '1000000000000000000',
             transferReward: '20000000000'
@@ -405,11 +406,11 @@ describe('normal transaction', function () {
         //can calc value by previous params
         var testExpect = {
             canSendTx: false,
-            canSubmitTx: true,
-            canExcuteTx: true,
-            fromBalanceAfterTx: '8999999980000000000',
-            toBalanceAfterTx: '1000000000000000000',
-            transferReward: '20000000000'
+            canSubmitTx: false,
+            canExcuteTx: false,
+            fromBalanceAfterTx: '10000000000000000000',
+            toBalanceAfterTx: '0',
+            transferReward: '0'
         };
         testTransfer(testInput, testExpect, done);
     });
@@ -466,8 +467,8 @@ describe('normal transaction', function () {
         //can calc value by previous params
         var testExpect = {
             canSendTx: false,
-            canSubmitTx: true,
-            canExcuteTx: true,
+            canSubmitTx: false,
+            canExcuteTx: false,
             fromBalanceAfterTx: '8999999980000000000',
             toBalanceAfterTx: '1000000000000000000',
             transferReward: '20000000000'
@@ -486,9 +487,9 @@ describe('normal transaction', function () {
         };
         //can calc value by previous params
         var testExpect = {
-            canSendTx: true,
-            canSubmitTx: true,
-            canExcuteTx: true,
+            canSendTx: false,
+            canSubmitTx: false,
+            canExcuteTx: false,
             fromBalanceAfterTx: '8999999980000000000',
             toBalanceAfterTx: '1000000000000000000',
             transferReward: '20000000000'
@@ -571,7 +572,8 @@ describe('normal transaction', function () {
             canExcuteTx: false,
             fromBalanceAfterTx: '9999999980000000000',
             toBalanceAfterTx: '0',
-            transferReward: '20000000000'
+            transferReward: '20000000000',
+            eventError: 'insufficient balance'
         };
         testTransfer(testInput, testExpect, done);
     });
@@ -745,8 +747,7 @@ describe('normal transaction', function () {
             canExcuteTx: true,
             fromBalanceAfterTx: '0',
             toBalanceAfterTx: '9999999980000000000',
-            transferReward: '20000000000',
-            eventError: 'insufficient balance'
+            transferReward: '20000000000'
         };
 
         testTransfer(testInput, testExpect, done);
