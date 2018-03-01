@@ -353,6 +353,10 @@ func (t *Trie) updateWhenMeetLeaf(rootNode *node, route []byte, val []byte) ([]b
 	matchLen := prefixLen(path, route)
 	// node exists, update its value
 	if matchLen == len(path) {
+
+		if len(route) > matchLen {
+			return nil, errors.New("wrong key, too long")
+		}
 		rootNode.Val[2] = val
 		// save updated node to storage
 		t.commitNode(rootNode)

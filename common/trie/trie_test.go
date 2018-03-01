@@ -29,6 +29,7 @@ import (
 	"github.com/nebulasio/go-nebulas/crypto/hash"
 	"github.com/nebulasio/go-nebulas/storage"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestNewTrie(t *testing.T) {
@@ -272,4 +273,24 @@ func TestTrie_Stress(t *testing.T) {
 	endAt = time.Now().UnixNano()
 	fmt.Printf("%d Get, cost %d\n", COUNT, endAt-startAt)
 	// 10000 Get, cost 396201000
+}
+
+func TestTrie_LongKey(t *testing.T) {
+	storage, _ := storage.NewMemoryStorage()
+	tr, _ := NewTrie(nil, storage)
+
+	var err error
+
+	_, err = tr.Put([]byte("key"), []byte("value"))
+	assert.Nil(t, err)
+
+	_, err = tr.Put([]byte("key1"), []byte("value1"))
+	assert.NotNil(t, err)
+
+	checkVal, _ := tr.Get([]byte("key"))
+	if !reflect.DeepEqual(checkVal, []byte("value")) {
+		t.Errorf("Trie.Get() val = %v, want %v", checkVal, []byte("value"))
+	}
+	_, err = tr.Get([]byte("key1"))
+	assert.NotNil(t, err)
 }
