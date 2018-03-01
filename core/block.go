@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"github.com/nebulasio/go-nebulas/common/dag"
 	"github.com/nebulasio/go-nebulas/common/dag/pb"
+	"runtime"
 	"time"
 
 	"github.com/nebulasio/go-nebulas/core/state"
@@ -470,11 +471,11 @@ func (block *Block) CollectTransactions(deadline int64) {
 	dag := dag.NewDag()
 	transactions := []*Transaction{}
 
-	// execute transaction.
 	parallelCh := make(chan bool, 32)
 	executedCh := make(chan *executedResult, 32)
 	mergeCh := make(chan bool, 1)
 	quitCh := make(chan bool, 1)
+
 	go func() {
 		for !pool.Empty() {
 			tx := pool.Pop()
@@ -526,14 +527,11 @@ func (block *Block) CollectTransactions(deadline int64) {
 		}
 	}()
 
-	// consume the executedTxBlocksCh, or wait for the deadline.
 	for {
 		select {
 		case <-deadlineTimer.C:
 			quitCh <- true
-			// put tx back to transaction_pool.
 			go func() {
-				// giveback transactions.
 				for _, tx := range givebacks {
 					err := pool.Push(tx)
 					if err != nil {
@@ -946,18 +944,26 @@ func (block *Block) execute() error {
 	startAt := time.Now().UnixNano()
 	block.rewardCoinbase()
 
-	start := time.Now().UnixNano()
-	for _, tx := range block.transactions {
+	dispatcher := dag.NewDispatcher(block.dependency, runtime.NumCPU(), block, func(node *dag.Node, context interface{}) error {
+		block := context.(*Block)
+		tx := block.transactions[node.Key]
 		metricsTxExecute.Mark(1)
 		if _, err := block.ExecuteTransaction(tx); err != nil {
 			return err
 		}
+		if _, err := block.CheckAndUpdate(tx); err != nil {
+			return err
+		}
+		return nil
+	})
+	start := time.Now().UnixNano()
+	if err := dispatcher.Run(); err != nil {
+		return err
 	}
-	txs := int64(len(block.transactions))
 	end := time.Now().UnixNano()
 
-	if txs != 0 {
-		metricsTxVerifiedTime.Update((end - start) / txs)
+	if len(block.transactions) != 0 {
+		metricsTxVerifiedTime.Update((end - start) / int64(len(block.transactions)))
 	} else {
 		metricsTxVerifiedTime.Update(0)
 	}
@@ -968,7 +974,7 @@ func (block *Block) execute() error {
 
 	endAt := time.Now().UnixNano()
 	metricsBlockVerifiedTime.Update(endAt - startAt)
-	metricsTxsInBlock.Update(txs)
+	metricsTxsInBlock.Update(int64(len(block.transactions)))
 
 	return nil
 }
