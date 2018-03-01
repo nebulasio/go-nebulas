@@ -20,6 +20,7 @@ package core
 
 import (
 	"encoding/json"
+	"github.com/nebulasio/go-nebulas/core/state"
 
 	"github.com/nebulasio/go-nebulas/nf/nvm"
 	"github.com/nebulasio/go-nebulas/util"
@@ -59,8 +60,8 @@ func (payload *CallPayload) BaseGasCount() *util.Uint128 {
 }
 
 // Execute the call payload in tx, call a function
-func (payload *CallPayload) Execute(block *Block, tx *Transaction) (*util.Uint128, string, error) {
-	ctx, deployPayload, err := generateCallContext(block, tx)
+func (payload *CallPayload) Execute(tx *Transaction, block *Block, txWorldState state.TxWorldState) (*util.Uint128, string, error) {
+	ctx, deployPayload, err := generateCallContext(tx, block, txWorldState)
 	if err != nil {
 		return util.NewUint128(), "", err
 	}
@@ -75,21 +76,20 @@ func (payload *CallPayload) Execute(block *Block, tx *Transaction) (*util.Uint12
 	return util.NewUint128FromInt(int64(engine.ExecutionInstructions())), result, err
 }
 
-func generateCallContext(block *Block, tx *Transaction) (*nvm.Context, *DeployPayload, error) {
-
-	contract, err := block.worldState.GetContractAccount(tx.to.Bytes())
+func generateCallContext(tx *Transaction, block *Block, txWorldState state.TxWorldState) (*nvm.Context, *DeployPayload, error) {
+	contract, err := txWorldState.GetContractAccount(tx.to.Bytes())
 	if err != nil {
 		return nil, nil, err
 	}
-	if err := block.CheckContract(tx.to); err != nil {
+	if err := CheckContract(tx.to, txWorldState); err != nil {
 		return nil, nil, err
 	}
 
-	birthTx, err := block.GetTransaction(contract.BirthPlace())
+	birthTx, err := GetTransaction(contract.BirthPlace(), txWorldState)
 	if err != nil {
 		return nil, nil, err
 	}
-	owner, err := block.worldState.GetOrCreateUserAccount(birthTx.from.Bytes())
+	owner, err := txWorldState.GetOrCreateUserAccount(birthTx.from.Bytes())
 	if err != nil {
 		return nil, nil, err
 	}
@@ -98,6 +98,6 @@ func generateCallContext(block *Block, tx *Transaction) (*nvm.Context, *DeployPa
 		return nil, nil, err
 	}
 
-	nvmctx := nvm.NewContext(block, convertNvmTx(tx), owner, contract, block.worldState)
+	nvmctx := nvm.NewContext(block, convertNvmTx(tx), owner, contract, txWorldState)
 	return nvmctx, deploy, nil
 }

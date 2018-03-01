@@ -20,6 +20,7 @@ package core
 
 import (
 	"encoding/json"
+	"github.com/nebulasio/go-nebulas/core/state"
 
 	"github.com/nebulasio/go-nebulas/storage"
 	"github.com/nebulasio/go-nebulas/util"
@@ -68,35 +69,35 @@ func (payload *DelegatePayload) BaseGasCount() *util.Uint128 {
 }
 
 // Execute the call payload in tx, call a function
-func (payload *DelegatePayload) Execute(block *Block, tx *Transaction) (*util.Uint128, string, error) {
+func (payload *DelegatePayload) Execute(tx *Transaction, block *Block, txWorldState state.TxWorldState) (*util.Uint128, string, error) {
 	delegator := tx.from.Bytes()
 	delegatee, err := AddressParse(payload.Delegatee)
 	if err != nil {
 		return ZeroGasCount, "", err
 	}
 	// check delegatee valid
-	exist, err := block.worldState.HasCandidate(delegatee.Bytes())
+	exist, err := txWorldState.HasCandidate(delegatee.Bytes())
 	if err != nil {
 		return ZeroGasCount, "", err
 	}
 	if !exist {
 		return ZeroGasCount, "", ErrInvalidDelegateToNonCandidate
 	}
-	pre, err := block.worldState.GetVote(delegator)
+	pre, err := txWorldState.GetVote(delegator)
 	if err != nil && err != storage.ErrKeyNotFound {
 		return ZeroGasCount, "", err
 	}
 	switch payload.Action {
 	case DelegateAction:
 		if err != storage.ErrKeyNotFound {
-			if err = block.worldState.DelDelegate(delegator, pre); err != nil {
+			if err = txWorldState.DelDelegate(delegator, pre); err != nil {
 				return ZeroGasCount, "", err
 			}
 		}
-		if err = block.worldState.AddDelegate(delegator, delegatee.Bytes()); err != nil {
+		if err = txWorldState.AddDelegate(delegator, delegatee.Bytes()); err != nil {
 			return ZeroGasCount, "", err
 		}
-		if err = block.worldState.AddVote(delegator, delegatee.Bytes()); err != nil {
+		if err = txWorldState.AddVote(delegator, delegatee.Bytes()); err != nil {
 			return ZeroGasCount, "", err
 		}
 		/* 		logging.VLog().WithFields(logrus.Fields{
@@ -109,10 +110,10 @@ func (payload *DelegatePayload) Execute(block *Block, tx *Transaction) (*util.Ui
 		if !delegatee.address.Equals(pre) {
 			return ZeroGasCount, "", ErrInvalidUnDelegateFromNonDelegatee
 		}
-		if err = block.worldState.DelDelegate(delegator, delegatee.Bytes()); err != nil {
+		if err = txWorldState.DelDelegate(delegator, delegatee.Bytes()); err != nil {
 			return ZeroGasCount, "", err
 		}
-		if err = block.worldState.DelVote(delegator); err != nil {
+		if err = txWorldState.DelVote(delegator); err != nil {
 			return ZeroGasCount, "", err
 		}
 		/* 		logging.VLog().WithFields(logrus.Fields{

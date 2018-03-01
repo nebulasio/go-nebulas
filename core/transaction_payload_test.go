@@ -21,8 +21,6 @@ package core
 import (
 	"testing"
 
-	"github.com/nebulasio/go-nebulas/crypto"
-	"github.com/nebulasio/go-nebulas/crypto/keystore"
 	"github.com/nebulasio/go-nebulas/util"
 	"github.com/stretchr/testify/assert"
 )
@@ -352,6 +350,8 @@ func TestPayload_Execute(t *testing.T) {
 
 	deployTx := mockDeployTransaction(bc.chainID, 0)
 	deployPayload, _ := deployTx.LoadPayload(nil)
+	contractAddr, _ := deployTx.GenerateContractAddress()
+	deployTx.hash = contractAddr.Bytes()
 	tests = append(tests, testPayload{
 		name:    "deploy",
 		payload: deployPayload,
@@ -362,7 +362,7 @@ func TestPayload_Execute(t *testing.T) {
 	})
 
 	callTx := mockCallTransaction(bc.chainID, 1, "totalSupply", "")
-	callTx.to, _ = deployTx.GenerateContractAddress()
+	callTx.to = contractAddr
 	callPayload, _ := callTx.LoadPayload(nil)
 	tests = append(tests, testPayload{
 		name:    "call",
@@ -418,31 +418,14 @@ func TestPayload_Execute(t *testing.T) {
 		wantErr: nil,
 	})
 
-	ks := keystore.DefaultKS
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			key, _ := ks.GetUnlocked(tt.tx.from.String())
-			signature, _ := crypto.NewSignature(keystore.SECP256K1)
-			signature.InitSign(key.(keystore.PrivateKey))
-
-			err := tt.tx.Sign(signature)
-			assert.Nil(t, err)
-
-			block.acceptTransaction(tt.tx)
-
-			txblock, _ := block.Clone()
-
-			got, _, err := tt.payload.Execute(txblock, tt.tx)
+			got, _, err := tt.payload.Execute(tt.tx, block, block.WorldState())
 			assert.Equal(t, tt.wantErr, err)
 			assert.Equal(t, tt.want, got)
-
-			if err != nil {
-				txblock.Rollback()
-			} else {
-				block.Merge(txblock)
-			}
+			assert.Nil(t, AcceptTransaction(tt.tx, block.WorldState()))
 		})
 	}
 
-	block.Rollback()
+	block.RollBack()
 }

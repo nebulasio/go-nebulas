@@ -589,7 +589,7 @@ func (bc *BlockChain) GetBlock(hash byteutils.Hash) *Block {
 // GetTransaction return transaction of given hash from local storage.
 func (bc *BlockChain) GetTransaction(hash byteutils.Hash) *Transaction {
 	// TODO: get transaction err handle.
-	tx, err := bc.tailBlock.GetTransaction(hash)
+	tx, err := GetTransaction(hash, bc.TailBlock().WorldState())
 	if err != nil {
 		return nil
 	}
@@ -599,7 +599,7 @@ func (bc *BlockChain) GetTransaction(hash byteutils.Hash) *Transaction {
 // GasPrice returns the lowest transaction gas price.
 func (bc *BlockChain) GasPrice() *util.Uint128 {
 	gasPrice := TransactionMaxGasPrice
-	tailBlock := bc.tailBlock
+	tailBlock := bc.TailBlock()
 	for {
 		// if the block is genesis, stop find the parent block
 		if CheckGenesisBlock(tailBlock) {

@@ -21,6 +21,7 @@ package core
 import (
 	"encoding/json"
 
+	"github.com/nebulasio/go-nebulas/core/state"
 	"github.com/nebulasio/go-nebulas/util"
 )
 
@@ -62,7 +63,7 @@ func (payload *BinaryPayloadDeprecated) BaseGasCount() *util.Uint128 {
 }
 
 // Execute the payload in tx
-func (payload *BinaryPayloadDeprecated) Execute(block *Block, tx *Transaction) (*util.Uint128, string, error) {
+func (payload *BinaryPayloadDeprecated) Execute(tx *Transaction, block *Block, txWorldState state.TxWorldState) (*util.Uint128, string, error) {
 	return util.NewUint128(), "", nil
 }
 
@@ -94,6 +95,6 @@ func (payload *BinaryPayload) BaseGasCount() *util.Uint128 {
 }
 
 // Execute the payload in tx
-func (payload *BinaryPayload) Execute(block *Block, tx *Transaction) (*util.Uint128, string, error) {
+func (payload *BinaryPayload) Execute(tx *Transaction, block *Block, txWorldState state.TxWorldState) (*util.Uint128, string, error) {
 	return util.NewUint128(), "", nil
 }

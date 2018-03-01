@@ -305,7 +305,7 @@ func (s *states) Accounts() ([]Account, error) {
 type worldState struct {
 	*states
 
-	txStates map[string]*txState
+	txStates map[string]*txWorldState
 	mvccdb   *mvccdb.MVCCDB
 }
 
@@ -321,7 +321,9 @@ func NewWorldState(consensus Consensus, storage storage.Storage) (WorldState, er
 	}
 	return &worldState{
 		states: states,
-		mvccdb: mvccdb,
+
+		txStates: make(map[string]*txWorldState),
+		mvccdb:   mvccdb,
 	}, nil
 }
 
@@ -393,14 +395,14 @@ func (ws *worldState) RollBack() error {
 	return ws.mvccdb.RollBack()
 }
 
-type txState struct {
+type txWorldState struct {
 	*states
 
 	txid string
 	db   *mvccdb.DB
 }
 
-func (ws *worldState) Prepare(txid string) (TxState, error) {
+func (ws *worldState) Prepare(txid string) (TxWorldState, error) {
 	if _, ok := ws.txStates[txid]; ok {
 		return nil, ErrCannotPrepareTxStateTwice
 	}
@@ -412,7 +414,7 @@ func (ws *worldState) Prepare(txid string) (TxState, error) {
 	if err != nil {
 		return nil, err
 	}
-	txState := &txState{
+	txState := &txWorldState{
 		db:     db,
 		txid:   txid,
 		states: states,
@@ -440,6 +442,10 @@ func (ws *worldState) Check(txid string) (bool, error) {
 	return false, nil
 }
 
-func (ts *txState) TxID() string {
+func (ws *worldState) Reset(txid string) error {
+	return ws.mvccdb.Reset(txid)
+}
+
+func (ts *txWorldState) TxID() string {
 	return ts.txid
 }

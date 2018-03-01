@@ -19,7 +19,6 @@
 package core
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
@@ -183,7 +182,7 @@ func (block *Block) FromProto(msg proto.Message) error {
 
 // SerializeTxByHash returns tx serialized bytes
 func (block *Block) SerializeTxByHash(hash byteutils.Hash) (proto.Message, error) {
-	tx, err := block.GetTransaction(hash)
+	tx, err := GetTransaction(hash, block.worldState)
 	if err != nil {
 		return nil, err
 	}
@@ -360,7 +359,7 @@ func (block *Block) LinkParentBlock(chain *BlockChain, parentBlock *Block) error
 	}
 
 	var err error
-	if block.worldState, err = parentBlock.worldState.Clone(); err != nil {
+	if block.worldState, err = parentBlock.WorldState().Clone(); err != nil {
 		return ErrCloneAccountState
 	}
 
@@ -369,7 +368,7 @@ func (block *Block) LinkParentBlock(chain *BlockChain, parentBlock *Block) error
 	if err != nil {
 		return err
 	}
-	block.worldState.SetConsensusState(consensusState)
+	block.WorldState().SetConsensusState(consensusState)
 
 	block.txPool = parentBlock.txPool
 	block.parentBlock = parentBlock
@@ -380,19 +379,39 @@ func (block *Block) LinkParentBlock(chain *BlockChain, parentBlock *Block) error
 	return nil
 }
 
-// Begin a database transaction
-func (block *Block) Begin() {
-	block.worldState.Begin()
+// Begin a batch task
+func (block *Block) Begin() error {
+	return block.WorldState().Begin()
 }
 
-// Commit a database transaction
-func (block *Block) Commit() {
-	block.worldState.Commit()
+// Commit a batch task
+func (block *Block) Commit() error {
+	return block.WorldState().Commit()
 }
 
-// Rollback a database transaction
-func (block *Block) Rollback() {
-	block.worldState.RollBack()
+// RollBack a batch task
+func (block *Block) RollBack() error {
+	return block.WorldState().RollBack()
+}
+
+// Prepare a sub batch task
+func (block *Block) Prepare(tx *Transaction) (state.TxWorldState, error) {
+	return block.WorldState().Prepare(tx.Hash().String())
+}
+
+// Update a batch task
+func (block *Block) Update(tx *Transaction) error {
+	return block.WorldState().Update(tx.Hash().String())
+}
+
+// Reset a batch task
+func (block *Block) Reset(tx *Transaction) error {
+	return block.WorldState().Reset(tx.Hash().String())
+}
+
+// Check a batch task
+func (block *Block) Check(tx *Transaction) (bool, error) {
+	return block.WorldState().Check(tx.Hash().String())
 }
 
 // ReturnTransactions and giveback them to tx pool
@@ -425,7 +444,7 @@ func (block *Block) CollectTransactions(deadline int64) {
 	}
 
 	deadlineTimer := time.NewTimer(time.Duration(elapse) * time.Second)
-	executedTxBlocksCh := make(chan *Block, 64)
+	executedTxCh := make(chan *Transaction, 64)
 	notifyCh := make(chan bool, 1)
 
 	var givebacks []*Transaction
@@ -434,54 +453,34 @@ func (block *Block) CollectTransactions(deadline int64) {
 	packed := int64(0)
 	unpacked := int64(0)
 
-	// fast skip small nonce tx.
-	currentNonceOfFromAddress := make(map[string]uint64)
+	block.Begin()
 
 	// execute transaction.
 	go func() {
 		for !pool.Empty() {
 			tx := pool.Pop()
 
-			// get current nonce for fast skip.
-			currentNonce := currentNonceOfFromAddress[tx.From().String()]
-			if tx.nonce <= currentNonce {
-				continue
-			}
-
-			txBlock, err := block.Clone()
-			if err != nil {
-				return
-			}
-
-			txBlock.Begin()
-
-			giveback, currentNonce, err := txBlock.ExecuteTransaction(tx)
+			giveback, err := block.ExecuteTransaction(tx)
 			if giveback {
 				givebacks = append(givebacks, tx)
 			}
 
-			// set current nonce.
-			if currentNonce > 0 {
-				currentNonceOfFromAddress[tx.From().String()] = currentNonce
-			}
-
 			if err != nil {
-				logging.VLog().WithFields(logrus.Fields{
+				logging.CLog().WithFields(logrus.Fields{
 					"tx":       tx,
 					"err":      err,
 					"giveback": giveback,
 				}).Debug("invalid tx.")
 				unpacked++
-				txBlock.Rollback()
-				executedTxBlocksCh <- nil
+
+				executedTxCh <- nil
 			} else {
-				//logging.VLog().WithFields(logrus.Fields{
-				//	"tx": tx,
-				//}).Debug("packed tx.")
+				logging.CLog().WithFields(logrus.Fields{
+					"tx": tx,
+				}).Debug("packed tx.")
 				packed++
-				txBlock.Commit()
-				txBlock.transactions = append(txBlock.transactions, tx)
-				executedTxBlocksCh <- txBlock
+
+				executedTxCh <- tx
 			}
 
 			select {
@@ -531,17 +530,15 @@ func (block *Block) CollectTransactions(deadline int64) {
 				// execute succeed but not included in block.
 				for {
 					select {
-					case txBlock := <-executedTxBlocksCh:
-						if txBlock != nil {
-							for _, tx := range txBlock.transactions {
-								err := pool.Push(tx)
-								if err != nil {
-									logging.VLog().WithFields(logrus.Fields{
-										"block": block,
-										"tx":    tx,
-										"err":   err,
-									}).Debug("Failed to giveback the tx.")
-								}
+					case tx := <-executedTxCh:
+						if tx != nil {
+							err := pool.Push(tx)
+							if err != nil {
+								logging.VLog().WithFields(logrus.Fields{
+									"block": block,
+									"tx":    tx,
+									"err":   err,
+								}).Debug("Failed to giveback the tx.")
 							}
 						}
 					default:
@@ -550,11 +547,13 @@ func (block *Block) CollectTransactions(deadline int64) {
 				}
 
 			}()
+
+			block.Commit()
 			return
-		case txBlock := <-executedTxBlocksCh:
-			if txBlock != nil {
+		case tx := <-executedTxCh:
+			if tx != nil {
 				metricsTxSubmit.Mark(1)
-				block.Merge(txBlock)
+				block.transactions = append(block.transactions, tx)
 			}
 
 			// continue.
@@ -577,24 +576,24 @@ func (block *Block) Seal() error {
 	block.Begin()
 	err := block.recordMintCnt()
 	if err != nil {
-		block.Rollback()
+		block.RollBack()
 		return err
 	}
 	block.Commit()
 
-	block.header.stateRoot, err = block.worldState.AccountsRoot()
+	block.header.stateRoot, err = block.WorldState().AccountsRoot()
 	if err != nil {
 		return err
 	}
-	block.header.txsRoot, err = block.worldState.TxsRoot()
+	block.header.txsRoot, err = block.WorldState().TxsRoot()
 	if err != nil {
 		return err
 	}
-	block.header.eventsRoot, err = block.worldState.EventsRoot()
+	block.header.eventsRoot, err = block.WorldState().EventsRoot()
 	if err != nil {
 		return err
 	}
-	block.header.consensusRoot, err = block.worldState.ConsensusRoot()
+	block.header.consensusRoot, err = block.WorldState().ConsensusRoot()
 	if err != nil {
 		return err
 	}
@@ -642,12 +641,12 @@ func (block *Block) VerifyExecution(parent *Block, consensus Consensus) error {
 	block.Begin()
 
 	if err := block.execute(); err != nil {
-		block.Rollback()
+		block.RollBack()
 		return err
 	}
 
 	if err := block.verifyState(); err != nil {
-		block.Rollback()
+		block.RollBack()
 		return err
 	}
 
@@ -751,7 +750,7 @@ func (block *Block) VerifyIntegrity(chainID uint32, consensus Consensus) error {
 // verifyState return state verify result.
 func (block *Block) verifyState() error {
 	// verify state root.
-	accountsRoot, err := block.worldState.AccountsRoot()
+	accountsRoot, err := block.WorldState().AccountsRoot()
 	if err != nil {
 		return err
 	}
@@ -764,7 +763,7 @@ func (block *Block) verifyState() error {
 	}
 
 	// verify transaction root.
-	txsRoot, err := block.worldState.TxsRoot()
+	txsRoot, err := block.WorldState().TxsRoot()
 	if err != nil {
 		return err
 	}
@@ -777,7 +776,7 @@ func (block *Block) verifyState() error {
 	}
 
 	// verify events root.
-	eventsRoot, err := block.worldState.EventsRoot()
+	eventsRoot, err := block.WorldState().EventsRoot()
 	if err != nil {
 		return err
 	}
@@ -790,7 +789,7 @@ func (block *Block) verifyState() error {
 	}
 
 	// verify transaction root.
-	consensusRoot, err := block.worldState.ConsensusRoot()
+	consensusRoot, err := block.WorldState().ConsensusRoot()
 	if err != nil {
 		return err
 	}
@@ -813,21 +812,13 @@ func (block *Block) execute() error {
 	start := time.Now().UnixNano()
 	for _, tx := range block.transactions {
 		metricsTxExecute.Mark(1)
-
-		giveback, _, err := block.ExecuteTransaction(tx)
-		if giveback {
-			err := block.txPool.Push(tx)
-			if err != nil {
-				return err
-			}
-		}
-		if err != nil {
+		if _, err := block.ExecuteTransaction(tx); err != nil {
 			return err
 		}
-
 	}
 	txs := int64(len(block.transactions))
 	end := time.Now().UnixNano()
+
 	if txs != 0 {
 		metricsTxVerifiedTime.Update((end - start) / txs)
 	} else {
@@ -847,7 +838,7 @@ func (block *Block) execute() error {
 
 // GetBalance returns balance for the given address on this block.
 func (block *Block) GetBalance(address byteutils.Hash) (*util.Uint128, error) {
-	account, err := block.worldState.GetOrCreateUserAccount(address)
+	account, err := block.WorldState().GetOrCreateUserAccount(address)
 	if err != nil {
 		return nil, err
 	}
@@ -856,7 +847,7 @@ func (block *Block) GetBalance(address byteutils.Hash) (*util.Uint128, error) {
 
 // GetNonce returns nonce for the given address on this block.
 func (block *Block) GetNonce(address byteutils.Hash) (uint64, error) {
-	account, err := block.worldState.GetOrCreateUserAccount(address)
+	account, err := block.WorldState().GetOrCreateUserAccount(address)
 	if err != nil {
 		return 0, err
 	}
@@ -866,27 +857,27 @@ func (block *Block) GetNonce(address byteutils.Hash) (uint64, error) {
 // RecordEvent record event's topic and data with txHash
 func (block *Block) RecordEvent(txHash byteutils.Hash, topic, data string) error {
 	event := &state.Event{Topic: topic, Data: data}
-	return block.worldState.RecordEvent(txHash, event)
+	return block.WorldState().RecordEvent(txHash, event)
 }
 
 // FetchEvents fetch events by txHash.
 func (block *Block) FetchEvents(txHash byteutils.Hash) ([]*state.Event, error) {
-	return block.worldState.FetchEvents(txHash)
+	return block.WorldState().FetchEvents(txHash)
 }
 
 func (block *Block) recordMintCnt() error {
 	miner := block.miner
-	cnt, err := block.worldState.GetMintCnt(block.Timestamp(), miner.address)
+	cnt, err := block.WorldState().GetMintCnt(block.Timestamp(), miner.address)
 	if err != nil {
 		return err
 	}
 	cnt++
-	return block.worldState.PutMintCnt(block.Timestamp(), miner.address, cnt)
+	return block.WorldState().PutMintCnt(block.Timestamp(), miner.address, cnt)
 }
 
 func (block *Block) rewardCoinbase() error {
-	coinbaseAddr := block.header.coinbase.address
-	coinbaseAcc, err := block.worldState.GetOrCreateUserAccount(coinbaseAddr)
+	coinbaseAddr := block.Coinbase().Bytes()
+	coinbaseAcc, err := block.WorldState().GetOrCreateUserAccount(coinbaseAddr)
 	if err != nil {
 		return err
 	}
@@ -894,117 +885,26 @@ func (block *Block) rewardCoinbase() error {
 	return nil
 }
 
-// GetTransaction from txs Trie
-func (block *Block) GetTransaction(hash byteutils.Hash) (*Transaction, error) {
-	bytes, err := block.worldState.GetTx(hash)
-	if err != nil {
-		return nil, err
-	}
-	pbTx := new(corepb.Transaction)
-	if err := proto.Unmarshal(bytes, pbTx); err != nil {
-		return nil, err
-	}
-	tx := new(Transaction)
-	if err = tx.FromProto(pbTx); err != nil {
-		return nil, err
-	}
-	return tx, nil
-}
-
-func (block *Block) acceptTransaction(tx *Transaction) error {
-	// record tx
-	pbTx, err := tx.ToProto()
-	if err != nil {
-		return err
-	}
-	txBytes, err := proto.Marshal(pbTx)
-	if err != nil {
-		return err
-	}
-	if err := block.worldState.PutTx(tx.hash, txBytes); err != nil {
-		return err
-	}
-	// incre nonce
-	fromAcc, err := block.worldState.GetOrCreateUserAccount(tx.from.address)
-	if err != nil {
-		return err
-	}
-	fromAcc.IncrNonce()
-	return nil
-}
-
-func (block *Block) checkTransaction(tx *Transaction) (bool, uint64, error) {
-	// check nonce
-	fromAcc, err := block.worldState.GetOrCreateUserAccount(tx.from.address)
-	if err != nil {
-		return true, 0, err
-	}
-
-	// pass current Nonce.
-	currentNonce := fromAcc.Nonce()
-
-	if tx.nonce < currentNonce+1 {
-		return false, currentNonce, ErrSmallTransactionNonce
-	} else if tx.nonce > currentNonce+1 {
-		return true, currentNonce, ErrLargeTransactionNonce
-	}
-
-	return false, currentNonce, nil
-}
-
 // ExecuteTransaction execute the transaction
-func (block *Block) ExecuteTransaction(tx *Transaction) (bool, uint64, error) {
-	if giveback, currentNonce, err := block.checkTransaction(tx); err != nil {
-		return giveback, currentNonce, err
-	}
-
-	if _, err := tx.VerifyExecution(block); err != nil {
-		return false, uint64(0), err
-	}
-
-	if err := block.acceptTransaction(tx); err != nil {
-		return false, uint64(0), err
-	}
-
-	return false, uint64(0), nil
-}
-
-// CheckContract check if contract is valid
-func (block *Block) CheckContract(addr *Address) error {
-	contract, err := block.worldState.GetContractAccount(addr.Bytes())
+func (block *Block) ExecuteTransaction(tx *Transaction) (bool, error) {
+	txWorldState, err := block.Prepare(tx)
 	if err != nil {
-		return err
+		return false, err
 	}
 
-	if len(contract.BirthPlace()) == 0 {
-		return ErrContractNotFound
+	if giveback, err := CheckTransaction(tx, txWorldState); err != nil {
+		return giveback, err
 	}
 
-	birthEvents, err := block.FetchEvents(contract.BirthPlace())
-	if err != nil {
-		return err
+	if err := VerifyExecution(tx, block, txWorldState); err != nil {
+		return false, err
 	}
 
-	result := false
-	for _, v := range birthEvents {
-
-		if v.Topic == TopicTransactionExecutionResult {
-			txEvent := TransactionEvent{}
-			json.Unmarshal([]byte(v.Data), &txEvent)
-			if txEvent.Status == TxExecutionSuccess {
-				result = true
-				break
-			}
-		} else if v.Topic == TopicExecuteTxSuccess {
-			result = true
-			break
-		}
-	}
-	if !result {
-		return ErrContractNotFound
+	if err := AcceptTransaction(tx, txWorldState); err != nil {
+		return false, err
 	}
 
-	return nil
+	return false, nil
 }
 
 // HashBlock return the hash of block.
@@ -1074,16 +974,16 @@ func LoadBlockFromStorage(hash byteutils.Hash, chain *BlockChain) (*Block, error
 	if err != nil {
 		return nil, err
 	}
-	if err := block.worldState.LoadAccountsRoot(block.StateRoot()); err != nil {
+	if err := block.WorldState().LoadAccountsRoot(block.StateRoot()); err != nil {
 		return nil, err
 	}
-	if err := block.worldState.LoadTxsRoot(block.TxsRoot()); err != nil {
+	if err := block.WorldState().LoadTxsRoot(block.TxsRoot()); err != nil {
 		return nil, err
 	}
-	if err := block.worldState.LoadEventsRoot(block.EventsRoot()); err != nil {
+	if err := block.WorldState().LoadEventsRoot(block.EventsRoot()); err != nil {
 		return nil, err
 	}
-	if err := block.worldState.LoadConsensusRoot(block.ConsensusRoot()); err != nil {
+	if err := block.WorldState().LoadConsensusRoot(block.ConsensusRoot()); err != nil {
 		return nil, err
 	}
 
@@ -1092,34 +992,6 @@ func LoadBlockFromStorage(hash byteutils.Hash, chain *BlockChain) (*Block, error
 	block.sealed = true
 	block.eventEmitter = chain.eventEmitter
 	return block, nil
-}
-
-// Clone return new Block, with cloned state.
-func (block *Block) Clone() (*Block, error) {
-	worldState, err := block.worldState.Clone()
-	if err != nil {
-		return nil, err
-	}
-
-	return &Block{
-		header:       block.header,
-		sealed:       block.sealed,
-		height:       block.height,
-		parentBlock:  block.parentBlock,
-		txPool:       block.txPool,
-		miner:        block.miner,
-		storage:      block.storage,
-		eventEmitter: block.eventEmitter,
-		transactions: make(Transactions, 0),
-
-		worldState: worldState,
-	}, nil
-}
-
-// Merge merge the state from source block.
-func (block *Block) Merge(source *Block) {
-	block.worldState = source.worldState
-	block.transactions = append(block.transactions, source.transactions...)
 }
 
 // Dispose dispose block.

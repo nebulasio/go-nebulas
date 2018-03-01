@@ -242,7 +242,7 @@ func handleTransactionResponse(neb Neblet, tx *core.Transaction) (resp *rpcpb.Se
 			return nil, core.ErrContractTransactionAddressNotEqual
 		}
 	} else if tx.Type() == core.TxPayloadCallType {
-		if err := neb.BlockChain().TailBlock().CheckContract(tx.To()); err != nil {
+		if err := core.CheckContract(tx.To(), neb.BlockChain().TailBlock().WorldState()); err != nil {
 			return nil, err
 		}
 	}
@@ -548,7 +548,7 @@ func (s *APIService) GetEventsByHash(ctx context.Context, req *rpcpb.HashRequest
 		return nil, err
 	}
 
-	tx, err := neb.BlockChain().TailBlock().GetTransaction(bhash)
+	tx, err := core.GetTransaction(bhash, neb.BlockChain().TailBlock().WorldState())
 	if err != nil {
 		return nil, err
 	}

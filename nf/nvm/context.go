@@ -45,8 +45,8 @@ type Block interface {
 	RecordEvent(txHash byteutils.Hash, topic, data string) error
 }
 
-// WorldState interface of world state
-type WorldState interface {
+// TxWorldState interface of world state
+type TxWorldState interface {
 	GetOrCreateUserAccount(addr byteutils.Hash) (state.Account, error)
 }
 
@@ -77,28 +77,28 @@ type ContextTransaction struct {
 
 // Context nvm engine context
 type Context struct {
-	block      Block
-	tx         *ContextTransaction
-	owner      state.Account
-	contract   state.Account
-	worldState WorldState
+	block        Block
+	tx           *ContextTransaction
+	owner        state.Account
+	contract     state.Account
+	txWorldState TxWorldState
 }
 
 // NewContext create a engine context
-func NewContext(block Block, tx *ContextTransaction, owner state.Account, contract state.Account, worldState WorldState) *Context {
+func NewContext(block Block, tx *ContextTransaction, owner state.Account, contract state.Account, txWorldState TxWorldState) *Context {
 	ctx := &Context{
-		block:      block,
-		tx:         tx,
-		owner:      owner,
-		contract:   contract,
-		worldState: worldState,
+		block:        block,
+		tx:           tx,
+		owner:        owner,
+		contract:     contract,
+		txWorldState: txWorldState,
 	}
 	return ctx
 }
 
 // State returns account state
-func (ctx *Context) State() WorldState {
-	return ctx.worldState
+func (ctx *Context) State() TxWorldState {
+	return ctx.txWorldState
 }
 
 // Owner returns contract owner account

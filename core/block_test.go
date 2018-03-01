@@ -548,14 +548,8 @@ func TestBlock_CollectTransactions(t *testing.T) {
 	pubdata2, _ := priv2.PublicKey().Encoded()
 	coinbase, _ := NewAddressFromPublicKey(pubdata2)
 
-	block0, _ := NewBlock(bc.ChainID(), from, tail)
-	block0.header.timestamp = BlockInterval
-	block0.SetMiner(from)
-	block0.Seal()
-	//bc.BlockPool().push(block0)
-	bc.SetTailBlock(block0)
-
-	block, _ := NewBlock(bc.ChainID(), coinbase, block0)
+	block, err := NewBlock(bc.ChainID(), from, tail)
+	assert.Nil(t, err)
 	block.header.timestamp = BlockInterval * 2
 
 	tx1 := NewTransaction(bc.ChainID(), from, to, util.NewUint128FromInt(1), 1, TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, util.NewUint128FromInt(200000))
@@ -643,7 +637,7 @@ func TestSerializeTxByHash(t *testing.T) {
 	hash, err := HashTransaction(tx)
 	assert.Nil(t, err)
 	tx.hash = hash
-	block.acceptTransaction(tx)
+	AcceptTransaction(tx, block.WorldState())
 	msg, err := block.SerializeTxByHash(hash)
 	assert.Nil(t, err)
 	bytes, err := pb.Marshal(msg)

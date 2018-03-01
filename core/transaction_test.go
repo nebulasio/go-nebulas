@@ -389,11 +389,12 @@ func TestTransaction_VerifyExecution(t *testing.T) {
 
 			block := bc.tailBlock
 			block.Begin()
+
 			fromAcc, err := block.worldState.GetOrCreateUserAccount(tt.tx.from.address)
 			assert.Nil(t, err)
 			fromAcc.AddBalance(tt.fromBalance)
 
-			gasUsed, executionErr := tt.tx.VerifyExecution(block)
+			executionErr := VerifyExecution(tt.tx, block, block.WorldState())
 
 			fromAcc, err = block.worldState.GetOrCreateUserAccount(tt.tx.from.address)
 			assert.Nil(t, err)
@@ -401,9 +402,6 @@ func TestTransaction_VerifyExecution(t *testing.T) {
 			assert.Nil(t, err)
 			coinbaseAcc, err := block.worldState.GetOrCreateUserAccount(block.header.coinbase.address)
 			assert.Nil(t, err)
-			if tt.gasUsed != nil {
-				assert.Equal(t, tt.gasUsed, gasUsed)
-			}
 			if tt.afterBalance != nil {
 				assert.Equal(t, tt.afterBalance.String(), fromAcc.Balance().String())
 			}
@@ -422,7 +420,7 @@ func TestTransaction_VerifyExecution(t *testing.T) {
 				assert.Equal(t, tt.eventTopic[index], event.Topic)
 			}
 
-			block.Rollback()
+			block.RollBack()
 		})
 	}
 

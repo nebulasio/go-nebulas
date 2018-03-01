@@ -51,9 +51,6 @@ type Account interface {
 	BirthPlace() byteutils.Hash
 	VarsHash() byteutils.Hash
 
-	BeginBatch()
-	Commit()
-	RollBack()
 	Clone() (Account, error)
 
 	ToBytes() ([]byte, error)
@@ -72,10 +69,6 @@ type Account interface {
 type AccountState interface {
 	RootHash() (byteutils.Hash, error)
 	Accounts() ([]Account, error)
-
-	BeginBatch()
-	Commit() error
-	RollBack()
 
 	Clone() (AccountState, error)
 
@@ -140,8 +133,9 @@ type WorldState interface {
 	Commit() error
 	RollBack() error
 
-	Prepare(string) (TxState, error)
+	Prepare(string) (TxWorldState, error)
 	Update(string) error
+	Reset(string) error
 	Check(string) (bool, error)
 
 	LoadAccountsRoot(byteutils.Hash) error
@@ -195,8 +189,8 @@ type WorldState interface {
 	NextDynastyRoot() byteutils.Hash
 }
 
-// TxState is the world state of a single transaction
-type TxState interface {
+// TxWorldState is the world state of a single transaction
+type TxWorldState interface {
 	AccountsRoot() (byteutils.Hash, error)
 	TxsRoot() (byteutils.Hash, error)
 	EventsRoot() (byteutils.Hash, error)

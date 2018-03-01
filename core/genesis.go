@@ -91,12 +91,12 @@ func NewGenesisBlock(conf *corepb.Genesis, chain *BlockChain) (*Block, error) {
 				"address": v.Address,
 				"err":     err,
 			}).Error("Found invalid address in genesis token distribution.")
-			genesisBlock.Rollback()
+			genesisBlock.RollBack()
 			return nil, err
 		}
 		acc, err := genesisBlock.worldState.GetOrCreateUserAccount(addr.address)
 		if err != nil {
-			genesisBlock.Rollback()
+			genesisBlock.RollBack()
 			return nil, err
 		}
 		acc.AddBalance(util.NewUint128FromString(v.Value))

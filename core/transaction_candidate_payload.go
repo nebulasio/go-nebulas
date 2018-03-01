@@ -20,6 +20,7 @@ package core
 
 import (
 	"encoding/json"
+	"github.com/nebulasio/go-nebulas/core/state"
 
 	"github.com/nebulasio/go-nebulas/util"
 	// "github.com/nebulasio/go-nebulas/util/logging"
@@ -64,11 +65,11 @@ func (payload *CandidatePayload) BaseGasCount() *util.Uint128 {
 }
 
 // Execute the candidate payload in tx
-func (payload *CandidatePayload) Execute(block *Block, tx *Transaction) (*util.Uint128, string, error) {
+func (payload *CandidatePayload) Execute(tx *Transaction, block *Block, txWorldState state.TxWorldState) (*util.Uint128, string, error) {
 	candidate := tx.from.Bytes()
 	switch payload.Action {
 	case LoginAction:
-		if err := block.worldState.AddCandidate(candidate); err != nil {
+		if err := txWorldState.AddCandidate(candidate); err != nil {
 			return ZeroGasCount, "", err
 		}
 		/* 		logging.VLog().WithFields(logrus.Fields{
@@ -77,7 +78,7 @@ func (payload *CandidatePayload) Execute(block *Block, tx *Transaction) (*util.U
 			"candidate": ctx.tx.from.String(),
 		}).Debug("Candidate login.") */
 	case LogoutAction:
-		if err := block.worldState.DelCandidate(candidate); err != nil {
+		if err := txWorldState.DelCandidate(candidate); err != nil {
 			return ZeroGasCount, "", err
 		}
 		/* 		logging.VLog().WithFields(logrus.Fields{

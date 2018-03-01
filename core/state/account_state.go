@@ -114,28 +114,6 @@ func (acc *account) BirthPlace() byteutils.Hash {
 	return acc.birthPlace
 }
 
-// BeginBatch begins a batch task
-func (acc *account) BeginBatch() {
-	// logging.VLog().Debug("Account Begin.")
-	acc.variables.BeginBatch()
-}
-
-// Commit a batch task
-func (acc *account) Commit() {
-	acc.variables.Commit()
-	/* 	logging.VLog().WithFields(logrus.Fields{
-		"acc": acc,
-	}).Debug("Account Commit.") */
-}
-
-// RollBack a batch task
-func (acc *account) RollBack() {
-	acc.variables.RollBack()
-	/* 	logging.VLog().WithFields(logrus.Fields{
-		"acc": acc,
-	}).Debug("Account RollBack.") */
-}
-
 // Clone account
 func (acc *account) Clone() (Account, error) {
 	variables, err := acc.variables.Clone()
@@ -215,7 +193,6 @@ func (acc *account) String() string {
 type accountState struct {
 	stateTrie    *trie.BatchTrie
 	dirtyAccount map[byteutils.HexHash]Account
-	batching     bool
 	storage      storage.Storage
 }
 
@@ -228,16 +205,12 @@ func NewAccountState(root byteutils.Hash, storage storage.Storage) (AccountState
 	return &accountState{
 		stateTrie:    stateTrie,
 		dirtyAccount: make(map[byteutils.HexHash]Account),
-		batching:     false,
 		storage:      storage,
 	}, nil
 }
 
 func (as *accountState) recordDirtyAccount(addr byteutils.Hash, acc Account) {
-	if as.batching {
-		acc.BeginBatch()
-		as.dirtyAccount[addr.Hex()] = acc
-	}
+	as.dirtyAccount[addr.Hex()] = acc
 }
 
 func (as *accountState) newAccount(addr byteutils.Hash, birthPlace byteutils.Hash) (Account, error) {
@@ -346,48 +319,6 @@ func (as *accountState) Accounts() ([]Account, error) {
 	return accounts, nil
 }
 
-// BeginBatch begin a batch task
-func (as *accountState) BeginBatch() {
-	as.stateTrie.BeginBatch()
-	as.batching = true
-}
-
-// Commit a batch task
-func (as *accountState) Commit() error {
-	for addr, acc := range as.dirtyAccount {
-		acc.Commit()
-		bytes, err := acc.ToBytes()
-		if err != nil {
-			return err
-		}
-		key, err := addr.Hash()
-		if err != nil {
-			return err
-		}
-		as.stateTrie.Put(key, bytes)
-	}
-	as.dirtyAccount = make(map[byteutils.HexHash]Account)
-	as.stateTrie.Commit()
-	as.batching = false
-	/* 	logging.VLog().WithFields(logrus.Fields{
-		"AccountState": as,
-	}).Debug("AccountState Commit.") */
-	return nil
-}
-
-// RollBack a batch task
-func (as *accountState) RollBack() {
-	as.stateTrie.RollBack()
-	for _, acc := range as.dirtyAccount {
-		acc.RollBack()
-	}
-	as.dirtyAccount = make(map[byteutils.HexHash]Account)
-	as.batching = false
-	/* 	logging.VLog().WithFields(logrus.Fields{
-		"AccountState": as,
-	}).Debug("AccountState RollBack.") */
-}
-
 // Clone an accountState
 func (as *accountState) Clone() (AccountState, error) {
 	stateTrie, err := as.stateTrie.Clone()
@@ -406,17 +337,14 @@ func (as *accountState) Clone() (AccountState, error) {
 	return &accountState{
 		stateTrie:    stateTrie,
 		dirtyAccount: dirtyAccount,
-		batching:     as.batching,
-		storage:      as.storage,
 	}, nil
 }
 
 func (as *accountState) String() string {
-	return fmt.Sprintf("AccountState %p {RootHash:%s; dirtyAccount:%v; Batching:%v; Storage:%p}",
+	return fmt.Sprintf("AccountState %p {RootHash:%s; dirtyAccount:%v; Storage:%p}",
 		as,
 		byteutils.Hex(as.stateTrie.RootHash()),
 		as.dirtyAccount,
-		as.batching,
 		as.storage,
 	)
 }

@@ -20,6 +20,7 @@ package core
 
 import (
 	"encoding/json"
+	"github.com/nebulasio/go-nebulas/core/state"
 
 	"github.com/nebulasio/go-nebulas/nf/nvm"
 	"github.com/nebulasio/go-nebulas/util"
@@ -61,8 +62,8 @@ func (payload *DeployPayload) BaseGasCount() *util.Uint128 {
 }
 
 // Execute deploy payload in tx, deploy a new contract
-func (payload *DeployPayload) Execute(block *Block, tx *Transaction) (*util.Uint128, string, error) {
-	nvmctx, err := generateDeployContext(block, tx)
+func (payload *DeployPayload) Execute(tx *Transaction, block *Block, txWorldState state.TxWorldState) (*util.Uint128, string, error) {
+	nvmctx, err := generateDeployContext(tx, block, txWorldState)
 	if err != nil {
 		return util.NewUint128(), "", err
 	}
@@ -77,8 +78,7 @@ func (payload *DeployPayload) Execute(block *Block, tx *Transaction) (*util.Uint
 	return util.NewUint128FromInt(int64(engine.ExecutionInstructions())), result, err
 }
 
-func generateDeployContext(block *Block, tx *Transaction) (*nvm.Context, error) {
-
+func generateDeployContext(tx *Transaction, block *Block, txWorldState state.TxWorldState) (*nvm.Context, error) {
 	if block.height > NewOptimizeHeight {
 		if !tx.From().Equals(tx.To()) {
 			return nil, ErrContractTransactionAddressNotEqual
@@ -89,15 +89,15 @@ func generateDeployContext(block *Block, tx *Transaction) (*nvm.Context, error) 
 	if err != nil {
 		return nil, err
 	}
-	owner, err := block.worldState.GetOrCreateUserAccount(tx.from.Bytes())
+	owner, err := txWorldState.GetOrCreateUserAccount(tx.from.Bytes())
 	if err != nil {
 		return nil, err
 	}
-	contract, err := block.worldState.CreateContractAccount(addr.Bytes(), tx.Hash())
+	contract, err := txWorldState.CreateContractAccount(addr.Bytes(), tx.Hash())
 	if err != nil {
 		return nil, err
 	}
-	nvmctx := nvm.NewContext(block, convertNvmTx(tx), owner, contract, block.worldState)
+	nvmctx := nvm.NewContext(block, convertNvmTx(tx), owner, contract, txWorldState)
 	return nvmctx, nil
 }
 
