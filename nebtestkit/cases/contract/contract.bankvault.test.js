@@ -22,7 +22,7 @@ var coinState;
 
 // deploy a new contract each run 
 var redeploy = process.env.REDEPLOY || false;
-var scriptType = process.env.script || 'ts';
+var scriptType = process.env.script || 'js';
 var env = process.env.NET || 'local';
 if (env === 'local') {
     neb.setRequest(new HttpRequest("http://127.0.0.1:8685"));//https://testnet.nebulas.io
@@ -30,9 +30,9 @@ if (env === 'local') {
     sourceAccount = new Wallet.Account("a6e5eb290e1438fce79f5cb8774a72621637c2c9654c8b2525ed1d7e4e73653f");
     coinbase = "eb31ad2d8a89a0ca6935c308d5425730430bc2d63f2573b8";
     if (!redeploy) {
-        // txhash='f8588fabf049afa4646eb8135c0cd09f96c90fa3dd18d2bfe2816541ec81263e'
-        contractAddr = "bada3c0992c3b42d8b5ecc0fb122cd0c00a27a09573ebdee";
-        // ts a60c51edc4a361cddfb405a8ed9703c106321ce15b66b90c
+        contractAddr = "557fccaf2f05d4b46156e9b98ca9726f1c9e91d95d3830a7"; 
+        // .js 557fccaf2f05d4b46156e9b98ca9726f1c9e91d95d3830a7
+        // .ts 0d47bb3e7c35c24077da0b25fb04849ec90994ddaa16893b
     }
 
 } else if (env === 'testneb1') {
@@ -316,7 +316,6 @@ function testTakeout(testInput, testExpect, done) {
                         var t = new BigNumber(testExpect.takeBalance).sub(new BigNumber(gasUsed)
                                 .mul(new BigNumber(gasPrice)));
                         var isEqual = fromBalanceChange.equals(t);
-                        console.log("[after take] nas cost : " + t);
     
                         expect(isEqual).to.be.true;
                         done();
@@ -451,16 +450,16 @@ describe('bankvault test suits', function() {
         });
     });
 
-    describe("take-lt-height", function(){
-        before(function(done){
+    describe("take-lt-height", () => {
+        before(done => {
             claimNas(scriptType, done);
         });
 
-        it('save before take', function(done){
+        it('save(40) before take', done => {
             var testInput = {
                 gasLimit: 2000000,
                 func: "save",
-                args: "[100000]",
+                args: "[40]",
                 value: 20000000000,
             }
     
@@ -471,7 +470,7 @@ describe('bankvault test suits', function() {
             testSave(testInput, testExpect, done);
         });
     
-        it('call takeout()', function(done){
+        it('call takeout()', done => {
             // take
             var testInput = {
                 gasLimit: 2000000,
@@ -486,6 +485,26 @@ describe('bankvault test suits', function() {
             }
     
             testTakeout(testInput, testExpect, done);
+        });
+
+        it('call takeout() after 50 blocks', done => {
+            // take
+            var testInput = {
+                gasLimit: 2000000,
+                func: "takeout",
+                args: "[10000000000]",
+                value: "0"  //no use
+            }
+    
+            var testExpect = {
+                canExecuteTx: true,  // actually, should be `false`
+                takeBalance: '10000000000'  // same with testInput.args[0]
+            }
+            
+            setTimeout(() => {
+                testTakeout(testInput, testExpect, done);
+            }, 50 * 5 * 1000);
+            
         });
     });
     
@@ -519,7 +538,7 @@ describe('bankvault test suits', function() {
             claimNas(scriptType, done);
         });
 
-        it('save non-negative', function(done){
+        it('save non-negative value', function(done){
             var testInput = {
                 gasLimit: 2000000,
                 func: "save",
@@ -534,12 +553,27 @@ describe('bankvault test suits', function() {
             testSave(testInput, testExpect, done);
         });
 
-        it('save negative', function(done){
+        it('save negative value', function(done){
             var testInput = {
                 gasLimit: 2000000,
                 func: "save",
                 args: "[0]",
                 value: -20000000000,
+            }
+    
+            var testExpect = {
+                canExecuteTx: true
+            }
+    
+            testSave(testInput, testExpect, done);
+        });
+
+        it('save negative height', done => {
+            var testInput = {
+                gasLimit: 2000000,
+                func: "save",
+                args: "[-500]",
+                value: 20000000000,
             }
     
             var testExpect = {
