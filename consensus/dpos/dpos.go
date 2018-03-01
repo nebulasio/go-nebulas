@@ -38,13 +38,14 @@ import (
 
 // Errors in PoW Consensus
 var (
-	ErrInvalidBlockInterval   = errors.New("invalid block interval")
-	ErrMissingConfigForDpos   = errors.New("missing configuration for Dpos")
-	ErrInvalidBlockProposer   = errors.New("invalid block proposer")
-	ErrCannotMintWhenPending  = errors.New("cannot mint block now, waiting for cancel pending again")
-	ErrCannotMintWhenDiable   = errors.New("cannot mint block now, waiting for enable it again")
-	ErrWaitingBlockInLastSlot = errors.New("cannot mint block now, waiting for last block")
-	ErrBlockMintedInNextSlot  = errors.New("cannot mint block now, there is a block minted in current slot")
+	ErrInvalidBlockInterval       = errors.New("invalid block interval")
+	ErrMissingConfigForDpos       = errors.New("missing configuration for Dpos")
+	ErrInvalidBlockProposer       = errors.New("invalid block proposer")
+	ErrCannotMintWhenPending      = errors.New("cannot mint block now, waiting for cancel pending again")
+	ErrCannotMintWhenDiable       = errors.New("cannot mint block now, waiting for enable it again")
+	ErrWaitingBlockInLastSlot     = errors.New("cannot mint block now, waiting for last block")
+	ErrBlockMintedInNextSlot      = errors.New("cannot mint block now, there is a block minted in current slot")
+	ErrGenerateNextConsensusState = errors.New("Failed to generate next consensus state")
 )
 
 // Metrics
@@ -461,7 +462,7 @@ func (dpos *Dpos) checkProposer(tail *core.Block, now int64) (state.ConsensusSta
 			"elapsed": elapsed,
 			"err":     err,
 		}).Debug("Failed to generate next dynasty context.")
-		return nil, core.ErrGenerateNextDynastyContext
+		return nil, ErrGenerateNextDynastyContext
 	}
 	if consensusState.Proposer() == nil || !consensusState.Proposer().Equals(dpos.miner.Bytes()) {
 		proposer := "nil"
