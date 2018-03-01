@@ -49,11 +49,11 @@ function prepareContractCall(testCase, done) {
 
         var accounts = new Array();
         var values = new Array();
-        if (typeof contractAddr === "undefined") {
+        // if (typeof contractAddr === "undefined") {
             deploy = Wallet.Account.NewAccount();
             accounts.push(deploy);
             values.push(neb.nasToBasic(1));
-        }
+        // }
 
         from = Wallet.Account.NewAccount();
         accounts.push(from);
@@ -61,11 +61,11 @@ function prepareContractCall(testCase, done) {
         var fromBalance = (typeof testCase.testInput.fromBalance === "undefined") ? neb.nasToBasic(1) : testCase.testInput.fromBalance;
         values.push(fromBalance);
         cliamTokens(accounts, values, function () {
-            if (typeof contractAddr === "undefined") {
+            // if (typeof contractAddr === "undefined") {
                 deployContract(done);
-            } else {
-                done();
-            }
+            // } else {
+            //     done();
+            // }
         });
 
     });
@@ -142,6 +142,7 @@ function testContractCall(testInput, testExpect, done) {
                                 if (event.topic == "chain.transactionResult") {
                                     var result = JSON.parse(event.data);
                                     expect(result.status).to.equal(testExpect.status);
+                                    console.log("tx event:", event.data);
                                 }
                             }
                             done();
@@ -169,7 +170,7 @@ function testContractCall(testInput, testExpect, done) {
         if (true === testExpect.canSendTx) {
             done(err);
         } else {
-            console.log("send tx err:", err.message);
+            console.log("send tx failed:", err.message);
             done();
         }
     });
@@ -534,13 +535,13 @@ testCase = {
         }
     },
     "testExpect": {
-        canSendTx: true,
-        canSubmitTx: true,
-        canExcuteTx: true,
+        canSendTx: false,
+        canSubmitTx: false,
+        canExcuteTx: false,
         status: 1,
-        fromBalanceAfterTx: "999999979873999999",
-        toBalanceAfterTx: '1',
-        transferReward: '20126000000'
+        fromBalanceAfterTx: neb.nasToBasic(1),
+        toBalanceAfterTx: '0',
+        transferReward: '0'
     }
 };
 testCases.push(testCase);
@@ -700,7 +701,7 @@ testCase = {
         canSubmitTx: true,
         canExcuteTx: false,
         status: 1,
-        fromBalanceAfterTx: "999999979873999999",
+        fromBalanceAfterTx: "999999979971000000",
         toBalanceAfterTx: '0',
         transferReward: '20029000000'
     }
@@ -727,7 +728,7 @@ testCase = {
         canSubmitTx: true,
         canExcuteTx: false,
         status: 0,
-        fromBalanceAfterTx: "999999979873999999",
+        fromBalanceAfterTx: "999999979900000000",
         toBalanceAfterTx: '0',
         transferReward: '20100000000'
     }
@@ -850,7 +851,7 @@ testCase = {
         sign: true,
         from: from,
         to: contractAddr,
-        value: neb.nasToBasic(0.1),
+        value: "1",
         nonce: 1,
         gasPrice: 1000000,
         gasLimit: 20126,
@@ -881,7 +882,7 @@ testCase = {
         value: "1000000",
         nonce: 1,
         gasPrice: 1000000,
-        gasLimit: 2000000,
+        gasLimit: 20126,
         contract: {
             "function": "name",
             "args": ""
@@ -902,14 +903,14 @@ testCases.push(testCase);
 testCase = {
     "name": "23. balanceOfFrom = (TxBaseGasCount + TxPayloadBaseGasCount[payloadType] + gasCountOfPayload + gasCountOfPayloadExecuted) * gasPrice + valueOfTx",
     "testInput": {
-        fromBalance: "2012700000",
+        fromBalance: "20127000000",
         sign: true,
         from: from,
         to: contractAddr,
         value: "1000000",
         nonce: 1,
         gasPrice: 1000000,
-        gasLimit: 2000000,
+        gasLimit: 20126,
         contract: {
             "function": "name",
             "args": ""
@@ -930,14 +931,14 @@ testCases.push(testCase);
 testCase = {
     "name": "24. balanceOfFrom > (TxBaseGasCount + TxPayloadBaseGasCount[payloadType] + gasCountOfPayload + gasCountOfPayloadExecuted) * gasPrice + valueOfTx",
     "testInput": {
-        fromBalance: "2012800000",
+        fromBalance: "20128000000",
         sign: true,
         from: from,
         to: contractAddr,
         value: "1000000",
         nonce: 1,
         gasPrice: 1000000,
-        gasLimit: 2000000,
+        gasLimit: 20126,
         contract: {
             "function": "name",
             "args": ""
@@ -975,9 +976,9 @@ testCase = {
         canSubmitTx: true,
         canExcuteTx: false,
         status: 0,
-        fromBalanceAfterTx: "999999979873999999",
+        fromBalanceAfterTx: "999999979866000000",
         toBalanceAfterTx: '0',
-        transferReward: '20126000000'
+        transferReward: '20134000000'
     }
 };
 testCases.push(testCase);
@@ -1027,11 +1028,11 @@ testCase = {
     "testExpect": {
         canSendTx: true,
         canSubmitTx: true,
-        canExcuteTx: false,
+        canExcuteTx: true,
         status: 1,
-        fromBalanceAfterTx: "999999979873999999",
-        toBalanceAfterTx: '0',
-        transferReward: '20126000000'
+        fromBalanceAfterTx: "999999979853999999",
+        toBalanceAfterTx: '1',
+        transferReward: '20146000000'
     }
 };
 testCases.push(testCase);
@@ -1056,9 +1057,9 @@ testCase = {
         canSubmitTx: true,
         canExcuteTx: false,
         status: 1,
-        fromBalanceAfterTx: "999999979873999999",
+        fromBalanceAfterTx: "999999979831000000",
         toBalanceAfterTx: '0',
-        transferReward: '20126000000'
+        transferReward: '20169000000'
     }
 };
 testCases.push(testCase);
@@ -1083,9 +1084,9 @@ testCase = {
         canSubmitTx: true,
         canExcuteTx: false,
         status: 0,
-        fromBalanceAfterTx: "999999979873999999",
+        fromBalanceAfterTx: "999999979505000000",
         toBalanceAfterTx: '0',
-        transferReward: '20126000000'
+        transferReward: '20495000000'
     }
 };
 testCases.push(testCase);
@@ -1110,9 +1111,9 @@ testCase = {
         canSubmitTx: true,
         canExcuteTx: true,
         status: 1,
-        fromBalanceAfterTx: "999999979873999999",
-        toBalanceAfterTx: '0',
-        transferReward: '20126000000'
+        fromBalanceAfterTx: "999999979787999999",
+        toBalanceAfterTx: '1',
+        transferReward: '20212000000'
     }
 };
 testCases.push(testCase);
@@ -1129,11 +1130,18 @@ describe('contract call test', function () {
     //     });
     // });
 
-    // for (var i = 0; i < testCases.length; i++) {
-    //     it(testCases[i].name, function (done) {
-    //         testContractCall(testCases[caseIndex].testInput, testCases[caseIndex].testExpect, done);
+
+    // var testCase = testCases[29];
+    // it(testCase.name, function (done) {
+    //     prepareContractCall(testCase, function (err) {
+    //         if (err instanceof Error) {
+    //             done(err);
+    //         } else {
+    //             testContractCall(testCase.testInput, testCase.testExpect, done);
+    //         }
     //     });
-    // }
+    // });
+
 
     for (var i = 0; i < testCases.length; i++) {
 
