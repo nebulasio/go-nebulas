@@ -349,6 +349,7 @@ func (tx *Transaction) LocalExecution(block *Block) (*util.Uint128, string, erro
 	if err != nil {
 		return nil, "", err
 	}
+
 	minBalanceRequired, err := tx.MinBalanceRequired()
 	if err != nil {
 		return nil, "", err
@@ -361,6 +362,7 @@ func (tx *Transaction) LocalExecution(block *Block) (*util.Uint128, string, erro
 	if err != nil {
 		return nil, "", err
 	}
+
 	payload, err := tx.LoadPayload(txBlock)
 	if err != nil {
 		return util.NewUint128(), "", err
@@ -375,13 +377,13 @@ func (tx *Transaction) LocalExecution(block *Block) (*util.Uint128, string, erro
 		return util.NewUint128(), "", err
 	}
 
-	gasExecution, result, err := payload.Execute(txBlock, tx)
+	gasExecution, result, exeErr := payload.Execute(txBlock, tx)
 
-	gas, tmpErr := gasUsed.Add(gasExecution)
-	if tmpErr != nil {
-		return util.NewUint128(), "", tmpErr
+	gas, err := gasUsed.Add(gasExecution)
+	if err != nil {
+		return gasUsed, "", err
 	}
-	return gas, result, err
+	return gas, result, exeErr
 }
 
 // VerifyExecution transaction and return result.
@@ -407,6 +409,17 @@ func (tx *Transaction) VerifyExecution(block *Block) (*util.Uint128, error) {
 	}
 	if fromAcc.Balance().Cmp(minBalanceRequired.Int) < 0 {
 		return util.NewUint128(), ErrInsufficientBalance
+	}
+
+	//TODO: later remove TransactionOptimizeHeight
+	if block.height > TransactionOptimizeHeight {
+		minBalanceRequired, err = minBalanceRequired.Add(tx.value)
+		if err != nil {
+			return nil, err
+		}
+		if fromAcc.Balance().Cmp(minBalanceRequired.Int) < 0 {
+			return nil, ErrInsufficientBalance
+		}
 	}
 
 	// gasLimit < gasUsed
@@ -470,6 +483,20 @@ func (tx *Transaction) VerifyExecution(block *Block) (*util.Uint128, error) {
 	// execute smart contract and sub the calcute gas.
 	gasExecution, _, exeErr := payload.Execute(txBlock, tx)
 
+	// gas = tx.GasCountOfTxBase() +  gasExecution
+	gas, gasErr := gasUsed.Add(gasExecution)
+	if gasErr != nil {
+		return nil, gasErr
+	}
+
+	//TODO: later remove TransactionOptimizeHeight
+	if block.height > TransactionOptimizeHeight {
+		if tx.gasLimit.Cmp(gas.Int) < 0 {
+			gas = tx.gasLimit
+			exeErr = ErrOutOfGasLimit
+		}
+	}
+
 	// only execute success, merge the state to use
 	if exeErr == nil {
 		block.Merge(txBlock)
@@ -488,18 +515,13 @@ func (tx *Transaction) VerifyExecution(block *Block) (*util.Uint128, error) {
 		return nil, err
 	}
 
-	// gas = tx.GasCountOfTxBase() +  gasExecution
-	gas, err := gasUsed.Add(gasExecution)
-	if err != nil {
-		return nil, err
-	}
-	err = tx.gasConsumption(fromAcc, coinbaseAcc, gas)
-	if err != nil {
-		return nil, err
+	gasErr = tx.gasConsumption(fromAcc, coinbaseAcc, gas)
+	if gasErr != nil {
+		return nil, gasErr
 	}
 	if exeErr != nil {
 		logging.VLog().WithFields(logrus.Fields{
-			"err":          err,
+			"exeErr":       exeErr,
 			"block":        block,
 			"tx":           tx,
 			"gasUsed":      gasUsed.String(),
@@ -507,13 +529,19 @@ func (tx *Transaction) VerifyExecution(block *Block) (*util.Uint128, error) {
 		}).Debug("Failed to execute payload.")
 
 		metricsTxExeFailed.Mark(1)
+
+		// TODO: later remove. Compatible with older version error data.
+		if block.height < TransactionOptimizeHeight {
+			exeErr = err
+		}
+
 		tx.triggerEvent(TopicExecuteTxFailed, block, gas, exeErr)
 	} else {
 		if fromAcc.Balance().Cmp(tx.value.Int) < 0 {
 			logging.VLog().WithFields(logrus.Fields{
-				"err":   ErrInsufficientBalance,
-				"block": block,
-				"tx":    tx,
+				"exeErr": ErrInsufficientBalance,
+				"block":  block,
+				"tx":     tx,
 			}).Debug("Failed to check balance sufficient.")
 
 			metricsTxExeFailed.Mark(1)

@@ -37,6 +37,11 @@ const (
 
 	// update deploy execution, from & to must equal
 	NewOptimizeHeight = 750000
+
+	// update transaction exe check
+	// add balance case: balanceOfFrom > gasPrice*gasLimit + valueOfTx
+	// add gas case: gasLimit > gasUsed + gasExecution
+	TransactionOptimizeHeight = 800000
 )
 
 // Payload Types
