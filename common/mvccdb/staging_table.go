@@ -19,6 +19,7 @@
 package mvccdb
 
 import (
+	"bytes"
 	"errors"
 	"sync"
 
@@ -66,12 +67,25 @@ func NewStagingTable() *StagingTable {
 
 // Get return value by tid and key. If tid+key does not exist, copy and incr version from `finalVersionaizeValues` to record previous version.
 func (tbl *StagingTable) Get(tid interface{}, key []byte) *VersionizedValueItem {
-	return tbl.getVersionizedValueForUpdate(tid, key, false)
+	value, created := tbl.getVersionizedValueForUpdate(tid, key)
+	if !created {
+		return value
+	} else {
+		return nil
+	}
 }
 
 // Put put the tid/key/val pair. If tid+key does not exist, copy and incr version from `finalVersionaizeValues` to record previous version.
-func (tbl *StagingTable) Put(tid interface{}, key []byte, val []byte, dirty bool) *VersionizedValueItem {
-	value := tbl.getVersionizedValueForUpdate(tid, key, true)
+func (tbl *StagingTable) Put(tid interface{}, key []byte, val []byte) *VersionizedValueItem {
+	value, _ := tbl.getVersionizedValueForUpdate(tid, key)
+	value.dirty = bytes.Compare(value.val, val) != 0
+	value.val = val
+	return value
+}
+
+// Set set the tid/key/val pair. If tid+key does not exist, copy and incr version from `finalVersionaizeValues` to record previous version.
+func (tbl *StagingTable) Set(tid interface{}, key []byte, val []byte, dirty bool) *VersionizedValueItem {
+	value, _ := tbl.getVersionizedValueForUpdate(tid, key)
 	value.val = val
 	value.dirty = dirty
 	return value
@@ -79,7 +93,7 @@ func (tbl *StagingTable) Put(tid interface{}, key []byte, val []byte, dirty bool
 
 // Del del the tid/key pair. If tid+key does not exist, copy and incr version from `finalVersionaizeValues` to record previous version.
 func (tbl *StagingTable) Del(tid interface{}, key []byte) *VersionizedValueItem {
-	value := tbl.getVersionizedValueForUpdate(tid, key, true)
+	value, _ := tbl.getVersionizedValueForUpdate(tid, key)
 	value.deleted = true
 	value.dirty = true
 	return value
@@ -165,17 +179,18 @@ func (tbl *StagingTable) UnlockFinalVersionValue() {
 	tbl.finalVersionizedValueMutex.Unlock()
 }
 
-func (tbl *StagingTable) getVersionizedValueForUpdate(tid interface{}, key []byte, createIfNotExist bool) *VersionizedValueItem {
+func (tbl *StagingTable) getVersionizedValueForUpdate(tid interface{}, key []byte) (*VersionizedValueItem, bool) {
 	keyStr := byteutils.Hex(key)
 	tidValues := tbl.getVersionizedValuesOfTid(tid)
 
+	created := false
 	value := tidValues[keyStr]
 	if value == nil {
-		value = tbl.getAndIncrValueFromFinalVersionValue(tid, keyStr, key, createIfNotExist)
+		value, created = tbl.getAndIncrValueFromFinalVersionValue(tid, keyStr, key)
 		tidValues[keyStr] = value
 	}
 
-	return value
+	return value, created
 }
 
 func (tbl *StagingTable) getVersionizedValuesOfTid(tid interface{}) stagingValuesMap {
@@ -194,23 +209,22 @@ func (tbl *StagingTable) getVersionizedValuesOfTid(tid interface{}) stagingValue
 	return tidValues
 }
 
-func (tbl *StagingTable) getAndIncrValueFromFinalVersionValue(tid interface{}, keyStr string, key []byte, createIfNotExist bool) *VersionizedValueItem {
+func (tbl *StagingTable) getAndIncrValueFromFinalVersionValue(tid interface{}, keyStr string, key []byte) (*VersionizedValueItem, bool) {
 	tbl.finalVersionizedValueMutex.Lock()
 	defer tbl.finalVersionizedValueMutex.Unlock()
 
+	created := false
+
 	latestValue := tbl.finalVersionizedValue[keyStr]
-	if latestValue == nil && createIfNotExist == true {
+	if latestValue == nil {
+		created = true
 		latestValue = NewDefaultVersionizedValueItem(key)
 		tbl.finalVersionizedValue[keyStr] = latestValue
 	}
 
-	if latestValue != nil {
-		// incr version.
-		value := IncrVersionizedValueItem(tid, latestValue)
-		return value
-	}
-
-	return nil
+	// incr version.
+	value := IncrVersionizedValueItem(tid, latestValue)
+	return value, created
 }
 
 // NewDefaultVersionizedValueItem return new instance of VersionizedValueItem, old/new version are 0, dirty is false.

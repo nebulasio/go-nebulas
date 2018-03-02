@@ -156,7 +156,7 @@ func (db *MVCCDB) Get(key []byte) ([]byte, error) {
 			return nil, err
 		}
 
-		value = db.stagingTable.Put(db.tid, key, data, false)
+		value = db.stagingTable.Set(db.tid, key, data, false)
 	}
 
 	return value.val, nil
@@ -171,7 +171,7 @@ func (db *MVCCDB) Put(key []byte, val []byte) error {
 		return db.putToStorage(key, val)
 	}
 
-	db.stagingTable.Put(db.tid, key, val, true)
+	db.stagingTable.Put(db.tid, key, val)
 	return nil
 }
 
