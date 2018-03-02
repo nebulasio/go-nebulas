@@ -38,13 +38,14 @@ type stagingValuesMapMap map[interface{}]stagingValuesMap
 
 // VersionizedValueItem a struct for key/value pair, with version, dirty, deleted flags.
 type VersionizedValueItem struct {
-	tid     interface{}
-	key     []byte
-	val     []byte
-	old     int
-	new     int
-	dirty   bool
-	deleted bool
+	tid         interface{}
+	key         []byte
+	val         []byte
+	old         int
+	new         int
+	deleted     bool
+	initialized bool
+	dirty       bool
 }
 
 // StagingTable a struct to store all staging changed key/value pairs.
@@ -67,35 +68,38 @@ func NewStagingTable() *StagingTable {
 
 // Get return value by tid and key. If tid+key does not exist, copy and incr version from `finalVersionaizeValues` to record previous version.
 func (tbl *StagingTable) Get(tid interface{}, key []byte) *VersionizedValueItem {
-	value, created := tbl.getVersionizedValueForUpdate(tid, key)
-	if !created {
+	value := tbl.getVersionizedValueForUpdate(tid, key)
+	if value.initialized {
 		return value
-	} else {
-		return nil
 	}
+	return nil
 }
 
 // Put put the tid/key/val pair. If tid+key does not exist, copy and incr version from `finalVersionaizeValues` to record previous version.
 func (tbl *StagingTable) Put(tid interface{}, key []byte, val []byte) *VersionizedValueItem {
-	value, _ := tbl.getVersionizedValueForUpdate(tid, key)
-	value.dirty = bytes.Compare(value.val, val) != 0
+	value := tbl.getVersionizedValueForUpdate(tid, key)
+	value.dirty = value.dirty || bytes.Compare(value.val, val) != 0
 	value.val = val
+	value.initialized = true
 	return value
 }
 
 // Set set the tid/key/val pair. If tid+key does not exist, copy and incr version from `finalVersionaizeValues` to record previous version.
-func (tbl *StagingTable) Set(tid interface{}, key []byte, val []byte, dirty bool) *VersionizedValueItem {
-	value, _ := tbl.getVersionizedValueForUpdate(tid, key)
+func (tbl *StagingTable) Set(tid interface{}, key []byte, val []byte, deleted, dirty bool) *VersionizedValueItem {
+	value := tbl.getVersionizedValueForUpdate(tid, key)
 	value.val = val
+	value.deleted = deleted
+	value.initialized = true
 	value.dirty = dirty
 	return value
 }
 
 // Del del the tid/key pair. If tid+key does not exist, copy and incr version from `finalVersionaizeValues` to record previous version.
 func (tbl *StagingTable) Del(tid interface{}, key []byte) *VersionizedValueItem {
-	value, _ := tbl.getVersionizedValueForUpdate(tid, key)
+	value := tbl.getVersionizedValueForUpdate(tid, key)
 	value.deleted = true
 	value.dirty = true
+	value.initialized = true
 	return value
 }
 
@@ -116,21 +120,15 @@ func (tbl *StagingTable) MergeToFinal(tid interface{}) ([]interface{}, error) {
 	tbl.finalVersionizedValueMutex.Lock()
 	defer tbl.finalVersionizedValueMutex.Unlock()
 
-	dependentTids := make([]interface{}, 0)
+	dependentTids := make(map[interface{}]bool)
 	conflictKeys := make(map[string]interface{})
 
 	// 1. check version.
 	finalValues := tbl.finalVersionizedValue
 	tidValues := tbl.getVersionizedValuesOfTid(tid)
+
 	for keyStr, tidValueItem := range tidValues {
 		finalValueItem := finalValues[keyStr]
-		if finalValueItem == nil {
-			logging.VLog().WithFields(logrus.Fields{
-				"keyStr": keyStr,
-				"tid":    tid,
-			}).Warn("Key should be in finalVersionizedValue.")
-			continue
-		}
 
 		// record conflict.
 		if tidValueItem.old != finalValueItem.new {
@@ -138,8 +136,13 @@ func (tbl *StagingTable) MergeToFinal(tid interface{}) ([]interface{}, error) {
 			continue
 		}
 
+		// ignore uninitialized value item.
+		if !finalValueItem.initialized {
+			continue
+		}
+
 		// record dependentTids.
-		dependentTids = append(dependentTids, finalValueItem.tid)
+		dependentTids[finalValueItem.tid] = true
 	}
 
 	if len(conflictKeys) > 0 {
@@ -152,8 +155,10 @@ func (tbl *StagingTable) MergeToFinal(tid interface{}) ([]interface{}, error) {
 
 	// 2. merge to final.
 	for keyStr, tidValueItem := range tidValues {
+		finalValueItem := finalValues[keyStr]
+
 		// ignore dirty.
-		if tidValueItem.dirty == false {
+		if finalValueItem.initialized && !tidValueItem.dirty {
 			continue
 		}
 
@@ -161,7 +166,12 @@ func (tbl *StagingTable) MergeToFinal(tid interface{}) ([]interface{}, error) {
 		finalValues[keyStr] = tidValueItem.CloneForFinal()
 	}
 
-	return dependentTids, nil
+	tids := make([]interface{}, 0, len(dependentTids))
+	for key := range dependentTids {
+		tids = append(tids, key)
+	}
+
+	return tids, nil
 }
 
 // LockFinalVersionValue lock to read/write `finalVersionizedValue`.
@@ -174,18 +184,17 @@ func (tbl *StagingTable) UnlockFinalVersionValue() {
 	tbl.finalVersionizedValueMutex.Unlock()
 }
 
-func (tbl *StagingTable) getVersionizedValueForUpdate(tid interface{}, key []byte) (*VersionizedValueItem, bool) {
+func (tbl *StagingTable) getVersionizedValueForUpdate(tid interface{}, key []byte) *VersionizedValueItem {
 	keyStr := byteutils.Hex(key)
 	tidValues := tbl.getVersionizedValuesOfTid(tid)
 
-	created := false
 	value := tidValues[keyStr]
 	if value == nil {
-		value, created = tbl.getAndIncrValueFromFinalVersionValue(tid, keyStr, key)
+		value = tbl.getAndIncrValueFromFinalVersionValue(tid, keyStr, key)
 		tidValues[keyStr] = value
 	}
 
-	return value, created
+	return value
 }
 
 func (tbl *StagingTable) getVersionizedValuesOfTid(tid interface{}) stagingValuesMap {
@@ -204,59 +213,59 @@ func (tbl *StagingTable) getVersionizedValuesOfTid(tid interface{}) stagingValue
 	return tidValues
 }
 
-func (tbl *StagingTable) getAndIncrValueFromFinalVersionValue(tid interface{}, keyStr string, key []byte) (*VersionizedValueItem, bool) {
+func (tbl *StagingTable) getAndIncrValueFromFinalVersionValue(tid interface{}, keyStr string, key []byte) *VersionizedValueItem {
 	tbl.finalVersionizedValueMutex.Lock()
 	defer tbl.finalVersionizedValueMutex.Unlock()
 
-	created := false
-
 	latestValue := tbl.finalVersionizedValue[keyStr]
 	if latestValue == nil {
-		created = true
 		latestValue = NewDefaultVersionizedValueItem(key)
 		tbl.finalVersionizedValue[keyStr] = latestValue
 	}
 
 	// incr version.
 	value := IncrVersionizedValueItem(tid, latestValue)
-	return value, created
+	return value
 }
 
 // NewDefaultVersionizedValueItem return new instance of VersionizedValueItem, old/new version are 0, dirty is false.
 func NewDefaultVersionizedValueItem(key []byte) *VersionizedValueItem {
 	return &VersionizedValueItem{
-		tid:     nil,
-		key:     key,
-		val:     nil,
-		old:     0,
-		new:     0,
-		deleted: false,
-		dirty:   false,
+		tid:         nil,
+		key:         key,
+		val:         nil,
+		old:         0,
+		new:         0,
+		deleted:     false,
+		initialized: false,
+		dirty:       false,
 	}
 }
 
 // IncrVersionizedValueItem copy and return the version increased VersionizedValueItem.
 func IncrVersionizedValueItem(tid interface{}, oldValue *VersionizedValueItem) *VersionizedValueItem {
 	return &VersionizedValueItem{
-		tid:     tid,
-		key:     oldValue.key,
-		val:     oldValue.val,
-		old:     oldValue.new,
-		new:     oldValue.new + 1,
-		deleted: false,
-		dirty:   false,
+		tid:         tid,
+		key:         oldValue.key,
+		val:         oldValue.val,
+		old:         oldValue.new,
+		new:         oldValue.new + 1,
+		deleted:     oldValue.deleted,
+		initialized: oldValue.initialized,
+		dirty:       false,
 	}
 }
 
 // CloneForFinal shadow copy of `VersionizedValueItem` with dirty is false.
 func (value *VersionizedValueItem) CloneForFinal() *VersionizedValueItem {
 	return &VersionizedValueItem{
-		tid:     value.tid,
-		key:     value.key,
-		val:     value.val,
-		old:     value.old,
-		new:     value.new,
-		deleted: value.deleted,
-		dirty:   false,
+		tid:         value.tid,
+		key:         value.key,
+		val:         value.val,
+		old:         value.old,
+		new:         value.new,
+		deleted:     value.deleted,
+		initialized: value.initialized,
+		dirty:       false,
 	}
 }

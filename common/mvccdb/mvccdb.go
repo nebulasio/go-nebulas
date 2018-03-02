@@ -100,11 +100,15 @@ func (db *MVCCDB) Commit() error {
 	db.stagingTable.LockFinalVersionValue()
 	defer db.stagingTable.UnlockFinalVersionValue()
 	for _, value := range db.stagingTable.finalVersionizedValue {
-		if value.dirty == false {
+		if !value.initialized {
 			continue
 		}
 
-		if value.deleted == true {
+		if !value.dirty {
+			continue
+		}
+
+		if value.deleted {
 			db.delFromStorage(value.key)
 		} else {
 			db.putToStorage(value.key, value.val)
@@ -156,7 +160,7 @@ func (db *MVCCDB) Get(key []byte) ([]byte, error) {
 			return nil, err
 		}
 
-		value = db.stagingTable.Set(db.tid, key, data, false)
+		value = db.stagingTable.Set(db.tid, key, data, false, false)
 	}
 
 	return value.val, nil
