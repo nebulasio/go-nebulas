@@ -26,8 +26,9 @@ import (
 )
 
 var (
-	ErrUnsupportedNestedTransaction = errors.New("unsupported nested transaction")
-	ErrTransactionNotStarted        = errors.New("transaction is not started")
+	ErrUnsupportedNestedTransaction    = errors.New("unsupported nested transaction")
+	ErrTransactionNotStarted           = errors.New("transaction is not started")
+	ErrDisallowedCallingInNoPreparedDB = errors.New("disallowed calling in No-Prepared MVCCDB")
 )
 
 /* How to use MVCCDB
@@ -44,6 +45,7 @@ type MVCCDB struct {
 	stagingTable    *StagingTable
 	mutex           sync.Mutex
 	isInTransaction bool
+	isPreparedDB    bool
 }
 
 // NewMVCCDB create a new change log
@@ -53,6 +55,7 @@ func NewMVCCDB(storage storage.Storage) (*MVCCDB, error) {
 		storage:         storage,
 		stagingTable:    NewStagingTable(),
 		isInTransaction: false,
+		isPreparedDB:    false,
 	}
 
 	return db, nil
@@ -171,6 +174,9 @@ func (db *MVCCDB) Del(key []byte) error {
 
 // Prepare a nested transaction
 func (db *MVCCDB) Prepare(tid interface{}) (*MVCCDB, error) {
+	db.mutex.Lock()
+	defer db.mutex.Lock()
+
 	if !db.isInTransaction {
 		return nil, ErrTransactionNotStarted
 	}
@@ -180,14 +186,31 @@ func (db *MVCCDB) Prepare(tid interface{}) (*MVCCDB, error) {
 		storage:         db.storage,
 		stagingTable:    db.stagingTable,
 		isInTransaction: true,
+		isPreparedDB:    true,
 	}, nil
 }
 
-// CheckAndUpdate the nested transaction
-func (mvccdb *MVCCDB) CheckAndUpdate(txid string) ([]string, error) { return []string{}, nil }
+// CheckAndUpdate merge current changes to `FinalVersionizedValues`.
+func (db *MVCCDB) CheckAndUpdate(tid interface{}) ([]interface{}, error) {
+	db.mutex.Lock()
+	defer db.mutex.Lock()
+
+	if !db.isPreparedDB {
+		return nil, ErrDisallowedCallingInNoPreparedDB
+	}
+
+	if !db.isInTransaction {
+		return nil, ErrTransactionNotStarted
+	}
+
+	return db.stagingTable.MergeToFinal(db.tid)
+}
 
 // Reset the nested transaction
 func (db *MVCCDB) Reset(txid string) error {
+	db.mutex.Lock()
+	defer db.mutex.Lock()
+
 	db.stagingTable.Purge(db.tid)
 	return nil
 }
