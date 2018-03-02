@@ -91,8 +91,10 @@ func (n *node) Type() (ty, error) {
 // Extension Node: 3-elements array, value is [ext flag, prefix path, next hash]
 // Leaf Node: 3-elements array, value is [leaf flag, suffix path, value]
 type Trie struct {
-	rootHash []byte
-	storage  storage.Storage
+	rootHash  []byte
+	storage   storage.Storage
+	changelog []*Entry
+	replay    bool
 }
 
 // CreateNode in trie
@@ -107,6 +109,7 @@ func (t *Trie) createNode(val [][]byte) (*node, error) {
 // FetchNode in trie
 func (t *Trie) fetchNode(hash []byte) (*node, error) {
 	ir, err := t.storage.Get(hash)
+
 	if err != nil {
 		return nil, err
 	}
@@ -134,12 +137,19 @@ func (t *Trie) commitNode(n *node) error {
 	}
 	n.Hash = hash.Sha3256(n.Bytes)
 
+	if t.replay {
+		return nil
+	}
 	return t.storage.Put(n.Hash, n.Bytes)
 }
 
 // NewTrie if rootHash is nil, create a new Trie, otherwise, build an existed trie
 func NewTrie(rootHash []byte, storage storage.Storage) (*Trie, error) {
-	t := &Trie{rootHash, storage}
+	t := &Trie{
+		rootHash: rootHash,
+		storage:  storage,
+		replay:   false,
+	}
 	if t.rootHash == nil || len(t.rootHash) == 0 {
 		return t, nil
 	} else if _, err := t.storage.Get(rootHash); err != nil {
@@ -214,6 +224,12 @@ func (t *Trie) Put(key []byte, val []byte) ([]byte, error) {
 		return nil, err
 	}
 	t.rootHash = newHash
+
+	if !t.replay {
+		entry := &Entry{Update, key, nil, val}
+		t.changelog = append(t.changelog, entry)
+	}
+
 	return newHash, nil
 }
 
@@ -420,6 +436,11 @@ func (t *Trie) Del(key []byte) ([]byte, error) {
 		return nil, err
 	}
 	t.rootHash = newHash
+
+	if !t.replay {
+		entry := &Entry{Delete, key, nil, nil}
+		t.changelog = append(t.changelog, entry)
+	}
 	return newHash, nil
 }
 
@@ -572,7 +593,36 @@ func (t *Trie) deleteWhenMeetSingleBranch(rootNode *node) ([]byte, error) {
 
 // Clone the trie to create a new trie sharing the same storage
 func (t *Trie) Clone() (*Trie, error) {
-	return &Trie{t.rootHash, t.storage}, nil
+	return &Trie{rootHash: t.rootHash, storage: t.storage}, nil
+}
+
+// Replay return roothash not save key to storage
+func (t *Trie) Replay(ft *Trie) ([]byte, error) {
+
+	t.replay = true
+	var err error
+	var rootHash []byte
+
+	for _, entry := range ft.changelog {
+		switch entry.action {
+		case Delete:
+			rootHash, err = t.Del(entry.key)
+			break
+		case Update, Insert:
+			rootHash, err = t.Put(entry.key, entry.update)
+			break
+		default:
+			err = nil
+		}
+
+		if err != nil {
+			t.replay = false
+			return nil, err
+		}
+	}
+	t.replay = false
+	return rootHash, nil
+
 }
 
 // prefixLen returns the length of the common prefix between a and b.

@@ -501,3 +501,51 @@ func TestTrie_PutDeleteAfterGetRootHash(t *testing.T) {
 	assert.Equal(t, tr1.RootHash(), tr2.RootHash())
 
 }
+
+func TestTrie_Replay(t *testing.T) {
+
+	s, _ := storage.NewMemoryStorage()
+	tr, _ := NewTrie(nil, s)
+	assert.Equal(t, []byte(nil), tr.RootHash())
+
+	tr1, _ := NewTrie(nil, tr.storage)
+	assert.Equal(t, []byte(nil), tr1.RootHash())
+
+	tr2, _ := NewTrie(nil, tr.storage)
+	assert.Equal(t, []byte(nil), tr2.RootHash())
+
+	var err error
+
+	// tr
+	_, err = tr.Put([]byte("key1"), []byte("value1"))
+	_, err = tr.Put([]byte("key3"), []byte("value3"))
+	_, err = tr.Del([]byte("key3"))
+	_, err = tr.Put([]byte("key2"), []byte("value2"))
+	_, err = tr.Put([]byte("key4"), []byte("value4"))
+	_, err = tr.Put([]byte("key5"), []byte("value5"))
+
+	// tr1
+	_, err = tr1.Put([]byte("key1"), []byte("value1"))
+	_, err = tr1.Put([]byte("key2"), []byte("value2"))
+	_, err = tr1.Put([]byte("key3"), []byte("value3"))
+	_, err = tr1.Put([]byte("key4"), []byte("value4"))
+	_, err = tr1.Put([]byte("key5"), []byte("value5"))
+	assert.Nil(t, err)
+
+	// tr2
+	_, err = tr2.Put([]byte("key4"), []byte("value4"))
+	//assert.Nil(t, err)
+	_, err = tr2.Put([]byte("key5"), []byte("value5"))
+	//assert.Nil(t, err)
+
+	_, err = tr2.Put([]byte("key3"), []byte("value3"))
+	_, err = tr2.Del([]byte("key3"))
+	assert.Nil(t, err)
+
+	rootHash, err1 := tr1.Replay(tr2)
+
+	assert.Nil(t, err1)
+	fmt.Println(rootHash, err1)
+
+	assert.Equal(t, rootHash, tr.RootHash())
+}
