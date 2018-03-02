@@ -494,3 +494,67 @@ func TestStagingTable_Purge(t *testing.T) {
 	assert.Equal(t, []byte("value of key1"), tbl.Get(tid, key1).val)
 	assert.Nil(t, tbl.Get(tid, key2))
 }
+
+func TestStagingTable_NilTidAction(t *testing.T) {
+	key1 := []byte("key1")
+	key2 := []byte("key2")
+	tid := "tid1"
+
+	tbl := NewStagingTable()
+
+	// Get and Put.
+	value := tbl.Get(nil, key1)
+	assert.Nil(t, value)
+
+	value = tbl.Put(nil, key1, []byte("value of key1"))
+	assert.Equal(t, []byte("value of key1"), value.val)
+	assert.Equal(t, 0, value.old)
+	assert.Equal(t, 1, value.new)
+	assert.False(t, value.deleted)
+	assert.True(t, value.dirty)
+	assert.True(t, value.initialized)
+
+	value = tbl.Get(nil, key1)
+	assert.Equal(t, []byte("value of key1"), value.val)
+	assert.Equal(t, 0, value.old)
+	assert.Equal(t, 1, value.new)
+	assert.False(t, value.deleted)
+	assert.True(t, value.dirty)
+	assert.True(t, value.initialized)
+
+	// Put.
+	value = tbl.Put(nil, key2, []byte("value of key2"))
+	assert.Equal(t, []byte("value of key2"), value.val)
+	assert.Equal(t, 0, value.old)
+	assert.Equal(t, 1, value.new)
+	assert.False(t, value.deleted)
+	assert.True(t, value.dirty)
+	assert.True(t, value.initialized)
+
+	value = tbl.Get(nil, key2)
+	assert.Equal(t, []byte("value of key2"), value.val)
+	assert.Equal(t, 0, value.old)
+	assert.Equal(t, 1, value.new)
+	assert.False(t, value.deleted)
+	assert.True(t, value.dirty)
+	assert.True(t, value.initialized)
+
+	// tid get.
+	value = tbl.Get(tid, key1)
+	assert.Equal(t, []byte("value of key1"), value.val)
+	assert.Equal(t, 1, value.old)
+	assert.Equal(t, 2, value.new)
+	assert.False(t, value.deleted)
+	assert.False(t, value.dirty)
+	assert.True(t, value.initialized)
+
+	tbl.Del(tid, key1)
+
+	// tid merge.
+	_, err := tbl.MergeToFinal(tid)
+	assert.Nil(t, err)
+
+	// Get.
+	value = tbl.Get(nil, key1)
+	assert.True(t, value.deleted)
+}

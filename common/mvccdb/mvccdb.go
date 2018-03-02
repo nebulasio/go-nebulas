@@ -163,6 +163,9 @@ func (db *MVCCDB) Get(key []byte) ([]byte, error) {
 		value = db.stagingTable.Set(db.tid, key, data, false, false)
 	}
 
+	if value.deleted {
+		return nil, storage.ErrKeyNotFound
+	}
 	return value.val, nil
 }
 
