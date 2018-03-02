@@ -199,12 +199,6 @@ func parseTransaction(neb Neblet, reqTx *rpcpb.TransactionRequest) (*core.Transa
 	} else if reqTx.Contract != nil && len(reqTx.Contract.Function) > 0 {
 		payloadType = core.TxPayloadCallType
 		payload, err = core.NewCallPayload(reqTx.Contract.Function, reqTx.Contract.Args).ToBytes()
-	} else if reqTx.Candidate != nil {
-		payloadType = core.TxPayloadCandidateType
-		payload, err = core.NewCandidatePayload(reqTx.Candidate.Action).ToBytes()
-	} else if reqTx.Delegate != nil {
-		payloadType = core.TxPayloadDelegateType
-		payload, err = core.NewDelegatePayload(reqTx.Delegate.Action, reqTx.Delegate.Delegatee).ToBytes()
 	} else {
 		payloadType = core.TxPayloadBinaryType
 		if neb.BlockChain().TailBlock().Height() > core.OptimizeHeight {
@@ -587,55 +581,4 @@ func (s *APIService) GetDynasty(ctx context.Context, req *rpcpb.ByBlockHeightReq
 		result = append(result, string(v.Hex()))
 	}
 	return &rpcpb.GetDynastyResponse{Delegatees: result}, nil
-}
-
-// GetCandidates is the RPC API handler.
-func (s *APIService) GetCandidates(ctx context.Context, req *rpcpb.ByBlockHeightRequest) (*rpcpb.GetCandidatesResponse, error) {
-
-	neb := s.server.Neblet()
-	block := neb.BlockChain().GetBlockOnCanonicalChainByHeight(req.Height)
-	if block == nil {
-		block = neb.BlockChain().TailBlock()
-	}
-	candidates, err := block.WorldState().Candidates()
-	if err != nil {
-		return nil, err
-	}
-	result := []string{}
-	for _, v := range candidates {
-		result = append(result, string(v.Hex()))
-	}
-	return &rpcpb.GetCandidatesResponse{Candidates: result}, nil
-}
-
-// GetDelegateVoters is the RPC API handler.
-func (s *APIService) GetDelegateVoters(ctx context.Context, req *rpcpb.GetDelegateVotersRequest) (*rpcpb.GetDelegateVotersResponse, error) {
-
-	neb := s.server.Neblet()
-	delegatee, err := core.AddressParse(req.Delegatee)
-	if err != nil {
-		return nil, err
-	}
-	block := neb.BlockChain().GetBlockOnCanonicalChainByHeight(req.Height)
-	if block == nil {
-		block = neb.BlockChain().TailBlock()
-	}
-	iter, err := block.WorldState().IterDelegate(delegatee.Bytes())
-	if err != nil {
-		return nil, err
-	}
-	voters := []string{}
-	exist, err := iter.Next()
-	if err != nil {
-		return nil, err
-	}
-	for exist {
-		voter := byteutils.Hex(iter.Value())
-		voters = append(voters, voter)
-		exist, err = iter.Next()
-		if err != nil {
-			return nil, err
-		}
-	}
-	return &rpcpb.GetDelegateVotersResponse{Voters: voters}, nil
 }

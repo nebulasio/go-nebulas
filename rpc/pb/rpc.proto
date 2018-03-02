@@ -159,21 +159,7 @@ service ApiService {
             post: "/v1/user/dynasty"
             body: "*"
 		};
-    }
-
-    rpc GetCandidates (ByBlockHeightRequest) returns (GetCandidatesResponse) {
-		option (google.api.http) = {
-            post: "/v1/user/candidates"
-            body: "*"
-		};
-    }
-    
-	rpc GetDelegateVoters (GetDelegateVotersRequest) returns (GetDelegateVotersResponse) {
-		option (google.api.http) = {
-            post: "/v1/user/delegateVoters"
-            body: "*"
-		};
-	}    
+    }  
 
 }
 
@@ -381,11 +367,6 @@ message ByBlockHeightRequest {
     uint64 height = 1;
 }
 
-// GetCandidatesRequest message
-message GetCandidatesResponse {
-    repeated string candidates = 1;
-}
-
 // Response message of GetDynastyRequest rpc
 message GetDynastyResponse {
 	repeated string delegatees = 1;
@@ -425,12 +406,6 @@ message TransactionRequest {
 	// contract sending with this transaction
 	ContractRequest contract = 7;
 
-	// candidate application sending with this transaction.
-	CandidateRequest candidate = 8;
-
-	// delegate vote sending with this transaction.	
-	DelegateRequest delegate = 9;
-
     // binary data for transaction
     bytes binary = 10;
 }
@@ -447,20 +422,6 @@ message ContractRequest {
 
 	// the params of contract.
 	string args = 4;
-}
-
-message CandidateRequest {
-	// candidate action.
-	string action = 1;
-}
-
-
-message DelegateRequest {
-	// delegate action.
-	string action = 1;
-
-	// delegatee.
-	string delegatee = 2;
 }
 
 // Request message of SendRawTransactionRequest rpc.

@@ -28,7 +28,6 @@ import (
 
 	"github.com/nebulasio/go-nebulas/common/trie"
 	"github.com/nebulasio/go-nebulas/storage"
-	"github.com/nebulasio/go-nebulas/util"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
 )
 
@@ -37,11 +36,8 @@ func checkDynasty(t *testing.T, consensus core.Consensus, consensusRoot byteutil
 	assert.Nil(t, err)
 	dynasty, err := consensusState.Dynasty()
 	assert.Nil(t, err)
-	nextDynasty, err := consensusState.NextDynasty()
-	assert.Nil(t, err)
 	for i := 0; i < DynastySize-1; i++ {
 		assert.Equal(t, string(dynasty[i].Hex()), DefaultOpenDynasty[i])
-		assert.Equal(t, string(nextDynasty[i].Hex()), DefaultOpenDynasty[i])
 	}
 }
 
@@ -101,203 +97,6 @@ func TestBlock_NextDynastyContext(t *testing.T) {
 	newBlock.LinkParentBlock(neb.chain, neb.chain.TailBlock())
 	newBlock.SetMiner(coinbase)
 	assert.Nil(t, newBlock.VerifyExecution(neb.chain.TailBlock(), neb.chain.ConsensusHandler()))
-}
-
-func TestBlock_ElectNewDynasty(t *testing.T) {
-	neb := mockNeb(t)
-	chain := neb.chain
-
-	block, _ := core.LoadBlockFromStorage(core.GenesisHash, chain)
-	block.Begin()
-	kickout, _ := core.AddressParse(DefaultOpenDynasty[1])
-	v, err := core.AddressParse(DefaultOpenDynasty[len(DefaultOpenDynasty)-1])
-	assert.Nil(t, err)
-	acc, err := block.WorldState().GetOrCreateUserAccount(v.Bytes())
-	assert.Nil(t, err)
-	acc.AddBalance(util.NewUint128FromInt(2000000))
-	delegatePayload := core.NewDelegatePayload(core.DelegateAction, v.String())
-	bytes, _ := delegatePayload.ToBytes()
-	tx := core.NewTransaction(0, kickout, kickout, util.NewUint128FromInt(1), 1, core.TxPayloadDelegateType, bytes, core.TransactionGasPrice, util.NewUint128FromInt(200000))
-	_, err = block.ExecuteTransaction(tx)
-	assert.Nil(t, err)
-	candidatePayload := core.NewCandidatePayload(core.LogoutAction)
-	bytes, _ = candidatePayload.ToBytes()
-	tx = core.NewTransaction(0, kickout, kickout, util.NewUint128FromInt(1), 2, core.TxPayloadCandidateType, bytes, core.TransactionGasPrice, util.NewUint128FromInt(200000))
-	_, err = block.ExecuteTransaction(tx)
-	assert.Nil(t, err)
-	block.Commit()
-	context, err := block.WorldState().NextConsensusState(DynastyInterval)
-	assert.Nil(t, err)
-	nextDynasty, err := context.NextDynasty()
-	assert.Nil(t, err)
-	kickoutExist := false
-	validatorExist := false
-	for _, validator := range nextDynasty {
-		if validator.Equals(kickout.Bytes()) {
-			kickoutExist = true
-		}
-		if validator.Equals(v.Bytes()) {
-			validatorExist = true
-		}
-	}
-	assert.Equal(t, kickoutExist, false)
-	assert.Equal(t, validatorExist, true)
-}
-
-func TestBlock_Kickout(t *testing.T) {
-	neb := mockNeb(t)
-	chain := neb.chain
-	validators, _ := chain.TailBlock().WorldState().Dynasty()
-	coinbase, err := core.AddressParseFromBytes(validators[0])
-	assert.Nil(t, err)
-	assert.Nil(t, neb.am.Unlock(coinbase, []byte("passphrase"), keystore.DefaultUnlockDuration))
-
-	block, _ := core.NewBlock(0, coinbase, chain.TailBlock())
-	block.SetTimestamp(DynastyInterval)
-	context, err := chain.TailBlock().WorldState().NextConsensusState(block.Timestamp() - chain.TailBlock().Timestamp())
-	assert.Nil(t, err)
-	block.WorldState().SetConsensusState(context)
-	block.SetMiner(coinbase)
-	assert.Equal(t, block.Seal(), nil)
-	assert.Nil(t, neb.am.SignBlock(coinbase, block))
-	block, _ = mockBlockFromNetwork(block)
-	assert.Equal(t, block.LinkParentBlock(chain, chain.TailBlock()), nil)
-	block.SetMiner(coinbase)
-	assert.Nil(t, block.VerifyExecution(chain.TailBlock(), chain.ConsensusHandler()))
-	chain.SetTailBlock(block)
-	consensusRoot, err := chain.TailBlock().WorldState().ConsensusRoot()
-	assert.Nil(t, err)
-	checkDynasty(t, neb.consensus, consensusRoot, neb.Storage())
-
-	block, _ = core.NewBlock(0, coinbase, block)
-	block.SetTimestamp(DynastyInterval * 2)
-	context, err = chain.TailBlock().WorldState().NextConsensusState(block.Timestamp() - chain.TailBlock().Timestamp())
-	assert.Nil(t, err)
-	block.WorldState().SetConsensusState(context)
-	block.SetMiner(coinbase)
-	assert.Equal(t, block.Seal(), nil)
-	assert.Nil(t, neb.am.SignBlock(coinbase, block))
-	block, _ = mockBlockFromNetwork(block)
-	assert.Equal(t, block.LinkParentBlock(chain, chain.TailBlock()), nil)
-	block.SetMiner(coinbase)
-	assert.Nil(t, block.VerifyExecution(chain.TailBlock(), chain.ConsensusHandler()))
-	chain.SetTailBlock(block)
-	consensusRoot, err = chain.TailBlock().WorldState().ConsensusRoot()
-	assert.Nil(t, err)
-	checkDynasty(t, neb.consensus, consensusRoot, neb.Storage())
-}
-
-func TestTallyVotes(t *testing.T) {
-	neb := mockNeb(t)
-	chain := neb.chain
-
-	worldState := chain.TailBlock().WorldState()
-	consensusRoot, err := worldState.ConsensusRoot()
-	assert.Nil(t, err)
-	consensusState, err := neb.consensus.NewState(consensusRoot, neb.Storage())
-	assert.Nil(t, err)
-	tester := "2fe3f9f51f9a05dd5f7c5329127f7c917917149b4e16b0b8"
-	candidate, err := core.AddressParse(tester)
-	assert.Nil(t, err)
-	worldState.Begin()
-	acc, err := worldState.GetOrCreateUserAccount(candidate.Bytes())
-	assert.Nil(t, err)
-	acc.AddBalance(util.NewUint128FromInt(10000))
-	worldState.Commit()
-	assert.Nil(t, err)
-	// empty candidates
-	votes, err := consensusState.(*State).tallyVotes(worldState)
-	assert.Nil(t, err)
-	assert.Equal(t, votes[tester].String(), "10000000000000000010000")
-	consensusState.DelVote(candidate.Bytes())
-	consensusState.DelDelegate(candidate.Bytes(), candidate.Bytes())
-	votes, err = consensusState.(*State).tallyVotes(worldState)
-	assert.Nil(t, err)
-	assert.Equal(t, votes[tester], util.NewUint128())
-}
-
-func TestChooseCandidates(t *testing.T) {
-	neb := mockNeb(t)
-	chain := neb.chain
-	worldState := chain.TailBlock().WorldState()
-	consensusState, err := worldState.NextConsensusState(0)
-	assert.Nil(t, err)
-	dposState := consensusState.(*State)
-	protectTrie := dposState.candidateTrie
-	votes, err := dposState.tallyVotes(worldState)
-	assert.Nil(t, err)
-	tester := "2fe3f9f51f9a05dd5f7c5329127f7c917917149b4e16b0b8"
-	candidate, err := core.AddressParse(tester)
-	assert.Nil(t, err)
-	dposState.kickoutCandidate(candidate.Bytes())
-	dposState.protectTrie = protectTrie
-	lenVotes := len(votes)
-	votes2, err := dposState.chooseCandidates(votes)
-	assert.Nil(t, err)
-	lenVotes2 := len(votes2)
-	assert.Equal(t, lenVotes, lenVotes2)
-	assert.Equal(t, votes2[lenVotes2-1].Address.String(), tester)
-}
-
-func TestKickoutDynastyActuallyKickoutCandidates(t *testing.T) {
-	neb := mockNeb(t)
-	chain := neb.chain
-	consensusState, err := chain.TailBlock().WorldState().NextConsensusState(0)
-	assert.Nil(t, err)
-	dposState := consensusState.(*State)
-	protectTrie := dposState.candidateTrie
-	tester := "2fe3f9f51f9a05dd5f7c5329127f7c917917149b4e16b0b8"
-	candidate, err := core.AddressParse(tester)
-	assert.Nil(t, err)
-	dposState.kickoutCandidate(candidate.Bytes())
-	dposState.candidateTrie = protectTrie
-	assert.Nil(t, dposState.kickoutDynasty(0))
-	candidates, err := TraverseDynasty(dposState.candidateTrie)
-	assert.Nil(t, err)
-	assert.Equal(t, len(candidates), len(neb.Genesis().Consensus.Dpos.Dynasty)-1)
-}
-
-func TestCheckActiveBootstrapValidators(t *testing.T) {
-	neb := mockNeb(t)
-	chain := neb.chain
-	consensusState, err := chain.TailBlock().WorldState().NextConsensusState(0)
-	assert.Nil(t, err)
-	dposState := consensusState.(*State)
-	protectTrie := dposState.candidateTrie
-	tester := "2fe3f9f51f9a05dd5f7c5329127f7c917917149b4e16b0b8"
-	candidate, err := core.AddressParse(tester)
-	assert.Nil(t, err)
-	candidates, err := trie.NewTrie(nil, neb.storage)
-	assert.Nil(t, err)
-	_, err = candidates.Put(candidate.Bytes(), candidate.Bytes())
-	assert.Nil(t, err)
-	active, err := checkActiveBootstrapValidator(candidate.Bytes(), protectTrie, candidates)
-	assert.Equal(t, active, true)
-
-	dposState.kickoutCandidate(candidate.Bytes())
-	active, err = checkActiveBootstrapValidator(candidate.Bytes(), protectTrie, candidates)
-	assert.Equal(t, active, false)
-	assert.Nil(t, err)
-
-	candidates.Del(candidate.Bytes())
-	active, err = checkActiveBootstrapValidator(candidate.Bytes(), protectTrie, candidates)
-	assert.Equal(t, active, false)
-	assert.Nil(t, err)
-}
-
-func TestElectNextDynastyOnBaseDynastyWhenTooFewCandidates(t *testing.T) {
-	neb := mockNeb(t)
-	chain := neb.chain
-	worldState := chain.TailBlock().WorldState()
-	consensusState, err := worldState.NextConsensusState(0)
-	assert.Nil(t, err)
-	dposState := consensusState.(*State)
-	members, err := TraverseDynasty(dposState.candidateTrie)
-	assert.Nil(t, err)
-	for i := 0; i < len(members)-SafeSize+1; i++ {
-		assert.Nil(t, dposState.kickoutCandidate(members[i]))
-	}
-	assert.Equal(t, dposState.electNextDynastyOnBaseDynasty(worldState, 0, 1, false), ErrTooFewCandidates)
 }
 
 func TestTraverseDynasty(t *testing.T) {

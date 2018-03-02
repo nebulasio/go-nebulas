@@ -19,6 +19,7 @@
 package core
 
 import (
+	"github.com/nebulasio/go-nebulas/common/dag"
 	"io/ioutil"
 
 	"github.com/nebulasio/go-nebulas/core/state"
@@ -66,6 +67,7 @@ func NewGenesisBlock(conf *corepb.Genesis, chain *BlockChain) (*Block, error) {
 			timestamp:  GenesisTimestamp,
 		},
 		transactions: make(Transactions, 0),
+		dependency:   dag.NewDag(),
 		parentBlock:  nil,
 		worldState:   worldState,
 		txPool:       chain.txPool,

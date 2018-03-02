@@ -220,6 +220,7 @@ func NewBlock(chainID uint32, coinbase *Address, parent *Block) (*Block, error) 
 			timestamp:  time.Now().Unix(),
 		},
 		transactions: make(Transactions, 0),
+		dependency:   dag.NewDag(),
 		parentBlock:  parent,
 		worldState:   worldState,
 		txPool:       parent.txPool,
@@ -708,14 +709,7 @@ func (block *Block) Seal() error {
 		return ErrDoubleSealBlock
 	}
 
-	block.Begin()
-	err := block.recordMintCnt()
-	if err != nil {
-		block.RollBack()
-		return err
-	}
-	block.Commit()
-
+	var err error
 	block.header.stateRoot, err = block.WorldState().AccountsRoot()
 	if err != nil {
 		return err
@@ -768,11 +762,6 @@ func (block *Block) String() string {
 
 // VerifyExecution execute the block and verify the execution result.
 func (block *Block) VerifyExecution(parent *Block, consensus Consensus) error {
-	// verify the block is acceptable by consensus
-	if err := consensus.VerifyBlock(block, parent); err != nil {
-		return err
-	}
-
 	block.Begin()
 
 	if err := block.execute(); err != nil {
@@ -870,7 +859,7 @@ func (block *Block) VerifyIntegrity(chainID uint32, consensus Consensus) error {
 	}
 
 	// verify the block is acceptable by consensus.
-	if err := consensus.FastVerifyBlock(block); err != nil {
+	if err := consensus.VerifyBlock(block); err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"block": block,
 			"err":   err,
@@ -968,10 +957,6 @@ func (block *Block) execute() error {
 		metricsTxVerifiedTime.Update(0)
 	}
 
-	if err := block.recordMintCnt(); err != nil {
-		return err
-	}
-
 	endAt := time.Now().UnixNano()
 	metricsBlockVerifiedTime.Update(endAt - startAt)
 	metricsTxsInBlock.Update(int64(len(block.transactions)))
@@ -1006,16 +991,6 @@ func (block *Block) RecordEvent(txHash byteutils.Hash, topic, data string) error
 // FetchEvents fetch events by txHash.
 func (block *Block) FetchEvents(txHash byteutils.Hash) ([]*state.Event, error) {
 	return block.WorldState().FetchEvents(txHash)
-}
-
-func (block *Block) recordMintCnt() error {
-	miner := block.miner
-	cnt, err := block.WorldState().GetMintCnt(block.Timestamp(), miner.address)
-	if err != nil {
-		return err
-	}
-	cnt++
-	return block.WorldState().PutMintCnt(block.Timestamp(), miner.address, cnt)
 }
 
 func (block *Block) rewardCoinbase() error {

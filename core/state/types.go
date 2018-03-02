@@ -101,29 +101,8 @@ type ConsensusState interface {
 	TimeStamp() int64
 	NextConsensusState(int64, WorldState) (ConsensusState, error)
 
-	GetMintCnt(int64, byteutils.Hash) (int64, error)
-	PutMintCnt(int64, byteutils.Hash, int64) error
-
-	CandidatesRoot() byteutils.Hash
-	Candidates() ([]byteutils.Hash, error)
-	HasCandidate(byteutils.Hash) (bool, error)
-	AddCandidate(byteutils.Hash) error
-	DelCandidate(byteutils.Hash) error
-
-	GetVote(byteutils.Hash) (byteutils.Hash, error)
-	AddVote(byteutils.Hash, byteutils.Hash) error
-	DelVote(byteutils.Hash) error
-	IterVote() (Iterator, error)
-
-	HasDelegate(byteutils.Hash, byteutils.Hash) (bool, error)
-	AddDelegate(byteutils.Hash, byteutils.Hash) error
-	DelDelegate(byteutils.Hash, byteutils.Hash) error
-	IterDelegate(byteutils.Hash) (Iterator, error)
-
 	Dynasty() ([]byteutils.Hash, error)
 	DynastyRoot() byteutils.Hash
-	NextDynasty() ([]byteutils.Hash, error)
-	NextDynastyRoot() byteutils.Hash
 }
 
 // WorldState interface of world state
@@ -162,29 +141,8 @@ type WorldState interface {
 	RecordEvent(txHash byteutils.Hash, event *Event) error
 	FetchEvents(byteutils.Hash) ([]*Event, error)
 
-	GetMintCnt(int64, byteutils.Hash) (int64, error)
-	PutMintCnt(int64, byteutils.Hash, int64) error
-
-	CandidatesRoot() byteutils.Hash
-	Candidates() ([]byteutils.Hash, error)
-	HasCandidate(byteutils.Hash) (bool, error)
-	AddCandidate(byteutils.Hash) error
-	DelCandidate(byteutils.Hash) error
-
-	GetVote(byteutils.Hash) (byteutils.Hash, error)
-	AddVote(byteutils.Hash, byteutils.Hash) error
-	DelVote(byteutils.Hash) error
-	IterVote() (Iterator, error)
-
-	HasDelegate(byteutils.Hash, byteutils.Hash) (bool, error)
-	AddDelegate(byteutils.Hash, byteutils.Hash) error
-	DelDelegate(byteutils.Hash, byteutils.Hash) error
-	IterDelegate(byteutils.Hash) (Iterator, error)
-
 	Dynasty() ([]byteutils.Hash, error)
 	DynastyRoot() byteutils.Hash
-	NextDynasty() ([]byteutils.Hash, error)
-	NextDynastyRoot() byteutils.Hash
 }
 
 // TxWorldState is the world state of a single transaction
@@ -205,27 +163,6 @@ type TxWorldState interface {
 	RecordEvent(txHash byteutils.Hash, event *Event) error
 	FetchEvents(byteutils.Hash) ([]*Event, error)
 
-	GetMintCnt(int64, byteutils.Hash) (int64, error)
-	PutMintCnt(int64, byteutils.Hash, int64) error
-
-	CandidatesRoot() byteutils.Hash
-	Candidates() ([]byteutils.Hash, error)
-	HasCandidate(byteutils.Hash) (bool, error)
-	AddCandidate(byteutils.Hash) error
-	DelCandidate(byteutils.Hash) error
-
-	GetVote(byteutils.Hash) (byteutils.Hash, error)
-	AddVote(byteutils.Hash, byteutils.Hash) error
-	DelVote(byteutils.Hash) error
-	IterVote() (Iterator, error)
-
-	HasDelegate(byteutils.Hash, byteutils.Hash) (bool, error)
-	AddDelegate(byteutils.Hash, byteutils.Hash) error
-	DelDelegate(byteutils.Hash, byteutils.Hash) error
-	IterDelegate(byteutils.Hash) (Iterator, error)
-
 	Dynasty() ([]byteutils.Hash, error)
 	DynastyRoot() byteutils.Hash
-	NextDynasty() ([]byteutils.Hash, error)
-	NextDynastyRoot() byteutils.Hash
 }

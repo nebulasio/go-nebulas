@@ -158,8 +158,7 @@ type Consensus interface {
 	SuspendMining()
 	Pending() bool
 
-	VerifyBlock(*Block, *Block) error
-	FastVerifyBlock(*Block) error
+	VerifyBlock(*Block) error
 	ForkChoice() error
 	UpdateLIB()
 

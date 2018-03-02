@@ -198,7 +198,7 @@ func (db *MVCCDB) Del(key []byte) error {
 // Prepare a nested transaction
 func (db *MVCCDB) Prepare(tid interface{}) (*MVCCDB, error) {
 	db.mutex.Lock()
-	defer db.mutex.Lock()
+	defer db.mutex.Unlock()
 
 	if !db.isInTransaction {
 		return nil, ErrTransactionNotStarted
@@ -220,7 +220,7 @@ func (db *MVCCDB) Prepare(tid interface{}) (*MVCCDB, error) {
 // CheckAndUpdate merge current changes to `FinalVersionizedValues`.
 func (db *MVCCDB) CheckAndUpdate(tid interface{}) ([]interface{}, error) {
 	db.mutex.Lock()
-	defer db.mutex.Lock()
+	defer db.mutex.Unlock()
 
 	if !db.isInTransaction {
 		return nil, ErrTransactionNotStarted
@@ -236,7 +236,7 @@ func (db *MVCCDB) CheckAndUpdate(tid interface{}) ([]interface{}, error) {
 // Reset the nested transaction
 func (db *MVCCDB) Reset(txid string) error {
 	db.mutex.Lock()
-	defer db.mutex.Lock()
+	defer db.mutex.Unlock()
 
 	if !db.isInTransaction {
 		return ErrTransactionNotStarted

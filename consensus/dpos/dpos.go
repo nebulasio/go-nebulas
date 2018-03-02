@@ -294,10 +294,8 @@ func verifyBlockSign(miner *core.Address, block *core.Block) error {
 	return nil
 }
 
-// FastVerifyBlock verify the block
-// can be verified if the block's dynasty == tail's dynasty
-// can be verified if the block's dynasty == tails's next dynasty
-func (dpos *Dpos) FastVerifyBlock(block *core.Block) error {
+// VerifyBlock verify the block
+func (dpos *Dpos) VerifyBlock(block *core.Block) error {
 	tail := dpos.chain.TailBlock()
 	// check timestamp
 	elapsedSecond := block.Timestamp() - tail.Timestamp()
@@ -305,16 +303,7 @@ func (dpos *Dpos) FastVerifyBlock(block *core.Block) error {
 		return ErrInvalidBlockInterval
 	}
 	// check proposer
-	currentHour := block.Timestamp() / DynastyInterval
-	tailHour := tail.Timestamp() / DynastyInterval
-	var dynastyRoot byteutils.Hash
-	if currentHour == tailHour {
-		dynastyRoot = tail.WorldState().DynastyRoot()
-	} else if currentHour == tailHour+1 {
-		dynastyRoot = tail.WorldState().NextDynastyRoot()
-	} else {
-		return nil
-	}
+	dynastyRoot := tail.WorldState().DynastyRoot()
 	dynasty, err := trie.NewTrie(dynastyRoot, dpos.chain.Storage())
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
@@ -322,34 +311,6 @@ func (dpos *Dpos) FastVerifyBlock(block *core.Block) error {
 			"root":  dynastyRoot,
 			"block": block,
 		}).Debug("Failed to create new trie.")
-		return err
-	}
-	proposer, err := FindProposer(block.Timestamp(), dynasty)
-	if err != nil {
-		logging.VLog().WithFields(logrus.Fields{
-			"proposer": proposer,
-			"err":      err,
-			"block":    block,
-		}).Debug("Failed to find proposer.")
-		return err
-	}
-	miner, err := core.AddressParseFromBytes(proposer)
-	if err != nil {
-		logging.VLog().WithFields(logrus.Fields{
-			"proposer": proposer,
-			"err":      err,
-			"block":    block,
-		}).Debug("Failed to parse proposer.")
-		return err
-	}
-	return verifyBlockSign(miner, block)
-}
-
-// VerifyBlock verify the block
-func (dpos *Dpos) VerifyBlock(block *core.Block, parent *core.Block) error {
-	// check proposer
-	dynasty, err := trie.NewTrie(block.WorldState().DynastyRoot(), block.Storage())
-	if err != nil {
 		return err
 	}
 	proposer, err := FindProposer(block.Timestamp(), dynasty)

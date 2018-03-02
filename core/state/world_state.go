@@ -246,80 +246,12 @@ func (s *states) FetchEvents(txHash byteutils.Hash) ([]*Event, error) {
 	return events, nil
 }
 
-func (s *states) GetMintCnt(timestamp int64, miner byteutils.Hash) (int64, error) {
-	return s.consensusState.GetMintCnt(timestamp, miner)
-}
-
-func (s *states) PutMintCnt(timestamp int64, miner byteutils.Hash, cnt int64) error {
-	return s.consensusState.PutMintCnt(timestamp, miner, cnt)
-}
-
-func (s *states) HasCandidate(candidate byteutils.Hash) (bool, error) {
-	return s.consensusState.HasCandidate(candidate)
-}
-
-func (s *states) AddCandidate(candidate byteutils.Hash) error {
-	return s.consensusState.AddCandidate(candidate)
-}
-
-func (s *states) DelCandidate(candidate byteutils.Hash) error {
-	return s.consensusState.DelCandidate(candidate)
-}
-
-func (s *states) GetVote(voter byteutils.Hash) (byteutils.Hash, error) {
-	return s.consensusState.GetVote(voter)
-}
-
-func (s *states) AddVote(voter byteutils.Hash, votee byteutils.Hash) error {
-	return s.consensusState.AddVote(voter, votee)
-}
-
-func (s *states) DelVote(voter byteutils.Hash) error {
-	return s.consensusState.DelVote(voter)
-}
-
-func (s *states) IterVote() (Iterator, error) {
-	return s.consensusState.IterVote()
-}
-
-func (s *states) AddDelegate(delegator byteutils.Hash, delegatee byteutils.Hash) error {
-	return s.consensusState.AddDelegate(delegator, delegatee)
-}
-
-func (s *states) HasDelegate(delegator byteutils.Hash, delegatee byteutils.Hash) (bool, error) {
-	return s.consensusState.HasDelegate(delegator, delegatee)
-}
-
-func (s *states) DelDelegate(delegator byteutils.Hash, delegatee byteutils.Hash) error {
-	return s.consensusState.DelDelegate(delegator, delegatee)
-}
-
-func (s *states) IterDelegate(delgatee byteutils.Hash) (Iterator, error) {
-	return s.consensusState.IterDelegate(delgatee)
-}
-
-func (s *states) Candidates() ([]byteutils.Hash, error) {
-	return s.consensusState.Candidates()
-}
-
-func (s *states) CandidatesRoot() byteutils.Hash {
-	return s.consensusState.CandidatesRoot()
-}
-
 func (s *states) Dynasty() ([]byteutils.Hash, error) {
 	return s.consensusState.Dynasty()
 }
 
-func (s *states) NextDynasty() ([]byteutils.Hash, error) {
-	return s.consensusState.NextDynasty()
-}
-
 func (s *states) DynastyRoot() byteutils.Hash {
 	return s.consensusState.DynastyRoot()
-}
-
-func (s *states) NextDynastyRoot() byteutils.Hash {
-	return s.consensusState.NextDynastyRoot()
 }
 
 func (s *states) Accounts() ([]Account, error) {

@@ -252,13 +252,13 @@ func TestDpos_VerifySign(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Nil(t, manager.Unlock(miner, []byte("passphrase"), keystore.DefaultUnlockDuration))
 	assert.Nil(t, manager.SignBlock(miner, block))
-	assert.Nil(t, neb.consensus.VerifyBlock(block, tail))
+	assert.Nil(t, neb.consensus.VerifyBlock(block))
 
 	miner, err = core.AddressParse("fc751b484bd5296f8d267a8537d33f25a848f7f7af8cfcf6")
 	assert.Nil(t, err)
 	assert.Nil(t, manager.Unlock(miner, []byte("passphrase"), keystore.DefaultUnlockDuration))
 	assert.Nil(t, manager.SignBlock(miner, block))
-	assert.Equal(t, neb.consensus.VerifyBlock(block, tail), ErrInvalidBlockProposer)
+	assert.Equal(t, neb.consensus.VerifyBlock(block), ErrInvalidBlockProposer)
 }
 
 func GetUnlockAddress(t *testing.T, am *account.Manager, addr string) *core.Address {
@@ -354,7 +354,7 @@ func TestCanMining(t *testing.T) {
 	assert.Equal(t, neb.consensus.Pending(), false)
 }
 
-func TestFastVerifyBlock(t *testing.T) {
+func TestVerifyBlock(t *testing.T) {
 	neb := mockNeb(t)
 	dpos := neb.consensus
 	tail := neb.chain.TailBlock()
@@ -374,7 +374,7 @@ func TestFastVerifyBlock(t *testing.T) {
 	block.SetMiner(coinbase)
 	block.Seal()
 	assert.Nil(t, manager.SignBlock(coinbase, block))
-	assert.NotNil(t, dpos.FastVerifyBlock(block), ErrInvalidBlockInterval)
+	assert.NotNil(t, dpos.VerifyBlock(block), ErrInvalidBlockInterval)
 
 	elapsedSecond = int64(DynastyInterval)
 	consensusState, err = tail.WorldState().NextConsensusState(elapsedSecond)
@@ -385,7 +385,7 @@ func TestFastVerifyBlock(t *testing.T) {
 	block.SetTimestamp(tail.Timestamp() + elapsedSecond)
 	block.Seal()
 	assert.Nil(t, manager.SignBlock(coinbase, block))
-	assert.Nil(t, dpos.FastVerifyBlock(block))
+	assert.Nil(t, dpos.VerifyBlock(block))
 
 	elapsedSecond = int64(DynastySize*BlockInterval + DynastyInterval)
 	consensusState, err = tail.WorldState().NextConsensusState(elapsedSecond)
@@ -396,7 +396,7 @@ func TestFastVerifyBlock(t *testing.T) {
 	block.SetTimestamp(tail.Timestamp() + elapsedSecond)
 	block.Seal()
 	assert.Nil(t, manager.SignBlock(coinbase, block))
-	assert.Nil(t, dpos.FastVerifyBlock(block))
+	assert.Nil(t, dpos.VerifyBlock(block))
 }
 
 func TestDpos_MintBlock(t *testing.T) {
