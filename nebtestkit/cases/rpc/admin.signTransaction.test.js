@@ -92,7 +92,7 @@ describe("rpc: SignTransaction", () => {
         testSignTransaction(testInput, testExpect, done)
     });
 
-    it('2.  `to`', done => {
+    it('2.  `to` illegal', done => {
         var testInput = {
             args: {
                 from: address,
@@ -114,12 +114,34 @@ describe("rpc: SignTransaction", () => {
         testSignTransaction(testInput, testExpect, done)
     });
 
-    it('3.  `value', done => {
+    it('3.  `to` empty', done => {
+        var testInput = {
+            args: {
+                from: address,
+                to: "",
+                value: "",
+                nonce: "10000",
+                gas_price: "1000000",
+                gas_limit: "1000000",
+                contract: {}
+            }
+        }
+
+        var testExpect = {
+            hasError: true,
+            errorMsg: "address: invalid address",
+
+        }
+
+        testSignTransaction(testInput, testExpect, done)
+    });
+
+    it('4.  `value` empty', done => {
         var testInput = {
             args: {
                 from: address,
                 to: "0b9cd051a6d7129ab44b17833c63fe4abead40c3714cde6d",
-                value: "100",
+                value: "",
                 nonce: "10000",
                 gas_price: "1000000",
                 gas_limit: "1000000",
@@ -136,7 +158,29 @@ describe("rpc: SignTransaction", () => {
         testSignTransaction(testInput, testExpect, done)
     });
 
-    it('4.  `nonce`', done => {
+    it('5.  `value` alpha', done => {
+        var testInput = {
+            args: {
+                from: address,
+                to: "0b9cd051a6d7129ab44b17833c63fe4abead40c3714cde6d",
+                value: "abc",
+                nonce: "10000",
+                gas_price: "1000000",
+                gas_limit: "1000000",
+                contract: {}
+            }
+        }
+
+        var testExpect = {
+            hasError: false,
+            errorMsg: "",
+
+        }
+
+        testSignTransaction(testInput, testExpect, done)
+    });
+
+    it('6.  `nonce` alpha', done => {
         var testInput = {
             args: {
                 from: address,
@@ -158,7 +202,73 @@ describe("rpc: SignTransaction", () => {
         testSignTransaction(testInput, testExpect, done)
     });
 
-    it('5.  `gas_price`', done => {
+    it('7.  `nonce` number', done => {
+        var testInput = {
+            args: {
+                from: address,
+                to: "0b9cd051a6d7129ab44b17833c63fe4abead40c3714cde6d",
+                value: "123",
+                nonce: 10000, // ""  --- error
+                gas_price: "1000000",
+                gas_limit: "1000000",
+                contract: {}
+            }
+        }
+
+        var testExpect = {
+            hasError: false,
+            errorMsg: "",
+
+        }
+
+        testSignTransaction(testInput, testExpect, done)
+    });
+
+    /* it('7.  `nonce` empty', done => {
+        var testInput = {
+            args: {
+                from: address,
+                to: "0b9cd051a6d7129ab44b17833c63fe4abead40c3714cde6d",
+                value: "123",
+                nonce: "", 
+                gas_price: "1000000",
+                gas_limit: "1000000",
+                contract: {}
+            }
+        }
+
+        var testExpect = {
+            hasError: false,
+            errorMsg: "",
+
+        }
+
+        testSignTransaction(testInput, testExpect, done)
+    }); */
+
+    it('8.  `gas_price` empty', done => {
+        var testInput = {
+            args: {
+                from: address,
+                to: "0b9cd051a6d7129ab44b17833c63fe4abead40c3714cde6d",
+                value: "123",
+                nonce: "10000",
+                gas_price: "",
+                gas_limit: "1000000",
+                contract: {}
+            }
+        }
+
+        var testExpect = {
+            hasError: false,
+            errorMsg: "",
+
+        }
+
+        testSignTransaction(testInput, testExpect, done)
+    });
+
+    it('9.  `gas_price` alpha', done => {
         var testInput = {
             args: {
                 from: address,
@@ -180,7 +290,29 @@ describe("rpc: SignTransaction", () => {
         testSignTransaction(testInput, testExpect, done)
     });
 
-    it('6.  `gas_limit`', done => {
+    it('10.  `gas_limit` empty', done => {
+        var testInput = {
+            args: {
+                from: address,
+                to: "0b9cd051a6d7129ab44b17833c63fe4abead40c3714cde6d",
+                value: "123",
+                nonce: "10000",
+                gas_price: "1000000",
+                gas_limit: "",
+                contract: {}
+            }
+        }
+
+        var testExpect = {
+            hasError: false,
+            errorMsg: "",
+
+        }
+
+        testSignTransaction(testInput, testExpect, done)
+    });
+
+    it('11.  `gas_limit` alpha', done => {
         var testInput = {
             args: {
                 from: address,
@@ -202,7 +334,29 @@ describe("rpc: SignTransaction", () => {
         testSignTransaction(testInput, testExpect, done)
     });
 
-    it('7. `contract`', done => {
+    it('12. `contract` empty', done => {
+        var testInput = {
+            args: {
+                from: address,
+                to: "0b9cd051a6d7129ab44b17833c63fe4abead40c3714cde6d",
+                value: "123",
+                nonce: "10000",
+                gas_price: "1000000",
+                gas_limit: "1000000",
+                contract: {}
+            }
+        }
+
+        var testExpect = {
+            hasError: false,
+            errorMsg: "",
+
+        }
+
+        testSignTransaction(testInput, testExpect, done)
+    });
+
+    it('13. `contract`', done => {
         var testInput = {
             args: {
                 from: address,
