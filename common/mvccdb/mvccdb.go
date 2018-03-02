@@ -29,6 +29,10 @@ var (
 	ErrUnsupportedNestedTransaction    = errors.New("unsupported nested transaction")
 	ErrTransactionNotStarted           = errors.New("transaction is not started")
 	ErrDisallowedCallingInNoPreparedDB = errors.New("disallowed calling in No-Prepared MVCCDB")
+	ErrTidIsNil                        = errors.New("tid is nil")
+	ErrUnsupportedBeginInPreparedDB    = errors.New("unsupported begin transaction in prepared MVCCDB")
+	ErrUnsupportedCommitInPreparedDB   = errors.New("unsupported commit transaction in prepared MVCCDB")
+	ErrUnsupportedRollBackInPreparedDB = errors.New("unsupported rollback transaction in prepared MVCCDB")
 )
 
 /* How to use MVCCDB
@@ -38,7 +42,7 @@ It should support three situations as following,
 3. begin - prepare - Get/Put/Del - update - commit/rollback
 */
 
-// MVCCDB schema
+// MVCCDB the data with MVCC supporting.
 type MVCCDB struct {
 	tid             interface{}
 	storage         storage.Storage
@@ -48,7 +52,7 @@ type MVCCDB struct {
 	isPreparedDB    bool
 }
 
-// NewMVCCDB create a new change log
+// NewMVCCDB create and return new MVCCDB.
 func NewMVCCDB(storage storage.Storage) (*MVCCDB, error) {
 	db := &MVCCDB{
 		tid:             nil,
@@ -61,7 +65,7 @@ func NewMVCCDB(storage storage.Storage) (*MVCCDB, error) {
 	return db, nil
 }
 
-// Begin a transaction
+// Begin begin a transaction.
 func (db *MVCCDB) Begin() error {
 	db.mutex.Lock()
 	defer db.mutex.Unlock()
@@ -70,12 +74,16 @@ func (db *MVCCDB) Begin() error {
 		return ErrUnsupportedNestedTransaction
 	}
 
+	if db.isPreparedDB {
+		return ErrUnsupportedBeginInPreparedDB
+	}
+
 	db.isInTransaction = true
 
 	return nil
 }
 
-// Commit the transaction to storage
+// Commit commit changes to storage.
 func (db *MVCCDB) Commit() error {
 	db.mutex.Lock()
 	defer db.mutex.Unlock()
@@ -84,10 +92,14 @@ func (db *MVCCDB) Commit() error {
 		return ErrTransactionNotStarted
 	}
 
+	if db.isPreparedDB {
+		return ErrUnsupportedCommitInPreparedDB
+	}
+
 	// commit.
 	db.stagingTable.LockFinalVersionValue()
 	defer db.stagingTable.UnlockFinalVersionValue()
-	for _, value := range db.stagingTable.finalVersionValue {
+	for _, value := range db.stagingTable.finalVersionizedValue {
 		if value.dirty == false {
 			continue
 		}
@@ -112,6 +124,10 @@ func (db *MVCCDB) RollBack() error {
 
 	if !db.isInTransaction {
 		return ErrTransactionNotStarted
+	}
+
+	if db.isPreparedDB {
+		return ErrUnsupportedRollBackInPreparedDB
 	}
 
 	// rollback.
@@ -181,6 +197,10 @@ func (db *MVCCDB) Prepare(tid interface{}) (*MVCCDB, error) {
 		return nil, ErrTransactionNotStarted
 	}
 
+	if tid == nil {
+		return nil, ErrTidIsNil
+	}
+
 	return &MVCCDB{
 		tid:             tid,
 		storage:         db.storage,
@@ -195,12 +215,12 @@ func (db *MVCCDB) CheckAndUpdate(tid interface{}) ([]interface{}, error) {
 	db.mutex.Lock()
 	defer db.mutex.Lock()
 
-	if !db.isPreparedDB {
-		return nil, ErrDisallowedCallingInNoPreparedDB
-	}
-
 	if !db.isInTransaction {
 		return nil, ErrTransactionNotStarted
+	}
+
+	if !db.isPreparedDB {
+		return nil, ErrDisallowedCallingInNoPreparedDB
 	}
 
 	return db.stagingTable.MergeToFinal(db.tid)
@@ -210,6 +230,14 @@ func (db *MVCCDB) CheckAndUpdate(tid interface{}) ([]interface{}, error) {
 func (db *MVCCDB) Reset(txid string) error {
 	db.mutex.Lock()
 	defer db.mutex.Lock()
+
+	if !db.isInTransaction {
+		return ErrTransactionNotStarted
+	}
+
+	if !db.isPreparedDB {
+		return ErrDisallowedCallingInNoPreparedDB
+	}
 
 	db.stagingTable.Purge(db.tid)
 	return nil
