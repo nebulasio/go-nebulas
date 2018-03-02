@@ -69,13 +69,13 @@ type State struct {
 	timeStamp int64
 	proposer  byteutils.Hash
 
-	dynastyTrie     *trie.BatchTrie // key: delegatee, val: delegatee
-	nextDynastyTrie *trie.BatchTrie // key: delegatee, val: delegatee
-	delegateTrie    *trie.BatchTrie // key: delegatee + delegator, val: delegator
-	voteTrie        *trie.BatchTrie // key: delegator, val: delegatee
-	candidateTrie   *trie.BatchTrie // key: delegatee, val: delegatee
-	mintCntTrie     *trie.BatchTrie // key: dynastyId + delegatee, val: count
-	protectTrie     *trie.BatchTrie // key: delegatee, val: delegatee
+	dynastyTrie     *trie.Trie // key: delegatee, val: delegatee
+	nextDynastyTrie *trie.Trie // key: delegatee, val: delegatee
+	delegateTrie    *trie.Trie // key: delegatee + delegator, val: delegator
+	voteTrie        *trie.Trie // key: delegator, val: delegatee
+	candidateTrie   *trie.Trie // key: delegatee, val: delegatee
+	mintCntTrie     *trie.Trie // key: dynastyId + delegatee, val: count
+	protectTrie     *trie.Trie // key: delegatee, val: delegatee
 
 	chain     *core.BlockChain
 	consensus core.Consensus
@@ -106,7 +106,7 @@ func (dpos *Dpos) NewState(root byteutils.Hash, stor storage.Storage) (state.Con
 	if err != nil && root != nil {
 		return nil, err
 	}
-	dynastyTrie, err := trie.NewBatchTrie(dynastyRoot, stor)
+	dynastyTrie, err := trie.NewTrie(dynastyRoot, stor)
 	if err != nil {
 		return nil, err
 	}
@@ -116,7 +116,7 @@ func (dpos *Dpos) NewState(root byteutils.Hash, stor storage.Storage) (state.Con
 	if err != nil && root != nil {
 		return nil, err
 	}
-	nextDynastyTrie, err := trie.NewBatchTrie(nextDynastyRoot, stor)
+	nextDynastyTrie, err := trie.NewTrie(nextDynastyRoot, stor)
 	if err != nil {
 		return nil, err
 	}
@@ -126,7 +126,7 @@ func (dpos *Dpos) NewState(root byteutils.Hash, stor storage.Storage) (state.Con
 	if err != nil && root != nil {
 		return nil, err
 	}
-	delegateTrie, err := trie.NewBatchTrie(delegateRoot, stor)
+	delegateTrie, err := trie.NewTrie(delegateRoot, stor)
 	if err != nil {
 		return nil, err
 	}
@@ -136,7 +136,7 @@ func (dpos *Dpos) NewState(root byteutils.Hash, stor storage.Storage) (state.Con
 	if err != nil && root != nil {
 		return nil, err
 	}
-	voteTrie, err := trie.NewBatchTrie(voteRoot, stor)
+	voteTrie, err := trie.NewTrie(voteRoot, stor)
 	if err != nil {
 		return nil, err
 	}
@@ -146,7 +146,7 @@ func (dpos *Dpos) NewState(root byteutils.Hash, stor storage.Storage) (state.Con
 	if err != nil && root != nil {
 		return nil, err
 	}
-	candidateTrie, err := trie.NewBatchTrie(candidateRoot, stor)
+	candidateTrie, err := trie.NewTrie(candidateRoot, stor)
 	if err != nil {
 		return nil, err
 	}
@@ -156,7 +156,7 @@ func (dpos *Dpos) NewState(root byteutils.Hash, stor storage.Storage) (state.Con
 	if err != nil && root != nil {
 		return nil, err
 	}
-	mintCntTrie, err := trie.NewBatchTrie(mintCntRoot, stor)
+	mintCntTrie, err := trie.NewTrie(mintCntRoot, stor)
 	if err != nil {
 		return nil, err
 	}
@@ -166,7 +166,7 @@ func (dpos *Dpos) NewState(root byteutils.Hash, stor storage.Storage) (state.Con
 	if err != nil && root != nil {
 		return nil, err
 	}
-	protectTrie, err := trie.NewBatchTrie(protectRoot, stor)
+	protectTrie, err := trie.NewTrie(protectRoot, stor)
 	if err != nil {
 		return nil, err
 	}
@@ -205,23 +205,23 @@ func (dpos *Dpos) CheckTimeout(block *core.Block) bool {
 
 // GenesisConsensusState create a new genesis dpos state
 func (dpos *Dpos) GenesisConsensusState(chain *core.BlockChain, conf *corepb.Genesis) (state.ConsensusState, error) {
-	dynastyTrie, err := trie.NewBatchTrie(nil, chain.Storage())
+	dynastyTrie, err := trie.NewTrie(nil, chain.Storage())
 	if err != nil {
 		return nil, err
 	}
-	delegateTrie, err := trie.NewBatchTrie(nil, chain.Storage())
+	delegateTrie, err := trie.NewTrie(nil, chain.Storage())
 	if err != nil {
 		return nil, err
 	}
-	candidateTrie, err := trie.NewBatchTrie(nil, chain.Storage())
+	candidateTrie, err := trie.NewTrie(nil, chain.Storage())
 	if err != nil {
 		return nil, err
 	}
-	voteTrie, err := trie.NewBatchTrie(nil, chain.Storage())
+	voteTrie, err := trie.NewTrie(nil, chain.Storage())
 	if err != nil {
 		return nil, err
 	}
-	mintTrie, err := trie.NewBatchTrie(nil, chain.Storage())
+	mintTrie, err := trie.NewTrie(nil, chain.Storage())
 	if err != nil {
 		return nil, err
 	}
@@ -292,39 +292,6 @@ func (ds *State) String() string {
 		byteutils.Hex(ds.mintCntTrie.RootHash()),
 		byteutils.Hex(ds.protectTrie.RootHash()),
 	)
-}
-
-// BeginBatch starts a batch task
-func (ds *State) BeginBatch() {
-	// logging.VLog().Debug("State Begin.")
-	ds.delegateTrie.BeginBatch()
-	ds.dynastyTrie.BeginBatch()
-	ds.nextDynastyTrie.BeginBatch()
-	ds.candidateTrie.BeginBatch()
-	ds.voteTrie.BeginBatch()
-	ds.mintCntTrie.BeginBatch()
-}
-
-// Commit a batch task
-func (ds *State) Commit() {
-	ds.delegateTrie.Commit()
-	ds.dynastyTrie.Commit()
-	ds.nextDynastyTrie.Commit()
-	ds.candidateTrie.Commit()
-	ds.voteTrie.Commit()
-	ds.mintCntTrie.Commit()
-	// logging.VLog().Debug("State Commit.")
-}
-
-// RollBack a batch task
-func (ds *State) RollBack() {
-	ds.delegateTrie.RollBack()
-	ds.dynastyTrie.RollBack()
-	ds.nextDynastyTrie.RollBack()
-	ds.candidateTrie.RollBack()
-	ds.voteTrie.RollBack()
-	ds.mintCntTrie.RollBack()
-	// logging.VLog().Debug("State RollBack.")
 }
 
 // Clone a dpos context
@@ -618,7 +585,7 @@ func (p Candidates) Less(i, j int) bool {
 	}
 }
 
-func fetchActiveBootstapValidators(protect *trie.BatchTrie, candidates *trie.BatchTrie) ([]byteutils.Hash, error) {
+func fetchActiveBootstapValidators(protect *trie.Trie, candidates *trie.Trie) ([]byteutils.Hash, error) {
 	iter, err := protect.Iterator(nil)
 	if err != nil && err != storage.ErrKeyNotFound {
 		return nil, err
@@ -648,7 +615,7 @@ func fetchActiveBootstapValidators(protect *trie.BatchTrie, candidates *trie.Bat
 	return activeBootstapValidators, nil
 }
 
-func checkActiveBootstrapValidator(validator byteutils.Hash, protect *trie.BatchTrie, candidates *trie.BatchTrie) (bool, error) {
+func checkActiveBootstrapValidator(validator byteutils.Hash, protect *trie.Trie, candidates *trie.Trie) (bool, error) {
 	_, err := protect.Get(validator)
 	if err != nil && err != storage.ErrKeyNotFound {
 		return false, err
@@ -719,7 +686,7 @@ func (ds *State) chooseCandidates(votes map[string]*util.Uint128) (Candidates, e
 	return candidates, nil
 }
 
-func kickout(stor storage.Storage, candidatesTrie *trie.BatchTrie, delegateTrie *trie.BatchTrie, voteTrie *trie.BatchTrie, candidate byteutils.Hash) error {
+func kickout(stor storage.Storage, candidatesTrie *trie.Trie, delegateTrie *trie.Trie, voteTrie *trie.Trie, candidate byteutils.Hash) error {
 	logging.VLog().Debugf("Kickout %s", candidate.String())
 
 	_, err := candidatesTrie.Del(candidate)
@@ -891,7 +858,7 @@ func (ds *State) electNextDynastyOnBaseDynasty(worldState state.WorldState, base
 
 		// Top 20 are selected directly
 		newDynasty := []string{}
-		nextDynastyTrie, err := trie.NewBatchTrie(nil, ds.chain.Storage())
+		nextDynastyTrie, err := trie.NewTrie(nil, ds.chain.Storage())
 		directSelected := DynastySize - 1
 		for i := 0; i < directSelected && i < len(candidates); i++ {
 			delegatee := candidates[i].Address.Bytes()
@@ -946,7 +913,7 @@ func (ds *State) electNextDynastyOnBaseDynasty(worldState state.WorldState, base
 }
 
 // FindProposer for now in given dynasty
-func FindProposer(now int64, dynasty *trie.BatchTrie) (proposer byteutils.Hash, err error) {
+func FindProposer(now int64, dynasty *trie.Trie) (proposer byteutils.Hash, err error) {
 	offset := now % DynastyInterval
 	if offset%BlockInterval != 0 {
 		return nil, ErrNotBlockForgTime
@@ -1052,7 +1019,7 @@ func (ds *State) NextConsensusState(elapsedSecond int64, worldState state.WorldS
 }
 
 // TraverseDynasty return all members in the dynasty
-func TraverseDynasty(dynasty *trie.BatchTrie) ([]byteutils.Hash, error) {
+func TraverseDynasty(dynasty *trie.Trie) ([]byteutils.Hash, error) {
 	members := []byteutils.Hash{}
 	iter, err := dynasty.Iterator(nil)
 	if err != nil && err != storage.ErrKeyNotFound {

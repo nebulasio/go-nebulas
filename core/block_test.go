@@ -98,21 +98,21 @@ func MockGenesisConf() *corepb.Genesis {
 }
 
 type mockConsensusState struct {
-	votes      *trie.BatchTrie
-	delegates  *trie.BatchTrie
-	candidates *trie.BatchTrie
+	votes      *trie.Trie
+	delegates  *trie.Trie
+	candidates *trie.Trie
 }
 
 func newMockConsensusState() (*mockConsensusState, error) {
-	votes, err := trie.NewBatchTrie(nil, stor)
+	votes, err := trie.NewTrie(nil, stor)
 	if err != nil {
 		return nil, err
 	}
-	delegates, err := trie.NewBatchTrie(nil, stor)
+	delegates, err := trie.NewTrie(nil, stor)
 	if err != nil {
 		return nil, err
 	}
-	candidates, err := trie.NewBatchTrie(nil, stor)
+	candidates, err := trie.NewTrie(nil, stor)
 	if err != nil {
 		return nil, err
 	}

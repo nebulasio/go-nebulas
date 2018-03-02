@@ -267,7 +267,7 @@ func TestCheckActiveBootstrapValidators(t *testing.T) {
 	tester := "2fe3f9f51f9a05dd5f7c5329127f7c917917149b4e16b0b8"
 	candidate, err := core.AddressParse(tester)
 	assert.Nil(t, err)
-	candidates, err := trie.NewBatchTrie(nil, neb.storage)
+	candidates, err := trie.NewTrie(nil, neb.storage)
 	assert.Nil(t, err)
 	_, err = candidates.Put(candidate.Bytes(), candidate.Bytes())
 	assert.Nil(t, err)
@@ -303,7 +303,7 @@ func TestElectNextDynastyOnBaseDynastyWhenTooFewCandidates(t *testing.T) {
 func TestTraverseDynasty(t *testing.T) {
 	stor, err := storage.NewMemoryStorage()
 	assert.Nil(t, err)
-	dynasty, err := trie.NewBatchTrie(nil, stor)
+	dynasty, err := trie.NewTrie(nil, stor)
 	assert.Nil(t, err)
 	members, err := TraverseDynasty(dynasty)
 	assert.Nil(t, err)

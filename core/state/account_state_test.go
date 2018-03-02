@@ -29,7 +29,7 @@ import (
 
 func TestAccount_ToBytes(t *testing.T) {
 	stor, _ := storage.NewMemoryStorage()
-	vars, _ := trie.NewBatchTrie(nil, stor)
+	vars, _ := trie.NewTrie(nil, stor)
 	acc := &account{
 		balance:    util.NewUint128(),
 		nonce:      0,

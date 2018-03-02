@@ -78,6 +78,16 @@ func TestNewTrie(t *testing.T) {
 	}
 }
 
+func TestTrie_Empty(t *testing.T) {
+	storage, _ := storage.NewMemoryStorage()
+	tr1, err := NewTrie(nil, storage)
+	assert.Nil(t, err)
+	root := tr1.RootHash()
+	tr2, err := NewTrie(root, storage)
+	assert.Nil(t, err)
+	assert.Equal(t, tr1.RootHash(), tr2.RootHash())
+}
+
 func TestTrie_Clone(t *testing.T) {
 	type fields struct {
 		rootHash []byte
@@ -548,4 +558,114 @@ func TestTrie_Replay(t *testing.T) {
 	fmt.Println(rootHash, err1)
 
 	assert.Equal(t, rootHash, tr.RootHash())
+}
+
+func TestTrie_Iterator(t *testing.T) {
+	storage, _ := storage.NewMemoryStorage()
+	tr, _ := NewTrie(nil, storage)
+	assert.Equal(t, []byte(nil), tr.RootHash())
+
+	domain1 := []string{"a", "b", "c", "d"}
+	value1 := []byte("abcd")
+	domain2 := []string{"a", "b", "c", "e"}
+	value2 := []byte("abce")
+	domain3 := []string{"a", "b", "d"}
+	value3 := []byte("abd")
+	domain4 := []string{"a", "b", "e"}
+	value4 := []byte("abe")
+	domain5 := []string{"a", "c"}
+	value5 := []byte("ac")
+	domain6 := []string{"a", "e"}
+	value6 := []byte("ae")
+
+	tr.Put(HashDomains(domain1...), value1)
+	tr.Put(HashDomains(domain2...), value2)
+	tr.Put(HashDomains(domain3...), value3)
+	tr.Put(HashDomains(domain4...), value4)
+	tr.Put(HashDomains(domain5...), value5)
+	tr.Put(HashDomains(domain6...), value6)
+
+	// traverse abcd
+	it, err := tr.Iterator(HashDomainsPrefix("a", "b", "c", "d"))
+	assert.Nil(t, err)
+	next, err := it.Next()
+	assert.Nil(t, err)
+	assert.Equal(t, next, true)
+	assert.Equal(t, it.Value(), value1)
+	next, err = it.Next()
+	assert.Nil(t, err)
+	assert.Equal(t, next, false)
+
+	// traverse abcd, abce
+	it, err = tr.Iterator(HashDomainsPrefix("a", "b", "c"))
+	assert.Nil(t, err)
+	next, err = it.Next()
+	assert.Nil(t, err)
+	assert.Equal(t, next, true)
+	assert.Equal(t, it.Value(), value2)
+	next, err = it.Next()
+	assert.Nil(t, err)
+	assert.Equal(t, next, true)
+	assert.Equal(t, it.Value(), value1)
+	next, err = it.Next()
+	assert.Nil(t, err)
+	assert.Equal(t, next, false)
+
+	// traverse abd, abe, abcd, abce
+	it, err = tr.Iterator(HashDomainsPrefix("a", "b"))
+	assert.Nil(t, err)
+	next, err = it.Next()
+	assert.Nil(t, err)
+	assert.Equal(t, next, true)
+	assert.Equal(t, it.Value(), value2)
+	next, err = it.Next()
+	assert.Nil(t, err)
+	assert.Equal(t, next, true)
+	assert.Equal(t, it.Value(), value1)
+	next, err = it.Next()
+	assert.Nil(t, err)
+	assert.Equal(t, next, true)
+	assert.Equal(t, it.Value(), value4)
+	next, err = it.Next()
+	assert.Nil(t, err)
+	assert.Equal(t, next, true)
+	assert.Equal(t, it.Value(), value3)
+	next, err = it.Next()
+	assert.Nil(t, err)
+	assert.Equal(t, next, false)
+
+	// traverse ae, ad, abd, abe, abcd, abce
+	it, err = tr.Iterator(HashDomainsPrefix("a"))
+	assert.Nil(t, err)
+	next, err = it.Next()
+	assert.Nil(t, err)
+	assert.Equal(t, next, true)
+	assert.Equal(t, it.Value(), value5)
+	next, err = it.Next()
+	assert.Nil(t, err)
+	assert.Equal(t, next, true)
+	assert.Equal(t, it.Value(), value6)
+	next, err = it.Next()
+	assert.Nil(t, err)
+	assert.Equal(t, next, true)
+	assert.Equal(t, it.Value(), value2)
+	next, err = it.Next()
+	assert.Nil(t, err)
+	assert.Equal(t, next, true)
+	assert.Equal(t, it.Value(), value1)
+	next, err = it.Next()
+	assert.Nil(t, err)
+	assert.Equal(t, next, true)
+	assert.Equal(t, it.Value(), value4)
+	next, err = it.Next()
+	assert.Nil(t, err)
+	assert.Equal(t, next, true)
+	assert.Equal(t, it.Value(), value3)
+	next, err = it.Next()
+	assert.Nil(t, err)
+	assert.Equal(t, next, false)
+
+	// nothing
+	it, err = tr.Iterator(HashDomainsPrefix("b"))
+	assert.NotNil(t, err)
 }

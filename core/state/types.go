@@ -90,10 +90,6 @@ type Consensus interface {
 
 // ConsensusState interface of consensus state
 type ConsensusState interface {
-	BeginBatch()
-	Commit()
-	RollBack()
-
 	RootHash() (byteutils.Hash, error)
 	String() string
 	Clone() (ConsensusState, error)

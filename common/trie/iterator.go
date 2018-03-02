@@ -20,6 +20,7 @@ package trie
 
 import (
 	"errors"
+	"github.com/nebulasio/go-nebulas/crypto/hash"
 )
 
 // errors constants
@@ -173,4 +174,38 @@ func (it *Iterator) Next() (bool, error) {
 // Value return current leaf node's value
 func (it *Iterator) Value() []byte {
 	return it.value
+}
+
+// HashDomains for each variable in contract
+// each domain will represented as 6 bytes, support 4 level domain at most
+// such as,
+// 4a56b7 000000 000000 000000,
+// 4a56b8 1c9812 000000 000000,
+// 4a56b8 3a1289 000000 000000,
+// support iterator with same prefix
+func HashDomains(domains ...string) []byte {
+	if len(domains) > 24/6 {
+		panic("only support 4 level domain at most")
+	}
+	key := [24]byte{0}
+	for k, v := range domains {
+		domain := hash.Sha3256([]byte(v))[0:6]
+		for i := 0; i < len(domain); i++ {
+			key[k*6+i] = domain[i]
+		}
+	}
+	return key[:]
+}
+
+// HashDomainsPrefix is same as HashDomains, but without tail zeros
+func HashDomainsPrefix(domains ...string) []byte {
+	if len(domains) > 24/6 {
+		panic("only support 4 level domain at most")
+	}
+	key := []byte{}
+	for _, v := range domains {
+		domain := hash.Sha3256([]byte(v))[0:6]
+		key = append(key, domain...)
+	}
+	return key[:]
 }

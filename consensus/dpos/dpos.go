@@ -315,7 +315,7 @@ func (dpos *Dpos) FastVerifyBlock(block *core.Block) error {
 	} else {
 		return nil
 	}
-	dynasty, err := trie.NewBatchTrie(dynastyRoot, dpos.chain.Storage())
+	dynasty, err := trie.NewTrie(dynastyRoot, dpos.chain.Storage())
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"err":   err,
@@ -348,7 +348,7 @@ func (dpos *Dpos) FastVerifyBlock(block *core.Block) error {
 // VerifyBlock verify the block
 func (dpos *Dpos) VerifyBlock(block *core.Block, parent *core.Block) error {
 	// check proposer
-	dynasty, err := trie.NewBatchTrie(block.WorldState().DynastyRoot(), block.Storage())
+	dynasty, err := trie.NewTrie(block.WorldState().DynastyRoot(), block.Storage())
 	if err != nil {
 		return err
 	}

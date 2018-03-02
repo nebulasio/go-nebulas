@@ -43,7 +43,7 @@ type account struct {
 	nonce   uint64
 	// UserType: Global Storage
 	// ContractType: Local Storage
-	variables *trie.BatchTrie
+	variables *trie.Trie
 	// ContractType: Transaction Hash
 	birthPlace byteutils.Hash
 }
@@ -82,7 +82,7 @@ func (acc *account) FromBytes(bytes []byte, storage storage.Storage) error {
 	acc.balance = value
 	acc.nonce = pbAcc.Nonce
 	acc.birthPlace = pbAcc.BirthPlace
-	acc.variables, err = trie.NewBatchTrie(pbAcc.VarsHash, storage)
+	acc.variables, err = trie.NewTrie(pbAcc.VarsHash, storage)
 	if err != nil {
 		return err
 	}
@@ -191,14 +191,14 @@ func (acc *account) String() string {
 
 // AccountState manage account state in Block
 type accountState struct {
-	stateTrie    *trie.BatchTrie
+	stateTrie    *trie.Trie
 	dirtyAccount map[byteutils.HexHash]Account
 	storage      storage.Storage
 }
 
 // NewAccountState create a new account state
 func NewAccountState(root byteutils.Hash, storage storage.Storage) (AccountState, error) {
-	stateTrie, err := trie.NewBatchTrie(root, storage)
+	stateTrie, err := trie.NewTrie(root, storage)
 	if err != nil {
 		return nil, err
 	}
@@ -214,7 +214,7 @@ func (as *accountState) recordDirtyAccount(addr byteutils.Hash, acc Account) {
 }
 
 func (as *accountState) newAccount(addr byteutils.Hash, birthPlace byteutils.Hash) (Account, error) {
-	varTrie, err := trie.NewBatchTrie(nil, as.storage)
+	varTrie, err := trie.NewTrie(nil, as.storage)
 	if err != nil {
 		return nil, err
 	}

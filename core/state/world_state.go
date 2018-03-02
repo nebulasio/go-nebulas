@@ -29,8 +29,8 @@ import (
 
 type states struct {
 	accState       AccountState
-	txsState       *trie.BatchTrie
-	eventsState    *trie.BatchTrie
+	txsState       *trie.Trie
+	eventsState    *trie.Trie
 	consensusState ConsensusState
 
 	consensus Consensus
@@ -41,11 +41,11 @@ func newStates(consensus Consensus, storage storage.Storage) (*states, error) {
 	if err != nil {
 		return nil, err
 	}
-	txsState, err := trie.NewBatchTrie(nil, storage)
+	txsState, err := trie.NewTrie(nil, storage)
 	if err != nil {
 		return nil, err
 	}
-	eventsState, err := trie.NewBatchTrie(nil, storage)
+	eventsState, err := trie.NewTrie(nil, storage)
 	if err != nil {
 		return nil, err
 	}
@@ -101,7 +101,7 @@ func (s *states) ReplaceDB(storage storage.Storage) (*states, error) {
 	if err != nil {
 		return nil, err
 	}
-	txsState, err := trie.NewBatchTrie(txsRoot, storage)
+	txsState, err := trie.NewTrie(txsRoot, storage)
 	if err != nil {
 		return nil, err
 	}
@@ -109,7 +109,7 @@ func (s *states) ReplaceDB(storage storage.Storage) (*states, error) {
 	if err != nil {
 		return nil, err
 	}
-	eventsState, err := trie.NewBatchTrie(eventsRoot, storage)
+	eventsState, err := trie.NewTrie(eventsRoot, storage)
 	if err != nil {
 		return nil, err
 	}
@@ -341,7 +341,7 @@ func (ws *worldState) LoadAccountsRoot(root byteutils.Hash) error {
 }
 
 func (ws *worldState) LoadTxsRoot(root byteutils.Hash) error {
-	txsState, err := trie.NewBatchTrie(root, ws.mvccdb)
+	txsState, err := trie.NewTrie(root, ws.mvccdb)
 	if err != nil {
 		return err
 	}
@@ -350,7 +350,7 @@ func (ws *worldState) LoadTxsRoot(root byteutils.Hash) error {
 }
 
 func (ws *worldState) LoadEventsRoot(root byteutils.Hash) error {
-	eventsState, err := trie.NewBatchTrie(root, ws.mvccdb)
+	eventsState, err := trie.NewTrie(root, ws.mvccdb)
 	if err != nil {
 		return err
 	}

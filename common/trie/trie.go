@@ -27,6 +27,29 @@ import (
 	"github.com/nebulasio/go-nebulas/storage"
 )
 
+// Errors
+var (
+	ErrNotFound = storage.ErrKeyNotFound
+)
+
+// Action represents operation types in Trie
+type Action int
+
+// Action constants
+const (
+	Insert Action = iota
+	Update
+	Delete
+)
+
+// Entry in log, [key, old value, new value]
+type Entry struct {
+	action Action
+	key    []byte
+	old    []byte
+	update []byte
+}
+
 // Flag to identify the type of node
 type ty int
 
@@ -35,11 +58,6 @@ const (
 	ext
 	leaf
 	branch
-)
-
-// Errors
-var (
-	ErrNotFound = storage.ErrKeyNotFound
 )
 
 // Node in trie, three kinds,
