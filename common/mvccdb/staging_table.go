@@ -132,11 +132,6 @@ func (tbl *StagingTable) MergeToFinal(tid interface{}) ([]interface{}, error) {
 			continue
 		}
 
-		// ignore dirty.
-		if tidValueItem.dirty == false {
-			continue
-		}
-
 		// record conflict.
 		if tidValueItem.old != finalValueItem.new {
 			conflictKeys[keyStr] = finalValueItem.tid
