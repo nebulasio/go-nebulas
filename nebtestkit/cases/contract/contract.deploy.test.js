@@ -24,6 +24,7 @@ var coinbase = "eb31ad2d8a89a0ca6935c308d5425730430bc2d63f2573b8";
 var coinState;
 
 var env = 'testneb';
+
 if (env === 'testneb1') {
     neb.setRequest(new HttpRequest("http://35.182.48.19:8685"));
     ChainID = 1001;
@@ -34,12 +35,11 @@ if (env === 'testneb1') {
     ChainID = 1002;
     sourceAccount = new Wallet.Account("43181d58178263837a9a6b08f06379a348a5b362bfab3631ac78d2ac771c5df3");
     coinbase = "0b9cd051a6d7129ab44b17833c63fe4abead40c3714cde6d";
-} 
+}
 
 var from;
 var fromState;
 var initFromBalance = 10;
-
 var contractAddr;
 
 /*
@@ -106,29 +106,31 @@ function testContractDeploy(testInput, testExpect, done) {
         } else if (testInput.isSourceEmpty) {
             contract.source = "";
         } else if (testInput.isSyntaxErr) {
-            contract.source = FS.readFileSync("./nf/nvm/test/ERC20.syntaxError.js", "utf-8"); 
+            contract.source = FS.readFileSync("./nf/nvm/test/ERC20.syntaxError.js", "utf-8");
         } else if (testInput.isParamErr) {
             contract.args = '["NebulasToken", 100,"NAS", 1000000000]';
         } else if (testInput.isTypeEmpty) {
-            contract.sourceType = "js";
+            contract.sourceType = "";
+        } else if (testInput.isTypeWrong) {
+            contract.sourceType = "c";
         } else {
             if (testInput.isSourceTypeTs) {
-                contract.source = FS.readFileSync("./nf/nvm/test/ERC20.ts", "utf-8"); 
+                contract.source = FS.readFileSync("./nf/nvm/test/bank_vault_contract.ts", "utf-8");
             }
             if (testInput.isTypeTs) {
                 contract.sourceType = "ts";
             }
         }
-        
+
         var toAddr = Account.NewAccount();
         if (testInput.isSameAddr === true) {
             toAddr = from;
         }
         var tx = new Transaction(ChainID, from, toAddr, Unit.nasToBasic(testInput.transferValue), parseInt(fromState.nonce) + testInput.nonceIncrement, testInput.gasPrice, testInput.gasLimit, contract);
         if (testInput.isAddressInvalid) {
-            tx.from.address = cryptoUtils.toBuffer("0x23"); 
+            tx.from.address = cryptoUtils.toBuffer("0x23");
             tx.to.address = cryptoUtils.toBuffer("0x23");
-        } 
+        }
         tx.signTransaction();
         if (testInput.isSignErr) {
             tx.sign = "wrong signature";
@@ -148,7 +150,7 @@ function testContractDeploy(testInput, testExpect, done) {
             expect(resp).to.be.have.property('txhash');
             expect(resp).to.be.have.property('contract_address');
             var toAddr = resp.contract_address;
-              
+
             checkTransaction(resp.txhash, function (receipt) {
 
                 try {
@@ -227,7 +229,7 @@ describe('contract deploy', function () {
             done(err);
         });
     });
-/*
+
     it('normal deploy', function (done) {
 
         var testInput = {
@@ -260,7 +262,7 @@ describe('contract deploy', function () {
             gasPrice: -1,
             nonceIncrement: 1
         };
-    //can calc value by previous params
+        //can calc value by previous params
         var testExpect = {
             canSendTx: false,
             canSubmitTx: false,
@@ -315,31 +317,31 @@ describe('contract deploy', function () {
         };
         testContractDeploy(testInput, testExpect, done);
     });
-    
 
-    it('[balance sufficient] balanceOfFrom = (TxBaseGasCount + TxPayloadBaseGasCount[payloadType] + ' + 
+
+    it('[balance sufficient] balanceOfFrom = (TxBaseGasCount + TxPayloadBaseGasCount[payloadType] + ' +
         'gasCountOfPayload + gasCountOfPayloadExecuted) * gasPrice + valueOfTx', function (done) {
 
-        var testInput = {
-            transferValue: 9.999999977583000000,
-            isSameAddr: true,
-            canInit: true,
-            gasLimit: 2000000,
-            gasPrice: -1,
-            nonceIncrement: 1
-        };
-        //can calc value by previous params
-        var testExpect = {
-            canSendTx: true,
-            canSubmitTx: true,
-            canExcuteTx: true,
-            fromBalanceAfterTx: '9999999977583000000',
-            toBalanceAfterTx: '0',
-            transferReward: '22417000000'
-        };
-        testContractDeploy(testInput, testExpect, done);
-    });
-    
+            var testInput = {
+                transferValue: 9.999999977583000000,
+                isSameAddr: true,
+                canInit: true,
+                gasLimit: 2000000,
+                gasPrice: -1,
+                nonceIncrement: 1
+            };
+            //can calc value by previous params
+            var testExpect = {
+                canSendTx: true,
+                canSubmitTx: true,
+                canExcuteTx: true,
+                fromBalanceAfterTx: '9999999977583000000',
+                toBalanceAfterTx: '0',
+                transferReward: '22417000000'
+            };
+            testContractDeploy(testInput, testExpect, done);
+        });
+
 
     it('[balance insufficient] balanceOfFrom < gasPrice*gasLimit', function (done) {
 
@@ -361,28 +363,28 @@ describe('contract deploy', function () {
         };
         testContractDeploy(testInput, testExpect, done);
     });
-    
-    it('[balance insufficient] balanceOfFrom < (TxBaseGasCount + TxPayloadBaseGasCount[payloadType]' 
+
+    it('[balance insufficient] balanceOfFrom < (TxBaseGasCount + TxPayloadBaseGasCount[payloadType]'
         + 'gasCountOfPayload + gasCountOfPayloadExecuted) * gasPrice + valueOfTx', function (done) {
 
-        var testInput = {
-            transferValue: 9.999999999999,
-            isSameAddr: true,
-            gasLimit: 2000000,
-            gasPrice: -1,
-            nonceIncrement: 1
-        };
-        //can calc value by previous params
-        var testExpect = {
-            canSendTx: true,
-            canSubmitTx: true,
-            canExcuteTx: false,
-            fromBalanceAfterTx: '9999999977583000000',
-            toBalanceAfterTx: '0',
-            transferReward: '22417000000'
-        };
-        testContractDeploy(testInput, testExpect, done);
-    });
+            var testInput = {
+                transferValue: 9.999999999999,
+                isSameAddr: true,
+                gasLimit: 2000000,
+                gasPrice: -1,
+                nonceIncrement: 1
+            };
+            //can calc value by previous params
+            var testExpect = {
+                canSendTx: true,
+                canSubmitTx: true,
+                canExcuteTx: false,
+                fromBalanceAfterTx: '9999999977583000000',
+                toBalanceAfterTx: '0',
+                transferReward: '22417000000'
+            };
+            testContractDeploy(testInput, testExpect, done);
+        });
 
     it('[gas price insufficient] gas price = 0', function (done) {
 
@@ -469,73 +471,73 @@ describe('contract deploy', function () {
         testContractDeploy(testInput, testExpect, done);
     });
 
-    it('[gasLimit sufficient] gasLimit = TxBaseGasCount + gasCountOfPayload' + 
+    it('[gasLimit sufficient] gasLimit = TxBaseGasCount + gasCountOfPayload' +
         '+ gasCountOfpayloadExecuted', function (done) {
 
-        var testInput = {
-            transferValue: 1,
-            isSameAddr: true,
-            gasLimit: 22417,
-            gasPrice: -1,
-            nonceIncrement: 1
-        };
-        //can calc value by previous params
-        var testExpect = {
-            canSendTx: true,
-            canSubmitTx: true,
-            canExcuteTx: true,
-            fromBalanceAfterTx: '9999999977583000000',
-            toBalanceAfterTx: '0',
-            transferReward: '22417000000'
-        };
-        testContractDeploy(testInput, testExpect, done);
-    });
+            var testInput = {
+                transferValue: 1,
+                isSameAddr: true,
+                gasLimit: 22417,
+                gasPrice: -1,
+                nonceIncrement: 1
+            };
+            //can calc value by previous params
+            var testExpect = {
+                canSendTx: true,
+                canSubmitTx: true,
+                canExcuteTx: true,
+                fromBalanceAfterTx: '9999999977583000000',
+                toBalanceAfterTx: '0',
+                transferReward: '22417000000'
+            };
+            testContractDeploy(testInput, testExpect, done);
+        });
 
-    it('[gasLimit insufficient] TxBaseGasCount + gasCountOfPayload < gasLimit < TxBaseGasCount' + 
-    '+ gasCountOfPayload + gasCountOfpayloadExecuted', function (done) {
+    it('[gasLimit insufficient] TxBaseGasCount + gasCountOfPayload < gasLimit < TxBaseGasCount' +
+        '+ gasCountOfPayload + gasCountOfpayloadExecuted', function (done) {
 
-        var testInput = {
-            transferValue: 1,
-            isSameAddr: true,
-            gasLimit: 22416,
-            gasPrice: -1,
-            nonceIncrement: 1
-        };
-        //can calc value by previous params
-        var testExpect = {
-            canSendTx: true,
-            canSubmitTx: true,
-            canExcuteTx: false,
-            fromBalanceAfterTx: '9999999977584000000',
-            toBalanceAfterTx: '0',
-            transferReward: '22416000000'
-        };
-        testContractDeploy(testInput, testExpect, done);
-    });
+            var testInput = {
+                transferValue: 1,
+                isSameAddr: true,
+                gasLimit: 22416,
+                gasPrice: -1,
+                nonceIncrement: 1
+            };
+            //can calc value by previous params
+            var testExpect = {
+                canSendTx: true,
+                canSubmitTx: true,
+                canExcuteTx: false,
+                fromBalanceAfterTx: '9999999977584000000',
+                toBalanceAfterTx: '0',
+                transferReward: '22416000000'
+            };
+            testContractDeploy(testInput, testExpect, done);
+        });
 
-    it('[gasLimit sufficient] gasLimit > TxBaseGasCount + gasCountOfPayload' + 
+    it('[gasLimit sufficient] gasLimit > TxBaseGasCount + gasCountOfPayload' +
         '+ gasCountOfpayloadExecuted', function (done) {
 
-        var testInput = {
-            transferValue: 1,
-            isSameAddr: true,
-            gasLimit: 2000000,
-            gasPrice: -1,
-            nonceIncrement: 1
-        };
-        //can calc value by previous params
-        var testExpect = {
-            canSendTx: true,
-            canSubmitTx: true,
-            canExcuteTx: true,
-            fromBalanceAfterTx: '9999999977583000000',
-            toBalanceAfterTx: '0',
-            transferReward: '22417000000'
-        };
-        testContractDeploy(testInput, testExpect, done);
-    });    
+            var testInput = {
+                transferValue: 1,
+                isSameAddr: true,
+                gasLimit: 2000000,
+                gasPrice: -1,
+                nonceIncrement: 1
+            };
+            //can calc value by previous params
+            var testExpect = {
+                canSendTx: true,
+                canSubmitTx: true,
+                canExcuteTx: true,
+                fromBalanceAfterTx: '9999999977583000000',
+                toBalanceAfterTx: '0',
+                transferReward: '22417000000'
+            };
+            testContractDeploy(testInput, testExpect, done);
+        });
 
-//TODO: [gasLimit insufficient] gasLimit = TxBaseGasCount + gasCountOfPayload
+    //TODO: [gasLimit insufficient] gasLimit = TxBaseGasCount + gasCountOfPayload
     it('[gasLimit insufficient] gasLimit < TxBaseGasCount + gasCountOfPayload', function (done) {
 
         var testInput = {
@@ -698,18 +700,18 @@ describe('contract deploy', function () {
             canSendTx: true,
             canSubmitTx: true,
             canExcuteTx: true,
-            fromBalanceAfterTx: '9999999977546000000',
-            toBalanceAfterTx: '9999999977546000000',
-            transferReward: '22454000000'
+            fromBalanceAfterTx: '9999999977586000000',
+            toBalanceAfterTx: '0',
+            transferReward: '22414000000'
         };
         testContractDeploy(testInput, testExpect, done);
     });
-*/
-    it('source type is empty', function (done) {
+
+    it('source type is wrong', function (done) {
         var testInput = {
             transferValue: 1,
             isSameAddr: true,
-            isTypeEmpty: false,
+            isTypeWrong: true,
             gasLimit: 2000000,
             gasPrice: -1,
             nonceIncrement: 1
@@ -718,14 +720,35 @@ describe('contract deploy', function () {
         var testExpect = {
             canSendTx: true,
             canSubmitTx: true,
-            canExcuteTx: true,
-            fromBalanceAfterTx: '9999999977546000000',
+            canExcuteTx: false,
+            fromBalanceAfterTx: '9999999977773000000',
             toBalanceAfterTx: '0',
-            transferReward: '22454000000'
+            transferReward: '22227000000'
         };
         testContractDeploy(testInput, testExpect, done);
     });
-   
+
+    it('source type is empty', function (done) {
+        var testInput = {
+            transferValue: 1,
+            isSameAddr: true,
+            isTypeEmpty: true,
+            gasLimit: 2000000,
+            gasPrice: -1,
+            nonceIncrement: 1
+        };
+
+        var testExpect = {
+            canSendTx: true,
+            canSubmitTx: true,
+            canExcuteTx: false,
+            fromBalanceAfterTx: '9999999977774000000',
+            toBalanceAfterTx: '0',
+            transferReward: '22226000000'
+        };
+        testContractDeploy(testInput, testExpect, done);
+    });
+
     it('source is js but type is ts', function (done) {
         var testInput = {
             transferValue: 1,
@@ -739,10 +762,10 @@ describe('contract deploy', function () {
         var testExpect = {
             canSendTx: true,
             canSubmitTx: true,
-            canExcuteTx: false,
-            fromBalanceAfterTx: '9999999977546000000',
+            canExcuteTx: true,
+            fromBalanceAfterTx: '9999999977583000000',
             toBalanceAfterTx: '0',
-            transferReward: '22454000000'
+            transferReward: '22417000000'
         };
         testContractDeploy(testInput, testExpect, done);
     });
@@ -761,9 +784,9 @@ describe('contract deploy', function () {
             canSendTx: true,
             canSubmitTx: true,
             canExcuteTx: false,
-            fromBalanceAfterTx: '',
-            toBalanceAfterTx: '',
-            transferReward: ''
+            fromBalanceAfterTx: '9999999976647000000',
+            toBalanceAfterTx: '0',
+            transferReward: '23353000000'
         };
         testContractDeploy(testInput, testExpect, done);
     });
