@@ -416,7 +416,7 @@ func (block *Block) Prepare(tx *Transaction) (state.TxWorldState, error) {
 }
 
 // CheckAndUpdate a batch task, threadsafe
-func (block *Block) CheckAndUpdate(tx *Transaction) ([]string, error) {
+func (block *Block) CheckAndUpdate(tx *Transaction) ([]interface{}, error) {
 	return block.WorldState().CheckAndUpdate(tx.Hash().String())
 }
 
@@ -437,7 +437,7 @@ func (block *Block) ReturnTransactions() {
 
 type executedResult struct {
 	transaction *Transaction
-	dependency  []string
+	dependency  []interface{}
 }
 
 // CollectTransactions and add them to block.

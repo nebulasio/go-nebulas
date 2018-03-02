@@ -427,7 +427,7 @@ func (ws *worldState) Prepare(txid string) (TxWorldState, error) {
 	return txState, nil
 }
 
-func (ws *worldState) CheckAndUpdate(txid string) ([]string, error) {
+func (ws *worldState) CheckAndUpdate(txid string) ([]interface{}, error) {
 	txWorldState, ok := ws.txStates[txid]
 	if !ok {
 		return nil, ErrCannotUpdateTxStateBeforePrepare

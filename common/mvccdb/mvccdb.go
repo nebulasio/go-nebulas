@@ -64,7 +64,7 @@ func NewMVCCDB(storage storage.Storage) (*MVCCDB, error) {
 // Begin a transaction
 func (db *MVCCDB) Begin() error {
 	db.mutex.Lock()
-	defer db.mutex.Lock()
+	defer db.mutex.Unlock()
 
 	if db.isInTransaction {
 		return ErrUnsupportedNestedTransaction
@@ -78,7 +78,7 @@ func (db *MVCCDB) Begin() error {
 // Commit the transaction to storage
 func (db *MVCCDB) Commit() error {
 	db.mutex.Lock()
-	defer db.mutex.Lock()
+	defer db.mutex.Unlock()
 
 	if !db.isInTransaction {
 		return ErrTransactionNotStarted
@@ -108,7 +108,7 @@ func (db *MVCCDB) Commit() error {
 // RollBack the transaction
 func (db *MVCCDB) RollBack() error {
 	db.mutex.Lock()
-	defer db.mutex.Lock()
+	defer db.mutex.Unlock()
 
 	if !db.isInTransaction {
 		return ErrTransactionNotStarted
@@ -126,7 +126,7 @@ func (db *MVCCDB) RollBack() error {
 // Get value
 func (db *MVCCDB) Get(key []byte) ([]byte, error) {
 	db.mutex.Lock()
-	defer db.mutex.Lock()
+	defer db.mutex.Unlock()
 
 	if !db.isInTransaction {
 		return db.getFromStorage(key)
@@ -149,7 +149,7 @@ func (db *MVCCDB) Get(key []byte) ([]byte, error) {
 // Put value
 func (db *MVCCDB) Put(key []byte, val []byte) error {
 	db.mutex.Lock()
-	defer db.mutex.Lock()
+	defer db.mutex.Unlock()
 
 	if !db.isInTransaction {
 		return db.putToStorage(key, val)
@@ -162,7 +162,7 @@ func (db *MVCCDB) Put(key []byte, val []byte) error {
 // Del value
 func (db *MVCCDB) Del(key []byte) error {
 	db.mutex.Lock()
-	defer db.mutex.Lock()
+	defer db.mutex.Unlock()
 
 	if !db.isInTransaction {
 		return db.delFromStorage(key)

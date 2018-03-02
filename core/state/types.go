@@ -134,7 +134,7 @@ type WorldState interface {
 	RollBack() error
 
 	Prepare(string) (TxWorldState, error)
-	CheckAndUpdate(string) ([]string, error)
+	CheckAndUpdate(string) ([]interface{}, error)
 	Reset(string) error
 
 	LoadAccountsRoot(byteutils.Hash) error
