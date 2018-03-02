@@ -20,6 +20,7 @@ package trie
 
 import (
 	"errors"
+
 	"github.com/nebulasio/go-nebulas/crypto/hash"
 )
 
@@ -30,14 +31,16 @@ var (
 
 // IteratorState represents the intermediate statue in iterator
 type IteratorState struct {
-	node *node
-	pos  int
+	node  *node
+	pos   int
+	route []byte
 }
 
 // Iterator to traverse leaf node in a trie
 type Iterator struct {
 	stack []*IteratorState
 	value []byte
+	key   []byte
 	root  *Trie
 }
 
@@ -57,7 +60,7 @@ func validElementsInBranchNode(offset int, node *node) []int {
 
 // Iterator return an iterator
 func (t *Trie) Iterator(prefix []byte) (*Iterator, error) {
-	rootHash, err := t.getSubTrieWithMaxCommonPrefix(prefix)
+	rootHash, curRoute, err := t.getSubTrieWithMaxCommonPrefix(prefix)
 	if err != nil {
 		return nil, err
 	}
@@ -65,60 +68,70 @@ func (t *Trie) Iterator(prefix []byte) (*Iterator, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	pos := -1
 	valid := validElementsInBranchNode(0, node)
 	if len(valid) > 0 {
 		pos = valid[0]
 	}
+
 	return &Iterator{
 		root:  t,
-		stack: []*IteratorState{&IteratorState{node, pos}},
+		stack: []*IteratorState{&IteratorState{node, pos, curRoute}},
 		value: nil,
+		key:   nil,
 	}, nil
 }
 
-func (t *Trie) getSubTrieWithMaxCommonPrefix(prefix []byte) ([]byte, error) {
+func (t *Trie) getSubTrieWithMaxCommonPrefix(prefix []byte) ([]byte, []byte, error) {
 	curRootHash := t.rootHash
 	curRoute := keyToRoute(prefix)
+
+	route := []byte{}
 	for len(curRoute) > 0 {
 		rootNode, err := t.fetchNode(curRootHash)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		flag, err := rootNode.Type()
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		switch flag {
 		case branch:
 			curRootHash = rootNode.Val[curRoute[0]]
+			route = append(route, []byte{curRoute[0]}...)
 			curRoute = curRoute[1:]
 		case ext:
 			path := rootNode.Val[1]
 			next := rootNode.Val[2]
 			matchLen := prefixLen(path, curRoute)
 			if matchLen != len(path) && matchLen != len(curRoute) {
-				return nil, ErrNotFound
+				return nil, nil, ErrNotFound
 			}
+			route = append(route, path...)
 			curRootHash = next
 			curRoute = curRoute[matchLen:]
 		case leaf:
 			path := rootNode.Val[1]
 			matchLen := prefixLen(path, curRoute)
 			if matchLen != len(path) && matchLen != len(curRoute) {
-				return nil, ErrNotFound
+				return nil, nil, ErrNotFound
 			}
 			curRootHash = rootNode.Hash
 			curRoute = curRoute[matchLen:]
+			if len(curRoute) > 0 {
+				return nil, nil, ErrNotFound
+			}
 		default:
-			return nil, errors.New("unknown node type")
+			return nil, nil, errors.New("unknown node type")
 		}
 	}
-	return curRootHash, nil
+	return curRootHash, route, nil
 }
 
-func (it *Iterator) push(node *node, pos int) {
-	it.stack = append(it.stack, &IteratorState{node, pos})
+func (it *Iterator) push(node *node, pos int, route []byte) {
+	it.stack = append(it.stack, &IteratorState{node, pos, route})
 }
 
 func (it *Iterator) pop() (*IteratorState, error) {
@@ -139,6 +152,7 @@ func (it *Iterator) Next() (bool, error) {
 	}
 	node := state.node
 	pos := state.pos
+	route := state.route
 	ty, err := node.Type()
 	for {
 		switch ty {
@@ -148,14 +162,17 @@ func (it *Iterator) Next() (bool, error) {
 				return false, errors.New("empty branch node")
 			}
 			if len(valid) > 1 {
-				it.push(node, valid[1])
+				//curRoute := append(route, []byte{byte(valid[1])}...)
+				it.push(node, valid[1], route)
 			}
+			route = append(route, []byte{byte(valid[0])}...)
 			node, err = it.root.fetchNode(node.Val[valid[0]])
 			if err != nil {
 				return false, err
 			}
 			ty, err = node.Type()
 		case ext:
+			route = append(route, node.Val[1]...)
 			node, err = it.root.fetchNode(node.Val[2])
 			if err != nil {
 				return false, err
@@ -163,12 +180,18 @@ func (it *Iterator) Next() (bool, error) {
 			ty, err = node.Type()
 		case leaf:
 			it.value = node.Val[2]
+			it.key = append(route, node.Val[1]...)
 			return true, nil
 		default:
 			return false, err
 		}
 		pos = 0
 	}
+}
+
+// Key return current leaf node's key
+func (it *Iterator) Key() []byte {
+	return it.key
 }
 
 // Value return current leaf node's value
