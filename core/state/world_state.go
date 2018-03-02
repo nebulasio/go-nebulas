@@ -20,6 +20,7 @@ package state
 
 import (
 	"encoding/json"
+
 	"github.com/nebulasio/go-nebulas/common/mvccdb"
 
 	"github.com/nebulasio/go-nebulas/common/trie"
@@ -59,6 +60,26 @@ func newStates(consensus Consensus, storage storage.Storage) (*states, error) {
 }
 
 func (s *states) Merge(done *states) error {
+	_, err := s.txsState.Replay(done.txsState)
+	if err != nil {
+		return err
+	}
+
+	_, err = s.eventsState.Replay(done.eventsState)
+	if err != nil {
+		return err
+	}
+
+	err = s.consensusState.Replay(done.consensusState)
+	if err != nil {
+		return err
+	}
+
+	err = s.accState.Replay(done.accState)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 

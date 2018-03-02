@@ -319,6 +319,15 @@ func (as *accountState) Accounts() ([]Account, error) {
 	return accounts, nil
 }
 
+// replay merge dirtyAccount
+func (as *accountState) Replay(done AccountState) error {
+	state := done.(*accountState)
+	for addr, acc := range state.dirtyAccount {
+		as.dirtyAccount[addr] = acc
+	}
+	return nil
+}
+
 // Clone an accountState
 func (as *accountState) Clone() (AccountState, error) {
 	stateTrie, err := as.stateTrie.Clone()

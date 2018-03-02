@@ -47,7 +47,7 @@ func TestAccountState(t *testing.T) {
 	assert.Nil(t, err)
 	as, err := NewAccountState(nil, stor)
 	assert.Nil(t, err)
-	as.BeginBatch()
+
 	accAddr1 := []byte("accAddr1")
 	acc1, err := as.GetOrCreateUserAccount(accAddr1)
 	assert.Nil(t, err)
@@ -56,7 +56,7 @@ func TestAccountState(t *testing.T) {
 	acc1.AddBalance(util.NewUint128FromInt(16))
 	acc1.IncrNonce()
 	acc1.Put([]byte("var0"), []byte("value0"))
-	as.Commit()
+
 	asClone, err := as.Clone()
 	assert.Nil(t, err)
 	acc1Clone, err := asClone.GetOrCreateUserAccount(accAddr1)
@@ -70,7 +70,7 @@ func TestAccountState(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, asRoot, asCloneRoot)
 	assert.Equal(t, acc1Clone.VarsHash(), acc1.VarsHash())
-	as.BeginBatch()
+
 	accAddr2 := []byte("accAddr2")
 	acc2, err := as.GetOrCreateUserAccount(accAddr2)
 	assert.Nil(t, err)
@@ -79,7 +79,7 @@ func TestAccountState(t *testing.T) {
 	acc3, err := as.GetOrCreateUserAccount(accAddr3)
 	assert.Nil(t, err)
 	acc3.Put([]byte("var2"), []byte("value2"))
-	as.RollBack()
+
 	asRoot, err = as.RootHash()
 	assert.Nil(t, err)
 	asCloneRoot, err = asClone.RootHash()

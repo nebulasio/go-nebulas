@@ -20,6 +20,7 @@ package state
 
 import (
 	"errors"
+
 	"github.com/nebulasio/go-nebulas/storage"
 	"github.com/nebulasio/go-nebulas/util"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
@@ -71,6 +72,7 @@ type AccountState interface {
 	Accounts() ([]Account, error)
 
 	Clone() (AccountState, error)
+	Replay(AccountState) error
 
 	GetOrCreateUserAccount(addr []byte) (Account, error)
 	GetContractAccount(addr []byte) (Account, error)
@@ -93,6 +95,7 @@ type ConsensusState interface {
 	RootHash() (byteutils.Hash, error)
 	String() string
 	Clone() (ConsensusState, error)
+	Replay(ConsensusState) error
 
 	Proposer() byteutils.Hash
 	TimeStamp() int64

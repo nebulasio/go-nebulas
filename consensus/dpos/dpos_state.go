@@ -294,6 +294,42 @@ func (ds *State) String() string {
 	)
 }
 
+//replay a dpos
+func (ds *State) Replay(done state.ConsensusState) error {
+
+	state := done.(*State)
+
+	if _, err := ds.delegateTrie.Replay(state.delegateTrie); err != nil {
+		return err
+	}
+
+	if _, err := ds.dynastyTrie.Replay(state.dynastyTrie); err != nil {
+		return err
+	}
+
+	if _, err := ds.nextDynastyTrie.Replay(state.nextDynastyTrie); err != nil {
+		return err
+	}
+
+	if _, err := ds.candidateTrie.Replay(state.candidateTrie); err != nil {
+		return err
+	}
+
+	if _, err := ds.voteTrie.Replay(state.voteTrie); err != nil {
+		return err
+	}
+
+	if _, err := ds.mintCntTrie.Replay(state.mintCntTrie); err != nil {
+		return err
+	}
+
+	if _, err := ds.protectTrie.Replay(state.protectTrie); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // Clone a dpos context
 func (ds *State) Clone() (state.ConsensusState, error) {
 	var err error
