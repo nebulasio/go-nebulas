@@ -30,9 +30,8 @@ if (env === 'local') {
     sourceAccount = new Wallet.Account("a6e5eb290e1438fce79f5cb8774a72621637c2c9654c8b2525ed1d7e4e73653f");
     coinbase = "eb31ad2d8a89a0ca6935c308d5425730430bc2d63f2573b8";
     if (!redeploy) {
-        contractAddr = "557fccaf2f05d4b46156e9b98ca9726f1c9e91d95d3830a7"; 
-        // .js 557fccaf2f05d4b46156e9b98ca9726f1c9e91d95d3830a7
-        // .ts 0d47bb3e7c35c24077da0b25fb04849ec90994ddaa16893b
+        contractAddr = "e5a02995444628cf7935e3ef8b613299a2d97e6d188ce808";  //js
+        // contractAddr = "557fccaf2f05d4b46156e9b98ca9726f1c9e91d95d3830a7";  //ts
     }
 
 } else if (env === 'testneb1') {
@@ -145,9 +144,11 @@ function deployContract(testInput, done) {
 var fromBalanceBefore,
     contractBalanceBefore,
     fromBalanceChange,
+    contractBalanceChange,
     coinBalanceBefore,
     gasUsed,
-    gasPrice;
+    gasPrice,
+    txInfo = {};
 
 function testSave(testInput, testExpect, done) {
     neb.api.getAccountState(contractAddr).then(function(state){
@@ -172,11 +173,8 @@ function testSave(testInput, testExpect, done) {
             testInput.value, parseInt(state.nonce) + 1, 0, testInput.gasLimit, call);
         tx.signTransaction();
 
-        neb.api.estimateGas(from.getAddressString(), contractAddr,
-            testInput.value, parseInt(state.nonce) + 1, 0, testInput.gasLimit, call).then(function(resp){
-                        expect(resp).to.have.property('gas');
-                        gasUsed = resp.gas;
-         });
+        txInfo.call = call;
+        txInfo.nonce = parseInt(state.nonce) + 1;
 
         return neb.api.sendRawTransaction(tx.toProtoString());
     }).then(function(resp){
@@ -197,31 +195,36 @@ function testSave(testInput, testExpect, done) {
 
                 return neb.api.getAccountState(receipt.to);
             }).then(function(cstate){
+                contractBalanceChange = new BigNumber(cstate.balance).sub(contractBalanceBefore);
                 console.log("[after save] contract state: " + JSON.stringify(cstate));
 
-                neb.api.getAccountState(coinbase).then(function(state){
-                    var coinbalancechange = new BigNumber(state.balance).sub(new BigNumber(coinBalanceBefore))
-                        .mod(new BigNumber(0.48).mul(new BigNumber(10).pow(new BigNumber(18))));
-                    console.log("[after save] coinbase state:" + JSON.stringify(state) + ", balance change: " + coinbalancechange);
-                    return neb.api.gasPrice();
-                }).then(function(resp){
-                    expect(resp).to.have.property('gas_price');
-                    console.log("[after save] gas price:" + resp['gas_price'] + ", gas used: " + gasUsed);
-                    gasPrice = resp['gas_price'];
-                    var isEqual = fromBalanceChange.equals(new BigNumber(gasUsed)
-                                                    .mul(new BigNumber(gasPrice))
-                                                    .add(new BigNumber(testInput.value)));     
-                    expect(isEqual).to.be.true;
+                return neb.api.getAccountState(coinbase);
+            }).then(function(state){
+                var coinbalancechange = new BigNumber(state.balance).sub(new BigNumber(coinBalanceBefore))
+                    .mod(new BigNumber(0.48).mul(new BigNumber(10).pow(new BigNumber(18))));
+                console.log("[after save] coinbase state:" + JSON.stringify(state) + ", balance change: " + coinbalancechange);
+    
+                return neb.api.estimateGas(from.getAddressString(), contractAddr,
+                        testInput.value, txInfo.nonce, 0, 
+                        testInput.gasLimit, txInfo.call);
+            }).then(function(resp){
+                expect(resp).to.have.property('gas');
+                gasUsed = resp.gas;
+                return neb.api.gasPrice();
+            }).then(function(resp){
+                expect(resp).to.have.property('gas_price');
+                console.log("[after save] gas price:" + resp['gas_price'] + ", gas used: " + gasUsed);
+                gasPrice = resp['gas_price'];
+                var isEqual = fromBalanceChange.equals(new BigNumber(gasUsed)
+                                                .mul(new BigNumber(gasPrice))
+                                                .add(new BigNumber(testInput.value)));     
+                expect(isEqual).to.be.true;
 
-                    isEqual = new BigNumber(cstate.balance).sub(contractBalanceBefore)
-                                    .equals(new BigNumber(testInput.value));
-                    expect(isEqual).to.be.true;
-                    done();
-                }).catch(function(err){
-                    done(err);
-                });
+                isEqual = contractBalanceChange.equals(new BigNumber(testInput.value));
+                expect(isEqual).to.be.true; 
+                done();
             }).catch(function(err){
-                done(err)
+                done(err);
             });
         });
     }).catch(function(err){
@@ -334,6 +337,34 @@ function testTakeout(testInput, testExpect, done) {
     });
 }
 
+function testVerifyAddress(testInput, testExpect, done) {
+    neb.api.getAccountState(contractAddr).then(function(state){
+        console.log("[before verify] contract state: " + JSON.stringify(state));
+        contractBalanceBefore = new BigNumber(state.balance);
+
+        return neb.api.getAccountState(from.getAddressString());
+    }).then(function(state){
+        console.log("[before verify] from state: " + JSON.stringify(state));
+        fromBalanceBefore = state.balance;
+
+        neb.api.getAccountState(coinbase).then(function(state){
+            console.log("[before verify] coinbase state:" + JSON.stringify(state));
+            coinBalanceBefore = state.balance;
+        });
+
+        var call = {
+            "function": testInput.func,
+            "args": testInput.args
+        }
+        return neb.api.call(from.getAddressString(), contractAddr, testInput.value, parseInt(state.nonce) + 1, 0, testInput.gasLimit, call);
+    }).then(resp => {
+        console.log("response: " + JSON.stringify(resp));
+        expect(resp).to.have.property('result')
+        expect(JSON.parse(resp.result)).to.have.property('valid').equal(testExpect.valid);
+        done();
+    }).catch(err => done(err));
+}
+
 function claimNas(contractType, done) {
     from = Account.NewAccount();
 
@@ -442,8 +473,9 @@ describe('bankvault test suits', function() {
             }
     
             var testExpect = {
-                canExecuteTx: true,  // actually, should be `false`
-                takeBalance: '40000000000'  // same with testInput.args[0]
+                canExecuteTx: false,  // actually, should be `false`
+                takeBalance: '40000000000',  // same with testInput.args[0]
+                eventTopic: 'chain.executeTxFailed'
             }
     
             testTakeout(testInput, testExpect, done);
@@ -459,7 +491,7 @@ describe('bankvault test suits', function() {
             var testInput = {
                 gasLimit: 2000000,
                 func: "save",
-                args: "[40]",
+                args: "[15]",
                 value: 20000000000,
             }
     
@@ -480,14 +512,15 @@ describe('bankvault test suits', function() {
             }
     
             var testExpect = {
-                canExecuteTx: true,  // actually, should be `false`
-                takeBalance: '10000000000'  // same with testInput.args[0]
+                canExecuteTx: false,  // actually, should be `false`
+                takeBalance: '10000000000',  // same with testInput.args[0]
+                eventTopic: 'chain.executeTxFailed'
             }
     
             testTakeout(testInput, testExpect, done);
         });
 
-        it('call takeout() after 50 blocks', done => {
+        it('call takeout() after 25 blocks', done => {
             // take
             var testInput = {
                 gasLimit: 2000000,
@@ -503,12 +536,12 @@ describe('bankvault test suits', function() {
             
             setTimeout(() => {
                 testTakeout(testInput, testExpect, done);
-            }, 50 * 5 * 1000);
+            }, 25 * 5 * 1000);
             
         });
     });
     
-    describe("take-nodeposite", function(){
+    describe("take-nodeposit", function(){
         before(function(done){
             claimNas(scriptType, done);
         });
@@ -524,7 +557,7 @@ describe('bankvault test suits', function() {
             }
     
             var testExpect = {
-                canExecuteTx: false , // actually, should be `false`
+                canExecuteTx: false , 
                 takeBalance: '0',
                 eventTopic: 'chain.executeTxFailed'
             }
@@ -543,7 +576,7 @@ describe('bankvault test suits', function() {
                 gasLimit: 2000000,
                 func: "save",
                 args: "[0]",
-                value: 0//20000000000,
+                value: 10000000000,
             }
     
             var testExpect = {
@@ -581,6 +614,43 @@ describe('bankvault test suits', function() {
             }
     
             testSave(testInput, testExpect, done);
+        });
+    });
+
+    describe('verifyAddress', () => {
+
+        before(function(done){
+            claimNas(scriptType, done);
+        });
+
+        it('legal address', done => {
+            var testInput = {
+                value: "0",
+                gasLimit: 2000000,
+                func: "verifyAddress",
+                args: "[\"d2e558ebf403d10cc435e7ddff5906fcb2c8d033d74cc305\"]"
+            }
+    
+            var testExpect = {
+                valid: true
+            }
+
+            testVerifyAddress(testInput, testExpect, done);
+        });
+
+        it('illegal address', done => {
+            var testInput = {
+                value: "0",
+                gasLimit: 2000000,
+                func: "verifyAddress",
+                args: "[\"slfjlsalfksdflsfjks\"]"
+            }
+    
+            var testExpect = {
+                valid: false
+            }
+
+            testVerifyAddress(testInput, testExpect, done);
         });
     });
 });

@@ -25,6 +25,7 @@ import (
 	"unsafe"
 
 	"github.com/nebulasio/go-nebulas/util"
+	"github.com/nebulasio/go-nebulas/util/byteutils"
 	"github.com/nebulasio/go-nebulas/util/logging"
 	"github.com/sirupsen/logrus"
 )
@@ -100,7 +101,16 @@ func TransferFunc(handler unsafe.Pointer, to *C.char, v *C.char) int {
 		return 1
 	}
 
-	toAcc, err := engine.ctx.state.GetOrCreateUserAccount([]byte(addr))
+	bytes, err := byteutils.FromHex(addr)
+	if err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"address": addr,
+			"err":     err,
+		}).Debug("TransferFunc decode address failed.")
+		return 1
+	}
+
+	toAcc, err := engine.ctx.state.GetOrCreateUserAccount(bytes)
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"handler": uint64(uintptr(handler)),

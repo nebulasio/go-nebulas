@@ -88,6 +88,12 @@ BankVaultContract.prototype = {
 	balanceOf: function () {
 		var from = Blockchain.transaction.from;
 		return this.bankVault.get(from);
+	},
+
+	verifyAddress: function(address) {
+		// 1-valid, 0-invalid
+		var result = Blockchain.verifyAddress(address);
+		return {valid: result == 0 ? false : true};
 	}
 };
 
