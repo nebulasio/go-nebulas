@@ -551,7 +551,7 @@ func (block *Block) CollectTransactions(deadline int64) {
 		case result := <-executedCh:
 			transactions = append(transactions, result.transaction)
 			txid := result.transaction.Hash().String()
-			dag.AddNode(txid, txid)
+			dag.AddNode(txid)
 			for _, node := range result.dependency {
 				dag.AddEdge(node, txid)
 			}
@@ -946,7 +946,7 @@ func (block *Block) execute() error {
 
 	dispatcher := dag.NewDispatcher(block.dependency, runtime.NumCPU(), block, func(node *dag.Node, context interface{}) error {
 		block := context.(*Block)
-		tx := block.transactions[node.Key]
+		tx := block.transactions[node.Index]
 		metricsTxExecute.Mark(1)
 		if _, err := block.ExecuteTransaction(tx); err != nil {
 			return err

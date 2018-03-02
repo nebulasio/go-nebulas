@@ -403,7 +403,7 @@ type txWorldState struct {
 	*states
 
 	txid string
-	db   *mvccdb.DB
+	db   *mvccdb.MVCCDB
 }
 
 func (ws *worldState) Prepare(txid string) (TxWorldState, error) {
