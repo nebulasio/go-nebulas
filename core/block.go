@@ -185,7 +185,7 @@ func (block *Block) FromProto(msg proto.Message) error {
 			}
 			block.transactions[idx] = tx
 		}
-		block.dependency = new(dag.Dag)
+		block.dependency = dag.NewDag()
 		if err := block.dependency.FromProto(msg.Dependency); err != nil {
 			return err
 		}
@@ -232,7 +232,6 @@ func NewBlock(chainID uint32, coinbase *Address, parent *Block) (*Block, error) 
 
 	block.Begin()
 	block.rewardCoinbase()
-	block.Commit()
 
 	return block, nil
 }
@@ -466,16 +465,13 @@ func (block *Block) CollectTransactions(deadline int64) {
 	packed := int64(0)
 	unpacked := int64(0)
 
-	if err := block.Begin(); err != nil {
-		return
-	}
 	dag := dag.NewDag()
 	transactions := []*Transaction{}
 
 	parallelCh := make(chan bool, 32)
 	executedCh := make(chan *executedResult, 32)
 	mergeCh := make(chan bool, 1)
-	quitCh := make(chan bool, 1)
+	quitCh := false
 
 	go func() {
 		for !pool.Empty() {
@@ -487,7 +483,6 @@ func (block *Block) CollectTransactions(deadline int64) {
 				if giveback {
 					givebacks = append(givebacks, tx)
 				}
-
 				if err != nil {
 					logging.CLog().WithFields(logrus.Fields{
 						"tx":       tx,
@@ -520,19 +515,7 @@ func (block *Block) CollectTransactions(deadline int64) {
 				<-parallelCh
 			}()
 
-			select {
-			case <-quitCh:
-				return
-			default:
-			}
-		}
-	}()
-
-	for {
-		select {
-		case <-deadlineTimer.C:
-			quitCh <- true
-			go func() {
+			if quitCh && len(parallelCh) == 0 {
 				for _, tx := range givebacks {
 					err := pool.Push(tx)
 					if err != nil {
@@ -543,9 +526,14 @@ func (block *Block) CollectTransactions(deadline int64) {
 						}).Debug("Failed to giveback the tx.")
 					}
 				}
-			}()
+			}
+		}
+	}()
 
-			block.Commit()
+	for {
+		select {
+		case <-deadlineTimer.C:
+			quitCh = true
 			block.transactions = transactions
 			block.dependency = dag
 			return
@@ -556,144 +544,6 @@ func (block *Block) CollectTransactions(deadline int64) {
 			for _, node := range result.dependency {
 				dag.AddEdge(node, txid)
 			}
-		}
-	}
-}
-
-// CollectTransactionsDeprecated and add them to block.
-func (block *Block) CollectTransactionsDeprecated(deadline int64) {
-	metricsBlockPackTxTime.Update(0)
-	if block.sealed {
-		logging.VLog().WithFields(logrus.Fields{
-			"block": block,
-		}).Fatal("Sealed block can't be changed.")
-	}
-
-	now := time.Now().Unix()
-	elapse := deadline - now
-	logging.VLog().WithFields(logrus.Fields{
-		"elapse": elapse,
-	}).Info("Packing tx elapsed time.")
-	metricsBlockPackTxTime.Update(elapse)
-	if elapse <= 0 {
-		return
-	}
-
-	deadlineTimer := time.NewTimer(time.Duration(elapse) * time.Second)
-	executedTxCh := make(chan *Transaction, 64)
-	notifyCh := make(chan bool, 1)
-
-	var givebacks []*Transaction
-	pool := block.txPool
-
-	packed := int64(0)
-	unpacked := int64(0)
-
-	block.Begin()
-
-	// execute transaction.
-	go func() {
-		for !pool.Empty() {
-			tx := pool.Pop()
-
-			giveback, err := block.ExecuteTransaction(tx)
-			if giveback {
-				givebacks = append(givebacks, tx)
-			}
-
-			if err != nil {
-				logging.CLog().WithFields(logrus.Fields{
-					"tx":       tx,
-					"err":      err,
-					"giveback": giveback,
-				}).Debug("invalid tx.")
-				unpacked++
-
-				executedTxCh <- nil
-			} else {
-				logging.CLog().WithFields(logrus.Fields{
-					"tx": tx,
-				}).Debug("packed tx.")
-				packed++
-
-				executedTxCh <- tx
-			}
-
-			select {
-			case flag := <-notifyCh:
-				if flag == true {
-					metricsTxPackedCount.Update(packed)
-					metricsTxUnpackedCount.Update(unpacked)
-					metricsTxGivebackCount.Update(int64(len(givebacks)))
-					// deadline is up, put current tx back and quit.
-					if giveback == false && err == nil {
-						err := pool.Push(tx)
-						if err != nil {
-							logging.VLog().WithFields(logrus.Fields{
-								"block": block,
-								"tx":    tx,
-								"err":   err,
-							}).Debug("Failed to giveback the tx.")
-						}
-					}
-					return
-				}
-			}
-		}
-	}()
-
-	// consume the executedTxBlocksCh, or wait for the deadline.
-	for {
-		select {
-		case <-deadlineTimer.C:
-			// notify transaction execution goroutine to quit.
-			notifyCh <- true
-
-			// put tx back to transaction_pool.
-			go func() {
-				// giveback transactions.
-				for _, tx := range givebacks {
-					err := pool.Push(tx)
-					if err != nil {
-						logging.VLog().WithFields(logrus.Fields{
-							"block": block,
-							"tx":    tx,
-							"err":   err,
-						}).Debug("Failed to giveback the tx.")
-					}
-				}
-
-				// execute succeed but not included in block.
-				for {
-					select {
-					case tx := <-executedTxCh:
-						if tx != nil {
-							err := pool.Push(tx)
-							if err != nil {
-								logging.VLog().WithFields(logrus.Fields{
-									"block": block,
-									"tx":    tx,
-									"err":   err,
-								}).Debug("Failed to giveback the tx.")
-							}
-						}
-					default:
-						return
-					}
-				}
-
-			}()
-
-			block.Commit()
-			return
-		case tx := <-executedTxCh:
-			if tx != nil {
-				metricsTxSubmit.Mark(1)
-				block.transactions = append(block.transactions, tx)
-			}
-
-			// continue.
-			notifyCh <- false
 		}
 	}
 }
@@ -733,6 +583,7 @@ func (block *Block) Seal() error {
 	logging.VLog().WithFields(logrus.Fields{
 		"block": block,
 	}).Info("Sealed Block.")
+	block.RollBack()
 
 	metricsTxPackedCount.Update(0)
 	metricsTxUnpackedCount.Update(0)

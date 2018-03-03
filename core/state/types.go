@@ -36,6 +36,7 @@ var (
 	ErrCannotPrepareTxStateBeforeBegin     = errors.New("cannot prepare a tx state before begin")
 	ErrCannotCheckTxStateBeforePrepare     = errors.New("cannot check a tx state before prepare")
 	ErrCannotUpdateTxStateBeforePrepare    = errors.New("cannot update a tx state before prepare")
+	ErrCannotResetTxStateBeforePrepare     = errors.New("cannot reset a tx state before prepare")
 )
 
 // Iterator Variables in Account Storage

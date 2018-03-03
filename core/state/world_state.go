@@ -120,6 +120,7 @@ func (s *states) Clone() (WorldState, error) {
 
 		consensus: s.consensus,
 		changelog: s.changelog,
+		storage:   s.storage,
 	}, nil
 }
 
@@ -443,7 +444,6 @@ func (s *states) SetConsensusState(consensusState ConsensusState) {
 // WorldState manange all current states in Blockchain
 type worldState struct {
 	*states
-
 	txStates map[interface{}]*txWorldState
 }
 
@@ -454,8 +454,7 @@ func NewWorldState(consensus Consensus, storage storage.Storage) (WorldState, er
 		return nil, err
 	}
 	return &worldState{
-		states: states,
-
+		states:   states,
 		txStates: make(map[interface{}]*txWorldState),
 	}, nil
 }
@@ -467,25 +466,34 @@ func (ws *worldState) Clone() (WorldState, error) {
 		return nil, err
 	}
 	return &worldState{
-		states: s.(*states),
+		states:   s.(*states),
+		txStates: make(map[interface{}]*txWorldState),
 	}, nil
 }
 
 func (ws *worldState) Begin() error {
-	return ws.states.Begin()
+	if err := ws.states.Begin(); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (ws *worldState) Commit() error {
-	return ws.states.Commit()
+	if err := ws.states.Commit(); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (ws *worldState) RollBack() error {
-	return ws.states.RollBack()
+	if err := ws.states.RollBack(); err != nil {
+		return err
+	}
+	return nil
 }
 
 type txWorldState struct {
 	*states
-
 	txid interface{}
 }
 
@@ -510,7 +518,7 @@ func (ws *worldState) CheckAndUpdate(txid interface{}) ([]interface{}, error) {
 	if !ok {
 		return nil, ErrCannotUpdateTxStateBeforePrepare
 	}
-	dependencies, err := ws.states.CheckAndUpdate(txid)
+	dependencies, err := txWorldState.CheckAndUpdate(txid)
 	if err != nil {
 		return nil, err
 	}
@@ -521,7 +529,15 @@ func (ws *worldState) CheckAndUpdate(txid interface{}) ([]interface{}, error) {
 }
 
 func (ws *worldState) Reset(txid interface{}) error {
-	return ws.states.Reset(txid)
+	txWorldState, ok := ws.txStates[txid]
+	if !ok {
+		return ErrCannotUpdateTxStateBeforePrepare
+	}
+	if err := txWorldState.Reset(txid); err != nil {
+		return err
+	}
+	delete(ws.txStates, txid)
+	return nil
 }
 
 func (ts *txWorldState) TxID() interface{} {
