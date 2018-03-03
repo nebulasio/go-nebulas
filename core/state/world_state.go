@@ -20,6 +20,7 @@ package state
 
 import (
 	"encoding/json"
+	"github.com/nebulasio/go-nebulas/util/logging"
 
 	"github.com/nebulasio/go-nebulas/common/mvccdb"
 
@@ -28,6 +29,18 @@ import (
 	"github.com/nebulasio/go-nebulas/util/byteutils"
 )
 
+func newChangeLog() (*mvccdb.MVCCDB, error) {
+	mem, err := storage.NewMemoryStorage()
+	if err != nil {
+		return nil, err
+	}
+	return mvccdb.NewMVCCDB(mem)
+}
+
+func newStorage(storage storage.Storage) (*mvccdb.MVCCDB, error) {
+	return mvccdb.NewMVCCDB(storage)
+}
+
 type states struct {
 	accState       AccountState
 	txsState       *trie.Trie
@@ -35,16 +48,17 @@ type states struct {
 	consensusState ConsensusState
 
 	consensus Consensus
-	changelog mvccdb.ChangeLog
-	storage   mvccdb.Storage
+	changelog *mvccdb.MVCCDB
+	storage   *mvccdb.MVCCDB
+	txid      interface{}
 }
 
 func newStates(consensus Consensus, stor storage.Storage) (*states, error) {
-	changelog, err := mvccdb.NewChangeLog()
+	changelog, err := newChangeLog()
 	if err != nil {
 		return nil, err
 	}
-	storage, err := mvccdb.NewStorage(stor)
+	storage, err := newStorage(stor)
 	if err != nil {
 		return nil, err
 	}
@@ -71,6 +85,7 @@ func newStates(consensus Consensus, stor storage.Storage) (*states, error) {
 		consensus: consensus,
 		changelog: changelog,
 		storage:   storage,
+		txid:      nil,
 	}, nil
 }
 
@@ -121,18 +136,28 @@ func (s *states) Clone() (WorldState, error) {
 		consensus: s.consensus,
 		changelog: s.changelog,
 		storage:   s.storage,
+		txid:      s.txid,
 	}, nil
 }
 
 func (s *states) Begin() error {
+	if err := s.changelog.Begin(); err != nil {
+		return err
+	}
 	return s.storage.Begin()
 }
 
 func (s *states) Commit() error {
+	if err := s.changelog.Commit(); err != nil {
+		return err
+	}
 	return s.storage.Commit()
 }
 
 func (s *states) RollBack() error {
+	if err := s.changelog.RollBack(); err != nil {
+		return err
+	}
 	return s.storage.RollBack()
 }
 
@@ -188,6 +213,7 @@ func (s *states) Prepare(txid interface{}) (TxWorldState, error) {
 		consensus: s.consensus,
 		changelog: changelog,
 		storage:   storage,
+		txid:      txid,
 	}, nil
 }
 
@@ -205,6 +231,7 @@ func (s *states) recordAccounts() error {
 		if err := s.changelog.Put(account.Address(), bytes); err != nil {
 			return err
 		}
+		logging.CLog().Info(s.txid, " [Put] Account:", account.Address().String())
 	}
 	return nil
 }
@@ -213,11 +240,11 @@ func (s *states) CheckAndUpdate(txid interface{}) ([]interface{}, error) {
 	if err := s.recordAccounts(); err != nil {
 		return nil, err
 	}
-	dependency, err := s.changelog.CheckAndUpdate(txid)
+	dependency, err := s.changelog.CheckAndUpdate()
 	if err != nil {
 		return nil, err
 	}
-	_, err = s.storage.CheckAndUpdate(txid)
+	_, err = s.storage.CheckAndUpdate()
 	if err != nil {
 		return nil, err
 	}
@@ -225,10 +252,10 @@ func (s *states) CheckAndUpdate(txid interface{}) ([]interface{}, error) {
 }
 
 func (s *states) Reset(txid interface{}) error {
-	if err := s.changelog.Reset(txid); err != nil {
+	if err := s.changelog.Reset(); err != nil {
 		return err
 	}
-	if err := s.storage.Reset(txid); err != nil {
+	if err := s.storage.Reset(); err != nil {
 		return err
 	}
 	return nil
@@ -251,47 +278,15 @@ func (s *states) ConsensusRoot() (byteutils.Hash, error) {
 }
 
 func (s *states) GetOrCreateUserAccount(addr byteutils.Hash) (Account, error) {
-	account, err := s.accState.GetOrCreateUserAccount(addr)
-	if err != nil {
-		return nil, err
-	}
-	// record change log
-	bytes, err := account.ToBytes()
-	if err != nil {
-		return nil, err
-	}
-	if err := s.changelog.Put(account.Address(), bytes); err != nil {
-		return nil, err
-	}
-	return account, nil
+	return s.accState.GetOrCreateUserAccount(addr)
 }
 
 func (s *states) GetContractAccount(addr byteutils.Hash) (Account, error) {
-	account, err := s.accState.GetContractAccount(addr)
-	if err != nil {
-		return nil, err
-	}
-	// record change log
-	if _, err := s.changelog.Get(account.Address()); err != nil {
-		return nil, err
-	}
-	return account, nil
+	return s.accState.GetContractAccount(addr)
 }
 
 func (s *states) CreateContractAccount(owner byteutils.Hash, birthPlace byteutils.Hash) (Account, error) {
-	account, err := s.accState.CreateContractAccount(owner, birthPlace)
-	if err != nil {
-		return nil, err
-	}
-	// record change log
-	bytes, err := account.ToBytes()
-	if err != nil {
-		return nil, err
-	}
-	if err := s.changelog.Put(account.Address(), bytes); err != nil {
-		return nil, err
-	}
-	return account, nil
+	return s.accState.CreateContractAccount(owner, birthPlace)
 }
 
 func (s *states) GetTx(txHash byteutils.Hash) ([]byte, error) {
@@ -303,6 +298,7 @@ func (s *states) GetTx(txHash byteutils.Hash) ([]byte, error) {
 	if _, err := s.changelog.Get(txHash); err != nil && err != storage.ErrKeyNotFound {
 		return nil, err
 	}
+	logging.CLog().Info(s.txid, " [Get] Tx:", txHash.String())
 	return bytes, nil
 }
 
@@ -315,6 +311,7 @@ func (s *states) PutTx(txHash byteutils.Hash, txBytes []byte) error {
 	if err := s.changelog.Put(txHash, txBytes); err != nil {
 		return err
 	}
+	logging.CLog().Info(s.txid, " [Put] Tx:", txHash.String())
 	return nil
 }
 
@@ -351,6 +348,7 @@ func (s *states) RecordEvent(txHash byteutils.Hash, event *Event) error {
 	if err := s.changelog.Put(key, bytes); err != nil {
 		return err
 	}
+	logging.CLog().Info(s.txid, " [Put] Event:", byteutils.Hex(key))
 	return nil
 }
 
@@ -376,6 +374,7 @@ func (s *states) FetchEvents(txHash byteutils.Hash) ([]*Event, error) {
 			if _, err := s.changelog.Get(iter.Key()); err != nil && err != storage.ErrKeyNotFound {
 				return nil, err
 			}
+			logging.CLog().Info(s.txid, " [Get] Event:", byteutils.Hex(iter.Key()))
 			exist, err = iter.Next()
 			if err != nil {
 				return nil, err

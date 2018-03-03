@@ -669,6 +669,17 @@ func keyToRoute(key []byte) []byte {
 	return route
 }
 
+// routeToKey returns native bytes
+// e.g {0xa, 0x1, 0xf, 0x2} -> {0xa1, 0xf2}
+func routeToKey(route []byte) []byte {
+	l := len(route) / 2
+	var key = make([]byte, l)
+	for i := 0; i < l; i++ {
+		key[i] = route[i*2]<<4 + route[i*2+1]
+	}
+	return key
+}
+
 func emptyBranchNode() *node {
 	empty := &node{Val: [][]byte{nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil}}
 	pb, _ := empty.ToProto()

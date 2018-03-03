@@ -202,9 +202,9 @@ func (db *MVCCDB) Prepare(tid interface{}) (*MVCCDB, error) {
 	db.mutex.Lock()
 	defer db.mutex.Unlock()
 
-	/* 	if !db.isInTransaction {
+	if !db.isInTransaction {
 		return nil, ErrTransactionNotStarted
-	} */
+	}
 
 	if tid == nil {
 		return nil, ErrTidIsNil
@@ -225,9 +225,9 @@ func (db *MVCCDB) CheckAndUpdate() ([]interface{}, error) {
 	db.mutex.Lock()
 	defer db.mutex.Unlock()
 
-	/* 	if !db.isInTransaction {
+	if !db.isInTransaction {
 		return nil, ErrTransactionNotStarted
-	} */
+	}
 
 	if !db.isPreparedDB {
 		return nil, ErrDisallowedCallingInNoPreparedDB
@@ -241,9 +241,9 @@ func (db *MVCCDB) Reset() error {
 	db.mutex.Lock()
 	defer db.mutex.Unlock()
 
-	/* 	if !db.isInTransaction {
+	if !db.isInTransaction {
 		return ErrTransactionNotStarted
-	} */
+	}
 
 	if !db.isPreparedDB {
 		return ErrDisallowedCallingInNoPreparedDB

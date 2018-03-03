@@ -20,7 +20,6 @@ package trie
 
 import (
 	"errors"
-
 	"github.com/nebulasio/go-nebulas/crypto/hash"
 )
 
@@ -191,7 +190,7 @@ func (it *Iterator) Next() (bool, error) {
 
 // Key return current leaf node's key
 func (it *Iterator) Key() []byte {
-	return it.key
+	return routeToKey(it.key)
 }
 
 // Value return current leaf node's value

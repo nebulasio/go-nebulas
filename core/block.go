@@ -118,6 +118,7 @@ type Block struct {
 	header       *BlockHeader
 	transactions Transactions
 	dependency   *dag.Dag
+	gasConsumed  map[string]*util.Uint128
 
 	sealed      bool
 	height      uint64
@@ -221,6 +222,7 @@ func NewBlock(chainID uint32, coinbase *Address, parent *Block) (*Block, error) 
 		},
 		transactions: make(Transactions, 0),
 		dependency:   dag.NewDag(),
+		gasConsumed:  make(map[string]*util.Uint128),
 		parentBlock:  parent,
 		worldState:   worldState,
 		txPool:       parent.txPool,
@@ -230,8 +232,12 @@ func NewBlock(chainID uint32, coinbase *Address, parent *Block) (*Block, error) 
 		eventEmitter: parent.eventEmitter,
 	}
 
-	block.Begin()
-	block.rewardCoinbase()
+	if err := block.Begin(); err != nil {
+		return nil, err
+	}
+	if err := block.rewardCoinbaseForMint(); err != nil {
+		return nil, err
+	}
 
 	return block, nil
 }
@@ -438,6 +444,7 @@ func (block *Block) ReturnTransactions() {
 type executedResult struct {
 	transaction *Transaction
 	dependency  []interface{}
+	paid        *util.Uint128
 }
 
 // CollectTransactions and add them to block.
@@ -548,6 +555,14 @@ func (block *Block) CollectTransactions(deadline int64) {
 	}
 }
 
+func (block *Block) recordGas(from string, gas *util.Uint128) {
+	consumed, ok := block.gasConsumed[from]
+	if !ok {
+		consumed = util.NewUint128()
+	}
+	consumed.Add(consumed.Int, gas.Int)
+}
+
 // Sealed return true if block seals. Otherwise return false.
 func (block *Block) Sealed() bool {
 	return block.sealed
@@ -557,6 +572,10 @@ func (block *Block) Sealed() bool {
 func (block *Block) Seal() error {
 	if block.sealed {
 		return ErrDoubleSealBlock
+	}
+
+	if err := block.rewardCoinbaseForGas(); err != nil {
+		return err
 	}
 
 	var err error
@@ -782,13 +801,17 @@ func (block *Block) verifyState() error {
 // Execute block and return result.
 func (block *Block) execute() error {
 	startAt := time.Now().UnixNano()
-	block.rewardCoinbase()
+
+	if err := block.rewardCoinbaseForMint(); err != nil {
+		return err
+	}
 
 	dispatcher := dag.NewDispatcher(block.dependency, runtime.NumCPU(), block, func(node *dag.Node, context interface{}) error {
 		block := context.(*Block)
 		tx := block.transactions[node.Index]
 		metricsTxExecute.Mark(1)
-		if _, err := block.ExecuteTransaction(tx); err != nil {
+		_, err := block.ExecuteTransaction(tx)
+		if err != nil {
 			return err
 		}
 		if _, err := block.CheckAndUpdate(tx); err != nil {
@@ -796,6 +819,7 @@ func (block *Block) execute() error {
 		}
 		return nil
 	})
+
 	start := time.Now().UnixNano()
 	if err := dispatcher.Run(); err != nil {
 		return err
@@ -806,6 +830,10 @@ func (block *Block) execute() error {
 		metricsTxVerifiedTime.Update((end - start) / int64(len(block.transactions)))
 	} else {
 		metricsTxVerifiedTime.Update(0)
+	}
+
+	if err := block.rewardCoinbaseForGas(); err != nil {
+		return err
 	}
 
 	endAt := time.Now().UnixNano()
@@ -844,13 +872,28 @@ func (block *Block) FetchEvents(txHash byteutils.Hash) ([]*state.Event, error) {
 	return block.WorldState().FetchEvents(txHash)
 }
 
-func (block *Block) rewardCoinbase() error {
+func (block *Block) rewardCoinbaseForMint() error {
 	coinbaseAddr := block.Coinbase().Bytes()
 	coinbaseAcc, err := block.WorldState().GetOrCreateUserAccount(coinbaseAddr)
 	if err != nil {
 		return err
 	}
 	coinbaseAcc.AddBalance(BlockReward)
+	return nil
+}
+
+func (block *Block) rewardCoinbaseForGas() error {
+	worldState := block.WorldState()
+	coinbaseAddr := (byteutils.Hash)(block.Coinbase().Bytes())
+	for from, gas := range block.gasConsumed {
+		fromAddr, err := byteutils.FromHex(from)
+		if err != nil {
+			return err
+		}
+		if err := transfer((byteutils.Hash)(fromAddr), coinbaseAddr, gas, worldState); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 

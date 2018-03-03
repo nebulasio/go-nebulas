@@ -88,6 +88,14 @@ func TestTrie_Empty(t *testing.T) {
 	assert.Equal(t, tr1.RootHash(), tr2.RootHash())
 }
 
+func TestKeyToRoute(t *testing.T) {
+	key := []byte{0xa1, 0xb4}
+	route := keyToRoute(key)
+	assert.Equal(t, route, []byte{0xa, 0x1, 0xb, 0x4})
+	key = routeToKey(route)
+	assert.Equal(t, key, []byte{0xa1, 0xb4})
+}
+
 func TestTrie_Clone(t *testing.T) {
 	type fields struct {
 		rootHash []byte
