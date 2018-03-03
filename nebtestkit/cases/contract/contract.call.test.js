@@ -137,12 +137,12 @@ function testContractCall(testInput, testExpect, done) {
 
                             return neb.api.getEventsByHash(receipt.hash);
                         }).then(function (events) {
-                            for (var i = 0; i < events.length; i++) {
-                                var event = events[i];
+                            for (var i = 0; i < events.events.length; i++) {
+                                var event = events.events[i];
+                                console.log("tx event:", event.data);
                                 if (event.topic == "chain.transactionResult") {
                                     var result = JSON.parse(event.data);
                                     expect(result.status).to.equal(testExpect.status);
-                                    console.log("tx event:", event.data);
                                 }
                             }
                             done();

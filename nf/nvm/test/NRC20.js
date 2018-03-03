@@ -129,8 +129,6 @@ StandardToken.prototype = {
         var balance = this.balances.get(from) || new BigNumber(0);
 
         if (balance.lt(value)) {
-
-            this.transferEvent(false, from, to, value);
             throw new Error("transfer failed.");
         }
 
@@ -163,7 +161,6 @@ StandardToken.prototype = {
             this.transferEvent(true, from, to, value);
             return true;
         } else {
-            this.transferEvent(false, from, to, value);
             throw new Error("transfer failed.");
         }
     },
@@ -184,12 +181,15 @@ StandardToken.prototype = {
 
         var oldValue = this.allowance(from, spender);
         if (oldValue != currentValue.toString()) {
-            this.approveEvent(false, from, spender, value);
-            throw new Error("approve failed.");
+            throw new Error("current approve value mistake.");
+        }
+
+        var balance = new BigNumber(this.balanceOf(from));
+        if (balance.lt(value)) {
+            throw new Error("approve value bigger than balance.");
         }
 
         var owned = this.allowed.get(from) || new Allowed();
-
         owned.set(spender, new BigNumber(value));
 
         this.allowed.set(from, owned);
