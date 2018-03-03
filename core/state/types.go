@@ -69,6 +69,7 @@ type Account interface {
 // AccountState Interface
 type AccountState interface {
 	RootHash() (byteutils.Hash, error)
+	DirtyAccounts() ([]Account, error)
 	Accounts() ([]Account, error)
 
 	Clone() (AccountState, error)
@@ -111,9 +112,9 @@ type WorldState interface {
 	Commit() error
 	RollBack() error
 
-	Prepare(string) (TxWorldState, error)
-	CheckAndUpdate(string) ([]interface{}, error)
-	Reset(string) error
+	Prepare(interface{}) (TxWorldState, error)
+	CheckAndUpdate(interface{}) ([]interface{}, error)
+	Reset(interface{}) error
 
 	LoadAccountsRoot(byteutils.Hash) error
 	LoadTxsRoot(byteutils.Hash) error

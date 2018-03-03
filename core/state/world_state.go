@@ -35,9 +35,20 @@ type states struct {
 	consensusState ConsensusState
 
 	consensus Consensus
+	changelog mvccdb.ChangeLog
+	storage   mvccdb.Storage
 }
 
-func newStates(consensus Consensus, storage storage.Storage) (*states, error) {
+func newStates(consensus Consensus, stor storage.Storage) (*states, error) {
+	changelog, err := mvccdb.NewChangeLog()
+	if err != nil {
+		return nil, err
+	}
+	storage, err := mvccdb.NewStorage(stor)
+	if err != nil {
+		return nil, err
+	}
+
 	accState, err := NewAccountState(nil, storage)
 	if err != nil {
 		return nil, err
@@ -50,32 +61,33 @@ func newStates(consensus Consensus, storage storage.Storage) (*states, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	return &states{
 		accState:       accState,
 		txsState:       txsState,
 		eventsState:    eventsState,
 		consensusState: nil,
-		consensus:      consensus,
+
+		consensus: consensus,
+		changelog: changelog,
+		storage:   storage,
 	}, nil
 }
 
-func (s *states) Merge(done *states) error {
-	_, err := s.txsState.Replay(done.txsState)
+func (s *states) Replay(done *states) error {
+	err := s.accState.Replay(done.accState)
 	if err != nil {
 		return err
 	}
-
+	_, err = s.txsState.Replay(done.txsState)
+	if err != nil {
+		return err
+	}
 	_, err = s.eventsState.Replay(done.eventsState)
 	if err != nil {
 		return err
 	}
-
 	err = s.consensusState.Replay(done.consensusState)
-	if err != nil {
-		return err
-	}
-
-	err = s.accState.Replay(done.accState)
 	if err != nil {
 		return err
 	}
@@ -83,7 +95,7 @@ func (s *states) Merge(done *states) error {
 	return nil
 }
 
-func (s *states) Clone() (*states, error) {
+func (s *states) Clone() (WorldState, error) {
 	accState, err := s.accState.Clone()
 	if err != nil {
 		return nil, err
@@ -105,11 +117,34 @@ func (s *states) Clone() (*states, error) {
 		txsState:       txsState,
 		eventsState:    eventsState,
 		consensusState: consensusState,
-		consensus:      s.consensus,
+
+		consensus: s.consensus,
+		changelog: s.changelog,
 	}, nil
 }
 
-func (s *states) ReplaceDB(storage storage.Storage) (*states, error) {
+func (s *states) Begin() error {
+	return s.storage.Begin()
+}
+
+func (s *states) Commit() error {
+	return s.storage.Commit()
+}
+
+func (s *states) RollBack() error {
+	return s.storage.RollBack()
+}
+
+func (s *states) Prepare(txid interface{}) (TxWorldState, error) {
+	changelog, err := s.changelog.Prepare(txid)
+	if err != nil {
+		return nil, err
+	}
+	storage, err := s.storage.Prepare(txid)
+	if err != nil {
+		return nil, err
+	}
+
 	accRoot, err := s.AccountsRoot()
 	if err != nil {
 		return nil, err
@@ -142,12 +177,60 @@ func (s *states) ReplaceDB(storage storage.Storage) (*states, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	return &states{
 		accState:       accState,
 		txsState:       txsState,
 		eventsState:    eventsState,
 		consensusState: consensusState,
+
+		consensus: s.consensus,
+		changelog: changelog,
+		storage:   storage,
 	}, nil
+}
+
+func (s *states) recordAccounts() error {
+	accounts, err := s.accState.DirtyAccounts()
+	if err != nil {
+		return err
+	}
+	// record change log
+	for _, account := range accounts {
+		bytes, err := account.ToBytes()
+		if err != nil {
+			return err
+		}
+		if err := s.changelog.Put(account.Address(), bytes); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (s *states) CheckAndUpdate(txid interface{}) ([]interface{}, error) {
+	if err := s.recordAccounts(); err != nil {
+		return nil, err
+	}
+	dependency, err := s.changelog.CheckAndUpdate(txid)
+	if err != nil {
+		return nil, err
+	}
+	_, err = s.storage.CheckAndUpdate(txid)
+	if err != nil {
+		return nil, err
+	}
+	return dependency, nil
+}
+
+func (s *states) Reset(txid interface{}) error {
+	if err := s.changelog.Reset(txid); err != nil {
+		return err
+	}
+	if err := s.storage.Reset(txid); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (s *states) AccountsRoot() (byteutils.Hash, error) {
@@ -167,24 +250,71 @@ func (s *states) ConsensusRoot() (byteutils.Hash, error) {
 }
 
 func (s *states) GetOrCreateUserAccount(addr byteutils.Hash) (Account, error) {
-	return s.accState.GetOrCreateUserAccount(addr)
+	account, err := s.accState.GetOrCreateUserAccount(addr)
+	if err != nil {
+		return nil, err
+	}
+	// record change log
+	bytes, err := account.ToBytes()
+	if err != nil {
+		return nil, err
+	}
+	if err := s.changelog.Put(account.Address(), bytes); err != nil {
+		return nil, err
+	}
+	return account, nil
 }
 
 func (s *states) GetContractAccount(addr byteutils.Hash) (Account, error) {
-	return s.accState.GetContractAccount(addr)
+	account, err := s.accState.GetContractAccount(addr)
+	if err != nil {
+		return nil, err
+	}
+	// record change log
+	if _, err := s.changelog.Get(account.Address()); err != nil {
+		return nil, err
+	}
+	return account, nil
 }
 
 func (s *states) CreateContractAccount(owner byteutils.Hash, birthPlace byteutils.Hash) (Account, error) {
-	return s.accState.CreateContractAccount(owner, birthPlace)
+	account, err := s.accState.CreateContractAccount(owner, birthPlace)
+	if err != nil {
+		return nil, err
+	}
+	// record change log
+	bytes, err := account.ToBytes()
+	if err != nil {
+		return nil, err
+	}
+	if err := s.changelog.Put(account.Address(), bytes); err != nil {
+		return nil, err
+	}
+	return account, nil
 }
 
 func (s *states) GetTx(txHash byteutils.Hash) ([]byte, error) {
-	return s.txsState.Get(txHash)
+	bytes, err := s.txsState.Get(txHash)
+	if err != nil {
+		return nil, err
+	}
+	// record change log
+	if _, err := s.changelog.Get(txHash); err != nil && err != storage.ErrKeyNotFound {
+		return nil, err
+	}
+	return bytes, nil
 }
 
 func (s *states) PutTx(txHash byteutils.Hash, txBytes []byte) error {
 	_, err := s.txsState.Put(txHash, txBytes)
-	return err
+	if err != nil {
+		return err
+	}
+	// record change log
+	if err := s.changelog.Put(txHash, txBytes); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (s *states) RecordEvent(txHash byteutils.Hash, event *Event) error {
@@ -216,6 +346,10 @@ func (s *states) RecordEvent(txHash byteutils.Hash, event *Event) error {
 	if err != nil {
 		return err
 	}
+	// record change log
+	if err := s.changelog.Put(key, bytes); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -237,6 +371,10 @@ func (s *states) FetchEvents(txHash byteutils.Hash) ([]*Event, error) {
 				return nil, err
 			}
 			events = append(events, event)
+			// record change log
+			if _, err := s.changelog.Get(iter.Key()); err != nil && err != storage.ErrKeyNotFound {
+				return nil, err
+			}
 			exist, err = iter.Next()
 			if err != nil {
 				return nil, err
@@ -258,147 +396,134 @@ func (s *states) Accounts() ([]Account, error) {
 	return s.accState.Accounts()
 }
 
+func (s *states) LoadAccountsRoot(root byteutils.Hash) error {
+	accState, err := NewAccountState(root, s.storage)
+	if err != nil {
+		return err
+	}
+	s.accState = accState
+	return nil
+}
+
+func (s *states) LoadTxsRoot(root byteutils.Hash) error {
+	txsState, err := trie.NewTrie(root, s.storage)
+	if err != nil {
+		return err
+	}
+	s.txsState = txsState
+	return nil
+}
+
+func (s *states) LoadEventsRoot(root byteutils.Hash) error {
+	eventsState, err := trie.NewTrie(root, s.storage)
+	if err != nil {
+		return err
+	}
+	s.eventsState = eventsState
+	return nil
+}
+
+func (s *states) LoadConsensusRoot(root byteutils.Hash) error {
+	consensusState, err := s.consensus.NewState(root, s.storage)
+	if err != nil {
+		return err
+	}
+	s.consensusState = consensusState
+	return nil
+}
+
+func (s *states) NextConsensusState(elapsedSecond int64) (ConsensusState, error) {
+	return s.consensusState.NextConsensusState(elapsedSecond, s)
+}
+
+func (s *states) SetConsensusState(consensusState ConsensusState) {
+	s.consensusState = consensusState
+}
+
 // WorldState manange all current states in Blockchain
 type worldState struct {
 	*states
 
-	txStates map[string]*txWorldState
-	mvccdb   *mvccdb.MVCCDB
+	txStates map[interface{}]*txWorldState
 }
 
 // NewWorldState create a new empty WorldState
 func NewWorldState(consensus Consensus, storage storage.Storage) (WorldState, error) {
-	mvccdb, err := mvccdb.NewMVCCDB(storage)
-	if err != nil {
-		return nil, err
-	}
-	states, err := newStates(consensus, mvccdb)
+	states, err := newStates(consensus, storage)
 	if err != nil {
 		return nil, err
 	}
 	return &worldState{
 		states: states,
 
-		txStates: make(map[string]*txWorldState),
-		mvccdb:   mvccdb,
+		txStates: make(map[interface{}]*txWorldState),
 	}, nil
-}
-
-func (ws *worldState) LoadAccountsRoot(root byteutils.Hash) error {
-	accState, err := NewAccountState(root, ws.mvccdb)
-	if err != nil {
-		return err
-	}
-	ws.accState = accState
-	return nil
-}
-
-func (ws *worldState) LoadTxsRoot(root byteutils.Hash) error {
-	txsState, err := trie.NewTrie(root, ws.mvccdb)
-	if err != nil {
-		return err
-	}
-	ws.txsState = txsState
-	return nil
-}
-
-func (ws *worldState) LoadEventsRoot(root byteutils.Hash) error {
-	eventsState, err := trie.NewTrie(root, ws.mvccdb)
-	if err != nil {
-		return err
-	}
-	ws.eventsState = eventsState
-	return nil
-}
-
-func (ws *worldState) LoadConsensusRoot(root byteutils.Hash) error {
-	consensusState, err := ws.consensus.NewState(root, ws.mvccdb)
-	if err != nil {
-		return err
-	}
-	ws.consensusState = consensusState
-	return nil
-}
-
-func (ws *worldState) NextConsensusState(elapsedSecond int64) (ConsensusState, error) {
-	return ws.consensusState.NextConsensusState(elapsedSecond, ws)
-}
-
-func (ws *worldState) SetConsensusState(consensusState ConsensusState) {
-	ws.consensusState = consensusState
 }
 
 // Clone a new WorldState
 func (ws *worldState) Clone() (WorldState, error) {
-	states, err := ws.states.Clone()
+	s, err := ws.states.Clone()
 	if err != nil {
 		return nil, err
 	}
 	return &worldState{
-		states: states,
-		mvccdb: ws.mvccdb,
+		states: s.(*states),
 	}, nil
 }
 
 func (ws *worldState) Begin() error {
-	return ws.mvccdb.Begin()
+	return ws.states.Begin()
 }
 
 func (ws *worldState) Commit() error {
-	return ws.mvccdb.Commit()
+	return ws.states.Commit()
 }
 
 func (ws *worldState) RollBack() error {
-	return ws.mvccdb.RollBack()
+	return ws.states.RollBack()
 }
 
 type txWorldState struct {
 	*states
 
-	txid string
-	db   *mvccdb.MVCCDB
+	txid interface{}
 }
 
-func (ws *worldState) Prepare(txid string) (TxWorldState, error) {
+func (ws *worldState) Prepare(txid interface{}) (TxWorldState, error) {
 	if _, ok := ws.txStates[txid]; ok {
 		return nil, ErrCannotPrepareTxStateTwice
 	}
-	db, err := ws.mvccdb.Prepare(txid)
-	if err != nil {
-		return nil, err
-	}
-	states, err := ws.states.ReplaceDB(db)
+	s, err := ws.states.Prepare(txid)
 	if err != nil {
 		return nil, err
 	}
 	txState := &txWorldState{
-		db:     db,
+		states: s.(*states),
 		txid:   txid,
-		states: states,
 	}
 	ws.txStates[txid] = txState
 	return txState, nil
 }
 
-func (ws *worldState) CheckAndUpdate(txid string) ([]interface{}, error) {
+func (ws *worldState) CheckAndUpdate(txid interface{}) ([]interface{}, error) {
 	txWorldState, ok := ws.txStates[txid]
 	if !ok {
 		return nil, ErrCannotUpdateTxStateBeforePrepare
 	}
-	dependencies, err := ws.mvccdb.CheckAndUpdate(txid)
+	dependencies, err := ws.states.CheckAndUpdate(txid)
 	if err != nil {
 		return nil, err
 	}
-	if err := ws.states.Merge(txWorldState.states); err != nil {
+	if err := ws.states.Replay(txWorldState.states); err != nil {
 		return nil, err
 	}
 	return dependencies, nil
 }
 
-func (ws *worldState) Reset(txid string) error {
-	return ws.mvccdb.Reset(txid)
+func (ws *worldState) Reset(txid interface{}) error {
+	return ws.states.Reset(txid)
 }
 
-func (ts *txWorldState) TxID() string {
+func (ts *txWorldState) TxID() interface{} {
 	return ts.txid
 }

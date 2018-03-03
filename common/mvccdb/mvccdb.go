@@ -234,7 +234,7 @@ func (db *MVCCDB) CheckAndUpdate(tid interface{}) ([]interface{}, error) {
 }
 
 // Reset the nested transaction
-func (db *MVCCDB) Reset(txid string) error {
+func (db *MVCCDB) Reset(txid interface{}) error {
 	db.mutex.Lock()
 	defer db.mutex.Unlock()
 

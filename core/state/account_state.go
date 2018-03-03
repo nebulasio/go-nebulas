@@ -319,6 +319,14 @@ func (as *accountState) Accounts() ([]Account, error) {
 	return accounts, nil
 }
 
+func (as *accountState) DirtyAccounts() ([]Account, error) {
+	accounts := []Account{}
+	for _, account := range as.dirtyAccount {
+		accounts = append(accounts, account)
+	}
+	return accounts, nil
+}
+
 // replay merge dirtyAccount
 func (as *accountState) Replay(done AccountState) error {
 	state := done.(*accountState)
