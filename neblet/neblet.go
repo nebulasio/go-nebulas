@@ -96,6 +96,7 @@ func New(config *nebletpb.Config) (*Neblet, error) {
 
 // Setup setup neblet
 func (n *Neblet) Setup() {
+	var gasPrice, gasLimit *util.Uint128
 	var err error
 	logging.CLog().Info("Setuping Neblet...")
 
@@ -125,13 +126,21 @@ func (n *Neblet) Setup() {
 			"err": err,
 		}).Fatal("Failed to setup blockchain.")
 	}
-	gasPrice, err := util.NewUint128FromString(n.config.Chain.GasPrice)
+	if 0 == len(n.config.Chain.GasPrice) {
+		gasPrice = util.NewUint128()
+	} else {
+		gasPrice, err = util.NewUint128FromString(n.config.Chain.GasPrice)
+	}
 	if err != nil {
 		logging.CLog().WithFields(logrus.Fields{
 			"err": err,
 		}).Fatal("Failed to get gasPrice")
 	}
-	gasLimit, err := util.NewUint128FromString(n.config.Chain.GasLimit)
+	if 0 == len(n.config.Chain.GasLimit) {
+		gasLimit = util.NewUint128()
+	} else {
+		gasLimit, err = util.NewUint128FromString(n.config.Chain.GasLimit)
+	}
 	if err != nil {
 		logging.CLog().WithFields(logrus.Fields{
 			"err": err,

@@ -22,6 +22,9 @@ var (
 
 	// ErrUint128InvalidBytesSize indicates the bytes size is not equal to Uint128Bytes.
 	ErrUint128InvalidBytesSize = errors.New("uint128: invalid bytes")
+
+	// ErrUint128InvalidString indicates the string is not valid when converted to uin128.
+	ErrUint128InvalidString = errors.New("uint128: invalid string to uint128")
 )
 
 // Uint128 defines uint128 type, based on big.Int.
@@ -51,7 +54,10 @@ func NewUint128() *Uint128 {
 // NewUint128FromString returns a new Uint128 struct with given value and have a check.
 func NewUint128FromString(str string) (*Uint128, error) {
 	big := new(big.Int)
-	big.SetString(str, 10)
+	_, success := big.SetString(str, 10)
+	if !success {
+		return nil, ErrUint128InvalidString
+	}
 	if err := (&Uint128{big}).Validate(); nil != err {
 		return nil, err
 	}
@@ -115,12 +121,6 @@ func (u *Uint128) ToFixedSizeByteSlice() ([]byte, error) {
 // String returns the string representation of x.
 func (u *Uint128) String() string {
 	return u.Text(10)
-}
-
-// FromString sets z to the value of s.
-func (u *Uint128) FromString(s string) (*Uint128, bool) {
-	_, ok := u.SetString(s, 10)
-	return u, ok
 }
 
 // FromFixedSizeBytes converts Big-Endian fixed size bytes to Uint128.
