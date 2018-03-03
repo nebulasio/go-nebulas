@@ -88,10 +88,18 @@ func (dp *Dispatcher) loop() {
 	logging.CLog().Info("loop Dag Dispatcher.")
 
 	//timerChan := time.NewTicker(time.Second).C
+
+	concurrency := dp.concurrency
+	if dp.dag.Len() < dp.concurrency {
+		concurrency = dp.dag.Len()
+	}
+	if concurrency == 0 {
+		return
+	}
 	wg := new(sync.WaitGroup)
 	wg.Add(dp.concurrency)
 
-	for i := 0; i < dp.concurrency; i++ {
+	for i := 0; i < concurrency; i++ {
 		//logging.CLog().Info("loop Dag Dispatcher i:", i)
 		go func(i int) {
 			defer wg.Done()
