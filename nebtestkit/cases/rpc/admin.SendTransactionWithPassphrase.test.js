@@ -27,7 +27,7 @@ function testSendTransactionWithPassphrase(testInput, testExpect, done) {
     try {
         client.SendTransactionWithPassphrase(testInput, (err, resp) => {
             try {
-                console.log(JSON.stringify(err));
+                // console.log(JSON.stringify(err));
                 expect(!!err).to.equal(testExpect.hasError);
 
                 if (err) {
@@ -122,7 +122,7 @@ describe("rpc: SendTransactionWithPassphrase", () => {
         testSendTransactionWithPassphrase(testInput, testExpect, done)
     });
 
-    it('3. invalid `from`', done => {
+    it('3. illegal `from`', done => {
         var testInput = {
             transaction: {
                 from: "asfas",
@@ -168,7 +168,7 @@ describe("rpc: SendTransactionWithPassphrase", () => {
         testSendTransactionWithPassphrase(testInput, testExpect, done)
     });
 
-    it('5.  invalid `to`', done => {
+    it('5.  illegal `to`', done => {
         var testInput = {
             transaction: {
                 from: address,
@@ -229,20 +229,20 @@ describe("rpc: SendTransactionWithPassphrase", () => {
         }
 
         var testExpect = {
-            hasError: false,
-            errorMsg: "",
+            hasError: true,
+            errorMsg: "uint128: invalid string to uint128",
 
         }
 
         testSendTransactionWithPassphrase(testInput, testExpect, done)
     });
 
-    it('8. number `value', done => {
+    it('8. negative `value`', done => {
         var testInput = {
             transaction: {
                 from: address,
                 to: toAddress,
-                value: "3242",
+                value: "-3242",
                 nonce: "10000",
                 gas_price: "1000000",
                 gas_limit: "1000000",
@@ -252,15 +252,15 @@ describe("rpc: SendTransactionWithPassphrase", () => {
         }
 
         var testExpect = {
-            hasError: false,
-            errorMsg: "",
+            hasError: true,
+            errorMsg: "uint128: underflow",
 
         }
 
         testSendTransactionWithPassphrase(testInput, testExpect, done)
     });
 
-    it('9. empty `value', done => {
+    it('9. empty `value`', done => {
         var testInput = {
             transaction: {
                 from: address,
@@ -275,8 +275,8 @@ describe("rpc: SendTransactionWithPassphrase", () => {
         }
 
         var testExpect = {
-            hasError: false,
-            errorMsg: "",
+            hasError: true,
+            errorMsg: "uint128: invalid string to uint128",
 
         }
 
@@ -289,7 +289,7 @@ describe("rpc: SendTransactionWithPassphrase", () => {
                 from: address,
                 to: toAddress,
                 value: "123",
-                nonce: "abasdx", // ""  --- error
+                nonce: "abasdx", 
                 gas_price: "1000000",
                 gas_limit: "1000000",
                 contract: {}
@@ -328,7 +328,29 @@ describe("rpc: SendTransactionWithPassphrase", () => {
         testSendTransactionWithPassphrase(testInput, testExpect, done)
     });
 
-    it('12. not bigger than from `nonce`', done => {
+    it('12. negative `nonce`', done => {
+        var testInput = {
+            transaction: {
+                from: address,
+                to: toAddress,
+                value: "123",
+                nonce: "-10000", 
+                gas_price: "1000000",
+                gas_limit: "1000000",
+                contract: {}
+            },
+            passphrase: "passphrase"
+        }
+
+        var testExpect = {
+            hasError: false,
+            cannotExecuteError: ''
+        }
+
+        testSendTransactionWithPassphrase(testInput, testExpect, done)
+    });
+
+    it('13. not bigger than from `nonce`', done => {
         var testInput = {
             transaction: {
                 from: address,
@@ -352,7 +374,7 @@ describe("rpc: SendTransactionWithPassphrase", () => {
         testSendTransactionWithPassphrase(testInput, testExpect, done)
     });
 
-    it('13.  alpha `gas_price`', done => {
+    it('14.  alpha `gas_price`', done => {
         var testInput = {
             transaction: {
                 from: address,
@@ -367,21 +389,21 @@ describe("rpc: SendTransactionWithPassphrase", () => {
         }
 
         var testExpect = {
-            hasError: false,
-            errorMsg: "",
+            hasError: true,
+            errorMsg: "uint128: invalid string to uint128",
 
         }
         testSendTransactionWithPassphrase(testInput, testExpect, done)
     });
 
-    it('14. number `gas_price`', done => {
+    it('15. negative `gas_price`', done => {
         var testInput = {
             transaction: {
                 from: address,
                 to: toAddress,
                 value: "123",
                 nonce: 10000,
-                gas_price: 10000,
+                gas_price: "-10000",
                 gas_limit: "1000000",
                 contract: {}
             },
@@ -390,14 +412,13 @@ describe("rpc: SendTransactionWithPassphrase", () => {
 
         var testExpect = {
             hasError: true,
-            errorMsg: "",
-            cannotExecuteError: 'Error:'
+            errorMsg: "uint128: underflow",
 
         }
         testSendTransactionWithPassphrase(testInput, testExpect, done)
     });
 
-    it('15. empty `gas_price`', done => {
+    it('16. empty `gas_price`', done => {
         var testInput = {
             transaction: {
                 from: address,
@@ -420,12 +441,12 @@ describe("rpc: SendTransactionWithPassphrase", () => {
         testSendTransactionWithPassphrase(testInput, testExpect, done)
     });
     
-    it('16.  alpha `gas_limit` & low `gas_price`', done => {
+    it('17.  alpha `gas_limit`', done => {
         var testInput = {
             transaction: {
                 from: address,
                 to: toAddress,
-                value: "123rwerw",
+                value: "1233455234",
                 nonce: "10000",
                 gas_price: "10000",
                 gas_limit: "afsdkjkjkkjhf",
@@ -436,34 +457,34 @@ describe("rpc: SendTransactionWithPassphrase", () => {
 
         var testExpect = {
             hasError: true,
-            errorMsg: "below the gas price",
+            errorMsg: "uint128: invalid string to uint128",
 
         }
         testSendTransactionWithPassphrase(testInput, testExpect, done)
     });
 
-    it('16.  alpha `gas_limit` & sufficient `gas_price`', done => {
-        var testInput = {
-            transaction: {
-                from: address,
-                to: toAddress,
-                value: "123",
-                nonce: "10000",
-                gas_price: "1000000",
-                gas_limit: "afsdkjkjkkjhf",
-                contract: {}
-            },
-            passphrase: "passphrase"
-        }
+    // it('16.  alpha `gas_limit` & sufficient `gas_price`', done => {
+    //     var testInput = {
+    //         transaction: {
+    //             from: address,
+    //             to: toAddress,
+    //             value: "123",
+    //             nonce: "10000",
+    //             gas_price: "1000000",
+    //             gas_limit: "afsdkjkjkkjhf",
+    //             contract: {}
+    //         },
+    //         passphrase: "passphrase"
+    //     }
 
-        var testExpect = {
-            hasError: false,
+    //     var testExpect = {
+    //         hasError: true,
 
-        }
-        testSendTransactionWithPassphrase(testInput, testExpect, done)
-    });
+    //     }
+    //     testSendTransactionWithPassphrase(testInput, testExpect, done)
+    // });
 
-    it('18. number `gas_limit`', done => {
+    it('18. negative number `gas_limit`', done => {
         var testInput = {
             transaction: {
                 from: address,
@@ -471,7 +492,7 @@ describe("rpc: SendTransactionWithPassphrase", () => {
                 value: "123",
                 nonce: 10000,
                 gas_price: "10000",
-                gas_limit: 1000000,
+                gas_limit: "-1000000",
                 contract: {}
             },
             passphrase: "passphrase"
@@ -479,8 +500,7 @@ describe("rpc: SendTransactionWithPassphrase", () => {
 
         var testExpect = {
             hasError: true,
-            errorMsg: "",
-            cannotExecuteError: 'Error:'
+            errorMsg: "uint128: underflow",
 
         }
         testSendTransactionWithPassphrase(testInput, testExpect, done)
@@ -557,7 +577,7 @@ describe("rpc: SendTransactionWithPassphrase", () => {
         testSendTransactionWithPassphrase(testInput, testExpect, done)
     }); */
 
-    it('22. wrong `passphrase`', done => {
+    it('20. wrong `passphrase`', done => {
         var testInput = {
             transaction: {
                 from: address,
@@ -580,7 +600,7 @@ describe("rpc: SendTransactionWithPassphrase", () => {
         testSendTransactionWithPassphrase(testInput, testExpect, done)
     });
 
-    it('23. empty `passphrase`', done => {
+    it('21. empty `passphrase`', done => {
         var testInput = {
             transaction: {
                 from: address,

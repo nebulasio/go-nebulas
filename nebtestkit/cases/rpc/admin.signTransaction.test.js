@@ -150,8 +150,8 @@ describe("rpc: SignTransaction", () => {
         }
 
         var testExpect = {
-            hasError: false,
-            errorMsg: "",
+            hasError: true,
+            errorMsg: "uint128: invalid string to uint128",
 
         }
 
@@ -172,21 +172,43 @@ describe("rpc: SignTransaction", () => {
         }
 
         var testExpect = {
-            hasError: false,
-            errorMsg: "",
+            hasError: true,
+            errorMsg: "uint128: invalid string to uint128",
 
         }
 
         testSignTransaction(testInput, testExpect, done)
     });
 
-    it('6.  `nonce` alpha', done => {
+    it('6.  `value` neg number', done => {
+        var testInput = {
+            args: {
+                from: address,
+                to: "0b9cd051a6d7129ab44b17833c63fe4abead40c3714cde6d",
+                value: "-123",
+                nonce: "10000",
+                gas_price: "1000000",
+                gas_limit: "1000000",
+                contract: {}
+            }
+        }
+
+        var testExpect = {
+            hasError: true,
+            errorMsg: "uint128: underflow",
+
+        }
+
+        testSignTransaction(testInput, testExpect, done)
+    });
+
+    it('7.  `nonce` alpha', done => {
         var testInput = {
             args: {
                 from: address,
                 to: "0b9cd051a6d7129ab44b17833c63fe4abead40c3714cde6d",
                 value: "123",
-                nonce: "abasdx", // ""  --- error
+                nonce: "abasdx", 
                 gas_price: "1000000",
                 gas_limit: "1000000",
                 contract: {}
@@ -202,13 +224,13 @@ describe("rpc: SignTransaction", () => {
         testSignTransaction(testInput, testExpect, done)
     });
 
-    it('7.  `nonce` number', done => {
+    it('8.  `nonce` neg number', done => {
         var testInput = {
             args: {
                 from: address,
                 to: "0b9cd051a6d7129ab44b17833c63fe4abead40c3714cde6d",
                 value: "123",
-                nonce: 10000, // ""  --- error
+                nonce: "-10000", 
                 gas_price: "1000000",
                 gas_limit: "1000000",
                 contract: {}
@@ -224,29 +246,7 @@ describe("rpc: SignTransaction", () => {
         testSignTransaction(testInput, testExpect, done)
     });
 
-    /* it('7.  `nonce` empty', done => {
-        var testInput = {
-            args: {
-                from: address,
-                to: "0b9cd051a6d7129ab44b17833c63fe4abead40c3714cde6d",
-                value: "123",
-                nonce: "", 
-                gas_price: "1000000",
-                gas_limit: "1000000",
-                contract: {}
-            }
-        }
-
-        var testExpect = {
-            hasError: false,
-            errorMsg: "",
-
-        }
-
-        testSignTransaction(testInput, testExpect, done)
-    }); */
-
-    it('8.  `gas_price` empty', done => {
+    it('9.  `gas_price` empty', done => {
         var testInput = {
             args: {
                 from: address,
@@ -260,15 +260,15 @@ describe("rpc: SignTransaction", () => {
         }
 
         var testExpect = {
-            hasError: false,
-            errorMsg: "",
+            hasError: true,
+            errorMsg: "uint128: invalid string to uint128",
 
         }
 
         testSignTransaction(testInput, testExpect, done)
     });
 
-    it('9.  `gas_price` alpha', done => {
+    it('10.  `gas_price` alpha', done => {
         var testInput = {
             args: {
                 from: address,
@@ -282,15 +282,37 @@ describe("rpc: SignTransaction", () => {
         }
 
         var testExpect = {
-            hasError: false,
-            errorMsg: "",
+            hasError: true,
+            errorMsg: "uint128: invalid string to uint128",
 
         }
 
         testSignTransaction(testInput, testExpect, done)
     });
 
-    it('10.  `gas_limit` empty', done => {
+    it('11.  `gas_price` negative', done => {
+        var testInput = {
+            args: {
+                from: address,
+                to: "0b9cd051a6d7129ab44b17833c63fe4abead40c3714cde6d",
+                value: "123",
+                nonce: "10000",
+                gas_price: "-10000",
+                gas_limit: "1000000",
+                contract: {}
+            }
+        }
+
+        var testExpect = {
+            hasError: true,
+            errorMsg: "uint128: underflow",
+
+        }
+
+        testSignTransaction(testInput, testExpect, done)
+    });
+
+    it('12.  `gas_limit` empty', done => {
         var testInput = {
             args: {
                 from: address,
@@ -304,15 +326,15 @@ describe("rpc: SignTransaction", () => {
         }
 
         var testExpect = {
-            hasError: false,
-            errorMsg: "",
+            hasError: true,
+            errorMsg: "uint128: invalid string to uint128",
 
         }
 
         testSignTransaction(testInput, testExpect, done)
     });
 
-    it('11.  `gas_limit` alpha', done => {
+    it('13.  `gas_limit` alpha', done => {
         var testInput = {
             args: {
                 from: address,
@@ -326,15 +348,37 @@ describe("rpc: SignTransaction", () => {
         }
 
         var testExpect = {
-            hasError: false,
-            errorMsg: "",
+            hasError: true,
+            errorMsg: "uint128: invalid string to uint128",
 
         }
 
         testSignTransaction(testInput, testExpect, done)
     });
 
-    it('12. `contract` empty', done => {
+    it('14.  `gas_limit` negative', done => {
+        var testInput = {
+            args: {
+                from: address,
+                to: "0b9cd051a6d7129ab44b17833c63fe4abead40c3714cde6d",
+                value: "123",
+                nonce: "10000",
+                gas_price: "1000000",
+                gas_limit: "-10000",
+                contract: {}
+            }
+        }
+
+        var testExpect = {
+            hasError: true,
+            errorMsg: "uint128: underflow",
+
+        }
+
+        testSignTransaction(testInput, testExpect, done)
+    });
+
+    it('15. `contract` empty', done => {
         var testInput = {
             args: {
                 from: address,
@@ -356,7 +400,7 @@ describe("rpc: SignTransaction", () => {
         testSignTransaction(testInput, testExpect, done)
     });
 
-    it('13. `contract`', done => {
+    it('16. `contract`', done => {
         var testInput = {
             args: {
                 from: address,
