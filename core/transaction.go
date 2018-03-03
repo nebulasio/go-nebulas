@@ -334,8 +334,11 @@ func (tx *Transaction) LoadPayload(block *Block) (TxPayload, error) {
 
 // LocalExecution returns tx local execution
 func (tx *Transaction) LocalExecution(block *Block) (*util.Uint128, string, error) {
-	// update gas to max for estimate
-	tx.gasLimit = TransactionMaxGas
+	hash, err := HashTransaction(tx)
+	if err != nil {
+		return nil, "", err
+	}
+	tx.hash = hash
 
 	txBlock, err := block.Clone()
 	if err != nil {
@@ -344,24 +347,6 @@ func (tx *Transaction) LocalExecution(block *Block) (*util.Uint128, string, erro
 
 	txBlock.begin()
 	defer txBlock.rollback()
-
-	fromAcc, err := txBlock.accState.GetOrCreateUserAccount(tx.from.address)
-	if err != nil {
-		return nil, "", err
-	}
-
-	minBalanceRequired, err := tx.MinBalanceRequired()
-	if err != nil {
-		return nil, "", err
-	}
-	err = fromAcc.AddBalance(minBalanceRequired)
-	if err != nil {
-		return nil, "", err
-	}
-	err = fromAcc.AddBalance(tx.value)
-	if err != nil {
-		return nil, "", err
-	}
 
 	payload, err := tx.LoadPayload(txBlock)
 	if err != nil {
@@ -381,7 +366,7 @@ func (tx *Transaction) LocalExecution(block *Block) (*util.Uint128, string, erro
 
 	gas, err := gasUsed.Add(gasExecution)
 	if err != nil {
-		return gasUsed, "", err
+		return gasUsed, result, err
 	}
 	return gas, result, exeErr
 }
