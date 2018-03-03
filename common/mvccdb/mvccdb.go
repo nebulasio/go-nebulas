@@ -58,7 +58,7 @@ func NewMVCCDB(storage storage.Storage) (*MVCCDB, error) {
 	db := &MVCCDB{
 		tid:             nil,
 		storage:         storage,
-		stagingTable:    NewStagingTable(),
+		stagingTable:    NewStagingTable(storage),
 		rootDB:          nil,
 		isInTransaction: false,
 		isPreparedDB:    false,
@@ -102,7 +102,9 @@ func (db *MVCCDB) Commit() error {
 	db.stagingTable.LockFinalVersionValue()
 	defer db.stagingTable.UnlockFinalVersionValue()
 	for _, value := range db.stagingTable.finalVersionizedValue {
-		if !value.initialized {
+
+		// skip default value loaded from storage.
+		if value.isDefault() {
 			continue
 		}
 
@@ -154,20 +156,15 @@ func (db *MVCCDB) Get(key []byte) ([]byte, error) {
 		return db.getFromStorage(key)
 	}
 
-	value := db.stagingTable.Get(db.tid, key)
-	if value == nil {
-		// get from storage.
-		data, err := db.getFromStorage(key)
-		if err != nil {
-			return nil, err
-		}
-
-		value = db.stagingTable.Set(db.tid, key, data, false, false)
+	value, err := db.stagingTable.Get(db.tid, key)
+	if err != nil {
+		return nil, err
 	}
 
-	if value.deleted {
+	if value.deleted || value.val == nil {
 		return nil, storage.ErrKeyNotFound
 	}
+
 	return value.val, nil
 }
 
@@ -180,8 +177,8 @@ func (db *MVCCDB) Put(key []byte, val []byte) error {
 		return db.putToStorage(key, val)
 	}
 
-	db.stagingTable.Put(db.tid, key, val)
-	return nil
+	_, err := db.stagingTable.Put(db.tid, key, val)
+	return err
 }
 
 // Del value
@@ -193,8 +190,8 @@ func (db *MVCCDB) Del(key []byte) error {
 		return db.delFromStorage(key)
 	}
 
-	db.stagingTable.Del(db.tid, key)
-	return nil
+	_, err := db.stagingTable.Del(db.tid, key)
+	return err
 }
 
 // Prepare a nested transaction

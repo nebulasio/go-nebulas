@@ -22,21 +22,22 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/nebulasio/go-nebulas/storage"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestNewDefaultVersionizedValueItem(t *testing.T) {
 	key := make([]byte, 0)
-	value := NewDefaultVersionizedValueItem(key)
+	val := []byte("value")
+	value := NewDefaultVersionizedValueItem(key, val)
 
 	assert.Equal(t, key, value.key)
-	assert.Nil(t, value.val)
+	assert.Equal(t, val, value.val)
 	assert.Nil(t, value.tid)
 	assert.Equal(t, 0, value.old)
 	assert.Equal(t, 0, value.new)
 	assert.False(t, value.deleted)
 	assert.False(t, value.dirty)
-	assert.False(t, value.initialized)
 }
 
 func TestIncrVersionizedValueItem(t *testing.T) {
@@ -57,75 +58,69 @@ func TestIncrVersionizedValueItem(t *testing.T) {
 			args{
 				tid: tid,
 				oldValue: &VersionizedValueItem{
-					tid:         tid,
-					key:         key,
-					val:         val,
-					old:         0,
-					new:         0,
-					deleted:     false,
-					dirty:       false,
-					initialized: true,
+					tid:     tid,
+					key:     key,
+					val:     val,
+					old:     0,
+					new:     0,
+					deleted: false,
+					dirty:   false,
 				},
 			},
 			&VersionizedValueItem{
-				tid:         tid,
-				key:         key,
-				val:         val,
-				old:         0,
-				new:         1,
-				deleted:     false,
-				dirty:       false,
-				initialized: true,
+				tid:     tid,
+				key:     key,
+				val:     val,
+				old:     0,
+				new:     1,
+				deleted: false,
+				dirty:   false,
 			},
 		},
 		{"2",
 			args{
 				tid: tid,
 				oldValue: &VersionizedValueItem{
-					tid:         tid,
-					key:         key,
-					val:         val,
-					old:         0,
-					new:         1,
-					deleted:     true,
-					dirty:       false,
-					initialized: true,
+					tid:     tid,
+					key:     key,
+					val:     val,
+					old:     0,
+					new:     1,
+					deleted: true,
+					dirty:   false,
 				},
 			},
 			&VersionizedValueItem{
-				tid:         tid,
-				key:         key,
-				val:         val,
-				old:         1,
-				new:         2,
-				deleted:     true,
-				dirty:       false,
-				initialized: true,
+				tid:     tid,
+				key:     key,
+				val:     val,
+				old:     1,
+				new:     2,
+				deleted: true,
+				dirty:   false,
 			},
 		},
 		{"3",
 			args{
 				tid: tid,
 				oldValue: &VersionizedValueItem{
-					tid:         tid,
-					key:         key,
-					val:         val,
-					old:         0,
-					new:         1,
-					deleted:     false,
-					dirty:       true,
-					initialized: true,
+					tid:     tid,
+					key:     key,
+					val:     val,
+					old:     0,
+					new:     1,
+					deleted: false,
+					dirty:   true,
 				},
 			},
 			&VersionizedValueItem{
-				tid:         tid,
-				key:         key,
-				val:         val,
-				old:         1,
-				new:         2,
-				deleted:     false,
-				dirty:       false,
-				initialized: true,
+				tid:     tid,
+				key:     key,
+				val:     val,
+				old:     1,
+				new:     2,
+				deleted: false,
+				dirty:   false,
 			},
 		},
 	}
@@ -150,68 +145,62 @@ func TestVersionizedValueItem_CloneForFinal(t *testing.T) {
 	}{
 		{"1",
 			&VersionizedValueItem{
-				tid:         tid,
-				key:         key,
-				val:         val,
-				old:         0,
-				new:         1,
-				deleted:     false,
-				dirty:       false,
-				initialized: true,
+				tid:     tid,
+				key:     key,
+				val:     val,
+				old:     0,
+				new:     1,
+				deleted: false,
+				dirty:   false,
 			},
 			&VersionizedValueItem{
-				tid:         tid,
-				key:         key,
-				val:         val,
-				old:         0,
-				new:         1,
-				deleted:     false,
-				dirty:       true,
-				initialized: true,
+				tid:     tid,
+				key:     key,
+				val:     val,
+				old:     0,
+				new:     1,
+				deleted: false,
+				dirty:   true,
 			},
 		},
 		{"2",
 			&VersionizedValueItem{
-				tid:         tid,
-				key:         key,
-				val:         val,
-				old:         0,
-				new:         1,
-				deleted:     false,
-				dirty:       true,
-				initialized: true,
+				tid:     tid,
+				key:     key,
+				val:     val,
+				old:     0,
+				new:     1,
+				deleted: false,
+				dirty:   true,
 			},
 			&VersionizedValueItem{
-				tid:         tid,
-				key:         key,
-				val:         val,
-				old:         0,
-				new:         1,
-				deleted:     false,
-				dirty:       true,
-				initialized: true,
+				tid:     tid,
+				key:     key,
+				val:     val,
+				old:     0,
+				new:     1,
+				deleted: false,
+				dirty:   true,
 			},
 		},
 		{"3",
 			&VersionizedValueItem{
-				tid:         tid,
-				key:         key,
-				val:         val,
-				old:         0,
-				new:         1,
-				deleted:     true,
-				dirty:       true,
-				initialized: true,
+				tid:     tid,
+				key:     key,
+				val:     val,
+				old:     0,
+				new:     1,
+				deleted: true,
+				dirty:   true,
 			},
 			&VersionizedValueItem{
-				tid:         tid,
-				key:         key,
-				val:         val,
-				old:         0,
-				new:         1,
-				deleted:     true,
-				dirty:       true,
-				initialized: true,
+				tid:     tid,
+				key:     key,
+				val:     val,
+				old:     0,
+				new:     1,
+				deleted: true,
+				dirty:   true,
 			},
 		},
 	}
@@ -226,22 +215,24 @@ func TestVersionizedValueItem_CloneForFinal(t *testing.T) {
 }
 
 func TestStagingTable_SingleTidAction(t *testing.T) {
+	stor, _ := storage.NewMemoryStorage()
 	tid := "tid"
 
-	tbl := NewStagingTable()
+	tbl := NewStagingTable(stor)
 
 	// Get non-exist key.
 	{
 		key := []byte("key1")
-		value := tbl.Get(tid, key)
-		assert.Nil(t, value)
+		value, err := tbl.Get(tid, key)
+		assert.Nil(t, err)
+		assert.Nil(t, value.val)
 	}
 
 	// Put the key.
 	{
 		key := []byte("key1")
 		val := []byte("val of key1")
-		value := tbl.Put(tid, key, val)
+		value, _ := tbl.Put(tid, key, val)
 		assert.NotNil(t, value)
 		assert.Equal(t, tid, value.tid)
 		assert.Equal(t, key, value.key)
@@ -250,15 +241,16 @@ func TestStagingTable_SingleTidAction(t *testing.T) {
 		assert.Equal(t, 1, value.new)
 		assert.False(t, value.deleted)
 		assert.True(t, value.dirty)
-		assert.True(t, value.initialized)
-		assert.Equal(t, value, tbl.Get(tid, key))
+
+		ret, _ := tbl.Get(tid, key)
+		assert.Equal(t, value, ret)
 	}
 
 	// Set the key with dirty = false.
 	{
 		key := []byte("key1")
 		val := []byte("val of key1")
-		value := tbl.Set(tid, key, val, false, false)
+		value, _ := tbl.Set(tid, key, val, false, false)
 		assert.NotNil(t, value)
 		assert.Equal(t, tid, value.tid)
 		assert.Equal(t, key, value.key)
@@ -267,8 +259,9 @@ func TestStagingTable_SingleTidAction(t *testing.T) {
 		assert.Equal(t, 1, value.new)
 		assert.False(t, value.deleted)
 		assert.False(t, value.dirty)
-		assert.True(t, value.initialized)
-		assert.Equal(t, value, tbl.Get(tid, key))
+
+		ret, _ := tbl.Get(tid, key)
+		assert.Equal(t, value, ret)
 	}
 
 	// Put the key again.
@@ -276,7 +269,7 @@ func TestStagingTable_SingleTidAction(t *testing.T) {
 		// same value, expect dirty = false.
 		key := []byte("key1")
 		val := []byte("val of key1")
-		value := tbl.Put(tid, key, val)
+		value, _ := tbl.Put(tid, key, val)
 		assert.NotNil(t, value)
 		assert.Equal(t, tid, value.tid)
 		assert.Equal(t, key, value.key)
@@ -285,12 +278,13 @@ func TestStagingTable_SingleTidAction(t *testing.T) {
 		assert.Equal(t, 1, value.new)
 		assert.False(t, value.deleted)
 		assert.False(t, value.dirty)
-		assert.True(t, value.initialized)
-		assert.Equal(t, value, tbl.Get(tid, key))
+
+		ret, _ := tbl.Get(tid, key)
+		assert.Equal(t, value, ret)
 
 		// changed value, expect dirty = true.
 		val = []byte("new val of key1")
-		value = tbl.Put(tid, key, val)
+		value, _ = tbl.Put(tid, key, val)
 		assert.NotNil(t, value)
 		assert.Equal(t, tid, value.tid)
 		assert.Equal(t, key, value.key)
@@ -299,12 +293,13 @@ func TestStagingTable_SingleTidAction(t *testing.T) {
 		assert.Equal(t, 1, value.new)
 		assert.False(t, value.deleted)
 		assert.True(t, value.dirty)
-		assert.True(t, value.initialized)
-		assert.Equal(t, value, tbl.Get(tid, key))
+
+		ret, _ = tbl.Get(tid, key)
+		assert.Equal(t, value, ret)
 
 		// same value, expected dirty = true.
 		val = []byte("new val of key1")
-		value = tbl.Put(tid, key, val)
+		value, _ = tbl.Put(tid, key, val)
 		assert.NotNil(t, value)
 		assert.Equal(t, tid, value.tid)
 		assert.Equal(t, key, value.key)
@@ -313,14 +308,15 @@ func TestStagingTable_SingleTidAction(t *testing.T) {
 		assert.Equal(t, 1, value.new)
 		assert.False(t, value.deleted)
 		assert.True(t, value.dirty)
-		assert.True(t, value.initialized)
-		assert.Equal(t, value, tbl.Get(tid, key))
+
+		ret, _ = tbl.Get(tid, key)
+		assert.Equal(t, value, ret)
 	}
 
 	// Del the key.
 	{
 		key := []byte("key1")
-		value := tbl.Del(tid, key)
+		value, _ := tbl.Del(tid, key)
 		assert.NotNil(t, value)
 		assert.Equal(t, tid, value.tid)
 		assert.Equal(t, key, value.key)
@@ -329,17 +325,17 @@ func TestStagingTable_SingleTidAction(t *testing.T) {
 		assert.Equal(t, 1, value.new)
 		assert.True(t, value.deleted)
 		assert.True(t, value.dirty)
-		assert.True(t, value.initialized)
-		assert.Equal(t, value, tbl.Get(tid, key))
+
+		ret, _ := tbl.Get(tid, key)
+		assert.Equal(t, value, ret)
 
 		// restore dirty flag.
-		value = tbl.Set(tid, key, value.val, false, false)
+		value, _ = tbl.Set(tid, key, value.val, false, false)
 		assert.False(t, value.deleted)
 		assert.False(t, value.dirty)
-		assert.True(t, value.initialized)
 
 		// del again.
-		value = tbl.Del(tid, key)
+		value, _ = tbl.Del(tid, key)
 		assert.NotNil(t, value)
 		assert.Equal(t, tid, value.tid)
 		assert.Equal(t, key, value.key)
@@ -348,38 +344,46 @@ func TestStagingTable_SingleTidAction(t *testing.T) {
 		assert.Equal(t, 1, value.new)
 		assert.True(t, value.deleted)
 		assert.True(t, value.dirty)
-		assert.True(t, value.initialized)
-		assert.Equal(t, value, tbl.Get(tid, key))
+
+		ret, _ = tbl.Get(tid, key)
+		assert.Equal(t, value, ret)
 	}
 }
 
 func TestStagingTable_MultiTidAction(t *testing.T) {
+	stor, _ := storage.NewMemoryStorage()
+
 	tid1 := "tid1"
 	tid2 := "tid2"
 	key := []byte("key1")
 	val := []byte("val of key1")
 
-	tbl := NewStagingTable()
+	tbl := NewStagingTable(stor)
 
 	// tid1 put the key.
-	value := tbl.Put(tid1, key, val)
-	assert.Equal(t, value, tbl.Get(tid1, key))
+	value, _ := tbl.Put(tid1, key, val)
+	ret, _ := tbl.Get(tid1, key)
+	assert.Equal(t, value, ret)
 
 	// read from tid2.
-	value2 := tbl.Get(tid2, key)
-	assert.Nil(t, value2)
+	value2, _ := tbl.Get(tid2, key)
+	assert.Nil(t, value2.val)
 
 	// delete.
 	tbl.Del(tid2, key)
-	assert.True(t, tbl.Get(tid2, key).deleted)
-	assert.False(t, tbl.Get(tid1, key).deleted)
+
+	ret, _ = tbl.Get(tid2, key)
+	assert.True(t, ret.deleted)
+	ret, _ = tbl.Get(tid1, key)
+	assert.False(t, ret.deleted)
 }
 
 func TestStagingTable_MergeToFinal(t *testing.T) {
 	tid1 := "tid1"
 	tid2 := "tid2"
 
-	tbl := NewStagingTable()
+	stor, _ := storage.NewMemoryStorage()
+	tbl := NewStagingTable(stor)
 
 	// Init.
 	key1 := []byte("key1")
@@ -403,8 +407,10 @@ func TestStagingTable_MergeToFinal(t *testing.T) {
 	dependencies, err := tbl.MergeToFinal(tid2)
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(dependencies))
-	assert.Equal(t, val1_1, tbl.Get(tid1, key1).val)
-	assert.Equal(t, val1_2, tbl.Get(tid2, key1).val)
+	ret, _ := tbl.Get(tid1, key1)
+	assert.Equal(t, val1_1, ret.val)
+	ret, _ = tbl.Get(tid2, key1)
+	assert.Equal(t, val1_2, ret.val)
 
 	// Merge tid1, fail.
 	dependencies, err = tbl.MergeToFinal(tid1)
@@ -413,7 +419,7 @@ func TestStagingTable_MergeToFinal(t *testing.T) {
 
 	// tid3 read.
 	tid3 := "tid3"
-	value := tbl.Get(tid3, key1)
+	value, _ := tbl.Get(tid3, key1)
 	assert.NotNil(t, value)
 	assert.Equal(t, tid3, value.tid)
 	assert.Equal(t, key1, value.key)
@@ -422,7 +428,6 @@ func TestStagingTable_MergeToFinal(t *testing.T) {
 	assert.Equal(t, 2, value.new)
 	assert.False(t, value.deleted)
 	assert.False(t, value.dirty)
-	assert.True(t, value.initialized)
 
 	// tid3 put.
 	tbl.Put(tid3, key2, []byte("val of deled key2"))
@@ -435,16 +440,16 @@ func TestStagingTable_MergeToFinal(t *testing.T) {
 
 	// tid4 read/put.
 	tid4 := "tid4"
-	value = tbl.Get(tid4, key1)
+	value, _ = tbl.Get(tid4, key1)
 	assert.Equal(t, val1_2, value.val)
 	assert.Equal(t, 1, value.old)
 	assert.Equal(t, 2, value.new)
 
-	value = tbl.Del(tid4, key2)
+	value, _ = tbl.Del(tid4, key2)
 	assert.Equal(t, 1, value.old)
 	assert.Equal(t, 2, value.new)
 
-	value = tbl.Put(tid4, key3, []byte("val of deleted key3"))
+	value, _ = tbl.Put(tid4, key3, []byte("val of deleted key3"))
 	assert.Equal(t, 1, value.old)
 	assert.Equal(t, 2, value.new)
 
@@ -468,21 +473,26 @@ func TestStagingTable_Purge(t *testing.T) {
 
 	tid := "tid1"
 
-	tbl := NewStagingTable()
+	stor, _ := storage.NewMemoryStorage()
+	tbl := NewStagingTable(stor)
 
 	// tid put.
 	tbl.Put(tid, key1, []byte("value of key1"))
 	tbl.Put(tid, key2, []byte("value of key2"))
 
-	assert.Equal(t, []byte("value of key1"), tbl.Get(tid, key1).val)
-	assert.Equal(t, []byte("value of key2"), tbl.Get(tid, key2).val)
+	ret, _ := tbl.Get(tid, key1)
+	assert.Equal(t, []byte("value of key1"), ret.val)
+	ret, _ = tbl.Get(tid, key2)
+	assert.Equal(t, []byte("value of key2"), ret.val)
 
 	// purge.
 	tbl.Purge(tid)
 
 	// verify.
-	assert.Nil(t, tbl.Get(tid, key1))
-	assert.Nil(t, tbl.Get(tid, key2))
+	ret, _ = tbl.Get(tid, key1)
+	assert.Nil(t, ret.val)
+	ret, _ = tbl.Get(tid, key2)
+	assert.Nil(t, ret.val)
 
 	// merge.
 	tbl.Put(tid, key1, []byte("value of key1"))
@@ -497,8 +507,10 @@ func TestStagingTable_Purge(t *testing.T) {
 	tbl.Purge(tid)
 
 	// verify.
-	assert.Equal(t, []byte("value of key1"), tbl.Get(tid, key1).val)
-	assert.Nil(t, tbl.Get(tid, key2))
+	ret, _ = tbl.Get(tid, key1)
+	assert.Equal(t, []byte("value of key1"), ret.val)
+	ret, _ = tbl.Get(tid, key2)
+	assert.Nil(t, ret.val)
 }
 
 func TestStagingTable_NilTidAction(t *testing.T) {
@@ -506,53 +518,49 @@ func TestStagingTable_NilTidAction(t *testing.T) {
 	key2 := []byte("key2")
 	tid := "tid1"
 
-	tbl := NewStagingTable()
+	stor, _ := storage.NewMemoryStorage()
+	tbl := NewStagingTable(stor)
 
 	// Get and Put.
-	value := tbl.Get(nil, key1)
-	assert.Nil(t, value)
+	value, _ := tbl.Get(nil, key1)
+	assert.Nil(t, value.val)
 
-	value = tbl.Put(nil, key1, []byte("value of key1"))
+	value, _ = tbl.Put(nil, key1, []byte("value of key1"))
 	assert.Equal(t, []byte("value of key1"), value.val)
 	assert.Equal(t, 0, value.old)
 	assert.Equal(t, 1, value.new)
 	assert.False(t, value.deleted)
 	assert.True(t, value.dirty)
-	assert.True(t, value.initialized)
 
-	value = tbl.Get(nil, key1)
+	value, _ = tbl.Get(nil, key1)
 	assert.Equal(t, []byte("value of key1"), value.val)
 	assert.Equal(t, 0, value.old)
 	assert.Equal(t, 1, value.new)
 	assert.False(t, value.deleted)
 	assert.True(t, value.dirty)
-	assert.True(t, value.initialized)
 
 	// Put.
-	value = tbl.Put(nil, key2, []byte("value of key2"))
+	value, _ = tbl.Put(nil, key2, []byte("value of key2"))
 	assert.Equal(t, []byte("value of key2"), value.val)
 	assert.Equal(t, 0, value.old)
 	assert.Equal(t, 1, value.new)
 	assert.False(t, value.deleted)
 	assert.True(t, value.dirty)
-	assert.True(t, value.initialized)
 
-	value = tbl.Get(nil, key2)
+	value, _ = tbl.Get(nil, key2)
 	assert.Equal(t, []byte("value of key2"), value.val)
 	assert.Equal(t, 0, value.old)
 	assert.Equal(t, 1, value.new)
 	assert.False(t, value.deleted)
 	assert.True(t, value.dirty)
-	assert.True(t, value.initialized)
 
 	// tid get.
-	value = tbl.Get(tid, key1)
+	value, _ = tbl.Get(tid, key1)
 	assert.Equal(t, []byte("value of key1"), value.val)
 	assert.Equal(t, 1, value.old)
 	assert.Equal(t, 2, value.new)
 	assert.False(t, value.deleted)
 	assert.False(t, value.dirty)
-	assert.True(t, value.initialized)
 
 	tbl.Del(tid, key1)
 
@@ -561,6 +569,6 @@ func TestStagingTable_NilTidAction(t *testing.T) {
 	assert.Nil(t, err)
 
 	// Get.
-	value = tbl.Get(nil, key1)
+	value, _ = tbl.Get(nil, key1)
 	assert.True(t, value.deleted)
 }

@@ -70,7 +70,7 @@ func TestMVCCDB_FunctionEntryCondition(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestMVCCDB_GetInTransaction(t *testing.T) {
+func TestMVCCDB_KeyChangeOutOfMVCCDB(t *testing.T) {
 	stor, _ := storage.NewMemoryStorage()
 	db, _ := NewMVCCDB(stor)
 
@@ -87,18 +87,8 @@ func TestMVCCDB_GetInTransaction(t *testing.T) {
 
 	// get again.
 	val, err = db.Get(key)
-	assert.Equal(t, []byte("value"), val)
-	assert.Nil(t, err)
-
-	// put key1.
-	key1 := []byte("key1")
-	stor.Put(key1, []byte("value"))
-
-	// get key1.
-	val, err = db.Get(key1)
-	assert.Equal(t, []byte("value"), val)
-	assert.Nil(t, err)
-
+	assert.Nil(t, val)
+	assert.Equal(t, storage.ErrKeyNotFound, err)
 }
 
 func TestMVCCDB_DirectOpts(t *testing.T) {
