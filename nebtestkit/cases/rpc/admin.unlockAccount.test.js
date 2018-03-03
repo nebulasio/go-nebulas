@@ -23,23 +23,36 @@ var client,
     address;
 
 function testUnlockAccount(testInput, testExpect, done) {
+    try {
+        client.UnlockAccount(testInput.args, (err, resp) => {
+            try {
+                expect(!!err).to.equal(testExpect.hasError);
 
-    client.UnlockAccount(testInput.args, (err, resp) => {
-        try {
-            expect(!!err).to.equal(testExpect.hasError);
-
-            if (err) {
-                console.log(JSON.stringify(err));
-                expect(err).have.property('details').equal(testExpect.errorMsg);
-            } else {
-                console.log(JSON.stringify(resp));
-                expect(resp).to.have.property('result').equal(testExpect.result);
+                if (err) {
+                    console.log("call return error: " + JSON.stringify(err));
+                    expect(err).have.property('details').equal(testExpect.errorMsg);
+                } else {
+                    console.log("call return success: " + JSON.stringify(resp));
+                    expect(resp).to.have.property('result').equal(testExpect.result);
+                }
+                done();
+            } catch (err) {
+                done(err);
             }
-            done();
-        } catch (err) {
-            done(err);
+        });
+    } catch(err) {
+        console.log("call failed:" + err.toString())
+        if (testExpect.callFailed) {
+            try {
+                expect(err.toString()).to.have.string(testExpect.errorMsg);
+                done();
+            } catch(er) {
+                done(er);
+            }
+        } else {
+            done(err)
         }
-    });
+    }
 }
 
 describe("rpc: UnlockAccount", () => {
@@ -75,7 +88,7 @@ describe("rpc: UnlockAccount", () => {
         testUnlockAccount(testInput, testExpect, done);
     });
 
-    it("2. illegal passphrase", (done) => {
+    it("2. wrong `passphrase`", (done) => {
         var testInput = {
             args: {
                 address: address,
@@ -91,7 +104,7 @@ describe("rpc: UnlockAccount", () => {
         testUnlockAccount(testInput, testExpect, done);
     });
 
-    it("3. empty passphrase", (done) => {
+    it("3. empty `passphrase`", (done) => {
         var testInput = {
             args: {
                 address: address,
@@ -107,7 +120,7 @@ describe("rpc: UnlockAccount", () => {
         testUnlockAccount(testInput, testExpect, done);
     });
 
-    it("4. nonexistent account", (done) => {
+    it("4. nonexistent `address`", (done) => {
         var testInput = {
             args: {
                 address: "eb31ad2d8a89a0ca6935c308d5425730430bc2d63f2573b8",
@@ -123,7 +136,7 @@ describe("rpc: UnlockAccount", () => {
         testUnlockAccount(testInput, testExpect, done);
     });
 
-    it("5. invalid address", (done) => {
+    it("5. invalid `address`", (done) => {
         var testInput = {
             args: {
                 address: "eb31ad2d8a89a0ca693425730430bc2d63f2573b8",   // same with ""
@@ -134,6 +147,55 @@ describe("rpc: UnlockAccount", () => {
         var testExpect = {
             hasError: true,
             errorMsg: "address: invalid address"
+        }
+
+        testUnlockAccount(testInput, testExpect, done);
+    });
+
+    it("6. missing `address`", (done) => {
+        var testInput = {
+            args: {
+                // address: address,
+                passphrase: "passphrase"
+            }
+        }
+
+        var testExpect = {
+            hasError: true,
+            errorMsg: 'address: invalid address'
+        }
+
+        testUnlockAccount(testInput, testExpect, done);
+    });
+
+    it("7. missing `passphrase`", (done) => {
+        var testInput = {
+            args: {
+                address: address,
+                // passphrase: "passphrase"
+            }
+        }
+
+        var testExpect = {
+            hasError: true,
+            errorMsg: 'passphrase is invalid'
+        }
+
+        testUnlockAccount(testInput, testExpect, done);
+    });
+
+    it("8. redundant param", (done) => {
+        var testInput = {
+            args: {
+                address: address,
+                passphrase: "passphrase",
+                test: "gtes"
+            }
+        }
+
+        var testExpect = {
+            callFailed: true,
+            errorMsg: 'Error:'
         }
 
         testUnlockAccount(testInput, testExpect, done);

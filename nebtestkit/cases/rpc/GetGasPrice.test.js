@@ -5,6 +5,7 @@ var rpc_client = require('./rpc_client/rpc_client.js');
 
 
 var coinbase,
+    client,
     server_address;
 
 var env = process.env.NET || 'local';
@@ -19,12 +20,10 @@ if (env === 'local') {
     coinbase = "0b9cd051a6d7129ab44b17833c63fe4abead40c3714cde6d";
 }
 
-var client;
-
-function testNewAccount(testInput, testExpect, done) {
+function testGetGasPrice(testInput, testExpect, done) {
 
     try {
-        client.NewAccount(testInput.args, (err, resp) => {
+        client.GetGasPrice({}, (err, resp) => {
             try {
                 expect(!!err).to.equal(testExpect.hasError);
 
@@ -33,7 +32,7 @@ function testNewAccount(testInput, testExpect, done) {
                     expect(err).have.property('details').equal(testExpect.errorMsg);
                 } else {
                     console.log("call return success: " + JSON.stringify(resp));
-                    expect(resp).to.have.property('address');
+                    expect(resp).to.have.property('gas_price');
                 }
                 done();
             } catch (err) {
@@ -41,68 +40,46 @@ function testNewAccount(testInput, testExpect, done) {
             }
         });
     } catch(err) {
-        console.log("call failed:" + err.toString())
-        if (testExpect.callFailed) {
+        if (testExpect.hasError) {
             try {
                 expect(err.toString()).to.have.string(testExpect.errorMsg);
-                done();
-            } catch(er) {
-                done(er);
-            }
-        } else {
-            done(err)
-        }
+                done()
+                return;
+            } catch(er) {}
+        } 
+        done(err)
     }
 }
 
-describe("rpc: NewAccount", () => {
+describe("rpc: GetGasPrice", () => {
     before(() => {
-        client = rpc_client.new_client(server_address, 'AdminService');
+        client = rpc_client.new_client(server_address);
     });
 
-    it("1. legal `passphrase` (len>0)", (done) => {
-        
+    it('1. normal', done => {
         var testInput = {
-            args: {
-                passphrase: "passphrase"
-            }
+            
         }
 
         var testExpect = {
-            hasError: false
+            hasError: false,
+            errorMsg: ''
         }
-        
-        testNewAccount(testInput, testExpect, done);
+
+        testGetGasPrice(testInput, testExpect, done)
     });
 
-    it("2. empty `passphrase`", (done) => {
+    it('2. redundant params', done => {
         var testInput = {
-            args: {
-                passphrase: ""
-            }
+            height: "3243"
         }
 
         var testExpect = {
-            hasError: true,
-            errorMsg: "passphrase is invalid"
+            hasError: false,
+            errorMsg: ''
         }
 
-        testNewAccount(testInput, testExpect, done);
-    });
-    
-    it("3. redundant param", (done) => {
-        var testInput = {
-            args: {
-                fsa: "",
-                more1: "more1"
-            }
-        }
-
-        var testExpect = {
-            callFailed: true,
-            errorMsg: "Error: "
-        }
-
-        testNewAccount(testInput, testExpect, done);
-    }); 
+        testGetGasPrice(testInput, testExpect, done)
+   
+ });
 });

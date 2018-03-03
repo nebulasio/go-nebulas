@@ -5,6 +5,7 @@ var rpc_client = require('./rpc_client/rpc_client.js');
 
 
 var coinbase,
+    client,
     server_address;
 
 var env = process.env.NET || 'local';
@@ -19,12 +20,10 @@ if (env === 'local') {
     coinbase = "0b9cd051a6d7129ab44b17833c63fe4abead40c3714cde6d";
 }
 
-var client;
-
-function testNewAccount(testInput, testExpect, done) {
+function testGetDynasty(testInput, testExpect, done) {
 
     try {
-        client.NewAccount(testInput.args, (err, resp) => {
+        client.GetDynasty(testInput, (err, resp) => {
             try {
                 expect(!!err).to.equal(testExpect.hasError);
 
@@ -33,7 +32,7 @@ function testNewAccount(testInput, testExpect, done) {
                     expect(err).have.property('details').equal(testExpect.errorMsg);
                 } else {
                     console.log("call return success: " + JSON.stringify(resp));
-                    expect(resp).to.have.property('address');
+                    expect(resp).to.have.property('delegatees');
                 }
                 done();
             } catch (err) {
@@ -41,68 +40,84 @@ function testNewAccount(testInput, testExpect, done) {
             }
         });
     } catch(err) {
-        console.log("call failed:" + err.toString())
-        if (testExpect.callFailed) {
+        if (testExpect.hasError) {
             try {
                 expect(err.toString()).to.have.string(testExpect.errorMsg);
-                done();
-            } catch(er) {
-                done(er);
-            }
-        } else {
-            done(err)
-        }
+                done()
+                return;
+            } catch(er) {}
+        } 
+        done(err)
     }
 }
 
-describe("rpc: NewAccount", () => {
+describe("rpc: GetDynasty", () => {
     before(() => {
-        client = rpc_client.new_client(server_address, 'AdminService');
+        client = rpc_client.new_client(server_address);
     });
 
-    it("1. legal `passphrase` (len>0)", (done) => {
-        
+    it('1. `height` missing', done => {
         var testInput = {
-            args: {
-                passphrase: "passphrase"
-            }
+            
         }
 
         var testExpect = {
-            hasError: false
+            hasError: false,
+            errorMsg: ''
         }
-        
-        testNewAccount(testInput, testExpect, done);
+
+        testGetDynasty(testInput, testExpect, done)
     });
 
-    it("2. empty `passphrase`", (done) => {
+    it('2. `height` empty string', done => {
         var testInput = {
-            args: {
-                passphrase: ""
-            }
+            height: ""
         }
 
         var testExpect = {
             hasError: true,
-            errorMsg: "passphrase is invalid"
+            errorMsg: 'Error:'
         }
 
-        testNewAccount(testInput, testExpect, done);
+        testGetDynasty(testInput, testExpect, done)
     });
-    
-    it("3. redundant param", (done) => {
+
+    it('3. `height` 0', done => {
         var testInput = {
-            args: {
-                fsa: "",
-                more1: "more1"
-            }
+            height: 0
         }
 
         var testExpect = {
-            callFailed: true,
-            errorMsg: "Error: "
+            hasError: false,
+            errorMsg: ''
         }
 
-        testNewAccount(testInput, testExpect, done);
-    }); 
+        testGetDynasty(testInput, testExpect, done)
+    });
+
+    it('4. `height` negative', done => {
+        var testInput = {
+            height: -100000
+        }
+
+        var testExpect = {
+            hasError: false,
+            errorMsg: ''
+        }
+
+        testGetDynasty(testInput, testExpect, done)
+    });
+
+    it('5. `height` bigger than now', done => {
+        var testInput = {
+            height: 10000000000
+        }
+
+        var testExpect = {
+            hasError: false,
+            errorMsg: ''
+        }
+
+        testGetDynasty(testInput, testExpect, done)
+    });
 });

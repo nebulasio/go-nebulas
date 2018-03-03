@@ -447,7 +447,7 @@ describe("rpc: SendTransactionWithPassphrase", () => {
             transaction: {
                 from: address,
                 to: toAddress,
-                value: "123rwerw",
+                value: "123",
                 nonce: "10000",
                 gas_price: "1000000",
                 gas_limit: "afsdkjkjkkjhf",
@@ -509,11 +509,11 @@ describe("rpc: SendTransactionWithPassphrase", () => {
         testSendTransactionWithPassphrase(testInput, testExpect, done)
     });
 
-    it('20. normal `contract`', done => {
+    /* it('20. normal `contract`', done => {
         var testInput = {
             transaction: {
                 from: address,
-                to: toAddress,
+                to: toAddress,      // contract
                 value: "123",
                 nonce: "10000",
                 gas_price: "1000000",
@@ -555,7 +555,7 @@ describe("rpc: SendTransactionWithPassphrase", () => {
         }
 
         testSendTransactionWithPassphrase(testInput, testExpect, done)
-    });
+    }); */
 
     it('22. wrong `passphrase`', done => {
         var testInput = {
