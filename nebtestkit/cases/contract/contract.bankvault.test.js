@@ -21,7 +21,7 @@ var coinbase = "eb31ad2d8a89a0ca6935c308d5425730430bc2d63f2573b8";
 var coinState;
 
 // deploy a new contract each run 
-var redeploy = process.env.REDEPLOY || false;
+var redeploy = process.env.REDEPLOY || true;
 var scriptType = process.env.script || 'js';
 var env = process.env.NET || 'local';
 if (env === 'local') {
@@ -151,6 +151,12 @@ var fromBalanceBefore,
     txInfo = {};
 
 function testSave(testInput, testExpect, done) {
+
+    var call = {
+        "function": testInput.func,
+        "args": testInput.args
+    }
+
     neb.api.getAccountState(contractAddr).then(function(state){
         console.log("[before save] contract state: " + JSON.stringify(state));
         contractBalanceBefore = new BigNumber(state.balance);
@@ -159,23 +165,23 @@ function testSave(testInput, testExpect, done) {
     }).then(function(state){
         console.log("[before save] from state: " + JSON.stringify(state));
         fromBalanceBefore = state.balance;
+        txInfo.call = call;
+        txInfo.nonce = parseInt(state.nonce) + 1;
 
         neb.api.getAccountState(coinbase).then(function(state){
             console.log("[before save] coinbase state:" + JSON.stringify(state));
             coinBalanceBefore = state.balance;
         });
+       
+        return neb.api.estimateGas(from.getAddressString(), contractAddr,
+                testInput.value, txInfo.nonce, 0, testInput.gasLimit, txInfo.call);
+    }).then(function(resp){
+        expect(resp).to.have.property('gas');
+        gasUsed = resp.gas;
 
-        var call = {
-            "function": testInput.func,
-            "args": testInput.args
-        }
         var tx = new Transaction(ChainID, from, contractAddr, 
-            testInput.value, parseInt(state.nonce) + 1, 0, testInput.gasLimit, call);
+            testInput.value, txInfo.nonce, 0, testInput.gasLimit, call);
         tx.signTransaction();
-
-        txInfo.call = call;
-        txInfo.nonce = parseInt(state.nonce) + 1;
-
         return neb.api.sendRawTransaction(tx.toProtoString());
     }).then(function(resp){
         expect(resp).to.have.property('txhash');
@@ -203,13 +209,6 @@ function testSave(testInput, testExpect, done) {
                 var coinbalancechange = new BigNumber(state.balance).sub(new BigNumber(coinBalanceBefore))
                     .mod(new BigNumber(0.48).mul(new BigNumber(10).pow(new BigNumber(18))));
                 console.log("[after save] coinbase state:" + JSON.stringify(state) + ", balance change: " + coinbalancechange);
-    
-                return neb.api.estimateGas(from.getAddressString(), contractAddr,
-                        testInput.value, txInfo.nonce, 0, 
-                        testInput.gasLimit, txInfo.call);
-            }).then(function(resp){
-                expect(resp).to.have.property('gas');
-                gasUsed = resp.gas;
                 return neb.api.gasPrice();
             }).then(function(resp){
                 expect(resp).to.have.property('gas_price');
