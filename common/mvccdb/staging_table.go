@@ -256,7 +256,7 @@ func IncrVersionizedValueItem(tid interface{}, oldValue *VersionizedValueItem) *
 	}
 }
 
-// CloneForFinal shadow copy of `VersionizedValueItem` with dirty is false.
+// CloneForFinal shadow copy of `VersionizedValueItem` with dirty is true.
 func (value *VersionizedValueItem) CloneForFinal() *VersionizedValueItem {
 	return &VersionizedValueItem{
 		tid:         value.tid,
@@ -266,6 +266,6 @@ func (value *VersionizedValueItem) CloneForFinal() *VersionizedValueItem {
 		new:         value.new,
 		deleted:     value.deleted,
 		initialized: value.initialized,
-		dirty:       false,
+		dirty:       true,
 	}
 }

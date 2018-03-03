@@ -35,6 +35,72 @@ func TestMVCCDB_NewMVCCDB(t *testing.T) {
 	assert.False(t, db.isPreparedDB)
 }
 
+func TestMVCCDB_FunctionEntryCondition(t *testing.T) {
+	stor, _ := storage.NewMemoryStorage()
+	db, _ := NewMVCCDB(stor)
+
+	assert.Nil(t, db.Begin())
+	assert.Equal(t, ErrUnsupportedNestedTransaction, db.Begin())
+	assert.Nil(t, db.Commit())
+	assert.Equal(t, ErrTransactionNotStarted, db.Commit())
+
+	assert.Nil(t, db.Begin())
+	assert.Nil(t, db.RollBack())
+	assert.Equal(t, ErrTransactionNotStarted, db.RollBack())
+
+	pdb, err := db.Prepare(nil)
+	assert.Nil(t, pdb)
+	assert.Error(t, ErrTransactionNotStarted, err)
+
+	tid := "tid"
+	assert.Nil(t, db.Begin())
+	pdb, err = db.Prepare(nil)
+	assert.Nil(t, pdb)
+	assert.Equal(t, ErrTidIsNil, err)
+
+	pdb, err = db.Prepare(tid)
+	assert.NotNil(t, pdb)
+	assert.Nil(t, err)
+
+	deps, err := pdb.CheckAndUpdate()
+	assert.Equal(t, 0, len(deps))
+	assert.Nil(t, err)
+
+	err = pdb.Reset()
+	assert.Nil(t, err)
+}
+
+func TestMVCCDB_GetInTransaction(t *testing.T) {
+	stor, _ := storage.NewMemoryStorage()
+	db, _ := NewMVCCDB(stor)
+
+	db.Begin()
+
+	// get non-exist key.
+	key := []byte("key")
+	val, err := db.Get(key)
+	assert.Nil(t, val)
+	assert.Equal(t, storage.ErrKeyNotFound, err)
+
+	// put to storage.
+	stor.Put(key, []byte("value"))
+
+	// get again.
+	val, err = db.Get(key)
+	assert.Equal(t, []byte("value"), val)
+	assert.Nil(t, err)
+
+	// put key1.
+	key1 := []byte("key1")
+	stor.Put(key1, []byte("value"))
+
+	// get key1.
+	val, err = db.Get(key1)
+	assert.Equal(t, []byte("value"), val)
+	assert.Nil(t, err)
+
+}
+
 func TestMVCCDB_DirectOpts(t *testing.T) {
 	storage, _ := storage.NewMemoryStorage()
 	db, _ := NewMVCCDB(storage)
@@ -182,4 +248,137 @@ func TestMVCCDB_OptsWithinTransaction(t *testing.T) {
 		assert.Nil(t, v)
 		assert.Equal(t, err, storage.ErrKeyNotFound)
 	}
+}
+
+func TestMVCCDB_PrepareAndUpdate(t *testing.T) {
+	store, _ := storage.NewMemoryStorage()
+	db, _ := NewMVCCDB(store)
+
+	// init base data.
+	db.Put([]byte("title"), []byte("this is test program"))
+
+	// tid0 update.
+	{
+		db.Begin()
+
+		tid := "tid0"
+		pdb, err := db.Prepare(tid)
+		assert.Nil(t, err)
+
+		pdb.Put([]byte("duration"), []byte("65536"))
+		pdb.Put([]byte("creator"), []byte("robin"))
+		pdb.Put([]byte("count"), []byte("0"))
+		pdb.Put([]byte("createdAt"), []byte("c0"))
+		pdb.Put([]byte("updatedAt"), []byte("u0"))
+
+		deps, err := pdb.CheckAndUpdate()
+		assert.Nil(t, err)
+		assert.Equal(t, 0, len(deps))
+
+		db.Commit()
+	}
+
+	// concurrent update.
+	db.Begin()
+
+	type RetValue struct {
+		tid     interface{}
+		pdb     *MVCCDB
+		depends []interface{}
+		err     error
+	}
+
+	ret := make([]*RetValue, 0, 2)
+
+	{
+		tid := "tid1"
+		pdb, err := db.Prepare(tid)
+		assert.Nil(t, err)
+		assert.NotNil(t, pdb)
+
+		pdb.Get([]byte("count"))
+		pdb.Put([]byte("count"), []byte("10"))
+		pdb.Put([]byte("updatedAt"), []byte("u10"))
+
+		ret = append(ret, &RetValue{
+			tid: tid,
+			pdb: pdb,
+		})
+	}
+
+	{
+		tid := "tid2"
+		pdb, err := db.Prepare(tid)
+		assert.Nil(t, err)
+		assert.NotNil(t, pdb)
+
+		pdb.Get([]byte("count"))
+		pdb.Put([]byte("duration"), []byte("1024"))
+		pdb.Put([]byte("updatedAt"), []byte("u20"))
+		pdb.Del([]byte("creator"))
+		pdb.Put([]byte("description"), []byte("new description"))
+
+		ret = append(ret, &RetValue{
+			tid: tid,
+			pdb: pdb,
+		})
+	}
+
+	for _, v := range ret {
+		deps, err := v.pdb.CheckAndUpdate()
+		v.depends = deps
+		v.err = err
+	}
+
+	// commit.
+	db.Commit()
+
+	// verify.
+	var finalRet, errorRet *RetValue
+	for _, v := range ret {
+		if v.err == nil {
+			finalRet = v
+		} else {
+			errorRet = v
+		}
+	}
+
+	assert.NotNil(t, finalRet)
+	assert.NotNil(t, errorRet)
+
+	assert.Nil(t, finalRet.err)
+	assert.Equal(t, ErrStagingTableKeyConfliction, errorRet.err)
+
+	assert.Equal(t, 1, len(finalRet.depends))
+	assert.Equal(t, "tid0", finalRet.depends[0])
+	assert.Equal(t, 0, len(errorRet.depends))
+
+	// verify value.
+	val, err := db.Get([]byte("title"))
+	assert.Nil(t, err)
+	assert.Equal(t, []byte("this is test program"), val)
+
+	val, err = db.Get([]byte("duration"))
+	assert.Nil(t, err)
+	assert.Equal(t, []byte("65536"), val)
+
+	val, err = db.Get([]byte("creator"))
+	assert.Nil(t, err)
+	assert.Equal(t, []byte("robin"), val)
+
+	val, err = db.Get([]byte("count"))
+	assert.Nil(t, err)
+	assert.Equal(t, []byte("10"), val)
+
+	val, err = db.Get([]byte("createdAt"))
+	assert.Nil(t, err)
+	assert.Equal(t, []byte("c0"), val)
+
+	val, err = db.Get([]byte("updatedAt"))
+	assert.Nil(t, err)
+	assert.Equal(t, []byte("u10"), val)
+
+	val, err = db.Get([]byte("description"))
+	assert.Equal(t, storage.ErrKeyNotFound, err)
+	assert.Nil(t, val)
 }

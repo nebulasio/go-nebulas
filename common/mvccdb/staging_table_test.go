@@ -166,7 +166,7 @@ func TestVersionizedValueItem_CloneForFinal(t *testing.T) {
 				old:         0,
 				new:         1,
 				deleted:     false,
-				dirty:       false,
+				dirty:       true,
 				initialized: true,
 			},
 		},
@@ -188,7 +188,7 @@ func TestVersionizedValueItem_CloneForFinal(t *testing.T) {
 				old:         0,
 				new:         1,
 				deleted:     false,
-				dirty:       false,
+				dirty:       true,
 				initialized: true,
 			},
 		},
@@ -210,7 +210,7 @@ func TestVersionizedValueItem_CloneForFinal(t *testing.T) {
 				old:         0,
 				new:         1,
 				deleted:     true,
-				dirty:       false,
+				dirty:       true,
 				initialized: true,
 			},
 		},
@@ -452,8 +452,14 @@ func TestStagingTable_MergeToFinal(t *testing.T) {
 	dependencies, err = tbl.MergeToFinal(tid4)
 	assert.Nil(t, err)
 	assert.Equal(t, 2, len(dependencies))
-	assert.Equal(t, tid2, dependencies[0])
-	assert.Equal(t, tid3, dependencies[1])
+
+	expectedDepends := make(map[interface{}]bool)
+	expectedDepends[tid2] = true
+	expectedDepends[tid3] = true
+
+	for _, v := range dependencies {
+		assert.True(t, expectedDepends[v])
+	}
 }
 
 func TestStagingTable_Purge(t *testing.T) {

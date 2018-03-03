@@ -48,6 +48,7 @@ type MVCCDB struct {
 	storage         storage.Storage
 	stagingTable    *StagingTable
 	mutex           sync.Mutex
+	rootDB          *MVCCDB
 	isInTransaction bool
 	isPreparedDB    bool
 }
@@ -58,6 +59,7 @@ func NewMVCCDB(storage storage.Storage) (*MVCCDB, error) {
 		tid:             nil,
 		storage:         storage,
 		stagingTable:    NewStagingTable(),
+		rootDB:          nil,
 		isInTransaction: false,
 		isPreparedDB:    false,
 	}
@@ -212,13 +214,14 @@ func (db *MVCCDB) Prepare(tid interface{}) (*MVCCDB, error) {
 		tid:             tid,
 		storage:         db.storage,
 		stagingTable:    db.stagingTable,
+		rootDB:          db,
 		isInTransaction: true,
 		isPreparedDB:    true,
 	}, nil
 }
 
 // CheckAndUpdate merge current changes to `FinalVersionizedValues`.
-func (db *MVCCDB) CheckAndUpdate(tid interface{}) ([]interface{}, error) {
+func (db *MVCCDB) CheckAndUpdate() ([]interface{}, error) {
 	db.mutex.Lock()
 	defer db.mutex.Unlock()
 
@@ -234,7 +237,7 @@ func (db *MVCCDB) CheckAndUpdate(tid interface{}) ([]interface{}, error) {
 }
 
 // Reset the nested transaction
-func (db *MVCCDB) Reset(txid interface{}) error {
+func (db *MVCCDB) Reset() error {
 	db.mutex.Lock()
 	defer db.mutex.Unlock()
 
@@ -248,6 +251,11 @@ func (db *MVCCDB) Reset(txid interface{}) error {
 
 	db.stagingTable.Purge(db.tid)
 	return nil
+}
+
+// GetRootDB return the root db.
+func (db *MVCCDB) GetRootDB() *MVCCDB {
+	return db.rootDB
 }
 
 func (db *MVCCDB) getFromStorage(key []byte) ([]byte, error) {
