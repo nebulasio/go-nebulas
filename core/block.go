@@ -486,7 +486,14 @@ func (block *Block) CollectTransactions(deadline int64) {
 
 			parallelCh <- true
 			go func() {
-				giveback, err := block.ExecuteTransaction(tx)
+				mergeCh <- true
+				txWorldState, err := block.Prepare(tx)
+				if err != nil {
+					return
+				}
+				<-mergeCh
+
+				giveback, err := block.ExecuteTransaction(tx, txWorldState)
 				if giveback {
 					givebacks = append(givebacks, tx)
 				}
@@ -497,28 +504,30 @@ func (block *Block) CollectTransactions(deadline int64) {
 						"giveback": giveback,
 					}).Debug("invalid tx.")
 					unpacked++
-				} else {
-					mergeCh <- true
-					dependency, err := block.CheckAndUpdate(tx)
-					if err != nil {
-						logging.CLog().WithFields(logrus.Fields{
-							"tx":       tx,
-							"err":      err,
-							"giveback": giveback,
-						}).Debug("invalid tx.")
-						unpacked++
-					} else {
-						logging.CLog().WithFields(logrus.Fields{
-							"tx": tx,
-						}).Debug("packed tx.")
-						packed++
-						executedCh <- &executedResult{
-							transaction: tx,
-							dependency:  dependency,
-						}
-					}
-					<-mergeCh
+					return
 				}
+
+				mergeCh <- true
+				dependency, err := block.CheckAndUpdate(tx)
+				if err != nil {
+					logging.CLog().WithFields(logrus.Fields{
+						"tx":       tx,
+						"err":      err,
+						"giveback": giveback,
+					}).Debug("invalid tx.")
+					unpacked++
+				} else {
+					logging.CLog().WithFields(logrus.Fields{
+						"tx": tx,
+					}).Debug("packed tx.")
+					packed++
+					executedCh <- &executedResult{
+						transaction: tx,
+						dependency:  dependency,
+					}
+				}
+				<-mergeCh
+
 				<-parallelCh
 			}()
 
@@ -798,6 +807,11 @@ func (block *Block) verifyState() error {
 	return nil
 }
 
+type verifyCtx struct {
+	mergeCh chan bool
+	block   *Block
+}
+
 // Execute block and return result.
 func (block *Block) execute() error {
 	startAt := time.Now().UnixNano()
@@ -806,17 +820,34 @@ func (block *Block) execute() error {
 		return err
 	}
 
-	dispatcher := dag.NewDispatcher(block.dependency, runtime.NumCPU(), block, func(node *dag.Node, context interface{}) error {
-		block := context.(*Block)
+	context := &verifyCtx{
+		mergeCh: make(chan bool, 1),
+		block:   block,
+	}
+	dispatcher := dag.NewDispatcher(block.dependency, runtime.NumCPU(), context, func(node *dag.Node, context interface{}) error {
+		ctx := context.(*verifyCtx)
+		block := ctx.block
+		mergeCh := ctx.mergeCh
 		tx := block.transactions[node.Index]
 		metricsTxExecute.Mark(1)
-		_, err := block.ExecuteTransaction(tx)
+
+		mergeCh <- true
+		txWorldState, err := block.Prepare(tx)
 		if err != nil {
 			return err
 		}
+		<-mergeCh
+
+		if _, err = block.ExecuteTransaction(tx, txWorldState); err != nil {
+			return err
+		}
+
+		mergeCh <- true
 		if _, err := block.CheckAndUpdate(tx); err != nil {
 			return err
 		}
+		<-mergeCh
+
 		return nil
 	})
 
@@ -898,12 +929,7 @@ func (block *Block) rewardCoinbaseForGas() error {
 }
 
 // ExecuteTransaction execute the transaction
-func (block *Block) ExecuteTransaction(tx *Transaction) (bool, error) {
-	txWorldState, err := block.Prepare(tx)
-	if err != nil {
-		return true, err
-	}
-
+func (block *Block) ExecuteTransaction(tx *Transaction, txWorldState state.TxWorldState) (bool, error) {
 	if giveback, err := CheckTransaction(tx, txWorldState); err != nil {
 		return giveback, err
 	}
