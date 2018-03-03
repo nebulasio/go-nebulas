@@ -132,9 +132,10 @@ func TestDispatcher_Start1(t *testing.T) {
 	assert.Nil(t, err)
 
 	dag2 := NewDag()
+	dag2.AddNode("1")
 
 	fmt.Println("runtime.NumCPU():", runtime.NumCPU())
-	dp2 := NewDispatcher(dag2, runtime.NumCPU(), txs, func(node *Node, a interface{}) error {
+	dp2 := NewDispatcher(dag2, 8, txs, func(node *Node, a interface{}) error {
 		fmt.Println("key:", node.Key, node.Index)
 		return nil
 	})

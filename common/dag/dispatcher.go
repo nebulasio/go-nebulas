@@ -51,8 +51,8 @@ func NewDispatcher(dag *Dag, concurrency int, data interface{}, cb Callback) *Di
 		dag:         dag,
 		cb:          cb,
 		tasks:       make(map[interface{}]*Task, 0),
-		quitCh:      make(chan bool, 10),
-		queueCh:     make(chan *Node, 100),
+		quitCh:      make(chan bool, concurrency),
+		queueCh:     make(chan *Node, 10240),
 		cursor:      0,
 		data:        data,
 	}
@@ -89,19 +89,18 @@ func (dp *Dispatcher) loop() {
 
 	//timerChan := time.NewTicker(time.Second).C
 
-	concurrency := dp.concurrency
 	if dp.dag.Len() < dp.concurrency {
-		concurrency = dp.dag.Len()
+		dp.concurrency = dp.dag.Len()
 	}
-	if concurrency == 0 {
+	if dp.concurrency == 0 {
 		return
 	}
 	wg := new(sync.WaitGroup)
 	wg.Add(dp.concurrency)
 
-	for i := 0; i < concurrency; i++ {
+	for i := 0; i < dp.concurrency; i++ {
 		//logging.CLog().Info("loop Dag Dispatcher i:", i)
-		go func(i int) {
+		go func() {
 			defer wg.Done()
 			for {
 				select {
@@ -123,7 +122,7 @@ func (dp *Dispatcher) loop() {
 					dp.CompleteParentTask(msg)
 				}
 			}
-		}(i)
+		}()
 	}
 
 	wg.Wait()
