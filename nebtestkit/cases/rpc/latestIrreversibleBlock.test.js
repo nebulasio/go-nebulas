@@ -20,29 +20,32 @@ if (env === 'testneb1') {
 
 var client;
 
-describe('rpc: getNebState', function () {
+describe('rpc: LatestIrreversibleBlock', function () {
   before(function () {
     client = rpc_client.new_client(server_address);
   });
 
   it('normal rpc', function (done) {
-    client.GetNebState({}, function (err, response) {
+    client.LatestIrreversibleBlock({}, function (err, response) {
       if (err != null) {
         done(err);
         return;
       } else {
         try {
           //         verify_respone(response)
-          expect(response.chain_id).to.be.equal(chain_id);
-          expect(response.chain_id).to.be.a('number');
-          expect(response.tail).to.be.a('string');
-          expect(response.height).to.be.a('string');
-          expect(response.coinbase).to.be.equal(coinbase);
-          expect(response.peer_count).to.be.a('number');
-          expect(response.is_mining).to.equal(false);
-          expect(response.protocol_version).to.equal(protocol_version);
-          expect(response.synchronized).to.be.an('boolean');
-          expect(response.version).to.equal(node_version);
+          console.log(response);
+          expect(response).to.be.have.property('hash');
+          expect(response).to.be.have.property('parent_hash');
+          expect(response).to.be.have.property('height');
+          expect(response).to.be.have.property('nonce');
+          expect(response).to.be.have.property('coinbase');
+          expect(response).to.be.have.property('miner');
+          expect(response).to.be.have.property('timestamp');
+          expect(response).to.be.have.property('chain_id');
+          expect(response).to.be.have.property('state_root');
+          expect(response).to.be.have.property('txs_root');
+          expect(response).to.be.have.property('events_root');
+          expect(response).to.be.have.property('dpos_context');
         } catch (err) {
           done(err);
           return;

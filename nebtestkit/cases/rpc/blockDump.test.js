@@ -20,19 +20,22 @@ if (env === 'testneb1') {
 
 var client;
 
-describe('rpc: getNebState', function () {
+describe('rpc: blockDump', function () {
   before(function () {
     client = rpc_client.new_client(server_address);
   });
 
   it('normal rpc', function (done) {
-    client.GetNebState({}, function (err, response) {
+    client.blockDump({count: 111111111}, function (err, response) {
       if (err != null) {
         done(err);
         return;
       } else {
         try {
           //         verify_respone(response)
+          console.log(response);
+          //TODO：modify the rpc
+          /*
           expect(response.chain_id).to.be.equal(chain_id);
           expect(response.chain_id).to.be.a('number');
           expect(response.tail).to.be.a('string');
@@ -43,6 +46,7 @@ describe('rpc: getNebState', function () {
           expect(response.protocol_version).to.equal(protocol_version);
           expect(response.synchronized).to.be.an('boolean');
           expect(response.version).to.equal(node_version);
+          */
         } catch (err) {
           done(err);
           return;
