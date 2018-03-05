@@ -21,10 +21,11 @@ package core
 import (
 	"errors"
 	"fmt"
-	"github.com/nebulasio/go-nebulas/common/dag"
-	"github.com/nebulasio/go-nebulas/common/dag/pb"
 	"runtime"
 	"time"
+
+	"github.com/nebulasio/go-nebulas/common/dag"
+	"github.com/nebulasio/go-nebulas/common/dag/pb"
 
 	"github.com/nebulasio/go-nebulas/core/state"
 
@@ -514,7 +515,7 @@ func (block *Block) CollectTransactions(deadline int64) {
 						"tx":       tx,
 						"err":      err,
 						"giveback": giveback,
-					}).Debug("invalid tx.")
+					}).Debug("CheckAndUpdate invalid tx.")
 					unpacked++
 				} else {
 					logging.CLog().WithFields(logrus.Fields{

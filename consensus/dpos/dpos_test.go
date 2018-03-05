@@ -444,7 +444,14 @@ func TestContracts(t *testing.T) {
 	b, _ := core.AddressParse("333cb3ed8c417971845382ede3cf67a0a96270c05fe2f700")
 	assert.Nil(t, manager.Unlock(b, []byte("passphrase"), keystore.YearUnlockDuration))
 	c, _ := core.AddressParse("48f981ed38910f1232c1bab124f650c482a57271632db9e3")
+	assert.Nil(t, manager.Unlock(c, []byte("passphrase"), keystore.YearUnlockDuration))
 	d, _ := core.AddressParse("59fc526072b09af8a8ca9732dae17132c4e9127e43cf2232")
+	//assert.Nil(t, manager.Unlock(e, []byte("passphrase"), keystore.YearUnlockDuration))
+	e, _ := core.AddressParse("7da9dabedb4c6e121146fb4250a9883d6180570e63d6b080")
+	//assert.Nil(t, manager.Unlock(e, []byte("passphrase"), keystore.YearUnlockDuration))
+
+	f, _ := core.AddressParse("b040353ec0f2c113d5639444f7253681aecda1f8b91f179f")
+	//assert.Nil(t, manager.Unlock(f, []byte("passphrase"), keystore.YearUnlockDuration))
 
 	elapsedSecond := int64(DynastyInterval)
 	consensusState, err := tail.WorldState().NextConsensusState(elapsedSecond)
@@ -454,16 +461,21 @@ func TestContracts(t *testing.T) {
 	block.SetTimestamp(tail.Timestamp() + elapsedSecond)
 	block.WorldState().SetConsensusState(consensusState)
 
-	tx := core.NewTransaction(neb.chain.ChainID(), a, c, util.NewUint128(), 1, core.TxPayloadBinaryType, []byte("nas"), core.TransactionGasPrice, util.NewUint128FromInt(200000))
+	tx := core.NewTransaction(neb.chain.ChainID(), a, d, util.NewUint128(), 1, core.TxPayloadBinaryType, []byte("nas"), core.TransactionGasPrice, util.NewUint128FromInt(200000))
 	assert.Nil(t, manager.SignTransaction(a, tx))
 	assert.Nil(t, neb.chain.TransactionPool().Push(tx))
 
-	tx = core.NewTransaction(neb.chain.ChainID(), b, d, util.NewUint128(), 1, core.TxPayloadBinaryType, []byte("nas"), core.TransactionGasPrice, util.NewUint128FromInt(200000))
+	tx = core.NewTransaction(neb.chain.ChainID(), b, e, util.NewUint128(), 1, core.TxPayloadBinaryType, []byte("nas"), core.TransactionGasPrice, util.NewUint128FromInt(200000))
 	assert.Nil(t, manager.SignTransaction(b, tx))
 	assert.Nil(t, neb.chain.TransactionPool().Push(tx))
 
+	tx = core.NewTransaction(neb.chain.ChainID(), c, f, util.NewUint128(), 1, core.TxPayloadBinaryType, []byte("nas"), core.TransactionGasPrice, util.NewUint128FromInt(200000))
+	assert.Nil(t, manager.SignTransaction(c, tx))
+	assert.Nil(t, neb.chain.TransactionPool().Push(tx))
+	//assert.Equal(t, neb.chain.TransactionPool().cache.Len(), 3)
+
 	block.CollectTransactions(time.Now().Unix() + 1)
-	assert.Equal(t, len(block.Transactions()), 2)
+	assert.Equal(t, len(block.Transactions()), 3)
 	block.SetMiner(coinbase)
 	assert.Nil(t, block.Seal())
 	assert.Nil(t, manager.SignBlock(coinbase, block))

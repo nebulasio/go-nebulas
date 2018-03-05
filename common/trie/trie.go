@@ -155,9 +155,6 @@ func (t *Trie) commitNode(n *node) error {
 	}
 	n.Hash = hash.Sha3256(n.Bytes)
 
-	if t.replay {
-		return nil
-	}
 	return t.storage.Put(n.Hash, n.Bytes)
 }
 

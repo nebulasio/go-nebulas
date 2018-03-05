@@ -41,11 +41,11 @@ type Dispatcher struct {
 	tasks       map[interface{}]*Task
 	cursor      int
 	err         error
-	data        interface{}
+	context     interface{}
 }
 
 // NewDispatcher create Dag Dispatcher instance.
-func NewDispatcher(dag *Dag, concurrency int, data interface{}, cb Callback) *Dispatcher {
+func NewDispatcher(dag *Dag, concurrency int, context interface{}, cb Callback) *Dispatcher {
 	dp := &Dispatcher{
 		concurrency: concurrency,
 		dag:         dag,
@@ -54,7 +54,7 @@ func NewDispatcher(dag *Dag, concurrency int, data interface{}, cb Callback) *Di
 		quitCh:      make(chan bool, concurrency),
 		queueCh:     make(chan *Node, 10240),
 		cursor:      0,
-		data:        data,
+		context:     context,
 	}
 	return dp
 }
@@ -112,7 +112,7 @@ func (dp *Dispatcher) loop() {
 					return
 				case msg := <-dp.queueCh:
 					// callback todo
-					err := dp.cb(msg, dp.data)
+					err := dp.cb(msg, dp.context)
 
 					if err != nil {
 						dp.err = err
