@@ -191,7 +191,7 @@ describe('rpc: estimateGas', function () {
             done(err);
         });
     });
-/*
+
     it('normal rpc', function (done) {
         nonce = nonce + 1;
         var erc20 = FS.readFileSync("./nf/nvm/test/ERC20.js", "utf-8");
@@ -523,7 +523,7 @@ describe('rpc: estimateGas', function () {
 
         testRpc(testInput, testExpect, done);
     });
-*/
+
     it('gasLimit is sufficient', function (done) {
         nonce = nonce + 1;
         var erc20 = FS.readFileSync("./nf/nvm/test/ERC20.js", "utf-8");
@@ -556,7 +556,7 @@ describe('rpc: estimateGas', function () {
 
         var testExpect = {
             isNormalOutput: false,
-            errMsg: 'uint128: underflow'
+            errMsg: 'out of gas limit'
         }
 
         testRpc(testInput, testExpect, done);
