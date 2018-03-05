@@ -36,6 +36,9 @@ import (
 	"golang.org/x/net/context"
 )
 
+//the max number of block can be dumped once
+const maxDumpBlockCount = 10
+
 // APIService implements the RPC API service interface.
 type APIService struct {
 	server GRPCServer
@@ -366,7 +369,11 @@ func (s *APIService) toBlockResponse(block *core.Block, fullTransaction bool) (*
 func (s *APIService) BlockDump(ctx context.Context, req *rpcpb.BlockDumpRequest) (*rpcpb.BlockDumpResponse, error) {
 
 	neb := s.server.Neblet()
-	data := neb.BlockChain().Dump(int(req.Count))
+	blockCount := req.Count
+	if blockCount > maxDumpBlockCount {
+		blockCount = maxDumpBlockCount
+	}
+	data := neb.BlockChain().Dump(int(blockCount))
 	return &rpcpb.BlockDumpResponse{Data: data}, nil
 }
 
