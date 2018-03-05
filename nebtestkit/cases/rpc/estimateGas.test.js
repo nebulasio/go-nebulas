@@ -205,7 +205,7 @@ describe('rpc: estimateGas', function () {
                 from: sourceAccount.getAddressString(),
                 to: sourceAccount.getAddressString(),
                 value: "0",
-                nonce: 100000000,
+                nonce: nonce,
                 gas_price: "1000000",
                 gas_limit: "200000",
                 contract: contract,

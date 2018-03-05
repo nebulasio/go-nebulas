@@ -84,7 +84,7 @@ describe('rpc: getBlockByHash', function () {
   it('hash is valid(too short)', function (done) {
     var testInput = {
       rpcInput: {
-        hash: "021",
+        hash: "013",
       },
       isNormal: false
     }
