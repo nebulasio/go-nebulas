@@ -169,7 +169,7 @@ func (acc *account) AddBalance(value *util.Uint128) error {
 // SubBalance to an account
 func (acc *account) SubBalance(value *util.Uint128) error {
 	var err error
-	if acc.balance.Cmp(value.Int) < 0 {
+	if acc.balance.Cmp(value) < 0 {
 		err = ErrBalanceInsufficient
 	} else {
 		acc.balance, err = acc.balance.Sub(value)

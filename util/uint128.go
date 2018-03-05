@@ -199,3 +199,12 @@ func (u *Uint128) DeepCopy() *Uint128 {
 	z.Set(u.Int)
 	return &Uint128{z}
 }
+
+// Cmp compares u and x and returns:
+//
+//   -1 if u <  x
+//    0 if u == x
+//   +1 if u >  x
+func (u *Uint128) Cmp(x *Uint128) int {
+	return u.Int.Cmp(x.Int)
+}

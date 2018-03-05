@@ -212,10 +212,10 @@ type Transactions []*Transaction
 // NewTransaction create #Transaction instance.
 func NewTransaction(chainID uint32, from, to *Address, value *util.Uint128, nonce uint64, payloadType string, payload []byte, gasPrice *util.Uint128, gasLimit *util.Uint128) *Transaction {
 	//if gasPrice is not specified, use the default gasPrice
-	if gasPrice == nil || gasPrice.Cmp(util.NewUint128().Int) <= 0 {
+	if gasPrice == nil || gasPrice.Cmp(util.NewUint128()) <= 0 {
 		gasPrice = TransactionGasPrice
 	}
-	if gasLimit == nil || gasLimit.Cmp(util.NewUint128().Int) <= 0 {
+	if gasLimit == nil || gasLimit.Cmp(util.NewUint128()) <= 0 {
 		gasLimit = MinGasCountPerTransaction
 	}
 
@@ -257,11 +257,11 @@ func (tx *Transaction) PayloadGasLimit(payload TxPayload) (*util.Uint128, error)
 	}
 	payloadGasLimit, err := tx.gasLimit.Sub(gasCountOfTxBase)
 	if err != nil {
-		return nil, err
+		return nil, ErrOutOfGasLimit
 	}
 	payloadGasLimit, err = payloadGasLimit.Sub(payload.BaseGasCount())
 	if err != nil {
-		return nil, err
+		return nil, ErrOutOfGasLimit
 	}
 	return payloadGasLimit, nil
 }
@@ -392,7 +392,7 @@ func (tx *Transaction) VerifyExecution(block *Block) (*util.Uint128, error) {
 	if err != nil {
 		return nil, err
 	}
-	if fromAcc.Balance().Cmp(minBalanceRequired.Int) < 0 {
+	if fromAcc.Balance().Cmp(minBalanceRequired) < 0 {
 		return util.NewUint128(), ErrInsufficientBalance
 	}
 
@@ -402,7 +402,7 @@ func (tx *Transaction) VerifyExecution(block *Block) (*util.Uint128, error) {
 		if err != nil {
 			return nil, err
 		}
-		if fromAcc.Balance().Cmp(minBalanceRequired.Int) < 0 {
+		if fromAcc.Balance().Cmp(minBalanceRequired) < 0 {
 			return nil, ErrInsufficientBalance
 		}
 	}
@@ -412,7 +412,7 @@ func (tx *Transaction) VerifyExecution(block *Block) (*util.Uint128, error) {
 	if err != nil {
 		return nil, err
 	}
-	if tx.gasLimit.Cmp(gasUsed.Int) < 0 {
+	if tx.gasLimit.Cmp(gasUsed) < 0 {
 		logging.VLog().WithFields(logrus.Fields{
 			"error":       ErrOutOfGasLimit,
 			"transaction": tx,
@@ -443,7 +443,7 @@ func (tx *Transaction) VerifyExecution(block *Block) (*util.Uint128, error) {
 	if err != nil {
 		return nil, err
 	}
-	if tx.gasLimit.Cmp(gasUsed.Int) < 0 {
+	if tx.gasLimit.Cmp(gasUsed) < 0 {
 		logging.VLog().WithFields(logrus.Fields{
 			"err":   ErrOutOfGasLimit,
 			"block": block,
@@ -476,7 +476,7 @@ func (tx *Transaction) VerifyExecution(block *Block) (*util.Uint128, error) {
 
 	//TODO: later remove TransactionOptimizeHeight
 	if block.height > TransactionOptimizeHeight {
-		if tx.gasLimit.Cmp(gas.Int) < 0 {
+		if tx.gasLimit.Cmp(gas) < 0 {
 			gas = tx.gasLimit
 			exeErr = ErrOutOfGasLimit
 		}
@@ -522,7 +522,7 @@ func (tx *Transaction) VerifyExecution(block *Block) (*util.Uint128, error) {
 
 		tx.triggerEvent(TopicExecuteTxFailed, block, gas, exeErr)
 	} else {
-		if fromAcc.Balance().Cmp(tx.value.Int) < 0 {
+		if fromAcc.Balance().Cmp(tx.value) < 0 {
 			logging.VLog().WithFields(logrus.Fields{
 				"exeErr": ErrInsufficientBalance,
 				"block":  block,

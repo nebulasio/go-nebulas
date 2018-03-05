@@ -71,7 +71,7 @@ func (payload *CallPayload) Execute(block *Block, tx *Transaction) (*util.Uint12
 		return util.NewUint128(), "", err
 	}
 	// payloadGasLimit <= 0, v8 engine not limit the execution instructions
-	if payloadGasLimit.Cmp(util.NewUint128().Int) <= 0 {
+	if payloadGasLimit.Cmp(util.NewUint128()) <= 0 {
 		return util.NewUint128(), "", ErrOutOfGasLimit
 	}
 

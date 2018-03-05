@@ -130,4 +130,8 @@ func TestUint128Operation(t *testing.T) {
 	c := a.DeepCopy()
 	c.Int.SetUint64(2)
 	assert.NotEqual(t, a.Bytes(), c.Bytes())
+
+	assert.Equal(t, a.Cmp(b), 1)
+	assert.Equal(t, b.Cmp(a), -1)
+	assert.Equal(t, a.Cmp(a), 0)
 }

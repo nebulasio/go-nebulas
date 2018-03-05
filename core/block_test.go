@@ -282,7 +282,7 @@ func TestBlock_CollectTransactions(t *testing.T) {
 	assert.Equal(t, block.Sealed(), false)
 	balance, err := block.GetBalance(block.header.coinbase.address)
 	assert.Nil(t, err)
-	assert.Equal(t, balance.Cmp(util.NewUint128().Int), 1)
+	assert.Equal(t, balance.Cmp(util.NewUint128()), 1)
 	block.SetMiner(coinbase)
 	block.Seal()
 	assert.Equal(t, block.Sealed(), true)
@@ -298,7 +298,7 @@ func TestBlock_CollectTransactions(t *testing.T) {
 	//gas, _ := bc.EstimateGas(tx1)
 	logging.CLog().Info(balance.String())
 	logging.CLog().Info(BlockReward.String())
-	assert.NotEqual(t, balance.Cmp(BlockReward.Int), 0)
+	assert.NotEqual(t, balance.Cmp(BlockReward), 0)
 	// mock net message
 	block, _ = mockBlockFromNetwork(block)
 	assert.Equal(t, block.LinkParentBlock(bc, bc.tailBlock), nil)

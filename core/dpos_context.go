@@ -302,9 +302,9 @@ type Candidates []*Candidate
 func (p Candidates) Swap(i, j int) { p[i], p[j] = p[j], p[i] }
 func (p Candidates) Len() int      { return len(p) }
 func (p Candidates) Less(i, j int) bool {
-	if p[i].Votes.Cmp(p[j].Votes.Int) < 0 {
+	if p[i].Votes.Cmp(p[j].Votes) < 0 {
 		return false
-	} else if p[i].Votes.Cmp(p[j].Votes.Int) > 0 {
+	} else if p[i].Votes.Cmp(p[j].Votes) > 0 {
 		return true
 	} else {
 		return p[i].Address.String() < p[j].Address.String()

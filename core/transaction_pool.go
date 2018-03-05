@@ -57,12 +57,12 @@ func less(a interface{}, b interface{}) bool {
 	if txa.from.Equals(txb.from) {
 		return txa.Nonce() < txb.Nonce()
 	}
-	if txa.gasPrice.Cmp(txb.gasPrice.Int) != 0 {
+	if txa.gasPrice.Cmp(txb.gasPrice) != 0 {
 		// txa.gasPrice < txb.gasPrice
-		return txa.GasPrice().Cmp(txb.GasPrice().Int) == -1
+		return txa.GasPrice().Cmp(txb.GasPrice()) == -1
 	}
 	// txa.gasLimit < txb.gasLimit
-	return txa.GasLimit().Cmp(txb.GasLimit().Int) == -1
+	return txa.GasLimit().Cmp(txb.GasLimit()) == -1
 }
 
 // NewTransactionPool create a new TransactionPool
@@ -81,12 +81,12 @@ func NewTransactionPool(size int) (*TransactionPool, error) {
 
 // SetGasConfig config the lowest gasPrice and the maximum gasLimit.
 func (pool *TransactionPool) SetGasConfig(gasPrice, gasLimit *util.Uint128) {
-	if gasPrice == nil || gasPrice.Cmp(util.NewUint128().Int) <= 0 {
+	if gasPrice == nil || gasPrice.Cmp(util.NewUint128()) <= 0 {
 		pool.gasPrice = TransactionGasPrice
 	} else {
 		pool.gasPrice = gasPrice
 	}
-	if gasLimit == nil || gasLimit.Cmp(util.NewUint128().Int) == 0 || gasLimit.Cmp(TransactionMaxGas.Int) > 0 {
+	if gasLimit == nil || gasLimit.Cmp(util.NewUint128()) == 0 || gasLimit.Cmp(TransactionMaxGas) > 0 {
 		pool.gasLimit = TransactionMaxGas
 	} else {
 		pool.gasLimit = gasLimit
@@ -231,17 +231,17 @@ func (pool *TransactionPool) push(tx *Transaction) error {
 	}
 
 	// if tx's gasPrice below the pool config lowest gasPrice, return ErrBelowGasPrice
-	if tx.gasPrice.Cmp(pool.gasPrice.Int) < 0 {
+	if tx.gasPrice.Cmp(pool.gasPrice) < 0 {
 		metricsTxPoolBelowGasPrice.Inc(1)
 		return ErrBelowGasPrice
 	}
 
-	if tx.gasLimit.Cmp(util.NewUint128().Int) <= 0 {
+	if tx.gasLimit.Cmp(util.NewUint128()) <= 0 {
 		metricsTxPoolGasLimitLessOrEqualToZero.Inc(1)
 		return ErrGasLimitLessOrEqualToZero
 	}
 
-	if tx.gasLimit.Cmp(pool.gasLimit.Int) > 0 {
+	if tx.gasLimit.Cmp(pool.gasLimit) > 0 {
 		metricsTxPoolOutOfGasLimit.Inc(1)
 		return ErrOutOfGasLimit
 	}
