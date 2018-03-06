@@ -68,12 +68,12 @@ func NewStagingTable(storage storage.Storage) *StagingTable {
 	}
 }
 
-// Get return value by tid and key. If tid+key does not exist, copy and incr version from `finalVersionaizeValues` to record previous version.
+// Get return value by tid and key. If tid+key does not exist, copy and incr version from `finalVersionizedValues` to record previous version.
 func (tbl *StagingTable) Get(tid interface{}, key []byte) (*VersionizedValueItem, error) {
 	return tbl.getVersionizedValueForUpdate(tid, key)
 }
 
-// Put put the tid/key/val pair. If tid+key does not exist, copy and incr version from `finalVersionaizeValues` to record previous version.
+// Put put the tid/key/val pair. If tid+key does not exist, copy and incr version from `finalVersionizedValues` to record previous version.
 func (tbl *StagingTable) Put(tid interface{}, key []byte, val []byte) (*VersionizedValueItem, error) {
 	value, err := tbl.getVersionizedValueForUpdate(tid, key)
 	if err != nil {
@@ -85,7 +85,7 @@ func (tbl *StagingTable) Put(tid interface{}, key []byte, val []byte) (*Versioni
 	return value, nil
 }
 
-// Set set the tid/key/val pair. If tid+key does not exist, copy and incr version from `finalVersionaizeValues` to record previous version.
+// Set set the tid/key/val pair. If tid+key does not exist, copy and incr version from `finalVersionizedValues` to record previous version.
 func (tbl *StagingTable) Set(tid interface{}, key []byte, val []byte, deleted, dirty bool) (*VersionizedValueItem, error) {
 	value, err := tbl.getVersionizedValueForUpdate(tid, key)
 	if err != nil {
@@ -98,7 +98,7 @@ func (tbl *StagingTable) Set(tid interface{}, key []byte, val []byte, deleted, d
 	return value, nil
 }
 
-// Del del the tid/key pair. If tid+key does not exist, copy and incr version from `finalVersionaizeValues` to record previous version.
+// Del del the tid/key pair. If tid+key does not exist, copy and incr version from `finalVersionizedValues` to record previous version.
 func (tbl *StagingTable) Del(tid interface{}, key []byte) (*VersionizedValueItem, error) {
 	value, err := tbl.getVersionizedValueForUpdate(tid, key)
 	if err != nil {
