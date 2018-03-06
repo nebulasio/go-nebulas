@@ -96,7 +96,6 @@ var (
 	ErrOutOfGasLimit                      = errors.New("out of gas limit")
 	ErrTxExecutionFailed                  = errors.New("transaction execution failed")
 	ErrContractDeployFailed               = errors.New("contract deploy failed")
-	ErrContractNotFound                   = errors.New("contract not found")
 	ErrContractTransactionAddressNotEqual = errors.New("contract transaction from-address not equal to to-address")
 
 	ErrDuplicatedTransaction = errors.New("duplicated transaction")

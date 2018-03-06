@@ -272,6 +272,10 @@ func (tx *Transaction) MinBalanceRequired() (*util.Uint128, error) {
 	if err != nil {
 		return nil, err
 	}
+	total, err = total.Add(tx.value)
+	if err != nil {
+		return nil, err
+	}
 	return total, nil
 }
 
@@ -301,7 +305,7 @@ func (tx *Transaction) DataLen() int {
 }
 
 // LoadPayload returns tx's payload
-func (tx *Transaction) LoadPayload(block *Block) (TxPayload, error) {
+func (tx *Transaction) LoadPayload() (TxPayload, error) {
 	// execute payload
 	var (
 		payload TxPayload
@@ -309,15 +313,7 @@ func (tx *Transaction) LoadPayload(block *Block) (TxPayload, error) {
 	)
 	switch tx.data.Type {
 	case TxPayloadBinaryType:
-		if block.height > OptimizeHeight {
-			payload, err = LoadBinaryPayload(tx.data.Payload)
-		} else {
-			if block.Height() >= 280921 && block.Height() <= 297680 || block.Height() >= 300087 && block.Height() <= 302302 {
-				payload, err = LoadBinaryPayloadDeprecatedFail(tx.data.Payload)
-			} else {
-				payload, err = LoadBinaryPayloadDeprecated(tx.data.Payload)
-			}
-		}
+		payload, err = LoadBinaryPayload(tx.data.Payload)
 	case TxPayloadDeployType:
 		payload, err = LoadDeployPayload(tx.data.Payload)
 	case TxPayloadCallType:
@@ -336,15 +332,12 @@ func (tx *Transaction) LocalExecution(block *Block) (*util.Uint128, string, erro
 	}
 	tx.hash = hash
 
-	worldState, err := block.WorldState().Clone()
+	txWorldState, err := block.Prepare(tx)
 	if err != nil {
 		return nil, "", err
 	}
 
-	worldState.Begin()
-	defer worldState.RollBack()
-
-	payload, err := tx.LoadPayload(block)
+	payload, err := tx.LoadPayload()
 	if err != nil {
 		return util.NewUint128(), "", err
 	}
@@ -359,12 +352,16 @@ func (tx *Transaction) LocalExecution(block *Block) (*util.Uint128, string, erro
 		return util.NewUint128(), "", err
 	}
 
-	gasExecution, result, exeErr := payload.Execute(tx, block, worldState)
-
+	gasExecution, result, exeErr := payload.Execute(tx, block, txWorldState)
 	gas, err := gasUsed.Add(gasExecution)
 	if err != nil {
 		return gasUsed, result, err
 	}
+
+	if err := block.Reset(tx); err != nil {
+		return util.NewUint128(), "", err
+	}
+
 	return gas, result, exeErr
 }
 
@@ -391,7 +388,7 @@ func VerifyExecution(tx *Transaction, block *Block, txWorldState state.TxWorldSt
 		return ErrOutOfGasLimit
 	}
 
-	payload, err := tx.LoadPayload(block)
+	payload, err := tx.LoadPayload()
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"error":       err,
@@ -439,24 +436,22 @@ func VerifyExecution(tx *Transaction, block *Block, txWorldState state.TxWorldSt
 		return gasErr
 	}
 
-	if block.height > TransactionOptimizeHeight {
-		if tx.gasLimit.Cmp(allGas) < 0 {
-			logging.VLog().WithFields(logrus.Fields{
-				"err":   ErrOutOfGasLimit,
-				"block": block,
-				"tx":    tx,
-			}).Debug("Failed to check gas executed.")
-			metricsTxExeFailed.Mark(1)
+	if tx.gasLimit.Cmp(allGas) < 0 {
+		logging.VLog().WithFields(logrus.Fields{
+			"err":   ErrOutOfGasLimit,
+			"block": block,
+			"tx":    tx,
+		}).Debug("Failed to check gas executed.")
+		metricsTxExeFailed.Mark(1)
 
-			if err := block.Reset(tx); err != nil {
-				return err
-			}
-			if err := tx.recordGas(coinbase, tx.gasLimit, block); err != nil {
-				return err
-			}
-			tx.triggerEvent(txWorldState, block, TopicExecuteTxFailed, tx.gasLimit, ErrOutOfGasLimit)
-			return nil
+		if err := block.Reset(tx); err != nil {
+			return err
 		}
+		if err := tx.recordGas(coinbase, tx.gasLimit, block); err != nil {
+			return err
+		}
+		tx.triggerEvent(txWorldState, block, TopicExecuteTxFailed, tx.gasLimit, ErrOutOfGasLimit)
+		return nil
 	}
 	tx.recordGas(coinbase, allGas, block)
 
@@ -496,15 +491,6 @@ func (tx *Transaction) checkBalance(block *Block, txWorldState state.TxWorldStat
 	if fromAcc.Balance().Cmp(minBalanceRequired) < 0 {
 		return ErrInsufficientBalance
 	}
-	if block.height > TransactionOptimizeHeight {
-		minBalanceRequired, err = minBalanceRequired.Add(tx.value)
-		if err != nil {
-			return err
-		}
-		if fromAcc.Balance().Cmp(minBalanceRequired) < 0 {
-			return ErrInsufficientBalance
-		}
-	}
 	return nil
 }
 
@@ -531,38 +517,6 @@ func transfer(from, to byteutils.Hash, value *util.Uint128, txWorldState state.T
 }
 
 func (tx *Transaction) triggerEvent(txWorldState state.TxWorldState, block *Block, topic string, gasUsed *util.Uint128, err error) {
-	// Notice: We updated the definition of the transaction result event,
-	// and the event is recorded on the chain, so it needs to be compatible.
-	if block.Height() > OptimizeHeight {
-		tx.recordResultEvent(txWorldState, gasUsed, err)
-		return
-	}
-
-	// deprecated for new block mined
-	var txData []byte
-	pbTx, _ := tx.ToProto()
-	if err != nil {
-		var (
-			txErrEvent struct {
-				Transaction proto.Message `json:"transaction"`
-				Error       error         `json:"error"`
-			}
-		)
-		txErrEvent.Transaction = pbTx
-		txErrEvent.Error = err
-		txData, _ = json.Marshal(txErrEvent)
-	} else {
-		txData, _ = json.Marshal(pbTx)
-	}
-
-	event := &state.Event{
-		Topic: topic,
-		Data:  string(txData),
-	}
-	txWorldState.RecordEvent(tx.hash, event)
-}
-
-func (tx *Transaction) recordResultEvent(txWorldState state.TxWorldState, gasUsed *util.Uint128, err error) {
 	txEvent := &TransactionEvent{
 		Hash:    tx.hash.String(),
 		GasUsed: gasUsed.String(),
@@ -666,7 +620,7 @@ func CheckContract(addr *Address, txWorldState state.TxWorldState) error {
 	}
 
 	if len(contract.BirthPlace()) == 0 {
-		return ErrContractNotFound
+		return state.ErrAccountNotFound
 	}
 
 	birthEvents, err := txWorldState.FetchEvents(contract.BirthPlace())
@@ -690,7 +644,7 @@ func CheckContract(addr *Address, txWorldState state.TxWorldState) error {
 		}
 	}
 	if !result {
-		return ErrContractNotFound
+		return state.ErrAccountNotFound
 	}
 
 	return nil

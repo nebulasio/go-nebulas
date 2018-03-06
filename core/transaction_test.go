@@ -19,13 +19,14 @@
 package core
 
 import (
+	"fmt"
+	"github.com/nebulasio/go-nebulas/core/state"
 	"reflect"
 	"testing"
 	"time"
 
 	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/core/pb"
-	"github.com/nebulasio/go-nebulas/core/state"
 	"github.com/nebulasio/go-nebulas/crypto"
 	"github.com/nebulasio/go-nebulas/crypto/keystore"
 	"github.com/nebulasio/go-nebulas/util"
@@ -210,6 +211,7 @@ func TestTransaction_VerifyExecution(t *testing.T) {
 	// contract deploy tx
 	deployTx := mockDeployTransaction(bc.chainID, 0)
 	deployTx.value = util.NewUint128()
+	deployTx.to = deployTx.from
 	gasUsed, _ := util.NewUint128FromInt(21232)
 	coinbaseBalance, err = deployTx.gasPrice.Mul(gasUsed)
 	assert.Nil(t, err)
@@ -223,7 +225,7 @@ func TestTransaction_VerifyExecution(t *testing.T) {
 		fromBalance:     balance,
 		gasUsed:         gasUsed,
 		afterBalance:    afterBalance,
-		toBalance:       deployTx.value,
+		toBalance:       afterBalance,
 		coinbaseBalance: coinbaseBalance,
 		wanted:          nil,
 		eventTopic:      []string{TopicExecuteTxSuccess},
@@ -286,7 +288,7 @@ func TestTransaction_VerifyExecution(t *testing.T) {
 	payloadErrTx.data.Payload = []byte("0x00")
 	gasCountOfTxBase, err := payloadErrTx.GasCountOfTxBase()
 	assert.Nil(t, err)
-	coinbaseBalance, err = delegateTx.gasPrice.Mul(gasCountOfTxBase)
+	coinbaseBalance, err = payloadErrTx.gasPrice.Mul(gasCountOfTxBase)
 	assert.Nil(t, err)
 	balanceConsume, err = payloadErrTx.gasPrice.Mul(gasCountOfTxBase)
 	assert.Nil(t, err)
@@ -331,41 +333,39 @@ func TestTransaction_VerifyExecution(t *testing.T) {
 	executionInsufficientBalanceTx := mockDeployTransaction(bc.chainID, 0)
 	executionInsufficientBalanceTx.value = balance
 	gasUsed, _ = util.NewUint128FromInt(21232)
-	coinbaseBalance, err = executionInsufficientBalanceTx.gasPrice.Mul(gasUsed)
-	assert.Nil(t, err)
-	balanceConsume, err = normalTx.gasPrice.Mul(gasUsed)
-	assert.Nil(t, err)
-	afterBalance, err = balance.Sub(balanceConsume)
-	assert.Nil(t, err)
 	tests = append(tests, testTx{
 		name:            "execution insufficient fromBalance after execution tx",
 		tx:              executionInsufficientBalanceTx,
 		fromBalance:     balance,
 		gasUsed:         gasUsed,
-		afterBalance:    afterBalance,
+		afterBalance:    balance,
 		toBalance:       util.NewUint128(),
-		coinbaseBalance: coinbaseBalance,
-		wanted:          nil,
+		coinbaseBalance: util.NewUint128(),
+		wanted:          ErrInsufficientBalance,
 		eventTopic:      []string{TopicExecuteTxFailed},
 	})
 
 	// tx execution equal fromBalance after execution
 	executionEqualBalanceTx := mockDeployTransaction(bc.chainID, 0)
+	executionEqualBalanceTx.to = executionEqualBalanceTx.from
 	gasUsed, _ = util.NewUint128FromInt(21232)
-	coinbaseBalance, err = executionInsufficientBalanceTx.gasPrice.Mul(gasUsed)
+	coinbaseBalance, err = executionEqualBalanceTx.gasPrice.Mul(gasUsed)
 	assert.Nil(t, err)
 	executionEqualBalanceTx.value = balance
-	gasCost, err := executionEqualBalanceTx.gasPrice.Mul(gasUsed)
+	gasLimit, err := executionEqualBalanceTx.gasPrice.Mul(executionEqualBalanceTx.gasLimit)
 	assert.Nil(t, err)
-	fromBalance, err := gasCost.Add(balance)
+	fromBalance, err := gasLimit.Add(balance)
 	assert.Nil(t, err)
+	gasRemain, err := executionEqualBalanceTx.gasLimit.Sub(gasUsed)
+	gasRemainBalance, err := executionEqualBalanceTx.gasPrice.Mul(gasRemain)
+	afterBalance, err = balance.Add(gasRemainBalance)
 	tests = append(tests, testTx{
 		name:            "execution equal fromBalance after execution tx",
 		tx:              executionEqualBalanceTx,
 		fromBalance:     fromBalance,
 		gasUsed:         gasUsed,
-		afterBalance:    util.NewUint128(),
-		toBalance:       balance,
+		afterBalance:    afterBalance,
+		toBalance:       afterBalance,
 		coinbaseBalance: coinbaseBalance,
 		wanted:          nil,
 		eventTopic:      []string{TopicExecuteTxSuccess},
@@ -381,14 +381,27 @@ func TestTransaction_VerifyExecution(t *testing.T) {
 			err := tt.tx.Sign(signature)
 			assert.Nil(t, err)
 
-			block := bc.tailBlock
-			block.Begin()
-
-			fromAcc, err := block.worldState.GetOrCreateUserAccount(tt.tx.from.address)
+			bc.tailBlock.Begin()
+			fromAcc, err := bc.tailBlock.worldState.GetOrCreateUserAccount(tt.tx.from.address)
 			assert.Nil(t, err)
 			fromAcc.AddBalance(tt.fromBalance)
+			bc.tailBlock.Commit()
 
-			executionErr := VerifyExecution(tt.tx, block, block.WorldState())
+			block, err := bc.NewBlock(bc.tailBlock.header.coinbase)
+			assert.Nil(t, err)
+			block.Begin()
+
+			txWorldState, err := block.Prepare(tt.tx)
+			assert.Nil(t, err)
+
+			executionErr := VerifyExecution(tt.tx, block, txWorldState)
+			fromAcc, err = txWorldState.GetOrCreateUserAccount(tt.tx.from.address)
+			assert.Nil(t, err)
+			fmt.Println(fromAcc.Balance().String())
+
+			block.CheckAndUpdate(tt.tx)
+			assert.Nil(t, block.Seal())
+			block.Commit()
 
 			fromAcc, err = block.worldState.GetOrCreateUserAccount(tt.tx.from.address)
 			assert.Nil(t, err)
@@ -396,28 +409,24 @@ func TestTransaction_VerifyExecution(t *testing.T) {
 			assert.Nil(t, err)
 			coinbaseAcc, err := block.worldState.GetOrCreateUserAccount(block.header.coinbase.address)
 			assert.Nil(t, err)
-			if tt.afterBalance != nil {
-				assert.Equal(t, tt.afterBalance.String(), fromAcc.Balance().String())
-			}
-			if tt.toBalance != nil {
-				assert.Equal(t, tt.toBalance, toAcc.Balance())
-			}
+
+			assert.Equal(t, tt.afterBalance.String(), fromAcc.Balance().String())
+			assert.Equal(t, tt.toBalance, toAcc.Balance())
 			if tt.coinbaseBalance != nil {
-				assert.Equal(t, tt.coinbaseBalance, coinbaseAcc.Balance())
+				coinbaseBalance, err := tt.coinbaseBalance.Add(BlockReward)
+				assert.Nil(t, err)
+				assert.Equal(t, coinbaseBalance, coinbaseAcc.Balance())
 			}
 
-			assert.Equal(t, tt.wanted, executionErr)
-
-			events, _ := block.FetchEvents(tt.tx.hash)
+			events, _ := block.worldState.FetchEvents(tt.tx.hash)
 
 			for index, event := range events {
 				assert.Equal(t, tt.eventTopic[index], event.Topic)
 			}
 
-			block.RollBack()
+			assert.Equal(t, tt.wanted, executionErr)
 		})
 	}
-
 }
 
 func TestTransaction_LocalExecution(t *testing.T) {
@@ -445,6 +454,7 @@ func TestTransaction_LocalExecution(t *testing.T) {
 	})
 
 	deployTx := mockDeployTransaction(bc.chainID, 0)
+	deployTx.to = deployTx.from
 	deployTx.value = util.NewUint128()
 	gasUsed, _ := util.NewUint128FromInt(21232)
 	tests = append(tests, testCase{
@@ -467,10 +477,10 @@ func TestTransaction_LocalExecution(t *testing.T) {
 		wanted:  state.ErrAccountNotFound,
 	})
 
-	block := bc.tailBlock
-
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			block, err := bc.NewBlock(bc.tailBlock.header.coinbase)
+			assert.Nil(t, err)
 
 			fromAcc, err := block.worldState.GetOrCreateUserAccount(tt.tx.from.address)
 			assert.Nil(t, err)
@@ -501,6 +511,8 @@ func TestTransaction_LocalExecution(t *testing.T) {
 			coinbaseAcc, err = block.worldState.GetOrCreateUserAccount(block.header.coinbase.address)
 			assert.Nil(t, err)
 			assert.Equal(t, coinbaseBefore, coinbaseAcc.Balance())
+
+			block.Seal()
 		})
 	}
 }

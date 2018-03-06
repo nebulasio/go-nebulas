@@ -932,6 +932,7 @@ func (block *Block) rewardCoinbaseForGas() error {
 			return err
 		}
 	}
+	block.gasConsumed = make(map[string]*util.Uint128)
 	return nil
 }
 

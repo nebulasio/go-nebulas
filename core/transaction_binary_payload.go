@@ -19,53 +19,9 @@
 package core
 
 import (
-	"encoding/json"
-
 	"github.com/nebulasio/go-nebulas/core/state"
 	"github.com/nebulasio/go-nebulas/util"
 )
-
-// BinaryPayloadDeprecated carry some data
-type BinaryPayloadDeprecated struct {
-	Data []byte
-}
-
-// LoadBinaryPayloadDeprecated from bytes
-func LoadBinaryPayloadDeprecated(bytes []byte) (*BinaryPayloadDeprecated, error) {
-	return NewBinaryPayloadDeprecated(bytes), nil
-}
-
-// LoadBinaryPayloadDeprecatedFail from bytes
-func LoadBinaryPayloadDeprecatedFail(bytes []byte) (*BinaryPayloadDeprecated, error) {
-	payload := &BinaryPayloadDeprecated{}
-	err := json.Unmarshal(bytes, payload)
-	if err != nil {
-		return nil, err
-	}
-	return payload, nil
-}
-
-// NewBinaryPayloadDeprecated with data
-func NewBinaryPayloadDeprecated(data []byte) *BinaryPayloadDeprecated {
-	return &BinaryPayloadDeprecated{
-		Data: data,
-	}
-}
-
-// ToBytes serialize payload
-func (payload *BinaryPayloadDeprecated) ToBytes() ([]byte, error) {
-	return json.Marshal(payload)
-}
-
-// BaseGasCount returns base gas count
-func (payload *BinaryPayloadDeprecated) BaseGasCount() *util.Uint128 {
-	return util.NewUint128()
-}
-
-// Execute the payload in tx
-func (payload *BinaryPayloadDeprecated) Execute(tx *Transaction, block *Block, txWorldState state.TxWorldState) (*util.Uint128, string, error) {
-	return util.NewUint128(), "", nil
-}
 
 // BinaryPayload carry some data
 type BinaryPayload struct {

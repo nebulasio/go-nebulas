@@ -19,6 +19,7 @@
 package core
 
 import (
+	"github.com/nebulasio/go-nebulas/core/state"
 	"testing"
 
 	"github.com/nebulasio/go-nebulas/util"
@@ -223,7 +224,7 @@ func TestPayload_Execute(t *testing.T) {
 	}
 
 	deployTx := mockDeployTransaction(bc.chainID, 0)
-	deployPayload, _ := deployTx.LoadPayload(nil)
+	deployPayload, _ := deployTx.LoadPayload()
 	want, _ := util.NewUint128FromInt(189)
 	tests = append(tests, testPayload{
 		name:    "deploy",
@@ -235,15 +236,15 @@ func TestPayload_Execute(t *testing.T) {
 	})
 
 	callTx := mockCallTransaction(bc.chainID, 1, "totalSupply", "")
-	callTx.to = contractAddr
-	callPayload, _ := callTx.LoadPayload(nil)
+	callTx.to, _ = deployTx.GenerateContractAddress()
+	callPayload, _ := callTx.LoadPayload()
 	tests = append(tests, testPayload{
 		name:    "call",
 		payload: callPayload,
 		tx:      callTx,
 		block:   block,
 		want:    util.NewUint128(),
-		wantErr: ErrContractNotFound,
+		wantErr: state.ErrAccountNotFound,
 	})
 
 	for _, tt := range tests {

@@ -78,7 +78,7 @@ func (s *Slice) PopMin() interface{} {
 
 func (s *Slice) PopMax() interface{} {
 	if s.Len() > 0 {
-		val := s.content[s.Len()]
+		val := s.content[s.Len()-1]
 		s.content = s.content[:s.Len()-1]
 		return val
 	}

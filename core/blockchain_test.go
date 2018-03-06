@@ -256,7 +256,8 @@ func TestBlockChain_EstimateGas(t *testing.T) {
 	payload, err := NewBinaryPayload(nil).ToBytes()
 	assert.Nil(t, err)
 
-	bc, _ := NewBlockChain(testNeb())
+	neb := testNeb(t)
+	bc := neb.chain
 	gasLimit, _ := util.NewUint128FromInt(200000)
 	tx := NewTransaction(bc.ChainID(), from, to, util.NewUint128(), 1, TxPayloadBinaryType, payload, TransactionGasPrice, gasLimit)
 
