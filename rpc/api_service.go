@@ -21,6 +21,7 @@ package rpc
 import (
 	"errors"
 	"fmt"
+	"strconv"
 
 	"encoding/json"
 
@@ -369,11 +370,13 @@ func (s *APIService) toBlockResponse(block *core.Block, fullTransaction bool) (*
 func (s *APIService) BlockDump(ctx context.Context, req *rpcpb.BlockDumpRequest) (*rpcpb.BlockDumpResponse, error) {
 
 	neb := s.server.Neblet()
-	blockCount := req.Count
-	if blockCount > maxDumpBlockCount {
-		blockCount = maxDumpBlockCount
+	if req.Count > maxDumpBlockCount {
+		return nil, errors.New("the max count of blocks could be dumped once is " + strconv.Itoa(maxDumpBlockCount))
 	}
-	data := neb.BlockChain().Dump(int(blockCount))
+	if req.Count < 0 {
+		return nil, errors.New("invalid count")
+	}
+	data := neb.BlockChain().Dump(int(req.Count))
 	return &rpcpb.BlockDumpResponse{Data: data}, nil
 }
 

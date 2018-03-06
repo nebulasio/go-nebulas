@@ -48,21 +48,13 @@ describe('rpc: blockDump', function () {
 
   it('dump block count is negative', function (done) {
     client.blockDump({count: -1}, function (err, response) {
-      if (err != null) {
-        console.log(err);
+      try {
+        expect(err.details).to.be.equal("invalid count");
+      } catch (err) {
         done(err);
         return;
-      } else {
-        try {
-          console.log(response);
-          expect(JSON.stringify(response)).to.be.equal(JSON.stringify(oneBlockResponse));
-        } catch (err) {
-          done(err);
-          return;
-        }
-        done();
-        return;
       }
+      done()
     });
   });
 
@@ -86,23 +78,15 @@ describe('rpc: blockDump', function () {
   })
 
   it('block count is more than max count of block could be dumped once', function (done) {
-    client.blockDump({count: 1111111111}, function (err, response) {
-      if (err != null) {
-        console.log(err);
+    client.blockDump({count: 11}, function (err, response) {
+      try {
+        expect(err.details).to.be.equal("the max count of blocks could be dumped once is 10");
+      } catch (err) {
         done(err);
         return;
-      } else {
-        try {
-          console.log(response);
-          expect(JSON.stringify(response)).to.be.equal(JSON.stringify(maxLengthResponse));
-        } catch (err) {
-          done(err);
-          return;
-        }
-        done();
-        return;
       }
-    });
+      done()
+    })
   })
 
 });
