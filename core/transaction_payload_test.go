@@ -224,14 +224,13 @@ func TestPayload_Execute(t *testing.T) {
 
 	deployTx := mockDeployTransaction(bc.chainID, 0)
 	deployPayload, _ := deployTx.LoadPayload(nil)
-	contractAddr, _ := deployTx.GenerateContractAddress()
-	deployTx.hash = contractAddr.Bytes()
+	want, _ := util.NewUint128FromInt(189)
 	tests = append(tests, testPayload{
 		name:    "deploy",
 		payload: deployPayload,
 		tx:      deployTx,
 		block:   block,
-		want:    util.NewUint128FromInt(189),
+		want:    want,
 		wantErr: nil,
 	})
 

@@ -117,6 +117,11 @@ API.prototype.getEventsByHash = function (hash, callback) {
     return this.request("post", "/v1/user/getEventsByHash", params, callback);
 };
 
+API.prototype.getDynasty = function (height, callback) {
+    var params = {"height": height}
+    return this.request("post", "/v1/user/dynasty", params, callback);
+};
+
 API.prototype.request = function (method, api, params, callback) {
     if (utils.isFunction(callback)) {
         this._request.asyncRequest(method, api, params, callback);

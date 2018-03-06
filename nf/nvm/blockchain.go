@@ -25,6 +25,7 @@ import (
 	"unsafe"
 
 	"github.com/nebulasio/go-nebulas/util"
+	"github.com/nebulasio/go-nebulas/util/byteutils"
 	"github.com/nebulasio/go-nebulas/util/logging"
 	"github.com/sirupsen/logrus"
 )
@@ -100,7 +101,16 @@ func TransferFunc(handler unsafe.Pointer, to *C.char, v *C.char) int {
 		return 1
 	}
 
-	toAcc, err := engine.ctx.txWorldState.GetOrCreateUserAccount([]byte(addr))
+	bytes, err := byteutils.FromHex(addr)
+	if err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"address": addr,
+			"err":     err,
+		}).Debug("TransferFunc decode address failed.")
+		return 1
+	}
+
+	toAcc, err := engine.ctx.txWorldState.GetOrCreateUserAccount(bytes)
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"handler": uint64(uintptr(handler)),
@@ -110,7 +120,15 @@ func TransferFunc(handler unsafe.Pointer, to *C.char, v *C.char) int {
 		return 1
 	}
 
-	amount := util.NewUint128FromString(C.GoString(v))
+	amount, err := util.NewUint128FromString(C.GoString(v))
+	if err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"handler": uint64(uintptr(handler)),
+			"address": addr,
+			"err":     err,
+		}).Debug("GetAmountFunc get amount failed.")
+		return 1
+	}
 
 	// update balance
 	err = engine.ctx.contract.SubBalance(amount)
@@ -123,7 +141,16 @@ func TransferFunc(handler unsafe.Pointer, to *C.char, v *C.char) int {
 		return 1
 	}
 
-	toAcc.AddBalance(amount)
+	err = toAcc.AddBalance(amount)
+	if err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"account": toAcc,
+			"amout":   amount,
+			"address": addr,
+			"err":     err,
+		}).Debug("failed to add balance")
+		return 1
+	}
 	return 0
 }
 

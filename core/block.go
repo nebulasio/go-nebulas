@@ -51,8 +51,7 @@ var (
 	// BlockReward given to coinbase
 	// rule: 3% per year, 3,000,000. 1 block per 5 seconds
 	// value: 10^8 * 3% / (365*24*3600/5) * 10^18 ≈ 16 * 3% * 10*18 = 48 * 10^16
-	BlockReward = util.NewUint128FromBigInt(util.NewUint128().Mul(util.NewUint128FromInt(48).Int,
-		util.NewUint128().Exp(util.NewUint128FromInt(10).Int, util.NewUint128FromInt(16).Int, nil)))
+	BlockReward, _ = util.NewUint128FromString("480000000000000000")
 )
 
 // BlockHeader of a block
@@ -568,12 +567,17 @@ func (block *Block) CollectTransactions(deadline int64) {
 	}
 }
 
-func (block *Block) recordGas(from string, gas *util.Uint128) {
+func (block *Block) recordGas(from string, gas *util.Uint128) error {
 	consumed, ok := block.gasConsumed[from]
 	if !ok {
 		consumed = util.NewUint128()
 	}
-	consumed.Add(consumed.Int, gas.Int)
+	var err error
+	block.gasConsumed[from], err = consumed.Add(gas)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // Sealed return true if block seals. Otherwise return false.
@@ -913,8 +917,7 @@ func (block *Block) rewardCoinbaseForMint() error {
 	if err != nil {
 		return err
 	}
-	coinbaseAcc.AddBalance(BlockReward)
-	return nil
+	return coinbaseAcc.AddBalance(BlockReward)
 }
 
 func (block *Block) rewardCoinbaseForGas() error {

@@ -2,9 +2,13 @@ import commonjs from 'rollup-plugin-commonjs';
 import nodeResolve from 'rollup-plugin-node-resolve';
 
 export default {
-  entry: './index.js',
-  dest: 'dist/neb-node.js',
-  format: 'cjs',
+  input: './index.js',
+
+  output: {
+    file: 'dist/neb-node.js',
+    format: 'cjs'
+  },
+
   plugins: [
 
     commonjs({
@@ -20,8 +24,8 @@ export default {
     }),
 
     nodeResolve({
-    jsnext: true,
-    main: false
+        jsnext: true,
+        main: false
     })
-]
+  ]
 };

@@ -8,6 +8,8 @@ For the roadmap of Nebulas, please visit the [Roadmap](https://github.com/nebula
 
 For more information of Nebulas protocol, design documents, please refer to our [wiki](https://github.com/nebulasio/wiki).
 
+TestNet is released, please check [here](https://github.com/nebulasio/wiki/blob/master/testnet.md) for more details
+
 ## Building from source
 
 ### Prerequisites
@@ -68,15 +70,36 @@ Starting a Nebulas seed node is simple. After the build step above, run a comman
 You will see log message output like:
 
 ```
-
-time="2017-12-29T23:25:17+08:00" level=info msg="Starting neblet..." file=neblet.go func="neblet.(*Neblet).Start" line=121
-time="2017-12-29T23:25:17+08:00" level=info msg="node start" addrs="[/ip4/127.0.0.1/tcp/8680 /ip4/127.94.0.1/tcp/8680 /ip4/127.94.0.2/tcp/8680 /ip4/192.168.1.13/tcp/8680 /ip4/169.254.66.0/tcp/8680]" file=net_service.go func="p2p.(*NetService).Start" id=QmP7HDFcYmJL12Ez4ZNVCKjKedfE7f48f1LAkUc3Whz4jP line=691
-time="2017-12-29T23:25:17+08:00" level=info msg="net.start: node start and join to p2p network success and listening for connections on [0.0.0.0:8680]... " file=net_service.go func="p2p.(*NetService).start" line=758
-time="2017-12-29T23:25:17+08:00" level=info msg="Sync.Start: i am a seed node." file=sync_manager.go func="sync.(*Manager).Start" line=109
-time="2017-12-29T23:25:17+08:00" level=info msg="Starting RPC server at: 127.0.0.1:8684" file=api_server.go func="rpc.(*APIServer).start" line=59
-time="2017-12-29T23:25:17+08:00" level=info msg="control mining." file=sync_manager.go func="sync.(*Manager).Start" line=111 start=true
-time="2017-12-29T23:25:18+08:00" level=warning msg=mintBlock. elapsed=17118 err="now is not time to forg block" file=dpos.go func="dpos.(*Dpos).blockLoop" line=357 tail="{\"height\":3, \"hash\":\"07052bac3c3f7efa673144710f98d02a9fda7369a096834939f81e42debe2fa6\", \"parentHash\":\"4343ed4818b5242cca6e4b350a082029279deb8730e496c789916e57536469d8\", \"accState\":\"3b607836efc991d59a9c1c11bba3f8be7c6632c55e08990a18c9df18c6a9915c\", \"nonce\":0, \"timestamp\": 1514544000, \"coinbase\": \"1a263547d167c74cf4b8f9166cfa244de0481c514a45aa2c\"}"
-time="2017-12-29T23:25:19+08:00" level=warning msg=mintBlock. elapsed=17119 err="now is not time to forg block" file=dpos.go func="dpos.(*Dpos).blockLoop" line=357 tail="{\"height\":3, \"hash\":\"07052bac3c3f7efa673144710f98d02a9fda7369a096834939f81e42debe2fa6\", \"parentHash\":\"4343ed4818b5242cca6e4b350a082029279deb8730e496c789916e57536469d8\", \"accState\":\"3b607836efc991d59a9c1c11bba3f8be7c6632c55e08990a18c9df18c6a9915c\", \"nonce\":0, \"timestamp\": 1514544000, \"coinbase\": \"1a263547d167c74cf4b8f9166cfa244de0481c514a45aa2c\"}"
+INFO[2018-02-01T20:43:04+08:00] Setuped Neblet.                               file=neblet.go func="neblet.(*Neblet).Setup" line=151
+INFO[2018-02-01T20:43:04+08:00] Starting Neblet...                            file=neblet.go func="neblet.(*Neblet).Start" line=177
+INFO[2018-02-01T20:43:04+08:00] Starting NetService...                        file=net_service.go func="net.(*NetService).Start" line=54
+INFO[2018-02-01T20:43:04+08:00] Starting NetService Dispatcher...             file=dispatcher.go func="net.(*Dispatcher).Start" line=88
+INFO[2018-02-01T20:43:04+08:00] Starting NetService Node...                   file=node.go func="net.(*Node).Start" line=96
+INFO[2018-02-01T20:43:04+08:00] Started NewService Dispatcher.                file=dispatcher.go func="net.(*Dispatcher).loop" line=96
+INFO[2018-02-01T20:43:04+08:00] Starting NetService StreamManager...          file=stream_manager.go func="net.(*StreamManager).Start" line=57
+INFO[2018-02-01T20:43:04+08:00] Starting NetService RouteTable Sync...        file=route_table.go func="net.(*RouteTable).Start" line=91
+INFO[2018-02-01T20:43:04+08:00] Started NetService StreamManager.             file=stream_manager.go func="net.(*StreamManager).loop" line=117
+INFO[2018-02-01T20:43:04+08:00] Started NetService Node.                      file=net_service.go func="net.(*NetService).Start" id=QmP7HDFcYmJL12Ez4ZNVCKjKedfE7f48f1LAkUc3Whz4jP line=61 listening address="[/ip4/127.0.0.1/tcp/8680 /ip4/127.94.0.1/tcp/8680 /ip4/127.94.0.2/tcp/8680 /ip4/192.168.1.13/tcp/8680]"
+INFO[2018-02-01T20:43:04+08:00] Started NetService RouteTable Sync.           file=route_table.go func="net.(*RouteTable).syncLoop" line=123
+INFO[2018-02-01T20:43:04+08:00] Started NetService.                           file=net_service.go func="net.(*NetService).Start" line=70
+INFO[2018-02-01T20:43:04+08:00] Starting RPC GRPCServer...                    file=server.go func="rpc.(*Server).Start" line=81
+INFO[2018-02-01T20:43:04+08:00] Started RPC GRPCServer.                       address="127.0.0.1:8684" file=server.go func="rpc.(*Server).Start" line=89
+INFO[2018-02-01T20:43:04+08:00] Starting RPC Gateway GRPCServer...            file=neblet.go func="neblet.(*Neblet).Start" http-server="[127.0.0.1:8685]" line=202 rpc-server="127.0.0.1:8684"
+INFO[2018-02-01T20:43:04+08:00] Starting BlockChain...                        file=blockchain.go func="core.(*BlockChain).Start" line=168
+INFO[2018-02-01T20:43:04+08:00] Starting BlockPool...                         file=neblet.go func="neblet.(*Neblet).Start" line=209 size=1024
+INFO[2018-02-01T20:43:04+08:00] Starting TransactionPool...                   file=neblet.go func="neblet.(*Neblet).Start" line=210 size=40960
+INFO[2018-02-01T20:43:04+08:00] Started BlockChain.                           file=blockchain.go func="core.(*BlockChain).loop" line=181
+INFO[2018-02-01T20:43:04+08:00] Started BlockPool.                            file=block_pool.go func="core.(*BlockPool).loop" line=252
+INFO[2018-02-01T20:43:04+08:00] Starting EventEmitter...                      file=neblet.go func="neblet.(*Neblet).Start" line=211 size=1024
+INFO[2018-02-01T20:43:04+08:00] Started TransactionPool.                      file=asm_amd64.s func=runtime.goexit line=2338 size=40960
+INFO[2018-02-01T20:43:04+08:00] Started EventEmitter.                         file=event.go func="core.(*EventEmitter).loop" line=139
+INFO[2018-02-01T20:43:04+08:00] Starting Dpos Mining...                       file=dpos.go func="dpos.(*Dpos).Start" line=123
+INFO[2018-02-01T20:43:04+08:00] Started Sync Service.                         file=sync_service.go func="sync.(*Service).startLoop" line=151
+INFO[2018-02-01T20:43:04+08:00] Started Dpos Mining.                          file=dpos.go func="dpos.(*Dpos).blockLoop" line=505
+INFO[2018-02-01T20:43:04+08:00] Enabled Dpos Mining...                        file=dpos.go func="dpos.(*Dpos).EnableMining" line=142
+INFO[2018-02-01T20:43:04+08:00] This is a seed node.                          file=neblet.go func="neblet.(*Neblet).Start" line=238
+INFO[2018-02-01T20:43:04+08:00] Resumed Dpos Mining.                          file=dpos.go func="dpos.(*Dpos).ResumeMining" line=219
+INFO[2018-02-01T20:43:04+08:00] Started Neblet.                               file=neblet.go func="neblet.(*Neblet).Start" line=245
 ```
 
 From the log, we can see the binary execution starts neblet, starts network service, starts RPC API server, and starts consensus state machine.
@@ -106,10 +129,11 @@ chain {
   datadir: "data.db"
   keydir: "keydir"
   genesis: "conf/default/genesis.conf"
+  start_mine: true
   coinbase: "eb31ad2d8a89a0ca6935c308d5425730430bc2d63f2573b8"
-  signature_ciphers: ["ECC_SECP256K1"]
-  miner: "9341709022928b38dae1f9e1cfbad25611e81f736fd192c5"
+  miner: "75e4e5a71d647298b88928d8cb5da43d90ab1a6c52d0905f"
   passphrase: "passphrase"
+  signature_ciphers: ["ECC_SECP256K1"]
 }
 
 rpc {
@@ -119,9 +143,13 @@ rpc {
 }
 
 app {
-    log_level: "info"
+    log_level: "debug"
     log_file: "logs"
-    enable_crash_report: false
+    enable_crash_report: true
+    crash_report_url: "https://crashreport.nebulas.io"
+    pprof: {
+        http_listen: "127.0.0.1:7777"
+    }
 }
 
 stats {
@@ -152,14 +180,13 @@ Neb supports loading KeyStore file in Ethereum format. KeyStore files from confi
 Now we can get the seed address from the seed node log output above. Get pretty address and id from log starts with **"node start"**. The seed address from log above is
 
 ```
-time="2017-12-29T23:25:17+08:00" level=info msg="node start" addrs="[/ip4/127.0.0.1/tcp/8680 /ip4/127.94.0.1/tcp/8680 /ip4/127.94.0.2/tcp/8680 /ip4/192.168.1.13/tcp/8680 /ip4/169.254.66.0/tcp/8680]" file=net_service.go func="p2p.(*NetService).Start" id=QmP7HDFcYmJL12Ez4ZNVCKjKedfE7f48f1LAkUc3Whz4jP line=691
+INFO[2018-02-01T20:43:04+08:00] Started NetService Node.                      file=net_service.go func="net.(*NetService).Start" id=QmP7HDFcYmJL12Ez4ZNVCKjKedfE7f48f1LAkUc3Whz4jP line=61 listening address="[/ip4/127.0.0.1/tcp/8680 /ip4/127.94.0.1/tcp/8680 /ip4/127.94.0.2/tcp/8680 /ip4/192.168.1.13/tcp/8680]"
 ```
 To start a node on another machine, we need to update p2p seed configuration in _config.conf_:
 
 ```protobuf
 p2p {
   seed: "/ip4/127.0.0.1/tcp/8680/ipfs/QmP7HDFcYmJL12Ez4ZNVCKjKedfE7f48f1LAkUc3Whz4jP"
-  port: 8681
 }
 ...
 ```
@@ -176,15 +203,40 @@ Then it will connect to the seed node started earlier to join that network. The 
 
 ```
 
-INFO[2017-12-29T23:28:28+08:00] Starting neblet...                            file=neblet.go func="neblet.(*Neblet).Start" line=121
-INFO[2017-12-29T23:28:28+08:00] node start                                    addrs="[/ip4/127.0.0.1/tcp/10002 /ip4/127.94.0.1/tcp/10002 /ip4/127.94.0.2/tcp/10002 /ip4/192.168.1.13/tcp/10002 /ip4/169.254.66.0/tcp/10002]" file=net_service.go func="p2p.(*NetService).Start" id=QmaQeoEG1XKztL7RnracUiWTVdxQX2QpybuXpnApCtYuwQ line=691
-INFO[2017-12-29T23:28:28+08:00] net.start: node start and join to p2p network success and listening for connections on [0.0.0.0:10002]...   file=net_service.go func="p2p.(*NetService).start" line=758
-INFO[2017-12-29T23:28:28+08:00] Starting RPC server at: 127.0.0.1:51512       file=api_server.go func="rpc.(*APIServer).start" line=59
-INFO[2017-12-29T23:28:28+08:00] syncWithPeers: got tail                       block="{\"height\":3, \"hash\":\"07052bac3c3f7efa673144710f98d02a9fda7369a096834939f81e42debe2fa6\", \"parentHash\":\"4343ed4818b5242cca6e4b350a082029279deb8730e496c789916e57536469d8\", \"accState\":\"3b607836efc991d59a9c1c11bba3f8be7c6632c55e08990a18c9df18c6a9915c\", \"nonce\":0, \"timestamp\": 1514544000, \"coinbase\": \"1a263547d167c74cf4b8f9166cfa244de0481c514a45aa2c\"}" file=sync_manager.go func="sync.(*Manager).startSync" line=119 tail="&{QmaQeoEG1XKztL7RnracUiWTVdxQX2QpybuXpnApCtYuwQ 1 0xc4201322d0}"
-INFO[2017-12-29T23:28:28+08:00] Sync: allNode -> [<peer.ID P7HDFc> <peer.ID aQeoEG>]  file=sync.go func="p2p.(*NetService).Sync" line=55
-INFO[2017-12-29T23:28:28+08:00] dispatcher.loop: recvMsgCount=%d1             file=dispatcher.go func="net.(*Dispatcher).Start.func1" line=84
-INFO[2017-12-29T23:28:28+08:00] StartMsgHandle.receiveSyncReplyCh: receive receiveSyncReplyCh message.  blocks="[{\"height\":3, \"hash\":\"07052bac3c3f7efa673144710f98d02a9fda7369a096834939f81e42debe2fa6\", \"parentHash\":\"4343ed4818b5242cca6e4b350a082029279deb8730e496c789916e57536469d8\", \"accState\":\"3b607836efc991d59a9c1c11bba3f8be7c6632c55e08990a18c9df18c6a9915c\", \"nonce\":0, \"timestamp\": 1514544000, \"coinbase\": \"1a263547d167c74cf4b8f9166cfa244de0481c514a45aa2c\"}]" file=asm_amd64.s from=QmP7HDFcYmJL12Ez4ZNVCKjKedfE7f48f1LAkUc3Whz4jP func=runtime.goexit line=2338
-INFO[2017-12-29T23:28:28+08:00] control mining.                               file=sync_manager.go func="sync.(*Manager).loop" line=128 start=true
+INFO[2018-02-01T20:50:14+08:00] Setuping Neblet...                            file=neblet.go func="neblet.(*Neblet).Setup" line=98
+INFO[2018-02-01T20:50:14+08:00] Genesis Configuration.                        consensus.dpos.dynasty="[1a263547d167c74cf4b8f9166cfa244de0481c514a45aa2c 2fe3f9f51f9a05dd5f7c5329127f7c917917149b4e16b0b8 333cb3ed8c417971845382ede3cf67a0a96270c05fe2f700 48f981ed38910f1232c1bab124f650c482a57271632db9e3 59fc526072b09af8a8ca9732dae17132c4e9127e43cf2232 75e4e5a71d647298b88928d8cb5da43d90ab1a6c52d0905f 7da9dabedb4c6e121146fb4250a9883d6180570e63d6b080 98a3eed687640b75ec55bf5c9e284371bdcaeab943524d51]" file=neblet.go func="neblet.(*Neblet).Setup" line=122 meta.chainid=100 token.distribution="[address:\"1a263547d167c74cf4b8f9166cfa244de0481c514a45aa2c\" value:\"10000000000000000000000\"  address:\"2fe3f9f51f9a05dd5f7c5329127f7c917917149b4e16b0b8\" value:\"10000000000000000000000\" ]"
+INFO[2018-02-01T20:50:14+08:00] Tail Block.                                   file=neblet.go func="neblet.(*Neblet).Setup" line=122 tail="{\"height\": 1, \"hash\": \"0000000000000000000000000000000000000000000000000000000000000000\", \"parent_hash\": \"0000000000000000000000000000000000000000000000000000000000000000\", \"state\": \"df69d8eac19d1c6829007a284bf5cbeede8e529a002235a48c362d37626bb3e0\", \"txs\": \"\", \"events\": \"\", \"nonce\": 0, \"timestamp\": 0, \"dynasty\": \"3948716dc08db1e0f5f797daad39adb25b375874ca2552ac46f88427bced9314\", \"tx\": 0}"
+INFO[2018-02-01T20:50:14+08:00] Latest Irreversible Block.                    block="{\"height\": 1, \"hash\": \"0000000000000000000000000000000000000000000000000000000000000000\", \"parent_hash\": \"0000000000000000000000000000000000000000000000000000000000000000\", \"state\": \"df69d8eac19d1c6829007a284bf5cbeede8e529a002235a48c362d37626bb3e0\", \"txs\": \"\", \"events\": \"\", \"nonce\": 0, \"timestamp\": 0, \"dynasty\": \"3948716dc08db1e0f5f797daad39adb25b375874ca2552ac46f88427bced9314\", \"tx\": 0}" file=neblet.go func="neblet.(*Neblet).Setup" line=122
+INFO[2018-02-01T20:50:14+08:00] Setuped Neblet.                               file=neblet.go func="neblet.(*Neblet).Setup" line=151
+INFO[2018-02-01T20:50:14+08:00] Starting Neblet...                            file=neblet.go func="neblet.(*Neblet).Start" line=177
+INFO[2018-02-01T20:50:14+08:00] Starting NetService...                        file=net_service.go func="net.(*NetService).Start" line=54
+INFO[2018-02-01T20:50:14+08:00] Starting NetService Dispatcher...             file=dispatcher.go func="net.(*Dispatcher).Start" line=88
+INFO[2018-02-01T20:50:14+08:00] Starting NetService Node...                   file=node.go func="net.(*Node).Start" line=96
+INFO[2018-02-01T20:50:14+08:00] Starting NetService StreamManager...          file=stream_manager.go func="net.(*StreamManager).Start" line=57
+INFO[2018-02-01T20:50:14+08:00] Started NewService Dispatcher.                file=dispatcher.go func="net.(*Dispatcher).loop" line=96
+INFO[2018-02-01T20:50:14+08:00] Starting NetService RouteTable Sync...        file=route_table.go func="net.(*RouteTable).Start" line=91
+INFO[2018-02-01T20:50:14+08:00] Started NetService StreamManager.             file=stream_manager.go func="net.(*StreamManager).loop" line=117
+INFO[2018-02-01T20:50:14+08:00] Started NetService Node.                      file=net_service.go func="net.(*NetService).Start" id=Qmd5fVC3i428aEgzLXBhhQ4YwXTD2FPq5HpQrhbzeGhfod line=61 listening address="[/ip4/127.0.0.1/tcp/10001 /ip4/127.94.0.1/tcp/10001 /ip4/127.94.0.2/tcp/10001 /ip4/192.168.1.13/tcp/10001]"
+INFO[2018-02-01T20:50:14+08:00] Started NetService.                           file=net_service.go func="net.(*NetService).Start" line=70
+INFO[2018-02-01T20:50:14+08:00] Starting RPC GRPCServer...                    file=server.go func="rpc.(*Server).Start" line=81
+INFO[2018-02-01T20:50:14+08:00] Started RPC GRPCServer.                       address="127.0.0.1:51511" file=server.go func="rpc.(*Server).Start" line=89
+INFO[2018-02-01T20:50:14+08:00] Starting RPC Gateway GRPCServer...            file=neblet.go func="neblet.(*Neblet).Start" http-server="[127.0.0.1:8091]" line=202 rpc-server="127.0.0.1:51511"
+INFO[2018-02-01T20:50:14+08:00] Starting BlockChain...                        file=blockchain.go func="core.(*BlockChain).Start" line=168
+INFO[2018-02-01T20:50:14+08:00] Starting BlockPool...                         file=neblet.go func="neblet.(*Neblet).Start" line=209 size=1024
+INFO[2018-02-01T20:50:14+08:00] Started BlockChain.                           file=blockchain.go func="core.(*BlockChain).loop" line=181
+INFO[2018-02-01T20:50:14+08:00] Started NetService RouteTable Sync.           file=route_table.go func="net.(*RouteTable).syncLoop" line=123
+INFO[2018-02-01T20:50:14+08:00] Started BlockPool.                            file=block_pool.go func="core.(*BlockPool).loop" line=252
+INFO[2018-02-01T20:50:14+08:00] Starting TransactionPool...                   file=neblet.go func="neblet.(*Neblet).Start" line=210 size=40960
+INFO[2018-02-01T20:50:14+08:00] Started TransactionPool.                      file=asm_amd64.s func=runtime.goexit line=2338 size=40960
+INFO[2018-02-01T20:50:14+08:00] Starting EventEmitter...                      file=neblet.go func="neblet.(*Neblet).Start" line=211 size=1024
+INFO[2018-02-01T20:50:14+08:00] Started EventEmitter.                         file=event.go func="core.(*EventEmitter).loop" line=139
+INFO[2018-02-01T20:50:14+08:00] Starting Dpos Mining...                       file=dpos.go func="dpos.(*Dpos).Start" line=123
+INFO[2018-02-01T20:50:14+08:00] Started Sync Service.                         file=sync_service.go func="sync.(*Service).startLoop" line=151
+INFO[2018-02-01T20:50:14+08:00] Started Dpos Mining.                          file=dpos.go func="dpos.(*Dpos).blockLoop" line=505
+INFO[2018-02-01T20:50:14+08:00] Enabled Dpos Mining...                        file=dpos.go func="dpos.(*Dpos).EnableMining" line=142
+INFO[2018-02-01T20:50:14+08:00] Started Active Sync Task.                     file=blockchain.go func="core.(*BlockChain).StartActiveSync" line=570 syncpoint="{\"height\": 1, \"hash\": \"0000000000000000000000000000000000000000000000000000000000000000\", \"parent_hash\": \"0000000000000000000000000000000000000000000000000000000000000000\", \"state\": \"df69d8eac19d1c6829007a284bf5cbeede8e529a002235a48c362d37626bb3e0\", \"txs\": \"\", \"events\": \"\", \"nonce\": 0, \"timestamp\": 0, \"dynasty\": \"3948716dc08db1e0f5f797daad39adb25b375874ca2552ac46f88427bced9314\", \"tx\": 0}"
+INFO[2018-02-01T20:50:14+08:00] Suspended Dpos Mining.                        file=dpos.go func="dpos.(*Dpos).SuspendMining" line=213
+INFO[2018-02-01T20:50:14+08:00] Started Neblet.                               file=neblet.go func="neblet.(*Neblet).Start" line=245
 ...
 ```
 
@@ -199,15 +251,19 @@ We have API and admin two schemes to access the console cmds. Users can quickly 
 
 ```javascript
 > api.
-api.accounts              api.gasPrice              api.getNebState           api.sendTransaction
-api.blockDump             api.getAccountState       api.getTransactionReceipt api.setRequest
-api.call                  api.getBlockByHash        api.nodeInfo              api.subscribe
+api.accounts              api.getAccountState       api.getNebState           api.setRequest
+api.blockDump             api.getBlockByHash        api.getTransactionReceipt api.subscribe
+api.call                  api.getBlockByHeight      api.nodeInfo
 api.estimateGas           api.getEventsByHash       api.sendRawTransaction
+api.gasPrice              api.getGasUsed            api.sendTransaction
 
 > admin.
-admin.getDynasty                    admin.sendTransactionWithPassphrase admin.signTransaction
-admin.lockAccount                   admin.setHost                       admin.unlockAccount
-admin.newAccount                    admin.setRequest
+admin.changeNetworkID               admin.sendTransactionWithPassphrase admin.startPprof
+admin.getDelegateVoters             admin.setHost                       admin.stopMining
+admin.getDynasty                    admin.setRequest                    admin.unlockAccount
+admin.lockAccount                   admin.signTransaction
+admin.newAccount                    admin.startMining
+
 ```
 
 For example, if we want to unlock account 1a263547d167c74cf4b8f9166cfa244de0481c514a45aa2c:
@@ -405,7 +461,7 @@ curl -i -H 'Accept: application/json' -X POST http://localhost:8685/v1/user/call
 
 ## TestNet
 
-We are glad to release Nebulas Testnet. You can use and join our [TestNet](https://github.com/nebulasio/wiki/blob/master/testnet.md) right now. 
+We are glad to release Nebulas Testnet here. You can use and join our [TestNet](https://github.com/nebulasio/wiki/blob/master/testnet.md) right now.
 
 ## Contribution
 

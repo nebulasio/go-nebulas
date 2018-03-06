@@ -70,10 +70,6 @@ Admin.prototype.sendTransactionWithPassphrase = function (from, to, value, nonce
     return this.request("post", "/v1/admin/transactionWithPassphrase", params, callback);
 };
 
-Admin.prototype.getDynasty = function (callback) {
-    return this.request("get", "/v1/admin/dynasty", null, callback);
-};
-
 Admin.prototype.getDelegateVoters = function (delegatee, callback) {
     var params = { "delegatee": delegatee };
     return this.request("post", "/v1/admin/delegateVoters", params, callback);

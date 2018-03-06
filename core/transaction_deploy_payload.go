@@ -68,14 +68,24 @@ func (payload *DeployPayload) Execute(tx *Transaction, block *Block, txWorldStat
 		return util.NewUint128(), "", err
 	}
 
+	payloadGasLimit, err := tx.PayloadGasLimit(payload)
+	if err != nil {
+		return util.NewUint128(), "", err
+	}
+	// payloadGasLimit <= 0, v8 engine not limit the execution instructions
+	if payloadGasLimit.Cmp(util.NewUint128()) <= 0 {
+		return util.NewUint128(), "", ErrOutOfGasLimit
+	}
+
 	engine := nvm.NewV8Engine(nvmctx)
 	defer engine.Dispose()
 
-	engine.SetExecutionLimits(tx.PayloadGasLimit(payload).Uint64(), nvm.DefaultLimitsOfTotalMemorySize)
+	engine.SetExecutionLimits(payloadGasLimit.Uint64(), nvm.DefaultLimitsOfTotalMemorySize)
 
-	// Deploy and Init.
-	result, err := engine.DeployAndInit(payload.Source, payload.SourceType, payload.Args)
-	return util.NewUint128FromInt(int64(engine.ExecutionInstructions())), result, err
+	// Deploy and Init.iutu
+	result, exeErr := engine.DeployAndInit(payload.Source, payload.SourceType, payload.Args)
+	instructions, _ := util.NewUint128FromInt(int64(engine.ExecutionInstructions()))
+	return instructions, result, exeErr
 }
 
 func generateDeployContext(tx *Transaction, block *Block, txWorldState state.TxWorldState) (*nvm.Context, error) {

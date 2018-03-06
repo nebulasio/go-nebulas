@@ -35,6 +35,9 @@ import (
 	"golang.org/x/net/context"
 )
 
+//the max number of block can be dumped once
+const maxDumpBlockCount = 10
+
 // APIService implements the RPC API service interface.
 type APIService struct {
 	server GRPCServer
@@ -161,7 +164,6 @@ func (s *APIService) Call(ctx context.Context, req *rpcpb.TransactionRequest) (*
 
 func (s *APIService) sendTransaction(req *rpcpb.TransactionRequest) (*rpcpb.SendTransactionResponse, error) {
 	neb := s.server.Neblet()
-
 	tx, err := parseTransaction(neb, req)
 	if err != nil {
 		metricsSendTxFailed.Mark(1)
@@ -185,10 +187,18 @@ func parseTransaction(neb Neblet, reqTx *rpcpb.TransactionRequest) (*core.Transa
 		return nil, err
 	}
 
-	value := util.NewUint128FromString(reqTx.Value)
-	gasPrice := util.NewUint128FromString(reqTx.GasPrice)
-	gasLimit := util.NewUint128FromString(reqTx.GasLimit)
-
+	value, err := util.NewUint128FromString(reqTx.Value)
+	if err != nil {
+		return nil, err
+	}
+	gasPrice, err := util.NewUint128FromString(reqTx.GasPrice)
+	if err != nil {
+		return nil, err
+	}
+	gasLimit, err := util.NewUint128FromString(reqTx.GasLimit)
+	if err != nil {
+		return nil, err
+	}
 	var (
 		payloadType string
 		payload     []byte
@@ -221,7 +231,6 @@ func handleTransactionResponse(neb Neblet, tx *core.Transaction) (resp *rpcpb.Se
 			metricsSendTxSuccess.Mark(1)
 		}
 	}()
-
 	nonce, err := neb.BlockChain().TailBlock().GetNonce(tx.From().Bytes())
 	if err != nil {
 		return nil, err
@@ -343,7 +352,11 @@ func (s *APIService) toBlockResponse(block *core.Block, fullTransaction bool) (*
 func (s *APIService) BlockDump(ctx context.Context, req *rpcpb.BlockDumpRequest) (*rpcpb.BlockDumpResponse, error) {
 
 	neb := s.server.Neblet()
-	data := neb.BlockChain().Dump(int(req.Count))
+	blockCount := req.Count
+	if blockCount > maxDumpBlockCount {
+		blockCount = maxDumpBlockCount
+	}
+	data := neb.BlockChain().Dump(int(blockCount))
 	return &rpcpb.BlockDumpResponse{Data: data}, nil
 }
 
@@ -379,7 +392,8 @@ func (s *APIService) GetTransactionReceipt(ctx context.Context, req *rpcpb.GetTr
 
 func (s *APIService) toTransactionResponse(tx *core.Transaction) (*rpcpb.TransactionResponse, error) {
 	var (
-		status int32
+		status  int32
+		gasUsed string
 	)
 	neb := s.server.Neblet()
 	events, _ := neb.BlockChain().TailBlock().FetchEvents(tx.Hash())
@@ -390,6 +404,7 @@ func (s *APIService) toTransactionResponse(tx *core.Transaction) (*rpcpb.Transac
 				txEvent := core.TransactionEvent{}
 				json.Unmarshal([]byte(v.Data), &txEvent)
 				status = int32(txEvent.Status)
+				gasUsed = txEvent.GasUsed
 				break
 			} else if v.Topic == core.TopicExecuteTxSuccess {
 				status = core.TxExecutionSuccess
@@ -416,6 +431,7 @@ func (s *APIService) toTransactionResponse(tx *core.Transaction) (*rpcpb.Transac
 		GasPrice:  tx.GasPrice().String(),
 		GasLimit:  tx.GasLimit().String(),
 		Status:    status,
+		GasUsed:   gasUsed,
 	}
 
 	if tx.Type() == core.TxPayloadDeployType {
@@ -537,7 +553,11 @@ func (s *APIService) GetEventsByHash(ctx context.Context, req *rpcpb.HashRequest
 
 	neb := s.server.Neblet()
 
-	bhash, err := byteutils.FromHex(req.GetHash())
+	if len(req.Hash) == 0 {
+		return nil, errors.New("please input valid hash")
+	}
+
+	bhash, err := byteutils.FromHex(req.Hash)
 	if err != nil {
 		return nil, err
 	}
@@ -546,11 +566,13 @@ func (s *APIService) GetEventsByHash(ctx context.Context, req *rpcpb.HashRequest
 	if err != nil {
 		return nil, err
 	}
+
 	if tx != nil {
 		result, err := neb.BlockChain().TailBlock().FetchEvents(tx.Hash())
 		if err != nil {
 			return nil, err
 		}
+
 		events := []*rpcpb.Event{}
 		for _, v := range result {
 			event := &rpcpb.Event{Topic: v.Topic, Data: v.Data}

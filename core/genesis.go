@@ -101,7 +101,16 @@ func NewGenesisBlock(conf *corepb.Genesis, chain *BlockChain) (*Block, error) {
 			genesisBlock.RollBack()
 			return nil, err
 		}
-		acc.AddBalance(util.NewUint128FromString(v.Value))
+		txsBalance, err := util.NewUint128FromString(v.Value)
+		if err != nil {
+			genesisBlock.RollBack()
+			return nil, err
+		}
+		err = acc.AddBalance(txsBalance)
+		if err != nil {
+			genesisBlock.RollBack()
+			return nil, err
+		}
 	}
 	genesisBlock.Commit()
 

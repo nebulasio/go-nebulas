@@ -614,7 +614,7 @@ func (bc *BlockChain) GasPrice() *util.Uint128 {
 
 	if len(tailBlock.transactions) > 0 {
 		for _, tx := range tailBlock.transactions {
-			if tx.gasPrice.Cmp(gasPrice.Int) < 0 {
+			if tx.gasPrice.Cmp(gasPrice) < 0 {
 				gasPrice = tx.gasPrice
 			}
 		}

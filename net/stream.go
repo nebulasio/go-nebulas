@@ -21,6 +21,7 @@ package net
 import (
 	"errors"
 	"fmt"
+	"io"
 	"sync"
 	"time"
 
@@ -298,7 +299,9 @@ func (s *Stream) readLoop() {
 				"err":    err,
 				"stream": s.String(),
 			}).Debug("Error occurred when reading data from network connection.")
-			s.Close(err)
+			if err != io.EOF {
+				s.Close(err)
+			}
 			return
 		}
 

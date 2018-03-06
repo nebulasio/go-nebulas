@@ -120,9 +120,10 @@ func (acc *account) Clone() (Account, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	return &account{
 		address:    acc.address,
-		balance:    util.NewUint128FromBigInt(acc.balance.Int),
+		balance:    acc.balance,
 		nonce:      acc.nonce,
 		variables:  variables,
 		birthPlace: acc.birthPlace,
@@ -135,23 +136,21 @@ func (acc *account) IncrNonce() {
 }
 
 // AddBalance to an account
-func (acc *account) AddBalance(value *util.Uint128) {
-	afterBalance := util.NewUint128()
-	afterBalance.Add(acc.balance.Int, value.Int)
-	acc.balance = afterBalance
+func (acc *account) AddBalance(value *util.Uint128) error {
+	var err error
+	acc.balance, err = acc.balance.Add(value)
+	return err
 }
 
 // SubBalance to an account
 func (acc *account) SubBalance(value *util.Uint128) error {
-	if acc.balance.Cmp(value.Int) < 0 {
-		return ErrBalanceInsufficient
+	var err error
+	if acc.balance.Cmp(value) < 0 {
+		err = ErrBalanceInsufficient
+	} else {
+		acc.balance, err = acc.balance.Sub(value)
 	}
-
-	afterBalance := util.NewUint128()
-	afterBalance.Sub(acc.balance.Int, value.Int)
-	acc.balance = afterBalance
-
-	return nil
+	return err
 }
 
 // Put into account's storage

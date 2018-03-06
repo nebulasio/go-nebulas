@@ -41,6 +41,11 @@ const (
 
 	// update deploy execution, from & to must equal
 	NewOptimizeHeight = 750000
+
+	// update transaction exe check
+	// add balance case: balanceOfFrom > gasPrice*gasLimit + valueOfTx
+	// add gas case: gasLimit > gasUsed + gasExecution
+	TransactionOptimizeHeight = 800000
 )
 
 // Payload Types
@@ -87,6 +92,7 @@ var (
 
 	ErrInsufficientBalance                = errors.New("insufficient balance")
 	ErrBelowGasPrice                      = errors.New("below the gas price")
+	ErrGasLimitLessOrEqualToZero          = errors.New("gas limit less or equal to 0")
 	ErrOutOfGasLimit                      = errors.New("out of gas limit")
 	ErrTxExecutionFailed                  = errors.New("transaction execution failed")
 	ErrContractDeployFailed               = errors.New("contract deploy failed")
@@ -126,7 +132,7 @@ var (
 
 // Default gas count
 var (
-	DefaultPayloadGas = util.NewUint128FromInt(1)
+	DefaultPayloadGas, _ = util.NewUint128FromInt(1)
 )
 
 // TxPayload stored in tx

@@ -39,27 +39,25 @@ import (
 
 var (
 	// TransactionMaxGasPrice max gasPrice:50 * 10 ** 9
-	TransactionMaxGasPrice = util.NewUint128FromBigInt(util.NewUint128().Mul(util.NewUint128FromInt(50).Int,
-		util.NewUint128().Exp(util.NewUint128FromInt(10).Int, util.NewUint128FromInt(9).Int, nil)))
+	TransactionMaxGasPrice, _ = util.NewUint128FromString("50000000000")
 
 	// TransactionMaxGas max gas:50 * 10 ** 9
-	TransactionMaxGas = util.NewUint128FromBigInt(util.NewUint128().Mul(util.NewUint128FromInt(50).Int,
-		util.NewUint128().Exp(util.NewUint128FromInt(10).Int, util.NewUint128FromInt(9).Int, nil)))
+	TransactionMaxGas, _ = util.NewUint128FromString("50000000000")
 
 	// TransactionGasPrice default gasPrice : 10**6
-	TransactionGasPrice = util.NewUint128FromBigInt(util.NewUint128().Exp(util.NewUint128FromInt(10).Int, util.NewUint128FromInt(6).Int, nil))
+	TransactionGasPrice, _ = util.NewUint128FromInt(1000000)
 
 	// MinGasCountPerTransaction default gas for normal transaction
-	MinGasCountPerTransaction = util.NewUint128FromInt(20000)
+	MinGasCountPerTransaction, _ = util.NewUint128FromInt(20000)
 
 	// GasCountPerByte per byte of data attached to a transaction gas cost
-	GasCountPerByte = util.NewUint128FromInt(1)
+	GasCountPerByte, _ = util.NewUint128FromInt(1)
 
 	// DelegateBaseGasCount is base gas count of delegate transaction
-	DelegateBaseGasCount = util.NewUint128FromInt(20000)
+	DelegateBaseGasCount, _ = util.NewUint128FromInt(20000)
 
 	// CandidateBaseGasCount is base gas count of candidate transaction
-	CandidateBaseGasCount = util.NewUint128FromInt(20000)
+	CandidateBaseGasCount, _ = util.NewUint128FromInt(20000)
 
 	// ZeroGasCount is zero gas count
 	ZeroGasCount = util.NewUint128()
@@ -214,10 +212,10 @@ type Transactions []*Transaction
 // NewTransaction create #Transaction instance.
 func NewTransaction(chainID uint32, from, to *Address, value *util.Uint128, nonce uint64, payloadType string, payload []byte, gasPrice *util.Uint128, gasLimit *util.Uint128) *Transaction {
 	//if gasPrice is not specified, use the default gasPrice
-	if gasPrice == nil || gasPrice.Cmp(util.NewUint128FromInt(0).Int) <= 0 {
+	if gasPrice == nil || gasPrice.Cmp(util.NewUint128()) <= 0 {
 		gasPrice = TransactionGasPrice
 	}
-	if gasLimit == nil || gasLimit.Cmp(util.NewUint128FromInt(0).Int) <= 0 {
+	if gasLimit == nil || gasLimit.Cmp(util.NewUint128()) <= 0 {
 		gasLimit = MinGasCountPerTransaction
 	}
 
@@ -251,31 +249,50 @@ func (tx *Transaction) GasLimit() *util.Uint128 {
 }
 
 // PayloadGasLimit returns payload gasLimit
-func (tx *Transaction) PayloadGasLimit(payload TxPayload) *util.Uint128 {
+func (tx *Transaction) PayloadGasLimit(payload TxPayload) (*util.Uint128, error) {
 	// payloadGasLimit = tx.gasLimit - tx.GasCountOfTxBase
-	payloadGasLimit := util.NewUint128().Sub(tx.gasLimit.Int, tx.GasCountOfTxBase().Int)
-	payloadGasLimit.Sub(payloadGasLimit, payload.BaseGasCount().Int)
-	return util.NewUint128FromBigInt(payloadGasLimit)
+	gasCountOfTxBase, err := tx.GasCountOfTxBase()
+	if err != nil {
+		return nil, err
+	}
+	payloadGasLimit, err := tx.gasLimit.Sub(gasCountOfTxBase)
+	if err != nil {
+		return nil, ErrOutOfGasLimit
+	}
+	payloadGasLimit, err = payloadGasLimit.Sub(payload.BaseGasCount())
+	if err != nil {
+		return nil, ErrOutOfGasLimit
+	}
+	return payloadGasLimit, nil
 }
 
 // MinBalanceRequired returns gasprice * gaslimit.
-func (tx *Transaction) MinBalanceRequired() *util.Uint128 {
-	total := util.NewUint128()
-	total.Mul(tx.GasPrice().Int, tx.GasLimit().Int)
-	total.Add(total.Int, tx.value.Int)
-	return total
+func (tx *Transaction) MinBalanceRequired() (*util.Uint128, error) {
+	total, err := tx.GasPrice().Mul(tx.GasLimit())
+	if err != nil {
+		return nil, err
+	}
+	return total, nil
 }
 
 // GasCountOfTxBase calculate the actual amount for a tx with data
-func (tx *Transaction) GasCountOfTxBase() *util.Uint128 {
-	txGas := util.NewUint128()
-	txGas.Add(txGas.Int, MinGasCountPerTransaction.Int)
+func (tx *Transaction) GasCountOfTxBase() (*util.Uint128, error) {
+	txGas := MinGasCountPerTransaction.DeepCopy()
 	if tx.DataLen() > 0 {
-		dataGas := util.NewUint128()
-		dataGas.Mul(util.NewUint128FromInt(int64(tx.DataLen())).Int, GasCountPerByte.Int)
-		txGas.Add(txGas.Int, dataGas.Int)
+		dataLen, err := util.NewUint128FromInt(int64(tx.DataLen()))
+		if err != nil {
+			return nil, err
+		}
+		dataGas, err := dataLen.Mul(GasCountPerByte)
+		if err != nil {
+			return nil, err
+		}
+		txGas, err = txGas.Add(dataGas)
+		if err != nil {
+			return nil, err
+		}
 	}
-	return txGas
+	return txGas, nil
 }
 
 // DataLen return the length of payload
@@ -313,8 +330,11 @@ func (tx *Transaction) LoadPayload(block *Block) (TxPayload, error) {
 
 // LocalExecution returns tx local execution
 func (tx *Transaction) LocalExecution(block *Block) (*util.Uint128, string, error) {
-	// update gas to max for estimate
-	tx.gasLimit = TransactionMaxGas
+	hash, err := HashTransaction(tx)
+	if err != nil {
+		return nil, "", err
+	}
+	tx.hash = hash
 
 	worldState, err := block.WorldState().Clone()
 	if err != nil {
@@ -324,38 +344,44 @@ func (tx *Transaction) LocalExecution(block *Block) (*util.Uint128, string, erro
 	worldState.Begin()
 	defer worldState.RollBack()
 
-	fromAcc, err := worldState.GetOrCreateUserAccount(tx.from.address)
-	if err != nil {
-		return nil, "", err
-	}
-	fromAcc.AddBalance(tx.MinBalanceRequired())
-	fromAcc.AddBalance(tx.value)
-
 	payload, err := tx.LoadPayload(block)
 	if err != nil {
 		return util.NewUint128(), "", err
 	}
 
-	gasUsed := tx.GasCountOfTxBase()
-	gasUsed.Add(gasUsed.Int, payload.BaseGasCount().Int)
+	gasUsed, err := tx.GasCountOfTxBase()
+	if err != nil {
+		return util.NewUint128(), "", err
+	}
 
-	gasExecution, result, err := payload.Execute(tx, block, worldState)
+	gasUsed, err = gasUsed.Add(payload.BaseGasCount())
+	if err != nil {
+		return util.NewUint128(), "", err
+	}
 
-	gas := util.NewUint128FromBigInt(util.NewUint128().Add(gasUsed.Int, gasExecution.Int))
-	return gas, result, err
+	gasExecution, result, exeErr := payload.Execute(tx, block, worldState)
+
+	gas, err := gasUsed.Add(gasExecution)
+	if err != nil {
+		return gasUsed, result, err
+	}
+	return gas, result, exeErr
 }
 
 // VerifyExecution transaction and return result.
 func VerifyExecution(tx *Transaction, block *Block, txWorldState state.TxWorldState) error {
 	coinbase := block.CoinbaseHash()
 
-	if err := tx.checkBalance(txWorldState); err != nil {
+	if err := tx.checkBalance(block, txWorldState); err != nil {
 		return ErrInsufficientBalance
 	}
 
 	// gasLimit < gasUsed
-	gasUsed := tx.GasCountOfTxBase()
-	if tx.gasLimit.Cmp(gasUsed.Int) < 0 {
+	gasUsed, err := tx.GasCountOfTxBase()
+	if err != nil {
+		return err
+	}
+	if tx.gasLimit.Cmp(gasUsed) < 0 {
 		logging.VLog().WithFields(logrus.Fields{
 			"error":       ErrOutOfGasLimit,
 			"transaction": tx,
@@ -374,13 +400,18 @@ func VerifyExecution(tx *Transaction, block *Block, txWorldState state.TxWorldSt
 		}).Debug("Failed to load payload.")
 		metricsTxExeFailed.Mark(1)
 
-		tx.recordGas(coinbase, gasUsed, block)
+		if err := tx.recordGas(coinbase, gasUsed, block); err != nil {
+			return err
+		}
 		tx.triggerEvent(txWorldState, block, TopicExecuteTxFailed, gasUsed, err)
 		return nil
 	}
 
-	gasUsed.Add(gasUsed.Int, payload.BaseGasCount().Int)
-	if tx.gasLimit.Cmp(gasUsed.Int) < 0 {
+	gasUsed, err = gasUsed.Add(payload.BaseGasCount())
+	if err != nil {
+		return err
+	}
+	if tx.gasLimit.Cmp(gasUsed) < 0 {
 		logging.VLog().WithFields(logrus.Fields{
 			"err":   ErrOutOfGasLimit,
 			"block": block,
@@ -388,7 +419,9 @@ func VerifyExecution(tx *Transaction, block *Block, txWorldState state.TxWorldSt
 		}).Debug("Failed to check base gas used.")
 		metricsTxExeFailed.Mark(1)
 
-		tx.recordGas(coinbase, tx.gasLimit, block)
+		if err := tx.recordGas(coinbase, tx.gasLimit, block); err != nil {
+			return err
+		}
 		tx.triggerEvent(txWorldState, block, TopicExecuteTxFailed, tx.gasLimit, ErrOutOfGasLimit)
 		return nil
 	}
@@ -401,27 +434,35 @@ func VerifyExecution(tx *Transaction, block *Block, txWorldState state.TxWorldSt
 		}
 	}
 
-	allGas := util.NewUint128FromBigInt(util.NewUint128().Add(gasUsed.Int, gasExecution.Int))
-	if tx.gasLimit.Cmp(allGas.Int) < 0 {
-		logging.VLog().WithFields(logrus.Fields{
-			"err":   ErrOutOfGasLimit,
-			"block": block,
-			"tx":    tx,
-		}).Debug("Failed to check gas executed.")
-		metricsTxExeFailed.Mark(1)
+	allGas, gasErr := gasUsed.Add(gasExecution)
+	if gasErr != nil {
+		return gasErr
+	}
 
-		if err := block.Reset(tx); err != nil {
-			return err
+	if block.height > TransactionOptimizeHeight {
+		if tx.gasLimit.Cmp(allGas) < 0 {
+			logging.VLog().WithFields(logrus.Fields{
+				"err":   ErrOutOfGasLimit,
+				"block": block,
+				"tx":    tx,
+			}).Debug("Failed to check gas executed.")
+			metricsTxExeFailed.Mark(1)
+
+			if err := block.Reset(tx); err != nil {
+				return err
+			}
+			if err := tx.recordGas(coinbase, tx.gasLimit, block); err != nil {
+				return err
+			}
+			tx.triggerEvent(txWorldState, block, TopicExecuteTxFailed, tx.gasLimit, ErrOutOfGasLimit)
+			return nil
 		}
-		tx.recordGas(coinbase, tx.gasLimit, block)
-		tx.triggerEvent(txWorldState, block, TopicExecuteTxFailed, tx.gasLimit, ErrOutOfGasLimit)
-		return nil
 	}
 	tx.recordGas(coinbase, allGas, block)
 
 	if exeErr != nil {
 		logging.VLog().WithFields(logrus.Fields{
-			"err":          err,
+			"exeErr":       exeErr,
 			"block":        block,
 			"tx":           tx,
 			"gasUsed":      gasUsed.String(),
@@ -443,21 +484,36 @@ func VerifyExecution(tx *Transaction, block *Block, txWorldState state.TxWorldSt
 	return nil
 }
 
-func (tx *Transaction) checkBalance(txWorldState state.TxWorldState) error {
+func (tx *Transaction) checkBalance(block *Block, txWorldState state.TxWorldState) error {
 	fromAcc, err := txWorldState.GetOrCreateUserAccount(tx.from.address)
 	if err != nil {
 		return err
 	}
-	if fromAcc.Balance().Cmp(tx.MinBalanceRequired().Int) < 0 {
+	minBalanceRequired, err := tx.MinBalanceRequired()
+	if err != nil {
+		return err
+	}
+	if fromAcc.Balance().Cmp(minBalanceRequired) < 0 {
 		return ErrInsufficientBalance
+	}
+	if block.height > TransactionOptimizeHeight {
+		minBalanceRequired, err = minBalanceRequired.Add(tx.value)
+		if err != nil {
+			return err
+		}
+		if fromAcc.Balance().Cmp(minBalanceRequired) < 0 {
+			return ErrInsufficientBalance
+		}
 	}
 	return nil
 }
 
-func (tx *Transaction) recordGas(coinbase byteutils.Hash, gas *util.Uint128, block *Block) {
-	gasCost := util.NewUint128()
-	gasCost.Mul(tx.GasPrice().Int, gas.Int)
-	block.recordGas(tx.from.String(), gas)
+func (tx *Transaction) recordGas(coinbase byteutils.Hash, gasCnt *util.Uint128, block *Block) error {
+	gasCost, err := tx.GasPrice().Mul(gasCnt)
+	if err != nil {
+		return err
+	}
+	return block.recordGas(tx.from.String(), gasCost)
 }
 
 func transfer(from, to byteutils.Hash, value *util.Uint128, txWorldState state.TxWorldState) error {

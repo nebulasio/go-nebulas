@@ -64,11 +64,13 @@ func main() {
 	}
 
 	{
+		var val *util.Uint128
 		r, err := ac.GetAccountState(context.Background(), &rpcpb.GetAccountStateRequest{Address: from})
 		if err != nil {
 			log.Println("GetAccountState", from, "failed", err)
+		} else if val, err = util.NewUint128FromString(r.GetBalance()); err != nil {
+			log.Println("GetAccountState", from, "failed to get balance", err)
 		} else {
-			val := util.NewUint128FromString(r.GetBalance())
 			nonce, _ = strconv.ParseUint(r.Nonce, 10, 64)
 			// nonce = r.Nonce
 			log.Println("GetAccountState", from, "nonce", r.Nonce, "value", val)
@@ -76,11 +78,13 @@ func main() {
 	}
 
 	{
+		var val *util.Uint128
 		r, err := ac.GetAccountState(context.Background(), &rpcpb.GetAccountStateRequest{Address: to})
 		if err != nil {
 			log.Println("GetAccountState", to, "failed", err)
+		} else if val, err = util.NewUint128FromString(r.GetBalance()); err != nil {
+			log.Println("GetAccountState", from, "failed to get balance", err)
 		} else {
-			val := util.NewUint128FromString(r.GetBalance())
 			// nonce = r.Nonce
 			log.Println("GetAccountState", to, "nonce", r.Nonce, "value", val)
 		}
@@ -97,7 +101,10 @@ func main() {
 	}
 
 	{
-		v := util.NewUint128FromInt(value)
+		v, err := util.NewUint128FromInt(value)
+		if err != nil {
+			log.Println("newUint128 failed:", err)
+		}
 		r, err := ac.SendTransaction(context.Background(), &rpcpb.TransactionRequest{From: from, To: to, Value: v.String(), Nonce: nonce + 1})
 		if err != nil {
 			log.Println("SendTransaction failed:", err)
@@ -107,11 +114,13 @@ func main() {
 	}
 
 	{
+		var val *util.Uint128
 		r, err := ac.GetAccountState(context.Background(), &rpcpb.GetAccountStateRequest{Address: to})
 		if err != nil {
 			log.Println("GetAccountState", to, "failed", err)
+		} else if val, err = util.NewUint128FromString(r.GetBalance()); err != nil {
+			log.Println("GetAccountState", from, "failed to get balance", err)
 		} else {
-			val := util.NewUint128FromString(r.GetBalance())
 			nonce, _ = strconv.ParseUint(r.Nonce, 10, 64)
 			// nonce = r.Nonce
 			log.Println("GetAccountState", to, "nonce", r.Nonce, "value", val)
