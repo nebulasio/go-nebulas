@@ -144,8 +144,8 @@ func TestPushTxs(t *testing.T) {
 		NewTransaction(bc.ChainID(), from, to, util.NewUint128(), 10, TxPayloadBinaryType, []byte("datadata"), util.NewUint128FromInt(10^6-1), TransactionMaxGas),
 		NewTransaction(bc.ChainID(), from, to, util.NewUint128(), 10, TxPayloadBinaryType, []byte("datadata"), TransactionGasPrice, MaxGasPlus1),
 	}
-	assert.Equal(t, txPool.push(txs[0]), ErrBelowGasPrice)
-	assert.Equal(t, txPool.push(txs[1]), ErrOutOfGasLimit)
+	assert.Equal(t, txPool.Push(txs[0]), ErrBelowGasPrice)
+	assert.Equal(t, txPool.Push(txs[1]), ErrOutOfGasLimit)
 }
 
 func TestTransactionPool_Pop(t *testing.T) {

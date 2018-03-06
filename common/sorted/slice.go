@@ -68,15 +68,21 @@ func (s *Slice) Push(val interface{}) {
 }
 
 func (s *Slice) PopMin() interface{} {
-	val := s.content[0]
-	s.content = s.content[1:]
-	return val
+	if s.Len() > 0 {
+		val := s.content[0]
+		s.content = s.content[1:]
+		return val
+	}
+	return nil
 }
 
 func (s *Slice) PopMax() interface{} {
-	val := s.content[s.Len()]
-	s.content = s.content[:s.Len()-1]
-	return val
+	if s.Len() > 0 {
+		val := s.content[s.Len()]
+		s.content = s.content[:s.Len()-1]
+		return val
+	}
+	return nil
 }
 
 func (s *Slice) Del(val interface{}) {
@@ -96,14 +102,27 @@ func (s *Slice) Del(val interface{}) {
 	}
 }
 
+func (s *Slice) Index(index int) interface{} {
+	if s.Len() > index {
+		return s.content[index]
+	}
+	return nil
+}
+
 func (s *Slice) Len() int {
 	return len(s.content)
 }
 
 func (s *Slice) Min() interface{} {
-	return s.content[0]
+	if s.Len() > 0 {
+		return s.content[0]
+	}
+	return nil
 }
 
 func (s *Slice) Max() interface{} {
-	return s.content[len(s.content)-1]
+	if s.Len() > 0 {
+		return s.content[len(s.content)-1]
+	}
+	return nil
 }
