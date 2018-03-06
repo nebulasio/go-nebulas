@@ -130,6 +130,7 @@ func (cs *mockConsensusState) RollBack()   {}
 func (cs *mockConsensusState) RootHash() (byteutils.Hash, error)    { return nil, nil }
 func (cs *mockConsensusState) String() string                       { return "" }
 func (cs *mockConsensusState) Clone() (state.ConsensusState, error) { return cs, nil }
+func (cs *mockConsensusState) Replay(state.ConsensusState) error    { return nil }
 
 func (cs *mockConsensusState) Proposer() byteutils.Hash { return nil }
 func (cs *mockConsensusState) TimeStamp() int64         { return 0 }
@@ -137,91 +138,8 @@ func (cs *mockConsensusState) NextConsensusState(int64, state.WorldState) (state
 	return cs, nil
 }
 
-func (cs *mockConsensusState) GetMintCnt(int64, byteutils.Hash) (int64, error) { return 0, nil }
-func (cs *mockConsensusState) PutMintCnt(int64, byteutils.Hash, int64) error   { return nil }
-
-func (cs *mockConsensusState) CandidatesRoot() byteutils.Hash {
-	return cs.candidates.RootHash()
-}
-func (cs *mockConsensusState) Candidates() ([]byteutils.Hash, error) {
-	members := []byteutils.Hash{}
-	iter, err := cs.candidates.Iterator(nil)
-	if err != nil && err != storage.ErrKeyNotFound {
-		return nil, err
-	}
-	if err != nil {
-		return members, nil
-	}
-	exist, err := iter.Next()
-	for exist {
-		members = append(members, iter.Value())
-		exist, err = iter.Next()
-	}
-	return members, nil
-}
-func (cs *mockConsensusState) HasCandidate(candidate byteutils.Hash) (bool, error) {
-	_, err := cs.candidates.Get(candidate)
-	if err != nil && err != storage.ErrKeyNotFound {
-		return false, err
-	}
-	if err == storage.ErrKeyNotFound {
-		return false, nil
-	}
-	return true, nil
-}
-func (cs *mockConsensusState) AddCandidate(candidate byteutils.Hash) error {
-	_, err := cs.candidates.Put(candidate, candidate)
-	return err
-}
-func (cs *mockConsensusState) DelCandidate(candidate byteutils.Hash) error {
-	_, err := cs.candidates.Del(candidate)
-	return err
-}
-
-func (cs *mockConsensusState) GetVote(voter byteutils.Hash) (byteutils.Hash, error) {
-	return cs.votes.Get(voter)
-}
-func (cs *mockConsensusState) AddVote(voter byteutils.Hash, votee byteutils.Hash) error {
-	_, err := cs.votes.Put(voter, votee)
-	return err
-}
-func (cs *mockConsensusState) DelVote(voter byteutils.Hash) error {
-	_, err := cs.votes.Del(voter)
-	return err
-}
-func (cs *mockConsensusState) IterVote() (state.Iterator, error) {
-	return cs.votes.Iterator(nil)
-}
-
-func (cs *mockConsensusState) HasDelegate(delegator byteutils.Hash, delegatee byteutils.Hash) (bool, error) {
-	key := append(delegatee, delegator...)
-	_, err := cs.delegates.Get(key)
-	if err != nil && err != storage.ErrKeyNotFound {
-		return false, err
-	}
-	if err == storage.ErrKeyNotFound {
-		return false, nil
-	}
-	return true, nil
-}
-func (cs *mockConsensusState) AddDelegate(delegator byteutils.Hash, delegatee byteutils.Hash) error {
-	key := append(delegatee, delegator...)
-	_, err := cs.delegates.Put(key, delegator)
-	return err
-}
-func (cs *mockConsensusState) DelDelegate(delegator byteutils.Hash, delegatee byteutils.Hash) error {
-	key := append(delegatee, delegator...)
-	_, err := cs.delegates.Del(key)
-	return err
-}
-func (cs *mockConsensusState) IterDelegate(delegatee byteutils.Hash) (state.Iterator, error) {
-	return cs.delegates.Iterator(delegatee)
-}
-
-func (cs *mockConsensusState) Dynasty() ([]byteutils.Hash, error)     { return nil, nil }
-func (cs *mockConsensusState) DynastyRoot() byteutils.Hash            { return nil }
-func (cs *mockConsensusState) NextDynasty() ([]byteutils.Hash, error) { return nil, nil }
-func (cs *mockConsensusState) NextDynastyRoot() byteutils.Hash        { return nil }
+func (cs *mockConsensusState) Dynasty() ([]byteutils.Hash, error) { return nil, nil }
+func (cs *mockConsensusState) DynastyRoot() byteutils.Hash        { return nil }
 
 type mockConsensus struct {
 	chain *BlockChain
@@ -235,12 +153,7 @@ func (c mockConsensus) Setup(neb Neblet) error {
 func (c mockConsensus) Start() {}
 func (c mockConsensus) Stop()  {}
 
-func (c mockConsensus) FastVerifyBlock(block *Block) error {
-	block.miner = block.Coinbase()
-	return nil
-}
-
-func (c mockConsensus) VerifyBlock(block *Block, parent *Block) error {
+func (c mockConsensus) VerifyBlock(block *Block) error {
 	block.miner = block.Coinbase()
 	return nil
 }
@@ -573,10 +486,10 @@ func TestBlock_CollectTransactions(t *testing.T) {
 	assert.NotNil(t, bc.txPool.Push(tx6), ErrInvalidChainID)
 
 	assert.Equal(t, len(block.transactions), 0)
-	assert.Equal(t, bc.txPool.cache.Len(), 5)
+	assert.Equal(t, len(bc.txPool.all), 5)
 	block.CollectTransactions(time.Now().Unix() + 2)
 	assert.Equal(t, len(block.transactions), 4)
-	assert.Equal(t, block.txPool.cache.Len(), 0)
+	assert.Equal(t, len(block.txPool.all), 0)
 
 	assert.Equal(t, block.Sealed(), false)
 	balance, err := block.GetBalance(block.header.coinbase.address)

@@ -53,16 +53,6 @@ func mockCallTransaction(chainID uint32, nonce uint64, function, args string) *T
 	return mockTransaction(chainID, nonce, TxPayloadCallType, payload)
 }
 
-func mockDelegateTransaction(chainID uint32, nonce uint64, action, addr string) *Transaction {
-	payload, _ := NewDelegatePayload(action, addr).ToBytes()
-	return mockTransaction(chainID, nonce, TxPayloadDelegateType, payload)
-}
-
-func mockCandidateTransaction(chainID uint32, nonce uint64, action string) *Transaction {
-	payload, _ := NewCandidatePayload(action).ToBytes()
-	return mockTransaction(chainID, nonce, TxPayloadCandidateType, payload)
-}
-
 func mockTransaction(chainID uint32, nonce uint64, payloadType string, payload []byte) *Transaction {
 	from := mockAddress()
 	to := mockAddress()
@@ -245,40 +235,6 @@ func TestTransaction_VerifyExecution(t *testing.T) {
 		eventTopic:      []string{TopicExecuteTxFailed},
 	})
 
-	// candidate tx
-	candidateTx := mockCandidateTransaction(bc.chainID, 0, LoginAction)
-	candidateTx.value = util.NewUint128()
-	gasUsed = util.NewUint128FromInt(40018)
-	coinbaseBalance = util.NewUint128FromBigInt(util.NewUint128().Mul(candidateTx.gasPrice.Int, gasUsed.Int))
-	tests = append(tests, testTx{
-		name:            "candidate tx",
-		tx:              candidateTx,
-		fromBalance:     balance,
-		gasUsed:         gasUsed,
-		afterBalance:    util.NewUint128FromBigInt(util.NewUint128().Sub(balance.Int, util.NewUint128().Mul(candidateTx.gasPrice.Int, gasUsed.Int))),
-		toBalance:       candidateTx.value,
-		coinbaseBalance: coinbaseBalance,
-		wanted:          nil,
-		eventTopic:      []string{TopicExecuteTxSuccess},
-	})
-
-	// delegate tx
-	delegateTx := mockDelegateTransaction(bc.chainID, 0, DelegateAction, mockAddress().String())
-	delegateTx.value = util.NewUint128()
-	gasUsed = util.NewUint128FromInt(40078)
-	coinbaseBalance = util.NewUint128FromBigInt(util.NewUint128().Mul(delegateTx.gasPrice.Int, gasUsed.Int))
-	tests = append(tests, testTx{
-		name:            "delegate tx",
-		tx:              delegateTx,
-		fromBalance:     balance,
-		gasUsed:         gasUsed,
-		afterBalance:    util.NewUint128FromBigInt(util.NewUint128().Sub(balance.Int, util.NewUint128().Mul(delegateTx.gasPrice.Int, gasUsed.Int))),
-		toBalance:       delegateTx.value,
-		coinbaseBalance: coinbaseBalance,
-		wanted:          nil,
-		eventTopic:      []string{TopicExecuteTxFailed},
-	})
-
 	// normal tx insufficient fromBalance before execution
 	insufficientBlanceTx := mockNormalTransaction(bc.chainID, 0)
 	insufficientBlanceTx.value = util.NewUint128()
@@ -312,7 +268,7 @@ func TestTransaction_VerifyExecution(t *testing.T) {
 	payloadErrTx := mockDeployTransaction(bc.chainID, 0)
 	payloadErrTx.value = util.NewUint128()
 	payloadErrTx.data.Payload = []byte("0x00")
-	coinbaseBalance = util.NewUint128FromBigInt(util.NewUint128().Mul(delegateTx.gasPrice.Int, payloadErrTx.GasCountOfTxBase().Int))
+	coinbaseBalance = util.NewUint128FromBigInt(util.NewUint128().Mul(payloadErrTx.gasPrice.Int, payloadErrTx.GasCountOfTxBase().Int))
 	tests = append(tests, testTx{
 		name:            "payload error tx",
 		tx:              payloadErrTx,
@@ -471,29 +427,6 @@ func TestTransaction_LocalExecution(t *testing.T) {
 		gasUsed: gasUsed,
 		result:  "",
 		wanted:  state.ErrAccountNotFound,
-	})
-
-	// candidate tx
-	candidateTx := mockCandidateTransaction(bc.chainID, 0, LoginAction)
-	candidateTx.value = util.NewUint128()
-	gasUsed = util.NewUint128FromInt(40018)
-	tests = append(tests, testCase{
-		name:    "candidate tx",
-		tx:      candidateTx,
-		gasUsed: gasUsed,
-		result:  "",
-		wanted:  nil,
-	})
-
-	// delegate tx
-	delegateTx := mockDelegateTransaction(bc.chainID, 0, DelegateAction, mockAddress().String())
-	delegateTx.value = util.NewUint128()
-	gasUsed = util.NewUint128FromInt(40078)
-	tests = append(tests, testCase{
-		name:    "delegate tx",
-		tx:      delegateTx,
-		gasUsed: gasUsed,
-		wanted:  ErrInvalidDelegateToNonCandidate,
 	})
 
 	block := bc.tailBlock

@@ -25,7 +25,7 @@ import (
 	"github.com/nebulasio/go-nebulas/core/state"
 
 	"github.com/gogo/protobuf/proto"
-	"github.com/nebulasio/go-nebulas/common/pdeque"
+	"github.com/nebulasio/go-nebulas/common/sorted"
 	"github.com/nebulasio/go-nebulas/core/pb"
 	"github.com/nebulasio/go-nebulas/net"
 	"github.com/nebulasio/go-nebulas/util"
@@ -39,10 +39,10 @@ type TransactionPool struct {
 	receivedMessageCh chan net.Message
 	quitCh            chan int
 
-	size  int
-	cache *pdeque.PriorityDeque
-	all   map[byteutils.HexHash]*Transaction
-	bc    *BlockChain
+	size    int
+	buckets map[byteutils.HexHash]*sorted.Slice
+	all     map[byteutils.HexHash]*Transaction
+	bc      *BlockChain
 
 	ns net.Service
 	mu sync.RWMutex
@@ -53,18 +53,22 @@ type TransactionPool struct {
 	eventEmitter *EventEmitter
 }
 
-func less(a interface{}, b interface{}) bool {
+func nonceLess(a interface{}, b interface{}) int {
 	txa := a.(*Transaction)
 	txb := b.(*Transaction)
-	if txa.from.Equals(txb.from) {
-		return txa.Nonce() < txb.Nonce()
+	if txa.Nonce() < txb.Nonce() {
+		return -1
+	} else if txa.Nonce() > txb.Nonce() {
+		return 1
+	} else {
+		return -txa.GasPrice().Cmp(txb.GasPrice().Int)
 	}
-	if txa.gasPrice.Cmp(txb.gasPrice.Int) != 0 {
-		// txa.gasPrice < txb.gasPrice
-		return txa.GasPrice().Cmp(txb.GasPrice().Int) == -1
-	}
-	// txa.gasLimit < txb.gasLimit
-	return txa.GasLimit().Cmp(txb.GasLimit().Int) == -1
+}
+
+func gasLess(a interface{}, b interface{}) int {
+	txa := a.(*Transaction)
+	txb := b.(*Transaction)
+	return -txa.GasPrice().Cmp(txb.GasPrice().Int)
 }
 
 // NewTransactionPool create a new TransactionPool
@@ -73,7 +77,7 @@ func NewTransactionPool(size int) (*TransactionPool, error) {
 		receivedMessageCh: make(chan net.Message, size),
 		quitCh:            make(chan int, 1),
 		size:              size,
-		cache:             pdeque.NewPriorityDeque(less),
+		buckets:           make(map[byteutils.HexHash]*sorted.Slice),
 		all:               make(map[byteutils.HexHash]*Transaction),
 		gasPrice:          TransactionGasPrice,
 		gasLimit:          TransactionMaxGas,
@@ -249,12 +253,30 @@ func (pool *TransactionPool) push(tx *Transaction) error {
 	}
 
 	// cache the verified tx
-	pool.cache.Insert(tx)
+	slot := tx.from.address.Hex()
+	if _, ok := pool.buckets[slot]; !ok {
+		pool.buckets[slot] = sorted.NewSlice(nonceLess)
+	}
+	pool.buckets[slot].Push(tx)
 	pool.all[tx.hash.Hex()] = tx
-	// delete tx with lowest priority if cache is full
-	if pool.cache.Len() > pool.size {
-		tx := pool.cache.PopMax().(*Transaction)
-		delete(pool.all, tx.hash.Hex())
+	// delete the latest tx from longest bucket if cache is full
+	if len(pool.all) > pool.size {
+		length := 0
+		var longest *sorted.Slice
+		for k, v := range pool.buckets {
+			if v.Len() > length {
+				length = v.Len()
+				longest = v
+				slot = k
+			}
+		}
+		if longest.Len() > 0 {
+			tx := longest.PopMax().(*Transaction)
+			delete(pool.all, tx.hash.Hex())
+		}
+		if longest.Len() == 0 {
+			delete(pool.buckets, slot)
+		}
 	}
 
 	// trigger pending transaction
@@ -267,25 +289,55 @@ func (pool *TransactionPool) push(tx *Transaction) error {
 	return nil
 }
 
+func (pool *TransactionPool) PopWithBlacklist(blacklist map[byteutils.HexHash]bool) *Transaction {
+	pool.mu.Lock()
+	defer pool.mu.Unlock()
+
+	if blacklist == nil {
+		blacklist = make(map[byteutils.HexHash]bool)
+	}
+	sorter := sorted.NewSlice(gasLess)
+	for k, v := range pool.buckets {
+		if _, ok := blacklist[k]; !ok {
+			sorter.Push(v.Min())
+		}
+	}
+	if sorter.Len() == 0 {
+		return nil
+	}
+	target := sorter.Min().(*Transaction)
+	pool.buckets[target.from.address.Hex()].PopMin()
+	delete(pool.all, target.Hash().Hex())
+	if pool.buckets[target.from.address.Hex()].Len() == 0 {
+		delete(pool.buckets, target.from.address.Hex())
+	}
+	return target
+}
+
 // Pop a transaction from pool
 func (pool *TransactionPool) Pop() *Transaction {
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
-	return pool.pop()
-}
 
-func (pool *TransactionPool) pop() *Transaction {
-	if pool.cache.Len() > 0 {
-		tx := pool.cache.PopMin().(*Transaction)
-		delete(pool.all, tx.hash.Hex())
-		return tx
+	sorter := sorted.NewSlice(gasLess)
+	for _, v := range pool.buckets {
+		sorter.Push(v.Min())
 	}
-	return nil
+	if sorter.Len() == 0 {
+		return nil
+	}
+	target := sorter.Min().(*Transaction)
+	pool.buckets[target.from.address.Hex()].PopMin()
+	delete(pool.all, target.Hash().Hex())
+	if pool.buckets[target.from.address.Hex()].Len() == 0 {
+		delete(pool.buckets, target.from.address.Hex())
+	}
+	return target
 }
 
 // Empty return if the pool is empty
 func (pool *TransactionPool) Empty() bool {
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
-	return pool.cache.Len() == 0
+	return len(pool.all) == 0
 }

@@ -144,125 +144,7 @@ func TestLoadCallPayload(t *testing.T) {
 
 }
 
-func TestLoadCandidatePayload(t *testing.T) {
-	tests := []struct {
-		name      string
-		bytes     []byte
-		parse     bool
-		want      *CandidatePayload
-		wantEqual bool
-	}{
-		{
-			name:      "none",
-			bytes:     nil,
-			parse:     false,
-			want:      nil,
-			wantEqual: false,
-		},
-
-		{
-			name:      "parse faild",
-			bytes:     []byte("data"),
-			parse:     false,
-			want:      nil,
-			wantEqual: false,
-		},
-
-		{
-			name:      LoginAction,
-			bytes:     []byte(`{"action": "login"}`),
-			parse:     true,
-			want:      NewCandidatePayload(LoginAction),
-			wantEqual: true,
-		},
-		{
-			name:      LogoutAction,
-			bytes:     []byte(`{"action": "logout"}`),
-			parse:     true,
-			want:      NewCandidatePayload(LogoutAction),
-			wantEqual: true,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := LoadCandidatePayload(tt.bytes)
-			if tt.parse {
-				assert.Nil(t, err)
-				if tt.wantEqual {
-					assert.Equal(t, tt.want, got)
-				} else {
-					assert.NotEqual(t, tt.want, got)
-				}
-			} else {
-				assert.NotNil(t, err)
-			}
-		})
-	}
-}
-
-func TestLoadDelegatePayload(t *testing.T) {
-	tests := []struct {
-		name      string
-		bytes     []byte
-		parse     bool
-		want      *DelegatePayload
-		wantEqual bool
-	}{
-		{
-			name:      "none",
-			bytes:     nil,
-			parse:     false,
-			want:      nil,
-			wantEqual: false,
-		},
-
-		{
-			name:      "parse faild",
-			bytes:     []byte("data"),
-			parse:     false,
-			want:      nil,
-			wantEqual: false,
-		},
-
-		{
-			name:      DelegateAction,
-			bytes:     []byte(`{"action": "do", "delegatee": "1a263547d167c74cf4b8f9166cfa244de0481c514a45aa2c"}`),
-			parse:     true,
-			want:      NewDelegatePayload(DelegateAction, "1a263547d167c74cf4b8f9166cfa244de0481c514a45aa2c"),
-			wantEqual: true,
-		},
-		{
-			name:      UnDelegateAction,
-			bytes:     []byte(`{"action": "undo", "delegatee": "1a263547d167c74cf4b8f9166cfa244de0481c514a45aa2c"}`),
-			parse:     true,
-			want:      NewDelegatePayload(UnDelegateAction, "1a263547d167c74cf4b8f9166cfa244de0481c514a45aa2c"),
-			wantEqual: true,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := LoadDelegatePayload(tt.bytes)
-			if tt.parse {
-				assert.Nil(t, err)
-				if tt.wantEqual {
-					assert.Equal(t, tt.want, got)
-				} else {
-					assert.NotEqual(t, tt.want, got)
-				}
-			} else {
-				assert.NotNil(t, err)
-			}
-		})
-	}
-}
-
 func TestLoadDeployPayload(t *testing.T) {
-
-	deployTx := mockDeployTransaction(0, 0)
-	deployPayload, _ := deployTx.LoadPayload(nil)
-	deployData, _ := deployPayload.ToBytes()
 
 	tests := []struct {
 		name      string
@@ -285,14 +167,6 @@ func TestLoadDeployPayload(t *testing.T) {
 			parse:     false,
 			want:      nil,
 			wantEqual: false,
-		},
-
-		{
-			name:      LoginAction,
-			bytes:     deployData,
-			parse:     true,
-			want:      deployPayload,
-			wantEqual: true,
 		},
 	}
 
@@ -371,51 +245,6 @@ func TestPayload_Execute(t *testing.T) {
 		block:   block,
 		want:    util.NewUint128(),
 		wantErr: ErrContractNotFound,
-	})
-
-	delegateTx := mockDelegateTransaction(bc.chainID, 0, DelegateAction, mockAddress().String())
-	delegatePayload, _ := delegateTx.LoadPayload(nil)
-	tests = append(tests, testPayload{
-		name:    "delegate no candidate",
-		payload: delegatePayload,
-		tx:      delegateTx,
-		block:   block,
-		want:    ZeroGasCount,
-		wantErr: ErrInvalidDelegateToNonCandidate,
-	})
-
-	candidateInTx := mockCandidateTransaction(bc.chainID, 0, LoginAction)
-	candidateInPayload, _ := candidateInTx.LoadPayload(nil)
-	tests = append(tests, testPayload{
-		name:    "candidate login",
-		payload: candidateInPayload,
-		tx:      candidateInTx,
-		block:   block,
-		want:    util.NewUint128(),
-		wantErr: nil,
-	})
-
-	delegateCandidateTx := mockDelegateTransaction(bc.chainID, 0, DelegateAction, candidateInTx.from.String())
-	delegateCandidatePayload, _ := delegateCandidateTx.LoadPayload(nil)
-	tests = append(tests, testPayload{
-		name:    "delegate candidate",
-		payload: delegateCandidatePayload,
-		tx:      delegateCandidateTx,
-		block:   block,
-		want:    ZeroGasCount,
-		wantErr: nil,
-	})
-
-	candidateOutTx := mockCandidateTransaction(bc.chainID, 0, LogoutAction)
-	candidateOutTx.from = candidateInTx.from
-	candidateOutPayload, _ := candidateOutTx.LoadPayload(nil)
-	tests = append(tests, testPayload{
-		name:    "candidate logout",
-		payload: candidateOutPayload,
-		tx:      candidateOutTx,
-		block:   block,
-		want:    util.NewUint128(),
-		wantErr: nil,
 	})
 
 	for _, tt := range tests {

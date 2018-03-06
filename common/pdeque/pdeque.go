@@ -45,6 +45,32 @@ func (q *PriorityDeque) Insert(ele interface{}) {
 	q.bubbleUp(q.Len() - 1)
 }
 
+// Max return the max value in priority deque
+func (q *PriorityDeque) Max() interface{} {
+	q.mu.Lock()
+	defer q.mu.Unlock()
+
+	heap := q.heap
+	pos := 0
+	switch q.Len() {
+	case 0:
+		return nil
+	case 1:
+		break
+	case 2:
+		pos = 1
+		break
+	default:
+		pos = 1
+		if q.less(heap[1], heap[2]) {
+			pos = 2
+		}
+		break
+	}
+	tx := heap[pos]
+	return tx
+}
+
 // PopMax pop the max value in priority deque
 func (q *PriorityDeque) PopMax() interface{} {
 	q.mu.Lock()
@@ -80,6 +106,18 @@ func (q *PriorityDeque) PopMin() interface{} {
 	if q.Len() > 0 {
 		tx := q.heap[0]
 		q.deleteAt(0)
+		return tx
+	}
+	return nil
+}
+
+// Min return the min value in priority deque
+func (q *PriorityDeque) Min() interface{} {
+	q.mu.Lock()
+	defer q.mu.Unlock()
+
+	if q.Len() > 0 {
+		tx := q.heap[0]
 		return tx
 	}
 	return nil

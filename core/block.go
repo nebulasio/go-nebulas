@@ -475,6 +475,7 @@ func (block *Block) CollectTransactions(deadline int64) {
 
 	dag := dag.NewDag()
 	transactions := []*Transaction{}
+	inprogress := make(map[byteutils.HexHash]bool)
 
 	parallelCh := make(chan bool, 32)
 	executedCh := make(chan *executedResult, 32)
@@ -483,7 +484,7 @@ func (block *Block) CollectTransactions(deadline int64) {
 
 	go func() {
 		for !pool.Empty() {
-			tx := pool.Pop()
+			tx := pool.PopWithBlacklist(inprogress)
 
 			parallelCh <- true
 			go func() {
@@ -492,6 +493,7 @@ func (block *Block) CollectTransactions(deadline int64) {
 				if err != nil {
 					return
 				}
+				inprogress[tx.from.address.Hex()] = true
 				<-mergeCh
 
 				giveback, err := block.ExecuteTransaction(tx, txWorldState)
@@ -527,6 +529,7 @@ func (block *Block) CollectTransactions(deadline int64) {
 						dependency:  dependency,
 					}
 				}
+				delete(inprogress, tx.from.address.Hex())
 				<-mergeCh
 
 				<-parallelCh
