@@ -276,8 +276,8 @@ func mockBlockFromNetwork(block *Block) (*Block, error) {
 		return nil, err
 	}
 	block = new(Block)
-	block.FromProto(pbBlock)
-	return block, nil
+	err = block.FromProto(pbBlock)
+	return block, err
 }
 
 // Push block into block pool

@@ -647,11 +647,8 @@ func (tx *Transaction) VerifyIntegrity(chainID uint32) error {
 	}
 
 	// check Signature.
-	if err := tx.verifySign(); err != nil {
-		return err
-	}
+	return tx.verifySign()
 
-	return nil
 }
 
 func (tx *Transaction) verifySign() error {
