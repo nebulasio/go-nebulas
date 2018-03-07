@@ -46,7 +46,7 @@ var contractAddr;
  * set this value according to the status of your testnet.
  * the smaller the value, the faster the test, with the risk of causing error
  */
-var maxCheckTime = 20;
+var maxCheckTime = 30;
 var checkTimes = 0;
 var beginCheckTime;
 
@@ -109,6 +109,10 @@ function testContractDeploy(testInput, testExpect, done) {
             contract.source = FS.readFileSync("./nf/nvm/test/ERC20.syntaxError.js", "utf-8");
         } else if (testInput.isParamErr) {
             contract.args = '["NebulasToken", 100,"NAS", 1000000000]';
+        } else if (testInput.isNormalJs) {
+            contract.source = "console.log('this is not contract but a normal js file')";
+        } else if (testInput.NoInitFunc) {
+            contract.source = FS.readFileSync("./nf/nvm/test/contract.noInitFunc.test.js", "utf-8");
         } else if (testInput.isTypeEmpty) {
             contract.sourceType = "";
         } else if (testInput.isTypeWrong) {
@@ -130,10 +134,15 @@ function testContractDeploy(testInput, testExpect, done) {
         if (testInput.isAddressInvalid) {
             tx.from.address = cryptoUtils.toBuffer("0x23");
             tx.to.address = cryptoUtils.toBuffer("0x23");
+        } else if (testInput.isAddressNull) {
+            tx.from.address = cryptoUtils.bufferToHex("");
+            tx.to.address = cryptoUtils.bufferToHex("");
         }
         tx.signTransaction();
         if (testInput.isSignErr) {
             tx.sign = "wrong signature";
+        } else if (testInput.isSignNull) {
+            tx.sign = '';
         }
         return neb.api.sendRawTransaction(tx.toProtoString());
     }).catch(function (err) {
@@ -141,6 +150,7 @@ function testContractDeploy(testInput, testExpect, done) {
         if (true === testExpect.canSendTx) {
             done(err.error);
         } else {
+            console.log(err.error);
             done();
         }
     }).then(function (resp) {
@@ -217,8 +227,8 @@ describe('contract deploy', function () {
 
             checkTransaction(resp.txhash, function (resp) {
                 try {
-                    expect(resp).to.be.have.property('status').equal(1);
                     console.log("complete from address claim.");
+                    expect(resp).to.be.have.property('status').equal(1);
                     done();
                 } catch (err) {
                     done(err);
@@ -229,7 +239,7 @@ describe('contract deploy', function () {
             done(err);
         });
     });
-
+   
     it('normal deploy', function (done) {
 
         var testInput = {
@@ -296,6 +306,28 @@ describe('contract deploy', function () {
         testContractDeploy(testInput, testExpect, done);
     });
 
+    it('address is null', function (done) {
+
+        var testInput = {
+            transferValue: 1,
+            isSameAddr: true,
+            isAddressNull: true,
+            gasLimit: 2000000,
+            gasPrice: -1,
+            nonceIncrement: 1
+        };
+        //can calc value by previous params
+        var testExpect = {
+            canSendTx: false,
+            canSubmitTx: false,
+            canExcuteTx: false,
+            fromBalanceAfterTx: '-1',
+            toBalanceAfterTx: '-1',
+            transferReward: '-1'
+        };
+        testContractDeploy(testInput, testExpect, done);
+    });
+
     it('signature invalid', function (done) {
 
         var testInput = {
@@ -318,6 +350,27 @@ describe('contract deploy', function () {
         testContractDeploy(testInput, testExpect, done);
     });
 
+    it('signature is null', function (done) {
+
+        var testInput = {
+            transferValue: 1,
+            isSameAddr: true,
+            isSignNull: true,
+            gasLimit: 2000000,
+            gasPrice: -1,
+            nonceIncrement: 1
+        };
+        //can calc value by previous params
+        var testExpect = {
+            canSendTx: false,
+            canSubmitTx: false,
+            canExcuteTx: false,
+            fromBalanceAfterTx: '',
+            toBalanceAfterTx: '',
+            transferReward: ''
+        };
+        testContractDeploy(testInput, testExpect, done);
+    });
 
     it('[balance sufficient] balanceOfFrom = (TxBaseGasCount + TxPayloadBaseGasCount[payloadType] + ' +
         'gasCountOfPayload + gasCountOfPayloadExecuted) * gasPrice + valueOfTx', function (done) {
@@ -682,6 +735,48 @@ describe('contract deploy', function () {
             fromBalanceAfterTx: '9999999977774000000',
             toBalanceAfterTx: '0',
             transferReward: '22226000000'
+        };
+        testContractDeploy(testInput, testExpect, done);
+    });
+
+    it('source is normal js file but not contract', function (done) {
+        var testInput = {
+            transferValue: 1,
+            isSameAddr: true,
+            isNormalJs: true,
+            gasLimit: 2000000,
+            gasPrice: -1,
+            nonceIncrement: 1
+        };
+
+        var testExpect = {
+            canSendTx: true,
+            canSubmitTx: true,
+            canExcuteTx: false,
+            fromBalanceAfterTx: '9999999979856000000',
+            toBalanceAfterTx: '0',
+            transferReward: '20144000000'
+        };
+        testContractDeploy(testInput, testExpect, done);
+    });
+
+    it('no init function in contract', function (done) {
+        var testInput = {
+            transferValue: 1,
+            isSameAddr: true,
+            NoInitFunc: true,
+            gasLimit: 2000000,
+            gasPrice: -1,
+            nonceIncrement: 1
+        };
+
+        var testExpect = {
+            canSendTx: true,
+            canSubmitTx: true,
+            canExcuteTx: false,
+            fromBalanceAfterTx: '9999999977295000000',
+            toBalanceAfterTx: '0',
+            transferReward: '22705000000'
         };
         testContractDeploy(testInput, testExpect, done);
     });
