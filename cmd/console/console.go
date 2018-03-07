@@ -52,7 +52,7 @@ type Neblet interface {
 type Console struct {
 
 	// terminal input prompter
-	prompter *TerminalPrompter
+	prompter UserPrompter
 
 	// Channel to send the next prompt on and receive the input
 	promptCh chan string
@@ -70,18 +70,41 @@ type Console struct {
 	writer io.Writer
 }
 
-// New new a console obj,config params is need
-func New(neb Neblet) *Console {
-	c := new(Console)
-	c.prompter = Stdin
-	c.promptCh = make(chan string)
-	c.writer = os.Stdout
-	c.jsBridge = newBirdge(neb.Config(), c.prompter, c.writer)
-	c.jsvm = newJSVM()
+type ConsoleConfig struct {
+	Prompter   UserPrompter
+	PrompterCh chan string
+	Writer     io.Writer
+	Neb        Neblet
+}
 
+// new a console by Config, neb.config params is need
+func New(conf ConsoleConfig) *Console {
+	c := new(Console)
+
+	if conf.Prompter != nil {
+		c.prompter = conf.Prompter
+	}
+
+	if conf.PrompterCh != nil {
+		c.promptCh = conf.PrompterCh
+	}
+
+	if conf.Writer != nil {
+		c.writer = conf.Writer
+	}
+
+	if conf.Neb != nil {
+		c.jsBridge = newBirdge(conf.Neb.Config(), c.prompter, c.writer)
+	} else {
+		// hack for test with local environment
+		c.jsBridge = newBirdge(nil, c.prompter, c.writer)
+	}
+
+	c.jsvm = newJSVM()
 	if err := c.loadLibraryScripts(); err != nil {
 		fmt.Fprintln(c.writer, err)
 	}
+
 	if err := c.methodSwizzling(); err != nil {
 		fmt.Fprintln(c.writer, err)
 	}

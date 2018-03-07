@@ -364,7 +364,7 @@ describe('normal transaction', function () {
         };
         //can calc value by previous params
         var testExpect = {
-            canSendTx: true,
+            canSendTx: false,
             canSubmitTx: false,
             canExcuteTx: true,
             fromBalanceAfterTx: '8999999980000000000',
@@ -385,7 +385,7 @@ describe('normal transaction', function () {
         };
         //can calc value by previous params
         var testExpect = {
-            canSendTx: true,
+            canSendTx: false,
             canSubmitTx: false,
             canExcuteTx: false,
             fromBalanceAfterTx: '8999999980000000000',

@@ -29,6 +29,15 @@ import (
 // Stdin holds the stdin line reader (also using stdout for printing prompts).
 var Stdin = NewTerminalPrompter()
 
+type UserPrompter interface {
+	Prompt(prompt string) (string, error)
+	PromptPassphrase(prompt string) (passwd string, err error)
+	PromptConfirm(prompt string) (bool, error)
+	SetHistory(history []string)
+	AppendHistory(command string)
+	SetWordCompleter(completer liner.WordCompleter)
+}
+
 // TerminalPrompter terminal prompter
 type TerminalPrompter struct {
 	liner     *liner.State
