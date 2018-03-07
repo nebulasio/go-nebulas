@@ -194,6 +194,10 @@ func (m *Manager) Update(addr *core.Address, oldPassphrase, newPassphrase []byte
 			return err
 		}
 	}
+	key, err = m.ks.GetKey(addr.String(), oldPassphrase)
+	if err != nil {
+		return err
+	}
 	_, err = m.storeAddress(key.(keystore.PrivateKey), newPassphrase, true)
 	return err
 }
