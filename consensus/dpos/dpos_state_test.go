@@ -96,7 +96,7 @@ func TestBlock_NextDynastyContext(t *testing.T) {
 	newBlock, _ = mockBlockFromNetwork(newBlock)
 	newBlock.LinkParentBlock(neb.chain, neb.chain.TailBlock())
 	newBlock.SetMiner(coinbase)
-	assert.Nil(t, newBlock.VerifyExecution(neb.chain.TailBlock(), neb.chain.ConsensusHandler()))
+	assert.Nil(t, newBlock.VerifyExecution()) //neb.chain.TailBlock(), neb.chain.ConsensusHandler()
 }
 
 func TestTraverseDynasty(t *testing.T) {

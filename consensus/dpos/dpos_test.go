@@ -19,6 +19,7 @@
 package dpos
 
 import (
+	"runtime"
 	"testing"
 
 	"github.com/nebulasio/go-nebulas/util"
@@ -429,7 +430,9 @@ func TestDpos_MintBlock(t *testing.T) {
 	assert.NotEqual(t, received, []byte{})
 }
 
-func TestContracts(t *testing.T) {
+func TestDposContracts(t *testing.T) {
+	runtime.GOMAXPROCS(runtime.NumCPU())
+
 	neb := mockNeb(t)
 	tail := neb.chain.TailBlock()
 	dpos := neb.consensus
@@ -446,12 +449,15 @@ func TestContracts(t *testing.T) {
 	c, _ := core.AddressParse("48f981ed38910f1232c1bab124f650c482a57271632db9e3")
 	assert.Nil(t, manager.Unlock(c, []byte("passphrase"), keystore.YearUnlockDuration))
 	d, _ := core.AddressParse("59fc526072b09af8a8ca9732dae17132c4e9127e43cf2232")
-	//assert.Nil(t, manager.Unlock(e, []byte("passphrase"), keystore.YearUnlockDuration))
+	assert.Nil(t, manager.Unlock(d, []byte("passphrase"), keystore.YearUnlockDuration))
 	e, _ := core.AddressParse("7da9dabedb4c6e121146fb4250a9883d6180570e63d6b080")
-	//assert.Nil(t, manager.Unlock(e, []byte("passphrase"), keystore.YearUnlockDuration))
+	assert.Nil(t, manager.Unlock(e, []byte("passphrase"), keystore.YearUnlockDuration))
 
 	f, _ := core.AddressParse("b040353ec0f2c113d5639444f7253681aecda1f8b91f179f")
 	//assert.Nil(t, manager.Unlock(f, []byte("passphrase"), keystore.YearUnlockDuration))
+
+	g, _ := core.AddressParse("b414432e15f21237013017fa6ee90fc99433dec82c1c8370")
+	h, _ := core.AddressParse("b49f30d0e5c9c88cade54cd1adecf6bc2c7e0e5af646d903")
 
 	elapsedSecond := int64(DynastyInterval)
 	consensusState, err := tail.WorldState().NextConsensusState(elapsedSecond)
@@ -461,21 +467,38 @@ func TestContracts(t *testing.T) {
 	block.SetTimestamp(tail.Timestamp() + elapsedSecond)
 	block.WorldState().SetConsensusState(consensusState)
 
-	tx := core.NewTransaction(neb.chain.ChainID(), a, d, util.NewUint128(), 1, core.TxPayloadBinaryType, []byte("nas"), core.TransactionGasPrice, util.NewUint128FromInt(200000))
-	assert.Nil(t, manager.SignTransaction(a, tx))
-	assert.Nil(t, neb.chain.TransactionPool().Push(tx))
+	j := 2
 
-	tx = core.NewTransaction(neb.chain.ChainID(), b, e, util.NewUint128(), 1, core.TxPayloadBinaryType, []byte("nas"), core.TransactionGasPrice, util.NewUint128FromInt(200000))
-	assert.Nil(t, manager.SignTransaction(b, tx))
-	assert.Nil(t, neb.chain.TransactionPool().Push(tx))
+	for i := 1; i < j; i++ {
+		gas, _ := util.NewUint128FromInt(1000000 + 4 + 4*int64(j-i))
+		limit, _ := util.NewUint128FromInt(200000)
+		tx := core.NewTransaction(neb.chain.ChainID(), a, h, util.NewUint128(), uint64(i), core.TxPayloadBinaryType, []byte("nas"), gas, limit)
+		assert.Nil(t, manager.SignTransaction(a, tx))
+		assert.Nil(t, neb.chain.TransactionPool().Push(tx))
 
-	tx = core.NewTransaction(neb.chain.ChainID(), c, f, util.NewUint128(), 1, core.TxPayloadBinaryType, []byte("nas"), core.TransactionGasPrice, util.NewUint128FromInt(200000))
-	assert.Nil(t, manager.SignTransaction(c, tx))
-	assert.Nil(t, neb.chain.TransactionPool().Push(tx))
-	//assert.Equal(t, neb.chain.TransactionPool().cache.Len(), 3)
+		gas, _ = util.NewUint128FromInt(1000000 + 3 + 4*int64(j-i))
+		tx = core.NewTransaction(neb.chain.ChainID(), b, e, util.NewUint128(), uint64(i), core.TxPayloadBinaryType, []byte("nas"), gas, limit)
+		assert.Nil(t, manager.SignTransaction(b, tx))
+		assert.Nil(t, neb.chain.TransactionPool().Push(tx))
+
+		gas, _ = util.NewUint128FromInt(1000000 + 2 + 4*int64(j-i))
+		tx = core.NewTransaction(neb.chain.ChainID(), c, f, util.NewUint128(), uint64(i), core.TxPayloadBinaryType, []byte("nas"), gas, limit)
+		assert.Nil(t, manager.SignTransaction(c, tx))
+		assert.Nil(t, neb.chain.TransactionPool().Push(tx))
+		//assert.Equal(t, neb.chain.TransactionPool().cache.Len(), 3)
+
+		gas, _ = util.NewUint128FromInt(1000000 + 1 + 4*int64(j-i))
+		tx = core.NewTransaction(neb.chain.ChainID(), d, g, util.NewUint128(), uint64(i), core.TxPayloadBinaryType, []byte("nas"), gas, limit)
+		assert.Nil(t, manager.SignTransaction(d, tx))
+		assert.Nil(t, neb.chain.TransactionPool().Push(tx))
+
+		//tx = core.NewTransaction(neb.chain.ChainID(), b, e, util.NewUint128(), 2, core.TxPayloadBinaryType, []byte("nas"), gas, limit)
+		//assert.Nil(t, manager.SignTransaction(b, tx))
+		//assert.Nil(t, neb.chain.TransactionPool().Push(tx))
+	}
 
 	block.CollectTransactions(time.Now().Unix() + 1)
-	assert.Equal(t, len(block.Transactions()), 3)
+	assert.Equal(t, len(block.Transactions()), 4*(j-1))
 	block.SetMiner(coinbase)
 	assert.Nil(t, block.Seal())
 	assert.Nil(t, manager.SignBlock(coinbase, block))
