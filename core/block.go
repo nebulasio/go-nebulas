@@ -1053,14 +1053,14 @@ func (block *Block) executeTransaction(tx *Transaction) (bool, uint64, error) {
 }
 
 // CheckContract check if contract is valid
-func (block *Block) CheckContract(addr *Address) error {
+func (block *Block) CheckContract(addr *Address) error { // ToFix: return contract
 
-	contract, err := block.accState.GetContractAccount(addr.Bytes())
+	contract, err := block.accState.GetContractAccount(addr.Bytes()) // ToFix: Check account is contract
 	if err != nil {
 		return err
 	}
 
-	if len(contract.BirthPlace()) == 0 {
+	if len(contract.BirthPlace()) == 0 { //TODO more check for tx hash
 		return ErrContractNotFound
 	}
 
@@ -1072,9 +1072,9 @@ func (block *Block) CheckContract(addr *Address) error {
 	result := false
 	for _, v := range birthEvents {
 
-		if v.Topic == TopicTransactionExecutionResult {
+		if v.Topic == TopicTransactionExecutionResult { // ToAdd: compatible codes
 			txEvent := TransactionEvent{}
-			json.Unmarshal([]byte(v.Data), &txEvent)
+			json.Unmarshal([]byte(v.Data), &txEvent) //TODO unmarshal error not handle
 			if txEvent.Status == TxExecutionSuccess {
 				result = true
 				break
@@ -1085,7 +1085,7 @@ func (block *Block) CheckContract(addr *Address) error {
 		}
 	}
 	if !result {
-		return ErrContractNotFound
+		return ErrContractNotFound // ToFix: errors should be failed to deploy
 	}
 
 	return nil

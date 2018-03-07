@@ -59,14 +59,14 @@ func (payload *CallPayload) BaseGasCount() *util.Uint128 {
 }
 
 // Execute the call payload in tx, call a function
-func (payload *CallPayload) Execute(block *Block, tx *Transaction) (*util.Uint128, string, error) {
+func (payload *CallPayload) Execute(block *Block, tx *Transaction) (*util.Uint128, string, error) { // ToCheck: check args.
 	ctx, deployPayload, err := generateCallContext(block, tx)
 	if err != nil {
 		return util.NewUint128(), "", err
 	}
 
 	//add gas limit and memory use limit
-	payloadGasLimit, err := tx.PayloadGasLimit(payload)
+	payloadGasLimit, err := tx.PayloadGasLimit(payload) // TODO move up first check
 	if err != nil {
 		return util.NewUint128(), "", err
 	}
@@ -81,17 +81,17 @@ func (payload *CallPayload) Execute(block *Block, tx *Transaction) (*util.Uint12
 	engine.SetExecutionLimits(payloadGasLimit.Uint64(), nvm.DefaultLimitsOfTotalMemorySize)
 
 	result, exeErr := engine.Call(deployPayload.Source, deployPayload.SourceType, payload.Function, payload.Args)
-	instructions, _ := util.NewUint128FromInt(int64(engine.ExecutionInstructions()))
+	instructions, _ := util.NewUint128FromInt(int64(engine.ExecutionInstructions())) // ToFix: catch err
 	return instructions, result, exeErr
 }
 
 func generateCallContext(block *Block, tx *Transaction) (*nvm.Context, *DeployPayload, error) {
 
-	contract, err := block.accState.GetContractAccount(tx.to.Bytes())
+	contract, err := block.accState.GetContractAccount(tx.to.Bytes()) // ToDel: redundant with checkcontract.
 	if err != nil {
 		return nil, nil, err
 	}
-	if err := block.CheckContract(tx.to); err != nil {
+	if err := block.CheckContract(tx.to); err != nil { // ToFix: CheckContract at the beginning.
 		return nil, nil, err
 	}
 
@@ -103,7 +103,7 @@ func generateCallContext(block *Block, tx *Transaction) (*nvm.Context, *DeployPa
 	if err != nil {
 		return nil, nil, err
 	}
-	deploy, err := LoadDeployPayload(birthTx.data.Payload)
+	deploy, err := LoadDeployPayload(birthTx.data.Payload) // ToConfirm: move deploy payload in ctx.
 	if err != nil {
 		return nil, nil, err
 	}
