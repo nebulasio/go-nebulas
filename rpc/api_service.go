@@ -588,7 +588,6 @@ func (s *APIService) GetEventsByHash(ctx context.Context, req *rpcpb.HashRequest
 
 // GetDynasty is the RPC API handler.
 func (s *APIService) GetDynasty(ctx context.Context, req *rpcpb.ByBlockHeightRequest) (*rpcpb.GetDynastyResponse, error) {
-
 	neb := s.server.Neblet()
 	block := neb.BlockChain().GetBlockOnCanonicalChainByHeight(req.Height)
 	if block == nil {

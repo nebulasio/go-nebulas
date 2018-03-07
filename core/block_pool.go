@@ -508,7 +508,7 @@ func (lb *linkedBlock) travelToLinkAndReturnAllValidBlocks(parentBlock *Block) (
 		return nil, nil, err
 	}
 
-	if err := lb.block.VerifyExecution(parentBlock, lb.chain.ConsensusHandler()); err != nil {
+	if err := lb.block.VerifyExecution(); err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"block": lb.block,
 			"err":   err,

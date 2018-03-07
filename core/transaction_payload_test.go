@@ -224,6 +224,7 @@ func TestPayload_Execute(t *testing.T) {
 	}
 
 	deployTx := mockDeployTransaction(bc.chainID, 0)
+	deployTx.to = deployTx.from
 	deployPayload, _ := deployTx.LoadPayload()
 	want, _ := util.NewUint128FromInt(189)
 	tests = append(tests, testPayload{

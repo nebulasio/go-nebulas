@@ -479,7 +479,7 @@ func (block *Block) CollectTransactions(deadline int64) {
 	parallelCh := make(chan bool, 32)
 	executedCh := make(chan *executedResult, 32)
 	mergeCh := make(chan bool, 1)
-	quitCh := false
+	over := false
 
 	go func() {
 		for !pool.Empty() {
@@ -488,6 +488,9 @@ func (block *Block) CollectTransactions(deadline int64) {
 			parallelCh <- true
 			go func() {
 				mergeCh <- true
+				if over {
+					return
+				}
 				txWorldState, err := block.Prepare(tx)
 				if err != nil {
 					return
@@ -506,36 +509,7 @@ func (block *Block) CollectTransactions(deadline int64) {
 						"giveback": giveback,
 					}).Debug("invalid tx.")
 					unpacked++
-					return
-				}
 
-				mergeCh <- true
-				dependency, err := block.CheckAndUpdate(tx)
-				if err != nil {
-					logging.CLog().WithFields(logrus.Fields{
-						"tx":       tx,
-						"err":      err,
-						"giveback": giveback,
-					}).Debug("CheckAndUpdate invalid tx.")
-					unpacked++
-				} else {
-					logging.CLog().WithFields(logrus.Fields{
-						"tx": tx,
-					}).Debug("packed tx.")
-					packed++
-					executedCh <- &executedResult{
-						transaction: tx,
-						dependency:  dependency,
-					}
-				}
-				delete(inprogress, tx.from.address.Hex())
-				<-mergeCh
-
-				<-parallelCh
-			}()
-
-			if quitCh && len(parallelCh) == 0 {
-				for _, tx := range givebacks {
 					err := pool.Push(tx)
 					if err != nil {
 						logging.VLog().WithFields(logrus.Fields{
@@ -544,7 +518,46 @@ func (block *Block) CollectTransactions(deadline int64) {
 							"err":   err,
 						}).Debug("Failed to giveback the tx.")
 					}
+				} else {
+					mergeCh <- true
+					if over {
+						return
+					}
+					dependency, err := block.CheckAndUpdate(tx)
+					if err != nil {
+						logging.CLog().WithFields(logrus.Fields{
+							"tx":       tx,
+							"err":      err,
+							"giveback": giveback,
+						}).Debug("CheckAndUpdate invalid tx.")
+						unpacked++
+
+						err := pool.Push(tx)
+						if err != nil {
+							logging.VLog().WithFields(logrus.Fields{
+								"block": block,
+								"tx":    tx,
+								"err":   err,
+							}).Debug("Failed to giveback the tx.")
+						}
+					} else {
+						logging.CLog().WithFields(logrus.Fields{
+							"tx": tx,
+						}).Debug("packed tx.")
+						packed++
+						executedCh <- &executedResult{
+							transaction: tx,
+							dependency:  dependency,
+						}
+					}
+					delete(inprogress, tx.from.address.Hex())
+					<-mergeCh
 				}
+				<-parallelCh
+			}()
+
+			if over {
+				return
 			}
 		}
 	}()
@@ -552,9 +565,11 @@ func (block *Block) CollectTransactions(deadline int64) {
 	for {
 		select {
 		case <-deadlineTimer.C:
-			quitCh = true
+			mergeCh <- true
+			over = true
 			block.transactions = transactions
 			block.dependency = dag
+			<-mergeCh
 			return
 		case result := <-executedCh:
 			transactions = append(transactions, result.transaction)
@@ -648,7 +663,7 @@ func (block *Block) String() string {
 }
 
 // VerifyExecution execute the block and verify the execution result.
-func (block *Block) VerifyExecution(parent *Block, consensus Consensus) error {
+func (block *Block) VerifyExecution() error {
 	block.Begin()
 
 	if err := block.execute(); err != nil {

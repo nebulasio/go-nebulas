@@ -19,6 +19,7 @@
 package core
 
 import (
+	"github.com/nebulasio/go-nebulas/common/dag"
 	"reflect"
 	"testing"
 	"time"
@@ -32,7 +33,6 @@ import (
 	"github.com/nebulasio/go-nebulas/core/pb"
 	"github.com/nebulasio/go-nebulas/crypto"
 	"github.com/nebulasio/go-nebulas/crypto/keystore"
-	"github.com/nebulasio/go-nebulas/crypto/keystore/secp256k1"
 	"github.com/nebulasio/go-nebulas/neblet/pb"
 	"github.com/nebulasio/go-nebulas/storage"
 	"github.com/nebulasio/go-nebulas/util"
@@ -310,6 +310,7 @@ func TestBlock(t *testing.T) {
 		miner        *Address
 		height       uint64
 		transactions Transactions
+		dependency   *dag.Dag
 	}
 	tests := []struct {
 		name    string
@@ -363,6 +364,7 @@ func TestBlock(t *testing.T) {
 						nil,
 					},
 				},
+				dag.NewDag(),
 			},
 			false,
 		},
@@ -374,6 +376,7 @@ func TestBlock(t *testing.T) {
 				miner:        tt.fields.miner,
 				height:       tt.fields.height,
 				transactions: tt.fields.transactions,
+				dependency:   tt.fields.dependency,
 			}
 			proto, _ := b.ToProto()
 			ir, _ := pb.Marshal(proto)
@@ -435,91 +438,6 @@ func TestBlock_LinkParentBlock(t *testing.T) {
 	}
 	assert.Equal(t, block2.LinkParentBlock(bc, genesis), ErrLinkToWrongParentBlock)
 	assert.Equal(t, block2.Height(), uint64(0))
-}
-
-func TestBlock_CollectTransactions(t *testing.T) {
-	neb := testNeb(t)
-	bc := neb.chain
-
-	tail := bc.tailBlock
-
-	ks := keystore.DefaultKS
-	priv := secp256k1.GeneratePrivateKey()
-	pubdata, _ := priv.PublicKey().Encoded()
-	from, _ := NewAddressFromPublicKey(pubdata)
-	ks.SetKey(from.String(), priv, []byte("passphrase"))
-	ks.Unlock(from.String(), []byte("passphrase"), time.Second*60*60*24*365)
-
-	key, _ := ks.GetUnlocked(from.String())
-	signature, _ := crypto.NewSignature(keystore.SECP256K1)
-	signature.InitSign(key.(keystore.PrivateKey))
-
-	priv1 := secp256k1.GeneratePrivateKey()
-	pubdata1, _ := priv1.PublicKey().Encoded()
-	to, _ := NewAddressFromPublicKey(pubdata1)
-	priv2 := secp256k1.GeneratePrivateKey()
-	pubdata2, _ := priv2.PublicKey().Encoded()
-	coinbase, _ := NewAddressFromPublicKey(pubdata2)
-
-	block, err := NewBlock(bc.ChainID(), from, tail)
-	assert.Nil(t, err)
-	block.header.timestamp = BlockInterval * 2
-
-	value, _ := util.NewUint128FromInt(1)
-	gasLimit, _ := util.NewUint128FromInt(200000)
-	tx1 := NewTransaction(bc.ChainID(), from, to, value, 1, TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, gasLimit)
-	tx1.Sign(signature)
-	tx2 := NewTransaction(bc.ChainID(), from, to, value, 2, TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, gasLimit)
-	tx2.Sign(signature)
-	tx3 := NewTransaction(bc.ChainID(), from, to, value, 0, TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, gasLimit)
-	tx3.Sign(signature)
-	tx4 := NewTransaction(bc.ChainID(), from, to, value, 4, TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, gasLimit)
-	tx4.Sign(signature)
-	tx5 := NewTransaction(bc.ChainID(), from, to, value, 3, TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, gasLimit)
-	tx5.Sign(signature)
-	tx6 := NewTransaction(bc.ChainID()+1, from, to, value, 1, TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, gasLimit)
-	tx6.Sign(signature)
-
-	assert.Nil(t, bc.txPool.Push(tx1))
-	assert.Nil(t, bc.txPool.Push(tx2))
-	assert.Nil(t, bc.txPool.Push(tx3))
-	assert.Nil(t, bc.txPool.Push(tx4))
-	assert.Nil(t, bc.txPool.Push(tx5))
-	assert.NotNil(t, bc.txPool.Push(tx6), ErrInvalidChainID)
-
-	assert.Equal(t, len(block.transactions), 0)
-	assert.Equal(t, len(bc.txPool.all), 5)
-	block.CollectTransactions(time.Now().Unix() + 2)
-	assert.Equal(t, len(block.transactions), 4)
-	assert.Equal(t, len(block.txPool.all), 0)
-
-	assert.Equal(t, block.Sealed(), false)
-	balance, err := block.GetBalance(block.header.coinbase.address)
-	assert.Nil(t, err)
-	assert.Equal(t, balance.Cmp(util.NewUint128()), 1)
-	block.SetMiner(coinbase)
-	block.Seal()
-	assert.Equal(t, block.Sealed(), true)
-	assert.Equal(t, block.transactions[0], tx1)
-	assert.Equal(t, block.transactions[1], tx2)
-	accStateRoot, err := block.worldState.AccountsRoot()
-	assert.Nil(t, err)
-	txsRoot, err := block.worldState.TxsRoot()
-	assert.Nil(t, err)
-	assert.Equal(t, block.StateRoot().Equals(accStateRoot), true)
-	assert.Equal(t, block.TxsRoot().Equals(txsRoot), true)
-	balance, err = block.GetBalance(block.header.coinbase.address)
-	assert.Nil(t, err)
-	// balance > BlockReward (BlockReward + gas)
-	//gas, _ := bc.EstimateGas(tx1)
-	logging.CLog().Info(balance.String())
-	logging.CLog().Info(BlockReward.String())
-	assert.NotEqual(t, balance.Cmp(BlockReward), 0)
-	// mock net message
-	block, _ = mockBlockFromNetwork(block)
-	assert.Equal(t, block.LinkParentBlock(bc, bc.tailBlock), nil)
-	block.SetMiner(coinbase)
-	assert.Nil(t, block.VerifyExecution(bc.tailBlock, bc.ConsensusHandler()))
 }
 
 func TestBlock_fetchEvents(t *testing.T) {
@@ -641,7 +559,7 @@ func TestBlockVerifyIntegrity(t *testing.T) {
 	assert.NotNil(t, block.VerifyIntegrity(bc.ChainID(), bc.ConsensusHandler()))
 }
 
-func TestBlockVerifyIntegrityDup(t *testing.T) {
+func TestBlockVerifyDupTx(t *testing.T) {
 	neb := testNeb(t)
 	bc := neb.chain
 	assert.Equal(t, bc.tailBlock.VerifyIntegrity(0, nil), ErrInvalidChainID)
@@ -659,15 +577,13 @@ func TestBlockVerifyIntegrityDup(t *testing.T) {
 	gasLimit, _ := util.NewUint128FromInt(200000)
 	tx1 := NewTransaction(bc.ChainID(), from, from, util.NewUint128(), 1, TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, gasLimit)
 	tx1.Sign(signature)
-	block.transactions = append(block.transactions, tx1)
-	block.transactions = append(block.transactions, tx1)
-	block.miner = from
-	block.Seal()
-	block.Sign(signature)
-	assert.Equal(t, block.VerifyExecution(bc.tailBlock, bc.ConsensusHandler()), ErrSmallTransactionNonce)
+	_, err = block.ExecuteTransaction(tx1, block.worldState)
+	assert.Nil(t, err)
+	_, err = block.ExecuteTransaction(tx1, block.worldState)
+	assert.Equal(t, err, ErrSmallTransactionNonce)
 }
 
-func TestBlockVerifyExecution(t *testing.T) {
+func TestBlockVerifyInvalidTx(t *testing.T) {
 	neb := testNeb(t)
 	bc := neb.chain
 	assert.Equal(t, bc.tailBlock.VerifyIntegrity(0, nil), ErrInvalidChainID)
@@ -687,18 +603,10 @@ func TestBlockVerifyExecution(t *testing.T) {
 	tx1.Sign(signature)
 	tx2 := NewTransaction(bc.ChainID(), from, from, util.NewUint128(), 3, TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, gasLimit)
 	tx2.Sign(signature)
-	block.transactions = append(block.transactions, tx1)
-	block.transactions = append(block.transactions, tx2)
-	block.miner = from
-	block.Seal()
-	block.Sign(signature)
-	assert.Nil(t, block.VerifyIntegrity(bc.ChainID(), bc.ConsensusHandler()))
-	header1, err := block.worldState.AccountsRoot()
+	_, err = block.ExecuteTransaction(tx1, block.worldState)
 	assert.Nil(t, err)
-	assert.Equal(t, block.VerifyExecution(bc.tailBlock, bc.ConsensusHandler()), ErrLargeTransactionNonce)
-	header2, err := block.worldState.AccountsRoot()
-	assert.Nil(t, err)
-	assert.Equal(t, header1, header2)
+	_, err = block.ExecuteTransaction(tx2, block.worldState)
+	assert.Equal(t, err, ErrLargeTransactionNonce)
 }
 
 func TestBlockVerifyState(t *testing.T) {
@@ -721,14 +629,23 @@ func TestBlockVerifyState(t *testing.T) {
 	tx1.Sign(signature)
 	tx2 := NewTransaction(bc.ChainID(), from, from, util.NewUint128(), 2, TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, gasLimit)
 	tx2.Sign(signature)
+	_, err = block.ExecuteTransaction(tx1, block.worldState)
+	assert.Nil(t, err)
 	block.transactions = append(block.transactions, tx1)
 	block.transactions = append(block.transactions, tx2)
+	_, err = block.ExecuteTransaction(tx2, block.worldState)
+	assert.Nil(t, err)
 	block.miner = from
+	dependency := dag.NewDag()
+	dependency.AddNode(tx1.Hash().Hex())
+	dependency.AddNode(tx2.Hash().Hex())
+	dependency.AddEdge(tx1.Hash().Hex(), tx2.Hash().Hex())
+	block.dependency = dependency
 	block.Seal()
 	block.Sign(signature)
 	assert.Nil(t, block.VerifyIntegrity(bc.ChainID(), bc.ConsensusHandler()))
 	block.header.stateRoot[0]++
-	assert.NotNil(t, block.VerifyExecution(bc.tailBlock, bc.ConsensusHandler()))
+	assert.NotNil(t, block.VerifyExecution())
 }
 
 func TestBlock_String(t *testing.T) {
