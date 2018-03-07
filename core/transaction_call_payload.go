@@ -20,6 +20,7 @@ package core
 
 import (
 	"encoding/json"
+
 	"github.com/nebulasio/go-nebulas/core/state"
 
 	"github.com/nebulasio/go-nebulas/nf/nvm"

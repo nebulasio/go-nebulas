@@ -19,10 +19,11 @@
 package core
 
 import (
-	"github.com/nebulasio/go-nebulas/common/dag"
 	"reflect"
 	"testing"
 	"time"
+
+	"github.com/nebulasio/go-nebulas/common/dag"
 
 	"github.com/nebulasio/go-nebulas/common/trie"
 	"github.com/nebulasio/go-nebulas/core/state"
@@ -145,40 +146,69 @@ type mockConsensus struct {
 	chain *BlockChain
 }
 
-func (c mockConsensus) Setup(neb Neblet) error {
+func (c *mockConsensus) Setup(neb Neblet) error {
 	c.chain = neb.BlockChain()
 	return nil
 }
 
-func (c mockConsensus) Start() {}
-func (c mockConsensus) Stop()  {}
+func (c *mockConsensus) Start() {}
+func (c *mockConsensus) Stop()  {}
 
-func (c mockConsensus) VerifyBlock(block *Block) error {
+func (c *mockConsensus) VerifyBlock(block *Block) error {
 	block.miner = block.Coinbase()
 	return nil
 }
 
-func (c mockConsensus) ForkChoice() error {
+func less(a *Block, b *Block) bool {
+	if a.Height() != b.Height() {
+		return a.Height() < b.Height()
+	}
+	return byteutils.Less(a.Hash(), b.Hash())
+}
+
+// ForkChoice select new tail
+func (c *mockConsensus) ForkChoice() error {
+	bc := c.chain
+	tailBlock := bc.TailBlock()
+	detachedTailBlocks := bc.DetachedTailBlocks()
+
+	// find the max depth.
+	newTailBlock := tailBlock
+
+	for _, v := range detachedTailBlocks {
+		if less(newTailBlock, v) {
+			newTailBlock = v
+		}
+	}
+
+	if newTailBlock.Hash().Equals(tailBlock.Hash()) {
+		return nil
+	}
+
+	err := bc.SetTailBlock(newTailBlock)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
-func (c mockConsensus) UpdateLIB() {}
+func (c *mockConsensus) UpdateLIB() {}
 
-func (c mockConsensus) SuspendMining() {}
-func (c mockConsensus) ResumeMining()  {}
-func (c mockConsensus) Pending() bool  { return false }
+func (c *mockConsensus) SuspendMining() {}
+func (c *mockConsensus) ResumeMining()  {}
+func (c *mockConsensus) Pending() bool  { return false }
 
-func (c mockConsensus) EnableMining(passphrase string) error { return nil }
-func (c mockConsensus) DisableMining() error                 { return nil }
-func (c mockConsensus) Enable() bool                         { return true }
+func (c *mockConsensus) EnableMining(passphrase string) error { return nil }
+func (c *mockConsensus) DisableMining() error                 { return nil }
+func (c *mockConsensus) Enable() bool                         { return true }
 
-func (c mockConsensus) CheckTimeout(block *Block) bool {
+func (c *mockConsensus) CheckTimeout(block *Block) bool {
 	return time.Now().Unix()-block.Timestamp() > AcceptedNetWorkDelay
 }
-func (c mockConsensus) NewState(byteutils.Hash, storage.Storage) (state.ConsensusState, error) {
+func (c *mockConsensus) NewState(byteutils.Hash, storage.Storage) (state.ConsensusState, error) {
 	return newMockConsensusState()
 }
-func (c mockConsensus) GenesisConsensusState(*BlockChain, *corepb.Genesis) (state.ConsensusState, error) {
+func (c *mockConsensus) GenesisConsensusState(*BlockChain, *corepb.Genesis) (state.ConsensusState, error) {
 	return newMockConsensusState()
 }
 
@@ -283,7 +313,7 @@ func (n *mockNeb) StartActiveSync() {}
 func testNeb(t *testing.T) *mockNeb {
 	storage, _ := storage.NewMemoryStorage()
 	eventEmitter := NewEventEmitter(1024)
-	var consensus mockConsensus
+	consensus := new(mockConsensus)
 	var am mockManager
 	var ns mockNetService
 	neb := &mockNeb{
@@ -302,6 +332,12 @@ func testNeb(t *testing.T) *mockNeb {
 	consensus.Setup(neb)
 	chain.Setup(neb)
 	return neb
+}
+
+func TestNeb(t *testing.T) {
+	neb := testNeb(t)
+	assert.Equal(t, neb.chain.ConsensusHandler(), neb.consensus)
+	assert.Equal(t, neb.consensus.(*mockConsensus).chain, neb.chain)
 }
 
 func TestBlock(t *testing.T) {

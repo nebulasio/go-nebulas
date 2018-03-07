@@ -190,6 +190,7 @@ func (block *Block) FromProto(msg proto.Message) error {
 		if err := block.dependency.FromProto(msg.Dependency); err != nil {
 			return err
 		}
+		block.gasConsumed = make(map[string]*util.Uint128)
 		block.height = msg.Height
 		block.miner = &Address{msg.Miner}
 		return nil
@@ -484,6 +485,10 @@ func (block *Block) CollectTransactions(deadline int64) {
 	go func() {
 		for !pool.Empty() {
 			tx := pool.PopWithBlacklist(inprogress)
+			if tx == nil {
+				time.Sleep(time.Millisecond * 100)
+				continue
+			}
 
 			parallelCh <- true
 			go func() {

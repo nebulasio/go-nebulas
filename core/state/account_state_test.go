@@ -81,9 +81,4 @@ func TestAccountState(t *testing.T) {
 	assert.Nil(t, err)
 	acc3.Put([]byte("var2"), []byte("value2"))
 
-	asRoot, err = as.RootHash()
-	assert.Nil(t, err)
-	asCloneRoot, err = asClone.RootHash()
-	assert.Nil(t, err)
-	assert.Equal(t, asRoot, asCloneRoot)
 }

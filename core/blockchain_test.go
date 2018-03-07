@@ -50,27 +50,27 @@ func TestBlockChain_FindCommonAncestorWithTail(t *testing.T) {
 	block0.header.timestamp = BlockInterval
 	block0.SetMiner(from)
 	block0.Seal()
-	netBlock0, err := mockBlockFromNetwork(block0)
-	assert.Nil(t, err)
-	assert.Nil(t, bc.BlockPool().Push(netBlock0))
+	assert.Nil(t, bc.BlockPool().Push(block0))
 	bc.SetTailBlock(block0)
 	assert.Equal(t, bc.latestIrreversibleBlock, bc.genesisBlock)
 
-	coinbase11 := &Address{[]byte("012345678901234567890011")}
-	coinbase12 := &Address{[]byte("012345678901234567890012")}
-	coinbase111 := &Address{[]byte("012345678901234567890111")}
-	coinbase221 := &Address{[]byte("012345678901234567890221")}
-	coinbase222 := &Address{[]byte("012345678901234567890222")}
-	coinbase1111 := &Address{[]byte("012345678901234567891111")}
-	coinbase11111 := &Address{[]byte("012345678901234567811111")}
+	coinbase11 := mockAddress()
+	coinbase12 := mockAddress()
+	coinbase111 := mockAddress()
+	coinbase221 := mockAddress()
+	coinbase222 := mockAddress()
+	coinbase1111 := mockAddress()
+	coinbase11111 := mockAddress()
 	/*
 		genesis -- 0 -- 11 -- 111 -- 1111
 					 \_ 12 -- 221
 					       \_ 222 tail
 	*/
-	block11, _ := bc.NewBlock(coinbase11)
+	block11, err := bc.NewBlock(coinbase11)
+	assert.Nil(t, err)
 	block11.header.timestamp = BlockInterval * 2
-	block12, _ := bc.NewBlock(coinbase12)
+	block12, err := bc.NewBlock(coinbase12)
+	assert.Nil(t, err)
 	block12.header.timestamp = BlockInterval * 3
 	block11.SetMiner(coinbase11)
 	block11.Seal()
@@ -131,18 +131,12 @@ func TestBlockChain_FindCommonAncestorWithTail(t *testing.T) {
 	}
 	assert.Equal(t, len(tails), 3)
 
-	test := &Block{header: &BlockHeader{coinbase: &Address{}}, miner: &Address{}}
-	netTest, err := mockBlockFromNetwork(test)
-	assert.Nil(t, err)
-	_, err = bc.FindCommonAncestorWithTail(netTest)
-	assert.Equal(t, err, ErrMissingParentBlock)
-
 	netBlock1111, err = mockBlockFromNetwork(block1111)
 	assert.Nil(t, err)
 	common1, err := bc.FindCommonAncestorWithTail(netBlock1111)
 	assert.Nil(t, err)
 
-	netBlock0, err = mockBlockFromNetwork(block0)
+	netBlock0, err := mockBlockFromNetwork(block0)
 	assert.Nil(t, err)
 	netCommon1, err := mockBlockFromNetwork(common1)
 	assert.Nil(t, err)
@@ -301,13 +295,5 @@ func TestGetPrice(t *testing.T) {
 	block.Seal()
 	block.Sign(signature)
 	bc.SetTailBlock(block)
-	bc.storeBlockToStorage(block)
-	block, err = bc.NewBlock(from)
-	assert.Nil(t, err)
-	block.miner = from
-	block.Seal()
-	block.Sign(signature)
-	bc.SetTailBlock(block)
-	bc.storeBlockToStorage(block)
 	assert.Equal(t, bc.GasPrice(), lowerGasPrice)
 }

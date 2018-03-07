@@ -19,8 +19,9 @@
 package core
 
 import (
-	"github.com/nebulasio/go-nebulas/core/state"
 	"testing"
+
+	"github.com/nebulasio/go-nebulas/core/state"
 
 	"github.com/nebulasio/go-nebulas/util"
 	"github.com/stretchr/testify/assert"

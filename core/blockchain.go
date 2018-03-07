@@ -628,13 +628,29 @@ func (bc *BlockChain) GasPrice() *util.Uint128 {
 
 // EstimateGas returns the transaction gas cost
 func (bc *BlockChain) EstimateGas(tx *Transaction) (*util.Uint128, error) {
+	block, err := bc.NewBlock(GenesisCoinbase)
+	if err != nil {
+		return util.NewUint128(), err
+	}
+	if err != block.Begin() {
+		return util.NewUint128(), err
+	}
 	gas, _, err := tx.LocalExecution(bc.tailBlock)
+	block.RollBack()
 	return gas, err
 }
 
 // Call returns the transaction call result
 func (bc *BlockChain) Call(tx *Transaction) (string, error) {
+	block, err := bc.NewBlock(GenesisCoinbase)
+	if err != nil {
+		return "", err
+	}
+	if err != block.Begin() {
+		return "", err
+	}
 	_, result, err := tx.LocalExecution(bc.tailBlock)
+	block.RollBack()
 	return result, err
 }
 

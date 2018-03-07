@@ -19,8 +19,9 @@
 package core
 
 import (
-	"github.com/nebulasio/go-nebulas/common/dag"
 	"io/ioutil"
+
+	"github.com/nebulasio/go-nebulas/common/dag"
 
 	"github.com/nebulasio/go-nebulas/core/state"
 

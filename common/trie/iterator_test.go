@@ -104,19 +104,19 @@ func TestIterator1(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, next, true)
 	assert.Equal(t, it.Value(), []byte(names[2]))
-	assert.Equal(t, it.Key(), keyToRoute([]byte(keys[2])))
+	assert.Equal(t, it.Key(), []byte(keys[2]))
 
 	next, err = it.Next()
 	assert.Nil(t, err)
 	assert.Equal(t, next, true)
 	assert.Equal(t, it.Value(), []byte(names[1]))
-	assert.Equal(t, it.Key(), keyToRoute([]byte(keys[1])))
+	assert.Equal(t, it.Key(), []byte(keys[1]))
 
 	next, err = it.Next()
 	assert.Nil(t, err)
 	assert.Equal(t, next, true)
 	assert.Equal(t, it.Value(), []byte(names[0]))
-	assert.Equal(t, it.Key(), keyToRoute([]byte(keys[0])))
+	assert.Equal(t, it.Key(), []byte(keys[0]))
 
 	next, err = it.Next()
 	assert.Nil(t, err)
@@ -147,7 +147,7 @@ func TestIterator2(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, next, true)
 	assert.Equal(t, it.Value(), []byte(names[0]))
-	assert.Equal(t, it.Key(), keyToRoute([]byte(keys[0])))
+	assert.Equal(t, it.Key(), []byte(keys[0]))
 
 	tr.Put(keys[1], []byte(names[1]))
 	it, err = tr.Iterator([]byte{0x12})
@@ -156,11 +156,11 @@ func TestIterator2(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, next, true)
 	assert.Equal(t, it.Value(), []byte(names[1]))
-	assert.Equal(t, it.Key(), keyToRoute([]byte(keys[1])))
+	assert.Equal(t, it.Key(), []byte(keys[1]))
 	next, err = it.Next()
 	assert.Equal(t, next, true)
 	assert.Equal(t, it.Value(), []byte(names[0]))
-	assert.Equal(t, it.Key(), keyToRoute([]byte(keys[0])))
+	assert.Equal(t, it.Key(), []byte(keys[0]))
 
 	tr.Put(keys[2], []byte(names[2]))
 
@@ -170,19 +170,19 @@ func TestIterator2(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, next, true)
 	assert.Equal(t, it.Value(), []byte(names[2]))
-	assert.Equal(t, it.Key(), keyToRoute([]byte(keys[2])))
+	assert.Equal(t, it.Key(), []byte(keys[2]))
 
 	next, err = it.Next()
 	assert.Nil(t, err)
 	assert.Equal(t, next, true)
 	assert.Equal(t, it.Value(), []byte(names[1]))
-	assert.Equal(t, it.Key(), keyToRoute([]byte(keys[1])))
+	assert.Equal(t, it.Key(), []byte(keys[1]))
 
 	next, err = it.Next()
 	assert.Nil(t, err)
 	assert.Equal(t, next, true)
 	assert.Equal(t, it.Value(), []byte(names[0]))
-	assert.Equal(t, it.Key(), keyToRoute([]byte(keys[0])))
+	assert.Equal(t, it.Key(), []byte(keys[0]))
 
 	next, err = it.Next()
 	assert.Nil(t, err)

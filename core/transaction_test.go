@@ -20,10 +20,11 @@ package core
 
 import (
 	"fmt"
-	"github.com/nebulasio/go-nebulas/core/state"
 	"reflect"
 	"testing"
 	"time"
+
+	"github.com/nebulasio/go-nebulas/core/state"
 
 	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/core/pb"

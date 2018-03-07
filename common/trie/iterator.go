@@ -20,6 +20,7 @@ package trie
 
 import (
 	"errors"
+
 	"github.com/nebulasio/go-nebulas/crypto/hash"
 )
 

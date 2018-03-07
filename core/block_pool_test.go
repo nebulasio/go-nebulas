@@ -37,11 +37,6 @@ import (
 func TestBlockPool(t *testing.T) {
 	received = []byte{}
 
-	neb := testNeb(t)
-	bc := neb.chain
-	pool := bc.bkPool
-	assert.Equal(t, pool.cache.Len(), 0)
-
 	ks := keystore.DefaultKS
 	priv := secp256k1.GeneratePrivateKey()
 	pubdata, _ := priv.PublicKey().Encoded()
@@ -51,6 +46,12 @@ func TestBlockPool(t *testing.T) {
 	key, _ := ks.GetUnlocked(from.String())
 	signature, _ := crypto.NewSignature(keystore.SECP256K1)
 	signature.InitSign(key.(keystore.PrivateKey))
+
+	neb := testNeb(t)
+	bc := neb.chain
+	pool := bc.bkPool
+	assert.Equal(t, pool.cache.Len(), 0)
+
 	bc.tailBlock.Begin()
 	baseGas, _ := util.NewUint128FromInt(2000000)
 	balance, err := TransactionGasPrice.Mul(baseGas)
@@ -70,6 +71,7 @@ func TestBlockPool(t *testing.T) {
 	block0.header.timestamp = bc.tailBlock.header.timestamp + BlockInterval
 	block0.SetMiner(addr)
 	block0.Seal()
+	assert.Nil(t, pool.Push(block0))
 
 	addr, err = AddressParse(MockDynasty[2])
 	assert.Nil(t, err)
@@ -78,6 +80,7 @@ func TestBlockPool(t *testing.T) {
 	block1.header.timestamp = block0.header.timestamp + BlockInterval
 	block1.SetMiner(addr)
 	block1.Seal()
+	assert.Nil(t, pool.Push(block1))
 
 	addr, err = AddressParse(MockDynasty[3])
 	assert.Nil(t, err)
@@ -86,6 +89,7 @@ func TestBlockPool(t *testing.T) {
 	block2.header.timestamp = block1.header.timestamp + BlockInterval
 	block2.SetMiner(addr)
 	block2.Seal()
+	assert.Nil(t, pool.Push(block2))
 
 	addr, err = AddressParse(MockDynasty[4])
 	assert.Nil(t, err)
@@ -94,6 +98,7 @@ func TestBlockPool(t *testing.T) {
 	block3.header.timestamp = block2.header.timestamp + BlockInterval
 	block3.SetMiner(addr)
 	block3.Seal()
+	assert.Nil(t, pool.Push(block3))
 
 	addr, err = AddressParse(MockDynasty[5])
 	assert.Nil(t, err)
@@ -102,9 +107,26 @@ func TestBlockPool(t *testing.T) {
 	block4.header.timestamp = block3.header.timestamp + BlockInterval
 	block4.SetMiner(addr)
 	block4.Seal()
+	assert.Nil(t, pool.Push(block4))
+
+	neb = testNeb(t)
+	bc = neb.chain
+	pool = bc.bkPool
+
+	bc.tailBlock.Begin()
+	baseGas, _ = util.NewUint128FromInt(2000000)
+	balance, err = TransactionGasPrice.Mul(baseGas)
+	assert.Nil(t, err)
+	acc, err = bc.tailBlock.worldState.GetOrCreateUserAccount(from.Bytes())
+	assert.Nil(t, err)
+	acc.AddBalance(balance)
+	bc.tailBlock.header.stateRoot, err = bc.tailBlock.worldState.AccountsRoot()
+	assert.Nil(t, err)
+	bc.tailBlock.Commit()
+	bc.storeBlockToStorage(bc.tailBlock)
 
 	err = pool.Push(block0)
-	assert.NoError(t, err)
+	assert.Nil(t, err)
 	assert.Equal(t, pool.cache.Len(), 0)
 	err = pool.PushAndBroadcast(block0)
 	assert.Equal(t, err, ErrDuplicatedBlock)
@@ -225,19 +247,12 @@ func TestHandleDownloadedBlock(t *testing.T) {
 
 	block1, err := bc.NewBlock(from)
 	assert.Nil(t, err)
+	block1.SetTimestamp(BlockInterval)
 	block1.SetMiner(from)
 	block1.Seal()
 	block1.Sign(signature)
-	bc.SetTailBlock(block1)
 
-	block2, err := bc.NewBlock(from)
-	assert.Nil(t, err)
-	block2.SetMiner(from)
-	block2.Seal()
-	block2.Sign(signature)
-	bc.SetTailBlock(block2)
-	bc.storeBlockToStorage(block2)
-
+	// wrong message type
 	downloadBlock := new(corepb.DownloadBlock)
 	downloadBlock.Hash = block1.Hash()
 	downloadBlock.Sign = block1.Signature()
@@ -247,6 +262,7 @@ func TestHandleDownloadedBlock(t *testing.T) {
 	bc.bkPool.handleDownloadedBlock(msg)
 	assert.Equal(t, received, []byte{})
 
+	// no need to download genesis
 	downloadBlock = new(corepb.DownloadBlock)
 	downloadBlock.Hash = bc.genesisBlock.Hash()
 	downloadBlock.Sign = bc.genesisBlock.Signature()
@@ -256,6 +272,7 @@ func TestHandleDownloadedBlock(t *testing.T) {
 	bc.bkPool.handleDownloadedBlock(msg)
 	assert.Equal(t, received, []byte{})
 
+	// cannot find downloaded block
 	downloadBlock = new(corepb.DownloadBlock)
 	downloadBlock.Hash = block1.Hash()
 	downloadBlock.Sign = block1.Signature()
@@ -264,8 +281,18 @@ func TestHandleDownloadedBlock(t *testing.T) {
 	msg = net.NewBaseMessage(MessageTypeDownloadedBlock, "from", data)
 	bc.bkPool.handleDownloadedBlock(msg)
 	assert.Equal(t, received, []byte{})
-	bc.storeBlockToStorage(block1)
 
+	assert.Nil(t, bc.BlockPool().Push(block1))
+
+	block2, err := bc.NewBlock(from)
+	assert.Nil(t, err)
+	block2.SetTimestamp(BlockInterval * 2)
+	block2.SetMiner(from)
+	block2.Seal()
+	block2.Sign(signature)
+	assert.Nil(t, bc.BlockPool().Push(block2))
+
+	// wrong signature
 	downloadBlock = new(corepb.DownloadBlock)
 	downloadBlock.Hash = block1.Hash()
 	downloadBlock.Sign = block2.Signature()
@@ -275,6 +302,7 @@ func TestHandleDownloadedBlock(t *testing.T) {
 	bc.bkPool.handleDownloadedBlock(msg)
 	assert.Equal(t, received, []byte{})
 
+	// right
 	downloadBlock = new(corepb.DownloadBlock)
 	downloadBlock.Hash = block1.Hash()
 	downloadBlock.Sign = block1.Signature()

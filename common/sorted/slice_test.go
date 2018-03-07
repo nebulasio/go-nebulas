@@ -19,8 +19,9 @@
 package sorted
 
 import (
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func testCmp(a interface{}, b interface{}) int {
@@ -42,7 +43,7 @@ func TestSlice(t *testing.T) {
 	slice.Push(4)
 	assert.Equal(t, slice.Min(), 2)
 	assert.Equal(t, slice.Max(), 4)
-	assert.Equal(t, slice.Pop(), 2)
+	assert.Equal(t, slice.PopMin(), 2)
 	slice.Del(4)
 	slice.Push(1)
 	assert.Equal(t, slice.Max(), 3)

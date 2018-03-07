@@ -20,6 +20,7 @@ package state
 
 import (
 	"encoding/json"
+
 	"github.com/nebulasio/go-nebulas/util/logging"
 
 	"github.com/nebulasio/go-nebulas/common/mvccdb"
@@ -111,22 +112,40 @@ func (s *states) Replay(done *states) error {
 }
 
 func (s *states) Clone() (WorldState, error) {
-	accState, err := s.accState.Clone()
+	changelog, err := newChangeLog()
 	if err != nil {
 		return nil, err
 	}
-	txsState, err := s.txsState.Clone()
+	storage, err := newStorage(s.storage)
 	if err != nil {
 		return nil, err
 	}
-	eventsState, err := s.eventsState.Clone()
+
+	accRoot, err := s.accState.RootHash()
 	if err != nil {
 		return nil, err
 	}
-	consensusState, err := s.consensusState.Clone()
+	accState, err := NewAccountState(accRoot, storage)
 	if err != nil {
 		return nil, err
 	}
+	txsState, err := trie.NewTrie(s.txsState.RootHash(), storage)
+	if err != nil {
+		return nil, err
+	}
+	eventsState, err := trie.NewTrie(s.eventsState.RootHash(), storage)
+	if err != nil {
+		return nil, err
+	}
+	consensusRoot, err := s.consensusState.RootHash()
+	if err != nil {
+		return nil, err
+	}
+	consensusState, err := s.consensus.NewState(consensusRoot, storage)
+	if err != nil {
+		return nil, err
+	}
+
 	return &states{
 		accState:       accState,
 		txsState:       txsState,
@@ -134,8 +153,8 @@ func (s *states) Clone() (WorldState, error) {
 		consensusState: consensusState,
 
 		consensus: s.consensus,
-		changelog: s.changelog,
-		storage:   s.storage,
+		changelog: changelog,
+		storage:   storage,
 		txid:      s.txid,
 	}, nil
 }
