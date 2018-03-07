@@ -985,3 +985,53 @@ func TestNRC20ContractMultitimes(t *testing.T) {
 		TestNRC20Contract(t)
 	}
 }
+
+func TestNebulasContract(t *testing.T) {
+	tests := []struct {
+		name     string
+		value    string
+		function string
+		args     string
+		err      error
+	}{
+		{"1", "0", "unpayable", "", nil},
+		{"2", "0", "unpayable", "[1]", nil},
+		{"3", "1", "unpayable", "", nil},
+		{"4", "0", "payable", "", ErrExecutionFailed},
+		{"5", "1", "payable", "", nil},
+		{"6", "1", "payable", "[1]", nil},
+		{"7", "0", "contract1", "[1]", nil},
+		{"8", "1", "contract1", "[1]", nil},
+		{"9", "0", "contract2", "[1]", ErrExecutionFailed},
+		{"10", "1", "contract2", "[1]", ErrExecutionFailed},
+		{"11", "0", "contract3", "[1]", ErrExecutionFailed},
+		{"12", "1", "contract3", "[1]", nil},
+		{"13", "0", "contract4", "[1]", ErrExecutionFailed},
+		{"14", "1", "contract4", "[1]", ErrExecutionFailed},
+	}
+
+	mem, _ := storage.NewMemoryStorage()
+	context, _ := state.NewAccountState(nil, mem)
+	owner, err := context.GetOrCreateUserAccount([]byte("8a209cec02cbeab7e2f74ad969d2dfe8dd24416aa65589bf"))
+	assert.Nil(t, err)
+	owner.AddBalance(newUint128FromIntWrapper(1000000000))
+	contract, _ := context.CreateContractAccount([]byte("16464b93292d7c99099d4d982a05140f12779f5e299d6eb4"), nil)
+
+	ctx := NewContext(testContextBlock(), testContextTransaction(), owner, contract, context)
+
+	data, err := ioutil.ReadFile("test/mixin.js")
+	assert.Nil(t, err, "filepath read error")
+	sourceType := "js"
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+
+			ctx.tx.Value = tt.value
+			engine := NewV8Engine(ctx)
+			engine.SetExecutionLimits(10000, 100000000)
+			_, err := engine.Call(string(data), sourceType, tt.function, tt.args)
+			assert.Equal(t, tt.err, err)
+			engine.Dispose()
+		})
+	}
+}

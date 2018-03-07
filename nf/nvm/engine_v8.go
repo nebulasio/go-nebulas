@@ -52,6 +52,8 @@ import (
 	"time"
 	"unsafe"
 
+	"encoding/json"
+
 	lru "github.com/hashicorp/golang-lru"
 	"github.com/nebulasio/go-nebulas/core/state"
 	"github.com/nebulasio/go-nebulas/crypto/hash"
@@ -76,6 +78,7 @@ var (
 	ErrInjectTracingInstructionFailed = errors.New("inject tracing instructions failed")
 	ErrTranspileTypeScriptFailed      = errors.New("transpile TypeScript failed")
 	ErrUnsupportedSourceType          = errors.New("unsupported source type")
+	ErrArgumentsFormat                = errors.New("arguments format error")
 )
 
 var (
@@ -427,6 +430,11 @@ func (e *V8Engine) prepareRunnableContractScript(source, function, args string) 
 	var runnableSource string
 
 	if len(args) > 0 {
+		var argsObj []interface{}
+		if err := json.Unmarshal([]byte(args), &argsObj); err != nil {
+			return "", 0, ErrArgumentsFormat
+		}
+
 		runnableSource = fmt.Sprintf("var __contract = require(\"%s\");\n var __instance = new __contract();\n Blockchain.blockParse(\"%s\");\n Blockchain.transactionParse(\"%s\");\n __instance[\"%s\"].apply(__instance, JSON.parse(\"%s\"));\n", ModuleID, formatArgs(string(blockJSON)), formatArgs(string(txJSON)), function, formatArgs(args))
 	} else {
 		runnableSource = fmt.Sprintf("var __contract = require(\"%s\");\n var __instance = new __contract();\n Blockchain.blockParse(\"%s\");\n Blockchain.transactionParse(\"%s\");\n __instance[\"%s\"].apply(__instance);\n", ModuleID, formatArgs(string(blockJSON)), formatArgs(string(txJSON)), function)
