@@ -476,7 +476,7 @@ func (block *Block) CollectTransactions(deadline int64) {
 	transactions := []*Transaction{}
 	inprogress := make(map[byteutils.HexHash]bool)
 
-	parallelCh := make(chan bool, 32)
+	parallelCh := make(chan bool, 2)
 	executedCh := make(chan *executedResult, 32)
 	mergeCh := make(chan bool, 1)
 	over := false
@@ -489,10 +489,12 @@ func (block *Block) CollectTransactions(deadline int64) {
 			go func() {
 				mergeCh <- true
 				if over {
+					<-mergeCh
 					return
 				}
 				txWorldState, err := block.Prepare(tx)
 				if err != nil {
+					<-mergeCh
 					return
 				}
 				inprogress[tx.from.address.Hex()] = true
@@ -521,6 +523,7 @@ func (block *Block) CollectTransactions(deadline int64) {
 				} else {
 					mergeCh <- true
 					if over {
+						<-mergeCh
 						return
 					}
 					dependency, err := block.CheckAndUpdate(tx)
@@ -570,6 +573,7 @@ func (block *Block) CollectTransactions(deadline int64) {
 			block.transactions = transactions
 			block.dependency = dag
 			<-mergeCh
+			logging.CLog().Info("deadlineTimer")
 			return
 		case result := <-executedCh:
 			transactions = append(transactions, result.transaction)
@@ -857,6 +861,7 @@ func (block *Block) execute() error {
 		mergeCh <- true
 		txWorldState, err := block.Prepare(tx)
 		if err != nil {
+			<-mergeCh
 			return err
 		}
 		<-mergeCh
@@ -867,6 +872,7 @@ func (block *Block) execute() error {
 
 		mergeCh <- true
 		if _, err := block.CheckAndUpdate(tx); err != nil {
+			<-mergeCh
 			return err
 		}
 		<-mergeCh
@@ -876,6 +882,7 @@ func (block *Block) execute() error {
 
 	start := time.Now().UnixNano()
 	if err := dispatcher.Run(); err != nil {
+		logging.CLog().Info("dispatcher err:", err)
 		return err
 	}
 	end := time.Now().UnixNano()

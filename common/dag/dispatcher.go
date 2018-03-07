@@ -51,7 +51,7 @@ func NewDispatcher(dag *Dag, concurrency int, context interface{}, cb Callback) 
 		dag:         dag,
 		cb:          cb,
 		tasks:       make(map[interface{}]*Task, 0),
-		quitCh:      make(chan bool, concurrency),
+		quitCh:      make(chan bool, 2*concurrency),
 		queueCh:     make(chan *Node, 10240),
 		cursor:      0,
 		context:     context,
@@ -117,9 +117,9 @@ func (dp *Dispatcher) loop() {
 					if err != nil {
 						dp.err = err
 						dp.Stop()
-						return
+					} else {
+						dp.CompleteParentTask(msg)
 					}
-					dp.CompleteParentTask(msg)
 				}
 			}
 		}()
@@ -133,7 +133,10 @@ func (dp *Dispatcher) Stop() {
 	logging.CLog().Info("Stopping dag Dispatcher...")
 
 	for i := 0; i < dp.concurrency; i++ {
-		dp.quitCh <- true
+		select {
+		case dp.quitCh <- true:
+		default:
+		}
 	}
 }
 
