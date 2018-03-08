@@ -197,9 +197,9 @@ func (bc *BlockChain) CheckChainConfig(neb Neblet) error {
 		return ErrInvalidConfigChainID
 	}
 
-	if genesis, _ := DumpGenesis(bc.storage); genesis != nil {
+	if genesis, _ := DumpGenesis(bc.storage); genesis != nil { // ToRefine: move to genesis.go
 		if neb.Genesis().Meta.ChainId != genesis.Meta.ChainId {
-			return ErrGenesisConfNotMatch
+			return ErrGenesisConfNotMatch // ToRefine: different Match use different error
 		}
 
 		if len(neb.Genesis().Consensus.Dpos.Dynasty) != len(genesis.Consensus.Dpos.Dynasty) {
@@ -326,7 +326,7 @@ func (bc *BlockChain) SetTailBlock(newTail *Block) error {
 		return err
 	}
 
-	if err := bc.revertBlocks(ancestor, oldTail); err != nil {
+	if err := bc.revertBlocks(ancestor, oldTail); err != nil { // ToConfirm: add TopicRevertBlock
 		logging.VLog().WithFields(logrus.Fields{
 			"from":  ancestor,
 			"to":    oldTail,

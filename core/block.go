@@ -63,7 +63,7 @@ type BlockHeader struct {
 	dposContext *corepb.DposContext
 
 	coinbase  *Address
-	nonce     uint64
+	nonce     uint64 // ToDelete: delete nonce.
 	timestamp int64
 	chainID   uint32
 
@@ -91,19 +91,19 @@ func (b *BlockHeader) ToProto() (proto.Message, error) {
 }
 
 // FromProto converts proto BlockHeader to domain BlockHeader
-func (b *BlockHeader) FromProto(msg proto.Message) error {
+func (b *BlockHeader) FromProto(msg proto.Message) error { // ToCheck: msg is not nil.
 	if msg, ok := msg.(*corepb.BlockHeader); ok {
 		b.hash = msg.Hash
 		b.parentHash = msg.ParentHash
 		b.stateRoot = msg.StateRoot
 		b.txsRoot = msg.TxsRoot
 		b.eventsRoot = msg.EventsRoot
-		b.dposContext = msg.DposContext
+		b.dposContext = msg.DposContext // ToCheck: msg.DposContext is not nil.
 		b.nonce = msg.Nonce
-		b.coinbase = &Address{msg.Coinbase}
+		b.coinbase = &Address{msg.Coinbase} // ToCheck: check address.
 		b.timestamp = msg.Timestamp
 		b.chainID = msg.ChainId
-		b.alg = uint8(msg.Alg)
+		b.alg = uint8(msg.Alg) // ToRefine: keystore.Algorithm
 		b.sign = msg.Sign
 		return nil
 	}
@@ -152,14 +152,14 @@ func (block *Block) ToProto() (proto.Message, error) {
 			Header:       header,
 			Transactions: txs,
 			Height:       block.height,
-			Miner:        block.miner.Bytes(),
+			Miner:        block.miner.Bytes(), // ToCheck: miner is not nil.
 		}, nil
 	}
 	return nil, errors.New("Protobuf message cannot be converted into BlockHeader")
 }
 
 // FromProto converts proto Block to domain Block
-func (block *Block) FromProto(msg proto.Message) error {
+func (block *Block) FromProto(msg proto.Message) error { // ToCheck: msg is not nil.
 	if msg, ok := msg.(*corepb.Block); ok {
 		block.header = new(BlockHeader)
 		if err := block.header.FromProto(msg.Header); err != nil {
@@ -175,7 +175,7 @@ func (block *Block) FromProto(msg proto.Message) error {
 			block.transactions[idx] = tx
 		}
 		block.height = msg.Height
-		block.miner = &Address{msg.Miner}
+		block.miner = &Address{msg.Miner} // ToCheck: check address.
 		return nil
 	}
 	return errors.New("Protobuf message cannot be converted into Block")
@@ -191,7 +191,7 @@ func (block *Block) SerializeTxByHash(hash byteutils.Hash) (proto.Message, error
 }
 
 // NewBlock return new block.
-func NewBlock(chainID uint32, coinbase *Address, parent *Block) (*Block, error) {
+func NewBlock(chainID uint32, coinbase *Address, parent *Block) (*Block, error) { // ToCheck: check args. // ToCheck: check full-functional block.
 	accState, err := parent.accState.Clone()
 	if err != nil {
 		return nil, err
@@ -213,7 +213,7 @@ func NewBlock(chainID uint32, coinbase *Address, parent *Block) (*Block, error) 
 			parentHash:  parent.Hash(),
 			dposContext: &corepb.DposContext{},
 			coinbase:    coinbase,
-			nonce:       0,
+			nonce:       0, // ToDelete
 			timestamp:   time.Now().Unix(),
 			chainID:     chainID,
 		},
@@ -232,7 +232,7 @@ func NewBlock(chainID uint32, coinbase *Address, parent *Block) (*Block, error) 
 
 	block.begin()
 	block.rewardCoinbase()
-	block.commit()
+	block.commit() // ToDelete
 
 	return block, nil
 }
@@ -250,7 +250,7 @@ func (block *Block) Sign(signature keystore.Signature) error {
 
 // ChainID returns block's chainID
 func (block *Block) ChainID() uint32 {
-	return block.header.chainID
+	return block.header.chainID // ToCheck: header is not nil.
 }
 
 // Coinbase return block's coinbase
@@ -270,16 +270,16 @@ func (block *Block) Signature() byteutils.Hash {
 
 // CoinbaseHash return block's coinbase hash
 func (block *Block) CoinbaseHash() byteutils.Hash {
-	return block.header.coinbase.address
+	return block.header.coinbase.address // ToCheck: coinbase is not nil
 }
 
 // Nonce return nonce.
-func (block *Block) Nonce() uint64 {
+func (block *Block) Nonce() uint64 { // ToDelete
 	return block.header.nonce
 }
 
 // SetNonce set nonce.
-func (block *Block) SetNonce(nonce uint64) {
+func (block *Block) SetNonce(nonce uint64) { // ToDelete
 	if block.sealed {
 		logging.VLog().WithFields(logrus.Fields{
 			"block": block,
@@ -368,12 +368,12 @@ func (block *Block) Miner() *Address {
 }
 
 // SetMiner return miner
-func (block *Block) SetMiner(miner *Address) {
+func (block *Block) SetMiner(miner *Address) { // ToCheck: check miner
 	block.miner = miner
 }
 
 // VerifyAddress returns if the addr string is valid
-func (block *Block) VerifyAddress(str string) bool {
+func (block *Block) VerifyAddress(str string) bool { // ToRefine: move to address. use Engine interface in core & use core in NVM directly.
 	_, err := AddressParse(str)
 	return err == nil
 }
@@ -501,7 +501,7 @@ func (block *Block) CollectTransactions(deadline int64) {
 			}
 
 			// set current nonce.
-			if currentNonce > 0 {
+			if currentNonce > 0 { // ToFix: should >= 0.
 				currentNonceOfFromAddress[tx.From().String()] = currentNonce
 			}
 
@@ -520,7 +520,7 @@ func (block *Block) CollectTransactions(deadline int64) {
 				//}).Debug("packed tx.")
 				packed++
 				txBlock.commit()
-				txBlock.transactions = append(txBlock.transactions, tx)
+				txBlock.transactions = append(txBlock.transactions, tx) // ToRefine: use transactions in a tricky way. refer to block.Clone()
 				executedTxBlocksCh <- txBlock
 			}
 
@@ -610,17 +610,17 @@ func (block *Block) Sealed() bool {
 
 // Seal seal block, calculate stateRoot and block hash.
 func (block *Block) Seal() error {
-	if block.sealed {
+	if block.sealed { // ToFix: fatal
 		return ErrDoubleSealBlock
 	}
 
-	block.begin()
+	block.begin() // ToDelete
 	err := block.recordMintCnt()
 	if err != nil {
 		block.rollback()
 		return err
 	}
-	block.commit()
+	block.commit() // ToDelete
 
 	block.header.stateRoot, err = block.accState.RootHash()
 	if err != nil {
@@ -636,7 +636,7 @@ func (block *Block) Seal() error {
 
 	logging.VLog().WithFields(logrus.Fields{
 		"block": block,
-	}).Info("Sealed Block.")
+	}).Info("Sealed Block.") // ToAdd: block rollback
 
 	metricsTxPackedCount.Update(0)
 	metricsTxUnpackedCount.Update(0)
@@ -665,7 +665,7 @@ func (block *Block) String() string {
 }
 
 // VerifyExecution execute the block and verify the execution result.
-func (block *Block) VerifyExecution(parent *Block, consensus Consensus) error {
+func (block *Block) VerifyExecution(parent *Block, consensus Consensus) error { // ToCheck: check args.
 	// verify the block is acceptable by consensus
 	if err := consensus.VerifyBlock(block, parent); err != nil {
 		return err
@@ -686,7 +686,7 @@ func (block *Block) VerifyExecution(parent *Block, consensus Consensus) error {
 	block.commit()
 
 	// release all events
-	block.triggerEvent()
+	block.triggerEvent() // ToDelete
 
 	return nil
 }
@@ -714,9 +714,9 @@ func (block *Block) triggerEvent() {
 			Topic: topic,
 			Data:  v.String(),
 		}
-		block.eventEmitter.Trigger(event)
+		block.eventEmitter.Trigger(event) // ToConfirm: necessary?
 
-		events, err := block.FetchEvents(v.hash)
+		events, err := block.FetchEvents(v.hash) // ToConfirm: maybe be triggered with TopicNewTail
 		if err != nil {
 			for _, e := range events {
 				block.eventEmitter.Trigger(e)
@@ -724,7 +724,7 @@ func (block *Block) triggerEvent() {
 		}
 	}
 
-	e := &Event{
+	e := &Event{ // ToConfirm: is Link event necessary? maybe TopicNewTail is more useful, should be put in buildIndexByBlockHeight
 		Topic: TopicLinkBlock,
 		Data:  block.String(),
 	}
@@ -736,13 +736,13 @@ func (block *Block) triggerEvent() {
 }
 
 // VerifyIntegrity verify block's hash, txs' integrity and consensus acceptable.
-func (block *Block) VerifyIntegrity(chainID uint32, consensus Consensus) error {
+func (block *Block) VerifyIntegrity(chainID uint32, consensus Consensus) error { // ToCheck: check args.
 	// check ChainID.
 	if block.header.chainID != chainID {
 		logging.VLog().WithFields(logrus.Fields{
 			"expect": chainID,
 			"actual": block.header.chainID,
-		}).Debug("Failed to check chainid.")
+		}).Debug("Failed to check chainid.") // ToAdd: invalid block metrics
 		return ErrInvalidChainID
 	}
 
@@ -752,7 +752,7 @@ func (block *Block) VerifyIntegrity(chainID uint32, consensus Consensus) error {
 		logging.VLog().WithFields(logrus.Fields{
 			"expect": wantedHash,
 			"actual": block.Hash(),
-		}).Debug("Failed to check block's hash.")
+		}).Debug("Failed to check block's hash.") // ToAdd: invalid block metrics
 		return ErrInvalidBlockHash
 	}
 
@@ -762,7 +762,7 @@ func (block *Block) VerifyIntegrity(chainID uint32, consensus Consensus) error {
 			logging.VLog().WithFields(logrus.Fields{
 				"tx":  tx,
 				"err": err,
-			}).Debug("Failed to verify tx's integrity.")
+			}).Debug("Failed to verify tx's integrity.") // ToAdd: invalid block metrics
 			return err
 		}
 	}
@@ -949,7 +949,7 @@ func (block *Block) FetchEvents(txHash byteutils.Hash) ([]*Event, error) {
 	return events, nil
 }
 
-func (block *Block) recordMintCnt() error {
+func (block *Block) recordMintCnt() error { // ToDelete
 	key := append(byteutils.FromInt64(block.Timestamp()/DynastyInterval), block.miner.Bytes()...)
 	bytes, err := block.dposContext.mintCntTrie.Get(key)
 	if err != nil && err != storage.ErrKeyNotFound {
@@ -1042,14 +1042,14 @@ func (block *Block) executeTransaction(tx *Transaction) (bool, uint64, error) {
 	}
 
 	if _, err := tx.VerifyExecution(block); err != nil {
-		return false, uint64(0), err
+		return false, uint64(0), err // ToFix: return current latest nonce
 	}
 
 	if err := block.acceptTransaction(tx); err != nil {
-		return false, uint64(0), err
+		return false, uint64(0), err // ToFix: return current latest nonce
 	}
 
-	return false, uint64(0), nil
+	return false, uint64(0), nil // ToFix: currentnonce should be tx.nonce
 }
 
 // CheckContract check if contract is valid
@@ -1092,7 +1092,7 @@ func (block *Block) CheckContract(addr *Address) error { // ToFix: return contra
 }
 
 // HashBlock return the hash of block.
-func HashBlock(block *Block) byteutils.Hash {
+func HashBlock(block *Block) byteutils.Hash { // ToConfirm: block is not nil.
 	hasher := sha3.New256()
 
 	hasher.Write(block.ParentHash())
@@ -1114,7 +1114,7 @@ func HashBlock(block *Block) byteutils.Hash {
 
 // HashPbBlock return the hash of pb block.
 func HashPbBlock(pbBlock *corepb.Block) byteutils.Hash {
-	block := new(Block)
+	block := new(Block) // ToFix: hash pbBlock directly, avoid catching fromproto err
 	block.FromProto(pbBlock)
 	return block.Hash()
 }
@@ -1141,7 +1141,7 @@ func RecoverMiner(block *Block) (*Address, error) {
 }
 
 // LoadBlockFromStorage return a block from storage
-func LoadBlockFromStorage(hash byteutils.Hash, storage storage.Storage, txPool *TransactionPool, eventEmitter *EventEmitter) (*Block, error) {
+func LoadBlockFromStorage(hash byteutils.Hash, storage storage.Storage, txPool *TransactionPool, eventEmitter *EventEmitter) (*Block, error) { // ToCheck: check arg.
 	value, err := storage.Get(hash)
 	if err != nil {
 		return nil, err
@@ -1210,7 +1210,7 @@ func (block *Block) Clone() (*Block, error) {
 		miner:        block.miner,
 		storage:      block.storage,
 		eventEmitter: block.eventEmitter,
-		transactions: make(Transactions, 0),
+		transactions: make(Transactions, 0), // ToConfirm: so tricky.
 
 		accState:    accState,
 		txsTrie:     txsTrie,

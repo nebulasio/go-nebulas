@@ -40,9 +40,9 @@ const (
 	AcceptedNetWorkDelay = int64(2)
 	MaxMintDuration      = int64(2)
 	MinMintDuration      = int64(1)
-	DynastyInterval      = int64(60) // TODO(roy): 3600
-	DynastySize          = 6         // TODO(roy): 21
-	SafeSize             = DynastySize/3 + 1
+	DynastyInterval      = int64(60)         // TODO(roy): 3600
+	DynastySize          = 6                 // TODO(roy): 21
+	SafeSize             = DynastySize/3 + 1 // ToFix: should be equal with ConsensusSize
 	ConsensusSize        = DynastySize*2/3 + 1
 )
 
@@ -703,9 +703,9 @@ func GenesisDynastyContext(chain *BlockChain, conf *corepb.Genesis) (*DynastyCon
 	if err != nil {
 		return nil, err
 	}
-	if len(conf.Consensus.Dpos.Dynasty) < SafeSize {
+	if len(conf.Consensus.Dpos.Dynasty) < SafeSize { // ToRefine: move at the beginning
 		return nil, ErrInitialDynastyNotEnough
-	}
+	} // ToCheck: check geneisconf.dynasty == DynastySize
 	for i := 0; i < len(conf.Consensus.Dpos.Dynasty); i++ {
 		addr := conf.Consensus.Dpos.Dynasty[i]
 		member, err := AddressParse(addr)
@@ -713,7 +713,7 @@ func GenesisDynastyContext(chain *BlockChain, conf *corepb.Genesis) (*DynastyCon
 			return nil, err
 		}
 		v := member.Bytes()
-		if i < DynastySize {
+		if i < DynastySize { // ToFix: delete the if
 			if _, err = dynastyTrie.Put(v, v); err != nil {
 				return nil, err
 			}

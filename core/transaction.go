@@ -642,7 +642,7 @@ func (tx *Transaction) VerifyIntegrity(chainID uint32) error {
 	if err != nil {
 		return err
 	}
-	if wantedHash.Equals(tx.hash) == false { // ToRefine: _ == false -> !_
+	if wantedHash.Equals(tx.hash) == false {
 		return ErrInvalidTransactionHash
 	}
 

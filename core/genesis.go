@@ -35,11 +35,11 @@ import (
 var (
 	GenesisHash      = make([]byte, BlockHashLength)
 	GenesisTimestamp = int64(0)
-	GenesisCoinbase  = &Address{make([]byte, AddressLength)}
+	GenesisCoinbase  = &Address{make([]byte, AddressLength)} // ToFix: make checksum valid
 )
 
 // LoadGenesisConf load genesis conf for file
-func LoadGenesisConf(filePath string) (*corepb.Genesis, error) {
+func LoadGenesisConf(filePath string) (*corepb.Genesis, error) { // ToCheck: filepath shouldn't be nil.
 	b, err := ioutil.ReadFile(filePath)
 	if err != nil {
 		return nil, err
@@ -48,7 +48,7 @@ func LoadGenesisConf(filePath string) (*corepb.Genesis, error) {
 
 	genesis := new(corepb.Genesis)
 	if err := proto.UnmarshalText(content, genesis); err != nil {
-		return nil, err
+		return nil, err // ToFix: finally fatal
 	}
 	return genesis, nil
 }
@@ -78,14 +78,14 @@ func NewGenesisBlock(conf *corepb.Genesis, chain *BlockChain) (*Block, error) {
 			dposContext: &corepb.DposContext{},
 			coinbase:    GenesisCoinbase,
 			timestamp:   GenesisTimestamp,
-			nonce:       0,
+			nonce:       0, // ToDelete
 		},
 		accState:    accState,
 		txsTrie:     txsTrie,
 		eventsTrie:  eventsTrie,
 		dposContext: dposContext,
 		txPool:      chain.txPool,
-		storage:     chain.storage,
+		storage:     chain.storage, // ToAdd: EventEmitter
 		height:      1,
 		sealed:      false,
 	}
@@ -127,7 +127,7 @@ func NewGenesisBlock(conf *corepb.Genesis, chain *BlockChain) (*Block, error) {
 	}
 	genesisBlock.commit()
 
-	if err := genesisBlock.Seal(); err != nil {
+	if err := genesisBlock.Seal(); err != nil { // ToFix: move logic in seal outside.
 		logging.CLog().WithFields(logrus.Fields{
 			"gensis": genesisBlock,
 			"err":    err,
@@ -165,7 +165,7 @@ func DumpGenesis(stor storage.Storage) (*corepb.Genesis, error) {
 		bootstrap = append(bootstrap, v.String())
 	}
 	distribution := []*corepb.GenesisTokenDistribution{}
-	accounts, err := genesis.accState.Accounts()
+	accounts, err := genesis.accState.Accounts() // ToConfirm: Accounts interface is risky
 	for _, v := range accounts {
 		balance := v.Balance()
 		if v.Address().Equals(genesis.Coinbase().Bytes()) {

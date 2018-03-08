@@ -92,7 +92,6 @@ func newTester(t *testing.T) *tester {
 		input:   hookedInput,
 		output:  hookedOutput,
 	}
-	return nil
 }
 
 // Tests that the console can be used in interactive mode
