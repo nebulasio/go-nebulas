@@ -52,7 +52,8 @@ var initFromBalance = 10;
  * set this value according to the status of your testnet.
  * the smaller the value, the faster the test, with the risk of causing error
  */
-var maxCheckTime = 15;
+
+var maxCheckTime = 20;
 var checkTimes = 0;
 
 function checkTransaction(hash, callback) {
@@ -64,9 +65,7 @@ function checkTransaction(hash, callback) {
         callback();
         return;
     }
-
     neb.api.getTransactionReceipt(hash).then(function (resp) {
-
         console.log("tx receipt status:" + resp.status);
         if (resp.status === 2) {
             setTimeout(function () {
@@ -86,7 +85,6 @@ function checkTransaction(hash, callback) {
     });
 }
 
-
 function testTransfer(testInput, testExpect, done) {
     neb.api.getAccountState(from.getAddressString()).then(function (state) {
 
@@ -103,16 +101,24 @@ function testTransfer(testInput, testExpect, done) {
         coinState = resp;
         console.log("get coinbase state before tx:" + JSON.stringify(resp));
 
-        var tx = new Transaction(ChainID, from, toAddr, Unit.nasToBasic(testInput.transferValue), parseInt(fromState.nonce) + testInput.nonceIncrement, testInput.gasPrice, testInput.gasLimit);
 
-        if(testInput.hasOwnProperty("isFromAddrValid") && false === testInput.isFromAddrValid) {
-            tx.from.address = Wallet.CryptoUtils.bufferToHex("invalid_from_addr");
-            console.log("--> override tx.from.address: " + tx.from.address);
+        var tx;
+        if (!testInput.hasOwnProperty("payloadLength")){
+            tx = new Transaction(ChainID, from, toAddr, Unit.nasToBasic(testInput.transferValue), parseInt(fromState.nonce) + testInput.nonceIncrement, testInput.gasPrice, testInput.gasLimit);
+        } else {
+            var payloadContent = new Array(testInput.payloadLength + 1).join("s");
+            console.log("payloadcontent:" + payloadContent)
+            tx = new Transaction(ChainID, from, toAddr, Unit.nasToBasic(testInput.transferValue), parseInt(fromState.nonce) + testInput.nonceIncrement, testInput.gasPrice, testInput.gasLimit, payloadContent);
         }
 
-        if(testInput.hasOwnProperty("isToAddrValid") && false === testInput.isToAddrValid) {
-            tx.to.address = Wallet.CryptoUtils.bufferToHex("invalid_to_addr");
-            console.log("--> override tx.to.address: " + tx.to.address);
+        if(testInput.hasOwnProperty("overrideFromAddr")) {
+            tx.from.address = Wallet.CryptoUtils.bufferToHex(testInput.overrideFromAddr);
+            console.log("--> override tx.from.address with: " + testInput.overrideFromAddr);
+        }
+
+        if(testInput.hasOwnProperty("overrideToAddr")) {
+            tx.to.address = Wallet.CryptoUtils.bufferToHex(testInput.overrideToAddr);
+            console.log("--> override tx.to.address with: " + testInput.overrideToAddr);
         }
 
         if (testInput.hasOwnProperty("overrideGasLimit")){
@@ -127,8 +133,8 @@ function testTransfer(testInput, testExpect, done) {
 
         tx.signTransaction();
 
-        if(testInput.hasOwnProperty("isSignatureValid") && false === testInput.isSignatureValid){
-            tx.sign = "tx_invalid_sign";
+        if(testInput.hasOwnProperty("overrideSignature")){
+            tx.sign = testInput.overrideSignature;
         }
 
         return neb.api.sendRawTransaction(tx.toProtoString());
@@ -142,10 +148,10 @@ function testTransfer(testInput, testExpect, done) {
         }
     }).then(function (resp) {
 
-        console.log("resp:" + JSON.stringify(resp));
+        console.log("resp11:" + JSON.stringify(resp));
 
         if (true === testExpect.canSendTx) {
-            console.log("send Rax Tx:" + JSON.stringify(resp));
+            console.log("send Raw Tx:" + JSON.stringify(resp));
             expect(resp).to.be.have.property('txhash');
             checkTransaction(resp.txhash, function (receipt) {
 
@@ -209,33 +215,59 @@ function testTransfer(testInput, testExpect, done) {
     });
 }
 
-describe('normal transaction', function () {
-    beforeEach(function (done) {
-        from = Account.NewAccount();
-        neb.api.getAccountState(sourceAccount.getAddressString()).then(function (resp) {
 
-            console.log("source state:" + JSON.stringify(resp));
-            var tx = new Transaction(ChainID, sourceAccount, from, Unit.nasToBasic(initFromBalance), parseInt(resp.nonce) + 1);
-            tx.signTransaction();
-            // console.log("source tx:" + tx.toString());
-            return neb.api.sendRawTransaction(tx.toProtoString());
-        }).then(function (resp) {
-            checkTransaction(resp.txhash, function (resp) {
-                try {
-                    expect(resp).to.be.have.property('status').equal(1);
-                    console.log("complete from address claim.");
-                    done();
-                } catch (err) {
-                    done(err);
-                }
-            });
-        }).catch(function (err) {
-            console.log("claim token failed:" + JSON.stringify(err));
-            done(err);
+function prepare(done) {
+    from = Account.NewAccount();
+    neb.api.getAccountState(sourceAccount.getAddressString()).then(function (resp) {
+
+        console.log("source state:" + JSON.stringify(resp));
+        var tx = new Transaction(ChainID, sourceAccount, from, Unit.nasToBasic(initFromBalance), parseInt(resp.nonce) + 1);
+        tx.signTransaction();
+        // console.log("source tx:" + tx.toString());
+        return neb.api.sendRawTransaction(tx.toProtoString());
+    }).then(function (resp) {
+        checkTransaction(resp.txhash, function (resp) {
+            try {
+                expect(resp).to.be.have.property('status').equal(1);
+                console.log("complete from address claim.");
+                done();
+            } catch (err) {
+                done(err);
+            }
         });
+    }).catch(function (err) {
+        console.log("claim token failed:" + JSON.stringify(err));
+        done(err);
     });
+};
 
-    it('normal transfer', function (done) {
+describe('normal transaction', function () {
+    // beforeEach(function (done) {
+    //     from = Account.NewAccount();
+    //     neb.api.getAccountState(sourceAccount.getAddressString()).then(function (resp) {
+    //
+    //         console.log("source state:" + JSON.stringify(resp));
+    //         var tx = new Transaction(ChainID, sourceAccount, from, Unit.nasToBasic(initFromBalance), parseInt(resp.nonce) + 1);
+    //         tx.signTransaction();
+    //         // console.log("source tx:" + tx.toString());
+    //         return neb.api.sendRawTransaction(tx.toProtoString());
+    //     }).then(function (resp) {
+    //         checkTransaction(resp.txhash, function (resp) {
+    //             try {
+    //                 expect(resp).to.be.have.property('status').equal(1);
+    //                 console.log("complete from address claim.");
+    //                 done();
+    //             } catch (err) {
+    //                 done(err);
+    //             }
+    //         });
+    //     }).catch(function (err) {
+    //         console.log("claim token failed:" + JSON.stringify(err));
+    //         done(err);
+    //     });
+    // });
+
+    it('normal transfer11', function (done) {
         var testInput = {
             transferValue: 1,
             isSameAddr: false,
@@ -252,17 +284,24 @@ describe('normal transaction', function () {
             toBalanceAfterTx: '1000000000000000000',
             transferReward: '20000000000'
         };
-        testTransfer(testInput, testExpect, done);
+
+        prepare(function (err) {
+            if (err instanceof Error) {
+                done(err);
+            } else {
+                testTransfer(testInput, testExpect, done);
+            }
+        });
     });
 
-    it('[address invalid] invalid fromAddr', function (done) {
+    it('[address invalid] invalid fromAddr (length is odd)', function (done) {
         var testInput = {
             transferValue: 1,
             isSameAddr: false,
-            isFromAddrValid: false,
             gasLimit: -1,
             gasPrice: -1,
-            nonceIncrement: 1
+            nonceIncrement: 1,
+            overrideFromAddr: "some_invalid_from_addr_odd"
         };
         //can calc value by previous params
         var testExpect = {
@@ -273,17 +312,23 @@ describe('normal transaction', function () {
             toBalanceAfterTx: '1000000000000000000',
             transferReward: '20000000000'
         };
-        testTransfer(testInput, testExpect, done);
+        prepare(function (err) {
+            if (err instanceof Error) {
+                done(err);
+            } else {
+                testTransfer(testInput, testExpect, done);
+            }
+        });
     });
 
-    it('[address invalid] invalid toAddr', function (done) {
+    it('[address invalid] invalid fromAddr (length is even)', function (done) {
         var testInput = {
             transferValue: 1,
             isSameAddr: false,
-            isToAddrValid: false,
             gasLimit: -1,
             gasPrice: -1,
-            nonceIncrement: 1
+            nonceIncrement: 1,
+            overrideFromAddr: "some_invalid_from_addr_even"
         };
         //can calc value by previous params
         var testExpect = {
@@ -294,7 +339,175 @@ describe('normal transaction', function () {
             toBalanceAfterTx: '1000000000000000000',
             transferReward: '20000000000'
         };
-        testTransfer(testInput, testExpect, done);
+        prepare(function (err) {
+            if (err instanceof Error) {
+                done(err);
+            } else {
+                testTransfer(testInput, testExpect, done);
+            }
+        });
+    });
+
+    it('[address invalid] invalid fromAddr (length exceed limits)', function (done) {
+        var testInput = {
+            transferValue: 1,
+            isSameAddr: false,
+            gasLimit: -1,
+            gasPrice: -1,
+            nonceIncrement: 1,
+            overrideFromAddr: "some_invalid_from_addr_some_invalid_from_addr_some_invalid_from_addr_some_invalid_from_addr_some_invalid_from_addr_some_invalid_from_addr"
+        };
+        //can calc value by previous params
+        var testExpect = {
+            canSendTx: false,
+            canSubmitTx: false,
+            canExcuteTx: false,
+            fromBalanceAfterTx: '8999999980000000000',
+            toBalanceAfterTx: '1000000000000000000',
+            transferReward: '20000000000'
+        };
+        prepare(function (err) {
+            if (err instanceof Error) {
+                done(err);
+            } else {
+                testTransfer(testInput, testExpect, done);
+            }
+        });
+    });
+
+    it('[address invalid] invalid toAddr (length is odd)', function (done) {
+        var testInput = {
+            transferValue: 1,
+            isSameAddr: false,
+            gasLimit: -1,
+            gasPrice: -1,
+            nonceIncrement: 1,
+            overrideToAddr: "some_invalid_from_addr_odd"
+        };
+        //can calc value by previous params
+        var testExpect = {
+            canSendTx: false,
+            canSubmitTx: false,
+            canExcuteTx: false,
+            fromBalanceAfterTx: '8999999980000000000',
+            toBalanceAfterTx: '1000000000000000000',
+            transferReward: '20000000000'
+        };
+        prepare(function (err) {
+            if (err instanceof Error) {
+                done(err);
+            } else {
+                testTransfer(testInput, testExpect, done);
+            }
+        });
+    });
+
+    it('[address invalid] invalid toAddr (length is even)', function (done) {
+        var testInput = {
+            transferValue: 1,
+            isSameAddr: false,
+            gasLimit: -1,
+            gasPrice: -1,
+            nonceIncrement: 1,
+            overrideToAddr: "some_invalid_from_addr_even"
+        };
+        //can calc value by previous params
+        var testExpect = {
+            canSendTx: false,
+            canSubmitTx: false,
+            canExcuteTx: false,
+            fromBalanceAfterTx: '8999999980000000000',
+            toBalanceAfterTx: '1000000000000000000',
+            transferReward: '20000000000'
+        };
+        prepare(function (err) {
+            if (err instanceof Error) {
+                done(err);
+            } else {
+                testTransfer(testInput, testExpect, done);
+            }
+        });
+    });
+
+    it('[address invalid] invalid toAddr (length exceed limits)', function (done) {
+        var testInput = {
+            transferValue: 1,
+            isSameAddr: false,
+            gasLimit: -1,
+            gasPrice: -1,
+            nonceIncrement: 1,
+            overrideToAddr: "some_invalid_from_addr_some_invalid_from_addr_some_invalid_from_addr_some_invalid_from_addr_some_invalid_from_addr_some_invalid_from_addr"
+        };
+        //can calc value by previous params
+        var testExpect = {
+            canSendTx: false,
+            canSubmitTx: false,
+            canExcuteTx: false,
+            fromBalanceAfterTx: '8999999980000000000',
+            toBalanceAfterTx: '1000000000000000000',
+            transferReward: '20000000000'
+        };
+        prepare(function (err) {
+            if (err instanceof Error) {
+                done(err);
+            } else {
+                testTransfer(testInput, testExpect, done);
+            }
+        });
+    });
+
+    it('[address invalid] from addr empty', function (done) {
+        var testInput = {
+            transferValue: 1,
+            isSameAddr: false,
+            gasLimit: -1,
+            gasPrice: -1,
+            nonceIncrement: 1,
+            overrideFromAddr: ""
+        };
+        //can calc value by previous params
+        var testExpect = {
+            canSendTx: false,
+            canSubmitTx: false,
+            canExcuteTx: false,
+            fromBalanceAfterTx: '8999999980000000000',
+            toBalanceAfterTx: '1000000000000000000',
+            transferReward: '20000000000'
+        };
+        prepare(function (err) {
+            if (err instanceof Error) {
+                done(err);
+            } else {
+                testTransfer(testInput, testExpect, done);
+            }
+        });
+    });
+
+    it('[address invalid] to addr empty', function (done) {
+        var testInput = {
+            transferValue: 1,
+            isSameAddr: false,
+            gasLimit: -1,
+            gasPrice: -1,
+            nonceIncrement: 1,
+            overrideToAddr: ""
+        };
+        //can calc value by previous params
+        var testExpect = {
+            canSendTx: false,
+            canSubmitTx: false,
+            canExcuteTx: false,
+            fromBalanceAfterTx: '8999999980000000000',
+            toBalanceAfterTx: '1000000000000000000',
+            transferReward: '20000000000'
+        };
+        prepare(function (err) {
+            if (err instanceof Error) {
+                done(err);
+            } else {
+                testTransfer(testInput, testExpect, done);
+            }
+        });
     });
 
     it('[address] from & to are same', function (done) {
@@ -314,18 +527,23 @@ describe('normal transaction', function () {
             toBalanceAfterTx: '9999999980000000000',
             transferReward: '20000000000'
         };
-        testTransfer(testInput, testExpect, done);
+        prepare(function (err) {
+            if (err instanceof Error) {
+                done(err);
+            } else {
+                testTransfer(testInput, testExpect, done);
+            }
+        });
     });
 
-    // todo: add error check for sendTx = false
-    it('[signature] invalid signature', function (done) {
+    it('[signature] invalid signature (wrong sig)', function (done) {
         var testInput = {
             transferValue: 1,
             isSameAddr: false,
-            isSignatureValid: false,
             gasLimit: -1,
             gasPrice: -1,
-            nonceIncrement: 1
+            nonceIncrement: 1,
+            overrideSignature: "some_wrong_sig"
         };
         //can calc value by previous params
         var testExpect = {
@@ -337,7 +555,41 @@ describe('normal transaction', function () {
             toBalanceAfterTx: '1000000000000000000',
             transferReward: '20000000000'
         };
-        testTransfer(testInput, testExpect, done);
+        prepare(function (err) {
+            if (err instanceof Error) {
+                done(err);
+            } else {
+                testTransfer(testInput, testExpect, done);
+            }
+        });
+    });
+
+    it('[signature] invalid signature (empty sig)', function (done) {
+        var testInput = {
+            transferValue: 1,
+            isSameAddr: false,
+            gasLimit: -1,
+            gasPrice: -1,
+            nonceIncrement: 1,
+            overrideSignature: ""
+        };
+        //can calc value by previous params
+        var testExpect = {
+            canSendTx: false,
+            canSubmitTx: false,
+            canExcuteTx: true,
+            sendError: "invalid signature",
+            fromBalanceAfterTx: '8999999980000000000',
+            toBalanceAfterTx: '1000000000000000000',
+            transferReward: '20000000000'
+        };
+        prepare(function (err) {
+            if (err instanceof Error) {
+                done(err);
+            } else {
+                testTransfer(testInput, testExpect, done);
+            }
+        });
     });
 
     it('[gasLimit insufficient] 0 < gasLimit < TxBaseGasCount', function (done) {
@@ -358,7 +610,13 @@ describe('normal transaction', function () {
             toBalanceAfterTx: '1000000000000000000',
             transferReward: '20000000000'
         };
-        testTransfer(testInput, testExpect, done);
+        prepare(function (err) {
+            if (err instanceof Error) {
+                done(err);
+            } else {
+                testTransfer(testInput, testExpect, done);
+            }
+        });
     });
 
 
@@ -380,7 +638,13 @@ describe('normal transaction', function () {
             toBalanceAfterTx: '1000000000000000000',
             transferReward: '20000000000'
         };
-        testTransfer(testInput, testExpect, done);
+        prepare(function (err) {
+            if (err instanceof Error) {
+                done(err);
+            } else {
+                testTransfer(testInput, testExpect, done);
+            }
+        });
     });
 
     it('[gasLimit sufficient] gasLimit=0', function (done) {
@@ -401,7 +665,13 @@ describe('normal transaction', function () {
             toBalanceAfterTx: '1000000000000000000',
             transferReward: '20000000000'
         };
-        testTransfer(testInput, testExpect, done);
+        prepare(function (err) {
+            if (err instanceof Error) {
+                done(err);
+            } else {
+                testTransfer(testInput, testExpect, done);
+            }
+        });
     });
 
     it('[gasLimit sufficient] gasLimit > TransactionMaxGase', function (done) {
@@ -421,7 +691,13 @@ describe('normal transaction', function () {
             toBalanceAfterTx: '0',
             transferReward: '0'
         };
-        testTransfer(testInput, testExpect, done);
+        prepare(function (err) {
+            if (err instanceof Error) {
+                done(err);
+            } else {
+                testTransfer(testInput, testExpect, done);
+            }
+        });
     });
 
     it('[gasLimit sufficient] gasLimit=TxBaseGasCount', function (done) {
@@ -441,7 +717,13 @@ describe('normal transaction', function () {
             toBalanceAfterTx: '1000000000000000000',
             transferReward: '20000000000'
         };
-        testTransfer(testInput, testExpect, done);
+        prepare(function (err) {
+            if (err instanceof Error) {
+                done(err);
+            } else {
+                testTransfer(testInput, testExpect, done);
+            }
+        });
     });
 
     it('[gasLimit sufficient] gasLimit>TxBaseGasCount', function (done) {
@@ -461,7 +743,13 @@ describe('normal transaction', function () {
             toBalanceAfterTx: '1000000000000000000',
             transferReward: '20000000000'
         };
-        testTransfer(testInput, testExpect, done);
+        prepare(function (err) {
+            if (err instanceof Error) {
+                done(err);
+            } else {
+                testTransfer(testInput, testExpect, done);
+            }
+        });
     });
 
     it('[gasPrice insufficient] gasPrice<0', function (done) {
@@ -482,7 +770,13 @@ describe('normal transaction', function () {
             toBalanceAfterTx: '1000000000000000000',
             transferReward: '20000000000'
         };
-        testTransfer(testInput, testExpect, done);
+        prepare(function (err) {
+            if (err instanceof Error) {
+                done(err);
+            } else {
+                testTransfer(testInput, testExpect, done);
+            }
+        });
     });
 
     it('[gasPrice sufficient] gasPrice=0', function (done) {
@@ -503,7 +797,13 @@ describe('normal transaction', function () {
             toBalanceAfterTx: '1000000000000000000',
             transferReward: '20000000000'
         };
-        testTransfer(testInput, testExpect, done);
+        prepare(function (err) {
+            if (err instanceof Error) {
+                done(err);
+            } else {
+                testTransfer(testInput, testExpect, done);
+            }
+        });
     });
 
     it('[gasPrice sufficient] gasPrice = txPool.gasPrice', function (done) {
@@ -523,7 +823,13 @@ describe('normal transaction', function () {
             toBalanceAfterTx: '1000000000000000000',
             transferReward: '20000000000'
         };
-        testTransfer(testInput, testExpect, done);
+        prepare(function (err) {
+            if (err instanceof Error) {
+                done(err);
+            } else {
+                testTransfer(testInput, testExpect, done);
+            }
+        });
     });
     it('[gasPrice sufficient] gasPrice>txPool.gasPrice', function (done) {
         var testInput = {
@@ -542,7 +848,13 @@ describe('normal transaction', function () {
             toBalanceAfterTx: '1000000000000000000',
             transferReward: '40000000000'
         };
-        testTransfer(testInput, testExpect, done);
+        prepare(function (err) {
+            if (err instanceof Error) {
+                done(err);
+            } else {
+                testTransfer(testInput, testExpect, done);
+            }
+        });
     });
 
     it('[gasPrice insufficient] gasPrice < txPool.gasPrice', function (done) {
@@ -562,7 +874,13 @@ describe('normal transaction', function () {
             toBalanceAfterTx: '1000000000000000000',
             transferReward: '20000000000'
         };
-        testTransfer(testInput, testExpect, done);
+        prepare(function (err) {
+            if (err instanceof Error) {
+                done(err);
+            } else {
+                testTransfer(testInput, testExpect, done);
+            }
+        });
     });
 
     it('[balanceOfFrom insufficient] gasPrice * gasLimit <= balanceOfFrom < valueOfTx ', function (done) {
@@ -584,7 +902,13 @@ describe('normal transaction', function () {
             transferReward: '20000000000',
             eventError: 'insufficient balance'
         };
-        testTransfer(testInput, testExpect, done);
+        prepare(function (err) {
+            if (err instanceof Error) {
+                done(err);
+            } else {
+                testTransfer(testInput, testExpect, done);
+            }
+        });
     });
 
     it('[balanceOfFrom insufficient] balanceOfFrom < TxBaseGasCount * gasPrice + valueOfTx', function (done) {
@@ -605,7 +929,13 @@ describe('normal transaction', function () {
             toBalanceAfterTx: '0',
             transferReward: '20000000000'
         };
-        testTransfer(testInput, testExpect, done);
+        prepare(function (err) {
+            if (err instanceof Error) {
+                done(err);
+            } else {
+                testTransfer(testInput, testExpect, done);
+            }
+        });
     });
 
     it('gas price is too small', function (done) {
@@ -626,7 +956,13 @@ describe('normal transaction', function () {
             toBalanceAfterTx: '-1',
             transferReward: '-1'
         };
-        testTransfer(testInput, testExpect, done);
+        prepare(function (err) {
+            if (err instanceof Error) {
+                done(err);
+            } else {
+                testTransfer(testInput, testExpect, done);
+            }
+        });
     });
 
     it('[balanceOfFrom insufficient] balanceOfFrom < gasPrice * gasLimit', function (done) {
@@ -647,8 +983,45 @@ describe('normal transaction', function () {
             toBalanceAfterTx: '-1',
             transferReward: '-1'
         };
-        testTransfer(testInput, testExpect, done);
+        prepare(function (err) {
+            if (err instanceof Error) {
+                done(err);
+            } else {
+                testTransfer(testInput, testExpect, done);
+            }
+        });
     });
+
+    it('[balanceOfFrom insufficient] from = to && balanceOfFrom < valueOfTx', function (done) {
+
+        var testInput = {
+            transferValue: 15,
+            isSameAddr: true,
+            gasLimit: -1,
+            gasPrice: -1,
+            nonceIncrement: 1
+        };
+        //can calc value by previous params
+        var testExpect = {
+            canSendTx: true,
+            canSubmitTx: true,
+            canExcuteTx: false,
+            fromBalanceAfterTx: '9999999980000000000',
+            toBalanceAfterTx: '9999999980000000000',
+            transferReward: '20000000000',
+            eventError: 'insufficient balance'
+        };
+        prepare(function (err) {
+            if (err instanceof Error) {
+                done(err);
+            } else {
+                testTransfer(testInput, testExpect, done);
+            }
+        });
+
+    });
+
+
 
 
     it('gas Limit is too small', function (done) {
@@ -669,7 +1042,13 @@ describe('normal transaction', function () {
             toBalanceAfterTx: '-1',
             transferReward: '-1'
         };
-        testTransfer(testInput, testExpect, done);
+        prepare(function (err) {
+            if (err instanceof Error) {
+                done(err);
+            } else {
+                testTransfer(testInput, testExpect, done);
+            }
+        });
     });
 
     it('[nonce check] nonce < from.nonce + 1', function (done) {
@@ -690,7 +1069,13 @@ describe('normal transaction', function () {
             toBalanceAfterTx: '-1',
             transferReward: '-1'
         };
-        testTransfer(testInput, testExpect, done);
+        prepare(function (err) {
+            if (err instanceof Error) {
+                done(err);
+            } else {
+                testTransfer(testInput, testExpect, done);
+            }
+        });
     });
 
 
@@ -712,7 +1097,41 @@ describe('normal transaction', function () {
             toBalanceAfterTx: '-1',
             transferReward: '-1'
         };
-        testTransfer(testInput, testExpect, done);
+        prepare(function (err) {
+            if (err instanceof Error) {
+                done(err);
+            } else {
+                testTransfer(testInput, testExpect, done);
+            }
+        });
+    });
+
+
+    it('[nonce check] nonce < 0', function (done) {
+
+        var testInput = {
+            transferValue: 1,
+            isSameAddr: false,
+            gasLimit: 1,
+            gasPrice: -1,
+            nonceIncrement: -10000000000
+        };
+        //can calc value by previous params
+        var testExpect = {
+            canSendTx: false,
+            canSubmitTx: false,
+            canExcuteTx: false,
+            fromBalanceAfterTx: '-1',
+            toBalanceAfterTx: '-1',
+            transferReward: '-1'
+        };
+        prepare(function (err) {
+            if (err instanceof Error) {
+                done(err);
+            } else {
+                testTransfer(testInput, testExpect, done);
+            }
+        });
     });
 
 
@@ -734,7 +1153,13 @@ describe('normal transaction', function () {
             toBalanceAfterTx: '9999999980000000000',
             transferReward: '20000000000'
         };
-        testTransfer(testInput, testExpect, done);
+        prepare(function (err) {
+            if (err instanceof Error) {
+                done(err);
+            } else {
+                testTransfer(testInput, testExpect, done);
+            }
+        });
     });
 
 
@@ -758,8 +1183,41 @@ describe('normal transaction', function () {
             toBalanceAfterTx: '9999999980000000000',
             transferReward: '20000000000'
         };
+        prepare(function (err) {
+            if (err instanceof Error) {
+                done(err);
+            } else {
+                testTransfer(testInput, testExpect, done);
+            }
+        });
+    });
 
-        testTransfer(testInput, testExpect, done);
+
+    it('[payload] payload > 0 normal transfer', function (done) {
+        var testInput = {
+            transferValue: 1,
+            isSameAddr: false,
+            gasLimit: -1,
+            gasPrice: -1,
+            nonceIncrement: 1,
+            payloadLength: 99
+        };
+        //can calc value by previous params
+        var testExpect = {
+            canSendTx: true,
+            canSubmitTx: true,
+            canExcuteTx: true,
+            fromBalanceAfterTx: '8999999980000000000',
+            toBalanceAfterTx: '1000000000000000000',
+            transferReward: '20000000000'
+        };
+        prepare(function (err) {
+            if (err instanceof Error) {
+                done(err);
+            } else {
+                testTransfer(testInput, testExpect, done);
+            }
+        });
     });
 
 });
