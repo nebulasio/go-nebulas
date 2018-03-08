@@ -140,6 +140,7 @@ func (tbl *StagingTable) MergeToFinal(tid interface{}) ([]interface{}, error) {
 		// record conflict.
 		if tidValueItem.old != finalValueItem.new {
 			conflictKeys[keyStr] = finalValueItem.tid
+			logging.CLog().Info("conflictKey:", keyStr, " tid:", finalValueItem.tid, " old:", tidValueItem.old, " new:", finalValueItem.new)
 			continue
 		}
 
@@ -166,7 +167,6 @@ func (tbl *StagingTable) MergeToFinal(tid interface{}) ([]interface{}, error) {
 		if !tidValueItem.dirty {
 			continue
 		}
-
 		// merge.
 		finalValues[keyStr] = tidValueItem.CloneForFinal()
 	}
@@ -191,9 +191,14 @@ func (tbl *StagingTable) UnlockFinalVersionValue() {
 
 func (tbl *StagingTable) getVersionizedValueForUpdate(tid interface{}, key []byte) (*VersionizedValueItem, error) {
 	keyStr := byteutils.Hex(key)
-	tidValues := tbl.getVersionizedValuesOfTid(tid)
 
+	if tid == nil {
+		return tbl.getAndSetDefaultVersionFromFinalVersionValue(keyStr, key)
+	}
+
+	tidValues := tbl.getVersionizedValuesOfTid(tid)
 	value := tidValues[keyStr]
+
 	if value == nil {
 		var err error
 		value, err = tbl.getAndIncrValueFromFinalVersionValue(tid, keyStr, key)
@@ -205,6 +210,7 @@ func (tbl *StagingTable) getVersionizedValueForUpdate(tid interface{}, key []byt
 	}
 
 	return value, nil
+
 }
 
 func (tbl *StagingTable) getVersionizedValuesOfTid(tid interface{}) stagingValuesMap {
@@ -243,6 +249,25 @@ func (tbl *StagingTable) getAndIncrValueFromFinalVersionValue(tid interface{}, k
 	// incr version.
 	value := IncrVersionizedValueItem(tid, latestValue)
 	return value, nil
+}
+
+func (tbl *StagingTable) getAndSetDefaultVersionFromFinalVersionValue(keyStr string, key []byte) (*VersionizedValueItem, error) {
+	tbl.finalVersionizedValueMutex.Lock()
+	defer tbl.finalVersionizedValueMutex.Unlock()
+
+	latestValue := tbl.finalVersionizedValue[keyStr]
+	if latestValue == nil {
+
+		// get from storage.
+		val, err := tbl.storage.Get(key)
+		if err != nil && err != storage.ErrKeyNotFound {
+			return nil, err
+		}
+
+		latestValue = NewDefaultVersionizedValueItem(key, val)
+		tbl.finalVersionizedValue[keyStr] = latestValue
+	}
+	return latestValue, nil
 }
 
 func (value *VersionizedValueItem) isDefault() bool {
