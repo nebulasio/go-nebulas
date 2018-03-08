@@ -134,26 +134,17 @@ func (bc *BlockChain) Setup(neb Neblet) error {
 	bc.consensusHandler = neb.Consensus()
 
 	if err := bc.CheckChainConfig(neb); err != nil {
-		logging.CLog().WithFields(logrus.Fields{
-			"meta.chainid":           neb.Genesis().Meta.ChainId,
-			"consensus.dpos.dynasty": neb.Genesis().Consensus.Dpos.Dynasty,
-			"token.distribution":     neb.Genesis().TokenDistribution,
-		}).Error("Found unmatched genesis configuration.")
 		return err
 	}
 
-	logging.CLog().WithFields(logrus.Fields{
-		"meta.chainid":           neb.Genesis().Meta.ChainId,
-		"consensus.dpos.dynasty": neb.Genesis().Consensus.Dpos.Dynasty,
-		"token.distribution":     neb.Genesis().TokenDistribution,
-	}).Info("Genesis Configuration.")
-
 	var err error
+	logging.CLog().Info("1")
 	bc.genesisBlock, err = bc.LoadGenesisFromStorage()
 	if err != nil {
 		return err
 	}
 
+	logging.CLog().Info("2")
 	bc.tailBlock, err = bc.LoadTailFromStorage()
 	if err != nil {
 		return err
@@ -203,19 +194,35 @@ func (bc *BlockChain) loop() {
 // CheckChainConfig check if the genesis and config is valid
 func (bc *BlockChain) CheckChainConfig(neb Neblet) error {
 	if neb.Config().Chain.ChainId != neb.Genesis().Meta.ChainId {
+		logging.CLog().WithFields(logrus.Fields{
+			"genesisconf.meta.chainid": neb.Genesis().Meta.ChainId,
+			"chain.chainid":            neb.Config().Chain.ChainId,
+		}).Error("ChainId in genesis.conf is not equal with config.conf.")
 		return ErrInvalidConfigChainID
 	}
 
 	if genesis, _ := DumpGenesis(bc); genesis != nil {
 		if neb.Genesis().Meta.ChainId != genesis.Meta.ChainId {
+			logging.CLog().WithFields(logrus.Fields{
+				"genesisconf.meta.chainid": neb.Genesis().Meta.ChainId,
+				"genesisblock.chainid":     genesis.Meta.ChainId,
+			}).Error("ChainId in genesis.conf is not equal with current genesis block.")
 			return ErrGenesisConfNotMatch
 		}
 
 		if len(neb.Genesis().Consensus.Dpos.Dynasty) != len(genesis.Consensus.Dpos.Dynasty) {
+			logging.CLog().WithFields(logrus.Fields{
+				"genesisconf.consensus.dpos.dynasty":  neb.Genesis().Consensus.Dpos.Dynasty,
+				"genesisblock.consensus.dpos.dynasty": genesis.Consensus.Dpos.Dynasty,
+			}).Error("Dynasty in genesis.conf is not equal with current genesis block.")
 			return ErrGenesisConfNotMatch
 		}
 
 		if len(neb.Genesis().TokenDistribution) != len(genesis.TokenDistribution) {
+			logging.CLog().WithFields(logrus.Fields{
+				"genesisconf.tokendistribution":  neb.Genesis().TokenDistribution,
+				"genesisblock.tokendistribution": genesis.TokenDistribution,
+			}).Error("TokenDistribution in genesis.conf is not equal with current genesis block.")
 			return ErrGenesisConfNotMatch
 		}
 
@@ -229,6 +236,10 @@ func (bc *BlockChain) CheckChainConfig(neb Neblet) error {
 				}
 			}
 			if !contains {
+				logging.CLog().WithFields(logrus.Fields{
+					"genesisconf.consensus.dpos.dynasty":  neb.Genesis().Consensus.Dpos.Dynasty,
+					"genesisblock.consensus.dpos.dynasty": genesis.Consensus.Dpos.Dynasty,
+				}).Error("Dynasty in genesis.conf is not equal with current genesis block.")
 				return ErrGenesisConfNotMatch
 			}
 
@@ -245,11 +256,20 @@ func (bc *BlockChain) CheckChainConfig(neb Neblet) error {
 				}
 			}
 			if !contains {
+				logging.CLog().WithFields(logrus.Fields{
+					"genesisconf.tokendistribution":  neb.Genesis().TokenDistribution,
+					"genesisblock.tokendistribution": genesis.TokenDistribution,
+				}).Error("TokenDistribution in genesis.conf is not equal with current genesis block.")
 				return ErrGenesisConfNotMatch
 			}
 		}
 	}
 
+	logging.CLog().WithFields(logrus.Fields{
+		"meta.chainid":           neb.Genesis().Meta.ChainId,
+		"consensus.dpos.dynasty": neb.Genesis().Consensus.Dpos.Dynasty,
+		"token.distribution":     neb.Genesis().TokenDistribution,
+	}).Info("Genesis Configuration.")
 	return nil
 }
 
@@ -699,22 +719,28 @@ func (bc *BlockChain) StoreLIBToStorage(block *Block) error {
 // LoadTailFromStorage load the tail from storage
 func (bc *BlockChain) LoadTailFromStorage() (*Block, error) {
 	hash, err := bc.storage.Get([]byte(Tail))
+	logging.CLog().Info("21")
 	if err != nil && err != storage.ErrKeyNotFound {
 		return nil, err
 	}
+	logging.CLog().Info("22")
 	if err == storage.ErrKeyNotFound {
+		logging.CLog().Info("23")
 		if err := bc.StoreTailToStorage(bc.genesisBlock); err != nil {
 			return nil, err
 		}
 		return bc.genesisBlock, nil
 	}
+	logging.CLog().Info("24")
 	return LoadBlockFromStorage(hash, bc)
 }
 
 // LoadGenesisFromStorage load the genesis block from storage
 func (bc *BlockChain) LoadGenesisFromStorage() (*Block, error) {
+	logging.CLog().Info("11")
 	genesis, err := LoadBlockFromStorage(GenesisHash, bc)
 	if err != nil {
+		logging.CLog().Info("12")
 		genesis, err = NewGenesisBlock(bc.genesis, bc)
 		if err != nil {
 			return nil, err

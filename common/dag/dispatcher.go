@@ -85,7 +85,7 @@ func (dp *Dispatcher) Run() error {
 
 // loop
 func (dp *Dispatcher) loop() {
-	logging.CLog().Info("loop Dag Dispatcher.")
+	logging.VLog().Debug("loop Dag Dispatcher.")
 
 	//timerChan := time.NewTicker(time.Second).C
 
@@ -108,7 +108,7 @@ func (dp *Dispatcher) loop() {
 				//fmt.Printf("====numGo:==%d i=%d\n", runtime.NumGoroutine(), i)
 				//metricsDispatcherCached.Update(int64(len(dp.receivedMessageCh)))
 				case <-dp.quitCh:
-					logging.CLog().Info("Stoped Dag Dispatcher.")
+					logging.VLog().Debug("Stoped Dag Dispatcher.")
 					return
 				case msg := <-dp.queueCh:
 					// callback todo
@@ -130,7 +130,7 @@ func (dp *Dispatcher) loop() {
 
 // Stop stop goroutine.
 func (dp *Dispatcher) Stop() {
-	logging.CLog().Info("Stopping dag Dispatcher...")
+	logging.VLog().Debug("Stopping dag Dispatcher...")
 
 	for i := 0; i < dp.concurrency; i++ {
 		select {

@@ -21,11 +21,13 @@ package core
 import (
 	"errors"
 	"fmt"
+	"reflect"
 	"runtime"
 	"time"
 
 	"github.com/nebulasio/go-nebulas/common/dag"
 	"github.com/nebulasio/go-nebulas/common/dag/pb"
+	"github.com/nebulasio/go-nebulas/consensus/pb"
 
 	"github.com/nebulasio/go-nebulas/core/state"
 
@@ -63,7 +65,7 @@ type BlockHeader struct {
 	stateRoot     byteutils.Hash
 	txsRoot       byteutils.Hash
 	eventsRoot    byteutils.Hash
-	consensusRoot byteutils.Hash
+	consensusRoot *consensuspb.ConsensusRoot
 
 	coinbase  *Address
 	nonce     uint64
@@ -101,7 +103,15 @@ func (b *BlockHeader) FromProto(msg proto.Message) error {
 		b.stateRoot = msg.StateRoot
 		b.txsRoot = msg.TxsRoot
 		b.eventsRoot = msg.EventsRoot
-		b.consensusRoot = msg.ConsensusRoot
+		// ToDelete
+		if msg.ConsensusRoot == nil && msg.DposContext != nil {
+			b.consensusRoot = &consensuspb.ConsensusRoot{
+				DynastyRoot: msg.DposContext.DynastyRoot,
+				Timestamp:   msg.Timestamp,
+			}
+		} else {
+			b.consensusRoot = msg.ConsensusRoot
+		}
 		b.nonce = msg.Nonce
 		b.coinbase = &Address{msg.Coinbase}
 		b.timestamp = msg.Timestamp
@@ -187,8 +197,11 @@ func (block *Block) FromProto(msg proto.Message) error {
 			block.transactions[idx] = tx
 		}
 		block.dependency = dag.NewDag()
-		if err := block.dependency.FromProto(msg.Dependency); err != nil {
-			return err
+		// ToDelete
+		if msg.Dependency != nil {
+			if err := block.dependency.FromProto(msg.Dependency); err != nil {
+				return err
+			}
 		}
 		block.gasConsumed = make(map[string]*util.Uint128)
 		block.height = msg.Height
@@ -340,7 +353,7 @@ func (block *Block) EventsRoot() byteutils.Hash {
 }
 
 // ConsensusRoot return the roothash of consensus state
-func (block *Block) ConsensusRoot() byteutils.Hash {
+func (block *Block) ConsensusRoot() *consensuspb.ConsensusRoot {
 	return block.header.consensusRoot
 }
 
@@ -387,6 +400,7 @@ func (block *Block) LinkParentBlock(chain *BlockChain, parentBlock *Block) error
 	}
 
 	elapsedSecond := block.Timestamp() - parentBlock.Timestamp()
+	logging.CLog().Info("Link ", elapsedSecond, " block ", block.Timestamp(), " parent ", parentBlock.Timestamp())
 	consensusState, err := parentBlock.worldState.NextConsensusState(elapsedSecond)
 	if err != nil {
 		return err
@@ -828,14 +842,13 @@ func (block *Block) verifyState() error {
 	if err != nil {
 		return err
 	}
-	if !byteutils.Equal(consensusRoot, block.ConsensusRoot()) {
+	if !reflect.DeepEqual(consensusRoot, block.ConsensusRoot()) {
 		logging.VLog().WithFields(logrus.Fields{
 			"expect": block.ConsensusRoot(),
 			"actual": consensusRoot,
 		}).Debug("Failed to verify dpos context.")
 		return ErrInvalidBlockConsensusRoot
 	}
-
 	return nil
 }
 
@@ -984,11 +997,13 @@ func (block *Block) ExecuteTransaction(tx *Transaction, txWorldState state.TxWor
 func HashBlock(block *Block) byteutils.Hash {
 	hasher := sha3.New256()
 
+	consensusRoot, _ := proto.Marshal(block.ConsensusRoot())
+
 	hasher.Write(block.ParentHash())
 	hasher.Write(block.StateRoot())
 	hasher.Write(block.TxsRoot())
 	hasher.Write(block.EventsRoot())
-	hasher.Write(block.ConsensusRoot())
+	hasher.Write(consensusRoot)
 	hasher.Write(byteutils.FromUint64(block.header.nonce))
 	hasher.Write(block.header.coinbase.address)
 	hasher.Write(byteutils.FromInt64(block.header.timestamp))
@@ -1032,34 +1047,41 @@ func RecoverMiner(block *Block) (*Address, error) {
 // LoadBlockFromStorage return a block from storage
 func LoadBlockFromStorage(hash byteutils.Hash, chain *BlockChain) (*Block, error) {
 	value, err := chain.storage.Get(hash)
+	logging.CLog().Info("241", hash.String())
 	if err != nil {
 		return nil, err
 	}
 	pbBlock := new(corepb.Block)
 	block := new(Block)
+	logging.CLog().Info("242")
 	if err = proto.Unmarshal(value, pbBlock); err != nil {
 		return nil, err
 	}
 	if err = block.FromProto(pbBlock); err != nil {
 		return nil, err
 	}
+	logging.CLog().Info("243")
 	block.worldState, err = state.NewWorldState(chain.ConsensusHandler(), chain.storage)
 	if err != nil {
 		return nil, err
 	}
+	logging.CLog().Info("244")
 	if err := block.WorldState().LoadAccountsRoot(block.StateRoot()); err != nil {
 		return nil, err
 	}
+	logging.CLog().Info("245")
 	if err := block.WorldState().LoadTxsRoot(block.TxsRoot()); err != nil {
 		return nil, err
 	}
+	logging.CLog().Info("246")
 	if err := block.WorldState().LoadEventsRoot(block.EventsRoot()); err != nil {
 		return nil, err
 	}
+	logging.CLog().Info("247")
 	if err := block.WorldState().LoadConsensusRoot(block.ConsensusRoot()); err != nil {
 		return nil, err
 	}
-
+	logging.CLog().Info("248")
 	block.txPool = chain.txPool
 	block.storage = chain.storage
 	block.sealed = true

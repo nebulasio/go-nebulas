@@ -21,6 +21,8 @@ package state
 import (
 	"errors"
 
+	"github.com/nebulasio/go-nebulas/consensus/pb"
+
 	"github.com/nebulasio/go-nebulas/storage"
 	"github.com/nebulasio/go-nebulas/util"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
@@ -89,12 +91,12 @@ type Event struct {
 
 // Consensus interface
 type Consensus interface {
-	NewState(byteutils.Hash, storage.Storage) (ConsensusState, error)
+	NewState(*consensuspb.ConsensusRoot, storage.Storage) (ConsensusState, error)
 }
 
 // ConsensusState interface of consensus state
 type ConsensusState interface {
-	RootHash() (byteutils.Hash, error)
+	RootHash() (*consensuspb.ConsensusRoot, error)
 	String() string
 	Clone() (ConsensusState, error)
 	Replay(ConsensusState) error
@@ -120,7 +122,7 @@ type WorldState interface {
 	LoadAccountsRoot(byteutils.Hash) error
 	LoadTxsRoot(byteutils.Hash) error
 	LoadEventsRoot(byteutils.Hash) error
-	LoadConsensusRoot(byteutils.Hash) error
+	LoadConsensusRoot(*consensuspb.ConsensusRoot) error
 
 	NextConsensusState(int64) (ConsensusState, error)
 	SetConsensusState(ConsensusState)
@@ -130,7 +132,7 @@ type WorldState interface {
 	AccountsRoot() (byteutils.Hash, error)
 	TxsRoot() (byteutils.Hash, error)
 	EventsRoot() (byteutils.Hash, error)
-	ConsensusRoot() (byteutils.Hash, error)
+	ConsensusRoot() (*consensuspb.ConsensusRoot, error)
 
 	Accounts() ([]Account, error)
 	GetOrCreateUserAccount(addr byteutils.Hash) (Account, error)
@@ -152,7 +154,7 @@ type TxWorldState interface {
 	AccountsRoot() (byteutils.Hash, error)
 	TxsRoot() (byteutils.Hash, error)
 	EventsRoot() (byteutils.Hash, error)
-	ConsensusRoot() (byteutils.Hash, error)
+	ConsensusRoot() (*consensuspb.ConsensusRoot, error)
 
 	Accounts() ([]Account, error)
 	GetOrCreateUserAccount(addr byteutils.Hash) (Account, error)

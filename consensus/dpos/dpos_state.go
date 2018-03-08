@@ -24,6 +24,8 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/nebulasio/go-nebulas/consensus/pb"
+
 	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/core/pb"
 	"github.com/nebulasio/go-nebulas/core/state"
@@ -51,6 +53,7 @@ const (
 var (
 	ErrTooFewCandidates        = errors.New("the size of candidates in consensus is un-safe, should be greater than or equal " + strconv.Itoa(SafeSize))
 	ErrInitialDynastyNotEnough = errors.New("the size of initial dynasty in genesis block is un-safe, should be greater than or equal " + strconv.Itoa(SafeSize))
+	ErrInvalidDynasty          = errors.New("the size of initial dynasty in genesis block is invalid, should be equal " + strconv.Itoa(DynastySize))
 	ErrCloneDynastyTrie        = errors.New("Failed to clone dynasty trie")
 	ErrCloneNextDynastyTrie    = errors.New("Failed to clone next dynasty trie")
 	ErrCloneDelegateTrie       = errors.New("Failed to clone delegate trie")
@@ -73,38 +76,15 @@ type State struct {
 }
 
 // NewState create a new dpos state
-func (dpos *Dpos) NewState(root byteutils.Hash, stor storage.Storage) (state.ConsensusState, error) {
-	stateTrie, err := trie.NewTrie(root, stor)
-	if err != nil {
-		return nil, err
-	}
-
-	var index int16
-	bytes, err := stateTrie.Get(byteutils.FromInt16(index))
-	if err != nil {
-		return nil, err
-	}
-	timestamp := byteutils.Int64(bytes)
-
-	index++
-	proposer, err := stateTrie.Get(byteutils.FromInt16(index))
-	if err != nil {
-		return nil, err
-	}
-
-	index++
-	dynastyRoot, err := stateTrie.Get(byteutils.FromInt16(index))
-	if err != nil && root != nil {
-		return nil, err
-	}
-	dynastyTrie, err := trie.NewTrie(dynastyRoot, stor)
+func (dpos *Dpos) NewState(root *consensuspb.ConsensusRoot, stor storage.Storage) (state.ConsensusState, error) {
+	dynastyTrie, err := trie.NewTrie(root.DynastyRoot, stor)
 	if err != nil {
 		return nil, err
 	}
 
 	return &State{
-		timeStamp: timestamp,
-		proposer:  proposer,
+		timeStamp: root.Timestamp,
+		proposer:  root.Proposer,
 
 		dynastyTrie: dynastyTrie,
 
@@ -130,12 +110,16 @@ func (dpos *Dpos) CheckTimeout(block *core.Block) bool {
 
 // GenesisConsensusState create a new genesis dpos state
 func (dpos *Dpos) GenesisConsensusState(chain *core.BlockChain, conf *corepb.Genesis) (state.ConsensusState, error) {
+	logging.CLog().Info("1111")
 	dynastyTrie, err := trie.NewTrie(nil, chain.Storage())
 	if err != nil {
 		return nil, err
 	}
 	if len(conf.Consensus.Dpos.Dynasty) < SafeSize {
 		return nil, ErrInitialDynastyNotEnough
+	}
+	if len(conf.Consensus.Dpos.Dynasty) != DynastySize {
+		return nil, ErrInvalidDynasty
 	}
 	for i := 0; i < len(conf.Consensus.Dpos.Dynasty); i++ {
 		addr := conf.Consensus.Dpos.Dynasty[i]
@@ -144,10 +128,8 @@ func (dpos *Dpos) GenesisConsensusState(chain *core.BlockChain, conf *corepb.Gen
 			return nil, err
 		}
 		v := member.Bytes()
-		if i < DynastySize {
-			if _, err = dynastyTrie.Put(v, v); err != nil {
-				return nil, err
-			}
+		if _, err = dynastyTrie.Put(v, v); err != nil {
+			return nil, err
 		}
 	}
 	return &State{
@@ -201,19 +183,10 @@ func (ds *State) Clone() (state.ConsensusState, error) {
 }
 
 // RootHash hash dpos state
-func (ds *State) RootHash() (byteutils.Hash, error) {
-	stateTrie, err := trie.NewTrie(nil, ds.chain.Storage())
-	if err != nil {
-		return nil, err
-	}
-	var cnt int16
-	stateTrie.Put(byteutils.FromInt16(cnt), byteutils.FromInt64(ds.timeStamp))
-	cnt++
-	stateTrie.Put(byteutils.FromInt16(cnt), ds.proposer)
-	cnt++
-	stateTrie.Put(byteutils.FromInt16(cnt), ds.dynastyTrie.RootHash())
-
-	return stateTrie.RootHash(), nil
+func (ds *State) RootHash() (*consensuspb.ConsensusRoot, error) {
+	return &consensuspb.ConsensusRoot{
+		DynastyRoot: ds.dynastyTrie.RootHash(),
+	}, nil
 }
 
 // Dynasty return the current dynasty
@@ -239,6 +212,8 @@ func FindProposer(now int64, dynasty *trie.Trie) (proposer byteutils.Hash, err e
 		return nil, err
 	}
 
+	logging.CLog().Info(delegatees)
+	logging.CLog().Info(offset)
 	if int(offset) < len(delegatees) {
 		proposer = delegatees[offset]
 	} else {
@@ -273,6 +248,7 @@ func (ds *State) NextConsensusState(elapsedSecond int64, worldState state.WorldS
 		return nil, err
 	}
 
+	logging.CLog().Info("elapsed ", elapsedSecond)
 	consensusState := &State{
 		timeStamp: ds.timeStamp + elapsedSecond,
 

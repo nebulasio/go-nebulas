@@ -21,6 +21,8 @@ package dpos
 import (
 	"testing"
 
+	"github.com/nebulasio/go-nebulas/consensus/pb"
+
 	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/crypto/keystore"
 
@@ -31,7 +33,7 @@ import (
 	"github.com/nebulasio/go-nebulas/util/byteutils"
 )
 
-func checkDynasty(t *testing.T, consensus core.Consensus, consensusRoot byteutils.Hash, storage storage.Storage) {
+func checkDynasty(t *testing.T, consensus core.Consensus, consensusRoot *consensuspb.ConsensusRoot, storage storage.Storage) {
 	consensusState, err := consensus.NewState(consensusRoot, storage)
 	assert.Nil(t, err)
 	dynasty, err := consensusState.Dynasty()

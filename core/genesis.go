@@ -56,6 +56,7 @@ func LoadGenesisConf(filePath string) (*corepb.Genesis, error) {
 
 // NewGenesisBlock create genesis @Block from file.
 func NewGenesisBlock(conf *corepb.Genesis, chain *BlockChain) (*Block, error) {
+	logging.CLog().Info("111")
 	worldState, err := state.NewWorldState(chain.ConsensusHandler(), chain.storage)
 	if err != nil {
 		return nil, err
@@ -79,6 +80,7 @@ func NewGenesisBlock(conf *corepb.Genesis, chain *BlockChain) (*Block, error) {
 		eventEmitter: chain.eventEmitter,
 	}
 
+	logging.CLog().Info("112")
 	consensusState, err := chain.ConsensusHandler().GenesisConsensusState(chain, conf)
 	if err != nil {
 		return nil, err
@@ -86,6 +88,7 @@ func NewGenesisBlock(conf *corepb.Genesis, chain *BlockChain) (*Block, error) {
 	genesisBlock.worldState.SetConsensusState(consensusState)
 	genesisBlock.SetMiner(GenesisCoinbase)
 
+	logging.CLog().Info("113")
 	genesisBlock.Begin()
 	// add token distribution for genesis
 	for _, v := range conf.TokenDistribution {
@@ -116,6 +119,7 @@ func NewGenesisBlock(conf *corepb.Genesis, chain *BlockChain) (*Block, error) {
 	}
 	genesisBlock.Commit()
 
+	logging.CLog().Info("114")
 	if err := genesisBlock.Seal(); err != nil {
 		logging.CLog().WithFields(logrus.Fields{
 			"gensis": genesisBlock,

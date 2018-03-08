@@ -21,6 +21,8 @@ package state
 import (
 	"encoding/json"
 
+	"github.com/nebulasio/go-nebulas/consensus/pb"
+
 	"github.com/nebulasio/go-nebulas/util/logging"
 
 	"github.com/nebulasio/go-nebulas/common/mvccdb"
@@ -292,7 +294,7 @@ func (s *states) EventsRoot() (byteutils.Hash, error) {
 	return s.eventsState.RootHash(), nil
 }
 
-func (s *states) ConsensusRoot() (byteutils.Hash, error) {
+func (s *states) ConsensusRoot() (*consensuspb.ConsensusRoot, error) {
 	return s.consensusState.RootHash()
 }
 
@@ -442,7 +444,7 @@ func (s *states) LoadEventsRoot(root byteutils.Hash) error {
 	return nil
 }
 
-func (s *states) LoadConsensusRoot(root byteutils.Hash) error {
+func (s *states) LoadConsensusRoot(root *consensuspb.ConsensusRoot) error {
 	consensusState, err := s.consensus.NewState(root, s.storage)
 	if err != nil {
 		return err

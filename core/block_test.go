@@ -23,6 +23,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/nebulasio/go-nebulas/consensus/pb"
+
 	"github.com/nebulasio/go-nebulas/common/dag"
 
 	"github.com/nebulasio/go-nebulas/common/trie"
@@ -128,10 +130,10 @@ func (cs *mockConsensusState) BeginBatch() {}
 func (cs *mockConsensusState) Commit()     {}
 func (cs *mockConsensusState) RollBack()   {}
 
-func (cs *mockConsensusState) RootHash() (byteutils.Hash, error)    { return nil, nil }
-func (cs *mockConsensusState) String() string                       { return "" }
-func (cs *mockConsensusState) Clone() (state.ConsensusState, error) { return cs, nil }
-func (cs *mockConsensusState) Replay(state.ConsensusState) error    { return nil }
+func (cs *mockConsensusState) RootHash() (*consensuspb.ConsensusRoot, error) { return nil, nil }
+func (cs *mockConsensusState) String() string                                { return "" }
+func (cs *mockConsensusState) Clone() (state.ConsensusState, error)          { return cs, nil }
+func (cs *mockConsensusState) Replay(state.ConsensusState) error             { return nil }
 
 func (cs *mockConsensusState) Proposer() byteutils.Hash { return nil }
 func (cs *mockConsensusState) TimeStamp() int64         { return 0 }
@@ -205,7 +207,7 @@ func (c *mockConsensus) Enable() bool                         { return true }
 func (c *mockConsensus) CheckTimeout(block *Block) bool {
 	return time.Now().Unix()-block.Timestamp() > AcceptedNetWorkDelay
 }
-func (c *mockConsensus) NewState(byteutils.Hash, storage.Storage) (state.ConsensusState, error) {
+func (c *mockConsensus) NewState(*consensuspb.ConsensusRoot, storage.Storage) (state.ConsensusState, error) {
 	return newMockConsensusState()
 }
 func (c *mockConsensus) GenesisConsensusState(*BlockChain, *corepb.Genesis) (state.ConsensusState, error) {
@@ -362,7 +364,7 @@ func TestBlock(t *testing.T) {
 					stateRoot:     []byte("43656"),
 					txsRoot:       []byte("43656"),
 					eventsRoot:    []byte("43656"),
-					consensusRoot: []byte("43656"),
+					consensusRoot: &consensuspb.ConsensusRoot{},
 					nonce:         3546456,
 					coinbase:      &Address{[]byte("hello")},
 					timestamp:     time.Now().Unix(),
@@ -445,7 +447,7 @@ func TestBlock_LinkParentBlock(t *testing.T) {
 			stateRoot:     []byte("43656"),
 			txsRoot:       []byte("43656"),
 			eventsRoot:    []byte("43656"),
-			consensusRoot: []byte("43656"),
+			consensusRoot: &consensuspb.ConsensusRoot{},
 			nonce:         3546456,
 			coinbase:      &Address{[]byte("hello")},
 			timestamp:     BlockInterval,
@@ -464,7 +466,7 @@ func TestBlock_LinkParentBlock(t *testing.T) {
 			stateRoot:     []byte("43656"),
 			txsRoot:       []byte("43656"),
 			eventsRoot:    []byte("43656"),
-			consensusRoot: []byte("43656"),
+			consensusRoot: &consensuspb.ConsensusRoot{},
 			nonce:         3546456,
 			coinbase:      &Address{[]byte("hello")},
 			timestamp:     BlockInterval * 2,

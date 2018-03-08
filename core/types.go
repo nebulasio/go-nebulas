@@ -22,9 +22,10 @@ import (
 	"errors"
 	"time"
 
+	"github.com/nebulasio/go-nebulas/consensus/pb"
+
 	"github.com/nebulasio/go-nebulas/core/state"
 	"github.com/nebulasio/go-nebulas/net"
-	"github.com/nebulasio/go-nebulas/util/byteutils"
 
 	"github.com/nebulasio/go-nebulas/core/pb"
 	"github.com/nebulasio/go-nebulas/neblet/pb"
@@ -167,10 +168,9 @@ type Consensus interface {
 	ForkChoice() error
 	UpdateLIB()
 
-	NewState(byteutils.Hash, storage.Storage) (state.ConsensusState, error)
-	CheckTimeout(*Block) bool
-
+	NewState(*consensuspb.ConsensusRoot, storage.Storage) (state.ConsensusState, error)
 	GenesisConsensusState(*BlockChain, *corepb.Genesis) (state.ConsensusState, error)
+	CheckTimeout(*Block) bool
 }
 
 // SyncService interface of sync service
