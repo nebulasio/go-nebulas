@@ -224,33 +224,33 @@ function testContractDeploy(testInput, testExpect, done) {
     });
 }
 
-describe('contract deploy', function () {
-    beforeEach(function (done) {
-        from = Account.NewAccount();
-        neb.api.getAccountState(sourceAccount.getAddressString()).then(function (resp) {
+function prepare(done) {
+    from = Account.NewAccount();
+    neb.api.getAccountState(sourceAccount.getAddressString()).then(function (resp) {
 
-            console.log("source state:" + JSON.stringify(resp));
-            var tx = new Transaction(ChainID, sourceAccount, from, Unit.nasToBasic(initFromBalance), parseInt(resp.nonce) + 1);
-            tx.signTransaction();
-            // console.log("source tx:" + tx.toString());
-            return neb.api.sendRawTransaction(tx.toProtoString());
-        }).then(function (resp) {
+        console.log("source state:" + JSON.stringify(resp));
+        var tx = new Transaction(ChainID, sourceAccount, from, Unit.nasToBasic(initFromBalance), parseInt(resp.nonce) + 1);
+        tx.signTransaction();
+        // console.log("source tx:" + tx.toString());
+        return neb.api.sendRawTransaction(tx.toProtoString());
+    }).then(function (resp) {
 
-            checkTransaction(resp.txhash, function (resp) {
-                try {
-                    console.log("complete from address claim.");
-                    expect(resp).to.be.have.property('status').equal(1);
-                    done();
-                } catch (err) {
-                    done(err);
-                }
-            });
-        }).catch(function (err) {
-            console.log("claim token failed:" + JSON.stringify(err));
-            done(err);
+        checkTransaction(resp.txhash, function (resp) {
+            try {
+                console.log("complete from address claim.");
+                expect(resp).to.be.have.property('status').equal(1);
+                done();
+            } catch (err) {
+                done(err);
+            }
         });
+    }).catch(function (err) {
+        console.log("claim token failed:" + JSON.stringify(err));
+        done(err);
     });
-   
+}
+
+describe('contract deploy', function () {
     it('normal deploy', function (done) {
 
         var testInput = {
@@ -270,7 +270,13 @@ describe('contract deploy', function () {
             toBalanceAfterTx: '0',
             transferReward: '22417000000'
         };
-        testContractDeploy(testInput, testExpect, done);
+        prepare((err) => {
+            if (err) {
+                done(err);
+            } else {
+                testContractDeploy(testInput, testExpect, done);
+            }
+        });
     });
 
     it('from & to is different', function (done) {
@@ -292,7 +298,13 @@ describe('contract deploy', function () {
             toBalanceAfterTx: '',
             transferReward: ''
         };
-        testContractDeploy(testInput, testExpect, done);
+        prepare((err) => {
+            if (err) {
+                done(err);
+            } else {
+                testContractDeploy(testInput, testExpect, done);
+            }
+        });
     });
 
     it('[address invalid] address invalid', function (done) {
@@ -314,7 +326,13 @@ describe('contract deploy', function () {
             toBalanceAfterTx: '-1',
             transferReward: '-1'
         };
-        testContractDeploy(testInput, testExpect, done);
+        prepare((err) => {
+            if (err) {
+                done(err);
+            } else {
+                testContractDeploy(testInput, testExpect, done);
+            }
+        });
     });
 
     it('address is null', function (done) {
@@ -336,7 +354,13 @@ describe('contract deploy', function () {
             toBalanceAfterTx: '-1',
             transferReward: '-1'
         };
-        testContractDeploy(testInput, testExpect, done);
+        prepare((err) => {
+            if (err) {
+                done(err);
+            } else {
+                testContractDeploy(testInput, testExpect, done);
+            }
+        });
     });
 
     it('signature invalid', function (done) {
@@ -358,7 +382,13 @@ describe('contract deploy', function () {
             toBalanceAfterTx: '',
             transferReward: ''
         };
-        testContractDeploy(testInput, testExpect, done);
+        prepare((err) => {
+            if (err) {
+                done(err);
+            } else {
+                testContractDeploy(testInput, testExpect, done);
+            }
+        });
     });
 
     it('signature is null', function (done) {
@@ -380,7 +410,13 @@ describe('contract deploy', function () {
             toBalanceAfterTx: '',
             transferReward: ''
         };
-        testContractDeploy(testInput, testExpect, done);
+        prepare((err) => {
+            if (err) {
+                done(err);
+            } else {
+                testContractDeploy(testInput, testExpect, done);
+            }
+        });
     });
 
     it('[balance sufficient] balanceOfFrom = (TxBaseGasCount + TxPayloadBaseGasCount[payloadType] + ' +
@@ -403,7 +439,13 @@ describe('contract deploy', function () {
                 toBalanceAfterTx: '0',
                 transferReward: '22417000000'
             };
-            testContractDeploy(testInput, testExpect, done);
+            prepare((err) => {
+                if (err) {
+                    done(err);
+                } else {
+                    testContractDeploy(testInput, testExpect, done);
+                }
+            });
         });
 
 
@@ -425,7 +467,13 @@ describe('contract deploy', function () {
             toBalanceAfterTx: '',
             transferReward: ''
         };
-        testContractDeploy(testInput, testExpect, done);
+        prepare((err) => {
+            if (err) {
+                done(err);
+            } else {
+                testContractDeploy(testInput, testExpect, done);
+            }
+        });
     });
 
     it('[balance insufficient] balanceOfFrom < (TxBaseGasCount + TxPayloadBaseGasCount[payloadType]'
@@ -447,7 +495,13 @@ describe('contract deploy', function () {
                 toBalanceAfterTx: '0',
                 transferReward: '22417000000'
             };
-            testContractDeploy(testInput, testExpect, done);
+            prepare((err) => {
+                if (err) {
+                    done(err);
+                } else {
+                    testContractDeploy(testInput, testExpect, done);
+                }
+            });
         });
 
     it('[gas price insufficient] gas price = 0', function (done) {
@@ -468,7 +522,13 @@ describe('contract deploy', function () {
             toBalanceAfterTx: '0',
             transferReward: '22417000000'
         };
-        testContractDeploy(testInput, testExpect, done);
+        prepare((err) => {
+            if (err) {
+                done(err);
+            } else {
+                testContractDeploy(testInput, testExpect, done);
+            }
+        });
     });
 
     it('[gas price insufficient] gas price < txpool.gasPrice', function (done) {
@@ -490,7 +550,13 @@ describe('contract deploy', function () {
             toBalanceAfterTx: '',
             transferReward: ''
         };
-        testContractDeploy(testInput, testExpect, done);
+        prepare((err) => {
+            if (err) {
+                done(err);
+            } else {
+                testContractDeploy(testInput, testExpect, done);
+            }
+        });
     });
 
     it('[gas price sufficient] gas price = txpool.gasPrice', function (done) {
@@ -511,7 +577,13 @@ describe('contract deploy', function () {
             toBalanceAfterTx: '0',
             transferReward: '22417000000'
         };
-        testContractDeploy(testInput, testExpect, done);
+        prepare((err) => {
+            if (err) {
+                done(err);
+            } else {
+                testContractDeploy(testInput, testExpect, done);
+            }
+        });
     });
 
     it('[gas price sufficient] gas price > txpool.gasPrice', function (done) {
@@ -532,7 +604,13 @@ describe('contract deploy', function () {
             toBalanceAfterTx: '0',
             transferReward: '44834000000'
         };
-        testContractDeploy(testInput, testExpect, done);
+        prepare((err) => {
+            if (err) {
+                done(err);
+            } else {
+                testContractDeploy(testInput, testExpect, done);
+            }
+        });
     });
 
     it('[gasLimit sufficient] gasLimit = TxBaseGasCount + gasCountOfPayload' +
@@ -554,7 +632,13 @@ describe('contract deploy', function () {
                 toBalanceAfterTx: '0',
                 transferReward: '22417000000'
             };
-            testContractDeploy(testInput, testExpect, done);
+            prepare((err) => {
+                if (err) {
+                    done(err);
+                } else {
+                    testContractDeploy(testInput, testExpect, done);
+                }
+            });
         });
 
     it('[gasLimit insufficient] TxBaseGasCount + gasCountOfPayload < gasLimit < TxBaseGasCount' +
@@ -576,7 +660,13 @@ describe('contract deploy', function () {
                 toBalanceAfterTx: '0',
                 transferReward: '22416000000'
             };
-            testContractDeploy(testInput, testExpect, done);
+            prepare((err) => {
+                if (err) {
+                    done(err);
+                } else {
+                    testContractDeploy(testInput, testExpect, done);
+                }
+            });
         });
 
     it('[gasLimit sufficient] gasLimit > TxBaseGasCount + gasCountOfPayload' +
@@ -598,7 +688,13 @@ describe('contract deploy', function () {
                 toBalanceAfterTx: '0',
                 transferReward: '22417000000'
             };
-            testContractDeploy(testInput, testExpect, done);
+            prepare((err) => {
+                if (err) {
+                    done(err);
+                } else {
+                    testContractDeploy(testInput, testExpect, done);
+                }
+            });
         });
 
     //TODO: [gasLimit insufficient] gasLimit = TxBaseGasCount + gasCountOfPayload
@@ -620,7 +716,13 @@ describe('contract deploy', function () {
             toBalanceAfterTx: '',
             transferReward: ''
         };
-        testContractDeploy(testInput, testExpect, done);
+        prepare((err) => {
+            if (err) {
+                done(err);
+            } else {
+                testContractDeploy(testInput, testExpect, done);
+            }
+        });
     });
 
     it('[gasLimit insufficient] gasLimit = 0', function (done) {
@@ -641,7 +743,13 @@ describe('contract deploy', function () {
             toBalanceAfterTx: '',
             transferReward: ''
         };
-        testContractDeploy(testInput, testExpect, done);
+        prepare((err) => {
+            if (err) {
+                done(err);
+            } else {
+                testContractDeploy(testInput, testExpect, done);
+            }
+        });
     });
 
     it('gasLimit out of max ', function (done) {
@@ -662,7 +770,13 @@ describe('contract deploy', function () {
             toBalanceAfterTx: '',
             transferReward: ''
         };
-        testContractDeploy(testInput, testExpect, done);
+        prepare((err) => {
+            if (err) {
+                done(err);
+            } else {
+                testContractDeploy(testInput, testExpect, done);
+            }
+        });
     });
 
     it('nonce is below', function (done) {
@@ -683,7 +797,13 @@ describe('contract deploy', function () {
             toBalanceAfterTx: '-1',
             transferReward: '-1'
         };
-        testContractDeploy(testInput, testExpect, done);
+        prepare((err) => {
+            if (err) {
+                done(err);
+            } else {
+                testContractDeploy(testInput, testExpect, done);
+            }
+        });
     });
 
     it('nonce is bigger', function (done) {
@@ -704,7 +824,13 @@ describe('contract deploy', function () {
             toBalanceAfterTx: '',
             transferReward: ''
         };
-        testContractDeploy(testInput, testExpect, done);
+        prepare((err) => {
+            if (err) {
+                done(err);
+            } else {
+                testContractDeploy(testInput, testExpect, done);
+            }
+        });
     });
 
     it('contract fail to init ', function (done) {
@@ -725,7 +851,13 @@ describe('contract deploy', function () {
             toBalanceAfterTx: '0',
             transferReward: '22454000000'
         };
-        testContractDeploy(testInput, testExpect, done);
+        prepare((err) => {
+            if (err) {
+                done(err);
+            } else {
+                testContractDeploy(testInput, testExpect, done);
+            }
+        });
     });
 
 
@@ -747,7 +879,13 @@ describe('contract deploy', function () {
             toBalanceAfterTx: '0',
             transferReward: '22226000000'
         };
-        testContractDeploy(testInput, testExpect, done);
+        prepare((err) => {
+            if (err) {
+                done(err);
+            } else {
+                testContractDeploy(testInput, testExpect, done);
+            }
+        });
     });
 
     it('source is normal js file but not contract', function (done) {
@@ -768,7 +906,13 @@ describe('contract deploy', function () {
             toBalanceAfterTx: '0',
             transferReward: '20144000000'
         };
-        testContractDeploy(testInput, testExpect, done);
+        prepare((err) => {
+            if (err) {
+                done(err);
+            } else {
+                testContractDeploy(testInput, testExpect, done);
+            }
+        });
     });
 
     it('no init function in contract', function (done) {
@@ -789,7 +933,13 @@ describe('contract deploy', function () {
             toBalanceAfterTx: '0',
             transferReward: '22705000000'
         };
-        testContractDeploy(testInput, testExpect, done);
+        prepare((err) => {
+            if (err) {
+                done(err);
+            } else {
+                testContractDeploy(testInput, testExpect, done);
+            }
+        });
     });
 
     it('contract args error', function (done) {
@@ -810,7 +960,13 @@ describe('contract deploy', function () {
             toBalanceAfterTx: '0',
             transferReward: '22414000000'
         };
-        testContractDeploy(testInput, testExpect, done);
+        prepare((err) => {
+            if (err) {
+                done(err);
+            } else {
+                testContractDeploy(testInput, testExpect, done);
+            }
+        });
     });
 
     it('source type is wrong', function (done) {
@@ -831,7 +987,13 @@ describe('contract deploy', function () {
             toBalanceAfterTx: '0',
             transferReward: '22227000000'
         };
-        testContractDeploy(testInput, testExpect, done);
+        prepare((err) => {
+            if (err) {
+                done(err);
+            } else {
+                testContractDeploy(testInput, testExpect, done);
+            }
+        });
     });
 
     it('source type is empty', function (done) {
@@ -852,7 +1014,13 @@ describe('contract deploy', function () {
             toBalanceAfterTx: '0',
             transferReward: '22226000000'
         };
-        testContractDeploy(testInput, testExpect, done);
+        prepare((err) => {
+            if (err) {
+                done(err);
+            } else {
+                testContractDeploy(testInput, testExpect, done);
+            }
+        });
     });
 
     it('source is js but type is ts', function (done) {
@@ -873,7 +1041,13 @@ describe('contract deploy', function () {
             toBalanceAfterTx: '0',
             transferReward: '22417000000'
         };
-        testContractDeploy(testInput, testExpect, done);
+        prepare((err) => {
+            if (err) {
+                done(err);
+            } else {
+                testContractDeploy(testInput, testExpect, done);
+            }
+        });
     });
 
     it('source is ts but type is js', function (done) {
@@ -894,7 +1068,13 @@ describe('contract deploy', function () {
             toBalanceAfterTx: '0',
             transferReward: '23353000000'
         };
-        testContractDeploy(testInput, testExpect, done);
+        prepare((err) => {
+            if (err) {
+                done(err);
+            } else {
+                testContractDeploy(testInput, testExpect, done);
+            }
+        });
     });
 
 });
