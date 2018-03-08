@@ -18,8 +18,14 @@ var coinbase, coinState;
 var testCases = new Array();
 var caseIndex = 0;
 
-//local
-var env = "local";
+// mocha cases/contract/xxx testneb1 -t 200000
+var args = process.argv.splice(2);
+var env = args[1];
+if (env !== "local" && env !== "testneb1" && env !== "testneb2") {
+    env = "local";
+}
+console.log("env:", env);
+
 if (env == 'local'){
     neb.setRequest(new HttpRequest("http://127.0.0.1:8685"));//https://testnet.nebulas.io
     ChainID = 100;

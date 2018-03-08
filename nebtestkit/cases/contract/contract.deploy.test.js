@@ -23,9 +23,20 @@ var sourceAccount = new Account("a6e5eb290e1438fce79f5cb8774a72621637c2c9654c8b2
 var coinbase = "eb31ad2d8a89a0ca6935c308d5425730430bc2d63f2573b8";
 var coinState;
 
-var env = 'testneb';
+// mocha cases/contract/xxx testneb1 -t 200000
+var args = process.argv.splice(2);
+var env = args[1];
+if (env !== "local" && env !== "testneb1" && env !== "testneb2") {
+    env = "local";
+}
+console.log("env:", env);
 
-if (env === 'testneb1') {
+if (env == 'local'){
+    neb.setRequest(new HttpRequest("http://127.0.0.1:8685"));//https://testnet.nebulas.io
+    ChainID = 100;
+    sourceAccount = new Wallet.Account("a6e5eb290e1438fce79f5cb8774a72621637c2c9654c8b2525ed1d7e4e73653f");
+    coinbase = "eb31ad2d8a89a0ca6935c308d5425730430bc2d63f2573b8";
+}else if (env === 'testneb1') {
     neb.setRequest(new HttpRequest("http://35.182.48.19:8685"));
     ChainID = 1001;
     sourceAccount = new Wallet.Account("43181d58178263837a9a6b08f06379a348a5b362bfab3631ac78d2ac771c5df3");
