@@ -62,12 +62,12 @@ func (payload *DeployPayload) BaseGasCount() *util.Uint128 {
 
 // Execute deploy payload in tx, deploy a new contract
 func (payload *DeployPayload) Execute(block *Block, tx *Transaction) (*util.Uint128, string, error) { // ToCheck: check args.
-	nvmctx, err := generateDeployContext(block, tx)
+	payloadGasLimit, err := tx.PayloadGasLimit(payload) // ToRefine: check payload at the beginning; done
 	if err != nil {
 		return util.NewUint128(), "", err
 	}
 
-	payloadGasLimit, err := tx.PayloadGasLimit(payload) // ToRefine: check payload at the beginning
+	nvmctx, err := generateDeployContext(block, tx)
 	if err != nil {
 		return util.NewUint128(), "", err
 	}
@@ -83,7 +83,7 @@ func (payload *DeployPayload) Execute(block *Block, tx *Transaction) (*util.Uint
 
 	// Deploy and Init.iutu
 	result, exeErr := engine.DeployAndInit(payload.Source, payload.SourceType, payload.Args)
-	instructions, _ := util.NewUint128FromInt(int64(engine.ExecutionInstructions())) // ToAdd: NewUint128FromUInt & catch err
+	instructions := util.NewUint128FromUint(engine.ExecutionInstructions()) // ToAdd: NewUint128FromUInt & catch err
 	return instructions, result, exeErr
 }
 

@@ -64,6 +64,13 @@ func NewUint128FromString(str string) (*Uint128, error) {
 	return &Uint128{big}, nil
 }
 
+// NewUint128FromUint returns a new Uint128 with given value
+func NewUint128FromUint(i uint64) *Uint128 {
+	obj := NewUint128()
+	obj.SetUint64(i)
+	return obj
+}
+
 // NewUint128FromInt returns a new Uint128 struct with given value and have a check.
 func NewUint128FromInt(i int64) (*Uint128, error) {
 	obj := &Uint128{big.NewInt(i)}
