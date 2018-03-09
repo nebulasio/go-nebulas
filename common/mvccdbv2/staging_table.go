@@ -43,8 +43,7 @@ type VersionizedValueItem struct {
 	tid     interface{}
 	key     []byte
 	val     []byte
-	old     int
-	new     int
+	version int
 	deleted bool
 	dirty   bool
 }
@@ -54,26 +53,22 @@ type VersionizedValueItem struct {
 // the other is `finalVersionizedValue`, record the `ready to commit` key/value pairs.
 type StagingTable struct {
 	storage               storage.Storage
-	allVersionizedValues  map[interface{}]stagingValuesMap
-	tidMutex              sync.Mutex
-	tid                   interface{}
+	parentStagingTable    *StagingTable
 	versionizedValues     stagingValuesMap
+	tid                   interface{}
 	mutex                 sync.Mutex
 	preparedStagingTables map[interface{}]*StagingTable
-	parentStagingTable    *StagingTable
 }
 
 // NewStagingTable return new instance of StagingTable.
 func NewStagingTable(storage storage.Storage, tid interface{}) *StagingTable {
 	tbl := &StagingTable{
-		storage:               storage,
-		allVersionizedValues:  make(map[interface{}]stagingValuesMap),
-		tid:                   tid,
-		versionizedValues:     make(stagingValuesMap),
+		storage:            storage,
+		parentStagingTable: nil,
+		versionizedValues:  make(stagingValuesMap),
+		tid:                tid,
 		preparedStagingTables: make(map[interface{}]*StagingTable),
-		parentStagingTable:    nil,
 	}
-	tbl.allVersionizedValues[tid] = tbl.versionizedValues
 	return tbl
 }
 
@@ -81,20 +76,18 @@ func (tbl *StagingTable) Prepare(tid interface{}) (*StagingTable, error) {
 	tbl.mutex.Lock()
 	defer tbl.mutex.Unlock()
 
-	if tbl.allVersionizedValues[tid] != nil {
+	if tbl.preparedStagingTables[tid] != nil {
 		return nil, ErrTidIsExist
 	}
 
 	preparedTbl := &StagingTable{
-		storage:               tbl.storage,
-		allVersionizedValues:  tbl.allVersionizedValues,
-		tid:                   tid,
-		versionizedValues:     make(stagingValuesMap),
+		storage:            tbl.storage,
+		parentStagingTable: tbl,
+		versionizedValues:  make(stagingValuesMap),
+		tid:                tid,
 		preparedStagingTables: make(map[interface{}]*StagingTable),
-		parentStagingTable:    tbl,
 	}
 
-	tbl.allVersionizedValues[tid] = tbl.versionizedValues
 	tbl.preparedStagingTables[tid] = preparedTbl
 	return preparedTbl, nil
 }
@@ -173,6 +166,7 @@ func (tbl *StagingTable) Purge() {
 	for _, p := range tbl.preparedStagingTables {
 		p.Purge()
 	}
+	tbl.preparedStagingTables = make(map[interface{}]*StagingTable)
 
 	// purge all content.
 	tbl.versionizedValues = make(stagingValuesMap)
@@ -216,8 +210,8 @@ func (tbl *StagingTable) MergeToParent() ([]interface{}, error) {
 			continue
 		}
 
-		// if target.old is greater than from, ignore.
-		if targetValueItem.old > fromValueItem.old {
+		// if target.version is greater than from, ignore.
+		if targetValueItem.version > fromValueItem.version {
 			continue
 		}
 
@@ -243,13 +237,14 @@ func (tbl *StagingTable) MergeToParent() ([]interface{}, error) {
 
 		targetValueItem := targetValues[keyStr]
 
-		// if target.old is greater than from, ignore.
-		if targetValueItem.old > fromValueItem.old {
+		// if target.version is greater than from, ignore.
+		if targetValueItem.version > fromValueItem.version {
 			continue
 		}
 
 		// merge.
-		targetValues[keyStr] = fromValueItem.CloneForMerge()
+		value := fromValueItem.CloneForMerge()
+		targetValues[keyStr] = value
 	}
 
 	tids := make([]interface{}, 0, len(dependentTids))
@@ -284,7 +279,7 @@ func (tbl *StagingTable) loadFromStorage(key []byte) (*VersionizedValueItem, err
 }
 
 func (value *VersionizedValueItem) isDefault() bool {
-	return value.old == 0 && value.dirty == false
+	return value.version == 0 && value.dirty == false
 }
 
 func (a *VersionizedValueItem) isConflict(b *VersionizedValueItem) bool {
@@ -293,17 +288,17 @@ func (a *VersionizedValueItem) isConflict(b *VersionizedValueItem) bool {
 	}
 
 	// version check.
-	if a.old == b.old {
+	if a.version == b.version {
 		return false
 	}
 
 	// version consist and value are equal.
-	delta := a.old - b.old
+	delta := a.version - b.version
 	if delta != 1 && delta != -1 {
 		return true
 	}
 
-	if a.deleted == b.deleted {
+	if a.deleted && b.deleted {
 		return false
 	}
 
@@ -320,7 +315,7 @@ func NewDefaultVersionizedValueItem(key []byte, val []byte, tid interface{}) *Ve
 		tid:     tid,
 		key:     key,
 		val:     val,
-		old:     0,
+		version: 0,
 		deleted: false,
 		dirty:   false,
 	}
@@ -332,7 +327,7 @@ func IncrVersionizedValueItem(tid interface{}, oldValue *VersionizedValueItem) *
 		tid:     tid,
 		key:     oldValue.key,
 		val:     oldValue.val,
-		old:     oldValue.old,
+		version: oldValue.version,
 		deleted: oldValue.deleted,
 		dirty:   false,
 	}
@@ -344,7 +339,7 @@ func (value *VersionizedValueItem) CloneForMerge() *VersionizedValueItem {
 		tid:     value.tid,
 		key:     value.key,
 		val:     value.val,
-		old:     value.old + 1,
+		version: value.version + 1,
 		deleted: value.deleted,
 		dirty:   true,
 	}

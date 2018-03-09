@@ -70,7 +70,7 @@ func NewMVCCDB(storage storage.Storage) (*MVCCDB, error) {
 		preparedDBs:     make(map[interface{}]*MVCCDB),
 	}
 
-	db.tid = db
+	db.tid = storage // as a placeholder.
 	db.stagingTable = NewStagingTable(storage, db.tid)
 
 	return db, nil
@@ -113,8 +113,6 @@ func (db *MVCCDB) Commit() error {
 
 	// commit.
 	db.stagingTable.Lock()
-	defer db.stagingTable.Unlock()
-
 	for _, value := range db.stagingTable.GetVersionizedValues() {
 		// skip default value loaded from storage.
 		if value.isDefault() {
@@ -131,6 +129,13 @@ func (db *MVCCDB) Commit() error {
 			db.putToStorage(value.key, value.val)
 		}
 	}
+	db.stagingTable.Unlock()
+
+	// reset.
+	for _, pdb := range db.preparedDBs {
+		pdb.Reset()
+	}
+	db.preparedDBs = make(map[interface{}]*MVCCDB)
 
 	// done.
 	db.isInTransaction = false
@@ -156,6 +161,7 @@ func (db *MVCCDB) RollBack() error {
 	for _, pdb := range db.preparedDBs {
 		pdb.Reset()
 	}
+	db.preparedDBs = make(map[interface{}]*MVCCDB)
 
 	db.stagingTable.Purge()
 
@@ -273,6 +279,9 @@ func (db *MVCCDB) CheckAndUpdate() ([]interface{}, error) {
 
 	if err == nil {
 		db.isDirtyDB = false
+
+		// cleanup.
+		db.stagingTable.Purge()
 	}
 
 	return ret, err
@@ -291,11 +300,14 @@ func (db *MVCCDB) Reset() error {
 		return ErrDisallowedCallingInNoPreparedDB
 	}
 
+	// reset.
 	for _, pdb := range db.preparedDBs {
 		pdb.Reset()
 	}
+	db.preparedDBs = make(map[interface{}]*MVCCDB)
 
 	db.stagingTable.Purge()
+
 	db.isDirtyDB = false
 
 	return nil

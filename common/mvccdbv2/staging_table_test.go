@@ -34,8 +34,7 @@ func TestNewDefaultVersionizedValueItem(t *testing.T) {
 	assert.Equal(t, key, value.key)
 	assert.Equal(t, val, value.val)
 	assert.Equal(t, "tid", value.tid)
-	assert.Equal(t, 0, value.old)
-	assert.Equal(t, 0, value.new)
+	assert.Equal(t, 0, value.version)
 	assert.False(t, value.deleted)
 	assert.False(t, value.dirty)
 }
@@ -61,8 +60,7 @@ func TestIncrVersionizedValueItem(t *testing.T) {
 					tid:     tid,
 					key:     key,
 					val:     val,
-					old:     0,
-					new:     0,
+					version: 0,
 					deleted: false,
 					dirty:   false,
 				},
@@ -71,8 +69,7 @@ func TestIncrVersionizedValueItem(t *testing.T) {
 				tid:     tid,
 				key:     key,
 				val:     val,
-				old:     0,
-				new:     0,
+				version: 0,
 				deleted: false,
 				dirty:   false,
 			},
@@ -84,8 +81,7 @@ func TestIncrVersionizedValueItem(t *testing.T) {
 					tid:     tid,
 					key:     key,
 					val:     val,
-					old:     1,
-					new:     0,
+					version: 1,
 					deleted: true,
 					dirty:   false,
 				},
@@ -94,8 +90,7 @@ func TestIncrVersionizedValueItem(t *testing.T) {
 				tid:     tid,
 				key:     key,
 				val:     val,
-				old:     1,
-				new:     0,
+				version: 1,
 				deleted: true,
 				dirty:   false,
 			},
@@ -107,8 +102,7 @@ func TestIncrVersionizedValueItem(t *testing.T) {
 					tid:     tid,
 					key:     key,
 					val:     val,
-					old:     1,
-					new:     0,
+					version: 1,
 					deleted: false,
 					dirty:   true,
 				},
@@ -117,8 +111,7 @@ func TestIncrVersionizedValueItem(t *testing.T) {
 				tid:     tid,
 				key:     key,
 				val:     val,
-				old:     1,
-				new:     0,
+				version: 1,
 				deleted: false,
 				dirty:   false,
 			},
@@ -148,8 +141,7 @@ func TestVersionizedValueItem_CloneForMerge(t *testing.T) {
 				tid:     tid,
 				key:     key,
 				val:     val,
-				old:     0,
-				new:     0,
+				version: 0,
 				deleted: false,
 				dirty:   false,
 			},
@@ -157,8 +149,7 @@ func TestVersionizedValueItem_CloneForMerge(t *testing.T) {
 				tid:     tid,
 				key:     key,
 				val:     val,
-				old:     1,
-				new:     0,
+				version: 1,
 				deleted: false,
 				dirty:   true,
 			},
@@ -168,8 +159,7 @@ func TestVersionizedValueItem_CloneForMerge(t *testing.T) {
 				tid:     tid,
 				key:     key,
 				val:     val,
-				old:     1,
-				new:     0,
+				version: 1,
 				deleted: false,
 				dirty:   true,
 			},
@@ -177,8 +167,7 @@ func TestVersionizedValueItem_CloneForMerge(t *testing.T) {
 				tid:     tid,
 				key:     key,
 				val:     val,
-				old:     2,
-				new:     0,
+				version: 2,
 				deleted: false,
 				dirty:   true,
 			},
@@ -188,8 +177,7 @@ func TestVersionizedValueItem_CloneForMerge(t *testing.T) {
 				tid:     tid,
 				key:     key,
 				val:     val,
-				old:     0,
-				new:     0,
+				version: 0,
 				deleted: true,
 				dirty:   true,
 			},
@@ -197,8 +185,7 @@ func TestVersionizedValueItem_CloneForMerge(t *testing.T) {
 				tid:     tid,
 				key:     key,
 				val:     val,
-				old:     1,
-				new:     0,
+				version: 1,
 				deleted: true,
 				dirty:   true,
 			},
@@ -237,7 +224,7 @@ func TestStagingTable_SingleTidAction(t *testing.T) {
 		assert.Equal(t, tid, value.tid)
 		assert.Equal(t, key, value.key)
 		assert.Equal(t, val, value.val)
-		assert.Equal(t, 0, value.old)
+		assert.Equal(t, 0, value.version)
 		assert.False(t, value.deleted)
 		assert.True(t, value.dirty)
 
@@ -254,7 +241,7 @@ func TestStagingTable_SingleTidAction(t *testing.T) {
 		assert.Equal(t, tid, value.tid)
 		assert.Equal(t, key, value.key)
 		assert.Equal(t, val, value.val)
-		assert.Equal(t, 0, value.old)
+		assert.Equal(t, 0, value.version)
 		assert.False(t, value.deleted)
 		assert.False(t, value.dirty)
 
@@ -272,7 +259,7 @@ func TestStagingTable_SingleTidAction(t *testing.T) {
 		assert.Equal(t, tid, value.tid)
 		assert.Equal(t, key, value.key)
 		assert.Equal(t, val, value.val)
-		assert.Equal(t, 0, value.old)
+		assert.Equal(t, 0, value.version)
 		assert.False(t, value.deleted)
 		assert.False(t, value.dirty)
 
@@ -286,7 +273,7 @@ func TestStagingTable_SingleTidAction(t *testing.T) {
 		assert.Equal(t, tid, value.tid)
 		assert.Equal(t, key, value.key)
 		assert.Equal(t, val, value.val)
-		assert.Equal(t, 0, value.old)
+		assert.Equal(t, 0, value.version)
 		assert.False(t, value.deleted)
 		assert.True(t, value.dirty)
 
@@ -300,7 +287,7 @@ func TestStagingTable_SingleTidAction(t *testing.T) {
 		assert.Equal(t, tid, value.tid)
 		assert.Equal(t, key, value.key)
 		assert.Equal(t, val, value.val)
-		assert.Equal(t, 0, value.old)
+		assert.Equal(t, 0, value.version)
 		assert.False(t, value.deleted)
 		assert.True(t, value.dirty)
 
@@ -316,7 +303,7 @@ func TestStagingTable_SingleTidAction(t *testing.T) {
 		assert.Equal(t, tid, value.tid)
 		assert.Equal(t, key, value.key)
 		assert.NotNil(t, value.val)
-		assert.Equal(t, 0, value.old)
+		assert.Equal(t, 0, value.version)
 		assert.True(t, value.deleted)
 		assert.True(t, value.dirty)
 
@@ -334,7 +321,7 @@ func TestStagingTable_SingleTidAction(t *testing.T) {
 		assert.Equal(t, tid, value.tid)
 		assert.Equal(t, key, value.key)
 		assert.NotNil(t, value.val)
-		assert.Equal(t, 0, value.old)
+		assert.Equal(t, 0, value.version)
 		assert.True(t, value.deleted)
 		assert.True(t, value.dirty)
 
@@ -424,7 +411,7 @@ func TestStagingTable_MergeToParent(t *testing.T) {
 	assert.Equal(t, tid3, value.tid)
 	assert.Equal(t, key1, value.key)
 	assert.Equal(t, val1_2, value.val)
-	assert.Equal(t, 1, value.old)
+	assert.Equal(t, 1, value.version)
 	assert.False(t, value.deleted)
 	assert.False(t, value.dirty)
 
@@ -444,13 +431,13 @@ func TestStagingTable_MergeToParent(t *testing.T) {
 
 	value, _ = tbl4.Get(key1)
 	assert.Equal(t, val1_2, value.val)
-	assert.Equal(t, 1, value.old)
+	assert.Equal(t, 1, value.version)
 
 	value, _ = tbl4.Del(key2)
-	assert.Equal(t, 1, value.old)
+	assert.Equal(t, 1, value.version)
 
 	value, _ = tbl4.Put(key3, []byte("val of deleted key3"))
-	assert.Equal(t, 1, value.old)
+	assert.Equal(t, 1, value.version)
 
 	// Merge tid4.
 	dependencies, err = tbl4.MergeToParent()
