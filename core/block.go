@@ -206,10 +206,11 @@ func NewBlock(chainID uint32, coinbase *Address, parent *Block) (*Block, error) 
 	}
 	block := &Block{
 		header: &BlockHeader{
-			parentHash: parent.Hash(),
-			coinbase:   coinbase,
-			timestamp:  time.Now().Unix(),
-			chainID:    chainID,
+			parentHash:    parent.Hash(),
+			coinbase:      coinbase,
+			timestamp:     time.Now().Unix(),
+			chainID:       chainID,
+			consensusRoot: &consensuspb.ConsensusRoot{},
 		},
 		transactions:   make(Transactions, 0),
 		parentBlock:    parent,
