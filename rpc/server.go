@@ -66,7 +66,9 @@ type Server struct {
 // NewServer creates a new RPC server and registers the rpc endpoints.
 func NewServer(neblet Neblet) *Server {
 	cfg := neblet.Config().Rpc
-
+	if cfg == nil {
+		logging.CLog().Fatalf("config.conf should has rpc")
+	}
 	rpc := grpc.NewServer(grpc.StreamInterceptor(grpc_middleware.ChainStreamServer(loggingStream)),
 		grpc.UnaryInterceptor(grpc_middleware.ChainUnaryServer(loggingUnary)))
 

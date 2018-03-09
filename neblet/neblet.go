@@ -76,16 +76,18 @@ type Neblet struct {
 
 // New returns a new neblet.
 func New(config *nebletpb.Config) (*Neblet, error) {
-	var err error
+	//var err error
 	n := &Neblet{config: config}
 
 	// try enable profile.
 	n.TryStartProfiling()
 
-	n.genesis, err = core.LoadGenesisConf(config.Chain.Genesis)
-	if err != nil {
-		return nil, err
+	if chain := config.GetChain(); chain == nil {
+		logging.CLog().Error("config.conf should has chain")
+		return nil, ErrConfigShouldHasChain
 	}
+	n.genesis, _ = core.LoadGenesisConf(config.Chain.Genesis)
+
 	n.accountManager = account.NewManager(n)
 
 	// init random seed.
@@ -368,7 +370,12 @@ func (n *Neblet) SyncService() *nsync.Service {
 
 // TryStartProfiling try start pprof
 func (n *Neblet) TryStartProfiling() {
+	if n.config.App == nil {
+		logging.CLog().Infof("config.conf lack App interface")
+		return
+	}
 	if n.config.App.Pprof == nil {
+		logging.CLog().Infof("config.conf lack App.Pprof interface")
 		return
 	}
 

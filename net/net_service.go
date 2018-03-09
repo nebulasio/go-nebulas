@@ -31,6 +31,10 @@ type NetService struct {
 
 // NewNetService create netService
 func NewNetService(n Neblet) (*NetService, error) {
+	if networkConf := n.Config().GetNetwork(); networkConf == nil {
+		logging.CLog().Fatal("config.conf should has network")
+		return nil, ErrConfigLackNetWork
+	}
 	node, err := NewNode(NewP2PConfig(n))
 	if err != nil {
 		return nil, err

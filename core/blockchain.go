@@ -98,7 +98,7 @@ func NewBlockChain(neb Neblet) (*BlockChain, error) {
 	txPool.setEventEmitter(neb.EventEmitter())
 
 	var bc = &BlockChain{
-		chainID:      neb.Genesis().Meta.ChainId,
+		chainID:      neb.Config().Chain.ChainId,
 		genesis:      neb.Genesis(),
 		bkPool:       blockPool,
 		txPool:       txPool,
@@ -193,50 +193,66 @@ func (bc *BlockChain) loop() {
 
 // CheckChainConfig check if the genesis and config is valid
 func (bc *BlockChain) CheckChainConfig(neb Neblet) error {
-	if neb.Config().Chain.ChainId != neb.Genesis().Meta.ChainId {
-		return ErrInvalidConfigChainID
-	}
-
-	if genesis, _ := DumpGenesis(bc.storage); genesis != nil {
-		if neb.Genesis().Meta.ChainId != genesis.Meta.ChainId {
-			return ErrGenesisConfNotMatch
+	genesis, _ := DumpGenesis(bc.storage)
+	//db.genesis has and config lack
+	if neb.Genesis() == nil && genesis != nil {
+		neb.SetGenesis(genesis)
+		if neb.Config().Chain.ChainId != neb.Genesis().Meta.ChainId {
+			return ErrInvalidConfigChainID
 		}
-
-		if len(neb.Genesis().Consensus.Dpos.Dynasty) != len(genesis.Consensus.Dpos.Dynasty) {
-			return ErrGenesisConfNotMatch
+	} else if neb.Genesis() == nil && genesis == nil {
+		logging.CLog().Fatalf("not found genesis.conf")
+		return ErrCannotLoadGenesisConf
+	} else if neb.Genesis() != nil && genesis == nil {
+		//first start
+		if neb.Config().Chain.ChainId != neb.Genesis().Meta.ChainId {
+			return ErrInvalidConfigChainID
 		}
-
-		if len(neb.Genesis().TokenDistribution) != len(genesis.TokenDistribution) {
-			return ErrGenesisConfNotMatch
+	} else {
+		if neb.Config().Chain.ChainId != neb.Genesis().Meta.ChainId {
+			return ErrInvalidConfigChainID
 		}
-
-		// check dpos equal
-		for _, confDposAddr := range neb.Genesis().Consensus.Dpos.Dynasty {
-			contains := false
-			for _, dposAddr := range genesis.Consensus.Dpos.Dynasty {
-				if dposAddr == confDposAddr {
-					contains = true
-					break
-				}
-			}
-			if !contains {
+		if genesis, _ := DumpGenesis(bc.storage); genesis != nil {
+			if neb.Genesis().Meta.ChainId != genesis.Meta.ChainId {
 				return ErrGenesisConfNotMatch
 			}
 
-		}
-
-		// check distribution equal
-		for _, confDistribution := range neb.Genesis().TokenDistribution {
-			contains := false
-			for _, distribution := range genesis.TokenDistribution {
-				if distribution.Address == confDistribution.Address &&
-					distribution.Value == confDistribution.Value {
-					contains = true
-					break
-				}
-			}
-			if !contains {
+			if len(neb.Genesis().Consensus.Dpos.Dynasty) != len(genesis.Consensus.Dpos.Dynasty) {
 				return ErrGenesisConfNotMatch
+			}
+
+			if len(neb.Genesis().TokenDistribution) != len(genesis.TokenDistribution) {
+				return ErrGenesisConfNotMatch
+			}
+
+			// check dpos equal
+			for _, confDposAddr := range neb.Genesis().Consensus.Dpos.Dynasty {
+				contains := false
+				for _, dposAddr := range genesis.Consensus.Dpos.Dynasty {
+					if dposAddr == confDposAddr {
+						contains = true
+						break
+					}
+				}
+				if !contains {
+					return ErrGenesisConfNotMatch
+				}
+
+			}
+
+			// check distribution equal
+			for _, confDistribution := range neb.Genesis().TokenDistribution {
+				contains := false
+				for _, distribution := range genesis.TokenDistribution {
+					if distribution.Address == confDistribution.Address &&
+						distribution.Value == confDistribution.Value {
+						contains = true
+						break
+					}
+				}
+				if !contains {
+					return ErrGenesisConfNotMatch
+				}
 			}
 		}
 	}

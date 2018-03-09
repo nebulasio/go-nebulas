@@ -19,12 +19,18 @@
 package neblet
 
 import (
+	"errors"
 	"io/ioutil"
 	"os"
 
 	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/neblet/pb"
 	"github.com/nebulasio/go-nebulas/util/logging"
+)
+
+// all error should in only file
+var (
+	ErrConfigShouldHasChain = errors.New("config not has chain")
 )
 
 // LoadConfig loads configuration from the file.
@@ -37,6 +43,7 @@ func LoadConfig(file string) *nebletpb.Config {
 		b, err := ioutil.ReadFile(file)
 		if err != nil {
 			logging.CLog().Fatalf("Failed to read the config file: %s. error: %s", file, err)
+
 		}
 
 		content = string(b)

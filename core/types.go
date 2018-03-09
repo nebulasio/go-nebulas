@@ -126,6 +126,7 @@ var (
 	ErrFoundNilProposer                                  = errors.New("found a nil proposer")
 	ErrContractNotFound                                  = errors.New("contract not found")
 	ErrContractTransactionAddressNotEqual                = errors.New("contract transaction from-address not equal to to-address")
+	ErrCannotLoadGenesisConf                             = errors.New("cannot load genesis conf")
 )
 
 // Default gas count
@@ -171,6 +172,7 @@ type SyncService interface {
 // Neblet interface breaks cycle import dependency and hides unused services.
 type Neblet interface {
 	Genesis() *corepb.Genesis
+	SetGenesis(g *corepb.Genesis)
 	Config() *nebletpb.Config
 	Storage() storage.Storage
 	EventEmitter() *EventEmitter
