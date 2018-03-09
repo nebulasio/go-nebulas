@@ -23,7 +23,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/nebulasio/go-nebulas/common/trie"
 	"github.com/nebulasio/go-nebulas/consensus/pb"
 	"github.com/nebulasio/go-nebulas/core/state"
 	"github.com/nebulasio/go-nebulas/net"
@@ -84,28 +83,12 @@ func MockGenesisConf() *corepb.Genesis {
 }
 
 type mockConsensusState struct {
-	votes      *trie.BatchTrie
-	delegates  *trie.BatchTrie
-	candidates *trie.BatchTrie
+	timestamp int64
 }
 
-func newMockConsensusState() (*mockConsensusState, error) {
-	votes, err := trie.NewBatchTrie(nil, stor)
-	if err != nil {
-		return nil, err
-	}
-	delegates, err := trie.NewBatchTrie(nil, stor)
-	if err != nil {
-		return nil, err
-	}
-	candidates, err := trie.NewBatchTrie(nil, stor)
-	if err != nil {
-		return nil, err
-	}
+func newMockConsensusState(timestamp int64) (*mockConsensusState, error) {
 	return &mockConsensusState{
-		votes:      votes,
-		delegates:  delegates,
-		candidates: candidates,
+		timestamp: timestamp,
 	}, nil
 }
 
@@ -116,13 +99,19 @@ func (cs *mockConsensusState) Rollback()   {}
 func (cs *mockConsensusState) RootHash() (*consensuspb.ConsensusRoot, error) {
 	return &consensuspb.ConsensusRoot{}, nil
 }
-func (cs *mockConsensusState) String() string                       { return "" }
-func (cs *mockConsensusState) Clone() (state.ConsensusState, error) { return cs, nil }
+func (cs *mockConsensusState) String() string { return "" }
+func (cs *mockConsensusState) Clone() (state.ConsensusState, error) {
+	return &mockConsensusState{
+		timestamp: cs.timestamp,
+	}, nil
+}
 
 func (cs *mockConsensusState) Proposer() byteutils.Hash { return nil }
-func (cs *mockConsensusState) TimeStamp() int64         { return 0 }
-func (cs *mockConsensusState) NextState(int64) (state.ConsensusState, error) {
-	return cs, nil
+func (cs *mockConsensusState) TimeStamp() int64         { return cs.timestamp }
+func (cs *mockConsensusState) NextState(elapsed int64) (state.ConsensusState, error) {
+	return &mockConsensusState{
+		timestamp: cs.timestamp + elapsed,
+	}, nil
 }
 
 func (cs *mockConsensusState) Dynasty() ([]byteutils.Hash, error) { return nil, nil }
@@ -191,11 +180,11 @@ func (c *mockConsensus) Enable() bool                         { return true }
 func (c *mockConsensus) CheckTimeout(block *Block) bool {
 	return time.Now().Unix()-block.Timestamp() > AcceptedNetWorkDelay
 }
-func (c *mockConsensus) NewState(*consensuspb.ConsensusRoot, storage.Storage) (state.ConsensusState, error) {
-	return newMockConsensusState()
+func (c *mockConsensus) NewState(root *consensuspb.ConsensusRoot, storage storage.Storage) (state.ConsensusState, error) {
+	return newMockConsensusState(root.Timestamp)
 }
 func (c *mockConsensus) GenesisState(*BlockChain, *corepb.Genesis) (state.ConsensusState, error) {
-	return newMockConsensusState()
+	return newMockConsensusState(0)
 }
 
 type mockManager struct{}

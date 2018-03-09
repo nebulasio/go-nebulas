@@ -158,13 +158,9 @@ func (ds *State) Rollback() {
 }
 
 func (ds *State) String() string {
-	proposer := ""
-	if ds.proposer != nil {
-		proposer = ds.proposer.String()
-	}
 	return fmt.Sprintf(`{"timestamp": %d, "proposer": "%s", "dynasty": "%s"}`,
 		ds.timeStamp,
-		proposer,
+		ds.proposer.Hex(),
 		byteutils.Hex(ds.dynastyTrie.RootHash()),
 	)
 }
@@ -250,7 +246,6 @@ func (ds *State) NextState(elapsedSecond int64) (state.ConsensusState, error) {
 		return nil, err
 	}
 
-	logging.CLog().Info("elapsed ", elapsedSecond)
 	consensusState := &State{
 		timeStamp: ds.timeStamp + elapsedSecond,
 

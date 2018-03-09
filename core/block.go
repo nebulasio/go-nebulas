@@ -383,10 +383,11 @@ func (block *Block) LinkParentBlock(chain *BlockChain, parentBlock *Block) error
 	}
 
 	elapsedSecond := block.Timestamp() - parentBlock.Timestamp()
-	block.consensusState, err = parentBlock.consensusState.NextState(elapsedSecond)
+	consensusState, err := parentBlock.consensusState.NextState(elapsedSecond)
 	if err != nil {
 		return err
 	}
+	block.SetConsensusState(consensusState)
 
 	block.txPool = parentBlock.txPool
 	block.parentBlock = parentBlock
@@ -591,15 +592,12 @@ func (block *Block) String() string {
 	if block.miner != nil {
 		miner = block.miner.String()
 	}
-	return fmt.Sprintf(`{"height": %d, "hash": "%s", "parent_hash": "%s", "state": "%s", "txs": "%s", "events": "%s", "timestamp": %d, "dynasty": "%s", "tx": %d, "miner": "%s"}`,
+	return fmt.Sprintf(`{"height": %d, "hash": "%s", "parent_hash": "%s", "acc_root": "%s", "timestamp": %d, "tx": %d, "miner": "%s"}`,
 		block.height,
 		block.header.hash,
 		block.header.parentHash,
 		block.header.stateRoot,
-		block.header.txsRoot,
-		block.header.eventsRoot,
 		block.header.timestamp,
-		block.header.consensusRoot,
 		len(block.transactions),
 		miner,
 	)
@@ -1096,9 +1094,11 @@ func LoadBlockFromStorage(hash byteutils.Hash, chain *BlockChain) (*Block, error
 	if err != nil {
 		return nil, err
 	}
-	if block.consensusState, err = chain.consensusHandler.NewState(block.ConsensusRoot(), chain.storage); err != nil {
+	consensusState, err := chain.consensusHandler.NewState(block.ConsensusRoot(), chain.storage)
+	if err != nil {
 		return nil, err
 	}
+	block.SetConsensusState(consensusState)
 	block.txPool = chain.txPool
 	block.storage = chain.storage
 	block.sealed = true
