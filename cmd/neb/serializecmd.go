@@ -230,7 +230,7 @@ func parseTransaction(neb *neblet.Neblet, txJSON *txJSON) (*core.Transaction, er
 		return nil, err
 	}
 
-	tx := core.NewTransaction(neb.BlockChain().ChainID(), fromAddr, toAddr, value, txJSON.Nonce, payloadType, payload, gasPrice, gasLimit)
+	tx, _ := core.NewTransaction(neb.BlockChain().ChainID(), fromAddr, toAddr, value, txJSON.Nonce, payloadType, payload, gasPrice, gasLimit)
 	return tx, nil
 }
 

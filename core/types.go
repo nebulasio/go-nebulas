@@ -111,8 +111,9 @@ var (
 	ErrCannotLoadTailBlock    = errors.New("cannot load latest irreversible block from storage")
 	ErrGenesisConfNotMatch    = errors.New("Failed to load genesis from storage, different with genesis conf")
 
-	ErrNoTimeToPackTransactions = errors.New("no time left to pack transactions in a block")
-	ErrInvalidBlockInput        = errors.New("invalid block as input")
+	ErrNoTimeToPackTransactions    = errors.New("no time left to pack transactions in a block")
+	ErrInvalidBlockInput           = errors.New("invalid block as input")
+	ErrTxDataPayLoadOutOfMaxLength = errors.New("data's payload is out of max data length")
 )
 
 // Default gas count

@@ -435,14 +435,14 @@ BankVaultContract.prototype = {
 
 	value, _ := util.NewUint128FromInt(1)
 	gasLimit, _ := util.NewUint128FromInt(200000)
-	txDeploy := core.NewTransaction(dpos.chain.ChainID(), coinbase, coinbase, value, 1, core.TxPayloadDeployType, payloadDeploy, core.TransactionGasPrice, gasLimit)
+	txDeploy, _ := core.NewTransaction(dpos.chain.ChainID(), coinbase, coinbase, value, 1, core.TxPayloadDeployType, payloadDeploy, core.TransactionGasPrice, gasLimit)
 	manager.SignTransaction(coinbase, txDeploy)
 	dpos.chain.TransactionPool().Push(txDeploy)
 
 	function := "save"
 	argsCall := "[1]"
 	payloadCall, _ := core.NewCallPayload(function, argsCall).ToBytes()
-	txCall := core.NewTransaction(dpos.chain.ChainID(), coinbase, coinbase, value, 1, core.TxPayloadCallType, payloadCall, core.TransactionGasPrice, gasLimit)
+	txCall, _ := core.NewTransaction(dpos.chain.ChainID(), coinbase, coinbase, value, 1, core.TxPayloadCallType, payloadCall, core.TransactionGasPrice, gasLimit)
 	manager.SignTransaction(coinbase, txCall)
 	dpos.chain.TransactionPool().Push(txCall)
 

@@ -60,6 +60,9 @@ var (
 
 	// ZeroGasCount is zero gas count
 	ZeroGasCount = util.NewUint128()
+
+	// MaxDataPayLoadLength Max data length in transaction
+	MaxDataPayLoadLength = 1024 * 1024
 )
 
 // TransactionEvent transaction event
@@ -162,16 +165,36 @@ func (tx *Transaction) ToProto() (proto.Message, error) {
 func (tx *Transaction) FromProto(msg proto.Message) error { // ToFix: check msg is not nil.
 	if msg, ok := msg.(*corepb.Transaction); ok {
 		tx.hash = msg.Hash
-		tx.from = &Address{msg.From} // ToFix: Check Address, use AddressParse
-		tx.to = &Address{msg.To}
+
+		from, err := AddressParseFromBytes(msg.From)
+		if err != nil {
+			return err
+		}
+		tx.from = from
+
+		to, err := AddressParseFromBytes(msg.To)
+		if err != nil {
+			return err
+		}
+		tx.to = to
+
 		value, err := util.NewUint128FromFixedSizeByteSlice(msg.Value)
 		if err != nil {
 			return err
 		}
-		tx.value = value // ToFix: Check value is not nil
+		tx.value = value // ToFix: Check value is not nil; done: no need
 		tx.nonce = msg.Nonce
 		tx.timestamp = msg.Timestamp
-		tx.data = msg.Data // ToFix: Check msg.data is not nil // ToCheck: length <= 1m
+
+		data := msg.Data
+		if data == nil {
+			return errors.New("invalid data in tx from Proto")
+		}
+		if len(data.Payload) > MaxDataPayLoadLength {
+			return ErrTxDataPayLoadOutOfMaxLength
+		}
+
+		tx.data = msg.Data // ToFix: Check msg.data is not nil done // ToCheck: length <= 1m done
 		tx.chainID = msg.ChainId
 		gasPrice, err := util.NewUint128FromFixedSizeByteSlice(msg.GasPrice)
 		if err != nil {
@@ -202,20 +225,33 @@ func (tx *Transaction) String() string {
 		tx.gasPrice.String(),
 		tx.gasLimit.String(),
 		tx.Type(),
-	) // ToFix: Check Hash is not nil
+	) // ToFix: Check Hash is not nil  done:no need
 }
 
 // Transactions is an alias of Transaction array.
 type Transactions []*Transaction
 
 // NewTransaction create #Transaction instance.
-func NewTransaction(chainID uint32, from, to *Address, value *util.Uint128, nonce uint64, payloadType string, payload []byte, gasPrice *util.Uint128, gasLimit *util.Uint128) *Transaction { // ToFix: check args
+func NewTransaction(chainID uint32, from, to *Address, value *util.Uint128, nonce uint64, payloadType string, payload []byte, gasPrice *util.Uint128, gasLimit *util.Uint128) (*Transaction, error) { // ToFix: check args
 	//if gasPrice is not specified, use the default gasPrice
 	if gasPrice == nil || gasPrice.Cmp(util.NewUint128()) <= 0 { // ToCheck: default value is reasonable?
 		gasPrice = TransactionGasPrice // ToConfirm: uint128 should be immutable
 	}
 	if gasLimit == nil || gasLimit.Cmp(util.NewUint128()) <= 0 {
 		gasLimit = MinGasCountPerTransaction
+	}
+
+	if nil == from || nil == to || nil == value {
+		logging.VLog().WithFields(logrus.Fields{
+			"from":  from,
+			"to":    to,
+			"value": value,
+		}).Error("invalid parameters")
+		return nil, errors.New("invalid parameters when new transaction")
+	}
+
+	if len(payload) > MaxDataPayLoadLength {
+		return nil, ErrTxDataPayLoadOutOfMaxLength
 	}
 
 	tx := &Transaction{
@@ -229,7 +265,7 @@ func NewTransaction(chainID uint32, from, to *Address, value *util.Uint128, nonc
 		gasPrice:  gasPrice,                                          // ToFix: check nil
 		gasLimit:  gasLimit,                                          // ToFix: check nil
 	}
-	return tx
+	return tx, nil
 }
 
 // Hash return the hash of transaction.
@@ -280,7 +316,7 @@ func (tx *Transaction) MinBalanceRequired() (*util.Uint128, error) {
 
 // GasCountOfTxBase calculate the actual amount for a tx with data
 func (tx *Transaction) GasCountOfTxBase() (*util.Uint128, error) {
-	txGas := MinGasCountPerTransaction.DeepCopy() // ToConfirm: DeepCopy nessasary?
+	txGas := MinGasCountPerTransaction.DeepCopy()
 	if tx.DataLen() > 0 {
 		dataLen, err := util.NewUint128FromInt(int64(tx.DataLen()))
 		if err != nil {

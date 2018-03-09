@@ -334,6 +334,10 @@ func TestBlock(t *testing.T) {
 		height       uint64
 		transactions Transactions
 	}
+	from1, _ := NewAddress([]byte("eb693e1438fce79f5cb2"))
+	from2, _ := NewAddress([]byte("eb692e1438fce79f5cb2"))
+	to1, _ := NewAddress([]byte("eb691e1438fce79f5cb2"))
+	to2, _ := NewAddress([]byte("eb690e1438fce79f5cb2"))
 	tests := []struct {
 		name    string
 		fields  fields
@@ -343,8 +347,8 @@ func TestBlock(t *testing.T) {
 			"full struct",
 			fields{
 				&BlockHeader{
-					hash:       []byte("124546"),
-					parentHash: []byte("344543"),
+					hash:       []byte("a6e5eb190e1438fce79f5cb8774a72621637c2c9654c8b2525ed1d7e4e73653f"),
+					parentHash: []byte("a6e5eb240e1438fce79f5cb8774a72621637c2c9654c8b2525ed1d7e4e73653f"),
 					stateRoot:  []byte("43656"),
 					txsRoot:    []byte("43656"),
 					eventsRoot: []byte("43656"),
@@ -361,8 +365,8 @@ func TestBlock(t *testing.T) {
 				Transactions{
 					&Transaction{
 						[]byte("123452"),
-						&Address{[]byte("1335")},
-						&Address{[]byte("1245")},
+						from1,
+						to1,
 						util.NewUint128(),
 						456,
 						1516464510,
@@ -375,8 +379,8 @@ func TestBlock(t *testing.T) {
 					},
 					&Transaction{
 						[]byte("123455"),
-						&Address{[]byte("1235")},
-						&Address{[]byte("1425")},
+						from2,
+						to2,
 						util.NewUint128(),
 						446,
 						1516464511,
@@ -404,7 +408,8 @@ func TestBlock(t *testing.T) {
 			ir, _ := pb.Marshal(proto)
 			nb := new(Block)
 			pb.Unmarshal(ir, proto)
-			nb.FromProto(proto)
+			err := nb.FromProto(proto)
+			assert.Nil(t, err)
 			b.header.timestamp = nb.header.timestamp
 			if !reflect.DeepEqual(*b.header, *nb.header) {
 				t.Errorf("Transaction.Serialize() = %v, want %v", *b.header, *nb.header)
@@ -500,17 +505,17 @@ func TestBlock_CollectTransactions(t *testing.T) {
 
 	value, _ := util.NewUint128FromInt(1)
 	gasLimit, _ := util.NewUint128FromInt(200000)
-	tx1 := NewTransaction(bc.ChainID(), from, to, value, 1, TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, gasLimit)
+	tx1, _ := NewTransaction(bc.ChainID(), from, to, value, 1, TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, gasLimit)
 	tx1.Sign(signature)
-	tx2 := NewTransaction(bc.ChainID(), from, to, value, 2, TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, gasLimit)
+	tx2, _ := NewTransaction(bc.ChainID(), from, to, value, 2, TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, gasLimit)
 	tx2.Sign(signature)
-	tx3 := NewTransaction(bc.ChainID(), from, to, value, 0, TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, gasLimit)
+	tx3, _ := NewTransaction(bc.ChainID(), from, to, value, 0, TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, gasLimit)
 	tx3.Sign(signature)
-	tx4 := NewTransaction(bc.ChainID(), from, to, value, 4, TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, gasLimit)
+	tx4, _ := NewTransaction(bc.ChainID(), from, to, value, 4, TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, gasLimit)
 	tx4.Sign(signature)
-	tx5 := NewTransaction(bc.ChainID(), from, to, value, 3, TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, gasLimit)
+	tx5, _ := NewTransaction(bc.ChainID(), from, to, value, 3, TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, gasLimit)
 	tx5.Sign(signature)
-	tx6 := NewTransaction(bc.ChainID()+1, from, to, value, 1, TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, gasLimit)
+	tx6, _ := NewTransaction(bc.ChainID()+1, from, to, value, 1, TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, gasLimit)
 	tx6.Sign(signature)
 
 	assert.Nil(t, bc.txPool.Push(tx1))
@@ -576,7 +581,7 @@ func TestBlock_fetchEvents(t *testing.T) {
 func TestSerializeTxByHash(t *testing.T) {
 	bc := testNeb(t).chain
 	block := bc.tailBlock
-	tx := NewTransaction(bc.ChainID(), mockAddress(), mockAddress(), util.NewUint128(), 1, TxPayloadBinaryType, []byte(""), TransactionGasPrice, TransactionMaxGas)
+	tx, _ := NewTransaction(bc.ChainID(), mockAddress(), mockAddress(), util.NewUint128(), 1, TxPayloadBinaryType, []byte(""), TransactionGasPrice, TransactionMaxGas)
 	hash, err := HashTransaction(tx)
 	assert.Nil(t, err)
 	tx.hash = hash
@@ -609,7 +614,7 @@ func TestGivebackInvalidTx(t *testing.T) {
 	from := mockAddress()
 	ks := keystore.DefaultKS
 	gasLimit, _ := util.NewUint128FromInt(200000)
-	tx := NewTransaction(bc.ChainID(), from, from, util.NewUint128(), 2, TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, gasLimit)
+	tx, _ := NewTransaction(bc.ChainID(), from, from, util.NewUint128(), 2, TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, gasLimit)
 	key, err := ks.GetUnlocked(from.String())
 	assert.Nil(t, err)
 	signature, err := crypto.NewSignature(keystore.SECP256K1)
@@ -652,9 +657,9 @@ func TestBlockVerifyIntegrity(t *testing.T) {
 	block, err := bc.NewBlock(from)
 	assert.Nil(t, err)
 	gasLimit, _ := util.NewUint128FromInt(200000)
-	tx1 := NewTransaction(bc.ChainID(), from, from, util.NewUint128(), 1, TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, gasLimit)
+	tx1, _ := NewTransaction(bc.ChainID(), from, from, util.NewUint128(), 1, TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, gasLimit)
 	tx1.Sign(signature)
-	tx2 := NewTransaction(bc.ChainID(), from, from, util.NewUint128(), 2, TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, gasLimit)
+	tx2, _ := NewTransaction(bc.ChainID(), from, from, util.NewUint128(), 2, TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, gasLimit)
 	tx2.Sign(signature)
 	tx2.hash[0]++
 	block.transactions = append(block.transactions, tx1)
@@ -680,7 +685,7 @@ func TestBlockVerifyIntegrityDup(t *testing.T) {
 	block, err := bc.NewBlock(from)
 	assert.Nil(t, err)
 	gasLimit, _ := util.NewUint128FromInt(200000)
-	tx1 := NewTransaction(bc.ChainID(), from, from, util.NewUint128(), 1, TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, gasLimit)
+	tx1, _ := NewTransaction(bc.ChainID(), from, from, util.NewUint128(), 1, TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, gasLimit)
 	tx1.Sign(signature)
 	block.transactions = append(block.transactions, tx1)
 	block.transactions = append(block.transactions, tx1)
@@ -705,9 +710,9 @@ func TestBlockVerifyExecution(t *testing.T) {
 	block, err := bc.NewBlock(from)
 	assert.Nil(t, err)
 	gasLimit, _ := util.NewUint128FromInt(200000)
-	tx1 := NewTransaction(bc.ChainID(), from, from, util.NewUint128(), 1, TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, gasLimit)
+	tx1, _ := NewTransaction(bc.ChainID(), from, from, util.NewUint128(), 1, TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, gasLimit)
 	tx1.Sign(signature)
-	tx2 := NewTransaction(bc.ChainID(), from, from, util.NewUint128(), 3, TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, gasLimit)
+	tx2, _ := NewTransaction(bc.ChainID(), from, from, util.NewUint128(), 3, TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, gasLimit)
 	tx2.Sign(signature)
 	block.transactions = append(block.transactions, tx1)
 	block.transactions = append(block.transactions, tx2)
@@ -738,9 +743,9 @@ func TestBlockVerifyState(t *testing.T) {
 	block, err := bc.NewBlock(from)
 	assert.Nil(t, err)
 	gasLimit, _ := util.NewUint128FromInt(200000)
-	tx1 := NewTransaction(bc.ChainID(), from, from, util.NewUint128(), 1, TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, gasLimit)
+	tx1, _ := NewTransaction(bc.ChainID(), from, from, util.NewUint128(), 1, TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, gasLimit)
 	tx1.Sign(signature)
-	tx2 := NewTransaction(bc.ChainID(), from, from, util.NewUint128(), 2, TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, gasLimit)
+	tx2, _ := NewTransaction(bc.ChainID(), from, from, util.NewUint128(), 2, TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, gasLimit)
 	tx2.Sign(signature)
 	block.transactions = append(block.transactions, tx1)
 	block.transactions = append(block.transactions, tx2)

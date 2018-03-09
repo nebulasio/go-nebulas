@@ -219,7 +219,7 @@ func TestBlockChain_EstimateGas(t *testing.T) {
 
 	bc := testNeb(t).chain
 	gasLimit, _ := util.NewUint128FromInt(200000)
-	tx := NewTransaction(bc.ChainID(), from, to, util.NewUint128(), 1, TxPayloadBinaryType, payload, TransactionGasPrice, gasLimit)
+	tx, _ := NewTransaction(bc.ChainID(), from, to, util.NewUint128(), 1, TxPayloadBinaryType, payload, TransactionGasPrice, gasLimit)
 
 	_, err = bc.EstimateGas(tx)
 	assert.Nil(t, err)
@@ -249,9 +249,9 @@ func TestGetPrice(t *testing.T) {
 	lowerGasPrice, err := TransactionGasPrice.Sub(GasPriceDetla)
 	assert.Nil(t, err)
 	gasLimit, _ := util.NewUint128FromInt(200000)
-	tx1 := NewTransaction(bc.ChainID(), from, from, util.NewUint128(), 1, TxPayloadBinaryType, []byte("nas"), lowerGasPrice, gasLimit)
+	tx1, _ := NewTransaction(bc.ChainID(), from, from, util.NewUint128(), 1, TxPayloadBinaryType, []byte("nas"), lowerGasPrice, gasLimit)
 	tx1.Sign(signature)
-	tx2 := NewTransaction(bc.ChainID(), from, from, util.NewUint128(), 2, TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, gasLimit)
+	tx2, _ := NewTransaction(bc.ChainID(), from, from, util.NewUint128(), 2, TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, gasLimit)
 	tx2.Sign(signature)
 	block.transactions = append(block.transactions, tx1)
 	block.transactions = append(block.transactions, tx2)

@@ -228,7 +228,10 @@ func parseTransaction(neb core.Neblet, reqTx *rpcpb.TransactionRequest) (*core.T
 		return nil, err
 	}
 
-	tx := core.NewTransaction(neb.BlockChain().ChainID(), fromAddr, toAddr, value, reqTx.Nonce, payloadType, payload, gasPrice, gasLimit)
+	tx, err := core.NewTransaction(neb.BlockChain().ChainID(), fromAddr, toAddr, value, reqTx.Nonce, payloadType, payload, gasPrice, gasLimit)
+	if err != nil {
+		return nil, err
+	}
 	return tx, nil
 }
 

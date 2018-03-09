@@ -61,7 +61,7 @@ func mockTransaction(chainID uint32, nonce uint64, payloadType string, payload [
 	if payloadType == TxPayloadDeployType {
 		to = from
 	}
-	tx := NewTransaction(chainID, from, to, util.NewUint128(), nonce, payloadType, payload, TransactionGasPrice, TransactionMaxGas)
+	tx, _ := NewTransaction(chainID, from, to, util.NewUint128(), nonce, payloadType, payload, TransactionGasPrice, TransactionMaxGas)
 	return tx
 }
 
@@ -148,7 +148,7 @@ func TestTransaction_VerifyIntegrity(t *testing.T) {
 		signature.InitSign(key1.(keystore.PrivateKey))
 
 		gasLimit, _ := util.NewUint128FromInt(200000)
-		tx := NewTransaction(1, from, to, util.NewUint128(), 10, TxPayloadBinaryType, []byte("datadata"), TransactionGasPrice, gasLimit)
+		tx, _ := NewTransaction(1, from, to, util.NewUint128(), 10, TxPayloadBinaryType, []byte("datadata"), TransactionGasPrice, gasLimit)
 
 		test := testTx{string(index), tx, signature, 1}
 		tests = append(tests, test)
