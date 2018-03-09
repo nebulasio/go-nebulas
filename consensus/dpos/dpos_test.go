@@ -484,7 +484,7 @@ func TestDposContracts(t *testing.T) {
 	}
 
 	block.CollectTransactions(time.Now().Unix() + 1)
-	assert.Equal(t, len(block.Transactions()), 4*(j-1))
+	assert.Equal(t, 4*(j-1), len(block.Transactions()))
 	block.SetMiner(coinbase)
 	assert.Nil(t, block.Seal())
 	assert.Nil(t, manager.SignBlock(coinbase, block))
