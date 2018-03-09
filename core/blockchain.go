@@ -212,49 +212,7 @@ func (bc *BlockChain) CheckChainConfig(neb Neblet) error {
 		if neb.Config().Chain.ChainId != neb.Genesis().Meta.ChainId {
 			return ErrInvalidConfigChainID
 		}
-		if genesis, _ := DumpGenesis(bc.storage); genesis != nil {
-			if neb.Genesis().Meta.ChainId != genesis.Meta.ChainId {
-				return ErrGenesisConfNotMatch
-			}
-
-			if len(neb.Genesis().Consensus.Dpos.Dynasty) != len(genesis.Consensus.Dpos.Dynasty) {
-				return ErrGenesisConfNotMatch
-			}
-
-			if len(neb.Genesis().TokenDistribution) != len(genesis.TokenDistribution) {
-				return ErrGenesisConfNotMatch
-			}
-
-			// check dpos equal
-			for _, confDposAddr := range neb.Genesis().Consensus.Dpos.Dynasty {
-				contains := false
-				for _, dposAddr := range genesis.Consensus.Dpos.Dynasty {
-					if dposAddr == confDposAddr {
-						contains = true
-						break
-					}
-				}
-				if !contains {
-					return ErrGenesisConfNotMatch
-				}
-
-			}
-
-			// check distribution equal
-			for _, confDistribution := range neb.Genesis().TokenDistribution {
-				contains := false
-				for _, distribution := range genesis.TokenDistribution {
-					if distribution.Address == confDistribution.Address &&
-						distribution.Value == confDistribution.Value {
-						contains = true
-						break
-					}
-				}
-				if !contains {
-					return ErrGenesisConfNotMatch
-				}
-			}
-		}
+		return checkGenesisConfByDB(bc.storage, neb.Genesis())
 	}
 
 	return nil
@@ -342,7 +300,7 @@ func (bc *BlockChain) SetTailBlock(newTail *Block) error {
 		return err
 	}
 
-	if err := bc.revertBlocks(ancestor, oldTail); err != nil {
+	if err := bc.revertBlocks(ancestor, oldTail); err != nil { // ToConfirm: add TopicRevertBlock
 		logging.VLog().WithFields(logrus.Fields{
 			"from":  ancestor,
 			"to":    oldTail,

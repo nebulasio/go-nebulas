@@ -83,7 +83,7 @@ func New(config *nebletpb.Config) (*Neblet, error) {
 	n.TryStartProfiling()
 
 	if chain := config.GetChain(); chain == nil {
-		logging.CLog().Error("config.conf should has chain")
+		logging.CLog().Errorf("config.conf should has chain")
 		return nil, ErrConfigShouldHasChain
 	}
 	n.genesis, _ = core.LoadGenesisConf(config.Chain.Genesis)

@@ -18,8 +18,14 @@ var coinbase, coinState;
 var testCases = new Array();
 var caseIndex = 0;
 
-//local
-var env = "local";
+// mocha cases/contract/xxx testneb1 -t 200000
+var args = process.argv.splice(2);
+var env = args[1];
+if (env !== "local" && env !== "testneb1" && env !== "testneb2") {
+    env = "local";
+}
+console.log("env:", env);
+
 if (env == 'local'){
 	neb.setRequest(new HttpRequest("http://127.0.0.1:8685"));//https://testnet.nebulas.io
 	ChainID = 100;
@@ -238,7 +244,7 @@ function deployContract(done){
 function checkTransaction(txhash, done){
 
     var retry = 0;
-    var maxRetry = 15;
+    var maxRetry = 20;
 
     // contract status and get contract_address 
     var interval = setInterval(function () {
@@ -293,7 +299,7 @@ function checkNRCBalance(address, contractAddress) {
         "args": "[\"" + address + "\"]"
     };
 
-    neb.api.call(address, contractAddress, "0", 2, "0", "0", contract).then(function (resp) {
+    neb.api.call(address, contractAddress, "0", 2, "1000000", "2000000", contract).then(function (resp) {
         console.log("balance of NRC:" + JSON.stringify(resp));
     });
 }
@@ -643,7 +649,7 @@ testCase = {
         }
     },
     "testExpect": {
-        canSendTx: true,
+        canSendTx: false,
         canSubmitTx: false,
         canExcuteTx: false,
         status: 0,
@@ -700,7 +706,7 @@ testCase = {
         canSendTx: true,
         canSubmitTx: true,
         canExcuteTx: false,
-        status: 1,
+        status: 0,
         fromBalanceAfterTx: "999999979971000000",
         toBalanceAfterTx: '0',
         transferReward: '20029000000'
@@ -862,7 +868,7 @@ testCase = {
     },
     "testExpect": {
         canSendTx: true,
-        canSubmitTx: true,
+        canSubmitTx: false,
         canExcuteTx: false,
         status: 0,
         fromBalanceAfterTx: "0",
@@ -890,7 +896,7 @@ testCase = {
     },
     "testExpect": {
         canSendTx: true,
-        canSubmitTx: true,
+        canSubmitTx: false,
         canExcuteTx: false,
         status: 0,
         fromBalanceAfterTx: "100000",
@@ -1056,7 +1062,7 @@ testCase = {
         canSendTx: true,
         canSubmitTx: true,
         canExcuteTx: false,
-        status: 1,
+        status: 0,
         fromBalanceAfterTx: "999999979831000000",
         toBalanceAfterTx: '0',
         transferReward: '20169000000'
@@ -1084,9 +1090,9 @@ testCase = {
         canSubmitTx: true,
         canExcuteTx: false,
         status: 0,
-        fromBalanceAfterTx: "999999979505000000",
+        fromBalanceAfterTx: "999999979733000000",
         toBalanceAfterTx: '0',
-        transferReward: '20495000000'
+        transferReward: '20267000000'
     }
 };
 testCases.push(testCase);
@@ -1131,7 +1137,7 @@ describe('contract call test', function () {
     // });
 
 
-    // var testCase = testCases[29];
+    // var testCase = testCases[20];
     // it(testCase.name, function (done) {
     //     prepareContractCall(testCase, function (err) {
     //         if (err instanceof Error) {

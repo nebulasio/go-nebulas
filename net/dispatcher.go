@@ -100,9 +100,10 @@ func (dp *Dispatcher) loop() {
 			return
 		case msg := <-dp.receivedMessageCh:
 			msgType := msg.MessageType()
-			/* 			logging.VLog().WithFields(logrus.Fields{
+
+			logging.VLog().WithFields(logrus.Fields{
 				"msgType": msgType,
-			}).Debug("dispatcher received message") */
+			}).Debug("Dispatcher received net message.")
 
 			v, _ := dp.subscribersMap.Load(msgType)
 			m, _ := v.(*sync.Map)

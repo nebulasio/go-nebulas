@@ -35,11 +35,11 @@ import (
 var (
 	GenesisHash      = make([]byte, BlockHashLength)
 	GenesisTimestamp = int64(0)
-	GenesisCoinbase  = &Address{make([]byte, AddressLength)}
+	GenesisCoinbase  = &Address{make([]byte, AddressLength)} // ToFix: make checksum valid
 )
 
 // LoadGenesisConf load genesis conf for file
-func LoadGenesisConf(filePath string) (*corepb.Genesis, error) {
+func LoadGenesisConf(filePath string) (*corepb.Genesis, error) { // ToCheck: filepath shouldn't be nil.
 	b, err := ioutil.ReadFile(filePath)
 	if err != nil {
 		//logging.CLog().Error("Failed to read the config file : %s. error: %s", filePath, err)
@@ -83,14 +83,14 @@ func NewGenesisBlock(conf *corepb.Genesis, chain *BlockChain) (*Block, error) {
 			dposContext: &corepb.DposContext{},
 			coinbase:    GenesisCoinbase,
 			timestamp:   GenesisTimestamp,
-			nonce:       0,
+			nonce:       0, // ToDelete
 		},
 		accState:    accState,
 		txsTrie:     txsTrie,
 		eventsTrie:  eventsTrie,
 		dposContext: dposContext,
 		txPool:      chain.txPool,
-		storage:     chain.storage,
+		storage:     chain.storage, // ToAdd: EventEmitter
 		height:      1,
 		sealed:      false,
 	}
@@ -132,7 +132,7 @@ func NewGenesisBlock(conf *corepb.Genesis, chain *BlockChain) (*Block, error) {
 	}
 	genesisBlock.commit()
 
-	if err := genesisBlock.Seal(); err != nil {
+	if err := genesisBlock.Seal(); err != nil { // ToFix: move logic in seal outside.
 		logging.CLog().WithFields(logrus.Fields{
 			"gensis": genesisBlock,
 			"err":    err,
@@ -170,7 +170,7 @@ func DumpGenesis(stor storage.Storage) (*corepb.Genesis, error) {
 		bootstrap = append(bootstrap, v.String())
 	}
 	distribution := []*corepb.GenesisTokenDistribution{}
-	accounts, err := genesis.accState.Accounts()
+	accounts, err := genesis.accState.Accounts() // ToConfirm: Accounts interface is risky
 	for _, v := range accounts {
 		balance := v.Balance()
 		if v.Address().Equals(genesis.Coinbase().Bytes()) {
@@ -188,4 +188,52 @@ func DumpGenesis(stor storage.Storage) (*corepb.Genesis, error) {
 		},
 		TokenDistribution: distribution,
 	}, nil
+}
+
+func checkGenesisConfByDB(stor storage.Storage, pGenesis *corepb.Genesis) error {
+	//private function [Empty parameters are checked by the caller]
+	if genesis, _ := DumpGenesis(stor); genesis != nil {
+		if pGenesis.Meta.ChainId != genesis.Meta.ChainId {
+			return ErrGenesisNotEqualChainIDInDB
+		}
+
+		if len(pGenesis.Consensus.Dpos.Dynasty) != len(genesis.Consensus.Dpos.Dynasty) {
+			return ErrGenesisNotEqualDynastyLenInDB
+		}
+
+		if len(pGenesis.TokenDistribution) != len(genesis.TokenDistribution) {
+			return ErrGenesisNotEqualTokenLenInDB
+		}
+
+		// check dpos equal
+		for _, confDposAddr := range pGenesis.Consensus.Dpos.Dynasty {
+			contains := false
+			for _, dposAddr := range genesis.Consensus.Dpos.Dynasty {
+				if dposAddr == confDposAddr {
+					contains = true
+					break
+				}
+			}
+			if !contains {
+				return ErrGenesisNotEqualDynastyInDB
+			}
+
+		}
+
+		// check distribution equal
+		for _, confDistribution := range pGenesis.TokenDistribution {
+			contains := false
+			for _, distribution := range genesis.TokenDistribution {
+				if distribution.Address == confDistribution.Address &&
+					distribution.Value == confDistribution.Value {
+					contains = true
+					break
+				}
+			}
+			if !contains {
+				return ErrGenesisNotEqualTokenInDB
+			}
+		}
+	}
+	return nil
 }

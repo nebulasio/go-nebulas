@@ -210,7 +210,17 @@ func parseTransaction(neb Neblet, reqTx *rpcpb.TransactionRequest) (*core.Transa
 		payload, err = core.NewDeployPayload(reqTx.Contract.Source, reqTx.Contract.SourceType, reqTx.Contract.Args).ToBytes()
 	} else if reqTx.Contract != nil && len(reqTx.Contract.Function) > 0 {
 		payloadType = core.TxPayloadCallType
-		payload, err = core.NewCallPayload(reqTx.Contract.Function, reqTx.Contract.Args).ToBytes()
+
+		if len(reqTx.Contract.Args) > 0 {
+			var argsObj []interface{}
+			if err := json.Unmarshal([]byte(reqTx.Contract.Args), &argsObj); err != nil {
+				err = errors.New("contract arguments format error")
+			}
+		}
+
+		if err == nil {
+			payload, err = core.NewCallPayload(reqTx.Contract.Function, reqTx.Contract.Args).ToBytes()
+		}
 	} else if reqTx.Candidate != nil {
 		payloadType = core.TxPayloadCandidateType
 		payload, err = core.NewCandidatePayload(reqTx.Candidate.Action).ToBytes()

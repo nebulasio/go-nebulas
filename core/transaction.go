@@ -85,7 +85,7 @@ type Transaction struct {
 	gasLimit  *util.Uint128
 
 	// Signature
-	alg  uint8          // algorithm
+	alg  uint8          // algorithm, ToFix: change to keystore.Algorithm
 	sign byteutils.Hash // Signature values
 }
 
@@ -121,12 +121,12 @@ func (tx *Transaction) Nonce() uint64 {
 
 // Type return tx type
 func (tx *Transaction) Type() string {
-	return tx.data.Type
+	return tx.data.Type // ToFix: Check tx.data is not nil
 }
 
 // Data return tx data
 func (tx *Transaction) Data() []byte {
-	return tx.data.Payload
+	return tx.data.Payload // ToFix: Check tx.data is not nil
 }
 
 // ToProto converts domain Tx to proto Tx
@@ -160,19 +160,19 @@ func (tx *Transaction) ToProto() (proto.Message, error) {
 }
 
 // FromProto converts proto Tx into domain Tx
-func (tx *Transaction) FromProto(msg proto.Message) error {
+func (tx *Transaction) FromProto(msg proto.Message) error { // ToFix: check msg is not nil.
 	if msg, ok := msg.(*corepb.Transaction); ok {
 		tx.hash = msg.Hash
-		tx.from = &Address{msg.From}
+		tx.from = &Address{msg.From} // ToFix: Check Address, use AddressParse
 		tx.to = &Address{msg.To}
 		value, err := util.NewUint128FromFixedSizeByteSlice(msg.Value)
 		if err != nil {
 			return err
 		}
-		tx.value = value
+		tx.value = value // ToFix: Check value is not nil
 		tx.nonce = msg.Nonce
 		tx.timestamp = msg.Timestamp
-		tx.data = msg.Data
+		tx.data = msg.Data // ToFix: Check msg.data is not nil // ToCheck: length <= 1m
 		tx.chainID = msg.ChainId
 		gasPrice, err := util.NewUint128FromFixedSizeByteSlice(msg.GasPrice)
 		if err != nil {
@@ -188,7 +188,7 @@ func (tx *Transaction) FromProto(msg proto.Message) error {
 		tx.sign = msg.Sign
 		return nil
 	}
-	return errors.New("Protobug Message cannot be converted into Transaction")
+	return errors.New("Protobuf Message cannot be converted into Transaction")
 }
 
 func (tx *Transaction) String() string {
@@ -203,32 +203,32 @@ func (tx *Transaction) String() string {
 		tx.gasPrice.String(),
 		tx.gasLimit.String(),
 		tx.Type(),
-	)
+	) // ToFix: Check Hash is not nil
 }
 
 // Transactions is an alias of Transaction array.
 type Transactions []*Transaction
 
 // NewTransaction create #Transaction instance.
-func NewTransaction(chainID uint32, from, to *Address, value *util.Uint128, nonce uint64, payloadType string, payload []byte, gasPrice *util.Uint128, gasLimit *util.Uint128) *Transaction {
+func NewTransaction(chainID uint32, from, to *Address, value *util.Uint128, nonce uint64, payloadType string, payload []byte, gasPrice *util.Uint128, gasLimit *util.Uint128) *Transaction { // ToFix: check args
 	//if gasPrice is not specified, use the default gasPrice
-	if gasPrice == nil || gasPrice.Cmp(util.NewUint128()) <= 0 {
-		gasPrice = TransactionGasPrice
+	if gasPrice == nil || gasPrice.Cmp(util.NewUint128()) <= 0 { // ToCheck: default value is reasonable?
+		gasPrice = TransactionGasPrice // ToConfirm: uint128 should be immutable
 	}
 	if gasLimit == nil || gasLimit.Cmp(util.NewUint128()) <= 0 {
 		gasLimit = MinGasCountPerTransaction
 	}
 
 	tx := &Transaction{
-		from:      from,
-		to:        to,
-		value:     value,
+		from:      from,  // ToFix:  check nil
+		to:        to,    // ToFix: check nil
+		value:     value, // ToFix: check nil
 		nonce:     nonce,
 		timestamp: time.Now().Unix(),
 		chainID:   chainID,
-		data:      &corepb.Data{Type: payloadType, Payload: payload},
-		gasPrice:  gasPrice,
-		gasLimit:  gasLimit,
+		data:      &corepb.Data{Type: payloadType, Payload: payload}, // ToCheck: length <= 1m
+		gasPrice:  gasPrice,                                          // ToFix: check nil
+		gasLimit:  gasLimit,                                          // ToFix: check nil
 	}
 	return tx
 }
@@ -249,7 +249,7 @@ func (tx *Transaction) GasLimit() *util.Uint128 {
 }
 
 // PayloadGasLimit returns payload gasLimit
-func (tx *Transaction) PayloadGasLimit(payload TxPayload) (*util.Uint128, error) {
+func (tx *Transaction) PayloadGasLimit(payload TxPayload) (*util.Uint128, error) { // ToFix: check args.
 	// payloadGasLimit = tx.gasLimit - tx.GasCountOfTxBase
 	gasCountOfTxBase, err := tx.GasCountOfTxBase()
 	if err != nil {
@@ -268,7 +268,7 @@ func (tx *Transaction) PayloadGasLimit(payload TxPayload) (*util.Uint128, error)
 
 // MinBalanceRequired returns gasprice * gaslimit.
 func (tx *Transaction) MinBalanceRequired() (*util.Uint128, error) {
-	total, err := tx.GasPrice().Mul(tx.GasLimit())
+	total, err := tx.GasPrice().Mul(tx.GasLimit()) // ToConfirm: balance >= gaslimit * gasprice + value
 	if err != nil {
 		return nil, err
 	}
@@ -277,7 +277,7 @@ func (tx *Transaction) MinBalanceRequired() (*util.Uint128, error) {
 
 // GasCountOfTxBase calculate the actual amount for a tx with data
 func (tx *Transaction) GasCountOfTxBase() (*util.Uint128, error) {
-	txGas := MinGasCountPerTransaction.DeepCopy()
+	txGas := MinGasCountPerTransaction.DeepCopy() // ToConfirm: DeepCopy nessasary?
 	if tx.DataLen() > 0 {
 		dataLen, err := util.NewUint128FromInt(int64(tx.DataLen()))
 		if err != nil {
@@ -297,11 +297,11 @@ func (tx *Transaction) GasCountOfTxBase() (*util.Uint128, error) {
 
 // DataLen return the length of payload
 func (tx *Transaction) DataLen() int {
-	return len(tx.data.Payload)
+	return len(tx.data.Payload) // ToCheck: missing type? // ToFix: check tx.data is nil
 }
 
 // LoadPayload returns tx's payload
-func (tx *Transaction) LoadPayload(block *Block) (TxPayload, error) {
+func (tx *Transaction) LoadPayload(block *Block) (TxPayload, error) { // ToFix: check args.
 	// execute payload
 	var (
 		payload TxPayload
@@ -322,9 +322,9 @@ func (tx *Transaction) LoadPayload(block *Block) (TxPayload, error) {
 		payload, err = LoadDeployPayload(tx.data.Payload)
 	case TxPayloadCallType:
 		payload, err = LoadCallPayload(tx.data.Payload)
-	case TxPayloadCandidateType:
+	case TxPayloadCandidateType: // ToConfirm: Delete
 		payload, err = LoadCandidatePayload(tx.data.Payload)
-	case TxPayloadDelegateType:
+	case TxPayloadDelegateType: // ToConfirm: Delete
 		payload, err = LoadDelegatePayload(tx.data.Payload)
 	default:
 		err = ErrInvalidTxPayloadType
@@ -333,8 +333,8 @@ func (tx *Transaction) LoadPayload(block *Block) (TxPayload, error) {
 }
 
 // LocalExecution returns tx local execution
-func (tx *Transaction) LocalExecution(block *Block) (*util.Uint128, string, error) {
-	hash, err := HashTransaction(tx)
+func (tx *Transaction) LocalExecution(block *Block) (*util.Uint128, string, error) { // ToFix: check args.
+	hash, err := HashTransaction(tx) // ToFix: tx should have hash here
 	if err != nil {
 		return nil, "", err
 	}
@@ -372,7 +372,7 @@ func (tx *Transaction) LocalExecution(block *Block) (*util.Uint128, string, erro
 }
 
 // VerifyExecution transaction and return result.
-func (tx *Transaction) VerifyExecution(block *Block) (*util.Uint128, error) {
+func (tx *Transaction) VerifyExecution(block *Block) (*util.Uint128, error) { // ToRefine: multiple version for compatible codes. divide into smaller pieces. check args.
 	// check balance.
 	fromAcc, err := block.accState.GetOrCreateUserAccount(tx.from.address)
 	if err != nil {
@@ -388,7 +388,7 @@ func (tx *Transaction) VerifyExecution(block *Block) (*util.Uint128, error) {
 	}
 
 	// balance < gasLimit*gasPric
-	minBalanceRequired, err := tx.MinBalanceRequired()
+	minBalanceRequired, err := tx.MinBalanceRequired() // ToConfirm: Check balance earlier
 	if err != nil {
 		return nil, err
 	}
@@ -397,7 +397,7 @@ func (tx *Transaction) VerifyExecution(block *Block) (*util.Uint128, error) {
 	}
 
 	//TODO: later remove TransactionOptimizeHeight
-	if block.height > TransactionOptimizeHeight {
+	if block.height > TransactionOptimizeHeight { // ToAdd: compatiable codes comment
 		minBalanceRequired, err = minBalanceRequired.Add(tx.value)
 		if err != nil {
 			return nil, err
@@ -475,7 +475,7 @@ func (tx *Transaction) VerifyExecution(block *Block) (*util.Uint128, error) {
 	}
 
 	//TODO: later remove TransactionOptimizeHeight
-	if block.height > TransactionOptimizeHeight {
+	if block.height > TransactionOptimizeHeight { // ToAdd: compatible codes comment
 		if tx.gasLimit.Cmp(gas) < 0 {
 			gas = tx.gasLimit
 			exeErr = ErrOutOfGasLimit
@@ -516,8 +516,8 @@ func (tx *Transaction) VerifyExecution(block *Block) (*util.Uint128, error) {
 		metricsTxExeFailed.Mark(1)
 
 		// TODO: later remove. Compatible with older version error data.
-		if block.height < TransactionOptimizeHeight {
-			exeErr = err
+		if block.height < TransactionOptimizeHeight { // ToAdd: compatiable codes comment.
+			exeErr = err // ToFix: change to nil, easy to understand
 		}
 
 		tx.triggerEvent(TopicExecuteTxFailed, block, gas, exeErr)
@@ -547,7 +547,7 @@ func (tx *Transaction) VerifyExecution(block *Block) (*util.Uint128, error) {
 	return gas, nil
 }
 
-func (tx *Transaction) gasConsumption(from, coinbase state.Account, gas *util.Uint128) error {
+func (tx *Transaction) gasConsumption(from, coinbase state.Account, gas *util.Uint128) error { // ToFix: diff gas & gasCnt.
 	gasCost, err := tx.GasPrice().Mul(gas)
 	if err != nil {
 		return err
@@ -560,18 +560,18 @@ func (tx *Transaction) gasConsumption(from, coinbase state.Account, gas *util.Ui
 	return err
 }
 
-func (tx *Transaction) triggerEvent(topic string, block *Block, gasUsed *util.Uint128, err error) {
+func (tx *Transaction) triggerEvent(topic string, block *Block, gasUsed *util.Uint128, err error) { // ToRefine: better err name
 
 	// Notice: We updated the definition of the transaction result event,
 	// and the event is recorded on the chain, so it needs to be compatible.
-	if block.Height() > OptimizeHeight {
+	if block.Height() > OptimizeHeight { // ToCheck: check block is not nil.
 		tx.recordResultEvent(block, gasUsed, err)
 		return
 	}
 
 	// deprecated for new block mined
 	var txData []byte
-	pbTx, _ := tx.ToProto()
+	pbTx, _ := tx.ToProto() // ToFix: catch err
 	if err != nil {
 		var (
 			txErrEvent struct {
@@ -581,9 +581,9 @@ func (tx *Transaction) triggerEvent(topic string, block *Block, gasUsed *util.Ui
 		)
 		txErrEvent.Transaction = pbTx
 		txErrEvent.Error = err
-		txData, _ = json.Marshal(txErrEvent)
+		txData, _ = json.Marshal(txErrEvent) // ToFix: catch err
 	} else {
-		txData, _ = json.Marshal(pbTx)
+		txData, _ = json.Marshal(pbTx) // ToFix: catch err
 	}
 
 	event := &Event{Topic: topic,
@@ -604,7 +604,7 @@ func (tx *Transaction) recordResultEvent(block *Block, gasUsed *util.Uint128, er
 		txEvent.Status = TxExecutionSuccess
 	}
 
-	txData, _ := json.Marshal(txEvent)
+	txData, _ := json.Marshal(txEvent) // ToFix: catch err
 	//logging.VLog().WithFields(logrus.Fields{
 	//	"topic": TopicTransactionExecutionResult,
 	//	"event": string(txData),
@@ -615,7 +615,7 @@ func (tx *Transaction) recordResultEvent(block *Block, gasUsed *util.Uint128, er
 }
 
 // Sign sign transaction,sign algorithm is
-func (tx *Transaction) Sign(signature keystore.Signature) error {
+func (tx *Transaction) Sign(signature keystore.Signature) error { // ToCheck: signature is not nil.
 	hash, err := HashTransaction(tx)
 	if err != nil {
 		return err

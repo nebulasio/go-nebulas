@@ -25,6 +25,8 @@ import (
 	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/crypto/hash"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
+	"github.com/nebulasio/go-nebulas/util/logging"
+	"github.com/sirupsen/logrus"
 )
 
 // Message Priority.
@@ -170,11 +172,17 @@ type BaseMessage struct {
 
 // NewBaseMessage new base message
 func NewBaseMessage(t string, from string, data []byte) Message {
+	logging.VLog().WithFields(logrus.Fields{
+		"t": t,
+	}).Debug("New base message.")
 	return &BaseMessage{t: t, from: from, data: data}
 }
 
 // MessageType get message type
 func (msg *BaseMessage) MessageType() string {
+	logging.VLog().WithFields(logrus.Fields{
+		"MessageType": msg.t,
+	}).Debug("Get message type.")
 	return msg.t
 }
 
