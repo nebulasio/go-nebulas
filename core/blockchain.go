@@ -585,12 +585,24 @@ func (bc *BlockChain) GasPrice() *util.Uint128 {
 
 // EstimateGas returns the transaction gas cost
 func (bc *BlockChain) EstimateGas(tx *Transaction) (*util.Uint128, error) {
+	hash, err := HashTransaction(tx)
+	if err != nil {
+		return nil, err
+	}
+	tx.hash = hash
+
 	gas, _, err := tx.LocalExecution(bc.tailBlock)
 	return gas, err
 }
 
 // Call returns the transaction call result
 func (bc *BlockChain) Call(tx *Transaction) (string, error) {
+	hash, err := HashTransaction(tx)
+	if err != nil {
+		return "", err
+	}
+	tx.hash = hash
+
 	_, result, err := tx.LocalExecution(bc.tailBlock)
 	return result, err
 }

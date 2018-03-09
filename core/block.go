@@ -1050,9 +1050,6 @@ func (block *Block) CheckContract(addr *Address) error { // ToFix: return contra
 				result = true
 				break
 			}
-		} else if v.Topic == TopicExecuteTxSuccess {
-			result = true
-			break
 		}
 	}
 	if !result {

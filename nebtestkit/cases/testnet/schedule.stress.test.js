@@ -57,7 +57,7 @@ if (env == 'local'){
 
 var lastnonce = 0;
 
-var j = schedule.scheduleJob('1 */1 * * *', function(){
+var j = schedule.scheduleJob('*/10 * * * *', function(){
     console.log("start transaction stress test");
     neb.api.getAccountState(from.getAddressString()).then(function (resp) {
 
@@ -148,7 +148,7 @@ function deployContract(){
             "args": ""
         };
 
-        var transaction = new Wallet.Transaction(ChainID, from, from, "0", ++lastnonce, "0", "20000000000", contract);
+        var transaction = new Wallet.Transaction(ChainID, from, from, "0", ++lastnonce, "1000000", "2000000", contract);
         transaction.signTransaction();
         var rawTx = transaction.toProtoString();
         neb.api.sendRawTransaction(rawTx).then(function (resp) {
@@ -203,7 +203,7 @@ function sendContractTransaction(sendtimes, nonce, from_address, contract_addres
         };
 
         console.log("send contract nonce:",nonce);
-        var transaction = new Wallet.Transaction(ChainID, from_address, contract_address, "0", ++nonce, "0", "2000000000", call);
+        var transaction = new Wallet.Transaction(ChainID, from_address, contract_address, "0", ++nonce, "1000000", "2000000", call);
         transaction.signTransaction();
         var rawTx = transaction.toProtoString();
         neb.api.sendRawTransaction(rawTx).then(function (resp) {

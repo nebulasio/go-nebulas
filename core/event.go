@@ -53,12 +53,6 @@ const (
 	// TopicLibBlock the topic of latest irreversible block.
 	TopicLibBlock = "chain.latestIrreversibleBlock"
 
-	// TopicExecuteTxFailed the topic of execute a transaction failed.
-	TopicExecuteTxFailed = "chain.executeTxFailed"
-
-	// TopicExecuteTxSuccess the topic of execute a transaction success.
-	TopicExecuteTxSuccess = "chain.executeTxSuccess"
-
 	// TopicTransactionExecutionResult the topic of transaction execution result
 	TopicTransactionExecutionResult = "chain.transactionResult"
 )

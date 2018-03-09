@@ -222,9 +222,7 @@ func parseTransaction(neb core.Neblet, reqTx *rpcpb.TransactionRequest) (*core.T
 		}
 	} else {
 		payloadType = core.TxPayloadBinaryType
-		if neb.BlockChain().TailBlock().Height() > core.OptimizeHeight {
-			payload, err = core.NewBinaryPayload(reqTx.Binary).ToBytes()
-		}
+		payload, err = core.NewBinaryPayload(reqTx.Binary).ToBytes()
 	}
 	if err != nil {
 		return nil, err
@@ -418,12 +416,6 @@ func (s *APIService) toTransactionResponse(tx *core.Transaction) (*rpcpb.Transac
 				json.Unmarshal([]byte(v.Data), &txEvent)
 				status = int32(txEvent.Status)
 				gasUsed = txEvent.GasUsed
-				break
-			} else if v.Topic == core.TopicExecuteTxSuccess {
-				status = core.TxExecutionSuccess
-				break
-			} else if v.Topic == core.TopicExecuteTxFailed {
-				status = core.TxExecutionFailed
 				break
 			}
 		}

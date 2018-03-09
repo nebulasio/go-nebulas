@@ -32,22 +32,6 @@ import (
 	"github.com/nebulasio/go-nebulas/util"
 )
 
-// const definition
-const (
-	// OptimizeHeight after this height,
-	// update transaction execution result event,
-	// update binary transaction payload.
-	OptimizeHeight = 480000
-
-	// update deploy execution, from & to must equal
-	NewOptimizeHeight = 750000
-
-	// update transaction exe check
-	// add balance case: balanceOfFrom > gasPrice*gasLimit + valueOfTx
-	// add gas case: gasLimit > gasUsed + gasExecution
-	TransactionOptimizeHeight = 800000
-)
-
 // Payload Types
 const (
 	TxPayloadBinaryType    = "binary"
@@ -76,14 +60,13 @@ var (
 	ErrCannotFindBlockAtGivenHeight                      = errors.New("cannot find a block at given height which is less than tail block's height")
 	ErrInvalidBlockCannotFindParentInLocalAndTryDownload = errors.New("invalid block received, download its parent from others")
 	ErrInvalidBlockCannotFindParentInLocalAndTrySync     = errors.New("invalid block received, sync its parent from others")
-
-	ErrInvalidConfigChainID          = errors.New("invalid chainID, genesis chainID not equal to chainID in config")
-	ErrCannotLoadGenesisConf         = errors.New("cannot load genesis conf")
-	ErrGenesisNotEqualChainIDInDB    = errors.New("Failed to check. genesis chainID not equal in db")
-	ErrGenesisNotEqualDynastyInDB    = errors.New("Failed to check. genesis dynasty not equal in db")
-	ErrGenesisNotEqualTokenInDB      = errors.New("Failed to check. genesis TokenDistribution not equal in db")
-	ErrGenesisNotEqualDynastyLenInDB = errors.New("Failed to check. genesis dynasty length not equal in db")
-	ErrGenesisNotEqualTokenLenInDB   = errors.New("Failed to check. genesis TokenDistribution length not equal in db")
+	ErrInvalidConfigChainID                              = errors.New("invalid chainID, genesis chainID not equal to chainID in config")
+	ErrCannotLoadGenesisConf                             = errors.New("cannot load genesis conf")
+	ErrGenesisNotEqualChainIDInDB                        = errors.New("Failed to check. genesis chainID not equal in db")
+	ErrGenesisNotEqualDynastyInDB                        = errors.New("Failed to check. genesis dynasty not equal in db")
+	ErrGenesisNotEqualTokenInDB                          = errors.New("Failed to check. genesis TokenDistribution not equal in db")
+	ErrGenesisNotEqualDynastyLenInDB                     = errors.New("Failed to check. genesis dynasty length not equal in db")
+	ErrGenesisNotEqualTokenLenInDB                       = errors.New("Failed to check. genesis TokenDistribution length not equal in db")
 
 	ErrLinkToWrongParentBlock = errors.New("link the block to a block who is not its parent")
 	ErrMissingParentBlock     = errors.New("cannot find the block's parent block in storage")
@@ -129,6 +112,7 @@ var (
 	ErrGenesisConfNotMatch    = errors.New("Failed to load genesis from storage, different with genesis conf")
 
 	ErrNoTimeToPackTransactions = errors.New("no time left to pack transactions in a block")
+	ErrInvalidBlockInput        = errors.New("invalid block as input")
 )
 
 // Default gas count
