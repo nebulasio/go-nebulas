@@ -312,7 +312,8 @@ func (pool *TransactionPool) PopWithBlacklist(blacklist map[byteutils.HexHash]bo
 	size := pool.candidates.Len()
 	for i := 0; i < size; i++ {
 		tx := pool.candidates.Index(i).(*Transaction)
-		if _, ok := blacklist[tx.Hash().Hex()]; !ok {
+		from := tx.from.address.Hex()
+		if _, ok := blacklist[from]; !ok {
 			pool.candidates.Del(tx)
 			pool.popTx(tx)
 			return tx

@@ -437,86 +437,73 @@ func (block *Block) CollectTransactions(deadline int64) {
 		}).Fatal("Sealed block can't be changed.")
 	}
 
-	now := time.Now().Unix()
-	elapse := deadline - now
+	elapse := deadline - time.Now().Unix()
 	logging.VLog().WithFields(logrus.Fields{
 		"elapse": elapse,
-	}).Info("Packing tx elapsed time.")
+	}).Info("Time to pack txs.")
 	metricsBlockPackTxTime.Update(elapse)
 	if elapse <= 0 {
 		return
 	}
-
 	deadlineTimer := time.NewTimer(time.Duration(elapse) * time.Second)
-	executedTxBlocksCh := make(chan *Block, 64)
-	notifyCh := make(chan bool, 1)
-
-	var givebacks []*Transaction
-	pool := block.txPool
 
 	packed := int64(0)
 	unpacked := int64(0)
 
-	// fast skip small nonce tx.
-	currentNonceOfFromAddress := make(map[string]uint64)
+	pool := block.txPool
+	inprogress := make(map[byteutils.HexHash]bool)
 
-	// execute transaction.
+	parallelCh := make(chan bool, 1)
+	exclusiveCh := make(chan bool, 1)
+	over := false
+
 	go func() {
 		for !pool.Empty() {
-			tx := pool.Pop()
-
-			// get current nonce for fast skip.
-			currentNonce := currentNonceOfFromAddress[tx.From().String()]
-			if tx.nonce <= currentNonce {
-				continue
-			}
-
-			txBlock, err := block.Clone()
-			if err != nil {
+			// pop a valid tx
+			exclusiveCh <- true
+			if over {
+				<-exclusiveCh
 				return
 			}
 
-			txBlock.begin()
-
-			giveback, currentNonce, err := txBlock.executeTransaction(tx)
-			if giveback {
-				givebacks = append(givebacks, tx)
+			tx := pool.PopWithBlacklist(inprogress)
+			if tx == nil {
+				<-exclusiveCh
+				time.Sleep(time.Millisecond)
+				continue
 			}
+			<-exclusiveCh
 
-			// set current nonce.
-			if currentNonce > 0 { // ToFix: should >= 0.
-				currentNonceOfFromAddress[tx.From().String()] = currentNonce
-			}
+			parallelCh <- true
+			go func() {
+				defer func() { <-parallelCh }()
+				from := tx.from.address.Hex()
 
-			if err != nil {
-				logging.VLog().WithFields(logrus.Fields{
-					"tx":       tx,
-					"err":      err,
-					"giveback": giveback,
-				}).Debug("invalid tx.")
-				unpacked++
-				txBlock.rollback()
-				executedTxBlocksCh <- nil
-			} else {
-				//logging.VLog().WithFields(logrus.Fields{
-				//	"tx": tx,
-				//}).Debug("packed tx.")
-				packed++
-				txBlock.commit()
-				txBlock.transactions = append(txBlock.transactions, tx) // ToRefine: use transactions in a tricky way. refer to block.Clone()
-				executedTxBlocksCh <- txBlock
-			}
+				// prepare independent environment
+				exclusiveCh <- true
+				txBlock, err := block.Clone()
+				if err != nil {
+					<-exclusiveCh
+					return
+				}
+				inprogress[from] = true
+				<-exclusiveCh
 
-			select {
-			case flag := <-notifyCh:
-				if flag == true {
-					metricsTxPackedCount.Update(packed)
-					metricsTxUnpackedCount.Update(unpacked)
-					metricsTxGivebackCount.Update(int64(len(givebacks)))
-					// deadline is up, put current tx back and quit.
-					if giveback == false && err == nil {
-						err := pool.Push(tx)
-						if err != nil {
+				// execute tx
+				merge := false
+				txBlock.begin()
+				giveback, err := txBlock.executeTransaction(tx)
+				if err != nil {
+					logging.CLog().WithFields(logrus.Fields{
+						"tx":       tx,
+						"err":      err,
+						"giveback": giveback,
+					}).Debug("invalid tx.")
+					unpacked++
+
+					txBlock.rollback()
+					if giveback {
+						if err := pool.Push(tx); err != nil {
 							logging.VLog().WithFields(logrus.Fields{
 								"block": block,
 								"tx":    tx,
@@ -524,66 +511,37 @@ func (block *Block) CollectTransactions(deadline int64) {
 							}).Debug("Failed to giveback the tx.")
 						}
 					}
+				} else {
+					logging.CLog().WithFields(logrus.Fields{
+						"tx": tx,
+					}).Debug("packed tx.")
+					packed++
+
+					txBlock.transactions = append(txBlock.transactions, tx)
+					txBlock.commit()
+					merge = true
+				}
+
+				// merge tx
+				exclusiveCh <- true
+				if over {
+					<-exclusiveCh
 					return
 				}
-			}
+				if merge {
+					delete(inprogress, from)
+					block.Merge(txBlock)
+				}
+				<-exclusiveCh
+			}()
 		}
 	}()
 
-	// consume the executedTxBlocksCh, or wait for the deadline.
-	for {
-		select {
-		case <-deadlineTimer.C:
-			// notify transaction execution goroutine to quit.
-			notifyCh <- true
-
-			// put tx back to transaction_pool.
-			go func() {
-				// giveback transactions.
-				for _, tx := range givebacks {
-					err := pool.Push(tx)
-					if err != nil {
-						logging.VLog().WithFields(logrus.Fields{
-							"block": block,
-							"tx":    tx,
-							"err":   err,
-						}).Debug("Failed to giveback the tx.")
-					}
-				}
-
-				// execute succeed but not included in block.
-				for {
-					select {
-					case txBlock := <-executedTxBlocksCh:
-						if txBlock != nil {
-							for _, tx := range txBlock.transactions {
-								err := pool.Push(tx)
-								if err != nil {
-									logging.VLog().WithFields(logrus.Fields{
-										"block": block,
-										"tx":    tx,
-										"err":   err,
-									}).Debug("Failed to giveback the tx.")
-								}
-							}
-						}
-					default:
-						return
-					}
-				}
-
-			}()
-			return
-		case txBlock := <-executedTxBlocksCh:
-			if txBlock != nil {
-				metricsTxSubmit.Mark(1)
-				block.Merge(txBlock)
-			}
-
-			// continue.
-			notifyCh <- false
-		}
-	}
+	<-deadlineTimer.C
+	exclusiveCh <- true
+	over = true
+	<-exclusiveCh
+	return
 }
 
 // Sealed return true if block seals. Otherwise return false.
@@ -815,7 +773,7 @@ func (block *Block) execute() error {
 	for _, tx := range block.transactions {
 		metricsTxExecute.Mark(1)
 
-		giveback, _, err := block.executeTransaction(tx)
+		giveback, err := block.executeTransaction(tx)
 		if giveback {
 			err := block.txPool.Push(tx)
 			if err != nil {
@@ -975,39 +933,39 @@ func (block *Block) acceptTransaction(tx *Transaction) error {
 	return nil
 }
 
-func (block *Block) checkTransaction(tx *Transaction) (bool, uint64, error) {
+func (block *Block) checkTransaction(tx *Transaction) (bool, error) {
 	// check nonce
 	fromAcc, err := block.accState.GetOrCreateUserAccount(tx.from.address)
 	if err != nil {
-		return true, 0, err
+		return true, err
 	}
 
 	// pass current Nonce.
 	currentNonce := fromAcc.Nonce()
 
 	if tx.nonce < currentNonce+1 {
-		return false, currentNonce, ErrSmallTransactionNonce
+		return false, ErrSmallTransactionNonce
 	} else if tx.nonce > currentNonce+1 {
-		return true, currentNonce, ErrLargeTransactionNonce
+		return true, ErrLargeTransactionNonce
 	}
 
-	return false, currentNonce, nil
+	return false, nil
 }
 
-func (block *Block) executeTransaction(tx *Transaction) (bool, uint64, error) {
-	if giveback, currentNonce, err := block.checkTransaction(tx); err != nil {
-		return giveback, currentNonce, err
+func (block *Block) executeTransaction(tx *Transaction) (bool, error) {
+	if giveback, err := block.checkTransaction(tx); err != nil {
+		return giveback, err
 	}
 
 	if _, err := tx.VerifyExecution(block); err != nil {
-		return false, uint64(0), err // ToFix: return current latest nonce
+		return false, err
 	}
 
 	if err := block.acceptTransaction(tx); err != nil {
-		return false, uint64(0), err // ToFix: return current latest nonce
+		return false, err
 	}
 
-	return false, uint64(0), nil // ToFix: currentnonce should be tx.nonce
+	return false, nil
 }
 
 func (block *Block) Dynasty() ([]byteutils.Hash, error) {
@@ -1171,6 +1129,11 @@ func (block *Block) Clone() (*Block, error) {
 		return nil, err
 	}
 
+	transactions := []*Transaction{}
+	for _, tx := range block.transactions {
+		transactions = append(transactions, tx)
+	}
+
 	return &Block{
 		header:       block.header,
 		sealed:       block.sealed,
@@ -1180,7 +1143,7 @@ func (block *Block) Clone() (*Block, error) {
 		miner:        block.miner,
 		storage:      block.storage,
 		eventEmitter: block.eventEmitter,
-		transactions: make(Transactions, 0), // ToConfirm: so tricky.
+		transactions: transactions,
 
 		accState:       accState,
 		txsState:       txsState,
@@ -1195,7 +1158,7 @@ func (block *Block) Merge(source *Block) {
 	block.txsState = source.txsState
 	block.eventsState = source.eventsState
 	block.consensusState = source.consensusState
-	block.transactions = append(block.transactions, source.transactions...)
+	block.transactions = source.transactions
 }
 
 // Dispose dispose block.
