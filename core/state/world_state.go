@@ -37,11 +37,11 @@ func newChangeLog() (*mvccdb.MVCCDB, error) {
 	if err != nil {
 		return nil, err
 	}
-	return mvccdb.NewMVCCDB(mem)
+	return mvccdb.NewMVCCDB(mem, true)
 }
 
 func newStorage(storage storage.Storage) (*mvccdb.MVCCDB, error) {
-	return mvccdb.NewMVCCDB(storage)
+	return mvccdb.NewMVCCDB(storage, false)
 }
 
 type states struct {

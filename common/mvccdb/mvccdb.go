@@ -51,10 +51,11 @@ type MVCCDB struct {
 	rootDB          *MVCCDB
 	isInTransaction bool
 	isPreparedDB    bool
+	isVerifyVersion bool
 }
 
 // NewMVCCDB create and return new MVCCDB.
-func NewMVCCDB(storage storage.Storage) (*MVCCDB, error) {
+func NewMVCCDB(storage storage.Storage, isVerifyVersion bool) (*MVCCDB, error) {
 	db := &MVCCDB{
 		tid:             nil,
 		storage:         storage,
@@ -62,6 +63,7 @@ func NewMVCCDB(storage storage.Storage) (*MVCCDB, error) {
 		rootDB:          nil,
 		isInTransaction: false,
 		isPreparedDB:    false,
+		isVerifyVersion: isVerifyVersion,
 	}
 
 	return db, nil
@@ -214,6 +216,7 @@ func (db *MVCCDB) Prepare(tid interface{}) (*MVCCDB, error) {
 		rootDB:          db,
 		isInTransaction: true,
 		isPreparedDB:    true,
+		isVerifyVersion: db.isVerifyVersion,
 	}, nil
 }
 
@@ -230,7 +233,7 @@ func (db *MVCCDB) CheckAndUpdate() ([]interface{}, error) {
 		return nil, ErrDisallowedCallingInNoPreparedDB
 	}
 
-	return db.stagingTable.MergeToFinal(db.tid)
+	return db.stagingTable.MergeToFinal(db.tid, db.isVerifyVersion)
 }
 
 // Reset the nested transaction
