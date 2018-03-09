@@ -77,7 +77,7 @@ type ConsensusState interface {
 	RootHash() (*consensuspb.ConsensusRoot, error)
 	String() string
 
-	BeginBatch()
+	Begin()
 	Commit()
 	Rollback()
 	Clone() (ConsensusState, error)

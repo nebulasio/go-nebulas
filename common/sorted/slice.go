@@ -18,19 +18,23 @@
 
 package sorted
 
+// Cmp function, a < b -> -1, a == b -> 0, a > b -> 1
 type Cmp func(a interface{}, b interface{}) int
 
+// Slice is a sorted array
 type Slice struct {
 	content []interface{}
 	cmp     Cmp
 }
 
+// NewSlice return a new slice
 func NewSlice(cmp Cmp) *Slice {
 	return &Slice{
 		cmp: cmp,
 	}
 }
 
+// Push a new value into slice
 func (s *Slice) Push(val interface{}) {
 	if len(s.content) == 0 {
 		s.content = append(s.content, val)
@@ -62,6 +66,7 @@ func (s *Slice) Push(val interface{}) {
 	s.content = content
 }
 
+// PopMin pop out the min value
 func (s *Slice) PopMin() interface{} {
 	if s.Len() > 0 {
 		val := s.content[0]
@@ -71,6 +76,7 @@ func (s *Slice) PopMin() interface{} {
 	return nil
 }
 
+// PopMax pop out the max value
 func (s *Slice) PopMax() interface{} {
 	if s.Len() > 0 {
 		val := s.content[s.Len()-1]
@@ -80,6 +86,7 @@ func (s *Slice) PopMax() interface{} {
 	return nil
 }
 
+// Del the given value
 func (s *Slice) Del(val interface{}) {
 	start := 0
 	end := len(s.content) - 1
@@ -97,6 +104,7 @@ func (s *Slice) Del(val interface{}) {
 	}
 }
 
+// Index return the value at the given value
 func (s *Slice) Index(index int) interface{} {
 	if s.Len() > index {
 		return s.content[index]
@@ -104,10 +112,12 @@ func (s *Slice) Index(index int) interface{} {
 	return nil
 }
 
+// Len return the length of slice
 func (s *Slice) Len() int {
 	return len(s.content)
 }
 
+// Min return the min value, not pop out
 func (s *Slice) Min() interface{} {
 	if s.Len() > 0 {
 		return s.content[0]
@@ -115,6 +125,7 @@ func (s *Slice) Min() interface{} {
 	return nil
 }
 
+// Max return the max value, not pop out
 func (s *Slice) Max() interface{} {
 	if s.Len() > 0 {
 		return s.content[len(s.content)-1]

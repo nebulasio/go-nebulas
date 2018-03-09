@@ -111,7 +111,7 @@ func (dpos *Dpos) CheckTimeout(block *core.Block) bool {
 	return false
 }
 
-// GenesisConsensusState create a new genesis dpos state
+// GenesisState create a new genesis dpos state
 func (dpos *Dpos) GenesisState(chain *core.BlockChain, conf *corepb.Genesis) (state.ConsensusState, error) {
 	dynastyTrie, err := trie.NewBatchTrie(nil, chain.Storage())
 	if err != nil {
@@ -145,14 +145,17 @@ func (dpos *Dpos) GenesisState(chain *core.BlockChain, conf *corepb.Genesis) (st
 	}, nil
 }
 
-func (ds *State) BeginBatch() {
+// Begin a new transaction
+func (ds *State) Begin() {
 	ds.dynastyTrie.BeginBatch()
 }
 
+// Commit the transaction
 func (ds *State) Commit() {
 	ds.dynastyTrie.Commit()
 }
 
+// Rollback the transaction
 func (ds *State) Rollback() {
 	ds.dynastyTrie.Rollback()
 }

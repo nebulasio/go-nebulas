@@ -302,6 +302,7 @@ func (pool *TransactionPool) popTx(tx *Transaction) {
 	}
 }
 
+// PopWithBlacklist pop a tx not in the blacklist
 func (pool *TransactionPool) PopWithBlacklist(blacklist map[byteutils.HexHash]bool) *Transaction {
 	pool.mu.Lock()
 	defer pool.mu.Unlock()

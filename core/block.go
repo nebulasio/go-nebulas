@@ -949,15 +949,18 @@ func (block *Block) executeTransaction(tx *Transaction) (bool, error) {
 	return false, nil
 }
 
+// Dynasty return the validators in current dynasty
 func (block *Block) Dynasty() ([]byteutils.Hash, error) {
 	return block.consensusState.Dynasty()
 }
 
+// NextConsensusState return the next consensus state
 func (block *Block) NextConsensusState(elapsed int64) (state.ConsensusState, error) {
 	return block.consensusState.NextState(elapsed)
 }
 
-func (block *Block) SetConsensusState(consensusState state.ConsensusState) {
+// LoadConsensusState load the consensusState
+func (block *Block) LoadConsensusState(consensusState state.ConsensusState) {
 	block.consensusState = consensusState
 	block.SetTimestamp(consensusState.TimeStamp())
 }
