@@ -257,7 +257,7 @@ func handleTransactionResponse(neb core.Neblet, tx *core.Transaction) (resp *rpc
 			return nil, core.ErrContractTransactionAddressNotEqual
 		}
 	} else if tx.Type() == core.TxPayloadCallType {
-		if err := neb.BlockChain().TailBlock().CheckContract(tx.To()); err != nil {
+		if _, err := neb.BlockChain().TailBlock().CheckContract(tx.To()); err != nil {
 			return nil, err
 		}
 	}
