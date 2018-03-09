@@ -19,8 +19,9 @@
 package core
 
 import (
-	"github.com/nebulasio/go-nebulas/consensus/pb"
 	"io/ioutil"
+
+	"github.com/nebulasio/go-nebulas/consensus/pb"
 
 	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/common/trie"
