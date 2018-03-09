@@ -195,20 +195,20 @@ func (dpos *Dpos) UpdateLIB() {
 	lib := dpos.chain.LIB()
 	tail := dpos.chain.TailBlock()
 	cur := tail
-	miners := make(map[string]bool)
+	validators := make(map[string]bool)
 	dynasty := int64(0)
 	for !cur.Hash().Equals(lib.Hash()) {
 		curDynasty := cur.Timestamp() / DynastyInterval
 		if curDynasty != dynasty {
-			miners = make(map[string]bool)
+			validators = make(map[string]bool)
 			dynasty = curDynasty
 		}
 		// fast prune
-		if int(cur.Height())-int(lib.Height()) < SafeSize-len(miners) {
+		if int(cur.Height())-int(lib.Height()) < SafeSize-len(validators) {
 			return
 		}
-		miners[cur.Miner().String()] = true
-		if len(miners) >= SafeSize {
+		validators[byteutils.Hex(cur.ConsensusRoot().Proposer)] = true
+		if len(validators) >= SafeSize {
 			if err := dpos.chain.StoreLIBToStorage(cur); err != nil {
 				logging.VLog().WithFields(logrus.Fields{
 					"tail": tail,
@@ -217,11 +217,11 @@ func (dpos *Dpos) UpdateLIB() {
 				return
 			}
 			logging.VLog().WithFields(logrus.Fields{
-				"lib.new":          cur,
-				"lib.old":          lib,
-				"tail":             tail,
-				"miners.limit":     SafeSize,
-				"miners.supported": len(miners),
+				"lib.new":              cur,
+				"lib.old":              lib,
+				"tail":                 tail,
+				"validators.limit":     SafeSize,
+				"validators.supported": len(validators),
 			}).Info("Succeed to update latest irreversible block.")
 			dpos.chain.SetLIB(cur)
 
@@ -245,12 +245,12 @@ func (dpos *Dpos) UpdateLIB() {
 	}
 
 	logging.VLog().WithFields(logrus.Fields{
-		"cur":              cur,
-		"lib":              lib,
-		"tail":             tail,
-		"err":              "supported miners is not enough",
-		"miners.limit":     SafeSize,
-		"miners.supported": len(miners),
+		"cur":                  cur,
+		"lib":                  lib,
+		"tail":                 tail,
+		"err":                  "supported miners is not enough",
+		"validators.limit":     SafeSize,
+		"validators.supported": len(validators),
 	}).Warn("Failed to update latest irreversible block.")
 }
 
@@ -289,7 +289,6 @@ func verifyBlockSign(miner *core.Address, block *core.Block) error {
 		}).Debug("Failed to verify block's sign.")
 		return ErrInvalidBlockProposer
 	}
-	block.SetMiner(miner)
 	return nil
 }
 
@@ -351,7 +350,6 @@ func (dpos *Dpos) newBlock(tail *core.Block, consensusState state.ConsensusState
 	block.SetConsensusState(consensusState)
 	block.SetTimestamp(consensusState.TimeStamp())
 	block.CollectTransactions(deadline)
-	block.SetMiner(dpos.miner)
 	if err = block.Seal(); err != nil {
 		logging.CLog().WithFields(logrus.Fields{
 			"block": block,

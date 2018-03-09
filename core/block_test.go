@@ -130,7 +130,6 @@ func (c *mockConsensus) Start() {}
 func (c *mockConsensus) Stop()  {}
 
 func (c *mockConsensus) VerifyBlock(block *Block) error {
-	block.miner = block.Coinbase()
 	return nil
 }
 
@@ -389,7 +388,6 @@ func TestBlock(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			b := &Block{
 				header:       tt.fields.header,
-				miner:        tt.fields.miner,
 				height:       tt.fields.height,
 				transactions: tt.fields.transactions,
 			}
@@ -482,12 +480,13 @@ func TestBlock_CollectTransactions(t *testing.T) {
 	pubdata2, _ := priv2.PublicKey().Encoded()
 	coinbase, _ := NewAddressFromPublicKey(pubdata2)
 
-	block0, _ := NewBlock(bc.ChainID(), from, tail)
-	block0.header.timestamp = BlockInterval
-	block0.SetMiner(from)
+	block0, err := NewBlock(bc.ChainID(), from, tail)
+	assert.Nil(t, err)
+	consensusState, err := tail.NextConsensusState(BlockInterval)
+	assert.Nil(t, err)
+	block0.SetConsensusState(consensusState)
 	block0.Seal()
-	//bc.BlockPool().push(block0)
-	bc.SetTailBlock(block0)
+	assert.Nil(t, bc.BlockPool().Push(block0))
 
 	block, _ := NewBlock(bc.ChainID(), coinbase, block0)
 	block.header.timestamp = BlockInterval * 2
@@ -498,7 +497,7 @@ func TestBlock_CollectTransactions(t *testing.T) {
 	tx1.Sign(signature)
 	tx2, _ := NewTransaction(bc.ChainID(), from, to, value, 2, TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, gasLimit)
 	tx2.Sign(signature)
-	tx3, _ := NewTransaction(bc.ChainID(), from, to, value, 0, TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, gasLimit)
+	tx3, _ := NewTransaction(bc.ChainID(), from, to, value, 5, TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, gasLimit)
 	tx3.Sign(signature)
 	tx4, _ := NewTransaction(bc.ChainID(), from, to, value, 4, TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, gasLimit)
 	tx4.Sign(signature)
@@ -517,14 +516,13 @@ func TestBlock_CollectTransactions(t *testing.T) {
 	assert.Equal(t, len(block.transactions), 0)
 	assert.Equal(t, len(bc.txPool.all), 5)
 	block.CollectTransactions(time.Now().Unix() + 2)
-	assert.Equal(t, len(block.transactions), 4)
+	assert.Equal(t, len(block.transactions), 5)
 	assert.Equal(t, len(bc.txPool.all), 0)
 
 	assert.Equal(t, block.Sealed(), false)
 	balance, err := block.GetBalance(block.header.coinbase.address)
 	assert.Nil(t, err)
 	assert.Equal(t, balance.Cmp(util.NewUint128()), 1)
-	block.SetMiner(coinbase)
 	block.Seal()
 	assert.Equal(t, block.Sealed(), true)
 	assert.Equal(t, block.transactions[0], tx1)
@@ -543,7 +541,6 @@ func TestBlock_CollectTransactions(t *testing.T) {
 	// mock net message
 	block, _ = mockBlockFromNetwork(block)
 	assert.Equal(t, block.LinkParentBlock(bc, bc.tailBlock), nil)
-	block.SetMiner(coinbase)
 	assert.Nil(t, block.VerifyExecution())
 }
 
@@ -653,7 +650,6 @@ func TestBlockVerifyIntegrity(t *testing.T) {
 	tx2.hash[0]++
 	block.transactions = append(block.transactions, tx1)
 	block.transactions = append(block.transactions, tx2)
-	block.miner = from
 	block.Seal()
 	block.Sign(signature)
 	assert.NotNil(t, block.VerifyIntegrity(bc.ChainID(), bc.ConsensusHandler()))
@@ -678,7 +674,6 @@ func TestBlockVerifyIntegrityDup(t *testing.T) {
 	tx1.Sign(signature)
 	block.transactions = append(block.transactions, tx1)
 	block.transactions = append(block.transactions, tx1)
-	block.miner = from
 	block.Seal()
 	block.Sign(signature)
 	assert.Equal(t, block.VerifyExecution(), ErrSmallTransactionNonce)
@@ -705,7 +700,6 @@ func TestBlockVerifyExecution(t *testing.T) {
 	tx2.Sign(signature)
 	block.transactions = append(block.transactions, tx1)
 	block.transactions = append(block.transactions, tx2)
-	block.miner = from
 	block.Seal()
 	block.Sign(signature)
 	assert.Nil(t, block.VerifyIntegrity(bc.ChainID(), bc.ConsensusHandler()))
@@ -738,17 +732,9 @@ func TestBlockVerifyState(t *testing.T) {
 	tx2.Sign(signature)
 	block.transactions = append(block.transactions, tx1)
 	block.transactions = append(block.transactions, tx2)
-	block.miner = from
 	block.Seal()
 	block.Sign(signature)
 	assert.Nil(t, block.VerifyIntegrity(bc.ChainID(), bc.ConsensusHandler()))
 	block.header.stateRoot[0]++
 	assert.NotNil(t, block.VerifyExecution())
-}
-
-func TestBlock_String(t *testing.T) {
-	bc := testNeb(t).chain
-	bc.genesisBlock.miner = nil
-	logging.CLog().Info(bc.genesisBlock)
-	assert.NotNil(t, bc.genesisBlock.String())
 }

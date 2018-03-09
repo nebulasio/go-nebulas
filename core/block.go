@@ -125,7 +125,6 @@ type Block struct {
 	eventsState    *trie.BatchTrie
 	consensusState state.ConsensusState
 	txPool         *TransactionPool
-	miner          *Address
 
 	storage      storage.Storage
 	eventEmitter *EventEmitter
@@ -154,7 +153,6 @@ func (block *Block) ToProto() (proto.Message, error) {
 			Header:       header,
 			Transactions: txs,
 			Height:       block.height,
-			Miner:        block.miner.Bytes(), // ToCheck: miner is not nil.
 		}, nil
 	}
 	return nil, errors.New("Protobuf message cannot be converted into BlockHeader")
@@ -177,7 +175,6 @@ func (block *Block) FromProto(msg proto.Message) error { // ToCheck: msg is not 
 			block.transactions[idx] = tx
 		}
 		block.height = msg.Height
-		block.miner = &Address{msg.Miner} // ToCheck: check address.
 		return nil
 	}
 	return errors.New("Protobuf message cannot be converted into Block")
@@ -347,16 +344,6 @@ func (block *Block) Height() uint64 {
 // Transactions returns block transactions
 func (block *Block) Transactions() Transactions {
 	return block.transactions
-}
-
-// Miner return miner
-func (block *Block) Miner() *Address {
-	return block.miner
-}
-
-// SetMiner return miner
-func (block *Block) SetMiner(miner *Address) { // ToCheck: check miner
-	block.miner = miner
 }
 
 // VerifyAddress returns if the addr string is valid
@@ -588,10 +575,6 @@ func (block *Block) Seal() error {
 }
 
 func (block *Block) String() string {
-	miner := ""
-	if block.miner != nil {
-		miner = block.miner.String()
-	}
 	return fmt.Sprintf(`{"height": %d, "hash": "%s", "parent_hash": "%s", "acc_root": "%s", "timestamp": %d, "tx": %d, "miner": "%s"}`,
 		block.height,
 		block.header.hash,
@@ -599,7 +582,7 @@ func (block *Block) String() string {
 		block.header.stateRoot,
 		block.header.timestamp,
 		len(block.transactions),
-		miner,
+		byteutils.Hex(block.header.consensusRoot.Proposer),
 	)
 }
 
@@ -1139,7 +1122,6 @@ func (block *Block) Clone() (*Block, error) {
 		height:       block.height,
 		parentBlock:  block.parentBlock,
 		txPool:       block.txPool,
-		miner:        block.miner,
 		storage:      block.storage,
 		eventEmitter: block.eventEmitter,
 		transactions: transactions,

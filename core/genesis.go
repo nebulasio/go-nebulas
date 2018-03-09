@@ -92,7 +92,6 @@ func NewGenesisBlock(conf *corepb.Genesis, chain *BlockChain) (*Block, error) {
 		storage:        chain.storage,
 		eventEmitter:   chain.eventEmitter,
 		height:         1,
-		miner:          GenesisCoinbase,
 		sealed:         false,
 	}
 

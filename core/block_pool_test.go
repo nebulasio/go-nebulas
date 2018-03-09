@@ -68,8 +68,9 @@ func TestBlockPool(t *testing.T) {
 	assert.Nil(t, err)
 	block0, err := NewBlock(bc.ChainID(), addr, bc.tailBlock)
 	assert.Nil(t, err)
-	block0.header.timestamp = bc.tailBlock.header.timestamp + BlockInterval
-	block0.SetMiner(addr)
+	consensusState, err := bc.tailBlock.NextConsensusState(BlockInterval)
+	assert.Nil(t, err)
+	block0.SetConsensusState(consensusState)
 	assert.Nil(t, block0.Seal())
 	assert.Nil(t, pool.Push(block0))
 
@@ -77,8 +78,9 @@ func TestBlockPool(t *testing.T) {
 	assert.Nil(t, err)
 	block1, err := NewBlock(bc.ChainID(), addr, block0)
 	assert.Nil(t, err)
-	block1.header.timestamp = block0.header.timestamp + BlockInterval
-	block1.SetMiner(addr)
+	consensusState, err = block0.NextConsensusState(BlockInterval)
+	assert.Nil(t, err)
+	block1.SetConsensusState(consensusState)
 	block1.Seal()
 	assert.Nil(t, pool.Push(block1))
 
@@ -86,8 +88,9 @@ func TestBlockPool(t *testing.T) {
 	assert.Nil(t, err)
 	block2, err := NewBlock(bc.ChainID(), addr, block1)
 	assert.Nil(t, err)
-	block2.header.timestamp = block1.header.timestamp + BlockInterval
-	block2.SetMiner(addr)
+	consensusState, err = block1.NextConsensusState(BlockInterval)
+	assert.Nil(t, err)
+	block2.SetConsensusState(consensusState)
 	block2.Seal()
 	assert.Nil(t, pool.Push(block2))
 
@@ -95,8 +98,9 @@ func TestBlockPool(t *testing.T) {
 	assert.Nil(t, err)
 	block3, err := NewBlock(bc.ChainID(), addr, block2)
 	assert.Nil(t, err)
-	block3.header.timestamp = block2.header.timestamp + BlockInterval
-	block3.SetMiner(addr)
+	consensusState, err = block2.NextConsensusState(BlockInterval)
+	assert.Nil(t, err)
+	block3.SetConsensusState(consensusState)
 	block3.Seal()
 	assert.Nil(t, pool.Push(block3))
 
@@ -104,8 +108,9 @@ func TestBlockPool(t *testing.T) {
 	assert.Nil(t, err)
 	block4, err := NewBlock(bc.ChainID(), addr, block3)
 	assert.Nil(t, err)
-	block4.header.timestamp = block3.header.timestamp + BlockInterval
-	block4.SetMiner(addr)
+	consensusState, err = block3.NextConsensusState(BlockInterval)
+	assert.Nil(t, err)
+	block4.SetConsensusState(consensusState)
 	block4.Seal()
 	assert.Nil(t, pool.Push(block4))
 
@@ -152,8 +157,9 @@ func TestBlockPool(t *testing.T) {
 	assert.Nil(t, err)
 	block5, err := NewBlock(bc.ChainID(), addr, block4)
 	assert.Nil(t, err)
-	block5.header.timestamp = block4.header.timestamp + BlockInterval
-	block5.SetMiner(addr)
+	consensusState, err = block4.NextConsensusState(BlockInterval)
+	assert.Nil(t, err)
+	block5.SetConsensusState(consensusState)
 	assert.Nil(t, block5.Seal())
 	block5.header.hash[0]++
 	assert.Equal(t, pool.Push(block5), ErrInvalidBlockHash)
@@ -162,8 +168,9 @@ func TestBlockPool(t *testing.T) {
 	assert.Nil(t, err)
 	block41, err := NewBlock(bc.ChainID(), addr, block3)
 	assert.Nil(t, err)
-	block41.header.timestamp = block3.header.timestamp + BlockInterval
-	block41.SetMiner(addr)
+	consensusState, err = block3.NextConsensusState(BlockInterval)
+	assert.Nil(t, err)
+	block41.SetConsensusState(consensusState)
 	assert.Nil(t, block41.Seal())
 	assert.Equal(t, pool.Push(block41), ErrDoubleBlockMinted)
 }
@@ -180,7 +187,9 @@ func TestHandleBlock(t *testing.T) {
 
 	block, err := bc.NewBlock(from)
 	assert.Nil(t, err)
-	block.SetMiner(from)
+	consensusState, err := bc.tailBlock.NextConsensusState(BlockInterval)
+	assert.Nil(t, err)
+	block.SetConsensusState(consensusState)
 	block.Seal()
 	block.Sign(signature)
 	pbMsg, err := block.ToProto()
@@ -193,8 +202,9 @@ func TestHandleBlock(t *testing.T) {
 
 	block, err = bc.NewBlock(from)
 	assert.Nil(t, err)
-	block.header.timestamp = time.Now().Unix() - AcceptedNetWorkDelay - 1
-	block.SetMiner(from)
+	consensusState, err = block.NextConsensusState(time.Now().Unix() - AcceptedNetWorkDelay - 1)
+	assert.Nil(t, err)
+	block.SetConsensusState(consensusState)
 	block.Seal()
 	block.Sign(signature)
 	pbMsg, err = block.ToProto()
@@ -206,9 +216,9 @@ func TestHandleBlock(t *testing.T) {
 
 	block, err = bc.NewBlock(from)
 	assert.Nil(t, err)
-	block.header.timestamp = 0
+	consensusState, err = block.NextConsensusState(0)
 	assert.Nil(t, err)
-	block.SetMiner(from)
+	block.SetConsensusState(consensusState)
 	block.Seal()
 	block.Sign(signature)
 	pbMsg, err = block.ToProto()
@@ -220,9 +230,9 @@ func TestHandleBlock(t *testing.T) {
 
 	block, err = bc.NewBlock(from)
 	assert.Nil(t, err)
-	block.header.timestamp = 0
+	consensusState, err = block.NextConsensusState(0)
 	assert.Nil(t, err)
-	block.SetMiner(from)
+	block.SetConsensusState(consensusState)
 	block.Seal()
 	block.Sign(signature)
 	pbMsg, err = block.ToProto()
@@ -247,14 +257,12 @@ func TestHandleDownloadedBlock(t *testing.T) {
 
 	block1, err := bc.NewBlock(from)
 	assert.Nil(t, err)
-	block1.SetMiner(from)
 	block1.Seal()
 	block1.Sign(signature)
 	bc.SetTailBlock(block1)
 
 	block2, err := bc.NewBlock(from)
 	assert.Nil(t, err)
-	block2.SetMiner(from)
 	block2.Seal()
 	block2.Sign(signature)
 	bc.SetTailBlock(block2)
