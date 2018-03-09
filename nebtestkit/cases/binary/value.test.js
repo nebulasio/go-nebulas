@@ -53,7 +53,7 @@ var initFromBalance = 10;
  * the smaller the value, the faster the test, with the risk of causing error
  */
 
-var maxCheckTime = 20;
+var maxCheckTime = 15;
 var checkTimes = 0;
 
 function checkTransaction(hash, callback) {
@@ -103,6 +103,7 @@ function testTransfer(testInput, testExpect, done) {
 
 
         var tx;
+
         if (!testInput.hasOwnProperty("payloadLength")){
             tx = new Transaction(ChainID, from, toAddr, Unit.nasToBasic(testInput.transferValue), parseInt(fromState.nonce) + testInput.nonceIncrement, testInput.gasPrice, testInput.gasLimit);
         } else {
@@ -1021,9 +1022,6 @@ describe('normal transaction', function () {
 
     });
 
-
-
-
     it('gas Limit is too small', function (done) {
 
         var testInput = {
@@ -1193,11 +1191,11 @@ describe('normal transaction', function () {
     });
 
 
-    it('[payload] payload > 0 normal transfer', function (done) {
+    it('[ payload > 0 ] normal transfer', function (done) {
         var testInput = {
             transferValue: 1,
             isSameAddr: false,
-            gasLimit: -1,
+            gasLimit: 30000,
             gasPrice: -1,
             nonceIncrement: 1,
             payloadLength: 99
@@ -1207,9 +1205,9 @@ describe('normal transaction', function () {
             canSendTx: true,
             canSubmitTx: true,
             canExcuteTx: true,
-            fromBalanceAfterTx: '8999999980000000000',
+            fromBalanceAfterTx: '8999999979964000000',
             toBalanceAfterTx: '1000000000000000000',
-            transferReward: '20000000000'
+            transferReward: '20036000000'
         };
         prepare(function (err) {
             if (err instanceof Error) {
@@ -1219,5 +1217,174 @@ describe('normal transaction', function () {
             }
         });
     });
+
+    it('[ payload > 0 ] payloadGascount + TxBaseGasCount > gasLimit > TxBaseGasCount  ', function (done) {
+        var testInput = {
+            transferValue: 1,
+            isSameAddr: false,
+            gasLimit: 20000,
+            gasPrice: -1,
+            nonceIncrement: 1,
+            payloadLength: 99
+        };
+        //can calc value by previous params
+        var testExpect = {
+            canSendTx: true,
+            canSubmitTx: false,
+            canExcuteTx: false,
+            fromBalanceAfterTx: '8999999979964000000',
+            toBalanceAfterTx: '1000000000000000000',
+            transferReward: '20036000000'
+        };
+        prepare(function (err) {
+            if (err instanceof Error) {
+                done(err);
+            } else {
+                testTransfer(testInput, testExpect, done);
+            }
+        });
+    });
+
+    it('[ payload > 0 ] payloadGascount + TxBaseGasCount = gasLimit ', function (done) {
+        var testInput = {
+            transferValue: 1,
+            isSameAddr: false,
+            gasLimit: 20036,
+            gasPrice: -1,
+            nonceIncrement: 1,
+            payloadLength: 99
+        };
+        //can calc value by previous params
+        var testExpect = {
+            canSendTx: true,
+            canSubmitTx: false,
+            canExcuteTx: false,
+            fromBalanceAfterTx: '8999999979964000000',
+            toBalanceAfterTx: '1000000000000000000',
+            transferReward: '20036000000'
+        };
+        prepare(function (err) {
+            if (err instanceof Error) {
+                done(err);
+            } else {
+                testTransfer(testInput, testExpect, done);
+            }
+        });
+    });
+
+
+    it('[ payload > 0 ] balanceOfFrom = GasLimit * GasPrice + valueOfTx ', function (done) {
+        var testInput = {
+            transferValue: 9.999999979964,
+            isSameAddr: false,
+            gasLimit: 20036,
+            gasPrice: -1,
+            nonceIncrement: 1,
+            payloadLength: 99
+        };
+        //can calc value by previous params
+        var testExpect = {
+            canSendTx: true,
+            canSubmitTx: true,
+            canExcuteTx: true,
+            fromBalanceAfterTx: '0',
+            toBalanceAfterTx: '9999999979964000000',
+            transferReward: '20036000000'
+        };
+        prepare(function (err) {
+            if (err instanceof Error) {
+                done(err);
+            } else {
+                testTransfer(testInput, testExpect, done);
+            }
+        });
+    });
+
+
+
+    it('[ payload > 0 ] balanceOfFrom < GasLimit * GasPrice ', function (done) {
+        var testInput = {
+            transferValue: 1,
+            isSameAddr: false,
+            gasLimit: 51000000000,
+            gasPrice: 10000000,
+            nonceIncrement: 1,
+            payloadLength: 99
+        };
+        //can calc value by previous params
+        var testExpect = {
+            canSendTx: false,
+            canSubmitTx: false,
+            canExcuteTx: false,
+            fromBalanceAfterTx: '8999999979964000000',
+            toBalanceAfterTx: '1000000000000000000',
+            transferReward: '20036000000'
+        };
+        prepare(function (err) {
+            if (err instanceof Error) {
+                done(err);
+            } else {
+                testTransfer(testInput, testExpect, done);
+            }
+        });
+    });
+
+
+    it('[ payload > 0 ] (GasLimit * GasPrice + valueOfTx) > balanceOfFrom = ( TxBaseGasCount + GasCountOfPayload )* gasPrice + valueOfTx', function (done) {
+        var testInput = {
+            transferValue: 9.999999979964,
+            isSameAddr: false,
+            gasLimit: 30000,
+            gasPrice: -1,
+            nonceIncrement: 1,
+            payloadLength: 99
+        };
+        //can calc value by previous params
+        var testExpect = {
+            canSendTx: true,
+            canSubmitTx: true,
+            canExcuteTx: true,
+            fromBalanceAfterTx: '0',
+            toBalanceAfterTx: '9999999979964000000',
+            transferReward: '20036000000'
+        };
+        prepare(function (err) {
+            if (err instanceof Error) {
+                done(err);
+            } else {
+                testTransfer(testInput, testExpect, done);
+            }
+        });
+    });
+
+    it('[ payload > 0 ] gasPrice * gasLimit <= balanceOfFrom  && balanceOfFrom < valueOfTx + (TxBaseGasCount  + GasCountOfPayload)* gasPrice', function (done) {
+        var testInput = {
+            transferValue: 9.999999999,
+            isSameAddr: false,
+            gasLimit: 30000,
+            gasPrice: -1,
+            nonceIncrement: 1,
+            payloadLength: 99
+        };
+        //can calc value by previous params
+        var testExpect = {
+            canSendTx: true,
+            canSubmitTx: true,
+            canExcuteTx: false,
+            fromBalanceAfterTx: '9999999979964000000',
+            toBalanceAfterTx: '0',
+            transferReward: '20036000000'
+        };
+        prepare(function (err) {
+            if (err instanceof Error) {
+                done(err);
+            } else {
+                testTransfer(testInput, testExpect, done);
+            }
+        });
+    });
+
+
+
 
 });
