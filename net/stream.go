@@ -597,8 +597,8 @@ func (s *Stream) onSyncRoute(message *NebMessage) error {
 
 // RouteTable send sync table request
 func (s *Stream) RouteTable() error {
-	// get nearest peers from routeTable
-	peers := s.node.routeTable.GetNearestPeers(s.pid)
+	// get random peers from routeTable
+	peers := s.node.routeTable.GetRandomPeers(s.pid)
 
 	// prepare the protobuf message.
 	msg := &netpb.Peers{

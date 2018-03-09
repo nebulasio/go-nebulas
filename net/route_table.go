@@ -217,13 +217,31 @@ func (table *RouteTable) onRouteTableChange() {
 	table.latestUpdatedAt = time.Now().Unix()
 }
 
-// GetNearestPeers get nearest peers
-func (table *RouteTable) GetNearestPeers(pid peer.ID) []peerstore.PeerInfo {
-	peers := table.routeTable.NearestPeers(kbucket.ConvertPeerID(pid), table.maxPeersCountForSyncResp)
+// GetRandomPeers get random peers
+func (table *RouteTable) GetRandomPeers(pid peer.ID) []peerstore.PeerInfo {
 
+	// change sync route algorithm from `NearestPeers` to `randomPeers`
+	var peers []peer.ID
+	allPeers := shufflePeerID(table.routeTable.ListPeers())
+	if len(allPeers) <= table.maxPeersCountForSyncResp {
+		peers = allPeers
+	} else {
+		peers = allPeers[:table.maxPeersCountForSyncResp]
+	}
 	ret := make([]peerstore.PeerInfo, len(peers))
 	for i, v := range peers {
 		ret[i] = table.peerStore.PeerInfo(v)
+	}
+	return ret
+}
+
+func shufflePeerID(pids []peer.ID) []peer.ID {
+
+	r := rand.New(rand.NewSource(time.Now().Unix()))
+	ret := make([]peer.ID, len(pids))
+	perm := r.Perm(len(pids))
+	for i, randIndex := range perm {
+		ret[i] = pids[randIndex]
 	}
 	return ret
 }
