@@ -367,7 +367,6 @@ func (tx *Transaction) LocalExecution(block *Block) (*util.Uint128, string, erro
 
 // VerifyExecution transaction and return result.
 func VerifyExecution(tx *Transaction, block *Block, txWorldState state.TxWorldState) error {
-	coinbase := block.CoinbaseHash()
 
 	if err := tx.checkBalance(block, txWorldState); err != nil {
 		return ErrInsufficientBalance
@@ -397,7 +396,7 @@ func VerifyExecution(tx *Transaction, block *Block, txWorldState state.TxWorldSt
 		}).Debug("Failed to load payload.")
 		metricsTxExeFailed.Mark(1)
 
-		if err := tx.recordGas(coinbase, gasUsed, block); err != nil {
+		if err := tx.recordGas(gasUsed, txWorldState); err != nil {
 			return err
 		}
 		tx.triggerEvent(txWorldState, block, TopicExecuteTxFailed, gasUsed, err)
@@ -416,7 +415,7 @@ func VerifyExecution(tx *Transaction, block *Block, txWorldState state.TxWorldSt
 		}).Debug("Failed to check base gas used.")
 		metricsTxExeFailed.Mark(1)
 
-		if err := tx.recordGas(coinbase, tx.gasLimit, block); err != nil {
+		if err := tx.recordGas(tx.gasLimit, txWorldState); err != nil {
 			return err
 		}
 		tx.triggerEvent(txWorldState, block, TopicExecuteTxFailed, tx.gasLimit, ErrOutOfGasLimit)
@@ -447,13 +446,13 @@ func VerifyExecution(tx *Transaction, block *Block, txWorldState state.TxWorldSt
 		if err := block.Reset(tx); err != nil {
 			return err
 		}
-		if err := tx.recordGas(coinbase, tx.gasLimit, block); err != nil {
+		if err := tx.recordGas(tx.gasLimit, txWorldState); err != nil {
 			return err
 		}
 		tx.triggerEvent(txWorldState, block, TopicExecuteTxFailed, tx.gasLimit, ErrOutOfGasLimit)
 		return nil
 	}
-	tx.recordGas(coinbase, allGas, block)
+	tx.recordGas(allGas, txWorldState)
 
 	if exeErr != nil {
 		logging.VLog().WithFields(logrus.Fields{
@@ -494,12 +493,13 @@ func (tx *Transaction) checkBalance(block *Block, txWorldState state.TxWorldStat
 	return nil
 }
 
-func (tx *Transaction) recordGas(coinbase byteutils.Hash, gasCnt *util.Uint128, block *Block) error {
+func (tx *Transaction) recordGas(gasCnt *util.Uint128, txWorldState state.TxWorldState) error {
 	gasCost, err := tx.GasPrice().Mul(gasCnt)
 	if err != nil {
 		return err
 	}
-	return block.recordGas(tx.from.String(), gasCost)
+
+	return txWorldState.RecordGas(tx.from.String(), gasCost)
 }
 
 func transfer(from, to byteutils.Hash, value *util.Uint128, txWorldState state.TxWorldState) error {
@@ -533,6 +533,7 @@ func (tx *Transaction) triggerEvent(txWorldState state.TxWorldState, block *Bloc
 	//	"topic": TopicTransactionExecutionResult,
 	//	"event": string(txData),
 	//}).Debug("record event.")
+
 	event := &state.Event{
 		Topic: TopicTransactionExecutionResult,
 		Data:  string(txData),

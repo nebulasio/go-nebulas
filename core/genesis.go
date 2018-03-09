@@ -70,7 +70,6 @@ func NewGenesisBlock(conf *corepb.Genesis, chain *BlockChain) (*Block, error) {
 		},
 		transactions: make(Transactions, 0),
 		dependency:   dag.NewDag(),
-		gasConsumed:  make(map[string]*util.Uint128),
 		parentBlock:  nil,
 		worldState:   worldState,
 		txPool:       chain.txPool,

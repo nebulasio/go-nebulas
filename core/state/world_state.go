@@ -22,11 +22,9 @@ import (
 	"encoding/json"
 
 	"github.com/nebulasio/go-nebulas/consensus/pb"
-
-	"github.com/nebulasio/go-nebulas/util/logging"
+	"github.com/nebulasio/go-nebulas/util"
 
 	mvccdb "github.com/nebulasio/go-nebulas/common/mvccdbv2"
-
 	"github.com/nebulasio/go-nebulas/common/trie"
 	"github.com/nebulasio/go-nebulas/storage"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
@@ -54,6 +52,8 @@ type states struct {
 	changelog *mvccdb.MVCCDB
 	storage   *mvccdb.MVCCDB
 	txid      interface{}
+
+	gasConsumed map[string]*util.Uint128
 }
 
 func newStates(consensus Consensus, stor storage.Storage) (*states, error) {
@@ -89,10 +89,13 @@ func newStates(consensus Consensus, stor storage.Storage) (*states, error) {
 		changelog: changelog,
 		storage:   storage,
 		txid:      nil,
+
+		gasConsumed: make(map[string]*util.Uint128),
 	}, nil
 }
 
 func (s *states) Replay(done *states) error {
+
 	err := s.accState.Replay(done.accState)
 	if err != nil {
 		return err
@@ -108,6 +111,19 @@ func (s *states) Replay(done *states) error {
 	err = s.consensusState.Replay(done.consensusState)
 	if err != nil {
 		return err
+	}
+
+	// replay gasconsumed
+	for from, gas := range done.gasConsumed {
+		consumed, ok := s.gasConsumed[from]
+		if !ok {
+			consumed = util.NewUint128()
+		}
+		var err error
+		s.gasConsumed[from], err = consumed.Add(gas)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -158,6 +174,8 @@ func (s *states) Clone() (WorldState, error) {
 		changelog: changelog,
 		storage:   storage,
 		txid:      s.txid,
+
+		gasConsumed: make(map[string]*util.Uint128),
 	}, nil
 }
 
@@ -235,6 +253,8 @@ func (s *states) Prepare(txid interface{}) (TxWorldState, error) {
 		changelog: changelog,
 		storage:   storage,
 		txid:      txid,
+
+		gasConsumed: make(map[string]*util.Uint128),
 	}, nil
 }
 
@@ -252,7 +272,7 @@ func (s *states) recordAccounts() error {
 		if err := s.changelog.Put(account.Address(), bytes); err != nil {
 			return err
 		}
-		logging.CLog().Info(s.txid, " [Put] Account:", account.Address().String())
+		//logging.CLog().Info(s.txid, " [Put] Account:", account.Address().String())
 	}
 	return nil
 }
@@ -319,7 +339,7 @@ func (s *states) GetTx(txHash byteutils.Hash) ([]byte, error) {
 	if _, err := s.changelog.Get(txHash); err != nil && err != storage.ErrKeyNotFound {
 		return nil, err
 	}
-	logging.CLog().Info(s.txid, " [Get] Tx:", txHash.String())
+	//logging.CLog().Info(s.txid, " [Get] Tx:", txHash.String())
 	return bytes, nil
 }
 
@@ -332,7 +352,7 @@ func (s *states) PutTx(txHash byteutils.Hash, txBytes []byte) error {
 	if err := s.changelog.Put(txHash, txBytes); err != nil {
 		return err
 	}
-	logging.CLog().Info(s.txid, " [Put] Tx:", txHash.String())
+	//logging.CLog().Info(s.txid, " [Put] Tx:", txHash.String())
 	return nil
 }
 
@@ -369,7 +389,7 @@ func (s *states) RecordEvent(txHash byteutils.Hash, event *Event) error {
 	if err := s.changelog.Put(key, bytes); err != nil {
 		return err
 	}
-	logging.CLog().Info(s.txid, " [Put] Event:", byteutils.Hex(key))
+	//logging.CLog().Info(s.txid, " [Put] Event:", byteutils.Hex(key))
 	return nil
 }
 
@@ -395,7 +415,7 @@ func (s *states) FetchEvents(txHash byteutils.Hash) ([]*Event, error) {
 			if _, err := s.changelog.Get(iter.Key()); err != nil && err != storage.ErrKeyNotFound {
 				return nil, err
 			}
-			logging.CLog().Info(s.txid, " [Get] Event:", byteutils.Hex(iter.Key()))
+			//logging.CLog().Info(s.txid, " [Get] Event:", byteutils.Hex(iter.Key()))
 			exist, err = iter.Next()
 			if err != nil {
 				return nil, err
@@ -459,6 +479,22 @@ func (s *states) NextConsensusState(elapsedSecond int64) (ConsensusState, error)
 
 func (s *states) SetConsensusState(consensusState ConsensusState) {
 	s.consensusState = consensusState
+}
+
+func (s *states) RecordGas(from string, gas *util.Uint128) error {
+	consumed, ok := s.gasConsumed[from]
+	if !ok {
+		consumed = util.NewUint128()
+	}
+	var err error
+	s.gasConsumed[from], err = consumed.Add(gas)
+	return err
+}
+
+func (s *states) GetGas() map[string]*util.Uint128 {
+	gasConsumed := s.gasConsumed
+	s.gasConsumed = make(map[string]*util.Uint128)
+	return gasConsumed
 }
 
 // WorldState manange all current states in Blockchain
@@ -545,6 +581,7 @@ func (ws *worldState) CheckAndUpdate(txid interface{}) ([]interface{}, error) {
 	if err := ws.states.Replay(txWorldState.states); err != nil {
 		return nil, err
 	}
+
 	return dependencies, nil
 }
 

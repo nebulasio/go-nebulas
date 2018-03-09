@@ -147,6 +147,9 @@ type WorldState interface {
 
 	Dynasty() ([]byteutils.Hash, error)
 	DynastyRoot() byteutils.Hash
+
+	RecordGas(from string, gas *util.Uint128) error
+	GetGas() map[string]*util.Uint128
 }
 
 // TxWorldState is the world state of a single transaction
@@ -169,4 +172,6 @@ type TxWorldState interface {
 
 	Dynasty() ([]byteutils.Hash, error)
 	DynastyRoot() byteutils.Hash
+
+	RecordGas(from string, gas *util.Uint128) error
 }

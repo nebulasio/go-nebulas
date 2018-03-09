@@ -128,7 +128,6 @@ type Block struct {
 	header       *BlockHeader
 	transactions Transactions
 	dependency   *dag.Dag
-	gasConsumed  map[string]*util.Uint128
 
 	sealed      bool
 	height      uint64
@@ -203,7 +202,6 @@ func (block *Block) FromProto(msg proto.Message) error {
 				return err
 			}
 		}
-		block.gasConsumed = make(map[string]*util.Uint128)
 		block.height = msg.Height
 		block.miner = &Address{msg.Miner}
 		return nil
@@ -236,7 +234,6 @@ func NewBlock(chainID uint32, coinbase *Address, parent *Block) (*Block, error) 
 		},
 		transactions: make(Transactions, 0),
 		dependency:   dag.NewDag(),
-		gasConsumed:  make(map[string]*util.Uint128),
 		parentBlock:  parent,
 		worldState:   worldState,
 		txPool:       parent.txPool,
@@ -599,19 +596,6 @@ func (block *Block) CollectTransactions(deadline int64) {
 	}
 }
 
-func (block *Block) recordGas(from string, gas *util.Uint128) error {
-	consumed, ok := block.gasConsumed[from]
-	if !ok {
-		consumed = util.NewUint128()
-	}
-	var err error
-	block.gasConsumed[from], err = consumed.Add(gas)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
 // Sealed return true if block seals. Otherwise return false.
 func (block *Block) Sealed() bool {
 	return block.sealed
@@ -959,16 +943,19 @@ func (block *Block) rewardCoinbaseForMint() error {
 func (block *Block) rewardCoinbaseForGas() error {
 	worldState := block.WorldState()
 	coinbaseAddr := (byteutils.Hash)(block.Coinbase().Bytes())
-	for from, gas := range block.gasConsumed {
+
+	gasConsumed := worldState.GetGas()
+	for from, gas := range gasConsumed {
 		fromAddr, err := byteutils.FromHex(from)
 		if err != nil {
 			return err
 		}
+		logging.CLog().Info("rewardCoinbaseForGas from:", from, "gas", gas)
+
 		if err := transfer((byteutils.Hash)(fromAddr), coinbaseAddr, gas, worldState); err != nil {
 			return err
 		}
 	}
-	block.gasConsumed = make(map[string]*util.Uint128)
 	return nil
 }
 
