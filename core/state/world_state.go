@@ -25,7 +25,7 @@ import (
 
 	"github.com/nebulasio/go-nebulas/util/logging"
 
-	"github.com/nebulasio/go-nebulas/common/mvccdb"
+	mvccdb "github.com/nebulasio/go-nebulas/common/mvccdbv2"
 
 	"github.com/nebulasio/go-nebulas/common/trie"
 	"github.com/nebulasio/go-nebulas/storage"

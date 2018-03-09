@@ -411,8 +411,8 @@ func TestStagingTable_MergeToParent(t *testing.T) {
 
 	// Merge tid1, fail.
 	dependencies, err = tbl2.MergeToParent()
-	assert.Equal(t, ErrStagingTableKeyConfliction, err)
-	assert.Nil(t, dependencies)
+	assert.Nil(t, err)
+	assert.Equal(t, 0, len(dependencies))
 
 	// tid3 read.
 	tid3 := "tid3"

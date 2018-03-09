@@ -200,7 +200,8 @@ func (tbl *StagingTable) MergeToParent() ([]interface{}, error) {
 		targetValueItem := targetValues[keyStr]
 
 		// record conflict.
-		if fromValueItem.old != targetValueItem.old {
+		// if version is consistent and value are equal, no confliction.
+		if fromValueItem.isConflict(targetValueItem) {
 			conflictKeys[keyStr] = targetValueItem.tid
 			continue
 		}
@@ -212,6 +213,11 @@ func (tbl *StagingTable) MergeToParent() ([]interface{}, error) {
 
 		// ignore parent tid.
 		if targetValueItem.tid == tbl.parentStagingTable.tid {
+			continue
+		}
+
+		// if target.old is greater than from, ignore.
+		if targetValueItem.old > fromValueItem.old {
 			continue
 		}
 
@@ -232,6 +238,13 @@ func (tbl *StagingTable) MergeToParent() ([]interface{}, error) {
 	for keyStr, fromValueItem := range tbl.versionizedValues {
 		// ignore dirty.
 		if !fromValueItem.dirty {
+			continue
+		}
+
+		targetValueItem := targetValues[keyStr]
+
+		// if target.old is greater than from, ignore.
+		if targetValueItem.old > fromValueItem.old {
 			continue
 		}
 
@@ -272,6 +285,33 @@ func (tbl *StagingTable) loadFromStorage(key []byte) (*VersionizedValueItem, err
 
 func (value *VersionizedValueItem) isDefault() bool {
 	return value.old == 0 && value.dirty == false
+}
+
+func (a *VersionizedValueItem) isConflict(b *VersionizedValueItem) bool {
+	if b == nil {
+		return true
+	}
+
+	// version check.
+	if a.old == b.old {
+		return false
+	}
+
+	// version consist and value are equal.
+	delta := a.old - b.old
+	if delta != 1 && delta != -1 {
+		return true
+	}
+
+	if a.deleted == b.deleted {
+		return false
+	}
+
+	if bytes.Equal(a.val, b.val) {
+		return false
+	}
+
+	return true
 }
 
 // NewDefaultVersionizedValueItem return new instance of VersionizedValueItem, old/new version are 0, dirty is false.
