@@ -456,12 +456,6 @@ func (block *Block) ReturnTransactions() {
 	}
 }
 
-type executedResult struct {
-	transaction *Transaction
-	dependency  []interface{}
-	paid        *util.Uint128
-}
-
 // CollectTransactions and add them to block.
 func (block *Block) CollectTransactions(deadline int64) {
 	metricsBlockPackTxTime.Update(0)
@@ -491,18 +485,21 @@ func (block *Block) CollectTransactions(deadline int64) {
 	transactions := []*Transaction{}
 	inprogress := make(map[byteutils.HexHash]bool)
 
-	parallelCh := make(chan bool, 2)
-	executedCh := make(chan *executedResult, 32)
+	parallelCh := make(chan bool, 32)
 	mergeCh := make(chan bool, 1)
 	over := false
 
 	go func() {
 		for !pool.Empty() {
+			mergeCh <- true
 			tx := pool.PopWithBlacklist(inprogress)
 			if tx == nil {
-				time.Sleep(time.Millisecond * 100)
+				<-mergeCh
+				time.Sleep(time.Millisecond * 10)
 				continue
 			}
+			inprogress[tx.from.address.Hex()] = true
+			<-mergeCh
 
 			parallelCh <- true
 			go func() {
@@ -513,10 +510,11 @@ func (block *Block) CollectTransactions(deadline int64) {
 				}
 				txWorldState, err := block.Prepare(tx)
 				if err != nil {
+					//delete(inprogress, tx.from.address.Hex())
+					<-parallelCh
 					<-mergeCh
 					return
 				}
-				inprogress[tx.from.address.Hex()] = true
 				<-mergeCh
 
 				giveback, err := block.ExecuteTransaction(tx, txWorldState)
@@ -567,9 +565,12 @@ func (block *Block) CollectTransactions(deadline int64) {
 							"tx": tx,
 						}).Debug("packed tx.")
 						packed++
-						executedCh <- &executedResult{
-							transaction: tx,
-							dependency:  dependency,
+						transactions = append(transactions, tx)
+						txid := tx.Hash().String()
+
+						dag.AddNode(txid)
+						for _, node := range dependency {
+							dag.AddEdge(node, txid)
 						}
 					}
 					delete(inprogress, tx.from.address.Hex())
@@ -591,16 +592,9 @@ func (block *Block) CollectTransactions(deadline int64) {
 			over = true
 			block.transactions = transactions
 			block.dependency = dag
+			logging.VLog().Info("CollectTransactions deadline transactions len:", len(transactions), " dag len:", dag.Len())
 			<-mergeCh
-			logging.CLog().Info("deadlineTimer")
 			return
-		case result := <-executedCh:
-			transactions = append(transactions, result.transaction)
-			txid := result.transaction.Hash().String()
-			dag.AddNode(txid)
-			for _, node := range result.dependency {
-				dag.AddEdge(node, txid)
-			}
 		}
 	}
 }
@@ -808,6 +802,7 @@ func (block *Block) verifyState() error {
 			"expect": block.StateRoot(),
 			"actual": accountsRoot,
 		}).Debug("Failed to verify state.")
+
 		return ErrInvalidBlockStateRoot
 	}
 
@@ -876,6 +871,7 @@ func (block *Block) execute() error {
 		tx := block.transactions[node.Index]
 		metricsTxExecute.Mark(1)
 
+		logging.CLog().Info("Dag Dispatcher tx hash:", tx.hash, " Index:", node.Index)
 		mergeCh <- true
 		txWorldState, err := block.Prepare(tx)
 		if err != nil {

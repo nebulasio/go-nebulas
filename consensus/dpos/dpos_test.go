@@ -69,6 +69,8 @@ func mockNeb(t *testing.T) *Neb {
 		},
 	}
 
+	neb.emitter.Start()
+
 	am := account.NewManager(neb)
 	neb.am = am
 
@@ -418,9 +420,12 @@ func TestDposContracts(t *testing.T) {
 	dpos := neb.consensus
 
 	coinbase, err := core.AddressParse("1a263547d167c74cf4b8f9166cfa244de0481c514a45aa2c")
+
 	assert.Nil(t, err)
 	manager := account.NewManager(nil)
 	assert.Nil(t, dpos.EnableMining("passphrase"))
+
+	assert.Nil(t, manager.Unlock(coinbase, []byte("passphrase"), keystore.YearUnlockDuration))
 
 	a, _ := core.AddressParse("2fe3f9f51f9a05dd5f7c5329127f7c917917149b4e16b0b8")
 	assert.Nil(t, manager.Unlock(a, []byte("passphrase"), keystore.YearUnlockDuration))
@@ -438,6 +443,7 @@ func TestDposContracts(t *testing.T) {
 
 	g, _ := core.AddressParse("b414432e15f21237013017fa6ee90fc99433dec82c1c8370")
 	h, _ := core.AddressParse("b49f30d0e5c9c88cade54cd1adecf6bc2c7e0e5af646d903")
+	m, _ := core.AddressParse("fc751b484bd5296f8d267a8537d33f25a848f7f7af8cfcf6")
 
 	elapsedSecond := int64(DynastyInterval)
 	consensusState, err := tail.WorldState().NextConsensusState(elapsedSecond)
@@ -447,7 +453,7 @@ func TestDposContracts(t *testing.T) {
 	block.SetTimestamp(consensusState.TimeStamp())
 	block.WorldState().SetConsensusState(consensusState)
 
-	j := 2
+	j := 300
 
 	for i := 1; i < j; i++ {
 		gas, _ := util.NewUint128FromInt(1000000 + 4 + 4*int64(j-i))
@@ -457,7 +463,7 @@ func TestDposContracts(t *testing.T) {
 		assert.Nil(t, neb.chain.TransactionPool().Push(tx))
 
 		gas, _ = util.NewUint128FromInt(1000000 + 3 + 4*int64(j-i))
-		tx = core.NewTransaction(neb.chain.ChainID(), b, e, util.NewUint128(), uint64(i), core.TxPayloadBinaryType, []byte("nas"), gas, limit)
+		tx = core.NewTransaction(neb.chain.ChainID(), b, m, util.NewUint128(), uint64(i), core.TxPayloadBinaryType, []byte("nas"), gas, limit)
 		assert.Nil(t, manager.SignTransaction(b, tx))
 		assert.Nil(t, neb.chain.TransactionPool().Push(tx))
 
@@ -472,8 +478,8 @@ func TestDposContracts(t *testing.T) {
 		assert.Nil(t, manager.SignTransaction(d, tx))
 		assert.Nil(t, neb.chain.TransactionPool().Push(tx))
 
-		//tx = core.NewTransaction(neb.chain.ChainID(), b, e, util.NewUint128(), 2, core.TxPayloadBinaryType, []byte("nas"), gas, limit)
-		//assert.Nil(t, manager.SignTransaction(b, tx))
+		//tx = core.NewTransaction(neb.chain.ChainID(), e, h, util.NewUint128(), 2, core.TxPayloadBinaryType, []byte("nas"), gas, limit)
+		//assert.Nil(t, manager.SignTransaction(e, tx))
 		//assert.Nil(t, neb.chain.TransactionPool().Push(tx))
 	}
 
@@ -483,5 +489,6 @@ func TestDposContracts(t *testing.T) {
 	assert.Nil(t, block.Seal())
 	assert.Nil(t, manager.SignBlock(coinbase, block))
 	assert.Nil(t, neb.chain.BlockPool().Push(block))
+
 	assert.Equal(t, block.Hash(), neb.chain.TailBlock().Hash())
 }
