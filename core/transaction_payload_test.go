@@ -257,7 +257,7 @@ func TestPayload_Execute(t *testing.T) {
 		tx:      callTx,
 		block:   block,
 		want:    util.NewUint128(),
-		wantErr: ErrContractNotFound,
+		wantErr: ErrContractCheckFailed,
 	})
 
 	ks := keystore.DefaultKS

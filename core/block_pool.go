@@ -296,10 +296,12 @@ func (pool *BlockPool) PushAndRelay(sender string, block *Block) error {
 	if err != nil {
 		return err
 	}
-	if err := pool.push(sender, block); err != nil {
-		return err
-	}
-	return nil
+
+	return pool.push(sender, block)
+	// if err := pool.push(sender, block); err != nil {
+	// 	return err
+	// }
+	// return nil
 }
 
 // PushAndBroadcast push block into block pool and broadcast it.
@@ -314,11 +316,12 @@ func (pool *BlockPool) PushAndBroadcast(block *Block) error {
 
 	pool.ns.Broadcast(MessageTypeNewBlock, block, net.MessagePriorityHigh)
 
-	if err := pool.push(NoSender, block); err != nil {
-		return err
-	}
+	return pool.push(NoSender, block)
+	// if err := pool.push(NoSender, block); err != nil {
+	// 	return err
+	// }
 
-	return nil
+	// return nil
 }
 
 func (pool *BlockPool) download(sender string, block *Block) error {
@@ -416,11 +419,12 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 			return ErrMissingParentBlock
 		}
 
-		if err := pool.download(sender, plb.block); err != nil {
-			return err
-		}
+		return pool.download(sender, plb.block)
+		// if err := pool.download(sender, plb.block); err != nil {
+		// 	return err
+		// }
 
-		return nil
+		// return nil
 	}
 
 	// find parent in Chain.
@@ -471,11 +475,12 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 	}
 
 	// notify consensus to handle new block.
-	if err := pool.bc.ConsensusHandler().ForkChoice(); err != nil {
-		return err
-	}
+	return pool.bc.ConsensusHandler().ForkChoice()
+	// if err := pool.bc.ConsensusHandler().ForkChoice(); err != nil {
+	// 	return err
+	// }
 
-	return nil
+	// return nil
 }
 
 func (pool *BlockPool) setBlockChain(bc *BlockChain) {

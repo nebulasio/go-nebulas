@@ -623,6 +623,7 @@ func (bc *BlockChain) Dump(count int) string {
 	return rls
 }
 
+// StoreBlockToStorage store block
 func (bc *BlockChain) StoreBlockToStorage(block *Block) error {
 	pbBlock, err := block.ToProto()
 	if err != nil {
@@ -639,14 +640,17 @@ func (bc *BlockChain) StoreBlockToStorage(block *Block) error {
 	return nil
 }
 
+// StoreTailToStorage store tail block
 func (bc *BlockChain) StoreTailToStorage(block *Block) error {
 	return bc.storage.Put([]byte(Tail), block.Hash())
 }
 
+// StoreLIBToStorage store LIB block
 func (bc *BlockChain) StoreLIBToStorage(block *Block) error {
 	return bc.storage.Put([]byte(LIB), block.Hash())
 }
 
+// LoadTailFromStorage load tail block
 func (bc *BlockChain) LoadTailFromStorage() (*Block, error) {
 	hash, err := bc.storage.Get([]byte(Tail))
 	if err != nil && err != storage.ErrKeyNotFound {
@@ -669,6 +673,7 @@ func (bc *BlockChain) LoadTailFromStorage() (*Block, error) {
 	return LoadBlockFromStorage(hash, bc)
 }
 
+// LoadGenesisFromStorage load genesis
 func (bc *BlockChain) LoadGenesisFromStorage() (*Block, error) {
 	genesis, err := LoadBlockFromStorage(GenesisHash, bc)
 	if err != nil {
@@ -687,6 +692,7 @@ func (bc *BlockChain) LoadGenesisFromStorage() (*Block, error) {
 	return genesis, nil
 }
 
+// LoadLIBFromStorage load LIB
 func (bc *BlockChain) LoadLIBFromStorage() (*Block, error) {
 	hash, err := bc.storage.Get([]byte(LIB))
 	if err != nil && err != storage.ErrKeyNotFound {

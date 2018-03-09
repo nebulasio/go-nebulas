@@ -982,20 +982,16 @@ func (block *Block) SetConsensusState(consensusState state.ConsensusState) {
 }
 
 // CheckContract check if contract is valid
-func (block *Block) CheckContract(addr *Address) error { // ToFix: return contract
+func (block *Block) CheckContract(addr *Address) (state.Account, error) { // ToFix: return contract
 
 	contract, err := block.accState.GetContractAccount(addr.Bytes()) // ToFix: Check account is contract
 	if err != nil {
-		return err
-	}
-
-	if len(contract.BirthPlace()) == 0 { //TODO more check for tx hash
-		return ErrContractNotFound
+		return nil, err
 	}
 
 	birthEvents, err := block.FetchEvents(contract.BirthPlace())
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	result := false
@@ -1011,10 +1007,10 @@ func (block *Block) CheckContract(addr *Address) error { // ToFix: return contra
 		}
 	}
 	if !result {
-		return ErrContractNotFound // ToFix: errors should be failed to deploy
+		return nil, ErrContractCheckFailed
 	}
 
-	return nil
+	return contract, nil
 }
 
 // HashBlock return the hash of block.
@@ -1045,9 +1041,12 @@ func HashBlock(block *Block) (byteutils.Hash, error) { // ToConfirm: block is no
 
 // HashPbBlock return the hash of pb block.
 func HashPbBlock(pbBlock *corepb.Block) byteutils.Hash {
-	block := new(Block) // ToFix: hash pbBlock directly, avoid catching fromproto err
-	block.FromProto(pbBlock)
-	return block.Hash()
+	// block := new(Block) // ToFix: hash pbBlock directly, avoid catching fromproto err
+	// block.FromProto(pbBlock)
+	if pbBlock != nil && pbBlock.Header != nil {
+		return pbBlock.Header.Hash
+	}
+	return make(byteutils.Hash, 0)
 }
 
 // RecoverMiner return miner from block

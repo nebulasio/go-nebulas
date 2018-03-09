@@ -87,11 +87,8 @@ func (payload *CallPayload) Execute(block *Block, tx *Transaction) (*util.Uint12
 
 func generateCallContext(block *Block, tx *Transaction) (*nvm.Context, *DeployPayload, error) {
 
-	contract, err := block.accState.GetContractAccount(tx.to.Bytes()) // ToDel: redundant with checkcontract.
+	contract, err := block.CheckContract(tx.to) // ToFix: CheckContract at the beginning.
 	if err != nil {
-		return nil, nil, err
-	}
-	if err := block.CheckContract(tx.to); err != nil { // ToFix: CheckContract at the beginning.
 		return nil, nil, err
 	}
 
