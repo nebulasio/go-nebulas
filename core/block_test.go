@@ -343,7 +343,6 @@ func TestBlock(t *testing.T) {
 					consensusRoot: &consensuspb.ConsensusRoot{
 						DynastyRoot: []byte("43656"),
 					},
-					nonce:     3546456,
 					coinbase:  &Address{[]byte("hello")},
 					timestamp: time.Now().Unix(),
 					chainID:   100,
@@ -425,7 +424,6 @@ func TestBlock_LinkParentBlock(t *testing.T) {
 			consensusRoot: &consensuspb.ConsensusRoot{
 				DynastyRoot: []byte("43656"),
 			},
-			nonce:     3546456,
 			coinbase:  &Address{[]byte("hello")},
 			timestamp: BlockInterval,
 			chainID:   100,
@@ -446,7 +444,6 @@ func TestBlock_LinkParentBlock(t *testing.T) {
 			consensusRoot: &consensuspb.ConsensusRoot{
 				DynastyRoot: []byte("43656"),
 			},
-			nonce:     3546456,
 			coinbase:  &Address{[]byte("hello")},
 			timestamp: BlockInterval * 2,
 			chainID:   100,

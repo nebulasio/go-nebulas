@@ -82,7 +82,6 @@ func NewGenesisBlock(conf *corepb.Genesis, chain *BlockChain) (*Block, error) {
 			parentHash: GenesisHash,
 			coinbase:   GenesisCoinbase,
 			timestamp:  GenesisTimestamp,
-			nonce:      0, // ToDelete
 		},
 		accState:       accState,
 		txsState:       txsState,

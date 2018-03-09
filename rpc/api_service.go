@@ -333,7 +333,6 @@ func (s *APIService) toBlockResponse(block *core.Block, fullTransaction bool) (*
 		Hash:          block.Hash().String(),
 		ParentHash:    block.ParentHash().String(),
 		Height:        block.Height(),
-		Nonce:         block.Nonce(),
 		Coinbase:      block.Coinbase().String(),
 		Timestamp:     block.Timestamp(),
 		ChainId:       block.ChainID(),

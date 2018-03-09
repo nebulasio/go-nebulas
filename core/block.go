@@ -65,7 +65,6 @@ type BlockHeader struct {
 	consensusRoot *consensuspb.ConsensusRoot
 
 	coinbase  *Address
-	nonce     uint64 // ToDelete: delete nonce.
 	timestamp int64
 	chainID   uint32
 
@@ -83,7 +82,6 @@ func (b *BlockHeader) ToProto() (proto.Message, error) {
 		TxsRoot:       b.txsRoot,
 		EventsRoot:    b.eventsRoot,
 		ConsensusRoot: b.consensusRoot,
-		Nonce:         b.nonce,
 		Coinbase:      b.coinbase.address,
 		Timestamp:     b.timestamp,
 		ChainId:       b.chainID,
@@ -101,7 +99,6 @@ func (b *BlockHeader) FromProto(msg proto.Message) error { // ToCheck: msg is no
 		b.txsRoot = msg.TxsRoot
 		b.eventsRoot = msg.EventsRoot
 		b.consensusRoot = msg.ConsensusRoot // ToCheck: msg.DposContext is not nil.
-		b.nonce = msg.Nonce
 		b.coinbase = &Address{msg.Coinbase} // ToCheck: check address.
 		b.timestamp = msg.Timestamp
 		b.chainID = msg.ChainId
@@ -211,7 +208,6 @@ func NewBlock(chainID uint32, coinbase *Address, parent *Block) (*Block, error) 
 		header: &BlockHeader{
 			parentHash: parent.Hash(),
 			coinbase:   coinbase,
-			nonce:      0, // ToDelete
 			timestamp:  time.Now().Unix(),
 			chainID:    chainID,
 		},
@@ -248,6 +244,9 @@ func (block *Block) Sign(signature keystore.Signature) error {
 
 // ChainID returns block's chainID
 func (block *Block) ChainID() uint32 {
+	if block.header == nil {
+		return uint32(0)
+	}
 	return block.header.chainID // ToCheck: header is not nil.
 }
 
@@ -268,22 +267,10 @@ func (block *Block) Signature() byteutils.Hash {
 
 // CoinbaseHash return block's coinbase hash
 func (block *Block) CoinbaseHash() byteutils.Hash {
-	return block.header.coinbase.address // ToCheck: coinbase is not nil
-}
-
-// Nonce return nonce.
-func (block *Block) Nonce() uint64 { // ToDelete
-	return block.header.nonce
-}
-
-// SetNonce set nonce.
-func (block *Block) SetNonce(nonce uint64) { // ToDelete
-	if block.sealed {
-		logging.VLog().WithFields(logrus.Fields{
-			"block": block,
-		}).Fatal("Sealed block can't be changed.")
+	if block.header.coinbase == nil {
+		return []byte{}
 	}
-	block.header.nonce = nonce
+	return block.header.coinbase.address // ToCheck: coinbase is not nil
 }
 
 // Timestamp return timestamp
@@ -1014,7 +1001,6 @@ func HashBlock(block *Block) (byteutils.Hash, error) { // ToConfirm: block is no
 	hasher.Write(block.TxsRoot())
 	hasher.Write(block.EventsRoot())
 	hasher.Write(consensusRoot)
-	hasher.Write(byteutils.FromUint64(block.header.nonce))
 	hasher.Write(block.header.coinbase.address)
 	hasher.Write(byteutils.FromInt64(block.header.timestamp))
 	hasher.Write(byteutils.FromUint32(block.header.chainID))
@@ -1028,12 +1014,13 @@ func HashBlock(block *Block) (byteutils.Hash, error) { // ToConfirm: block is no
 
 // HashPbBlock return the hash of pb block.
 func HashPbBlock(pbBlock *corepb.Block) byteutils.Hash {
-	// block := new(Block) // ToFix: hash pbBlock directly, avoid catching fromproto err
-	// block.FromProto(pbBlock)
-	if pbBlock != nil && pbBlock.Header != nil {
-		return pbBlock.Header.Hash
+	block := new(Block) // ToFix: hash pbBlock directly, avoid catching fromproto err
+	if err := block.FromProto(pbBlock); err != nil {
+		if hash, err := HashBlock(block); err != nil {
+			return hash
+		}
 	}
-	return make(byteutils.Hash, 0)
+	return nil
 }
 
 // RecoverMiner return miner from block
