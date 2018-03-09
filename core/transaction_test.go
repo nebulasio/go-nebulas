@@ -107,7 +107,7 @@ func TestTransaction(t *testing.T) {
 				value:     tt.fields.value,
 				nonce:     tt.fields.nonce,
 				timestamp: tt.fields.timestamp,
-				alg:       tt.fields.alg,
+				alg:       keystore.Algorithm(tt.fields.alg),
 				data:      tt.fields.data,
 				gasPrice:  tt.fields.gasPrice,
 				gasLimit:  tt.fields.gasLimit,

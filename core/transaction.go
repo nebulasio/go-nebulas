@@ -87,8 +87,8 @@ type Transaction struct {
 	gasLimit  *util.Uint128
 
 	// Signature
-	alg  uint8          // algorithm, ToFix: change to keystore.Algorithm
-	sign byteutils.Hash // Signature values
+	alg  keystore.Algorithm //
+	sign byteutils.Hash     // Signature values
 }
 
 // From return from address
@@ -206,7 +206,7 @@ func (tx *Transaction) FromProto(msg proto.Message) error { // ToFix: check msg 
 			return err
 		}
 		tx.gasLimit = gasLimit
-		tx.alg = uint8(msg.Alg)
+		tx.alg = keystore.Algorithm(msg.Alg)
 		tx.sign = msg.Sign
 		return nil
 	}
@@ -587,6 +587,9 @@ func (tx *Transaction) recordResultEvent(block *Block, gasUsed *util.Uint128, er
 
 // Sign sign transaction,sign algorithm is
 func (tx *Transaction) Sign(signature keystore.Signature) error { // ToCheck: signature is not nil.
+	if signature == nil {
+		return errors.New("unexpected error: signature is nil")
+	}
 	hash, err := HashTransaction(tx)
 	if err != nil {
 		return err
@@ -596,7 +599,7 @@ func (tx *Transaction) Sign(signature keystore.Signature) error { // ToCheck: si
 		return err
 	}
 	tx.hash = hash
-	tx.alg = uint8(signature.Algorithm())
+	tx.alg = signature.Algorithm()
 	tx.sign = sign
 	return nil
 }
@@ -623,7 +626,7 @@ func (tx *Transaction) VerifyIntegrity(chainID uint32) error {
 }
 
 func (tx *Transaction) verifySign() error {
-	signature, err := crypto.NewSignature(keystore.Algorithm(tx.alg))
+	signature, err := crypto.NewSignature(tx.alg)
 	if err != nil {
 		return err
 	}

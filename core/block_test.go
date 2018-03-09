@@ -362,7 +362,7 @@ func TestBlock(t *testing.T) {
 						1,
 						util.NewUint128(),
 						util.NewUint128(),
-						uint8(keystore.SECP256K1),
+						keystore.SECP256K1,
 						nil,
 					},
 					&Transaction{
@@ -376,7 +376,7 @@ func TestBlock(t *testing.T) {
 						2,
 						util.NewUint128(),
 						util.NewUint128(),
-						uint8(keystore.SECP256K1),
+						keystore.SECP256K1,
 						nil,
 					},
 				},

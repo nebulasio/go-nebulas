@@ -981,9 +981,12 @@ func (block *Block) CheckContract(addr *Address) (state.Account, error) { // ToF
 	result := false
 	for _, v := range birthEvents {
 
-		if v.Topic == TopicTransactionExecutionResult { // ToAdd: compatible codes
+		if v.Topic == TopicTransactionExecutionResult {
 			txEvent := TransactionEvent{}
-			json.Unmarshal([]byte(v.Data), &txEvent) //TODO unmarshal error not handle
+			err = json.Unmarshal([]byte(v.Data), &txEvent)
+			if err != nil {
+				return nil, err
+			}
 			if txEvent.Status == TxExecutionSuccess {
 				result = true
 				break
