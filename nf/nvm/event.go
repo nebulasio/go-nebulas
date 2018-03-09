@@ -22,7 +22,6 @@ import "C"
 import (
 	"unsafe"
 
-	"github.com/nebulasio/go-nebulas/util/byteutils"
 	"github.com/nebulasio/go-nebulas/util/logging"
 	"github.com/sirupsen/logrus"
 )
@@ -55,7 +54,6 @@ func EventTriggerFunc(handler unsafe.Pointer, topic, data *C.char) {
 		"data":     gData,
 	}).Debug("Event triggered from V8 engine.")
 
-	txHash, _ := byteutils.FromHex(e.ctx.tx.Hash)
 	contractTopic := EventNameSpaceContract + "." + gTopic
-	e.ctx.block.RecordEvent(txHash, contractTopic, gData)
+	e.ctx.block.RecordEvent(e.ctx.tx.Hash(), contractTopic, gData)
 }

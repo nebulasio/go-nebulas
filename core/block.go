@@ -125,6 +125,7 @@ type Block struct {
 
 	storage      storage.Storage
 	eventEmitter *EventEmitter
+	nvm          Engine
 }
 
 // ToProto converts domain Block into proto Block
@@ -177,15 +178,6 @@ func (block *Block) FromProto(msg proto.Message) error { // ToCheck: msg is not 
 	return errors.New("Protobuf message cannot be converted into Block")
 }
 
-// SerializeTxByHash returns tx serialized bytes
-func (block *Block) SerializeTxByHash(hash byteutils.Hash) (proto.Message, error) {
-	tx, err := block.GetTransaction(hash)
-	if err != nil {
-		return nil, err
-	}
-	return tx.ToProto()
-}
-
 // NewBlock return new block.
 func NewBlock(chainID uint32, coinbase *Address, parent *Block) (*Block, error) { // ToCheck: check args. // ToCheck: check full-functional block.
 	accState, err := parent.accState.Clone()
@@ -223,6 +215,7 @@ func NewBlock(chainID uint32, coinbase *Address, parent *Block) (*Block, error) 
 		sealed:         false,
 		storage:        parent.storage,
 		eventEmitter:   parent.eventEmitter,
+		nvm:            parent.nvm,
 	}
 
 	block.begin()
@@ -264,14 +257,6 @@ func (block *Block) Alg() uint8 {
 // Signature return block's signature
 func (block *Block) Signature() byteutils.Hash {
 	return block.header.sign
-}
-
-// CoinbaseHash return block's coinbase hash
-func (block *Block) CoinbaseHash() byteutils.Hash {
-	if block.header.coinbase == nil {
-		return []byte{}
-	}
-	return block.header.coinbase.address // ToCheck: coinbase is not nil
 }
 
 // Timestamp return timestamp
@@ -334,10 +319,9 @@ func (block *Block) Transactions() Transactions {
 	return block.transactions
 }
 
-// VerifyAddress returns if the addr string is valid
-func (block *Block) VerifyAddress(str string) bool { // ToRefine: move to address. use Engine interface in core & use core in NVM directly.
-	_, err := AddressParse(str)
-	return err == nil
+// AccountState return account state
+func (block *Block) AccountState() state.AccountState {
+	return block.accState
 }
 
 // LinkParentBlock link parent block, return true if hash is the same; false otherwise.
@@ -369,6 +353,7 @@ func (block *Block) LinkParentBlock(chain *BlockChain, parentBlock *Block) error
 	block.storage = parentBlock.storage
 	block.height = parentBlock.height + 1
 	block.eventEmitter = parentBlock.eventEmitter
+	block.nvm = parentBlock.nvm
 
 	return nil
 }
@@ -1089,6 +1074,7 @@ func LoadBlockFromStorage(hash byteutils.Hash, chain *BlockChain) (*Block, error
 	block.storage = chain.storage
 	block.sealed = true
 	block.eventEmitter = chain.eventEmitter
+	block.nvm = chain.nvm
 	return block, nil
 }
 
@@ -1120,15 +1106,15 @@ func (block *Block) Clone() (*Block, error) {
 	}
 
 	return &Block{
-		header:       block.header,
-		sealed:       block.sealed,
-		height:       block.height,
-		parentBlock:  block.parentBlock,
-		txPool:       block.txPool,
-		storage:      block.storage,
-		eventEmitter: block.eventEmitter,
-		transactions: transactions,
-
+		header:         block.header,
+		sealed:         block.sealed,
+		height:         block.height,
+		parentBlock:    block.parentBlock,
+		txPool:         block.txPool,
+		storage:        block.storage,
+		eventEmitter:   block.eventEmitter,
+		nvm:            block.nvm,
+		transactions:   transactions,
 		accState:       accState,
 		txsState:       txsState,
 		eventsState:    eventsState,

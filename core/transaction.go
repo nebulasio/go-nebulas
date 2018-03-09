@@ -395,7 +395,7 @@ func (tx *Transaction) LocalExecution(block *Block) (*util.Uint128, string, erro
 // VerifyExecution transaction and return result.
 func (tx *Transaction) VerifyExecution(block *Block) (*util.Uint128, error) {
 	if block == nil {
-		return nil, ErrInvalidBlockInput
+		return nil, ErrNeedBlockInput
 	}
 
 	// step1. check gasLimit >= GasCountOfTxBase()

@@ -214,7 +214,7 @@ func TestTransaction_VerifyExecution(t *testing.T) {
 	// contract deploy tx
 	deployTx := mockDeployTransaction(bc.chainID, 0)
 	deployTx.value = util.NewUint128()
-	gasUsed, _ := util.NewUint128FromInt(21232)
+	gasUsed, _ := util.NewUint128FromInt(21143)
 	coinbaseBalance, err = deployTx.gasPrice.Mul(gasUsed)
 	assert.Nil(t, err)
 	balanceConsume, err := deployTx.gasPrice.Mul(gasUsed)
@@ -334,7 +334,7 @@ func TestTransaction_VerifyExecution(t *testing.T) {
 	// tx execution insufficient fromBalance after execution
 	executionInsufficientBalanceTx := mockDeployTransaction(bc.chainID, 0)
 	executionInsufficientBalanceTx.value = balance
-	gasUsed, _ = util.NewUint128FromInt(21232)
+	gasUsed, _ = util.NewUint128FromInt(21143)
 	coinbaseBalance, err = executionInsufficientBalanceTx.gasPrice.Mul(gasUsed)
 	assert.Nil(t, err)
 	balanceConsume, err = normalTx.gasPrice.Mul(gasUsed)
@@ -461,12 +461,12 @@ func TestTransaction_LocalExecution(t *testing.T) {
 
 	deployTx := mockDeployTransaction(bc.chainID, 0)
 	deployTx.value = util.NewUint128()
-	gasUsed, _ := util.NewUint128FromInt(21232)
+	gasUsed, _ := util.NewUint128FromInt(21143)
 	tests = append(tests, testCase{
 		name:    "contract deploy tx",
 		tx:      deployTx,
 		gasUsed: gasUsed,
-		result:  "undefined",
+		result:  "",
 		wanted:  nil,
 	})
 

@@ -34,11 +34,9 @@ import (
 
 // Payload Types
 const (
-	TxPayloadBinaryType    = "binary"
-	TxPayloadDeployType    = "deploy"
-	TxPayloadCallType      = "call"
-	TxPayloadDelegateType  = "delegate"
-	TxPayloadCandidateType = "candidate"
+	TxPayloadBinaryType = "binary"
+	TxPayloadDeployType = "deploy"
+	TxPayloadCallType   = "call"
 )
 
 const (
@@ -112,15 +110,10 @@ var (
 	ErrGenesisConfNotMatch    = errors.New("Failed to load genesis from storage, different with genesis conf")
 
 	ErrNoTimeToPackTransactions    = errors.New("no time left to pack transactions in a block")
-	ErrInvalidBlockInput           = errors.New("invalid block as input")
 	ErrTxDataPayLoadOutOfMaxLength = errors.New("data's payload is out of max data length")
-
-	ErrNilArgument = errors.New("argument(s) is nil")
-)
-
-// Default gas count
-var (
-	DefaultPayloadGas, _ = util.NewUint128FromInt(1)
+	ErrNilArgument                 = errors.New("argument(s) is nil")
+	ErrNeedBlockInput              = errors.New("need block as input")
+	ErrNeedTransactionInput        = errors.New("need transaction as input")
 )
 
 // TxPayload stored in tx
@@ -190,6 +183,16 @@ type AccountManager interface {
 	Delete(*Address, []byte) error
 }
 
+// Engine interface breaks cycle import dependency and hides unused services.
+type Engine interface {
+	StartEngine(block *Block, tx *Transaction, owner, contract state.Account, state state.AccountState) error
+	SetEngineExecutionLimits(limitsOfExecutionInstructions uint64) error
+	DeployAndInitEngine(source, sourceType, args string) (string, error)
+	CallEngine(source, sourceType, function, args string) (string, error)
+	ExecutionInstructions() (uint64, error)
+	DisposeEngine()
+}
+
 // Neblet interface breaks cycle import dependency and hides unused services.
 type Neblet interface {
 	Genesis() *corepb.Genesis
@@ -201,5 +204,6 @@ type Neblet interface {
 	BlockChain() *BlockChain
 	NetService() net.Service
 	AccountManager() AccountManager
+	Nvm() Engine
 	StartPprof(string) error
 }

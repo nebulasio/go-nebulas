@@ -65,6 +65,8 @@ type BlockChain struct {
 
 	eventEmitter *EventEmitter
 
+	nvm Engine
+
 	quitCh chan int
 }
 
@@ -104,6 +106,7 @@ func NewBlockChain(neb Neblet) (*BlockChain, error) {
 		txPool:       txPool,
 		storage:      neb.Storage(),
 		eventEmitter: neb.EventEmitter(),
+		nvm:          neb.Nvm(),
 		quitCh:       make(chan int, 1),
 	}
 

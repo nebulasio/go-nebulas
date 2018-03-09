@@ -19,14 +19,8 @@
 package nvm
 
 import (
-	"encoding/json"
-
-	"errors"
-
-	"github.com/gogo/protobuf/proto"
-	"github.com/nebulasio/go-nebulas/core/pb"
+	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/core/state"
-	"github.com/nebulasio/go-nebulas/util"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
 )
 
@@ -37,29 +31,28 @@ const (
 
 // Block interface breaks cycle import dependency and hides unused services.
 type Block interface {
-	CoinbaseHash() byteutils.Hash
+	Coinbase() *core.Address
 	Hash() byteutils.Hash
 	Height() uint64
-	VerifyAddress(str string) bool
-	SerializeTxByHash(hash byteutils.Hash) (proto.Message, error)
+	GetTransaction(hash byteutils.Hash) (*core.Transaction, error)
 	RecordEvent(txHash byteutils.Hash, topic, data string) error
 }
 
-// AccountState context account state
-type AccountState struct {
+// SerializableAccount serializable account state
+type SerializableAccount struct {
 	Nonce   uint64 `json:"nonce"`
 	Balance string `json:"balance"`
 }
 
-// ContextBlock warpper block
-type ContextBlock struct {
+// SerializableBlock serializable block
+type SerializableBlock struct {
 	Coinbase string `json:"coinbase"`
 	Hash     string `json:"hash"`
 	Height   uint64 `json:"height"`
 }
 
-// ContextTransaction warpper transaction
-type ContextTransaction struct {
+// SerializableTransaction serializable transaction
+type SerializableTransaction struct {
 	Hash      string `json:"hash"`
 	From      string `json:"from"`
 	To        string `json:"to"`
@@ -73,14 +66,14 @@ type ContextTransaction struct {
 // Context nvm engine context
 type Context struct {
 	block    Block
-	tx       *ContextTransaction
+	tx       *core.Transaction
 	owner    state.Account
 	contract state.Account
 	state    state.AccountState
 }
 
 // NewContext create a engine context
-func NewContext(block Block, tx *ContextTransaction, owner state.Account, contract state.Account, state state.AccountState) *Context {
+func NewContext(block Block, tx *core.Transaction, owner state.Account, contract state.Account, state state.AccountState) *Context {
 	ctx := &Context{
 		block:    block,
 		tx:       tx,
@@ -91,59 +84,33 @@ func NewContext(block Block, tx *ContextTransaction, owner state.Account, contra
 	return ctx
 }
 
-// State returns account state
-func (ctx *Context) State() state.AccountState {
-	return ctx.state
-}
-
-// Owner returns contract owner account
-func (ctx *Context) Owner() state.Account {
-	return ctx.owner
-}
-
-// Contract returns contract account
-func (ctx *Context) Contract() state.Account {
-	return ctx.contract
-}
-
-// SerializeContextBlock Serialize current block
-func (ctx *Context) SerializeContextBlock() ([]byte, error) {
-
-	if ctx.block != nil {
-		block := &ContextBlock{
-			Coinbase: ctx.block.CoinbaseHash().String(),
-			Hash:     ctx.block.Hash().String(),
-			Height:   ctx.block.Height(),
-		}
-		return json.Marshal(block)
+func toSerializableAccount(acc state.Account) *SerializableAccount {
+	sAcc := &SerializableAccount{
+		Nonce:   acc.Nonce(),
+		Balance: acc.Balance().String(),
 	}
-	return nil, errors.New("no block in context")
+	return sAcc
 }
 
-// SerializeContextTx Serialize current tx
-func (ctx *Context) SerializeContextTx() ([]byte, error) {
-	return json.Marshal(ctx.tx)
+func toSerializableBlock(block Block) *SerializableBlock {
+	sBlock := &SerializableBlock{
+		Coinbase: block.Coinbase().String(),
+		Hash:     block.Hash().String(),
+		Height:   block.Height(),
+	}
+	return sBlock
 }
 
-// SerializeTxByHash Serialize tx
-func (ctx *Context) SerializeTxByHash(hash byteutils.Hash) ([]byte, error) {
-	msg, err := ctx.block.SerializeTxByHash(hash)
-	if err != nil {
-		return nil, err
+func toSerializableTransaction(tx *core.Transaction) *SerializableTransaction {
+	sTx := &SerializableTransaction{
+		From:      tx.From().String(),
+		To:        tx.To().String(),
+		Value:     tx.Value().String(),
+		Timestamp: tx.Timestamp(),
+		Nonce:     tx.Nonce(),
+		Hash:      tx.Hash().String(),
+		GasPrice:  tx.GasPrice().String(),
+		GasLimit:  tx.GasLimit().String(),
 	}
-	txMsg := msg.(*corepb.Transaction)
-	value, _ := util.NewUint128FromFixedSizeByteSlice(txMsg.Value)
-	gasPrice, _ := util.NewUint128FromFixedSizeByteSlice(txMsg.GasPrice)
-	gasLimit, _ := util.NewUint128FromFixedSizeByteSlice(txMsg.GasLimit)
-	tx := &ContextTransaction{
-		Hash:      byteutils.Hex(txMsg.Hash),
-		From:      byteutils.Hex(txMsg.From),
-		To:        byteutils.Hex(txMsg.To),
-		Value:     value.String(),
-		Nonce:     txMsg.Nonce,
-		Timestamp: txMsg.Timestamp,
-		GasPrice:  gasPrice.String(),
-		GasLimit:  gasLimit.String(),
-	}
-	return json.Marshal(tx)
+	return sTx
 }

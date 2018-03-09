@@ -21,7 +21,6 @@ package core
 import (
 	"encoding/json"
 
-	"github.com/nebulasio/go-nebulas/nf/nvm"
 	"github.com/nebulasio/go-nebulas/util"
 )
 
@@ -61,13 +60,17 @@ func (payload *DeployPayload) BaseGasCount() *util.Uint128 {
 }
 
 // Execute deploy payload in tx, deploy a new contract
-func (payload *DeployPayload) Execute(block *Block, tx *Transaction) (*util.Uint128, string, error) { // ToCheck: check args.
-	payloadGasLimit, err := tx.PayloadGasLimit(payload) // ToRefine: check payload at the beginning; done
-	if err != nil {
-		return util.NewUint128(), "", err
+func (payload *DeployPayload) Execute(block *Block, tx *Transaction) (*util.Uint128, string, error) {
+
+	if block == nil || tx == nil {
+		return util.NewUint128(), "", ErrNilArgument
 	}
 
-	nvmctx, err := generateDeployContext(block, tx)
+	if !tx.From().Equals(tx.To()) {
+		return util.NewUint128(), "", ErrContractTransactionAddressNotEqual
+	}
+
+	payloadGasLimit, err := tx.PayloadGasLimit(payload)
 	if err != nil {
 		return util.NewUint128(), "", err
 	}
@@ -76,49 +79,37 @@ func (payload *DeployPayload) Execute(block *Block, tx *Transaction) (*util.Uint
 		return util.NewUint128(), "", ErrOutOfGasLimit
 	}
 
-	engine := nvm.NewV8Engine(nvmctx)
-	defer engine.Dispose()
-
-	engine.SetExecutionLimits(payloadGasLimit.Uint64(), nvm.DefaultLimitsOfTotalMemorySize) // ToCheck: 40M is too big.
-
-	// Deploy and Init.iutu
-	result, exeErr := engine.DeployAndInit(payload.Source, payload.SourceType, payload.Args)
-	instructions := util.NewUint128FromUint(engine.ExecutionInstructions()) // ToAdd: NewUint128FromUInt & catch err
-	return instructions, result, exeErr
-}
-
-func generateDeployContext(block *Block, tx *Transaction) (*nvm.Context, error) {
-
-	if !tx.From().Equals(tx.To()) {
-		return nil, ErrContractTransactionAddressNotEqual
-	}
-
 	addr, err := tx.GenerateContractAddress()
 	if err != nil {
-		return nil, err
+		return util.NewUint128(), "", err
 	}
 	owner, err := block.accState.GetOrCreateUserAccount(tx.from.Bytes())
 	if err != nil {
-		return nil, err
+		return util.NewUint128(), "", err
 	}
 	contract, err := block.accState.CreateContractAccount(addr.Bytes(), tx.Hash())
 	if err != nil {
-		return nil, err
+		return util.NewUint128(), "", err
 	}
-	nvmctx := nvm.NewContext(block, convertNvmTx(tx), owner, contract, block.accState)
-	return nvmctx, nil
-}
 
-func convertNvmTx(tx *Transaction) *nvm.ContextTransaction {
-	ctxTx := &nvm.ContextTransaction{
-		From:      tx.from.String(),
-		To:        tx.to.String(),
-		Value:     tx.value.String(),
-		Timestamp: tx.timestamp,
-		Nonce:     tx.Nonce(),
-		Hash:      tx.Hash().String(),
-		GasPrice:  tx.GasPrice().String(),
-		GasLimit:  tx.GasLimit().String(),
+	if err := block.nvm.StartEngine(block, tx, owner, contract, block.accState); err != nil {
+		return util.NewUint128(), "", err
 	}
-	return ctxTx
+	defer block.nvm.DisposeEngine()
+
+	if err := block.nvm.SetEngineExecutionLimits(payloadGasLimit.Uint64()); err != nil {
+		return util.NewUint128(), "", err
+	}
+
+	// Deploy and Init.
+	result, exeErr := block.nvm.DeployAndInitEngine(payload.Source, payload.SourceType, payload.Args)
+	gasCout, err := block.nvm.ExecutionInstructions()
+	if err != nil {
+		return util.NewUint128(), "", err
+	}
+	instructions, err := util.NewUint128FromInt(int64(gasCout))
+	if err != nil {
+		return util.NewUint128(), "", err
+	}
+	return instructions, result, exeErr
 }

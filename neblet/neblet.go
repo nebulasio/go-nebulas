@@ -26,6 +26,7 @@ import (
 	"github.com/nebulasio/go-nebulas/metrics"
 	"github.com/nebulasio/go-nebulas/neblet/pb"
 	nebnet "github.com/nebulasio/go-nebulas/net"
+	"github.com/nebulasio/go-nebulas/nf/nvm"
 	"github.com/nebulasio/go-nebulas/rpc"
 	"github.com/nebulasio/go-nebulas/storage"
 	nsync "github.com/nebulasio/go-nebulas/sync"
@@ -69,6 +70,8 @@ type Neblet struct {
 	lock sync.RWMutex
 
 	eventEmitter *core.EventEmitter
+
+	nvm nvm.Engine
 
 	running bool
 }
@@ -118,6 +121,9 @@ func (n *Neblet) Setup() {
 			"err": err,
 		}).Fatal("Failed to setup net service.")
 	}
+
+	// nvm
+	n.nvm = nvm.NewNebulasVM()
 
 	// core
 	n.eventEmitter = core.NewEventEmitter(40960)
@@ -369,6 +375,11 @@ func (n *Neblet) Consensus() core.Consensus {
 // SyncService return sync service
 func (n *Neblet) SyncService() *nsync.Service {
 	return n.syncService
+}
+
+// Nvm return nvm engine
+func (n *Neblet) Nvm() core.Engine {
+	return n.nvm
 }
 
 // TryStartProfiling try start pprof

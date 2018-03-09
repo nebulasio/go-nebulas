@@ -334,17 +334,17 @@ func (e *V8Engine) RunScriptSource(source string, sourceLineOffset int) (result 
 	return
 }
 
+// DeployAndInit a contract
+func (e *V8Engine) DeployAndInit(source, sourceType, args string) (string, error) {
+	return e.RunContractScript(source, sourceType, "init", args)
+}
+
 // Call function in a script
 func (e *V8Engine) Call(source, sourceType, function, args string) (string, error) {
 	if publicFuncNameChecker.MatchString(function) == false || strings.EqualFold("init", function) == true {
 		return "", ErrDisallowCallPrivateFunction
 	}
 	return e.RunContractScript(source, sourceType, function, args)
-}
-
-// DeployAndInit a contract
-func (e *V8Engine) DeployAndInit(source, sourceType, args string) (string, error) {
-	return e.RunContractScript(source, sourceType, "init", args)
 }
 
 // RunContractScript execute script in Smart Contract's way.
@@ -425,10 +425,18 @@ func (e *V8Engine) prepareRunnableContractScript(source, function, args string) 
 	}
 
 	// prepare for execute.
-	blockJSON, _ := e.ctx.SerializeContextBlock()
-	txJSON, _ := e.ctx.SerializeContextTx()
-	var runnableSource string
+	block := toSerializableBlock(e.ctx.block)
+	blockJSON, err := json.Marshal(block)
+	if err != nil {
+		return "", 0, err
+	}
+	tx := toSerializableTransaction(e.ctx.tx)
+	txJSON, err := json.Marshal(tx)
+	if err != nil {
+		return "", 0, err
+	}
 
+	var runnableSource string
 	if len(args) > 0 {
 		var argsObj []interface{}
 		if err := json.Unmarshal([]byte(args), &argsObj); err != nil {

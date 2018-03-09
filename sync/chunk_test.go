@@ -144,6 +144,7 @@ type mockNeb struct {
 	storage   storage.Storage
 	consensus core.Consensus
 	emitter   *core.EventEmitter
+	nvm       core.Engine
 }
 
 func (n *mockNeb) Genesis() *corepb.Genesis {
@@ -176,6 +177,10 @@ func (n *mockNeb) NetService() net.Service {
 
 func (n *mockNeb) AccountManager() core.AccountManager {
 	return n.am
+}
+
+func (n *mockNeb) Nvm() core.Engine {
+	return n.nvm
 }
 
 func (n *mockNeb) StartPprof(string) error {

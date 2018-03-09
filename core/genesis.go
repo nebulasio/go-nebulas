@@ -93,6 +93,7 @@ func NewGenesisBlock(conf *corepb.Genesis, chain *BlockChain) (*Block, error) {
 		txPool:         chain.txPool,
 		storage:        chain.storage,
 		eventEmitter:   chain.eventEmitter,
+		nvm:            chain.nvm,
 		height:         1,
 		sealed:         false,
 	}

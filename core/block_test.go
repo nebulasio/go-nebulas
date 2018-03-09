@@ -248,6 +248,7 @@ type mockNeb struct {
 	storage   storage.Storage
 	consensus Consensus
 	emitter   *EventEmitter
+	nvm       Engine
 }
 
 func (n *mockNeb) Genesis() *corepb.Genesis {
@@ -282,6 +283,10 @@ func (n *mockNeb) AccountManager() AccountManager {
 	return n.am
 }
 
+func (n *mockNeb) Nvm() Engine {
+	return n.nvm
+}
+
 func (n *mockNeb) StartPprof(string) error {
 	return nil
 }
@@ -290,12 +295,33 @@ func (n *mockNeb) SetGenesis(genesis *corepb.Genesis) {
 	n.genesis = genesis
 }
 
-func (n *mockNeb) StartActiveSync() {}
+type mockNvm struct {
+}
+
+func (nvm *mockNvm) StartEngine(block *Block, tx *Transaction, owner, contract state.Account, state state.AccountState) error {
+	return nil
+}
+func (nvm *mockNvm) SetEngineExecutionLimits(limitsOfExecutionInstructions uint64) error {
+	return nil
+}
+func (nvm *mockNvm) DeployAndInitEngine(source, sourceType, args string) (string, error) {
+	return "", nil
+}
+func (nvm *mockNvm) CallEngine(source, sourceType, function, args string) (string, error) {
+	return "", nil
+}
+func (nvm *mockNvm) ExecutionInstructions() (uint64, error) {
+	return uint64(100), nil
+}
+func (nvm *mockNvm) DisposeEngine() {
+
+}
 
 func testNeb(t *testing.T) *mockNeb {
 	storage, _ := storage.NewMemoryStorage()
 	eventEmitter := NewEventEmitter(1024)
 	consensus := new(mockConsensus)
+	nvm := &mockNvm{}
 	var am mockManager
 	var ns mockNetService
 	neb := &mockNeb{
@@ -306,6 +332,7 @@ func testNeb(t *testing.T) *mockNeb {
 		consensus: consensus,
 		am:        am,
 		ns:        ns,
+		nvm:       nvm,
 	}
 	chain, err := NewBlockChain(neb)
 	assert.Nil(t, err)
@@ -559,24 +586,6 @@ func TestBlock_fetchEvents(t *testing.T) {
 	for idx, event := range es {
 		assert.Equal(t, events[idx], event)
 	}
-}
-
-func TestSerializeTxByHash(t *testing.T) {
-	bc := testNeb(t).chain
-	block := bc.tailBlock
-	tx, _ := NewTransaction(bc.ChainID(), mockAddress(), mockAddress(), util.NewUint128(), 1, TxPayloadBinaryType, []byte(""), TransactionGasPrice, TransactionMaxGas)
-	hash, err := HashTransaction(tx)
-	assert.Nil(t, err)
-	tx.hash = hash
-	block.acceptTransaction(tx)
-	msg, err := block.SerializeTxByHash(hash)
-	assert.Nil(t, err)
-	bytes, err := pb.Marshal(msg)
-	assert.Nil(t, err)
-	msg2, err := tx.ToProto()
-	assert.Nil(t, err)
-	bytes2, err := pb.Marshal(msg2)
-	assert.Equal(t, bytes, bytes2)
 }
 
 func TestBlockSign(t *testing.T) {
