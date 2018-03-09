@@ -160,8 +160,8 @@ func (bt *BatchTrie) Count(prefix []byte) (int64, error) {
 	return count, nil
 }
 
-// BeginBatch to process a batch task
-func (bt *BatchTrie) BeginBatch() {
+// Begin to process a batch task
+func (bt *BatchTrie) Begin() {
 	bt.batching = true
 }
 

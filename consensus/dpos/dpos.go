@@ -347,7 +347,7 @@ func (dpos *Dpos) newBlock(tail *core.Block, consensusState state.ConsensusState
 		"reward":   core.BlockReward,
 	}).Info("Rewarded the coinbase.")
 
-	block.SetConsensusState(consensusState)
+	block.LoadConsensusState(consensusState)
 	block.SetTimestamp(consensusState.TimeStamp())
 	block.CollectTransactions(deadline)
 	if err = block.Seal(); err != nil {

@@ -92,9 +92,9 @@ func newMockConsensusState(timestamp int64) (*mockConsensusState, error) {
 	}, nil
 }
 
-func (cs *mockConsensusState) BeginBatch() {}
-func (cs *mockConsensusState) Commit()     {}
-func (cs *mockConsensusState) Rollback()   {}
+func (cs *mockConsensusState) Begin()    {}
+func (cs *mockConsensusState) Commit()   {}
+func (cs *mockConsensusState) Rollback() {}
 
 func (cs *mockConsensusState) RootHash() (*consensuspb.ConsensusRoot, error) {
 	return &consensuspb.ConsensusRoot{}, nil
@@ -484,7 +484,7 @@ func TestBlock_CollectTransactions(t *testing.T) {
 	assert.Nil(t, err)
 	consensusState, err := tail.NextConsensusState(BlockInterval)
 	assert.Nil(t, err)
-	block0.SetConsensusState(consensusState)
+	block0.LoadConsensusState(consensusState)
 	block0.Seal()
 	assert.Nil(t, bc.BlockPool().Push(block0))
 

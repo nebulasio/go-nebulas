@@ -117,10 +117,10 @@ func (acc *account) BirthPlace() byteutils.Hash {
 	return acc.birthPlace
 }
 
-// BeginBatch begins a batch task
-func (acc *account) BeginBatch() {
+// Begin begins a batch task
+func (acc *account) Begin() {
 	// logging.VLog().Debug("Account Begin.")
-	acc.variables.BeginBatch()
+	acc.variables.Begin()
 }
 
 // Commit a batch task
@@ -237,7 +237,7 @@ func NewAccountState(root byteutils.Hash, storage storage.Storage) (AccountState
 
 func (as *accountState) recordDirtyAccount(addr byteutils.Hash, acc Account) {
 	if as.batching {
-		acc.BeginBatch()
+		acc.Begin()
 		as.dirtyAccount[addr.Hex()] = acc
 	}
 }
@@ -353,9 +353,9 @@ func (as *accountState) Accounts() ([]Account, error) {
 	return accounts, nil
 }
 
-// BeginBatch begin a batch task
-func (as *accountState) BeginBatch() {
-	as.stateTrie.BeginBatch()
+// Begin begin a batch task
+func (as *accountState) Begin() {
+	as.stateTrie.Begin()
 	as.batching = true
 }
 

@@ -91,7 +91,7 @@ func TestBlock_NextConsensusState(t *testing.T) {
 
 	newBlock, _ := core.NewBlock(neb.chain.ChainID(), coinbase, neb.chain.TailBlock())
 	newBlock.SetTimestamp(DynastyInterval*2 + DynastyInterval/3)
-	newBlock.SetConsensusState(context)
+	newBlock.LoadConsensusState(context)
 	assert.Equal(t, newBlock.Seal(), nil)
 	assert.Nil(t, neb.am.SignBlock(coinbase, newBlock))
 	newBlock, _ = mockBlockFromNetwork(newBlock)

@@ -239,7 +239,7 @@ func TestChunk_generateChunkMeta(t *testing.T) {
 		assert.Nil(t, err)
 		block, err := chain.NewBlock(coinbase)
 		assert.Nil(t, err)
-		block.SetConsensusState(consensusState)
+		block.LoadConsensusState(consensusState)
 		assert.Nil(t, block.Seal())
 		assert.Nil(t, am.SignBlock(coinbase, block))
 		assert.Nil(t, chain.BlockPool().Push(block))

@@ -24,7 +24,7 @@ func TestBatchTrie_Batch(t *testing.T) {
 	tr, _ := NewBatchTrie(nil, storage)
 	assert.Equal(t, []byte(nil), tr.trie.RootHash())
 
-	tr.BeginBatch()
+	tr.Begin()
 
 	// add a new leaf node
 	addr1, _ := byteutils.FromHex("1f345678e9")
@@ -37,7 +37,7 @@ func TestBatchTrie_Batch(t *testing.T) {
 	tr.Put(addr2, val2)
 
 	tr.Commit()
-	tr.BeginBatch()
+	tr.Begin()
 
 	// add a new node with 2-length common prefix
 	addr3, _ := byteutils.FromHex("1f555678e9")
@@ -222,7 +222,7 @@ func TestBatchTrie_Stress_2(t *testing.T) {
 	// 128
 
 	startAt := time.Now().UnixNano()
-	tr.BeginBatch()
+	tr.Begin()
 	for i := int64(0); i < COUNT; i++ {
 		tr.Put(keys[i], keys[i])
 	}
@@ -232,7 +232,7 @@ func TestBatchTrie_Stress_2(t *testing.T) {
 	// 10000 Put, cost 760037000
 
 	startAt = time.Now().UnixNano()
-	tr.BeginBatch()
+	tr.Begin()
 	for i := int64(0); i < COUNT; i++ {
 		tr.Get(keys[i])
 	}

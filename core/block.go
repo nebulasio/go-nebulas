@@ -374,7 +374,7 @@ func (block *Block) LinkParentBlock(chain *BlockChain, parentBlock *Block) error
 	if err != nil {
 		return err
 	}
-	block.SetConsensusState(consensusState)
+	block.LoadConsensusState(consensusState)
 
 	block.txPool = parentBlock.txPool
 	block.parentBlock = parentBlock
@@ -386,10 +386,10 @@ func (block *Block) LinkParentBlock(chain *BlockChain, parentBlock *Block) error
 }
 
 func (block *Block) begin() {
-	block.accState.BeginBatch()
-	block.txsState.BeginBatch()
-	block.eventsState.BeginBatch()
-	block.consensusState.BeginBatch()
+	block.accState.Begin()
+	block.txsState.Begin()
+	block.eventsState.Begin()
+	block.consensusState.Begin()
 }
 
 func (block *Block) commit() {
@@ -1084,7 +1084,7 @@ func LoadBlockFromStorage(hash byteutils.Hash, chain *BlockChain) (*Block, error
 	if err != nil {
 		return nil, err
 	}
-	block.SetConsensusState(consensusState)
+	block.LoadConsensusState(consensusState)
 	block.txPool = chain.txPool
 	block.storage = chain.storage
 	block.sealed = true

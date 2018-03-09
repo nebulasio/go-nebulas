@@ -39,7 +39,7 @@ type Account interface {
 	BirthPlace() byteutils.Hash
 	VarsHash() byteutils.Hash
 
-	BeginBatch()
+	Begin()
 	Commit()
 	Rollback()
 	Clone() (Account, error)
@@ -61,7 +61,7 @@ type AccountState interface {
 	RootHash() (byteutils.Hash, error)
 	Accounts() ([]Account, error)
 
-	BeginBatch()
+	Begin()
 	Commit() error
 	Rollback()
 

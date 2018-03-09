@@ -147,7 +147,7 @@ func (dpos *Dpos) GenesisState(chain *core.BlockChain, conf *corepb.Genesis) (st
 
 // Begin a new transaction
 func (ds *State) Begin() {
-	ds.dynastyTrie.BeginBatch()
+	ds.dynastyTrie.Begin()
 }
 
 // Commit the transaction
