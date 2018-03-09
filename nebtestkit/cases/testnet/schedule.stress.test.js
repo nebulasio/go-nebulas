@@ -3,6 +3,8 @@ var schedule = require('node-schedule');
 var Wallet = require('../../../cmd/console/neb.js/lib/wallet.js');
 var HttpRequest = require("../../node-request");
 var FS = require("fs");
+var logStream = FS.createWriteStream('stress.test.log', {flags: 'a'});
+process.stdout.write = process.stderr.write = logStream.write.bind(logStream)
 
 var env; // local testneb1 testneb2
 var AddressNumber;
