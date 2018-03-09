@@ -88,7 +88,6 @@ var (
 	ErrLinkToWrongParentBlock = errors.New("link the block to a block who is not its parent")
 	ErrMissingParentBlock     = errors.New("cannot find the block's parent block in storage")
 	ErrInvalidBlockHash       = errors.New("invalid block hash")
-	ErrDoubleSealBlock        = errors.New("cannot seal a block twice")
 	ErrDuplicatedBlock        = errors.New("duplicated block")
 	ErrDoubleBlockMinted      = errors.New("double block minted")
 

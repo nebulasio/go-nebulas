@@ -23,7 +23,7 @@ import (
 	"time"
 
 	"github.com/gogo/protobuf/proto"
-	"github.com/nebulasio/go-nebulas/common/pdeque"
+	"github.com/nebulasio/go-nebulas/common/sorted"
 	"github.com/nebulasio/go-nebulas/core/pb"
 	"github.com/nebulasio/go-nebulas/net"
 	"github.com/nebulasio/go-nebulas/util"
@@ -37,10 +37,10 @@ type TransactionPool struct {
 	receivedMessageCh chan net.Message
 	quitCh            chan int
 
-	size  int
-	cache *pdeque.PriorityDeque
-	all   map[byteutils.HexHash]*Transaction
-	bc    *BlockChain
+	size       int
+	candidates *sorted.Slice
+	buckets    map[byteutils.HexHash]*sorted.Slice
+	all        map[byteutils.HexHash]*Transaction
 
 	ns net.Service
 	mu sync.RWMutex
@@ -49,20 +49,25 @@ type TransactionPool struct {
 	gasLimit *util.Uint128 // the maximum gasLimit.
 
 	eventEmitter *EventEmitter
+	bc           *BlockChain
 }
 
-func less(a interface{}, b interface{}) bool {
+func nonceCmp(a interface{}, b interface{}) int {
 	txa := a.(*Transaction)
 	txb := b.(*Transaction)
-	if txa.from.Equals(txb.from) {
-		return txa.Nonce() < txb.Nonce()
+	if txa.Nonce() < txb.Nonce() {
+		return -1
+	} else if txa.Nonce() > txb.Nonce() {
+		return 1
+	} else {
+		return txb.GasPrice().Cmp(txa.GasPrice())
 	}
-	if txa.gasPrice.Cmp(txb.gasPrice) != 0 {
-		// txa.gasPrice < txb.gasPrice
-		return txa.GasPrice().Cmp(txb.GasPrice()) == -1
-	}
-	// txa.gasLimit < txb.gasLimit
-	return txa.GasLimit().Cmp(txb.GasLimit()) == -1
+}
+
+func gasCmp(a interface{}, b interface{}) int {
+	txa := a.(*Transaction)
+	txb := b.(*Transaction)
+	return txb.GasPrice().Cmp(txa.GasPrice())
 }
 
 // NewTransactionPool create a new TransactionPool
@@ -71,7 +76,8 @@ func NewTransactionPool(size int) (*TransactionPool, error) {
 		receivedMessageCh: make(chan net.Message, size),
 		quitCh:            make(chan int, 1),
 		size:              size,
-		cache:             pdeque.NewPriorityDeque(less),
+		candidates:        sorted.NewSlice(gasCmp),
+		buckets:           make(map[byteutils.HexHash]*sorted.Slice),
 		all:               make(map[byteutils.HexHash]*Transaction),
 		gasPrice:          TransactionGasPrice,
 		gasLimit:          TransactionMaxGas,
@@ -192,13 +198,6 @@ func (pool *TransactionPool) GetTransaction(hash byteutils.Hash) *Transaction {
 	return pool.all[hash.Hex()]
 }
 
-// Push tx into pool
-func (pool *TransactionPool) Push(tx *Transaction) error {
-	pool.mu.Lock()
-	defer pool.mu.Unlock()
-	return pool.push(tx)
-}
-
 // PushAndRelay push tx into pool and relay it
 func (pool *TransactionPool) PushAndRelay(tx *Transaction) error {
 	if err := pool.Push(tx); err != nil {
@@ -223,7 +222,11 @@ func (pool *TransactionPool) PushAndBroadcast(tx *Transaction) error {
 	return nil
 }
 
-func (pool *TransactionPool) push(tx *Transaction) error {
+// Push tx into pool
+func (pool *TransactionPool) Push(tx *Transaction) error {
+	pool.mu.Lock()
+	defer pool.mu.Unlock()
+
 	// verify non-dup tx
 	if _, ok := pool.all[tx.hash.Hex()]; ok {
 		metricsDuplicateTx.Inc(1)
@@ -253,12 +256,10 @@ func (pool *TransactionPool) push(tx *Transaction) error {
 	}
 
 	// cache the verified tx
-	pool.cache.Insert(tx)
-	pool.all[tx.hash.Hex()] = tx
-	// delete tx with lowest priority if cache is full
-	if pool.cache.Len() > pool.size {
-		tx := pool.cache.PopMax().(*Transaction)
-		delete(pool.all, tx.hash.Hex())
+	pool.pushTx(tx)
+	if len(pool.all) > pool.size {
+		drop := pool.candidates.PopMax().(*Transaction)
+		pool.popTx(drop)
 	}
 
 	// trigger pending transaction
@@ -271,25 +272,73 @@ func (pool *TransactionPool) push(tx *Transaction) error {
 	return nil
 }
 
+func (pool *TransactionPool) pushTx(tx *Transaction) {
+	slot := tx.from.address.Hex()
+	bucket, ok := pool.buckets[slot]
+	if !ok {
+		bucket = sorted.NewSlice(nonceCmp)
+		pool.buckets[slot] = bucket
+	}
+	oldCandidate := bucket.Min()
+	bucket.Push(tx)
+	pool.all[tx.hash.Hex()] = tx
+	newCandidate := bucket.Min()
+	// replace candidate, maybe
+	if oldCandidate == nil {
+		pool.candidates.Push(newCandidate)
+	} else if oldCandidate != newCandidate {
+		pool.candidates.Del(oldCandidate)
+		pool.candidates.Push(newCandidate)
+	}
+}
+
+func (pool *TransactionPool) popTx(tx *Transaction) {
+	bucket := pool.buckets[tx.from.address.Hex()]
+	delete(pool.all, tx.hash.Hex())
+	bucket.PopMin()
+	if bucket.Len() != 0 {
+		candidate := bucket.Min()
+		pool.candidates.Push(candidate)
+	}
+}
+
+func (pool *TransactionPool) PopWithBlacklist(blacklist map[byteutils.HexHash]bool) *Transaction {
+	pool.mu.Lock()
+	defer pool.mu.Unlock()
+
+	if blacklist == nil {
+		blacklist = make(map[byteutils.HexHash]bool)
+	}
+	size := pool.candidates.Len()
+	for i := 0; i < size; i++ {
+		tx := pool.candidates.Index(i).(*Transaction)
+		if _, ok := blacklist[tx.Hash().Hex()]; !ok {
+			pool.candidates.Del(tx)
+			pool.popTx(tx)
+			return tx
+		}
+	}
+	return nil
+}
+
 // Pop a transaction from pool
 func (pool *TransactionPool) Pop() *Transaction {
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
-	return pool.pop()
-}
 
-func (pool *TransactionPool) pop() *Transaction {
-	if pool.cache.Len() > 0 {
-		tx := pool.cache.PopMin().(*Transaction)
-		delete(pool.all, tx.hash.Hex())
-		return tx
+	candidates := pool.candidates
+	val := candidates.PopMin()
+	if val == nil {
+		return nil
 	}
-	return nil
+	tx := val.(*Transaction)
+	pool.popTx(tx)
+	return tx
 }
 
 // Empty return if the pool is empty
 func (pool *TransactionPool) Empty() bool {
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
-	return pool.cache.Len() == 0
+	return len(pool.all) == 0
 }

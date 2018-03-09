@@ -593,8 +593,10 @@ func (block *Block) Sealed() bool {
 
 // Seal seal block, calculate stateRoot and block hash.
 func (block *Block) Seal() error {
-	if block.sealed { // ToFix: fatal
-		return ErrDoubleSealBlock
+	if block.sealed {
+		logging.VLog().WithFields(logrus.Fields{
+			"block": block,
+		}).Fatal("cannot seal a block twice.")
 	}
 
 	defer block.rollback()

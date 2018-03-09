@@ -521,10 +521,10 @@ func TestBlock_CollectTransactions(t *testing.T) {
 	assert.NotNil(t, bc.txPool.Push(tx6), ErrInvalidChainID)
 
 	assert.Equal(t, len(block.transactions), 0)
-	assert.Equal(t, bc.txPool.cache.Len(), 5)
+	assert.Equal(t, len(bc.txPool.all), 5)
 	block.CollectTransactions(time.Now().Unix() + 2)
 	assert.Equal(t, len(block.transactions), 4)
-	assert.Equal(t, block.txPool.cache.Len(), 0)
+	assert.Equal(t, len(bc.txPool.all), 0)
 
 	assert.Equal(t, block.Sealed(), false)
 	balance, err := block.GetBalance(block.header.coinbase.address)
