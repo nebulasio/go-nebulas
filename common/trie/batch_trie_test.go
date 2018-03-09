@@ -49,7 +49,7 @@ func TestBatchTrie_Batch(t *testing.T) {
 	tr.Del(addr2)
 	tr.Del(addr1)
 
-	tr.RollBack()
+	tr.Rollback()
 
 	// get node "1f345678e9"
 	checkVal1, _ := tr.Get(addr1)

@@ -41,9 +41,7 @@ func BlockFromNetwork(block *Block) *Block {
 }
 
 func TestBlockChain_FindCommonAncestorWithTail(t *testing.T) {
-	bc, _ := NewBlockChain(testNeb())
-	var c MockConsensus
-	bc.SetConsensusHandler(c)
+	bc := testNeb(t).chain
 
 	ks := keystore.DefaultKS
 	priv := secp256k1.GeneratePrivateKey()
@@ -63,15 +61,15 @@ func TestBlockChain_FindCommonAncestorWithTail(t *testing.T) {
 	block0.Seal()
 	assert.Nil(t, bc.BlockPool().Push(BlockFromNetwork(block0)))
 	bc.SetTailBlock(block0)
-	assert.Equal(t, bc.latestIrreversibleBlock, bc.genesisBlock)
+	assert.Equal(t, bc.lib, bc.genesisBlock)
 
-	coinbase11 := &Address{[]byte("012345678901234567890011")}
-	coinbase12 := &Address{[]byte("012345678901234567890012")}
-	coinbase111 := &Address{[]byte("012345678901234567890111")}
-	coinbase221 := &Address{[]byte("012345678901234567890221")}
-	coinbase222 := &Address{[]byte("012345678901234567890222")}
-	coinbase1111 := &Address{[]byte("012345678901234567891111")}
-	coinbase11111 := &Address{[]byte("012345678901234567811111")}
+	coinbase11 := mockAddress()
+	coinbase12 := mockAddress()
+	coinbase111 := mockAddress()
+	coinbase221 := mockAddress()
+	coinbase222 := mockAddress()
+	coinbase1111 := mockAddress()
+	coinbase11111 := mockAddress()
 	/*
 		genesis -- 0 -- 11 -- 111 -- 1111
 					 \_ 12 -- 221
@@ -88,16 +86,16 @@ func TestBlockChain_FindCommonAncestorWithTail(t *testing.T) {
 	assert.Nil(t, bc.BlockPool().Push(BlockFromNetwork(block11)))
 	assert.Nil(t, bc.BlockPool().Push(BlockFromNetwork(block12)))
 	bc.SetTailBlock(block12)
-	assert.Equal(t, bc.latestIrreversibleBlock, bc.genesisBlock)
+	assert.Equal(t, bc.lib, bc.genesisBlock)
 	bc.SetTailBlock(block11)
-	assert.Equal(t, bc.latestIrreversibleBlock, bc.genesisBlock)
+	assert.Equal(t, bc.lib, bc.genesisBlock)
 	block111, _ := bc.NewBlock(coinbase111)
 	block111.header.timestamp = BlockInterval * 4
 	block111.SetMiner(coinbase111)
 	block111.Seal()
 	assert.Nil(t, bc.BlockPool().Push(BlockFromNetwork(block111)))
 	bc.SetTailBlock(block12)
-	assert.Equal(t, bc.latestIrreversibleBlock, bc.genesisBlock)
+	assert.Equal(t, bc.lib, bc.genesisBlock)
 	block221, _ := bc.NewBlock(coinbase221)
 	block221.header.timestamp = BlockInterval * 5
 	block222, _ := bc.NewBlock(coinbase222)
@@ -109,14 +107,14 @@ func TestBlockChain_FindCommonAncestorWithTail(t *testing.T) {
 	assert.Nil(t, bc.BlockPool().Push(BlockFromNetwork(block221)))
 	assert.Nil(t, bc.BlockPool().Push(BlockFromNetwork(block222)))
 	bc.SetTailBlock(block111)
-	assert.Equal(t, bc.latestIrreversibleBlock, bc.genesisBlock)
+	assert.Equal(t, bc.lib, bc.genesisBlock)
 	block1111, _ := bc.NewBlock(coinbase1111)
 	block1111.header.timestamp = BlockInterval * 7
 	block1111.SetMiner(coinbase1111)
 	block1111.Seal()
 	assert.Nil(t, bc.BlockPool().Push(BlockFromNetwork(block1111)))
 	bc.SetTailBlock(block222)
-	assert.Equal(t, bc.latestIrreversibleBlock, bc.genesisBlock)
+	assert.Equal(t, bc.lib, bc.genesisBlock)
 	tails := bc.DetachedTailBlocks()
 	for _, v := range tails {
 		if v.Hash().Equals(block221.Hash()) ||
@@ -150,7 +148,7 @@ func TestBlockChain_FindCommonAncestorWithTail(t *testing.T) {
 	assert.Equal(t, result, "["+block222.String()+","+block12.String()+","+block0.String()+","+bc.genesisBlock.String()+"]")
 
 	bc.SetTailBlock(block1111)
-	assert.Equal(t, bc.latestIrreversibleBlock, bc.genesisBlock)
+	assert.Equal(t, bc.lib, bc.genesisBlock)
 
 	block11111, _ := bc.NewBlock(coinbase11111)
 	block11111.header.timestamp = BlockInterval * 8
@@ -164,10 +162,8 @@ func TestBlockChain_FindCommonAncestorWithTail(t *testing.T) {
 }
 
 func TestBlockChain_FetchDescendantInCanonicalChain(t *testing.T) {
-	bc, _ := NewBlockChain(testNeb())
-	var c MockConsensus
-	bc.SetConsensusHandler(c)
-	coinbase := &Address{[]byte("012345678901234567890000")}
+	bc := testNeb(t).chain
+	coinbase := mockAddress()
 	/*
 		genesisi -- 1 - 2 - 3 - 4 - 5 - 6
 		         \_ block - block1
@@ -221,7 +217,7 @@ func TestBlockChain_EstimateGas(t *testing.T) {
 	payload, err := NewBinaryPayload(nil).ToBytes()
 	assert.Nil(t, err)
 
-	bc, _ := NewBlockChain(testNeb())
+	bc := testNeb(t).chain
 	gasLimit, _ := util.NewUint128FromInt(200000)
 	tx := NewTransaction(bc.ChainID(), from, to, util.NewUint128(), 1, TxPayloadBinaryType, payload, TransactionGasPrice, gasLimit)
 
@@ -230,16 +226,14 @@ func TestBlockChain_EstimateGas(t *testing.T) {
 }
 
 func TestTailBlock(t *testing.T) {
-	bc, err := NewBlockChain(testNeb())
-	assert.Nil(t, err)
-	block, err := bc.loadTailFromStorage()
+	bc := testNeb(t).chain
+	block, err := bc.LoadTailFromStorage()
 	assert.Nil(t, err)
 	assert.Equal(t, bc.tailBlock, block)
 }
 
 func TestGetPrice(t *testing.T) {
-	bc, err := NewBlockChain(testNeb())
-	assert.Nil(t, err)
+	bc := testNeb(t).chain
 	assert.Equal(t, bc.GasPrice(), TransactionGasPrice)
 
 	ks := keystore.DefaultKS
@@ -265,13 +259,13 @@ func TestGetPrice(t *testing.T) {
 	block.Seal()
 	block.Sign(signature)
 	bc.SetTailBlock(block)
-	bc.storeBlockToStorage(block)
+	bc.StoreBlockToStorage(block)
 	block, err = bc.NewBlock(from)
 	assert.Nil(t, err)
 	block.miner = from
 	block.Seal()
 	block.Sign(signature)
 	bc.SetTailBlock(block)
-	bc.storeBlockToStorage(block)
+	bc.StoreBlockToStorage(block)
 	assert.Equal(t, bc.GasPrice(), lowerGasPrice)
 }

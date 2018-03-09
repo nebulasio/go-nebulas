@@ -3,12 +3,11 @@ package neblet
 import (
 	"testing"
 
-	"github.com/nebulasio/go-nebulas/core"
+	/* "github.com/nebulasio/go-nebulas/core" */
 	"github.com/nebulasio/go-nebulas/neblet/pb"
-	nebnet "github.com/nebulasio/go-nebulas/net"
-	"github.com/nebulasio/go-nebulas/storage"
-	"github.com/stretchr/testify/assert"
-)
+	/* 	nebnet "github.com/nebulasio/go-nebulas/net"
+	   	"github.com/nebulasio/go-nebulas/storage"
+	   	"github.com/stretchr/testify/assert" */)
 
 func MockConfig() *nebletpb.Config {
 	return &nebletpb.Config{
@@ -196,16 +195,16 @@ func TestConfigLackGenesisConf(t *testing.T) {
 	}
 	{
 		//genesis db exist and genesis.conf is exist
-		neb, err := makeNebT(TEST_NEW_DB)
-		assert.Nil(t, err)
+		/* 		neb, err := makeNebT(TEST_NEW_DB)
+		   		assert.Nil(t, err)
 
-		neb.storage, err = storage.NewDiskStorage(neb.config.Chain.Datadir)
-		assert.Nil(t, err)
+		   		neb.storage, err = storage.NewDiskStorage(neb.config.Chain.Datadir)
+		   		assert.Nil(t, err)
 
-		_, err = nebnet.NewNetService(neb)
-		assert.Nil(t, err)
+		   		_, err = nebnet.NewNetService(neb)
+		   		assert.Nil(t, err)
 
-		_, err = core.NewBlockChain(neb)
-		assert.Nil(t, err)
+		   		_, err = core.NewBlockChain(neb)
+		   		assert.Nil(t, err) */
 	}
 }

@@ -322,10 +322,6 @@ func (tx *Transaction) LoadPayload(block *Block) (TxPayload, error) { // ToFix: 
 		payload, err = LoadDeployPayload(tx.data.Payload)
 	case TxPayloadCallType:
 		payload, err = LoadCallPayload(tx.data.Payload)
-	case TxPayloadCandidateType: // ToConfirm: Delete
-		payload, err = LoadCandidatePayload(tx.data.Payload)
-	case TxPayloadDelegateType: // ToConfirm: Delete
-		payload, err = LoadDelegatePayload(tx.data.Payload)
 	default:
 		err = ErrInvalidTxPayloadType
 	}

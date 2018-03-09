@@ -171,8 +171,8 @@ func (bt *BatchTrie) Commit() {
 	bt.changelog = bt.changelog[:0]
 }
 
-// RollBack a batch task
-func (bt *BatchTrie) RollBack() {
+// Rollback a batch task
+func (bt *BatchTrie) Rollback() {
 	bt.batching = false
 	// compress changelog
 	changelog := make(map[string]*Entry)

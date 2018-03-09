@@ -26,7 +26,6 @@ import (
 	"encoding/json"
 
 	"github.com/gogo/protobuf/proto"
-	"github.com/nebulasio/go-nebulas/common/trie"
 	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/core/pb"
 	"github.com/nebulasio/go-nebulas/crypto/hash"
@@ -179,7 +178,7 @@ func (s *APIService) sendTransaction(req *rpcpb.TransactionRequest) (*rpcpb.Send
 	return handleTransactionResponse(neb, tx)
 }
 
-func parseTransaction(neb Neblet, reqTx *rpcpb.TransactionRequest) (*core.Transaction, error) {
+func parseTransaction(neb core.Neblet, reqTx *rpcpb.TransactionRequest) (*core.Transaction, error) {
 	fromAddr, err := core.AddressParse(reqTx.From)
 	if err != nil {
 		return nil, err
@@ -221,12 +220,6 @@ func parseTransaction(neb Neblet, reqTx *rpcpb.TransactionRequest) (*core.Transa
 		if err == nil {
 			payload, err = core.NewCallPayload(reqTx.Contract.Function, reqTx.Contract.Args).ToBytes()
 		}
-	} else if reqTx.Candidate != nil {
-		payloadType = core.TxPayloadCandidateType
-		payload, err = core.NewCandidatePayload(reqTx.Candidate.Action).ToBytes()
-	} else if reqTx.Delegate != nil {
-		payloadType = core.TxPayloadDelegateType
-		payload, err = core.NewDelegatePayload(reqTx.Delegate.Action, reqTx.Delegate.Delegatee).ToBytes()
 	} else {
 		payloadType = core.TxPayloadBinaryType
 		if neb.BlockChain().TailBlock().Height() > core.OptimizeHeight {
@@ -241,7 +234,7 @@ func parseTransaction(neb Neblet, reqTx *rpcpb.TransactionRequest) (*core.Transa
 	return tx, nil
 }
 
-func handleTransactionResponse(neb Neblet, tx *core.Transaction) (resp *rpcpb.SendTransactionResponse, err error) {
+func handleTransactionResponse(neb core.Neblet, tx *core.Transaction) (resp *rpcpb.SendTransactionResponse, err error) {
 	defer func() {
 		if err != nil {
 			metricsSendTxFailed.Mark(1)
@@ -336,29 +329,19 @@ func (s *APIService) toBlockResponse(block *core.Block, fullTransaction bool) (*
 	}
 
 	resp := &rpcpb.BlockResponse{
-		Hash:       block.Hash().String(),
-		ParentHash: block.ParentHash().String(),
-		Height:     block.Height(),
-		Nonce:      block.Nonce(),
-		Coinbase:   block.Coinbase().String(),
-		Miner:      block.Miner().String(),
-		Timestamp:  block.Timestamp(),
-		ChainId:    block.ChainID(),
-		StateRoot:  block.StateRoot().String(),
-		TxsRoot:    block.TxsRoot().String(),
-		EventsRoot: block.EventsRoot().String(),
+		Hash:          block.Hash().String(),
+		ParentHash:    block.ParentHash().String(),
+		Height:        block.Height(),
+		Nonce:         block.Nonce(),
+		Coinbase:      block.Coinbase().String(),
+		Miner:         block.Miner().String(),
+		Timestamp:     block.Timestamp(),
+		ChainId:       block.ChainID(),
+		StateRoot:     block.StateRoot().String(),
+		TxsRoot:       block.TxsRoot().String(),
+		EventsRoot:    block.EventsRoot().String(),
+		ConsensusRoot: block.ConsensusRoot().String(),
 	}
-
-	// dpos context
-	dposContextResp := &rpcpb.DposContext{
-		DynastyRoot:     byteutils.Hex(block.DposContext().DynastyRoot),
-		NextDynastyRoot: byteutils.Hex(block.DposContext().NextDynastyRoot),
-		DelegateRoot:    byteutils.Hex(block.DposContext().DelegateRoot),
-		CandidateRoot:   byteutils.Hex(block.DposContext().CandidateRoot),
-		VoteRoot:        byteutils.Hex(block.DposContext().VoteRoot),
-		MintCntRoot:     byteutils.Hex(block.DposContext().MintCntRoot),
-	}
-	resp.DposContext = dposContextResp
 
 	// add block transactions
 	txs := []*rpcpb.TransactionResponse{}
@@ -394,7 +377,7 @@ func (s *APIService) BlockDump(ctx context.Context, req *rpcpb.BlockDumpRequest)
 func (s *APIService) LatestIrreversibleBlock(ctx context.Context, req *rpcpb.NonParamsRequest) (*rpcpb.BlockResponse, error) {
 
 	neb := s.server.Neblet()
-	block := neb.BlockChain().LatestIrreversibleBlock()
+	block := neb.BlockChain().LIB()
 
 	return s.toBlockResponse(block, false)
 }
@@ -624,76 +607,13 @@ func (s *APIService) GetDynasty(ctx context.Context, req *rpcpb.ByBlockHeightReq
 	if block == nil {
 		block = neb.BlockChain().TailBlock()
 	}
-	dynastyRoot := block.DposContext().DynastyRoot
-	dynastyTrie, err := trie.NewBatchTrie(dynastyRoot, neb.BlockChain().Storage())
-	if err != nil {
-		return nil, err
-	}
-	delegatees, err := core.TraverseDynasty(dynastyTrie)
+	validators, err := block.Dynasty()
 	if err != nil {
 		return nil, err
 	}
 	result := []string{}
-	for _, v := range delegatees {
+	for _, v := range validators {
 		result = append(result, string(v.Hex()))
 	}
 	return &rpcpb.GetDynastyResponse{Delegatees: result}, nil
-}
-
-// GetCandidates is the RPC API handler.
-func (s *APIService) GetCandidates(ctx context.Context, req *rpcpb.ByBlockHeightRequest) (*rpcpb.GetCandidatesResponse, error) {
-
-	neb := s.server.Neblet()
-	block := neb.BlockChain().GetBlockOnCanonicalChainByHeight(req.Height)
-	if block == nil {
-		block = neb.BlockChain().TailBlock()
-	}
-	candidateRoot := block.DposContext().CandidateRoot
-	candidateTrie, err := trie.NewBatchTrie(candidateRoot, neb.BlockChain().Storage())
-	if err != nil {
-		return nil, err
-	}
-	candidates, err := core.TraverseDynasty(candidateTrie)
-	if err != nil {
-		return nil, err
-	}
-	result := []string{}
-	for _, v := range candidates {
-		result = append(result, string(v.Hex()))
-	}
-	return &rpcpb.GetCandidatesResponse{Candidates: result}, nil
-}
-
-// GetDelegateVoters is the RPC API handler.
-func (s *APIService) GetDelegateVoters(ctx context.Context, req *rpcpb.GetDelegateVotersRequest) (*rpcpb.GetDelegateVotersResponse, error) {
-
-	neb := s.server.Neblet()
-	delegatee, err := core.AddressParse(req.Delegatee)
-	if err != nil {
-		return nil, err
-	}
-	block := neb.BlockChain().GetBlockOnCanonicalChainByHeight(req.Height)
-	if block == nil {
-		block = neb.BlockChain().TailBlock()
-	}
-	delegateRoot := block.DposContext().DelegateRoot
-	delegateTrie, _ := trie.NewBatchTrie(delegateRoot, neb.BlockChain().Storage())
-	iter, err := delegateTrie.Iterator(delegatee.Bytes())
-	if err != nil {
-		return nil, err
-	}
-	voters := []string{}
-	exist, err := iter.Next()
-	if err != nil {
-		return nil, err
-	}
-	for exist {
-		voter := byteutils.Hex(iter.Value())
-		voters = append(voters, voter)
-		exist, err = iter.Next()
-		if err != nil {
-			return nil, err
-		}
-	}
-	return &rpcpb.GetDelegateVotersResponse{Voters: voters}, nil
 }

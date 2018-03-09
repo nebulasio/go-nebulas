@@ -19,6 +19,7 @@
 package state
 
 import (
+	"github.com/nebulasio/go-nebulas/consensus/pb"
 	"github.com/nebulasio/go-nebulas/storage"
 	"github.com/nebulasio/go-nebulas/util"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
@@ -40,7 +41,7 @@ type Account interface {
 
 	BeginBatch()
 	Commit()
-	RollBack()
+	Rollback()
 	Clone() (Account, error)
 
 	ToBytes() ([]byte, error)
@@ -62,11 +63,29 @@ type AccountState interface {
 
 	BeginBatch()
 	Commit() error
-	RollBack()
+	Rollback()
 
 	Clone() (AccountState, error)
 
 	GetOrCreateUserAccount(addr []byte) (Account, error)
 	GetContractAccount(addr []byte) (Account, error)
 	CreateContractAccount(addr []byte, birthPlace []byte) (Account, error)
+}
+
+// ConsensusState interface of consensus state
+type ConsensusState interface {
+	RootHash() (*consensuspb.ConsensusRoot, error)
+	String() string
+
+	BeginBatch()
+	Commit()
+	Rollback()
+	Clone() (ConsensusState, error)
+
+	Proposer() byteutils.Hash
+	TimeStamp() int64
+	NextState(int64) (ConsensusState, error)
+
+	Dynasty() ([]byteutils.Hash, error)
+	DynastyRoot() byteutils.Hash
 }

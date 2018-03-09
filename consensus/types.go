@@ -18,32 +18,12 @@
 
 package consensus
 
-import "github.com/nebulasio/go-nebulas/core"
-
 // EventType list
 const (
 	NetMessageEvent = "event.netmessage"
 	NewBlockEvent   = "event.newblock"
 	CanMiningEvent  = "event.canmining"
 )
-
-// Consensus interface of consensus algorithm.
-type Consensus interface {
-	Start()
-	Stop()
-
-	EnableMining(string) error
-	DisableMining() error
-	Enable() bool
-
-	ResumeMining()
-	SuspendMining()
-	Pending() bool
-
-	VerifyBlock(block *core.Block, parent *core.Block) error
-	FastVerifyBlock(block *core.Block) error
-	ForkChoice() error
-}
 
 // EventType of Events in Consensus State-Machine
 type EventType string

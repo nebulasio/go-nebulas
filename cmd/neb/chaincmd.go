@@ -94,7 +94,7 @@ func dumpGenesis(ctx *cli.Context) error {
 
 	neb.Setup()
 
-	genesis, err := core.DumpGenesis(neb.Storage())
+	genesis, err := core.DumpGenesis(neb.BlockChain())
 	if err != nil {
 		FatalF("dump genesis conf faild: %v", err)
 	}

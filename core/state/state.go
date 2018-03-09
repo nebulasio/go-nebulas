@@ -130,12 +130,12 @@ func (acc *account) Commit() {
 	}).Debug("Account Commit.") */
 }
 
-// RollBack a batch task
-func (acc *account) RollBack() {
-	acc.variables.RollBack()
+// Rollback a batch task
+func (acc *account) Rollback() {
+	acc.variables.Rollback()
 	/* 	logging.VLog().WithFields(logrus.Fields{
 		"acc": acc,
-	}).Debug("Account RollBack.") */
+	}).Debug("Account Rollback.") */
 }
 
 // Clone account
@@ -376,17 +376,17 @@ func (as *accountState) Commit() error {
 	return nil
 }
 
-// RollBack a batch task
-func (as *accountState) RollBack() {
-	as.stateTrie.RollBack()
+// Rollback a batch task
+func (as *accountState) Rollback() {
+	as.stateTrie.Rollback()
 	for _, acc := range as.dirtyAccount {
-		acc.RollBack()
+		acc.Rollback()
 	}
 	as.dirtyAccount = make(map[byteutils.HexHash]Account)
 	as.batching = false
 	/* 	logging.VLog().WithFields(logrus.Fields{
 		"AccountState": as,
-	}).Debug("AccountState RollBack.") */
+	}).Debug("AccountState Rollback.") */
 }
 
 // Clone an accountState

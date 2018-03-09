@@ -22,10 +22,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"reflect"
 	"time"
 
 	"github.com/nebulasio/go-nebulas/crypto"
 
+	"github.com/nebulasio/go-nebulas/consensus/pb"
 	"github.com/nebulasio/go-nebulas/crypto/keystore"
 
 	"github.com/gogo/protobuf/proto"
@@ -57,10 +59,10 @@ type BlockHeader struct {
 	parentHash byteutils.Hash
 
 	// world state
-	stateRoot   byteutils.Hash
-	txsRoot     byteutils.Hash
-	eventsRoot  byteutils.Hash
-	dposContext *corepb.DposContext
+	stateRoot     byteutils.Hash
+	txsRoot       byteutils.Hash
+	eventsRoot    byteutils.Hash
+	consensusRoot *consensuspb.ConsensusRoot
 
 	coinbase  *Address
 	nonce     uint64 // ToDelete: delete nonce.
@@ -75,18 +77,18 @@ type BlockHeader struct {
 // ToProto converts domain BlockHeader to proto BlockHeader
 func (b *BlockHeader) ToProto() (proto.Message, error) {
 	return &corepb.BlockHeader{
-		Hash:        b.hash,
-		ParentHash:  b.parentHash,
-		StateRoot:   b.stateRoot,
-		TxsRoot:     b.txsRoot,
-		EventsRoot:  b.eventsRoot,
-		DposContext: b.dposContext,
-		Nonce:       b.nonce,
-		Coinbase:    b.coinbase.address,
-		Timestamp:   b.timestamp,
-		ChainId:     b.chainID,
-		Alg:         uint32(b.alg),
-		Sign:        b.sign,
+		Hash:          b.hash,
+		ParentHash:    b.parentHash,
+		StateRoot:     b.stateRoot,
+		TxsRoot:       b.txsRoot,
+		EventsRoot:    b.eventsRoot,
+		ConsensusRoot: b.consensusRoot,
+		Nonce:         b.nonce,
+		Coinbase:      b.coinbase.address,
+		Timestamp:     b.timestamp,
+		ChainId:       b.chainID,
+		Alg:           uint32(b.alg),
+		Sign:          b.sign,
 	}, nil
 }
 
@@ -98,7 +100,7 @@ func (b *BlockHeader) FromProto(msg proto.Message) error { // ToCheck: msg is no
 		b.stateRoot = msg.StateRoot
 		b.txsRoot = msg.TxsRoot
 		b.eventsRoot = msg.EventsRoot
-		b.dposContext = msg.DposContext // ToCheck: msg.DposContext is not nil.
+		b.consensusRoot = msg.ConsensusRoot // ToCheck: msg.DposContext is not nil.
 		b.nonce = msg.Nonce
 		b.coinbase = &Address{msg.Coinbase} // ToCheck: check address.
 		b.timestamp = msg.Timestamp
@@ -115,15 +117,15 @@ type Block struct {
 	header       *BlockHeader
 	transactions Transactions
 
-	sealed      bool
-	height      uint64
-	parentBlock *Block
-	accState    state.AccountState
-	txsTrie     *trie.BatchTrie
-	eventsTrie  *trie.BatchTrie
-	dposContext *DposContext
-	txPool      *TransactionPool
-	miner       *Address
+	sealed         bool
+	height         uint64
+	parentBlock    *Block
+	accState       state.AccountState
+	txsState       *trie.BatchTrie
+	eventsState    *trie.BatchTrie
+	consensusState state.ConsensusState
+	txPool         *TransactionPool
+	miner          *Address
 
 	storage      storage.Storage
 	eventEmitter *EventEmitter
@@ -196,38 +198,37 @@ func NewBlock(chainID uint32, coinbase *Address, parent *Block) (*Block, error) 
 	if err != nil {
 		return nil, err
 	}
-	txsTrie, err := parent.txsTrie.Clone()
+	txsState, err := parent.txsState.Clone()
 	if err != nil {
 		return nil, err
 	}
-	eventsTrie, err := parent.eventsTrie.Clone()
+	eventsState, err := parent.eventsState.Clone()
 	if err != nil {
 		return nil, err
 	}
-	dposContext, err := parent.dposContext.Clone()
+	consensusState, err := parent.consensusState.Clone()
 	if err != nil {
 		return nil, err
 	}
 	block := &Block{
 		header: &BlockHeader{
-			parentHash:  parent.Hash(),
-			dposContext: &corepb.DposContext{},
-			coinbase:    coinbase,
-			nonce:       0, // ToDelete
-			timestamp:   time.Now().Unix(),
-			chainID:     chainID,
+			parentHash: parent.Hash(),
+			coinbase:   coinbase,
+			nonce:      0, // ToDelete
+			timestamp:  time.Now().Unix(),
+			chainID:    chainID,
 		},
-		transactions: make(Transactions, 0),
-		parentBlock:  parent,
-		accState:     accState,
-		txsTrie:      txsTrie,
-		eventsTrie:   eventsTrie,
-		dposContext:  dposContext,
-		txPool:       parent.txPool,
-		height:       parent.height + 1,
-		sealed:       false,
-		storage:      parent.storage,
-		eventEmitter: parent.eventEmitter,
+		transactions:   make(Transactions, 0),
+		parentBlock:    parent,
+		accState:       accState,
+		txsState:       txsState,
+		eventsState:    eventsState,
+		consensusState: consensusState,
+		txPool:         parent.txPool,
+		height:         parent.height + 1,
+		sealed:         false,
+		storage:        parent.storage,
+		eventEmitter:   parent.eventEmitter,
 	}
 
 	block.begin()
@@ -328,23 +329,9 @@ func (block *Block) EventsRoot() byteutils.Hash {
 	return block.header.eventsRoot
 }
 
-// DposContext return dpos context
-func (block *Block) DposContext() *corepb.DposContext {
-	return block.header.dposContext
-}
-
-// DposContextHash hash dpos context
-func (block *Block) DposContextHash() byteutils.Hash {
-	hasher := sha3.New256()
-
-	hasher.Write(block.header.dposContext.DynastyRoot)
-	hasher.Write(block.header.dposContext.NextDynastyRoot)
-	hasher.Write(block.header.dposContext.DelegateRoot)
-	hasher.Write(block.header.dposContext.VoteRoot)
-	hasher.Write(block.header.dposContext.CandidateRoot)
-	hasher.Write(block.header.dposContext.MintCntRoot)
-
-	return hasher.Sum(nil)
+// ConsensusRoot return consensus root
+func (block *Block) ConsensusRoot() *consensuspb.ConsensusRoot {
+	return block.header.consensusRoot
 }
 
 // ParentHash return parent hash.
@@ -388,21 +375,17 @@ func (block *Block) LinkParentBlock(chain *BlockChain, parentBlock *Block) error
 	if block.accState, err = parentBlock.accState.Clone(); err != nil {
 		return ErrCloneAccountState
 	}
-	if block.txsTrie, err = parentBlock.txsTrie.Clone(); err != nil {
+	if block.txsState, err = parentBlock.txsState.Clone(); err != nil {
 		return ErrCloneTxsState
 	}
-	if block.eventsTrie, err = parentBlock.eventsTrie.Clone(); err != nil {
+	if block.eventsState, err = parentBlock.eventsState.Clone(); err != nil {
 		return ErrCloneEventsState
 	}
 
 	elapsedSecond := block.Timestamp() - parentBlock.Timestamp()
-	context, err := parentBlock.NextDynastyContext(chain, elapsedSecond)
+	block.consensusState, err = parentBlock.consensusState.NextState(elapsedSecond)
 	if err != nil {
 		return err
-	}
-
-	if err := block.LoadDynastyContext(context); err != nil {
-		return ErrLoadNextDynastyContext
 	}
 
 	block.txPool = parentBlock.txPool
@@ -416,23 +399,23 @@ func (block *Block) LinkParentBlock(chain *BlockChain, parentBlock *Block) error
 
 func (block *Block) begin() {
 	block.accState.BeginBatch()
-	block.txsTrie.BeginBatch()
-	block.eventsTrie.BeginBatch()
-	block.dposContext.BeginBatch()
+	block.txsState.BeginBatch()
+	block.eventsState.BeginBatch()
+	block.consensusState.BeginBatch()
 }
 
 func (block *Block) commit() {
 	block.accState.Commit()
-	block.txsTrie.Commit()
-	block.eventsTrie.Commit()
-	block.dposContext.Commit()
+	block.txsState.Commit()
+	block.eventsState.Commit()
+	block.consensusState.Commit()
 }
 
 func (block *Block) rollback() {
-	block.accState.RollBack()
-	block.txsTrie.RollBack()
-	block.eventsTrie.RollBack()
-	block.dposContext.RollBack()
+	block.accState.Rollback()
+	block.txsState.Rollback()
+	block.eventsState.Rollback()
+	block.consensusState.Rollback()
 }
 
 // ReturnTransactions and giveback them to tx pool
@@ -614,29 +597,27 @@ func (block *Block) Seal() error {
 		return ErrDoubleSealBlock
 	}
 
-	block.begin() // ToDelete
-	err := block.recordMintCnt()
-	if err != nil {
-		block.rollback()
-		return err
-	}
-	block.commit() // ToDelete
+	defer block.rollback()
 
+	var err error
 	block.header.stateRoot, err = block.accState.RootHash()
 	if err != nil {
 		return err
 	}
-	block.header.txsRoot = block.txsTrie.RootHash()
-	block.header.eventsRoot = block.eventsTrie.RootHash()
-	if block.header.dposContext, err = block.dposContext.ToProto(); err != nil {
+	block.header.txsRoot = block.txsState.RootHash()
+	block.header.eventsRoot = block.eventsState.RootHash()
+	if block.header.consensusRoot, err = block.consensusState.RootHash(); err != nil {
 		return err
 	}
-	block.header.hash = HashBlock(block)
+	block.header.hash, err = HashBlock(block)
+	if err != nil {
+		return err
+	}
 	block.sealed = true
 
 	logging.VLog().WithFields(logrus.Fields{
 		"block": block,
-	}).Info("Sealed Block.") // ToAdd: block rollback
+	}).Info("Sealed Block.")
 
 	metricsTxPackedCount.Update(0)
 	metricsTxUnpackedCount.Update(0)
@@ -658,19 +639,14 @@ func (block *Block) String() string {
 		block.header.txsRoot,
 		block.header.eventsRoot,
 		block.header.timestamp,
-		byteutils.Hex(block.header.dposContext.DynastyRoot),
+		block.header.consensusRoot,
 		len(block.transactions),
 		miner,
 	)
 }
 
 // VerifyExecution execute the block and verify the execution result.
-func (block *Block) VerifyExecution(parent *Block, consensus Consensus) error { // ToCheck: check args.
-	// verify the block is acceptable by consensus
-	if err := consensus.VerifyBlock(block, parent); err != nil {
-		return err
-	}
-
+func (block *Block) VerifyExecution() error { // ToCheck: check args.
 	block.begin()
 
 	if err := block.execute(); err != nil {
@@ -705,10 +681,6 @@ func (block *Block) triggerEvent() {
 			topic = TopicDeploySmartContract
 		case TxPayloadCallType:
 			topic = TopicCallSmartContract
-		case TxPayloadDelegateType:
-			topic = TopicDelegate
-		case TxPayloadCandidateType:
-			topic = TopicCandidate
 		}
 		event := &Event{
 			Topic: topic,
@@ -747,7 +719,10 @@ func (block *Block) VerifyIntegrity(chainID uint32, consensus Consensus) error {
 	}
 
 	// verify block hash.
-	wantedHash := HashBlock(block)
+	wantedHash, err := HashBlock(block)
+	if err != nil {
+		return err
+	}
 	if !wantedHash.Equals(block.Hash()) {
 		logging.VLog().WithFields(logrus.Fields{
 			"expect": wantedHash,
@@ -768,7 +743,7 @@ func (block *Block) VerifyIntegrity(chainID uint32, consensus Consensus) error {
 	}
 
 	// verify the block is acceptable by consensus.
-	if err := consensus.FastVerifyBlock(block); err != nil {
+	if err := consensus.VerifyBlock(block); err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"block": block,
 			"err":   err,
@@ -796,30 +771,34 @@ func (block *Block) verifyState() error {
 	}
 
 	// verify transaction root.
-	if !byteutils.Equal(block.txsTrie.RootHash(), block.TxsRoot()) {
+	if !byteutils.Equal(block.txsState.RootHash(), block.TxsRoot()) {
 		logging.VLog().WithFields(logrus.Fields{
 			"expect": block.TxsRoot(),
-			"actual": byteutils.Hex(block.txsTrie.RootHash()),
+			"actual": byteutils.Hex(block.txsState.RootHash()),
 		}).Debug("Failed to verify txs.")
 		return ErrInvalidBlockTxsRoot
 	}
 
 	// verify events root.
-	if !byteutils.Equal(block.eventsTrie.RootHash(), block.EventsRoot()) {
+	if !byteutils.Equal(block.eventsState.RootHash(), block.EventsRoot()) {
 		logging.VLog().WithFields(logrus.Fields{
 			"expect": block.EventsRoot(),
-			"actual": byteutils.Hex(block.eventsTrie.RootHash()),
+			"actual": byteutils.Hex(block.eventsState.RootHash()),
 		}).Debug("Failed to verify events.")
 		return ErrInvalidBlockEventsRoot
 	}
 
 	// verify transaction root.
-	if !byteutils.Equal(block.dposContext.RootHash(), block.DposContextHash()) {
+	consensusRoot, err := block.consensusState.RootHash()
+	if err != nil {
+		return err
+	}
+	if !reflect.DeepEqual(consensusRoot, block.ConsensusRoot()) {
 		logging.VLog().WithFields(logrus.Fields{
-			"expect": block.DposContextHash(),
-			"actual": block.dposContext.RootHash(),
+			"expect": block.ConsensusRoot(),
+			"actual": consensusRoot,
 		}).Debug("Failed to verify dpos context.")
-		return ErrInvalidBlockDposContextRoot
+		return ErrInvalidBlockConsensusRoot
 	}
 
 	return nil
@@ -854,10 +833,6 @@ func (block *Block) execute() error {
 		metricsTxVerifiedTime.Update(0)
 	}
 
-	if err := block.recordMintCnt(); err != nil {
-		return err
-	}
-
 	endAt := time.Now().UnixNano()
 	metricsBlockVerifiedTime.Update(endAt - startAt)
 	metricsTxsInBlock.Update(txs)
@@ -890,7 +865,7 @@ func (block *Block) RecordEvent(txHash byteutils.Hash, topic, data string) error
 }
 
 func (block *Block) recordEvent(txHash byteutils.Hash, event *Event) error {
-	iter, err := block.eventsTrie.Iterator(txHash)
+	iter, err := block.eventsState.Iterator(txHash)
 	if err != nil && err != storage.ErrKeyNotFound {
 		return err
 	}
@@ -914,7 +889,7 @@ func (block *Block) recordEvent(txHash byteutils.Hash, event *Event) error {
 	if err != nil {
 		return err
 	}
-	_, err = block.eventsTrie.Put(key, bytes)
+	_, err = block.eventsState.Put(key, bytes)
 	if err != nil {
 		return err
 	}
@@ -924,7 +899,7 @@ func (block *Block) recordEvent(txHash byteutils.Hash, event *Event) error {
 // FetchEvents fetch events by txHash.
 func (block *Block) FetchEvents(txHash byteutils.Hash) ([]*Event, error) {
 	events := []*Event{}
-	iter, err := block.eventsTrie.Iterator(txHash)
+	iter, err := block.eventsState.Iterator(txHash)
 	if err != nil && err != storage.ErrKeyNotFound {
 		return nil, err
 	}
@@ -949,25 +924,6 @@ func (block *Block) FetchEvents(txHash byteutils.Hash) ([]*Event, error) {
 	return events, nil
 }
 
-func (block *Block) recordMintCnt() error { // ToDelete
-	key := append(byteutils.FromInt64(block.Timestamp()/DynastyInterval), block.miner.Bytes()...)
-	bytes, err := block.dposContext.mintCntTrie.Get(key)
-	if err != nil && err != storage.ErrKeyNotFound {
-		return err
-	}
-	cnt := int64(0)
-	if err != storage.ErrKeyNotFound {
-		cnt = byteutils.Int64(bytes)
-	}
-	cnt++
-	_, err = block.dposContext.mintCntTrie.Put(key, byteutils.FromInt64(cnt))
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
 func (block *Block) rewardCoinbase() error {
 	coinbaseAddr := block.header.coinbase.address
 	coinbaseAcc, err := block.accState.GetOrCreateUserAccount(coinbaseAddr)
@@ -979,7 +935,7 @@ func (block *Block) rewardCoinbase() error {
 
 // GetTransaction from txs Trie
 func (block *Block) GetTransaction(hash byteutils.Hash) (*Transaction, error) {
-	txBytes, err := block.txsTrie.Get(hash)
+	txBytes, err := block.txsState.Get(hash)
 	if err != nil {
 		return nil, err
 	}
@@ -1005,7 +961,7 @@ func (block *Block) acceptTransaction(tx *Transaction) error {
 	if err != nil {
 		return err
 	}
-	if _, err := block.txsTrie.Put(tx.hash, txBytes); err != nil {
+	if _, err := block.txsState.Put(tx.hash, txBytes); err != nil {
 		return err
 	}
 	// incre nonce
@@ -1052,6 +1008,19 @@ func (block *Block) executeTransaction(tx *Transaction) (bool, uint64, error) {
 	return false, uint64(0), nil // ToFix: currentnonce should be tx.nonce
 }
 
+func (block *Block) Dynasty() ([]byteutils.Hash, error) {
+	return block.consensusState.Dynasty()
+}
+
+func (block *Block) NextConsensusState(elapsed int64) (state.ConsensusState, error) {
+	return block.consensusState.NextState(elapsed)
+}
+
+func (block *Block) SetConsensusState(consensusState state.ConsensusState) {
+	block.consensusState = consensusState
+	block.SetTimestamp(consensusState.TimeStamp())
+}
+
 // CheckContract check if contract is valid
 func (block *Block) CheckContract(addr *Address) error { // ToFix: return contract
 
@@ -1092,14 +1061,19 @@ func (block *Block) CheckContract(addr *Address) error { // ToFix: return contra
 }
 
 // HashBlock return the hash of block.
-func HashBlock(block *Block) byteutils.Hash { // ToConfirm: block is not nil.
+func HashBlock(block *Block) (byteutils.Hash, error) { // ToConfirm: block is not nil.
 	hasher := sha3.New256()
+
+	consensusRoot, err := proto.Marshal(block.ConsensusRoot())
+	if err != nil {
+		return nil, err
+	}
 
 	hasher.Write(block.ParentHash())
 	hasher.Write(block.StateRoot())
 	hasher.Write(block.TxsRoot())
 	hasher.Write(block.EventsRoot())
-	hasher.Write(block.DposContextHash())
+	hasher.Write(consensusRoot)
 	hasher.Write(byteutils.FromUint64(block.header.nonce))
 	hasher.Write(block.header.coinbase.address)
 	hasher.Write(byteutils.FromInt64(block.header.timestamp))
@@ -1109,7 +1083,7 @@ func HashBlock(block *Block) byteutils.Hash { // ToConfirm: block is not nil.
 		hasher.Write(tx.Hash())
 	}
 
-	return hasher.Sum(nil)
+	return hasher.Sum(nil), nil
 }
 
 // HashPbBlock return the hash of pb block.
@@ -1141,8 +1115,8 @@ func RecoverMiner(block *Block) (*Address, error) {
 }
 
 // LoadBlockFromStorage return a block from storage
-func LoadBlockFromStorage(hash byteutils.Hash, storage storage.Storage, txPool *TransactionPool, eventEmitter *EventEmitter) (*Block, error) { // ToCheck: check arg.
-	value, err := storage.Get(hash)
+func LoadBlockFromStorage(hash byteutils.Hash, chain *BlockChain) (*Block, error) { // ToCheck: check arg.
+	value, err := chain.storage.Get(hash)
 	if err != nil {
 		return nil, err
 	}
@@ -1154,28 +1128,25 @@ func LoadBlockFromStorage(hash byteutils.Hash, storage storage.Storage, txPool *
 	if err = block.FromProto(pbBlock); err != nil {
 		return nil, err
 	}
-	block.accState, err = state.NewAccountState(block.StateRoot(), storage)
+	block.accState, err = state.NewAccountState(block.StateRoot(), chain.storage)
 	if err != nil {
 		return nil, err
 	}
-	block.txsTrie, err = trie.NewBatchTrie(block.TxsRoot(), storage)
+	block.txsState, err = trie.NewBatchTrie(block.TxsRoot(), chain.storage)
 	if err != nil {
 		return nil, err
 	}
-	block.eventsTrie, err = trie.NewBatchTrie(block.EventsRoot(), storage)
+	block.eventsState, err = trie.NewBatchTrie(block.EventsRoot(), chain.storage)
 	if err != nil {
 		return nil, err
 	}
-	if block.dposContext, err = NewDposContext(storage); err != nil {
+	if block.consensusState, err = chain.consensusHandler.NewState(block.ConsensusRoot(), chain.storage); err != nil {
 		return nil, err
 	}
-	if block.dposContext.FromProto(block.DposContext()) != nil {
-		return nil, err
-	}
-	block.txPool = txPool
-	block.storage = storage
+	block.txPool = chain.txPool
+	block.storage = chain.storage
 	block.sealed = true
-	block.eventEmitter = eventEmitter
+	block.eventEmitter = chain.eventEmitter
 	return block, nil
 }
 
@@ -1186,17 +1157,17 @@ func (block *Block) Clone() (*Block, error) {
 		return nil, ErrCloneAccountState
 	}
 
-	txsTrie, err := block.txsTrie.Clone()
+	txsState, err := block.txsState.Clone()
 	if err != nil {
 		return nil, ErrCloneTxsState
 	}
 
-	eventsTrie, err := block.eventsTrie.Clone()
+	eventsState, err := block.eventsState.Clone()
 	if err != nil {
 		return nil, ErrCloneEventsState
 	}
 
-	dposContext, err := block.dposContext.Clone()
+	consensusState, err := block.consensusState.Clone()
 	if err != nil {
 		return nil, err
 	}
@@ -1212,19 +1183,19 @@ func (block *Block) Clone() (*Block, error) {
 		eventEmitter: block.eventEmitter,
 		transactions: make(Transactions, 0), // ToConfirm: so tricky.
 
-		accState:    accState,
-		txsTrie:     txsTrie,
-		eventsTrie:  eventsTrie,
-		dposContext: dposContext,
+		accState:       accState,
+		txsState:       txsState,
+		eventsState:    eventsState,
+		consensusState: consensusState,
 	}, nil
 }
 
 // Merge merge the state from source block.
 func (block *Block) Merge(source *Block) {
 	block.accState = source.accState
-	block.txsTrie = source.txsTrie
-	block.eventsTrie = source.eventsTrie
-	block.dposContext = source.dposContext
+	block.txsState = source.txsState
+	block.eventsState = source.eventsState
+	block.consensusState = source.consensusState
 	block.transactions = append(block.transactions, source.transactions...)
 }
 

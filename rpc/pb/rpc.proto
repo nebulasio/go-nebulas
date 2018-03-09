@@ -160,21 +160,6 @@ service ApiService {
             body: "*"
 		};
     }
-
-    rpc GetCandidates (ByBlockHeightRequest) returns (GetCandidatesResponse) {
-		option (google.api.http) = {
-            post: "/v1/user/candidates"
-            body: "*"
-		};
-    }
-    
-	rpc GetDelegateVoters (GetDelegateVotersRequest) returns (GetDelegateVotersResponse) {
-		option (google.api.http) = {
-            post: "/v1/user/delegateVoters"
-            body: "*"
-		};
-	}    
-
 }
 
 service AdminService {
@@ -551,8 +536,8 @@ message BlockResponse {
     // Hex string of event root.
     string events_root = 13;
 
-    // dpos context
-    DposContext dpos_context = 14;
+    // String of consensus root
+    string consensus_root = 14;
 
     // transaction slice
     repeated TransactionResponse transactions = 100;

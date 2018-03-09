@@ -25,7 +25,6 @@ import (
 	"github.com/nebulasio/go-nebulas/common/trie"
 	"github.com/nebulasio/go-nebulas/core/pb"
 	"github.com/nebulasio/go-nebulas/core/state"
-	"github.com/nebulasio/go-nebulas/storage"
 	"github.com/nebulasio/go-nebulas/util"
 	"github.com/nebulasio/go-nebulas/util/logging"
 	"github.com/sirupsen/logrus"
@@ -64,46 +63,41 @@ func NewGenesisBlock(conf *corepb.Genesis, chain *BlockChain) (*Block, error) {
 	if err != nil {
 		return nil, err
 	}
-	txsTrie, err := trie.NewBatchTrie(nil, chain.storage)
+	txsState, err := trie.NewBatchTrie(nil, chain.storage)
 	if err != nil {
 		return nil, err
 	}
-	eventsTrie, err := trie.NewBatchTrie(nil, chain.storage)
+	eventsState, err := trie.NewBatchTrie(nil, chain.storage)
 	if err != nil {
 		return nil, err
 	}
-	dposContext, err := NewDposContext(chain.storage)
+	consensusState, err := chain.consensusHandler.GenesisState(chain, conf)
 	if err != nil {
 		return nil, err
 	}
 	genesisBlock := &Block{
 		header: &BlockHeader{
-			chainID:     conf.Meta.ChainId,
-			parentHash:  GenesisHash,
-			dposContext: &corepb.DposContext{},
-			coinbase:    GenesisCoinbase,
-			timestamp:   GenesisTimestamp,
-			nonce:       0, // ToDelete
+			hash:       GenesisHash,
+			chainID:    conf.Meta.ChainId,
+			parentHash: GenesisHash,
+			coinbase:   GenesisCoinbase,
+			timestamp:  GenesisTimestamp,
+			nonce:      0, // ToDelete
 		},
-		accState:    accState,
-		txsTrie:     txsTrie,
-		eventsTrie:  eventsTrie,
-		dposContext: dposContext,
-		txPool:      chain.txPool,
-		storage:     chain.storage, // ToAdd: EventEmitter
-		height:      1,
-		sealed:      false,
+		accState:       accState,
+		txsState:       txsState,
+		eventsState:    eventsState,
+		consensusState: consensusState,
+		txPool:         chain.txPool,
+		storage:        chain.storage,
+		eventEmitter:   chain.eventEmitter,
+		height:         1,
+		miner:          GenesisCoinbase,
+		sealed:         false,
 	}
-
-	context, err := GenesisDynastyContext(chain, conf)
-	if err != nil {
-		return nil, err
-	}
-	genesisBlock.LoadDynastyContext(context)
-	genesisBlock.SetMiner(GenesisCoinbase)
 
 	genesisBlock.begin()
-	// add token distribution for genesis
+
 	for _, v := range conf.TokenDistribution {
 		addr, err := AddressParse(v.Address)
 		if err != nil {
@@ -130,17 +124,20 @@ func NewGenesisBlock(conf *corepb.Genesis, chain *BlockChain) (*Block, error) {
 			return nil, err
 		}
 	}
-	genesisBlock.commit()
 
-	if err := genesisBlock.Seal(); err != nil { // ToFix: move logic in seal outside.
-		logging.CLog().WithFields(logrus.Fields{
-			"gensis": genesisBlock,
-			"err":    err,
-		}).Error("Failed to seal genesis block.")
+	genesisBlock.header.stateRoot, err = genesisBlock.accState.RootHash()
+	if err != nil {
 		return nil, err
 	}
+	genesisBlock.header.txsRoot = genesisBlock.txsState.RootHash()
+	genesisBlock.header.eventsRoot = genesisBlock.eventsState.RootHash()
+	if genesisBlock.header.consensusRoot, err = genesisBlock.consensusState.RootHash(); err != nil {
+		return nil, err
+	}
+	genesisBlock.sealed = true
 
-	genesisBlock.header.hash = GenesisHash
+	genesisBlock.commit()
+
 	return genesisBlock, nil
 }
 
@@ -156,12 +153,12 @@ func CheckGenesisBlock(block *Block) bool {
 }
 
 // DumpGenesis return the configuration of the genesis block in the storage
-func DumpGenesis(stor storage.Storage) (*corepb.Genesis, error) {
-	genesis, err := LoadBlockFromStorage(GenesisHash, stor, nil, nil)
+func DumpGenesis(chain *BlockChain) (*corepb.Genesis, error) {
+	genesis, err := LoadBlockFromStorage(GenesisHash, chain)
 	if err != nil {
 		return nil, err
 	}
-	dynasty, err := TraverseDynasty(genesis.dposContext.candidateTrie)
+	dynasty, err := genesis.consensusState.Dynasty()
 	if err != nil {
 		return nil, err
 	}
@@ -190,9 +187,9 @@ func DumpGenesis(stor storage.Storage) (*corepb.Genesis, error) {
 	}, nil
 }
 
-func checkGenesisConfByDB(stor storage.Storage, pGenesis *corepb.Genesis) error {
+func checkGenesisConfByDB(chain *BlockChain, pGenesis *corepb.Genesis) error {
 	//private function [Empty parameters are checked by the caller]
-	if genesis, _ := DumpGenesis(stor); genesis != nil {
+	if genesis, _ := DumpGenesis(chain); genesis != nil {
 		if pGenesis.Meta.ChainId != genesis.Meta.ChainId {
 			return ErrGenesisNotEqualChainIDInDB
 		}

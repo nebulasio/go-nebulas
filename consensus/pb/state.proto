@@ -15,19 +15,14 @@
 // You should have received a copy of the GNU General Public License
 // along with the go-nebulas library.  If not, see <http://www.gnu.org/licenses/>.
 //
+syntax = "proto3";
 
-package core
+package consensuspb;
 
-import (
-	"testing"
+message ConsensusRoot {
+    bytes dynasty_root = 1;
+    
+    int64 timestamp = 7;
+    bytes proposer = 8;
 
-	"github.com/stretchr/testify/assert"
-)
-
-func TestInvalidAddressInTokenDistribution(t *testing.T) {
-	mockConf := MockGenesisConf()
-	mockConf.TokenDistribution[0].Address = "1a263547d167c74cf4b8f9166cfa244de0481c514a45aa2"
-	chain := testNeb(t).chain
-	_, err := NewGenesisBlock(mockConf, chain)
-	assert.Equal(t, err, ErrInvalidAddress)
 }

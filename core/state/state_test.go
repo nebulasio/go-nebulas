@@ -80,7 +80,7 @@ func TestAccountState(t *testing.T) {
 	acc3, err := as.GetOrCreateUserAccount(accAddr3)
 	assert.Nil(t, err)
 	acc3.Put([]byte("var2"), []byte("value2"))
-	as.RollBack()
+	as.Rollback()
 	asRoot, err = as.RootHash()
 	assert.Nil(t, err)
 	asCloneRoot, err = asClone.RootHash()

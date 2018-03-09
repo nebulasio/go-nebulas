@@ -20,7 +20,6 @@ import (
 	"net"
 
 	"github.com/nebulasio/go-nebulas/account"
-	"github.com/nebulasio/go-nebulas/consensus"
 	"github.com/nebulasio/go-nebulas/consensus/dpos"
 	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/core/pb"
@@ -57,7 +56,7 @@ type Neblet struct {
 
 	netService nebnet.Service
 
-	consensus consensus.Consensus
+	consensus core.Consensus
 
 	storage storage.Storage
 
@@ -122,6 +121,7 @@ func (n *Neblet) Setup() {
 
 	// core
 	n.eventEmitter = core.NewEventEmitter(40960)
+	n.consensus = dpos.NewDpos()
 	n.blockChain, err = core.NewBlockChain(n)
 	if err != nil {
 		logging.CLog().WithFields(logrus.Fields{
@@ -153,13 +153,16 @@ func (n *Neblet) Setup() {
 	n.blockChain.TransactionPool().RegisterInNetwork(n.netService)
 
 	// consensus
-	n.consensus, err = dpos.NewDpos(n)
-	if err != nil {
+	if err := n.consensus.Setup(n); err != nil {
 		logging.CLog().WithFields(logrus.Fields{
 			"err": err,
 		}).Fatal("Failed to setup consensus.")
 	}
-	n.blockChain.SetConsensusHandler(n.consensus)
+	if err := n.blockChain.Setup(n); err != nil {
+		logging.CLog().WithFields(logrus.Fields{
+			"err": err,
+		}).Fatal("Failed to setup blockchain.")
+	}
 
 	// sync
 	n.syncService = nsync.NewService(n.blockChain, n.netService)
@@ -349,7 +352,7 @@ func (n *Neblet) EventEmitter() *core.EventEmitter {
 }
 
 // AccountManager returns account manager reference.
-func (n *Neblet) AccountManager() *account.Manager {
+func (n *Neblet) AccountManager() core.AccountManager {
 	return n.accountManager
 }
 
@@ -359,7 +362,7 @@ func (n *Neblet) NetService() nebnet.Service {
 }
 
 // Consensus returns consensus reference.
-func (n *Neblet) Consensus() consensus.Consensus {
+func (n *Neblet) Consensus() core.Consensus {
 	return n.consensus
 }
 

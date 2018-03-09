@@ -8,11 +8,8 @@ import (
 	"golang.org/x/net/netutil"
 
 	"github.com/grpc-ecosystem/go-grpc-middleware"
-	"github.com/nebulasio/go-nebulas/account"
-	"github.com/nebulasio/go-nebulas/consensus"
 	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/neblet/pb"
-	nebnet "github.com/nebulasio/go-nebulas/net"
 	"github.com/nebulasio/go-nebulas/rpc/pb"
 	"github.com/nebulasio/go-nebulas/util/logging"
 	"google.golang.org/grpc"
@@ -29,17 +26,6 @@ const (
 	DefaultConnectionLimits = 128
 )
 
-// Neblet interface breaks cycle import dependency and hides unused services.
-type Neblet interface {
-	Config() *nebletpb.Config
-	StartPprof(string) error
-	BlockChain() *core.BlockChain
-	AccountManager() *account.Manager
-	NetService() nebnet.Service
-	EventEmitter() *core.EventEmitter
-	Consensus() consensus.Consensus
-}
-
 // GRPCServer server interface for api & management etc.
 type GRPCServer interface {
 	// Start start server
@@ -49,14 +35,14 @@ type GRPCServer interface {
 	Stop()
 
 	// Neblet return neblet
-	Neblet() Neblet
+	Neblet() core.Neblet
 
 	RunGateway() error
 }
 
 // Server is the RPC server type.
 type Server struct {
-	neblet Neblet
+	neblet core.Neblet
 
 	rpcServer *grpc.Server
 
@@ -64,7 +50,7 @@ type Server struct {
 }
 
 // NewServer creates a new RPC server and registers the rpc endpoints.
-func NewServer(neblet Neblet) *Server {
+func NewServer(neblet core.Neblet) *Server {
 	cfg := neblet.Config().Rpc
 	if cfg == nil {
 		logging.CLog().Fatalf("config.conf should has rpc")
@@ -167,6 +153,6 @@ func (s *Server) Stop() {
 }
 
 // Neblet returns weak reference to Neblet.
-func (s *Server) Neblet() Neblet {
+func (s *Server) Neblet() core.Neblet {
 	return s.neblet
 }

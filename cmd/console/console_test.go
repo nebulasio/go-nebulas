@@ -215,7 +215,7 @@ func TestApiValidInput(t *testing.T) {
 		// Wait for the second promt and ensure first statement was evaluated
 		select {
 		case <-tester.input.scheduler:
-		case <-time.After(time.Second):
+		case <-time.After(time.Second * 2):
 			t.Fatalf("secondary prompt timeout")
 		}
 

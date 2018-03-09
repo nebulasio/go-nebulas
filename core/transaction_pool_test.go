@@ -53,7 +53,7 @@ func TestTransactionPool(t *testing.T) {
 	heighPrice, err := TransactionGasPrice.Mul(gasCount)
 	assert.Nil(t, err)
 	txPool, _ := NewTransactionPool(3)
-	bc, _ := NewBlockChain(testNeb())
+	bc := testNeb(t).chain
 	txPool.setBlockChain(bc)
 	txPool.setEventEmitter(bc.eventEmitter)
 
@@ -150,7 +150,7 @@ func TestPushTxs(t *testing.T) {
 	signature2.InitSign(key2.(keystore.PrivateKey))
 
 	txPool, _ := NewTransactionPool(3)
-	bc, _ := NewBlockChain(testNeb())
+	bc := testNeb(t).chain
 	txPool.setBlockChain(bc)
 	txPool.setEventEmitter(bc.eventEmitter)
 	uint128Number1, _ := util.NewUint128FromInt(1)

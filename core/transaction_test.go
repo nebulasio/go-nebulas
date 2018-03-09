@@ -53,16 +53,6 @@ func mockCallTransaction(chainID uint32, nonce uint64, function, args string) *T
 	return mockTransaction(chainID, nonce, TxPayloadCallType, payload)
 }
 
-func mockDelegateTransaction(chainID uint32, nonce uint64, action, addr string) *Transaction {
-	payload, _ := NewDelegatePayload(action, addr).ToBytes()
-	return mockTransaction(chainID, nonce, TxPayloadDelegateType, payload)
-}
-
-func mockCandidateTransaction(chainID uint32, nonce uint64, action string) *Transaction {
-	payload, _ := NewCandidatePayload(action).ToBytes()
-	return mockTransaction(chainID, nonce, TxPayloadCandidateType, payload)
-}
-
 func mockTransaction(chainID uint32, nonce uint64, payloadType string, payload []byte) *Transaction {
 	from := mockAddress()
 	to := mockAddress()
@@ -190,9 +180,7 @@ func TestTransaction_VerifyExecution(t *testing.T) {
 	}
 	tests := []testTx{}
 
-	bc, _ := NewBlockChain(testNeb())
-	var c MockConsensus
-	bc.SetConsensusHandler(c)
+	bc := testNeb(t).chain
 
 	// 1NAS = 10^18
 	balance, _ := util.NewUint128FromString("1000000000000000000")
@@ -262,50 +250,6 @@ func TestTransaction_VerifyExecution(t *testing.T) {
 		eventTopic:      []string{TopicExecuteTxFailed},
 	})
 
-	// candidate tx
-	candidateTx := mockCandidateTransaction(bc.chainID, 0, LoginAction)
-	candidateTx.value = util.NewUint128()
-	gasUsed, _ = util.NewUint128FromInt(40018)
-	coinbaseBalance, err = candidateTx.gasPrice.Mul(gasUsed)
-	assert.Nil(t, err)
-	balanceConsume, err = candidateTx.gasPrice.Mul(gasUsed)
-	assert.Nil(t, err)
-	afterBalance, err = balance.Sub(balanceConsume)
-	assert.Nil(t, err)
-	tests = append(tests, testTx{
-		name:            "candidate tx",
-		tx:              candidateTx,
-		fromBalance:     balance,
-		gasUsed:         gasUsed,
-		afterBalance:    afterBalance,
-		toBalance:       candidateTx.value,
-		coinbaseBalance: coinbaseBalance,
-		wanted:          nil,
-		eventTopic:      []string{TopicExecuteTxSuccess},
-	})
-
-	// delegate tx
-	delegateTx := mockDelegateTransaction(bc.chainID, 0, DelegateAction, mockAddress().String())
-	delegateTx.value = util.NewUint128()
-	gasUsed, _ = util.NewUint128FromInt(40078)
-	coinbaseBalance, err = delegateTx.gasPrice.Mul(gasUsed)
-	assert.Nil(t, err)
-	balanceConsume, err = delegateTx.gasPrice.Mul(gasUsed)
-	assert.Nil(t, err)
-	afterBalance, err = balance.Sub(balanceConsume)
-	assert.Nil(t, err)
-	tests = append(tests, testTx{
-		name:            "delegate tx",
-		tx:              delegateTx,
-		fromBalance:     balance,
-		gasUsed:         gasUsed,
-		afterBalance:    afterBalance,
-		toBalance:       delegateTx.value,
-		coinbaseBalance: coinbaseBalance,
-		wanted:          nil,
-		eventTopic:      []string{TopicExecuteTxFailed},
-	})
-
 	// normal tx insufficient fromBalance before execution
 	insufficientBlanceTx := mockNormalTransaction(bc.chainID, 0)
 	insufficientBlanceTx.value = util.NewUint128()
@@ -341,7 +285,7 @@ func TestTransaction_VerifyExecution(t *testing.T) {
 	payloadErrTx.data.Payload = []byte("0x00")
 	gasCountOfTxBase, err := payloadErrTx.GasCountOfTxBase()
 	assert.Nil(t, err)
-	coinbaseBalance, err = delegateTx.gasPrice.Mul(gasCountOfTxBase)
+	coinbaseBalance, err = payloadErrTx.gasPrice.Mul(gasCountOfTxBase)
 	assert.Nil(t, err)
 	balanceConsume, err = payloadErrTx.gasPrice.Mul(gasCountOfTxBase)
 	assert.Nil(t, err)
@@ -488,9 +432,7 @@ func TestTransaction_LocalExecution(t *testing.T) {
 
 	tests := []testCase{}
 
-	bc, _ := NewBlockChain(testNeb())
-	var c MockConsensus
-	bc.SetConsensusHandler(c)
+	bc := testNeb(t).chain
 
 	normalTx := mockNormalTransaction(bc.chainID, 0)
 	normalTx.value, _ = util.NewUint128FromInt(1000000)
@@ -523,29 +465,6 @@ func TestTransaction_LocalExecution(t *testing.T) {
 		gasUsed: gasUsed,
 		result:  "",
 		wanted:  state.ErrAccountNotFound,
-	})
-
-	// candidate tx
-	candidateTx := mockCandidateTransaction(bc.chainID, 0, LoginAction)
-	candidateTx.value = util.NewUint128()
-	gasUsed, _ = util.NewUint128FromInt(40018)
-	tests = append(tests, testCase{
-		name:    "candidate tx",
-		tx:      candidateTx,
-		gasUsed: gasUsed,
-		result:  "",
-		wanted:  nil,
-	})
-
-	// delegate tx
-	delegateTx := mockDelegateTransaction(bc.chainID, 0, DelegateAction, mockAddress().String())
-	delegateTx.value = util.NewUint128()
-	gasUsed, _ = util.NewUint128FromInt(40078)
-	tests = append(tests, testCase{
-		name:    "delegate tx",
-		tx:      delegateTx,
-		gasUsed: gasUsed,
-		wanted:  ErrInvalidDelegateToNonCandidate,
 	})
 
 	block := bc.tailBlock

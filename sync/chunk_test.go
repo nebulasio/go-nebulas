@@ -21,12 +21,12 @@ package sync
 import (
 	"time"
 
+	"github.com/nebulasio/go-nebulas/account"
+	"github.com/nebulasio/go-nebulas/consensus/dpos"
+
 	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/core/pb"
-	"github.com/nebulasio/go-nebulas/crypto"
-	"github.com/nebulasio/go-nebulas/crypto/keystore"
-	"github.com/nebulasio/go-nebulas/crypto/keystore/secp256k1"
 	"github.com/nebulasio/go-nebulas/neblet/pb"
 	"github.com/nebulasio/go-nebulas/net"
 	"github.com/nebulasio/go-nebulas/storage"
@@ -35,71 +35,15 @@ import (
 	"testing"
 )
 
-type MockConsensus struct {
-	storage storage.Storage
-}
+const (
+	BlockInterval        = 5
+	AcceptedNetWorkDelay = 2
+	DynastySize          = 6
+)
 
-func (c MockConsensus) Start() {}
-func (c MockConsensus) Stop()  {}
-
-func (c MockConsensus) EnableMining(string) error { return nil }
-func (c MockConsensus) DisableMining() error      { return nil }
-func (c MockConsensus) Enable() bool              { return true }
-
-func (c MockConsensus) ResumeMining()  {}
-func (c MockConsensus) SuspendMining() {}
-func (c MockConsensus) Pending() bool  { return false }
-
-func (c MockConsensus) FastVerifyBlock(block *core.Block) error {
-	block.SetMiner(block.Coinbase())
-	return nil
-}
-
-func (c MockConsensus) VerifyBlock(block *core.Block, parent *core.Block) error {
-	block.SetMiner(block.Coinbase())
-	return nil
-}
-
-func (c MockConsensus) ForkChoice() error {
-	return nil
-}
-
-type mockNeb struct {
-	genesis *corepb.Genesis
-	config  *nebletpb.Config
-	storage storage.Storage
-	emitter *core.EventEmitter
-}
-
-func (n *mockNeb) Genesis() *corepb.Genesis {
-	return n.genesis
-}
-
-func (n *mockNeb) Config() *nebletpb.Config {
-	return n.config
-}
-
-func (n *mockNeb) Storage() storage.Storage {
-	return n.storage
-}
-
-func (n *mockNeb) EventEmitter() *core.EventEmitter {
-	return n.emitter
-}
-
-func (n *mockNeb) StartActiveSync() {}
-
-func testNeb() *mockNeb {
-	storage, _ := storage.NewMemoryStorage()
-	eventEmitter := core.NewEventEmitter(1024)
-	neb := &mockNeb{
-		genesis: MockGenesisConf(),
-		config:  &nebletpb.Config{Chain: &nebletpb.ChainConfig{ChainId: MockGenesisConf().Meta.ChainId}},
-		storage: storage,
-		emitter: eventEmitter,
-	}
-	return neb
-}
+var (
+	stor, _ = storage.NewMemoryStorage()
+)
 
 var (
 	MockDynasty = []string{
@@ -109,21 +53,6 @@ var (
 		"48f981ed38910f1232c1bab124f650c482a57271632db9e3",
 		"59fc526072b09af8a8ca9732dae17132c4e9127e43cf2232",
 		"75e4e5a71d647298b88928d8cb5da43d90ab1a6c52d0905f",
-		"7da9dabedb4c6e121146fb4250a9883d6180570e63d6b080",
-		"98a3eed687640b75ec55bf5c9e284371bdcaeab943524d51",
-		"a8f1f53952c535c6600c77cf92b65e0c9b64496a8a328569",
-		"b040353ec0f2c113d5639444f7253681aecda1f8b91f179f",
-		"b414432e15f21237013017fa6ee90fc99433dec82c1c8370",
-		"b49f30d0e5c9c88cade54cd1adecf6bc2c7e0e5af646d903",
-		"b7d83b44a3719720ec54cdb9f54c0202de68f1ebcb927b4f",
-		"ba56cc452e450551b7b9cffe25084a069e8c1e94412aad22",
-		"c5bcfcb3fa8250be4f2bf2b1e70e1da500c668377ba8cd4a",
-		"c79d9667c71bb09d6ca7c3ed12bfe5e7be24e2ffe13a833d",
-		"d1abde197e97398864ba74511f02832726edad596775420a",
-		"d86f99d97a394fa7a623fdf84fdc7446b99c3cb335fca4bf",
-		"e0f78b011e639ce6d8b76f97712118f3fe4a12dd954eba49",
-		"f38db3b6c801dddd624d6ddc2088aa64b5a24936619e4848",
-		"fc751b484bd5296f8d267a8537d33f25a848f7f7af8cfcf6",
 	}
 )
 
@@ -149,74 +78,172 @@ func MockGenesisConf() *corepb.Genesis {
 	}
 }
 
-type MockNetService struct {
+type mockManager struct{}
+
+func (m mockManager) NewAccount([]byte) (*core.Address, error) { return nil, nil }
+func (m mockManager) Accounts() []*core.Address                { return nil }
+
+func (m mockManager) Unlock(addr *core.Address, passphrase []byte, expire time.Duration) error {
+	return nil
 }
+func (m mockManager) Lock(addr *core.Address) error { return nil }
 
-func (n MockNetService) Start() error { return nil }
-func (n MockNetService) Stop()        {}
-
-func (n MockNetService) Node() *net.Node { return nil }
-
-func (n MockNetService) Register(...*net.Subscriber)   {}
-func (n MockNetService) Deregister(...*net.Subscriber) {}
-
-func (n MockNetService) Broadcast(string, net.Serializable, int)   {}
-func (n MockNetService) Relay(string, net.Serializable, int)       {}
-func (n MockNetService) SendMsg(string, []byte, string, int) error { return nil }
-
-func (n MockNetService) SendMessageToPeers(messageName string, data []byte, priority int, filter net.PeerFilterAlgorithm) []string {
-	return make([]string, 0)
-}
-func (n MockNetService) SendMessageToPeer(messageName string, data []byte, priority int, peerID string) error {
+func (m mockManager) SignBlock(addr *core.Address, block *core.Block) error  { return nil }
+func (m mockManager) SignTransaction(*core.Address, *core.Transaction) error { return nil }
+func (m mockManager) SignTransactionWithPassphrase(*core.Address, *core.Transaction, []byte) error {
 	return nil
 }
 
-func (n MockNetService) ClosePeer(peerID string, reason error) {}
+func (m mockManager) Update(*core.Address, []byte, []byte) error   { return nil }
+func (m mockManager) Load([]byte, []byte) (*core.Address, error)   { return nil, nil }
+func (m mockManager) Import([]byte, []byte) (*core.Address, error) { return nil, nil }
+func (m mockManager) Delete(*core.Address, []byte) error           { return nil }
 
-func (n MockNetService) BroadcastNetworkID([]byte) {}
+var (
+	received = []byte{}
+)
 
-func (n MockNetService) BuildRawMessageData([]byte, string) []byte { return nil }
+type mockNetService struct{}
 
-func BlockFromNetwork(block *core.Block) *core.Block {
-	pb, _ := block.ToProto()
-	ir, _ := proto.Marshal(pb)
-	proto.Unmarshal(ir, pb)
-	b := new(core.Block)
-	b.FromProto(pb)
-	return b
+func (n mockNetService) Start() error { return nil }
+func (n mockNetService) Stop()        {}
+
+func (n mockNetService) Node() *net.Node { return nil }
+
+func (n mockNetService) Sync(net.Serializable) error { return nil }
+
+func (n mockNetService) Register(...*net.Subscriber)   {}
+func (n mockNetService) Deregister(...*net.Subscriber) {}
+
+func (n mockNetService) Broadcast(name string, msg net.Serializable, priority int) {}
+func (n mockNetService) Relay(name string, msg net.Serializable, priority int)     {}
+func (n mockNetService) SendMsg(name string, msg []byte, target string, priority int) error {
+	received = msg
+	return nil
+}
+
+func (n mockNetService) SendMessageToPeers(messageName string, data []byte, priority int, filter net.PeerFilterAlgorithm) []string {
+	return make([]string, 0)
+}
+func (n mockNetService) SendMessageToPeer(messageName string, data []byte, priority int, peerID string) error {
+	return nil
+}
+
+func (n mockNetService) ClosePeer(peerID string, reason error) {}
+
+func (n mockNetService) BroadcastNetworkID([]byte) {}
+
+func (n mockNetService) BuildRawMessageData([]byte, string) []byte { return nil }
+
+type mockNeb struct {
+	config    *nebletpb.Config
+	chain     *core.BlockChain
+	ns        net.Service
+	am        core.AccountManager
+	genesis   *corepb.Genesis
+	storage   storage.Storage
+	consensus core.Consensus
+	emitter   *core.EventEmitter
+}
+
+func (n *mockNeb) Genesis() *corepb.Genesis {
+	return n.genesis
+}
+
+func (n *mockNeb) Config() *nebletpb.Config {
+	return n.config
+}
+
+func (n *mockNeb) Storage() storage.Storage {
+	return n.storage
+}
+
+func (n *mockNeb) EventEmitter() *core.EventEmitter {
+	return n.emitter
+}
+
+func (n *mockNeb) Consensus() core.Consensus {
+	return n.consensus
+}
+
+func (n *mockNeb) BlockChain() *core.BlockChain {
+	return n.chain
+}
+
+func (n *mockNeb) NetService() net.Service {
+	return n.ns
+}
+
+func (n *mockNeb) AccountManager() core.AccountManager {
+	return n.am
+}
+
+func (n *mockNeb) StartPprof(string) error {
+	return nil
+}
+
+func (n *mockNeb) SetGenesis(genesis *corepb.Genesis) {
+	n.genesis = genesis
+}
+
+func (n *mockNeb) StartActiveSync() {}
+
+func testNeb(t *testing.T) *mockNeb {
+	storage, _ := storage.NewMemoryStorage()
+	eventEmitter := core.NewEventEmitter(1024)
+	consensus := dpos.NewDpos()
+	var ns mockNetService
+	neb := &mockNeb{
+		genesis:   MockGenesisConf(),
+		storage:   storage,
+		emitter:   eventEmitter,
+		consensus: consensus,
+		ns:        ns,
+		config: &nebletpb.Config{
+			Chain: &nebletpb.ChainConfig{
+				ChainId:    MockGenesisConf().Meta.ChainId,
+				Keydir:     "keydir",
+				Coinbase:   "1a263547d167c74cf4b8f9166cfa244de0481c514a45aa2c",
+				Miner:      "1a263547d167c74cf4b8f9166cfa244de0481c514a45aa2c",
+				Passphrase: "passphrase",
+			},
+		},
+	}
+	neb.am = account.NewManager(neb)
+	chain, err := core.NewBlockChain(neb)
+	assert.Nil(t, err)
+	chain.BlockPool().RegisterInNetwork(ns)
+	neb.chain = chain
+	assert.Nil(t, consensus.Setup(neb))
+	assert.Nil(t, chain.Setup(neb))
+	return neb
+}
+
+func GetUnlockAddress(t *testing.T, am core.AccountManager, addr string) *core.Address {
+	address, err := core.AddressParse(addr)
+	assert.Nil(t, err)
+	assert.Nil(t, am.Unlock(address, []byte("passphrase"), time.Second*60*60*24*365))
+	return address
 }
 
 func TestChunk_generateChunkMeta(t *testing.T) {
-	var cons MockConsensus
-	var n MockNetService
-	chain, err := core.NewBlockChain(testNeb())
-	chain.SetConsensusHandler(cons)
-	chain.BlockPool().RegisterInNetwork(n)
-	assert.Nil(t, err)
+	neb := testNeb(t)
+	chain := neb.chain
 	ck := NewChunk(chain)
-
-	ks := keystore.DefaultKS
-	priv := secp256k1.GeneratePrivateKey()
-	pubdata, _ := priv.PublicKey().Encoded()
-	coinbase, _ := core.NewAddressFromPublicKey(pubdata)
-	ks.SetKey(coinbase.String(), priv, []byte("passphrase"))
-	ks.Unlock(coinbase.String(), []byte("passphrase"), time.Second*60*60*24*365)
-	key, _ := ks.GetUnlocked(coinbase.String())
-	signature, _ := crypto.NewSignature(keystore.SECP256K1)
-	signature.InitSign(key.(keystore.PrivateKey))
+	am := neb.AccountManager()
 
 	blocks := []*core.Block{}
 	for i := 0; i < 96; i++ {
-		context, err := chain.TailBlock().NextDynastyContext(chain, core.BlockInterval)
+		coinbase := GetUnlockAddress(t, am, MockDynasty[(i+1)%DynastySize])
+		consensusState, err := chain.TailBlock().NextConsensusState(BlockInterval)
 		assert.Nil(t, err)
 		block, err := chain.NewBlock(coinbase)
 		assert.Nil(t, err)
-		block.LoadDynastyContext(context)
-		block.SetTimestamp(core.BlockInterval * int64(i+1))
+		block.SetConsensusState(consensusState)
 		block.SetMiner(coinbase)
-		block.Sign(signature)
 		assert.Nil(t, block.Seal())
-		assert.Nil(t, chain.BlockPool().Push(BlockFromNetwork(block)))
+		assert.Nil(t, am.SignBlock(coinbase, block))
+		assert.Nil(t, chain.BlockPool().Push(block))
 		assert.Nil(t, chain.SetTailBlock(block))
 		blocks = append(blocks, block)
 	}
@@ -250,10 +277,8 @@ func TestChunk_generateChunkMeta(t *testing.T) {
 	assert.Equal(t, int(blocks[62].Height()), 64)
 	assert.Equal(t, len(meta.ChunkHeaders), 2)
 
-	chain2, err := core.NewBlockChain(testNeb())
-	chain2.SetConsensusHandler(cons)
-	chain2.BlockPool().RegisterInNetwork(n)
-	assert.Nil(t, err)
+	neb2 := testNeb(t)
+	chain2 := neb2.BlockChain()
 	meta, err = ck.generateChunkHeaders(blocks[0].Hash())
 	assert.Nil(t, err)
 	for _, header := range meta.ChunkHeaders {
