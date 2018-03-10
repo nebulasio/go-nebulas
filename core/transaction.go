@@ -511,8 +511,12 @@ func transfer(from, to byteutils.Hash, value *util.Uint128, txWorldState state.T
 	if err != nil {
 		return err
 	}
-	fromAcc.SubBalance(value)
-	toAcc.AddBalance(value)
+	if err := fromAcc.SubBalance(value); err != nil {
+		return err
+	}
+	if err := toAcc.AddBalance(value); err != nil {
+		return err
+	}
 	return nil
 }
 

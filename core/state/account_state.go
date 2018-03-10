@@ -21,6 +21,8 @@ package state
 import (
 	"errors"
 	"fmt"
+	"github.com/nebulasio/go-nebulas/util/logging"
+	"github.com/sirupsen/logrus"
 
 	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/common/trie"
@@ -259,6 +261,38 @@ func (as *accountState) RootHash() (byteutils.Hash, error) {
 			return nil, err
 		}
 		as.stateTrie.Put(key, bytes)
+
+		logging.CLog().WithFields(logrus.Fields{
+			"addr":    acc.Address().String(),
+			"balance": acc.Balance().String(),
+			"birth":   acc.BirthPlace().String(),
+			"vars":    acc.VarsHash().String(),
+			"trie":    as.stateTrie,
+		}).Info("Dirtyyyyyyyyyyy")
+	}
+	return as.stateTrie.RootHash(), nil
+}
+
+// RootHash return root hash of account state
+func (as *accountState) RootHash_Log() (byteutils.Hash, error) {
+	for addr, acc := range as.dirtyAccount {
+		bytes, err := acc.ToBytes()
+		if err != nil {
+			return nil, err
+		}
+		key, err := addr.Hash()
+		if err != nil {
+			return nil, err
+		}
+		as.stateTrie.Put(key, bytes)
+
+		logging.CLog().WithFields(logrus.Fields{
+			"addr":    acc.Address().String(),
+			"balance": acc.Balance().String(),
+			"birth":   acc.BirthPlace().String(),
+			"vars":    acc.VarsHash().String(),
+			"trie":    as.stateTrie,
+		}).Info("Accounts")
 	}
 	return as.stateTrie.RootHash(), nil
 }

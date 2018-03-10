@@ -319,6 +319,10 @@ func (s *states) AccountsRoot() (byteutils.Hash, error) {
 	return s.accState.RootHash()
 }
 
+func (s *states) AccountsRoot_Log() (byteutils.Hash, error) {
+	return s.accState.RootHash_Log()
+}
+
 func (s *states) TxsRoot() (byteutils.Hash, error) {
 	return s.txsState.RootHash(), nil
 }

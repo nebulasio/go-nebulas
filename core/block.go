@@ -620,10 +620,12 @@ func (block *Block) Seal() error {
 	}
 
 	var err error
-	block.header.stateRoot, err = block.WorldState().AccountsRoot()
+	logging.CLog().Info("Seal DirtyAccount")
+	block.header.stateRoot, err = block.WorldState().AccountsRoot_Log()
 	if err != nil {
 		return err
 	}
+	logging.CLog().Info("Seal DirtyAccount")
 	block.header.txsRoot, err = block.WorldState().TxsRoot()
 	if err != nil {
 		return err
@@ -643,6 +645,22 @@ func (block *Block) Seal() error {
 	logging.VLog().WithFields(logrus.Fields{
 		"block": block,
 	}).Info("Sealed Block.")
+
+	logging.CLog().Info("Seal Accounts")
+	accounts, err := block.WorldState().Accounts()
+	if err != nil {
+		return err
+	}
+	for _, acc := range accounts {
+		logging.CLog().WithFields(logrus.Fields{
+			"addr":    acc.Address().String(),
+			"balance": acc.Balance().String(),
+			"birth":   acc.BirthPlace().String(),
+			"vars":    acc.VarsHash().String(),
+		}).Info("Accounts")
+	}
+	logging.CLog().Info("Seal Accounts")
+
 	block.RollBack()
 
 	metricsTxPackedCount.Update(0)
@@ -785,16 +803,32 @@ func (block *Block) VerifyIntegrity(chainID uint32, consensus Consensus) error {
 // verifyState return state verify result.
 func (block *Block) verifyState() error {
 	// verify state root.
-	accountsRoot, err := block.WorldState().AccountsRoot()
+	logging.CLog().Info("Verify Accounts")
+	accounts, err := block.WorldState().Accounts()
 	if err != nil {
 		return err
 	}
+	for _, acc := range accounts {
+		logging.CLog().WithFields(logrus.Fields{
+			"addr":    acc.Address().String(),
+			"balance": acc.Balance().String(),
+			"birth":   acc.BirthPlace().String(),
+			"vars":    acc.VarsHash().String(),
+		}).Info("Accounts")
+	}
+	logging.CLog().Info("Verify Accounts")
+
+	logging.CLog().Info("Verify DirtyAccount")
+	accountsRoot, err := block.WorldState().AccountsRoot_Log()
+	if err != nil {
+		return err
+	}
+	logging.CLog().Info("Verify DirtyAccount")
 	if !byteutils.Equal(accountsRoot, block.StateRoot()) {
 		logging.VLog().WithFields(logrus.Fields{
 			"expect": block.StateRoot(),
 			"actual": accountsRoot,
 		}).Debug("Failed to verify state.")
-
 		return ErrInvalidBlockStateRoot
 	}
 
@@ -1080,6 +1114,7 @@ func (block *Block) rewardCoinbaseForMint() error {
 	if err != nil {
 		return err
 	}
+	logging.CLog().Info("rewardCoinbaseForMint ", "gas", BlockReward)
 	return coinbaseAcc.AddBalance(BlockReward)
 }
 
@@ -1087,6 +1122,7 @@ func (block *Block) rewardCoinbaseForGas() error {
 	worldState := block.WorldState()
 	coinbaseAddr := (byteutils.Hash)(block.Coinbase().Bytes())
 
+	logging.CLog().Info("rewardCoinbaseForGas")
 	gasConsumed := worldState.GetGas()
 	for from, gas := range gasConsumed {
 		fromAddr, err := byteutils.FromHex(from)

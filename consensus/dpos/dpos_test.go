@@ -449,6 +449,17 @@ func TestDposContracts(t *testing.T) {
 	manager := account.NewManager(nil)
 	assert.Nil(t, dpos.EnableMining("passphrase"))
 
+	/* 	accs := []string{
+		"2fe3f9f51f9a05dd5f7c5329127f7c917917149b4e16b0b8",
+		"333cb3ed8c417971845382ede3cf67a0a96270c05fe2f700",
+		"48f981ed38910f1232c1bab124f650c482a57271632db9e3",
+		"59fc526072b09af8a8ca9732dae17132c4e9127e43cf2232",
+		"75e4e5a71d647298b88928d8cb5da43d90ab1a6c52d0905f",
+		"98a3eed687640b75ec55bf5c9e284371bdcaeab943524d51",
+		"a8f1f53952c535c6600c77cf92b65e0c9b64496a8a328569",
+		"c79d9667c71bb09d6ca7c3ed12bfe5e7be24e2ffe13a833d",
+	} */
+
 	a, _ := core.AddressParse("2fe3f9f51f9a05dd5f7c5329127f7c917917149b4e16b0b8")
 	assert.Nil(t, manager.Unlock(a, []byte("passphrase"), keystore.YearUnlockDuration))
 	b, _ := core.AddressParse("333cb3ed8c417971845382ede3cf67a0a96270c05fe2f700")
@@ -471,7 +482,7 @@ func TestDposContracts(t *testing.T) {
 	argsDeploy := ""
 	payloadDeploy, _ := core.NewDeployPayload(source, sourceType, argsDeploy).ToBytes()
 
-	j := 20
+	j := 40
 
 	for i := 1; i < j; i++ {
 		value, _ := util.NewUint128FromInt(1)
