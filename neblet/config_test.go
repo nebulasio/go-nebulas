@@ -1,21 +1,25 @@
 package neblet
 
 import (
+	"math/rand"
 	"testing"
+	"time"
 
-	/* "github.com/nebulasio/go-nebulas/core" */
+	"github.com/nebulasio/go-nebulas/core"
+	"github.com/nebulasio/go-nebulas/core/pb"
 	"github.com/nebulasio/go-nebulas/neblet/pb"
-	/* 	nebnet "github.com/nebulasio/go-nebulas/net"
-	   	"github.com/nebulasio/go-nebulas/storage"
-	   	"github.com/stretchr/testify/assert" */)
+	"github.com/nebulasio/go-nebulas/rpc"
+	"github.com/nebulasio/go-nebulas/storage"
+	"github.com/stretchr/testify/assert"
+)
 
 func MockConfig() *nebletpb.Config {
 	return &nebletpb.Config{
 		Chain: &nebletpb.ChainConfig{
 			ChainId:          100,
-			Datadir:          "/Users/tangtangshouxin/workspace/blockchain/src/github.com/nebulasio/go-nebulas/data.db",
+			Datadir:          "data.db",
 			Keydir:           "keydir",
-			Genesis:          "/Users/tangtangshouxin/workspace/blockchain/src/github.com/nebulasio/go-nebulas/conf/default/genesis.conf",
+			Genesis:          "conf/default/genesis.conf",
 			StartMine:        true,
 			Coinbase:         "59fc526072b09af8a8ca9732dae17132c4e9127e43cf2232",
 			Miner:            "59fc526072b09af8a8ca9732dae17132c4e9127e43cf2232",
@@ -24,7 +28,7 @@ func MockConfig() *nebletpb.Config {
 		},
 		Network: &nebletpb.NetworkConfig{
 			Listen:     []string{"0.0.0.0:8680"},
-			PrivateKey: "/Users/tangtangshouxin/workspace/blockchain/src/github.com/nebulasio/go-nebulas/conf/network/ed25519key",
+			PrivateKey: "conf/network/ed25519key",
 			NetworkId:  1,
 		},
 		Rpc: &nebletpb.RPCConfig{
@@ -43,66 +47,121 @@ func MockConfig() *nebletpb.Config {
 }
 
 const (
-	TEST_ALL_ELEMENT             = 0
-	TEST_LACK_CHAIN              = 1
-	TEST_LACK_NETWORK            = 2
-	TEST_LACK_RPC                = 3
-	TEST_LACK_GENESIS            = 4
-	TEST_NEW_DB                  = 5
-	TEST_NEW_DB_AND_LACK_GENESIS = 6
+	TestAllElement          = 0
+	TestLackChain           = 1
+	TestLackNetWork         = 2
+	TestLackRPC             = 3
+	TestLackGenesis         = 4
+	TestNewDb               = 5
+	TestNewDbAndLackGenesis = 6
 )
 
+var (
+	MockDynasty = []string{
+		"1a263547d167c74cf4b8f9166cfa244de0481c514a45aa2c",
+		"2fe3f9f51f9a05dd5f7c5329127f7c917917149b4e16b0b8",
+		"333cb3ed8c417971845382ede3cf67a0a96270c05fe2f700",
+		"48f981ed38910f1232c1bab124f650c482a57271632db9e3",
+		"59fc526072b09af8a8ca9732dae17132c4e9127e43cf2232",
+		"75e4e5a71d647298b88928d8cb5da43d90ab1a6c52d0905f",
+	}
+)
+
+// MockGenesisConf return mock genesis conf
+func MockGenesisConf() *corepb.Genesis {
+	return &corepb.Genesis{
+		Meta: &corepb.GenesisMeta{ChainId: 100},
+		Consensus: &corepb.GenesisConsensus{
+			Dpos: &corepb.GenesisConsensusDpos{
+				Dynasty: MockDynasty,
+			},
+		},
+		TokenDistribution: []*corepb.GenesisTokenDistribution{
+			&corepb.GenesisTokenDistribution{
+				Address: "1a263547d167c74cf4b8f9166cfa244de0481c514a45aa2c",
+				Value:   "10000000000000000000000",
+			},
+			&corepb.GenesisTokenDistribution{
+				Address: "2fe3f9f51f9a05dd5f7c5329127f7c917917149b4e16b0b8",
+				Value:   "10000000000000000000000",
+			},
+		},
+	}
+}
+
+func NewT(config *nebletpb.Config, cmd int) (*Neblet, error) {
+	//var err error
+	n := &Neblet{config: config}
+
+	// try enable profile.
+	n.TryStartProfiling()
+
+	//n.genesis, _ = core.LoadGenesisConf(config.Chain.Genesis)
+	n.genesis = MockGenesisConf()
+	switch cmd {
+	case TestNewDbAndLackGenesis:
+		{
+			n.genesis = nil
+		}
+	}
+	//n.accountManager = account.NewManager(n)
+
+	// init random seed.
+	rand.Seed(time.Now().UTC().UnixNano())
+
+	return n, nil
+}
 func makeNebT(cmd int) (*Neblet, error) {
 	//var conf *nebletpb.Config = new(nebletpb.Config)
 	conf := MockConfig()
 	switch cmd {
-	case TEST_ALL_ELEMENT:
+	case TestAllElement:
 		{
 			break
 		}
-	case TEST_LACK_CHAIN:
+	case TestLackChain:
 		{
 			conf.Chain = nil
 		}
-	case TEST_LACK_NETWORK:
+	case TestLackNetWork:
 		{
 			conf.Network = nil
 		}
-	case TEST_LACK_RPC:
+	case TestLackRPC:
 		{
 			conf.Rpc = nil
 		}
-	case TEST_LACK_GENESIS:
+	case TestLackGenesis:
 		{
-			conf.Chain.Genesis = "/Users/tangtangshouxin/workspace/blockchain/src/github.com/nebulasio/go-nebulas/conf/default/x.conf"
+			break
 		}
-	case TEST_NEW_DB:
+	case TestNewDb:
 		{
-			conf.Chain.Datadir = "x.db"
+			conf.Chain.Datadir = "x2.db"
 		}
-	case TEST_NEW_DB_AND_LACK_GENESIS:
+	case TestNewDbAndLackGenesis:
 		{
-			conf.Chain.Genesis = "/Users/tangtangshouxin/workspace/blockchain/src/github.com/nebulasio/go-nebulas/conf/default/x.conf"
-			conf.Chain.Datadir = "x.db"
+			conf.Chain.Datadir = "x2.db"
 		}
 	}
-	n, err := New(conf)
+	n, err := NewT(conf, cmd)
 	if err != nil {
 		return nil, err
 	}
 	return n, nil
 }
 
-/*
 func TestConfig(t *testing.T) {
-	neb, err := makeNebT(TEST_ALL_ELEMENT)
+	var neb *Neblet
+	var err error
+	neb, err = makeNebT(TestAllElement)
 	assert.Nil(t, err)
 
 	neb.storage, err = storage.NewDiskStorage(neb.config.Chain.Datadir)
 	assert.Nil(t, err)
 
-	_, err = nebnet.NewNetService(neb)
-	assert.Nil(t, err)
+	//_, err = nebnet.NewNetService(neb)
+	//assert.Nil(t, err)
 
 	_, err = core.NewBlockChain(neb)
 	assert.Nil(t, err)
@@ -110,20 +169,16 @@ func TestConfig(t *testing.T) {
 	neb.rpcServer = rpc.NewServer(neb)
 	assert.NotNil(t, neb.rpcServer)
 
-	defer func() {
-		if err := recover(); err != nil {
-			println(err.(string))
-		}
-	}()
-}*/
-/*
-func TestConfigLackChain(t *testing.T) {
-	_, err := makeNebT(TEST_LACK_CHAIN)
+}
+
+/*func TestConfigLackChain(t *testing.T) {
+	_, err := makeNebT(TestLackChain)
 	assert.NotNil(t, err)
 }*/
+
 /*
 func TestConfigLackNetWork(t *testing.T) {
-	neb, err := makeNebT(TEST_LACK_NETWORK)
+	neb, err := makeNebT(TestLackNetWork)
 	assert.Nil(t, err)
 	//fmt.Printf("chain:%v\n", neb.config.GetChain())
 	neb.storage, err = storage.NewDiskStorage(neb.config.Chain.Datadir)
@@ -134,7 +189,7 @@ func TestConfigLackNetWork(t *testing.T) {
 	//assert.Panics(t, err)
 }*/
 /*func TestConfigLackRpc(t *testing.T) {
-	neb, err := makeNebT(TEST_LACK_RPC)
+	neb, err := makeNebT(TestLackRpc)
 	assert.Nil(t, err)
 
 	neb.storage, err = storage.NewDiskStorage(neb.config.Chain.Datadir)
@@ -149,24 +204,49 @@ func TestConfigLackNetWork(t *testing.T) {
 	neb.rpcServer = rpc.NewServer(neb) //fatal
 	assert.NotNil(t, neb.rpcServer)
 }*/
-func TestConfigLackGenesisConf(t *testing.T) {
+func TestConfigBlockChain(t *testing.T) {
 	{
 		//init not genesis db and not genesis.conf
-		/*neb, err := makeNebT(TEST_NEW_DB_AND_LACK_GENESIS)
+		/*var neb *Neblet
+		var err error
+		neb, err = makeNebT(TestNewDb)
 		assert.Nil(t, err)
 
 		neb.storage, err = storage.NewDiskStorage(neb.config.Chain.Datadir)
-		assert.NotNil(t, err)
-
-		_, err = nebnet.NewNetService(neb)
 		assert.Nil(t, err)
 
 		_, err = core.NewBlockChain(neb)
-		assert.NotNil(t, err)*/
+		assert.Nil(t, err)*/
+
+		//neb.storage.Close()
 	}
 	{
-		//first start db is new
-		/*neb, err := makeNebT(TEST_NEW_DB)
+		//db exist and lack genesis.conf
+		/*var neb *Neblet
+		var err error
+		neb, err = makeNebT(TestNewDb)
+		assert.Nil(t, err)
+
+		neb.storage, err = storage.NewDiskStorage(neb.config.Chain.Datadir)
+		assert.Nil(t, err)
+
+		_, err = core.NewBlockChain(neb)
+		assert.Nil(t, err)*/
+	}
+	{
+		//db exist and genesis.conf exist
+		/*neb, err := makeNebT(TestNewDb)
+		assert.Nil(t, err)
+
+		neb.storage, err = storage.NewDiskStorage(neb.config.Chain.Datadir)
+		assert.Nil(t, err)
+
+		_, err = core.NewBlockChain(neb)
+		assert.Nil(t, err)*/
+	}
+	{
+		//genesis db exist and genesis.conf is exist
+		/*neb, err := makeNebT(TestNewDb)
 		assert.Nil(t, err)
 
 		neb.storage, err = storage.NewDiskStorage(neb.config.Chain.Datadir)
@@ -177,34 +257,5 @@ func TestConfigLackGenesisConf(t *testing.T) {
 
 		_, err = core.NewBlockChain(neb)
 		assert.Nil(t, err)*/
-	}
-	{
-		/*
-			//second start and lack config
-			neb, err := makeNebT(TEST_NEW_DB_AND_LACK_GENESIS)
-			assert.Nil(t, err)
-
-			neb.storage, err = storage.NewDiskStorage(neb.config.Chain.Datadir)
-			assert.Nil(t, err)
-
-			_, err = nebnet.NewNetService(neb)
-			assert.Nil(t, err)
-
-			_, err = core.NewBlockChain(neb)
-			assert.Nil(t, err)*/
-	}
-	{
-		//genesis db exist and genesis.conf is exist
-		/* 		neb, err := makeNebT(TEST_NEW_DB)
-		   		assert.Nil(t, err)
-
-		   		neb.storage, err = storage.NewDiskStorage(neb.config.Chain.Datadir)
-		   		assert.Nil(t, err)
-
-		   		_, err = nebnet.NewNetService(neb)
-		   		assert.Nil(t, err)
-
-		   		_, err = core.NewBlockChain(neb)
-		   		assert.Nil(t, err) */
 	}
 }

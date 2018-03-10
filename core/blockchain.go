@@ -214,7 +214,7 @@ func (bc *BlockChain) CheckChainConfig(neb Neblet) error {
 		if neb.Config().Chain.ChainId != neb.Genesis().Meta.ChainId {
 			return ErrInvalidConfigChainID
 		}
-		return checkGenesisConfByDB(bc, neb.Genesis())
+		return CheckGenesisConfByDB(bc, neb.Genesis())
 	}
 
 	return nil
