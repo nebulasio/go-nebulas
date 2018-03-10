@@ -20,7 +20,6 @@ package core
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"reflect"
 	"time"
@@ -69,7 +68,7 @@ type BlockHeader struct {
 	chainID   uint32
 
 	// sign
-	alg  uint8
+	alg  keystore.Algorithm
 	sign byteutils.Hash
 }
 
@@ -98,15 +97,22 @@ func (b *BlockHeader) FromProto(msg proto.Message) error {
 		b.stateRoot = msg.StateRoot
 		b.txsRoot = msg.TxsRoot
 		b.eventsRoot = msg.EventsRoot
-		b.consensusRoot = msg.ConsensusRoot // ToCheck: msg.DposContext is not nil.
-		b.coinbase = &Address{msg.Coinbase} // ToCheck: check address.
+		if msg.ConsensusRoot == nil {
+			return ErrInvalidProtoToBlockHeader
+		}
+		b.consensusRoot = msg.ConsensusRoot
+		coinbase, err := AddressParseFromBytes(msg.Coinbase)
+		if err != nil {
+			return ErrInvalidProtoToBlockHeader
+		}
+		b.coinbase = coinbase
 		b.timestamp = msg.Timestamp
 		b.chainID = msg.ChainId
-		b.alg = uint8(msg.Alg) // ToRefine: keystore.Algorithm
+		b.alg = keystore.Algorithm(msg.Alg)
 		b.sign = msg.Sign
 		return nil
 	}
-	return errors.New("Protobuf message cannot be converted into BlockHeader")
+	return ErrInvalidProtoToBlockHeader
 }
 
 // Block structure
@@ -153,7 +159,7 @@ func (block *Block) ToProto() (proto.Message, error) {
 			Height:       block.height,
 		}, nil
 	}
-	return nil, errors.New("Protobuf message cannot be converted into BlockHeader")
+	return nil, ErrInvalidBlockToProto
 }
 
 // FromProto converts proto Block to domain Block
@@ -175,7 +181,7 @@ func (block *Block) FromProto(msg proto.Message) error {
 		block.height = msg.Height
 		return nil
 	}
-	return errors.New("Protobuf message cannot be converted into Block")
+	return ErrInvalidProtoToBlock
 }
 
 // NewBlock return new block.
@@ -231,7 +237,7 @@ func (block *Block) Sign(signature keystore.Signature) error {
 	if err != nil {
 		return err
 	}
-	block.header.alg = uint8(signature.Algorithm())
+	block.header.alg = keystore.Algorithm(signature.Algorithm())
 	block.header.sign = sign
 	return nil
 }
@@ -247,7 +253,7 @@ func (block *Block) Coinbase() *Address {
 }
 
 // Alg return block's alg
-func (block *Block) Alg() uint8 {
+func (block *Block) Alg() keystore.Algorithm {
 	return block.header.alg
 }
 

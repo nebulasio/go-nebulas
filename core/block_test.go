@@ -353,6 +353,8 @@ func TestBlock(t *testing.T) {
 	from2, _ := NewAddress([]byte("eb692e1438fce79f5cb2"))
 	to1, _ := NewAddress([]byte("eb691e1438fce79f5cb2"))
 	to2, _ := NewAddress([]byte("eb690e1438fce79f5cb2"))
+	coinbase, _ := NewAddress([]byte("5425730430bc2d63f257"))
+
 	tests := []struct {
 		name    string
 		fields  fields
@@ -370,7 +372,7 @@ func TestBlock(t *testing.T) {
 					consensusRoot: &consensuspb.ConsensusRoot{
 						DynastyRoot: []byte("43656"),
 					},
-					coinbase:  &Address{[]byte("hello")},
+					coinbase:  coinbase,
 					timestamp: time.Now().Unix(),
 					chainID:   100,
 				},
@@ -424,6 +426,7 @@ func TestBlock(t *testing.T) {
 			err := nb.FromProto(proto)
 			assert.Nil(t, err)
 			b.header.timestamp = nb.header.timestamp
+
 			if !reflect.DeepEqual(*b.header, *nb.header) {
 				t.Errorf("Transaction.Serialize() = %v, want %v", *b.header, *nb.header)
 			}
@@ -597,7 +600,7 @@ func TestBlockSign(t *testing.T) {
 	key, _ := ks.GetUnlocked(signer.String())
 	signature.InitSign(key.(keystore.PrivateKey))
 	assert.Nil(t, block.Sign(signature))
-	assert.Equal(t, block.Alg(), uint8(keystore.SECP256K1))
+	assert.Equal(t, block.Alg(), keystore.Algorithm(keystore.SECP256K1))
 	assert.Equal(t, block.Signature(), block.header.sign)
 }
 

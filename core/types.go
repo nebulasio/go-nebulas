@@ -99,6 +99,9 @@ var (
 	ErrInvalidBlockTxsRoot       = errors.New("invalid block txs root hash")
 	ErrInvalidBlockEventsRoot    = errors.New("invalid block events root hash")
 	ErrInvalidBlockConsensusRoot = errors.New("invalid block consensus root hash")
+	ErrInvalidProtoToBlock       = errors.New("protobuf message cannot be converted into Block")
+	ErrInvalidProtoToBlockHeader = errors.New("protobuf message cannot be converted into BlockHeader")
+	ErrInvalidBlockToProto       = errors.New("block cannot be converted into proto")
 
 	ErrCannotRevertLIB     = errors.New("cannot revert latest irreversible block")
 	ErrCannotLoadTailBlock = errors.New("cannot load latest irreversible block from storage")
