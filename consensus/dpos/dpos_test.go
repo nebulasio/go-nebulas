@@ -19,6 +19,7 @@
 package dpos
 
 import (
+	"os"
 	"runtime"
 	"testing"
 
@@ -429,6 +430,8 @@ func TestDpos_MintBlock(t *testing.T) {
 }
 
 func TestDposContracts(t *testing.T) {
+	// change cwd make lib accessible.
+	os.Chdir("../../")
 	runtime.GOMAXPROCS(runtime.NumCPU())
 	neb := mockNeb(t)
 	tail := neb.chain.TailBlock()
@@ -482,7 +485,7 @@ func TestDposContracts(t *testing.T) {
 	argsDeploy := ""
 	payloadDeploy, _ := core.NewDeployPayload(source, sourceType, argsDeploy).ToBytes()
 
-	j := 40
+	j := 10
 
 	for i := 1; i < j; i++ {
 		value, _ := util.NewUint128FromInt(1)
