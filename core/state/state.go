@@ -313,7 +313,7 @@ func (as *accountState) GetContractAccount(addr []byte) (Account, error) {
 		return nil, err
 	}
 
-	if len(acc.BirthPlace()) == 0 { //TODO more check for tx hash					------ no need
+	if len(acc.BirthPlace()) == 0 {
 		return nil, ErrContractNotFound
 	}
 

@@ -91,7 +91,7 @@ func (b *BlockHeader) ToProto() (proto.Message, error) {
 }
 
 // FromProto converts proto BlockHeader to domain BlockHeader
-func (b *BlockHeader) FromProto(msg proto.Message) error { // ToCheck: msg is not nil.
+func (b *BlockHeader) FromProto(msg proto.Message) error {
 	if msg, ok := msg.(*corepb.BlockHeader); ok {
 		b.hash = msg.Hash
 		b.parentHash = msg.ParentHash
@@ -144,7 +144,7 @@ func (block *Block) ToProto() (proto.Message, error) {
 			if tx, ok := tx.(*corepb.Transaction); ok {
 				txs[idx] = tx
 			} else {
-				return nil, errors.New("Protobuf message cannot be converted into Transaction")
+				return nil, ErrCannotConvertTransaction
 			}
 		}
 		return &corepb.Block{
@@ -157,7 +157,7 @@ func (block *Block) ToProto() (proto.Message, error) {
 }
 
 // FromProto converts proto Block to domain Block
-func (block *Block) FromProto(msg proto.Message) error { // ToCheck: msg is not nil.
+func (block *Block) FromProto(msg proto.Message) error {
 	if msg, ok := msg.(*corepb.Block); ok {
 		block.header = new(BlockHeader)
 		if err := block.header.FromProto(msg.Header); err != nil {
@@ -238,10 +238,7 @@ func (block *Block) Sign(signature keystore.Signature) error {
 
 // ChainID returns block's chainID
 func (block *Block) ChainID() uint32 {
-	if block.header == nil {
-		return uint32(0)
-	}
-	return block.header.chainID // ToCheck: header is not nil.
+	return block.header.chainID
 }
 
 // Coinbase return block's coinbase
@@ -561,7 +558,7 @@ func (block *Block) String() string {
 		block.header.stateRoot,
 		block.header.timestamp,
 		len(block.transactions),
-		byteutils.Hex(block.header.consensusRoot.Proposer),
+		byteutils.Hex(block.header.consensusRoot.Proposer), //miner
 	)
 }
 
@@ -911,9 +908,9 @@ func (block *Block) LoadConsensusState(consensusState state.ConsensusState) {
 }
 
 // CheckContract check if contract is valid
-func (block *Block) CheckContract(addr *Address) (state.Account, error) { // ToFix: return contract
+func (block *Block) CheckContract(addr *Address) (state.Account, error) {
 
-	contract, err := block.accState.GetContractAccount(addr.Bytes()) // ToFix: Check account is contract
+	contract, err := block.accState.GetContractAccount(addr.Bytes())
 	if err != nil {
 		return nil, err
 	}
@@ -946,7 +943,11 @@ func (block *Block) CheckContract(addr *Address) (state.Account, error) { // ToF
 }
 
 // HashBlock return the hash of block.
-func HashBlock(block *Block) (byteutils.Hash, error) { // ToConfirm: block is not nil.
+func HashBlock(block *Block) (byteutils.Hash, error) {
+	if block == nil {
+		return nil, ErrNilArgument
+	}
+
 	hasher := sha3.New256()
 
 	consensusRoot, err := proto.Marshal(block.ConsensusRoot())
@@ -971,7 +972,7 @@ func HashBlock(block *Block) (byteutils.Hash, error) { // ToConfirm: block is no
 }
 
 // HashPbBlock return the hash of pb block.
-func HashPbBlock(pbBlock *corepb.Block) byteutils.Hash {
+func HashPbBlock(pbBlock *corepb.Block) byteutils.Hash { //ToAdd nil check
 	block := new(Block) // ToFix: hash pbBlock directly, avoid catching fromproto err
 	if err := block.FromProto(pbBlock); err != nil {
 		if hash, err := HashBlock(block); err != nil {
@@ -1003,7 +1004,11 @@ func RecoverMiner(block *Block) (*Address, error) {
 }
 
 // LoadBlockFromStorage return a block from storage
-func LoadBlockFromStorage(hash byteutils.Hash, chain *BlockChain) (*Block, error) { // ToCheck: check arg.
+func LoadBlockFromStorage(hash byteutils.Hash, chain *BlockChain) (*Block, error) {
+	if chain == nil {
+		return nil, ErrNilArgument
+	}
+
 	value, err := chain.storage.Get(hash)
 	if err != nil {
 		return nil, err

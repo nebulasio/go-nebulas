@@ -19,7 +19,6 @@
 package core
 
 import (
-	"errors"
 	"fmt"
 	"time"
 
@@ -154,9 +153,6 @@ func (tx *Transaction) ToProto() (proto.Message, error) {
 
 // FromProto converts proto Tx into domain Tx
 func (tx *Transaction) FromProto(msg proto.Message) error {
-	if msg == nil {
-		return ErrNilArgument
-	}
 	if msg, ok := msg.(*corepb.Transaction); ok {
 		tx.hash = msg.Hash
 
@@ -176,7 +172,7 @@ func (tx *Transaction) FromProto(msg proto.Message) error {
 		if err != nil {
 			return err
 		}
-		tx.value = value // ToFix: Check value is not nil; done: no need
+		tx.value = value
 		tx.nonce = msg.Nonce
 		tx.timestamp = msg.Timestamp
 
@@ -188,7 +184,7 @@ func (tx *Transaction) FromProto(msg proto.Message) error {
 			return ErrTxDataPayLoadOutOfMaxLength
 		}
 
-		tx.data = msg.Data // ToFix: Check msg.data is not nil done // ToCheck: length <= 1m done
+		tx.data = msg.Data
 		tx.chainID = msg.ChainId
 		gasPrice, err := util.NewUint128FromFixedSizeByteSlice(msg.GasPrice)
 		if err != nil {
@@ -219,17 +215,17 @@ func (tx *Transaction) String() string {
 		tx.gasPrice.String(),
 		tx.gasLimit.String(),
 		tx.Type(),
-	) // ToFix: Check Hash is not nil  done:no need
+	)
 }
 
 // Transactions is an alias of Transaction array.
 type Transactions []*Transaction
 
 // NewTransaction create #Transaction instance.
-func NewTransaction(chainID uint32, from, to *Address, value *util.Uint128, nonce uint64, payloadType string, payload []byte, gasPrice *util.Uint128, gasLimit *util.Uint128) (*Transaction, error) { // ToFix: check args
+func NewTransaction(chainID uint32, from, to *Address, value *util.Uint128, nonce uint64, payloadType string, payload []byte, gasPrice *util.Uint128, gasLimit *util.Uint128) (*Transaction, error) {
 	//if gasPrice is not specified, use the default gasPrice
-	if gasPrice == nil || gasPrice.Cmp(util.NewUint128()) <= 0 { // ToCheck: default value is reasonable?
-		gasPrice = TransactionGasPrice // ToConfirm: uint128 should be immutable
+	if gasPrice == nil || gasPrice.Cmp(util.NewUint128()) <= 0 {
+		gasPrice = TransactionGasPrice
 	}
 	if gasLimit == nil || gasLimit.Cmp(util.NewUint128()) <= 0 {
 		gasLimit = MinGasCountPerTransaction
@@ -241,7 +237,7 @@ func NewTransaction(chainID uint32, from, to *Address, value *util.Uint128, nonc
 			"to":    to,
 			"value": value,
 		}).Error("invalid parameters")
-		return nil, errors.New("invalid parameters when new transaction")
+		return nil, ErrInvalidArgument
 	}
 
 	if len(payload) > MaxDataPayLoadLength {
@@ -249,15 +245,15 @@ func NewTransaction(chainID uint32, from, to *Address, value *util.Uint128, nonc
 	}
 
 	tx := &Transaction{
-		from:      from,  // ToFix:  check nil
-		to:        to,    // ToFix: check nil
-		value:     value, // ToFix: check nil
+		from:      from,
+		to:        to,
+		value:     value,
 		nonce:     nonce,
 		timestamp: time.Now().Unix(),
 		chainID:   chainID,
-		data:      &corepb.Data{Type: payloadType, Payload: payload}, // ToCheck: length <= 1m
-		gasPrice:  gasPrice,                                          // ToFix: check nil
-		gasLimit:  gasLimit,                                          // ToFix: check nil
+		data:      &corepb.Data{Type: payloadType, Payload: payload},
+		gasPrice:  gasPrice,
+		gasLimit:  gasLimit,
 	}
 	return tx, nil
 }
@@ -278,7 +274,11 @@ func (tx *Transaction) GasLimit() *util.Uint128 {
 }
 
 // PayloadGasLimit returns payload gasLimit
-func (tx *Transaction) PayloadGasLimit(payload TxPayload) (*util.Uint128, error) { // ToFix: check args.
+func (tx *Transaction) PayloadGasLimit(payload TxPayload) (*util.Uint128, error) {
+	if payload == nil {
+		return nil, ErrNilArgument
+	}
+
 	// payloadGasLimit = tx.gasLimit - tx.GasCountOfTxBase
 	gasCountOfTxBase, err := tx.GasCountOfTxBase()
 	if err != nil {
@@ -330,7 +330,7 @@ func (tx *Transaction) GasCountOfTxBase() (*util.Uint128, error) {
 
 // DataLen return the length of payload
 func (tx *Transaction) DataLen() int {
-	return len(tx.data.Payload) // ToCheck: missing type? // ToFix: check tx.data is nil
+	return len(tx.data.Payload)
 }
 
 // LoadPayload returns tx's payload
@@ -354,7 +354,11 @@ func (tx *Transaction) LoadPayload() (TxPayload, error) {
 }
 
 // LocalExecution returns tx local execution
-func (tx *Transaction) LocalExecution(block *Block) (*util.Uint128, string, error) { // ToFix: check args.
+func (tx *Transaction) LocalExecution(block *Block) (*util.Uint128, string, error) {
+	if block == nil {
+		return nil, "", ErrNilArgument
+	}
+
 	txBlock, err := block.Clone()
 	if err != nil {
 		return nil, "", err
@@ -412,7 +416,6 @@ func (tx *Transaction) VerifyExecution(block *Block) (*util.Uint128, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	fromAcc, err := block.accState.GetOrCreateUserAccount(tx.from.address)
 	if err != nil {
 		return nil, err
@@ -429,6 +432,7 @@ func (tx *Transaction) VerifyExecution(block *Block) (*util.Uint128, error) {
 		return nil, ErrInsufficientBalance
 	}
 
+	// step3. check payload vaild
 	payload, payloadErr := tx.LoadPayload()
 	if payloadErr != nil {
 		logging.VLog().WithFields(logrus.Fields{
@@ -452,6 +456,7 @@ func (tx *Transaction) VerifyExecution(block *Block) (*util.Uint128, error) {
 		return gasUsed, nil
 	}
 
+	// step4. check gasLimit > gas + payload.baseGasCount
 	gasUsed, err = gasUsed.Add(payload.BaseGasCount())
 	if err != nil {
 		return nil, err
@@ -478,6 +483,7 @@ func (tx *Transaction) VerifyExecution(block *Block) (*util.Uint128, error) {
 		return tx.gasLimit, nil
 	}
 
+	// step5. transfer tx value
 	// block begin
 	txBlock, err := block.Clone()
 	if err != nil {
@@ -488,9 +494,11 @@ func (tx *Transaction) VerifyExecution(block *Block) (*util.Uint128, error) {
 		return nil, err
 	}
 
+	// step6. execute payload
 	// execute smart contract and sub the calcute gas.
 	gasExecution, _, exeErr := payload.Execute(txBlock, tx)
 
+	// step7. gas + gasExecution
 	// gas = tx.GasCountOfTxBase() +  gasExecution
 	gasUsed, gasErr := gasUsed.Add(gasExecution)
 	if gasErr != nil {
@@ -507,6 +515,7 @@ func (tx *Transaction) VerifyExecution(block *Block) (*util.Uint128, error) {
 		block.Merge(txBlock)
 	}
 
+	// step8. consume gas
 	gas, err := tx.gasPrice.Mul(gasUsed)
 	if err != nil {
 		return nil, err
@@ -580,9 +589,9 @@ func (tx *Transaction) recordResultEvent(block *Block, gasUsed *util.Uint128, er
 }
 
 // Sign sign transaction,sign algorithm is
-func (tx *Transaction) Sign(signature keystore.Signature) error { // ToCheck: signature is not nil.
+func (tx *Transaction) Sign(signature keystore.Signature) error {
 	if signature == nil {
-		return errors.New("unexpected error: signature is nil")
+		return ErrNilArgument
 	}
 	hash, err := HashTransaction(tx)
 	if err != nil {

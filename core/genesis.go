@@ -34,16 +34,15 @@ import (
 
 // Genesis Block Hash
 var (
-	GenesisHash      = make([]byte, BlockHashLength)
-	GenesisTimestamp = int64(0)
-	GenesisCoinbase  = &Address{make([]byte, AddressLength)} // ToFix: make checksum valid
+	GenesisHash        = make([]byte, BlockHashLength)
+	GenesisTimestamp   = int64(0)
+	GenesisCoinbase, _ = NewAddress(make([]byte, AddressDataLength))
 )
 
 // LoadGenesisConf load genesis conf for file
-func LoadGenesisConf(filePath string) (*corepb.Genesis, error) { // ToCheck: filepath shouldn't be nil.
+func LoadGenesisConf(filePath string) (*corepb.Genesis, error) {
 	b, err := ioutil.ReadFile(filePath)
 	if err != nil {
-		//logging.CLog().Error("Failed to read the config file : %s. error: %s", filePath, err)
 		logging.CLog().WithFields(logrus.Fields{
 			"err": err,
 		}).Info("Failed to read the genesis config file.")
@@ -61,6 +60,10 @@ func LoadGenesisConf(filePath string) (*corepb.Genesis, error) { // ToCheck: fil
 
 // NewGenesisBlock create genesis @Block from file.
 func NewGenesisBlock(conf *corepb.Genesis, chain *BlockChain) (*Block, error) {
+	if conf == nil || chain == nil {
+		return nil, ErrNilArgument
+	}
+
 	accState, err := state.NewAccountState(nil, chain.storage)
 	if err != nil {
 		return nil, err

@@ -309,10 +309,12 @@ func (bc *BlockChain) SetTailBlock(newTail *Block) error {
 		return err
 	}
 
-	bc.eventEmitter.Trigger(&Event{
-		Topic: TopicRevertBlock,
-		Data:  oldTail.String(),
-	})
+	go func() {
+		bc.eventEmitter.Trigger(&Event{
+			Topic: TopicRevertBlock,
+			Data:  oldTail.String(),
+		})
+	}()
 
 	// build index by block height
 	if err := bc.buildIndexByBlockHeight(ancestor, newTail); err != nil {
@@ -330,27 +332,21 @@ func (bc *BlockChain) SetTailBlock(newTail *Block) error {
 	}
 	bc.tailBlock = newTail
 
-	bc.eventEmitter.Trigger(&Event{
-		Topic: TopicNewTailBlock,
-		Data:  newTail.String(),
-	})
+	go func() {
+		bc.eventEmitter.Trigger(&Event{
+			Topic: TopicNewTailBlock,
+			Data:  newTail.String(),
+		})
 
-	logging.VLog().WithFields(logrus.Fields{
-		"count": len(bc.eventEmitter.eventCh),
-	}).Debug("Start FetchEvents")
-
-	for _, v := range newTail.transactions {
-		events, err := newTail.FetchEvents(v.hash)
-		if err != nil {
-			for _, e := range events {
-				bc.eventEmitter.Trigger(e)
+		for _, v := range newTail.transactions {
+			events, err := newTail.FetchEvents(v.hash)
+			if err != nil {
+				for _, e := range events {
+					bc.eventEmitter.Trigger(e)
+				}
 			}
 		}
-	}
-
-	logging.VLog().WithFields(logrus.Fields{
-		"count": len(bc.eventEmitter.eventCh),
-	}).Debug("Stop FetchEvents")
+	}()
 
 	metricsBlockHeightGauge.Update(int64(newTail.Height()))
 	metricsBlocktailHashGauge.Update(int64(byteutils.HashBytes(newTail.Hash())))
