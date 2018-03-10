@@ -161,6 +161,22 @@ func MockGenesisConf() *corepb.Genesis {
 				Address: "59fc526072b09af8a8ca9732dae17132c4e9127e43cf2232",
 				Value:   "10000000000000000000000",
 			},
+			&corepb.GenesisTokenDistribution{
+				Address: "c79d9667c71bb09d6ca7c3ed12bfe5e7be24e2ffe13a833d",
+				Value:   "10000000000000000000000",
+			},
+			&corepb.GenesisTokenDistribution{
+				Address: "a8f1f53952c535c6600c77cf92b65e0c9b64496a8a328569",
+				Value:   "10000000000000000000000",
+			},
+			&corepb.GenesisTokenDistribution{
+				Address: "98a3eed687640b75ec55bf5c9e284371bdcaeab943524d51",
+				Value:   "10000000000000000000000",
+			},
+			&corepb.GenesisTokenDistribution{
+				Address: "75e4e5a71d647298b88928d8cb5da43d90ab1a6c52d0905f",
+				Value:   "10000000000000000000000",
+			},
 		},
 	}
 }
@@ -441,13 +457,21 @@ func TestDposContracts(t *testing.T) {
 	assert.Nil(t, manager.Unlock(c, []byte("passphrase"), keystore.YearUnlockDuration))
 	d, _ := core.AddressParse("59fc526072b09af8a8ca9732dae17132c4e9127e43cf2232")
 	assert.Nil(t, manager.Unlock(d, []byte("passphrase"), keystore.YearUnlockDuration))
+	e, _ := core.AddressParse("75e4e5a71d647298b88928d8cb5da43d90ab1a6c52d0905f")
+	assert.Nil(t, manager.Unlock(e, []byte("passphrase"), keystore.YearUnlockDuration))
+	f, _ := core.AddressParse("98a3eed687640b75ec55bf5c9e284371bdcaeab943524d51")
+	assert.Nil(t, manager.Unlock(f, []byte("passphrase"), keystore.YearUnlockDuration))
+	g, _ := core.AddressParse("a8f1f53952c535c6600c77cf92b65e0c9b64496a8a328569")
+	assert.Nil(t, manager.Unlock(g, []byte("passphrase"), keystore.YearUnlockDuration))
+	h, _ := core.AddressParse("c79d9667c71bb09d6ca7c3ed12bfe5e7be24e2ffe13a833d")
+	assert.Nil(t, manager.Unlock(h, []byte("passphrase"), keystore.YearUnlockDuration))
 
 	source := `"use strict";var DepositeContent=function(text){if(text){var o=JSON.parse(text);this.balance=new BigNumber(o.balance);this.expiryHeight=new BigNumber(o.expiryHeight)}else{this.balance=new BigNumber(0);this.expiryHeight=new BigNumber(0)}};DepositeContent.prototype={toString:function(){return JSON.stringify(this)}};var BankVaultContract=function(){LocalContractStorage.defineMapProperty(this,"bankVault",{parse:function(text){return new DepositeContent(text)},stringify:function(o){return o.toString()}})};BankVaultContract.prototype={init:function(){},save:function(height){var from=Blockchain.transaction.from;var value=Blockchain.transaction.value;var bk_height=new BigNumber(Blockchain.block.height);var orig_deposit=this.bankVault.get(from);if(orig_deposit){value=value.plus(orig_deposit.balance)}var deposit=new DepositeContent();deposit.balance=value;deposit.expiryHeight=bk_height.plus(height);this.bankVault.put(from,deposit)},takeout:function(value){var from=Blockchain.transaction.from;var bk_height=new BigNumber(Blockchain.block.height);var amount=new BigNumber(value);var deposit=this.bankVault.get(from);if(!deposit){throw new Error("No deposit before.")}if(bk_height.lt(deposit.expiryHeight)){throw new Error("Can not takeout before expiryHeight.")}if(amount.gt(deposit.balance)){throw new Error("Insufficient balance.")}var result=Blockchain.transfer(from,amount);if(result!=0){throw new Error("transfer failed.")}Event.Trigger("BankVault",{Transfer:{from:Blockchain.transaction.to,to:from,value:amount.toString()}});deposit.balance=deposit.balance.sub(amount);this.bankVault.put(from,deposit)},balanceOf:function(){var from=Blockchain.transaction.from;return this.bankVault.get(from)}};module.exports=BankVaultContract;`
 	sourceType := "js"
 	argsDeploy := ""
 	payloadDeploy, _ := core.NewDeployPayload(source, sourceType, argsDeploy).ToBytes()
 
-	j := 8
+	j := 20
 
 	for i := 1; i < j; i++ {
 		value, _ := util.NewUint128FromInt(1)
@@ -467,6 +491,22 @@ func TestDposContracts(t *testing.T) {
 		txDeploy = core.NewTransaction(neb.chain.ChainID(), d, d, value, uint64(i), core.TxPayloadDeployType, payloadDeploy, core.TransactionGasPrice, gasLimit)
 		assert.Nil(t, manager.SignTransaction(d, txDeploy))
 		assert.Nil(t, neb.chain.TransactionPool().Push(txDeploy))
+
+		txDeploy = core.NewTransaction(neb.chain.ChainID(), e, e, value, uint64(i), core.TxPayloadDeployType, payloadDeploy, core.TransactionGasPrice, gasLimit)
+		assert.Nil(t, manager.SignTransaction(e, txDeploy))
+		assert.Nil(t, neb.chain.TransactionPool().Push(txDeploy))
+
+		txDeploy = core.NewTransaction(neb.chain.ChainID(), f, f, value, uint64(i), core.TxPayloadDeployType, payloadDeploy, core.TransactionGasPrice, gasLimit)
+		assert.Nil(t, manager.SignTransaction(f, txDeploy))
+		assert.Nil(t, neb.chain.TransactionPool().Push(txDeploy))
+
+		txDeploy = core.NewTransaction(neb.chain.ChainID(), g, g, value, uint64(i), core.TxPayloadDeployType, payloadDeploy, core.TransactionGasPrice, gasLimit)
+		assert.Nil(t, manager.SignTransaction(g, txDeploy))
+		assert.Nil(t, neb.chain.TransactionPool().Push(txDeploy))
+
+		txDeploy = core.NewTransaction(neb.chain.ChainID(), h, h, value, uint64(i), core.TxPayloadDeployType, payloadDeploy, core.TransactionGasPrice, gasLimit)
+		assert.Nil(t, manager.SignTransaction(h, txDeploy))
+		assert.Nil(t, neb.chain.TransactionPool().Push(txDeploy))
 		/*
 			function := "save"
 			argsCall := "[1]"
@@ -478,7 +518,7 @@ func TestDposContracts(t *testing.T) {
 	}
 
 	block.CollectTransactions(time.Now().Unix() + 1)
-	assert.Equal(t, 2*(j-1), len(block.Transactions()))
+	assert.Equal(t, 8*(j-1), len(block.Transactions()))
 	block.SetMiner(coinbase)
 	assert.Nil(t, block.Seal())
 	assert.Nil(t, manager.SignBlock(coinbase, block))

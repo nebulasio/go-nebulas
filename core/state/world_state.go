@@ -20,6 +20,7 @@ package state
 
 import (
 	"encoding/json"
+	"sync"
 
 	"github.com/nebulasio/go-nebulas/consensus/pb"
 	"github.com/nebulasio/go-nebulas/util"
@@ -516,7 +517,7 @@ func (s *states) GetGas() map[string]*util.Uint128 {
 // WorldState manange all current states in Blockchain
 type worldState struct {
 	*states
-	txStates map[interface{}]*txWorldState
+	txStates *sync.Map
 }
 
 // NewWorldState create a new empty WorldState
@@ -527,7 +528,7 @@ func NewWorldState(consensus Consensus, storage storage.Storage) (WorldState, er
 	}
 	return &worldState{
 		states:   states,
-		txStates: make(map[interface{}]*txWorldState),
+		txStates: new(sync.Map),
 	}, nil
 }
 
@@ -539,7 +540,7 @@ func (ws *worldState) Clone() (WorldState, error) {
 	}
 	return &worldState{
 		states:   s.(*states),
-		txStates: make(map[interface{}]*txWorldState),
+		txStates: new(sync.Map),
 	}, nil
 }
 
@@ -570,7 +571,7 @@ type txWorldState struct {
 }
 
 func (ws *worldState) Prepare(txid interface{}) (TxWorldState, error) {
-	if _, ok := ws.txStates[txid]; ok {
+	if _, ok := ws.txStates.Load(txid); ok {
 		return nil, ErrCannotPrepareTxStateTwice
 	}
 	s, err := ws.states.Prepare(txid)
@@ -581,15 +582,16 @@ func (ws *worldState) Prepare(txid interface{}) (TxWorldState, error) {
 		states: s.(*states),
 		txid:   txid,
 	}
-	ws.txStates[txid] = txState
+	ws.txStates.Store(txid, txState)
 	return txState, nil
 }
 
 func (ws *worldState) CheckAndUpdate(txid interface{}) ([]interface{}, error) {
-	txWorldState, ok := ws.txStates[txid]
+	state, ok := ws.txStates.Load(txid)
 	if !ok {
 		return nil, ErrCannotUpdateTxStateBeforePrepare
 	}
+	txWorldState := state.(*txWorldState)
 	dependencies, err := txWorldState.CheckAndUpdate(txid)
 	if err != nil {
 		return nil, err
@@ -602,10 +604,11 @@ func (ws *worldState) CheckAndUpdate(txid interface{}) ([]interface{}, error) {
 }
 
 func (ws *worldState) Reset(txid interface{}) error {
-	txWorldState, ok := ws.txStates[txid]
+	state, ok := ws.txStates.Load(txid)
 	if !ok {
 		return ErrCannotUpdateTxStateBeforePrepare
 	}
+	txWorldState := state.(*txWorldState)
 	if err := txWorldState.Reset(txid); err != nil {
 		return err
 	}
@@ -613,14 +616,15 @@ func (ws *worldState) Reset(txid interface{}) error {
 }
 
 func (ws *worldState) Close(txid interface{}) error {
-	txWorldState, ok := ws.txStates[txid]
+	state, ok := ws.txStates.Load(txid)
 	if !ok {
 		return ErrCannotUpdateTxStateBeforePrepare
 	}
+	txWorldState := state.(*txWorldState)
 	if err := txWorldState.Close(txid); err != nil {
 		return err
 	}
-	delete(ws.txStates, txid)
+	ws.txStates.Delete(txid)
 	return nil
 }
 
