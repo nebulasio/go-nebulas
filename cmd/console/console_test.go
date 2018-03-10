@@ -80,7 +80,7 @@ func newTester(t *testing.T) *tester {
 	hookedInput := &hookedPrompter{scheduler: make(chan string)}
 	hookedOutput := new(bytes.Buffer)
 
-	testConsole := New(ConsoleConfig{
+	testConsole := New(Config{
 		Prompter:   hookedInput,
 		PrompterCh: make(chan string),
 		Writer:     hookedOutput,
@@ -216,6 +216,59 @@ func TestApiValidInput(t *testing.T) {
 		select {
 		case <-tester.input.scheduler:
 		case <-time.After(time.Second * 2):
+			t.Fatalf("secondary prompt timeout")
+		}
+
+		output := tester.output.String()
+
+		// Reset resets the buffer to make it has no content
+		tester.output.Reset()
+
+		if strings.Contains(output, tt.expectOutputWhenNebRunning) {
+			continue
+		} else if strings.Contains(output, tt.expectOutputWhenNebNotRunning) {
+			fmt.Println("testing console without running neb")
+		} else {
+			t.Fatalf("statement evaluation failed: have %s, want %s", output, tt.expectOutputWhenNebRunning+" or "+tt.expectOutputWhenNebNotRunning)
+		}
+	}
+}
+
+func TestSpecialInput(t *testing.T) {
+	tester := newTester(t)
+	defer tester.Close(t)
+	go tester.console.Interactive()
+
+	testCases := []struct {
+		inputCommand               string
+		expectOutputWhenNebRunning string
+		// when local neb is not started only get expectOutputWhenNebNotRunning
+		expectOutputWhenNebNotRunning string
+	}{
+		{`#(*$)@(*#$)(*$`, `\"Unexpected token ILLEGAL\"`, "Unexpected token ILLEGAL"},
+		{``, "", ""},
+		{`alert("Hello! I am an alert box!!");`, "alert' is not defined", "alert' is not defined"},
+		{`admin.unknownCommand();`, "unknownCommand' is not a function", "unknownCommand' is not a function"},
+	}
+	// Wait for a promt and send a statement back
+	select {
+	case <-tester.input.scheduler:
+	case <-time.After(time.Second):
+		t.Fatalf("initial prompt timeout")
+	}
+
+	for _, tt := range testCases {
+		fmt.Println("testing " + tt.inputCommand)
+
+		select {
+		case tester.input.scheduler <- tt.inputCommand:
+		case <-time.After(time.Second):
+			t.Fatalf("input feedback timeout")
+		}
+		// Wait for the second promt and ensure first statement was evaluated
+		select {
+		case <-tester.input.scheduler:
+		case <-time.After(time.Second):
 			t.Fatalf("secondary prompt timeout")
 		}
 

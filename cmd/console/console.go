@@ -70,15 +70,16 @@ type Console struct {
 	writer io.Writer
 }
 
-type ConsoleConfig struct {
+// Config neb console config
+type Config struct {
 	Prompter   UserPrompter
 	PrompterCh chan string
 	Writer     io.Writer
 	Neb        Neblet
 }
 
-// new a console by Config, neb.config params is need
-func New(conf ConsoleConfig) *Console {
+// New a console by Config, neb.config params is need
+func New(conf Config) *Console {
 	c := new(Console)
 
 	if conf.Prompter != nil {

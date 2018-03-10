@@ -42,7 +42,7 @@ func consoleStart(ctx *cli.Context) error {
 		return err
 	}
 
-	console := console.New(console.ConsoleConfig{
+	console := console.New(console.Config{
 		Prompter:   console.Stdin,
 		PrompterCh: make(chan string),
 		Writer:     os.Stdout,

@@ -29,6 +29,7 @@ import (
 // Stdin holds the stdin line reader (also using stdout for printing prompts).
 var Stdin = NewTerminalPrompter()
 
+// UserPrompter handle console user input interactive
 type UserPrompter interface {
 	Prompt(prompt string) (string, error)
 	PromptPassphrase(prompt string) (passwd string, err error)
