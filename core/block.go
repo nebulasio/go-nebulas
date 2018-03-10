@@ -870,6 +870,7 @@ func (block *Block) execute() error {
 	logging.CLog().Info("01")
 	mergeCh := make(chan bool, 1)
 	parallelCh := make(chan bool, 32)
+	transactions := []*Transaction{}
 	finish := len(block.transactions)
 	inprogress := make(map[byteutils.HexHash]bool)
 	pool, err := NewTransactionPool(len(block.transactions))
@@ -896,7 +897,6 @@ func (block *Block) execute() error {
 	}
 	logging.CLog().Info("03")
 	for !pool.Empty() {
-		logging.CLog().Info("04")
 		mergeCh <- true
 		if finish == 0 {
 			logging.CLog().Info("BuildDag Error: ", "finish == 0 when pool is not empty")
@@ -930,12 +930,15 @@ func (block *Block) execute() error {
 			logging.CLog().Info("07")
 
 			giveback, err := txBlock.ExecuteTransaction(tx, txWorldState)
-			logging.CLog().Info("08")
+			logging.CLog().Info("08 ", err)
 			if err != nil {
+				logging.CLog().Info("081")
 				if giveback {
+					logging.CLog().Info("082")
 					if err := pool.Push(tx); err != nil {
 						logging.CLog().Info("BuildDag Error: ", "faild to giveback tx, ", err)
 					}
+					logging.CLog().Info("083")
 					logging.CLog().Info("giveback tx, ", tx, " err ", err)
 				}
 			} else {
@@ -968,11 +971,13 @@ func (block *Block) execute() error {
 					for _, node := range dep {
 						dependency.AddEdge(node, txid)
 					}
+					transactions = append(transactions, tx)
 					delete(inprogress, tx.from.address.Hex())
 					finish--
 				}
 				<-mergeCh
 			}
+			logging.CLog().Info("0121")
 		}()
 	}
 	for finish > 0 {
@@ -981,6 +986,7 @@ func (block *Block) execute() error {
 	txBlock.RollBack()
 	logging.CLog().Info("013 ", finish)
 	block.dependency = dependency
+	block.transactions = transactions
 
 	context := &verifyCtx{
 		mergeCh: make(chan bool, 1),
