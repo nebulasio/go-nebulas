@@ -131,6 +131,9 @@ func (db *MVCCDB) Commit() error {
 		} else {
 			db.putToStorage(value.key, value.val)
 		}
+
+		// logging.CLog().Infof("MVCCDB.COMMIT: %s %s %d", byteutils.Hex(value.key), byteutils.Hex(hash.Sha3256(value.val)), value.version)
+
 	}
 	db.stagingTable.Unlock()
 
@@ -339,8 +342,6 @@ func (db *MVCCDB) Reset() error {
 
 // Close close prepared DB.
 func (db *MVCCDB) Close() error {
-	db.mutex.Lock()
-	defer db.mutex.Unlock()
 
 	if !db.isInTransaction {
 		return ErrTransactionNotStarted
@@ -358,6 +359,9 @@ func (db *MVCCDB) Close() error {
 	if err != nil {
 		return err
 	}
+
+	db.parentDB.mutex.Lock()
+	defer db.parentDB.mutex.Unlock()
 
 	delete(db.parentDB.preparedDBs, db.tid)
 	db.isPreparedDBClosed = true

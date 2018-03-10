@@ -245,6 +245,9 @@ func (tbl *StagingTable) MergeToParent() ([]interface{}, error) {
 		// merge.
 		value := fromValueItem.CloneForMerge()
 		targetValues[keyStr] = value
+
+		// logging.CLog().Infof("MVCCDB.MERGE: %s %s %s %d", tbl.tid, byteutils.Hex(value.key), byteutils.Hex(hash.Sha3256(value.val)), value.version)
+
 	}
 
 	tids := make([]interface{}, 0, len(dependentTids))
@@ -256,12 +259,13 @@ func (tbl *StagingTable) MergeToParent() ([]interface{}, error) {
 }
 
 func (tbl *StagingTable) Close() error {
-	tbl.mutex.Lock()
-	defer tbl.mutex.Unlock()
 
 	if tbl.parentStagingTable == nil {
 		return ErrDisallowedCallingInNoPreparedDB
 	}
+
+	tbl.parentStagingTable.mutex.Lock()
+	defer tbl.parentStagingTable.mutex.Unlock()
 
 	delete(tbl.parentStagingTable.preparedStagingTables, tbl.tid)
 
