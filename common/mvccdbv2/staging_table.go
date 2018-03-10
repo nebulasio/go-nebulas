@@ -128,7 +128,7 @@ func (tbl *StagingTable) Put(key []byte, val []byte) (*VersionizedValueItem, err
 		return nil, err
 	}
 
-	value.dirty = value.dirty || bytes.Compare(value.val, val) != 0
+	value.dirty = value.dirty || !bytes.Equal(value.val, val)
 	value.val = val
 	return value, nil
 }
