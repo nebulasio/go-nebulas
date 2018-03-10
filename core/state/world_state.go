@@ -302,6 +302,18 @@ func (s *states) Reset(txid interface{}) error {
 	return nil
 }
 
+func (s *states) Close(txid interface{}) error {
+
+	if err := s.changelog.Close(); err != nil {
+		return err
+	}
+	if err := s.storage.Close(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (s *states) AccountsRoot() (byteutils.Hash, error) {
 	return s.accState.RootHash()
 }
@@ -488,11 +500,15 @@ func (s *states) RecordGas(from string, gas *util.Uint128) error {
 	}
 	var err error
 	s.gasConsumed[from], err = consumed.Add(gas)
+
 	return err
 }
 
 func (s *states) GetGas() map[string]*util.Uint128 {
-	gasConsumed := s.gasConsumed
+	gasConsumed := make(map[string]*util.Uint128)
+	for from, gas := range s.gasConsumed {
+		gasConsumed[from] = gas
+	}
 	s.gasConsumed = make(map[string]*util.Uint128)
 	return gasConsumed
 }
@@ -591,6 +607,17 @@ func (ws *worldState) Reset(txid interface{}) error {
 		return ErrCannotUpdateTxStateBeforePrepare
 	}
 	if err := txWorldState.Reset(txid); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (ws *worldState) Close(txid interface{}) error {
+	txWorldState, ok := ws.txStates[txid]
+	if !ok {
+		return ErrCannotUpdateTxStateBeforePrepare
+	}
+	if err := txWorldState.Close(txid); err != nil {
 		return err
 	}
 	delete(ws.txStates, txid)

@@ -118,6 +118,7 @@ type WorldState interface {
 	Prepare(interface{}) (TxWorldState, error)
 	CheckAndUpdate(interface{}) ([]interface{}, error)
 	Reset(interface{}) error
+	Close(interface{}) error
 
 	LoadAccountsRoot(byteutils.Hash) error
 	LoadTxsRoot(byteutils.Hash) error

@@ -442,6 +442,11 @@ func (block *Block) Reset(tx *Transaction) error {
 	return block.WorldState().Reset(tx.Hash().String())
 }
 
+// Close a batch task
+func (block *Block) Close(tx *Transaction) error {
+	return block.WorldState().Close(tx.Hash().String())
+}
+
 // ReturnTransactions and giveback them to tx pool
 // TODO(roy): optimize storage.
 // if a block is reverted, we should erase all changes
@@ -558,7 +563,7 @@ func (block *Block) CollectTransactions(deadline int64) {
 							}).Debug("Failed to giveback the tx.")
 						}
 
-						if err := block.Reset(tx); err != nil {
+						if err := block.Close(tx); err != nil {
 							logging.VLog().WithFields(logrus.Fields{
 								"block": block,
 								"tx":    tx,
@@ -950,7 +955,7 @@ func (block *Block) execute() error {
 						logging.CLog().Info("BuildDag Error: ", "faild to giveback tx, ", err, " tx ", tx)
 					}
 					logging.CLog().Info("giveback tx, ", tx)
-					if err := txBlock.Reset(tx); err != nil {
+					if err := txBlock.Close(tx); err != nil {
 						logging.CLog().Info("BuildDag Error: ", "faild to reset tx, ", err, " ", tx)
 					} else {
 						delete(inprogress, tx.from.address.Hex())
