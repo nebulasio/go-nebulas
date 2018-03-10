@@ -88,17 +88,12 @@ func (s *Slice) PopMax() interface{} {
 
 // Del the given value
 func (s *Slice) Del(val interface{}) {
-	start := 0
-	end := len(s.content) - 1
-	for start <= end {
-		mid := (start + end) / 2
-		result := s.cmp(s.content[mid], val)
-		if result > 0 {
-			end = mid - 1
-		} else if result < 0 {
-			start = mid + 1
-		} else {
-			s.content = append(s.content[0:mid], s.content[mid+1:]...)
+	for k, v := range s.content {
+		if v == val {
+			var content []interface{}
+			content = append(content, s.content[k+1:]...)
+			content = append(s.content[0:k], content...)
+			s.content = content
 			return
 		}
 	}

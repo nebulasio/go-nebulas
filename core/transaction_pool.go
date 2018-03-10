@@ -312,12 +312,11 @@ func (pool *TransactionPool) dropTx() {
 		}
 	}
 	if longestLen > 0 {
-		drop := longestSlice.PopMax()
+		drop := longestSlice.PopMax().(*Transaction)
 		if drop != nil {
-			tx := drop.(*Transaction)
-			delete(pool.all, tx.Hash().Hex())
+			delete(pool.all, drop.Hash().Hex())
 			if longestLen == 1 {
-				pool.candidates.Del(tx)
+				pool.candidates.Del(drop)
 			}
 		}
 	}
@@ -349,6 +348,7 @@ func (pool *TransactionPool) Pop() *Transaction {
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
 
+	logging.CLog().Info("Pop")
 	candidates := pool.candidates
 	val := candidates.PopMin()
 	if val == nil {

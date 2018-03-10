@@ -130,6 +130,7 @@ func TestNewGenesisBlock(t *testing.T) {
 	assert.Equal(t, dumpConf.Consensus.Dpos.Dynasty, conf.Consensus.Dpos.Dynasty)
 	assert.Equal(t, dumpConf.TokenDistribution, conf.TokenDistribution)
 }
+
 func TestCheckGenesisAndDBConsense(t *testing.T) {
 	conf := MockGenesisConf()
 	chain := mockNeb(t).chain

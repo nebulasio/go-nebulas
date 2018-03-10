@@ -133,9 +133,12 @@ func TestTransactionPool(t *testing.T) {
 	assert.Nil(t, txPool.Push(txs[7]))
 	assert.Equal(t, len(txPool.all), 3)
 
-	txPool.Pop()
-	txPool.Pop()
-	txPool.Pop()
+	assert.NotNil(t, txPool.Pop())
+	assert.Equal(t, len(txPool.all), 2)
+	assert.NotNil(t, txPool.Pop())
+	assert.Equal(t, len(txPool.all), 1)
+	assert.NotNil(t, txPool.Pop())
+	assert.Equal(t, len(txPool.all), 0)
 	assert.Equal(t, txPool.Empty(), true)
 	assert.Nil(t, txPool.Pop())
 }

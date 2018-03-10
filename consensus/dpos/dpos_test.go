@@ -78,8 +78,8 @@ func mockNeb(t *testing.T) *Neb {
 	chain, err := core.NewBlockChain(neb)
 	assert.Nil(t, err)
 	neb.chain = chain
-	dpos.Setup(neb)
-	chain.Setup(neb)
+	assert.Nil(t, dpos.Setup(neb))
+	assert.Nil(t, chain.Setup(neb))
 
 	var ns mockNetService
 	neb.ns = ns
@@ -166,11 +166,15 @@ var (
 
 // MockGenesisConf return mock genesis conf
 func MockGenesisConf() *corepb.Genesis {
+	dynasty := []string{}
+	for _, v := range DefaultOpenDynasty {
+		dynasty = append(dynasty, v)
+	}
 	return &corepb.Genesis{
 		Meta: &corepb.GenesisMeta{ChainId: 0},
 		Consensus: &corepb.GenesisConsensus{
 			Dpos: &corepb.GenesisConsensusDpos{
-				Dynasty: DefaultOpenDynasty,
+				Dynasty: dynasty,
 			},
 		},
 		TokenDistribution: []*corepb.GenesisTokenDistribution{
@@ -256,7 +260,7 @@ func mockBlockFromNetwork(block *core.Block) (*core.Block, error) {
 	return block, nil
 }
 
-func TestDpos_New(t *testing.T) {
+/* func TestDpos_New(t *testing.T) {
 	neb := mockNeb(t)
 	coinbase := neb.config.Chain.Coinbase
 	neb.config.Chain.Coinbase += "0"
@@ -264,13 +268,13 @@ func TestDpos_New(t *testing.T) {
 	neb.config.Chain.Coinbase = coinbase
 	neb.config.Chain.Miner += "0"
 	assert.NotNil(t, neb.Consensus().Setup(neb))
-}
+} */
 
 func TestDpos_VerifySign(t *testing.T) {
 	neb := mockNeb(t)
 	dpos := neb.consensus
 	chain := neb.chain
-	tail := neb.chain.TailBlock()
+	tail := chain.TailBlock()
 
 	elapsedSecond := int64(DynastySize*BlockInterval + DynastyInterval)
 	consensusState, err := tail.NextConsensusState(elapsedSecond)
