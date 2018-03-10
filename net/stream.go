@@ -183,16 +183,48 @@ func (s *Stream) SendMessage(messageName string, data []byte, priority int) erro
 	// send to pool.
 	message.FlagSendMessageAt()
 
+	// use a non-blocking channel to avoid blocking when the channel is full.
 	switch priority {
 	case MessagePriorityHigh:
-		s.highPriorityMessageChan <- message
+		select {
+		case s.highPriorityMessageChan <- message:
+		default:
+			logging.VLog().WithFields(logrus.Fields{
+				"highPriorityMessageChan.len": len(s.highPriorityMessageChan),
+				"stream":                      s.String(),
+			}).Debug("Received too many high priority message.")
+			return nil
+		}
 	case MessagePriorityNormal:
-		s.normalPriorityMessageChan <- message
+		select {
+		case s.normalPriorityMessageChan <- message:
+		default:
+			logging.VLog().WithFields(logrus.Fields{
+				"normalPriorityMessageChan.len": len(s.normalPriorityMessageChan),
+				"stream":                        s.String(),
+			}).Debug("Received too many normal priority message.")
+			return nil
+		}
 	default:
-		s.lowPriorityMessageChan <- message
+		select {
+		case s.lowPriorityMessageChan <- message:
+		default:
+			logging.VLog().WithFields(logrus.Fields{
+				"lowPriorityMessageChan.len": len(s.lowPriorityMessageChan),
+				"stream":                     s.String(),
+			}).Debug("Received too many low priority message.")
+			return nil
+		}
 	}
-	s.messageNotifChan <- 1
-
+	select {
+	case s.messageNotifChan <- 1:
+	default:
+		logging.VLog().WithFields(logrus.Fields{
+			"messageNotifChan.len": len(s.messageNotifChan),
+			"stream":               s.String(),
+		}).Debug("Received too many message notifChan.")
+		return nil
+	}
 	return nil
 }
 
