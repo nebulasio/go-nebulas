@@ -501,3 +501,36 @@ func TestStagingTable_Purge(t *testing.T) {
 	ret, _ = tbl.Get(key2)
 	assert.Nil(t, ret.val)
 }
+
+func TestStagingTable_PrepareAndClose(t *testing.T) {
+	stor, _ := storage.NewMemoryStorage()
+
+	{
+		rootTbl := NewStagingTable(stor, "tid0")
+		assert.Equal(t, ErrDisallowedCallingInNoPreparedDB, rootTbl.Close())
+	}
+
+	{
+		tbl := NewStagingTable(stor, "tid0")
+
+		tbl1, err := tbl.Prepare("tid1")
+		assert.Nil(t, err)
+		assert.Nil(t, tbl1.Close())
+
+		tbl1, err = tbl.Prepare("tid1")
+		assert.Nil(t, err)
+		assert.Nil(t, tbl1.Close())
+	}
+
+	{
+		tbl := NewStagingTable(stor, "tid0")
+
+		tbl1, err := tbl.Prepare("tid1")
+		assert.Nil(t, err)
+		assert.NotNil(t, tbl1)
+
+		tbl2, err := tbl.Prepare("tid1")
+		assert.Equal(t, ErrTidIsExist, err)
+		assert.Nil(t, tbl2)
+	}
+}
