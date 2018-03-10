@@ -188,6 +188,7 @@ func DumpGenesis(chain *BlockChain) (*corepb.Genesis, error) {
 	}, nil
 }
 
+//CheckGenesisConfByDB check mem and genesis.conf if equal return nil
 func CheckGenesisConfByDB(chain *BlockChain, pGenesis *corepb.Genesis) error {
 	//private function [Empty parameters are checked by the caller]
 	if genesis, _ := DumpGenesis(chain); genesis != nil {
