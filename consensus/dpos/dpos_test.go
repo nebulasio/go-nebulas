@@ -414,6 +414,81 @@ func TestDpos_MintBlock(t *testing.T) {
 
 func TestDposContracts(t *testing.T) {
 	runtime.GOMAXPROCS(runtime.NumCPU())
+	neb := mockNeb(t)
+	tail := neb.chain.TailBlock()
+	dpos := neb.consensus
+
+	coinbase, err := core.AddressParse("1a263547d167c74cf4b8f9166cfa244de0481c514a45aa2c")
+
+	assert.Nil(t, err)
+
+	elapsedSecond := int64(DynastyInterval)
+	consensusState, err := tail.WorldState().NextConsensusState(elapsedSecond)
+	assert.Nil(t, err)
+	block, err := core.NewBlock(neb.chain.ChainID(), coinbase, tail)
+	assert.Nil(t, err)
+	block.SetTimestamp(consensusState.TimeStamp())
+	block.WorldState().SetConsensusState(consensusState)
+
+	manager := account.NewManager(nil)
+	assert.Nil(t, dpos.EnableMining("passphrase"))
+
+	a, _ := core.AddressParse("2fe3f9f51f9a05dd5f7c5329127f7c917917149b4e16b0b8")
+	assert.Nil(t, manager.Unlock(a, []byte("passphrase"), keystore.YearUnlockDuration))
+	b, _ := core.AddressParse("333cb3ed8c417971845382ede3cf67a0a96270c05fe2f700")
+	assert.Nil(t, manager.Unlock(b, []byte("passphrase"), keystore.YearUnlockDuration))
+	c, _ := core.AddressParse("48f981ed38910f1232c1bab124f650c482a57271632db9e3")
+	assert.Nil(t, manager.Unlock(c, []byte("passphrase"), keystore.YearUnlockDuration))
+	d, _ := core.AddressParse("59fc526072b09af8a8ca9732dae17132c4e9127e43cf2232")
+	assert.Nil(t, manager.Unlock(d, []byte("passphrase"), keystore.YearUnlockDuration))
+
+	source := `"use strict";var DepositeContent=function(text){if(text){var o=JSON.parse(text);this.balance=new BigNumber(o.balance);this.expiryHeight=new BigNumber(o.expiryHeight)}else{this.balance=new BigNumber(0);this.expiryHeight=new BigNumber(0)}};DepositeContent.prototype={toString:function(){return JSON.stringify(this)}};var BankVaultContract=function(){LocalContractStorage.defineMapProperty(this,"bankVault",{parse:function(text){return new DepositeContent(text)},stringify:function(o){return o.toString()}})};BankVaultContract.prototype={init:function(){},save:function(height){var from=Blockchain.transaction.from;var value=Blockchain.transaction.value;var bk_height=new BigNumber(Blockchain.block.height);var orig_deposit=this.bankVault.get(from);if(orig_deposit){value=value.plus(orig_deposit.balance)}var deposit=new DepositeContent();deposit.balance=value;deposit.expiryHeight=bk_height.plus(height);this.bankVault.put(from,deposit)},takeout:function(value){var from=Blockchain.transaction.from;var bk_height=new BigNumber(Blockchain.block.height);var amount=new BigNumber(value);var deposit=this.bankVault.get(from);if(!deposit){throw new Error("No deposit before.")}if(bk_height.lt(deposit.expiryHeight)){throw new Error("Can not takeout before expiryHeight.")}if(amount.gt(deposit.balance)){throw new Error("Insufficient balance.")}var result=Blockchain.transfer(from,amount);if(result!=0){throw new Error("transfer failed.")}Event.Trigger("BankVault",{Transfer:{from:Blockchain.transaction.to,to:from,value:amount.toString()}});deposit.balance=deposit.balance.sub(amount);this.bankVault.put(from,deposit)},balanceOf:function(){var from=Blockchain.transaction.from;return this.bankVault.get(from)}};module.exports=BankVaultContract;`
+	sourceType := "js"
+	argsDeploy := ""
+	payloadDeploy, _ := core.NewDeployPayload(source, sourceType, argsDeploy).ToBytes()
+
+	j := 8
+
+	for i := 1; i < j; i++ {
+		value, _ := util.NewUint128FromInt(1)
+		gasLimit, _ := util.NewUint128FromInt(200000)
+		txDeploy := core.NewTransaction(neb.chain.ChainID(), a, a, value, uint64(i), core.TxPayloadDeployType, payloadDeploy, core.TransactionGasPrice, gasLimit)
+		assert.Nil(t, manager.SignTransaction(a, txDeploy))
+		assert.Nil(t, neb.chain.TransactionPool().Push(txDeploy))
+
+		txDeploy = core.NewTransaction(neb.chain.ChainID(), b, b, value, uint64(i), core.TxPayloadDeployType, payloadDeploy, core.TransactionGasPrice, gasLimit)
+		assert.Nil(t, manager.SignTransaction(b, txDeploy))
+		assert.Nil(t, neb.chain.TransactionPool().Push(txDeploy))
+
+		txDeploy = core.NewTransaction(neb.chain.ChainID(), c, c, value, uint64(i), core.TxPayloadDeployType, payloadDeploy, core.TransactionGasPrice, gasLimit)
+		assert.Nil(t, manager.SignTransaction(c, txDeploy))
+		assert.Nil(t, neb.chain.TransactionPool().Push(txDeploy))
+
+		txDeploy = core.NewTransaction(neb.chain.ChainID(), d, d, value, uint64(i), core.TxPayloadDeployType, payloadDeploy, core.TransactionGasPrice, gasLimit)
+		assert.Nil(t, manager.SignTransaction(d, txDeploy))
+		assert.Nil(t, neb.chain.TransactionPool().Push(txDeploy))
+		/*
+			function := "save"
+			argsCall := "[1]"
+			payloadCall, _ := core.NewCallPayload(function, argsCall).ToBytes()
+			txCall := core.NewTransaction(neb.chain.ChainID(), a, a, value, 1, core.TxPayloadCallType, payloadCall, core.TransactionGasPrice, gasLimit)
+			assert.Nil(t, manager.SignTransaction(a, txCall))
+			assert.Nil(t, neb.chain.TransactionPool().Push(txCall))
+		*/
+	}
+
+	block.CollectTransactions(time.Now().Unix() + 1)
+	assert.Equal(t, 2*(j-1), len(block.Transactions()))
+	block.SetMiner(coinbase)
+	assert.Nil(t, block.Seal())
+	assert.Nil(t, manager.SignBlock(coinbase, block))
+	assert.Nil(t, neb.chain.BlockPool().Push(block))
+
+	assert.Equal(t, block.Hash(), neb.chain.TailBlock().Hash())
+}
+
+func TestDposTxBinary(t *testing.T) {
+	runtime.GOMAXPROCS(runtime.NumCPU())
 
 	neb := mockNeb(t)
 	tail := neb.chain.TailBlock()
