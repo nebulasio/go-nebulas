@@ -52,15 +52,6 @@ var (
 	// GasCountPerByte per byte of data attached to a transaction gas cost
 	GasCountPerByte, _ = util.NewUint128FromInt(1)
 
-	// DelegateBaseGasCount is base gas count of delegate transaction
-	DelegateBaseGasCount, _ = util.NewUint128FromInt(20000)
-
-	// CandidateBaseGasCount is base gas count of candidate transaction
-	CandidateBaseGasCount, _ = util.NewUint128FromInt(20000)
-
-	// ZeroGasCount is zero gas count
-	ZeroGasCount = util.NewUint128()
-
 	// MaxDataPayLoadLength Max data length in transaction
 	MaxDataPayLoadLength = 1024 * 1024
 )
@@ -87,8 +78,8 @@ type Transaction struct {
 	gasLimit  *util.Uint128
 
 	// Signature
-	alg  keystore.Algorithm //
-	sign byteutils.Hash     // Signature values
+	alg  keystore.Algorithm
+	sign byteutils.Hash // Signature values
 }
 
 // From return from address
@@ -123,12 +114,12 @@ func (tx *Transaction) Nonce() uint64 {
 
 // Type return tx type
 func (tx *Transaction) Type() string {
-	return tx.data.Type // ToFix: Check tx.data is not nil
+	return tx.data.Type
 }
 
 // Data return tx data
 func (tx *Transaction) Data() []byte {
-	return tx.data.Payload // ToFix: Check tx.data is not nil
+	return tx.data.Payload
 }
 
 // ToProto converts domain Tx to proto Tx
@@ -162,7 +153,10 @@ func (tx *Transaction) ToProto() (proto.Message, error) {
 }
 
 // FromProto converts proto Tx into domain Tx
-func (tx *Transaction) FromProto(msg proto.Message) error { // ToFix: check msg is not nil.
+func (tx *Transaction) FromProto(msg proto.Message) error {
+	if msg == nil {
+		return ErrNilArgument
+	}
 	if msg, ok := msg.(*corepb.Transaction); ok {
 		tx.hash = msg.Hash
 
@@ -188,7 +182,7 @@ func (tx *Transaction) FromProto(msg proto.Message) error { // ToFix: check msg 
 
 		data := msg.Data
 		if data == nil {
-			return errors.New("invalid data in tx from Proto")
+			return ErrInvalidTransactionData
 		}
 		if len(data.Payload) > MaxDataPayLoadLength {
 			return ErrTxDataPayLoadOutOfMaxLength
@@ -210,7 +204,7 @@ func (tx *Transaction) FromProto(msg proto.Message) error { // ToFix: check msg 
 		tx.sign = msg.Sign
 		return nil
 	}
-	return errors.New("Protobuf Message cannot be converted into Transaction")
+	return ErrCannotConvertTransaction
 }
 
 func (tx *Transaction) String() string {
@@ -340,7 +334,7 @@ func (tx *Transaction) DataLen() int {
 }
 
 // LoadPayload returns tx's payload
-func (tx *Transaction) LoadPayload(block *Block) (TxPayload, error) { // ToFix: check args.
+func (tx *Transaction) LoadPayload() (TxPayload, error) {
 	// execute payload
 	var (
 		payload TxPayload
@@ -369,7 +363,7 @@ func (tx *Transaction) LocalExecution(block *Block) (*util.Uint128, string, erro
 	txBlock.begin()
 	defer txBlock.rollback()
 
-	payload, err := tx.LoadPayload(txBlock)
+	payload, err := tx.LoadPayload()
 	if err != nil {
 		return nil, "", err
 	}
@@ -395,7 +389,7 @@ func (tx *Transaction) LocalExecution(block *Block) (*util.Uint128, string, erro
 // VerifyExecution transaction and return result.
 func (tx *Transaction) VerifyExecution(block *Block) (*util.Uint128, error) {
 	if block == nil {
-		return nil, ErrNeedBlockInput
+		return nil, ErrNilArgument
 	}
 
 	// step1. check gasLimit >= GasCountOfTxBase()
@@ -435,7 +429,7 @@ func (tx *Transaction) VerifyExecution(block *Block) (*util.Uint128, error) {
 		return nil, ErrInsufficientBalance
 	}
 
-	payload, payloadErr := tx.LoadPayload(block)
+	payload, payloadErr := tx.LoadPayload()
 	if payloadErr != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"payloadErr":  payloadErr,

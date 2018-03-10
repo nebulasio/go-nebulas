@@ -149,7 +149,7 @@ func TestLoadCallPayload(t *testing.T) {
 func TestLoadDeployPayload(t *testing.T) {
 
 	deployTx := mockDeployTransaction(0, 0)
-	deployPayload, _ := deployTx.LoadPayload(nil)
+	deployPayload, _ := deployTx.LoadPayload()
 	deployData, _ := deployPayload.ToBytes()
 
 	tests := []struct {
@@ -237,7 +237,7 @@ func TestPayload_Execute(t *testing.T) {
 	}
 
 	deployTx := mockDeployTransaction(bc.chainID, 0)
-	deployPayload, _ := deployTx.LoadPayload(nil)
+	deployPayload, _ := deployTx.LoadPayload()
 	want, _ := util.NewUint128FromInt(100)
 	tests = append(tests, testPayload{
 		name:    "deploy",
@@ -250,7 +250,7 @@ func TestPayload_Execute(t *testing.T) {
 
 	callTx := mockCallTransaction(bc.chainID, 1, "totalSupply", "")
 	callTx.to, _ = deployTx.GenerateContractAddress()
-	callPayload, _ := callTx.LoadPayload(nil)
+	callPayload, _ := callTx.LoadPayload()
 	tests = append(tests, testPayload{
 		name:    "call",
 		payload: callPayload,

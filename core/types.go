@@ -75,15 +75,12 @@ var (
 	ErrInvalidChainID           = errors.New("invalid transaction chainID")
 	ErrInvalidTransactionSigner = errors.New("transaction recover public key address not equal to from")
 	ErrInvalidTransactionHash   = errors.New("invalid transaction hash")
-	ErrInvalidSignature         = errors.New("invalid transaction signature")
 	ErrInvalidTxPayloadType     = errors.New("invalid transaction data payload type")
 
 	ErrInsufficientBalance                = errors.New("insufficient balance")
 	ErrBelowGasPrice                      = errors.New("below the gas price")
 	ErrGasLimitLessOrEqualToZero          = errors.New("gas limit less or equal to 0")
 	ErrOutOfGasLimit                      = errors.New("out of gas limit")
-	ErrTxExecutionFailed                  = errors.New("transaction execution failed")
-	ErrContractDeployFailed               = errors.New("contract deploy failed")
 	ErrContractCheckFailed                = errors.New("contract check failed")
 	ErrContractTransactionAddressNotEqual = errors.New("contract transaction from-address not equal to to-address")
 
@@ -103,17 +100,15 @@ var (
 	ErrInvalidBlockEventsRoot    = errors.New("invalid block events root hash")
 	ErrInvalidBlockConsensusRoot = errors.New("invalid block consensus root hash")
 
-	ErrCannotRevertLIB        = errors.New("cannot revert latest irreversible block")
-	ErrCannotLoadGenesisBlock = errors.New("cannot load genesis block from storage")
-	ErrCannotLoadLIBBlock     = errors.New("cannot load tail block from storage")
-	ErrCannotLoadTailBlock    = errors.New("cannot load latest irreversible block from storage")
-	ErrGenesisConfNotMatch    = errors.New("Failed to load genesis from storage, different with genesis conf")
+	ErrCannotRevertLIB     = errors.New("cannot revert latest irreversible block")
+	ErrCannotLoadTailBlock = errors.New("cannot load latest irreversible block from storage")
 
 	ErrNoTimeToPackTransactions    = errors.New("no time left to pack transactions in a block")
 	ErrTxDataPayLoadOutOfMaxLength = errors.New("data's payload is out of max data length")
 	ErrNilArgument                 = errors.New("argument(s) is nil")
-	ErrNeedBlockInput              = errors.New("need block as input")
-	ErrNeedTransactionInput        = errors.New("need transaction as input")
+
+	ErrInvalidTransactionData   = errors.New("invalid data in tx from Proto")
+	ErrCannotConvertTransaction = errors.New("proto message cannot be converted into Transaction")
 )
 
 // TxPayload stored in tx
