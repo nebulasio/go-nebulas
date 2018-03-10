@@ -114,6 +114,8 @@ var (
 	ErrNoTimeToPackTransactions    = errors.New("no time left to pack transactions in a block")
 	ErrInvalidBlockInput           = errors.New("invalid block as input")
 	ErrTxDataPayLoadOutOfMaxLength = errors.New("data's payload is out of max data length")
+
+	ErrNilArgument = errors.New("argument(s) is nil")
 )
 
 // Default gas count

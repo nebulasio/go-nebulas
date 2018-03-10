@@ -342,7 +342,7 @@ func (block *Block) VerifyAddress(str string) bool { // ToRefine: move to addres
 
 // LinkParentBlock link parent block, return true if hash is the same; false otherwise.
 func (block *Block) LinkParentBlock(chain *BlockChain, parentBlock *Block) error {
-	if block.ParentHash().Equals(parentBlock.Hash()) == false {
+	if !block.ParentHash().Equals(parentBlock.Hash()) {
 		return ErrLinkToWrongParentBlock
 	}
 
@@ -575,7 +575,7 @@ func (block *Block) String() string {
 }
 
 // VerifyExecution execute the block and verify the execution result.
-func (block *Block) VerifyExecution() error { // ToCheck: check args.
+func (block *Block) VerifyExecution() error {
 	block.begin()
 
 	if err := block.execute(); err != nil {
@@ -637,13 +637,20 @@ func (block *Block) triggerEvent() {
 }
 
 // VerifyIntegrity verify block's hash, txs' integrity and consensus acceptable.
-func (block *Block) VerifyIntegrity(chainID uint32, consensus Consensus) error { // ToCheck: check args.
+func (block *Block) VerifyIntegrity(chainID uint32, consensus Consensus) error {
+
+	if consensus == nil {
+		metricsInvalidBlock.Inc(1)
+		return ErrNilArgument
+	}
+
 	// check ChainID.
 	if block.header.chainID != chainID {
 		logging.VLog().WithFields(logrus.Fields{
 			"expect": chainID,
 			"actual": block.header.chainID,
-		}).Debug("Failed to check chainid.") // ToAdd: invalid block metrics
+		}).Debug("Failed to check chainid.")
+		metricsInvalidBlock.Inc(1)
 		return ErrInvalidChainID
 	}
 
@@ -656,7 +663,8 @@ func (block *Block) VerifyIntegrity(chainID uint32, consensus Consensus) error {
 		logging.VLog().WithFields(logrus.Fields{
 			"expect": wantedHash,
 			"actual": block.Hash(),
-		}).Debug("Failed to check block's hash.") // ToAdd: invalid block metrics
+		}).Debug("Failed to check block's hash.")
+		metricsInvalidBlock.Inc(1)
 		return ErrInvalidBlockHash
 	}
 
@@ -666,7 +674,8 @@ func (block *Block) VerifyIntegrity(chainID uint32, consensus Consensus) error {
 			logging.VLog().WithFields(logrus.Fields{
 				"tx":  tx,
 				"err": err,
-			}).Debug("Failed to verify tx's integrity.") // ToAdd: invalid block metrics
+			}).Debug("Failed to verify tx's integrity.")
+			metricsInvalidBlock.Inc(1)
 			return err
 		}
 	}

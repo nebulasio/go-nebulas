@@ -627,9 +627,9 @@ func TestRecordEvent(t *testing.T) {
 
 func TestBlockVerifyIntegrity(t *testing.T) {
 	bc := testNeb(t).chain
-	assert.Equal(t, bc.tailBlock.VerifyIntegrity(0, nil), ErrInvalidChainID)
+	assert.Equal(t, bc.tailBlock.VerifyIntegrity(0, bc.ConsensusHandler()), ErrInvalidChainID)
 	bc.tailBlock.header.hash[0] = 1
-	assert.Equal(t, bc.tailBlock.VerifyIntegrity(bc.ChainID(), nil), ErrInvalidBlockHash)
+	assert.Equal(t, bc.tailBlock.VerifyIntegrity(bc.ChainID(), bc.ConsensusHandler()), ErrInvalidBlockHash)
 	ks := keystore.DefaultKS
 	from := mockAddress()
 	key, err := ks.GetUnlocked(from.String())
@@ -654,9 +654,9 @@ func TestBlockVerifyIntegrity(t *testing.T) {
 
 func TestBlockVerifyIntegrityDup(t *testing.T) {
 	bc := testNeb(t).chain
-	assert.Equal(t, bc.tailBlock.VerifyIntegrity(0, nil), ErrInvalidChainID)
+	assert.Equal(t, bc.tailBlock.VerifyIntegrity(0, bc.ConsensusHandler()), ErrInvalidChainID)
 	bc.tailBlock.header.hash[0] = 1
-	assert.Equal(t, bc.tailBlock.VerifyIntegrity(bc.ChainID(), nil), ErrInvalidBlockHash)
+	assert.Equal(t, bc.tailBlock.VerifyIntegrity(bc.ChainID(), bc.ConsensusHandler()), ErrInvalidBlockHash)
 	ks := keystore.DefaultKS
 	from := mockAddress()
 	key, err := ks.GetUnlocked(from.String())
@@ -678,9 +678,9 @@ func TestBlockVerifyIntegrityDup(t *testing.T) {
 
 func TestBlockVerifyExecution(t *testing.T) {
 	bc := testNeb(t).chain
-	assert.Equal(t, bc.tailBlock.VerifyIntegrity(0, nil), ErrInvalidChainID)
+	assert.Equal(t, bc.tailBlock.VerifyIntegrity(0, bc.ConsensusHandler()), ErrInvalidChainID)
 	bc.tailBlock.header.hash[0] = 1
-	assert.Equal(t, bc.tailBlock.VerifyIntegrity(bc.ChainID(), nil), ErrInvalidBlockHash)
+	assert.Equal(t, bc.tailBlock.VerifyIntegrity(bc.ChainID(), bc.ConsensusHandler()), ErrInvalidBlockHash)
 	ks := keystore.DefaultKS
 	from := mockAddress()
 	key, err := ks.GetUnlocked(from.String())
@@ -710,9 +710,9 @@ func TestBlockVerifyExecution(t *testing.T) {
 
 func TestBlockVerifyState(t *testing.T) {
 	bc := testNeb(t).chain
-	assert.Equal(t, bc.tailBlock.VerifyIntegrity(0, nil), ErrInvalidChainID)
+	assert.Equal(t, bc.tailBlock.VerifyIntegrity(0, bc.ConsensusHandler()), ErrInvalidChainID)
 	bc.tailBlock.header.hash[0] = 1
-	assert.Equal(t, bc.tailBlock.VerifyIntegrity(bc.ChainID(), nil), ErrInvalidBlockHash)
+	assert.Equal(t, bc.tailBlock.VerifyIntegrity(bc.ChainID(), bc.ConsensusHandler()), ErrInvalidBlockHash)
 	ks := keystore.DefaultKS
 	from := mockAddress()
 	key, err := ks.GetUnlocked(from.String())
