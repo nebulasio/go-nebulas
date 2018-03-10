@@ -555,21 +555,20 @@ func (block *Block) CollectTransactions(deadline int64) {
 						}).Debug("CheckAndUpdate invalid tx.")
 						unpacked++
 
-						if err := pool.Push(tx); err != nil {
-							logging.VLog().WithFields(logrus.Fields{
-								"block": block,
-								"tx":    tx,
-								"err":   err,
-							}).Debug("Failed to giveback the tx.")
-						}
-
 						if err := block.Close(tx); err != nil {
 							logging.VLog().WithFields(logrus.Fields{
 								"block": block,
 								"tx":    tx,
 								"err":   err,
-							}).Debug("Failed to reset tx.")
+							}).Debug("Failed to close tx.")
 						} else {
+							if err := pool.Push(tx); err != nil {
+								logging.VLog().WithFields(logrus.Fields{
+									"block": block,
+									"tx":    tx,
+									"err":   err,
+								}).Debug("Failed to giveback the tx.")
+							}
 							delete(inprogress, tx.from.address.Hex())
 						}
 					} else {
