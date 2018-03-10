@@ -255,6 +255,19 @@ func (tbl *StagingTable) MergeToParent() ([]interface{}, error) {
 	return tids, nil
 }
 
+func (tbl *StagingTable) Close() error {
+	tbl.mutex.Lock()
+	defer tbl.mutex.Unlock()
+
+	if tbl.parentStagingTable == nil {
+		return ErrDisallowedCallingInNoPreparedDB
+	}
+
+	delete(tbl.parentStagingTable.preparedStagingTables, tbl.tid)
+
+	return nil
+}
+
 func (tbl *StagingTable) GetVersionizedValues() stagingValuesMap {
 	return tbl.versionizedValues
 }

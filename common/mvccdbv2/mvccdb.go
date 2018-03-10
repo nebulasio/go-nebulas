@@ -34,6 +34,7 @@ var (
 	ErrUnsupportedCommitInPreparedDB   = errors.New("unsupported commit transaction in prepared MVCCDB")
 	ErrUnsupportedRollBackInPreparedDB = errors.New("unsupported rollback transaction in prepared MVCCDB")
 	ErrPreparedDBIsDirty               = errors.New("prepared MVCCDB is dirty")
+	ErrPreparedDBIsClosed              = errors.New("prepared MVCCDB is closed")
 	ErrTidIsExist                      = errors.New("tid is exist")
 )
 
@@ -46,28 +47,30 @@ It should support three situations as following,
 
 // MVCCDB the data with MVCC supporting.
 type MVCCDB struct {
-	tid             interface{}
-	storage         storage.Storage
-	stagingTable    *StagingTable
-	mutex           sync.Mutex
-	parentDB        *MVCCDB
-	isInTransaction bool
-	isPreparedDB    bool
-	isDirtyDB       bool
-	preparedDBs     map[interface{}]*MVCCDB
+	tid                interface{}
+	storage            storage.Storage
+	stagingTable       *StagingTable
+	mutex              sync.Mutex
+	parentDB           *MVCCDB
+	isInTransaction    bool
+	isPreparedDB       bool
+	isDirtyDB          bool
+	isPreparedDBClosed bool
+	preparedDBs        map[interface{}]*MVCCDB
 }
 
 // NewMVCCDB create and return new MVCCDB.
 func NewMVCCDB(storage storage.Storage) (*MVCCDB, error) {
 	db := &MVCCDB{
-		tid:             nil,
-		storage:         storage,
-		stagingTable:    nil,
-		parentDB:        nil,
-		isInTransaction: false,
-		isPreparedDB:    false,
-		isDirtyDB:       false,
-		preparedDBs:     make(map[interface{}]*MVCCDB),
+		tid:                nil,
+		storage:            storage,
+		stagingTable:       nil,
+		parentDB:           nil,
+		isInTransaction:    false,
+		isPreparedDB:       false,
+		isDirtyDB:          false,
+		isPreparedDBClosed: false,
+		preparedDBs:        make(map[interface{}]*MVCCDB),
 	}
 
 	db.tid = storage // as a placeholder.
@@ -177,6 +180,10 @@ func (db *MVCCDB) Get(key []byte) ([]byte, error) {
 	db.mutex.Lock()
 	defer db.mutex.Unlock()
 
+	if db.isPreparedDB && db.isPreparedDBClosed {
+		return nil, ErrPreparedDBIsClosed
+	}
+
 	if !db.isInTransaction {
 		return db.getFromStorage(key)
 	}
@@ -198,6 +205,10 @@ func (db *MVCCDB) Put(key []byte, val []byte) error {
 	db.mutex.Lock()
 	defer db.mutex.Unlock()
 
+	if db.isPreparedDB && db.isPreparedDBClosed {
+		return ErrPreparedDBIsClosed
+	}
+
 	if !db.isInTransaction {
 		return db.putToStorage(key, val)
 	}
@@ -213,6 +224,10 @@ func (db *MVCCDB) Put(key []byte, val []byte) error {
 func (db *MVCCDB) Del(key []byte) error {
 	db.mutex.Lock()
 	defer db.mutex.Unlock()
+
+	if db.isPreparedDB && db.isPreparedDBClosed {
+		return ErrPreparedDBIsClosed
+	}
 
 	if !db.isInTransaction {
 		return db.delFromStorage(key)
@@ -248,14 +263,15 @@ func (db *MVCCDB) Prepare(tid interface{}) (*MVCCDB, error) {
 	}
 
 	preparedDB := &MVCCDB{
-		tid:             tid,
-		storage:         db.storage,
-		stagingTable:    preparedStagingTable,
-		parentDB:        db,
-		isInTransaction: true,
-		isPreparedDB:    true,
-		isDirtyDB:       false,
-		preparedDBs:     make(map[interface{}]*MVCCDB),
+		tid:                tid,
+		storage:            db.storage,
+		stagingTable:       preparedStagingTable,
+		parentDB:           db,
+		isInTransaction:    true,
+		isPreparedDB:       true,
+		isDirtyDB:          false,
+		isPreparedDBClosed: false,
+		preparedDBs:        make(map[interface{}]*MVCCDB),
 	}
 
 	db.preparedDBs[tid] = preparedDB
@@ -273,6 +289,10 @@ func (db *MVCCDB) CheckAndUpdate() ([]interface{}, error) {
 
 	if !db.isPreparedDB {
 		return nil, ErrDisallowedCallingInNoPreparedDB
+	}
+
+	if db.isPreparedDBClosed {
+		return nil, ErrPreparedDBIsClosed
 	}
 
 	ret, err := db.stagingTable.MergeToParent()
@@ -300,6 +320,10 @@ func (db *MVCCDB) Reset() error {
 		return ErrDisallowedCallingInNoPreparedDB
 	}
 
+	if db.isPreparedDBClosed {
+		return ErrPreparedDBIsClosed
+	}
+
 	// reset.
 	for _, pdb := range db.preparedDBs {
 		pdb.Reset()
@@ -313,6 +337,35 @@ func (db *MVCCDB) Reset() error {
 	return nil
 }
 
+// Close close prepared DB.
+func (db *MVCCDB) Close() error {
+	db.mutex.Lock()
+	defer db.mutex.Unlock()
+
+	if !db.isInTransaction {
+		return ErrTransactionNotStarted
+	}
+
+	if !db.isPreparedDB {
+		return ErrDisallowedCallingInNoPreparedDB
+	}
+
+	if db.isPreparedDBClosed {
+		return ErrPreparedDBIsClosed
+	}
+
+	err := db.stagingTable.Close()
+	if err != nil {
+		return err
+	}
+
+	delete(db.parentDB.preparedDBs, db.tid)
+	db.isPreparedDBClosed = true
+
+	return nil
+}
+
+// IsPreparedDBDirty is prepared db dirty
 func (db *MVCCDB) IsPreparedDBDirty() bool {
 	for _, pdb := range db.preparedDBs {
 		if pdb.IsPreparedDBDirty() {

@@ -372,3 +372,108 @@ func TestMVCCDB_PrepareAndUpdate(t *testing.T) {
 	assert.Equal(t, storage.ErrKeyNotFound, err)
 	assert.Nil(t, val)
 }
+
+func TestMVCCDB_ResetAndReuse(t *testing.T) {
+	store, _ := storage.NewMemoryStorage()
+	db, _ := NewMVCCDB(store)
+
+	// begin.
+	db.Begin()
+
+	key1 := []byte("key1")
+	val1_1 := []byte("val1_1")
+	val1_2 := []byte("val1_2")
+	val1_3 := []byte("val1_3")
+
+	err := db.Put(key1, val1_1)
+	assert.Nil(t, err)
+
+	// prepare.
+	pdb, err := db.Prepare("tid1")
+	assert.Nil(t, err)
+
+	assert.Nil(t, pdb.Del(key1))
+	val, err := pdb.Get(key1)
+	assert.Nil(t, val)
+	assert.Equal(t, storage.ErrKeyNotFound, err)
+
+	pdb.Reset()
+
+	assert.Nil(t, pdb.Put(key1, val1_2))
+	val, err = pdb.Get(key1)
+	assert.Equal(t, val1_2, val)
+	assert.Nil(t, err)
+
+	// nested prepare.
+	pdb2, err := pdb.Prepare("tid2")
+	assert.Nil(t, err)
+	val, err = pdb2.Get(key1)
+	assert.Equal(t, val1_2, val)
+	assert.Nil(t, err)
+
+	assert.Nil(t, pdb2.Put(key1, val1_3))
+	val, err = pdb2.Get(key1)
+	assert.Equal(t, val1_3, val)
+	assert.Nil(t, err)
+
+	// verify pdb,
+	val, err = pdb.Get(key1)
+	assert.Equal(t, val1_2, val)
+	assert.Nil(t, err)
+
+	// close.
+	assert.Nil(t, pdb2.Close())
+	assert.Nil(t, pdb.Close())
+
+	// Commit.
+	db.Commit()
+
+	val, err = db.Get(key1)
+	assert.Equal(t, val1_1, val)
+	assert.Nil(t, err)
+}
+
+func TestMVCCDB_ClosePreparedDB(t *testing.T) {
+	store, _ := storage.NewMemoryStorage()
+	db, _ := NewMVCCDB(store)
+
+	// begin.
+	db.Begin()
+
+	key1 := []byte("key1")
+	val1_1 := []byte("val1_1")
+	val1_2 := []byte("val1_2")
+
+	assert.Nil(t, db.Put(key1, val1_1))
+
+	pdb, err := db.Prepare("tid1")
+	assert.Nil(t, err)
+
+	// duplicate prepare.
+	v, err := db.Prepare("tid1")
+	assert.Nil(t, v)
+	assert.Equal(t, ErrTidIsExist, err)
+
+	// close.
+	assert.Nil(t, pdb.Close())
+	val, err := pdb.Get(key1)
+	assert.Nil(t, val)
+	assert.Equal(t, ErrPreparedDBIsClosed, err)
+
+	err = pdb.Put(key1, val1_2)
+	assert.Equal(t, ErrPreparedDBIsClosed, err)
+
+	err = pdb.Del(key1)
+	assert.Equal(t, ErrPreparedDBIsClosed, err)
+
+	// prepare again
+	v, err = db.Prepare("tid1")
+	assert.Nil(t, err)
+	assert.False(t, pdb == v)
+
+	assert.Nil(t, v.Put(key1, val1_2))
+	val, err = v.Get(key1)
+	assert.Equal(t, val1_2, val)
+	assert.Nil(t, err)
+
+}
