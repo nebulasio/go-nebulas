@@ -257,9 +257,9 @@ func (pool *TransactionPool) Push(tx *Transaction) error {
 
 	// cache the verified tx
 	pool.pushTx(tx)
+	// drop max tx in longest bucket if full
 	if len(pool.all) > pool.size {
-		drop := pool.candidates.PopMax().(*Transaction)
-		pool.popTx(drop)
+		pool.dropTx()
 	}
 
 	// trigger pending transaction
@@ -299,6 +299,27 @@ func (pool *TransactionPool) popTx(tx *Transaction) {
 	if bucket.Len() != 0 {
 		candidate := bucket.Min()
 		pool.candidates.Push(candidate)
+	}
+}
+
+func (pool *TransactionPool) dropTx() {
+	var longestSlice *sorted.Slice
+	longestLen := 0
+	for _, v := range pool.buckets {
+		if v.Len() > longestLen {
+			longestLen = v.Len()
+			longestSlice = v
+		}
+	}
+	if longestLen > 0 {
+		drop := longestSlice.PopMax()
+		if drop != nil {
+			tx := drop.(*Transaction)
+			delete(pool.all, tx.Hash().Hex())
+			if longestLen == 1 {
+				pool.candidates.Del(tx)
+			}
+		}
 	}
 }
 

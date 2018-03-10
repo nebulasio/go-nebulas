@@ -49,11 +49,31 @@ func TestTransactionPool(t *testing.T) {
 	key2, _ := ks.GetUnlocked(other.String())
 	signature2, _ := crypto.NewSignature(keystore.SECP256K1)
 	signature2.InitSign(key2.(keystore.PrivateKey))
+
+	priv3 := secp256k1.GeneratePrivateKey()
+	pubdata3, _ := priv3.PublicKey().Encoded()
+	other2, _ := NewAddressFromPublicKey(pubdata3)
+	ks.SetKey(other2.String(), priv3, []byte("passphrase"))
+	ks.Unlock(other2.String(), []byte("passphrase"), time.Second*60*60*24*365)
+	key3, _ := ks.GetUnlocked(other2.String())
+	signature3, _ := crypto.NewSignature(keystore.SECP256K1)
+	signature3.InitSign(key3.(keystore.PrivateKey))
+
+	priv4 := secp256k1.GeneratePrivateKey()
+	pubdata4, _ := priv4.PublicKey().Encoded()
+	other3, _ := NewAddressFromPublicKey(pubdata4)
+	ks.SetKey(other3.String(), priv4, []byte("passphrase"))
+	ks.Unlock(other3.String(), []byte("passphrase"), time.Second*60*60*24*365)
+	key4, _ := ks.GetUnlocked(other3.String())
+	signature4, _ := crypto.NewSignature(keystore.SECP256K1)
+	signature4.InitSign(key4.(keystore.PrivateKey))
+
 	gasCount, _ := util.NewUint128FromInt(2)
 	heighPrice, err := TransactionGasPrice.Mul(gasCount)
 	assert.Nil(t, err)
-	txPool, _ := NewTransactionPool(3)
+
 	bc := testNeb(t).chain
+	txPool, _ := NewTransactionPool(3)
 	txPool.setBlockChain(bc)
 	txPool.setEventEmitter(bc.eventEmitter)
 
@@ -65,10 +85,12 @@ func TestTransactionPool(t *testing.T) {
 	tx4, _ := NewTransaction(bc.ChainID(), from, &Address{[]byte("to")}, util.NewUint128(), 2, TxPayloadBinaryType, []byte("4"), TransactionGasPrice, gasLimit)
 	tx5, _ := NewTransaction(bc.ChainID()+1, from, &Address{[]byte("to")}, util.NewUint128(), 0, TxPayloadBinaryType, []byte("5"), TransactionGasPrice, gasLimit)
 
-	tx6, _ := NewTransaction(bc.ChainID(), other, &Address{[]byte("to")}, util.NewUint128(), 1, TxPayloadBinaryType, []byte("6"), TransactionGasPrice, gasLimit)
-	tx7, _ := NewTransaction(bc.ChainID(), from, &Address{[]byte("to")}, util.NewUint128(), 1, TxPayloadBinaryType, []byte("7"), heighPrice, gasLimit)
+	tx6, _ := NewTransaction(bc.ChainID(), other2, &Address{[]byte("to")}, util.NewUint128(), 1, TxPayloadBinaryType, []byte("6"), TransactionGasPrice, gasLimit)
+	tx7, _ := NewTransaction(bc.ChainID(), other, &Address{[]byte("to")}, util.NewUint128(), 1, TxPayloadBinaryType, []byte("7"), heighPrice, gasLimit)
 
-	txs := []*Transaction{tx1, tx2, tx3, tx4, tx5, tx6, tx7}
+	tx8, _ := NewTransaction(bc.ChainID(), other3, &Address{[]byte("to")}, util.NewUint128(), 1, TxPayloadBinaryType, []byte("8"), heighPrice, gasLimit)
+
+	txs := []*Transaction{tx1, tx2, tx3, tx4, tx5, tx6, tx7, tx8}
 
 	assert.Nil(t, txs[0].Sign(signature1))
 	assert.Nil(t, txPool.Push(txs[0]))
@@ -80,26 +102,37 @@ func TestTransactionPool(t *testing.T) {
 	assert.Nil(t, txPool.Push(txs[2]))
 	// put not signed tx, should fail
 	assert.NotNil(t, txPool.Push(txs[3]))
+	// push 3, full, drop 0
+	assert.Equal(t, len(txPool.all), 3)
+	assert.NotNil(t, txPool.all[txs[0].hash.Hex()])
+	assert.Nil(t, txs[3].Sign(signature1))
+	assert.Nil(t, txPool.Push(txs[3]))
+	assert.Nil(t, txPool.all[txs[0].hash.Hex()])
+	assert.Equal(t, len(txPool.all), 3)
+	// pop 1
+	tx := txPool.Pop()
+	assert.Equal(t, txs[1].data, tx.data)
 	// put tx with different chainID, should fail
 	assert.Nil(t, txs[4].Sign(signature1))
 	assert.NotNil(t, txPool.Push(txs[4]))
-	// put one new, replace txs[1]
-	assert.Equal(t, len(txPool.all), 3)
-	assert.Nil(t, txs[5].Sign(signature2))
-	assert.Nil(t, txPool.Push(txs[5]))
-	assert.Equal(t, len(txPool.all), 3)
-	// get from: other, nonce: 1, data: "da"
-	tx8 := txPool.Pop()
-	assert.Equal(t, txs[1].data, tx8.data)
 	// put one new
 	assert.Equal(t, len(txPool.all), 2)
-	assert.Nil(t, txs[6].Sign(signature1))
-	assert.Nil(t, txPool.Push(txs[6]))
+	assert.Nil(t, txs[5].Sign(signature3))
+	assert.Nil(t, txPool.Push(txs[5]))
 	assert.Equal(t, len(txPool.all), 3)
-	// get 2 txs, txs[5], txs[0]
-	tx21 := txPool.Pop()
-	assert.Equal(t, txs[6].data, tx21.data)
-	assert.Equal(t, txPool.Empty(), false)
+	// put one new, full, pop 3
+	assert.Equal(t, len(txPool.all), 3)
+	assert.NotNil(t, txPool.all[txs[3].hash.Hex()])
+	assert.Nil(t, txs[6].Sign(signature2))
+	assert.Nil(t, txPool.Push(txs[6]))
+	assert.Nil(t, txPool.all[txs[3].hash.Hex()])
+	assert.Equal(t, len(txPool.all), 3)
+
+	assert.Equal(t, len(txPool.all), 3)
+	assert.Nil(t, txs[7].Sign(signature4))
+	assert.Nil(t, txPool.Push(txs[7]))
+	assert.Equal(t, len(txPool.all), 3)
+
 	txPool.Pop()
 	txPool.Pop()
 	txPool.Pop()

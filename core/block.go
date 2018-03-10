@@ -433,21 +433,27 @@ func (block *Block) CollectTransactions(deadline int64) {
 				time.Sleep(time.Millisecond)
 				continue
 			}
+			from := tx.from.address.Hex()
+			inprogress[from] = true
 			<-exclusiveCh
 
 			parallelCh <- true
 			go func() {
 				defer func() { <-parallelCh }()
-				from := tx.from.address.Hex()
 
 				// prepare independent environment
 				exclusiveCh <- true
 				txBlock, err := block.Clone()
 				if err != nil {
+					logging.VLog().WithFields(logrus.Fields{
+						"block": block,
+						"tx":    tx,
+						"err":   err,
+					}).Debug("Failed to prepare tx execution environment.")
+					delete(inprogress, from)
 					<-exclusiveCh
 					return
 				}
-				inprogress[from] = true
 				<-exclusiveCh
 
 				// execute tx
