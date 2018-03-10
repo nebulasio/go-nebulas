@@ -25,7 +25,7 @@ import (
 	"github.com/nebulasio/go-nebulas/consensus/pb"
 	"github.com/nebulasio/go-nebulas/util"
 
-	mvccdb "github.com/nebulasio/go-nebulas/common/mvccdbv2"
+	"github.com/nebulasio/go-nebulas/common/mvccdb"
 	"github.com/nebulasio/go-nebulas/common/trie"
 	"github.com/nebulasio/go-nebulas/storage"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
