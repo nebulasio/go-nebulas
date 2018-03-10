@@ -22,6 +22,8 @@ import (
 	"encoding/json"
 	"sync"
 
+	"github.com/nebulasio/go-nebulas/util/logging"
+
 	"github.com/nebulasio/go-nebulas/consensus/pb"
 	"github.com/nebulasio/go-nebulas/util"
 
@@ -294,6 +296,7 @@ func (s *states) CheckAndUpdate(txid interface{}) ([]interface{}, error) {
 }
 
 func (s *states) Reset(txid interface{}) error {
+	logging.CLog().Info("Reset: Main ", s.txid, " Given ", txid)
 	if err := s.changelog.Reset(); err != nil {
 		return err
 	}
@@ -304,7 +307,7 @@ func (s *states) Reset(txid interface{}) error {
 }
 
 func (s *states) Close(txid interface{}) error {
-
+	logging.CLog().Info("Close: Main ", s.txid, " Given ", txid)
 	if err := s.changelog.Close(); err != nil {
 		return err
 	}

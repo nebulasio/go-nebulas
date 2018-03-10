@@ -485,7 +485,7 @@ func TestDposContracts(t *testing.T) {
 	argsDeploy := ""
 	payloadDeploy, _ := core.NewDeployPayload(source, sourceType, argsDeploy).ToBytes()
 
-	j := 10
+	j := 5
 
 	for i := 1; i < j; i++ {
 		value, _ := util.NewUint128FromInt(1)

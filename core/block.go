@@ -509,6 +509,17 @@ func (block *Block) CollectTransactions(deadline int64) {
 			go func() {
 				defer func() { <-parallelCh }()
 				mergeCh <- true
+				if over {
+					<-mergeCh
+					if err := pool.Push(tx); err != nil {
+						logging.VLog().WithFields(logrus.Fields{
+							"block": block,
+							"tx":    tx,
+							"err":   err,
+						}).Debug("Failed to giveback the tx.")
+					}
+					return
+				}
 				txWorldState, err := block.Prepare(tx)
 				if err != nil {
 					logging.VLog().WithFields(logrus.Fields{
@@ -803,6 +814,13 @@ func (block *Block) VerifyIntegrity(chainID uint32, consensus Consensus) error {
 // verifyState return state verify result.
 func (block *Block) verifyState() error {
 	// verify state root.
+	logging.CLog().Info("Verify DirtyAccount")
+	accountsRoot, err := block.WorldState().AccountsRoot_Log()
+	if err != nil {
+		return err
+	}
+	logging.CLog().Info("Verify DirtyAccount")
+
 	logging.CLog().Info("Verify Accounts")
 	accounts, err := block.WorldState().Accounts()
 	if err != nil {
@@ -817,13 +835,6 @@ func (block *Block) verifyState() error {
 		}).Info("Accounts")
 	}
 	logging.CLog().Info("Verify Accounts")
-
-	logging.CLog().Info("Verify DirtyAccount")
-	accountsRoot, err := block.WorldState().AccountsRoot_Log()
-	if err != nil {
-		return err
-	}
-	logging.CLog().Info("Verify DirtyAccount")
 	if !byteutils.Equal(accountsRoot, block.StateRoot()) {
 		logging.VLog().WithFields(logrus.Fields{
 			"expect": block.StateRoot(),

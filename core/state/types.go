@@ -134,7 +134,6 @@ type WorldState interface {
 
 	AccountsRoot() (byteutils.Hash, error)
 	AccountsRoot_Log() (byteutils.Hash, error)
-
 	TxsRoot() (byteutils.Hash, error)
 	EventsRoot() (byteutils.Hash, error)
 	ConsensusRoot() (*consensuspb.ConsensusRoot, error)
