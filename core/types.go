@@ -106,6 +106,7 @@ var (
 	ErrNoTimeToPackTransactions    = errors.New("no time left to pack transactions in a block")
 	ErrTxDataPayLoadOutOfMaxLength = errors.New("data's payload is out of max data length")
 	ErrNilArgument                 = errors.New("argument(s) is nil")
+	ErrIllegalArgument             = errors.New("illegal argument(s)")
 
 	ErrInvalidTransactionData   = errors.New("invalid data in tx from Proto")
 	ErrCannotConvertTransaction = errors.New("proto message cannot be converted into Transaction")

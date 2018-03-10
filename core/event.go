@@ -55,6 +55,12 @@ const (
 
 	// TopicTransactionExecutionResult the topic of transaction execution result
 	TopicTransactionExecutionResult = "chain.transactionResult"
+
+	// TopicNewTailBlock the topic of new tail block set
+	TopicNewTailBlock = "chain.newTailBlock"
+
+	// TopicRevertBlock the topic of revert block
+	TopicRevertBlock = "chain.revertBlock"
 )
 
 // Event event structure.

@@ -581,50 +581,7 @@ func (block *Block) VerifyExecution() error {
 
 	block.commit()
 
-	// release all events
-	block.triggerEvent() // ToDelete
-
 	return nil
-}
-
-func (block *Block) triggerEvent() {
-	logging.VLog().WithFields(logrus.Fields{
-		"count": len(block.eventEmitter.eventCh),
-	}).Debug("Start TriggerEvent")
-
-	for _, v := range block.transactions {
-		var topic string
-		switch v.Type() {
-		case TxPayloadBinaryType:
-			topic = TopicSendTransaction
-		case TxPayloadDeployType:
-			topic = TopicDeploySmartContract
-		case TxPayloadCallType:
-			topic = TopicCallSmartContract
-		}
-		event := &Event{
-			Topic: topic,
-			Data:  v.String(),
-		}
-		block.eventEmitter.Trigger(event) // ToConfirm: necessary?
-
-		events, err := block.FetchEvents(v.hash) // ToConfirm: maybe be triggered with TopicNewTail
-		if err != nil {
-			for _, e := range events {
-				block.eventEmitter.Trigger(e)
-			}
-		}
-	}
-
-	e := &Event{ // ToConfirm: is Link event necessary? maybe TopicNewTail is more useful, should be put in buildIndexByBlockHeight
-		Topic: TopicLinkBlock,
-		Data:  block.String(),
-	}
-	block.eventEmitter.Trigger(e)
-
-	logging.VLog().WithFields(logrus.Fields{
-		"count": len(block.eventEmitter.eventCh),
-	}).Debug("Stop TriggerEvent")
 }
 
 // VerifyIntegrity verify block's hash, txs' integrity and consensus acceptable.
