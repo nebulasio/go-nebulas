@@ -83,6 +83,11 @@ func NewMVCCDB(storage storage.Storage, trieSameKeyCompatibility bool) (*MVCCDB,
 	return db, nil
 }
 
+// SetStrictGlobalVersionCheck set strict global version check flag.
+func (db *MVCCDB) SetStrictGlobalVersionCheck(flag bool) {
+	db.stagingTable.SetStrictGlobalVersionCheck(flag)
+}
+
 // Begin begin a transaction.
 func (db *MVCCDB) Begin() error {
 	db.mutex.Lock()

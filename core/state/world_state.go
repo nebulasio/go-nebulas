@@ -41,7 +41,13 @@ func newChangeLog() (*mvccdb.MVCCDB, error) {
 	if err != nil {
 		return nil, err
 	}
-	return mvccdb.NewMVCCDB(mem, false)
+	db, err := mvccdb.NewMVCCDB(mem, false)
+	if err != nil {
+		return nil, err
+	}
+
+	db.SetStrictGlobalVersionCheck(true)
+	return db, nil
 }
 
 func newStorage(storage storage.Storage) (*mvccdb.MVCCDB, error) {

@@ -40,38 +40,49 @@ type stagingValuesMapMap map[interface{}]stagingValuesMap
 
 // VersionizedValueItem a struct for key/value pair, with version, dirty, deleted flags.
 type VersionizedValueItem struct {
-	tid     interface{}
-	key     []byte
-	val     []byte
-	version int
-	deleted bool
-	dirty   bool
+	tid           interface{}
+	key           []byte
+	val           []byte
+	version       int
+	deleted       bool
+	dirty         bool
+	globalVersion *int64
 }
 
 // StagingTable a struct to store all staging changed key/value pairs.
 // There are two map to store the key/value pairs. One are stored associated with tid,
 // the other is `finalVersionizedValue`, record the `ready to commit` key/value pairs.
 type StagingTable struct {
-	storage                    storage.Storage
-	parentStagingTable         *StagingTable
-	versionizedValues          stagingValuesMap
-	tid                        interface{}
-	mutex                      sync.Mutex
-	preparedStagingTables      map[interface{}]*StagingTable
-	isTrieSameKeyCompatibility bool // The `isTrieSameKeyCompatibility` is used to prevent conflict in continuous changes with same key/value.
+	storage                         storage.Storage
+	globalVersion                   int64
+	parentStagingTable              *StagingTable
+	versionizedValues               stagingValuesMap
+	tid                             interface{}
+	mutex                           sync.Mutex
+	prepareingGlobalVersion         int64
+	preparedStagingTables           map[interface{}]*StagingTable
+	isTrieSameKeyCompatibility      bool // The `isTrieSameKeyCompatibility` is used to prevent conflict in continuous changes with same key/value.
+	disableStrictGlobalVersionCheck bool // default `true`
 }
 
 // NewStagingTable return new instance of StagingTable.
 func NewStagingTable(storage storage.Storage, tid interface{}, trieSameKeyCompatibility bool) *StagingTable {
 	tbl := &StagingTable{
 		storage:            storage,
+		globalVersion:      0,
 		parentStagingTable: nil,
 		versionizedValues:  make(stagingValuesMap),
 		tid:                tid,
-		preparedStagingTables:      make(map[interface{}]*StagingTable),
-		isTrieSameKeyCompatibility: trieSameKeyCompatibility,
+		prepareingGlobalVersion:         0,
+		preparedStagingTables:           make(map[interface{}]*StagingTable),
+		isTrieSameKeyCompatibility:      trieSameKeyCompatibility,
+		disableStrictGlobalVersionCheck: true,
 	}
 	return tbl
+}
+
+func (tbl *StagingTable) SetStrictGlobalVersionCheck(flag bool) {
+	tbl.disableStrictGlobalVersionCheck = !flag
 }
 
 func (tbl *StagingTable) Prepare(tid interface{}) (*StagingTable, error) {
@@ -83,12 +94,15 @@ func (tbl *StagingTable) Prepare(tid interface{}) (*StagingTable, error) {
 	}
 
 	preparedTbl := &StagingTable{
-		storage:            tbl.storage,
-		parentStagingTable: tbl,
-		versionizedValues:  make(stagingValuesMap),
-		tid:                tid,
-		preparedStagingTables:      make(map[interface{}]*StagingTable),
-		isTrieSameKeyCompatibility: tbl.isTrieSameKeyCompatibility,
+		storage:                 tbl.storage,
+		globalVersion:           0,
+		parentStagingTable:      tbl,
+		prepareingGlobalVersion: tbl.globalVersion,
+		versionizedValues:       make(stagingValuesMap),
+		tid:                     tid,
+		preparedStagingTables:           make(map[interface{}]*StagingTable),
+		isTrieSameKeyCompatibility:      tbl.isTrieSameKeyCompatibility,
+		disableStrictGlobalVersionCheck: tbl.disableStrictGlobalVersionCheck,
 	}
 
 	tbl.preparedStagingTables[tid] = preparedTbl
@@ -118,7 +132,13 @@ func (tbl *StagingTable) Get(key []byte) (*VersionizedValueItem, error) {
 				return nil, err
 			}
 		}
+
 		tbl.versionizedValues[keyStr] = value
+	}
+
+	// global version of keys are not the same, error.
+	if tbl.parentStagingTable != nil && !tbl.disableStrictGlobalVersionCheck && *value.globalVersion > tbl.prepareingGlobalVersion {
+		return nil, ErrStagingTableKeyConfliction
 	}
 
 	return value, nil
@@ -234,6 +254,10 @@ func (tbl *StagingTable) MergeToParent() ([]interface{}, error) {
 	}
 
 	// 2. merge to final.
+
+	// incr parentStagingTable.globalVersion.
+	tbl.parentStagingTable.globalVersion++
+
 	for keyStr, fromValueItem := range tbl.versionizedValues {
 		// ignore dirty.
 		if !fromValueItem.dirty {
@@ -252,7 +276,6 @@ func (tbl *StagingTable) MergeToParent() ([]interface{}, error) {
 		targetValues[keyStr] = value
 
 		// logging.CLog().Infof("MVCCDB.MERGE: %s %s %s %d", tbl.tid, byteutils.Hex(value.key), byteutils.Hex(hash.Sha3256(value.val)), value.version)
-
 	}
 
 	tids := make([]interface{}, 0, len(dependentTids))
@@ -296,7 +319,7 @@ func (tbl *StagingTable) loadFromStorage(key []byte) (*VersionizedValueItem, err
 		return nil, err
 	}
 
-	value := NewDefaultVersionizedValueItem(key, val, tbl.tid)
+	value := NewDefaultVersionizedValueItem(key, val, tbl.tid, &tbl.globalVersion)
 	return value, nil
 }
 
@@ -341,37 +364,40 @@ func (a *VersionizedValueItem) isConflict(b *VersionizedValueItem, trieSameKeyCo
 }
 
 // NewDefaultVersionizedValueItem return new instance of VersionizedValueItem, old/new version are 0, dirty is false.
-func NewDefaultVersionizedValueItem(key []byte, val []byte, tid interface{}) *VersionizedValueItem {
+func NewDefaultVersionizedValueItem(key []byte, val []byte, tid interface{}, globalVersion *int64) *VersionizedValueItem {
 	return &VersionizedValueItem{
-		tid:     tid,
-		key:     key,
-		val:     val,
-		version: 0,
-		deleted: false,
-		dirty:   false,
+		tid:           tid,
+		key:           key,
+		val:           val,
+		version:       0,
+		deleted:       false,
+		dirty:         false,
+		globalVersion: globalVersion,
 	}
 }
 
 // IncrVersionizedValueItem copy and return the version increased VersionizedValueItem.
 func IncrVersionizedValueItem(tid interface{}, oldValue *VersionizedValueItem) *VersionizedValueItem {
 	return &VersionizedValueItem{
-		tid:     tid,
-		key:     oldValue.key,
-		val:     oldValue.val,
-		version: oldValue.version,
-		deleted: oldValue.deleted,
-		dirty:   false,
+		tid:           tid,
+		key:           oldValue.key,
+		val:           oldValue.val,
+		version:       oldValue.version,
+		deleted:       oldValue.deleted,
+		dirty:         false,
+		globalVersion: oldValue.globalVersion,
 	}
 }
 
 // CloneForMerge shadow copy of `VersionizedValueItem` with dirty is true.
 func (value *VersionizedValueItem) CloneForMerge() *VersionizedValueItem {
 	return &VersionizedValueItem{
-		tid:     value.tid,
-		key:     value.key,
-		val:     value.val,
-		version: value.version + 1,
-		deleted: value.deleted,
-		dirty:   true,
+		tid:           value.tid,
+		key:           value.key,
+		val:           value.val,
+		version:       value.version + 1,
+		deleted:       value.deleted,
+		dirty:         true,
+		globalVersion: value.globalVersion,
 	}
 }
