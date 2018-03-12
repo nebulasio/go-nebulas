@@ -349,15 +349,42 @@ func (s *states) ConsensusRoot() (*consensuspb.ConsensusRoot, error) {
 }
 
 func (s *states) GetOrCreateUserAccount(addr byteutils.Hash) (Account, error) {
-	return s.accState.GetOrCreateUserAccount(addr)
+	acc, err := s.accState.GetOrCreateUserAccount(addr)
+	if err != nil {
+		return nil, err
+	}
+
+	if _, err := s.changelog.Get(acc.Address()); err != nil && err != storage.ErrKeyNotFound {
+		return nil, err
+	}
+
+	return acc, nil
 }
 
 func (s *states) GetContractAccount(addr byteutils.Hash) (Account, error) {
-	return s.accState.GetContractAccount(addr)
+	acc, err := s.accState.GetContractAccount(addr)
+	if err != nil {
+		return nil, err
+	}
+
+	if _, err := s.changelog.Get(acc.Address()); err != nil && err != storage.ErrKeyNotFound {
+		return nil, err
+	}
+
+	return acc, nil
 }
 
 func (s *states) CreateContractAccount(owner byteutils.Hash, birthPlace byteutils.Hash) (Account, error) {
-	return s.accState.CreateContractAccount(owner, birthPlace)
+	acc, err := s.accState.CreateContractAccount(owner, birthPlace)
+	if err != nil {
+		return nil, err
+	}
+
+	if _, err := s.changelog.Get(acc.Address()); err != nil && err != storage.ErrKeyNotFound {
+		return nil, err
+	}
+
+	return acc, nil
 }
 
 func (s *states) GetTx(txHash byteutils.Hash) ([]byte, error) {
