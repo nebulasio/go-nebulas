@@ -159,7 +159,7 @@ func CheckGenesisBlock(block *Block) bool {
 
 // DumpGenesis return the configuration of the genesis block in the storage
 func DumpGenesis(chain *BlockChain) (*corepb.Genesis, error) {
-	genesis, err := LoadBlockFromStorage(GenesisHash, chain)
+	genesis, err := LoadBlockFromStorage(GenesisHash, chain) //ToRefine, LoadBlockFromStorage need move out
 	if err != nil {
 		return nil, err
 	}

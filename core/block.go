@@ -824,7 +824,7 @@ func (block *Block) rewardCoinbase() error {
 
 // GetTransaction from txs Trie
 func (block *Block) GetTransaction(hash byteutils.Hash) (*Transaction, error) {
-	txBytes, err := block.txsState.Get(hash)
+	txBytes, err := block.txsState.Get(hash) // ToCheck, hash is valid
 	if err != nil {
 		return nil, err
 	}

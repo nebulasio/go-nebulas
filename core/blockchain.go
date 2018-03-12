@@ -88,7 +88,7 @@ const (
 )
 
 // NewBlockChain create new #BlockChain instance.
-func NewBlockChain(neb Neblet) (*BlockChain, error) {
+func NewBlockChain(neb Neblet) (*BlockChain, error) { // Tocheck neblet not nil
 	blockPool, err := NewBlockPool(1024)
 	if err != nil {
 		return nil, err
@@ -100,7 +100,7 @@ func NewBlockChain(neb Neblet) (*BlockChain, error) {
 	txPool.setEventEmitter(neb.EventEmitter())
 
 	var bc = &BlockChain{
-		chainID:      neb.Config().Chain.ChainId,
+		chainID:      neb.Config().Chain.ChainId, // Tocheck config not nil
 		genesis:      neb.Genesis(),
 		bkPool:       blockPool,
 		txPool:       txPool,
@@ -130,21 +130,20 @@ func NewBlockChain(neb Neblet) (*BlockChain, error) {
 		return nil, err
 	}
 
-	bc.bkPool.setBlockChain(bc)
+	bc.bkPool.setBlockChain(bc) // ToRefine, blockchain should put in New func
 	bc.txPool.setBlockChain(bc)
 
 	return bc, nil
 }
 
 // Setup the blockchain
-func (bc *BlockChain) Setup(neb Neblet) error {
+func (bc *BlockChain) Setup(neb Neblet) (err error) {
 	bc.consensusHandler = neb.Consensus()
 
 	if err := bc.CheckChainConfig(neb); err != nil {
 		return err
 	}
 
-	var err error
 	bc.genesisBlock, err = bc.LoadGenesisFromStorage()
 	if err != nil {
 		return err
@@ -197,8 +196,8 @@ func (bc *BlockChain) loop() {
 }
 
 // CheckChainConfig check if the genesis and config is valid
-func (bc *BlockChain) CheckChainConfig(neb Neblet) error {
-	genesis, _ := DumpGenesis(bc)
+func (bc *BlockChain) CheckChainConfig(neb Neblet) error { //ToRefine, update the func name to genesis
+	genesis, _ := DumpGenesis(bc) //ToFix, handle error
 	//db.genesis has and config lack
 	if neb.Genesis() == nil && genesis != nil {
 		neb.SetGenesis(genesis)
@@ -207,7 +206,7 @@ func (bc *BlockChain) CheckChainConfig(neb Neblet) error {
 		}
 	} else if neb.Genesis() == nil && genesis == nil {
 		logging.CLog().Fatalf("not found genesis.conf")
-		return ErrCannotLoadGenesisConf
+		return ErrCannotLoadGenesisConf // ToRemove, fatal need not return
 	} else if neb.Genesis() != nil && genesis == nil {
 		//first start
 		if neb.Config().Chain.ChainId != neb.Genesis().Meta.ChainId {
@@ -217,7 +216,7 @@ func (bc *BlockChain) CheckChainConfig(neb Neblet) error {
 		if neb.Config().Chain.ChainId != neb.Genesis().Meta.ChainId {
 			return ErrInvalidConfigChainID
 		}
-		return CheckGenesisConfByDB(bc, neb.Genesis())
+		return CheckGenesisConfByDB(bc, neb.Genesis()) //ToRefine, DumpGenesis
 	}
 
 	return nil
@@ -289,7 +288,7 @@ func (bc *BlockChain) buildIndexByBlockHeight(from *Block, to *Block) error {
 }
 
 // SetTailBlock set tail block.
-func (bc *BlockChain) SetTailBlock(newTail *Block) error {
+func (bc *BlockChain) SetTailBlock(newTail *Block) error { //Tocheck, check newTail not nil
 	oldTail := bc.tailBlock
 	ancestor, err := bc.FindCommonAncestorWithTail(newTail)
 	if err != nil {
@@ -366,7 +365,7 @@ func (bc *BlockChain) SetLIB(lib *Block) {
 
 // GetBlockOnCanonicalChainByHeight return block in given height
 func (bc *BlockChain) GetBlockOnCanonicalChainByHeight(height uint64) *Block {
-	blockHash, err := bc.storage.Get(byteutils.FromUint64(height))
+	blockHash, err := bc.storage.Get(byteutils.FromUint64(height)) // ToCheck height <= tailHeight
 	if err != nil {
 		return nil
 	}
@@ -406,7 +405,7 @@ func (bc *BlockChain) GetBlockOnCanonicalChainByHash(blockHash byteutils.Hash) *
 }
 
 // FindCommonAncestorWithTail return the block's common ancestor with current tail
-func (bc *BlockChain) FindCommonAncestorWithTail(block *Block) (*Block, error) {
+func (bc *BlockChain) FindCommonAncestorWithTail(block *Block) (*Block, error) { //Tocheck, check block not nil
 	target := bc.GetBlock(block.Hash())
 	if target == nil {
 		target = bc.GetBlock(block.ParentHash())
@@ -416,7 +415,7 @@ func (bc *BlockChain) FindCommonAncestorWithTail(block *Block) (*Block, error) {
 	}
 
 	tail := bc.TailBlock()
-	for tail.Height() > target.Height() {
+	for tail.Height() > target.Height() { // TODO check the height if too big, use height link
 		tail = bc.GetBlock(tail.header.parentHash)
 		if tail == nil {
 			return nil, ErrMissingParentBlock
@@ -441,7 +440,7 @@ func (bc *BlockChain) FindCommonAncestorWithTail(block *Block) (*Block, error) {
 }
 
 // FetchDescendantInCanonicalChain return the subsequent blocks of the block
-func (bc *BlockChain) FetchDescendantInCanonicalChain(n int, block *Block) ([]*Block, error) {
+func (bc *BlockChain) FetchDescendantInCanonicalChain(n int, block *Block) ([]*Block, error) { // ToCheck block not nil, check block onchain , check remove ?
 	// get tail in canonical chain
 	curHeight := block.height + 1
 	tailHeight := bc.tailBlock.height
@@ -487,7 +486,7 @@ func (bc *BlockChain) StartActiveSync() bool {
 	if bc.syncService.StartActiveSync() {
 		bc.consensusHandler.SuspendMining()
 		go func() {
-			bc.syncService.WaitingForFinish()
+			bc.syncService.WaitingForFinish() // ToCheck error
 			bc.consensusHandler.ResumeMining()
 		}()
 		return true
@@ -501,12 +500,12 @@ func (bc *BlockChain) ConsensusHandler() Consensus {
 }
 
 // NewBlock create new #Block instance.
-func (bc *BlockChain) NewBlock(coinbase *Address) (*Block, error) {
+func (bc *BlockChain) NewBlock(coinbase *Address) (*Block, error) { // ToCheck coinbase not nil
 	return bc.NewBlockFromParent(coinbase, bc.tailBlock)
 }
 
 // NewBlockFromParent create new block from parent block and return it.
-func (bc *BlockChain) NewBlockFromParent(coinbase *Address, parentBlock *Block) (*Block, error) {
+func (bc *BlockChain) NewBlockFromParent(coinbase *Address, parentBlock *Block) (*Block, error) { // ToCheck input not nil
 	return NewBlock(bc.chainID, coinbase, parentBlock)
 }
 
@@ -610,7 +609,7 @@ func (bc *BlockChain) GasPrice() *util.Uint128 {
 }
 
 // EstimateGas returns the transaction gas cost
-func (bc *BlockChain) EstimateGas(tx *Transaction) (*util.Uint128, error) {
+func (bc *BlockChain) EstimateGas(tx *Transaction) (*util.Uint128, error) { // ToCheck tx not nil
 	hash, err := HashTransaction(tx)
 	if err != nil {
 		return nil, err
@@ -622,7 +621,7 @@ func (bc *BlockChain) EstimateGas(tx *Transaction) (*util.Uint128, error) {
 }
 
 // Call returns the transaction call result
-func (bc *BlockChain) Call(tx *Transaction) (string, error) {
+func (bc *BlockChain) Call(tx *Transaction) (string, error) { // ToCheck tx not nil
 	hash, err := HashTransaction(tx)
 	if err != nil {
 		return "", err
@@ -667,12 +666,12 @@ func (bc *BlockChain) StoreBlockToStorage(block *Block) error {
 }
 
 // StoreTailToStorage store tail block
-func (bc *BlockChain) StoreTailToStorage(block *Block) error {
+func (bc *BlockChain) StoreTailToStorage(block *Block) error { // ToRefine, update func to StoreTailHashToStorage
 	return bc.storage.Put([]byte(Tail), block.Hash())
 }
 
 // StoreLIBToStorage store LIB block
-func (bc *BlockChain) StoreLIBToStorage(block *Block) error {
+func (bc *BlockChain) StoreLIBToStorage(block *Block) error { // ToRefine, update func to StoreLIBHashToStorage
 	return bc.storage.Put([]byte(LIB), block.Hash())
 }
 
@@ -700,7 +699,7 @@ func (bc *BlockChain) LoadTailFromStorage() (*Block, error) {
 }
 
 // LoadGenesisFromStorage load genesis
-func (bc *BlockChain) LoadGenesisFromStorage() (*Block, error) {
+func (bc *BlockChain) LoadGenesisFromStorage() (*Block, error) { // ToRefine, remove or ?
 	genesis, err := LoadBlockFromStorage(GenesisHash, bc)
 	if err != nil {
 		genesis, err = NewGenesisBlock(bc.genesis, bc)
