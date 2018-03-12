@@ -422,7 +422,7 @@ func (block *Block) CollectTransactions(deadline int64) {
 	over := false
 
 	go func() {
-		for !pool.Empty() {
+		for {
 			// pop a valid tx
 			exclusiveCh <- true
 			if over {
@@ -446,6 +446,17 @@ func (block *Block) CollectTransactions(deadline int64) {
 
 				// prepare independent environment
 				exclusiveCh <- true
+				if over {
+					if err := pool.Push(tx); err != nil {
+						logging.VLog().WithFields(logrus.Fields{
+							"block": block,
+							"tx":    tx,
+							"err":   err,
+						}).Debug("Failed to giveback the tx.")
+					}
+					<-exclusiveCh
+					return
+				}
 				txBlock, err := block.Clone()
 				if err != nil {
 					logging.VLog().WithFields(logrus.Fields{
@@ -495,6 +506,15 @@ func (block *Block) CollectTransactions(deadline int64) {
 				// merge tx
 				exclusiveCh <- true
 				if over {
+					if merge {
+						if err := pool.Push(tx); err != nil {
+							logging.VLog().WithFields(logrus.Fields{
+								"block": block,
+								"tx":    tx,
+								"err":   err,
+							}).Debug("Failed to giveback the tx.")
+						}
+					}
 					<-exclusiveCh
 					return
 				}
