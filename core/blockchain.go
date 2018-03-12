@@ -96,10 +96,7 @@ func NewBlockChain(neb Neblet) (*BlockChain, error) {
 	if err != nil {
 		return nil, err
 	}
-	txPool, err := NewTransactionPool(40960)
-	if err != nil {
-		return nil, err
-	}
+	txPool := NewTransactionPool(40960)
 	txPool.setEventEmitter(neb.EventEmitter())
 
 	var bc = &BlockChain{

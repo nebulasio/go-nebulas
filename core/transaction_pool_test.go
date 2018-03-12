@@ -73,7 +73,7 @@ func TestTransactionPool(t *testing.T) {
 	assert.Nil(t, err)
 
 	bc := testNeb(t).chain
-	txPool, _ := NewTransactionPool(3)
+	txPool := NewTransactionPool(3)
 	txPool.setBlockChain(bc)
 	txPool.setEventEmitter(bc.eventEmitter)
 
@@ -144,15 +144,15 @@ func TestTransactionPool(t *testing.T) {
 }
 
 func TestGasConfig(t *testing.T) {
-	txPool, _ := NewTransactionPool(3)
+	txPool := NewTransactionPool(3)
 	txPool.SetGasConfig(nil, nil)
-	assert.Equal(t, txPool.gasPrice, TransactionGasPrice)
-	assert.Equal(t, txPool.gasLimit, TransactionMaxGas)
+	assert.Equal(t, txPool.minGasPrice, TransactionGasPrice)
+	assert.Equal(t, txPool.maxGasLimit, TransactionMaxGas)
 	gasPrice, _ := util.NewUint128FromInt(1)
 	gasLimit, _ := util.NewUint128FromInt(1)
 	txPool.SetGasConfig(gasPrice, gasLimit)
-	assert.Equal(t, txPool.gasPrice, gasPrice)
-	assert.Equal(t, txPool.gasLimit, gasLimit)
+	assert.Equal(t, txPool.minGasPrice, gasPrice)
+	assert.Equal(t, txPool.maxGasLimit, gasLimit)
 }
 
 func TestPushTxs(t *testing.T) {
@@ -175,7 +175,7 @@ func TestPushTxs(t *testing.T) {
 	signature2, _ := crypto.NewSignature(keystore.SECP256K1)
 	signature2.InitSign(key2.(keystore.PrivateKey))
 
-	txPool, _ := NewTransactionPool(3)
+	txPool := NewTransactionPool(3)
 	bc := testNeb(t).chain
 	txPool.setBlockChain(bc)
 	txPool.setEventEmitter(bc.eventEmitter)

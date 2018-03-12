@@ -45,8 +45,8 @@ type TransactionPool struct {
 	ns net.Service
 	mu sync.RWMutex
 
-	gasPrice *util.Uint128 // the lowest gasPrice.
-	gasLimit *util.Uint128 // the maximum gasLimit.
+	minGasPrice *util.Uint128 // the lowest gasPrice.
+	maxGasLimit *util.Uint128 // the maximum gasLimit.
 
 	eventEmitter *EventEmitter
 	bc           *BlockChain
@@ -71,31 +71,30 @@ func gasCmp(a interface{}, b interface{}) int {
 }
 
 // NewTransactionPool create a new TransactionPool
-func NewTransactionPool(size int) (*TransactionPool, error) { // ToRemove, remove err throw
-	txPool := &TransactionPool{
+func NewTransactionPool(size int) *TransactionPool {
+	return &TransactionPool{
 		receivedMessageCh: make(chan net.Message, size),
 		quitCh:            make(chan int, 1),
 		size:              size,
 		candidates:        sorted.NewSlice(gasCmp),
 		buckets:           make(map[byteutils.HexHash]*sorted.Slice),
 		all:               make(map[byteutils.HexHash]*Transaction),
-		gasPrice:          TransactionGasPrice, //ToRefine, minGasPrice
-		gasLimit:          TransactionMaxGas,   //ToRefine, maxGasLimit
+		minGasPrice:       TransactionGasPrice,
+		maxGasLimit:       TransactionMaxGas,
 	}
-	return txPool, nil
 }
 
 // SetGasConfig config the lowest gasPrice and the maximum gasLimit.
 func (pool *TransactionPool) SetGasConfig(gasPrice, gasLimit *util.Uint128) {
 	if gasPrice == nil || gasPrice.Cmp(util.NewUint128()) <= 0 {
-		pool.gasPrice = TransactionGasPrice
+		pool.minGasPrice = TransactionGasPrice
 	} else {
-		pool.gasPrice = gasPrice
+		pool.minGasPrice = gasPrice
 	}
 	if gasLimit == nil || gasLimit.Cmp(util.NewUint128()) == 0 || gasLimit.Cmp(TransactionMaxGas) > 0 {
-		pool.gasLimit = TransactionMaxGas
+		pool.maxGasLimit = TransactionMaxGas
 	} else {
-		pool.gasLimit = gasLimit
+		pool.maxGasLimit = gasLimit
 	}
 }
 
@@ -234,7 +233,7 @@ func (pool *TransactionPool) Push(tx *Transaction) error { //ToRefine, change to
 	}
 
 	// if tx's gasPrice below the pool config lowest gasPrice, return ErrBelowGasPrice
-	if tx.gasPrice.Cmp(pool.gasPrice) < 0 {
+	if tx.gasPrice.Cmp(pool.minGasPrice) < 0 {
 		metricsTxPoolBelowGasPrice.Inc(1)
 		return ErrBelowGasPrice
 	}
@@ -244,7 +243,7 @@ func (pool *TransactionPool) Push(tx *Transaction) error { //ToRefine, change to
 		return ErrGasLimitLessOrEqualToZero
 	}
 
-	if tx.gasLimit.Cmp(pool.gasLimit) > 0 {
+	if tx.gasLimit.Cmp(pool.maxGasLimit) > 0 {
 		metricsTxPoolOutOfGasLimit.Inc(1)
 		return ErrOutOfGasLimit
 	}
@@ -350,7 +349,6 @@ func (pool *TransactionPool) Pop() *Transaction {
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
 
-	logging.CLog().Info("Pop") //RoRemove
 	candidates := pool.candidates
 	val := candidates.PopMin() // ToRefine, change to PopLeft
 	if val == nil {
