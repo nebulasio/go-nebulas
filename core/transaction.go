@@ -425,7 +425,7 @@ func VerifyExecution(tx *Transaction, block *Block, txWorldState state.TxWorldSt
 	// execute smart contract and sub the calcute gas.
 	gasExecution, _, exeErr := payload.Execute(tx, block, txWorldState)
 	if exeErr != nil {
-		logging.CLog().Info("Reset ", tx, " err ", exeErr)
+		logging.VLog().Info("Reset Payload ", tx, " err ", exeErr)
 		if err := block.Reset(tx); err != nil {
 			return err
 		}

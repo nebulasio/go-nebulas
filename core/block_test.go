@@ -39,7 +39,6 @@ import (
 	"github.com/nebulasio/go-nebulas/neblet/pb"
 	"github.com/nebulasio/go-nebulas/storage"
 	"github.com/nebulasio/go-nebulas/util"
-	"github.com/nebulasio/go-nebulas/util/logging"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -677,7 +676,6 @@ func TestBlockVerifyState(t *testing.T) {
 	assert.Nil(t, err)
 	acc, err = tail.WorldState().GetOrCreateUserAccount(from.Bytes())
 	assert.Nil(t, err)
-	logging.CLog().Info(acc.Balance().String())
 
 	gasLimit, _ := util.NewUint128FromInt(200000)
 	tx1 := NewTransaction(bc.ChainID(), from, from, util.NewUint128(), 1, TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, gasLimit)
@@ -707,6 +705,5 @@ func TestBlock_String(t *testing.T) {
 	neb := testNeb(t)
 	bc := neb.chain
 	bc.genesisBlock.miner = nil
-	logging.CLog().Info(bc.genesisBlock)
 	assert.NotNil(t, bc.genesisBlock.String())
 }

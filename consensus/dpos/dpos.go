@@ -148,6 +148,9 @@ func less(a *core.Block, b *core.Block) bool {
 	if a.Height() != b.Height() {
 		return a.Height() < b.Height()
 	}
+	if len(a.Transactions()) != len(b.Transactions()) {
+		return len(a.Transactions()) < len(b.Transactions())
+	}
 	return byteutils.Less(a.Hash(), b.Hash())
 }
 
@@ -335,6 +338,8 @@ func (dpos *Dpos) VerifyBlock(block *core.Block) error {
 }
 
 func (dpos *Dpos) newBlock(tail *core.Block, consensusState state.ConsensusState, deadline int64) (*core.Block, error) {
+	startAt := time.Now().Unix()
+
 	block, err := core.NewBlock(dpos.chain.ChainID(), dpos.coinbase, tail)
 	if err != nil {
 		logging.CLog().WithFields(logrus.Fields{
@@ -370,11 +375,14 @@ func (dpos *Dpos) newBlock(tail *core.Block, consensusState state.ConsensusState
 		}).Error("Failed to sign new block")
 		return nil, err
 	}
+	endAt := time.Now().Unix()
 
 	logging.CLog().WithFields(logrus.Fields{
-		"now":      time.Now().Unix(),
-		"deadline": deadline,
-		"txs":      len(block.Transactions()),
+		"start": startAt,
+		"end":   endAt,
+		"diff":  endAt - startAt,
+		"block": block,
+		"txs":   len(block.Transactions()),
 	}).Info("Packed txs.")
 
 	return block, nil
@@ -401,7 +409,7 @@ func (dpos *Dpos) checkDeadline(tail *core.Block, now int64) (int64, error) {
 	lastSlot := lastSlot(now)
 	nextSlot := nextSlot(now)
 
-	if tail.Timestamp() == nextSlot {
+	if tail.Timestamp() >= nextSlot {
 		return 0, ErrBlockMintedInNextSlot
 	}
 	if tail.Timestamp() == lastSlot {

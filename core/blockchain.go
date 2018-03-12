@@ -138,13 +138,11 @@ func (bc *BlockChain) Setup(neb Neblet) error {
 	}
 
 	var err error
-	logging.CLog().Info("1")
 	bc.genesisBlock, err = bc.LoadGenesisFromStorage()
 	if err != nil {
 		return err
 	}
 
-	logging.CLog().Info("2")
 	bc.tailBlock, err = bc.LoadTailFromStorage()
 	if err != nil {
 		return err
@@ -719,28 +717,22 @@ func (bc *BlockChain) StoreLIBToStorage(block *Block) error {
 // LoadTailFromStorage load the tail from storage
 func (bc *BlockChain) LoadTailFromStorage() (*Block, error) {
 	hash, err := bc.storage.Get([]byte(Tail))
-	logging.CLog().Info("21")
 	if err != nil && err != storage.ErrKeyNotFound {
 		return nil, err
 	}
-	logging.CLog().Info("22")
 	if err == storage.ErrKeyNotFound {
-		logging.CLog().Info("23")
 		if err := bc.StoreTailToStorage(bc.genesisBlock); err != nil {
 			return nil, err
 		}
 		return bc.genesisBlock, nil
 	}
-	logging.CLog().Info("24")
 	return LoadBlockFromStorage(hash, bc)
 }
 
 // LoadGenesisFromStorage load the genesis block from storage
 func (bc *BlockChain) LoadGenesisFromStorage() (*Block, error) {
-	logging.CLog().Info("11")
 	genesis, err := LoadBlockFromStorage(GenesisHash, bc)
 	if err != nil {
-		logging.CLog().Info("12")
 		genesis, err = NewGenesisBlock(bc.genesis, bc)
 		if err != nil {
 			return nil, err

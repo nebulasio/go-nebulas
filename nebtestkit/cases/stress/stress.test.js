@@ -2,7 +2,7 @@
 
 var HttpRequest = require("../../node-request");
 var Wallet = require('../../../cmd/console/neb.js/lib/wallet.js');
-var neb = new Wallet.Neb(new HttpRequest("http://35.182.48.19:8685"));
+var neb = new Wallet.Neb(new HttpRequest("http://127.0.0.1:8685"));
 
 
 var sleep = require("system-sleep");
@@ -11,10 +11,10 @@ const AddressNumber = 200;
 const SendTimes = 40;
 var lastnonce = 0;
 
-var chainID = 1001;
+var chainID = 100;
 
 // var master = Wallet.Account.NewAccount();
-var from = new Wallet.Account("43181d58178263837a9a6b08f06379a348a5b362bfab3631ac78d2ac771c5df3");
+var from = new Wallet.Account("a6e5eb290e1438fce79f5cb8774a72621637c2c9654c8b2525ed1d7e4e73653f");
 
 
 neb.api.getAccountState(from.getAddressString()).then(function (resp) {

@@ -475,5 +475,4 @@ func TestMVCCDB_ClosePreparedDB(t *testing.T) {
 	val, err = v.Get(key1)
 	assert.Equal(t, val1_2, val)
 	assert.Nil(t, err)
-
 }

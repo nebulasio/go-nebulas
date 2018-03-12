@@ -396,7 +396,6 @@ func (block *Block) LinkParentBlock(chain *BlockChain, parentBlock *Block) error
 	}
 
 	elapsedSecond := block.Timestamp() - parentBlock.Timestamp()
-	logging.CLog().Info("Link ", elapsedSecond, " block ", block.Timestamp(), " parent ", parentBlock.Timestamp())
 	consensusState, err := parentBlock.worldState.NextConsensusState(elapsedSecond)
 	if err != nil {
 		return err
@@ -535,7 +534,7 @@ func (block *Block) CollectTransactions(deadline int64) {
 
 				giveback, err := block.ExecuteTransaction(tx, txWorldState)
 				if err != nil {
-					logging.CLog().WithFields(logrus.Fields{
+					logging.VLog().WithFields(logrus.Fields{
 						"tx":       tx,
 						"err":      err,
 						"giveback": giveback,
@@ -550,6 +549,8 @@ func (block *Block) CollectTransactions(deadline int64) {
 								"err":   err,
 							}).Debug("Failed to giveback the tx.")
 						}
+					} else {
+						delete(inprogress, tx.from.address.Hex())
 					}
 				} else {
 					mergeCh <- true
@@ -559,7 +560,7 @@ func (block *Block) CollectTransactions(deadline int64) {
 					}
 					dependency, err := block.CheckAndUpdate(tx)
 					if err != nil {
-						logging.CLog().WithFields(logrus.Fields{
+						logging.VLog().WithFields(logrus.Fields{
 							"tx":       tx,
 							"err":      err,
 							"giveback": giveback,
@@ -583,7 +584,7 @@ func (block *Block) CollectTransactions(deadline int64) {
 							delete(inprogress, tx.from.address.Hex())
 						}
 					} else {
-						logging.CLog().WithFields(logrus.Fields{
+						logging.VLog().WithFields(logrus.Fields{
 							"tx": tx,
 						}).Debug("packed tx.")
 						packed++
@@ -631,12 +632,12 @@ func (block *Block) Seal() error {
 	}
 
 	var err error
-	logging.CLog().Info("Seal DirtyAccount")
+	logging.VLog().Info("Seal DirtyAccount")
 	block.header.stateRoot, err = block.WorldState().AccountsRoot_Log()
 	if err != nil {
 		return err
 	}
-	logging.CLog().Info("Seal DirtyAccount")
+	logging.VLog().Info("Seal DirtyAccount")
 	block.header.txsRoot, err = block.WorldState().TxsRoot()
 	if err != nil {
 		return err
@@ -657,20 +658,20 @@ func (block *Block) Seal() error {
 		"block": block,
 	}).Info("Sealed Block.")
 
-	logging.CLog().Info("Seal Accounts")
-	accounts, err := block.WorldState().Accounts()
-	if err != nil {
-		return err
-	}
-	for _, acc := range accounts {
-		logging.CLog().WithFields(logrus.Fields{
-			"addr":    acc.Address().String(),
-			"balance": acc.Balance().String(),
-			"birth":   acc.BirthPlace().String(),
-			"vars":    acc.VarsHash().String(),
-		}).Info("Accounts")
-	}
-	logging.CLog().Info("Seal Accounts")
+	logging.VLog().Info("Seal Accounts")
+	/* 	accounts, err := block.WorldState().Accounts()
+	   	if err != nil {
+	   		return err
+	   	}
+	   	for _, acc := range accounts {
+	   		logging.VLog().WithFields(logrus.Fields{
+	   			"addr":    acc.Address().String(),
+	   			"balance": acc.Balance().String(),
+	   			"birth":   acc.BirthPlace().String(),
+	   			"vars":    acc.VarsHash().String(),
+	   		}).Info("Accounts")
+	   	} */
+	logging.VLog().Info("Seal Accounts")
 
 	block.RollBack()
 
@@ -686,15 +687,12 @@ func (block *Block) String() string {
 	if block.miner != nil {
 		miner = block.miner.String()
 	}
-	return fmt.Sprintf(`{"height": %d, "hash": "%s", "parent_hash": "%s", "state": "%s", "txs": "%s", "events": "%s", "timestamp": %d, "consensus": "%s", "tx": %d, "miner": "%s"}`,
+	return fmt.Sprintf(`{"height": %d, "hash": "%s", "parent_hash": "%s", "acc_root": "%s", "timestamp": %d, "tx": %d, "miner": "%s"}`,
 		block.height,
 		block.header.hash,
 		block.header.parentHash,
 		block.header.stateRoot,
-		block.header.txsRoot,
-		block.header.eventsRoot,
 		block.header.timestamp,
-		block.header.consensusRoot,
 		len(block.transactions),
 		miner,
 	)
@@ -702,6 +700,8 @@ func (block *Block) String() string {
 
 // VerifyExecution execute the block and verify the execution result.
 func (block *Block) VerifyExecution() error {
+	startAt := time.Now().Unix()
+
 	block.Begin()
 
 	if err := block.execute(); err != nil {
@@ -714,7 +714,19 @@ func (block *Block) VerifyExecution() error {
 		return err
 	}
 
+	commitAt := time.Now().Unix()
 	block.Commit()
+
+	endAt := time.Now().Unix()
+	logging.CLog().WithFields(logrus.Fields{
+		"start":       startAt,
+		"end":         endAt,
+		"commit":      commitAt,
+		"diff-all":    endAt - startAt,
+		"diff-commit": endAt - commitAt,
+		"block":       block,
+		"txs":         len(block.Transactions()),
+	}).Info("Verify txs.")
 
 	// release all events
 	block.triggerEvent()
@@ -814,27 +826,27 @@ func (block *Block) VerifyIntegrity(chainID uint32, consensus Consensus) error {
 // verifyState return state verify result.
 func (block *Block) verifyState() error {
 	// verify state root.
-	logging.CLog().Info("Verify DirtyAccount")
+	logging.VLog().Info("Verify DirtyAccount")
 	accountsRoot, err := block.WorldState().AccountsRoot_Log()
 	if err != nil {
 		return err
 	}
-	logging.CLog().Info("Verify DirtyAccount")
+	logging.VLog().Info("Verify DirtyAccount")
 
-	logging.CLog().Info("Verify Accounts")
-	accounts, err := block.WorldState().Accounts()
-	if err != nil {
-		return err
-	}
-	for _, acc := range accounts {
-		logging.CLog().WithFields(logrus.Fields{
-			"addr":    acc.Address().String(),
-			"balance": acc.Balance().String(),
-			"birth":   acc.BirthPlace().String(),
-			"vars":    acc.VarsHash().String(),
-		}).Info("Accounts")
-	}
-	logging.CLog().Info("Verify Accounts")
+	logging.VLog().Info("Verify Accounts")
+	/* 	accounts, err := block.WorldState().Accounts()
+	   	if err != nil {
+	   		return err
+	   	}
+	   	for _, acc := range accounts {
+	   		logging.CLog().WithFields(logrus.Fields{
+	   			"addr":    acc.Address().String(),
+	   			"balance": acc.Balance().String(),
+	   			"birth":   acc.BirthPlace().String(),
+	   			"vars":    acc.VarsHash().String(),
+	   		}).Info("Accounts")
+	   	} */
+	logging.VLog().Info("Verify Accounts")
 	if !byteutils.Equal(accountsRoot, block.StateRoot()) {
 		logging.VLog().WithFields(logrus.Fields{
 			"expect": block.StateRoot(),
@@ -898,7 +910,7 @@ func (block *Block) execute() error {
 	}
 
 	// Compatible
-	dependency := dag.NewDag()
+	// dependency := dag.NewDag()
 	// one-by-one
 	/* 	for k, v := range block.transactions {
 		vk := v.Hash().String()
@@ -911,126 +923,126 @@ func (block *Block) execute() error {
 		}
 	} */
 	// parallel, build dag
-	logging.CLog().Info("01")
-	mergeCh := make(chan bool, 1)
-	parallelCh := make(chan bool, 32)
-	transactions := []*Transaction{}
-	finish := len(block.transactions)
-	inprogress := make(map[byteutils.HexHash]bool)
-	pool, err := NewTransactionPool(len(block.transactions))
-	if err != nil {
-		return err
-	}
-	pool.setBlockChain(block.txPool.bc)
-	pool.setEventEmitter(block.txPool.eventEmitter)
-	logging.CLog().Info("02")
-	for _, v := range block.transactions {
-		if err := pool.Push(v); err != nil {
-			return err
-		}
-	}
-	txBlock, err := mockBlockFromNetwork(block)
-	if err != nil {
-		return err
-	}
-	if err := txBlock.LinkParentBlock(pool.bc, block.parentBlock); err != nil {
-		return err
-	}
-	if err := txBlock.Begin(); err != nil {
-		return err
-	}
-	logging.CLog().Info("03")
-	for !pool.Empty() {
-		mergeCh <- true
-		if finish == 0 {
-			logging.CLog().Info("BuildDag Error: ", "finish == 0 when pool is not empty")
-			<-mergeCh
-			break
-		}
-		tx := pool.PopWithBlacklist(inprogress)
-		if tx == nil {
-			<-mergeCh
-			time.Sleep(time.Millisecond)
-			continue
-		}
-		inprogress[tx.from.address.Hex()] = true
-		<-mergeCh
-		logging.CLog().Info("05 ", tx)
+	/* 	logging.VLog().Info("01")
+	   	mergeCh := make(chan bool, 1)
+	   	parallelCh := make(chan bool, 32)
+	   	transactions := []*Transaction{}
+	   	finish := len(block.transactions)
+	   	inprogress := make(map[byteutils.HexHash]bool)
+	   	pool, err := NewTransactionPool(len(block.transactions))
+	   	if err != nil {
+	   		return err
+	   	}
+	   	pool.setBlockChain(block.txPool.bc)
+	   	pool.setEventEmitter(block.txPool.eventEmitter)
+	   	logging.VLog().Info("02")
+	   	for _, v := range block.transactions {
+	   		if err := pool.Push(v); err != nil {
+	   			return err
+	   		}
+	   	}
+	   	txBlock, err := mockBlockFromNetwork(block)
+	   	if err != nil {
+	   		return err
+	   	}
+	   	if err := txBlock.LinkParentBlock(pool.bc, block.parentBlock); err != nil {
+	   		return err
+	   	}
+	   	if err := txBlock.Begin(); err != nil {
+	   		return err
+	   	}
+	   	logging.VLog().Info("03")
+	   	for !pool.Empty() {
+	   		mergeCh <- true
+	   		if finish == 0 {
+	   			logging.VLog().Info("BuildDag Error: ", "finish == 0 when pool is not empty")
+	   			<-mergeCh
+	   			break
+	   		}
+	   		tx := pool.PopWithBlacklist(inprogress)
+	   		if tx == nil {
+	   			<-mergeCh
+	   			time.Sleep(time.Millisecond)
+	   			continue
+	   		}
+	   		inprogress[tx.from.address.Hex()] = true
+	   		<-mergeCh
+	   		logging.VLog().Info("05 ", tx)
 
-		parallelCh <- true
-		go func() {
-			defer func() { <-parallelCh }()
-			logging.CLog().Info("06")
-			mergeCh <- true
-			txWorldState, err := txBlock.Prepare(tx)
-			if err != nil {
-				logging.CLog().Info("BuildDag Error: ", "faild to prepare tx, ", err, " ", tx)
-				delete(inprogress, tx.from.address.Hex())
-				<-mergeCh
-				return
-			}
-			logging.CLog().Info("prepare tx, ", tx)
-			<-mergeCh
-			logging.CLog().Info("07")
+	   		parallelCh <- true
+	   		go func() {
+	   			defer func() { <-parallelCh }()
+	   			logging.VLog().Info("06")
+	   			mergeCh <- true
+	   			txWorldState, err := txBlock.Prepare(tx)
+	   			if err != nil {
+	   				logging.VLog().Info("BuildDag Error: ", "faild to prepare tx, ", err, " ", tx)
+	   				delete(inprogress, tx.from.address.Hex())
+	   				<-mergeCh
+	   				return
+	   			}
+	   			logging.VLog().Info("prepare tx, ", tx)
+	   			<-mergeCh
+	   			logging.VLog().Info("07")
 
-			giveback, err := txBlock.ExecuteTransaction(tx, txWorldState)
-			logging.CLog().Info("08 ", err)
-			if err != nil {
-				logging.CLog().Info("081")
-				if giveback {
-					logging.CLog().Info("082")
-					if err := pool.Push(tx); err != nil {
-						logging.CLog().Info("BuildDag Error: ", "faild to giveback tx, ", err)
-					}
-					logging.CLog().Info("083")
-					logging.CLog().Info("giveback tx, ", tx, " err ", err)
-				}
-			} else {
-				logging.CLog().Info("09")
-				mergeCh <- true
-				if finish == 0 {
-					logging.CLog().Info("BuildDag Error: ", "finish == 0 when pool is not empty")
-					<-mergeCh
-					return
-				}
-				logging.CLog().Info("010")
-				dep, err := txBlock.CheckAndUpdate(tx)
-				logging.CLog().Info("011")
-				if err != nil {
-					logging.CLog().Info("BuildDag Error: ", "faild update tx, ", err, " tx ", tx)
-					if err := pool.Push(tx); err != nil {
-						logging.CLog().Info("BuildDag Error: ", "faild to giveback tx, ", err, " tx ", tx)
-					}
-					logging.CLog().Info("giveback tx, ", tx)
-					if err := txBlock.Close(tx); err != nil {
-						logging.CLog().Info("BuildDag Error: ", "faild to reset tx, ", err, " ", tx)
-					} else {
-						delete(inprogress, tx.from.address.Hex())
-					}
-					logging.CLog().Info("reset tx, ", tx)
-				} else {
-					logging.CLog().Info("012")
-					txid := tx.Hash().String()
-					dependency.AddNode(txid)
-					for _, node := range dep {
-						dependency.AddEdge(node, txid)
-					}
-					transactions = append(transactions, tx)
-					delete(inprogress, tx.from.address.Hex())
-					finish--
-				}
-				<-mergeCh
-			}
-			logging.CLog().Info("0121")
-		}()
-	}
-	for finish > 0 {
-		time.Sleep(time.Microsecond)
-	}
-	txBlock.RollBack()
-	logging.CLog().Info("013 ", finish)
-	block.dependency = dependency
-	block.transactions = transactions
+	   			giveback, err := txBlock.ExecuteTransaction(tx, txWorldState)
+	   			logging.VLog().Info("08 ", err)
+	   			if err != nil {
+	   				logging.VLog().Info("081")
+	   				if giveback {
+	   					logging.VLog().Info("082")
+	   					if err := pool.Push(tx); err != nil {
+	   						logging.VLog().Info("BuildDag Error: ", "faild to giveback tx, ", err)
+	   					}
+	   					logging.VLog().Info("083")
+	   					logging.VLog().Info("giveback tx, ", tx, " err ", err)
+	   				}
+	   			} else {
+	   				logging.VLog().Info("09")
+	   				mergeCh <- true
+	   				if finish == 0 {
+	   					logging.VLog().Info("BuildDag Error: ", "finish == 0 when pool is not empty")
+	   					<-mergeCh
+	   					return
+	   				}
+	   				logging.VLog().Info("010")
+	   				dep, err := txBlock.CheckAndUpdate(tx)
+	   				logging.VLog().Info("011")
+	   				if err != nil {
+	   					logging.VLog().Info("BuildDag Error: ", "faild update tx, ", err, " tx ", tx)
+	   					if err := pool.Push(tx); err != nil {
+	   						logging.VLog().Info("BuildDag Error: ", "faild to giveback tx, ", err, " tx ", tx)
+	   					}
+	   					logging.VLog().Info("giveback tx, ", tx)
+	   					if err := txBlock.Close(tx); err != nil {
+	   						logging.VLog().Info("BuildDag Error: ", "faild to reset tx, ", err, " ", tx)
+	   					} else {
+	   						delete(inprogress, tx.from.address.Hex())
+	   					}
+	   					logging.VLog().Info("reset tx, ", tx)
+	   				} else {
+	   					logging.VLog().Info("012")
+	   					txid := tx.Hash().String()
+	   					dependency.AddNode(txid)
+	   					for _, node := range dep {
+	   						dependency.AddEdge(node, txid)
+	   					}
+	   					transactions = append(transactions, tx)
+	   					delete(inprogress, tx.from.address.Hex())
+	   					finish--
+	   				}
+	   				<-mergeCh
+	   			}
+	   			logging.VLog().Info("0121")
+	   		}()
+	   	}
+	   	for finish > 0 {
+	   		time.Sleep(time.Microsecond)
+	   	}
+	   	txBlock.RollBack()
+	   	logging.VLog().Info("013 ", finish)
+	   	block.dependency = dependency
+	   	block.transactions = transactions */
 
 	context := &verifyCtx{
 		mergeCh: make(chan bool, 1),
@@ -1043,7 +1055,7 @@ func (block *Block) execute() error {
 		tx := block.transactions[node.Index]
 		metricsTxExecute.Mark(1)
 
-		logging.CLog().Info("Dag Dispatcher tx hash:", tx.hash, " Index:", node.Index)
+		// logging.VLog().Info("Dag Dispatcher tx hash:", tx.hash, " Index:", node.Index)
 		mergeCh <- true
 		txWorldState, err := block.Prepare(tx)
 		if err != nil {
@@ -1068,7 +1080,7 @@ func (block *Block) execute() error {
 
 	start := time.Now().UnixNano()
 	if err := dispatcher.Run(); err != nil {
-		logging.CLog().Info("dispatcher err:", err)
+		logging.VLog().Info("dispatcher err:", err)
 		return err
 	}
 	end := time.Now().UnixNano()
@@ -1125,7 +1137,7 @@ func (block *Block) rewardCoinbaseForMint() error {
 	if err != nil {
 		return err
 	}
-	logging.CLog().Info("rewardCoinbaseForMint ", "gas", BlockReward)
+	logging.VLog().Info("rewardCoinbaseForMint ", "gas", BlockReward)
 	return coinbaseAcc.AddBalance(BlockReward)
 }
 
@@ -1133,14 +1145,14 @@ func (block *Block) rewardCoinbaseForGas() error {
 	worldState := block.WorldState()
 	coinbaseAddr := (byteutils.Hash)(block.Coinbase().Bytes())
 
-	logging.CLog().Info("rewardCoinbaseForGas")
+	logging.VLog().Info("rewardCoinbaseForGas")
 	gasConsumed := worldState.GetGas()
 	for from, gas := range gasConsumed {
 		fromAddr, err := byteutils.FromHex(from)
 		if err != nil {
 			return err
 		}
-		logging.CLog().Info("rewardCoinbaseForGas from:", from, "gas", gas)
+		logging.VLog().Info("rewardCoinbaseForGas from:", from, "gas", gas)
 
 		if err := transfer((byteutils.Hash)(fromAddr), coinbaseAddr, gas, worldState); err != nil {
 			return err
@@ -1220,41 +1232,41 @@ func RecoverMiner(block *Block) (*Address, error) {
 // LoadBlockFromStorage return a block from storage
 func LoadBlockFromStorage(hash byteutils.Hash, chain *BlockChain) (*Block, error) {
 	value, err := chain.storage.Get(hash)
-	logging.CLog().Info("241", hash.String())
+	logging.VLog().Info("241", hash.String())
 	if err != nil {
 		return nil, err
 	}
 	pbBlock := new(corepb.Block)
 	block := new(Block)
-	logging.CLog().Info("242")
+	logging.VLog().Info("242")
 	if err = proto.Unmarshal(value, pbBlock); err != nil {
 		return nil, err
 	}
 	if err = block.FromProto(pbBlock); err != nil {
 		return nil, err
 	}
-	logging.CLog().Info("243")
+	logging.VLog().Info("243")
 	block.worldState, err = state.NewWorldState(chain.ConsensusHandler(), chain.storage)
 	if err != nil {
 		return nil, err
 	}
-	logging.CLog().Info("244")
+	logging.VLog().Info("244")
 	if err := block.WorldState().LoadAccountsRoot(block.StateRoot()); err != nil {
 		return nil, err
 	}
-	logging.CLog().Info("245")
+	logging.VLog().Info("245")
 	if err := block.WorldState().LoadTxsRoot(block.TxsRoot()); err != nil {
 		return nil, err
 	}
-	logging.CLog().Info("246")
+	logging.VLog().Info("246")
 	if err := block.WorldState().LoadEventsRoot(block.EventsRoot()); err != nil {
 		return nil, err
 	}
-	logging.CLog().Info("247")
+	logging.VLog().Info("247")
 	if err := block.WorldState().LoadConsensusRoot(block.ConsensusRoot()); err != nil {
 		return nil, err
 	}
-	logging.CLog().Info("248")
+	logging.VLog().Info("248")
 	block.txPool = chain.txPool
 	block.storage = chain.storage
 	block.sealed = true

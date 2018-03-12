@@ -41,7 +41,7 @@ import (
 const (
 	BlockInterval        = int64(5)
 	AcceptedNetWorkDelay = int64(2)
-	MaxMintDuration      = int64(2)
+	MaxMintDuration      = int64(1)
 	MinMintDuration      = int64(1)
 	DynastyInterval      = int64(60) // TODO(roy): 3600
 	DynastySize          = 6         // TODO(roy): 21
@@ -110,7 +110,6 @@ func (dpos *Dpos) CheckTimeout(block *core.Block) bool {
 
 // GenesisConsensusState create a new genesis dpos state
 func (dpos *Dpos) GenesisConsensusState(chain *core.BlockChain, conf *corepb.Genesis) (state.ConsensusState, error) {
-	logging.CLog().Info("1111")
 	dynastyTrie, err := trie.NewTrie(nil, chain.Storage())
 	if err != nil {
 		return nil, err
@@ -186,6 +185,8 @@ func (ds *State) Clone() (state.ConsensusState, error) {
 func (ds *State) RootHash() (*consensuspb.ConsensusRoot, error) {
 	return &consensuspb.ConsensusRoot{
 		DynastyRoot: ds.dynastyTrie.RootHash(),
+		Timestamp:   ds.TimeStamp(),
+		Proposer:    ds.Proposer(),
 	}, nil
 }
 
@@ -212,8 +213,6 @@ func FindProposer(now int64, dynasty *trie.Trie) (proposer byteutils.Hash, err e
 		return nil, err
 	}
 
-	logging.CLog().Info(delegatees)
-	logging.CLog().Info(offset)
 	if int(offset) < len(delegatees) {
 		proposer = delegatees[offset]
 	} else {
@@ -248,7 +247,6 @@ func (ds *State) NextConsensusState(elapsedSecond int64, worldState state.WorldS
 		return nil, err
 	}
 
-	logging.CLog().Info("elapsed ", elapsedSecond)
 	consensusState := &State{
 		timeStamp: ds.timeStamp + elapsedSecond,
 

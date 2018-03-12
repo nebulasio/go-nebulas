@@ -61,7 +61,7 @@ func NewDispatcher(dag *Dag, concurrency int, context interface{}, cb Callback) 
 
 // Run dag dispatch goroutine.
 func (dp *Dispatcher) Run() error {
-	logging.CLog().Info("Starting Dag Dispatcher...")
+	logging.VLog().Info("Starting Dag Dispatcher...")
 
 	vertices := dp.dag.GetNodes()
 

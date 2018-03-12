@@ -251,9 +251,9 @@ func (pool *BlockPool) loop() {
 			logging.CLog().Info("Stopped BlockPool.")
 			return
 		case msg := <-pool.receiveBlockMessageCh:
-			pool.handleBlock(msg)
+			go pool.handleBlock(msg)
 		case msg := <-pool.receiveDownloadBlockMessageCh:
-			pool.handleDownloadedBlock(msg)
+			go pool.handleDownloadedBlock(msg)
 		}
 	}
 }
