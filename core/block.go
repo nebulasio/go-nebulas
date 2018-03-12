@@ -489,7 +489,7 @@ func (block *Block) CollectTransactions(deadline int64) {
 	over := false
 
 	go func() {
-		for !pool.Empty() {
+		for {
 			mergeCh <- true
 			if over {
 				<-mergeCh
@@ -952,7 +952,7 @@ func (block *Block) execute() error {
 		return err
 	}
 	logging.VLog().Info("03")
-	for !pool.Empty() {
+	for {
 		mergeCh <- true
 		if finish == 0 {
 			logging.VLog().Info("BuildDag Error: ", "finish == 0 when pool is not empty")
