@@ -71,7 +71,7 @@ func gasCmp(a interface{}, b interface{}) int {
 }
 
 // NewTransactionPool create a new TransactionPool
-func NewTransactionPool(size int) (*TransactionPool, error) {
+func NewTransactionPool(size int) (*TransactionPool, error) { // ToRemove, remove err throw
 	txPool := &TransactionPool{
 		receivedMessageCh: make(chan net.Message, size),
 		quitCh:            make(chan int, 1),
@@ -79,8 +79,8 @@ func NewTransactionPool(size int) (*TransactionPool, error) {
 		candidates:        sorted.NewSlice(gasCmp),
 		buckets:           make(map[byteutils.HexHash]*sorted.Slice),
 		all:               make(map[byteutils.HexHash]*Transaction),
-		gasPrice:          TransactionGasPrice,
-		gasLimit:          TransactionMaxGas,
+		gasPrice:          TransactionGasPrice, //ToRefine, minGasPrice
+		gasLimit:          TransactionMaxGas,   //ToRefine, maxGasLimit
 	}
 	return txPool, nil
 }
@@ -222,9 +222,9 @@ func (pool *TransactionPool) PushAndBroadcast(tx *Transaction) error {
 	return nil
 }
 
-// Push tx into pool
-func (pool *TransactionPool) Push(tx *Transaction) error {
-	pool.mu.Lock()
+// Push tx into pool, input:1)RPC, 2)netService
+func (pool *TransactionPool) Push(tx *Transaction) error { //ToRefine, change to local push
+	pool.mu.Lock() // ToRefine: move to pushTx, popTx, dropTx
 	defer pool.mu.Unlock()
 
 	// verify non-dup tx
@@ -300,6 +300,7 @@ func (pool *TransactionPool) popTx(tx *Transaction) {
 		candidate := bucket.Min()
 		pool.candidates.Push(candidate)
 	}
+	// TODO: delete buckets with 0 tx in slice
 }
 
 func (pool *TransactionPool) dropTx() {
@@ -319,6 +320,7 @@ func (pool *TransactionPool) dropTx() {
 				pool.candidates.Del(drop)
 			}
 		}
+		// TODO: delete buckets with 0 tx in slice
 	}
 }
 
@@ -348,9 +350,9 @@ func (pool *TransactionPool) Pop() *Transaction {
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
 
-	logging.CLog().Info("Pop")
+	logging.CLog().Info("Pop") //RoRemove
 	candidates := pool.candidates
-	val := candidates.PopMin()
+	val := candidates.PopMin() // ToRefine, change to PopLeft
 	if val == nil {
 		return nil
 	}

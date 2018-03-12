@@ -156,7 +156,7 @@ func (n *Neblet) Setup() {
 	}
 	n.blockChain.TransactionPool().SetGasConfig(gasPrice, gasLimit)
 	n.blockChain.BlockPool().RegisterInNetwork(n.netService)
-	n.blockChain.TransactionPool().RegisterInNetwork(n.netService)
+	n.blockChain.TransactionPool().RegisterInNetwork(n.netService) // Refine, move to blockchain
 
 	// consensus
 	if err := n.consensus.Setup(n); err != nil {
