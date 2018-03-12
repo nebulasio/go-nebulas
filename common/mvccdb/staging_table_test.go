@@ -205,7 +205,7 @@ func TestStagingTable_SingleTidAction(t *testing.T) {
 	stor, _ := storage.NewMemoryStorage()
 	tid := "tid"
 
-	tbl := NewStagingTable(stor, tid)
+	tbl := NewStagingTable(stor, tid, false)
 
 	// Get non-exist key.
 	{
@@ -338,8 +338,8 @@ func TestStagingTable_MultiTidAction(t *testing.T) {
 	key := []byte("key1")
 	val := []byte("val of key1")
 
-	tbl1 := NewStagingTable(stor, tid1)
-	tbl2 := NewStagingTable(stor, tid2)
+	tbl1 := NewStagingTable(stor, tid1, false)
+	tbl2 := NewStagingTable(stor, tid2, false)
 
 	// tid1 put the key.
 	value, _ := tbl1.Put(key, val)
@@ -365,7 +365,7 @@ func TestStagingTable_MergeToParent(t *testing.T) {
 
 	stor, _ := storage.NewMemoryStorage()
 
-	tbl1 := NewStagingTable(stor, tid1)
+	tbl1 := NewStagingTable(stor, tid1, false)
 	tbl2, err := tbl1.Prepare(tid2)
 	assert.Nil(t, err)
 
@@ -396,9 +396,9 @@ func TestStagingTable_MergeToParent(t *testing.T) {
 	ret, _ = tbl2.Get(key1)
 	assert.Equal(t, val1_2, ret.val)
 
-	// Merge tid1, fail.
+	// Merge tid2, fail.
 	dependencies, err = tbl2.MergeToParent()
-	assert.Nil(t, err)
+	assert.Equal(t, ErrStagingTableKeyConfliction, err)
 	assert.Equal(t, 0, len(dependencies))
 
 	// tid3 read.
@@ -461,7 +461,7 @@ func TestStagingTable_Purge(t *testing.T) {
 	tid := "tid1"
 
 	stor, _ := storage.NewMemoryStorage()
-	parentTbl := NewStagingTable(stor, parentTid)
+	parentTbl := NewStagingTable(stor, parentTid, false)
 	tbl, err := parentTbl.Prepare(tid)
 	assert.Nil(t, err)
 
@@ -506,12 +506,12 @@ func TestStagingTable_PrepareAndClose(t *testing.T) {
 	stor, _ := storage.NewMemoryStorage()
 
 	{
-		rootTbl := NewStagingTable(stor, "tid0")
+		rootTbl := NewStagingTable(stor, "tid0", false)
 		assert.Equal(t, ErrDisallowedCallingInNoPreparedDB, rootTbl.Close())
 	}
 
 	{
-		tbl := NewStagingTable(stor, "tid0")
+		tbl := NewStagingTable(stor, "tid0", false)
 
 		tbl1, err := tbl.Prepare("tid1")
 		assert.Nil(t, err)
@@ -523,7 +523,7 @@ func TestStagingTable_PrepareAndClose(t *testing.T) {
 	}
 
 	{
-		tbl := NewStagingTable(stor, "tid0")
+		tbl := NewStagingTable(stor, "tid0", false)
 
 		tbl1, err := tbl.Prepare("tid1")
 		assert.Nil(t, err)
@@ -533,4 +533,107 @@ func TestStagingTable_PrepareAndClose(t *testing.T) {
 		assert.Equal(t, ErrTidIsExist, err)
 		assert.Nil(t, tbl2)
 	}
+}
+
+func TestStagingTable_TrieSameKeyCompatibility(t *testing.T) {
+	stor, _ := storage.NewMemoryStorage()
+	tbl := NewStagingTable(stor, "tid0", true)
+
+	tbl1, _ := tbl.Prepare("tid1")
+	tbl2, _ := tbl.Prepare("tid2")
+
+	// same key/val.
+	key := []byte("key")
+	val := []byte("value")
+	key1 := []byte("key1")
+	val1 := []byte("val1")
+	key2 := []byte("key2")
+	val2 := []byte("val2")
+	keyDel := []byte("key_del")
+
+	// prepare key_del.
+	tbl.Put(keyDel, []byte("should deleted."))
+
+	// update prepared staging table.
+	tbl1.Put(key, val)
+	tbl1.Put(key1, val1)
+	tbl1.Del(keyDel)
+
+	tbl2.Put(key, val)
+	tbl2.Put(key2, val2)
+	tbl2.Del(keyDel)
+
+	// merge tbl1, succeed.
+	depends, err := tbl1.MergeToParent()
+	assert.Nil(t, err)
+	assert.Equal(t, 0, len(depends))
+
+	// merge tbl2, succeed.
+	depends, err = tbl2.MergeToParent()
+	assert.Nil(t, err)
+	assert.Equal(t, 0, len(depends))
+
+	// verify.
+	value, err := tbl.Get(key)
+	assert.Nil(t, err)
+	assert.Equal(t, val, value.val)
+	assert.Equal(t, 1, value.version)
+
+	value, err = tbl.Get(key1)
+	assert.Nil(t, err)
+	assert.Equal(t, val1, value.val)
+	assert.Equal(t, 1, value.version)
+
+	value, err = tbl.Get(key2)
+	assert.Nil(t, err)
+	assert.Equal(t, val2, value.val)
+	assert.Equal(t, 1, value.version)
+}
+
+func TestStagingTable_TrieSameKeyCompatibility1(t *testing.T) {
+	stor, _ := storage.NewMemoryStorage()
+
+	// same key/val.
+	key1 := []byte("key1")
+	val1 := []byte("val1")
+	val2 := []byte("val2")
+
+	{
+		tbl := NewStagingTable(stor, "tid0", true)
+		tbl1, _ := tbl.Prepare("tid1")
+		tbl2, _ := tbl.Prepare("tid2")
+
+		// different value.
+		tbl1.Put(key1, val1)
+		tbl2.Put(key1, val2)
+
+		// merge tbl1, succeed.
+		depends, err := tbl1.MergeToParent()
+		assert.Nil(t, err)
+		assert.Equal(t, 0, len(depends))
+
+		// merge tbl2, failed.
+		depends, err = tbl2.MergeToParent()
+		assert.Equal(t, ErrStagingTableKeyConfliction, err)
+	}
+
+	{
+		tbl := NewStagingTable(stor, "tid0", true)
+		tbl1, _ := tbl.Prepare("tid1")
+		tbl2, _ := tbl.Prepare("tid2")
+
+		// one delete.
+		tbl1.Put(key1, val1)
+		tbl2.Del(key1)
+
+		// merge tbl1, succeed.
+		depends, err := tbl1.MergeToParent()
+		assert.Nil(t, err)
+		assert.Equal(t, 0, len(depends))
+
+		// merge tbl2, failed.
+		depends, err = tbl2.MergeToParent()
+		assert.Equal(t, ErrStagingTableKeyConfliction, err)
+	}
+
 }

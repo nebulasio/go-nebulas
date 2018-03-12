@@ -47,34 +47,36 @@ It should support three situations as following,
 
 // MVCCDB the data with MVCC supporting.
 type MVCCDB struct {
-	tid                interface{}
-	storage            storage.Storage
-	stagingTable       *StagingTable
-	mutex              sync.Mutex
-	parentDB           *MVCCDB
-	isInTransaction    bool
-	isPreparedDB       bool
-	isDirtyDB          bool
-	isPreparedDBClosed bool
-	preparedDBs        map[interface{}]*MVCCDB
+	tid                        interface{}
+	storage                    storage.Storage
+	stagingTable               *StagingTable
+	mutex                      sync.Mutex
+	parentDB                   *MVCCDB
+	isInTransaction            bool
+	isPreparedDB               bool
+	isDirtyDB                  bool
+	isPreparedDBClosed         bool
+	preparedDBs                map[interface{}]*MVCCDB
+	isTrieSameKeyCompatibility bool // The `isTrieSameKeyCompatibility` is used to prevent conflict in continuous changes with same key/value.
 }
 
-// NewMVCCDB create and return new MVCCDB.
-func NewMVCCDB(storage storage.Storage) (*MVCCDB, error) {
+// NewMVCCDB create and return new MVCCDB. The `trieSameKeyCompatibility` is used to prevent conflict in continuous changes with same key/value.
+func NewMVCCDB(storage storage.Storage, trieSameKeyCompatibility bool) (*MVCCDB, error) {
 	db := &MVCCDB{
-		tid:                nil,
-		storage:            storage,
-		stagingTable:       nil,
-		parentDB:           nil,
-		isInTransaction:    false,
-		isPreparedDB:       false,
-		isDirtyDB:          false,
-		isPreparedDBClosed: false,
-		preparedDBs:        make(map[interface{}]*MVCCDB),
+		tid:                        nil,
+		storage:                    storage,
+		stagingTable:               nil,
+		parentDB:                   nil,
+		isInTransaction:            false,
+		isPreparedDB:               false,
+		isDirtyDB:                  false,
+		isPreparedDBClosed:         false,
+		preparedDBs:                make(map[interface{}]*MVCCDB),
+		isTrieSameKeyCompatibility: trieSameKeyCompatibility,
 	}
 
 	db.tid = storage // as a placeholder.
-	db.stagingTable = NewStagingTable(storage, db.tid)
+	db.stagingTable = NewStagingTable(storage, db.tid, trieSameKeyCompatibility)
 
 	return db, nil
 }
@@ -266,15 +268,16 @@ func (db *MVCCDB) Prepare(tid interface{}) (*MVCCDB, error) {
 	}
 
 	preparedDB := &MVCCDB{
-		tid:                tid,
-		storage:            db.storage,
-		stagingTable:       preparedStagingTable,
-		parentDB:           db,
-		isInTransaction:    true,
-		isPreparedDB:       true,
-		isDirtyDB:          false,
-		isPreparedDBClosed: false,
-		preparedDBs:        make(map[interface{}]*MVCCDB),
+		tid:                        tid,
+		storage:                    db.storage,
+		stagingTable:               preparedStagingTable,
+		parentDB:                   db,
+		isInTransaction:            true,
+		isPreparedDB:               true,
+		isDirtyDB:                  false,
+		isPreparedDBClosed:         false,
+		preparedDBs:                make(map[interface{}]*MVCCDB),
+		isTrieSameKeyCompatibility: db.isTrieSameKeyCompatibility,
 	}
 
 	db.preparedDBs[tid] = preparedDB

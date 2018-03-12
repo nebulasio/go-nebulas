@@ -28,7 +28,7 @@ import (
 
 func TestMVCCDB_NewMVCCDB(t *testing.T) {
 	storage, _ := storage.NewMemoryStorage()
-	db, err := NewMVCCDB(storage)
+	db, err := NewMVCCDB(storage, false)
 	assert.Nil(t, err)
 
 	assert.False(t, db.isInTransaction)
@@ -37,7 +37,7 @@ func TestMVCCDB_NewMVCCDB(t *testing.T) {
 
 func TestMVCCDB_FunctionEntryCondition(t *testing.T) {
 	stor, _ := storage.NewMemoryStorage()
-	db, _ := NewMVCCDB(stor)
+	db, _ := NewMVCCDB(stor, false)
 
 	assert.Nil(t, db.Begin())
 	assert.Equal(t, ErrUnsupportedNestedTransaction, db.Begin())
@@ -72,7 +72,7 @@ func TestMVCCDB_FunctionEntryCondition(t *testing.T) {
 
 func TestMVCCDB_KeyChangeOutOfMVCCDB(t *testing.T) {
 	stor, _ := storage.NewMemoryStorage()
-	db, _ := NewMVCCDB(stor)
+	db, _ := NewMVCCDB(stor, false)
 
 	db.Begin()
 
@@ -93,7 +93,7 @@ func TestMVCCDB_KeyChangeOutOfMVCCDB(t *testing.T) {
 
 func TestMVCCDB_DirectOpts(t *testing.T) {
 	storage, _ := storage.NewMemoryStorage()
-	db, _ := NewMVCCDB(storage)
+	db, _ := NewMVCCDB(storage, false)
 
 	key := []byte("key")
 	val := []byte("val")
@@ -119,7 +119,7 @@ func TestMVCCDB_DirectOpts(t *testing.T) {
 
 func TestMVCCDB_OptsWithoutTransaction(t *testing.T) {
 	storage, _ := storage.NewMemoryStorage()
-	db, _ := NewMVCCDB(storage)
+	db, _ := NewMVCCDB(storage, false)
 
 	key := []byte("key")
 	val := []byte("val")
@@ -145,7 +145,7 @@ func TestMVCCDB_OptsWithoutTransaction(t *testing.T) {
 
 func TestMVCCDB_OptsWithinTransaction(t *testing.T) {
 	store, _ := storage.NewMemoryStorage()
-	db, _ := NewMVCCDB(store)
+	db, _ := NewMVCCDB(store, false)
 
 	key := []byte("key")
 	val := []byte("val")
@@ -167,7 +167,7 @@ func TestMVCCDB_OptsWithinTransaction(t *testing.T) {
 
 	{
 		// other MVCCDB can't read before commit.
-		db2, _ := NewMVCCDB(store)
+		db2, _ := NewMVCCDB(store, false)
 		v, err := db2.Get(key)
 		assert.Nil(t, v)
 		assert.Equal(t, err, storage.ErrKeyNotFound)
@@ -190,7 +190,7 @@ func TestMVCCDB_OptsWithinTransaction(t *testing.T) {
 
 	{
 		// other MVCCDB read old value.
-		db2, _ := NewMVCCDB(store)
+		db2, _ := NewMVCCDB(store, false)
 		v, err := db2.Get(key)
 		assert.Equal(t, val, v)
 		assert.Nil(t, err)
@@ -210,7 +210,7 @@ func TestMVCCDB_OptsWithinTransaction(t *testing.T) {
 
 	{
 		// other MVCCDB read old value.
-		db2, _ := NewMVCCDB(store)
+		db2, _ := NewMVCCDB(store, false)
 		v, err := db2.Get(key)
 		assert.Equal(t, val, v)
 		assert.Nil(t, err)
@@ -233,7 +233,7 @@ func TestMVCCDB_OptsWithinTransaction(t *testing.T) {
 
 	{
 		// other MVCCDB read nil.
-		db2, _ := NewMVCCDB(store)
+		db2, _ := NewMVCCDB(store, false)
 		v, err := db2.Get(key)
 		assert.Nil(t, v)
 		assert.Equal(t, err, storage.ErrKeyNotFound)
@@ -242,7 +242,7 @@ func TestMVCCDB_OptsWithinTransaction(t *testing.T) {
 
 func TestMVCCDB_PrepareAndUpdate(t *testing.T) {
 	store, _ := storage.NewMemoryStorage()
-	db, _ := NewMVCCDB(store)
+	db, _ := NewMVCCDB(store, false)
 
 	// init base data.
 	db.Put([]byte("title"), []byte("this is test program"))
@@ -375,7 +375,7 @@ func TestMVCCDB_PrepareAndUpdate(t *testing.T) {
 
 func TestMVCCDB_ResetAndReuse(t *testing.T) {
 	store, _ := storage.NewMemoryStorage()
-	db, _ := NewMVCCDB(store)
+	db, _ := NewMVCCDB(store, false)
 
 	// begin.
 	db.Begin()
@@ -435,7 +435,7 @@ func TestMVCCDB_ResetAndReuse(t *testing.T) {
 
 func TestMVCCDB_ClosePreparedDB(t *testing.T) {
 	store, _ := storage.NewMemoryStorage()
-	db, _ := NewMVCCDB(store)
+	db, _ := NewMVCCDB(store, false)
 
 	// begin.
 	db.Begin()

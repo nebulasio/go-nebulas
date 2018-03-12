@@ -52,22 +52,24 @@ type VersionizedValueItem struct {
 // There are two map to store the key/value pairs. One are stored associated with tid,
 // the other is `finalVersionizedValue`, record the `ready to commit` key/value pairs.
 type StagingTable struct {
-	storage               storage.Storage
-	parentStagingTable    *StagingTable
-	versionizedValues     stagingValuesMap
-	tid                   interface{}
-	mutex                 sync.Mutex
-	preparedStagingTables map[interface{}]*StagingTable
+	storage                    storage.Storage
+	parentStagingTable         *StagingTable
+	versionizedValues          stagingValuesMap
+	tid                        interface{}
+	mutex                      sync.Mutex
+	preparedStagingTables      map[interface{}]*StagingTable
+	isTrieSameKeyCompatibility bool // The `isTrieSameKeyCompatibility` is used to prevent conflict in continuous changes with same key/value.
 }
 
 // NewStagingTable return new instance of StagingTable.
-func NewStagingTable(storage storage.Storage, tid interface{}) *StagingTable {
+func NewStagingTable(storage storage.Storage, tid interface{}, trieSameKeyCompatibility bool) *StagingTable {
 	tbl := &StagingTable{
 		storage:            storage,
 		parentStagingTable: nil,
 		versionizedValues:  make(stagingValuesMap),
 		tid:                tid,
-		preparedStagingTables: make(map[interface{}]*StagingTable),
+		preparedStagingTables:      make(map[interface{}]*StagingTable),
+		isTrieSameKeyCompatibility: trieSameKeyCompatibility,
 	}
 	return tbl
 }
@@ -85,7 +87,8 @@ func (tbl *StagingTable) Prepare(tid interface{}) (*StagingTable, error) {
 		parentStagingTable: tbl,
 		versionizedValues:  make(stagingValuesMap),
 		tid:                tid,
-		preparedStagingTables: make(map[interface{}]*StagingTable),
+		preparedStagingTables:      make(map[interface{}]*StagingTable),
+		isTrieSameKeyCompatibility: tbl.isTrieSameKeyCompatibility,
 	}
 
 	tbl.preparedStagingTables[tid] = preparedTbl
@@ -193,29 +196,29 @@ func (tbl *StagingTable) MergeToParent() ([]interface{}, error) {
 	for keyStr, fromValueItem := range tbl.versionizedValues {
 		targetValueItem := targetValues[keyStr]
 
-		// record conflict.
-		// if version is consistent and value are equal, no confliction.
-		if fromValueItem.isConflict(targetValueItem) {
+		// 1. record conflict.
+		if fromValueItem.isConflict(targetValueItem, tbl.isTrieSameKeyCompatibility) {
 			conflictKeys[keyStr] = targetValueItem.tid
 			continue
 		}
+
+		// 2. record dependentTids.
 
 		// skip default value loaded from storage.
 		if targetValueItem.isDefault() {
 			continue
 		}
 
-		// ignore parent tid.
+		// ignore same parent tid for dependentTids.
 		if targetValueItem.tid == tbl.parentStagingTable.tid {
 			continue
 		}
 
-		// if target.version is greater than from, ignore.
-		if targetValueItem.version > fromValueItem.version {
+		// ignore version of targetValueItem is greater than fromValueItem when TrieSameKeyCompatibility is enabled.
+		if tbl.isTrieSameKeyCompatibility && targetValueItem.version > fromValueItem.version {
 			continue
 		}
 
-		// record dependentTids.
 		dependentTids[targetValueItem.tid] = true
 	}
 
@@ -237,8 +240,8 @@ func (tbl *StagingTable) MergeToParent() ([]interface{}, error) {
 
 		targetValueItem := targetValues[keyStr]
 
-		// if target.version is greater than from, ignore.
-		if targetValueItem.version > fromValueItem.version {
+		// ignore version of targetValueItem is greater than fromValueItem when TrieSameKeyCompatibility is enabled.
+		if tbl.isTrieSameKeyCompatibility && targetValueItem.version > fromValueItem.version {
 			continue
 		}
 
@@ -299,30 +302,39 @@ func (value *VersionizedValueItem) isDefault() bool {
 	return value.version == 0 && value.dirty == false
 }
 
-func (a *VersionizedValueItem) isConflict(b *VersionizedValueItem) bool {
+func (a *VersionizedValueItem) isConflict(b *VersionizedValueItem, trieSameKeyCompatibility bool) bool {
 	if b == nil {
 		return true
 	}
 
-	// version check.
+	// version same, no conflict.
 	if a.version == b.version {
 		return false
 	}
 
-	// version consist and value are equal.
-	delta := a.version - b.version
-	if delta != 1 && delta != -1 {
-		return true
-	}
+	if trieSameKeyCompatibility == true {
+		// check version continuous and val consistent when enable trie same key compatibility.
+		delta := a.version - b.version
+		if delta != 1 && delta != -1 {
+			// version is not continuous, conflict.
+			return true
+		}
 
-	if a.deleted && b.deleted {
+		if a.deleted != b.deleted {
+			// deleted flag are not the same, conflict.
+			return true
+		}
+
+		if !a.deleted && !bytes.Equal(a.val, b.val) {
+			// both not delete, and val are not the same, conflict.
+			return true
+		}
+
+		// otherwise, no conflict.
 		return false
 	}
 
-	if bytes.Equal(a.val, b.val) {
-		return false
-	}
-
+	// otherwise, conflict.
 	return true
 }
 
