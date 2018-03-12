@@ -32,6 +32,7 @@ import (
 	"github.com/nebulasio/go-nebulas/crypto/keystore"
 	"github.com/nebulasio/go-nebulas/util"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
+	"github.com/nebulasio/go-nebulas/util/logging"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -179,12 +180,14 @@ func TestTransaction_VerifyExecutionDependency(t *testing.T) {
 
 	ks := keystore.DefaultKS
 
-	tx1 := NewTransaction(bc.chainID, a, b, util.NewUint128(), uint64(1), TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, TransactionMaxGas)
-	tx2 := NewTransaction(bc.chainID, a, b, util.NewUint128(), uint64(2), TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, TransactionMaxGas)
-	tx3 := NewTransaction(bc.chainID, b, c, util.NewUint128(), uint64(1), TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, TransactionMaxGas)
+	v, _ := util.NewUint128FromInt(1)
+	tx1 := NewTransaction(bc.chainID, a, b, v, uint64(1), TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, TransactionMaxGas)
+	tx2 := NewTransaction(bc.chainID, a, b, v, uint64(2), TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, TransactionMaxGas)
+	tx3 := NewTransaction(bc.chainID, b, c, v, uint64(1), TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, TransactionMaxGas)
 
 	txs := [3]*Transaction{tx1, tx2, tx3}
-	for _, tx := range txs {
+	for idx, tx := range txs {
+		logging.CLog().Info("tx[", idx, "]from:", tx.from, " to:", tx.to)
 		key, _ := ks.GetUnlocked(tx.from.String())
 		signature, _ := crypto.NewSignature(keystore.SECP256K1)
 		signature.InitSign(key.(keystore.PrivateKey))
@@ -196,11 +199,6 @@ func TestTransaction_VerifyExecutionDependency(t *testing.T) {
 	bc.tailBlock.Begin()
 	{
 		fromAcc, err := bc.tailBlock.worldState.GetOrCreateUserAccount(tx1.from.address)
-		assert.Nil(t, err)
-		fromAcc.AddBalance(balance)
-	}
-	{
-		fromAcc, err := bc.tailBlock.worldState.GetOrCreateUserAccount(tx2.from.address)
 		assert.Nil(t, err)
 		fromAcc.AddBalance(balance)
 	}
@@ -225,17 +223,31 @@ func TestTransaction_VerifyExecutionDependency(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(dependency1))
 
-	//tx2
+	acc1, err := block.worldState.GetOrCreateUserAccount(tx1.from.address)
+	assert.Equal(t, "999999999999999999", acc1.Balance().String())
+	toacc1, err := block.worldState.GetOrCreateUserAccount(tx1.to.address)
+	assert.Equal(t, "1000000000000000001", toacc1.Balance().String())
 
+	//tx2
 	txWorldState2, err := block.Prepare(tx2)
+	_, err = block.Prepare(tx3)
+
 	executionErr2 := VerifyExecution(tx2, block, txWorldState2)
 	assert.Nil(t, executionErr2)
 	dependency2, err := block.CheckAndUpdate(tx2)
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(dependency2))
 	assert.Equal(t, tx1.Hash().String(), dependency2[0])
+	acc2, err := block.worldState.GetOrCreateUserAccount(tx2.from.address)
+	assert.Equal(t, "999999999999999998", acc2.Balance().String())
+	toacc2, err := block.worldState.GetOrCreateUserAccount(tx2.to.address)
+	assert.Equal(t, "1000000000000000002", toacc2.Balance().String())
 
 	// tx3
+	executionErr3 := VerifyExecution(tx3, block, txWorldState3)
+	assert.NotNil(t, executionErr3)
+	block.Close(tx3)
+
 	txWorldState3, err := block.Prepare(tx3)
 	executionErr3 := VerifyExecution(tx3, block, txWorldState3)
 	assert.Nil(t, executionErr3)
@@ -243,8 +255,16 @@ func TestTransaction_VerifyExecutionDependency(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(dependency3))
 	assert.Equal(t, tx2.Hash().String(), dependency3[0])
+
+	acc3, err := block.worldState.GetOrCreateUserAccount(tx3.from.address)
+	logging.CLog().Info("Balance:", acc3.Balance().String())
+	assert.Equal(t, "1000000000000000001", acc3.Balance().String())
+	toacc3, err := block.worldState.GetOrCreateUserAccount(tx3.to.address)
+	assert.Equal(t, "1", toacc3.Balance().String())
+
 	assert.Nil(t, block.Seal())
 	block.Commit()
+
 }
 
 func TestTransaction_VerifyExecution(t *testing.T) {
