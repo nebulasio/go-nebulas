@@ -476,3 +476,44 @@ func TestMVCCDB_ClosePreparedDB(t *testing.T) {
 	assert.Equal(t, val1_2, val)
 	assert.Nil(t, err)
 }
+
+func TestMVCCDB_ParallelsExeTowTx(t *testing.T) {
+	store, _ := storage.NewMemoryStorage()
+	db, _ := NewMVCCDB(store, false)
+
+	// expected t1(a-b) and t2(a-b) parallels execution will be failed.
+
+	db.Begin()
+
+	t1, err := db.Prepare("t1")
+	assert.Nil(t, err)
+	t2, err := db.Prepare("t2")
+	assert.Nil(t, err)
+
+	// 1st time.
+	t1.Put([]byte("a"), []byte("9"))
+	t1.Put([]byte("b"), []byte("11"))
+	t2.Put([]byte("a"), []byte("9"))
+	t2.Put([]byte("b"), []byte("11"))
+
+	// t1 1st: commit, failed.
+	deps, err := t1.CheckAndUpdate()
+	assert.Nil(t, err)
+	assert.Equal(t, 0, len(deps))
+
+	// t2: 1st, failed.
+	deps, err = t2.CheckAndUpdate()
+	assert.Equal(t, ErrStagingTableKeyConfliction, err)
+
+	// t2: 2nd, succeed.
+	t2.Close()
+	t2, err = db.Prepare("t2")
+	assert.Nil(t, err)
+
+	t2.Put([]byte("a"), []byte("9"))
+	t2.Put([]byte("b"), []byte("11"))
+	deps, err = t2.CheckAndUpdate()
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(deps))
+	assert.Equal(t, "t1", deps[0])
+}
