@@ -230,7 +230,7 @@ func TestTransaction_VerifyExecutionDependency(t *testing.T) {
 
 	//tx2
 	txWorldState2, err := block.Prepare(tx2)
-	_, err = block.Prepare(tx3)
+	txWorldState3, err := block.Prepare(tx3)
 
 	executionErr2 := VerifyExecution(tx2, block, txWorldState2)
 	assert.Nil(t, executionErr2)
@@ -244,12 +244,13 @@ func TestTransaction_VerifyExecutionDependency(t *testing.T) {
 	assert.Equal(t, "1000000000000000002", toacc2.Balance().String())
 
 	// tx3
+
 	executionErr3 := VerifyExecution(tx3, block, txWorldState3)
 	assert.NotNil(t, executionErr3)
 	block.Close(tx3)
 
-	txWorldState3, err := block.Prepare(tx3)
-	executionErr3 := VerifyExecution(tx3, block, txWorldState3)
+	txWorldState3, err = block.Prepare(tx3)
+	executionErr3 = VerifyExecution(tx3, block, txWorldState3)
 	assert.Nil(t, executionErr3)
 	dependency3, err := block.CheckAndUpdate(tx3)
 	assert.Nil(t, err)
