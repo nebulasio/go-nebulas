@@ -35,6 +35,11 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+const (
+	// TxHashByteLength invalid tx hash length(len of []byte)
+	TxHashByteLength = 32
+)
+
 var (
 	// TransactionMaxGasPrice max gasPrice:50 * 10 ** 9
 	TransactionMaxGasPrice, _ = util.NewUint128FromString("50000000000")

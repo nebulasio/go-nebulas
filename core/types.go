@@ -160,7 +160,7 @@ type SyncService interface {
 
 	StartActiveSync() bool
 	StopActiveSync()
-	WaitingForFinish() error
+	WaitingForFinish()
 	IsActiveSyncing() bool
 }
 

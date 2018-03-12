@@ -209,7 +209,7 @@ func (dpos *Dpos) UpdateLIB() {
 		}
 		validators[byteutils.Hex(cur.ConsensusRoot().Proposer)] = true
 		if len(validators) >= SafeSize {
-			if err := dpos.chain.StoreLIBToStorage(cur); err != nil {
+			if err := dpos.chain.StoreLIBHashToStorage(cur); err != nil {
 				logging.VLog().WithFields(logrus.Fields{
 					"tail": tail,
 					"lib":  cur,

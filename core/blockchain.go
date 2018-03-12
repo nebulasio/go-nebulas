@@ -19,7 +19,6 @@
 package core
 
 import (
-	"strconv"
 	"strings"
 	"time"
 
@@ -326,7 +325,7 @@ func (bc *BlockChain) SetTailBlock(newTail *Block) error { //Tocheck, check newT
 	}
 
 	// record new tail
-	if err := bc.StoreTailToStorage(newTail); err != nil {
+	if err := bc.StoreTailHashToStorage(newTail); err != nil {
 		return err
 	}
 	bc.tailBlock = newTail
@@ -365,7 +364,12 @@ func (bc *BlockChain) SetLIB(lib *Block) {
 
 // GetBlockOnCanonicalChainByHeight return block in given height
 func (bc *BlockChain) GetBlockOnCanonicalChainByHeight(height uint64) *Block {
-	blockHash, err := bc.storage.Get(byteutils.FromUint64(height)) // ToCheck height <= tailHeight
+
+	if height > bc.tailBlock.height {
+		return nil
+	}
+
+	blockHash, err := bc.storage.Get(byteutils.FromUint64(height))
 	if err != nil {
 		return nil
 	}
@@ -439,28 +443,6 @@ func (bc *BlockChain) FindCommonAncestorWithTail(block *Block) (*Block, error) {
 	return target, nil
 }
 
-// FetchDescendantInCanonicalChain return the subsequent blocks of the block
-func (bc *BlockChain) FetchDescendantInCanonicalChain(n int, block *Block) ([]*Block, error) { // ToCheck block not nil, check block onchain , check remove ?
-	// get tail in canonical chain
-	curHeight := block.height + 1
-	tailHeight := bc.tailBlock.height
-	index := uint64(0)
-	res := []*Block{}
-	for curHeight+index <= tailHeight && index < uint64(n) {
-		block := bc.GetBlockOnCanonicalChainByHeight(curHeight + index)
-		if block == nil {
-			logging.VLog().WithFields(logrus.Fields{
-				"err":    ErrCannotFindBlockAtGivenHeight,
-				"height": strconv.Itoa(int(curHeight + index)),
-			}).Debug("Failed to fetch descendant.")
-			return nil, ErrCannotFindBlockAtGivenHeight
-		}
-		res = append(res, block)
-		index++
-	}
-	return res, nil
-}
-
 // BlockPool return block pool.
 func (bc *BlockChain) BlockPool() *BlockPool {
 	return bc.bkPool
@@ -486,7 +468,7 @@ func (bc *BlockChain) StartActiveSync() bool {
 	if bc.syncService.StartActiveSync() {
 		bc.consensusHandler.SuspendMining()
 		go func() {
-			bc.syncService.WaitingForFinish() // ToCheck error
+			bc.syncService.WaitingForFinish()
 			bc.consensusHandler.ResumeMining()
 		}()
 		return true
@@ -500,7 +482,10 @@ func (bc *BlockChain) ConsensusHandler() Consensus {
 }
 
 // NewBlock create new #Block instance.
-func (bc *BlockChain) NewBlock(coinbase *Address) (*Block, error) { // ToCheck coinbase not nil
+func (bc *BlockChain) NewBlock(coinbase *Address) (*Block, error) {
+	if coinbase == nil {
+		return nil, ErrInvalidArgument
+	}
 	return bc.NewBlockFromParent(coinbase, bc.tailBlock)
 }
 
@@ -609,7 +594,11 @@ func (bc *BlockChain) GasPrice() *util.Uint128 {
 }
 
 // EstimateGas returns the transaction gas cost
-func (bc *BlockChain) EstimateGas(tx *Transaction) (*util.Uint128, error) { // ToCheck tx not nil
+func (bc *BlockChain) EstimateGas(tx *Transaction) (*util.Uint128, error) {
+	if tx == nil {
+		return nil, ErrInvalidArgument
+	}
+
 	hash, err := HashTransaction(tx)
 	if err != nil {
 		return nil, err
@@ -665,13 +654,13 @@ func (bc *BlockChain) StoreBlockToStorage(block *Block) error {
 	return nil
 }
 
-// StoreTailToStorage store tail block
-func (bc *BlockChain) StoreTailToStorage(block *Block) error { // ToRefine, update func to StoreTailHashToStorage
+// StoreTailHashToStorage store tail block hash
+func (bc *BlockChain) StoreTailHashToStorage(block *Block) error { // ToRefine, update func to StoreTailHashToStorage
 	return bc.storage.Put([]byte(Tail), block.Hash())
 }
 
-// StoreLIBToStorage store LIB block
-func (bc *BlockChain) StoreLIBToStorage(block *Block) error { // ToRefine, update func to StoreLIBHashToStorage
+// StoreLIBHashToStorage store LIB block hash
+func (bc *BlockChain) StoreLIBHashToStorage(block *Block) error {
 	return bc.storage.Put([]byte(LIB), block.Hash())
 }
 
@@ -688,7 +677,7 @@ func (bc *BlockChain) LoadTailFromStorage() (*Block, error) {
 			return nil, err
 		}
 
-		if err := bc.StoreTailToStorage(genesis); err != nil {
+		if err := bc.StoreTailHashToStorage(genesis); err != nil {
 			return nil, err
 		}
 

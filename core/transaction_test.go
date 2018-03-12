@@ -19,6 +19,7 @@
 package core
 
 import (
+	"fmt"
 	"reflect"
 	"testing"
 	"time"
@@ -29,6 +30,7 @@ import (
 	"github.com/nebulasio/go-nebulas/core/pb"
 	"github.com/nebulasio/go-nebulas/core/state"
 	"github.com/nebulasio/go-nebulas/crypto"
+	"github.com/nebulasio/go-nebulas/crypto/hash"
 	"github.com/nebulasio/go-nebulas/crypto/keystore"
 	"github.com/nebulasio/go-nebulas/util"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
@@ -518,4 +520,8 @@ func TestTransaction_LocalExecution(t *testing.T) {
 			assert.Equal(t, coinbaseBefore, coinbaseAcc.Balance())
 		})
 	}
+}
+
+func Test1(t *testing.T) {
+	fmt.Println(len(hash.Sha3256([]byte("abc"))))
 }

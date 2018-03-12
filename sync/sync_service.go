@@ -131,19 +131,18 @@ func (ss *Service) IsActiveSyncing() bool {
 }
 
 // WaitingForFinish wait for finishing current sync task
-func (ss *Service) WaitingForFinish() error {
+func (ss *Service) WaitingForFinish() {
 	if ss.activeTask == nil {
-		return nil
+		return
 	}
 
-	err := <-ss.activeTask.statusCh
+	<-ss.activeTask.statusCh
 
 	logging.CLog().WithFields(logrus.Fields{
 		"tail": ss.blockChain.TailBlock(),
 	}).Info("Active Sync Task Finished.")
 
 	ss.activeTask = nil
-	return err
 }
 
 func (ss *Service) startLoop() {

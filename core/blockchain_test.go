@@ -197,20 +197,6 @@ func TestBlockChain_FetchDescendantInCanonicalChain(t *testing.T) {
 		bc.BlockPool().Push(block)
 		bc.SetTailBlock(block)
 	}
-	blocks24, _ := bc.FetchDescendantInCanonicalChain(3, blocks[0])
-	assert.Equal(t, blocks24[0].Hash(), blocks[1].Hash())
-	assert.Equal(t, blocks24[1].Hash(), blocks[2].Hash())
-	assert.Equal(t, blocks24[2].Hash(), blocks[3].Hash())
-	blocks46, _ := bc.FetchDescendantInCanonicalChain(10, blocks[2])
-	assert.Equal(t, len(blocks46), 3)
-	assert.Equal(t, blocks46[0].Hash(), blocks[3].Hash())
-	assert.Equal(t, blocks46[1].Hash(), blocks[4].Hash())
-	assert.Equal(t, blocks46[2].Hash(), blocks[5].Hash())
-	blocks13, _ := bc.FetchDescendantInCanonicalChain(3, bc.genesisBlock)
-	assert.Equal(t, len(blocks13), 3)
-	blocks0, err0 := bc.FetchDescendantInCanonicalChain(3, blocks[5])
-	assert.Equal(t, len(blocks0), 0)
-	assert.Nil(t, err0)
 }
 
 func TestBlockChain_EstimateGas(t *testing.T) {
