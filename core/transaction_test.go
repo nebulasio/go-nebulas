@@ -177,6 +177,8 @@ func TestTransaction_VerifyExecutionDependency(t *testing.T) {
 	a := mockAddress()
 	b := mockAddress()
 	c := mockAddress()
+	e := mockAddress()
+	f := mockAddress()
 
 	ks := keystore.DefaultKS
 
@@ -184,8 +186,9 @@ func TestTransaction_VerifyExecutionDependency(t *testing.T) {
 	tx1 := NewTransaction(bc.chainID, a, b, v, uint64(1), TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, TransactionMaxGas)
 	tx2 := NewTransaction(bc.chainID, a, b, v, uint64(2), TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, TransactionMaxGas)
 	tx3 := NewTransaction(bc.chainID, b, c, v, uint64(1), TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, TransactionMaxGas)
+	tx4 := NewTransaction(bc.chainID, e, f, v, uint64(1), TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, TransactionMaxGas)
 
-	txs := [3]*Transaction{tx1, tx2, tx3}
+	txs := [4]*Transaction{tx1, tx2, tx3, tx4}
 	for idx, tx := range txs {
 		logging.CLog().Info("tx[", idx, "]from:", tx.from, " to:", tx.to)
 		key, _ := ks.GetUnlocked(tx.from.String())
@@ -231,6 +234,7 @@ func TestTransaction_VerifyExecutionDependency(t *testing.T) {
 	//tx2
 	txWorldState2, err := block.Prepare(tx2)
 	txWorldState3, err := block.Prepare(tx3)
+	txWorldState4, err := block.Prepare(tx4)
 
 	executionErr2 := VerifyExecution(tx2, block, txWorldState2)
 	assert.Nil(t, executionErr2)
@@ -244,10 +248,19 @@ func TestTransaction_VerifyExecutionDependency(t *testing.T) {
 	assert.Equal(t, "1000000000000000002", toacc2.Balance().String())
 
 	// tx3
-
 	executionErr3 := VerifyExecution(tx3, block, txWorldState3)
 	assert.NotNil(t, executionErr3)
+	_, err3 := block.CheckAndUpdate(tx3)
+	logging.CLog().Info("err:", err3)
+	assert.NotNil(t, err3)
 	block.Close(tx3)
+
+	//tx4
+	executionErr4 := VerifyExecution(tx4, block, txWorldState4)
+	assert.Nil(t, executionErr4)
+	_, err4 := block.CheckAndUpdate(tx4)
+	logging.CLog().Info("err:", err4)
+	assert.Nil(t, err4)
 
 	txWorldState3, err = block.Prepare(tx3)
 	executionErr3 = VerifyExecution(tx3, block, txWorldState3)
