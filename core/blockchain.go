@@ -87,7 +87,11 @@ const (
 )
 
 // NewBlockChain create new #BlockChain instance.
-func NewBlockChain(neb Neblet) (*BlockChain, error) { // Tocheck neblet not nil
+func NewBlockChain(neb Neblet) (*BlockChain, error) {
+	if neb == nil || neb.Config() == nil || neb.Config().Chain == nil {
+		return nil, ErrNilArgument
+	}
+
 	blockPool, err := NewBlockPool(1024)
 	if err != nil {
 		return nil, err
@@ -99,7 +103,7 @@ func NewBlockChain(neb Neblet) (*BlockChain, error) { // Tocheck neblet not nil
 	txPool.setEventEmitter(neb.EventEmitter())
 
 	var bc = &BlockChain{
-		chainID:      neb.Config().Chain.ChainId, // Tocheck config not nil
+		chainID:      neb.Config().Chain.ChainId,
 		genesis:      neb.Genesis(),
 		bkPool:       blockPool,
 		txPool:       txPool,
@@ -129,7 +133,7 @@ func NewBlockChain(neb Neblet) (*BlockChain, error) { // Tocheck neblet not nil
 		return nil, err
 	}
 
-	bc.bkPool.setBlockChain(bc) // ToRefine, blockchain should put in New func
+	bc.bkPool.setBlockChain(bc)
 	bc.txPool.setBlockChain(bc)
 
 	return bc, nil
@@ -287,7 +291,10 @@ func (bc *BlockChain) buildIndexByBlockHeight(from *Block, to *Block) error {
 }
 
 // SetTailBlock set tail block.
-func (bc *BlockChain) SetTailBlock(newTail *Block) error { //Tocheck, check newTail not nil
+func (bc *BlockChain) SetTailBlock(newTail *Block) error {
+	if newTail == nil {
+		return ErrNilArgument
+	}
 	oldTail := bc.tailBlock
 	ancestor, err := bc.FindCommonAncestorWithTail(newTail)
 	if err != nil {
@@ -409,7 +416,10 @@ func (bc *BlockChain) GetBlockOnCanonicalChainByHash(blockHash byteutils.Hash) *
 }
 
 // FindCommonAncestorWithTail return the block's common ancestor with current tail
-func (bc *BlockChain) FindCommonAncestorWithTail(block *Block) (*Block, error) { //Tocheck, check block not nil
+func (bc *BlockChain) FindCommonAncestorWithTail(block *Block) (*Block, error) {
+	if block == nil {
+		return nil, ErrNilArgument
+	}
 	target := bc.GetBlock(block.Hash())
 	if target == nil {
 		target = bc.GetBlock(block.ParentHash())
@@ -490,7 +500,10 @@ func (bc *BlockChain) NewBlock(coinbase *Address) (*Block, error) {
 }
 
 // NewBlockFromParent create new block from parent block and return it.
-func (bc *BlockChain) NewBlockFromParent(coinbase *Address, parentBlock *Block) (*Block, error) { // ToCheck input not nil
+func (bc *BlockChain) NewBlockFromParent(coinbase *Address, parentBlock *Block) (*Block, error) {
+	if parentBlock == nil || coinbase == nil {
+		return nil, ErrNilArgument
+	}
 	return NewBlock(bc.chainID, coinbase, parentBlock)
 }
 
@@ -610,7 +623,10 @@ func (bc *BlockChain) EstimateGas(tx *Transaction) (*util.Uint128, error) {
 }
 
 // Call returns the transaction call result
-func (bc *BlockChain) Call(tx *Transaction) (string, error) { // ToCheck tx not nil
+func (bc *BlockChain) Call(tx *Transaction) (string, error) {
+	if tx == nil {
+		return "", ErrNilArgument
+	}
 	hash, err := HashTransaction(tx)
 	if err != nil {
 		return "", err
