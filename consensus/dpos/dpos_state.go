@@ -190,6 +190,8 @@ func (ds *State) Clone() (state.ConsensusState, error) {
 func (ds *State) RootHash() (*consensuspb.ConsensusRoot, error) {
 	return &consensuspb.ConsensusRoot{
 		DynastyRoot: ds.dynastyTrie.RootHash(),
+		Timestamp:   ds.timeStamp,
+		Proposer:    ds.proposer,
 	}, nil
 }
 
