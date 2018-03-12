@@ -278,7 +278,7 @@ func (pool *TransactionPool) pushTx(tx *Transaction) {
 	bucket.Push(tx)
 	pool.all[tx.hash.Hex()] = tx
 	newCandidate := bucket.Left()
-	// replace candidate, maybe
+	// replace candidate
 	if oldCandidate == nil {
 		pool.candidates.Push(newCandidate)
 	} else if oldCandidate != newCandidate {
@@ -354,6 +354,36 @@ func (pool *TransactionPool) Pop() *Transaction {
 	tx := val.(*Transaction)
 	pool.popTx(tx)
 	return tx
+}
+
+// Del a transaction from pool
+func (pool *TransactionPool) Del(tx *Transaction) {
+	pool.mu.Lock()
+	defer pool.mu.Unlock()
+
+	bucket := pool.buckets[tx.from.address.Hex()]
+	if bucket != nil && bucket.Len() > 0 {
+		oldCandidate := bucket.Left()
+		left := oldCandidate.(*Transaction)
+		for left.Nonce() <= tx.Nonce() {
+			bucket.PopLeft()
+			delete(pool.all, left.Hash().Hex())
+			if bucket.Len() > 0 {
+				left = bucket.Left().(*Transaction)
+			} else {
+				delete(pool.buckets, left.from.address.Hex())
+				break
+			}
+		}
+		newCandidate := bucket.Left()
+		// replace candidate
+		if oldCandidate != newCandidate {
+			pool.candidates.Del(oldCandidate)
+			if newCandidate != nil {
+				pool.candidates.Push(newCandidate)
+			}
+		}
+	}
 }
 
 // Empty return if the pool is empty

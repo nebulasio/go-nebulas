@@ -21,6 +21,8 @@ package core
 import (
 	"testing"
 
+	"github.com/nebulasio/go-nebulas/util/byteutils"
+
 	"time"
 
 	"github.com/nebulasio/go-nebulas/crypto"
@@ -85,32 +87,34 @@ func TestTransactionPool(t *testing.T) {
 	tx4, _ := NewTransaction(bc.ChainID(), from, &Address{[]byte("to")}, util.NewUint128(), 2, TxPayloadBinaryType, []byte("4"), TransactionGasPrice, gasLimit)
 	tx5, _ := NewTransaction(bc.ChainID()+1, from, &Address{[]byte("to")}, util.NewUint128(), 0, TxPayloadBinaryType, []byte("5"), TransactionGasPrice, gasLimit)
 
-	tx6, _ := NewTransaction(bc.ChainID(), other2, &Address{[]byte("to")}, util.NewUint128(), 1, TxPayloadBinaryType, []byte("6"), TransactionGasPrice, gasLimit)
+	tx6, _ := NewTransaction(bc.ChainID(), other2, &Address{[]byte("to")}, util.NewUint128(), 1, TxPayloadBinaryType, []byte("6"), heighPrice, gasLimit)
 	tx7, _ := NewTransaction(bc.ChainID(), other, &Address{[]byte("to")}, util.NewUint128(), 1, TxPayloadBinaryType, []byte("7"), heighPrice, gasLimit)
 
 	tx8, _ := NewTransaction(bc.ChainID(), other3, &Address{[]byte("to")}, util.NewUint128(), 1, TxPayloadBinaryType, []byte("8"), heighPrice, gasLimit)
+	tx9, _ := NewTransaction(bc.ChainID(), other3, &Address{[]byte("to")}, util.NewUint128(), 2, TxPayloadBinaryType, []byte("9"), heighPrice, gasLimit)
+	tx10, _ := NewTransaction(bc.ChainID(), other3, &Address{[]byte("to")}, util.NewUint128(), 3, TxPayloadBinaryType, []byte("10"), heighPrice, gasLimit)
 
-	txs := []*Transaction{tx1, tx2, tx3, tx4, tx5, tx6, tx7, tx8}
+	txs := []*Transaction{tx1, tx2, tx3, tx4, tx5, tx6, tx7, tx8, tx9, tx10}
 
 	assert.Nil(t, txs[0].Sign(signature1))
-	assert.Nil(t, txPool.Push(txs[0]))
+	assert.Nil(t, txPool.Push(txs[0])) // pool: 0
 	// put dup tx, should fail
 	assert.NotNil(t, txPool.Push(txs[0]))
 	assert.Nil(t, txs[1].Sign(signature2))
-	assert.Nil(t, txPool.Push(txs[1]))
+	assert.Nil(t, txPool.Push(txs[1])) // pool: 0 1
 	assert.Nil(t, txs[2].Sign(signature1))
-	assert.Nil(t, txPool.Push(txs[2]))
+	assert.Nil(t, txPool.Push(txs[2])) // pool: 0 1 2
 	// put not signed tx, should fail
 	assert.NotNil(t, txPool.Push(txs[3]))
 	// push 3, full, drop 0
 	assert.Equal(t, len(txPool.all), 3)
 	assert.NotNil(t, txPool.all[txs[0].hash.Hex()])
 	assert.Nil(t, txs[3].Sign(signature1))
-	assert.Nil(t, txPool.Push(txs[3]))
+	assert.Nil(t, txPool.Push(txs[3])) // pool: 1 2 3
 	assert.Nil(t, txPool.all[txs[0].hash.Hex()])
 	assert.Equal(t, len(txPool.all), 3)
 	// pop 1
-	tx := txPool.Pop()
+	tx := txPool.Pop() // pool: 2 3
 	assert.Equal(t, txs[1].data, tx.data)
 	// put tx with different chainID, should fail
 	assert.Nil(t, txs[4].Sign(signature1))
@@ -118,25 +122,55 @@ func TestTransactionPool(t *testing.T) {
 	// put one new
 	assert.Equal(t, len(txPool.all), 2)
 	assert.Nil(t, txs[5].Sign(signature3))
-	assert.Nil(t, txPool.Push(txs[5]))
+	assert.Nil(t, txPool.Push(txs[5])) // pool: 2 3 5
 	assert.Equal(t, len(txPool.all), 3)
 	// put one new, full, pop 3
 	assert.Equal(t, len(txPool.all), 3)
 	assert.NotNil(t, txPool.all[txs[3].hash.Hex()])
 	assert.Nil(t, txs[6].Sign(signature2))
-	assert.Nil(t, txPool.Push(txs[6]))
+	assert.Nil(t, txPool.Push(txs[6])) // pool: 2 5 6
 	assert.Nil(t, txPool.all[txs[3].hash.Hex()])
 	assert.Equal(t, len(txPool.all), 3)
-
+	// pop, with blacklist 5 6, and push 7
 	assert.Equal(t, len(txPool.all), 3)
+	assert.NotNil(t, txPool.all[txs[2].hash.Hex()])
+	blacklist := make(map[byteutils.HexHash]bool)
+	blacklist[txs[5].from.address.Hex()] = true
+	blacklist[txs[6].from.address.Hex()] = true
+	txPool.PopWithBlacklist(blacklist) // pool: 5 6
 	assert.Nil(t, txs[7].Sign(signature4))
-	assert.Nil(t, txPool.Push(txs[7]))
+	assert.Nil(t, txPool.Push(txs[7])) // pool: 5 6 7
+	assert.Nil(t, txPool.all[txs[2].hash.Hex()])
+	assert.Equal(t, len(txPool.all), 3)
+	// del 5 6
+	assert.Equal(t, len(txPool.all), 3)
+	assert.NotNil(t, txPool.all[txs[5].hash.Hex()])
+	assert.NotNil(t, txPool.all[txs[6].hash.Hex()])
+	txPool.Del(txs[5]) // pool: 6 7
+	txPool.Del(txs[6]) // pool: 7
+	assert.Nil(t, txPool.all[txs[5].hash.Hex()])
+	assert.Nil(t, txPool.all[txs[6].hash.Hex()])
+	assert.Equal(t, len(txPool.all), 1)
+	// push one new
+	assert.Equal(t, len(txPool.all), 1)
+	assert.Nil(t, txs[8].Sign(signature4))
+	assert.Nil(t, txPool.Push(txs[8])) // pool: 7 8
+	assert.Equal(t, len(txPool.all), 2)
+
+	assert.Equal(t, len(txPool.all), 2)
+	assert.Nil(t, txs[9].Sign(signature4))
+	assert.Nil(t, txPool.Push(txs[9])) // pool: 7 8 9
 	assert.Equal(t, len(txPool.all), 3)
 
-	assert.NotNil(t, txPool.Pop())
-	assert.Equal(t, len(txPool.all), 2)
-	assert.NotNil(t, txPool.Pop())
+	// del 7 8
+	assert.Equal(t, len(txPool.all), 3)
+	assert.NotNil(t, txPool.all[txs[7].hash.Hex()])
+	assert.NotNil(t, txPool.all[txs[8].hash.Hex()])
+	txPool.Del(txs[8]) // pool: 9
+	assert.Nil(t, txPool.all[txs[7].hash.Hex()])
+	assert.Nil(t, txPool.all[txs[8].hash.Hex()])
 	assert.Equal(t, len(txPool.all), 1)
+
 	assert.NotNil(t, txPool.Pop())
 	assert.Equal(t, len(txPool.all), 0)
 	assert.Equal(t, txPool.Empty(), true)
