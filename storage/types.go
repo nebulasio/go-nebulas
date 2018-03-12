@@ -35,4 +35,13 @@ type Storage interface {
 
 	// Del delete the key entry in Storage.
 	Del(key []byte) error
+
+	// EnableBatch enable batch write.
+	EnableBatch()
+
+	// DisableBatch disable batch write.
+	DisableBatch()
+
+	// Flush write and flush pending batch write.
+	Flush() error
 }

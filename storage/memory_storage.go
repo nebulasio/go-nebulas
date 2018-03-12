@@ -64,3 +64,16 @@ func (db *MemoryStorage) Del(key []byte) error {
 	db.data.Delete(byteutils.Hex(key))
 	return nil
 }
+
+// EnableBatch enable batch write.
+func (db *MemoryStorage) EnableBatch() {
+}
+
+// Flush write and flush pending batch write.
+func (db *MemoryStorage) Flush() error {
+	return nil
+}
+
+// DisableBatch disable batch write.
+func (db *MemoryStorage) DisableBatch() {
+}
