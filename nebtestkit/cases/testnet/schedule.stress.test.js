@@ -14,8 +14,8 @@ var args = process.argv.splice(2);
 
 if (args.length !=3 ){
     // give default config
-    env = "testneb1";
-    AddressNumber = 200;
+    env = "testneb2";
+    AddressNumber = 100;
     SendTimes = 20;
 } else {
     env = args[0]; // local testneb1 testneb2
@@ -43,7 +43,7 @@ if (env == 'local'){
     ChainID = 100;
     from = new Wallet.Account("a6e5eb290e1438fce79f5cb8774a72621637c2c9654c8b2525ed1d7e4e73653f");
 }else if(env == 'testneb1'){
-    neb.setRequest(new HttpRequest("http://35.182.48.19:8685"));
+    neb.setRequest(new HttpRequest("http://13.57.245.249:8685"));
     ChainID = 1001;
     from = new Wallet.Account("43181d58178263837a9a6b08f06379a348a5b362bfab3631ac78d2ac771c5df3");
 }else if(env == "testneb2"){
@@ -141,7 +141,7 @@ function deployContract(){
         console.log("lastnonce:", lastnonce);
 
         // create contract
-        var bank = FS.readFileSync("../nf/nvm/test/bank_vault_contract.js", "utf-8");
+        var bank = FS.readFileSync("/neb/golang/src/github.com/nebulasio/go-nebulas/nf/nvm/test/bank_vault_contract.js", "utf-8");
         var contract = {
             "source": bank,
             "sourceType": "js",
