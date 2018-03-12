@@ -21,6 +21,9 @@ package state
 import (
 	"encoding/json"
 	"sync"
+	"time"
+
+	"github.com/nebulasio/go-nebulas/util/logging"
 
 	// "github.com/nebulasio/go-nebulas/util/logging"
 
@@ -190,10 +193,17 @@ func (s *states) Begin() error {
 }
 
 func (s *states) Commit() error {
+	start := time.Now().Unix()
 	if err := s.changelog.RollBack(); err != nil {
 		return err
 	}
-	return s.storage.Commit()
+	end := time.Now().Unix()
+	logging.CLog().Info("World State ChangeLog Commit ", end-start)
+	start = time.Now().Unix()
+	err := s.storage.Commit()
+	end = time.Now().Unix()
+	logging.CLog().Info("World State Storage Commit ", end-start)
+	return err
 }
 
 func (s *states) RollBack() error {

@@ -20,6 +20,10 @@ package mvccdb
 
 import (
 	"testing"
+	"time"
+
+	"github.com/nebulasio/go-nebulas/crypto/hash"
+	"github.com/nebulasio/go-nebulas/util/byteutils"
 
 	"github.com/stretchr/testify/assert"
 
@@ -516,4 +520,29 @@ func TestMVCCDB_ParallelsExeTowTx(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(deps))
 	assert.Equal(t, "t1", deps[0])
+}
+
+func TestPerformance(t *testing.T) {
+	store, _ := storage.NewDiskStorage("test.db")
+	db, _ := NewMVCCDB(store, true)
+
+	// begin.
+	db.Begin()
+
+	val := []byte("kbtiuwgqybgheb l dvhjbgkajbn ba.dkghoeubgkjabgk.jdbga;kdjhguibnaklefgn;ndjghao;idngsndbghakbtiuwgqybgheb l dvhjbgkajbn ba.dkghoeubgkjabgk.jdbga;kdjhguibnaklefgn;ndjghao;idngsndbghakbtiuwgqybgheb l dvhjbgkajbn ba.dkghoeubgkjabgk.jdbga;kdjhguibnaklefgn;ndjghao;idngsndbghakbtiuwgqybgheb l dvhjbgkajbn ba.dkghoeubgkjabgk.jdbga;kdjhguibnaklefgn;ndjghao;idngsndbghakbtiuwgqybgheb l dvhjbgkajbn ba.dkghoeubgkjabgk.jdbga;kdjhguibnaklefgn;ndjghao;idngsndbghakbtiuwgqybgheb l dvhjbgkajbn ba.dkghoeubgkjabgk.jdbga;kdjhguibnaklefgn;ndjghao;idngsndbghakbtiuwgqybgheb l dvhjbgkajbn ba.dkghoeubgkjabgk.jdbga;kdjhguibnaklefgn;ndjghao;idngsndbghakbtiuwgqybgheb l dvhjbgkajbn ba.dkghoeubgkjabgk.jdbga;kdjhguibnaklefgn;ndjghao;idngsndbghakbtiuwgqybgheb l dvhjbgkajbn ba.dkghoeubgkjabgk.jdbga;kdjhguibnaklefgn;ndjghao;idngsndbghakbtiuwgqybgheb l dvhjbgkajbn ba.dkghoeubgkjabgk.jdbga;kdjhguibnaklefgn;ndjghao;idngsndbghaadgncdgkenkbtiuwgqybgheb l dvhjbgkajbn ba.dkghoeubgkjabgk.jdbga;kdjhguibnaklefgn;ndjghao;idngsndbghakbtiuwgqybgheb l dvhjbgkajbn ba.dkghoeubgkjabgk.jdbga;kdjhguibnaklefgn;ndjghao;idngsndbghakbtiuwgqybgheb l dvhjbgkajbn ba.dkghoeubgkjabgk.jdbga;kdjhguibnaklefgn;ndjghao;idngsndbghakbtiuwgqybgheb l dvhjbgkajbn ba.dkghoeubgkjabgk.jdbga;kdjhguibnaklefgn;ndjghao;idngsndbghakbtiuwgqybgheb l dvhjbgkajbn ba.dkghoeubgkjabgk.jdbga;kdjhguibnaklefgn;ndjghao;idngsndbghakbtiuwgqybgheb l dvhjbgkajbn ba.dkghoeubgkjabgk.jdbga;kdjhguibnaklefgn;ndjghao;idngsndbghakbtiuwgqybgheb l dvhjbgkajbn ba.dkghoeubgkjabgk.jdbga;kdjhguibnaklefgn;ndjghao;idngsndbghakbtiuwgqybgheb l dvhjbgkajbn ba.dkghoeubgkjabgk.jdbga;kdjhguibnaklefgn;ndjghao;idngsndbghakbtiuwgqybgheb l dvhjbgkajbn ba.dkghoeubgkjabgk.jdbga;kdjhguibnaklefgn;ndjghao;idngsndbghakbtiuwgqybgheb l dvhjbgkajbn ba.dkghoeubgkjabgk.jdbga;kdjhguibnaklefgn;ndjghao;idngsndbghaadgncdgkenkbtiuwgqybgheb l dvhjbgkajbn ba.dkghoeubgkjabgk.jdbga;kdjhguibnaklefgn;ndjghao;idngsndbghakbtiuwgqybgheb l dvhjbgkajbn ba.dkghoeubgkjabgk.jdbga;kdjhguibnaklefgn;ndjghao;idngsndbghakbtiuwgqybgheb l dvhjbgkajbn ba.dkghoeubgkjabgk.jdbga;kdjhguibnaklefgn;ndjghao;idngsndbghakbtiuwgqybgheb l dvhjbgkajbn ba.dkghoeubgkjabgk.jdbga;kdjhguibnaklefgn;ndjghao;idngsndbghakbtiuwgqybgheb l dvhjbgkajbn ba.dkghoeubgkjabgk.jdbga;kdjhguibnaklefgn;ndjghao;idngsndbghakbtiuwgqybgheb l dvhjbgkajbn ba.dkghoeubgkjabgk.jdbga;kdjhguibnaklefgn;ndjghao;idngsndbghakbtiuwgqybgheb l dvhjbgkajbn ba.dkghoeubgkjabgk.jdbga;kdjhguibnaklefgn;ndjghao;idngsndbghakbtiuwgqybgheb l dvhjbgkajbn ba.dkghoeubgkjabgk.jdbga;kdjhguibnaklefgn;ndjghao;idngsndbghakbtiuwgqybgheb l dvhjbgkajbn ba.dkghoeubgkjabgk.jdbga;kdjhguibnaklefgn;ndjghao;idngsndbghakbtiuwgqybgheb l dvhjbgkajbn ba.dkghoeubgkjabgk.jdbga;kdjhguibnaklefgn;ndjghao;idngsndbghaadgncdgkenkbtiuwgqybgheb l dvhjbgkajbn ba.dkghoeubgkjabgk.jdbga;kdjhguibnaklefgn;ndjghao;idngsndbghakbtiuwgqybgheb l dvhjbgkajbn ba.dkghoeubgkjabgk.jdbga;kdjhguibnaklefgn;ndjghao;idngsndbghakbtiuwgqybgheb l dvhjbgkajbn ba.dkghoeubgkjabgk.jdbga;kdjhguibnaklefgn;ndjghao;idngsndbghakbtiuwgqybgheb l dvhjbgkajbn ba.dkghoeubgkjabgk.jdbga;kdjhguibnaklefgn;ndjghao;idngsndbghakbtiuwgqybgheb l dvhjbgkajbn ba.dkghoeubgkjabgk.jdbga;kdjhguibnaklefgn;ndjghao;idngsndbghakbtiuwgqybgheb l dvhjbgkajbn ba.dkghoeubgkjabgk.jdbga;kdjhguibnaklefgn;ndjghao;idngsndbghakbtiuwgqybgheb l dvhjbgkajbn ba.dkghoeubgkjabgk.jdbga;kdjhguibnaklefgn;ndjghao;idngsndbghakbtiuwgqybgheb l dvhjbgkajbn ba.dkghoeubgkjabgk.jdbga;kdjhguibnaklefgn;ndjghao;idngsndbghakbtiuwgqybgheb l dvhjbgkajbn ba.dkghoeubgkjabgk.jdbga;kdjhguibnaklefgn;ndjghao;idngsndbghakbtiuwgqybgheb l dvhjbgkajbn ba.dkghoeubgkjabgk.jdbga;kdjhguibnaklefgn;ndjghao;idngsndbghaadgncdgken")
+	assert.Equal(t, len(val), 3640)
+
+	for i := 0; i < 1200; i++ {
+		pdb, err := db.Prepare(byteutils.Hex(hash.Sha3256(byteutils.FromInt32(int32(i)))))
+		for j := 0; j < 20; j++ {
+			assert.Nil(t, db.Put(byteutils.FromInt32(int32(i*20+j)), val))
+		}
+		_, err = pdb.CheckAndUpdate()
+		assert.Nil(t, err)
+	}
+
+	start := time.Now().Unix()
+	db.Commit()
+	end := time.Now().Unix()
+	assert.Equal(t, end-start, int64(0))
 }

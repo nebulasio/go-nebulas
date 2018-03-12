@@ -22,6 +22,8 @@ import (
 	"errors"
 	"sync"
 
+	"github.com/nebulasio/go-nebulas/util/logging"
+
 	"github.com/nebulasio/go-nebulas/storage"
 )
 
@@ -118,6 +120,7 @@ func (db *MVCCDB) Commit() error {
 
 	// commit.
 	db.stagingTable.Lock()
+	logging.CLog().Info("MVCCDB Commit ", len(db.stagingTable.GetVersionizedValues()))
 	for _, value := range db.stagingTable.GetVersionizedValues() {
 		// skip default value loaded from storage.
 		if value.isDefault() {
