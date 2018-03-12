@@ -261,7 +261,7 @@ func TestStagingTable_SingleTidAction(t *testing.T) {
 		assert.Equal(t, val, value.val)
 		assert.Equal(t, 0, value.version)
 		assert.False(t, value.deleted)
-		assert.False(t, value.dirty)
+		assert.True(t, value.dirty)
 
 		ret, _ := tbl.Get(key)
 		assert.Equal(t, value, ret)

@@ -118,9 +118,16 @@ func (db *MVCCDB) Commit() error {
 		return ErrPreparedDBIsDirty
 	}
 
+	var retErr error
+
 	// commit.
 	db.stagingTable.Lock()
 	logging.CLog().Info("MVCCDB Commit ", len(db.stagingTable.GetVersionizedValues()))
+
+	// enable batch.
+	db.storage.EnableBatch()
+
+	var err error
 	for _, value := range db.stagingTable.GetVersionizedValues() {
 		// skip default value loaded from storage.
 		if value.isDefault() {
@@ -132,15 +139,32 @@ func (db *MVCCDB) Commit() error {
 		}
 
 		if value.deleted {
-			db.delFromStorage(value.key)
+			err = db.delFromStorage(value.key)
 		} else {
-			db.putToStorage(value.key, value.val)
+			err = db.putToStorage(value.key, value.val)
+		}
+
+		if err != nil && retErr == nil {
+			retErr = err
 		}
 
 		// logging.CLog().Infof("MVCCDB.COMMIT: %s %s %d", byteutils.Hex(value.key), byteutils.Hex(hash.Sha3256(value.val)), value.version)
-
 	}
+
+	// flush and disable batch.
+	err = db.storage.Flush()
+	if err != nil && retErr == nil {
+		retErr = err
+	}
+
+	db.storage.DisableBatch()
+
+	// unlock.
 	db.stagingTable.Unlock()
+
+	if retErr != nil {
+		return retErr
+	}
 
 	// reset.
 	for _, pdb := range db.preparedDBs {
@@ -401,4 +425,17 @@ func (db *MVCCDB) putToStorage(key []byte, val []byte) error {
 
 func (db *MVCCDB) delFromStorage(key []byte) error {
 	return db.storage.Del(key)
+}
+
+// EnableBatch enable batch write.
+func (db *MVCCDB) EnableBatch() {
+}
+
+// Flush write and flush pending batch write.
+func (db *MVCCDB) Flush() error {
+	return nil
+}
+
+// DisableBatch disable batch write.
+func (db *MVCCDB) DisableBatch() {
 }

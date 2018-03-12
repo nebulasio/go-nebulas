@@ -131,8 +131,10 @@ func (tbl *StagingTable) Put(key []byte, val []byte) (*VersionizedValueItem, err
 		return nil, err
 	}
 
-	value.dirty = value.dirty || !bytes.Equal(value.val, val)
+	value.dirty = true
 	value.val = val
+
+	// logging.CLog().Infof("Put(%s): %s %s %s", tbl.tid, byteutils.Hex(key), byteutils.Hex(val), value.dirty)
 	return value, nil
 }
 

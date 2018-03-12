@@ -532,7 +532,7 @@ func TestPerformance(t *testing.T) {
 	val := []byte("kbtiuwgqybgheb l dvhjbgkajbn ba.dkghoeubgkjabgk.jdbga;kdjhguibnaklefgn;ndjghao;idngsndbghakbtiuwgqybgheb l dvhjbgkajbn ba.dkghoeubgkjabgk.jdbga;kdjhguibnaklefgn;ndjghao;idngsndbghakbtiuwgqybgheb l dvhjbgkajbn ba.dkghoeubgkjabgk.jdbga;kdjhguibnaklefgn;ndjghao;idngsndbghakbtiuwgqybgheb l dvhjbgkajbn ba.dkghoeubgkjabgk.jdbga;kdjhguibnaklefgn;ndjghao;idngsndbghakbtiuwgqybgheb l dvhjbgkajbn ba.dkghoeubgkjabgk.jdbga;kdjhguibnaklefgn;ndjghao;idngsndbghakbtiuwgqybgheb l dvhjbgkajbn ba.dkghoeubgkjabgk.jdbga;kdjhguibnaklefgn;ndjghao;idngsndbghakbtiuwgqybgheb l dvhjbgkajbn ba.dkghoeubgkjabgk.jdbga;kdjhguibnaklefgn;ndjghao;idngsndbghakbtiuwgqybgheb l dvhjbgkajbn ba.dkghoeubgkjabgk.jdbga;kdjhguibnaklefgn;ndjghao;idngsndbghakbtiuwgqybgheb l dvhjbgkajbn ba.dkghoeubgkjabgk.jdbga;kdjhguibnaklefgn;ndjghao;idngsndbghakbtiuwgqybgheb l dvhjbgkajbn ba.dkghoeubgkjabgk.jdbga;kdjhguibnaklefgn;ndjghao;idngsndbghaadgncdgkenkbtiuwgqybgheb l dvhjbgkajbn ba.dkghoeubgkjabgk.jdbga;kdjhguibnaklefgn;ndjghao;idngsndbghakbtiuwgqybgheb l dvhjbgkajbn ba.dkghoeubgkjabgk.jdbga;kdjhguibnaklefgn;ndjghao;idngsndbghakbtiuwgqybgheb l dvhjbgkajbn ba.dkghoeubgkjabgk.jdbga;kdjhguibnaklefgn;ndjghao;idngsndbghakbtiuwgqybgheb l dvhjbgkajbn ba.dkghoeubgkjabgk.jdbga;kdjhguibnaklefgn;ndjghao;idngsndbghakbtiuwgqybgheb l dvhjbgkajbn ba.dkghoeubgkjabgk.jdbga;kdjhguibnaklefgn;ndjghao;idngsndbghakbtiuwgqybgheb l dvhjbgkajbn ba.dkghoeubgkjabgk.jdbga;kdjhguibnaklefgn;ndjghao;idngsndbghakbtiuwgqybgheb l dvhjbgkajbn ba.dkghoeubgkjabgk.jdbga;kdjhguibnaklefgn;ndjghao;idngsndbghakbtiuwgqybgheb l dvhjbgkajbn ba.dkghoeubgkjabgk.jdbga;kdjhguibnaklefgn;ndjghao;idngsndbghakbtiuwgqybgheb l dvhjbgkajbn ba.dkghoeubgkjabgk.jdbga;kdjhguibnaklefgn;ndjghao;idngsndbghakbtiuwgqybgheb l dvhjbgkajbn ba.dkghoeubgkjabgk.jdbga;kdjhguibnaklefgn;ndjghao;idngsndbghaadgncdgkenkbtiuwgqybgheb l dvhjbgkajbn ba.dkghoeubgkjabgk.jdbga;kdjhguibnaklefgn;ndjghao;idngsndbghakbtiuwgqybgheb l dvhjbgkajbn ba.dkghoeubgkjabgk.jdbga;kdjhguibnaklefgn;ndjghao;idngsndbghakbtiuwgqybgheb l dvhjbgkajbn ba.dkghoeubgkjabgk.jdbga;kdjhguibnaklefgn;ndjghao;idngsndbghakbtiuwgqybgheb l dvhjbgkajbn ba.dkghoeubgkjabgk.jdbga;kdjhguibnaklefgn;ndjghao;idngsndbghakbtiuwgqybgheb l dvhjbgkajbn ba.dkghoeubgkjabgk.jdbga;kdjhguibnaklefgn;ndjghao;idngsndbghakbtiuwgqybgheb l dvhjbgkajbn ba.dkghoeubgkjabgk.jdbga;kdjhguibnaklefgn;ndjghao;idngsndbghakbtiuwgqybgheb l dvhjbgkajbn ba.dkghoeubgkjabgk.jdbga;kdjhguibnaklefgn;ndjghao;idngsndbghakbtiuwgqybgheb l dvhjbgkajbn ba.dkghoeubgkjabgk.jdbga;kdjhguibnaklefgn;ndjghao;idngsndbghakbtiuwgqybgheb l dvhjbgkajbn ba.dkghoeubgkjabgk.jdbga;kdjhguibnaklefgn;ndjghao;idngsndbghakbtiuwgqybgheb l dvhjbgkajbn ba.dkghoeubgkjabgk.jdbga;kdjhguibnaklefgn;ndjghao;idngsndbghaadgncdgkenkbtiuwgqybgheb l dvhjbgkajbn ba.dkghoeubgkjabgk.jdbga;kdjhguibnaklefgn;ndjghao;idngsndbghakbtiuwgqybgheb l dvhjbgkajbn ba.dkghoeubgkjabgk.jdbga;kdjhguibnaklefgn;ndjghao;idngsndbghakbtiuwgqybgheb l dvhjbgkajbn ba.dkghoeubgkjabgk.jdbga;kdjhguibnaklefgn;ndjghao;idngsndbghakbtiuwgqybgheb l dvhjbgkajbn ba.dkghoeubgkjabgk.jdbga;kdjhguibnaklefgn;ndjghao;idngsndbghakbtiuwgqybgheb l dvhjbgkajbn ba.dkghoeubgkjabgk.jdbga;kdjhguibnaklefgn;ndjghao;idngsndbghakbtiuwgqybgheb l dvhjbgkajbn ba.dkghoeubgkjabgk.jdbga;kdjhguibnaklefgn;ndjghao;idngsndbghakbtiuwgqybgheb l dvhjbgkajbn ba.dkghoeubgkjabgk.jdbga;kdjhguibnaklefgn;ndjghao;idngsndbghakbtiuwgqybgheb l dvhjbgkajbn ba.dkghoeubgkjabgk.jdbga;kdjhguibnaklefgn;ndjghao;idngsndbghakbtiuwgqybgheb l dvhjbgkajbn ba.dkghoeubgkjabgk.jdbga;kdjhguibnaklefgn;ndjghao;idngsndbghakbtiuwgqybgheb l dvhjbgkajbn ba.dkghoeubgkjabgk.jdbga;kdjhguibnaklefgn;ndjghao;idngsndbghaadgncdgken")
 	assert.Equal(t, len(val), 3640)
 
-	for i := 0; i < 1200; i++ {
+	for i := 0; i < 1800; i++ {
 		pdb, err := db.Prepare(byteutils.Hex(hash.Sha3256(byteutils.FromInt32(int32(i)))))
 		for j := 0; j < 20; j++ {
 			assert.Nil(t, db.Put(byteutils.FromInt32(int32(i*20+j)), val))
@@ -541,8 +541,9 @@ func TestPerformance(t *testing.T) {
 		assert.Nil(t, err)
 	}
 
-	start := time.Now().Unix()
-	db.Commit()
-	end := time.Now().Unix()
-	assert.Equal(t, end-start, int64(0))
+	start := time.Now().UnixNano()
+	err := db.Commit()
+	end := time.Now().UnixNano()
+	assert.Nil(t, err)
+	assert.True(t, end-start < 1000000000, "%s", end-start)
 }
