@@ -174,11 +174,6 @@ func (pool *TransactionPool) loop() {
 				continue
 			}
 
-			/* 			logging.VLog().WithFields(logrus.Fields{
-				"tx":   tx,
-				"type": msg.MessageType(),
-			}).Debug("Received a new tx.") */
-
 			if err := pool.PushAndRelay(tx); err != nil {
 				logging.VLog().WithFields(logrus.Fields{
 					"func":        "TxPool.loop",
@@ -223,14 +218,6 @@ func (pool *TransactionPool) PushAndBroadcast(tx *Transaction) error {
 
 // Push tx into pool, input:1)RPC, 2)netService
 func (pool *TransactionPool) Push(tx *Transaction) error { //ToRefine, change to local push
-	pool.mu.Lock() // ToRefine: move to pushTx, popTx, dropTx
-	defer pool.mu.Unlock()
-
-	// verify non-dup tx
-	if _, ok := pool.all[tx.hash.Hex()]; ok {
-		metricsDuplicateTx.Inc(1)
-		return ErrDuplicatedTransaction
-	}
 
 	// if tx's gasPrice below the pool config lowest gasPrice, return ErrBelowGasPrice
 	if tx.gasPrice.Cmp(pool.minGasPrice) < 0 {
@@ -252,6 +239,15 @@ func (pool *TransactionPool) Push(tx *Transaction) error { //ToRefine, change to
 	if err := tx.VerifyIntegrity(pool.bc.chainID); err != nil {
 		metricsInvalidTx.Inc(1)
 		return err
+	}
+
+	pool.mu.Lock()
+	defer pool.mu.Unlock()
+
+	// verify non-dup tx
+	if _, ok := pool.all[tx.hash.Hex()]; ok {
+		metricsDuplicateTx.Inc(1)
+		return ErrDuplicatedTransaction
 	}
 
 	// cache the verified tx
@@ -278,10 +274,10 @@ func (pool *TransactionPool) pushTx(tx *Transaction) {
 		bucket = sorted.NewSlice(nonceCmp)
 		pool.buckets[slot] = bucket
 	}
-	oldCandidate := bucket.Min()
+	oldCandidate := bucket.Left()
 	bucket.Push(tx)
 	pool.all[tx.hash.Hex()] = tx
-	newCandidate := bucket.Min()
+	newCandidate := bucket.Left()
 	// replace candidate, maybe
 	if oldCandidate == nil {
 		pool.candidates.Push(newCandidate)
@@ -294,12 +290,13 @@ func (pool *TransactionPool) pushTx(tx *Transaction) {
 func (pool *TransactionPool) popTx(tx *Transaction) {
 	bucket := pool.buckets[tx.from.address.Hex()]
 	delete(pool.all, tx.hash.Hex())
-	bucket.PopMin()
+	bucket.PopLeft()
 	if bucket.Len() != 0 {
-		candidate := bucket.Min()
+		candidate := bucket.Left()
 		pool.candidates.Push(candidate)
+	} else {
+		delete(pool.buckets, tx.from.address.Hex())
 	}
-	// TODO: delete buckets with 0 tx in slice
 }
 
 func (pool *TransactionPool) dropTx() {
@@ -312,14 +309,14 @@ func (pool *TransactionPool) dropTx() {
 		}
 	}
 	if longestLen > 0 {
-		drop := longestSlice.PopMax().(*Transaction)
+		drop := longestSlice.PopRight().(*Transaction)
 		if drop != nil {
 			delete(pool.all, drop.Hash().Hex())
 			if longestLen == 1 {
 				pool.candidates.Del(drop)
+				delete(pool.buckets, drop.from.address.Hex())
 			}
 		}
-		// TODO: delete buckets with 0 tx in slice
 	}
 }
 
@@ -350,7 +347,7 @@ func (pool *TransactionPool) Pop() *Transaction {
 	defer pool.mu.Unlock()
 
 	candidates := pool.candidates
-	val := candidates.PopMin() // ToRefine, change to PopLeft
+	val := candidates.PopLeft()
 	if val == nil {
 		return nil
 	}

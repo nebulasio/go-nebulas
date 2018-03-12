@@ -66,8 +66,8 @@ func (s *Slice) Push(val interface{}) {
 	s.content = content
 }
 
-// PopMin pop out the min value
-func (s *Slice) PopMin() interface{} {
+// PopLeft pop out the min value
+func (s *Slice) PopLeft() interface{} {
 	if s.Len() > 0 {
 		val := s.content[0]
 		s.content = s.content[1:]
@@ -76,8 +76,8 @@ func (s *Slice) PopMin() interface{} {
 	return nil
 }
 
-// PopMax pop out the max value
-func (s *Slice) PopMax() interface{} {
+// PopRight pop out the max value
+func (s *Slice) PopRight() interface{} {
 	if s.Len() > 0 {
 		val := s.content[s.Len()-1]
 		s.content = s.content[:s.Len()-1]
@@ -112,16 +112,16 @@ func (s *Slice) Len() int {
 	return len(s.content)
 }
 
-// Min return the min value, not pop out
-func (s *Slice) Min() interface{} {
+// Left return the min value, not pop out
+func (s *Slice) Left() interface{} {
 	if s.Len() > 0 {
 		return s.content[0]
 	}
 	return nil
 }
 
-// Max return the max value, not pop out
-func (s *Slice) Max() interface{} {
+// Right return the max value, not pop out
+func (s *Slice) Right() interface{} {
 	if s.Len() > 0 {
 		return s.content[len(s.content)-1]
 	}
