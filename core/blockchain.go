@@ -140,7 +140,7 @@ func NewBlockChain(neb Neblet) (*BlockChain, error) { // Tocheck neblet not nil
 func (bc *BlockChain) Setup(neb Neblet) (err error) {
 	bc.consensusHandler = neb.Consensus()
 
-	if err := bc.CheckChainConfig(neb); err != nil {
+	if err := bc.CheckGenesisConfig(neb); err != nil {
 		return err
 	}
 
@@ -195,19 +195,18 @@ func (bc *BlockChain) loop() {
 	}
 }
 
-// CheckChainConfig check if the genesis and config is valid
-func (bc *BlockChain) CheckChainConfig(neb Neblet) error { //ToRefine, update the func name to genesis
-	genesis, _ := DumpGenesis(bc) //ToFix, handle error
+// CheckGenesisConfig check if the genesis and config is valid
+func (bc *BlockChain) CheckGenesisConfig(neb Neblet) error {
+	genesis, err := DumpGenesis(bc)
 	//db.genesis has and config lack
-	if neb.Genesis() == nil && genesis != nil {
+	if neb.Genesis() == nil && err == nil {
 		neb.SetGenesis(genesis)
 		if neb.Config().Chain.ChainId != neb.Genesis().Meta.ChainId {
 			return ErrInvalidConfigChainID
 		}
-	} else if neb.Genesis() == nil && genesis == nil {
+	} else if neb.Genesis() == nil && err != nil {
 		logging.CLog().Fatalf("not found genesis.conf")
-		return ErrCannotLoadGenesisConf // ToRemove, fatal need not return
-	} else if neb.Genesis() != nil && genesis == nil {
+	} else if neb.Genesis() != nil && err != nil {
 		//first start
 		if neb.Config().Chain.ChainId != neb.Genesis().Meta.ChainId {
 			return ErrInvalidConfigChainID
@@ -216,7 +215,8 @@ func (bc *BlockChain) CheckChainConfig(neb Neblet) error { //ToRefine, update th
 		if neb.Config().Chain.ChainId != neb.Genesis().Meta.ChainId {
 			return ErrInvalidConfigChainID
 		}
-		return CheckGenesisConfByDB(bc, neb.Genesis()) //ToRefine, DumpGenesis
+
+		return CheckGenesisConfByDB(genesis, neb.Genesis())
 	}
 
 	return nil

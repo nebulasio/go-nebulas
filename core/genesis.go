@@ -193,25 +193,25 @@ func DumpGenesis(chain *BlockChain) (*corepb.Genesis, error) {
 }
 
 //CheckGenesisConfByDB check mem and genesis.conf if equal return nil
-func CheckGenesisConfByDB(chain *BlockChain, pGenesis *corepb.Genesis) error {
+func CheckGenesisConfByDB(pGenesisDB *corepb.Genesis, pGenesis *corepb.Genesis) error {
 	//private function [Empty parameters are checked by the caller]
-	if genesis, _ := DumpGenesis(chain); genesis != nil {
-		if pGenesis.Meta.ChainId != genesis.Meta.ChainId {
+	if pGenesisDB != nil {
+		if pGenesis.Meta.ChainId != pGenesisDB.Meta.ChainId {
 			return ErrGenesisNotEqualChainIDInDB
 		}
 
-		if len(pGenesis.Consensus.Dpos.Dynasty) != len(genesis.Consensus.Dpos.Dynasty) {
+		if len(pGenesis.Consensus.Dpos.Dynasty) != len(pGenesisDB.Consensus.Dpos.Dynasty) {
 			return ErrGenesisNotEqualDynastyLenInDB
 		}
 
-		if len(pGenesis.TokenDistribution) != len(genesis.TokenDistribution) {
+		if len(pGenesis.TokenDistribution) != len(pGenesisDB.TokenDistribution) {
 			return ErrGenesisNotEqualTokenLenInDB
 		}
 
 		// check dpos equal
 		for _, confDposAddr := range pGenesis.Consensus.Dpos.Dynasty {
 			contains := false
-			for _, dposAddr := range genesis.Consensus.Dpos.Dynasty {
+			for _, dposAddr := range pGenesisDB.Consensus.Dpos.Dynasty {
 				if dposAddr == confDposAddr {
 					contains = true
 					break
@@ -226,7 +226,7 @@ func CheckGenesisConfByDB(chain *BlockChain, pGenesis *corepb.Genesis) error {
 		// check distribution equal
 		for _, confDistribution := range pGenesis.TokenDistribution {
 			contains := false
-			for _, distribution := range genesis.TokenDistribution {
+			for _, distribution := range pGenesisDB.TokenDistribution {
 				if distribution.Address == confDistribution.Address &&
 					distribution.Value == confDistribution.Value {
 					contains = true

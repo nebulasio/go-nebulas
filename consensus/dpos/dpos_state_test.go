@@ -135,31 +135,33 @@ func TestCheckGenesisAndDBConsense(t *testing.T) {
 	conf := MockGenesisConf()
 	chain := mockNeb(t).chain
 
-	err := core.CheckGenesisConfByDB(chain, conf)
+	genesisDB, err := core.DumpGenesis(chain)
+	assert.Nil(t, err)
+	err = core.CheckGenesisConfByDB(genesisDB, conf)
 	assert.Nil(t, err)
 
 	conf4 := MockGenesisConf()
 	conf4.TokenDistribution[0].Value = "1001"
-	err = core.CheckGenesisConfByDB(chain, conf4)
+	err = core.CheckGenesisConfByDB(genesisDB, conf4)
 	assert.NotNil(t, err)
 	assert.Equal(t, err, core.ErrGenesisNotEqualTokenInDB)
 
 	conf1 := MockGenesisConf()
 	conf1.Consensus.Dpos.Dynasty = nil
 	// fmt.Printf("conf1:%v\n", conf1)
-	err = core.CheckGenesisConfByDB(chain, conf1)
+	err = core.CheckGenesisConfByDB(genesisDB, conf1)
 	assert.NotNil(t, err)
 	assert.Equal(t, err, core.ErrGenesisNotEqualDynastyLenInDB)
 
 	conf2 := MockGenesisConf()
 	conf2.Consensus.Dpos.Dynasty[0] = "12b"
-	err = core.CheckGenesisConfByDB(chain, conf2)
+	err = core.CheckGenesisConfByDB(genesisDB, conf2)
 	assert.NotNil(t, err)
 	assert.Equal(t, err, core.ErrGenesisNotEqualDynastyInDB)
 
 	conf3 := MockGenesisConf()
 	conf3.TokenDistribution = nil
-	err = core.CheckGenesisConfByDB(chain, conf3)
+	err = core.CheckGenesisConfByDB(genesisDB, conf3)
 	assert.NotNil(t, err)
 	assert.Equal(t, err, core.ErrGenesisNotEqualTokenLenInDB)
 
