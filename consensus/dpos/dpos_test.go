@@ -70,6 +70,7 @@ func mockNeb(t *testing.T) *Neb {
 				Passphrase: "passphrase",
 			},
 		},
+		ns: mockNetService{},
 	}
 
 	am := account.NewManager(neb)

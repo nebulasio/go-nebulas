@@ -5,9 +5,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/core/pb"
 	"github.com/nebulasio/go-nebulas/neblet/pb"
+	"github.com/nebulasio/go-nebulas/net"
 	"github.com/nebulasio/go-nebulas/rpc"
 	"github.com/nebulasio/go-nebulas/storage"
 	"github.com/stretchr/testify/assert"
@@ -91,7 +93,10 @@ func MockGenesisConf() *corepb.Genesis {
 
 func NewT(config *nebletpb.Config, cmd int) (*Neblet, error) {
 	//var err error
-	n := &Neblet{config: config}
+	n := &Neblet{
+		config:     config,
+		netService: mockNetService{},
+	}
 
 	// try enable profile.
 	n.TryStartProfiling()
@@ -160,7 +165,7 @@ func TestConfig(t *testing.T) {
 	neb.storage, err = storage.NewDiskStorage(neb.config.Chain.Datadir)
 	assert.Nil(t, err)
 
-	//_, err = nebnet.NewNetService(neb)
+	// _, err := nebnet.NewNetService(neb)
 	//assert.Nil(t, err)
 
 	_, err = core.NewBlockChain(neb)
@@ -259,3 +264,47 @@ func TestConfigBlockChain(t *testing.T) {
 		assert.Nil(t, err)*/
 	}
 }
+
+var (
+	received = []byte{}
+)
+
+type mockNetService struct{}
+
+func (n mockNetService) Start() error { return nil }
+func (n mockNetService) Stop()        {}
+
+func (n mockNetService) Node() *net.Node { return nil }
+
+func (n mockNetService) Sync(net.Serializable) error { return nil }
+
+func (n mockNetService) Register(...*net.Subscriber)   {}
+func (n mockNetService) Deregister(...*net.Subscriber) {}
+
+func (n mockNetService) Broadcast(name string, msg net.Serializable, priority int) {
+	pb, _ := msg.ToProto()
+	bytes, _ := proto.Marshal(pb)
+	received = bytes
+}
+func (n mockNetService) Relay(name string, msg net.Serializable, priority int) {
+	pb, _ := msg.ToProto()
+	bytes, _ := proto.Marshal(pb)
+	received = bytes
+}
+func (n mockNetService) SendMsg(name string, msg []byte, target string, priority int) error {
+	received = msg
+	return nil
+}
+
+func (n mockNetService) SendMessageToPeers(messageName string, data []byte, priority int, filter net.PeerFilterAlgorithm) []string {
+	return make([]string, 0)
+}
+func (n mockNetService) SendMessageToPeer(messageName string, data []byte, priority int, peerID string) error {
+	return nil
+}
+
+func (n mockNetService) ClosePeer(peerID string, reason error) {}
+
+func (n mockNetService) BroadcastNetworkID([]byte) {}
+
+func (n mockNetService) BuildRawMessageData([]byte, string) []byte { return nil }

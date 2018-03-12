@@ -92,12 +92,36 @@ func NewBlockChain(neb Neblet) (*BlockChain, error) {
 		return nil, ErrNilArgument
 	}
 
+	var gasPrice, gasLimit *util.Uint128
+	var err error
+	if 0 == len(neb.Config().Chain.GasPrice) {
+		gasPrice = util.NewUint128()
+	} else {
+		gasPrice, err = util.NewUint128FromString(neb.Config().Chain.GasPrice)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if 0 == len(neb.Config().Chain.GasLimit) {
+		gasLimit = util.NewUint128()
+	} else {
+		gasLimit, err = util.NewUint128FromString(neb.Config().Chain.GasLimit)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	blockPool, err := NewBlockPool(1024)
 	if err != nil {
 		return nil, err
 	}
+	blockPool.RegisterInNetwork(neb.NetService())
+
 	txPool := NewTransactionPool(40960)
 	txPool.setEventEmitter(neb.EventEmitter())
+	txPool.SetGasConfig(gasPrice, gasLimit)
+	txPool.RegisterInNetwork(neb.NetService())
 
 	var bc = &BlockChain{
 		chainID:      neb.Config().Chain.ChainId,

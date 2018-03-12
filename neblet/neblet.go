@@ -30,7 +30,6 @@ import (
 	"github.com/nebulasio/go-nebulas/rpc"
 	"github.com/nebulasio/go-nebulas/storage"
 	nsync "github.com/nebulasio/go-nebulas/sync"
-	"github.com/nebulasio/go-nebulas/util"
 	"github.com/nebulasio/go-nebulas/util/logging"
 	m "github.com/rcrowley/go-metrics"
 )
@@ -100,7 +99,6 @@ func New(config *nebletpb.Config) (*Neblet, error) {
 
 // Setup setup neblet
 func (n *Neblet) Setup() {
-	var gasPrice, gasLimit *util.Uint128
 	var err error
 	logging.CLog().Info("Setuping Neblet...")
 
@@ -134,29 +132,6 @@ func (n *Neblet) Setup() {
 			"err": err,
 		}).Fatal("Failed to setup blockchain.")
 	}
-	if 0 == len(n.config.Chain.GasPrice) {
-		gasPrice = util.NewUint128()
-	} else {
-		gasPrice, err = util.NewUint128FromString(n.config.Chain.GasPrice)
-	}
-	if err != nil {
-		logging.CLog().WithFields(logrus.Fields{
-			"err": err,
-		}).Fatal("Failed to get gasPrice")
-	}
-	if 0 == len(n.config.Chain.GasLimit) {
-		gasLimit = util.NewUint128()
-	} else {
-		gasLimit, err = util.NewUint128FromString(n.config.Chain.GasLimit)
-	}
-	if err != nil {
-		logging.CLog().WithFields(logrus.Fields{
-			"err": err,
-		}).Fatal("Failed to get gasLimit")
-	}
-	n.blockChain.TransactionPool().SetGasConfig(gasPrice, gasLimit)
-	n.blockChain.BlockPool().RegisterInNetwork(n.netService)
-	n.blockChain.TransactionPool().RegisterInNetwork(n.netService) // Refine, move to blockchain
 
 	// consensus
 	if err := n.consensus.Setup(n); err != nil {
