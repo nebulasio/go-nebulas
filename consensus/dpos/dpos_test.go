@@ -567,11 +567,11 @@ func TestDposTxBinary(t *testing.T) {
 	e, _ := core.AddressParse("7da9dabedb4c6e121146fb4250a9883d6180570e63d6b080")
 	assert.Nil(t, manager.Unlock(e, []byte("passphrase"), keystore.YearUnlockDuration))
 
-	f, _ := core.AddressParse("b040353ec0f2c113d5639444f7253681aecda1f8b91f179f")
+	//f, _ := core.AddressParse("b040353ec0f2c113d5639444f7253681aecda1f8b91f179f")
 	//assert.Nil(t, manager.Unlock(f, []byte("passphrase"), keystore.YearUnlockDuration))
 
 	g, _ := core.AddressParse("b414432e15f21237013017fa6ee90fc99433dec82c1c8370")
-	h, _ := core.AddressParse("b49f30d0e5c9c88cade54cd1adecf6bc2c7e0e5af646d903")
+	//h, _ := core.AddressParse("b49f30d0e5c9c88cade54cd1adecf6bc2c7e0e5af646d903")
 	m, _ := core.AddressParse("fc751b484bd5296f8d267a8537d33f25a848f7f7af8cfcf6")
 
 	elapsedSecond := int64(DynastyInterval)
@@ -587,7 +587,7 @@ func TestDposTxBinary(t *testing.T) {
 	for i := 1; i < j; i++ {
 		gas, _ := util.NewUint128FromInt(1000000 + 4 + 4*int64(j-i))
 		limit, _ := util.NewUint128FromInt(200000)
-		tx := core.NewTransaction(neb.chain.ChainID(), a, h, util.NewUint128(), uint64(i), core.TxPayloadBinaryType, []byte("nas"), gas, limit)
+		tx := core.NewTransaction(neb.chain.ChainID(), a, b, util.NewUint128(), uint64(i), core.TxPayloadBinaryType, []byte("nas"), gas, limit)
 		assert.Nil(t, manager.SignTransaction(a, tx))
 		assert.Nil(t, neb.chain.TransactionPool().Push(tx))
 
@@ -597,7 +597,7 @@ func TestDposTxBinary(t *testing.T) {
 		assert.Nil(t, neb.chain.TransactionPool().Push(tx))
 
 		gas, _ = util.NewUint128FromInt(1000000 + 2 + 4*int64(j-i))
-		tx = core.NewTransaction(neb.chain.ChainID(), c, f, util.NewUint128(), uint64(i), core.TxPayloadBinaryType, []byte("nas"), gas, limit)
+		tx = core.NewTransaction(neb.chain.ChainID(), c, d, util.NewUint128(), uint64(i), core.TxPayloadBinaryType, []byte("nas"), gas, limit)
 		assert.Nil(t, manager.SignTransaction(c, tx))
 		assert.Nil(t, neb.chain.TransactionPool().Push(tx))
 		//assert.Equal(t, neb.chain.TransactionPool().cache.Len(), 3)
@@ -618,6 +618,9 @@ func TestDposTxBinary(t *testing.T) {
 	assert.Nil(t, block.Seal())
 	assert.Nil(t, manager.SignBlock(coinbase, block))
 	assert.Nil(t, neb.chain.BlockPool().Push(block))
+
+	accountroot, _ := block.WorldState().AccountsRoot()
+	assert.Equal(t, "8d75e02fbec5385cbbcf8727ffba477f66ada20fd552371dbf1fd1ccf2838b78", accountroot.String())
 
 	assert.Equal(t, block.Hash(), neb.chain.TailBlock().Hash())
 }

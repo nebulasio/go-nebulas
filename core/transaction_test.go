@@ -210,6 +210,11 @@ func TestTransaction_VerifyExecutionDependency(t *testing.T) {
 		assert.Nil(t, err)
 		fromAcc.AddBalance(balance)
 	}
+	{
+		fromAcc, err := bc.tailBlock.worldState.GetOrCreateUserAccount(tx4.from.address)
+		assert.Nil(t, err)
+		fromAcc.AddBalance(balance)
+	}
 
 	bc.tailBlock.Commit()
 
@@ -249,7 +254,7 @@ func TestTransaction_VerifyExecutionDependency(t *testing.T) {
 
 	// tx3
 	executionErr3 := VerifyExecution(tx3, block, txWorldState3)
-	assert.NotNil(t, executionErr3)
+	assert.Nil(t, executionErr3)
 	_, err3 := block.CheckAndUpdate(tx3)
 	logging.CLog().Info("err:", err3)
 	assert.NotNil(t, err3)

@@ -46,7 +46,7 @@ type VersionizedValueItem struct {
 	version       int
 	deleted       bool
 	dirty         bool
-	globalVersion *int64
+	globalVersion int64
 }
 
 // StagingTable a struct to store all staging changed key/value pairs.
@@ -124,6 +124,12 @@ func (tbl *StagingTable) Get(key []byte) (*VersionizedValueItem, error) {
 			if err != nil {
 				return nil, err
 			}
+
+			// global version of keys are not the same, error.
+			if !tbl.disableStrictGlobalVersionCheck && value.globalVersion > tbl.prepareingGlobalVersion {
+				return nil, ErrStagingTableKeyConfliction
+			}
+
 			value = IncrVersionizedValueItem(tbl.tid, value)
 		} else {
 			// load from storage.
@@ -134,11 +140,6 @@ func (tbl *StagingTable) Get(key []byte) (*VersionizedValueItem, error) {
 		}
 
 		tbl.versionizedValues[keyStr] = value
-	}
-
-	// global version of keys are not the same, error.
-	if tbl.parentStagingTable != nil && !tbl.disableStrictGlobalVersionCheck && *value.globalVersion > tbl.prepareingGlobalVersion {
-		return nil, ErrStagingTableKeyConfliction
 	}
 
 	return value, nil
@@ -272,7 +273,7 @@ func (tbl *StagingTable) MergeToParent() ([]interface{}, error) {
 		}
 
 		// merge.
-		value := fromValueItem.CloneForMerge()
+		value := fromValueItem.CloneForMerge(tbl.parentStagingTable.globalVersion)
 		targetValues[keyStr] = value
 
 		// logging.CLog().Infof("MVCCDB.MERGE: %s %s %s %d", tbl.tid, byteutils.Hex(value.key), byteutils.Hex(hash.Sha3256(value.val)), value.version)
@@ -319,7 +320,7 @@ func (tbl *StagingTable) loadFromStorage(key []byte) (*VersionizedValueItem, err
 		return nil, err
 	}
 
-	value := NewDefaultVersionizedValueItem(key, val, tbl.tid, &tbl.globalVersion)
+	value := NewDefaultVersionizedValueItem(key, val, tbl.tid, 0)
 	return value, nil
 }
 
@@ -364,7 +365,7 @@ func (a *VersionizedValueItem) isConflict(b *VersionizedValueItem, trieSameKeyCo
 }
 
 // NewDefaultVersionizedValueItem return new instance of VersionizedValueItem, old/new version are 0, dirty is false.
-func NewDefaultVersionizedValueItem(key []byte, val []byte, tid interface{}, globalVersion *int64) *VersionizedValueItem {
+func NewDefaultVersionizedValueItem(key []byte, val []byte, tid interface{}, globalVersion int64) *VersionizedValueItem {
 	return &VersionizedValueItem{
 		tid:           tid,
 		key:           key,
@@ -390,7 +391,7 @@ func IncrVersionizedValueItem(tid interface{}, oldValue *VersionizedValueItem) *
 }
 
 // CloneForMerge shadow copy of `VersionizedValueItem` with dirty is true.
-func (value *VersionizedValueItem) CloneForMerge() *VersionizedValueItem {
+func (value *VersionizedValueItem) CloneForMerge(globalVersion int64) *VersionizedValueItem {
 	return &VersionizedValueItem{
 		tid:           value.tid,
 		key:           value.key,
@@ -398,6 +399,6 @@ func (value *VersionizedValueItem) CloneForMerge() *VersionizedValueItem {
 		version:       value.version + 1,
 		deleted:       value.deleted,
 		dirty:         true,
-		globalVersion: value.globalVersion,
+		globalVersion: globalVersion,
 	}
 }
