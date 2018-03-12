@@ -22,6 +22,7 @@ import (
 	"errors"
 	"fmt"
 	"runtime"
+	"sync"
 	"time"
 
 	"github.com/nebulasio/go-nebulas/common/dag"
@@ -482,7 +483,7 @@ func (block *Block) CollectTransactions(deadline int64) {
 
 	dag := dag.NewDag()
 	transactions := []*Transaction{}
-	inprogress := make(map[byteutils.HexHash]bool)
+	inprogress := new(sync.Map)
 
 	parallelCh := make(chan bool, 32)
 	mergeCh := make(chan bool, 1)
@@ -501,7 +502,7 @@ func (block *Block) CollectTransactions(deadline int64) {
 				time.Sleep(time.Millisecond)
 				continue
 			}
-			inprogress[tx.from.address.Hex()] = true
+			inprogress.Store(tx.from.address.Hex(), true)
 			<-mergeCh
 
 			parallelCh <- true
@@ -526,7 +527,7 @@ func (block *Block) CollectTransactions(deadline int64) {
 						"tx":    tx,
 						"err":   err,
 					}).Debug("Failed to prepare tx.")
-					delete(inprogress, tx.from.address.Hex())
+					inprogress.Delete(tx.from.address.Hex())
 					<-mergeCh
 					return
 				}
@@ -550,7 +551,7 @@ func (block *Block) CollectTransactions(deadline int64) {
 							}).Debug("Failed to giveback the tx.")
 						}
 					} else {
-						delete(inprogress, tx.from.address.Hex())
+						inprogress.Delete(tx.from.address.Hex())
 					}
 				} else {
 					mergeCh <- true
@@ -581,7 +582,7 @@ func (block *Block) CollectTransactions(deadline int64) {
 									"err":   err,
 								}).Debug("Failed to giveback the tx.")
 							}
-							delete(inprogress, tx.from.address.Hex())
+							inprogress.Delete(tx.from.address.Hex())
 						}
 					} else {
 						logging.VLog().WithFields(logrus.Fields{
@@ -595,7 +596,7 @@ func (block *Block) CollectTransactions(deadline int64) {
 						for _, node := range dependency {
 							dag.AddEdge(node, txid)
 						}
-						delete(inprogress, tx.from.address.Hex())
+						inprogress.Delete(tx.from.address.Hex())
 					}
 					<-mergeCh
 				}
@@ -928,7 +929,7 @@ func (block *Block) execute() error {
 	parallelCh := make(chan bool, 32)
 	transactions := []*Transaction{}
 	finish := len(block.transactions)
-	inprogress := make(map[byteutils.HexHash]bool)
+	inprogress := new(sync.Map)
 	pool, err := NewTransactionPool(len(block.transactions))
 	if err != nil {
 		return err
@@ -965,7 +966,7 @@ func (block *Block) execute() error {
 			time.Sleep(time.Millisecond)
 			continue
 		}
-		inprogress[tx.from.address.Hex()] = true
+		inprogress.Store(tx.from.address.Hex(), true)
 		<-mergeCh
 		logging.VLog().Info("05 ", tx)
 
@@ -977,7 +978,7 @@ func (block *Block) execute() error {
 			txWorldState, err := txBlock.Prepare(tx)
 			if err != nil {
 				logging.VLog().Info("BuildDag Error: ", "faild to prepare tx, ", err, " ", tx)
-				delete(inprogress, tx.from.address.Hex())
+				inprogress.Delete(tx.from.address.Hex())
 				<-mergeCh
 				return
 			}
@@ -1017,7 +1018,7 @@ func (block *Block) execute() error {
 					if err := txBlock.Close(tx); err != nil {
 						logging.VLog().Info("BuildDag Error: ", "faild to reset tx, ", err, " ", tx)
 					} else {
-						delete(inprogress, tx.from.address.Hex())
+						inprogress.Delete(tx.from.address.Hex())
 					}
 					logging.VLog().Info("reset tx, ", tx)
 				} else {
@@ -1028,7 +1029,7 @@ func (block *Block) execute() error {
 						dependency.AddEdge(node, txid)
 					}
 					transactions = append(transactions, tx)
-					delete(inprogress, tx.from.address.Hex())
+					inprogress.Delete(tx.from.address.Hex())
 					finish--
 				}
 				<-mergeCh

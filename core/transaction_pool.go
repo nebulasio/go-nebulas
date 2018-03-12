@@ -324,17 +324,17 @@ func (pool *TransactionPool) dropTx() {
 	}
 }
 
-func (pool *TransactionPool) PopWithBlacklist(blacklist map[byteutils.HexHash]bool) *Transaction {
+func (pool *TransactionPool) PopWithBlacklist(blacklist *sync.Map) *Transaction {
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
 
 	if blacklist == nil {
-		blacklist = make(map[byteutils.HexHash]bool)
+		blacklist = new(sync.Map)
 	}
 	size := pool.candidates.Len()
 	for i := 0; i < size; i++ {
 		tx := pool.candidates.Index(i).(*Transaction)
-		if _, ok := blacklist[tx.from.address.Hex()]; !ok {
+		if _, ok := blacklist.Load(tx.from.address.Hex()); !ok {
 			pool.candidates.Del(tx)
 			pool.popTx(tx)
 			return tx
