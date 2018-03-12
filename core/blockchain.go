@@ -429,12 +429,13 @@ func (bc *BlockChain) FindCommonAncestorWithTail(block *Block) (*Block, error) {
 	}
 
 	tail := bc.TailBlock()
-	for tail.Height() > target.Height() { // TODO check the height if too big, use height link
-		tail = bc.GetBlock(tail.header.parentHash)
+	if tail.Height() > target.Height() {
+		tail = bc.GetBlockOnCanonicalChainByHeight(target.Height())
 		if tail == nil {
 			return nil, ErrMissingParentBlock
 		}
 	}
+
 	for tail.Height() < target.Height() {
 		target = bc.GetBlock(target.header.parentHash)
 		if target == nil {
