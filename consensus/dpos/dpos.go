@@ -446,6 +446,10 @@ func (dpos *Dpos) broadcast(tail *core.Block, block *core.Block) error {
 		}).Error("Failed to push new minted block into block pool")
 		return err
 	}
+	logging.CLog().WithFields(logrus.Fields{
+		"tail":  tail,
+		"block": block,
+	}).Info("Broadcasted new block")
 	return nil
 }
 
@@ -505,14 +509,18 @@ func (dpos *Dpos) mintBlock(now int64) error {
 		"end":      time.Now().Unix(),
 	}).Info("Minted new block")
 
+	// try to push the new block on chain
+	// if failed, return all txs back
+
 	if err := dpos.broadcast(tail, block); err != nil {
+		block.ReturnTransactions()
 		return err
 	}
 
-	logging.CLog().WithFields(logrus.Fields{
-		"tail":  tail,
-		"block": block,
-	}).Info("Broadcasted new block")
+	if !dpos.chain.TailBlock().Hash().Equals(block.Hash()) {
+		block.ReturnTransactions()
+	}
+
 	return nil
 }
 
