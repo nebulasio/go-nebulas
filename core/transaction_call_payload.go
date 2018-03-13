@@ -91,7 +91,7 @@ func (payload *CallPayload) Execute(block *Block, tx *Transaction) (*util.Uint12
 		return util.NewUint128(), "", err
 	}
 
-	if err := block.nvm.StartEngine(block, tx, owner, contract, block.accState); err != nil {
+	if err := block.nvm.CreateEngine(block, tx, owner, contract, block.accState); err != nil {
 		return util.NewUint128(), "", err
 	}
 	defer block.nvm.DisposeEngine()

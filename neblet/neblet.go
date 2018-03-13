@@ -70,7 +70,7 @@ type Neblet struct {
 
 	eventEmitter *core.EventEmitter
 
-	nvm nvm.Engine
+	nvm core.Engine
 
 	running bool
 }

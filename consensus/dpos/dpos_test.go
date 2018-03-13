@@ -135,7 +135,7 @@ func (n *Neb) SetGenesis(genesis *corepb.Genesis) {
 type mockNvm struct {
 }
 
-func (nvm *mockNvm) StartEngine(block *core.Block, tx *core.Transaction, owner, contract state.Account, state state.AccountState) error {
+func (nvm *mockNvm) CreateEngine(block *core.Block, tx *core.Transaction, owner, contract state.Account, state state.AccountState) error {
 	return nil
 }
 func (nvm *mockNvm) SetEngineExecutionLimits(limitsOfExecutionInstructions uint64) error {
@@ -152,6 +152,10 @@ func (nvm *mockNvm) ExecutionInstructions() (uint64, error) {
 }
 func (nvm *mockNvm) DisposeEngine() {
 
+}
+
+func (nvm *mockNvm) Clone() core.Engine {
+	return &mockNvm{}
 }
 
 var (

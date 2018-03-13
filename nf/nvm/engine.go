@@ -31,29 +31,19 @@ var (
 	ErrEngineNotStart      = errors.New("engine not start")
 )
 
-// Engine interface breaks cycle import dependency and hides unused services.
-type Engine interface {
-	StartEngine(block *core.Block, tx *core.Transaction, owner, contract state.Account, state state.AccountState) error
-	SetEngineExecutionLimits(limitsOfExecutionInstructions uint64) error
-	DeployAndInitEngine(source, sourceType, args string) (string, error)
-	CallEngine(source, sourceType, function, args string) (string, error)
-	ExecutionInstructions() (uint64, error)
-	DisposeEngine()
-}
-
 // NebulasVM type of NebulasVM
 type NebulasVM struct {
 	engine *V8Engine
 }
 
 // NewNebulasVM create new NebulasVM
-func NewNebulasVM() Engine {
+func NewNebulasVM() core.Engine {
 	nvm := &NebulasVM{}
 	return nvm
 }
 
-// StartEngine start engine
-func (nvm *NebulasVM) StartEngine(block *core.Block, tx *core.Transaction, owner, contract state.Account, state state.AccountState) error {
+// CreateEngine start engine
+func (nvm *NebulasVM) CreateEngine(block *core.Block, tx *core.Transaction, owner, contract state.Account, state state.AccountState) error {
 	if nvm.engine != nil {
 		return ErrEngineRepeatedStart
 	}
@@ -108,4 +98,10 @@ func (nvm *NebulasVM) DisposeEngine() {
 		nvm.engine.Dispose()
 		nvm.engine = nil
 	}
+}
+
+// Clone clone a new engine
+func (nvm *NebulasVM) Clone() core.Engine {
+	n := &NebulasVM{}
+	return n
 }

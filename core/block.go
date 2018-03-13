@@ -1102,6 +1102,8 @@ func (block *Block) Clone() (*Block, error) {
 		transactions = append(transactions, tx)
 	}
 
+	nvm := block.nvm.Clone()
+
 	return &Block{
 		header:         block.header,
 		sealed:         block.sealed,
@@ -1110,7 +1112,7 @@ func (block *Block) Clone() (*Block, error) {
 		txPool:         block.txPool,
 		storage:        block.storage,
 		eventEmitter:   block.eventEmitter,
-		nvm:            block.nvm,
+		nvm:            nvm,
 		transactions:   transactions,
 		accState:       accState,
 		txsState:       txsState,

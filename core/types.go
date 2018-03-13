@@ -183,12 +183,13 @@ type AccountManager interface {
 
 // Engine interface breaks cycle import dependency and hides unused services.
 type Engine interface {
-	StartEngine(block *Block, tx *Transaction, owner, contract state.Account, state state.AccountState) error
+	CreateEngine(block *Block, tx *Transaction, owner, contract state.Account, state state.AccountState) error
 	SetEngineExecutionLimits(limitsOfExecutionInstructions uint64) error
 	DeployAndInitEngine(source, sourceType, args string) (string, error)
 	CallEngine(source, sourceType, function, args string) (string, error)
 	ExecutionInstructions() (uint64, error)
 	DisposeEngine()
+	Clone() Engine
 }
 
 // Neblet interface breaks cycle import dependency and hides unused services.
