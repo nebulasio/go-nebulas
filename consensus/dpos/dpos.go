@@ -24,6 +24,7 @@ import (
 
 	"github.com/nebulasio/go-nebulas/core/state"
 
+	lru "github.com/hashicorp/golang-lru"
 	"github.com/nebulasio/go-nebulas/crypto/keystore"
 	metrics "github.com/nebulasio/go-nebulas/metrics"
 
@@ -45,6 +46,7 @@ var (
 	ErrWaitingBlockInLastSlot     = errors.New("cannot mint block now, waiting for last block")
 	ErrBlockMintedInNextSlot      = errors.New("cannot mint block now, there is a block minted in current slot")
 	ErrGenerateNextConsensusState = errors.New("Failed to generate next consensus state")
+	ErrDoubleBlockMinted          = errors.New("double block minted")
 )
 
 // Metrics
@@ -62,6 +64,8 @@ type Dpos struct {
 
 	coinbase *core.Address
 	miner    *core.Address
+
+	slot *lru.Cache
 
 	enable  bool
 	pending bool
@@ -102,6 +106,20 @@ func (dpos *Dpos) Setup(neblet core.Neblet) error {
 	}
 	dpos.coinbase = coinbase
 	dpos.miner = miner
+
+	slot, err := lru.NewWithEvict(1024, func(key interface{}, value interface{}) {
+		block := value.(*core.Block)
+		if block != nil {
+			block.Dispose()
+		}
+	})
+	if err != nil {
+		logging.CLog().WithFields(logrus.Fields{
+			"err": err,
+		}).Error("Failed to create cache.")
+		return err
+	}
+	dpos.slot = slot
 	return nil
 }
 
@@ -327,7 +345,20 @@ func (dpos *Dpos) VerifyBlock(block *core.Block) error {
 		}).Debug("Failed to parse proposer.")
 		return err
 	}
-	return verifyBlockSign(miner, block)
+	// check signature
+	if err := verifyBlockSign(miner, block); err != nil {
+		return err
+	}
+	// check double mint
+	if preBlock, exist := dpos.slot.Get(block.Timestamp()); exist {
+		logging.VLog().WithFields(logrus.Fields{
+			"curBlock": block,
+			"preBlock": preBlock.(*core.Block),
+		}).Warn("Found someone minted multiple blocks at same time.")
+		return ErrDoubleBlockMinted
+	}
+	dpos.slot.Add(block.Timestamp(), block)
+	return nil
 }
 
 func (dpos *Dpos) newBlock(tail *core.Block, consensusState state.ConsensusState, deadline int64) (*core.Block, error) {

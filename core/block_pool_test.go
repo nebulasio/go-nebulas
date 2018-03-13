@@ -163,16 +163,6 @@ func TestBlockPool(t *testing.T) {
 	assert.Nil(t, block5.Seal())
 	block5.header.hash[0]++
 	assert.Equal(t, pool.Push(block5), ErrInvalidBlockHash)
-
-	addr, err = AddressParse(MockDynasty[3])
-	assert.Nil(t, err)
-	block41, err := NewBlock(bc.ChainID(), addr, block3)
-	assert.Nil(t, err)
-	consensusState, err = block3.NextConsensusState(BlockInterval)
-	assert.Nil(t, err)
-	block41.LoadConsensusState(consensusState)
-	assert.Nil(t, block41.Seal())
-	assert.Equal(t, pool.Push(block41), ErrDoubleBlockMinted)
 }
 
 func TestHandleBlock(t *testing.T) {

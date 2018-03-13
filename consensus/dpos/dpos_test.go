@@ -482,3 +482,28 @@ BankVaultContract.prototype = {
 	assert.Nil(t, dpos.chain.BlockPool().Push(block))
 	assert.Equal(t, block.Hash(), dpos.chain.TailBlock().Hash())
 }
+
+func TestDoubleMint(t *testing.T) {
+	neb := mockNeb(t)
+	chain := neb.chain
+	am := neb.am
+
+	addr0 := GetUnlockAddress(t, am, "2fe3f9f51f9a05dd5f7c5329127f7c917917149b4e16b0b8")
+	block0, _ := chain.NewBlock(addr0)
+	consensusState, err := chain.TailBlock().NextConsensusState(BlockInterval)
+	assert.Nil(t, err)
+	block0.LoadConsensusState(consensusState)
+	block0.Seal()
+	am.SignBlock(addr0, block0)
+	assert.Nil(t, chain.BlockPool().Push(block0))
+	assert.Equal(t, block0.Hash(), chain.TailBlock().Hash())
+
+	block11, err := chain.NewBlock(addr0)
+	assert.Nil(t, err)
+	consensusState, err = block0.NextConsensusState(0)
+	assert.Nil(t, err)
+	block11.LoadConsensusState(consensusState)
+	block11.Seal()
+	am.SignBlock(addr0, block11)
+	assert.Equal(t, chain.BlockPool().Push(block11), ErrDoubleBlockMinted)
+}

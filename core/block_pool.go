@@ -47,7 +47,6 @@ type BlockPool struct {
 
 	bc    *BlockChain
 	cache *lru.Cache
-	slot  *lru.Cache
 
 	ns net.Service
 	mu sync.RWMutex
@@ -76,17 +75,6 @@ func NewBlockPool(size int) (*BlockPool, error) {
 		lb := value.(*linkedBlock)
 		if lb != nil {
 			lb.Dispose()
-		}
-	})
-
-	if err != nil {
-		return nil, err
-	}
-
-	bp.slot, _ = lru.NewWithEvict(size, func(key interface{}, value interface{}) {
-		block := value.(*Block)
-		if block != nil {
-			block.Dispose()
 		}
 	})
 
@@ -296,10 +284,6 @@ func (pool *BlockPool) PushAndRelay(sender string, block *Block) error {
 	}
 
 	return pool.push(sender, block)
-	// if err := pool.push(sender, block); err != nil {
-	// 	return err
-	// }
-	// return nil
 }
 
 // PushAndBroadcast push block into block pool and broadcast it.
@@ -318,11 +302,6 @@ func (pool *BlockPool) PushAndBroadcast(block *Block) error {
 	pool.ns.Broadcast(MessageTypeNewBlock, block, net.MessagePriorityHigh)
 
 	return pool.push(NoSender, block)
-	// if err := pool.push(NoSender, block); err != nil {
-	// 	return err
-	// }
-
-	// return nil
 }
 
 func (pool *BlockPool) download(sender string, block *Block) error { //ReName to downloadParent
@@ -378,17 +357,6 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 
 	var plb *linkedBlock
 	lb := newLinkedBlock(block, pool.bc)
-
-	if preBlock, exist := pool.slot.Get(lb.block.Timestamp()); exist {
-		metricsInvalidBlock.Inc(1)
-		logging.VLog().WithFields(logrus.Fields{
-			"curBlock": lb.block,
-			"preBlock": preBlock.(*Block),
-			"sender":   sender,
-		}).Warn("Found someone minted multiple blocks at same time.")
-		return ErrDoubleBlockMinted
-	}
-	pool.slot.Add(lb.block.Timestamp(), lb.block)
 	cache.Add(lb.hash.Hex(), lb)
 
 	// find child block in pool.
@@ -421,11 +389,6 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 		}
 
 		return pool.download(sender, plb.block)
-		// if err := pool.download(sender, plb.block); err != nil {
-		// 	return err
-		// }
-
-		// return nil
 	}
 
 	// find parent in Chain.
@@ -477,11 +440,6 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 
 	// notify consensus to handle new block.
 	return pool.bc.ConsensusHandler().ForkChoice()
-	// if err := pool.bc.ConsensusHandler().ForkChoice(); err != nil {
-	// 	return err
-	// }
-
-	// return nil
 }
 
 func (pool *BlockPool) setBlockChain(bc *BlockChain) {

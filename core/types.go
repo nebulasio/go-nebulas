@@ -70,7 +70,6 @@ var (
 	ErrMissingParentBlock     = errors.New("cannot find the block's parent block in storage")
 	ErrInvalidBlockHash       = errors.New("invalid block hash")
 	ErrDuplicatedBlock        = errors.New("duplicated block")
-	ErrDoubleBlockMinted      = errors.New("double block minted")
 
 	ErrInvalidChainID           = errors.New("invalid transaction chainID")
 	ErrInvalidTransactionSigner = errors.New("transaction recover public key address not equal to from")
