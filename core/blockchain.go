@@ -25,7 +25,6 @@ import (
 	"github.com/gogo/protobuf/proto"
 	lru "github.com/hashicorp/golang-lru"
 	"github.com/nebulasio/go-nebulas/core/pb"
-	"github.com/nebulasio/go-nebulas/net"
 	"github.com/nebulasio/go-nebulas/storage"
 	"github.com/nebulasio/go-nebulas/util"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
@@ -86,14 +85,6 @@ const (
 	// LIB (latest irreversible block) in storage
 	LIB = "blockchain_lib"
 )
-
-// RegisterInNetwork register message subscriber in network.
-func (pool *BlockPool) RegisterInNetwork(ns net.Service) {
-	ns.Register(net.NewSubscriber(pool, pool.receiveBlockMessageCh, true, MessageTypeNewBlock, net.MessageWeightNewBlock))
-	ns.Register(net.NewSubscriber(pool, pool.receiveBlockMessageCh, false, MessageTypeBlockDownloadResponse, net.MessageWeightZero))
-	ns.Register(net.NewSubscriber(pool, pool.receiveDownloadBlockMessageCh, false, MessageTypeParentBlockDownloadRequest, net.MessageWeightZero))
-	pool.ns = ns
-}
 
 // NewBlockChain create new #BlockChain instance.
 func NewBlockChain(neb Neblet) (*BlockChain, error) {

@@ -84,6 +84,14 @@ func NewBlockPool(size int) (*BlockPool, error) {
 	return bp, nil
 }
 
+// RegisterInNetwork register message subscriber in network.
+func (pool *BlockPool) RegisterInNetwork(ns net.Service) {
+	ns.Register(net.NewSubscriber(pool, pool.receiveBlockMessageCh, true, MessageTypeNewBlock, net.MessageWeightNewBlock))
+	ns.Register(net.NewSubscriber(pool, pool.receiveBlockMessageCh, false, MessageTypeBlockDownloadResponse, net.MessageWeightZero))
+	ns.Register(net.NewSubscriber(pool, pool.receiveDownloadBlockMessageCh, false, MessageTypeParentBlockDownloadRequest, net.MessageWeightZero))
+	pool.ns = ns
+}
+
 // Start start loop.
 func (pool *BlockPool) Start() {
 	logging.CLog().WithFields(logrus.Fields{
@@ -304,7 +312,7 @@ func (pool *BlockPool) PushAndBroadcast(block *Block) error {
 	return pool.push(NoSender, block)
 }
 
-func (pool *BlockPool) download(sender string, block *Block) error { //ReName to downloadParent
+func (pool *BlockPool) downloadParent(sender string, block *Block) error {
 	downloadMsg := &corepb.DownloadBlock{
 		Hash: block.Hash(),
 		Sign: block.Signature(),
@@ -388,7 +396,7 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 			return ErrMissingParentBlock
 		}
 
-		return pool.download(sender, plb.block)
+		return pool.downloadParent(sender, plb.block)
 	}
 
 	// find parent in Chain.
@@ -412,7 +420,7 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 			return ErrInvalidBlockCannotFindParentInLocalAndTrySync
 		}
 
-		if err := pool.download(sender, lb.block); err != nil {
+		if err := pool.downloadParent(sender, lb.block); err != nil {
 			return err
 		}
 		return ErrInvalidBlockCannotFindParentInLocalAndTryDownload
