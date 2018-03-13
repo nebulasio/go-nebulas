@@ -197,7 +197,7 @@ func TestHandleBlock(t *testing.T) {
 	data, err := proto.Marshal(pbMsg)
 	assert.Nil(t, err)
 	msg := net.NewBaseMessage(MessageTypeNewTx, "from", data)
-	bc.bkPool.handleBlock(msg)
+	bc.bkPool.handleReceivedBlock(msg)
 	assert.Nil(t, bc.GetBlock(block.Hash()))
 
 	block, err = bc.NewBlock(from)
@@ -211,7 +211,7 @@ func TestHandleBlock(t *testing.T) {
 	assert.Nil(t, err)
 	data, err = proto.Marshal(pbMsg)
 	msg = net.NewBaseMessage(MessageTypeNewBlock, "from", data)
-	bc.bkPool.handleBlock(msg)
+	bc.bkPool.handleReceivedBlock(msg)
 	assert.Nil(t, bc.GetBlock(block.Hash()))
 
 	block, err = bc.NewBlock(from)
@@ -225,7 +225,7 @@ func TestHandleBlock(t *testing.T) {
 	assert.Nil(t, err)
 	data, err = proto.Marshal(pbMsg)
 	msg = net.NewBaseMessage(MessageTypeNewBlock, "from", data)
-	bc.bkPool.handleBlock(msg)
+	bc.bkPool.handleReceivedBlock(msg)
 	assert.Nil(t, bc.GetBlock(block.Hash()))
 
 	block, err = bc.NewBlock(from)
@@ -238,8 +238,8 @@ func TestHandleBlock(t *testing.T) {
 	pbMsg, err = block.ToProto()
 	assert.Nil(t, err)
 	data, err = proto.Marshal(pbMsg)
-	msg = net.NewBaseMessage(MessageTypeDownloadedBlockReply, "from", data)
-	bc.bkPool.handleBlock(msg)
+	msg = net.NewBaseMessage(MessageTypeBlockDownloadResponse, "from", data)
+	bc.bkPool.handleReceivedBlock(msg)
 	assert.NotNil(t, bc.GetBlock(block.Hash()))
 }
 
@@ -274,7 +274,7 @@ func TestHandleDownloadedBlock(t *testing.T) {
 	data, err := proto.Marshal(downloadBlock)
 	assert.Nil(t, err)
 	msg := net.NewBaseMessage(MessageTypeNewBlock, "from", data)
-	bc.bkPool.handleDownloadedBlock(msg)
+	bc.bkPool.handleParentDownloadRequest(msg)
 	assert.Equal(t, received, []byte{})
 
 	downloadBlock = new(corepb.DownloadBlock)
@@ -282,8 +282,8 @@ func TestHandleDownloadedBlock(t *testing.T) {
 	downloadBlock.Sign = bc.genesisBlock.Signature()
 	data, err = proto.Marshal(downloadBlock)
 	assert.Nil(t, err)
-	msg = net.NewBaseMessage(MessageTypeDownloadedBlock, "from", data)
-	bc.bkPool.handleDownloadedBlock(msg)
+	msg = net.NewBaseMessage(MessageTypeParentBlockDownloadRequest, "from", data)
+	bc.bkPool.handleParentDownloadRequest(msg)
 	assert.Equal(t, received, []byte{})
 
 	downloadBlock = new(corepb.DownloadBlock)
@@ -291,8 +291,8 @@ func TestHandleDownloadedBlock(t *testing.T) {
 	downloadBlock.Sign = block1.Signature()
 	data, err = proto.Marshal(downloadBlock)
 	assert.Nil(t, err)
-	msg = net.NewBaseMessage(MessageTypeDownloadedBlock, "from", data)
-	bc.bkPool.handleDownloadedBlock(msg)
+	msg = net.NewBaseMessage(MessageTypeParentBlockDownloadRequest, "from", data)
+	bc.bkPool.handleParentDownloadRequest(msg)
 	assert.Equal(t, received, []byte{})
 	bc.StoreBlockToStorage(block1)
 
@@ -301,8 +301,8 @@ func TestHandleDownloadedBlock(t *testing.T) {
 	downloadBlock.Sign = block2.Signature()
 	data, err = proto.Marshal(downloadBlock)
 	assert.Nil(t, err)
-	msg = net.NewBaseMessage(MessageTypeDownloadedBlock, "from", data)
-	bc.bkPool.handleDownloadedBlock(msg)
+	msg = net.NewBaseMessage(MessageTypeParentBlockDownloadRequest, "from", data)
+	bc.bkPool.handleParentDownloadRequest(msg)
 	assert.Equal(t, received, []byte{})
 
 	downloadBlock = new(corepb.DownloadBlock)
@@ -310,8 +310,8 @@ func TestHandleDownloadedBlock(t *testing.T) {
 	downloadBlock.Sign = block1.Signature()
 	data, err = proto.Marshal(downloadBlock)
 	assert.Nil(t, err)
-	msg = net.NewBaseMessage(MessageTypeDownloadedBlock, "from", data)
-	bc.bkPool.handleDownloadedBlock(msg)
+	msg = net.NewBaseMessage(MessageTypeParentBlockDownloadRequest, "from", data)
+	bc.bkPool.handleParentDownloadRequest(msg)
 	pbGenesis, err := bc.genesisBlock.ToProto()
 	assert.Nil(t, err)
 	data, err = proto.Marshal(pbGenesis)

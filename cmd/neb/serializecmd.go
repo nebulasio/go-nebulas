@@ -251,7 +251,7 @@ func serializeDownload(ctx *cli.Context) error {
 		Sign: sign,
 	}
 	data, _ := proto.Marshal(downloadMsg)
-	data = neb.NetService().BuildRawMessageData(data, core.MessageTypeDownloadedBlock)
+	data = neb.NetService().BuildRawMessageData(data, core.MessageTypeParentBlockDownloadRequest)
 	fmt.Println(base64.StdEncoding.EncodeToString(data))
 	return nil
 }

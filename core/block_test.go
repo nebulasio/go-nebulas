@@ -566,7 +566,7 @@ func TestBlock_CollectTransactions(t *testing.T) {
 	logging.CLog().Info(BlockReward.String())
 	assert.NotEqual(t, balance.Cmp(BlockReward), 0)
 	// mock net message
-	block, _ = mockBlockFromNetwork(block)
+	block, _ = deepCopyBlock(block)
 	assert.Equal(t, block.LinkParentBlock(bc, bc.tailBlock), nil)
 	assert.Nil(t, block.VerifyExecution())
 }

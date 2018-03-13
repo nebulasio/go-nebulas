@@ -124,10 +124,10 @@ type TxPayload interface {
 
 // MessageType
 const (
-	MessageTypeNewBlock             = "newblock"
-	MessageTypeDownloadedBlock      = "dlblock"
-	MessageTypeDownloadedBlockReply = "dlreply"
-	MessageTypeNewTx                = "newtx"
+	MessageTypeNewBlock                   = "newblock"
+	MessageTypeParentBlockDownloadRequest = "dlblock"
+	MessageTypeBlockDownloadResponse      = "dlreply"
+	MessageTypeNewTx                      = "newtx"
 )
 
 // Consensus interface of consensus algorithm.
