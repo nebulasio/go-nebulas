@@ -751,7 +751,11 @@ func (block *Block) execute() error {
 
 // GetBalance returns balance for the given address on this block.
 func (block *Block) GetBalance(address byteutils.Hash) (*util.Uint128, error) {
-	account, err := block.accState.GetOrCreateUserAccount(address)
+	cblock, err := block.Clone()
+	if err != nil {
+		return util.Uint128Zero(), err
+	}
+	account, err := cblock.accState.GetOrCreateUserAccount(address)
 	if err != nil {
 		return nil, err
 	}
@@ -760,7 +764,11 @@ func (block *Block) GetBalance(address byteutils.Hash) (*util.Uint128, error) {
 
 // GetNonce returns nonce for the given address on this block.
 func (block *Block) GetNonce(address byteutils.Hash) (uint64, error) {
-	account, err := block.accState.GetOrCreateUserAccount(address)
+	cblock, err := block.Clone()
+	if err != nil {
+		return 0, err
+	}
+	account, err := cblock.accState.GetOrCreateUserAccount(address)
 	if err != nil {
 		return 0, err
 	}

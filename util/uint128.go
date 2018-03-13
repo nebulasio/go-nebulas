@@ -101,6 +101,11 @@ func NewUint128FromFixedSizeByteSlice(bytes []byte) (*Uint128, error) {
 	return u.FromFixedSizeByteSlice(bytes)
 }
 
+// Uint128Zero zero of uint128
+func Uint128Zero() *Uint128 {
+	return NewUint128FromUint(0)
+}
+
 // ToFixedSizeBytes converts Uint128 to Big-Endian fixed size bytes.
 func (u *Uint128) ToFixedSizeBytes() ([16]byte, error) {
 	var res [16]byte
