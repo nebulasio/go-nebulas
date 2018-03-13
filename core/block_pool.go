@@ -97,10 +97,10 @@ func NewBlockPool(size int) (*BlockPool, error) {
 }
 
 // RegisterInNetwork register message subscriber in network.
-func (pool *BlockPool) RegisterInNetwork(ns net.Service) {
+func (pool *BlockPool) RegisterInNetwork(ns net.Service) { // ToRefine: move call to blockchain
 	ns.Register(net.NewSubscriber(pool, pool.receiveBlockMessageCh, true, MessageTypeNewBlock, net.MessageWeightNewBlock))
-	ns.Register(net.NewSubscriber(pool, pool.receiveBlockMessageCh, false, MessageTypeDownloadedBlockReply, net.MessageWeightZero))
-	ns.Register(net.NewSubscriber(pool, pool.receiveDownloadBlockMessageCh, false, MessageTypeDownloadedBlock, net.MessageWeightZero))
+	ns.Register(net.NewSubscriber(pool, pool.receiveBlockMessageCh, false, MessageTypeDownloadedBlockReply, net.MessageWeightZero))    // ToRefine: rename to MessageTypeBlockDownloadResponse
+	ns.Register(net.NewSubscriber(pool, pool.receiveDownloadBlockMessageCh, false, MessageTypeDownloadedBlock, net.MessageWeightZero)) // ToRefine: rename to MessageTypeParentBlockDownloadRequest
 	pool.ns = ns
 }
 
@@ -122,7 +122,7 @@ func (pool *BlockPool) Stop() {
 	pool.quitCh <- 0
 }
 
-func (pool *BlockPool) handleBlock(msg net.Message) {
+func (pool *BlockPool) handleBlock(msg net.Message) { // ToRefine: rename to handleReceivedBlock
 	if msg.MessageType() != MessageTypeNewBlock && msg.MessageType() != MessageTypeDownloadedBlockReply {
 		logging.VLog().WithFields(logrus.Fields{
 			"msgType": msg.MessageType(),
@@ -163,7 +163,7 @@ func (pool *BlockPool) handleBlock(msg net.Message) {
 	pool.PushAndRelay(msg.MessageFrom(), block)
 }
 
-func (pool *BlockPool) handleDownloadedBlock(msg net.Message) {
+func (pool *BlockPool) handleDownloadedBlock(msg net.Message) { // ToRefine: rename to handleParentDownloadRequest
 	if msg.MessageType() != MessageTypeDownloadedBlock {
 		logging.VLog().WithFields(logrus.Fields{
 			"messageType": msg.MessageType(),
@@ -231,7 +231,7 @@ func (pool *BlockPool) handleDownloadedBlock(msg net.Message) {
 		}).Debug("Failed to marshal the block's parent.")
 		return
 	}
-	pool.ns.SendMsg(MessageTypeDownloadedBlockReply, bytes, msg.MessageFrom(), net.MessagePriorityNormal)
+	pool.ns.SendMsg(MessageTypeDownloadedBlockReply, bytes, msg.MessageFrom(), net.MessagePriorityNormal) //ToRefine, receive error
 
 	logging.VLog().WithFields(logrus.Fields{
 		"block":  block,
@@ -258,7 +258,7 @@ func (pool *BlockPool) loop() {
 	}
 }
 
-func mockBlockFromNetwork(block *Block) (*Block, error) {
+func mockBlockFromNetwork(block *Block) (*Block, error) { //TODO add comment for mockblock, rename to deepcopy
 	pbBlock, err := block.ToProto()
 	if err != nil {
 		return nil, err
@@ -273,7 +273,7 @@ func mockBlockFromNetwork(block *Block) (*Block, error) {
 }
 
 // Push block into block pool
-func (pool *BlockPool) Push(block *Block) error {
+func (pool *BlockPool) Push(block *Block) error { //ToAdd, add input not nil check
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
 	block, err := mockBlockFromNetwork(block)
@@ -288,7 +288,7 @@ func (pool *BlockPool) Push(block *Block) error {
 }
 
 // PushAndRelay push block into block pool and relay it.
-func (pool *BlockPool) PushAndRelay(sender string, block *Block) error {
+func (pool *BlockPool) PushAndRelay(sender string, block *Block) error { //ToAdd, add input not nil check
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
 
@@ -305,7 +305,7 @@ func (pool *BlockPool) PushAndRelay(sender string, block *Block) error {
 }
 
 // PushAndBroadcast push block into block pool and broadcast it.
-func (pool *BlockPool) PushAndBroadcast(block *Block) error {
+func (pool *BlockPool) PushAndBroadcast(block *Block) error { //ToAdd, add input not nil check
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
 
@@ -324,7 +324,7 @@ func (pool *BlockPool) PushAndBroadcast(block *Block) error {
 	// return nil
 }
 
-func (pool *BlockPool) download(sender string, block *Block) error {
+func (pool *BlockPool) download(sender string, block *Block) error { //ReName to downloadParent
 	downloadMsg := &corepb.DownloadBlock{
 		Hash: block.Hash(),
 		Sign: block.Signature(),
@@ -378,7 +378,7 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 	var plb *linkedBlock
 	lb := newLinkedBlock(block, pool.bc)
 
-	if preBlock, exist := pool.slot.Get(lb.block.Timestamp()); exist {
+	if preBlock, exist := pool.slot.Get(lb.block.Timestamp()); exist { //ToCheck, use timestamp is ok?
 		metricsInvalidBlock.Inc(1)
 		logging.VLog().WithFields(logrus.Fields{
 			"curBlock": lb.block,
@@ -408,7 +408,7 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 		lb.LinkParent(plb)
 
 		for plb.parentBlock != nil {
-			plb = plb.parentBlock
+			plb = plb.parentBlock //ToCheck if need find parentBlock
 		}
 
 		logging.VLog().WithFields(logrus.Fields{
