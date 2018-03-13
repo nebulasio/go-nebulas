@@ -955,7 +955,7 @@ func (block *Block) execute() error {
 	if err := txBlock.Begin(); err != nil {
 		return err
 	}
-	logging.VLog().Info("03")
+	// logging.VLog().Info("03")
 	for {
 		mergeCh <- true
 		if finish == 0 {

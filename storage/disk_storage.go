@@ -46,11 +46,8 @@ type batchOpt struct {
 func NewDiskStorage(path string) (*DiskStorage, error) {
 	db, err := leveldb.OpenFile(path, &opt.Options{
 		OpenFilesCacheCapacity: 500,
-		BlockCacheCapacity:     64 * opt.MiB,
-		BlockSize:              1 * opt.MiB,
-		CompactionTableSize:    32 * opt.MiB,
-		CompactionTotalSize:    160 * opt.MiB,
-		WriteBuffer:            64 * opt.MiB,
+		BlockCacheCapacity:     8 * opt.MiB,
+		BlockSize:              4 * opt.MiB,
 		Filter:                 filter.NewBloomFilter(10),
 	})
 	if err != nil {
