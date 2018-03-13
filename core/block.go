@@ -827,14 +827,14 @@ func (block *Block) VerifyIntegrity(chainID uint32, consensus Consensus) error {
 // verifyState return state verify result.
 func (block *Block) verifyState() error {
 	// verify state root.
-	logging.VLog().Info("Verify DirtyAccount")
+	// logging.VLog().Info("Verify DirtyAccount")
 	accountsRoot, err := block.WorldState().AccountsRoot_Log()
 	if err != nil {
 		return err
 	}
-	logging.VLog().Info("Verify DirtyAccount")
+	// logging.VLog().Info("Verify DirtyAccount")
 
-	logging.VLog().Info("Verify Accounts")
+	// logging.VLog().Info("Verify Accounts")
 	/* 	accounts, err := block.WorldState().Accounts()
 	   	if err != nil {
 	   		return err
@@ -847,7 +847,7 @@ func (block *Block) verifyState() error {
 	   			"vars":    acc.VarsHash().String(),
 	   		}).Info("Accounts")
 	   	} */
-	logging.VLog().Info("Verify Accounts")
+	// logging.VLog().Info("Verify Accounts")
 	if !byteutils.Equal(accountsRoot, block.StateRoot()) {
 		logging.VLog().WithFields(logrus.Fields{
 			"expect": block.StateRoot(),
@@ -927,7 +927,7 @@ func (block *Block) execute() error {
 		}
 	} */
 	// parallel, build dag
-	logging.VLog().Info("01")
+	// logging.VLog().Info("01")
 	mergeCh := make(chan bool, 1)
 	parallelCh := make(chan bool, 32)
 	transactions := []*Transaction{}
@@ -939,7 +939,7 @@ func (block *Block) execute() error {
 	}
 	pool.setBlockChain(block.txPool.bc)
 	pool.setEventEmitter(block.txPool.eventEmitter)
-	logging.VLog().Info("02")
+	// logging.VLog().Info("02")
 	for _, v := range block.transactions {
 		if err := pool.Push(v); err != nil {
 			return err
@@ -959,7 +959,7 @@ func (block *Block) execute() error {
 	for {
 		mergeCh <- true
 		if finish == 0 {
-			logging.VLog().Info("BuildDag Error: ", "finish == 0 when pool is not empty")
+			// logging.VLog().Info("BuildDag Error: ", "finish == 0 when pool is not empty")
 			<-mergeCh
 			break
 		}
@@ -971,12 +971,12 @@ func (block *Block) execute() error {
 		}
 		inprogress.Store(tx.from.address.Hex(), true)
 		<-mergeCh
-		logging.VLog().Info("05 ", tx)
+		// logging.VLog().Info("05 ", tx)
 
 		parallelCh <- true
 		go func() {
 			defer func() { <-parallelCh }()
-			logging.VLog().Info("06")
+			// logging.VLog().Info("06")
 			mergeCh <- true
 			txWorldState, err := txBlock.Prepare(tx)
 			if err != nil {
@@ -985,70 +985,70 @@ func (block *Block) execute() error {
 				<-mergeCh
 				return
 			}
-			logging.VLog().Info("prepare tx, ", tx)
+			// logging.VLog().Info("prepare tx, ", tx)
 			<-mergeCh
-			logging.VLog().Info("07")
+			// logging.VLog().Info("07")
 
 			giveback, err := txBlock.ExecuteTransaction(tx, txWorldState)
-			logging.VLog().Info("08 ", err)
+			// logging.VLog().Info("08 ", err)
 			if err != nil {
-				logging.VLog().Info("081")
+				// logging.VLog().Info("081")
 				if giveback {
-					logging.VLog().Info("082")
+					// logging.VLog().Info("082")
 					if err := pool.Push(tx); err != nil {
 						logging.VLog().Info("BuildDag Error: ", "faild to giveback tx, ", err)
 					}
-					logging.VLog().Info("083")
-					logging.VLog().Info("giveback tx, ", tx, " err ", err)
+					// logging.VLog().Info("083")
+					// logging.VLog().Info("giveback tx, ", tx, " err ", err)
 					gc++
 					retry++
 				}
 			} else {
-				logging.VLog().Info("09")
+				// logging.VLog().Info("09")
 				mergeCh <- true
 				if finish == 0 {
 					logging.VLog().Info("BuildDag Error: ", "finish == 0 when pool is not empty")
 					<-mergeCh
 					return
 				}
-				logging.VLog().Info("010")
+				// logging.VLog().Info("010")
 				dep, err := txBlock.CheckAndUpdate(tx)
-				logging.VLog().Info("011")
+				// logging.VLog().Info("011")
 				if err != nil {
 					logging.VLog().Info("BuildDag Error: ", "faild update tx, ", err, " tx ", tx)
 					if err := pool.Push(tx); err != nil {
 						logging.VLog().Info("BuildDag Error: ", "faild to giveback tx, ", err, " tx ", tx)
 					}
-					logging.VLog().Info("giveback tx, ", tx)
+					// logging.VLog().Info("giveback tx, ", tx)
 					if err := txBlock.Close(tx); err != nil {
-						logging.VLog().Info("BuildDag Error: ", "faild to reset tx, ", err, " ", tx)
+						// logging.VLog().Info("BuildDag Error: ", "faild to reset tx, ", err, " ", tx)
 					} else {
 						inprogress.Delete(tx.from.address.Hex())
 					}
-					logging.VLog().Info("reset tx, ", tx)
+					// logging.VLog().Info("reset tx, ", tx)
 					retry++
 				} else {
-					logging.VLog().Info("012")
+					// logging.VLog().Info("012")
 					txid := tx.Hash().String()
 					dependency.AddNode(txid)
 					for _, node := range dep {
 						dependency.AddEdge(node, txid)
 					}
-					logging.CLog().Info("Dag Dependency ", tx.from.String(), "->", tx.to.String())
+					// logging.CLog().Info("Dag Dependency ", tx.from.String(), "->", tx.to.String())
 					transactions = append(transactions, tx)
 					inprogress.Delete(tx.from.address.Hex())
 					finish--
 				}
 				<-mergeCh
 			}
-			logging.VLog().Info("0121")
+			// logging.VLog().Info("0121")
 		}()
 	}
 	for finish > 0 {
 		time.Sleep(time.Microsecond)
 	}
 	txBlock.RollBack()
-	logging.VLog().Info("013 ", finish)
+	// logging.VLog().Info("013 ", finish)
 	dagEndAt := time.Now().Unix()
 	logging.VLog().WithFields(logrus.Fields{
 		"diff-dag": dagEndAt - dagStartAt,
