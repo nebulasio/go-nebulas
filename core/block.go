@@ -910,6 +910,9 @@ func (block *Block) execute() error {
 		return err
 	}
 
+	dagStartAt := time.Now().Unix()
+	retry := 0
+	gc := 0
 	// Compatible
 	dependency := dag.NewDag()
 	// one-by-one
@@ -997,6 +1000,8 @@ func (block *Block) execute() error {
 					}
 					logging.VLog().Info("083")
 					logging.VLog().Info("giveback tx, ", tx, " err ", err)
+					gc++
+					retry++
 				}
 			} else {
 				logging.VLog().Info("09")
@@ -1021,6 +1026,7 @@ func (block *Block) execute() error {
 						inprogress.Delete(tx.from.address.Hex())
 					}
 					logging.VLog().Info("reset tx, ", tx)
+					retry++
 				} else {
 					logging.VLog().Info("012")
 					txid := tx.Hash().String()
@@ -1028,6 +1034,7 @@ func (block *Block) execute() error {
 					for _, node := range dep {
 						dependency.AddEdge(node, txid)
 					}
+					logging.CLog().Info("Dag Dependency ", tx.from.String(), "->", tx.to.String())
 					transactions = append(transactions, tx)
 					inprogress.Delete(tx.from.address.Hex())
 					finish--
@@ -1042,6 +1049,13 @@ func (block *Block) execute() error {
 	}
 	txBlock.RollBack()
 	logging.VLog().Info("013 ", finish)
+	dagEndAt := time.Now().Unix()
+	logging.VLog().WithFields(logrus.Fields{
+		"diff-dag": dagEndAt - dagStartAt,
+		"giveback": gc,
+		"retry":    retry,
+	}).Debug("Construct Dag.")
+
 	block.dependency = dependency
 	block.transactions = transactions
 
