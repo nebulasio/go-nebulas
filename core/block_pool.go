@@ -451,7 +451,8 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 	}
 
 	if sender != NoSender {
-		pool.ns.Relay(MessageTypeNewBlock, block, net.MessagePriorityHigh)
+		logging.VLog().Info("Relay")
+		// pool.ns.Relay(MessageTypeNewBlock, block, net.MessagePriorityHigh)
 	}
 
 	// found in BlockChain, then we can verify the state root, and tell the Consensus all the tails.

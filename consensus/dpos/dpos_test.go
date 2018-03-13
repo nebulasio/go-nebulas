@@ -582,7 +582,7 @@ func TestDposTxBinary(t *testing.T) {
 	block.SetTimestamp(consensusState.TimeStamp())
 	block.WorldState().SetConsensusState(consensusState)
 
-	j := 300
+	j := 100
 
 	for i := 1; i < j; i++ {
 		gas, _ := util.NewUint128FromInt(1000000 + 4 + 4*int64(j-i))
@@ -620,7 +620,7 @@ func TestDposTxBinary(t *testing.T) {
 	assert.Nil(t, neb.chain.BlockPool().Push(block))
 
 	accountroot, _ := block.WorldState().AccountsRoot()
-	assert.Equal(t, "8d75e02fbec5385cbbcf8727ffba477f66ada20fd552371dbf1fd1ccf2838b78", accountroot.String())
+	assert.Equal(t, "9548da58fe6413d94cfef345fe1523ac2078a7d0667d6eba06a3c52d83f0ee81", accountroot.String())
 
 	assert.Equal(t, block.Hash(), neb.chain.TailBlock().Hash())
 }
