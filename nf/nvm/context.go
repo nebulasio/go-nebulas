@@ -27,14 +27,14 @@ import (
 
 const (
 	// DefaultLimitsOfTotalMemorySize default limits of total memory size
-	DefaultLimitsOfTotalMemorySize uint64 = 40 * 1000 * 1000
+	DefaultLimitsOfTotalMemorySize uint64 = 40 * 1000 * 1000 // TODO: check the value ok and out of limit do
 )
 
 // Block interface breaks cycle import dependency and hides unused services.
 type Block interface {
 	Coinbase() *core.Address
 	Hash() byteutils.Hash
-	Height() uint64
+	Height() uint64 // ToAdd: timestamp interface
 	GetTransaction(hash byteutils.Hash) (*core.Transaction, error)
 	RecordEvent(txHash byteutils.Hash, topic, data string) error
 }
@@ -102,7 +102,7 @@ type Context struct {
 }
 
 // NewContext create a engine context
-func NewContext(block Block, tx Transaction, owner Account, contract Account, state WorldState) *Context {
+func NewContext(block Block, tx Transaction, owner Account, contract Account, state WorldState) *Context { //ToAdd check params not nil
 	ctx := &Context{
 		block:    block,
 		tx:       tx,

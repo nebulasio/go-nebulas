@@ -458,7 +458,7 @@ func getEngineByStorageHandler(handler uint64) (*V8Engine, Account) {
 		logging.VLog().WithFields(logrus.Fields{
 			"func":          "nvm.getEngineByStorageHandler",
 			"wantedHandler": handler,
-		}).Debug("wantedHandler is not found.")
+		}).Debug("wantedHandler is not found.") //ToRefine change log to error
 		return nil, nil
 	}
 
@@ -474,7 +474,7 @@ func getEngineByStorageHandler(handler uint64) (*V8Engine, Account) {
 			"lcsHandler":    engine.lcsHandler,
 			"gcsHandler":    engine.gcsHandler,
 			"wantedHandler": handler,
-		}).Debug("in-consistent storage handler.")
+		}).Debug("in-consistent storage handler.") //ToRefine change log to error
 		return nil, nil
 	}
 }

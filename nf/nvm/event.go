@@ -29,7 +29,7 @@ import (
 const (
 
 	// EventNameSpaceContract the topic of contract.
-	EventNameSpaceContract = "chain.contract"
+	EventNameSpaceContract = "chain.contract" //ToRefine: move to core
 )
 
 // EventTriggerFunc export EventTriggerFunc
@@ -44,7 +44,7 @@ func EventTriggerFunc(handler unsafe.Pointer, topic, data *C.char) {
 			"category": 0, // ChainEventCategory.
 			"topic":    gTopic,
 			"data":     gData,
-		}).Debug("Event.Trigger delegate handler does not found.")
+		}).Debug("Event.Trigger delegate handler does not found.") // ToRefine: change to error log
 		return
 	}
 

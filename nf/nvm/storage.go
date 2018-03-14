@@ -65,7 +65,7 @@ func hashStorageKey(key string) []byte {
 func StorageGetFunc(handler unsafe.Pointer, key *C.char) *C.char {
 	_, storage := getEngineByStorageHandler(uint64(uintptr(handler)))
 	if storage == nil {
-		return nil
+		return nil // ToAdd add error log
 	}
 
 	val, err := storage.Get([]byte(hashStorageKey(C.GoString(key))))
@@ -75,7 +75,7 @@ func StorageGetFunc(handler unsafe.Pointer, key *C.char) *C.char {
 				"handler": uint64(uintptr(handler)),
 				"key":     C.GoString(key),
 				"err":     err,
-			}).Debug("StorageGetFunc get key failed.")
+			}).Debug("StorageGetFunc get key failed.") // ToRefine add error log
 		}
 		return nil
 	}
@@ -97,7 +97,7 @@ func StoragePutFunc(handler unsafe.Pointer, key *C.char, value *C.char) int {
 			"handler": uint64(uintptr(handler)),
 			"key":     C.GoString(key),
 			"err":     err,
-		}).Debug("StoragePutFunc put key failed.")
+		}).Debug("StoragePutFunc put key failed.") // ToRefine add error log
 		return 1
 	}
 	return 0
@@ -118,7 +118,7 @@ func StorageDelFunc(handler unsafe.Pointer, key *C.char) int {
 			"handler": uint64(uintptr(handler)),
 			"key":     C.GoString(key),
 			"err":     err,
-		}).Debug("StorageDelFunc del key failed.")
+		}).Debug("StorageDelFunc del key failed.") // ToRefine add error log
 		return 1
 	}
 
