@@ -51,6 +51,7 @@ type Neb struct {
 
 func mockNeb(t *testing.T) *Neb {
 	storage, _ := storage.NewDiskStorage("test.db")
+	//storage, _ := storage.NewMemoryStorage()
 	eventEmitter := core.NewEventEmitter(1024)
 	genesisConf := MockGenesisConf()
 	dpos := NewDpos()
@@ -78,8 +79,10 @@ func mockNeb(t *testing.T) *Neb {
 	chain, err := core.NewBlockChain(neb)
 	assert.Nil(t, err)
 	neb.chain = chain
-	dpos.Setup(neb)
-	chain.Setup(neb)
+	err = dpos.Setup(neb)
+	assert.Nil(t, err)
+	err = chain.Setup(neb)
+	assert.Nil(t, err)
 
 	var ns mockNetService
 	neb.ns = ns
@@ -541,19 +544,10 @@ func TestDposContracts(t *testing.T) {
 	assert.Equal(t, block.Hash(), neb.chain.TailBlock().Hash())
 }
 
-func TestDposTxBinary(t *testing.T) {
-	runtime.GOMAXPROCS(runtime.NumCPU())
-
-	neb := mockNeb(t)
-	tail := neb.chain.TailBlock()
-	dpos := neb.consensus
+func testMintBlock(t *testing.T, neb *Neb, num int) {
+	manager := account.NewManager(nil)
 
 	coinbase, err := core.AddressParse("1a263547d167c74cf4b8f9166cfa244de0481c514a45aa2c")
-
-	assert.Nil(t, err)
-	manager := account.NewManager(nil)
-	assert.Nil(t, dpos.EnableMining("passphrase"))
-
 	assert.Nil(t, manager.Unlock(coinbase, []byte("passphrase"), keystore.YearUnlockDuration))
 
 	a, _ := core.AddressParse("2fe3f9f51f9a05dd5f7c5329127f7c917917149b4e16b0b8")
@@ -570,40 +564,38 @@ func TestDposTxBinary(t *testing.T) {
 	//f, _ := core.AddressParse("b040353ec0f2c113d5639444f7253681aecda1f8b91f179f")
 	//assert.Nil(t, manager.Unlock(f, []byte("passphrase"), keystore.YearUnlockDuration))
 
-	g, _ := core.AddressParse("b414432e15f21237013017fa6ee90fc99433dec82c1c8370")
+	//g, _ := core.AddressParse("b414432e15f21237013017fa6ee90fc99433dec82c1c8370")
 	//h, _ := core.AddressParse("b49f30d0e5c9c88cade54cd1adecf6bc2c7e0e5af646d903")
-	m, _ := core.AddressParse("fc751b484bd5296f8d267a8537d33f25a848f7f7af8cfcf6")
+	//m, _ := core.AddressParse("fc751b484bd5296f8d267a8537d33f25a848f7f7af8cfcf6")
 
 	elapsedSecond := int64(DynastyInterval)
-	consensusState, err := tail.WorldState().NextConsensusState(elapsedSecond)
+	consensusState, err := neb.chain.TailBlock().WorldState().NextConsensusState(elapsedSecond)
 	assert.Nil(t, err)
-	block, err := core.NewBlock(neb.chain.ChainID(), coinbase, tail)
+
+	block, err := core.NewBlock(neb.chain.ChainID(), coinbase, neb.chain.TailBlock())
 	assert.Nil(t, err)
 	block.SetTimestamp(consensusState.TimeStamp())
 	block.WorldState().SetConsensusState(consensusState)
+	acc, _ := block.WorldState().GetOrCreateUserAccount(a.Bytes())
+	nonce := int(acc.Nonce())
 
-	j := 500
-
-	for i := 1; i < j; i++ {
-		gas, _ := util.NewUint128FromInt(1000000 + 4 + 4*int64(j-i))
+	for i := 1; i < num; i++ {
+		gas, _ := util.NewUint128FromInt(1000000)
 		limit, _ := util.NewUint128FromInt(200000)
-		tx := core.NewTransaction(neb.chain.ChainID(), a, b, util.NewUint128(), uint64(4*i-3), core.TxPayloadBinaryType, []byte("nas"), gas, limit)
+		tx := core.NewTransaction(neb.chain.ChainID(), a, b, util.NewUint128(), uint64(nonce+4*i-3), core.TxPayloadBinaryType, []byte("nas"), gas, limit)
 		assert.Nil(t, manager.SignTransaction(a, tx))
 		assert.Nil(t, neb.chain.TransactionPool().Push(tx))
 
-		gas, _ = util.NewUint128FromInt(1000000 + 3 + 4*int64(j-i))
-		tx = core.NewTransaction(neb.chain.ChainID(), a, m, util.NewUint128(), uint64(4*i-2), core.TxPayloadBinaryType, []byte("nas"), gas, limit)
+		tx = core.NewTransaction(neb.chain.ChainID(), a, c, util.NewUint128(), uint64(nonce+4*i-2), core.TxPayloadBinaryType, []byte("nas"), gas, limit)
 		assert.Nil(t, manager.SignTransaction(a, tx))
 		assert.Nil(t, neb.chain.TransactionPool().Push(tx))
 
-		gas, _ = util.NewUint128FromInt(1000000 + 2 + 4*int64(j-i))
-		tx = core.NewTransaction(neb.chain.ChainID(), a, d, util.NewUint128(), uint64(4*i-1), core.TxPayloadBinaryType, []byte("nas"), gas, limit)
+		tx = core.NewTransaction(neb.chain.ChainID(), a, d, util.NewUint128(), uint64(nonce+4*i-1), core.TxPayloadBinaryType, []byte("nas"), gas, limit)
 		assert.Nil(t, manager.SignTransaction(a, tx))
 		assert.Nil(t, neb.chain.TransactionPool().Push(tx))
 		//assert.Equal(t, neb.chain.TransactionPool().cache.Len(), 3)
 
-		gas, _ = util.NewUint128FromInt(1000000 + 1 + 4*int64(j-i))
-		tx = core.NewTransaction(neb.chain.ChainID(), a, g, util.NewUint128(), uint64(4*i), core.TxPayloadBinaryType, []byte("nas"), gas, limit)
+		tx = core.NewTransaction(neb.chain.ChainID(), a, e, util.NewUint128(), uint64(nonce+4*i), core.TxPayloadBinaryType, []byte("nas"), gas, limit)
 		assert.Nil(t, manager.SignTransaction(a, tx))
 		assert.Nil(t, neb.chain.TransactionPool().Push(tx))
 
@@ -613,14 +605,23 @@ func TestDposTxBinary(t *testing.T) {
 	}
 
 	block.CollectTransactions(time.Now().Unix() + 1)
-	assert.Equal(t, 4*(j-1), len(block.Transactions()))
+	assert.Equal(t, 4*(num-1), len(block.Transactions()))
 	block.SetMiner(coinbase)
 	assert.Nil(t, block.Seal())
 	assert.Nil(t, manager.SignBlock(coinbase, block))
 	assert.Nil(t, neb.chain.BlockPool().Push(block))
 
-	accountroot, _ := block.WorldState().AccountsRoot()
-	assert.Equal(t, "9548da58fe6413d94cfef345fe1523ac2078a7d0667d6eba06a3c52d83f0ee81", accountroot.String())
-
 	assert.Equal(t, block.Hash(), neb.chain.TailBlock().Hash())
+}
+
+func TestDposTxBinary(t *testing.T) {
+	runtime.GOMAXPROCS(runtime.NumCPU())
+
+	neb := mockNeb(t)
+
+	for i := 0; i < 10; i++ {
+		testMintBlock(t, neb, 100)
+	}
+
+	return
 }
