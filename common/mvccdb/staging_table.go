@@ -111,6 +111,11 @@ func (tbl *StagingTable) Prepare(tid interface{}) (*StagingTable, error) {
 
 // Get return value by key. If key does not exist, copy and incr version from `parentStagingTable` to record previous version.
 func (tbl *StagingTable) Get(key []byte) (*VersionizedValueItem, error) {
+	return tbl.GetByKey(key, true)
+}
+
+// GetByKey return value by key. If key does not exist, copy and incr version from `parentStagingTable` to record previous version.
+func (tbl *StagingTable) GetByKey(key []byte, loadFromStorage bool) (*VersionizedValueItem, error) {
 	tbl.mutex.Lock()
 	defer tbl.mutex.Unlock()
 
@@ -120,7 +125,7 @@ func (tbl *StagingTable) Get(key []byte) (*VersionizedValueItem, error) {
 	if value == nil {
 		var err error
 		if tbl.parentStagingTable != nil {
-			value, err = tbl.parentStagingTable.Get(key)
+			value, err = tbl.parentStagingTable.GetByKey(key, loadFromStorage)
 			if err != nil {
 				return nil, err
 			}
@@ -131,11 +136,16 @@ func (tbl *StagingTable) Get(key []byte) (*VersionizedValueItem, error) {
 			}
 
 			value = IncrVersionizedValueItem(tbl.tid, value)
+
 		} else {
-			// load from storage.
-			value, err = tbl.loadFromStorage(key)
-			if err != nil && err != storage.ErrKeyNotFound {
-				return nil, err
+			if loadFromStorage {
+				// load from storage.
+				value, err = tbl.loadFromStorage(key)
+				if err != nil && err != storage.ErrKeyNotFound {
+					return nil, err
+				}
+			} else {
+				value = NewDefaultVersionizedValueItem(key, nil, tbl.tid, 0)
 			}
 		}
 
@@ -147,7 +157,7 @@ func (tbl *StagingTable) Get(key []byte) (*VersionizedValueItem, error) {
 
 // Put put the key/val pair. If key does not exist, copy and incr version from `parentStagingTable` to record previous version.
 func (tbl *StagingTable) Put(key []byte, val []byte) (*VersionizedValueItem, error) {
-	value, err := tbl.Get(key)
+	value, err := tbl.GetByKey(key, false)
 	if err != nil {
 		return nil, err
 	}
@@ -161,7 +171,7 @@ func (tbl *StagingTable) Put(key []byte, val []byte) (*VersionizedValueItem, err
 
 // Set set the tid/key/val pair. If tid+key does not exist, copy and incr version from `finalVersionizedValues` to record previous version.
 func (tbl *StagingTable) Set(key []byte, val []byte, deleted, dirty bool) (*VersionizedValueItem, error) {
-	value, err := tbl.Get(key)
+	value, err := tbl.GetByKey(key, false)
 	if err != nil {
 		return nil, err
 	}
@@ -174,7 +184,7 @@ func (tbl *StagingTable) Set(key []byte, val []byte, deleted, dirty bool) (*Vers
 
 // Del del the tid/key pair. If tid+key does not exist, copy and incr version from `finalVersionizedValues` to record previous version.
 func (tbl *StagingTable) Del(key []byte) (*VersionizedValueItem, error) {
-	value, err := tbl.Get(key)
+	value, err := tbl.GetByKey(key, false)
 	if err != nil {
 		return nil, err
 	}
