@@ -83,7 +83,7 @@ const _ = proto.GoGoProtoPackageIsVersion2 // please upgrade the proto package
 
 // Request message of Subscribe rpc
 type SubscribeRequest struct {
-	Topics []string `protobuf:"bytes,1,rep,name=topics" json:"topics,omitempty"`
+	Topics []string `protobuf:"bytes,1,rep,name=topics" json:"topics"`
 }
 
 func (m *SubscribeRequest) Reset()                    { *m = SubscribeRequest{} }
@@ -100,8 +100,8 @@ func (m *SubscribeRequest) GetTopics() []string {
 
 // Request message of Subscribe rpc
 type SubscribeResponse struct {
-	Topic string `protobuf:"bytes,1,opt,name=topic,proto3" json:"topic,omitempty"`
-	Data  string `protobuf:"bytes,2,opt,name=data,proto3" json:"data,omitempty"`
+	Topic string `protobuf:"bytes,1,opt,name=topic,proto3" json:"topic"`
+	Data  string `protobuf:"bytes,2,opt,name=data,proto3" json:"data"`
 }
 
 func (m *SubscribeResponse) Reset()                    { *m = SubscribeResponse{} }
@@ -135,26 +135,26 @@ func (*NonParamsRequest) Descriptor() ([]byte, []int) { return fileDescriptorRpc
 // Response message of node info.
 type NodeInfoResponse struct {
 	// the node ID.
-	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id"`
 	// the block chainID.
-	ChainId uint32 `protobuf:"varint,2,opt,name=chain_id,json=chainId,proto3" json:"chain_id,omitempty"`
+	ChainId uint32 `protobuf:"varint,2,opt,name=chain_id,json=chainId,proto3" json:"chain_id"`
 	// the node version.
-	Version uint32 `protobuf:"varint,3,opt,name=version,proto3" json:"version,omitempty"`
+	Version uint32 `protobuf:"varint,3,opt,name=version,proto3" json:"version"`
 	// Number of peers currenly connected.
-	PeerCount uint32 `protobuf:"varint,4,opt,name=peer_count,json=peerCount,proto3" json:"peer_count,omitempty"`
+	PeerCount uint32 `protobuf:"varint,4,opt,name=peer_count,json=peerCount,proto3" json:"peer_count"`
 	// the node synchronized status.
-	Synchronized bool `protobuf:"varint,5,opt,name=synchronized,proto3" json:"synchronized,omitempty"`
+	Synchronized bool `protobuf:"varint,5,opt,name=synchronized,proto3" json:"synchronized"`
 	// the node route table bucket size.
-	BucketSize int32 `protobuf:"varint,6,opt,name=bucket_size,json=bucketSize,proto3" json:"bucket_size,omitempty"`
+	BucketSize int32 `protobuf:"varint,6,opt,name=bucket_size,json=bucketSize,proto3" json:"bucket_size"`
 	// the node relay cache size.
-	RelayCacheSize int32 `protobuf:"varint,7,opt,name=relay_cache_size,json=relayCacheSize,proto3" json:"relay_cache_size,omitempty"`
+	RelayCacheSize int32 `protobuf:"varint,7,opt,name=relay_cache_size,json=relayCacheSize,proto3" json:"relay_cache_size"`
 	// the node stream store size.
-	StreamStoreSize int32 `protobuf:"varint,8,opt,name=stream_store_size,json=streamStoreSize,proto3" json:"stream_store_size,omitempty"`
+	StreamStoreSize int32 `protobuf:"varint,8,opt,name=stream_store_size,json=streamStoreSize,proto3" json:"stream_store_size"`
 	// the node stream store extend size.
-	StreamStoreExtendSize int32 `protobuf:"varint,9,opt,name=stream_store_extend_size,json=streamStoreExtendSize,proto3" json:"stream_store_extend_size,omitempty"`
+	StreamStoreExtendSize int32 `protobuf:"varint,9,opt,name=stream_store_extend_size,json=streamStoreExtendSize,proto3" json:"stream_store_extend_size"`
 	// the network protocol version.
-	ProtocolVersion string        `protobuf:"bytes,10,opt,name=protocol_version,json=protocolVersion,proto3" json:"protocol_version,omitempty"`
-	RouteTable      []*RouteTable `protobuf:"bytes,11,rep,name=route_table,json=routeTable" json:"route_table,omitempty"`
+	ProtocolVersion string        `protobuf:"bytes,10,opt,name=protocol_version,json=protocolVersion,proto3" json:"protocol_version"`
+	RouteTable      []*RouteTable `protobuf:"bytes,11,rep,name=route_table,json=routeTable" json:"route_table"`
 }
 
 func (m *NodeInfoResponse) Reset()                    { *m = NodeInfoResponse{} }
@@ -240,10 +240,10 @@ func (m *NodeInfoResponse) GetRouteTable() []*RouteTable {
 }
 
 type StatisticsNodeInfoResponse struct {
-	NodeID    string `protobuf:"bytes,1,opt,name=NodeID,proto3" json:"NodeID,omitempty"`
-	Height    uint64 `protobuf:"varint,2,opt,name=Height,proto3" json:"Height,omitempty"`
-	Hash      string `protobuf:"bytes,3,opt,name=Hash,proto3" json:"Hash,omitempty"`
-	PeerCount uint32 `protobuf:"varint,4,opt,name=PeerCount,proto3" json:"PeerCount,omitempty"`
+	NodeID    string `protobuf:"bytes,1,opt,name=NodeID,proto3" json:"NodeID"`
+	Height    uint64 `protobuf:"varint,2,opt,name=Height,proto3" json:"Height"`
+	Hash      string `protobuf:"bytes,3,opt,name=Hash,proto3" json:"Hash"`
+	PeerCount uint32 `protobuf:"varint,4,opt,name=PeerCount,proto3" json:"PeerCount"`
 }
 
 func (m *StatisticsNodeInfoResponse) Reset()                    { *m = StatisticsNodeInfoResponse{} }
@@ -280,8 +280,8 @@ func (m *StatisticsNodeInfoResponse) GetPeerCount() uint32 {
 }
 
 type RouteTable struct {
-	Id      string   `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	Address []string `protobuf:"bytes,2,rep,name=address" json:"address,omitempty"`
+	Id      string   `protobuf:"bytes,1,opt,name=id,proto3" json:"id"`
+	Address []string `protobuf:"bytes,2,rep,name=address" json:"address"`
 }
 
 func (m *RouteTable) Reset()                    { *m = RouteTable{} }
@@ -306,23 +306,23 @@ func (m *RouteTable) GetAddress() []string {
 // Response message of GetNebState rpc.
 type GetNebStateResponse struct {
 	// Block chain id
-	ChainId uint32 `protobuf:"varint,1,opt,name=chain_id,json=chainId,proto3" json:"chain_id,omitempty"`
+	ChainId uint32 `protobuf:"varint,1,opt,name=chain_id,json=chainId,proto3" json:"chain_id"`
 	// Current neb tail hash
-	Tail string `protobuf:"bytes,2,opt,name=tail,proto3" json:"tail,omitempty"`
+	Tail string `protobuf:"bytes,2,opt,name=tail,proto3" json:"tail"`
 	// Current neb tail block height
-	Height uint64 `protobuf:"varint,3,opt,name=height,proto3" json:"height,omitempty"`
+	Height uint64 `protobuf:"varint,3,opt,name=height,proto3" json:"height"`
 	// Neb coinbase
-	Coinbase string `protobuf:"bytes,4,opt,name=coinbase,proto3" json:"coinbase,omitempty"`
+	Coinbase string `protobuf:"bytes,4,opt,name=coinbase,proto3" json:"coinbase"`
 	// Number of peers currenly connected
-	PeerCount uint32 `protobuf:"varint,5,opt,name=peer_count,json=peerCount,proto3" json:"peer_count,omitempty"`
+	PeerCount uint32 `protobuf:"varint,5,opt,name=peer_count,json=peerCount,proto3" json:"peer_count"`
 	// Neb mine status, minging is true ,otherwise false
-	IsMining bool `protobuf:"varint,6,opt,name=is_mining,json=isMining,proto3" json:"is_mining,omitempty"`
+	IsMining bool `protobuf:"varint,6,opt,name=is_mining,json=isMining,proto3" json:"is_mining"`
 	// The current neb protocol version.
-	ProtocolVersion string `protobuf:"bytes,7,opt,name=protocol_version,json=protocolVersion,proto3" json:"protocol_version,omitempty"`
+	ProtocolVersion string `protobuf:"bytes,7,opt,name=protocol_version,json=protocolVersion,proto3" json:"protocol_version"`
 	// The peer sync status.
-	Synchronized bool `protobuf:"varint,8,opt,name=synchronized,proto3" json:"synchronized,omitempty"`
+	Synchronized bool `protobuf:"varint,8,opt,name=synchronized,proto3" json:"synchronized"`
 	// neb version
-	Version string `protobuf:"bytes,9,opt,name=version,proto3" json:"version,omitempty"`
+	Version string `protobuf:"bytes,9,opt,name=version,proto3" json:"version"`
 }
 
 func (m *GetNebStateResponse) Reset()                    { *m = GetNebStateResponse{} }
@@ -396,7 +396,7 @@ func (m *GetNebStateResponse) GetVersion() string {
 // Response message of Accounts rpc.
 type AccountsResponse struct {
 	// Account list
-	Addresses []string `protobuf:"bytes,1,rep,name=addresses" json:"addresses,omitempty"`
+	Addresses []string `protobuf:"bytes,1,rep,name=addresses" json:"addresses"`
 }
 
 func (m *AccountsResponse) Reset()                    { *m = AccountsResponse{} }
@@ -414,9 +414,9 @@ func (m *AccountsResponse) GetAddresses() []string {
 // Request message of GetAccountState rpc.
 type GetAccountStateRequest struct {
 	// Hex string of the account addresss.
-	Address string `protobuf:"bytes,1,opt,name=address,proto3" json:"address,omitempty"`
+	Address string `protobuf:"bytes,1,opt,name=address,proto3" json:"address"`
 	// block account state with height. If not specified, use 0 as tail height.
-	Height uint64 `protobuf:"varint,2,opt,name=height,proto3" json:"height,omitempty"`
+	Height uint64 `protobuf:"varint,2,opt,name=height,proto3" json:"height"`
 }
 
 func (m *GetAccountStateRequest) Reset()                    { *m = GetAccountStateRequest{} }
@@ -441,9 +441,9 @@ func (m *GetAccountStateRequest) GetHeight() uint64 {
 // Response message of GetAccountState rpc.
 type GetAccountStateResponse struct {
 	// Current balance in unit of 1/(10^18) nas.
-	Balance string `protobuf:"bytes,1,opt,name=balance,proto3" json:"balance,omitempty"`
+	Balance string `protobuf:"bytes,1,opt,name=balance,proto3" json:"balance"`
 	// Current transaction count.
-	Nonce string `protobuf:"bytes,2,opt,name=nonce,proto3" json:"nonce,omitempty"`
+	Nonce string `protobuf:"bytes,2,opt,name=nonce,proto3" json:"nonce"`
 }
 
 func (m *GetAccountStateResponse) Reset()                    { *m = GetAccountStateResponse{} }
@@ -468,7 +468,7 @@ func (m *GetAccountStateResponse) GetNonce() string {
 // Response message of Call rpc.
 type CallResponse struct {
 	// result of smart contract method call.
-	Result string `protobuf:"bytes,1,opt,name=result,proto3" json:"result,omitempty"`
+	Result string `protobuf:"bytes,1,opt,name=result,proto3" json:"result"`
 }
 
 func (m *CallResponse) Reset()                    { *m = CallResponse{} }
@@ -485,7 +485,7 @@ func (m *CallResponse) GetResult() string {
 
 // ByBlockHeightRequest message
 type ByBlockHeightRequest struct {
-	Height uint64 `protobuf:"varint,1,opt,name=height,proto3" json:"height,omitempty"`
+	Height uint64 `protobuf:"varint,1,opt,name=height,proto3" json:"height"`
 }
 
 func (m *ByBlockHeightRequest) Reset()                    { *m = ByBlockHeightRequest{} }
@@ -502,7 +502,7 @@ func (m *ByBlockHeightRequest) GetHeight() uint64 {
 
 // GetCandidatesRequest message
 type GetCandidatesResponse struct {
-	Candidates []string `protobuf:"bytes,1,rep,name=candidates" json:"candidates,omitempty"`
+	Candidates []string `protobuf:"bytes,1,rep,name=candidates" json:"candidates"`
 }
 
 func (m *GetCandidatesResponse) Reset()                    { *m = GetCandidatesResponse{} }
@@ -519,7 +519,7 @@ func (m *GetCandidatesResponse) GetCandidates() []string {
 
 // Response message of GetDynastyRequest rpc
 type GetDynastyResponse struct {
-	Delegatees []string `protobuf:"bytes,1,rep,name=delegatees" json:"delegatees,omitempty"`
+	Delegatees []string `protobuf:"bytes,1,rep,name=delegatees" json:"delegatees"`
 }
 
 func (m *GetDynastyResponse) Reset()                    { *m = GetDynastyResponse{} }
@@ -536,8 +536,8 @@ func (m *GetDynastyResponse) GetDelegatees() []string {
 
 // Response message of GetDelegateVoters rpc
 type GetDelegateVotersRequest struct {
-	Delegatee string `protobuf:"bytes,1,opt,name=delegatee,proto3" json:"delegatee,omitempty"`
-	Height    uint64 `protobuf:"varint,2,opt,name=height,proto3" json:"height,omitempty"`
+	Delegatee string `protobuf:"bytes,1,opt,name=delegatee,proto3" json:"delegatee"`
+	Height    uint64 `protobuf:"varint,2,opt,name=height,proto3" json:"height"`
 }
 
 func (m *GetDelegateVotersRequest) Reset()                    { *m = GetDelegateVotersRequest{} }
@@ -561,7 +561,7 @@ func (m *GetDelegateVotersRequest) GetHeight() uint64 {
 
 // Response message of GetDelegateVoters rpc
 type GetDelegateVotersResponse struct {
-	Voters []string `protobuf:"bytes,1,rep,name=voters" json:"voters,omitempty"`
+	Voters []string `protobuf:"bytes,1,rep,name=voters" json:"voters"`
 }
 
 func (m *GetDelegateVotersResponse) Reset()                    { *m = GetDelegateVotersResponse{} }
@@ -579,25 +579,25 @@ func (m *GetDelegateVotersResponse) GetVoters() []string {
 // Request message of SendTransaction rpc.
 type TransactionRequest struct {
 	// Hex string of the sender account addresss.
-	From string `protobuf:"bytes,1,opt,name=from,proto3" json:"from,omitempty"`
+	From string `protobuf:"bytes,1,opt,name=from,proto3" json:"from"`
 	// Hex string of the receiver account addresss.
-	To string `protobuf:"bytes,2,opt,name=to,proto3" json:"to,omitempty"`
+	To string `protobuf:"bytes,2,opt,name=to,proto3" json:"to"`
 	// Amount of value sending with this transaction.
-	Value string `protobuf:"bytes,3,opt,name=value,proto3" json:"value,omitempty"`
+	Value string `protobuf:"bytes,3,opt,name=value,proto3" json:"value"`
 	// Transaction nonce.
-	Nonce uint64 `protobuf:"varint,4,opt,name=nonce,proto3" json:"nonce,omitempty"`
+	Nonce uint64 `protobuf:"varint,4,opt,name=nonce,proto3" json:"nonce"`
 	// gasPrice sending with this transaction.
-	GasPrice string `protobuf:"bytes,5,opt,name=gas_price,json=gasPrice,proto3" json:"gas_price,omitempty"`
+	GasPrice string `protobuf:"bytes,5,opt,name=gas_price,json=gasPrice,proto3" json:"gas_price"`
 	// gasLimit sending with this transaction.
-	GasLimit string `protobuf:"bytes,6,opt,name=gas_limit,json=gasLimit,proto3" json:"gas_limit,omitempty"`
+	GasLimit string `protobuf:"bytes,6,opt,name=gas_limit,json=gasLimit,proto3" json:"gas_limit"`
 	// contract sending with this transaction
-	Contract *ContractRequest `protobuf:"bytes,7,opt,name=contract" json:"contract,omitempty"`
+	Contract *ContractRequest `protobuf:"bytes,7,opt,name=contract" json:"contract"`
 	// candidate application sending with this transaction.
-	Candidate *CandidateRequest `protobuf:"bytes,8,opt,name=candidate" json:"candidate,omitempty"`
+	Candidate *CandidateRequest `protobuf:"bytes,8,opt,name=candidate" json:"candidate"`
 	// delegate vote sending with this transaction.
-	Delegate *DelegateRequest `protobuf:"bytes,9,opt,name=delegate" json:"delegate,omitempty"`
+	Delegate *DelegateRequest `protobuf:"bytes,9,opt,name=delegate" json:"delegate"`
 	// binary data for transaction
-	Binary []byte `protobuf:"bytes,10,opt,name=binary,proto3" json:"binary,omitempty"`
+	Binary []byte `protobuf:"bytes,10,opt,name=binary,proto3" json:"binary"`
 }
 
 func (m *TransactionRequest) Reset()                    { *m = TransactionRequest{} }
@@ -677,13 +677,13 @@ func (m *TransactionRequest) GetBinary() []byte {
 
 type ContractRequest struct {
 	// contract source code.
-	Source string `protobuf:"bytes,1,opt,name=source,proto3" json:"source,omitempty"`
+	Source string `protobuf:"bytes,1,opt,name=source,proto3" json:"source"`
 	// contract source type, support javascript and typescript
-	SourceType string `protobuf:"bytes,2,opt,name=source_type,json=sourceType,proto3" json:"source_type,omitempty"`
+	SourceType string `protobuf:"bytes,2,opt,name=source_type,json=sourceType,proto3" json:"source_type"`
 	// call contract function name
-	Function string `protobuf:"bytes,3,opt,name=function,proto3" json:"function,omitempty"`
+	Function string `protobuf:"bytes,3,opt,name=function,proto3" json:"function"`
 	// the params of contract.
-	Args string `protobuf:"bytes,4,opt,name=args,proto3" json:"args,omitempty"`
+	Args string `protobuf:"bytes,4,opt,name=args,proto3" json:"args"`
 }
 
 func (m *ContractRequest) Reset()                    { *m = ContractRequest{} }
@@ -721,7 +721,7 @@ func (m *ContractRequest) GetArgs() string {
 
 type CandidateRequest struct {
 	// candidate action.
-	Action string `protobuf:"bytes,1,opt,name=action,proto3" json:"action,omitempty"`
+	Action string `protobuf:"bytes,1,opt,name=action,proto3" json:"action"`
 }
 
 func (m *CandidateRequest) Reset()                    { *m = CandidateRequest{} }
@@ -738,9 +738,9 @@ func (m *CandidateRequest) GetAction() string {
 
 type DelegateRequest struct {
 	// delegate action.
-	Action string `protobuf:"bytes,1,opt,name=action,proto3" json:"action,omitempty"`
+	Action string `protobuf:"bytes,1,opt,name=action,proto3" json:"action"`
 	// delegatee.
-	Delegatee string `protobuf:"bytes,2,opt,name=delegatee,proto3" json:"delegatee,omitempty"`
+	Delegatee string `protobuf:"bytes,2,opt,name=delegatee,proto3" json:"delegatee"`
 }
 
 func (m *DelegateRequest) Reset()                    { *m = DelegateRequest{} }
@@ -765,7 +765,7 @@ func (m *DelegateRequest) GetDelegatee() string {
 // Request message of SendRawTransactionRequest rpc.
 type SendRawTransactionRequest struct {
 	// Signed data of transaction
-	Data []byte `protobuf:"bytes,1,opt,name=data,proto3" json:"data,omitempty"`
+	Data []byte `protobuf:"bytes,1,opt,name=data,proto3" json:"data"`
 }
 
 func (m *SendRawTransactionRequest) Reset()                    { *m = SendRawTransactionRequest{} }
@@ -783,9 +783,9 @@ func (m *SendRawTransactionRequest) GetData() []byte {
 // Response message of SendTransaction rpc.
 type SendTransactionResponse struct {
 	// Hex string of transaction hash.
-	Txhash string `protobuf:"bytes,1,opt,name=txhash,proto3" json:"txhash,omitempty"`
+	Txhash string `protobuf:"bytes,1,opt,name=txhash,proto3" json:"txhash"`
 	// Hex string of contract address if transaction is deploy type
-	ContractAddress string `protobuf:"bytes,2,opt,name=contract_address,json=contractAddress,proto3" json:"contract_address,omitempty"`
+	ContractAddress string `protobuf:"bytes,2,opt,name=contract_address,json=contractAddress,proto3" json:"contract_address"`
 }
 
 func (m *SendTransactionResponse) Reset()                    { *m = SendTransactionResponse{} }
@@ -810,9 +810,9 @@ func (m *SendTransactionResponse) GetContractAddress() string {
 // Request message of GetBlockByHash rpc.
 type GetBlockByHashRequest struct {
 	// Hex string of block hash.
-	Hash string `protobuf:"bytes,1,opt,name=hash,proto3" json:"hash,omitempty"`
+	Hash string `protobuf:"bytes,1,opt,name=hash,proto3" json:"hash"`
 	// If true it returns the full transaction objects, if false only the hashes of the transactions.
-	FullTransaction bool `protobuf:"varint,2,opt,name=full_transaction,json=fullTransaction,proto3" json:"full_transaction,omitempty"`
+	FullTransaction bool `protobuf:"varint,2,opt,name=full_transaction,json=fullTransaction,proto3" json:"full_transaction"`
 }
 
 func (m *GetBlockByHashRequest) Reset()                    { *m = GetBlockByHashRequest{} }
@@ -837,9 +837,9 @@ func (m *GetBlockByHashRequest) GetFullTransaction() bool {
 // Request message of GetBlockByHeight rpc.
 type GetBlockByHeightRequest struct {
 	// block height.
-	Height uint64 `protobuf:"varint,1,opt,name=height,proto3" json:"height,omitempty"`
+	Height uint64 `protobuf:"varint,1,opt,name=height,proto3" json:"height"`
 	// If true it returns the full transaction objects, if false only the hashes of the transactions.
-	FullTransaction bool `protobuf:"varint,2,opt,name=full_transaction,json=fullTransaction,proto3" json:"full_transaction,omitempty"`
+	FullTransaction bool `protobuf:"varint,2,opt,name=full_transaction,json=fullTransaction,proto3" json:"full_transaction"`
 }
 
 func (m *GetBlockByHeightRequest) Reset()                    { *m = GetBlockByHeightRequest{} }
@@ -864,7 +864,7 @@ func (m *GetBlockByHeightRequest) GetFullTransaction() bool {
 // Request message of GetTransactionByHash rpc.
 type GetTransactionByHashRequest struct {
 	// Hex string of transaction hash.
-	Hash string `protobuf:"bytes,1,opt,name=hash,proto3" json:"hash,omitempty"`
+	Hash string `protobuf:"bytes,1,opt,name=hash,proto3" json:"hash"`
 }
 
 func (m *GetTransactionByHashRequest) Reset()                    { *m = GetTransactionByHashRequest{} }
@@ -882,7 +882,7 @@ func (m *GetTransactionByHashRequest) GetHash() string {
 // Request message of BlockDump.
 type BlockDumpRequest struct {
 	// the count of blocks to dump before current tail.
-	Count int32 `protobuf:"varint,1,opt,name=count,proto3" json:"count,omitempty"`
+	Count int32 `protobuf:"varint,1,opt,name=count,proto3" json:"count"`
 }
 
 func (m *BlockDumpRequest) Reset()                    { *m = BlockDumpRequest{} }
@@ -900,7 +900,7 @@ func (m *BlockDumpRequest) GetCount() int32 {
 // Response message of BlockDump.
 type BlockDumpResponse struct {
 	// block dump info.
-	Data string `protobuf:"bytes,1,opt,name=data,proto3" json:"data,omitempty"`
+	Data string `protobuf:"bytes,1,opt,name=data,proto3" json:"data"`
 }
 
 func (m *BlockDumpResponse) Reset()                    { *m = BlockDumpResponse{} }
@@ -918,31 +918,31 @@ func (m *BlockDumpResponse) GetData() string {
 // Response message of Block.
 type BlockResponse struct {
 	// Hex string of block hash.
-	Hash string `protobuf:"bytes,1,opt,name=hash,proto3" json:"hash,omitempty"`
+	Hash string `protobuf:"bytes,1,opt,name=hash,proto3" json:"hash"`
 	// Hex string of block parent hash.
-	ParentHash string `protobuf:"bytes,2,opt,name=parent_hash,json=parentHash,proto3" json:"parent_hash,omitempty"`
+	ParentHash string `protobuf:"bytes,2,opt,name=parent_hash,json=parentHash,proto3" json:"parent_hash"`
 	// block height
-	Height uint64 `protobuf:"varint,3,opt,name=height,proto3" json:"height,omitempty"`
+	Height uint64 `protobuf:"varint,3,opt,name=height,proto3" json:"height"`
 	// block nonce
-	Nonce uint64 `protobuf:"varint,4,opt,name=nonce,proto3" json:"nonce,omitempty"`
+	Nonce uint64 `protobuf:"varint,4,opt,name=nonce,proto3" json:"nonce"`
 	// Hex string of coinbase address.
-	Coinbase string `protobuf:"bytes,5,opt,name=coinbase,proto3" json:"coinbase,omitempty"`
+	Coinbase string `protobuf:"bytes,5,opt,name=coinbase,proto3" json:"coinbase"`
 	// Hex string of miner address.
-	Miner string `protobuf:"bytes,6,opt,name=miner,proto3" json:"miner,omitempty"`
+	Miner string `protobuf:"bytes,6,opt,name=miner,proto3" json:"miner"`
 	// block timestamp.
-	Timestamp int64 `protobuf:"varint,7,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
+	Timestamp int64 `protobuf:"varint,7,opt,name=timestamp,proto3" json:"timestamp"`
 	// block chain id
-	ChainId uint32 `protobuf:"varint,8,opt,name=chain_id,json=chainId,proto3" json:"chain_id,omitempty"`
+	ChainId uint32 `protobuf:"varint,8,opt,name=chain_id,json=chainId,proto3" json:"chain_id"`
 	// Hex string of state root.
-	StateRoot string `protobuf:"bytes,11,opt,name=state_root,json=stateRoot,proto3" json:"state_root,omitempty"`
+	StateRoot string `protobuf:"bytes,11,opt,name=state_root,json=stateRoot,proto3" json:"state_root"`
 	// Hex string of txs root.
-	TxsRoot string `protobuf:"bytes,12,opt,name=txs_root,json=txsRoot,proto3" json:"txs_root,omitempty"`
+	TxsRoot string `protobuf:"bytes,12,opt,name=txs_root,json=txsRoot,proto3" json:"txs_root"`
 	// Hex string of event root.
-	EventsRoot string `protobuf:"bytes,13,opt,name=events_root,json=eventsRoot,proto3" json:"events_root,omitempty"`
+	EventsRoot string `protobuf:"bytes,13,opt,name=events_root,json=eventsRoot,proto3" json:"events_root"`
 	// String of consensus root
-	ConsensusRoot string `protobuf:"bytes,14,opt,name=consensus_root,json=consensusRoot,proto3" json:"consensus_root,omitempty"`
+	ConsensusRoot string `protobuf:"bytes,14,opt,name=consensus_root,json=consensusRoot,proto3" json:"consensus_root"`
 	// transaction slice
-	Transactions []*TransactionResponse `protobuf:"bytes,100,rep,name=transactions" json:"transactions,omitempty"`
+	Transactions []*TransactionResponse `protobuf:"bytes,100,rep,name=transactions" json:"transactions"`
 }
 
 func (m *BlockResponse) Reset()                    { *m = BlockResponse{} }
@@ -1044,17 +1044,17 @@ func (m *BlockResponse) GetTransactions() []*TransactionResponse {
 // dpos context
 type DposContext struct {
 	// dynasty root
-	DynastyRoot string `protobuf:"bytes,1,opt,name=dynasty_root,json=dynastyRoot,proto3" json:"dynasty_root,omitempty"`
+	DynastyRoot string `protobuf:"bytes,1,opt,name=dynasty_root,json=dynastyRoot,proto3" json:"dynasty_root"`
 	// next dynasty
-	NextDynastyRoot string `protobuf:"bytes,2,opt,name=next_dynasty_root,json=nextDynastyRoot,proto3" json:"next_dynasty_root,omitempty"`
+	NextDynastyRoot string `protobuf:"bytes,2,opt,name=next_dynasty_root,json=nextDynastyRoot,proto3" json:"next_dynasty_root"`
 	// delegate root
-	DelegateRoot string `protobuf:"bytes,3,opt,name=delegate_root,json=delegateRoot,proto3" json:"delegate_root,omitempty"`
+	DelegateRoot string `protobuf:"bytes,3,opt,name=delegate_root,json=delegateRoot,proto3" json:"delegate_root"`
 	// candidate root
-	CandidateRoot string `protobuf:"bytes,4,opt,name=candidate_root,json=candidateRoot,proto3" json:"candidate_root,omitempty"`
+	CandidateRoot string `protobuf:"bytes,4,opt,name=candidate_root,json=candidateRoot,proto3" json:"candidate_root"`
 	// vote root
-	VoteRoot string `protobuf:"bytes,5,opt,name=vote_root,json=voteRoot,proto3" json:"vote_root,omitempty"`
+	VoteRoot string `protobuf:"bytes,5,opt,name=vote_root,json=voteRoot,proto3" json:"vote_root"`
 	// mint cnt root
-	MintCntRoot string `protobuf:"bytes,6,opt,name=mint_cnt_root,json=mintCntRoot,proto3" json:"mint_cnt_root,omitempty"`
+	MintCntRoot string `protobuf:"bytes,6,opt,name=mint_cnt_root,json=mintCntRoot,proto3" json:"mint_cnt_root"`
 }
 
 func (m *DposContext) Reset()                    { *m = DposContext{} }
@@ -1107,25 +1107,25 @@ func (m *DposContext) GetMintCntRoot() string {
 // Response message of TransactionReceipt.
 type TransactionResponse struct {
 	// Hex string of tx hash.
-	Hash    string `protobuf:"bytes,1,opt,name=hash,proto3" json:"hash,omitempty"`
-	ChainId uint32 `protobuf:"varint,2,opt,name=chainId,proto3" json:"chainId,omitempty"`
+	Hash    string `protobuf:"bytes,1,opt,name=hash,proto3" json:"hash"`
+	ChainId uint32 `protobuf:"varint,2,opt,name=chainId,proto3" json:"chainId"`
 	// Hex string of the sender account addresss.
-	From string `protobuf:"bytes,3,opt,name=from,proto3" json:"from,omitempty"`
+	From string `protobuf:"bytes,3,opt,name=from,proto3" json:"from"`
 	// Hex string of the receiver account addresss.
-	To    string `protobuf:"bytes,4,opt,name=to,proto3" json:"to,omitempty"`
-	Value string `protobuf:"bytes,5,opt,name=value,proto3" json:"value,omitempty"`
+	To    string `protobuf:"bytes,4,opt,name=to,proto3" json:"to"`
+	Value string `protobuf:"bytes,5,opt,name=value,proto3" json:"value"`
 	// Transaction nonce.
-	Nonce           uint64 `protobuf:"varint,6,opt,name=nonce,proto3" json:"nonce,omitempty"`
-	Timestamp       int64  `protobuf:"varint,7,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
-	Type            string `protobuf:"bytes,8,opt,name=type,proto3" json:"type,omitempty"`
-	Data            []byte `protobuf:"bytes,9,opt,name=data,proto3" json:"data,omitempty"`
-	GasPrice        string `protobuf:"bytes,10,opt,name=gas_price,json=gasPrice,proto3" json:"gas_price,omitempty"`
-	GasLimit        string `protobuf:"bytes,11,opt,name=gas_limit,json=gasLimit,proto3" json:"gas_limit,omitempty"`
-	ContractAddress string `protobuf:"bytes,12,opt,name=contract_address,json=contractAddress,proto3" json:"contract_address,omitempty"`
+	Nonce           uint64 `protobuf:"varint,6,opt,name=nonce,proto3" json:"nonce"`
+	Timestamp       int64  `protobuf:"varint,7,opt,name=timestamp,proto3" json:"timestamp"`
+	Type            string `protobuf:"bytes,8,opt,name=type,proto3" json:"type"`
+	Data            []byte `protobuf:"bytes,9,opt,name=data,proto3" json:"data"`
+	GasPrice        string `protobuf:"bytes,10,opt,name=gas_price,json=gasPrice,proto3" json:"gas_price"`
+	GasLimit        string `protobuf:"bytes,11,opt,name=gas_limit,json=gasLimit,proto3" json:"gas_limit"`
+	ContractAddress string `protobuf:"bytes,12,opt,name=contract_address,json=contractAddress,proto3" json:"contract_address"`
 	// transaction status 0 failed, 1 success, 2 pending
-	Status int32 `protobuf:"varint,13,opt,name=status,proto3" json:"status,omitempty"`
+	Status int32 `protobuf:"varint,13,opt,name=status,proto3" json:"status"`
 	// transaction gas used
-	GasUsed string `protobuf:"bytes,14,opt,name=gas_used,json=gasUsed,proto3" json:"gas_used,omitempty"`
+	GasUsed string `protobuf:"bytes,14,opt,name=gas_used,json=gasUsed,proto3" json:"gas_used"`
 }
 
 func (m *TransactionResponse) Reset()                    { *m = TransactionResponse{} }
@@ -1232,7 +1232,7 @@ func (m *TransactionResponse) GetGasUsed() string {
 }
 
 type NewAccountRequest struct {
-	Passphrase string `protobuf:"bytes,1,opt,name=passphrase,proto3" json:"passphrase,omitempty"`
+	Passphrase string `protobuf:"bytes,1,opt,name=passphrase,proto3" json:"passphrase"`
 }
 
 func (m *NewAccountRequest) Reset()                    { *m = NewAccountRequest{} }
@@ -1248,7 +1248,7 @@ func (m *NewAccountRequest) GetPassphrase() string {
 }
 
 type NewAccountResponse struct {
-	Address string `protobuf:"bytes,1,opt,name=address,proto3" json:"address,omitempty"`
+	Address string `protobuf:"bytes,1,opt,name=address,proto3" json:"address"`
 }
 
 func (m *NewAccountResponse) Reset()                    { *m = NewAccountResponse{} }
@@ -1264,9 +1264,9 @@ func (m *NewAccountResponse) GetAddress() string {
 }
 
 type UnlockAccountRequest struct {
-	Address    string `protobuf:"bytes,1,opt,name=address,proto3" json:"address,omitempty"`
-	Passphrase string `protobuf:"bytes,2,opt,name=passphrase,proto3" json:"passphrase,omitempty"`
-	Duration   uint64 `protobuf:"varint,3,opt,name=duration,proto3" json:"duration,omitempty"`
+	Address    string `protobuf:"bytes,1,opt,name=address,proto3" json:"address"`
+	Passphrase string `protobuf:"bytes,2,opt,name=passphrase,proto3" json:"passphrase"`
+	Duration   uint64 `protobuf:"varint,3,opt,name=duration,proto3" json:"duration"`
 }
 
 func (m *UnlockAccountRequest) Reset()                    { *m = UnlockAccountRequest{} }
@@ -1296,7 +1296,7 @@ func (m *UnlockAccountRequest) GetDuration() uint64 {
 }
 
 type UnlockAccountResponse struct {
-	Result bool `protobuf:"varint,1,opt,name=result,proto3" json:"result,omitempty"`
+	Result bool `protobuf:"varint,1,opt,name=result,proto3" json:"result"`
 }
 
 func (m *UnlockAccountResponse) Reset()                    { *m = UnlockAccountResponse{} }
@@ -1312,7 +1312,7 @@ func (m *UnlockAccountResponse) GetResult() bool {
 }
 
 type LockAccountRequest struct {
-	Address string `protobuf:"bytes,1,opt,name=address,proto3" json:"address,omitempty"`
+	Address string `protobuf:"bytes,1,opt,name=address,proto3" json:"address"`
 }
 
 func (m *LockAccountRequest) Reset()                    { *m = LockAccountRequest{} }
@@ -1328,7 +1328,7 @@ func (m *LockAccountRequest) GetAddress() string {
 }
 
 type LockAccountResponse struct {
-	Result bool `protobuf:"varint,1,opt,name=result,proto3" json:"result,omitempty"`
+	Result bool `protobuf:"varint,1,opt,name=result,proto3" json:"result"`
 }
 
 func (m *LockAccountResponse) Reset()                    { *m = LockAccountResponse{} }
@@ -1344,7 +1344,7 @@ func (m *LockAccountResponse) GetResult() bool {
 }
 
 type SignTransactionResponse struct {
-	Data []byte `protobuf:"bytes,1,opt,name=data,proto3" json:"data,omitempty"`
+	Data []byte `protobuf:"bytes,1,opt,name=data,proto3" json:"data"`
 }
 
 func (m *SignTransactionResponse) Reset()                    { *m = SignTransactionResponse{} }
@@ -1361,9 +1361,9 @@ func (m *SignTransactionResponse) GetData() []byte {
 
 type SendTransactionPassphraseRequest struct {
 	// transaction struct
-	Transaction *TransactionRequest `protobuf:"bytes,1,opt,name=transaction" json:"transaction,omitempty"`
+	Transaction *TransactionRequest `protobuf:"bytes,1,opt,name=transaction" json:"transaction"`
 	// from account passphrase
-	Passphrase string `protobuf:"bytes,2,opt,name=passphrase,proto3" json:"passphrase,omitempty"`
+	Passphrase string `protobuf:"bytes,2,opt,name=passphrase,proto3" json:"passphrase"`
 }
 
 func (m *SendTransactionPassphraseRequest) Reset()         { *m = SendTransactionPassphraseRequest{} }
@@ -1388,7 +1388,7 @@ func (m *SendTransactionPassphraseRequest) GetPassphrase() string {
 }
 
 type GasPriceResponse struct {
-	GasPrice string `protobuf:"bytes,1,opt,name=gas_price,json=gasPrice,proto3" json:"gas_price,omitempty"`
+	GasPrice string `protobuf:"bytes,1,opt,name=gas_price,json=gasPrice,proto3" json:"gas_price"`
 }
 
 func (m *GasPriceResponse) Reset()                    { *m = GasPriceResponse{} }
@@ -1406,7 +1406,7 @@ func (m *GasPriceResponse) GetGasPrice() string {
 // Request message of GetTransactionByHash rpc.
 type HashRequest struct {
 	// Hex string of block/transaction hash.
-	Hash string `protobuf:"bytes,1,opt,name=hash,proto3" json:"hash,omitempty"`
+	Hash string `protobuf:"bytes,1,opt,name=hash,proto3" json:"hash"`
 }
 
 func (m *HashRequest) Reset()                    { *m = HashRequest{} }
@@ -1422,7 +1422,7 @@ func (m *HashRequest) GetHash() string {
 }
 
 type GasResponse struct {
-	Gas string `protobuf:"bytes,1,opt,name=gas,proto3" json:"gas,omitempty"`
+	Gas string `protobuf:"bytes,1,opt,name=gas,proto3" json:"gas"`
 }
 
 func (m *GasResponse) Reset()                    { *m = GasResponse{} }
@@ -1438,7 +1438,7 @@ func (m *GasResponse) GetGas() string {
 }
 
 type EventsResponse struct {
-	Events []*Event `protobuf:"bytes,1,rep,name=events" json:"events,omitempty"`
+	Events []*Event `protobuf:"bytes,1,rep,name=events" json:"events"`
 }
 
 func (m *EventsResponse) Reset()                    { *m = EventsResponse{} }
@@ -1454,8 +1454,8 @@ func (m *EventsResponse) GetEvents() []*Event {
 }
 
 type Event struct {
-	Topic string `protobuf:"bytes,1,opt,name=topic,proto3" json:"topic,omitempty"`
-	Data  string `protobuf:"bytes,2,opt,name=data,proto3" json:"data,omitempty"`
+	Topic string `protobuf:"bytes,1,opt,name=topic,proto3" json:"topic"`
+	Data  string `protobuf:"bytes,2,opt,name=data,proto3" json:"data"`
 }
 
 func (m *Event) Reset()                    { *m = Event{} }
@@ -1479,7 +1479,7 @@ func (m *Event) GetData() string {
 
 // Request message of change networkID.
 type ChangeNetworkIDRequest struct {
-	NetworkId uint32 `protobuf:"varint,1,opt,name=network_id,json=networkId,proto3" json:"network_id,omitempty"`
+	NetworkId uint32 `protobuf:"varint,1,opt,name=network_id,json=networkId,proto3" json:"network_id"`
 }
 
 func (m *ChangeNetworkIDRequest) Reset()                    { *m = ChangeNetworkIDRequest{} }
@@ -1496,7 +1496,7 @@ func (m *ChangeNetworkIDRequest) GetNetworkId() uint32 {
 
 // Response message of change networkID.
 type ChangeNetworkIDResponse struct {
-	Result bool `protobuf:"varint,1,opt,name=result,proto3" json:"result,omitempty"`
+	Result bool `protobuf:"varint,1,opt,name=result,proto3" json:"result"`
 }
 
 func (m *ChangeNetworkIDResponse) Reset()                    { *m = ChangeNetworkIDResponse{} }
@@ -1513,7 +1513,7 @@ func (m *ChangeNetworkIDResponse) GetResult() bool {
 
 type StartMiningRequest struct {
 	// miner address passphrase
-	Passphrase string `protobuf:"bytes,1,opt,name=passphrase,proto3" json:"passphrase,omitempty"`
+	Passphrase string `protobuf:"bytes,1,opt,name=passphrase,proto3" json:"passphrase"`
 }
 
 func (m *StartMiningRequest) Reset()                    { *m = StartMiningRequest{} }
@@ -1529,7 +1529,7 @@ func (m *StartMiningRequest) GetPassphrase() string {
 }
 
 type MiningResponse struct {
-	Result bool `protobuf:"varint,1,opt,name=result,proto3" json:"result,omitempty"`
+	Result bool `protobuf:"varint,1,opt,name=result,proto3" json:"result"`
 }
 
 func (m *MiningResponse) Reset()                    { *m = MiningResponse{} }
@@ -1545,7 +1545,7 @@ func (m *MiningResponse) GetResult() bool {
 }
 
 type PprofRequest struct {
-	Listen string `protobuf:"bytes,1,opt,name=listen,proto3" json:"listen,omitempty"`
+	Listen string `protobuf:"bytes,1,opt,name=listen,proto3" json:"listen"`
 }
 
 func (m *PprofRequest) Reset()                    { *m = PprofRequest{} }
@@ -1561,7 +1561,7 @@ func (m *PprofRequest) GetListen() string {
 }
 
 type PprofResponse struct {
-	Result bool `protobuf:"varint,1,opt,name=result,proto3" json:"result,omitempty"`
+	Result bool `protobuf:"varint,1,opt,name=result,proto3" json:"result"`
 }
 
 func (m *PprofResponse) Reset()                    { *m = PprofResponse{} }
@@ -1578,7 +1578,7 @@ func (m *PprofResponse) GetResult() bool {
 
 type GetConfigResponse struct {
 	// Config
-	Config *nebletpb.Config `protobuf:"bytes,1,opt,name=config" json:"config,omitempty"`
+	Config *nebletpb.Config `protobuf:"bytes,1,opt,name=config" json:"config"`
 }
 
 func (m *GetConfigResponse) Reset()                    { *m = GetConfigResponse{} }
