@@ -266,7 +266,7 @@ describe('rpc: sendTransaction', function () {
     }
 
     var testExpect = {
-      errMsg: "uint128: invalid string to uint128"
+      errMsg: "invalid value"
     }
 
     testRpc(testInput, testExpect, done);
@@ -287,7 +287,7 @@ describe('rpc: sendTransaction', function () {
     }
 
     var testExpect = {
-      errMsg: "uint128: invalid string to uint128"
+      errMsg: "invalid value"
     }
 
     testRpc(testInput, testExpect, done);
@@ -308,7 +308,7 @@ describe('rpc: sendTransaction', function () {
     }
 
     var testExpect = {
-      errMsg: "uint128: overflow"
+      errMsg: "invalid value"
     }
 
     testRpc(testInput, testExpect, done);
@@ -329,7 +329,7 @@ describe('rpc: sendTransaction', function () {
     }
 
     var testExpect = {
-      errMsg: "uint128: underflow"
+      errMsg: "invalid value"
     }
 
     testRpc(testInput, testExpect, done);
@@ -349,7 +349,7 @@ describe('rpc: sendTransaction', function () {
     }
 
     var testExpect = {
-      errMsg: "uint128: invalid string to uint128"
+      errMsg: "invalid gasLimit"
     }
 
     testRpc(testInput, testExpect, done);
@@ -370,7 +370,7 @@ describe('rpc: sendTransaction', function () {
     }
 
     var testExpect = {
-      errMsg: "uint128: underflow"
+      errMsg: "invalid gasLimit"
     }
 
     testRpc(testInput, testExpect, done);
@@ -391,7 +391,7 @@ describe('rpc: sendTransaction', function () {
     }
 
     var testExpect = {
-      errMsg: "uint128: invalid string to uint128"
+      errMsg: "invalid gasLimit"
     }
 
     testRpc(testInput, testExpect, done);
@@ -412,7 +412,7 @@ describe('rpc: sendTransaction', function () {
     }
 
     var testExpect = {
-      errMsg: "uint128: overflow"
+      errMsg: "invalid gasLimit"
     }
 
     testRpc(testInput, testExpect, done);
@@ -433,7 +433,7 @@ describe('rpc: sendTransaction', function () {
     }
 
     var testExpect = {
-      errMsg: "uint128: overflow"
+      errMsg: "invalid gasPrice"
     }
 
     testRpc(testInput, testExpect, done);
@@ -454,7 +454,7 @@ describe('rpc: sendTransaction', function () {
     }
 
     var testExpect = {
-      errMsg: "uint128: underflow"
+      errMsg: "invalid gasPrice"
     }
 
     testRpc(testInput, testExpect, done);
@@ -475,7 +475,7 @@ describe('rpc: sendTransaction', function () {
     }
 
     var testExpect = {
-      errMsg: "uint128: invalid string to uint128"
+      errMsg: "invalid gasPrice"
     }
 
     testRpc(testInput, testExpect, done);
@@ -495,7 +495,7 @@ describe('rpc: sendTransaction', function () {
     }
 
     var testExpect = {
-      errMsg: "uint128: invalid string to uint128"
+      errMsg: "invalid gasPrice"
     }
 
     testRpc(testInput, testExpect, done);

@@ -65,7 +65,7 @@ function checkTransaction(hash, callback) {
             callback(resp);
         }
     }).catch(function (err) {
-        console.log(err);
+        console.log(err.error);
         setTimeout(function () {
             checkTransaction(hash, callback);
         }, 2000);
@@ -226,7 +226,7 @@ describe('rpc: Call', function () {
 
         var testExpect = {
             isNormalOutput: false,
-            errMsg: 'uint128: invalid string to uint128'
+            errMsg: 'invalid value'
         }
         checkTransaction(txHash, function(resp) {
             try {
@@ -259,7 +259,7 @@ describe('rpc: Call', function () {
 
         var testExpect = {
             isNormalOutput: false,
-            errMsg: 'uint128: invalid string to uint128'
+            errMsg: 'invalid value'
         }
         checkTransaction(txHash, function(resp) {
             try {
@@ -391,7 +391,7 @@ describe('rpc: Call', function () {
 
         var testExpect = {
             isNormalOutput: false,
-            errMsg: 'uint128: underflow'
+            errMsg: 'invalid gasPrice'
         }
         checkTransaction(txHash, function(resp) {
             try {
@@ -458,7 +458,7 @@ describe('rpc: Call', function () {
 
         var testExpect = {
             isNormalOutput: false,
-            errMsg: 'uint128: underflow'
+            errMsg: 'invalid gasLimit'
         }
         checkTransaction(txHash, function(resp) {
             try {
