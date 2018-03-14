@@ -177,11 +177,6 @@ func (pool *TransactionPool) loop() {
 				continue
 			}
 
-			/* 			logging.VLog().WithFields(logrus.Fields{
-				"tx":   tx,
-				"type": msg.MessageType(),
-			}).Debug("Received a new tx.") */
-
 			if err := pool.PushAndRelay(tx); err != nil {
 				logging.VLog().WithFields(logrus.Fields{
 					"func":        "TxPool.loop",
@@ -203,6 +198,10 @@ func (pool *TransactionPool) GetTransaction(hash byteutils.Hash) *Transaction {
 // PushAndRelay push tx into pool and relay it
 func (pool *TransactionPool) PushAndRelay(tx *Transaction) error {
 	if err := pool.Push(tx); err != nil {
+		logging.CLog().WithFields(logrus.Fields{
+			"tx":  tx,
+			"err": err,
+		}).Info("Failed to push tx")
 		return err
 	}
 
@@ -216,7 +215,7 @@ func (pool *TransactionPool) PushAndBroadcast(tx *Transaction) error {
 		logging.VLog().WithFields(logrus.Fields{
 			"tx":  tx,
 			"err": err,
-		}).Debug("Failed to push a new tx into tx pool")
+		}).Debug("Failed to push tx")
 		return err
 	}
 
@@ -356,6 +355,36 @@ func (pool *TransactionPool) Pop() *Transaction {
 	tx := val.(*Transaction)
 	pool.popTx(tx)
 	return tx
+}
+
+// Del a transaction from pool
+func (pool *TransactionPool) Del(tx *Transaction) {
+	pool.mu.Lock()
+	defer pool.mu.Unlock()
+
+	bucket := pool.buckets[tx.from.address.Hex()]
+	if bucket != nil && bucket.Len() > 0 {
+		oldCandidate := bucket.Min()
+		left := oldCandidate.(*Transaction)
+		for left.Nonce() <= tx.Nonce() {
+			bucket.PopMin()
+			delete(pool.all, left.Hash().Hex())
+			if bucket.Len() > 0 {
+				left = bucket.Min().(*Transaction)
+			} else {
+				delete(pool.buckets, left.from.address.Hex())
+				break
+			}
+		}
+		newCandidate := bucket.Min()
+		// replace candidate
+		if oldCandidate != newCandidate {
+			pool.candidates.Del(oldCandidate)
+			if newCandidate != nil {
+				pool.candidates.Push(newCandidate)
+			}
+		}
+	}
 }
 
 // Empty return if the pool is empty

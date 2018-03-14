@@ -337,12 +337,19 @@ func (bc *BlockChain) revertBlocks(from *Block, to *Block) error {
 	return nil
 }
 
+func (bc *BlockChain) dropTxsInBlockFromTxPool(block *Block) {
+	for _, tx := range block.transactions {
+		bc.txPool.Del(tx)
+	}
+}
+
 func (bc *BlockChain) buildIndexByBlockHeight(from *Block, to *Block) error {
 	for !to.Hash().Equals(from.Hash()) {
 		err := bc.storage.Put(byteutils.FromUint64(to.height), to.Hash())
 		if err != nil {
 			return err
 		}
+		go bc.dropTxsInBlockFromTxPool(to)
 		to = bc.GetBlock(to.header.parentHash)
 		if to == nil {
 			return ErrMissingParentBlock

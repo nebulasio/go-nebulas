@@ -50,7 +50,7 @@ type Neb struct {
 }
 
 func mockNeb(t *testing.T) *Neb {
-	storage, _ := storage.NewMemoryStorage()
+	storage, _ := storage.NewDiskStorage("test.db")
 	eventEmitter := core.NewEventEmitter(1024)
 	genesisConf := MockGenesisConf()
 	dpos := NewDpos()
@@ -582,29 +582,29 @@ func TestDposTxBinary(t *testing.T) {
 	block.SetTimestamp(consensusState.TimeStamp())
 	block.WorldState().SetConsensusState(consensusState)
 
-	j := 100
+	j := 500
 
 	for i := 1; i < j; i++ {
 		gas, _ := util.NewUint128FromInt(1000000 + 4 + 4*int64(j-i))
 		limit, _ := util.NewUint128FromInt(200000)
-		tx := core.NewTransaction(neb.chain.ChainID(), a, b, util.NewUint128(), uint64(i), core.TxPayloadBinaryType, []byte("nas"), gas, limit)
+		tx := core.NewTransaction(neb.chain.ChainID(), a, b, util.NewUint128(), uint64(4*i-3), core.TxPayloadBinaryType, []byte("nas"), gas, limit)
 		assert.Nil(t, manager.SignTransaction(a, tx))
 		assert.Nil(t, neb.chain.TransactionPool().Push(tx))
 
 		gas, _ = util.NewUint128FromInt(1000000 + 3 + 4*int64(j-i))
-		tx = core.NewTransaction(neb.chain.ChainID(), b, m, util.NewUint128(), uint64(i), core.TxPayloadBinaryType, []byte("nas"), gas, limit)
-		assert.Nil(t, manager.SignTransaction(b, tx))
+		tx = core.NewTransaction(neb.chain.ChainID(), a, m, util.NewUint128(), uint64(4*i-2), core.TxPayloadBinaryType, []byte("nas"), gas, limit)
+		assert.Nil(t, manager.SignTransaction(a, tx))
 		assert.Nil(t, neb.chain.TransactionPool().Push(tx))
 
 		gas, _ = util.NewUint128FromInt(1000000 + 2 + 4*int64(j-i))
-		tx = core.NewTransaction(neb.chain.ChainID(), c, d, util.NewUint128(), uint64(i), core.TxPayloadBinaryType, []byte("nas"), gas, limit)
-		assert.Nil(t, manager.SignTransaction(c, tx))
+		tx = core.NewTransaction(neb.chain.ChainID(), a, d, util.NewUint128(), uint64(4*i-1), core.TxPayloadBinaryType, []byte("nas"), gas, limit)
+		assert.Nil(t, manager.SignTransaction(a, tx))
 		assert.Nil(t, neb.chain.TransactionPool().Push(tx))
 		//assert.Equal(t, neb.chain.TransactionPool().cache.Len(), 3)
 
 		gas, _ = util.NewUint128FromInt(1000000 + 1 + 4*int64(j-i))
-		tx = core.NewTransaction(neb.chain.ChainID(), d, g, util.NewUint128(), uint64(i), core.TxPayloadBinaryType, []byte("nas"), gas, limit)
-		assert.Nil(t, manager.SignTransaction(d, tx))
+		tx = core.NewTransaction(neb.chain.ChainID(), a, g, util.NewUint128(), uint64(4*i), core.TxPayloadBinaryType, []byte("nas"), gas, limit)
+		assert.Nil(t, manager.SignTransaction(a, tx))
 		assert.Nil(t, neb.chain.TransactionPool().Push(tx))
 
 		//tx = core.NewTransaction(neb.chain.ChainID(), e, h, util.NewUint128(), 2, core.TxPayloadBinaryType, []byte("nas"), gas, limit)
