@@ -63,6 +63,7 @@ type states struct {
 	consensus Consensus
 	changelog *mvccdb.MVCCDB
 	storage   *mvccdb.MVCCDB
+	db        storage.Storage
 	txid      interface{}
 
 	gasConsumed map[string]*util.Uint128
@@ -100,6 +101,7 @@ func newStates(consensus Consensus, stor storage.Storage) (*states, error) {
 		consensus: consensus,
 		changelog: changelog,
 		storage:   storage,
+		db:        stor,
 		txid:      nil,
 
 		gasConsumed: make(map[string]*util.Uint128),
@@ -146,7 +148,7 @@ func (s *states) Clone() (WorldState, error) {
 	if err != nil {
 		return nil, err
 	}
-	storage, err := newStorage(s.storage)
+	storage, err := newStorage(s.db)
 	if err != nil {
 		return nil, err
 	}
@@ -185,6 +187,7 @@ func (s *states) Clone() (WorldState, error) {
 		consensus: s.consensus,
 		changelog: changelog,
 		storage:   storage,
+		db:        s.db,
 		txid:      s.txid,
 
 		gasConsumed: make(map[string]*util.Uint128),
@@ -271,6 +274,7 @@ func (s *states) Prepare(txid interface{}) (TxWorldState, error) {
 		consensus: s.consensus,
 		changelog: changelog,
 		storage:   storage,
+		db:        s.db,
 		txid:      txid,
 
 		gasConsumed: make(map[string]*util.Uint128),

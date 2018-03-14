@@ -24,6 +24,7 @@ import (
 	"testing"
 
 	"github.com/nebulasio/go-nebulas/util"
+	"github.com/nebulasio/go-nebulas/util/logging"
 
 	"time"
 
@@ -51,6 +52,7 @@ type Neb struct {
 
 func mockNeb(t *testing.T) *Neb {
 	storage, _ := storage.NewDiskStorage("test.db")
+	//storage, _ := storage.NewRocksStorage("rocks.db")
 	//storage, _ := storage.NewMemoryStorage()
 	eventEmitter := core.NewEventEmitter(1024)
 	genesisConf := MockGenesisConf()
@@ -579,6 +581,7 @@ func testMintBlock(t *testing.T, neb *Neb, num int) {
 	acc, _ := block.WorldState().GetOrCreateUserAccount(a.Bytes())
 	nonce := int(acc.Nonce())
 
+	logging.CLog().Info("nonce:", nonce)
 	for i := 1; i < num; i++ {
 		gas, _ := util.NewUint128FromInt(1000000)
 		limit, _ := util.NewUint128FromInt(200000)

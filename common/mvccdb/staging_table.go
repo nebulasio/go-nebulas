@@ -151,10 +151,7 @@ func (tbl *StagingTable) GetByKey(key []byte, loadFromStorage bool) (*Versionize
 
 		// lock and check again.
 		tbl.mutex.Lock()
-		value := tbl.versionizedValues[keyStr]
-		if value == nil {
-			tbl.versionizedValues[keyStr] = value
-		}
+		tbl.versionizedValues[keyStr] = value
 		tbl.mutex.Unlock()
 	}
 
