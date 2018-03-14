@@ -139,7 +139,7 @@ func DisposeV8Engine() {
 }
 
 // NewV8Engine return new V8Engine instance.
-func NewV8Engine(ctx *Context) *V8Engine {
+func NewV8Engine(ctx *Context) *V8Engine { //ToDo add args to enableLimits
 	v8engineOnce.Do(func() {
 		InitV8Engine()
 	})
@@ -198,7 +198,7 @@ func (e *V8Engine) Context() *Context {
 // SetTestingFlag set testing flag, default is False.
 func (e *V8Engine) SetTestingFlag(flag bool) {
 	if flag {
-		e.v8engine.testing = C.int(1)
+		e.v8engine.testing = C.int(1) //ToDo chech testing
 	} else {
 		e.v8engine.testing = C.int(0)
 	}
@@ -216,7 +216,7 @@ func (e *V8Engine) SetExecutionLimits(limitsOfExecutionInstructions, limitsOfTot
 
 	e.limitsOfExecutionInstructions = limitsOfExecutionInstructions
 	e.limitsOfTotalMemorySize = limitsOfTotalMemorySize
-	e.enableLimits = limitsOfExecutionInstructions != 0 || limitsOfTotalMemorySize != 0
+	e.enableLimits = limitsOfExecutionInstructions != 0 || limitsOfTotalMemorySize != 0 //ToDo if enableLimits == true limitsOfExecutionInstructions or limitsOfTotalMemorySize empty then return err
 
 	// V8 needs at least 6M heap memory.
 	if limitsOfTotalMemorySize > 0 && limitsOfTotalMemorySize < 6000000 {
@@ -257,7 +257,7 @@ func (e *V8Engine) InjectTracingInstructions(source string) (string, int, error)
 	}
 	defer C.free(unsafe.Pointer(traceableCSource))
 
-	return C.GoString(traceableCSource), int(lineOffset), nil
+	return C.GoString(traceableCSource), int(lineOffset), nil //ToDo check lineOffset
 }
 
 // CollectTracingStats collect tracing data from v8 engine.
@@ -305,12 +305,12 @@ func (e *V8Engine) RunScriptSource(source string, sourceLineOffset int) (result 
 			err = ErrExecutionFailed
 		}
 	case <-time.After(2 * time.Second):
-		C.TerminateExecution(e.v8engine)
+		C.TerminateExecution(e.v8engine) //ToDo TerminateExecution can kill RunScriptSource
 		err = ErrExecutionTimeout
 
 		// wait for C.RunScriptSource() returns.
 		select {
-		case <-done:
+		case <-done: //ToDo change <-done
 		}
 	}
 
@@ -319,15 +319,15 @@ func (e *V8Engine) RunScriptSource(source string, sourceLineOffset int) (result 
 
 	if e.enableLimits {
 		// check limits.
-		ret = C.IsEngineLimitsExceeded(e.v8engine)
+		ret = C.IsEngineLimitsExceeded(e.v8engine) //ToDo delete IsEngineLimitsExceeded
 		if ret == 1 {
 			err = ErrInsufficientGas
 		} else if ret == 2 {
 			err = ErrExceedMemoryLimits
 		}
 
-		if e.actualCountOfExecutionInstructions > e.limitsOfExecutionInstructions || err == ErrExceedMemoryLimits {
-			e.actualCountOfExecutionInstructions = e.limitsOfExecutionInstructions
+		if e.actualCountOfExecutionInstructions > e.limitsOfExecutionInstructions || err == ErrExceedMemoryLimits { //ToDo ErrExceedMemoryLimits value is same in each linux
+			e.actualCountOfExecutionInstructions = e.limitsOfExecutionInstructions //ToDo memory pass whether exhaust
 		}
 	}
 
@@ -341,8 +341,8 @@ func (e *V8Engine) DeployAndInit(source, sourceType, args string) (string, error
 
 // Call function in a script
 func (e *V8Engine) Call(source, sourceType, function, args string) (string, error) {
-	if publicFuncNameChecker.MatchString(function) == false || strings.EqualFold("init", function) == true {
-		return "", ErrDisallowCallPrivateFunction
+	if publicFuncNameChecker.MatchString(function) == false || strings.EqualFold("init", function) == true { //ToDo check match
+		return "", ErrDisallowCallPrivateFunction //ToDo change err code
 	}
 	return e.RunContractScript(source, sourceType, function, args)
 }
@@ -382,7 +382,7 @@ func (e *V8Engine) AddModule(id, source string, sourceLineOffset int) error {
 		sourceHash := byteutils.Hex(hash.Sha3256([]byte(source)))
 
 		// try read from cache.
-		if sourceModuleCache.Contains(sourceHash) {
+		if sourceModuleCache.Contains(sourceHash) { //ToDo cache whether need into db
 			value, _ := sourceModuleCache.Get(sourceHash)
 			item = value.(*sourceModuleItem)
 		}
@@ -445,7 +445,7 @@ func (e *V8Engine) prepareRunnableContractScript(source, function, args string) 
 
 		runnableSource = fmt.Sprintf("var __contract = require(\"%s\");\n var __instance = new __contract();\n Blockchain.blockParse(\"%s\");\n Blockchain.transactionParse(\"%s\");\n __instance[\"%s\"].apply(__instance, JSON.parse(\"%s\"));\n", ModuleID, formatArgs(string(blockJSON)), formatArgs(string(txJSON)), function, formatArgs(args))
 	} else {
-		runnableSource = fmt.Sprintf("var __contract = require(\"%s\");\n var __instance = new __contract();\n Blockchain.blockParse(\"%s\");\n Blockchain.transactionParse(\"%s\");\n __instance[\"%s\"].apply(__instance);\n", ModuleID, formatArgs(string(blockJSON)), formatArgs(string(txJSON)), function)
+		runnableSource = fmt.Sprintf("var __contract = require(\"%s\");\n var __instance = new __contract();\n Blockchain.blockParse(\"%s\");\n Blockchain.transactionParse(\"%s\");\n __instance[\"%s\"].apply(__instance);\n", ModuleID, formatArgs(string(blockJSON)), formatArgs(string(txJSON)), function) //ToDo code newline
 	}
 	return runnableSource, 0, nil
 }

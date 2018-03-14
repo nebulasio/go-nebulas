@@ -66,10 +66,10 @@ type SerializableTransaction struct {
 // Context nvm engine context
 type Context struct {
 	block    Block
-	tx       *core.Transaction
+	tx       *core.Transaction //ToDo add interface limit
 	owner    state.Account
-	contract state.Account
-	state    state.AccountState
+	contract state.Account      //ToDo add interface limit
+	state    state.AccountState //ToDo add interface limit name->WorldState
 }
 
 // NewContext create a engine context
