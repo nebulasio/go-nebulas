@@ -116,11 +116,11 @@ func (tbl *StagingTable) Get(key []byte) (*VersionizedValueItem, error) {
 
 // GetByKey return value by key. If key does not exist, copy and incr version from `parentStagingTable` to record previous version.
 func (tbl *StagingTable) GetByKey(key []byte, loadFromStorage bool) (*VersionizedValueItem, error) {
+	// double check lock to prevent dead lock while call MergeToParent().
 	tbl.mutex.Lock()
-	defer tbl.mutex.Unlock()
-
 	keyStr := byteutils.Hex(key)
 	value := tbl.versionizedValues[keyStr]
+	tbl.mutex.Unlock()
 
 	if value == nil {
 		var err error
@@ -149,7 +149,13 @@ func (tbl *StagingTable) GetByKey(key []byte, loadFromStorage bool) (*Versionize
 			}
 		}
 
-		tbl.versionizedValues[keyStr] = value
+		// lock and check again.
+		tbl.mutex.Lock()
+		value := tbl.versionizedValues[keyStr]
+		if value == nil {
+			tbl.versionizedValues[keyStr] = value
+		}
+		tbl.mutex.Unlock()
 	}
 
 	return value, nil
