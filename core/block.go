@@ -488,7 +488,17 @@ func (block *Block) CollectTransactions(deadline int64) {
 	parallelCh := make(chan bool, 32)
 	mergeCh := make(chan bool, 1)
 	over := false
-	cnt := 0
+	try := 0
+	fetch := 0
+	failed := 0
+	conflict := 0
+	expired := 0
+	bucket := len(block.txPool.all)
+	packing := int64(0)
+	prepare := int64(0)
+	execute := int64(0)
+	update := int64(0)
+	parallel := 0
 
 	go func() {
 		for {
@@ -497,21 +507,30 @@ func (block *Block) CollectTransactions(deadline int64) {
 				<-mergeCh
 				return
 			}
+			try++
 			tx := pool.PopWithBlacklist(inprogress)
 			if tx == nil {
 				<-mergeCh
-				cnt++
-				time.Sleep(time.Nanosecond * 1000)
+				// time.Sleep(time.Nanosecond * 1000)
 				continue
 			}
+			fetch++
 			inprogress.Store(tx.from.address.Hex(), true)
 			<-mergeCh
 
 			parallelCh <- true
 			go func() {
-				defer func() { <-parallelCh }()
+				parallel++
+				startAt := time.Now().UnixNano()
+				defer func() {
+					endAt := time.Now().UnixNano()
+					packing += endAt - startAt
+					<-parallelCh
+				}()
+
 				mergeCh <- true
 				if over {
+					expired++
 					<-mergeCh
 					if err := pool.Push(tx); err != nil {
 						logging.VLog().WithFields(logrus.Fields{
@@ -522,7 +541,11 @@ func (block *Block) CollectTransactions(deadline int64) {
 					}
 					return
 				}
+
+				prepareAt := time.Now().UnixNano()
 				txWorldState, err := block.Prepare(tx)
+				preparedAt := time.Now().UnixNano()
+				prepare += preparedAt - prepareAt
 				if err != nil {
 					logging.VLog().WithFields(logrus.Fields{
 						"block": block,
@@ -535,7 +558,10 @@ func (block *Block) CollectTransactions(deadline int64) {
 				}
 				<-mergeCh
 
+				executeAt := time.Now().UnixNano()
 				giveback, err := block.ExecuteTransaction(tx, txWorldState)
+				executedAt := time.Now().UnixNano()
+				execute += executedAt - executeAt
 				if err != nil {
 					logging.VLog().WithFields(logrus.Fields{
 						"tx":       tx,
@@ -552,12 +578,14 @@ func (block *Block) CollectTransactions(deadline int64) {
 								"err":   err,
 							}).Debug("Failed to giveback the tx.")
 						}
+						failed++
 					} else {
 						inprogress.Delete(tx.from.address.Hex())
 					}
 				} else {
 					mergeCh <- true
 					if over {
+						expired++
 						<-mergeCh
 						if err := pool.Push(tx); err != nil {
 							logging.VLog().WithFields(logrus.Fields{
@@ -568,7 +596,10 @@ func (block *Block) CollectTransactions(deadline int64) {
 						}
 						return
 					}
+					updateAt := time.Now().UnixNano()
 					dependency, err := block.CheckAndUpdate(tx)
+					updatedAt := time.Now().UnixNano()
+					update += updatedAt - updateAt
 					if err != nil {
 						logging.VLog().WithFields(logrus.Fields{
 							"tx":       tx,
@@ -591,6 +622,7 @@ func (block *Block) CollectTransactions(deadline int64) {
 									"err":   err,
 								}).Debug("Failed to giveback the tx.")
 							}
+							conflict++
 							inprogress.Delete(tx.from.address.Hex())
 						}
 					} else {
@@ -622,7 +654,34 @@ func (block *Block) CollectTransactions(deadline int64) {
 	over = true
 	block.transactions = transactions
 	block.dependency = dag
-	logging.CLog().Info("CollectTransactions deadline transactions len:", len(transactions), " dag len:", dag.Len(), " cnt:", cnt)
+	size := len(block.transactions)
+	if size == 0 {
+		size = 1
+	}
+	averPacking := packing / int64(len(block.transactions))
+	averPrepare := prepare / int64(len(block.transactions))
+	averExecute := execute / int64(len(block.transactions))
+	averUpdate := update / int64(len(block.transactions))
+
+	logging.CLog().WithFields(logrus.Fields{
+		"try":          try,
+		"failed":       failed,
+		"expired":      expired,
+		"conflict":     conflict,
+		"fetch":        fetch,
+		"bucket":       bucket,
+		"averPacking":  averPacking,
+		"averPrepare":  averPrepare,
+		"averExecute":  averExecute,
+		"averUpdate":   averUpdate,
+		"parallel":     parallel,
+		"packing":      packing,
+		"execute":      execute,
+		"prepare":      prepare,
+		"update":       update,
+		"core-packing": execute + prepare + update,
+		"packed":       len(block.transactions),
+	}).Info("CollectTransactions")
 	<-mergeCh
 }
 

@@ -63,10 +63,11 @@ type StagingTable struct {
 	preparedStagingTables           map[interface{}]*StagingTable
 	isTrieSameKeyCompatibility      bool // The `isTrieSameKeyCompatibility` is used to prevent conflict in continuous changes with same key/value.
 	disableStrictGlobalVersionCheck bool // default `true`
+	prefix                          string
 }
 
 // NewStagingTable return new instance of StagingTable.
-func NewStagingTable(storage storage.Storage, tid interface{}, trieSameKeyCompatibility bool) *StagingTable {
+func NewStagingTable(storage storage.Storage, tid interface{}, trieSameKeyCompatibility bool, prefix string) *StagingTable {
 	tbl := &StagingTable{
 		storage:            storage,
 		globalVersion:      0,
@@ -77,6 +78,7 @@ func NewStagingTable(storage storage.Storage, tid interface{}, trieSameKeyCompat
 		preparedStagingTables:           make(map[interface{}]*StagingTable),
 		isTrieSameKeyCompatibility:      trieSameKeyCompatibility,
 		disableStrictGlobalVersionCheck: true,
+		prefix: prefix,
 	}
 	return tbl
 }
@@ -103,6 +105,7 @@ func (tbl *StagingTable) Prepare(tid interface{}) (*StagingTable, error) {
 		preparedStagingTables:           make(map[interface{}]*StagingTable),
 		isTrieSameKeyCompatibility:      tbl.isTrieSameKeyCompatibility,
 		disableStrictGlobalVersionCheck: tbl.disableStrictGlobalVersionCheck,
+		prefix: tbl.prefix,
 	}
 
 	tbl.preparedStagingTables[tid] = preparedTbl
@@ -135,20 +138,25 @@ func (tbl *StagingTable) GetByKey(key []byte, loadFromStorage bool) (*Versionize
 				return nil, ErrStagingTableKeyConfliction
 			}
 
+			// logging.CLog().Infof("    ST.GET.%s %s %s %s", tbl.prefix, keyStr, "parent", loadFromStorage)
 			value = IncrVersionizedValueItem(tbl.tid, value)
 
 		} else {
 			if loadFromStorage {
 				// load from storage.
+				logging.CLog().Infof("    ST.GET.%s %s %s %s", tbl.prefix, keyStr, "storage", loadFromStorage)
 				value, err = tbl.loadFromStorage(key)
 				if err != nil && err != storage.ErrKeyNotFound {
 					return nil, err
 				}
 			} else {
+				// logging.CLog().Infof("    ST.GET.%s %s %s %s", tbl.prefix, keyStr, "created", loadFromStorage)
+
 				value = NewDefaultVersionizedValueItem(key, nil, tbl.tid, 0)
 			}
 		}
 
+<<<<<<< HEAD
 		// lock and check again.
 		tbl.mutex.Lock()
 		v := tbl.versionizedValues[keyStr]
@@ -156,6 +164,11 @@ func (tbl *StagingTable) GetByKey(key []byte, loadFromStorage bool) (*Versionize
 			tbl.versionizedValues[keyStr] = value
 		}
 		tbl.mutex.Unlock()
+=======
+		tbl.versionizedValues[keyStr] = value
+	} else {
+		// logging.CLog().Infof("    ST.GET.%s %s %s %s", tbl.prefix, keyStr, "this", loadFromStorage)
+>>>>>>> common: staging_table.go. add metrics.
 	}
 
 	return value, nil
@@ -163,6 +176,8 @@ func (tbl *StagingTable) GetByKey(key []byte, loadFromStorage bool) (*Versionize
 
 // Put put the key/val pair. If key does not exist, copy and incr version from `parentStagingTable` to record previous version.
 func (tbl *StagingTable) Put(key []byte, val []byte) (*VersionizedValueItem, error) {
+	// logging.CLog().Infof(" ST.PUT.%s ", tbl.prefix, byteutils.Hex(key))
+
 	value, err := tbl.GetByKey(key, false)
 	if err != nil {
 		return nil, err
@@ -190,6 +205,7 @@ func (tbl *StagingTable) Set(key []byte, val []byte, deleted, dirty bool) (*Vers
 
 // Del del the tid/key pair. If tid+key does not exist, copy and incr version from `finalVersionizedValues` to record previous version.
 func (tbl *StagingTable) Del(key []byte) (*VersionizedValueItem, error) {
+	// logging.CLog().Info(" ST.DEL.%s ", tbl.prefix, byteutils.Hex(key))
 	value, err := tbl.GetByKey(key, false)
 	if err != nil {
 		return nil, err
@@ -330,6 +346,8 @@ func (tbl *StagingTable) Unlock() {
 }
 
 func (tbl *StagingTable) loadFromStorage(key []byte) (*VersionizedValueItem, error) {
+	// logging.CLog().Info("Staging Load ", byteutils.Hex(key))
+
 	// get from storage.
 	val, err := tbl.storage.Get(key)
 	if err != nil && err != storage.ErrKeyNotFound {
