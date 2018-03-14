@@ -21,7 +21,6 @@ package state
 import (
 	"encoding/json"
 	"sync"
-	// "time"
 
 	// "github.com/nebulasio/go-nebulas/util/logging"
 

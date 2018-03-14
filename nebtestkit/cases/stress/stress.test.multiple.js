@@ -13,8 +13,8 @@ var args = process.argv.splice(2);
 if (args.length != 3) {
     // give default config
     env = "local";
-    AddressNumber = 8000;
-    SendTimes = 1;
+    AddressNumber = 4;
+    SendTimes = 5000;
 } else {
     env = args[0]; // local testneb1 testneb2
 
@@ -83,10 +83,7 @@ function claimTokens(nonce) {
     for (var i = 0; i < AddressNumber; i++) {
         var account = Wallet.Account.NewAccount();
         accountArray.push(account);
-
         sendTransaction(0, 1, from, account, "1000000000000000", ++nonce);
-
-        sleep(10);
     }
 
     checkClaimTokens();
@@ -131,7 +128,7 @@ function sendTransactionsForTps() {
         var node = nodes[i % nodes.length];
         neb.setRequest(new HttpRequest(node));
 
-        sendTransaction(0, SendTimes, accountArray[i], to, "1", 1);
+        sendTransaction(0, SendTimes, accountArray[i], accountArray[i], "1", 1);
         sleep(10);
     }
 
@@ -139,22 +136,27 @@ function sendTransactionsForTps() {
 }
 
 function checkTps() {
+    var finish = 0
     var interval = setInterval(function () {
-        neb.api.getAccountState(to.getAddressString()).then(function (resp) {
-            console.log("to address state:" + JSON.stringify(resp));
-            if (resp.balance >= (AddressNumber * SendTimes) * 2 / 3) {
-                clearInterval(interval);
+        for (var i = 0; i < AddressNumber; i++) {
+            neb.api.getAccountState(accountArray[i].getAddressString()).then(function (resp) {
+                console.log("to address state:" + JSON.stringify(resp));
+                if (resp.nonce >= SendTimes) {
+                    finish++;
+                    if (finish == AddressNumber) {
+                        clearInterval(interval);
 
-                var endTime = new Date().getTime();
-
-                console.log("====================");
-                console.log("env is ", env);
-                console.log("concurrency number is ", AddressNumber);
-                console.log("total number is ", AddressNumber * SendTimes);
-                console.log("tps is: ", parseInt(resp.balance) / ((endTime - startTime) / 1000));
-                console.log("====================")
-            }
-        });
+                        var endTime = new Date().getTime();
+                        console.log("====================");
+                        console.log("env is ", env);
+                        console.log("concurrency number is ", AddressNumber);
+                        console.log("total number is ", AddressNumber * SendTimes);
+                        console.log("tps is: ", (AddressNumber * SendTimes) / ((endTime - startTime) / 1000));
+                        console.log("====================")
+                    }
+                }
+            });
+        }
 
     }, 1000);
 }

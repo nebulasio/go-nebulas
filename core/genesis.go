@@ -19,6 +19,7 @@
 package core
 
 import (
+	"github.com/nebulasio/go-nebulas/consensus/pb"
 	"io/ioutil"
 
 	"github.com/nebulasio/go-nebulas/common/dag"
@@ -62,10 +63,11 @@ func NewGenesisBlock(conf *corepb.Genesis, chain *BlockChain) (*Block, error) {
 	}
 	genesisBlock := &Block{
 		header: &BlockHeader{
-			chainID:    conf.Meta.ChainId,
-			parentHash: GenesisHash,
-			coinbase:   GenesisCoinbase,
-			timestamp:  GenesisTimestamp,
+			chainID:       conf.Meta.ChainId,
+			parentHash:    GenesisHash,
+			coinbase:      GenesisCoinbase,
+			timestamp:     GenesisTimestamp,
+			consensusRoot: &consensuspb.ConsensusRoot{},
 		},
 		transactions: make(Transactions, 0),
 		dependency:   dag.NewDag(),

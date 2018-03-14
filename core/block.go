@@ -227,10 +227,11 @@ func NewBlock(chainID uint32, coinbase *Address, parent *Block) (*Block, error) 
 
 	block := &Block{
 		header: &BlockHeader{
-			chainID:    chainID,
-			parentHash: parent.Hash(),
-			coinbase:   coinbase,
-			timestamp:  time.Now().Unix(),
+			chainID:       chainID,
+			parentHash:    parent.Hash(),
+			coinbase:      coinbase,
+			timestamp:     time.Now().Unix(),
+			consensusRoot: &consensuspb.ConsensusRoot{},
 		},
 		transactions: make(Transactions, 0),
 		dependency:   dag.NewDag(),
@@ -485,7 +486,7 @@ func (block *Block) CollectTransactions(deadline int64) {
 	transactions := []*Transaction{}
 	inprogress := new(sync.Map)
 
-	parallelCh := make(chan bool, 32)
+	parallelCh := make(chan bool, 1)
 	mergeCh := make(chan bool, 1)
 	over := false
 	try := 0
@@ -499,6 +500,9 @@ func (block *Block) CollectTransactions(deadline int64) {
 	execute := int64(0)
 	update := int64(0)
 	parallel := 0
+
+	// logging.CLog().Info("Packing Tx Begin")
+	packings := []int64{}
 
 	go func() {
 		for {
@@ -525,6 +529,9 @@ func (block *Block) CollectTransactions(deadline int64) {
 				defer func() {
 					endAt := time.Now().UnixNano()
 					packing += endAt - startAt
+					packings = append(packings, int64(tx.Nonce()))
+					packings = append(packings, startAt)
+					packings = append(packings, endAt)
 					<-parallelCh
 				}()
 
@@ -654,14 +661,14 @@ func (block *Block) CollectTransactions(deadline int64) {
 	over = true
 	block.transactions = transactions
 	block.dependency = dag
-	size := len(block.transactions)
+	size := int64(len(block.transactions))
 	if size == 0 {
 		size = 1
 	}
-	averPacking := packing / int64(len(block.transactions))
-	averPrepare := prepare / int64(len(block.transactions))
-	averExecute := execute / int64(len(block.transactions))
-	averUpdate := update / int64(len(block.transactions))
+	averPacking := packing / size
+	averPrepare := prepare / size
+	averExecute := execute / size
+	averUpdate := update / size
 
 	logging.CLog().WithFields(logrus.Fields{
 		"try":          try,
@@ -682,6 +689,10 @@ func (block *Block) CollectTransactions(deadline int64) {
 		"core-packing": execute + prepare + update,
 		"packed":       len(block.transactions),
 	}).Info("CollectTransactions")
+
+	// for i := 0; i < len(packings); i += 3 {
+	// 	logging.CLog().Infof("Packing Tx:%d, startAt:%d, endAt: %d, diff:%d", packings[i], packings[i+1], packings[i+2], packings[i+2]-packings[i+1])
+	// }
 	<-mergeCh
 }
 
@@ -984,18 +995,18 @@ func (block *Block) execute() error {
 	   	retry := 0
 	   	gc := 0 */
 	// Compatible
-	// dependency := dag.NewDag()
-	// one-by-one
-	/* 	for k, v := range block.transactions {
-		vk := v.Hash().String()
-		logging.CLog().Info("Add ", k)
-		dependency.AddNode(vk)
-		if k > 0 {
-			vk1 := block.transactions[k-1].Hash().String()
-			logging.CLog().Info("Link ", vk1, " ", vk)
-			dependency.AddEdge(vk1, vk)
-		}
-	} */
+	/* 	dependency := dag.NewDag()
+	   	// one-by-one
+	   	for k, v := range block.transactions {
+	   		vk := v.Hash().String()
+	   		logging.CLog().Info("Add ", k)
+	   		dependency.AddNode(vk)
+	   		if k > 0 {
+	   			vk1 := block.transactions[k-1].Hash().String()
+	   			logging.CLog().Info("Link ", vk1, " ", vk)
+	   			dependency.AddEdge(vk1, vk)
+	   		}
+	   	} */
 	// parallel, build dag
 	// logging.VLog().Info("01")
 	/* 	mergeCh := make(chan bool, 1)
@@ -1128,7 +1139,6 @@ func (block *Block) execute() error {
 
 	   	block.dependency = dependency
 	   	block.transactions = transactions */
-
 	context := &verifyCtx{
 		mergeCh: make(chan bool, 1),
 		block:   block,
@@ -1189,7 +1199,11 @@ func (block *Block) execute() error {
 
 // GetBalance returns balance for the given address on this block.
 func (block *Block) GetBalance(address byteutils.Hash) (*util.Uint128, error) {
-	account, err := block.WorldState().GetOrCreateUserAccount(address)
+	accState, err := block.WorldState().Clone()
+	if err != nil {
+		return nil, err
+	}
+	account, err := accState.GetOrCreateUserAccount(address)
 	if err != nil {
 		return nil, err
 	}
@@ -1198,7 +1212,11 @@ func (block *Block) GetBalance(address byteutils.Hash) (*util.Uint128, error) {
 
 // GetNonce returns nonce for the given address on this block.
 func (block *Block) GetNonce(address byteutils.Hash) (uint64, error) {
-	account, err := block.WorldState().GetOrCreateUserAccount(address)
+	accState, err := block.WorldState().Clone()
+	if err != nil {
+		return 0, err
+	}
+	account, err := accState.GetOrCreateUserAccount(address)
 	if err != nil {
 		return 0, err
 	}

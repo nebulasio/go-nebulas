@@ -20,15 +20,13 @@ package mvccdb
 
 import (
 	"errors"
-	"fmt"
 	"sync"
-	"time"
 
-	gmetrics "github.com/rcrowley/go-metrics"
+	// s "github.com/rcrowley/go-metrics"
 
 	"github.com/nebulasio/go-nebulas/metrics"
 	"github.com/nebulasio/go-nebulas/storage"
-	"github.com/nebulasio/go-nebulas/util/logging"
+	// om/nebulasio/go-nebulas/util/logging"
 )
 
 var (
@@ -70,10 +68,11 @@ type MVCCDB struct {
 	isTrieSameKeyCompatibility bool // The `isTrieSameKeyCompatibility` is used to prevent conflict in continuous changes with same key/value.
 	prefix                     string
 
-	getLogs    []int64
-	putLogs    []int64
-	getLatency gmetrics.Histogram
-	putLatency gmetrics.Histogram
+	/* 	getLogs    []int64
+	   	putLogs    []int64
+	   	getLatency gmetrics.Histogram
+	   	putLatency gmetrics.Histogram
+	*/
 }
 
 // NewMVCCDB create and return new MVCCDB. The `trieSameKeyCompatibility` is used to prevent conflict in continuous changes with same key/value.
@@ -89,12 +88,12 @@ func NewMVCCDB(storage storage.Storage, trieSameKeyCompatibility bool, prefix st
 		isPreparedDBClosed:         false,
 		preparedDBs:                make(map[interface{}]*MVCCDB),
 		isTrieSameKeyCompatibility: trieSameKeyCompatibility,
-		prefix:     prefix,
-		getLogs:    make([]int64, 0, 102400),
-		putLogs:    make([]int64, 0, 102400),
-		getLatency: metrics.NewHistogramWithUniformSample(fmt.Sprintf("get.%s", storage), 10240),
-		putLatency: metrics.NewHistogramWithUniformSample(fmt.Sprintf("put.%s", storage), 10240),
-	}
+		prefix: prefix,
+		/* 		getLogs:    make([]int64, 0, 102400),
+		   		putLogs:    make([]int64, 0, 102400),
+		   		getLatency: metrics.NewHistogramWithUniformSample(fmt.Sprintf("get.%s", storage), 10240),
+		   		putLatency: metrics.NewHistogramWithUniformSample(fmt.Sprintf("put.%s", storage), 10240),
+		*/}
 
 	db.tid = storage // as a placeholder.
 	db.stagingTable = NewStagingTable(storage, db.tid, trieSameKeyCompatibility, prefix)
@@ -146,7 +145,7 @@ func (db *MVCCDB) Commit() error {
 
 	// commit.
 	db.stagingTable.Lock()
-	logging.CLog().Info("MVCCDB Commit ", len(db.stagingTable.GetVersionizedValues()))
+	// logging.CLog().Info("MVCCDB Commit ", len(db.stagingTable.GetVersionizedValues()))
 
 	// enable batch.
 	db.storage.EnableBatch()
@@ -233,7 +232,7 @@ func (db *MVCCDB) RollBack() error {
 
 // Get value
 func (db *MVCCDB) Get(key []byte) ([]byte, error) {
-	s := time.Now().UnixNano()
+	// s := time.Now().UnixNano()
 
 	db.mutex.Lock()
 	defer db.mutex.Unlock()
@@ -252,10 +251,10 @@ func (db *MVCCDB) Get(key []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	delta := time.Now().UnixNano() - s
-	db.getLogs = append(db.getLogs, delta)
-	db.getLatency.Update(delta)
-
+	// delta := time.Now().UnixNano() - s
+	/* 	db.getLogs = append(db.getLogs, delta)
+	   	db.getLatency.Update(delta)
+	*/
 	if value.deleted || value.val == nil {
 		return nil, storage.ErrKeyNotFound
 	}
@@ -265,7 +264,7 @@ func (db *MVCCDB) Get(key []byte) ([]byte, error) {
 
 // Put value
 func (db *MVCCDB) Put(key []byte, val []byte) error {
-	s := time.Now().UnixNano()
+	// s := time.Now().UnixNano()
 
 	db.mutex.Lock()
 	defer db.mutex.Unlock()
@@ -285,9 +284,9 @@ func (db *MVCCDB) Put(key []byte, val []byte) error {
 		db.isDirtyDB = true
 	}
 
-	delta := time.Now().UnixNano() - s
-	db.putLogs = append(db.putLogs, delta)
-	db.putLatency.Update(delta)
+	// delta := time.Now().UnixNano() - s
+	// db.putLogs = append(db.putLogs, delta)
+	// db.putLatency.Update(delta)
 
 	return err
 }
@@ -347,10 +346,11 @@ func (db *MVCCDB) Prepare(tid interface{}) (*MVCCDB, error) {
 		isTrieSameKeyCompatibility: db.isTrieSameKeyCompatibility,
 		prefix: db.prefix,
 
-		getLogs:    make([]int64, 0, 102400),
-		putLogs:    make([]int64, 0, 102400),
-		getLatency: metrics.NewHistogramWithUniformSample(fmt.Sprintf("get.%s.%s", db.prefix, tid), 10240),
-		putLatency: metrics.NewHistogramWithUniformSample(fmt.Sprintf("put.%s.%s", db.prefix, tid), 10240),
+		/* 		getLogs:    make([]int64, 0, 102400),
+		   		putLogs:    make([]int64, 0, 102400),
+		   		getLatency: metrics.NewHistogramWithUniformSample(fmt.Sprintf("get.%s.%s", db.prefix, tid), 10240),
+		   		putLatency: metrics.NewHistogramWithUniformSample(fmt.Sprintf("put.%s.%s", db.prefix, tid), 10240),
+		*/
 	}
 
 	db.preparedDBs[tid] = preparedDB
@@ -383,19 +383,19 @@ func (db *MVCCDB) CheckAndUpdate() ([]interface{}, error) {
 		db.stagingTable.Purge()
 	}
 
-	logging.CLog().Infof("tid %s-%s: GET latency { %6.6f, %6.6f, %6.6f, %6.6f }; PUT latency { %6.6f, %6.6f, %6.6f, %6.6f }}",
-		db.prefix,
-		db.tid,
-		db.getLatency.Percentile(0.10),
-		db.getLatency.Percentile(0.50),
-		db.getLatency.Percentile(0.80),
-		db.getLatency.Percentile(0.90),
-		db.putLatency.Percentile(0.10),
-		db.putLatency.Percentile(0.50),
-		db.putLatency.Percentile(0.80),
-		db.putLatency.Percentile(0.90),
-	)
-
+	/* 	logging.CLog().Infof("tid %s-%s: GET latency { %6.6f, %6.6f, %6.6f, %6.6f }; PUT latency { %6.6f, %6.6f, %6.6f, %6.6f }}",
+	   		db.prefix,
+	   		db.tid,
+	   		db.getLatency.Percentile(0.10),
+	   		db.getLatency.Percentile(0.50),
+	   		db.getLatency.Percentile(0.80),
+	   		db.getLatency.Percentile(0.90),
+	   		db.putLatency.Percentile(0.10),
+	   		db.putLatency.Percentile(0.50),
+	   		db.putLatency.Percentile(0.80),
+	   		db.putLatency.Percentile(0.90),
+	   	)
+	*/
 	return ret, err
 }
 

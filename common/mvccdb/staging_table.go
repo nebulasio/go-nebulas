@@ -144,31 +144,24 @@ func (tbl *StagingTable) GetByKey(key []byte, loadFromStorage bool) (*Versionize
 		} else {
 			if loadFromStorage {
 				// load from storage.
-				logging.CLog().Infof("    ST.GET.%s %s %s %s", tbl.prefix, keyStr, "storage", loadFromStorage)
+				// logging.CLog().Infof("    ST.GET.%s %s %s %s", tbl.prefix, keyStr, "storage", loadFromStorage)
 				value, err = tbl.loadFromStorage(key)
 				if err != nil && err != storage.ErrKeyNotFound {
 					return nil, err
 				}
 			} else {
 				// logging.CLog().Infof("    ST.GET.%s %s %s %s", tbl.prefix, keyStr, "created", loadFromStorage)
-
 				value = NewDefaultVersionizedValueItem(key, nil, tbl.tid, 0)
 			}
 		}
 
-<<<<<<< HEAD
 		// lock and check again.
 		tbl.mutex.Lock()
-		v := tbl.versionizedValues[keyStr]
-		if v == nil {
+		regetValue := tbl.versionizedValues[keyStr]
+		if regetValue == nil {
 			tbl.versionizedValues[keyStr] = value
 		}
 		tbl.mutex.Unlock()
-=======
-		tbl.versionizedValues[keyStr] = value
-	} else {
-		// logging.CLog().Infof("    ST.GET.%s %s %s %s", tbl.prefix, keyStr, "this", loadFromStorage)
->>>>>>> common: staging_table.go. add metrics.
 	}
 
 	return value, nil

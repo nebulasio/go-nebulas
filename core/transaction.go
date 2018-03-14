@@ -394,7 +394,7 @@ func VerifyExecution(tx *Transaction, block *Block, txWorldState state.TxWorldSt
 			"block":       block,
 			"transaction": tx,
 		}).Debug("Failed to load payload.")
-		metricsTxExeFailed.Mark(1)
+		go metricsTxExeFailed.Mark(1)
 
 		if err := tx.recordGas(gasUsed, txWorldState); err != nil {
 			return err
@@ -413,7 +413,7 @@ func VerifyExecution(tx *Transaction, block *Block, txWorldState state.TxWorldSt
 			"block": block,
 			"tx":    tx,
 		}).Debug("Failed to check base gas used.")
-		metricsTxExeFailed.Mark(1)
+		go metricsTxExeFailed.Mark(1)
 
 		if err := tx.recordGas(tx.gasLimit, txWorldState); err != nil {
 			return err
@@ -442,7 +442,7 @@ func VerifyExecution(tx *Transaction, block *Block, txWorldState state.TxWorldSt
 			"block": block,
 			"tx":    tx,
 		}).Debug("Failed to check gas executed.")
-		metricsTxExeFailed.Mark(1)
+		go metricsTxExeFailed.Mark(1)
 
 		if err := block.Reset(tx); err != nil {
 			return err
@@ -464,7 +464,7 @@ func VerifyExecution(tx *Transaction, block *Block, txWorldState state.TxWorldSt
 			"gasExecution": gasExecution.String(),
 		}).Debug("Failed to execute payload.")
 
-		metricsTxExeFailed.Mark(1)
+		go metricsTxExeFailed.Mark(1)
 		tx.triggerEvent(txWorldState, block, TopicExecuteTxFailed, allGas, err)
 	} else {
 		// accept the transaction
@@ -472,7 +472,7 @@ func VerifyExecution(tx *Transaction, block *Block, txWorldState state.TxWorldSt
 			return err
 		}
 
-		metricsTxExeSuccess.Mark(1)
+		go metricsTxExeSuccess.Mark(1)
 		tx.triggerEvent(txWorldState, block, TopicExecuteTxSuccess, allGas, nil)
 	}
 

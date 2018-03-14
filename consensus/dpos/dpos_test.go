@@ -622,7 +622,7 @@ func TestDposTxBinary(t *testing.T) {
 
 	neb := mockNeb(t)
 
-	for i := 0; i < 10; i++ {
+	for i := 0; i < 5; i++ {
 		testMintBlock(t, neb, 100)
 	}
 
