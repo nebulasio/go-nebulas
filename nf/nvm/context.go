@@ -21,6 +21,7 @@ package nvm
 import (
 	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/core/state"
+	"github.com/nebulasio/go-nebulas/util"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
 )
 
@@ -36,6 +37,34 @@ type Block interface {
 	Height() uint64
 	GetTransaction(hash byteutils.Hash) (*core.Transaction, error)
 	RecordEvent(txHash byteutils.Hash, topic, data string) error
+}
+
+// Transaction interface breaks cycle import dependency and hides unused services.
+type Transaction interface {
+	Hash() byteutils.Hash
+	From() *core.Address
+	To() *core.Address
+	Value() *util.Uint128
+	Nonce() uint64
+	Timestamp() int64
+	GasPrice() *util.Uint128
+	GasLimit() *util.Uint128
+}
+
+// Account interface breaks cycle import dependency and hides unused services.
+type Account interface {
+	Balance() *util.Uint128
+	Nonce() uint64
+	AddBalance(value *util.Uint128) error
+	SubBalance(value *util.Uint128) error
+	Put(key []byte, value []byte) error
+	Get(key []byte) ([]byte, error)
+	Del(key []byte) error
+}
+
+// WorldState interface breaks cycle import dependency and hides unused services.
+type WorldState interface {
+	GetOrCreateUserAccount(addr []byte) (state.Account, error)
 }
 
 // SerializableAccount serializable account state
@@ -66,14 +95,14 @@ type SerializableTransaction struct {
 // Context nvm engine context
 type Context struct {
 	block    Block
-	tx       *core.Transaction //ToDo add interface limit
-	owner    state.Account
-	contract state.Account      //ToDo add interface limit
-	state    state.AccountState //ToDo add interface limit name->WorldState
+	tx       Transaction
+	owner    Account
+	contract Account
+	state    WorldState
 }
 
 // NewContext create a engine context
-func NewContext(block Block, tx *core.Transaction, owner state.Account, contract state.Account, state state.AccountState) *Context {
+func NewContext(block Block, tx Transaction, owner Account, contract Account, state WorldState) *Context {
 	ctx := &Context{
 		block:    block,
 		tx:       tx,
@@ -84,7 +113,7 @@ func NewContext(block Block, tx *core.Transaction, owner state.Account, contract
 	return ctx
 }
 
-func toSerializableAccount(acc state.Account) *SerializableAccount {
+func toSerializableAccount(acc Account) *SerializableAccount {
 	sAcc := &SerializableAccount{
 		Nonce:   acc.Nonce(),
 		Balance: acc.Balance().String(),
@@ -101,7 +130,7 @@ func toSerializableBlock(block Block) *SerializableBlock {
 	return sBlock
 }
 
-func toSerializableTransaction(tx *core.Transaction) *SerializableTransaction {
+func toSerializableTransaction(tx Transaction) *SerializableTransaction {
 	sTx := &SerializableTransaction{
 		From:      tx.From().String(),
 		To:        tx.To().String(),

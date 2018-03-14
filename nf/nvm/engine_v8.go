@@ -55,7 +55,6 @@ import (
 	"encoding/json"
 
 	lru "github.com/hashicorp/golang-lru"
-	"github.com/nebulasio/go-nebulas/core/state"
 	"github.com/nebulasio/go-nebulas/crypto/hash"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
 	"github.com/nebulasio/go-nebulas/util/logging"
@@ -450,7 +449,7 @@ func (e *V8Engine) prepareRunnableContractScript(source, function, args string) 
 	return runnableSource, 0, nil
 }
 
-func getEngineByStorageHandler(handler uint64) (*V8Engine, state.Account) {
+func getEngineByStorageHandler(handler uint64) (*V8Engine, Account) {
 	storagesLock.RLock()
 	engine := storages[handler]
 	storagesLock.RUnlock()
