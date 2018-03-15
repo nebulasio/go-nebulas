@@ -15,6 +15,7 @@ install:
 - mkdir /tmp/rocksdb && pushd /tmp/rocksdb
 - wget https://github.com/facebook/rocksdb/archive/v5.11.3.tar.gz
 - tar -xvf v5.11.3.tar.gz
+- cd rocksdb-5.11.3
 - sudo cp -r ./include/rocksdb/ /usr/include/
 - popd
 - sudo install native-lib/* /usr/local/lib
