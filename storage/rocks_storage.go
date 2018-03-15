@@ -7,17 +7,15 @@ import (
 	"github.com/tecbot/gorocksdb"
 )
 
-/*
-CGO_CFLAGS="-I/Users/fengzi/go/src/github.com/nebulasio/go-nebulas/storage/" \
-CGO_LDFLAGS="-L/Users/fengzi/go/src/github.com/nebulasio/go-nebulas/storage/rocksdb -lrocksdb -lstdc++ -lm -lz -lbz2 -lsnappy -llz4 -lzstd" \
-  go get github.com/tecbot/gorocksdb
-*/
 // RocksStorage the nodes in trie.
 type RocksStorage struct {
 	db          *gorocksdb.DB
 	enableBatch bool
 	mutex       sync.Mutex
 	batchOpts   map[string]*batchOpt
+
+	ro *gorocksdb.ReadOptions
+	wo *gorocksdb.WriteOptions
 }
 
 // NewRocksStorage init a storage
@@ -40,13 +38,15 @@ func NewRocksStorage(path string) (*RocksStorage, error) {
 		db:          db,
 		enableBatch: false,
 		batchOpts:   make(map[string]*batchOpt),
+		ro:          gorocksdb.NewDefaultReadOptions(),
+		wo:          gorocksdb.NewDefaultWriteOptions(),
 	}, nil
 }
 
 // Get return value to the key in Storage
 func (storage *RocksStorage) Get(key []byte) ([]byte, error) {
-	ro := gorocksdb.NewDefaultReadOptions()
-	value, err := storage.db.GetBytes(ro, key)
+
+	value, err := storage.db.GetBytes(storage.ro, key)
 
 	if err != nil {
 		return nil, err
@@ -73,8 +73,8 @@ func (storage *RocksStorage) Put(key []byte, value []byte) error {
 
 		return nil
 	}
-	wo := gorocksdb.NewDefaultWriteOptions()
-	return storage.db.Put(wo, key, value)
+
+	return storage.db.Put(storage.wo, key, value)
 }
 
 // Del delete the key in Storage.
@@ -90,8 +90,7 @@ func (storage *RocksStorage) Del(key []byte) error {
 
 		return nil
 	}
-	wo := gorocksdb.NewDefaultWriteOptions()
-	return storage.db.Delete(wo, key)
+	return storage.db.Delete(storage.wo, key)
 }
 
 // Close levelDB
@@ -110,8 +109,6 @@ func (storage *RocksStorage) Flush() error {
 	storage.mutex.Lock()
 	defer storage.mutex.Unlock()
 
-	wo := gorocksdb.NewDefaultWriteOptions()
-
 	wb := gorocksdb.NewWriteBatch()
 	defer wb.Clear()
 	for _, opt := range storage.batchOpts {
@@ -122,7 +119,7 @@ func (storage *RocksStorage) Flush() error {
 		}
 	}
 
-	return storage.db.Write(wo, wb)
+	return storage.db.Write(storage.wo, wb)
 }
 
 // DisableBatch disable batch write.
