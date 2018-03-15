@@ -39,14 +39,15 @@ import (
 
 // Consensus Related Constants
 const (
-	BlockInterval        = int64(5)
-	AcceptedNetWorkDelay = int64(2)
-	MaxMintDuration      = int64(1)
-	MinMintDuration      = int64(1)
-	DynastyInterval      = int64(60) // TODO(roy): 3600
-	DynastySize          = 1         // TODO(roy): 21
-	SafeSize             = DynastySize/3 + 1
-	ConsensusSize        = DynastySize*2/3 + 1
+	SecondInMs               = 1000
+	BlockIntervalInMs        = 5000
+	AcceptedNetWorkDelayInMs = 2000
+	MaxMintDurationInMs      = 1500
+	MinMintDurationInMs      = 1000
+	DynastyIntervalInMs      = 60000 // TODO(roy): 3600
+	DynastySize              = 1     // TODO(roy): 21
+	SafeSize                 = DynastySize/3 + 1
+	ConsensusSize            = DynastySize*2/3 + 1
 )
 
 // Errors in dpos state
@@ -66,7 +67,7 @@ var (
 
 // State carry context in dpos consensus
 type State struct {
-	timeStamp int64
+	timestamp int64
 	proposer  byteutils.Hash
 
 	dynastyTrie *trie.Trie // key: delegatee, val: delegatee
@@ -83,7 +84,7 @@ func (dpos *Dpos) NewState(root *consensuspb.ConsensusRoot, stor storage.Storage
 	}
 
 	return &State{
-		timeStamp: root.Timestamp,
+		timestamp: root.Timestamp,
 		proposer:  root.Proposer,
 
 		dynastyTrie: dynastyTrie,
@@ -95,14 +96,26 @@ func (dpos *Dpos) NewState(root *consensuspb.ConsensusRoot, stor storage.Storage
 
 // CheckTimeout check whether the block is timeout
 func (dpos *Dpos) CheckTimeout(block *core.Block) bool {
-	behind := time.Now().Unix() - block.Timestamp()
-	if behind > AcceptedNetWorkDelay {
+	nowInMs := time.Now().Unix() * SecondInMs
+	blockTimeInMs := block.Timestamp() * SecondInMs
+	if nowInMs < blockTimeInMs {
 		logging.VLog().WithFields(logrus.Fields{
 			"block": block,
-			"diff":  behind,
-			"limit": AcceptedNetWorkDelay,
-			"err":   "timeout",
-		}).Debug("Found a timeout block.")
+			"now":   nowInMs,
+			"diff":  blockTimeInMs - nowInMs,
+			"err":   "timeout - future block",
+		}).Debug("Found a future block.")
+		return false
+	}
+	behindInMs := nowInMs - blockTimeInMs
+	if behindInMs > AcceptedNetWorkDelayInMs {
+		logging.VLog().WithFields(logrus.Fields{
+			"block": block,
+			"now":   nowInMs,
+			"diff":  behindInMs,
+			"limit": AcceptedNetWorkDelayInMs,
+			"err":   "timeout - expired block",
+		}).Debug("Found a expired block.")
 		return true
 	}
 	return false
@@ -132,7 +145,7 @@ func (dpos *Dpos) GenesisConsensusState(chain *core.BlockChain, conf *corepb.Gen
 		}
 	}
 	return &State{
-		timeStamp: core.GenesisTimestamp,
+		timestamp: core.GenesisTimestamp,
 		proposer:  nil,
 
 		dynastyTrie: dynastyTrie,
@@ -148,13 +161,13 @@ func (ds *State) String() string {
 		proposer = ds.proposer.String()
 	}
 	return fmt.Sprintf(`{"timestamp": %d, "proposer": "%s", "dynasty": "%s"}`,
-		ds.timeStamp,
+		ds.timestamp,
 		proposer,
 		byteutils.Hex(ds.dynastyTrie.RootHash()),
 	)
 }
 
-//replay a dpos
+// Replay a dpos
 func (ds *State) Replay(done state.ConsensusState) error {
 	state := done.(*State)
 	if _, err := ds.dynastyTrie.Replay(state.dynastyTrie); err != nil {
@@ -171,7 +184,7 @@ func (ds *State) Clone() (state.ConsensusState, error) {
 		return nil, ErrCloneDynastyTrie
 	}
 	return &State{
-		timeStamp: ds.timeStamp,
+		timestamp: ds.timestamp,
 		proposer:  ds.proposer,
 
 		dynastyTrie: dynastyTrie,
@@ -202,11 +215,12 @@ func (ds *State) DynastyRoot() byteutils.Hash {
 
 // FindProposer for now in given dynasty
 func FindProposer(now int64, dynasty *trie.Trie) (proposer byteutils.Hash, err error) {
-	offset := now % DynastyInterval
-	if offset%BlockInterval != 0 {
+	nowInMs := now * SecondInMs
+	offsetInMs := nowInMs % DynastyIntervalInMs
+	if offsetInMs%BlockIntervalInMs != 0 {
 		return nil, ErrNotBlockForgTime
 	}
-	offset /= BlockInterval
+	offset := offsetInMs / BlockIntervalInMs
 	offset %= DynastySize
 	delegatees, err := TraverseDynasty(dynasty)
 	if err != nil {
@@ -233,12 +247,13 @@ func (ds *State) Proposer() byteutils.Hash {
 
 // TimeStamp return the current timestamp
 func (ds *State) TimeStamp() int64 {
-	return ds.timeStamp
+	return ds.timestamp
 }
 
 // NextConsensusState return the new state after some seconds elapsed
 func (ds *State) NextConsensusState(elapsedSecond int64, worldState state.WorldState) (state.ConsensusState, error) {
-	if elapsedSecond%BlockInterval != 0 {
+	elapsedSecondInMs := elapsedSecond * SecondInMs
+	if elapsedSecondInMs%BlockIntervalInMs != 0 {
 		return nil, ErrNotBlockForgTime
 	}
 
@@ -248,7 +263,7 @@ func (ds *State) NextConsensusState(elapsedSecond int64, worldState state.WorldS
 	}
 
 	consensusState := &State{
-		timeStamp: ds.timeStamp + elapsedSecond,
+		timestamp: ds.timestamp + elapsedSecond,
 
 		dynastyTrie: dynastyTrie,
 
@@ -256,7 +271,7 @@ func (ds *State) NextConsensusState(elapsedSecond int64, worldState state.WorldS
 		consensus: ds.consensus,
 	}
 
-	consensusState.proposer, err = FindProposer(consensusState.timeStamp, consensusState.dynastyTrie)
+	consensusState.proposer, err = FindProposer(consensusState.timestamp, consensusState.dynastyTrie)
 	if err != nil {
 		return nil, err
 	}

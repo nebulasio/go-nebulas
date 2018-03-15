@@ -200,7 +200,7 @@ func TestChunk_generateChunkMeta(t *testing.T) {
 
 	blocks := []*core.Block{}
 	for i := 0; i < 96; i++ {
-		context, err := chain.TailBlock().WorldState().NextConsensusState(dpos.BlockInterval)
+		context, err := chain.TailBlock().WorldState().NextConsensusState(dpos.BlockIntervalInMs / dpos.SecondInMs)
 		assert.Nil(t, err)
 		coinbase, err := core.AddressParseFromBytes(context.Proposer())
 		assert.Nil(t, err)
@@ -208,7 +208,7 @@ func TestChunk_generateChunkMeta(t *testing.T) {
 		block, err := chain.NewBlock(coinbase)
 		assert.Nil(t, err)
 		block.WorldState().SetConsensusState(context)
-		block.SetTimestamp(dpos.BlockInterval * int64(i+1))
+		block.SetTimestamp((dpos.BlockIntervalInMs / dpos.SecondInMs) * int64(i+1))
 		block.SetMiner(coinbase)
 		assert.Nil(t, block.Seal())
 		assert.Nil(t, neb.am.SignBlock(coinbase, block))

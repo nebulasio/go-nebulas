@@ -459,7 +459,7 @@ func (block *Block) ReturnTransactions() {
 }
 
 // CollectTransactions and add them to block.
-func (block *Block) CollectTransactions(deadline int64) {
+func (block *Block) CollectTransactions(deadlineInMs int64) {
 	metricsBlockPackTxTime.Update(0)
 	if block.sealed {
 		logging.VLog().WithFields(logrus.Fields{
@@ -467,15 +467,16 @@ func (block *Block) CollectTransactions(deadline int64) {
 		}).Fatal("Sealed block can't be changed.")
 	}
 
-	elapse := deadline - time.Now().Unix()
+	secondInMs := int64(1000)
+	elapseInMs := deadlineInMs - time.Now().Unix()*secondInMs
 	logging.VLog().WithFields(logrus.Fields{
-		"elapse": elapse,
+		"elapse": elapseInMs,
 	}).Info("Time to pack txs.")
-	metricsBlockPackTxTime.Update(elapse)
-	if elapse <= 0 {
+	metricsBlockPackTxTime.Update(elapseInMs)
+	if elapseInMs <= 0 {
 		return
 	}
-	deadlineTimer := time.NewTimer(time.Duration(elapse) * time.Second)
+	deadlineTimer := time.NewTimer(time.Duration(elapseInMs) * time.Millisecond)
 
 	pool := block.txPool
 
@@ -486,7 +487,7 @@ func (block *Block) CollectTransactions(deadline int64) {
 	transactions := []*Transaction{}
 	inprogress := new(sync.Map)
 
-	parallelCh := make(chan bool, 1)
+	parallelCh := make(chan bool, 32)
 	mergeCh := make(chan bool, 1)
 	over := false
 	try := 0
@@ -1335,7 +1336,7 @@ func RecoverMiner(block *Block) (*Address, error) {
 // LoadBlockFromStorage return a block from storage
 func LoadBlockFromStorage(hash byteutils.Hash, chain *BlockChain) (*Block, error) {
 	value, err := chain.storage.Get(hash)
-	logging.VLog().Info("241", hash.String())
+	logging.VLog().Info("241 ", hash.String())
 	if err != nil {
 		return nil, err
 	}

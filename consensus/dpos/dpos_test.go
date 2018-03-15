@@ -51,8 +51,8 @@ type Neb struct {
 }
 
 func mockNeb(t *testing.T) *Neb {
-	storage, _ := storage.NewDiskStorage("test.db")
-	//storage, _ := storage.NewRocksStorage("rocks.db")
+	// storage, _ := storage.NewDiskStorage("test.db")
+	storage, _ := storage.NewRocksStorage("rocks.db")
 	//storage, _ := storage.NewMemoryStorage()
 	eventEmitter := core.NewEventEmitter(1024)
 	genesisConf := MockGenesisConf()
@@ -623,7 +623,7 @@ func TestDposTxBinary(t *testing.T) {
 	neb := mockNeb(t)
 
 	for i := 0; i < 5; i++ {
-		testMintBlock(t, neb, 100)
+		testMintBlock(t, neb, 500)
 	}
 
 	return
