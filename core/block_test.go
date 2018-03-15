@@ -488,12 +488,43 @@ func TestBlock_fetchEvents(t *testing.T) {
 		&state.Event{Topic: "chain.block", Data: "hello"},
 		&state.Event{Topic: "chain.block", Data: "hello"},
 	}
+	err := tail.worldState.Begin()
+	assert.Nil(t, err)
+	tx := &Transaction{hash: []byte("tx")}
+	txWorldState, err := tail.worldState.Prepare(tx)
+	assert.Nil(t, err)
+	for _, event := range events {
+		assert.Nil(t, txWorldState.RecordEvent(tx.Hash(), event))
+	}
+	_, err = tail.worldState.CheckAndUpdate(tx)
+	assert.Nil(t, err)
+
+	es, err := tail.FetchEvents(tx.Hash())
+	assert.Nil(t, err)
+	assert.Equal(t, len(events), len(es))
+	for idx, event := range es {
+		assert.Equal(t, events[idx], event)
+	}
+}
+
+func TestBlock_fetchCacheEventsOfCurBlock(t *testing.T) {
+	neb := testNeb(t)
+	bc := neb.chain
+
+	tail := bc.tailBlock
+	events := []*state.Event{
+		&state.Event{Topic: "chain.block", Data: "hello"},
+		&state.Event{Topic: "chain.tx", Data: "hello"},
+		&state.Event{Topic: "chain.block", Data: "hello"},
+		&state.Event{Topic: "chain.block", Data: "hello"},
+	}
 	tx := &Transaction{hash: []byte("tx")}
 	for _, event := range events {
 		assert.Nil(t, tail.worldState.RecordEvent(tx.Hash(), event))
 	}
-	es, err := tail.FetchEvents(tx.Hash())
+	es, err := tail.FetchCacheEventsOfCurBlock(tx.Hash())
 	assert.Nil(t, err)
+	assert.Equal(t, len(events), len(es))
 	for idx, event := range es {
 		assert.Equal(t, events[idx], event)
 	}
@@ -553,18 +584,6 @@ func TestGivebackInvalidTx(t *testing.T) {
 	timer := time.NewTimer(time.Second).C
 	<-timer
 	assert.Equal(t, len(bc.txPool.all), 1)
-}
-
-func TestRecordEvent(t *testing.T) {
-	neb := testNeb(t)
-	bc := neb.chain
-	txHash := []byte("hello")
-	assert.Nil(t, bc.tailBlock.RecordEvent(txHash, TopicSendTransaction, "world"))
-	events, err := bc.tailBlock.FetchEvents(txHash)
-	assert.Nil(t, err)
-	assert.Equal(t, len(events), 1)
-	assert.Equal(t, events[0].Topic, TopicSendTransaction)
-	assert.Equal(t, events[0].Data, "world")
 }
 
 func TestBlockVerifyIntegrity(t *testing.T) {

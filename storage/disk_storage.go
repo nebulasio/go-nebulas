@@ -50,9 +50,11 @@ func NewDiskStorage(path string) (*DiskStorage, error) {
 		BlockSize:              4 * opt.MiB,
 		Filter:                 filter.NewBloomFilter(10),
 	})
+
 	if err != nil {
 		return nil, err
 	}
+
 	return &DiskStorage{
 		db:          db,
 		enableBatch: false,

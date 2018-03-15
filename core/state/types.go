@@ -148,6 +148,7 @@ type WorldState interface {
 
 	RecordEvent(txHash byteutils.Hash, event *Event) error
 	FetchEvents(byteutils.Hash) ([]*Event, error)
+	FetchCacheEventsOfCurBlock(byteutils.Hash) ([]*Event, error)
 
 	Dynasty() ([]byteutils.Hash, error)
 	DynastyRoot() byteutils.Hash

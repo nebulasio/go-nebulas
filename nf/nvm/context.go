@@ -42,12 +42,12 @@ type Block interface {
 	Height() uint64
 	VerifyAddress(str string) bool
 	SerializeTxByHash(hash byteutils.Hash) (proto.Message, error)
-	RecordEvent(txHash byteutils.Hash, topic, data string) error
 }
 
 // TxWorldState interface of world state
 type TxWorldState interface {
 	GetOrCreateUserAccount(addr byteutils.Hash) (state.Account, error)
+	RecordEvent(txHash byteutils.Hash, event *state.Event) error
 }
 
 // AccountState context account state

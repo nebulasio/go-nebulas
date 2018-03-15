@@ -66,6 +66,8 @@ type states struct {
 	txid      interface{}
 
 	gasConsumed map[string]*util.Uint128
+
+	events map[string][]*Event
 }
 
 func newStates(consensus Consensus, stor storage.Storage) (*states, error) {
@@ -104,6 +106,7 @@ func newStates(consensus Consensus, stor storage.Storage) (*states, error) {
 		txid:      nil,
 
 		gasConsumed: make(map[string]*util.Uint128),
+		events:      make(map[string][]*Event),
 	}, nil
 }
 
@@ -113,10 +116,7 @@ func (s *states) Replay(done *states) error {
 	if err != nil {
 		return err
 	}
-	_, err = s.txsState.Replay(done.txsState)
-	if err != nil {
-		return err
-	}
+
 	_, err = s.eventsState.Replay(done.eventsState)
 	if err != nil {
 		return err
@@ -137,6 +137,40 @@ func (s *states) Replay(done *states) error {
 		if err != nil {
 			return err
 		}
+	}
+
+	//reply event
+	err = s.ReplayEvent(done)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *states) ReplayEvent(done *states) error {
+
+	//replay event
+	for tx, events := range done.events {
+		txHash, err := byteutils.FromHex(tx)
+		if err != nil {
+			return err
+		}
+		for idx, event := range events {
+			cnt := int64(idx + 1)
+
+			key := append(txHash, byteutils.FromInt64(cnt)...)
+			bytes, err := json.Marshal(event)
+			if err != nil {
+				return err
+			}
+
+			_, err = s.eventsState.Put(key, bytes)
+			if err != nil {
+				return err
+			}
+		}
+		s.events[tx] = done.events[tx]
 	}
 
 	return nil
@@ -190,6 +224,7 @@ func (s *states) Clone() (WorldState, error) {
 		txid:      s.txid,
 
 		gasConsumed: make(map[string]*util.Uint128),
+		events:      make(map[string][]*Event),
 	}, nil
 }
 
@@ -277,6 +312,7 @@ func (s *states) Prepare(txid interface{}) (TxWorldState, error) {
 		txid:      txid,
 
 		gasConsumed: make(map[string]*util.Uint128),
+		events:      make(map[string][]*Event, 0),
 	}, nil
 }
 
@@ -396,40 +432,42 @@ func (s *states) PutTx(txHash byteutils.Hash, txBytes []byte) error {
 }
 
 func (s *states) RecordEvent(txHash byteutils.Hash, event *Event) error {
-	iter, err := s.eventsState.Iterator(txHash)
-	if err != nil && err != storage.ErrKeyNotFound {
-		return err
+
+	events, ok := s.events[txHash.String()]
+	if !ok {
+		events = make([]*Event, 0)
 	}
-	cnt := int64(0)
-	if err != storage.ErrKeyNotFound {
-		exist, err := iter.Next()
-		if err != nil {
-			return err
-		}
-		for exist {
-			cnt++
-			exist, err = iter.Next()
-			if err != nil {
-				return err
-			}
-		}
-	}
-	cnt++
+
+	cnt := int64(len(s.events) + 1)
+
 	key := append(txHash, byteutils.FromInt64(cnt)...)
 	bytes, err := json.Marshal(event)
 	if err != nil {
 		return err
 	}
-	_, err = s.eventsState.Put(key, bytes)
-	if err != nil {
-		return err
-	}
+
+	s.events[txHash.String()] = append(events, event)
+
 	// record change log
 	if err := s.changelog.Put(key, bytes); err != nil {
 		return err
 	}
 	// logging.CLog().Info(s.txid, " [ChangeLog.Put] Event:", byteutils.Hex(key))
 	return nil
+}
+
+func (s *states) FetchCacheEventsOfCurBlock(txHash byteutils.Hash) ([]*Event, error) {
+	txevents, ok := s.events[txHash.String()]
+	if !ok {
+		return nil, nil
+	}
+
+	events := []*Event{}
+	for _, event := range txevents {
+		events = append(events, event)
+	}
+
+	return events, nil
 }
 
 func (s *states) FetchEvents(txHash byteutils.Hash) ([]*Event, error) {

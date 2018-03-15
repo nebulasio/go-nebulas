@@ -571,7 +571,7 @@ func (block *Block) CollectTransactions(deadlineInMs int64) {
 				executedAt := time.Now().UnixNano()
 				execute += executedAt - executeAt
 				if err != nil {
-					logging.VLog().WithFields(logrus.Fields{
+					logging.CLog().WithFields(logrus.Fields{
 						"tx":       tx,
 						"err":      err,
 						"giveback": giveback,
@@ -842,7 +842,7 @@ func (block *Block) triggerEvent() {
 		}
 		block.eventEmitter.Trigger(event)
 
-		events, err := block.FetchEvents(v.hash)
+		events, err := block.FetchCacheEventsOfCurBlock(v.hash)
 		if err != nil {
 			for _, e := range events {
 				block.eventEmitter.Trigger(e)
@@ -1224,15 +1224,14 @@ func (block *Block) GetNonce(address byteutils.Hash) (uint64, error) {
 	return account.Nonce(), nil
 }
 
-// RecordEvent record event's topic and data with txHash
-func (block *Block) RecordEvent(txHash byteutils.Hash, topic, data string) error {
-	event := &state.Event{Topic: topic, Data: data}
-	return block.WorldState().RecordEvent(txHash, event)
-}
-
 // FetchEvents fetch events by txHash.
 func (block *Block) FetchEvents(txHash byteutils.Hash) ([]*state.Event, error) {
 	return block.WorldState().FetchEvents(txHash)
+}
+
+// FetchCacheEventsOfCurBlock fetch events by txHash.
+func (block *Block) FetchCacheEventsOfCurBlock(txHash byteutils.Hash) ([]*state.Event, error) {
+	return block.WorldState().FetchCacheEventsOfCurBlock(txHash)
 }
 
 func (block *Block) rewardCoinbaseForMint() error {
