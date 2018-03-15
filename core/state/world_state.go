@@ -116,7 +116,10 @@ func (s *states) Replay(done *states) error {
 	if err != nil {
 		return err
 	}
-
+	_, err = s.txsState.Replay(done.txsState)
+	if err != nil {
+		return err
+	}
 	_, err = s.eventsState.Replay(done.eventsState)
 	if err != nil {
 		return err
