@@ -38,7 +38,7 @@ func EventTriggerFunc(handler unsafe.Pointer, topic, data *C.char) {
 			"category": 0, // ChainEventCategory.
 			"topic":    gTopic,
 			"data":     gData,
-		}).Error("Event.Trigger delegate handler does not found.") // ToRefine: change to error log
+		}).Error("Event.Trigger delegate handler does not found.")
 		return
 	}
 

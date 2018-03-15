@@ -203,7 +203,7 @@ func (e *V8Engine) SetExecutionLimits(limitsOfExecutionInstructions, limitsOfTot
 	e.limitsOfTotalMemorySize = limitsOfTotalMemorySize
 
 	if limitsOfExecutionInstructions == 0 || limitsOfTotalMemorySize == 0 {
-		logging.CLog().Errorf("limit args has empty. limitsOfExecutionInstructions:%v,limitsOfTotalMemorySize:%d", limitsOfExecutionInstructions, limitsOfTotalMemorySize)
+		logging.VLog().Errorf("limit args has empty. limitsOfExecutionInstructions:%v,limitsOfTotalMemorySize:%d", limitsOfExecutionInstructions, limitsOfTotalMemorySize)
 		return ErrLimitHasEmpty
 	}
 	// V8 needs at least 6M heap memory.
@@ -247,7 +247,7 @@ func (e *V8Engine) InjectTracingInstructions(source string) (string, int, error)
 	}
 	defer C.free(unsafe.Pointer(traceableCSource))
 
-	return C.GoString(traceableCSource), int(lineOffset), nil //ToDo check lineOffset -> Done
+	return C.GoString(traceableCSource), int(lineOffset), nil
 }
 
 // CollectTracingStats collect tracing data from v8 engine.
@@ -300,7 +300,7 @@ func (e *V8Engine) RunScriptSource(source string, sourceLineOffset int) (result 
 
 		// wait for C.RunScriptSource() returns.
 		select {
-		case <-done: //ToDo change <-done
+		case <-done:
 		}
 	}
 
@@ -329,7 +329,7 @@ func (e *V8Engine) DeployAndInit(source, sourceType, args string) (string, error
 // Call function in a script
 func (e *V8Engine) Call(source, sourceType, function, args string) (string, error) {
 	if publicFuncNameChecker.MatchString(function) == false {
-		logging.CLog().Errorf("function:%v", function)
+		logging.VLog().Errorf("function:%v", function)
 		return "", ErrDisallowCallNotStandardFunction
 	}
 	if strings.EqualFold("init", function) == true {
@@ -461,7 +461,7 @@ func getEngineByStorageHandler(handler uint64) (*V8Engine, Account) {
 		logging.VLog().WithFields(logrus.Fields{
 			"func":          "nvm.getEngineByStorageHandler",
 			"wantedHandler": handler,
-		}).Error("wantedHandler is not found.") //ToRefine change log to error
+		}).Error("wantedHandler is not found.")
 		return nil, nil
 	}
 
@@ -477,7 +477,7 @@ func getEngineByStorageHandler(handler uint64) (*V8Engine, Account) {
 			"lcsHandler":    engine.lcsHandler,
 			"gcsHandler":    engine.gcsHandler,
 			"wantedHandler": handler,
-		}).Error("in-consistent storage handler.") //ToRefine change log to error
+		}).Error("in-consistent storage handler.")
 		return nil, nil
 	}
 }

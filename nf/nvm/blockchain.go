@@ -101,16 +101,16 @@ func TransferFunc(handler unsafe.Pointer, to *C.char, v *C.char) int {
 	engine, _ := getEngineByStorageHandler(uint64(uintptr(handler)))
 	if engine == nil || engine.ctx.block == nil {
 		logging.VLog().Error("get engine failed!")
-		return TransferGetEngineErr // ToRefine: change to enum: ExecutionFailed = 1
+		return TransferGetEngineErr
 	}
 
-	addr, err := core.AddressParse(C.GoString(to)) // TOAdd: add different error code return
+	addr, err := core.AddressParse(C.GoString(to))
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"handler": uint64(uintptr(handler)),
 			"key":     C.GoString(to),
 		}).Error("TransferFunc parse address failed.")
-		return TransferAddressParseErr // ToRefine: change to enum: ExecutionFailed = 1
+		return TransferAddressParseErr
 	}
 
 	toAcc, err := engine.ctx.state.GetOrCreateUserAccount(addr.Bytes())
@@ -120,7 +120,7 @@ func TransferFunc(handler unsafe.Pointer, to *C.char, v *C.char) int {
 			"address": addr,
 			"err":     err,
 		}).Error("GetAccountStateFunc get account state failed.")
-		return TransferGetAccountErr // ToRefine: change to enum: ExecutionFailed = 1
+		return TransferGetAccountErr
 	}
 
 	amount, err := util.NewUint128FromString(C.GoString(v))
@@ -130,7 +130,7 @@ func TransferFunc(handler unsafe.Pointer, to *C.char, v *C.char) int {
 			"address": addr,
 			"err":     err,
 		}).Error("GetAmountFunc get amount failed.")
-		return TransferStringToBigIntErr // ToRefine: change to enum: ExecutionFailed = 1
+		return TransferStringToBigIntErr
 	}
 
 	// update balance
@@ -141,7 +141,7 @@ func TransferFunc(handler unsafe.Pointer, to *C.char, v *C.char) int {
 			"key":     C.GoString(to),
 			"err":     err,
 		}).Error("TransferFunc SubBalance failed.")
-		return TransferSubBalance // ToRefine: change to enum: ExecutionFailed = 1
+		return TransferSubBalance
 	}
 
 	err = toAcc.AddBalance(amount)
@@ -152,9 +152,9 @@ func TransferFunc(handler unsafe.Pointer, to *C.char, v *C.char) int {
 			"address": addr,
 			"err":     err,
 		}).Error("failed to add balance")
-		return TransferAddBalance // ToRefine: change to enum: ExecutionFailed = 1
+		return TransferAddBalance
 	}
-	return TransferFuncSuccess // ToRefine: change to enum: ExecutionSuccess = 1
+	return TransferFuncSuccess
 }
 
 // VerifyAddressFunc verify address is valid

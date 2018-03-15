@@ -35,7 +35,7 @@ func NewNebulasVM() core.Engine {
 }
 
 // CreateEngine start engine
-func (nvm *NebulasVM) CreateEngine(block *core.Block, tx *core.Transaction, owner, contract state.Account, state state.AccountState) error { //ToRefine: use interface in context
+func (nvm *NebulasVM) CreateEngine(block *core.Block, tx *core.Transaction, owner, contract state.Account, state state.AccountState) error {
 	if nvm.engine != nil {
 		return ErrEngineRepeatedStart
 	}

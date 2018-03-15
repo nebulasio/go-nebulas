@@ -58,7 +58,7 @@ type Context struct {
 }
 
 // NewContext create a engine context
-func NewContext(block Block, tx Transaction, owner Account, contract Account, state WorldState) (*Context, error) { //ToAdd check params not nil
+func NewContext(block Block, tx Transaction, owner Account, contract Account, state WorldState) (*Context, error) {
 	if block == nil || tx == nil || owner == nil || contract == nil || state == nil {
 		return nil, ErrContextConstructArrEmpty
 	}
