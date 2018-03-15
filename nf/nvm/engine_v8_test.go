@@ -626,8 +626,8 @@ func TestRunMozillaJSTestSuite(t *testing.T) {
 			engine := NewV8Engine(ctx)
 			engine.SetTestingFlag(true)
 			engine.enableLimits = true
-			ret, err := engine.RunScriptSource(buf.String(), 0)
-			fmt.Sprintf("ret:%v, err:%v", ret, err)
+			_, err = engine.RunScriptSource(buf.String(), 0)
+			//t.Logf("ret:%v, err:%v", ret, err)
 			assert.Nil(t, err)
 		}
 	}

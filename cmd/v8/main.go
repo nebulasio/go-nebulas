@@ -37,12 +37,14 @@ func main() {
 	owner, _ := context.GetOrCreateUserAccount([]byte("account1"))
 	contract, _ := context.CreateContractAccount([]byte("account2"), nil)
 
-	ctx := nvm.NewContext(nil, nil, owner, contract, context)
-	engine := nvm.NewV8Engine(ctx)
-	result, err := engine.RunScriptSource(string(data), 0)
+	ctx, err := nvm.NewContext(nil, nil, owner, contract, context)
+	if err != nil {
+		engine := nvm.NewV8Engine(ctx)
+		result, err := engine.RunScriptSource(string(data), 0)
 
-	log.Fatalf("Result is %s. Err is %s", result, err)
+		log.Fatalf("Result is %s. Err is %s", result, err)
 
-	time.Sleep(10 * time.Second)
-	engine.Dispose()
+		time.Sleep(10 * time.Second)
+		engine.Dispose()
+	}
 }
