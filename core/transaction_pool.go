@@ -334,9 +334,11 @@ func (pool *TransactionPool) PopWithBlacklist(blacklist *sync.Map) *Transaction 
 	for i := 0; i < size; i++ {
 		tx := pool.candidates.Index(i).(*Transaction)
 		if _, ok := blacklist.Load(tx.from.address.Hex()); !ok {
-			pool.candidates.Del(tx)
-			pool.popTx(tx)
-			return tx
+			if _, ok := blacklist.Load(tx.to.address.Hex()); !ok {
+				pool.candidates.Del(tx)
+				pool.popTx(tx)
+				return tx
+			}
 		}
 	}
 	return nil
