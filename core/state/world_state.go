@@ -40,7 +40,7 @@ func newChangeLog() (*mvccdb.MVCCDB, error) {
 	if err != nil {
 		return nil, err
 	}
-	db, err := mvccdb.NewMVCCDB(mem, false, "changelog")
+	db, err := mvccdb.NewMVCCDB(mem, false)
 	if err != nil {
 		return nil, err
 	}
@@ -50,7 +50,7 @@ func newChangeLog() (*mvccdb.MVCCDB, error) {
 }
 
 func newStorage(storage storage.Storage) (*mvccdb.MVCCDB, error) {
-	return mvccdb.NewMVCCDB(storage, true, "storage")
+	return mvccdb.NewMVCCDB(storage, true)
 }
 
 type states struct {

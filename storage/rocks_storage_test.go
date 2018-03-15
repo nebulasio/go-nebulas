@@ -17,7 +17,7 @@ func TestNewRocksStorage(t *testing.T) {
 		want    *RocksStorage
 		wantErr bool
 	}{
-		// TODO: Add test cases.
+	// TODO: Add test cases.
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -32,7 +32,7 @@ func TestNewRocksStorage(t *testing.T) {
 		})
 	}
 
-	s, err := NewRocksStorage("./test.db/")
+	s, err := NewRocksStorage("./rock.db/")
 	assert.Nil(t, err)
 
 	key := []byte("key")

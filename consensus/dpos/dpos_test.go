@@ -24,7 +24,6 @@ import (
 	"testing"
 
 	"github.com/nebulasio/go-nebulas/util"
-	"github.com/nebulasio/go-nebulas/util/logging"
 
 	"time"
 
@@ -52,8 +51,9 @@ type Neb struct {
 
 func mockNeb(t *testing.T) *Neb {
 	// storage, _ := storage.NewDiskStorage("test.db")
-	storage, _ := storage.NewRocksStorage("rocks.db")
-	//storage, _ := storage.NewMemoryStorage()
+	// storage, err := storage.NewRocksStorage("rocks.db")
+	// assert.Nil(t, err)
+	storage, _ := storage.NewMemoryStorage()
 	eventEmitter := core.NewEventEmitter(1024)
 	genesisConf := MockGenesisConf()
 	dpos := NewDpos()
@@ -259,14 +259,14 @@ func TestDpos_VerifySign(t *testing.T) {
 	neb := mockNeb(t)
 	tail := neb.chain.TailBlock()
 
-	elapsedSecond := int64(DynastySize*BlockInterval + DynastyInterval)
-	consensusState, err := tail.WorldState().NextConsensusState(elapsedSecond)
+	elapsedSecondInMs := int64(DynastySize*BlockIntervalInMs + DynastyIntervalInMs)
+	consensusState, err := tail.WorldState().NextConsensusState(elapsedSecondInMs / SecondInMs)
 	assert.Nil(t, err)
 	coinbase, err := core.AddressParse("1a263547d167c74cf4b8f9166cfa244de0481c514a45aa2c")
 	assert.Nil(t, err)
 	block, err := core.NewBlock(neb.chain.ChainID(), coinbase, tail)
 	assert.Nil(t, err)
-	block.SetTimestamp(DynastySize*BlockInterval + DynastyInterval)
+	block.SetTimestamp((DynastySize*BlockIntervalInMs + DynastyIntervalInMs) / SecondInMs)
 	block.WorldState().SetConsensusState(consensusState)
 	block.SetMiner(coinbase)
 	block.Seal()
@@ -302,8 +302,8 @@ func TestForkChoice(t *testing.T) {
 
 	addr0 := GetUnlockAddress(t, am, "2fe3f9f51f9a05dd5f7c5329127f7c917917149b4e16b0b8")
 	block0, _ := neb.chain.NewBlock(addr0)
-	block0.SetTimestamp(BlockInterval)
-	consensusState, err := neb.BlockChain().TailBlock().WorldState().NextConsensusState(BlockInterval)
+	block0.SetTimestamp(BlockIntervalInMs / SecondInMs)
+	consensusState, err := neb.BlockChain().TailBlock().WorldState().NextConsensusState(BlockIntervalInMs / SecondInMs)
 	assert.Nil(t, err)
 	block0.WorldState().SetConsensusState(consensusState)
 	block0.SetMiner(addr0)
@@ -316,12 +316,12 @@ func TestForkChoice(t *testing.T) {
 	addr1 := GetUnlockAddress(t, am, "333cb3ed8c417971845382ede3cf67a0a96270c05fe2f700")
 	block11, err := neb.chain.NewBlock(addr1)
 	assert.Nil(t, err)
-	consensusState, err = block0.WorldState().NextConsensusState(BlockInterval)
+	consensusState, err = block0.WorldState().NextConsensusState(BlockIntervalInMs / SecondInMs)
 	assert.Nil(t, err)
 	block11.WorldState().SetConsensusState(consensusState)
 	state := consensusState.(*State)
 	state.TimeStamp()
-	block11.SetTimestamp(BlockInterval * 2)
+	block11.SetTimestamp((BlockIntervalInMs * 2) / SecondInMs)
 	block11.SetMiner(addr1)
 	block11.Seal()
 	am.SignBlock(addr1, block11)
@@ -332,10 +332,10 @@ func TestForkChoice(t *testing.T) {
 	addr2 := GetUnlockAddress(t, am, "48f981ed38910f1232c1bab124f650c482a57271632db9e3")
 	block12, err := neb.chain.NewBlockFromParent(addr2, block0)
 	assert.Nil(t, err)
-	consensusState, err = block0.WorldState().NextConsensusState(BlockInterval * 2)
+	consensusState, err = block0.WorldState().NextConsensusState(BlockIntervalInMs * 2 / SecondInMs)
 	assert.Nil(t, err)
 	block12.WorldState().SetConsensusState(consensusState)
-	block12.SetTimestamp(BlockInterval * 3)
+	block12.SetTimestamp(BlockIntervalInMs * 3 / SecondInMs)
 	block12.SetMiner(addr2)
 	block12.Seal()
 	am.SignBlock(addr2, block12)
@@ -350,10 +350,10 @@ func TestForkChoice(t *testing.T) {
 	addr3 := GetUnlockAddress(t, am, "59fc526072b09af8a8ca9732dae17132c4e9127e43cf2232")
 	block111, err := neb.chain.NewBlockFromParent(addr3, block11)
 	assert.Nil(t, err)
-	consensusState, err = block11.WorldState().NextConsensusState(BlockInterval * 2)
+	consensusState, err = block11.WorldState().NextConsensusState(BlockIntervalInMs * 2 / SecondInMs)
 	assert.Nil(t, err)
 	block111.WorldState().SetConsensusState(consensusState)
-	block111.SetTimestamp(BlockInterval * 4)
+	block111.SetTimestamp(BlockIntervalInMs * 4 / SecondInMs)
 	block111.SetMiner(addr3)
 	block111.Seal()
 	am.SignBlock(addr3, block111)
@@ -381,7 +381,7 @@ func TestVerifyBlock(t *testing.T) {
 	manager := account.NewManager(nil)
 	assert.Nil(t, dpos.EnableMining("passphrase"))
 
-	elapsedSecond := int64(DynastyInterval)
+	elapsedSecond := DynastyIntervalInMs / SecondInMs
 	consensusState, err := tail.WorldState().NextConsensusState(elapsedSecond)
 	assert.Nil(t, err)
 	block, err := core.NewBlock(neb.chain.ChainID(), coinbase, tail)
@@ -393,7 +393,7 @@ func TestVerifyBlock(t *testing.T) {
 	assert.Nil(t, manager.SignBlock(coinbase, block))
 	assert.NotNil(t, dpos.VerifyBlock(block), ErrInvalidBlockInterval)
 
-	elapsedSecond = int64(DynastyInterval)
+	elapsedSecond = DynastyIntervalInMs / SecondInMs
 	consensusState, err = tail.WorldState().NextConsensusState(elapsedSecond)
 	block, err = core.NewBlock(neb.chain.ChainID(), coinbase, tail)
 	assert.Nil(t, err)
@@ -404,7 +404,7 @@ func TestVerifyBlock(t *testing.T) {
 	assert.Nil(t, manager.SignBlock(coinbase, block))
 	assert.Nil(t, dpos.VerifyBlock(block))
 
-	elapsedSecond = int64(DynastySize*BlockInterval + DynastyInterval)
+	elapsedSecond = (DynastySize*BlockIntervalInMs + DynastyIntervalInMs) / SecondInMs
 	consensusState, err = tail.WorldState().NextConsensusState(elapsedSecond)
 	block, err = core.NewBlock(neb.chain.ChainID(), coinbase, tail)
 	assert.Nil(t, err)
@@ -427,10 +427,10 @@ func TestDpos_MintBlock(t *testing.T) {
 	assert.Equal(t, dpos.mintBlock(0), ErrCannotMintWhenPending)
 
 	dpos.ResumeMining()
-	assert.Equal(t, dpos.mintBlock(BlockInterval), ErrInvalidBlockProposer)
+	assert.Equal(t, dpos.mintBlock(BlockIntervalInMs/SecondInMs), ErrInvalidBlockProposer)
 
 	received = []byte{}
-	assert.Equal(t, dpos.mintBlock(DynastyInterval), nil)
+	assert.Equal(t, dpos.mintBlock(DynastyIntervalInMs/SecondInMs), nil)
 	assert.NotEqual(t, received, []byte{})
 }
 
@@ -446,13 +446,13 @@ func TestDposContracts(t *testing.T) {
 
 	assert.Nil(t, err)
 
-	elapsedSecond := int64(DynastyInterval)
+	elapsedSecond := BlockIntervalInMs / SecondInMs
 	consensusState, err := tail.WorldState().NextConsensusState(elapsedSecond)
 	assert.Nil(t, err)
 	block, err := core.NewBlock(neb.chain.ChainID(), coinbase, tail)
 	assert.Nil(t, err)
-	block.SetTimestamp(consensusState.TimeStamp())
 	block.WorldState().SetConsensusState(consensusState)
+	block.SetTimestamp(consensusState.TimeStamp())
 
 	manager := account.NewManager(nil)
 	assert.Nil(t, dpos.EnableMining("passphrase"))
@@ -536,7 +536,7 @@ func TestDposContracts(t *testing.T) {
 		*/
 	}
 
-	block.CollectTransactions(time.Now().Unix() + 1)
+	block.CollectTransactions((time.Now().Unix() + 1) * SecondInMs)
 	assert.Equal(t, 8*(j-1), len(block.Transactions()))
 	block.SetMiner(coinbase)
 	assert.Nil(t, block.Seal())
@@ -570,18 +570,17 @@ func testMintBlock(t *testing.T, neb *Neb, num int) {
 	//h, _ := core.AddressParse("b49f30d0e5c9c88cade54cd1adecf6bc2c7e0e5af646d903")
 	//m, _ := core.AddressParse("fc751b484bd5296f8d267a8537d33f25a848f7f7af8cfcf6")
 
-	elapsedSecond := int64(DynastyInterval)
+	elapsedSecond := int64(BlockIntervalInMs / SecondInMs)
 	consensusState, err := neb.chain.TailBlock().WorldState().NextConsensusState(elapsedSecond)
 	assert.Nil(t, err)
 
 	block, err := core.NewBlock(neb.chain.ChainID(), coinbase, neb.chain.TailBlock())
 	assert.Nil(t, err)
-	block.SetTimestamp(consensusState.TimeStamp())
 	block.WorldState().SetConsensusState(consensusState)
+	block.SetTimestamp(consensusState.TimeStamp())
 	acc, _ := block.WorldState().GetOrCreateUserAccount(a.Bytes())
 	nonce := int(acc.Nonce())
 
-	logging.CLog().Info("nonce:", nonce)
 	for i := 1; i < num; i++ {
 		gas, _ := util.NewUint128FromInt(1000000)
 		limit, _ := util.NewUint128FromInt(200000)
@@ -607,7 +606,7 @@ func testMintBlock(t *testing.T, neb *Neb, num int) {
 		//assert.Nil(t, neb.chain.TransactionPool().Push(tx))
 	}
 
-	block.CollectTransactions(time.Now().Unix() + 1)
+	block.CollectTransactions((time.Now().Unix() + 1) * SecondInMs)
 	assert.Equal(t, 4*(num-1), len(block.Transactions()))
 	block.SetMiner(coinbase)
 	assert.Nil(t, block.Seal())
@@ -623,7 +622,7 @@ func TestDposTxBinary(t *testing.T) {
 	neb := mockNeb(t)
 
 	for i := 0; i < 5; i++ {
-		testMintBlock(t, neb, 500)
+		testMintBlock(t, neb, 100)
 	}
 
 	return

@@ -63,11 +63,10 @@ type StagingTable struct {
 	preparedStagingTables           map[interface{}]*StagingTable
 	isTrieSameKeyCompatibility      bool // The `isTrieSameKeyCompatibility` is used to prevent conflict in continuous changes with same key/value.
 	disableStrictGlobalVersionCheck bool // default `true`
-	prefix                          string
 }
 
 // NewStagingTable return new instance of StagingTable.
-func NewStagingTable(storage storage.Storage, tid interface{}, trieSameKeyCompatibility bool, prefix string) *StagingTable {
+func NewStagingTable(storage storage.Storage, tid interface{}, trieSameKeyCompatibility bool) *StagingTable {
 	tbl := &StagingTable{
 		storage:            storage,
 		globalVersion:      0,
@@ -78,7 +77,6 @@ func NewStagingTable(storage storage.Storage, tid interface{}, trieSameKeyCompat
 		preparedStagingTables:           make(map[interface{}]*StagingTable),
 		isTrieSameKeyCompatibility:      trieSameKeyCompatibility,
 		disableStrictGlobalVersionCheck: true,
-		prefix: prefix,
 	}
 	return tbl
 }
@@ -105,7 +103,6 @@ func (tbl *StagingTable) Prepare(tid interface{}) (*StagingTable, error) {
 		preparedStagingTables:           make(map[interface{}]*StagingTable),
 		isTrieSameKeyCompatibility:      tbl.isTrieSameKeyCompatibility,
 		disableStrictGlobalVersionCheck: tbl.disableStrictGlobalVersionCheck,
-		prefix: tbl.prefix,
 	}
 
 	tbl.preparedStagingTables[tid] = preparedTbl

@@ -548,9 +548,7 @@ func (dpos *Dpos) blockLoop() {
 	for {
 		select {
 		case now := <-timeChan:
-			if err := dpos.mintBlock(now.Unix()); err != nil {
-				logging.CLog().Info(err)
-			}
+			dpos.mintBlock(now.Unix())
 		case <-dpos.quitCh:
 			logging.CLog().Info("Stopped Dpos Mining.")
 			return
