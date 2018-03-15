@@ -55,7 +55,7 @@ func (nvm *NebulasVM) CreateEngine(block *core.Block, tx *core.Transaction, owne
 		contract: contract,
 		state:    state,
 	}
-	nvm.engine = NewV8Engine(ctx)
+	nvm.engine = NewV8Engine(ctx, true)
 	return nil
 }
 
@@ -64,8 +64,7 @@ func (nvm *NebulasVM) SetEngineExecutionLimits(limitsOfExecutionInstructions uin
 	if nvm.engine == nil {
 		return ErrEngineNotStart
 	}
-	nvm.engine.SetExecutionLimits(limitsOfExecutionInstructions, DefaultLimitsOfTotalMemorySize)
-	return nil
+	return nvm.engine.SetExecutionLimits(limitsOfExecutionInstructions, DefaultLimitsOfTotalMemorySize)
 }
 
 // DeployAndInitEngine deploy and init source

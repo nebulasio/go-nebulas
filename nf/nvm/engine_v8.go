@@ -69,15 +69,18 @@ const (
 
 // Errors
 var (
-	ErrExecutionFailed                = errors.New("execution failed")
-	ErrDisallowCallPrivateFunction    = errors.New("disallow call private function")
-	ErrExecutionTimeout               = errors.New("execution timeout")
-	ErrInsufficientGas                = errors.New("insufficient gas")
-	ErrExceedMemoryLimits             = errors.New("exceed memory limits")
-	ErrInjectTracingInstructionFailed = errors.New("inject tracing instructions failed")
-	ErrTranspileTypeScriptFailed      = errors.New("transpile TypeScript failed")
-	ErrUnsupportedSourceType          = errors.New("unsupported source type")
-	ErrArgumentsFormat                = errors.New("arguments format error")
+	ErrExecutionFailed                 = errors.New("execution failed")
+	ErrDisallowCallPrivateFunction     = errors.New("disallow call private function")
+	ErrExecutionTimeout                = errors.New("execution timeout")
+	ErrInsufficientGas                 = errors.New("insufficient gas")
+	ErrExceedMemoryLimits              = errors.New("exceed memory limits")
+	ErrInjectTracingInstructionFailed  = errors.New("inject tracing instructions failed")
+	ErrTranspileTypeScriptFailed       = errors.New("transpile TypeScript failed")
+	ErrUnsupportedSourceType           = errors.New("unsupported source type")
+	ErrArgumentsFormat                 = errors.New("arguments format error")
+	ErrLimitHasEmpty                   = errors.New("limit args has empty")
+	ErrSetMemorySmall                  = errors.New("set memory small than v8 limit")
+	ErrDisallowCallNotStandardFunction = errors.New("disallow call not standard function")
 )
 
 var (
@@ -138,7 +141,7 @@ func DisposeV8Engine() {
 }
 
 // NewV8Engine return new V8Engine instance.
-func NewV8Engine(ctx *Context) *V8Engine { //ToDo add args to enableLimits
+func NewV8Engine(ctx *Context, enableLimits bool) *V8Engine {
 	v8engineOnce.Do(func() {
 		InitV8Engine()
 	})
@@ -147,7 +150,7 @@ func NewV8Engine(ctx *Context) *V8Engine { //ToDo add args to enableLimits
 		ctx:                                ctx,
 		modules:                            NewModules(),
 		v8engine:                           C.CreateEngine(),
-		enableLimits:                       false,
+		enableLimits:                       enableLimits,
 		limitsOfExecutionInstructions:      0,
 		limitsOfTotalMemorySize:            0,
 		actualCountOfExecutionInstructions: 0,
@@ -204,7 +207,7 @@ func (e *V8Engine) SetTestingFlag(flag bool) {
 }
 
 // SetExecutionLimits set execution limits of V8 Engine, prevent Halting Problem.
-func (e *V8Engine) SetExecutionLimits(limitsOfExecutionInstructions, limitsOfTotalMemorySize uint64) {
+func (e *V8Engine) SetExecutionLimits(limitsOfExecutionInstructions, limitsOfTotalMemorySize uint64) error {
 	e.v8engine.limits_of_executed_instructions = C.size_t(limitsOfExecutionInstructions)
 	e.v8engine.limits_of_total_memory_size = C.size_t(limitsOfTotalMemorySize)
 
@@ -215,12 +218,17 @@ func (e *V8Engine) SetExecutionLimits(limitsOfExecutionInstructions, limitsOfTot
 
 	e.limitsOfExecutionInstructions = limitsOfExecutionInstructions
 	e.limitsOfTotalMemorySize = limitsOfTotalMemorySize
-	e.enableLimits = limitsOfExecutionInstructions != 0 || limitsOfTotalMemorySize != 0 //ToDo if enableLimits == true limitsOfExecutionInstructions or limitsOfTotalMemorySize empty then return err
 
+	if limitsOfExecutionInstructions == 0 || limitsOfTotalMemorySize == 0 {
+		logging.CLog().Errorf("limit args has empty. limitsOfExecutionInstructions:%v,limitsOfTotalMemorySize:%d", limitsOfExecutionInstructions, limitsOfTotalMemorySize)
+		return ErrLimitHasEmpty
+	}
 	// V8 needs at least 6M heap memory.
 	if limitsOfTotalMemorySize > 0 && limitsOfTotalMemorySize < 6000000 {
 		logging.VLog().Warnf("V8 needs at least 6M (6000000) heap memory, your limitsOfTotalMemorySize (%d) is too low.", limitsOfTotalMemorySize)
+		return ErrSetMemorySmall
 	}
+	return nil
 }
 
 // ExecutionInstructions returns the execution instructions
@@ -256,7 +264,7 @@ func (e *V8Engine) InjectTracingInstructions(source string) (string, int, error)
 	}
 	defer C.free(unsafe.Pointer(traceableCSource))
 
-	return C.GoString(traceableCSource), int(lineOffset), nil //ToDo check lineOffset
+	return C.GoString(traceableCSource), int(lineOffset), nil //ToDo check lineOffset -> Done
 }
 
 // CollectTracingStats collect tracing data from v8 engine.
@@ -316,21 +324,18 @@ func (e *V8Engine) RunScriptSource(source string, sourceLineOffset int) (result 
 	// collect tracing stats.
 	e.CollectTracingStats()
 
-	if e.enableLimits {
-		// check limits.
-		ret = C.IsEngineLimitsExceeded(e.v8engine) //ToDo delete IsEngineLimitsExceeded
-		if ret == 1 {
-			err = ErrInsufficientGas
-		} else if ret == 2 {
-			err = ErrExceedMemoryLimits
-		}
-
-		if e.actualCountOfExecutionInstructions > e.limitsOfExecutionInstructions || err == ErrExceedMemoryLimits { //ToDo ErrExceedMemoryLimits value is same in each linux
-			e.actualCountOfExecutionInstructions = e.limitsOfExecutionInstructions //ToDo memory pass whether exhaust
-		}
+	if e.limitsOfExecutionInstructions > 0 && e.limitsOfExecutionInstructions < e.actualCountOfExecutionInstructions {
+		// Reach instruction limits.
+		err = ErrInsufficientGas
+	} else if e.limitsOfTotalMemorySize > 0 && e.limitsOfTotalMemorySize < e.actualTotalMemorySize {
+		// reach memory limits.
+		err = ErrExceedMemoryLimits
+	}
+	if e.actualCountOfExecutionInstructions > e.limitsOfExecutionInstructions || err == ErrExceedMemoryLimits { //ToDo ErrExceedMemoryLimits value is same in each linux
+		e.actualCountOfExecutionInstructions = e.limitsOfExecutionInstructions //ToDo memory pass whether exhaust ?
 	}
 
-	return
+	return "", err
 }
 
 // DeployAndInit a contract
@@ -340,8 +345,12 @@ func (e *V8Engine) DeployAndInit(source, sourceType, args string) (string, error
 
 // Call function in a script
 func (e *V8Engine) Call(source, sourceType, function, args string) (string, error) {
-	if publicFuncNameChecker.MatchString(function) == false || strings.EqualFold("init", function) == true { //ToDo check match
-		return "", ErrDisallowCallPrivateFunction //ToDo change err code
+	if publicFuncNameChecker.MatchString(function) == false {
+		logging.CLog().Errorf("function:%v", function)
+		return "", ErrDisallowCallNotStandardFunction
+	}
+	if strings.EqualFold("init", function) == true {
+		return "", ErrDisallowCallPrivateFunction
 	}
 	return e.RunContractScript(source, sourceType, function, args)
 }
@@ -441,10 +450,19 @@ func (e *V8Engine) prepareRunnableContractScript(source, function, args string) 
 		if err := json.Unmarshal([]byte(args), &argsObj); err != nil {
 			return "", 0, ErrArgumentsFormat
 		}
-
-		runnableSource = fmt.Sprintf("var __contract = require(\"%s\");\n var __instance = new __contract();\n Blockchain.blockParse(\"%s\");\n Blockchain.transactionParse(\"%s\");\n __instance[\"%s\"].apply(__instance, JSON.parse(\"%s\"));\n", ModuleID, formatArgs(string(blockJSON)), formatArgs(string(txJSON)), function, formatArgs(args))
+		runnableSource = fmt.Sprintf(`var __contract = require("%s");
+				var __instance = new __contract();
+				Blockchain.blockParse("%s");
+				Blockchain.transactionParse("%s");
+				__instance["%s"].apply(__instance, JSON.parse("%s"));`,
+			ModuleID, formatArgs(string(blockJSON)), formatArgs(string(txJSON)), function, formatArgs(args))
 	} else {
-		runnableSource = fmt.Sprintf("var __contract = require(\"%s\");\n var __instance = new __contract();\n Blockchain.blockParse(\"%s\");\n Blockchain.transactionParse(\"%s\");\n __instance[\"%s\"].apply(__instance);\n", ModuleID, formatArgs(string(blockJSON)), formatArgs(string(txJSON)), function) //ToDo code newline
+		runnableSource = fmt.Sprintf(`var __contract = require("%s");
+				var __instance = new __contract();
+				Blockchain.blockParse("%s");
+				Blockchain.transactionParse("%s");
+				__instance["%s"].apply(__instance);`,
+			ModuleID, formatArgs(string(blockJSON)), formatArgs(string(txJSON)), function)
 	}
 	return runnableSource, 0, nil
 }
@@ -458,7 +476,7 @@ func getEngineByStorageHandler(handler uint64) (*V8Engine, Account) {
 		logging.VLog().WithFields(logrus.Fields{
 			"func":          "nvm.getEngineByStorageHandler",
 			"wantedHandler": handler,
-		}).Debug("wantedHandler is not found.") //ToRefine change log to error
+		}).Error("wantedHandler is not found.") //ToRefine change log to error
 		return nil, nil
 	}
 
@@ -474,7 +492,7 @@ func getEngineByStorageHandler(handler uint64) (*V8Engine, Account) {
 			"lcsHandler":    engine.lcsHandler,
 			"gcsHandler":    engine.gcsHandler,
 			"wantedHandler": handler,
-		}).Debug("in-consistent storage handler.") //ToRefine change log to error
+		}).Error("in-consistent storage handler.") //ToRefine change log to error
 		return nil, nil
 	}
 }

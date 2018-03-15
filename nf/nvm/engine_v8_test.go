@@ -129,7 +129,7 @@ func TestRunScriptSource(t *testing.T) {
 			contract, _ := context.CreateContractAccount([]byte("account2"), nil)
 			ctx := NewContext(mockBlock(), mockTransaction(), owner, contract, context)
 
-			engine := NewV8Engine(ctx)
+			engine := NewV8Engine(ctx, true)
 			engine.SetExecutionLimits(900000, 10000000)
 			_, err = engine.RunScriptSource(string(data), 0)
 			assert.Equal(t, tt.expectedErr, err)
@@ -166,7 +166,7 @@ func TestRunScriptSourceInModule(t *testing.T) {
 			contract, _ := context.CreateContractAccount([]byte("account2"), nil)
 			ctx := NewContext(mockBlock(), mockTransaction(), owner, contract, context)
 
-			engine := NewV8Engine(ctx)
+			engine := NewV8Engine(ctx, true)
 			engine.SetExecutionLimits(100000, 10000000)
 			engine.AddModule(tt.filepath, string(data), 0)
 			runnableSource := fmt.Sprintf("require(\"%s\");", tt.filepath)
@@ -210,7 +210,7 @@ func TestRunScriptSourceWithLimits(t *testing.T) {
 
 			// direct run.
 			(func() {
-				engine := NewV8Engine(ctx)
+				engine := NewV8Engine(ctx, true)
 				engine.SetExecutionLimits(tt.limitsOfExecutionInstructions, tt.limitsOfTotalMemorySize)
 				_, err = engine.RunScriptSource(string(data), 0)
 				assert.Equal(t, tt.expectedErr, err)
@@ -222,7 +222,7 @@ func TestRunScriptSourceWithLimits(t *testing.T) {
 				moduleID := fmt.Sprintf("./%s", tt.filepath)
 				runnableSource := fmt.Sprintf("require(\"%s\");", moduleID)
 
-				engine := NewV8Engine(ctx)
+				engine := NewV8Engine(ctx, true)
 				engine.SetExecutionLimits(tt.limitsOfExecutionInstructions, tt.limitsOfTotalMemorySize)
 				engine.AddModule(moduleID, string(data), 0)
 				_, err = engine.RunScriptSource(runnableSource, 0)
@@ -254,7 +254,7 @@ func TestRunScriptSourceTimeout(t *testing.T) {
 
 			// direct run.
 			(func() {
-				engine := NewV8Engine(ctx)
+				engine := NewV8Engine(ctx, true)
 				_, err = engine.RunScriptSource(string(data), 0)
 				assert.Equal(t, ErrExecutionTimeout, err)
 				engine.Dispose()
@@ -265,7 +265,7 @@ func TestRunScriptSourceTimeout(t *testing.T) {
 				moduleID := fmt.Sprintf("./%s", tt.filepath)
 				runnableSource := fmt.Sprintf("require(\"%s\");", moduleID)
 
-				engine := NewV8Engine(ctx)
+				engine := NewV8Engine(ctx, true)
 				engine.AddModule(moduleID, string(data), 0)
 				_, err = engine.RunScriptSource(runnableSource, 0)
 				assert.Equal(t, ErrExecutionTimeout, err)
@@ -299,19 +299,19 @@ func TestDeployAndInitAndCall(t *testing.T) {
 			contract, _ := context.CreateContractAccount([]byte("account2"), nil)
 
 			ctx := NewContext(mockBlock(), mockTransaction(), owner, contract, context)
-			engine := NewV8Engine(ctx)
+			engine := NewV8Engine(ctx, true)
 			engine.SetExecutionLimits(10000, 10000000)
 			_, err = engine.DeployAndInit(string(data), tt.sourceType, tt.initArgs)
 			assert.Nil(t, err)
 			engine.Dispose()
 
-			engine = NewV8Engine(ctx)
+			engine = NewV8Engine(ctx, true)
 			engine.SetExecutionLimits(10000, 10000000)
 			_, err = engine.Call(string(data), tt.sourceType, "dump", "")
 			assert.Nil(t, err)
 			engine.Dispose()
 
-			engine = NewV8Engine(ctx)
+			engine = NewV8Engine(ctx, true)
 			engine.SetExecutionLimits(10000, 10000000)
 			_, err = engine.Call(string(data), tt.sourceType, "verify", tt.verifyArgs)
 			assert.Nil(t, err)
@@ -326,7 +326,7 @@ func TestDeployAndInitAndCall(t *testing.T) {
 			assert.Nil(t, err)
 
 			ctx = NewContext(mockBlock(), mockTransaction(), owner, contract, context)
-			engine = NewV8Engine(ctx)
+			engine = NewV8Engine(ctx, true)
 			engine.SetExecutionLimits(10000, 10000000)
 			_, err = engine.Call(string(data), tt.sourceType, "verify", tt.verifyArgs)
 			assert.NotNil(t, err)
@@ -381,7 +381,7 @@ func TestContracts(t *testing.T) {
 			ctx := NewContext(mockBlock(), mockTransaction(), owner, contract, context)
 
 			// deploy and init.
-			engine := NewV8Engine(ctx)
+			engine := NewV8Engine(ctx, true)
 			engine.SetExecutionLimits(1000, 10000000)
 			_, err = engine.DeployAndInit(string(data), tt.sourceType, tt.initArgs)
 			assert.Nil(t, err)
@@ -389,7 +389,7 @@ func TestContracts(t *testing.T) {
 
 			// call.
 			for _, fields := range tt.calls {
-				engine = NewV8Engine(ctx)
+				engine = NewV8Engine(ctx, true)
 				engine.SetExecutionLimits(1000, 10000000)
 				_, err = engine.Call(string(data), tt.sourceType, fields.function, fields.args)
 				assert.Nil(t, err)
@@ -410,8 +410,8 @@ func TestFunctionNameCheck(t *testing.T) {
 		{"dump_1", nil, ""},
 		{"init", ErrDisallowCallPrivateFunction, ""},
 		{"Init", ErrDisallowCallPrivateFunction, ""},
-		{"9dump", ErrDisallowCallPrivateFunction, ""},
-		{"_dump", ErrDisallowCallPrivateFunction, ""},
+		{"9dump", ErrDisallowCallNotStandardFunction, ""},
+		{"_dump", ErrDisallowCallNotStandardFunction, ""},
 	}
 
 	for _, tt := range tests {
@@ -428,7 +428,7 @@ func TestFunctionNameCheck(t *testing.T) {
 			contract, _ := context.CreateContractAccount([]byte("account2"), nil)
 			ctx := NewContext(mockBlock(), mockTransaction(), owner, contract, context)
 
-			engine := NewV8Engine(ctx)
+			engine := NewV8Engine(ctx, true)
 			engine.SetExecutionLimits(1000, 10000000)
 			_, err = engine.Call(string(data), sourceType, tt.function, tt.args)
 			assert.Equal(t, tt.expectedErr, err)
@@ -453,7 +453,7 @@ func TestMultiEngine(t *testing.T) {
 
 			ctx := NewContext(mockBlock(), mockTransaction(), owner, contract, context)
 
-			engine := NewV8Engine(ctx)
+			engine := NewV8Engine(ctx, true)
 			engine.SetExecutionLimits(1000, 10000000)
 			defer engine.Dispose()
 
@@ -503,7 +503,7 @@ func TestInstructionCounterTestSuite(t *testing.T) {
 			moduleID := tt.filepath
 			runnableSource := fmt.Sprintf("require(\"%s\");", moduleID)
 
-			engine := NewV8Engine(ctx)
+			engine := NewV8Engine(ctx, true)
 			engine.enableLimits = true
 			err = engine.AddModule(moduleID, string(data), 0)
 			if err != nil {
@@ -542,7 +542,7 @@ func TestTypeScriptExecution(t *testing.T) {
 			moduleID := tt.filepath
 			runnableSource := fmt.Sprintf("require(\"%s\");", moduleID)
 
-			engine := NewV8Engine(ctx)
+			engine := NewV8Engine(ctx, true)
 			defer engine.Dispose()
 
 			engine.enableLimits = true
@@ -619,10 +619,11 @@ func TestRunMozillaJSTestSuite(t *testing.T) {
 				buf.ReadFrom(reader)
 			}
 			// execute.
-			engine := NewV8Engine(ctx)
+			engine := NewV8Engine(ctx, true)
 			engine.SetTestingFlag(true)
 			engine.enableLimits = true
-			_, err = engine.RunScriptSource(buf.String(), 0)
+			ret, err := engine.RunScriptSource(buf.String(), 0)
+			fmt.Sprintf("ret:%v, err:%v", ret, err)
 			assert.Nil(t, err)
 		}
 	}
@@ -652,7 +653,7 @@ func TestBlockChain(t *testing.T) {
 			assert.Nil(t, err)
 
 			ctx := NewContext(mockBlock(), mockTransaction(), owner, contract, context)
-			engine := NewV8Engine(ctx)
+			engine := NewV8Engine(ctx, true)
 			engine.SetExecutionLimits(100000, 10000000)
 			_, err = engine.RunScriptSource(string(data), 0)
 			assert.Equal(t, tt.expectedErr, err)
@@ -715,14 +716,14 @@ func TestBankVaultContract(t *testing.T) {
 			ctx := NewContext(mockBlock(), tx, owner, contract, context)
 
 			// execute.
-			engine := NewV8Engine(ctx)
+			engine := NewV8Engine(ctx, true)
 			engine.SetExecutionLimits(10000, 100000000)
 			_, err = engine.DeployAndInit(string(data), tt.sourceType, "")
 			assert.Nil(t, err)
 			engine.Dispose()
 
 			// call save.
-			engine = NewV8Engine(ctx)
+			engine = NewV8Engine(ctx, true)
 			engine.SetExecutionLimits(10000, 100000000)
 			_, err = engine.Call(string(data), tt.sourceType, "save", tt.saveArgs)
 			assert.Nil(t, err)
@@ -737,7 +738,7 @@ func TestBankVaultContract(t *testing.T) {
 			// call takeout.
 			for _, tot := range tt.takeoutTests {
 				// call balanceOf.
-				engine = NewV8Engine(ctx)
+				engine = NewV8Engine(ctx, true)
 				engine.SetExecutionLimits(10000, 100000000)
 				balance, err := engine.Call(string(data), tt.sourceType, "balanceOf", "")
 				assert.Nil(t, err)
@@ -747,14 +748,14 @@ func TestBankVaultContract(t *testing.T) {
 				assert.Equal(t, tot.beforeBalance, bal.Balance)
 				engine.Dispose()
 
-				engine = NewV8Engine(ctx)
+				engine = NewV8Engine(ctx, true)
 				engine.SetExecutionLimits(10000, 100000000)
 				_, err = engine.Call(string(data), tt.sourceType, "takeout", tot.args)
 				assert.Equal(t, err, tot.expectedErr)
 				engine.Dispose()
 
 				// call balanceOf.
-				engine = NewV8Engine(ctx)
+				engine = NewV8Engine(ctx, true)
 				engine.SetExecutionLimits(10000, 100000000)
 				balance, err = engine.Call(string(data), tt.sourceType, "balanceOf", "")
 				assert.Nil(t, err)
@@ -788,7 +789,7 @@ func TestEvent(t *testing.T) {
 			contract, _ := context.CreateContractAccount([]byte("16464b93292d7c99099d4d982a05140f12779f5e299d6eb4"), nil)
 
 			ctx := NewContext(mockBlock(), mockTransaction(), owner, contract, context)
-			engine := NewV8Engine(ctx)
+			engine := NewV8Engine(ctx, true)
 			engine.SetExecutionLimits(100000, 10000000)
 			_, err = engine.RunScriptSource(string(data), 0)
 			engine.Dispose()
@@ -844,7 +845,7 @@ func TestNRC20Contract(t *testing.T) {
 			ctx := NewContext(mockBlock(), tx, owner, contract, context)
 
 			// execute.
-			engine := NewV8Engine(ctx)
+			engine := NewV8Engine(ctx, true)
 			engine.SetExecutionLimits(10000, 100000000)
 			args := fmt.Sprintf("[\"%s\", \"%s\", %d, \"%s\"]", tt.name, tt.symbol, tt.decimals, tt.totalSupply)
 			_, err = engine.DeployAndInit(string(data), tt.sourceType, args)
@@ -852,7 +853,7 @@ func TestNRC20Contract(t *testing.T) {
 			engine.Dispose()
 
 			// call name.
-			engine = NewV8Engine(ctx)
+			engine = NewV8Engine(ctx, true)
 			engine.SetExecutionLimits(10000, 100000000)
 			name, err := engine.Call(string(data), tt.sourceType, "name", "")
 			assert.Nil(t, err)
@@ -863,7 +864,7 @@ func TestNRC20Contract(t *testing.T) {
 			engine.Dispose()
 
 			// call symbol.
-			engine = NewV8Engine(ctx)
+			engine = NewV8Engine(ctx, true)
 			engine.SetExecutionLimits(10000, 100000000)
 			symbol, err := engine.Call(string(data), tt.sourceType, "symbol", "")
 			assert.Nil(t, err)
@@ -875,7 +876,7 @@ func TestNRC20Contract(t *testing.T) {
 			engine.Dispose()
 
 			// call decimals.
-			engine = NewV8Engine(ctx)
+			engine = NewV8Engine(ctx, true)
 			engine.SetExecutionLimits(10000, 100000000)
 			decimals, err := engine.Call(string(data), tt.sourceType, "decimals", "")
 			assert.Nil(t, err)
@@ -887,7 +888,7 @@ func TestNRC20Contract(t *testing.T) {
 			engine.Dispose()
 
 			// call totalSupply.
-			engine = NewV8Engine(ctx)
+			engine = NewV8Engine(ctx, true)
 			engine.SetExecutionLimits(10000, 100000000)
 			totalSupply, err := engine.Call(string(data), tt.sourceType, "totalSupply", "")
 			assert.Nil(t, err)
@@ -904,14 +905,14 @@ func TestNRC20Contract(t *testing.T) {
 			for _, tot := range tt.transferTests {
 				// call balanceOf.
 				ctx.tx = mockNormalTransaction(tt.from, "22ac3a9a2b1c31b7a9084e46eae16e761f83f02324092b09", "0")
-				engine = NewV8Engine(ctx)
+				engine = NewV8Engine(ctx, true)
 				engine.SetExecutionLimits(10000, 100000000)
 				balArgs := fmt.Sprintf("[\"%s\"]", tt.from)
 				_, err := engine.Call(string(data), tt.sourceType, "balanceOf", balArgs)
 				assert.Nil(t, err)
 				engine.Dispose()
 
-				engine = NewV8Engine(ctx)
+				engine = NewV8Engine(ctx, true)
 				engine.SetExecutionLimits(10000, 100000000)
 				transferArgs := fmt.Sprintf("[\"%s\", \"%s\"]", tot.to, tot.value)
 				result, err := engine.Call(string(data), tt.sourceType, "transfer", transferArgs)
@@ -922,7 +923,7 @@ func TestNRC20Contract(t *testing.T) {
 				assert.Equal(t, tot.result, resultStatus)
 				engine.Dispose()
 
-				engine = NewV8Engine(ctx)
+				engine = NewV8Engine(ctx, true)
 				engine.SetExecutionLimits(10000, 100000000)
 				approveArgs := fmt.Sprintf("[\"%s\", \"0\", \"%s\"]", tot.to, tot.value)
 				result, err = engine.Call(string(data), tt.sourceType, "approve", approveArgs)
@@ -932,7 +933,7 @@ func TestNRC20Contract(t *testing.T) {
 				assert.Equal(t, tot.result, resultStatus)
 				engine.Dispose()
 
-				engine = NewV8Engine(ctx)
+				engine = NewV8Engine(ctx, true)
 				engine.SetExecutionLimits(10000, 100000000)
 				allowanceArgs := fmt.Sprintf("[\"%s\", \"%s\"]", tt.from, tot.to)
 				amount, err := engine.Call(string(data), tt.sourceType, "allowance", allowanceArgs)
@@ -944,7 +945,7 @@ func TestNRC20Contract(t *testing.T) {
 				engine.Dispose()
 
 				ctx.tx = mockNormalTransaction(tot.to, "22ac3a9a2b1c31b7a9084e46eae16e761f83f02324092b09", "0")
-				engine = NewV8Engine(ctx)
+				engine = NewV8Engine(ctx, true)
 				engine.SetExecutionLimits(10000, 100000000)
 				transferFromArgs := fmt.Sprintf("[\"%s\", \"%s\", \"%s\"]", tt.from, tot.to, tot.value)
 				result, err = engine.Call(string(data), tt.sourceType, "transferFrom", transferFromArgs)
@@ -955,7 +956,7 @@ func TestNRC20Contract(t *testing.T) {
 				engine.Dispose()
 
 				ctx.tx = mockNormalTransaction(tot.to, "22ac3a9a2b1c31b7a9084e46eae16e761f83f02324092b09", "0")
-				engine = NewV8Engine(ctx)
+				engine = NewV8Engine(ctx, true)
 				engine.SetExecutionLimits(10000, 100000000)
 				transferFromArgs = fmt.Sprintf("[\"%s\", \"%s\", \"%s\"]", tt.from, tot.to, tot.value)
 				_, err = engine.Call(string(data), tt.sourceType, "transferFrom", transferFromArgs)
@@ -1013,7 +1014,7 @@ func TestNebulasContract(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 
 			ctx.tx = mockNormalTransaction("8a209cec02cbeab7e2f74ad969d2dfe8dd24416aa65589bf", "22ac3a9a2b1c31b7a9084e46eae16e761f83f02324092b09", tt.value)
-			engine := NewV8Engine(ctx)
+			engine := NewV8Engine(ctx, true)
 			engine.SetExecutionLimits(10000, 100000000)
 			_, err := engine.Call(string(data), sourceType, tt.function, tt.args)
 			assert.Equal(t, tt.err, err)
