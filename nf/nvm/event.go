@@ -26,12 +26,6 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-const (
-
-	// EventNameSpaceContract the topic of contract.
-	EventNameSpaceContract = "chain.contract" //ToRefine: move to core
-)
-
 // EventTriggerFunc export EventTriggerFunc
 //export EventTriggerFunc
 func EventTriggerFunc(handler unsafe.Pointer, topic, data *C.char) {
@@ -44,15 +38,9 @@ func EventTriggerFunc(handler unsafe.Pointer, topic, data *C.char) {
 			"category": 0, // ChainEventCategory.
 			"topic":    gTopic,
 			"data":     gData,
-		}).Debug("Event.Trigger delegate handler does not found.") // ToRefine: change to error log
+		}).Error("Event.Trigger delegate handler does not found.") // ToRefine: change to error log
 		return
 	}
-
-	logging.VLog().WithFields(logrus.Fields{
-		"category": 0, // ChainEventCategory.
-		"topic":    gTopic,
-		"data":     gData,
-	}).Debug("Event triggered from V8 engine.")
 
 	contractTopic := EventNameSpaceContract + "." + gTopic
 	e.ctx.block.RecordEvent(e.ctx.tx.Hash(), contractTopic, gData)

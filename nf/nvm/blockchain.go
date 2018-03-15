@@ -100,7 +100,8 @@ func GetAccountStateFunc(handler unsafe.Pointer, address *C.char) *C.char {
 func TransferFunc(handler unsafe.Pointer, to *C.char, v *C.char) int {
 	engine, _ := getEngineByStorageHandler(uint64(uintptr(handler)))
 	if engine == nil || engine.ctx.block == nil {
-		return 1 // ToRefine: change to enum: ExecutionFailed = 1
+		logging.VLog().Error("get engine failed!")
+		return TransferGetEngineErr // ToRefine: change to enum: ExecutionFailed = 1
 	}
 
 	addr, err := core.AddressParse(C.GoString(to)) // TOAdd: add different error code return
@@ -108,8 +109,8 @@ func TransferFunc(handler unsafe.Pointer, to *C.char, v *C.char) int {
 		logging.VLog().WithFields(logrus.Fields{
 			"handler": uint64(uintptr(handler)),
 			"key":     C.GoString(to),
-		}).Debug("TransferFunc parse address failed.")
-		return 1 // ToRefine: change to enum: ExecutionFailed = 1
+		}).Error("TransferFunc parse address failed.")
+		return TransferAddressParseErr // ToRefine: change to enum: ExecutionFailed = 1
 	}
 
 	toAcc, err := engine.ctx.state.GetOrCreateUserAccount(addr.Bytes())
@@ -118,8 +119,8 @@ func TransferFunc(handler unsafe.Pointer, to *C.char, v *C.char) int {
 			"handler": uint64(uintptr(handler)),
 			"address": addr,
 			"err":     err,
-		}).Debug("GetAccountStateFunc get account state failed.")
-		return 1 // ToRefine: change to enum: ExecutionFailed = 1
+		}).Error("GetAccountStateFunc get account state failed.")
+		return TransferGetAccountErr // ToRefine: change to enum: ExecutionFailed = 1
 	}
 
 	amount, err := util.NewUint128FromString(C.GoString(v))
@@ -128,8 +129,8 @@ func TransferFunc(handler unsafe.Pointer, to *C.char, v *C.char) int {
 			"handler": uint64(uintptr(handler)),
 			"address": addr,
 			"err":     err,
-		}).Debug("GetAmountFunc get amount failed.")
-		return 1 // ToRefine: change to enum: ExecutionFailed = 1
+		}).Error("GetAmountFunc get amount failed.")
+		return TransferStringToBigIntErr // ToRefine: change to enum: ExecutionFailed = 1
 	}
 
 	// update balance
@@ -139,8 +140,8 @@ func TransferFunc(handler unsafe.Pointer, to *C.char, v *C.char) int {
 			"handler": uint64(uintptr(handler)),
 			"key":     C.GoString(to),
 			"err":     err,
-		}).Debug("TransferFunc SubBalance failed.")
-		return 1 // ToRefine: change to enum: ExecutionFailed = 1
+		}).Error("TransferFunc SubBalance failed.")
+		return TransferSubBalance // ToRefine: change to enum: ExecutionFailed = 1
 	}
 
 	err = toAcc.AddBalance(amount)
@@ -150,10 +151,10 @@ func TransferFunc(handler unsafe.Pointer, to *C.char, v *C.char) int {
 			"amout":   amount,
 			"address": addr,
 			"err":     err,
-		}).Debug("failed to add balance")
-		return 1 // ToRefine: change to enum: ExecutionFailed = 1
+		}).Error("failed to add balance")
+		return TransferAddBalance // ToRefine: change to enum: ExecutionFailed = 1
 	}
-	return 0 // ToRefine: change to enum: ExecutionSuccess = 1
+	return TransferFuncSuccess // ToRefine: change to enum: ExecutionSuccess = 1
 }
 
 // VerifyAddressFunc verify address is valid

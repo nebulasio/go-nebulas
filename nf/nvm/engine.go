@@ -19,16 +19,8 @@
 package nvm
 
 import (
-	"errors"
-
 	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/core/state"
-)
-
-// Error Types
-var (
-	ErrEngineRepeatedStart = errors.New("engine repeated start")
-	ErrEngineNotStart      = errors.New("engine not start")
 )
 
 // NebulasVM type of NebulasVM
@@ -55,7 +47,7 @@ func (nvm *NebulasVM) CreateEngine(block *core.Block, tx *core.Transaction, owne
 		contract: contract,
 		state:    state,
 	}
-	nvm.engine = NewV8Engine(ctx, true)
+	nvm.engine = NewV8Engine(ctx)
 	return nil
 }
 

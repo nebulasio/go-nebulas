@@ -44,7 +44,6 @@ void EventTriggerFunc_cgo(void *handler, const char *topic, const char *data);
 */
 import "C"
 import (
-	"errors"
 	"fmt"
 	"regexp"
 	"strings"
@@ -61,28 +60,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// Const.
-const (
-	SourceTypeJavaScript = "js"
-	SourceTypeTypeScript = "ts"
-)
-
-// Errors
-var (
-	ErrExecutionFailed                 = errors.New("execution failed")
-	ErrDisallowCallPrivateFunction     = errors.New("disallow call private function")
-	ErrExecutionTimeout                = errors.New("execution timeout")
-	ErrInsufficientGas                 = errors.New("insufficient gas")
-	ErrExceedMemoryLimits              = errors.New("exceed memory limits")
-	ErrInjectTracingInstructionFailed  = errors.New("inject tracing instructions failed")
-	ErrTranspileTypeScriptFailed       = errors.New("transpile TypeScript failed")
-	ErrUnsupportedSourceType           = errors.New("unsupported source type")
-	ErrArgumentsFormat                 = errors.New("arguments format error")
-	ErrLimitHasEmpty                   = errors.New("limit args has empty")
-	ErrSetMemorySmall                  = errors.New("set memory small than v8 limit")
-	ErrDisallowCallNotStandardFunction = errors.New("disallow call not standard function")
-)
-
+//engine_v8 private data
 var (
 	v8engineOnce          = sync.Once{}
 	storages              = make(map[uint64]*V8Engine, 1024)
@@ -141,7 +119,7 @@ func DisposeV8Engine() {
 }
 
 // NewV8Engine return new V8Engine instance.
-func NewV8Engine(ctx *Context, enableLimits bool) *V8Engine {
+func NewV8Engine(ctx *Context) *V8Engine {
 	v8engineOnce.Do(func() {
 		InitV8Engine()
 	})
@@ -150,7 +128,7 @@ func NewV8Engine(ctx *Context, enableLimits bool) *V8Engine {
 		ctx:                                ctx,
 		modules:                            NewModules(),
 		v8engine:                           C.CreateEngine(),
-		enableLimits:                       enableLimits,
+		enableLimits:                       true,
 		limitsOfExecutionInstructions:      0,
 		limitsOfTotalMemorySize:            0,
 		actualCountOfExecutionInstructions: 0,
@@ -176,6 +154,11 @@ func NewV8Engine(ctx *Context, enableLimits bool) *V8Engine {
 		storages[engine.gcsHandler] = engine
 	})()
 	return engine
+}
+
+// SetEnableLimit eval switch
+func (e *V8Engine) SetEnableLimit(isLimit bool) {
+	e.enableLimits = isLimit
 }
 
 // Dispose dispose all resources.
@@ -445,25 +428,27 @@ func (e *V8Engine) prepareRunnableContractScript(source, function, args string) 
 	}
 
 	var runnableSource string
+	var argsInput []byte
 	if len(args) > 0 {
 		var argsObj []interface{}
 		if err := json.Unmarshal([]byte(args), &argsObj); err != nil {
 			return "", 0, ErrArgumentsFormat
 		}
-		runnableSource = fmt.Sprintf(`var __contract = require("%s");
+		if argsInput, err = json.Marshal(argsObj); err != nil {
+			return "", 0, ErrArgumentsFormat
+		}
+
+	} else {
+		argsInput = make([]byte, 2)
+		argsInput[0] = '['
+		argsInput[1] = ']'
+	}
+	runnableSource = fmt.Sprintf(`var __contract = require("%s");
 				var __instance = new __contract();
 				Blockchain.blockParse("%s");
 				Blockchain.transactionParse("%s");
 				__instance["%s"].apply(__instance, JSON.parse("%s"));`,
-			ModuleID, formatArgs(string(blockJSON)), formatArgs(string(txJSON)), function, formatArgs(args))
-	} else {
-		runnableSource = fmt.Sprintf(`var __contract = require("%s");
-				var __instance = new __contract();
-				Blockchain.blockParse("%s");
-				Blockchain.transactionParse("%s");
-				__instance["%s"].apply(__instance);`,
-			ModuleID, formatArgs(string(blockJSON)), formatArgs(string(txJSON)), function)
-	}
+		ModuleID, formatArgs(string(blockJSON)), formatArgs(string(txJSON)), function, formatArgs(string(argsInput)))
 	return runnableSource, 0, nil
 }
 

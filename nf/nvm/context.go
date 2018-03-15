@@ -18,54 +18,10 @@
 
 package nvm
 
-import (
-	"github.com/nebulasio/go-nebulas/core"
-	"github.com/nebulasio/go-nebulas/core/state"
-	"github.com/nebulasio/go-nebulas/util"
-	"github.com/nebulasio/go-nebulas/util/byteutils"
-)
-
 const (
 	// DefaultLimitsOfTotalMemorySize default limits of total memory size
 	DefaultLimitsOfTotalMemorySize uint64 = 40 * 1000 * 1000 // TODO: check the value ok and out of limit do
 )
-
-// Block interface breaks cycle import dependency and hides unused services.
-type Block interface {
-	Coinbase() *core.Address
-	Hash() byteutils.Hash
-	Height() uint64 // ToAdd: timestamp interface
-	GetTransaction(hash byteutils.Hash) (*core.Transaction, error)
-	RecordEvent(txHash byteutils.Hash, topic, data string) error
-}
-
-// Transaction interface breaks cycle import dependency and hides unused services.
-type Transaction interface {
-	Hash() byteutils.Hash
-	From() *core.Address
-	To() *core.Address
-	Value() *util.Uint128
-	Nonce() uint64
-	Timestamp() int64
-	GasPrice() *util.Uint128
-	GasLimit() *util.Uint128
-}
-
-// Account interface breaks cycle import dependency and hides unused services.
-type Account interface {
-	Balance() *util.Uint128
-	Nonce() uint64
-	AddBalance(value *util.Uint128) error
-	SubBalance(value *util.Uint128) error
-	Put(key []byte, value []byte) error
-	Get(key []byte) ([]byte, error)
-	Del(key []byte) error
-}
-
-// WorldState interface breaks cycle import dependency and hides unused services.
-type WorldState interface {
-	GetOrCreateUserAccount(addr []byte) (state.Account, error)
-}
 
 // SerializableAccount serializable account state
 type SerializableAccount struct {
@@ -75,9 +31,9 @@ type SerializableAccount struct {
 
 // SerializableBlock serializable block
 type SerializableBlock struct {
-	Coinbase string `json:"coinbase"`
-	Hash     string `json:"hash"`
-	Height   uint64 `json:"height"`
+	Timestamp int64  `json:"timestamp"`
+	Hash      string `json:"hash"`
+	Height    uint64 `json:"height"`
 }
 
 // SerializableTransaction serializable transaction
@@ -102,7 +58,10 @@ type Context struct {
 }
 
 // NewContext create a engine context
-func NewContext(block Block, tx Transaction, owner Account, contract Account, state WorldState) *Context { //ToAdd check params not nil
+func NewContext(block Block, tx Transaction, owner Account, contract Account, state WorldState) (*Context, error) { //ToAdd check params not nil
+	if block == nil || tx == nil || owner == nil || contract == nil || state == nil {
+		return nil, ErrContextConstructArrEmpty
+	}
 	ctx := &Context{
 		block:    block,
 		tx:       tx,
@@ -110,7 +69,7 @@ func NewContext(block Block, tx Transaction, owner Account, contract Account, st
 		contract: contract,
 		state:    state,
 	}
-	return ctx
+	return ctx, nil
 }
 
 func toSerializableAccount(acc Account) *SerializableAccount {
@@ -123,9 +82,9 @@ func toSerializableAccount(acc Account) *SerializableAccount {
 
 func toSerializableBlock(block Block) *SerializableBlock {
 	sBlock := &SerializableBlock{
-		Coinbase: block.Coinbase().String(),
-		Hash:     block.Hash().String(),
-		Height:   block.Height(),
+		Timestamp: block.Timestamp(),
+		Hash:      block.Hash().String(),
+		Height:    block.Height(),
 	}
 	return sBlock
 }
