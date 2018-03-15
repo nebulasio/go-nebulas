@@ -59,17 +59,17 @@ func (StatsConfig_ReportingModule) EnumDescriptor() ([]byte, []int) {
 // Neblet global configurations.
 type Config struct {
 	// Network config.
-	Network *NetworkConfig `protobuf:"bytes,1,opt,name=network" json:"network,omitempty"`
+	Network *NetworkConfig `protobuf:"bytes,1,opt,name=network" json:"network"`
 	// Chain config.
-	Chain *ChainConfig `protobuf:"bytes,2,opt,name=chain" json:"chain,omitempty"`
+	Chain *ChainConfig `protobuf:"bytes,2,opt,name=chain" json:"chain"`
 	// RPC config.
-	Rpc *RPCConfig `protobuf:"bytes,3,opt,name=rpc" json:"rpc,omitempty"`
+	Rpc *RPCConfig `protobuf:"bytes,3,opt,name=rpc" json:"rpc"`
 	// Stats config.
-	Stats *StatsConfig `protobuf:"bytes,100,opt,name=stats" json:"stats,omitempty"`
+	Stats *StatsConfig `protobuf:"bytes,100,opt,name=stats" json:"stats"`
 	// Misc config.
-	Misc *MiscConfig `protobuf:"bytes,101,opt,name=misc" json:"misc,omitempty"`
+	Misc *MiscConfig `protobuf:"bytes,101,opt,name=misc" json:"misc"`
 	// App Config.
-	App *AppConfig `protobuf:"bytes,102,opt,name=app" json:"app,omitempty"`
+	App *AppConfig `protobuf:"bytes,102,opt,name=app" json:"app"`
 }
 
 func (m *Config) Reset()                    { *m = Config{} }
@@ -121,13 +121,13 @@ func (m *Config) GetApp() *AppConfig {
 
 type NetworkConfig struct {
 	// Neb seed node address.
-	Seed []string `protobuf:"bytes,1,rep,name=seed" json:"seed,omitempty"`
+	Seed []string `protobuf:"bytes,1,rep,name=seed" json:"seed"`
 	// Listen addresses.
-	Listen []string `protobuf:"bytes,2,rep,name=listen" json:"listen,omitempty"`
+	Listen []string `protobuf:"bytes,2,rep,name=listen" json:"listen"`
 	// Network node privateKey address. If nil, generate a new node.
-	PrivateKey string `protobuf:"bytes,3,opt,name=private_key,json=privateKey,proto3" json:"private_key,omitempty"`
+	PrivateKey string `protobuf:"bytes,3,opt,name=private_key,json=privateKey,proto3" json:"private_key"`
 	// Network ID
-	NetworkId uint32 `protobuf:"varint,4,opt,name=network_id,json=networkId,proto3" json:"network_id,omitempty"`
+	NetworkId uint32 `protobuf:"varint,4,opt,name=network_id,json=networkId,proto3" json:"network_id"`
 }
 
 func (m *NetworkConfig) Reset()                    { *m = NetworkConfig{} }
@@ -165,27 +165,27 @@ func (m *NetworkConfig) GetNetworkId() uint32 {
 
 type ChainConfig struct {
 	// ChainID.
-	ChainId uint32 `protobuf:"varint,1,opt,name=chain_id,json=chainId,proto3" json:"chain_id,omitempty"`
+	ChainId uint32 `protobuf:"varint,1,opt,name=chain_id,json=chainId,proto3" json:"chain_id"`
 	// genesis conf file path
-	Genesis string `protobuf:"bytes,2,opt,name=genesis,proto3" json:"genesis,omitempty"`
+	Genesis string `protobuf:"bytes,2,opt,name=genesis,proto3" json:"genesis"`
 	// Data dir.
-	Datadir string `protobuf:"bytes,11,opt,name=datadir,proto3" json:"datadir,omitempty"`
+	Datadir string `protobuf:"bytes,11,opt,name=datadir,proto3" json:"datadir"`
 	// Key dir.
-	Keydir string `protobuf:"bytes,12,opt,name=keydir,proto3" json:"keydir,omitempty"`
+	Keydir string `protobuf:"bytes,12,opt,name=keydir,proto3" json:"keydir"`
 	// start mine at launch
-	StartMine bool `protobuf:"varint,20,opt,name=start_mine,json=startMine,proto3" json:"start_mine,omitempty"`
+	StartMine bool `protobuf:"varint,20,opt,name=start_mine,json=startMine,proto3" json:"start_mine"`
 	// Coinbase.
-	Coinbase string `protobuf:"bytes,21,opt,name=coinbase,proto3" json:"coinbase,omitempty"`
+	Coinbase string `protobuf:"bytes,21,opt,name=coinbase,proto3" json:"coinbase"`
 	// Miner.
-	Miner string `protobuf:"bytes,22,opt,name=miner,proto3" json:"miner,omitempty"`
+	Miner string `protobuf:"bytes,22,opt,name=miner,proto3" json:"miner"`
 	// Passphrase.
-	Passphrase string `protobuf:"bytes,23,opt,name=passphrase,proto3" json:"passphrase,omitempty"`
+	Passphrase string `protobuf:"bytes,23,opt,name=passphrase,proto3" json:"passphrase"`
 	// Lowest GasPrice.
-	GasPrice string `protobuf:"bytes,24,opt,name=gas_price,json=gasPrice,proto3" json:"gas_price,omitempty"`
+	GasPrice string `protobuf:"bytes,24,opt,name=gas_price,json=gasPrice,proto3" json:"gas_price"`
 	// Max GasLimit.
-	GasLimit string `protobuf:"bytes,25,opt,name=gas_limit,json=gasLimit,proto3" json:"gas_limit,omitempty"`
+	GasLimit string `protobuf:"bytes,25,opt,name=gas_limit,json=gasLimit,proto3" json:"gas_limit"`
 	// Supported signature cipher list. ["ECC_SECP256K1"]
-	SignatureCiphers []string `protobuf:"bytes,26,rep,name=signature_ciphers,json=signatureCiphers" json:"signature_ciphers,omitempty"`
+	SignatureCiphers []string `protobuf:"bytes,26,rep,name=signature_ciphers,json=signatureCiphers" json:"signature_ciphers"`
 }
 
 func (m *ChainConfig) Reset()                    { *m = ChainConfig{} }
@@ -272,12 +272,12 @@ func (m *ChainConfig) GetSignatureCiphers() []string {
 
 type RPCConfig struct {
 	// RPC listen addresses.
-	RpcListen []string `protobuf:"bytes,1,rep,name=rpc_listen,json=rpcListen" json:"rpc_listen,omitempty"`
+	RpcListen []string `protobuf:"bytes,1,rep,name=rpc_listen,json=rpcListen" json:"rpc_listen"`
 	// HTTP listen addresses.
-	HttpListen []string `protobuf:"bytes,2,rep,name=http_listen,json=httpListen" json:"http_listen,omitempty"`
+	HttpListen []string `protobuf:"bytes,2,rep,name=http_listen,json=httpListen" json:"http_listen"`
 	// Enabled HTTP modules.["api", "admin"]
-	HttpModule       []string `protobuf:"bytes,3,rep,name=http_module,json=httpModule" json:"http_module,omitempty"`
-	ConnectionLimits int32    `protobuf:"varint,4,opt,name=connection_limits,json=connectionLimits,proto3" json:"connection_limits,omitempty"`
+	HttpModule       []string `protobuf:"bytes,3,rep,name=http_module,json=httpModule" json:"http_module"`
+	ConnectionLimits int32    `protobuf:"varint,4,opt,name=connection_limits,json=connectionLimits,proto3" json:"connection_limits"`
 }
 
 func (m *RPCConfig) Reset()                    { *m = RPCConfig{} }
@@ -314,15 +314,15 @@ func (m *RPCConfig) GetConnectionLimits() int32 {
 }
 
 type AppConfig struct {
-	LogLevel string `protobuf:"bytes,1,opt,name=log_level,json=logLevel,proto3" json:"log_level,omitempty"`
-	LogFile  string `protobuf:"bytes,2,opt,name=log_file,json=logFile,proto3" json:"log_file,omitempty"`
+	LogLevel string `protobuf:"bytes,1,opt,name=log_level,json=logLevel,proto3" json:"log_level"`
+	LogFile  string `protobuf:"bytes,2,opt,name=log_file,json=logFile,proto3" json:"log_file"`
 	// log file age, unit is s.
-	LogAge            uint32 `protobuf:"varint,3,opt,name=log_age,json=logAge,proto3" json:"log_age,omitempty"`
-	EnableCrashReport bool   `protobuf:"varint,4,opt,name=enable_crash_report,json=enableCrashReport,proto3" json:"enable_crash_report,omitempty"`
-	CrashReportUrl    string `protobuf:"bytes,5,opt,name=crash_report_url,json=crashReportUrl,proto3" json:"crash_report_url,omitempty"`
+	LogAge            uint32 `protobuf:"varint,3,opt,name=log_age,json=logAge,proto3" json:"log_age"`
+	EnableCrashReport bool   `protobuf:"varint,4,opt,name=enable_crash_report,json=enableCrashReport,proto3" json:"enable_crash_report"`
+	CrashReportUrl    string `protobuf:"bytes,5,opt,name=crash_report_url,json=crashReportUrl,proto3" json:"crash_report_url"`
 	// pprof config
-	Pprof   *PprofConfig `protobuf:"bytes,6,opt,name=pprof" json:"pprof,omitempty"`
-	Version string       `protobuf:"bytes,100,opt,name=version,proto3" json:"version,omitempty"`
+	Pprof   *PprofConfig `protobuf:"bytes,6,opt,name=pprof" json:"pprof"`
+	Version string       `protobuf:"bytes,100,opt,name=version,proto3" json:"version"`
 }
 
 func (m *AppConfig) Reset()                    { *m = AppConfig{} }
@@ -381,11 +381,11 @@ func (m *AppConfig) GetVersion() string {
 
 type PprofConfig struct {
 	// pprof listen address, if not configured, the function closes.
-	HttpListen string `protobuf:"bytes,1,opt,name=http_listen,json=httpListen,proto3" json:"http_listen,omitempty"`
+	HttpListen string `protobuf:"bytes,1,opt,name=http_listen,json=httpListen,proto3" json:"http_listen"`
 	// cpu profiling file, if not configured, the profiling not start
-	Cpuprofile string `protobuf:"bytes,2,opt,name=cpuprofile,proto3" json:"cpuprofile,omitempty"`
+	Cpuprofile string `protobuf:"bytes,2,opt,name=cpuprofile,proto3" json:"cpuprofile"`
 	// memory profiling file, if not configured, the profiling not start
-	Memprofile string `protobuf:"bytes,3,opt,name=memprofile,proto3" json:"memprofile,omitempty"`
+	Memprofile string `protobuf:"bytes,3,opt,name=memprofile,proto3" json:"memprofile"`
 }
 
 func (m *PprofConfig) Reset()                    { *m = PprofConfig{} }
@@ -416,7 +416,7 @@ func (m *PprofConfig) GetMemprofile() string {
 
 type MiscConfig struct {
 	// Default encryption ciper when create new keystore file.
-	DefaultKeystoreFileCiper string `protobuf:"bytes,1,opt,name=default_keystore_file_ciper,json=defaultKeystoreFileCiper,proto3" json:"default_keystore_file_ciper,omitempty"`
+	DefaultKeystoreFileCiper string `protobuf:"bytes,1,opt,name=default_keystore_file_ciper,json=defaultKeystoreFileCiper,proto3" json:"default_keystore_file_ciper"`
 }
 
 func (m *MiscConfig) Reset()                    { *m = MiscConfig{} }
@@ -433,11 +433,11 @@ func (m *MiscConfig) GetDefaultKeystoreFileCiper() string {
 
 type StatsConfig struct {
 	// Enable metrics or not.
-	EnableMetrics   bool                          `protobuf:"varint,1,opt,name=enable_metrics,json=enableMetrics,proto3" json:"enable_metrics,omitempty"`
-	ReportingModule []StatsConfig_ReportingModule `protobuf:"varint,2,rep,packed,name=reporting_module,json=reportingModule,enum=nebletpb.StatsConfig_ReportingModule" json:"reporting_module,omitempty"`
+	EnableMetrics   bool                          `protobuf:"varint,1,opt,name=enable_metrics,json=enableMetrics,proto3" json:"enable_metrics"`
+	ReportingModule []StatsConfig_ReportingModule `protobuf:"varint,2,rep,packed,name=reporting_module,json=reportingModule,enum=nebletpb.StatsConfig_ReportingModule" json:"reporting_module"`
 	// Influxdb config.
-	Influxdb    *InfluxdbConfig `protobuf:"bytes,11,opt,name=influxdb" json:"influxdb,omitempty"`
-	MetricsTags []string        `protobuf:"bytes,12,rep,name=metrics_tags,json=metricsTags" json:"metrics_tags,omitempty"`
+	Influxdb    *InfluxdbConfig `protobuf:"bytes,11,opt,name=influxdb" json:"influxdb"`
+	MetricsTags []string        `protobuf:"bytes,12,rep,name=metrics_tags,json=metricsTags" json:"metrics_tags"`
 }
 
 func (m *StatsConfig) Reset()                    { *m = StatsConfig{} }
@@ -475,15 +475,15 @@ func (m *StatsConfig) GetMetricsTags() []string {
 
 type InfluxdbConfig struct {
 	// Host.
-	Host string `protobuf:"bytes,1,opt,name=host,proto3" json:"host,omitempty"`
+	Host string `protobuf:"bytes,1,opt,name=host,proto3" json:"host"`
 	// Port.
-	Port uint32 `protobuf:"varint,2,opt,name=port,proto3" json:"port,omitempty"`
+	Port uint32 `protobuf:"varint,2,opt,name=port,proto3" json:"port"`
 	// Database name.
-	Db string `protobuf:"bytes,3,opt,name=db,proto3" json:"db,omitempty"`
+	Db string `protobuf:"bytes,3,opt,name=db,proto3" json:"db"`
 	// Auth user.
-	User string `protobuf:"bytes,4,opt,name=user,proto3" json:"user,omitempty"`
+	User string `protobuf:"bytes,4,opt,name=user,proto3" json:"user"`
 	// Auth password.
-	Password string `protobuf:"bytes,5,opt,name=password,proto3" json:"password,omitempty"`
+	Password string `protobuf:"bytes,5,opt,name=password,proto3" json:"password"`
 }
 
 func (m *InfluxdbConfig) Reset()                    { *m = InfluxdbConfig{} }

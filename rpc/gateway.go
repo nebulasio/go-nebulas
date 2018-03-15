@@ -23,7 +23,7 @@ func Run(rpcListen string, gatewayListen []string, httpModule []string) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	mux := runtime.NewServeMux()
+	mux := runtime.NewServeMux(runtime.WithMarshalerOption(runtime.MIMEWildcard, &runtime.JSONPb{OrigName: true, EmitDefaults: true}))
 	opts := []grpc.DialOption{grpc.WithInsecure()}
 	echoEndpoint := flag.String("rpc", rpcListen, "")
 	for _, v := range httpModule {
