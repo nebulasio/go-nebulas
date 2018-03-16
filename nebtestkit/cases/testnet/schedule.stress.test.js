@@ -14,7 +14,7 @@ var args = process.argv.splice(2);
 
 if (args.length !=3 ){
     // give default config
-    env = "testneb2";
+    env = "testneb1";
     AddressNumber = 100;
     SendTimes = 20;
 } else {
@@ -51,13 +51,13 @@ if (env == 'local'){
     ChainID = 1002;
     from = new Wallet.Account("43181d58178263837a9a6b08f06379a348a5b362bfab3631ac78d2ac771c5df3");
 }else{
-    console.log("please input correct env local testneb1 testneb2")
+    console.log("please input correct env local testneb1 testneb2");
     return;
 }
 
 var lastnonce = 0;
 
-var j = schedule.scheduleJob('*/10 * * * *', function(){
+var j = schedule.scheduleJob('*/30 * * * *', function(){
     console.log("start transaction stress test");
     neb.api.getAccountState(from.getAddressString()).then(function (resp) {
 
@@ -212,7 +212,7 @@ function sendContractTransaction(sendtimes, nonce, from_address, contract_addres
             if(resp.txhash) {
                 sendContractTransaction(sendtimes, nonce, from_address, contract_address);
             }
-        }).ca;
+        });
     }
 
 }
