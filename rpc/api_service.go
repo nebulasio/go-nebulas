@@ -321,13 +321,12 @@ func (s *APIService) toBlockResponse(block *core.Block, fullTransaction bool) (*
 		Height:        block.Height(),
 		Nonce:         block.Nonce(),
 		Coinbase:      block.Coinbase().String(),
-		Miner:         block.Miner().String(),
 		Timestamp:     block.Timestamp(),
 		ChainId:       block.ChainID(),
 		StateRoot:     block.StateRoot().String(),
 		TxsRoot:       block.TxsRoot().String(),
 		EventsRoot:    block.EventsRoot().String(),
-		ConsensusRoot: block.ConsensusRoot().String(),
+		ConsensusRoot: block.ConsensusRoot(),
 	}
 
 	// add block transactions

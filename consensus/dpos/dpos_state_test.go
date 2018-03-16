@@ -92,12 +92,10 @@ func TestBlock_NextDynastyContext(t *testing.T) {
 	newBlock, _ := core.NewBlock(neb.chain.ChainID(), coinbase, neb.chain.TailBlock())
 	newBlock.SetTimestamp((DynastyIntervalInMs*2 + DynastyIntervalInMs/3) / SecondInMs)
 	newBlock.WorldState().SetConsensusState(context)
-	newBlock.SetMiner(coinbase)
 	assert.Equal(t, newBlock.Seal(), nil)
 	assert.Nil(t, neb.am.SignBlock(coinbase, newBlock))
 	newBlock, _ = mockBlockFromNetwork(newBlock)
 	newBlock.LinkParentBlock(neb.chain, neb.chain.TailBlock())
-	newBlock.SetMiner(coinbase)
 	assert.Nil(t, newBlock.VerifyExecution()) //neb.chain.TailBlock(), neb.chain.ConsensusHandler()
 }
 

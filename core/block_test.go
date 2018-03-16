@@ -23,11 +23,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/nebulasio/go-nebulas/consensus/pb"
-
 	"github.com/nebulasio/go-nebulas/common/dag"
-
-	"github.com/nebulasio/go-nebulas/common/trie"
+	"github.com/nebulasio/go-nebulas/consensus/pb"
 	"github.com/nebulasio/go-nebulas/core/state"
 	"github.com/nebulasio/go-nebulas/net"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
@@ -100,28 +97,12 @@ func MockGenesisConf() *corepb.Genesis {
 }
 
 type mockConsensusState struct {
-	votes      *trie.Trie
-	delegates  *trie.Trie
-	candidates *trie.Trie
+	timestamp int64
 }
 
-func newMockConsensusState() (*mockConsensusState, error) {
-	votes, err := trie.NewTrie(nil, stor)
-	if err != nil {
-		return nil, err
-	}
-	delegates, err := trie.NewTrie(nil, stor)
-	if err != nil {
-		return nil, err
-	}
-	candidates, err := trie.NewTrie(nil, stor)
-	if err != nil {
-		return nil, err
-	}
+func newMockConsensusState(timestamp int64) (*mockConsensusState, error) {
 	return &mockConsensusState{
-		votes:      votes,
-		delegates:  delegates,
-		candidates: candidates,
+		timestamp: timestamp,
 	}, nil
 }
 
@@ -129,15 +110,23 @@ func (cs *mockConsensusState) BeginBatch() {}
 func (cs *mockConsensusState) Commit()     {}
 func (cs *mockConsensusState) RollBack()   {}
 
-func (cs *mockConsensusState) RootHash() (*consensuspb.ConsensusRoot, error) { return nil, nil }
-func (cs *mockConsensusState) String() string                                { return "" }
-func (cs *mockConsensusState) Clone() (state.ConsensusState, error)          { return cs, nil }
-func (cs *mockConsensusState) Replay(state.ConsensusState) error             { return nil }
+func (cs *mockConsensusState) RootHash() (*consensuspb.ConsensusRoot, error) {
+	return &consensuspb.ConsensusRoot{}, nil
+}
+func (cs *mockConsensusState) String() string { return "" }
+func (cs *mockConsensusState) Clone() (state.ConsensusState, error) {
+	return &mockConsensusState{
+		timestamp: cs.timestamp,
+	}, nil
+}
+func (cs *mockConsensusState) Replay(state.ConsensusState) error { return nil }
 
 func (cs *mockConsensusState) Proposer() byteutils.Hash { return nil }
 func (cs *mockConsensusState) TimeStamp() int64         { return 0 }
-func (cs *mockConsensusState) NextConsensusState(int64, state.WorldState) (state.ConsensusState, error) {
-	return cs, nil
+func (cs *mockConsensusState) NextConsensusState(elapsed int64, ws state.WorldState) (state.ConsensusState, error) {
+	return &mockConsensusState{
+		timestamp: cs.timestamp + elapsed,
+	}, nil
 }
 
 func (cs *mockConsensusState) Dynasty() ([]byteutils.Hash, error) { return nil, nil }
@@ -156,7 +145,6 @@ func (c *mockConsensus) Start() {}
 func (c *mockConsensus) Stop()  {}
 
 func (c *mockConsensus) VerifyBlock(block *Block) error {
-	block.miner = block.Coinbase()
 	return nil
 }
 
@@ -206,11 +194,11 @@ func (c *mockConsensus) Enable() bool                         { return true }
 func (c *mockConsensus) CheckTimeout(block *Block) bool {
 	return time.Now().Unix()-block.Timestamp() > AcceptedNetWorkDelay
 }
-func (c *mockConsensus) NewState(*consensuspb.ConsensusRoot, storage.Storage) (state.ConsensusState, error) {
-	return newMockConsensusState()
+func (c *mockConsensus) NewState(root *consensuspb.ConsensusRoot, stor storage.Storage) (state.ConsensusState, error) {
+	return newMockConsensusState(root.Timestamp)
 }
 func (c *mockConsensus) GenesisConsensusState(*BlockChain, *corepb.Genesis) (state.ConsensusState, error) {
-	return newMockConsensusState()
+	return newMockConsensusState(0)
 }
 
 type mockManager struct{}
@@ -337,6 +325,7 @@ func testNeb(t *testing.T) *mockNeb {
 
 func TestNeb(t *testing.T) {
 	neb := testNeb(t)
+	assert.NotNil(t, neb.chain.TailBlock().String())
 	assert.Equal(t, neb.chain.ConsensusHandler(), neb.consensus)
 	assert.Equal(t, neb.consensus.(*mockConsensus).chain, neb.chain)
 }
@@ -410,7 +399,6 @@ func TestBlock(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			b := &Block{
 				header:       tt.fields.header,
-				miner:        tt.fields.miner,
 				height:       tt.fields.height,
 				transactions: tt.fields.transactions,
 				dependency:   tt.fields.dependency,
@@ -609,7 +597,6 @@ func TestBlockVerifyIntegrity(t *testing.T) {
 	tx2.hash[0]++
 	block.transactions = append(block.transactions, tx1)
 	block.transactions = append(block.transactions, tx2)
-	block.miner = from
 	block.Seal()
 	block.Sign(signature)
 	assert.NotNil(t, block.VerifyIntegrity(bc.ChainID(), bc.ConsensusHandler()))
@@ -703,7 +690,6 @@ func TestBlockVerifyState(t *testing.T) {
 	block.transactions = append(block.transactions, tx2)
 	_, err = block.ExecuteTransaction(tx2, block.worldState)
 	assert.Nil(t, err)
-	block.miner = from
 	dependency := dag.NewDag()
 	dependency.AddNode(tx1.Hash().Hex())
 	dependency.AddNode(tx2.Hash().Hex())
@@ -719,6 +705,5 @@ func TestBlockVerifyState(t *testing.T) {
 func TestBlock_String(t *testing.T) {
 	neb := testNeb(t)
 	bc := neb.chain
-	bc.genesisBlock.miner = nil
 	assert.NotNil(t, bc.genesisBlock.String())
 }

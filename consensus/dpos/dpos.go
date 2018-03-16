@@ -39,6 +39,7 @@ import (
 // Errors in PoW Consensus
 var (
 	ErrInvalidBlockInterval       = errors.New("invalid block interval")
+	ErrInvalidBlockTimestamp      = errors.New("invalid block timestamp, should be same as consensus's timestamp")
 	ErrMissingConfigForDpos       = errors.New("missing configuration for Dpos")
 	ErrInvalidBlockProposer       = errors.New("invalid block proposer")
 	ErrCannotMintWhenPending      = errors.New("cannot mint block now, waiting for cancel pending again")
@@ -211,7 +212,7 @@ func (dpos *Dpos) UpdateLIB() {
 		if int(cur.Height())-int(lib.Height()) < ConsensusSize-len(miners) {
 			return
 		}
-		miners[cur.Miner().String()] = true
+		miners[byteutils.Hex(cur.ConsensusRoot().Proposer)] = true
 		if len(miners) >= ConsensusSize {
 			if err := dpos.chain.StoreLIBToStorage(cur); err != nil {
 				logging.VLog().WithFields(logrus.Fields{
@@ -293,7 +294,6 @@ func verifyBlockSign(miner *core.Address, block *core.Block) error {
 		}).Debug("Failed to verify block's sign.")
 		return ErrInvalidBlockProposer
 	}
-	block.SetMiner(miner)
 	return nil
 }
 
@@ -301,6 +301,9 @@ func verifyBlockSign(miner *core.Address, block *core.Block) error {
 func (dpos *Dpos) VerifyBlock(block *core.Block) error {
 	tail := dpos.chain.TailBlock()
 	// check timestamp
+	if block.Timestamp() != block.ConsensusRoot().Timestamp {
+		return ErrInvalidBlockTimestamp
+	}
 	elapsedSecondInMs := (block.Timestamp() - tail.Timestamp()) * SecondInMs
 	if elapsedSecondInMs%BlockIntervalInMs != 0 {
 		return ErrInvalidBlockInterval
@@ -359,7 +362,6 @@ func (dpos *Dpos) newBlock(tail *core.Block, consensusState state.ConsensusState
 	block.WorldState().SetConsensusState(consensusState)
 	block.SetTimestamp(consensusState.TimeStamp())
 	block.CollectTransactions(deadlineInMs)
-	block.SetMiner(dpos.miner)
 	if err = block.Seal(); err != nil {
 		logging.CLog().WithFields(logrus.Fields{
 			"block": block,

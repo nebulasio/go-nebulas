@@ -64,6 +64,7 @@ func NewGenesisBlock(conf *corepb.Genesis, chain *BlockChain) (*Block, error) {
 	}
 	genesisBlock := &Block{
 		header: &BlockHeader{
+			hash:          GenesisHash,
 			chainID:       conf.Meta.ChainId,
 			parentHash:    GenesisHash,
 			coinbase:      GenesisCoinbase,
@@ -76,7 +77,7 @@ func NewGenesisBlock(conf *corepb.Genesis, chain *BlockChain) (*Block, error) {
 		worldState:   worldState,
 		txPool:       chain.txPool,
 		height:       1,
-		sealed:       false,
+		sealed:       true,
 		storage:      chain.storage,
 		eventEmitter: chain.eventEmitter,
 	}
@@ -86,7 +87,6 @@ func NewGenesisBlock(conf *corepb.Genesis, chain *BlockChain) (*Block, error) {
 		return nil, err
 	}
 	genesisBlock.worldState.SetConsensusState(consensusState)
-	genesisBlock.SetMiner(GenesisCoinbase)
 
 	genesisBlock.Begin()
 	// add token distribution for genesis
@@ -118,15 +118,23 @@ func NewGenesisBlock(conf *corepb.Genesis, chain *BlockChain) (*Block, error) {
 	}
 	genesisBlock.Commit()
 
-	if err := genesisBlock.Seal(); err != nil {
-		logging.CLog().WithFields(logrus.Fields{
-			"gensis": genesisBlock,
-			"err":    err,
-		}).Error("Failed to seal genesis block.")
+	genesisBlock.header.stateRoot, err = genesisBlock.WorldState().AccountsRoot()
+	if err != nil {
+		return nil, err
+	}
+	genesisBlock.header.txsRoot, err = genesisBlock.WorldState().TxsRoot()
+	if err != nil {
+		return nil, err
+	}
+	genesisBlock.header.eventsRoot, err = genesisBlock.WorldState().EventsRoot()
+	if err != nil {
+		return nil, err
+	}
+	genesisBlock.header.consensusRoot, err = genesisBlock.WorldState().ConsensusRoot()
+	if err != nil {
 		return nil, err
 	}
 
-	genesisBlock.header.hash = GenesisHash
 	return genesisBlock, nil
 }
 

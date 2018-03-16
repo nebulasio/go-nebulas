@@ -726,10 +726,6 @@ func (block *Block) Seal() error {
 }
 
 func (block *Block) String() string {
-	miner := ""
-	if block.miner != nil {
-		miner = block.miner.String()
-	}
 	return fmt.Sprintf(`{"height": %d, "hash": "%s", "parent_hash": "%s", "acc_root": "%s", "timestamp": %d, "tx": %d, "miner": "%s"}`,
 		block.height,
 		block.header.hash,
@@ -737,7 +733,7 @@ func (block *Block) String() string {
 		block.header.stateRoot,
 		block.header.timestamp,
 		len(block.transactions),
-		miner,
+		byteutils.Hex(block.header.consensusRoot.Proposer),
 	)
 }
 
@@ -1138,41 +1134,33 @@ func RecoverMiner(block *Block) (*Address, error) {
 // LoadBlockFromStorage return a block from storage
 func LoadBlockFromStorage(hash byteutils.Hash, chain *BlockChain) (*Block, error) {
 	value, err := chain.storage.Get(hash)
-	logging.VLog().Info("241 ", hash.String())
 	if err != nil {
 		return nil, err
 	}
 	pbBlock := new(corepb.Block)
 	block := new(Block)
-	logging.VLog().Info("242")
 	if err = proto.Unmarshal(value, pbBlock); err != nil {
 		return nil, err
 	}
 	if err = block.FromProto(pbBlock); err != nil {
 		return nil, err
 	}
-	logging.VLog().Info("243")
 	block.worldState, err = state.NewWorldState(chain.ConsensusHandler(), chain.storage)
 	if err != nil {
 		return nil, err
 	}
-	logging.VLog().Info("244")
 	if err := block.WorldState().LoadAccountsRoot(block.StateRoot()); err != nil {
 		return nil, err
 	}
-	logging.VLog().Info("245")
 	if err := block.WorldState().LoadTxsRoot(block.TxsRoot()); err != nil {
 		return nil, err
 	}
-	logging.VLog().Info("246")
 	if err := block.WorldState().LoadEventsRoot(block.EventsRoot()); err != nil {
 		return nil, err
 	}
-	logging.VLog().Info("247")
 	if err := block.WorldState().LoadConsensusRoot(block.ConsensusRoot()); err != nil {
 		return nil, err
 	}
-	logging.VLog().Info("248")
 	block.txPool = chain.txPool
 	block.storage = chain.storage
 	block.sealed = true

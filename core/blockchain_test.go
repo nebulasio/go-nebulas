@@ -48,7 +48,6 @@ func TestBlockChain_FindCommonAncestorWithTail(t *testing.T) {
 	//add from reward
 	block0, _ := bc.NewBlock(from)
 	block0.header.timestamp = BlockInterval
-	block0.SetMiner(from)
 	block0.Seal()
 	assert.Nil(t, bc.BlockPool().Push(block0))
 	bc.SetTailBlock(block0)
@@ -72,9 +71,7 @@ func TestBlockChain_FindCommonAncestorWithTail(t *testing.T) {
 	block12, err := bc.NewBlock(coinbase12)
 	assert.Nil(t, err)
 	block12.header.timestamp = BlockInterval * 3
-	block11.SetMiner(coinbase11)
 	block11.Seal()
-	block12.SetMiner(coinbase12)
 	block12.Seal()
 	netBlock11, err := mockBlockFromNetwork(block11)
 	assert.Nil(t, err)
@@ -88,7 +85,6 @@ func TestBlockChain_FindCommonAncestorWithTail(t *testing.T) {
 	assert.Equal(t, bc.latestIrreversibleBlock, bc.genesisBlock)
 	block111, _ := bc.NewBlock(coinbase111)
 	block111.header.timestamp = BlockInterval * 4
-	block111.SetMiner(coinbase111)
 	block111.Seal()
 	netBlock111, err := mockBlockFromNetwork(block111)
 	assert.Nil(t, err)
@@ -99,9 +95,7 @@ func TestBlockChain_FindCommonAncestorWithTail(t *testing.T) {
 	block221.header.timestamp = BlockInterval * 5
 	block222, _ := bc.NewBlock(coinbase222)
 	block222.header.timestamp = BlockInterval * 6
-	block221.SetMiner(coinbase221)
 	block221.Seal()
-	block222.SetMiner(coinbase222)
 	block222.Seal()
 	netBlock221, err := mockBlockFromNetwork(block221)
 	assert.Nil(t, err)
@@ -113,7 +107,6 @@ func TestBlockChain_FindCommonAncestorWithTail(t *testing.T) {
 	assert.Equal(t, bc.latestIrreversibleBlock, bc.genesisBlock)
 	block1111, _ := bc.NewBlock(coinbase1111)
 	block1111.header.timestamp = BlockInterval * 7
-	block1111.SetMiner(coinbase1111)
 	block1111.Seal()
 	netBlock1111, err := mockBlockFromNetwork(block1111)
 	assert.Nil(t, err)
@@ -184,7 +177,6 @@ func TestBlockChain_FindCommonAncestorWithTail(t *testing.T) {
 
 	block11111, _ := bc.NewBlock(coinbase11111)
 	block11111.header.timestamp = BlockInterval * 8
-	block11111.SetMiner(coinbase11111)
 	block11111.Seal()
 	netBlock11111, err := mockBlockFromNetwork(block11111)
 	assert.Nil(t, err)
@@ -203,14 +195,12 @@ func TestBlockChain_FetchDescendantInCanonicalChain(t *testing.T) {
 	*/
 	block, _ := bc.NewBlock(coinbase)
 	block.header.timestamp = BlockInterval
-	block.SetMiner(coinbase)
 	block.Seal()
 	bc.BlockPool().Push(block)
 	bc.SetTailBlock(block)
 
 	block1, _ := bc.NewBlock(coinbase)
 	block1.header.timestamp = BlockInterval * 2
-	block1.SetMiner(coinbase)
 	block1.Seal()
 	bc.BlockPool().Push(block1)
 	bc.SetTailBlock(block1)
@@ -220,7 +210,6 @@ func TestBlockChain_FetchDescendantInCanonicalChain(t *testing.T) {
 		block, _ := bc.NewBlock(coinbase)
 		block.header.timestamp = BlockInterval * int64(i+3)
 		blocks = append(blocks, block)
-		block.SetMiner(coinbase)
 		block.Seal()
 		bc.BlockPool().Push(block)
 		bc.SetTailBlock(block)
@@ -291,7 +280,6 @@ func TestGetPrice(t *testing.T) {
 	tx2.Sign(signature)
 	block.transactions = append(block.transactions, tx1)
 	block.transactions = append(block.transactions, tx2)
-	block.miner = from
 	block.Seal()
 	block.Sign(signature)
 	bc.SetTailBlock(block)
