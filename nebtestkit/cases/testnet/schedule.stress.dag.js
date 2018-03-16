@@ -2,6 +2,7 @@
 
 var Wallet = require('../../../cmd/console/neb.js/lib/wallet.js');
 var HttpRequest = require("../../node-request");
+var schedule = require('node-schedule');
 var sleep = require("system-sleep");
 
 var env; // local testneb1 testneb2
@@ -69,12 +70,14 @@ if (env == 'local') {
     return;
 }
 
-neb.api.getAccountState(from.getAddressString()).then(function (resp) {
-    console.log("master accountState resp:" + JSON.stringify(resp));
-    lastnonce = parseInt(resp.nonce);
-    console.log("lastnonce:", lastnonce);
+var j = schedule.scheduleJob('10,40 */1 * * *', function() {
+    neb.api.getAccountState(from.getAddressString()).then(function (resp) {
+        console.log("master accountState resp:" + JSON.stringify(resp));
+        lastnonce = parseInt(resp.nonce);
+        console.log("lastnonce:", lastnonce);
 
-    claimTokens(lastnonce);
+        claimTokens(lastnonce);
+    });
 });
 
 function claimTokens(nonce) {
