@@ -22,6 +22,7 @@ import (
 
 	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/common/dag/pb"
+	"github.com/nebulasio/go-nebulas/util/logging"
 )
 
 // Node struct
@@ -56,9 +57,7 @@ type Dag struct {
 
 // ToProto converts domain Dag into proto Dag
 func (dag *Dag) ToProto() (proto.Message, error) {
-	if dag.IsCirclular() {
-		return nil, errors.New("Dag has circlular")
-	}
+
 	nodes := make([]*dagpb.Node, len(dag.Nodes))
 
 	idx := 0
@@ -73,6 +72,11 @@ func (dag *Dag) ToProto() (proto.Message, error) {
 
 		nodes[idx] = node
 		idx++
+	}
+
+	logging.CLog().Info("dag json:", dag.String())
+	if dag.IsCirclular() {
+		return nil, errors.New("Dag has circlular")
 	}
 
 	return &dagpb.Dag{
@@ -93,6 +97,8 @@ func (dag *Dag) FromProto(msg proto.Message) error {
 				dag.AddEdge(int(v.Index), int(child))
 			}
 		}
+
+		logging.CLog().Info("dag json:", dag.String())
 
 		if dag.IsCirclular() {
 			return errors.New("Dag has circlular")
