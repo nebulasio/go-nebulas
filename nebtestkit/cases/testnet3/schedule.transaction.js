@@ -5,7 +5,7 @@ var fs = require("fs");
 var exec = require('child_process').exec;
 
 // send transactions per 10 minute.
-var j = schedule.scheduleJob('*/10 * * * *', function(){
+var j = schedule.scheduleJob('20,50 */1 * * *', function(){
     console.log("start transaction test");
     sendTransactionsTest();
 });
