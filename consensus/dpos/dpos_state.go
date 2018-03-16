@@ -40,7 +40,7 @@ import (
 // Consensus Related Constants
 const (
 	BlockInterval        = int64(5)
-	AcceptedNetWorkDelay = int64(2)
+	AcceptedNetWorkDelay = int64(2) // ToAdd add comment
 	MaxMintDuration      = int64(2)
 	MinMintDuration      = int64(1)
 	DynastyInterval      = int64(60) // TODO(roy): 3600  TODO not use hard code
@@ -66,7 +66,7 @@ var (
 // State carry context in dpos consensus
 type State struct {
 	timeStamp int64
-	proposer  byteutils.Hash
+	proposer  byteutils.Hash // ToAdd comment, miner
 
 	dynastyTrie *trie.BatchTrie // key: delegatee, val: delegatee
 
@@ -97,7 +97,7 @@ func (dpos *Dpos) NewState(root *consensuspb.ConsensusRoot, stor storage.Storage
 }
 
 // CheckTimeout check whether the block is timeout
-func (dpos *Dpos) CheckTimeout(block *core.Block) bool {
+func (dpos *Dpos) CheckTimeout(block *core.Block) bool {// ToCheck block not nil
 	behind := time.Now().Unix() - block.Timestamp()
 	if behind > AcceptedNetWorkDelay { //ToAdd reject future block
 		logging.VLog().WithFields(logrus.Fields{
@@ -117,7 +117,7 @@ func (dpos *Dpos) GenesisState(chain *core.BlockChain, conf *corepb.Genesis) (st
 	if err != nil {
 		return nil, err
 	}
-	if len(conf.Consensus.Dpos.Dynasty) < SafeSize {
+	if len(conf.Consensus.Dpos.Dynasty) < SafeSize { // ToDelete
 		return nil, ErrInitialDynastyNotEnough
 	}
 	if len(conf.Consensus.Dpos.Dynasty) != DynastySize {
@@ -136,7 +136,7 @@ func (dpos *Dpos) GenesisState(chain *core.BlockChain, conf *corepb.Genesis) (st
 	}
 	return &State{
 		timeStamp: core.GenesisTimestamp,
-		proposer:  nil,
+		proposer:  nil,// ToCheck nil maybe have issues
 
 		dynastyTrie: dynastyTrie,
 
@@ -163,7 +163,7 @@ func (ds *State) Rollback() {
 func (ds *State) String() string {
 	return fmt.Sprintf(`{"timestamp": %d, "proposer": "%s", "dynasty": "%s"}`,
 		ds.timeStamp,
-		ds.proposer.Hex(),
+		ds.proposer.Hex(),// ToAdd check for genesis
 		byteutils.Hex(ds.dynastyTrie.RootHash()),
 	)
 }
@@ -187,7 +187,7 @@ func (ds *State) Clone() (state.ConsensusState, error) {
 }
 
 // RootHash hash dpos state
-func (ds *State) RootHash() (*consensuspb.ConsensusRoot, error) {
+func (ds *State) RootHash() (*consensuspb.ConsensusRoot, error) {// ToRefine, change name
 	return &consensuspb.ConsensusRoot{
 		DynastyRoot: ds.dynastyTrie.RootHash(),
 		Timestamp:   ds.timeStamp,
