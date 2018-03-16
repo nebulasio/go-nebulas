@@ -122,6 +122,7 @@ func (storage *RocksStorage) Flush() error {
 			wb.Put(opt.key, opt.value)
 		}
 	}
+	storage.batchOpts = make(map[string]*batchOpt)
 
 	return storage.db.Write(storage.wo, wb)
 }
