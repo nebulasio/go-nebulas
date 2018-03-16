@@ -25,7 +25,6 @@ import (
 	"github.com/nebulasio/go-nebulas/core/state"
 
 	lru "github.com/hashicorp/golang-lru"
-	"github.com/nebulasio/go-nebulas/crypto/keystore"
 	metrics "github.com/nebulasio/go-nebulas/metrics"
 
 	"github.com/nebulasio/go-nebulas/core"
@@ -34,6 +33,11 @@ import (
 	"github.com/nebulasio/go-nebulas/util/byteutils"
 	"github.com/nebulasio/go-nebulas/util/logging"
 	"github.com/sirupsen/logrus"
+)
+
+// const
+const (
+	DefaultMaxUnlockDuration time.Duration = 1<<63 - 1
 )
 
 // Errors in PoW Consensus
@@ -47,11 +51,13 @@ var (
 	ErrBlockMintedInNextSlot      = errors.New("cannot mint block now, there is a block minted in current slot")
 	ErrGenerateNextConsensusState = errors.New("Failed to generate next consensus state")
 	ErrDoubleBlockMinted          = errors.New("double block minted")
+	ErrAppendNewBlockFailed       = errors.New("failed to append new block to real chain")
 )
 
 // Metrics
 var (
 	metricsBlockPackingTime = metrics.NewGauge("neb.block.packing")
+	metricsBlockWaitingTime = metrics.NewGauge("neb.block.waiting")
 )
 
 // Dpos Delegate Proof-of-Stake
@@ -138,7 +144,7 @@ func (dpos *Dpos) Stop() {
 
 // EnableMining start the consensus
 func (dpos *Dpos) EnableMining(passphrase string) error {
-	if err := dpos.am.Unlock(dpos.miner, []byte(passphrase), keystore.YearUnlockDuration); err != nil { // TODO: check the unlock time
+	if err := dpos.am.Unlock(dpos.miner, []byte(passphrase), DefaultMaxUnlockDuration); err != nil {
 		return err
 	}
 	dpos.enable = true
@@ -441,7 +447,22 @@ func (dpos *Dpos) checkDeadline(tail *core.Block, now int64) (int64, error) { //
 
 func (dpos *Dpos) checkProposer(tail *core.Block, now int64) (state.ConsensusState, error) {
 	slot := nextSlot(now)
-	elapsed := slot - tail.Timestamp() // add logic: check dpos.miner not in dynasty and slot, return
+	proposer, err := dpos.findProposer(now)
+	if err != nil {
+		return nil, err
+	}
+	if proposer == nil || !proposer.Equals(dpos.miner.Bytes()) {
+		logging.VLog().WithFields(logrus.Fields{
+			"tail":     tail,
+			"now":      now,
+			"slot":     slot,
+			"expected": proposer,
+			"actual":   dpos.miner,
+		}).Debug("Not my turn, waiting...")
+		return nil, ErrInvalidBlockProposer
+	}
+
+	elapsed := slot - tail.Timestamp()
 	consensusState, err := tail.NextConsensusState(elapsed)
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
@@ -468,7 +489,7 @@ func (dpos *Dpos) checkProposer(tail *core.Block, now int64) (state.ConsensusSta
 	return consensusState, nil
 }
 
-func (dpos *Dpos) broadcast(tail *core.Block, block *core.Block) error { //ToRename pushAndBroadcast
+func (dpos *Dpos) pushAndBroadcast(tail *core.Block, block *core.Block) error {
 	if err := dpos.chain.BlockPool().PushAndBroadcast(block); err != nil {
 		logging.CLog().WithFields(logrus.Fields{
 			"tail":  tail,
@@ -477,6 +498,11 @@ func (dpos *Dpos) broadcast(tail *core.Block, block *core.Block) error { //ToRen
 		}).Error("Failed to push new minted block into block pool")
 		return err
 	}
+
+	if !dpos.chain.TailBlock().Hash().Equals(block.Hash()) {
+		return ErrAppendNewBlockFailed
+	}
+
 	logging.CLog().WithFields(logrus.Fields{
 		"tail":  tail,
 		"block": block,
@@ -486,6 +512,7 @@ func (dpos *Dpos) broadcast(tail *core.Block, block *core.Block) error { //ToRen
 
 func (dpos *Dpos) mintBlock(now int64) error {
 	metricsBlockPackingTime.Update(0)
+	metricsBlockWaitingTime.Update(0)
 
 	// check mining enable
 	if !dpos.enable {
@@ -527,7 +554,8 @@ func (dpos *Dpos) mintBlock(now int64) error {
 	current := time.Now().Unix()
 	if slot > current {
 		timer := time.NewTimer(time.Duration(slot-current) * time.Second).C
-		<-timer //ToAdd add metrics for lost time
+		<-timer
+		metricsBlockWaitingTime.Update(slot - current)
 	}
 
 	logging.CLog().WithFields(logrus.Fields{
@@ -543,13 +571,9 @@ func (dpos *Dpos) mintBlock(now int64) error {
 	// try to push the new block on chain
 	// if failed, return all txs back
 
-	if err := dpos.broadcast(tail, block); err != nil {
+	if err := dpos.pushAndBroadcast(tail, block); err != nil {
 		block.ReturnTransactions()
 		return err
-	}
-
-	if !dpos.chain.TailBlock().Hash().Equals(block.Hash()) { //ToMove in broadcast
-		block.ReturnTransactions()
 	}
 
 	return nil
@@ -567,4 +591,23 @@ func (dpos *Dpos) blockLoop() {
 			return
 		}
 	}
+}
+
+func (dpos *Dpos) findProposer(now int64) (proposer byteutils.Hash, err error) {
+	validators, err := dpos.chain.TailBlock().Dynasty()
+	if err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"err": err,
+		}).Debug("Failed to get validators from dynasty.")
+		return nil, err
+	}
+	proposer, err = FindProposer(now, validators)
+	if err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"proposer": proposer,
+			"err":      err,
+		}).Debug("Failed to find proposer.")
+		return nil, err
+	}
+	return proposer, nil
 }
