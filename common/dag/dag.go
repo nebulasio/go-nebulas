@@ -56,6 +56,9 @@ type Dag struct {
 
 // ToProto converts domain Dag into proto Dag
 func (dag *Dag) ToProto() (proto.Message, error) {
+	if dag.IsCirclular() {
+		return nil, errors.New("Dag has circlular")
+	}
 	nodes := make([]*dagpb.Node, len(dag.Nodes))
 
 	idx := 0
@@ -82,7 +85,7 @@ func (dag *Dag) FromProto(msg proto.Message) error {
 	if msg, ok := msg.(*dagpb.Dag); ok {
 
 		for _, v := range msg.Nodes {
-			dag.AddNodeWithIndex(int(v.Index), int(v.Index))
+			dag.addNodeWithIndex(int(v.Index), int(v.Index))
 		}
 
 		for _, v := range msg.Nodes {
@@ -91,6 +94,9 @@ func (dag *Dag) FromProto(msg proto.Message) error {
 			}
 		}
 
+		if dag.IsCirclular() {
+			return errors.New("Dag has circlular")
+		}
 		return nil
 	}
 	return errors.New("Protobuf message cannot be converted into Dag")
@@ -167,8 +173,8 @@ func (dag *Dag) AddNode(key interface{}) error {
 	return nil
 }
 
-// AddNodeWithIndex add node
-func (dag *Dag) AddNodeWithIndex(key interface{}, index int) error {
+// addNodeWithIndex add node
+func (dag *Dag) addNodeWithIndex(key interface{}, index int) error {
 	if _, ok := dag.Nodes[key]; ok {
 		return ErrKeyIsExisted
 	}
@@ -201,4 +207,38 @@ func (dag *Dag) AddEdge(fromKey, toKey interface{}) error {
 	dag.Nodes[fromKey].Children = append(from.Children, to)
 
 	return nil
+}
+
+//IsCirclular a->b-c->a
+func (dag *Dag) IsCirclular() bool {
+	visited := make(map[interface{}]bool)
+
+	rootnodes := dag.GetRootNodes()
+
+	for _, node := range rootnodes {
+		if dag.hasCirclularDep(node, visited) {
+			return true
+		}
+	}
+
+	if len(rootnodes) == 0 && len(dag.Nodes) != 0 {
+		return true
+	}
+	return false
+}
+
+//hasCirclularDep circluar dep
+func (dag *Dag) hasCirclularDep(current *Node, visited map[interface{}]bool) bool {
+	visited[current.Key] = true
+	for _, child := range current.Children {
+		if _, ok := visited[child.Key]; ok {
+			return true
+		}
+		if dag.hasCirclularDep(child, visited) {
+			return true
+		}
+		delete(visited, child.Key)
+	}
+	delete(visited, current.Key)
+	return false
 }

@@ -63,7 +63,7 @@ func TestDag_AddNode(t *testing.T) {
 
 	dag1 := NewDag()
 	err = dag1.FromProto(msg)
-
+	assert.Nil(t, err)
 	node1 = dag1.GetNode(int(0))
 
 	//fmt.Println(err, node1)
@@ -72,4 +72,41 @@ func TestDag_AddNode(t *testing.T) {
 	children := dag1.GetChildrenNodes(int(0))
 
 	assert.Equal(t, 2, len(children))
+}
+
+func TestDag_IsCirclular(t *testing.T) {
+	dag := NewDag()
+
+	dag.AddNode("1")
+	dag.AddNode("2")
+	dag.AddNode("3")
+	dag.AddNode("4")
+	dag.AddNode("5")
+
+	// Add the edges (Note that given Nodes must exist before adding an
+	// edge between them)
+	dag.AddEdge("1", "2")
+	dag.AddEdge("1", "3")
+	dag.AddEdge("2", "4")
+	dag.AddEdge("3", "4")
+
+	assert.Equal(t, false, dag.IsCirclular())
+	_, err := dag.ToProto()
+	assert.Nil(t, err)
+
+	dag.AddEdge("4", "2")
+
+	assert.Equal(t, true, dag.IsCirclular())
+
+	msg, err := dag.ToProto()
+	assert.NotNil(t, err)
+
+	dag1 := NewDag()
+	err = dag1.FromProto(msg)
+	assert.NotNil(t, err)
+
+	dag.AddEdge("4", "5")
+	dag.AddEdge("5", "1")
+	assert.Equal(t, true, dag.IsCirclular())
+
 }
