@@ -76,7 +76,7 @@ if (env == 'local') {
     return;
 }
 
-var j = schedule.scheduleJob('0,30 */1 * * *', function() {
+var j = schedule.scheduleJob('*/20 * * * *', function() {
     neb.api.getAccountState(from.getAddressString()).then(function (resp) {
         console.log("master accountState resp:" + JSON.stringify(resp));
         lastnonce = parseInt(resp.nonce);
