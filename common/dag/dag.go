@@ -74,7 +74,13 @@ func (dag *Dag) ToProto() (proto.Message, error) {
 		idx++
 	}
 
-	logging.CLog().Info("dag json:", dag.String())
+	pbmsg := &dagpb.Dag{
+		Nodes: nodes,
+	}
+
+	jsonstr, _ := json.Marshal(pbmsg)
+
+	logging.CLog().Info("dag json:", jsonstr)
 	if dag.IsCirclular() {
 		return nil, errors.New("Dag has circlular")
 	}
@@ -98,7 +104,8 @@ func (dag *Dag) FromProto(msg proto.Message) error {
 			}
 		}
 
-		logging.CLog().Info("dag json:", dag.String())
+		jsonstr, _ := json.Marshal(msg)
+		logging.CLog().Info("dag json:", jsonstr)
 
 		if dag.IsCirclular() {
 			return errors.New("Dag has circlular")
