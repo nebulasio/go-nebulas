@@ -220,7 +220,7 @@ func FindProposer(now int64, validators []byteutils.Hash) (proposer byteutils.Ha
 			"proposer":  proposer,
 			"offset":    offset,
 			"delegatee": len(validators),
-		}).Debug("Found Nil Proposer.") // ToRefine error log
+		}).Error("Found Nil Proposer.")
 		return nil, ErrFoundNilProposer
 	}
 	return proposer, nil

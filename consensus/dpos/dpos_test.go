@@ -301,7 +301,7 @@ func TestDpos_VerifySign(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Nil(t, manager.Unlock(miner, []byte("passphrase"), keystore.DefaultUnlockDuration))
 	assert.Nil(t, manager.SignBlock(miner, block))
-	assert.Equal(t, dpos.VerifyBlock(block), ErrInvalidBlockProposer)
+	assert.Equal(t, dpos.VerifyBlock(block), ErrDoubleBlockMinted)
 }
 
 func GetUnlockAddress(t *testing.T, am *account.Manager, addr string) *core.Address {

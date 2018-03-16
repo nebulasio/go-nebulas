@@ -87,19 +87,19 @@ func (dpos *Dpos) Setup(neblet core.Neblet) error {
 	dpos.ns = neblet.NetService()
 	dpos.am = neblet.AccountManager()
 
-	config := neblet.Config().Chain                     // ToRefine: change to chain config
-	coinbase, err := core.AddressParse(config.Coinbase) // ToRefine: change if enable = false, coinbase and miner can be nil
+	chainConfig := neblet.Config().Chain
+	coinbase, err := core.AddressParse(chainConfig.Coinbase)
 	if err != nil {
 		logging.CLog().WithFields(logrus.Fields{
-			"address": config.Coinbase,
+			"address": chainConfig.Coinbase,
 			"err":     err,
 		}).Error("Failed to parse coinbase address.")
 		return err
 	}
-	miner, err := core.AddressParse(config.Miner)
+	miner, err := core.AddressParse(chainConfig.Miner)
 	if err != nil {
 		logging.CLog().WithFields(logrus.Fields{
-			"address": config.Miner,
+			"address": chainConfig.Miner,
 			"err":     err,
 		}).Error("Failed to parse miner address.")
 		return err
@@ -213,8 +213,8 @@ func (dpos *Dpos) UpdateLIB() {
 	lib := dpos.chain.LIB()
 	tail := dpos.chain.TailBlock()
 	cur := tail
-	validators := make(map[string]bool)
-	dynasty := int64(0) // ToRefine: change to -1 and needn't the validators make
+	var validators map[string]bool
+	dynasty := int64(-1)
 	for !cur.Hash().Equals(lib.Hash()) {
 		curDynasty := cur.Timestamp() / DynastyInterval
 		if curDynasty != dynasty {
@@ -231,7 +231,7 @@ func (dpos *Dpos) UpdateLIB() {
 				logging.VLog().WithFields(logrus.Fields{
 					"tail": tail,
 					"lib":  cur,
-				}).Debug("Failed to store latest irreversible block.") // ToRefine change to error
+				}).Error("Failed to store latest irreversible block.")
 				return
 			}
 			logging.VLog().WithFields(logrus.Fields{
@@ -318,6 +318,14 @@ func (dpos *Dpos) VerifyBlock(block *core.Block) error {
 	if elapsedSecond%BlockInterval != 0 {
 		return ErrInvalidBlockInterval
 	}
+	// check double mint
+	if preBlock, exist := dpos.slot.Get(block.Timestamp()); exist {
+		logging.VLog().WithFields(logrus.Fields{
+			"curBlock": block,
+			"preBlock": preBlock.(*core.Block),
+		}).Warn("Found someone minted multiple blocks at same time.")
+		return ErrDoubleBlockMinted
+	}
 	// check proposer
 	validators, err := tail.Dynasty()
 	if err != nil {
@@ -349,15 +357,7 @@ func (dpos *Dpos) VerifyBlock(block *core.Block) error {
 	if err := verifyBlockSign(miner, block); err != nil {
 		return err
 	}
-	// check double mint
-	if preBlock, exist := dpos.slot.Get(block.Timestamp()); exist { //ToMove update to begin
-		logging.VLog().WithFields(logrus.Fields{
-			"curBlock": block,
-			"preBlock": preBlock.(*core.Block),
-		}).Warn("Found someone minted multiple blocks at same time.")
-		return ErrDoubleBlockMinted
-	}
-	dpos.slot.Add(block.Timestamp(), block) // ToRefine: return error if add failed.
+	dpos.slot.Add(block.Timestamp(), block)
 	return nil
 }
 
