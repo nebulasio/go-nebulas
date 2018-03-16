@@ -941,7 +941,7 @@ func (block *Block) NextConsensusState(elapsed int64) (state.ConsensusState, err
 // LoadConsensusState load the consensusState
 func (block *Block) LoadConsensusState(consensusState state.ConsensusState) {
 	block.consensusState = consensusState
-	block.SetTimestamp(consensusState.TimeStamp())
+	block.SetTimestamp(consensusState.TimeStamp()) //ToRemove
 }
 
 // CheckContract check if contract is valid

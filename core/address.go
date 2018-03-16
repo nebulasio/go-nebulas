@@ -134,10 +134,8 @@ func AddressParseFromBytes(s []byte) (*Address, error) {
 	cs := s[AddressDataLength:AddressLength]
 	dcs := checkSum(data)
 
-	for i := 0; i < AddressChecksumLength; i++ {
-		if dcs[i] != cs[i] {
-			return nil, ErrInvalidAddress
-		}
+	if !byteutils.Equal(cs, dcs) {
+		return nil, ErrInvalidAddress
 	}
 
 	return &Address{address: s}, nil

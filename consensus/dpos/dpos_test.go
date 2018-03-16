@@ -380,7 +380,7 @@ func TestDpos_MintBlock(t *testing.T) {
 	neb := mockNeb(t)
 	dpos := neb.consensus.(*Dpos)
 
-	assert.Equal(t, dpos.mintBlock(0), ErrCannotMintWhenDiable)
+	assert.Equal(t, dpos.mintBlock(0), ErrCannotMintWhenDisable)
 
 	assert.Nil(t, dpos.EnableMining("passphrase"))
 	dpos.SuspendMining()

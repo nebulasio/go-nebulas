@@ -43,7 +43,7 @@ const (
 	AcceptedNetWorkDelay = int64(2)
 	MaxMintDuration      = int64(2)
 	MinMintDuration      = int64(1)
-	DynastyInterval      = int64(60) // TODO(roy): 3600
+	DynastyInterval      = int64(60) // TODO(roy): 3600  TODO not use hard code
 	DynastySize          = 6         // TODO(roy): 21
 	SafeSize             = DynastySize*2/3 + 1
 )
@@ -99,7 +99,7 @@ func (dpos *Dpos) NewState(root *consensuspb.ConsensusRoot, stor storage.Storage
 // CheckTimeout check whether the block is timeout
 func (dpos *Dpos) CheckTimeout(block *core.Block) bool {
 	behind := time.Now().Unix() - block.Timestamp()
-	if behind > AcceptedNetWorkDelay {
+	if behind > AcceptedNetWorkDelay { //ToAdd reject future block
 		logging.VLog().WithFields(logrus.Fields{
 			"block": block,
 			"diff":  behind,
@@ -220,7 +220,7 @@ func FindProposer(now int64, validators []byteutils.Hash) (proposer byteutils.Ha
 			"proposer":  proposer,
 			"offset":    offset,
 			"delegatee": len(validators),
-		}).Debug("Found Nil Proposer.")
+		}).Debug("Found Nil Proposer.") // ToRefine error log
 		return nil, ErrFoundNilProposer
 	}
 	return proposer, nil
