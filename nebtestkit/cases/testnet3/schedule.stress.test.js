@@ -15,8 +15,8 @@ var args = process.argv.splice(2);
 if (args.length !=3 ){
     // give default config
     env = "testneb3";
-    AddressNumber = 100;
-    SendTimes = 20;
+    AddressNumber = 200;
+    SendTimes = 30;
 } else {
     env = args[0]; // local testneb1 testneb2
 
