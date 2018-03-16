@@ -51,15 +51,6 @@ message Transaction {
     bytes sign = 12;
 }
 
-message DposContext {
-    bytes dynasty_root = 1;
-    bytes next_dynasty_root = 2;
-    bytes delegate_root = 3;
-    bytes candidate_root = 4;
-    bytes vote_root = 5;
-    bytes mint_cnt_root = 6;
-}
-
 message BlockHeader {
     bytes hash = 1;
     bytes parent_hash = 2;
@@ -72,19 +63,15 @@ message BlockHeader {
     bytes state_root = 9;
     bytes txs_root = 10;
     bytes events_root = 11;
-    consensuspb.ConsensusRoot consensus_root = 13;
-
-    // ToDelete
-    DposContext dpos_context = 12;
+    consensuspb.ConsensusRoot consensus_root = 12;
 }
 
 message Block {
     BlockHeader header = 1;
     repeated Transaction transactions = 2;
-    uint64 height = 3;
-    bytes miner = 4;
+    dagpb.Dag dependency = 3;    
 
-    dagpb.Dag dependency = 5;
+    uint64 height = 4;
 }
 
 message NetBlocks {

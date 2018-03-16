@@ -104,15 +104,7 @@ func (b *BlockHeader) FromProto(msg proto.Message) error {
 		b.stateRoot = msg.StateRoot
 		b.txsRoot = msg.TxsRoot
 		b.eventsRoot = msg.EventsRoot
-		// ToDelete
-		if msg.ConsensusRoot == nil && msg.DposContext != nil {
-			b.consensusRoot = &consensuspb.ConsensusRoot{
-				DynastyRoot: msg.DposContext.DynastyRoot,
-				Timestamp:   msg.Timestamp,
-			}
-		} else {
-			b.consensusRoot = msg.ConsensusRoot
-		}
+		b.consensusRoot = msg.ConsensusRoot
 		b.nonce = msg.Nonce
 		b.coinbase = &Address{msg.Coinbase}
 		b.timestamp = msg.Timestamp
@@ -137,7 +129,6 @@ type Block struct {
 	worldState state.WorldState
 
 	txPool *TransactionPool
-	miner  *Address
 
 	storage      storage.Storage
 	eventEmitter *EventEmitter
@@ -172,7 +163,6 @@ func (block *Block) ToProto() (proto.Message, error) {
 				Transactions: txs,
 				Dependency:   dependency,
 				Height:       block.height,
-				Miner:        block.miner.Bytes(),
 			}, nil
 		}
 		return nil, errors.New("Protobuf message cannot be converted into Dag")
@@ -197,14 +187,10 @@ func (block *Block) FromProto(msg proto.Message) error {
 			block.transactions[idx] = tx
 		}
 		block.dependency = dag.NewDag()
-		// ToDelete
-		if msg.Dependency != nil {
-			if err := block.dependency.FromProto(msg.Dependency); err != nil {
-				return err
-			}
+		if err := block.dependency.FromProto(msg.Dependency); err != nil {
+			return err
 		}
 		block.height = msg.Height
-		block.miner = &Address{msg.Miner}
 		return nil
 	}
 	return errors.New("Protobuf message cannot be converted into Block")
@@ -369,16 +355,6 @@ func (block *Block) Height() uint64 {
 // Transactions returns block transactions
 func (block *Block) Transactions() Transactions {
 	return block.transactions
-}
-
-// Miner return miner
-func (block *Block) Miner() *Address {
-	return block.miner
-}
-
-// SetMiner return miner
-func (block *Block) SetMiner(miner *Address) {
-	block.miner = miner
 }
 
 // VerifyAddress returns if the addr string is valid
@@ -730,7 +706,10 @@ func (block *Block) Seal() error {
 		return err
 	}
 
-	block.header.hash = HashBlock(block)
+	block.header.hash, err = HashBlock(block)
+	if err != nil {
+		return err
+	}
 	block.sealed = true
 
 	logging.VLog().WithFields(logrus.Fields{
@@ -856,11 +835,12 @@ func (block *Block) VerifyIntegrity(chainID uint32, consensus Consensus) error {
 	}
 
 	// verify block hash.
-	wantedHash := HashBlock(block)
-	if !wantedHash.Equals(block.Hash()) {
+	wantedHash, err := HashBlock(block)
+	if err != nil || !wantedHash.Equals(block.Hash()) {
 		logging.VLog().WithFields(logrus.Fields{
 			"expect": wantedHash,
 			"actual": block.Hash(),
+			"err":    err,
 		}).Debug("Failed to check block's hash.")
 		return ErrInvalidBlockHash
 	}
@@ -1102,10 +1082,13 @@ func (block *Block) ExecuteTransaction(tx *Transaction, txWorldState state.TxWor
 }
 
 // HashBlock return the hash of block.
-func HashBlock(block *Block) byteutils.Hash {
+func HashBlock(block *Block) (byteutils.Hash, error) {
 	hasher := sha3.New256()
 
-	consensusRoot, _ := proto.Marshal(block.ConsensusRoot())
+	consensusRoot, err := proto.Marshal(block.ConsensusRoot())
+	if err != nil {
+		return nil, err
+	}
 
 	hasher.Write(block.ParentHash())
 	hasher.Write(block.StateRoot())
@@ -1121,7 +1104,7 @@ func HashBlock(block *Block) byteutils.Hash {
 		hasher.Write(tx.Hash())
 	}
 
-	return hasher.Sum(nil)
+	return hasher.Sum(nil), nil
 }
 
 // HashPbBlock return the hash of pb block.

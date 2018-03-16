@@ -23,11 +23,4 @@ message ConsensusRoot {
     bytes dynasty_root = 1;
     int64 timestamp = 7;
     bytes proposer = 8;
-    // ToDelete
-    bytes next_dynasty_root = 2;
-    bytes delegate_root = 3;
-    bytes candidate_root = 4;
-    bytes vote_root = 5;
-    bytes mint_cnt_root = 6;
-
 }
