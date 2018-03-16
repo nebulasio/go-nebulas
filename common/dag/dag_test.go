@@ -99,11 +99,11 @@ func TestDag_IsCirclular(t *testing.T) {
 	assert.Equal(t, true, dag.IsCirclular())
 
 	msg, err := dag.ToProto()
-	assert.NotNil(t, err)
+	assert.Nil(t, err)
 
 	dag1 := NewDag()
 	err = dag1.FromProto(msg)
-	assert.NotNil(t, err)
+	assert.Nil(t, err)
 
 	dag.AddEdge("4", "5")
 	dag.AddEdge("5", "1")

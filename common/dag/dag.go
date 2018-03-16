@@ -22,7 +22,6 @@ import (
 
 	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/common/dag/pb"
-	"github.com/nebulasio/go-nebulas/util/logging"
 )
 
 // Node struct
@@ -74,17 +73,6 @@ func (dag *Dag) ToProto() (proto.Message, error) {
 		idx++
 	}
 
-	pbmsg := &dagpb.Dag{
-		Nodes: nodes,
-	}
-
-	jsonstr, _ := json.Marshal(pbmsg)
-
-	logging.CLog().Info("dag json:", jsonstr)
-	if dag.IsCirclular() {
-		return nil, errors.New("Dag has circlular")
-	}
-
 	return &dagpb.Dag{
 		Nodes: nodes,
 	}, nil
@@ -104,12 +92,6 @@ func (dag *Dag) FromProto(msg proto.Message) error {
 			}
 		}
 
-		jsonstr, _ := json.Marshal(msg)
-		logging.CLog().Info("dag json:", jsonstr)
-
-		if dag.IsCirclular() {
-			return errors.New("Dag has circlular")
-		}
 		return nil
 	}
 	return errors.New("Protobuf message cannot be converted into Dag")
