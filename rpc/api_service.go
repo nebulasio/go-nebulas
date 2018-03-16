@@ -211,9 +211,7 @@ func parseTransaction(neb Neblet, reqTx *rpcpb.TransactionRequest) (*core.Transa
 		payload, err = core.NewCallPayload(reqTx.Contract.Function, reqTx.Contract.Args).ToBytes()
 	} else {
 		payloadType = core.TxPayloadBinaryType
-		if neb.BlockChain().TailBlock().Height() > core.OptimizeHeight {
-			payload, err = core.NewBinaryPayload(reqTx.Binary).ToBytes()
-		}
+		payload, err = core.NewBinaryPayload(reqTx.Binary).ToBytes()
 	}
 	if err != nil {
 		return nil, err

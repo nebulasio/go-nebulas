@@ -123,11 +123,6 @@ func (emitter *EventEmitter) Stop() {
 
 // Trigger trigger event.
 func (emitter *EventEmitter) Trigger(e *state.Event) {
-
-	//logging.VLog().WithFields(logrus.Fields{
-	//	"topic": e.Topic,
-	//	"data":  e.Data,
-	//	}).Debug("Trigger new event")
 	emitter.eventCh <- e
 }
 
@@ -144,7 +139,6 @@ func (emitter *EventEmitter) Register(subscribers ...*EventSubscriber) {
 
 // Deregister deregister event chan.
 func (emitter *EventEmitter) Deregister(subscribers ...*EventSubscriber) {
-
 	for _, v := range subscribers {
 		for _, topic := range v.topics {
 			m, _ := emitter.eventSubs.Load(topic)

@@ -32,6 +32,7 @@ type Node struct {
 	ParentCounter int
 }
 
+// Errors
 var (
 	ErrKeyNotFound  = errors.New("not found")
 	ErrKeyIsExisted = errors.New("already existed")
@@ -166,7 +167,7 @@ func (dag *Dag) AddNode(key interface{}) error {
 	return nil
 }
 
-// AddNode add node
+// AddNodeWithIndex add node
 func (dag *Dag) AddNodeWithIndex(key interface{}, index int) error {
 	if _, ok := dag.Nodes[key]; ok {
 		return ErrKeyIsExisted

@@ -58,6 +58,7 @@ func init() {
 	}
 }
 
+// EnableMetrics enable the metrics service
 func EnableMetrics() {
 	enable = true
 	exp.Exp(metrics.DefaultRegistry)

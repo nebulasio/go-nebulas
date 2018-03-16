@@ -33,22 +33,6 @@ import (
 	"github.com/nebulasio/go-nebulas/util"
 )
 
-// const definition
-const (
-	// OptimizeHeight after this height,
-	// update transaction execution result event,
-	// update binary transaction payload.
-	OptimizeHeight = 480000
-
-	// update deploy execution, from & to must equal
-	NewOptimizeHeight = 750000
-
-	// update transaction exe check
-	// add balance case: balanceOfFrom > gasPrice*gasLimit + valueOfTx
-	// add gas case: gasLimit > gasUsed + gasExecution
-	TransactionOptimizeHeight = 800000
-)
-
 // Payload Types
 const (
 	TxPayloadBinaryType    = "binary"

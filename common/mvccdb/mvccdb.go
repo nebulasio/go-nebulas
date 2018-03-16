@@ -29,6 +29,7 @@ import (
 	// om/nebulasio/go-nebulas/util/logging"
 )
 
+// Errors
 var (
 	ErrUnsupportedNestedTransaction    = errors.New("unsupported nested transaction")
 	ErrTransactionNotStarted           = errors.New("transaction is not started")
@@ -133,7 +134,6 @@ func (db *MVCCDB) Commit() error {
 
 	// commit.
 	db.stagingTable.Lock()
-	// logging.CLog().Info("MVCCDB Commit ", len(db.stagingTable.GetVersionizedValues()))
 
 	// enable batch.
 	db.storage.EnableBatch()
@@ -158,8 +158,6 @@ func (db *MVCCDB) Commit() error {
 		if err != nil && retErr == nil {
 			retErr = err
 		}
-
-		// logging.CLog().Infof("MVCCDB.COMMIT: %s %s %d", byteutils.Hex(value.key), byteutils.Hex(hash.Sha3256(value.val)), value.version)
 	}
 
 	// flush and disable batch.
@@ -233,16 +231,11 @@ func (db *MVCCDB) Get(key []byte) ([]byte, error) {
 		return db.getFromStorage(key)
 	}
 
-	// logging.CLog().Info("MVCCDB Get ", byteutils.Hex(key))
 	value, err := db.stagingTable.Get(key)
 	if err != nil {
 		return nil, err
 	}
 
-	// delta := time.Now().UnixNano() - s
-	/* 	db.getLogs = append(db.getLogs, delta)
-	   	db.getLatency.Update(delta)
-	*/
 	if value.deleted || value.val == nil {
 		return nil, storage.ErrKeyNotFound
 	}
@@ -256,8 +249,6 @@ func (db *MVCCDB) Put(key []byte, val []byte) error {
 
 	db.mutex.Lock()
 	defer db.mutex.Unlock()
-
-	// logging.CLog().Info("MVCCDB Put ", byteutils.Hex(key))
 
 	if db.isPreparedDB && db.isPreparedDBClosed {
 		return ErrPreparedDBIsClosed

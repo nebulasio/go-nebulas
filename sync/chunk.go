@@ -203,10 +203,6 @@ func (c *Chunk) generateChunkData(chunkHeader *syncpb.ChunkHeader) (*syncpb.Chun
 		blocksTrie.Put(block.Hash(), block.Hash())
 	}
 
-	/* 	logging.VLog().WithFields(logrus.Fields{
-		"size": len(blocks),
-	}).Debug("Succeed to generate chunk.") */
-
 	if bytes.Compare(blocksTrie.RootHash(), chunkHeader.Root) != 0 {
 		logging.VLog().WithFields(logrus.Fields{
 			"size":                len(blocks),
@@ -216,6 +212,10 @@ func (c *Chunk) generateChunkData(chunkHeader *syncpb.ChunkHeader) (*syncpb.Chun
 		}).Debug("Wrong chunk header root hash.")
 		return nil, ErrWrongChunkHeaderRootHash
 	}
+
+	logging.VLog().WithFields(logrus.Fields{
+		"size": len(blocks),
+	}).Debug("Succeed to generate chunk.")
 
 	return &syncpb.ChunkData{Blocks: blocks, Root: blocksTrie.RootHash()}, nil
 }

@@ -30,6 +30,7 @@ import (
 	"github.com/nebulasio/go-nebulas/util/byteutils"
 )
 
+// Error
 var (
 	ErrStagingTableKeyConfliction = errors.New("staging table key confliction")
 	ErrParentStagingTableIsNil    = errors.New("parent Staging Table is nil")
@@ -85,6 +86,7 @@ func (tbl *StagingTable) SetStrictGlobalVersionCheck(flag bool) {
 	tbl.disableStrictGlobalVersionCheck = !flag
 }
 
+// Prepare a independent staging table
 func (tbl *StagingTable) Prepare(tid interface{}) (*StagingTable, error) {
 	tbl.mutex.Lock()
 	defer tbl.mutex.Unlock()
@@ -135,19 +137,16 @@ func (tbl *StagingTable) GetByKey(key []byte, loadFromStorage bool) (*Versionize
 				return nil, ErrStagingTableKeyConfliction
 			}
 
-			// logging.CLog().Infof("    ST.GET.%s %s %s %s", tbl.prefix, keyStr, "parent", loadFromStorage)
 			value = IncrVersionizedValueItem(tbl.tid, value)
 
 		} else {
 			if loadFromStorage {
 				// load from storage.
-				// logging.CLog().Infof("    ST.GET.%s %s %s %s", tbl.prefix, keyStr, "storage", loadFromStorage)
 				value, err = tbl.loadFromStorage(key)
 				if err != nil && err != storage.ErrKeyNotFound {
 					return nil, err
 				}
 			} else {
-				// logging.CLog().Infof("    ST.GET.%s %s %s %s", tbl.prefix, keyStr, "created", loadFromStorage)
 				value = NewDefaultVersionizedValueItem(key, nil, tbl.tid, 0)
 			}
 		}
@@ -166,8 +165,6 @@ func (tbl *StagingTable) GetByKey(key []byte, loadFromStorage bool) (*Versionize
 
 // Put put the key/val pair. If key does not exist, copy and incr version from `parentStagingTable` to record previous version.
 func (tbl *StagingTable) Put(key []byte, val []byte) (*VersionizedValueItem, error) {
-	// logging.CLog().Infof(" ST.PUT.%s ", tbl.prefix, byteutils.Hex(key))
-
 	value, err := tbl.GetByKey(key, false)
 	if err != nil {
 		return nil, err
@@ -175,8 +172,6 @@ func (tbl *StagingTable) Put(key []byte, val []byte) (*VersionizedValueItem, err
 
 	value.dirty = true
 	value.val = val
-
-	// logging.CLog().Infof("Put(%s): %s %s %s", tbl.tid, byteutils.Hex(key), byteutils.Hex(val), value.dirty)
 	return value, nil
 }
 
@@ -195,7 +190,6 @@ func (tbl *StagingTable) Set(key []byte, val []byte, deleted, dirty bool) (*Vers
 
 // Del del the tid/key pair. If tid+key does not exist, copy and incr version from `finalVersionizedValues` to record previous version.
 func (tbl *StagingTable) Del(key []byte) (*VersionizedValueItem, error) {
-	// logging.CLog().Info(" ST.DEL.%s ", tbl.prefix, byteutils.Hex(key))
 	value, err := tbl.GetByKey(key, false)
 	if err != nil {
 		return nil, err
@@ -297,8 +291,6 @@ func (tbl *StagingTable) MergeToParent() ([]interface{}, error) {
 		// merge.
 		value := fromValueItem.CloneForMerge(tbl.parentStagingTable.globalVersion)
 		targetValues[keyStr] = value
-
-		// logging.CLog().Infof("MVCCDB.MERGE: %s %s %s %d", tbl.tid, byteutils.Hex(value.key), byteutils.Hex(hash.Sha3256(value.val)), value.version)
 	}
 
 	tids := make([]interface{}, 0, len(dependentTids))
@@ -336,8 +328,6 @@ func (tbl *StagingTable) Unlock() {
 }
 
 func (tbl *StagingTable) loadFromStorage(key []byte) (*VersionizedValueItem, error) {
-	// logging.CLog().Info("Staging Load ", byteutils.Hex(key))
-
 	// get from storage.
 	val, err := tbl.storage.Get(key)
 	if err != nil && err != storage.ErrKeyNotFound {

@@ -100,10 +100,6 @@ func (dp *Dispatcher) loop() {
 			return
 		case msg := <-dp.receivedMessageCh:
 			msgType := msg.MessageType()
-			/* 			logging.VLog().WithFields(logrus.Fields{
-				"msgType": msgType,
-			}).Debug("dispatcher received message") */
-
 			v, _ := dp.subscribersMap.Load(msgType)
 			m, _ := v.(*sync.Map)
 
@@ -115,9 +111,6 @@ func (dp *Dispatcher) loop() {
 						"msgType": msgType,
 					}).Debug("timeout to dispatch message.")
 				}
-				// logging.VLog().WithFields(logrus.Fields{
-				// 	"msgType": msgType,
-				// }).Debug("succeed dispatcher received message")
 				return true
 			})
 		}

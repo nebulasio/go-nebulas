@@ -72,8 +72,6 @@ type Account interface {
 // AccountState Interface
 type AccountState interface {
 	RootHash() (byteutils.Hash, error)
-	RootHash_Log() (byteutils.Hash, error)
-
 	DirtyAccounts() ([]Account, error)
 	Accounts() ([]Account, error)
 
@@ -133,7 +131,6 @@ type WorldState interface {
 	Clone() (WorldState, error)
 
 	AccountsRoot() (byteutils.Hash, error)
-	AccountsRoot_Log() (byteutils.Hash, error)
 	TxsRoot() (byteutils.Hash, error)
 	EventsRoot() (byteutils.Hash, error)
 	ConsensusRoot() (*consensuspb.ConsensusRoot, error)

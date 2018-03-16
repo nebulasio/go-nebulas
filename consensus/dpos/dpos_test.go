@@ -442,31 +442,8 @@ func TestDposContracts(t *testing.T) {
 	tail := neb.chain.TailBlock()
 	dpos := neb.consensus
 
-	coinbase, err := core.AddressParse("1a263547d167c74cf4b8f9166cfa244de0481c514a45aa2c")
-
-	assert.Nil(t, err)
-
-	elapsedSecond := BlockIntervalInMs / SecondInMs
-	consensusState, err := tail.WorldState().NextConsensusState(elapsedSecond)
-	assert.Nil(t, err)
-	block, err := core.NewBlock(neb.chain.ChainID(), coinbase, tail)
-	assert.Nil(t, err)
-	block.WorldState().SetConsensusState(consensusState)
-	block.SetTimestamp(consensusState.TimeStamp())
-
 	manager := account.NewManager(nil)
 	assert.Nil(t, dpos.EnableMining("passphrase"))
-
-	/* 	accs := []string{
-		"2fe3f9f51f9a05dd5f7c5329127f7c917917149b4e16b0b8",
-		"333cb3ed8c417971845382ede3cf67a0a96270c05fe2f700",
-		"48f981ed38910f1232c1bab124f650c482a57271632db9e3",
-		"59fc526072b09af8a8ca9732dae17132c4e9127e43cf2232",
-		"75e4e5a71d647298b88928d8cb5da43d90ab1a6c52d0905f",
-		"98a3eed687640b75ec55bf5c9e284371bdcaeab943524d51",
-		"a8f1f53952c535c6600c77cf92b65e0c9b64496a8a328569",
-		"c79d9667c71bb09d6ca7c3ed12bfe5e7be24e2ffe13a833d",
-	} */
 
 	a, _ := core.AddressParse("2fe3f9f51f9a05dd5f7c5329127f7c917917149b4e16b0b8")
 	assert.Nil(t, manager.Unlock(a, []byte("passphrase"), keystore.YearUnlockDuration))
@@ -484,6 +461,14 @@ func TestDposContracts(t *testing.T) {
 	assert.Nil(t, manager.Unlock(g, []byte("passphrase"), keystore.YearUnlockDuration))
 	h, _ := core.AddressParse("c79d9667c71bb09d6ca7c3ed12bfe5e7be24e2ffe13a833d")
 	assert.Nil(t, manager.Unlock(h, []byte("passphrase"), keystore.YearUnlockDuration))
+
+	elapsedSecond := BlockIntervalInMs / SecondInMs
+	consensusState, err := tail.WorldState().NextConsensusState(elapsedSecond)
+	assert.Nil(t, err)
+	block, err := core.NewBlock(neb.chain.ChainID(), a, tail)
+	assert.Nil(t, err)
+	block.WorldState().SetConsensusState(consensusState)
+	block.SetTimestamp(consensusState.TimeStamp())
 
 	source := `"use strict";var DepositeContent=function(text){if(text){var o=JSON.parse(text);this.balance=new BigNumber(o.balance);this.expiryHeight=new BigNumber(o.expiryHeight)}else{this.balance=new BigNumber(0);this.expiryHeight=new BigNumber(0)}};DepositeContent.prototype={toString:function(){return JSON.stringify(this)}};var BankVaultContract=function(){LocalContractStorage.defineMapProperty(this,"bankVault",{parse:function(text){return new DepositeContent(text)},stringify:function(o){return o.toString()}})};BankVaultContract.prototype={init:function(){},save:function(height){var from=Blockchain.transaction.from;var value=Blockchain.transaction.value;var bk_height=new BigNumber(Blockchain.block.height);var orig_deposit=this.bankVault.get(from);if(orig_deposit){value=value.plus(orig_deposit.balance)}var deposit=new DepositeContent();deposit.balance=value;deposit.expiryHeight=bk_height.plus(height);this.bankVault.put(from,deposit)},takeout:function(value){var from=Blockchain.transaction.from;var bk_height=new BigNumber(Blockchain.block.height);var amount=new BigNumber(value);var deposit=this.bankVault.get(from);if(!deposit){throw new Error("No deposit before.")}if(bk_height.lt(deposit.expiryHeight)){throw new Error("Can not takeout before expiryHeight.")}if(amount.gt(deposit.balance)){throw new Error("Insufficient balance.")}var result=Blockchain.transfer(from,amount);if(result!=0){throw new Error("transfer failed.")}Event.Trigger("BankVault",{Transfer:{from:Blockchain.transaction.to,to:from,value:amount.toString()}});deposit.balance=deposit.balance.sub(amount);this.bankVault.put(from,deposit)},balanceOf:function(){var from=Blockchain.transaction.from;return this.bankVault.get(from)}};module.exports=BankVaultContract;`
 	sourceType := "js"
@@ -526,31 +511,20 @@ func TestDposContracts(t *testing.T) {
 		txDeploy = core.NewTransaction(neb.chain.ChainID(), h, h, value, uint64(i), core.TxPayloadDeployType, payloadDeploy, core.TransactionGasPrice, gasLimit)
 		assert.Nil(t, manager.SignTransaction(h, txDeploy))
 		assert.Nil(t, neb.chain.TransactionPool().Push(txDeploy))
-		/*
-			function := "save"
-			argsCall := "[1]"
-			payloadCall, _ := core.NewCallPayload(function, argsCall).ToBytes()
-			txCall := core.NewTransaction(neb.chain.ChainID(), a, a, value, 1, core.TxPayloadCallType, payloadCall, core.TransactionGasPrice, gasLimit)
-			assert.Nil(t, manager.SignTransaction(a, txCall))
-			assert.Nil(t, neb.chain.TransactionPool().Push(txCall))
-		*/
 	}
 
 	block.CollectTransactions((time.Now().Unix() + 1) * SecondInMs)
 	assert.Equal(t, 8*(j-1), len(block.Transactions()))
-	block.SetMiner(coinbase)
+	block.SetMiner(a)
 	assert.Nil(t, block.Seal())
-	assert.Nil(t, manager.SignBlock(coinbase, block))
+	assert.Nil(t, manager.SignBlock(a, block))
 	assert.Nil(t, neb.chain.BlockPool().Push(block))
 
 	assert.Equal(t, block.Hash(), neb.chain.TailBlock().Hash())
 }
 
-func testMintBlock(t *testing.T, neb *Neb, num int) {
+func testMintBlock(t *testing.T, round int, neb *Neb, num int) {
 	manager := account.NewManager(nil)
-
-	coinbase, err := core.AddressParse("1a263547d167c74cf4b8f9166cfa244de0481c514a45aa2c")
-	assert.Nil(t, manager.Unlock(coinbase, []byte("passphrase"), keystore.YearUnlockDuration))
 
 	a, _ := core.AddressParse("2fe3f9f51f9a05dd5f7c5329127f7c917917149b4e16b0b8")
 	assert.Nil(t, manager.Unlock(a, []byte("passphrase"), keystore.YearUnlockDuration))
@@ -560,20 +534,17 @@ func testMintBlock(t *testing.T, neb *Neb, num int) {
 	assert.Nil(t, manager.Unlock(c, []byte("passphrase"), keystore.YearUnlockDuration))
 	d, _ := core.AddressParse("59fc526072b09af8a8ca9732dae17132c4e9127e43cf2232")
 	assert.Nil(t, manager.Unlock(d, []byte("passphrase"), keystore.YearUnlockDuration))
-	e, _ := core.AddressParse("7da9dabedb4c6e121146fb4250a9883d6180570e63d6b080")
+	e, _ := core.AddressParse("75e4e5a71d647298b88928d8cb5da43d90ab1a6c52d0905f")
 	assert.Nil(t, manager.Unlock(e, []byte("passphrase"), keystore.YearUnlockDuration))
-
-	//f, _ := core.AddressParse("b040353ec0f2c113d5639444f7253681aecda1f8b91f179f")
-	//assert.Nil(t, manager.Unlock(f, []byte("passphrase"), keystore.YearUnlockDuration))
-
-	//g, _ := core.AddressParse("b414432e15f21237013017fa6ee90fc99433dec82c1c8370")
-	//h, _ := core.AddressParse("b49f30d0e5c9c88cade54cd1adecf6bc2c7e0e5af646d903")
-	//m, _ := core.AddressParse("fc751b484bd5296f8d267a8537d33f25a848f7f7af8cfcf6")
+	f, err := core.AddressParse("1a263547d167c74cf4b8f9166cfa244de0481c514a45aa2c")
+	assert.Nil(t, manager.Unlock(f, []byte("passphrase"), keystore.YearUnlockDuration))
 
 	elapsedSecond := int64(BlockIntervalInMs / SecondInMs)
 	consensusState, err := neb.chain.TailBlock().WorldState().NextConsensusState(elapsedSecond)
 	assert.Nil(t, err)
 
+	coinbases := []*core.Address{f, a, b, c, d, e}
+	coinbase := coinbases[(round+1)%len(coinbases)]
 	block, err := core.NewBlock(neb.chain.ChainID(), coinbase, neb.chain.TailBlock())
 	assert.Nil(t, err)
 	block.WorldState().SetConsensusState(consensusState)
@@ -600,10 +571,6 @@ func testMintBlock(t *testing.T, neb *Neb, num int) {
 		tx = core.NewTransaction(neb.chain.ChainID(), a, e, util.NewUint128(), uint64(nonce+4*i), core.TxPayloadBinaryType, []byte("nas"), gas, limit)
 		assert.Nil(t, manager.SignTransaction(a, tx))
 		assert.Nil(t, neb.chain.TransactionPool().Push(tx))
-
-		//tx = core.NewTransaction(neb.chain.ChainID(), e, h, util.NewUint128(), 2, core.TxPayloadBinaryType, []byte("nas"), gas, limit)
-		//assert.Nil(t, manager.SignTransaction(e, tx))
-		//assert.Nil(t, neb.chain.TransactionPool().Push(tx))
 	}
 
 	block.CollectTransactions((time.Now().Unix() + 1) * SecondInMs)
@@ -621,8 +588,8 @@ func TestDposTxBinary(t *testing.T) {
 
 	neb := mockNeb(t)
 
-	for i := 0; i < 5; i++ {
-		testMintBlock(t, neb, 100)
+	for i := 0; i < 6; i++ {
+		testMintBlock(t, i, neb, 100)
 	}
 
 	return

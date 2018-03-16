@@ -96,7 +96,7 @@ func TestEventEmitter(t *testing.T) {
 	assert.Equal(t, at3c, t3c)
 
 	emitter.Stop()
-	time.Sleep(time.Millisecond * 100)
+	time.Sleep(time.Second)
 }
 
 func TestEventEmitterWithRunningRegDereg(t *testing.T) {

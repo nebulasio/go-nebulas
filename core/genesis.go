@@ -19,8 +19,9 @@
 package core
 
 import (
-	"github.com/nebulasio/go-nebulas/consensus/pb"
 	"io/ioutil"
+
+	"github.com/nebulasio/go-nebulas/consensus/pb"
 
 	"github.com/nebulasio/go-nebulas/common/dag"
 
@@ -156,6 +157,9 @@ func DumpGenesis(chain *BlockChain) (*corepb.Genesis, error) {
 	}
 	distribution := []*corepb.GenesisTokenDistribution{}
 	accounts, err := genesis.worldState.Accounts()
+	if err != nil {
+		return nil, err
+	}
 	for _, v := range accounts {
 		balance := v.Balance()
 		if v.Address().Equals(genesis.Coinbase().Bytes()) {

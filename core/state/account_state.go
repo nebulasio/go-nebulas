@@ -263,30 +263,6 @@ func (as *accountState) RootHash() (byteutils.Hash, error) {
 	return as.stateTrie.RootHash(), nil
 }
 
-// RootHash return root hash of account state
-func (as *accountState) RootHash_Log() (byteutils.Hash, error) {
-	for addr, acc := range as.dirtyAccount {
-		bytes, err := acc.ToBytes()
-		if err != nil {
-			return nil, err
-		}
-		key, err := addr.Hash()
-		if err != nil {
-			return nil, err
-		}
-		as.stateTrie.Put(key, bytes)
-
-		/* 		logging.CLog().WithFields(logrus.Fields{
-			"addr":    acc.Address().String(),
-			"balance": acc.Balance().String(),
-			"birth":   acc.BirthPlace().String(),
-			"vars":    acc.VarsHash().String(),
-			"trie":    as.stateTrie,
-		}).Info("Accounts") */
-	}
-	return as.stateTrie.RootHash(), nil
-}
-
 // GetOrCreateUserAccount according to the addr
 func (as *accountState) GetOrCreateUserAccount(addr []byte) (Account, error) {
 	acc, err := as.getAccount(addr)
@@ -342,6 +318,7 @@ func (as *accountState) Accounts() ([]Account, error) {
 	return accounts, nil
 }
 
+// DirtyAccounts return all changed accounts
 func (as *accountState) DirtyAccounts() ([]Account, error) {
 	accounts := []Account{}
 	for _, account := range as.dirtyAccount {
@@ -350,7 +327,7 @@ func (as *accountState) DirtyAccounts() ([]Account, error) {
 	return accounts, nil
 }
 
-// replay merge dirtyAccount
+// Relay merge the done account state
 func (as *accountState) Replay(done AccountState) error {
 	state := done.(*accountState)
 	for addr, acc := range state.dirtyAccount {

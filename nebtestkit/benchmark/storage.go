@@ -20,12 +20,13 @@ package main
 
 import (
 	"fmt"
-	"github.com/nebulasio/go-nebulas/common/trie"
-	"github.com/nebulasio/go-nebulas/storage"
-	"github.com/nebulasio/go-nebulas/util/byteutils"
 	"os"
 	"strconv"
 	"time"
+
+	"github.com/nebulasio/go-nebulas/common/trie"
+	"github.com/nebulasio/go-nebulas/storage"
+	"github.com/nebulasio/go-nebulas/util/byteutils"
 )
 
 func main() {

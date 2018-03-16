@@ -286,7 +286,7 @@ func verifyBlockSign(miner *core.Address, block *core.Block) error {
 		return err
 	}
 	if !miner.Equals(addr) {
-		logging.VLog().WithFields(logrus.Fields{
+		logging.CLog().WithFields(logrus.Fields{
 			"address": addr,
 			"miner":   miner,
 			"block":   block,
@@ -424,7 +424,6 @@ func (dpos *Dpos) checkDeadline(tail *core.Block, nowInMs int64) (int64, error) 
 func (dpos *Dpos) checkProposer(tail *core.Block, nowInMs int64) (state.ConsensusState, error) {
 	slotInMs := nextSlot(nowInMs)
 	elapsedInMs := slotInMs - tail.Timestamp()*SecondInMs
-	logging.CLog().Info(nowInMs, " ", slotInMs, " ", elapsedInMs)
 	consensusState, err := tail.WorldState().NextConsensusState(elapsedInMs / SecondInMs)
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{

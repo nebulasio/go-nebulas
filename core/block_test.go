@@ -591,8 +591,7 @@ func TestBlockVerifyIntegrity(t *testing.T) {
 	bc := neb.chain
 	assert.Equal(t, bc.tailBlock.VerifyIntegrity(0, nil), ErrInvalidChainID)
 	bc.tailBlock.header.hash[0] = 1
-	// Compatible
-	// assert.Equal(t, bc.tailBlock.VerifyIntegrity(bc.ChainID(), nil), ErrInvalidBlockHash)
+	assert.Equal(t, bc.tailBlock.VerifyIntegrity(bc.ChainID(), nil), ErrInvalidBlockHash)
 	ks := keystore.DefaultKS
 	from := mockAddress()
 	key, err := ks.GetUnlocked(from.String())
@@ -621,8 +620,7 @@ func TestBlockVerifyDupTx(t *testing.T) {
 	bc := neb.chain
 	assert.Equal(t, bc.tailBlock.VerifyIntegrity(0, nil), ErrInvalidChainID)
 	bc.tailBlock.header.hash[0] = 1
-	// Compatible
-	// assert.Equal(t, bc.tailBlock.VerifyIntegrity(bc.ChainID(), nil), ErrInvalidBlockHash)
+	assert.Equal(t, bc.tailBlock.VerifyIntegrity(bc.ChainID(), nil), ErrInvalidBlockHash)
 	ks := keystore.DefaultKS
 	from := mockAddress()
 	key, err := ks.GetUnlocked(from.String())
@@ -646,8 +644,7 @@ func TestBlockVerifyInvalidTx(t *testing.T) {
 	bc := neb.chain
 	assert.Equal(t, bc.tailBlock.VerifyIntegrity(0, nil), ErrInvalidChainID)
 	bc.tailBlock.header.hash[0] = 1
-	// Compatible
-	// assert.Equal(t, bc.tailBlock.VerifyIntegrity(bc.ChainID(), nil), ErrInvalidBlockHash)
+	assert.Equal(t, bc.tailBlock.VerifyIntegrity(bc.ChainID(), nil), ErrInvalidBlockHash)
 	ks := keystore.DefaultKS
 	from := mockAddress()
 	key, err := ks.GetUnlocked(from.String())
@@ -673,8 +670,7 @@ func TestBlockVerifyState(t *testing.T) {
 	bc := neb.chain
 	assert.Equal(t, bc.tailBlock.VerifyIntegrity(0, nil), ErrInvalidChainID)
 	bc.tailBlock.header.hash[0] = 1
-	// Compatible
-	// assert.Equal(t, bc.tailBlock.VerifyIntegrity(bc.ChainID(), nil), ErrInvalidBlockHash)
+	assert.Equal(t, bc.tailBlock.VerifyIntegrity(bc.ChainID(), nil), ErrInvalidBlockHash)
 	ks := keystore.DefaultKS
 	from := mockAddress()
 	key, err := ks.GetUnlocked(from.String())

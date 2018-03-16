@@ -534,10 +534,6 @@ func (tx *Transaction) triggerEvent(txWorldState state.TxWorldState, block *Bloc
 	}
 
 	txData, _ := json.Marshal(txEvent)
-	//logging.VLog().WithFields(logrus.Fields{
-	//	"topic": TopicTransactionExecutionResult,
-	//	"event": string(txData),
-	//}).Debug("record event.")
 
 	event := &state.Event{
 		Topic: TopicTransactionExecutionResult,

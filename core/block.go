@@ -21,6 +21,7 @@ package core
 import (
 	"errors"
 	"fmt"
+	"reflect"
 	"runtime"
 	"sync"
 	"time"
@@ -502,7 +503,6 @@ func (block *Block) CollectTransactions(deadlineInMs int64) {
 	update := int64(0)
 	parallel := 0
 
-	// logging.CLog().Info("Packing Tx Begin")
 	packings := []int64{}
 
 	go func() {
@@ -713,12 +713,10 @@ func (block *Block) Seal() error {
 	}
 
 	var err error
-	// logging.VLog().Info("Seal DirtyAccount")
-	block.header.stateRoot, err = block.WorldState().AccountsRoot_Log()
+	block.header.stateRoot, err = block.WorldState().AccountsRoot()
 	if err != nil {
 		return err
 	}
-	// logging.VLog().Info("Seal DirtyAccount")
 	block.header.txsRoot, err = block.WorldState().TxsRoot()
 	if err != nil {
 		return err
@@ -738,21 +736,6 @@ func (block *Block) Seal() error {
 	logging.VLog().WithFields(logrus.Fields{
 		"block": block,
 	}).Info("Sealed Block.")
-
-	// logging.VLog().Info("Seal Accounts")
-	/* 	accounts, err := block.WorldState().Accounts()
-	   	if err != nil {
-	   		return err
-	   	}
-	   	for _, acc := range accounts {
-	   		logging.VLog().WithFields(logrus.Fields{
-	   			"addr":    acc.Address().String(),
-	   			"balance": acc.Balance().String(),
-	   			"birth":   acc.BirthPlace().String(),
-	   			"vars":    acc.VarsHash().String(),
-	   		}).Info("Accounts")
-	   	} */
-	// logging.VLog().Info("Seal Accounts")
 
 	block.RollBack()
 
@@ -872,15 +855,15 @@ func (block *Block) VerifyIntegrity(chainID uint32, consensus Consensus) error {
 		return ErrInvalidChainID
 	}
 
-	// verify block hash. Compatible
-	/* 	wantedHash := HashBlock(block)
-	   	if !wantedHash.Equals(block.Hash()) {
-	   		logging.VLog().WithFields(logrus.Fields{
-	   			"expect": wantedHash,
-	   			"actual": block.Hash(),
-	   		}).Debug("Failed to check block's hash.")
-	   		return ErrInvalidBlockHash
-	   	} */
+	// verify block hash.
+	wantedHash := HashBlock(block)
+	if !wantedHash.Equals(block.Hash()) {
+		logging.VLog().WithFields(logrus.Fields{
+			"expect": wantedHash,
+			"actual": block.Hash(),
+		}).Debug("Failed to check block's hash.")
+		return ErrInvalidBlockHash
+	}
 
 	// verify transactions integrity.
 	for _, tx := range block.transactions {
@@ -893,15 +876,15 @@ func (block *Block) VerifyIntegrity(chainID uint32, consensus Consensus) error {
 		}
 	}
 
-	// verify the block is acceptable by consensus. Compatible
-	/* 	if err := consensus.VerifyBlock(block); err != nil {
+	// verify the block is acceptable by consensus.
+	if err := consensus.VerifyBlock(block); err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"block": block,
 			"err":   err,
 		}).Debug("Failed to fast verify block.")
 		metricsInvalidBlock.Inc(1)
 		return err
-	} */
+	}
 
 	return nil
 }
@@ -909,27 +892,11 @@ func (block *Block) VerifyIntegrity(chainID uint32, consensus Consensus) error {
 // verifyState return state verify result.
 func (block *Block) verifyState() error {
 	// verify state root.
-	// logging.VLog().Info("Verify DirtyAccount")
-	accountsRoot, err := block.WorldState().AccountsRoot_Log()
+	accountsRoot, err := block.WorldState().AccountsRoot()
 	if err != nil {
 		return err
 	}
-	// logging.VLog().Info("Verify DirtyAccount")
 
-	// logging.VLog().Info("Verify Accounts")
-	/* 	accounts, err := block.WorldState().Accounts()
-	   	if err != nil {
-	   		return err
-	   	}
-	   	for _, acc := range accounts {
-	   		logging.CLog().WithFields(logrus.Fields{
-	   			"addr":    acc.Address().String(),
-	   			"balance": acc.Balance().String(),
-	   			"birth":   acc.BirthPlace().String(),
-	   			"vars":    acc.VarsHash().String(),
-	   		}).Info("Accounts")
-	   	} */
-	// logging.VLog().Info("Verify Accounts")
 	if !byteutils.Equal(accountsRoot, block.StateRoot()) {
 		logging.VLog().WithFields(logrus.Fields{
 			"expect": block.StateRoot(),
@@ -939,43 +906,43 @@ func (block *Block) verifyState() error {
 	}
 
 	// verify transaction root.
-	/* 	txsRoot, err := block.WorldState().TxsRoot()
-	   	if err != nil {
-	   		return err
-	   	}
-	   	if !byteutils.Equal(txsRoot, block.TxsRoot()) {
-	   		logging.VLog().WithFields(logrus.Fields{
-	   			"expect": block.TxsRoot(),
-	   			"actual": txsRoot,
-	   		}).Debug("Failed to verify txs.")
-	   		return ErrInvalidBlockTxsRoot
-	   	} */
+	txsRoot, err := block.WorldState().TxsRoot()
+	if err != nil {
+		return err
+	}
+	if !byteutils.Equal(txsRoot, block.TxsRoot()) {
+		logging.VLog().WithFields(logrus.Fields{
+			"expect": block.TxsRoot(),
+			"actual": txsRoot,
+		}).Debug("Failed to verify txs.")
+		return ErrInvalidBlockTxsRoot
+	}
 
-	// verify events root. Compatible
-	/* 	eventsRoot, err := block.WorldState().EventsRoot()
-	   	if err != nil {
-	   		return err
-	   	}
-	   	if !byteutils.Equal(eventsRoot, block.EventsRoot()) {
-	   		logging.VLog().WithFields(logrus.Fields{
-	   			"expect": block.EventsRoot(),
-	   			"actual": eventsRoot,
-	   		}).Debug("Failed to verify events.")
-	   		return ErrInvalidBlockEventsRoot
-	   	} */
+	// verify events root.
+	eventsRoot, err := block.WorldState().EventsRoot()
+	if err != nil {
+		return err
+	}
+	if !byteutils.Equal(eventsRoot, block.EventsRoot()) {
+		logging.VLog().WithFields(logrus.Fields{
+			"expect": block.EventsRoot(),
+			"actual": eventsRoot,
+		}).Debug("Failed to verify events.")
+		return ErrInvalidBlockEventsRoot
+	}
 
-	// verify transaction root. Compatible
-	/* 	consensusRoot, err := block.WorldState().ConsensusRoot()
-	   	if err != nil {
-	   		return err
-	   	}
-	   	if !reflect.DeepEqual(consensusRoot, block.ConsensusRoot()) {
-	   		logging.VLog().WithFields(logrus.Fields{
-	   			"expect": block.ConsensusRoot(),
-	   			"actual": consensusRoot,
-	   		}).Debug("Failed to verify dpos context.")
-	   		return ErrInvalidBlockConsensusRoot
-	   	} */
+	// verify transaction root.
+	consensusRoot, err := block.WorldState().ConsensusRoot()
+	if err != nil {
+		return err
+	}
+	if !reflect.DeepEqual(consensusRoot, block.ConsensusRoot()) {
+		logging.VLog().WithFields(logrus.Fields{
+			"expect": block.ConsensusRoot(),
+			"actual": consensusRoot,
+		}).Debug("Failed to verify dpos context.")
+		return ErrInvalidBlockConsensusRoot
+	}
 	return nil
 }
 
@@ -992,158 +959,6 @@ func (block *Block) execute() error {
 		return err
 	}
 
-	dagStartAt := time.Now().Unix()
-	retry := 0
-	gc := 0
-	// Compatible
-	dependency := dag.NewDag()
-	// one-by-one
-	/*  	for k, v := range block.transactions {
-		vk := v.Hash().String()
-		logging.CLog().Info("Add ", k)
-		dependency.AddNode(vk)
-		if k > 0 {
-			vk1 := block.transactions[k-1].Hash().String()
-			logging.CLog().Info("Link ", vk1, " ", vk)
-			dependency.AddEdge(vk1, vk)
-		}
-	} */
-	// parallel, build dag
-	// logging.VLog().Info("01")
-	mergeCh := make(chan bool, 1)
-	parallelCh := make(chan bool, 32)
-	transactions := []*Transaction{}
-	finish := len(block.transactions)
-	inprogress := new(sync.Map)
-	pool, err := NewTransactionPool(len(block.transactions))
-	if err != nil {
-		return err
-	}
-	pool.setBlockChain(block.txPool.bc)
-	pool.setEventEmitter(block.txPool.eventEmitter)
-	// logging.VLog().Info("02")
-	for _, v := range block.transactions {
-		if err := pool.Push(v); err != nil {
-			return err
-		}
-	}
-	txBlock, err := mockBlockFromNetwork(block)
-	if err != nil {
-		return err
-	}
-	if err := txBlock.LinkParentBlock(pool.bc, block.parentBlock); err != nil {
-		return err
-	}
-	if err := txBlock.Begin(); err != nil {
-		return err
-	}
-	// logging.VLog().Info("03")
-	for {
-		mergeCh <- true
-		if finish == 0 {
-			// logging.VLog().Info("BuildDag Error: ", "finish == 0 when pool is not empty")
-			<-mergeCh
-			break
-		}
-		tx := pool.PopWithBlacklist(inprogress)
-		if tx == nil {
-			<-mergeCh
-			time.Sleep(time.Millisecond)
-			continue
-		}
-		inprogress.Store(tx.from.address.Hex(), true)
-		inprogress.Store(tx.to.address.Hex(), true)
-		<-mergeCh
-		// logging.VLog().Info("05 ", tx)
-
-		parallelCh <- true
-		go func() {
-			defer func() { <-parallelCh }()
-			// logging.VLog().Info("06")
-			mergeCh <- true
-			txWorldState, err := txBlock.Prepare(tx)
-			if err != nil {
-				logging.VLog().Info("BuildDag Error: ", "faild to prepare tx, ", err, " ", tx)
-				inprogress.Delete(tx.from.address.Hex())
-				inprogress.Delete(tx.to.address.Hex())
-				<-mergeCh
-				return
-			}
-			// logging.VLog().Info("prepare tx, ", tx)
-			<-mergeCh
-			// logging.VLog().Info("07")
-
-			giveback, err := txBlock.ExecuteTransaction(tx, txWorldState)
-			// logging.VLog().Info("08 ", err)
-			if err != nil {
-				// logging.VLog().Info("081")
-				if giveback {
-					// logging.VLog().Info("082")
-					if err := pool.Push(tx); err != nil {
-						logging.VLog().Info("BuildDag Error: ", "faild to giveback tx, ", err)
-					}
-					// logging.VLog().Info("083")
-					// logging.VLog().Info("giveback tx, ", tx, " err ", err)
-					gc++
-					retry++
-				}
-			} else {
-				// logging.VLog().Info("09")
-				mergeCh <- true
-				if finish == 0 {
-					logging.VLog().Info("BuildDag Error: ", "finish == 0 when pool is not empty")
-					<-mergeCh
-					return
-				}
-				// logging.VLog().Info("010")
-				dep, err := txBlock.CheckAndUpdate(tx)
-				// logging.VLog().Info("011")
-				if err != nil {
-					logging.VLog().Info("BuildDag Error: ", "faild update tx, ", err, " tx ", tx)
-					if err := pool.Push(tx); err != nil {
-						logging.VLog().Info("BuildDag Error: ", "faild to giveback tx, ", err, " tx ", tx)
-					}
-					// logging.VLog().Info("giveback tx, ", tx)
-					if err := txBlock.Close(tx); err != nil {
-						// logging.VLog().Info("BuildDag Error: ", "faild to reset tx, ", err, " ", tx)
-					} else {
-						inprogress.Delete(tx.from.address.Hex())
-						inprogress.Delete(tx.to.address.Hex())
-					}
-					// logging.VLog().Info("reset tx, ", tx)
-					retry++
-				} else {
-					// logging.VLog().Info("012")
-					txid := tx.Hash().String()
-					dependency.AddNode(txid)
-					for _, node := range dep {
-						dependency.AddEdge(node, txid)
-					}
-					// logging.CLog().Info("Dag Dependency ", tx.from.String(), "->", tx.to.String())
-					transactions = append(transactions, tx)
-					inprogress.Delete(tx.from.address.Hex())
-					inprogress.Delete(tx.to.address.Hex())
-					finish--
-				}
-				<-mergeCh
-			}
-			// logging.VLog().Info("0121")
-		}()
-	}
-	for finish > 0 {
-		time.Sleep(time.Microsecond)
-	}
-	txBlock.RollBack()
-	// logging.VLog().Info("013 ", finish)
-	dagEndAt := time.Now().Unix()
-	logging.VLog().WithFields(logrus.Fields{
-		"diff-dag": dagEndAt - dagStartAt,
-		"giveback": gc,
-		"retry":    retry,
-	}).Debug("Construct Dag.")
-
-	block.dependency = dependency
-	block.transactions = transactions
 	context := &verifyCtx{
 		mergeCh: make(chan bool, 1),
 		block:   block,
@@ -1155,7 +970,6 @@ func (block *Block) execute() error {
 		tx := block.transactions[node.Index]
 		metricsTxExecute.Mark(1)
 
-		// logging.VLog().Info("Dag Dispatcher tx hash:", tx.hash, " Index:", node.Index)
 		mergeCh <- true
 		txWorldState, err := block.Prepare(tx)
 		if err != nil {
