@@ -4,6 +4,7 @@ import (
 	"sync"
 
 	"github.com/nebulasio/go-nebulas/util/byteutils"
+	"github.com/syndtr/goleveldb/leveldb/opt"
 	"github.com/tecbot/gorocksdb"
 )
 
@@ -28,6 +29,9 @@ func NewRocksStorage(path string) (*RocksStorage, error) {
 	opts := gorocksdb.NewDefaultOptions()
 	opts.SetBlockBasedTableFactory(bbto)
 	opts.SetCreateIfMissing(true)
+	opts.SetMaxOpenFiles(500)
+	opts.SetWriteBufferSize(64 * opt.MiB) //Default: 4MB
+	opts.IncreaseParallelism(4)           //flush and compaction thread
 
 	db, err := gorocksdb.OpenDb(opts, path)
 	if err != nil {
