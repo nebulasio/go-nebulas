@@ -14,7 +14,9 @@
 package dag
 
 import (
+	"errors"
 	"sync"
+	"time"
 
 	"github.com/nebulasio/go-nebulas/util/logging"
 )
@@ -36,6 +38,7 @@ type Dispatcher struct {
 	cb          Callback
 	muTask      sync.Mutex
 	dag         *Dag
+	elapseInMs  int64
 	quitCh      chan bool
 	queueCh     chan *Node
 	tasks       map[interface{}]*Task
@@ -45,9 +48,10 @@ type Dispatcher struct {
 }
 
 // NewDispatcher create Dag Dispatcher instance.
-func NewDispatcher(dag *Dag, concurrency int, context interface{}, cb Callback) *Dispatcher {
+func NewDispatcher(dag *Dag, concurrency int, elapseInMs int64, context interface{}, cb Callback) *Dispatcher {
 	dp := &Dispatcher{
 		concurrency: concurrency,
+		elapseInMs:  elapseInMs,
 		dag:         dag,
 		cb:          cb,
 		tasks:       make(map[interface{}]*Task, 0),
@@ -104,9 +108,6 @@ func (dp *Dispatcher) loop() {
 			defer wg.Done()
 			for {
 				select {
-				//case <-timerChan:
-				//fmt.Printf("====numGo:==%d i=%d\n", runtime.NumGoroutine(), i)
-				//metricsDispatcherCached.Update(int64(len(dp.receivedMessageCh)))
 				case <-dp.quitCh:
 					logging.VLog().Debug("Stoped Dag Dispatcher.")
 					return
@@ -118,10 +119,27 @@ func (dp *Dispatcher) loop() {
 						dp.err = err
 						dp.Stop()
 					} else {
-						dp.CompleteParentTask(msg)
+						err := dp.CompleteParentTask(msg)
+						if err != nil {
+							dp.err = err
+							dp.Stop()
+						}
 					}
 				}
 			}
+		}()
+	}
+
+	if dp.elapseInMs > 0 {
+		go func() {
+			timerChan := time.NewTimer(time.Duration(dp.elapseInMs) * time.Millisecond)
+
+			<-timerChan.C
+			if dp.cursor != dp.dag.Len() {
+				dp.err = errors.New("dag timeout")
+				dp.Stop()
+			}
+			return
 		}()
 	}
 
@@ -146,7 +164,7 @@ func (dp *Dispatcher) push(vertx *Node) {
 }
 
 // CompleteParentTask completed parent tasks
-func (dp *Dispatcher) CompleteParentTask(node *Node) {
+func (dp *Dispatcher) CompleteParentTask(node *Node) error {
 	dp.muTask.Lock()
 	defer dp.muTask.Unlock()
 
@@ -154,24 +172,32 @@ func (dp *Dispatcher) CompleteParentTask(node *Node) {
 
 	vertices := dp.dag.GetChildrenNodes(key)
 	for _, node := range vertices {
-		dp.updateDependenceTask(node.Key)
+		err := dp.updateDependenceTask(node.Key)
+		if err != nil {
+			return err
+		}
 	}
 
 	dp.cursor++
 
 	if dp.cursor == dp.dag.Len() {
-		//fmt.Println("cursor:", dp.cursor, " key:", key)
 		dp.Stop()
 	}
+
+	return nil
 }
 
 // updateDependenceTask task counter
-func (dp *Dispatcher) updateDependenceTask(key interface{}) {
+func (dp *Dispatcher) updateDependenceTask(key interface{}) error {
 	if _, ok := dp.tasks[key]; ok {
 		dp.tasks[key].dependence--
 		//fmt.Println("Key:", key, " dependence:", dp.tasks[key].dependence)
 		if dp.tasks[key].dependence == 0 {
 			dp.push(dp.tasks[key].node)
 		}
+		if dp.tasks[key].dependence < 0 {
+			return errors.New("dag hava cirle")
+		}
 	}
+	return nil
 }

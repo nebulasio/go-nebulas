@@ -1148,7 +1148,7 @@ func (block *Block) execute() error {
 		mergeCh: make(chan bool, 1),
 		block:   block,
 	}
-	dispatcher := dag.NewDispatcher(block.dependency, runtime.NumCPU(), context, func(node *dag.Node, context interface{}) error {
+	dispatcher := dag.NewDispatcher(block.dependency, runtime.NumCPU(), 0, context, func(node *dag.Node, context interface{}) error {
 		ctx := context.(*verifyCtx)
 		block := ctx.block
 		mergeCh := ctx.mergeCh
@@ -1180,7 +1180,7 @@ func (block *Block) execute() error {
 
 	start := time.Now().UnixNano()
 	if err := dispatcher.Run(); err != nil {
-		logging.VLog().Info("dispatcher err:", err)
+		logging.CLog().Info("block verfiy txs err:", err, " dag: ", block.dependency.String())
 		return err
 	}
 	end := time.Now().UnixNano()

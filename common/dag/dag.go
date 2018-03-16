@@ -17,6 +17,7 @@
 package dag
 
 import (
+	"encoding/json"
 	"errors"
 
 	"github.com/gogo/protobuf/proto"
@@ -60,6 +61,7 @@ func (dag *Dag) ToProto() (proto.Message, error) {
 	for _, v := range dag.Nodes {
 		node := new(dagpb.Node)
 		node.Index = int32(v.Index)
+		//node.Key = v.Key.(string)
 		node.Children = make([]int32, len(v.Children))
 		for i, child := range v.Children {
 			node.Children[i] = int32(child.Index)
@@ -78,8 +80,6 @@ func (dag *Dag) ToProto() (proto.Message, error) {
 func (dag *Dag) FromProto(msg proto.Message) error {
 	if msg, ok := msg.(*dagpb.Dag); ok {
 
-		//dag.Nodes = make(map[interface{}]*Node, len(msg.Nodes))
-
 		for _, v := range msg.Nodes {
 			dag.AddNodeWithIndex(int(v.Index), int(v.Index))
 		}
@@ -89,9 +89,20 @@ func (dag *Dag) FromProto(msg proto.Message) error {
 				dag.AddEdge(int(v.Index), int(child))
 			}
 		}
+
 		return nil
 	}
 	return errors.New("Protobuf message cannot be converted into Dag")
+}
+
+// String
+func (dag *Dag) String() string {
+	msg, err := dag.ToProto()
+	if err != nil {
+		return string("")
+	}
+	j, _ := json.Marshal(msg)
+	return string(j)
 }
 
 // NewDag new dag
