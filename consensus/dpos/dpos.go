@@ -302,7 +302,7 @@ func verifyBlockSign(miner *core.Address, block *core.Block) error {
 			"address": addr,
 			"err":     err,
 			"block":   block,
-		}).Debug("Failed to recover block's miner.") // ToRefine to error log
+		}).Error("Failed to recover block's miner.")
 		return err
 	}
 	if !miner.Equals(addr) {
@@ -433,7 +433,7 @@ func (dpos *Dpos) checkDeadline(tail *core.Block, now int64) (int64, error) { //
 	lastSlot := lastSlot(now)
 	nextSlot := nextSlot(now)
 
-	if tail.Timestamp() == nextSlot { // TeRefine: change to >=
+	if tail.Timestamp() >= nextSlot {
 		return 0, ErrBlockMintedInNextSlot
 	}
 	if tail.Timestamp() == lastSlot {
