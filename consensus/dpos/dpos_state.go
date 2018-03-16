@@ -97,7 +97,7 @@ func (dpos *Dpos) NewState(root *consensuspb.ConsensusRoot, stor storage.Storage
 }
 
 // CheckTimeout check whether the block is timeout
-func (dpos *Dpos) CheckTimeout(block *core.Block) bool {// ToCheck block not nil
+func (dpos *Dpos) CheckTimeout(block *core.Block) bool { // ToCheck block not nil
 	behind := time.Now().Unix() - block.Timestamp()
 	if behind > AcceptedNetWorkDelay { //ToAdd reject future block
 		logging.VLog().WithFields(logrus.Fields{
@@ -136,7 +136,7 @@ func (dpos *Dpos) GenesisState(chain *core.BlockChain, conf *corepb.Genesis) (st
 	}
 	return &State{
 		timeStamp: core.GenesisTimestamp,
-		proposer:  nil,// ToCheck nil maybe have issues
+		proposer:  nil, // ToCheck nil maybe have issues
 
 		dynastyTrie: dynastyTrie,
 
@@ -163,7 +163,7 @@ func (ds *State) Rollback() {
 func (ds *State) String() string {
 	return fmt.Sprintf(`{"timestamp": %d, "proposer": "%s", "dynasty": "%s"}`,
 		ds.timeStamp,
-		ds.proposer.Hex(),// ToAdd check for genesis
+		ds.proposer.Hex(), // ToAdd check for genesis
 		byteutils.Hex(ds.dynastyTrie.RootHash()),
 	)
 }
@@ -187,7 +187,7 @@ func (ds *State) Clone() (state.ConsensusState, error) {
 }
 
 // RootHash hash dpos state
-func (ds *State) RootHash() (*consensuspb.ConsensusRoot, error) {// ToRefine, change name
+func (ds *State) RootHash() (*consensuspb.ConsensusRoot, error) { // ToRefine, change name
 	return &consensuspb.ConsensusRoot{
 		DynastyRoot: ds.dynastyTrie.RootHash(),
 		Timestamp:   ds.timeStamp,

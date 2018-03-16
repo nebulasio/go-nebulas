@@ -28,7 +28,7 @@ var env = process.env.NET || 'local';
 // mocha cases/contract/xxx testneb1 -t 200000
 var args = process.argv.splice(2);
 env = args[1];
-if (env !== "local" && env !== "testneb1" && env !== "testneb2") {
+if (env !== "local" && env !== "testneb1" && env !== "testneb2" && env !== "testneb3") {
     env = "local";
 }
 console.log("env:", env);
@@ -55,6 +55,14 @@ if (env === 'local') {
 } else if (env === "testneb2") {
     neb.setRequest(new HttpRequest("http://34.205.26.12:8685"));
     ChainID = 1002;
+    sourceAccount = new Wallet.Account("43181d58178263837a9a6b08f06379a348a5b362bfab3631ac78d2ac771c5df3");
+    coinbase = "0b9cd051a6d7129ab44b17833c63fe4abead40c3714cde6d";
+    if (!redeploy) {
+        contractAddr = "";
+    }
+}else if (env === "testneb3") {
+    neb.setRequest(new HttpRequest("http://35.177.214.138:8685"));
+    ChainID = 1003;
     sourceAccount = new Wallet.Account("43181d58178263837a9a6b08f06379a348a5b362bfab3631ac78d2ac771c5df3");
     coinbase = "0b9cd051a6d7129ab44b17833c63fe4abead40c3714cde6d";
     if (!redeploy) {
