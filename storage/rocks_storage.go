@@ -118,7 +118,8 @@ func (storage *RocksStorage) Flush() error {
 	}
 
 	wb := gorocksdb.NewWriteBatch()
-	defer wb.Clear()
+	defer wb.Destroy()
+
 	for _, opt := range storage.batchOpts {
 		if opt.deleted {
 			wb.Delete(opt.key)

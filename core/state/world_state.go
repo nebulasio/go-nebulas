@@ -621,16 +621,29 @@ func (ws *worldState) Begin() error {
 
 func (ws *worldState) Commit() error {
 	if err := ws.states.Commit(); err != nil {
+		ws.Dispose()
 		return err
 	}
+	ws.Dispose()
 	return nil
 }
 
 func (ws *worldState) RollBack() error {
 	if err := ws.states.RollBack(); err != nil {
+		ws.Dispose()
 		return err
 	}
+	ws.Dispose()
 	return nil
+}
+
+func (ws *worldState) Dispose() {
+	ws.txStates.Range(func(k, v interface{}) bool {
+		txwd := v.(*txWorldState)
+		txwd.states = nil
+		return true
+	})
+	ws.txStates = nil
 }
 
 type txWorldState struct {
