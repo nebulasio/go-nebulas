@@ -201,6 +201,8 @@ func NewAccountState(root byteutils.Hash, storage storage.Storage) (AccountState
 	if err != nil {
 		return nil, err
 	}
+	stateTrie.DisableReplay()
+
 	return &accountState{
 		stateTrie:    stateTrie,
 		dirtyAccount: make(map[byteutils.HexHash]Account),

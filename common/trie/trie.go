@@ -109,10 +109,10 @@ func (n *node) Type() (ty, error) {
 // Extension Node: 3-elements array, value is [ext flag, prefix path, next hash]
 // Leaf Node: 3-elements array, value is [leaf flag, suffix path, value]
 type Trie struct {
-	rootHash  []byte
-	storage   storage.Storage
-	changelog []*Entry
-	replay    bool
+	rootHash   []byte
+	storage    storage.Storage
+	changelog  []*Entry
+	needReplay bool
 }
 
 // CreateNode in trie
@@ -161,9 +161,9 @@ func (t *Trie) commitNode(n *node) error {
 // NewTrie if rootHash is nil, create a new Trie, otherwise, build an existed trie
 func NewTrie(rootHash []byte, storage storage.Storage) (*Trie, error) {
 	t := &Trie{
-		rootHash: rootHash,
-		storage:  storage,
-		replay:   false,
+		rootHash:   rootHash,
+		storage:    storage,
+		needReplay: true,
 	}
 	if t.rootHash == nil || len(t.rootHash) == 0 {
 		return t, nil
@@ -240,7 +240,7 @@ func (t *Trie) Put(key []byte, val []byte) ([]byte, error) {
 	}
 	t.rootHash = newHash
 
-	if !t.replay {
+	if t.needReplay {
 		entry := &Entry{Update, key, nil, val}
 		t.changelog = append(t.changelog, entry)
 	}
@@ -452,7 +452,7 @@ func (t *Trie) Del(key []byte) ([]byte, error) {
 	}
 	t.rootHash = newHash
 
-	if !t.replay {
+	if t.needReplay {
 		entry := &Entry{Delete, key, nil, nil}
 		t.changelog = append(t.changelog, entry)
 	}
@@ -608,13 +608,20 @@ func (t *Trie) deleteWhenMeetSingleBranch(rootNode *node) ([]byte, error) {
 
 // Clone the trie to create a new trie sharing the same storage
 func (t *Trie) Clone() (*Trie, error) {
-	return &Trie{rootHash: t.rootHash, storage: t.storage}, nil
+	return &Trie{rootHash: t.rootHash, storage: t.storage, needReplay: t.needReplay}, nil
+}
+
+// DisableReplay disable replay
+func (t *Trie) DisableReplay() {
+	t.needReplay = false
 }
 
 // Replay return roothash not save key to storage
 func (t *Trie) Replay(ft *Trie) ([]byte, error) {
 
-	t.replay = true
+	needReplay := t.needReplay
+	t.needReplay = false
+
 	var err error
 	var rootHash []byte
 
@@ -631,13 +638,14 @@ func (t *Trie) Replay(ft *Trie) ([]byte, error) {
 		}
 
 		if err != nil {
-			t.replay = false
+			t.needReplay = needReplay
 			return nil, err
 		}
 	}
-	t.replay = false
-	return rootHash, nil
+	ft.changelog = make([]*Entry, 0)
 
+	t.needReplay = needReplay
+	return rootHash, nil
 }
 
 // prefixLen returns the length of the common prefix between a and b.

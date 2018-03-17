@@ -82,6 +82,7 @@ func newStates(consensus Consensus, stor storage.Storage) (*states, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	txsState, err := trie.NewTrie(nil, storage)
 	if err != nil {
 		return nil, err
@@ -90,6 +91,7 @@ func newStates(consensus Consensus, stor storage.Storage) (*states, error) {
 	if err != nil {
 		return nil, err
 	}
+	eventsState.DisableReplay()
 
 	return &states{
 		accState:       accState,
@@ -196,6 +198,7 @@ func (s *states) Clone() (WorldState, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	txsState, err := trie.NewTrie(s.txsState.RootHash(), storage)
 	if err != nil {
 		return nil, err
@@ -204,6 +207,7 @@ func (s *states) Clone() (WorldState, error) {
 	if err != nil {
 		return nil, err
 	}
+	eventsState.DisableReplay()
 	consensusRoot, err := s.consensusState.RootHash()
 	if err != nil {
 		return nil, err
@@ -278,6 +282,7 @@ func (s *states) Prepare(txid interface{}) (TxWorldState, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	eventsRoot, err := s.EventsRoot()
 	if err != nil {
 		return nil, err
@@ -643,7 +648,7 @@ func (ws *worldState) Dispose() {
 		txwd.states = nil
 		return true
 	})
-	ws.txStates = nil
+	ws.txStates = new(sync.Map)
 }
 
 type txWorldState struct {
