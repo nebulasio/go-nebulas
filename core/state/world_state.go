@@ -64,8 +64,7 @@ type states struct {
 	txid      interface{}
 
 	gasConsumed map[string]*util.Uint128
-
-	events map[string][]*Event
+	events      map[string][]*Event
 }
 
 func newStates(consensus Consensus, stor storage.Storage) (*states, error) {
@@ -175,7 +174,7 @@ func (s *states) ReplayEvent(done *states) error {
 		}
 	}
 	s.events[tx] = done.events[tx]
-
+	done.events = make(map[string][]*Event)
 	return nil
 }
 
@@ -244,6 +243,9 @@ func (s *states) Commit() error {
 	if err := s.changelog.RollBack(); err != nil {
 		return err
 	}
+
+	s.events = make(map[string][]*Event)
+	s.gasConsumed = make(map[string]*util.Uint128)
 	return s.storage.Commit()
 }
 
@@ -251,6 +253,9 @@ func (s *states) RollBack() error {
 	if err := s.changelog.RollBack(); err != nil {
 		return err
 	}
+
+	s.events = make(map[string][]*Event)
+	s.gasConsumed = make(map[string]*util.Uint128)
 	return s.storage.RollBack()
 }
 
