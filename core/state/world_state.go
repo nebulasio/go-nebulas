@@ -646,11 +646,6 @@ func (ws *worldState) RollBack() error {
 }
 
 func (ws *worldState) Dispose() {
-	ws.txStates.Range(func(k, v interface{}) bool {
-		txwd := v.(*txWorldState)
-		txwd.states = nil
-		return true
-	})
 	ws.txStates = new(sync.Map)
 }
 
