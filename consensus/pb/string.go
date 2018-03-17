@@ -20,6 +20,7 @@ package consensuspb
 
 import (
 	"fmt"
+
 	"github.com/nebulasio/go-nebulas/util/byteutils"
 )
 

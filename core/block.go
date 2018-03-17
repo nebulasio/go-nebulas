@@ -586,9 +586,10 @@ func (block *Block) CollectTransactions(deadlineInMs int64) {
 					update += updatedAt - updateAt
 					if err != nil {
 						logging.VLog().WithFields(logrus.Fields{
-							"tx":       tx,
-							"err":      err,
-							"giveback": giveback,
+							"tx":         tx,
+							"err":        err,
+							"giveback":   giveback,
+							"dependency": dependency,
 						}).Debug("CheckAndUpdate invalid tx.")
 						unpacked++
 
@@ -1063,14 +1064,26 @@ func (block *Block) rewardCoinbaseForGas() error {
 // ExecuteTransaction execute the transaction
 func (block *Block) ExecuteTransaction(tx *Transaction, txWorldState state.TxWorldState) (bool, error) {
 	if giveback, err := CheckTransaction(tx, txWorldState); err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"tx":  tx,
+			"err": err,
+		}).Info("Failed to check transaction")
 		return giveback, err
 	}
 
 	if err := VerifyExecution(tx, block, txWorldState); err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"tx":  tx,
+			"err": err,
+		}).Info("Failed to verify transaction execution")
 		return false, err
 	}
 
 	if err := AcceptTransaction(tx, txWorldState); err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"tx":  tx,
+			"err": err,
+		}).Info("Failed to accept transaction")
 		return false, err
 	}
 
