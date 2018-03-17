@@ -109,10 +109,10 @@ func (n *node) Type() (ty, error) {
 // Extension Node: 3-elements array, value is [ext flag, prefix path, next hash]
 // Leaf Node: 3-elements array, value is [leaf flag, suffix path, value]
 type Trie struct {
-	rootHash   []byte
-	storage    storage.Storage
-	changelog  []*Entry
-	needReplay bool
+	rootHash      []byte
+	storage       storage.Storage
+	changelog     []*Entry
+	needChangelog bool
 }
 
 // CreateNode in trie
@@ -159,11 +159,11 @@ func (t *Trie) commitNode(n *node) error {
 }
 
 // NewTrie if rootHash is nil, create a new Trie, otherwise, build an existed trie
-func NewTrie(rootHash []byte, storage storage.Storage) (*Trie, error) {
+func NewTrie(rootHash []byte, storage storage.Storage, needChangelog bool) (*Trie, error) {
 	t := &Trie{
-		rootHash:   rootHash,
-		storage:    storage,
-		needReplay: true,
+		rootHash:      rootHash,
+		storage:       storage,
+		needChangelog: needChangelog,
 	}
 	if t.rootHash == nil || len(t.rootHash) == 0 {
 		return t, nil
@@ -240,7 +240,7 @@ func (t *Trie) Put(key []byte, val []byte) ([]byte, error) {
 	}
 	t.rootHash = newHash
 
-	if t.needReplay {
+	if t.needChangelog {
 		entry := &Entry{Update, key, nil, val}
 		t.changelog = append(t.changelog, entry)
 	}
@@ -452,7 +452,7 @@ func (t *Trie) Del(key []byte) ([]byte, error) {
 	}
 	t.rootHash = newHash
 
-	if t.needReplay {
+	if t.needChangelog {
 		entry := &Entry{Delete, key, nil, nil}
 		t.changelog = append(t.changelog, entry)
 	}
@@ -608,19 +608,14 @@ func (t *Trie) deleteWhenMeetSingleBranch(rootNode *node) ([]byte, error) {
 
 // Clone the trie to create a new trie sharing the same storage
 func (t *Trie) Clone() (*Trie, error) {
-	return &Trie{rootHash: t.rootHash, storage: t.storage, needReplay: t.needReplay}, nil
-}
-
-// DisableReplay disable replay
-func (t *Trie) DisableReplay() {
-	t.needReplay = false
+	return &Trie{rootHash: t.rootHash, storage: t.storage, needChangelog: t.needChangelog}, nil
 }
 
 // Replay return roothash not save key to storage
 func (t *Trie) Replay(ft *Trie) ([]byte, error) {
 
-	needReplay := t.needReplay
-	t.needReplay = false
+	needChangelog := t.needChangelog
+	t.needChangelog = false
 
 	var err error
 	var rootHash []byte
@@ -638,13 +633,13 @@ func (t *Trie) Replay(ft *Trie) ([]byte, error) {
 		}
 
 		if err != nil {
-			t.needReplay = needReplay
+			t.needChangelog = needChangelog
 			return nil, err
 		}
 	}
 	ft.changelog = make([]*Entry, 0)
 
-	t.needReplay = needReplay
+	t.needChangelog = needChangelog
 	return rootHash, nil
 }
 
