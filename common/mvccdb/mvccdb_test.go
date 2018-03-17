@@ -22,6 +22,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/nebulasio/go-nebulas/common/trie"
 	"github.com/nebulasio/go-nebulas/crypto/hash"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
 
@@ -546,4 +547,29 @@ func TestPerformance(t *testing.T) {
 	end := time.Now().UnixNano()
 	assert.Nil(t, err)
 	assert.True(t, end-start < 1000000000, "%s", end-start)
+}
+
+func TestOperateAfterParentClosed(t *testing.T) {
+	store, _ := storage.NewMemoryStorage()
+	db, _ := NewMVCCDB(store, true)
+
+	db.Begin()
+	tx1, err := db.Prepare("1")
+	assert.Nil(t, err)
+	tree1, err := trie.NewTrie(nil, tx1)
+	assert.Nil(t, err)
+	tree1.Put([]byte("111111"), []byte("111"))
+	tree1.Put([]byte("111112"), []byte("112"))
+	tx1.CheckAndUpdate()
+
+	tx2, err := db.Prepare("2")
+	assert.Nil(t, err)
+	tree2, err := trie.NewTrie(tree1.RootHash(), tx2)
+	assert.Nil(t, err)
+
+	db.RollBack()
+
+	bytes, err := tree2.Put([]byte("111113"), []byte("113"))
+	assert.Nil(t, bytes)
+	assert.Equal(t, err, ErrPreparedDBIsClosed)
 }
