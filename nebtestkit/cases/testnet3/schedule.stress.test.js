@@ -61,7 +61,7 @@ if (env == 'local'){
 
 var lastnonce = 0;
 
-var j = schedule.scheduleJob('*/30 * * * *', function(){
+var j = schedule.scheduleJob('10,40 * * * *', function(){
     console.log("start transaction stress test");
     neb.api.getAccountState(from.getAddressString()).then(function (resp) {
 
