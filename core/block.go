@@ -26,6 +26,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/nebulasio/go-nebulas/common/mvccdb"
+
 	"github.com/nebulasio/go-nebulas/common/dag"
 	"github.com/nebulasio/go-nebulas/common/dag/pb"
 	"github.com/nebulasio/go-nebulas/consensus/pb"
@@ -556,7 +558,7 @@ func (block *Block) CollectTransactions(deadlineInMs int64) {
 					}).Debug("invalid tx.")
 					unpacked++
 
-					if giveback {
+					if giveback || err == mvccdb.ErrPreparedDBIsClosed {
 						if err := pool.Push(tx); err != nil {
 							logging.VLog().WithFields(logrus.Fields{
 								"block": block,
