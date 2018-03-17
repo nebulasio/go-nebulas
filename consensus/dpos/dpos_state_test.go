@@ -34,7 +34,7 @@ import (
 )
 
 func checkDynasty(t *testing.T, consensus core.Consensus, consensusRoot *consensuspb.ConsensusRoot, storage storage.Storage) {
-	consensusState, err := consensus.NewState(consensusRoot, storage)
+	consensusState, err := consensus.NewState(consensusRoot, storage, false)
 	assert.Nil(t, err)
 	dynasty, err := consensusState.Dynasty()
 	assert.Nil(t, err)
@@ -102,7 +102,7 @@ func TestBlock_NextDynastyContext(t *testing.T) {
 func TestTraverseDynasty(t *testing.T) {
 	stor, err := storage.NewMemoryStorage()
 	assert.Nil(t, err)
-	dynasty, err := trie.NewTrie(nil, stor)
+	dynasty, err := trie.NewTrie(nil, stor, false)
 	assert.Nil(t, err)
 	members, err := TraverseDynasty(dynasty)
 	assert.Nil(t, err)

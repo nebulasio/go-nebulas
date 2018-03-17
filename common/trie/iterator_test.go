@@ -32,7 +32,7 @@ import (
 
 func TestIterator1(t *testing.T) {
 	storage, _ := storage.NewMemoryStorage()
-	tr, err := NewTrie(nil, storage)
+	tr, err := NewTrie(nil, storage, false)
 	assert.Nil(t, err)
 	names := []string{"123450", "123350", "122450", "223350", "133350"}
 	keys := [][]byte{}
@@ -125,7 +125,7 @@ func TestIterator1(t *testing.T) {
 
 func TestIterator2(t *testing.T) {
 	storage, _ := storage.NewMemoryStorage()
-	tr, err := NewTrie(nil, storage)
+	tr, err := NewTrie(nil, storage, false)
 	assert.Nil(t, err)
 	names := []string{"123450", "123350", "122450", "223350", "133350"}
 	keys := [][]byte{}
@@ -191,7 +191,7 @@ func TestIterator2(t *testing.T) {
 
 func TestIteratorEmpty(t *testing.T) {
 	stor, _ := storage.NewMemoryStorage()
-	tr, _ := NewTrie(nil, stor)
+	tr, _ := NewTrie(nil, stor, false)
 	iter, err := tr.Iterator([]byte("he"))
 	assert.Nil(t, iter)
 	assert.Equal(t, err, storage.ErrKeyNotFound)

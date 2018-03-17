@@ -29,7 +29,7 @@ import (
 
 func TestAccount_ToBytes(t *testing.T) {
 	stor, _ := storage.NewMemoryStorage()
-	vars, _ := trie.NewTrie(nil, stor)
+	vars, _ := trie.NewTrie(nil, stor, false)
 	acc := &account{
 		balance:    util.NewUint128(),
 		nonce:      0,
@@ -45,7 +45,7 @@ func TestAccount_ToBytes(t *testing.T) {
 func TestAccountState(t *testing.T) {
 	stor, err := storage.NewMemoryStorage()
 	assert.Nil(t, err)
-	as, err := NewAccountState(nil, stor)
+	as, err := NewAccountState(nil, stor, false)
 	assert.Nil(t, err)
 
 	accAddr1 := []byte("accAddr1")

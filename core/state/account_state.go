@@ -82,7 +82,7 @@ func (acc *account) FromBytes(bytes []byte, storage storage.Storage) error {
 	acc.balance = value
 	acc.nonce = pbAcc.Nonce
 	acc.birthPlace = pbAcc.BirthPlace
-	acc.variables, err = trie.NewTrie(pbAcc.VarsHash, storage)
+	acc.variables, err = trie.NewTrie(pbAcc.VarsHash, storage, false)
 	if err != nil {
 		return err
 	}
@@ -196,12 +196,11 @@ type accountState struct {
 }
 
 // NewAccountState create a new account state
-func NewAccountState(root byteutils.Hash, storage storage.Storage) (AccountState, error) {
-	stateTrie, err := trie.NewTrie(root, storage)
+func NewAccountState(root byteutils.Hash, storage storage.Storage, needChangeLog bool) (AccountState, error) {
+	stateTrie, err := trie.NewTrie(root, storage, needChangeLog)
 	if err != nil {
 		return nil, err
 	}
-	stateTrie.DisableReplay()
 
 	return &accountState{
 		stateTrie:    stateTrie,
@@ -215,7 +214,7 @@ func (as *accountState) recordDirtyAccount(addr byteutils.Hash, acc Account) {
 }
 
 func (as *accountState) newAccount(addr byteutils.Hash, birthPlace byteutils.Hash) (Account, error) {
-	varTrie, err := trie.NewTrie(nil, as.storage)
+	varTrie, err := trie.NewTrie(nil, as.storage, false)
 	if err != nil {
 		return nil, err
 	}

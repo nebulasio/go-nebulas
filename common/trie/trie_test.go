@@ -59,7 +59,7 @@ func TestNewTrie(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := NewTrie(tt.args.rootHash, storage)
+			got, err := NewTrie(tt.args.rootHash, storage, false)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("New() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -80,10 +80,10 @@ func TestNewTrie(t *testing.T) {
 
 func TestTrie_Empty(t *testing.T) {
 	storage, _ := storage.NewMemoryStorage()
-	tr1, err := NewTrie(nil, storage)
+	tr1, err := NewTrie(nil, storage, false)
 	assert.Nil(t, err)
 	root := tr1.RootHash()
-	tr2, err := NewTrie(root, storage)
+	tr2, err := NewTrie(root, storage, false)
 	assert.Nil(t, err)
 	assert.Equal(t, tr1.RootHash(), tr2.RootHash())
 }
@@ -136,7 +136,7 @@ func TestTrie_Clone(t *testing.T) {
 
 func TestTrie_Operation(t *testing.T) {
 	storage, _ := storage.NewMemoryStorage()
-	tr, _ := NewTrie(nil, storage)
+	tr, _ := NewTrie(nil, storage, false)
 	if !reflect.DeepEqual([]byte(nil), tr.rootHash) {
 		t.Errorf("3 Trie.Del() = %v, want %v", nil, tr.rootHash)
 	}
@@ -270,7 +270,7 @@ func TestTrie_Operation(t *testing.T) {
 func TestTrie_Stress(t *testing.T) {
 	COUNT := int64(10000)
 	storage, _ := storage.NewMemoryStorage()
-	tr, _ := NewTrie(nil, storage)
+	tr, _ := NewTrie(nil, storage, false)
 
 	keys := make([][]byte, COUNT)
 	for i := int64(0); i < COUNT; i++ {
@@ -302,7 +302,7 @@ func TestTrie_Stress(t *testing.T) {
 
 func TestTrie_VerifyOldKeyValueFromNewRootHash(t *testing.T) {
 	storage, _ := storage.NewMemoryStorage()
-	tr, _ := NewTrie(nil, storage)
+	tr, _ := NewTrie(nil, storage, false)
 	assert.Equal(t, []byte(nil), tr.RootHash())
 
 	var err error
@@ -335,7 +335,7 @@ func TestTrie_VerifyOldKeyValueFromNewRootHash(t *testing.T) {
 
 func TestTrie_VerifyKeyValueInDiffRootHashes(t *testing.T) {
 	storage, _ := storage.NewMemoryStorage()
-	tr, _ := NewTrie(nil, storage)
+	tr, _ := NewTrie(nil, storage, false)
 	assert.Equal(t, []byte(nil), tr.RootHash())
 
 	var err error
@@ -365,7 +365,7 @@ func TestTrie_VerifyKeyValueInDiffRootHashes(t *testing.T) {
 	assert.Equal(t, []byte("value2"), val)
 
 	// verify rootHash1:
-	ttr, _ := NewTrie(rootHash1, storage)
+	ttr, _ := NewTrie(rootHash1, storage, false)
 	val, err = ttr.Get([]byte("key1"))
 	assert.Nil(t, err)
 	assert.Equal(t, []byte("value1"), val)
@@ -375,7 +375,7 @@ func TestTrie_VerifyKeyValueInDiffRootHashes(t *testing.T) {
 	assert.Nil(t, val)
 
 	// verify rootHash1_5:
-	ttr, _ = NewTrie(rootHash1_5, storage)
+	ttr, _ = NewTrie(rootHash1_5, storage, false)
 	val, err = ttr.Get([]byte("key1"))
 	assert.Nil(t, err)
 	assert.Equal(t, []byte("value1"), val)
@@ -385,7 +385,7 @@ func TestTrie_VerifyKeyValueInDiffRootHashes(t *testing.T) {
 	assert.Equal(t, []byte("kv2"), val)
 
 	// verify rootHash2:
-	ttr, _ = NewTrie(rootHash2, storage)
+	ttr, _ = NewTrie(rootHash2, storage, false)
 	val, err = ttr.Get([]byte("key1"))
 	assert.Nil(t, err)
 	assert.Equal(t, []byte("value2"), val)
@@ -399,7 +399,7 @@ func TestTrie_VerifyKeyValueInDiffRootHashes(t *testing.T) {
 // check roothash different order of  put keys
 func TestTrie_PutAfterGetRootHash(t *testing.T) {
 	storage1, _ := storage.NewMemoryStorage()
-	tr1, _ := NewTrie(nil, storage1)
+	tr1, _ := NewTrie(nil, storage1, false)
 	assert.Equal(t, []byte(nil), tr1.RootHash())
 
 	var err error
@@ -419,7 +419,7 @@ func TestTrie_PutAfterGetRootHash(t *testing.T) {
 	}
 
 	storage2, _ := storage.NewMemoryStorage()
-	tr2, _ := NewTrie(nil, storage2)
+	tr2, _ := NewTrie(nil, storage2, false)
 	assert.Equal(t, []byte(nil), tr2.RootHash())
 
 	for i := 100; i < 1000; i++ {
@@ -453,7 +453,7 @@ func TestTrie_PutDeleteAfterGetRootHash(t *testing.T) {
 	*/
 
 	storage1, _ := storage.NewMemoryStorage()
-	tr1, _ := NewTrie(nil, storage1)
+	tr1, _ := NewTrie(nil, storage1, false)
 	assert.Equal(t, []byte(nil), tr1.RootHash())
 
 	var err error
@@ -498,7 +498,7 @@ func TestTrie_PutDeleteAfterGetRootHash(t *testing.T) {
 	//assert.Nil(t, err)
 
 	storage2, _ := storage.NewMemoryStorage()
-	tr2, _ := NewTrie(nil, storage2)
+	tr2, _ := NewTrie(nil, storage2, false)
 	assert.Equal(t, []byte(nil), tr2.RootHash())
 
 	_, err = tr2.Put([]byte("abcfopqq"), []byte("abcfopqq"))
@@ -523,13 +523,13 @@ func TestTrie_PutDeleteAfterGetRootHash(t *testing.T) {
 func TestTrie_Replay(t *testing.T) {
 
 	s, _ := storage.NewMemoryStorage()
-	tr, _ := NewTrie(nil, s)
+	tr, _ := NewTrie(nil, s, false)
 	assert.Equal(t, []byte(nil), tr.RootHash())
 
-	tr1, _ := NewTrie(nil, tr.storage)
+	tr1, _ := NewTrie(nil, tr.storage, true)
 	assert.Equal(t, []byte(nil), tr1.RootHash())
 
-	tr2, _ := NewTrie(nil, tr.storage)
+	tr2, _ := NewTrie(nil, tr.storage, true)
 	assert.Equal(t, []byte(nil), tr2.RootHash())
 
 	var err error
@@ -570,7 +570,7 @@ func TestTrie_Replay(t *testing.T) {
 
 func TestTrie_Iterator(t *testing.T) {
 	storage, _ := storage.NewMemoryStorage()
-	tr, _ := NewTrie(nil, storage)
+	tr, _ := NewTrie(nil, storage, false)
 	assert.Equal(t, []byte(nil), tr.RootHash())
 
 	domain1 := []string{"a", "b", "c", "d"}

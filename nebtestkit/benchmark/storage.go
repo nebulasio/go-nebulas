@@ -50,7 +50,7 @@ func main() {
 		fmt.Println("Parse Hex Error ", err)
 		return
 	}
-	txsState, err := trie.NewTrie(root, stor)
+	txsState, err := trie.NewTrie(root, stor, false)
 	if err != nil {
 		fmt.Println("NewTrie Error ", err)
 		return

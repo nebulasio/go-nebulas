@@ -77,8 +77,8 @@ type State struct {
 }
 
 // NewState create a new dpos state
-func (dpos *Dpos) NewState(root *consensuspb.ConsensusRoot, stor storage.Storage) (state.ConsensusState, error) {
-	dynastyTrie, err := trie.NewTrie(root.DynastyRoot, stor)
+func (dpos *Dpos) NewState(root *consensuspb.ConsensusRoot, stor storage.Storage, needChangeLog bool) (state.ConsensusState, error) {
+	dynastyTrie, err := trie.NewTrie(root.DynastyRoot, stor, needChangeLog)
 	if err != nil {
 		return nil, err
 	}
@@ -123,7 +123,7 @@ func (dpos *Dpos) CheckTimeout(block *core.Block) bool {
 
 // GenesisConsensusState create a new genesis dpos state
 func (dpos *Dpos) GenesisConsensusState(chain *core.BlockChain, conf *corepb.Genesis) (state.ConsensusState, error) {
-	dynastyTrie, err := trie.NewTrie(nil, chain.Storage())
+	dynastyTrie, err := trie.NewTrie(nil, chain.Storage(), false)
 	if err != nil {
 		return nil, err
 	}

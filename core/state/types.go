@@ -91,7 +91,7 @@ type Event struct {
 
 // Consensus interface
 type Consensus interface {
-	NewState(*consensuspb.ConsensusRoot, storage.Storage) (ConsensusState, error)
+	NewState(*consensuspb.ConsensusRoot, storage.Storage, bool) (ConsensusState, error)
 }
 
 // ConsensusState interface of consensus state

@@ -310,7 +310,7 @@ func (dpos *Dpos) VerifyBlock(block *core.Block) error {
 	}
 	// check proposer
 	dynastyRoot := tail.WorldState().DynastyRoot()
-	dynasty, err := trie.NewTrie(dynastyRoot, dpos.chain.Storage())
+	dynasty, err := trie.NewTrie(dynastyRoot, dpos.chain.Storage(), false)
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"err":   err,

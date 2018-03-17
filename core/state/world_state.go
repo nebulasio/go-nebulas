@@ -78,20 +78,19 @@ func newStates(consensus Consensus, stor storage.Storage) (*states, error) {
 		return nil, err
 	}
 
-	accState, err := NewAccountState(nil, storage)
+	accState, err := NewAccountState(nil, storage, false)
 	if err != nil {
 		return nil, err
 	}
 
-	txsState, err := trie.NewTrie(nil, storage)
+	txsState, err := trie.NewTrie(nil, storage, false)
 	if err != nil {
 		return nil, err
 	}
-	eventsState, err := trie.NewTrie(nil, storage)
+	eventsState, err := trie.NewTrie(nil, storage, false)
 	if err != nil {
 		return nil, err
 	}
-	eventsState.DisableReplay()
 
 	return &states{
 		accState:       accState,
@@ -194,25 +193,24 @@ func (s *states) Clone() (WorldState, error) {
 	if err != nil {
 		return nil, err
 	}
-	accState, err := NewAccountState(accRoot, storage)
+	accState, err := NewAccountState(accRoot, storage, false)
 	if err != nil {
 		return nil, err
 	}
 
-	txsState, err := trie.NewTrie(s.txsState.RootHash(), storage)
+	txsState, err := trie.NewTrie(s.txsState.RootHash(), storage, false)
 	if err != nil {
 		return nil, err
 	}
-	eventsState, err := trie.NewTrie(s.eventsState.RootHash(), storage)
+	eventsState, err := trie.NewTrie(s.eventsState.RootHash(), storage, false)
 	if err != nil {
 		return nil, err
 	}
-	eventsState.DisableReplay()
 	consensusRoot, err := s.consensusState.RootHash()
 	if err != nil {
 		return nil, err
 	}
-	consensusState, err := s.consensus.NewState(consensusRoot, storage)
+	consensusState, err := s.consensus.NewState(consensusRoot, storage, false)
 	if err != nil {
 		return nil, err
 	}
@@ -270,7 +268,7 @@ func (s *states) Prepare(txid interface{}) (TxWorldState, error) {
 	if err != nil {
 		return nil, err
 	}
-	accState, err := NewAccountState(accRoot, storage)
+	accState, err := NewAccountState(accRoot, storage, true)
 	if err != nil {
 		return nil, err
 	}
@@ -278,7 +276,7 @@ func (s *states) Prepare(txid interface{}) (TxWorldState, error) {
 	if err != nil {
 		return nil, err
 	}
-	txsState, err := trie.NewTrie(txsRoot, storage)
+	txsState, err := trie.NewTrie(txsRoot, storage, true)
 	if err != nil {
 		return nil, err
 	}
@@ -287,7 +285,7 @@ func (s *states) Prepare(txid interface{}) (TxWorldState, error) {
 	if err != nil {
 		return nil, err
 	}
-	eventsState, err := trie.NewTrie(eventsRoot, storage)
+	eventsState, err := trie.NewTrie(eventsRoot, storage, true)
 	if err != nil {
 		return nil, err
 	}
@@ -295,7 +293,7 @@ func (s *states) Prepare(txid interface{}) (TxWorldState, error) {
 	if err != nil {
 		return nil, err
 	}
-	consensusState, err := s.consensus.NewState(consensusRoot, storage)
+	consensusState, err := s.consensus.NewState(consensusRoot, storage, true)
 	if err != nil {
 		return nil, err
 	}
@@ -524,7 +522,7 @@ func (s *states) Accounts() ([]Account, error) {
 }
 
 func (s *states) LoadAccountsRoot(root byteutils.Hash) error {
-	accState, err := NewAccountState(root, s.storage)
+	accState, err := NewAccountState(root, s.storage, false)
 	if err != nil {
 		return err
 	}
@@ -533,7 +531,7 @@ func (s *states) LoadAccountsRoot(root byteutils.Hash) error {
 }
 
 func (s *states) LoadTxsRoot(root byteutils.Hash) error {
-	txsState, err := trie.NewTrie(root, s.storage)
+	txsState, err := trie.NewTrie(root, s.storage, false)
 	if err != nil {
 		return err
 	}
@@ -542,7 +540,7 @@ func (s *states) LoadTxsRoot(root byteutils.Hash) error {
 }
 
 func (s *states) LoadEventsRoot(root byteutils.Hash) error {
-	eventsState, err := trie.NewTrie(root, s.storage)
+	eventsState, err := trie.NewTrie(root, s.storage, false)
 	if err != nil {
 		return err
 	}
@@ -551,7 +549,7 @@ func (s *states) LoadEventsRoot(root byteutils.Hash) error {
 }
 
 func (s *states) LoadConsensusRoot(root *consensuspb.ConsensusRoot) error {
-	consensusState, err := s.consensus.NewState(root, s.storage)
+	consensusState, err := s.consensus.NewState(root, s.storage, false)
 	if err != nil {
 		return err
 	}

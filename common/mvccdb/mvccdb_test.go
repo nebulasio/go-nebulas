@@ -556,7 +556,7 @@ func TestOperateAfterParentClosed(t *testing.T) {
 	db.Begin()
 	tx1, err := db.Prepare("1")
 	assert.Nil(t, err)
-	tree1, err := trie.NewTrie(nil, tx1)
+	tree1, err := trie.NewTrie(nil, tx1, false)
 	assert.Nil(t, err)
 	tree1.Put([]byte("111111"), []byte("111"))
 	tree1.Put([]byte("111112"), []byte("112"))
@@ -564,7 +564,7 @@ func TestOperateAfterParentClosed(t *testing.T) {
 
 	tx2, err := db.Prepare("2")
 	assert.Nil(t, err)
-	tree2, err := trie.NewTrie(tree1.RootHash(), tx2)
+	tree2, err := trie.NewTrie(tree1.RootHash(), tx2, false)
 	assert.Nil(t, err)
 
 	db.RollBack()

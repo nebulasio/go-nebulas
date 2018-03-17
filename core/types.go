@@ -152,7 +152,7 @@ type Consensus interface {
 	ForkChoice() error
 	UpdateLIB()
 
-	NewState(*consensuspb.ConsensusRoot, storage.Storage) (state.ConsensusState, error)
+	NewState(*consensuspb.ConsensusRoot, storage.Storage, bool) (state.ConsensusState, error)
 	GenesisConsensusState(*BlockChain, *corepb.Genesis) (state.ConsensusState, error)
 	CheckTimeout(*Block) bool
 }
