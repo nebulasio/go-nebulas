@@ -6,8 +6,8 @@ var HttpRequest = require("../../node-request");
 
 var args = process.argv.splice(2);
 
-if (args.length != 3) {
-	console.log("please input args 0:env(local,testneb1,testneb2) 1:address number(concurrency) 2:sendtimes")
+if (args.length !=3 ){
+	console.log("please input args 0:env(local,testneb1,testneb2,testneb3) 1:address number(concurrency) 2:sendtimes");
 	return;
 }
 
@@ -41,8 +41,12 @@ if (env == 'local') {
 	neb.setRequest(new HttpRequest("http://34.205.26.12:8685"));
 	ChainID = 1002;
 	from = new Wallet.Account("43181d58178263837a9a6b08f06379a348a5b362bfab3631ac78d2ac771c5df3");
-} else {
-	console.log("please input correct env local testneb1 testneb2")
+}else if(env == "testneb3"){
+    neb.setRequest(new HttpRequest("http://35.177.214.138:8685"));
+    ChainID = 1003;
+    from = new Wallet.Account("43181d58178263837a9a6b08f06379a348a5b362bfab3631ac78d2ac771c5df3");
+}else{
+	console.log("please input correct env local testneb1 testneb2 testneb3");
 	return;
 }
 
@@ -98,28 +102,28 @@ function cliamTokens() {
 function deployContract() {
 
 	var nonce = lastnonce;
-	console.log("nonce:" + nonce);
-	// create contract
-	var bank = FS.readFileSync("../nf/nvm/test/bank_vault_contract.js", "utf-8");
-	var contract = {
-		"source": bank,
-		"sourceType": "js",
-		"args": ""
-	};
+	console.log("nonce:"+nonce);
+    // create contract
+    var bank = FS.readFileSync("../nf/nvm/test/bank_vault_contract.js", "utf-8");
+    var contract = {
+        "source": bank,
+        "sourceType": "js",
+        "args": ""
+    };
 
-	var transaction = new Wallet.Transaction(ChainID, from, from, "0", ++nonce, "0", "20000000000", contract);
-	transaction.signTransaction();
-	var rawTx = transaction.toProtoString();
+    var transaction = new Wallet.Transaction(ChainID, from, from, "0", ++nonce, "1000000", "20000000000", contract);
+    transaction.signTransaction();
+    var rawTx = transaction.toProtoString();
 
-	// console.log("contract:" + rawTx);
+    // console.log("contract:" + rawTx);
+    
+    neb.api.sendRawTransaction(rawTx).then(function (resp) {
+        console.log("send raw contract transaction resp:" + JSON.stringify(resp));
+        ContractHash = resp.txhash;
+        ContractAddress = resp.contract_address;
 
-	neb.api.sendRawTransaction(rawTx).then(function (resp) {
-		console.log("send raw contract transaction resp:" + JSON.stringify(resp));
-		ContractHash = resp.txhash;
-		ContractAddress = resp.contract_address;
-
-		checkContractDeployed();
-	});
+        checkContractDeployed();
+    });
 
 	++lastnonce;
 }
@@ -190,25 +194,24 @@ function sendMutilContractTransaction(address) {
 
 
 function sendContractTransaction(sendtimes, nonce, from_address, contract_address) {
-	if (sendtimes < SendTimes) {
-		var call = {
-			"function": "save",
-			"args": "[10000]"
-		}
+    if(sendtimes < SendTimes) {
+        var call = {
+            "function": "save",
+            "args":"[10000]"
+        }
 
-		console.log("send contract nonce:", nonce);
-		var transaction = new Wallet.Transaction(ChainID, from_address, contract_address, "0", ++nonce, "0", "2000000000", call);
-		transaction.signTransaction();
-		var rawTx = transaction.toProtoString();
-		neb.api.sendRawTransaction(rawTx).then(function (resp) {
-			console.log("send raw contract transaction resp:" + JSON.stringify(resp));
-			sendtimes++;
-			if (resp.txhash) {
-				sendContractTransaction(sendtimes, nonce, from_address, contract_address);
-			}
-		});
-	}
-
+		console.log("send contract nonce:",nonce);
+        var transaction = new Wallet.Transaction(ChainID, from_address, contract_address, "0", ++nonce, "1000000", "2000000000", call);
+        transaction.signTransaction();
+        var rawTx = transaction.toProtoString();
+        neb.api.sendRawTransaction(rawTx).then(function (resp) {
+            console.log("send raw contract transaction resp:" + JSON.stringify(resp));
+            sendtimes++;
+            if(resp.txhash) {
+                sendContractTransaction(sendtimes, nonce, from_address, contract_address);
+            }
+        });
+    }
 }
 
 function getTransactionNumberByHeight() {
@@ -224,8 +227,7 @@ function getTransactionNumberByHeight() {
 				sleep(2000)
 				neb.api.getNebState().then(function (resp) {
 					var EndHeight = resp.height
-					console.log("BeginHeight:" + BeginHeight + " EndHeight:" + EndHeight)
-
+					console.log("BeginHeight:"+BeginHeight+ " EndHeight:"+EndHeight);
 					var sum = 0;
 					var max = 0;
 					var height = BeginHeight
