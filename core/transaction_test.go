@@ -353,7 +353,7 @@ func TestTransaction_VerifyExecution(t *testing.T) {
 	// contract call tx
 	callTx := mockCallTransaction(bc.chainID, 1, "totalSupply", "")
 	callTx.value = util.NewUint128()
-	gasUsed, _ = util.NewUint128FromInt(20036)
+	gasUsed, _ = util.NewUint128FromInt(20096)
 	coinbaseBalance, err = callTx.gasPrice.Mul(gasUsed)
 	assert.Nil(t, err)
 	balanceConsume, err = callTx.gasPrice.Mul(gasUsed)
@@ -430,7 +430,7 @@ func TestTransaction_VerifyExecution(t *testing.T) {
 	// tx execution err
 	executionErrTx := mockCallTransaction(bc.chainID, 0, "test", "")
 	executionErrTx.value = util.NewUint128()
-	gasUsed, _ = util.NewUint128FromInt(20029)
+	gasUsed, _ = util.NewUint128FromInt(20089)
 	coinbaseBalance, _ = executionErrTx.gasPrice.Mul(gasUsed)
 	balanceConsume, err = executionErrTx.gasPrice.Mul(gasUsed)
 	assert.Nil(t, err)
@@ -587,7 +587,7 @@ func TestTransaction_LocalExecution(t *testing.T) {
 	// contract call tx
 	callTx := mockCallTransaction(bc.chainID, 1, "totalSupply", "")
 	callTx.value = util.NewUint128()
-	gasUsed, _ = util.NewUint128FromInt(20036)
+	gasUsed, _ = util.NewUint128FromInt(20096)
 	tests = append(tests, testCase{
 		name:    "contract call tx",
 		tx:      callTx,
