@@ -173,7 +173,7 @@ func (s *states) ReplayEvent(done *states) error {
 			return err
 		}
 	}
-	s.events[tx] = done.events[tx]
+	//s.events[tx] = done.events[tx]
 	done.events = make(map[string][]*Event)
 	return nil
 }
