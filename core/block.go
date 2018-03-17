@@ -464,7 +464,8 @@ func (block *Block) CollectTransactions(deadlineInMs int64) {
 
 	dag := dag.NewDag()
 	transactions := []*Transaction{}
-	inprogress := new(sync.Map)
+	fromBlacklist := new(sync.Map)
+	toBlacklist := new(sync.Map)
 
 	parallelCh := make(chan bool, 32)
 	mergeCh := make(chan bool, 1)
@@ -491,15 +492,15 @@ func (block *Block) CollectTransactions(deadlineInMs int64) {
 				return
 			}
 			try++
-			tx := pool.PopWithBlacklist(inprogress)
+			tx := pool.PopWithBlacklist(fromBlacklist, toBlacklist)
 			if tx == nil {
 				<-mergeCh
 				// time.Sleep(time.Nanosecond * 1000)
 				continue
 			}
 			fetch++
-			inprogress.Store(tx.from.address.Hex(), true)
-			inprogress.Store(tx.to.address.Hex(), true)
+			fromBlacklist.Store(tx.from.address.Hex(), true)
+			toBlacklist.Store(tx.to.address.Hex(), true)
 			<-mergeCh
 
 			parallelCh <- true
@@ -539,8 +540,8 @@ func (block *Block) CollectTransactions(deadlineInMs int64) {
 						"tx":    tx,
 						"err":   err,
 					}).Debug("Failed to prepare tx.")
-					inprogress.Delete(tx.from.address.Hex())
-					inprogress.Delete(tx.to.address.Hex())
+					fromBlacklist.Delete(tx.from.address.Hex())
+					toBlacklist.Delete(tx.to.address.Hex())
 					<-mergeCh
 					return
 				}
@@ -567,9 +568,10 @@ func (block *Block) CollectTransactions(deadlineInMs int64) {
 							}).Debug("Failed to giveback the tx.")
 						}
 						failed++
+						toBlacklist.Delete(tx.to.address.Hex())
 					} else {
-						inprogress.Delete(tx.from.address.Hex())
-						inprogress.Delete(tx.to.address.Hex())
+						fromBlacklist.Delete(tx.from.address.Hex())
+						toBlacklist.Delete(tx.to.address.Hex())
 					}
 				} else {
 					mergeCh <- true
@@ -604,18 +606,18 @@ func (block *Block) CollectTransactions(deadlineInMs int64) {
 								"tx":    tx,
 								"err":   err,
 							}).Debug("Failed to close tx.")
-						} else {
-							if err := pool.Push(tx); err != nil {
-								logging.VLog().WithFields(logrus.Fields{
-									"block": block,
-									"tx":    tx,
-									"err":   err,
-								}).Debug("Failed to giveback the tx.")
-							}
-							conflict++
-							inprogress.Delete(tx.from.address.Hex())
-							inprogress.Delete(tx.to.address.Hex())
 						}
+						if err := pool.Push(tx); err != nil {
+							logging.VLog().WithFields(logrus.Fields{
+								"block": block,
+								"tx":    tx,
+								"err":   err,
+							}).Debug("Failed to giveback the tx.")
+						}
+						conflict++
+						fromBlacklist.Delete(tx.from.address.Hex())
+						toBlacklist.Delete(tx.to.address.Hex())
+
 					} else {
 						logging.VLog().WithFields(logrus.Fields{
 							"tx": tx,
@@ -628,8 +630,8 @@ func (block *Block) CollectTransactions(deadlineInMs int64) {
 						for _, node := range dependency {
 							dag.AddEdge(node, txid)
 						}
-						inprogress.Delete(tx.from.address.Hex())
-						inprogress.Delete(tx.to.address.Hex())
+						fromBlacklist.Delete(tx.from.address.Hex())
+						toBlacklist.Delete(tx.to.address.Hex())
 					}
 					<-mergeCh
 				}

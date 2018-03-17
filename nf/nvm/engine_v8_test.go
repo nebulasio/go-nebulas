@@ -191,24 +191,25 @@ func TestRunScriptSourceInModule(t *testing.T) {
 
 func TestRunScriptSourceWithLimits(t *testing.T) {
 	tests := []struct {
+		name                          string
 		filepath                      string
 		limitsOfExecutionInstructions uint64
 		limitsOfTotalMemorySize       uint64
 		expectedErr                   error
 	}{
-		{"test/test_oom_1.js", 100000, 0, ErrInsufficientGas},
-		{"test/test_oom_1.js", 0, 500000, ErrExceedMemoryLimits},
-		{"test/test_oom_1.js", 1000000, 50000000, ErrInsufficientGas},
-		{"test/test_oom_1.js", 5000000, 70000, ErrExceedMemoryLimits},
+		{"1", "test/test_oom_1.js", 100000, 0, ErrInsufficientGas},
+		{"2", "test/test_oom_1.js", 0, 500000, ErrExceedMemoryLimits},
+		{"3", "test/test_oom_1.js", 1000000, 50000000, ErrInsufficientGas},
+		{"4", "test/test_oom_1.js", 5000000, 70000, ErrExceedMemoryLimits},
 
-		{"test/test_oom_2.js", 100000, 0, ErrInsufficientGas},
-		{"test/test_oom_2.js", 0, 80000, ErrExceedMemoryLimits},
-		{"test/test_oom_2.js", 10000000, 10000000, ErrInsufficientGas},
-		{"test/test_oom_2.js", 10000000, 70000, ErrExceedMemoryLimits},
+		{"5", "test/test_oom_2.js", 100000, 0, ErrInsufficientGas},
+		{"6", "test/test_oom_2.js", 0, 80000, ErrExceedMemoryLimits},
+		{"7", "test/test_oom_2.js", 10000000, 10000000, ErrInsufficientGas},
+		{"8", "test/test_oom_2.js", 10000000, 70000, ErrExceedMemoryLimits},
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.filepath, func(t *testing.T) {
+		t.Run(tt.name, func(t *testing.T) {
 			data, err := ioutil.ReadFile(tt.filepath)
 			assert.Nil(t, err, "filepath read error")
 
@@ -224,7 +225,8 @@ func TestRunScriptSourceWithLimits(t *testing.T) {
 			(func() {
 				engine := NewV8Engine(ctx)
 				engine.SetExecutionLimits(tt.limitsOfExecutionInstructions, tt.limitsOfTotalMemorySize)
-				_, err = engine.RunScriptSource(string(data), 0)
+				source, _, _ := engine.InjectTracingInstructions(string(data))
+				_, err = engine.RunScriptSource(source, 0)
 				assert.Equal(t, tt.expectedErr, err)
 				engine.Dispose()
 			})()
