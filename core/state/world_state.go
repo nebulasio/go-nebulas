@@ -20,6 +20,7 @@ package state
 
 import (
 	"encoding/json"
+	"github.com/nebulasio/go-nebulas/util/logging"
 	"sync"
 
 	// "github.com/nebulasio/go-nebulas/util/logging"
@@ -316,15 +317,18 @@ func (s *states) Prepare(txid interface{}) (TxWorldState, error) {
 func (s *states) recordAccounts() error {
 	accounts, err := s.accState.DirtyAccounts()
 	if err != nil {
+		logging.VLog().Info("RAE 1")
 		return err
 	}
 	// record change log
 	for _, account := range accounts {
 		bytes, err := account.ToBytes()
 		if err != nil {
+			logging.VLog().Info("RAE 2")
 			return err
 		}
 		if err := s.changelog.Put(account.Address(), bytes); err != nil {
+			logging.VLog().Info("RAE 3")
 			return err
 		}
 	}
@@ -337,10 +341,12 @@ func (s *states) CheckAndUpdate(txid interface{}) ([]interface{}, error) {
 	}
 	dependency, err := s.changelog.CheckAndUpdate()
 	if err != nil {
+		logging.VLog().Info("CUE 11")
 		return nil, err
 	}
 	_, err = s.storage.CheckAndUpdate()
 	if err != nil {
+		logging.VLog().Info("CUE 12")
 		return nil, err
 	}
 	return dependency, nil
@@ -348,9 +354,11 @@ func (s *states) CheckAndUpdate(txid interface{}) ([]interface{}, error) {
 
 func (s *states) Reset(txid interface{}) error {
 	if err := s.changelog.Reset(); err != nil {
+		logging.VLog().Info("RSE 11")
 		return err
 	}
 	if err := s.storage.Reset(); err != nil {
+		logging.VLog().Info("RSE 12")
 		return err
 	}
 	return nil
@@ -358,9 +366,11 @@ func (s *states) Reset(txid interface{}) error {
 
 func (s *states) Close(txid interface{}) error {
 	if err := s.changelog.Close(); err != nil {
+		logging.VLog().Info("CSE 11")
 		return err
 	}
 	if err := s.storage.Close(); err != nil {
+		logging.VLog().Info("CSE 12")
 		return err
 	}
 
@@ -398,10 +408,12 @@ func (s *states) CreateContractAccount(owner byteutils.Hash, birthPlace byteutil
 func (s *states) GetTx(txHash byteutils.Hash) ([]byte, error) {
 	bytes, err := s.txsState.Get(txHash)
 	if err != nil {
+		logging.VLog().Info("GTE 11")
 		return nil, err
 	}
 	// record change log
 	if _, err := s.changelog.Get(txHash); err != nil && err != storage.ErrKeyNotFound {
+		logging.VLog().Info("GTE 12")
 		return nil, err
 	}
 	return bytes, nil
@@ -410,10 +422,12 @@ func (s *states) GetTx(txHash byteutils.Hash) ([]byte, error) {
 func (s *states) PutTx(txHash byteutils.Hash, txBytes []byte) error {
 	_, err := s.txsState.Put(txHash, txBytes)
 	if err != nil {
+		logging.VLog().Info("PTE 11")
 		return err
 	}
 	// record change log
 	if err := s.changelog.Put(txHash, txBytes); err != nil {
+		logging.VLog().Info("PTE 12")
 		return err
 	}
 	return nil
@@ -431,6 +445,7 @@ func (s *states) RecordEvent(txHash byteutils.Hash, event *Event) error {
 	key := append(txHash, byteutils.FromInt64(cnt)...)
 	bytes, err := json.Marshal(event)
 	if err != nil {
+		logging.VLog().Info("REE 11")
 		return err
 	}
 
@@ -438,6 +453,7 @@ func (s *states) RecordEvent(txHash byteutils.Hash, event *Event) error {
 
 	// record change log
 	if err := s.changelog.Put(key, bytes); err != nil {
+		logging.VLog().Info("PTE 12")
 		return err
 	}
 	return nil
@@ -466,21 +482,25 @@ func (s *states) FetchEvents(txHash byteutils.Hash) ([]*Event, error) {
 	if err != storage.ErrKeyNotFound {
 		exist, err := iter.Next()
 		if err != nil {
+			logging.VLog().Info("FEE 11")
 			return nil, err
 		}
 		for exist {
 			event := new(Event)
 			err = json.Unmarshal(iter.Value(), event)
 			if err != nil {
+				logging.VLog().Info("FEE 12")
 				return nil, err
 			}
 			events = append(events, event)
 			// record change log
 			if _, err := s.changelog.Get(iter.Key()); err != nil && err != storage.ErrKeyNotFound {
+				logging.VLog().Info("FEE 13")
 				return nil, err
 			}
 			exist, err = iter.Next()
 			if err != nil {
+				logging.VLog().Info("FEE 14")
 				return nil, err
 			}
 		}
@@ -626,6 +646,7 @@ func (ws *worldState) Prepare(txid interface{}) (TxWorldState, error) {
 	}
 	s, err := ws.states.Prepare(txid)
 	if err != nil {
+		logging.VLog().Info("PPE 1")
 		return nil, err
 	}
 	txState := &txWorldState{
@@ -644,9 +665,11 @@ func (ws *worldState) CheckAndUpdate(txid interface{}) ([]interface{}, error) {
 	txWorldState := state.(*txWorldState)
 	dependencies, err := txWorldState.CheckAndUpdate(txid)
 	if err != nil {
+		logging.VLog().Info("CUE 1")
 		return nil, err
 	}
 	if err := ws.states.Replay(txWorldState.states); err != nil {
+		logging.VLog().Info("CUE 2")
 		return nil, err
 	}
 
@@ -660,6 +683,7 @@ func (ws *worldState) Reset(txid interface{}) error {
 	}
 	txWorldState := state.(*txWorldState)
 	if err := txWorldState.Reset(txid); err != nil {
+		logging.VLog().Info("RSE 1")
 		return err
 	}
 	return nil
@@ -672,6 +696,7 @@ func (ws *worldState) Close(txid interface{}) error {
 	}
 	txWorldState := state.(*txWorldState)
 	if err := txWorldState.Close(txid); err != nil {
+		logging.VLog().Info("CSE 1")
 		return err
 	}
 	ws.txStates.Delete(txid)
