@@ -94,7 +94,7 @@ func TestDag_IsCirclular(t *testing.T) {
 	_, err := dag.ToProto()
 	assert.Nil(t, err)
 
-	dag.AddEdge("4", "2")
+	dag.AddEdge("4", "1")
 
 	assert.Equal(t, true, dag.IsCirclular())
 
@@ -109,4 +109,58 @@ func TestDag_IsCirclular(t *testing.T) {
 	dag.AddEdge("5", "1")
 	assert.Equal(t, true, dag.IsCirclular())
 
+}
+
+func TestDag_IsCirclular1(t *testing.T) {
+
+	dag := NewDag()
+
+	dag.AddNode("1")
+	dag.AddNode("2")
+	dag.AddNode("3")
+	dag.AddNode("4")
+	dag.AddNode("5")
+	dag.AddNode("6")
+	dag.AddNode("7")
+	dag.AddNode("8")
+	dag.AddNode("9")
+	dag.AddNode("10")
+	dag.AddNode("11")
+	dag.AddNode("12")
+	dag.AddNode("13")
+	dag.AddNode("14")
+	dag.AddNode("15")
+	dag.AddNode("16")
+	dag.AddNode("17")
+	dag.AddNode("18")
+	dag.AddNode("19")
+	// Add the edges (Note that given vertices must exist before adding an
+	// edge between them)
+	dag.AddEdge("1", "2")
+	dag.AddEdge("1", "3")
+	dag.AddEdge("2", "4")
+	dag.AddEdge("3", "5")
+	dag.AddEdge("3", "6")
+	dag.AddEdge("4", "7")
+	dag.AddEdge("5", "8")
+	dag.AddEdge("5", "9")
+	dag.AddEdge("6", "10")
+	dag.AddEdge("6", "11")
+	dag.AddEdge("9", "12")
+	dag.AddEdge("10", "12")
+	dag.AddEdge("12", "13")
+	dag.AddEdge("13", "15")
+	dag.AddEdge("12", "14")
+
+	dag.AddEdge("16", "17")
+	dag.AddEdge("16", "18")
+	dag.AddEdge("18", "19")
+
+	assert.Equal(t, false, dag.IsCirclular())
+
+	dag.AddEdge("15", "8")
+	assert.Equal(t, false, dag.IsCirclular())
+
+	dag.AddEdge("19", "16")
+	assert.Equal(t, true, dag.IsCirclular())
 }

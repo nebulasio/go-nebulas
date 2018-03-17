@@ -32,6 +32,10 @@ type Task struct {
 	node       *Node
 }
 
+var (
+	ErrDagHasCirclular = errors.New("dag hava circlular")
+)
+
 // Dispatcher struct a message dispatcher dag.
 type Dispatcher struct {
 	concurrency int
@@ -41,6 +45,7 @@ type Dispatcher struct {
 	elapseInMs  int64
 	quitCh      chan bool
 	queueCh     chan *Node
+	taskCounter int
 	tasks       map[interface{}]*Task
 	cursor      int
 	err         error
@@ -55,6 +60,7 @@ func NewDispatcher(dag *Dag, concurrency int, elapseInMs int64, context interfac
 		dag:         dag,
 		cb:          cb,
 		tasks:       make(map[interface{}]*Task, 0),
+		taskCounter: 0,
 		quitCh:      make(chan bool, 2*concurrency),
 		queueCh:     make(chan *Node, 10240),
 		cursor:      0,
@@ -69,6 +75,7 @@ func (dp *Dispatcher) Run() error {
 
 	vertices := dp.dag.GetNodes()
 
+	rootCounter := 0
 	for _, node := range vertices {
 		task := &Task{
 			dependence: node.ParentCounter,
@@ -78,8 +85,13 @@ func (dp *Dispatcher) Run() error {
 		dp.tasks[node.Key] = task
 
 		if task.dependence == 0 {
+			rootCounter++
 			dp.push(node)
 		}
+	}
+	if rootCounter == 0 && len(vertices) > 0 {
+		dp.err = ErrDagHasCirclular
+		return dp.err
 	}
 
 	dp.loop()
@@ -160,6 +172,7 @@ func (dp *Dispatcher) Stop() {
 
 // push queue channel
 func (dp *Dispatcher) push(vertx *Node) {
+	dp.taskCounter++
 	dp.queueCh <- vertx
 }
 
@@ -180,7 +193,10 @@ func (dp *Dispatcher) CompleteParentTask(node *Node) error {
 
 	dp.cursor++
 
-	if dp.cursor == dp.dag.Len() {
+	if dp.cursor == dp.taskCounter {
+		if dp.taskCounter < dp.dag.Len() {
+			return ErrDagHasCirclular
+		}
 		dp.Stop()
 	}
 
@@ -196,7 +212,7 @@ func (dp *Dispatcher) updateDependenceTask(key interface{}) error {
 			dp.push(dp.tasks[key].node)
 		}
 		if dp.tasks[key].dependence < 0 {
-			return errors.New("dag hava cirle")
+			return ErrDagHasCirclular
 		}
 	}
 	return nil

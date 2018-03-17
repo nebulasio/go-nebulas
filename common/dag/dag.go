@@ -22,6 +22,7 @@ import (
 
 	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/common/dag/pb"
+	"github.com/nebulasio/go-nebulas/util/logging"
 )
 
 // Node struct
@@ -206,34 +207,45 @@ func (dag *Dag) AddEdge(fromKey, toKey interface{}) error {
 
 //IsCirclular a->b-c->a
 func (dag *Dag) IsCirclular() bool {
-	visited := make(map[interface{}]bool)
 
-	rootnodes := dag.GetRootNodes()
+	visited := make(map[interface{}]int, len(dag.Nodes))
+	rootNodes := make(map[interface{}]*Node)
+	for key, node := range dag.Nodes {
+		logging.CLog().Info("node key:", key)
+		visited[key] = 0
+		rootNodes[key] = node
+	}
 
-	for _, node := range rootnodes {
+	for _, node := range rootNodes {
 		if dag.hasCirclularDep(node, visited) {
 			return true
 		}
 	}
 
-	if len(rootnodes) == 0 && len(dag.Nodes) != 0 {
-		return true
+	logging.CLog().Info("visited:", visited)
+	for key, count := range visited {
+		logging.CLog().Info(" key:", key, " visited count:", count)
+		if count == 0 {
+			return true
+		}
 	}
 	return false
 }
 
-//hasCirclularDep circluar dep
-func (dag *Dag) hasCirclularDep(current *Node, visited map[interface{}]bool) bool {
-	visited[current.Key] = true
+func (dag *Dag) hasCirclularDep(current *Node, visited map[interface{}]int) bool {
+
+	visited[current.Key] = 1
+	logging.CLog().Info("current key:", current.Key, " visited:", visited[current.Key])
 	for _, child := range current.Children {
-		if _, ok := visited[child.Key]; ok {
+		logging.CLog().Info("child key:", child.Key, " visited:", visited[child.Key])
+		if visited[child.Key] == 1 {
 			return true
 		}
+
 		if dag.hasCirclularDep(child, visited) {
 			return true
 		}
-		delete(visited, child.Key)
 	}
-	delete(visited, current.Key)
+	visited[current.Key] = 2
 	return false
 }

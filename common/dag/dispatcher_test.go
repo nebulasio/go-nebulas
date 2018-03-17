@@ -82,9 +82,14 @@ func TestDispatcher_Start1(t *testing.T) {
 	dag.AddEdge("12", "13")
 	dag.AddEdge("13", "15")
 	dag.AddEdge("12", "14")
+
+	dag.AddEdge("15", "8")
+
 	dag.AddEdge("16", "17")
 	dag.AddEdge("16", "18")
 	dag.AddEdge("18", "19")
+
+	//dag.AddEdge("19", "16")
 
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
@@ -142,4 +147,13 @@ func TestDispatcher_Start1(t *testing.T) {
 
 	err = dp2.Run()
 	assert.Nil(t, err)
+
+	dag.AddEdge("19", "16")
+
+	dp3 := NewDispatcher(dag, 8, 0, txs, func(node *Node, a interface{}) error {
+		return nil
+	})
+
+	err = dp3.Run()
+	assert.NotNil(t, err)
 }
