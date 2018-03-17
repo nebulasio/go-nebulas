@@ -193,8 +193,6 @@ func TestApiValidInput(t *testing.T) {
 		{`api.blockDump()`, "\"data\"", "connection refuse"},
 		{`api.gasPrice()`, "\"gas_price\"", "connection refuse"},
 		{`api.getNebState()`, "\"chain_id\"", "connection refuse"},
-		{`admin.stopMining()`, "\"result\"", "connection refuse"},
-		{`admin.startMining('passphrase')`, "\"result\"", "connection refuse"},
 	}
 
 	// Wait for a promt and send a statement back

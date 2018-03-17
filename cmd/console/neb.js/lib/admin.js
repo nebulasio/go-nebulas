@@ -29,11 +29,6 @@ Admin.prototype.lockAccount = function (address, callback) {
     return this.request("post", "/v1/admin/account/lock", params, callback);
 };
 
-Admin.prototype.changeNetworkID = function (networkId, callback) {
-    var params = { "networkId": networkId };
-    return this.request("post", "/v1/admin/changeNetworkID", params, callback);
-};
-
 Admin.prototype.signTransaction = function (from, to, value, nonce, gasPrice, gasLimit, contract, candidate, delegate, binary, callback) {
     var params = {
         "from": from,
@@ -68,20 +63,6 @@ Admin.prototype.sendTransactionWithPassphrase = function (from, to, value, nonce
         "passphrase": passphrase
     };
     return this.request("post", "/v1/admin/transactionWithPassphrase", params, callback);
-};
-
-Admin.prototype.getDelegateVoters = function (delegatee, callback) {
-    var params = { "delegatee": delegatee };
-    return this.request("post", "/v1/admin/delegateVoters", params, callback);
-};
-
-Admin.prototype.startMining = function (passphrase, callback) {
-    var params = { "passphrase": passphrase };
-    return this.request("post", "/v1/admin/startMining", params, callback);
-};
-
-Admin.prototype.stopMining = function (callback) {
-    return this.request("get", "/v1/admin/stopMining", null, callback);
 };
 
 Admin.prototype.startPprof = function (listen, callback) {
