@@ -18,14 +18,19 @@ function sendTransactionsTest() {
     switch(type)  {
         case 0:
             startMochaTest("binary/value.test.js");
+            break;
         case 1:
             startMochaTest("contract/contract.deploy.test.js");
+            break;
         case 2:
             startMochaTest("contract/contract.call.test.js");
+            break;
         case 3:
             startMochaTest("contract/contract.bankvault.test.js");
+            break;
         case 4:
             startMochaTest("contract/contract.nrc20.test.js");
+            break;
     }
 
     type++;

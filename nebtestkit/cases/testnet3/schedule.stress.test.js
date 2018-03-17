@@ -86,9 +86,11 @@ function sendTransactions() {
         case 0:
             console.log("send normal transactions!!!");
             sendNormalTransactions(SendTimes, "1");
+            break;
         case 1:
             console.log("send contract transactions!!!");
             sendContractTransactions();
+            break;
     }
 }
 

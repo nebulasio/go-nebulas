@@ -71,7 +71,7 @@ if (env == 'local') {
     from = new Wallet.Account("43181d58178263837a9a6b08f06379a348a5b362bfab3631ac78d2ac771c5df3");
     nodes.push("http://35.177.214.138:8685");
 } else {
-    console.log("please input correct env local testneb1 testneb2")
+    console.log("please input correct env local testneb1 testneb2");
     return;
 }
 
