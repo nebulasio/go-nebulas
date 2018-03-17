@@ -26,6 +26,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/nebulasio/go-nebulas/common/mvccdb"
+
 	"github.com/nebulasio/go-nebulas/common/dag"
 	"github.com/nebulasio/go-nebulas/common/dag/pb"
 	"github.com/nebulasio/go-nebulas/consensus/pb"
@@ -497,6 +499,7 @@ func (block *Block) CollectTransactions(deadlineInMs int64) {
 			}
 			fetch++
 			inprogress.Store(tx.from.address.Hex(), true)
+			inprogress.Store(tx.to.address.Hex(), true)
 			<-mergeCh
 
 			parallelCh <- true
@@ -537,6 +540,7 @@ func (block *Block) CollectTransactions(deadlineInMs int64) {
 						"err":   err,
 					}).Debug("Failed to prepare tx.")
 					inprogress.Delete(tx.from.address.Hex())
+					inprogress.Delete(tx.to.address.Hex())
 					<-mergeCh
 					return
 				}
@@ -554,7 +558,7 @@ func (block *Block) CollectTransactions(deadlineInMs int64) {
 					}).Debug("invalid tx.")
 					unpacked++
 
-					if giveback {
+					if giveback || err == mvccdb.ErrPreparedDBIsClosed {
 						if err := pool.Push(tx); err != nil {
 							logging.VLog().WithFields(logrus.Fields{
 								"block": block,
@@ -565,6 +569,7 @@ func (block *Block) CollectTransactions(deadlineInMs int64) {
 						failed++
 					} else {
 						inprogress.Delete(tx.from.address.Hex())
+						inprogress.Delete(tx.to.address.Hex())
 					}
 				} else {
 					mergeCh <- true
@@ -609,6 +614,7 @@ func (block *Block) CollectTransactions(deadlineInMs int64) {
 							}
 							conflict++
 							inprogress.Delete(tx.from.address.Hex())
+							inprogress.Delete(tx.to.address.Hex())
 						}
 					} else {
 						logging.VLog().WithFields(logrus.Fields{
@@ -623,6 +629,7 @@ func (block *Block) CollectTransactions(deadlineInMs int64) {
 							dag.AddEdge(node, txid)
 						}
 						inprogress.Delete(tx.from.address.Hex())
+						inprogress.Delete(tx.to.address.Hex())
 					}
 					<-mergeCh
 				}

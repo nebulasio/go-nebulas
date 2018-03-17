@@ -451,7 +451,7 @@ func (s *states) RecordEvent(txHash byteutils.Hash, event *Event) error {
 
 	// record change log
 	if err := s.changelog.Put(key, bytes); err != nil {
-		logging.VLog().Info("PTE 12")
+		logging.VLog().Info("REE 12")
 		return err
 	}
 	return nil

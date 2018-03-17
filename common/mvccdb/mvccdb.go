@@ -177,7 +177,7 @@ func (db *MVCCDB) Commit() error {
 
 	// reset.
 	for _, pdb := range db.preparedDBs {
-		pdb.Reset() // ToCheck Why not Close
+		pdb.close()
 	}
 	db.preparedDBs = make(map[interface{}]*MVCCDB)
 
@@ -203,7 +203,7 @@ func (db *MVCCDB) RollBack() error {
 
 	// reset.
 	for _, pdb := range db.preparedDBs {
-		pdb.Reset()
+		pdb.close()
 	}
 	db.preparedDBs = make(map[interface{}]*MVCCDB)
 
@@ -401,9 +401,7 @@ func (db *MVCCDB) Reset() error {
 	return nil
 }
 
-// Close close prepared DB.
-func (db *MVCCDB) Close() error {
-
+func (db *MVCCDB) close() error {
 	if !db.isInTransaction {
 		return ErrTransactionNotStarted
 	}
@@ -416,18 +414,32 @@ func (db *MVCCDB) Close() error {
 		return ErrPreparedDBIsClosed
 	}
 
+	// close.
+	for _, pdb := range db.preparedDBs {
+		pdb.close()
+	}
+	db.preparedDBs = make(map[interface{}]*MVCCDB)
+
 	err := db.stagingTable.Close()
 	if err != nil {
 		return err
 	}
-
-	db.parentDB.mutex.Lock()
-	defer db.parentDB.mutex.Unlock()
+	db.stagingTable.Purge()
+	db.isDirtyDB = false
 
 	delete(db.parentDB.preparedDBs, db.tid)
+	db.parentDB = nil
 	db.isPreparedDBClosed = true
 
 	return nil
+}
+
+// Close close prepared DB.
+func (db *MVCCDB) Close() error {
+	db.parentDB.mutex.Lock()
+	defer db.parentDB.mutex.Unlock()
+
+	return db.close()
 }
 
 // IsPreparedDBDirty is prepared db dirty

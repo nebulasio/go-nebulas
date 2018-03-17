@@ -57,7 +57,8 @@ func (payload *CallPayload) ToBytes() ([]byte, error) {
 
 // BaseGasCount returns base gas count
 func (payload *CallPayload) BaseGasCount() *util.Uint128 {
-	return util.NewUint128()
+	base, _ := util.NewUint128FromInt(60)
+	return base
 }
 
 // Execute the call payload in tx, call a function

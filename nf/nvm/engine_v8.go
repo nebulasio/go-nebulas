@@ -87,6 +87,8 @@ var (
 	enginesLock           = sync.RWMutex{}
 	publicFuncNameChecker = regexp.MustCompile("^[a-zA-Z$][A-Za-z0-9_$]*$")
 	sourceModuleCache, _  = lru.New(4096)
+	inject                = 0
+	hit                   = 0
 )
 
 // V8Engine v8 engine.
@@ -268,14 +270,14 @@ func (e *V8Engine) CollectTracingStats() {
 
 // RunScriptSource run js source.
 func (e *V8Engine) RunScriptSource(source string, sourceLineOffset int) (result string, err error) {
-	if e.enableLimits {
+	/* 	if e.enableLimits {
 		traceableSource, traceableSourceLineOffset, err := e.InjectTracingInstructions(source)
 		if err != nil {
 			return "", err
 		}
 		source = traceableSource
 		sourceLineOffset += traceableSourceLineOffset
-	}
+	} */
 
 	cSource := C.CString(source)
 	defer C.free(unsafe.Pointer(cSource))

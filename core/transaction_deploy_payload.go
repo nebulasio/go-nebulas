@@ -59,7 +59,8 @@ func (payload *DeployPayload) ToBytes() ([]byte, error) {
 
 // BaseGasCount returns base gas count
 func (payload *DeployPayload) BaseGasCount() *util.Uint128 {
-	return util.NewUint128()
+	base, _ := util.NewUint128FromInt(60)
+	return base
 }
 
 // Execute deploy payload in tx, deploy a new contract
