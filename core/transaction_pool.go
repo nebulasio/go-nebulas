@@ -324,18 +324,22 @@ func (pool *TransactionPool) dropTx() {
 }
 
 // PopWithBlacklist return a tx with highest gasprice and not in the blocklist
-func (pool *TransactionPool) PopWithBlacklist(blacklist *sync.Map) *Transaction {
+func (pool *TransactionPool) PopWithBlacklist(fromBlacklist *sync.Map, toBlacklist *sync.Map) *Transaction {
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
 
-	if blacklist == nil {
-		blacklist = new(sync.Map)
+	if fromBlacklist == nil {
+		fromBlacklist = new(sync.Map)
 	}
+	if toBlacklist == nil {
+		toBlacklist = new(sync.Map)
+	}
+
 	size := pool.candidates.Len()
 	for i := 0; i < size; i++ {
 		tx := pool.candidates.Index(i).(*Transaction)
-		if _, ok := blacklist.Load(tx.from.address.Hex()); !ok {
-			if _, ok := blacklist.Load(tx.to.address.Hex()); !ok {
+		if _, ok := fromBlacklist.Load(tx.from.address.Hex()); !ok {
+			if _, ok := toBlacklist.Load(tx.to.address.Hex()); !ok {
 				pool.candidates.Del(tx)
 				pool.popTx(tx)
 				return tx
