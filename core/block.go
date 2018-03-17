@@ -500,6 +500,8 @@ func (block *Block) CollectTransactions(deadlineInMs int64) {
 			}
 			fetch++
 			fromBlacklist.Store(tx.from.address.Hex(), true)
+			fromBlacklist.Store(tx.to.address.Hex(), true)
+			toBlacklist.Store(tx.from.address.Hex(), true)
 			toBlacklist.Store(tx.to.address.Hex(), true)
 			<-mergeCh
 
@@ -541,6 +543,8 @@ func (block *Block) CollectTransactions(deadlineInMs int64) {
 						"err":   err,
 					}).Debug("Failed to prepare tx.")
 					fromBlacklist.Delete(tx.from.address.Hex())
+					fromBlacklist.Delete(tx.to.address.Hex())
+					toBlacklist.Delete(tx.from.address.Hex())
 					toBlacklist.Delete(tx.to.address.Hex())
 					<-mergeCh
 					return
@@ -568,9 +572,12 @@ func (block *Block) CollectTransactions(deadlineInMs int64) {
 							}).Debug("Failed to giveback the tx.")
 						}
 						failed++
+						fromBlacklist.Delete(tx.to.address.Hex())
 						toBlacklist.Delete(tx.to.address.Hex())
 					} else {
 						fromBlacklist.Delete(tx.from.address.Hex())
+						fromBlacklist.Delete(tx.to.address.Hex())
+						toBlacklist.Delete(tx.from.address.Hex())
 						toBlacklist.Delete(tx.to.address.Hex())
 					}
 				} else {
@@ -616,6 +623,8 @@ func (block *Block) CollectTransactions(deadlineInMs int64) {
 						}
 						conflict++
 						fromBlacklist.Delete(tx.from.address.Hex())
+						fromBlacklist.Delete(tx.to.address.Hex())
+						toBlacklist.Delete(tx.from.address.Hex())
 						toBlacklist.Delete(tx.to.address.Hex())
 
 					} else {
@@ -631,6 +640,8 @@ func (block *Block) CollectTransactions(deadlineInMs int64) {
 							dag.AddEdge(node, txid)
 						}
 						fromBlacklist.Delete(tx.from.address.Hex())
+						fromBlacklist.Delete(tx.to.address.Hex())
+						toBlacklist.Delete(tx.from.address.Hex())
 						toBlacklist.Delete(tx.to.address.Hex())
 					}
 					<-mergeCh
