@@ -479,12 +479,12 @@ func TestBlock_fetchEvents(t *testing.T) {
 	err := tail.worldState.Begin()
 	assert.Nil(t, err)
 	tx := &Transaction{hash: []byte("tx")}
-	txWorldState, err := tail.worldState.Prepare(tx)
+	txWorldState, err := tail.worldState.Prepare(byteutils.Hex(tx.Hash()))
 	assert.Nil(t, err)
 	for _, event := range events {
 		assert.Nil(t, txWorldState.RecordEvent(tx.Hash(), event))
 	}
-	_, err = tail.worldState.CheckAndUpdate(tx)
+	_, err = tail.worldState.CheckAndUpdate(byteutils.Hex(tx.Hash()))
 	assert.Nil(t, err)
 
 	es, err := tail.FetchEvents(tx.Hash())

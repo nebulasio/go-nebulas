@@ -20,12 +20,9 @@ package state
 
 import (
 	"encoding/json"
-	"github.com/nebulasio/go-nebulas/util/logging"
 	"sync"
 
-	// "github.com/nebulasio/go-nebulas/util/logging"
-
-	// "github.com/nebulasio/go-nebulas/util/logging"
+	"github.com/nebulasio/go-nebulas/util/logging"
 
 	"github.com/nebulasio/go-nebulas/consensus/pb"
 	"github.com/nebulasio/go-nebulas/util"
@@ -121,10 +118,7 @@ func (s *states) Replay(done *states) error {
 	if err != nil {
 		return err
 	}
-	_, err = s.eventsState.Replay(done.eventsState)
-	if err != nil {
-		return err
-	}
+
 	err = s.consensusState.Replay(done.consensusState)
 	if err != nil {
 		return err
@@ -154,28 +148,32 @@ func (s *states) Replay(done *states) error {
 
 func (s *states) ReplayEvent(done *states) error {
 
+	tx := done.txid.(string)
+	events, ok := done.events[tx]
+	if !ok {
+		return nil
+	}
+
 	//replay event
-	for tx, events := range done.events {
-		txHash, err := byteutils.FromHex(tx)
+	txHash, err := byteutils.FromHex(tx)
+	if err != nil {
+		return err
+	}
+	for idx, event := range events {
+		cnt := int64(idx + 1)
+
+		key := append(txHash, byteutils.FromInt64(cnt)...)
+		bytes, err := json.Marshal(event)
 		if err != nil {
 			return err
 		}
-		for idx, event := range events {
-			cnt := int64(idx + 1)
 
-			key := append(txHash, byteutils.FromInt64(cnt)...)
-			bytes, err := json.Marshal(event)
-			if err != nil {
-				return err
-			}
-
-			_, err = s.eventsState.Put(key, bytes)
-			if err != nil {
-				return err
-			}
+		_, err = s.eventsState.Put(key, bytes)
+		if err != nil {
+			return err
 		}
-		s.events[tx] = done.events[tx]
 	}
+	s.events[tx] = done.events[tx]
 
 	return nil
 }
@@ -310,7 +308,7 @@ func (s *states) Prepare(txid interface{}) (TxWorldState, error) {
 		txid:      txid,
 
 		gasConsumed: make(map[string]*util.Uint128),
-		events:      make(map[string][]*Event, 0),
+		events:      make(map[string][]*Event),
 	}, nil
 }
 
