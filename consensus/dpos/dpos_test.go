@@ -19,6 +19,7 @@
 package dpos
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/nebulasio/go-nebulas/util"
@@ -65,6 +66,7 @@ func mockNeb(t *testing.T) *Neb {
 			Chain: &nebletpb.ChainConfig{
 				ChainId:    genesisConf.Meta.ChainId,
 				Keydir:     "keydir",
+				StartMine:  true,
 				Coinbase:   "1a263547d167c74cf4b8f9166cfa244de0481c514a45aa2c",
 				Miner:      "1a263547d167c74cf4b8f9166cfa244de0481c514a45aa2c",
 				Passphrase: "passphrase",
@@ -385,7 +387,7 @@ func TestDpos_MintBlock(t *testing.T) {
 	assert.Nil(t, dpos.EnableMining("passphrase"))
 	dpos.SuspendMining()
 	assert.Equal(t, dpos.mintBlock(0), ErrCannotMintWhenPending)
-
+	fmt.Print("silent_debug")
 	dpos.ResumeMining()
 	assert.Equal(t, dpos.mintBlock(BlockInterval), ErrInvalidBlockProposer)
 

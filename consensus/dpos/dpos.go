@@ -94,24 +94,26 @@ func (dpos *Dpos) Setup(neblet core.Neblet) error {
 	dpos.am = neblet.AccountManager()
 
 	chainConfig := neblet.Config().Chain
-	coinbase, err := core.AddressParse(chainConfig.Coinbase)
-	if err != nil {
-		logging.CLog().WithFields(logrus.Fields{
-			"address": chainConfig.Coinbase,
-			"err":     err,
-		}).Error("Failed to parse coinbase address.")
-		return err
+	if chainConfig.StartMine {
+		coinbase, err := core.AddressParse(chainConfig.Coinbase)
+		if err != nil {
+			logging.CLog().WithFields(logrus.Fields{
+				"address": chainConfig.Coinbase,
+				"err":     err,
+			}).Error("Failed to parse coinbase address.")
+			return err
+		}
+		miner, err := core.AddressParse(chainConfig.Miner)
+		if err != nil {
+			logging.CLog().WithFields(logrus.Fields{
+				"address": chainConfig.Miner,
+				"err":     err,
+			}).Error("Failed to parse miner address.")
+			return err
+		}
+		dpos.coinbase = coinbase
+		dpos.miner = miner
 	}
-	miner, err := core.AddressParse(chainConfig.Miner)
-	if err != nil {
-		logging.CLog().WithFields(logrus.Fields{
-			"address": chainConfig.Miner,
-			"err":     err,
-		}).Error("Failed to parse miner address.")
-		return err
-	}
-	dpos.coinbase = coinbase
-	dpos.miner = miner
 
 	slot, err := lru.NewWithEvict(1024, func(key interface{}, value interface{}) {
 		block := value.(*core.Block)

@@ -224,19 +224,6 @@ service AdminService {
 		};
 	}
 
-    rpc StartMining (StartMiningRequest) returns (MiningResponse) {
-        option (google.api.http) = {
-			post: "/v1/admin/startMining"
-            body: "*"
-		};
-    }
-
-    rpc StopMining (NonParamsRequest) returns (MiningResponse) {
-        option (google.api.http) = {
-			get: "/v1/admin/stopMining"
-		};
-    }
-
     rpc StartPprof (PprofRequest) returns (PprofResponse) {
         option (google.api.http) = {
 			post: "/v1/admin/pprof"
@@ -679,15 +666,6 @@ message ChangeNetworkIDRequest {
 
 // Response message of change networkID.
 message ChangeNetworkIDResponse {
-    bool result = 1;
-}
-
-message StartMiningRequest {
-    // miner address passphrase
-    string passphrase = 1;
-}
-
-message MiningResponse {
     bool result = 1;
 }
 

@@ -19,7 +19,6 @@
 package rpc
 
 import (
-	"errors"
 	"time"
 
 	"github.com/gogo/protobuf/proto"
@@ -149,37 +148,6 @@ func (s *AdminService) ChangeNetworkID(ctx context.Context, req *rpcpb.ChangeNet
 	// broadcast to all the node in the routetable.
 	neb.NetService().BroadcastNetworkID(byteutils.FromUint32(req.NetworkId))
 	return &rpcpb.ChangeNetworkIDResponse{Result: true}, nil
-}
-
-// StartMining start mining
-func (s *AdminService) StartMining(ctx context.Context, req *rpcpb.StartMiningRequest) (*rpcpb.MiningResponse, error) {
-
-	neb := s.server.Neblet()
-
-	if neb.Consensus().Enable() {
-		return nil, errors.New("consensus has already been started")
-	}
-
-	err := neb.Consensus().EnableMining(req.Passphrase)
-	if err != nil {
-		return nil, err
-	}
-	return &rpcpb.MiningResponse{Result: true}, nil
-}
-
-// StopMining stop mining
-func (s *AdminService) StopMining(ctx context.Context, req *rpcpb.NonParamsRequest) (*rpcpb.MiningResponse, error) {
-
-	neb := s.server.Neblet()
-
-	if !neb.Consensus().Enable() {
-		return nil, errors.New("consensus not start yet")
-	}
-
-	if err := neb.Consensus().DisableMining(); err != nil {
-		return nil, err
-	}
-	return &rpcpb.MiningResponse{Result: true}, nil
 }
 
 // StartPprof start pprof

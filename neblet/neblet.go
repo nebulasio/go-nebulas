@@ -218,8 +218,8 @@ func (n *Neblet) Start() {
 
 	// start consensus
 	chainConf := n.config.Chain
-	n.consensus.Start()
 	if chainConf.StartMine {
+		n.consensus.Start()
 		passphrase := n.config.Chain.Passphrase
 		if len(passphrase) == 0 {
 			fmt.Println("***********************************************")
@@ -259,7 +259,7 @@ func (n *Neblet) Stop() {
 	// try Stop Profiling.
 	n.TryStopProfiling()
 
-	if n.consensus != nil {
+	if n.config.Chain.StartMine && n.consensus != nil {
 		n.consensus.Stop()
 		n.consensus = nil
 	}
