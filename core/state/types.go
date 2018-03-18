@@ -73,6 +73,8 @@ type Account interface {
 type AccountState interface {
 	RootHash() (byteutils.Hash, error)
 	DirtyAccounts() ([]Account, error)
+	RollBackDirtyAccounts()
+	CommitDirtyAccounts() error
 	Accounts() ([]Account, error)
 
 	Clone() (AccountState, error)

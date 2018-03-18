@@ -328,6 +328,26 @@ func (as *accountState) DirtyAccounts() ([]Account, error) {
 	return accounts, nil
 }
 
+func (as *accountState) RollBackDirtyAccounts() {
+	as.dirtyAccount = make(map[byteutils.HexHash]Account)
+}
+
+func (as *accountState) CommitDirtyAccounts() error {
+	for addr, acc := range as.dirtyAccount {
+		bytes, err := acc.ToBytes()
+		if err != nil {
+			return err
+		}
+		key, err := addr.Hash()
+		if err != nil {
+			return err
+		}
+		as.stateTrie.Put(key, bytes)
+	}
+	as.dirtyAccount = make(map[byteutils.HexHash]Account)
+	return nil
+}
+
 // Relay merge the done account state
 func (as *accountState) Replay(done AccountState) error {
 	state := done.(*accountState)

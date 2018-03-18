@@ -239,24 +239,29 @@ func (s *states) Begin() error {
 }
 
 func (s *states) Commit() error {
-	// start := time.Now().Unix()
 	if err := s.changelog.RollBack(); err != nil {
 		return err
 	}
-
+	if err := s.storage.Commit(); err != nil {
+		return err
+	}
 	s.events = make(map[string][]*Event)
 	s.gasConsumed = make(map[string]*util.Uint128)
-	return s.storage.Commit()
+	s.accState.CommitDirtyAccounts()
+	return nil
 }
 
 func (s *states) RollBack() error {
 	if err := s.changelog.RollBack(); err != nil {
 		return err
 	}
-
+	if err := s.storage.RollBack(); err != nil {
+		return err
+	}
 	s.events = make(map[string][]*Event)
 	s.gasConsumed = make(map[string]*util.Uint128)
-	return s.storage.RollBack()
+	s.accState.RollBackDirtyAccounts()
+	return nil
 }
 
 func (s *states) Prepare(txid interface{}) (TxWorldState, error) {

@@ -19,6 +19,7 @@
 package core
 
 import (
+	"encoding/json"
 	"fmt"
 	"reflect"
 	"testing"
@@ -296,7 +297,7 @@ func TestTransaction_VerifyExecution(t *testing.T) {
 		afterBalance    *util.Uint128
 		toBalance       *util.Uint128
 		coinbaseBalance *util.Uint128
-		eventTopic      []string
+		eventStatus     []int
 	}
 	tests := []testTx{}
 
@@ -324,7 +325,7 @@ func TestTransaction_VerifyExecution(t *testing.T) {
 		toBalance:       normalTx.value,
 		coinbaseBalance: coinbaseBalance,
 		wanted:          nil,
-		eventTopic:      []string{TopicExecuteTxSuccess},
+		eventStatus:     []int{TxExecutionSuccess},
 	})
 
 	// contract deploy tx
@@ -347,7 +348,7 @@ func TestTransaction_VerifyExecution(t *testing.T) {
 		toBalance:       afterBalance,
 		coinbaseBalance: coinbaseBalance,
 		wanted:          nil,
-		eventTopic:      []string{TopicExecuteTxSuccess},
+		eventStatus:     []int{TxExecutionSuccess},
 	})
 
 	// contract call tx
@@ -369,7 +370,7 @@ func TestTransaction_VerifyExecution(t *testing.T) {
 		toBalance:       callTx.value,
 		coinbaseBalance: coinbaseBalance,
 		wanted:          nil,
-		eventTopic:      []string{TopicExecuteTxFailed},
+		eventStatus:     []int{TxExecutionFailed},
 	})
 
 	// normal tx insufficient fromBalance before execution
@@ -383,7 +384,7 @@ func TestTransaction_VerifyExecution(t *testing.T) {
 		afterBalance: util.NewUint128(),
 		toBalance:    insufficientBlanceTx.value,
 		wanted:       ErrInsufficientBalance,
-		eventTopic:   []string{TopicExecuteTxFailed},
+		eventStatus:  []int{TxExecutionFailed},
 	})
 
 	// normal tx out of  gasLimit
@@ -398,7 +399,7 @@ func TestTransaction_VerifyExecution(t *testing.T) {
 		afterBalance: balance,
 		toBalance:    util.NewUint128(),
 		wanted:       ErrOutOfGasLimit,
-		eventTopic:   []string{TopicExecuteTxFailed},
+		eventStatus:  []int{TxExecutionFailed},
 	})
 
 	// tx payload load err
@@ -424,7 +425,7 @@ func TestTransaction_VerifyExecution(t *testing.T) {
 		toBalance:       util.NewUint128(),
 		coinbaseBalance: coinbaseBalance,
 		wanted:          nil,
-		eventTopic:      []string{TopicExecuteTxFailed},
+		eventStatus:     []int{TxExecutionFailed},
 	})
 
 	// tx execution err
@@ -445,7 +446,7 @@ func TestTransaction_VerifyExecution(t *testing.T) {
 		toBalance:       util.NewUint128(),
 		coinbaseBalance: coinbaseBalance,
 		wanted:          nil,
-		eventTopic:      []string{TopicExecuteTxFailed},
+		eventStatus:     []int{TxExecutionFailed},
 	})
 
 	// tx execution insufficient fromBalance after execution
@@ -461,7 +462,7 @@ func TestTransaction_VerifyExecution(t *testing.T) {
 		toBalance:       util.NewUint128(),
 		coinbaseBalance: util.NewUint128(),
 		wanted:          ErrInsufficientBalance,
-		eventTopic:      []string{TopicExecuteTxFailed},
+		eventStatus:     []int{TxExecutionFailed},
 	})
 
 	// tx execution equal fromBalance after execution
@@ -487,7 +488,7 @@ func TestTransaction_VerifyExecution(t *testing.T) {
 		toBalance:       afterBalance,
 		coinbaseBalance: coinbaseBalance,
 		wanted:          nil,
-		eventTopic:      []string{TopicExecuteTxSuccess},
+		eventStatus:     []int{TxExecutionSuccess},
 	})
 
 	ks := keystore.DefaultKS
@@ -500,13 +501,14 @@ func TestTransaction_VerifyExecution(t *testing.T) {
 			err := tt.tx.Sign(signature)
 			assert.Nil(t, err)
 
-			bc.tailBlock.Begin()
-			fromAcc, err := bc.tailBlock.worldState.GetOrCreateUserAccount(tt.tx.from.address)
+			block, err := bc.NewBlock(mockAddress())
+			block.Begin()
+			fromAcc, err := block.worldState.GetOrCreateUserAccount(tt.tx.from.address)
 			assert.Nil(t, err)
 			fromAcc.AddBalance(tt.fromBalance)
-			bc.tailBlock.Commit()
+			block.Commit()
 
-			block, err := bc.NewBlock(bc.tailBlock.header.coinbase)
+			block, err = bc.NewBlockFromParent(bc.tailBlock.header.coinbase, block)
 			assert.Nil(t, err)
 			block.Begin()
 
@@ -514,12 +516,13 @@ func TestTransaction_VerifyExecution(t *testing.T) {
 			assert.Nil(t, err)
 
 			executionErr := VerifyExecution(tt.tx, block, txWorldState)
+			logging.CLog().Info(tt.name, " ", executionErr)
 			fromAcc, err = txWorldState.GetOrCreateUserAccount(tt.tx.from.address)
 			assert.Nil(t, err)
 			fmt.Println(fromAcc.Balance().String())
 
 			block.CheckAndUpdate(tt.tx)
-			assert.Nil(t, block.Seal())
+			assert.Nil(t, block.rewardCoinbaseForGas())
 			block.Commit()
 
 			fromAcc, err = block.worldState.GetOrCreateUserAccount(tt.tx.from.address)
@@ -540,7 +543,9 @@ func TestTransaction_VerifyExecution(t *testing.T) {
 			events, _ := block.worldState.FetchEvents(tt.tx.hash)
 
 			for index, event := range events {
-				assert.Equal(t, tt.eventTopic[index], event.Topic)
+				txEvent := new(TransactionEvent)
+				assert.Nil(t, json.Unmarshal([]byte(event.Data), txEvent))
+				assert.Equal(t, tt.eventStatus[index], int(txEvent.Status))
 			}
 
 			assert.Equal(t, tt.wanted, executionErr)

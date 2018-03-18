@@ -473,7 +473,7 @@ func VerifyExecution(tx *Transaction, block *Block, txWorldState state.TxWorldSt
 		}).Debug("Failed to execute payload.")
 
 		go metricsTxExeFailed.Mark(1)
-		tx.triggerEvent(txWorldState, block, TopicExecuteTxFailed, allGas, err)
+		tx.triggerEvent(txWorldState, block, TopicExecuteTxFailed, allGas, exeErr)
 	} else {
 		// accept the transaction
 		if err := transfer(tx.from.address, tx.to.address, tx.value, txWorldState); err != nil {
