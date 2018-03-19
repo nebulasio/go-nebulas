@@ -63,7 +63,6 @@ func (payload *DeployPayload) BaseGasCount() *util.Uint128 {
 
 // Execute deploy payload in tx, deploy a new contract
 func (payload *DeployPayload) Execute(tx *Transaction, block *Block, txWorldState state.TxWorldState) (*util.Uint128, string, error) {
-
 	if block == nil || tx == nil {
 		return util.NewUint128(), "", ErrNilArgument
 	}

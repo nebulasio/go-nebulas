@@ -218,6 +218,8 @@ func (bc *BlockChain) loop() {
 			return
 		case <-timerChan:
 			bc.ConsensusHandler().UpdateLIB()
+			metricsLruCacheBlock.Update(int64(bc.cachedBlocks.Len()))
+			metricsLruTailBlock.Update(int64(bc.detachedTailBlocks.Len()))
 		}
 	}
 }
