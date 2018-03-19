@@ -297,6 +297,9 @@ type mockEngine struct{}
 func (nvm *mockNvm) CreateEngine(block *Block, tx *Transaction, owner, contract state.Account, state state.TxWorldState) (SmartContractEngine, error) {
 	return &mockEngine{}, nil
 }
+func (nvm *mockEngine) Dispose() {
+
+}
 func (nvm *mockEngine) SetExecutionLimits(uint64, uint64) error {
 	return nil
 }
