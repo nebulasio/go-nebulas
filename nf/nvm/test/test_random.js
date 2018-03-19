@@ -16,13 +16,6 @@
 // along with the go-nebulas library.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-var randoms = new Array();
-for (var i = 0; i < 10; i++) {
-    randoms.push(Math.random());
-}
+console.log(BigNumber.random());
 
-for (var i = 0; i < randoms.length; i++) {
-    if (randoms[i] != 0) {
-        throw new Error("random rewrite failed");
-    }
-}
+Math.random();

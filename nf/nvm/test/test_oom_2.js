@@ -21,7 +21,7 @@ while (true) {
     var buffer = new ArrayBuffer(10240);
     var array = new Int32Array(buffer);
     for (var i = 0; i < 10240; i++) {
-        array[i] = Math.floor(Math.random() * 10000000);
+        array[i] = Math.floor(i * 10000000);
     }
 
     list.push(buffer);
