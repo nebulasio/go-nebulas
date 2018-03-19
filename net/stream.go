@@ -320,8 +320,6 @@ func (s *Stream) readLoop() {
 	messageBuffer := make([]byte, 0)
 
 	var message *NebMessage
-	readAt := time.Now().UnixNano()
-	readDataAt := int64(0)
 
 	for {
 		n, err := s.stream.Read(buf)
@@ -338,10 +336,6 @@ func (s *Stream) readLoop() {
 
 		messageBuffer = append(messageBuffer, buf[:n]...)
 		s.latestReadAt = time.Now().Unix()
-
-		if readDataAt == 0 {
-			readDataAt = time.Now().UnixNano()
-		}
 
 		for {
 			if message == nil {
@@ -413,8 +407,6 @@ func (s *Stream) readLoop() {
 
 			// reset message.
 			message = nil
-			readAt = time.Now().UnixNano()
-			readDataAt = 0
 		}
 	}
 }
