@@ -28,7 +28,6 @@ import (
 	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/core/pb"
-	"github.com/nebulasio/go-nebulas/crypto/hash"
 	"github.com/nebulasio/go-nebulas/net"
 	"github.com/nebulasio/go-nebulas/rpc/pb"
 	"github.com/nebulasio/go-nebulas/util"
@@ -269,7 +268,7 @@ func handleTransactionResponse(neb core.Neblet, tx *core.Transaction) (resp *rpc
 
 	var contract string
 	if tx.Type() == core.TxPayloadDeployType {
-		addr, err := core.NewContractAddressFromHash(hash.Sha3256(tx.From().Bytes(), byteutils.FromUint64(tx.Nonce())))
+		addr, err := core.NewContractAddressFromData(tx.From().Bytes(), byteutils.FromUint64(tx.Nonce()))
 		if err != nil {
 			return nil, err
 		}

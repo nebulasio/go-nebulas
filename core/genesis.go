@@ -36,7 +36,7 @@ import (
 var (
 	GenesisHash        = make([]byte, BlockHashLength)
 	GenesisTimestamp   = int64(0)
-	GenesisCoinbase, _ = NewAddress(make([]byte, AddressDataLength))
+	GenesisCoinbase, _ = NewAddress(AccountAddress, make([]byte, AddressDataLength))
 )
 
 // LoadGenesisConf load genesis conf for file
@@ -169,7 +169,11 @@ func DumpGenesis(chain *BlockChain) (*corepb.Genesis, error) {
 	}
 	bootstrap := []string{}
 	for _, v := range dynasty {
-		bootstrap = append(bootstrap, v.String())
+		addr, err := AddressParseFromBytes(v)
+		if err != nil {
+			return nil, err
+		}
+		bootstrap = append(bootstrap, addr.String())
 	}
 	distribution := []*corepb.GenesisTokenDistribution{}
 	accounts, err := genesis.accState.Accounts() // ToConfirm: Accounts interface is risky
@@ -178,8 +182,12 @@ func DumpGenesis(chain *BlockChain) (*corepb.Genesis, error) {
 		if v.Address().Equals(genesis.Coinbase().Bytes()) {
 			continue
 		}
+		addr, err := AddressParseFromBytes(v.Address())
+		if err != nil {
+			return nil, err
+		}
 		distribution = append(distribution, &corepb.GenesisTokenDistribution{
-			Address: string(v.Address().Hex()),
+			Address: addr.String(),
 			Value:   balance.String(),
 		})
 	}

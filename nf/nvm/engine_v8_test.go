@@ -53,7 +53,7 @@ type testBlock struct {
 
 // Coinbase mock
 func (block *testBlock) Coinbase() *core.Address {
-	addr, _ := core.AddressParse("1a263547d167c74cf4b8f9166cfa244de0481c514a45aa2c")
+	addr, _ := core.AddressParse("n8HWKzXzTtJjGQYLLh4swzbvgopKfdxDnLn2")
 	return addr
 }
 
@@ -87,7 +87,7 @@ func mockBlock() Block {
 }
 
 func mockTransaction() *core.Transaction {
-	return mockNormalTransaction("8a209cec02cbeab7e2f74ad969d2dfe8dd24416aa65589bf", "22ac3a9a2b1c31b7a9084e46eae16e761f83f02324092b09", "0")
+	return mockNormalTransaction("nHBosgjgGmF9tV3tfMsaPHbvoXLtAnZ6aCn2", "nhUbw7E6Kh7KTkksXGXjgMcLAW66yhSnp6n2", "0")
 }
 
 func mockNormalTransaction(from, to, value string) *core.Transaction {

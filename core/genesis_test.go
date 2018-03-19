@@ -29,5 +29,5 @@ func TestInvalidAddressInTokenDistribution(t *testing.T) {
 	mockConf.TokenDistribution[0].Address = "1a263547d167c74cf4b8f9166cfa244de0481c514a45aa2"
 	chain := testNeb(t).chain
 	_, err := NewGenesisBlock(mockConf, chain)
-	assert.Equal(t, err, ErrInvalidAddress)
+	assert.Equal(t, err, ErrInvalidAddressFormat)
 }

@@ -46,13 +46,14 @@ var (
 )
 
 var (
+	// must be order by address.hash
 	MockDynasty = []string{
-		"1a263547d167c74cf4b8f9166cfa244de0481c514a45aa2c",
-		"2fe3f9f51f9a05dd5f7c5329127f7c917917149b4e16b0b8",
-		"333cb3ed8c417971845382ede3cf67a0a96270c05fe2f700",
-		"48f981ed38910f1232c1bab124f650c482a57271632db9e3",
-		"59fc526072b09af8a8ca9732dae17132c4e9127e43cf2232",
-		"75e4e5a71d647298b88928d8cb5da43d90ab1a6c52d0905f",
+		"nhUbw7E6Kh7KTkksXGXjgMcLAW66yhSnp6n2",
+		"nKUb9mSPpimmffqW6p1Xgeg5KwZrDAxPA7n2",
+		"nHBosgjgGmF9tV3tfMsaPHbvoXLtAnZ6aCn2",
+		"npvJickpn3YcpQLkx8BrVfWMTr4VUsw8fDn2",
+		"nt3gr61ysRjHQftFvgQ38mD8vcqQK5roAFn2",
+		"nN9jPovbDfwdxfWoB8s4QBqfQmGKFf6cSMn2",
 	}
 )
 
@@ -67,11 +68,11 @@ func MockGenesisConf() *corepb.Genesis {
 		},
 		TokenDistribution: []*corepb.GenesisTokenDistribution{
 			&corepb.GenesisTokenDistribution{
-				Address: "1a263547d167c74cf4b8f9166cfa244de0481c514a45aa2c",
+				Address: "nttueNT8VNZxdGGYavcjAAeBqo6o8x9sZCn2",
 				Value:   "10000000000000000000000",
 			},
 			&corepb.GenesisTokenDistribution{
-				Address: "2fe3f9f51f9a05dd5f7c5329127f7c917917149b4e16b0b8",
+				Address: "nw5T2VS9TfFifYZLqfe2wDjR1ohfqrzwo4n2",
 				Value:   "10000000000000000000000",
 			},
 		},
@@ -208,8 +209,8 @@ func testNeb(t *testing.T) *mockNeb {
 			Chain: &nebletpb.ChainConfig{
 				ChainId:    MockGenesisConf().Meta.ChainId,
 				Keydir:     "keydir",
-				Coinbase:   "1a263547d167c74cf4b8f9166cfa244de0481c514a45aa2c",
-				Miner:      "1a263547d167c74cf4b8f9166cfa244de0481c514a45aa2c",
+				Coinbase:   "n8HWKzXzTtJjGQYLLh4swzbvgopKfdxDnLn2",
+				Miner:      "nHBosgjgGmF9tV3tfMsaPHbvoXLtAnZ6aCn2",
 				Passphrase: "passphrase",
 			},
 		},

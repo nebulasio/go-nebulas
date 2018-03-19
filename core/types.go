@@ -87,8 +87,11 @@ var (
 	ErrSmallTransactionNonce = errors.New("cannot accept a transaction with smaller nonce")
 	ErrLargeTransactionNonce = errors.New("cannot accept a transaction with too bigger nonce")
 
-	ErrInvalidAddress           = errors.New("address: invalid address")
-	ErrInvalidAddressDataLength = errors.New("address: invalid address data length")
+	ErrInvalidAddress         = errors.New("address: invalid address")
+	ErrInvalidAddressFormat   = errors.New("address: invalid address format")
+	ErrInvalidAddressType     = errors.New("address: invalid address type")
+	ErrInvalidAddressChecksum = errors.New("address: invalid address checksum")
+	ErrInvalidAddressCode     = errors.New("address: invalid address code")
 
 	ErrCloneWorldState           = errors.New("Failed to clone world state")
 	ErrCloneAccountState         = errors.New("Failed to clone account state")

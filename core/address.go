@@ -19,13 +19,32 @@
 package core
 
 import (
-	"strings"
+	"math/big"
 
 	"github.com/nebulasio/go-nebulas/crypto/hash"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
 )
 
+// AddressType address type
+type AddressType byte
+
+// address type enum
 const (
+	AccountAddress AddressType = iota
+	ContractAddress
+)
+
+// const
+const (
+	HeadPadding byte = 1
+)
+
+const (
+	// AddressPaddingLength the length of headpadding in byte
+	AddressPaddingLength = 1
+
+	// AddressTypeLength the length of address type in byte
+	AddressTypeLength = 1
 	// AddressDataLength the length of data of address in byte.
 	AddressDataLength = 20
 
@@ -33,7 +52,7 @@ const (
 	AddressChecksumLength = 4
 
 	// AddressLength the length of address in byte.
-	AddressLength = AddressDataLength + AddressChecksumLength
+	AddressLength = AddressPaddingLength + AddressTypeLength + AddressDataLength + AddressChecksumLength
 )
 
 /*
@@ -78,67 +97,113 @@ func (a *Address) Bytes() []byte {
 
 // String returns address string
 func (a *Address) String() string {
-	return a.address.String()
+	if a == nil || len(a.address) != AddressLength {
+		return ""
+	}
+
+	n := new(big.Int)
+	n.SetBytes(a.address)
+	n.Mul(n, hash.Base58BigRadix)
+	n.Add(n, hash.Base58Nebulas)
+
+	return hash.EncodeBase58(n.Bytes())
 }
 
 // Equals compare two Address. True is equal, otherwise false.
 func (a *Address) Equals(b *Address) bool {
+	if a == nil {
+		return b == nil
+	}
+	if b == nil {
+		return false
+	}
 	return a.address.Equals(b.address)
 }
 
 // NewAddress create new #Address according to data bytes.
-func NewAddress(s []byte) (*Address, error) {
-	if len(s) != AddressDataLength {
-		return nil, ErrInvalidAddressDataLength
+func NewAddress(t AddressType, args ...[]byte) (*Address, error) {
+	if len(args) == 0 {
+		return nil, ErrInvalidArgument
 	}
 
-	cs := checkSum(s)
-	return &Address{address: append(s, cs...)}, nil
+	for _, v := range args {
+		if len(v) == 0 {
+			return nil, ErrInvalidArgument
+		}
+	}
+
+	switch t {
+	case AccountAddress, ContractAddress:
+	default:
+		return nil, ErrInvalidArgument
+	}
+
+	buffer := make([]byte, AddressLength)
+	buffer[0] = HeadPadding // 1 padding
+	buffer[1] = byte(t)     // address type
+
+	sha := hash.Sha3256(args...)
+	content := hash.Ripemd160(sha)
+	copy(buffer[2:22], content)
+
+	cs := checkSum(buffer[1:22])
+	copy(buffer[22:], cs)
+
+	return &Address{address: buffer}, nil
 }
 
 // NewAddressFromPublicKey return new address from publickey bytes
 func NewAddressFromPublicKey(s []byte) (*Address, error) {
-	hash := hash.Sha3256(s)
-	return NewAddress(hash[len(hash)-AddressDataLength:])
+	return NewAddress(AccountAddress, s)
 }
 
-// NewContractAddressFromHash return new contract address from bytes.
-func NewContractAddressFromHash(s []byte) (*Address, error) {
-	// TODO: contract address should not be the same with normal account address.
-	if len(s) < AddressDataLength {
-		return nil, ErrInvalidAddress
-	}
-	return NewAddress(s[len(s)-AddressDataLength:])
+// NewContractAddressFromData return new contract address from bytes.
+func NewContractAddressFromData(args ...[]byte) (*Address, error) {
+	return NewAddress(ContractAddress, args...)
 }
 
 // AddressParse parse address string.
 func AddressParse(s string) (*Address, error) {
-	if strings.HasPrefix(s, "0x") {
-		s = s[2:]
+	if len(s) != 36 || s[0] != 'n' {
+		return nil, ErrInvalidAddressFormat
 	}
-	r, err := byteutils.FromHex(s)
-	if err != nil {
+
+	b := hash.DecodeBase58(s)
+	if len(b) == 0 {
+		return nil, ErrInvalidAddressCode
+	}
+
+	n := new(big.Int)
+	n.SetBytes(b)
+	n.Sub(n, hash.Base58Nebulas)
+	if n.Sign() <= 0 {
+		return nil, ErrInvalidAddress
+	}
+	n.Div(n, hash.Base58BigRadix)
+	if n.Sign() <= 0 {
 		return nil, ErrInvalidAddress
 	}
 
-	return AddressParseFromBytes(r)
+	return AddressParseFromBytes(n.Bytes())
 }
 
 // AddressParseFromBytes parse address from bytes.
-func AddressParseFromBytes(s []byte) (*Address, error) {
-	if len(s) != AddressLength {
-		return nil, ErrInvalidAddress
+func AddressParseFromBytes(b []byte) (*Address, error) {
+	if len(b) != AddressLength || b[0] != HeadPadding {
+		return nil, ErrInvalidAddressFormat
 	}
 
-	data := s[:AddressDataLength]
-	cs := s[AddressDataLength:AddressLength]
-	dcs := checkSum(data)
-
-	if !byteutils.Equal(cs, dcs) {
-		return nil, ErrInvalidAddress
+	switch AddressType(b[1]) {
+	case AccountAddress, ContractAddress:
+	default:
+		return nil, ErrInvalidAddressType
 	}
 
-	return &Address{address: s}, nil
+	if !byteutils.Equal(checkSum(b[1:22]), b[22:]) {
+		return nil, ErrInvalidAddressChecksum
+	}
+
+	return &Address{address: b}, nil
 }
 
 func checkSum(data []byte) []byte {

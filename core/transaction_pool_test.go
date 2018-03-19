@@ -80,19 +80,19 @@ func TestTransactionPool(t *testing.T) {
 	txPool.setEventEmitter(bc.eventEmitter)
 
 	gasLimit, _ := util.NewUint128FromInt(200000)
-	tx1, _ := NewTransaction(bc.ChainID(), from, &Address{[]byte("to")}, util.NewUint128(), 10, TxPayloadBinaryType, []byte("1"), TransactionGasPrice, gasLimit)
-	tx2, _ := NewTransaction(bc.ChainID(), other, &Address{[]byte("to")}, util.NewUint128(), 1, TxPayloadBinaryType, []byte("2"), heighPrice, gasLimit)
-	tx3, _ := NewTransaction(bc.ChainID(), from, &Address{[]byte("to")}, util.NewUint128(), 1, TxPayloadBinaryType, []byte("3"), TransactionGasPrice, gasLimit)
+	tx1, _ := NewTransaction(bc.ChainID(), from, &Address{address: []byte("to")}, util.NewUint128(), 10, TxPayloadBinaryType, []byte("1"), TransactionGasPrice, gasLimit)
+	tx2, _ := NewTransaction(bc.ChainID(), other, &Address{address: []byte("to")}, util.NewUint128(), 1, TxPayloadBinaryType, []byte("2"), heighPrice, gasLimit)
+	tx3, _ := NewTransaction(bc.ChainID(), from, &Address{address: []byte("to")}, util.NewUint128(), 1, TxPayloadBinaryType, []byte("3"), TransactionGasPrice, gasLimit)
 
-	tx4, _ := NewTransaction(bc.ChainID(), from, &Address{[]byte("to")}, util.NewUint128(), 2, TxPayloadBinaryType, []byte("4"), TransactionGasPrice, gasLimit)
-	tx5, _ := NewTransaction(bc.ChainID()+1, from, &Address{[]byte("to")}, util.NewUint128(), 0, TxPayloadBinaryType, []byte("5"), TransactionGasPrice, gasLimit)
+	tx4, _ := NewTransaction(bc.ChainID(), from, &Address{address: []byte("to")}, util.NewUint128(), 2, TxPayloadBinaryType, []byte("4"), TransactionGasPrice, gasLimit)
+	tx5, _ := NewTransaction(bc.ChainID()+1, from, &Address{address: []byte("to")}, util.NewUint128(), 0, TxPayloadBinaryType, []byte("5"), TransactionGasPrice, gasLimit)
 
-	tx6, _ := NewTransaction(bc.ChainID(), other2, &Address{[]byte("to")}, util.NewUint128(), 1, TxPayloadBinaryType, []byte("6"), heighPrice, gasLimit)
-	tx7, _ := NewTransaction(bc.ChainID(), other, &Address{[]byte("to")}, util.NewUint128(), 1, TxPayloadBinaryType, []byte("7"), heighPrice, gasLimit)
+	tx6, _ := NewTransaction(bc.ChainID(), other2, &Address{address: []byte("to")}, util.NewUint128(), 1, TxPayloadBinaryType, []byte("6"), heighPrice, gasLimit)
+	tx7, _ := NewTransaction(bc.ChainID(), other, &Address{address: []byte("to")}, util.NewUint128(), 1, TxPayloadBinaryType, []byte("7"), heighPrice, gasLimit)
 
-	tx8, _ := NewTransaction(bc.ChainID(), other3, &Address{[]byte("to")}, util.NewUint128(), 1, TxPayloadBinaryType, []byte("8"), heighPrice, gasLimit)
-	tx9, _ := NewTransaction(bc.ChainID(), other3, &Address{[]byte("to")}, util.NewUint128(), 2, TxPayloadBinaryType, []byte("9"), heighPrice, gasLimit)
-	tx10, _ := NewTransaction(bc.ChainID(), other3, &Address{[]byte("to")}, util.NewUint128(), 3, TxPayloadBinaryType, []byte("10"), heighPrice, gasLimit)
+	tx8, _ := NewTransaction(bc.ChainID(), other3, &Address{address: []byte("to")}, util.NewUint128(), 1, TxPayloadBinaryType, []byte("8"), heighPrice, gasLimit)
+	tx9, _ := NewTransaction(bc.ChainID(), other3, &Address{address: []byte("to")}, util.NewUint128(), 2, TxPayloadBinaryType, []byte("9"), heighPrice, gasLimit)
+	tx10, _ := NewTransaction(bc.ChainID(), other3, &Address{address: []byte("to")}, util.NewUint128(), 3, TxPayloadBinaryType, []byte("10"), heighPrice, gasLimit)
 
 	txs := []*Transaction{tx1, tx2, tx3, tx4, tx5, tx6, tx7, tx8, tx9, tx10}
 

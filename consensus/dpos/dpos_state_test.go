@@ -39,7 +39,8 @@ func checkDynasty(t *testing.T, consensus core.Consensus, consensusRoot *consens
 	dynasty, err := consensusState.Dynasty()
 	assert.Nil(t, err)
 	for i := 0; i < DynastySize-1; i++ {
-		assert.Equal(t, string(dynasty[i].Hex()), DefaultOpenDynasty[i])
+		a, _ := core.AddressParseFromBytes(dynasty[i])
+		assert.Equal(t, a.String(), DefaultOpenDynasty[i])
 	}
 }
 

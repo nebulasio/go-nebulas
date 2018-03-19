@@ -65,8 +65,8 @@ func mockNeb(t *testing.T) *Neb {
 			Chain: &nebletpb.ChainConfig{
 				ChainId:    genesisConf.Meta.ChainId,
 				Keydir:     "keydir",
-				Coinbase:   "1a263547d167c74cf4b8f9166cfa244de0481c514a45aa2c",
-				Miner:      "1a263547d167c74cf4b8f9166cfa244de0481c514a45aa2c",
+				Coinbase:   "n8HWKzXzTtJjGQYLLh4swzbvgopKfdxDnLn2",
+				Miner:      "nHBosgjgGmF9tV3tfMsaPHbvoXLtAnZ6aCn2",
 				Passphrase: "passphrase",
 			},
 		},
@@ -160,12 +160,12 @@ func (nvm *mockNvm) Clone() core.Engine {
 
 var (
 	DefaultOpenDynasty = []string{
-		"1a263547d167c74cf4b8f9166cfa244de0481c514a45aa2c",
-		"2fe3f9f51f9a05dd5f7c5329127f7c917917149b4e16b0b8",
-		"333cb3ed8c417971845382ede3cf67a0a96270c05fe2f700",
-		"48f981ed38910f1232c1bab124f650c482a57271632db9e3",
-		"59fc526072b09af8a8ca9732dae17132c4e9127e43cf2232",
-		"75e4e5a71d647298b88928d8cb5da43d90ab1a6c52d0905f",
+		"nhUbw7E6Kh7KTkksXGXjgMcLAW66yhSnp6n2",
+		"nKUb9mSPpimmffqW6p1Xgeg5KwZrDAxPA7n2",
+		"nHBosgjgGmF9tV3tfMsaPHbvoXLtAnZ6aCn2",
+		"npvJickpn3YcpQLkx8BrVfWMTr4VUsw8fDn2",
+		"nt3gr61ysRjHQftFvgQ38mD8vcqQK5roAFn2",
+		"nN9jPovbDfwdxfWoB8s4QBqfQmGKFf6cSMn2",
 	}
 )
 
@@ -184,23 +184,23 @@ func MockGenesisConf() *corepb.Genesis {
 		},
 		TokenDistribution: []*corepb.GenesisTokenDistribution{
 			&corepb.GenesisTokenDistribution{
-				Address: "1a263547d167c74cf4b8f9166cfa244de0481c514a45aa2c",
+				Address: "nw5T2VS9TfFifYZLqfe2wDjR1ohfqrzwo4n2",
 				Value:   "10000000000000000000000",
 			},
 			&corepb.GenesisTokenDistribution{
-				Address: "2fe3f9f51f9a05dd5f7c5329127f7c917917149b4e16b0b8",
+				Address: "nttueNT8VNZxdGGYavcjAAeBqo6o8x9sZCn2",
 				Value:   "10000000000000000000000",
 			},
 			&corepb.GenesisTokenDistribution{
-				Address: "333cb3ed8c417971845382ede3cf67a0a96270c05fe2f700",
+				Address: "npvJickpn3YcpQLkx8BrVfWMTr4VUsw8fDn2",
 				Value:   "10000000000000000000000",
 			},
 			&corepb.GenesisTokenDistribution{
-				Address: "48f981ed38910f1232c1bab124f650c482a57271632db9e3",
+				Address: "nt3gr61ysRjHQftFvgQ38mD8vcqQK5roAFn2",
 				Value:   "10000000000000000000000",
 			},
 			&corepb.GenesisTokenDistribution{
-				Address: "59fc526072b09af8a8ca9732dae17132c4e9127e43cf2232",
+				Address: "nN9jPovbDfwdxfWoB8s4QBqfQmGKFf6cSMn2",
 				Value:   "10000000000000000000000",
 			},
 		},
@@ -284,7 +284,7 @@ func TestDpos_VerifySign(t *testing.T) {
 	elapsedSecond := int64(DynastySize*BlockInterval + DynastyInterval)
 	consensusState, err := tail.NextConsensusState(elapsedSecond)
 	assert.Nil(t, err)
-	coinbase, err := core.AddressParse("1a263547d167c74cf4b8f9166cfa244de0481c514a45aa2c")
+	coinbase, err := core.AddressParse("n8HWKzXzTtJjGQYLLh4swzbvgopKfdxDnLn2")
 	assert.Nil(t, err)
 	block, err := core.NewBlock(chain.ChainID(), coinbase, tail)
 	assert.Nil(t, err)
@@ -297,7 +297,7 @@ func TestDpos_VerifySign(t *testing.T) {
 	assert.Nil(t, manager.SignBlock(miner, block))
 	assert.Nil(t, dpos.VerifyBlock(block))
 
-	miner, err = core.AddressParse("fc751b484bd5296f8d267a8537d33f25a848f7f7af8cfcf6")
+	miner, err = core.AddressParse("nHBosgjgGmF9tV3tfMsaPHbvoXLtAnZ6aCn2")
 	assert.Nil(t, err)
 	assert.Nil(t, manager.Unlock(miner, []byte("passphrase"), keystore.DefaultUnlockDuration))
 	assert.Nil(t, manager.SignBlock(miner, block))
@@ -321,7 +321,7 @@ func TestForkChoice(t *testing.T) {
 					 \_ 12 -- 221
 	*/
 
-	addr0 := GetUnlockAddress(t, am, "2fe3f9f51f9a05dd5f7c5329127f7c917917149b4e16b0b8")
+	addr0 := GetUnlockAddress(t, am, "nKUb9mSPpimmffqW6p1Xgeg5KwZrDAxPA7n2")
 	block0, _ := chain.NewBlock(addr0)
 	consensusState, err := chain.TailBlock().NextConsensusState(BlockInterval)
 	assert.Nil(t, err)
@@ -331,7 +331,7 @@ func TestForkChoice(t *testing.T) {
 	assert.Nil(t, chain.BlockPool().Push(block0))
 	assert.Equal(t, block0.Hash(), chain.TailBlock().Hash())
 
-	addr1 := GetUnlockAddress(t, am, "333cb3ed8c417971845382ede3cf67a0a96270c05fe2f700")
+	addr1 := GetUnlockAddress(t, am, "nHBosgjgGmF9tV3tfMsaPHbvoXLtAnZ6aCn2")
 	block11, err := chain.NewBlock(addr1)
 	assert.Nil(t, err)
 	consensusState, err = block0.NextConsensusState(BlockInterval)
@@ -341,7 +341,7 @@ func TestForkChoice(t *testing.T) {
 	am.SignBlock(addr1, block11)
 	assert.Nil(t, chain.BlockPool().Push(block11))
 
-	addr2 := GetUnlockAddress(t, am, "48f981ed38910f1232c1bab124f650c482a57271632db9e3")
+	addr2 := GetUnlockAddress(t, am, "npvJickpn3YcpQLkx8BrVfWMTr4VUsw8fDn2")
 	block12, _ := chain.NewBlockFromParent(addr2, block0)
 	consensusState, err = block0.NextConsensusState(BlockInterval * 2)
 	assert.Nil(t, err)
@@ -356,7 +356,7 @@ func TestForkChoice(t *testing.T) {
 	}
 	assert.Equal(t, neb.chain.TailBlock().Hash(), tail)
 
-	addr3 := GetUnlockAddress(t, am, "59fc526072b09af8a8ca9732dae17132c4e9127e43cf2232")
+	addr3 := GetUnlockAddress(t, am, "nt3gr61ysRjHQftFvgQ38mD8vcqQK5roAFn2")
 	block111, _ := chain.NewBlockFromParent(addr3, block11)
 	consensusState, err = block11.NextConsensusState(BlockInterval * 2)
 	assert.Nil(t, err)
@@ -390,7 +390,7 @@ func TestDpos_MintBlock(t *testing.T) {
 	assert.Equal(t, dpos.mintBlock(BlockInterval), ErrInvalidBlockProposer)
 
 	received = []byte{}
-	assert.Equal(t, dpos.mintBlock(DynastyInterval), nil)
+	assert.Equal(t, dpos.mintBlock(BlockInterval*2), nil)
 	assert.NotEqual(t, received, []byte{})
 }
 
@@ -400,12 +400,12 @@ func TestContracts(t *testing.T) {
 	chain := neb.chain
 	tail := chain.TailBlock()
 
-	coinbase, err := core.AddressParse("1a263547d167c74cf4b8f9166cfa244de0481c514a45aa2c")
+	coinbase, err := core.AddressParse("nHBosgjgGmF9tV3tfMsaPHbvoXLtAnZ6aCn2")
 	assert.Nil(t, err)
 	manager := account.NewManager(nil)
 	assert.Nil(t, dpos.EnableMining("passphrase"))
 
-	elapsedSecond := int64(DynastyInterval)
+	elapsedSecond := int64(DynastyInterval / 6)
 	context, err := tail.NextConsensusState(elapsedSecond)
 	assert.Nil(t, err)
 	block, err := core.NewBlock(dpos.chain.ChainID(), coinbase, tail)
@@ -492,7 +492,7 @@ func TestDoubleMint(t *testing.T) {
 	chain := neb.chain
 	am := neb.am
 
-	addr0 := GetUnlockAddress(t, am, "2fe3f9f51f9a05dd5f7c5329127f7c917917149b4e16b0b8")
+	addr0 := GetUnlockAddress(t, am, "nKUb9mSPpimmffqW6p1Xgeg5KwZrDAxPA7n2")
 	block0, _ := chain.NewBlock(addr0)
 	consensusState, err := chain.TailBlock().NextConsensusState(BlockInterval)
 	assert.Nil(t, err)

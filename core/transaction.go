@@ -662,7 +662,7 @@ func (tx *Transaction) verifySign() error {
 
 // GenerateContractAddress according to tx.from and tx.nonce.
 func (tx *Transaction) GenerateContractAddress() (*Address, error) {
-	return NewContractAddressFromHash(hash.Sha3256(tx.from.Bytes(), byteutils.FromUint64(tx.nonce)))
+	return NewContractAddressFromData(tx.from.Bytes(), byteutils.FromUint64(tx.nonce))
 }
 
 // HashTransaction hash the transaction.
