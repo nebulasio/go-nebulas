@@ -20,13 +20,13 @@ package core
 
 import (
 	"testing"
+
 	"time"
 
 	"github.com/nebulasio/go-nebulas/crypto"
 	"github.com/nebulasio/go-nebulas/crypto/keystore"
 	"github.com/nebulasio/go-nebulas/crypto/keystore/secp256k1"
 	"github.com/nebulasio/go-nebulas/util"
-	"github.com/nebulasio/go-nebulas/util/byteutils"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -78,17 +78,17 @@ func TestTransactionPool_1(t *testing.T) {
 	txPool.setEventEmitter(bc.eventEmitter)
 
 	gasLimit, _ := util.NewUint128FromInt(200000)
-	tx1 := NewTransaction(bc.ChainID(), from, &Address{[]byte("to")}, util.NewUint128(), 10, TxPayloadBinaryType, []byte("1"), TransactionGasPrice, gasLimit)
-	tx2 := NewTransaction(bc.ChainID(), other, &Address{[]byte("to")}, util.NewUint128(), 1, TxPayloadBinaryType, []byte("2"), heighPrice, gasLimit)
-	tx3 := NewTransaction(bc.ChainID(), from, &Address{[]byte("to")}, util.NewUint128(), 1, TxPayloadBinaryType, []byte("3"), TransactionGasPrice, gasLimit)
+	tx1, _ := NewTransaction(bc.ChainID(), from, &Address{[]byte("to")}, util.NewUint128(), 10, TxPayloadBinaryType, []byte("1"), TransactionGasPrice, gasLimit)
+	tx2, _ := NewTransaction(bc.ChainID(), other, &Address{[]byte("to")}, util.NewUint128(), 1, TxPayloadBinaryType, []byte("2"), heighPrice, gasLimit)
+	tx3, _ := NewTransaction(bc.ChainID(), from, &Address{[]byte("to")}, util.NewUint128(), 1, TxPayloadBinaryType, []byte("3"), TransactionGasPrice, gasLimit)
 
-	tx4 := NewTransaction(bc.ChainID(), from, &Address{[]byte("to")}, util.NewUint128(), 2, TxPayloadBinaryType, []byte("4"), TransactionGasPrice, gasLimit)
-	tx5 := NewTransaction(bc.ChainID()+1, from, &Address{[]byte("to")}, util.NewUint128(), 0, TxPayloadBinaryType, []byte("5"), TransactionGasPrice, gasLimit)
+	tx4, _ := NewTransaction(bc.ChainID(), from, &Address{[]byte("to")}, util.NewUint128(), 2, TxPayloadBinaryType, []byte("4"), TransactionGasPrice, gasLimit)
+	tx5, _ := NewTransaction(bc.ChainID()+1, from, &Address{[]byte("to")}, util.NewUint128(), 0, TxPayloadBinaryType, []byte("5"), TransactionGasPrice, gasLimit)
 
-	tx6 := NewTransaction(bc.ChainID(), other2, &Address{[]byte("to")}, util.NewUint128(), 1, TxPayloadBinaryType, []byte("6"), TransactionGasPrice, gasLimit)
-	tx7 := NewTransaction(bc.ChainID(), other, &Address{[]byte("to")}, util.NewUint128(), 1, TxPayloadBinaryType, []byte("7"), heighPrice, gasLimit)
+	tx6, _ := NewTransaction(bc.ChainID(), other2, &Address{[]byte("to")}, util.NewUint128(), 1, TxPayloadBinaryType, []byte("6"), TransactionGasPrice, gasLimit)
+	tx7, _ := NewTransaction(bc.ChainID(), other, &Address{[]byte("to")}, util.NewUint128(), 1, TxPayloadBinaryType, []byte("7"), heighPrice, gasLimit)
 
-	tx8 := NewTransaction(bc.ChainID(), other3, &Address{[]byte("to")}, util.NewUint128(), 1, TxPayloadBinaryType, []byte("8"), heighPrice, gasLimit)
+	tx8, _ := NewTransaction(bc.ChainID(), other3, &Address{[]byte("to")}, util.NewUint128(), 1, TxPayloadBinaryType, []byte("8"), heighPrice, gasLimit)
 
 	txs := []*Transaction{tx1, tx2, tx3, tx4, tx5, tx6, tx7, tx8}
 
@@ -170,62 +170,48 @@ func TestTransactionPool(t *testing.T) {
 	txPool := bc.txPool
 
 	gasLimit, _ := util.NewUint128FromInt(200000)
-	txs := []*Transaction{
-		NewTransaction(bc.ChainID(), from, &Address{[]byte("to")}, util.NewUint128(), 10, TxPayloadBinaryType, []byte("1"), TransactionGasPrice, gasLimit),
-		NewTransaction(bc.ChainID(), other, &Address{[]byte("to")}, util.NewUint128(), 2, TxPayloadBinaryType, []byte("2"), TransactionGasPrice, gasLimit),
-		NewTransaction(bc.ChainID(), from, &Address{[]byte("to")}, util.NewUint128(), 1, TxPayloadBinaryType, []byte("3"), TransactionGasPrice, gasLimit),
 
-		NewTransaction(bc.ChainID(), from, &Address{[]byte("to")}, util.NewUint128(), 2, TxPayloadBinaryType, []byte("4"), TransactionGasPrice, gasLimit),
-		NewTransaction(bc.ChainID()+1, from, &Address{[]byte("to")}, util.NewUint128(), 0, TxPayloadBinaryType, []byte("5"), TransactionGasPrice, gasLimit),
+	tx1, _ := NewTransaction(bc.ChainID(), from, &Address{[]byte("to")}, util.NewUint128(), 10, TxPayloadBinaryType, []byte("1"), TransactionGasPrice, gasLimit)
+	tx2, _ := NewTransaction(bc.ChainID(), other, &Address{[]byte("to")}, util.NewUint128(), 2, TxPayloadBinaryType, []byte("2"), TransactionGasPrice, gasLimit)
+	tx3, _ := NewTransaction(bc.ChainID(), from, &Address{[]byte("to")}, util.NewUint128(), 1, TxPayloadBinaryType, []byte("3"), TransactionGasPrice, gasLimit)
+	tx4, _ := NewTransaction(bc.ChainID(), from, &Address{[]byte("to")}, util.NewUint128(), 2, TxPayloadBinaryType, []byte("4"), TransactionGasPrice, gasLimit)
+	tx5, _ := NewTransaction(bc.ChainID()+1, from, &Address{[]byte("to")}, util.NewUint128(), 0, TxPayloadBinaryType, []byte("5"), TransactionGasPrice, gasLimit)
+	tx6, _ := NewTransaction(bc.ChainID(), other, &Address{[]byte("to")}, util.NewUint128(), 1, TxPayloadBinaryType, []byte("6"), heighPrice, gasLimit)
+	tx7, _ := NewTransaction(bc.ChainID(), from, &Address{[]byte("to")}, util.NewUint128(), 1, TxPayloadBinaryType, []byte("7"), heighPrice, gasLimit)
 
-		NewTransaction(bc.ChainID(), other, &Address{[]byte("to")}, util.NewUint128(), 1, TxPayloadBinaryType, []byte("6"), heighPrice, gasLimit),
-		NewTransaction(bc.ChainID(), from, &Address{[]byte("to")}, util.NewUint128(), 1, TxPayloadBinaryType, []byte("7"), heighPrice, gasLimit),
-	}
+	txs := []*Transaction{tx1, tx2, tx3, tx4, tx5, tx6, tx7}
 
 	assert.Nil(t, txs[0].Sign(signature1))
-	assert.Nil(t, txPool.Push(txs[0])) // pool: 0
-	// put dup tx, should fail
+	assert.Nil(t, txPool.Push(txs[0]))
+	//put dup tx, should fail
 	assert.NotNil(t, txPool.Push(txs[0]))
 	assert.Nil(t, txs[1].Sign(signature2))
-	assert.Nil(t, txPool.Push(txs[1])) // pool: 0 1
+	assert.Nil(t, txPool.Push(txs[1]))
 	assert.Nil(t, txs[2].Sign(signature1))
-	assert.Nil(t, txPool.Push(txs[2])) // pool: 0 1 2
+	assert.Nil(t, txPool.Push(txs[2]))
 	// put not signed tx, should fail
 	assert.NotNil(t, txPool.Push(txs[3]))
-	// push 3, full, drop 0
-	assert.Equal(t, len(txPool.all), 3)
-	assert.NotNil(t, txPool.all[txs[0].hash.Hex()])
-	assert.Nil(t, txs[3].Sign(signature1))
-	assert.Nil(t, txPool.Push(txs[3])) // pool: 1 2 3
-	assert.Nil(t, txPool.all[txs[0].hash.Hex()])
-	assert.Equal(t, len(txPool.all), 3)
-	// pop 1
-	tx := txPool.Pop() // pool: 2 3
-	assert.Equal(t, txs[1].data, tx.data)
 	// put tx with different chainID, should fail
 	assert.Nil(t, txs[4].Sign(signature1))
 	assert.NotNil(t, txPool.Push(txs[4]))
-	// put one new
-	assert.Equal(t, len(txPool.all), 2)
-	assert.Nil(t, txs[5].Sign(signature3))
-	assert.Nil(t, txPool.Push(txs[5])) // pool: 2 3 5
+	// put one new, replace txs[1]
 	assert.Equal(t, len(txPool.all), 3)
 	assert.Nil(t, txs[6].Sign(signature1))
 	assert.Nil(t, txPool.Push(txs[6]))
 	assert.Equal(t, len(txPool.all), 4)
 	// get from: other, nonce: 1, data: "da"
-	tx1 := txPool.Pop()
-	assert.Equal(t, txs[6].data.Payload, tx1.data.Payload)
+	tx := txPool.Pop()
+	assert.Equal(t, txs[6].data.Payload, tx.data.Payload)
 	// put one new
 	assert.Equal(t, len(txPool.all), 3)
 	assert.Nil(t, txs[5].Sign(signature2))
 	assert.Nil(t, txPool.Push(txs[5]))
 	assert.Equal(t, len(txPool.all), 4)
 	// get 2 txs, txs[5], txs[0]
-	tx21 := txPool.Pop()
-	assert.Equal(t, txs[5].from.address, tx21.from.address)
-	assert.Equal(t, txs[5].Nonce(), tx21.Nonce())
-	assert.Equal(t, txs[5].data, tx21.data)
+	tx = txPool.Pop()
+	assert.Equal(t, txs[5].from.address, tx.from.address)
+	assert.Equal(t, txs[5].Nonce(), tx.Nonce())
+	assert.Equal(t, txs[5].data, tx.data)
 	assert.Equal(t, txPool.Empty(), false)
 	txPool.Pop()
 	txPool.Pop()
@@ -235,7 +221,7 @@ func TestTransactionPool(t *testing.T) {
 }
 
 func TestGasConfig(t *testing.T) {
-	txPool := NewTransactionPool(3)
+	txPool, _ := NewTransactionPool(3)
 	txPool.SetGasConfig(nil, nil)
 	assert.Equal(t, txPool.minGasPrice, TransactionGasPrice)
 	assert.Equal(t, txPool.maxGasLimit, TransactionMaxGas)
@@ -274,10 +260,9 @@ func TestPushTxs(t *testing.T) {
 	uint128Number1, _ := util.NewUint128FromInt(1)
 	MaxGasPlus1, _ := TransactionMaxGas.Add(uint128Number1)
 	gasPrice, _ := util.NewUint128FromInt(1000000 - 1)
-	txs := []*Transaction{
-		NewTransaction(bc.ChainID(), from, to, util.NewUint128(), 10, TxPayloadBinaryType, []byte("datadata"), gasPrice, TransactionMaxGas),
-		NewTransaction(bc.ChainID(), from, to, util.NewUint128(), 10, TxPayloadBinaryType, []byte("datadata"), TransactionGasPrice, MaxGasPlus1),
-	}
+	tx1, _ := NewTransaction(bc.ChainID(), from, to, util.NewUint128(), 10, TxPayloadBinaryType, []byte("datadata"), gasPrice, TransactionMaxGas)
+	tx2, _ := NewTransaction(bc.ChainID(), from, to, util.NewUint128(), 10, TxPayloadBinaryType, []byte("datadata"), TransactionGasPrice, MaxGasPlus1)
+	txs := []*Transaction{tx1, tx2}
 	assert.Equal(t, txPool.Push(txs[0]), ErrBelowGasPrice)
 	assert.Equal(t, txPool.Push(txs[1]), ErrOutOfGasLimit)
 }
@@ -311,13 +296,12 @@ func TestTransactionPool_Pop(t *testing.T) {
 
 	assert.Equal(t, highPrice.Cmp(TransactionGasPrice), 1)
 	gasLimit, _ := util.NewUint128FromInt(200000)
-	txs := []*Transaction{
-		NewTransaction(bc.ChainID(), from, &Address{[]byte("to")}, util.NewUint128(), 3, TxPayloadBinaryType, []byte("1"), TransactionGasPrice, gasLimit),
-		NewTransaction(bc.ChainID(), other, &Address{[]byte("to")}, util.NewUint128(), 2, TxPayloadBinaryType, []byte("2"), highPrice, gasLimit),
-		NewTransaction(bc.ChainID(), from, &Address{[]byte("to")}, util.NewUint128(), 2, TxPayloadBinaryType, []byte("3"), TransactionGasPrice, gasLimit),
-		NewTransaction(bc.ChainID(), from, &Address{[]byte("to")}, util.NewUint128(), 1, TxPayloadBinaryType, []byte("4"), TransactionGasPrice, gasLimit),
-		NewTransaction(bc.ChainID(), other, &Address{[]byte("to")}, util.NewUint128(), 1, TxPayloadBinaryType, []byte("5"), highPrice, gasLimit),
-	}
+	tx1, _ := NewTransaction(bc.ChainID(), from, &Address{[]byte("to")}, util.NewUint128(), 3, TxPayloadBinaryType, []byte("1"), TransactionGasPrice, gasLimit)
+	tx2, _ := NewTransaction(bc.ChainID(), other, &Address{[]byte("to")}, util.NewUint128(), 2, TxPayloadBinaryType, []byte("2"), highPrice, gasLimit)
+	tx3, _ := NewTransaction(bc.ChainID(), from, &Address{[]byte("to")}, util.NewUint128(), 2, TxPayloadBinaryType, []byte("3"), TransactionGasPrice, gasLimit)
+	tx4, _ := NewTransaction(bc.ChainID(), from, &Address{[]byte("to")}, util.NewUint128(), 1, TxPayloadBinaryType, []byte("4"), TransactionGasPrice, gasLimit)
+	tx5, _ := NewTransaction(bc.ChainID(), other, &Address{[]byte("to")}, util.NewUint128(), 1, TxPayloadBinaryType, []byte("5"), highPrice, gasLimit)
+	txs := []*Transaction{tx1, tx2, tx3, tx4, tx5}
 
 	assert.Nil(t, txs[0].Sign(signature1))
 	assert.Nil(t, txPool.Push(txs[0]))

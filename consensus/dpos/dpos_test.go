@@ -91,6 +91,8 @@ func mockNeb(t *testing.T) *Neb {
 	var ns mockNetService
 	neb.ns = ns
 	neb.chain.BlockPool().RegisterInNetwork(ns)
+
+	eventEmitter.Start()
 	return neb
 }
 
@@ -141,7 +143,7 @@ func (n *Neb) SetGenesis(genesis *corepb.Genesis) {
 type mockNvm struct {
 }
 
-func (nvm *mockNvm) CreateEngine(block *core.Block, tx *core.Transaction, owner, contract state.Account, state state.AccountState) error {
+func (nvm *mockNvm) CreateEngine(block *core.Block, tx *core.Transaction, owner, contract state.Account, state state.TxWorldState) error {
 	return nil
 }
 func (nvm *mockNvm) SetEngineExecutionLimits(limitsOfExecutionInstructions uint64) error {
@@ -210,11 +212,7 @@ func MockGenesisConf() *corepb.Genesis {
 				Value:   "10000000000000000000000",
 			},
 			&corepb.GenesisTokenDistribution{
-				Address: "c79d9667c71bb09d6ca7c3ed12bfe5e7be24e2ffe13a833d",
-				Value:   "10000000000000000000000",
-			},
-			&corepb.GenesisTokenDistribution{
-				Address: "a8f1f53952c535c6600c77cf92b65e0c9b64496a8a328569",
+				Address: "75e4e5a71d647298b88928d8cb5da43d90ab1a6c52d0905f",
 				Value:   "10000000000000000000000",
 			},
 			&corepb.GenesisTokenDistribution{
@@ -222,7 +220,11 @@ func MockGenesisConf() *corepb.Genesis {
 				Value:   "10000000000000000000000",
 			},
 			&corepb.GenesisTokenDistribution{
-				Address: "75e4e5a71d647298b88928d8cb5da43d90ab1a6c52d0905f",
+				Address: "a8f1f53952c535c6600c77cf92b65e0c9b64496a8a328569",
+				Value:   "10000000000000000000000",
+			},
+			&corepb.GenesisTokenDistribution{
+				Address: "c79d9667c71bb09d6ca7c3ed12bfe5e7be24e2ffe13a833d",
 				Value:   "10000000000000000000000",
 			},
 		},
@@ -287,21 +289,7 @@ func mockBlockFromNetwork(block *core.Block) (*core.Block, error) {
 	return block, nil
 }
 
-func mockBlockFromNetwork(block *core.Block) (*core.Block, error) {
-	pbBlock, err := block.ToProto()
-	if err != nil {
-		return nil, err
-	}
-	bytes, err := proto.Marshal(pbBlock)
-	if err := proto.Unmarshal(bytes, pbBlock); err != nil {
-		return nil, err
-	}
-	block = new(core.Block)
-	block.FromProto(pbBlock)
-	return block, nil
-}
-
-/* func TestDpos_New(t *testing.T) {
+func TestDpos_New(t *testing.T) {
 	neb := mockNeb(t)
 	coinbase := neb.config.Chain.Coinbase
 	neb.config.Chain.Coinbase += "0"
@@ -318,7 +306,7 @@ func TestDpos_VerifySign(t *testing.T) {
 	elapsedSecondInMs := int64(DynastySize*BlockIntervalInMs + DynastyIntervalInMs)
 	consensusState, err := tail.WorldState().NextConsensusState(elapsedSecondInMs / SecondInMs)
 	assert.Nil(t, err)
-	coinbase, err := core.AddressParse("1a263547d167c74cf4b8f9166cfa244de0481c514a45aa2c")
+	coinbase, err := core.AddressParse("fc751b484bd5296f8d267a8537d33f25a848f7f7af8cfcf6")
 	assert.Nil(t, err)
 	block, err := core.NewBlock(neb.chain.ChainID(), coinbase, tail)
 	assert.Nil(t, err)
@@ -326,13 +314,7 @@ func TestDpos_VerifySign(t *testing.T) {
 	block.WorldState().SetConsensusState(consensusState)
 	block.Seal()
 	manager := account.NewManager(nil)
-	miner, err := core.AddressParseFromBytes(consensusState.Proposer())
-	assert.Nil(t, err)
-	assert.Nil(t, manager.Unlock(miner, []byte("passphrase"), keystore.DefaultUnlockDuration))
-	assert.Nil(t, manager.SignBlock(miner, block))
-	assert.Nil(t, neb.consensus.VerifyBlock(block))
-
-	miner, err = core.AddressParse("fc751b484bd5296f8d267a8537d33f25a848f7f7af8cfcf6")
+	miner, err := core.AddressParse("fc751b484bd5296f8d267a8537d33f25a848f7f7af8cfcf6")
 	assert.Nil(t, err)
 	assert.Nil(t, manager.Unlock(miner, []byte("passphrase"), keystore.DefaultUnlockDuration))
 	assert.Nil(t, manager.SignBlock(miner, block))
@@ -349,7 +331,6 @@ func GetUnlockAddress(t *testing.T, am *account.Manager, addr string) *core.Addr
 func TestForkChoice(t *testing.T) {
 	neb := mockNeb(t)
 	am := account.NewManager(neb)
-	chain := neb.chain
 
 	/*
 		genesis -- 0 -- 11 -- 111 -- 1111
@@ -474,7 +455,6 @@ func TestDpos_MintBlock(t *testing.T) {
 	assert.Nil(t, dpos.EnableMining("passphrase"))
 	dpos.SuspendMining()
 	assert.Equal(t, dpos.mintBlock(0), ErrCannotMintWhenPending)
-	fmt.Print("silent_debug")
 	dpos.ResumeMining()
 	assert.Equal(t, dpos.mintBlock(BlockIntervalInMs/SecondInMs), ErrInvalidBlockProposer)
 
@@ -529,35 +509,35 @@ func TestDposContracts(t *testing.T) {
 	for i := 1; i < j; i++ {
 		value, _ := util.NewUint128FromInt(1)
 		gasLimit, _ := util.NewUint128FromInt(200000)
-		txDeploy := core.NewTransaction(neb.chain.ChainID(), a, a, value, uint64(i), core.TxPayloadDeployType, payloadDeploy, core.TransactionGasPrice, gasLimit)
+		txDeploy, _ := core.NewTransaction(neb.chain.ChainID(), a, a, value, uint64(i), core.TxPayloadDeployType, payloadDeploy, core.TransactionGasPrice, gasLimit)
 		assert.Nil(t, manager.SignTransaction(a, txDeploy))
 		assert.Nil(t, neb.chain.TransactionPool().Push(txDeploy))
 
-		txDeploy = core.NewTransaction(neb.chain.ChainID(), b, b, value, uint64(i), core.TxPayloadDeployType, payloadDeploy, core.TransactionGasPrice, gasLimit)
+		txDeploy, _ = core.NewTransaction(neb.chain.ChainID(), b, b, value, uint64(i), core.TxPayloadDeployType, payloadDeploy, core.TransactionGasPrice, gasLimit)
 		assert.Nil(t, manager.SignTransaction(b, txDeploy))
 		assert.Nil(t, neb.chain.TransactionPool().Push(txDeploy))
 
-		txDeploy = core.NewTransaction(neb.chain.ChainID(), c, c, value, uint64(i), core.TxPayloadDeployType, payloadDeploy, core.TransactionGasPrice, gasLimit)
+		txDeploy, _ = core.NewTransaction(neb.chain.ChainID(), c, c, value, uint64(i), core.TxPayloadDeployType, payloadDeploy, core.TransactionGasPrice, gasLimit)
 		assert.Nil(t, manager.SignTransaction(c, txDeploy))
 		assert.Nil(t, neb.chain.TransactionPool().Push(txDeploy))
 
-		txDeploy = core.NewTransaction(neb.chain.ChainID(), d, d, value, uint64(i), core.TxPayloadDeployType, payloadDeploy, core.TransactionGasPrice, gasLimit)
+		txDeploy, _ = core.NewTransaction(neb.chain.ChainID(), d, d, value, uint64(i), core.TxPayloadDeployType, payloadDeploy, core.TransactionGasPrice, gasLimit)
 		assert.Nil(t, manager.SignTransaction(d, txDeploy))
 		assert.Nil(t, neb.chain.TransactionPool().Push(txDeploy))
 
-		txDeploy = core.NewTransaction(neb.chain.ChainID(), e, e, value, uint64(i), core.TxPayloadDeployType, payloadDeploy, core.TransactionGasPrice, gasLimit)
+		txDeploy, _ = core.NewTransaction(neb.chain.ChainID(), e, e, value, uint64(i), core.TxPayloadDeployType, payloadDeploy, core.TransactionGasPrice, gasLimit)
 		assert.Nil(t, manager.SignTransaction(e, txDeploy))
 		assert.Nil(t, neb.chain.TransactionPool().Push(txDeploy))
 
-		txDeploy = core.NewTransaction(neb.chain.ChainID(), f, f, value, uint64(i), core.TxPayloadDeployType, payloadDeploy, core.TransactionGasPrice, gasLimit)
+		txDeploy, _ = core.NewTransaction(neb.chain.ChainID(), f, f, value, uint64(i), core.TxPayloadDeployType, payloadDeploy, core.TransactionGasPrice, gasLimit)
 		assert.Nil(t, manager.SignTransaction(f, txDeploy))
 		assert.Nil(t, neb.chain.TransactionPool().Push(txDeploy))
 
-		txDeploy = core.NewTransaction(neb.chain.ChainID(), g, g, value, uint64(i), core.TxPayloadDeployType, payloadDeploy, core.TransactionGasPrice, gasLimit)
+		txDeploy, _ = core.NewTransaction(neb.chain.ChainID(), g, g, value, uint64(i), core.TxPayloadDeployType, payloadDeploy, core.TransactionGasPrice, gasLimit)
 		assert.Nil(t, manager.SignTransaction(g, txDeploy))
 		assert.Nil(t, neb.chain.TransactionPool().Push(txDeploy))
 
-		txDeploy = core.NewTransaction(neb.chain.ChainID(), h, h, value, uint64(i), core.TxPayloadDeployType, payloadDeploy, core.TransactionGasPrice, gasLimit)
+		txDeploy, _ = core.NewTransaction(neb.chain.ChainID(), h, h, value, uint64(i), core.TxPayloadDeployType, payloadDeploy, core.TransactionGasPrice, gasLimit)
 		assert.Nil(t, manager.SignTransaction(h, txDeploy))
 		assert.Nil(t, neb.chain.TransactionPool().Push(txDeploy))
 	}
@@ -603,20 +583,19 @@ func testMintBlock(t *testing.T, round int, neb *Neb, num int) {
 	for i := 1; i < num; i++ {
 		gas, _ := util.NewUint128FromInt(1000000)
 		limit, _ := util.NewUint128FromInt(200000)
-		tx := core.NewTransaction(neb.chain.ChainID(), a, b, util.NewUint128(), uint64(nonce+4*i-3), core.TxPayloadBinaryType, []byte("nas"), gas, limit)
+		tx, _ := core.NewTransaction(neb.chain.ChainID(), a, b, util.NewUint128(), uint64(nonce+4*i-3), core.TxPayloadBinaryType, []byte("nas"), gas, limit)
 		assert.Nil(t, manager.SignTransaction(a, tx))
 		assert.Nil(t, neb.chain.TransactionPool().Push(tx))
 
-		tx = core.NewTransaction(neb.chain.ChainID(), a, c, util.NewUint128(), uint64(nonce+4*i-2), core.TxPayloadBinaryType, []byte("nas"), gas, limit)
+		tx, _ = core.NewTransaction(neb.chain.ChainID(), a, c, util.NewUint128(), uint64(nonce+4*i-2), core.TxPayloadBinaryType, []byte("nas"), gas, limit)
 		assert.Nil(t, manager.SignTransaction(a, tx))
 		assert.Nil(t, neb.chain.TransactionPool().Push(tx))
 
-		tx = core.NewTransaction(neb.chain.ChainID(), a, d, util.NewUint128(), uint64(nonce+4*i-1), core.TxPayloadBinaryType, []byte("nas"), gas, limit)
+		tx, _ = core.NewTransaction(neb.chain.ChainID(), a, d, util.NewUint128(), uint64(nonce+4*i-1), core.TxPayloadBinaryType, []byte("nas"), gas, limit)
 		assert.Nil(t, manager.SignTransaction(a, tx))
 		assert.Nil(t, neb.chain.TransactionPool().Push(tx))
-		//assert.Equal(t, neb.chain.TransactionPool().cache.Len(), 3)
 
-		tx = core.NewTransaction(neb.chain.ChainID(), a, e, util.NewUint128(), uint64(nonce+4*i), core.TxPayloadBinaryType, []byte("nas"), gas, limit)
+		tx, _ = core.NewTransaction(neb.chain.ChainID(), a, e, util.NewUint128(), uint64(nonce+4*i), core.TxPayloadBinaryType, []byte("nas"), gas, limit)
 		assert.Nil(t, manager.SignTransaction(a, tx))
 		assert.Nil(t, neb.chain.TransactionPool().Push(tx))
 	}
@@ -649,9 +628,10 @@ func TestDoubleMint(t *testing.T) {
 
 	addr0 := GetUnlockAddress(t, am, "2fe3f9f51f9a05dd5f7c5329127f7c917917149b4e16b0b8")
 	block0, _ := chain.NewBlock(addr0)
-	consensusState, err := chain.TailBlock().NextConsensusState(BlockInterval)
+	consensusState, err := chain.TailBlock().WorldState().NextConsensusState(BlockIntervalInMs / SecondInMs)
 	assert.Nil(t, err)
-	block0.LoadConsensusState(consensusState)
+	block0.SetTimestamp(chain.TailBlock().Timestamp() + BlockIntervalInMs/SecondInMs)
+	block0.WorldState().SetConsensusState(consensusState)
 	block0.Seal()
 	am.SignBlock(addr0, block0)
 	assert.Nil(t, chain.BlockPool().Push(block0))
@@ -659,9 +639,10 @@ func TestDoubleMint(t *testing.T) {
 
 	block11, err := chain.NewBlock(addr0)
 	assert.Nil(t, err)
-	consensusState, err = block0.NextConsensusState(0)
+	consensusState, err = block0.WorldState().NextConsensusState(0)
 	assert.Nil(t, err)
-	block11.LoadConsensusState(consensusState)
+	block11.SetTimestamp(block0.Timestamp())
+	block11.WorldState().SetConsensusState(consensusState)
 	block11.Seal()
 	am.SignBlock(addr0, block11)
 	assert.Equal(t, chain.BlockPool().Push(block11), ErrDoubleBlockMinted)

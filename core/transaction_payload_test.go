@@ -21,8 +21,6 @@ package core
 import (
 	"testing"
 
-	"github.com/nebulasio/go-nebulas/core/state"
-
 	"github.com/nebulasio/go-nebulas/util"
 	"github.com/stretchr/testify/assert"
 )
@@ -260,7 +258,6 @@ func TestPayload_Execute(t *testing.T) {
 		wantErr: ErrContractCheckFailed,
 	})
 
-	ks := keystore.DefaultKS
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got, _, err := tt.payload.Execute(tt.tx, block, block.WorldState())

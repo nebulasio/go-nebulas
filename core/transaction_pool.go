@@ -255,9 +255,6 @@ func (pool *TransactionPool) Push(tx *Transaction) error {
 		return err
 	}
 
-	pool.mu.Lock()
-	defer pool.mu.Unlock()
-
 	// verify non-dup tx
 	if _, ok := pool.all[tx.hash.Hex()]; ok {
 		metricsDuplicateTx.Inc(1)

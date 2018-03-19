@@ -71,46 +71,34 @@ func TestBlockChain_FindCommonAncestorWithTail(t *testing.T) {
 	block12, err := bc.NewBlock(coinbase12)
 	assert.Nil(t, err)
 	block12.header.timestamp = BlockInterval * 3
-	block11.Seal()
-	block12.Seal()
-	netBlock11, err := mockBlockFromNetwork(block11)
-	assert.Nil(t, err)
-	assert.Nil(t, bc.BlockPool().Push(netBlock11))
-	netBlock12, err := mockBlockFromNetwork(block12)
-	assert.Nil(t, err)
-	assert.Nil(t, bc.BlockPool().Push(netBlock12))
+	assert.Nil(t, block11.Seal())
+	assert.Nil(t, block12.Seal())
+	assert.Nil(t, bc.BlockPool().Push(block11))
+	assert.Nil(t, bc.BlockPool().Push(block12))
 	bc.SetTailBlock(block12)
 	assert.Equal(t, bc.lib, bc.genesisBlock)
 	bc.SetTailBlock(block11)
 	assert.Equal(t, bc.lib, bc.genesisBlock)
 	block111, _ := bc.NewBlock(coinbase111)
 	block111.header.timestamp = BlockInterval * 4
-	block111.Seal()
-	netBlock111, err := mockBlockFromNetwork(block111)
-	assert.Nil(t, err)
-	assert.Nil(t, bc.BlockPool().Push(netBlock111))
+	assert.Nil(t, block111.Seal())
+	assert.Nil(t, bc.BlockPool().Push(block111))
 	bc.SetTailBlock(block12)
 	assert.Equal(t, bc.lib, bc.genesisBlock)
 	block221, _ := bc.NewBlock(coinbase221)
 	block221.header.timestamp = BlockInterval * 5
 	block222, _ := bc.NewBlock(coinbase222)
 	block222.header.timestamp = BlockInterval * 6
-	block221.Seal()
-	block222.Seal()
-	netBlock221, err := mockBlockFromNetwork(block221)
-	assert.Nil(t, err)
-	assert.Nil(t, bc.BlockPool().Push(netBlock221))
-	netBlock222, err := mockBlockFromNetwork(block222)
-	assert.Nil(t, err)
-	assert.Nil(t, bc.BlockPool().Push(netBlock222))
+	assert.Nil(t, block221.Seal())
+	assert.Nil(t, block222.Seal())
+	assert.Nil(t, bc.BlockPool().Push(block221))
+	assert.Nil(t, bc.BlockPool().Push(block222))
 	bc.SetTailBlock(block111)
 	assert.Equal(t, bc.lib, bc.genesisBlock)
 	block1111, _ := bc.NewBlock(coinbase1111)
 	block1111.header.timestamp = BlockInterval * 7
-	block1111.Seal()
-	netBlock1111, err := mockBlockFromNetwork(block1111)
-	assert.Nil(t, err)
-	assert.Nil(t, bc.BlockPool().Push(netBlock1111))
+	assert.Nil(t, block1111.Seal())
+	assert.Nil(t, bc.BlockPool().Push(block1111))
 	bc.SetTailBlock(block222)
 	assert.Equal(t, bc.lib, bc.genesisBlock)
 	tails := bc.DetachedTailBlocks()
@@ -124,50 +112,25 @@ func TestBlockChain_FindCommonAncestorWithTail(t *testing.T) {
 	}
 	assert.Equal(t, len(tails), 3)
 
-	netBlock1111, err = mockBlockFromNetwork(block1111)
+	common1, err := bc.FindCommonAncestorWithTail(block1111)
 	assert.Nil(t, err)
-	common1, err := bc.FindCommonAncestorWithTail(netBlock1111)
-	assert.Nil(t, err)
+	assert.Equal(t, common1.Hash(), block0.Hash())
 
-	netBlock0, err := mockBlockFromNetwork(block0)
+	common2, err := bc.FindCommonAncestorWithTail(block221)
 	assert.Nil(t, err)
-	netCommon1, err := mockBlockFromNetwork(common1)
-	assert.Nil(t, err)
-	assert.Equal(t, netCommon1, netBlock0)
+	assert.Equal(t, common2.Hash(), block12.Hash())
 
-	netBlock221, err = mockBlockFromNetwork(block221)
+	common3, err := bc.FindCommonAncestorWithTail(block222)
 	assert.Nil(t, err)
-	common2, err := bc.FindCommonAncestorWithTail(netBlock221)
-	assert.Nil(t, err)
-	netCommon2, err := mockBlockFromNetwork(common2)
-	assert.Nil(t, err)
-	netBlock12, err = mockBlockFromNetwork(block12)
-	assert.Nil(t, err)
-	assert.Equal(t, netCommon2, netBlock12)
+	assert.Equal(t, common3.Hash(), block222.Hash())
 
-	netBlock222, err = mockBlockFromNetwork(block222)
+	common4, err := bc.FindCommonAncestorWithTail(bc.tailBlock)
 	assert.Nil(t, err)
-	common3, err := bc.FindCommonAncestorWithTail(netBlock222)
-	assert.Nil(t, err)
-	netCommon3, err := mockBlockFromNetwork(common3)
-	assert.Nil(t, err)
-	assert.Equal(t, netCommon3, netBlock222)
+	assert.Equal(t, common4.Hash(), bc.tailBlock.Hash())
 
-	netTail, err := mockBlockFromNetwork(bc.tailBlock)
+	common5, err := bc.FindCommonAncestorWithTail(block12)
 	assert.Nil(t, err)
-	common4, err := bc.FindCommonAncestorWithTail(netTail)
-	assert.Nil(t, err)
-	netCommon4, err := mockBlockFromNetwork(common4)
-	assert.Nil(t, err)
-	assert.Equal(t, netCommon4, netTail)
-
-	netBlock12, err = mockBlockFromNetwork(block12)
-	assert.Nil(t, err)
-	common5, err := bc.FindCommonAncestorWithTail(netBlock12)
-	assert.Nil(t, err)
-	netCommon5, err := mockBlockFromNetwork(common5)
-	assert.Nil(t, err)
-	assert.Equal(t, netCommon5, netBlock12)
+	assert.Equal(t, common5.Hash(), block12.Hash())
 
 	result := bc.Dump(4)
 	assert.Equal(t, result, "["+block222.String()+","+block12.String()+","+block0.String()+","+bc.genesisBlock.String()+"]")
@@ -177,56 +140,9 @@ func TestBlockChain_FindCommonAncestorWithTail(t *testing.T) {
 
 	block11111, _ := bc.NewBlock(coinbase11111)
 	block11111.header.timestamp = BlockInterval * 8
-	block11111.Seal()
-	netBlock11111, err := mockBlockFromNetwork(block11111)
-	assert.Nil(t, err)
-	assert.Nil(t, bc.BlockPool().Push(netBlock11111))
+	assert.Nil(t, block11111.Seal())
+	assert.Nil(t, bc.BlockPool().Push(block11111))
 	bc.SetTailBlock(block11111)
-}
-
-func TestBlockChain_FetchDescendantInCanonicalChain(t *testing.T) {
-	neb := testNeb(t)
-	bc := neb.chain
-
-	coinbase := &Address{[]byte("012345678901234567890000")}
-	/*
-		genesisi -- 1 - 2 - 3 - 4 - 5 - 6
-		         \_ block - block1
-	*/
-	block, _ := bc.NewBlock(coinbase)
-	block.header.timestamp = BlockInterval
-	block.Seal()
-	bc.BlockPool().Push(block)
-	bc.SetTailBlock(block)
-
-	block1, _ := bc.NewBlock(coinbase)
-	block1.header.timestamp = BlockInterval * 2
-	block1.Seal()
-	bc.BlockPool().Push(block1)
-	bc.SetTailBlock(block1)
-
-	var blocks []*Block
-	for i := 0; i < 6; i++ {
-		block, _ := bc.NewBlock(coinbase)
-		blocks = append(blocks, block)
-		block.Seal()
-		bc.BlockPool().Push(block)
-		bc.SetTailBlock(block)
-	}
-	blocks24, _ := bc.FetchDescendantInCanonicalChain(3, blocks[0])
-	assert.Equal(t, blocks24[0].Hash(), blocks[1].Hash())
-	assert.Equal(t, blocks24[1].Hash(), blocks[2].Hash())
-	assert.Equal(t, blocks24[2].Hash(), blocks[3].Hash())
-	blocks46, _ := bc.FetchDescendantInCanonicalChain(10, blocks[2])
-	assert.Equal(t, len(blocks46), 3)
-	assert.Equal(t, blocks46[0].Hash(), blocks[3].Hash())
-	assert.Equal(t, blocks46[1].Hash(), blocks[4].Hash())
-	assert.Equal(t, blocks46[2].Hash(), blocks[5].Hash())
-	blocks13, _ := bc.FetchDescendantInCanonicalChain(3, bc.genesisBlock)
-	assert.Equal(t, len(blocks13), 3)
-	blocks0, err0 := bc.FetchDescendantInCanonicalChain(3, blocks[5])
-	assert.Equal(t, len(blocks0), 0)
-	assert.Nil(t, err0)
 }
 
 func TestBlockChain_EstimateGas(t *testing.T) {
@@ -243,7 +159,7 @@ func TestBlockChain_EstimateGas(t *testing.T) {
 	gasLimit, _ := util.NewUint128FromInt(200000)
 	tx, _ := NewTransaction(bc.ChainID(), from, to, util.NewUint128(), 1, TxPayloadBinaryType, payload, TransactionGasPrice, gasLimit)
 
-	_, err = bc.EstimateGas(tx)
+	_, _, err = bc.EstimateGas(tx)
 	assert.Nil(t, err)
 }
 

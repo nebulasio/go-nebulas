@@ -47,6 +47,7 @@ func TestBlockPool(t *testing.T) {
 	signature, _ := crypto.NewSignature(keystore.SECP256K1)
 	signature.InitSign(key.(keystore.PrivateKey))
 
+	// generate block
 	neb := testNeb(t)
 	bc := neb.chain
 	pool := bc.bkPool
@@ -62,7 +63,7 @@ func TestBlockPool(t *testing.T) {
 	bc.tailBlock.header.stateRoot, err = bc.tailBlock.worldState.AccountsRoot()
 	assert.Nil(t, err)
 	bc.tailBlock.Commit()
-	bc.storeBlockToStorage(bc.tailBlock)
+	bc.StoreBlockToStorage(bc.tailBlock)
 
 	addr, err := AddressParse(MockDynasty[1])
 	assert.Nil(t, err)
@@ -104,6 +105,7 @@ func TestBlockPool(t *testing.T) {
 	block4.Seal()
 	assert.Nil(t, pool.Push(block4))
 
+	// push blocks into pool in random order
 	neb = testNeb(t)
 	bc = neb.chain
 	pool = bc.bkPool
@@ -118,7 +120,7 @@ func TestBlockPool(t *testing.T) {
 	bc.tailBlock.header.stateRoot, err = bc.tailBlock.worldState.AccountsRoot()
 	assert.Nil(t, err)
 	bc.tailBlock.Commit()
-	bc.storeBlockToStorage(bc.tailBlock)
+	bc.StoreBlockToStorage(bc.tailBlock)
 
 	err = pool.Push(block0)
 	assert.Nil(t, err)
@@ -151,14 +153,6 @@ func TestBlockPool(t *testing.T) {
 	block5.Seal()
 	block5.header.hash[0]++
 	assert.Equal(t, pool.Push(block5), ErrInvalidBlockHash)
-
-	addr, err = AddressParse(MockDynasty[3])
-	assert.Nil(t, err)
-	block41, err := NewBlock(bc.ChainID(), addr, block3)
-	assert.Nil(t, err)
-	block41.header.timestamp = block3.header.timestamp + BlockInterval
-	block41.Seal()
-	assert.Equal(t, pool.Push(block41), ErrDoubleBlockMinted)
 }
 
 func TestHandleBlock(t *testing.T) {
@@ -171,10 +165,11 @@ func TestHandleBlock(t *testing.T) {
 	assert.Nil(t, err)
 	signature.InitSign(key.(keystore.PrivateKey))
 
+	// wrong msg type
 	block, err := bc.NewBlock(from)
 	assert.Nil(t, err)
-	block.Seal()
-	block.Sign(signature)
+	assert.Nil(t, block.Seal())
+	assert.Nil(t, block.Sign(signature))
 	pbMsg, err := block.ToProto()
 	assert.Nil(t, err)
 	data, err := proto.Marshal(pbMsg)
@@ -183,11 +178,12 @@ func TestHandleBlock(t *testing.T) {
 	bc.bkPool.handleReceivedBlock(msg)
 	assert.Nil(t, bc.GetBlock(block.Hash()))
 
+	// expired block
 	block, err = bc.NewBlock(from)
 	assert.Nil(t, err)
 	block.header.timestamp = time.Now().Unix() - AcceptedNetWorkDelay - 1
-	block.Seal()
-	block.Sign(signature)
+	assert.Nil(t, block.Seal())
+	assert.Nil(t, block.Sign(signature))
 	pbMsg, err = block.ToProto()
 	assert.Nil(t, err)
 	data, err = proto.Marshal(pbMsg)
@@ -195,22 +191,8 @@ func TestHandleBlock(t *testing.T) {
 	bc.bkPool.handleReceivedBlock(msg)
 	assert.Nil(t, bc.GetBlock(block.Hash()))
 
+	// success
 	block, err = bc.NewBlock(from)
-	assert.Nil(t, err)
-	consensusState, err = block.NextConsensusState(0)
-	assert.Nil(t, err)
-	block.Seal()
-	block.Sign(signature)
-	pbMsg, err = block.ToProto()
-	assert.Nil(t, err)
-	data, err = proto.Marshal(pbMsg)
-	msg = net.NewBaseMessage(MessageTypeNewBlock, "from", data)
-	bc.bkPool.handleReceivedBlock(msg)
-	assert.Nil(t, bc.GetBlock(block.Hash()))
-
-	block, err = bc.NewBlock(from)
-	assert.Nil(t, err)
-	consensusState, err = block.NextConsensusState(0)
 	assert.Nil(t, err)
 	block.Seal()
 	block.Sign(signature)
@@ -270,8 +252,8 @@ func TestHandleDownloadedBlock(t *testing.T) {
 	bc.bkPool.handleParentDownloadRequest(msg)
 	assert.Equal(t, received, []byte{})
 
+	// set new tail
 	assert.Nil(t, bc.BlockPool().Push(block1))
-
 	block2, err := bc.NewBlock(from)
 	assert.Nil(t, err)
 	block2.SetTimestamp(BlockInterval * 2)

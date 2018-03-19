@@ -79,9 +79,9 @@ type AccountState interface {
 	Clone() (AccountState, error)
 	Replay(AccountState) error
 
-	GetOrCreateUserAccount(addr []byte) (Account, error)
-	GetContractAccount(addr []byte) (Account, error)
-	CreateContractAccount(addr []byte, birthPlace []byte) (Account, error)
+	GetOrCreateUserAccount(byteutils.Hash) (Account, error)
+	GetContractAccount(byteutils.Hash) (Account, error)
+	CreateContractAccount(byteutils.Hash, byteutils.Hash) (Account, error)
 }
 
 // Event event structure.

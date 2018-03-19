@@ -19,9 +19,10 @@
 package core
 
 import (
-	"github.com/nebulasio/go-nebulas/core/state"
 	"strings"
 	"time"
+
+	"github.com/nebulasio/go-nebulas/core/state"
 
 	"github.com/gogo/protobuf/proto"
 	lru "github.com/hashicorp/golang-lru"
@@ -659,10 +660,7 @@ func (bc *BlockChain) EstimateGas(tx *Transaction) (*util.Uint128, string, error
 	if err != nil {
 		return util.NewUint128(), "", err
 	}
-	if err != block.Begin() {
-		return util.NewUint128(), "", err
-	}
-	gas, result, err := tx.localExecution(bc.tailBlock)
+	gas, result, err := tx.localExecution(block)
 	block.RollBack()
 	return gas, result, err
 }

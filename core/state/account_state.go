@@ -34,7 +34,6 @@ import (
 var (
 	ErrBalanceInsufficient = errors.New("cannot subtract a value which is bigger than current balance")
 	ErrAccountNotFound     = errors.New("cannot found account in storage")
-	ErrContractNotFound    = errors.New("cannot find valid contract")
 )
 
 // account info in state Trie
@@ -266,7 +265,7 @@ func (as *accountState) RootHash() (byteutils.Hash, error) {
 }
 
 // GetOrCreateUserAccount according to the addr
-func (as *accountState) GetOrCreateUserAccount(addr []byte) (Account, error) {
+func (as *accountState) GetOrCreateUserAccount(addr byteutils.Hash) (Account, error) {
 	acc, err := as.getAccount(addr)
 	if err != nil {
 		acc, err := as.newAccount(addr, nil)
@@ -279,21 +278,17 @@ func (as *accountState) GetOrCreateUserAccount(addr []byte) (Account, error) {
 }
 
 // GetContractAccount from current AccountState
-func (as *accountState) GetContractAccount(addr []byte) (Account, error) {
+func (as *accountState) GetContractAccount(addr byteutils.Hash) (Account, error) {
 	acc, err := as.getAccount(addr)
 	if err != nil {
 		return nil, err
-	}
-
-	if len(acc.BirthPlace()) == 0 {
-		return nil, ErrContractNotFound
 	}
 
 	return acc, nil
 }
 
 // CreateContractAccount according to the addr, and set birthPlace as creation tx hash
-func (as *accountState) CreateContractAccount(addr []byte, birthPlace []byte) (Account, error) {
+func (as *accountState) CreateContractAccount(addr byteutils.Hash, birthPlace byteutils.Hash) (Account, error) {
 	return as.newAccount(addr, birthPlace)
 }
 

@@ -1004,7 +1004,7 @@ func TestNebulasContract(t *testing.T) {
 	}
 
 	mem, _ := storage.NewMemoryStorage()
-	context, _ := state.NewAccountState(nil, mem)
+	context, _ := state.NewWorldState(nil, mem)
 	owner, err := context.GetOrCreateUserAccount([]byte("8a209cec02cbeab7e2f74ad969d2dfe8dd24416aa65589bf"))
 	assert.Nil(t, err)
 	owner.AddBalance(newUint128FromIntWrapper(1000000000))

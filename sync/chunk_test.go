@@ -44,6 +44,7 @@ type Neb struct {
 	storage   storage.Storage
 	consensus core.Consensus
 	emitter   *core.EventEmitter
+	nvm       core.Engine
 }
 
 func mockNeb(t *testing.T) *Neb {
@@ -51,11 +52,14 @@ func mockNeb(t *testing.T) *Neb {
 	eventEmitter := core.NewEventEmitter(1024)
 	genesisConf := MockGenesisConf()
 	dpos := dpos.NewDpos()
+	var nvm core.Engine
 	neb := &Neb{
 		genesis:   genesisConf,
 		storage:   storage,
 		emitter:   eventEmitter,
 		consensus: dpos,
+		nvm:       nvm,
+		ns:        &mockNetService{},
 		config: &nebletpb.Config{
 			Chain: &nebletpb.ChainConfig{
 				ChainId:    genesisConf.Meta.ChainId,
@@ -72,13 +76,10 @@ func mockNeb(t *testing.T) *Neb {
 
 	chain, err := core.NewBlockChain(neb)
 	assert.Nil(t, err)
+	chain.BlockPool().RegisterInNetwork(neb.ns)
 	neb.chain = chain
 	dpos.Setup(neb)
 	chain.Setup(neb)
-
-	var ns mockNetService
-	neb.ns = ns
-	neb.chain.BlockPool().RegisterInNetwork(ns)
 	return neb
 }
 
@@ -94,7 +95,7 @@ func (n *Neb) NetService() net.Service {
 	return n.ns
 }
 
-func (n *Neb) AccountManager() core.Manager {
+func (n *Neb) AccountManager() core.AccountManager {
 	return n.am
 }
 
@@ -115,6 +116,18 @@ func (n *Neb) Consensus() core.Consensus {
 }
 
 func (n *Neb) StartActiveSync() {}
+
+func (n *Neb) Nvm() core.Engine {
+	return n.nvm
+}
+
+func (n *Neb) StartPprof(string) error {
+	return nil
+}
+
+func (n *Neb) SetGenesis(genesis *corepb.Genesis) {
+	n.genesis = genesis
+}
 
 var (
 	DefaultOpenDynasty = []string{

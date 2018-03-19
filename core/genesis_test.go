@@ -43,7 +43,7 @@ func TestNewGenesisBlock(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, dumpConf.Meta.ChainId, conf.Meta.ChainId)
 	assert.Equal(t, dumpConf.TokenDistribution, conf.TokenDistribution)
-)
+}
 
 func TestInvalidAddressInTokenDistribution(t *testing.T) {
 	mockConf := MockGenesisConf()

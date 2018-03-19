@@ -20,8 +20,9 @@ package core
 
 import (
 	"fmt"
-	"github.com/nebulasio/go-nebulas/core/state"
 	"time"
+
+	"github.com/nebulasio/go-nebulas/core/state"
 
 	"encoding/json"
 
@@ -411,6 +412,15 @@ func VerifyExecution(tx *Transaction, block *Block, txWorldState state.TxWorldSt
 		logging.VLog().Info("VEE 1")
 		return err
 	}
+	if tx.gasLimit.Cmp(gasUsed) < 0 {
+		logging.VLog().WithFields(logrus.Fields{
+			"error":       ErrOutOfGasLimit,
+			"transaction": tx,
+			"limit":       tx.gasLimit,
+			"used":        gasUsed,
+		}).Debug("Failed to check tx based gas used.")
+		return ErrOutOfGasLimit
+	}
 
 	// step3. check payload vaild
 	payload, payloadErr := tx.LoadPayload()
@@ -476,7 +486,6 @@ func VerifyExecution(tx *Transaction, block *Block, txWorldState state.TxWorldSt
 		logging.VLog().Info("AEE 6")
 		return gasErr
 	}
-
 	if tx.gasLimit.Cmp(allGas) < 0 {
 		logging.VLog().WithFields(logrus.Fields{
 			"err":   ErrOutOfGasLimit,
@@ -498,8 +507,8 @@ func VerifyExecution(tx *Transaction, block *Block, txWorldState state.TxWorldSt
 		}
 		return nil
 	}
-	tx.recordGas(allGas, txWorldState)
 
+	tx.recordGas(allGas, txWorldState)
 	if exeErr != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"exeErr":       exeErr,
@@ -672,7 +681,7 @@ func CheckContract(addr *Address, txWorldState state.TxWorldState) (state.Accoun
 	}
 
 	if len(contract.BirthPlace()) == 0 {
-		return nil, state.ErrAccountNotFound
+		return nil, ErrContractCheckFailed
 	}
 
 	birthEvents, err := txWorldState.FetchEvents(contract.BirthPlace())
@@ -693,7 +702,7 @@ func CheckContract(addr *Address, txWorldState state.TxWorldState) (state.Accoun
 		}
 	}
 	if !result {
-		return nil, state.ErrAccountNotFound
+		return nil, ErrContractCheckFailed
 	}
 
 	return contract, nil

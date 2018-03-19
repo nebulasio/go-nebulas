@@ -294,7 +294,7 @@ func (n *mockNeb) SetGenesis(genesis *corepb.Genesis) {
 type mockNvm struct {
 }
 
-func (nvm *mockNvm) CreateEngine(block *Block, tx *Transaction, owner, contract state.Account, state state.AccountState) error {
+func (nvm *mockNvm) CreateEngine(block *Block, tx *Transaction, owner, contract state.Account, state state.TxWorldState) error {
 	return nil
 }
 func (nvm *mockNvm) SetEngineExecutionLimits(limitsOfExecutionInstructions uint64) error {
@@ -548,26 +548,6 @@ func TestBlock_fetchCacheEventsOfCurBlock(t *testing.T) {
 		assert.Equal(t, events[idx], event)
 	}
 }
-
-func TestSerializeTxByHash(t *testing.T) {
-	neb := testNeb(t)
-	bc := neb.chain
-	block := bc.tailBlock
-	tx := NewTransaction(bc.ChainID(), mockAddress(), mockAddress(), util.NewUint128(), 1, TxPayloadBinaryType, []byte(""), TransactionGasPrice, TransactionMaxGas)
-	hash, err := HashTransaction(tx)
-	assert.Nil(t, err)
-	tx.hash = hash
-	AcceptTransaction(tx, block.WorldState())
-	msg, err := block.SerializeTxByHash(hash)
-	assert.Nil(t, err)
-	bytes, err := pb.Marshal(msg)
-	assert.Nil(t, err)
-	msg2, err := tx.ToProto()
-	assert.Nil(t, err)
-	bytes2, err := pb.Marshal(msg2)
-	assert.Equal(t, bytes, bytes2)
-}
-
 func TestBlockSign(t *testing.T) {
 	neb := testNeb(t)
 	bc := neb.chain
@@ -599,16 +579,15 @@ func TestGivebackInvalidTx(t *testing.T) {
 	assert.Equal(t, len(bc.txPool.all), 1)
 	block, err := bc.NewBlock(from)
 	assert.Nil(t, err)
-	block.CollectTransactions(time.Now().Unix() + 2)
-	timer := time.NewTimer(time.Second).C
-	<-timer
+	block.CollectTransactions(time.Now().Unix() + 1)
 	assert.Equal(t, len(bc.txPool.all), 1)
 }
 
 func TestBlockVerifyIntegrity(t *testing.T) {
 	neb := testNeb(t)
 	bc := neb.chain
-	assert.Equal(t, bc.tailBlock.VerifyIntegrity(0, nil), ErrInvalidChainID)
+	assert.Equal(t, bc.tailBlock.VerifyIntegrity(0, nil), ErrNilArgument)
+	assert.Equal(t, bc.tailBlock.VerifyIntegrity(0, neb.consensus), ErrInvalidChainID)
 	bc.tailBlock.header.hash[0] = 1
 	assert.Equal(t, bc.tailBlock.VerifyIntegrity(bc.ChainID(), bc.ConsensusHandler()), ErrInvalidBlockHash)
 	ks := keystore.DefaultKS
@@ -636,7 +615,7 @@ func TestBlockVerifyIntegrity(t *testing.T) {
 func TestBlockVerifyDupTx(t *testing.T) {
 	neb := testNeb(t)
 	bc := neb.chain
-	assert.Equal(t, bc.tailBlock.VerifyIntegrity(0, nil), ErrInvalidChainID)
+	assert.Equal(t, bc.tailBlock.VerifyIntegrity(0, neb.consensus), ErrInvalidChainID)
 	bc.tailBlock.header.hash[0] = 1
 	assert.Equal(t, bc.tailBlock.VerifyIntegrity(bc.ChainID(), bc.ConsensusHandler()), ErrInvalidBlockHash)
 	ks := keystore.DefaultKS
@@ -660,7 +639,7 @@ func TestBlockVerifyDupTx(t *testing.T) {
 func TestBlockVerifyInvalidTx(t *testing.T) {
 	neb := testNeb(t)
 	bc := neb.chain
-	assert.Equal(t, bc.tailBlock.VerifyIntegrity(0, nil), ErrInvalidChainID)
+	assert.Equal(t, bc.tailBlock.VerifyIntegrity(0, neb.consensus), ErrInvalidChainID)
 	bc.tailBlock.header.hash[0] = 1
 	assert.Equal(t, bc.tailBlock.VerifyIntegrity(bc.ChainID(), bc.ConsensusHandler()), ErrInvalidBlockHash)
 	ks := keystore.DefaultKS
@@ -686,7 +665,7 @@ func TestBlockVerifyInvalidTx(t *testing.T) {
 func TestBlockVerifyState(t *testing.T) {
 	neb := testNeb(t)
 	bc := neb.chain
-	assert.Equal(t, bc.tailBlock.VerifyIntegrity(0, nil), ErrInvalidChainID)
+	assert.Equal(t, bc.tailBlock.VerifyIntegrity(0, neb.consensus), ErrInvalidChainID)
 	bc.tailBlock.header.hash[0] = 1
 	assert.Equal(t, bc.tailBlock.VerifyIntegrity(bc.ChainID(), bc.ConsensusHandler()), ErrInvalidBlockHash)
 	ks := keystore.DefaultKS
