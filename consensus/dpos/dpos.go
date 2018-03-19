@@ -449,7 +449,7 @@ func (dpos *Dpos) checkDeadline(tail *core.Block, now int64) (int64, error) { //
 
 func (dpos *Dpos) checkProposer(tail *core.Block, now int64) (state.ConsensusState, error) {
 	slot := nextSlot(now)
-	proposer, err := dpos.findProposer(now)
+	proposer, err := dpos.findNextProposer(slot)
 	if err != nil {
 		return nil, err
 	}
@@ -595,7 +595,7 @@ func (dpos *Dpos) blockLoop() {
 	}
 }
 
-func (dpos *Dpos) findProposer(now int64) (proposer byteutils.Hash, err error) {
+func (dpos *Dpos) findNextProposer(now int64) (proposer byteutils.Hash, err error) {
 	validators, err := dpos.chain.TailBlock().Dynasty()
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{

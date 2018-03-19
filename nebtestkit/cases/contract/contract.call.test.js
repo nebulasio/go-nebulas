@@ -60,11 +60,11 @@ function prepareContractCall(testCase, done) {
 
         var accounts = new Array();
         var values = new Array();
-        // if (typeof contractAddr === "undefined") {
+        if (typeof contractAddr === "undefined") {
             deploy = Wallet.Account.NewAccount();
             accounts.push(deploy);
             values.push(neb.nasToBasic(1));
-        // }
+        }
 
         from = Wallet.Account.NewAccount();
         accounts.push(from);
@@ -72,11 +72,11 @@ function prepareContractCall(testCase, done) {
         var fromBalance = (typeof testCase.testInput.fromBalance === "undefined") ? neb.nasToBasic(1) : testCase.testInput.fromBalance;
         values.push(fromBalance);
         cliamTokens(accounts, values, function () {
-            // if (typeof contractAddr === "undefined") {
+            if (typeof contractAddr === "undefined") {
                 deployContract(done);
-            // } else {
-            //     done();
-            // }
+            } else {
+                done();
+            }
         });
 
     });
