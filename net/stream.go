@@ -234,6 +234,11 @@ func (s *Stream) Write(data []byte) error {
 		return ErrStreamIsNotConnected
 	}
 
+	// at least 5kb/s to write message
+	deadline := time.Now().Add(time.Duration(len(data)/1024/5+1) * time.Second)
+	if err := s.stream.SetWriteDeadline(deadline); err != nil {
+		return err
+	}
 	n, err := s.stream.Write(data)
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
