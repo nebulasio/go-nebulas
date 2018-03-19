@@ -15,6 +15,10 @@
 // You should have received a copy of the GNU General Public License
 // along with the go-nebulas library.  If not, see <http://www.gnu.org/licenses/>.
 //
+
+const Date = function () {};
+Math.random = function () {return 0;};
+
 const require = (function (global) {
     var PathRegexForNotLibFile = /^\.{0,2}\//;
     var modules = new Map();

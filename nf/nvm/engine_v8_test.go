@@ -118,6 +118,8 @@ func TestRunScriptSource(t *testing.T) {
 		{"test/test_storage_class.js", nil},
 		{"test/test_storage.js", nil},
 		{"test/test_eval.js", ErrExecutionFailed},
+		{"test/test_date.js", ErrExecutionFailed},
+		{"test/test_random.js", nil},
 	}
 
 	for _, tt := range tests {
