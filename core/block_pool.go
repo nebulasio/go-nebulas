@@ -235,9 +235,7 @@ func (pool *BlockPool) loop() {
 		case <-timerChan:
 			metricsCachedNewBlock.Update(int64(len(pool.receiveBlockMessageCh)))
 			metricsCachedDownloadBlock.Update(int64(len(pool.receiveDownloadBlockMessageCh)))
-
 			metricsLruPoolCacheBlock.Update(int64(pool.cache.Len()))
-			metricsLruPoolSlotBlock.Update(int64(pool.slot.Len()))
 		case <-pool.quitCh:
 			logging.CLog().Info("Stopped BlockPool.")
 			return

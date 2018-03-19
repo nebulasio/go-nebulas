@@ -57,6 +57,7 @@ var (
 var (
 	metricsBlockPackingTime = metrics.NewGauge("neb.block.packing")
 	metricsBlockWaitingTime = metrics.NewGauge("neb.block.waiting")
+	metricsLruPoolSlotBlock = metrics.NewGauge("neb.block.lru.poolslot")
 )
 
 // Dpos Delegate Proof-of-Stake
@@ -583,6 +584,7 @@ func (dpos *Dpos) blockLoop() {
 	for { // ToRefine: change loop logic, try more times second
 		select {
 		case now := <-timeChan:
+			metricsLruPoolSlotBlock.Update(int64(dpos.slot.Len()))
 			dpos.mintBlock(now.Unix())
 		case <-dpos.quitCh:
 			logging.CLog().Info("Stopped Dpos Mining.")

@@ -37,7 +37,6 @@ var (
 	metricsCachedNewBlock      = metrics.NewGauge("neb.block.new.cached")
 	metricsCachedDownloadBlock = metrics.NewGauge("neb.block.download.cached")
 	metricsLruPoolCacheBlock   = metrics.NewGauge("neb.block.lru.poolcached")
-	metricsLruPoolSlotBlock    = metrics.NewGauge("neb.block.lru.poolslot")
 	metricsLruCacheBlock       = metrics.NewGauge("neb.block.lru.blocks")
 	metricsLruTailBlock        = metrics.NewGauge("neb.block.lru.tailblock")
 
