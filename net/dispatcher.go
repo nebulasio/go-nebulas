@@ -100,6 +100,7 @@ func (dp *Dispatcher) loop() {
 			return
 		case msg := <-dp.receivedMessageCh:
 			msgType := msg.MessageType()
+
 			v, _ := dp.subscribersMap.Load(msgType)
 			m, _ := v.(*sync.Map)
 

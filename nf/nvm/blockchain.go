@@ -21,9 +21,11 @@ package nvm
 import "C"
 
 import (
-	"encoding/json"
 	"unsafe"
 
+	"encoding/json"
+
+	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/util"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
 	"github.com/nebulasio/go-nebulas/util/logging"
@@ -37,7 +39,11 @@ func GetTxByHashFunc(handler unsafe.Pointer, hash *C.char) *C.char {
 	if engine == nil || engine.ctx.block == nil {
 		return nil
 	}
-	tx, err := engine.ctx.SerializeTxByHash([]byte(C.GoString(hash)))
+	txHash, err := byteutils.FromHex(C.GoString(hash))
+	if err != nil {
+		return nil
+	}
+	txBytes, err := engine.ctx.state.GetTx(txHash)
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"handler": uint64(uintptr(handler)),
@@ -46,7 +52,26 @@ func GetTxByHashFunc(handler unsafe.Pointer, hash *C.char) *C.char {
 		}).Debug("GetTxByHashFunc get tx failed.")
 		return nil
 	}
-	return C.CString(string(tx))
+	sTx, err := toSerializableTransactionFromBytes(txBytes)
+	if err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"handler": uint64(uintptr(handler)),
+			"key":     C.GoString(hash),
+			"err":     err,
+		}).Debug("GetTxByHashFunc get tx failed.")
+		return nil
+	}
+	txJSON, err := json.Marshal(sTx)
+	if err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"handler": uint64(uintptr(handler)),
+			"key":     C.GoString(hash),
+			"err":     err,
+		}).Debug("GetTxByHashFunc get tx failed.")
+		return nil
+	}
+
+	return C.CString(string(txJSON))
 }
 
 // GetAccountStateFunc returns account info by address
@@ -56,9 +81,9 @@ func GetAccountStateFunc(handler unsafe.Pointer, address *C.char) *C.char {
 	if engine == nil || engine.ctx.block == nil {
 		return nil
 	}
-	addr := C.GoString(address)
-	valid := engine.ctx.block.VerifyAddress(addr)
-	if !valid {
+
+	addr, err := core.AddressParse(C.GoString(address))
+	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"handler": uint64(uintptr(handler)),
 			"key":     C.GoString(address),
@@ -66,7 +91,7 @@ func GetAccountStateFunc(handler unsafe.Pointer, address *C.char) *C.char {
 		return nil
 	}
 
-	acc, err := engine.ctx.txWorldState.GetOrCreateUserAccount([]byte(addr))
+	acc, err := engine.ctx.state.GetOrCreateUserAccount(addr.Bytes())
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"handler": uint64(uintptr(handler)),
@@ -75,11 +100,11 @@ func GetAccountStateFunc(handler unsafe.Pointer, address *C.char) *C.char {
 		}).Debug("GetAccountStateFunc get account state failed.")
 		return nil
 	}
-	state := &AccountState{
-		Nonce:   acc.Nonce(),
-		Balance: acc.Balance().String(),
+	state := toSerializableAccount(acc)
+	json, err := json.Marshal(state)
+	if err != nil {
+		return nil
 	}
-	json, _ := json.Marshal(state)
 	return C.CString(string(json))
 }
 
@@ -88,36 +113,27 @@ func GetAccountStateFunc(handler unsafe.Pointer, address *C.char) *C.char {
 func TransferFunc(handler unsafe.Pointer, to *C.char, v *C.char) int {
 	engine, _ := getEngineByStorageHandler(uint64(uintptr(handler)))
 	if engine == nil || engine.ctx.block == nil {
-		return 1
+		logging.VLog().Error("get engine failed!")
+		return TransferGetEngineErr
 	}
 
-	addr := C.GoString(to)
-	valid := engine.ctx.block.VerifyAddress(addr)
-	if !valid {
+	addr, err := core.AddressParse(C.GoString(to))
+	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"handler": uint64(uintptr(handler)),
 			"key":     C.GoString(to),
-		}).Debug("TransferFunc parse address failed.")
-		return 1
+		}).Error("TransferFunc parse address failed.")
+		return TransferAddressParseErr
 	}
 
-	bytes, err := byteutils.FromHex(addr)
-	if err != nil {
-		logging.VLog().WithFields(logrus.Fields{
-			"address": addr,
-			"err":     err,
-		}).Debug("TransferFunc decode address failed.")
-		return 1
-	}
-
-	toAcc, err := engine.ctx.txWorldState.GetOrCreateUserAccount(bytes)
+	toAcc, err := engine.ctx.state.GetOrCreateUserAccount(addr.Bytes())
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"handler": uint64(uintptr(handler)),
 			"address": addr,
 			"err":     err,
-		}).Debug("GetAccountStateFunc get account state failed.")
-		return 1
+		}).Error("GetAccountStateFunc get account state failed.")
+		return TransferGetAccountErr
 	}
 
 	amount, err := util.NewUint128FromString(C.GoString(v))
@@ -126,8 +142,8 @@ func TransferFunc(handler unsafe.Pointer, to *C.char, v *C.char) int {
 			"handler": uint64(uintptr(handler)),
 			"address": addr,
 			"err":     err,
-		}).Debug("GetAmountFunc get amount failed.")
-		return 1
+		}).Error("GetAmountFunc get amount failed.")
+		return TransferStringToBigIntErr
 	}
 
 	// update balance
@@ -137,8 +153,8 @@ func TransferFunc(handler unsafe.Pointer, to *C.char, v *C.char) int {
 			"handler": uint64(uintptr(handler)),
 			"key":     C.GoString(to),
 			"err":     err,
-		}).Debug("TransferFunc SubBalance failed.")
-		return 1
+		}).Error("TransferFunc SubBalance failed.")
+		return TransferSubBalance
 	}
 
 	err = toAcc.AddBalance(amount)
@@ -148,21 +164,16 @@ func TransferFunc(handler unsafe.Pointer, to *C.char, v *C.char) int {
 			"amout":   amount,
 			"address": addr,
 			"err":     err,
-		}).Debug("failed to add balance")
-		return 1
+		}).Error("failed to add balance")
+		return TransferAddBalance
 	}
-	return 0
+	return TransferFuncSuccess
 }
 
 // VerifyAddressFunc verify address is valid
 //export VerifyAddressFunc
 func VerifyAddressFunc(handler unsafe.Pointer, address *C.char) int {
-	engine, _ := getEngineByStorageHandler(uint64(uintptr(handler)))
-	if engine == nil || engine.ctx.block == nil {
-		return 0
-	}
-
-	if engine.ctx.block.VerifyAddress(C.GoString(address)) {
+	if _, err := core.AddressParse(C.GoString(address)); err != nil {
 		return 1
 	}
 	return 0

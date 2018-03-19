@@ -19,15 +19,14 @@
 package core
 
 import (
-	"errors"
 	"fmt"
+	"github.com/nebulasio/go-nebulas/core/state"
 	"time"
 
 	"encoding/json"
 
 	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/core/pb"
-	"github.com/nebulasio/go-nebulas/core/state"
 	"github.com/nebulasio/go-nebulas/crypto"
 	"github.com/nebulasio/go-nebulas/crypto/hash"
 	"github.com/nebulasio/go-nebulas/crypto/keystore"
@@ -35,6 +34,11 @@ import (
 	"github.com/nebulasio/go-nebulas/util/byteutils"
 	"github.com/nebulasio/go-nebulas/util/logging"
 	"github.com/sirupsen/logrus"
+)
+
+const (
+	// TxHashByteLength invalid tx hash length(len of []byte)
+	TxHashByteLength = 32
 )
 
 var (
@@ -53,14 +57,8 @@ var (
 	// GasCountPerByte per byte of data attached to a transaction gas cost
 	GasCountPerByte, _ = util.NewUint128FromInt(1)
 
-	// DelegateBaseGasCount is base gas count of delegate transaction
-	DelegateBaseGasCount, _ = util.NewUint128FromInt(20000)
-
-	// CandidateBaseGasCount is base gas count of candidate transaction
-	CandidateBaseGasCount, _ = util.NewUint128FromInt(20000)
-
-	// ZeroGasCount is zero gas count
-	ZeroGasCount = util.NewUint128()
+	// MaxDataPayLoadLength Max data length in transaction
+	MaxDataPayLoadLength = 1024 * 1024
 )
 
 // TransactionEvent transaction event
@@ -85,7 +83,7 @@ type Transaction struct {
 	gasLimit  *util.Uint128
 
 	// Signature
-	alg  uint8          // algorithm
+	alg  keystore.Algorithm
 	sign byteutils.Hash // Signature values
 }
 
@@ -163,8 +161,19 @@ func (tx *Transaction) ToProto() (proto.Message, error) {
 func (tx *Transaction) FromProto(msg proto.Message) error {
 	if msg, ok := msg.(*corepb.Transaction); ok {
 		tx.hash = msg.Hash
-		tx.from = &Address{msg.From}
-		tx.to = &Address{msg.To}
+
+		from, err := AddressParseFromBytes(msg.From)
+		if err != nil {
+			return err
+		}
+		tx.from = from
+
+		to, err := AddressParseFromBytes(msg.To)
+		if err != nil {
+			return err
+		}
+		tx.to = to
+
 		value, err := util.NewUint128FromFixedSizeByteSlice(msg.Value)
 		if err != nil {
 			return err
@@ -172,6 +181,15 @@ func (tx *Transaction) FromProto(msg proto.Message) error {
 		tx.value = value
 		tx.nonce = msg.Nonce
 		tx.timestamp = msg.Timestamp
+
+		data := msg.Data
+		if data == nil {
+			return ErrInvalidTransactionData
+		}
+		if len(data.Payload) > MaxDataPayLoadLength {
+			return ErrTxDataPayLoadOutOfMaxLength
+		}
+
 		tx.data = msg.Data
 		tx.chainID = msg.ChainId
 		gasPrice, err := util.NewUint128FromFixedSizeByteSlice(msg.GasPrice)
@@ -184,11 +202,11 @@ func (tx *Transaction) FromProto(msg proto.Message) error {
 			return err
 		}
 		tx.gasLimit = gasLimit
-		tx.alg = uint8(msg.Alg)
+		tx.alg = keystore.Algorithm(msg.Alg)
 		tx.sign = msg.Sign
 		return nil
 	}
-	return errors.New("Protobug Message cannot be converted into Transaction")
+	return ErrInvalidProtoToTransaction
 }
 
 func (tx *Transaction) String() string {
@@ -210,13 +228,26 @@ func (tx *Transaction) String() string {
 type Transactions []*Transaction
 
 // NewTransaction create #Transaction instance.
-func NewTransaction(chainID uint32, from, to *Address, value *util.Uint128, nonce uint64, payloadType string, payload []byte, gasPrice *util.Uint128, gasLimit *util.Uint128) *Transaction {
+func NewTransaction(chainID uint32, from, to *Address, value *util.Uint128, nonce uint64, payloadType string, payload []byte, gasPrice *util.Uint128, gasLimit *util.Uint128) (*Transaction, error) {
 	//if gasPrice is not specified, use the default gasPrice
 	if gasPrice == nil || gasPrice.Cmp(util.NewUint128()) <= 0 {
 		gasPrice = TransactionGasPrice
 	}
 	if gasLimit == nil || gasLimit.Cmp(util.NewUint128()) <= 0 {
 		gasLimit = MinGasCountPerTransaction
+	}
+
+	if nil == from || nil == to || nil == value {
+		logging.VLog().WithFields(logrus.Fields{
+			"from":  from,
+			"to":    to,
+			"value": value,
+		}).Error("invalid parameters")
+		return nil, ErrInvalidArgument
+	}
+
+	if len(payload) > MaxDataPayLoadLength {
+		return nil, ErrTxDataPayLoadOutOfMaxLength
 	}
 
 	tx := &Transaction{
@@ -230,7 +261,7 @@ func NewTransaction(chainID uint32, from, to *Address, value *util.Uint128, nonc
 		gasPrice:  gasPrice,
 		gasLimit:  gasLimit,
 	}
-	return tx
+	return tx, nil
 }
 
 // Hash return the hash of transaction.
@@ -250,6 +281,10 @@ func (tx *Transaction) GasLimit() *util.Uint128 {
 
 // PayloadGasLimit returns payload gasLimit
 func (tx *Transaction) PayloadGasLimit(payload TxPayload) (*util.Uint128, error) {
+	if payload == nil {
+		return nil, ErrNilArgument
+	}
+
 	// payloadGasLimit = tx.gasLimit - tx.GasCountOfTxBase
 	gasCountOfTxBase, err := tx.GasCountOfTxBase()
 	if err != nil {
@@ -266,7 +301,7 @@ func (tx *Transaction) PayloadGasLimit(payload TxPayload) (*util.Uint128, error)
 	return payloadGasLimit, nil
 }
 
-// MinBalanceRequired returns gasprice * gaslimit.
+// MinBalanceRequired returns gasprice * gaslimit + tx.value.
 func (tx *Transaction) MinBalanceRequired() (*util.Uint128, error) {
 	total, err := tx.GasPrice().Mul(tx.GasLimit())
 	if err != nil {
@@ -325,12 +360,10 @@ func (tx *Transaction) LoadPayload() (TxPayload, error) {
 }
 
 // LocalExecution returns tx local execution
-func (tx *Transaction) LocalExecution(block *Block) (*util.Uint128, string, error) {
-	hash, err := HashTransaction(tx)
-	if err != nil {
-		return nil, "", err
+func (tx *Transaction) localExecution(block *Block) (*util.Uint128, string, error) {
+	if block == nil {
+		return nil, "", ErrNilArgument
 	}
-	tx.hash = hash
 
 	txWorldState, err := block.Prepare(tx)
 	if err != nil {
@@ -339,59 +372,51 @@ func (tx *Transaction) LocalExecution(block *Block) (*util.Uint128, string, erro
 
 	payload, err := tx.LoadPayload()
 	if err != nil {
-		return util.NewUint128(), "", err
+		return nil, "", err
 	}
 
 	gasUsed, err := tx.GasCountOfTxBase()
 	if err != nil {
-		return util.NewUint128(), "", err
+		return nil, "", err
 	}
 
 	gasUsed, err = gasUsed.Add(payload.BaseGasCount())
 	if err != nil {
-		return util.NewUint128(), "", err
+		return nil, "", err
 	}
 
 	gasExecution, result, exeErr := payload.Execute(tx, block, txWorldState)
 	gas, err := gasUsed.Add(gasExecution)
 	if err != nil {
-		return gasUsed, result, err
+		return nil, result, err
 	}
 
-	if err := block.Reset(tx); err != nil {
+	if err := block.Close(tx); err != nil {
 		return util.NewUint128(), "", err
-	}
+	} // ToRefine: clone
 
 	return gas, result, exeErr
 }
 
 // VerifyExecution transaction and return result.
 func VerifyExecution(tx *Transaction, block *Block, txWorldState state.TxWorldState) error {
-
+	// step1. check balance > gasLimit * gasPrice + value
 	if err := tx.checkBalance(block, txWorldState); err != nil {
 		return ErrInsufficientBalance
 	}
 
-	// gasLimit < gasUsed
+	// step2. calculate base gas
 	gasUsed, err := tx.GasCountOfTxBase()
 	if err != nil {
 		logging.VLog().Info("VEE 1")
 		return err
 	}
-	if tx.gasLimit.Cmp(gasUsed) < 0 {
-		logging.VLog().WithFields(logrus.Fields{
-			"error":       ErrOutOfGasLimit,
-			"transaction": tx,
-			"limit":       tx.gasLimit.String(),
-			"used":        gasUsed.String(),
-		}).Debug("Failed to store the payload on chain.")
-		return ErrOutOfGasLimit
-	}
 
-	payload, err := tx.LoadPayload()
-	if err != nil {
+	// step3. check payload vaild
+	payload, payloadErr := tx.LoadPayload()
+	if payloadErr != nil {
 		logging.VLog().WithFields(logrus.Fields{
-			"error":       err,
+			"payloadErr":  payloadErr,
 			"block":       block,
 			"transaction": tx,
 		}).Debug("Failed to load payload.")
@@ -401,10 +426,13 @@ func VerifyExecution(tx *Transaction, block *Block, txWorldState state.TxWorldSt
 			logging.VLog().Info("AEE 2")
 			return err
 		}
-		tx.triggerEvent(txWorldState, block, TopicExecuteTxFailed, gasUsed, err)
+		if err := tx.recordResultEvent(gasUsed, payloadErr, txWorldState); err != nil {
+			return err
+		}
 		return nil
 	}
 
+	// step4. check gasLimit > gas + payload.baseGasCount
 	gasUsed, err = gasUsed.Add(payload.BaseGasCount())
 	if err != nil {
 		logging.VLog().Info("AEE 3")
@@ -422,10 +450,17 @@ func VerifyExecution(tx *Transaction, block *Block, txWorldState state.TxWorldSt
 			logging.VLog().Info("AEE 4")
 			return err
 		}
-		tx.triggerEvent(txWorldState, block, TopicExecuteTxFailed, tx.gasLimit, ErrOutOfGasLimit)
+		if err := tx.recordResultEvent(tx.gasLimit, ErrOutOfGasLimit, txWorldState); err != nil {
+			return err
+		}
 		return nil
 	}
 
+	if err := transfer(tx.from.address, tx.to.address, tx.value, txWorldState); err != nil {
+		return err
+	}
+
+	// step6. execute payload
 	// execute smart contract and sub the calcute gas.
 	gasExecution, _, exeErr := payload.Execute(tx, block, txWorldState)
 	if exeErr != nil {
@@ -458,7 +493,9 @@ func VerifyExecution(tx *Transaction, block *Block, txWorldState state.TxWorldSt
 			logging.VLog().Info("AEE 8")
 			return err
 		}
-		tx.triggerEvent(txWorldState, block, TopicExecuteTxFailed, tx.gasLimit, ErrOutOfGasLimit)
+		if err := tx.recordResultEvent(tx.gasLimit, ErrOutOfGasLimit, txWorldState); err != nil {
+			return err
+		}
 		return nil
 	}
 	tx.recordGas(allGas, txWorldState)
@@ -468,23 +505,17 @@ func VerifyExecution(tx *Transaction, block *Block, txWorldState state.TxWorldSt
 			"exeErr":       exeErr,
 			"block":        block,
 			"tx":           tx,
-			"gasUsed":      gasUsed.String(),
-			"gasExecution": gasExecution.String(),
+			"gasUsed":      gasUsed,
+			"gasExecution": gasExecution,
 		}).Debug("Failed to execute payload.")
-
 		go metricsTxExeFailed.Mark(1)
-		tx.triggerEvent(txWorldState, block, TopicExecuteTxFailed, allGas, exeErr)
 	} else {
-		// accept the transaction
-		if err := transfer(tx.from.address, tx.to.address, tx.value, txWorldState); err != nil {
-			logging.VLog().Info("AEE 9")
-			return err
-		}
-
 		go metricsTxExeSuccess.Mark(1)
-		tx.triggerEvent(txWorldState, block, TopicExecuteTxSuccess, allGas, nil)
 	}
 
+	if err := tx.recordResultEvent(allGas, exeErr, txWorldState); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -537,7 +568,7 @@ func transfer(from, to byteutils.Hash, value *util.Uint128, txWorldState state.T
 	return nil
 }
 
-func (tx *Transaction) triggerEvent(txWorldState state.TxWorldState, block *Block, topic string, gasUsed *util.Uint128, err error) {
+func (tx *Transaction) recordResultEvent(gasUsed *util.Uint128, err error, txWorldState state.TxWorldState) error {
 	txEvent := &TransactionEvent{
 		Hash:    tx.hash.String(),
 		GasUsed: gasUsed.String(),
@@ -549,17 +580,23 @@ func (tx *Transaction) triggerEvent(txWorldState state.TxWorldState, block *Bloc
 		txEvent.Status = TxExecutionSuccess
 	}
 
-	txData, _ := json.Marshal(txEvent)
+	txData, err := json.Marshal(txEvent)
+	if err != nil {
+		return err
+	}
 
 	event := &state.Event{
 		Topic: TopicTransactionExecutionResult,
 		Data:  string(txData),
 	}
-	txWorldState.RecordEvent(tx.hash, event)
+	return txWorldState.RecordEvent(tx.hash, event)
 }
 
 // Sign sign transaction,sign algorithm is
 func (tx *Transaction) Sign(signature keystore.Signature) error {
+	if signature == nil {
+		return ErrNilArgument
+	}
 	hash, err := HashTransaction(tx)
 	if err != nil {
 		return err
@@ -569,7 +606,7 @@ func (tx *Transaction) Sign(signature keystore.Signature) error {
 		return err
 	}
 	tx.hash = hash
-	tx.alg = uint8(signature.Algorithm())
+	tx.alg = signature.Algorithm()
 	tx.sign = sign
 	return nil
 }
@@ -591,15 +628,12 @@ func (tx *Transaction) VerifyIntegrity(chainID uint32) error {
 	}
 
 	// check Signature.
-	if err := tx.verifySign(); err != nil {
-		return err
-	}
+	return tx.verifySign()
 
-	return nil
 }
 
 func (tx *Transaction) verifySign() error {
-	signature, err := crypto.NewSignature(keystore.Algorithm(tx.alg))
+	signature, err := crypto.NewSignature(tx.alg)
 	if err != nil {
 		return err
 	}
@@ -631,19 +665,19 @@ func (tx *Transaction) GenerateContractAddress() (*Address, error) {
 }
 
 // CheckContract check if contract is valid
-func CheckContract(addr *Address, txWorldState state.TxWorldState) error {
+func CheckContract(addr *Address, txWorldState state.TxWorldState) (state.Account, error) {
 	contract, err := txWorldState.GetContractAccount(addr.Bytes())
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if len(contract.BirthPlace()) == 0 {
-		return state.ErrAccountNotFound
+		return nil, state.ErrAccountNotFound
 	}
 
 	birthEvents, err := txWorldState.FetchEvents(contract.BirthPlace())
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	result := false
@@ -656,16 +690,13 @@ func CheckContract(addr *Address, txWorldState state.TxWorldState) error {
 				result = true
 				break
 			}
-		} else if v.Topic == TopicExecuteTxSuccess {
-			result = true
-			break
 		}
 	}
 	if !result {
-		return state.ErrAccountNotFound
+		return nil, state.ErrAccountNotFound
 	}
 
-	return nil
+	return contract, nil
 }
 
 // CheckTransaction in a tx world state
@@ -718,6 +749,9 @@ func AcceptTransaction(tx *Transaction, txWorldState state.TxWorldState) error {
 
 // GetTransaction from txs Trie
 func GetTransaction(hash byteutils.Hash, txWorldState state.TxWorldState) (*Transaction, error) {
+	if len(hash) != TxHashByteLength {
+		return nil, ErrInvalidArgument
+	}
 	bytes, err := txWorldState.GetTx(hash)
 	if err != nil {
 		return nil, err

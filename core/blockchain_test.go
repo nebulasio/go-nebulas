@@ -51,7 +51,7 @@ func TestBlockChain_FindCommonAncestorWithTail(t *testing.T) {
 	block0.Seal()
 	assert.Nil(t, bc.BlockPool().Push(block0))
 	bc.SetTailBlock(block0)
-	assert.Equal(t, bc.latestIrreversibleBlock, bc.genesisBlock)
+	assert.Equal(t, bc.lib, bc.genesisBlock)
 
 	coinbase11 := mockAddress()
 	coinbase12 := mockAddress()
@@ -80,9 +80,9 @@ func TestBlockChain_FindCommonAncestorWithTail(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Nil(t, bc.BlockPool().Push(netBlock12))
 	bc.SetTailBlock(block12)
-	assert.Equal(t, bc.latestIrreversibleBlock, bc.genesisBlock)
+	assert.Equal(t, bc.lib, bc.genesisBlock)
 	bc.SetTailBlock(block11)
-	assert.Equal(t, bc.latestIrreversibleBlock, bc.genesisBlock)
+	assert.Equal(t, bc.lib, bc.genesisBlock)
 	block111, _ := bc.NewBlock(coinbase111)
 	block111.header.timestamp = BlockInterval * 4
 	block111.Seal()
@@ -90,7 +90,7 @@ func TestBlockChain_FindCommonAncestorWithTail(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Nil(t, bc.BlockPool().Push(netBlock111))
 	bc.SetTailBlock(block12)
-	assert.Equal(t, bc.latestIrreversibleBlock, bc.genesisBlock)
+	assert.Equal(t, bc.lib, bc.genesisBlock)
 	block221, _ := bc.NewBlock(coinbase221)
 	block221.header.timestamp = BlockInterval * 5
 	block222, _ := bc.NewBlock(coinbase222)
@@ -104,7 +104,7 @@ func TestBlockChain_FindCommonAncestorWithTail(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Nil(t, bc.BlockPool().Push(netBlock222))
 	bc.SetTailBlock(block111)
-	assert.Equal(t, bc.latestIrreversibleBlock, bc.genesisBlock)
+	assert.Equal(t, bc.lib, bc.genesisBlock)
 	block1111, _ := bc.NewBlock(coinbase1111)
 	block1111.header.timestamp = BlockInterval * 7
 	block1111.Seal()
@@ -112,7 +112,7 @@ func TestBlockChain_FindCommonAncestorWithTail(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Nil(t, bc.BlockPool().Push(netBlock1111))
 	bc.SetTailBlock(block222)
-	assert.Equal(t, bc.latestIrreversibleBlock, bc.genesisBlock)
+	assert.Equal(t, bc.lib, bc.genesisBlock)
 	tails := bc.DetachedTailBlocks()
 	for _, v := range tails {
 		if v.Hash().Equals(block221.Hash()) ||
@@ -173,7 +173,7 @@ func TestBlockChain_FindCommonAncestorWithTail(t *testing.T) {
 	assert.Equal(t, result, "["+block222.String()+","+block12.String()+","+block0.String()+","+bc.genesisBlock.String()+"]")
 
 	bc.SetTailBlock(block1111)
-	assert.Equal(t, bc.latestIrreversibleBlock, bc.genesisBlock)
+	assert.Equal(t, bc.lib, bc.genesisBlock)
 
 	block11111, _ := bc.NewBlock(coinbase11111)
 	block11111.header.timestamp = BlockInterval * 8
@@ -208,7 +208,6 @@ func TestBlockChain_FetchDescendantInCanonicalChain(t *testing.T) {
 	var blocks []*Block
 	for i := 0; i < 6; i++ {
 		block, _ := bc.NewBlock(coinbase)
-		block.header.timestamp = BlockInterval * int64(i+3)
 		blocks = append(blocks, block)
 		block.Seal()
 		bc.BlockPool().Push(block)
@@ -242,7 +241,7 @@ func TestBlockChain_EstimateGas(t *testing.T) {
 	neb := testNeb(t)
 	bc := neb.chain
 	gasLimit, _ := util.NewUint128FromInt(200000)
-	tx := NewTransaction(bc.ChainID(), from, to, util.NewUint128(), 1, TxPayloadBinaryType, payload, TransactionGasPrice, gasLimit)
+	tx, _ := NewTransaction(bc.ChainID(), from, to, util.NewUint128(), 1, TxPayloadBinaryType, payload, TransactionGasPrice, gasLimit)
 
 	_, err = bc.EstimateGas(tx)
 	assert.Nil(t, err)
@@ -274,9 +273,9 @@ func TestGetPrice(t *testing.T) {
 	lowerGasPrice, err := TransactionGasPrice.Sub(GasPriceDetla)
 	assert.Nil(t, err)
 	gasLimit, _ := util.NewUint128FromInt(200000)
-	tx1 := NewTransaction(bc.ChainID(), from, from, util.NewUint128(), 1, TxPayloadBinaryType, []byte("nas"), lowerGasPrice, gasLimit)
+	tx1, _ := NewTransaction(bc.ChainID(), from, from, util.NewUint128(), 1, TxPayloadBinaryType, []byte("nas"), lowerGasPrice, gasLimit)
 	tx1.Sign(signature)
-	tx2 := NewTransaction(bc.ChainID(), from, from, util.NewUint128(), 2, TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, gasLimit)
+	tx2, _ := NewTransaction(bc.ChainID(), from, from, util.NewUint128(), 2, TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, gasLimit)
 	tx2.Sign(signature)
 	block.transactions = append(block.transactions, tx1)
 	block.transactions = append(block.transactions, tx2)

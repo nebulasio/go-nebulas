@@ -3,6 +3,7 @@ syntax = "proto3";
 
 //import "google/api/annotations.proto";
 
+import "../../../../neblet/pb/config.proto";
 package rpcpb;
 
 // RPC API interface.
@@ -156,7 +157,13 @@ service ApiService {
             post: "/v1/user/delegateVoters"
             body: "*"
 		};
-	}    
+    }    
+    
+    rpc GetConfig (NonParamsRequest) returns (GetConfigResponse) {
+        option (google.api.http) = {
+            get: "/v1/user/getConfig"
+        };
+    }
 
 }
 
@@ -690,3 +697,7 @@ message PprofResponse {
     bool result = 1;
 }
 
+message GetConfigResponse {
+    // Config
+    nebletpb.Config config = 1;
+}

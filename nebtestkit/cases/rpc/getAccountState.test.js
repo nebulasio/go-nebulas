@@ -1,7 +1,8 @@
 'use strict';
 var expect = require('chai').expect;
 var rpc_client = require('./rpc_client/rpc_client.js');
-
+var Wallet = require("../../../cmd/console/neb.js/lib/wallet");
+var Account = Wallet.Account;
 var protocol_version = '/neb/1.0.0'
 var node_version = '0.7.0'
 var server_address = 'localhost:8684';
@@ -64,7 +65,7 @@ describe('rpc: getAccountState', function () {
   before(function () {
     client = rpc_client.new_client(server_address);
   });
-
+  
   it('normal rpc', function (done) {
     var testInput = {
       rpcInput: {
@@ -81,10 +82,11 @@ describe('rpc: getAccountState', function () {
     testRpc(testInput, testExpect, done);
   })
 
+  console.log(Account.NewAccount().getAddressString());
   it('address is not exist', function (done) {
     var testInput = {
       rpcInput: {
-        address: 'b7d83b44a3719220ec54cdb9f54c0202de68f1ebcb927b4f',
+        address: Account.NewAccount().getAddressString(),
         height: 0
       },
       isNormal: false
@@ -92,11 +94,10 @@ describe('rpc: getAccountState', function () {
 
     var testExpect = {
       isNormalOutput: false,
-      errMsg: 'address: invalid address'
     }
     
     testRpc(testInput, testExpect, done);
-  })
+  });
 
   it('address is invalid', function (done) {
     var testInput = {

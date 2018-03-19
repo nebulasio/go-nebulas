@@ -19,34 +19,23 @@ if (env === 'testneb1') {
 }
 
 var client;
-
+var maxLengthResponse;
+var oneBlockResponse;
+var maxCount = 10;
 describe('rpc: blockDump', function () {
   before(function () {
     client = rpc_client.new_client(server_address);
   });
 
-  it('normal rpc', function (done) {
-    client.blockDump({count: 111111111}, function (err, response) {
+  it('dump block count is one', function (done) {
+    client.blockDump({count: 1}, function (err, response) {
       if (err != null) {
         done(err);
         return;
       } else {
         try {
-          //         verify_respone(response)
           console.log(response);
-          //TODO：modify the rpc
-          /*
-          expect(response.chain_id).to.be.equal(chain_id);
-          expect(response.chain_id).to.be.a('number');
-          expect(response.tail).to.be.a('string');
-          expect(response.height).to.be.a('string');
-          expect(response.coinbase).to.be.equal(coinbase);
-          expect(response.peer_count).to.be.a('number');
-          expect(response.is_mining).to.equal(false);
-          expect(response.protocol_version).to.equal(protocol_version);
-          expect(response.synchronized).to.be.an('boolean');
-          expect(response.version).to.equal(node_version);
-          */
+          oneBlockResponse = response;
         } catch (err) {
           done(err);
           return;
@@ -55,6 +44,49 @@ describe('rpc: blockDump', function () {
         return;
       }
     });
+  });
+
+  it('dump block count is negative', function (done) {
+    client.blockDump({count: -1}, function (err, response) {
+      try {
+        expect(err.details).to.be.equal("invalid count");
+      } catch (err) {
+        done(err);
+        return;
+      }
+      done()
+    });
+  });
+
+  it('dump block count is max', function (done) {
+    client.blockDump({count: maxCount}, function (err, response) {
+      if (err != null) {
+        done(err);
+        return;
+      } else {
+        try {
+          console.log(response);
+          maxLengthResponse = response;
+        } catch (err) {
+          done(err);
+          return;
+        }
+        done()
+        return;
+      }
+    });
+  })
+
+  it('block count is more than max count of block could be dumped once', function (done) {
+    client.blockDump({count: 11}, function (err, response) {
+      try {
+        expect(err.details).to.be.equal("the max count of blocks could be dumped once is 10");
+      } catch (err) {
+        done(err);
+        return;
+      }
+      done()
+    })
   })
 
 });

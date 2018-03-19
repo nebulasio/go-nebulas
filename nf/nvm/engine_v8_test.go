@@ -21,7 +21,6 @@ package nvm
 import (
 	"bufio"
 	"bytes"
-	"flag"
 	"fmt"
 	"io/ioutil"
 	"math/big"
@@ -32,9 +31,11 @@ import (
 
 	"encoding/json"
 
-	"github.com/gogo/protobuf/proto"
-	"github.com/nebulasio/go-nebulas/core/pb"
+	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/core/state"
+	"github.com/nebulasio/go-nebulas/crypto"
+	"github.com/nebulasio/go-nebulas/crypto/keystore"
+	"github.com/nebulasio/go-nebulas/crypto/keystore/secp256k1"
 	"github.com/nebulasio/go-nebulas/storage"
 	"github.com/nebulasio/go-nebulas/util"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
@@ -42,77 +43,68 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestMain(m *testing.M) {
-	flag.Parse()
-	os.Exit(m.Run())
-}
-
 func newUint128FromIntWrapper(a int64) *util.Uint128 {
 	b, _ := util.NewUint128FromInt(a)
 	return b
 }
 
-type mockBlock struct {
+type testBlock struct {
 }
 
-func (m *mockBlock) CoinbaseHash() byteutils.Hash {
-	return []byte("8a209cec02cbeab7e2f74ad969d2dfe8dd24416aa65589bf")
+// Coinbase mock
+func (block *testBlock) Coinbase() *core.Address {
+	addr, _ := core.AddressParse("1a263547d167c74cf4b8f9166cfa244de0481c514a45aa2c")
+	return addr
 }
 
-func (m *mockBlock) Nonce() uint64 {
+// Hash mock
+func (block *testBlock) Hash() byteutils.Hash {
+	return []byte("59fc526072b09af8a8ca9732dae17132c4e9127e43cf2232")
+}
+
+// Height mock
+func (block *testBlock) Height() uint64 {
 	return 1
 }
 
-func (m *mockBlock) Hash() byteutils.Hash {
-	return []byte("c7174759e86c59dcb7df87def82f61eb")
+// GetTransaction mock
+func (block *testBlock) GetTransaction(hash byteutils.Hash) (*core.Transaction, error) {
+	return nil, nil
 }
 
-func (m *mockBlock) Height() uint64 {
-	return 2
-}
-
-func (m *mockBlock) VerifyAddress(str string) bool {
-	return true
-}
-
-func (m *mockBlock) RecordEvent(txHash byteutils.Hash, topic, data string) error {
+// RecordEvent mock
+func (block *testBlock) RecordEvent(txHash byteutils.Hash, topic, data string) error {
 	return nil
 }
 
-func (m *mockBlock) SerializeTxByHash(hash byteutils.Hash) (proto.Message, error) {
-	from, _ := byteutils.FromHex("8a209cec02cbeab7e2f74ad969d2dfe8dd24416aa65589bf")
-	to, _ := byteutils.FromHex("22ac3a9a2b1c31b7a9084e46eae16e761f83f0234092b09")
-	value, _ := util.NewUint128FromString("10")
-	valueBytes, _ := value.ToFixedSizeByteSlice()
-	gasPrice, _ := util.NewUint128FromString("1")
-	gasPriceBytes, _ := gasPrice.ToFixedSizeByteSlice()
-	gasLimit, _ := util.NewUint128FromString("100")
-	gasLimitBytes, _ := gasLimit.ToFixedSizeByteSlice()
-	block := &corepb.Transaction{
-		From:     from,
-		To:       to,
-		Value:    valueBytes,
-		GasPrice: gasPriceBytes,
-		GasLimit: gasLimitBytes,
-		Hash:     hash,
-	}
-	return proto.Message(block), nil
+func (block *testBlock) Timestamp() int64 {
+	return int64(0)
 }
 
-func testContextBlock() Block {
-	return new(mockBlock)
+func mockBlock() Block {
+	block := &testBlock{}
+	return block
 }
 
-func testContextTransaction() *ContextTransaction {
-	return &ContextTransaction{
-		From:     "8a209cec02cbeab7e2f74ad969d2dfe8dd24416aa65589bf",
-		To:       "22ac3a9a2b1c31b7a9084e46eae16e761f83f02324092b09",
-		Value:    "5",
-		Nonce:    3,
-		Hash:     "c7174759e86c59dcb7df87def82f61eb",
-		GasPrice: newUint128FromIntWrapper(1).String(),
-		GasLimit: newUint128FromIntWrapper(10).String(),
-	}
+func mockTransaction() *core.Transaction {
+	return mockNormalTransaction("8a209cec02cbeab7e2f74ad969d2dfe8dd24416aa65589bf", "22ac3a9a2b1c31b7a9084e46eae16e761f83f02324092b09", "0")
+}
+
+func mockNormalTransaction(from, to, value string) *core.Transaction {
+
+	fromAddr, _ := core.AddressParse(from)
+	toAddr, _ := core.AddressParse(to)
+	payload, _ := core.NewBinaryPayload(nil).ToBytes()
+	gasPrice, _ := util.NewUint128FromString("1000000")
+	gasLimit, _ := util.NewUint128FromString("2000000")
+	v, _ := util.NewUint128FromString(value)
+	tx, _ := core.NewTransaction(1, fromAddr, toAddr, v, 1, core.TxPayloadBinaryType, payload, gasPrice, gasLimit)
+
+	priv1 := secp256k1.GeneratePrivateKey()
+	signature, _ := crypto.NewSignature(keystore.SECP256K1)
+	signature.InitSign(priv1)
+	tx.Sign(signature)
+	return tx
 }
 
 func TestRunScriptSource(t *testing.T) {
@@ -139,7 +131,7 @@ func TestRunScriptSource(t *testing.T) {
 			assert.Nil(t, err)
 			owner.AddBalance(newUint128FromIntWrapper(1000000000))
 			contract, _ := context.CreateContractAccount([]byte("account2"), nil)
-			ctx := NewContext(testContextBlock(), testContextTransaction(), owner, contract, context)
+			ctx, err := NewContext(mockBlock(), mockTransaction(), owner, contract, context)
 
 			engine := NewV8Engine(ctx)
 			engine.SetExecutionLimits(900000, 10000000)
@@ -176,7 +168,7 @@ func TestRunScriptSourceInModule(t *testing.T) {
 			assert.Nil(t, err)
 			owner.AddBalance(newUint128FromIntWrapper(1000000000))
 			contract, _ := context.CreateContractAccount([]byte("account2"), nil)
-			ctx := NewContext(testContextBlock(), testContextTransaction(), owner, contract, context)
+			ctx, err := NewContext(mockBlock(), mockTransaction(), owner, contract, context)
 
 			engine := NewV8Engine(ctx)
 			engine.SetExecutionLimits(100000, 10000000)
@@ -219,7 +211,7 @@ func TestRunScriptSourceWithLimits(t *testing.T) {
 			assert.Nil(t, err)
 			owner.AddBalance(newUint128FromIntWrapper(100000))
 			contract, _ := context.CreateContractAccount([]byte("account2"), nil)
-			ctx := NewContext(testContextBlock(), testContextTransaction(), owner, contract, context)
+			ctx, err := NewContext(mockBlock(), mockTransaction(), owner, contract, context)
 
 			// direct run.
 			(func() {
@@ -264,7 +256,7 @@ func TestRunScriptSourceTimeout(t *testing.T) {
 			owner, err := context.GetOrCreateUserAccount([]byte("account1"))
 			assert.Nil(t, err)
 			contract, _ := context.CreateContractAccount([]byte("account2"), nil)
-			ctx := NewContext(testContextBlock(), testContextTransaction(), owner, contract, context)
+			ctx, err := NewContext(mockBlock(), mockTransaction(), owner, contract, context)
 
 			// direct run.
 			(func() {
@@ -312,7 +304,7 @@ func TestDeployAndInitAndCall(t *testing.T) {
 			owner.AddBalance(newUint128FromIntWrapper(10000000))
 			contract, _ := context.CreateContractAccount([]byte("account2"), nil)
 
-			ctx := NewContext(testContextBlock(), testContextTransaction(), owner, contract, context)
+			ctx, err := NewContext(mockBlock(), mockTransaction(), owner, contract, context)
 			engine := NewV8Engine(ctx)
 			engine.SetExecutionLimits(10000, 10000000)
 			_, err = engine.DeployAndInit(string(data), tt.sourceType, tt.initArgs)
@@ -339,7 +331,7 @@ func TestDeployAndInitAndCall(t *testing.T) {
 			contract, err = context.CreateContractAccount([]byte("account2"), nil)
 			assert.Nil(t, err)
 
-			ctx = NewContext(testContextBlock(), testContextTransaction(), owner, contract, context)
+			ctx, err = NewContext(mockBlock(), mockTransaction(), owner, contract, context)
 			engine = NewV8Engine(ctx)
 			engine.SetExecutionLimits(10000, 10000000)
 			_, err = engine.Call(string(data), tt.sourceType, "verify", tt.verifyArgs)
@@ -392,7 +384,7 @@ func TestContracts(t *testing.T) {
 			owner.AddBalance(newUint128FromIntWrapper(10000000))
 			contract, err := context.CreateContractAccount([]byte("account2"), nil)
 			assert.Nil(t, err)
-			ctx := NewContext(testContextBlock(), testContextTransaction(), owner, contract, context)
+			ctx, err := NewContext(mockBlock(), mockTransaction(), owner, contract, context)
 
 			// deploy and init.
 			engine := NewV8Engine(ctx)
@@ -424,8 +416,8 @@ func TestFunctionNameCheck(t *testing.T) {
 		{"dump_1", nil, ""},
 		{"init", ErrDisallowCallPrivateFunction, ""},
 		{"Init", ErrDisallowCallPrivateFunction, ""},
-		{"9dump", ErrDisallowCallPrivateFunction, ""},
-		{"_dump", ErrDisallowCallPrivateFunction, ""},
+		{"9dump", ErrDisallowCallNotStandardFunction, ""},
+		{"_dump", ErrDisallowCallNotStandardFunction, ""},
 	}
 
 	for _, tt := range tests {
@@ -440,7 +432,7 @@ func TestFunctionNameCheck(t *testing.T) {
 			assert.Nil(t, err)
 			owner.AddBalance(newUint128FromIntWrapper(1000000))
 			contract, _ := context.CreateContractAccount([]byte("account2"), nil)
-			ctx := NewContext(testContextBlock(), testContextTransaction(), owner, contract, context)
+			ctx, err := NewContext(mockBlock(), mockTransaction(), owner, contract, context)
 
 			engine := NewV8Engine(ctx)
 			engine.SetExecutionLimits(1000, 10000000)
@@ -465,13 +457,13 @@ func TestMultiEngine(t *testing.T) {
 		go func() {
 			defer wg.Done()
 
-			ctx := NewContext(testContextBlock(), testContextTransaction(), owner, contract, context)
+			ctx, err := NewContext(mockBlock(), mockTransaction(), owner, contract, context)
 
 			engine := NewV8Engine(ctx)
 			engine.SetExecutionLimits(1000, 10000000)
 			defer engine.Dispose()
 
-			_, err := engine.RunScriptSource("console.log('running.');", 0)
+			_, err = engine.RunScriptSource("console.log('running.');", 0)
 			assert.Nil(t, err)
 		}()
 	}
@@ -512,7 +504,7 @@ func TestInstructionCounterTestSuite(t *testing.T) {
 			owner.AddBalance(newUint128FromIntWrapper(1000000000))
 			contract, err := context.CreateContractAccount([]byte("account2"), nil)
 			assert.Nil(t, err)
-			ctx := NewContext(testContextBlock(), testContextTransaction(), owner, contract, context)
+			ctx, err := NewContext(mockBlock(), mockTransaction(), owner, contract, context)
 
 			moduleID := tt.filepath
 			runnableSource := fmt.Sprintf("require(\"%s\");", moduleID)
@@ -551,7 +543,7 @@ func TestTypeScriptExecution(t *testing.T) {
 			owner.AddBalance(newUint128FromIntWrapper(1000000000))
 			contract, err := context.CreateContractAccount([]byte("account2"), nil)
 			assert.Nil(t, err)
-			ctx := NewContext(testContextBlock(), testContextTransaction(), owner, contract, context)
+			ctx, err := NewContext(mockBlock(), mockTransaction(), owner, contract, context)
 
 			moduleID := tt.filepath
 			runnableSource := fmt.Sprintf("require(\"%s\");", moduleID)
@@ -586,7 +578,7 @@ func TestRunMozillaJSTestSuite(t *testing.T) {
 
 	contract, err := context.CreateContractAccount([]byte("account2"), nil)
 	assert.Nil(t, err)
-	ctx := NewContext(testContextBlock(), testContextTransaction(), owner, contract, context)
+	ctx, err := NewContext(mockBlock(), mockTransaction(), owner, contract, context)
 
 	var runTest func(dir string, shelljs string)
 	runTest = func(dir string, shelljs string) {
@@ -637,6 +629,7 @@ func TestRunMozillaJSTestSuite(t *testing.T) {
 			engine.SetTestingFlag(true)
 			engine.enableLimits = true
 			_, err = engine.RunScriptSource(buf.String(), 0)
+			//t.Logf("ret:%v, err:%v", ret, err)
 			assert.Nil(t, err)
 		}
 	}
@@ -665,7 +658,7 @@ func TestBlockChain(t *testing.T) {
 			contract, err := context.CreateContractAccount([]byte("16464b93292d7c99099d4d982a05140f12779f5e299d6eb4"), nil)
 			assert.Nil(t, err)
 
-			ctx := NewContext(testContextBlock(), testContextTransaction(), owner, contract, context)
+			ctx, err := NewContext(mockBlock(), mockTransaction(), owner, contract, context)
 			engine := NewV8Engine(ctx)
 			engine.SetExecutionLimits(100000, 10000000)
 			_, err = engine.RunScriptSource(string(data), 0)
@@ -725,9 +718,8 @@ func TestBankVaultContract(t *testing.T) {
 			contract.AddBalance(newUint128FromIntWrapper(5))
 
 			// parepare env, block & transactions.
-			tx := testContextTransaction()
-			tx.Value = tt.saveValue
-			ctx := NewContext(testContextBlock(), tx, owner, contract, context)
+			tx := mockNormalTransaction("8a209cec02cbeab7e2f74ad969d2dfe8dd24416aa65589bf", "22ac3a9a2b1c31b7a9084e46eae16e761f83f02324092b09", tt.saveValue)
+			ctx, err := NewContext(mockBlock(), tx, owner, contract, context)
 
 			// execute.
 			engine := NewV8Engine(ctx)
@@ -802,7 +794,7 @@ func TestEvent(t *testing.T) {
 			owner.AddBalance(newUint128FromIntWrapper(1000000000))
 			contract, _ := context.CreateContractAccount([]byte("16464b93292d7c99099d4d982a05140f12779f5e299d6eb4"), nil)
 
-			ctx := NewContext(testContextBlock(), testContextTransaction(), owner, contract, context)
+			ctx, err := NewContext(mockBlock(), mockTransaction(), owner, contract, context)
 			engine := NewV8Engine(ctx)
 			engine.SetExecutionLimits(100000, 10000000)
 			_, err = engine.RunScriptSource(string(data), 0)
@@ -855,9 +847,8 @@ func TestNRC20Contract(t *testing.T) {
 			contract.AddBalance(newUint128FromIntWrapper(5))
 
 			// parepare env, block & transactions.
-			tx := testContextTransaction()
-			tx.From = tt.from
-			ctx := NewContext(testContextBlock(), tx, owner, contract, context)
+			tx := mockNormalTransaction(tt.from, "22ac3a9a2b1c31b7a9084e46eae16e761f83f02324092b09", "0")
+			ctx, err := NewContext(mockBlock(), tx, owner, contract, context)
 
 			// execute.
 			engine := NewV8Engine(ctx)
@@ -919,7 +910,7 @@ func TestNRC20Contract(t *testing.T) {
 			// call takeout.
 			for _, tot := range tt.transferTests {
 				// call balanceOf.
-				ctx.tx.From = tt.from
+				ctx.tx = mockNormalTransaction(tt.from, "22ac3a9a2b1c31b7a9084e46eae16e761f83f02324092b09", "0")
 				engine = NewV8Engine(ctx)
 				engine.SetExecutionLimits(10000, 100000000)
 				balArgs := fmt.Sprintf("[\"%s\"]", tt.from)
@@ -959,7 +950,7 @@ func TestNRC20Contract(t *testing.T) {
 				assert.Equal(t, tot.value, amountStr)
 				engine.Dispose()
 
-				ctx.tx.From = tot.to
+				ctx.tx = mockNormalTransaction(tot.to, "22ac3a9a2b1c31b7a9084e46eae16e761f83f02324092b09", "0")
 				engine = NewV8Engine(ctx)
 				engine.SetExecutionLimits(10000, 100000000)
 				transferFromArgs := fmt.Sprintf("[\"%s\", \"%s\", \"%s\"]", tt.from, tot.to, tot.value)
@@ -970,7 +961,7 @@ func TestNRC20Contract(t *testing.T) {
 				assert.Equal(t, tot.result, resultStatus)
 				engine.Dispose()
 
-				ctx.tx.From = tot.to
+				ctx.tx = mockNormalTransaction(tot.to, "22ac3a9a2b1c31b7a9084e46eae16e761f83f02324092b09", "0")
 				engine = NewV8Engine(ctx)
 				engine.SetExecutionLimits(10000, 100000000)
 				transferFromArgs = fmt.Sprintf("[\"%s\", \"%s\", \"%s\"]", tt.from, tot.to, tot.value)
@@ -985,5 +976,55 @@ func TestNRC20Contract(t *testing.T) {
 func TestNRC20ContractMultitimes(t *testing.T) {
 	for i := 0; i < 5; i++ {
 		TestNRC20Contract(t)
+	}
+}
+
+func TestNebulasContract(t *testing.T) {
+	tests := []struct {
+		name     string
+		value    string
+		function string
+		args     string
+		err      error
+	}{
+		{"1", "0", "unpayable", "", nil},
+		{"2", "0", "unpayable", "[1]", nil},
+		{"3", "1", "unpayable", "", nil},
+		{"4", "0", "payable", "", ErrExecutionFailed},
+		{"5", "1", "payable", "", nil},
+		{"6", "1", "payable", "[1]", nil},
+		{"7", "0", "contract1", "[1]", nil},
+		{"8", "1", "contract1", "[1]", nil},
+		{"9", "0", "contract2", "[1]", ErrExecutionFailed},
+		{"10", "1", "contract2", "[1]", ErrExecutionFailed},
+		{"11", "0", "contract3", "[1]", ErrExecutionFailed},
+		{"12", "1", "contract3", "[1]", nil},
+		{"13", "0", "contract4", "[1]", ErrExecutionFailed},
+		{"14", "1", "contract4", "[1]", ErrExecutionFailed},
+	}
+
+	mem, _ := storage.NewMemoryStorage()
+	context, _ := state.NewAccountState(nil, mem)
+	owner, err := context.GetOrCreateUserAccount([]byte("8a209cec02cbeab7e2f74ad969d2dfe8dd24416aa65589bf"))
+	assert.Nil(t, err)
+	owner.AddBalance(newUint128FromIntWrapper(1000000000))
+	contract, _ := context.CreateContractAccount([]byte("16464b93292d7c99099d4d982a05140f12779f5e299d6eb4"), nil)
+
+	ctx, err := NewContext(mockBlock(), mockTransaction(), owner, contract, context)
+
+	data, err := ioutil.ReadFile("test/mixin.js")
+	assert.Nil(t, err, "filepath read error")
+	sourceType := "js"
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+
+			ctx.tx = mockNormalTransaction("8a209cec02cbeab7e2f74ad969d2dfe8dd24416aa65589bf", "22ac3a9a2b1c31b7a9084e46eae16e761f83f02324092b09", tt.value)
+			engine := NewV8Engine(ctx)
+			engine.SetExecutionLimits(10000, 100000000)
+			_, err := engine.Call(string(data), sourceType, tt.function, tt.args)
+			assert.Equal(t, tt.err, err)
+			engine.Dispose()
+		})
 	}
 }

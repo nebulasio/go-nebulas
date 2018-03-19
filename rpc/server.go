@@ -32,7 +32,7 @@ type Neblet interface {
 	Config() *nebletpb.Config
 	StartPprof(string) error
 	BlockChain() *core.BlockChain
-	AccountManager() core.Manager
+	AccountManager() core.AccountManager
 	NetService() nebnet.Service
 	EventEmitter() *core.EventEmitter
 	Consensus() core.Consensus
@@ -47,14 +47,14 @@ type GRPCServer interface {
 	Stop()
 
 	// Neblet return neblet
-	Neblet() Neblet
+	Neblet() core.Neblet
 
 	RunGateway() error
 }
 
 // Server is the RPC server type.
 type Server struct {
-	neblet Neblet
+	neblet core.Neblet
 
 	rpcServer *grpc.Server
 
@@ -62,9 +62,11 @@ type Server struct {
 }
 
 // NewServer creates a new RPC server and registers the rpc endpoints.
-func NewServer(neblet Neblet) *Server {
+func NewServer(neblet core.Neblet) *Server {
 	cfg := neblet.Config().Rpc
-
+	if cfg == nil {
+		logging.CLog().Fatalf("config.conf should has rpc")
+	}
 	rpc := grpc.NewServer(grpc.StreamInterceptor(grpc_middleware.ChainStreamServer(loggingStream)),
 		grpc.UnaryInterceptor(grpc_middleware.ChainUnaryServer(loggingUnary)))
 
@@ -163,6 +165,6 @@ func (s *Server) Stop() {
 }
 
 // Neblet returns weak reference to Neblet.
-func (s *Server) Neblet() Neblet {
+func (s *Server) Neblet() core.Neblet {
 	return s.neblet
 }

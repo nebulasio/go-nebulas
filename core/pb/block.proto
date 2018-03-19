@@ -54,7 +54,7 @@ message Transaction {
 message BlockHeader {
     bytes hash = 1;
     bytes parent_hash = 2;
-    uint64 nonce = 3;
+    reserved 3;                 // uint64 nonce = 3;
     bytes coinbase = 4;
     int64 timestamp = 5;
     uint32 chain_id = 6;

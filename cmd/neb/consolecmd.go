@@ -19,6 +19,8 @@
 package main
 
 import (
+	"os"
+
 	"github.com/nebulasio/go-nebulas/cmd/console"
 	"github.com/urfave/cli"
 )
@@ -40,7 +42,13 @@ func consoleStart(ctx *cli.Context) error {
 		return err
 	}
 
-	console := console.New(neb)
+	console := console.New(console.Config{
+		Prompter:   console.Stdin,
+		PrompterCh: make(chan string),
+		Writer:     os.Stdout,
+		Neb:        neb,
+	})
+
 	console.Setup()
 	console.Interactive()
 	defer console.Stop()

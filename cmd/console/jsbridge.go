@@ -38,13 +38,13 @@ type jsBridge struct {
 	host string
 
 	// terminal input prompter
-	prompter *TerminalPrompter
+	prompter UserPrompter
 
 	writer io.Writer
 }
 
 // newBirdge create a new jsbridge with given prompter and writer
-func newBirdge(config *nebletpb.Config, prompter *TerminalPrompter, writer io.Writer) *jsBridge {
+func newBirdge(config *nebletpb.Config, prompter UserPrompter, writer io.Writer) *jsBridge {
 	bridge := &jsBridge{prompter: prompter, writer: writer}
 	if config.GetRpc() != nil {
 		bridge.host = config.GetRpc().HttpListen[0]
@@ -239,33 +239,6 @@ func (b *jsBridge) sendTransactionWithPassphrase(call otto.FunctionCall) otto.Va
 		return otto.NullValue()
 	}
 	return val
-}
-
-// startMining handle the start mining with passphrase input
-func (b *jsBridge) startMining(call otto.FunctionCall) otto.Value {
-	var (
-		password string
-		err      error
-	)
-	switch {
-	// No password was specified, prompt the user for it
-	case len(call.ArgumentList) == 0:
-		if password, err = b.prompter.PromptPassphrase("Passphrase: "); err != nil {
-			fmt.Fprintln(b.writer, err)
-			return otto.NullValue()
-		}
-	case len(call.ArgumentList) == 1 && call.Argument(0).IsString():
-		password, _ = call.Argument(0).ToString()
-	default:
-		fmt.Fprintln(b.writer, errors.New("unexpected argument count"))
-		return otto.NullValue()
-	}
-	ret, err := call.Otto.Call("bridge.startMining", nil, password)
-	if err != nil {
-		fmt.Fprintln(b.writer, err)
-		return otto.NullValue()
-	}
-	return ret
 }
 
 func jsError(otto *otto.Otto, err error) otto.Value {

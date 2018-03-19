@@ -148,6 +148,10 @@ func TestLoadCallPayload(t *testing.T) {
 
 func TestLoadDeployPayload(t *testing.T) {
 
+	deployTx := mockDeployTransaction(0, 0)
+	deployPayload, _ := deployTx.LoadPayload()
+	deployData, _ := deployPayload.ToBytes()
+
 	tests := []struct {
 		name      string
 		bytes     []byte
@@ -169,6 +173,14 @@ func TestLoadDeployPayload(t *testing.T) {
 			parse:     false,
 			want:      nil,
 			wantEqual: false,
+		},
+
+		{
+			name:      "deploy",
+			bytes:     deployData,
+			parse:     true,
+			want:      deployPayload,
+			wantEqual: true,
 		},
 	}
 
@@ -225,9 +237,8 @@ func TestPayload_Execute(t *testing.T) {
 	}
 
 	deployTx := mockDeployTransaction(bc.chainID, 0)
-	deployTx.to = deployTx.from
 	deployPayload, _ := deployTx.LoadPayload()
-	want, _ := util.NewUint128FromInt(129)
+	want, _ := util.NewUint128FromInt(100)
 	tests = append(tests, testPayload{
 		name:    "deploy",
 		payload: deployPayload,
@@ -246,9 +257,10 @@ func TestPayload_Execute(t *testing.T) {
 		tx:      callTx,
 		block:   block,
 		want:    util.NewUint128(),
-		wantErr: state.ErrAccountNotFound,
+		wantErr: ErrContractCheckFailed,
 	})
 
+	ks := keystore.DefaultKS
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got, _, err := tt.payload.Execute(tt.tx, block, block.WorldState())

@@ -26,10 +26,10 @@ import (
 	"github.com/nebulasio/go-nebulas/metrics"
 	"github.com/nebulasio/go-nebulas/neblet/pb"
 	nebnet "github.com/nebulasio/go-nebulas/net"
+	"github.com/nebulasio/go-nebulas/nf/nvm"
 	"github.com/nebulasio/go-nebulas/rpc"
 	"github.com/nebulasio/go-nebulas/storage"
 	nsync "github.com/nebulasio/go-nebulas/sync"
-	"github.com/nebulasio/go-nebulas/util"
 	"github.com/nebulasio/go-nebulas/util/logging"
 	m "github.com/rcrowley/go-metrics"
 )
@@ -70,21 +70,25 @@ type Neblet struct {
 
 	eventEmitter *core.EventEmitter
 
+	nvm core.Engine
+
 	running bool
 }
 
 // New returns a new neblet.
 func New(config *nebletpb.Config) (*Neblet, error) {
-	var err error
+	//var err error
 	n := &Neblet{config: config}
 
 	// try enable profile.
 	n.TryStartProfiling()
 
-	n.genesis, err = core.LoadGenesisConf(config.Chain.Genesis)
-	if err != nil {
-		return nil, err
+	if chain := config.GetChain(); chain == nil {
+		logging.CLog().Errorf("config.conf should has chain")
+		return nil, ErrConfigShouldHasChain
 	}
+	n.genesis, _ = core.LoadGenesisConf(config.Chain.Genesis)
+
 	n.accountManager = account.NewManager(n)
 
 	// init random seed.
@@ -95,7 +99,6 @@ func New(config *nebletpb.Config) (*Neblet, error) {
 
 // Setup setup neblet
 func (n *Neblet) Setup() {
-	var gasPrice, gasLimit *util.Uint128
 	var err error
 	logging.CLog().Info("Setuping Neblet...")
 
@@ -118,6 +121,9 @@ func (n *Neblet) Setup() {
 		}).Fatal("Failed to setup net service.")
 	}
 
+	// nvm
+	n.nvm = nvm.NewNebulasVM()
+
 	// core
 	n.eventEmitter = core.NewEventEmitter(40960)
 	n.consensus = dpos.NewDpos()
@@ -127,29 +133,6 @@ func (n *Neblet) Setup() {
 			"err": err,
 		}).Fatal("Failed to setup blockchain.")
 	}
-	if 0 == len(n.config.Chain.GasPrice) {
-		gasPrice = util.NewUint128()
-	} else {
-		gasPrice, err = util.NewUint128FromString(n.config.Chain.GasPrice)
-	}
-	if err != nil {
-		logging.CLog().WithFields(logrus.Fields{
-			"err": err,
-		}).Fatal("Failed to get gasPrice")
-	}
-	if 0 == len(n.config.Chain.GasLimit) {
-		gasLimit = util.NewUint128()
-	} else {
-		gasLimit, err = util.NewUint128FromString(n.config.Chain.GasLimit)
-	}
-	if err != nil {
-		logging.CLog().WithFields(logrus.Fields{
-			"err": err,
-		}).Fatal("Failed to get gasLimit")
-	}
-	n.blockChain.TransactionPool().SetGasConfig(gasPrice, gasLimit)
-	n.blockChain.BlockPool().RegisterInNetwork(n.netService)
-	n.blockChain.TransactionPool().RegisterInNetwork(n.netService)
 
 	// consensus
 	if err := n.consensus.Setup(n); err != nil {
@@ -236,8 +219,8 @@ func (n *Neblet) Start() {
 
 	// start consensus
 	chainConf := n.config.Chain
-	n.consensus.Start()
 	if chainConf.StartMine {
+		n.consensus.Start()
 		passphrase := n.config.Chain.Passphrase
 		if len(passphrase) == 0 {
 			fmt.Println("***********************************************")
@@ -277,7 +260,7 @@ func (n *Neblet) Stop() {
 	// try Stop Profiling.
 	n.TryStopProfiling()
 
-	if n.consensus != nil {
+	if n.config.Chain.StartMine && n.consensus != nil {
 		n.consensus.Stop()
 		n.consensus = nil
 	}
@@ -351,7 +334,7 @@ func (n *Neblet) EventEmitter() *core.EventEmitter {
 }
 
 // AccountManager returns account manager reference.
-func (n *Neblet) AccountManager() core.Manager {
+func (n *Neblet) AccountManager() core.AccountManager {
 	return n.accountManager
 }
 
@@ -370,9 +353,19 @@ func (n *Neblet) SyncService() *nsync.Service {
 	return n.syncService
 }
 
+// Nvm return nvm engine
+func (n *Neblet) Nvm() core.Engine {
+	return n.nvm
+}
+
 // TryStartProfiling try start pprof
 func (n *Neblet) TryStartProfiling() {
+	if n.config.App == nil {
+		logging.CLog().Infof("config.conf lack App interface")
+		return
+	}
 	if n.config.App.Pprof == nil {
+		logging.CLog().Infof("config.conf lack App.Pprof interface")
 		return
 	}
 

@@ -20,7 +20,8 @@ syntax = "proto3";
 package consensuspb;
 
 message ConsensusRoot {
-    bytes dynasty_root = 1;
-    int64 timestamp = 7;
-    bytes proposer = 8;
+    int64 timestamp = 1;
+    bytes proposer = 2;
+
+    bytes dynasty_root = 3;
 }

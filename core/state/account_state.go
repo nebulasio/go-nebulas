@@ -34,6 +34,7 @@ import (
 var (
 	ErrBalanceInsufficient = errors.New("cannot subtract a value which is bigger than current balance")
 	ErrAccountNotFound     = errors.New("cannot found account in storage")
+	ErrContractNotFound    = errors.New("cannot find valid contract")
 )
 
 // account info in state Trie
@@ -283,6 +284,11 @@ func (as *accountState) GetContractAccount(addr []byte) (Account, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	if len(acc.BirthPlace()) == 0 {
+		return nil, ErrContractNotFound
+	}
+
 	return acc, nil
 }
 

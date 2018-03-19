@@ -183,6 +183,7 @@ func (s *Stream) SendMessage(messageName string, data []byte, priority int) erro
 	// send to pool.
 	message.FlagSendMessageAt()
 
+	// use a non-blocking channel to avoid blocking when the channel is full.
 	switch priority {
 	case MessagePriorityHigh:
 		select {
@@ -224,7 +225,6 @@ func (s *Stream) SendMessage(messageName string, data []byte, priority int) erro
 		}).Debug("Received too many message notifChan.")
 		return nil
 	}
-
 	return nil
 }
 
@@ -634,8 +634,8 @@ func (s *Stream) onSyncRoute(message *NebMessage) error {
 
 // RouteTable send sync table request
 func (s *Stream) RouteTable() error {
-	// get nearest peers from routeTable
-	peers := s.node.routeTable.GetNearestPeers(s.pid)
+	// get random peers from routeTable
+	peers := s.node.routeTable.GetRandomPeers(s.pid)
 
 	// prepare the protobuf message.
 	msg := &netpb.Peers{

@@ -43,4 +43,12 @@ func TestNewGenesisBlock(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, dumpConf.Meta.ChainId, conf.Meta.ChainId)
 	assert.Equal(t, dumpConf.TokenDistribution, conf.TokenDistribution)
+)
+
+func TestInvalidAddressInTokenDistribution(t *testing.T) {
+	mockConf := MockGenesisConf()
+	mockConf.TokenDistribution[0].Address = "1a263547d167c74cf4b8f9166cfa244de0481c514a45aa2"
+	chain := testNeb(t).chain
+	_, err := NewGenesisBlock(mockConf, chain)
+	assert.Equal(t, err, ErrInvalidAddress)
 }

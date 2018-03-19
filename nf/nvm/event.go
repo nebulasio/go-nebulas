@@ -23,15 +23,8 @@ import (
 	"unsafe"
 
 	"github.com/nebulasio/go-nebulas/core/state"
-	"github.com/nebulasio/go-nebulas/util/byteutils"
 	"github.com/nebulasio/go-nebulas/util/logging"
 	"github.com/sirupsen/logrus"
-)
-
-const (
-
-	// EventNameSpaceContract the topic of contract.
-	EventNameSpaceContract = "chain.contract"
 )
 
 // EventTriggerFunc export EventTriggerFunc
@@ -46,19 +39,12 @@ func EventTriggerFunc(handler unsafe.Pointer, topic, data *C.char) {
 			"category": 0, // ChainEventCategory.
 			"topic":    gTopic,
 			"data":     gData,
-		}).Debug("Event.Trigger delegate handler does not found.")
+		}).Error("Event.Trigger delegate handler does not found.")
 		return
 	}
 
-	logging.VLog().WithFields(logrus.Fields{
-		"category": 0, // ChainEventCategory.
-		"topic":    gTopic,
-		"data":     gData,
-	}).Debug("Event triggered from V8 engine.")
-
-	txHash, _ := byteutils.FromHex(e.ctx.tx.Hash)
 	contractTopic := EventNameSpaceContract + "." + gTopic
 
 	event := &state.Event{Topic: contractTopic, Data: gData}
-	e.ctx.txWorldState.RecordEvent(txHash, event)
+	e.ctx.state.RecordEvent(e.ctx.tx.Hash(), event)
 }

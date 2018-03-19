@@ -22,7 +22,6 @@ import (
 	"errors"
 
 	"github.com/nebulasio/go-nebulas/consensus/pb"
-
 	"github.com/nebulasio/go-nebulas/storage"
 	"github.com/nebulasio/go-nebulas/util"
 	"github.com/nebulasio/go-nebulas/util/byteutils"

@@ -25,14 +25,8 @@ import (
 	"unsafe"
 
 	"github.com/nebulasio/go-nebulas/common/trie"
-	"github.com/nebulasio/go-nebulas/storage"
 	"github.com/nebulasio/go-nebulas/util/logging"
 	"github.com/sirupsen/logrus"
-)
-
-// Errors
-var (
-	ErrKeyNotFound = storage.ErrKeyNotFound
 )
 
 var (
@@ -65,6 +59,7 @@ func hashStorageKey(key string) []byte {
 func StorageGetFunc(handler unsafe.Pointer, key *C.char) *C.char {
 	_, storage := getEngineByStorageHandler(uint64(uintptr(handler)))
 	if storage == nil {
+		logging.VLog().Error("get storage failed!")
 		return nil
 	}
 
@@ -75,7 +70,7 @@ func StorageGetFunc(handler unsafe.Pointer, key *C.char) *C.char {
 				"handler": uint64(uintptr(handler)),
 				"key":     C.GoString(key),
 				"err":     err,
-			}).Debug("StorageGetFunc get key failed.")
+			}).Error("StorageGetFunc get key failed.")
 		}
 		return nil
 	}
@@ -97,7 +92,7 @@ func StoragePutFunc(handler unsafe.Pointer, key *C.char, value *C.char) int {
 			"handler": uint64(uintptr(handler)),
 			"key":     C.GoString(key),
 			"err":     err,
-		}).Debug("StoragePutFunc put key failed.")
+		}).Error("StoragePutFunc put key failed.")
 		return 1
 	}
 	return 0
@@ -118,7 +113,7 @@ func StorageDelFunc(handler unsafe.Pointer, key *C.char) int {
 			"handler": uint64(uintptr(handler)),
 			"key":     C.GoString(key),
 			"err":     err,
-		}).Debug("StorageDelFunc del key failed.")
+		}).Error("StorageDelFunc del key failed.")
 		return 1
 	}
 

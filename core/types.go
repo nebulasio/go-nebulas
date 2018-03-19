@@ -22,11 +22,10 @@ import (
 	"errors"
 	"time"
 
-	"github.com/nebulasio/go-nebulas/consensus/pb"
-
 	"github.com/nebulasio/go-nebulas/core/state"
 	"github.com/nebulasio/go-nebulas/net"
 
+	"github.com/nebulasio/go-nebulas/consensus/pb"
 	"github.com/nebulasio/go-nebulas/core/pb"
 	"github.com/nebulasio/go-nebulas/neblet/pb"
 	"github.com/nebulasio/go-nebulas/storage"
@@ -35,11 +34,9 @@ import (
 
 // Payload Types
 const (
-	TxPayloadBinaryType    = "binary"
-	TxPayloadDeployType    = "deploy"
-	TxPayloadCallType      = "call"
-	TxPayloadDelegateType  = "delegate"
-	TxPayloadCandidateType = "candidate"
+	TxPayloadBinaryType = "binary"
+	TxPayloadDeployType = "deploy"
+	TxPayloadCallType   = "call"
 )
 
 const (
@@ -62,6 +59,14 @@ var (
 	ErrInvalidBlockCannotFindParentInLocalAndTryDownload = errors.New("invalid block received, download its parent from others")
 	ErrInvalidBlockCannotFindParentInLocalAndTrySync     = errors.New("invalid block received, sync its parent from others")
 
+	ErrInvalidConfigChainID          = errors.New("invalid chainID, genesis chainID not equal to chainID in config")
+	ErrCannotLoadGenesisConf         = errors.New("cannot load genesis conf")
+	ErrGenesisNotEqualChainIDInDB    = errors.New("Failed to check. genesis chainID not equal in db")
+	ErrGenesisNotEqualDynastyInDB    = errors.New("Failed to check. genesis dynasty not equal in db")
+	ErrGenesisNotEqualTokenInDB      = errors.New("Failed to check. genesis TokenDistribution not equal in db")
+	ErrGenesisNotEqualDynastyLenInDB = errors.New("Failed to check. genesis dynasty length not equal in db")
+	ErrGenesisNotEqualTokenLenInDB   = errors.New("Failed to check. genesis TokenDistribution length not equal in db")
+
 	ErrLinkToWrongParentBlock = errors.New("link the block to a block who is not its parent")
 	ErrMissingParentBlock     = errors.New("cannot find the block's parent block in storage")
 	ErrInvalidBlockHash       = errors.New("invalid block hash")
@@ -75,12 +80,18 @@ var (
 	ErrInvalidSignature         = errors.New("invalid transaction signature")
 	ErrInvalidTxPayloadType     = errors.New("invalid transaction data payload type")
 
+	ErrNoTimeToPackTransactions    = errors.New("no time left to pack transactions in a block")
+	ErrTxDataPayLoadOutOfMaxLength = errors.New("data's payload is out of max data length")
+	ErrNilArgument                 = errors.New("argument(s) is nil")
+	ErrInvalidArgument             = errors.New("invalid argument(s)")
+
 	ErrInsufficientBalance                = errors.New("insufficient balance")
 	ErrBelowGasPrice                      = errors.New("below the gas price")
 	ErrGasLimitLessOrEqualToZero          = errors.New("gas limit less or equal to 0")
 	ErrOutOfGasLimit                      = errors.New("out of gas limit")
 	ErrTxExecutionFailed                  = errors.New("transaction execution failed")
 	ErrContractDeployFailed               = errors.New("contract deploy failed")
+	ErrContractCheckFailed                = errors.New("contract check failed")
 	ErrContractTransactionAddressNotEqual = errors.New("contract transaction from-address not equal to to-address")
 
 	ErrDuplicatedTransaction = errors.New("duplicated transaction")
@@ -103,15 +114,17 @@ var (
 	ErrInvalidBlockTxsRoot       = errors.New("invalid block txs root hash")
 	ErrInvalidBlockEventsRoot    = errors.New("invalid block events root hash")
 	ErrInvalidBlockConsensusRoot = errors.New("invalid block consensus root hash")
+	ErrInvalidProtoToBlock       = errors.New("protobuf message cannot be converted into Block")
+	ErrInvalidProtoToBlockHeader = errors.New("protobuf message cannot be converted into BlockHeader")
+	ErrInvalidProtoToTransaction = errors.New("protobuf message cannot be converted into Transaction")
+	ErrInvalidProtoToDag         = errors.New("protobuf message cannot be converted into Dag")
+	ErrInvalidTransactionData    = errors.New("invalid data in tx from Proto")
 
 	ErrCannotRevertLIB        = errors.New("cannot revert latest irreversible block")
 	ErrCannotLoadGenesisBlock = errors.New("cannot load genesis block from storage")
 	ErrCannotLoadLIBBlock     = errors.New("cannot load tail block from storage")
 	ErrCannotLoadTailBlock    = errors.New("cannot load latest irreversible block from storage")
 	ErrGenesisConfNotMatch    = errors.New("Failed to load genesis from storage, different with genesis conf")
-	ErrInvalidConfigChainID   = errors.New("invalid chainID, genesis chainID not equal to chainID in config")
-
-	ErrNoTimeToPackTransactions = errors.New("no time left to pack transactions in a block")
 )
 
 // Default gas count
@@ -128,10 +141,10 @@ type TxPayload interface {
 
 // MessageType
 const (
-	MessageTypeNewBlock             = "newblock"
-	MessageTypeDownloadedBlock      = "dlblock"
-	MessageTypeDownloadedBlockReply = "dlreply"
-	MessageTypeNewTx                = "newtx"
+	MessageTypeNewBlock                   = "newblock"
+	MessageTypeParentBlockDownloadRequest = "dlblock"
+	MessageTypeBlockDownloadResponse      = "dlreply"
+	MessageTypeNewTx                      = "newtx"
 )
 
 // Consensus interface of consensus algorithm.
@@ -164,12 +177,12 @@ type SyncService interface {
 
 	StartActiveSync() bool
 	StopActiveSync()
-	WaitingForFinish() error
+	WaitingForFinish()
 	IsActiveSyncing() bool
 }
 
-// Manager interface of account mananger
-type Manager interface {
+// AccountManager interface of account mananger
+type AccountManager interface {
 	NewAccount([]byte) (*Address, error)
 	Accounts() []*Address
 
@@ -186,14 +199,28 @@ type Manager interface {
 	Delete(*Address, []byte) error
 }
 
+// Engine interface breaks cycle import dependency and hides unused services.
+type Engine interface {
+	CreateEngine(block *Block, tx *Transaction, owner, contract state.Account, state state.TxWorldState) error
+	SetEngineExecutionLimits(limitsOfExecutionInstructions uint64) error
+	DeployAndInitEngine(source, sourceType, args string) (string, error)
+	CallEngine(source, sourceType, function, args string) (string, error)
+	ExecutionInstructions() (uint64, error)
+	DisposeEngine()
+	Clone() Engine
+}
+
 // Neblet interface breaks cycle import dependency and hides unused services.
 type Neblet interface {
 	Genesis() *corepb.Genesis
+	SetGenesis(*corepb.Genesis)
 	Config() *nebletpb.Config
 	Storage() storage.Storage
 	EventEmitter() *EventEmitter
 	Consensus() Consensus
 	BlockChain() *BlockChain
 	NetService() net.Service
-	AccountManager() Manager
+	AccountManager() AccountManager
+	Nvm() Engine
+	StartPprof(string) error
 }

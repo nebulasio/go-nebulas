@@ -19,34 +19,27 @@
 package core
 
 import (
-	"errors"
 	"fmt"
 	"reflect"
 	"runtime"
 	"sync"
 	"time"
 
-	"github.com/nebulasio/go-nebulas/common/mvccdb"
-
+	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/common/dag"
 	"github.com/nebulasio/go-nebulas/common/dag/pb"
+	"github.com/nebulasio/go-nebulas/common/mvccdb"
 	"github.com/nebulasio/go-nebulas/consensus/pb"
-
-	"github.com/nebulasio/go-nebulas/core/state"
-
-	"github.com/nebulasio/go-nebulas/crypto"
-
-	"github.com/nebulasio/go-nebulas/crypto/keystore"
-
-	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/core/pb"
-	"github.com/nebulasio/go-nebulas/util/logging"
-	"github.com/sirupsen/logrus"
-	"golang.org/x/crypto/sha3"
-
+	"github.com/nebulasio/go-nebulas/core/state"
+	"github.com/nebulasio/go-nebulas/crypto"
+	"github.com/nebulasio/go-nebulas/crypto/keystore"
 	"github.com/nebulasio/go-nebulas/storage"
 	"github.com/nebulasio/go-nebulas/util"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
+	"github.com/nebulasio/go-nebulas/util/logging"
+	"github.com/sirupsen/logrus"
+	"golang.org/x/crypto/sha3"
 )
 
 var (
@@ -71,12 +64,11 @@ type BlockHeader struct {
 	consensusRoot *consensuspb.ConsensusRoot
 
 	coinbase  *Address
-	nonce     uint64
 	timestamp int64
 	chainID   uint32
 
 	// sign
-	alg  uint8
+	alg  keystore.Algorithm
 	sign byteutils.Hash
 }
 
@@ -89,7 +81,6 @@ func (b *BlockHeader) ToProto() (proto.Message, error) {
 		TxsRoot:       b.txsRoot,
 		EventsRoot:    b.eventsRoot,
 		ConsensusRoot: b.consensusRoot,
-		Nonce:         b.nonce,
 		Coinbase:      b.coinbase.address,
 		Timestamp:     b.timestamp,
 		ChainId:       b.chainID,
@@ -106,16 +97,22 @@ func (b *BlockHeader) FromProto(msg proto.Message) error {
 		b.stateRoot = msg.StateRoot
 		b.txsRoot = msg.TxsRoot
 		b.eventsRoot = msg.EventsRoot
+		if msg.ConsensusRoot == nil {
+			return ErrInvalidProtoToBlockHeader
+		}
 		b.consensusRoot = msg.ConsensusRoot
-		b.nonce = msg.Nonce
-		b.coinbase = &Address{msg.Coinbase}
+		coinbase, err := AddressParseFromBytes(msg.Coinbase)
+		if err != nil {
+			return ErrInvalidProtoToBlockHeader
+		}
+		b.coinbase = coinbase
 		b.timestamp = msg.Timestamp
 		b.chainID = msg.ChainId
-		b.alg = uint8(msg.Alg)
+		b.alg = keystore.Algorithm(msg.Alg)
 		b.sign = msg.Sign
 		return nil
 	}
-	return errors.New("Protobuf message cannot be converted into BlockHeader")
+	return ErrInvalidProtoToBlockHeader
 }
 
 // Block structure
@@ -130,10 +127,10 @@ type Block struct {
 
 	worldState state.WorldState
 
-	txPool *TransactionPool
-
-	storage      storage.Storage
+	txPool       *TransactionPool
 	eventEmitter *EventEmitter
+	nvm          Engine
+	storage      storage.Storage
 }
 
 // ToProto converts domain Block into proto Block
@@ -152,7 +149,7 @@ func (block *Block) ToProto() (proto.Message, error) {
 			if tx, ok := tx.(*corepb.Transaction); ok {
 				txs[idx] = tx
 			} else {
-				return nil, errors.New("Protobuf message cannot be converted into Transaction")
+				return nil, ErrInvalidProtoToTransaction
 			}
 		}
 		dependency, err := block.dependency.ToProto()
@@ -167,9 +164,9 @@ func (block *Block) ToProto() (proto.Message, error) {
 				Height:       block.height,
 			}, nil
 		}
-		return nil, errors.New("Protobuf message cannot be converted into Dag")
+		return nil, ErrInvalidProtoToDag
 	}
-	return nil, errors.New("Protobuf message cannot be converted into BlockHeader")
+	return nil, ErrInvalidProtoToBlock
 }
 
 // FromProto converts proto Block to domain Block
@@ -195,20 +192,11 @@ func (block *Block) FromProto(msg proto.Message) error {
 		block.height = msg.Height
 		return nil
 	}
-	return errors.New("Protobuf message cannot be converted into Block")
-}
-
-// SerializeTxByHash returns tx serialized bytes
-func (block *Block) SerializeTxByHash(hash byteutils.Hash) (proto.Message, error) {
-	tx, err := GetTransaction(hash, block.worldState)
-	if err != nil {
-		return nil, err
-	}
-	return tx.ToProto()
+	return ErrInvalidProtoToBlock
 }
 
 // NewBlock return new block.
-func NewBlock(chainID uint32, coinbase *Address, parent *Block) (*Block, error) {
+func NewBlock(chainID uint32, coinbase *Address, parent *Block) (*Block, error) { // ToCheck: check args. // ToCheck: check full-functional block.
 	worldState, err := parent.worldState.Clone()
 	if err != nil {
 		return nil, err
@@ -225,12 +213,15 @@ func NewBlock(chainID uint32, coinbase *Address, parent *Block) (*Block, error) 
 		transactions: make(Transactions, 0),
 		dependency:   dag.NewDag(),
 		parentBlock:  parent,
-		worldState:   worldState,
+
+		worldState: worldState,
+		height:     parent.height + 1,
+		sealed:     false,
+
 		txPool:       parent.txPool,
-		height:       parent.height + 1,
-		sealed:       false,
-		storage:      parent.storage,
 		eventEmitter: parent.eventEmitter,
+		nvm:          parent.nvm,
+		storage:      parent.storage,
 	}
 
 	if err := block.Begin(); err != nil {
@@ -249,7 +240,7 @@ func (block *Block) Sign(signature keystore.Signature) error {
 	if err != nil {
 		return err
 	}
-	block.header.alg = uint8(signature.Algorithm())
+	block.header.alg = keystore.Algorithm(signature.Algorithm())
 	block.header.sign = sign
 	return nil
 }
@@ -265,33 +256,13 @@ func (block *Block) Coinbase() *Address {
 }
 
 // Alg return block's alg
-func (block *Block) Alg() uint8 {
+func (block *Block) Alg() keystore.Algorithm {
 	return block.header.alg
 }
 
 // Signature return block's signature
 func (block *Block) Signature() byteutils.Hash {
 	return block.header.sign
-}
-
-// CoinbaseHash return block's coinbase hash
-func (block *Block) CoinbaseHash() byteutils.Hash {
-	return block.header.coinbase.address
-}
-
-// Nonce return nonce.
-func (block *Block) Nonce() uint64 {
-	return block.header.nonce
-}
-
-// SetNonce set nonce.
-func (block *Block) SetNonce(nonce uint64) {
-	if block.sealed {
-		logging.VLog().WithFields(logrus.Fields{
-			"block": block,
-		}).Fatal("Sealed block can't be changed.")
-	}
-	block.header.nonce = nonce
 }
 
 // Timestamp return timestamp
@@ -339,7 +310,7 @@ func (block *Block) EventsRoot() byteutils.Hash {
 	return block.header.eventsRoot
 }
 
-// ConsensusRoot return the roothash of consensus state
+// ConsensusRoot return consensus root
 func (block *Block) ConsensusRoot() *consensuspb.ConsensusRoot {
 	return block.header.consensusRoot
 }
@@ -359,15 +330,9 @@ func (block *Block) Transactions() Transactions {
 	return block.transactions
 }
 
-// VerifyAddress returns if the addr string is valid
-func (block *Block) VerifyAddress(str string) bool {
-	_, err := AddressParse(str)
-	return err == nil
-}
-
 // LinkParentBlock link parent block, return true if hash is the same; false otherwise.
 func (block *Block) LinkParentBlock(chain *BlockChain, parentBlock *Block) error {
-	if block.ParentHash().Equals(parentBlock.Hash()) == false {
+	if !block.ParentHash().Equals(parentBlock.Hash()) {
 		return ErrLinkToWrongParentBlock
 	}
 
@@ -388,6 +353,7 @@ func (block *Block) LinkParentBlock(chain *BlockChain, parentBlock *Block) error
 	block.storage = parentBlock.storage
 	block.height = parentBlock.height + 1
 	block.eventEmitter = parentBlock.eventEmitter
+	block.nvm = parentBlock.nvm
 
 	return nil
 }
@@ -702,7 +668,9 @@ func (block *Block) Sealed() bool {
 // Seal seal block, calculate stateRoot and block hash.
 func (block *Block) Seal() error {
 	if block.sealed {
-		return ErrDoubleSealBlock
+		logging.VLog().WithFields(logrus.Fields{
+			"block": block,
+		}).Fatal("cannot seal a block twice.")
 	}
 
 	if err := block.rewardCoinbaseForGas(); err != nil {
@@ -790,75 +758,39 @@ func (block *Block) VerifyExecution() error {
 		"txs":         len(block.Transactions()),
 	}).Info("Verify txs.")
 
-	// release all events
-	block.triggerEvent()
-
 	return nil
-}
-
-func (block *Block) triggerEvent() {
-	logging.VLog().WithFields(logrus.Fields{
-		"count": len(block.eventEmitter.eventCh),
-	}).Debug("Start TriggerEvent")
-
-	for _, v := range block.transactions {
-		var topic string
-		switch v.Type() {
-		case TxPayloadBinaryType:
-			topic = TopicSendTransaction
-		case TxPayloadDeployType:
-			topic = TopicDeploySmartContract
-		case TxPayloadCallType:
-			topic = TopicCallSmartContract
-		case TxPayloadDelegateType:
-			topic = TopicDelegate
-		case TxPayloadCandidateType:
-			topic = TopicCandidate
-		}
-		event := &state.Event{
-			Topic: topic,
-			Data:  v.String(),
-		}
-		block.eventEmitter.Trigger(event)
-
-		events, err := block.FetchCacheEventsOfCurBlock(v.hash)
-		if err != nil {
-			for _, e := range events {
-				block.eventEmitter.Trigger(e)
-			}
-		}
-	}
-
-	e := &state.Event{
-		Topic: TopicLinkBlock,
-		Data:  block.String(),
-	}
-	block.eventEmitter.Trigger(e)
-
-	logging.VLog().WithFields(logrus.Fields{
-		"count": len(block.eventEmitter.eventCh),
-	}).Debug("Stop TriggerEvent")
 }
 
 // VerifyIntegrity verify block's hash, txs' integrity and consensus acceptable.
 func (block *Block) VerifyIntegrity(chainID uint32, consensus Consensus) error {
+
+	if consensus == nil {
+		metricsInvalidBlock.Inc(1)
+		return ErrNilArgument
+	}
+
 	// check ChainID.
 	if block.header.chainID != chainID {
 		logging.VLog().WithFields(logrus.Fields{
 			"expect": chainID,
 			"actual": block.header.chainID,
 		}).Debug("Failed to check chainid.")
+		metricsInvalidBlock.Inc(1)
 		return ErrInvalidChainID
 	}
 
 	// verify block hash.
 	wantedHash, err := HashBlock(block)
-	if err != nil || !wantedHash.Equals(block.Hash()) {
+	if err != nil {
+		return err
+	}
+	if !wantedHash.Equals(block.Hash()) {
 		logging.VLog().WithFields(logrus.Fields{
 			"expect": wantedHash,
 			"actual": block.Hash(),
 			"err":    err,
 		}).Debug("Failed to check block's hash.")
+		metricsInvalidBlock.Inc(1)
 		return ErrInvalidBlockHash
 	}
 
@@ -869,6 +801,7 @@ func (block *Block) VerifyIntegrity(chainID uint32, consensus Consensus) error {
 				"tx":  tx,
 				"err": err,
 			}).Debug("Failed to verify tx's integrity.")
+			metricsInvalidBlock.Inc(1)
 			return err
 		}
 	}
@@ -1057,7 +990,7 @@ func (block *Block) rewardCoinbaseForMint() error {
 	if err != nil {
 		return err
 	}
-	logging.VLog().Info("rewardCoinbaseForMint ", "gas", BlockReward)
+	logging.VLog().Info("rewardCoinbaseForMint ", "gas", BlockReward) // Refine: WithFields
 	return coinbaseAcc.AddBalance(BlockReward)
 }
 
@@ -1074,7 +1007,7 @@ func (block *Block) rewardCoinbaseForGas() error {
 		}
 		logging.VLog().Info("rewardCoinbaseForGas from:", from, "gas", gas)
 
-		if err := transfer((byteutils.Hash)(fromAddr), coinbaseAddr, gas, worldState); err != nil {
+		if err := transfer(fromAddr, coinbaseAddr, gas, worldState); err != nil {
 			return err
 		}
 	}
@@ -1110,6 +1043,25 @@ func (block *Block) ExecuteTransaction(tx *Transaction, txWorldState state.TxWor
 	return false, nil
 }
 
+// CheckContract check if contract is valid
+func (block *Block) CheckContract(addr *Address) (state.Account, error) {
+
+	worldState, err := block.worldState.Clone()
+	if err != nil {
+		return nil, err
+	}
+	return CheckContract(addr, worldState)
+}
+
+// GetTransaction from txs Trie
+func (block *Block) GetTransaction(hash byteutils.Hash) (*Transaction, error) {
+	worldState, err := block.worldState.Clone()
+	if err != nil {
+		return nil, err
+	}
+	return GetTransaction(hash, worldState)
+}
+
 // HashBlock return the hash of block.
 func HashBlock(block *Block) (byteutils.Hash, error) {
 	hasher := sha3.New256()
@@ -1124,7 +1076,6 @@ func HashBlock(block *Block) (byteutils.Hash, error) {
 	hasher.Write(block.TxsRoot())
 	hasher.Write(block.EventsRoot())
 	hasher.Write(consensusRoot)
-	hasher.Write(byteutils.FromUint64(block.header.nonce))
 	hasher.Write(block.header.coinbase.address)
 	hasher.Write(byteutils.FromInt64(block.header.timestamp))
 	hasher.Write(byteutils.FromUint32(block.header.chainID))
@@ -1137,10 +1088,14 @@ func HashBlock(block *Block) (byteutils.Hash, error) {
 }
 
 // HashPbBlock return the hash of pb block.
-func HashPbBlock(pbBlock *corepb.Block) byteutils.Hash {
-	block := new(Block)
-	block.FromProto(pbBlock)
-	return block.Hash()
+func HashPbBlock(pbBlock *corepb.Block) byteutils.Hash { //ToAdd nil check
+	block := new(Block) // ToFix: hash pbBlock directly, avoid catching fromproto err
+	if err := block.FromProto(pbBlock); err != nil {
+		if hash, err := HashBlock(block); err != nil {
+			return hash
+		}
+	}
+	return nil
 }
 
 // RecoverMiner return miner from block
@@ -1166,6 +1121,10 @@ func RecoverMiner(block *Block) (*Address, error) {
 
 // LoadBlockFromStorage return a block from storage
 func LoadBlockFromStorage(hash byteutils.Hash, chain *BlockChain) (*Block, error) {
+	if chain == nil {
+		return nil, ErrNilArgument
+	}
+
 	value, err := chain.storage.Get(hash)
 	if err != nil {
 		return nil, err
@@ -1194,10 +1153,11 @@ func LoadBlockFromStorage(hash byteutils.Hash, chain *BlockChain) (*Block, error
 	if err := block.WorldState().LoadConsensusRoot(block.ConsensusRoot()); err != nil {
 		return nil, err
 	}
-	block.txPool = chain.txPool
-	block.storage = chain.storage
 	block.sealed = true
+	block.txPool = chain.txPool
 	block.eventEmitter = chain.eventEmitter
+	block.nvm = chain.nvm
+	block.storage = chain.storage
 	return block, nil
 }
 

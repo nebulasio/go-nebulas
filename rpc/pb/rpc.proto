@@ -20,6 +20,7 @@ syntax = "proto3";
 
 import "google/api/annotations.proto";
 import "github.com/nebulasio/go-nebulas/consensus/pb/state.proto";
+import "github.com/nebulasio/go-nebulas/neblet/pb/config.proto";
 
 package rpcpb;
 
@@ -140,14 +141,6 @@ service ApiService {
         };
     }
 
-    // Get GasUsed
-    rpc GetGasUsed(HashRequest) returns (GasResponse) {
-        option (google.api.http) = {
-            post: "/v1/user/getGasUsed"
-            body: "*"
-        };
-    }
-
     rpc GetEventsByHash(HashRequest) returns (EventsResponse) {
         option (google.api.http) = {
             post: "/v1/user/getEventsByHash"
@@ -160,8 +153,15 @@ service ApiService {
             post: "/v1/user/dynasty"
             body: "*"
 		};
-    }  
+    }
 
+    //Get Config
+    rpc GetConfig (NonParamsRequest) returns (GetConfigResponse) {
+        option (google.api.http) = {
+            get: "/v1/user/getConfig"
+		};
+
+    }
 }
 
 service AdminService {
@@ -217,19 +217,6 @@ service AdminService {
             body: "*"
 		};
 	}
-
-    rpc StartMining (StartMiningRequest) returns (MiningResponse) {
-        option (google.api.http) = {
-			post: "/v1/admin/startMining"
-            body: "*"
-		};
-    }
-
-    rpc StopMining (NonParamsRequest) returns (MiningResponse) {
-        option (google.api.http) = {
-			get: "/v1/admin/stopMining"
-		};
-    }
 
     rpc StartPprof (PprofRequest) returns (PprofResponse) {
         option (google.api.http) = {
@@ -626,20 +613,16 @@ message ChangeNetworkIDResponse {
     bool result = 1;
 }
 
-message StartMiningRequest {
-    // miner address passphrase
-    string passphrase = 1;
-}
-
-message MiningResponse {
-    bool result = 1;
-}
-
 message PprofRequest {
     string listen = 1;
 }
 
 message PprofResponse {
     bool result = 1;
+}
+
+message GetConfigResponse {
+    // Config
+    nebletpb.Config config = 1;
 }
 

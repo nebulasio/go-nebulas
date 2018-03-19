@@ -24,34 +24,39 @@ import (
 
 	"github.com/nebulasio/go-nebulas/core/state"
 
-	"github.com/nebulasio/go-nebulas/crypto/keystore"
-	metrics "github.com/nebulasio/go-nebulas/metrics"
-
-	"github.com/nebulasio/go-nebulas/common/trie"
+	lru "github.com/hashicorp/golang-lru"
 	"github.com/nebulasio/go-nebulas/core"
+	metrics "github.com/nebulasio/go-nebulas/metrics"
 	"github.com/nebulasio/go-nebulas/net"
-
 	"github.com/nebulasio/go-nebulas/util/byteutils"
 	"github.com/nebulasio/go-nebulas/util/logging"
 	"github.com/sirupsen/logrus"
 )
 
+// const
+const (
+	DefaultMaxUnlockDuration time.Duration = 1<<63 - 1
+)
+
 // Errors in PoW Consensus
 var (
-	ErrInvalidBlockInterval       = errors.New("invalid block interval")
 	ErrInvalidBlockTimestamp      = errors.New("invalid block timestamp, should be same as consensus's timestamp")
+	ErrInvalidBlockInterval       = errors.New("invalid block interval")
 	ErrMissingConfigForDpos       = errors.New("missing configuration for Dpos")
 	ErrInvalidBlockProposer       = errors.New("invalid block proposer")
 	ErrCannotMintWhenPending      = errors.New("cannot mint block now, waiting for cancel pending again")
-	ErrCannotMintWhenDiable       = errors.New("cannot mint block now, waiting for enable it again")
+	ErrCannotMintWhenDisable      = errors.New("cannot mint block now, waiting for enable it again")
 	ErrWaitingBlockInLastSlot     = errors.New("cannot mint block now, waiting for last block")
 	ErrBlockMintedInNextSlot      = errors.New("cannot mint block now, there is a block minted in current slot")
 	ErrGenerateNextConsensusState = errors.New("Failed to generate next consensus state")
+	ErrDoubleBlockMinted          = errors.New("double block minted")
+	ErrAppendNewBlockFailed       = errors.New("failed to append new block to real chain")
 )
 
 // Metrics
 var (
 	metricsBlockPackingTime = metrics.NewGauge("neb.block.packing")
+	metricsBlockWaitingTime = metrics.NewGauge("neb.block.waiting")
 )
 
 // Dpos Delegate Proof-of-Stake
@@ -60,10 +65,12 @@ type Dpos struct {
 
 	chain *core.BlockChain
 	ns    net.Service
-	am    core.Manager
+	am    core.AccountManager
 
 	coinbase *core.Address
 	miner    *core.Address
+
+	slot *lru.Cache
 
 	enable  bool
 	pending bool
@@ -85,25 +92,41 @@ func (dpos *Dpos) Setup(neblet core.Neblet) error {
 	dpos.ns = neblet.NetService()
 	dpos.am = neblet.AccountManager()
 
-	config := neblet.Config().Chain
-	coinbase, err := core.AddressParse(config.Coinbase)
+	chainConfig := neblet.Config().Chain
+	if chainConfig.StartMine {
+		coinbase, err := core.AddressParse(chainConfig.Coinbase)
+		if err != nil {
+			logging.CLog().WithFields(logrus.Fields{
+				"address": chainConfig.Coinbase,
+				"err":     err,
+			}).Error("Failed to parse coinbase address.")
+			return err
+		}
+		miner, err := core.AddressParse(chainConfig.Miner)
+		if err != nil {
+			logging.CLog().WithFields(logrus.Fields{
+				"address": chainConfig.Miner,
+				"err":     err,
+			}).Error("Failed to parse miner address.")
+			return err
+		}
+		dpos.coinbase = coinbase
+		dpos.miner = miner
+	}
+
+	slot, err := lru.NewWithEvict(1024, func(key interface{}, value interface{}) {
+		block := value.(*core.Block)
+		if block != nil {
+			block.Dispose()
+		}
+	})
 	if err != nil {
 		logging.CLog().WithFields(logrus.Fields{
-			"address": config.Coinbase,
-			"err":     err,
-		}).Error("Failed to parse coinbase address.")
+			"err": err,
+		}).Error("Failed to create cache.")
 		return err
 	}
-	miner, err := core.AddressParse(config.Miner)
-	if err != nil {
-		logging.CLog().WithFields(logrus.Fields{
-			"address": config.Miner,
-			"err":     err,
-		}).Error("Failed to parse miner address.")
-		return err
-	}
-	dpos.coinbase = coinbase
-	dpos.miner = miner
+	dpos.slot = slot
 	return nil
 }
 
@@ -122,7 +145,7 @@ func (dpos *Dpos) Stop() {
 
 // EnableMining start the consensus
 func (dpos *Dpos) EnableMining(passphrase string) error {
-	if err := dpos.am.Unlock(dpos.miner, []byte(passphrase), keystore.YearUnlockDuration); err != nil {
+	if err := dpos.am.Unlock(dpos.miner, []byte(passphrase), DefaultMaxUnlockDuration); err != nil {
 		return err
 	}
 	dpos.enable = true
@@ -148,9 +171,6 @@ func (dpos *Dpos) Enable() bool {
 func less(a *core.Block, b *core.Block) bool {
 	if a.Height() != b.Height() {
 		return a.Height() < b.Height()
-	}
-	if len(a.Transactions()) != len(b.Transactions()) {
-		return len(a.Transactions()) < len(b.Transactions())
 	}
 	return byteutils.Less(a.Hash(), b.Hash())
 }
@@ -201,7 +221,7 @@ func (dpos *Dpos) UpdateLIB() {
 	tail := dpos.chain.TailBlock()
 	cur := tail
 	miners := make(map[string]bool)
-	dynasty := int64(0)
+	dynasty := int64(-1)
 	for !cur.Hash().Equals(lib.Hash()) {
 		curDynasty := cur.Timestamp() * SecondInMs / DynastyIntervalInMs
 		if curDynasty != dynasty {
@@ -214,7 +234,7 @@ func (dpos *Dpos) UpdateLIB() {
 		}
 		miners[byteutils.Hex(cur.ConsensusRoot().Proposer)] = true
 		if len(miners) >= ConsensusSize {
-			if err := dpos.chain.StoreLIBToStorage(cur); err != nil {
+			if err := dpos.chain.StoreLIBHashToStorage(cur); err != nil {
 				logging.VLog().WithFields(logrus.Fields{
 					"tail": tail,
 					"lib":  cur,
@@ -283,7 +303,7 @@ func verifyBlockSign(miner *core.Address, block *core.Block) error {
 			"address": addr,
 			"err":     err,
 			"block":   block,
-		}).Debug("Failed to recover block's miner.")
+		}).Error("Failed to recover block's miner.")
 		return err
 	}
 	if !miner.Equals(addr) {
@@ -308,18 +328,24 @@ func (dpos *Dpos) VerifyBlock(block *core.Block) error {
 	if elapsedSecondInMs%BlockIntervalInMs != 0 {
 		return ErrInvalidBlockInterval
 	}
+	// check double mint
+	if preBlock, exist := dpos.slot.Get(block.Timestamp()); exist {
+		logging.VLog().WithFields(logrus.Fields{
+			"curBlock": block,
+			"preBlock": preBlock.(*core.Block),
+		}).Warn("Found someone minted multiple blocks at same time.")
+		return ErrDoubleBlockMinted
+	}
 	// check proposer
-	dynastyRoot := tail.WorldState().DynastyRoot()
-	dynasty, err := trie.NewTrie(dynastyRoot, dpos.chain.Storage(), false)
+	validators, err := tail.WorldState().Dynasty()
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"err":   err,
-			"root":  dynastyRoot,
 			"block": block,
-		}).Debug("Failed to create new trie.")
+		}).Debug("Failed to get validators from dynasty.")
 		return err
 	}
-	proposer, err := FindProposer(block.Timestamp(), dynasty)
+	proposer, err := FindProposer(block.Timestamp(), validators)
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"proposer": proposer,
@@ -337,12 +363,16 @@ func (dpos *Dpos) VerifyBlock(block *core.Block) error {
 		}).Debug("Failed to parse proposer.")
 		return err
 	}
-	return verifyBlockSign(miner, block)
+	// check signature
+	if err := verifyBlockSign(miner, block); err != nil {
+		return err
+	}
+	dpos.slot.Add(block.Timestamp(), block)
+	return nil
 }
 
 func (dpos *Dpos) newBlock(tail *core.Block, consensusState state.ConsensusState, deadlineInMs int64) (*core.Block, error) {
 	startAt := time.Now().Unix()
-
 	block, err := core.NewBlock(dpos.chain.ChainID(), dpos.coinbase, tail)
 	if err != nil {
 		logging.CLog().WithFields(logrus.Fields{
@@ -452,7 +482,7 @@ func (dpos *Dpos) checkProposer(tail *core.Block, nowInMs int64) (state.Consensu
 	return consensusState, nil
 }
 
-func (dpos *Dpos) broadcast(tail *core.Block, block *core.Block) error {
+func (dpos *Dpos) pushAndBroadcast(tail *core.Block, block *core.Block) error {
 	if err := dpos.chain.BlockPool().PushAndBroadcast(block); err != nil {
 		logging.CLog().WithFields(logrus.Fields{
 			"tail":  tail,
@@ -461,6 +491,11 @@ func (dpos *Dpos) broadcast(tail *core.Block, block *core.Block) error {
 		}).Error("Failed to push new minted block into block pool")
 		return err
 	}
+
+	if !dpos.chain.TailBlock().Hash().Equals(block.Hash()) {
+		return ErrAppendNewBlockFailed
+	}
+
 	logging.CLog().WithFields(logrus.Fields{
 		"tail":  tail,
 		"block": block,
@@ -470,11 +505,12 @@ func (dpos *Dpos) broadcast(tail *core.Block, block *core.Block) error {
 
 func (dpos *Dpos) mintBlock(now int64) error {
 	metricsBlockPackingTime.Update(0)
+	metricsBlockWaitingTime.Update(0)
 
 	nowInMs := now * SecondInMs
 	// check mining enable
 	if !dpos.enable {
-		return ErrCannotMintWhenDiable
+		return ErrCannotMintWhenDisable
 	}
 
 	// check mining pending
@@ -517,6 +553,7 @@ func (dpos *Dpos) mintBlock(now int64) error {
 	if slotInMs > currentInMs {
 		timer := time.NewTimer(time.Duration(slotInMs-currentInMs) * time.Millisecond).C
 		<-timer
+		metricsBlockWaitingTime.Update(slotInMs - currentInMs)
 	}
 
 	logging.CLog().WithFields(logrus.Fields{
@@ -532,21 +569,18 @@ func (dpos *Dpos) mintBlock(now int64) error {
 	// try to push the new block on chain
 	// if failed, return all txs back
 
-	if err := dpos.broadcast(tail, block); err != nil {
+	if err := dpos.pushAndBroadcast(tail, block); err != nil {
 		block.ReturnTransactions()
 		return err
 	}
 
-	if !dpos.chain.TailBlock().Hash().Equals(block.Hash()) {
-		block.ReturnTransactions()
-	}
 	return nil
 }
 
 func (dpos *Dpos) blockLoop() {
 	logging.CLog().Info("Started Dpos Mining.")
 	timeChan := time.NewTicker(time.Second).C
-	for {
+	for { // ToRefine: change loop logic, try more times second
 		select {
 		case now := <-timeChan:
 			dpos.mintBlock(now.Unix())
@@ -555,4 +589,23 @@ func (dpos *Dpos) blockLoop() {
 			return
 		}
 	}
+}
+
+func (dpos *Dpos) findProposer(now int64) (proposer byteutils.Hash, err error) {
+	validators, err := dpos.chain.TailBlock().WorldState().Dynasty()
+	if err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"err": err,
+		}).Debug("Failed to get validators from dynasty.")
+		return nil, err
+	}
+	proposer, err = FindProposer(now, validators)
+	if err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"proposer": proposer,
+			"err":      err,
+		}).Debug("Failed to find proposer.")
+		return nil, err
+	}
+	return proposer, nil
 }

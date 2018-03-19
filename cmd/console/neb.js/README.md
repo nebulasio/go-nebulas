@@ -51,7 +51,13 @@ In the next tutorial I will show how to use neb.js file and make a make a progra
 ## Extra 
 Rollup is a module bundler for JavaScript which compiles small pieces of code into something larger and more complex, such as a library or application.
 
-Build neb-node.js by [rollup](https://rollupjs.org/):
+To install rollup open up your terminal
+```
+npm install rollup
+```
+
+Next step go to the neb.js folder in your Nebulas dir and
+Build neb-node.js by using [rollup](https://rollupjs.org/):
 
 ```
 rollup -c

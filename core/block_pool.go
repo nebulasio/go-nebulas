@@ -47,7 +47,6 @@ type BlockPool struct {
 
 	bc    *BlockChain
 	cache *lru.Cache
-	slot  *lru.Cache
 
 	ns net.Service
 	mu sync.RWMutex
@@ -82,25 +81,14 @@ func NewBlockPool(size int) (*BlockPool, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	bp.slot, _ = lru.NewWithEvict(size, func(key interface{}, value interface{}) {
-		block := value.(*Block)
-		if block != nil {
-			block.Dispose()
-		}
-	})
-
-	if err != nil {
-		return nil, err
-	}
 	return bp, nil
 }
 
 // RegisterInNetwork register message subscriber in network.
 func (pool *BlockPool) RegisterInNetwork(ns net.Service) {
 	ns.Register(net.NewSubscriber(pool, pool.receiveBlockMessageCh, true, MessageTypeNewBlock, net.MessageWeightNewBlock))
-	ns.Register(net.NewSubscriber(pool, pool.receiveBlockMessageCh, false, MessageTypeDownloadedBlockReply, net.MessageWeightZero))
-	ns.Register(net.NewSubscriber(pool, pool.receiveDownloadBlockMessageCh, false, MessageTypeDownloadedBlock, net.MessageWeightZero))
+	ns.Register(net.NewSubscriber(pool, pool.receiveBlockMessageCh, false, MessageTypeBlockDownloadResponse, net.MessageWeightZero))
+	ns.Register(net.NewSubscriber(pool, pool.receiveDownloadBlockMessageCh, false, MessageTypeParentBlockDownloadRequest, net.MessageWeightZero))
 	pool.ns = ns
 }
 
@@ -122,8 +110,8 @@ func (pool *BlockPool) Stop() {
 	pool.quitCh <- 0
 }
 
-func (pool *BlockPool) handleBlock(msg net.Message) {
-	if msg.MessageType() != MessageTypeNewBlock && msg.MessageType() != MessageTypeDownloadedBlockReply {
+func (pool *BlockPool) handleReceivedBlock(msg net.Message) {
+	if msg.MessageType() != MessageTypeNewBlock && msg.MessageType() != MessageTypeBlockDownloadResponse {
 		logging.VLog().WithFields(logrus.Fields{
 			"msgType": msg.MessageType(),
 			"msg":     msg,
@@ -163,8 +151,8 @@ func (pool *BlockPool) handleBlock(msg net.Message) {
 	pool.PushAndRelay(msg.MessageFrom(), block)
 }
 
-func (pool *BlockPool) handleDownloadedBlock(msg net.Message) {
-	if msg.MessageType() != MessageTypeDownloadedBlock {
+func (pool *BlockPool) handleParentDownloadRequest(msg net.Message) {
+	if msg.MessageType() != MessageTypeParentBlockDownloadRequest {
 		logging.VLog().WithFields(logrus.Fields{
 			"messageType": msg.MessageType(),
 			"message":     msg,
@@ -231,7 +219,7 @@ func (pool *BlockPool) handleDownloadedBlock(msg net.Message) {
 		}).Debug("Failed to marshal the block's parent.")
 		return
 	}
-	pool.ns.SendMsg(MessageTypeDownloadedBlockReply, bytes, msg.MessageFrom(), net.MessagePriorityNormal)
+	pool.ns.SendMsg(MessageTypeBlockDownloadResponse, bytes, msg.MessageFrom(), net.MessagePriorityNormal)
 
 	logging.VLog().WithFields(logrus.Fields{
 		"block":  block,
@@ -251,14 +239,14 @@ func (pool *BlockPool) loop() {
 			logging.CLog().Info("Stopped BlockPool.")
 			return
 		case msg := <-pool.receiveBlockMessageCh:
-			go pool.handleBlock(msg)
+			go pool.handleReceivedBlock(msg)
 		case msg := <-pool.receiveDownloadBlockMessageCh:
-			go pool.handleDownloadedBlock(msg)
+			go pool.handleParentDownloadRequest(msg)
 		}
 	}
 }
 
-func mockBlockFromNetwork(block *Block) (*Block, error) {
+func deepCopyBlock(block *Block) (*Block, error) {
 	pbBlock, err := block.ToProto()
 	if err != nil {
 		return nil, err
@@ -268,15 +256,18 @@ func mockBlockFromNetwork(block *Block) (*Block, error) {
 		return nil, err
 	}
 	block = new(Block)
-	block.FromProto(pbBlock)
-	return block, nil
+	err = block.FromProto(pbBlock)
+	return block, err
 }
 
 // Push block into block pool
 func (pool *BlockPool) Push(block *Block) error {
+	if block == nil {
+		return ErrNilArgument
+	}
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
-	block, err := mockBlockFromNetwork(block)
+	block, err := deepCopyBlock(block)
 	if err != nil {
 		return err
 	}
@@ -289,39 +280,39 @@ func (pool *BlockPool) Push(block *Block) error {
 
 // PushAndRelay push block into block pool and relay it.
 func (pool *BlockPool) PushAndRelay(sender string, block *Block) error {
+	if block == nil {
+		return ErrNilArgument
+	}
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
 
-	block, err := mockBlockFromNetwork(block)
+	block, err := deepCopyBlock(block)
 	if err != nil {
 		return err
 	}
-	if err := pool.push(sender, block); err != nil {
-		return err
-	}
-	return nil
+
+	return pool.push(sender, block)
 }
 
 // PushAndBroadcast push block into block pool and broadcast it.
 func (pool *BlockPool) PushAndBroadcast(block *Block) error {
+	if block == nil {
+		return ErrNilArgument
+	}
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
 
-	block, err := mockBlockFromNetwork(block)
+	block, err := deepCopyBlock(block)
 	if err != nil {
 		return err
 	}
 
 	pool.ns.Broadcast(MessageTypeNewBlock, block, net.MessagePriorityHigh)
 
-	if err := pool.push(NoSender, block); err != nil {
-		return err
-	}
-
-	return nil
+	return pool.push(NoSender, block)
 }
 
-func (pool *BlockPool) download(sender string, block *Block) error {
+func (pool *BlockPool) downloadParent(sender string, block *Block) error {
 	downloadMsg := &corepb.DownloadBlock{
 		Hash: block.Hash(),
 		Sign: block.Signature(),
@@ -335,7 +326,7 @@ func (pool *BlockPool) download(sender string, block *Block) error {
 		return err
 	}
 
-	pool.ns.SendMsg(MessageTypeDownloadedBlock, bytes, sender, net.MessagePriorityNormal)
+	pool.ns.SendMsg(MessageTypeParentBlockDownloadRequest, bytes, sender, net.MessagePriorityNormal)
 
 	logging.VLog().WithFields(logrus.Fields{
 		"target": sender,
@@ -374,17 +365,6 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 
 	var plb *linkedBlock
 	lb := newLinkedBlock(block, pool.bc)
-
-	if preBlock, exist := pool.slot.Get(lb.block.Timestamp()); exist {
-		metricsInvalidBlock.Inc(1)
-		logging.VLog().WithFields(logrus.Fields{
-			"curBlock": lb.block,
-			"preBlock": preBlock.(*Block),
-			"sender":   sender,
-		}).Warn("Found someone minted multiple blocks at same time.")
-		return ErrDoubleBlockMinted
-	}
-	pool.slot.Add(lb.block.Timestamp(), lb.block)
 	cache.Add(lb.hash.Hex(), lb)
 
 	// find child block in pool.
@@ -416,11 +396,7 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 			return ErrMissingParentBlock
 		}
 
-		if err := pool.download(sender, plb.block); err != nil {
-			return err
-		}
-
-		return nil
+		return pool.downloadParent(sender, plb.block)
 	}
 
 	// find parent in Chain.
@@ -444,7 +420,7 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 			return ErrInvalidBlockCannotFindParentInLocalAndTrySync
 		}
 
-		if err := pool.download(sender, lb.block); err != nil {
+		if err := pool.downloadParent(sender, lb.block); err != nil {
 			return err
 		}
 		return ErrInvalidBlockCannotFindParentInLocalAndTryDownload
@@ -471,11 +447,7 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 	}
 
 	// notify consensus to handle new block.
-	if err := pool.bc.ConsensusHandler().ForkChoice(); err != nil {
-		return err
-	}
-
-	return nil
+	return pool.bc.ConsensusHandler().ForkChoice()
 }
 
 func (pool *BlockPool) setBlockChain(bc *BlockChain) {

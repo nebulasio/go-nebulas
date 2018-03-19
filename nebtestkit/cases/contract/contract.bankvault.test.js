@@ -24,6 +24,15 @@ var coinState;
 var redeploy = process.env.REDEPLOY || true;
 var scriptType = process.env.script || 'js';
 var env = process.env.NET || 'local';
+
+// mocha cases/contract/xxx testneb1 -t 200000
+var args = process.argv.splice(2);
+env = args[1];
+if (env !== "local" && env !== "testneb1" && env !== "testneb2" && env !== "testneb3") {
+    env = "local";
+}
+console.log("env:", env);
+
 if (env === 'local') {
     neb.setRequest(new HttpRequest("http://127.0.0.1:8685"));//https://testnet.nebulas.io
 	ChainID = 100;
@@ -46,6 +55,14 @@ if (env === 'local') {
 } else if (env === "testneb2") {
     neb.setRequest(new HttpRequest("http://34.205.26.12:8685"));
     ChainID = 1002;
+    sourceAccount = new Wallet.Account("43181d58178263837a9a6b08f06379a348a5b362bfab3631ac78d2ac771c5df3");
+    coinbase = "0b9cd051a6d7129ab44b17833c63fe4abead40c3714cde6d";
+    if (!redeploy) {
+        contractAddr = "";
+    }
+}else if (env === "testneb3") {
+    neb.setRequest(new HttpRequest("http://35.177.214.138:8685"));
+    ChainID = 1003;
     sourceAccount = new Wallet.Account("43181d58178263837a9a6b08f06379a348a5b362bfab3631ac78d2ac771c5df3");
     coinbase = "0b9cd051a6d7129ab44b17833c63fe4abead40c3714cde6d";
     if (!redeploy) {
@@ -227,8 +244,17 @@ function testSave(testInput, testExpect, done) {
             });
         });
     }).catch(function(err){
-        console.log(err.error);
-        done(err)
+        if (testExpect.hasError) {
+            try {
+                expect(err.error).to.have.property('error').equal(testExpect.errorMsg);
+                done();
+            } catch (e) {
+                done(err)
+            }
+        } else {
+            console.log(err.error);
+            done(err)
+        }
     });
 }
 
@@ -259,6 +285,8 @@ function testTakeout(testInput, testExpect, done) {
             testInput.value, parseInt(state.nonce) + 1, 0, testInput.gasLimit, call).then(function(resp){
                         expect(resp).to.have.property('gas');
                         gasUsed = resp.gas;
+        }).catch(function(err) {
+            // do nothing
         });
 
         return neb.api.sendRawTransaction(tx.toProtoString());
@@ -266,14 +294,10 @@ function testTakeout(testInput, testExpect, done) {
         expect(resp).to.have.property('txhash');
         checkTransaction(resp.txhash, function(receipt){
 
-            try {
-                if (testExpect.canExecuteTx) {
-                    expect(receipt).to.have.property('status').equal(1);
-                } else {
-                    expect(receipt).to.not.have.property('status');
-                }
-            }catch(err) {
-                done(err)
+            if (testExpect.canExecuteTx) {
+                expect(receipt).to.have.property('status').equal(1);
+            } else {
+                expect(receipt).to.not.have.property('status');
             }
             
             neb.api.getAccountState(receipt.from).then(function(state){
@@ -332,7 +356,16 @@ function testTakeout(testInput, testExpect, done) {
         });
     }).catch(function(err){
         console.log(err.error);
-        done(err)
+        if (testExpect.hasError) {
+            try {
+                expect(err.error).to.have.property('error').equal(testExpect.errorMsg)
+                done();
+            } catch (e) {
+                done(err)
+            }
+        } else {
+            done(err)
+        }
     });
 }
 
@@ -400,10 +433,10 @@ function claimNas(contractType, done) {
     });
 }
 
-describe('bankvault test suits', function() {
+describe('bankvault.' + scriptType, function() {
     
 
-    describe('take-normal', function() {
+    describe('1. take: normal', function() {
         before(function(done){
             claimNas(scriptType, done);
         });
@@ -442,7 +475,7 @@ describe('bankvault test suits', function() {
         });
     });
 
-    describe("take-insufficient", function(){
+    describe("2. take: insufficient balance", function(){
         before(function(done){
             claimNas(scriptType, done);
         });
@@ -462,7 +495,7 @@ describe('bankvault test suits', function() {
             testSave(testInput, testExpect, done);
         });
     
-        it('call takeout()', function(done){
+        it('2-1. transfer > balance', function(done){
             // take
             var testInput = {
                 gasLimit: 2000000,
@@ -474,14 +507,53 @@ describe('bankvault test suits', function() {
             var testExpect = {
                 canExecuteTx: false,  // actually, should be `false`
                 takeBalance: '40000000000',  // same with testInput.args[0]
-                eventTopic: 'chain.executeTxFailed'
+                eventTopic: 'chain.executeTxFailed',
+                hasError: true,
+                errorMsg: 'execution failed'
+            }
+    
+            testTakeout(testInput, testExpect, done);
+        });
+
+        it('2-2. transfer = 0', function(done){
+            // take
+            var testInput = {
+                gasLimit: 2000000,
+                func: "takeout",
+                args: "[0]",
+                value: "0"  //no use
+            }
+    
+            var testExpect = {
+                canExecuteTx: true,  // actually, should be `false`
+                takeBalance: '0',  // same with testInput.args[0]
+            }
+    
+            testTakeout(testInput, testExpect, done);
+        });
+
+        it('2-3. transfer < 0', function(done){
+            // take
+            var testInput = {
+                gasLimit: 2000000,
+                func: "takeout",
+                args: "[-40000000000]",
+                value: "0"  //no use
+            }
+    
+            var testExpect = {
+                canExecuteTx: false,  // actually, should be `false`
+                takeBalance: '-40000000000',  // same with testInput.args[0]
+                eventTopic: 'chain.executeTxFailed',
+                hasError: true,
+                errorMsg: 'execution failed'
             }
     
             testTakeout(testInput, testExpect, done);
         });
     });
 
-    describe("take-lt-height", () => {
+    describe("3. take: lt-height", () => {
         before(done => {
             claimNas(scriptType, done);
         });
@@ -540,7 +612,7 @@ describe('bankvault test suits', function() {
         });
     });
     
-    describe("take-nodeposit", function(){
+    describe("4. take: no deposit", function(){
         before(function(done){
             claimNas(scriptType, done);
         });
@@ -565,12 +637,12 @@ describe('bankvault test suits', function() {
         });
     });
 
-    describe("save", function(){
+    describe("5. save", function(){
         before(function(done){
             claimNas(scriptType, done);
         });
 
-        it('save non-negative value', function(done){
+        it('5-1. save non-negative value', function(done){
             var testInput = {
                 gasLimit: 2000000,
                 func: "save",
@@ -585,7 +657,7 @@ describe('bankvault test suits', function() {
             testSave(testInput, testExpect, done);
         });
 
-        it('save negative value', function(done){
+        it('5-2. save negative value', function(done){
             var testInput = {
                 gasLimit: 2000000,
                 func: "save",
@@ -594,13 +666,14 @@ describe('bankvault test suits', function() {
             }
     
             var testExpect = {
-                canExecuteTx: true
+                hasError: true,
+                errorMsg: "uint128: underflow"
             }
     
             testSave(testInput, testExpect, done);
         });
 
-        it('save negative height', done => {
+        it('5-3. save negative height', done => {
             var testInput = {
                 gasLimit: 2000000,
                 func: "save",
@@ -616,13 +689,13 @@ describe('bankvault test suits', function() {
         });
     });
 
-    describe('verifyAddress', () => {
+    describe('6. verifyAddress', () => {
 
         before(function(done){
             claimNas(scriptType, done);
         });
 
-        it('legal address', done => {
+        it('6-1. legal address', done => {
             var testInput = {
                 value: "0",
                 gasLimit: 2000000,
@@ -637,7 +710,7 @@ describe('bankvault test suits', function() {
             testVerifyAddress(testInput, testExpect, done);
         });
 
-        it('illegal address', done => {
+        it('6-3. illegal address', done => {
             var testInput = {
                 value: "0",
                 gasLimit: 2000000,

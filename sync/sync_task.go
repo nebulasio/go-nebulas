@@ -54,7 +54,7 @@ var (
 // Task is a sync task
 type Task struct {
 	quitCh                                  chan bool
-	statusCh                                chan error
+	statusCh                                chan bool
 	blockChain                              *core.BlockChain
 	syncPointBlock                          *core.Block
 	netService                              net.Service
@@ -83,7 +83,7 @@ type Task struct {
 func NewTask(blockChain *core.BlockChain, netService net.Service, chunk *Chunk) *Task {
 	return &Task{
 		quitCh:                                  make(chan bool, 1),
-		statusCh:                                make(chan error, 1),
+		statusCh:                                make(chan bool, 1),
 		blockChain:                              blockChain,
 		syncPointBlock:                          blockChain.TailBlock(),
 		netService:                              netService,
@@ -169,7 +169,7 @@ func (st *Task) startSyncLoop() {
 				// finished.
 				logging.VLog().Info("GetChainData Finished.")
 				if len(st.maxConsistentChunkHeaders.ChunkHeaders) == 0 {
-					st.statusCh <- nil
+					st.statusCh <- true
 					return
 				}
 				logging.CLog().WithFields(logrus.Fields{

@@ -47,8 +47,8 @@ type TransactionPool struct {
 	ns net.Service
 	mu sync.RWMutex
 
-	gasPrice *util.Uint128 // the lowest gasPrice.
-	gasLimit *util.Uint128 // the maximum gasLimit.
+	minGasPrice *util.Uint128 // the lowest gasPrice.
+	maxGasLimit *util.Uint128 // the maximum gasLimit.
 
 	eventEmitter *EventEmitter
 	bc           *BlockChain
@@ -74,30 +74,29 @@ func gasCmp(a interface{}, b interface{}) int {
 
 // NewTransactionPool create a new TransactionPool
 func NewTransactionPool(size int) (*TransactionPool, error) {
-	txPool := &TransactionPool{
+	return &TransactionPool{
 		receivedMessageCh: make(chan net.Message, size),
 		quitCh:            make(chan int, 1),
 		size:              size,
 		candidates:        sorted.NewSlice(gasCmp),
 		buckets:           make(map[byteutils.HexHash]*sorted.Slice),
 		all:               make(map[byteutils.HexHash]*Transaction),
-		gasPrice:          TransactionGasPrice,
-		gasLimit:          TransactionMaxGas,
-	}
-	return txPool, nil
+		minGasPrice:       TransactionGasPrice,
+		maxGasLimit:       TransactionMaxGas,
+	}, nil
 }
 
 // SetGasConfig config the lowest gasPrice and the maximum gasLimit.
 func (pool *TransactionPool) SetGasConfig(gasPrice, gasLimit *util.Uint128) {
 	if gasPrice == nil || gasPrice.Cmp(util.NewUint128()) <= 0 {
-		pool.gasPrice = TransactionGasPrice
+		pool.minGasPrice = TransactionGasPrice
 	} else {
-		pool.gasPrice = gasPrice
+		pool.minGasPrice = gasPrice
 	}
 	if gasLimit == nil || gasLimit.Cmp(util.NewUint128()) == 0 || gasLimit.Cmp(TransactionMaxGas) > 0 {
-		pool.gasLimit = TransactionMaxGas
+		pool.maxGasLimit = TransactionMaxGas
 	} else {
-		pool.gasLimit = gasLimit
+		pool.maxGasLimit = gasLimit
 	}
 }
 
@@ -232,10 +231,10 @@ func (pool *TransactionPool) Push(tx *Transaction) error {
 	if _, ok := pool.all[tx.hash.Hex()]; ok {
 		metricsDuplicateTx.Inc(1)
 		return ErrDuplicatedTransaction
-	}
+	} // ToRefine: refine the lock scope
 
 	// if tx's gasPrice below the pool config lowest gasPrice, return ErrBelowGasPrice
-	if tx.gasPrice.Cmp(pool.gasPrice) < 0 {
+	if tx.gasPrice.Cmp(pool.minGasPrice) < 0 {
 		metricsTxPoolBelowGasPrice.Inc(1)
 		return ErrBelowGasPrice
 	}
@@ -245,7 +244,7 @@ func (pool *TransactionPool) Push(tx *Transaction) error {
 		return ErrGasLimitLessOrEqualToZero
 	}
 
-	if tx.gasLimit.Cmp(pool.gasLimit) > 0 {
+	if tx.gasLimit.Cmp(pool.maxGasLimit) > 0 {
 		metricsTxPoolOutOfGasLimit.Inc(1)
 		return ErrOutOfGasLimit
 	}
@@ -254,6 +253,15 @@ func (pool *TransactionPool) Push(tx *Transaction) error {
 	if err := tx.VerifyIntegrity(pool.bc.chainID); err != nil {
 		metricsInvalidTx.Inc(1)
 		return err
+	}
+
+	pool.mu.Lock()
+	defer pool.mu.Unlock()
+
+	// verify non-dup tx
+	if _, ok := pool.all[tx.hash.Hex()]; ok {
+		metricsDuplicateTx.Inc(1)
+		return ErrDuplicatedTransaction
 	}
 
 	// cache the verified tx
@@ -280,11 +288,11 @@ func (pool *TransactionPool) pushTx(tx *Transaction) {
 		bucket = sorted.NewSlice(nonceCmp)
 		pool.buckets[slot] = bucket
 	}
-	oldCandidate := bucket.Min()
+	oldCandidate := bucket.Left()
 	bucket.Push(tx)
 	pool.all[tx.hash.Hex()] = tx
-	newCandidate := bucket.Min()
-	// replace candidate, maybe
+	newCandidate := bucket.Left()
+	// replace candidate
 	if oldCandidate == nil {
 		pool.candidates.Push(newCandidate)
 	} else if oldCandidate != newCandidate {
@@ -296,10 +304,12 @@ func (pool *TransactionPool) pushTx(tx *Transaction) {
 func (pool *TransactionPool) popTx(tx *Transaction) {
 	bucket := pool.buckets[tx.from.address.Hex()]
 	delete(pool.all, tx.hash.Hex())
-	bucket.PopMin()
+	bucket.PopLeft()
 	if bucket.Len() != 0 {
-		candidate := bucket.Min()
+		candidate := bucket.Left()
 		pool.candidates.Push(candidate)
+	} else {
+		delete(pool.buckets, tx.from.address.Hex())
 	}
 }
 
@@ -313,11 +323,12 @@ func (pool *TransactionPool) dropTx() {
 		}
 	}
 	if longestLen > 0 {
-		drop := longestSlice.PopMax().(*Transaction)
+		drop := longestSlice.PopRight().(*Transaction)
 		if drop != nil {
 			delete(pool.all, drop.Hash().Hex())
 			if longestLen == 1 {
 				pool.candidates.Del(drop)
+				delete(pool.buckets, drop.from.address.Hex())
 			}
 		}
 	}
@@ -355,7 +366,7 @@ func (pool *TransactionPool) Pop() *Transaction {
 	defer pool.mu.Unlock()
 
 	candidates := pool.candidates
-	val := candidates.PopMin()
+	val := candidates.PopLeft()
 	if val == nil {
 		return nil
 	}
@@ -371,19 +382,19 @@ func (pool *TransactionPool) Del(tx *Transaction) {
 
 	bucket := pool.buckets[tx.from.address.Hex()]
 	if bucket != nil && bucket.Len() > 0 {
-		oldCandidate := bucket.Min()
+		oldCandidate := bucket.Left()
 		left := oldCandidate.(*Transaction)
 		for left.Nonce() <= tx.Nonce() {
-			bucket.PopMin()
+			bucket.PopLeft()
 			delete(pool.all, left.Hash().Hex())
 			if bucket.Len() > 0 {
-				left = bucket.Min().(*Transaction)
+				left = bucket.Left().(*Transaction)
 			} else {
 				delete(pool.buckets, left.from.address.Hex())
 				break
 			}
 		}
-		newCandidate := bucket.Min()
+		newCandidate := bucket.Left()
 		// replace candidate
 		if oldCandidate != newCandidate {
 			pool.candidates.Del(oldCandidate)

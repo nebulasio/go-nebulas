@@ -118,8 +118,12 @@ API.prototype.getEventsByHash = function (hash, callback) {
 };
 
 API.prototype.getDynasty = function (height, callback) {
-    var params = {"height": height}
+    var params = {"height": height};
     return this.request("post", "/v1/user/dynasty", params, callback);
+};
+
+API.prototype.getConfig = function (callback) {
+    return this.request("get", "/v1/user/getConfig", null, callback);
 };
 
 API.prototype.request = function (method, api, params, callback) {

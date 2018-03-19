@@ -21,14 +21,11 @@ package core
 import (
 	"io/ioutil"
 
-	"github.com/nebulasio/go-nebulas/consensus/pb"
-
-	"github.com/nebulasio/go-nebulas/common/dag"
-
-	"github.com/nebulasio/go-nebulas/core/state"
-
 	"github.com/gogo/protobuf/proto"
+	"github.com/nebulasio/go-nebulas/common/dag"
+	"github.com/nebulasio/go-nebulas/consensus/pb"
 	"github.com/nebulasio/go-nebulas/core/pb"
+	"github.com/nebulasio/go-nebulas/core/state"
 	"github.com/nebulasio/go-nebulas/util"
 	"github.com/nebulasio/go-nebulas/util/logging"
 	"github.com/sirupsen/logrus"
@@ -36,21 +33,25 @@ import (
 
 // Genesis Block Hash
 var (
-	GenesisHash      = make([]byte, BlockHashLength)
-	GenesisTimestamp = int64(0)
-	GenesisCoinbase  = &Address{make([]byte, AddressLength)}
+	GenesisHash        = make([]byte, BlockHashLength)
+	GenesisTimestamp   = int64(0)
+	GenesisCoinbase, _ = NewAddress(make([]byte, AddressDataLength))
 )
 
 // LoadGenesisConf load genesis conf for file
 func LoadGenesisConf(filePath string) (*corepb.Genesis, error) {
 	b, err := ioutil.ReadFile(filePath)
 	if err != nil {
+		logging.CLog().WithFields(logrus.Fields{
+			"err": err,
+		}).Info("Failed to read the genesis config file.")
 		return nil, err
 	}
 	content := string(b)
 
 	genesis := new(corepb.Genesis)
 	if err := proto.UnmarshalText(content, genesis); err != nil {
+		logging.CLog().Fatalf("genesis.conf parse failed. err:%v", err)
 		return nil, err
 	}
 	return genesis, nil
@@ -58,6 +59,10 @@ func LoadGenesisConf(filePath string) (*corepb.Genesis, error) {
 
 // NewGenesisBlock create genesis @Block from file.
 func NewGenesisBlock(conf *corepb.Genesis, chain *BlockChain) (*Block, error) {
+	if conf == nil || chain == nil {
+		return nil, ErrNilArgument
+	}
+
 	worldState, err := state.NewWorldState(chain.ConsensusHandler(), chain.storage)
 	if err != nil {
 		return nil, err
@@ -76,10 +81,11 @@ func NewGenesisBlock(conf *corepb.Genesis, chain *BlockChain) (*Block, error) {
 		parentBlock:  nil,
 		worldState:   worldState,
 		txPool:       chain.txPool,
-		height:       1,
-		sealed:       true,
 		storage:      chain.storage,
 		eventEmitter: chain.eventEmitter,
+		nvm:          chain.nvm,
+		height:       1,
+		sealed:       false,
 	}
 
 	consensusState, err := chain.ConsensusHandler().GenesisConsensusState(chain, conf)
@@ -116,24 +122,30 @@ func NewGenesisBlock(conf *corepb.Genesis, chain *BlockChain) (*Block, error) {
 			return nil, err
 		}
 	}
-	genesisBlock.Commit()
 
 	genesisBlock.header.stateRoot, err = genesisBlock.WorldState().AccountsRoot()
 	if err != nil {
+		genesisBlock.RollBack()
 		return nil, err
 	}
 	genesisBlock.header.txsRoot, err = genesisBlock.WorldState().TxsRoot()
 	if err != nil {
+		genesisBlock.RollBack()
 		return nil, err
 	}
 	genesisBlock.header.eventsRoot, err = genesisBlock.WorldState().EventsRoot()
 	if err != nil {
+		genesisBlock.RollBack()
 		return nil, err
 	}
 	genesisBlock.header.consensusRoot, err = genesisBlock.WorldState().ConsensusRoot()
 	if err != nil {
+		genesisBlock.RollBack()
 		return nil, err
 	}
+
+	genesisBlock.sealed = true
+	genesisBlock.Commit()
 
 	return genesisBlock, nil
 }
@@ -185,4 +197,53 @@ func DumpGenesis(chain *BlockChain) (*corepb.Genesis, error) {
 		},
 		TokenDistribution: distribution,
 	}, nil
+}
+
+//CheckGenesisConfByDB check mem and genesis.conf if equal return nil
+func CheckGenesisConfByDB(pGenesisDB *corepb.Genesis, pGenesis *corepb.Genesis) error {
+	//private function [Empty parameters are checked by the caller]
+	if pGenesisDB != nil {
+		if pGenesis.Meta.ChainId != pGenesisDB.Meta.ChainId {
+			return ErrGenesisNotEqualChainIDInDB
+		}
+
+		if len(pGenesis.Consensus.Dpos.Dynasty) != len(pGenesisDB.Consensus.Dpos.Dynasty) {
+			return ErrGenesisNotEqualDynastyLenInDB
+		}
+
+		if len(pGenesis.TokenDistribution) != len(pGenesisDB.TokenDistribution) {
+			return ErrGenesisNotEqualTokenLenInDB
+		}
+
+		// check dpos equal
+		for _, confDposAddr := range pGenesis.Consensus.Dpos.Dynasty {
+			contains := false
+			for _, dposAddr := range pGenesisDB.Consensus.Dpos.Dynasty {
+				if dposAddr == confDposAddr {
+					contains = true
+					break
+				}
+			}
+			if !contains {
+				return ErrGenesisNotEqualDynastyInDB
+			}
+
+		}
+
+		// check distribution equal
+		for _, confDistribution := range pGenesis.TokenDistribution {
+			contains := false
+			for _, distribution := range pGenesisDB.TokenDistribution {
+				if distribution.Address == confDistribution.Address &&
+					distribution.Value == confDistribution.Value {
+					contains = true
+					break
+				}
+			}
+			if !contains {
+				return ErrGenesisNotEqualTokenInDB
+			}
+		}
+	}
+	return nil
 }

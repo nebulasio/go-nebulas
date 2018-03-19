@@ -32,6 +32,7 @@ import (
 // Errors
 var (
 	ErrListenPortIsNotAvailable = errors.New("listen port is not available")
+	ErrConfigLackNetWork        = errors.New("config.conf should has network")
 )
 
 // ParseFromIPFSAddr return pid and address parsed from ipfs address

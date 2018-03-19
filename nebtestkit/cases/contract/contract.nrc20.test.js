@@ -18,8 +18,14 @@ var coinbase, coinState;
 var testCases = new Array();
 var caseIndex = 0;
 
-//local
-var env = "local";
+// mocha cases/contract/xxx testneb1 -t 200000
+var args = process.argv.splice(2);
+var env = args[1];
+if (env !== "local" && env !== "testneb1" && env !== "testneb2" && env !== "testneb3") {
+    env = "local";
+}
+console.log("env:", env);
+
 if (env == 'local'){
     neb.setRequest(new HttpRequest("http://127.0.0.1:8685"));//https://testnet.nebulas.io
     ChainID = 100;
@@ -33,6 +39,11 @@ if (env == 'local'){
 }else if(env == "testneb2"){
     neb.setRequest(new HttpRequest("http://34.205.26.12:8685"));
     ChainID = 1002;
+    source = new Wallet.Account("43181d58178263837a9a6b08f06379a348a5b362bfab3631ac78d2ac771c5df3");
+    coinbase = "0b9cd051a6d7129ab44b17833c63fe4abead40c3714cde6d";
+}else if(env == "testneb3"){
+    neb.setRequest(new HttpRequest("http://35.177.214.138:8685"));
+    ChainID = 1003;
     source = new Wallet.Account("43181d58178263837a9a6b08f06379a348a5b362bfab3631ac78d2ac771c5df3");
     coinbase = "0b9cd051a6d7129ab44b17833c63fe4abead40c3714cde6d";
 }else{
@@ -93,9 +104,10 @@ function cliamTokens(accounts, values, done) {
 }
 
 function sendTransaction(from, address, value, nonce) {
-    var transaction = new Wallet.Transaction(ChainID, from, address, value, nonce);
+    var transaction = new Wallet.Transaction(ChainID, from, address, value, nonce, "1000000", "2000000");
     transaction.signTransaction();
     var rawTx = transaction.toProtoString();
+    // console.log("send transaction:", transaction.toString());
     neb.api.sendRawTransaction(rawTx).then(function (resp) {
         console.log("send raw transaction resp:" + JSON.stringify(resp));
     });
@@ -144,7 +156,7 @@ function deployContract(done){
 function checkTransaction(txhash, done){
 
     var retry = 0;
-    var maxRetry = 15;
+    var maxRetry = 20;
 
     // contract status and get contract_address
     var interval = setInterval(function () {
@@ -199,7 +211,7 @@ function testCall(testInput, testExpect, done) {
         "args": testInput.args
     };
     var from = Wallet.Account.NewAccount();
-    neb.api.call(from.getAddressString(), contractAddr, "0", 1, "0", "0", contract).then(function (resp) {
+    neb.api.call(from.getAddressString(), contractAddr, "0", 1, "1000000", "2000000", contract).then(function (resp) {
         var result = JSON.parse(resp.result);
         console.log("result:", result);
         expect(result).to.equal(testExpect.result);
@@ -244,7 +256,7 @@ function testTransfer(testInput, testExpect, done) {
             "function": "transfer",
             "args": args
         };
-        var tx = new Wallet.Transaction(ChainID, from, contractAddr, "0", parseInt(resp.nonce) + 1, "0", "2000000", contract);
+        var tx = new Wallet.Transaction(ChainID, from, contractAddr, "0", parseInt(resp.nonce) + 1, "1000000", "2000000", contract);
         tx.signTransaction();
 
         console.log("raw tx:", tx.toString());
@@ -355,7 +367,7 @@ function testApprove(testInput, testExpect, done) {
             "function": "approve",
             "args": args
         };
-        var tx = new Wallet.Transaction(ChainID, from, contractAddr, "0", parseInt(resp.nonce) + 1, "0", "2000000", contract);
+        var tx = new Wallet.Transaction(ChainID, from, contractAddr, "0", parseInt(resp.nonce) + 1, "1000000", "2000000", contract);
         tx.signTransaction();
 
         console.log("raw tx:", tx.toString());
@@ -466,7 +478,7 @@ function testTransferFrom(testInput, testExpect, done) {
                     "function": "transferFrom",
                     "args": args
                 };
-                var tx = new Wallet.Transaction(ChainID, from, contractAddr, "0", parseInt(fromState.nonce) + 1, "0", "2000000", contract);
+                var tx = new Wallet.Transaction(ChainID, from, contractAddr, "0", parseInt(fromState.nonce) + 1, "1000000", "2000000", contract);
                 tx.signTransaction();
 
                 console.log("raw tx:", tx.toString());
@@ -558,7 +570,7 @@ function approveNRC20(testInput, deployState, from, currentValue, done) {
             "function": "approve",
             "args": args
         };
-        var tx = new Wallet.Transaction(ChainID, deploy, contractAddr, "0", parseInt(deployState.nonce) + 1, "0", "2000000", contract);
+        var tx = new Wallet.Transaction(ChainID, deploy, contractAddr, "0", parseInt(deployState.nonce) + 1, "1000000", "2000000", contract);
         tx.signTransaction();
         // console.log("approve tx:", tx.toString());
         neb.api.sendRawTransaction(tx.toProtoString()).then(function (resp) {
@@ -578,7 +590,7 @@ function balanceOfNRC20(address) {
         "function": "balanceOf",
         "args": "[\"" + address + "\"]"
     };
-    return neb.api.call(address, contractAddr, "0", 1, "0", "0", contract)
+    return neb.api.call(address, contractAddr, "0", 1, "1000000", "200000", contract)
 }
 
 function allowanceOfNRC20(owner, spender) {
@@ -586,7 +598,7 @@ function allowanceOfNRC20(owner, spender) {
         "function": "allowance",
         "args": "[\"" + owner + "\", \""+ spender +"\"]"
     };
-    return neb.api.call(owner, contractAddr, "0", 1, "0", "0", contract)
+    return neb.api.call(owner, contractAddr, "0", 1, "1000000", "2000000", contract)
 }
 
 var testCase = {
@@ -1154,7 +1166,7 @@ describe('contract call test', function () {
     //     });
     // });
 
-    // var testCase = testCases[38];
+    // var testCase = testCases[16];
     // it(testCase.name, function (done) {
     //     prepareContractCall(testCase, function (err) {
     //         if (err instanceof Error) {
@@ -1173,7 +1185,7 @@ describe('contract call test', function () {
     //     });
     // });
 
-    for (var i = 0; i < 40; i++) {
+    for (var i = 0; i < testCases.length; i++) {
 
         it(testCases[i].name, function (done) {
             var testCase = testCases[caseIndex];

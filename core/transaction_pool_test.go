@@ -20,13 +20,13 @@ package core
 
 import (
 	"testing"
-
 	"time"
 
 	"github.com/nebulasio/go-nebulas/crypto"
 	"github.com/nebulasio/go-nebulas/crypto/keystore"
 	"github.com/nebulasio/go-nebulas/crypto/keystore/secp256k1"
 	"github.com/nebulasio/go-nebulas/util"
+	"github.com/nebulasio/go-nebulas/util/byteutils"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -183,19 +183,32 @@ func TestTransactionPool(t *testing.T) {
 	}
 
 	assert.Nil(t, txs[0].Sign(signature1))
-	assert.Nil(t, txPool.Push(txs[0]))
+	assert.Nil(t, txPool.Push(txs[0])) // pool: 0
 	// put dup tx, should fail
 	assert.NotNil(t, txPool.Push(txs[0]))
 	assert.Nil(t, txs[1].Sign(signature2))
-	assert.Nil(t, txPool.Push(txs[1]))
+	assert.Nil(t, txPool.Push(txs[1])) // pool: 0 1
 	assert.Nil(t, txs[2].Sign(signature1))
-	assert.Nil(t, txPool.Push(txs[2]))
+	assert.Nil(t, txPool.Push(txs[2])) // pool: 0 1 2
 	// put not signed tx, should fail
 	assert.NotNil(t, txPool.Push(txs[3]))
+	// push 3, full, drop 0
+	assert.Equal(t, len(txPool.all), 3)
+	assert.NotNil(t, txPool.all[txs[0].hash.Hex()])
+	assert.Nil(t, txs[3].Sign(signature1))
+	assert.Nil(t, txPool.Push(txs[3])) // pool: 1 2 3
+	assert.Nil(t, txPool.all[txs[0].hash.Hex()])
+	assert.Equal(t, len(txPool.all), 3)
+	// pop 1
+	tx := txPool.Pop() // pool: 2 3
+	assert.Equal(t, txs[1].data, tx.data)
 	// put tx with different chainID, should fail
 	assert.Nil(t, txs[4].Sign(signature1))
 	assert.NotNil(t, txPool.Push(txs[4]))
-	// put one new, replace txs[1]
+	// put one new
+	assert.Equal(t, len(txPool.all), 2)
+	assert.Nil(t, txs[5].Sign(signature3))
+	assert.Nil(t, txPool.Push(txs[5])) // pool: 2 3 5
 	assert.Equal(t, len(txPool.all), 3)
 	assert.Nil(t, txs[6].Sign(signature1))
 	assert.Nil(t, txPool.Push(txs[6]))
@@ -222,15 +235,15 @@ func TestTransactionPool(t *testing.T) {
 }
 
 func TestGasConfig(t *testing.T) {
-	txPool, _ := NewTransactionPool(3)
+	txPool := NewTransactionPool(3)
 	txPool.SetGasConfig(nil, nil)
-	assert.Equal(t, txPool.gasPrice, TransactionGasPrice)
-	assert.Equal(t, txPool.gasLimit, TransactionMaxGas)
+	assert.Equal(t, txPool.minGasPrice, TransactionGasPrice)
+	assert.Equal(t, txPool.maxGasLimit, TransactionMaxGas)
 	gasPrice, _ := util.NewUint128FromInt(1)
 	gasLimit, _ := util.NewUint128FromInt(1)
 	txPool.SetGasConfig(gasPrice, gasLimit)
-	assert.Equal(t, txPool.gasPrice, gasPrice)
-	assert.Equal(t, txPool.gasLimit, gasLimit)
+	assert.Equal(t, txPool.minGasPrice, gasPrice)
+	assert.Equal(t, txPool.maxGasLimit, gasLimit)
 }
 
 func TestPushTxs(t *testing.T) {

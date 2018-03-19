@@ -34,7 +34,11 @@ import (
 )
 
 func checkDynasty(t *testing.T, consensus core.Consensus, consensusRoot *consensuspb.ConsensusRoot, storage storage.Storage) {
+<<<<<<< HEAD
 	consensusState, err := consensus.NewState(consensusRoot, storage, false)
+=======
+	consensusState, err := consensus.NewState(consensusRoot, storage)
+>>>>>>> develop
 	assert.Nil(t, err)
 	dynasty, err := consensusState.Dynasty()
 	assert.Nil(t, err)
@@ -43,6 +47,7 @@ func checkDynasty(t *testing.T, consensus core.Consensus, consensusRoot *consens
 	}
 }
 
+<<<<<<< HEAD
 func TestBlock_NextDynastyContext(t *testing.T) {
 	neb := mockNeb(t)
 	block := neb.chain.GenesisBlock()
@@ -50,34 +55,65 @@ func TestBlock_NextDynastyContext(t *testing.T) {
 	context, err := block.WorldState().NextConsensusState(BlockIntervalInMs / SecondInMs)
 	assert.Nil(t, err)
 	validators, _ := block.WorldState().Dynasty()
+=======
+func TestBlock_NextConsensusState(t *testing.T) {
+	neb := mockNeb(t)
+	block := neb.chain.GenesisBlock()
+
+	context, err := block.NextConsensusState(BlockInterval)
+	assert.Nil(t, err)
+	validators, _ := block.Dynasty()
+>>>>>>> develop
 	assert.Equal(t, context.Proposer(), validators[1])
 	// check dynasty
 	consensusRoot, err := context.RootHash()
 	assert.Nil(t, err)
+<<<<<<< HEAD
 	checkDynasty(t, neb.consensus, consensusRoot, neb.Storage())
 
 	context, err = block.WorldState().NextConsensusState((BlockIntervalInMs + DynastyIntervalInMs) / SecondInMs)
 	assert.Nil(t, err)
 	validators, _ = block.WorldState().Dynasty()
+=======
+	checkDynasty(t, neb.Consensus(), consensusRoot, neb.Storage())
+
+	context, err = block.NextConsensusState(BlockInterval + DynastyInterval)
+	assert.Nil(t, err)
+	validators, _ = block.Dynasty()
+>>>>>>> develop
 	assert.Equal(t, context.Proposer(), validators[1])
 	// check dynasty
 	consensusRoot, err = context.RootHash()
 	assert.Nil(t, err)
 	checkDynasty(t, neb.consensus, consensusRoot, neb.Storage())
 
+<<<<<<< HEAD
 	context, err = block.WorldState().NextConsensusState(DynastyIntervalInMs / SecondInMs / 2)
 	assert.Nil(t, err)
 	validators, _ = block.WorldState().Dynasty()
 	assert.Equal(t, context.Proposer(), validators[int(DynastyIntervalInMs/2/BlockIntervalInMs)%DynastySize])
+=======
+	context, err = block.NextConsensusState(DynastyInterval / 2)
+	assert.Nil(t, err)
+	validators, _ = block.Dynasty()
+	assert.Equal(t, context.Proposer(), validators[int(DynastyInterval/2/BlockInterval)%DynastySize])
+>>>>>>> develop
 	// check dynasty
 	consensusRoot, err = context.RootHash()
 	assert.Nil(t, err)
 	checkDynasty(t, neb.consensus, consensusRoot, neb.Storage())
 
+<<<<<<< HEAD
 	context, err = block.WorldState().NextConsensusState((DynastyIntervalInMs*2 + DynastyIntervalInMs/3) / SecondInMs)
 	assert.Nil(t, err)
 	validators, _ = block.WorldState().Dynasty()
 	index := int((DynastyIntervalInMs*2+DynastyIntervalInMs/3)%DynastyIntervalInMs) / int(BlockIntervalInMs) % DynastySize
+=======
+	context, err = block.NextConsensusState(DynastyInterval*2 + DynastyInterval/3)
+	assert.Nil(t, err)
+	validators, _ = block.Dynasty()
+	index := int((DynastyInterval*2+DynastyInterval/3)%DynastyInterval) / int(BlockInterval) % DynastySize
+>>>>>>> develop
 	assert.Equal(t, context.Proposer(), validators[index])
 	// check dynasty
 	consensusRoot, err = context.RootHash()
@@ -90,8 +126,13 @@ func TestBlock_NextDynastyContext(t *testing.T) {
 	assert.Nil(t, neb.am.Unlock(coinbase, []byte("passphrase"), keystore.DefaultUnlockDuration))
 
 	newBlock, _ := core.NewBlock(neb.chain.ChainID(), coinbase, neb.chain.TailBlock())
+<<<<<<< HEAD
 	newBlock.SetTimestamp((DynastyIntervalInMs*2 + DynastyIntervalInMs/3) / SecondInMs)
 	newBlock.WorldState().SetConsensusState(context)
+=======
+	newBlock.SetTimestamp(DynastyInterval*2 + DynastyInterval/3)
+	newBlock.LoadConsensusState(context)
+>>>>>>> develop
 	assert.Equal(t, newBlock.Seal(), nil)
 	assert.Nil(t, neb.am.SignBlock(coinbase, newBlock))
 	newBlock, _ = mockBlockFromNetwork(newBlock)
@@ -99,10 +140,17 @@ func TestBlock_NextDynastyContext(t *testing.T) {
 	assert.Nil(t, newBlock.VerifyExecution()) //neb.chain.TailBlock(), neb.chain.ConsensusHandler()
 }
 
+<<<<<<< HEAD
 func TestTraverseDynasty(t *testing.T) {
 	stor, err := storage.NewMemoryStorage()
 	assert.Nil(t, err)
 	dynasty, err := trie.NewTrie(nil, stor, false)
+=======
+func TestTraverseNilDynasty(t *testing.T) {
+	stor, err := storage.NewMemoryStorage()
+	assert.Nil(t, err)
+	dynasty, err := trie.NewBatchTrie(nil, stor)
+>>>>>>> develop
 	assert.Nil(t, err)
 	members, err := TraverseDynasty(dynasty)
 	assert.Nil(t, err)
@@ -114,9 +162,62 @@ func TestInitialDynastyNotEnough(t *testing.T) {
 	neb.genesis.Consensus.Dpos.Dynasty = []string{}
 	chain, err := core.NewBlockChain(neb)
 	assert.Nil(t, err)
+<<<<<<< HEAD
 	assert.Equal(t, chain.Setup(neb), core.ErrGenesisConfNotMatch)
+=======
+	assert.Equal(t, chain.Setup(neb), core.ErrGenesisNotEqualDynastyLenInDB)
+>>>>>>> develop
 	neb.storage, _ = storage.NewMemoryStorage()
 	chain, err = core.NewBlockChain(neb)
 	assert.Nil(t, err)
 	assert.Equal(t, chain.Setup(neb), ErrInitialDynastyNotEnough)
 }
+<<<<<<< HEAD
+=======
+
+func TestNewGenesisBlock(t *testing.T) {
+	conf := MockGenesisConf()
+	chain := mockNeb(t).chain
+	dumpConf, err := core.DumpGenesis(chain)
+	assert.Nil(t, err)
+	assert.Equal(t, dumpConf.Meta.ChainId, conf.Meta.ChainId)
+	assert.Equal(t, dumpConf.Consensus.Dpos.Dynasty, conf.Consensus.Dpos.Dynasty)
+	assert.Equal(t, dumpConf.TokenDistribution, conf.TokenDistribution)
+}
+
+func TestCheckGenesisAndDBConsense(t *testing.T) {
+	conf := MockGenesisConf()
+	chain := mockNeb(t).chain
+
+	genesisDB, err := core.DumpGenesis(chain)
+	assert.Nil(t, err)
+	err = core.CheckGenesisConfByDB(genesisDB, conf)
+	assert.Nil(t, err)
+
+	conf4 := MockGenesisConf()
+	conf4.TokenDistribution[0].Value = "1001"
+	err = core.CheckGenesisConfByDB(genesisDB, conf4)
+	assert.NotNil(t, err)
+	assert.Equal(t, err, core.ErrGenesisNotEqualTokenInDB)
+
+	conf1 := MockGenesisConf()
+	conf1.Consensus.Dpos.Dynasty = nil
+	// fmt.Printf("conf1:%v\n", conf1)
+	err = core.CheckGenesisConfByDB(genesisDB, conf1)
+	assert.NotNil(t, err)
+	assert.Equal(t, err, core.ErrGenesisNotEqualDynastyLenInDB)
+
+	conf2 := MockGenesisConf()
+	conf2.Consensus.Dpos.Dynasty[0] = "12b"
+	err = core.CheckGenesisConfByDB(genesisDB, conf2)
+	assert.NotNil(t, err)
+	assert.Equal(t, err, core.ErrGenesisNotEqualDynastyInDB)
+
+	conf3 := MockGenesisConf()
+	conf3.TokenDistribution = nil
+	err = core.CheckGenesisConfByDB(genesisDB, conf3)
+	assert.NotNil(t, err)
+	assert.Equal(t, err, core.ErrGenesisNotEqualTokenLenInDB)
+
+}
+>>>>>>> develop

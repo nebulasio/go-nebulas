@@ -31,6 +31,7 @@ import (
 	"github.com/nebulasio/go-nebulas/account"
 	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/core/pb"
+	"github.com/nebulasio/go-nebulas/core/state"
 	"github.com/nebulasio/go-nebulas/crypto/keystore"
 	"github.com/nebulasio/go-nebulas/neblet/pb"
 	"github.com/nebulasio/go-nebulas/net"
@@ -47,6 +48,7 @@ type Neb struct {
 	storage   storage.Storage
 	consensus core.Consensus
 	emitter   *core.EventEmitter
+	nvm       core.Engine
 }
 
 func mockNeb(t *testing.T) *Neb {
@@ -57,23 +59,25 @@ func mockNeb(t *testing.T) *Neb {
 	eventEmitter := core.NewEventEmitter(1024)
 	genesisConf := MockGenesisConf()
 	dpos := NewDpos()
+	nvm := &mockNvm{}
 	neb := &Neb{
 		genesis:   genesisConf,
 		storage:   storage,
 		emitter:   eventEmitter,
 		consensus: dpos,
+		nvm:       nvm,
 		config: &nebletpb.Config{
 			Chain: &nebletpb.ChainConfig{
 				ChainId:    genesisConf.Meta.ChainId,
 				Keydir:     "keydir",
+				StartMine:  true,
 				Coinbase:   "1a263547d167c74cf4b8f9166cfa244de0481c514a45aa2c",
 				Miner:      "1a263547d167c74cf4b8f9166cfa244de0481c514a45aa2c",
 				Passphrase: "passphrase",
 			},
 		},
+		ns: mockNetService{},
 	}
-
-	neb.emitter.Start()
 
 	am := account.NewManager(neb)
 	neb.am = am
@@ -81,10 +85,8 @@ func mockNeb(t *testing.T) *Neb {
 	chain, err := core.NewBlockChain(neb)
 	assert.Nil(t, err)
 	neb.chain = chain
-	err = dpos.Setup(neb)
-	assert.Nil(t, err)
-	err = chain.Setup(neb)
-	assert.Nil(t, err)
+	assert.Nil(t, dpos.Setup(neb))
+	assert.Nil(t, chain.Setup(neb))
 
 	var ns mockNetService
 	neb.ns = ns
@@ -104,7 +106,7 @@ func (n *Neb) NetService() net.Service {
 	return n.ns
 }
 
-func (n *Neb) AccountManager() core.Manager {
+func (n *Neb) AccountManager() core.AccountManager {
 	return n.am
 }
 
@@ -124,7 +126,43 @@ func (n *Neb) Consensus() core.Consensus {
 	return n.consensus
 }
 
+func (n *Neb) Nvm() core.Engine {
+	return n.nvm
+}
+
 func (n *Neb) StartActiveSync() {}
+
+func (n *Neb) StartPprof(string) error { return nil }
+
+func (n *Neb) SetGenesis(genesis *corepb.Genesis) {
+	n.genesis = genesis
+}
+
+type mockNvm struct {
+}
+
+func (nvm *mockNvm) CreateEngine(block *core.Block, tx *core.Transaction, owner, contract state.Account, state state.AccountState) error {
+	return nil
+}
+func (nvm *mockNvm) SetEngineExecutionLimits(limitsOfExecutionInstructions uint64) error {
+	return nil
+}
+func (nvm *mockNvm) DeployAndInitEngine(source, sourceType, args string) (string, error) {
+	return "", nil
+}
+func (nvm *mockNvm) CallEngine(source, sourceType, function, args string) (string, error) {
+	return "", nil
+}
+func (nvm *mockNvm) ExecutionInstructions() (uint64, error) {
+	return uint64(100), nil
+}
+func (nvm *mockNvm) DisposeEngine() {
+
+}
+
+func (nvm *mockNvm) Clone() core.Engine {
+	return &mockNvm{}
+}
 
 var (
 	DefaultOpenDynasty = []string{
@@ -139,11 +177,15 @@ var (
 
 // MockGenesisConf return mock genesis conf
 func MockGenesisConf() *corepb.Genesis {
+	dynasty := []string{}
+	for _, v := range DefaultOpenDynasty {
+		dynasty = append(dynasty, v)
+	}
 	return &corepb.Genesis{
 		Meta: &corepb.GenesisMeta{ChainId: 0},
 		Consensus: &corepb.GenesisConsensus{
 			Dpos: &corepb.GenesisConsensusDpos{
-				Dynasty: DefaultOpenDynasty,
+				Dynasty: dynasty,
 			},
 		},
 		TokenDistribution: []*corepb.GenesisTokenDistribution{
@@ -245,7 +287,21 @@ func mockBlockFromNetwork(block *core.Block) (*core.Block, error) {
 	return block, nil
 }
 
-func TestDpos_New(t *testing.T) {
+func mockBlockFromNetwork(block *core.Block) (*core.Block, error) {
+	pbBlock, err := block.ToProto()
+	if err != nil {
+		return nil, err
+	}
+	bytes, err := proto.Marshal(pbBlock)
+	if err := proto.Unmarshal(bytes, pbBlock); err != nil {
+		return nil, err
+	}
+	block = new(core.Block)
+	block.FromProto(pbBlock)
+	return block, nil
+}
+
+/* func TestDpos_New(t *testing.T) {
 	neb := mockNeb(t)
 	coinbase := neb.config.Chain.Coinbase
 	neb.config.Chain.Coinbase += "0"
@@ -293,6 +349,7 @@ func GetUnlockAddress(t *testing.T, am *account.Manager, addr string) *core.Addr
 func TestForkChoice(t *testing.T) {
 	neb := mockNeb(t)
 	am := account.NewManager(neb)
+	chain := neb.chain
 
 	/*
 		genesis -- 0 -- 11 -- 111 -- 1111
@@ -412,12 +469,12 @@ func TestDpos_MintBlock(t *testing.T) {
 	neb := mockNeb(t)
 	dpos := neb.consensus.(*Dpos)
 
-	assert.Equal(t, dpos.mintBlock(0), ErrCannotMintWhenDiable)
+	assert.Equal(t, dpos.mintBlock(0), ErrCannotMintWhenDisable)
 
 	assert.Nil(t, dpos.EnableMining("passphrase"))
 	dpos.SuspendMining()
 	assert.Equal(t, dpos.mintBlock(0), ErrCannotMintWhenPending)
-
+	fmt.Print("silent_debug")
 	dpos.ResumeMining()
 	assert.Equal(t, dpos.mintBlock(BlockIntervalInMs/SecondInMs), ErrInvalidBlockProposer)
 
@@ -583,4 +640,29 @@ func TestDposTxBinary(t *testing.T) {
 	}
 
 	return
+}
+
+func TestDoubleMint(t *testing.T) {
+	neb := mockNeb(t)
+	chain := neb.chain
+	am := neb.am
+
+	addr0 := GetUnlockAddress(t, am, "2fe3f9f51f9a05dd5f7c5329127f7c917917149b4e16b0b8")
+	block0, _ := chain.NewBlock(addr0)
+	consensusState, err := chain.TailBlock().NextConsensusState(BlockInterval)
+	assert.Nil(t, err)
+	block0.LoadConsensusState(consensusState)
+	block0.Seal()
+	am.SignBlock(addr0, block0)
+	assert.Nil(t, chain.BlockPool().Push(block0))
+	assert.Equal(t, block0.Hash(), chain.TailBlock().Hash())
+
+	block11, err := chain.NewBlock(addr0)
+	assert.Nil(t, err)
+	consensusState, err = block0.NextConsensusState(0)
+	assert.Nil(t, err)
+	block11.LoadConsensusState(consensusState)
+	block11.Seal()
+	am.SignBlock(addr0, block11)
+	assert.Equal(t, chain.BlockPool().Push(block11), ErrDoubleBlockMinted)
 }

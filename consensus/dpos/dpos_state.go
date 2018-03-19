@@ -46,14 +46,13 @@ const (
 	MinMintDurationInMs      = int64(1000)
 	DynastyIntervalInMs      = int64(60000) // TODO(roy): 3600000
 	DynastySize              = 6            // TODO(roy): 21
-	SafeSize                 = DynastySize/3 + 1
 	ConsensusSize            = DynastySize*2/3 + 1
 )
 
 // Errors in dpos state
 var (
-	ErrTooFewCandidates        = errors.New("the size of candidates in consensus is un-safe, should be greater than or equal " + strconv.Itoa(SafeSize))
-	ErrInitialDynastyNotEnough = errors.New("the size of initial dynasty in genesis block is un-safe, should be greater than or equal " + strconv.Itoa(SafeSize))
+	ErrTooFewCandidates        = errors.New("the size of candidates in consensus is un-safe, should be greater than or equal " + strconv.Itoa(ConsensusSize))
+	ErrInitialDynastyNotEnough = errors.New("the size of initial dynasty in genesis block is un-safe, should be greater than or equal " + strconv.Itoa(ConsensusSize))
 	ErrInvalidDynasty          = errors.New("the size of initial dynasty in genesis block is invalid, should be equal " + strconv.Itoa(DynastySize))
 	ErrCloneDynastyTrie        = errors.New("Failed to clone dynasty trie")
 	ErrCloneNextDynastyTrie    = errors.New("Failed to clone next dynasty trie")
@@ -78,7 +77,11 @@ type State struct {
 
 // NewState create a new dpos state
 func (dpos *Dpos) NewState(root *consensuspb.ConsensusRoot, stor storage.Storage, needChangeLog bool) (state.ConsensusState, error) {
-	dynastyTrie, err := trie.NewTrie(root.DynastyRoot, stor, needChangeLog)
+	var dynastyRoot byteutils.Hash
+	if root != nil {
+		dynastyRoot = root.DynastyRoot
+	}
+	dynastyTrie, err := trie.NewTrie(dynastyRoot, stor, needChangeLog)
 	if err != nil {
 		return nil, err
 	}
@@ -127,7 +130,7 @@ func (dpos *Dpos) GenesisConsensusState(chain *core.BlockChain, conf *corepb.Gen
 	if err != nil {
 		return nil, err
 	}
-	if len(conf.Consensus.Dpos.Dynasty) < SafeSize {
+	if len(conf.Consensus.Dpos.Dynasty) < ConsensusSize {
 		return nil, ErrInitialDynastyNotEnough
 	}
 	if len(conf.Consensus.Dpos.Dynasty) != DynastySize {
@@ -214,7 +217,7 @@ func (ds *State) DynastyRoot() byteutils.Hash {
 }
 
 // FindProposer for now in given dynasty
-func FindProposer(now int64, dynasty *trie.Trie) (proposer byteutils.Hash, err error) {
+func FindProposer(now int64, validators []byteutils.Hash) (proposer byteutils.Hash, err error) {
 	nowInMs := now * SecondInMs
 	offsetInMs := nowInMs % DynastyIntervalInMs
 	if offsetInMs%BlockIntervalInMs != 0 {
@@ -222,19 +225,15 @@ func FindProposer(now int64, dynasty *trie.Trie) (proposer byteutils.Hash, err e
 	}
 	offset := offsetInMs / BlockIntervalInMs
 	offset %= DynastySize
-	delegatees, err := TraverseDynasty(dynasty)
-	if err != nil {
-		return nil, err
-	}
 
-	if int(offset) < len(delegatees) {
-		proposer = delegatees[offset]
+	if int(offset) < len(validators) {
+		proposer = validators[offset]
 	} else {
 		logging.VLog().WithFields(logrus.Fields{
 			"proposer":  proposer,
 			"offset":    offset,
-			"delegatee": len(delegatees),
-		}).Debug("Found Nil Proposer.")
+			"delegatee": len(validators),
+		}).Error("Found Nil Proposer.")
 		return nil, ErrFoundNilProposer
 	}
 	return proposer, nil
@@ -271,7 +270,11 @@ func (ds *State) NextConsensusState(elapsedSecond int64, worldState state.WorldS
 		consensus: ds.consensus,
 	}
 
-	consensusState.proposer, err = FindProposer(consensusState.timestamp, consensusState.dynastyTrie)
+	validators, err := TraverseDynasty(dynastyTrie)
+	if err != nil {
+		return nil, err
+	}
+	consensusState.proposer, err = FindProposer(consensusState.timestamp, validators)
 	if err != nil {
 		return nil, err
 	}

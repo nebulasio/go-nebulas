@@ -64,7 +64,7 @@ function checkTransaction(hash, callback) {
             callback(resp);
         }
     }).catch(function (err) {
-        console.log(err);
+        console.log(err.error);
         setTimeout(function () {
             checkTransaction(hash, callback);
         }, 2000);
@@ -205,7 +205,7 @@ describe('rpc: estimateGas', function () {
                 from: sourceAccount.getAddressString(),
                 to: sourceAccount.getAddressString(),
                 value: "0",
-                nonce: 100000000,
+                nonce: nonce,
                 gas_price: "1000000",
                 gas_limit: "200000",
                 contract: contract,
@@ -261,7 +261,7 @@ describe('rpc: estimateGas', function () {
 
         var testExpect = {
             isNormalOutput: false,
-            errMsg: 'uint128: invalid string to uint128'
+            errMsg: 'invalid value'
         }
 
         testRpc(testInput, testExpect, done);
@@ -297,7 +297,7 @@ describe('rpc: estimateGas', function () {
 
         var testExpect = {
             isNormalOutput: false,
-            errMsg: 'uint128: invalid string to uint128'
+            errMsg: 'invalid value'
         }
 
         testRpc(testInput, testExpect, done);
@@ -443,7 +443,7 @@ describe('rpc: estimateGas', function () {
         }
 
         var testExpect = {
-            errMsg: 'uint128: underflow'
+            errMsg: 'invalid gasPrice'
         }
 
         testRpc(testInput, testExpect, done);
@@ -518,7 +518,7 @@ describe('rpc: estimateGas', function () {
 
         var testExpect = {
             isNormalOutput: false,
-            errMsg: 'uint128: underflow'
+            errMsg: 'invalid gasLimit'
         }
 
         testRpc(testInput, testExpect, done);

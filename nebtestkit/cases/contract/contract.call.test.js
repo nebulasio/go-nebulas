@@ -18,8 +18,14 @@ var coinbase, coinState;
 var testCases = new Array();
 var caseIndex = 0;
 
-//local
-var env = "local";
+// mocha cases/contract/xxx testneb1 -t 200000
+var args = process.argv.splice(2);
+var env = args[1];
+if (env !== "local" && env !== "testneb1" && env !== "testneb2" && env !== "testneb3") {
+    env = "local";
+}
+console.log("env:", env);
+
 if (env == 'local'){
 	neb.setRequest(new HttpRequest("http://127.0.0.1:8685"));//https://testnet.nebulas.io
 	ChainID = 100;
@@ -33,6 +39,11 @@ if (env == 'local'){
 }else if(env == "testneb2"){
 	neb.setRequest(new HttpRequest("http://34.205.26.12:8685"));
 	ChainID = 1002;
+    source = new Wallet.Account("43181d58178263837a9a6b08f06379a348a5b362bfab3631ac78d2ac771c5df3");
+    coinbase = "0b9cd051a6d7129ab44b17833c63fe4abead40c3714cde6d";
+}else if(env == "testneb3"){
+    neb.setRequest(new HttpRequest("http://35.177.214.138:8685"));
+    ChainID = 1003;
     source = new Wallet.Account("43181d58178263837a9a6b08f06379a348a5b362bfab3631ac78d2ac771c5df3");
     coinbase = "0b9cd051a6d7129ab44b17833c63fe4abead40c3714cde6d";
 }else{
@@ -238,7 +249,7 @@ function deployContract(done){
 function checkTransaction(txhash, done){
 
     var retry = 0;
-    var maxRetry = 15;
+    var maxRetry = 20;
 
     // contract status and get contract_address 
     var interval = setInterval(function () {
@@ -293,7 +304,7 @@ function checkNRCBalance(address, contractAddress) {
         "args": "[\"" + address + "\"]"
     };
 
-    neb.api.call(address, contractAddress, "0", 2, "0", "0", contract).then(function (resp) {
+    neb.api.call(address, contractAddress, "0", 2, "1000000", "2000000", contract).then(function (resp) {
         console.log("balance of NRC:" + JSON.stringify(resp));
     });
 }
@@ -643,7 +654,7 @@ testCase = {
         }
     },
     "testExpect": {
-        canSendTx: true,
+        canSendTx: false,
         canSubmitTx: false,
         canExcuteTx: false,
         status: 0,
@@ -700,7 +711,7 @@ testCase = {
         canSendTx: true,
         canSubmitTx: true,
         canExcuteTx: false,
-        status: 1,
+        status: 0,
         fromBalanceAfterTx: "999999979971000000",
         toBalanceAfterTx: '0',
         transferReward: '20029000000'
@@ -862,7 +873,7 @@ testCase = {
     },
     "testExpect": {
         canSendTx: true,
-        canSubmitTx: true,
+        canSubmitTx: false,
         canExcuteTx: false,
         status: 0,
         fromBalanceAfterTx: "0",
@@ -890,7 +901,7 @@ testCase = {
     },
     "testExpect": {
         canSendTx: true,
-        canSubmitTx: true,
+        canSubmitTx: false,
         canExcuteTx: false,
         status: 0,
         fromBalanceAfterTx: "100000",
@@ -1056,7 +1067,7 @@ testCase = {
         canSendTx: true,
         canSubmitTx: true,
         canExcuteTx: false,
-        status: 1,
+        status: 0,
         fromBalanceAfterTx: "999999979831000000",
         toBalanceAfterTx: '0',
         transferReward: '20169000000'
@@ -1084,9 +1095,9 @@ testCase = {
         canSubmitTx: true,
         canExcuteTx: false,
         status: 0,
-        fromBalanceAfterTx: "999999979505000000",
+        fromBalanceAfterTx: "999999979733000000",
         toBalanceAfterTx: '0',
-        transferReward: '20495000000'
+        transferReward: '20267000000'
     }
 };
 testCases.push(testCase);
@@ -1131,7 +1142,7 @@ describe('contract call test', function () {
     // });
 
 
-    // var testCase = testCases[29];
+    // var testCase = testCases[20];
     // it(testCase.name, function (done) {
     //     prepareContractCall(testCase, function (err) {
     //         if (err instanceof Error) {
