@@ -40,12 +40,9 @@ func (nvm *NebulasVM) CreateEngine(block *core.Block, tx *core.Transaction, owne
 		return ErrEngineRepeatedStart
 	}
 
-	ctx := &Context{
-		block:    block,
-		tx:       tx,
-		owner:    owner,
-		contract: contract,
-		state:    state,
+	ctx, err := NewContext(block, tx, owner, contract, state)
+	if err != nil {
+		return err
 	}
 	nvm.engine = NewV8Engine(ctx)
 	return nil

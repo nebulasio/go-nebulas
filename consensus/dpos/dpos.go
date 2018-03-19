@@ -431,7 +431,7 @@ func deadline(now int64) int64 { // ToRefine change uint64
 	return now + MaxMintDuration
 }
 
-func (dpos *Dpos) checkDeadline(tail *core.Block, now int64) (int64, error) { // ToRefine change uint64
+func (dpos *Dpos) checkDeadline(tail *core.Block, now int64) (int64, error) {
 	lastSlot := lastSlot(now)
 	nextSlot := nextSlot(now)
 
