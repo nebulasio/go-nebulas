@@ -212,6 +212,7 @@ type SmartContractEngine interface {
 	DeployAndInit(source, sourceType, args string) (string, error)
 	Call(source, sourceType, function, args string) (string, error)
 	ExecutionInstructions() uint64
+	Dispose()
 }
 
 // Neblet interface breaks cycle import dependency and hides unused services.

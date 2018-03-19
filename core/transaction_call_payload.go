@@ -97,6 +97,7 @@ func (payload *CallPayload) Execute(tx *Transaction, block *Block, txWorldState 
 	if err != nil {
 		return util.NewUint128(), "", err
 	}
+	defer engine.Dispose()
 
 	if err := engine.SetExecutionLimits(payloadGasLimit.Uint64(), DefaultLimitsOfTotalMemorySize); err != nil {
 		return util.NewUint128(), "", err
