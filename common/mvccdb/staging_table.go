@@ -311,7 +311,7 @@ func (tbl *StagingTable) Close() error {
 	defer tbl.parentStagingTable.mutex.Unlock()
 
 	delete(tbl.parentStagingTable.preparedStagingTables, tbl.tid)
-
+	tbl.parentStagingTable = nil
 	return nil
 }
 
