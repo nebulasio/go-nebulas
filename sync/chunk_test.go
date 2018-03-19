@@ -268,6 +268,11 @@ func TestChunk_generateChunkMeta(t *testing.T) {
 			block := new(core.Block)
 			assert.Nil(t, block.FromProto(v))
 			assert.Nil(t, chain2.BlockPool().Push(block))
+			blockHash, err := core.HashBlock(block)
+			assert.Nil(t, err)
+			pbBlockHash, err := core.HashPbBlock(v)
+			assert.Nil(t, err)
+			assert.Equal(t, blockHash, pbBlockHash)
 		}
 	}
 	tail := blocks[len(blocks)-1]

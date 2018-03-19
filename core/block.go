@@ -1088,14 +1088,28 @@ func HashBlock(block *Block) (byteutils.Hash, error) {
 }
 
 // HashPbBlock return the hash of pb block.
-func HashPbBlock(pbBlock *corepb.Block) byteutils.Hash { //ToAdd nil check
-	block := new(Block) // ToFix: hash pbBlock directly, avoid catching fromproto err
-	if err := block.FromProto(pbBlock); err != nil {
-		if hash, err := HashBlock(block); err != nil {
-			return hash
-		}
+func HashPbBlock(pbBlock *corepb.Block) (byteutils.Hash, error) { //ToAdd nil check
+	hasher := sha3.New256()
+
+	consensusRoot, err := proto.Marshal(pbBlock.Header.ConsensusRoot)
+	if err != nil {
+		return nil, err
 	}
-	return nil
+
+	hasher.Write(pbBlock.Header.ParentHash)
+	hasher.Write(pbBlock.Header.StateRoot)
+	hasher.Write(pbBlock.Header.TxsRoot)
+	hasher.Write(pbBlock.Header.EventsRoot)
+	hasher.Write(consensusRoot)
+	hasher.Write(pbBlock.Header.Coinbase)
+	hasher.Write(byteutils.FromInt64(pbBlock.Header.Timestamp))
+	hasher.Write(byteutils.FromUint32(pbBlock.Header.ChainId))
+
+	for _, tx := range pbBlock.Transactions {
+		hasher.Write(tx.Hash)
+	}
+
+	return hasher.Sum(nil), nil
 }
 
 // RecoverMiner return miner from block

@@ -248,7 +248,10 @@ func verifyChunkData(chunkHeader *syncpb.ChunkHeader, chunkData *syncpb.ChunkDat
 
 	for k, block := range chunkData.Blocks {
 		hash := chunkHeader.Headers[k]
-		calculated := core.HashPbBlock(block)
+		calculated, err := core.HashPbBlock(block)
+		if err != nil {
+			return false, err
+		}
 		if bytes.Compare(calculated, block.Header.Hash) != 0 {
 			logging.VLog().WithFields(logrus.Fields{
 				"index":                k,
