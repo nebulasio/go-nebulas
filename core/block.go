@@ -129,7 +129,7 @@ type Block struct {
 
 	txPool       *TransactionPool
 	eventEmitter *EventEmitter
-	nvm          Engine
+	nvm          NVM
 	storage      storage.Storage
 }
 
@@ -594,7 +594,7 @@ func (block *Block) CollectTransactions(deadlineInMs int64) {
 						toBlacklist.Delete(tx.to.address.Hex())
 
 					} else {
-						logging.VLog().WithFields(logrus.Fields{
+						logging.CLog().WithFields(logrus.Fields{
 							"tx": tx,
 						}).Debug("packed tx.")
 						packed++

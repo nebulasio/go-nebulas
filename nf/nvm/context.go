@@ -24,11 +24,6 @@ import (
 	"github.com/nebulasio/go-nebulas/core/pb"
 )
 
-const (
-	// DefaultLimitsOfTotalMemorySize default limits of total memory size
-	DefaultLimitsOfTotalMemorySize uint64 = 40 * 1000 * 1000 // TODO: check the value ok and out of limit do
-)
-
 // SerializableAccount serializable account state
 type SerializableAccount struct {
 	Nonce   uint64 `json:"nonce"`

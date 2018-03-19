@@ -66,7 +66,7 @@ type BlockChain struct {
 
 	eventEmitter *EventEmitter
 
-	nvm Engine
+	nvm NVM
 
 	quitCh chan int
 }

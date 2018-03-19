@@ -31,10 +31,10 @@ import (
 	"github.com/nebulasio/go-nebulas/account"
 	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/core/pb"
-	"github.com/nebulasio/go-nebulas/core/state"
 	"github.com/nebulasio/go-nebulas/crypto/keystore"
 	"github.com/nebulasio/go-nebulas/neblet/pb"
 	"github.com/nebulasio/go-nebulas/net"
+	"github.com/nebulasio/go-nebulas/nf/nvm"
 	"github.com/nebulasio/go-nebulas/storage"
 	"github.com/stretchr/testify/assert"
 )
@@ -48,7 +48,7 @@ type Neb struct {
 	storage   storage.Storage
 	consensus core.Consensus
 	emitter   *core.EventEmitter
-	nvm       core.Engine
+	nvm       core.NVM
 }
 
 func mockNeb(t *testing.T) *Neb {
@@ -59,7 +59,7 @@ func mockNeb(t *testing.T) *Neb {
 	eventEmitter := core.NewEventEmitter(1024)
 	genesisConf := MockGenesisConf()
 	dpos := NewDpos()
-	nvm := &mockNvm{}
+	nvm := nvm.NewNebulasVM()
 	neb := &Neb{
 		genesis:   genesisConf,
 		storage:   storage,
@@ -128,7 +128,7 @@ func (n *Neb) Consensus() core.Consensus {
 	return n.consensus
 }
 
-func (n *Neb) Nvm() core.Engine {
+func (n *Neb) Nvm() core.NVM {
 	return n.nvm
 }
 
@@ -138,32 +138,6 @@ func (n *Neb) StartPprof(string) error { return nil }
 
 func (n *Neb) SetGenesis(genesis *corepb.Genesis) {
 	n.genesis = genesis
-}
-
-type mockNvm struct {
-}
-
-func (nvm *mockNvm) CreateEngine(block *core.Block, tx *core.Transaction, owner, contract state.Account, state state.TxWorldState) error {
-	return nil
-}
-func (nvm *mockNvm) SetEngineExecutionLimits(limitsOfExecutionInstructions uint64) error {
-	return nil
-}
-func (nvm *mockNvm) DeployAndInitEngine(source, sourceType, args string) (string, error) {
-	return "", nil
-}
-func (nvm *mockNvm) CallEngine(source, sourceType, function, args string) (string, error) {
-	return "", nil
-}
-func (nvm *mockNvm) ExecutionInstructions() (uint64, error) {
-	return uint64(100), nil
-}
-func (nvm *mockNvm) DisposeEngine() {
-
-}
-
-func (nvm *mockNvm) Clone() core.Engine {
-	return &mockNvm{}
 }
 
 var (

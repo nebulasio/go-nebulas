@@ -93,20 +93,17 @@ func (payload *CallPayload) Execute(tx *Transaction, block *Block, txWorldState 
 		return util.NewUint128(), "", err
 	}
 
-	if err := block.nvm.CreateEngine(block, tx, owner, contract, txWorldState); err != nil {
-		return util.NewUint128(), "", err
-	}
-	defer block.nvm.DisposeEngine()
-
-	if err := block.nvm.SetEngineExecutionLimits(payloadGasLimit.Uint64()); err != nil {
-		return util.NewUint128(), "", err
-	}
-
-	result, exeErr := block.nvm.CallEngine(deploy.Source, deploy.SourceType, payload.Function, payload.Args)
-	gasCout, err := block.nvm.ExecutionInstructions()
+	engine, err := block.nvm.CreateEngine(block, tx, owner, contract, txWorldState)
 	if err != nil {
 		return util.NewUint128(), "", err
 	}
+
+	if err := engine.SetExecutionLimits(payloadGasLimit.Uint64(), DefaultLimitsOfTotalMemorySize); err != nil {
+		return util.NewUint128(), "", err
+	}
+
+	result, exeErr := engine.Call(deploy.Source, deploy.SourceType, payload.Function, payload.Args)
+	gasCout := engine.ExecutionInstructions()
 	instructions, err := util.NewUint128FromInt(int64(gasCout))
 	if err != nil {
 		return util.NewUint128(), "", err

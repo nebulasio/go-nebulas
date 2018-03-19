@@ -70,7 +70,7 @@ type Neblet struct {
 
 	eventEmitter *core.EventEmitter
 
-	nvm core.Engine
+	nvm core.NVM
 
 	running bool
 }
@@ -354,7 +354,7 @@ func (n *Neblet) SyncService() *nsync.Service {
 }
 
 // Nvm return nvm engine
-func (n *Neblet) Nvm() core.Engine {
+func (n *Neblet) Nvm() core.NVM {
 	return n.nvm
 }
 

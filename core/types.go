@@ -130,6 +130,9 @@ var (
 // Default gas count
 var (
 	DefaultPayloadGas, _ = util.NewUint128FromInt(1)
+
+	// DefaultLimitsOfTotalMemorySize default limits of total memory size
+	DefaultLimitsOfTotalMemorySize uint64 = 40 * 1000 * 1000
 )
 
 // TxPayload stored in tx
@@ -200,14 +203,15 @@ type AccountManager interface {
 }
 
 // Engine interface breaks cycle import dependency and hides unused services.
-type Engine interface {
-	CreateEngine(block *Block, tx *Transaction, owner, contract state.Account, state state.TxWorldState) error
-	SetEngineExecutionLimits(limitsOfExecutionInstructions uint64) error
-	DeployAndInitEngine(source, sourceType, args string) (string, error)
-	CallEngine(source, sourceType, function, args string) (string, error)
-	ExecutionInstructions() (uint64, error)
-	DisposeEngine()
-	Clone() Engine
+type NVM interface {
+	CreateEngine(block *Block, tx *Transaction, owner, contract state.Account, state state.TxWorldState) (SmartContractEngine, error)
+}
+
+type SmartContractEngine interface {
+	SetExecutionLimits(uint64, uint64) error
+	DeployAndInit(source, sourceType, args string) (string, error)
+	Call(source, sourceType, function, args string) (string, error)
+	ExecutionInstructions() uint64
 }
 
 // Neblet interface breaks cycle import dependency and hides unused services.
@@ -221,6 +225,6 @@ type Neblet interface {
 	BlockChain() *BlockChain
 	NetService() net.Service
 	AccountManager() AccountManager
-	Nvm() Engine
+	Nvm() NVM
 	StartPprof(string) error
 }

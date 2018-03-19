@@ -244,7 +244,7 @@ type mockNeb struct {
 	storage   storage.Storage
 	consensus Consensus
 	emitter   *EventEmitter
-	nvm       Engine
+	nvm       NVM
 }
 
 func (n *mockNeb) Genesis() *corepb.Genesis {
@@ -279,7 +279,7 @@ func (n *mockNeb) AccountManager() AccountManager {
 	return n.am
 }
 
-func (n *mockNeb) Nvm() Engine {
+func (n *mockNeb) Nvm() NVM {
 	return n.nvm
 }
 
@@ -291,30 +291,23 @@ func (n *mockNeb) SetGenesis(genesis *corepb.Genesis) {
 	n.genesis = genesis
 }
 
-type mockNvm struct {
-}
+type mockNvm struct{}
+type mockEngine struct{}
 
-func (nvm *mockNvm) CreateEngine(block *Block, tx *Transaction, owner, contract state.Account, state state.TxWorldState) error {
+func (nvm *mockNvm) CreateEngine(block *Block, tx *Transaction, owner, contract state.Account, state state.TxWorldState) (SmartContractEngine, error) {
+	return &mockEngine{}, nil
+}
+func (nvm *mockEngine) SetExecutionLimits(uint64, uint64) error {
 	return nil
 }
-func (nvm *mockNvm) SetEngineExecutionLimits(limitsOfExecutionInstructions uint64) error {
-	return nil
-}
-func (nvm *mockNvm) DeployAndInitEngine(source, sourceType, args string) (string, error) {
+func (nvm *mockEngine) DeployAndInit(source, sourceType, args string) (string, error) {
 	return "", nil
 }
-func (nvm *mockNvm) CallEngine(source, sourceType, function, args string) (string, error) {
+func (nvm *mockEngine) Call(source, sourceType, function, args string) (string, error) {
 	return "", nil
 }
-func (nvm *mockNvm) ExecutionInstructions() (uint64, error) {
-	return uint64(100), nil
-}
-func (nvm *mockNvm) DisposeEngine() {
-
-}
-
-func (nvm *mockNvm) Clone() Engine {
-	return &mockNvm{}
+func (nvm *mockEngine) ExecutionInstructions() uint64 {
+	return uint64(100)
 }
 
 func testNeb(t *testing.T) *mockNeb {
