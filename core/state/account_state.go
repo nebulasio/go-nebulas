@@ -22,8 +22,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/nebulasio/go-nebulas/util/logging"
-
 	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/common/trie"
 	"github.com/nebulasio/go-nebulas/core/pb"
@@ -217,7 +215,6 @@ func NewAccountState(root byteutils.Hash, storage storage.Storage, needChangeLog
 }
 
 func (as *accountState) recordDirtyAccount(addr byteutils.Hash, acc Account) {
-	logging.CLog().Info("Record Dirty ", addr.String(), " ", acc.Balance().String(), " ", acc.Nonce())
 	if _, ok := as.cachedAccounts[addr.Hex()]; ok {
 		as.cachedAccounts[addr.Hex()].dirty = true
 	} else {
