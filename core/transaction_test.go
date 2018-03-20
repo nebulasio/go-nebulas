@@ -658,6 +658,83 @@ func TestTransaction_LocalExecution(t *testing.T) {
 	}
 }
 
+func TestDeployAndCall(t *testing.T) {
+	neb := testNeb(t)
+	bc := neb.chain
+
+	coinbase := mockAddress()
+	from := mockAddress()
+	balance, _ := util.NewUint128FromString("1000000000000000000")
+
+	ks := keystore.DefaultKS
+	key, _ := ks.GetUnlocked(from.String())
+	signature, _ := crypto.NewSignature(keystore.SECP256K1)
+	signature.InitSign(key.(keystore.PrivateKey))
+
+	block, err := bc.NewBlock(coinbase)
+	block.Begin()
+	fromAcc, err := block.worldState.GetOrCreateUserAccount(from.address)
+	assert.Nil(t, err)
+	fromAcc.AddBalance(balance)
+	block.Commit()
+
+	// contract deploy tx
+	deployTx := mockDeployTransaction(bc.chainID, 0)
+	deployTx.from = from
+	deployTx.to = from
+	deployTx.value = util.NewUint128()
+	deployTx.Sign(signature)
+
+	// contract call tx
+	callTx := mockCallTransaction(bc.chainID, 1, "totalSupply", "")
+	callTx.from = from
+	callTx.to, _ = deployTx.GenerateContractAddress()
+	callTx.value = util.NewUint128()
+	callTx.Sign(signature)
+
+	assert.Nil(t, err)
+
+	block, err = bc.NewBlockFromParent(bc.tailBlock.header.coinbase, block)
+	assert.Nil(t, err)
+	block.Begin()
+
+	txWorldState, err := block.Prepare(deployTx)
+	assert.Nil(t, err)
+	assert.Nil(t, VerifyExecution(deployTx, block, txWorldState))
+	assert.Nil(t, AcceptTransaction(deployTx, txWorldState))
+	_, err = block.CheckAndUpdate(deployTx)
+	assert.Nil(t, err)
+
+	deployEvents, _ := block.worldState.FetchEvents(deployTx.Hash())
+	assert.Equal(t, len(deployEvents), 1)
+	event := deployEvents[0]
+	if event.Topic == TopicTransactionExecutionResult {
+		txEvent := TransactionEvent{}
+		json.Unmarshal([]byte(event.Data), &txEvent)
+		status := int(txEvent.Status)
+		assert.Equal(t, status, TxExecutionSuccess)
+	}
+
+	txWorldState, err = block.Prepare(callTx)
+	assert.Nil(t, err)
+	assert.Nil(t, VerifyExecution(callTx, block, txWorldState))
+	assert.Nil(t, AcceptTransaction(callTx, txWorldState))
+	_, err = block.CheckAndUpdate(callTx)
+	assert.Nil(t, err)
+
+	block.Commit()
+
+	callEvents, _ := block.worldState.FetchEvents(callTx.Hash())
+	assert.Equal(t, len(callEvents), 1)
+	event = callEvents[0]
+	if event.Topic == TopicTransactionExecutionResult {
+		txEvent := TransactionEvent{}
+		json.Unmarshal([]byte(event.Data), &txEvent)
+		status := int(txEvent.Status)
+		assert.Equal(t, status, TxExecutionSuccess)
+	}
+}
+
 func Test1(t *testing.T) {
 	fmt.Println(len(hash.Sha3256([]byte("abc"))))
 }

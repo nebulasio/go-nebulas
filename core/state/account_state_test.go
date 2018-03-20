@@ -57,7 +57,7 @@ func TestAccountState(t *testing.T) {
 	acc1.IncrNonce()
 	acc1.Put([]byte("var0"), []byte("value0"))
 
-	asClone, err := as.CopyTo(stor)
+	asClone, err := as.CopyTo(stor, false)
 	assert.Nil(t, err)
 	acc1Clone, err := asClone.GetOrCreateUserAccount(accAddr1)
 	assert.Nil(t, err)

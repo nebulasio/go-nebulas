@@ -189,19 +189,19 @@ func (s *states) Clone() (WorldState, error) {
 		return nil, err
 	}
 
-	accState, err := s.accState.CopyTo(storage)
+	accState, err := s.accState.CopyTo(storage, false)
 	if err != nil {
 		return nil, err
 	}
-	txsState, err := s.txsState.CopyTo(storage)
+	txsState, err := s.txsState.CopyTo(storage, false)
 	if err != nil {
 		return nil, err
 	}
-	eventsState, err := s.eventsState.CopyTo(storage)
+	eventsState, err := s.eventsState.CopyTo(storage, false)
 	if err != nil {
 		return nil, err
 	}
-	consensusState, err := s.consensusState.CopyTo(storage)
+	consensusState, err := s.consensusState.CopyTo(storage, false)
 	if err != nil {
 		return nil, err
 	}
@@ -266,19 +266,19 @@ func (s *states) Prepare(txid interface{}) (TxWorldState, error) {
 		return nil, err
 	}
 
-	accState, err := s.accState.CopyTo(storage)
+	accState, err := s.accState.CopyTo(storage, true)
 	if err != nil {
 		return nil, err
 	}
-	txsState, err := s.txsState.CopyTo(storage)
+	txsState, err := s.txsState.CopyTo(storage, true)
 	if err != nil {
 		return nil, err
 	}
-	eventsState, err := s.eventsState.CopyTo(storage)
+	eventsState, err := s.eventsState.CopyTo(storage, true)
 	if err != nil {
 		return nil, err
 	}
-	consensusState, err := s.consensusState.CopyTo(storage)
+	consensusState, err := s.consensusState.CopyTo(storage, true)
 	if err != nil {
 		return nil, err
 	}

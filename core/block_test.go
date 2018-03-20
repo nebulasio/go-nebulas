@@ -95,7 +95,7 @@ func (cs *mockConsensusState) RootHash() (*consensuspb.ConsensusRoot, error) {
 	return &consensuspb.ConsensusRoot{}, nil
 }
 func (cs *mockConsensusState) String() string { return "" }
-func (cs *mockConsensusState) CopyTo(storage.Storage) (state.ConsensusState, error) {
+func (cs *mockConsensusState) CopyTo(storage.Storage, bool) (state.ConsensusState, error) {
 	return &mockConsensusState{
 		timestamp: cs.timestamp,
 	}, nil

@@ -115,8 +115,8 @@ func (acc *account) BirthPlace() byteutils.Hash {
 }
 
 // Clone account
-func (acc *account) CopyTo(storage storage.Storage) (Account, error) {
-	variables, err := acc.variables.CopyTo(storage)
+func (acc *account) CopyTo(storage storage.Storage, needChangeLog bool) (Account, error) {
+	variables, err := acc.variables.CopyTo(storage, needChangeLog)
 	if err != nil {
 		return nil, err
 	}
@@ -378,15 +378,15 @@ func (as *accountState) Replay(done AccountState) error {
 }
 
 // Clone an accountState
-func (as *accountState) CopyTo(storage storage.Storage) (AccountState, error) {
-	stateTrie, err := as.stateTrie.CopyTo(storage)
+func (as *accountState) CopyTo(storage storage.Storage, needChangeLog bool) (AccountState, error) {
+	stateTrie, err := as.stateTrie.CopyTo(storage, needChangeLog)
 	if err != nil {
 		return nil, err
 	}
 
 	cachedAccounts := make(map[byteutils.HexHash]*cachedAccount)
 	for addr, ca := range as.cachedAccounts {
-		copyAcc, err := ca.acc.CopyTo(storage)
+		copyAcc, err := ca.acc.CopyTo(storage, needChangeLog)
 		if err != nil {
 			return nil, err
 		}
