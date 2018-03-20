@@ -904,8 +904,6 @@ func (block *Block) execute() error {
 		mergeCh: make(chan bool, 1),
 		block:   block,
 	}
-	logging.CLog().Info("block verfiy txs dependency json:", block.dependency.String())
-
 	dispatcher := dag.NewDispatcher(block.dependency, runtime.NumCPU(), 0, context, func(node *dag.Node, context interface{}) error {
 		ctx := context.(*verifyCtx)
 		block := ctx.block

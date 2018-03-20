@@ -22,7 +22,10 @@ HttpRequest.prototype._newRequest = function (method, api, payload) {
         method: m,
         uri: url,
         body: payload,
-        json: true // Automatically stringifies the body to JSON
+        json: true, // Automatically stringifies the body to JSON
+        transform: function (body, response, resolveWithFullResponse) {
+            return body.result;
+        }
     };
     return options;
 };

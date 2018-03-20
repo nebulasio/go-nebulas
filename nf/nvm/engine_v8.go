@@ -432,16 +432,15 @@ func (e *V8Engine) prepareRunnableContractScript(source, function, args string) 
 		}
 
 	} else {
-		argsInput = make([]byte, 2)
-		argsInput[0] = '['
-		argsInput[1] = ']'
+		argsInput = []byte("[]")
 	}
-	runnableSource = fmt.Sprintf(`var __contract = require("%s");
-				var __instance = new __contract();
-				Blockchain.blockParse("%s");
-				Blockchain.transactionParse("%s");
-				__instance["%s"].apply(__instance, JSON.parse("%s"));`,
-		ModuleID, formatArgs(string(blockJSON)), formatArgs(string(txJSON)), function, formatArgs(string(argsInput)))
+	runnableSource = fmt.Sprintf(`Blockchain.blockParse("%s");
+									Blockchain.transactionParse("%s");
+									var __contract = require("%s");
+									var __instance = new __contract();
+									__instance["%s"].apply(__instance, JSON.parse("%s"));`,
+		formatArgs(string(blockJSON)), formatArgs(string(txJSON)),
+		ModuleID, function, formatArgs(string(argsInput)))
 	return runnableSource, 0, nil
 }
 

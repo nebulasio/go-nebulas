@@ -371,7 +371,18 @@ func (as *accountState) Replay(done AccountState) error {
 	state := done.(*accountState)
 	for addr, ca := range state.cachedAccounts {
 		if ca.dirty {
-			as.cachedAccounts[addr] = &cachedAccount{ca.acc, false}
+			bytes, err := ca.acc.ToBytes()
+			if err != nil {
+				return err
+			}
+			key, err := addr.Hash()
+			if err != nil {
+				return err
+			}
+			if _, err := as.stateTrie.Put(key, bytes); err != nil {
+				return err
+			}
+			delete(as.cachedAccounts, addr)
 		}
 	}
 	return nil

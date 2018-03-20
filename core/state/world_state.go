@@ -321,6 +321,20 @@ func (s *states) recordAccounts() error {
 	return nil
 }
 
+func (s *states) Reset(txid interface{}) error {
+	if err := s.changelog.Reset(); err != nil {
+		logging.VLog().Info("RSE 11")
+		return err
+	}
+	if err := s.storage.Reset(); err != nil {
+		logging.VLog().Info("RSE 12")
+		return err
+	}
+
+	s.accState.RollBackAccounts()
+	return nil
+}
+
 func (s *states) CheckAndUpdate(txid interface{}) ([]interface{}, error) {
 	if err := s.recordAccounts(); err != nil {
 		return nil, err
@@ -336,18 +350,6 @@ func (s *states) CheckAndUpdate(txid interface{}) ([]interface{}, error) {
 		return nil, err
 	}
 	return dependency, nil
-}
-
-func (s *states) Reset(txid interface{}) error {
-	if err := s.changelog.Reset(); err != nil {
-		logging.VLog().Info("RSE 11")
-		return err
-	}
-	if err := s.storage.Reset(); err != nil {
-		logging.VLog().Info("RSE 12")
-		return err
-	}
-	return nil
 }
 
 func (s *states) Close(txid interface{}) error {
