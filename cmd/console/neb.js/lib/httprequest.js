@@ -48,7 +48,7 @@ HttpRequest.prototype.request = function (method, api, payload) {
 	try {
 		result = JSON.parse(result);
 	} catch (e) {
-		throw e;
+		console.log(e);
 	}
 
 	return result;
