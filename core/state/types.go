@@ -118,8 +118,8 @@ type WorldState interface {
 
 	Prepare(interface{}) (TxWorldState, error)
 	CheckAndUpdate(interface{}) ([]interface{}, error)
-	Reset(interface{}) error
-	Close(interface{}) error
+	Reset(interface{}) error // ToDo move to tx world state
+	Close(interface{}) error // ToDo move to tx world state
 
 	LoadAccountsRoot(byteutils.Hash) error
 	LoadTxsRoot(byteutils.Hash) error
@@ -131,12 +131,12 @@ type WorldState interface {
 
 	Clone() (WorldState, error)
 
-	AccountsRoot() (byteutils.Hash, error)
+	AccountsRoot() (byteutils.Hash, error) // ToDo merge or not?
 	TxsRoot() (byteutils.Hash, error)
 	EventsRoot() (byteutils.Hash, error)
 	ConsensusRoot() (*consensuspb.ConsensusRoot, error)
 
-	Accounts() ([]Account, error)
+	Accounts() ([]Account, error) // ToDo delete
 	GetOrCreateUserAccount(addr byteutils.Hash) (Account, error)
 	GetContractAccount(addr byteutils.Hash) (Account, error)
 	CreateContractAccount(owner byteutils.Hash, birthPlace byteutils.Hash) (Account, error)

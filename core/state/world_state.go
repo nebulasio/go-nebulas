@@ -666,7 +666,7 @@ func (ws *worldState) CheckAndUpdate(txid interface{}) ([]interface{}, error) {
 		logging.VLog().Info("CUE 2")
 		return nil, err
 	}
-
+	ws.txStates.Delete(txid)
 	return dependencies, nil
 }
 
