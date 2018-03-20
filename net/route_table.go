@@ -89,14 +89,14 @@ func NewRouteTable(config *Config, node *Node) *RouteTable {
 
 // Start start route table syncLoop.
 func (table *RouteTable) Start() {
-	logging.CLog().Info("Starting NetService RouteTable Sync...")
+	logging.CLog().Info("Starting NebService RouteTable Sync...")
 
 	go table.syncLoop()
 }
 
 // Stop quit route table syncLoop.
 func (table *RouteTable) Stop() {
-	logging.CLog().Info("Stopping NetService RouteTable Sync...")
+	logging.CLog().Info("Stopping NebService RouteTable Sync...")
 
 	table.quitCh <- true
 }
@@ -118,7 +118,7 @@ func (table *RouteTable) syncLoop() {
 	// trigger first sync.
 	table.SyncRouteTable()
 
-	logging.CLog().Info("Started NetService RouteTable Sync.")
+	logging.CLog().Info("Started NebService RouteTable Sync.")
 
 	syncLoopTicker := time.NewTicker(RouteTableSyncLoopInterval)
 	saveRouteTableToDiskTicker := time.NewTicker(RouteTableSaveToDiskInterval)
@@ -127,7 +127,7 @@ func (table *RouteTable) syncLoop() {
 	for {
 		select {
 		case <-table.quitCh:
-			logging.CLog().Info("Stopped NetService RouteTable Sync.")
+			logging.CLog().Info("Stopped NebService RouteTable Sync.")
 			return
 		case <-syncLoopTicker.C:
 			table.SyncRouteTable()

@@ -114,7 +114,7 @@ func (n *Neblet) Setup() {
 	}
 
 	// net
-	n.netService, err = nebnet.NewNetService(n)
+	n.netService, err = nebnet.NewNebService(n)
 	if err != nil {
 		logging.CLog().WithFields(logrus.Fields{
 			"err": err,

@@ -139,7 +139,7 @@ func (db *MVCCDB) Commit() error {
 	db.storage.EnableBatch()
 
 	var err error
-	for _, value := range db.stagingTable.GetVersionizedValues() {
+	for _, value := range db.stagingTable.getVersionizedValues() {
 		// skip default value loaded from storage.
 		if value.isDefault() { // ToDelete
 			continue

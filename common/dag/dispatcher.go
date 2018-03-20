@@ -32,6 +32,7 @@ type Task struct {
 	node       *Node
 }
 
+// Errors
 var (
 	ErrDagHasCirclular = errors.New("dag hava circlular")
 )

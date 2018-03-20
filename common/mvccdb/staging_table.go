@@ -82,6 +82,7 @@ func NewStagingTable(storage storage.Storage, tid interface{}, trieSameKeyCompat
 	return tbl
 }
 
+// SetStrictGlobalVersionCheck set global version check
 func (tbl *StagingTable) SetStrictGlobalVersionCheck(flag bool) {
 	tbl.disableStrictGlobalVersionCheck = !flag
 }
@@ -301,6 +302,7 @@ func (tbl *StagingTable) MergeToParent() ([]interface{}, error) {
 	return tids, nil
 }
 
+// Close the staging table
 func (tbl *StagingTable) Close() error {
 
 	if tbl.parentStagingTable == nil {
@@ -315,14 +317,16 @@ func (tbl *StagingTable) Close() error {
 	return nil
 }
 
-func (tbl *StagingTable) GetVersionizedValues() stagingValuesMap {
+func (tbl *StagingTable) getVersionizedValues() stagingValuesMap {
 	return tbl.versionizedValues
 }
 
+// Lock staging table
 func (tbl *StagingTable) Lock() {
 	tbl.mutex.Lock()
 }
 
+// Unlock staging table
 func (tbl *StagingTable) Unlock() {
 	tbl.mutex.Unlock()
 }
@@ -342,30 +346,30 @@ func (value *VersionizedValueItem) isDefault() bool {
 	return value.version == 0 && value.dirty == false
 }
 
-func (a *VersionizedValueItem) isConflict(b *VersionizedValueItem, trieSameKeyCompatibility bool) bool {
+func (value *VersionizedValueItem) isConflict(b *VersionizedValueItem, trieSameKeyCompatibility bool) bool {
 	if b == nil {
 		return true
 	}
 
 	// version same, no conflict.
-	if a.version == b.version {
+	if value.version == b.version {
 		return false
 	}
 
 	if trieSameKeyCompatibility == true {
 		// check version continuous and val consistent when enable trie same key compatibility.
-		delta := a.version - b.version
+		delta := value.version - b.version
 		if delta != 1 && delta != -1 {
 			// version is not continuous, conflict.
 			return true
 		}
 
-		if a.deleted != b.deleted {
+		if value.deleted != b.deleted {
 			// deleted flag are not the same, conflict.
 			return true
 		}
 
-		if !a.deleted && !bytes.Equal(a.val, b.val) {
+		if !value.deleted && !bytes.Equal(value.val, b.val) {
 			// both not delete, and val are not the same, conflict.
 			return true
 		}

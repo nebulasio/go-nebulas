@@ -52,7 +52,7 @@ var (
 type Node struct {
 	synchronizing bool
 	quitCh        chan bool
-	netService    *NetService
+	netService    *NebService
 	config        *Config
 	context       context.Context
 	id            peer.ID
@@ -94,7 +94,7 @@ func NewNode(config *Config) (*Node, error) {
 
 // Start host & route table discovery
 func (node *Node) Start() error {
-	logging.CLog().Info("Starting NetService Node...")
+	logging.CLog().Info("Starting NebService Node...")
 
 	node.streamManager.Start()
 
@@ -107,7 +107,7 @@ func (node *Node) Start() error {
 	logging.CLog().WithFields(logrus.Fields{
 		"id":                node.ID(),
 		"listening address": node.host.Addrs(),
-	}).Info("Started NetService Node.")
+	}).Info("Started NebService Node.")
 
 	return nil
 }
@@ -117,7 +117,7 @@ func (node *Node) Stop() {
 	logging.CLog().WithFields(logrus.Fields{
 		"id":                node.ID(),
 		"listening address": node.host.Addrs(),
-	}).Info("Stopping NetService Node...")
+	}).Info("Stopping NebService Node...")
 
 	node.routeTable.Stop()
 	node.stopHost()
@@ -158,8 +158,8 @@ func (node *Node) Config() *Config {
 	return node.config
 }
 
-// SetNetService set netService
-func (node *Node) SetNetService(ns *NetService) {
+// SetNebService set netService
+func (node *Node) SetNebService(ns *NebService) {
 	node.netService = ns
 }
 

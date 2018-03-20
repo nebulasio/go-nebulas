@@ -110,7 +110,7 @@ func run(mode, configPath string, packageSize, concurrentMessageCount, totalMess
 
 	// neblet.
 	neblet, _ := neblet.New(config)
-	netService, err := net.NewNetService(neblet)
+	netService, err := net.NewNebService(neblet)
 
 	if err != nil {
 		fmt.Printf("Error: %s", err)

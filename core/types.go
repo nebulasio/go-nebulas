@@ -202,11 +202,12 @@ type AccountManager interface {
 	Delete(*Address, []byte) error
 }
 
-// Engine interface breaks cycle import dependency and hides unused services.
+// NVM interface
 type NVM interface {
 	CreateEngine(block *Block, tx *Transaction, owner, contract state.Account, state state.TxWorldState) (SmartContractEngine, error)
 }
 
+// SmartContractEngine interface
 type SmartContractEngine interface {
 	SetExecutionLimits(uint64, uint64) error
 	DeployAndInit(source, sourceType, args string) (string, error)
