@@ -266,36 +266,19 @@ func (s *states) Prepare(txid interface{}) (TxWorldState, error) {
 		return nil, err
 	}
 
-	accRoot, err := s.AccountsRoot()
+	accState, err := s.accState.CopyTo(storage)
 	if err != nil {
 		return nil, err
 	}
-	accState, err := NewAccountState(accRoot, storage, true)
+	txsState, err := s.txsState.CopyTo(storage)
 	if err != nil {
 		return nil, err
 	}
-	txsRoot, err := s.TxsRoot()
+	eventsState, err := s.eventsState.CopyTo(storage)
 	if err != nil {
 		return nil, err
 	}
-	txsState, err := trie.NewTrie(txsRoot, storage, true)
-	if err != nil {
-		return nil, err
-	}
-
-	eventsRoot, err := s.EventsRoot()
-	if err != nil {
-		return nil, err
-	}
-	eventsState, err := trie.NewTrie(eventsRoot, storage, true)
-	if err != nil {
-		return nil, err
-	}
-	consensusRoot, err := s.ConsensusRoot()
-	if err != nil {
-		return nil, err
-	}
-	consensusState, err := s.consensus.NewState(consensusRoot, storage, true)
+	consensusState, err := s.consensusState.CopyTo(storage)
 	if err != nil {
 		return nil, err
 	}
