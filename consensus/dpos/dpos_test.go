@@ -478,7 +478,7 @@ func TestDposContracts(t *testing.T) {
 	argsDeploy := ""
 	payloadDeploy, _ := core.NewDeployPayload(source, sourceType, argsDeploy).ToBytes()
 
-	j := 3
+	j := 2
 
 	for i := 1; i < j; i++ {
 		value, _ := util.NewUint128FromInt(1)
@@ -498,26 +498,10 @@ func TestDposContracts(t *testing.T) {
 		txDeploy, _ = core.NewTransaction(neb.chain.ChainID(), d, d, value, uint64(i), core.TxPayloadDeployType, payloadDeploy, core.TransactionGasPrice, gasLimit)
 		assert.Nil(t, manager.SignTransaction(d, txDeploy))
 		assert.Nil(t, neb.chain.TransactionPool().Push(txDeploy))
-
-		txDeploy, _ = core.NewTransaction(neb.chain.ChainID(), e, e, value, uint64(i), core.TxPayloadDeployType, payloadDeploy, core.TransactionGasPrice, gasLimit)
-		assert.Nil(t, manager.SignTransaction(e, txDeploy))
-		assert.Nil(t, neb.chain.TransactionPool().Push(txDeploy))
-
-		txDeploy, _ = core.NewTransaction(neb.chain.ChainID(), f, f, value, uint64(i), core.TxPayloadDeployType, payloadDeploy, core.TransactionGasPrice, gasLimit)
-		assert.Nil(t, manager.SignTransaction(f, txDeploy))
-		assert.Nil(t, neb.chain.TransactionPool().Push(txDeploy))
-
-		txDeploy, _ = core.NewTransaction(neb.chain.ChainID(), g, g, value, uint64(i), core.TxPayloadDeployType, payloadDeploy, core.TransactionGasPrice, gasLimit)
-		assert.Nil(t, manager.SignTransaction(g, txDeploy))
-		assert.Nil(t, neb.chain.TransactionPool().Push(txDeploy))
-
-		txDeploy, _ = core.NewTransaction(neb.chain.ChainID(), h, h, value, uint64(i), core.TxPayloadDeployType, payloadDeploy, core.TransactionGasPrice, gasLimit)
-		assert.Nil(t, manager.SignTransaction(h, txDeploy))
-		assert.Nil(t, neb.chain.TransactionPool().Push(txDeploy))
 	}
 
 	block.CollectTransactions((time.Now().Unix() + 1) * SecondInMs)
-	assert.Equal(t, 8*(j-1), len(block.Transactions()))
+	assert.Equal(t, 4*(j-1), len(block.Transactions()))
 	assert.Nil(t, block.Seal())
 	assert.Nil(t, manager.SignBlock(a, block))
 	assert.Nil(t, neb.chain.BlockPool().Push(block))
