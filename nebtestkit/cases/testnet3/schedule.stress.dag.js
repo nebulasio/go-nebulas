@@ -116,7 +116,7 @@ function sendTransaction(index, totalTimes, from, to, value, nonce, randomToAddr
             console.log("send raw transaction resp:" + JSON.stringify(resp));
             if (resp.txhash) {
                 if (nonce % 10 === 0){
-                    sleep(10);
+                    sleep(1);
                 }
                 sendTransaction(++index, totalTimes, from, to, value, ++nonce, randomToAddr);
             }
@@ -147,8 +147,8 @@ function sendTransactionsForTps() {
 
         var node = nodes[i % nodes.length];
         neb.setRequest(new HttpRequest(node));
-
-        sendTransaction(0, EachAccountSendTimes, accountArray[i], null, "0.001", 1, true /*random to addr*/);
-        sleep(10);
+        var randomValue = Math.floor((Math.random() * 10));
+        sendTransaction(0, EachAccountSendTimes, accountArray[i], null, randomValue, 1, true /*random to addr*/);
+        sleep(5);
     }
 }
