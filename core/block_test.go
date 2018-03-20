@@ -51,12 +51,12 @@ var (
 
 var (
 	MockDynasty = []string{
-		"nHBosgjgGmF9tV3tfMsaPHbvoXLtAnZ6aCn2",
-		"nhUbw7E6Kh7KTkksXGXjgMcLAW66yhSnp6n2",
-		"nKUb9mSPpimmffqW6p1Xgeg5KwZrDAxPA7n2",
-		"nN9jPovbDfwdxfWoB8s4QBqfQmGKFf6cSMn2",
-		"npvJickpn3YcpQLkx8BrVfWMTr4VUsw8fDn2",
-		"nt3gr61ysRjHQftFvgQ38mD8vcqQK5roAFn2",
+		"n1LQxBdAtxcfjUazHeK94raKdxRsNpujUyU",
+		"n1PtnbfQcC9EZpr2LS2vLUCKf2UtkyArzVr",
+		"n1SRGKRFrF6DHK4Ym4MoXbbUHYkV5W2MZPw",
+		"n1TRySsvYmAU8ChPZyYyvrPpDYJ1Z5DFoxo",
+		"n1aoyV8M2g79pFXxdZEK9GfU7fzuJcCN75X",
+		"n1beo9QAjhhJX6tjpjHyinoorbqdi6UKAEb",
 	}
 )
 
@@ -71,11 +71,11 @@ func MockGenesisConf() *corepb.Genesis {
 		},
 		TokenDistribution: []*corepb.GenesisTokenDistribution{
 			&corepb.GenesisTokenDistribution{
-				Address: "nttueNT8VNZxdGGYavcjAAeBqo6o8x9sZCn2",
+				Address: "n1UZtMgi94oE913L2Sa2C9XwvAzNTQ82v64",
 				Value:   "10000000000000000000000",
 			},
 			&corepb.GenesisTokenDistribution{
-				Address: "nw5T2VS9TfFifYZLqfe2wDjR1ohfqrzwo4n2",
+				Address: "n1coJhpn8QXvKFogVG93wx49eCQ6aPQHSAN",
 				Value:   "10000000000000000000000",
 			},
 		},

@@ -53,7 +53,7 @@ type testBlock struct {
 
 // Coinbase mock
 func (block *testBlock) Coinbase() *core.Address {
-	addr, _ := core.AddressParse("n8HWKzXzTtJjGQYLLh4swzbvgopKfdxDnLn2")
+	addr, _ := core.AddressParse("n1K4rWU3YrhZmU1GHHYqnES8CcypTYQa9oJ")
 	return addr
 }
 
@@ -87,7 +87,7 @@ func mockBlock() Block {
 }
 
 func mockTransaction() *core.Transaction {
-	return mockNormalTransaction("nHBosgjgGmF9tV3tfMsaPHbvoXLtAnZ6aCn2", "nhUbw7E6Kh7KTkksXGXjgMcLAW66yhSnp6n2", "0")
+	return mockNormalTransaction("n1LQxBdAtxcfjUazHeK94raKdxRsNpujUyU", "n1PtnbfQcC9EZpr2LS2vLUCKf2UtkyArzVr", "0")
 }
 
 func mockNormalTransaction(from, to, value string) *core.Transaction {
@@ -716,7 +716,7 @@ func TestBankVaultContract(t *testing.T) {
 			contract.AddBalance(newUint128FromIntWrapper(5))
 
 			// parepare env, block & transactions.
-			tx := mockNormalTransaction("nHBosgjgGmF9tV3tfMsaPHbvoXLtAnZ6aCn2", "nhUbw7E6Kh7KTkksXGXjgMcLAW66yhSnp6n2", tt.saveValue)
+			tx := mockNormalTransaction("n1LQxBdAtxcfjUazHeK94raKdxRsNpujUyU", "n1PtnbfQcC9EZpr2LS2vLUCKf2UtkyArzVr", tt.saveValue)
 			ctx, err := NewContext(mockBlock(), tx, owner, contract, context)
 
 			// execute.
@@ -820,11 +820,11 @@ func TestNRC20Contract(t *testing.T) {
 		transferTests []TransferTest
 	}{
 		{"nrc20", "./test/NRC20.js", "js", "StandardToken", "ST", 18, "1000000000",
-			"nHBosgjgGmF9tV3tfMsaPHbvoXLtAnZ6aCn2",
+			"n1aoyV8M2g79pFXxdZEK9GfU7fzuJcCN75X",
 			[]TransferTest{
-				{"nKUb9mSPpimmffqW6p1Xgeg5KwZrDAxPA7n2", true, "5"},
-				{"nN9jPovbDfwdxfWoB8s4QBqfQmGKFf6cSMn2", true, "10"},
-				{"npvJickpn3YcpQLkx8BrVfWMTr4VUsw8fDn2", true, "15"},
+				{"n1LQxBdAtxcfjUazHeK94raKdxRsNpujUyU", true, "5"},
+				{"n1PtnbfQcC9EZpr2LS2vLUCKf2UtkyArzVr", true, "10"},
+				{"n1SRGKRFrF6DHK4Ym4MoXbbUHYkV5W2MZPw", true, "15"},
 			},
 		},
 	}
@@ -845,7 +845,7 @@ func TestNRC20Contract(t *testing.T) {
 			contract.AddBalance(newUint128FromIntWrapper(5))
 
 			// parepare env, block & transactions.
-			tx := mockNormalTransaction(tt.from, "nhUbw7E6Kh7KTkksXGXjgMcLAW66yhSnp6n2", "0")
+			tx := mockNormalTransaction(tt.from, "n1SRGKRFrF6DHK4Ym4MoXbbUHYkV5W2MZPw", "0")
 			ctx, err := NewContext(mockBlock(), tx, owner, contract, context)
 
 			// execute.
@@ -908,7 +908,7 @@ func TestNRC20Contract(t *testing.T) {
 			// call takeout.
 			for _, tot := range tt.transferTests {
 				// call balanceOf.
-				ctx.tx = mockNormalTransaction(tt.from, "nhUbw7E6Kh7KTkksXGXjgMcLAW66yhSnp6n2", "0")
+				ctx.tx = mockNormalTransaction(tt.from, "n1SRGKRFrF6DHK4Ym4MoXbbUHYkV5W2MZPw", "0")
 				engine = NewV8Engine(ctx)
 				engine.SetExecutionLimits(10000, 100000000)
 				balArgs := fmt.Sprintf("[\"%s\"]", tt.from)
@@ -948,7 +948,7 @@ func TestNRC20Contract(t *testing.T) {
 				assert.Equal(t, tot.value, amountStr)
 				engine.Dispose()
 
-				ctx.tx = mockNormalTransaction(tot.to, "nhUbw7E6Kh7KTkksXGXjgMcLAW66yhSnp6n2", "0")
+				ctx.tx = mockNormalTransaction(tot.to, "n1SRGKRFrF6DHK4Ym4MoXbbUHYkV5W2MZPw", "0")
 				engine = NewV8Engine(ctx)
 				engine.SetExecutionLimits(10000, 100000000)
 				transferFromArgs := fmt.Sprintf("[\"%s\", \"%s\", \"%s\"]", tt.from, tot.to, tot.value)
@@ -959,7 +959,7 @@ func TestNRC20Contract(t *testing.T) {
 				assert.Equal(t, tot.result, resultStatus)
 				engine.Dispose()
 
-				ctx.tx = mockNormalTransaction(tot.to, "nhUbw7E6Kh7KTkksXGXjgMcLAW66yhSnp6n2", "0")
+				ctx.tx = mockNormalTransaction(tot.to, "n1SRGKRFrF6DHK4Ym4MoXbbUHYkV5W2MZPw", "0")
 				engine = NewV8Engine(ctx)
 				engine.SetExecutionLimits(10000, 100000000)
 				transferFromArgs = fmt.Sprintf("[\"%s\", \"%s\", \"%s\"]", tt.from, tot.to, tot.value)
@@ -1021,7 +1021,7 @@ func TestNebulasContract(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 
-			ctx.tx = mockNormalTransaction("nHBosgjgGmF9tV3tfMsaPHbvoXLtAnZ6aCn2", "nhUbw7E6Kh7KTkksXGXjgMcLAW66yhSnp6n2", tt.value)
+			ctx.tx = mockNormalTransaction("n1LQxBdAtxcfjUazHeK94raKdxRsNpujUyU", "n1PtnbfQcC9EZpr2LS2vLUCKf2UtkyArzVr", tt.value)
 			engine := NewV8Engine(ctx)
 			engine.SetExecutionLimits(10000, 100000000)
 			_, err := engine.Call(string(data), sourceType, tt.function, tt.args)

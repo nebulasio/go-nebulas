@@ -49,57 +49,57 @@ func TestParse(t *testing.T) {
 	}{
 		{
 			"sample account address",
-			args{"nXgV6DnAkx4JeKnuWzNYMgaxvqZbmhNL38n2"},
+			args{"n1M2mcK3mcwGNQS7Kt7wmKadJn97paakkZ9"},
 			&Address{
-				address: []byte{1, 0, 71, 121, 81, 68, 192, 123, 227, 7, 81, 138, 233, 187, 218, 247, 117, 213, 225, 64, 121, 53, 183, 214, 82, 76},
+				address: []byte{25, 87, 71, 121, 81, 68, 192, 123, 227, 7, 81, 138, 233, 187, 218, 247, 117, 213, 225, 64, 121, 53, 109, 153, 204, 124},
 			},
 			false,
 		},
 		{
 			"sample contranct address",
-			args{"n38NmMaShXKZ64SCskdbjQAGD22ZqzZMMen2"},
+			args{"n1sLnoc7j57YfzAVP8tJ3yK5a2i56Uka4v6"},
 			&Address{
-				address: []byte{1, 1, 147, 245, 147, 89, 227, 222, 141, 219, 123, 78, 142, 159, 229, 26, 252, 242, 124, 89, 164, 193, 56, 214, 45, 140},
+				address: []byte{25, 88, 147, 245, 147, 89, 227, 222, 141, 219, 123, 78, 142, 159, 229, 26, 252, 242, 124, 89, 164, 193, 218, 26, 188, 107},
 			},
 			false,
 		},
 		{
 			"insufficient length",
-			args{"n38NmMaShXKZ64SCskdbjQAGD22ZqzZMMen"},
+			args{"n38NmMaShXKZ64SCskdbjQAGD22ZqzZMMe"},
 			nil,
 			true,
 		},
 		{
 			"over length",
-			args{"n38NmMaShXKZ64SCskdbjQAGD22ZqzZMMen22"},
+			args{"n38NmMaShXKZ64SCskdbjQAGD22ZqzZMMen2"},
 			nil,
 			true,
 		},
 		{
 			"not start with n",
-			args{"38NmMaShXKZ64SCskdbjQAGD22ZqzZMMen22"},
+			args{"38NmMaShXKZ64SCskdbjQAGD22ZqzZMMen2"},
 			nil,
 			true,
 		},
 		{
 			"invalid type",
-			// [1 2 147 245 147 89 227 222 141 219 123 78 142 159 229 26 252 242 124 89 164 193 55 142 245 117]
-			args{"nNhHTZHPx2xLNBvWCBfgsqy8gCjq87Zxg3o2"},
+			// [25, 23, 233, 159, 147, 235, 220, 36, 136, 197, 149, 72, 61, 48, 57, 228, 47, 72, 224, 45, 204, 179, 194, 171, 165, 35]
+			args{"mZrBXtpFbK8vUisQ3mNevawvFEjfNLr3rHY"},
 			nil,
 			true,
 		},
 		{
 			"invalid checksum",
-			// []byte{1, 0, 71, 121, 81, 68, 192, 123, 227, 7, 81, 138, 233, 187, 218, 247, 117, 213, 225, 64, 121, 53, 183, 214, 82, 75}
+			// []byte{25, 87, 71, 121, 81, 68, 192, 123, 227, 7, 81, 138, 233, 187, 218, 247, 117, 213, 225, 64, 121, 53, 109, 153, 204, 124}
 			// just last byte is different from "sample account address"
-			args{"nWgV6DnAkx4JeKnuWzNYMgaxvqZbmhNL38n2"},
+			args{"n1M2mcK3mcwGNQS7Kt7wmKadJn97paakkZ8"},
 			nil,
 			true,
 		},
 		{
 			"beyond base58 alphabet",
 			// letter O
-			args{"n38NmMaShXKZ64SCskdbjQAGD22ZqzZMOen2"},
+			args{"n38NmMaShXKZ64SCskdbjQAGD22ZqzZMOen"},
 			nil,
 			true,
 		},
@@ -134,8 +134,8 @@ func TestNewAddress(t *testing.T) {
 				{223, 77, 34, 97, 20, 18, 19, 45, 62, 155, 211, 34, 248, 46, 41, 64, 103, 78, 193, 188},
 			}},
 			&Address{
-				// nXgV6DnAkx4JeKnuWzNYMgaxvqZbmhNL38n2
-				address: []byte{1, 0, 71, 121, 81, 68, 192, 123, 227, 7, 81, 138, 233, 187, 218, 247, 117, 213, 225, 64, 121, 53, 183, 214, 82, 76},
+				// n1M2mcK3mcwGNQS7Kt7wmKadJn97paakkZ9
+				address: []byte{25, 87, 71, 121, 81, 68, 192, 123, 227, 7, 81, 138, 233, 187, 218, 247, 117, 213, 225, 64, 121, 53, 109, 153, 204, 124},
 			},
 			false,
 		},
@@ -157,8 +157,8 @@ func TestNewAddress(t *testing.T) {
 			"genesis address",
 			args{[][]byte{make([]byte, AddressDataLength)}},
 			&Address{
-				// nNz6tuj2eEKyGEgk9SCHAXxpQavZbw3hk8n2
-				address: []byte{1, 0, 79, 75, 161, 188, 115, 200, 95, 60, 154, 183, 83, 215, 19, 238, 252, 236, 110, 206, 46, 65, 135, 29, 203, 235},
+				// n1Mk8HYsjyfkEnGv4hZacDVFz2R1gYEXNej
+				address: []byte{25, 87, 79, 75, 161, 188, 115, 200, 95, 60, 154, 183, 83, 215, 19, 238, 252, 236, 110, 206, 46, 65, 58, 216, 79, 32},
 			},
 			false,
 		},
@@ -193,8 +193,8 @@ func TestNewContractAddress(t *testing.T) {
 				{12, 23, 24, 109, 223, 77, 34, 97, 20, 18, 19, 45, 62, 155, 211, 34, 248, 46, 41, 64, 103, 78, 193, 188},
 			}},
 			&Address{
-				// n38NmMaShXKZ64SCskdbjQAGD22ZqzZMMen2
-				address: []byte{1, 1, 147, 245, 147, 89, 227, 222, 141, 219, 123, 78, 142, 159, 229, 26, 252, 242, 124, 89, 164, 193, 56, 214, 45, 140},
+				// n1sLnoc7j57YfzAVP8tJ3yK5a2i56Uka4v6
+				address: []byte{25, 88, 147, 245, 147, 89, 227, 222, 141, 219, 123, 78, 142, 159, 229, 26, 252, 242, 124, 89, 164, 193, 218, 26, 188, 107},
 			},
 			false,
 		},
@@ -205,8 +205,8 @@ func TestNewContractAddress(t *testing.T) {
 				{41, 64, 103, 78, 193, 188},
 			}},
 			&Address{
-				// nqiH9Ye23MSNdqZnsWrthH42imQ9MGfJAnn2
-				address: []byte{1, 1, 233, 159, 147, 235, 220, 36, 136, 197, 149, 72, 61, 48, 57, 228, 47, 72, 224, 45, 204, 179, 27, 254, 175, 74},
+				// n219jtsdKTs3Rt3TgMeJe76cP9XQgXvQZ1n
+				address: []byte{25, 88, 233, 159, 147, 235, 220, 36, 136, 197, 149, 72, 61, 48, 57, 228, 47, 72, 224, 45, 204, 179, 149, 198, 110, 149},
 			},
 			false,
 		},
@@ -239,66 +239,62 @@ func TestNewContractAddress(t *testing.T) {
 	}
 }
 
-/*
-func TestNewGenesisCoinbaseAddress(t *testing.T) {
-	addr, err := NewAddress(GenesisAddress, make([]byte, AddressDataLength))
-	fmt.Println([]byte(addr.address), addr, err)
+/* func TestBigINt(t *testing.T) {
+	// low = 58^33 * 45
+	// high = 58^33 * 46 - 1
+	low := new(big.Int)
+	high := new(big.Int)
+	low.Exp(big.NewInt(58), big.NewInt(33), nil)
+	fmt.Println(low.Bytes())
+	high.Mul(low, big.NewInt(46))
+	high.Sub(high, big.NewInt(1))
+	low.Mul(low, big.NewInt(45))
+	fmt.Println(low.Bytes())  // [111 213 184 75 176 88 186 42 63 104 237 127 10 128 7 147 66 24 23 39 50 0 0 0 0]
+	fmt.Println(high.Bytes()) // [114 81 239 151 83 141 230 31 207 10 140 95 187 22 201 42 113 18 239 216 107 255 255 255 255]
+} */
+
+/* func TestNewGenesisCoinbaseAddress(t *testing.T) {
+
+	data := [][]byte{
+		// len =26
+		{0x19, 0x70, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+			0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff},
+		{0x19, 0x70, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+			0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
+	}
+	for i := 0; i <= 255; i++ {
+		data[0][1] = byte(i)
+		data[1][1] = byte(i)
+
+		// ret0 := hash.EncodeBase58(data[0])
+		// ret1 := hash.EncodeBase58(data[0])
+		// if ret0[len(ret0)-1] == 'n' && ret1[len(ret1)-1] == 'n' {
+		// 112 113
+		// fmt.Println(i, ret0, len(ret0), ret1, len(ret1))
+		// }
+		// fmt.Println(i, data[0], ret1, len(ret1))
+	}
+
 } */
 
 /* func TestNewAddress2(t *testing.T) {
 
-	fmt.Println("====", AccountAddress)
+	fmt.Println("AccountAddress = ", AccountAddress, ", ContractAddress = ", ContractAddress)
+
 	addr, err := NewAddress(AccountAddress, make([]byte, AddressDataLength))
 	fmt.Printf("type<AccountAddress> address = %v\n%v\n%d\n\n", addr, []byte(addr.address), len(addr.String()))
 	assert.Nil(t, err)
 
-	addr, err = NewAddress(AccountAddress, []byte{0})
-	fmt.Printf("type<AccountAddress> address = %v\n%v\n%d\n\n", addr, addr.address, len(addr.String()))
-	assert.Nil(t, err)
-	addr, err = NewAddress(AccountAddress, []byte{223, 77, 34, 97, 20, 18, 19, 45, 62, 155, 211, 34, 248, 46, 41, 64, 103, 78, 193, 188})
-	fmt.Printf("type<AccountAddress> address = %v\n%v\n%d\n\n", addr, []byte(addr.address), len(addr.String()))
+	addr, err = NewAddress(ContractAddress, [][]byte{
+		{12, 23, 24, 109, 223, 77, 34, 97, 20, 18, 19, 45, 62, 155, 211, 34, 248, 46, 41, 64, 103, 78, 193, 188},
+		{41, 64, 103, 78, 193, 188}}...)
+	fmt.Printf("type<ContractAddress> address = %v\n%v\n%d\n\n", addr, []byte(addr.address), len(addr.String()))
 	assert.Nil(t, err)
 
 	addr, err = NewAddress(ContractAddress, []byte{12, 23, 24, 109, 223, 77, 34, 97, 20, 18, 19, 45, 62, 155, 211, 34, 248, 46, 41, 64, 103, 78, 193, 188})
 	fmt.Printf("type<ContractAddress> address = %v\n%v\n%d\n\n", addr, []byte(addr.address), len(addr.String()))
 	assert.Nil(t, err)
 
-	// addr, err = NewAddress(InvalidContractAddress, []byte{12, 23, 24, 109, 223, 77, 34, 97, 20, 18, 19, 45, 62, 155, 211, 34, 248, 46, 41, 64, 103, 78, 193, 188})
-	// fmt.Printf("type<InvalidContractAddress> address = %v\n%v\n%d\n\n", addr, []byte(addr.address), len(addr.String()))
-	// assert.Nil(t, err)
-
-	addr, err = NewAddress(ContractAddress, []byte{12, 23, 24, 109, 223, 77, 34, 97, 20, 18, 19, 45, 62, 155, 211, 34, 248, 46, 41, 64, 103, 78, 193, 188}, []byte{41, 64, 103, 78, 193, 188})
-	fmt.Printf("type<ContractAddress> address = %v\n%v\n%d\n\n", addr, []byte(addr.address), len(addr.String()))
-	assert.Nil(t, err)
-
-	data := [][]byte{
-
-		// len = 26
-		{1, 0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-			0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff},
-		{1, 0x01, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-			0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff},
-		{1, 0x17, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-			0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff},
-		{1, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-			0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
-	}
-	for _, bytes := range data {
-		ret := btcbase58.Encode(bytes)
-		fmt.Println(ret, len(ret))
-	}
-
-	a := &Address{}
-	var b *Address
-	fmt.Println("a", a)
-	fmt.Println("b", b)
-	fmt.Println(a.Equals(b))
-
-	bs := []byte{1, 0, 71, 121, 81, 68, 192, 123, 227, 7, 81, 138, 233, 187, 218, 247, 117, 213, 225, 64, 121, 53, 183, 214, 82, 75}
-	n := new(big.Int)
-	n.SetBytes(bs)
-	n.Mul(n, hash.Base58BigRadix)
-	n.Add(n, hash.Base58Nebulas)
-
-	fmt.Println("invalid checksum", hash.EncodeBase58(n.Bytes()))
+	s := base58.Encode([]byte{25, 87, 71, 121, 81, 68, 192, 123, 227, 7, 81, 138, 233, 187, 218, 247, 117, 213, 225, 64, 121, 53, 109, 153, 204, 123})
+	fmt.Println(s)
 } */

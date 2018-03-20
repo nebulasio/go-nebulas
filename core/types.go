@@ -91,7 +91,6 @@ var (
 	ErrInvalidAddressFormat   = errors.New("address: invalid address format")
 	ErrInvalidAddressType     = errors.New("address: invalid address type")
 	ErrInvalidAddressChecksum = errors.New("address: invalid address checksum")
-	ErrInvalidAddressCode     = errors.New("address: invalid address code")
 
 	ErrCloneWorldState           = errors.New("Failed to clone world state")
 	ErrCloneAccountState         = errors.New("Failed to clone account state")

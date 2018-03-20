@@ -19,8 +19,7 @@
 package core
 
 import (
-	"math/big"
-
+	"github.com/btcsuite/btcutil/base58"
 	"github.com/nebulasio/go-nebulas/crypto/hash"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
 )
@@ -30,13 +29,13 @@ type AddressType byte
 
 // address type enum
 const (
-	AccountAddress AddressType = iota
+	AccountAddress AddressType = 0x57 + iota
 	ContractAddress
 )
 
 // const
 const (
-	HeadPadding byte = 1
+	Padding byte = 0x19
 )
 
 const (
@@ -53,6 +52,9 @@ const (
 
 	// AddressLength the length of address in byte.
 	AddressLength = AddressPaddingLength + AddressTypeLength + AddressDataLength + AddressChecksumLength
+
+	// AddressBase58Length length of base58(Address.address)
+	AddressBase58Length = 35
 )
 
 /*
@@ -60,14 +62,15 @@ Address Similar to Bitcoin and Ethereum, Nebulas also adopts elliptic curve algo
 
 We believe that checksum design is reasonable from the perspective of users, so Nebulas address also includes checksum, for which the specific calculation method is provided as follows:
 
-  Data = sha3_256(Public Key)[-20:]
-  CheckSum = sha3_256(Data)[0:4]
-  Address = "0x" + Hex(Data + CheckSum)
+  Data = ripemd160(sha3_256(Public Key))
+  Type = 0x57(Account Address) or 0x58(Contract Address)
+  CheckSum = sha3_256(Type + Data)[0:4]
+  Address = base58(0x19 + Type + Data + CheckSum)
 
-The last 20 bytes of SHA3-256 digest of a public key serve as the major component of an address, for which another SHA3-256 digest should be conducted and the first 4 bytes should be used as a checksum, which is equivalent to the practice of adding a 4-byte checksum to the end of an Ethereum address. For example:
+The ripemd160 digest of SHA3-256 digest of a public key serve as the major component of an address, for which another SHA3-256 digest should be conducted and the first 4 bytes should be used as a checksum, which is equivalent to the practice of adding a 4-byte checksum to the end of an Ethereum address. For example:
 
 The standard address of Alice’s Ethereum wallet is 0xdf4d22611412132d3e9bd322f82e2940674ec1bc;
-The final address of Nebulas Wallet should be:  0xdf4d22611412132d3e9bd322f82e2940674ec1bc03b20e40
+The final address of Nebulas Wallet should be:  n1M2mcK3mcwGNQS7Kt7wmKadJn97paakkZ9
 
 In addition to standard address with 50 characters, we also support extended address in order to ensure the security of transfers conducted by users. The traditional bank transfer design is used for reference: In the process of a bank transfer, bank card number of the remittee should be verified, in addition to which the remitter must enter the name of the remittee. The transfer can be correctly processed only when the bank card number and the name match each other. The generating algorithm for extended address is described as follows:
 
@@ -97,16 +100,7 @@ func (a *Address) Bytes() []byte {
 
 // String returns address string
 func (a *Address) String() string {
-	if a == nil || len(a.address) != AddressLength {
-		return ""
-	}
-
-	n := new(big.Int)
-	n.SetBytes(a.address)
-	n.Mul(n, hash.Base58BigRadix)
-	n.Add(n, hash.Base58Nebulas)
-
-	return hash.EncodeBase58(n.Bytes())
+	return base58.Encode(a.address)
 }
 
 // Equals compare two Address. True is equal, otherwise false.
@@ -139,8 +133,8 @@ func NewAddress(t AddressType, args ...[]byte) (*Address, error) {
 	}
 
 	buffer := make([]byte, AddressLength)
-	buffer[0] = HeadPadding // 1 padding
-	buffer[1] = byte(t)     // address type
+	buffer[0] = Padding // 1 padding
+	buffer[1] = byte(t) // address type
 
 	sha := hash.Sha3256(args...)
 	content := hash.Ripemd160(sha)
@@ -164,32 +158,16 @@ func NewContractAddressFromData(args ...[]byte) (*Address, error) {
 
 // AddressParse parse address string.
 func AddressParse(s string) (*Address, error) {
-	if len(s) != 36 || s[0] != 'n' {
+	if len(s) != AddressBase58Length || s[0] != 'n' {
 		return nil, ErrInvalidAddressFormat
 	}
 
-	b := hash.DecodeBase58(s)
-	if len(b) == 0 {
-		return nil, ErrInvalidAddressCode
-	}
-
-	n := new(big.Int)
-	n.SetBytes(b)
-	n.Sub(n, hash.Base58Nebulas)
-	if n.Sign() <= 0 {
-		return nil, ErrInvalidAddress
-	}
-	n.Div(n, hash.Base58BigRadix)
-	if n.Sign() <= 0 {
-		return nil, ErrInvalidAddress
-	}
-
-	return AddressParseFromBytes(n.Bytes())
+	return AddressParseFromBytes(base58.Decode(s))
 }
 
 // AddressParseFromBytes parse address from bytes.
 func AddressParseFromBytes(b []byte) (*Address, error) {
-	if len(b) != AddressLength || b[0] != HeadPadding {
+	if len(b) != AddressLength || b[0] != Padding {
 		return nil, ErrInvalidAddressFormat
 	}
 
