@@ -635,6 +635,7 @@ type txWorldState struct {
 }
 
 func (ws *worldState) Prepare(txid interface{}) (TxWorldState, error) {
+	logging.CLog().Info("Prepare ", txid)
 	if _, ok := ws.txStates.Load(txid); ok {
 		return nil, ErrCannotPrepareTxStateTwice
 	}
@@ -652,6 +653,7 @@ func (ws *worldState) Prepare(txid interface{}) (TxWorldState, error) {
 }
 
 func (ws *worldState) CheckAndUpdate(txid interface{}) ([]interface{}, error) {
+	logging.CLog().Info("Update ", txid)
 	state, ok := ws.txStates.Load(txid)
 	if !ok {
 		return nil, ErrCannotUpdateTxStateBeforePrepare
