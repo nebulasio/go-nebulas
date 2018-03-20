@@ -119,8 +119,7 @@ function testContractCall(testInput, testExpect, done) {
                         if (true === testExpect.canExcuteTx) {
                             expect(receipt).to.be.have.property('status').equal(1);
                         } else {
-                            expect(receipt.from).to.not.be.a('undefined');
-                            expect(receipt).to.not.have.property('status');
+                            expect(receipt).to.be.have.property('status').equal(0);
                         }
 
                         neb.api.getAccountState(receipt.from).then(function (state) {
@@ -249,7 +248,7 @@ function deployContract(done){
 function checkTransaction(txhash, done){
 
     var retry = 0;
-    var maxRetry = 20;
+    var maxRetry = 15;
 
     // contract status and get contract_address 
     var interval = setInterval(function () {
@@ -329,9 +328,9 @@ var testCase = {
         canSubmitTx: true,
         canExcuteTx: true,
         status: 1,
-        fromBalanceAfterTx: '999999979873999999',
+        fromBalanceAfterTx: '999999979861999999',
         toBalanceAfterTx: '1',
-        transferReward: '20126000000'
+        transferReward: '20138000000'
     }
 };
 testCases.push(testCase);
@@ -496,9 +495,9 @@ testCase = {
         canSubmitTx: true,
         canExcuteTx: true,
         status: 1,
-        fromBalanceAfterTx: "999999979873999999",
+        fromBalanceAfterTx: "999999979861999999",
         toBalanceAfterTx: '1',
-        transferReward: '20126000000'
+        transferReward: '20138000000'
     }
 };
 testCases.push(testCase);
@@ -604,9 +603,9 @@ testCase = {
         canSubmitTx: true,
         canExcuteTx: true,
         status: 1,
-        fromBalanceAfterTx: "999999979873999999",
+        fromBalanceAfterTx: "999999979861999999",
         toBalanceAfterTx: '1',
-        transferReward: '20126000000'
+        transferReward: '20138000000'
     }
 };
 testCases.push(testCase);
@@ -631,9 +630,9 @@ testCase = {
         canSubmitTx: true,
         canExcuteTx: true,
         status: 1,
-        fromBalanceAfterTx: "999999959747999999",
+        fromBalanceAfterTx: "999999959723999999",
         toBalanceAfterTx: '1',
-        transferReward: '40252000000'
+        transferReward: '40276000000'
     }
 };
 testCases.push(testCase);
@@ -755,7 +754,7 @@ testCase = {
         value: "1",
         nonce: 1,
         gasPrice: 1000000,
-        gasLimit: 20126,
+        gasLimit: 20138,
         contract: {
             "function": "name",
             "args": ""
@@ -766,9 +765,9 @@ testCase = {
         canSubmitTx: true,
         canExcuteTx: true,
         status: 1,
-        fromBalanceAfterTx: "999999979873999999",
+        fromBalanceAfterTx: "999999979861999999",
         toBalanceAfterTx: '1',
-        transferReward: '20126000000'
+        transferReward: '20138000000'
     }
 };
 testCases.push(testCase);
@@ -793,9 +792,9 @@ testCase = {
         canSubmitTx: true,
         canExcuteTx: true,
         status: 1,
-        fromBalanceAfterTx: "999999979873999999",
+        fromBalanceAfterTx: "999999979861999999",
         toBalanceAfterTx: '1',
-        transferReward: '20126000000'
+        transferReward: '20138000000'
     }
 };
 testCases.push(testCase);
@@ -858,14 +857,14 @@ testCases.push(testCase);
 testCase = {
     "name": "21. balanceOfFrom = gasPrice*gasLimit",
     "testInput": {
-        fromBalance: "20126000000",
+        fromBalance: "20138000000",
         sign: true,
         from: from,
         to: contractAddr,
         value: "1",
         nonce: 1,
         gasPrice: 1000000,
-        gasLimit: 20126,
+        gasLimit: 20138,
         contract: {
             "function": "name",
             "args": ""
@@ -878,7 +877,7 @@ testCase = {
         status: 0,
         fromBalanceAfterTx: "0",
         toBalanceAfterTx: '0',
-        transferReward: '20126000000'
+        transferReward: '20138000000'
     }
 };
 testCases.push(testCase);
@@ -886,14 +885,14 @@ testCases.push(testCase);
 testCase = {
     "name": "22. balanceOfFrom < (TxBaseGasCount + TxPayloadBaseGasCount[payloadType] + gasCountOfPayload + gasCountOfPayloadExecuted) * gasPrice + valueOfTx",
     "testInput": {
-        fromBalance: "20126100000",
+        fromBalance: "20138100000",
         sign: true,
         from: from,
         to: contractAddr,
         value: "1000000",
         nonce: 1,
         gasPrice: 1000000,
-        gasLimit: 20126,
+        gasLimit: 20138,
         contract: {
             "function": "name",
             "args": ""
@@ -906,7 +905,7 @@ testCase = {
         status: 0,
         fromBalanceAfterTx: "100000",
         toBalanceAfterTx: '0',
-        transferReward: '20126000000'
+        transferReward: '20138000000'
     }
 };
 testCases.push(testCase);
@@ -914,14 +913,14 @@ testCases.push(testCase);
 testCase = {
     "name": "23. balanceOfFrom = (TxBaseGasCount + TxPayloadBaseGasCount[payloadType] + gasCountOfPayload + gasCountOfPayloadExecuted) * gasPrice + valueOfTx",
     "testInput": {
-        fromBalance: "20127000000",
+        fromBalance: "20139000000",
         sign: true,
         from: from,
         to: contractAddr,
         value: "1000000",
         nonce: 1,
         gasPrice: 1000000,
-        gasLimit: 20126,
+        gasLimit: 20138,
         contract: {
             "function": "name",
             "args": ""
@@ -934,7 +933,7 @@ testCase = {
         status: 1,
         fromBalanceAfterTx: "0",
         toBalanceAfterTx: '1000000',
-        transferReward: '20126000000'
+        transferReward: '20138000000'
     }
 };
 testCases.push(testCase);
@@ -942,14 +941,14 @@ testCases.push(testCase);
 testCase = {
     "name": "24. balanceOfFrom > (TxBaseGasCount + TxPayloadBaseGasCount[payloadType] + gasCountOfPayload + gasCountOfPayloadExecuted) * gasPrice + valueOfTx",
     "testInput": {
-        fromBalance: "20128000000",
+        fromBalance: "20140000000",
         sign: true,
         from: from,
         to: contractAddr,
         value: "1000000",
         nonce: 1,
         gasPrice: 1000000,
-        gasLimit: 20126,
+        gasLimit: 20138,
         contract: {
             "function": "name",
             "args": ""
@@ -962,7 +961,7 @@ testCase = {
         status: 1,
         fromBalanceAfterTx: "1000000",
         toBalanceAfterTx: '1000000',
-        transferReward: '20126000000'
+        transferReward: '20138000000'
     }
 };
 testCases.push(testCase);
@@ -987,9 +986,9 @@ testCase = {
         canSubmitTx: true,
         canExcuteTx: false,
         status: 0,
-        fromBalanceAfterTx: "999999979866000000",
+        fromBalanceAfterTx: "999999979854000000",
         toBalanceAfterTx: '0',
-        transferReward: '20134000000'
+        transferReward: '20146000000'
     }
 };
 testCases.push(testCase);
@@ -1041,9 +1040,9 @@ testCase = {
         canSubmitTx: true,
         canExcuteTx: true,
         status: 1,
-        fromBalanceAfterTx: "999999979853999999",
+        fromBalanceAfterTx: "999999979841999999",
         toBalanceAfterTx: '1',
-        transferReward: '20146000000'
+        transferReward: '20158000000'
     }
 };
 testCases.push(testCase);
@@ -1142,7 +1141,7 @@ describe('contract call test', function () {
     // });
 
 
-    // var testCase = testCases[20];
+    // var testCase = testCases[26];
     // it(testCase.name, function (done) {
     //     prepareContractCall(testCase, function (err) {
     //         if (err instanceof Error) {

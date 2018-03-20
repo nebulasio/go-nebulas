@@ -21,7 +21,7 @@ var array = new Array();
 while (true) {
     var s = "";
     for (var i = 0; i < 100; i++) {
-        s += possible.charAt(Math.floor(Math.random() * possible.length));
+        s += possible.charAt(possible.length - 1 - i);
     }
     array.push(s);
 }

@@ -50,7 +50,7 @@ try {
         throw new Error("get non-exist-key should return null.");
     }
 
-    var v1 = 'now is ' + new Date();
+    var v1 = 'this is v1';
     if (stor.put('k1', v1) != 0) {
         throw new Error("put k1 failed.");
     }

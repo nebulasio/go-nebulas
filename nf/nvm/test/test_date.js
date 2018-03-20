@@ -15,14 +15,10 @@
 // You should have received a copy of the GNU General Public License
 // along with the go-nebulas library.  If not, see <http://www.gnu.org/licenses/>.
 //
-var list = new Array();
 
-while (true) {
-    var buffer = new ArrayBuffer(10240);
-    var array = new Int32Array(buffer);
-    for (var i = 0; i < 10240; i++) {
-        array[i] = Math.floor(i * 10000000);
-    }
 
-    list.push(buffer);
-}
+console.log(Date.now());
+console.log(Date.UTC());
+
+var date = new Date();
+console.log(date.getTime());
