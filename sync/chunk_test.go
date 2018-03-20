@@ -237,8 +237,10 @@ func TestChunk_generateChunkMeta(t *testing.T) {
 		txDeploy, _ := core.NewTransaction(neb.chain.ChainID(), from, from, value, uint64(i+1), core.TxPayloadDeployType, payloadDeploy, core.TransactionGasPrice, gasLimit)
 		assert.Nil(t, neb.am.SignTransaction(from, txDeploy))
 		assert.Nil(t, neb.chain.TransactionPool().Push(txDeploy))
-		block.CollectTransactions(time.Now().Unix()*1000 + 50)
-		assert.Equal(t, len(block.Transactions()), 1)
+		if i == 95 {
+			block.CollectTransactions(time.Now().Unix()*1000 + 2000)
+			assert.Equal(t, len(block.Transactions()), 96)
+		}
 		assert.Nil(t, block.Seal())
 		assert.Nil(t, neb.am.SignBlock(coinbase, block))
 		assert.Nil(t, chain.BlockPool().Push(block))

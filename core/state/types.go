@@ -72,8 +72,8 @@ type Account interface {
 type AccountState interface {
 	RootHash() (byteutils.Hash, error)
 	DirtyAccounts() ([]Account, error)
-	RollBackDirtyAccounts()
-	CommitDirtyAccounts() error
+	RollBackAccounts()
+	CommitAccounts() error
 	Accounts() ([]Account, error)
 
 	CopyTo(storage.Storage) (AccountState, error)
@@ -146,7 +146,6 @@ type WorldState interface {
 
 	RecordEvent(txHash byteutils.Hash, event *Event) error
 	FetchEvents(byteutils.Hash) ([]*Event, error)
-	FetchCacheEventsOfCurBlock(byteutils.Hash) ([]*Event, error)
 
 	Dynasty() ([]byteutils.Hash, error)
 	DynastyRoot() byteutils.Hash

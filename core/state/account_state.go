@@ -188,11 +188,16 @@ func (acc *account) String() string {
 	)
 }
 
+type cachedAccount struct {
+	acc   Account
+	dirty bool
+}
+
 // AccountState manage account state in Block
 type accountState struct {
-	stateTrie    *trie.Trie
-	dirtyAccount map[byteutils.HexHash]Account
-	storage      storage.Storage
+	stateTrie      *trie.Trie
+	cachedAccounts map[byteutils.HexHash]*cachedAccount
+	storage        storage.Storage
 }
 
 // NewAccountState create a new account state
@@ -203,14 +208,18 @@ func NewAccountState(root byteutils.Hash, storage storage.Storage, needChangeLog
 	}
 
 	return &accountState{
-		stateTrie:    stateTrie,
-		dirtyAccount: make(map[byteutils.HexHash]Account),
-		storage:      storage,
+		stateTrie:      stateTrie,
+		cachedAccounts: make(map[byteutils.HexHash]*cachedAccount),
+		storage:        storage,
 	}, nil
 }
 
 func (as *accountState) recordDirtyAccount(addr byteutils.Hash, acc Account) {
-	as.dirtyAccount[addr.Hex()] = acc
+	if _, ok := as.cachedAccounts[addr.Hex()]; ok {
+		as.cachedAccounts[addr.Hex()].dirty = true
+	} else {
+		as.cachedAccounts[addr.Hex()] = &cachedAccount{acc, true}
+	}
 }
 
 func (as *accountState) newAccount(addr byteutils.Hash, birthPlace byteutils.Hash) (Account, error) {
@@ -225,14 +234,13 @@ func (as *accountState) newAccount(addr byteutils.Hash, birthPlace byteutils.Has
 		variables:  varTrie,
 		birthPlace: birthPlace,
 	}
-	as.recordDirtyAccount(addr, acc)
 	return acc, nil
 }
 
 func (as *accountState) getAccount(addr byteutils.Hash) (Account, error) {
 	// search in dirty account
-	if acc, ok := as.dirtyAccount[addr.Hex()]; ok {
-		return acc, nil
+	if ca, ok := as.cachedAccounts[addr.Hex()]; ok {
+		return ca.acc, nil
 	}
 	// search in storage
 	bytes, err := as.stateTrie.Get(addr)
@@ -242,7 +250,6 @@ func (as *accountState) getAccount(addr byteutils.Hash) (Account, error) {
 		if err != nil {
 			return nil, err
 		}
-		as.recordDirtyAccount(addr, acc)
 		return acc, nil
 	}
 	return nil, ErrAccountNotFound
@@ -250,16 +257,8 @@ func (as *accountState) getAccount(addr byteutils.Hash) (Account, error) {
 
 // RootHash return root hash of account state
 func (as *accountState) RootHash() (byteutils.Hash, error) {
-	for addr, acc := range as.dirtyAccount {
-		bytes, err := acc.ToBytes()
-		if err != nil {
-			return nil, err
-		}
-		key, err := addr.Hash()
-		if err != nil {
-			return nil, err
-		}
-		as.stateTrie.Put(key, bytes)
+	if err := as.flush(); err != nil {
+		return nil, err
 	}
 	return as.stateTrie.RootHash(), nil
 }
@@ -272,8 +271,10 @@ func (as *accountState) GetOrCreateUserAccount(addr byteutils.Hash) (Account, er
 		if err != nil {
 			return nil, err
 		}
+		as.recordDirtyAccount(addr, acc)
 		return acc, nil
 	}
+	as.recordDirtyAccount(addr, acc)
 	return acc, nil
 }
 
@@ -283,13 +284,18 @@ func (as *accountState) GetContractAccount(addr byteutils.Hash) (Account, error)
 	if err != nil {
 		return nil, err
 	}
-
+	as.recordDirtyAccount(addr, acc)
 	return acc, nil
 }
 
 // CreateContractAccount according to the addr, and set birthPlace as creation tx hash
 func (as *accountState) CreateContractAccount(addr byteutils.Hash, birthPlace byteutils.Hash) (Account, error) {
-	return as.newAccount(addr, birthPlace)
+	acc, err := as.newAccount(addr, birthPlace)
+	if err != nil {
+		return nil, err
+	}
+	as.recordDirtyAccount(addr, acc)
+	return acc, nil
 }
 
 func (as *accountState) Accounts() ([]Account, error) {
@@ -323,19 +329,21 @@ func (as *accountState) Accounts() ([]Account, error) {
 // DirtyAccounts return all changed accounts
 func (as *accountState) DirtyAccounts() ([]Account, error) {
 	accounts := []Account{}
-	for _, account := range as.dirtyAccount {
-		accounts = append(accounts, account)
+	for _, ca := range as.cachedAccounts {
+		if ca.dirty {
+			accounts = append(accounts, ca.acc)
+		}
 	}
 	return accounts, nil
 }
 
-func (as *accountState) RollBackDirtyAccounts() {
-	as.dirtyAccount = make(map[byteutils.HexHash]Account)
+func (as *accountState) RollBackAccounts() {
+	as.cachedAccounts = make(map[byteutils.HexHash]*cachedAccount)
 }
 
-func (as *accountState) CommitDirtyAccounts() error {
-	for addr, acc := range as.dirtyAccount {
-		bytes, err := acc.ToBytes()
+func (as *accountState) flush() error {
+	for addr, ca := range as.cachedAccounts {
+		bytes, err := ca.acc.ToBytes()
 		if err != nil {
 			return err
 		}
@@ -343,17 +351,28 @@ func (as *accountState) CommitDirtyAccounts() error {
 		if err != nil {
 			return err
 		}
-		as.stateTrie.Put(key, bytes)
+		if _, err := as.stateTrie.Put(key, bytes); err != nil {
+			return err
+		}
 	}
-	as.dirtyAccount = make(map[byteutils.HexHash]Account)
+	return nil
+}
+
+func (as *accountState) CommitAccounts() error {
+	if err := as.flush(); err != nil {
+		return err
+	}
+	as.cachedAccounts = make(map[byteutils.HexHash]*cachedAccount)
 	return nil
 }
 
 // Relay merge the done account state
 func (as *accountState) Replay(done AccountState) error {
 	state := done.(*accountState)
-	for addr, acc := range state.dirtyAccount {
-		as.dirtyAccount[addr] = acc
+	for addr, ca := range state.cachedAccounts {
+		if ca.dirty {
+			as.cachedAccounts[addr] = &cachedAccount{ca.acc, false}
+		}
 	}
 	return nil
 }
@@ -365,25 +384,18 @@ func (as *accountState) CopyTo(storage storage.Storage) (AccountState, error) {
 		return nil, err
 	}
 
-	dirtyAccount := make(map[byteutils.HexHash]Account)
-	for addr, acc := range as.dirtyAccount {
-		dirtyAccount[addr], err = acc.CopyTo(storage)
+	cachedAccounts := make(map[byteutils.HexHash]*cachedAccount)
+	for addr, ca := range as.cachedAccounts {
+		copyAcc, err := ca.acc.CopyTo(storage)
 		if err != nil {
 			return nil, err
 		}
+		cachedAccounts[addr] = &cachedAccount{copyAcc, false}
 	}
 
 	return &accountState{
-		stateTrie:    stateTrie,
-		dirtyAccount: dirtyAccount,
+		stateTrie:      stateTrie,
+		cachedAccounts: cachedAccounts,
+		storage:        storage,
 	}, nil
-}
-
-func (as *accountState) String() string {
-	return fmt.Sprintf("AccountState %p {RootHash:%s; dirtyAccount:%v; Storage:%p}",
-		as,
-		byteutils.Hex(as.stateTrie.RootHash()),
-		as.dirtyAccount,
-		as.storage,
-	)
 }

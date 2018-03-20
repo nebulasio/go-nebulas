@@ -239,7 +239,7 @@ func (s *states) Commit() error {
 	}
 	s.events = make(map[string][]*Event)
 	s.gasConsumed = make(map[string]*util.Uint128)
-	s.accState.CommitDirtyAccounts()
+	s.accState.CommitAccounts()
 	return nil
 }
 
@@ -252,7 +252,7 @@ func (s *states) RollBack() error {
 	}
 	s.events = make(map[string][]*Event)
 	s.gasConsumed = make(map[string]*util.Uint128)
-	s.accState.RollBackDirtyAccounts()
+	s.accState.RollBackAccounts()
 	return nil
 }
 
@@ -445,7 +445,7 @@ func (s *states) RecordEvent(txHash byteutils.Hash, event *Event) error {
 	return nil
 }
 
-func (s *states) FetchCacheEventsOfCurBlock(txHash byteutils.Hash) ([]*Event, error) {
+func (s *states) fetchCacheEvents(txHash byteutils.Hash) ([]*Event, error) {
 	txevents, ok := s.events[txHash.String()]
 	if !ok {
 		return nil, nil

@@ -522,28 +522,6 @@ func TestBlock_fetchEvents(t *testing.T) {
 	}
 }
 
-func TestBlock_fetchCacheEventsOfCurBlock(t *testing.T) {
-	neb := testNeb(t)
-	bc := neb.chain
-
-	tail := bc.tailBlock
-	events := []*state.Event{
-		&state.Event{Topic: "chain.block", Data: "hello"},
-		&state.Event{Topic: "chain.tx", Data: "hello"},
-		&state.Event{Topic: "chain.block", Data: "hello"},
-		&state.Event{Topic: "chain.block", Data: "hello"},
-	}
-	tx := &Transaction{hash: []byte("tx")}
-	for _, event := range events {
-		assert.Nil(t, tail.worldState.RecordEvent(tx.Hash(), event))
-	}
-	es, err := tail.FetchCacheEventsOfCurBlock(tx.Hash())
-	assert.Nil(t, err)
-	assert.Equal(t, len(events), len(es))
-	for idx, event := range es {
-		assert.Equal(t, events[idx], event)
-	}
-}
 func TestBlockSign(t *testing.T) {
 	neb := testNeb(t)
 	bc := neb.chain

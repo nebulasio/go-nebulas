@@ -365,12 +365,16 @@ func (block *Block) Begin() error {
 
 // Commit a batch task
 func (block *Block) Commit() {
-	block.WorldState().Commit()
+	if err := block.WorldState().Commit(); err != nil {
+		logging.CLog().Fatal(err)
+	}
 }
 
 // RollBack a batch task
 func (block *Block) RollBack() {
-	block.WorldState().RollBack()
+	if err := block.WorldState().RollBack(); err != nil {
+		logging.CLog().Fatal(err)
+	}
 }
 
 // Prepare a sub batch task
@@ -984,11 +988,6 @@ func (block *Block) GetNonce(address byteutils.Hash) (uint64, error) {
 // FetchEvents fetch events by txHash.
 func (block *Block) FetchEvents(txHash byteutils.Hash) ([]*state.Event, error) {
 	return block.WorldState().FetchEvents(txHash)
-}
-
-// FetchCacheEventsOfCurBlock fetch events by txHash.
-func (block *Block) FetchCacheEventsOfCurBlock(txHash byteutils.Hash) ([]*state.Event, error) {
-	return block.WorldState().FetchCacheEventsOfCurBlock(txHash)
 }
 
 func (block *Block) rewardCoinbaseForMint() error {

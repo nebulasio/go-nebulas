@@ -221,6 +221,9 @@ func TestTransaction_VerifyExecutionDependency(t *testing.T) {
 
 	bc.tailBlock.Commit()
 
+	fromAcc, err := bc.tailBlock.worldState.GetOrCreateUserAccount(tx1.from.address)
+	logging.CLog().Info("XXXXX", fromAcc.Balance().Int64())
+
 	block, err := bc.NewBlock(bc.tailBlock.header.coinbase)
 	assert.Nil(t, err)
 	block.Begin()
@@ -285,8 +288,6 @@ func TestTransaction_VerifyExecutionDependency(t *testing.T) {
 	assert.Equal(t, "1", toacc3.Balance().String())
 
 	assert.Nil(t, block.Seal())
-	block.Commit()
-
 }
 
 func TestTransaction_VerifyExecution(t *testing.T) {
