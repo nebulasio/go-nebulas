@@ -321,6 +321,20 @@ func (s *states) recordAccounts() error {
 	return nil
 }
 
+func (s *states) Reset(txid interface{}) error {
+	if err := s.changelog.Reset(); err != nil {
+		logging.VLog().Info("RSE 11")
+		return err
+	}
+	if err := s.storage.Reset(); err != nil {
+		logging.VLog().Info("RSE 12")
+		return err
+	}
+
+	s.accState.RollBackAccounts()
+	return nil
+}
+
 func (s *states) CheckAndUpdate(txid interface{}) ([]interface{}, error) {
 	if err := s.recordAccounts(); err != nil {
 		return nil, err
@@ -336,18 +350,6 @@ func (s *states) CheckAndUpdate(txid interface{}) ([]interface{}, error) {
 		return nil, err
 	}
 	return dependency, nil
-}
-
-func (s *states) Reset(txid interface{}) error {
-	if err := s.changelog.Reset(); err != nil {
-		logging.VLog().Info("RSE 11")
-		return err
-	}
-	if err := s.storage.Reset(); err != nil {
-		logging.VLog().Info("RSE 12")
-		return err
-	}
-	return nil
 }
 
 func (s *states) Close(txid interface{}) error {
@@ -635,7 +637,6 @@ type txWorldState struct {
 }
 
 func (ws *worldState) Prepare(txid interface{}) (TxWorldState, error) {
-	logging.CLog().Info("Prepare ", txid)
 	if _, ok := ws.txStates.Load(txid); ok {
 		return nil, ErrCannotPrepareTxStateTwice
 	}
@@ -653,7 +654,6 @@ func (ws *worldState) Prepare(txid interface{}) (TxWorldState, error) {
 }
 
 func (ws *worldState) CheckAndUpdate(txid interface{}) ([]interface{}, error) {
-	logging.CLog().Info("Update ", txid)
 	state, ok := ws.txStates.Load(txid)
 	if !ok {
 		return nil, ErrCannotUpdateTxStateBeforePrepare
