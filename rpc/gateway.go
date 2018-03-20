@@ -1,19 +1,16 @@
 package rpc
 
 import (
+	"encoding/json"
 	"flag"
-	"io"
 	"net/http"
 	"strings"
 
-	"google.golang.org/grpc/codes"
-
-	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"github.com/nebulasio/go-nebulas/rpc/pb"
+	"github.com/nebulasio/grpc-gateway/runtime"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/grpclog"
-	"google.golang.org/grpc/status"
+	"google.golang.org/grpc/codes"
 )
 
 // const
@@ -72,45 +69,25 @@ func preflightHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Methods", strings.Join(methods, ","))
 	return
 }
-func errorHandler(ctx context.Context, mux *runtime.ServeMux, marshaler runtime.Marshaler, w http.ResponseWriter, _ *http.Request, err error) {
-	// return Internal when Marshal failed
-	const fallback = `{"code": 13, "message": "failed to marshal error message"}`
 
-	w.Header().Del("Trailer")
-	w.Header().Set("Content-Type", marshaler.ContentType())
+type errorBody struct {
+	Err string `json:"error,omitempty"`
+}
 
-	s, ok := status.FromError(err)
-	if !ok {
-		s = status.New(codes.Unknown, err.Error())
-	}
+func errorHandler(ctx context.Context, _ *runtime.ServeMux, marshaler runtime.Marshaler, w http.ResponseWriter, _ *http.Request, err error) {
+	const fallback = `{"error": "failed to marshal error message"}`
 
-	buf, merr := marshaler.Marshal(s.Proto())
-	if merr != nil {
-		grpclog.Printf("Failed to marshal error message %q: %v", s.Proto(), merr)
-		w.WriteHeader(http.StatusInternalServerError)
-		if _, err := io.WriteString(w, fallback); err != nil {
-			grpclog.Printf("Failed to write response: %v", err)
-		}
-		return
-	}
-
-	//md, ok := runtime.ServerMetadataFromContext(ctx)
-	if !ok {
-		grpclog.Printf("Failed to extract ServerMetadata from context")
-	}
-
-	//	runtime.handleForwardResponseServerMetadata(w, mux, md)
-	//	runtime.handleForwardResponseTrailerHeader(w, md)
-	if s.Code() == codes.Unknown {
-		st := http.StatusBadRequest
-		w.WriteHeader(st)
+	w.Header().Set("Content-type", marshaler.ContentType())
+	if grpc.Code(err) == codes.Unknown {
+		w.WriteHeader(runtime.HTTPStatusFromCode(codes.OutOfRange))
 	} else {
-		st := runtime.HTTPStatusFromCode(s.Code())
-		w.WriteHeader(st)
+		w.WriteHeader(runtime.HTTPStatusFromCode(grpc.Code(err)))
 	}
-	if _, err := w.Write(buf); err != nil {
-		grpclog.Printf("Failed to write response: %v", err)
-	}
+	jErr := json.NewEncoder(w).Encode(errorBody{
+		Err: grpc.ErrorDesc(err),
+	})
 
-	//	handleForwardResponseTrailer(w, md)
+	if jErr != nil {
+		w.Write([]byte(fallback))
+	}
 }
