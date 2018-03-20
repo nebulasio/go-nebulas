@@ -15,6 +15,15 @@
 // You should have received a copy of the GNU General Public License
 // along with the go-nebulas library.  If not, see <http://www.gnu.org/licenses/>.
 //
+
+const Date = function () {
+    throw new Error("Date is not allowed in nvm.");
+};
+
+Math.random = function () {
+    throw new Error("Math.random func is not allowed in nvm.");
+};
+
 const require = (function (global) {
     var PathRegexForNotLibFile = /^\.{0,2}\//;
     var modules = new Map();

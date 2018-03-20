@@ -901,7 +901,7 @@ describe('normal transaction', function () {
         //can calc value by previous params
         var testExpect = {
             canSendTx: true,
-            canSubmitTx: true,
+            canSubmitTx: false,
             canExcuteTx: false,
             fromBalanceAfterTx: '9999999980000000000',
             toBalanceAfterTx: '0',
@@ -929,7 +929,7 @@ describe('normal transaction', function () {
         //can calc value by previous params
         var testExpect = {
             canSendTx: true,
-            canSubmitTx: true,
+            canSubmitTx: false,
             canExcuteTx: false,
             fromBalanceAfterTx: '9999999980000000000',
             toBalanceAfterTx: '0',
@@ -1010,7 +1010,7 @@ describe('normal transaction', function () {
         //can calc value by previous params
         var testExpect = {
             canSendTx: true,
-            canSubmitTx: true,
+            canSubmitTx: false,
             canExcuteTx: false,
             fromBalanceAfterTx: '9999999980000000000',
             toBalanceAfterTx: '9999999980000000000',
@@ -1180,8 +1180,8 @@ describe('normal transaction', function () {
 
         var testExpect = {
             canSendTx: true,
-            canSubmitTx: true,
-            canExcuteTx: true,
+            canSubmitTx: false,
+            canExcuteTx: false,
             fromBalanceAfterTx: '0',
             toBalanceAfterTx: '9999999980000000000',
             transferReward: '20000000000'
@@ -1262,8 +1262,8 @@ describe('normal transaction', function () {
         //can calc value by previous params
         var testExpect = {
             canSendTx: true,
-            canSubmitTx: false,
-            canExcuteTx: false,
+            canSubmitTx: true,
+            canExcuteTx: true,
             fromBalanceAfterTx: '8999999979964000000',
             toBalanceAfterTx: '1000000000000000000',
             transferReward: '20036000000'
@@ -1347,8 +1347,8 @@ describe('normal transaction', function () {
         //can calc value by previous params
         var testExpect = {
             canSendTx: true,
-            canSubmitTx: true,
-            canExcuteTx: true,
+            canSubmitTx: false,
+            canExcuteTx: false,
             fromBalanceAfterTx: '0',
             toBalanceAfterTx: '9999999979964000000',
             transferReward: '20036000000'
@@ -1374,7 +1374,7 @@ describe('normal transaction', function () {
         //can calc value by previous params
         var testExpect = {
             canSendTx: true,
-            canSubmitTx: true,
+            canSubmitTx: false,
             canExcuteTx: false,
             fromBalanceAfterTx: '9999999979964000000',
             toBalanceAfterTx: '0',

@@ -54,7 +54,7 @@ try {
         throw new Error(name + " is undefined.");
     }
 
-    var v1 = 'now is ' + new Date();
+    var v1 = 'now is v1';
     stor.put('k1', v1);
     if (stor.get('k1') !== v1) {
         throw new Error("key k1 should return string [" + v1 + "].")
