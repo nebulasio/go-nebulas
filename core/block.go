@@ -1011,8 +1011,8 @@ func HashBlock(block *Block) (byteutils.Hash, error) {
 // HashPbBlock return the hash of pb block.
 func HashPbBlock(pbBlock *corepb.Block) byteutils.Hash { //ToAdd nil check
 	block := new(Block) // ToFix: hash pbBlock directly, avoid catching fromproto err
-	if err := block.FromProto(pbBlock); err != nil {
-		if hash, err := HashBlock(block); err != nil {
+	if err := block.FromProto(pbBlock); err == nil {
+		if hash, err := HashBlock(block); err == nil {
 			return hash
 		}
 	}
