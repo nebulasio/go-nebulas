@@ -138,13 +138,19 @@ func (s *Server) RunGateway() error {
 	rpcListen := s.rpcConfig.RpcListen[0]
 	gatewayListen := s.rpcConfig.HttpListen
 	httpModule := s.rpcConfig.HttpModule
+
+	httpLimit := s.rpcConfig.HttpLimits
+
+	if httpLimit == 0 {
+		httpLimit = 128
+	}
 	logging.CLog().WithFields(logrus.Fields{
 		"rpc-server":  rpcListen,
 		"http-server": gatewayListen,
 	}).Info("Starting RPC Gateway GRPCServer...")
 
 	go (func() {
-		if err := Run(rpcListen, gatewayListen, httpModule); err != nil {
+		if err := Run(rpcListen, gatewayListen, httpModule, httpLimit); err != nil {
 			logging.CLog().WithFields(logrus.Fields{
 				"error": err,
 			}).Fatal("Failed to start RPC Gateway.")

@@ -20,7 +20,7 @@ const (
 )
 
 // Run start gateway proxy to mapping grpc to http.
-func Run(rpcListen string, gatewayListen []string, httpModule []string) error {
+func Run(rpcListen string, gatewayListen []string, httpModule []string, httpLimit int32) error {
 	ctx := context.Background()
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
@@ -40,7 +40,7 @@ func Run(rpcListen string, gatewayListen []string, httpModule []string) error {
 	}
 
 	for _, v := range gatewayListen {
-		err := http.ListenAndServe(v, allowCORS(mux))
+		err := http.ListenAndServe(v, allowCORS(mux, httpLimit))
 		if err != nil {
 			return err
 		}
@@ -49,17 +49,34 @@ func Run(rpcListen string, gatewayListen []string, httpModule []string) error {
 	return nil
 }
 
-func allowCORS(h http.Handler) http.Handler {
+func allowCORS(h http.Handler, httpLimit int32) http.Handler {
+	httpCh := make(chan bool, httpLimit)
+
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if origin := r.Header.Get("Origin"); origin != "" {
-			w.Header().Set("Access-Control-Allow-Origin", "*")
-			if r.Method == "OPTIONS" && r.Header.Get("Access-Control-Request-Method") != "" {
-				preflightHandler(w, r)
-				return
+
+		select {
+		case httpCh <- true:
+			defer func() { <-httpCh }()
+			if origin := r.Header.Get("Origin"); origin != "" {
+				w.Header().Set("Access-Control-Allow-Origin", "*")
+				if r.Method == "OPTIONS" && r.Header.Get("Access-Control-Request-Method") != "" {
+					preflightHandler(w, r)
+					return
+				}
 			}
+			h.ServeHTTP(w, r)
+		default:
+			statusUnavailableHandler(w, r)
 		}
-		h.ServeHTTP(w, r)
+
 	})
+}
+func statusUnavailableHandler(w http.ResponseWriter, r *http.Request) {
+
+	w.WriteHeader(http.StatusServiceUnavailable)
+
+	w.Write([]byte("{\"err:\",\"Sorry, we received too many simultaneous requests.\nPlease try again later.\"}"))
+
 }
 
 func preflightHandler(w http.ResponseWriter, r *http.Request) {
