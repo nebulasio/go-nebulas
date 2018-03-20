@@ -81,7 +81,6 @@ func newStates(consensus Consensus, stor storage.Storage) (*states, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	txsState, err := trie.NewTrie(nil, storage, false)
 	if err != nil {
 		return nil, err
@@ -90,12 +89,16 @@ func newStates(consensus Consensus, stor storage.Storage) (*states, error) {
 	if err != nil {
 		return nil, err
 	}
+	consensusState, err := consensus.NewState(&consensuspb.ConsensusRoot{}, storage, false)
+	if err != nil {
+		return nil, err
+	}
 
 	return &states{
 		accState:       accState,
 		txsState:       txsState,
 		eventsState:    eventsState,
-		consensusState: nil,
+		consensusState: consensusState,
 
 		consensus: consensus,
 		changelog: changelog,
@@ -114,11 +117,15 @@ func (s *states) Replay(done *states) error {
 	if err != nil {
 		return err
 	}
+	//reply event
+	err = s.ReplayEvent(done)
+	if err != nil {
+		return err
+	}
 	_, err = s.txsState.Replay(done.txsState)
 	if err != nil {
 		return err
 	}
-
 	err = s.consensusState.Replay(done.consensusState)
 	if err != nil {
 		return err
@@ -135,12 +142,6 @@ func (s *states) Replay(done *states) error {
 		if err != nil {
 			return err
 		}
-	}
-
-	//reply event
-	err = s.ReplayEvent(done)
-	if err != nil {
-		return err
 	}
 
 	return nil
@@ -188,28 +189,19 @@ func (s *states) Clone() (WorldState, error) {
 		return nil, err
 	}
 
-	accRoot, err := s.accState.RootHash()
+	accState, err := s.accState.CopyTo(storage)
 	if err != nil {
 		return nil, err
 	}
-	accState, err := NewAccountState(accRoot, storage, false)
+	txsState, err := s.txsState.CopyTo(storage)
 	if err != nil {
 		return nil, err
 	}
-
-	txsState, err := trie.NewTrie(s.txsState.RootHash(), storage, false)
+	eventsState, err := s.eventsState.CopyTo(storage)
 	if err != nil {
 		return nil, err
 	}
-	eventsState, err := trie.NewTrie(s.eventsState.RootHash(), storage, false)
-	if err != nil {
-		return nil, err
-	}
-	consensusRoot, err := s.consensusState.RootHash()
-	if err != nil {
-		return nil, err
-	}
-	consensusState, err := s.consensus.NewState(consensusRoot, storage, false)
+	consensusState, err := s.consensusState.CopyTo(storage)
 	if err != nil {
 		return nil, err
 	}

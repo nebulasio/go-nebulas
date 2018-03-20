@@ -115,8 +115,8 @@ func (acc *account) BirthPlace() byteutils.Hash {
 }
 
 // Clone account
-func (acc *account) Clone() (Account, error) {
-	variables, err := acc.variables.Clone()
+func (acc *account) CopyTo(storage storage.Storage) (Account, error) {
+	variables, err := acc.variables.CopyTo(storage)
 	if err != nil {
 		return nil, err
 	}
@@ -359,15 +359,15 @@ func (as *accountState) Replay(done AccountState) error {
 }
 
 // Clone an accountState
-func (as *accountState) Clone() (AccountState, error) {
-	stateTrie, err := as.stateTrie.Clone()
+func (as *accountState) CopyTo(storage storage.Storage) (AccountState, error) {
+	stateTrie, err := as.stateTrie.CopyTo(storage)
 	if err != nil {
 		return nil, err
 	}
 
 	dirtyAccount := make(map[byteutils.HexHash]Account)
 	for addr, acc := range as.dirtyAccount {
-		dirtyAccount[addr], err = acc.Clone()
+		dirtyAccount[addr], err = acc.CopyTo(storage)
 		if err != nil {
 			return nil, err
 		}

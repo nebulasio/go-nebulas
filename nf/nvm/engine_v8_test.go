@@ -29,6 +29,8 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/nebulasio/go-nebulas/consensus/dpos"
+
 	"encoding/json"
 
 	"github.com/nebulasio/go-nebulas/core"
@@ -126,7 +128,7 @@ func TestRunScriptSource(t *testing.T) {
 			assert.Nil(t, err, "filepath read error")
 
 			mem, _ := storage.NewMemoryStorage()
-			context, _ := state.NewWorldState(nil, mem)
+			context, _ := state.NewWorldState(dpos.NewDpos(), mem)
 			owner, err := context.GetOrCreateUserAccount([]byte("account1"))
 			assert.Nil(t, err)
 			owner.AddBalance(newUint128FromIntWrapper(1000000000))
@@ -163,7 +165,7 @@ func TestRunScriptSourceInModule(t *testing.T) {
 			assert.Nil(t, err, "filepath read error")
 
 			mem, _ := storage.NewMemoryStorage()
-			context, _ := state.NewWorldState(nil, mem)
+			context, _ := state.NewWorldState(dpos.NewDpos(), mem)
 			owner, err := context.GetOrCreateUserAccount([]byte("account1"))
 			assert.Nil(t, err)
 			owner.AddBalance(newUint128FromIntWrapper(1000000000))
@@ -206,7 +208,7 @@ func TestRunScriptSourceWithLimits(t *testing.T) {
 			assert.Nil(t, err, "filepath read error")
 
 			mem, _ := storage.NewMemoryStorage()
-			context, _ := state.NewWorldState(nil, mem)
+			context, _ := state.NewWorldState(dpos.NewDpos(), mem)
 			owner, err := context.GetOrCreateUserAccount([]byte("account1"))
 			assert.Nil(t, err)
 			owner.AddBalance(newUint128FromIntWrapper(100000))
@@ -252,7 +254,7 @@ func TestRunScriptSourceTimeout(t *testing.T) {
 			assert.Nil(t, err, "filepath read error")
 
 			mem, _ := storage.NewMemoryStorage()
-			context, _ := state.NewWorldState(nil, mem)
+			context, _ := state.NewWorldState(dpos.NewDpos(), mem)
 			owner, err := context.GetOrCreateUserAccount([]byte("account1"))
 			assert.Nil(t, err)
 			contract, _ := context.CreateContractAccount([]byte("account2"), nil)
@@ -298,7 +300,7 @@ func TestDeployAndInitAndCall(t *testing.T) {
 			assert.Nil(t, err, "contract path read error")
 
 			mem, _ := storage.NewMemoryStorage()
-			context, _ := state.NewWorldState(nil, mem)
+			context, _ := state.NewWorldState(dpos.NewDpos(), mem)
 			owner, err := context.GetOrCreateUserAccount([]byte("account1"))
 			assert.Nil(t, err)
 			owner.AddBalance(newUint128FromIntWrapper(10000000))
@@ -325,7 +327,7 @@ func TestDeployAndInitAndCall(t *testing.T) {
 
 			// force error.
 			mem, _ = storage.NewMemoryStorage()
-			context, _ = state.NewWorldState(nil, mem)
+			context, _ = state.NewWorldState(dpos.NewDpos(), mem)
 			owner, err = context.GetOrCreateUserAccount([]byte("account1"))
 			assert.Nil(t, err)
 			contract, err = context.CreateContractAccount([]byte("account2"), nil)
@@ -378,7 +380,7 @@ func TestContracts(t *testing.T) {
 			assert.Nil(t, err, "contract path read error")
 
 			mem, _ := storage.NewMemoryStorage()
-			context, _ := state.NewWorldState(nil, mem)
+			context, _ := state.NewWorldState(dpos.NewDpos(), mem)
 			owner, err := context.GetOrCreateUserAccount([]byte("account1"))
 			assert.Nil(t, err)
 			owner.AddBalance(newUint128FromIntWrapper(10000000))
@@ -427,7 +429,7 @@ func TestFunctionNameCheck(t *testing.T) {
 			assert.Nil(t, err, "contract path read error")
 
 			mem, _ := storage.NewMemoryStorage()
-			context, _ := state.NewWorldState(nil, mem)
+			context, _ := state.NewWorldState(dpos.NewDpos(), mem)
 			owner, err := context.GetOrCreateUserAccount([]byte("account1"))
 			assert.Nil(t, err)
 			owner.AddBalance(newUint128FromIntWrapper(1000000))
@@ -445,7 +447,7 @@ func TestFunctionNameCheck(t *testing.T) {
 
 func TestMultiEngine(t *testing.T) {
 	mem, _ := storage.NewMemoryStorage()
-	context, _ := state.NewWorldState(nil, mem)
+	context, _ := state.NewWorldState(dpos.NewDpos(), mem)
 	owner, err := context.GetOrCreateUserAccount([]byte("account1"))
 	assert.Nil(t, err)
 	owner.AddBalance(newUint128FromIntWrapper(1000000))
@@ -498,7 +500,7 @@ func TestInstructionCounterTestSuite(t *testing.T) {
 			assert.Nil(t, err, "filepath read error")
 
 			mem, _ := storage.NewMemoryStorage()
-			context, _ := state.NewWorldState(nil, mem)
+			context, _ := state.NewWorldState(dpos.NewDpos(), mem)
 			owner, err := context.GetOrCreateUserAccount([]byte("account1"))
 			assert.Nil(t, err)
 			owner.AddBalance(newUint128FromIntWrapper(1000000000))
@@ -537,7 +539,7 @@ func TestTypeScriptExecution(t *testing.T) {
 			assert.Nil(t, err, "filepath read error")
 
 			mem, _ := storage.NewMemoryStorage()
-			context, _ := state.NewWorldState(nil, mem)
+			context, _ := state.NewWorldState(dpos.NewDpos(), mem)
 			owner, err := context.GetOrCreateUserAccount([]byte("account1"))
 			assert.Nil(t, err)
 			owner.AddBalance(newUint128FromIntWrapper(1000000000))
@@ -571,7 +573,7 @@ func TestTypeScriptExecution(t *testing.T) {
 
 func TestRunMozillaJSTestSuite(t *testing.T) {
 	mem, _ := storage.NewMemoryStorage()
-	context, _ := state.NewWorldState(nil, mem)
+	context, _ := state.NewWorldState(dpos.NewDpos(), mem)
 	owner, err := context.GetOrCreateUserAccount([]byte("account1"))
 	assert.Nil(t, err)
 	owner.AddBalance(newUint128FromIntWrapper(1000000000))
@@ -651,7 +653,7 @@ func TestBlockChain(t *testing.T) {
 			assert.Nil(t, err, "filepath read error")
 
 			mem, _ := storage.NewMemoryStorage()
-			context, _ := state.NewWorldState(nil, mem)
+			context, _ := state.NewWorldState(dpos.NewDpos(), mem)
 			owner, err := context.GetOrCreateUserAccount([]byte("8a209cec02cbeab7e2f74ad969d2dfe8dd24416aa65589bf"))
 			assert.Nil(t, err)
 			owner.AddBalance(newUint128FromIntWrapper(1000000000))
@@ -708,7 +710,7 @@ func TestBankVaultContract(t *testing.T) {
 			assert.Nil(t, err, "contract path read error")
 
 			mem, _ := storage.NewMemoryStorage()
-			context, _ := state.NewWorldState(nil, mem)
+			context, _ := state.NewWorldState(dpos.NewDpos(), mem)
 			owner, err := context.GetOrCreateUserAccount([]byte("account1"))
 			assert.Nil(t, err)
 			owner.AddBalance(newUint128FromIntWrapper(10000000))
@@ -788,7 +790,7 @@ func TestEvent(t *testing.T) {
 			assert.Nil(t, err, "filepath read error")
 
 			mem, _ := storage.NewMemoryStorage()
-			context, _ := state.NewWorldState(nil, mem)
+			context, _ := state.NewWorldState(dpos.NewDpos(), mem)
 			owner, err := context.GetOrCreateUserAccount([]byte("8a209cec02cbeab7e2f74ad969d2dfe8dd24416aa65589bf"))
 			assert.Nil(t, err)
 			owner.AddBalance(newUint128FromIntWrapper(1000000000))
@@ -837,7 +839,7 @@ func TestNRC20Contract(t *testing.T) {
 			assert.Nil(t, err, "contract path read error")
 
 			mem, _ := storage.NewMemoryStorage()
-			context, _ := state.NewWorldState(nil, mem)
+			context, _ := state.NewWorldState(dpos.NewDpos(), mem)
 			owner, err := context.GetOrCreateUserAccount([]byte(tt.from))
 			assert.Nil(t, err)
 			owner.AddBalance(newUint128FromIntWrapper(10000000))
@@ -1004,7 +1006,7 @@ func TestNebulasContract(t *testing.T) {
 	}
 
 	mem, _ := storage.NewMemoryStorage()
-	context, _ := state.NewWorldState(nil, mem)
+	context, _ := state.NewWorldState(dpos.NewDpos(), mem)
 	owner, err := context.GetOrCreateUserAccount([]byte("8a209cec02cbeab7e2f74ad969d2dfe8dd24416aa65589bf"))
 	assert.Nil(t, err)
 	owner.AddBalance(newUint128FromIntWrapper(1000000000))

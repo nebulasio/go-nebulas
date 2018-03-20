@@ -54,7 +54,7 @@ type Account interface {
 	BirthPlace() byteutils.Hash
 	VarsHash() byteutils.Hash
 
-	Clone() (Account, error)
+	CopyTo(storage.Storage) (Account, error)
 
 	ToBytes() ([]byte, error)
 	FromBytes(bytes []byte, storage storage.Storage) error
@@ -76,7 +76,7 @@ type AccountState interface {
 	CommitDirtyAccounts() error
 	Accounts() ([]Account, error)
 
-	Clone() (AccountState, error)
+	CopyTo(storage.Storage) (AccountState, error)
 	Replay(AccountState) error
 
 	GetOrCreateUserAccount(byteutils.Hash) (Account, error)
@@ -99,7 +99,7 @@ type Consensus interface {
 type ConsensusState interface {
 	RootHash() (*consensuspb.ConsensusRoot, error)
 	String() string
-	Clone() (ConsensusState, error)
+	CopyTo(storage.Storage) (ConsensusState, error)
 	Replay(ConsensusState) error
 
 	Proposer() byteutils.Hash

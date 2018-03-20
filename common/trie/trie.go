@@ -611,6 +611,11 @@ func (t *Trie) Clone() (*Trie, error) {
 	return &Trie{rootHash: t.rootHash, storage: t.storage, needChangelog: t.needChangelog}, nil
 }
 
+// CopyTo copy the trie structure into the given storage
+func (t *Trie) CopyTo(storage storage.Storage) (*Trie, error) {
+	return &Trie{rootHash: t.rootHash, storage: storage, needChangelog: t.needChangelog}, nil
+}
+
 // Replay return roothash not save key to storage
 func (t *Trie) Replay(ft *Trie) ([]byte, error) {
 

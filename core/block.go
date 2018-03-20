@@ -732,10 +732,13 @@ func (block *Block) VerifyExecution() error {
 
 	block.Begin()
 
+	beganAt := time.Now().Unix()
+
 	if err := block.execute(); err != nil {
 		block.RollBack()
 		return err
 	}
+
 	executedAt := time.Now().Unix()
 
 	if err := block.verifyState(); err != nil {
@@ -744,18 +747,22 @@ func (block *Block) VerifyExecution() error {
 	}
 
 	commitAt := time.Now().Unix()
+
 	block.Commit()
 
 	endAt := time.Now().Unix()
+
 	logging.CLog().WithFields(logrus.Fields{
-		"start":       startAt,
-		"end":         endAt,
-		"commit":      commitAt,
-		"diff-all":    endAt - startAt,
-		"diff-commit": endAt - executedAt,
-		"diff-verify": executedAt - startAt,
-		"block":       block,
-		"txs":         len(block.Transactions()),
+		"start":        startAt,
+		"end":          endAt,
+		"commit":       commitAt,
+		"diff-all":     endAt - startAt,
+		"diff-commit":  endAt - commitAt,
+		"diff-begin":   beganAt - startAt,
+		"diff-execute": executedAt - startAt,
+		"diff-verify":  commitAt - executedAt,
+		"block":        block,
+		"txs":          len(block.Transactions()),
 	}).Info("Verify txs.")
 
 	return nil

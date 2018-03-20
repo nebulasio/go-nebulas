@@ -179,10 +179,10 @@ func (ds *State) Replay(done state.ConsensusState) error {
 	return nil
 }
 
-// Clone a dpos context
-func (ds *State) Clone() (state.ConsensusState, error) {
+// CopyTo copy a dpos state structure into the given storage
+func (ds *State) CopyTo(storage storage.Storage) (state.ConsensusState, error) {
 	var err error
-	dynastyTrie, err := ds.dynastyTrie.Clone()
+	dynastyTrie, err := ds.dynastyTrie.CopyTo(storage)
 	if err != nil {
 		return nil, ErrCloneDynastyTrie
 	}
