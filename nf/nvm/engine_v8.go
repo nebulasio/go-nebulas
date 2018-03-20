@@ -69,7 +69,7 @@ var (
 	engines               = make(map[*C.V8Engine]*V8Engine, 1024)
 	enginesLock           = sync.RWMutex{}
 	publicFuncNameChecker = regexp.MustCompile("^[a-zA-Z$][A-Za-z0-9_$]*$")
-	sourceModuleCache, _  = lru.New(4096)
+	sourceModuleCache, _  = lru.New(40960)
 	inject                = 0
 	hit                   = 0
 )
