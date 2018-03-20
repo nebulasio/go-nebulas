@@ -245,7 +245,7 @@ function prepare(done) {
         console.log("source state:" + JSON.stringify(resp));
         var tx = new Transaction(ChainID, sourceAccount, from, Unit.nasToBasic(initFromBalance), parseInt(resp.nonce) + 1);
         tx.signTransaction();
-        // console.log("source tx:" + tx.toString());
+        //console.log("source tx:" + tx.toString());
         return neb.api.sendRawTransaction(tx.toProtoString());
     }).then(function (resp) {
 
@@ -468,7 +468,7 @@ describe('contract deploy', function () {
                 transferValue: 9.999999977583000000,
                 isSameAddr: true,
                 canInit: true,
-                gasLimit: 2000000,
+                gasLimit: 22417,
                 gasPrice: -1,
                 nonceIncrement: 1
             };
@@ -531,7 +531,7 @@ describe('contract deploy', function () {
             //can calc value by previous params
             var testExpect = {
                 canSendTx: true,
-                canSubmitTx: true,
+                canSubmitTx: false,
                 canExcuteTx: false,
                 fromBalanceAfterTx: '9999999977583000000',
                 toBalanceAfterTx: '0',
