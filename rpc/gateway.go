@@ -4,12 +4,12 @@ import (
 	"encoding/json"
 	"flag"
 	"net/http"
-	"strings"
 
 	"github.com/nebulasio/go-nebulas/neblet/pb"
 	"github.com/nebulasio/go-nebulas/rpc/pb"
 	"github.com/nebulasio/go-nebulas/util/logging"
 	"github.com/nebulasio/grpc-gateway/runtime"
+	"github.com/rs/cors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
@@ -65,22 +65,23 @@ func allowCORS(h http.Handler, config *nebletpb.RPCConfig) http.Handler {
 	}
 	httpCh := make(chan bool, httpLimit)
 
+	c := cors.New(cors.Options{
+		AllowedHeaders: []string{"Content-Type", "Accept"},
+		AllowedMethods: []string{"GET", "HEAD", "POST", "PUT", "DELETE"},
+		AllowedOrigins: config.HttpCors,
+		MaxAge:         600,
+	})
+
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 		select {
 		case httpCh <- true:
 			defer func() { <-httpCh }()
-			if origin := r.Header.Get("Origin"); origin != "" {
-				if config.AllowHttpCors {
-					origin = "*"
-				}
-				w.Header().Set("Access-Control-Allow-Origin", origin)
-				if r.Method == "OPTIONS" && r.Header.Get("Access-Control-Request-Method") != "" {
-					preflightHandler(w, r)
-					return
-				}
+			if len(config.HttpCors) == 0 {
+				h.ServeHTTP(w, r)
+			} else {
+				c.Handler(h).ServeHTTP(w, r)
 			}
-			h.ServeHTTP(w, r)
 		default:
 			statusUnavailableHandler(w, r)
 		}
@@ -92,14 +93,6 @@ func statusUnavailableHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Write([]byte("{\"err:\",\"Sorry, we received too many simultaneous requests.\nPlease try again later.\"}"))
 
-}
-
-func preflightHandler(w http.ResponseWriter, r *http.Request) {
-	headers := []string{"Content-Type", "Accept"}
-	w.Header().Set("Access-Control-Allow-Headers", strings.Join(headers, ","))
-	methods := []string{"GET", "HEAD", "POST", "PUT", "DELETE"}
-	w.Header().Set("Access-Control-Allow-Methods", strings.Join(methods, ","))
-	return
 }
 
 type errorBody struct {

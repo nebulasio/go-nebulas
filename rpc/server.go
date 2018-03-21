@@ -137,9 +137,9 @@ func (s *Server) RunGateway() error {
 	//time.Sleep(3 * time.Second)
 
 	logging.CLog().WithFields(logrus.Fields{
-		"rpc-server":      s.rpcConfig.RpcListen[0],
-		"http-server":     s.rpcConfig.HttpListen,
-		"allow-http-cors": s.rpcConfig.AllowHttpCors,
+		"rpc-server":  s.rpcConfig.RpcListen[0],
+		"http-server": s.rpcConfig.HttpListen,
+		"http-cors":   s.rpcConfig.HttpCors,
 	}).Info("Starting RPC Gateway GRPCServer...")
 
 	go func() {

@@ -92,8 +92,8 @@ message RPCConfig {
 
     int32 http_limits = 5;
 
-    // allow HTTP CORS, default false
-    bool allow_http_cors = 6;
+    // HTTP CORS allowed origins
+    repeated string http_cors = 6;
 }
 
 message AppConfig {
