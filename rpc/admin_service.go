@@ -160,3 +160,14 @@ func (s *AdminService) StartPprof(ctx context.Context, req *rpcpb.PprofRequest) 
 	}
 	return &rpcpb.PprofResponse{Result: true}, nil
 }
+
+// GetConfig is the RPC API handler.
+func (s *AdminService) GetConfig(ctx context.Context, req *rpcpb.NonParamsRequest) (*rpcpb.GetConfigResponse, error) {
+
+	neb := s.server.Neblet()
+
+	resp := &rpcpb.GetConfigResponse{}
+	resp.Config = neb.Config()
+
+	return resp, nil
+}

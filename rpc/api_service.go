@@ -587,14 +587,3 @@ func (s *APIService) GetDynasty(ctx context.Context, req *rpcpb.ByBlockHeightReq
 	}
 	return &rpcpb.GetDynastyResponse{Delegatees: result}, nil
 }
-
-// GetConfig is the RPC API handler.
-func (s *APIService) GetConfig(ctx context.Context, req *rpcpb.NonParamsRequest) (*rpcpb.GetConfigResponse, error) {
-
-	neb := s.server.Neblet()
-
-	resp := &rpcpb.GetConfigResponse{}
-	resp.Config = neb.Config()
-
-	return resp, nil
-}

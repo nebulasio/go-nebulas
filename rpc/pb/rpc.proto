@@ -154,14 +154,6 @@ service ApiService {
             body: "*"
 		};
     }
-
-    //Get Config
-    rpc GetConfig (NonParamsRequest) returns (GetConfigResponse) {
-        option (google.api.http) = {
-            get: "/v1/user/getConfig"
-		};
-
-    }
 }
 
 service AdminService {
@@ -225,6 +217,13 @@ service AdminService {
 		};
     }
 
+    //Get Config
+    rpc GetConfig (NonParamsRequest) returns (GetConfigResponse) {
+        option (google.api.http) = {
+            get: "/v1/admin/getConfig"
+		};
+
+    }
 }
 
 // Request message of Subscribe rpc
