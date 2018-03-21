@@ -20,7 +20,6 @@ package rpc
 
 import (
 	"errors"
-	"fmt"
 	"strconv"
 
 	"encoding/json"
@@ -139,7 +138,7 @@ func (s *APIService) GetAccountState(ctx context.Context, req *rpcpb.GetAccountS
 	}
 
 	metricsAccountStateSuccess.Mark(1)
-	return &rpcpb.GetAccountStateResponse{Balance: balance.String(), Nonce: fmt.Sprintf("%d", nonce)}, nil
+	return &rpcpb.GetAccountStateResponse{Balance: balance.String(), Nonce: nonce}, nil
 }
 
 // SendTransaction is the RPC API handler.

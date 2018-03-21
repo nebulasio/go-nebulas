@@ -340,7 +340,7 @@ message GetAccountStateResponse {
     string balance = 1; // uint128, len=16
 
     // Current transaction count.
-    string nonce = 2;
+    uint64 nonce = 2;
 }
 
 // Response message of Call rpc.

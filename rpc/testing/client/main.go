@@ -21,7 +21,6 @@ package main
 import (
 	"io"
 	"log"
-	"strconv"
 
 	"fmt"
 
@@ -71,7 +70,7 @@ func main() {
 		} else if val, err = util.NewUint128FromString(r.GetBalance()); err != nil {
 			log.Println("GetAccountState", from, "failed to get balance", err)
 		} else {
-			nonce, _ = strconv.ParseUint(r.Nonce, 10, 64)
+			nonce = r.Nonce
 			// nonce = r.Nonce
 			log.Println("GetAccountState", from, "nonce", r.Nonce, "value", val)
 		}
@@ -121,7 +120,7 @@ func main() {
 		} else if val, err = util.NewUint128FromString(r.GetBalance()); err != nil {
 			log.Println("GetAccountState", from, "failed to get balance", err)
 		} else {
-			nonce, _ = strconv.ParseUint(r.Nonce, 10, 64)
+			nonce = r.Nonce
 			// nonce = r.Nonce
 			log.Println("GetAccountState", to, "nonce", r.Nonce, "value", val)
 		}
