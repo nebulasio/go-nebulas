@@ -21,7 +21,6 @@ package core
 import (
 	"encoding/json"
 
-	"github.com/nebulasio/go-nebulas/core/state"
 	"github.com/nebulasio/go-nebulas/util"
 )
 
@@ -62,7 +61,7 @@ func (payload *DeployPayload) BaseGasCount() *util.Uint128 {
 }
 
 // Execute deploy payload in tx, deploy a new contract
-func (payload *DeployPayload) Execute(tx *Transaction, block *Block, txWorldState state.TxWorldState) (*util.Uint128, string, error) {
+func (payload *DeployPayload) Execute(tx *Transaction, block *Block, ws WorldState) (*util.Uint128, string, error) {
 	if block == nil || tx == nil {
 		return util.NewUint128(), "", ErrNilArgument
 	}
@@ -84,16 +83,16 @@ func (payload *DeployPayload) Execute(tx *Transaction, block *Block, txWorldStat
 	if err != nil {
 		return util.NewUint128(), "", err
 	}
-	owner, err := txWorldState.GetOrCreateUserAccount(tx.from.Bytes())
+	owner, err := ws.GetOrCreateUserAccount(tx.from.Bytes())
 	if err != nil {
 		return util.NewUint128(), "", err
 	}
-	contract, err := txWorldState.CreateContractAccount(addr.Bytes(), tx.Hash())
+	contract, err := ws.CreateContractAccount(addr.Bytes(), tx.Hash())
 	if err != nil {
 		return util.NewUint128(), "", err
 	}
 
-	engine, err := block.nvm.CreateEngine(block, tx, owner, contract, txWorldState)
+	engine, err := block.nvm.CreateEngine(block, tx, owner, contract, ws)
 	if err != nil {
 		return util.NewUint128(), "", err
 	}

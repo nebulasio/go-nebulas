@@ -22,6 +22,8 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/nebulasio/go-nebulas/util/logging"
+
 	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/common/trie"
 	"github.com/nebulasio/go-nebulas/core/pb"
@@ -115,8 +117,8 @@ func (acc *account) BirthPlace() byteutils.Hash {
 }
 
 // Clone account
-func (acc *account) CopyTo(storage storage.Storage, needChangeLog bool) (Account, error) {
-	variables, err := acc.variables.CopyTo(storage, needChangeLog)
+func (acc *account) Clone() (Account, error) {
+	variables, err := acc.variables.Clone()
 	if err != nil {
 		return nil, err
 	}
@@ -188,38 +190,30 @@ func (acc *account) String() string {
 	)
 }
 
-type cachedAccount struct {
-	acc   Account
-	dirty bool
-}
-
 // AccountState manage account state in Block
 type accountState struct {
-	stateTrie      *trie.Trie
-	cachedAccounts map[byteutils.HexHash]*cachedAccount
-	storage        storage.Storage
+	stateTrie    *trie.Trie
+	dirtyAccount map[byteutils.HexHash]Account
+	storage      storage.Storage
 }
 
 // NewAccountState create a new account state
 func NewAccountState(root byteutils.Hash, storage storage.Storage, needChangeLog bool) (AccountState, error) {
 	stateTrie, err := trie.NewTrie(root, storage, needChangeLog)
 	if err != nil {
+		logging.CLog().Info("NASE 1", err)
 		return nil, err
 	}
 
 	return &accountState{
-		stateTrie:      stateTrie,
-		cachedAccounts: make(map[byteutils.HexHash]*cachedAccount),
-		storage:        storage,
+		stateTrie:    stateTrie,
+		dirtyAccount: make(map[byteutils.HexHash]Account),
+		storage:      storage,
 	}, nil
 }
 
 func (as *accountState) recordDirtyAccount(addr byteutils.Hash, acc Account) {
-	if _, ok := as.cachedAccounts[addr.Hex()]; ok {
-		as.cachedAccounts[addr.Hex()].dirty = true
-	} else {
-		as.cachedAccounts[addr.Hex()] = &cachedAccount{acc, true}
-	}
+	as.dirtyAccount[addr.Hex()] = acc
 }
 
 func (as *accountState) newAccount(addr byteutils.Hash, birthPlace byteutils.Hash) (Account, error) {
@@ -234,13 +228,14 @@ func (as *accountState) newAccount(addr byteutils.Hash, birthPlace byteutils.Has
 		variables:  varTrie,
 		birthPlace: birthPlace,
 	}
+	as.recordDirtyAccount(addr, acc)
 	return acc, nil
 }
 
 func (as *accountState) getAccount(addr byteutils.Hash) (Account, error) {
 	// search in dirty account
-	if ca, ok := as.cachedAccounts[addr.Hex()]; ok {
-		return ca.acc, nil
+	if acc, ok := as.dirtyAccount[addr.Hex()]; ok {
+		return acc, nil
 	}
 	// search in storage
 	bytes, err := as.stateTrie.Get(addr)
@@ -250,17 +245,36 @@ func (as *accountState) getAccount(addr byteutils.Hash) (Account, error) {
 		if err != nil {
 			return nil, err
 		}
+		as.recordDirtyAccount(addr, acc)
 		return acc, nil
 	}
 	return nil, ErrAccountNotFound
 }
 
-// RootHash return root hash of account state
-func (as *accountState) RootHash() (byteutils.Hash, error) {
-	if err := as.flush(); err != nil {
-		return nil, err
+func (as *accountState) Flush() error {
+	for addr, acc := range as.dirtyAccount {
+		bytes, err := acc.ToBytes()
+		if err != nil {
+			return err
+		}
+		key, err := addr.Hash()
+		if err != nil {
+			return err
+		}
+		as.stateTrie.Put(key, bytes)
 	}
-	return as.stateTrie.RootHash(), nil
+	as.dirtyAccount = make(map[byteutils.HexHash]Account)
+	return nil
+}
+
+func (as *accountState) Abort() error {
+	as.dirtyAccount = make(map[byteutils.HexHash]Account)
+	return nil
+}
+
+// RootHash return root hash of account state
+func (as *accountState) RootHash() byteutils.Hash {
+	return as.stateTrie.RootHash()
 }
 
 // GetOrCreateUserAccount according to the addr
@@ -271,10 +285,8 @@ func (as *accountState) GetOrCreateUserAccount(addr byteutils.Hash) (Account, er
 		if err != nil {
 			return nil, err
 		}
-		as.recordDirtyAccount(addr, acc)
 		return acc, nil
 	}
-	as.recordDirtyAccount(addr, acc)
 	return acc, nil
 }
 
@@ -284,18 +296,13 @@ func (as *accountState) GetContractAccount(addr byteutils.Hash) (Account, error)
 	if err != nil {
 		return nil, err
 	}
-	as.recordDirtyAccount(addr, acc)
+
 	return acc, nil
 }
 
 // CreateContractAccount according to the addr, and set birthPlace as creation tx hash
 func (as *accountState) CreateContractAccount(addr byteutils.Hash, birthPlace byteutils.Hash) (Account, error) {
-	acc, err := as.newAccount(addr, birthPlace)
-	if err != nil {
-		return nil, err
-	}
-	as.recordDirtyAccount(addr, acc)
-	return acc, nil
+	return as.newAccount(addr, birthPlace)
 }
 
 func (as *accountState) Accounts() ([]Account, error) {
@@ -329,84 +336,47 @@ func (as *accountState) Accounts() ([]Account, error) {
 // DirtyAccounts return all changed accounts
 func (as *accountState) DirtyAccounts() ([]Account, error) {
 	accounts := []Account{}
-	for _, ca := range as.cachedAccounts {
-		if ca.dirty {
-			accounts = append(accounts, ca.acc)
-		}
+	for _, account := range as.dirtyAccount {
+		accounts = append(accounts, account)
 	}
 	return accounts, nil
-}
-
-func (as *accountState) RollBackAccounts() {
-	as.cachedAccounts = make(map[byteutils.HexHash]*cachedAccount)
-}
-
-func (as *accountState) flush() error {
-	for addr, ca := range as.cachedAccounts {
-		bytes, err := ca.acc.ToBytes()
-		if err != nil {
-			return err
-		}
-		key, err := addr.Hash()
-		if err != nil {
-			return err
-		}
-		if _, err := as.stateTrie.Put(key, bytes); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func (as *accountState) CommitAccounts() error {
-	if err := as.flush(); err != nil {
-		return err
-	}
-	as.cachedAccounts = make(map[byteutils.HexHash]*cachedAccount)
-	return nil
 }
 
 // Relay merge the done account state
 func (as *accountState) Replay(done AccountState) error {
 	state := done.(*accountState)
-	for addr, ca := range state.cachedAccounts {
-		if ca.dirty {
-			bytes, err := ca.acc.ToBytes()
-			if err != nil {
-				return err
-			}
-			key, err := addr.Hash()
-			if err != nil {
-				return err
-			}
-			if _, err := as.stateTrie.Put(key, bytes); err != nil {
-				return err
-			}
-			delete(as.cachedAccounts, addr)
-		}
+	for addr, acc := range state.dirtyAccount {
+		as.dirtyAccount[addr] = acc
 	}
 	return nil
 }
 
 // Clone an accountState
-func (as *accountState) CopyTo(storage storage.Storage, needChangeLog bool) (AccountState, error) {
-	stateTrie, err := as.stateTrie.CopyTo(storage, needChangeLog)
+func (as *accountState) Clone() (AccountState, error) {
+	stateTrie, err := as.stateTrie.Clone()
 	if err != nil {
 		return nil, err
 	}
 
-	cachedAccounts := make(map[byteutils.HexHash]*cachedAccount)
-	for addr, ca := range as.cachedAccounts {
-		copyAcc, err := ca.acc.CopyTo(storage, needChangeLog)
+	dirtyAccount := make(map[byteutils.HexHash]Account)
+	for addr, acc := range as.dirtyAccount {
+		dirtyAccount[addr], err = acc.Clone()
 		if err != nil {
 			return nil, err
 		}
-		cachedAccounts[addr] = &cachedAccount{copyAcc, false}
 	}
 
 	return &accountState{
-		stateTrie:      stateTrie,
-		cachedAccounts: cachedAccounts,
-		storage:        storage,
+		stateTrie:    stateTrie,
+		dirtyAccount: dirtyAccount,
 	}, nil
+}
+
+func (as *accountState) String() string {
+	return fmt.Sprintf("AccountState %p {RootHash:%s; dirtyAccount:%v; Storage:%p}",
+		as,
+		byteutils.Hex(as.stateTrie.RootHash()),
+		as.dirtyAccount,
+		as.storage,
+	)
 }

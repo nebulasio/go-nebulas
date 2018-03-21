@@ -179,10 +179,10 @@ func (ds *State) Replay(done state.ConsensusState) error {
 	return nil
 }
 
-// CopyTo copy a dpos state structure into the given storage
-func (ds *State) CopyTo(storage storage.Storage, needChangeLog bool) (state.ConsensusState, error) {
+// Clone a dpos context
+func (ds *State) Clone() (state.ConsensusState, error) {
 	var err error
-	dynastyTrie, err := ds.dynastyTrie.CopyTo(storage, needChangeLog)
+	dynastyTrie, err := ds.dynastyTrie.Clone()
 	if err != nil {
 		return nil, ErrCloneDynastyTrie
 	}
@@ -198,12 +198,12 @@ func (ds *State) CopyTo(storage storage.Storage, needChangeLog bool) (state.Cons
 }
 
 // RootHash hash dpos state
-func (ds *State) RootHash() (*consensuspb.ConsensusRoot, error) {
+func (ds *State) RootHash() *consensuspb.ConsensusRoot {
 	return &consensuspb.ConsensusRoot{
 		DynastyRoot: ds.dynastyTrie.RootHash(),
 		Timestamp:   ds.TimeStamp(),
 		Proposer:    ds.Proposer(),
-	}, nil
+	}
 }
 
 // Dynasty return the current dynasty

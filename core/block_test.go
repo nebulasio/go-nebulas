@@ -91,11 +91,11 @@ func newMockConsensusState(timestamp int64) (*mockConsensusState, error) {
 	}, nil
 }
 
-func (cs *mockConsensusState) RootHash() (*consensuspb.ConsensusRoot, error) {
-	return &consensuspb.ConsensusRoot{}, nil
+func (cs *mockConsensusState) RootHash() *consensuspb.ConsensusRoot {
+	return &consensuspb.ConsensusRoot{}
 }
 func (cs *mockConsensusState) String() string { return "" }
-func (cs *mockConsensusState) CopyTo(storage.Storage, bool) (state.ConsensusState, error) {
+func (cs *mockConsensusState) Clone() (state.ConsensusState, error) {
 	return &mockConsensusState{
 		timestamp: cs.timestamp,
 	}, nil
@@ -294,7 +294,7 @@ func (n *mockNeb) SetGenesis(genesis *corepb.Genesis) {
 type mockNvm struct{}
 type mockEngine struct{}
 
-func (nvm *mockNvm) CreateEngine(block *Block, tx *Transaction, owner, contract state.Account, state state.TxWorldState) (SmartContractEngine, error) {
+func (nvm *mockNvm) CreateEngine(block *Block, tx *Transaction, owner, contract state.Account, state WorldState) (SmartContractEngine, error) {
 	return &mockEngine{}, nil
 }
 func (nvm *mockEngine) Dispose() {
@@ -511,7 +511,7 @@ func TestBlock_fetchEvents(t *testing.T) {
 	for _, event := range events {
 		assert.Nil(t, txWorldState.RecordEvent(tx.Hash(), event))
 	}
-	_, err = tail.worldState.CheckAndUpdate(byteutils.Hex(tx.Hash()))
+	_, err = txWorldState.CheckAndUpdate()
 	assert.Nil(t, err)
 
 	es, err := tail.FetchEvents(tx.Hash())
@@ -651,7 +651,7 @@ func TestBlockVerifyState(t *testing.T) {
 	signature.InitSign(key.(keystore.PrivateKey))
 
 	tail := bc.tailBlock
-	tail.Begin()
+	assert.Nil(t, tail.Begin())
 	acc, err := tail.WorldState().GetOrCreateUserAccount(from.Bytes())
 	assert.Nil(t, err)
 	balance, _ := util.NewUint128FromString("100000000000000")

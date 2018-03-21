@@ -54,7 +54,7 @@ type Account interface {
 	BirthPlace() byteutils.Hash
 	VarsHash() byteutils.Hash
 
-	CopyTo(storage.Storage, bool) (Account, error)
+	Clone() (Account, error)
 
 	ToBytes() ([]byte, error)
 	FromBytes(bytes []byte, storage storage.Storage) error
@@ -70,13 +70,15 @@ type Account interface {
 
 // AccountState Interface
 type AccountState interface {
-	RootHash() (byteutils.Hash, error)
+	RootHash() byteutils.Hash
+
+	Flush() error
+	Abort() error
+
 	DirtyAccounts() ([]Account, error)
-	RollBackAccounts()
-	CommitAccounts() error
 	Accounts() ([]Account, error)
 
-	CopyTo(storage.Storage, bool) (AccountState, error)
+	Clone() (AccountState, error)
 	Replay(AccountState) error
 
 	GetOrCreateUserAccount(byteutils.Hash) (Account, error)
@@ -97,9 +99,9 @@ type Consensus interface {
 
 // ConsensusState interface of consensus state
 type ConsensusState interface {
-	RootHash() (*consensuspb.ConsensusRoot, error)
+	RootHash() *consensuspb.ConsensusRoot
 	String() string
-	CopyTo(storage.Storage, bool) (ConsensusState, error)
+	Clone() (ConsensusState, error)
 	Replay(ConsensusState) error
 
 	Proposer() byteutils.Hash
@@ -117,9 +119,9 @@ type WorldState interface {
 	RollBack() error
 
 	Prepare(interface{}) (TxWorldState, error)
-	CheckAndUpdate(interface{}) ([]interface{}, error)
-	Reset(interface{}) error // ToDo move to tx world state
-	Close(interface{}) error // ToDo move to tx world state
+	Reset() error
+	Flush() error
+	Abort() error
 
 	LoadAccountsRoot(byteutils.Hash) error
 	LoadTxsRoot(byteutils.Hash) error
@@ -131,12 +133,12 @@ type WorldState interface {
 
 	Clone() (WorldState, error)
 
-	AccountsRoot() (byteutils.Hash, error) // ToDo merge or not?
-	TxsRoot() (byteutils.Hash, error)
-	EventsRoot() (byteutils.Hash, error)
-	ConsensusRoot() (*consensuspb.ConsensusRoot, error)
+	AccountsRoot() byteutils.Hash
+	TxsRoot() byteutils.Hash
+	EventsRoot() byteutils.Hash
+	ConsensusRoot() *consensuspb.ConsensusRoot
 
-	Accounts() ([]Account, error) // ToDo delete
+	Accounts() ([]Account, error)
 	GetOrCreateUserAccount(addr byteutils.Hash) (Account, error)
 	GetContractAccount(addr byteutils.Hash) (Account, error)
 	CreateContractAccount(owner byteutils.Hash, birthPlace byteutils.Hash) (Account, error)
@@ -146,6 +148,7 @@ type WorldState interface {
 
 	RecordEvent(txHash byteutils.Hash, event *Event) error
 	FetchEvents(byteutils.Hash) ([]*Event, error)
+	FetchCacheEventsOfCurBlock(byteutils.Hash) ([]*Event, error)
 
 	Dynasty() ([]byteutils.Hash, error)
 	DynastyRoot() byteutils.Hash
@@ -156,10 +159,14 @@ type WorldState interface {
 
 // TxWorldState is the world state of a single transaction
 type TxWorldState interface {
-	AccountsRoot() (byteutils.Hash, error)
-	TxsRoot() (byteutils.Hash, error)
-	EventsRoot() (byteutils.Hash, error)
-	ConsensusRoot() (*consensuspb.ConsensusRoot, error)
+	AccountsRoot() byteutils.Hash
+	TxsRoot() byteutils.Hash
+	EventsRoot() byteutils.Hash
+	ConsensusRoot() *consensuspb.ConsensusRoot
+
+	CheckAndUpdate() ([]interface{}, error)
+	Reset() error
+	Close() error
 
 	Accounts() ([]Account, error)
 	GetOrCreateUserAccount(addr byteutils.Hash) (Account, error)

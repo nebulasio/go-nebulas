@@ -229,11 +229,11 @@ func TestTransaction_VerifyExecutionDependency(t *testing.T) {
 	block.Begin()
 
 	//tx1
-	txWorldState1, err := block.Prepare(tx1)
+	txWorldState1, err := block.WorldState().Prepare("1")
 	assert.Nil(t, err)
 	executionErr := VerifyExecution(tx1, block, txWorldState1)
 	assert.Nil(t, executionErr)
-	dependency1, err := block.CheckAndUpdate(tx1)
+	dependency1, err := txWorldState1.CheckAndUpdate()
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(dependency1))
 
@@ -243,16 +243,16 @@ func TestTransaction_VerifyExecutionDependency(t *testing.T) {
 	assert.Equal(t, "1000000000000000001", toacc1.Balance().String())
 
 	//tx2
-	txWorldState2, err := block.Prepare(tx2)
-	txWorldState3, err := block.Prepare(tx3)
-	txWorldState4, err := block.Prepare(tx4)
+	txWorldState2, err := block.WorldState().Prepare("2")
+	txWorldState3, err := block.WorldState().Prepare("3")
+	txWorldState4, err := block.WorldState().Prepare("4")
 
 	executionErr2 := VerifyExecution(tx2, block, txWorldState2)
 	assert.Nil(t, executionErr2)
-	dependency2, err := block.CheckAndUpdate(tx2)
+	dependency2, err := txWorldState2.CheckAndUpdate()
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(dependency2))
-	assert.Equal(t, tx1.Hash().String(), dependency2[0])
+	assert.Equal(t, "1", dependency2[0])
 	acc2, err := block.worldState.GetOrCreateUserAccount(tx2.from.address)
 	assert.Equal(t, "999999999999999998", acc2.Balance().String())
 	toacc2, err := block.worldState.GetOrCreateUserAccount(tx2.to.address)
@@ -260,26 +260,23 @@ func TestTransaction_VerifyExecutionDependency(t *testing.T) {
 
 	// tx3
 	executionErr3 := VerifyExecution(tx3, block, txWorldState3)
-	assert.Nil(t, executionErr3)
-	_, err3 := block.CheckAndUpdate(tx3)
-	logging.CLog().Info("err:", err3)
-	assert.NotNil(t, err3)
-	block.Close(tx3)
+	assert.NotNil(t, executionErr3)
+	txWorldState3.Close()
 
 	//tx4
 	executionErr4 := VerifyExecution(tx4, block, txWorldState4)
 	assert.Nil(t, executionErr4)
-	_, err4 := block.CheckAndUpdate(tx4)
-	logging.CLog().Info("err:", err4)
+	_, err4 := txWorldState4.CheckAndUpdate()
 	assert.Nil(t, err4)
 
-	txWorldState3, err = block.Prepare(tx3)
+	txWorldState3, err = block.WorldState().Prepare("3")
+	assert.Nil(t, err)
 	executionErr3 = VerifyExecution(tx3, block, txWorldState3)
 	assert.Nil(t, executionErr3)
-	dependency3, err := block.CheckAndUpdate(tx3)
+	dependency3, err := txWorldState3.CheckAndUpdate()
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(dependency3))
-	assert.Equal(t, tx2.Hash().String(), dependency3[0])
+	assert.Equal(t, "2", dependency3[0])
 
 	acc3, err := block.worldState.GetOrCreateUserAccount(tx3.from.address)
 	logging.CLog().Info("Balance:", acc3.Balance().String())
@@ -518,7 +515,7 @@ func TestTransaction_VerifyExecution(t *testing.T) {
 			assert.Nil(t, err)
 			block.Begin()
 
-			txWorldState, err := block.Prepare(tt.tx)
+			txWorldState, err := block.WorldState().Prepare(tt.tx.Hash().String())
 			assert.Nil(t, err)
 
 			executionErr := VerifyExecution(tt.tx, block, txWorldState)
@@ -527,7 +524,7 @@ func TestTransaction_VerifyExecution(t *testing.T) {
 			assert.Nil(t, err)
 			fmt.Println(fromAcc.Balance().String())
 
-			block.CheckAndUpdate(tt.tx)
+			txWorldState.CheckAndUpdate()
 			assert.Nil(t, block.rewardCoinbaseForGas())
 			block.Commit()
 
@@ -672,7 +669,6 @@ func TestDeployAndCall(t *testing.T) {
 	signature.InitSign(key.(keystore.PrivateKey))
 
 	block, err := bc.NewBlock(coinbase)
-	block.Begin()
 	fromAcc, err := block.worldState.GetOrCreateUserAccount(from.address)
 	assert.Nil(t, err)
 	fromAcc.AddBalance(balance)
@@ -696,13 +692,12 @@ func TestDeployAndCall(t *testing.T) {
 
 	block, err = bc.NewBlockFromParent(bc.tailBlock.header.coinbase, block)
 	assert.Nil(t, err)
-	block.Begin()
 
-	txWorldState, err := block.Prepare(deployTx)
+	txWorldState, err := block.WorldState().Prepare(deployTx.Hash().String())
 	assert.Nil(t, err)
 	assert.Nil(t, VerifyExecution(deployTx, block, txWorldState))
 	assert.Nil(t, AcceptTransaction(deployTx, txWorldState))
-	_, err = block.CheckAndUpdate(deployTx)
+	_, err = txWorldState.CheckAndUpdate()
 	assert.Nil(t, err)
 
 	deployEvents, _ := block.worldState.FetchEvents(deployTx.Hash())
@@ -715,11 +710,11 @@ func TestDeployAndCall(t *testing.T) {
 		assert.Equal(t, status, TxExecutionSuccess)
 	}
 
-	txWorldState, err = block.Prepare(callTx)
+	txWorldState, err = block.WorldState().Prepare(callTx.Hash().String())
 	assert.Nil(t, err)
 	assert.Nil(t, VerifyExecution(callTx, block, txWorldState))
 	assert.Nil(t, AcceptTransaction(callTx, txWorldState))
-	_, err = block.CheckAndUpdate(callTx)
+	_, err = txWorldState.CheckAndUpdate()
 	assert.Nil(t, err)
 
 	block.Commit()

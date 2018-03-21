@@ -366,7 +366,7 @@ func (tx *Transaction) localExecution(block *Block) (*util.Uint128, string, erro
 		return nil, "", ErrNilArgument
 	}
 
-	txWorldState, err := block.Prepare(tx)
+	txWorldState, err := block.WorldState().Prepare(tx)
 	if err != nil {
 		return nil, "", err
 	}
@@ -392,7 +392,7 @@ func (tx *Transaction) localExecution(block *Block) (*util.Uint128, string, erro
 		return nil, result, err
 	}
 
-	if err := block.Close(tx); err != nil {
+	if err := txWorldState.Close(); err != nil {
 		return util.NewUint128(), "", err
 	} // ToRefine: clone
 
@@ -400,10 +400,10 @@ func (tx *Transaction) localExecution(block *Block) (*util.Uint128, string, erro
 }
 
 // VerifyExecution transaction and return result.
-func VerifyExecution(tx *Transaction, block *Block, txWorldState state.TxWorldState) error {
+func VerifyExecution(tx *Transaction, block *Block, ws WorldState) error {
 	// step1. check balance > gasLimit * gasPrice + value
-	if err := tx.checkBalance(block, txWorldState); err != nil {
-		return ErrInsufficientBalance
+	if err := tx.checkBalance(block, ws); err != nil {
+		return err
 	}
 
 	// step2. calculate base gas
@@ -432,11 +432,11 @@ func VerifyExecution(tx *Transaction, block *Block, txWorldState state.TxWorldSt
 		}).Debug("Failed to load payload.")
 		go metricsTxExeFailed.Mark(1)
 
-		if err := tx.recordGas(gasUsed, txWorldState); err != nil {
+		if err := tx.recordGas(gasUsed, ws); err != nil {
 			logging.VLog().Info("AEE 2")
 			return err
 		}
-		if err := tx.recordResultEvent(gasUsed, payloadErr, txWorldState); err != nil {
+		if err := tx.recordResultEvent(gasUsed, payloadErr, ws); err != nil {
 			return err
 		}
 		return nil
@@ -456,26 +456,26 @@ func VerifyExecution(tx *Transaction, block *Block, txWorldState state.TxWorldSt
 		}).Debug("Failed to check base gas used.")
 		go metricsTxExeFailed.Mark(1)
 
-		if err := tx.recordGas(tx.gasLimit, txWorldState); err != nil {
+		if err := tx.recordGas(tx.gasLimit, ws); err != nil {
 			logging.VLog().Info("AEE 4")
 			return err
 		}
-		if err := tx.recordResultEvent(tx.gasLimit, ErrOutOfGasLimit, txWorldState); err != nil {
+		if err := tx.recordResultEvent(tx.gasLimit, ErrOutOfGasLimit, ws); err != nil {
 			return err
 		}
 		return nil
 	}
 
-	if err := transfer(tx.from.address, tx.to.address, tx.value, txWorldState); err != nil {
+	if err := transfer(tx.from.address, tx.to.address, tx.value, ws); err != nil {
 		return err
 	}
 
 	// step6. execute payload
 	// execute smart contract and sub the calcute gas.
-	gasExecution, _, exeErr := payload.Execute(tx, block, txWorldState)
+	gasExecution, _, exeErr := payload.Execute(tx, block, ws)
 	if exeErr != nil {
 		logging.VLog().Info("Reset Payload ", tx, " err ", exeErr)
-		if err := block.Reset(tx); err != nil {
+		if err := ws.Reset(); err != nil {
 			logging.VLog().Info("AEE 5")
 			return err
 		}
@@ -494,21 +494,21 @@ func VerifyExecution(tx *Transaction, block *Block, txWorldState state.TxWorldSt
 		}).Debug("Failed to check gas executed.")
 		go metricsTxExeFailed.Mark(1)
 
-		if err := block.Reset(tx); err != nil {
+		if err := ws.Reset(); err != nil {
 			logging.VLog().Info("AEE 7")
 			return err
 		}
-		if err := tx.recordGas(tx.gasLimit, txWorldState); err != nil {
+		if err := tx.recordGas(tx.gasLimit, ws); err != nil {
 			logging.VLog().Info("AEE 8")
 			return err
 		}
-		if err := tx.recordResultEvent(tx.gasLimit, ErrOutOfGasLimit, txWorldState); err != nil {
+		if err := tx.recordResultEvent(tx.gasLimit, ErrOutOfGasLimit, ws); err != nil {
 			return err
 		}
 		return nil
 	}
 
-	tx.recordGas(allGas, txWorldState)
+	tx.recordGas(allGas, ws)
 	if exeErr != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"exeErr":       exeErr,
@@ -522,14 +522,14 @@ func VerifyExecution(tx *Transaction, block *Block, txWorldState state.TxWorldSt
 		go metricsTxExeSuccess.Mark(1)
 	}
 
-	if err := tx.recordResultEvent(allGas, exeErr, txWorldState); err != nil {
+	if err := tx.recordResultEvent(allGas, exeErr, ws); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (tx *Transaction) checkBalance(block *Block, txWorldState state.TxWorldState) error {
-	fromAcc, err := txWorldState.GetOrCreateUserAccount(tx.from.address)
+func (tx *Transaction) checkBalance(block *Block, ws WorldState) error {
+	fromAcc, err := ws.GetOrCreateUserAccount(tx.from.address)
 	if err != nil {
 		logging.VLog().Info("AEE 10")
 		return err
@@ -545,23 +545,23 @@ func (tx *Transaction) checkBalance(block *Block, txWorldState state.TxWorldStat
 	return nil
 }
 
-func (tx *Transaction) recordGas(gasCnt *util.Uint128, txWorldState state.TxWorldState) error {
+func (tx *Transaction) recordGas(gasCnt *util.Uint128, ws WorldState) error {
 	gasCost, err := tx.GasPrice().Mul(gasCnt)
 	if err != nil {
 		logging.VLog().Info("AEE 12")
 		return err
 	}
 
-	return txWorldState.RecordGas(tx.from.String(), gasCost)
+	return ws.RecordGas(tx.from.String(), gasCost)
 }
 
-func transfer(from, to byteutils.Hash, value *util.Uint128, txWorldState state.TxWorldState) error {
-	fromAcc, err := txWorldState.GetOrCreateUserAccount(from)
+func transfer(from, to byteutils.Hash, value *util.Uint128, ws WorldState) error {
+	fromAcc, err := ws.GetOrCreateUserAccount(from)
 	if err != nil {
 		logging.VLog().Info("AEE 13")
 		return err
 	}
-	toAcc, err := txWorldState.GetOrCreateUserAccount(to)
+	toAcc, err := ws.GetOrCreateUserAccount(to)
 	if err != nil {
 		logging.VLog().Info("AEE 14")
 		return err
@@ -577,7 +577,7 @@ func transfer(from, to byteutils.Hash, value *util.Uint128, txWorldState state.T
 	return nil
 }
 
-func (tx *Transaction) recordResultEvent(gasUsed *util.Uint128, err error, txWorldState state.TxWorldState) error {
+func (tx *Transaction) recordResultEvent(gasUsed *util.Uint128, err error, ws WorldState) error {
 	txEvent := &TransactionEvent{
 		Hash:    tx.hash.String(),
 		GasUsed: gasUsed.String(),
@@ -598,7 +598,7 @@ func (tx *Transaction) recordResultEvent(gasUsed *util.Uint128, err error, txWor
 		Topic: TopicTransactionExecutionResult,
 		Data:  string(txData),
 	}
-	return txWorldState.RecordEvent(tx.hash, event)
+	return ws.RecordEvent(tx.hash, event)
 }
 
 // Sign sign transaction,sign algorithm is
@@ -674,8 +674,8 @@ func (tx *Transaction) GenerateContractAddress() (*Address, error) {
 }
 
 // CheckContract check if contract is valid
-func CheckContract(addr *Address, txWorldState state.TxWorldState) (state.Account, error) {
-	contract, err := txWorldState.GetContractAccount(addr.Bytes())
+func CheckContract(addr *Address, ws WorldState) (state.Account, error) {
+	contract, err := ws.GetContractAccount(addr.Bytes())
 	if err != nil {
 		return nil, err
 	}
@@ -684,7 +684,7 @@ func CheckContract(addr *Address, txWorldState state.TxWorldState) (state.Accoun
 		return nil, ErrContractCheckFailed
 	}
 
-	birthEvents, err := txWorldState.FetchEvents(contract.BirthPlace())
+	birthEvents, err := ws.FetchEvents(contract.BirthPlace())
 	if err != nil {
 		return nil, err
 	}
@@ -709,9 +709,9 @@ func CheckContract(addr *Address, txWorldState state.TxWorldState) (state.Accoun
 }
 
 // CheckTransaction in a tx world state
-func CheckTransaction(tx *Transaction, txWorldState state.TxWorldState) (bool, error) {
+func CheckTransaction(tx *Transaction, ws WorldState) (bool, error) {
 	// check nonce
-	fromAcc, err := txWorldState.GetOrCreateUserAccount(tx.from.address)
+	fromAcc, err := ws.GetOrCreateUserAccount(tx.from.address)
 	if err != nil {
 		logging.VLog().Info("CTE 1")
 		return true, err
@@ -730,7 +730,7 @@ func CheckTransaction(tx *Transaction, txWorldState state.TxWorldState) (bool, e
 }
 
 // AcceptTransaction in a tx world state
-func AcceptTransaction(tx *Transaction, txWorldState state.TxWorldState) error {
+func AcceptTransaction(tx *Transaction, ws WorldState) error {
 	// record tx
 	pbTx, err := tx.ToProto()
 	if err != nil {
@@ -742,12 +742,12 @@ func AcceptTransaction(tx *Transaction, txWorldState state.TxWorldState) error {
 		logging.VLog().Info("ATE 2")
 		return err
 	}
-	if err := txWorldState.PutTx(tx.hash, txBytes); err != nil {
+	if err := ws.PutTx(tx.hash, txBytes); err != nil {
 		logging.VLog().Info("ATE 3")
 		return err
 	}
 	// incre nonce
-	fromAcc, err := txWorldState.GetOrCreateUserAccount(tx.from.address)
+	fromAcc, err := ws.GetOrCreateUserAccount(tx.from.address)
 	if err != nil {
 		logging.VLog().Info("ATE 4")
 		return err
@@ -757,11 +757,11 @@ func AcceptTransaction(tx *Transaction, txWorldState state.TxWorldState) error {
 }
 
 // GetTransaction from txs Trie
-func GetTransaction(hash byteutils.Hash, txWorldState state.TxWorldState) (*Transaction, error) {
+func GetTransaction(hash byteutils.Hash, ws WorldState) (*Transaction, error) {
 	if len(hash) != TxHashByteLength {
 		return nil, ErrInvalidArgument
 	}
-	bytes, err := txWorldState.GetTx(hash)
+	bytes, err := ws.GetTx(hash)
 	if err != nil {
 		return nil, err
 	}

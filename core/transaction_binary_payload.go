@@ -19,7 +19,6 @@
 package core
 
 import (
-	"github.com/nebulasio/go-nebulas/core/state"
 	"github.com/nebulasio/go-nebulas/util"
 )
 
@@ -51,6 +50,6 @@ func (payload *BinaryPayload) BaseGasCount() *util.Uint128 {
 }
 
 // Execute the payload in tx
-func (payload *BinaryPayload) Execute(tx *Transaction, block *Block, txWorldState state.TxWorldState) (*util.Uint128, string, error) {
+func (payload *BinaryPayload) Execute(tx *Transaction, block *Block, ws WorldState) (*util.Uint128, string, error) {
 	return util.NewUint128(), "", nil
 }

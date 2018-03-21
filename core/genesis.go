@@ -94,7 +94,9 @@ func NewGenesisBlock(conf *corepb.Genesis, chain *BlockChain) (*Block, error) {
 	}
 	genesisBlock.worldState.SetConsensusState(consensusState)
 
-	genesisBlock.Begin()
+	if err := genesisBlock.Begin(); err != nil {
+		return nil, err
+	}
 	// add token distribution for genesis
 	for _, v := range conf.TokenDistribution {
 		addr, err := AddressParse(v.Address)
@@ -123,29 +125,13 @@ func NewGenesisBlock(conf *corepb.Genesis, chain *BlockChain) (*Block, error) {
 		}
 	}
 
-	genesisBlock.header.stateRoot, err = genesisBlock.WorldState().AccountsRoot()
-	if err != nil {
-		genesisBlock.RollBack()
-		return nil, err
-	}
-	genesisBlock.header.txsRoot, err = genesisBlock.WorldState().TxsRoot()
-	if err != nil {
-		genesisBlock.RollBack()
-		return nil, err
-	}
-	genesisBlock.header.eventsRoot, err = genesisBlock.WorldState().EventsRoot()
-	if err != nil {
-		genesisBlock.RollBack()
-		return nil, err
-	}
-	genesisBlock.header.consensusRoot, err = genesisBlock.WorldState().ConsensusRoot()
-	if err != nil {
-		genesisBlock.RollBack()
-		return nil, err
-	}
-
-	genesisBlock.sealed = true
 	genesisBlock.Commit()
+
+	genesisBlock.header.stateRoot = genesisBlock.WorldState().AccountsRoot()
+	genesisBlock.header.txsRoot = genesisBlock.WorldState().TxsRoot()
+	genesisBlock.header.eventsRoot = genesisBlock.WorldState().EventsRoot()
+	genesisBlock.header.consensusRoot = genesisBlock.WorldState().ConsensusRoot()
+	genesisBlock.sealed = true
 
 	return genesisBlock, nil
 }

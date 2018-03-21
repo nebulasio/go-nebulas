@@ -224,6 +224,9 @@ func NewBlock(chainID uint32, coinbase *Address, parent *Block) (*Block, error) 
 		storage:      parent.storage,
 	}
 
+	logging.CLog().Info("New", block.WorldState().AccountsRoot())
+	logging.CLog().Info("New", block.parentBlock)
+
 	if err := block.Begin(); err != nil {
 		return nil, err
 	}
@@ -341,6 +344,9 @@ func (block *Block) LinkParentBlock(chain *BlockChain, parentBlock *Block) error
 		return ErrCloneAccountState
 	}
 
+	logging.CLog().Info("Link", block.WorldState().AccountsRoot())
+	logging.CLog().Info("Block", parentBlock)
+
 	elapsedSecond := block.Timestamp() - parentBlock.Timestamp()
 	consensusState, err := parentBlock.worldState.NextConsensusState(elapsedSecond)
 	if err != nil {
@@ -375,26 +381,6 @@ func (block *Block) RollBack() {
 	if err := block.WorldState().RollBack(); err != nil {
 		logging.CLog().Fatal(err)
 	}
-}
-
-// Prepare a sub batch task
-func (block *Block) Prepare(tx *Transaction) (state.TxWorldState, error) {
-	return block.WorldState().Prepare(tx.Hash().String())
-}
-
-// CheckAndUpdate a batch task, threadsafe
-func (block *Block) CheckAndUpdate(tx *Transaction) ([]interface{}, error) {
-	return block.WorldState().CheckAndUpdate(tx.Hash().String())
-}
-
-// Reset a batch task
-func (block *Block) Reset(tx *Transaction) error {
-	return block.WorldState().Reset(tx.Hash().String())
-}
-
-// Close a batch task
-func (block *Block) Close(tx *Transaction) error {
-	return block.WorldState().Close(tx.Hash().String())
 }
 
 // ReturnTransactions and giveback them to tx pool
@@ -503,7 +489,7 @@ func (block *Block) CollectTransactions(deadlineInMs int64) {
 				}
 
 				prepareAt := time.Now().UnixNano()
-				txWorldState, err := block.Prepare(tx)
+				txWorldState, err := block.WorldState().Prepare(tx.Hash().String())
 				preparedAt := time.Now().UnixNano()
 				prepare += preparedAt - prepareAt
 				if err != nil {
@@ -565,7 +551,7 @@ func (block *Block) CollectTransactions(deadlineInMs int64) {
 						return
 					}
 					updateAt := time.Now().UnixNano()
-					dependency, err := block.CheckAndUpdate(tx)
+					dependency, err := txWorldState.CheckAndUpdate()
 					updatedAt := time.Now().UnixNano()
 					update += updatedAt - updateAt
 					if err != nil {
@@ -577,7 +563,7 @@ func (block *Block) CollectTransactions(deadlineInMs int64) {
 						}).Debug("CheckAndUpdate invalid tx.")
 						unpacked++
 
-						if err := block.Close(tx); err != nil {
+						if err := txWorldState.Close(); err != nil {
 							logging.VLog().WithFields(logrus.Fields{
 								"block": block,
 								"tx":    tx,
@@ -680,25 +666,15 @@ func (block *Block) Seal() error {
 	if err := block.rewardCoinbaseForGas(); err != nil {
 		return err
 	}
+	if err := block.WorldState().Flush(); err != nil {
+		return err
+	}
+	block.header.stateRoot = block.WorldState().AccountsRoot()
+	block.header.txsRoot = block.WorldState().TxsRoot()
+	block.header.eventsRoot = block.WorldState().EventsRoot()
+	block.header.consensusRoot = block.WorldState().ConsensusRoot()
 
 	var err error
-	block.header.stateRoot, err = block.WorldState().AccountsRoot()
-	if err != nil {
-		return err
-	}
-	block.header.txsRoot, err = block.WorldState().TxsRoot()
-	if err != nil {
-		return err
-	}
-	block.header.eventsRoot, err = block.WorldState().EventsRoot()
-	if err != nil {
-		return err
-	}
-	block.header.consensusRoot, err = block.WorldState().ConsensusRoot()
-	if err != nil {
-		return err
-	}
-
 	block.header.hash, err = HashBlock(block)
 	if err != nil {
 		return err
@@ -734,7 +710,9 @@ func (block *Block) String() string {
 func (block *Block) VerifyExecution() error {
 	startAt := time.Now().Unix()
 
-	block.Begin()
+	if err := block.Begin(); err != nil {
+		return err
+	}
 
 	beganAt := time.Now().Unix()
 
@@ -822,7 +800,7 @@ func (block *Block) VerifyIntegrity(chainID uint32, consensus Consensus) error {
 		logging.VLog().WithFields(logrus.Fields{
 			"block": block,
 			"err":   err,
-		}).Debug("Failed to fast verify block.")
+		}).Debug("Failed to verify block.")
 		metricsInvalidBlock.Inc(1)
 		return err
 	}
@@ -833,54 +811,37 @@ func (block *Block) VerifyIntegrity(chainID uint32, consensus Consensus) error {
 // verifyState return state verify result.
 func (block *Block) verifyState() error {
 	// verify state root.
-	accountsRoot, err := block.WorldState().AccountsRoot()
-	if err != nil {
-		return err
-	}
-
-	if !byteutils.Equal(accountsRoot, block.StateRoot()) {
+	if !byteutils.Equal(block.WorldState().AccountsRoot(), block.StateRoot()) {
 		logging.VLog().WithFields(logrus.Fields{
 			"expect": block.StateRoot(),
-			"actual": accountsRoot,
+			"actual": block.WorldState().AccountsRoot(),
 		}).Debug("Failed to verify state.")
 		return ErrInvalidBlockStateRoot
 	}
 
 	// verify transaction root.
-	txsRoot, err := block.WorldState().TxsRoot()
-	if err != nil {
-		return err
-	}
-	if !byteutils.Equal(txsRoot, block.TxsRoot()) {
+	if !byteutils.Equal(block.WorldState().TxsRoot(), block.TxsRoot()) {
 		logging.VLog().WithFields(logrus.Fields{
 			"expect": block.TxsRoot(),
-			"actual": txsRoot,
+			"actual": block.WorldState().TxsRoot(),
 		}).Debug("Failed to verify txs.")
 		return ErrInvalidBlockTxsRoot
 	}
 
 	// verify events root.
-	eventsRoot, err := block.WorldState().EventsRoot()
-	if err != nil {
-		return err
-	}
-	if !byteutils.Equal(eventsRoot, block.EventsRoot()) {
+	if !byteutils.Equal(block.WorldState().EventsRoot(), block.EventsRoot()) {
 		logging.VLog().WithFields(logrus.Fields{
 			"expect": block.EventsRoot(),
-			"actual": eventsRoot,
+			"actual": block.WorldState().EventsRoot(),
 		}).Debug("Failed to verify events.")
 		return ErrInvalidBlockEventsRoot
 	}
 
 	// verify transaction root.
-	consensusRoot, err := block.WorldState().ConsensusRoot()
-	if err != nil {
-		return err
-	}
-	if !reflect.DeepEqual(consensusRoot, block.ConsensusRoot()) {
+	if !reflect.DeepEqual(block.WorldState().ConsensusRoot(), block.ConsensusRoot()) {
 		logging.VLog().WithFields(logrus.Fields{
 			"expect": block.ConsensusRoot(),
-			"actual": consensusRoot,
+			"actual": block.WorldState().ConsensusRoot(),
 		}).Debug("Failed to verify dpos context.")
 		return ErrInvalidBlockConsensusRoot
 	}
@@ -912,7 +873,7 @@ func (block *Block) execute() error {
 		metricsTxExecute.Mark(1)
 
 		mergeCh <- true
-		txWorldState, err := block.Prepare(tx)
+		txWorldState, err := block.WorldState().Prepare(tx.Hash().String())
 		if err != nil {
 			<-mergeCh
 			return err
@@ -924,7 +885,7 @@ func (block *Block) execute() error {
 		}
 
 		mergeCh <- true
-		if _, err := block.CheckAndUpdate(tx); err != nil {
+		if _, err := txWorldState.CheckAndUpdate(); err != nil {
 			<-mergeCh
 			return err
 		}
@@ -947,6 +908,9 @@ func (block *Block) execute() error {
 	}
 
 	if err := block.rewardCoinbaseForGas(); err != nil {
+		return err
+	}
+	if err := block.WorldState().Flush(); err != nil {
 		return err
 	}
 
@@ -1019,8 +983,8 @@ func (block *Block) rewardCoinbaseForGas() error {
 }
 
 // ExecuteTransaction execute the transaction
-func (block *Block) ExecuteTransaction(tx *Transaction, txWorldState state.TxWorldState) (bool, error) {
-	if giveback, err := CheckTransaction(tx, txWorldState); err != nil {
+func (block *Block) ExecuteTransaction(tx *Transaction, ws WorldState) (bool, error) {
+	if giveback, err := CheckTransaction(tx, ws); err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"tx":  tx,
 			"err": err,
@@ -1028,7 +992,7 @@ func (block *Block) ExecuteTransaction(tx *Transaction, txWorldState state.TxWor
 		return giveback, err
 	}
 
-	if err := VerifyExecution(tx, block, txWorldState); err != nil {
+	if err := VerifyExecution(tx, block, ws); err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"tx":  tx,
 			"err": err,
@@ -1036,7 +1000,7 @@ func (block *Block) ExecuteTransaction(tx *Transaction, txWorldState state.TxWor
 		return false, err
 	}
 
-	if err := AcceptTransaction(tx, txWorldState); err != nil {
+	if err := AcceptTransaction(tx, ws); err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"tx":  tx,
 			"err": err,

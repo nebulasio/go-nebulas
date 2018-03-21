@@ -60,9 +60,9 @@ func TestBlockPool(t *testing.T) {
 	acc, err := bc.tailBlock.worldState.GetOrCreateUserAccount(from.Bytes())
 	assert.Nil(t, err)
 	acc.AddBalance(balance)
-	bc.tailBlock.header.stateRoot, err = bc.tailBlock.worldState.AccountsRoot()
 	assert.Nil(t, err)
 	bc.tailBlock.Commit()
+	bc.tailBlock.header.stateRoot = bc.tailBlock.worldState.AccountsRoot()
 	bc.StoreBlockToStorage(bc.tailBlock)
 
 	addr, err := AddressParse(MockDynasty[1])
@@ -75,7 +75,7 @@ func TestBlockPool(t *testing.T) {
 
 	addr, err = AddressParse(MockDynasty[2])
 	assert.Nil(t, err)
-	block1, err := NewBlock(bc.ChainID(), addr, block0)
+	block1, err := NewBlock(bc.ChainID(), addr, bc.tailBlock)
 	assert.Nil(t, err)
 	block1.header.timestamp = block0.header.timestamp + BlockInterval
 	block1.Seal()
@@ -83,7 +83,7 @@ func TestBlockPool(t *testing.T) {
 
 	addr, err = AddressParse(MockDynasty[3])
 	assert.Nil(t, err)
-	block2, err := NewBlock(bc.ChainID(), addr, block1)
+	block2, err := NewBlock(bc.ChainID(), addr, bc.tailBlock)
 	assert.Nil(t, err)
 	block2.header.timestamp = block1.header.timestamp + BlockInterval
 	block2.Seal()
@@ -91,7 +91,7 @@ func TestBlockPool(t *testing.T) {
 
 	addr, err = AddressParse(MockDynasty[4])
 	assert.Nil(t, err)
-	block3, err := NewBlock(bc.ChainID(), addr, block2)
+	block3, err := NewBlock(bc.ChainID(), addr, bc.tailBlock)
 	assert.Nil(t, err)
 	block3.header.timestamp = block2.header.timestamp + BlockInterval
 	block3.Seal()
@@ -99,7 +99,7 @@ func TestBlockPool(t *testing.T) {
 
 	addr, err = AddressParse(MockDynasty[5])
 	assert.Nil(t, err)
-	block4, err := NewBlock(bc.ChainID(), addr, block3)
+	block4, err := NewBlock(bc.ChainID(), addr, bc.tailBlock)
 	assert.Nil(t, err)
 	block4.header.timestamp = block3.header.timestamp + BlockInterval
 	block4.Seal()
@@ -117,9 +117,9 @@ func TestBlockPool(t *testing.T) {
 	acc, err = bc.tailBlock.worldState.GetOrCreateUserAccount(from.Bytes())
 	assert.Nil(t, err)
 	acc.AddBalance(balance)
-	bc.tailBlock.header.stateRoot, err = bc.tailBlock.worldState.AccountsRoot()
 	assert.Nil(t, err)
 	bc.tailBlock.Commit()
+	bc.tailBlock.header.stateRoot = bc.tailBlock.worldState.AccountsRoot()
 	bc.StoreBlockToStorage(bc.tailBlock)
 
 	err = pool.Push(block0)

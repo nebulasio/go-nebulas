@@ -22,6 +22,8 @@ import (
 	"errors"
 	"time"
 
+	"github.com/nebulasio/go-nebulas/util/byteutils"
+
 	"github.com/nebulasio/go-nebulas/core/state"
 	"github.com/nebulasio/go-nebulas/net"
 
@@ -139,7 +141,7 @@ var (
 type TxPayload interface {
 	ToBytes() ([]byte, error)
 	BaseGasCount() *util.Uint128
-	Execute(tx *Transaction, block *Block, txWorldState state.TxWorldState) (*util.Uint128, string, error)
+	Execute(tx *Transaction, block *Block, ws WorldState) (*util.Uint128, string, error)
 }
 
 // MessageType
@@ -204,7 +206,7 @@ type AccountManager interface {
 
 // NVM interface
 type NVM interface {
-	CreateEngine(block *Block, tx *Transaction, owner, contract state.Account, state state.TxWorldState) (SmartContractEngine, error)
+	CreateEngine(block *Block, tx *Transaction, owner, contract state.Account, ws WorldState) (SmartContractEngine, error)
 }
 
 // SmartContractEngine interface
@@ -229,4 +231,24 @@ type Neblet interface {
 	AccountManager() AccountManager
 	Nvm() NVM
 	StartPprof(string) error
+}
+
+// WorldState needed by core
+type WorldState interface {
+	GetOrCreateUserAccount(addr byteutils.Hash) (state.Account, error)
+	GetContractAccount(addr byteutils.Hash) (state.Account, error)
+	CreateContractAccount(owner byteutils.Hash, birthPlace byteutils.Hash) (state.Account, error)
+
+	GetTx(txHash byteutils.Hash) ([]byte, error)
+	PutTx(txHash byteutils.Hash, txBytes []byte) error
+
+	RecordEvent(txHash byteutils.Hash, event *state.Event) error
+	FetchEvents(byteutils.Hash) ([]*state.Event, error)
+
+	Dynasty() ([]byteutils.Hash, error)
+	DynastyRoot() byteutils.Hash
+
+	RecordGas(from string, gas *util.Uint128) error
+
+	Reset() error
 }

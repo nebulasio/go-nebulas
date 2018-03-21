@@ -52,7 +52,7 @@ func TestBlock_NextDynastyContext(t *testing.T) {
 	validators, _ := block.WorldState().Dynasty()
 	assert.Equal(t, context.Proposer(), validators[1])
 	// check dynasty
-	consensusRoot, err := context.RootHash()
+	consensusRoot := context.RootHash()
 	assert.Nil(t, err)
 	checkDynasty(t, neb.consensus, consensusRoot, neb.Storage())
 
@@ -61,7 +61,7 @@ func TestBlock_NextDynastyContext(t *testing.T) {
 	validators, _ = block.WorldState().Dynasty()
 	assert.Equal(t, context.Proposer(), validators[1])
 	// check dynasty
-	consensusRoot, err = context.RootHash()
+	consensusRoot = context.RootHash()
 	assert.Nil(t, err)
 	checkDynasty(t, neb.consensus, consensusRoot, neb.Storage())
 
@@ -70,7 +70,7 @@ func TestBlock_NextDynastyContext(t *testing.T) {
 	validators, _ = block.WorldState().Dynasty()
 	assert.Equal(t, context.Proposer(), validators[int(DynastyIntervalInMs/2/BlockIntervalInMs)%DynastySize])
 	// check dynasty
-	consensusRoot, err = context.RootHash()
+	consensusRoot = context.RootHash()
 	assert.Nil(t, err)
 	checkDynasty(t, neb.consensus, consensusRoot, neb.Storage())
 
@@ -80,7 +80,7 @@ func TestBlock_NextDynastyContext(t *testing.T) {
 	index := int((DynastyIntervalInMs*2+DynastyIntervalInMs/3)%DynastyIntervalInMs) / int(BlockIntervalInMs) % DynastySize
 	assert.Equal(t, context.Proposer(), validators[index])
 	// check dynasty
-	consensusRoot, err = context.RootHash()
+	consensusRoot = context.RootHash()
 	assert.Nil(t, err)
 	checkDynasty(t, neb.consensus, consensusRoot, neb.Storage())
 

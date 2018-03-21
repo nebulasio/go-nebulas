@@ -21,7 +21,6 @@ package core
 import (
 	"encoding/json"
 
-	"github.com/nebulasio/go-nebulas/core/state"
 	"github.com/nebulasio/go-nebulas/util"
 )
 
@@ -60,7 +59,7 @@ func (payload *CallPayload) BaseGasCount() *util.Uint128 {
 }
 
 // Execute the call payload in tx, call a function
-func (payload *CallPayload) Execute(tx *Transaction, block *Block, txWorldState state.TxWorldState) (*util.Uint128, string, error) {
+func (payload *CallPayload) Execute(tx *Transaction, block *Block, ws WorldState) (*util.Uint128, string, error) {
 	if block == nil || tx == nil {
 		return util.NewUint128(), "", ErrNilArgument
 	}
@@ -75,16 +74,16 @@ func (payload *CallPayload) Execute(tx *Transaction, block *Block, txWorldState 
 		return util.NewUint128(), "", ErrOutOfGasLimit
 	}
 
-	contract, err := CheckContract(tx.to, txWorldState)
+	contract, err := CheckContract(tx.to, ws)
 	if err != nil {
 		return util.NewUint128(), "", err
 	}
 
-	birthTx, err := GetTransaction(contract.BirthPlace(), txWorldState)
+	birthTx, err := GetTransaction(contract.BirthPlace(), ws)
 	if err != nil {
 		return util.NewUint128(), "", err
 	}
-	owner, err := txWorldState.GetOrCreateUserAccount(birthTx.from.Bytes())
+	owner, err := ws.GetOrCreateUserAccount(birthTx.from.Bytes())
 	if err != nil {
 		return util.NewUint128(), "", err
 	}
@@ -93,7 +92,7 @@ func (payload *CallPayload) Execute(tx *Transaction, block *Block, txWorldState 
 		return util.NewUint128(), "", err
 	}
 
-	engine, err := block.nvm.CreateEngine(block, tx, owner, contract, txWorldState)
+	engine, err := block.nvm.CreateEngine(block, tx, owner, contract, ws)
 	if err != nil {
 		return util.NewUint128(), "", err
 	}
