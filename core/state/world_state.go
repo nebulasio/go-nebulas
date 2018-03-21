@@ -67,6 +67,7 @@ type states struct {
 }
 
 func newStates(consensus Consensus, stor storage.Storage) (*states, error) {
+	logging.CLog().Info("WS New MVCCDB: ", nil)
 	changelog, err := newChangeLog()
 	if err != nil {
 		return nil, err
@@ -111,7 +112,7 @@ func newStates(consensus Consensus, stor storage.Storage) (*states, error) {
 }
 
 func (s *states) Replay(done *states) error {
-
+	logging.CLog().Info("WS Replay MVCCDB: ", s.txid)
 	err := s.accState.Replay(done.accState)
 	if err != nil {
 		return err
@@ -176,6 +177,7 @@ func (s *states) ReplayEvent(done *states) error {
 }
 
 func (s *states) Clone() (*states, error) {
+	logging.CLog().Info("WS Clone MVCCDB: ", s.txid)
 	changelog, err := newChangeLog()
 	if err != nil {
 		logging.CLog().Info("CE 1")
@@ -226,6 +228,7 @@ func (s *states) Clone() (*states, error) {
 }
 
 func (s *states) Begin() error {
+	logging.CLog().Info("WS Begin MVCCDB: ", s.txid)
 	if err := s.changelog.Begin(); err != nil {
 		logging.CLog().Info("BE 11")
 		return err
@@ -238,6 +241,7 @@ func (s *states) Begin() error {
 }
 
 func (s *states) Commit() error {
+	logging.CLog().Info("WS Commit MVCCDB: ", s.txid)
 	if err := s.Flush(); err != nil {
 		return err
 	}
@@ -254,6 +258,7 @@ func (s *states) Commit() error {
 }
 
 func (s *states) RollBack() error {
+	logging.CLog().Info("WS Rollback MVCCDB: ", s.txid)
 	if err := s.Abort(); err != nil {
 		return err
 	}
@@ -270,6 +275,7 @@ func (s *states) RollBack() error {
 }
 
 func (s *states) Prepare(txid interface{}) (*states, error) {
+	logging.CLog().Info("WS Prepare MVCCDB: ", txid)
 	changelog, err := s.changelog.Prepare(txid)
 	if err != nil {
 		logging.VLog().Info("PPE 11")
@@ -320,6 +326,7 @@ func (s *states) Prepare(txid interface{}) (*states, error) {
 }
 
 func (s *states) CheckAndUpdateTo(parent *states) ([]interface{}, error) {
+	logging.CLog().Info("WS CheckAndUpdateTo MVCCDB: ", s.txid)
 	dependency, err := s.changelog.CheckAndUpdate()
 	if err != nil {
 		logging.VLog().Info("CUE 11")
@@ -337,6 +344,7 @@ func (s *states) CheckAndUpdateTo(parent *states) ([]interface{}, error) {
 }
 
 func (s *states) Reset() error {
+	logging.CLog().Info("WS Reset MVCCDB: ", s.txid)
 	if err := s.changelog.Reset(); err != nil {
 		logging.VLog().Info("RSE 11")
 		return err
@@ -352,6 +360,7 @@ func (s *states) Reset() error {
 }
 
 func (s *states) Close() error {
+	logging.CLog().Info("WS Close MVCCDB: ", s.txid)
 	if err := s.changelog.Close(); err != nil {
 		logging.VLog().Info("CSE 11")
 		return err
