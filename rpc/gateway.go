@@ -7,7 +7,9 @@ import (
 	"strings"
 
 	"github.com/nebulasio/go-nebulas/rpc/pb"
+	"github.com/nebulasio/go-nebulas/util/logging"
 	"github.com/nebulasio/grpc-gateway/runtime"
+	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -92,7 +94,7 @@ type errorBody struct {
 }
 
 func errorHandler(ctx context.Context, _ *runtime.ServeMux, marshaler runtime.Marshaler, w http.ResponseWriter, _ *http.Request, err error) {
-	const fallback = `{"error": "failed to marshal error message"}`
+	const fallback = "failed to marshal error message"
 
 	w.Header().Set("Content-type", marshaler.ContentType())
 	if grpc.Code(err) == codes.Unknown {
@@ -105,6 +107,18 @@ func errorHandler(ctx context.Context, _ *runtime.ServeMux, marshaler runtime.Ma
 	})
 
 	if jErr != nil {
-		w.Write([]byte(fallback))
+		jsonFallback, tmpErr := json.Marshal(errorBody{Err: fallback})
+		if tmpErr != nil {
+			logging.VLog().WithFields(logrus.Fields{
+				"error":        tmpErr,
+				"jsonFallback": jsonFallback,
+			}).Error("fall to marshal fallback msg")
+		}
+		_, tmpErr = w.Write(jsonFallback)
+		if tmpErr != nil {
+			logging.VLog().WithFields(logrus.Fields{
+				"error": tmpErr,
+			}).Error("fail to write fallback msg")
+		}
 	}
 }
