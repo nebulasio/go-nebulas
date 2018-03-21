@@ -435,10 +435,12 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 	// performance depth-first search to verify state root, and get all tails.
 	allBlocks, tailBlocks, err := lb.travelToLinkAndReturnAllValidBlocks(parentBlock)
 	if err != nil {
+		cache.Remove(lb.hash.Hex())
 		return err
 	}
 
 	if err := bc.putVerifiedNewBlocks(parentBlock, allBlocks, tailBlocks); err != nil {
+		cache.Remove(lb.hash.Hex())
 		return err
 	}
 
