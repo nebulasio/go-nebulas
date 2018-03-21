@@ -141,6 +141,16 @@ function testTransfer(testInput, testExpect, done) {
 
         if(testInput.hasOwnProperty("overrideSignature")){
             tx.sign = testInput.overrideSignature;
+        } else if (testInput.fakeSign) {
+            //repalce the privkey to sign
+            console.log("this is the right signature:" + tx.sign)
+            console.log("repalce the privkey and sign another signatrue...")
+            var newAccount = new Wallet.Account("a6e5eb222e4538fce79f5cb8774a72621637c2c9654c8b2525ed1d7e4e73653f");
+            var privKey = tx.from.privKey
+            tx.from.privKey = newAccount.privKey
+            tx.signTransaction();
+            console.log("now signatrue is: " + tx.sign)
+            tx.from.privKey = privKey;
         }
 
         return neb.api.sendRawTransaction(tx.toProtoString());
@@ -601,6 +611,34 @@ describe('normal transaction', function () {
             toBalanceAfterTx: '1000000000000000000',
             transferReward: '20000000000',
             errMsg: 'invalid signature'
+        };
+        prepare(function (err) {
+            if (err instanceof Error) {
+                done(err);
+            } else {
+                testTransfer(testInput, testExpect, done);
+            }
+        });
+    });
+
+    it('[signature] invalid signature (fake sig)', function (done) {
+        var testInput = {
+            transferValue: 1,
+            isSameAddr: false,
+            gasLimit: -1,
+            gasPrice: -1,
+            nonceIncrement: 1,
+            fakeSign: true
+        };
+        //can calc value by previous params
+        var testExpect = {
+            canSendTx: false,
+            canSubmitTx: false,
+            canExcuteTx: true,
+            sendError: "transaction recover public key address not equal to from",
+            fromBalanceAfterTx: '8999999980000000000',
+            toBalanceAfterTx: '1000000000000000000',
+            transferReward: '20000000000'
         };
         prepare(function (err) {
             if (err instanceof Error) {

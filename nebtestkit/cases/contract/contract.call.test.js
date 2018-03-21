@@ -104,6 +104,16 @@ function testContractCall(testInput, testExpect, done) {
         tx.gasLimit = new BigNumber(testInput.gasLimit);
         if (testInput.sign) {
             tx.signTransaction();
+        } else if (testInput.fakeSign) {
+        //repalce the privkey to sign
+            console.log("this is the right signature:" + tx.sign)
+            console.log("repalce the privkey and sign another signatrue...")
+            var newAccount = new Wallet.Account("a6e5eb222e4538fce79f5cb8774a72621637c2c9654c8b2525ed1d7e4e73653f");
+            var privKey = tx.from.privKey
+            tx.from.privKey = newAccount.privKey
+            tx.signTransaction();
+            console.log("now signatrue is: " + tx.sign)
+            tx.from.privKey = privKey;
         }
         // console.log("tx raw:", tx.toString());
         return neb.api.sendRawTransaction(tx.toProtoString());
@@ -335,7 +345,6 @@ var testCase = {
 };
 testCases.push(testCase);
 
-
 var invalidFrom = Wallet.Account.NewAccount();
 invalidFrom.address = Wallet.CryptoUtils.toBuffer("12af");
 testCase = {
@@ -425,6 +434,33 @@ testCase = {
     "name": "5. signature invalid",
     "testInput": {
         sign: false,
+        from: from,
+        to: contractAddr,
+        value: "1",
+        nonce: 1,
+        gasPrice: 1000000,
+        gasLimit: 2000000,
+        contract: {
+            "function": "name",
+            "args": ""
+        }
+    },
+    "testExpect": {
+        canSendTx: false,
+        canSubmitTx: false,
+        canExcuteTx: false,
+        status: 0,
+        fromBalanceAfterTx: neb.nasToBasic(1),
+        toBalanceAfterTx: '0',
+        transferReward: '0'
+    }
+};
+testCases.push(testCase);
+
+testCase = {
+    "name": "5. signature is fake",
+    "testInput": {
+        fakeSign: true,
         from: from,
         to: contractAddr,
         value: "1",
