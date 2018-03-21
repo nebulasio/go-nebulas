@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/nebulasio/go-nebulas/neblet/pb"
 	"github.com/nebulasio/go-nebulas/rpc/pb"
 	"github.com/nebulasio/go-nebulas/util/logging"
 	"github.com/nebulasio/grpc-gateway/runtime"
@@ -21,8 +22,14 @@ const (
 	Admin = "admin"
 )
 
+const (
+	// DefaultHTTPLimit default max http conns
+	DefaultHTTPLimit = 128
+)
+
 // Run start gateway proxy to mapping grpc to http.
-func Run(rpcListen string, gatewayListen []string, httpModule []string, httpLimit int32) error {
+func Run(config *nebletpb.RPCConfig) error {
+
 	ctx := context.Background()
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
@@ -31,8 +38,8 @@ func Run(rpcListen string, gatewayListen []string, httpModule []string, httpLimi
 		&runtime.JSONPb{OrigName: true, EmitDefaults: true}),
 		runtime.WithProtoErrorHandler(errorHandler))
 	opts := []grpc.DialOption{grpc.WithInsecure()}
-	echoEndpoint := flag.String("rpc", rpcListen, "")
-	for _, v := range httpModule {
+	echoEndpoint := flag.String("rpc", config.RpcListen[0], "")
+	for _, v := range config.HttpModule {
 		switch v {
 		case API:
 			rpcpb.RegisterApiServiceHandlerFromEndpoint(ctx, mux, *echoEndpoint, opts)
@@ -41,8 +48,8 @@ func Run(rpcListen string, gatewayListen []string, httpModule []string, httpLimi
 		}
 	}
 
-	for _, v := range gatewayListen {
-		err := http.ListenAndServe(v, allowCORS(mux, httpLimit))
+	for _, v := range config.HttpListen {
+		err := http.ListenAndServe(v, allowCORS(mux, config))
 		if err != nil {
 			return err
 		}
@@ -51,7 +58,11 @@ func Run(rpcListen string, gatewayListen []string, httpModule []string, httpLimi
 	return nil
 }
 
-func allowCORS(h http.Handler, httpLimit int32) http.Handler {
+func allowCORS(h http.Handler, config *nebletpb.RPCConfig) http.Handler {
+	httpLimit := config.HttpLimits
+	if httpLimit == 0 {
+		httpLimit = DefaultHTTPLimit
+	}
 	httpCh := make(chan bool, httpLimit)
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -60,7 +71,10 @@ func allowCORS(h http.Handler, httpLimit int32) http.Handler {
 		case httpCh <- true:
 			defer func() { <-httpCh }()
 			if origin := r.Header.Get("Origin"); origin != "" {
-				w.Header().Set("Access-Control-Allow-Origin", "*")
+				if config.AllowHttpCors {
+					origin = "*"
+				}
+				w.Header().Set("Access-Control-Allow-Origin", origin)
 				if r.Method == "OPTIONS" && r.Header.Get("Access-Control-Request-Method") != "" {
 					preflightHandler(w, r)
 					return
@@ -70,7 +84,6 @@ func allowCORS(h http.Handler, httpLimit int32) http.Handler {
 		default:
 			statusUnavailableHandler(w, r)
 		}
-
 	})
 }
 func statusUnavailableHandler(w http.ResponseWriter, r *http.Request) {

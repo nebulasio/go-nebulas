@@ -91,6 +91,9 @@ message RPCConfig {
     int32 connection_limits = 4;
 
     int32 http_limits = 5;
+
+    // allow HTTP CORS, default false
+    bool allow_http_cors = 6;
 }
 
 message AppConfig {

@@ -135,27 +135,21 @@ func (s *Server) start(addr string) error {
 // RunGateway run grpc mapping to http after apiserver have started.
 func (s *Server) RunGateway() error {
 	//time.Sleep(3 * time.Second)
-	rpcListen := s.rpcConfig.RpcListen[0]
-	gatewayListen := s.rpcConfig.HttpListen
-	httpModule := s.rpcConfig.HttpModule
 
-	httpLimit := s.rpcConfig.HttpLimits
-
-	if httpLimit == 0 {
-		httpLimit = 128
-	}
 	logging.CLog().WithFields(logrus.Fields{
-		"rpc-server":  rpcListen,
-		"http-server": gatewayListen,
+		"rpc-server":      s.rpcConfig.RpcListen[0],
+		"http-server":     s.rpcConfig.HttpListen,
+		"allow-http-cors": s.rpcConfig.AllowHttpCors,
 	}).Info("Starting RPC Gateway GRPCServer...")
 
-	go (func() {
-		if err := Run(rpcListen, gatewayListen, httpModule, httpLimit); err != nil {
+	go func() {
+		if err := Run(s.rpcConfig); err != nil {
 			logging.CLog().WithFields(logrus.Fields{
 				"error": err,
 			}).Fatal("Failed to start RPC Gateway.")
 		}
-	})()
+
+	}()
 	return nil
 }
 
