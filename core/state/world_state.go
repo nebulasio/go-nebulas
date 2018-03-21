@@ -396,7 +396,7 @@ func (s *states) Flush() error {
 }
 
 func (s *states) Abort() error {
-	return s.accState.Abort()
+	return s.accState.Abort() // TODO: Abort txsState, eventsState, consensusState
 }
 
 func (s *states) recordAccount(acc Account) (Account, error) {

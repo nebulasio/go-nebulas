@@ -180,6 +180,7 @@ func (db *MVCCDB) Commit() error {
 		pdb.close()
 	}
 	db.preparedDBs = make(map[interface{}]*MVCCDB)
+	db.stagingTable.Purge()
 
 	// done.
 	db.isInTransaction = false
@@ -206,7 +207,6 @@ func (db *MVCCDB) RollBack() error {
 		pdb.close()
 	}
 	db.preparedDBs = make(map[interface{}]*MVCCDB)
-
 	db.stagingTable.Purge()
 
 	// done.

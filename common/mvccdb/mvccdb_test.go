@@ -344,8 +344,7 @@ func TestMVCCDB_PrepareAndUpdate(t *testing.T) {
 	assert.Nil(t, finalRet.err)
 	assert.Equal(t, ErrStagingTableKeyConfliction, errorRet.err)
 
-	assert.Equal(t, 1, len(finalRet.depends))
-	assert.Equal(t, "tid0", finalRet.depends[0])
+	assert.Equal(t, 0, len(finalRet.depends))
 	assert.Equal(t, 0, len(errorRet.depends))
 
 	// verify value.

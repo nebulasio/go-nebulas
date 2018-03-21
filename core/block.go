@@ -344,9 +344,6 @@ func (block *Block) LinkParentBlock(chain *BlockChain, parentBlock *Block) error
 		return ErrCloneAccountState
 	}
 
-	logging.CLog().Info("Link", block.WorldState().AccountsRoot())
-	logging.CLog().Info("Block", parentBlock)
-
 	elapsedSecond := block.Timestamp() - parentBlock.Timestamp()
 	consensusState, err := parentBlock.worldState.NextConsensusState(elapsedSecond)
 	if err != nil {
