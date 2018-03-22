@@ -393,14 +393,14 @@ func (dpos *Dpos) newBlock(tail *core.Block, consensusState state.ConsensusState
 	block.WorldState().SetConsensusState(consensusState)
 	block.SetTimestamp(consensusState.TimeStamp())
 	block.CollectTransactions(deadlineInMs)
-	if err = block.Seal(); err != nil {
+	if err = block.Seal(); err != nil { // TODO rollback, return txs
 		logging.CLog().WithFields(logrus.Fields{
 			"block": block,
 			"err":   err,
 		}).Error("Failed to seal new block")
 		return nil, err
 	}
-	if err = dpos.am.SignBlock(dpos.miner, block); err != nil {
+	if err = dpos.am.SignBlock(dpos.miner, block); err != nil { // TODO rollback, return txs
 		logging.CLog().WithFields(logrus.Fields{
 			"miner": dpos.miner,
 			"block": block,

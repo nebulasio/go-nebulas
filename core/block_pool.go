@@ -247,7 +247,7 @@ func (pool *BlockPool) loop() {
 	}
 }
 
-func deepCopyBlock(block *Block) (*Block, error) {
+func deepCopyBlock(block *Block) (*Block, error) { // TODO rename mockBlockFromNetwork
 	pbBlock, err := block.ToProto()
 	if err != nil {
 		return nil, err

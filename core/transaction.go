@@ -53,13 +53,13 @@ var (
 	TransactionGasPrice, _ = util.NewUint128FromInt(1000000)
 
 	// MinGasCountPerTransaction default gas for normal transaction
-	MinGasCountPerTransaction, _ = util.NewUint128FromInt(20000)
+	MinGasCountPerTransaction, _ = util.NewUint128FromInt(20000) // TODO check value. use nas = 1000 RMB by default.
 
 	// GasCountPerByte per byte of data attached to a transaction gas cost
 	GasCountPerByte, _ = util.NewUint128FromInt(1)
 
 	// MaxDataPayLoadLength Max data length in transaction
-	MaxDataPayLoadLength = 1024 * 1024
+	MaxDataPayLoadLength = 1024 * 1024 // TODO 128k
 )
 
 // TransactionEvent transaction event
@@ -183,11 +183,11 @@ func (tx *Transaction) FromProto(msg proto.Message) error {
 		tx.nonce = msg.Nonce
 		tx.timestamp = msg.Timestamp
 
-		data := msg.Data
+		data := msg.Data // TODO redundant tmp var
 		if data == nil {
 			return ErrInvalidTransactionData
 		}
-		if len(data.Payload) > MaxDataPayLoadLength {
+		if len(data.Payload) > MaxDataPayLoadLength { // TODO 128k
 			return ErrTxDataPayLoadOutOfMaxLength
 		}
 
@@ -231,10 +231,10 @@ type Transactions []*Transaction
 // NewTransaction create #Transaction instance.
 func NewTransaction(chainID uint32, from, to *Address, value *util.Uint128, nonce uint64, payloadType string, payload []byte, gasPrice *util.Uint128, gasLimit *util.Uint128) (*Transaction, error) {
 	//if gasPrice is not specified, use the default gasPrice
-	if gasPrice == nil || gasPrice.Cmp(util.NewUint128()) <= 0 {
+	if gasPrice == nil || gasPrice.Cmp(util.NewUint128()) <= 0 { // TODO return error if gasPrice is zero
 		gasPrice = TransactionGasPrice
 	}
-	if gasLimit == nil || gasLimit.Cmp(util.NewUint128()) <= 0 {
+	if gasLimit == nil || gasLimit.Cmp(util.NewUint128()) <= 0 { // TODO return error if gasLimit is zero
 		gasLimit = MinGasCountPerTransaction
 	}
 
@@ -281,7 +281,7 @@ func (tx *Transaction) GasLimit() *util.Uint128 {
 }
 
 // PayloadGasLimit returns payload gasLimit
-func (tx *Transaction) PayloadGasLimit(payload TxPayload) (*util.Uint128, error) {
+func (tx *Transaction) PayloadGasLimit(payload TxPayload) (*util.Uint128, error) { // TODO delete
 	if payload == nil {
 		return nil, ErrNilArgument
 	}
@@ -303,7 +303,7 @@ func (tx *Transaction) PayloadGasLimit(payload TxPayload) (*util.Uint128, error)
 }
 
 // MinBalanceRequired returns gasprice * gaslimit + tx.value.
-func (tx *Transaction) MinBalanceRequired() (*util.Uint128, error) {
+func (tx *Transaction) MinBalanceRequired() (*util.Uint128, error) { // TODO = gasPrice * gasLimit
 	total, err := tx.GasPrice().Mul(tx.GasLimit())
 	if err != nil {
 		return nil, err
@@ -317,7 +317,7 @@ func (tx *Transaction) MinBalanceRequired() (*util.Uint128, error) {
 
 // GasCountOfTxBase calculate the actual amount for a tx with data
 func (tx *Transaction) GasCountOfTxBase() (*util.Uint128, error) {
-	txGas := MinGasCountPerTransaction.DeepCopy()
+	txGas := MinGasCountPerTransaction.DeepCopy() // TODO immuttable, don't need copy
 	if tx.DataLen() > 0 {
 		dataLen, err := util.NewUint128FromInt(int64(tx.DataLen()))
 		if err != nil {
@@ -400,8 +400,8 @@ func (tx *Transaction) localExecution(block *Block) (*util.Uint128, string, erro
 }
 
 // VerifyExecution transaction and return result.
-func VerifyExecution(tx *Transaction, block *Block, ws WorldState) error {
-	// step1. check balance > gasLimit * gasPrice + value
+func VerifyExecution(tx *Transaction, block *Block, ws WorldState) error { // TODO add giveback(system error)
+	// step1. check balance >= gasLimit * gasPrice + value // TODO check balance >= gasLimit * gasPrice
 	if err := tx.checkBalance(block, ws); err != nil {
 		return err
 	}
@@ -422,7 +422,7 @@ func VerifyExecution(tx *Transaction, block *Block, ws WorldState) error {
 		return ErrOutOfGasLimit
 	}
 
-	// step3. check payload vaild
+	// step3. check payload vaild. all txs come here can be submitted on chain.
 	payload, payloadErr := tx.LoadPayload()
 	if payloadErr != nil {
 		logging.VLog().WithFields(logrus.Fields{
@@ -466,13 +466,14 @@ func VerifyExecution(tx *Transaction, block *Block, ws WorldState) error {
 		return nil
 	}
 
-	if err := transfer(tx.from.address, tx.to.address, tx.value, ws); err != nil {
+	// step5. transfer value.
+	if err := transfer(tx.from.address, tx.to.address, tx.value, ws); err != nil { // TODO check balance sufficient. balance >= gasLimit * gasPrice + value
 		return err
 	}
 
 	// step6. execute payload
 	// execute smart contract and sub the calcute gas.
-	gasExecution, _, exeErr := payload.Execute(tx, block, ws)
+	gasExecution, _, exeErr := payload.Execute(tx, block, ws) // TODO return detailed error, not only failed // TODO calculate the payload gaslimit as an argument in Execute()
 	if exeErr != nil {
 		logging.VLog().Info("Reset Payload ", tx, " err ", exeErr)
 		if err := ws.Reset(); err != nil {
@@ -508,7 +509,11 @@ func VerifyExecution(tx *Transaction, block *Block, ws WorldState) error {
 		return nil
 	}
 
-	tx.recordGas(allGas, ws)
+	tx.recordGas(allGas, ws) // TODO catch error
+	if err := tx.recordResultEvent(allGas, exeErr, ws); err != nil {
+		return err
+	}
+
 	if exeErr != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"exeErr":       exeErr,
@@ -520,10 +525,6 @@ func VerifyExecution(tx *Transaction, block *Block, ws WorldState) error {
 		go metricsTxExeFailed.Mark(1)
 	} else {
 		go metricsTxExeSuccess.Mark(1)
-	}
-
-	if err := tx.recordResultEvent(allGas, exeErr, ws); err != nil {
-		return err
 	}
 	return nil
 }
@@ -584,7 +585,7 @@ func (tx *Transaction) recordResultEvent(gasUsed *util.Uint128, err error, ws Wo
 	}
 	if err != nil {
 		txEvent.Status = TxExecutionFailed
-		txEvent.Error = err.Error()
+		txEvent.Error = err.Error() // TODO limit the length of err
 	} else {
 		txEvent.Status = TxExecutionSuccess
 	}
@@ -641,7 +642,7 @@ func (tx *Transaction) VerifyIntegrity(chainID uint32) error {
 
 }
 
-func (tx *Transaction) verifySign() error {
+func (tx *Transaction) verifySign() error { // TODO move to core/crypto.go.
 	signature, err := crypto.NewSignature(tx.alg)
 	if err != nil {
 		return err
@@ -680,7 +681,7 @@ func CheckContract(addr *Address, ws WorldState) (state.Account, error) {
 		return nil, err
 	}
 
-	if len(contract.BirthPlace()) == 0 {
+	if len(contract.BirthPlace()) == 0 { // TODO check nil, move if-else into ws.GetContractAccount
 		return nil, ErrContractCheckFailed
 	}
 
@@ -692,9 +693,9 @@ func CheckContract(addr *Address, ws WorldState) (state.Account, error) {
 	result := false
 	for _, v := range birthEvents {
 
-		if v.Topic == TopicTransactionExecutionResult {
+		if v.Topic == TopicTransactionExecutionResult { // TODO use the last event
 			txEvent := TransactionEvent{}
-			json.Unmarshal([]byte(v.Data), &txEvent)
+			json.Unmarshal([]byte(v.Data), &txEvent) // TODO catch error
 			if txEvent.Status == TxExecutionSuccess {
 				result = true
 				break
@@ -777,7 +778,7 @@ func GetTransaction(hash byteutils.Hash, ws WorldState) (*Transaction, error) {
 }
 
 // HashTransaction hash the transaction.
-func HashTransaction(tx *Transaction) (byteutils.Hash, error) {
+func HashTransaction(tx *Transaction) (byteutils.Hash, error) { // TODO inter function
 	value, err := tx.value.ToFixedSizeByteSlice()
 	if err != nil {
 		return nil, err
@@ -794,7 +795,7 @@ func HashTransaction(tx *Transaction) (byteutils.Hash, error) {
 	if err != nil {
 		return nil, err
 	}
-	return hash.Sha3256(
+	return hash.Sha3256( // TODO use write & sum(nil)
 		tx.from.address,
 		tx.to.address,
 		value,

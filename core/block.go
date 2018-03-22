@@ -108,7 +108,7 @@ func (b *BlockHeader) FromProto(msg proto.Message) error {
 		b.coinbase = coinbase
 		b.timestamp = msg.Timestamp
 		b.chainID = msg.ChainId
-		b.alg = keystore.Algorithm(msg.Alg)
+		b.alg = keystore.Algorithm(msg.Alg) // TODO: check category
 		b.sign = msg.Sign
 		return nil
 	}
@@ -186,7 +186,7 @@ func (block *Block) FromProto(msg proto.Message) error {
 			block.transactions[idx] = tx
 		}
 		block.dependency = dag.NewDag()
-		if err := block.dependency.FromProto(msg.Dependency); err != nil {
+		if err := block.dependency.FromProto(msg.Dependency); err != nil { // TODO: check nil in all FromProto, add unit tests
 			return err
 		}
 		block.height = msg.Height
@@ -224,9 +224,6 @@ func NewBlock(chainID uint32, coinbase *Address, parent *Block) (*Block, error) 
 		storage:      parent.storage,
 	}
 
-	logging.CLog().Info("New", block.WorldState().AccountsRoot())
-	logging.CLog().Info("New", block.parentBlock)
-
 	if err := block.Begin(); err != nil {
 		return nil, err
 	}
@@ -238,7 +235,7 @@ func NewBlock(chainID uint32, coinbase *Address, parent *Block) (*Block, error) 
 }
 
 // Sign sign transaction,sign algorithm is
-func (block *Block) Sign(signature keystore.Signature) error {
+func (block *Block) Sign(signature keystore.Signature) error { // TODO: check nil
 	sign, err := signature.Sign(block.header.hash)
 	if err != nil {
 		return err
@@ -351,10 +348,10 @@ func (block *Block) LinkParentBlock(chain *BlockChain, parentBlock *Block) error
 	}
 	block.WorldState().SetConsensusState(consensusState)
 
-	block.txPool = parentBlock.txPool
-	block.parentBlock = parentBlock
-	block.storage = parentBlock.storage
 	block.height = parentBlock.height + 1
+	block.parentBlock = parentBlock
+	block.txPool = parentBlock.txPool
+	block.storage = parentBlock.storage
 	block.eventEmitter = parentBlock.eventEmitter
 	block.nvm = parentBlock.nvm
 
@@ -421,8 +418,9 @@ func (block *Block) CollectTransactions(deadlineInMs int64) {
 	toBlacklist := new(sync.Map)
 
 	parallelCh := make(chan bool, 32)
-	mergeCh := make(chan bool, 1)
+	mergeCh := make(chan bool, 1) // TODO: add comments in all usage of mergeCh
 	over := false
+
 	try := 0
 	fetch := 0
 	failed := 0
@@ -434,7 +432,6 @@ func (block *Block) CollectTransactions(deadlineInMs int64) {
 	execute := int64(0)
 	update := int64(0)
 	parallel := 0
-
 	packings := []int64{}
 
 	go func() {
@@ -465,7 +462,7 @@ func (block *Block) CollectTransactions(deadlineInMs int64) {
 				defer func() {
 					endAt := time.Now().UnixNano()
 					packing += endAt - startAt
-					packings = append(packings, int64(tx.Nonce()))
+					packings = append(packings, int64(tx.Nonce())) // TODO: delete
 					packings = append(packings, startAt)
 					packings = append(packings, endAt)
 					<-parallelCh
@@ -494,7 +491,7 @@ func (block *Block) CollectTransactions(deadlineInMs int64) {
 						"block": block,
 						"tx":    tx,
 						"err":   err,
-					}).Debug("Failed to prepare tx.")
+					}).Debug("Failed to prepare tx.") // TODO: push back tx
 					fromBlacklist.Delete(tx.from.address.Hex())
 					fromBlacklist.Delete(tx.to.address.Hex())
 					toBlacklist.Delete(tx.from.address.Hex())
@@ -505,7 +502,7 @@ func (block *Block) CollectTransactions(deadlineInMs int64) {
 				<-mergeCh
 
 				executeAt := time.Now().UnixNano()
-				giveback, err := block.ExecuteTransaction(tx, txWorldState)
+				giveback, err := block.ExecuteTransaction(tx, txWorldState) // TODO: move giveback logic into Execution
 				executedAt := time.Now().UnixNano()
 				execute += executedAt - executeAt
 				if err != nil {
@@ -514,7 +511,7 @@ func (block *Block) CollectTransactions(deadlineInMs int64) {
 						"err":      err,
 						"giveback": giveback,
 					}).Debug("invalid tx.")
-					unpacked++
+					unpacked++ // TODO close txWorldState
 
 					if giveback || err == mvccdb.ErrPreparedDBIsClosed {
 						if err := pool.Push(tx); err != nil {
@@ -524,15 +521,15 @@ func (block *Block) CollectTransactions(deadlineInMs int64) {
 								"err":   err,
 							}).Debug("Failed to giveback the tx.")
 						}
-						failed++
-						fromBlacklist.Delete(tx.to.address.Hex())
+						failed++                                  // TODO move out of if-else
+						fromBlacklist.Delete(tx.to.address.Hex()) // TODO: add comment, why not remove tx.from
 						toBlacklist.Delete(tx.to.address.Hex())
 					} else {
 						fromBlacklist.Delete(tx.from.address.Hex())
 						fromBlacklist.Delete(tx.to.address.Hex())
 						toBlacklist.Delete(tx.from.address.Hex())
 						toBlacklist.Delete(tx.to.address.Hex())
-					}
+					} // TODO: return directly
 				} else {
 					mergeCh <- true
 					if over {
@@ -557,7 +554,7 @@ func (block *Block) CollectTransactions(deadlineInMs int64) {
 							"err":        err,
 							"giveback":   giveback,
 							"dependency": dependency,
-						}).Debug("CheckAndUpdate invalid tx.")
+						}).Debug("CheckAndUpdate invalid tx.") // TODO: release mergeCh
 						unpacked++
 
 						if err := txWorldState.Close(); err != nil {
@@ -578,7 +575,7 @@ func (block *Block) CollectTransactions(deadlineInMs int64) {
 						fromBlacklist.Delete(tx.from.address.Hex())
 						fromBlacklist.Delete(tx.to.address.Hex())
 						toBlacklist.Delete(tx.from.address.Hex())
-						toBlacklist.Delete(tx.to.address.Hex())
+						toBlacklist.Delete(tx.to.address.Hex()) // TODO: return directly
 
 					} else {
 						logging.CLog().WithFields(logrus.Fields{
@@ -595,7 +592,7 @@ func (block *Block) CollectTransactions(deadlineInMs int64) {
 						fromBlacklist.Delete(tx.from.address.Hex())
 						fromBlacklist.Delete(tx.to.address.Hex())
 						toBlacklist.Delete(tx.from.address.Hex())
-						toBlacklist.Delete(tx.to.address.Hex())
+						toBlacklist.Delete(tx.to.address.Hex()) // TODO: release mergeCh, return directly
 					}
 					<-mergeCh
 				}
@@ -611,7 +608,7 @@ func (block *Block) CollectTransactions(deadlineInMs int64) {
 	mergeCh <- true
 	over = true
 	block.transactions = transactions
-	block.dependency = dag
+	block.dependency = dag // TODO: release mergeCh
 	size := int64(len(block.transactions))
 	if size == 0 {
 		size = 1
@@ -628,7 +625,7 @@ func (block *Block) CollectTransactions(deadlineInMs int64) {
 		"conflict":     conflict,
 		"fetch":        fetch,
 		"bucket":       bucket,
-		"averPacking":  averPacking,
+		"averPacking":  averPacking, // TODO: aver -> avg
 		"averPrepare":  averPrepare,
 		"averExecute":  averExecute,
 		"averUpdate":   averUpdate,
@@ -643,7 +640,7 @@ func (block *Block) CollectTransactions(deadlineInMs int64) {
 
 	// for i := 0; i < len(packings); i += 3 {
 	// 	logging.CLog().Infof("Packing Tx:%d, startAt:%d, endAt: %d, diff:%d", packings[i], packings[i+1], packings[i+2], packings[i+2]-packings[i+1])
-	// }
+	// } // TODO: delete
 	<-mergeCh
 }
 
@@ -661,10 +658,10 @@ func (block *Block) Seal() error {
 	}
 
 	if err := block.rewardCoinbaseForGas(); err != nil {
-		return err
+		return err // TODO: giveback txs
 	}
 	if err := block.WorldState().Flush(); err != nil {
-		return err
+		return err // TODO: giveback txs
 	}
 	block.header.stateRoot = block.WorldState().AccountsRoot()
 	block.header.txsRoot = block.WorldState().TxsRoot()
@@ -682,7 +679,7 @@ func (block *Block) Seal() error {
 		"block": block,
 	}).Info("Sealed Block.")
 
-	block.RollBack()
+	block.RollBack() // TODO: defer, rollback
 
 	metricsTxPackedCount.Update(0)
 	metricsTxUnpackedCount.Update(0)
@@ -963,7 +960,7 @@ func (block *Block) rewardCoinbaseForGas() error {
 	worldState := block.WorldState()
 	coinbaseAddr := (byteutils.Hash)(block.Coinbase().Bytes())
 
-	logging.VLog().Info("rewardCoinbaseForGas")
+	logging.VLog().Info("rewardCoinbaseForGas") // TODO: delete
 	gasConsumed := worldState.GetGas()
 	for from, gas := range gasConsumed {
 		fromAddr, err := byteutils.FromHex(from)
@@ -980,7 +977,7 @@ func (block *Block) rewardCoinbaseForGas() error {
 }
 
 // ExecuteTransaction execute the transaction
-func (block *Block) ExecuteTransaction(tx *Transaction, ws WorldState) (bool, error) {
+func (block *Block) ExecuteTransaction(tx *Transaction, ws WorldState) (bool, error) { // TODO system error: giveback, logic error: drop
 	if giveback, err := CheckTransaction(tx, ws); err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"tx":  tx,
@@ -1028,7 +1025,7 @@ func (block *Block) GetTransaction(hash byteutils.Hash) (*Transaction, error) {
 }
 
 // HashBlock return the hash of block.
-func HashBlock(block *Block) (byteutils.Hash, error) {
+func HashBlock(block *Block) (byteutils.Hash, error) { // TODO inter function
 	hasher := sha3.New256()
 
 	consensusRoot, err := proto.Marshal(block.ConsensusRoot())
@@ -1061,7 +1058,7 @@ func HashPbBlock(pbBlock *corepb.Block) (byteutils.Hash, error) { //ToAdd nil ch
 		return nil, err
 	}
 
-	hasher.Write(pbBlock.Header.ParentHash)
+	hasher.Write(pbBlock.Header.ParentHash) // TODO check header isn't nil
 	hasher.Write(pbBlock.Header.StateRoot)
 	hasher.Write(pbBlock.Header.TxsRoot)
 	hasher.Write(pbBlock.Header.EventsRoot)
@@ -1078,7 +1075,7 @@ func HashPbBlock(pbBlock *corepb.Block) (byteutils.Hash, error) { //ToAdd nil ch
 }
 
 // RecoverMiner return miner from block
-func RecoverMiner(block *Block) (*Address, error) {
+func RecoverMiner(block *Block) (*Address, error) { // TODO move to core/crypto.go.
 	signature, err := crypto.NewSignature(keystore.Algorithm(block.Alg()))
 	if err != nil {
 		return nil, err

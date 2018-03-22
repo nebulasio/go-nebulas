@@ -46,7 +46,7 @@ func newChangeLog() (*mvccdb.MVCCDB, error) {
 	return db, nil
 }
 
-func newStorage(storage storage.Storage) (*mvccdb.MVCCDB, error) {
+func newStorage(storage storage.Storage) (*mvccdb.MVCCDB, error) { // TODO rename NewStateDB
 	return mvccdb.NewMVCCDB(storage, true)
 }
 
@@ -58,8 +58,8 @@ type states struct {
 
 	consensus Consensus
 	changelog *mvccdb.MVCCDB
-	storage   *mvccdb.MVCCDB
-	db        storage.Storage
+	storage   *mvccdb.MVCCDB  // TODO renmae stateDB
+	db        storage.Storage // TODO rename interStorage
 	txid      interface{}
 
 	gasConsumed map[string]*util.Uint128
@@ -112,7 +112,7 @@ func newStates(consensus Consensus, stor storage.Storage) (*states, error) {
 }
 
 func (s *states) Replay(done *states) error {
-	logging.CLog().Info("WS Replay MVCCDB: ", s.txid)
+	// logging.CLog().Info("WS Replay MVCCDB: ", s.txid)
 	err := s.accState.Replay(done.accState)
 	if err != nil {
 		return err
@@ -137,7 +137,7 @@ func (s *states) Replay(done *states) error {
 			consumed = util.NewUint128()
 		}
 		var err error
-		s.gasConsumed[from], err = consumed.Add(gas)
+		s.gasConsumed[from], err = consumed.Add(gas) // TODO use tmp var, assign if success
 		if err != nil {
 			return err
 		}
@@ -177,7 +177,7 @@ func (s *states) ReplayEvent(done *states) error {
 }
 
 func (s *states) Clone() (*states, error) {
-	logging.CLog().Info("WS Clone MVCCDB: ", s.txid)
+	// logging.CLog().Info("WS Clone MVCCDB: ", s.txid)
 	changelog, err := newChangeLog()
 	if err != nil {
 		logging.CLog().Info("CE 1")
@@ -228,7 +228,7 @@ func (s *states) Clone() (*states, error) {
 }
 
 func (s *states) Begin() error {
-	logging.CLog().Info("WS Begin MVCCDB: ", s.txid)
+	// logging.CLog().Info("WS Begin MVCCDB: ", s.txid)
 	if err := s.changelog.Begin(); err != nil {
 		logging.CLog().Info("BE 11")
 		return err
@@ -241,11 +241,11 @@ func (s *states) Begin() error {
 }
 
 func (s *states) Commit() error {
-	logging.CLog().Info("WS Commit MVCCDB: ", s.txid)
+	// logging.CLog().Info("WS Commit MVCCDB: ", s.txid)
 	if err := s.Flush(); err != nil {
 		return err
 	}
-	if err := s.changelog.RollBack(); err != nil {
+	if err := s.changelog.RollBack(); err != nil { // TODO add comment
 		return err
 	}
 	if err := s.storage.Commit(); err != nil {
@@ -258,7 +258,7 @@ func (s *states) Commit() error {
 }
 
 func (s *states) RollBack() error {
-	logging.CLog().Info("WS Rollback MVCCDB: ", s.txid)
+	// logging.CLog().Info("WS Rollback MVCCDB: ", s.txid)
 	if err := s.Abort(); err != nil {
 		return err
 	}
@@ -275,7 +275,7 @@ func (s *states) RollBack() error {
 }
 
 func (s *states) Prepare(txid interface{}) (*states, error) {
-	logging.CLog().Info("WS Prepare MVCCDB: ", txid)
+	// logging.CLog().Info("WS Prepare MVCCDB: ", txid)
 	changelog, err := s.changelog.Prepare(txid)
 	if err != nil {
 		logging.VLog().Info("PPE 11")
@@ -287,7 +287,7 @@ func (s *states) Prepare(txid interface{}) (*states, error) {
 		return nil, err
 	}
 
-	if err := s.Flush(); err != nil {
+	if err := s.Flush(); err != nil { // TODO: add comment
 		return nil, err
 	}
 
@@ -326,13 +326,13 @@ func (s *states) Prepare(txid interface{}) (*states, error) {
 }
 
 func (s *states) CheckAndUpdateTo(parent *states) ([]interface{}, error) {
-	logging.CLog().Info("WS CheckAndUpdateTo MVCCDB: ", s.txid)
+	// logging.CLog().Info("WS CheckAndUpdateTo MVCCDB: ", s.txid)
 	dependency, err := s.changelog.CheckAndUpdate()
 	if err != nil {
 		logging.VLog().Info("CUE 11")
 		return nil, err
 	}
-	_, err = s.storage.CheckAndUpdate()
+	_, err = s.storage.CheckAndUpdate() // TODO delete
 	if err != nil {
 		logging.VLog().Info("CUE 12")
 		return nil, err
@@ -344,7 +344,7 @@ func (s *states) CheckAndUpdateTo(parent *states) ([]interface{}, error) {
 }
 
 func (s *states) Reset() error {
-	logging.CLog().Info("WS Reset MVCCDB: ", s.txid)
+	// logging.CLog().Info("WS Reset MVCCDB: ", s.txid)
 	if err := s.changelog.Reset(); err != nil {
 		logging.VLog().Info("RSE 11")
 		return err
@@ -360,7 +360,7 @@ func (s *states) Reset() error {
 }
 
 func (s *states) Close() error {
-	logging.CLog().Info("WS Close MVCCDB: ", s.txid)
+	// logging.CLog().Info("WS Close MVCCDB: ", s.txid)
 	if err := s.changelog.Close(); err != nil {
 		logging.VLog().Info("CSE 11")
 		return err
@@ -396,7 +396,7 @@ func (s *states) Flush() error {
 }
 
 func (s *states) Abort() error {
-	return s.accState.Abort() // TODO: Abort txsState, eventsState, consensusState
+	return s.accState.Abort() // TODO: Abort txsState, eventsState, consensusState // TODO: add comment, why success
 }
 
 func (s *states) recordAccount(acc Account) (Account, error) {
@@ -473,7 +473,7 @@ func (s *states) RecordEvent(txHash byteutils.Hash, event *Event) error {
 		events = make([]*Event, 0)
 	}
 
-	cnt := int64(len(s.events) + 1)
+	cnt := int64(len(events) + 1)
 
 	key := append(txHash, byteutils.FromInt64(cnt)...)
 	bytes, err := json.Marshal(event)
@@ -484,14 +484,14 @@ func (s *states) RecordEvent(txHash byteutils.Hash, event *Event) error {
 	s.events[txHash.String()] = append(events, event)
 
 	// record change log
-	if err := s.changelog.Put(key, bytes); err != nil {
+	if err := s.changelog.Put(key, bytes); err != nil { // TODO value can be any value
 		logging.VLog().Info("REE 12")
 		return err
 	}
 	return nil
 }
 
-func (s *states) FetchCacheEventsOfCurBlock(txHash byteutils.Hash) ([]*Event, error) {
+func (s *states) FetchCacheEventsOfCurBlock(txHash byteutils.Hash) ([]*Event, error) { // TODO delete, & interface
 	txevents, ok := s.events[txHash.String()]
 	if !ok {
 		return nil, nil
@@ -511,7 +511,7 @@ func (s *states) FetchEvents(txHash byteutils.Hash) ([]*Event, error) {
 	if err != nil && err != storage.ErrKeyNotFound {
 		return nil, err
 	}
-	if err != storage.ErrKeyNotFound {
+	if err != storage.ErrKeyNotFound { // TODO -> err == nil
 		exist, err := iter.Next()
 		if err != nil {
 			logging.VLog().Info("FEE 11")
@@ -526,7 +526,7 @@ func (s *states) FetchEvents(txHash byteutils.Hash) ([]*Event, error) {
 			}
 			events = append(events, event)
 			// record change log
-			if _, err := s.changelog.Get(iter.Key()); err != nil && err != storage.ErrKeyNotFound {
+			if _, err := s.changelog.Get(iter.Key()); err != nil && err != storage.ErrKeyNotFound { // TODO remove events & txs changelog
 				logging.VLog().Info("FEE 13")
 				return nil, err
 			}
@@ -548,7 +548,7 @@ func (s *states) DynastyRoot() byteutils.Hash {
 	return s.consensusState.DynastyRoot()
 }
 
-func (s *states) Accounts() ([]Account, error) {
+func (s *states) Accounts() ([]Account, error) { // TODO delete
 	return s.accState.Accounts()
 }
 
@@ -594,7 +594,7 @@ func (s *states) RecordGas(from string, gas *util.Uint128) error {
 		consumed = util.NewUint128()
 	}
 	var err error
-	s.gasConsumed[from], err = consumed.Add(gas)
+	s.gasConsumed[from], err = consumed.Add(gas) // TODO use tmp var, assign if success
 
 	return err
 }

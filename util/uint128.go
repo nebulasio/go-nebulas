@@ -32,7 +32,7 @@ var (
 // For arithmetic operations, use uint128.Int.Add()/Sub()/Mul()/Div()/etc.
 // For example, u1.Add(u1.Int, u2.Int) sets u1 to u1 + u2.
 type Uint128 struct {
-	*big.Int
+	*big.Int // TODO use: content *big.Int. Keep it immutable.
 }
 
 // Validate returns error if u is not a valid uint128, otherwise returns nil.

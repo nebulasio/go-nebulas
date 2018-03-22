@@ -139,7 +139,7 @@ func NewBlockChain(neb Neblet) (*BlockChain, error) {
 		quitCh:       make(chan int, 1),
 	}
 
-	bc.cachedBlocks, err = lru.NewWithEvict(4096, func(key interface{}, value interface{}) {
+	bc.cachedBlocks, err = lru.NewWithEvict(1024, func(key interface{}, value interface{}) {
 		block := value.(*Block)
 		if block != nil {
 			block.Dispose()
@@ -149,7 +149,7 @@ func NewBlockChain(neb Neblet) (*BlockChain, error) {
 		return nil, err
 	}
 
-	bc.detachedTailBlocks, err = lru.NewWithEvict(1024, func(key interface{}, value interface{}) {
+	bc.detachedTailBlocks, err = lru.NewWithEvict(100, func(key interface{}, value interface{}) {
 		block := value.(*Block)
 		if block != nil {
 			block.Dispose()
@@ -617,7 +617,7 @@ func (bc *BlockChain) GetTransaction(hash byteutils.Hash) *Transaction {
 
 // GasPrice returns the lowest transaction gas price.
 func (bc *BlockChain) GasPrice() *util.Uint128 {
-	gasPrice := TransactionMaxGasPrice
+	gasPrice := TransactionMaxGasPrice // TODO use default value, not max value
 	tailBlock := bc.TailBlock()
 	for {
 		// if the block is genesis, stop find the parent block
@@ -646,7 +646,7 @@ func (bc *BlockChain) GasPrice() *util.Uint128 {
 }
 
 // EstimateGas returns the transaction gas cost
-func (bc *BlockChain) EstimateGas(tx *Transaction) (*util.Uint128, string, error) {
+func (bc *BlockChain) EstimateGas(tx *Transaction) (*util.Uint128, string, error) { // TODO use SimulateTransactionExecution
 	if tx == nil {
 		return nil, "", ErrInvalidArgument
 	}
@@ -658,7 +658,7 @@ func (bc *BlockChain) EstimateGas(tx *Transaction) (*util.Uint128, string, error
 	}
 	tx.hash = hash
 
-	block, err := bc.NewBlock(GenesisCoinbase)
+	block, err := bc.NewBlock(GenesisCoinbase) // TODO
 	if err != nil {
 		return util.NewUint128(), "", err
 	}
@@ -666,6 +666,36 @@ func (bc *BlockChain) EstimateGas(tx *Transaction) (*util.Uint128, string, error
 	block.RollBack()
 	return gas, result, err
 }
+
+/* func SimulateTransactionExecution(tx *Transaction) {
+	block := chain.NewBlock()
+	defer block.Rollback()
+
+	minGasExpected = tx.CalculateMinGasExpected()
+	value = tx.value
+
+	var err error
+	account := tx.GetFrom()
+
+	// if smart contract
+	gasLimited := MaxGasLimit
+	smartContractAs.AddBalance(value)
+	gasUsed, err := tx.payload.Execute(gasLimit)
+	if err != nil {
+		return minGasExpected+gasUsed, err
+	}
+
+	minGasExpected += gasUsed
+
+	if account.balance().Cmp(value + minGasExpected)) < 0 {
+		err = "insuffient balance"
+	}
+	if err != nil {
+		return minGasExpected, err
+	}
+
+	return minGasExpected, err, nil
+} */
 
 // Dump dump full chain.
 func (bc *BlockChain) Dump(count int) string {

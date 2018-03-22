@@ -525,6 +525,12 @@
   revision = "68a29f5e29b18d7367e686c43cf74eba1900f548"
 
 [[projects]]
+  name = "github.com/rs/cors"
+  packages = ["."]
+  revision = "feef513b9575b32f84bafa580aad89b011259019"
+  version = "v1.3.0"
+
+[[projects]]
   name = "github.com/satori/go.uuid"
   packages = ["."]
   revision = "879c5887cd475cd7864858769793b2ceb0d44feb"
@@ -780,6 +786,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "c53971fed6c659fbb77a52a528845a4b88341363ffca9b3ea5cf16cb7c192544"
+  inputs-digest = "f94e4f50a50da2f87a4c580e1bfbc43650c16ee8388cf5b9301c531ecc39bf93"
   solver-name = "gps-cdcl"
   solver-version = 1

@@ -150,7 +150,7 @@ func (acc *account) SubBalance(value *util.Uint128) error {
 	if acc.balance.Cmp(value) < 0 {
 		err = ErrBalanceInsufficient
 	} else {
-		acc.balance, err = acc.balance.Sub(value)
+		acc.balance, err = acc.balance.Sub(value) // TODO use tmp balance, if success then assign
 	}
 	return err
 }
@@ -198,7 +198,7 @@ type accountState struct {
 }
 
 // NewAccountState create a new account state
-func NewAccountState(root byteutils.Hash, storage storage.Storage, needChangeLog bool) (AccountState, error) {
+func NewAccountState(root byteutils.Hash, storage storage.Storage, needChangeLog bool) (AccountState, error) { // TODO remove needChangeLog
 	stateTrie, err := trie.NewTrie(root, storage, needChangeLog)
 	if err != nil {
 		logging.CLog().Info("NASE 1", err)
@@ -239,7 +239,7 @@ func (as *accountState) getAccount(addr byteutils.Hash) (Account, error) {
 	}
 	// search in storage
 	bytes, err := as.stateTrie.Get(addr)
-	if err == nil {
+	if err == nil { // TODO err type: not found or real err.
 		acc := new(account)
 		err = acc.FromBytes(bytes, as.storage)
 		if err != nil {
@@ -280,7 +280,7 @@ func (as *accountState) RootHash() byteutils.Hash {
 // GetOrCreateUserAccount according to the addr
 func (as *accountState) GetOrCreateUserAccount(addr byteutils.Hash) (Account, error) {
 	acc, err := as.getAccount(addr)
-	if err != nil {
+	if err != nil { // TODO diff ErrAccountNotFound
 		acc, err := as.newAccount(addr, nil)
 		if err != nil {
 			return nil, err
@@ -305,7 +305,7 @@ func (as *accountState) CreateContractAccount(addr byteutils.Hash, birthPlace by
 	return as.newAccount(addr, birthPlace)
 }
 
-func (as *accountState) Accounts() ([]Account, error) {
+func (as *accountState) Accounts() ([]Account, error) { // TODO delete
 	accounts := []Account{}
 	iter, err := as.stateTrie.Iterator(nil)
 	if err != nil && err != storage.ErrKeyNotFound {
@@ -368,7 +368,7 @@ func (as *accountState) Clone() (AccountState, error) {
 
 	return &accountState{
 		stateTrie:    stateTrie,
-		dirtyAccount: dirtyAccount,
+		dirtyAccount: dirtyAccount, // TODO add storage
 	}, nil
 }
 
