@@ -115,7 +115,7 @@ func (dpos *Dpos) Setup(neblet core.Neblet) error {
 		dpos.miner = miner
 	}
 
-	slot, err := lru.NewWithEvict(1024, func(key interface{}, value interface{}) {
+	slot, err := lru.NewWithEvict(128, func(key interface{}, value interface{}) {
 		block := value.(*core.Block)
 		if block != nil {
 			block.Dispose()
