@@ -432,7 +432,7 @@ func (block *Block) CollectTransactions(deadlineInMs int64) {
 	execute := int64(0)
 	update := int64(0)
 	parallel := 0
-	packings := []int64{}
+	beginAt := time.Now().UnixNano()
 
 	go func() {
 		for {
@@ -462,9 +462,6 @@ func (block *Block) CollectTransactions(deadlineInMs int64) {
 				defer func() {
 					endAt := time.Now().UnixNano()
 					packing += endAt - startAt
-					packings = append(packings, int64(tx.Nonce())) // TODO: delete
-					packings = append(packings, startAt)
-					packings = append(packings, endAt)
 					<-parallelCh
 				}()
 
@@ -609,6 +606,8 @@ func (block *Block) CollectTransactions(deadlineInMs int64) {
 	over = true
 	block.transactions = transactions
 	block.dependency = dag // TODO: release mergeCh
+
+	overAt := time.Now().UnixNano()
 	size := int64(len(block.transactions))
 	if size == 0 {
 		size = 1
@@ -634,13 +633,11 @@ func (block *Block) CollectTransactions(deadlineInMs int64) {
 		"execute":      execute,
 		"prepare":      prepare,
 		"update":       update,
+		"diff-all":     overAt - beginAt,
 		"core-packing": execute + prepare + update,
 		"packed":       len(block.transactions),
 	}).Info("CollectTransactions")
 
-	// for i := 0; i < len(packings); i += 3 {
-	// 	logging.CLog().Infof("Packing Tx:%d, startAt:%d, endAt: %d, diff:%d", packings[i], packings[i+1], packings[i+2], packings[i+2]-packings[i+1])
-	// } // TODO: delete
 	<-mergeCh
 }
 
