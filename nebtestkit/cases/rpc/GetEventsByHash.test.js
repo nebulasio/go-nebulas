@@ -60,7 +60,10 @@ function testGetEventsByHash(testInput, testExpect, done) {
 
 function checkTx(hash, done) {
     client.GetTransactionReceipt({hash: txhash}, (err, resp) => {
-        if (resp.status == 2) {
+        console.log("err: " + JSON.stringify(err))
+        console.log("resp: " + JSON.stringify(resp))
+        
+        if ((err && expect(err).to.have.property("details").equal("transaction not found")) || resp.status == 2) {
             setTimeout(() => {
                 checkTx(hash, done)
             }, 2000); 
@@ -132,7 +135,7 @@ describe("rpc: GetEventsByHash", () => {
 
         var testExpect = {
             hasError: true,
-            errorMsg: 'not found'
+            errorMsg: 'invalid argument(s)'
         }
 
         testGetEventsByHash(testInput, testExpect, done);
