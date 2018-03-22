@@ -88,7 +88,7 @@ func TestUint128(t *testing.T) {
 			continue
 		}
 		fsb, err := u1.ToFixedSizeBytes()
-		fmt.Println("uint128.Int =", u1.Int, "bitlen =", u1.BitLen(), "[]bytes =", u1.Bytes(), "[16]bytes =", fsb, "err =", err)
+		fmt.Println("uint128.Int =", u1.value, "bitlen =", u1.value.BitLen(), "[]bytes =", u1.Bytes(), "[16]bytes =", fsb, "err =", err)
 
 		if tt.expectedErr != nil {
 			assert.Equal(t, tt.expectedErr, err)
@@ -107,7 +107,7 @@ func TestUint128Operation(t *testing.T) {
 	a, _ := NewUint128FromInt(10)
 	b, _ := NewUint128FromInt(9)
 	tmp := NewUint128FromUint(uint64(1 << 63))
-	assert.Equal(t, tmp.Bytes(), []byte{0x80, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0})
+	assert.Equal(t, tmp.value.Bytes(), []byte{0x80, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0})
 
 	sumExpect, _ := NewUint128FromInt(19)
 	sumResult, _ := a.Add(b)
@@ -130,7 +130,7 @@ func TestUint128Operation(t *testing.T) {
 	assert.Equal(t, powerExpect.Bytes(), powerResult.Bytes())
 
 	c := a.DeepCopy()
-	c.Int.SetUint64(2)
+	c.value.SetUint64(2)
 	assert.NotEqual(t, a.Bytes(), c.Bytes())
 
 	assert.Equal(t, a.Cmp(b), 1)

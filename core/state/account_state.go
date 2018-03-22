@@ -183,7 +183,7 @@ func (acc *account) String() string {
 	return fmt.Sprintf("Account %p {Address: %v, Balance:%v; Nonce:%v; VarsHash:%v; BirthPlace:%v}",
 		acc,
 		byteutils.Hex(acc.address),
-		acc.balance.Int,
+		acc.balance,
 		acc.nonce,
 		byteutils.Hex(acc.variables.RootHash()),
 		acc.birthPlace.Hex(),
