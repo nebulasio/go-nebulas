@@ -22,6 +22,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/nebulasio/go-nebulas/core/state"
+
 	"github.com/gogo/protobuf/proto"
 	lru "github.com/hashicorp/golang-lru"
 	"github.com/nebulasio/go-nebulas/core/pb"
@@ -64,7 +66,7 @@ type BlockChain struct {
 
 	eventEmitter *EventEmitter
 
-	nvm Engine
+	nvm NVM
 
 	quitCh chan int
 }
@@ -118,7 +120,10 @@ func NewBlockChain(neb Neblet) (*BlockChain, error) {
 	}
 	blockPool.RegisterInNetwork(neb.NetService())
 
-	txPool := NewTransactionPool(40960)
+	txPool, err := NewTransactionPool(40960)
+	if err != nil {
+		return nil, err
+	}
 	txPool.setEventEmitter(neb.EventEmitter())
 	txPool.SetGasConfig(gasPrice, gasLimit)
 	txPool.RegisterInNetwork(neb.NetService())
@@ -134,7 +139,7 @@ func NewBlockChain(neb Neblet) (*BlockChain, error) {
 		quitCh:       make(chan int, 1),
 	}
 
-	bc.cachedBlocks, err = lru.NewWithEvict(4096, func(key interface{}, value interface{}) {
+	bc.cachedBlocks, err = lru.NewWithEvict(1024, func(key interface{}, value interface{}) {
 		block := value.(*Block)
 		if block != nil {
 			block.Dispose()
@@ -144,15 +149,12 @@ func NewBlockChain(neb Neblet) (*BlockChain, error) {
 		return nil, err
 	}
 
-	bc.detachedTailBlocks, err = lru.NewWithEvict(1024, func(key interface{}, value interface{}) {
+	bc.detachedTailBlocks, err = lru.NewWithEvict(100, func(key interface{}, value interface{}) {
 		block := value.(*Block)
 		if block != nil {
 			block.Dispose()
 		}
 	})
-	if err != nil {
-		return nil, err
-	}
 
 	bc.bkPool.setBlockChain(bc)
 	bc.txPool.setBlockChain(bc)
@@ -161,13 +163,14 @@ func NewBlockChain(neb Neblet) (*BlockChain, error) {
 }
 
 // Setup the blockchain
-func (bc *BlockChain) Setup(neb Neblet) (err error) {
+func (bc *BlockChain) Setup(neb Neblet) error {
 	bc.consensusHandler = neb.Consensus()
 
 	if err := bc.CheckGenesisConfig(neb); err != nil {
 		return err
 	}
 
+	var err error
 	bc.genesisBlock, err = bc.LoadGenesisFromStorage()
 	if err != nil {
 		return err
@@ -214,7 +217,9 @@ func (bc *BlockChain) loop() {
 			logging.CLog().Info("Stopped BlockChain.")
 			return
 		case <-timerChan:
-			bc.consensusHandler.UpdateLIB()
+			bc.ConsensusHandler().UpdateLIB()
+			metricsLruCacheBlock.Update(int64(bc.cachedBlocks.Len()))
+			metricsLruTailBlock.Update(int64(bc.detachedTailBlocks.Len()))
 		}
 	}
 }
@@ -243,6 +248,11 @@ func (bc *BlockChain) CheckGenesisConfig(neb Neblet) error {
 		return CheckGenesisConfByDB(genesis, neb.Genesis())
 	}
 
+	logging.CLog().WithFields(logrus.Fields{
+		"meta.chainid":           neb.Genesis().Meta.ChainId,
+		"consensus.dpos.dynasty": neb.Genesis().Consensus.Dpos.Dynasty,
+		"token.distribution":     neb.Genesis().TokenDistribution,
+	}).Info("Genesis Configuration.")
 	return nil
 }
 
@@ -264,6 +274,16 @@ func (bc *BlockChain) GenesisBlock() *Block {
 // TailBlock return the tail block.
 func (bc *BlockChain) TailBlock() *Block {
 	return bc.tailBlock
+}
+
+// LIB return the latest irrversible block
+func (bc *BlockChain) LIB() *Block {
+	return bc.lib
+}
+
+// SetLIB update the latest irrversible block
+func (bc *BlockChain) SetLIB(lib *Block) {
+	bc.lib = lib
 }
 
 // EventEmitter return the eventEmitter.
@@ -343,7 +363,7 @@ func (bc *BlockChain) SetTailBlock(newTail *Block) error {
 	}
 
 	go func() {
-		bc.eventEmitter.Trigger(&Event{
+		bc.eventEmitter.Trigger(&state.Event{
 			Topic: TopicRevertBlock,
 			Data:  oldTail.String(),
 		})
@@ -360,13 +380,13 @@ func (bc *BlockChain) SetTailBlock(newTail *Block) error {
 	}
 
 	// record new tail
-	if err := bc.StoreTailHashToStorage(newTail); err != nil {
+	if err := bc.StoreTailHashToStorage(newTail); err != nil { // Refine: rename, delete ToStorage
 		return err
 	}
 	bc.tailBlock = newTail
 
 	go func() {
-		bc.eventEmitter.Trigger(&Event{
+		bc.eventEmitter.Trigger(&state.Event{
 			Topic: TopicNewTailBlock,
 			Data:  newTail.String(),
 		})
@@ -385,16 +405,6 @@ func (bc *BlockChain) SetTailBlock(newTail *Block) error {
 	metricsBlocktailHashGauge.Update(int64(byteutils.HashBytes(newTail.Hash())))
 
 	return nil
-}
-
-// LIB return the latest irreversible block
-func (bc *BlockChain) LIB() *Block {
-	return bc.lib
-}
-
-// SetLIB update the latest irrversible block
-func (bc *BlockChain) SetLIB(lib *Block) {
-	bc.lib = lib
 }
 
 // GetBlockOnCanonicalChainByHeight return block in given height
@@ -598,7 +608,7 @@ func (bc *BlockChain) GetBlock(hash byteutils.Hash) *Block {
 // GetTransaction return transaction of given hash from local storage.
 func (bc *BlockChain) GetTransaction(hash byteutils.Hash) *Transaction {
 	// TODO: get transaction err handle.
-	tx, err := bc.tailBlock.GetTransaction(hash)
+	tx, err := GetTransaction(hash, bc.TailBlock().WorldState())
 	if err != nil {
 		return nil
 	}
@@ -607,8 +617,8 @@ func (bc *BlockChain) GetTransaction(hash byteutils.Hash) *Transaction {
 
 // GasPrice returns the lowest transaction gas price.
 func (bc *BlockChain) GasPrice() *util.Uint128 {
-	gasPrice := TransactionMaxGasPrice
-	tailBlock := bc.tailBlock
+	gasPrice := TransactionMaxGasPrice // TODO use default value, not max value
+	tailBlock := bc.TailBlock()
 	for {
 		// if the block is genesis, stop find the parent block
 		if CheckGenesisBlock(tailBlock) {
@@ -636,35 +646,56 @@ func (bc *BlockChain) GasPrice() *util.Uint128 {
 }
 
 // EstimateGas returns the transaction gas cost
-func (bc *BlockChain) EstimateGas(tx *Transaction) (*util.Uint128, error) {
+func (bc *BlockChain) EstimateGas(tx *Transaction) (*util.Uint128, string, error) { // TODO use SimulateTransactionExecution
 	if tx == nil {
-		return nil, ErrInvalidArgument
+		return nil, "", ErrInvalidArgument
 	}
 
+	// hash is necessary in nvm
 	hash, err := HashTransaction(tx)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 	tx.hash = hash
 
-	gas, _, err := tx.LocalExecution(bc.tailBlock)
-	return gas, err
-}
-
-// Call returns the transaction call result
-func (bc *BlockChain) Call(tx *Transaction) (string, error) {
-	if tx == nil {
-		return "", ErrNilArgument
-	}
-	hash, err := HashTransaction(tx)
+	block, err := bc.NewBlock(GenesisCoinbase) // TODO
 	if err != nil {
-		return "", err
+		return util.NewUint128(), "", err
 	}
-	tx.hash = hash
-
-	_, result, err := tx.LocalExecution(bc.tailBlock)
-	return result, err
+	gas, result, err := tx.localExecution(block)
+	block.RollBack()
+	return gas, result, err
 }
+
+/* func SimulateTransactionExecution(tx *Transaction) {
+	block := chain.NewBlock()
+	defer block.Rollback()
+
+	minGasExpected = tx.CalculateMinGasExpected()
+	value = tx.value
+
+	var err error
+	account := tx.GetFrom()
+
+	// if smart contract
+	gasLimited := MaxGasLimit
+	smartContractAs.AddBalance(value)
+	gasUsed, err := tx.payload.Execute(gasLimit)
+	if err != nil {
+		return minGasExpected+gasUsed, err
+	}
+
+	minGasExpected += gasUsed
+
+	if account.balance().Cmp(value + minGasExpected)) < 0 {
+		err = "insuffient balance"
+	}
+	if err != nil {
+		return minGasExpected, err
+	}
+
+	return minGasExpected, err, nil
+} */
 
 // Dump dump full chain.
 func (bc *BlockChain) Dump(count int) string {
@@ -715,7 +746,6 @@ func (bc *BlockChain) LoadTailFromStorage() (*Block, error) {
 	if err != nil && err != storage.ErrKeyNotFound {
 		return nil, err
 	}
-
 	if err == storage.ErrKeyNotFound {
 		genesis, err := bc.LoadGenesisFromStorage()
 		if err != nil {
@@ -759,6 +789,9 @@ func (bc *BlockChain) LoadLIBFromStorage() (*Block, error) {
 	}
 
 	if err == storage.ErrKeyNotFound {
+		if err := bc.StoreLIBHashToStorage(bc.genesisBlock); err != nil {
+			return nil, err
+		}
 		return bc.genesisBlock, nil
 	}
 

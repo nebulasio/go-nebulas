@@ -118,8 +118,8 @@ function sendTransactionsForTps() {
 
         var node = nodes[i % nodes.length];
         neb.setRequest(new HttpRequest(node));
-
-        sendTransaction(0, EachAccountSendTimes, accountArray[i], null, "0.0001", 1, true /*random to addr*/);
+        var randomValue = Math.floor((Math.random() * 10));
+        sendTransaction(0, EachAccountSendTimes, accountArray[i], null, randomValue, 1, true /*random to addr*/);
         sleep(10);
     }
 }

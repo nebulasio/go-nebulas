@@ -43,7 +43,7 @@ func GetTxByHashFunc(handler unsafe.Pointer, hash *C.char) *C.char {
 	if err != nil {
 		return nil
 	}
-	tx, err := engine.ctx.block.GetTransaction(txHash)
+	txBytes, err := engine.ctx.state.GetTx(txHash)
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"handler": uint64(uintptr(handler)),
@@ -52,9 +52,22 @@ func GetTxByHashFunc(handler unsafe.Pointer, hash *C.char) *C.char {
 		}).Debug("GetTxByHashFunc get tx failed.")
 		return nil
 	}
-	sTx := toSerializableTransaction(tx)
+	sTx, err := toSerializableTransactionFromBytes(txBytes)
+	if err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"handler": uint64(uintptr(handler)),
+			"key":     C.GoString(hash),
+			"err":     err,
+		}).Debug("GetTxByHashFunc get tx failed.")
+		return nil
+	}
 	txJSON, err := json.Marshal(sTx)
 	if err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"handler": uint64(uintptr(handler)),
+			"key":     C.GoString(hash),
+			"err":     err,
+		}).Debug("GetTxByHashFunc get tx failed.")
 		return nil
 	}
 

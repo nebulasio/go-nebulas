@@ -23,14 +23,14 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// NetService service for nebulas p2p network
-type NetService struct {
+// NebService service for nebulas p2p network
+type NebService struct {
 	node       *Node
 	dispatcher *Dispatcher
 }
 
-// NewNetService create netService
-func NewNetService(n Neblet) (*NetService, error) {
+// NewNebService create netService
+func NewNebService(n Neblet) (*NebService, error) {
 	if networkConf := n.Config().GetNetwork(); networkConf == nil {
 		logging.CLog().Fatal("config.conf should has network")
 		return nil, ErrConfigLackNetWork
@@ -40,23 +40,23 @@ func NewNetService(n Neblet) (*NetService, error) {
 		return nil, err
 	}
 
-	ns := &NetService{
+	ns := &NebService{
 		node:       node,
 		dispatcher: NewDispatcher(),
 	}
-	node.SetNetService(ns)
+	node.SetNebService(ns)
 
 	return ns, nil
 }
 
 // Node return the peer node
-func (ns *NetService) Node() *Node {
+func (ns *NebService) Node() *Node {
 	return ns.node
 }
 
 // Start start p2p manager.
-func (ns *NetService) Start() error {
-	logging.CLog().Info("Starting NetService...")
+func (ns *NebService) Start() error {
+	logging.CLog().Info("Starting NebService...")
 
 	// start dispatcher.
 	ns.dispatcher.Start()
@@ -66,54 +66,54 @@ func (ns *NetService) Start() error {
 		ns.dispatcher.Stop()
 		logging.CLog().WithFields(logrus.Fields{
 			"err": err,
-		}).Error("Failed to start NetService.")
+		}).Error("Failed to start NebService.")
 		return err
 	}
 
-	logging.CLog().Info("Started NetService.")
+	logging.CLog().Info("Started NebService.")
 	return nil
 }
 
 // Stop stop p2p manager.
-func (ns *NetService) Stop() {
-	logging.CLog().Info("Stopping NetService...")
+func (ns *NebService) Stop() {
+	logging.CLog().Info("Stopping NebService...")
 
 	ns.node.Stop()
 	ns.dispatcher.Stop()
 }
 
 // Register register the subscribers.
-func (ns *NetService) Register(subscribers ...*Subscriber) {
+func (ns *NebService) Register(subscribers ...*Subscriber) {
 	ns.dispatcher.Register(subscribers...)
 }
 
 // Deregister Deregister the subscribers.
-func (ns *NetService) Deregister(subscribers ...*Subscriber) {
+func (ns *NebService) Deregister(subscribers ...*Subscriber) {
 	ns.dispatcher.Deregister(subscribers...)
 }
 
 // PutMessage put message to dispatcher.
-func (ns *NetService) PutMessage(msg Message) {
+func (ns *NebService) PutMessage(msg Message) {
 	ns.dispatcher.PutMessage(msg)
 }
 
 // Broadcast message.
-func (ns *NetService) Broadcast(name string, msg Serializable, priority int) {
+func (ns *NebService) Broadcast(name string, msg Serializable, priority int) {
 	ns.node.BroadcastMessage(name, msg, priority)
 }
 
 // Relay message.
-func (ns *NetService) Relay(name string, msg Serializable, priority int) {
+func (ns *NebService) Relay(name string, msg Serializable, priority int) {
 	ns.node.RelayMessage(name, msg, priority)
 }
 
 // BroadcastNetworkID broadcast networkID when changed.
-func (ns *NetService) BroadcastNetworkID(msg []byte) {
+func (ns *NebService) BroadcastNetworkID(msg []byte) {
 	// TODO: @robin networkID.
 }
 
 // BuildRawMessageData return the raw NebMessage content data.
-func (ns *NetService) BuildRawMessageData(data []byte, msgName string) []byte {
+func (ns *NebService) BuildRawMessageData(data []byte, msgName string) []byte {
 	message, err := NewNebMessage(ns.node.config.ChainID, DefaultReserved, 0, msgName, data)
 	if err != nil {
 		return nil
@@ -123,21 +123,21 @@ func (ns *NetService) BuildRawMessageData(data []byte, msgName string) []byte {
 }
 
 // SendMsg send message to a peer.
-func (ns *NetService) SendMsg(msgName string, msg []byte, target string, priority int) error {
+func (ns *NebService) SendMsg(msgName string, msg []byte, target string, priority int) error {
 	return ns.node.SendMessageToPeer(msgName, msg, priority, target)
 }
 
 // SendMessageToPeers send message to peers.
-func (ns *NetService) SendMessageToPeers(messageName string, data []byte, priority int, filter PeerFilterAlgorithm) []string {
+func (ns *NebService) SendMessageToPeers(messageName string, data []byte, priority int, filter PeerFilterAlgorithm) []string {
 	return ns.node.streamManager.SendMessageToPeers(messageName, data, priority, filter)
 }
 
 // SendMessageToPeer send message to a peer.
-func (ns *NetService) SendMessageToPeer(messageName string, data []byte, priority int, peerID string) error {
+func (ns *NebService) SendMessageToPeer(messageName string, data []byte, priority int, peerID string) error {
 	return ns.node.SendMessageToPeer(messageName, data, priority, peerID)
 }
 
 // ClosePeer close the stream to a peer.
-func (ns *NetService) ClosePeer(peerID string, reason error) {
+func (ns *NebService) ClosePeer(peerID string, reason error) {
 	ns.node.streamManager.CloseStream(peerID, reason)
 }

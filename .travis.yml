@@ -1,11 +1,26 @@
 language: go
 go:
-- 1.9
+- 1.10.x
 os:
 - linux
 before_install:
 - go get github.com/golang/dep/cmd/dep
+- sudo apt-get update -qq && sudo apt-get install libsnappy-dev zlib1g-dev libbz2-dev -qq
+- wget https://launchpad.net/ubuntu/+archive/primary/+files/libgflags2_2.0-1.1ubuntu1_amd64.deb
+- sudo dpkg -i libgflags2_2.0-1.1ubuntu1_amd64.deb
+- wget https://launchpad.net/ubuntu/+archive/primary/+files/libgflags-dev_2.0-1.1ubuntu1_amd64.deb
+- sudo dpkg -i libgflags-dev_2.0-1.1ubuntu1_amd64.deb
+
 install:
+- mkdir /tmp/rocksdb && pushd /tmp/rocksdb
+- wget https://github.com/facebook/rocksdb/archive/v5.11.3.tar.gz
+- tar -xvf v5.11.3.tar.gz
+- cd rocksdb-5.11.3
+- make clean
+- make shared_lib
+- sudo cp --preserve=links ./librocksdb.* /usr/lib/
+- sudo cp -r ./include/rocksdb/ /usr/include/
+- popd
 - dep ensure
 - sudo install nf/nvm/native-lib/* /usr/local/lib
 - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo /sbin/ldconfig ; fi

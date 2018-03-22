@@ -32,6 +32,12 @@ type MemoryStorage struct {
 // kv entry
 type kv struct{ k, v []byte }
 
+// MemoryBatch do batch task in memory storage
+type MemoryBatch struct {
+	db      *MemoryStorage
+	entries []*kv
+}
+
 // NewMemoryStorage init a storage
 func NewMemoryStorage() (*MemoryStorage, error) {
 	return &MemoryStorage{
@@ -57,4 +63,17 @@ func (db *MemoryStorage) Put(key []byte, value []byte) error {
 func (db *MemoryStorage) Del(key []byte) error {
 	db.data.Delete(byteutils.Hex(key))
 	return nil
+}
+
+// EnableBatch enable batch write.
+func (db *MemoryStorage) EnableBatch() {
+}
+
+// Flush write and flush pending batch write.
+func (db *MemoryStorage) Flush() error {
+	return nil
+}
+
+// DisableBatch disable batch write.
+func (db *MemoryStorage) DisableBatch() {
 }

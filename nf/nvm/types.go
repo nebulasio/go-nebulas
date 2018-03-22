@@ -62,8 +62,6 @@ type Block interface {
 	Hash() byteutils.Hash
 	Height() uint64 // ToAdd: timestamp interface
 	Timestamp() int64
-	GetTransaction(hash byteutils.Hash) (*core.Transaction, error)
-	RecordEvent(txHash byteutils.Hash, topic, data string) error
 }
 
 // Transaction interface breaks cycle import dependency and hides unused services.
@@ -91,5 +89,7 @@ type Account interface {
 
 // WorldState interface breaks cycle import dependency and hides unused services.
 type WorldState interface {
-	GetOrCreateUserAccount(addr []byte) (state.Account, error)
+	GetOrCreateUserAccount(addr byteutils.Hash) (state.Account, error)
+	GetTx(txHash byteutils.Hash) ([]byte, error)
+	RecordEvent(txHash byteutils.Hash, event *state.Event) error
 }

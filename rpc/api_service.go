@@ -20,7 +20,6 @@ package rpc
 
 import (
 	"errors"
-	"fmt"
 	"strconv"
 
 	"encoding/json"
@@ -139,7 +138,7 @@ func (s *APIService) GetAccountState(ctx context.Context, req *rpcpb.GetAccountS
 	}
 
 	metricsAccountStateSuccess.Mark(1)
-	return &rpcpb.GetAccountStateResponse{Balance: balance.String(), Nonce: fmt.Sprintf("%d", nonce)}, nil
+	return &rpcpb.GetAccountStateResponse{Balance: balance.String(), Nonce: nonce}, nil
 }
 
 // SendTransaction is the RPC API handler.
@@ -156,7 +155,7 @@ func (s *APIService) Call(ctx context.Context, req *rpcpb.TransactionRequest) (*
 	if err != nil {
 		return nil, err
 	}
-	result, err := neb.BlockChain().Call(tx)
+	_, result, err := neb.BlockChain().EstimateGas(tx)
 	if err != nil {
 		return nil, err
 	}
@@ -215,7 +214,7 @@ func parseTransaction(neb core.Neblet, reqTx *rpcpb.TransactionRequest) (*core.T
 			if err := json.Unmarshal([]byte(reqTx.Contract.Args), &argsObj); err != nil {
 				err = errors.New("contract arguments format error")
 			}
-		}
+		} // ToRefine: extract a function to check args.
 
 		if err == nil {
 			payload, err = core.NewCallPayload(reqTx.Contract.Function, reqTx.Contract.Args).ToBytes()
@@ -339,7 +338,7 @@ func (s *APIService) toBlockResponse(block *core.Block, fullTransaction bool) (*
 		StateRoot:     block.StateRoot().String(),
 		TxsRoot:       block.TxsRoot().String(),
 		EventsRoot:    block.EventsRoot().String(),
-		ConsensusRoot: block.ConsensusRoot().String(),
+		ConsensusRoot: block.ConsensusRoot(),
 	}
 
 	// add block transactions
@@ -525,33 +524,11 @@ func (s *APIService) EstimateGas(ctx context.Context, req *rpcpb.TransactionRequ
 	if err != nil {
 		return nil, err
 	}
-	estimateGas, err := neb.BlockChain().EstimateGas(tx)
+	estimateGas, _, err := neb.BlockChain().EstimateGas(tx)
 	if err != nil {
 		return nil, err
 	}
 	return &rpcpb.GasResponse{Gas: estimateGas.String()}, nil
-}
-
-// GetGasUsed Compute the transaction gasused.
-func (s *APIService) GetGasUsed(ctx context.Context, req *rpcpb.HashRequest) (*rpcpb.GasResponse, error) {
-
-	neb := s.server.Neblet()
-	hash, err := byteutils.FromHex(req.GetHash())
-	if err != nil {
-		return nil, err
-	}
-
-	tx := neb.BlockChain().GetTransaction(hash)
-	if tx == nil {
-		return nil, errors.New("transaction not found")
-	}
-
-	gas, err := neb.BlockChain().EstimateGas(tx)
-	if err != nil {
-		return nil, err
-	}
-
-	return &rpcpb.GasResponse{Gas: gas.String()}, nil
 }
 
 // GetEventsByHash return events by tx hash.
@@ -568,7 +545,7 @@ func (s *APIService) GetEventsByHash(ctx context.Context, req *rpcpb.HashRequest
 		return nil, err
 	}
 
-	tx, err := neb.BlockChain().TailBlock().GetTransaction(bhash)
+	tx, err := core.GetTransaction(bhash, neb.BlockChain().TailBlock().WorldState())
 	if err != nil {
 		return nil, err
 	}
@@ -594,13 +571,12 @@ func (s *APIService) GetEventsByHash(ctx context.Context, req *rpcpb.HashRequest
 
 // GetDynasty is the RPC API handler.
 func (s *APIService) GetDynasty(ctx context.Context, req *rpcpb.ByBlockHeightRequest) (*rpcpb.GetDynastyResponse, error) {
-
 	neb := s.server.Neblet()
 	block := neb.BlockChain().GetBlockOnCanonicalChainByHeight(req.Height)
 	if block == nil {
 		block = neb.BlockChain().TailBlock()
 	}
-	validators, err := block.Dynasty()
+	validators, err := block.WorldState().Dynasty()
 	if err != nil {
 		return nil, err
 	}
@@ -609,15 +585,4 @@ func (s *APIService) GetDynasty(ctx context.Context, req *rpcpb.ByBlockHeightReq
 		result = append(result, string(v.Hex()))
 	}
 	return &rpcpb.GetDynastyResponse{Delegatees: result}, nil
-}
-
-// GetConfig is the RPC API handler.
-func (s *APIService) GetConfig(ctx context.Context, req *rpcpb.NonParamsRequest) (*rpcpb.GetConfigResponse, error) {
-
-	neb := s.server.Neblet()
-
-	resp := &rpcpb.GetConfigResponse{}
-	resp.Config = neb.Config()
-
-	return resp, nil
 }

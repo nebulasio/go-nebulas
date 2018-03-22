@@ -22,6 +22,7 @@ import "C"
 import (
 	"unsafe"
 
+	"github.com/nebulasio/go-nebulas/core/state"
 	"github.com/nebulasio/go-nebulas/util/logging"
 	"github.com/sirupsen/logrus"
 )
@@ -43,5 +44,7 @@ func EventTriggerFunc(handler unsafe.Pointer, topic, data *C.char) {
 	}
 
 	contractTopic := EventNameSpaceContract + "." + gTopic
-	e.ctx.block.RecordEvent(e.ctx.tx.Hash(), contractTopic, gData)
+
+	event := &state.Event{Topic: contractTopic, Data: gData}
+	e.ctx.state.RecordEvent(e.ctx.tx.Hash(), event)
 }

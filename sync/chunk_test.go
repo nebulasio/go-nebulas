@@ -21,8 +21,11 @@ package sync
 import (
 	"time"
 
+	"github.com/nebulasio/go-nebulas/nf/nvm"
+
 	"github.com/nebulasio/go-nebulas/account"
 	"github.com/nebulasio/go-nebulas/consensus/dpos"
+	"github.com/nebulasio/go-nebulas/util"
 
 	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/core"
@@ -35,18 +38,101 @@ import (
 	"testing"
 )
 
-const (
-	BlockInterval        = 5
-	AcceptedNetWorkDelay = 2
-	DynastySize          = 6
-)
+type Neb struct {
+	config    *nebletpb.Config
+	chain     *core.BlockChain
+	ns        net.Service
+	am        *account.Manager
+	genesis   *corepb.Genesis
+	storage   storage.Storage
+	consensus core.Consensus
+	emitter   *core.EventEmitter
+	nvm       core.NVM
+}
+
+func mockNeb(t *testing.T) *Neb {
+	storage, _ := storage.NewMemoryStorage()
+	eventEmitter := core.NewEventEmitter(1024)
+	genesisConf := MockGenesisConf()
+	dpos := dpos.NewDpos()
+	neb := &Neb{
+		genesis:   genesisConf,
+		storage:   storage,
+		emitter:   eventEmitter,
+		consensus: dpos,
+		nvm:       nvm.NewNebulasVM(),
+		ns:        &mockNetService{},
+		config: &nebletpb.Config{
+			Chain: &nebletpb.ChainConfig{
+				ChainId:    genesisConf.Meta.ChainId,
+				Keydir:     "keydir",
+				Coinbase:   "1a263547d167c74cf4b8f9166cfa244de0481c514a45aa2c",
+				Miner:      "1a263547d167c74cf4b8f9166cfa244de0481c514a45aa2c",
+				Passphrase: "passphrase",
+			},
+		},
+	}
+
+	am := account.NewManager(neb)
+	neb.am = am
+
+	chain, err := core.NewBlockChain(neb)
+	assert.Nil(t, err)
+	chain.BlockPool().RegisterInNetwork(neb.ns)
+	neb.chain = chain
+	dpos.Setup(neb)
+	chain.Setup(neb)
+	return neb
+}
+
+func (n *Neb) Config() *nebletpb.Config {
+	return n.config
+}
+
+func (n *Neb) BlockChain() *core.BlockChain {
+	return n.chain
+}
+
+func (n *Neb) NetService() net.Service {
+	return n.ns
+}
+
+func (n *Neb) AccountManager() core.AccountManager {
+	return n.am
+}
+
+func (n *Neb) Genesis() *corepb.Genesis {
+	return n.genesis
+}
+
+func (n *Neb) Storage() storage.Storage {
+	return n.storage
+}
+
+func (n *Neb) EventEmitter() *core.EventEmitter {
+	return n.emitter
+}
+
+func (n *Neb) Consensus() core.Consensus {
+	return n.consensus
+}
+
+func (n *Neb) StartActiveSync() {}
+
+func (n *Neb) Nvm() core.NVM {
+	return n.nvm
+}
+
+func (n *Neb) StartPprof(string) error {
+	return nil
+}
+
+func (n *Neb) SetGenesis(genesis *corepb.Genesis) {
+	n.genesis = genesis
+}
 
 var (
-	stor, _ = storage.NewMemoryStorage()
-)
-
-var (
-	MockDynasty = []string{
+	DefaultOpenDynasty = []string{
 		"1a263547d167c74cf4b8f9166cfa244de0481c514a45aa2c",
 		"2fe3f9f51f9a05dd5f7c5329127f7c917917149b4e16b0b8",
 		"333cb3ed8c417971845382ede3cf67a0a96270c05fe2f700",
@@ -59,10 +145,10 @@ var (
 // MockGenesisConf return mock genesis conf
 func MockGenesisConf() *corepb.Genesis {
 	return &corepb.Genesis{
-		Meta: &corepb.GenesisMeta{ChainId: 100},
+		Meta: &corepb.GenesisMeta{ChainId: 0},
 		Consensus: &corepb.GenesisConsensus{
 			Dpos: &corepb.GenesisConsensusDpos{
-				Dynasty: MockDynasty,
+				Dynasty: DefaultOpenDynasty,
 			},
 		},
 		TokenDistribution: []*corepb.GenesisTokenDistribution{
@@ -77,27 +163,6 @@ func MockGenesisConf() *corepb.Genesis {
 		},
 	}
 }
-
-type mockManager struct{}
-
-func (m mockManager) NewAccount([]byte) (*core.Address, error) { return nil, nil }
-func (m mockManager) Accounts() []*core.Address                { return nil }
-
-func (m mockManager) Unlock(addr *core.Address, passphrase []byte, expire time.Duration) error {
-	return nil
-}
-func (m mockManager) Lock(addr *core.Address) error { return nil }
-
-func (m mockManager) SignBlock(addr *core.Address, block *core.Block) error  { return nil }
-func (m mockManager) SignTransaction(*core.Address, *core.Transaction) error { return nil }
-func (m mockManager) SignTransactionWithPassphrase(*core.Address, *core.Transaction, []byte) error {
-	return nil
-}
-
-func (m mockManager) Update(*core.Address, []byte, []byte) error   { return nil }
-func (m mockManager) Load([]byte, []byte) (*core.Address, error)   { return nil, nil }
-func (m mockManager) Import([]byte, []byte) (*core.Address, error) { return nil, nil }
-func (m mockManager) Delete(*core.Address, []byte) error           { return nil }
 
 var (
 	received = []byte{}
@@ -115,8 +180,16 @@ func (n mockNetService) Sync(net.Serializable) error { return nil }
 func (n mockNetService) Register(...*net.Subscriber)   {}
 func (n mockNetService) Deregister(...*net.Subscriber) {}
 
-func (n mockNetService) Broadcast(name string, msg net.Serializable, priority int) {}
-func (n mockNetService) Relay(name string, msg net.Serializable, priority int)     {}
+func (n mockNetService) Broadcast(name string, msg net.Serializable, priority int) {
+	pb, _ := msg.ToProto()
+	bytes, _ := proto.Marshal(pb)
+	received = bytes
+}
+func (n mockNetService) Relay(name string, msg net.Serializable, priority int) {
+	pb, _ := msg.ToProto()
+	bytes, _ := proto.Marshal(pb)
+	received = bytes
+}
 func (n mockNetService) SendMsg(name string, msg []byte, target string, priority int) error {
 	received = msg
 	return nil
@@ -135,120 +208,42 @@ func (n mockNetService) BroadcastNetworkID([]byte) {}
 
 func (n mockNetService) BuildRawMessageData([]byte, string) []byte { return nil }
 
-type mockNeb struct {
-	config    *nebletpb.Config
-	chain     *core.BlockChain
-	ns        net.Service
-	am        core.AccountManager
-	genesis   *corepb.Genesis
-	storage   storage.Storage
-	consensus core.Consensus
-	emitter   *core.EventEmitter
-	nvm       core.Engine
-}
-
-func (n *mockNeb) Genesis() *corepb.Genesis {
-	return n.genesis
-}
-
-func (n *mockNeb) Config() *nebletpb.Config {
-	return n.config
-}
-
-func (n *mockNeb) Storage() storage.Storage {
-	return n.storage
-}
-
-func (n *mockNeb) EventEmitter() *core.EventEmitter {
-	return n.emitter
-}
-
-func (n *mockNeb) Consensus() core.Consensus {
-	return n.consensus
-}
-
-func (n *mockNeb) BlockChain() *core.BlockChain {
-	return n.chain
-}
-
-func (n *mockNeb) NetService() net.Service {
-	return n.ns
-}
-
-func (n *mockNeb) AccountManager() core.AccountManager {
-	return n.am
-}
-
-func (n *mockNeb) Nvm() core.Engine {
-	return n.nvm
-}
-
-func (n *mockNeb) StartPprof(string) error {
-	return nil
-}
-
-func (n *mockNeb) SetGenesis(genesis *corepb.Genesis) {
-	n.genesis = genesis
-}
-
-func (n *mockNeb) StartActiveSync() {}
-
-func testNeb(t *testing.T) *mockNeb {
-	storage, _ := storage.NewMemoryStorage()
-	eventEmitter := core.NewEventEmitter(1024)
-	consensus := dpos.NewDpos()
-	var ns mockNetService
-	neb := &mockNeb{
-		genesis:   MockGenesisConf(),
-		storage:   storage,
-		emitter:   eventEmitter,
-		consensus: consensus,
-		ns:        ns,
-		config: &nebletpb.Config{
-			Chain: &nebletpb.ChainConfig{
-				ChainId:    MockGenesisConf().Meta.ChainId,
-				Keydir:     "keydir",
-				Coinbase:   "1a263547d167c74cf4b8f9166cfa244de0481c514a45aa2c",
-				Miner:      "1a263547d167c74cf4b8f9166cfa244de0481c514a45aa2c",
-				Passphrase: "passphrase",
-			},
-		},
-	}
-	neb.am = account.NewManager(neb)
-	chain, err := core.NewBlockChain(neb)
-	assert.Nil(t, err)
-	chain.BlockPool().RegisterInNetwork(ns)
-	neb.chain = chain
-	assert.Nil(t, consensus.Setup(neb))
-	assert.Nil(t, chain.Setup(neb))
-	return neb
-}
-
-func GetUnlockAddress(t *testing.T, am core.AccountManager, addr string) *core.Address {
-	address, err := core.AddressParse(addr)
-	assert.Nil(t, err)
-	assert.Nil(t, am.Unlock(address, []byte("passphrase"), time.Second*60*60*24*365))
-	return address
-}
-
 func TestChunk_generateChunkMeta(t *testing.T) {
-	neb := testNeb(t)
+	neb := mockNeb(t)
 	chain := neb.chain
 	ck := NewChunk(chain)
-	am := neb.AccountManager()
+
+	source := `"use strict";var DepositeContent=function(text){if(text){var o=JSON.parse(text);this.balance=new BigNumber(o.balance);this.expiryHeight=new BigNumber(o.expiryHeight)}else{this.balance=new BigNumber(0);this.expiryHeight=new BigNumber(0)}};DepositeContent.prototype={toString:function(){return JSON.stringify(this)}};var BankVaultContract=function(){LocalContractStorage.defineMapProperty(this,"bankVault",{parse:function(text){return new DepositeContent(text)},stringify:function(o){return o.toString()}})};BankVaultContract.prototype={init:function(){},save:function(height){var from=Blockchain.transaction.from;var value=Blockchain.transaction.value;var bk_height=new BigNumber(Blockchain.block.height);var orig_deposit=this.bankVault.get(from);if(orig_deposit){value=value.plus(orig_deposit.balance)}var deposit=new DepositeContent();deposit.balance=value;deposit.expiryHeight=bk_height.plus(height);this.bankVault.put(from,deposit)},takeout:function(value){var from=Blockchain.transaction.from;var bk_height=new BigNumber(Blockchain.block.height);var amount=new BigNumber(value);var deposit=this.bankVault.get(from);if(!deposit){throw new Error("No deposit before.")}if(bk_height.lt(deposit.expiryHeight)){throw new Error("Can not takeout before expiryHeight.")}if(amount.gt(deposit.balance)){throw new Error("Insufficient balance.")}var result=Blockchain.transfer(from,amount);if(result!=0){throw new Error("transfer failed.")}Event.Trigger("BankVault",{Transfer:{from:Blockchain.transaction.to,to:from,value:amount.toString()}});deposit.balance=deposit.balance.sub(amount);this.bankVault.put(from,deposit)},balanceOf:function(){var from=Blockchain.transaction.from;return this.bankVault.get(from)}};module.exports=BankVaultContract;`
+	sourceType := "js"
+	argsDeploy := ""
+	payloadDeploy, _ := core.NewDeployPayload(source, sourceType, argsDeploy).ToBytes()
+
+	from, _ := core.AddressParse("1a263547d167c74cf4b8f9166cfa244de0481c514a45aa2c")
+	assert.Nil(t, neb.am.Unlock(from, []byte("passphrase"), time.Second*60*60*24*365))
 
 	blocks := []*core.Block{}
 	for i := 0; i < 96; i++ {
-		coinbase := GetUnlockAddress(t, am, MockDynasty[(i+1)%DynastySize])
-		consensusState, err := chain.TailBlock().NextConsensusState(BlockInterval)
+		context, err := chain.TailBlock().WorldState().NextConsensusState(dpos.BlockIntervalInMs / dpos.SecondInMs)
 		assert.Nil(t, err)
+		coinbase, err := core.AddressParseFromBytes(context.Proposer())
+		assert.Nil(t, err)
+		assert.Nil(t, neb.am.Unlock(coinbase, []byte("passphrase"), time.Second*60*60*24*365))
 		block, err := chain.NewBlock(coinbase)
 		assert.Nil(t, err)
-		block.LoadConsensusState(consensusState)
+		block.WorldState().SetConsensusState(context)
+		block.SetTimestamp(chain.TailBlock().Timestamp() + dpos.BlockIntervalInMs/dpos.SecondInMs)
+		value, _ := util.NewUint128FromInt(1)
+		gasLimit, _ := util.NewUint128FromInt(200000)
+		txDeploy, _ := core.NewTransaction(neb.chain.ChainID(), from, from, value, uint64(i+1), core.TxPayloadDeployType, payloadDeploy, core.TransactionGasPrice, gasLimit)
+		assert.Nil(t, neb.am.SignTransaction(from, txDeploy))
+		assert.Nil(t, neb.chain.TransactionPool().Push(txDeploy))
+		if i == 95 {
+			block.CollectTransactions(time.Now().Unix()*1000 + 2000)
+			assert.Equal(t, len(block.Transactions()), 96)
+		}
 		assert.Nil(t, block.Seal())
-		assert.Nil(t, am.SignBlock(coinbase, block))
+		assert.Nil(t, neb.am.SignBlock(coinbase, block))
 		assert.Nil(t, chain.BlockPool().Push(block))
-		assert.Nil(t, chain.SetTailBlock(block))
 		blocks = append(blocks, block)
 	}
 
@@ -281,8 +276,8 @@ func TestChunk_generateChunkMeta(t *testing.T) {
 	assert.Equal(t, int(blocks[62].Height()), 64)
 	assert.Equal(t, len(meta.ChunkHeaders), 2)
 
-	neb2 := testNeb(t)
-	chain2 := neb2.BlockChain()
+	neb2 := mockNeb(t)
+	chain2 := neb2.chain
 	meta, err = ck.generateChunkHeaders(blocks[0].Hash())
 	assert.Nil(t, err)
 	for _, header := range meta.ChunkHeaders {
@@ -292,6 +287,11 @@ func TestChunk_generateChunkMeta(t *testing.T) {
 			block := new(core.Block)
 			assert.Nil(t, block.FromProto(v))
 			assert.Nil(t, chain2.BlockPool().Push(block))
+			blockHash, err := core.HashBlock(block)
+			assert.Nil(t, err)
+			pbBlockHash, err := core.HashPbBlock(v)
+			assert.Nil(t, err)
+			assert.Equal(t, blockHash, pbBlockHash)
 		}
 	}
 	tail := blocks[len(blocks)-1]

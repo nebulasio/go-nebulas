@@ -16,9 +16,11 @@
 // along with the go-nebulas library.  If not, see <http://www.gnu.org/licenses/>.
 //
 syntax = "proto3";
-package corepb;
 
+import "github.com/nebulasio/go-nebulas/common/dag/pb/dag.proto";
 import "github.com/nebulasio/go-nebulas/consensus/pb/state.proto";
+
+package corepb;
 
 message Account {
     bytes address = 1;
@@ -67,7 +69,9 @@ message BlockHeader {
 message Block {
     BlockHeader header = 1;
     repeated Transaction transactions = 2;
-    uint64 height = 3;
+    dagpb.Dag dependency = 3;    
+
+    uint64 height = 4;
 }
 
 message NetBlocks {

@@ -19,6 +19,7 @@
 package trie
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/gogo/protobuf/proto"
@@ -31,7 +32,7 @@ import (
 
 func TestIterator1(t *testing.T) {
 	storage, _ := storage.NewMemoryStorage()
-	tr, err := NewTrie(nil, storage)
+	tr, err := NewTrie(nil, storage, false)
 	assert.Nil(t, err)
 	names := []string{"123450", "123350", "122450", "223350", "133350"}
 	keys := [][]byte{}
@@ -103,14 +104,20 @@ func TestIterator1(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, next, true)
 	assert.Equal(t, it.Value(), []byte(names[2]))
+	assert.Equal(t, it.Key(), []byte(keys[2]))
+
 	next, err = it.Next()
 	assert.Nil(t, err)
 	assert.Equal(t, next, true)
 	assert.Equal(t, it.Value(), []byte(names[1]))
+	assert.Equal(t, it.Key(), []byte(keys[1]))
+
 	next, err = it.Next()
 	assert.Nil(t, err)
 	assert.Equal(t, next, true)
 	assert.Equal(t, it.Value(), []byte(names[0]))
+	assert.Equal(t, it.Key(), []byte(keys[0]))
+
 	next, err = it.Next()
 	assert.Nil(t, err)
 	assert.Equal(t, next, false)
@@ -118,7 +125,7 @@ func TestIterator1(t *testing.T) {
 
 func TestIterator2(t *testing.T) {
 	storage, _ := storage.NewMemoryStorage()
-	tr, err := NewTrie(nil, storage)
+	tr, err := NewTrie(nil, storage, false)
 	assert.Nil(t, err)
 	names := []string{"123450", "123350", "122450", "223350", "133350"}
 	keys := [][]byte{}
@@ -128,12 +135,19 @@ func TestIterator2(t *testing.T) {
 		keys = append(keys, key)
 	}
 	tr.Put(keys[0], []byte(names[0]))
+
+	_, err1 := tr.Iterator([]byte{0x12, 0x34, 0x50, 0x12})
+	assert.NotNil(t, err1)
+
 	it, err := tr.Iterator([]byte{0x12})
 	assert.Nil(t, err)
+	fmt.Println(err)
+
 	next, err := it.Next()
 	assert.Nil(t, err)
 	assert.Equal(t, next, true)
 	assert.Equal(t, it.Value(), []byte(names[0]))
+	assert.Equal(t, it.Key(), []byte(keys[0]))
 
 	tr.Put(keys[1], []byte(names[1]))
 	it, err = tr.Iterator([]byte{0x12})
@@ -142,9 +156,11 @@ func TestIterator2(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, next, true)
 	assert.Equal(t, it.Value(), []byte(names[1]))
+	assert.Equal(t, it.Key(), []byte(keys[1]))
 	next, err = it.Next()
 	assert.Equal(t, next, true)
 	assert.Equal(t, it.Value(), []byte(names[0]))
+	assert.Equal(t, it.Key(), []byte(keys[0]))
 
 	tr.Put(keys[2], []byte(names[2]))
 
@@ -154,14 +170,20 @@ func TestIterator2(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, next, true)
 	assert.Equal(t, it.Value(), []byte(names[2]))
+	assert.Equal(t, it.Key(), []byte(keys[2]))
+
 	next, err = it.Next()
 	assert.Nil(t, err)
 	assert.Equal(t, next, true)
 	assert.Equal(t, it.Value(), []byte(names[1]))
+	assert.Equal(t, it.Key(), []byte(keys[1]))
+
 	next, err = it.Next()
 	assert.Nil(t, err)
 	assert.Equal(t, next, true)
 	assert.Equal(t, it.Value(), []byte(names[0]))
+	assert.Equal(t, it.Key(), []byte(keys[0]))
+
 	next, err = it.Next()
 	assert.Nil(t, err)
 	assert.Equal(t, next, false)
@@ -169,7 +191,7 @@ func TestIterator2(t *testing.T) {
 
 func TestIteratorEmpty(t *testing.T) {
 	stor, _ := storage.NewMemoryStorage()
-	tr, _ := NewTrie(nil, stor)
+	tr, _ := NewTrie(nil, stor, false)
 	iter, err := tr.Iterator([]byte("he"))
 	assert.Nil(t, iter)
 	assert.Equal(t, err, storage.ErrKeyNotFound)

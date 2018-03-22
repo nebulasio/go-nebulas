@@ -21,10 +21,9 @@ package core
 import (
 	"io/ioutil"
 
-	"github.com/nebulasio/go-nebulas/consensus/pb"
-
 	"github.com/gogo/protobuf/proto"
-	"github.com/nebulasio/go-nebulas/common/trie"
+	"github.com/nebulasio/go-nebulas/common/dag"
+	"github.com/nebulasio/go-nebulas/consensus/pb"
 	"github.com/nebulasio/go-nebulas/core/pb"
 	"github.com/nebulasio/go-nebulas/core/state"
 	"github.com/nebulasio/go-nebulas/util"
@@ -64,19 +63,7 @@ func NewGenesisBlock(conf *corepb.Genesis, chain *BlockChain) (*Block, error) {
 		return nil, ErrNilArgument
 	}
 
-	accState, err := state.NewAccountState(nil, chain.storage)
-	if err != nil {
-		return nil, err
-	}
-	txsState, err := trie.NewBatchTrie(nil, chain.storage)
-	if err != nil {
-		return nil, err
-	}
-	eventsState, err := trie.NewBatchTrie(nil, chain.storage)
-	if err != nil {
-		return nil, err
-	}
-	consensusState, err := chain.consensusHandler.GenesisState(chain, conf)
+	worldState, err := state.NewWorldState(chain.ConsensusHandler(), chain.storage)
 	if err != nil {
 		return nil, err
 	}
@@ -89,20 +76,28 @@ func NewGenesisBlock(conf *corepb.Genesis, chain *BlockChain) (*Block, error) {
 			timestamp:     GenesisTimestamp,
 			consensusRoot: &consensuspb.ConsensusRoot{},
 		},
-		accState:       accState,
-		txsState:       txsState,
-		eventsState:    eventsState,
-		consensusState: consensusState,
-		txPool:         chain.txPool,
-		storage:        chain.storage,
-		eventEmitter:   chain.eventEmitter,
-		nvm:            chain.nvm,
-		height:         1,
-		sealed:         false,
+		transactions: make(Transactions, 0),
+		dependency:   dag.NewDag(),
+		parentBlock:  nil,
+		worldState:   worldState,
+		txPool:       chain.txPool,
+		storage:      chain.storage,
+		eventEmitter: chain.eventEmitter,
+		nvm:          chain.nvm,
+		height:       1,
+		sealed:       false,
 	}
 
-	genesisBlock.begin()
+	consensusState, err := chain.ConsensusHandler().GenesisConsensusState(chain, conf)
+	if err != nil {
+		return nil, err
+	}
+	genesisBlock.worldState.SetConsensusState(consensusState)
 
+	if err := genesisBlock.Begin(); err != nil {
+		return nil, err
+	}
+	// add token distribution for genesis
 	for _, v := range conf.TokenDistribution {
 		addr, err := AddressParse(v.Address)
 		if err != nil {
@@ -110,38 +105,33 @@ func NewGenesisBlock(conf *corepb.Genesis, chain *BlockChain) (*Block, error) {
 				"address": v.Address,
 				"err":     err,
 			}).Error("Found invalid address in genesis token distribution.")
-			genesisBlock.rollback()
+			genesisBlock.RollBack()
 			return nil, err
 		}
-		acc, err := genesisBlock.accState.GetOrCreateUserAccount(addr.address)
+		acc, err := genesisBlock.worldState.GetOrCreateUserAccount(addr.address)
 		if err != nil {
-			genesisBlock.rollback()
+			genesisBlock.RollBack()
 			return nil, err
 		}
 		txsBalance, err := util.NewUint128FromString(v.Value)
 		if err != nil {
-			genesisBlock.rollback()
+			genesisBlock.RollBack()
 			return nil, err
 		}
 		err = acc.AddBalance(txsBalance)
 		if err != nil {
-			genesisBlock.rollback()
+			genesisBlock.RollBack()
 			return nil, err
 		}
 	}
 
-	genesisBlock.header.stateRoot, err = genesisBlock.accState.RootHash()
-	if err != nil {
-		return nil, err
-	}
-	genesisBlock.header.txsRoot = genesisBlock.txsState.RootHash()
-	genesisBlock.header.eventsRoot = genesisBlock.eventsState.RootHash()
-	if genesisBlock.header.consensusRoot, err = genesisBlock.consensusState.RootHash(); err != nil {
-		return nil, err
-	}
-	genesisBlock.sealed = true
+	genesisBlock.Commit()
 
-	genesisBlock.commit()
+	genesisBlock.header.stateRoot = genesisBlock.WorldState().AccountsRoot()
+	genesisBlock.header.txsRoot = genesisBlock.WorldState().TxsRoot()
+	genesisBlock.header.eventsRoot = genesisBlock.WorldState().EventsRoot()
+	genesisBlock.header.consensusRoot = genesisBlock.WorldState().ConsensusRoot()
+	genesisBlock.sealed = true
 
 	return genesisBlock, nil
 }
@@ -159,11 +149,11 @@ func CheckGenesisBlock(block *Block) bool {
 
 // DumpGenesis return the configuration of the genesis block in the storage
 func DumpGenesis(chain *BlockChain) (*corepb.Genesis, error) {
-	genesis, err := LoadBlockFromStorage(GenesisHash, chain) //ToRefine, LoadBlockFromStorage need move out
+	genesis, err := LoadBlockFromStorage(GenesisHash, chain)
 	if err != nil {
 		return nil, err
 	}
-	dynasty, err := genesis.consensusState.Dynasty()
+	dynasty, err := genesis.worldState.Dynasty()
 	if err != nil {
 		return nil, err
 	}
@@ -172,7 +162,10 @@ func DumpGenesis(chain *BlockChain) (*corepb.Genesis, error) {
 		bootstrap = append(bootstrap, v.String())
 	}
 	distribution := []*corepb.GenesisTokenDistribution{}
-	accounts, err := genesis.accState.Accounts() // ToConfirm: Accounts interface is risky
+	accounts, err := genesis.worldState.Accounts()
+	if err != nil {
+		return nil, err
+	}
 	for _, v := range accounts {
 		balance := v.Balance()
 		if v.Address().Equals(genesis.Coinbase().Bytes()) {

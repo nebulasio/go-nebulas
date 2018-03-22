@@ -162,7 +162,7 @@ func (ks *Keystore) GetUnlocked(alias string) (Key, error) {
 	if len(alias) == 0 {
 		return nil, ErrNeedAlias
 	}
-	for _, u := range ks.unlocked {
+	for _, u := range ks.unlocked { // TODO why not map
 		if u.alias == alias {
 			return u.key, nil
 		}

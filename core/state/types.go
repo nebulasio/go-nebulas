@@ -19,10 +19,25 @@
 package state
 
 import (
+	"errors"
+
 	"github.com/nebulasio/go-nebulas/consensus/pb"
 	"github.com/nebulasio/go-nebulas/storage"
 	"github.com/nebulasio/go-nebulas/util"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
+)
+
+// Errors
+var (
+	ErrCannotPrepareTxStateTwice           = errors.New("cannot prepare tx state twice")
+	ErrCannotCloneOngoingWorldState        = errors.New("cannot clone an ongoing world state")
+	ErrCannotBeginWorldStateTwice          = errors.New("cannot begin a world state twice")
+	ErrCannotCommitWorldStateBeforeBegin   = errors.New("cannot commit a world state before begin")
+	ErrCannotRollBackWorldStateBeforeBegin = errors.New("cannot rollback a world state before begin")
+	ErrCannotPrepareTxStateBeforeBegin     = errors.New("cannot prepare a tx state before begin")
+	ErrCannotCheckTxStateBeforePrepare     = errors.New("cannot check a tx state before prepare")
+	ErrCannotUpdateTxStateBeforePrepare    = errors.New("cannot update a tx state before prepare")
+	ErrCannotResetTxStateBeforePrepare     = errors.New("cannot reset a tx state before prepare")
 )
 
 // Iterator Variables in Account Storage
@@ -39,9 +54,6 @@ type Account interface {
 	BirthPlace() byteutils.Hash
 	VarsHash() byteutils.Hash
 
-	Begin()
-	Commit()
-	Rollback()
 	Clone() (Account, error)
 
 	ToBytes() ([]byte, error)
@@ -58,34 +70,117 @@ type Account interface {
 
 // AccountState Interface
 type AccountState interface {
-	RootHash() (byteutils.Hash, error)
+	RootHash() byteutils.Hash
+
+	Flush() error
+	Abort() error
+
+	DirtyAccounts() ([]Account, error)
 	Accounts() ([]Account, error)
 
-	Begin()
-	Commit() error
-	Rollback()
-
 	Clone() (AccountState, error)
+	Replay(AccountState) error
 
-	GetOrCreateUserAccount(addr []byte) (Account, error)
-	GetContractAccount(addr []byte) (Account, error)
-	CreateContractAccount(addr []byte, birthPlace []byte) (Account, error)
+	GetOrCreateUserAccount(byteutils.Hash) (Account, error)
+	GetContractAccount(byteutils.Hash) (Account, error)
+	CreateContractAccount(byteutils.Hash, byteutils.Hash) (Account, error)
+}
+
+// Event event structure.
+type Event struct {
+	Topic string
+	Data  string
+}
+
+// Consensus interface
+type Consensus interface {
+	NewState(*consensuspb.ConsensusRoot, storage.Storage, bool) (ConsensusState, error)
 }
 
 // ConsensusState interface of consensus state
 type ConsensusState interface {
-	RootHash() (*consensuspb.ConsensusRoot, error)
+	RootHash() *consensuspb.ConsensusRoot
 	String() string
-
-	Begin()
-	Commit()
-	Rollback()
 	Clone() (ConsensusState, error)
+	Replay(ConsensusState) error
 
 	Proposer() byteutils.Hash
 	TimeStamp() int64
-	NextState(int64) (ConsensusState, error)
+	NextConsensusState(int64, WorldState) (ConsensusState, error)
 
 	Dynasty() ([]byteutils.Hash, error)
 	DynastyRoot() byteutils.Hash
+}
+
+// WorldState interface of world state
+type WorldState interface {
+	Begin() error
+	Commit() error
+	RollBack() error
+
+	Prepare(interface{}) (TxWorldState, error)
+	Reset() error
+	Flush() error
+	Abort() error
+
+	LoadAccountsRoot(byteutils.Hash) error
+	LoadTxsRoot(byteutils.Hash) error
+	LoadEventsRoot(byteutils.Hash) error
+	LoadConsensusRoot(*consensuspb.ConsensusRoot) error
+
+	NextConsensusState(int64) (ConsensusState, error)
+	SetConsensusState(ConsensusState)
+
+	Clone() (WorldState, error)
+
+	AccountsRoot() byteutils.Hash
+	TxsRoot() byteutils.Hash
+	EventsRoot() byteutils.Hash
+	ConsensusRoot() *consensuspb.ConsensusRoot
+
+	Accounts() ([]Account, error)
+	GetOrCreateUserAccount(addr byteutils.Hash) (Account, error)
+	GetContractAccount(addr byteutils.Hash) (Account, error)
+	CreateContractAccount(owner byteutils.Hash, birthPlace byteutils.Hash) (Account, error)
+
+	GetTx(txHash byteutils.Hash) ([]byte, error)
+	PutTx(txHash byteutils.Hash, txBytes []byte) error
+
+	RecordEvent(txHash byteutils.Hash, event *Event) error
+	FetchEvents(byteutils.Hash) ([]*Event, error)
+	FetchCacheEventsOfCurBlock(byteutils.Hash) ([]*Event, error)
+
+	Dynasty() ([]byteutils.Hash, error)
+	DynastyRoot() byteutils.Hash
+
+	RecordGas(from string, gas *util.Uint128) error
+	GetGas() map[string]*util.Uint128
+}
+
+// TxWorldState is the world state of a single transaction
+type TxWorldState interface {
+	AccountsRoot() byteutils.Hash
+	TxsRoot() byteutils.Hash
+	EventsRoot() byteutils.Hash
+	ConsensusRoot() *consensuspb.ConsensusRoot
+
+	CheckAndUpdate() ([]interface{}, error)
+	Reset() error
+	Close() error
+
+	Accounts() ([]Account, error)
+	GetOrCreateUserAccount(addr byteutils.Hash) (Account, error)
+	GetContractAccount(addr byteutils.Hash) (Account, error)
+	CreateContractAccount(owner byteutils.Hash, birthPlace byteutils.Hash) (Account, error)
+
+	GetTx(txHash byteutils.Hash) ([]byte, error)
+	PutTx(txHash byteutils.Hash, txBytes []byte) error
+
+	RecordEvent(txHash byteutils.Hash, event *Event) error
+	FetchEvents(byteutils.Hash) ([]*Event, error)
+
+	Dynasty() ([]byteutils.Hash, error)
+	DynastyRoot() byteutils.Hash
+
+	RecordGas(from string, gas *util.Uint128) error
 }

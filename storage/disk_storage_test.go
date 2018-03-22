@@ -34,7 +34,8 @@ import (
 )
 
 func TestNewDiskStorage(t *testing.T) {
-	storage, _ := NewDiskStorage("test.db")
+	storage, err := NewDiskStorage("disk.db")
+	assert.Nil(t, err)
 	keys := [][]byte{[]byte("1"), []byte("2")}
 	values := [][]byte{[]byte("1"), []byte("2")}
 	storage.Put(keys[0], values[0])

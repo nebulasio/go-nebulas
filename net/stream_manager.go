@@ -72,14 +72,14 @@ func (sm *StreamManager) Count() int32 {
 
 // Start stream manager service
 func (sm *StreamManager) Start() {
-	logging.CLog().Info("Starting NetService StreamManager...")
+	logging.CLog().Info("Starting NebService StreamManager...")
 
 	go sm.loop()
 }
 
 // Stop stream manager service
 func (sm *StreamManager) Stop() {
-	logging.CLog().Info("Stopping NetService StreamManager...")
+	logging.CLog().Info("Stopping NebService StreamManager...")
 
 	sm.quitCh <- true
 }
@@ -141,7 +141,7 @@ func (sm *StreamManager) Find(pid peer.ID) *Stream {
 }
 
 func (sm *StreamManager) loop() {
-	logging.CLog().Info("Started NetService StreamManager.")
+	logging.CLog().Info("Started NebService StreamManager.")
 
 	ticker := time.NewTicker(CleanupInterval)
 	for {

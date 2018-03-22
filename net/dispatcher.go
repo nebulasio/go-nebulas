@@ -83,7 +83,7 @@ func (dp *Dispatcher) Deregister(subscribers ...*Subscriber) {
 
 // Start start message dispatch goroutine.
 func (dp *Dispatcher) Start() {
-	logging.CLog().Info("Starting NetService Dispatcher...")
+	logging.CLog().Info("Starting NebService Dispatcher...")
 	go dp.loop()
 }
 
@@ -96,14 +96,10 @@ func (dp *Dispatcher) loop() {
 		case <-timerChan:
 			metricsDispatcherCached.Update(int64(len(dp.receivedMessageCh)))
 		case <-dp.quitCh:
-			logging.CLog().Info("Stoped NetService Dispatcher.")
+			logging.CLog().Info("Stoped NebService Dispatcher.")
 			return
 		case msg := <-dp.receivedMessageCh:
 			msgType := msg.MessageType()
-
-			logging.VLog().WithFields(logrus.Fields{
-				"msgType": msgType,
-			}).Debug("Dispatcher received net message.")
 
 			v, _ := dp.subscribersMap.Load(msgType)
 			m, _ := v.(*sync.Map)
@@ -116,9 +112,6 @@ func (dp *Dispatcher) loop() {
 						"msgType": msgType,
 					}).Debug("timeout to dispatch message.")
 				}
-				// logging.VLog().WithFields(logrus.Fields{
-				// 	"msgType": msgType,
-				// }).Debug("succeed dispatcher received message")
 				return true
 			})
 		}
@@ -127,7 +120,7 @@ func (dp *Dispatcher) loop() {
 
 // Stop stop goroutine.
 func (dp *Dispatcher) Stop() {
-	logging.CLog().Info("Stopping NetService Dispatcher...")
+	logging.CLog().Info("Stopping NebService Dispatcher...")
 
 	dp.quitCh <- true
 }

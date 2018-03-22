@@ -98,7 +98,7 @@ func newStreamInstance(pid peer.ID, addr ma.Multiaddr, stream libnet.Stream, nod
 		stream:                    stream,
 		node:                      node,
 		handshakeSucceedCh:        make(chan bool, 1),
-		messageNotifChan:          make(chan int, 4*1024),
+		messageNotifChan:          make(chan int, 6*1024),
 		highPriorityMessageChan:   make(chan *NebMessage, 2*1024),
 		normalPriorityMessageChan: make(chan *NebMessage, 2*1024),
 		lowPriorityMessageChan:    make(chan *NebMessage, 2*1024),
@@ -186,15 +186,7 @@ func (s *Stream) SendMessage(messageName string, data []byte, priority int) erro
 	// use a non-blocking channel to avoid blocking when the channel is full.
 	switch priority {
 	case MessagePriorityHigh:
-		select {
-		case s.highPriorityMessageChan <- message:
-		default:
-			logging.VLog().WithFields(logrus.Fields{
-				"highPriorityMessageChan.len": len(s.highPriorityMessageChan),
-				"stream":                      s.String(),
-			}).Debug("Received too many high priority message.")
-			return nil
-		}
+		s.highPriorityMessageChan <- message
 	case MessagePriorityNormal:
 		select {
 		case s.normalPriorityMessageChan <- message:
@@ -234,6 +226,11 @@ func (s *Stream) Write(data []byte) error {
 		return ErrStreamIsNotConnected
 	}
 
+	// at least 5kb/s to write message
+	deadline := time.Now().Add(time.Duration(len(data)/1024/5+1) * time.Second)
+	if err := s.stream.SetWriteDeadline(deadline); err != nil {
+		return err
+	}
 	n, err := s.stream.Write(data)
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
@@ -260,14 +257,16 @@ func (s *Stream) WriteNebMessage(message *NebMessage) error {
 	err := s.Write(message.Content())
 	message.FlagWriteMessageAt()
 
-	// debug logs.
-	logging.VLog().WithFields(logrus.Fields{
-		"stream":      s.String(),
-		"err":         err,
-		"checksum":    message.DataCheckSum(),
-		"messageName": message.MessageName(),
-		"latency(ms)": message.LatencyFromSendToWrite(),
-	}).Debugf("Written %s message to peer.", message.MessageName())
+	/*
+		// debug logs.
+		logging.VLog().WithFields(logrus.Fields{
+			"stream":      s.String(),
+			"err":         err,
+			"checksum":    message.DataCheckSum(),
+			"messageName": message.MessageName(),
+			"latency(ms)": message.LatencyFromSendToWrite(),
+		}).Debugf("Written %s message to peer.", message.MessageName())
+	*/
 
 	return err
 }
@@ -321,8 +320,6 @@ func (s *Stream) readLoop() {
 	messageBuffer := make([]byte, 0)
 
 	var message *NebMessage
-	readAt := time.Now().UnixNano()
-	readDataAt := int64(0)
 
 	for {
 		n, err := s.stream.Read(buf)
@@ -339,10 +336,6 @@ func (s *Stream) readLoop() {
 
 		messageBuffer = append(messageBuffer, buf[:n]...)
 		s.latestReadAt = time.Now().Unix()
-
-		if readDataAt == 0 {
-			readDataAt = time.Now().UnixNano()
-		}
 
 		for {
 			if message == nil {
@@ -390,16 +383,17 @@ func (s *Stream) readLoop() {
 			// remove data from buffer.
 			messageBuffer = messageBuffer[message.DataLength():]
 
-			nowAt := time.Now().UnixNano()
-			logging.VLog().WithFields(logrus.Fields{
-				"messageName":                    message.MessageName(),
-				"checksum":                       message.DataCheckSum(),
-				"stream":                         s.String(),
-				"duration from Read(ms)":         (nowAt - readDataAt) / int64(time.Millisecond),
-				"duration from last Message(ms)": (nowAt - readAt) / int64(time.Millisecond),
-				"len(messageBuffer)":             len(messageBuffer),
-			}).Debugf("Received %s message from peer.", message.MessageName())
-
+			/*
+				nowAt := time.Now().UnixNano()
+				logging.VLog().WithFields(logrus.Fields{
+					"messageName":                    message.MessageName(),
+					"checksum":                       message.DataCheckSum(),
+					"stream":                         s.String(),
+					"duration from Read(ms)":         (nowAt - readDataAt) / int64(time.Millisecond),
+					"duration from last Message(ms)": (nowAt - readAt) / int64(time.Millisecond),
+					"len(messageBuffer)":             len(messageBuffer),
+				}).Debugf("Received %s message from peer.", message.MessageName())
+			*/
 			// metrics.
 			metricsPacketsIn.Mark(1)
 			metricsBytesIn.Mark(int64(message.Length()))
@@ -413,8 +407,6 @@ func (s *Stream) readLoop() {
 
 			// reset message.
 			message = nil
-			readAt = time.Now().UnixNano()
-			readDataAt = 0
 		}
 	}
 }

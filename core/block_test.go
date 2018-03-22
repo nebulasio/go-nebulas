@@ -23,6 +23,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/nebulasio/go-nebulas/common/dag"
 	"github.com/nebulasio/go-nebulas/consensus/pb"
 	"github.com/nebulasio/go-nebulas/core/state"
 	"github.com/nebulasio/go-nebulas/net"
@@ -32,11 +33,9 @@ import (
 	"github.com/nebulasio/go-nebulas/core/pb"
 	"github.com/nebulasio/go-nebulas/crypto"
 	"github.com/nebulasio/go-nebulas/crypto/keystore"
-	"github.com/nebulasio/go-nebulas/crypto/keystore/secp256k1"
 	"github.com/nebulasio/go-nebulas/neblet/pb"
 	"github.com/nebulasio/go-nebulas/storage"
 	"github.com/nebulasio/go-nebulas/util"
-	"github.com/nebulasio/go-nebulas/util/logging"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -92,12 +91,8 @@ func newMockConsensusState(timestamp int64) (*mockConsensusState, error) {
 	}, nil
 }
 
-func (cs *mockConsensusState) Begin()    {}
-func (cs *mockConsensusState) Commit()   {}
-func (cs *mockConsensusState) Rollback() {}
-
-func (cs *mockConsensusState) RootHash() (*consensuspb.ConsensusRoot, error) {
-	return &consensuspb.ConsensusRoot{}, nil
+func (cs *mockConsensusState) RootHash() *consensuspb.ConsensusRoot {
+	return &consensuspb.ConsensusRoot{}
 }
 func (cs *mockConsensusState) String() string { return "" }
 func (cs *mockConsensusState) Clone() (state.ConsensusState, error) {
@@ -105,10 +100,11 @@ func (cs *mockConsensusState) Clone() (state.ConsensusState, error) {
 		timestamp: cs.timestamp,
 	}, nil
 }
+func (cs *mockConsensusState) Replay(state.ConsensusState) error { return nil }
 
 func (cs *mockConsensusState) Proposer() byteutils.Hash { return nil }
-func (cs *mockConsensusState) TimeStamp() int64         { return cs.timestamp }
-func (cs *mockConsensusState) NextState(elapsed int64) (state.ConsensusState, error) {
+func (cs *mockConsensusState) TimeStamp() int64         { return 0 }
+func (cs *mockConsensusState) NextConsensusState(elapsed int64, ws state.WorldState) (state.ConsensusState, error) {
 	return &mockConsensusState{
 		timestamp: cs.timestamp + elapsed,
 	}, nil
@@ -179,10 +175,10 @@ func (c *mockConsensus) Enable() bool                         { return true }
 func (c *mockConsensus) CheckTimeout(block *Block) bool {
 	return time.Now().Unix()-block.Timestamp() > AcceptedNetWorkDelay
 }
-func (c *mockConsensus) NewState(root *consensuspb.ConsensusRoot, storage storage.Storage) (state.ConsensusState, error) {
+func (c *mockConsensus) NewState(root *consensuspb.ConsensusRoot, stor storage.Storage, needChangeLog bool) (state.ConsensusState, error) {
 	return newMockConsensusState(root.Timestamp)
 }
-func (c *mockConsensus) GenesisState(*BlockChain, *corepb.Genesis) (state.ConsensusState, error) {
+func (c *mockConsensus) GenesisConsensusState(*BlockChain, *corepb.Genesis) (state.ConsensusState, error) {
 	return newMockConsensusState(0)
 }
 
@@ -248,7 +244,7 @@ type mockNeb struct {
 	storage   storage.Storage
 	consensus Consensus
 	emitter   *EventEmitter
-	nvm       Engine
+	nvm       NVM
 }
 
 func (n *mockNeb) Genesis() *corepb.Genesis {
@@ -283,7 +279,7 @@ func (n *mockNeb) AccountManager() AccountManager {
 	return n.am
 }
 
-func (n *mockNeb) Nvm() Engine {
+func (n *mockNeb) Nvm() NVM {
 	return n.nvm
 }
 
@@ -295,30 +291,26 @@ func (n *mockNeb) SetGenesis(genesis *corepb.Genesis) {
 	n.genesis = genesis
 }
 
-type mockNvm struct {
-}
+type mockNvm struct{}
+type mockEngine struct{}
 
-func (nvm *mockNvm) CreateEngine(block *Block, tx *Transaction, owner, contract state.Account, state state.AccountState) error {
+func (nvm *mockNvm) CreateEngine(block *Block, tx *Transaction, owner, contract state.Account, state WorldState) (SmartContractEngine, error) {
+	return &mockEngine{}, nil
+}
+func (nvm *mockEngine) Dispose() {
+
+}
+func (nvm *mockEngine) SetExecutionLimits(uint64, uint64) error {
 	return nil
 }
-func (nvm *mockNvm) SetEngineExecutionLimits(limitsOfExecutionInstructions uint64) error {
-	return nil
-}
-func (nvm *mockNvm) DeployAndInitEngine(source, sourceType, args string) (string, error) {
+func (nvm *mockEngine) DeployAndInit(source, sourceType, args string) (string, error) {
 	return "", nil
 }
-func (nvm *mockNvm) CallEngine(source, sourceType, function, args string) (string, error) {
+func (nvm *mockEngine) Call(source, sourceType, function, args string) (string, error) {
 	return "", nil
 }
-func (nvm *mockNvm) ExecutionInstructions() (uint64, error) {
-	return uint64(100), nil
-}
-func (nvm *mockNvm) DisposeEngine() {
-
-}
-
-func (nvm *mockNvm) Clone() Engine {
-	return &mockNvm{}
+func (nvm *mockEngine) ExecutionInstructions() uint64 {
+	return uint64(100)
 }
 
 func testNeb(t *testing.T) *mockNeb {
@@ -342,16 +334,25 @@ func testNeb(t *testing.T) *mockNeb {
 	assert.Nil(t, err)
 	chain.bkPool.RegisterInNetwork(ns)
 	neb.chain = chain
-	assert.Nil(t, consensus.Setup(neb))
-	assert.Nil(t, chain.Setup(neb))
+	consensus.Setup(neb)
+	chain.Setup(neb)
 	return neb
 }
+
+func TestNeb(t *testing.T) {
+	neb := testNeb(t)
+	assert.NotNil(t, neb.chain.TailBlock().String())
+	assert.Equal(t, neb.chain.ConsensusHandler(), neb.consensus)
+	assert.Equal(t, neb.consensus.(*mockConsensus).chain, neb.chain)
+}
+
 func TestBlock(t *testing.T) {
 	type fields struct {
 		header       *BlockHeader
 		miner        *Address
 		height       uint64
 		transactions Transactions
+		dependency   *dag.Dag
 	}
 	from1, _ := NewAddress([]byte("eb693e1438fce79f5cb2"))
 	from2, _ := NewAddress([]byte("eb692e1438fce79f5cb2"))
@@ -412,6 +413,7 @@ func TestBlock(t *testing.T) {
 						nil,
 					},
 				},
+				dag.NewDag(),
 			},
 			false,
 		},
@@ -422,6 +424,7 @@ func TestBlock(t *testing.T) {
 				header:       tt.fields.header,
 				height:       tt.fields.height,
 				transactions: tt.fields.transactions,
+				dependency:   tt.fields.dependency,
 			}
 			proto, _ := b.ToProto()
 			ir, _ := pb.Marshal(proto)
@@ -445,7 +448,8 @@ func TestBlock(t *testing.T) {
 }
 
 func TestBlock_LinkParentBlock(t *testing.T) {
-	bc := testNeb(t).chain
+	neb := testNeb(t)
+	bc := neb.chain
 	genesis := bc.genesisBlock
 	assert.Equal(t, genesis.Height(), uint64(1))
 	block1 := &Block{
@@ -488,115 +492,39 @@ func TestBlock_LinkParentBlock(t *testing.T) {
 	assert.Equal(t, block2.Height(), uint64(0))
 }
 
-func TestBlock_CollectTransactions(t *testing.T) {
-	bc := testNeb(t).chain
-
-	tail := bc.tailBlock
-
-	ks := keystore.DefaultKS
-	priv := secp256k1.GeneratePrivateKey()
-	pubdata, _ := priv.PublicKey().Encoded()
-	from, _ := NewAddressFromPublicKey(pubdata)
-	ks.SetKey(from.String(), priv, []byte("passphrase"))
-	ks.Unlock(from.String(), []byte("passphrase"), time.Second*60*60*24*365)
-
-	key, _ := ks.GetUnlocked(from.String())
-	signature, _ := crypto.NewSignature(keystore.SECP256K1)
-	signature.InitSign(key.(keystore.PrivateKey))
-
-	priv1 := secp256k1.GeneratePrivateKey()
-	pubdata1, _ := priv1.PublicKey().Encoded()
-	to, _ := NewAddressFromPublicKey(pubdata1)
-	priv2 := secp256k1.GeneratePrivateKey()
-	pubdata2, _ := priv2.PublicKey().Encoded()
-	coinbase, _ := NewAddressFromPublicKey(pubdata2)
-
-	block0, err := NewBlock(bc.ChainID(), from, tail)
-	assert.Nil(t, err)
-	consensusState, err := tail.NextConsensusState(BlockInterval)
-	assert.Nil(t, err)
-	block0.LoadConsensusState(consensusState)
-	block0.Seal()
-	assert.Nil(t, bc.BlockPool().Push(block0))
-
-	block, _ := NewBlock(bc.ChainID(), coinbase, block0)
-	block.header.timestamp = BlockInterval * 2
-
-	value, _ := util.NewUint128FromInt(1)
-	gasLimit, _ := util.NewUint128FromInt(200000)
-	tx1, _ := NewTransaction(bc.ChainID(), from, to, value, 1, TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, gasLimit)
-	tx1.Sign(signature)
-	tx2, _ := NewTransaction(bc.ChainID(), from, to, value, 2, TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, gasLimit)
-	tx2.Sign(signature)
-	tx3, _ := NewTransaction(bc.ChainID(), from, to, value, 5, TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, gasLimit)
-	tx3.Sign(signature)
-	tx4, _ := NewTransaction(bc.ChainID(), from, to, value, 4, TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, gasLimit)
-	tx4.Sign(signature)
-	tx5, _ := NewTransaction(bc.ChainID(), from, to, value, 3, TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, gasLimit)
-	tx5.Sign(signature)
-	tx6, _ := NewTransaction(bc.ChainID()+1, from, to, value, 1, TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, gasLimit)
-	tx6.Sign(signature)
-
-	assert.Nil(t, bc.txPool.Push(tx1))
-	assert.Nil(t, bc.txPool.Push(tx2))
-	assert.Nil(t, bc.txPool.Push(tx3))
-	assert.Nil(t, bc.txPool.Push(tx4))
-	assert.Nil(t, bc.txPool.Push(tx5))
-	assert.NotNil(t, bc.txPool.Push(tx6), ErrInvalidChainID)
-
-	assert.Equal(t, len(block.transactions), 0)
-	assert.Equal(t, len(bc.txPool.all), 5)
-	block.CollectTransactions(time.Now().Unix() + 2)
-	assert.Equal(t, len(block.transactions), 5)
-	assert.Equal(t, len(bc.txPool.all), 0)
-
-	assert.Equal(t, block.Sealed(), false)
-	balance, err := block.GetBalance(block.header.coinbase.address)
-	assert.Nil(t, err)
-	assert.Equal(t, balance.Cmp(util.NewUint128()), 1)
-	block.Seal()
-	assert.Equal(t, block.Sealed(), true)
-	assert.Equal(t, block.transactions[0], tx1)
-	assert.Equal(t, block.transactions[1], tx2)
-	stateRoot, err := block.accState.RootHash()
-	assert.Nil(t, err)
-	assert.Equal(t, block.StateRoot().Equals(stateRoot), true)
-	assert.Equal(t, block.TxsRoot().Equals(block.txsState.RootHash()), true)
-	balance, err = block.GetBalance(block.header.coinbase.address)
-	assert.Nil(t, err)
-	// balance > BlockReward (BlockReward + gas)
-	//gas, _ := bc.EstimateGas(tx1)
-	logging.CLog().Info(balance.String())
-	logging.CLog().Info(BlockReward.String())
-	assert.NotEqual(t, balance.Cmp(BlockReward), 0)
-	// mock net message
-	block, _ = deepCopyBlock(block)
-	assert.Equal(t, block.LinkParentBlock(bc, bc.tailBlock), nil)
-	assert.Nil(t, block.VerifyExecution())
-}
-
 func TestBlock_fetchEvents(t *testing.T) {
-	bc := testNeb(t).chain
+	neb := testNeb(t)
+	bc := neb.chain
+
 	tail := bc.tailBlock
-	events := []*Event{
-		&Event{Topic: "chain.block", Data: "hello"},
-		&Event{Topic: "chain.tx", Data: "hello"},
-		&Event{Topic: "chain.block", Data: "hello"},
-		&Event{Topic: "chain.block", Data: "hello"},
+	events := []*state.Event{
+		&state.Event{Topic: "chain.block", Data: "hello"},
+		&state.Event{Topic: "chain.tx", Data: "hello"},
+		&state.Event{Topic: "chain.block", Data: "hello"},
+		&state.Event{Topic: "chain.block", Data: "hello"},
 	}
+	err := tail.worldState.Begin()
+	assert.Nil(t, err)
 	tx := &Transaction{hash: []byte("tx")}
+	txWorldState, err := tail.worldState.Prepare(byteutils.Hex(tx.Hash()))
+	assert.Nil(t, err)
 	for _, event := range events {
-		assert.Nil(t, tail.recordEvent(tx.Hash(), event))
+		assert.Nil(t, txWorldState.RecordEvent(tx.Hash(), event))
 	}
+	_, err = txWorldState.CheckAndUpdate()
+	assert.Nil(t, err)
+
 	es, err := tail.FetchEvents(tx.Hash())
 	assert.Nil(t, err)
+	assert.Equal(t, len(events), len(es))
 	for idx, event := range es {
 		assert.Equal(t, events[idx], event)
 	}
 }
 
 func TestBlockSign(t *testing.T) {
-	bc := testNeb(t).chain
+	neb := testNeb(t)
+	bc := neb.chain
 	block := bc.tailBlock
 	ks := keystore.DefaultKS
 	signature, _ := crypto.NewSignature(keystore.SECP256K1)
@@ -609,7 +537,8 @@ func TestBlockSign(t *testing.T) {
 }
 
 func TestGivebackInvalidTx(t *testing.T) {
-	bc := testNeb(t).chain
+	neb := testNeb(t)
+	bc := neb.chain
 	from := mockAddress()
 	ks := keystore.DefaultKS
 	gasLimit, _ := util.NewUint128FromInt(200000)
@@ -624,26 +553,15 @@ func TestGivebackInvalidTx(t *testing.T) {
 	assert.Equal(t, len(bc.txPool.all), 1)
 	block, err := bc.NewBlock(from)
 	assert.Nil(t, err)
-	block.CollectTransactions(time.Now().Unix() + 2)
-	timer := time.NewTimer(time.Second).C
-	<-timer
+	block.CollectTransactions(time.Now().Unix() + 1)
 	assert.Equal(t, len(bc.txPool.all), 1)
 }
 
-func TestRecordEvent(t *testing.T) {
-	bc := testNeb(t).chain
-	txHash := []byte("hello")
-	assert.Nil(t, bc.tailBlock.RecordEvent(txHash, TopicSendTransaction, "world"))
-	events, err := bc.tailBlock.FetchEvents(txHash)
-	assert.Nil(t, err)
-	assert.Equal(t, len(events), 1)
-	assert.Equal(t, events[0].Topic, TopicSendTransaction)
-	assert.Equal(t, events[0].Data, "world")
-}
-
 func TestBlockVerifyIntegrity(t *testing.T) {
-	bc := testNeb(t).chain
-	assert.Equal(t, bc.tailBlock.VerifyIntegrity(0, bc.ConsensusHandler()), ErrInvalidChainID)
+	neb := testNeb(t)
+	bc := neb.chain
+	assert.Equal(t, bc.tailBlock.VerifyIntegrity(0, nil), ErrNilArgument)
+	assert.Equal(t, bc.tailBlock.VerifyIntegrity(0, neb.consensus), ErrInvalidChainID)
 	bc.tailBlock.header.hash[0] = 1
 	assert.Equal(t, bc.tailBlock.VerifyIntegrity(bc.ChainID(), bc.ConsensusHandler()), ErrInvalidBlockHash)
 	ks := keystore.DefaultKS
@@ -668,9 +586,10 @@ func TestBlockVerifyIntegrity(t *testing.T) {
 	assert.NotNil(t, block.VerifyIntegrity(bc.ChainID(), bc.ConsensusHandler()))
 }
 
-func TestBlockVerifyIntegrityDup(t *testing.T) {
-	bc := testNeb(t).chain
-	assert.Equal(t, bc.tailBlock.VerifyIntegrity(0, bc.ConsensusHandler()), ErrInvalidChainID)
+func TestBlockVerifyDupTx(t *testing.T) {
+	neb := testNeb(t)
+	bc := neb.chain
+	assert.Equal(t, bc.tailBlock.VerifyIntegrity(0, neb.consensus), ErrInvalidChainID)
 	bc.tailBlock.header.hash[0] = 1
 	assert.Equal(t, bc.tailBlock.VerifyIntegrity(bc.ChainID(), bc.ConsensusHandler()), ErrInvalidBlockHash)
 	ks := keystore.DefaultKS
@@ -685,16 +604,16 @@ func TestBlockVerifyIntegrityDup(t *testing.T) {
 	gasLimit, _ := util.NewUint128FromInt(200000)
 	tx1, _ := NewTransaction(bc.ChainID(), from, from, util.NewUint128(), 1, TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, gasLimit)
 	tx1.Sign(signature)
-	block.transactions = append(block.transactions, tx1)
-	block.transactions = append(block.transactions, tx1)
-	block.Seal()
-	block.Sign(signature)
-	assert.Equal(t, block.VerifyExecution(), ErrSmallTransactionNonce)
+	_, err = block.ExecuteTransaction(tx1, block.worldState)
+	assert.Nil(t, err)
+	_, err = block.ExecuteTransaction(tx1, block.worldState)
+	assert.Equal(t, err, ErrSmallTransactionNonce)
 }
 
-func TestBlockVerifyExecution(t *testing.T) {
-	bc := testNeb(t).chain
-	assert.Equal(t, bc.tailBlock.VerifyIntegrity(0, bc.ConsensusHandler()), ErrInvalidChainID)
+func TestBlockVerifyInvalidTx(t *testing.T) {
+	neb := testNeb(t)
+	bc := neb.chain
+	assert.Equal(t, bc.tailBlock.VerifyIntegrity(0, neb.consensus), ErrInvalidChainID)
 	bc.tailBlock.header.hash[0] = 1
 	assert.Equal(t, bc.tailBlock.VerifyIntegrity(bc.ChainID(), bc.ConsensusHandler()), ErrInvalidBlockHash)
 	ks := keystore.DefaultKS
@@ -711,22 +630,16 @@ func TestBlockVerifyExecution(t *testing.T) {
 	tx1.Sign(signature)
 	tx2, _ := NewTransaction(bc.ChainID(), from, from, util.NewUint128(), 3, TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, gasLimit)
 	tx2.Sign(signature)
-	block.transactions = append(block.transactions, tx1)
-	block.transactions = append(block.transactions, tx2)
-	block.Seal()
-	block.Sign(signature)
-	assert.Nil(t, block.VerifyIntegrity(bc.ChainID(), bc.ConsensusHandler()))
-	root1, err := block.accState.RootHash()
+	_, err = block.ExecuteTransaction(tx1, block.worldState)
 	assert.Nil(t, err)
-	assert.Equal(t, block.VerifyExecution(), ErrLargeTransactionNonce)
-	root2, err := block.accState.RootHash()
-	assert.Nil(t, err)
-	assert.Equal(t, root1, root2)
+	_, err = block.ExecuteTransaction(tx2, block.worldState)
+	assert.Equal(t, err, ErrLargeTransactionNonce)
 }
 
 func TestBlockVerifyState(t *testing.T) {
-	bc := testNeb(t).chain
-	assert.Equal(t, bc.tailBlock.VerifyIntegrity(0, bc.ConsensusHandler()), ErrInvalidChainID)
+	neb := testNeb(t)
+	bc := neb.chain
+	assert.Equal(t, bc.tailBlock.VerifyIntegrity(0, neb.consensus), ErrInvalidChainID)
 	bc.tailBlock.header.hash[0] = 1
 	assert.Equal(t, bc.tailBlock.VerifyIntegrity(bc.ChainID(), bc.ConsensusHandler()), ErrInvalidBlockHash)
 	ks := keystore.DefaultKS
@@ -736,18 +649,45 @@ func TestBlockVerifyState(t *testing.T) {
 	signature, err := crypto.NewSignature(keystore.SECP256K1)
 	assert.Nil(t, err)
 	signature.InitSign(key.(keystore.PrivateKey))
-	block, err := bc.NewBlock(from)
+
+	tail := bc.tailBlock
+	assert.Nil(t, tail.Begin())
+	acc, err := tail.WorldState().GetOrCreateUserAccount(from.Bytes())
 	assert.Nil(t, err)
+	balance, _ := util.NewUint128FromString("100000000000000")
+	acc.AddBalance(balance)
+	tail.Commit()
+
+	block, err := bc.NewBlockFromParent(from, tail)
+	assert.Nil(t, err)
+	acc, err = tail.WorldState().GetOrCreateUserAccount(from.Bytes())
+	assert.Nil(t, err)
+
 	gasLimit, _ := util.NewUint128FromInt(200000)
 	tx1, _ := NewTransaction(bc.ChainID(), from, from, util.NewUint128(), 1, TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, gasLimit)
 	tx1.Sign(signature)
 	tx2, _ := NewTransaction(bc.ChainID(), from, from, util.NewUint128(), 2, TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, gasLimit)
 	tx2.Sign(signature)
+	_, err = block.ExecuteTransaction(tx1, block.worldState)
+	assert.Nil(t, err)
 	block.transactions = append(block.transactions, tx1)
 	block.transactions = append(block.transactions, tx2)
+	_, err = block.ExecuteTransaction(tx2, block.worldState)
+	assert.Nil(t, err)
+	dependency := dag.NewDag()
+	dependency.AddNode(tx1.Hash().Hex())
+	dependency.AddNode(tx2.Hash().Hex())
+	dependency.AddEdge(tx1.Hash().Hex(), tx2.Hash().Hex())
+	block.dependency = dependency
 	block.Seal()
 	block.Sign(signature)
 	assert.Nil(t, block.VerifyIntegrity(bc.ChainID(), bc.ConsensusHandler()))
 	block.header.stateRoot[0]++
 	assert.NotNil(t, block.VerifyExecution())
+}
+
+func TestBlock_String(t *testing.T) {
+	neb := testNeb(t)
+	bc := neb.chain
+	assert.NotNil(t, bc.genesisBlock.String())
 }

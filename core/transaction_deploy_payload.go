@@ -56,12 +56,12 @@ func (payload *DeployPayload) ToBytes() ([]byte, error) {
 
 // BaseGasCount returns base gas count
 func (payload *DeployPayload) BaseGasCount() *util.Uint128 {
-	return util.NewUint128()
+	base, _ := util.NewUint128FromInt(60)
+	return base
 }
 
 // Execute deploy payload in tx, deploy a new contract
-func (payload *DeployPayload) Execute(block *Block, tx *Transaction) (*util.Uint128, string, error) {
-
+func (payload *DeployPayload) Execute(tx *Transaction, block *Block, ws WorldState) (*util.Uint128, string, error) {
 	if block == nil || tx == nil {
 		return util.NewUint128(), "", ErrNilArgument
 	}
@@ -83,30 +83,28 @@ func (payload *DeployPayload) Execute(block *Block, tx *Transaction) (*util.Uint
 	if err != nil {
 		return util.NewUint128(), "", err
 	}
-	owner, err := block.accState.GetOrCreateUserAccount(tx.from.Bytes())
+	owner, err := ws.GetOrCreateUserAccount(tx.from.Bytes())
 	if err != nil {
 		return util.NewUint128(), "", err
 	}
-	contract, err := block.accState.CreateContractAccount(addr.Bytes(), tx.Hash())
+	contract, err := ws.CreateContractAccount(addr.Bytes(), tx.Hash())
 	if err != nil {
 		return util.NewUint128(), "", err
 	}
 
-	if err := block.nvm.CreateEngine(block, tx, owner, contract, block.accState); err != nil {
+	engine, err := block.nvm.CreateEngine(block, tx, owner, contract, ws)
+	if err != nil {
 		return util.NewUint128(), "", err
 	}
-	defer block.nvm.DisposeEngine()
+	defer engine.Dispose()
 
-	if err := block.nvm.SetEngineExecutionLimits(payloadGasLimit.Uint64()); err != nil {
+	if err := engine.SetExecutionLimits(payloadGasLimit.Uint64(), DefaultLimitsOfTotalMemorySize); err != nil {
 		return util.NewUint128(), "", err
 	}
 
 	// Deploy and Init.
-	result, exeErr := block.nvm.DeployAndInitEngine(payload.Source, payload.SourceType, payload.Args)
-	gasCout, err := block.nvm.ExecutionInstructions()
-	if err != nil {
-		return util.NewUint128(), "", err
-	}
+	result, exeErr := engine.DeployAndInit(payload.Source, payload.SourceType, payload.Args)
+	gasCout := engine.ExecutionInstructions()
 	instructions, err := util.NewUint128FromInt(int64(gasCout))
 	if err != nil {
 		return util.NewUint128(), "", err

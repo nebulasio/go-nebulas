@@ -35,7 +35,7 @@ import (
 // Chunk packs some blocks
 type Chunk struct {
 	blockChain *core.BlockChain
-	chunksTrie *trie.BatchTrie
+	chunksTrie *trie.Trie
 }
 
 // NewChunk return a new chunk
@@ -70,7 +70,7 @@ func (c *Chunk) generateChunkHeaders(syncpointHash byteutils.Hash) (*syncpb.Chun
 		}).Warn("Failed to create memory storage")
 		return nil, err
 	}
-	chunksTrie, err := trie.NewBatchTrie(nil, stor)
+	chunksTrie, err := trie.NewTrie(nil, stor, false)
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"err": err,
@@ -83,7 +83,7 @@ func (c *Chunk) generateChunkHeaders(syncpointHash byteutils.Hash) (*syncpb.Chun
 	curChunk := startChunk
 	for curChunk < endChunk && curChunk-startChunk < MaxChunkPerSyncRequest {
 		headers := [][]byte{}
-		blocksTrie, err := trie.NewBatchTrie(nil, stor)
+		blocksTrie, err := trie.NewTrie(nil, stor, false)
 		if err != nil {
 			logging.VLog().WithFields(logrus.Fields{
 				"err": err,
@@ -136,7 +136,7 @@ func verifyChunkHeaders(chunkHeaders *syncpb.ChunkHeaders) (bool, error) {
 		return false, err
 	}
 
-	chunksTrie, err := trie.NewBatchTrie(nil, stor)
+	chunksTrie, err := trie.NewTrie(nil, stor, false)
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"err": err,
@@ -145,7 +145,7 @@ func verifyChunkHeaders(chunkHeaders *syncpb.ChunkHeaders) (bool, error) {
 	}
 
 	for _, chunkHeader := range chunkHeaders.ChunkHeaders {
-		blocksTrie, err := trie.NewBatchTrie(nil, stor)
+		blocksTrie, err := trie.NewTrie(nil, stor, false)
 		if err != nil {
 			logging.VLog().WithFields(logrus.Fields{
 				"err": err,
@@ -172,7 +172,7 @@ func (c *Chunk) generateChunkData(chunkHeader *syncpb.ChunkHeader) (*syncpb.Chun
 		return nil, err
 	}
 
-	blocksTrie, err := trie.NewBatchTrie(nil, stor)
+	blocksTrie, err := trie.NewTrie(nil, stor, false)
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"err": err,
@@ -203,10 +203,6 @@ func (c *Chunk) generateChunkData(chunkHeader *syncpb.ChunkHeader) (*syncpb.Chun
 		blocksTrie.Put(block.Hash(), block.Hash())
 	}
 
-	/* 	logging.VLog().WithFields(logrus.Fields{
-		"size": len(blocks),
-	}).Debug("Succeed to generate chunk.") */
-
 	if bytes.Compare(blocksTrie.RootHash(), chunkHeader.Root) != 0 {
 		logging.VLog().WithFields(logrus.Fields{
 			"size":                len(blocks),
@@ -216,6 +212,10 @@ func (c *Chunk) generateChunkData(chunkHeader *syncpb.ChunkHeader) (*syncpb.Chun
 		}).Debug("Wrong chunk header root hash.")
 		return nil, ErrWrongChunkHeaderRootHash
 	}
+
+	logging.VLog().WithFields(logrus.Fields{
+		"size": len(blocks),
+	}).Debug("Succeed to generate chunk.")
 
 	return &syncpb.ChunkData{Blocks: blocks, Root: blocksTrie.RootHash()}, nil
 }
@@ -229,7 +229,7 @@ func verifyChunkData(chunkHeader *syncpb.ChunkHeader, chunkData *syncpb.ChunkDat
 		return false, err
 	}
 
-	blocksTrie, err := trie.NewBatchTrie(nil, stor)
+	blocksTrie, err := trie.NewTrie(nil, stor, false)
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"err": err,
@@ -248,7 +248,10 @@ func verifyChunkData(chunkHeader *syncpb.ChunkHeader, chunkData *syncpb.ChunkDat
 
 	for k, block := range chunkData.Blocks {
 		hash := chunkHeader.Headers[k]
-		calculated := core.HashPbBlock(block)
+		calculated, err := core.HashPbBlock(block)
+		if err != nil {
+			return false, err
+		}
 		if bytes.Compare(calculated, block.Header.Hash) != 0 {
 			logging.VLog().WithFields(logrus.Fields{
 				"index":                k,

@@ -58,7 +58,7 @@ var initFromBalance = 10;
  * the smaller the value, the faster the test, with the risk of causing error
  */
 
-var maxCheckTime = 15;
+var maxCheckTime = 30;
 var checkTimes = 0;
 
 function checkTransaction(hash, callback) {
@@ -141,6 +141,16 @@ function testTransfer(testInput, testExpect, done) {
 
         if(testInput.hasOwnProperty("overrideSignature")){
             tx.sign = testInput.overrideSignature;
+        } else if (testInput.fakeSign) {
+            //repalce the privkey to sign
+            console.log("this is the right signature:" + tx.sign.toString('hex'));
+            console.log("repalce the privkey and sign another signatrue...")
+            var newAccount = new Wallet.Account("a6e5eb222e4538fce79f5cb8774a72621637c2c9654c8b2525ed1d7e4e73653f");
+            var privKey = tx.from.privKey
+            tx.from.privKey = newAccount.privKey
+            tx.signTransaction();
+            console.log("now signatrue is: " + tx.sign.toString('hex'));
+            tx.from.privKey = privKey;
         }
 
         return neb.api.sendRawTransaction(tx.toProtoString());
@@ -150,6 +160,9 @@ function testTransfer(testInput, testExpect, done) {
             done(err);
         } else {
             console.log("cannot send tx, err: "+err)
+            if (testExpect.hasOwnProperty("errMsg")){
+                expect(testExpect.errMsg).to.be.equal(err.error.error);
+            }
             done();
         }
     }).then(function (resp) {
@@ -215,7 +228,7 @@ function testTransfer(testInput, testExpect, done) {
             expect(resp).to.be.a('undefined');
         }
     }).catch(function (err) {
-
+        //TODO test case should fail: a tx which is expected "canNotSendTX" is send
         console.log(JSON.stringify(err));
         done(err);
     });
@@ -316,7 +329,8 @@ describe('normal transaction', function () {
             canExcuteTx: false,
             fromBalanceAfterTx: '8999999980000000000',
             toBalanceAfterTx: '1000000000000000000',
-            transferReward: '20000000000'
+            transferReward: '20000000000',
+            errMsg: 'address: invalid address'
         };
         prepare(function (err) {
             if (err instanceof Error) {
@@ -343,7 +357,8 @@ describe('normal transaction', function () {
             canExcuteTx: false,
             fromBalanceAfterTx: '8999999980000000000',
             toBalanceAfterTx: '1000000000000000000',
-            transferReward: '20000000000'
+            transferReward: '20000000000',
+            errMsg: 'address: invalid address'
         };
         prepare(function (err) {
             if (err instanceof Error) {
@@ -370,7 +385,8 @@ describe('normal transaction', function () {
             canExcuteTx: false,
             fromBalanceAfterTx: '8999999980000000000',
             toBalanceAfterTx: '1000000000000000000',
-            transferReward: '20000000000'
+            transferReward: '20000000000',
+            errMsg: 'address: invalid address'
         };
         prepare(function (err) {
             if (err instanceof Error) {
@@ -397,7 +413,8 @@ describe('normal transaction', function () {
             canExcuteTx: false,
             fromBalanceAfterTx: '8999999980000000000',
             toBalanceAfterTx: '1000000000000000000',
-            transferReward: '20000000000'
+            transferReward: '20000000000',
+            errMsg: 'address: invalid address'
         };
         prepare(function (err) {
             if (err instanceof Error) {
@@ -424,7 +441,8 @@ describe('normal transaction', function () {
             canExcuteTx: false,
             fromBalanceAfterTx: '8999999980000000000',
             toBalanceAfterTx: '1000000000000000000',
-            transferReward: '20000000000'
+            transferReward: '20000000000',
+            errMsg: 'address: invalid address'
         };
         prepare(function (err) {
             if (err instanceof Error) {
@@ -451,7 +469,8 @@ describe('normal transaction', function () {
             canExcuteTx: false,
             fromBalanceAfterTx: '8999999980000000000',
             toBalanceAfterTx: '1000000000000000000',
-            transferReward: '20000000000'
+            transferReward: '20000000000',
+            errMsg: 'address: invalid address'
         };
         prepare(function (err) {
             if (err instanceof Error) {
@@ -478,7 +497,8 @@ describe('normal transaction', function () {
             canExcuteTx: false,
             fromBalanceAfterTx: '8999999980000000000',
             toBalanceAfterTx: '1000000000000000000',
-            transferReward: '20000000000'
+            transferReward: '20000000000',
+            errMsg: 'address: invalid address'
         };
         prepare(function (err) {
             if (err instanceof Error) {
@@ -505,7 +525,8 @@ describe('normal transaction', function () {
             canExcuteTx: false,
             fromBalanceAfterTx: '8999999980000000000',
             toBalanceAfterTx: '1000000000000000000',
-            transferReward: '20000000000'
+            transferReward: '20000000000',
+            errMsg: 'address: invalid address'
         };
         prepare(function (err) {
             if (err instanceof Error) {
@@ -559,7 +580,8 @@ describe('normal transaction', function () {
             sendError: "invalid signature",
             fromBalanceAfterTx: '8999999980000000000',
             toBalanceAfterTx: '1000000000000000000',
-            transferReward: '20000000000'
+            transferReward: '20000000000',
+            errMsg: 'invalid signature'
         };
         prepare(function (err) {
             if (err instanceof Error) {
@@ -587,7 +609,37 @@ describe('normal transaction', function () {
             sendError: "invalid signature",
             fromBalanceAfterTx: '8999999980000000000',
             toBalanceAfterTx: '1000000000000000000',
-            transferReward: '20000000000'
+            transferReward: '20000000000',
+            errMsg: 'invalid signature'
+        };
+        prepare(function (err) {
+            if (err instanceof Error) {
+                done(err);
+            } else {
+                testTransfer(testInput, testExpect, done);
+            }
+        });
+    });
+
+    it('[signature] invalid signature (fake sig)', function (done) {
+        var testInput = {
+            transferValue: 1,
+            isSameAddr: false,
+            gasLimit: -1,
+            gasPrice: -1,
+            nonceIncrement: 1,
+            fakeSign: true
+        };
+        //can calc value by previous params
+        var testExpect = {
+            canSendTx: false,
+            canSubmitTx: false,
+            canExcuteTx: true,
+            sendError: "transaction recover public key address not equal to from",
+            fromBalanceAfterTx: '8999999980000000000',
+            toBalanceAfterTx: '1000000000000000000',
+            transferReward: '20000000000',
+            errMsg: 'transaction recover public key address not equal to from'
         };
         prepare(function (err) {
             if (err instanceof Error) {
@@ -642,7 +694,8 @@ describe('normal transaction', function () {
             canExcuteTx: true,
             fromBalanceAfterTx: '8999999980000000000',
             toBalanceAfterTx: '1000000000000000000',
-            transferReward: '20000000000'
+            transferReward: '20000000000',
+            errMsg: 'gas limit less or equal to 0'
         };
         prepare(function (err) {
             if (err instanceof Error) {
@@ -669,7 +722,8 @@ describe('normal transaction', function () {
             canExcuteTx: false,
             fromBalanceAfterTx: '8999999980000000000',
             toBalanceAfterTx: '1000000000000000000',
-            transferReward: '20000000000'
+            transferReward: '20000000000',
+            errMsg: 'gas limit less or equal to 0'
         };
         prepare(function (err) {
             if (err instanceof Error) {
@@ -695,7 +749,8 @@ describe('normal transaction', function () {
             canExcuteTx: false,
             fromBalanceAfterTx: '10000000000000000000',
             toBalanceAfterTx: '0',
-            transferReward: '0'
+            transferReward: '0',
+            errMsg: 'out of gas limit'
         };
         prepare(function (err) {
             if (err instanceof Error) {
@@ -774,7 +829,8 @@ describe('normal transaction', function () {
             canExcuteTx: false,
             fromBalanceAfterTx: '8999999980000000000',
             toBalanceAfterTx: '1000000000000000000',
-            transferReward: '20000000000'
+            transferReward: '20000000000',
+            errMsg: 'below the gas price'
         };
         prepare(function (err) {
             if (err instanceof Error) {
@@ -801,7 +857,8 @@ describe('normal transaction', function () {
             canExcuteTx: false,
             fromBalanceAfterTx: '8999999980000000000',
             toBalanceAfterTx: '1000000000000000000',
-            transferReward: '20000000000'
+            transferReward: '20000000000',
+            errMsg: 'below the gas price'
         };
         prepare(function (err) {
             if (err instanceof Error) {
@@ -878,7 +935,8 @@ describe('normal transaction', function () {
             canExcuteTx: true,
             fromBalanceAfterTx: '8999999980000000000',
             toBalanceAfterTx: '1000000000000000000',
-            transferReward: '20000000000'
+            transferReward: '20000000000',
+            errMsg: 'below the gas price'
         };
         prepare(function (err) {
             if (err instanceof Error) {
@@ -960,7 +1018,8 @@ describe('normal transaction', function () {
             canExcuteTx: false,
             fromBalanceAfterTx: '-1',
             toBalanceAfterTx: '-1',
-            transferReward: '-1'
+            transferReward: '-1',
+            errMsg: 'below the gas price'
         };
         prepare(function (err) {
             if (err instanceof Error) {
@@ -1070,7 +1129,8 @@ describe('normal transaction', function () {
             canExcuteTx: false,
             fromBalanceAfterTx: '-1',
             toBalanceAfterTx: '-1',
-            transferReward: '-1'
+            transferReward: '-1',
+            errMsg: 'transaction\'s nonce is invalid, should bigger than the from\'s nonce'
         };
         prepare(function (err) {
             if (err instanceof Error) {
@@ -1126,7 +1186,9 @@ describe('normal transaction', function () {
             canExcuteTx: false,
             fromBalanceAfterTx: '-1',
             toBalanceAfterTx: '-1',
-            transferReward: '-1'
+            transferReward: '-1',
+            //errMsg: 'transaction\'s nonce is invalid, should bigger than the from\'s nonce'
+            errMsg: 'invalid transaction hash'  //TODO is this error right?
         };
         prepare(function (err) {
             if (err instanceof Error) {
@@ -1323,7 +1385,8 @@ describe('normal transaction', function () {
             canExcuteTx: false,
             fromBalanceAfterTx: '8999999979964000000',
             toBalanceAfterTx: '1000000000000000000',
-            transferReward: '20036000000'
+            transferReward: '20036000000',
+            errMsg: 'out of gas limit'
         };
         prepare(function (err) {
             if (err instanceof Error) {

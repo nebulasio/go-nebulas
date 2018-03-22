@@ -21,8 +21,6 @@ package core
 import (
 	"testing"
 
-	"github.com/nebulasio/go-nebulas/crypto"
-	"github.com/nebulasio/go-nebulas/crypto/keystore"
 	"github.com/nebulasio/go-nebulas/util"
 	"github.com/stretchr/testify/assert"
 )
@@ -215,7 +213,7 @@ func TestPayload_Execute(t *testing.T) {
 	neb := testNeb(t)
 	bc := neb.chain
 	block := bc.tailBlock
-	block.begin()
+	block.Begin()
 
 	tests := []testPayload{
 		{
@@ -260,31 +258,14 @@ func TestPayload_Execute(t *testing.T) {
 		wantErr: ErrContractCheckFailed,
 	})
 
-	ks := keystore.DefaultKS
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			key, _ := ks.GetUnlocked(tt.tx.from.String())
-			signature, _ := crypto.NewSignature(keystore.SECP256K1)
-			signature.InitSign(key.(keystore.PrivateKey))
-
-			err := tt.tx.Sign(signature)
-			assert.Nil(t, err)
-
-			block.acceptTransaction(tt.tx)
-
-			txblock, _ := block.Clone()
-
-			got, _, err := tt.payload.Execute(txblock, tt.tx)
+			got, _, err := tt.payload.Execute(tt.tx, block, block.WorldState())
 			assert.Equal(t, tt.wantErr, err)
 			assert.Equal(t, tt.want, got)
-
-			if err != nil {
-				txblock.rollback()
-			} else {
-				block.Merge(txblock)
-			}
+			assert.Nil(t, AcceptTransaction(tt.tx, block.WorldState()))
 		})
 	}
 
-	block.rollback()
+	block.RollBack()
 }

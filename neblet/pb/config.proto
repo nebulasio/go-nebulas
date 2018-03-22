@@ -89,6 +89,11 @@ message RPCConfig {
 	repeated string http_module = 3;
 
     int32 connection_limits = 4;
+
+    int32 http_limits = 5;
+
+    // HTTP CORS allowed origins
+    repeated string http_cors = 6;
 }
 
 message AppConfig {

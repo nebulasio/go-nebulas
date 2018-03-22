@@ -54,11 +54,12 @@ func (payload *CallPayload) ToBytes() ([]byte, error) {
 
 // BaseGasCount returns base gas count
 func (payload *CallPayload) BaseGasCount() *util.Uint128 {
-	return util.NewUint128()
+	base, _ := util.NewUint128FromInt(60)
+	return base
 }
 
 // Execute the call payload in tx, call a function
-func (payload *CallPayload) Execute(block *Block, tx *Transaction) (*util.Uint128, string, error) {
+func (payload *CallPayload) Execute(tx *Transaction, block *Block, ws WorldState) (*util.Uint128, string, error) {
 	if block == nil || tx == nil {
 		return util.NewUint128(), "", ErrNilArgument
 	}
@@ -73,16 +74,16 @@ func (payload *CallPayload) Execute(block *Block, tx *Transaction) (*util.Uint12
 		return util.NewUint128(), "", ErrOutOfGasLimit
 	}
 
-	contract, err := block.CheckContract(tx.to)
+	contract, err := CheckContract(tx.to, ws)
 	if err != nil {
 		return util.NewUint128(), "", err
 	}
 
-	birthTx, err := block.GetTransaction(contract.BirthPlace())
+	birthTx, err := GetTransaction(contract.BirthPlace(), ws)
 	if err != nil {
 		return util.NewUint128(), "", err
 	}
-	owner, err := block.accState.GetOrCreateUserAccount(birthTx.from.Bytes())
+	owner, err := ws.GetOrCreateUserAccount(birthTx.from.Bytes())
 	if err != nil {
 		return util.NewUint128(), "", err
 	}
@@ -91,20 +92,18 @@ func (payload *CallPayload) Execute(block *Block, tx *Transaction) (*util.Uint12
 		return util.NewUint128(), "", err
 	}
 
-	if err := block.nvm.CreateEngine(block, tx, owner, contract, block.accState); err != nil {
-		return util.NewUint128(), "", err
-	}
-	defer block.nvm.DisposeEngine()
-
-	if err := block.nvm.SetEngineExecutionLimits(payloadGasLimit.Uint64()); err != nil {
-		return util.NewUint128(), "", err
-	}
-
-	result, exeErr := block.nvm.CallEngine(deploy.Source, deploy.SourceType, payload.Function, payload.Args)
-	gasCout, err := block.nvm.ExecutionInstructions()
+	engine, err := block.nvm.CreateEngine(block, tx, owner, contract, ws)
 	if err != nil {
 		return util.NewUint128(), "", err
 	}
+	defer engine.Dispose()
+
+	if err := engine.SetExecutionLimits(payloadGasLimit.Uint64(), DefaultLimitsOfTotalMemorySize); err != nil {
+		return util.NewUint128(), "", err
+	}
+
+	result, exeErr := engine.Call(deploy.Source, deploy.SourceType, payload.Function, payload.Args)
+	gasCout := engine.ExecutionInstructions()
 	instructions, err := util.NewUint128FromInt(int64(gasCout))
 	if err != nil {
 		return util.NewUint128(), "", err

@@ -70,7 +70,7 @@ type Neblet struct {
 
 	eventEmitter *core.EventEmitter
 
-	nvm core.Engine
+	nvm core.NVM
 
 	running bool
 }
@@ -103,8 +103,9 @@ func (n *Neblet) Setup() {
 	logging.CLog().Info("Setuping Neblet...")
 
 	// storage
+	// n.storage, err = storage.NewDiskStorage(n.config.Chain.Datadir)
 	// n.storage, err = storage.NewMemoryStorage()
-	n.storage, err = storage.NewDiskStorage(n.config.Chain.Datadir)
+	n.storage, err = storage.NewRocksStorage(n.config.Chain.Datadir)
 	if err != nil {
 		logging.CLog().WithFields(logrus.Fields{
 			"dir": n.config.Chain.Datadir,
@@ -113,7 +114,7 @@ func (n *Neblet) Setup() {
 	}
 
 	// net
-	n.netService, err = nebnet.NewNetService(n)
+	n.netService, err = nebnet.NewNebService(n)
 	if err != nil {
 		logging.CLog().WithFields(logrus.Fields{
 			"err": err,
@@ -353,7 +354,7 @@ func (n *Neblet) SyncService() *nsync.Service {
 }
 
 // Nvm return nvm engine
-func (n *Neblet) Nvm() core.Engine {
+func (n *Neblet) Nvm() core.NVM {
 	return n.nvm
 }
 

@@ -10,7 +10,11 @@
 [[projects]]
   branch = "master"
   name = "github.com/agl/ed25519"
-  packages = [".","edwards25519","extra25519"]
+  packages = [
+    ".",
+    "edwards25519",
+    "extra25519"
+  ]
   revision = "5312a61534124124185d41f09206b9fef1d88403"
 
 [[projects]]
@@ -34,7 +38,10 @@
 [[projects]]
   branch = "master"
   name = "github.com/docker/spdystream"
-  packages = [".","spdy"]
+  packages = [
+    ".",
+    "spdy"
+  ]
   revision = "bc6354cbbc295e925e4c611ffe90c1f287ee54db"
 
 [[projects]]
@@ -45,7 +52,10 @@
 
 [[projects]]
   name = "github.com/gogo/protobuf"
-  packages = ["io","proto"]
+  packages = [
+    "io",
+    "proto"
+  ]
   revision = "100ba4e885062801d56799d78530b73b178a78f3"
   version = "v0.4"
 
@@ -58,7 +68,16 @@
 [[projects]]
   branch = "master"
   name = "github.com/golang/protobuf"
-  packages = ["jsonpb","proto","protoc-gen-go/descriptor","ptypes","ptypes/any","ptypes/duration","ptypes/struct","ptypes/timestamp"]
+  packages = [
+    "jsonpb",
+    "proto",
+    "protoc-gen-go/descriptor",
+    "ptypes",
+    "ptypes/any",
+    "ptypes/duration",
+    "ptypes/struct",
+    "ptypes/timestamp"
+  ]
   revision = "ae59567b9aab61b50b2590679a62c3c044030b61"
 
 [[projects]]
@@ -80,10 +99,10 @@
   revision = "d0c54e68681ec7999ac17864470f3bee6521ba2b"
 
 [[projects]]
-  branch = "master"
   name = "github.com/grpc-ecosystem/grpc-gateway"
-  packages = ["runtime","runtime/internal","utilities"]
-  revision = "b0be3cdef0ed27e3c420795e2efbfe9c27e839cc"
+  packages = ["utilities"]
+  revision = "07f5e79768022f9a3265235f0db4ac8c3f675fec"
+  version = "v1.3.1"
 
 [[projects]]
   branch = "master"
@@ -99,19 +118,40 @@
 
 [[projects]]
   branch = "master"
+  name = "github.com/gxed/hashland"
+  packages = ["keccakpg"]
+  revision = "d9f6b97f8db22dd1e090fd0bbbe98f09cc7dd0a8"
+
+[[projects]]
+  branch = "master"
   name = "github.com/hashicorp/golang-lru"
-  packages = [".","simplelru"]
+  packages = [
+    ".",
+    "simplelru"
+  ]
   revision = "0a025b7e63adc15a622f29b0b2c4c3848243bbf6"
 
 [[projects]]
   branch = "master"
   name = "github.com/huin/goupnp"
-  packages = [".","dcps/internetgateway1","dcps/internetgateway2","httpu","scpd","soap","ssdp"]
+  packages = [
+    ".",
+    "dcps/internetgateway1",
+    "dcps/internetgateway2",
+    "httpu",
+    "scpd",
+    "soap",
+    "ssdp"
+  ]
   revision = "5b7801abd885f2f7458add715aee47e7df5370a0"
 
 [[projects]]
   name = "github.com/influxdata/influxdb"
-  packages = ["client","models","pkg/escape"]
+  packages = [
+    "client",
+    "models",
+    "pkg/escape"
+  ]
   revision = "6d2685d1738277a1c2672fc58df7994627769be6"
   version = "v1.4.2"
 
@@ -154,7 +194,12 @@
 [[projects]]
   branch = "master"
   name = "github.com/jbenet/goprocess"
-  packages = [".","context","periodic","ratelimit"]
+  packages = [
+    ".",
+    "context",
+    "periodic",
+    "ratelimit"
+  ]
   revision = "b497e2f366b8624394fb2e89c10ab607bebdde0b"
 
 [[projects]]
@@ -178,13 +223,20 @@
 [[projects]]
   branch = "master"
   name = "github.com/libp2p/go-libp2p"
-  packages = ["p2p/host/basic","p2p/protocol/identify","p2p/protocol/identify/pb"]
+  packages = [
+    "p2p/host/basic",
+    "p2p/protocol/identify",
+    "p2p/protocol/identify/pb"
+  ]
   revision = "edb6434ddf456f58fbe2538d5336435a23915bd9"
 
 [[projects]]
   branch = "master"
   name = "github.com/libp2p/go-libp2p-circuit"
-  packages = [".","pb"]
+  packages = [
+    ".",
+    "pb"
+  ]
   revision = "4730183d80def7bc574e1b486b1f6e97a5c67bb9"
 
 [[projects]]
@@ -195,7 +247,10 @@
 
 [[projects]]
   name = "github.com/libp2p/go-libp2p-crypto"
-  packages = [".","pb"]
+  packages = [
+    ".",
+    "pb"
+  ]
   revision = "e89e1de117dd65c6129d99d1d853f48bc847cf17"
 
 [[projects]]
@@ -223,7 +278,10 @@
 [[projects]]
   branch = "master"
   name = "github.com/libp2p/go-libp2p-kbucket"
-  packages = [".","keyspace"]
+  packages = [
+    ".",
+    "keyspace"
+  ]
   revision = "5ce3bb926eeeadf90708fec12343cbf858ed24b6"
 
 [[projects]]
@@ -235,7 +293,11 @@
 [[projects]]
   branch = "master"
   name = "github.com/libp2p/go-libp2p-metrics"
-  packages = [".","conn","stream"]
+  packages = [
+    ".",
+    "conn",
+    "stream"
+  ]
   revision = "1ac87496e992290629575655bea4330dd4ab211e"
 
 [[projects]]
@@ -256,7 +318,10 @@
 
 [[projects]]
   name = "github.com/libp2p/go-libp2p-peerstore"
-  packages = [".","addr"]
+  packages = [
+    ".",
+    "addr"
+  ]
   revision = "89838b9577a2b83eb3e1632c162cfd0daeee58e3"
 
 [[projects]]
@@ -268,7 +333,10 @@
 [[projects]]
   branch = "master"
   name = "github.com/libp2p/go-libp2p-secio"
-  packages = [".","pb"]
+  packages = [
+    ".",
+    "pb"
+  ]
   revision = "0cdc8339ad2e4f7f32e67b6a481bfbd48be5c704"
 
 [[projects]]
@@ -291,7 +359,10 @@
 [[projects]]
   branch = "master"
   name = "github.com/libp2p/go-msgio"
-  packages = [".","mpool"]
+  packages = [
+    ".",
+    "mpool"
+  ]
   revision = "d82125c9907e1365775356505f14277d47dfd4d6"
 
 [[projects]]
@@ -303,7 +374,11 @@
 [[projects]]
   branch = "master"
   name = "github.com/libp2p/go-reuseport"
-  packages = [".","poll","singlepoll"]
+  packages = [
+    ".",
+    "poll",
+    "singlepoll"
+  ]
   revision = "2a863ed0ff1167e16ff48dd1de862b180af3bf27"
 
 [[projects]]
@@ -331,6 +406,24 @@
   revision = "de6160a1d0a6c2df87ed00dd607353fb33932e48"
 
 [[projects]]
+  branch = "master"
+  name = "github.com/minio/blake2b-simd"
+  packages = ["."]
+  revision = "3f5f724cb5b182a5c278d6d3d55b40e7f8c2efb4"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/minio/sha256-simd"
+  packages = ["."]
+  revision = "ad98a36ba0da87206e3378c556abbfeaeaa98668"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/mr-tron/base58"
+  packages = ["base58"]
+  revision = "c1bdf7c52f59d6685ca597b9955a443ff95eeee6"
+
+[[projects]]
   name = "github.com/multiformats/go-multiaddr"
   packages = ["."]
   revision = "fb72fb2a8ef8fa11c7955820a2c5f9600b279c58"
@@ -350,7 +443,10 @@
 [[projects]]
   branch = "master"
   name = "github.com/multiformats/go-multicodec"
-  packages = [".","json"]
+  packages = [
+    ".",
+    "json"
+  ]
   revision = "fd289ac41fba9e574f214ab2a808a1678ef8810c"
 
 [[projects]]
@@ -367,33 +463,19 @@
 
 [[projects]]
   branch = "master"
-  name = "github.com/gxed/hashland"
-  packages = ["."]
-  revision = "d9f6b97f8db22dd1e090fd0bbbe98f09cc7dd0a8"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/minio/blake2b-simd"
-  packages = ["."]
-  revision = "3f5f724cb5b182a5c278d6d3d55b40e7f8c2efb4"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/minio/sha256-simd"
-  packages = ["."]
-  revision = "ad98a36ba0da87206e3378c556abbfeaeaa98668"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/mr-tron/base58"
-  packages = ["."]
-  revision = "c1bdf7c52f59d6685ca597b9955a443ff95eeee6"
-
-[[projects]]
-  branch = "master"
   name = "github.com/multiformats/go-multistream"
   packages = ["."]
   revision = "661a0b9a0e6d9e99e4552c431b0eb82f58fde5b3"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/nebulasio/grpc-gateway"
+  packages = [
+    "runtime",
+    "runtime/internal",
+    "utilities"
+  ]
+  revision = "9ed0e3fde466911904aef99bf3ecc8197d54b21d"
 
 [[projects]]
   branch = "master"
@@ -416,7 +498,10 @@
 [[projects]]
   branch = "master"
   name = "github.com/rcrowley/go-metrics"
-  packages = [".","exp"]
+  packages = [
+    ".",
+    "exp"
+  ]
   revision = "1f30fe9094a513ce4c700b9a54458bbb0c96996c"
 
 [[projects]]
@@ -428,8 +513,22 @@
 [[projects]]
   branch = "master"
   name = "github.com/robertkrimen/otto"
-  packages = [".","ast","dbg","file","parser","registry","token"]
+  packages = [
+    ".",
+    "ast",
+    "dbg",
+    "file",
+    "parser",
+    "registry",
+    "token"
+  ]
   revision = "68a29f5e29b18d7367e686c43cf74eba1900f548"
+
+[[projects]]
+  name = "github.com/rs/cors"
+  packages = ["."]
+  revision = "feef513b9575b32f84bafa580aad89b011259019"
+  version = "v1.3.0"
 
 [[projects]]
   name = "github.com/satori/go.uuid"
@@ -452,14 +551,36 @@
 [[projects]]
   branch = "master"
   name = "github.com/stretchr/testify"
-  packages = ["assert","require"]
+  packages = [
+    "assert",
+    "require"
+  ]
   revision = "890a5c3458b43e6104ff5da8dfa139d013d77544"
 
 [[projects]]
   branch = "master"
   name = "github.com/syndtr/goleveldb"
-  packages = ["leveldb","leveldb/cache","leveldb/comparer","leveldb/errors","leveldb/filter","leveldb/iterator","leveldb/journal","leveldb/memdb","leveldb/opt","leveldb/storage","leveldb/table","leveldb/util"]
+  packages = [
+    "leveldb",
+    "leveldb/cache",
+    "leveldb/comparer",
+    "leveldb/errors",
+    "leveldb/filter",
+    "leveldb/iterator",
+    "leveldb/journal",
+    "leveldb/memdb",
+    "leveldb/opt",
+    "leveldb/storage",
+    "leveldb/table",
+    "leveldb/util"
+  ]
   revision = "b89cc31ef7977104127d34c1bd31ebd1a9db2199"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/tecbot/gorocksdb"
+  packages = ["."]
+  revision = "3e476152774442234f9a9f747386a48a1d82a515"
 
 [[projects]]
   name = "github.com/urfave/cli"
@@ -542,48 +663,129 @@
 [[projects]]
   branch = "master"
   name = "golang.org/x/crypto"
-  packages = ["blowfish","pbkdf2","ripemd160","scrypt","sha3","ssh/terminal"]
+  packages = [
+    "blake2s",
+    "blowfish",
+    "pbkdf2",
+    "ripemd160",
+    "scrypt",
+    "sha3",
+    "ssh/terminal"
+  ]
   revision = "faadfbdc035307d901e69eea569f5dda451a3ee3"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/net"
-  packages = ["context","html","html/atom","html/charset","http2","http2/hpack","idna","internal/timeseries","lex/httplex","netutil","trace"]
+  packages = [
+    "context",
+    "html",
+    "html/atom",
+    "html/charset",
+    "http2",
+    "http2/hpack",
+    "idna",
+    "internal/timeseries",
+    "lex/httplex",
+    "netutil",
+    "trace"
+  ]
   revision = "8351a756f30f1297fe94bbf4b767ec589c6ea6d0"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/sys"
-  packages = ["unix","windows"]
+  packages = [
+    "unix",
+    "windows"
+  ]
   revision = "062cd7e4e68206d8bab9b18396626e855c992658"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/text"
-  packages = ["collate","collate/build","encoding","encoding/charmap","encoding/htmlindex","encoding/internal","encoding/internal/identifier","encoding/japanese","encoding/korean","encoding/simplifiedchinese","encoding/traditionalchinese","encoding/unicode","internal/colltab","internal/gen","internal/tag","internal/triegen","internal/ucd","internal/utf8internal","language","runes","secure/bidirule","transform","unicode/bidi","unicode/cldr","unicode/norm","unicode/rangetable"]
+  packages = [
+    "collate",
+    "collate/build",
+    "encoding",
+    "encoding/charmap",
+    "encoding/htmlindex",
+    "encoding/internal",
+    "encoding/internal/identifier",
+    "encoding/japanese",
+    "encoding/korean",
+    "encoding/simplifiedchinese",
+    "encoding/traditionalchinese",
+    "encoding/unicode",
+    "internal/colltab",
+    "internal/gen",
+    "internal/tag",
+    "internal/triegen",
+    "internal/ucd",
+    "internal/utf8internal",
+    "language",
+    "runes",
+    "secure/bidirule",
+    "transform",
+    "unicode/bidi",
+    "unicode/cldr",
+    "unicode/norm",
+    "unicode/rangetable"
+  ]
   revision = "1cbadb444a806fd9430d14ad08967ed91da4fa0a"
 
 [[projects]]
   branch = "master"
   name = "google.golang.org/genproto"
-  packages = ["googleapis/api/annotations","googleapis/rpc/status"]
+  packages = [
+    "googleapis/api/annotations",
+    "googleapis/rpc/status"
+  ]
   revision = "f676e0f3ac6395ff1a529ae59a6670878a8371a6"
 
 [[projects]]
   name = "google.golang.org/grpc"
-  packages = [".","balancer","balancer/base","balancer/roundrobin","codes","connectivity","credentials","encoding","grpclb/grpc_lb_v1/messages","grpclog","internal","keepalive","metadata","naming","peer","reflection","reflection/grpc_reflection_v1alpha","resolver","resolver/dns","resolver/passthrough","stats","status","tap","transport"]
+  packages = [
+    ".",
+    "balancer",
+    "balancer/base",
+    "balancer/roundrobin",
+    "codes",
+    "connectivity",
+    "credentials",
+    "encoding",
+    "grpclb/grpc_lb_v1/messages",
+    "grpclog",
+    "internal",
+    "keepalive",
+    "metadata",
+    "naming",
+    "peer",
+    "reflection",
+    "reflection/grpc_reflection_v1alpha",
+    "resolver",
+    "resolver/dns",
+    "resolver/passthrough",
+    "stats",
+    "status",
+    "tap",
+    "transport"
+  ]
   revision = "6b51017f791ae1cfbec89c52efdf444b13b550ef"
   version = "v1.9.2"
 
 [[projects]]
   name = "gopkg.in/sourcemap.v1"
-  packages = [".","base64vlq"]
+  packages = [
+    ".",
+    "base64vlq"
+  ]
   revision = "6e83acea0053641eff084973fee085f0c193c61a"
   version = "v1.0.5"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "3b0a70f7321cee6cf7a3ad6fd6438f5c0da72a08623844631bd53b5537f11bfe"
+  inputs-digest = "f94e4f50a50da2f87a4c580e1bfbc43650c16ee8388cf5b9301c531ecc39bf93"
   solver-name = "gps-cdcl"
   solver-version = 1

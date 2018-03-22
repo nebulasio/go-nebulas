@@ -22,6 +22,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/nebulasio/go-nebulas/core/state"
+
 	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/common/sorted"
 	"github.com/nebulasio/go-nebulas/core/pb"
@@ -71,7 +73,7 @@ func gasCmp(a interface{}, b interface{}) int {
 }
 
 // NewTransactionPool create a new TransactionPool
-func NewTransactionPool(size int) *TransactionPool {
+func NewTransactionPool(size int) (*TransactionPool, error) {
 	return &TransactionPool{
 		receivedMessageCh: make(chan net.Message, size),
 		quitCh:            make(chan int, 1),
@@ -81,7 +83,7 @@ func NewTransactionPool(size int) *TransactionPool {
 		all:               make(map[byteutils.HexHash]*Transaction),
 		minGasPrice:       TransactionGasPrice,
 		maxGasLimit:       TransactionMaxGas,
-	}
+	}, nil
 }
 
 // SetGasConfig config the lowest gasPrice and the maximum gasLimit.
@@ -195,6 +197,10 @@ func (pool *TransactionPool) GetTransaction(hash byteutils.Hash) *Transaction {
 // PushAndRelay push tx into pool and relay it
 func (pool *TransactionPool) PushAndRelay(tx *Transaction) error {
 	if err := pool.Push(tx); err != nil {
+		logging.CLog().WithFields(logrus.Fields{
+			"tx":  tx,
+			"err": err,
+		}).Info("Failed to push tx")
 		return err
 	}
 
@@ -208,7 +214,7 @@ func (pool *TransactionPool) PushAndBroadcast(tx *Transaction) error {
 		logging.VLog().WithFields(logrus.Fields{
 			"tx":  tx,
 			"err": err,
-		}).Debug("Failed to push a new tx into tx pool")
+		}).Debug("Failed to push tx")
 		return err
 	}
 
@@ -216,8 +222,16 @@ func (pool *TransactionPool) PushAndBroadcast(tx *Transaction) error {
 	return nil
 }
 
-// Push tx into pool, input:1)RPC, 2)netService
-func (pool *TransactionPool) Push(tx *Transaction) error { //ToRefine, change to local push
+// Push tx into pool
+func (pool *TransactionPool) Push(tx *Transaction) error {
+	pool.mu.Lock()
+	defer pool.mu.Unlock()
+
+	// verify non-dup tx
+	if _, ok := pool.all[tx.hash.Hex()]; ok {
+		metricsDuplicateTx.Inc(1)
+		return ErrDuplicatedTransaction
+	} // ToRefine: refine the lock scope
 
 	// if tx's gasPrice below the pool config lowest gasPrice, return ErrBelowGasPrice
 	if tx.gasPrice.Cmp(pool.minGasPrice) < 0 {
@@ -241,9 +255,6 @@ func (pool *TransactionPool) Push(tx *Transaction) error { //ToRefine, change to
 		return err
 	}
 
-	pool.mu.Lock()
-	defer pool.mu.Unlock()
-
 	// verify non-dup tx
 	if _, ok := pool.all[tx.hash.Hex()]; ok {
 		metricsDuplicateTx.Inc(1)
@@ -258,7 +269,7 @@ func (pool *TransactionPool) Push(tx *Transaction) error { //ToRefine, change to
 	}
 
 	// trigger pending transaction
-	event := &Event{
+	event := &state.Event{
 		Topic: TopicPendingTransaction,
 		Data:  tx.String(),
 	}
@@ -320,22 +331,27 @@ func (pool *TransactionPool) dropTx() {
 	}
 }
 
-// PopWithBlacklist pop a tx not in the blacklist
-func (pool *TransactionPool) PopWithBlacklist(blacklist map[byteutils.HexHash]bool) *Transaction {
+// PopWithBlacklist return a tx with highest gasprice and not in the blocklist
+func (pool *TransactionPool) PopWithBlacklist(fromBlacklist *sync.Map, toBlacklist *sync.Map) *Transaction {
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
 
-	if blacklist == nil {
-		blacklist = make(map[byteutils.HexHash]bool)
+	if fromBlacklist == nil {
+		fromBlacklist = new(sync.Map)
 	}
+	if toBlacklist == nil {
+		toBlacklist = new(sync.Map)
+	}
+
 	size := pool.candidates.Len()
 	for i := 0; i < size; i++ {
 		tx := pool.candidates.Index(i).(*Transaction)
-		from := tx.from.address.Hex()
-		if _, ok := blacklist[from]; !ok {
-			pool.candidates.Del(tx)
-			pool.popTx(tx)
-			return tx
+		if _, ok := fromBlacklist.Load(tx.from.address.Hex()); !ok {
+			if _, ok := toBlacklist.Load(tx.to.address.Hex()); !ok {
+				pool.candidates.Del(tx)
+				pool.popTx(tx)
+				return tx
+			}
 		}
 	}
 	return nil

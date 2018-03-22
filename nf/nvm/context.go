@@ -18,9 +18,10 @@
 
 package nvm
 
-const (
-	// DefaultLimitsOfTotalMemorySize default limits of total memory size
-	DefaultLimitsOfTotalMemorySize uint64 = 40 * 1000 * 1000 // TODO: check the value ok and out of limit do
+import (
+	"github.com/gogo/protobuf/proto"
+	"github.com/nebulasio/go-nebulas/core"
+	"github.com/nebulasio/go-nebulas/core/pb"
 )
 
 // SerializableAccount serializable account state
@@ -90,7 +91,7 @@ func toSerializableBlock(block Block) *SerializableBlock {
 }
 
 func toSerializableTransaction(tx Transaction) *SerializableTransaction {
-	sTx := &SerializableTransaction{
+	return &SerializableTransaction{
 		From:      tx.From().String(),
 		To:        tx.To().String(),
 		Value:     tx.Value().String(),
@@ -100,5 +101,26 @@ func toSerializableTransaction(tx Transaction) *SerializableTransaction {
 		GasPrice:  tx.GasPrice().String(),
 		GasLimit:  tx.GasLimit().String(),
 	}
-	return sTx
+}
+
+func toSerializableTransactionFromBytes(txBytes []byte) (*SerializableTransaction, error) {
+	pbTx := new(corepb.Transaction)
+	if err := proto.Unmarshal(txBytes, pbTx); err != nil {
+		return nil, err
+	}
+	tx := new(core.Transaction)
+	if err := tx.FromProto(pbTx); err != nil {
+		return nil, err
+	}
+
+	return &SerializableTransaction{
+		From:      tx.From().String(),
+		To:        tx.To().String(),
+		Value:     tx.Value().String(),
+		Timestamp: tx.Timestamp(),
+		Nonce:     tx.Nonce(),
+		Hash:      tx.Hash().String(),
+		GasPrice:  tx.GasPrice().String(),
+		GasLimit:  tx.GasLimit().String(),
+	}, nil
 }

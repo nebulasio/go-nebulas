@@ -27,6 +27,29 @@ import (
 	"github.com/nebulasio/go-nebulas/storage"
 )
 
+// Errors
+var (
+	ErrNotFound = storage.ErrKeyNotFound
+)
+
+// Action represents operation types in Trie
+type Action int
+
+// Action constants
+const (
+	Insert Action = iota
+	Update
+	Delete
+)
+
+// Entry in log, [key, old value, new value]
+type Entry struct {
+	action Action
+	key    []byte
+	old    []byte
+	update []byte
+}
+
 // Flag to identify the type of node
 type ty int
 
@@ -35,11 +58,6 @@ const (
 	ext
 	leaf
 	branch
-)
-
-// Errors
-var (
-	ErrNotFound = storage.ErrKeyNotFound
 )
 
 // Node in trie, three kinds,
@@ -88,11 +106,13 @@ func (n *node) Type() (ty, error) {
 
 // Trie is a Merkle Patricia Trie, consists of three kinds of nodes,
 // Branch Node: 16-elements array, value is [hash_0, hash_1, ..., hash_f, hash]
-// Extension Node: 3-elements array, value is [ext flag, prefi path, next hash]
+// Extension Node: 3-elements array, value is [ext flag, prefix path, next hash]
 // Leaf Node: 3-elements array, value is [leaf flag, suffix path, value]
 type Trie struct {
-	rootHash []byte
-	storage  storage.Storage
+	rootHash      []byte
+	storage       storage.Storage
+	changelog     []*Entry
+	needChangelog bool
 }
 
 // CreateNode in trie
@@ -106,8 +126,8 @@ func (t *Trie) createNode(val [][]byte) (*node, error) {
 
 // FetchNode in trie
 func (t *Trie) fetchNode(hash []byte) (*node, error) {
-
 	ir, err := t.storage.Get(hash)
+
 	if err != nil {
 		return nil, err
 	}
@@ -139,9 +159,13 @@ func (t *Trie) commitNode(n *node) error {
 }
 
 // NewTrie if rootHash is nil, create a new Trie, otherwise, build an existed trie
-func NewTrie(rootHash []byte, storage storage.Storage) (*Trie, error) {
-	t := &Trie{rootHash, storage}
-	if t.rootHash == nil {
+func NewTrie(rootHash []byte, storage storage.Storage, needChangelog bool) (*Trie, error) {
+	t := &Trie{
+		rootHash:      rootHash,
+		storage:       storage,
+		needChangelog: needChangelog,
+	}
+	if t.rootHash == nil || len(t.rootHash) == 0 {
 		return t, nil
 	} else if _, err := t.storage.Get(rootHash); err != nil {
 		return nil, err
@@ -149,7 +173,7 @@ func NewTrie(rootHash []byte, storage storage.Storage) (*Trie, error) {
 	return t, nil
 }
 
-// RootHash return trie's rootHash
+// RootHash return the rootHash of trie
 func (t *Trie) RootHash() []byte {
 	return t.rootHash
 }
@@ -215,6 +239,12 @@ func (t *Trie) Put(key []byte, val []byte) ([]byte, error) {
 		return nil, err
 	}
 	t.rootHash = newHash
+
+	if t.needChangelog {
+		entry := &Entry{Update, key, nil, val}
+		t.changelog = append(t.changelog, entry)
+	}
+
 	return newHash, nil
 }
 
@@ -351,6 +381,7 @@ func (t *Trie) updateWhenMeetLeaf(rootNode *node, route []byte, val []byte) ([]b
 		return nil, errors.New("wrong key, too short")
 	}
 	matchLen := prefixLen(path, route)
+
 	// node exists, update its value
 	if matchLen == len(path) {
 
@@ -391,12 +422,40 @@ func (t *Trie) updateWhenMeetLeaf(rootNode *node, route []byte, val []byte) ([]b
 }
 
 // Del the node's value in trie
+/*
+	1. ext(ext->leaf-->leaf,ext->ext--->ext)
+	2. branch(branch->leaf-->leaf,branch->branch-->ext->branch,branch->ext-->ext)
+
+	 ext		 ext
+	  | 		  |
+	branch 	-->	 leaf	-->	leaf
+	/	\
+[leaf]	leaf
+
+  	branch					 ext
+	/	\					  |
+[leaf]	ext		--> 	    branch
+		 |
+	   branch
+
+  	branch					 ext
+	/	\					  |
+[leaf]	branch		--> 	branch
+		/	\				/	\
+		leaf leaf			leaf leaf
+
+*/
 func (t *Trie) Del(key []byte) ([]byte, error) {
 	newHash, err := t.del(t.rootHash, keyToRoute(key))
 	if err != nil {
 		return nil, err
 	}
 	t.rootHash = newHash
+
+	if t.needChangelog {
+		entry := &Entry{Delete, key, nil, nil}
+		t.changelog = append(t.changelog, entry)
+	}
 	return newHash, nil
 }
 
@@ -420,14 +479,20 @@ func (t *Trie) del(root []byte, route []byte) ([]byte, error) {
 			return nil, err
 		}
 		rootNode.Val[route[0]] = newHash
+
 		// remove empty branch node
 		if isEmptyBranch(rootNode) {
 			return nil, nil
 		}
+		if lenBranch(rootNode) == 1 {
+			return t.deleteWhenMeetSingleBranch(rootNode)
+		}
+
 		if err := t.commitNode(rootNode); err != nil {
 			return nil, err
 		}
 		return rootNode.Hash, nil
+
 	case ext:
 		path := rootNode.Val[1]
 		next := rootNode.Val[2]
@@ -435,15 +500,26 @@ func (t *Trie) del(root []byte, route []byte) ([]byte, error) {
 		if matchLen != len(path) {
 			return nil, ErrNotFound
 		}
-		newHash, err := t.del(next, route[matchLen:])
+		childHash, err := t.del(next, route[matchLen:])
 		if err != nil {
 			return nil, err
 		}
 		// remove empty ext node
-		if newHash == nil {
+		if childHash == nil {
 			return nil, nil
 		}
-		rootNode.Val[2] = newHash
+
+		// child hash
+		var newHash []byte
+		newHash, err = t.deleteWhenMeetSingleExt(rootNode, childHash)
+		if err != nil {
+			return nil, err
+		}
+		if newHash != nil {
+			return newHash, nil
+		}
+
+		rootNode.Val[2] = childHash
 		if err := t.commitNode(rootNode); err != nil {
 			return nil, err
 		}
@@ -460,9 +536,116 @@ func (t *Trie) del(root []byte, route []byte) ([]byte, error) {
 	}
 }
 
+// deleteWhenMeetSingleExt
+func (t *Trie) deleteWhenMeetSingleExt(rootNode *node, hash []byte) ([]byte, error) {
+	childNode, err := t.fetchNode(hash)
+	if err != nil {
+		return nil, err
+	}
+	flag, err := childNode.Type()
+	if err != nil {
+		return nil, err
+	}
+
+	if flag == ext { //ext->ext --> ext
+		childNode.Val[1] = append(rootNode.Val[1], childNode.Val[1]...)
+
+		if err := t.commitNode(childNode); err != nil {
+			return nil, err
+		}
+		return childNode.Hash, nil
+
+	} else if flag == leaf { //ext->leaf --> leaf
+
+		childNode.Val[1] = append(rootNode.Val[1], childNode.Val[1]...)
+		if err := t.commitNode(childNode); err != nil {
+			return nil, err
+		}
+		return childNode.Hash, nil
+	}
+	return nil, nil
+}
+
+// deleteWhenMeetSingleBranch
+func (t *Trie) deleteWhenMeetSingleBranch(rootNode *node) ([]byte, error) {
+	for idx := range rootNode.Val {
+		if len(rootNode.Val[idx]) != 0 {
+
+			childNode, err := t.fetchNode(rootNode.Val[idx])
+			if err != nil {
+				return nil, err
+			}
+			flag, err := childNode.Type()
+			switch flag {
+			case branch: //branch->branche --> ext-->branche
+				value := [][]byte{[]byte{byte(ext)}, []byte{byte(idx)}, rootNode.Val[idx]}
+				extNode, err := t.createNode(value)
+				if err != nil {
+					return nil, err
+				}
+				return extNode.Hash, nil
+			case ext: // branche->ext --> ext
+				childNode.Val[1] = append([]byte{byte(idx)}, childNode.Val[1]...)
+				if err := t.commitNode(childNode); err != nil {
+					return nil, err
+				}
+				return childNode.Hash, nil
+
+			case leaf: // branch->leaf-->leaf
+				childNode.Val[1] = append([]byte{byte(idx)}, childNode.Val[1]...)
+				if err := t.commitNode(childNode); err != nil {
+					return nil, err
+				}
+				return childNode.Hash, nil
+			default:
+				return nil, errors.New("unknown node type")
+			}
+		}
+
+	}
+	return nil, nil
+}
+
 // Clone the trie to create a new trie sharing the same storage
 func (t *Trie) Clone() (*Trie, error) {
-	return &Trie{t.rootHash, t.storage}, nil
+	return &Trie{rootHash: t.rootHash, storage: t.storage, needChangelog: t.needChangelog}, nil
+}
+
+// CopyTo copy the trie structure into the given storage
+func (t *Trie) CopyTo(storage storage.Storage, needChangelog bool) (*Trie, error) {
+	return &Trie{rootHash: t.rootHash, storage: storage, needChangelog: needChangelog}, nil
+}
+
+// Replay return roothash not save key to storage
+func (t *Trie) Replay(ft *Trie) ([]byte, error) {
+
+	needChangelog := t.needChangelog
+	t.needChangelog = false
+
+	var err error
+	var rootHash []byte
+
+	for _, entry := range ft.changelog {
+		switch entry.action {
+		case Delete:
+			rootHash, err = t.Del(entry.key)
+			break
+		case Update, Insert:
+			rootHash, err = t.Put(entry.key, entry.update)
+			break
+		default:
+			err = nil
+		}
+
+		if err != nil {
+			t.needChangelog = needChangelog
+			return nil, err
+		}
+	}
+	ft.changelog = make([]*Entry, 0)
+
+	t.needChangelog = needChangelog
+	return rootHash, nil
 }
 
 // prefixLen returns the length of the common prefix between a and b.
@@ -491,6 +674,17 @@ func keyToRoute(key []byte) []byte {
 	return route
 }
 
+// routeToKey returns native bytes
+// e.g {0xa, 0x1, 0xf, 0x2} -> {0xa1, 0xf2}
+func routeToKey(route []byte) []byte {
+	l := len(route) / 2
+	var key = make([]byte, l)
+	for i := 0; i < l; i++ {
+		key[i] = route[i*2]<<4 + route[i*2+1]
+	}
+	return key
+}
+
 func emptyBranchNode() *node {
 	empty := &node{Val: [][]byte{nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil}}
 	pb, _ := empty.ToProto()
@@ -506,4 +700,13 @@ func isEmptyBranch(n *node) bool {
 		}
 	}
 	return true
+}
+func lenBranch(n *node) int {
+	l := 0
+	for idx := range n.Val {
+		if len(n.Val[idx]) != 0 {
+			l++
+		}
+	}
+	return l
 }

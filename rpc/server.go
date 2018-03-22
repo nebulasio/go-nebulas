@@ -10,6 +10,7 @@ import (
 	"github.com/grpc-ecosystem/go-grpc-middleware"
 	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/neblet/pb"
+	nebnet "github.com/nebulasio/go-nebulas/net"
 	"github.com/nebulasio/go-nebulas/rpc/pb"
 	"github.com/nebulasio/go-nebulas/util/logging"
 	"google.golang.org/grpc"
@@ -25,6 +26,17 @@ var (
 const (
 	DefaultConnectionLimits = 128
 )
+
+// Neblet interface breaks cycle import dependency and hides unused services.
+type Neblet interface {
+	Config() *nebletpb.Config
+	StartPprof(string) error
+	BlockChain() *core.BlockChain
+	AccountManager() core.AccountManager
+	NetService() nebnet.Service
+	EventEmitter() *core.EventEmitter
+	Consensus() core.Consensus
+}
 
 // GRPCServer server interface for api & management etc.
 type GRPCServer interface {
@@ -123,21 +135,21 @@ func (s *Server) start(addr string) error {
 // RunGateway run grpc mapping to http after apiserver have started.
 func (s *Server) RunGateway() error {
 	//time.Sleep(3 * time.Second)
-	rpcListen := s.rpcConfig.RpcListen[0]
-	gatewayListen := s.rpcConfig.HttpListen
-	httpModule := s.rpcConfig.HttpModule
+
 	logging.CLog().WithFields(logrus.Fields{
-		"rpc-server":  rpcListen,
-		"http-server": gatewayListen,
+		"rpc-server":  s.rpcConfig.RpcListen[0],
+		"http-server": s.rpcConfig.HttpListen,
+		"http-cors":   s.rpcConfig.HttpCors,
 	}).Info("Starting RPC Gateway GRPCServer...")
 
-	go (func() {
-		if err := Run(rpcListen, gatewayListen, httpModule); err != nil {
+	go func() {
+		if err := Run(s.rpcConfig); err != nil {
 			logging.CLog().WithFields(logrus.Fields{
 				"error": err,
 			}).Fatal("Failed to start RPC Gateway.")
 		}
-	})()
+
+	}()
 	return nil
 }
 

@@ -230,7 +230,7 @@ describe("rpc: SendTransactionWithPassphrase", () => {
 
         var testExpect = {
             hasError: true,
-            errorMsg: "uint128: invalid string to uint128",
+            errorMsg: "invalid value",
 
         }
 
@@ -253,7 +253,7 @@ describe("rpc: SendTransactionWithPassphrase", () => {
 
         var testExpect = {
             hasError: true,
-            errorMsg: "uint128: underflow",
+            errorMsg: "invalid value",
 
         }
 
@@ -276,7 +276,7 @@ describe("rpc: SendTransactionWithPassphrase", () => {
 
         var testExpect = {
             hasError: true,
-            errorMsg: "uint128: invalid string to uint128",
+            errorMsg: "invalid value",
 
         }
 
@@ -379,7 +379,7 @@ describe("rpc: SendTransactionWithPassphrase", () => {
             transaction: {
                 from: address,
                 to: toAddress,
-                value: "123rwerw",
+                value: "123",
                 nonce: "10000",
                 gas_price: "fasf",
                 gas_limit: "1000000",
@@ -390,7 +390,7 @@ describe("rpc: SendTransactionWithPassphrase", () => {
 
         var testExpect = {
             hasError: true,
-            errorMsg: "uint128: invalid string to uint128",
+            errorMsg: "invalid gasPrice",
 
         }
         testSendTransactionWithPassphrase(testInput, testExpect, done)
@@ -412,7 +412,7 @@ describe("rpc: SendTransactionWithPassphrase", () => {
 
         var testExpect = {
             hasError: true,
-            errorMsg: "uint128: underflow",
+            errorMsg: "invalid gasPrice",
 
         }
         testSendTransactionWithPassphrase(testInput, testExpect, done)
@@ -457,7 +457,7 @@ describe("rpc: SendTransactionWithPassphrase", () => {
 
         var testExpect = {
             hasError: true,
-            errorMsg: "uint128: invalid string to uint128",
+            errorMsg: "invalid gasLimit",
 
         }
         testSendTransactionWithPassphrase(testInput, testExpect, done)
@@ -500,7 +500,7 @@ describe("rpc: SendTransactionWithPassphrase", () => {
 
         var testExpect = {
             hasError: true,
-            errorMsg: "uint128: underflow",
+            errorMsg: "invalid gasLimit",
 
         }
         testSendTransactionWithPassphrase(testInput, testExpect, done)

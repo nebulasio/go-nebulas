@@ -151,7 +151,7 @@ describe("rpc: SignTransaction", () => {
 
         var testExpect = {
             hasError: true,
-            errorMsg: "uint128: invalid string to uint128",
+            errorMsg: "invalid value",
 
         }
 
@@ -173,7 +173,7 @@ describe("rpc: SignTransaction", () => {
 
         var testExpect = {
             hasError: true,
-            errorMsg: "uint128: invalid string to uint128",
+            errorMsg: "invalid value",
 
         }
 
@@ -195,7 +195,7 @@ describe("rpc: SignTransaction", () => {
 
         var testExpect = {
             hasError: true,
-            errorMsg: "uint128: underflow",
+            errorMsg: "invalid value",
 
         }
 
@@ -261,7 +261,7 @@ describe("rpc: SignTransaction", () => {
 
         var testExpect = {
             hasError: true,
-            errorMsg: "uint128: invalid string to uint128",
+            errorMsg: "invalid gasPrice",
 
         }
 
@@ -283,7 +283,7 @@ describe("rpc: SignTransaction", () => {
 
         var testExpect = {
             hasError: true,
-            errorMsg: "uint128: invalid string to uint128",
+            errorMsg: "invalid gasPrice",
 
         }
 
@@ -305,7 +305,7 @@ describe("rpc: SignTransaction", () => {
 
         var testExpect = {
             hasError: true,
-            errorMsg: "uint128: underflow",
+            errorMsg: "invalid gasPrice",
 
         }
 
@@ -327,7 +327,7 @@ describe("rpc: SignTransaction", () => {
 
         var testExpect = {
             hasError: true,
-            errorMsg: "uint128: invalid string to uint128",
+            errorMsg: "invalid gasLimit",
 
         }
 
@@ -349,7 +349,7 @@ describe("rpc: SignTransaction", () => {
 
         var testExpect = {
             hasError: true,
-            errorMsg: "uint128: invalid string to uint128",
+            errorMsg: "invalid gasLimit",
 
         }
 
@@ -371,7 +371,7 @@ describe("rpc: SignTransaction", () => {
 
         var testExpect = {
             hasError: true,
-            errorMsg: "uint128: underflow",
+            errorMsg: "invalid gasLimit",
 
         }
 

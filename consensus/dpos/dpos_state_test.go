@@ -34,7 +34,7 @@ import (
 )
 
 func checkDynasty(t *testing.T, consensus core.Consensus, consensusRoot *consensuspb.ConsensusRoot, storage storage.Storage) {
-	consensusState, err := consensus.NewState(consensusRoot, storage)
+	consensusState, err := consensus.NewState(consensusRoot, storage, false)
 	assert.Nil(t, err)
 	dynasty, err := consensusState.Dynasty()
 	assert.Nil(t, err)
@@ -43,44 +43,44 @@ func checkDynasty(t *testing.T, consensus core.Consensus, consensusRoot *consens
 	}
 }
 
-func TestBlock_NextConsensusState(t *testing.T) {
+func TestBlock_NextDynastyContext(t *testing.T) {
 	neb := mockNeb(t)
 	block := neb.chain.GenesisBlock()
 
-	context, err := block.NextConsensusState(BlockInterval)
+	context, err := block.WorldState().NextConsensusState(BlockIntervalInMs / SecondInMs)
 	assert.Nil(t, err)
-	validators, _ := block.Dynasty()
+	validators, _ := block.WorldState().Dynasty()
 	assert.Equal(t, context.Proposer(), validators[1])
 	// check dynasty
-	consensusRoot, err := context.RootHash()
-	assert.Nil(t, err)
-	checkDynasty(t, neb.Consensus(), consensusRoot, neb.Storage())
-
-	context, err = block.NextConsensusState(BlockInterval + DynastyInterval)
-	assert.Nil(t, err)
-	validators, _ = block.Dynasty()
-	assert.Equal(t, context.Proposer(), validators[1])
-	// check dynasty
-	consensusRoot, err = context.RootHash()
+	consensusRoot := context.RootHash()
 	assert.Nil(t, err)
 	checkDynasty(t, neb.consensus, consensusRoot, neb.Storage())
 
-	context, err = block.NextConsensusState(DynastyInterval / 2)
+	context, err = block.WorldState().NextConsensusState((BlockIntervalInMs + DynastyIntervalInMs) / SecondInMs)
 	assert.Nil(t, err)
-	validators, _ = block.Dynasty()
-	assert.Equal(t, context.Proposer(), validators[int(DynastyInterval/2/BlockInterval)%DynastySize])
+	validators, _ = block.WorldState().Dynasty()
+	assert.Equal(t, context.Proposer(), validators[1])
 	// check dynasty
-	consensusRoot, err = context.RootHash()
+	consensusRoot = context.RootHash()
 	assert.Nil(t, err)
 	checkDynasty(t, neb.consensus, consensusRoot, neb.Storage())
 
-	context, err = block.NextConsensusState(DynastyInterval*2 + DynastyInterval/3)
+	context, err = block.WorldState().NextConsensusState(DynastyIntervalInMs / SecondInMs / 2)
 	assert.Nil(t, err)
-	validators, _ = block.Dynasty()
-	index := int((DynastyInterval*2+DynastyInterval/3)%DynastyInterval) / int(BlockInterval) % DynastySize
+	validators, _ = block.WorldState().Dynasty()
+	assert.Equal(t, context.Proposer(), validators[int(DynastyIntervalInMs/2/BlockIntervalInMs)%DynastySize])
+	// check dynasty
+	consensusRoot = context.RootHash()
+	assert.Nil(t, err)
+	checkDynasty(t, neb.consensus, consensusRoot, neb.Storage())
+
+	context, err = block.WorldState().NextConsensusState((DynastyIntervalInMs*2 + DynastyIntervalInMs/3) / SecondInMs)
+	assert.Nil(t, err)
+	validators, _ = block.WorldState().Dynasty()
+	index := int((DynastyIntervalInMs*2+DynastyIntervalInMs/3)%DynastyIntervalInMs) / int(BlockIntervalInMs) % DynastySize
 	assert.Equal(t, context.Proposer(), validators[index])
 	// check dynasty
-	consensusRoot, err = context.RootHash()
+	consensusRoot = context.RootHash()
 	assert.Nil(t, err)
 	checkDynasty(t, neb.consensus, consensusRoot, neb.Storage())
 
@@ -90,8 +90,8 @@ func TestBlock_NextConsensusState(t *testing.T) {
 	assert.Nil(t, neb.am.Unlock(coinbase, []byte("passphrase"), keystore.DefaultUnlockDuration))
 
 	newBlock, _ := core.NewBlock(neb.chain.ChainID(), coinbase, neb.chain.TailBlock())
-	newBlock.SetTimestamp(DynastyInterval*2 + DynastyInterval/3)
-	newBlock.LoadConsensusState(context)
+	newBlock.SetTimestamp((DynastyIntervalInMs*2 + DynastyIntervalInMs/3) / SecondInMs)
+	newBlock.WorldState().SetConsensusState(context)
 	assert.Equal(t, newBlock.Seal(), nil)
 	assert.Nil(t, neb.am.SignBlock(coinbase, newBlock))
 	newBlock, _ = mockBlockFromNetwork(newBlock)
@@ -99,10 +99,10 @@ func TestBlock_NextConsensusState(t *testing.T) {
 	assert.Nil(t, newBlock.VerifyExecution()) //neb.chain.TailBlock(), neb.chain.ConsensusHandler()
 }
 
-func TestTraverseNilDynasty(t *testing.T) {
+func TestTraverseDynasty(t *testing.T) {
 	stor, err := storage.NewMemoryStorage()
 	assert.Nil(t, err)
-	dynasty, err := trie.NewBatchTrie(nil, stor)
+	dynasty, err := trie.NewTrie(nil, stor, false)
 	assert.Nil(t, err)
 	members, err := TraverseDynasty(dynasty)
 	assert.Nil(t, err)

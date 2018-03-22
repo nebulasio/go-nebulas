@@ -23,6 +23,7 @@ import (
 
 	"time"
 
+	"github.com/nebulasio/go-nebulas/core/state"
 	"github.com/nebulasio/go-nebulas/util/logging"
 	"github.com/sirupsen/logrus"
 )
@@ -63,21 +64,15 @@ const (
 	TopicRevertBlock = "chain.revertBlock"
 )
 
-// Event event structure.
-type Event struct {
-	Topic string
-	Data  string
-}
-
 // EventSubscriber subscriber object
 type EventSubscriber struct {
-	eventCh chan *Event
+	eventCh chan *state.Event
 	topics  []string
 }
 
 // NewEventSubscriber returns an EventSubscriber
 func NewEventSubscriber(size int, topics []string) *EventSubscriber {
-	eventCh := make(chan *Event, size)
+	eventCh := make(chan *state.Event, size)
 	subscriber := &EventSubscriber{
 		eventCh: eventCh,
 		topics:  topics,
@@ -86,14 +81,14 @@ func NewEventSubscriber(size int, topics []string) *EventSubscriber {
 }
 
 // EventChan returns subscriber's eventCh
-func (s *EventSubscriber) EventChan() chan *Event {
+func (s *EventSubscriber) EventChan() chan *state.Event {
 	return s.eventCh
 }
 
 // EventEmitter provide event functionality for Nebulas.
 type EventEmitter struct {
 	eventSubs *sync.Map
-	eventCh   chan *Event
+	eventCh   chan *state.Event
 	quitCh    chan int
 	size      int
 }
@@ -102,7 +97,7 @@ type EventEmitter struct {
 func NewEventEmitter(size int) *EventEmitter {
 	return &EventEmitter{
 		eventSubs: new(sync.Map),
-		eventCh:   make(chan *Event, size),
+		eventCh:   make(chan *state.Event, size),
 		quitCh:    make(chan int, 1),
 		size:      size,
 	}
@@ -127,12 +122,7 @@ func (emitter *EventEmitter) Stop() {
 }
 
 // Trigger trigger event.
-func (emitter *EventEmitter) Trigger(e *Event) {
-
-	//logging.VLog().WithFields(logrus.Fields{
-	//	"topic": e.Topic,
-	//	"data":  e.Data,
-	//	}).Debug("Trigger new event")
+func (emitter *EventEmitter) Trigger(e *state.Event) {
 	emitter.eventCh <- e
 }
 
@@ -149,7 +139,6 @@ func (emitter *EventEmitter) Register(subscribers ...*EventSubscriber) {
 
 // Deregister deregister event chan.
 func (emitter *EventEmitter) Deregister(subscribers ...*EventSubscriber) {
-
 	for _, v := range subscribers {
 		for _, topic := range v.topics {
 			m, _ := emitter.eventSubs.Load(topic)

@@ -24,72 +24,14 @@ import (
 )
 
 // NebulasVM type of NebulasVM
-type NebulasVM struct {
-	engine *V8Engine
-}
+type NebulasVM struct{}
 
 // NewNebulasVM create new NebulasVM
-func NewNebulasVM() core.Engine {
-	nvm := &NebulasVM{}
-	return nvm
+func NewNebulasVM() core.NVM {
+	return &NebulasVM{}
 }
 
 // CreateEngine start engine
-func (nvm *NebulasVM) CreateEngine(block *core.Block, tx *core.Transaction, owner, contract state.Account, state state.AccountState) error {
-	if nvm.engine != nil {
-		return ErrEngineRepeatedStart
-	}
-
-	ctx, err := NewContext(block, tx, owner, contract, state)
-	if err != nil {
-		return err
-	}
-	nvm.engine = NewV8Engine(ctx)
-	return nil
-}
-
-// SetEngineExecutionLimits set limits of execution instructions
-func (nvm *NebulasVM) SetEngineExecutionLimits(limitsOfExecutionInstructions uint64) error {
-	if nvm.engine == nil {
-		return ErrEngineNotStart
-	}
-	return nvm.engine.SetExecutionLimits(limitsOfExecutionInstructions, DefaultLimitsOfTotalMemorySize)
-}
-
-// DeployAndInitEngine deploy and init source
-func (nvm *NebulasVM) DeployAndInitEngine(source, sourceType, args string) (string, error) {
-	if nvm.engine == nil {
-		return "", ErrEngineNotStart
-	}
-	return nvm.engine.DeployAndInit(source, sourceType, args)
-}
-
-// CallEngine run source function
-func (nvm *NebulasVM) CallEngine(source, sourceType, function, args string) (string, error) {
-	if nvm.engine == nil {
-		return "", ErrEngineNotStart
-	}
-	return nvm.engine.Call(source, sourceType, function, args)
-}
-
-// ExecutionInstructions returns instructions count
-func (nvm *NebulasVM) ExecutionInstructions() (uint64, error) {
-	if nvm.engine == nil {
-		return 0, ErrEngineNotStart
-	}
-	return nvm.engine.ExecutionInstructions(), nil
-}
-
-// DisposeEngine dispose engine
-func (nvm *NebulasVM) DisposeEngine() {
-	if nvm.engine != nil {
-		nvm.engine.Dispose()
-		nvm.engine = nil
-	}
-}
-
-// Clone clone a new engine
-func (nvm *NebulasVM) Clone() core.Engine {
-	n := &NebulasVM{}
-	return n
+func (nvm *NebulasVM) CreateEngine(block *core.Block, tx *core.Transaction, owner, contract state.Account, state core.WorldState) (core.SmartContractEngine, error) {
+	return NewV8Engine(&Context{block, tx, owner, contract, state}), nil
 }

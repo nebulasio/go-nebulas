@@ -50,6 +50,6 @@ func (payload *BinaryPayload) BaseGasCount() *util.Uint128 {
 }
 
 // Execute the payload in tx
-func (payload *BinaryPayload) Execute(block *Block, tx *Transaction) (*util.Uint128, string, error) {
+func (payload *BinaryPayload) Execute(tx *Transaction, block *Block, ws WorldState) (*util.Uint128, string, error) {
 	return util.NewUint128(), "", nil
 }

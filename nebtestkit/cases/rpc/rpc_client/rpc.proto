@@ -3,6 +3,7 @@ syntax = "proto3";
 
 //import "google/api/annotations.proto";
 
+import "../../../..//consensus/pb/state.proto";
 import "../../../../neblet/pb/config.proto";
 package rpcpb;
 
@@ -123,14 +124,6 @@ service ApiService {
         };
     }
 
-    // Get GasUsed
-    rpc GetGasUsed(HashRequest) returns (GasResponse) {
-        option (google.api.http) = {
-            post: "/v1/user/getGasUsed"
-            body: "*"
-        };
-    }
-
     rpc GetEventsByHash(HashRequest) returns (EventsResponse) {
         option (google.api.http) = {
             post: "/v1/user/getEventsByHash"
@@ -144,27 +137,6 @@ service ApiService {
             body: "*"
 		};
     }
-
-    rpc GetCandidates (ByBlockHeightRequest) returns (GetCandidatesResponse) {
-		option (google.api.http) = {
-            post: "/v1/user/candidates"
-            body: "*"
-		};
-    }
-    
-	rpc GetDelegateVoters (GetDelegateVotersRequest) returns (GetDelegateVotersResponse) {
-		option (google.api.http) = {
-            post: "/v1/user/delegateVoters"
-            body: "*"
-		};
-    }    
-    
-    rpc GetConfig (NonParamsRequest) returns (GetConfigResponse) {
-        option (google.api.http) = {
-            get: "/v1/user/getConfig"
-        };
-    }
-
 }
 
 service AdminService {
@@ -221,19 +193,6 @@ service AdminService {
 		};
 	}
 
-    rpc StartMining (StartMiningRequest) returns (MiningResponse) {
-        option (google.api.http) = {
-			post: "/v1/admin/startMining"
-            body: "*"
-		};
-    }
-
-    rpc StopMining (NonParamsRequest) returns (MiningResponse) {
-        option (google.api.http) = {
-			get: "/v1/admin/stopMining"
-		};
-    }
-
     rpc StartPprof (PprofRequest) returns (PprofResponse) {
         option (google.api.http) = {
 			post: "/v1/admin/pprof"
@@ -241,6 +200,13 @@ service AdminService {
 		};
     }
 
+    //Get Config
+    rpc GetConfig (NonParamsRequest) returns (GetConfigResponse) {
+        option (google.api.http) = {
+            get: "/v1/admin/getConfig"
+		};
+
+    }
 }
 
 // Request message of Subscribe rpc
@@ -256,7 +222,6 @@ message SubscribeResponse {
 
 // Request message of non params.
 message NonParamsRequest {
-    
 }
 
 // Response message of node info.
@@ -358,7 +323,7 @@ message GetAccountStateResponse {
     string balance = 1; // uint128, len=16
 
     // Current transaction count.
-    string nonce = 2;
+    uint64 nonce = 2;
 }
 
 // Response message of Call rpc.
@@ -370,11 +335,6 @@ message CallResponse {
 // ByBlockHeightRequest message
 message ByBlockHeightRequest {
     uint64 height = 1;
-}
-
-// GetCandidatesRequest message
-message GetCandidatesResponse {
-    repeated string candidates = 1;
 }
 
 // Response message of GetDynastyRequest rpc
@@ -416,12 +376,6 @@ message TransactionRequest {
 	// contract sending with this transaction
 	ContractRequest contract = 7;
 
-	// candidate application sending with this transaction.
-	CandidateRequest candidate = 8;
-
-	// delegate vote sending with this transaction.	
-	DelegateRequest delegate = 9;
-
     // binary data for transaction
     bytes binary = 10;
 }
@@ -438,20 +392,6 @@ message ContractRequest {
 
 	// the params of contract.
 	string args = 4;
-}
-
-message CandidateRequest {
-	// candidate action.
-	string action = 1;
-}
-
-
-message DelegateRequest {
-	// delegate action.
-	string action = 1;
-
-	// delegatee.
-	string delegatee = 2;
 }
 
 // Request message of SendRawTransactionRequest rpc.
@@ -524,9 +464,6 @@ message BlockResponse {
     // Hex string of coinbase address.
     string coinbase = 5;
 
-    // Hex string of miner address.
-    string miner = 6;
-
     // block timestamp.
     int64 timestamp = 7;
 
@@ -534,41 +471,19 @@ message BlockResponse {
     uint32 chain_id = 8;
 
     // Hex string of state root.
-    string state_root = 11;
+    string state_root = 9;
 
     // Hex string of txs root.
-    string txs_root = 12;
+    string txs_root = 10;
 
     // Hex string of event root.
-    string events_root = 13;
+    string events_root = 11;
 
-    // dpos context
-    DposContext dpos_context = 14;
+    // Hex string of consensus root.
+    consensuspb.ConsensusRoot consensus_root = 12;
 
     // transaction slice
     repeated TransactionResponse transactions = 100;
-}
-
-// dpos context
-message DposContext {
-
-    // dynasty root
-    string dynasty_root = 1;
-
-    // next dynasty
-    string next_dynasty_root = 2;
-
-    // delegate root
-    string delegate_root = 3;
-
-    // candidate root
-    string candidate_root = 4;
-
-    // vote root
-    string vote_root = 5;
-
-    // mint cnt root
-    string mint_cnt_root = 6;
 }
 
 // Response message of TransactionReceipt.
@@ -677,15 +592,6 @@ message ChangeNetworkIDRequest {
 
 // Response message of change networkID.
 message ChangeNetworkIDResponse {
-    bool result = 1;
-}
-
-message StartMiningRequest {
-    // miner address passphrase
-    string passphrase = 1;
-}
-
-message MiningResponse {
     bool result = 1;
 }
 

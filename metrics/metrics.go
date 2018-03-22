@@ -52,9 +52,15 @@ type Neblet interface {
 func init() {
 	for _, arg := range os.Args {
 		if strings.TrimLeft(arg, "-") == MetricsEnabledFlag {
-			enable = true
+			EnableMetrics()
+			return
 		}
 	}
+}
+
+// EnableMetrics enable the metrics service
+func EnableMetrics() {
+	enable = true
 	exp.Exp(metrics.DefaultRegistry)
 }
 

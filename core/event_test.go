@@ -25,6 +25,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/nebulasio/go-nebulas/core/state"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -63,7 +65,7 @@ func TestEventEmitter(t *testing.T) {
 
 			eventCountDist[topic] = eventCountDist[topic] + 1
 
-			e := &Event{
+			e := &state.Event{
 				Topic: topic,
 				Data:  fmt.Sprintf("%d", i),
 			}
@@ -94,7 +96,7 @@ func TestEventEmitter(t *testing.T) {
 	assert.Equal(t, at3c, t3c)
 
 	emitter.Stop()
-	time.Sleep(time.Millisecond * 100)
+	time.Sleep(time.Second)
 }
 
 func TestEventEmitterWithRunningRegDereg(t *testing.T) {
@@ -130,7 +132,7 @@ func TestEventEmitterWithRunningRegDereg(t *testing.T) {
 
 			eventCountDist[topic] = eventCountDist[topic] + 1
 
-			e := &Event{
+			e := &state.Event{
 				Topic: topic,
 				Data:  fmt.Sprintf("%d", i),
 			}

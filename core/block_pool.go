@@ -235,18 +235,19 @@ func (pool *BlockPool) loop() {
 		case <-timerChan:
 			metricsCachedNewBlock.Update(int64(len(pool.receiveBlockMessageCh)))
 			metricsCachedDownloadBlock.Update(int64(len(pool.receiveDownloadBlockMessageCh)))
+			metricsLruPoolCacheBlock.Update(int64(pool.cache.Len()))
 		case <-pool.quitCh:
 			logging.CLog().Info("Stopped BlockPool.")
 			return
 		case msg := <-pool.receiveBlockMessageCh:
-			pool.handleReceivedBlock(msg)
+			go pool.handleReceivedBlock(msg)
 		case msg := <-pool.receiveDownloadBlockMessageCh:
-			pool.handleParentDownloadRequest(msg)
+			go pool.handleParentDownloadRequest(msg)
 		}
 	}
 }
 
-func deepCopyBlock(block *Block) (*Block, error) {
+func deepCopyBlock(block *Block) (*Block, error) { // TODO rename mockBlockFromNetwork
 	pbBlock, err := block.ToProto()
 	if err != nil {
 		return nil, err
@@ -434,10 +435,12 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 	// performance depth-first search to verify state root, and get all tails.
 	allBlocks, tailBlocks, err := lb.travelToLinkAndReturnAllValidBlocks(parentBlock)
 	if err != nil {
+		cache.Remove(lb.hash.Hex())
 		return err
 	}
 
 	if err := bc.putVerifiedNewBlocks(parentBlock, allBlocks, tailBlocks); err != nil {
+		cache.Remove(lb.hash.Hex())
 		return err
 	}
 

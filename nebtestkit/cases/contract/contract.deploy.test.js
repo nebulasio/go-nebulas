@@ -159,10 +159,19 @@ function testContractDeploy(testInput, testExpect, done) {
             tx.sign = "wrong signature";
         } else if (testInput.isSignNull) {
             tx.sign = '';
+        } else if (testInput.isSignFake) {
+            //repalce the privkey to sign
+            console.log("this is the right signature:" + tx.sign)
+            console.log("repalce the privkey and sign a fake signatrue...")
+            var newAccount = new Wallet.Account("a6e5eb222e4538fce79f5cb8774a72621637c2c9654c8b2525ed1d7e4e73653f");
+            var privKey = tx.from.privKey
+            tx.from.privKey = newAccount.privKey
+            tx.signTransaction();
+            console.log("now signatrue is: " + tx.sign)
+            tx.from.privKey = privKey;
         }
         return neb.api.sendRawTransaction(tx.toProtoString());
     }).catch(function (err) {
-        console.log(err.error);
         if (true === testExpect.canSendTx) {
             done(err.error);
         } else {
@@ -402,6 +411,34 @@ describe('contract deploy', function () {
             transferValue: 1,
             isSameAddr: true,
             isSignNull: true,
+            gasLimit: 2000000,
+            gasPrice: -1,
+            nonceIncrement: 1
+        };
+        //can calc value by previous params
+        var testExpect = {
+            canSendTx: false,
+            canSubmitTx: false,
+            canExcuteTx: false,
+            fromBalanceAfterTx: '',
+            toBalanceAfterTx: '',
+            transferReward: ''
+        };
+        prepare((err) => {
+            if (err) {
+                done(err);
+            } else {
+                testContractDeploy(testInput, testExpect, done);
+            }
+        });
+    });
+
+    it('signature is puppet', function (done) {
+
+        var testInput = {
+            transferValue: 1,
+            isSameAddr: true,
+            isSignFake: true,
             gasLimit: 2000000,
             gasPrice: -1,
             nonceIncrement: 1
