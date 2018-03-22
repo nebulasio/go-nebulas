@@ -6,15 +6,14 @@ var schedule = require('node-schedule');
 var sleep = require("system-sleep");
 
 var env; // local testneb1 testneb2
-var AddressNumber = 200;
-var EachAccountSendTimes = 500;
+var AddressNumber = 1200;
+var EachAccountSendTimes = 1000;
 
 var args = process.argv.splice(2);
 
 if (args.length != 3) {
     // give default config
     env = "testneb3";
-    AddressNumber = 600;
 } else {
     env = args[0]; // local testneb1 testneb2
 
@@ -99,7 +98,6 @@ function claimTokens(nonce) {
         accountArray.push(account);
         sendTransaction(0, 1, from, account, "1000000000000000", ++nonce);
         sleep(10);
-
     }
     checkClaimTokens();
 }
@@ -116,6 +114,9 @@ function sendTransaction(index, totalTimes, from, to, value, nonce, randomToAddr
         transaction.signTransaction();
         var rawTx = transaction.toProtoString();
 
+        var i = Math.floor((Math.random() * nodes.length));
+        var node = nodes[i];
+        neb.setRequest(new HttpRequest(node));
         neb.api.sendRawTransaction(rawTx).then(function (resp) {
             console.log("send raw transaction resp:" + JSON.stringify(resp));
             if (resp.txhash) {
@@ -125,8 +126,8 @@ function sendTransaction(index, totalTimes, from, to, value, nonce, randomToAddr
                 sendTransaction(++index, totalTimes, from, to, value, ++nonce, randomToAddr);
             }
         }).catch(function (err) {
-            console.log("sending transaction error, retry")
-            console.log(err);
+            console.log("send tx error, retry: " + "from:" + from.getAddressString() +  " tx_index: (" + index + "/" + totalTimes + ")" + " node:" + node);
+            sleep(20);
             sendTransaction(index, totalTimes, from, to, value, nonce, randomToAddr);
         });
     }
