@@ -49,7 +49,7 @@ var (
 	// BlockReward given to coinbase
 	// rule: 3% per year, 3,000,000. 1 block per 5 seconds
 	// value: 10^8 * 3% / (365*24*3600/5) * 10^18 ≈ 16 * 3% * 10*18 = 48 * 10^16
-	BlockReward, _ = util.NewUint128FromString("480000000000000000")
+	BlockReward, _ = util.NewUint128FromString("480000000000000000") // TODO 4x in 20s
 )
 
 // BlockHeader of a block
@@ -859,7 +859,7 @@ func (block *Block) execute() error {
 		mergeCh: make(chan bool, 1),
 		block:   block,
 	}
-	dispatcher := dag.NewDispatcher(block.dependency, runtime.NumCPU(), 0, context, func(node *dag.Node, context interface{}) error {
+	dispatcher := dag.NewDispatcher(block.dependency, runtime.NumCPU(), 0, context, func(node *dag.Node, context interface{}) error { // TODO  time const   verify collect
 		ctx := context.(*verifyCtx)
 		block := ctx.block
 		mergeCh := ctx.mergeCh
@@ -878,7 +878,7 @@ func (block *Block) execute() error {
 			return err
 		}
 
-		mergeCh <- true
+		mergeCh <- true // TODO try to remove the lock
 		if _, err := txWorldState.CheckAndUpdate(); err != nil {
 			<-mergeCh
 			return err
@@ -916,7 +916,7 @@ func (block *Block) execute() error {
 }
 
 // GetBalance returns balance for the given address on this block.
-func (block *Block) GetBalance(address byteutils.Hash) (*util.Uint128, error) {
+func (block *Block) GetBalance(address byteutils.Hash) (*util.Uint128, error) { // TODO return Account
 	accState, err := block.WorldState().Clone()
 	if err != nil {
 		return nil, err
@@ -942,7 +942,7 @@ func (block *Block) GetNonce(address byteutils.Hash) (uint64, error) {
 }
 
 // FetchEvents fetch events by txHash.
-func (block *Block) FetchEvents(txHash byteutils.Hash) ([]*state.Event, error) {
+func (block *Block) FetchEvents(txHash byteutils.Hash) ([]*state.Event, error) { // TODO clone first
 	return block.WorldState().FetchEvents(txHash)
 }
 
@@ -952,7 +952,7 @@ func (block *Block) rewardCoinbaseForMint() error {
 	if err != nil {
 		return err
 	}
-	logging.VLog().Info("rewardCoinbaseForMint ", "gas", BlockReward) // Refine: WithFields
+	logging.VLog().Info("rewardCoinbaseForMint ", "gas", BlockReward) // Refine: WithFields // TODO delete
 	return coinbaseAcc.AddBalance(BlockReward)
 }
 
@@ -960,14 +960,14 @@ func (block *Block) rewardCoinbaseForGas() error {
 	worldState := block.WorldState()
 	coinbaseAddr := (byteutils.Hash)(block.Coinbase().Bytes())
 
-	logging.VLog().Info("rewardCoinbaseForGas") // TODO: delete
+	logging.VLog().Info("rewardCoinbaseForGas") // TODO delete
 	gasConsumed := worldState.GetGas()
 	for from, gas := range gasConsumed {
 		fromAddr, err := byteutils.FromHex(from)
 		if err != nil {
 			return err
 		}
-		logging.VLog().Info("rewardCoinbaseForGas from:", from, "gas", gas)
+		logging.VLog().Info("rewardCoinbaseForGas from:", from, "gas", gas) // TODO delete
 
 		if err := transfer(fromAddr, coinbaseAddr, gas, worldState); err != nil {
 			return err
@@ -1050,7 +1050,7 @@ func HashBlock(block *Block) (byteutils.Hash, error) { // TODO inter function
 }
 
 // HashPbBlock return the hash of pb block.
-func HashPbBlock(pbBlock *corepb.Block) (byteutils.Hash, error) { //ToAdd nil check
+func HashPbBlock(pbBlock *corepb.Block) (byteutils.Hash, error) { // TODO nil check
 	hasher := sha3.New256()
 
 	consensusRoot, err := proto.Marshal(pbBlock.Header.ConsensusRoot)
@@ -1075,7 +1075,7 @@ func HashPbBlock(pbBlock *corepb.Block) (byteutils.Hash, error) { //ToAdd nil ch
 }
 
 // RecoverMiner return miner from block
-func RecoverMiner(block *Block) (*Address, error) { // TODO move to core/crypto.go.
+func RecoverMiner(block *Block) (*Address, error) { // TODO move to core/crypto.go. same as Transaction.Verify
 	signature, err := crypto.NewSignature(keystore.Algorithm(block.Alg()))
 	if err != nil {
 		return nil, err

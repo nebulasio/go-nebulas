@@ -40,10 +40,10 @@ import (
 // Consensus Related Constants
 const (
 	SecondInMs               = int64(1000)
-	BlockIntervalInMs        = int64(5000)
-	AcceptedNetWorkDelayInMs = int64(2000)
-	MaxMintDurationInMs      = int64(1500)
-	MinMintDurationInMs      = int64(1000)
+	BlockIntervalInMs        = int64(5000)  // TODO 20S
+	AcceptedNetWorkDelayInMs = int64(2000)  // TODO 5S
+	MaxMintDurationInMs      = int64(1500)  // TODO 7S
+	MinMintDurationInMs      = int64(1000)  // TODO 3S
 	DynastyIntervalInMs      = int64(60000) // TODO(roy): 3600000
 	DynastySize              = 6            // TODO(roy): 21
 	ConsensusSize            = DynastySize*2/3 + 1
@@ -220,7 +220,7 @@ func (ds *State) DynastyRoot() byteutils.Hash {
 func FindProposer(now int64, validators []byteutils.Hash) (proposer byteutils.Hash, err error) {
 	nowInMs := now * SecondInMs
 	offsetInMs := nowInMs % DynastyIntervalInMs
-	if offsetInMs%BlockIntervalInMs != 0 {
+	if (offsetInMs % BlockIntervalInMs) != 0 {
 		return nil, ErrNotBlockForgTime
 	}
 	offset := offsetInMs / BlockIntervalInMs

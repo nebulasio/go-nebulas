@@ -247,7 +247,7 @@ func NewTransaction(chainID uint32, from, to *Address, value *util.Uint128, nonc
 		return nil, ErrInvalidArgument
 	}
 
-	if len(payload) > MaxDataPayLoadLength {
+	if len(payload) > MaxDataPayLoadLength { // TODO 128K
 		return nil, ErrTxDataPayLoadOutOfMaxLength
 	}
 

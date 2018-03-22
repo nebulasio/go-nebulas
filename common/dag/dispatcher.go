@@ -60,10 +60,10 @@ func NewDispatcher(dag *Dag, concurrency int, elapseInMs int64, context interfac
 		elapseInMs:  elapseInMs,
 		dag:         dag,
 		cb:          cb,
-		tasks:       make(map[interface{}]*Task, 0),
+		tasks:       make(map[interface{}]*Task, 0), //TODO delete 0
 		taskCounter: 0,
-		quitCh:      make(chan bool, 2*concurrency),
-		queueCh:     make(chan *Node, 10240),
+		quitCh:      make(chan bool, 2*concurrency), //TODO why 2*?
+		queueCh:     make(chan *Node, 10240),        //TODO size ?
 		cursor:      0,
 		context:     context,
 	}
@@ -87,7 +87,7 @@ func (dp *Dispatcher) Run() error {
 
 		if task.dependence == 0 {
 			rootCounter++
-			dp.push(node)
+			dp.push(node) //TODO dag size bigger queue size
 		}
 	}
 	if rootCounter == 0 && len(vertices) > 0 {
@@ -95,13 +95,13 @@ func (dp *Dispatcher) Run() error {
 		return dp.err
 	}
 
-	dp.loop()
+	dp.loop() //TODO move head
 
 	return dp.err
 }
 
 // loop
-func (dp *Dispatcher) loop() {
+func (dp *Dispatcher) loop() { //TODO rename
 	logging.VLog().Debug("loop Dag Dispatcher.")
 
 	//timerChan := time.NewTicker(time.Second).C
@@ -143,7 +143,7 @@ func (dp *Dispatcher) loop() {
 		}()
 	}
 
-	if dp.elapseInMs > 0 {
+	if dp.elapseInMs > 0 { //TODO timeout add <- finishCH
 		go func() {
 			timerChan := time.NewTimer(time.Duration(dp.elapseInMs) * time.Millisecond)
 
@@ -160,7 +160,7 @@ func (dp *Dispatcher) loop() {
 }
 
 // Stop stop goroutine.
-func (dp *Dispatcher) Stop() {
+func (dp *Dispatcher) Stop() { //TODO add lock and flag
 	logging.VLog().Debug("Stopping dag Dispatcher...")
 
 	for i := 0; i < dp.concurrency; i++ {
