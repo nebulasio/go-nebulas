@@ -59,7 +59,7 @@ var (
 	GasCountPerByte, _ = util.NewUint128FromInt(1)
 
 	// MaxDataPayLoadLength Max data length in transaction
-	MaxDataPayLoadLength = 1024 * 1024 // TODO 128k
+	MaxDataPayLoadLength = 128 * 1024
 )
 
 // TransactionEvent transaction event
@@ -187,7 +187,7 @@ func (tx *Transaction) FromProto(msg proto.Message) error {
 		if data == nil {
 			return ErrInvalidTransactionData
 		}
-		if len(data.Payload) > MaxDataPayLoadLength { // TODO 128k
+		if len(data.Payload) > MaxDataPayLoadLength {
 			return ErrTxDataPayLoadOutOfMaxLength
 		}
 

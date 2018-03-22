@@ -114,13 +114,13 @@ func NewBlockChain(neb Neblet) (*BlockChain, error) {
 		}
 	}
 
-	blockPool, err := NewBlockPool(1024)
+	blockPool, err := NewBlockPool(128)
 	if err != nil {
 		return nil, err
 	}
 	blockPool.RegisterInNetwork(neb.NetService())
 
-	txPool, err := NewTransactionPool(40960)
+	txPool, err := NewTransactionPool(327680)
 	if err != nil {
 		return nil, err
 	}
@@ -139,7 +139,7 @@ func NewBlockChain(neb Neblet) (*BlockChain, error) {
 		quitCh:       make(chan int, 1),
 	}
 
-	bc.cachedBlocks, err = lru.NewWithEvict(1024, func(key interface{}, value interface{}) {
+	bc.cachedBlocks, err = lru.NewWithEvict(128, func(key interface{}, value interface{}) {
 		block := value.(*Block)
 		if block != nil {
 			block.Dispose()
@@ -149,7 +149,7 @@ func NewBlockChain(neb Neblet) (*BlockChain, error) {
 		return nil, err
 	}
 
-	bc.detachedTailBlocks, err = lru.NewWithEvict(100, func(key interface{}, value interface{}) {
+	bc.detachedTailBlocks, err = lru.NewWithEvict(128, func(key interface{}, value interface{}) {
 		block := value.(*Block)
 		if block != nil {
 			block.Dispose()

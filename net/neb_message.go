@@ -72,7 +72,7 @@ const (
 	NebMessageHeaderCheckSumEndIdx = 36
 	NebMessageHeaderLength         = 36
 
-	MaxNebMessageDataLength = 32 * 1024 * 1024 // 32m.
+	MaxNebMessageDataLength = 16 * 1024 * 1024 // 16m.
 	MaxNebMessageNameLength = 24 - 12          // 12.
 )
 
