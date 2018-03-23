@@ -353,6 +353,13 @@ func (n *Neblet) SyncService() *nsync.Service {
 	return n.syncService
 }
 
+func (n *Neblet) IsActiveSyncing() bool {
+	if n.syncService == nil {
+		return false
+	}
+	return n.syncService.IsActiveSyncing()
+}
+
 // Nvm return nvm engine
 func (n *Neblet) Nvm() core.NVM {
 	return n.nvm

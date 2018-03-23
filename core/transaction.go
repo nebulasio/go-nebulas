@@ -19,6 +19,7 @@
 package core
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
@@ -781,7 +782,10 @@ func (tx *Transaction) verifySign() error { // TODO move to core/crypto.go.
 }
 
 // GenerateContractAddress according to tx.from and tx.nonce.
-func (tx *Transaction) GenerateContractAddress() (*Address, error) { // TODO check payload type
+func (tx *Transaction) GenerateContractAddress() (*Address, error) {
+	if TxPayloadDeployType != tx.Type() {
+		return nil, errors.New("playload type err")
+	}
 	return NewContractAddressFromHash(hash.Sha3256(tx.from.Bytes(), byteutils.FromUint64(tx.nonce)))
 }
 

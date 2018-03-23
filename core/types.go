@@ -227,6 +227,7 @@ type Neblet interface {
 	Consensus() Consensus
 	BlockChain() *BlockChain
 	NetService() net.Service
+	IsActiveSyncing() bool
 	AccountManager() AccountManager
 	Nvm() NVM
 	StartPprof(string) error

@@ -116,6 +116,6 @@ func (s *AdminService) GetConfig(ctx context.Context, req *rpcpb.NonParamsReques
 
 	resp := &rpcpb.GetConfigResponse{}
 	resp.Config = neb.Config()
-	resp.Config.Chain.Passphrase = string("")
+	resp.Config.Chain.Passphrase = string("") //TODO remove passphrase to config
 	return resp, nil
 }

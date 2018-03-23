@@ -55,7 +55,7 @@ func (s *APIService) GetNebState(ctx context.Context, req *rpcpb.NonParamsReques
 	resp.Tail = tail.Hash().String()
 	resp.Lib = lib.Hash().String()
 	resp.Height = tail.Height()
-	resp.Synchronized = neb.NetService().Node().IsSynchronizing() // TODO use sync.IsActiveSyncing
+	resp.Synchronized = neb.IsActiveSyncing()
 	resp.ProtocolVersion = net.NebProtocolID
 	resp.Version = neb.Config().App.Version
 
@@ -192,20 +192,23 @@ func parseTransaction(neb core.Neblet, reqTx *rpcpb.TransactionRequest) (*core.T
 		payload     []byte
 	)
 
-	// TODO check payloadType, contract: deploy/call, binary, check args
-	if reqTx.Contract != nil && len(reqTx.Contract.Source) > 0 { // TODO combine contract != nil
-		payloadType = core.TxPayloadDeployType
-		payload, err = core.NewDeployPayload(reqTx.Contract.Source, reqTx.Contract.SourceType, reqTx.Contract.Args).ToBytes()
-	} else if reqTx.Contract != nil && len(reqTx.Contract.Function) > 0 {
-		payloadType = core.TxPayloadCallType
+	if reqTx.Contract != nil {
+		if len(reqTx.Contract.Source) > 0 && len(reqTx.Contract.Function) == 0 {
+			payloadType = core.TxPayloadDeployType
+			payload, err = core.NewDeployPayload(reqTx.Contract.Source, reqTx.Contract.SourceType, reqTx.Contract.Args).ToBytes()
+		} else if len(reqTx.Contract.Source) == 0 && len(reqTx.Contract.Function) > 0 {
+			payloadType = core.TxPayloadCallType
 
-		if err == nil {
-			callpayload, err := core.NewCallPayload(reqTx.Contract.Function, reqTx.Contract.Args)
-			if err != nil {
-				return nil, err
+			if err == nil {
+				callpayload, err := core.NewCallPayload(reqTx.Contract.Function, reqTx.Contract.Args)
+				if err != nil {
+					return nil, err
+				}
+
+				payload, err = callpayload.ToBytes()
 			}
-
-			payload, err = callpayload.ToBytes()
+		} else {
+			return nil, errors.New("params error")
 		}
 	} else {
 		payloadType = core.TxPayloadBinaryType
@@ -433,18 +436,7 @@ func (s *APIService) toTransactionResponse(tx *core.Transaction) (*rpcpb.Transac
 		GasUsed:   gasUsed,
 	}
 
-	/* 	contractAddr, err := tx.TryGetContractAddress()
-	   	if err != nil {
-	   		return nil, err
-	   	}
-
-	   	if contractAddr != nil {
-	   		resp.ContractAddress = contractAddr.String()
-	   	}
-
-	   	return resp */
-
-	if tx.Type() == core.TxPayloadDeployType { // TODO use TryGetContractAddress
+	if tx.Type() == core.TxPayloadDeployType {
 		contractAddr, err := tx.GenerateContractAddress()
 		if err != nil {
 			return nil, err
