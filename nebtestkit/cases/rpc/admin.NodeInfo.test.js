@@ -7,6 +7,7 @@ var node_version = '0.7.0'
 var server_address = 'localhost:8684';
 var coinbase = "eb31ad2d8a89a0ca6935c308d5425730430bc2d63f2573b8";
 var chain_id = 100;
+
 var env = '';
 if (env === 'testneb1') {
   server_address = 'http://35.182.48.19:8684';
@@ -20,21 +21,30 @@ if (env === 'testneb1') {
 
 var client;
 
-describe('rpc: Accounts', function () {
+describe('rpc: NodeInfo', function () {
   before(function () {
-    client = rpc_client.new_client(server_address);
+    client = rpc_client.new_client(server_address, "AdminService");
   });
 
   it('normal rpc', function (done) {
-    client.Accounts({}, function (err, response) {
+    client.NodeInfo({}, function (err, response) {
       if (err != null) {
         done(err);
         return;
       } else {
         try {
-          //         verify_respone(response)
-          console.log(response);
-          expect(response).to.be.have.property('addresses');
+          expect(response.chain_id).to.be.equal(chain_id);
+          expect(response.version).to.be.a('number');
+          expect(response.peer_count).to.be.a('number');
+          expect(response.synchronized).to.be.a('boolean');
+          expect(response.bucket_size).to.be.a('number');
+          expect(response.relay_cache_size).to.be.a('number');
+          expect(response.stream_store_size).to.be.a('number');
+          expect(response.stream_store_extend_size).to.be.a('number');
+          expect(response.protocol_version).to.equal(protocol_version);
+          expect(response.coinbase).to.be.a('string');
+          expect(response.PeerCount).to.be.a('number').lessThan(1<<32)
+          expect(response).to.be.have.property('route_table');
         } catch (err) {
           done(err);
           return;

@@ -38,8 +38,6 @@ function testRpc(testInput, testExpect, done) {
     } else {
       try {
         if (testInput.isNormal) {
-          expect(response.balance).to.be.a("string");
-          expect(response.nonce).to.be.a('string');
           normalOutput = response;
         } else {
           if (testExpect.isNormalOutput) {
@@ -47,6 +45,9 @@ function testRpc(testInput, testExpect, done) {
           } else {
             expect(testExpect.isNormalOutput).to.be.equal(false);
             expect(JSON.stringify(response)).not.be.equal(JSON.stringify(normalOutput));
+            expect(response.balance).to.be.a("string");
+            //In JS, uint64 is converted to string
+            expect(response.nonce).to.be.a('string');
           }     
         }
       } catch (err

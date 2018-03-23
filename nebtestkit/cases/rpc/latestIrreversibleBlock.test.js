@@ -39,13 +39,13 @@ describe('rpc: LatestIrreversibleBlock', function () {
           expect(response).to.be.have.property('height');
           expect(response).to.be.have.property('nonce');
           expect(response).to.be.have.property('coinbase');
-          expect(response).to.be.have.property('miner');
           expect(response).to.be.have.property('timestamp');
           expect(response).to.be.have.property('chain_id');
           expect(response).to.be.have.property('state_root');
           expect(response).to.be.have.property('txs_root');
           expect(response).to.be.have.property('events_root');
-          expect(response).to.be.have.property('dpos_context');
+          expect(response).to.be.have.property('consensus_root');
+          expect(response).to.be.have.property('transactions');
         } catch (err) {
           done(err);
           return;

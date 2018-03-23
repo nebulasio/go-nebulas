@@ -37,11 +37,7 @@ describe('rpc: getNebState', function () {
           expect(response.chain_id).to.be.a('number');
           expect(response.tail).to.be.a('string');
           expect(response.height).to.be.a('string');
-          expect(response.coinbase).to.be.equal(coinbase);
-          expect(response.peer_count).to.be.a('number');
-          expect(response.is_mining).to.equal(false);
           expect(response.protocol_version).to.equal(protocol_version);
-          expect(response.synchronized).to.be.an('boolean');
           expect(response.version).to.equal(node_version);
         } catch (err) {
           done(err);

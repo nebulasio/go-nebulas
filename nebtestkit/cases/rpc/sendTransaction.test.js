@@ -90,7 +90,7 @@ describe('rpc: sendTransaction', function () {
     var testInput = {
       rpcInput: {
         from: sourceAccount,
-        to: "eb31ad2d8a89a0ca6935c308d5425730430bc2d63f2573b8",
+        to: coinbase,
         value: "1",
         nonce: nonce,
         gas_price: "1000000",
@@ -110,7 +110,7 @@ describe('rpc: sendTransaction', function () {
     nonce = nonce + 1;
     var testInput = {
       rpcInput: {
-        to: "eb31ad2d8a89a0ca6935c308d5425730430bc2d63f2573b8",
+        to: coinbase,
         value: "1",
         nonce: nonce,
         gas_price: "1000000",
@@ -130,8 +130,8 @@ describe('rpc: sendTransaction', function () {
     nonce = nonce + 1;
     var testInput = {
       rpcInput: {
-        from: "eb31ad2d8a89a0ca6935c308d5425730430bc2d63f25738",
-        to: "eb31ad2d8a89a0ca6935c308d5425730430bc2d63f2573b8",
+        from: "eb31ad2d30bc2d63f25738",
+        to: coinbase,
         value: "1",
         nonce: nonce,
         gas_price: "1000000",
@@ -152,7 +152,7 @@ describe('rpc: sendTransaction', function () {
     var testInput = {
       rpcInput: {
         from: "eb31ad2d8a89a0ca6935c308d5e425730430bc2d63f257383",
-        to: "eb31ad2d8a89a0ca6935c308d5425730430bc2d63f2573b8",
+        to: coinbase,
         value: "1",
         nonce: nonce,
         gas_price: "1000000",
@@ -173,7 +173,7 @@ describe('rpc: sendTransaction', function () {
     var testInput = {
       rpcInput: {
         from: "xxeb31ad2d8a89a0ca6935c308d5425730430bc2d63f2573b8",
-        to: "eb31ad2d8a89a0ca6935c308d5425730430bc2d63f2573b8",
+        to: coinbase,
         value: "1",
         nonce: nonce,
         gas_price: "1000000",
@@ -215,7 +215,7 @@ describe('rpc: sendTransaction', function () {
     var testInput = {
       rpcInput: {
         from: sourceAccount,
-        to: "eb31ad2d8a89a0ca6935c308d542570430bc2d63f2573b8",
+        to: "eb31ad2d8a893b8",
         value: "1",
         nonce: nonce,
         gas_price: "1000000",
@@ -257,7 +257,7 @@ describe('rpc: sendTransaction', function () {
     var testInput = {
       rpcInput: {
         from: sourceAccount,
-        to: "eb31ad2d8a89a0ca6935c308d5425730430bc2d63f2573b8",
+        to: coinbase,
         nonce: nonce,
         gas_price: "1000000",
         gas_limit: "200000",
@@ -277,7 +277,7 @@ describe('rpc: sendTransaction', function () {
     var testInput = {
       rpcInput: {
         from: sourceAccount,
-        to: "eb31ad2d8a89a0ca6935c308d5425730430bc2d63f2573b8",
+        to: coinbase,
         value: "3$",
         nonce: nonce,
         gas_price: "1000000",
@@ -298,7 +298,7 @@ describe('rpc: sendTransaction', function () {
     var testInput = {
       rpcInput: {
         from: sourceAccount,
-        to: "eb31ad2d8a89a0ca6935c308d5425730430bc2d63f2573b8",
+        to: coinbase,
         value: "111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111",
         nonce: nonce,
         gas_price: "1000000",
@@ -319,7 +319,7 @@ describe('rpc: sendTransaction', function () {
     var testInput = {
       rpcInput: {
         from: sourceAccount,
-        to: "eb31ad2d8a89a0ca6935c308d5425730430bc2d63f2573b8",
+        to: coinbase,
         value: "-1",
         nonce: nonce,
         gas_price: "1000000",
@@ -340,7 +340,7 @@ describe('rpc: sendTransaction', function () {
     var testInput = {
       rpcInput: {
         from: sourceAccount,
-        to: "eb31ad2d8a89a0ca6935c308d5425730430bc2d63f2573b8",
+        to: coinbase,
         value: "1",
         nonce: nonce,
         gas_price: "1000000",
@@ -360,7 +360,7 @@ describe('rpc: sendTransaction', function () {
     var testInput = {
       rpcInput: {
         from: sourceAccount,
-        to: "eb31ad2d8a89a0ca6935c308d5425730430bc2d63f2573b8",
+        to: coinbase,
         value: "1",
         nonce: nonce,
         gas_limit: "-1",
@@ -381,7 +381,7 @@ describe('rpc: sendTransaction', function () {
     var testInput = {
       rpcInput: {
         from: sourceAccount,
-        to: "eb31ad2d8a89a0ca6935c308d5425730430bc2d63f2573b8",
+        to: coinbase,
         value: "1",
         nonce: nonce,
         gas_limit: "$d",
@@ -402,7 +402,7 @@ describe('rpc: sendTransaction', function () {
     var testInput = {
       rpcInput: {
         from: sourceAccount,
-        to: "eb31ad2d8a89a0ca6935c308d5425730430bc2d63f2573b8",
+        to: coinbase,
         value: "1",
         nonce: nonce,
         gas_limit: "111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111",
@@ -423,7 +423,7 @@ describe('rpc: sendTransaction', function () {
     var testInput = {
       rpcInput: {
         from: sourceAccount,
-        to: "eb31ad2d8a89a0ca6935c308d5425730430bc2d63f2573b8",
+        to: coinbase,
         value: "1",
         nonce: nonce,
         gas_limit: "200000",
@@ -444,7 +444,7 @@ describe('rpc: sendTransaction', function () {
     var testInput = {
       rpcInput: {
         from: sourceAccount,
-        to: "eb31ad2d8a89a0ca6935c308d5425730430bc2d63f2573b8",
+        to: coinbase,
         value: "1",
         nonce: nonce,
         gas_limit: "200000",
@@ -465,7 +465,7 @@ describe('rpc: sendTransaction', function () {
     var testInput = {
       rpcInput: {
         from: sourceAccount,
-        to: "eb31ad2d8a89a0ca6935c308d5425730430bc2d63f2573b8",
+        to: coinbase,
         value: "1",
         nonce: nonce,
         gas_limit: "200000",
@@ -486,7 +486,7 @@ describe('rpc: sendTransaction', function () {
     var testInput = {
       rpcInput: {
         from: sourceAccount,
-        to: "eb31ad2d8a89a0ca6935c308d5425730430bc2d63f2573b8",
+        to: coinbase,
         value: "1",
         nonce: nonce,
         gas_limit: "200000",
@@ -506,7 +506,7 @@ describe('rpc: sendTransaction', function () {
     var testInput = {
       rpcInput: {
         from: sourceAccount,
-        to: "eb31ad2d8a89a0ca6935c308d5425730430bc2d63f2573b8",
+        to: coinbase,
         value: "1",
         nonce: 1000000000000000000000000000000000000000000000000000000000000000000000000000000000000,
         gas_limit: "200000",
@@ -527,7 +527,7 @@ describe('rpc: sendTransaction', function () {
     var testInput = {
       rpcInput: {
         from: sourceAccount,
-        to: "eb31ad2d8a89a0ca6935c308d5425730430bc2d63f2573b8",
+        to: coinbase,
         value: "1",
         nonce: -1,
         gas_limit: "200000",
@@ -548,7 +548,7 @@ describe('rpc: sendTransaction', function () {
     var testInput = {
       rpcInput: {
         from: sourceAccount,
-        to: "eb31ad2d8a89a0ca6935c308d5425730430bc2d63f2573b8",
+        to: coinbase,
         value: "1",
         gas_limit: "200000",
         gas_price: "1000000"
@@ -568,7 +568,7 @@ describe('rpc: sendTransaction', function () {
     var testInput = {
       rpcInput: {
         from: sourceAccount,
-        to: "eb31ad2d8a89a0ca6935c308d5425730430bc2d63f2573b8",
+        to: coinbase,
         value: "1",
         nonce: "@",
         gas_limit: "200000",
@@ -602,7 +602,7 @@ describe('rpc: sendTransaction', function () {
     var testInput = {
       rpcInput: {
         from: sourceAccount,
-        to: "eb31ad2d8a89a0ca6935c308d5425730430bc2d63f2573b8",
+        to: coinbase,
         value: "1",
         nonce: nonce,
         gas_price: "1000000",
