@@ -70,6 +70,10 @@ func TestLoadBinaryPayload(t *testing.T) {
 }
 
 func TestLoadCallPayload(t *testing.T) {
+	want1, _ := NewCallPayload("", "[0]")
+	want2, _ := NewCallPayload("func", "")
+	want3, _ := NewCallPayload("func", "[0]")
+	want4, _ := NewCallPayload("func", "[0]")
 	tests := []struct {
 		name      string
 		bytes     []byte
@@ -97,7 +101,7 @@ func TestLoadCallPayload(t *testing.T) {
 			name:      "no func",
 			bytes:     []byte(`{"args": "[0]"}`),
 			parse:     true,
-			want:      NewCallPayload("", "[0]"),
+			want:      want1,
 			wantEqual: true,
 		},
 
@@ -105,7 +109,7 @@ func TestLoadCallPayload(t *testing.T) {
 			name:      "not args",
 			bytes:     []byte(`{"function":"func"}`),
 			parse:     true,
-			want:      NewCallPayload("func", ""),
+			want:      want2,
 			wantEqual: true,
 		},
 
@@ -113,7 +117,7 @@ func TestLoadCallPayload(t *testing.T) {
 			name:      "normal",
 			bytes:     []byte(`{"function":"func","args":"[0]"}`),
 			parse:     true,
-			want:      NewCallPayload("func", "[0]"),
+			want:      want3,
 			wantEqual: true,
 		},
 
@@ -121,7 +125,7 @@ func TestLoadCallPayload(t *testing.T) {
 			name:      "not equal",
 			bytes:     []byte(`{"function":"func", "args":"[1]"}`),
 			parse:     true,
-			want:      NewCallPayload("func", "[0]"),
+			want:      want4,
 			wantEqual: false,
 		},
 	}
