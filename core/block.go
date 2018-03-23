@@ -698,6 +698,8 @@ func (block *Block) Seal() error {
 		}).Fatal("cannot seal a block twice.")
 	}
 
+	defer block.RollBack()
+
 	if err := block.rewardCoinbaseForGas(); err != nil {
 		return err
 	}
@@ -719,8 +721,6 @@ func (block *Block) Seal() error {
 	logging.VLog().WithFields(logrus.Fields{
 		"block": block,
 	}).Info("Sealed Block.")
-
-	block.RollBack() // TODO: defer, rollback
 
 	metricsTxPackedCount.Update(0)
 	metricsTxUnpackedCount.Update(0)
@@ -919,12 +919,9 @@ func (block *Block) execute() error {
 			return err
 		}
 
-		mergeCh <- true // TODO try to remove the lock
 		if _, err := txWorldState.CheckAndUpdate(); err != nil {
-			<-mergeCh
 			return err
 		}
-		<-mergeCh
 
 		return nil
 	})
