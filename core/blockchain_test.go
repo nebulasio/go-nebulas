@@ -128,7 +128,7 @@ func TestBlockChain_FindCommonAncestorWithTail(t *testing.T) {
 	assert.Nil(t, bc.BlockPool().Push(block11111))
 }
 
-func TestBlockChain_EstimateGas(t *testing.T) {
+func TestBlockChain_SimulateTransactionExecution(t *testing.T) {
 	priv := secp256k1.GeneratePrivateKey()
 	pubdata, _ := priv.PublicKey().Encoded()
 	from, _ := NewAddressFromPublicKey(pubdata)
@@ -142,8 +142,12 @@ func TestBlockChain_EstimateGas(t *testing.T) {
 	gasLimit, _ := util.NewUint128FromInt(200000)
 	tx, _ := NewTransaction(bc.ChainID(), from, to, util.NewUint128(), 1, TxPayloadBinaryType, payload, TransactionGasPrice, gasLimit)
 
-	_, _, err = bc.EstimateGas(tx)
+	expectedGasUsed, _, _ := tx.CalculateMinGasExpected(nil)
+
+	gasUsed, _, exeErr, err := bc.SimulateTransactionExecution(tx)
 	assert.Nil(t, err)
+	assert.Equal(t, ErrInsufficientBalance, exeErr)
+	assert.Equal(t, expectedGasUsed, gasUsed)
 }
 
 func TestTailBlock(t *testing.T) {

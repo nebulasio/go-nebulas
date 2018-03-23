@@ -290,7 +290,9 @@ func (tx *Transaction) PayloadGasLimit(payload TxPayload) (*util.Uint128, error)
 		return nil, ErrNilArgument
 	}
 
-	// payloadGasLimit = tx.gasLimit - tx.GasCountOfTxBase
+	// TODO: @robin using CalculateMinGasExpected instead.
+	// payloadGasLimit = tx.gasLimit - tx.GasCountOfTxBase - payload.BaseGasCount
+
 	gasCountOfTxBase, err := tx.GasCountOfTxBase()
 	if err != nil {
 		return nil, err
@@ -364,43 +366,28 @@ func (tx *Transaction) LoadPayload() (TxPayload, error) {
 	return payload, err
 }
 
-// LocalExecution returns tx local execution
-func (tx *Transaction) localExecution(block *Block) (*util.Uint128, string, error) {
-	if block == nil {
-		return nil, "", ErrNilArgument
-	}
-
-	txWorldState, err := block.WorldState().Prepare(tx)
-	if err != nil {
-		return nil, "", err
-	}
-
-	payload, err := tx.LoadPayload()
-	if err != nil {
-		return nil, "", err
-	}
-
+// CalculateMinGasExpected calculate min gas expected for a transaction to put on chain.
+// MinGasExpected = GasCountOfBase + payload.baseGasCount
+func (tx *Transaction) CalculateMinGasExpected(payload TxPayload) (*util.Uint128, TxPayload, error) {
 	gasUsed, err := tx.GasCountOfTxBase()
 	if err != nil {
-		return nil, "", err
+		return nil, payload, err
+	}
+
+	// load payload if nil.
+	if payload == nil {
+		payload, err = tx.LoadPayload()
+		if err != nil {
+			return nil, nil, err
+		}
 	}
 
 	gasUsed, err = gasUsed.Add(payload.BaseGasCount())
 	if err != nil {
-		return nil, "", err
+		return nil, payload, err
 	}
 
-	gasExecution, result, exeErr := payload.Execute(tx, block, txWorldState)
-	gas, err := gasUsed.Add(gasExecution)
-	if err != nil {
-		return nil, result, err
-	}
-
-	if err := txWorldState.Close(); err != nil {
-		return util.NewUint128(), "", err
-	} // ToRefine: clone
-
-	return gas, result, exeErr
+	return gasUsed, payload, nil
 }
 
 // VerifyExecution transaction and return result.
@@ -409,6 +396,8 @@ func VerifyExecution(tx *Transaction, block *Block, ws WorldState) (bool, error)
 	if giveback, err := tx.checkBalance(block, ws); err != nil {
 		return giveback, err
 	}
+
+	// TODO: @robin using CalculateMinGasExpected instead.
 
 	// step2. calculate base gas
 	gasUsed, err := tx.GasCountOfTxBase()
@@ -547,7 +536,70 @@ func VerifyExecution(tx *Transaction, block *Block, ws WorldState) (bool, error)
 	return false, nil
 }
 
+// SimulateExecution simulate execution and return gasUsed, executionResult and error if occurred.
+func (tx *Transaction) SimulateExecution(block *Block) (*util.Uint128, string, error, error) {
+	// prepare gasLimit to TransactionMaxGas.
+	tx.gasLimit = TransactionMaxGas
+
+	// hash is necessary in nvm
+	hash, err := HashTransaction(tx)
+	if err != nil {
+		return nil, "", nil, err
+	}
+	tx.hash = hash
+
+	// calculate min gas.
+	gasUsed, payload, err := tx.CalculateMinGasExpected(nil)
+	if err != nil {
+		return nil, "", nil, err
+	}
+
+	var (
+		result string
+		exeErr error
+	)
+
+	ws := block.WorldState()
+
+	// try run smart contract if payload is.
+	if tx.data.Type == TxPayloadCallType || tx.data.Type == TxPayloadDeployType {
+
+		// transfer value to smart contract.
+		toAcc, err := ws.GetOrCreateUserAccount(tx.to.address)
+		if err != nil {
+			return nil, "", nil, err
+		}
+		err = toAcc.AddBalance(tx.value)
+		if err != nil {
+			return nil, "", nil, err
+		}
+
+		// execute.
+		var gasExecution *util.Uint128
+		gasExecution, result, exeErr = payload.Execute(tx, block, block.WorldState())
+
+		// add gas.
+		gasUsed, err = gasUsed.Add(gasExecution)
+		if err != nil {
+			return nil, "", nil, err
+		}
+
+		if exeErr != nil {
+			return gasUsed, result, exeErr, nil
+		}
+	}
+
+	// check balance.
+	ok, err := checkBalanceForGasUsedAndValue(ws, tx.from.address, tx.value, gasUsed, tx.gasPrice)
+	if err == nil && ok == false {
+		exeErr = ErrInsufficientBalance
+	}
+
+	return gasUsed, result, exeErr, err
+}
+
 func (tx *Transaction) checkBalance(block *Block, ws WorldState) (bool, error) {
+	// TODO: @robin using checkBalanceForGasLimit instead.
 	fromAcc, err := ws.GetOrCreateUserAccount(tx.from.address)
 	if err != nil {
 		logging.VLog().Info("AEE 10")
@@ -565,6 +617,41 @@ func (tx *Transaction) checkBalance(block *Block, ws WorldState) (bool, error) {
 	}
 	// No error, won't giveback the tx
 	return false, nil
+}
+
+// checkBalanceForGasLimit check balance >= gasLimit * gasPrice.
+func (tx *Transaction) checkBalanceForGasLimit(block *Block, ws WorldState) error {
+	ok, err := checkBalanceForGasUsedAndValue(ws, tx.from.address, util.NewUint128(), tx.gasLimit, tx.gasPrice)
+	if err != nil {
+		return err
+	}
+
+	if ok == false {
+		return ErrInsufficientBalance
+	}
+
+	return nil
+}
+
+// checkBalanceForGasUsedAndValue check balance >= gasUsed * gasPrice + value.
+func checkBalanceForGasUsedAndValue(ws WorldState, address byteutils.Hash, value, gasUsed, gasPrice *util.Uint128) (bool, error) {
+	fromAcc, err := ws.GetOrCreateUserAccount(address)
+	if err != nil {
+		return false, err
+	}
+	gasFee, err := gasPrice.Mul(gasUsed)
+	if err != nil {
+		return false, err
+	}
+	balanceRequired, err := gasFee.Add(value)
+	if err != nil {
+		return false, err
+	}
+	if fromAcc.Balance().Cmp(balanceRequired) < 0 {
+		return false, nil
+	}
+	return true, nil
+
 }
 
 func (tx *Transaction) recordGas(gasCnt *util.Uint128, ws WorldState) error {

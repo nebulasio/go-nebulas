@@ -163,11 +163,14 @@ func (s *APIService) Call(ctx context.Context, req *rpcpb.TransactionRequest) (*
 	if err != nil {
 		return nil, err
 	}
-	_, result, err := neb.BlockChain().EstimateGas(tx)
+
+	_, result /* exeErr */, _, err := neb.BlockChain().SimulateTransactionExecution(tx)
+
 	if err != nil {
 		return nil, err
 	}
-	return &rpcpb.CallResponse{Result: result}, nil // TODO return gas, call result, err
+
+	return &rpcpb.CallResponse{Result: result}, nil // TODO: @robin return gas, call result, exeErr.
 }
 
 func (s *APIService) sendTransaction(req *rpcpb.TransactionRequest) (*rpcpb.SendTransactionResponse, error) {
@@ -506,10 +509,13 @@ func (s *APIService) EstimateGas(ctx context.Context, req *rpcpb.TransactionRequ
 	if err != nil {
 		return nil, err
 	}
-	estimateGas, _, err := neb.BlockChain().EstimateGas(tx)
+
+	estimateGas, _, _, err := neb.BlockChain().SimulateTransactionExecution(tx)
+
 	if err != nil {
 		return nil, err
 	}
+
 	return &rpcpb.GasResponse{Gas: estimateGas.String()}, nil
 }
 

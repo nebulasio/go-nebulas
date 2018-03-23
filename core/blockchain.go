@@ -638,64 +638,29 @@ func (bc *BlockChain) GasPrice() *util.Uint128 {
 			}
 		}
 	} else {
-		// if no transactions have been submited, use the default gasPrice
+		// if no transactions have been submitted, use the default gasPrice
 		gasPrice = TransactionGasPrice
 	}
 
 	return gasPrice
 }
 
-// EstimateGas returns the transaction gas cost
-func (bc *BlockChain) EstimateGas(tx *Transaction) (*util.Uint128, string, error) { // TODO use SimulateTransactionExecution
+// SimulateTransactionExecution execute transaction in sandbox and rollback all changes, used to EstimateGas and Call api.
+func (bc *BlockChain) SimulateTransactionExecution(tx *Transaction) (*util.Uint128, string, error, error) {
 	if tx == nil {
-		return nil, "", ErrInvalidArgument
+		return nil, "", nil, ErrInvalidArgument
 	}
 
-	// hash is necessary in nvm
-	hash, err := HashTransaction(tx)
+	// create block.
+	block, err := bc.NewBlock(GenesisCoinbase)
 	if err != nil {
-		return nil, "", err
+		return nil, "", nil, err
 	}
-	tx.hash = hash
+	defer block.RollBack()
 
-	block, err := bc.NewBlock(GenesisCoinbase) // TODO
-	if err != nil {
-		return util.NewUint128(), "", err
-	}
-	gas, result, err := tx.localExecution(block)
-	block.RollBack()
-	return gas, result, err
+	// simulate execution.
+	return tx.SimulateExecution(block)
 }
-
-/* func SimulateTransactionExecution(tx *Transaction) {
-	block := chain.NewBlock()
-	defer block.Rollback()
-
-	minGasExpected = tx.CalculateMinGasExpected()
-	value = tx.value
-
-	var err error
-	account := tx.GetFrom()
-
-	// if smart contract
-	gasLimited := MaxGasLimit
-	smartContractAs.AddBalance(value)
-	gasUsed, err := tx.payload.Execute(gasLimit)
-	if err != nil {
-		return minGasExpected+gasUsed, err
-	}
-
-	minGasExpected += gasUsed
-
-	if account.balance().Cmp(value + minGasExpected)) < 0 {
-		err = "insuffient balance"
-	}
-	if err != nil {
-		return minGasExpected, err
-	}
-
-	return minGasExpected, err, nil
-} */
 
 // Dump dump full chain.
 func (bc *BlockChain) Dump(count int) string {

@@ -436,12 +436,15 @@ func TestTransaction_VerifyExecution(t *testing.T) {
 	// tx execution err
 	executionErrTx := mockCallTransaction(bc.chainID, 0, "test", "")
 	executionErrTx.value = util.NewUint128()
-	gasUsed, _, _ = bc.EstimateGas(executionErrTx)
+	gasUsed, _, exeErr, err := bc.SimulateTransactionExecution(executionErrTx)
+	assert.Nil(t, err)
+	assert.Equal(t, ErrContractCheckFailed, exeErr)
 	coinbaseBalance, _ = executionErrTx.gasPrice.Mul(gasUsed)
 	balanceConsume, err = executionErrTx.gasPrice.Mul(gasUsed)
 	assert.Nil(t, err)
 	afterBalance, err = balance.Sub(balanceConsume)
 	assert.Nil(t, err)
+
 	tests = append(tests, testTx{
 		name:            "execution err tx",
 		tx:              executionErrTx,
@@ -478,7 +481,9 @@ func TestTransaction_VerifyExecution(t *testing.T) {
 
 	// tx execution equal fromBalance after execution
 	executionEqualBalanceTx := mockDeployTransaction(bc.chainID, 0)
-	gasUsed, _, _ = bc.EstimateGas(executionEqualBalanceTx)
+	gasUsed, _, exeErr, err = bc.SimulateTransactionExecution(executionEqualBalanceTx)
+	assert.Nil(t, err)
+	assert.Equal(t, ErrInsufficientBalance, exeErr)
 	executionEqualBalanceTx.gasLimit = gasUsed
 	t.Log("gasUsed:", gasUsed)
 	coinbaseBalance, err = executionInsufficientBalanceTx.gasPrice.Mul(gasUsed)
@@ -572,7 +577,7 @@ func TestTransaction_VerifyExecution(t *testing.T) {
 	}
 }
 
-func TestTransaction_LocalExecution(t *testing.T) {
+func TestTransaction_SimulateExecution(t *testing.T) {
 	type testCase struct {
 		name    string
 		tx      *Transaction
@@ -593,7 +598,7 @@ func TestTransaction_LocalExecution(t *testing.T) {
 		tx:      normalTx,
 		gasUsed: MinGasCountPerTransaction,
 		result:  "",
-		wanted:  nil,
+		wanted:  ErrInsufficientBalance,
 	})
 
 	deployTx := mockDeployTransaction(bc.chainID, 0)
@@ -605,7 +610,7 @@ func TestTransaction_LocalExecution(t *testing.T) {
 		tx:      deployTx,
 		gasUsed: gasUsed,
 		result:  "",
-		wanted:  nil,
+		wanted:  ErrInsufficientBalance,
 	})
 
 	// contract call tx
@@ -637,11 +642,12 @@ func TestTransaction_LocalExecution(t *testing.T) {
 			assert.Nil(t, err)
 			coinbaseBefore := coinbaseAcc.Balance()
 
-			gasUsed, result, err := tt.tx.localExecution(block)
+			gasUsed, result, exeErr, err := tt.tx.SimulateExecution(block)
 
-			assert.Equal(t, tt.wanted, err)
+			assert.Equal(t, tt.wanted, exeErr)
 			assert.Equal(t, tt.result, result)
 			assert.Equal(t, tt.gasUsed, gasUsed)
+			assert.Nil(t, err)
 
 			fromAcc, err = block.worldState.GetOrCreateUserAccount(tt.tx.from.address)
 			assert.Nil(t, err)

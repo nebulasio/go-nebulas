@@ -19,6 +19,7 @@
 package mvccdb
 
 import (
+	"os"
 	"testing"
 	"time"
 
@@ -523,7 +524,8 @@ func TestMVCCDB_ParallelsExeTowTx(t *testing.T) {
 }
 
 func TestPerformance(t *testing.T) {
-	store, _ := storage.NewDiskStorage("test.db")
+	store, _ := storage.NewRocksStorage("test.db")
+	defer os.RemoveAll("test.db")
 	db, _ := NewMVCCDB(store, true)
 
 	// begin.
@@ -545,7 +547,7 @@ func TestPerformance(t *testing.T) {
 	err := db.Commit()
 	end := time.Now().UnixNano()
 	assert.Nil(t, err)
-	assert.True(t, end-start < 1000000000, "%s", end-start)
+	assert.True(t, (end-start) < 1000000000, "%s", end-start)
 }
 
 func TestOperateAfterParentClosed(t *testing.T) {
