@@ -46,7 +46,7 @@ func newChangeLog() (*mvccdb.MVCCDB, error) {
 	return db, nil
 }
 
-func newStorage(storage storage.Storage) (*mvccdb.MVCCDB, error) { // TODO rename NewStateDB
+func newStateDB(storage storage.Storage) (*mvccdb.MVCCDB, error) {
 	return mvccdb.NewMVCCDB(storage, true)
 }
 
@@ -58,8 +58,8 @@ type states struct {
 
 	consensus Consensus
 	changelog *mvccdb.MVCCDB
-	storage   *mvccdb.MVCCDB  // TODO renmae stateDB
-	db        storage.Storage // TODO rename interStorage
+	stateDB   *mvccdb.MVCCDB
+	innerDB   storage.Storage
 	txid      interface{}
 
 	gasConsumed map[string]*util.Uint128
@@ -72,24 +72,24 @@ func newStates(consensus Consensus, stor storage.Storage) (*states, error) {
 	if err != nil {
 		return nil, err
 	}
-	storage, err := newStorage(stor)
+	stateDB, err := newStateDB(stor)
 	if err != nil {
 		return nil, err
 	}
 
-	accState, err := NewAccountState(nil, storage)
+	accState, err := NewAccountState(nil, stateDB)
 	if err != nil {
 		return nil, err
 	}
-	txsState, err := trie.NewTrie(nil, storage, false)
+	txsState, err := trie.NewTrie(nil, stateDB, false)
 	if err != nil {
 		return nil, err
 	}
-	eventsState, err := trie.NewTrie(nil, storage, false)
+	eventsState, err := trie.NewTrie(nil, stateDB, false)
 	if err != nil {
 		return nil, err
 	}
-	consensusState, err := consensus.NewState(&consensuspb.ConsensusRoot{}, storage, false)
+	consensusState, err := consensus.NewState(&consensuspb.ConsensusRoot{}, stateDB, false)
 	if err != nil {
 		return nil, err
 	}
@@ -102,8 +102,8 @@ func newStates(consensus Consensus, stor storage.Storage) (*states, error) {
 
 		consensus: consensus,
 		changelog: changelog,
-		storage:   storage,
-		db:        stor,
+		stateDB:   stateDB,
+		innerDB:   stor,
 		txid:      nil,
 
 		gasConsumed: make(map[string]*util.Uint128),
@@ -136,11 +136,11 @@ func (s *states) Replay(done *states) error {
 		if !ok {
 			consumed = util.NewUint128()
 		}
-		var err error
-		s.gasConsumed[from], err = consumed.Add(gas) // TODO use tmp var, assign if success
+		consumed, err := consumed.Add(gas)
 		if err != nil {
 			return err
 		}
+		s.gasConsumed[from] = consumed
 	}
 	return nil
 }
@@ -183,28 +183,28 @@ func (s *states) Clone() (*states, error) {
 		logging.CLog().Info("CE 1")
 		return nil, err
 	}
-	storage, err := newStorage(s.db)
+	stateDB, err := newStateDB(s.innerDB)
 	if err != nil {
 		logging.CLog().Info("CE 2")
 		return nil, err
 	}
 
-	accState, err := NewAccountState(s.accState.RootHash(), storage)
+	accState, err := NewAccountState(s.accState.RootHash(), stateDB)
 	if err != nil {
 		logging.CLog().Info("CE 3")
 		return nil, err
 	}
-	txsState, err := trie.NewTrie(s.txsState.RootHash(), storage, false)
+	txsState, err := trie.NewTrie(s.txsState.RootHash(), stateDB, false)
 	if err != nil {
 		logging.CLog().Info("CE 4")
 		return nil, err
 	}
-	eventsState, err := trie.NewTrie(s.eventsState.RootHash(), storage, false)
+	eventsState, err := trie.NewTrie(s.eventsState.RootHash(), stateDB, false)
 	if err != nil {
 		logging.CLog().Info("CE 5")
 		return nil, err
 	}
-	consensusState, err := s.consensus.NewState(s.consensusState.RootHash(), storage, false)
+	consensusState, err := s.consensus.NewState(s.consensusState.RootHash(), stateDB, false)
 	if err != nil {
 		logging.CLog().Info("CE 6")
 		return nil, err
@@ -218,8 +218,8 @@ func (s *states) Clone() (*states, error) {
 
 		consensus: s.consensus,
 		changelog: changelog,
-		storage:   storage,
-		db:        s.db,
+		stateDB:   stateDB,
+		innerDB:   s.innerDB,
 		txid:      s.txid,
 
 		gasConsumed: make(map[string]*util.Uint128),
@@ -233,7 +233,7 @@ func (s *states) Begin() error {
 		logging.CLog().Info("BE 11")
 		return err
 	}
-	if err := s.storage.Begin(); err != nil {
+	if err := s.stateDB.Begin(); err != nil {
 		logging.CLog().Info("BE 12")
 		return err
 	}
@@ -245,10 +245,12 @@ func (s *states) Commit() error {
 	if err := s.Flush(); err != nil {
 		return err
 	}
-	if err := s.changelog.RollBack(); err != nil { // TODO add comment
+	// changelog is used to check conflict temporarily
+	// we should rollback it when the transaction is over
+	if err := s.changelog.RollBack(); err != nil {
 		return err
 	}
-	if err := s.storage.Commit(); err != nil {
+	if err := s.stateDB.Commit(); err != nil {
 		return err
 	}
 
@@ -265,7 +267,7 @@ func (s *states) RollBack() error {
 	if err := s.changelog.RollBack(); err != nil {
 		return err
 	}
-	if err := s.storage.RollBack(); err != nil {
+	if err := s.stateDB.RollBack(); err != nil {
 		return err
 	}
 
@@ -281,29 +283,31 @@ func (s *states) Prepare(txid interface{}) (*states, error) {
 		logging.VLog().Info("PPE 11")
 		return nil, err
 	}
-	storage, err := s.storage.Prepare(txid)
+	stateDB, err := s.stateDB.Prepare(txid)
 	if err != nil {
 		logging.VLog().Info("PPE 12")
 		return nil, err
 	}
 
-	if err := s.Flush(); err != nil { // TODO: add comment
+	// Flush all changes in world state into merkle trie
+	// make a snapshot of world state
+	if err := s.Flush(); err != nil {
 		return nil, err
 	}
 
-	accState, err := NewAccountState(s.AccountsRoot(), storage)
+	accState, err := NewAccountState(s.AccountsRoot(), stateDB)
 	if err != nil {
 		return nil, err
 	}
-	txsState, err := trie.NewTrie(s.TxsRoot(), storage, true)
+	txsState, err := trie.NewTrie(s.TxsRoot(), stateDB, true)
 	if err != nil {
 		return nil, err
 	}
-	eventsState, err := trie.NewTrie(s.EventsRoot(), storage, true)
+	eventsState, err := trie.NewTrie(s.EventsRoot(), stateDB, true)
 	if err != nil {
 		return nil, err
 	}
-	consensusState, err := s.consensus.NewState(s.ConsensusRoot(), storage, true)
+	consensusState, err := s.consensus.NewState(s.ConsensusRoot(), stateDB, true)
 	if err != nil {
 		return nil, err
 	}
@@ -316,8 +320,8 @@ func (s *states) Prepare(txid interface{}) (*states, error) {
 
 		consensus: s.consensus,
 		changelog: changelog,
-		storage:   storage,
-		db:        s.db,
+		stateDB:   stateDB,
+		innerDB:   s.innerDB,
 		txid:      txid,
 
 		gasConsumed: make(map[string]*util.Uint128),
@@ -332,7 +336,7 @@ func (s *states) CheckAndUpdateTo(parent *states) ([]interface{}, error) {
 		logging.VLog().Info("CUE 11")
 		return nil, err
 	}
-	_, err = s.storage.CheckAndUpdate() // TODO delete
+	_, err = s.stateDB.CheckAndUpdate()
 	if err != nil {
 		logging.VLog().Info("CUE 12")
 		return nil, err
@@ -349,7 +353,7 @@ func (s *states) Reset() error {
 		logging.VLog().Info("RSE 11")
 		return err
 	}
-	if err := s.storage.Reset(); err != nil {
+	if err := s.stateDB.Reset(); err != nil {
 		logging.VLog().Info("RSE 12")
 		return err
 	}
@@ -365,7 +369,7 @@ func (s *states) Close() error {
 		logging.VLog().Info("CSE 11")
 		return err
 	}
-	if err := s.storage.Close(); err != nil {
+	if err := s.stateDB.Close(); err != nil {
 		logging.VLog().Info("CSE 12")
 		return err
 	}
@@ -396,16 +400,16 @@ func (s *states) Flush() error {
 }
 
 func (s *states) Abort() error {
-	return s.accState.Abort() // TODO: Abort txsState, eventsState, consensusState // TODO: add comment, why success
+	// TODO: Abort txsState, eventsState, consensusState
+	// we don't need to abort the three states now
+	// because we only use abort in reset, close and rollback
+	// in close & rollback, we won't use states any more
+	// in reset, we won't change the three states before we reset them
+	return s.accState.Abort()
 }
 
 func (s *states) recordAccount(acc Account) (Account, error) {
-	bytes, err := acc.ToBytes()
-	if err != nil {
-		logging.VLog().Info("RAE 2")
-		return nil, err
-	}
-	if err := s.changelog.Put(acc.Address(), bytes); err != nil {
+	if err := s.changelog.Put(acc.Address(), acc.Address()); err != nil {
 		logging.VLog().Info("RAE 3")
 		return nil, err
 	}
@@ -445,11 +449,6 @@ func (s *states) GetTx(txHash byteutils.Hash) ([]byte, error) {
 		logging.VLog().Info("GTE 11")
 		return nil, err
 	}
-	// record change log
-	if _, err := s.changelog.Get(txHash); err != nil && err != storage.ErrKeyNotFound {
-		logging.VLog().Info("GTE 12")
-		return nil, err
-	}
 	return bytes, nil
 }
 
@@ -457,11 +456,6 @@ func (s *states) PutTx(txHash byteutils.Hash, txBytes []byte) error {
 	_, err := s.txsState.Put(txHash, txBytes)
 	if err != nil {
 		logging.VLog().Info("PTE 11")
-		return err
-	}
-	// record change log
-	if err := s.changelog.Put(txHash, txBytes); err != nil {
-		logging.VLog().Info("PTE 12")
 		return err
 	}
 	return nil
@@ -472,37 +466,8 @@ func (s *states) RecordEvent(txHash byteutils.Hash, event *Event) error {
 	if !ok {
 		events = make([]*Event, 0)
 	}
-
-	cnt := int64(len(events) + 1)
-
-	key := append(txHash, byteutils.FromInt64(cnt)...)
-	bytes, err := json.Marshal(event)
-	if err != nil {
-		logging.VLog().Info("REE 11")
-		return err
-	}
 	s.events[txHash.String()] = append(events, event)
-
-	// record change log
-	if err := s.changelog.Put(key, bytes); err != nil { // TODO value can be any value
-		logging.VLog().Info("REE 12")
-		return err
-	}
 	return nil
-}
-
-func (s *states) FetchCacheEventsOfCurBlock(txHash byteutils.Hash) ([]*Event, error) { // TODO delete, & interface
-	txevents, ok := s.events[txHash.String()]
-	if !ok {
-		return nil, nil
-	}
-
-	events := []*Event{}
-	for _, event := range txevents {
-		events = append(events, event)
-	}
-
-	return events, nil
 }
 
 func (s *states) FetchEvents(txHash byteutils.Hash) ([]*Event, error) {
@@ -511,7 +476,7 @@ func (s *states) FetchEvents(txHash byteutils.Hash) ([]*Event, error) {
 	if err != nil && err != storage.ErrKeyNotFound {
 		return nil, err
 	}
-	if err != storage.ErrKeyNotFound { // TODO -> err == nil
+	if err == nil {
 		exist, err := iter.Next()
 		if err != nil {
 			logging.VLog().Info("FEE 11")
@@ -525,11 +490,6 @@ func (s *states) FetchEvents(txHash byteutils.Hash) ([]*Event, error) {
 				return nil, err
 			}
 			events = append(events, event)
-			// record change log
-			if _, err := s.changelog.Get(iter.Key()); err != nil && err != storage.ErrKeyNotFound { // TODO remove events & txs changelog
-				logging.VLog().Info("FEE 13")
-				return nil, err
-			}
 			exist, err = iter.Next()
 			if err != nil {
 				logging.VLog().Info("FEE 14")
@@ -553,7 +513,7 @@ func (s *states) Accounts() ([]Account, error) { // TODO delete
 }
 
 func (s *states) LoadAccountsRoot(root byteutils.Hash) error {
-	accState, err := NewAccountState(root, s.storage)
+	accState, err := NewAccountState(root, s.stateDB)
 	if err != nil {
 		return err
 	}
@@ -562,7 +522,7 @@ func (s *states) LoadAccountsRoot(root byteutils.Hash) error {
 }
 
 func (s *states) LoadTxsRoot(root byteutils.Hash) error {
-	txsState, err := trie.NewTrie(root, s.storage, false)
+	txsState, err := trie.NewTrie(root, s.stateDB, false)
 	if err != nil {
 		return err
 	}
@@ -571,7 +531,7 @@ func (s *states) LoadTxsRoot(root byteutils.Hash) error {
 }
 
 func (s *states) LoadEventsRoot(root byteutils.Hash) error {
-	eventsState, err := trie.NewTrie(root, s.storage, false)
+	eventsState, err := trie.NewTrie(root, s.stateDB, false)
 	if err != nil {
 		return err
 	}
@@ -580,7 +540,7 @@ func (s *states) LoadEventsRoot(root byteutils.Hash) error {
 }
 
 func (s *states) LoadConsensusRoot(root *consensuspb.ConsensusRoot) error {
-	consensusState, err := s.consensus.NewState(root, s.storage, false)
+	consensusState, err := s.consensus.NewState(root, s.stateDB, false)
 	if err != nil {
 		return err
 	}
@@ -593,9 +553,11 @@ func (s *states) RecordGas(from string, gas *util.Uint128) error {
 	if !ok {
 		consumed = util.NewUint128()
 	}
-	var err error
-	s.gasConsumed[from], err = consumed.Add(gas) // TODO use tmp var, assign if success
-
+	consumed, err := consumed.Add(gas)
+	if err != nil {
+		return err
+	}
+	s.gasConsumed[from] = consumed
 	return err
 }
 
