@@ -247,7 +247,7 @@ func (pool *BlockPool) loop() {
 	}
 }
 
-func deepCopyBlock(block *Block) (*Block, error) { // TODO rename mockBlockFromNetwork
+func mockBlockFromNetwork(block *Block) (*Block, error) { // TODO rename mockBlockFromNetwork
 	pbBlock, err := block.ToProto()
 	if err != nil {
 		return nil, err
@@ -268,7 +268,7 @@ func (pool *BlockPool) Push(block *Block) error {
 	}
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
-	block, err := deepCopyBlock(block)
+	block, err := mockBlockFromNetwork(block)
 	if err != nil {
 		return err
 	}
@@ -287,7 +287,7 @@ func (pool *BlockPool) PushAndRelay(sender string, block *Block) error {
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
 
-	block, err := deepCopyBlock(block)
+	block, err := mockBlockFromNetwork(block)
 	if err != nil {
 		return err
 	}
@@ -303,7 +303,7 @@ func (pool *BlockPool) PushAndBroadcast(block *Block) error {
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
 
-	block, err := deepCopyBlock(block)
+	block, err := mockBlockFromNetwork(block)
 	if err != nil {
 		return err
 	}

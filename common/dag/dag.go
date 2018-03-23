@@ -35,8 +35,9 @@ type Node struct {
 
 // Errors
 var (
-	ErrKeyNotFound  = errors.New("not found")
-	ErrKeyIsExisted = errors.New("already existed")
+	ErrKeyNotFound       = errors.New("not found")
+	ErrKeyIsExisted      = errors.New("already existed")
+	ErrInvalidProtoToDag = errors.New("Protobuf message cannot be converted into Dag")
 )
 
 // NewNode new node
@@ -82,20 +83,21 @@ func (dag *Dag) ToProto() (proto.Message, error) {
 // FromProto converts proto Dag to domain Dag
 func (dag *Dag) FromProto(msg proto.Message) error {
 	if msg, ok := msg.(*dagpb.Dag); ok {
-
-		for _, v := range msg.Nodes {
-			dag.addNodeWithIndex(int(v.Index), int(v.Index))
-		}
-
-		for _, v := range msg.Nodes {
-			for _, child := range v.Children {
-				dag.AddEdge(int(v.Index), int(child))
+		if msg != nil {
+			for _, v := range msg.Nodes {
+				dag.addNodeWithIndex(int(v.Index), int(v.Index))
 			}
-		}
 
-		return nil
+			for _, v := range msg.Nodes {
+				for _, child := range v.Children {
+					dag.AddEdge(int(v.Index), int(child))
+				}
+			}
+			return nil
+		}
+		return ErrInvalidProtoToDag
 	}
-	return errors.New("Protobuf message cannot be converted into Dag")
+	return ErrInvalidProtoToDag
 }
 
 // String

@@ -346,6 +346,20 @@ func TestNeb(t *testing.T) {
 	assert.Equal(t, neb.consensus.(*mockConsensus).chain, neb.chain)
 }
 
+func TestBlockFromProto(t *testing.T) {
+	block := new(Block)
+	var pb *corepb.Block
+	assert.Equal(t, block.FromProto(pb), ErrInvalidProtoToBlock)
+
+	blockHeader := new(BlockHeader)
+	var pbh *corepb.BlockHeader
+	assert.Equal(t, blockHeader.FromProto(pbh), ErrInvalidProtoToBlockHeader)
+
+	tx := new(Transaction)
+	var ptx *corepb.Transaction
+	assert.Equal(t, tx.FromProto(ptx), ErrInvalidProtoToTransaction)
+}
+
 func TestBlock(t *testing.T) {
 	type fields struct {
 		header       *BlockHeader

@@ -47,9 +47,9 @@ var (
 	BlockHashLength = 32
 
 	// BlockReward given to coinbase
-	// rule: 3% per year, 3,000,000. 1 block per 5 seconds
-	// value: 10^8 * 3% / (365*24*3600/5) * 10^18 ≈ 16 * 3% * 10*18 = 48 * 10^16
-	BlockReward, _ = util.NewUint128FromString("480000000000000000") // TODO 4x in 20s
+	// rule: 3% per year, 3,000,000. 1 block per 20 seconds
+	// value: 10^8 * 3% / (365*24*3600/20) * 10^18 ≈ 64 * 3% * 10*18 = 1.92 * 10^18
+	BlockReward, _ = util.NewUint128FromString("1920000000000000000")
 )
 
 // BlockHeader of a block
@@ -92,25 +92,28 @@ func (b *BlockHeader) ToProto() (proto.Message, error) {
 // FromProto converts proto BlockHeader to domain BlockHeader
 func (b *BlockHeader) FromProto(msg proto.Message) error {
 	if msg, ok := msg.(*corepb.BlockHeader); ok {
-		b.hash = msg.Hash
-		b.parentHash = msg.ParentHash
-		b.stateRoot = msg.StateRoot
-		b.txsRoot = msg.TxsRoot
-		b.eventsRoot = msg.EventsRoot
-		if msg.ConsensusRoot == nil {
-			return ErrInvalidProtoToBlockHeader
+		if msg != nil {
+			b.hash = msg.Hash
+			b.parentHash = msg.ParentHash
+			b.stateRoot = msg.StateRoot
+			b.txsRoot = msg.TxsRoot
+			b.eventsRoot = msg.EventsRoot
+			if msg.ConsensusRoot == nil {
+				return ErrInvalidProtoToBlockHeader
+			}
+			b.consensusRoot = msg.ConsensusRoot
+			coinbase, err := AddressParseFromBytes(msg.Coinbase)
+			if err != nil {
+				return ErrInvalidProtoToBlockHeader
+			}
+			b.coinbase = coinbase
+			b.timestamp = msg.Timestamp
+			b.chainID = msg.ChainId
+			b.alg = keystore.Algorithm(msg.Alg) // TODO: check category
+			b.sign = msg.Sign
+			return nil
 		}
-		b.consensusRoot = msg.ConsensusRoot
-		coinbase, err := AddressParseFromBytes(msg.Coinbase)
-		if err != nil {
-			return ErrInvalidProtoToBlockHeader
-		}
-		b.coinbase = coinbase
-		b.timestamp = msg.Timestamp
-		b.chainID = msg.ChainId
-		b.alg = keystore.Algorithm(msg.Alg) // TODO: check category
-		b.sign = msg.Sign
-		return nil
+		return ErrInvalidProtoToBlockHeader
 	}
 	return ErrInvalidProtoToBlockHeader
 }
@@ -164,7 +167,7 @@ func (block *Block) ToProto() (proto.Message, error) {
 				Height:       block.height,
 			}, nil
 		}
-		return nil, ErrInvalidProtoToDag
+		return nil, dag.ErrInvalidProtoToDag
 	}
 	return nil, ErrInvalidProtoToBlock
 }
@@ -172,25 +175,31 @@ func (block *Block) ToProto() (proto.Message, error) {
 // FromProto converts proto Block to domain Block
 func (block *Block) FromProto(msg proto.Message) error {
 	if msg, ok := msg.(*corepb.Block); ok {
-		block.header = new(BlockHeader)
-		if err := block.header.FromProto(msg.Header); err != nil {
-			return err
-		}
-
-		block.transactions = make(Transactions, len(msg.Transactions))
-		for idx, v := range msg.Transactions {
-			tx := new(Transaction)
-			if err := tx.FromProto(v); err != nil {
+		if msg != nil {
+			block.header = new(BlockHeader)
+			if err := block.header.FromProto(msg.Header); err != nil {
 				return err
 			}
-			block.transactions[idx] = tx
+			block.transactions = make(Transactions, len(msg.Transactions))
+			for idx, v := range msg.Transactions {
+				if v != nil {
+					tx := new(Transaction)
+					if err := tx.FromProto(v); err != nil {
+						return err
+					}
+					block.transactions[idx] = tx
+				} else {
+					return ErrInvalidProtoToTransaction
+				}
+			}
+			block.dependency = dag.NewDag()
+			if err := block.dependency.FromProto(msg.Dependency); err != nil { // TODO: check nil in all FromProto, add unit tests
+				return err
+			}
+			block.height = msg.Height
+			return nil
 		}
-		block.dependency = dag.NewDag()
-		if err := block.dependency.FromProto(msg.Dependency); err != nil { // TODO: check nil in all FromProto, add unit tests
-			return err
-		}
-		block.height = msg.Height
-		return nil
+		return ErrInvalidProtoToBlock
 	}
 	return ErrInvalidProtoToBlock
 }

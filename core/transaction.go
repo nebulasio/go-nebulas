@@ -161,51 +161,55 @@ func (tx *Transaction) ToProto() (proto.Message, error) {
 // FromProto converts proto Tx into domain Tx
 func (tx *Transaction) FromProto(msg proto.Message) error {
 	if msg, ok := msg.(*corepb.Transaction); ok {
-		tx.hash = msg.Hash
+		if msg != nil {
+			tx.hash = msg.Hash
+			from, err := AddressParseFromBytes(msg.From)
+			if err != nil {
+				return err
+			}
+			tx.from = from
 
-		from, err := AddressParseFromBytes(msg.From)
-		if err != nil {
-			return err
-		}
-		tx.from = from
+			to, err := AddressParseFromBytes(msg.To)
+			if err != nil {
+				return err
+			}
+			tx.to = to
 
-		to, err := AddressParseFromBytes(msg.To)
-		if err != nil {
-			return err
-		}
-		tx.to = to
+			value, err := util.NewUint128FromFixedSizeByteSlice(msg.Value)
+			if err != nil {
+				return err
+			}
+			tx.value = value
 
-		value, err := util.NewUint128FromFixedSizeByteSlice(msg.Value)
-		if err != nil {
-			return err
-		}
-		tx.value = value
-		tx.nonce = msg.Nonce
-		tx.timestamp = msg.Timestamp
+			tx.nonce = msg.Nonce
+			tx.timestamp = msg.Timestamp
+			tx.chainID = msg.ChainId
 
-		data := msg.Data // TODO redundant tmp var
-		if data == nil {
-			return ErrInvalidTransactionData
-		}
-		if len(data.Payload) > MaxDataPayLoadLength {
-			return ErrTxDataPayLoadOutOfMaxLength
-		}
+			if msg.Data == nil {
+				return ErrInvalidTransactionData
+			}
+			if len(msg.Data.Payload) > MaxDataPayLoadLength {
+				return ErrTxDataPayLoadOutOfMaxLength
+			}
+			tx.data = msg.Data
 
-		tx.data = msg.Data
-		tx.chainID = msg.ChainId
-		gasPrice, err := util.NewUint128FromFixedSizeByteSlice(msg.GasPrice)
-		if err != nil {
-			return err
+			gasPrice, err := util.NewUint128FromFixedSizeByteSlice(msg.GasPrice)
+			if err != nil {
+				return err
+			}
+			tx.gasPrice = gasPrice
+
+			gasLimit, err := util.NewUint128FromFixedSizeByteSlice(msg.GasLimit)
+			if err != nil {
+				return err
+			}
+			tx.gasLimit = gasLimit
+
+			tx.alg = keystore.Algorithm(msg.Alg)
+			tx.sign = msg.Sign
+			return nil
 		}
-		tx.gasPrice = gasPrice
-		gasLimit, err := util.NewUint128FromFixedSizeByteSlice(msg.GasLimit)
-		if err != nil {
-			return err
-		}
-		tx.gasLimit = gasLimit
-		tx.alg = keystore.Algorithm(msg.Alg)
-		tx.sign = msg.Sign
-		return nil
+		return ErrInvalidProtoToTransaction
 	}
 	return ErrInvalidProtoToTransaction
 }

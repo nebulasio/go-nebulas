@@ -119,7 +119,6 @@ var (
 	ErrInvalidProtoToBlock       = errors.New("protobuf message cannot be converted into Block")
 	ErrInvalidProtoToBlockHeader = errors.New("protobuf message cannot be converted into BlockHeader")
 	ErrInvalidProtoToTransaction = errors.New("protobuf message cannot be converted into Transaction")
-	ErrInvalidProtoToDag         = errors.New("protobuf message cannot be converted into Dag")
 	ErrInvalidTransactionData    = errors.New("invalid data in tx from Proto")
 
 	ErrCannotRevertLIB        = errors.New("cannot revert latest irreversible block")

@@ -29,7 +29,8 @@ import (
 
 // Errors
 var (
-	ErrNotFound = storage.ErrKeyNotFound
+	ErrNotFound           = storage.ErrKeyNotFound
+	ErrInvalidProtoToNode = errors.New("Pb Message cannot be converted into Trie Node")
 )
 
 // Action represents operation types in Trie
@@ -78,12 +79,19 @@ func (n *node) ToProto() (proto.Message, error) {
 
 func (n *node) FromProto(msg proto.Message) error {
 	if msg, ok := msg.(*triepb.Node); ok {
-		n.Bytes, _ = proto.Marshal(msg)
-		n.Hash = hash.Sha3256(n.Bytes)
-		n.Val = msg.Val
-		return nil
+		if msg != nil {
+			bytes, err := proto.Marshal(msg)
+			if err != nil {
+				return err
+			}
+			n.Bytes = bytes
+			n.Hash = hash.Sha3256(n.Bytes)
+			n.Val = msg.Val
+			return nil
+		}
+		return ErrInvalidProtoToNode
 	}
-	return errors.New("Pb Message cannot be converted into Node")
+	return ErrInvalidProtoToNode
 }
 
 // Type of node, e.g. Branch, Extension, Leaf Node

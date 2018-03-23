@@ -67,7 +67,7 @@ type states struct {
 }
 
 func newStates(consensus Consensus, stor storage.Storage) (*states, error) {
-	logging.CLog().Info("WS New MVCCDB: ", nil)
+	// logging.CLog().Info("WS New MVCCDB: ", nil)
 	changelog, err := newChangeLog()
 	if err != nil {
 		return nil, err

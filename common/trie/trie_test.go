@@ -78,6 +78,12 @@ func TestNewTrie(t *testing.T) {
 	}
 }
 
+func TestTrieNodeProto(t *testing.T) {
+	n := new(node)
+	var pn *triepb.Node
+	assert.Equal(t, n.FromProto(pn), ErrInvalidProtoToNode)
+}
+
 func TestTrie_Empty(t *testing.T) {
 	storage, _ := storage.NewMemoryStorage()
 	tr1, err := NewTrie(nil, storage, false)

@@ -21,8 +21,15 @@ package dag
 import (
 	"testing"
 
+	"github.com/nebulasio/go-nebulas/common/dag/pb"
 	"github.com/stretchr/testify/assert"
 )
+
+func TestDagProto(t *testing.T) {
+	d := NewDag()
+	var pd *dagpb.Dag
+	assert.Equal(t, d.FromProto(pd), ErrInvalidProtoToDag)
+}
 
 func TestDag_AddNode(t *testing.T) {
 	dag := NewDag()
