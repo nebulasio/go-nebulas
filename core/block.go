@@ -19,9 +19,9 @@
 package core
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
-	"runtime"
 	"sync"
 	"time"
 
@@ -45,10 +45,17 @@ var (
 	// BlockHashLength define a const of the length of Hash of Block in byte.
 	BlockHashLength = 32
 
+	//Parallel num
+	ParallelNum = 32
+
+	VerifyExecutionTimeout = 0
+
 	// BlockReward given to coinbase
 	// rule: 3% per year, 3,000,000. 1 block per 20 seconds
 	// value: 10^8 * 3% / (365*24*3600/20) * 10^18 ≈ 64 * 3% * 10*18 = 1.92 * 10^18
 	BlockReward, _ = util.NewUint128FromString("1920000000000000000")
+
+	DagError = errors.New("dag is incorrect")
 )
 
 // BlockHeader of a block
@@ -428,7 +435,7 @@ func (block *Block) CollectTransactions(deadlineInMs int64) {
 	toBlacklist := new(sync.Map)
 
 	// parallelCh is used as access tokens here
-	parallelCh := make(chan bool, 32)
+	parallelCh := make(chan bool, ParallelNum)
 	// mergeCh is used as lock here
 	mergeCh := make(chan bool, 1)
 	over := false
@@ -901,10 +908,14 @@ func (block *Block) execute() error {
 		mergeCh: make(chan bool, 1),
 		block:   block,
 	}
-	dispatcher := dag.NewDispatcher(block.dependency, runtime.NumCPU(), 0, context, func(node *dag.Node, context interface{}) error { // TODO  time const   verify collect
+	dispatcher := dag.NewDispatcher(block.dependency, ParallelNum, int64(VerifyExecutionTimeout), context, func(node *dag.Node, context interface{}) error {
 		ctx := context.(*verifyCtx)
 		block := ctx.block
 		mergeCh := ctx.mergeCh
+
+		if node.Index < 0 || node.Index > len(block.transactions)-1 {
+			return DagError
+		}
 		tx := block.transactions[node.Index]
 		metricsTxExecute.Mark(1)
 
@@ -952,6 +963,15 @@ func (block *Block) execute() error {
 	metricsTxsInBlock.Update(int64(len(block.transactions)))
 
 	return nil
+}
+
+//Dynasty return dynasty
+func (block *Block) Dynasty() ([]byteutils.Hash, error) {
+	ws, err := block.WorldState().Clone()
+	if err != nil {
+		return nil, err
+	}
+	return ws.Dynasty()
 }
 
 // GetAccount return the account with the given address on this block.
