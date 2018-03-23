@@ -534,6 +534,7 @@ func TestBlock_fetchEvents(t *testing.T) {
 	}
 	_, err = txWorldState.CheckAndUpdate()
 	assert.Nil(t, err)
+	tail.worldState.Commit()
 
 	es, err := tail.FetchEvents(tx.Hash())
 	assert.Nil(t, err)

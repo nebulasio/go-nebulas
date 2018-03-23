@@ -136,17 +136,13 @@ func (s *APIService) GetAccountState(ctx context.Context, req *rpcpb.GetAccountS
 		}
 	}
 
-	balance, err := block.GetBalance(addr.Bytes()) // TODO combine the two
-	if err != nil {
-		return nil, err
-	}
-	nonce, err := block.GetNonce(addr.Bytes())
+	account, err := block.GetAccount(addr.Bytes()) // TODO combine the two
 	if err != nil {
 		return nil, err
 	}
 
 	metricsAccountStateSuccess.Mark(1)
-	return &rpcpb.GetAccountStateResponse{Balance: balance.String(), Nonce: nonce}, nil
+	return &rpcpb.GetAccountStateResponse{Balance: account.Balance().String(), Nonce: account.Nonce()}, nil
 }
 
 // SendTransaction is the RPC API handler.
@@ -253,12 +249,11 @@ func handleTransactionResponse(neb core.Neblet, tx *core.Transaction) (resp *rpc
 			metricsSendTxSuccess.Mark(1)
 		}
 	}() // TODO add tx.VerifyIntegrity
-	nonce, err := neb.BlockChain().TailBlock().GetNonce(tx.From().Bytes()) // TODO move check into core
+	account, err := neb.BlockChain().TailBlock().GetAccount(tx.From().Bytes()) // TODO move check into core
 	if err != nil {
 		return nil, err
 	}
-	if tx.Nonce() <= nonce {
-
+	if tx.Nonce() <= account.Nonce() {
 		return nil, errors.New("transaction's nonce is invalid, should bigger than the from's nonce")
 	}
 

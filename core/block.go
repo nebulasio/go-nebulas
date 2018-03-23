@@ -953,35 +953,22 @@ func (block *Block) execute() error {
 	return nil
 }
 
-// GetBalance returns balance for the given address on this block.
-func (block *Block) GetBalance(address byteutils.Hash) (*util.Uint128, error) { // TODO return Account
-	accState, err := block.WorldState().Clone()
+// GetAccount return the account with the given address on this block.
+func (block *Block) GetAccount(address byteutils.Hash) (state.Account, error) {
+	worldState, err := block.WorldState().Clone()
 	if err != nil {
 		return nil, err
 	}
-	account, err := accState.GetOrCreateUserAccount(address)
-	if err != nil {
-		return nil, err
-	}
-	return account.Balance(), nil
-}
-
-// GetNonce returns nonce for the given address on this block.
-func (block *Block) GetNonce(address byteutils.Hash) (uint64, error) {
-	accState, err := block.WorldState().Clone()
-	if err != nil {
-		return 0, err
-	}
-	account, err := accState.GetOrCreateUserAccount(address)
-	if err != nil {
-		return 0, err
-	}
-	return account.Nonce(), nil
+	return worldState.GetOrCreateUserAccount(address)
 }
 
 // FetchEvents fetch events by txHash.
-func (block *Block) FetchEvents(txHash byteutils.Hash) ([]*state.Event, error) { // TODO clone first
-	return block.WorldState().FetchEvents(txHash)
+func (block *Block) FetchEvents(txHash byteutils.Hash) ([]*state.Event, error) {
+	worldState, err := block.WorldState().Clone()
+	if err != nil {
+		return nil, err
+	}
+	return worldState.FetchEvents(txHash)
 }
 
 func (block *Block) rewardCoinbaseForMint() error {
@@ -990,7 +977,6 @@ func (block *Block) rewardCoinbaseForMint() error {
 	if err != nil {
 		return err
 	}
-	logging.VLog().Info("rewardCoinbaseForMint ", "gas", BlockReward) // Refine: WithFields // TODO delete
 	return coinbaseAcc.AddBalance(BlockReward)
 }
 
@@ -998,15 +984,12 @@ func (block *Block) rewardCoinbaseForGas() error {
 	worldState := block.WorldState()
 	coinbaseAddr := (byteutils.Hash)(block.Coinbase().Bytes())
 
-	logging.VLog().Info("rewardCoinbaseForGas") // TODO delete
 	gasConsumed := worldState.GetGas()
 	for from, gas := range gasConsumed {
 		fromAddr, err := byteutils.FromHex(from)
 		if err != nil {
 			return err
 		}
-		logging.VLog().Info("rewardCoinbaseForGas from:", from, "gas", gas) // TODO delete
-
 		if _, err := transfer(fromAddr, coinbaseAddr, gas, worldState); err != nil {
 			return err
 		}
@@ -1015,7 +998,10 @@ func (block *Block) rewardCoinbaseForGas() error {
 }
 
 // ExecuteTransaction execute the transaction
-func (block *Block) ExecuteTransaction(tx *Transaction, ws WorldState) (bool, error) { // TODO system error: giveback, logic error: drop
+// return giveback, err
+// system error: giveback == true
+// logic error: giveback == false
+func (block *Block) ExecuteTransaction(tx *Transaction, ws WorldState) (bool, error) {
 	if giveback, err := CheckTransaction(tx, ws); err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"tx":  tx,
