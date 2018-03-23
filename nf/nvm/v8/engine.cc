@@ -247,8 +247,7 @@ void PrintException(Local<Context> context, TryCatch &trycatch) {
 }
 
 char *PrintAndReturnException(Local<Context> context, TryCatch &trycatch) {
-  static char EMPTY_STRING[] = "";
-  char *source_info = EMPTY_STRING;
+  char *source_info = NULL;
 
   // print source line.
   Local<Message> message = trycatch.Message();
@@ -302,7 +301,7 @@ char *PrintAndReturnException(Local<Context> context, TryCatch &trycatch) {
     LogErrorf("V8 Exception:\n%s%s", source_info, *exception_str);
   }
 
-  if (source_info != EMPTY_STRING) {
+  if (source_info != NULL) {
     free(source_info);
   }
 
