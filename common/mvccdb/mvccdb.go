@@ -63,7 +63,7 @@ type MVCCDB struct {
 	parentDB                   *MVCCDB
 	isInTransaction            bool
 	isPreparedDB               bool
-	isDirtyDB                  bool
+	isDirtyDB                  bool // TODO delete
 	isPreparedDBClosed         bool
 	preparedDBs                map[interface{}]*MVCCDB
 	isTrieSameKeyCompatibility bool // The `isTrieSameKeyCompatibility` is used to prevent conflict in continuous changes with same key/value.
@@ -84,7 +84,7 @@ func NewMVCCDB(storage storage.Storage, trieSameKeyCompatibility bool) (*MVCCDB,
 		isTrieSameKeyCompatibility: trieSameKeyCompatibility,
 	}
 
-	db.tid = storage // as a placeholder.
+	db.tid = storage // as a placeholder. // TODO move in &MVCCDB{}
 	db.stagingTable = NewStagingTable(storage, db.tid, trieSameKeyCompatibility)
 
 	return db, nil
@@ -126,7 +126,7 @@ func (db *MVCCDB) Commit() error {
 		return ErrUnsupportedCommitInPreparedDB
 	}
 
-	if db.IsPreparedDBDirty() {
+	if db.IsPreparedDBDirty() { // TODO delete
 		return ErrPreparedDBIsDirty
 	}
 
@@ -141,7 +141,7 @@ func (db *MVCCDB) Commit() error {
 	var err error
 	for _, value := range db.stagingTable.getVersionizedValues() {
 		// skip default value loaded from storage.
-		if value.isDefault() { // ToDelete
+		if value.isDefault() {
 			continue
 		}
 
@@ -150,19 +150,21 @@ func (db *MVCCDB) Commit() error {
 		}
 
 		if value.deleted {
-			err = db.delFromStorage(value.key) // ToCheck return err directly
+			if db.isTrieSameKeyCompatibility == false { // TODO add comment, cannot del value in stateDB
+				err = db.delFromStorage(value.key) // ToCheck return err directly
+			}
 		} else {
 			err = db.putToStorage(value.key, value.val)
 		}
 
-		if err != nil && retErr == nil {
+		if err != nil && retErr == nil { // TODO DisableBatch & Unlock, then return error
 			retErr = err
 		}
 	}
 
 	// flush and disable batch.
 	err = db.storage.Flush()
-	if err != nil && retErr == nil {
+	if err != nil && retErr == nil { // TODO DisableBatch & Unlock, then return error
 		retErr = err
 	}
 
@@ -171,7 +173,7 @@ func (db *MVCCDB) Commit() error {
 	// unlock.
 	db.stagingTable.Unlock()
 
-	if retErr != nil {
+	if retErr != nil { // TODO delete
 		return retErr
 	}
 
@@ -416,7 +418,7 @@ func (db *MVCCDB) close() error {
 
 	// close.
 	for _, pdb := range db.preparedDBs {
-		pdb.close()
+		pdb.close() // TODO check again, lock preparedDB
 	}
 	db.preparedDBs = make(map[interface{}]*MVCCDB)
 
@@ -427,7 +429,7 @@ func (db *MVCCDB) close() error {
 	db.stagingTable.Purge()
 	db.isDirtyDB = false
 
-	delete(db.parentDB.preparedDBs, db.tid)
+	delete(db.parentDB.preparedDBs, db.tid) // TODO add comment, detach
 	db.parentDB = nil
 	db.isPreparedDBClosed = true
 

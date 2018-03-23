@@ -46,7 +46,7 @@ func (s *AdminService) NewAccount(ctx context.Context, req *rpcpb.NewAccountRequ
 }
 
 // UnlockAccount unlock address with the passphrase
-func (s *AdminService) UnlockAccount(ctx context.Context, req *rpcpb.UnlockAccountRequest) (*rpcpb.UnlockAccountResponse, error) {
+func (s *AdminService) UnlockAccount(ctx context.Context, req *rpcpb.UnlockAccountRequest) (*rpcpb.UnlockAccountResponse, error) { // TODO delete
 
 	neb := s.server.Neblet()
 	addr, err := core.AddressParse(req.Address)
@@ -54,7 +54,7 @@ func (s *AdminService) UnlockAccount(ctx context.Context, req *rpcpb.UnlockAccou
 		metricsUnlockFailed.Mark(1)
 		return nil, err
 	}
-	duration := time.Duration(req.Duration)
+	duration := time.Duration(req.Duration) * time.Second // TODO define duration in seconds in wiki
 	if duration == 0 {
 		duration = keystore.DefaultUnlockDuration
 	}
@@ -69,7 +69,7 @@ func (s *AdminService) UnlockAccount(ctx context.Context, req *rpcpb.UnlockAccou
 }
 
 // LockAccount lock address
-func (s *AdminService) LockAccount(ctx context.Context, req *rpcpb.LockAccountRequest) (*rpcpb.LockAccountResponse, error) {
+func (s *AdminService) LockAccount(ctx context.Context, req *rpcpb.LockAccountRequest) (*rpcpb.LockAccountResponse, error) { // TODO delete
 
 	neb := s.server.Neblet()
 	addr, err := core.AddressParse(req.Address)
@@ -84,7 +84,7 @@ func (s *AdminService) LockAccount(ctx context.Context, req *rpcpb.LockAccountRe
 }
 
 // SignTransaction sign transaction with the from addr passphrase
-func (s *AdminService) SignTransaction(ctx context.Context, req *rpcpb.TransactionRequest) (*rpcpb.SignTransactionResponse, error) {
+func (s *AdminService) SignTransaction(ctx context.Context, req *rpcpb.TransactionRequest) (*rpcpb.SignTransactionResponse, error) { // TODO signTransactionWithPassphrase
 
 	neb := s.server.Neblet()
 	tx, err := parseTransaction(neb, req)
@@ -127,7 +127,7 @@ func (s *AdminService) SendTransactionWithPassphrase(ctx context.Context, req *r
 }
 
 // StatisticsNodeInfo is the RPC API handler.
-func (s *AdminService) StatisticsNodeInfo(ctx context.Context, req *rpcpb.NonParamsRequest) (*rpcpb.StatisticsNodeInfoResponse, error) {
+func (s *AdminService) StatisticsNodeInfo(ctx context.Context, req *rpcpb.NonParamsRequest) (*rpcpb.StatisticsNodeInfoResponse, error) { // TODO delete
 
 	neb := s.server.Neblet()
 	node := neb.NetService().Node()
@@ -141,7 +141,7 @@ func (s *AdminService) StatisticsNodeInfo(ctx context.Context, req *rpcpb.NonPar
 }
 
 // ChangeNetworkID change the network id
-func (s *AdminService) ChangeNetworkID(ctx context.Context, req *rpcpb.ChangeNetworkIDRequest) (*rpcpb.ChangeNetworkIDResponse, error) {
+func (s *AdminService) ChangeNetworkID(ctx context.Context, req *rpcpb.ChangeNetworkIDRequest) (*rpcpb.ChangeNetworkIDResponse, error) { // TODO delete
 
 	neb := s.server.Neblet()
 	neb.NetService().Node().Config().NetworkID = req.NetworkId
@@ -167,7 +167,7 @@ func (s *AdminService) GetConfig(ctx context.Context, req *rpcpb.NonParamsReques
 	neb := s.server.Neblet()
 
 	resp := &rpcpb.GetConfigResponse{}
-	resp.Config = neb.Config()
+	resp.Config = neb.Config() // TODO make sure passphrase won't be returned
 
 	return resp, nil
 }

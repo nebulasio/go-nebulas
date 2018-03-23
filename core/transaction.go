@@ -247,7 +247,7 @@ func NewTransaction(chainID uint32, from, to *Address, value *util.Uint128, nonc
 		return nil, ErrInvalidArgument
 	}
 
-	if len(payload) > MaxDataPayLoadLength { // TODO 128K
+	if len(payload) > MaxDataPayLoadLength {
 		return nil, ErrTxDataPayLoadOutOfMaxLength
 	}
 
@@ -670,7 +670,7 @@ func (tx *Transaction) verifySign() error { // TODO move to core/crypto.go.
 }
 
 // GenerateContractAddress according to tx.from and tx.nonce.
-func (tx *Transaction) GenerateContractAddress() (*Address, error) {
+func (tx *Transaction) GenerateContractAddress() (*Address, error) { // TODO check payload type
 	return NewContractAddressFromHash(hash.Sha3256(tx.from.Bytes(), byteutils.FromUint64(tx.nonce)))
 }
 

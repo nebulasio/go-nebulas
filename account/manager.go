@@ -60,7 +60,7 @@ type Neblet interface {
 }
 
 // Manager accounts manager ,handle account generate and storage
-type Manager struct {
+type Manager struct { // TODO make it threadsafe
 
 	// keystore
 	ks *keystore.Keystore
@@ -113,7 +113,7 @@ func (m *Manager) NewAccount(passphrase []byte) (*core.Address, error) {
 	if err != nil {
 		return nil, err
 	}
-	return m.storeAddress(priv, passphrase, true)
+	return m.storeAddress(priv, passphrase, true) // TODO check files won't be replaced
 }
 
 func (m *Manager) storeAddress(priv keystore.PrivateKey, passphrase []byte, writeFile bool) (*core.Address, error) {
@@ -176,7 +176,7 @@ func (m *Manager) Lock(addr *core.Address) error {
 }
 
 // Accounts returns slice of address
-func (m *Manager) Accounts() []*core.Address {
+func (m *Manager) Accounts() []*core.Address { // TODO snapshot, threadsafe
 	m.refreshAccounts()
 	addrs := make([]*core.Address, len(m.accounts))
 	for index, a := range m.accounts {

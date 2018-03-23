@@ -40,7 +40,7 @@ func LoadCallPayload(bytes []byte) (*CallPayload, error) {
 }
 
 // NewCallPayload with function & args
-func NewCallPayload(function, args string) *CallPayload {
+func NewCallPayload(function, args string) *CallPayload { // TODO check args is json
 	return &CallPayload{
 		Function: function,
 		Args:     args,

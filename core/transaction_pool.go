@@ -192,6 +192,9 @@ func (pool *TransactionPool) loop() {
 
 // GetTransaction return transaction of given hash from transaction pool.
 func (pool *TransactionPool) GetTransaction(hash byteutils.Hash) *Transaction {
+	pool.mu.Lock()
+	defer pool.mu.Unlock()
+
 	return pool.all[hash.Hex()]
 }
 

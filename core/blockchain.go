@@ -362,7 +362,7 @@ func (bc *BlockChain) SetTailBlock(newTail *Block) error {
 		return err
 	}
 
-	go func() {
+	go func() { // TODO trigger event, from ancestor -> oldTail
 		bc.eventEmitter.Trigger(&state.Event{
 			Topic: TopicRevertBlock,
 			Data:  oldTail.String(),
@@ -370,7 +370,7 @@ func (bc *BlockChain) SetTailBlock(newTail *Block) error {
 	}()
 
 	// build index by block height
-	if err := bc.buildIndexByBlockHeight(ancestor, newTail); err != nil {
+	if err := bc.buildIndexByBlockHeight(ancestor, newTail); err != nil { // TODO trigger events, from ancestor -> newtail
 		logging.VLog().WithFields(logrus.Fields{
 			"from":  ancestor,
 			"to":    newTail,
@@ -608,7 +608,7 @@ func (bc *BlockChain) GetBlock(hash byteutils.Hash) *Block {
 // GetTransaction return transaction of given hash from local storage.
 func (bc *BlockChain) GetTransaction(hash byteutils.Hash) *Transaction {
 	// TODO: get transaction err handle.
-	tx, err := GetTransaction(hash, bc.TailBlock().WorldState())
+	tx, err := GetTransaction(hash, bc.TailBlock().WorldState()) // TODO clone
 	if err != nil {
 		return nil
 	}
@@ -617,9 +617,9 @@ func (bc *BlockChain) GetTransaction(hash byteutils.Hash) *Transaction {
 
 // GasPrice returns the lowest transaction gas price.
 func (bc *BlockChain) GasPrice() *util.Uint128 {
-	gasPrice := TransactionMaxGasPrice // TODO use default value, not max value
+	gasPrice := TransactionMaxGasPrice
 	tailBlock := bc.TailBlock()
-	for {
+	for { // TODO set limit, such as 128 blocks
 		// if the block is genesis, stop find the parent block
 		if CheckGenesisBlock(tailBlock) {
 			break

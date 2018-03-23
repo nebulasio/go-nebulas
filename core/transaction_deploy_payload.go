@@ -41,7 +41,7 @@ func LoadDeployPayload(bytes []byte) (*DeployPayload, error) {
 }
 
 // NewDeployPayload with source & args
-func NewDeployPayload(source, sourceType, args string) *DeployPayload { // ToCheck: add version in sourceType.
+func NewDeployPayload(source, sourceType, args string) *DeployPayload { // ToCheck: add version in sourceType // TODO check sourceType
 	return &DeployPayload{
 		Source:     source,
 		SourceType: sourceType,

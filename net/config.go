@@ -28,7 +28,7 @@ import (
 )
 
 // const
-const (
+const ( // TODO delete redundant vars
 	DefaultBucketCapacity         = 64
 	DefaultRoutingTableMaxLatency = 10
 	DefaultPrivateKeyPath         = "conf/network.key"
