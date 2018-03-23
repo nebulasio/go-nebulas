@@ -202,12 +202,13 @@ func TestLoadDeployPayload(t *testing.T) {
 func TestPayload_Execute(t *testing.T) {
 
 	type testPayload struct {
-		name    string
-		payload TxPayload
-		tx      *Transaction
-		block   *Block
-		want    *util.Uint128
-		wantErr error
+		name     string
+		payload  TxPayload
+		tx       *Transaction
+		block    *Block
+		want     *util.Uint128
+		wantErr  error
+		giveback bool
 	}
 
 	neb := testNeb(t)
@@ -217,20 +218,22 @@ func TestPayload_Execute(t *testing.T) {
 
 	tests := []testPayload{
 		{
-			name:    "normal none",
-			payload: NewBinaryPayload(nil),
-			tx:      mockNormalTransaction(bc.chainID, 0),
-			block:   block,
-			want:    util.NewUint128(),
-			wantErr: nil,
+			name:     "normal none",
+			payload:  NewBinaryPayload(nil),
+			tx:       mockNormalTransaction(bc.chainID, 0),
+			block:    block,
+			want:     util.NewUint128(),
+			wantErr:  nil,
+			giveback: false,
 		},
 		{
-			name:    "normal",
-			payload: NewBinaryPayload([]byte("data")),
-			tx:      mockNormalTransaction(bc.chainID, 0),
-			block:   block,
-			want:    util.NewUint128(),
-			wantErr: nil,
+			name:     "normal",
+			payload:  NewBinaryPayload([]byte("data")),
+			tx:       mockNormalTransaction(bc.chainID, 0),
+			block:    block,
+			want:     util.NewUint128(),
+			wantErr:  nil,
+			giveback: false,
 		},
 	}
 
@@ -238,24 +241,26 @@ func TestPayload_Execute(t *testing.T) {
 	deployPayload, _ := deployTx.LoadPayload()
 	want, _ := util.NewUint128FromInt(100)
 	tests = append(tests, testPayload{
-		name:    "deploy",
-		payload: deployPayload,
-		tx:      deployTx,
-		block:   block,
-		want:    want,
-		wantErr: nil,
+		name:     "deploy",
+		payload:  deployPayload,
+		tx:       deployTx,
+		block:    block,
+		want:     want,
+		wantErr:  nil,
+		giveback: false,
 	})
 
 	callTx := mockCallTransaction(bc.chainID, 1, "totalSupply", "")
 	callTx.to, _ = deployTx.GenerateContractAddress()
 	callPayload, _ := callTx.LoadPayload()
 	tests = append(tests, testPayload{
-		name:    "call",
-		payload: callPayload,
-		tx:      callTx,
-		block:   block,
-		want:    util.NewUint128(),
-		wantErr: ErrContractCheckFailed,
+		name:     "call",
+		payload:  callPayload,
+		tx:       callTx,
+		block:    block,
+		want:     util.NewUint128(),
+		wantErr:  ErrContractCheckFailed,
+		giveback: false,
 	})
 
 	for _, tt := range tests {
@@ -263,7 +268,9 @@ func TestPayload_Execute(t *testing.T) {
 			got, _, err := tt.payload.Execute(tt.tx, block, block.WorldState())
 			assert.Equal(t, tt.wantErr, err)
 			assert.Equal(t, tt.want, got)
-			assert.Nil(t, AcceptTransaction(tt.tx, block.WorldState()))
+			giveback, err := AcceptTransaction(tt.tx, block.WorldState())
+			assert.Nil(t, err)
+			assert.Equal(t, giveback, tt.giveback)
 		})
 	}
 

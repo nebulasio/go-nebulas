@@ -346,6 +346,13 @@ func TestNeb(t *testing.T) {
 	assert.Equal(t, neb.consensus.(*mockConsensus).chain, neb.chain)
 }
 
+func TestNilArguments(t *testing.T) {
+	block := new(Block)
+	assert.Equal(t, block.Sign(nil), ErrNilArgument)
+	var sign keystore.Signature
+	assert.Equal(t, block.Sign(sign), ErrNilArgument)
+}
+
 func TestBlockFromProto(t *testing.T) {
 	block := new(Block)
 	var pb *corepb.Block

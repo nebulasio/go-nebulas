@@ -28,7 +28,6 @@ import (
 	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/common/dag"
 	"github.com/nebulasio/go-nebulas/common/dag/pb"
-	"github.com/nebulasio/go-nebulas/common/mvccdb"
 	"github.com/nebulasio/go-nebulas/consensus/pb"
 	"github.com/nebulasio/go-nebulas/core/pb"
 	"github.com/nebulasio/go-nebulas/core/state"
@@ -193,7 +192,7 @@ func (block *Block) FromProto(msg proto.Message) error {
 				}
 			}
 			block.dependency = dag.NewDag()
-			if err := block.dependency.FromProto(msg.Dependency); err != nil { // TODO: check nil in all FromProto, add unit tests
+			if err := block.dependency.FromProto(msg.Dependency); err != nil {
 				return err
 			}
 			block.height = msg.Height
@@ -244,7 +243,10 @@ func NewBlock(chainID uint32, coinbase *Address, parent *Block) (*Block, error) 
 }
 
 // Sign sign transaction,sign algorithm is
-func (block *Block) Sign(signature keystore.Signature) error { // TODO: check nil
+func (block *Block) Sign(signature keystore.Signature) error {
+	if signature == nil {
+		return ErrNilArgument
+	}
 	sign, err := signature.Sign(block.header.hash)
 	if err != nil {
 		return err
@@ -387,7 +389,6 @@ func (block *Block) RollBack() {
 }
 
 // ReturnTransactions and giveback them to tx pool
-// TODO(roy): optimize storage.
 // if a block is reverted, we should erase all changes
 // made by this block on storage. use refcount.
 func (block *Block) ReturnTransactions() {
@@ -426,8 +427,10 @@ func (block *Block) CollectTransactions(deadlineInMs int64) {
 	fromBlacklist := new(sync.Map)
 	toBlacklist := new(sync.Map)
 
+	// parallelCh is used as access tokens here
 	parallelCh := make(chan bool, 32)
-	mergeCh := make(chan bool, 1) // TODO: add comments in all usage of mergeCh
+	// mergeCh is used as lock here
+	mergeCh := make(chan bool, 1)
 	over := false
 
 	try := 0
@@ -445,16 +448,15 @@ func (block *Block) CollectTransactions(deadlineInMs int64) {
 
 	go func() {
 		for {
-			mergeCh <- true
+			mergeCh <- true // lock
 			if over {
-				<-mergeCh
+				<-mergeCh // unlock
 				return
 			}
 			try++
 			tx := pool.PopWithBlacklist(fromBlacklist, toBlacklist)
 			if tx == nil {
-				<-mergeCh
-				// time.Sleep(time.Nanosecond * 1000)
+				<-mergeCh // unlock
 				continue
 			}
 			fetch++
@@ -462,22 +464,23 @@ func (block *Block) CollectTransactions(deadlineInMs int64) {
 			fromBlacklist.Store(tx.to.address.Hex(), true)
 			toBlacklist.Store(tx.from.address.Hex(), true)
 			toBlacklist.Store(tx.to.address.Hex(), true)
-			<-mergeCh
+			<-mergeCh // lock
 
-			parallelCh <- true
+			parallelCh <- true // fetch access token
 			go func() {
 				parallel++
 				startAt := time.Now().UnixNano()
 				defer func() {
 					endAt := time.Now().UnixNano()
 					packing += endAt - startAt
-					<-parallelCh
+					<-parallelCh // release access token
 				}()
 
-				mergeCh <- true
+				// step1. prepare execution environment
+				mergeCh <- true // lock
 				if over {
 					expired++
-					<-mergeCh
+					<-mergeCh // unlock
 					if err := pool.Push(tx); err != nil {
 						logging.VLog().WithFields(logrus.Fields{
 							"block": block,
@@ -497,16 +500,27 @@ func (block *Block) CollectTransactions(deadlineInMs int64) {
 						"block": block,
 						"tx":    tx,
 						"err":   err,
-					}).Debug("Failed to prepare tx.") // TODO: push back tx
+					}).Debug("Failed to prepare tx.")
+					failed++
+
+					if err := pool.Push(tx); err != nil {
+						logging.VLog().WithFields(logrus.Fields{
+							"block": block,
+							"tx":    tx,
+							"err":   err,
+						}).Debug("Failed to giveback the tx.")
+					}
+
 					fromBlacklist.Delete(tx.from.address.Hex())
 					fromBlacklist.Delete(tx.to.address.Hex())
 					toBlacklist.Delete(tx.from.address.Hex())
 					toBlacklist.Delete(tx.to.address.Hex())
-					<-mergeCh
+					<-mergeCh // unlock
 					return
 				}
-				<-mergeCh
+				<-mergeCh // unlock
 
+				// step2. execute tx.
 				executeAt := time.Now().UnixNano()
 				giveback, err := block.ExecuteTransaction(tx, txWorldState) // TODO: move giveback logic into Execution
 				executedAt := time.Now().UnixNano()
@@ -517,9 +531,18 @@ func (block *Block) CollectTransactions(deadlineInMs int64) {
 						"err":      err,
 						"giveback": giveback,
 					}).Debug("invalid tx.")
-					unpacked++ // TODO close txWorldState
+					unpacked++
+					failed++
 
-					if giveback || err == mvccdb.ErrPreparedDBIsClosed {
+					if err := txWorldState.Close(); err != nil {
+						logging.VLog().WithFields(logrus.Fields{
+							"block": block,
+							"tx":    tx,
+							"err":   err,
+						}).Debug("Failed to close tx.")
+					}
+
+					if giveback {
 						if err := pool.Push(tx); err != nil {
 							logging.VLog().WithFields(logrus.Fields{
 								"block": block,
@@ -527,7 +550,7 @@ func (block *Block) CollectTransactions(deadlineInMs int64) {
 								"err":   err,
 							}).Debug("Failed to giveback the tx.")
 						}
-						failed++                                  // TODO move out of if-else
+						//
 						fromBlacklist.Delete(tx.to.address.Hex()) // TODO: add comment, why not remove tx.from
 						toBlacklist.Delete(tx.to.address.Hex())
 					} else {
@@ -535,73 +558,80 @@ func (block *Block) CollectTransactions(deadlineInMs int64) {
 						fromBlacklist.Delete(tx.to.address.Hex())
 						toBlacklist.Delete(tx.from.address.Hex())
 						toBlacklist.Delete(tx.to.address.Hex())
-					} // TODO: return directly
-				} else {
-					mergeCh <- true
-					if over {
-						expired++
-						<-mergeCh
-						if err := pool.Push(tx); err != nil {
-							logging.VLog().WithFields(logrus.Fields{
-								"block": block,
-								"tx":    tx,
-								"err":   err,
-							}).Debug("Failed to giveback the tx.")
-						}
-						return
 					}
-					updateAt := time.Now().UnixNano()
-					dependency, err := txWorldState.CheckAndUpdate()
-					updatedAt := time.Now().UnixNano()
-					update += updatedAt - updateAt
-					if err != nil {
-						logging.VLog().WithFields(logrus.Fields{
-							"tx":         tx,
-							"err":        err,
-							"giveback":   giveback,
-							"dependency": dependency,
-						}).Debug("CheckAndUpdate invalid tx.") // TODO: release mergeCh
-						unpacked++
-
-						if err := txWorldState.Close(); err != nil {
-							logging.VLog().WithFields(logrus.Fields{
-								"block": block,
-								"tx":    tx,
-								"err":   err,
-							}).Debug("Failed to close tx.")
-						}
-						if err := pool.Push(tx); err != nil {
-							logging.VLog().WithFields(logrus.Fields{
-								"block": block,
-								"tx":    tx,
-								"err":   err,
-							}).Debug("Failed to giveback the tx.")
-						}
-						conflict++
-						fromBlacklist.Delete(tx.from.address.Hex())
-						fromBlacklist.Delete(tx.to.address.Hex())
-						toBlacklist.Delete(tx.from.address.Hex())
-						toBlacklist.Delete(tx.to.address.Hex()) // TODO: return directly
-
-					} else {
-						logging.CLog().WithFields(logrus.Fields{
-							"tx": tx,
-						}).Debug("packed tx.")
-						packed++
-
-						transactions = append(transactions, tx)
-						txid := tx.Hash().String()
-						dag.AddNode(txid)
-						for _, node := range dependency {
-							dag.AddEdge(node, txid)
-						}
-						fromBlacklist.Delete(tx.from.address.Hex())
-						fromBlacklist.Delete(tx.to.address.Hex())
-						toBlacklist.Delete(tx.from.address.Hex())
-						toBlacklist.Delete(tx.to.address.Hex()) // TODO: release mergeCh, return directly
-					}
-					<-mergeCh
+					return
 				}
+
+				// step3. check & update tx
+				mergeCh <- true // lock
+				if over {
+					expired++
+					<-mergeCh // unlock
+					if err := pool.Push(tx); err != nil {
+						logging.VLog().WithFields(logrus.Fields{
+							"block": block,
+							"tx":    tx,
+							"err":   err,
+						}).Debug("Failed to giveback the tx.")
+					}
+					return
+				}
+				updateAt := time.Now().UnixNano()
+				dependency, err := txWorldState.CheckAndUpdate()
+				updatedAt := time.Now().UnixNano()
+				update += updatedAt - updateAt
+				if err != nil {
+					logging.VLog().WithFields(logrus.Fields{
+						"tx":         tx,
+						"err":        err,
+						"giveback":   giveback,
+						"dependency": dependency,
+					}).Debug("CheckAndUpdate invalid tx.")
+					unpacked++
+					conflict++
+
+					if err := txWorldState.Close(); err != nil {
+						logging.VLog().WithFields(logrus.Fields{
+							"block": block,
+							"tx":    tx,
+							"err":   err,
+						}).Debug("Failed to close tx.")
+					}
+
+					if err := pool.Push(tx); err != nil {
+						logging.VLog().WithFields(logrus.Fields{
+							"block": block,
+							"tx":    tx,
+							"err":   err,
+						}).Debug("Failed to giveback the tx.")
+					}
+
+					fromBlacklist.Delete(tx.from.address.Hex())
+					fromBlacklist.Delete(tx.to.address.Hex())
+					toBlacklist.Delete(tx.from.address.Hex())
+					toBlacklist.Delete(tx.to.address.Hex())
+
+					<-mergeCh // unlock
+					return
+				}
+				logging.CLog().WithFields(logrus.Fields{
+					"tx": tx,
+				}).Debug("packed tx.")
+				packed++
+
+				transactions = append(transactions, tx)
+				txid := tx.Hash().String()
+				dag.AddNode(txid)
+				for _, node := range dependency {
+					dag.AddEdge(node, txid)
+				}
+				fromBlacklist.Delete(tx.from.address.Hex())
+				fromBlacklist.Delete(tx.to.address.Hex())
+				toBlacklist.Delete(tx.from.address.Hex())
+				toBlacklist.Delete(tx.to.address.Hex())
+
+				<-mergeCh // unlock
+				return
 			}()
 
 			if over {
@@ -611,10 +641,11 @@ func (block *Block) CollectTransactions(deadlineInMs int64) {
 	}()
 
 	<-deadlineTimer.C
-	mergeCh <- true
+	mergeCh <- true // lock
 	over = true
 	block.transactions = transactions
-	block.dependency = dag // TODO: release mergeCh
+	block.dependency = dag
+	<-mergeCh // unlock
 
 	overAt := time.Now().UnixNano()
 	size := int64(len(block.transactions))
@@ -633,10 +664,10 @@ func (block *Block) CollectTransactions(deadlineInMs int64) {
 		"conflict":     conflict,
 		"fetch":        fetch,
 		"bucket":       bucket,
-		"averPacking":  averPacking, // TODO: aver -> avg
-		"averPrepare":  averPrepare,
-		"averExecute":  averExecute,
-		"averUpdate":   averUpdate,
+		"avgPacking":   averPacking,
+		"avgPrepare":   averPrepare,
+		"avgExecute":   averExecute,
+		"avgUpdate":    averUpdate,
 		"parallel":     parallel,
 		"packing":      packing,
 		"execute":      execute,
@@ -646,8 +677,6 @@ func (block *Block) CollectTransactions(deadlineInMs int64) {
 		"core-packing": execute + prepare + update,
 		"packed":       len(block.transactions),
 	}).Info("CollectTransactions")
-
-	<-mergeCh
 }
 
 // Sealed return true if block seals. Otherwise return false.
@@ -975,7 +1004,7 @@ func (block *Block) rewardCoinbaseForGas() error {
 		}
 		logging.VLog().Info("rewardCoinbaseForGas from:", from, "gas", gas) // TODO delete
 
-		if err := transfer(fromAddr, coinbaseAddr, gas, worldState); err != nil {
+		if _, err := transfer(fromAddr, coinbaseAddr, gas, worldState); err != nil {
 			return err
 		}
 	}
@@ -992,20 +1021,20 @@ func (block *Block) ExecuteTransaction(tx *Transaction, ws WorldState) (bool, er
 		return giveback, err
 	}
 
-	if err := VerifyExecution(tx, block, ws); err != nil {
+	if giveback, err := VerifyExecution(tx, block, ws); err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"tx":  tx,
 			"err": err,
 		}).Info("Failed to verify transaction execution")
-		return false, err
+		return giveback, err
 	}
 
-	if err := AcceptTransaction(tx, ws); err != nil {
+	if giveback, err := AcceptTransaction(tx, ws); err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"tx":  tx,
 			"err": err,
 		}).Info("Failed to accept transaction")
-		return false, err
+		return giveback, err
 	}
 
 	return false, nil

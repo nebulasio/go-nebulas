@@ -247,7 +247,7 @@ func (pool *BlockPool) loop() {
 	}
 }
 
-func mockBlockFromNetwork(block *Block) (*Block, error) { // TODO rename mockBlockFromNetwork
+func mockBlockFromNetwork(block *Block) (*Block, error) {
 	pbBlock, err := block.ToProto()
 	if err != nil {
 		return nil, err

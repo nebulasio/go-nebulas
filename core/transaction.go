@@ -404,17 +404,18 @@ func (tx *Transaction) localExecution(block *Block) (*util.Uint128, string, erro
 }
 
 // VerifyExecution transaction and return result.
-func VerifyExecution(tx *Transaction, block *Block, ws WorldState) error { // TODO add giveback(system error)
+func VerifyExecution(tx *Transaction, block *Block, ws WorldState) (bool, error) {
 	// step1. check balance >= gasLimit * gasPrice + value // TODO check balance >= gasLimit * gasPrice
-	if err := tx.checkBalance(block, ws); err != nil {
-		return err
+	if giveback, err := tx.checkBalance(block, ws); err != nil {
+		return giveback, err
 	}
 
 	// step2. calculate base gas
 	gasUsed, err := tx.GasCountOfTxBase()
 	if err != nil {
 		logging.VLog().Info("VEE 1")
-		return err
+		// Gas overflow, won't giveback the tx
+		return false, err
 	}
 	if tx.gasLimit.Cmp(gasUsed) < 0 {
 		logging.VLog().WithFields(logrus.Fields{
@@ -423,7 +424,8 @@ func VerifyExecution(tx *Transaction, block *Block, ws WorldState) error { // TO
 			"limit":       tx.gasLimit,
 			"used":        gasUsed,
 		}).Debug("Failed to check tx based gas used.")
-		return ErrOutOfGasLimit
+		// GasLimit is smaller than based tx gas, won't giveback the tx
+		return false, ErrOutOfGasLimit
 	}
 
 	// step3. check payload vaild. all txs come here can be submitted on chain.
@@ -438,19 +440,22 @@ func VerifyExecution(tx *Transaction, block *Block, ws WorldState) error { // TO
 
 		if err := tx.recordGas(gasUsed, ws); err != nil {
 			logging.VLog().Info("AEE 2")
-			return err
+			// Gas overflow, won't giveback the tx
+			return false, err
 		}
 		if err := tx.recordResultEvent(gasUsed, payloadErr, ws); err != nil {
-			return err
+			return true, err
 		}
-		return nil
+		// No error, won't giveback the tx
+		return false, nil
 	}
 
 	// step4. check gasLimit > gas + payload.baseGasCount
 	gasUsed, err = gasUsed.Add(payload.BaseGasCount())
 	if err != nil {
 		logging.VLog().Info("AEE 3")
-		return err
+		// Gas overflow, won't giveback the tx
+		return false, err
 	}
 	if tx.gasLimit.Cmp(gasUsed) < 0 {
 		logging.VLog().WithFields(logrus.Fields{
@@ -462,17 +467,19 @@ func VerifyExecution(tx *Transaction, block *Block, ws WorldState) error { // TO
 
 		if err := tx.recordGas(tx.gasLimit, ws); err != nil {
 			logging.VLog().Info("AEE 4")
-			return err
+			// Gas overflow, won't giveback the tx
+			return false, err
 		}
 		if err := tx.recordResultEvent(tx.gasLimit, ErrOutOfGasLimit, ws); err != nil {
-			return err
+			return true, err
 		}
-		return nil
+		// No error, won't giveback the tx
+		return false, nil
 	}
 
 	// step5. transfer value.
-	if err := transfer(tx.from.address, tx.to.address, tx.value, ws); err != nil { // TODO check balance sufficient. balance >= gasLimit * gasPrice + value
-		return err
+	if giveback, err := transfer(tx.from.address, tx.to.address, tx.value, ws); err != nil { // TODO check balance sufficient. balance >= gasLimit * gasPrice + value
+		return giveback, err
 	}
 
 	// step6. execute payload
@@ -482,14 +489,15 @@ func VerifyExecution(tx *Transaction, block *Block, ws WorldState) error { // TO
 		logging.VLog().Info("Reset Payload ", tx, " err ", exeErr)
 		if err := ws.Reset(); err != nil {
 			logging.VLog().Info("AEE 5")
-			return err
+			return true, err
 		}
 	}
 
 	allGas, gasErr := gasUsed.Add(gasExecution)
 	if gasErr != nil {
 		logging.VLog().Info("AEE 6")
-		return gasErr
+		// Gas overflow, won't giveback the tx
+		return false, gasErr
 	}
 	if tx.gasLimit.Cmp(allGas) < 0 {
 		logging.VLog().WithFields(logrus.Fields{
@@ -501,21 +509,26 @@ func VerifyExecution(tx *Transaction, block *Block, ws WorldState) error { // TO
 
 		if err := ws.Reset(); err != nil {
 			logging.VLog().Info("AEE 7")
-			return err
+			return true, err
 		}
 		if err := tx.recordGas(tx.gasLimit, ws); err != nil {
 			logging.VLog().Info("AEE 8")
-			return err
+			// Gas overflow, won't giveback the tx
+			return false, err
 		}
 		if err := tx.recordResultEvent(tx.gasLimit, ErrOutOfGasLimit, ws); err != nil {
-			return err
+			return true, err
 		}
-		return nil
+		// No error, won't giveback the tx
+		return false, nil
 	}
 
-	tx.recordGas(allGas, ws) // TODO catch error
+	if err := tx.recordGas(allGas, ws); err != nil {
+		// Gas overflow, won't giveback the tx
+		return false, err
+	}
 	if err := tx.recordResultEvent(allGas, exeErr, ws); err != nil {
-		return err
+		return true, err
 	}
 
 	if exeErr != nil {
@@ -530,24 +543,28 @@ func VerifyExecution(tx *Transaction, block *Block, ws WorldState) error { // TO
 	} else {
 		go metricsTxExeSuccess.Mark(1)
 	}
-	return nil
+	// No error, won't giveback the tx
+	return false, nil
 }
 
-func (tx *Transaction) checkBalance(block *Block, ws WorldState) error {
+func (tx *Transaction) checkBalance(block *Block, ws WorldState) (bool, error) {
 	fromAcc, err := ws.GetOrCreateUserAccount(tx.from.address)
 	if err != nil {
 		logging.VLog().Info("AEE 10")
-		return err
+		return true, err
 	}
 	minBalanceRequired, err := tx.MinBalanceRequired()
 	if err != nil {
 		logging.VLog().Info("AEE 11")
-		return err
+		// MinBalanceRequired is not uint128, won't giveback the tx
+		return false, err
 	}
 	if fromAcc.Balance().Cmp(minBalanceRequired) < 0 {
-		return ErrInsufficientBalance
+		// Balance is smaller than min balance required, won't giveback the tx
+		return false, ErrInsufficientBalance
 	}
-	return nil
+	// No error, won't giveback the tx
+	return false, nil
 }
 
 func (tx *Transaction) recordGas(gasCnt *util.Uint128, ws WorldState) error {
@@ -560,26 +577,29 @@ func (tx *Transaction) recordGas(gasCnt *util.Uint128, ws WorldState) error {
 	return ws.RecordGas(tx.from.String(), gasCost)
 }
 
-func transfer(from, to byteutils.Hash, value *util.Uint128, ws WorldState) error {
+func transfer(from, to byteutils.Hash, value *util.Uint128, ws WorldState) (bool, error) {
 	fromAcc, err := ws.GetOrCreateUserAccount(from)
 	if err != nil {
 		logging.VLog().Info("AEE 13")
-		return err
+		return true, err
 	}
 	toAcc, err := ws.GetOrCreateUserAccount(to)
 	if err != nil {
 		logging.VLog().Info("AEE 14")
-		return err
+		return true, err
 	}
 	if err := fromAcc.SubBalance(value); err != nil {
 		logging.VLog().Info("AEE 15")
-		return err
+		// Balance is not enough to transfer the value, won't giveback the tx
+		return false, err
 	}
 	if err := toAcc.AddBalance(value); err != nil {
 		logging.VLog().Info("AEE 16")
-		return err
+		// Balance plus value result in overflow, won't giveback the tx
+		return false, err
 	}
-	return nil
+	// No error, won't giveback the tx
+	return false, nil
 }
 
 func (tx *Transaction) recordResultEvent(gasUsed *util.Uint128, err error, ws WorldState) error {
@@ -726,6 +746,7 @@ func CheckTransaction(tx *Transaction, ws WorldState) (bool, error) {
 	currentNonce := fromAcc.Nonce()
 
 	if tx.nonce < currentNonce+1 {
+		// Nonce is too small, won't giveback the tx
 		return false, ErrSmallTransactionNonce
 	} else if tx.nonce > currentNonce+1 {
 		return true, ErrLargeTransactionNonce
@@ -735,30 +756,31 @@ func CheckTransaction(tx *Transaction, ws WorldState) (bool, error) {
 }
 
 // AcceptTransaction in a tx world state
-func AcceptTransaction(tx *Transaction, ws WorldState) error {
+func AcceptTransaction(tx *Transaction, ws WorldState) (bool, error) {
 	// record tx
 	pbTx, err := tx.ToProto()
 	if err != nil {
 		logging.VLog().Info("ATE 1")
-		return err
+		return true, err
 	}
 	txBytes, err := proto.Marshal(pbTx)
 	if err != nil {
 		logging.VLog().Info("ATE 2")
-		return err
+		return true, err
 	}
 	if err := ws.PutTx(tx.hash, txBytes); err != nil {
 		logging.VLog().Info("ATE 3")
-		return err
+		return true, err
 	}
 	// incre nonce
 	fromAcc, err := ws.GetOrCreateUserAccount(tx.from.address)
 	if err != nil {
 		logging.VLog().Info("ATE 4")
-		return err
+		return true, err
 	}
 	fromAcc.IncrNonce()
-	return nil
+	// No error, won't giveback the tx
+	return false, nil
 }
 
 // GetTransaction from txs Trie

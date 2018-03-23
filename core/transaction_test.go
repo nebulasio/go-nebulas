@@ -231,8 +231,9 @@ func TestTransaction_VerifyExecutionDependency(t *testing.T) {
 	//tx1
 	txWorldState1, err := block.WorldState().Prepare("1")
 	assert.Nil(t, err)
-	executionErr := VerifyExecution(tx1, block, txWorldState1)
+	giveback, executionErr := VerifyExecution(tx1, block, txWorldState1)
 	assert.Nil(t, executionErr)
+	assert.False(t, giveback)
 	dependency1, err := txWorldState1.CheckAndUpdate()
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(dependency1))
@@ -247,8 +248,9 @@ func TestTransaction_VerifyExecutionDependency(t *testing.T) {
 	txWorldState3, err := block.WorldState().Prepare("3")
 	txWorldState4, err := block.WorldState().Prepare("4")
 
-	executionErr2 := VerifyExecution(tx2, block, txWorldState2)
+	giveback, executionErr2 := VerifyExecution(tx2, block, txWorldState2)
 	assert.Nil(t, executionErr2)
+	assert.False(t, giveback)
 	dependency2, err := txWorldState2.CheckAndUpdate()
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(dependency2))
@@ -259,20 +261,23 @@ func TestTransaction_VerifyExecutionDependency(t *testing.T) {
 	assert.Equal(t, "1000000000000000002", toacc2.Balance().String())
 
 	// tx3
-	executionErr3 := VerifyExecution(tx3, block, txWorldState3)
+	giveback, executionErr3 := VerifyExecution(tx3, block, txWorldState3)
 	assert.NotNil(t, executionErr3)
+	assert.True(t, giveback)
 	txWorldState3.Close()
 
 	//tx4
-	executionErr4 := VerifyExecution(tx4, block, txWorldState4)
+	giveback, executionErr4 := VerifyExecution(tx4, block, txWorldState4)
 	assert.Nil(t, executionErr4)
+	assert.False(t, giveback)
 	_, err4 := txWorldState4.CheckAndUpdate()
 	assert.Nil(t, err4)
 
 	txWorldState3, err = block.WorldState().Prepare("3")
 	assert.Nil(t, err)
-	executionErr3 = VerifyExecution(tx3, block, txWorldState3)
+	giveback, executionErr3 = VerifyExecution(tx3, block, txWorldState3)
 	assert.Nil(t, executionErr3)
+	assert.False(t, giveback)
 	dependency3, err := txWorldState3.CheckAndUpdate()
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(dependency3))
@@ -298,6 +303,7 @@ func TestTransaction_VerifyExecution(t *testing.T) {
 		toBalance       *util.Uint128
 		coinbaseBalance *util.Uint128
 		status          int
+		giveback        bool // TODO add giveback
 	}
 	tests := []testTx{}
 
@@ -518,8 +524,9 @@ func TestTransaction_VerifyExecution(t *testing.T) {
 			txWorldState, err := block.WorldState().Prepare(tt.tx.Hash().String())
 			assert.Nil(t, err)
 
-			executionErr := VerifyExecution(tt.tx, block, txWorldState)
-			logging.CLog().Info(tt.name, " ", executionErr)
+			giveback, executionErr := VerifyExecution(tt.tx, block, txWorldState)
+			assert.Equal(t, tt.wanted, executionErr)
+			assert.Equal(t, giveback, tt.giveback)
 			fromAcc, err = txWorldState.GetOrCreateUserAccount(tt.tx.from.address)
 			assert.Nil(t, err)
 			fmt.Println(fromAcc.Balance().String())
@@ -527,8 +534,6 @@ func TestTransaction_VerifyExecution(t *testing.T) {
 			txWorldState.CheckAndUpdate()
 			assert.Nil(t, block.rewardCoinbaseForGas())
 			block.Commit()
-
-			assert.Equal(t, tt.wanted, executionErr)
 
 			fromAcc, err = block.worldState.GetOrCreateUserAccount(tt.tx.from.address)
 			assert.Nil(t, err)
@@ -695,8 +700,12 @@ func TestDeployAndCall(t *testing.T) {
 
 	txWorldState, err := block.WorldState().Prepare(deployTx.Hash().String())
 	assert.Nil(t, err)
-	assert.Nil(t, VerifyExecution(deployTx, block, txWorldState))
-	assert.Nil(t, AcceptTransaction(deployTx, txWorldState))
+	giveback, err := VerifyExecution(deployTx, block, txWorldState)
+	assert.False(t, giveback)
+	assert.Nil(t, err)
+	giveback, err = AcceptTransaction(deployTx, txWorldState)
+	assert.False(t, giveback)
+	assert.Nil(t, err)
 	_, err = txWorldState.CheckAndUpdate()
 	assert.Nil(t, err)
 
@@ -712,8 +721,12 @@ func TestDeployAndCall(t *testing.T) {
 
 	txWorldState, err = block.WorldState().Prepare(callTx.Hash().String())
 	assert.Nil(t, err)
-	assert.Nil(t, VerifyExecution(callTx, block, txWorldState))
-	assert.Nil(t, AcceptTransaction(callTx, txWorldState))
+	giveback, err = VerifyExecution(callTx, block, txWorldState)
+	assert.False(t, giveback)
+	assert.Nil(t, err)
+	giveback, err = AcceptTransaction(callTx, txWorldState)
+	assert.False(t, giveback)
+	assert.Nil(t, err)
 	_, err = txWorldState.CheckAndUpdate()
 	assert.Nil(t, err)
 
