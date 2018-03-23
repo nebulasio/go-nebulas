@@ -26,7 +26,7 @@ Blockchain.prototype = {
     blockParse: function (str) {
         var block = JSON.parse(str);
         if (block != null) {
-            this.block = block;
+            this.block = Object.freeze(block);
         }
     },
     transactionParse: function (str) {
@@ -38,7 +38,7 @@ Blockchain.prototype = {
             tx.gasPrice = new BigNumber(gasPrice);
             var gasLimit = tx.gasLimit === undefined || tx.gasLimit.length === 0 ? "0" : tx.gasLimit;
             tx.gasLimit = new BigNumber(gasLimit);
-            this.transaction = tx;
+            this.transaction = Object.freeze(tx);
         }
     },
     transfer: function (address, value) {
@@ -53,4 +53,3 @@ Blockchain.prototype = {
 };
 
 module.exports = new Blockchain();
-module.exports.Blockchain = Blockchain;

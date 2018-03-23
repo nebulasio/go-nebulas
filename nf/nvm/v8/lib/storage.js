@@ -221,8 +221,8 @@ ContractStorage.prototype = {
 ContractStorage.prototype.put = ContractStorage.prototype.set;
 ContractStorage.prototype.delete = ContractStorage.prototype.del;
 
-module.exports = {
+module.exports = Object.freeze({
     ContractStorage: ContractStorage,
     lcs: new ContractStorage(_native_storage_handlers.lcs),
     gcs: new ContractStorage(_native_storage_handlers.gcs)
-};
+});
