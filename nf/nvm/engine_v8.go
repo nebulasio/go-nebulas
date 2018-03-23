@@ -60,6 +60,11 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+const (
+	// ExecutionTimeoutInSeconds max v8 execution timeout.
+	ExecutionTimeoutInSeconds = 5
+)
+
 //engine_v8 private data
 var (
 	v8engineOnce          = sync.Once{}
@@ -76,16 +81,17 @@ var (
 
 // V8Engine v8 engine.
 type V8Engine struct {
-	ctx                                *Context
-	modules                            Modules
-	v8engine                           *C.V8Engine
-	enableLimits                       bool
-	limitsOfExecutionInstructions      uint64
-	limitsOfTotalMemorySize            uint64
-	actualCountOfExecutionInstructions uint64
-	actualTotalMemorySize              uint64
-	lcsHandler                         uint64
-	gcsHandler                         uint64
+	ctx                                     *Context
+	modules                                 Modules
+	v8engine                                *C.V8Engine
+	strictDisallowUsageOfInstructionCounter int
+	enableLimits                            bool
+	limitsOfExecutionInstructions           uint64
+	limitsOfTotalMemorySize                 uint64
+	actualCountOfExecutionInstructions      uint64
+	actualTotalMemorySize                   uint64
+	lcsHandler                              uint64
+	gcsHandler                              uint64
 }
 
 type sourceModuleItem struct {
@@ -127,14 +133,15 @@ func NewV8Engine(ctx *Context) *V8Engine {
 	})
 
 	engine := &V8Engine{
-		ctx:                                ctx,
-		modules:                            NewModules(),
-		v8engine:                           C.CreateEngine(),
-		enableLimits:                       true,
-		limitsOfExecutionInstructions:      0,
-		limitsOfTotalMemorySize:            0,
-		actualCountOfExecutionInstructions: 0,
-		actualTotalMemorySize:              0,
+		ctx:      ctx,
+		modules:  NewModules(),
+		v8engine: C.CreateEngine(),
+		strictDisallowUsageOfInstructionCounter: 1, // enable by default.
+		enableLimits:                            true,
+		limitsOfExecutionInstructions:           0,
+		limitsOfTotalMemorySize:                 0,
+		actualCountOfExecutionInstructions:      0,
+		actualTotalMemorySize:                   0,
 	}
 
 	(func() {
@@ -184,11 +191,12 @@ func (e *V8Engine) Context() *Context {
 
 // SetTestingFlag set testing flag, default is False.
 func (e *V8Engine) SetTestingFlag(flag bool) {
-	if flag {
-		e.v8engine.testing = C.int(1) //ToDo chech testing
+	// deprecated.
+	/*if flag {
+		e.v8engine.testing = C.int(1)
 	} else {
 		e.v8engine.testing = C.int(0)
-	}
+	}*/
 }
 
 // SetExecutionLimits set execution limits of V8 Engine, prevent Halting Problem.
@@ -243,7 +251,8 @@ func (e *V8Engine) InjectTracingInstructions(source string) (string, int, error)
 	defer C.free(unsafe.Pointer(cSource))
 
 	lineOffset := C.int(0)
-	traceableCSource := C.InjectTracingInstructions(e.v8engine, cSource, &lineOffset)
+	traceableCSource := C.InjectTracingInstructions(e.v8engine, cSource, &lineOffset, C.int(e.strictDisallowUsageOfInstructionCounter))
+
 	if traceableCSource == nil {
 		return "", 0, ErrInjectTracingInstructionFailed
 	}
@@ -262,22 +271,20 @@ func (e *V8Engine) CollectTracingStats() {
 }
 
 // RunScriptSource run js source.
-func (e *V8Engine) RunScriptSource(source string, sourceLineOffset int) (result string, err error) {
+func (e *V8Engine) RunScriptSource(source string, sourceLineOffset int) (string, error) {
 	cSource := C.CString(source)
 	defer C.free(unsafe.Pointer(cSource))
 
-	var ret C.int
-	var cJSONResult *C.char
-	defer func() {
-		if cJSONResult != nil {
-			result = C.GoString(cJSONResult)
-			C.free(unsafe.Pointer(cJSONResult))
-		}
-	}()
+	var (
+		result  string
+		err     error
+		ret     C.int
+		cResult *C.char
+	)
 
 	done := make(chan bool, 1)
 	go func() {
-		ret = C.RunScriptSource(&cJSONResult, e.v8engine, cSource, C.int(sourceLineOffset), C.uintptr_t(e.lcsHandler),
+		ret = C.RunScriptSource(&cResult, e.v8engine, cSource, C.int(sourceLineOffset), C.uintptr_t(e.lcsHandler),
 			C.uintptr_t(e.gcsHandler))
 		done <- true
 	}()
@@ -287,7 +294,7 @@ func (e *V8Engine) RunScriptSource(source string, sourceLineOffset int) (result 
 		if ret != 0 {
 			err = ErrExecutionFailed
 		}
-	case <-time.After(2 * time.Second):
+	case <-time.After(ExecutionTimeoutInSeconds * time.Second):
 		C.TerminateExecution(e.v8engine) //ToDo TerminateExecution can kill RunScriptSource
 		err = ErrExecutionTimeout
 
@@ -295,6 +302,13 @@ func (e *V8Engine) RunScriptSource(source string, sourceLineOffset int) (result 
 		select {
 		case <-done:
 		}
+	}
+
+	if cResult != nil {
+		result = C.GoString(cResult)
+		C.free(unsafe.Pointer(cResult))
+	} else {
+		result = "\"\"" // default JSON String.
 	}
 
 	// collect tracing stats.
@@ -311,7 +325,7 @@ func (e *V8Engine) RunScriptSource(source string, sourceLineOffset int) (result 
 		e.actualCountOfExecutionInstructions = e.limitsOfExecutionInstructions //ToDo memory pass whether exhaust ?
 	}
 
-	return "", err
+	return result, err
 }
 
 // DeployAndInit a contract

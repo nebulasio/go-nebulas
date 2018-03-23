@@ -39,6 +39,7 @@ using namespace v8;
 static Platform *platformPtr = NULL;
 
 void PrintException(Local<Context> context, TryCatch &trycatch);
+char *PrintAndReturnException(Local<Context> context, TryCatch &trycatch);
 void EngineLimitsCheckDelegate(Isolate *isolate, size_t count,
                                void *listenerContext);
 
@@ -124,25 +125,37 @@ int ExecuteSourceDataDelegate(char **result, Isolate *isolate,
   MaybeLocal<Script> script = Script::Compile(context, src, &sourceSrcOrigin);
 
   if (script.IsEmpty()) {
-    PrintException(context, trycatch);
+    if (result != NULL) {
+      char *err = PrintAndReturnException(context, trycatch);
+      *result = err;
+    } else {
+      PrintException(context, trycatch);
+    }
     return 1;
   }
 
   // Run the script to get the result.
   MaybeLocal<Value> ret = script.ToLocalChecked()->Run(context);
   if (ret.IsEmpty()) {
-    PrintException(context, trycatch);
+    if (result != NULL) {
+      char *err = PrintAndReturnException(context, trycatch);
+      *result = err;
+    } else {
+      PrintException(context, trycatch);
+    }
     return 1;
   }
 
   // set result.
   if (result != NULL) {
-    MaybeLocal<String> json_result =
-        v8::JSON::Stringify(context, ret.ToLocalChecked().As<Object>());
-    if (!json_result.IsEmpty()) {
-      String::Utf8Value str(json_result.ToLocalChecked());
-      *result = (char *)malloc(str.length() + 1);
-      strcpy(*result, *str);
+    Local<Object> obj = ret.ToLocalChecked().As<Object>();
+    if (!obj->IsUndefined()) {
+      MaybeLocal<String> json_result = v8::JSON::Stringify(context, obj);
+      if (!json_result.IsEmpty()) {
+        String::Utf8Value str(json_result.ToLocalChecked());
+        *result = (char *)malloc(str.length() + 1);
+        strcpy(*result, *str);
+      }
     }
   }
 
@@ -150,10 +163,12 @@ int ExecuteSourceDataDelegate(char **result, Isolate *isolate,
 }
 
 char *InjectTracingInstructions(V8Engine *e, const char *source,
-                                int *source_line_offset) {
+                                int *source_line_offset,
+                                int strictDisallowUsage) {
   TracingContext tContext;
   tContext.source_line_offset = 0;
   tContext.tracable_source = NULL;
+  tContext.strictDisallowUsage = strictDisallowUsage;
 
   Execute(NULL, e, source, 0, 0L, 0L, InjectTracingInstructionDelegate,
           (void *)&tContext);
@@ -198,8 +213,8 @@ int Execute(char **result, V8Engine *e, const char *source,
   // Create a new context.
   Local<Context> context = Context::New(isolate, NULL, globalTpl);
 
-  // enable eval() only in testing env.
-  context->AllowCodeGenerationFromStrings(e->testing == 1 ? true : false);
+  // disable eval().
+  context->AllowCodeGenerationFromStrings(false);
 
   // Enter the context for compiling and running the script.
   Context::Scope context_scope(context);
@@ -211,8 +226,12 @@ int Execute(char **result, V8Engine *e, const char *source,
 
   // Setup execution env.
   if (SetupExecutionEnv(isolate, context)) {
-    // logErrorf("setup execution env failed.");
-    PrintException(context, trycatch);
+    if (result != NULL) {
+      char *err = PrintAndReturnException(context, trycatch);
+      *result = err;
+    } else {
+      PrintException(context, trycatch);
+    }
     return 1;
   }
 
@@ -221,6 +240,13 @@ int Execute(char **result, V8Engine *e, const char *source,
 }
 
 void PrintException(Local<Context> context, TryCatch &trycatch) {
+  char *result = PrintAndReturnException(context, trycatch);
+  if (result != NULL) {
+    free(result);
+  }
+}
+
+char *PrintAndReturnException(Local<Context> context, TryCatch &trycatch) {
   static char EMPTY_STRING[] = "";
   char *source_info = EMPTY_STRING;
 
@@ -262,20 +288,28 @@ void PrintException(Local<Context> context, TryCatch &trycatch) {
 
   // get stack trace.
   MaybeLocal<Value> stacktrace_ret = trycatch.StackTrace(context);
-  if (stacktrace_ret.IsEmpty()) {
-    // print exception only.
-    Local<Value> exception = trycatch.Exception();
-    String::Utf8Value exception_str(exception);
-    LogErrorf("V8 Exception:\n%s%s", source_info, *exception_str);
-  } else {
+  if (!stacktrace_ret.IsEmpty()) {
     // print full stack trace.
     String::Utf8Value stack_str(stacktrace_ret.ToLocalChecked());
     LogErrorf("V8 Exception:\n%s%s", source_info, *stack_str);
   }
 
+  // exception message.
+  Local<Value> exception = trycatch.Exception();
+  String::Utf8Value exception_str(exception);
+  if (stacktrace_ret.IsEmpty()) {
+    // print exception when stack trace is not available.
+    LogErrorf("V8 Exception:\n%s%s", source_info, *exception_str);
+  }
+
   if (source_info != EMPTY_STRING) {
     free(source_info);
   }
+
+  // return exception message.
+  char *result = (char *)calloc(exception_str.length() + 1, sizeof(char));
+  strcpy(result, *exception_str);
+  return result;
 }
 
 void ReadMemoryStatistics(V8Engine *e) {

@@ -156,7 +156,7 @@ function record_injection_info(injection_records, pos, value, injection_func) {
     item.value += value;
 };
 
-function processScript(source) {
+function processScript(source, strictDisallowUsage) {
     var injection_records = new Map();
     var record_injection = function (pos, value, injection_func) {
         return record_injection_info(injection_records, pos, value, injection_func);
@@ -194,7 +194,7 @@ function processScript(source) {
         }
 
         // throw error when "_instruction_counter" was redefined in source.
-        disallowRedefineOfInstructionCounter(node, parents);
+        disallowRedefineOfInstructionCounter(node, parents, strictDisallowUsage);
 
         // 1. flag find the injection point, eg a Expression/Statement can inject code directly.
         if (node.type == "IfStatement") {
@@ -376,9 +376,21 @@ function processScript(source) {
 };
 
 // throw error when "_instruction_counter" was redefined.
-function disallowRedefineOfInstructionCounter(node, parents) {
-    if (node.type != 'Identifier' || node.name != '_instruction_counter') {
+function disallowRedefineOfInstructionCounter(node, parents, strictDisallowUsage) {
+    if (node.type == 'Identifier') {
+        if (node.name != '_instruction_counter') {
+            return;
+        }
+    } else if (node.type == 'Literal') {
+        if (node.value != '_instruction_counter') {
+            return;
+        }
+    } else {
         return;
+    }
+
+    if (strictDisallowUsage) {
+        throw new Error("redefine or use _instruction_counter are now allowed.");
     }
 
     var parent_node = parents[0].node;
@@ -390,6 +402,7 @@ function disallowRedefineOfInstructionCounter(node, parents) {
             VariableDeclarator: "",
             FunctionDeclaration: "",
             FunctionExpression: "",
+            ArrayPattern: "",
         }) {
         throw new Error("redefine _instruction_counter is now allowed.");
     }

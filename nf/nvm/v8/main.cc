@@ -36,6 +36,7 @@
 
 static int concurrency = 1;
 static int enable_tracer_injection = 0;
+static int strict_disallow_usage = 0;
 static size_t limits_of_executed_instructions = 0;
 static size_t limits_of_total_memory_size = 0;
 static int print_injection_result = 0;
@@ -62,6 +63,7 @@ void help(const char *name) {
          name);
   printf("\t -c <concurrency> \tNumber of multiple thread to run at a time.\n");
   printf("\t -i \tinject tracing code.\n");
+  printf("\t -is \tstrict disallow usage of _instruction_counter..\n");
   printf("\t -li <number> \tlimits of executed instructions, default is 0 "
          "(unlimited).\n");
   printf("\t -im <number> \tlimits of total heap size, default is 0 "
@@ -70,6 +72,8 @@ void help(const char *name) {
 
   printf("%s -ip <Javascript File>\n", name);
   printf("\t -ip \tinject tracing code and print result\n");
+  printf("\t -is \tstrict disallow usage of _instruction_counter..\n");
+
   printf("\n");
   exit(1);
 }
@@ -85,7 +89,8 @@ void RunScriptSourceDelegate(V8Engine *e, const char *data,
     e->limits_of_executed_instructions = limits_of_executed_instructions;
     e->limits_of_total_memory_size = limits_of_total_memory_size;
 
-    char *traceableSource = InjectTracingInstructions(e, data, &lineOffset);
+    char *traceableSource =
+        InjectTracingInstructions(e, data, &lineOffset, strict_disallow_usage);
     if (traceableSource == NULL) {
       fprintf(stderr, "Inject tracing instructions failed.\n");
     } else {
@@ -185,7 +190,8 @@ void ExecuteScript(const char *filename, V8ExecutionDelegate delegate) {
 
   // inject tracing code.
   if (enable_tracer_injection) {
-    char *traceableSource = InjectTracingInstructions(e, source, &lineOffset);
+    char *traceableSource = InjectTracingInstructions(e, source, &lineOffset,
+                                                      strict_disallow_usage);
     if (traceableSource == NULL) {
       fprintf(stderr, "Inject tracing instructions failed.\n");
       free(source);
@@ -244,6 +250,9 @@ int main(int argc, const char *argv[]) {
     } else if (strcmp(arg, "-i") == 0) {
       argcIdx++;
       enable_tracer_injection = 1;
+    } else if (strcmp(arg, "-is") == 0) {
+      argcIdx++;
+      strict_disallow_usage = 1;
     } else if (strcmp(arg, "-li") == 0) {
       argcIdx++;
 

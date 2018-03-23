@@ -32,7 +32,7 @@ static char inject_tracer_source_template[] =
     "(function(){\n"
     "const instCounter = require(\"instruction_counter.js\");\n"
     "const source = \"%s\";\n"
-    "return instCounter.processScript(source);\n"
+    "return instCounter.processScript(source, %d);\n"
     "})();";
 
 int InjectTracingInstructionDelegate(char **result, Isolate *isolate,
@@ -49,7 +49,8 @@ int InjectTracingInstructionDelegate(char **result, Isolate *isolate,
   s = ReplaceAll(s, "\"", "\\\"");
 
   char *injectTracerSource = NULL;
-  asprintf(&injectTracerSource, inject_tracer_source_template, s.c_str());
+  asprintf(&injectTracerSource, inject_tracer_source_template, s.c_str(),
+           tContext->strictDisallowUsage);
 
   // Create a string containing the JavaScript source code.
   Local<String> src =

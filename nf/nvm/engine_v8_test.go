@@ -111,17 +111,19 @@ func mockNormalTransaction(from, to, value string) *core.Transaction {
 
 func TestRunScriptSource(t *testing.T) {
 	tests := []struct {
-		filepath    string
-		expectedErr error
+		filepath       string
+		expectedErr    error
+		expectedResult string
 	}{
-		{"test/test_require.js", nil},
-		{"test/test_console.js", nil},
-		{"test/test_storage_handlers.js", nil},
-		{"test/test_storage_class.js", nil},
-		{"test/test_storage.js", nil},
-		{"test/test_eval.js", ErrExecutionFailed},
-		{"test/test_date.js", ErrExecutionFailed},
-		{"test/test_random.js", ErrExecutionFailed},
+		{"test/test_require.js", nil, "\"\""},
+		{"test/test_console.js", nil, "\"\""},
+		{"test/test_storage_handlers.js", nil, "\"\""},
+		{"test/test_storage_class.js", nil, "\"\""},
+		{"test/test_storage.js", nil, "\"\""},
+		{"test/test_eval.js", ErrExecutionFailed, "EvalError: Code generation from strings disallowed for this context"},
+		{"test/test_date.js", ErrExecutionFailed, "TypeError: Date.now is not a function"},
+		{"test/test_bignumber_random.js", ErrExecutionFailed, "Error: BigNumber.random is not allowed in nvm."},
+		{"test/test_random.js", ErrExecutionFailed, "Error: Math.random func is not allowed in nvm."},
 	}
 
 	for _, tt := range tests {
@@ -139,8 +141,9 @@ func TestRunScriptSource(t *testing.T) {
 
 			engine := NewV8Engine(ctx)
 			engine.SetExecutionLimits(900000, 10000000)
-			_, err = engine.RunScriptSource(string(data), 0)
+			result, err := engine.RunScriptSource(string(data), 0)
 			assert.Equal(t, tt.expectedErr, err)
+			assert.Equal(t, tt.expectedResult, result)
 			engine.Dispose()
 		})
 	}
@@ -476,24 +479,36 @@ func TestMultiEngine(t *testing.T) {
 
 func TestInstructionCounterTestSuite(t *testing.T) {
 	tests := []struct {
-		filepath    string
-		expectedErr error
+		filepath                                string
+		strictDisallowUsageOfInstructionCounter int
+		expectedErr                             error
 	}{
-		{"./test/instruction_counter_tests/redefine1.js", ErrInjectTracingInstructionFailed},
-		{"./test/instruction_counter_tests/redefine2.js", ErrInjectTracingInstructionFailed},
-		{"./test/instruction_counter_tests/redefine3.js", ErrInjectTracingInstructionFailed},
-		{"./test/instruction_counter_tests/redefine4.js", ErrExecutionFailed},
-		{"./test/instruction_counter_tests/function.js", nil},
-		{"./test/instruction_counter_tests/if.js", nil},
-		{"./test/instruction_counter_tests/switch.js", nil},
-		{"./test/instruction_counter_tests/for.js", nil},
-		{"./test/instruction_counter_tests/with.js", nil},
-		{"./test/instruction_counter_tests/while.js", nil},
-		{"./test/instruction_counter_tests/throw.js", nil},
-		{"./test/instruction_counter_tests/switch.js", nil},
-		{"./test/instruction_counter_tests/condition_operator.js", nil},
-		{"./test/instruction_counter_tests/storage_usage.js", nil},
-		{"./test/instruction_counter_tests/event_usage.js", nil},
+		{"./test/instruction_counter_tests/redefine1.js", 1, ErrInjectTracingInstructionFailed},
+		{"./test/instruction_counter_tests/redefine2.js", 1, ErrInjectTracingInstructionFailed},
+		{"./test/instruction_counter_tests/redefine3.js", 1, ErrInjectTracingInstructionFailed},
+		{"./test/instruction_counter_tests/redefine4.js", 1, ErrInjectTracingInstructionFailed},
+		{"./test/instruction_counter_tests/redefine5.js", 1, ErrInjectTracingInstructionFailed},
+		{"./test/instruction_counter_tests/redefine6.js", 1, ErrInjectTracingInstructionFailed},
+		{"./test/instruction_counter_tests/redefine7.js", 1, ErrInjectTracingInstructionFailed},
+		{"./test/instruction_counter_tests/function.js", 1, ErrInjectTracingInstructionFailed},
+		{"./test/instruction_counter_tests/redefine1.js", 0, ErrInjectTracingInstructionFailed},
+		{"./test/instruction_counter_tests/redefine2.js", 0, ErrInjectTracingInstructionFailed},
+		{"./test/instruction_counter_tests/redefine3.js", 0, ErrInjectTracingInstructionFailed},
+		{"./test/instruction_counter_tests/redefine4.js", 0, ErrExecutionFailed},
+		{"./test/instruction_counter_tests/redefine5.js", 0, ErrInjectTracingInstructionFailed},
+		{"./test/instruction_counter_tests/redefine6.js", 0, nil},
+		{"./test/instruction_counter_tests/redefine7.js", 0, nil},
+		{"./test/instruction_counter_tests/function.js", 0, nil},
+		{"./test/instruction_counter_tests/if.js", 0, nil},
+		{"./test/instruction_counter_tests/switch.js", 0, nil},
+		{"./test/instruction_counter_tests/for.js", 0, nil},
+		{"./test/instruction_counter_tests/with.js", 0, nil},
+		{"./test/instruction_counter_tests/while.js", 0, nil},
+		{"./test/instruction_counter_tests/throw.js", 0, nil},
+		{"./test/instruction_counter_tests/switch.js", 0, nil},
+		{"./test/instruction_counter_tests/condition_operator.js", 0, nil},
+		{"./test/instruction_counter_tests/storage_usage.js", 0, nil},
+		{"./test/instruction_counter_tests/event_usage.js", 0, nil},
 	}
 
 	for _, tt := range tests {
@@ -514,6 +529,7 @@ func TestInstructionCounterTestSuite(t *testing.T) {
 			runnableSource := fmt.Sprintf("require(\"%s\");", moduleID)
 
 			engine := NewV8Engine(ctx)
+			engine.strictDisallowUsageOfInstructionCounter = tt.strictDisallowUsageOfInstructionCounter
 			engine.enableLimits = true
 			err = engine.AddModule(moduleID, string(data), 0)
 			if err != nil {
@@ -566,14 +582,14 @@ func TestTypeScriptExecution(t *testing.T) {
 			if err != nil {
 				assert.Equal(t, tt.expectedErr, err)
 			} else {
-				_, err = engine.RunScriptSource(runnableSource, 0)
+				_, err := engine.RunScriptSource(runnableSource, 0)
 				assert.Equal(t, tt.expectedErr, err)
 			}
 		})
 	}
 }
 
-func TestRunMozillaJSTestSuite(t *testing.T) {
+func Deprecated_TestRunMozillaJSTestSuite(t *testing.T) {
 	mem, _ := storage.NewMemoryStorage()
 	context, _ := state.NewWorldState(dpos.NewDpos(), mem)
 	owner, err := context.GetOrCreateUserAccount([]byte("account1"))
@@ -825,7 +841,7 @@ func TestNRC20Contract(t *testing.T) {
 		from          string
 		transferTests []TransferTest
 	}{
-		{"nrc20", "./test/NRC20.js", "js", "StandardToken", "ST", 18, "1000000000",
+		{"nrc20", "./test/NRC20.js", "js", "StandardToken标准代币", "ST", 18, "1000000000",
 			"9f19bd5379fc34658946aaa820f597a21ec86a3222a82843",
 			[]TransferTest{
 				{"6fb70b1d824be33e593dbc36d7405d61e44889fd8cb76e31", true, "5"},
@@ -927,10 +943,7 @@ func TestNRC20Contract(t *testing.T) {
 				transferArgs := fmt.Sprintf("[\"%s\", \"%s\"]", tot.to, tot.value)
 				result, err := engine.Call(string(data), tt.sourceType, "transfer", transferArgs)
 				assert.Nil(t, err)
-				var resultStatus bool
-				err = json.Unmarshal([]byte(result), &resultStatus)
-				assert.Nil(t, err)
-				assert.Equal(t, tot.result, resultStatus)
+				assert.Equal(t, "\"\"", result)
 				engine.Dispose()
 
 				engine = NewV8Engine(ctx)
@@ -938,9 +951,7 @@ func TestNRC20Contract(t *testing.T) {
 				approveArgs := fmt.Sprintf("[\"%s\", \"0\", \"%s\"]", tot.to, tot.value)
 				result, err = engine.Call(string(data), tt.sourceType, "approve", approveArgs)
 				assert.Nil(t, err)
-				err = json.Unmarshal([]byte(result), &resultStatus)
-				assert.Nil(t, err)
-				assert.Equal(t, tot.result, resultStatus)
+				assert.Equal(t, "\"\"", result)
 				engine.Dispose()
 
 				engine = NewV8Engine(ctx)
@@ -960,9 +971,7 @@ func TestNRC20Contract(t *testing.T) {
 				transferFromArgs := fmt.Sprintf("[\"%s\", \"%s\", \"%s\"]", tt.from, tot.to, tot.value)
 				result, err = engine.Call(string(data), tt.sourceType, "transferFrom", transferFromArgs)
 				assert.Nil(t, err)
-				err = json.Unmarshal([]byte(result), &resultStatus)
-				assert.Nil(t, err)
-				assert.Equal(t, tot.result, resultStatus)
+				assert.Equal(t, "\"\"", result)
 				engine.Dispose()
 
 				ctx.tx = mockNormalTransaction(tot.to, "22ac3a9a2b1c31b7a9084e46eae16e761f83f02324092b09", "0")

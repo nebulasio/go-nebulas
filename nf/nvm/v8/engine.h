@@ -112,7 +112,8 @@ EXPORT int RunScriptSource(char **result, V8Engine *e, const char *source,
                            uintptr_t gcsHandler);
 
 EXPORT char *InjectTracingInstructions(V8Engine *e, const char *source,
-                                       int *source_line_offset);
+                                       int *source_line_offset,
+                                       int strictDisallowUsage);
 
 EXPORT char *TranspileTypeScriptModule(V8Engine *e, const char *source,
                                        int *source_line_offset);

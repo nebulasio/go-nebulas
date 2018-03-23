@@ -27,6 +27,7 @@ using namespace v8;
 typedef struct {
   int source_line_offset;
   char *tracable_source;
+  int strictDisallowUsage;
 } TracingContext;
 
 int InjectTracingInstructionDelegate(char **result, Isolate *isolate,

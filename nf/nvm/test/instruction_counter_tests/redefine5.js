@@ -16,4 +16,18 @@
 // along with the go-nebulas library.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-console.log(Math.random());
+var [_instruction_counter] = [{
+    incr: function () {},
+    storIncr: function () {},
+    eventIncr: function () {},
+    count: 0,
+}];
+
+(function () {
+    _instruction_counter.incr(1);
+    if (_instruction_counter.count == 0) {
+        console.log('WARNING: succeed bypass the instruction counter.');
+    } else {
+        throw new Error("still not break the jail of _instruction_counter.");
+    }
+})();
