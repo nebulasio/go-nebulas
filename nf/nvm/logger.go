@@ -31,14 +31,14 @@ func V8Log(level int, msg *C.char) {
 
 	switch level {
 	case 1:
-		logging.VLog().Debug(s)
+		logging.CLog().Debug(s)
 	case 2:
-		logging.VLog().Warn(s)
+		logging.CLog().Warn(s)
 	case 3:
-		logging.VLog().Info(s)
+		logging.CLog().Info(s)
 	case 4:
-		logging.VLog().Error(s)
+		logging.CLog().Error(s)
 	default:
-		logging.VLog().Error(s)
+		logging.CLog().Error(s)
 	}
 }

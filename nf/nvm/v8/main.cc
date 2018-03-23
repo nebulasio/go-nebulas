@@ -53,8 +53,10 @@ void logFunc(int level, const char *msg) {
           msg);
 }
 
-void eventTriggerFunc(void *handler, const char *topic, const char *data) {
+void eventTriggerFunc(void *handler, const char *topic, const char *data,
+                      size_t *cnt) {
   fprintf(stdout, "[Event] [%s] %s\n", topic, data);
+  *cnt = 20 + strlen(topic) + strlen(data);
 }
 
 void help(const char *name) {

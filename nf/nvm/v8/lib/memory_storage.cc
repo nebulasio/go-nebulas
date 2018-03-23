@@ -45,7 +45,7 @@ void *CreateStorageHandler() { return (void *)handlerCounter.fetch_add(1); }
 
 void DeleteStorageHandler(void *handler) {}
 
-char *StorageGet(void *handler, const char *key) {
+char *StorageGet(void *handler, const char *key, size_t *cnt) {
   char *ret = NULL;
   string sKey = genKey(handler, key);
 
@@ -58,25 +58,30 @@ char *StorageGet(void *handler, const char *key) {
   }
   mapMutex.unlock();
 
+  *cnt = 0;
+
   return ret;
 }
 
-int StoragePut(void *handler, const char *key, const char *value) {
+int StoragePut(void *handler, const char *key, const char *value, size_t *cnt) {
   string sKey = genKey(handler, key);
 
   mapMutex.lock();
   memoryMap[sKey] = string(value);
   mapMutex.unlock();
 
+  *cnt = strlen(key) + strlen(value);
   return 0;
 }
 
-int StorageDel(void *handler, const char *key) {
+int StorageDel(void *handler, const char *key, size_t *cnt) {
   string sKey = genKey(handler, key);
 
   mapMutex.lock();
   memoryMap.erase(sKey);
   mapMutex.unlock();
+
+  *cnt = 0;
 
   return 0;
 }

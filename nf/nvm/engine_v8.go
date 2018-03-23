@@ -30,16 +30,16 @@ void V8Log_cgo(int level, const char *msg);
 
 char *RequireDelegateFunc_cgo(void *handler, const char *filename, size_t *lineOffset);
 
-char *StorageGetFunc_cgo(void *handler, const char *key);
-int StoragePutFunc_cgo(void *handler, const char *key, const char *value);
-int StorageDelFunc_cgo(void *handler, const char *key);
+char *StorageGetFunc_cgo(void *handler, const char *key, size_t *gasCnt);
+int StoragePutFunc_cgo(void *handler, const char *key, const char *value, size_t *gasCnt);
+int StorageDelFunc_cgo(void *handler, const char *key, size_t *gasCnt);
 
 char *GetTxByHashFunc_cgo(void *handler, const char *hash);
 char *GetAccountStateFunc_cgo(void *handler, const char *address);
 int TransferFunc_cgo(void *handler, const char *to, const char *value);
 int VerifyAddressFunc_cgo(void *handler, const char *address);
 
-void EventTriggerFunc_cgo(void *handler, const char *topic, const char *data);
+void EventTriggerFunc_cgo(void *handler, const char *topic, const char *data, size_t *gasCnt);
 
 */
 import "C"

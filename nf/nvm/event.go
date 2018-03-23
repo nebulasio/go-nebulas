@@ -27,9 +27,13 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+const (
+	EventBaseGasCount = 20
+)
+
 // EventTriggerFunc export EventTriggerFunc
 //export EventTriggerFunc
-func EventTriggerFunc(handler unsafe.Pointer, topic, data *C.char) {
+func EventTriggerFunc(handler unsafe.Pointer, topic, data *C.char, gasCnt *C.size_t) {
 	gTopic := C.GoString(topic)
 	gData := C.GoString(data)
 
@@ -43,8 +47,10 @@ func EventTriggerFunc(handler unsafe.Pointer, topic, data *C.char) {
 		return
 	}
 
-	contractTopic := EventNameSpaceContract + "." + gTopic
+	// calculate Gas.
+	*gasCnt = C.size_t(EventBaseGasCount + len(gTopic) + len(gData))
 
+	contractTopic := EventNameSpaceContract + "." + gTopic
 	event := &state.Event{Topic: contractTopic, Data: gData}
 	e.ctx.state.RecordEvent(e.ctx.tx.Hash(), event)
 }

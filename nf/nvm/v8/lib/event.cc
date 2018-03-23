@@ -57,11 +57,6 @@ void EventTriggerCallback(const FunctionCallbackInfo<Value> &info) {
     return;
   }
 
-  // record event usage.
-  RecordEventUsage(isolate, context,
-                   topic->ToString()->Utf8Length() +
-                       data->ToString()->Utf8Length());
-
   if (TRIGGER == NULL) {
     return;
   }
@@ -70,5 +65,9 @@ void EventTriggerCallback(const FunctionCallbackInfo<Value> &info) {
   String::Utf8Value sTopic(topic);
   String::Utf8Value sData(data);
 
-  TRIGGER(e, *sTopic, *sData);
+  size_t cnt = 0;
+  TRIGGER(e, *sTopic, *sData, &cnt);
+
+  // record event usage.
+  IncrCounter(isolate, isolate->GetCurrentContext(), cnt);
 }

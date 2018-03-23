@@ -35,10 +35,6 @@ void IncrCounterCallback(const FunctionCallbackInfo<Value> &info);
 void CountGetterCallback(Local<String> property,
                          const PropertyCallbackInfo<Value> &info);
 
-void RecordStorageUsage(Isolate *isolate, Local<Context> context,
-                        size_t key_length, size_t value_length);
-
-void RecordEventUsage(Isolate *isolate, Local<Context> context,
-                      size_t msg_length);
+void IncrCounter(Isolate *isolate, Local<Context> context, size_t count);
 
 #endif // _NEBULAS_NF_NVM_V8_LIB_INSTRUCTION_COUNTER_H_

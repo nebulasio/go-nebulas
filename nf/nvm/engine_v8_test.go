@@ -482,33 +482,34 @@ func TestInstructionCounterTestSuite(t *testing.T) {
 		filepath                                string
 		strictDisallowUsageOfInstructionCounter int
 		expectedErr                             error
+		expectedResult                          string
 	}{
-		{"./test/instruction_counter_tests/redefine1.js", 1, ErrInjectTracingInstructionFailed},
-		{"./test/instruction_counter_tests/redefine2.js", 1, ErrInjectTracingInstructionFailed},
-		{"./test/instruction_counter_tests/redefine3.js", 1, ErrInjectTracingInstructionFailed},
-		{"./test/instruction_counter_tests/redefine4.js", 1, ErrInjectTracingInstructionFailed},
-		{"./test/instruction_counter_tests/redefine5.js", 1, ErrInjectTracingInstructionFailed},
-		{"./test/instruction_counter_tests/redefine6.js", 1, ErrInjectTracingInstructionFailed},
-		{"./test/instruction_counter_tests/redefine7.js", 1, ErrInjectTracingInstructionFailed},
-		{"./test/instruction_counter_tests/function.js", 1, ErrInjectTracingInstructionFailed},
-		{"./test/instruction_counter_tests/redefine1.js", 0, ErrInjectTracingInstructionFailed},
-		{"./test/instruction_counter_tests/redefine2.js", 0, ErrInjectTracingInstructionFailed},
-		{"./test/instruction_counter_tests/redefine3.js", 0, ErrInjectTracingInstructionFailed},
-		{"./test/instruction_counter_tests/redefine4.js", 0, ErrExecutionFailed},
-		{"./test/instruction_counter_tests/redefine5.js", 0, ErrInjectTracingInstructionFailed},
-		{"./test/instruction_counter_tests/redefine6.js", 0, nil},
-		{"./test/instruction_counter_tests/redefine7.js", 0, nil},
-		{"./test/instruction_counter_tests/function.js", 0, nil},
-		{"./test/instruction_counter_tests/if.js", 0, nil},
-		{"./test/instruction_counter_tests/switch.js", 0, nil},
-		{"./test/instruction_counter_tests/for.js", 0, nil},
-		{"./test/instruction_counter_tests/with.js", 0, nil},
-		{"./test/instruction_counter_tests/while.js", 0, nil},
-		{"./test/instruction_counter_tests/throw.js", 0, nil},
-		{"./test/instruction_counter_tests/switch.js", 0, nil},
-		{"./test/instruction_counter_tests/condition_operator.js", 0, nil},
-		{"./test/instruction_counter_tests/storage_usage.js", 0, nil},
-		{"./test/instruction_counter_tests/event_usage.js", 0, nil},
+		{"./test/instruction_counter_tests/redefine1.js", 1, ErrInjectTracingInstructionFailed, ""},
+		{"./test/instruction_counter_tests/redefine2.js", 1, ErrInjectTracingInstructionFailed, ""},
+		{"./test/instruction_counter_tests/redefine3.js", 1, ErrInjectTracingInstructionFailed, ""},
+		{"./test/instruction_counter_tests/redefine4.js", 1, ErrInjectTracingInstructionFailed, ""},
+		{"./test/instruction_counter_tests/redefine5.js", 1, ErrInjectTracingInstructionFailed, ""},
+		{"./test/instruction_counter_tests/redefine6.js", 1, ErrInjectTracingInstructionFailed, ""},
+		{"./test/instruction_counter_tests/redefine7.js", 1, ErrInjectTracingInstructionFailed, ""},
+		{"./test/instruction_counter_tests/function.js", 1, ErrInjectTracingInstructionFailed, ""},
+		{"./test/instruction_counter_tests/redefine1.js", 0, ErrInjectTracingInstructionFailed, ""},
+		{"./test/instruction_counter_tests/redefine2.js", 0, ErrInjectTracingInstructionFailed, ""},
+		{"./test/instruction_counter_tests/redefine3.js", 0, ErrInjectTracingInstructionFailed, ""},
+		{"./test/instruction_counter_tests/redefine4.js", 0, ErrExecutionFailed, "Error: still not break the jail of _instruction_counter."},
+		{"./test/instruction_counter_tests/redefine5.js", 0, ErrInjectTracingInstructionFailed, ""},
+		{"./test/instruction_counter_tests/redefine6.js", 0, nil, "\"\""},
+		{"./test/instruction_counter_tests/redefine7.js", 0, nil, "\"\""},
+		{"./test/instruction_counter_tests/function.js", 0, nil, "\"\""},
+		{"./test/instruction_counter_tests/if.js", 0, nil, "\"\""},
+		{"./test/instruction_counter_tests/switch.js", 0, nil, "\"\""},
+		{"./test/instruction_counter_tests/for.js", 0, nil, "\"\""},
+		{"./test/instruction_counter_tests/with.js", 0, nil, "\"\""},
+		{"./test/instruction_counter_tests/while.js", 0, nil, "\"\""},
+		{"./test/instruction_counter_tests/throw.js", 0, nil, "\"\""},
+		{"./test/instruction_counter_tests/switch.js", 0, nil, "\"\""},
+		{"./test/instruction_counter_tests/condition_operator.js", 0, nil, "\"\""},
+		{"./test/instruction_counter_tests/storage_usage.js", 0, nil, "\"\""},
+		{"./test/instruction_counter_tests/event_usage.js", 0, nil, "\"\""},
 	}
 
 	for _, tt := range tests {
@@ -526,7 +527,7 @@ func TestInstructionCounterTestSuite(t *testing.T) {
 			ctx, err := NewContext(mockBlock(), mockTransaction(), owner, contract, context)
 
 			moduleID := tt.filepath
-			runnableSource := fmt.Sprintf("require(\"%s\");", moduleID)
+			runnableSource := fmt.Sprintf("var x = require(\"%s\");", moduleID)
 
 			engine := NewV8Engine(ctx)
 			engine.strictDisallowUsageOfInstructionCounter = tt.strictDisallowUsageOfInstructionCounter
@@ -535,8 +536,9 @@ func TestInstructionCounterTestSuite(t *testing.T) {
 			if err != nil {
 				assert.Equal(t, tt.expectedErr, err)
 			} else {
-				_, err = engine.RunScriptSource(runnableSource, 0)
+				result, err := engine.RunScriptSource(runnableSource, 0)
 				assert.Equal(t, tt.expectedErr, err)
+				assert.Equal(t, tt.expectedResult, result)
 			}
 			engine.Dispose()
 		})

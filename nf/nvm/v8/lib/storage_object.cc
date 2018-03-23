@@ -130,13 +130,18 @@ void StorageGetCallback(const FunctionCallbackInfo<Value> &info) {
     return;
   }
 
-  char *value = GET(handler->Value(), *String::Utf8Value(key->ToString()));
+  size_t cnt = 0;
+  char *value =
+      GET(handler->Value(), *String::Utf8Value(key->ToString()), &cnt);
   if (value == NULL) {
     info.GetReturnValue().SetNull();
   } else {
     info.GetReturnValue().Set(String::NewFromUtf8(isolate, value));
     free(value);
   }
+
+  // record storage usage.
+  IncrCounter(isolate, isolate->GetCurrentContext(), cnt);
 }
 
 void StoragePutCallback(const FunctionCallbackInfo<Value> &info) {
@@ -166,14 +171,13 @@ void StoragePutCallback(const FunctionCallbackInfo<Value> &info) {
   Local<String> key_str = key->ToString();
   Local<String> val_str = value->ToString();
 
+  size_t cnt = 0;
   int ret = PUT(handler->Value(), *String::Utf8Value(key_str),
-                *String::Utf8Value(val_str));
+                *String::Utf8Value(val_str), &cnt);
   info.GetReturnValue().Set(ret);
 
   // record storage usage.
-  Local<Context> context = isolate->GetCurrentContext();
-  RecordStorageUsage(isolate, context, key_str->Utf8Length(),
-                     val_str->Utf8Length());
+  IncrCounter(isolate, isolate->GetCurrentContext(), cnt);
 }
 
 void StorageDelCallback(const FunctionCallbackInfo<Value> &info) {
@@ -193,6 +197,10 @@ void StorageDelCallback(const FunctionCallbackInfo<Value> &info) {
     return;
   }
 
-  int ret = DEL(handler->Value(), *String::Utf8Value(key->ToString()));
+  size_t cnt = 0;
+  int ret = DEL(handler->Value(), *String::Utf8Value(key->ToString()), &cnt);
   info.GetReturnValue().Set(ret);
+
+  // record storage usage.
+  IncrCounter(isolate, isolate->GetCurrentContext(), cnt);
 }

@@ -96,54 +96,30 @@ void CountGetterCallback(Local<String> property,
   info.GetReturnValue().Set(Number::New(isolate, (double)*cnt));
 }
 
+void IncrCounter(Isolate *isolate, Local<Context> context, size_t val) {
+  if (val == 0) {
+    return;
+  }
+
+  Local<Object> global = context->Global();
+  HandleScope handle_scope(isolate);
+
+  Local<Object> counter = Local<Object>::Cast(
+      global->Get(String::NewFromUtf8(isolate, sInstructionCounter)));
+
+  Local<External> count = Local<External>::Cast(counter->GetInternalField(0));
+  Local<External> listenerContext =
+      Local<External>::Cast(counter->GetInternalField(1));
+
+  size_t *cnt = static_cast<size_t *>(count->Value());
+  *cnt += val;
+
+  if (sListener != NULL) {
+    sListener(isolate, *cnt, listenerContext->Value());
+  }
+}
+
 void SetInstructionCounterIncrListener(
     InstructionCounterIncrListener listener) {
   sListener = listener;
-}
-
-void RecordStorageUsage(Isolate *isolate, Local<Context> context,
-                        size_t key_length, size_t value_length) {
-  Local<Object> global = context->Global();
-  HandleScope handle_scope(isolate);
-
-  Local<Object> counter = Local<Object>::Cast(
-      global->Get(String::NewFromUtf8(isolate, sInstructionCounter)));
-
-  Local<Value> prop = counter->Get(String::NewFromUtf8(isolate, "storIncr"));
-  if (!prop->IsFunction()) {
-    LogDebugf(
-        "RecordStorageUsage: %s.storIncr is not a "
-        "Function, instruction_count.js may not be called before execution.",
-        sInstructionCounter);
-    return;
-  }
-
-  Local<Function> stor_incr_func = Local<Function>::Cast(prop);
-  Local<Value> argv[2];
-  argv[0] = Number::New(isolate, key_length);
-  argv[1] = Number::New(isolate, value_length);
-  stor_incr_func->Call(context, counter, 2, argv);
-}
-
-void RecordEventUsage(Isolate *isolate, Local<Context> context,
-                      size_t msg_length) {
-  Local<Object> global = context->Global();
-  HandleScope handle_scope(isolate);
-
-  Local<Object> counter = Local<Object>::Cast(
-      global->Get(String::NewFromUtf8(isolate, sInstructionCounter)));
-
-  Local<Value> prop = counter->Get(String::NewFromUtf8(isolate, "eventIncr"));
-  if (!prop->IsFunction()) {
-    LogDebugf(
-        "RecordEventUsage: %s.eventIncr is not a "
-        "Function, instruction_count.js may not be called before execution.",
-        sInstructionCounter);
-    return;
-  }
-
-  Local<Function> event_incr_func = Local<Function>::Cast(prop);
-  Local<Value> argv[1];
-  argv[0] = Number::New(isolate, msg_length);
-  event_incr_func->Call(context, counter, 1, argv);
 }

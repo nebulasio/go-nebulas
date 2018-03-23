@@ -56,14 +56,19 @@ func hashStorageKey(key string) []byte {
 
 // StorageGetFunc export StorageGetFunc
 //export StorageGetFunc
-func StorageGetFunc(handler unsafe.Pointer, key *C.char) *C.char {
+func StorageGetFunc(handler unsafe.Pointer, key *C.char, gasCnt *C.size_t) *C.char {
 	_, storage := getEngineByStorageHandler(uint64(uintptr(handler)))
 	if storage == nil {
 		logging.VLog().Error("get storage failed!")
 		return nil
 	}
 
-	val, err := storage.Get([]byte(hashStorageKey(C.GoString(key))))
+	k := C.GoString(key)
+
+	// calculate Gas.
+	*gasCnt = C.size_t(0)
+
+	val, err := storage.Get([]byte(hashStorageKey(k)))
 	if err != nil {
 		if err != ErrKeyNotFound {
 			logging.VLog().WithFields(logrus.Fields{
@@ -80,13 +85,19 @@ func StorageGetFunc(handler unsafe.Pointer, key *C.char) *C.char {
 
 // StoragePutFunc export StoragePutFunc
 //export StoragePutFunc
-func StoragePutFunc(handler unsafe.Pointer, key *C.char, value *C.char) int {
+func StoragePutFunc(handler unsafe.Pointer, key *C.char, value *C.char, gasCnt *C.size_t) int {
 	_, storage := getEngineByStorageHandler(uint64(uintptr(handler)))
 	if storage == nil {
 		return 1
 	}
 
-	err := storage.Put([]byte(hashStorageKey(C.GoString(key))), []byte(C.GoString(value)))
+	k := C.GoString(key)
+	v := []byte(C.GoString(value))
+
+	// calculate Gas.
+	*gasCnt = C.size_t(len(k) + len(v))
+
+	err := storage.Put([]byte(hashStorageKey(k)), v)
 	if err != nil && err != ErrKeyNotFound {
 		logging.VLog().WithFields(logrus.Fields{
 			"handler": uint64(uintptr(handler)),
@@ -100,14 +111,18 @@ func StoragePutFunc(handler unsafe.Pointer, key *C.char, value *C.char) int {
 
 // StorageDelFunc export StorageDelFunc
 //export StorageDelFunc
-func StorageDelFunc(handler unsafe.Pointer, key *C.char) int {
+func StorageDelFunc(handler unsafe.Pointer, key *C.char, gasCnt *C.size_t) int {
 	_, storage := getEngineByStorageHandler(uint64(uintptr(handler)))
 	if storage == nil {
 		return 1
 	}
 
-	err := storage.Del([]byte(hashStorageKey(C.GoString(key))))
+	k := C.GoString(key)
 
+	// calculate Gas.
+	*gasCnt = C.size_t(0)
+
+	err := storage.Del([]byte(hashStorageKey(k)))
 	if err != nil && err != ErrKeyNotFound {
 		logging.VLog().WithFields(logrus.Fields{
 			"handler": uint64(uintptr(handler)),

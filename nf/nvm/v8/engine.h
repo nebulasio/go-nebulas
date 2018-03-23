@@ -47,14 +47,16 @@ EXPORT void InitializeLogger(LogFunc f);
 
 // event.
 typedef void (*EventTriggerFunc)(void *handler, const char *topic,
-                                 const char *data);
+                                 const char *data, size_t *counterVal);
 EXPORT void InitializeEvent(EventTriggerFunc trigger);
 
 // storage
-typedef char *(*StorageGetFunc)(void *handler, const char *key);
-typedef int (*StoragePutFunc)(void *handler, const char *key,
-                              const char *value);
-typedef int (*StorageDelFunc)(void *handler, const char *key);
+typedef char *(*StorageGetFunc)(void *handler, const char *key,
+                                size_t *counterVal);
+typedef int (*StoragePutFunc)(void *handler, const char *key, const char *value,
+                              size_t *counterVal);
+typedef int (*StorageDelFunc)(void *handler, const char *key,
+                              size_t *counterVal);
 EXPORT void InitializeStorage(StorageGetFunc get, StoragePutFunc put,
                               StorageDelFunc del);
 

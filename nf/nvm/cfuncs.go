@@ -28,9 +28,9 @@ void V8Log(int level, const char *msg);
 char *RequireDelegateFunc(void *handler, const char *filename, size_t *lineOffset);
 
 // storage.
-char *StorageGetFunc(void *handler, const char *key);
-int StoragePutFunc(void *handler, const char *key, const char *value);
-int StorageDelFunc(void *handler, const char *key);
+char *StorageGetFunc(void *handler, const char *key, size_t *gasCnt);
+int StoragePutFunc(void *handler, const char *key, const char *value, size_t *gasCnt);
+int StorageDelFunc(void *handler, const char *key, size_t *gasCnt);
 
 // blockchain.
 char *GetTxByHashFunc(void *handler, const char *hash);
@@ -39,7 +39,7 @@ int TransferFunc(void *handler, const char *to, const char *value);
 int VerifyAddressFunc(void *handler, const char *address);
 
 // event.
-void EventTriggerFunc(void *handler, const char *topic, const char *data);
+void EventTriggerFunc(void *handler, const char *topic, const char *data, size_t *gasCnt);
 
 // The gateway functions.
 void V8Log_cgo(int level, const char *msg) {
@@ -50,14 +50,14 @@ char *RequireDelegateFunc_cgo(void *handler, const char *filename, size_t *lineO
 	return RequireDelegateFunc(handler, filename, lineOffset);
 }
 
-char *StorageGetFunc_cgo(void *handler, const char *key) {
-	return StorageGetFunc(handler, key);
+char *StorageGetFunc_cgo(void *handler, const char *key, size_t *gasCnt) {
+	return StorageGetFunc(handler, key, gasCnt);
 };
-int StoragePutFunc_cgo(void *handler, const char *key, const char *value) {
-	return StoragePutFunc(handler, key, value);
+int StoragePutFunc_cgo(void *handler, const char *key, const char *value, size_t *gasCnt) {
+	return StoragePutFunc(handler, key, value, gasCnt);
 };
-int StorageDelFunc_cgo(void *handler, const char *key) {
-	return StorageDelFunc(handler, key);
+int StorageDelFunc_cgo(void *handler, const char *key, size_t *gasCnt) {
+	return StorageDelFunc(handler, key, gasCnt);
 };
 
 char *GetTxByHashFunc_cgo(void *handler, const char *hash) {
@@ -73,8 +73,8 @@ int VerifyAddressFunc_cgo(void *handler, const char *address) {
 	return VerifyAddressFunc(handler, address);
 };
 
-void EventTriggerFunc_cgo(void *handler, const char *topic, const char *data) {
-	EventTriggerFunc(handler, topic, data);
+void EventTriggerFunc_cgo(void *handler, const char *topic, const char *data, size_t *gasCnt) {
+	EventTriggerFunc(handler, topic, data, gasCnt);
 };
 
 */

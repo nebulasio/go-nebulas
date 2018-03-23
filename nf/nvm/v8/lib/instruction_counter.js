@@ -55,19 +55,6 @@ function traverse(object, visitor, master, injection_context_from_parent) {
     }
 };
 
-// calculate and record the storage usage.
-var storIncrFunc = function (key_len, value_len) {
-    var incr_val = Math.ceil(key_len + value_len);
-    _instruction_counter.incr(incr_val);
-};
-
-// calculate and record the event usage.
-var eventIncrFunc = function (data_len) {
-    const EVENT_INCR = 20;
-    var incr_val = Math.ceil(data_len) + EVENT_INCR;
-    _instruction_counter.incr(incr_val);
-};
-
 // key is the Expression, value is the count of instruction of the Expression.
 const TrackingExpressions = {
     CallExpression: 8,
@@ -99,10 +86,6 @@ const InjectionType = {
 };
 
 const InjectionCodeGenerators = {
-    StorageAndEventUsageFunc: function () {
-        return "_instruction_counter.storIncr = " + storIncrFunc.toString() + ";\n" +
-            "_instruction_counter.eventIncr = " + eventIncrFunc.toString() + ";\n";
-    },
     CounterIncrFunc: function (value) {
         return "_instruction_counter.incr(" + value + ");";
     },
@@ -182,17 +165,9 @@ function processScript(source, strictDisallowUsage) {
         loc: true
     });
 
-    var setStorageAndEventUsageFuncInjection = false;
     var source_line_offset = 0;
 
     traverse(ast, function (node, parents, injection_context_from_parent) {
-        // get the ast begin offset, after comments before first statement.
-        if (!setStorageAndEventUsageFuncInjection) {
-            source_line_offset = -9;
-            record_injection(node.range[0], 0, InjectionCodeGenerators.StorageAndEventUsageFunc);
-            setStorageAndEventUsageFuncInjection = true;
-        }
-
         // throw error when "_instruction_counter" was redefined in source.
         disallowRedefineOfInstructionCounter(node, parents, strictDisallowUsage);
 
