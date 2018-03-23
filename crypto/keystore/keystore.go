@@ -69,7 +69,12 @@ type Keystore struct {
 
 // NewKeystore new
 func NewKeystore() *Keystore {
+
 	ks := &Keystore{}
+
+	ks.mu.Lock()
+	defer ks.mu.Unlock()
+
 	ks.unlocked = []unlocked{}
 	ks.p = NewMemoryProvider(1.0, SCRYPT)
 	return ks
@@ -77,6 +82,9 @@ func NewKeystore() *Keystore {
 
 // Aliases lists all the alias names of this keystore.
 func (ks *Keystore) Aliases() []string {
+	ks.mu.Lock()
+	defer ks.mu.Unlock()
+
 	return ks.p.Aliases()
 }
 
@@ -85,17 +93,22 @@ func (ks *Keystore) ContainsAlias(a string) (bool, error) {
 	if ks.p == nil {
 		return false, ErrUninitialized
 	}
+
+	ks.mu.Lock()
+	defer ks.mu.Unlock()
+
 	return ks.p.ContainsAlias(a)
 }
 
 // Unlock unlock key with ProtectionParameter
 func (ks *Keystore) Unlock(alias string, passphrase []byte, timeout time.Duration) error {
+	ks.mu.Lock()
+	defer ks.mu.Unlock()
+
 	key, err := ks.p.GetKey(alias, passphrase)
 	if err != nil {
 		return err
 	}
-	ks.mu.Lock()
-	defer ks.mu.Unlock()
 
 	hasUnlocked := false
 	for _, u := range ks.unlocked {
@@ -116,9 +129,9 @@ func (ks *Keystore) Unlock(alias string, passphrase []byte, timeout time.Duratio
 
 // Lock lock key
 func (ks *Keystore) Lock(alias string) error {
-
 	ks.mu.Lock()
 	defer ks.mu.Unlock()
+
 	for _, u := range ks.unlocked {
 		if u.alias == alias {
 			u.timer.Reset(time.Duration(0) * time.Nanosecond)
@@ -162,6 +175,10 @@ func (ks *Keystore) GetUnlocked(alias string) (Key, error) {
 	if len(alias) == 0 {
 		return nil, ErrNeedAlias
 	}
+
+	ks.mu.Lock()
+	defer ks.mu.Unlock()
+
 	for _, u := range ks.unlocked { // TODO why not map
 		if u.alias == alias {
 			return u.key, nil
@@ -175,16 +192,22 @@ func (ks *Keystore) SetKey(a string, k Key, passphrase []byte) error {
 	if ks.p == nil {
 		return ErrUninitialized
 	}
+
 	ks.mu.RLock()
 	defer ks.mu.RUnlock()
+
 	return ks.p.SetKey(a, k, passphrase)
 }
 
 // GetKeyByIndex returns the key associated with the given index in unlocked
 func (ks *Keystore) GetKeyByIndex(idx int) (string, Key, error) {
+	ks.mu.RLock()
+	defer ks.mu.RUnlock()
+
 	if idx < 0 || idx >= len(ks.unlocked) {
 		return "", nil, ErrNotUnlocked
 	}
+
 	u := ks.unlocked[idx]
 	return u.alias, u.key, nil
 }
@@ -195,6 +218,10 @@ func (ks *Keystore) GetKey(a string, passphrase []byte) (Key, error) {
 	if ks.p == nil {
 		return nil, ErrUninitialized
 	}
+
+	ks.mu.RLock()
+	defer ks.mu.RUnlock()
+
 	key, err := ks.p.GetKey(a, passphrase)
 	if err != nil {
 		return nil, err
@@ -207,6 +234,10 @@ func (ks *Keystore) Delete(a string, passphrase []byte) error {
 	if ks.p == nil {
 		return ErrUninitialized
 	}
+
+	ks.mu.Lock()
+	defer ks.mu.Unlock()
+
 	key, err := ks.p.GetKey(a, passphrase)
 	if err != nil {
 		return err
