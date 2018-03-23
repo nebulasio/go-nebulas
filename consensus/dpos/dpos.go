@@ -298,20 +298,20 @@ func (dpos *Dpos) ResumeMining() {
 }
 
 func verifyBlockSign(miner *core.Address, block *core.Block) error { // TODO rename miner
-	addr, err := core.RecoverMiner(block)
+	signer, err := core.RecoverSignerFromSignature(block.Alg(), block.Hash(), block.Signature())
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
-			"address": addr,
-			"err":     err,
-			"block":   block,
+			"signer": signer,
+			"err":    err,
+			"block":  block,
 		}).Error("Failed to recover block's miner.")
 		return err
 	}
-	if !miner.Equals(addr) {
+	if !miner.Equals(signer) {
 		logging.CLog().WithFields(logrus.Fields{
-			"address": addr,
-			"miner":   miner,
-			"block":   block,
+			"signer": signer,
+			"miner":  miner,
+			"block":  block,
 		}).Debug("Failed to verify block's sign.")
 		return ErrInvalidBlockProposer
 	}

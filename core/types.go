@@ -92,6 +92,8 @@ var (
 	ErrGasLimitLessOrEqualToZero          = errors.New("gas limit less or equal to 0")
 	ErrOutOfGasLimit                      = errors.New("out of gas limit")
 	ErrTxExecutionFailed                  = errors.New("transaction execution failed")
+	ErrZeroGasPrice                       = errors.New("gas price should be greater than zero")
+	ErrZeroGasLimit                       = errors.New("gas limit should be greater than zero")
 	ErrContractDeployFailed               = errors.New("contract deploy failed")
 	ErrContractCheckFailed                = errors.New("contract check failed")
 	ErrContractTransactionAddressNotEqual = errors.New("contract transaction from-address not equal to to-address")

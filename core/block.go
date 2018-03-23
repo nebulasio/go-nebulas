@@ -30,7 +30,6 @@ import (
 	"github.com/nebulasio/go-nebulas/consensus/pb"
 	"github.com/nebulasio/go-nebulas/core/pb"
 	"github.com/nebulasio/go-nebulas/core/state"
-	"github.com/nebulasio/go-nebulas/crypto"
 	"github.com/nebulasio/go-nebulas/crypto/keystore"
 	"github.com/nebulasio/go-nebulas/storage"
 	"github.com/nebulasio/go-nebulas/util"
@@ -1109,27 +1108,6 @@ func HashPbBlock(pbBlock *corepb.Block) (byteutils.Hash, error) {
 		return nil, err
 	}
 	return block.Hash(), nil
-}
-
-// RecoverMiner return miner from block
-func RecoverMiner(block *Block) (*Address, error) { // TODO move to core/crypto.go. same as Transaction.Verify
-	signature, err := crypto.NewSignature(keystore.Algorithm(block.Alg()))
-	if err != nil {
-		return nil, err
-	}
-	pub, err := signature.RecoverPublic(block.Hash(), block.Signature())
-	if err != nil {
-		return nil, err
-	}
-	pubdata, err := pub.Encoded()
-	if err != nil {
-		return nil, err
-	}
-	addr, err := NewAddressFromPublicKey(pubdata)
-	if err != nil {
-		return nil, err
-	}
-	return addr, nil
 }
 
 // LoadBlockFromStorage return a block from storage

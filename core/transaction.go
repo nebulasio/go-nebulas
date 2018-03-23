@@ -23,13 +23,14 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/nebulasio/go-nebulas/crypto/sha3"
+
 	"github.com/nebulasio/go-nebulas/core/state"
 
 	"encoding/json"
 
 	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/core/pb"
-	"github.com/nebulasio/go-nebulas/crypto"
 	"github.com/nebulasio/go-nebulas/crypto/hash"
 	"github.com/nebulasio/go-nebulas/crypto/keystore"
 	"github.com/nebulasio/go-nebulas/util"
@@ -235,12 +236,11 @@ type Transactions []*Transaction
 
 // NewTransaction create #Transaction instance.
 func NewTransaction(chainID uint32, from, to *Address, value *util.Uint128, nonce uint64, payloadType string, payload []byte, gasPrice *util.Uint128, gasLimit *util.Uint128) (*Transaction, error) {
-	//if gasPrice is not specified, use the default gasPrice
-	if gasPrice == nil || gasPrice.Cmp(util.NewUint128()) <= 0 { // TODO return error if gasPrice is zero
-		gasPrice = TransactionGasPrice
+	if gasPrice == nil || gasPrice.Cmp(util.NewUint128()) <= 0 {
+		return nil, ErrZeroGasPrice
 	}
-	if gasLimit == nil || gasLimit.Cmp(util.NewUint128()) <= 0 { // TODO return error if gasLimit is zero
-		gasLimit = MinGasCountPerTransaction
+	if gasLimit == nil || gasLimit.Cmp(util.NewUint128()) <= 0 {
+		return nil, ErrZeroGasLimit
 	}
 
 	if nil == from || nil == to || nil == value {
@@ -324,7 +324,7 @@ func (tx *Transaction) MinBalanceRequired() (*util.Uint128, error) { // TODO = g
 
 // GasCountOfTxBase calculate the actual amount for a tx with data
 func (tx *Transaction) GasCountOfTxBase() (*util.Uint128, error) {
-	txGas := MinGasCountPerTransaction.DeepCopy() // TODO immuttable, don't need copy
+	txGas := MinGasCountPerTransaction
 	if tx.DataLen() > 0 {
 		dataLen, err := util.NewUint128FromInt(int64(tx.DataLen()))
 		if err != nil {
@@ -543,7 +543,7 @@ func (tx *Transaction) SimulateExecution(block *Block) (*util.Uint128, string, e
 	tx.gasLimit = TransactionMaxGas
 
 	// hash is necessary in nvm
-	hash, err := HashTransaction(tx)
+	hash, err := tx.calHash()
 	if err != nil {
 		return nil, "", nil, err
 	}
@@ -719,7 +719,7 @@ func (tx *Transaction) Sign(signature keystore.Signature) error {
 	if signature == nil {
 		return ErrNilArgument
 	}
-	hash, err := HashTransaction(tx)
+	hash, err := tx.calHash()
 	if err != nil {
 		return err
 	}
@@ -741,7 +741,7 @@ func (tx *Transaction) VerifyIntegrity(chainID uint32) error {
 	}
 
 	// check Hash.
-	wantedHash, err := HashTransaction(tx)
+	wantedHash, err := tx.calHash()
 	if err != nil {
 		return err
 	}
@@ -755,26 +755,14 @@ func (tx *Transaction) VerifyIntegrity(chainID uint32) error {
 }
 
 func (tx *Transaction) verifySign() error { // TODO move to core/crypto.go.
-	signature, err := crypto.NewSignature(tx.alg)
+	signer, err := RecoverSignerFromSignature(tx.alg, tx.hash, tx.sign)
 	if err != nil {
 		return err
 	}
-	pub, err := signature.RecoverPublic(tx.hash, tx.sign)
-	if err != nil {
-		return err
-	}
-	pubdata, err := pub.Encoded()
-	if err != nil {
-		return err
-	}
-	addr, err := NewAddressFromPublicKey(pubdata)
-	if err != nil {
-		return err
-	}
-	if !tx.from.Equals(addr) {
+	if !tx.from.Equals(signer) {
 		logging.VLog().WithFields(logrus.Fields{
-			"recover address": addr.String(),
-			"tx":              tx,
+			"signer":  signer.String(),
+			"tx.from": tx.from,
 		}).Debug("Failed to verify tx's sign.")
 		return ErrInvalidTransactionSigner
 	}
@@ -810,7 +798,9 @@ func CheckContract(addr *Address, ws WorldState) (state.Account, error) {
 
 		if v.Topic == TopicTransactionExecutionResult { // TODO use the last event
 			txEvent := TransactionEvent{}
-			json.Unmarshal([]byte(v.Data), &txEvent) // TODO catch error
+			if err := json.Unmarshal([]byte(v.Data), &txEvent); err != nil {
+				return nil, err
+			}
 			if txEvent.Status == TxExecutionSuccess {
 				result = true
 				break
@@ -895,7 +885,9 @@ func GetTransaction(hash byteutils.Hash, ws WorldState) (*Transaction, error) {
 }
 
 // HashTransaction hash the transaction.
-func HashTransaction(tx *Transaction) (byteutils.Hash, error) { // TODO inter function
+func (tx *Transaction) calHash() (byteutils.Hash, error) {
+	hasher := sha3.New256()
+
 	value, err := tx.value.ToFixedSizeByteSlice()
 	if err != nil {
 		return nil, err
@@ -912,15 +904,16 @@ func HashTransaction(tx *Transaction) (byteutils.Hash, error) { // TODO inter fu
 	if err != nil {
 		return nil, err
 	}
-	return hash.Sha3256( // TODO use write & sum(nil)
-		tx.from.address,
-		tx.to.address,
-		value,
-		byteutils.FromUint64(tx.nonce),
-		byteutils.FromInt64(tx.timestamp),
-		data,
-		byteutils.FromUint32(tx.chainID),
-		gasPrice,
-		gasLimit,
-	), nil
+
+	hasher.Write(tx.from.address)
+	hasher.Write(tx.to.address)
+	hasher.Write(value)
+	hasher.Write(byteutils.FromUint64(tx.nonce))
+	hasher.Write(byteutils.FromInt64(tx.timestamp))
+	hasher.Write(data)
+	hasher.Write(byteutils.FromUint32(tx.chainID))
+	hasher.Write(gasPrice)
+	hasher.Write(gasLimit)
+
+	return hasher.Sum(nil), nil
 }
