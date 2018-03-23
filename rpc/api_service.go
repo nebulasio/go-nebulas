@@ -393,7 +393,10 @@ func (s *APIService) GetTransactionReceipt(ctx context.Context, req *rpcpb.GetTr
 	if err != nil {
 		return nil, err
 	}
-	tx := neb.BlockChain().GetTransaction(hash)
+	tx, err := neb.BlockChain().GetTransaction(hash)
+	if err != nil {
+		return nil, err
+	}
 
 	// if tx is nil, check it in transaction pool.
 	if tx == nil {

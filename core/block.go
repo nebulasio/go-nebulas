@@ -711,14 +711,14 @@ func (block *Block) Seal() error {
 	block.header.eventsRoot = block.WorldState().EventsRoot()
 	block.header.consensusRoot = block.WorldState().ConsensusRoot()
 
-	var err error
-	block.header.hash, err = HashBlock(block)
+	hash, err := block.calHash()
 	if err != nil {
 		return err
 	}
+	block.header.hash = hash
 	block.sealed = true
 
-	logging.VLog().WithFields(logrus.Fields{
+	logging.CLog().WithFields(logrus.Fields{
 		"block": block,
 	}).Info("Sealed Block.")
 
@@ -803,21 +803,6 @@ func (block *Block) VerifyIntegrity(chainID uint32, consensus Consensus) error {
 		return ErrInvalidChainID
 	}
 
-	// verify block hash.
-	wantedHash, err := HashBlock(block)
-	if err != nil {
-		return err
-	}
-	if !wantedHash.Equals(block.Hash()) {
-		logging.VLog().WithFields(logrus.Fields{
-			"expect": wantedHash,
-			"actual": block.Hash(),
-			"err":    err,
-		}).Debug("Failed to check block's hash.")
-		metricsInvalidBlock.Inc(1)
-		return ErrInvalidBlockHash
-	}
-
 	// verify transactions integrity.
 	for _, tx := range block.transactions {
 		if err := tx.VerifyIntegrity(block.header.chainID); err != nil {
@@ -828,6 +813,22 @@ func (block *Block) VerifyIntegrity(chainID uint32, consensus Consensus) error {
 			metricsInvalidBlock.Inc(1)
 			return err
 		}
+	}
+
+	// verify block hash.
+	wantedHash, err := block.calHash()
+	if err != nil {
+		return err
+	}
+	logging.CLog().Info("Hash ", wantedHash.Equals(block.Hash()), wantedHash, block.Hash())
+	if !wantedHash.Equals(block.Hash()) {
+		logging.VLog().WithFields(logrus.Fields{
+			"expect": wantedHash,
+			"actual": block.Hash(),
+			"err":    err,
+		}).Debug("Failed to check block's hash.")
+		metricsInvalidBlock.Inc(1)
+		return ErrInvalidBlockHash
 	}
 
 	// verify the block is acceptable by consensus.
@@ -1048,8 +1049,8 @@ func (block *Block) GetTransaction(hash byteutils.Hash) (*Transaction, error) {
 	return GetTransaction(hash, worldState)
 }
 
-// HashBlock return the hash of block.
-func HashBlock(block *Block) (byteutils.Hash, error) { // TODO inter function
+// CalHash calculate the hash of block.
+func (block *Block) calHash() (byteutils.Hash, error) {
 	hasher := sha3.New256()
 
 	consensusRoot, err := proto.Marshal(block.ConsensusRoot())
@@ -1057,11 +1058,21 @@ func HashBlock(block *Block) (byteutils.Hash, error) { // TODO inter function
 		return nil, err
 	}
 
+	/* 	pbDep, err := block.dependency.ToProto() // TODO recover
+	   	if err != nil {
+	   		return nil, err
+	   	}
+	   	dependency, err := proto.Marshal(pbDep)
+	   	if err != nil {
+	   		return nil, err
+	   	} */
+
 	hasher.Write(block.ParentHash())
 	hasher.Write(block.StateRoot())
 	hasher.Write(block.TxsRoot())
 	hasher.Write(block.EventsRoot())
 	hasher.Write(consensusRoot)
+	// hasher.Write(dependency)
 	hasher.Write(block.header.coinbase.address)
 	hasher.Write(byteutils.FromInt64(block.header.timestamp))
 	hasher.Write(byteutils.FromUint32(block.header.chainID))
@@ -1074,28 +1085,12 @@ func HashBlock(block *Block) (byteutils.Hash, error) { // TODO inter function
 }
 
 // HashPbBlock return the hash of pb block.
-func HashPbBlock(pbBlock *corepb.Block) (byteutils.Hash, error) { // TODO nil check
-	hasher := sha3.New256()
-
-	consensusRoot, err := proto.Marshal(pbBlock.Header.ConsensusRoot)
-	if err != nil {
+func HashPbBlock(pbBlock *corepb.Block) (byteutils.Hash, error) {
+	block := new(Block)
+	if err := block.FromProto(pbBlock); err != nil {
 		return nil, err
 	}
-
-	hasher.Write(pbBlock.Header.ParentHash) // TODO check header isn't nil
-	hasher.Write(pbBlock.Header.StateRoot)
-	hasher.Write(pbBlock.Header.TxsRoot)
-	hasher.Write(pbBlock.Header.EventsRoot)
-	hasher.Write(consensusRoot)
-	hasher.Write(pbBlock.Header.Coinbase)
-	hasher.Write(byteutils.FromInt64(pbBlock.Header.Timestamp))
-	hasher.Write(byteutils.FromUint32(pbBlock.Header.ChainId))
-
-	for _, tx := range pbBlock.Transactions {
-		hasher.Write(tx.Hash)
-	}
-
-	return hasher.Sum(nil), nil
+	return block.Hash(), nil
 }
 
 // RecoverMiner return miner from block

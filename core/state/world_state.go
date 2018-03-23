@@ -77,7 +77,7 @@ func newStates(consensus Consensus, stor storage.Storage) (*states, error) {
 		return nil, err
 	}
 
-	accState, err := NewAccountState(nil, storage, false)
+	accState, err := NewAccountState(nil, storage)
 	if err != nil {
 		return nil, err
 	}
@@ -189,7 +189,7 @@ func (s *states) Clone() (*states, error) {
 		return nil, err
 	}
 
-	accState, err := NewAccountState(s.accState.RootHash(), storage, false)
+	accState, err := NewAccountState(s.accState.RootHash(), storage)
 	if err != nil {
 		logging.CLog().Info("CE 3")
 		return nil, err
@@ -291,7 +291,7 @@ func (s *states) Prepare(txid interface{}) (*states, error) {
 		return nil, err
 	}
 
-	accState, err := NewAccountState(s.AccountsRoot(), storage, true)
+	accState, err := NewAccountState(s.AccountsRoot(), storage)
 	if err != nil {
 		return nil, err
 	}
@@ -553,7 +553,7 @@ func (s *states) Accounts() ([]Account, error) { // TODO delete
 }
 
 func (s *states) LoadAccountsRoot(root byteutils.Hash) error {
-	accState, err := NewAccountState(root, s.storage, false)
+	accState, err := NewAccountState(root, s.storage)
 	if err != nil {
 		return err
 	}

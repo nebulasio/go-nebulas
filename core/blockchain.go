@@ -291,24 +291,37 @@ func (bc *BlockChain) EventEmitter() *EventEmitter {
 	return bc.eventEmitter
 }
 
+func (bc *BlockChain) triggerRevertBlockEvent(blocks []string) {
+	for i := len(blocks) - 1; i >= 0; i-- {
+		bc.eventEmitter.Trigger(&state.Event{
+			Topic: TopicRevertBlock,
+			Data:  blocks[i],
+		})
+	}
+}
+
 func (bc *BlockChain) revertBlocks(from *Block, to *Block) error {
 	reverted := to
 	var revertTimes int64
+	blocks := []string{}
 	for revertTimes = 0; !reverted.Hash().Equals(from.Hash()); {
 		if reverted.Hash().Equals(bc.lib.Hash()) {
 			return ErrCannotRevertLIB
 		}
+
 		reverted.ReturnTransactions()
 		logging.VLog().WithFields(logrus.Fields{
 			"block": reverted,
 		}).Warn("A block is reverted.")
 		revertTimes++
+		blocks = append(blocks, reverted.String())
 
 		reverted = bc.GetBlock(reverted.header.parentHash)
 		if reverted == nil {
 			return ErrMissingParentBlock
 		}
 	}
+	go bc.triggerRevertBlockEvent(blocks)
 	// record count of reverted blocks
 	if revertTimes > 0 {
 		metricsBlockRevertTimesGauge.Update(revertTimes)
@@ -323,18 +336,30 @@ func (bc *BlockChain) dropTxsInBlockFromTxPool(block *Block) {
 	}
 }
 
+func (bc *BlockChain) triggerNewTailEvent(blocks []string) {
+	for i := len(blocks) - 1; i >= 0; i-- {
+		bc.eventEmitter.Trigger(&state.Event{
+			Topic: TopicNewTailBlock,
+			Data:  blocks[i],
+		})
+	}
+}
+
 func (bc *BlockChain) buildIndexByBlockHeight(from *Block, to *Block) error {
+	blocks := []string{}
 	for !to.Hash().Equals(from.Hash()) {
 		err := bc.storage.Put(byteutils.FromUint64(to.height), to.Hash())
 		if err != nil {
 			return err
 		}
+		blocks = append(blocks, to.String())
 		go bc.dropTxsInBlockFromTxPool(to)
 		to = bc.GetBlock(to.header.parentHash)
 		if to == nil {
 			return ErrMissingParentBlock
 		}
 	}
+	go bc.triggerNewTailEvent(blocks)
 	return nil
 }
 
@@ -362,15 +387,8 @@ func (bc *BlockChain) SetTailBlock(newTail *Block) error {
 		return err
 	}
 
-	go func() { // TODO trigger event, from ancestor -> oldTail
-		bc.eventEmitter.Trigger(&state.Event{
-			Topic: TopicRevertBlock,
-			Data:  oldTail.String(),
-		})
-	}()
-
 	// build index by block height
-	if err := bc.buildIndexByBlockHeight(ancestor, newTail); err != nil { // TODO trigger events, from ancestor -> newtail
+	if err := bc.buildIndexByBlockHeight(ancestor, newTail); err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"from":  ancestor,
 			"to":    newTail,
@@ -591,7 +609,6 @@ func (bc *BlockChain) DetachedTailBlocks() []*Block {
 
 // GetBlock return block of given hash from local storage and detachedBlocks.
 func (bc *BlockChain) GetBlock(hash byteutils.Hash) *Block {
-	// TODO: get block from local storage.
 	v, _ := bc.cachedBlocks.Get(hash.Hex())
 	if v == nil {
 		block, err := LoadBlockFromStorage(hash, bc)
@@ -606,20 +623,24 @@ func (bc *BlockChain) GetBlock(hash byteutils.Hash) *Block {
 }
 
 // GetTransaction return transaction of given hash from local storage.
-func (bc *BlockChain) GetTransaction(hash byteutils.Hash) *Transaction {
-	// TODO: get transaction err handle.
-	tx, err := GetTransaction(hash, bc.TailBlock().WorldState()) // TODO clone
+func (bc *BlockChain) GetTransaction(hash byteutils.Hash) (*Transaction, error) {
+	worldState, err := bc.TailBlock().WorldState().Clone()
 	if err != nil {
-		return nil
+		return nil, err
 	}
-	return tx
+	tx, err := GetTransaction(hash, worldState)
+	if err != nil {
+		return nil, err
+	}
+	return tx, nil
 }
 
 // GasPrice returns the lowest transaction gas price.
 func (bc *BlockChain) GasPrice() *util.Uint128 {
 	gasPrice := TransactionMaxGasPrice
 	tailBlock := bc.TailBlock()
-	for { // TODO set limit, such as 128 blocks
+	// search latest block who has transactions, try 128 times at most
+	for i := 0; i < 128; i++ {
 		// if the block is genesis, stop find the parent block
 		if CheckGenesisBlock(tailBlock) {
 			break

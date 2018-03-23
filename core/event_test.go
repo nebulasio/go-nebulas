@@ -177,8 +177,6 @@ func TestEventEmitterWithRunningRegDereg(t *testing.T) {
 
 	wg.Wait()
 
-	// TODO(Leon): check result
-
 	emitter.Stop()
 	time.Sleep(time.Millisecond * 100)
 }

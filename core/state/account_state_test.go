@@ -45,7 +45,7 @@ func TestAccount_ToBytes(t *testing.T) {
 func TestAccountState(t *testing.T) {
 	stor, err := storage.NewMemoryStorage()
 	assert.Nil(t, err)
-	as, err := NewAccountState(nil, stor, false)
+	as, err := NewAccountState(nil, stor)
 	assert.Nil(t, err)
 	accAddr1 := []byte("accAddr1")
 	acc1, err := as.GetOrCreateUserAccount(accAddr1)
