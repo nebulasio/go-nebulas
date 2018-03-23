@@ -35,37 +35,41 @@ type Task struct {
 // Errors
 var (
 	ErrDagHasCirclular = errors.New("dag hava circlular")
+	ErrTimeout         = errors.New("dispatcher execute timeout")
 )
 
 // Dispatcher struct a message dispatcher dag.
 type Dispatcher struct {
-	concurrency int
-	cb          Callback
-	muTask      sync.Mutex
-	dag         *Dag
-	elapseInMs  int64
-	quitCh      chan bool
-	queueCh     chan *Node
-	taskCounter int
-	tasks       map[interface{}]*Task
-	cursor      int
-	err         error
-	context     interface{}
+	concurrency      int
+	cb               Callback
+	muTask           sync.Mutex
+	dag              *Dag
+	elapseInMs       int64
+	quitCh           chan bool
+	queueCh          chan *Node
+	tasks            map[interface{}]*Task
+	queueCounter     int
+	completedCounter int
+	isFinsih         bool
+	finishCH         chan bool
+	context          interface{}
 }
 
 // NewDispatcher create Dag Dispatcher instance.
 func NewDispatcher(dag *Dag, concurrency int, elapseInMs int64, context interface{}, cb Callback) *Dispatcher {
 	dp := &Dispatcher{
-		concurrency: concurrency,
-		elapseInMs:  elapseInMs,
-		dag:         dag,
-		cb:          cb,
-		tasks:       make(map[interface{}]*Task, 0), //TODO delete 0
-		taskCounter: 0,
-		quitCh:      make(chan bool, 2*concurrency), //TODO why 2*?
-		queueCh:     make(chan *Node, 10240),        //TODO size ?
-		cursor:      0,
-		context:     context,
+		concurrency:      concurrency,
+		elapseInMs:       elapseInMs,
+		dag:              dag,
+		cb:               cb,
+		tasks:            make(map[interface{}]*Task),
+		queueCounter:     0,
+		quitCh:           make(chan bool, concurrency),
+		queueCh:          make(chan *Node, dag.Len()),
+		completedCounter: 0,
+		finishCH:         make(chan bool, 1),
+		isFinsih:         false,
+		context:          context,
 	}
 	return dp
 }
@@ -87,21 +91,19 @@ func (dp *Dispatcher) Run() error {
 
 		if task.dependence == 0 {
 			rootCounter++
-			dp.push(node) //TODO dag size bigger queue size
+			dp.push(node)
 		}
 	}
+
 	if rootCounter == 0 && len(vertices) > 0 {
-		dp.err = ErrDagHasCirclular
-		return dp.err
+		return ErrDagHasCirclular
 	}
 
-	dp.loop() //TODO move head
-
-	return dp.err
+	return dp.execute()
 }
 
-// loop
-func (dp *Dispatcher) loop() { //TODO rename
+// execute callback
+func (dp *Dispatcher) execute() error {
 	logging.VLog().Debug("loop Dag Dispatcher.")
 
 	//timerChan := time.NewTicker(time.Second).C
@@ -110,58 +112,58 @@ func (dp *Dispatcher) loop() { //TODO rename
 		dp.concurrency = dp.dag.Len()
 	}
 	if dp.concurrency == 0 {
-		return
+		return nil
 	}
-	wg := new(sync.WaitGroup)
-	wg.Add(dp.concurrency)
 
-	for i := 0; i < dp.concurrency; i++ {
-		//logging.CLog().Info("loop Dag Dispatcher i:", i)
-		go func() {
-			defer wg.Done()
-			for {
-				select {
-				case <-dp.quitCh:
-					logging.VLog().Debug("Stoped Dag Dispatcher.")
-					return
-				case msg := <-dp.queueCh:
-					// callback todo
-					err := dp.cb(msg, dp.context)
+	var err error
+	go func() {
+		for i := 0; i < dp.concurrency; i++ {
+			go func() {
+				for {
+					select {
+					case <-dp.quitCh:
+						logging.VLog().Debug("Stoped Dag Dispatcher.")
+						return
+					case msg := <-dp.queueCh:
+						err = dp.cb(msg, dp.context)
 
-					if err != nil {
-						dp.err = err
-						dp.Stop()
-					} else {
-						err := dp.CompleteParentTask(msg)
 						if err != nil {
-							dp.err = err
 							dp.Stop()
+						} else {
+							isFinish, err := dp.onCompleteParentTask(msg)
+							if err != nil {
+								dp.Stop()
+							}
+							if isFinish {
+								dp.Stop()
+							}
 						}
 					}
 				}
-			}
-		}()
-	}
+			}()
+		}
 
-	if dp.elapseInMs > 0 { //TODO timeout add <- finishCH
-		go func() {
-			timerChan := time.NewTimer(time.Duration(dp.elapseInMs) * time.Millisecond)
+		if dp.elapseInMs > 0 {
+			deadlineTimer := time.NewTimer(time.Duration(dp.elapseInMs) * time.Millisecond)
+			<-deadlineTimer.C
+			err = ErrTimeout
+			dp.Stop()
+		}
+	}()
 
-			<-timerChan.C
-			if dp.cursor != dp.dag.Len() {
-				dp.err = errors.New("dag timeout")
-				dp.Stop()
-			}
-			return
-		}()
-	}
-
-	wg.Wait()
+	<-dp.finishCH
+	return err
 }
 
 // Stop stop goroutine.
-func (dp *Dispatcher) Stop() { //TODO add lock and flag
+func (dp *Dispatcher) Stop() {
 	logging.VLog().Debug("Stopping dag Dispatcher...")
+	dp.muTask.Lock()
+	defer dp.muTask.Unlock()
+	if dp.isFinsih {
+		return
+	}
+	dp.isFinsih = true
 
 	for i := 0; i < dp.concurrency; i++ {
 		select {
@@ -169,16 +171,17 @@ func (dp *Dispatcher) Stop() { //TODO add lock and flag
 		default:
 		}
 	}
+	dp.finishCH <- true
 }
 
 // push queue channel
 func (dp *Dispatcher) push(vertx *Node) {
-	dp.taskCounter++
+	dp.queueCounter++
 	dp.queueCh <- vertx
 }
 
 // CompleteParentTask completed parent tasks
-func (dp *Dispatcher) CompleteParentTask(node *Node) error {
+func (dp *Dispatcher) onCompleteParentTask(node *Node) (bool, error) {
 	dp.muTask.Lock()
 	defer dp.muTask.Unlock()
 
@@ -188,27 +191,26 @@ func (dp *Dispatcher) CompleteParentTask(node *Node) error {
 	for _, node := range vertices {
 		err := dp.updateDependenceTask(node.Key)
 		if err != nil {
-			return err
+			return false, err
 		}
 	}
 
-	dp.cursor++
+	dp.completedCounter++
 
-	if dp.cursor == dp.taskCounter {
-		if dp.taskCounter < dp.dag.Len() {
-			return ErrDagHasCirclular
+	if dp.completedCounter == dp.queueCounter {
+		if dp.queueCounter < dp.dag.Len() {
+			return false, ErrDagHasCirclular
 		}
-		dp.Stop()
+		return true, nil
 	}
 
-	return nil
+	return false, nil
 }
 
 // updateDependenceTask task counter
 func (dp *Dispatcher) updateDependenceTask(key interface{}) error {
 	if _, ok := dp.tasks[key]; ok {
 		dp.tasks[key].dependence--
-		//fmt.Println("Key:", key, " dependence:", dp.tasks[key].dependence)
 		if dp.tasks[key].dependence == 0 {
 			dp.push(dp.tasks[key].node)
 		}

@@ -14,6 +14,7 @@
 package dag
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"runtime"
@@ -105,7 +106,7 @@ func TestDispatcher_Start1(t *testing.T) {
 
 	fmt.Println("runtime.NumCPU():", runtime.NumCPU())
 	dp := NewDispatcher(dag, runtime.NumCPU(), 0, txs, func(node *Node, a interface{}) error {
-		fmt.Println("key:", node.Key, node.Index)
+		fmt.Println("dag Dispatcher key:", node.Key, node.Index)
 
 		if node.Key == 12 {
 			fmt.Println(a)
@@ -120,7 +121,7 @@ func TestDispatcher_Start1(t *testing.T) {
 	err = dp.Run()
 	assert.Nil(t, err)
 
-	dp1 := NewDispatcher(dag, runtime.NumCPU(), 0, txs, func(node *Node, a interface{}) error {
+	dp1 := NewDispatcher(dag, runtime.NumCPU(), 1, txs, func(node *Node, a interface{}) error {
 		fmt.Println("key:", node.Key, node.Index)
 
 		if node.Key == 12 {
@@ -134,7 +135,7 @@ func TestDispatcher_Start1(t *testing.T) {
 	})
 
 	err = dp1.Run()
-	assert.Nil(t, err)
+	assert.NotNil(t, err)
 
 	dag2 := NewDag()
 	dag2.AddNode("1")
@@ -151,7 +152,7 @@ func TestDispatcher_Start1(t *testing.T) {
 	dag.AddEdge("19", "16")
 
 	dp3 := NewDispatcher(dag, 8, 0, txs, func(node *Node, a interface{}) error {
-		return nil
+		return errors.New("test error")
 	})
 
 	err = dp3.Run()
