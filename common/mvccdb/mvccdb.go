@@ -22,11 +22,8 @@ import (
 	"errors"
 	"sync"
 
-	// s "github.com/rcrowley/go-metrics"
-
 	"github.com/nebulasio/go-nebulas/metrics"
 	"github.com/nebulasio/go-nebulas/storage"
-	// om/nebulasio/go-nebulas/util/logging"
 )
 
 // Errors
@@ -63,7 +60,6 @@ type MVCCDB struct {
 	parentDB                   *MVCCDB
 	isInTransaction            bool
 	isPreparedDB               bool
-	isDirtyDB                  bool // TODO delete
 	isPreparedDBClosed         bool
 	preparedDBs                map[interface{}]*MVCCDB
 	isTrieSameKeyCompatibility bool // The `isTrieSameKeyCompatibility` is used to prevent conflict in continuous changes with same key/value.
@@ -71,21 +67,19 @@ type MVCCDB struct {
 
 // NewMVCCDB create and return new MVCCDB. The `trieSameKeyCompatibility` is used to prevent conflict in continuous changes with same key/value.
 func NewMVCCDB(storage storage.Storage, trieSameKeyCompatibility bool) (*MVCCDB, error) {
+	tid := new(int)
+
 	db := &MVCCDB{
-		tid:                        nil,
+		tid:                        tid,
 		storage:                    storage,
-		stagingTable:               nil,
+		stagingTable:               NewStagingTable(storage, tid, trieSameKeyCompatibility),
 		parentDB:                   nil,
 		isInTransaction:            false,
 		isPreparedDB:               false,
-		isDirtyDB:                  false,
 		isPreparedDBClosed:         false,
 		preparedDBs:                make(map[interface{}]*MVCCDB),
 		isTrieSameKeyCompatibility: trieSameKeyCompatibility,
 	}
-
-	db.tid = storage // as a placeholder. // TODO move in &MVCCDB{}
-	db.stagingTable = NewStagingTable(storage, db.tid, trieSameKeyCompatibility)
 
 	return db, nil
 }
@@ -126,12 +120,6 @@ func (db *MVCCDB) Commit() error {
 		return ErrUnsupportedCommitInPreparedDB
 	}
 
-	if db.IsPreparedDBDirty() { // TODO delete
-		return ErrPreparedDBIsDirty
-	}
-
-	var retErr error
-
 	// commit.
 	db.stagingTable.Lock()
 
@@ -150,22 +138,28 @@ func (db *MVCCDB) Commit() error {
 		}
 
 		if value.deleted {
-			if db.isTrieSameKeyCompatibility == false { // TODO add comment, cannot del value in stateDB
-				err = db.delFromStorage(value.key) // ToCheck return err directly
+			// The delete opt of Trie is not `delete`, just flag to delete.
+			// So no delete when isTrieSameKeyCompatibility == true.
+			if db.isTrieSameKeyCompatibility == false {
+				err = db.delFromStorage(value.key)
 			}
 		} else {
 			err = db.putToStorage(value.key, value.val)
 		}
 
-		if err != nil && retErr == nil { // TODO DisableBatch & Unlock, then return error
-			retErr = err
+		if err != nil {
+			db.storage.DisableBatch()
+			db.stagingTable.Unlock()
+			return err
 		}
 	}
 
 	// flush and disable batch.
 	err = db.storage.Flush()
-	if err != nil && retErr == nil { // TODO DisableBatch & Unlock, then return error
-		retErr = err
+	if err != nil {
+		db.storage.DisableBatch()
+		db.stagingTable.Unlock()
+		return err
 	}
 
 	db.storage.DisableBatch()
@@ -173,20 +167,15 @@ func (db *MVCCDB) Commit() error {
 	// unlock.
 	db.stagingTable.Unlock()
 
-	if retErr != nil { // TODO delete
-		return retErr
-	}
-
-	// reset.
+	// Close child prepareDBs.
 	for _, pdb := range db.preparedDBs {
-		pdb.close()
+		pdb.doClose()
 	}
 	db.preparedDBs = make(map[interface{}]*MVCCDB)
 	db.stagingTable.Purge()
 
 	// done.
 	db.isInTransaction = false
-	db.isDirtyDB = false
 
 	return nil
 }
@@ -204,16 +193,15 @@ func (db *MVCCDB) RollBack() error {
 		return ErrUnsupportedRollBackInPreparedDB
 	}
 
-	// reset.
+	// Close.
 	for _, pdb := range db.preparedDBs {
-		pdb.close()
+		pdb.doClose()
 	}
 	db.preparedDBs = make(map[interface{}]*MVCCDB)
 	db.stagingTable.Purge()
 
 	// done.
 	db.isInTransaction = false
-	db.isDirtyDB = false
 
 	return nil
 }
@@ -261,14 +249,6 @@ func (db *MVCCDB) Put(key []byte, val []byte) error {
 	}
 
 	_, err := db.stagingTable.Put(key, val)
-	if err == nil {
-		db.isDirtyDB = true
-	}
-
-	// delta := time.Now().UnixNano() - s
-	// db.putLogs = append(db.putLogs, delta)
-	// db.putLatency.Update(delta)
-
 	return err
 }
 
@@ -286,9 +266,6 @@ func (db *MVCCDB) Del(key []byte) error {
 	}
 
 	_, err := db.stagingTable.Del(key)
-	if err == nil {
-		db.isDirtyDB = true
-	}
 	return err
 }
 
@@ -321,7 +298,6 @@ func (db *MVCCDB) Prepare(tid interface{}) (*MVCCDB, error) {
 		parentDB:                   db,
 		isInTransaction:            true,
 		isPreparedDB:               true,
-		isDirtyDB:                  false,
 		isPreparedDBClosed:         false,
 		preparedDBs:                make(map[interface{}]*MVCCDB),
 		isTrieSameKeyCompatibility: db.isTrieSameKeyCompatibility,
@@ -351,8 +327,6 @@ func (db *MVCCDB) CheckAndUpdate() ([]interface{}, error) {
 	ret, err := db.stagingTable.MergeToParent()
 
 	if err == nil {
-		db.isDirtyDB = false
-
 		// cleanup.
 		db.stagingTable.Purge()
 	}
@@ -398,12 +372,21 @@ func (db *MVCCDB) Reset() error {
 
 	db.stagingTable.Purge()
 
-	db.isDirtyDB = false
-
 	return nil
 }
 
-func (db *MVCCDB) close() error {
+// Close close prepared DB.
+func (db *MVCCDB) Close() error {
+	db.parentDB.mutex.Lock()
+	defer db.parentDB.mutex.Unlock()
+
+	return db.doClose()
+}
+
+func (db *MVCCDB) doClose() error {
+	db.mutex.Lock()
+	defer db.mutex.Unlock()
+
 	if !db.isInTransaction {
 		return ErrTransactionNotStarted
 	}
@@ -416,9 +399,9 @@ func (db *MVCCDB) close() error {
 		return ErrPreparedDBIsClosed
 	}
 
-	// close.
+	// Close.
 	for _, pdb := range db.preparedDBs {
-		pdb.close() // TODO check again, lock preparedDB
+		pdb.doClose()
 	}
 	db.preparedDBs = make(map[interface{}]*MVCCDB)
 
@@ -427,32 +410,13 @@ func (db *MVCCDB) close() error {
 		return err
 	}
 	db.stagingTable.Purge()
-	db.isDirtyDB = false
 
-	delete(db.parentDB.preparedDBs, db.tid) // TODO add comment, detach
+	// detach from parent.
+	delete(db.parentDB.preparedDBs, db.tid)
 	db.parentDB = nil
 	db.isPreparedDBClosed = true
 
 	return nil
-}
-
-// Close close prepared DB.
-func (db *MVCCDB) Close() error {
-	db.parentDB.mutex.Lock()
-	defer db.parentDB.mutex.Unlock()
-
-	return db.close()
-}
-
-// IsPreparedDBDirty is prepared db dirty
-func (db *MVCCDB) IsPreparedDBDirty() bool {
-	for _, pdb := range db.preparedDBs {
-		if pdb.IsPreparedDBDirty() {
-			return true
-		}
-	}
-
-	return false
 }
 
 // GetParentDB return the root db.

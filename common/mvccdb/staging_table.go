@@ -120,7 +120,7 @@ func (tbl *StagingTable) Get(key []byte) (*VersionizedValueItem, error) {
 // GetByKey return value by key. If key does not exist, copy and incr version from `parentStagingTable` to record previous version.
 func (tbl *StagingTable) GetByKey(key []byte, loadFromStorage bool) (*VersionizedValueItem, error) {
 	// double check lock to prevent dead lock while call MergeToParent().
-	tbl.mutex.Lock() // TODO defer Unlock
+	tbl.mutex.Lock()
 	keyStr := byteutils.Hex(key)
 	value := tbl.versionizedValues[keyStr]
 	tbl.mutex.Unlock()
@@ -138,7 +138,7 @@ func (tbl *StagingTable) GetByKey(key []byte, loadFromStorage bool) (*Versionize
 				return nil, ErrStagingTableKeyConfliction
 			}
 
-			value = IncrVersionizedValueItem(tbl.tid, value)
+			value = CloneVersionizedValueItem(tbl.tid, value)
 
 		} else {
 			if loadFromStorage {
@@ -153,10 +153,10 @@ func (tbl *StagingTable) GetByKey(key []byte, loadFromStorage bool) (*Versionize
 		}
 
 		// lock and check again.
-		tbl.mutex.Lock() // TODO check, if defer Unlock, delete
+		tbl.mutex.Lock()
 		regetValue := tbl.versionizedValues[keyStr]
 		if regetValue == nil {
-			tbl.versionizedValues[keyStr] = value // TODO reserved
+			tbl.versionizedValues[keyStr] = value
 		}
 		tbl.mutex.Unlock()
 	}
@@ -234,7 +234,11 @@ func (tbl *StagingTable) MergeToParent() ([]interface{}, error) {
 	targetValues := tbl.parentStagingTable.versionizedValues
 
 	for keyStr, fromValueItem := range tbl.versionizedValues {
-		targetValueItem := targetValues[keyStr] // TODO check targetValueItem is not nil
+		targetValueItem := targetValues[keyStr]
+
+		if targetValueItem == nil {
+			continue
+		}
 
 		// 1. record conflict.
 		if fromValueItem.isConflict(targetValueItem, tbl.isTrieSameKeyCompatibility) {
@@ -254,8 +258,8 @@ func (tbl *StagingTable) MergeToParent() ([]interface{}, error) {
 			continue
 		}
 
-		// ignore version of targetValueItem is greater than fromValueItem when TrieSameKeyCompatibility is enabled.
-		if tbl.isTrieSameKeyCompatibility && targetValueItem.version > fromValueItem.version { // TODO delete &&...
+		// ignore version check when TrieSameKeyCompatibility is enabled.
+		if tbl.isTrieSameKeyCompatibility {
 			continue
 		}
 
@@ -277,15 +281,13 @@ func (tbl *StagingTable) MergeToParent() ([]interface{}, error) {
 	tbl.parentStagingTable.globalVersion++
 
 	for keyStr, fromValueItem := range tbl.versionizedValues {
-		// ignore dirty. // TODO add isDefault()
-		if !fromValueItem.dirty {
+		// ignore default value item.
+		if fromValueItem.isDefault() {
 			continue
 		}
 
-		targetValueItem := targetValues[keyStr]
-
-		// ignore version of targetValueItem is greater than fromValueItem when TrieSameKeyCompatibility is enabled.
-		if tbl.isTrieSameKeyCompatibility && targetValueItem.version > fromValueItem.version { // TODO delete &&...
+		// ignore non-dirty.
+		if !fromValueItem.dirty {
 			continue
 		}
 
@@ -356,15 +358,10 @@ func (value *VersionizedValueItem) isConflict(b *VersionizedValueItem, trieSameK
 		return false
 	}
 
-	if trieSameKeyCompatibility == true { // TODO return false redirctly
-		// check version continuous and val consistent when enable trie same key compatibility.
-		delta := value.version - b.version
-		if delta != 1 && delta != -1 {
-			// version is not continuous, conflict.
-			return true
-		}
+	if trieSameKeyCompatibility == true {
+		// ignore version check when TrieSameKeyCompatibility is enabled.
 
-		if value.deleted != b.deleted { // TODO reserved
+		if value.deleted != b.deleted {
 			// deleted flag are not the same, conflict.
 			return true
 		}
@@ -395,8 +392,8 @@ func NewDefaultVersionizedValueItem(key []byte, val []byte, tid interface{}, glo
 	}
 }
 
-// IncrVersionizedValueItem copy and return the version increased VersionizedValueItem.
-func IncrVersionizedValueItem(tid interface{}, oldValue *VersionizedValueItem) *VersionizedValueItem { // TODO rename CloneVersionizedValueItem
+// CloneVersionizedValueItem copy and return the version increased VersionizedValueItem.
+func CloneVersionizedValueItem(tid interface{}, oldValue *VersionizedValueItem) *VersionizedValueItem { // TODO rename CloneVersionizedValueItem
 	return &VersionizedValueItem{
 		tid:           tid,
 		key:           oldValue.key,

@@ -41,7 +41,7 @@ func TestNewDefaultVersionizedValueItem(t *testing.T) {
 	assert.Equal(t, int64(12), value.globalVersion)
 }
 
-func TestIncrVersionizedValueItem(t *testing.T) {
+func TestCloneVersionizedValueItem(t *testing.T) {
 	tid := "tid"
 	key := make([]byte, 0)
 	val := make([]byte, 0)
@@ -121,8 +121,8 @@ func TestIncrVersionizedValueItem(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := IncrVersionizedValueItem(tt.args.tid, tt.args.oldValue); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("IncrVersionizedValueItem() = %v, want %v", got, tt.want)
+			if got := CloneVersionizedValueItem(tt.args.tid, tt.args.oldValue); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("CloneVersionizedValueItem() = %v, want %v", got, tt.want)
 			}
 		})
 	}
