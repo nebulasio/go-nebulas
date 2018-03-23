@@ -21,6 +21,7 @@ package nvm
 import "C"
 
 import (
+	"errors"
 	"regexp"
 	"unsafe"
 
@@ -30,7 +31,15 @@ import (
 )
 
 var (
-	keyPattern = regexp.MustCompile("^@([a-zA-Z_].*?)\\[(.+?)\\]$")
+	/*const fieldNameRe = /^[a-zA-Z_$][a-zA-Z0-9_]+$/;
+	var combineStorageMapKey = function (fieldName, key) {
+		return "@" + fieldName + "[" + key + "]";
+	};
+	*/
+	StorageKeyPattern = regexp.MustCompile("^@([a-zA-Z_$][a-zA-Z0-9_]+?)\\[(.*?)\\]$")
+	DefaultDomainKey  = "_"
+
+	ErrInvalidStorageKey = errors.New("invalid storage key")
 )
 
 // hashStorageKey return the key hash.
@@ -39,19 +48,13 @@ var (
 // For example, the ItemKey for the statement "token.totalSupply = 1000" is "totalSupply".
 // Map-ItemKey in SmartContrat is used for Map storage.
 // For example, the Map-ItemKey for the statement "token.balances.set('addr1', 100)" is "@balances[addr1]".
-func hashStorageKey(key string) []byte {
-	var domainKey, itemKey string
-
-	matches := keyPattern.FindAllStringSubmatch(key, -1)
+func parseStorageKey(key string) (string, string, error) {
+	matches := StorageKeyPattern.FindAllStringSubmatch(key, -1)
 	if matches == nil {
-		domainKey = ""
-		itemKey = key
-	} else {
-		domainKey = matches[0][1]
-		itemKey = matches[0][2]
+		return DefaultDomainKey, key, nil
 	}
 
-	return trie.HashDomains(domainKey, itemKey)
+	return matches[0][1], matches[0][2], nil
 }
 
 // StorageGetFunc export StorageGetFunc
@@ -68,12 +71,22 @@ func StorageGetFunc(handler unsafe.Pointer, key *C.char, gasCnt *C.size_t) *C.ch
 	// calculate Gas.
 	*gasCnt = C.size_t(0)
 
-	val, err := storage.Get([]byte(hashStorageKey(k)))
+	domainKey, itemKey, err := parseStorageKey(k)
+	if err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"handler": uint64(uintptr(handler)),
+			"key":     k,
+			"err":     err,
+		}).Error("invalid storage key.")
+		return nil
+	}
+
+	val, err := storage.Get(trie.HashDomains(domainKey, itemKey))
 	if err != nil {
 		if err != ErrKeyNotFound {
 			logging.VLog().WithFields(logrus.Fields{
 				"handler": uint64(uintptr(handler)),
-				"key":     C.GoString(key),
+				"key":     k,
 				"err":     err,
 			}).Error("StorageGetFunc get key failed.")
 		}
@@ -97,15 +110,26 @@ func StoragePutFunc(handler unsafe.Pointer, key *C.char, value *C.char, gasCnt *
 	// calculate Gas.
 	*gasCnt = C.size_t(len(k) + len(v))
 
-	err := storage.Put([]byte(hashStorageKey(k)), v)
+	domainKey, itemKey, err := parseStorageKey(k)
+	if err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"handler": uint64(uintptr(handler)),
+			"key":     k,
+			"err":     err,
+		}).Error("invalid storage key.")
+		return 1
+	}
+
+	err = storage.Put(trie.HashDomains(domainKey, itemKey), v)
 	if err != nil && err != ErrKeyNotFound {
 		logging.VLog().WithFields(logrus.Fields{
 			"handler": uint64(uintptr(handler)),
-			"key":     C.GoString(key),
+			"key":     k,
 			"err":     err,
 		}).Error("StoragePutFunc put key failed.")
 		return 1
 	}
+
 	return 0
 }
 
@@ -122,11 +146,21 @@ func StorageDelFunc(handler unsafe.Pointer, key *C.char, gasCnt *C.size_t) int {
 	// calculate Gas.
 	*gasCnt = C.size_t(0)
 
-	err := storage.Del([]byte(hashStorageKey(k)))
+	domainKey, itemKey, err := parseStorageKey(k)
+	if err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"handler": uint64(uintptr(handler)),
+			"key":     k,
+			"err":     err,
+		}).Error("invalid storage key.")
+		return 1
+	}
+
+	err = storage.Del(trie.HashDomains(domainKey, itemKey))
 	if err != nil && err != ErrKeyNotFound {
 		logging.VLog().WithFields(logrus.Fields{
 			"handler": uint64(uintptr(handler)),
-			"key":     C.GoString(key),
+			"key":     k,
 			"err":     err,
 		}).Error("StorageDelFunc del key failed.")
 		return 1

@@ -18,7 +18,7 @@
 
 'use strict';
 
-var fieldNameRe = /^[a-zA-Z_$].*/;
+var fieldNameRe = /^[a-zA-Z_$][a-zA-Z0-9_]+$/;
 
 var combineStorageMapKey = function (fieldName, key) {
     return "@" + fieldName + "[" + key + "]";
