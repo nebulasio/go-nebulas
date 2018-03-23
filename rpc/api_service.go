@@ -20,7 +20,6 @@ package rpc
 
 import (
 	"errors"
-	"strconv"
 
 	"encoding/json"
 
@@ -49,14 +48,14 @@ func (s *APIService) GetNebState(ctx context.Context, req *rpcpb.NonParamsReques
 	neb := s.server.Neblet()
 
 	tail := neb.BlockChain().TailBlock()
+	lib := neb.BlockChain().LIB()
 
 	resp := &rpcpb.GetNebStateResponse{}
 	resp.ChainId = neb.BlockChain().ChainID()
-	resp.Tail = tail.Hash().String() // TODO add LIB
+	resp.Tail = tail.Hash().String()
+	resp.Lib = lib.Hash().String()
 	resp.Height = tail.Height()
-	resp.Coinbase = tail.Coinbase().String()                      // TODO move to nodeinfo
 	resp.Synchronized = neb.NetService().Node().IsSynchronizing() // TODO use sync.IsActiveSyncing
-	resp.PeerCount = uint32(neb.NetService().Node().PeersCount()) // TODO move to nodeinfo
 	resp.ProtocolVersion = net.NebProtocolID
 	resp.Version = neb.Config().App.Version
 
@@ -75,17 +74,15 @@ func (s *APIService) GetNebState(ctx context.Context, req *rpcpb.NonParamsReques
 func (s *APIService) NodeInfo(ctx context.Context, req *rpcpb.NonParamsRequest) (*rpcpb.NodeInfoResponse, error) {
 
 	neb := s.server.Neblet()
+
 	resp := &rpcpb.NodeInfoResponse{}
 	node := neb.NetService().Node()
 	resp.Id = node.ID() // TODO check eclipse attack
 	resp.ChainId = node.Config().ChainID
 	resp.BucketSize = int32(node.Config().Bucketsize)
-	resp.Version = uint32(node.Config().Version)                            // TODO delete
-	resp.StreamStoreSize = int32(node.Config().StreamStoreSize)             // TODO delete
-	resp.StreamStoreExtendSize = int32(node.Config().StreamStoreExtendSize) // TODO delete
-	resp.RelayCacheSize = int32(node.Config().RelayCacheSize)               // TODO delete
 	resp.PeerCount = uint32(node.PeersCount())
 	resp.ProtocolVersion = net.NebProtocolID
+	resp.Coinbase = neb.Config().Chain.Coinbase
 
 	for k, v := range node.RouteTable().Peers() {
 		routeTable := &rpcpb.RouteTable{}
@@ -98,21 +95,6 @@ func (s *APIService) NodeInfo(ctx context.Context, req *rpcpb.NonParamsRequest) 
 		resp.RouteTable = append(resp.RouteTable, routeTable)
 	}
 
-	return resp, nil
-}
-
-// Accounts is the RPC API handler.
-func (s *APIService) Accounts(ctx context.Context, req *rpcpb.NonParamsRequest) (*rpcpb.AccountsResponse, error) {
-
-	neb := s.server.Neblet()
-	accs := neb.AccountManager().Accounts()
-
-	resp := new(rpcpb.AccountsResponse)
-	addrs := make([]string, len(accs))
-	for index, addr := range accs {
-		addrs[index] = addr.String()
-	}
-	resp.Addresses = addrs
 	return resp, nil
 }
 
@@ -136,13 +118,13 @@ func (s *APIService) GetAccountState(ctx context.Context, req *rpcpb.GetAccountS
 		}
 	}
 
-	account, err := block.GetAccount(addr.Bytes()) // TODO combine the two
+	acc, err := block.GetAccount(addr.Bytes())
 	if err != nil {
 		return nil, err
 	}
 
 	metricsAccountStateSuccess.Mark(1)
-	return &rpcpb.GetAccountStateResponse{Balance: account.Balance().String(), Nonce: account.Nonce()}, nil
+	return &rpcpb.GetAccountStateResponse{Balance: acc.Balance().String(), Nonce: acc.Nonce()}, nil
 }
 
 // SendTransaction is the RPC API handler.
@@ -152,7 +134,7 @@ func (s *APIService) SendTransaction(ctx context.Context, req *rpcpb.Transaction
 }
 
 // Call is the RPC API handler.
-func (s *APIService) Call(ctx context.Context, req *rpcpb.TransactionRequest) (*rpcpb.CallResponse, error) { // TODO rename Simulate
+func (s *APIService) SimulateCall(ctx context.Context, req *rpcpb.TransactionRequest) (*rpcpb.SimulateCallResponse, error) {
 
 	neb := s.server.Neblet()
 	tx, err := parseTransaction(neb, req)
@@ -165,8 +147,7 @@ func (s *APIService) Call(ctx context.Context, req *rpcpb.TransactionRequest) (*
 	if err != nil {
 		return nil, err
 	}
-
-	return &rpcpb.CallResponse{Result: result}, nil // TODO: @robin return gas, call result, exeErr.
+	return &rpcpb.SimulateCallResponse{Result: result}, nil // TODO return gas, call result, err
 }
 
 func (s *APIService) sendTransaction(req *rpcpb.TransactionRequest) (*rpcpb.SendTransactionResponse, error) {
@@ -209,22 +190,22 @@ func parseTransaction(neb core.Neblet, reqTx *rpcpb.TransactionRequest) (*core.T
 	var (
 		payloadType string
 		payload     []byte
-	) // TODO check payloadType, contract: deploy/call, binary, check args
+	)
+
+	// TODO check payloadType, contract: deploy/call, binary, check args
 	if reqTx.Contract != nil && len(reqTx.Contract.Source) > 0 { // TODO combine contract != nil
 		payloadType = core.TxPayloadDeployType
 		payload, err = core.NewDeployPayload(reqTx.Contract.Source, reqTx.Contract.SourceType, reqTx.Contract.Args).ToBytes()
 	} else if reqTx.Contract != nil && len(reqTx.Contract.Function) > 0 {
 		payloadType = core.TxPayloadCallType
 
-		if len(reqTx.Contract.Args) > 0 { // TODO move the check into NewCallPayload
-			var argsObj []interface{}
-			if err := json.Unmarshal([]byte(reqTx.Contract.Args), &argsObj); err != nil {
-				err = errors.New("contract arguments format error")
-			}
-		} // ToRefine: extract a function to check args.
-
 		if err == nil {
-			payload, err = core.NewCallPayload(reqTx.Contract.Function, reqTx.Contract.Args).ToBytes()
+			callpayload, err := core.NewCallPayload(reqTx.Contract.Function, reqTx.Contract.Args)
+			if err != nil {
+				return nil, err
+			}
+
+			payload, err = callpayload.ToBytes()
 		}
 	} else {
 		payloadType = core.TxPayloadBinaryType
@@ -248,12 +229,19 @@ func handleTransactionResponse(neb core.Neblet, tx *core.Transaction) (resp *rpc
 		} else {
 			metricsSendTxSuccess.Mark(1)
 		}
-	}() // TODO add tx.VerifyIntegrity
-	account, err := neb.BlockChain().TailBlock().GetAccount(tx.From().Bytes()) // TODO move check into core
+	}()
+
+	err = tx.VerifyIntegrity(neb.BlockChain().ChainID())
 	if err != nil {
 		return nil, err
 	}
-	if tx.Nonce() <= account.Nonce() {
+
+	acc, err := neb.BlockChain().TailBlock().GetAccount(tx.From().Bytes())
+	if err != nil {
+		return nil, err
+	}
+
+	if tx.Nonce() <= acc.Nonce() {
 		return nil, errors.New("transaction's nonce is invalid, should bigger than the from's nonce")
 	}
 
@@ -305,7 +293,7 @@ func (s *APIService) SendRawTransaction(ctx context.Context, req *rpcpb.SendRawT
 }
 
 // GetBlockByHash get block info by the block hash
-func (s *APIService) GetBlockByHash(ctx context.Context, req *rpcpb.GetBlockByHashRequest) (*rpcpb.BlockResponse, error) { // TODO fulltransaction -> fullfill
+func (s *APIService) GetBlockByHash(ctx context.Context, req *rpcpb.GetBlockByHashRequest) (*rpcpb.BlockResponse, error) {
 
 	neb := s.server.Neblet()
 
@@ -313,9 +301,9 @@ func (s *APIService) GetBlockByHash(ctx context.Context, req *rpcpb.GetBlockByHa
 	if err != nil {
 		return nil, err
 	}
-	block := neb.BlockChain().GetBlock(bhash) // TODO use neb.BlockChain().GetBlockOnCanonicalChainByHash(bhash)
+	block := neb.BlockChain().GetBlockOnCanonicalChainByHash(bhash)
 
-	return s.toBlockResponse(block, req.FullTransaction) // TODO return if the block become finality
+	return s.toBlockResponse(block, req.FullFillTransaction)
 }
 
 // GetBlockByHeight get block info by the block hash
@@ -323,16 +311,22 @@ func (s *APIService) GetBlockByHeight(ctx context.Context, req *rpcpb.GetBlockBy
 
 	neb := s.server.Neblet()
 
-	block := neb.BlockChain().GetBlockOnCanonicalChainByHeight(req.Height) // TODO return if the block become finality
+	block := neb.BlockChain().GetBlockOnCanonicalChainByHeight(req.Height)
 
-	return s.toBlockResponse(block, req.FullTransaction)
+	return s.toBlockResponse(block, req.FullFillTransaction)
 }
 
-func (s *APIService) toBlockResponse(block *core.Block, fullTransaction bool) (*rpcpb.BlockResponse, error) {
+func (s *APIService) toBlockResponse(block *core.Block, fullFillTransaction bool) (*rpcpb.BlockResponse, error) {
 	if block == nil {
 		return nil, errors.New("block not found")
 	}
+	neb := s.server.Neblet()
+	lib := neb.BlockChain().LIB()
 
+	is_finality := false
+	if lib.Height() > block.Height() {
+		is_finality = true
+	}
 	resp := &rpcpb.BlockResponse{
 		Hash:          block.Hash().String(),
 		ParentHash:    block.ParentHash().String(),
@@ -344,13 +338,14 @@ func (s *APIService) toBlockResponse(block *core.Block, fullTransaction bool) (*
 		TxsRoot:       block.TxsRoot().String(),
 		EventsRoot:    block.EventsRoot().String(),
 		ConsensusRoot: block.ConsensusRoot(),
+		IsFinality:    is_finality,
 	}
 
 	// add block transactions
 	txs := []*rpcpb.TransactionResponse{}
 	for _, v := range block.Transactions() {
 		var tx *rpcpb.TransactionResponse
-		if fullTransaction {
+		if fullFillTransaction {
 			tx, _ = s.toTransactionResponse(v)
 		} else {
 			tx = &rpcpb.TransactionResponse{Hash: v.Hash().String()}
@@ -360,20 +355,6 @@ func (s *APIService) toBlockResponse(block *core.Block, fullTransaction bool) (*
 	resp.Transactions = txs
 
 	return resp, nil
-}
-
-// BlockDump is the RPC API handler.
-func (s *APIService) BlockDump(ctx context.Context, req *rpcpb.BlockDumpRequest) (*rpcpb.BlockDumpResponse, error) { // TODO delete
-
-	neb := s.server.Neblet()
-	if req.Count > maxDumpBlockCount {
-		return nil, errors.New("the max count of blocks could be dumped once is " + strconv.Itoa(maxDumpBlockCount))
-	}
-	if req.Count < 0 {
-		return nil, errors.New("invalid count")
-	}
-	data := neb.BlockChain().Dump(int(req.Count))
-	return &rpcpb.BlockDumpResponse{Data: data}, nil
 }
 
 // LatestIrreversibleBlock is the RPC API handler.
@@ -415,17 +396,22 @@ func (s *APIService) toTransactionResponse(tx *core.Transaction) (*rpcpb.Transac
 		gasUsed string
 	)
 	neb := s.server.Neblet()
-	events, _ := neb.BlockChain().TailBlock().FetchEvents(tx.Hash()) // TODO catch error
+	events, err := neb.BlockChain().TailBlock().FetchEvents(tx.Hash())
+	if err != nil {
+		return nil, err
+	}
 
 	if events != nil && len(events) > 0 {
-		for _, v := range events {
-			if v.Topic == core.TopicTransactionExecutionResult { // TODO use last one
-				txEvent := core.TransactionEvent{}
-				json.Unmarshal([]byte(v.Data), &txEvent) // TODO catch error
-				status = int32(txEvent.Status)
-				gasUsed = txEvent.GasUsed
-				break
+		idx := len(events) - 1
+		event := events[idx]
+		if event.Topic == core.TopicTransactionExecutionResult {
+			txEvent := core.TransactionEvent{}
+			err := json.Unmarshal([]byte(event.Data), &txEvent)
+			if err != nil {
+				return nil, err
 			}
+			status = int32(txEvent.Status)
+			gasUsed = txEvent.GasUsed
 		}
 	} else {
 		status = core.TxExecutionPendding
@@ -563,7 +549,7 @@ func (s *APIService) GetDynasty(ctx context.Context, req *rpcpb.ByBlockHeightReq
 	} else {
 		block = neb.BlockChain().TailBlock()
 	}
-	validators, err := block.WorldState().Dynasty() // TODO add dynasty function in block, clone first
+	validators, err := block.Dynasty()
 	if err != nil {
 		return nil, err
 	}
@@ -571,5 +557,5 @@ func (s *APIService) GetDynasty(ctx context.Context, req *rpcpb.ByBlockHeightReq
 	for _, v := range validators {
 		result = append(result, string(v.Hex()))
 	}
-	return &rpcpb.GetDynastyResponse{Delegatees: result}, nil // TODO rename Delegatees -> Validators
+	return &rpcpb.GetDynastyResponse{Validators: result}, nil
 }

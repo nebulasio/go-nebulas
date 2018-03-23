@@ -34,11 +34,6 @@ const ( // TODO delete redundant vars
 	DefaultPrivateKeyPath         = "conf/network.key"
 	DefaultMaxSyncNodes           = 64
 	DefaultChainID                = 1
-	DefaultVersion                = 0
-	DefaultRelayCacheSize         = 65536
-	DefaultStreamStoreSize        = 128
-	DefaultStreamStoreExtendSize  = 32
-	DefaultNetworkID              = 1
 	DefaultRoutingTableDir        = ""
 )
 
@@ -55,19 +50,14 @@ var (
 
 // Config TODO: move to proto config.
 type Config struct {
-	Bucketsize            int
-	Latency               time.Duration
-	BootNodes             []multiaddr.Multiaddr
-	PrivateKeyPath        string
-	Listen                []string
-	MaxSyncNodes          int
-	ChainID               uint32
-	Version               uint8
-	RelayCacheSize        int
-	StreamStoreSize       int
-	StreamStoreExtendSize int
-	NetworkID             uint32
-	RoutingTableDir       string
+	Bucketsize      int
+	Latency         time.Duration
+	BootNodes       []multiaddr.Multiaddr
+	PrivateKeyPath  string
+	Listen          []string
+	MaxSyncNodes    int
+	ChainID         uint32
+	RoutingTableDir string
 }
 
 // Neblet interface breaks cycle import dependency.
@@ -98,9 +88,6 @@ func NewP2PConfig(n Neblet) *Config {
 
 	// Chain ID.
 	config.ChainID = chainConf.ChainId
-
-	// TODO: @robin set networkid when --debug.
-	config.NetworkID = networkConf.NetworkId
 
 	// routing table dir.
 	// TODO: @robin using diff dir for temp files.
@@ -151,11 +138,6 @@ func NewConfigFromDefaults() *Config {
 		DefaultListen,
 		DefaultMaxSyncNodes,
 		DefaultChainID,
-		DefaultVersion,
-		DefaultRelayCacheSize,
-		DefaultStreamStoreSize,
-		DefaultStreamStoreExtendSize,
-		DefaultNetworkID,
 		DefaultRoutingTableDir,
 	}
 }

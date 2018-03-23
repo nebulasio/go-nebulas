@@ -19,19 +19,29 @@
 package rpc
 
 import (
-	"time"
-
 	"github.com/gogo/protobuf/proto"
-	"github.com/nebulasio/go-nebulas/core"
-	"github.com/nebulasio/go-nebulas/crypto/keystore"
 	"github.com/nebulasio/go-nebulas/rpc/pb"
-	"github.com/nebulasio/go-nebulas/util/byteutils"
 	"golang.org/x/net/context"
 )
 
 // AdminService implements the RPC admin service interface.
 type AdminService struct {
 	server GRPCServer
+}
+
+// Accounts is the RPC API handler.
+func (s *AdminService) Accounts(ctx context.Context, req *rpcpb.NonParamsRequest) (*rpcpb.AccountsResponse, error) {
+
+	neb := s.server.Neblet()
+	accs := neb.AccountManager().Accounts()
+
+	resp := new(rpcpb.AccountsResponse)
+	addrs := make([]string, len(accs))
+	for index, addr := range accs {
+		addrs[index] = addr.String()
+	}
+	resp.Addresses = addrs
+	return resp, nil
 }
 
 // NewAccount generate a new address with passphrase
@@ -45,54 +55,16 @@ func (s *AdminService) NewAccount(ctx context.Context, req *rpcpb.NewAccountRequ
 	return &rpcpb.NewAccountResponse{Address: addr.String()}, nil
 }
 
-// UnlockAccount unlock address with the passphrase
-func (s *AdminService) UnlockAccount(ctx context.Context, req *rpcpb.UnlockAccountRequest) (*rpcpb.UnlockAccountResponse, error) { // TODO delete
+// signTransactionWithPassphrase sign transaction with the from addr passphrase
+func (s *AdminService) SignTransactionWithPassphrase(ctx context.Context, req *rpcpb.SignTransactionPassphraseRequest) (*rpcpb.SignTransactionPassphraseResponse, error) {
 
 	neb := s.server.Neblet()
-	addr, err := core.AddressParse(req.Address)
-	if err != nil {
-		metricsUnlockFailed.Mark(1)
-		return nil, err
-	}
-	duration := time.Duration(req.Duration) * time.Second // TODO define duration in seconds in wiki
-	if duration == 0 {
-		duration = keystore.DefaultUnlockDuration
-	}
-	err = neb.AccountManager().Unlock(addr, []byte(req.Passphrase), duration)
-	if err != nil {
-		metricsUnlockFailed.Mark(1)
-		return nil, err
-	}
-
-	metricsUnlockSuccess.Mark(1)
-	return &rpcpb.UnlockAccountResponse{Result: true}, nil
-}
-
-// LockAccount lock address
-func (s *AdminService) LockAccount(ctx context.Context, req *rpcpb.LockAccountRequest) (*rpcpb.LockAccountResponse, error) { // TODO delete
-
-	neb := s.server.Neblet()
-	addr, err := core.AddressParse(req.Address)
-	if err != nil {
-		return nil, err
-	}
-	err = neb.AccountManager().Lock(addr)
-	if err != nil {
-		return nil, err
-	}
-	return &rpcpb.LockAccountResponse{Result: true}, nil
-}
-
-// SignTransaction sign transaction with the from addr passphrase
-func (s *AdminService) SignTransaction(ctx context.Context, req *rpcpb.TransactionRequest) (*rpcpb.SignTransactionResponse, error) { // TODO signTransactionWithPassphrase
-
-	neb := s.server.Neblet()
-	tx, err := parseTransaction(neb, req)
+	tx, err := parseTransaction(neb, req.Transaction)
 	if err != nil {
 		metricsSignTxFailed.Mark(1)
 		return nil, err
 	}
-	if err := neb.AccountManager().SignTransaction(tx.From(), tx); err != nil {
+	if err := neb.AccountManager().SignTransactionWithPassphrase(tx.From(), tx, []byte(req.Passphrase)); err != nil {
 		metricsSignTxFailed.Mark(1)
 		return nil, err
 	}
@@ -108,7 +80,7 @@ func (s *AdminService) SignTransaction(ctx context.Context, req *rpcpb.Transacti
 	}
 
 	metricsSignTxSuccess.Mark(1)
-	return &rpcpb.SignTransactionResponse{Data: data}, nil
+	return &rpcpb.SignTransactionPassphraseResponse{Data: data}, nil
 }
 
 // SendTransactionWithPassphrase send transaction with the from addr passphrase
@@ -124,30 +96,6 @@ func (s *AdminService) SendTransactionWithPassphrase(ctx context.Context, req *r
 	}
 
 	return handleTransactionResponse(neb, tx)
-}
-
-// StatisticsNodeInfo is the RPC API handler.
-func (s *AdminService) StatisticsNodeInfo(ctx context.Context, req *rpcpb.NonParamsRequest) (*rpcpb.StatisticsNodeInfoResponse, error) { // TODO delete
-
-	neb := s.server.Neblet()
-	node := neb.NetService().Node()
-	tail := neb.BlockChain().TailBlock()
-	resp := &rpcpb.StatisticsNodeInfoResponse{}
-	resp.NodeID = node.ID()
-	resp.Height = tail.Height()
-	resp.Hash = byteutils.Hex(tail.Hash())
-	resp.PeerCount = uint32(node.PeersCount())
-	return resp, nil
-}
-
-// ChangeNetworkID change the network id
-func (s *AdminService) ChangeNetworkID(ctx context.Context, req *rpcpb.ChangeNetworkIDRequest) (*rpcpb.ChangeNetworkIDResponse, error) { // TODO delete
-
-	neb := s.server.Neblet()
-	neb.NetService().Node().Config().NetworkID = req.NetworkId
-	// broadcast to all the node in the routetable.
-	neb.NetService().BroadcastNetworkID(byteutils.FromUint32(req.NetworkId))
-	return &rpcpb.ChangeNetworkIDResponse{Result: true}, nil
 }
 
 // StartPprof start pprof
@@ -167,7 +115,7 @@ func (s *AdminService) GetConfig(ctx context.Context, req *rpcpb.NonParamsReques
 	neb := s.server.Neblet()
 
 	resp := &rpcpb.GetConfigResponse{}
-	resp.Config = neb.Config() // TODO make sure passphrase won't be returned
-
+	resp.Config = neb.Config()
+	resp.Config.Chain.Passphrase = string("")
 	return resp, nil
 }

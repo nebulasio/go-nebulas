@@ -40,25 +40,10 @@ service ApiService {
         };
     }
 
-    // Return the dump info of blockchain.
-    rpc BlockDump (BlockDumpRequest) returns (BlockDumpResponse) {
-        option (google.api.http) = {
-            post: "/v1/user/blockdump"
-            body: "*"
-        };
-    }
-
     // Return the latest irreversible block.
     rpc LatestIrreversibleBlock (NonParamsRequest) returns (BlockResponse) {
         option (google.api.http) = {
             get: "/v1/user/lib"
-        };
-    }
-
-    // Accounts return account list.
-    rpc Accounts (NonParamsRequest) returns (AccountsResponse) { // TODO move to admin
-        option (google.api.http) = {
-            get: "/v1/user/accounts"
         };
     }
 
@@ -78,10 +63,10 @@ service ApiService {
         };
     }
 
-    // Call smart contract.
-    rpc Call (TransactionRequest) returns (CallResponse) {
+    // SimulateCall smart contract.
+    rpc SimulateCall (TransactionRequest) returns (SimulateCallResponse) {
         option (google.api.http) = {
-            post: "/v1/user/call"
+            post: "/v1/user/simulatecall"
             body: "*"
         };
     }
@@ -157,7 +142,14 @@ service ApiService {
 }
 
 service AdminService {
-// NewAccount create a new account with passphrase
+    // Accounts return account list.
+    rpc Accounts (NonParamsRequest) returns (AccountsResponse) { // TODO move to admin
+        option (google.api.http) = {
+            get: "/v1/admin/accounts"
+        };
+    }
+    
+    // NewAccount create a new account with passphrase
     rpc NewAccount(NewAccountRequest) returns (NewAccountResponse) {
         option (google.api.http) = {
             post: "/v1/admin/account/new"
@@ -165,24 +157,8 @@ service AdminService {
         };
     }
 
-    // UnlockAccount unlock account with passphrase
-    rpc UnlockAccount(UnlockAccountRequest) returns (UnlockAccountResponse) {
-        option (google.api.http) = {
-            post: "/v1/admin/account/unlock"
-            body: "*"
-        };
-    }
-
-    // LockAccount lock account
-    rpc LockAccount(LockAccountRequest) returns (LockAccountResponse) {
-        option (google.api.http) = {
-            post: "/v1/admin/account/lock"
-            body: "*"
-        };
-    }
-
     // Sign sign transaction
-    rpc SignTransaction(TransactionRequest) returns (SignTransactionResponse) {
+    rpc SignTransactionWithPassphrase(SignTransactionPassphraseRequest) returns (SignTransactionPassphraseResponse) {
         option (google.api.http) = {
             post: "/v1/admin/sign"
             body: "*"
@@ -196,19 +172,6 @@ service AdminService {
             body: "*"
         };
     }
-
-    rpc StatisticsNodeInfo (NonParamsRequest) returns (StatisticsNodeInfoResponse) {
-        option (google.api.http) = {
-            get: "/v1/admin/statistics/nodeInfo"
-        };
-	}
-
-    rpc ChangeNetworkID (ChangeNetworkIDRequest) returns (ChangeNetworkIDResponse) {
-		option (google.api.http) = {
-			post: "/v1/admin/changeNetworkID"
-            body: "*"
-		};
-	}
 
     rpc StartPprof (PprofRequest) returns (PprofResponse) {
         option (google.api.http) = {
@@ -249,8 +212,8 @@ message NodeInfoResponse {
     // the block chainID.
     uint32 chain_id  = 2;
 
-    // the node version.
-    uint32 version = 3;
+    // coinbase
+    string coinbase = 3;
 
     // Number of peers currenly connected.
     uint32 peer_count = 4;
@@ -261,27 +224,12 @@ message NodeInfoResponse {
     // the node route table bucket size.
     int32 bucket_size = 6;
 
-    // the node relay cache size.
-    int32 relay_cache_size = 7;
-
-    // the node stream store size.
-    int32 stream_store_size = 8;
-
-    // the node stream store extend size.
-    int32 stream_store_extend_size = 9;
-
     // the network protocol version.
     string protocol_version = 10;
 
     repeated RouteTable route_table = 11;
 }
 
-message StatisticsNodeInfoResponse {
-    string NodeID = 1;
-    uint64 Height = 2;
-    string Hash = 3;
-    uint32 PeerCount = 4;
-}
 
 message RouteTable {
     string id = 1;
@@ -297,26 +245,23 @@ message GetNebStateResponse {
     // Current neb tail hash
     string tail = 2;
 
+    // Current neb lib hash
+    string lib = 3;
+
     // Current neb tail block height
-    uint64 height = 3;
-
-    // Neb coinbase
-    string coinbase = 4;
-
-    // Number of peers currenly connected
-    uint32 peer_count = 5;
+    uint64 height = 4;
 
     // Neb mine status, minging is true ,otherwise false
-    bool is_mining = 6;
+    bool is_mining = 5;
 
     // The current neb protocol version.
-    string protocol_version = 7;
+    string protocol_version = 6;
 
     // The peer sync status.
-    bool synchronized = 8;
+    bool synchronized = 7;
 
     // neb version
-    string version = 9;
+    string version = 8;
 }
 
 // Response message of Accounts rpc.
@@ -344,7 +289,7 @@ message GetAccountStateResponse {
 }
 
 // Response message of Call rpc.
-message CallResponse {
+message SimulateCallResponse {
     // result of smart contract method call.
     string result = 1;
 }
@@ -356,7 +301,7 @@ message ByBlockHeightRequest {
 
 // Response message of GetDynastyRequest rpc
 message GetDynastyResponse {
-	repeated string delegatees = 1;
+	repeated string validators = 1;
 }	
 
 // Response message of GetDelegateVoters rpc
@@ -433,7 +378,7 @@ message GetBlockByHashRequest {
     string hash = 1;
 
     // If true it returns the full transaction objects, if false only the hashes of the transactions.
-    bool full_transaction = 2;
+    bool full_fill_transaction = 2;
 }
 
 // Request message of GetBlockByHeight rpc.
@@ -442,25 +387,13 @@ message GetBlockByHeightRequest {
     uint64 height = 1;
 
     // If true it returns the full transaction objects, if false only the hashes of the transactions.
-    bool full_transaction = 2;
+    bool full_fill_transaction = 2;
 }
 
 // Request message of GetTransactionByHash rpc.
 message GetTransactionByHashRequest {
     // Hex string of transaction hash.
     string hash = 1;
-}
-
-// Request message of BlockDump.
-message BlockDumpRequest {
-    // the count of blocks to dump before current tail.
-    int32 count = 1;
-}
-
-// Response message of BlockDump.
-message BlockDumpResponse {
-    // block dump info.
-    string data = 1;
 }
 
 // Response message of Block.
@@ -498,6 +431,9 @@ message BlockResponse {
 
     // Hex string of consensus root.
     consensuspb.ConsensusRoot consensus_root = 12;
+
+    // is finaliy
+    bool is_finality = 13;
 
     // transaction slice
     repeated TransactionResponse transactions = 100;
@@ -549,25 +485,15 @@ message NewAccountResponse {
     string address = 1;
 }
 
-message UnlockAccountRequest {
-    string address = 1;
+message SignTransactionPassphraseRequest {
+	// transaction struct
+	TransactionRequest transaction = 1;
+
+    // from account passphrase
     string passphrase = 2;
-    uint64 duration = 3;
 }
 
-message UnlockAccountResponse {
-    bool result = 1;
-}
-
-message LockAccountRequest {
-    string address = 1;
-}
-
-message LockAccountResponse {
-    bool result = 1;
-}
-
-message SignTransactionResponse {
+message SignTransactionPassphraseResponse {
     bytes data = 1;
 }
 
@@ -600,16 +526,6 @@ message EventsResponse {
 message Event {
     string topic = 1;
     string data = 2;
-}
-
-// Request message of change networkID.
-message ChangeNetworkIDRequest {
-    uint32 network_id = 1;
-}
-
-// Response message of change networkID.
-message ChangeNetworkIDResponse {
-    bool result = 1;
 }
 
 message PprofRequest {

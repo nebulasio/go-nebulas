@@ -89,15 +89,7 @@ func main() {
 		}
 	}
 
-	admin := rpcpb.NewAdminServiceClient(conn)
-	{
-		_, err := admin.UnlockAccount(context.Background(), &rpcpb.UnlockAccountRequest{Address: from, Passphrase: "passphrase"})
-		if err != nil {
-			log.Println("Unlock failed:", err)
-		} else {
-			log.Println("Unlock")
-		}
-	}
+	//admin := rpcpb.NewAdminServiceClient(conn)
 
 	{
 		v, err := util.NewUint128FromInt(value)
