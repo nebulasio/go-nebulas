@@ -205,7 +205,6 @@ func TestLoadDeployPayload(t *testing.T) {
 }
 
 func TestPayload_Execute(t *testing.T) {
-
 	type testPayload struct {
 		name     string
 		payload  TxPayload
@@ -231,6 +230,7 @@ func TestPayload_Execute(t *testing.T) {
 			want:     util.NewUint128(),
 			wantErr:  nil,
 			giveback: false,
+			limit:    TransactionMaxGas,
 		},
 		{
 			name:     "normal",
@@ -240,6 +240,7 @@ func TestPayload_Execute(t *testing.T) {
 			want:     util.NewUint128(),
 			wantErr:  nil,
 			giveback: false,
+			limit:    TransactionMaxGas,
 		},
 	}
 
@@ -254,6 +255,7 @@ func TestPayload_Execute(t *testing.T) {
 		want:     want,
 		wantErr:  nil,
 		giveback: false,
+		limit:    TransactionMaxGas,
 	})
 
 	callTx := mockCallTransaction(bc.chainID, 1, "totalSupply", "")
@@ -267,7 +269,10 @@ func TestPayload_Execute(t *testing.T) {
 		want:     util.NewUint128(),
 		wantErr:  ErrContractCheckFailed,
 		giveback: false,
+		limit:    TransactionMaxGas,
 	})
+
+	// TODO: @robin need more unittests.
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
