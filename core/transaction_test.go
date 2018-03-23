@@ -52,7 +52,8 @@ func mockDeployTransaction(chainID uint32, nonce uint64) *Transaction {
 }
 
 func mockCallTransaction(chainID uint32, nonce uint64, function, args string) *Transaction {
-	payload, _ := NewCallPayload(function, args).ToBytes()
+	callpayload, _ := NewCallPayload(function, args)
+	payload, _ := callpayload.ToBytes()
 	return mockTransaction(chainID, nonce, TxPayloadCallType, payload)
 }
 
