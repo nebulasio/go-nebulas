@@ -36,14 +36,19 @@ const (
 // const
 const (
 	Padding byte = 0x19
+
+	NebulasFaith = 'n'
 )
 
 const (
 	// AddressPaddingLength the length of headpadding in byte
 	AddressPaddingLength = 1
+	AddressPaddingIndex  = 0
 
 	// AddressTypeLength the length of address type in byte
 	AddressTypeLength = 1
+	AddressTypeIndex  = 1
+
 	// AddressDataLength the length of data of address in byte.
 	AddressDataLength = 20
 
@@ -51,10 +56,13 @@ const (
 	AddressChecksumLength = 4
 
 	// AddressLength the length of address in byte.
-	AddressLength = AddressPaddingLength + AddressTypeLength + AddressDataLength + AddressChecksumLength
+	AddressLength  = AddressPaddingLength + AddressTypeLength + AddressDataLength + AddressChecksumLength
+	AddressDataEnd = 22
 
 	// AddressBase58Length length of base58(Address.address)
 	AddressBase58Length = 35
+
+	PublicKeyDataLength = 65
 )
 
 /*
@@ -93,6 +101,12 @@ type Address struct {
 	address byteutils.Hash
 }
 
+// ContractTxFrom tx from
+type ContractTxFrom []byte
+
+// ContractTxNonce tx nonce
+type ContractTxNonce []byte
+
 // Bytes returns address bytes
 func (a *Address) Bytes() []byte {
 	return a.address
@@ -115,7 +129,7 @@ func (a *Address) Equals(b *Address) bool {
 }
 
 // NewAddress create new #Address according to data bytes.
-func NewAddress(t AddressType, args ...[]byte) (*Address, error) { // TODO inner func
+func newAddress(t AddressType, args ...[]byte) (*Address, error) {
 	if len(args) == 0 {
 		return nil, ErrInvalidArgument
 	}
@@ -127,32 +141,38 @@ func NewAddress(t AddressType, args ...[]byte) (*Address, error) { // TODO inner
 	}
 
 	buffer := make([]byte, AddressLength)
-	buffer[0] = Padding // 1 padding
-	buffer[1] = byte(t) // address type
+	buffer[AddressPaddingIndex] = Padding
+	buffer[AddressTypeIndex] = byte(t)
 
 	sha := hash.Sha3256(args...)
 	content := hash.Ripemd160(sha)
-	copy(buffer[2:22], content)
+	copy(buffer[AddressTypeIndex+1:AddressDataEnd], content)
 
-	cs := checkSum(buffer[1:22])
-	copy(buffer[22:], cs)
+	cs := checkSum(buffer[AddressTypeIndex:AddressDataEnd])
+	copy(buffer[AddressDataEnd:], cs)
 
 	return &Address{address: buffer}, nil
 }
 
 // NewAddressFromPublicKey return new address from publickey bytes
-func NewAddressFromPublicKey(s []byte) (*Address, error) { // TODO check pub key length
-	return NewAddress(AccountAddress, s)
+func NewAddressFromPublicKey(s []byte) (*Address, error) {
+	if len(s) != PublicKeyDataLength {
+		return nil, ErrInvalidArgument
+	}
+	return newAddress(AccountAddress, s)
 }
 
 // NewContractAddressFromData return new contract address from bytes.
-func NewContractAddressFromData(args ...[]byte) (*Address, error) { // todo define args to from & nonce
-	return NewAddress(ContractAddress, args...)
+func NewContractAddressFromData(from ContractTxFrom, nonce ContractTxNonce) (*Address, error) {
+	if len(from) == 0 || len(nonce) == 0 {
+		return nil, ErrInvalidArgument
+	}
+	return newAddress(ContractAddress, from, nonce)
 }
 
 // AddressParse parse address string.
 func AddressParse(s string) (*Address, error) {
-	if len(s) != AddressBase58Length || s[0] != 'n' { // TODO define const
+	if len(s) != AddressBase58Length || s[0] != NebulasFaith {
 		return nil, ErrInvalidAddressFormat
 	}
 
@@ -161,17 +181,17 @@ func AddressParse(s string) (*Address, error) {
 
 // AddressParseFromBytes parse address from bytes.
 func AddressParseFromBytes(b []byte) (*Address, error) {
-	if len(b) != AddressLength || b[0] != Padding {
+	if len(b) != AddressLength || b[AddressPaddingIndex] != Padding {
 		return nil, ErrInvalidAddressFormat
 	}
 
-	switch AddressType(b[1]) {
+	switch AddressType(b[AddressTypeIndex]) {
 	case AccountAddress, ContractAddress:
 	default:
 		return nil, ErrInvalidAddressType
 	}
 
-	if !byteutils.Equal(checkSum(b[1:22]), b[22:]) { // TODO define const
+	if !byteutils.Equal(checkSum(b[AddressTypeIndex:AddressDataEnd]), b[AddressDataEnd:]) {
 		return nil, ErrInvalidAddressChecksum
 	}
 

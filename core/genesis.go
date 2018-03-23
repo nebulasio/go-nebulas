@@ -36,7 +36,7 @@ import (
 var (
 	GenesisHash        = make([]byte, BlockHashLength)
 	GenesisTimestamp   = int64(0)
-	GenesisCoinbase, _ = NewAddress(AccountAddress, make([]byte, AddressDataLength))
+	GenesisCoinbase, _ = NewAddressFromPublicKey(make([]byte, PublicKeyDataLength))
 )
 
 // LoadGenesisConf load genesis conf for file

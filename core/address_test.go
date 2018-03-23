@@ -19,12 +19,16 @@
 package core
 
 import (
+	"fmt"
 	"reflect"
 	"testing"
 	"time"
 
+	"github.com/btcsuite/btcutil/base58"
+	"github.com/nebulasio/go-nebulas/crypto/hash"
 	"github.com/nebulasio/go-nebulas/crypto/keystore"
 	"github.com/nebulasio/go-nebulas/crypto/keystore/secp256k1"
+	"github.com/stretchr/testify/assert"
 )
 
 func mockAddress() *Address {
@@ -120,7 +124,7 @@ func TestParse(t *testing.T) {
 
 func TestNewAddress(t *testing.T) {
 	type args struct {
-		s [][]byte
+		s []byte
 	}
 	tests := []struct {
 		name    string
@@ -130,14 +134,9 @@ func TestNewAddress(t *testing.T) {
 	}{
 		{
 			"sample address",
-			args{[][]byte{
-				{223, 77, 34, 97, 20, 18, 19, 45, 62, 155, 211, 34, 248, 46, 41, 64, 103, 78, 193, 188},
-			}},
-			&Address{
-				// n1M2mcK3mcwGNQS7Kt7wmKadJn97paakkZ9
-				address: []byte{25, 87, 71, 121, 81, 68, 192, 123, 227, 7, 81, 138, 233, 187, 218, 247, 117, 213, 225, 64, 121, 53, 109, 153, 204, 124},
-			},
-			false,
+			args{[]byte{223, 77, 34, 97, 20, 18, 19, 45, 62, 155, 211, 34, 248, 46, 41, 64, 103, 78, 193, 188}},
+			nil,
+			true,
 		},
 		{
 			"empty args",
@@ -147,29 +146,28 @@ func TestNewAddress(t *testing.T) {
 		},
 		{
 			"empty partial of args",
-			args{[][]byte{
-				[]byte{},
-			}},
+			args{[]byte{}},
 			nil,
 			true,
 		},
 		{
 			"genesis address",
-			args{[][]byte{make([]byte, AddressDataLength)}},
+			args{make([]byte, PublicKeyDataLength)},
 			&Address{
 				// n1Mk8HYsjyfkEnGv4hZacDVFz2R1gYEXNej
-				address: []byte{25, 87, 79, 75, 161, 188, 115, 200, 95, 60, 154, 183, 83, 215, 19, 238, 252, 236, 110, 206, 46, 65, 58, 216, 79, 32},
+				address: []byte{25, 87, 31, 185, 52, 219, 123, 90, 141, 18, 150, 2, 238, 90, 246, 63, 157, 200, 210, 75, 140, 233, 171, 117, 64, 210},
 			},
 			false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := NewAddress(AccountAddress, tt.args.s...)
+			got, err := NewAddressFromPublicKey(tt.args.s)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("NewAddress() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
+			// fmt.Println(got.Bytes())
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("NewAddress() = %v, want %v", got, tt.want)
 			}
@@ -188,17 +186,6 @@ func TestNewContractAddress(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			"sample single arg",
-			args{[][]byte{
-				{12, 23, 24, 109, 223, 77, 34, 97, 20, 18, 19, 45, 62, 155, 211, 34, 248, 46, 41, 64, 103, 78, 193, 188},
-			}},
-			&Address{
-				// n1sLnoc7j57YfzAVP8tJ3yK5a2i56Uka4v6
-				address: []byte{25, 88, 147, 245, 147, 89, 227, 222, 141, 219, 123, 78, 142, 159, 229, 26, 252, 242, 124, 89, 164, 193, 218, 26, 188, 107},
-			},
-			false,
-		},
-		{
 			"sample multi args",
 			args{[][]byte{
 				{12, 23, 24, 109, 223, 77, 34, 97, 20, 18, 19, 45, 62, 155, 211, 34, 248, 46, 41, 64, 103, 78, 193, 188},
@@ -212,7 +199,10 @@ func TestNewContractAddress(t *testing.T) {
 		},
 		{
 			"empty args",
-			args{},
+			args{[][]byte{
+				[]byte{},
+				[]byte{},
+			}},
 			nil,
 			true,
 		},
@@ -220,6 +210,7 @@ func TestNewContractAddress(t *testing.T) {
 			"empty partial of args",
 			args{[][]byte{
 				[]byte{},
+				[]byte{01},
 			}},
 			nil,
 			true,
@@ -227,7 +218,7 @@ func TestNewContractAddress(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := NewContractAddressFromData(tt.args.s...)
+			got, err := NewContractAddressFromData(tt.args.s[0], tt.args.s[1])
 			if (err != nil) != tt.wantErr {
 				t.Errorf("NewContractAddressFromData() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -237,6 +228,30 @@ func TestNewContractAddress(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestNebuals(t *testing.T) {
+	const (
+		// alphabet is the modified base58 alphabet used by Bitcoin.
+		alphabet = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
+
+		alphabetIdx0 = '1'
+	)
+
+	fb := []byte{25, 87, 230, 177, 238, 199, 245, 236, 26, 220, 103, 172, 40, 193, 2, 137, 81, 224, 59, 218, 18, 214, 208, 126, 83, 105}
+
+	b58 := base58.Decode("n1bYesWeBeLieveNebuLasMaaaaaaaaaaan")
+	addr, _ := AddressParse(base58.Encode(fb))
+	fmt.Println(b58, base58.Encode(fb), addr.String())
+
+	fmt.Println(hash.Sha3256([]byte{87, 230, 177, 238, 199, 245, 236, 26, 220, 103, 172, 40, 193, 2, 137, 81, 224, 59, 218, 18, 214})[:4])
+	//n1
+	// for i := 0; i < len(alphabet); i++ {
+	// strings.Join([]string{"n1", "YesWeBeLieveNebuLasMaaaaaaaaaaan"}, alphabet[i])
+	// b58 := base58.Decode("n1bYesWeBeLieveNebuLasMaaaaaaaaaaan")
+	// b58 := base58.Decode("n1" + string(alphabet[i]) + "YesWeBeLieveNebuLasMaaaaaaaaaaan")
+	// fmt.Println(string(alphabet[i]), b58)
+	// }
 }
 
 /* func TestBigINt(t *testing.T) {
@@ -277,24 +292,24 @@ func TestNewContractAddress(t *testing.T) {
 
 } */
 
-/* func TestNewAddress2(t *testing.T) {
+func TestNewAddress2(t *testing.T) {
 
 	fmt.Println("AccountAddress = ", AccountAddress, ", ContractAddress = ", ContractAddress)
 
-	addr, err := NewAddress(AccountAddress, make([]byte, AddressDataLength))
+	addr, err := NewAddressFromPublicKey(make([]byte, PublicKeyDataLength))
 	fmt.Printf("type<AccountAddress> address = %v\n%v\n%d\n\n", addr, []byte(addr.address), len(addr.String()))
 	assert.Nil(t, err)
 
-	addr, err = NewAddress(ContractAddress, [][]byte{
-		{12, 23, 24, 109, 223, 77, 34, 97, 20, 18, 19, 45, 62, 155, 211, 34, 248, 46, 41, 64, 103, 78, 193, 188},
-		{41, 64, 103, 78, 193, 188}}...)
-	fmt.Printf("type<ContractAddress> address = %v\n%v\n%d\n\n", addr, []byte(addr.address), len(addr.String()))
-	assert.Nil(t, err)
+	// addr, err = NewAddress(ContractAddress, [][]byte{
+	// 	{12, 23, 24, 109, 223, 77, 34, 97, 20, 18, 19, 45, 62, 155, 211, 34, 248, 46, 41, 64, 103, 78, 193, 188},
+	// 	{41, 64, 103, 78, 193, 188}}...)
+	// fmt.Printf("type<ContractAddress> address = %v\n%v\n%d\n\n", addr, []byte(addr.address), len(addr.String()))
+	// assert.Nil(t, err)
 
-	addr, err = NewAddress(ContractAddress, []byte{12, 23, 24, 109, 223, 77, 34, 97, 20, 18, 19, 45, 62, 155, 211, 34, 248, 46, 41, 64, 103, 78, 193, 188})
-	fmt.Printf("type<ContractAddress> address = %v\n%v\n%d\n\n", addr, []byte(addr.address), len(addr.String()))
-	assert.Nil(t, err)
+	// addr, err = NewAddress(ContractAddress, []byte{12, 23, 24, 109, 223, 77, 34, 97, 20, 18, 19, 45, 62, 155, 211, 34, 248, 46, 41, 64, 103, 78, 193, 188})
+	// fmt.Printf("type<ContractAddress> address = %v\n%v\n%d\n\n", addr, []byte(addr.address), len(addr.String()))
+	// assert.Nil(t, err)
 
-	s := base58.Encode([]byte{25, 87, 71, 121, 81, 68, 192, 123, 227, 7, 81, 138, 233, 187, 218, 247, 117, 213, 225, 64, 121, 53, 109, 153, 204, 123})
-	fmt.Println(s)
-} */
+	// s := base58.Encode([]byte{25, 87, 71, 121, 81, 68, 192, 123, 227, 7, 81, 138, 233, 187, 218, 247, 117, 213, 225, 64, 121, 53, 109, 153, 204, 123})
+	// fmt.Println(s)
+}

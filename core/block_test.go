@@ -353,11 +353,11 @@ func TestBlock(t *testing.T) {
 		height       uint64
 		transactions Transactions
 	}
-	from1, _ := NewAddress(AccountAddress, []byte("eb693e1438fce79f5cb2"))
-	from2, _ := NewAddress(AccountAddress, []byte("eb692e1438fce79f5cb2"))
-	to1, _ := NewAddress(AccountAddress, []byte("eb691e1438fce79f5cb2"))
-	to2, _ := NewAddress(AccountAddress, []byte("eb690e1438fce79f5cb2"))
-	coinbase, _ := NewAddress(AccountAddress, []byte("5425730430bc2d63f257"))
+	from1, _ := NewAddressFromPublicKey([]byte("eb693e1438fce79f5cb2eb693e1438fce79f5cb2eb693e1438fce79f5cb266666"))
+	from2, _ := NewAddressFromPublicKey([]byte("eb692e1438fce79f5cb2eb692e1438fce79f5cb2eb692e1438fce79f5cb2uuuuu"))
+	to1, _ := NewAddressFromPublicKey([]byte("eb691e1438fce79f5cb2eb691e1438fce79f5cb2eb691e1438fce79f5cb266554"))
+	to2, _ := NewAddressFromPublicKey([]byte("eb690e1438fce79f5cb2eb690e1438fce79f5cb2eb690e1438fce79f5cb200000"))
+	coinbase, _ := NewAddressFromPublicKey([]byte("5425730430bc2d63f2575425730430bc2d63f2575425730430bc2d63f25733333"))
 
 	tests := []struct {
 		name    string

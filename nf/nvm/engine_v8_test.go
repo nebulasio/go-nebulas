@@ -1004,12 +1004,15 @@ func TestNebulasContract(t *testing.T) {
 	mem, _ := storage.NewMemoryStorage()
 	context, _ := state.NewAccountState(nil, mem)
 
-	addr, _ := core.NewAddress(core.AccountAddress, []byte{1, 2, 3, 5, 7})
+	addr, _ := core.NewAddressFromPublicKey([]byte{
+		2, 3, 5, 7, 2, 3, 5, 7, 2, 3, 5, 7, 2, 3, 5, 7, 2, 3, 5, 7,
+		2, 3, 5, 7, 2, 3, 5, 7, 2, 3, 5, 7, 2, 3, 5, 7, 2, 3, 5, 7,
+		2, 3, 5, 7, 2, 3, 5, 7, 2, 3, 5, 7, 2, 3, 5, 7, 2, 3, 5, 7, 1, 2, 4, 5, 3})
 	owner, err := context.GetOrCreateUserAccount(addr.Bytes())
 	assert.Nil(t, err)
 	owner.AddBalance(newUint128FromIntWrapper(1000000000))
 
-	addr, _ = core.NewAddress(core.ContractAddress, []byte{1, 2, 3, 5, 7})
+	addr, _ = core.NewContractAddressFromData([]byte{1, 2, 3, 5, 7}, []byte{1, 2, 3, 5, 7})
 	contract, _ := context.CreateContractAccount(addr.Bytes(), nil)
 
 	ctx, err := NewContext(mockBlock(), mockTransaction(), owner, contract, context)
