@@ -108,6 +108,10 @@ func (n *Neb) NetService() net.Service {
 	return n.ns
 }
 
+func (n *Neb) IsActiveSyncing() bool {
+	return true
+}
+
 func (n *Neb) AccountManager() core.AccountManager {
 	return n.am
 }

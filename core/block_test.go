@@ -275,6 +275,10 @@ func (n *mockNeb) NetService() net.Service {
 	return n.ns
 }
 
+func (n *mockNeb) IsActiveSyncing() bool {
+	return true
+}
+
 func (n *mockNeb) AccountManager() AccountManager {
 	return n.am
 }
