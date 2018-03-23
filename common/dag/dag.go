@@ -22,15 +22,14 @@ import (
 
 	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/common/dag/pb"
-	"github.com/nebulasio/go-nebulas/util/logging"
 )
 
 // Node struct
 type Node struct {
-	Key           interface{}
-	Index         int
-	Children      []*Node
-	ParentCounter int
+	key           interface{}
+	index         int
+	children      []*Node
+	parentCounter int
 }
 
 // Errors
@@ -38,41 +37,51 @@ var (
 	ErrKeyNotFound       = errors.New("not found")
 	ErrKeyIsExisted      = errors.New("already existed")
 	ErrInvalidProtoToDag = errors.New("Protobuf message cannot be converted into Dag")
+	ErrInvalidDagToProto = errors.New("Dag cannot be converted into Protobuf message")
 )
 
 // NewNode new node
 func NewNode(key interface{}, index int) *Node {
 	return &Node{
-		Key:           key,
-		Index:         index,
-		ParentCounter: 0,
-		Children:      make([]*Node, 0),
+		key:           key,
+		index:         index,
+		parentCounter: 0,
+		children:      make([]*Node, 0),
 	}
+}
+
+// Index return node index
+func (n *Node) Index() int {
+	return n.index
 }
 
 // Dag struct
 type Dag struct {
-	Nodes map[interface{}]*Node
-	Index int
+	nodes  map[interface{}]*Node
+	index  int
+	indexs map[int]interface{}
 }
 
 // ToProto converts domain Dag into proto Dag
 func (dag *Dag) ToProto() (proto.Message, error) {
 
-	nodes := make([]*dagpb.Node, len(dag.Nodes))
+	nodes := make([]*dagpb.Node, len(dag.nodes))
 
-	idx := 0
-	for _, v := range dag.Nodes {
+	for idx, key := range dag.indexs {
+		v, ok := dag.nodes[key]
+		if !ok {
+			return nil, ErrInvalidDagToProto
+		}
+
 		node := new(dagpb.Node)
-		node.Index = int32(v.Index)
+		node.Index = int32(v.index)
 		//node.Key = v.Key.(string)
-		node.Children = make([]int32, len(v.Children))
-		for i, child := range v.Children {
-			node.Children[i] = int32(child.Index)
+		node.Children = make([]int32, len(v.children))
+		for i, child := range v.children {
+			node.Children[i] = int32(child.index)
 		}
 
 		nodes[idx] = node
-		idx++
 	}
 
 	return &dagpb.Dag{
@@ -113,19 +122,20 @@ func (dag *Dag) String() string {
 // NewDag new dag
 func NewDag() *Dag {
 	return &Dag{
-		Nodes: make(map[interface{}]*Node, 0),
-		Index: 0,
+		nodes:  make(map[interface{}]*Node, 0),
+		index:  0,
+		indexs: make(map[int]interface{}, 0),
 	}
 }
 
 // Len Dag len
 func (dag *Dag) Len() int {
-	return len(dag.Nodes)
+	return len(dag.nodes)
 }
 
 // GetNode get node by key
 func (dag *Dag) GetNode(key interface{}) *Node {
-	if v, ok := dag.Nodes[key]; ok {
+	if v, ok := dag.nodes[key]; ok {
 		return v
 	}
 	return nil
@@ -133,8 +143,8 @@ func (dag *Dag) GetNode(key interface{}) *Node {
 
 // GetChildrenNodes get children nodes with key
 func (dag *Dag) GetChildrenNodes(key interface{}) []*Node {
-	if v, ok := dag.Nodes[key]; ok {
-		return v.Children
+	if v, ok := dag.nodes[key]; ok {
+		return v.children
 	}
 
 	return nil
@@ -143,8 +153,8 @@ func (dag *Dag) GetChildrenNodes(key interface{}) []*Node {
 // GetRootNodes get root nodes
 func (dag *Dag) GetRootNodes() []*Node {
 	nodes := make([]*Node, 0)
-	for _, node := range dag.Nodes {
-		if node.ParentCounter == 0 {
+	for _, node := range dag.nodes {
+		if node.parentCounter == 0 {
 			nodes = append(nodes, node)
 		}
 	}
@@ -154,7 +164,7 @@ func (dag *Dag) GetRootNodes() []*Node {
 // GetNodes get all nodes
 func (dag *Dag) GetNodes() []*Node {
 	nodes := make([]*Node, 0)
-	for _, node := range dag.Nodes {
+	for _, node := range dag.nodes {
 		nodes = append(nodes, node)
 	}
 	return nodes
@@ -162,23 +172,25 @@ func (dag *Dag) GetNodes() []*Node {
 
 // AddNode add node
 func (dag *Dag) AddNode(key interface{}) error {
-	if _, ok := dag.Nodes[key]; ok {
+	if _, ok := dag.nodes[key]; ok {
 		return ErrKeyIsExisted
 	}
 
-	dag.Nodes[key] = NewNode(key, dag.Index)
-	dag.Index++
+	dag.nodes[key] = NewNode(key, dag.index)
+	dag.indexs[dag.index] = key
+	dag.index++
 	return nil
 }
 
 // addNodeWithIndex add node
 func (dag *Dag) addNodeWithIndex(key interface{}, index int) error {
-	if _, ok := dag.Nodes[key]; ok {
+	if _, ok := dag.nodes[key]; ok {
 		return ErrKeyIsExisted
 	}
 
-	dag.Nodes[key] = NewNode(key, index)
-	dag.Index = index
+	dag.nodes[key] = NewNode(key, index)
+	dag.indexs[index] = key
+	dag.index = index
 	return nil
 }
 
@@ -187,22 +199,22 @@ func (dag *Dag) AddEdge(fromKey, toKey interface{}) error {
 	var from, to *Node
 	var ok bool
 
-	if from, ok = dag.Nodes[fromKey]; !ok {
+	if from, ok = dag.nodes[fromKey]; !ok {
 		return ErrKeyNotFound
 	}
 
-	if to, ok = dag.Nodes[toKey]; !ok {
+	if to, ok = dag.nodes[toKey]; !ok {
 		return ErrKeyNotFound
 	}
 
-	for _, childNode := range from.Children {
+	for _, childNode := range from.children {
 		if childNode == to {
 			return ErrKeyIsExisted
 		}
 	}
 
-	dag.Nodes[toKey].ParentCounter++
-	dag.Nodes[fromKey].Children = append(from.Children, to)
+	dag.nodes[toKey].parentCounter++
+	dag.nodes[fromKey].children = append(from.children, to)
 
 	return nil
 }
@@ -210,10 +222,9 @@ func (dag *Dag) AddEdge(fromKey, toKey interface{}) error {
 //IsCirclular a->b-c->a
 func (dag *Dag) IsCirclular() bool {
 
-	visited := make(map[interface{}]int, len(dag.Nodes))
+	visited := make(map[interface{}]int, len(dag.nodes))
 	rootNodes := make(map[interface{}]*Node)
-	for key, node := range dag.Nodes {
-		logging.CLog().Info("node key:", key)
+	for key, node := range dag.nodes {
 		visited[key] = 0
 		rootNodes[key] = node
 	}
@@ -224,9 +235,7 @@ func (dag *Dag) IsCirclular() bool {
 		}
 	}
 
-	logging.CLog().Info("visited:", visited)
 	for key, count := range visited {
-		logging.CLog().Info(" key:", key, " visited count:", count)
 		if count == 0 {
 			return true
 		}
@@ -236,11 +245,9 @@ func (dag *Dag) IsCirclular() bool {
 
 func (dag *Dag) hasCirclularDep(current *Node, visited map[interface{}]int) bool {
 
-	visited[current.Key] = 1
-	logging.CLog().Info("current key:", current.Key, " visited:", visited[current.Key])
-	for _, child := range current.Children {
-		logging.CLog().Info("child key:", child.Key, " visited:", visited[child.Key])
-		if visited[child.Key] == 1 {
+	visited[current.key] = 1
+	for _, child := range current.children {
+		if visited[child.key] == 1 {
 			return true
 		}
 
@@ -248,6 +255,6 @@ func (dag *Dag) hasCirclularDep(current *Node, visited map[interface{}]int) bool
 			return true
 		}
 	}
-	visited[current.Key] = 2
+	visited[current.key] = 2
 	return false
 }

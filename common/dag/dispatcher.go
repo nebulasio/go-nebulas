@@ -83,11 +83,11 @@ func (dp *Dispatcher) Run() error {
 	rootCounter := 0
 	for _, node := range vertices {
 		task := &Task{
-			dependence: node.ParentCounter,
+			dependence: node.parentCounter,
 			node:       node,
 		}
-		task.dependence = node.ParentCounter
-		dp.tasks[node.Key] = task
+		task.dependence = node.parentCounter
+		dp.tasks[node.key] = task
 
 		if task.dependence == 0 {
 			rootCounter++
@@ -185,11 +185,11 @@ func (dp *Dispatcher) onCompleteParentTask(node *Node) (bool, error) {
 	dp.muTask.Lock()
 	defer dp.muTask.Unlock()
 
-	key := node.Key
+	key := node.key
 
 	vertices := dp.dag.GetChildrenNodes(key)
 	for _, node := range vertices {
-		err := dp.updateDependenceTask(node.Key)
+		err := dp.updateDependenceTask(node.key)
 		if err != nil {
 			return false, err
 		}

@@ -21,6 +21,7 @@ package dag
 import (
 	"testing"
 
+	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/common/dag/pb"
 	"github.com/stretchr/testify/assert"
 )
@@ -48,13 +49,13 @@ func TestDag_AddNode(t *testing.T) {
 
 	node := dag.GetNode("1")
 
-	assert.Equal(t, "1", node.Key)
-	assert.Equal(t, 0, node.Index)
+	assert.Equal(t, "1", node.key)
+	assert.Equal(t, 0, node.index)
 
-	assert.Equal(t, 0, node.ParentCounter)
+	assert.Equal(t, 0, node.parentCounter)
 
 	node4 := dag.GetNode("4")
-	assert.Equal(t, 2, node4.ParentCounter)
+	assert.Equal(t, 2, node4.parentCounter)
 
 	dag.AddNode("5")
 	msg, err := dag.ToProto()
@@ -63,7 +64,7 @@ func TestDag_AddNode(t *testing.T) {
 
 	node1 := dag.GetNode("5")
 
-	assert.Equal(t, "5", node1.Key)
+	assert.Equal(t, "5", node1.key)
 
 	msg, err1 := dag.ToProto()
 	assert.Nil(t, err1)
@@ -74,13 +75,45 @@ func TestDag_AddNode(t *testing.T) {
 	node1 = dag1.GetNode(int(0))
 
 	//fmt.Println(err, node1)
-	assert.Equal(t, 0, node1.Key)
+	assert.Equal(t, 0, node1.key)
 
 	children := dag1.GetChildrenNodes(int(0))
 
 	assert.Equal(t, 2, len(children))
 }
 
+func TestDag_ToFromProto(t *testing.T) {
+	dag1 := NewDag()
+
+	dag1.AddNode("key1")
+	dag1.AddNode("key2")
+	dag1.AddNode("key3")
+	dag1.AddNode("key4")
+	dag1.AddNode("key5")
+
+	dag1.AddEdge("key1", "key2")
+	dag1.AddEdge("key1", "key3")
+	dag1.AddEdge("key2", "key4")
+	dag1.AddEdge("key3", "key4")
+
+	msg1, err := dag1.ToProto()
+	assert.Nil(t, err)
+
+	j1, err := proto.Marshal(msg1)
+	assert.Nil(t, err)
+
+	dag2 := NewDag()
+	err = dag2.FromProto(msg1)
+	assert.Nil(t, err)
+
+	msg2, err := dag2.ToProto()
+	assert.Nil(t, err)
+	j2, err := proto.Marshal(msg2)
+	assert.Nil(t, err)
+
+	assert.Equal(t, j1, j2)
+
+}
 func TestDag_IsCirclular(t *testing.T) {
 	dag := NewDag()
 

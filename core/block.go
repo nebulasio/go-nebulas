@@ -913,10 +913,11 @@ func (block *Block) execute() error {
 		block := ctx.block
 		mergeCh := ctx.mergeCh
 
-		if node.Index < 0 || node.Index > len(block.transactions)-1 {
+		idx := node.Index()
+		if idx < 0 || idx > len(block.transactions)-1 {
 			return DagError
 		}
-		tx := block.transactions[node.Index]
+		tx := block.transactions[idx]
 		metricsTxExecute.Mark(1)
 
 		mergeCh <- true
@@ -1078,21 +1079,21 @@ func (block *Block) calHash() (byteutils.Hash, error) {
 		return nil, err
 	}
 
-	/* 	pbDep, err := block.dependency.ToProto() // TODO recover
-	   	if err != nil {
-	   		return nil, err
-	   	}
-	   	dependency, err := proto.Marshal(pbDep)
-	   	if err != nil {
-	   		return nil, err
-	   	} */
+	pbDep, err := block.dependency.ToProto()
+	if err != nil {
+		return nil, err
+	}
+	dependency, err := proto.Marshal(pbDep)
+	if err != nil {
+		return nil, err
+	}
 
 	hasher.Write(block.ParentHash())
 	hasher.Write(block.StateRoot())
 	hasher.Write(block.TxsRoot())
 	hasher.Write(block.EventsRoot())
 	hasher.Write(consensusRoot)
-	// hasher.Write(dependency)
+	hasher.Write(dependency)
 	hasher.Write(block.header.coinbase.address)
 	hasher.Write(byteutils.FromInt64(block.header.timestamp))
 	hasher.Write(byteutils.FromUint32(block.header.chainID))
