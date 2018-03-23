@@ -398,6 +398,7 @@ func (dpos *Dpos) newBlock(tail *core.Block, consensusState state.ConsensusState
 			"block": block,
 			"err":   err,
 		}).Error("Failed to seal new block")
+		go block.ReturnTransactions()
 		return nil, err
 	}
 	if err = dpos.am.SignBlock(dpos.miner, block); err != nil { // TODO rollback, return txs
@@ -406,6 +407,7 @@ func (dpos *Dpos) newBlock(tail *core.Block, consensusState state.ConsensusState
 			"block": block,
 			"err":   err,
 		}).Error("Failed to sign new block")
+		go block.ReturnTransactions()
 		return nil, err
 	}
 	endAt := time.Now().Unix()
@@ -571,7 +573,7 @@ func (dpos *Dpos) mintBlock(now int64) error {
 	// if failed, return all txs back
 
 	if err := dpos.pushAndBroadcast(tail, block); err != nil {
-		block.ReturnTransactions()
+		go block.ReturnTransactions()
 		return err
 	}
 

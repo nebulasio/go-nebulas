@@ -522,7 +522,7 @@ func (block *Block) CollectTransactions(deadlineInMs int64) {
 
 				// step2. execute tx.
 				executeAt := time.Now().UnixNano()
-				giveback, err := block.ExecuteTransaction(tx, txWorldState) // TODO: move giveback logic into Execution
+				giveback, err := block.ExecuteTransaction(tx, txWorldState)
 				executedAt := time.Now().UnixNano()
 				execute += executedAt - executeAt
 				if err != nil {
@@ -550,8 +550,14 @@ func (block *Block) CollectTransactions(deadlineInMs int64) {
 								"err":   err,
 							}).Debug("Failed to giveback the tx.")
 						}
-						//
-						fromBlacklist.Delete(tx.to.address.Hex()) // TODO: add comment, why not remove tx.from
+					}
+					if err == ErrLargeTransactionNonce {
+						// as for the transactions from a same account
+						// we will pop them out of transaction pool order by nonce ascend
+						// thus, when we find a transaction with a very large nonce
+						// we won't try to pack other transactions from the same account in the block
+						// the account will be in our from blacklist util the block is sealed
+						fromBlacklist.Delete(tx.to.address.Hex())
 						toBlacklist.Delete(tx.to.address.Hex())
 					} else {
 						fromBlacklist.Delete(tx.from.address.Hex())
@@ -693,10 +699,10 @@ func (block *Block) Seal() error {
 	}
 
 	if err := block.rewardCoinbaseForGas(); err != nil {
-		return err // TODO: giveback txs
+		return err
 	}
 	if err := block.WorldState().Flush(); err != nil {
-		return err // TODO: giveback txs
+		return err
 	}
 	block.header.stateRoot = block.WorldState().AccountsRoot()
 	block.header.txsRoot = block.WorldState().TxsRoot()
