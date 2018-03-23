@@ -120,6 +120,7 @@ var (
 	ErrInvalidProtoToBlockHeader = errors.New("protobuf message cannot be converted into BlockHeader")
 	ErrInvalidProtoToTransaction = errors.New("protobuf message cannot be converted into Transaction")
 	ErrInvalidTransactionData    = errors.New("invalid data in tx from Proto")
+	ErrInvalidDagBlock           = errors.New("block's dag is incorrect")
 
 	ErrCannotRevertLIB        = errors.New("cannot revert latest irreversible block")
 	ErrCannotLoadGenesisBlock = errors.New("cannot load genesis block from storage")

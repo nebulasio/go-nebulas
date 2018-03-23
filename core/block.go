@@ -19,7 +19,6 @@
 package core
 
 import (
-	"errors"
 	"fmt"
 	"reflect"
 	"sync"
@@ -54,8 +53,6 @@ var (
 	// rule: 3% per year, 3,000,000. 1 block per 20 seconds
 	// value: 10^8 * 3% / (365*24*3600/20) * 10^18 ≈ 64 * 3% * 10*18 = 1.92 * 10^18
 	BlockReward, _ = util.NewUint128FromString("1920000000000000000")
-
-	DagError = errors.New("dag is incorrect")
 )
 
 // BlockHeader of a block
@@ -915,7 +912,7 @@ func (block *Block) execute() error {
 
 		idx := node.Index()
 		if idx < 0 || idx > len(block.transactions)-1 {
-			return DagError
+			return ErrInvalidDagBlock
 		}
 		tx := block.transactions[idx]
 		metricsTxExecute.Mark(1)
