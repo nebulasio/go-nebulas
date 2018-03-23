@@ -50,6 +50,7 @@ var (
 	metricsTxGivebackCount   = metrics.NewGauge("neb.tx.giveback")
 
 	// txpool metrics
+	metricsReceivedTx                      = metrics.NewGauge("neb.txpool.received")
 	metricsCachedTx                        = metrics.NewGauge("neb.txpool.cached")
 	metricsInvalidTx                       = metrics.NewCounter("neb.txpool.invalid")
 	metricsDuplicateTx                     = metrics.NewCounter("neb.txpool.duplicate")

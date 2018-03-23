@@ -141,7 +141,8 @@ func (pool *TransactionPool) loop() {
 	for {
 		select {
 		case <-timerChan:
-			metricsCachedTx.Update(int64(len(pool.receivedMessageCh)))
+			metricsReceivedTx.Update(int64(len(pool.receivedMessageCh)))
+			metricsCachedTx.Update(int64(len(pool.all)))
 		case <-pool.quitCh:
 			logging.CLog().WithFields(logrus.Fields{
 				"size": pool.size,
