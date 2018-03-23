@@ -248,8 +248,6 @@ func (pool *BlockPool) loop() {
 }
 
 func mockBlockFromNetwork(block *Block) (*Block, error) {
-	dep1 := block.dependency // TODO delete
-
 	pbBlock, err := block.ToProto()
 	if err != nil {
 		return nil, err
@@ -260,14 +258,6 @@ func mockBlockFromNetwork(block *Block) (*Block, error) {
 	}
 	block = new(Block)
 	err = block.FromProto(pbBlock)
-
-	dep2 := block.dependency // TODO delete
-
-	dep1Bytes, _ := dep1.ToProto()                        // TODO delete
-	b1, _ := proto.Marshal(dep1Bytes)                     // TODO delete
-	dep2Bytes, _ := dep2.ToProto()                        // TODO delete
-	b2, _ := proto.Marshal(dep2Bytes)                     // TODO delete
-	logging.CLog().Info("Mock ", byteutils.Equal(b1, b2)) // TODO delete
 	return block, err
 }
 

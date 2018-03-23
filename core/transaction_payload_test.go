@@ -160,7 +160,6 @@ func TestLoadDeployPayload(t *testing.T) {
 		parse     bool
 		want      TxPayload
 		wantEqual bool
-		limit     *util.Uint128
 	}{
 		{
 			name:      "none",
@@ -212,8 +211,8 @@ func TestPayload_Execute(t *testing.T) {
 		block    *Block
 		want     *util.Uint128
 		wantErr  error
-		giveback bool
-		limit    *util.Uint128
+		giveback bool          // TODO add giveback check
+		limit    *util.Uint128 // TODO add limit check
 	}
 
 	neb := testNeb(t)

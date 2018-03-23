@@ -285,30 +285,6 @@ func (tx *Transaction) GasLimit() *util.Uint128 {
 	return tx.gasLimit
 }
 
-// PayloadGasLimit returns payload gasLimit
-func (tx *Transaction) PayloadGasLimit(payload TxPayload) (*util.Uint128, error) { // TODO delete
-	if payload == nil {
-		return nil, ErrNilArgument
-	}
-
-	// TODO: @robin using CalculateMinGasExpected instead.
-	// payloadGasLimit = tx.gasLimit - tx.GasCountOfTxBase - payload.BaseGasCount
-
-	gasCountOfTxBase, err := tx.GasCountOfTxBase()
-	if err != nil {
-		return nil, err
-	}
-	payloadGasLimit, err := tx.gasLimit.Sub(gasCountOfTxBase)
-	if err != nil {
-		return nil, ErrOutOfGasLimit
-	}
-	payloadGasLimit, err = payloadGasLimit.Sub(payload.BaseGasCount())
-	if err != nil {
-		return nil, ErrOutOfGasLimit
-	}
-	return payloadGasLimit, nil
-}
-
 // GasCountOfTxBase calculate the actual amount for a tx with data
 func (tx *Transaction) GasCountOfTxBase() (*util.Uint128, error) {
 	txGas := MinGasCountPerTransaction
@@ -456,7 +432,7 @@ func VerifyExecution(tx *Transaction, block *Block, ws WorldState) (bool, error)
 	}
 
 	// step7. execute contract.
-	gasExecution, _, exeErr := payload.Execute(contractLimitedGas, tx, block, ws) // TODO return detailed error, not only failed // TODO calculate the payload gaslimit as an argument in Execute()
+	gasExecution, _, exeErr := payload.Execute(contractLimitedGas, tx, block, ws) // TODO return detailed error, not only failed
 	if exeErr != nil {
 		if err := ws.Reset(); err != nil {
 			return true, err
@@ -670,7 +646,7 @@ func (tx *Transaction) VerifyIntegrity(chainID uint32) error {
 
 }
 
-func (tx *Transaction) verifySign() error { // TODO move to core/crypto.go.
+func (tx *Transaction) verifySign() error {
 	signer, err := RecoverSignerFromSignature(tx.alg, tx.hash, tx.sign)
 	if err != nil {
 		return err
@@ -695,13 +671,13 @@ func (tx *Transaction) GenerateContractAddress() (*Address, error) {
 
 // CheckContract check if contract is valid
 func CheckContract(addr *Address, ws WorldState) (state.Account, error) {
+	if addr == nil || ws == nil {
+		return nil, ErrNilArgument
+	}
+
 	contract, err := ws.GetContractAccount(addr.Bytes())
 	if err != nil {
 		return nil, err
-	}
-
-	if len(contract.BirthPlace()) == 0 { // TODO check nil, move if-else into ws.GetContractAccount
-		return nil, ErrContractCheckFailed
 	}
 
 	birthEvents, err := ws.FetchEvents(contract.BirthPlace())

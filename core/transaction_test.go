@@ -304,7 +304,7 @@ func TestTransaction_VerifyExecution(t *testing.T) {
 		toBalance       *util.Uint128
 		coinbaseBalance *util.Uint128
 		status          int
-		giveback        bool // TODO add giveback
+		giveback        bool // TODO add giveback check
 	}
 	tests := []testTx{}
 

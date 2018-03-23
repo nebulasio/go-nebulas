@@ -24,7 +24,7 @@ import (
 )
 
 // RecoverAddressFromSignature return address who signs the signature
-func RecoverSignerFromSignature(alg keystore.Algorithm, plainText []byte, cipherText []byte) (*Address, error) { // TODO move to core/crypto.go. same as Transaction.Verify
+func RecoverSignerFromSignature(alg keystore.Algorithm, plainText []byte, cipherText []byte) (*Address, error) {
 	signature, err := crypto.NewSignature(alg)
 	if err != nil {
 		return nil, err

@@ -431,6 +431,9 @@ func (s *states) GetContractAccount(addr byteutils.Hash) (Account, error) {
 		logging.VLog().Info("GCE 1")
 		return nil, err
 	}
+	if len(acc.BirthPlace()) == 0 {
+		return nil, ErrContractCheckFailed
+	}
 	return s.recordAccount(acc)
 }
 
