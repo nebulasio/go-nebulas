@@ -266,7 +266,15 @@ func (pool *TransactionPool) Push(tx *Transaction) error {
 	pool.pushTx(tx)
 	// drop max tx in longest bucket if full
 	if len(pool.all) > pool.size {
+		poollen := len(pool.all)
 		pool.dropTx()
+
+		logging.VLog().WithFields(logrus.Fields{
+			"tx":        tx,
+			"size":      pool.size,
+			"bpoolsize": poollen,
+			"apoolsize": len(pool.all),
+		}).Debug("drop tx")
 	}
 
 	// trigger pending transaction
