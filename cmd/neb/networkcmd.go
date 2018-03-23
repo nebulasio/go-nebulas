@@ -21,8 +21,8 @@ package main
 import (
 	"fmt"
 
-	"github.com/nebulasio/go-nebulas/account"
 	"github.com/nebulasio/go-nebulas/net"
+	"github.com/nebulasio/go-nebulas/util"
 	"github.com/urfave/cli"
 )
 
@@ -67,7 +67,5 @@ func generatePrivateKey(ctx *cli.Context) error {
 		path = net.DefaultPrivateKeyPath
 	}
 
-	account.WriteFile(path, []byte(str))
-
-	return nil
+	return util.FileWrite(path, []byte(str))
 }

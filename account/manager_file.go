@@ -26,6 +26,7 @@ import (
 	"strings"
 
 	"github.com/nebulasio/go-nebulas/core"
+	"github.com/nebulasio/go-nebulas/util"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
 	"github.com/nebulasio/go-nebulas/util/logging"
 	"github.com/sirupsen/logrus"
@@ -52,6 +53,10 @@ func (m *Manager) refreshAccounts() error {
 			Address string `json:"address"`
 		}
 	)
+
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+
 	for _, file := range files {
 		path := filepath.Join(m.keydir, file.Name())
 		if file.IsDir() || strings.HasPrefix(file.Name(), ".") || strings.HasSuffix(file.Name(), "~") {
@@ -126,37 +131,22 @@ func (m *Manager) exportFile(addr *core.Address, passphrase []byte) (path string
 	} else {
 		path = filepath.Join(m.keydir, addr.String())
 	}
-	WriteFile(path, raw)
+	if err := util.FileWrite(path, raw); err != nil {
+		return "", err
+	}
 	return path, nil
 }
 
 func (m *Manager) getAccount(addr *core.Address) *account {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+
 	for _, acc := range m.accounts {
 		if acc.addr.Equals(addr) {
 			return acc
 		}
 	}
 	return nil
-}
-
-// WriteFile write file to path
-func WriteFile(file string, content []byte) error {
-	// Create the keystore directory with appropriate permissions
-	const dirPerm = 0700
-	if err := os.MkdirAll(filepath.Dir(file), dirPerm); err != nil {
-		return err
-	}
-	f, err := ioutil.TempFile(filepath.Dir(file), "."+filepath.Base(file)+".tmp")
-	if err != nil {
-		return err
-	}
-	if _, err := f.Write(content); err != nil {
-		f.Close()
-		os.Remove(f.Name())
-		return err
-	}
-	f.Close()
-	return os.Rename(f.Name(), file)
 }
 
 func (m *Manager) deleteFile(addr *core.Address) error {
@@ -166,10 +156,7 @@ func (m *Manager) deleteFile(addr *core.Address) error {
 		if err != nil {
 			return err
 		}
-		err = m.refreshAccounts()
-		if err != nil {
-			return err
-		}
+		go m.refreshAccounts()
 		return nil
 	}
 	return ErrAddrNotFind
