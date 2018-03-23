@@ -89,6 +89,9 @@ var (
 
 	ErrInsufficientBalance                = errors.New("insufficient balance")
 	ErrBelowGasPrice                      = errors.New("below the gas price")
+	ErrGasCntOverflow                     = errors.New("the count of gas used is overflow")
+	ErrGasFeeOverflow                     = errors.New("the fee of gas used is overflow")
+	ErrTransferOverflow                   = errors.New("transfer leads to overflow")
 	ErrGasLimitLessOrEqualToZero          = errors.New("gas limit less or equal to 0")
 	ErrOutOfGasLimit                      = errors.New("out of gas limit")
 	ErrTxExecutionFailed                  = errors.New("transaction execution failed")
@@ -143,7 +146,7 @@ var (
 type TxPayload interface {
 	ToBytes() ([]byte, error)
 	BaseGasCount() *util.Uint128
-	Execute(tx *Transaction, block *Block, ws WorldState) (*util.Uint128, string, error)
+	Execute(limitedGas *util.Uint128, tx *Transaction, block *Block, ws WorldState) (*util.Uint128, string, error)
 }
 
 // MessageType

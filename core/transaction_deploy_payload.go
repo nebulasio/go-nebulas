@@ -61,7 +61,7 @@ func (payload *DeployPayload) BaseGasCount() *util.Uint128 {
 }
 
 // Execute deploy payload in tx, deploy a new contract
-func (payload *DeployPayload) Execute(tx *Transaction, block *Block, ws WorldState) (*util.Uint128, string, error) {
+func (payload *DeployPayload) Execute(limitedGas *util.Uint128, tx *Transaction, block *Block, ws WorldState) (*util.Uint128, string, error) {
 	if block == nil || tx == nil {
 		return util.NewUint128(), "", ErrNilArgument
 	}
@@ -70,12 +70,8 @@ func (payload *DeployPayload) Execute(tx *Transaction, block *Block, ws WorldSta
 		return util.NewUint128(), "", ErrContractTransactionAddressNotEqual
 	}
 
-	payloadGasLimit, err := tx.PayloadGasLimit(payload)
-	if err != nil {
-		return util.NewUint128(), "", err
-	}
 	// payloadGasLimit <= 0, v8 engine not limit the execution instructions
-	if payloadGasLimit.Cmp(util.NewUint128()) <= 0 {
+	if limitedGas.Cmp(util.NewUint128()) <= 0 {
 		return util.NewUint128(), "", ErrOutOfGasLimit
 	}
 
@@ -98,7 +94,7 @@ func (payload *DeployPayload) Execute(tx *Transaction, block *Block, ws WorldSta
 	}
 	defer engine.Dispose()
 
-	if err := engine.SetExecutionLimits(payloadGasLimit.Uint64(), DefaultLimitsOfTotalMemorySize); err != nil {
+	if err := engine.SetExecutionLimits(limitedGas.Uint64(), DefaultLimitsOfTotalMemorySize); err != nil {
 		return util.NewUint128(), "", err
 	}
 

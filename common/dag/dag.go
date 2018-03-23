@@ -235,7 +235,7 @@ func (dag *Dag) IsCirclular() bool {
 		}
 	}
 
-	for key, count := range visited {
+	for _, count := range visited {
 		if count == 0 {
 			return true
 		}

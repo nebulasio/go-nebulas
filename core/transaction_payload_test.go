@@ -160,6 +160,7 @@ func TestLoadDeployPayload(t *testing.T) {
 		parse     bool
 		want      TxPayload
 		wantEqual bool
+		limit     *util.Uint128
 	}{
 		{
 			name:      "none",
@@ -213,6 +214,7 @@ func TestPayload_Execute(t *testing.T) {
 		want     *util.Uint128
 		wantErr  error
 		giveback bool
+		limit    *util.Uint128
 	}
 
 	neb := testNeb(t)
@@ -269,7 +271,7 @@ func TestPayload_Execute(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, _, err := tt.payload.Execute(tt.tx, block, block.WorldState())
+			got, _, err := tt.payload.Execute(tt.limit, tt.tx, block, block.WorldState())
 			assert.Equal(t, tt.wantErr, err)
 			assert.Equal(t, tt.want, got)
 			giveback, err := AcceptTransaction(tt.tx, block.WorldState())

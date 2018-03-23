@@ -1015,6 +1015,31 @@ func (block *Block) rewardCoinbaseForGas() error {
 	return nil
 }
 
+func transfer(from, to byteutils.Hash, value *util.Uint128, ws WorldState) (bool, error) {
+	fromAcc, err := ws.GetOrCreateUserAccount(from)
+	if err != nil {
+		logging.VLog().Info("AEE 13")
+		return true, err
+	}
+	toAcc, err := ws.GetOrCreateUserAccount(to)
+	if err != nil {
+		logging.VLog().Info("AEE 14")
+		return true, err
+	}
+	if err := fromAcc.SubBalance(value); err != nil {
+		logging.VLog().Info("AEE 15")
+		// Balance is not enough to transfer the value, won't giveback the tx
+		return false, err
+	}
+	if err := toAcc.AddBalance(value); err != nil {
+		logging.VLog().Info("AEE 16")
+		// Balance plus value result in overflow, won't giveback the tx
+		return false, err
+	}
+	// No error, won't giveback the tx
+	return false, nil
+}
+
 // ExecuteTransaction execute the transaction
 // return giveback, err
 // system error: giveback == true

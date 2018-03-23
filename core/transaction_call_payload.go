@@ -67,18 +67,13 @@ func (payload *CallPayload) BaseGasCount() *util.Uint128 {
 }
 
 // Execute the call payload in tx, call a function
-func (payload *CallPayload) Execute(tx *Transaction, block *Block, ws WorldState) (*util.Uint128, string, error) {
+func (payload *CallPayload) Execute(limitedGas *util.Uint128, tx *Transaction, block *Block, ws WorldState) (*util.Uint128, string, error) {
 	if block == nil || tx == nil {
 		return util.NewUint128(), "", ErrNilArgument
 	}
 
-	//add gas limit and memory use limit
-	payloadGasLimit, err := tx.PayloadGasLimit(payload)
-	if err != nil {
-		return util.NewUint128(), "", err
-	}
 	// payloadGasLimit <= 0, v8 engine not limit the execution instructions
-	if payloadGasLimit.Cmp(util.NewUint128()) <= 0 {
+	if limitedGas.Cmp(util.NewUint128()) <= 0 {
 		return util.NewUint128(), "", ErrOutOfGasLimit
 	}
 
@@ -106,7 +101,7 @@ func (payload *CallPayload) Execute(tx *Transaction, block *Block, ws WorldState
 	}
 	defer engine.Dispose()
 
-	if err := engine.SetExecutionLimits(payloadGasLimit.Uint64(), DefaultLimitsOfTotalMemorySize); err != nil {
+	if err := engine.SetExecutionLimits(limitedGas.Uint64(), DefaultLimitsOfTotalMemorySize); err != nil {
 		return util.NewUint128(), "", err
 	}
 
