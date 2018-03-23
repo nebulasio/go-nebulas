@@ -60,12 +60,24 @@ if (env == 'local') {
     nodes.push("http://13.58.44.3:8685");
     nodes.push("http://35.177.214.138:8685");
     nodes.push("http://35.176.94.224:8685");
+
 } else if (env == "testneb2") {
     neb.setRequest(new HttpRequest("http://34.205.26.12:8685"));
     ChainID = 1002;
     from = new Wallet.Account("43181d58178263837a9a6b08f06379a348a5b362bfab3631ac78d2ac771c5df3");
     nodes.push("http://34.205.26.12:8685");
-} else {
+} else if (env == "testneb3") {
+    neb.setRequest(new HttpRequest("http://35.177.214.138:8685"));
+    ChainID = 1003;
+    from = new Wallet.Account("43181d58178263837a9a6b08f06379a348a5b362bfab3631ac78d2ac771c5df3");
+    nodes.push("http://13.57.120.136:8685");
+    nodes.push("http://18.218.165.90:8685");
+    nodes.push("http://35.177.214.138:8685");
+    nodes.push("http://35.176.94.224:8685");
+    nodes.push("http://35.182.205.40:8685");
+    nodes.push("http://52.47.199.42:8685");
+
+}else {
     console.log("please input correct env local testneb1 testneb2")
     return;
 }
@@ -76,9 +88,82 @@ var j = schedule.scheduleJob('10,40 */1 * * *', function() {
         lastnonce = parseInt(resp.nonce);
         console.log("lastnonce:", lastnonce);
 
-        claimTokens(lastnonce);
+        //claimTokens(lastnonce);
+        claimSubMaster(lastnonce);
     });
 });
+
+var maxCliamTime = 2
+var cliamTimes = 0
+var subMaster
+//claim a new account to distribute money instead of master account
+function claimSubMaster(nonce){
+    console.log("initializing the subMaster account to distribute coins...");
+    subMaster = Wallet.Account.NewAccount();
+    var value = (maxCliamTime * AddressNumber + 1) * 1000000000000000;
+
+    var transaction = new Wallet.Transaction(ChainID, from, subMaster, value.toString(), ++nonce);
+    transaction.signTransaction();
+    var rawTx = transaction.toProtoString();
+    cliamTimes ++;
+    neb.api.sendRawTransaction(rawTx)
+        .then(function (rawTxResp){
+            console.log("\tresp of send raw Tx for claiming subMaster:" + JSON.stringify(rawTxResp));
+            checkTransaction(rawTxResp.txhash, function (resp) {
+                //console.log("resp" + JSON.stringify(resp));
+                try {
+                    if (resp && resp.status === 1) {
+                        cliamTimes = 0;
+                        console.log("send TX to sumMaster account success.");
+                        claimTokens(0);  //thr nonce of a new account is 0
+                    } else if (cliamTimes < maxCliamTime) {
+                        claimSubMaster(nonce);
+                    } else {
+                        cliamTimes = 0;
+                        console.log("claim sumMaster failed!!!!");
+                    }
+                }catch (err) {
+                    console.log(JSON.stringify(err));
+                    console.log(err);
+                }
+            });
+        }).catch(function (err) {
+            console.log(err);
+            claimSubMaster(nonce);
+        });
+}
+
+var maxCheckTime = 20;
+var checkTimes = 0;
+//check tx result to make sure the tx is completed
+function checkTransaction(hash, callback) {
+    checkTimes += 1;
+    if (checkTimes > maxCheckTime) {
+        console.log("\tcheck tx receipt timeout:" + hash);
+        checkTimes = 0;
+        callback();
+        return;
+    }
+
+    neb.api.getTransactionReceipt(hash).then(function (resp) {
+        console.log("\ttx receipt status:" + resp.status);
+        if (resp.status === 2) {
+            setTimeout(function () {
+                checkTransaction(hash, callback);
+            }, 2000);
+        } else {
+            checkTimes = 0;
+            callback(resp);
+        }
+    }).catch(function (err) {
+        console.log("\tfail to get tx receipt hash: " + hash);
+        console.log("\tit may because the tx is being packing, we are going on to check it!");
+        console.log("\t" + err.error);
+        setTimeout(function () {
+            checkTransaction(hash, callback);
+        }, 2000);
+    });
+}
 
 function claimTokens(nonce) {
     console.log("initializing " + AddressNumber + " accounts with coins !!!")
@@ -87,7 +172,7 @@ function claimTokens(nonce) {
         var account = Wallet.Account.NewAccount();
         accountArray.push(account);
 
-        sendTransaction(0, 1, from, account, "1000000000000000", ++nonce);
+        sendTransaction(0, 1, subMaster, account, "1000000000000000", ++nonce);
 
         sleep(10);
     }
@@ -107,8 +192,11 @@ function sendTransaction(index, totalTimes, from, to, value, nonce, randomToAddr
         transaction.signTransaction();
         var rawTx = transaction.toProtoString();
 
+        var i = Math.floor((Math.random() * nodes.length));
+        var node = nodes[i];
+        neb.setRequest(new HttpRequest(node));
         neb.api.sendRawTransaction(rawTx).then(function (resp) {
-            console.log("send raw transaction resp:" + JSON.stringify(resp));
+            console.log("\tsend raw transaction resp:" + JSON.stringify(resp));
             if (resp.txhash) {
                 if (nonce % 10 === 0){
                     sleep(10);
@@ -121,9 +209,9 @@ function sendTransaction(index, totalTimes, from, to, value, nonce, randomToAddr
 
 function checkClaimTokens() {
     var interval = setInterval(function () {
-        neb.api.getAccountState(from.getAddressString()).then(function (resp) {
-            console.log("master accountState resp:" + JSON.stringify(resp));
-            if (resp.nonce >= lastnonce + AddressNumber) {
+        neb.api.getAccountState(subMaster.getAddressString()).then(function (resp) {
+            console.log("\tsubMaster accountState resp:" + JSON.stringify(resp));
+            if (resp.nonce >=  AddressNumber) {
                 clearInterval(interval);
 
                 sendTransactionsForTps();
