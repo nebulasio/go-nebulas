@@ -115,15 +115,9 @@ func (a *Address) Equals(b *Address) bool {
 }
 
 // NewAddress create new #Address according to data bytes.
-func NewAddress(t AddressType, args ...[]byte) (*Address, error) {
+func NewAddress(t AddressType, args ...[]byte) (*Address, error) { // TODO inner func
 	if len(args) == 0 {
 		return nil, ErrInvalidArgument
-	}
-
-	for _, v := range args {
-		if len(v) == 0 {
-			return nil, ErrInvalidArgument
-		}
 	}
 
 	switch t {
@@ -147,18 +141,18 @@ func NewAddress(t AddressType, args ...[]byte) (*Address, error) {
 }
 
 // NewAddressFromPublicKey return new address from publickey bytes
-func NewAddressFromPublicKey(s []byte) (*Address, error) {
+func NewAddressFromPublicKey(s []byte) (*Address, error) { // TODO check pub key length
 	return NewAddress(AccountAddress, s)
 }
 
 // NewContractAddressFromData return new contract address from bytes.
-func NewContractAddressFromData(args ...[]byte) (*Address, error) {
+func NewContractAddressFromData(args ...[]byte) (*Address, error) { // todo define args to from & nonce
 	return NewAddress(ContractAddress, args...)
 }
 
 // AddressParse parse address string.
 func AddressParse(s string) (*Address, error) {
-	if len(s) != AddressBase58Length || s[0] != 'n' {
+	if len(s) != AddressBase58Length || s[0] != 'n' { // TODO define const
 		return nil, ErrInvalidAddressFormat
 	}
 
@@ -177,7 +171,7 @@ func AddressParseFromBytes(b []byte) (*Address, error) {
 		return nil, ErrInvalidAddressType
 	}
 
-	if !byteutils.Equal(checkSum(b[1:22]), b[22:]) {
+	if !byteutils.Equal(checkSum(b[1:22]), b[22:]) { // TODO define const
 		return nil, ErrInvalidAddressChecksum
 	}
 
