@@ -37,13 +37,13 @@ func TestBlockChain_FindCommonAncestorWithTail(t *testing.T) {
 	neb := testNeb(t)
 	bc := neb.chain
 
-	coinbase11, _ := AddressParse("n1LQxBdAtxcfjUazHeK94raKdxRsNpujUyU")
-	coinbase12, _ := AddressParse("n1PtnbfQcC9EZpr2LS2vLUCKf2UtkyArzVr")
-	coinbase221, _ := AddressParse("n1SRGKRFrF6DHK4Ym4MoXbbUHYkV5W2MZPw")
-	coinbase111, _ := AddressParse("n1TRySsvYmAU8ChPZyYyvrPpDYJ1Z5DFoxo")
-	coinbase222, _ := AddressParse("n1aoyV8M2g79pFXxdZEK9GfU7fzuJcCN75X")
-	coinbase1111, _ := AddressParse("n1beo9QAjhhJX6tjpjHyinoorbqdi6UKAEb")
-	coinbase11111, _ := AddressParse("n1coJhpn8QXvKFogVG93wx49eCQ6aPQHSAN")
+	coinbase12, _ := AddressParse("n1FkntVUMPAsESuCAAPK711omQk19JotBjM")
+	coinbase11, _ := AddressParse("n1JNHZJEUvfBYfjDRD14Q73FX62nJAzXkMR")
+	coinbase221, _ := AddressParse("n1Kjom3J4KPsHKKzZ2xtt8Lc9W5pRDjeLcW")
+	coinbase111, _ := AddressParse("n1TV3sU6jyzR4rJ1D7jCAmtVGSntJagXZHC")
+	coinbase222, _ := AddressParse("n1WwqBXVMuYC3mFCEEuFFtAXad6yxqj4as4")
+	coinbase1111, _ := AddressParse("n1Zn6iyyQRhqthmCfqGBzWfip1Wx8wEvtrJ")
+	coinbase11111, _ := AddressParse("n1Zn6iyyQRhqthmCfqGBzWfip1Wx8wEvtrJ")
 
 	//add from reward
 	block0, _ := bc.NewBlock(coinbase11)
@@ -51,7 +51,7 @@ func TestBlockChain_FindCommonAncestorWithTail(t *testing.T) {
 	block0.Seal()
 	signBlock(block0)
 	assert.Nil(t, bc.BlockPool().Push(block0))
-	assert.Equal(t, bc.tailBlock.Hash().String(), "ea94535c44978a6d1e06303950328532197e274419fb6b39685a67515d65c5f5")
+	assert.Equal(t, bc.tailBlock.Hash().String(), "1111e101a97e0fb05ee1c96db0eba69b4a491af15f820d8df06f65379a2de9ef")
 
 	/*
 		genesis -- 0 -- 11 -- 111 -- 1111
@@ -60,10 +60,10 @@ func TestBlockChain_FindCommonAncestorWithTail(t *testing.T) {
 	*/
 	block11, err := bc.NewBlock(coinbase11)
 	assert.Nil(t, err)
-	block11.header.timestamp = BlockInterval * 3
+	block11.header.timestamp = BlockInterval * 2
 	block12, err := bc.NewBlock(coinbase12)
 	assert.Nil(t, err)
-	block12.header.timestamp = BlockInterval * 2
+	block12.header.timestamp = BlockInterval * 3
 	assert.Nil(t, block11.Seal())
 	signBlock(block11)
 	assert.Nil(t, block12.Seal())
@@ -88,10 +88,10 @@ func TestBlockChain_FindCommonAncestorWithTail(t *testing.T) {
 	block222.header.timestamp = BlockInterval * 6
 	assert.Nil(t, block221.Seal())
 	signBlock(block221)
-	assert.Equal(t, block221.Hash().String(), "e26b6db5092976ca9fbea1675689c7383d70c90ef3024a007241bd1d1fa68e94")
+	assert.Equal(t, block221.Hash().String(), "0da11c6b15932b426f264e0a862ebbee318cc2ade632d480d43e3e2615013495")
 	assert.Nil(t, block222.Seal())
 	signBlock(block222)
-	assert.Equal(t, block222.Hash().String(), "6db079994d0de7f208a9464dc189cc8f8b0656bac87b59b27d4bfff3b05d8921")
+	assert.Equal(t, block222.Hash().String(), "078a5acc899a7f209b4c816a8bfacbada91f54617f2f57b384399c74feb97639")
 
 	assert.Nil(t, bc.BlockPool().Push(block111))
 	block1111, _ := bc.NewBlock(coinbase1111)
@@ -101,9 +101,9 @@ func TestBlockChain_FindCommonAncestorWithTail(t *testing.T) {
 
 	assert.Nil(t, bc.BlockPool().Push(block221))
 	assert.Nil(t, bc.BlockPool().Push(block222))
-	assert.Equal(t, bc.tailBlock.Hash(), block221.Hash())
+	assert.Equal(t, bc.tailBlock.Hash(), block222.Hash())
 
-	common2, err := bc.FindCommonAncestorWithTail(block222)
+	common2, err := bc.FindCommonAncestorWithTail(block221)
 	assert.Nil(t, err)
 	assert.Equal(t, common2.String(), block12.String())
 
@@ -120,7 +120,7 @@ func TestBlockChain_FindCommonAncestorWithTail(t *testing.T) {
 	assert.Equal(t, common5.Height(), block12.Height())
 
 	result := bc.Dump(4)
-	assert.Equal(t, result, "["+block221.String()+","+block12.String()+","+block0.String()+","+bc.genesisBlock.String()+"]")
+	assert.Equal(t, result, "["+block222.String()+","+block12.String()+","+block0.String()+","+bc.genesisBlock.String()+"]")
 
 	assert.Nil(t, bc.BlockPool().Push(block1111))
 	tails := bc.DetachedTailBlocks()
