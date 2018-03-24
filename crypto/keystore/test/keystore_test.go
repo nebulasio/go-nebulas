@@ -133,7 +133,7 @@ func TestKeystore_Unlock(t *testing.T) {
 			[]byte("passphrase"),
 			"alias1",
 			priv1,
-			time.Second * 1,
+			time.Second * 0,
 			false,
 		},
 		{
@@ -161,7 +161,7 @@ func TestKeystore_Unlock(t *testing.T) {
 			assert.Nil(t, err, "unlock err")
 		})
 	}
-	time.Sleep(time.Second * 2)
+	time.Sleep(time.Second * 1)
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got, _ := ks.GetUnlocked(tt.alias)

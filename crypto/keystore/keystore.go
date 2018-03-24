@@ -62,29 +62,22 @@ type Keystore struct {
 	p Provider
 
 	// unlocked items
-	unlocked []unlocked
+	unlocked map[string]*unlocked
 
 	mu sync.RWMutex
 }
 
 // NewKeystore new
 func NewKeystore() *Keystore {
-
 	ks := &Keystore{}
 
-	ks.mu.Lock()
-	defer ks.mu.Unlock()
-
-	ks.unlocked = []unlocked{}
+	ks.unlocked = make(map[string]*unlocked)
 	ks.p = NewMemoryProvider(1.0, SCRYPT)
 	return ks
 }
 
 // Aliases lists all the alias names of this keystore.
 func (ks *Keystore) Aliases() []string {
-	ks.mu.Lock()
-	defer ks.mu.Unlock()
-
 	return ks.p.Aliases()
 }
 
@@ -93,9 +86,6 @@ func (ks *Keystore) ContainsAlias(a string) (bool, error) {
 	if ks.p == nil {
 		return false, ErrUninitialized
 	}
-
-	ks.mu.Lock()
-	defer ks.mu.Unlock()
 
 	return ks.p.ContainsAlias(a)
 }
@@ -110,18 +100,13 @@ func (ks *Keystore) Unlock(alias string, passphrase []byte, timeout time.Duratio
 		return err
 	}
 
-	hasUnlocked := false
-	for _, u := range ks.unlocked {
-		if u.alias == alias {
-			u.key = key
-			u.timer.Reset(timeout)
-			hasUnlocked = true
-			break
-		}
-	}
-	if !hasUnlocked {
-		u := unlocked{alias, key, time.NewTimer(timeout)}
-		ks.unlocked = append(ks.unlocked, u)
+	unlockedKey, ok := ks.unlocked[alias]
+	if ok == true {
+		unlockedKey.key = key
+		unlockedKey.timer.Reset(timeout)
+	} else {
+		u := &unlocked{alias, key, time.NewTimer(timeout)}
+		ks.unlocked[alias] = u
 		go ks.expire(alias)
 	}
 	return nil
@@ -132,41 +117,24 @@ func (ks *Keystore) Lock(alias string) error {
 	ks.mu.Lock()
 	defer ks.mu.Unlock()
 
-	for _, u := range ks.unlocked {
-		if u.alias == alias {
-			u.timer.Reset(time.Duration(0) * time.Nanosecond)
-			return nil
-		}
+	if u, ok := ks.unlocked[alias]; ok == true {
+		u.timer.Reset(time.Duration(0) * time.Nanosecond)
+		return nil
 	}
 
 	return ErrNotUnlocked
 }
 
 func (ks *Keystore) expire(alias string) {
-	var (
-		u   *unlocked
-		idx int
-	)
-	for idx = 0; idx < len(ks.unlocked); idx++ {
-		if ks.unlocked[idx].alias == alias {
-			u = &ks.unlocked[idx]
-			break
+	if u, ok := ks.unlocked[alias]; ok == true {
+		defer u.timer.Stop()
+		select {
+		case <-u.timer.C:
+			ks.mu.Lock()
+			u.key.Clear()
+			delete(ks.unlocked, alias)
+			ks.mu.Unlock()
 		}
-	}
-	if u == nil {
-		return
-	}
-	defer u.timer.Stop()
-	select {
-	case <-u.timer.C:
-		ks.mu.Lock()
-		u.key.Clear()
-		if idx < len(ks.unlocked)-1 {
-			ks.unlocked = append(ks.unlocked[:idx], ks.unlocked[idx+1:]...)
-		} else {
-			ks.unlocked = ks.unlocked[:idx]
-		}
-		ks.mu.Unlock()
 	}
 }
 
@@ -176,15 +144,15 @@ func (ks *Keystore) GetUnlocked(alias string) (Key, error) {
 		return nil, ErrNeedAlias
 	}
 
-	ks.mu.Lock()
-	defer ks.mu.Unlock()
+	ks.mu.RLock()
+	defer ks.mu.RUnlock()
 
-	for _, u := range ks.unlocked { // TODO why not map
-		if u.alias == alias {
-			return u.key, nil
-		}
+	key, ok := ks.unlocked[alias]
+	if ok == false {
+		return nil, ErrNotUnlocked
 	}
-	return nil, ErrNotUnlocked
+
+	return key.key, nil
 }
 
 // SetKey assigns the given key to the given alias, protecting it with the given passphrase.
@@ -193,23 +161,7 @@ func (ks *Keystore) SetKey(a string, k Key, passphrase []byte) error {
 		return ErrUninitialized
 	}
 
-	ks.mu.RLock()
-	defer ks.mu.RUnlock()
-
 	return ks.p.SetKey(a, k, passphrase)
-}
-
-// GetKeyByIndex returns the key associated with the given index in unlocked
-func (ks *Keystore) GetKeyByIndex(idx int) (string, Key, error) {
-	ks.mu.RLock()
-	defer ks.mu.RUnlock()
-
-	if idx < 0 || idx >= len(ks.unlocked) {
-		return "", nil, ErrNotUnlocked
-	}
-
-	u := ks.unlocked[idx]
-	return u.alias, u.key, nil
 }
 
 // GetKey returns the key associated with the given alias, using the given
@@ -218,9 +170,6 @@ func (ks *Keystore) GetKey(a string, passphrase []byte) (Key, error) {
 	if ks.p == nil {
 		return nil, ErrUninitialized
 	}
-
-	ks.mu.RLock()
-	defer ks.mu.RUnlock()
 
 	key, err := ks.p.GetKey(a, passphrase)
 	if err != nil {
@@ -235,13 +184,15 @@ func (ks *Keystore) Delete(a string, passphrase []byte) error {
 		return ErrUninitialized
 	}
 
-	ks.mu.Lock()
-	defer ks.mu.Unlock()
-
 	key, err := ks.p.GetKey(a, passphrase)
 	if err != nil {
 		return err
 	}
 	key.Clear()
+
+	if _, ok := ks.unlocked[a]; ok == true {
+		ks.Lock(a)
+	}
+
 	return ks.p.Delete(a)
 }

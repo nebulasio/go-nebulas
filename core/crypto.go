@@ -23,7 +23,7 @@ import (
 	"github.com/nebulasio/go-nebulas/crypto/keystore"
 )
 
-// RecoverAddressFromSignature return address who signs the signature
+// RecoverSignerFromSignature return address who signs the signature
 func RecoverSignerFromSignature(alg keystore.Algorithm, plainText []byte, cipherText []byte) (*Address, error) {
 	signature, err := crypto.NewSignature(alg)
 	if err != nil {

@@ -21,9 +21,11 @@ package account
 import (
 	"encoding/json"
 	"io/ioutil"
-	"os"
 	"path/filepath"
 	"strings"
+
+	"errors"
+	"os"
 
 	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/util"
@@ -48,72 +50,76 @@ func (m *Manager) refreshAccounts() error {
 	}
 	var (
 		accounts []*account
-		keyJSON  struct {
-			Address string `json:"address"`
-		}
 	)
 
-	m.mutex.Lock()
-	defer m.mutex.Unlock()
-
 	for _, file := range files {
-		path := filepath.Join(m.keydir, file.Name())
-		if file.IsDir() || strings.HasPrefix(file.Name(), ".") || strings.HasSuffix(file.Name(), "~") {
-			logging.VLog().WithFields(logrus.Fields{
-				"path": path,
-			}).Warn("Skipped this key file.")
-			continue
-		}
-		raw, err := ioutil.ReadFile(path)
-		if err != nil {
-			logging.VLog().WithFields(logrus.Fields{
-				"err":  err,
-				"path": path,
-			}).Error("Failed to parse the key file.")
-			continue
-		}
-		keyJSON.Address = ""
-		err = json.Unmarshal(raw, &keyJSON)
-		if err != nil {
-			logging.VLog().WithFields(logrus.Fields{
-				"err":  err,
-				"path": path,
-			}).Error("Failed to parse the key file.")
-			continue
-		}
-		var (
-			addr *core.Address
-		)
-		// not consider compatibility with ETH
-		/* bytes, err := byteutils.FromHex(keyJSON.Address)
-		if len(bytes) == core.AddressDataLength {
-			if err == nil {
-				addr, err = core.NewAddress(bytes)
-			}
-		} else {
-			addr, err = core.AddressParse(keyJSON.Address)
-		}*/
-		addr, err = core.AddressParse(keyJSON.Address)
-		if err != nil {
-			logging.VLog().WithFields(logrus.Fields{
-				"err":     err,
-				"address": addr,
-			}).Error("Failed to parse the address.")
-			continue
-		}
 
-		accounts = append(accounts, &account{addr, path})
+		acc, err := m.loadKeyFile(file)
+		if err != nil {
+			// errors have been recorded
+			continue
+		}
+		accounts = append(accounts, acc)
 	}
 	m.accounts = accounts
 	return nil
 }
 
+func (m *Manager) loadKeyFile(file os.FileInfo) (*account, error) {
+	var (
+		keyJSON struct {
+			Address string `json:"address"`
+		}
+	)
+
+	path := filepath.Join(m.keydir, file.Name())
+
+	if file.IsDir() || strings.HasPrefix(file.Name(), ".") || strings.HasSuffix(file.Name(), "~") {
+		logging.VLog().WithFields(logrus.Fields{
+			"path": path,
+		}).Warn("Skipped this key file.")
+		return nil, errors.New("file need skip")
+	}
+
+	raw, err := ioutil.ReadFile(path)
+	if err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"err":  err,
+			"path": path,
+		}).Error("Failed to read the key file.")
+		return nil, errors.New("failed to read the key file")
+	}
+
+	keyJSON.Address = ""
+	err = json.Unmarshal(raw, &keyJSON)
+	if err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"err":  err,
+			"path": path,
+		}).Error("Failed to parse the key file.")
+		return nil, errors.New("failed to parse the key file")
+	}
+
+	addr, err := core.AddressParse(keyJSON.Address)
+	if err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"err":     err,
+			"address": addr,
+		}).Error("Failed to parse the address.")
+		return nil, errors.New("failed to parse the address")
+	}
+
+	acc := &account{addr, path}
+	return acc, nil
+}
+
 // loadFile import key to keystore in keydir
 func (m *Manager) loadFile(addr *core.Address, passphrase []byte) error {
-	acc := m.getAccount(addr)
-	if acc == nil {
-		return ErrAddrNotFind
+	acc, err := m.getAccount(addr)
+	if err != nil {
+		return err
 	}
+
 	raw, err := ioutil.ReadFile(acc.path)
 	if err != nil {
 		return err
@@ -122,44 +128,52 @@ func (m *Manager) loadFile(addr *core.Address, passphrase []byte) error {
 	return err
 }
 
-func (m *Manager) exportFile(addr *core.Address, passphrase []byte) (path string, err error) {
+func (m *Manager) exportFile(addr *core.Address, passphrase []byte, overwrite bool) (path string, err error) {
 	raw, err := m.Export(addr, passphrase)
 	if err != nil {
 		return "", err
 	}
-	acc := m.getAccount(addr)
-	if acc != nil {
-		path = acc.path
-	} else {
+
+	acc, err := m.getAccount(addr)
+	// acc not found
+	if err != nil {
 		path = filepath.Join(m.keydir, addr.String())
+	} else {
+		path = acc.path
 	}
-	if err := util.FileWrite(path, raw); err != nil {
+	if err := util.FileWrite(path, raw, overwrite); err != nil {
 		return "", err
 	}
 	return path, nil
 }
 
-func (m *Manager) getAccount(addr *core.Address) *account {
+func (m *Manager) getAccount(addr *core.Address) (*account, error) {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 
 	for _, acc := range m.accounts {
 		if acc.addr.Equals(addr) {
-			return acc
+			return acc, nil
 		}
 	}
-	return nil
+	return nil, ErrAccountNotFound
 }
 
-func (m *Manager) deleteFile(addr *core.Address) error {
-	acc := m.getAccount(addr)
-	if acc != nil {
-		err := os.Remove(acc.path)
-		if err != nil {
-			return err
+func (m *Manager) updateAccount(addr *core.Address, path string) {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+
+	var target *account
+	for _, acc := range m.accounts {
+		if acc.addr.Equals(addr) {
+			target = acc
+			break
 		}
-		go m.refreshAccounts()
-		return nil
 	}
-	return ErrAddrNotFind
+	if target != nil {
+		target.path = path
+	} else {
+		target = &account{addr: addr, path: path}
+		m.accounts = append(m.accounts, target)
+	}
 }

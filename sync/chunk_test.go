@@ -73,7 +73,7 @@ func mockNeb(t *testing.T) *Neb {
 		},
 	}
 
-	am := account.NewManager(neb)
+	am, _ := account.NewManager(neb)
 	neb.am = am
 
 	chain, err := core.NewBlockChain(neb)

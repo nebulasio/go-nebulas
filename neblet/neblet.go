@@ -89,7 +89,11 @@ func New(config *nebletpb.Config) (*Neblet, error) {
 	}
 	n.genesis, _ = core.LoadGenesisConf(config.Chain.Genesis)
 
-	n.accountManager = account.NewManager(n)
+	am, err := account.NewManager(n)
+	if err != nil {
+		return nil, err
+	}
+	n.accountManager = am
 
 	// init random seed.
 	rand.Seed(time.Now().UTC().UnixNano())

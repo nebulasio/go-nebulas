@@ -40,20 +40,19 @@ import (
 const (
 	EccSecp256K1      = "ECC_SECP256K1"
 	EccSecp256K1Value = 1
+
+	DefaultKeyDir = "keydir"
 )
 
 var (
-	// ErrAddrNotFind address not find.
-	ErrAddrNotFind = errors.New("address not find")
+	// ErrAccountNotFound account is not found.
+	ErrAccountNotFound = errors.New("account is not found")
 
-	// ErrTxAddressLocked from address locked.
-	ErrTxAddressLocked = errors.New("transaction from address locked")
+	// ErrAccountIsLocked account locked.
+	ErrAccountIsLocked = errors.New("account is locked")
 
-	// ErrBlockAddressLocked from address locked.
-	ErrBlockAddressLocked = errors.New("block signer's address locked")
-
-	// ErrTxSignFrom sign addr not from
-	ErrTxSignFrom = errors.New("transaction sign not use from addr")
+	// ErrInvalidSignerAddress sign addr not from
+	ErrInvalidSignerAddress = errors.New("transaction sign not use from address")
 )
 
 // Neblet interface breaks cycle import dependency and hides unused services.
@@ -62,7 +61,7 @@ type Neblet interface {
 }
 
 // Manager accounts manager ,handle account generate and storage
-type Manager struct { // TODO make it threadsafe
+type Manager struct {
 
 	// keystore
 	ks *keystore.Keystore
@@ -83,22 +82,29 @@ type Manager struct { // TODO make it threadsafe
 }
 
 // NewManager new a account manager
-func NewManager(neblet Neblet) *Manager {
+func NewManager(neblet Neblet) (*Manager, error) {
 	m := new(Manager)
 	m.ks = keystore.DefaultKS
 	m.signatureAlg = keystore.SECP256K1
 	m.encryptAlg = keystore.SCRYPT
-	m.keydir, _ = filepath.Abs("keydir")
+	tmpKeyDir, err := filepath.Abs(DefaultKeyDir)
+	if err != nil {
+		return nil, err
+	}
+	m.keydir = tmpKeyDir
 
 	if neblet != nil {
-		// conf := neblet.Config().Account
 		conf := neblet.Config().Chain
 
 		keydir := conf.Keydir
 		if filepath.IsAbs(keydir) {
 			m.keydir = keydir
 		} else {
-			m.keydir, _ = filepath.Abs(keydir)
+			dir, err := filepath.Abs(keydir)
+			if err != nil {
+				return nil, err
+			}
+			m.keydir = dir
 		}
 
 		if len(conf.SignatureCiphers) > 0 {
@@ -107,8 +113,11 @@ func NewManager(neblet Neblet) *Manager {
 			}
 		}
 	}
-	m.refreshAccounts()
-	return m
+	if err := m.refreshAccounts(); err != nil {
+		return nil, err
+	}
+
+	return m, nil
 }
 
 // NewAccount returns a new address and keep it in keystore
@@ -117,10 +126,23 @@ func (m *Manager) NewAccount(passphrase []byte) (*core.Address, error) {
 	if err != nil {
 		return nil, err
 	}
-	return m.storeAddress(priv, passphrase, true)
+
+	addr, err := m.setKeyStore(priv, passphrase)
+	if err != nil {
+		return nil, err
+	}
+
+	path, err := m.exportFile(addr, passphrase, false)
+	if err != nil {
+		return nil, err
+	}
+
+	m.updateAccount(addr, path)
+
+	return addr, nil
 }
 
-func (m *Manager) storeAddress(priv keystore.PrivateKey, passphrase []byte, writeFile bool) (*core.Address, error) {
+func (m *Manager) setKeyStore(priv keystore.PrivateKey, passphrase []byte) (*core.Address, error) {
 	pub, err := priv.PublicKey().Encoded()
 	if err != nil {
 		return nil, err
@@ -133,35 +155,6 @@ func (m *Manager) storeAddress(priv keystore.PrivateKey, passphrase []byte, writ
 	err = m.ks.SetKey(addr.String(), priv, passphrase)
 	if err != nil {
 		return nil, err
-	}
-	var path string
-	if writeFile {
-		// export key to file in keydir
-		path, err = m.exportFile(addr, passphrase)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	m.mutex.Lock()
-	defer m.mutex.Unlock()
-
-	var (
-		oldAcc *account
-	)
-	for _, acc := range m.accounts {
-		if acc.addr.Equals(addr) {
-			oldAcc = acc
-		}
-	}
-
-	if oldAcc != nil {
-		if len(path) > 0 {
-			oldAcc.path = path
-		}
-	} else {
-		acc := &account{addr: addr, path: path}
-		m.accounts = append(m.accounts, acc)
 	}
 
 	return addr, nil
@@ -199,7 +192,7 @@ func (m *Manager) Lock(addr *core.Address) error {
 
 // Accounts returns slice of address
 func (m *Manager) Accounts() []*core.Address {
-	go m.refreshAccounts()
+	m.refreshAccounts()
 
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
@@ -219,36 +212,69 @@ func (m *Manager) Update(addr *core.Address, oldPassphrase, newPassphrase []byte
 		if err != nil {
 			return err
 		}
+		key, err = m.ks.GetKey(addr.String(), oldPassphrase)
+		if err != nil {
+			return err
+		}
 	}
-	key, err = m.ks.GetKey(addr.String(), oldPassphrase)
+	defer key.Clear()
+
+	if _, err := m.setKeyStore(key.(keystore.PrivateKey), newPassphrase); err != nil {
+		return err
+	}
+	path, err := m.exportFile(addr, newPassphrase, true)
 	if err != nil {
 		return err
 	}
-	_, err = m.storeAddress(key.(keystore.PrivateKey), newPassphrase, true)
-	return err
+
+	m.updateAccount(addr, path)
+
+	return nil
 }
 
 // Load load a key file to keystore, unable to write file
 func (m *Manager) Load(keyjson, passphrase []byte) (*core.Address, error) {
-	return m.readKey(keyjson, passphrase, false)
-}
-
-// Import import a key file to keystore, compatible ethereum keystore file, write to file
-func (m *Manager) Import(keyjson, passphrase []byte) (*core.Address, error) {
-	return m.readKey(keyjson, passphrase, true)
-}
-
-func (m *Manager) readKey(keyjson, passphrase []byte, write bool) (*core.Address, error) {
 	cipher := cipher.NewCipher(uint8(m.encryptAlg))
 	data, err := cipher.DecryptKey(keyjson, passphrase)
 	if err != nil {
 		return nil, err
 	}
+	defer crypto.ZeroBytes(data)
+
 	priv, err := crypto.NewPrivateKey(m.signatureAlg, data)
 	if err != nil {
 		return nil, err
 	}
-	return m.storeAddress(priv, passphrase, write)
+	defer priv.Clear()
+
+	addr, err := m.setKeyStore(priv, passphrase)
+	if err != nil {
+		return nil, err
+	}
+
+	if _, err := m.getAccount(addr); err != nil {
+		m.mutex.Lock()
+		acc := &account{addr: addr}
+		m.accounts = append(m.accounts, acc)
+		m.mutex.Unlock()
+	}
+	return addr, nil
+}
+
+// Import import a key file to keystore, compatible ethereum keystore file, write to file
+func (m *Manager) Import(keyjson, passphrase []byte) (*core.Address, error) {
+	addr, err := m.Load(keyjson, passphrase)
+	if err != nil {
+		return nil, err
+	}
+	path, err := m.exportFile(addr, passphrase, false)
+	if err != nil {
+		return nil, err
+	}
+
+	m.updateAccount(addr, path)
+
+	return addr, nil
 }
 
 // Export export address to key file
@@ -257,10 +283,14 @@ func (m *Manager) Export(addr *core.Address, passphrase []byte) ([]byte, error) 
 	if err != nil {
 		return nil, err
 	}
+	defer key.Clear()
+
 	data, err := key.Encoded()
 	if err != nil {
 		return nil, err
 	}
+	defer crypto.ZeroBytes(data)
+
 	cipher := cipher.NewCipher(uint8(m.encryptAlg))
 	if err != nil {
 		return nil, err
@@ -272,30 +302,30 @@ func (m *Manager) Export(addr *core.Address, passphrase []byte) ([]byte, error) 
 	return out, nil
 }
 
-// Delete delete address
-func (m *Manager) Delete(addr *core.Address, passphrase []byte) error {
+// Remove remove address and encrypted private key from keystore
+func (m *Manager) Remove(addr *core.Address, passphrase []byte) error {
 	err := m.ks.Delete(addr.String(), passphrase)
 	if err != nil {
 		return err
 	}
-	//remove key file and accounts
-	return m.deleteFile(addr)
+
+	return nil
 }
 
 // SignTransaction sign transaction with the specified algorithm
 func (m *Manager) SignTransaction(addr *core.Address, tx *core.Transaction) error {
 	// check sign addr is tx's from addr
 	if !tx.From().Equals(addr) {
-		return ErrTxSignFrom
+		return ErrInvalidSignerAddress
 	}
 	key, err := m.ks.GetUnlocked(addr.String())
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"func": "SignTransaction",
-			"err":  ErrTxAddressLocked,
+			"err":  err,
 			"tx":   tx,
 		}).Error("transaction address locked")
-		return err
+		return ErrAccountIsLocked
 	}
 
 	signature, err := crypto.NewSignature(m.signatureAlg)
@@ -312,10 +342,10 @@ func (m *Manager) SignBlock(addr *core.Address, block *core.Block) error {
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"func":  "SignBlock",
-			"err":   ErrBlockAddressLocked,
+			"err":   err,
 			"block": block,
 		}).Error("block signer's address locked")
-		return err
+		return ErrAccountIsLocked
 	}
 
 	signature, err := crypto.NewSignature(m.signatureAlg)
@@ -330,7 +360,7 @@ func (m *Manager) SignBlock(addr *core.Address, block *core.Block) error {
 func (m *Manager) SignTransactionWithPassphrase(addr *core.Address, tx *core.Transaction, passphrase []byte) error {
 	// check sign addr is tx's from addr
 	if !tx.From().Equals(addr) {
-		return ErrTxSignFrom
+		return ErrInvalidSignerAddress
 	}
 	res, err := m.ks.ContainsAlias(addr.String())
 	if err != nil || res == false {
@@ -344,11 +374,12 @@ func (m *Manager) SignTransactionWithPassphrase(addr *core.Address, tx *core.Tra
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"func": "SignTransactionWithPassphrase",
-			"err":  ErrTxAddressLocked,
+			"err":  err,
 			"tx":   tx,
 		}).Error("transaction address get failed")
-		return err
+		return ErrAccountIsLocked
 	}
+	defer key.Clear()
 
 	signature, err := crypto.NewSignature(m.signatureAlg)
 	if err != nil {

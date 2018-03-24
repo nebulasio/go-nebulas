@@ -142,7 +142,7 @@ func (s *Scrypt) scryptEncrypt(data []byte, passphrase []byte, N, r, p int) (*cr
 	if err != nil {
 		return nil, err
 	}
-	mac := hash.Sha3256(derivedKey[16:32], cipherText)
+	mac := hash.Sha3256(derivedKey[16:32], cipherText) //TODO: add n r p aesctr to mac calculate
 
 	scryptParamsJSON := make(map[string]interface{}, 5)
 	scryptParamsJSON["n"] = N

@@ -41,6 +41,9 @@ func S256() elliptic.Curve {
 // NewECDSAPrivateKey generate a ecdsa private key
 func NewECDSAPrivateKey() *ecdsa.PrivateKey {
 	var priv *ecdsa.PrivateKey
+
+	// in bitcoin src, they call SeckeyVerify func to verify the generated private key
+	// to make sure valid.
 	for {
 		priv, _ = ecdsa.GenerateKey(S256(), rand.Reader)
 		if SeckeyVerify(priv) {
@@ -99,13 +102,6 @@ func zeroKey(k *ecdsa.PrivateKey) {
 	b := k.D.Bits()
 	for i := range b {
 		b[i] = 0
-	}
-}
-
-// ZeroBytes clears byte slice.
-func ZeroBytes(bytes []byte) {
-	for i := range bytes {
-		bytes[i] = 0
 	}
 }
 

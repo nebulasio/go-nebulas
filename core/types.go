@@ -229,7 +229,7 @@ type AccountManager interface {
 	Update(*Address, []byte, []byte) error
 	Load([]byte, []byte) (*Address, error)
 	Import([]byte, []byte) (*Address, error)
-	Delete(*Address, []byte) error
+	Remove(*Address, []byte) error
 }
 
 // NVM interface

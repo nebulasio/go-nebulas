@@ -67,5 +67,5 @@ func generatePrivateKey(ctx *cli.Context) error {
 		path = net.DefaultPrivateKeyPath
 	}
 
-	return util.FileWrite(path, []byte(str))
+	return util.FileWrite(path, []byte(str), false)
 }

@@ -43,12 +43,7 @@ func FileExists(path string) (bool, error) {
 }
 
 // FileWrite write file to path
-func FileWrite(file string, content []byte) error {
-
-	if exist, _ := FileExists(file); exist {
-		return ErrFileExists
-	}
-
+func FileWrite(file string, content []byte, overwrite bool) error {
 	// Create the keystore directory with appropriate permissions
 	const dirPerm = 0700
 	if err := os.MkdirAll(filepath.Dir(file), dirPerm); err != nil {
@@ -64,5 +59,15 @@ func FileWrite(file string, content []byte) error {
 		return err
 	}
 	f.Close()
+
+	if overwrite {
+		if exist, _ := FileExists(file); exist {
+			if err := os.Remove(file); err != nil {
+				os.Remove(f.Name())
+				return err
+			}
+		}
+	}
+
 	return os.Rename(f.Name(), file)
 }

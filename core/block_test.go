@@ -197,7 +197,7 @@ func (m mockManager) SignTransactionWithPassphrase(*Address, *Transaction, []byt
 func (m mockManager) Update(*Address, []byte, []byte) error   { return nil }
 func (m mockManager) Load([]byte, []byte) (*Address, error)   { return nil, nil }
 func (m mockManager) Import([]byte, []byte) (*Address, error) { return nil, nil }
-func (m mockManager) Delete(*Address, []byte) error           { return nil }
+func (m mockManager) Remove(*Address, []byte) error           { return nil }
 
 var (
 	received = []byte{}

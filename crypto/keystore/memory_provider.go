@@ -21,6 +21,8 @@ package keystore
 import (
 	"errors"
 
+	"sync"
+
 	"github.com/nebulasio/go-nebulas/crypto/cipher"
 )
 
@@ -28,8 +30,8 @@ var (
 	// ErrNeedAlias need alias
 	ErrNeedAlias = errors.New("need alias")
 
-	// ErrNotFind not find key
-	ErrNotFind = errors.New("not find key")
+	// ErrNotFound not find key
+	ErrNotFound = errors.New("key not found")
 )
 
 // Entry keeps in memory
@@ -52,6 +54,8 @@ type MemoryProvider struct {
 
 	// encrypt key
 	cipher *cipher.Cipher
+
+	mu sync.RWMutex
 }
 
 // NewMemoryProvider generate a provider with version
@@ -63,6 +67,9 @@ func NewMemoryProvider(v float32, alg Algorithm) *MemoryProvider {
 
 // Aliases all entry in provider save
 func (p *MemoryProvider) Aliases() []string {
+	p.mu.RLock()
+	defer p.mu.RUnlock()
+
 	aliases := []string{}
 	for a := range p.entries {
 		aliases = append(aliases, a)
@@ -81,13 +88,16 @@ func (p *MemoryProvider) SetKey(a string, key Key, passphrase []byte) error {
 
 	encoded, err := key.Encoded()
 	if err != nil {
-		return nil
+		return err
 	}
 	data, err := p.cipher.Encrypt(encoded, passphrase)
 	if err != nil {
-		return nil
+		return err
 	}
-	key.Clear()
+
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
 	entry := Entry{key, data}
 	p.entries[a] = entry
 	return nil
@@ -103,9 +113,12 @@ func (p *MemoryProvider) GetKey(a string, passphrase []byte) (Key, error) {
 		return nil, ErrInvalidPassphrase
 	}
 
+	p.mu.RLock()
+	defer p.mu.RUnlock()
+
 	entry, ok := p.entries[a]
 	if !ok {
-		return nil, ErrNotFind
+		return nil, ErrNotFound
 	}
 	data, err := p.cipher.Decrypt(entry.data, passphrase)
 	if err != nil {
@@ -120,6 +133,9 @@ func (p *MemoryProvider) GetKey(a string, passphrase []byte) (Key, error) {
 
 // Delete remove key
 func (p *MemoryProvider) Delete(a string) error {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
 	if &a == nil {
 		return ErrNeedAlias
 	}
@@ -129,17 +145,24 @@ func (p *MemoryProvider) Delete(a string) error {
 
 // ContainsAlias check provider contains key
 func (p *MemoryProvider) ContainsAlias(a string) (bool, error) {
+	p.mu.RLock()
+	defer p.mu.RUnlock()
+
 	if &a == nil {
 		return false, ErrNeedAlias
 	}
+
 	if _, ok := p.entries[a]; ok {
 		return true, nil
 	}
-	return false, ErrNotFind
+	return false, ErrNotFound
 }
 
 // Clear clear all entries in provider
 func (p *MemoryProvider) Clear() error {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
 	if p.entries == nil {
 		return errors.New("need entries map")
 	}

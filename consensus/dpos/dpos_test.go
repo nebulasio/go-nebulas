@@ -79,7 +79,7 @@ func mockNeb(t *testing.T) *Neb {
 		ns: mockNetService{},
 	}
 
-	am := account.NewManager(neb)
+	am, _ := account.NewManager(neb)
 	neb.am = am
 
 	chain, err := core.NewBlockChain(neb)
@@ -279,7 +279,7 @@ func TestDpos_VerifySign(t *testing.T) {
 	block.SetTimestamp((DynastySize*BlockIntervalInMs + DynastyIntervalInMs) / SecondInMs)
 	block.WorldState().SetConsensusState(consensusState)
 	block.Seal()
-	manager := account.NewManager(nil)
+	manager, _ := account.NewManager(nil)
 	miner, err := core.AddressParse("n1JNHZJEUvfBYfjDRD14Q73FX62nJAzXkMR")
 	assert.Nil(t, err)
 	assert.Nil(t, manager.Unlock(miner, []byte("passphrase"), keystore.DefaultUnlockDuration))
@@ -296,7 +296,7 @@ func GetUnlockAddress(t *testing.T, am *account.Manager, addr string) *core.Addr
 
 func TestForkChoice(t *testing.T) {
 	neb := mockNeb(t)
-	am := account.NewManager(neb)
+	am, _ := account.NewManager(neb)
 
 	/*
 		genesis -- 0 -- 11 -- 111 -- 1111
@@ -376,7 +376,7 @@ func TestVerifyBlock(t *testing.T) {
 
 	coinbase, err := core.AddressParse("n1FkntVUMPAsESuCAAPK711omQk19JotBjM")
 	assert.Nil(t, err)
-	manager := account.NewManager(nil)
+	manager, _ := account.NewManager(nil)
 	assert.Nil(t, dpos.EnableMining("passphrase"))
 
 	elapsedSecond := DynastyIntervalInMs / SecondInMs
@@ -438,7 +438,7 @@ func TestDposContracts(t *testing.T) {
 	tail := neb.chain.TailBlock()
 	dpos := neb.consensus
 
-	manager := account.NewManager(nil)
+	manager, _ := account.NewManager(nil)
 	assert.Nil(t, dpos.EnableMining("passphrase"))
 
 	a, _ := core.AddressParse("n1FkntVUMPAsESuCAAPK711omQk19JotBjM")
@@ -500,7 +500,7 @@ func TestDposContracts(t *testing.T) {
 }
 
 func testMintBlock(t *testing.T, round int, neb *Neb, num int) {
-	manager := account.NewManager(nil)
+	manager, _ := account.NewManager(nil)
 
 	a, _ := core.AddressParse("n1FkntVUMPAsESuCAAPK711omQk19JotBjM")
 	assert.Nil(t, manager.Unlock(a, []byte("passphrase"), keystore.YearUnlockDuration))
