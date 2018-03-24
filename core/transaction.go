@@ -31,6 +31,7 @@ import (
 
 	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/core/pb"
+	"github.com/nebulasio/go-nebulas/crypto"
 	"github.com/nebulasio/go-nebulas/crypto/hash"
 	"github.com/nebulasio/go-nebulas/crypto/keystore"
 	"github.com/nebulasio/go-nebulas/util"
@@ -207,7 +208,12 @@ func (tx *Transaction) FromProto(msg proto.Message) error {
 			}
 			tx.gasLimit = gasLimit
 
-			tx.alg = keystore.Algorithm(msg.Alg)
+			alg := keystore.Algorithm(msg.Alg)
+			if err := crypto.CheckAlgorithm(alg); err != nil {
+				return err
+			}
+
+			tx.alg = alg
 			tx.sign = msg.Sign
 			return nil
 		}

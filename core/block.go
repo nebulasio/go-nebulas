@@ -30,6 +30,7 @@ import (
 	"github.com/nebulasio/go-nebulas/consensus/pb"
 	"github.com/nebulasio/go-nebulas/core/pb"
 	"github.com/nebulasio/go-nebulas/core/state"
+	"github.com/nebulasio/go-nebulas/crypto"
 	"github.com/nebulasio/go-nebulas/crypto/keystore"
 	"github.com/nebulasio/go-nebulas/storage"
 	"github.com/nebulasio/go-nebulas/util"
@@ -111,7 +112,13 @@ func (b *BlockHeader) FromProto(msg proto.Message) error {
 			b.coinbase = coinbase
 			b.timestamp = msg.Timestamp
 			b.chainID = msg.ChainId
-			b.alg = keystore.Algorithm(msg.Alg) // TODO: check category
+
+			alg := keystore.Algorithm(msg.Alg)
+			if err := crypto.CheckAlgorithm(alg); err != nil {
+				return err
+			}
+
+			b.alg = alg
 			b.sign = msg.Sign
 			return nil
 		}

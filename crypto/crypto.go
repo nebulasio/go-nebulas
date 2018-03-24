@@ -62,3 +62,13 @@ func NewSignature(alg keystore.Algorithm) (keystore.Signature, error) {
 		return nil, ErrAlgorithmInvalid
 	}
 }
+
+// CheckAlgorithm check if support the input Algorithm
+func CheckAlgorithm(alg keystore.Algorithm) error {
+	switch alg {
+	case keystore.SECP256K1:
+		return nil
+	default:
+		return ErrAlgorithmInvalid
+	}
+}
