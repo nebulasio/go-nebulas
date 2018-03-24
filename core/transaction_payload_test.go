@@ -70,8 +70,6 @@ func TestLoadBinaryPayload(t *testing.T) {
 }
 
 func TestLoadCallPayload(t *testing.T) {
-	want1, _ := NewCallPayload("", "[0]")
-	want2, _ := NewCallPayload("func", "")
 	want3, _ := NewCallPayload("func", "[0]")
 	want4, _ := NewCallPayload("func", "[0]")
 	tests := []struct {
@@ -80,6 +78,7 @@ func TestLoadCallPayload(t *testing.T) {
 		parse     bool
 		want      *CallPayload
 		wantEqual bool
+		wantErr   error
 	}{
 		{
 			name:      "none",
@@ -87,6 +86,7 @@ func TestLoadCallPayload(t *testing.T) {
 			parse:     false,
 			want:      nil,
 			wantEqual: false,
+			wantErr:   ErrInvalidArgument,
 		},
 
 		{
@@ -95,22 +95,25 @@ func TestLoadCallPayload(t *testing.T) {
 			parse:     false,
 			want:      nil,
 			wantEqual: false,
+			wantErr:   ErrInvalidArgument,
 		},
 
 		{
 			name:      "no func",
 			bytes:     []byte(`{"args": "[0]"}`),
-			parse:     true,
-			want:      want1,
+			parse:     false,
+			want:      nil,
 			wantEqual: true,
+			wantErr:   ErrInvalidCallFunction,
 		},
 
 		{
 			name:      "not args",
 			bytes:     []byte(`{"function":"func"}`),
-			parse:     true,
-			want:      want2,
+			parse:     false,
+			want:      nil,
 			wantEqual: true,
+			wantErr:   nil,
 		},
 
 		{
@@ -119,6 +122,7 @@ func TestLoadCallPayload(t *testing.T) {
 			parse:     true,
 			want:      want3,
 			wantEqual: true,
+			wantErr:   nil,
 		},
 
 		{
@@ -127,11 +131,13 @@ func TestLoadCallPayload(t *testing.T) {
 			parse:     true,
 			want:      want4,
 			wantEqual: false,
+			wantErr:   nil,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Log(tt.name)
 			got, err := LoadCallPayload(tt.bytes)
 			if tt.parse {
 				assert.Nil(t, err)
@@ -141,7 +147,7 @@ func TestLoadCallPayload(t *testing.T) {
 					assert.NotEqual(t, tt.want, got)
 				}
 			} else {
-				assert.NotNil(t, err)
+				assert.Equal(t, err, tt.wantErr)
 			}
 		})
 	}

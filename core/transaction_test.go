@@ -443,7 +443,7 @@ func TestTransaction_VerifyExecution(t *testing.T) {
 		toBalance:       afterBalance,
 		coinbaseBalance: coinbaseBalance,
 		wanted:          nil,
-		eventErr:        "invalid character 'x' after top-level value",
+		eventErr:        "invalid argument(s)",
 		status:          0,
 		giveback:        false,
 	})

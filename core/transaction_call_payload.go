@@ -35,9 +35,9 @@ type CallPayload struct {
 func LoadCallPayload(bytes []byte) (*CallPayload, error) {
 	payload := &CallPayload{}
 	if err := json.Unmarshal(bytes, payload); err != nil {
-		return nil, err
+		return nil, ErrInvalidArgument
 	}
-	return payload, nil
+	return NewCallPayload(payload.Function, payload.Args)
 }
 
 // NewCallPayload with function & args
@@ -48,7 +48,7 @@ func NewCallPayload(function, args string) (*CallPayload, error) {
 	}
 
 	if err := CheckContractArgs(args); err != nil {
-		return nil, err
+		return nil, ErrInvalidArgument
 	}
 
 	return &CallPayload{

@@ -47,9 +47,9 @@ func CheckContractArgs(args string) error {
 func LoadDeployPayload(bytes []byte) (*DeployPayload, error) {
 	payload := &DeployPayload{}
 	if err := json.Unmarshal(bytes, payload); err != nil {
-		return nil, err
+		return nil, ErrInvalidArgument
 	}
-	return payload, nil
+	return NewDeployPayload(payload.Source, payload.SourceType, payload.Args)
 }
 
 // NewDeployPayload with source & args
@@ -63,7 +63,7 @@ func NewDeployPayload(source, sourceType, args string) (*DeployPayload, error) {
 	}
 
 	if err := CheckContractArgs(args); err != nil {
-		return nil, err
+		return nil, ErrInvalidArgument
 	}
 
 	return &DeployPayload{
