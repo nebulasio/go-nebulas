@@ -934,9 +934,11 @@ func (block *Block) execute() error {
 			return err
 		}
 
+		mergeCh <- true
 		if _, err := txWorldState.CheckAndUpdate(); err != nil {
 			return err
 		}
+		<-mergeCh
 
 		return nil
 	})

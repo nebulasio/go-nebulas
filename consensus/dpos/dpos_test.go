@@ -561,7 +561,7 @@ func testMintBlock(t *testing.T, round int, neb *Neb, num int) {
 	}
 
 	block.CollectTransactions((time.Now().Unix() + 1) * SecondInMs)
-	assert.Equal(t, 4*(num-1), len(block.Transactions()))
+	assert.Equal(t, 7*(num-1), len(block.Transactions()))
 	assert.Nil(t, block.Seal())
 	assert.Nil(t, manager.SignBlock(coinbase, block))
 	assert.Nil(t, neb.chain.BlockPool().Push(block))
@@ -575,7 +575,7 @@ func TestDposTxBinary(t *testing.T) {
 	neb := mockNeb(t)
 
 	for i := 0; i < 1; i++ {
-		testMintBlock(t, i, neb, 30)
+		testMintBlock(t, i, neb, 5)
 	}
 
 	return
