@@ -70,7 +70,7 @@ BankVaultContract.prototype = {
 		}
 
 		var result = Blockchain.transfer(from, amount);
-		if (result != 0) {
+		if (!result) {
 			throw new Error("transfer failed.");
 		}
 		Event.Trigger("BankVault", {
@@ -90,10 +90,12 @@ BankVaultContract.prototype = {
 		return this.bankVault.get(from);
 	},
 
-	verifyAddress: function(address) {
+	verifyAddress: function (address) {
 		// 1-valid, 0-invalid
 		var result = Blockchain.verifyAddress(address);
-		return {valid: result == 0 ? false : true};
+		return {
+			valid: result == 0 ? false : true
+		};
 	}
 };
 
