@@ -19,6 +19,7 @@
 package account
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/nebulasio/go-nebulas/core"
@@ -221,5 +222,13 @@ func TestManager_SignTransactionWithPassphrase(t *testing.T) {
 			err = manager.Delete(got, tt.passphrase)
 			assert.Nil(t, err)
 		})
+	}
+}
+
+func TestNewAcc(t *testing.T) {
+	manager := NewManager(nil)
+	for i := 0; i < 9; i++ {
+		got, _ := manager.NewAccount([]byte("passphrase"))
+		fmt.Println(got)
 	}
 }

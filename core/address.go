@@ -148,7 +148,7 @@ func newAddress(t AddressType, args ...[]byte) (*Address, error) {
 	content := hash.Ripemd160(sha)
 	copy(buffer[AddressTypeIndex+1:AddressDataEnd], content)
 
-	cs := checkSum(buffer[AddressTypeIndex:AddressDataEnd]) // FIXME: @xun include padding in checksum
+	cs := checkSum(buffer[:AddressDataEnd])
 	copy(buffer[AddressDataEnd:], cs)
 
 	return &Address{address: buffer}, nil
@@ -191,7 +191,7 @@ func AddressParseFromBytes(b []byte) (*Address, error) {
 		return nil, ErrInvalidAddressType
 	}
 
-	if !byteutils.Equal(checkSum(b[AddressTypeIndex:AddressDataEnd]), b[AddressDataEnd:]) {
+	if !byteutils.Equal(checkSum(b[:AddressDataEnd]), b[AddressDataEnd:]) {
 		return nil, ErrInvalidAddressChecksum
 	}
 
