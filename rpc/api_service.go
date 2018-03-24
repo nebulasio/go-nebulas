@@ -62,42 +62,6 @@ func (s *APIService) GetNebState(ctx context.Context, req *rpcpb.NonParamsReques
 	return resp, nil
 }
 
-// NodeInfo is the RPC API handler
-/*
-限制来自同一个ip的节点连接请求的数量 （例如来自同一个ip的节点连接不能超过10，如果当前连接的列表中来自同一个ip的节点数量为10，则拒绝所有后面来自该ip的节点的连接请求）
-主动发起连接时判断目标节点的ip是否在已连接的列表中，如果已经存在，则不建立该连接
-路由同步增加相应的策略
-一个桶的地址不能包含两个以上节点相同的 /24 ip地址块
-整个路由表不能包含十个以上节点相同的 /24 ip地址块
-更改路由同步的算法，路由同步时候不再同步离目标节点最近的那些节点
-*/
-func (s *APIService) NodeInfo(ctx context.Context, req *rpcpb.NonParamsRequest) (*rpcpb.NodeInfoResponse, error) {
-
-	neb := s.server.Neblet()
-
-	resp := &rpcpb.NodeInfoResponse{}
-	node := neb.NetService().Node()
-	resp.Id = node.ID() // TODO check eclipse attack
-	resp.ChainId = node.Config().ChainID
-	resp.BucketSize = int32(node.Config().Bucketsize)
-	resp.PeerCount = uint32(node.PeersCount())
-	resp.ProtocolVersion = net.NebProtocolID
-	resp.Coinbase = neb.Config().Chain.Coinbase
-
-	for k, v := range node.RouteTable().Peers() {
-		routeTable := &rpcpb.RouteTable{}
-		routeTable.Id = k.Pretty()
-		routeTable.Address = make([]string, len(v))
-
-		for i, addr := range v {
-			routeTable.Address[i] = addr.String()
-		}
-		resp.RouteTable = append(resp.RouteTable, routeTable)
-	}
-
-	return resp, nil
-}
-
 // GetAccountState is the RPC API handler.
 func (s *APIService) GetAccountState(ctx context.Context, req *rpcpb.GetAccountStateRequest) (*rpcpb.GetAccountStateResponse, error) {
 
@@ -133,7 +97,7 @@ func (s *APIService) SendTransaction(ctx context.Context, req *rpcpb.Transaction
 	return s.sendTransaction(req)
 }
 
-// Call is the RPC API handler.
+// SimulateCall is the RPC API handler.
 func (s *APIService) SimulateCall(ctx context.Context, req *rpcpb.TransactionRequest) (*rpcpb.SimulateCallResponse, error) {
 
 	neb := s.server.Neblet()
@@ -142,12 +106,17 @@ func (s *APIService) SimulateCall(ctx context.Context, req *rpcpb.TransactionReq
 		return nil, err
 	}
 
-	_, result /* exeErr */, _, err := neb.BlockChain().SimulateTransactionExecution(tx)
+	estimateGas, result, exeErr, err := neb.BlockChain().SimulateTransactionExecution(tx)
 
 	if err != nil {
 		return nil, err
 	}
-	return &rpcpb.SimulateCallResponse{Result: result}, nil // TODO return gas, call result, err
+	resp := &rpcpb.SimulateCallResponse{}
+	resp.Result = result
+	resp.ExecuteErr = exeErr.Error()
+	resp.EstimateGas = estimateGas.String()
+
+	return resp, nil
 }
 
 func (s *APIService) sendTransaction(req *rpcpb.TransactionRequest) (*rpcpb.SendTransactionResponse, error) {

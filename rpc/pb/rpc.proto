@@ -33,13 +33,6 @@ service ApiService {
         };
     }
 
-    // Return the p2p node info.
-    rpc NodeInfo (NonParamsRequest) returns (NodeInfoResponse) { // TODO move to admin
-        option (google.api.http) = {
-            get: "/v1/user/nodeinfo"
-        };
-    }
-
     // Return the latest irreversible block.
     rpc LatestIrreversibleBlock (NonParamsRequest) returns (BlockResponse) {
         option (google.api.http) = {
@@ -187,6 +180,13 @@ service AdminService {
 		};
 
     }
+
+    // Return the p2p node info.
+    rpc NodeInfo (NonParamsRequest) returns (NodeInfoResponse) { // TODO move to admin
+        option (google.api.http) = {
+            get: "/v1/admin/nodeinfo"
+        };
+    }
 }
 
 // Request message of Subscribe rpc
@@ -292,6 +292,12 @@ message GetAccountStateResponse {
 message SimulateCallResponse {
     // result of smart contract method call.
     string result = 1;
+
+    //execute error
+    string execute_err = 2;
+
+    //estimate gas used
+    string estimate_gas = 3;
 }
 
 // ByBlockHeightRequest message
