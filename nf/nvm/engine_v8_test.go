@@ -1019,7 +1019,7 @@ func TestNebulasContract(t *testing.T) {
 	}
 
 	mem, _ := storage.NewMemoryStorage()
-	context, _ := state.NewAccountState(dpos.NewDpos(), mem)
+	context, _ := state.NewWorldState(dpos.NewDpos(), mem)
 
 	addr, _ := core.NewAddressFromPublicKey([]byte{
 		2, 3, 5, 7, 2, 3, 5, 7, 2, 3, 5, 7, 2, 3, 5, 7, 2, 3, 5, 7,

@@ -152,7 +152,7 @@ func MockGenesisConf() *corepb.Genesis {
 		Meta: &corepb.GenesisMeta{ChainId: 0},
 		Consensus: &corepb.GenesisConsensus{
 			Dpos: &corepb.GenesisConsensusDpos{
-				Dynasty: DefaultOpenDynasty,
+				Dynasty: MockDynasty,
 			},
 		},
 		TokenDistribution: []*corepb.GenesisTokenDistribution{

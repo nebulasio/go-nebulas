@@ -305,10 +305,11 @@ func (tx *Transaction) GasCountOfTxBase() (*util.Uint128, error) {
 		if err != nil {
 			return nil, err
 		}
-		txGas, err = txGas.Add(dataGas)
+		baseGas, err := txGas.Add(dataGas)
 		if err != nil {
 			return nil, err
 		}
+		txGas = baseGas
 	}
 	return txGas, nil
 }
@@ -350,10 +351,30 @@ func submitTx(tx *Transaction, block *Block, ws WorldState, gas *util.Uint128, e
 		go metricsTxExeSuccess.Mark(1)
 	}
 
+	if exeErr != nil {
+		// if execution failed, the previous changes on world state should be reset
+		if err := ws.Reset(); err != nil {
+			// if reset failed, the tx should be given back
+			return true, err
+		}
+	}
+
 	if err := tx.recordGas(gas, ws); err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"err":   err,
+			"tx":    tx,
+			"gas":   gas,
+			"block": block,
+		}).Error("Failed to record gas, unexpected error") // TODO: metrics, shit happens
 		return true, err
 	}
 	if err := tx.recordResultEvent(gas, exeErr, ws); err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"err":   err,
+			"tx":    tx,
+			"gas":   gas,
+			"block": block,
+		}).Error("Failed to record result event, unexpected error") // TODO: metrics, shit happens
 		return true, err
 	}
 	// No error, won't giveback the tx
@@ -376,7 +397,7 @@ func VerifyExecution(tx *Transaction, block *Block, ws WorldState) (bool, error)
 	limitedFee, err := tx.gasLimit.Mul(tx.gasPrice)
 	if err != nil {
 		// Gas overflow, won't giveback the tx
-		return false, err
+		return false, ErrGasFeeOverflow
 	}
 	if fromAcc.Balance().Cmp(limitedFee) < 0 {
 		// Balance is smaller than limitedFee, won't giveback the tx
@@ -396,10 +417,13 @@ func VerifyExecution(tx *Transaction, block *Block, ws WorldState) (bool, error)
 			"transaction": tx,
 			"limit":       tx.gasLimit,
 			"acceptedGas": gasUsed,
-		}).Debug("Failed to check tx's base Gas.")
+		}).Debug("Failed to check gasLimit >= txBaseGas.")
 		// GasLimit is smaller than based tx gas, won't giveback the tx
 		return false, ErrOutOfGasLimit
 	}
+
+	// !!!!!!Attention: all txs passed here will be on chain.
+	// TODO: add metrics, record tx count
 
 	// step3. check payload vaild.
 	payload, payloadErr := tx.LoadPayload()
@@ -410,11 +434,18 @@ func VerifyExecution(tx *Transaction, block *Block, ws WorldState) (bool, error)
 	// step4. calculate base gas of payload
 	payloadGas, err := gasUsed.Add(payload.BaseGasCount())
 	if err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"err":            err,
+			"tx":             tx,
+			"gasUsed":        gasUsed,
+			"payloadBaseGas": payload.BaseGasCount(),
+			"block":          block,
+		}).Error("Failed to add payload base gas, unexpected error") // TODO: metrics, shit happens
 		return submitTx(tx, block, ws, gasUsed, ErrGasCntOverflow, "Failed to add the count of base payload gas")
 	}
 	gasUsed = payloadGas
 	if tx.gasLimit.Cmp(gasUsed) < 0 {
-		return submitTx(tx, block, ws, tx.gasLimit, ErrOutOfGasLimit, "Failed to check gasLimit.")
+		return submitTx(tx, block, ws, tx.gasLimit, ErrOutOfGasLimit, "Failed to check gasLimit >= txBaseGas + payloasBaseGas.")
 	}
 
 	// step5. check balance >= limitedFee + value. and transfer
@@ -425,27 +456,37 @@ func VerifyExecution(tx *Transaction, block *Block, ws WorldState) (bool, error)
 	if fromAcc.Balance().Cmp(minBalanceRequired) < 0 {
 		return submitTx(tx, block, ws, gasUsed, ErrInsufficientBalance, "Failed to check balance >= gasLimit * gasPrice + value")
 	}
-	transferErr := fromAcc.SubBalance(tx.value)
-	if transferErr == nil {
-		toAcc.AddBalance(tx.value)
+	var transferSubErr, transferAddErr error
+	transferSubErr = fromAcc.SubBalance(tx.value)
+	if transferSubErr == nil {
+		transferAddErr = toAcc.AddBalance(tx.value)
 	}
-	if transferErr != nil {
-		return submitTx(tx, block, ws, gasUsed, ErrTransferOverflow, "Failed to transfer tx.value")
+	if transferSubErr != nil || transferAddErr != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"subErr":      transferSubErr,
+			"addErr":      transferAddErr,
+			"tx":          tx,
+			"fromBalance": fromAcc.Balance(),
+			"toBalance":   toAcc.Balance(),
+			"block":       block,
+		}).Error("Failed to transfer value, unexpected error") // TODO: metrics, shit happens
+		return submitTx(tx, block, ws, gasUsed, ErrInvalidTransfer, "Failed to transfer tx.value")
 	}
 
 	// step6. calculate contract's limited gas
 	contractLimitedGas, err := tx.gasLimit.Sub(gasUsed)
 	if err != nil {
-		return submitTx(tx, block, ws, tx.gasLimit, ErrOutOfGasLimit, "Failed to calculate contract's limited gas")
+		logging.VLog().WithFields(logrus.Fields{
+			"err":     err,
+			"tx":      tx,
+			"gasUsed": gasUsed,
+			"block":   block,
+		}).Error("Failed to calculate payload's limit gas, unexpected error") // TODO: metrics, shit happens
+		return submitTx(tx, block, ws, tx.gasLimit, ErrOutOfGasLimit, "Failed to calculate payload's limit gas")
 	}
 
 	// step7. execute contract.
 	gasExecution, _, exeErr := payload.Execute(contractLimitedGas, tx, block, ws)
-	if exeErr != nil {
-		if err := ws.Reset(); err != nil {
-			return true, err
-		}
-	}
 
 	// step8. calculate final gas.
 	allGas, gasErr := gasUsed.Add(gasExecution)
@@ -594,15 +635,15 @@ func (tx *Transaction) recordResultEvent(gasUsed *util.Uint128, err error, ws Wo
 	txEvent := &TransactionEvent{
 		Hash:    tx.hash.String(),
 		GasUsed: gasUsed.String(),
+		Status:  TxExecutionSuccess,
 	}
+
 	if err != nil {
 		txEvent.Status = TxExecutionFailed
 		txEvent.Error = err.Error()
 		if len(txEvent.Error) > MaxEventErrLength {
 			txEvent.Error = txEvent.Error[:MaxEventErrLength]
 		}
-	} else {
-		txEvent.Status = TxExecutionSuccess
 	}
 
 	txData, err := json.Marshal(txEvent)
@@ -614,6 +655,7 @@ func (tx *Transaction) recordResultEvent(gasUsed *util.Uint128, err error, ws Wo
 		Topic: TopicTransactionExecutionResult,
 		Data:  string(txData),
 	}
+	// TODO: make sure RecordEvent won't return logic err
 	return ws.RecordEvent(tx.hash, event)
 }
 

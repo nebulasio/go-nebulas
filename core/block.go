@@ -1049,7 +1049,7 @@ func transfer(from, to byteutils.Hash, value *util.Uint128, ws WorldState) (bool
 // ExecuteTransaction execute the transaction
 // return giveback, err
 // system error: giveback == true
-// logic error: giveback == false
+// logic error: giveback == false, expect Bigger Nonce
 func (block *Block) ExecuteTransaction(tx *Transaction, ws WorldState) (bool, error) {
 	if giveback, err := CheckTransaction(tx, ws); err != nil {
 		logging.VLog().WithFields(logrus.Fields{

@@ -139,9 +139,12 @@ func (acc *account) IncrNonce() {
 
 // AddBalance to an account
 func (acc *account) AddBalance(value *util.Uint128) error {
-	var err error
-	acc.balance, err = acc.balance.Add(value)
-	return err
+	balance, err := acc.balance.Add(value)
+	if err != nil {
+		return err
+	}
+	acc.balance = balance
+	return nil
 }
 
 // SubBalance to an account
@@ -289,7 +292,7 @@ func (as *accountState) GetOrCreateUserAccount(addr byteutils.Hash) (Account, er
 		return nil, err
 	}
 	if err == ErrAccountNotFound {
-		acc, err := as.newAccount(addr, nil)
+		acc, err = as.newAccount(addr, nil)
 		if err != nil {
 			return nil, err
 		}

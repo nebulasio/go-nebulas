@@ -91,7 +91,7 @@ var (
 	ErrBelowGasPrice                      = errors.New("below the gas price")
 	ErrGasCntOverflow                     = errors.New("the count of gas used is overflow")
 	ErrGasFeeOverflow                     = errors.New("the fee of gas used is overflow")
-	ErrTransferOverflow                   = errors.New("transfer leads to overflow")
+	ErrInvalidTransfer                    = errors.New("transfer error: overflow or insufficient balance")
 	ErrGasLimitLessOrEqualToZero          = errors.New("gas limit less or equal to 0")
 	ErrOutOfGasLimit                      = errors.New("out of gas limit")
 	ErrTxExecutionFailed                  = errors.New("transaction execution failed")

@@ -24,6 +24,12 @@
   revision = "91e5ba1a80082d436cc35965d74e0a41be7f2d99"
 
 [[projects]]
+  branch = "master"
+  name = "github.com/btcsuite/btcutil"
+  packages = ["base58"]
+  revision = "501929d3d046174c3d39f0ea54ece471aa17238c"
+
+[[projects]]
   name = "github.com/coreos/go-semver"
   packages = ["semver"]
   revision = "8ab6407b697782a06568d4b7f1db25550ec2e4c6"
@@ -786,6 +792,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "f94e4f50a50da2f87a4c580e1bfbc43650c16ee8388cf5b9301c531ecc39bf93"
+  inputs-digest = "3cbb9060c41566687af55087832faa959bbf5e39cb4349bb1de287051e43b585"
   solver-name = "gps-cdcl"
   solver-version = 1

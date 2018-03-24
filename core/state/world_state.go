@@ -561,7 +561,7 @@ func (s *states) RecordGas(from string, gas *util.Uint128) error {
 		return err
 	}
 	s.gasConsumed[from] = consumed
-	return err
+	return nil
 }
 
 func (s *states) GetGas() map[string]*util.Uint128 {
