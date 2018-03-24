@@ -32,6 +32,7 @@ try {
     }
 }
 
+/* // disable this file, which can't be stored in windows system.
 err = new Error("require should throw error while file name contains \".");
 try {
     require("./require_file_\"1.js");
@@ -41,3 +42,4 @@ try {
         throw e;
     }
 }
+*/
