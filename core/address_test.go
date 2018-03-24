@@ -19,16 +19,12 @@
 package core
 
 import (
-	"fmt"
 	"reflect"
 	"testing"
 	"time"
 
-	"github.com/btcsuite/btcutil/base58"
-	"github.com/nebulasio/go-nebulas/crypto/hash"
 	"github.com/nebulasio/go-nebulas/crypto/keystore"
 	"github.com/nebulasio/go-nebulas/crypto/keystore/secp256k1"
-	"github.com/stretchr/testify/assert"
 )
 
 func mockAddress() *Address {
@@ -53,17 +49,17 @@ func TestParse(t *testing.T) {
 	}{
 		{
 			"sample account address",
-			args{"n1M2mcK3mcwGNQS7Kt7wmKadJn97paakkZ9"},
+			args{"n1TV3sU6jyzR4rJ1D7jCAmtVGSntJagXZHC"},
 			&Address{
-				address: []byte{25, 87, 71, 121, 81, 68, 192, 123, 227, 7, 81, 138, 233, 187, 218, 247, 117, 213, 225, 64, 121, 53, 109, 153, 204, 124},
+				address: []byte{25, 87, 142, 66, 118, 31, 219, 67, 233, 197, 173, 156, 169, 58, 207, 29, 218, 107, 233, 1, 248, 72, 171, 56, 100, 171},
 			},
 			false,
 		},
 		{
 			"sample contranct address",
-			args{"n1sLnoc7j57YfzAVP8tJ3yK5a2i56Uka4v6"},
+			args{"n1sLnoc7j57YfzAVP8tJ3yK5a2i56QrTDdK"},
 			&Address{
-				address: []byte{25, 88, 147, 245, 147, 89, 227, 222, 141, 219, 123, 78, 142, 159, 229, 26, 252, 242, 124, 89, 164, 193, 218, 26, 188, 107},
+				address: []byte{25, 88, 147, 245, 147, 89, 227, 222, 141, 219, 123, 78, 142, 159, 229, 26, 252, 242, 124, 89, 164, 193, 65, 149, 143, 170},
 			},
 			false,
 		},
@@ -155,7 +151,7 @@ func TestNewAddress(t *testing.T) {
 			args{make([]byte, PublicKeyDataLength)},
 			&Address{
 				// n1Mk8HYsjyfkEnGv4hZacDVFz2R1gYEXNej
-				address: []byte{25, 87, 31, 185, 52, 219, 123, 90, 141, 18, 150, 2, 238, 90, 246, 63, 157, 200, 210, 75, 140, 233, 171, 117, 64, 210},
+				address: []byte{25, 87, 31, 185, 52, 219, 123, 90, 141, 18, 150, 2, 238, 90, 246, 63, 157, 200, 210, 75, 140, 233, 151, 17, 227, 22},
 			},
 			false,
 		},
@@ -192,8 +188,8 @@ func TestNewContractAddress(t *testing.T) {
 				{41, 64, 103, 78, 193, 188},
 			}},
 			&Address{
-				// n219jtsdKTs3Rt3TgMeJe76cP9XQgXvQZ1n
-				address: []byte{25, 88, 233, 159, 147, 235, 220, 36, 136, 197, 149, 72, 61, 48, 57, 228, 47, 72, 224, 45, 204, 179, 149, 198, 110, 149},
+				// n219jtsdKTs3Rt3TgMeJe76cP9XQgYLdJXu
+				address: []byte{25, 88, 233, 159, 147, 235, 220, 36, 136, 197, 149, 72, 61, 48, 57, 228, 47, 72, 224, 45, 204, 179, 166, 28, 157, 212},
 			},
 			false,
 		},
@@ -228,88 +224,4 @@ func TestNewContractAddress(t *testing.T) {
 			}
 		})
 	}
-}
-
-func TestNebuals(t *testing.T) {
-	const (
-		// alphabet is the modified base58 alphabet used by Bitcoin.
-		alphabet = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
-
-		alphabetIdx0 = '1'
-	)
-
-	fb := []byte{25, 87, 230, 177, 238, 199, 245, 236, 26, 220, 103, 172, 40, 193, 2, 137, 81, 224, 59, 218, 18, 214, 208, 126, 83, 105}
-
-	b58 := base58.Decode("n1bYesWeBeLieveNebuLasMaaaaaaaaaaan")
-	addr, _ := AddressParse(base58.Encode(fb))
-	fmt.Println(b58, base58.Encode(fb), addr.String())
-
-	fmt.Println(hash.Sha3256([]byte{87, 230, 177, 238, 199, 245, 236, 26, 220, 103, 172, 40, 193, 2, 137, 81, 224, 59, 218, 18, 214})[:4])
-	//n1
-	// for i := 0; i < len(alphabet); i++ {
-	// strings.Join([]string{"n1", "YesWeBeLieveNebuLasMaaaaaaaaaaan"}, alphabet[i])
-	// b58 := base58.Decode("n1bYesWeBeLieveNebuLasMaaaaaaaaaaan")
-	// b58 := base58.Decode("n1" + string(alphabet[i]) + "YesWeBeLieveNebuLasMaaaaaaaaaaan")
-	// fmt.Println(string(alphabet[i]), b58)
-	// }
-}
-
-/* func TestBigINt(t *testing.T) {
-	// low = 58^33 * 45
-	// high = 58^33 * 46 - 1
-	low := new(big.Int)
-	high := new(big.Int)
-	low.Exp(big.NewInt(58), big.NewInt(33), nil)
-	fmt.Println(low.Bytes())
-	high.Mul(low, big.NewInt(46))
-	high.Sub(high, big.NewInt(1))
-	low.Mul(low, big.NewInt(45))
-	fmt.Println(low.Bytes())  // [111 213 184 75 176 88 186 42 63 104 237 127 10 128 7 147 66 24 23 39 50 0 0 0 0]
-	fmt.Println(high.Bytes()) // [114 81 239 151 83 141 230 31 207 10 140 95 187 22 201 42 113 18 239 216 107 255 255 255 255]
-} */
-
-/* func TestNewGenesisCoinbaseAddress(t *testing.T) {
-
-	data := [][]byte{
-		// len =26
-		{0x19, 0x70, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-			0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff},
-		{0x19, 0x70, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-			0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
-	}
-	for i := 0; i <= 255; i++ {
-		data[0][1] = byte(i)
-		data[1][1] = byte(i)
-
-		// ret0 := hash.EncodeBase58(data[0])
-		// ret1 := hash.EncodeBase58(data[0])
-		// if ret0[len(ret0)-1] == 'n' && ret1[len(ret1)-1] == 'n' {
-		// 112 113
-		// fmt.Println(i, ret0, len(ret0), ret1, len(ret1))
-		// }
-		// fmt.Println(i, data[0], ret1, len(ret1))
-	}
-
-} */
-
-func TestNewAddress2(t *testing.T) {
-
-	fmt.Println("AccountAddress = ", AccountAddress, ", ContractAddress = ", ContractAddress)
-
-	addr, err := NewAddressFromPublicKey(make([]byte, PublicKeyDataLength))
-	fmt.Printf("type<AccountAddress> address = %v\n%v\n%d\n\n", addr, []byte(addr.address), len(addr.String()))
-	assert.Nil(t, err)
-
-	// addr, err = NewAddress(ContractAddress, [][]byte{
-	// 	{12, 23, 24, 109, 223, 77, 34, 97, 20, 18, 19, 45, 62, 155, 211, 34, 248, 46, 41, 64, 103, 78, 193, 188},
-	// 	{41, 64, 103, 78, 193, 188}}...)
-	// fmt.Printf("type<ContractAddress> address = %v\n%v\n%d\n\n", addr, []byte(addr.address), len(addr.String()))
-	// assert.Nil(t, err)
-
-	// addr, err = NewAddress(ContractAddress, []byte{12, 23, 24, 109, 223, 77, 34, 97, 20, 18, 19, 45, 62, 155, 211, 34, 248, 46, 41, 64, 103, 78, 193, 188})
-	// fmt.Printf("type<ContractAddress> address = %v\n%v\n%d\n\n", addr, []byte(addr.address), len(addr.String()))
-	// assert.Nil(t, err)
-
-	// s := base58.Encode([]byte{25, 87, 71, 121, 81, 68, 192, 123, 227, 7, 81, 138, 233, 187, 218, 247, 117, 213, 225, 64, 121, 53, 109, 153, 204, 123})
-	// fmt.Println(s)
 }
