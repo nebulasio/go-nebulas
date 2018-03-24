@@ -222,7 +222,7 @@ func TestChunk_generateChunkMeta(t *testing.T) {
 	argsDeploy := ""
 	payloadDeploy, _ := core.NewDeployPayload(source, sourceType, argsDeploy).ToBytes()
 
-	from, _ := core.AddressParse("1a263547d167c74cf4b8f9166cfa244de0481c514a45aa2c")
+	from, _ := core.AddressParse("n1LQxBdAtxcfjUazHeK94raKdxRsNpujUyU")
 	assert.Nil(t, neb.am.Unlock(from, []byte("passphrase"), time.Second*60*60*24*365))
 
 	blocks := []*core.Block{}

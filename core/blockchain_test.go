@@ -39,8 +39,8 @@ func TestBlockChain_FindCommonAncestorWithTail(t *testing.T) {
 
 	coinbase11, _ := AddressParse("n1LQxBdAtxcfjUazHeK94raKdxRsNpujUyU")
 	coinbase12, _ := AddressParse("n1PtnbfQcC9EZpr2LS2vLUCKf2UtkyArzVr")
-	coinbase111, _ := AddressParse("n1SRGKRFrF6DHK4Ym4MoXbbUHYkV5W2MZPw")
-	coinbase221, _ := AddressParse("n1TRySsvYmAU8ChPZyYyvrPpDYJ1Z5DFoxo")
+	coinbase221, _ := AddressParse("n1SRGKRFrF6DHK4Ym4MoXbbUHYkV5W2MZPw")
+	coinbase111, _ := AddressParse("n1TRySsvYmAU8ChPZyYyvrPpDYJ1Z5DFoxo")
 	coinbase222, _ := AddressParse("n1aoyV8M2g79pFXxdZEK9GfU7fzuJcCN75X")
 	coinbase1111, _ := AddressParse("n1beo9QAjhhJX6tjpjHyinoorbqdi6UKAEb")
 	coinbase11111, _ := AddressParse("n1coJhpn8QXvKFogVG93wx49eCQ6aPQHSAN")
@@ -60,16 +60,14 @@ func TestBlockChain_FindCommonAncestorWithTail(t *testing.T) {
 	*/
 	block11, err := bc.NewBlock(coinbase11)
 	assert.Nil(t, err)
-	block11.header.timestamp = BlockInterval * 2
+	block11.header.timestamp = BlockInterval * 3
 	block12, err := bc.NewBlock(coinbase12)
 	assert.Nil(t, err)
-	block12.header.timestamp = BlockInterval * 3
+	block12.header.timestamp = BlockInterval * 2
 	assert.Nil(t, block11.Seal())
 	signBlock(block11)
-	assert.Equal(t, block11.Hash().String(), "37d2d2b476d2d2406ece4a69b18677df81529cdc4984f5a5eecc5a37e4c9dc5a")
 	assert.Nil(t, block12.Seal())
 	signBlock(block12)
-	assert.Equal(t, block12.Hash().String(), "8d80193de5b061c7c3ebe902b363f9863c2e2098009672a43a935342f18aee83")
 
 	assert.Nil(t, bc.BlockPool().Push(block11))
 	assert.Equal(t, bc.tailBlock.Hash(), block11.Hash())
@@ -84,17 +82,16 @@ func TestBlockChain_FindCommonAncestorWithTail(t *testing.T) {
 	assert.Nil(t, bc.BlockPool().Push(block12))
 	assert.Equal(t, bc.tailBlock.Hash(), block12.Hash())
 
-	return
 	block221, _ := bc.NewBlock(coinbase221)
 	block221.header.timestamp = BlockInterval * 5
 	block222, _ := bc.NewBlock(coinbase222)
 	block222.header.timestamp = BlockInterval * 6
 	assert.Nil(t, block221.Seal())
 	signBlock(block221)
-	assert.Equal(t, block221.Hash().String(), "2e554cb87cff9cc5c685049afd2e45d02ba493ea0056f852c478fee2fea590ad")
+	assert.Equal(t, block221.Hash().String(), "e26b6db5092976ca9fbea1675689c7383d70c90ef3024a007241bd1d1fa68e94")
 	assert.Nil(t, block222.Seal())
 	signBlock(block222)
-	assert.Equal(t, block222.Hash().String(), "65910f3e367c931c1d6bd4a9ef4f0d8b6cb44d7a429f19abf1f53a636732b3c8")
+	assert.Equal(t, block222.Hash().String(), "6db079994d0de7f208a9464dc189cc8f8b0656bac87b59b27d4bfff3b05d8921")
 
 	assert.Nil(t, bc.BlockPool().Push(block111))
 	block1111, _ := bc.NewBlock(coinbase1111)
