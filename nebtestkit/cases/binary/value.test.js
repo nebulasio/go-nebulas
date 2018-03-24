@@ -180,7 +180,7 @@ function testTransfer(testInput, testExpect, done) {
                         if (true === testExpect.canExcuteTx) {
                             expect(receipt).to.be.have.property('status').equal(1);
                         } else {
-                            expect(receipt).to.not.have.property('status');
+                            expect(receipt).to.be.have.property('status').equal(0);
                         }
                         console.log("tx receipt : " + JSON.stringify(receipt));
                         neb.api.getAccountState(receipt.from).then(function (state) {
@@ -197,7 +197,7 @@ function testTransfer(testInput, testExpect, done) {
 
                             console.log("get coinbase account state after tx:" + JSON.stringify(state));
                             var reward = new BigNumber(state.balance).sub(coinState.balance);
-                            reward = reward.mod(new BigNumber(0.48).mul(new BigNumber(10).pow(18)));
+                            reward = reward.mod(new BigNumber(1.92).mul(new BigNumber(10).pow(18)));
                             // The transaction should be only
                             expect(reward.toString()).to.equal(testExpect.transferReward);
                             return neb.api.getEventsByHash(resp.txhash);
@@ -1244,8 +1244,8 @@ describe('normal transaction', function () {
             canSendTx: true,
             canSubmitTx: true,
             canExcuteTx: false,
-            fromBalanceAfterTx: '0',
-            toBalanceAfterTx: '9999999980000000000',
+            fromBalanceAfterTx: '9999999980000000000',
+            toBalanceAfterTx: '0',
             transferReward: '20000000000'
         };
         prepare(function (err) {
@@ -1412,8 +1412,8 @@ describe('normal transaction', function () {
             canSendTx: true,
             canSubmitTx: true,
             canExcuteTx: false,
-            fromBalanceAfterTx: '0',
-            toBalanceAfterTx: '9999999979964000000',
+            fromBalanceAfterTx: '9999999979964000000',
+            toBalanceAfterTx: '0',
             transferReward: '20036000000'
         };
         prepare(function (err) {
@@ -1451,8 +1451,4 @@ describe('normal transaction', function () {
             }
         });
     });
-
-
-
-
 });
