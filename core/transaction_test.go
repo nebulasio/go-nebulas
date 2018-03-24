@@ -304,7 +304,8 @@ func TestTransaction_VerifyExecution(t *testing.T) {
 		toBalance       *util.Uint128
 		coinbaseBalance *util.Uint128
 		status          int
-		giveback        bool // TODO add giveback check
+		eventErr        string
+		giveback        bool
 	}
 	tests := []testTx{}
 
@@ -332,7 +333,9 @@ func TestTransaction_VerifyExecution(t *testing.T) {
 		toBalance:       normalTx.value,
 		coinbaseBalance: coinbaseBalance,
 		wanted:          nil,
+		eventErr:        "",
 		status:          1,
+		giveback:        false,
 	})
 
 	// contract deploy tx
@@ -354,7 +357,9 @@ func TestTransaction_VerifyExecution(t *testing.T) {
 		toBalance:       afterBalance,
 		coinbaseBalance: coinbaseBalance,
 		wanted:          nil,
+		eventErr:        "",
 		status:          1,
+		giveback:        false,
 	})
 
 	// contract call tx
@@ -376,7 +381,9 @@ func TestTransaction_VerifyExecution(t *testing.T) {
 		toBalance:       callTx.value,
 		coinbaseBalance: coinbaseBalance,
 		wanted:          nil,
+		eventErr:        ErrContractCheckFailed.Error(),
 		status:          0,
+		giveback:        false,
 	})
 
 	// normal tx insufficient fromBalance before execution
@@ -391,6 +398,7 @@ func TestTransaction_VerifyExecution(t *testing.T) {
 		toBalance:    util.NewUint128(),
 		wanted:       ErrInsufficientBalance,
 		status:       0,
+		giveback:     false,
 	})
 
 	// normal tx out of  gasLimit
@@ -406,6 +414,7 @@ func TestTransaction_VerifyExecution(t *testing.T) {
 		toBalance:    util.NewUint128(),
 		wanted:       ErrOutOfGasLimit,
 		status:       0,
+		giveback:     false,
 	})
 
 	// tx payload load err
@@ -431,7 +440,9 @@ func TestTransaction_VerifyExecution(t *testing.T) {
 		toBalance:       afterBalance,
 		coinbaseBalance: coinbaseBalance,
 		wanted:          nil,
+		eventErr:        "invalid character 'x' after top-level value",
 		status:          0,
+		giveback:        false,
 	})
 
 	// tx execution err
@@ -455,16 +466,18 @@ func TestTransaction_VerifyExecution(t *testing.T) {
 		toBalance:       util.NewUint128(),
 		coinbaseBalance: coinbaseBalance,
 		wanted:          nil,
+		eventErr:        ErrContractCheckFailed.Error(),
 		status:          0,
+		giveback:        false,
 	})
 
 	// tx execution insufficient fromBalance after execution
 	executionInsufficientBalanceTx := mockDeployTransaction(bc.chainID, 0)
 	executionInsufficientBalanceTx.value = balance
-	gasUsed, _ = util.NewUint128FromInt(21203)
+	gasUsed, _ = util.NewUint128FromInt(21103)
 	coinbaseBalance, err = executionInsufficientBalanceTx.gasPrice.Mul(gasUsed)
 	assert.Nil(t, err)
-	balanceConsume, err = normalTx.gasPrice.Mul(gasUsed)
+	balanceConsume, err = executionInsufficientBalanceTx.gasPrice.Mul(gasUsed)
 	assert.Nil(t, err)
 	afterBalance, err = balance.Sub(balanceConsume)
 	assert.Nil(t, err)
@@ -472,12 +485,14 @@ func TestTransaction_VerifyExecution(t *testing.T) {
 		name:            "execution insufficient fromBalance after execution tx",
 		tx:              executionInsufficientBalanceTx,
 		fromBalance:     balance,
-		gasUsed:         util.Uint128Zero(),
-		afterBalance:    balance,
-		toBalance:       balance,
-		coinbaseBalance: util.NewUint128(),
-		wanted:          ErrInsufficientBalance,
+		gasUsed:         gasUsed,
+		afterBalance:    afterBalance,
+		toBalance:       afterBalance,
+		coinbaseBalance: coinbaseBalance,
+		wanted:          nil,
+		eventErr:        ErrInsufficientBalance.Error(),
 		status:          0,
+		giveback:        false,
 	})
 
 	// tx execution equal fromBalance after execution
@@ -503,7 +518,9 @@ func TestTransaction_VerifyExecution(t *testing.T) {
 		toBalance:       balance,
 		coinbaseBalance: coinbaseBalance,
 		wanted:          nil,
+		eventErr:        "",
 		status:          1,
+		giveback:        false,
 	})
 
 	ks := keystore.DefaultKS
@@ -568,12 +585,11 @@ func TestTransaction_VerifyExecution(t *testing.T) {
 					json.Unmarshal([]byte(v.Data), &txEvent)
 					status := int(txEvent.Status)
 					assert.Equal(t, tt.status, status)
+					assert.Equal(t, tt.eventErr, txEvent.Error)
 					assert.Equal(t, tt.gasUsed.String(), txEvent.GasUsed)
 					break
 				}
 			}
-
-			assert.Equal(t, tt.wanted, executionErr)
 		})
 	}
 }

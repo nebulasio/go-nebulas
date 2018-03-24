@@ -229,7 +229,7 @@ func TestPayload_Execute(t *testing.T) {
 			want:     util.NewUint128(),
 			wantErr:  nil,
 			giveback: false,
-			limit:    TransactionMaxGas,
+			limit:    util.Uint128Zero(),
 		},
 		{
 			name:     "normal",
@@ -239,13 +239,14 @@ func TestPayload_Execute(t *testing.T) {
 			want:     util.NewUint128(),
 			wantErr:  nil,
 			giveback: false,
-			limit:    TransactionMaxGas,
+			limit:    util.Uint128Zero(),
 		},
 	}
 
 	deployTx := mockDeployTransaction(bc.chainID, 0)
 	deployPayload, _ := deployTx.LoadPayload()
 	want, _ := util.NewUint128FromInt(100)
+	limit, _ := util.NewUint128FromInt(100)
 	tests = append(tests, testPayload{
 		name:     "deploy",
 		payload:  deployPayload,
@@ -254,12 +255,13 @@ func TestPayload_Execute(t *testing.T) {
 		want:     want,
 		wantErr:  nil,
 		giveback: false,
-		limit:    TransactionMaxGas,
+		limit:    limit,
 	})
 
 	callTx := mockCallTransaction(bc.chainID, 1, "totalSupply", "")
 	callTx.to, _ = deployTx.GenerateContractAddress()
 	callPayload, _ := callTx.LoadPayload()
+	limit, _ = util.NewUint128FromInt(1)
 	tests = append(tests, testPayload{
 		name:     "call",
 		payload:  callPayload,
@@ -268,7 +270,7 @@ func TestPayload_Execute(t *testing.T) {
 		want:     util.NewUint128(),
 		wantErr:  ErrContractCheckFailed,
 		giveback: false,
-		limit:    TransactionMaxGas,
+		limit:    limit,
 	})
 
 	// TODO: @robin need more unittests.
