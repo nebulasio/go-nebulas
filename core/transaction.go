@@ -45,8 +45,8 @@ const (
 )
 
 var (
-	// TransactionMaxGasPrice max gasPrice:50 * 10 ** 9
-	TransactionMaxGasPrice, _ = util.NewUint128FromString("50000000000")
+	// TransactionMaxGasPrice max gasPrice:1 * 10 ** 12
+	TransactionMaxGasPrice, _ = util.NewUint128FromString("1000000000000")
 
 	// TransactionMaxGas max gas:50 * 10 ** 9
 	TransactionMaxGas, _ = util.NewUint128FromString("50000000000")
@@ -202,11 +202,17 @@ func (tx *Transaction) FromProto(msg proto.Message) error {
 			if err != nil {
 				return err
 			}
+			if gasPrice.Cmp(util.Uint128Zero()) <= 0 || gasPrice.Cmp(TransactionMaxGasPrice) > 0 {
+				return ErrInvalidGasPrice
+			}
 			tx.gasPrice = gasPrice
 
 			gasLimit, err := util.NewUint128FromFixedSizeByteSlice(msg.GasLimit)
 			if err != nil {
 				return err
+			}
+			if gasLimit.Cmp(util.Uint128Zero()) <= 0 || gasLimit.Cmp(TransactionMaxGas) > 0 {
+				return ErrInvalidGasLimit
 			}
 			tx.gasLimit = gasLimit
 
@@ -244,11 +250,11 @@ type Transactions []*Transaction
 
 // NewTransaction create #Transaction instance.
 func NewTransaction(chainID uint32, from, to *Address, value *util.Uint128, nonce uint64, payloadType string, payload []byte, gasPrice *util.Uint128, gasLimit *util.Uint128) (*Transaction, error) {
-	if gasPrice == nil || gasPrice.Cmp(util.NewUint128()) <= 0 {
-		return nil, ErrZeroGasPrice
+	if gasPrice == nil || gasPrice.Cmp(util.NewUint128()) <= 0 || gasPrice.Cmp(TransactionMaxGasPrice) > 0 {
+		return nil, ErrInvalidGasPrice
 	}
-	if gasLimit == nil || gasLimit.Cmp(util.NewUint128()) <= 0 {
-		return nil, ErrZeroGasLimit
+	if gasLimit == nil || gasLimit.Cmp(util.NewUint128()) <= 0 || gasLimit.Cmp(TransactionMaxGas) > 0 {
+		return nil, ErrInvalidGasLimit
 	}
 
 	if nil == from || nil == to || nil == value {
@@ -386,7 +392,7 @@ func VerifyExecution(tx *Transaction, block *Block, ws WorldState) (bool, error)
 	// step0. perpare accounts.
 	fromAcc, err := ws.GetOrCreateUserAccount(tx.from.address)
 	if err != nil {
-		return true, err
+		return true, err // TODO: check which test case covers the codes
 	}
 	toAcc, err := ws.GetOrCreateUserAccount(tx.to.address)
 	if err != nil {
@@ -501,35 +507,8 @@ func VerifyExecution(tx *Transaction, block *Block, ws WorldState) (bool, error)
 	return submitTx(tx, block, ws, allGas, exeErr, "Failed to execute payload")
 }
 
-// CalculateMinGasExpected calculate min gas expected for a transaction to put on chain.
-// MinGasExpected = GasCountOfBase + payload.baseGasCount
-func (tx *Transaction) CalculateMinGasExpected(payload TxPayload) (*util.Uint128, TxPayload, error) {
-	gasUsed, err := tx.GasCountOfTxBase()
-	if err != nil {
-		return nil, payload, err
-	}
-
-	// load payload if nil.
-	if payload == nil {
-		payload, err = tx.LoadPayload()
-		if err != nil {
-			return nil, nil, err
-		}
-	}
-
-	gasUsed, err = gasUsed.Add(payload.BaseGasCount())
-	if err != nil {
-		return nil, payload, err
-	}
-
-	return gasUsed, payload, nil
-}
-
-// SimulateExecution simulate execution and return gasUsed, executionResult and error if occurred.
+// SimulateExecution simulate execution and return gasUsed, executionResult and executionErr, sysErr if occurred.
 func (tx *Transaction) SimulateExecution(block *Block) (*util.Uint128, string, error, error) { // TODO check the logic
-	// prepare gasLimit to TransactionMaxGas.
-	tx.gasLimit = TransactionMaxGas
-
 	// hash is necessary in nvm
 	hash, err := tx.calHash()
 	if err != nil {
@@ -537,18 +516,39 @@ func (tx *Transaction) SimulateExecution(block *Block) (*util.Uint128, string, e
 	}
 	tx.hash = hash
 
-	// calculate min gas.
-	gasUsed, payload, err := tx.CalculateMinGasExpected(nil)
+	// Generate world state
+	ws, err := block.WorldState().Clone()
 	if err != nil {
 		return nil, "", nil, err
 	}
+
+	// Get from account
+	fromAcc, err := ws.GetOrCreateUserAccount(tx.from.address)
+	if err != nil {
+		return nil, "", nil, err
+	}
+
+	// calculate min gas.
+	gasUsed, err := tx.GasCountOfTxBase()
+	if err != nil {
+		return nil, "GasCountOfTxBase error", err, nil
+	}
+
+	payload, err := tx.LoadPayload()
+	if err != nil {
+		return gasUsed, "Invalid payload", err, nil
+	}
+
+	payloasGas, err := gasUsed.Add(payload.BaseGasCount())
+	if err != nil {
+		return gasUsed, "GasCountOfTxBase + GasCountOfPayloadBase error", err, nil
+	}
+	gasUsed = payloasGas
 
 	var (
 		result string
 		exeErr error
 	)
-
-	ws := block.WorldState()
 
 	// try run smart contract if payload is.
 	if tx.data.Type == TxPayloadCallType || tx.data.Type == TxPayloadDeployType {
@@ -560,18 +560,19 @@ func (tx *Transaction) SimulateExecution(block *Block) (*util.Uint128, string, e
 		}
 		err = toAcc.AddBalance(tx.value)
 		if err != nil {
-			return nil, "", nil, err
+			return gasUsed, "Too big value", err, nil
 		}
 
 		// execute.
-		contractLimitedGas, err := tx.gasLimit.Sub(gasUsed)
-		gasExecution, result, exeErr := payload.Execute(contractLimitedGas, tx, block, block.WorldState())
+		gasExecution := util.NewUint128()
+		gasExecution, result, exeErr = payload.Execute(TransactionMaxGas, tx, block, ws)
 
 		// add gas.
-		gasUsed, err = gasUsed.Add(gasExecution)
+		executedGas, err := gasUsed.Add(gasExecution)
 		if err != nil {
-			return nil, "", nil, err
+			return gasUsed, "CalFinalGasCount error", err, nil
 		}
+		gasUsed = executedGas
 
 		if exeErr != nil {
 			return gasUsed, result, exeErr, nil
@@ -579,46 +580,24 @@ func (tx *Transaction) SimulateExecution(block *Block) (*util.Uint128, string, e
 	}
 
 	// check balance.
-	ok, err := checkBalanceForGasUsedAndValue(ws, tx.from.address, tx.value, gasUsed, tx.gasPrice)
-	if err == nil && ok == false {
-		exeErr = ErrInsufficientBalance
-	}
-
-	return gasUsed, result, exeErr, err
-}
-
-// checkBalanceForGasLimit check balance >= gasLimit * gasPrice.
-func (tx *Transaction) checkBalanceForGasLimit(block *Block, ws WorldState) error {
-	ok, err := checkBalanceForGasUsedAndValue(ws, tx.from.address, util.NewUint128(), tx.gasLimit, tx.gasPrice)
-	if err != nil {
-		return err
-	}
-
-	if ok == false {
-		return ErrInsufficientBalance
-	}
-
-	return nil
+	err = checkBalanceForGasUsedAndValue(ws, fromAcc, tx.value, gasUsed, tx.gasPrice)
+	return gasUsed, result, err, nil
 }
 
 // checkBalanceForGasUsedAndValue check balance >= gasUsed * gasPrice + value.
-func checkBalanceForGasUsedAndValue(ws WorldState, address byteutils.Hash, value, gasUsed, gasPrice *util.Uint128) (bool, error) {
-	fromAcc, err := ws.GetOrCreateUserAccount(address)
-	if err != nil {
-		return false, err
-	}
+func checkBalanceForGasUsedAndValue(ws WorldState, fromAcc state.Account, value, gasUsed, gasPrice *util.Uint128) error {
 	gasFee, err := gasPrice.Mul(gasUsed)
 	if err != nil {
-		return false, err
+		return err
 	}
 	balanceRequired, err := gasFee.Add(value)
 	if err != nil {
-		return false, err
+		return err
 	}
 	if fromAcc.Balance().Cmp(balanceRequired) < 0 {
-		return false, nil
+		return ErrInsufficientBalance
 	}
-	return true, nil
+	return nil
 
 }
 

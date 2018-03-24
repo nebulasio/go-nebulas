@@ -80,6 +80,8 @@ func TestTransaction(t *testing.T) {
 		gasPrice  *util.Uint128
 		gasLimit  *util.Uint128
 	}
+	gasPrice, _ := util.NewUint128FromInt(1)
+	gasLimit, _ := util.NewUint128FromInt(1)
 	tests := []struct {
 		name   string
 		fields fields
@@ -95,8 +97,8 @@ func TestTransaction(t *testing.T) {
 				time.Now().Unix(),
 				uint8(keystore.SECP256K1),
 				&corepb.Data{Type: TxPayloadBinaryType, Payload: []byte("hwllo")},
-				util.NewUint128(),
-				util.NewUint128(),
+				gasPrice,
+				gasLimit,
 			}),
 		},
 	}

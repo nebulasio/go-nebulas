@@ -20,6 +20,7 @@ package core
 
 import (
 	"encoding/json"
+	"fmt"
 
 	"github.com/nebulasio/go-nebulas/util"
 )
@@ -104,6 +105,9 @@ func (payload *DeployPayload) Execute(limitedGas *util.Uint128, tx *Transaction,
 	instructions, err := util.NewUint128FromInt(int64(gasCout))
 	if err != nil {
 		return util.NewUint128(), "", err
+	}
+	if exeErr != nil && len(result) > 0 {
+		exeErr = fmt.Errorf("Deploy: %s", result)
 	}
 	return instructions, result, exeErr
 }

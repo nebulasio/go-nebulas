@@ -87,17 +87,22 @@ func NewTransactionPool(size int) (*TransactionPool, error) {
 }
 
 // SetGasConfig config the lowest gasPrice and the maximum gasLimit.
-func (pool *TransactionPool) SetGasConfig(gasPrice, gasLimit *util.Uint128) {
+func (pool *TransactionPool) SetGasConfig(gasPrice, gasLimit *util.Uint128) error {
 	if gasPrice == nil || gasPrice.Cmp(util.NewUint128()) <= 0 {
 		pool.minGasPrice = TransactionGasPrice
-	} else {
+	} else if gasPrice.Cmp(TransactionMaxGasPrice) <= 0 {
 		pool.minGasPrice = gasPrice
+	} else {
+		return ErrInvalidGasPrice
 	}
 	if gasLimit == nil || gasLimit.Cmp(util.NewUint128()) == 0 || gasLimit.Cmp(TransactionMaxGas) > 0 {
 		pool.maxGasLimit = TransactionMaxGas
-	} else {
+	} else if gasPrice.Cmp(TransactionMaxGas) <= 0 {
 		pool.maxGasLimit = gasLimit
+	} else {
+		return ErrInvalidGasLimit
 	}
+	return nil
 }
 
 // RegisterInNetwork register message subscriber in network.

@@ -23,8 +23,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/nebulasio/go-nebulas/util/logging"
-
 	"github.com/nebulasio/go-nebulas/common/dag"
 	"github.com/nebulasio/go-nebulas/consensus/pb"
 	"github.com/nebulasio/go-nebulas/core/state"
@@ -387,6 +385,8 @@ func TestBlock(t *testing.T) {
 	to1, _ := NewAddressFromPublicKey([]byte("eb691e1438fce79f5cb2eb691e1438fce79f5cb2eb691e1438fce79f5cb266554"))
 	to2, _ := NewAddressFromPublicKey([]byte("eb690e1438fce79f5cb2eb690e1438fce79f5cb2eb690e1438fce79f5cb200000"))
 	coinbase, _ := NewAddressFromPublicKey([]byte("5425730430bc2d63f2575425730430bc2d63f2575425730430bc2d63f25733333"))
+	gasPrice, _ := util.NewUint128FromInt(1)
+	gasLimit, _ := util.NewUint128FromInt(1)
 
 	tests := []struct {
 		name    string
@@ -422,8 +422,8 @@ func TestBlock(t *testing.T) {
 						1516464510,
 						&corepb.Data{Type: TxPayloadBinaryType, Payload: []byte("hello")},
 						1,
-						util.NewUint128(),
-						util.NewUint128(),
+						gasPrice,
+						gasLimit,
 						keystore.SECP256K1,
 						nil,
 					},
@@ -436,8 +436,8 @@ func TestBlock(t *testing.T) {
 						1516464511,
 						&corepb.Data{Type: TxPayloadBinaryType, Payload: []byte("hllo")},
 						2,
-						util.NewUint128(),
-						util.NewUint128(),
+						gasPrice,
+						gasLimit,
 						keystore.SECP256K1,
 						nil,
 					},
@@ -465,9 +465,6 @@ func TestBlock(t *testing.T) {
 			err = nb.FromProto(proto)
 			assert.Nil(t, err)
 			b.header.timestamp = nb.header.timestamp
-
-			logging.CLog().Info(b.transactions)
-			logging.CLog().Info(nb.transactions)
 
 			if !reflect.DeepEqual(*b.header, *nb.header) {
 				t.Errorf("Transaction.Serialize() = %v, want %v", *b.header, *nb.header)

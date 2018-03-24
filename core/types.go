@@ -81,6 +81,8 @@ var (
 	ErrInvalidTransactionHash   = errors.New("invalid transaction hash")
 	ErrInvalidSignature         = errors.New("invalid transaction signature")
 	ErrInvalidTxPayloadType     = errors.New("invalid transaction data payload type")
+	ErrInvalidGasPrice          = errors.New("invalid gas price, should be in (0, 10^12]")
+	ErrInvalidGasLimit          = errors.New("invalid gas limit, should be in (0, 5*10^10]")
 
 	ErrNoTimeToPackTransactions    = errors.New("no time left to pack transactions in a block")
 	ErrTxDataPayLoadOutOfMaxLength = errors.New("data's payload is out of max data length")

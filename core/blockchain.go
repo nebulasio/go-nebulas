@@ -125,7 +125,9 @@ func NewBlockChain(neb Neblet) (*BlockChain, error) {
 		return nil, err
 	}
 	txPool.setEventEmitter(neb.EventEmitter())
-	txPool.SetGasConfig(gasPrice, gasLimit)
+	if err := txPool.SetGasConfig(gasPrice, gasLimit); err != nil {
+		return nil, err
+	}
 	txPool.RegisterInNetwork(neb.NetService())
 
 	var bc = &BlockChain{

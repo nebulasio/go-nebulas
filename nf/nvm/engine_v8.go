@@ -307,7 +307,7 @@ func (e *V8Engine) RunScriptSource(source string, sourceLineOffset int) (string,
 	if cResult != nil {
 		result = C.GoString(cResult)
 		C.free(unsafe.Pointer(cResult))
-	} else {
+	} else if ret == 0 {
 		result = "\"\"" // default JSON String.
 	}
 

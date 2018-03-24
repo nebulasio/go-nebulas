@@ -155,7 +155,7 @@ func TestBlockChain_SimulateTransactionExecution(t *testing.T) {
 	gasLimit, _ := util.NewUint128FromInt(200000)
 	tx, _ := NewTransaction(bc.ChainID(), from, to, util.NewUint128(), 1, TxPayloadBinaryType, payload, TransactionGasPrice, gasLimit)
 
-	expectedGasUsed, _, _ := tx.CalculateMinGasExpected(nil)
+	expectedGasUsed, _ := util.NewUint128FromInt(20000)
 
 	gasUsed, _, exeErr, err := bc.SimulateTransactionExecution(tx)
 	assert.Nil(t, err)
