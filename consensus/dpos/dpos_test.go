@@ -71,8 +71,8 @@ func mockNeb(t *testing.T) *Neb {
 				ChainId:    genesisConf.Meta.ChainId,
 				Keydir:     "keydir",
 				StartMine:  true,
-				Coinbase:   "n1K4rWU3YrhZmU1GHHYqnES8CcypTYQa9oJ",
-				Miner:      "n1LQxBdAtxcfjUazHeK94raKdxRsNpujUyU",
+				Coinbase:   "n1Zn6iyyQRhqthmCfqGBzWfip1Wx8wEvtrJ",
+				Miner:      "n1FkntVUMPAsESuCAAPK711omQk19JotBjM",
 				Passphrase: "passphrase",
 			},
 		},
@@ -146,14 +146,12 @@ func (n *Neb) SetGenesis(genesis *corepb.Genesis) {
 
 var (
 	DefaultOpenDynasty = []string{
-		"n1LQxBdAtxcfjUazHeK94raKdxRsNpujUyU",
-		"n1PtnbfQcC9EZpr2LS2vLUCKf2UtkyArzVr",
-		"n1SRGKRFrF6DHK4Ym4MoXbbUHYkV5W2MZPw",
-		"n1TRySsvYmAU8ChPZyYyvrPpDYJ1Z5DFoxo",
-		"n1aoyV8M2g79pFXxdZEK9GfU7fzuJcCN75X",
-		"n1beo9QAjhhJX6tjpjHyinoorbqdi6UKAEb",
-		//"n1coJhpn8QXvKFogVG93wx49eCQ6aPQHSAN",
-		//"n1UZtMgi94oE913L2Sa2C9XwvAzNTQ82v64",
+		"n1FkntVUMPAsESuCAAPK711omQk19JotBjM",
+		"n1JNHZJEUvfBYfjDRD14Q73FX62nJAzXkMR",
+		"n1Kjom3J4KPsHKKzZ2xtt8Lc9W5pRDjeLcW",
+		"n1TV3sU6jyzR4rJ1D7jCAmtVGSntJagXZHC",
+		"n1WwqBXVMuYC3mFCEEuFFtAXad6yxqj4as4",
+		"n1Zn6iyyQRhqthmCfqGBzWfip1Wx8wEvtrJ",
 	}
 )
 
@@ -172,35 +170,27 @@ func MockGenesisConf() *corepb.Genesis {
 		},
 		TokenDistribution: []*corepb.GenesisTokenDistribution{
 			&corepb.GenesisTokenDistribution{
-				Address: "n1LQxBdAtxcfjUazHeK94raKdxRsNpujUyU",
+				Address: "n1FkntVUMPAsESuCAAPK711omQk19JotBjM",
 				Value:   "10000000000000000000000",
 			},
 			&corepb.GenesisTokenDistribution{
-				Address: "n1PtnbfQcC9EZpr2LS2vLUCKf2UtkyArzVr",
+				Address: "n1JNHZJEUvfBYfjDRD14Q73FX62nJAzXkMR",
 				Value:   "10000000000000000000000",
 			},
 			&corepb.GenesisTokenDistribution{
-				Address: "n1SRGKRFrF6DHK4Ym4MoXbbUHYkV5W2MZPw",
+				Address: "n1Kjom3J4KPsHKKzZ2xtt8Lc9W5pRDjeLcW",
 				Value:   "10000000000000000000000",
 			},
 			&corepb.GenesisTokenDistribution{
-				Address: "n1TRySsvYmAU8ChPZyYyvrPpDYJ1Z5DFoxo",
+				Address: "n1TV3sU6jyzR4rJ1D7jCAmtVGSntJagXZHC",
 				Value:   "10000000000000000000000",
 			},
 			&corepb.GenesisTokenDistribution{
-				Address: "n1UZtMgi94oE913L2Sa2C9XwvAzNTQ82v64",
+				Address: "n1WwqBXVMuYC3mFCEEuFFtAXad6yxqj4as4",
 				Value:   "10000000000000000000000",
 			},
 			&corepb.GenesisTokenDistribution{
-				Address: "n1aoyV8M2g79pFXxdZEK9GfU7fzuJcCN75X",
-				Value:   "10000000000000000000000",
-			},
-			&corepb.GenesisTokenDistribution{
-				Address: "n1beo9QAjhhJX6tjpjHyinoorbqdi6UKAEb",
-				Value:   "10000000000000000000000",
-			},
-			&corepb.GenesisTokenDistribution{
-				Address: "n1coJhpn8QXvKFogVG93wx49eCQ6aPQHSAN",
+				Address: "n1Zn6iyyQRhqthmCfqGBzWfip1Wx8wEvtrJ",
 				Value:   "10000000000000000000000",
 			},
 		},
@@ -282,7 +272,7 @@ func TestDpos_VerifySign(t *testing.T) {
 	elapsedSecondInMs := int64(DynastySize*BlockIntervalInMs + DynastyIntervalInMs)
 	consensusState, err := tail.WorldState().NextConsensusState(elapsedSecondInMs / SecondInMs)
 	assert.Nil(t, err)
-	coinbase, err := core.AddressParse("n1K4rWU3YrhZmU1GHHYqnES8CcypTYQa9oJ")
+	coinbase, err := core.AddressParse("n1FkntVUMPAsESuCAAPK711omQk19JotBjM")
 	assert.Nil(t, err)
 	block, err := core.NewBlock(neb.chain.ChainID(), coinbase, tail)
 	assert.Nil(t, err)
@@ -290,7 +280,7 @@ func TestDpos_VerifySign(t *testing.T) {
 	block.WorldState().SetConsensusState(consensusState)
 	block.Seal()
 	manager := account.NewManager(nil)
-	miner, err := core.AddressParse("n1PtnbfQcC9EZpr2LS2vLUCKf2UtkyArzVr")
+	miner, err := core.AddressParse("n1JNHZJEUvfBYfjDRD14Q73FX62nJAzXkMR")
 	assert.Nil(t, err)
 	assert.Nil(t, manager.Unlock(miner, []byte("passphrase"), keystore.DefaultUnlockDuration))
 	assert.Nil(t, manager.SignBlock(miner, block))
@@ -313,7 +303,7 @@ func TestForkChoice(t *testing.T) {
 					 \_ 12 -- 221
 	*/
 
-	addr0 := GetUnlockAddress(t, am, "n1PtnbfQcC9EZpr2LS2vLUCKf2UtkyArzVr")
+	addr0 := GetUnlockAddress(t, am, "n1JNHZJEUvfBYfjDRD14Q73FX62nJAzXkMR")
 	block0, _ := neb.chain.NewBlock(addr0)
 	block0.SetTimestamp(BlockIntervalInMs / SecondInMs)
 	consensusState, err := neb.BlockChain().TailBlock().WorldState().NextConsensusState(BlockIntervalInMs / SecondInMs)
@@ -325,7 +315,7 @@ func TestForkChoice(t *testing.T) {
 	assert.Equal(t, len(neb.chain.DetachedTailBlocks()), 1)
 	assert.Equal(t, block0.Hash(), neb.chain.TailBlock().Hash())
 
-	addr1 := GetUnlockAddress(t, am, "n1SRGKRFrF6DHK4Ym4MoXbbUHYkV5W2MZPw")
+	addr1 := GetUnlockAddress(t, am, "n1Kjom3J4KPsHKKzZ2xtt8Lc9W5pRDjeLcW")
 	block11, err := neb.chain.NewBlock(addr1)
 	assert.Nil(t, err)
 	consensusState, err = neb.chain.TailBlock().WorldState().NextConsensusState(BlockIntervalInMs / SecondInMs)
@@ -335,7 +325,7 @@ func TestForkChoice(t *testing.T) {
 	block11.Seal()
 	am.SignBlock(addr1, block11)
 
-	addr2 := GetUnlockAddress(t, am, "n1TRySsvYmAU8ChPZyYyvrPpDYJ1Z5DFoxo")
+	addr2 := GetUnlockAddress(t, am, "n1TV3sU6jyzR4rJ1D7jCAmtVGSntJagXZHC")
 	block12, err := neb.chain.NewBlock(addr2)
 	assert.Nil(t, err)
 	consensusState, err = neb.chain.TailBlock().WorldState().NextConsensusState(BlockIntervalInMs * 2 / SecondInMs)
@@ -357,7 +347,7 @@ func TestForkChoice(t *testing.T) {
 	}
 	assert.Equal(t, neb.chain.TailBlock().Hash(), tail)
 
-	addr3 := GetUnlockAddress(t, am, "n1aoyV8M2g79pFXxdZEK9GfU7fzuJcCN75X")
+	addr3 := GetUnlockAddress(t, am, "n1WwqBXVMuYC3mFCEEuFFtAXad6yxqj4as4")
 	block111, err := neb.chain.NewBlock(addr3)
 	assert.Nil(t, err)
 	consensusState, err = neb.chain.TailBlock().WorldState().NextConsensusState(BlockIntervalInMs * 2 / SecondInMs)
@@ -384,7 +374,7 @@ func TestVerifyBlock(t *testing.T) {
 	dpos := neb.consensus
 	tail := neb.chain.TailBlock()
 
-	coinbase, err := core.AddressParse("n1LQxBdAtxcfjUazHeK94raKdxRsNpujUyU")
+	coinbase, err := core.AddressParse("n1FkntVUMPAsESuCAAPK711omQk19JotBjM")
 	assert.Nil(t, err)
 	manager := account.NewManager(nil)
 	assert.Nil(t, dpos.EnableMining("passphrase"))
@@ -451,27 +441,23 @@ func TestDposContracts(t *testing.T) {
 	manager := account.NewManager(nil)
 	assert.Nil(t, dpos.EnableMining("passphrase"))
 
-	a, _ := core.AddressParse("n1PtnbfQcC9EZpr2LS2vLUCKf2UtkyArzVr")
+	a, _ := core.AddressParse("n1FkntVUMPAsESuCAAPK711omQk19JotBjM")
 	assert.Nil(t, manager.Unlock(a, []byte("passphrase"), keystore.YearUnlockDuration))
-	b, _ := core.AddressParse("n1SRGKRFrF6DHK4Ym4MoXbbUHYkV5W2MZPw")
+	b, _ := core.AddressParse("n1JNHZJEUvfBYfjDRD14Q73FX62nJAzXkMR")
 	assert.Nil(t, manager.Unlock(b, []byte("passphrase"), keystore.YearUnlockDuration))
-	c, _ := core.AddressParse("n1TRySsvYmAU8ChPZyYyvrPpDYJ1Z5DFoxo")
+	c, _ := core.AddressParse("n1Kjom3J4KPsHKKzZ2xtt8Lc9W5pRDjeLcW")
 	assert.Nil(t, manager.Unlock(c, []byte("passphrase"), keystore.YearUnlockDuration))
-	d, _ := core.AddressParse("n1aoyV8M2g79pFXxdZEK9GfU7fzuJcCN75X")
+	d, _ := core.AddressParse("n1TV3sU6jyzR4rJ1D7jCAmtVGSntJagXZHC")
 	assert.Nil(t, manager.Unlock(d, []byte("passphrase"), keystore.YearUnlockDuration))
-	e, _ := core.AddressParse("n1beo9QAjhhJX6tjpjHyinoorbqdi6UKAEb")
+	e, _ := core.AddressParse("n1WwqBXVMuYC3mFCEEuFFtAXad6yxqj4as4")
 	assert.Nil(t, manager.Unlock(e, []byte("passphrase"), keystore.YearUnlockDuration))
-	f, _ := core.AddressParse("n1coJhpn8QXvKFogVG93wx49eCQ6aPQHSAN")
+	f, _ := core.AddressParse("n1Zn6iyyQRhqthmCfqGBzWfip1Wx8wEvtrJ")
 	assert.Nil(t, manager.Unlock(f, []byte("passphrase"), keystore.YearUnlockDuration))
-	g, _ := core.AddressParse("n1UZtMgi94oE913L2Sa2C9XwvAzNTQ82v64")
-	assert.Nil(t, manager.Unlock(g, []byte("passphrase"), keystore.YearUnlockDuration))
-	h, _ := core.AddressParse("n1LQxBdAtxcfjUazHeK94raKdxRsNpujUyU")
-	assert.Nil(t, manager.Unlock(h, []byte("passphrase"), keystore.YearUnlockDuration))
 
 	elapsedSecond := BlockIntervalInMs / SecondInMs
 	consensusState, err := tail.WorldState().NextConsensusState(elapsedSecond)
 	assert.Nil(t, err)
-	block, err := core.NewBlock(neb.chain.ChainID(), a, tail)
+	block, err := core.NewBlock(neb.chain.ChainID(), b, tail)
 	assert.Nil(t, err)
 	block.WorldState().SetConsensusState(consensusState)
 	block.SetTimestamp(consensusState.TimeStamp())
@@ -507,7 +493,7 @@ func TestDposContracts(t *testing.T) {
 	block.CollectTransactions((time.Now().Unix() + 1) * SecondInMs)
 	assert.Equal(t, 4*(j-1), len(block.Transactions()))
 	assert.Nil(t, block.Seal())
-	assert.Nil(t, manager.SignBlock(a, block))
+	assert.Nil(t, manager.SignBlock(b, block))
 	assert.Nil(t, neb.chain.BlockPool().Push(block))
 
 	assert.Equal(t, block.Hash(), neb.chain.TailBlock().Hash())
@@ -516,17 +502,17 @@ func TestDposContracts(t *testing.T) {
 func testMintBlock(t *testing.T, round int, neb *Neb, num int) {
 	manager := account.NewManager(nil)
 
-	a, _ := core.AddressParse("n1LQxBdAtxcfjUazHeK94raKdxRsNpujUyU")
+	a, _ := core.AddressParse("n1FkntVUMPAsESuCAAPK711omQk19JotBjM")
 	assert.Nil(t, manager.Unlock(a, []byte("passphrase"), keystore.YearUnlockDuration))
-	b, _ := core.AddressParse("n1PtnbfQcC9EZpr2LS2vLUCKf2UtkyArzVr")
+	b, _ := core.AddressParse("n1JNHZJEUvfBYfjDRD14Q73FX62nJAzXkMR")
 	assert.Nil(t, manager.Unlock(b, []byte("passphrase"), keystore.YearUnlockDuration))
-	c, _ := core.AddressParse("n1SRGKRFrF6DHK4Ym4MoXbbUHYkV5W2MZPw")
+	c, _ := core.AddressParse("n1Kjom3J4KPsHKKzZ2xtt8Lc9W5pRDjeLcW")
 	assert.Nil(t, manager.Unlock(c, []byte("passphrase"), keystore.YearUnlockDuration))
-	d, _ := core.AddressParse("n1TRySsvYmAU8ChPZyYyvrPpDYJ1Z5DFoxo")
+	d, _ := core.AddressParse("n1TV3sU6jyzR4rJ1D7jCAmtVGSntJagXZHC")
 	assert.Nil(t, manager.Unlock(d, []byte("passphrase"), keystore.YearUnlockDuration))
-	e, _ := core.AddressParse("n1aoyV8M2g79pFXxdZEK9GfU7fzuJcCN75X")
+	e, _ := core.AddressParse("n1WwqBXVMuYC3mFCEEuFFtAXad6yxqj4as4")
 	assert.Nil(t, manager.Unlock(e, []byte("passphrase"), keystore.YearUnlockDuration))
-	f, err := core.AddressParse("n1beo9QAjhhJX6tjpjHyinoorbqdi6UKAEb")
+	f, _ := core.AddressParse("n1Zn6iyyQRhqthmCfqGBzWfip1Wx8wEvtrJ")
 	assert.Nil(t, manager.Unlock(f, []byte("passphrase"), keystore.YearUnlockDuration))
 
 	elapsedSecond := int64(BlockIntervalInMs / SecondInMs)
@@ -588,7 +574,7 @@ func TestDoubleMint(t *testing.T) {
 	chain := neb.chain
 	am := neb.am
 
-	addr0 := GetUnlockAddress(t, am, "n1PtnbfQcC9EZpr2LS2vLUCKf2UtkyArzVr")
+	addr0 := GetUnlockAddress(t, am, "n1JNHZJEUvfBYfjDRD14Q73FX62nJAzXkMR")
 	block0, _ := chain.NewBlock(addr0)
 	consensusState, err := chain.TailBlock().WorldState().NextConsensusState(BlockIntervalInMs / SecondInMs)
 	assert.Nil(t, err)
