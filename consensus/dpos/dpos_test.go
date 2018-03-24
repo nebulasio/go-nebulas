@@ -546,6 +546,18 @@ func testMintBlock(t *testing.T, round int, neb *Neb, num int) {
 		tx, _ = core.NewTransaction(neb.chain.ChainID(), a, e, util.NewUint128(), uint64(nonce+4*i), core.TxPayloadBinaryType, []byte("nas"), gas, limit)
 		assert.Nil(t, manager.SignTransaction(a, tx))
 		assert.Nil(t, neb.chain.TransactionPool().Push(tx))
+
+		tx, _ = core.NewTransaction(neb.chain.ChainID(), b, f, util.NewUint128(), uint64(i), core.TxPayloadBinaryType, []byte("nas"), gas, limit)
+		assert.Nil(t, manager.SignTransaction(b, tx))
+		assert.Nil(t, neb.chain.TransactionPool().Push(tx))
+
+		tx, _ = core.NewTransaction(neb.chain.ChainID(), c, f, util.NewUint128(), uint64(i), core.TxPayloadBinaryType, []byte("nas"), gas, limit)
+		assert.Nil(t, manager.SignTransaction(c, tx))
+		assert.Nil(t, neb.chain.TransactionPool().Push(tx))
+
+		tx, _ = core.NewTransaction(neb.chain.ChainID(), d, f, util.NewUint128(), uint64(i), core.TxPayloadBinaryType, []byte("nas"), gas, limit)
+		assert.Nil(t, manager.SignTransaction(d, tx))
+		assert.Nil(t, neb.chain.TransactionPool().Push(tx))
 	}
 
 	block.CollectTransactions((time.Now().Unix() + 1) * SecondInMs)
@@ -562,7 +574,7 @@ func TestDposTxBinary(t *testing.T) {
 
 	neb := mockNeb(t)
 
-	for i := 0; i < 6; i++ {
+	for i := 0; i < 1; i++ {
 		testMintBlock(t, i, neb, 30)
 	}
 
