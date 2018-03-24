@@ -23,6 +23,8 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"hash/fnv"
+
+	"github.com/btcsuite/btcutil/base58"
 )
 
 // Hash by Sha3-256
@@ -34,6 +36,11 @@ type HexHash string
 // Hex return hex encoded hash.
 func (h Hash) Hex() HexHash {
 	return HexHash(Hex(h))
+}
+
+// Base58 return base58 encodes string
+func (h Hash) Base58() string {
+	return base58.Encode(h)
 }
 
 // Equals compare two Hash. True is equal, otherwise false.

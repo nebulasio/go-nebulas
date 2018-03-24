@@ -21,6 +21,9 @@ package rpc
 import (
 	"errors"
 
+	"github.com/nebulasio/go-nebulas/util/logging"
+	"github.com/sirupsen/logrus"
+
 	"encoding/json"
 
 	"github.com/gogo/protobuf/proto"
@@ -90,14 +93,8 @@ func (s *APIService) GetAccountState(ctx context.Context, req *rpcpb.GetAccountS
 	return &rpcpb.GetAccountStateResponse{Balance: acc.Balance().String(), Nonce: acc.Nonce()}, nil
 }
 
-// SendTransaction is the RPC API handler.
-func (s *APIService) SendTransaction(ctx context.Context, req *rpcpb.TransactionRequest) (*rpcpb.SendTransactionResponse, error) {
-
-	return s.sendTransaction(req)
-}
-
-// SimulateCall is the RPC API handler.
-func (s *APIService) SimulateCall(ctx context.Context, req *rpcpb.TransactionRequest) (*rpcpb.SimulateCallResponse, error) {
+// Call is the RPC API handler.
+func (s *APIService) Call(ctx context.Context, req *rpcpb.TransactionRequest) (*rpcpb.SimulateCallResponse, error) {
 
 	neb := s.server.Neblet()
 	tx, err := parseTransaction(neb, req)
@@ -116,21 +113,6 @@ func (s *APIService) SimulateCall(ctx context.Context, req *rpcpb.TransactionReq
 	resp.EstimateGas = estimateGas.String()
 
 	return resp, nil
-}
-
-func (s *APIService) sendTransaction(req *rpcpb.TransactionRequest) (*rpcpb.SendTransactionResponse, error) {
-	neb := s.server.Neblet()
-	tx, err := parseTransaction(neb, req)
-	if err != nil {
-		metricsSendTxFailed.Mark(1)
-		return nil, err
-	}
-	if err := neb.AccountManager().SignTransaction(tx.From(), tx); err != nil {
-		metricsSendTxFailed.Mark(1)
-		return nil, err
-	}
-
-	return handleTransactionResponse(neb, tx)
 }
 
 func parseTransaction(neb core.Neblet, reqTx *rpcpb.TransactionRequest) (*core.Transaction, error) {
@@ -161,7 +143,7 @@ func parseTransaction(neb core.Neblet, reqTx *rpcpb.TransactionRequest) (*core.T
 	)
 
 	if reqTx.Contract != nil {
-		if len(reqTx.Contract.Source) > 0 && len(reqTx.Contract.Function) == 0 {
+		if len(reqTx.Contract.Source) > 0 && len(reqTx.Contract.Function) == 0 { // TODO: reqTx.DeployContract, reqTx.CallContract
 			payloadType = core.TxPayloadDeployType
 			payloadObj, err := core.NewDeployPayload(reqTx.Contract.Source, reqTx.Contract.SourceType, reqTx.Contract.Args)
 			if err != nil {
@@ -172,7 +154,6 @@ func parseTransaction(neb core.Neblet, reqTx *rpcpb.TransactionRequest) (*core.T
 			}
 		} else if len(reqTx.Contract.Source) == 0 && len(reqTx.Contract.Function) > 0 {
 			payloadType = core.TxPayloadCallType
-
 			callpayload, err := core.NewCallPayload(reqTx.Contract.Function, reqTx.Contract.Args)
 			if err != nil {
 				return nil, err
@@ -212,7 +193,8 @@ func handleTransactionResponse(neb core.Neblet, tx *core.Transaction) (resp *rpc
 		return nil, err
 	}
 
-	acc, err := neb.BlockChain().TailBlock().GetAccount(tx.From().Bytes())
+	tailBlock := neb.BlockChain().TailBlock()
+	acc, err := tailBlock.GetAccount(tx.From().Bytes())
 	if err != nil {
 		return nil, err
 	}
@@ -226,7 +208,7 @@ func handleTransactionResponse(neb core.Neblet, tx *core.Transaction) (resp *rpc
 			return nil, core.ErrContractTransactionAddressNotEqual
 		}
 	} else if tx.Type() == core.TxPayloadCallType {
-		if _, err := neb.BlockChain().TailBlock().CheckContract(tx.To()); err != nil {
+		if _, err := tailBlock.CheckContract(tx.To()); err != nil {
 			return nil, err
 		}
 	}
@@ -299,9 +281,9 @@ func (s *APIService) toBlockResponse(block *core.Block, fullFillTransaction bool
 	neb := s.server.Neblet()
 	lib := neb.BlockChain().LIB()
 
-	is_finality := false
+	isFinality := false
 	if lib.Height() > block.Height() {
-		is_finality = true
+		isFinality = true
 	}
 	resp := &rpcpb.BlockResponse{
 		Hash:          block.Hash().String(),
@@ -314,7 +296,7 @@ func (s *APIService) toBlockResponse(block *core.Block, fullFillTransaction bool
 		TxsRoot:       block.TxsRoot().String(),
 		EventsRoot:    block.EventsRoot().String(),
 		ConsensusRoot: block.ConsensusRoot(),
-		IsFinality:    is_finality,
+		IsFinality:    isFinality,
 	}
 
 	// add block transactions
@@ -357,7 +339,7 @@ func (s *APIService) GetTransactionReceipt(ctx context.Context, req *rpcpb.GetTr
 
 	// if tx is nil, check it in transaction pool.
 	if tx == nil {
-		tx = neb.BlockChain().TransactionPool().GetTransaction(hash) // TODO make tx pending when collecttxs
+		tx = neb.BlockChain().TransactionPool().GetTransaction(hash) // TODO: @roy @fengzi make tx pending when collecttxs
 		if tx == nil {
 			return nil, errors.New("transaction not found")
 		}
@@ -377,7 +359,7 @@ func (s *APIService) toTransactionResponse(tx *core.Transaction) (*rpcpb.Transac
 		return nil, err
 	}
 
-	if events != nil && len(events) > 0 {
+	if events != nil && len(events) > 0 { // TODO: @fengzi move to core
 		idx := len(events) - 1
 		event := events[idx]
 		if event.Topic == core.TopicTransactionExecutionResult {
@@ -388,6 +370,12 @@ func (s *APIService) toTransactionResponse(tx *core.Transaction) (*rpcpb.Transac
 			}
 			status = int32(txEvent.Status)
 			gasUsed = txEvent.GasUsed
+		} else {
+			logging.VLog().WithFields(logrus.Fields{
+				"tx":     tx,
+				"events": events,
+			}).Error("Failed to locate the result event")
+			return nil, core.ErrInvalidTransactionResultEvent
 		}
 	} else {
 		status = core.TxExecutionPendding
@@ -431,7 +419,7 @@ func (s *APIService) Subscribe(req *rpcpb.SubscribeRequest, gs rpcpb.ApiService_
 	var err error
 	for {
 		select {
-		case <-gs.Context().Done(): // TODO add test
+		case <-gs.Context().Done(): // TODO: @roy @fengzi add test
 			return gs.Context().Err()
 		case event := <-eventSub.EventChan():
 			err = gs.Send(&rpcpb.SubscribeResponse{Topic: event.Topic, Data: event.Data})
@@ -444,33 +432,33 @@ func (s *APIService) Subscribe(req *rpcpb.SubscribeRequest, gs rpcpb.ApiService_
 
 // GetGasPrice get gas price from chain.
 func (s *APIService) GetGasPrice(ctx context.Context, req *rpcpb.NonParamsRequest) (*rpcpb.GasPriceResponse, error) {
-
 	neb := s.server.Neblet()
 	gasPrice := neb.BlockChain().GasPrice()
 	return &rpcpb.GasPriceResponse{GasPrice: gasPrice.String()}, nil
 }
 
 // EstimateGas Compute the smart contract gas consumption.
-func (s *APIService) EstimateGas(ctx context.Context, req *rpcpb.TransactionRequest) (*rpcpb.GasResponse, error) { // TODO update logic
-
+func (s *APIService) EstimateGas(ctx context.Context, req *rpcpb.TransactionRequest) (*rpcpb.GasResponse, error) {
 	neb := s.server.Neblet()
 	tx, err := parseTransaction(neb, req)
 	if err != nil {
 		return nil, err
 	}
 
-	estimateGas, _, _, err := neb.BlockChain().SimulateTransactionExecution(tx)
-
+	estimateGas, _, exeErr, err := neb.BlockChain().SimulateTransactionExecution(tx)
 	if err != nil {
 		return nil, err
 	}
 
-	return &rpcpb.GasResponse{Gas: estimateGas.String()}, nil
+	errMsg := ""
+	if exeErr != nil {
+		errMsg = exeErr.Error()
+	}
+	return &rpcpb.GasResponse{Gas: estimateGas.String(), Err: errMsg}, nil
 }
 
 // GetEventsByHash return events by tx hash.
 func (s *APIService) GetEventsByHash(ctx context.Context, req *rpcpb.HashRequest) (*rpcpb.EventsResponse, error) {
-
 	neb := s.server.Neblet()
 
 	if len(req.Hash) == 0 {
@@ -505,22 +493,31 @@ func (s *APIService) GetEventsByHash(ctx context.Context, req *rpcpb.HashRequest
 // GetDynasty is the RPC API handler.
 func (s *APIService) GetDynasty(ctx context.Context, req *rpcpb.ByBlockHeightRequest) (*rpcpb.GetDynastyResponse, error) {
 	neb := s.server.Neblet()
-	var block *core.Block
+
+	block := neb.BlockChain().TailBlock()
 	if req.Height > 0 {
 		block = neb.BlockChain().GetBlockOnCanonicalChainByHeight(req.Height)
 		if block == nil {
 			return nil, errors.New("block not found")
 		}
-	} else {
-		block = neb.BlockChain().TailBlock()
 	}
+
 	validators, err := block.Dynasty()
 	if err != nil {
 		return nil, err
 	}
+
 	result := []string{}
 	for _, v := range validators {
-		result = append(result, string(v.Hex()))
+		addr, err := core.AddressParseFromBytes(v)
+		if err != nil {
+			logging.VLog().WithFields(logrus.Fields{
+				"validator": v.Base58(),
+				"block":     block,
+			}).Error("Failed to parse validator's bytes into address")
+			return nil, err
+		}
+		result = append(result, addr.String())
 	}
 	return &rpcpb.GetDynastyResponse{Validators: result}, nil
 }

@@ -507,8 +507,8 @@ func VerifyExecution(tx *Transaction, block *Block, ws WorldState) (bool, error)
 	return submitTx(tx, block, ws, allGas, exeErr, "Failed to execute payload")
 }
 
-// SimulateExecution simulate execution and return gasUsed, executionResult and executionErr, sysErr if occurred.
-func (tx *Transaction) SimulateExecution(block *Block) (*util.Uint128, string, error, error) { // TODO check the logic
+// simulateExecution simulate execution and return gasUsed, executionResult and executionErr, sysErr if occurred.
+func (tx *Transaction) simulateExecution(block *Block) (*util.Uint128, string, error, error) { // TODO check the logic
 	// hash is necessary in nvm
 	hash, err := tx.calHash()
 	if err != nil {
@@ -517,10 +517,7 @@ func (tx *Transaction) SimulateExecution(block *Block) (*util.Uint128, string, e
 	tx.hash = hash
 
 	// Generate world state
-	ws, err := block.WorldState().Clone()
-	if err != nil {
-		return nil, "", nil, err
-	}
+	ws := block.WorldState()
 
 	// Get from account
 	fromAcc, err := ws.GetOrCreateUserAccount(tx.from.address)
@@ -531,7 +528,7 @@ func (tx *Transaction) SimulateExecution(block *Block) (*util.Uint128, string, e
 	// calculate min gas.
 	gasUsed, err := tx.GasCountOfTxBase()
 	if err != nil {
-		return nil, "GasCountOfTxBase error", err, nil
+		return util.NewUint128(), "GasCountOfTxBase error", err, nil
 	}
 
 	payload, err := tx.LoadPayload()

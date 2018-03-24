@@ -48,18 +48,10 @@ service ApiService {
         };
     }
 
-	// Verify, sign, and send the transaction.
-	rpc SendTransaction (TransactionRequest) returns (SendTransactionResponse) { // TODO move to admin
-		option (google.api.http) = {
-            post: "/v1/user/transaction"
-            body: "*"
-        };
-    }
-
-    // SimulateCall smart contract.
-    rpc SimulateCall (TransactionRequest) returns (SimulateCallResponse) {
+    // Call transaction
+    rpc Call (TransactionRequest) returns (SimulateCallResponse) {
         option (google.api.http) = {
-            post: "/v1/user/simulatecall"
+            post: "/v1/user/call"
             body: "*"
         };
     }
@@ -146,6 +138,30 @@ service AdminService {
     rpc NewAccount(NewAccountRequest) returns (NewAccountResponse) {
         option (google.api.http) = {
             post: "/v1/admin/account/new"
+            body: "*"
+        };
+    }
+
+       // UnlockAccount unlock account with passphrase
+       rpc UnlockAccount(UnlockAccountRequest) returns (UnlockAccountResponse) {
+        option (google.api.http) = {
+            post: "/v1/admin/account/unlock"
+            body: "*"
+        };
+    }
+
+    // LockAccount lock account
+    rpc LockAccount(LockAccountRequest) returns (LockAccountResponse) {
+        option (google.api.http) = {
+            post: "/v1/admin/account/lock"
+            body: "*"
+        };
+    }
+
+    // Verify, sign, and send the transaction.
+	rpc SendTransaction (TransactionRequest) returns (SendTransactionResponse) { // TODO move to admin
+		option (google.api.http) = {
+            post: "/v1/admin/transaction"
             body: "*"
         };
     }
@@ -491,6 +507,24 @@ message NewAccountResponse {
     string address = 1;
 }
 
+message UnlockAccountRequest {
+    string address = 1;
+    string passphrase = 2;
+    uint64 duration = 3;
+}
+
+message UnlockAccountResponse {
+    bool result = 1;
+}
+
+message LockAccountRequest {
+    string address = 1;
+}
+
+message LockAccountResponse {
+    bool result = 1;
+}
+
 message SignTransactionPassphraseRequest {
 	// transaction struct
 	TransactionRequest transaction = 1;
@@ -523,6 +557,7 @@ message HashRequest {
 
 message GasResponse {
     string gas = 1;
+    string err = 2;
 }
 
 message EventsResponse {

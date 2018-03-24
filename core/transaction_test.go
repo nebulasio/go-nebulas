@@ -662,7 +662,7 @@ func TestTransaction_SimulateExecution(t *testing.T) {
 			assert.Nil(t, err)
 			coinbaseBefore := coinbaseAcc.Balance()
 
-			gasUsed, result, exeErr, err := tt.tx.SimulateExecution(block)
+			gasUsed, result, exeErr, err := tt.tx.simulateExecution(block)
 
 			assert.Equal(t, tt.wanted, exeErr)
 			assert.Equal(t, tt.result, result)

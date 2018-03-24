@@ -50,6 +50,8 @@ func main() {
 	defer conn.Close()
 
 	ac := rpcpb.NewApiServiceClient(conn)
+	adc := rpcpb.NewAdminServiceClient(conn)
+
 	var nonce uint64
 
 	{
@@ -96,7 +98,7 @@ func main() {
 		if err != nil {
 			log.Println("newUint128 failed:", err)
 		}
-		r, err := ac.SendTransaction(context.Background(), &rpcpb.TransactionRequest{From: from, To: to, Value: v.String(), Nonce: nonce + 1})
+		r, err := adc.SendTransaction(context.Background(), &rpcpb.TransactionRequest{From: from, To: to, Value: v.String(), Nonce: nonce + 1})
 		if err != nil {
 			log.Println("SendTransaction failed:", err)
 		} else {

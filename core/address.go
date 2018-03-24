@@ -148,7 +148,7 @@ func newAddress(t AddressType, args ...[]byte) (*Address, error) {
 	content := hash.Ripemd160(sha)
 	copy(buffer[AddressTypeIndex+1:AddressDataEnd], content)
 
-	cs := checkSum(buffer[AddressTypeIndex:AddressDataEnd])
+	cs := checkSum(buffer[AddressTypeIndex:AddressDataEnd]) // FIXME: @xun include padding in checksum
 	copy(buffer[AddressDataEnd:], cs)
 
 	return &Address{address: buffer}, nil

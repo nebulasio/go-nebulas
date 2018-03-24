@@ -19,7 +19,11 @@
 package rpc
 
 import (
+	"time"
+
 	"github.com/gogo/protobuf/proto"
+	"github.com/nebulasio/go-nebulas/core"
+	"github.com/nebulasio/go-nebulas/crypto/keystore"
 	"github.com/nebulasio/go-nebulas/net"
 	"github.com/nebulasio/go-nebulas/rpc/pb"
 	"golang.org/x/net/context"
@@ -56,7 +60,7 @@ func (s *AdminService) NewAccount(ctx context.Context, req *rpcpb.NewAccountRequ
 	return &rpcpb.NewAccountResponse{Address: addr.String()}, nil
 }
 
-// signTransactionWithPassphrase sign transaction with the from addr passphrase
+// SignTransactionWithPassphrase sign transaction with the from addr passphrase
 func (s *AdminService) SignTransactionWithPassphrase(ctx context.Context, req *rpcpb.SignTransactionPassphraseRequest) (*rpcpb.SignTransactionPassphraseResponse, error) {
 
 	neb := s.server.Neblet()
@@ -84,6 +88,63 @@ func (s *AdminService) SignTransactionWithPassphrase(ctx context.Context, req *r
 	return &rpcpb.SignTransactionPassphraseResponse{Data: data}, nil
 }
 
+// UnlockAccount unlock address with the passphrase
+func (s *AdminService) UnlockAccount(ctx context.Context, req *rpcpb.UnlockAccountRequest) (*rpcpb.UnlockAccountResponse, error) {
+	neb := s.server.Neblet()
+
+	addr, err := core.AddressParse(req.Address)
+	if err != nil {
+		metricsUnlockFailed.Mark(1)
+		return nil, err
+	}
+
+	duration := time.Duration(req.Duration)
+	if duration == 0 {
+		duration = keystore.DefaultUnlockDuration
+	}
+	err = neb.AccountManager().Unlock(addr, []byte(req.Passphrase), duration)
+	if err != nil {
+		metricsUnlockFailed.Mark(1)
+		return nil, err
+	}
+
+	metricsUnlockSuccess.Mark(1)
+	return &rpcpb.UnlockAccountResponse{Result: true}, nil
+}
+
+// LockAccount lock address
+func (s *AdminService) LockAccount(ctx context.Context, req *rpcpb.LockAccountRequest) (*rpcpb.LockAccountResponse, error) {
+	neb := s.server.Neblet()
+
+	addr, err := core.AddressParse(req.Address)
+	if err != nil {
+		return nil, err
+	}
+
+	err = neb.AccountManager().Lock(addr)
+	if err != nil {
+		return nil, err
+	}
+
+	return &rpcpb.LockAccountResponse{Result: true}, nil
+}
+
+// SendTransaction is the RPC API handler.
+func (s *AdminService) SendTransaction(ctx context.Context, req *rpcpb.TransactionRequest) (*rpcpb.SendTransactionResponse, error) {
+	neb := s.server.Neblet()
+	tx, err := parseTransaction(neb, req)
+	if err != nil {
+		metricsSendTxFailed.Mark(1)
+		return nil, err
+	}
+	if err := neb.AccountManager().SignTransaction(tx.From(), tx); err != nil {
+		metricsSendTxFailed.Mark(1)
+		return nil, err
+	}
+
+	return handleTransactionResponse(neb, tx)
+}
+
 // SendTransactionWithPassphrase send transaction with the from addr passphrase
 func (s *AdminService) SendTransactionWithPassphrase(ctx context.Context, req *rpcpb.SendTransactionPassphraseRequest) (*rpcpb.SendTransactionResponse, error) {
 
@@ -101,7 +162,6 @@ func (s *AdminService) SendTransactionWithPassphrase(ctx context.Context, req *r
 
 // StartPprof start pprof
 func (s *AdminService) StartPprof(ctx context.Context, req *rpcpb.PprofRequest) (*rpcpb.PprofResponse, error) {
-
 	neb := s.server.Neblet()
 
 	if err := neb.StartPprof(req.Listen); err != nil {
@@ -117,7 +177,7 @@ func (s *AdminService) GetConfig(ctx context.Context, req *rpcpb.NonParamsReques
 
 	resp := &rpcpb.GetConfigResponse{}
 	resp.Config = neb.Config()
-	resp.Config.Chain.Passphrase = string("") //TODO remove passphrase to config
+	resp.Config.Chain.Passphrase = string("")
 	return resp, nil
 }
 
@@ -136,7 +196,7 @@ func (s *AdminService) NodeInfo(ctx context.Context, req *rpcpb.NonParamsRequest
 
 	resp := &rpcpb.NodeInfoResponse{}
 	node := neb.NetService().Node()
-	resp.Id = node.ID() // TODO check eclipse attack
+	resp.Id = node.ID() // FIXME: @leon check eclipse attack
 	resp.ChainId = node.Config().ChainID
 	resp.BucketSize = int32(node.Config().Bucketsize)
 	resp.PeerCount = uint32(node.PeersCount())

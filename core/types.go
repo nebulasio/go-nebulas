@@ -152,6 +152,8 @@ var (
 	ErrInvalidDeploySource     = errors.New("invalid source of deploy payload")
 	ErrInvalidDeploySourceType = errors.New("invalid source type of deploy payload")
 	ErrInvalidCallFunction     = errors.New("invalid function of call payload")
+
+	ErrInvalidTransactionResultEvent = errors.New("invalid transaction result event, the last event in tx's events should be result event")
 )
 
 // Default gas count

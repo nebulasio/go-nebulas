@@ -682,7 +682,7 @@ func (bc *BlockChain) SimulateTransactionExecution(tx *Transaction) (*util.Uint1
 	defer block.RollBack()
 
 	// simulate execution.
-	return tx.SimulateExecution(block)
+	return tx.simulateExecution(block)
 }
 
 // Dump dump full chain.
