@@ -945,7 +945,16 @@ func (block *Block) execute() error {
 
 	start := time.Now().UnixNano()
 	if err := dispatcher.Run(); err != nil {
-		logging.VLog().Info("block verfiy txs err:", err, " dag: ", block.dependency.String())
+		transactions := []string{}
+		for k, tx := range block.transactions {
+			txInfo := fmt.Sprintf("{Index: %d, Tx: %s}", k, tx.String())
+			transactions = append(transactions, txInfo)
+		}
+		logging.VLog().WithFields(logrus.Fields{
+			"dag": block.dependency.String(),
+			"txs": transactions,
+			"err": err,
+		}).Info("block verfiy txs err")
 		return err
 	}
 	end := time.Now().UnixNano()
