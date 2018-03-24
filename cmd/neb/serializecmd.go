@@ -219,7 +219,11 @@ func parseTransaction(neb *neblet.Neblet, txJSON *txJSON) (*core.Transaction, er
 	)
 	if txJSON.Contract != nil && len(txJSON.Contract.Source) > 0 {
 		payloadType = core.TxPayloadDeployType
-		payload, err = core.NewDeployPayload(txJSON.Contract.SourceType, txJSON.Contract.Source, txJSON.Contract.Args).ToBytes()
+		payloadObj, err := core.NewDeployPayload(txJSON.Contract.SourceType, txJSON.Contract.Source, txJSON.Contract.Args)
+		if err != nil {
+			return nil, err
+		}
+		payload, err = payloadObj.ToBytes()
 	} else if txJSON.Contract != nil && len(txJSON.Contract.Function) > 0 {
 		payloadType = core.TxPayloadCallType
 

@@ -43,11 +43,12 @@ func LoadCallPayload(bytes []byte) (*CallPayload, error) {
 // NewCallPayload with function & args
 func NewCallPayload(function, args string) (*CallPayload, error) {
 
-	if len(args) > 0 {
-		var argsObj []interface{}
-		if err := json.Unmarshal([]byte(args), &argsObj); err != nil {
-			return nil, err
-		}
+	if PublicFuncNameChecker.MatchString(function) == false {
+		return nil, ErrInvalidCallFunction
+	}
+
+	if err := CheckContractArgs(args); err != nil {
+		return nil, err
 	}
 
 	return &CallPayload{

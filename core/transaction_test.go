@@ -47,7 +47,8 @@ func mockDeployTransaction(chainID uint32, nonce uint64) *Transaction {
 	`
 	sourceType := "js"
 	args := `["NebulasToken", "NAS", 1000000000]`
-	payload, _ := NewDeployPayload(source, sourceType, args).ToBytes()
+	payloadObj, _ := NewDeployPayload(source, sourceType, args)
+	payload, _ := payloadObj.ToBytes()
 	return mockTransaction(chainID, nonce, TxPayloadDeployType, payload)
 }
 

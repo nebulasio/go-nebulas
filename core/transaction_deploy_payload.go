@@ -32,6 +32,17 @@ type DeployPayload struct {
 	Args       string
 }
 
+// CheckContractArgs check contract args
+func CheckContractArgs(args string) error {
+	if len(args) > 0 {
+		var argsObj []interface{}
+		if err := json.Unmarshal([]byte(args), &argsObj); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // LoadDeployPayload from bytes
 func LoadDeployPayload(bytes []byte) (*DeployPayload, error) {
 	payload := &DeployPayload{}
@@ -42,12 +53,24 @@ func LoadDeployPayload(bytes []byte) (*DeployPayload, error) {
 }
 
 // NewDeployPayload with source & args
-func NewDeployPayload(source, sourceType, args string) *DeployPayload { // ToCheck: add version in sourceType // TODO check sourceType
+func NewDeployPayload(source, sourceType, args string) (*DeployPayload, error) {
+	if len(source) == 0 {
+		return nil, ErrInvalidDeploySource
+	}
+
+	if sourceType != SourceTypeTypeScript && sourceType != SourceTypeJavaScript {
+		return nil, ErrInvalidDeploySourceType
+	}
+
+	if err := CheckContractArgs(args); err != nil {
+		return nil, err
+	}
+
 	return &DeployPayload{
 		Source:     source,
 		SourceType: sourceType,
 		Args:       args,
-	}
+	}, nil
 }
 
 // ToBytes serialize payload

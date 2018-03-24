@@ -27,6 +27,8 @@ import (
 	"github.com/nebulasio/go-nebulas/core/state"
 	"github.com/nebulasio/go-nebulas/net"
 
+	"regexp"
+
 	"github.com/nebulasio/go-nebulas/consensus/pb"
 	"github.com/nebulasio/go-nebulas/core/pb"
 	"github.com/nebulasio/go-nebulas/neblet/pb"
@@ -39,6 +41,16 @@ const (
 	TxPayloadBinaryType = "binary"
 	TxPayloadDeployType = "deploy"
 	TxPayloadCallType   = "call"
+)
+
+// Const.
+const (
+	SourceTypeJavaScript = "js"
+	SourceTypeTypeScript = "ts"
+)
+
+var (
+	PublicFuncNameChecker = regexp.MustCompile("^[a-zA-Z$][A-Za-z0-9_$]*$")
 )
 
 const (
@@ -136,6 +148,10 @@ var (
 	ErrCannotLoadLIBBlock     = errors.New("cannot load tail block from storage")
 	ErrCannotLoadTailBlock    = errors.New("cannot load latest irreversible block from storage")
 	ErrGenesisConfNotMatch    = errors.New("Failed to load genesis from storage, different with genesis conf")
+
+	ErrInvalidDeploySource     = errors.New("invalid source of deploy payload")
+	ErrInvalidDeploySourceType = errors.New("invalid source type of deploy payload")
+	ErrInvalidCallFunction     = errors.New("invalid function of call payload")
 )
 
 // Default gas count

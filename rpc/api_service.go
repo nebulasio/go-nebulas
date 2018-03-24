@@ -163,27 +163,32 @@ func parseTransaction(neb core.Neblet, reqTx *rpcpb.TransactionRequest) (*core.T
 	if reqTx.Contract != nil {
 		if len(reqTx.Contract.Source) > 0 && len(reqTx.Contract.Function) == 0 {
 			payloadType = core.TxPayloadDeployType
-			payload, err = core.NewDeployPayload(reqTx.Contract.Source, reqTx.Contract.SourceType, reqTx.Contract.Args).ToBytes()
+			payloadObj, err := core.NewDeployPayload(reqTx.Contract.Source, reqTx.Contract.SourceType, reqTx.Contract.Args)
+			if err != nil {
+				return nil, err
+			}
+			if payload, err = payloadObj.ToBytes(); err != nil {
+				return nil, err
+			}
 		} else if len(reqTx.Contract.Source) == 0 && len(reqTx.Contract.Function) > 0 {
 			payloadType = core.TxPayloadCallType
 
-			if err == nil {
-				callpayload, err := core.NewCallPayload(reqTx.Contract.Function, reqTx.Contract.Args)
-				if err != nil {
-					return nil, err
-				}
+			callpayload, err := core.NewCallPayload(reqTx.Contract.Function, reqTx.Contract.Args)
+			if err != nil {
+				return nil, err
+			}
 
-				payload, err = callpayload.ToBytes()
+			if payload, err = callpayload.ToBytes(); err != nil {
+				return nil, err
 			}
 		} else {
 			return nil, errors.New("params error")
 		}
 	} else {
 		payloadType = core.TxPayloadBinaryType
-		payload, err = core.NewBinaryPayload(reqTx.Binary).ToBytes()
-	}
-	if err != nil {
-		return nil, err
+		if payload, err = core.NewBinaryPayload(reqTx.Binary).ToBytes(); err != nil {
+			return nil, err
+		}
 	}
 
 	tx, err := core.NewTransaction(neb.BlockChain().ChainID(), fromAddr, toAddr, value, reqTx.Nonce, payloadType, payload, gasPrice, gasLimit)

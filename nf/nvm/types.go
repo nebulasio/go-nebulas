@@ -40,12 +40,6 @@ var (
 	ErrKeyNotFound = storage.ErrKeyNotFound
 )
 
-// Const.
-const (
-	SourceTypeJavaScript = "js"
-	SourceTypeTypeScript = "ts"
-)
-
 //transfer err code enum
 const (
 	TransferFuncSuccess = iota

@@ -45,7 +45,6 @@ void EventTriggerFunc_cgo(void *handler, const char *topic, const char *data, si
 import "C"
 import (
 	"fmt"
-	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -54,6 +53,7 @@ import (
 	"encoding/json"
 
 	lru "github.com/hashicorp/golang-lru"
+	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/crypto/hash"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
 	"github.com/nebulasio/go-nebulas/util/logging"
@@ -67,16 +67,15 @@ const (
 
 //engine_v8 private data
 var (
-	v8engineOnce          = sync.Once{}
-	storages              = make(map[uint64]*V8Engine, 1024)
-	storagesIdx           = uint64(0)
-	storagesLock          = sync.RWMutex{}
-	engines               = make(map[*C.V8Engine]*V8Engine, 1024)
-	enginesLock           = sync.RWMutex{}
-	publicFuncNameChecker = regexp.MustCompile("^[a-zA-Z$][A-Za-z0-9_$]*$")
-	sourceModuleCache, _  = lru.New(40960)
-	inject                = 0
-	hit                   = 0
+	v8engineOnce         = sync.Once{}
+	storages             = make(map[uint64]*V8Engine, 1024)
+	storagesIdx          = uint64(0)
+	storagesLock         = sync.RWMutex{}
+	engines              = make(map[*C.V8Engine]*V8Engine, 1024)
+	enginesLock          = sync.RWMutex{}
+	sourceModuleCache, _ = lru.New(40960)
+	inject               = 0
+	hit                  = 0
 )
 
 // V8Engine v8 engine.
@@ -335,7 +334,7 @@ func (e *V8Engine) DeployAndInit(source, sourceType, args string) (string, error
 
 // Call function in a script
 func (e *V8Engine) Call(source, sourceType, function, args string) (string, error) {
-	if publicFuncNameChecker.MatchString(function) == false {
+	if core.PublicFuncNameChecker.MatchString(function) == false {
 		logging.VLog().Errorf("function:%v", function)
 		return "", ErrDisallowCallNotStandardFunction
 	}
@@ -352,9 +351,9 @@ func (e *V8Engine) RunContractScript(source, sourceType, function, args string) 
 	var err error
 
 	switch sourceType {
-	case SourceTypeJavaScript:
+	case core.SourceTypeJavaScript:
 		runnableSource, sourceLineOffset, err = e.prepareRunnableContractScript(source, function, args)
-	case SourceTypeTypeScript:
+	case core.SourceTypeTypeScript:
 		// transpile to javascript.
 		jsSource, _, err := e.TranspileTypeScript(source)
 		if err != nil {
