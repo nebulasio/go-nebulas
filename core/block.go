@@ -530,6 +530,16 @@ func (block *Block) CollectTransactions(deadlineInMs int64) {
 				}
 				<-mergeCh // unlock
 
+				defer func() {
+					if err := txWorldState.Close(); err != nil {
+						logging.VLog().WithFields(logrus.Fields{
+							"block": block,
+							"tx":    tx,
+							"err":   err,
+						}).Debug("Failed to close tx.")
+					}
+				}()
+
 				// step2. execute tx.
 				executeAt := time.Now().UnixNano()
 				giveback, err := block.ExecuteTransaction(tx, txWorldState)
@@ -544,13 +554,13 @@ func (block *Block) CollectTransactions(deadlineInMs int64) {
 					unpacked++
 					failed++
 
-					if err := txWorldState.Close(); err != nil {
+					/* 					if err := txWorldState.Close(); err != nil {
 						logging.VLog().WithFields(logrus.Fields{
 							"block": block,
 							"tx":    tx,
 							"err":   err,
 						}).Debug("Failed to close tx.")
-					}
+					} */
 
 					if giveback {
 						if err := pool.Push(tx); err != nil {
@@ -606,13 +616,13 @@ func (block *Block) CollectTransactions(deadlineInMs int64) {
 					unpacked++
 					conflict++
 
-					if err := txWorldState.Close(); err != nil {
+					/* 					if err := txWorldState.Close(); err != nil {
 						logging.VLog().WithFields(logrus.Fields{
 							"block": block,
 							"tx":    tx,
 							"err":   err,
 						}).Debug("Failed to close tx.")
-					}
+					} */
 
 					if err := pool.Push(tx); err != nil {
 						logging.VLog().WithFields(logrus.Fields{
@@ -692,6 +702,7 @@ func (block *Block) CollectTransactions(deadlineInMs int64) {
 		"diff-all":     overAt - beginAt,
 		"core-packing": execute + prepare + update,
 		"packed":       len(block.transactions),
+		"dag":          block.dependency,
 	}).Info("CollectTransactions")
 }
 
