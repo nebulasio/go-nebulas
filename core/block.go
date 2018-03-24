@@ -1010,11 +1010,11 @@ func (block *Block) rewardCoinbaseForGas() error {
 
 	gasConsumed := worldState.GetGas()
 	for from, gas := range gasConsumed {
-		fromAddr, err := byteutils.FromHex(from)
+		fromAddr, err := AddressParse(from)
 		if err != nil {
 			return err
 		}
-		if _, err := transfer(fromAddr, coinbaseAddr, gas, worldState); err != nil {
+		if _, err := transfer(fromAddr.Bytes(), coinbaseAddr, gas, worldState); err != nil {
 			return err
 		}
 	}
