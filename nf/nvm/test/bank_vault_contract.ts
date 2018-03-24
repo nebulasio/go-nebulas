@@ -93,7 +93,7 @@ class BankVaultContract {
         }
 
         let result = Blockchain.transfer(from, amount);
-        if (result != 0) {
+        if (result == false) {
             throw new Error("transfer failed.");
         }
 
