@@ -387,14 +387,14 @@ func (block *Block) Begin() error {
 // Commit a batch task
 func (block *Block) Commit() {
 	if err := block.WorldState().Commit(); err != nil {
-		logging.CLog().Fatal(err)
+		logging.VLog().Fatal(err)
 	}
 }
 
 // RollBack a batch task
 func (block *Block) RollBack() {
 	if err := block.WorldState().RollBack(); err != nil {
-		logging.CLog().Fatal(err)
+		logging.VLog().Fatal(err)
 	}
 }
 
@@ -536,7 +536,7 @@ func (block *Block) CollectTransactions(deadlineInMs int64) {
 				executedAt := time.Now().UnixNano()
 				execute += executedAt - executeAt
 				if err != nil {
-					logging.CLog().WithFields(logrus.Fields{
+					logging.VLog().WithFields(logrus.Fields{
 						"tx":       tx,
 						"err":      err,
 						"giveback": giveback,
@@ -630,7 +630,7 @@ func (block *Block) CollectTransactions(deadlineInMs int64) {
 					<-mergeCh // unlock
 					return
 				}
-				logging.CLog().WithFields(logrus.Fields{
+				logging.VLog().WithFields(logrus.Fields{
 					"tx": tx,
 				}).Debug("packed tx.")
 				packed++
@@ -673,7 +673,7 @@ func (block *Block) CollectTransactions(deadlineInMs int64) {
 	averExecute := execute / size
 	averUpdate := update / size
 
-	logging.CLog().WithFields(logrus.Fields{
+	logging.VLog().WithFields(logrus.Fields{
 		"try":          try,
 		"failed":       failed,
 		"expired":      expired,
@@ -728,7 +728,7 @@ func (block *Block) Seal() error {
 	block.header.hash = hash
 	block.sealed = true
 
-	logging.CLog().WithFields(logrus.Fields{
+	logging.VLog().WithFields(logrus.Fields{
 		"block": block,
 	}).Info("Sealed Block.")
 
@@ -779,7 +779,7 @@ func (block *Block) VerifyExecution() error {
 
 	endAt := time.Now().Unix()
 
-	logging.CLog().WithFields(logrus.Fields{
+	logging.VLog().WithFields(logrus.Fields{
 		"start":        startAt,
 		"end":          endAt,
 		"commit":       commitAt,
@@ -943,7 +943,7 @@ func (block *Block) execute() error {
 
 	start := time.Now().UnixNano()
 	if err := dispatcher.Run(); err != nil {
-		logging.CLog().Info("block verfiy txs err:", err, " dag: ", block.dependency.String())
+		logging.VLog().Info("block verfiy txs err:", err, " dag: ", block.dependency.String())
 		return err
 	}
 	end := time.Now().UnixNano()

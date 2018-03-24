@@ -27,7 +27,6 @@ import (
 
 	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/util"
-	"github.com/nebulasio/go-nebulas/util/byteutils"
 	"github.com/nebulasio/go-nebulas/util/logging"
 	"github.com/sirupsen/logrus"
 )
@@ -85,14 +84,16 @@ func (m *Manager) refreshAccounts() error {
 		var (
 			addr *core.Address
 		)
-		bytes, err := byteutils.FromHex(keyJSON.Address)
+		// not consider compatibility with ETH
+		/* bytes, err := byteutils.FromHex(keyJSON.Address)
 		if len(bytes) == core.AddressDataLength {
 			if err == nil {
 				addr, err = core.NewAddress(bytes)
 			}
 		} else {
 			addr, err = core.AddressParse(keyJSON.Address)
-		}
+		}*/
+		addr, err = core.AddressParse(keyJSON.Address)
 		if err != nil {
 			logging.VLog().WithFields(logrus.Fields{
 				"err":     err,
@@ -100,6 +101,7 @@ func (m *Manager) refreshAccounts() error {
 			}).Error("Failed to parse the address.")
 			continue
 		}
+
 		accounts = append(accounts, &account{addr, path})
 	}
 	m.accounts = accounts

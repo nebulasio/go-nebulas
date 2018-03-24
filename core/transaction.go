@@ -32,7 +32,6 @@ import (
 	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/core/pb"
 	"github.com/nebulasio/go-nebulas/crypto"
-	"github.com/nebulasio/go-nebulas/crypto/hash"
 	"github.com/nebulasio/go-nebulas/crypto/keystore"
 	"github.com/nebulasio/go-nebulas/util"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
@@ -678,7 +677,7 @@ func (tx *Transaction) GenerateContractAddress() (*Address, error) {
 	if TxPayloadDeployType != tx.Type() {
 		return nil, errors.New("playload type err")
 	}
-	return NewContractAddressFromHash(hash.Sha3256(tx.from.Bytes(), byteutils.FromUint64(tx.nonce)))
+	return NewContractAddressFromData(tx.from.Bytes(), byteutils.FromUint64(tx.nonce))
 }
 
 // CheckContract check if contract is valid

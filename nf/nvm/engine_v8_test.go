@@ -55,7 +55,7 @@ type testBlock struct {
 
 // Coinbase mock
 func (block *testBlock) Coinbase() *core.Address {
-	addr, _ := core.AddressParse("1a263547d167c74cf4b8f9166cfa244de0481c514a45aa2c")
+	addr, _ := core.AddressParse("n1K4rWU3YrhZmU1GHHYqnES8CcypTYQa9oJ")
 	return addr
 }
 
@@ -89,7 +89,7 @@ func mockBlock() Block {
 }
 
 func mockTransaction() *core.Transaction {
-	return mockNormalTransaction("8a209cec02cbeab7e2f74ad969d2dfe8dd24416aa65589bf", "22ac3a9a2b1c31b7a9084e46eae16e761f83f02324092b09", "0")
+	return mockNormalTransaction("n1LQxBdAtxcfjUazHeK94raKdxRsNpujUyU", "n1PtnbfQcC9EZpr2LS2vLUCKf2UtkyArzVr", "0")
 }
 
 func mockNormalTransaction(from, to, value string) *core.Transaction {
@@ -740,7 +740,7 @@ func TestBankVaultContract(t *testing.T) {
 			contract.AddBalance(newUint128FromIntWrapper(5))
 
 			// parepare env, block & transactions.
-			tx := mockNormalTransaction("8a209cec02cbeab7e2f74ad969d2dfe8dd24416aa65589bf", "22ac3a9a2b1c31b7a9084e46eae16e761f83f02324092b09", tt.saveValue)
+			tx := mockNormalTransaction("n1LQxBdAtxcfjUazHeK94raKdxRsNpujUyU", "n1PtnbfQcC9EZpr2LS2vLUCKf2UtkyArzVr", tt.saveValue)
 			ctx, err := NewContext(mockBlock(), tx, owner, contract, context)
 
 			// execute.
@@ -844,11 +844,11 @@ func TestNRC20Contract(t *testing.T) {
 		transferTests []TransferTest
 	}{
 		{"nrc20", "./test/NRC20.js", "js", "StandardToken标准代币", "ST", 18, "1000000000",
-			"9f19bd5379fc34658946aaa820f597a21ec86a3222a82843",
+			"n1aoyV8M2g79pFXxdZEK9GfU7fzuJcCN75X",
 			[]TransferTest{
-				{"6fb70b1d824be33e593dbc36d7405d61e44889fd8cb76e31", true, "5"},
-				{"2fe3f9f51f9a05dd5f7c5329127f7c917917149b4e16b0b8", true, "10"},
-				{"7da9dabedb4c6e121146fb4250a9883d6180570e63d6b080", true, "15"},
+				{"n1LQxBdAtxcfjUazHeK94raKdxRsNpujUyU", true, "5"},
+				{"n1PtnbfQcC9EZpr2LS2vLUCKf2UtkyArzVr", true, "10"},
+				{"n1SRGKRFrF6DHK4Ym4MoXbbUHYkV5W2MZPw", true, "15"},
 			},
 		},
 	}
@@ -869,7 +869,7 @@ func TestNRC20Contract(t *testing.T) {
 			contract.AddBalance(newUint128FromIntWrapper(5))
 
 			// parepare env, block & transactions.
-			tx := mockNormalTransaction(tt.from, "22ac3a9a2b1c31b7a9084e46eae16e761f83f02324092b09", "0")
+			tx := mockNormalTransaction(tt.from, "n1SRGKRFrF6DHK4Ym4MoXbbUHYkV5W2MZPw", "0")
 			ctx, err := NewContext(mockBlock(), tx, owner, contract, context)
 
 			// execute.
@@ -932,7 +932,7 @@ func TestNRC20Contract(t *testing.T) {
 			// call takeout.
 			for _, tot := range tt.transferTests {
 				// call balanceOf.
-				ctx.tx = mockNormalTransaction(tt.from, "22ac3a9a2b1c31b7a9084e46eae16e761f83f02324092b09", "0")
+				ctx.tx = mockNormalTransaction(tt.from, "n1SRGKRFrF6DHK4Ym4MoXbbUHYkV5W2MZPw", "0")
 				engine = NewV8Engine(ctx)
 				engine.SetExecutionLimits(10000, 100000000)
 				balArgs := fmt.Sprintf("[\"%s\"]", tt.from)
@@ -967,7 +967,7 @@ func TestNRC20Contract(t *testing.T) {
 				assert.Equal(t, tot.value, amountStr)
 				engine.Dispose()
 
-				ctx.tx = mockNormalTransaction(tot.to, "22ac3a9a2b1c31b7a9084e46eae16e761f83f02324092b09", "0")
+				ctx.tx = mockNormalTransaction(tot.to, "n1SRGKRFrF6DHK4Ym4MoXbbUHYkV5W2MZPw", "0")
 				engine = NewV8Engine(ctx)
 				engine.SetExecutionLimits(10000, 100000000)
 				transferFromArgs := fmt.Sprintf("[\"%s\", \"%s\", \"%s\"]", tt.from, tot.to, tot.value)
@@ -976,7 +976,7 @@ func TestNRC20Contract(t *testing.T) {
 				assert.Equal(t, "\"\"", result)
 				engine.Dispose()
 
-				ctx.tx = mockNormalTransaction(tot.to, "22ac3a9a2b1c31b7a9084e46eae16e761f83f02324092b09", "0")
+				ctx.tx = mockNormalTransaction(tot.to, "n1SRGKRFrF6DHK4Ym4MoXbbUHYkV5W2MZPw", "0")
 				engine = NewV8Engine(ctx)
 				engine.SetExecutionLimits(10000, 100000000)
 				transferFromArgs = fmt.Sprintf("[\"%s\", \"%s\", \"%s\"]", tt.from, tot.to, tot.value)
@@ -1019,11 +1019,18 @@ func TestNebulasContract(t *testing.T) {
 	}
 
 	mem, _ := storage.NewMemoryStorage()
-	context, _ := state.NewWorldState(dpos.NewDpos(), mem)
-	owner, err := context.GetOrCreateUserAccount([]byte("8a209cec02cbeab7e2f74ad969d2dfe8dd24416aa65589bf"))
+	context, _ := state.NewAccountState(dpos.NewDpos(), mem)
+
+	addr, _ := core.NewAddressFromPublicKey([]byte{
+		2, 3, 5, 7, 2, 3, 5, 7, 2, 3, 5, 7, 2, 3, 5, 7, 2, 3, 5, 7,
+		2, 3, 5, 7, 2, 3, 5, 7, 2, 3, 5, 7, 2, 3, 5, 7, 2, 3, 5, 7,
+		2, 3, 5, 7, 2, 3, 5, 7, 2, 3, 5, 7, 2, 3, 5, 7, 2, 3, 5, 7, 1, 2, 4, 5, 3})
+	owner, err := context.GetOrCreateUserAccount(addr.Bytes())
 	assert.Nil(t, err)
 	owner.AddBalance(newUint128FromIntWrapper(1000000000))
-	contract, _ := context.CreateContractAccount([]byte("16464b93292d7c99099d4d982a05140f12779f5e299d6eb4"), nil)
+
+	addr, _ = core.NewContractAddressFromData([]byte{1, 2, 3, 5, 7}, []byte{1, 2, 3, 5, 7})
+	contract, _ := context.CreateContractAccount(addr.Bytes(), nil)
 
 	ctx, err := NewContext(mockBlock(), mockTransaction(), owner, contract, context)
 
@@ -1034,7 +1041,7 @@ func TestNebulasContract(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 
-			ctx.tx = mockNormalTransaction("8a209cec02cbeab7e2f74ad969d2dfe8dd24416aa65589bf", "22ac3a9a2b1c31b7a9084e46eae16e761f83f02324092b09", tt.value)
+			ctx.tx = mockNormalTransaction("n1LQxBdAtxcfjUazHeK94raKdxRsNpujUyU", "n1PtnbfQcC9EZpr2LS2vLUCKf2UtkyArzVr", tt.value)
 			engine := NewV8Engine(ctx)
 			engine.SetExecutionLimits(10000, 100000000)
 			_, err := engine.Call(string(data), sourceType, tt.function, tt.args)

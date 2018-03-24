@@ -52,12 +52,12 @@ var (
 
 var (
 	MockDynasty = []string{
-		"1a263547d167c74cf4b8f9166cfa244de0481c514a45aa2c",
-		"2fe3f9f51f9a05dd5f7c5329127f7c917917149b4e16b0b8",
-		"333cb3ed8c417971845382ede3cf67a0a96270c05fe2f700",
-		"48f981ed38910f1232c1bab124f650c482a57271632db9e3",
-		"59fc526072b09af8a8ca9732dae17132c4e9127e43cf2232",
-		"75e4e5a71d647298b88928d8cb5da43d90ab1a6c52d0905f",
+		"n1LQxBdAtxcfjUazHeK94raKdxRsNpujUyU",
+		"n1PtnbfQcC9EZpr2LS2vLUCKf2UtkyArzVr",
+		"n1SRGKRFrF6DHK4Ym4MoXbbUHYkV5W2MZPw",
+		"n1TRySsvYmAU8ChPZyYyvrPpDYJ1Z5DFoxo",
+		"n1aoyV8M2g79pFXxdZEK9GfU7fzuJcCN75X",
+		"n1beo9QAjhhJX6tjpjHyinoorbqdi6UKAEb",
 	}
 )
 
@@ -72,11 +72,11 @@ func MockGenesisConf() *corepb.Genesis {
 		},
 		TokenDistribution: []*corepb.GenesisTokenDistribution{
 			&corepb.GenesisTokenDistribution{
-				Address: "1a263547d167c74cf4b8f9166cfa244de0481c514a45aa2c",
+				Address: "n1UZtMgi94oE913L2Sa2C9XwvAzNTQ82v64",
 				Value:   "10000000000000000000000",
 			},
 			&corepb.GenesisTokenDistribution{
-				Address: "2fe3f9f51f9a05dd5f7c5329127f7c917917149b4e16b0b8",
+				Address: "n1coJhpn8QXvKFogVG93wx49eCQ6aPQHSAN",
 				Value:   "10000000000000000000000",
 			},
 		},
@@ -382,11 +382,11 @@ func TestBlock(t *testing.T) {
 		transactions Transactions
 		dependency   *dag.Dag
 	}
-	from1, _ := NewAddress([]byte("eb693e1438fce79f5cb2"))
-	from2, _ := NewAddress([]byte("eb692e1438fce79f5cb2"))
-	to1, _ := NewAddress([]byte("eb691e1438fce79f5cb2"))
-	to2, _ := NewAddress([]byte("eb690e1438fce79f5cb2"))
-	coinbase, _ := NewAddress([]byte("5425730430bc2d63f257"))
+	from1, _ := NewAddressFromPublicKey([]byte("eb693e1438fce79f5cb2eb693e1438fce79f5cb2eb693e1438fce79f5cb266666"))
+	from2, _ := NewAddressFromPublicKey([]byte("eb692e1438fce79f5cb2eb692e1438fce79f5cb2eb692e1438fce79f5cb2uuuuu"))
+	to1, _ := NewAddressFromPublicKey([]byte("eb691e1438fce79f5cb2eb691e1438fce79f5cb2eb691e1438fce79f5cb266554"))
+	to2, _ := NewAddressFromPublicKey([]byte("eb690e1438fce79f5cb2eb690e1438fce79f5cb2eb690e1438fce79f5cb200000"))
+	coinbase, _ := NewAddressFromPublicKey([]byte("5425730430bc2d63f2575425730430bc2d63f2575425730430bc2d63f25733333"))
 
 	tests := []struct {
 		name    string
@@ -410,7 +410,7 @@ func TestBlock(t *testing.T) {
 					chainID:   100,
 					alg:       keystore.SECP256K1,
 				},
-				&Address{[]byte("hello")},
+				&Address{address: []byte("hello")},
 				1,
 				Transactions{
 					&Transaction{
@@ -497,7 +497,7 @@ func TestBlock_LinkParentBlock(t *testing.T) {
 			consensusRoot: &consensuspb.ConsensusRoot{
 				DynastyRoot: []byte("43656"),
 			},
-			coinbase:  &Address{[]byte("hello")},
+			coinbase:  &Address{address: []byte("hello")},
 			timestamp: BlockInterval,
 			chainID:   100,
 		},
@@ -517,7 +517,7 @@ func TestBlock_LinkParentBlock(t *testing.T) {
 			consensusRoot: &consensuspb.ConsensusRoot{
 				DynastyRoot: []byte("43656"),
 			},
-			coinbase:  &Address{[]byte("hello")},
+			coinbase:  &Address{address: []byte("hello")},
 			timestamp: BlockInterval * 2,
 			chainID:   100,
 		},
@@ -680,6 +680,7 @@ func TestBlockVerifyState(t *testing.T) {
 	assert.Equal(t, bc.tailBlock.VerifyIntegrity(bc.ChainID(), bc.ConsensusHandler()), ErrInvalidBlockHash)
 	ks := keystore.DefaultKS
 	from := mockAddress()
+
 	key, err := ks.GetUnlocked(from.String())
 	assert.Nil(t, err)
 	signature, err := crypto.NewSignature(keystore.SECP256K1)
@@ -718,6 +719,7 @@ func TestBlockVerifyState(t *testing.T) {
 	block.Seal()
 	block.Sign(signature)
 	assert.Nil(t, block.VerifyIntegrity(bc.ChainID(), bc.ConsensusHandler()))
+
 	block.header.stateRoot[0]++
 	assert.NotNil(t, block.VerifyExecution())
 }
