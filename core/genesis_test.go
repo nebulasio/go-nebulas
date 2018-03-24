@@ -22,8 +22,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-
-	"github.com/nebulasio/go-nebulas/util/byteutils"
 )
 
 func TestNewGenesisBlock(t *testing.T) {
@@ -33,8 +31,8 @@ func TestNewGenesisBlock(t *testing.T) {
 	conf := MockGenesisConf()
 
 	for _, v := range conf.TokenDistribution {
-		addr, _ := byteutils.FromHex(v.Address)
-		acc, err := genesis.worldState.GetOrCreateUserAccount(addr)
+		addr, _ := AddressParse(v.Address)
+		acc, err := genesis.worldState.GetOrCreateUserAccount(addr.Bytes())
 		assert.Nil(t, err)
 		assert.Equal(t, acc.Balance().String(), v.Value)
 	}
@@ -47,7 +45,7 @@ func TestNewGenesisBlock(t *testing.T) {
 
 func TestInvalidAddressInTokenDistribution(t *testing.T) {
 	mockConf := MockGenesisConf()
-	mockConf.TokenDistribution[0].Address = "1a263547d167c74cf4b8f9166cfa244de0481c514a45aa2"
+	mockConf.TokenDistribution[0].Address = "n1UZtMgi94oE913L2Sa2C9XwvAzNTQ82v64121"
 	chain := testNeb(t).chain
 	_, err := NewGenesisBlock(mockConf, chain)
 	assert.Equal(t, err, ErrInvalidAddressFormat)
