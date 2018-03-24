@@ -25,6 +25,7 @@ import (
 
 	"github.com/nebulasio/go-nebulas/crypto/keystore"
 	"github.com/nebulasio/go-nebulas/crypto/keystore/secp256k1"
+	"github.com/stretchr/testify/assert"
 )
 
 func mockAddress() *Address {
@@ -222,6 +223,25 @@ func TestNewContractAddress(t *testing.T) {
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("NewAddress() = %v, want %v", got, tt.want)
 			}
+		})
+	}
+}
+
+func TestAddressGetType(t *testing.T) {
+	tests := []struct {
+		address string
+		want    AddressType
+	}{
+		{"n1TV3sU6jyzR4rJ1D7jCAmtVGSntJagXZHC", AccountAddress},
+		{"n1sLnoc7j57YfzAVP8tJ3yK5a2i56QrTDdK", ContractAddress},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.address, func(t *testing.T) {
+			addr, err := AddressParse(tt.address)
+			assert.Nil(t, err)
+			assert.NotNil(t, addr)
+			assert.Equal(t, tt.want, addr.Type())
 		})
 	}
 }

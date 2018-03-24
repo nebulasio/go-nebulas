@@ -61,10 +61,14 @@ EXPORT void InitializeStorage(StorageGetFunc get, StoragePutFunc put,
                               StorageDelFunc del);
 
 // blockchain
-typedef char *(*GetTxByHashFunc)(void *handler, const char *hash);
-typedef char *(*GetAccountStateFunc)(void *handler, const char *address);
-typedef int (*TransferFunc)(void *handler, const char *to, const char *value);
-typedef int (*VerifyAddressFunc)(void *handler, const char *address);
+typedef char *(*GetTxByHashFunc)(void *handler, const char *hash,
+                                 size_t *counterVal);
+typedef char *(*GetAccountStateFunc)(void *handler, const char *address,
+                                     size_t *counterVal);
+typedef int (*TransferFunc)(void *handler, const char *to, const char *value,
+                            size_t *counterVal);
+typedef int (*VerifyAddressFunc)(void *handler, const char *address,
+                                 size_t *counterVal);
 
 EXPORT void InitializeBlockchain(GetTxByHashFunc getTx,
                                  GetAccountStateFunc getAccount,

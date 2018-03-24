@@ -19,15 +19,16 @@
 
 #include "blockchain.h"
 #include "../engine.h"
+#include "instruction_counter.h"
 
 static GetTxByHashFunc sGetTxByHash = NULL;
 static GetAccountStateFunc sGetAccountState = NULL;
 static TransferFunc sTransfer = NULL;
 static VerifyAddressFunc sVerifyAddress = NULL;
 
-void InitializeBlockchain(GetTxByHashFunc getTx,
-                          GetAccountStateFunc getAccount,
-                          TransferFunc transfer, VerifyAddressFunc verifyAddress) {
+void InitializeBlockchain(GetTxByHashFunc getTx, GetAccountStateFunc getAccount,
+                          TransferFunc transfer,
+                          VerifyAddressFunc verifyAddress) {
   sGetTxByHash = getTx;
   sGetAccountState = getAccount;
   sTransfer = transfer;
@@ -39,15 +40,20 @@ void NewBlockchainInstance(Isolate *isolate, Local<Context> context,
   Local<ObjectTemplate> blockTpl = ObjectTemplate::New(isolate);
   blockTpl->SetInternalFieldCount(1);
 
-  blockTpl->Set(String::NewFromUtf8(isolate, "getTransactionByHash"),
-                FunctionTemplate::New(isolate, GetTransactionByHashCallback),
-                static_cast<PropertyAttribute>(PropertyAttribute::DontDelete |
-                                               PropertyAttribute::ReadOnly));
+  /* disable getTransactionByHash() function.
+    blockTpl->Set(String::NewFromUtf8(isolate, "getTransactionByHash"),
+                  FunctionTemplate::New(isolate, GetTransactionByHashCallback),
+                  static_cast<PropertyAttribute>(PropertyAttribute::DontDelete |
+                                                 PropertyAttribute::ReadOnly));
+  */
 
-  blockTpl->Set(String::NewFromUtf8(isolate, "getAccountState"),
-                FunctionTemplate::New(isolate, GetAccountStateCallback),
-                static_cast<PropertyAttribute>(PropertyAttribute::DontDelete |
-                                               PropertyAttribute::ReadOnly));
+  /* disable getAccountState() function.
+    blockTpl->Set(String::NewFromUtf8(isolate, "getAccountState"),
+                  FunctionTemplate::New(isolate, GetAccountStateCallback),
+                  static_cast<PropertyAttribute>(PropertyAttribute::DontDelete
+                  |
+                                                 PropertyAttribute::ReadOnly));
+  */
 
   blockTpl->Set(String::NewFromUtf8(isolate, "transfer"),
                 FunctionTemplate::New(isolate, TransferCallback),
@@ -86,14 +92,19 @@ void GetTransactionByHashCallback(const FunctionCallbackInfo<Value> &info) {
     return;
   }
 
+  size_t cnt = 0;
+
   char *value =
-      sGetTxByHash(handler->Value(), *String::Utf8Value(key->ToString()));
+      sGetTxByHash(handler->Value(), *String::Utf8Value(key->ToString()), &cnt);
   if (value == NULL) {
     info.GetReturnValue().SetNull();
   } else {
     info.GetReturnValue().Set(String::NewFromUtf8(isolate, value));
     free(value);
   }
+
+  // record storage usage.
+  IncrCounter(isolate, isolate->GetCurrentContext(), cnt);
 }
 
 // GetAccountStateCallback
@@ -114,14 +125,19 @@ void GetAccountStateCallback(const FunctionCallbackInfo<Value> &info) {
     return;
   }
 
-  char *value =
-      sGetAccountState(handler->Value(), *String::Utf8Value(key->ToString()));
+  size_t cnt = 0;
+
+  char *value = sGetAccountState(handler->Value(),
+                                 *String::Utf8Value(key->ToString()), &cnt);
   if (value == NULL) {
     info.GetReturnValue().SetNull();
   } else {
     info.GetReturnValue().Set(String::NewFromUtf8(isolate, value));
     free(value);
   }
+
+  // record storage usage.
+  IncrCounter(isolate, isolate->GetCurrentContext(), cnt);
 }
 
 // TransferCallback
@@ -150,9 +166,14 @@ void TransferCallback(const FunctionCallbackInfo<Value> &info) {
     return;
   }
 
+  size_t cnt = 0;
+
   int ret = sTransfer(handler->Value(), *String::Utf8Value(address->ToString()),
-                      *String::Utf8Value(amount->ToString()));
+                      *String::Utf8Value(amount->ToString()), &cnt);
   info.GetReturnValue().Set(ret);
+
+  // record storage usage.
+  IncrCounter(isolate, isolate->GetCurrentContext(), cnt);
 }
 
 // VerifyAddressCallback
@@ -162,8 +183,8 @@ void VerifyAddressCallback(const FunctionCallbackInfo<Value> &info) {
   Local<External> handler = Local<External>::Cast(thisArg->GetInternalField(0));
 
   if (info.Length() != 1) {
-    isolate->ThrowException(
-        String::NewFromUtf8(isolate, "Blockchain.verifyAddress() requires 1 arguments"));
+    isolate->ThrowException(String::NewFromUtf8(
+        isolate, "Blockchain.verifyAddress() requires 1 arguments"));
     return;
   }
 
@@ -174,6 +195,12 @@ void VerifyAddressCallback(const FunctionCallbackInfo<Value> &info) {
     return;
   }
 
-  int ret = sVerifyAddress(handler->Value(), *String::Utf8Value(address->ToString()));
+  size_t cnt = 0;
+
+  int ret = sVerifyAddress(handler->Value(),
+                           *String::Utf8Value(address->ToString()), &cnt);
   info.GetReturnValue().Set(ret);
+
+  // record storage usage.
+  IncrCounter(isolate, isolate->GetCurrentContext(), cnt);
 }

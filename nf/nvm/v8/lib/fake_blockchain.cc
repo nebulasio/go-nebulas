@@ -27,7 +27,9 @@
 
 using namespace std;
 
-char *GetTxByHash(void *handler, const char *hash) {
+char *GetTxByHash(void *handler, const char *hash, size_t *gasCnt) {
+  *gasCnt = 1000;
+
   char *ret = NULL;
   string value = "{\"hash\":\"5e6d587f26121f96a07cf4b8b569aac1\",\"from\":"
                  "\"70e30fcae5e7f4b2460faaa9e5b1bd912332ebb5\",\"to\":"
@@ -38,7 +40,9 @@ char *GetTxByHash(void *handler, const char *hash) {
   return ret;
 }
 
-char *GetAccountState(void *handler, const char *address) {
+char *GetAccountState(void *handler, const char *address, size_t *gasCnt) {
+  *gasCnt = 1000;
+
   char *ret = NULL;
   string value = "{\"value\":1,\"nonce\":4}";
   ret = (char *)calloc(value.length() + 1, sizeof(char));
@@ -46,6 +50,12 @@ char *GetAccountState(void *handler, const char *address) {
   return ret;
 }
 
-int Transfer(void *handler, const char *to, const char *value) { return 1; }
+int Transfer(void *handler, const char *to, const char *value, size_t *gasCnt) {
+  *gasCnt = 2000;
+  return 0;
+}
 
-int VerifyAddress(void *handler, const char *address) { return 1; }
+int VerifyAddress(void *handler, const char *address, size_t *gasCnt) {
+  *gasCnt = 100;
+  return 0;
+}

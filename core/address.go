@@ -128,6 +128,11 @@ func (a *Address) Equals(b *Address) bool {
 	return a.address.Equals(b.address)
 }
 
+// Type return the type of address.
+func (a *Address) Type() AddressType {
+	return AddressType(a.address[AddressTypeIndex])
+}
+
 // NewAddress create new #Address according to data bytes.
 func newAddress(t AddressType, args ...[]byte) (*Address, error) {
 	if len(args) == 0 {

@@ -20,9 +20,11 @@
 #ifndef _NEBULAS_NF_NVM_V8_LIB_FAKE_BLOCKCHAIN_H_
 #define _NEBULAS_NF_NVM_V8_LIB_FAKE_BLOCKCHAIN_H_
 
-char *GetTxByHash(void *handler, const char *hash);
-char *GetAccountState(void *handler, const char *address);
-int Transfer(void *handler, const char *to, const char *value);
-int VerifyAddress(void *handler, const char *address);
+#include <stddef.h>
+
+char *GetTxByHash(void *handler, const char *hash, size_t *gasCnt);
+char *GetAccountState(void *handler, const char *addres, size_t *gasCnts);
+int Transfer(void *handler, const char *to, const char *value, size_t *gasCnt);
+int VerifyAddress(void *handler, const char *address, size_t *gasCnt);
 
 #endif //_NEBULAS_NF_NVM_V8_LIB_FAKE_BLOCKCHAIN_H_

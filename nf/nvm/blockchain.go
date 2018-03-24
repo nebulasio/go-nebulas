@@ -34,11 +34,15 @@ import (
 
 // GetTxByHashFunc returns tx info by hash
 //export GetTxByHashFunc
-func GetTxByHashFunc(handler unsafe.Pointer, hash *C.char) *C.char {
+func GetTxByHashFunc(handler unsafe.Pointer, hash *C.char, gasCnt *C.size_t) *C.char {
 	engine, _ := getEngineByStorageHandler(uint64(uintptr(handler)))
 	if engine == nil || engine.ctx.block == nil {
 		return nil
 	}
+
+	// calculate Gas.
+	*gasCnt = C.size_t(1000)
+
 	txHash, err := byteutils.FromHex(C.GoString(hash))
 	if err != nil {
 		return nil
@@ -76,11 +80,14 @@ func GetTxByHashFunc(handler unsafe.Pointer, hash *C.char) *C.char {
 
 // GetAccountStateFunc returns account info by address
 //export GetAccountStateFunc
-func GetAccountStateFunc(handler unsafe.Pointer, address *C.char) *C.char {
+func GetAccountStateFunc(handler unsafe.Pointer, address *C.char, gasCnt *C.size_t) *C.char {
 	engine, _ := getEngineByStorageHandler(uint64(uintptr(handler)))
 	if engine == nil || engine.ctx.block == nil {
 		return nil
 	}
+
+	// calculate Gas.
+	*gasCnt = C.size_t(1000)
 
 	addr, err := core.AddressParse(C.GoString(address))
 	if err != nil {
@@ -110,12 +117,15 @@ func GetAccountStateFunc(handler unsafe.Pointer, address *C.char) *C.char {
 
 // TransferFunc transfer vale to address
 //export TransferFunc
-func TransferFunc(handler unsafe.Pointer, to *C.char, v *C.char) int {
+func TransferFunc(handler unsafe.Pointer, to *C.char, v *C.char, gasCnt *C.size_t) int {
 	engine, _ := getEngineByStorageHandler(uint64(uintptr(handler)))
 	if engine == nil || engine.ctx.block == nil {
 		logging.VLog().Error("get engine failed!")
 		return TransferGetEngineErr
 	}
+
+	// calculate Gas.
+	*gasCnt = C.size_t(2000)
 
 	addr, err := core.AddressParse(C.GoString(to))
 	if err != nil {
@@ -147,34 +157,41 @@ func TransferFunc(handler unsafe.Pointer, to *C.char, v *C.char) int {
 	}
 
 	// update balance
-	err = engine.ctx.contract.SubBalance(amount)
-	if err != nil {
-		logging.VLog().WithFields(logrus.Fields{
-			"handler": uint64(uintptr(handler)),
-			"key":     C.GoString(to),
-			"err":     err,
-		}).Error("TransferFunc SubBalance failed.")
-		return TransferSubBalance
+	if amount.Cmp(util.NewUint128()) > 0 {
+		err = engine.ctx.contract.SubBalance(amount)
+		if err != nil {
+			logging.VLog().WithFields(logrus.Fields{
+				"handler": uint64(uintptr(handler)),
+				"key":     C.GoString(to),
+				"err":     err,
+			}).Error("TransferFunc SubBalance failed.")
+			return TransferSubBalance
+		}
+
+		err = toAcc.AddBalance(amount)
+		if err != nil {
+			logging.VLog().WithFields(logrus.Fields{
+				"account": toAcc,
+				"amount":  amount,
+				"address": addr,
+				"err":     err,
+			}).Error("failed to add balance")
+			return TransferAddBalance
+		}
 	}
 
-	err = toAcc.AddBalance(amount)
-	if err != nil {
-		logging.VLog().WithFields(logrus.Fields{
-			"account": toAcc,
-			"amout":   amount,
-			"address": addr,
-			"err":     err,
-		}).Error("failed to add balance")
-		return TransferAddBalance
-	}
 	return TransferFuncSuccess
 }
 
 // VerifyAddressFunc verify address is valid
 //export VerifyAddressFunc
-func VerifyAddressFunc(handler unsafe.Pointer, address *C.char) int {
-	if _, err := core.AddressParse(C.GoString(address)); err != nil {
-		return 1
+func VerifyAddressFunc(handler unsafe.Pointer, address *C.char, gasCnt *C.size_t) int {
+	// calculate Gas.
+	*gasCnt = C.size_t(100)
+
+	addr, err := core.AddressParse(C.GoString(address))
+	if err != nil {
+		return 0
 	}
-	return 0
+	return int(addr.Type())
 }

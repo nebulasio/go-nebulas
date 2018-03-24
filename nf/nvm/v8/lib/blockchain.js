@@ -23,6 +23,9 @@ var Blockchain = function () {
 };
 
 Blockchain.prototype = {
+    AccountAddress: 0x57,
+    ContractAddress: 0x58,
+
     blockParse: function (str) {
         var block = JSON.parse(str);
         if (block != null) {
@@ -45,7 +48,8 @@ Blockchain.prototype = {
         if (!(value instanceof BigNumber)) {
             value = new BigNumber(value);
         }
-        return this.nativeBlockchain.transfer(address, value.toString(10));
+        var ret = this.nativeBlockchain.transfer(address, value.toString(10));
+        return ret == 0;
     },
     verifyAddress: function (address) {
         return this.nativeBlockchain.verifyAddress(address);

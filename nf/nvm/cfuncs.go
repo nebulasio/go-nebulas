@@ -33,10 +33,10 @@ int StoragePutFunc(void *handler, const char *key, const char *value, size_t *ga
 int StorageDelFunc(void *handler, const char *key, size_t *gasCnt);
 
 // blockchain.
-char *GetTxByHashFunc(void *handler, const char *hash);
-char *GetAccountStateFunc(void *handler, const char *address);
-int TransferFunc(void *handler, const char *to, const char *value);
-int VerifyAddressFunc(void *handler, const char *address);
+char *GetTxByHashFunc(void *handler, const char *hash, size_t *gasCnt);
+char *GetAccountStateFunc(void *handler, const char *address, size_t *gasCnt);
+int TransferFunc(void *handler, const char *to, const char *value, size_t *gasCnt);
+int VerifyAddressFunc(void *handler, const char *address, size_t *gasCnt);
 
 // event.
 void EventTriggerFunc(void *handler, const char *topic, const char *data, size_t *gasCnt);
@@ -60,17 +60,17 @@ int StorageDelFunc_cgo(void *handler, const char *key, size_t *gasCnt) {
 	return StorageDelFunc(handler, key, gasCnt);
 };
 
-char *GetTxByHashFunc_cgo(void *handler, const char *hash) {
-	return GetTxByHashFunc(handler, hash);
+char *GetTxByHashFunc_cgo(void *handler, const char *hash, size_t *gasCnt) {
+	return GetTxByHashFunc(handler, hash, gasCnt);
 };
-char *GetAccountStateFunc_cgo(void *handler, const char *address) {
-	return GetAccountStateFunc(handler, address);
+char *GetAccountStateFunc_cgo(void *handler, const char *address, size_t *gasCnt) {
+	return GetAccountStateFunc(handler, address, gasCnt);
 };
-int TransferFunc_cgo(void *handler, const char *to, const char *value) {
-	return TransferFunc(handler, to, value);
+int TransferFunc_cgo(void *handler, const char *to, const char *value, size_t *gasCnt) {
+	return TransferFunc(handler, to, value, gasCnt);
 };
-int VerifyAddressFunc_cgo(void *handler, const char *address) {
-	return VerifyAddressFunc(handler, address);
+int VerifyAddressFunc_cgo(void *handler, const char *address, size_t *gasCnt) {
+	return VerifyAddressFunc(handler, address, gasCnt);
 };
 
 void EventTriggerFunc_cgo(void *handler, const char *topic, const char *data, size_t *gasCnt) {

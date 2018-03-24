@@ -510,6 +510,7 @@ func TestInstructionCounterTestSuite(t *testing.T) {
 		{"./test/instruction_counter_tests/condition_operator.js", 0, nil, "\"\""},
 		{"./test/instruction_counter_tests/storage_usage.js", 0, nil, "\"\""},
 		{"./test/instruction_counter_tests/event_usage.js", 0, nil, "\"\""},
+		{"./test/instruction_counter_tests/blockchain_usage.js", 0, nil, "\"\""},
 	}
 
 	for _, tt := range tests {
