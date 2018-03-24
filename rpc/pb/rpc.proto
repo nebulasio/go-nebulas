@@ -267,9 +267,6 @@ message GetNebStateResponse {
     // Current neb tail block height
     uint64 height = 4;
 
-    // Neb mine status, minging is true ,otherwise false
-    bool is_mining = 5;
-
     // The current neb protocol version.
     string protocol_version = 6;
 
