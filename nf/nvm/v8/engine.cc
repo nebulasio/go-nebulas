@@ -39,7 +39,8 @@ using namespace v8;
 static Platform *platformPtr = NULL;
 
 void PrintException(Local<Context> context, TryCatch &trycatch);
-char *PrintAndReturnException(Local<Context> context, TryCatch &trycatch);
+void PrintAndReturnException(char **exception, Local<Context> context,
+                             TryCatch &trycatch);
 void EngineLimitsCheckDelegate(Isolate *isolate, size_t count,
                                void *listenerContext);
 
@@ -125,24 +126,14 @@ int ExecuteSourceDataDelegate(char **result, Isolate *isolate,
   MaybeLocal<Script> script = Script::Compile(context, src, &sourceSrcOrigin);
 
   if (script.IsEmpty()) {
-    if (result != NULL) {
-      char *err = PrintAndReturnException(context, trycatch);
-      *result = err;
-    } else {
-      PrintException(context, trycatch);
-    }
+    PrintAndReturnException(result, context, trycatch);
     return 1;
   }
 
   // Run the script to get the result.
   MaybeLocal<Value> ret = script.ToLocalChecked()->Run(context);
   if (ret.IsEmpty()) {
-    if (result != NULL) {
-      char *err = PrintAndReturnException(context, trycatch);
-      *result = err;
-    } else {
-      PrintException(context, trycatch);
-    }
+    PrintAndReturnException(result, context, trycatch);
     return 1;
   }
 
@@ -226,12 +217,7 @@ int Execute(char **result, V8Engine *e, const char *source,
 
   // Setup execution env.
   if (SetupExecutionEnv(isolate, context)) {
-    if (result != NULL) {
-      char *err = PrintAndReturnException(context, trycatch);
-      *result = err;
-    } else {
-      PrintException(context, trycatch);
-    }
+    PrintAndReturnException(result, context, trycatch);
     return 1;
   }
 
@@ -240,13 +226,12 @@ int Execute(char **result, V8Engine *e, const char *source,
 }
 
 void PrintException(Local<Context> context, TryCatch &trycatch) {
-  char *result = PrintAndReturnException(context, trycatch);
-  if (result != NULL) {
-    free(result);
-  }
+  PrintAndReturnException(NULL, context, trycatch);
 }
 
-char *PrintAndReturnException(Local<Context> context, TryCatch &trycatch) {
+void PrintAndReturnException(char **exception, Local<Context> context,
+                             TryCatch &trycatch) {
+  static char SOURCE_INFO_PLACEHOLDER[] = "";
   char *source_info = NULL;
 
   // print source line.
@@ -285,6 +270,10 @@ char *PrintAndReturnException(Local<Context> context, TryCatch &trycatch) {
              arrow);
   }
 
+  if (source_info == NULL) {
+    source_info = SOURCE_INFO_PLACEHOLDER;
+  }
+
   // get stack trace.
   MaybeLocal<Value> stacktrace_ret = trycatch.StackTrace(context);
   if (!stacktrace_ret.IsEmpty()) {
@@ -294,21 +283,22 @@ char *PrintAndReturnException(Local<Context> context, TryCatch &trycatch) {
   }
 
   // exception message.
-  Local<Value> exception = trycatch.Exception();
-  String::Utf8Value exception_str(exception);
+  Local<Value> exceptionValue = trycatch.Exception();
+  String::Utf8Value exception_str(exceptionValue);
   if (stacktrace_ret.IsEmpty()) {
     // print exception when stack trace is not available.
     LogErrorf("V8 Exception:\n%s%s", source_info, *exception_str);
   }
 
-  if (source_info != NULL) {
+  if (source_info != NULL && source_info != SOURCE_INFO_PLACEHOLDER) {
     free(source_info);
   }
 
   // return exception message.
-  char *result = (char *)calloc(exception_str.length() + 1, sizeof(char));
-  strcpy(result, *exception_str);
-  return result;
+  if (exception != NULL) {
+    *exception = (char *)malloc(exception_str.length() + 1);
+    strcpy(*exception, *exception_str);
+  }
 }
 
 void ReadMemoryStatistics(V8Engine *e) {
