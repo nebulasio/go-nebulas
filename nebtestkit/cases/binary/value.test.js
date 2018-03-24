@@ -58,7 +58,7 @@ var initFromBalance = 10;
  * the smaller the value, the faster the test, with the risk of causing error
  */
 
-var maxCheckTime = 30;
+var maxCheckTime = 50;
 var checkTimes = 0;
 
 function checkTransaction(hash, callback) {
