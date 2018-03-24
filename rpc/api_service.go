@@ -94,8 +94,7 @@ func (s *APIService) GetAccountState(ctx context.Context, req *rpcpb.GetAccountS
 }
 
 // Call is the RPC API handler.
-func (s *APIService) Call(ctx context.Context, req *rpcpb.TransactionRequest) (*rpcpb.SimulateCallResponse, error) {
-
+func (s *APIService) Call(ctx context.Context, req *rpcpb.TransactionRequest) (*rpcpb.CallResponse, error) {
 	neb := s.server.Neblet()
 	tx, err := parseTransaction(neb, req)
 	if err != nil {
@@ -107,12 +106,11 @@ func (s *APIService) Call(ctx context.Context, req *rpcpb.TransactionRequest) (*
 	if err != nil {
 		return nil, err
 	}
-	resp := &rpcpb.SimulateCallResponse{}
-	resp.Result = result
-	resp.ExecuteErr = exeErr.Error()
-	resp.EstimateGas = estimateGas.String()
-
-	return resp, nil
+	return &rpcpb.CallResponse{
+		Result:      result,
+		ExecuteErr:  exeErr.Error(),
+		EstimateGas: estimateGas.String(),
+	}, nil
 }
 
 func parseTransaction(neb core.Neblet, reqTx *rpcpb.TransactionRequest) (*core.Transaction, error) {
@@ -354,29 +352,19 @@ func (s *APIService) toTransactionResponse(tx *core.Transaction) (*rpcpb.Transac
 		gasUsed string
 	)
 	neb := s.server.Neblet()
-	events, err := neb.BlockChain().TailBlock().FetchEvents(tx.Hash())
-	if err != nil {
+	event, err := neb.BlockChain().TailBlock().FetchExecutionResultEvent(tx.Hash())
+	if err != nil && err != core.ErrNotFoundTransactionResultEvent {
 		return nil, err
 	}
 
-	if events != nil && len(events) > 0 { // TODO: @fengzi move to core
-		idx := len(events) - 1
-		event := events[idx]
-		if event.Topic == core.TopicTransactionExecutionResult {
-			txEvent := core.TransactionEvent{}
-			err := json.Unmarshal([]byte(event.Data), &txEvent)
-			if err != nil {
-				return nil, err
-			}
-			status = int32(txEvent.Status)
-			gasUsed = txEvent.GasUsed
-		} else {
-			logging.VLog().WithFields(logrus.Fields{
-				"tx":     tx,
-				"events": events,
-			}).Error("Failed to locate the result event")
-			return nil, core.ErrInvalidTransactionResultEvent
+	if event != nil {
+		txEvent := core.TransactionEvent{}
+		err := json.Unmarshal([]byte(event.Data), &txEvent)
+		if err != nil {
+			return nil, err
 		}
+		status = int32(txEvent.Status)
+		gasUsed = txEvent.GasUsed
 	} else {
 		status = core.TxExecutionPendding
 	}

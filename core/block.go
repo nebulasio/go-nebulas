@@ -995,6 +995,32 @@ func (block *Block) FetchEvents(txHash byteutils.Hash) ([]*state.Event, error) {
 	return worldState.FetchEvents(txHash)
 }
 
+// FetchExecutionResultEvent fetch execution result event by txHash.
+func (block *Block) FetchExecutionResultEvent(txHash byteutils.Hash) (*state.Event, error) {
+	worldState, err := block.WorldState().Clone()
+	if err != nil {
+		return nil, err
+	}
+	events, err := worldState.FetchEvents(txHash)
+	if err != nil {
+		return nil, err
+	}
+
+	if events != nil && len(events) > 0 {
+		idx := len(events) - 1
+		event := events[idx]
+		if event.Topic != TopicTransactionExecutionResult {
+			logging.VLog().WithFields(logrus.Fields{
+				"tx":     txHash,
+				"events": events,
+			}).Error("Failed to locate the result event")
+			return nil, ErrInvalidTransactionResultEvent
+		}
+		return event, nil
+	}
+	return nil, ErrNotFoundTransactionResultEvent
+}
+
 func (block *Block) rewardCoinbaseForMint() error {
 	coinbaseAddr := block.Coinbase().Bytes()
 	coinbaseAcc, err := block.WorldState().GetOrCreateUserAccount(coinbaseAddr)

@@ -49,7 +49,7 @@ service ApiService {
     }
 
     // Call transaction
-    rpc Call (TransactionRequest) returns (SimulateCallResponse) {
+    rpc Call (TransactionRequest) returns (CallResponse) {
         option (google.api.http) = {
             post: "/v1/user/call"
             body: "*"
@@ -305,7 +305,7 @@ message GetAccountStateResponse {
 }
 
 // Response message of Call rpc.
-message SimulateCallResponse {
+message CallResponse {
     // result of smart contract method call.
     string result = 1;
 
@@ -437,25 +437,25 @@ message BlockResponse {
     string coinbase = 5;
 
     // block timestamp.
-    int64 timestamp = 7;
+    int64 timestamp = 6;
 
     // block chain id
-    uint32 chain_id = 8;
+    uint32 chain_id = 7;
 
     // Hex string of state root.
-    string state_root = 9;
+    string state_root = 8;
 
     // Hex string of txs root.
-    string txs_root = 10;
+    string txs_root = 9;
 
     // Hex string of event root.
-    string events_root = 11;
+    string events_root = 10;
 
     // Hex string of consensus root.
-    consensuspb.ConsensusRoot consensus_root = 12;
+    consensuspb.ConsensusRoot consensus_root = 11;
 
     // is finaliy
-    bool is_finality = 13;
+    bool is_finality = 12;
 
     // transaction slice
     repeated TransactionResponse transactions = 100;
@@ -581,4 +581,3 @@ message GetConfigResponse {
     // Config
     nebletpb.Config config = 1;
 }
-
