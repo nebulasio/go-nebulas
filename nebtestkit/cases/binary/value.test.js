@@ -959,7 +959,7 @@ describe('normal transaction', function () {
         //can calc value by previous params
         var testExpect = {
             canSendTx: true,
-            canSubmitTx: false,
+            canSubmitTx: true,
             canExcuteTx: false,
             fromBalanceAfterTx: '9999999980000000000',
             toBalanceAfterTx: '0',
@@ -987,7 +987,7 @@ describe('normal transaction', function () {
         //can calc value by previous params
         var testExpect = {
             canSendTx: true,
-            canSubmitTx: false,
+            canSubmitTx: true,
             canExcuteTx: false,
             fromBalanceAfterTx: '9999999980000000000',
             toBalanceAfterTx: '0',
@@ -1069,7 +1069,7 @@ describe('normal transaction', function () {
         //can calc value by previous params
         var testExpect = {
             canSendTx: true,
-            canSubmitTx: false,
+            canSubmitTx: true,
             canExcuteTx: false,
             fromBalanceAfterTx: '9999999980000000000',
             toBalanceAfterTx: '9999999980000000000',
@@ -1242,7 +1242,7 @@ describe('normal transaction', function () {
 
         var testExpect = {
             canSendTx: true,
-            canSubmitTx: false,
+            canSubmitTx: true,
             canExcuteTx: false,
             fromBalanceAfterTx: '0',
             toBalanceAfterTx: '9999999980000000000',
@@ -1410,7 +1410,7 @@ describe('normal transaction', function () {
         //can calc value by previous params
         var testExpect = {
             canSendTx: true,
-            canSubmitTx: false,
+            canSubmitTx: true,
             canExcuteTx: false,
             fromBalanceAfterTx: '0',
             toBalanceAfterTx: '9999999979964000000',
@@ -1437,7 +1437,7 @@ describe('normal transaction', function () {
         //can calc value by previous params
         var testExpect = {
             canSendTx: true,
-            canSubmitTx: false,
+            canSubmitTx: true,
             canExcuteTx: false,
             fromBalanceAfterTx: '9999999979964000000',
             toBalanceAfterTx: '0',
