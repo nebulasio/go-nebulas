@@ -72,7 +72,7 @@ func mockNeb(t *testing.T) *Neb {
 				Keydir:     "keydir",
 				StartMine:  true,
 				Coinbase:   "n1K4rWU3YrhZmU1GHHYqnES8CcypTYQa9oJ",
-				Miner:      "n1PtnbfQcC9EZpr2LS2vLUCKf2UtkyArzVr",
+				Miner:      "n1LQxBdAtxcfjUazHeK94raKdxRsNpujUyU",
 				Passphrase: "passphrase",
 			},
 		},
@@ -196,11 +196,11 @@ func MockGenesisConf() *corepb.Genesis {
 				Value:   "10000000000000000000000",
 			},
 			&corepb.GenesisTokenDistribution{
-				Address: "n1coJhpn8QXvKFogVG93wx49eCQ6aPQHSAN",
+				Address: "n1beo9QAjhhJX6tjpjHyinoorbqdi6UKAEb",
 				Value:   "10000000000000000000000",
 			},
 			&corepb.GenesisTokenDistribution{
-				Address: "n1beo9QAjhhJX6tjpjHyinoorbqdi6UKAEb",
+				Address: "n1coJhpn8QXvKFogVG93wx49eCQ6aPQHSAN",
 				Value:   "10000000000000000000000",
 			},
 		},
