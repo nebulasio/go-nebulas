@@ -21,6 +21,8 @@ package core
 import (
 	"io/ioutil"
 
+	"github.com/nebulasio/go-nebulas/crypto/keystore"
+
 	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/common/dag"
 	"github.com/nebulasio/go-nebulas/consensus/pb"
@@ -131,6 +133,10 @@ func NewGenesisBlock(conf *corepb.Genesis, chain *BlockChain) (*Block, error) {
 	genesisBlock.header.txsRoot = genesisBlock.WorldState().TxsRoot()
 	genesisBlock.header.eventsRoot = genesisBlock.WorldState().EventsRoot()
 	genesisBlock.header.consensusRoot = genesisBlock.WorldState().ConsensusRoot()
+
+	genesisBlock.header.alg = keystore.SECP256K1
+	genesisBlock.header.sign = []byte("Yes, We Believe!")
+
 	genesisBlock.sealed = true
 
 	return genesisBlock, nil

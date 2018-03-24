@@ -23,6 +23,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/nebulasio/go-nebulas/util/logging"
+
 	"github.com/nebulasio/go-nebulas/common/dag"
 	"github.com/nebulasio/go-nebulas/consensus/pb"
 	"github.com/nebulasio/go-nebulas/core/state"
@@ -318,7 +320,8 @@ func (nvm *mockEngine) ExecutionInstructions() uint64 {
 }
 
 func testNeb(t *testing.T) *mockNeb {
-	storage, _ := storage.NewMemoryStorage()
+	storage, err := storage.NewMemoryStorage()
+	assert.Nil(t, err)
 	eventEmitter := NewEventEmitter(1024)
 	consensus := new(mockConsensus)
 	nvm := &mockNvm{}
@@ -338,8 +341,8 @@ func testNeb(t *testing.T) *mockNeb {
 	assert.Nil(t, err)
 	chain.bkPool.RegisterInNetwork(ns)
 	neb.chain = chain
-	consensus.Setup(neb)
-	chain.Setup(neb)
+	assert.Nil(t, consensus.Setup(neb))
+	assert.Nil(t, chain.Setup(neb))
 	return neb
 }
 
@@ -405,6 +408,7 @@ func TestBlock(t *testing.T) {
 					coinbase:  coinbase,
 					timestamp: time.Now().Unix(),
 					chainID:   100,
+					alg:       keystore.SECP256K1,
 				},
 				&Address{[]byte("hello")},
 				1,
@@ -451,13 +455,19 @@ func TestBlock(t *testing.T) {
 				transactions: tt.fields.transactions,
 				dependency:   tt.fields.dependency,
 			}
-			proto, _ := b.ToProto()
-			ir, _ := pb.Marshal(proto)
+			proto, err := b.ToProto()
+			assert.Nil(t, err)
+			ir, err := pb.Marshal(proto)
+			assert.Nil(t, err)
 			nb := new(Block)
-			pb.Unmarshal(ir, proto)
-			err := nb.FromProto(proto)
+			err = pb.Unmarshal(ir, proto)
+			assert.Nil(t, err)
+			err = nb.FromProto(proto)
 			assert.Nil(t, err)
 			b.header.timestamp = nb.header.timestamp
+
+			logging.CLog().Info(b.transactions)
+			logging.CLog().Info(nb.transactions)
 
 			if !reflect.DeepEqual(*b.header, *nb.header) {
 				t.Errorf("Transaction.Serialize() = %v, want %v", *b.header, *nb.header)

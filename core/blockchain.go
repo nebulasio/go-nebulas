@@ -751,7 +751,10 @@ func (bc *BlockChain) LoadTailFromStorage() (*Block, error) {
 // LoadGenesisFromStorage load genesis
 func (bc *BlockChain) LoadGenesisFromStorage() (*Block, error) { // ToRefine, remove or ?
 	genesis, err := LoadBlockFromStorage(GenesisHash, bc)
-	if err != nil {
+	if err != nil && err != storage.ErrKeyNotFound {
+		return nil, err
+	}
+	if err == storage.ErrKeyNotFound {
 		genesis, err = NewGenesisBlock(bc.genesis, bc)
 		if err != nil {
 			return nil, err

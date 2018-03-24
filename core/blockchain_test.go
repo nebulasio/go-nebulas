@@ -29,6 +29,10 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func signBlock(block *Block) {
+	block.header.alg = keystore.SECP256K1
+}
+
 func TestBlockChain_FindCommonAncestorWithTail(t *testing.T) {
 	neb := testNeb(t)
 	bc := neb.chain
@@ -45,6 +49,7 @@ func TestBlockChain_FindCommonAncestorWithTail(t *testing.T) {
 	block0, _ := bc.NewBlock(coinbase11)
 	block0.header.timestamp = BlockInterval
 	block0.Seal()
+	signBlock(block0)
 	assert.Nil(t, bc.BlockPool().Push(block0))
 	assert.Equal(t, bc.tailBlock.Hash().String(), "9443a0846ac180932533b55420877eb3618d05f1120f3a5c54dc5d3a0b314452")
 
@@ -60,8 +65,10 @@ func TestBlockChain_FindCommonAncestorWithTail(t *testing.T) {
 	assert.Nil(t, err)
 	block12.header.timestamp = BlockInterval * 3
 	assert.Nil(t, block11.Seal())
+	signBlock(block11)
 	assert.Equal(t, block11.Hash().String(), "e1a59257cbc5cd2a0f4d14470c0d507db2b2eeb13126fdcd32bf08c787f9929c")
 	assert.Nil(t, block12.Seal())
+	signBlock(block12)
 	assert.Equal(t, block12.Hash().String(), "71821a5a452effcca2b579a800402aeaaa3fc4364b6a01684ef7c5d1d46de35d")
 
 	assert.Nil(t, bc.BlockPool().Push(block11))
@@ -70,6 +77,7 @@ func TestBlockChain_FindCommonAncestorWithTail(t *testing.T) {
 	assert.Nil(t, err)
 	block111.header.timestamp = BlockInterval * 4
 	assert.Nil(t, block111.Seal())
+	signBlock(block111)
 
 	assert.Nil(t, bc.BlockPool().Push(block12))
 	assert.Equal(t, bc.tailBlock.Hash(), block12.Hash())
@@ -78,14 +86,17 @@ func TestBlockChain_FindCommonAncestorWithTail(t *testing.T) {
 	block222, _ := bc.NewBlock(coinbase222)
 	block222.header.timestamp = BlockInterval * 6
 	assert.Nil(t, block221.Seal())
+	signBlock(block221)
 	assert.Equal(t, block221.Hash().String(), "2e554cb87cff9cc5c685049afd2e45d02ba493ea0056f852c478fee2fea590ad")
 	assert.Nil(t, block222.Seal())
+	signBlock(block222)
 	assert.Equal(t, block222.Hash().String(), "65910f3e367c931c1d6bd4a9ef4f0d8b6cb44d7a429f19abf1f53a636732b3c8")
 
 	assert.Nil(t, bc.BlockPool().Push(block111))
 	block1111, _ := bc.NewBlock(coinbase1111)
 	block1111.header.timestamp = BlockInterval * 7
 	assert.Nil(t, block1111.Seal())
+	signBlock(block1111)
 
 	assert.Nil(t, bc.BlockPool().Push(block221))
 	assert.Nil(t, bc.BlockPool().Push(block222))
@@ -125,6 +136,7 @@ func TestBlockChain_FindCommonAncestorWithTail(t *testing.T) {
 	block11111, _ := bc.NewBlock(coinbase11111)
 	block11111.header.timestamp = BlockInterval * 8
 	assert.Nil(t, block11111.Seal())
+	signBlock(block11111)
 	assert.Nil(t, bc.BlockPool().Push(block11111))
 }
 

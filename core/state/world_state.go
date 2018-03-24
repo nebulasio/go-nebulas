@@ -610,7 +610,7 @@ func (ws *worldState) Begin() error {
 		return err
 	}
 	if err := ws.states.Begin(); err != nil {
-		logging.CLog().Info("BE 2")
+		logging.CLog().Info("BE 2", err)
 		return err
 	}
 	ws.snapshot = snapshot

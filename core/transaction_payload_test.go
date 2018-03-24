@@ -211,8 +211,8 @@ func TestPayload_Execute(t *testing.T) {
 		block    *Block
 		want     *util.Uint128
 		wantErr  error
-		giveback bool          // TODO add giveback check
-		limit    *util.Uint128 // TODO add limit check
+		giveback bool
+		limit    *util.Uint128
 	}
 
 	neb := testNeb(t)

@@ -71,6 +71,7 @@ func TestBlockPool(t *testing.T) {
 	assert.Nil(t, err)
 	block0.header.timestamp = bc.tailBlock.header.timestamp + BlockInterval
 	block0.Seal()
+	signBlock(block0)
 	assert.Nil(t, pool.Push(block0))
 
 	addr, err = AddressParse(MockDynasty[2])
@@ -79,6 +80,7 @@ func TestBlockPool(t *testing.T) {
 	assert.Nil(t, err)
 	block1.header.timestamp = block0.header.timestamp + BlockInterval
 	block1.Seal()
+	signBlock(block1)
 	assert.Nil(t, pool.Push(block1))
 
 	addr, err = AddressParse(MockDynasty[3])
@@ -87,6 +89,7 @@ func TestBlockPool(t *testing.T) {
 	assert.Nil(t, err)
 	block2.header.timestamp = block1.header.timestamp + BlockInterval
 	block2.Seal()
+	signBlock(block2)
 	assert.Nil(t, pool.Push(block2))
 
 	addr, err = AddressParse(MockDynasty[4])
@@ -95,6 +98,7 @@ func TestBlockPool(t *testing.T) {
 	assert.Nil(t, err)
 	block3.header.timestamp = block2.header.timestamp + BlockInterval
 	block3.Seal()
+	signBlock(block3)
 	assert.Nil(t, pool.Push(block3))
 
 	addr, err = AddressParse(MockDynasty[5])
@@ -103,6 +107,7 @@ func TestBlockPool(t *testing.T) {
 	assert.Nil(t, err)
 	block4.header.timestamp = block3.header.timestamp + BlockInterval
 	block4.Seal()
+	signBlock(block4)
 	assert.Nil(t, pool.Push(block4))
 
 	// push blocks into pool in random order
@@ -151,6 +156,7 @@ func TestBlockPool(t *testing.T) {
 	assert.Nil(t, err)
 	block5.header.timestamp = block4.header.timestamp + BlockInterval
 	block5.Seal()
+	signBlock(block5)
 	block5.header.hash[0]++
 	assert.Equal(t, pool.Push(block5), ErrInvalidBlockHash)
 }

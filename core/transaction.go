@@ -63,6 +63,9 @@ var (
 
 	// MaxDataPayLoadLength Max data length in transaction
 	MaxDataPayLoadLength = 128 * 1024
+
+	// MaxEventErrLength Max error length in event
+	MaxEventErrLength = 256
 )
 
 // TransactionEvent transaction event
@@ -438,7 +441,7 @@ func VerifyExecution(tx *Transaction, block *Block, ws WorldState) (bool, error)
 	}
 
 	// step7. execute contract.
-	gasExecution, _, exeErr := payload.Execute(contractLimitedGas, tx, block, ws) // TODO return detailed error, not only failed
+	gasExecution, _, exeErr := payload.Execute(contractLimitedGas, tx, block, ws)
 	if exeErr != nil {
 		if err := ws.Reset(); err != nil {
 			return true, err
@@ -595,7 +598,10 @@ func (tx *Transaction) recordResultEvent(gasUsed *util.Uint128, err error, ws Wo
 	}
 	if err != nil {
 		txEvent.Status = TxExecutionFailed
-		txEvent.Error = err.Error() // TODO limit the length of err
+		txEvent.Error = err.Error()
+		if len(txEvent.Error) > MaxEventErrLength {
+			txEvent.Error = txEvent.Error[:MaxEventErrLength]
+		}
 	} else {
 		txEvent.Status = TxExecutionSuccess
 	}
@@ -692,16 +698,15 @@ func CheckContract(addr *Address, ws WorldState) (state.Account, error) {
 	}
 
 	result := false
-	for _, v := range birthEvents {
-
-		if v.Topic == TopicTransactionExecutionResult { // TODO use the last event
+	if birthEvents != nil && len(birthEvents) > 0 {
+		event := birthEvents[len(birthEvents)-1]
+		if event.Topic == TopicTransactionExecutionResult {
 			txEvent := TransactionEvent{}
-			if err := json.Unmarshal([]byte(v.Data), &txEvent); err != nil {
+			if err := json.Unmarshal([]byte(event.Data), &txEvent); err != nil {
 				return nil, err
 			}
 			if txEvent.Status == TxExecutionSuccess {
 				result = true
-				break
 			}
 		}
 	}

@@ -93,7 +93,7 @@ func TestTransaction(t *testing.T) {
 				util.NewUint128(),
 				456,
 				time.Now().Unix(),
-				12,
+				uint8(keystore.SECP256K1),
 				&corepb.Data{Type: TxPayloadBinaryType, Payload: []byte("hwllo")},
 				util.NewUint128(),
 				util.NewUint128(),
