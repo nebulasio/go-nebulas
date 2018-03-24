@@ -377,6 +377,25 @@ func (db *MVCCDB) Reset() error {
 
 // Close close prepared DB.
 func (db *MVCCDB) Close() error {
+	db.mutex.Lock()
+
+	if !db.isInTransaction {
+		db.mutex.Unlock()
+		return ErrTransactionNotStarted
+	}
+
+	if !db.isPreparedDB {
+		db.mutex.Unlock()
+		return ErrDisallowedCallingInNoPreparedDB
+	}
+
+	if db.isPreparedDBClosed {
+		db.mutex.Unlock()
+		return ErrPreparedDBIsClosed
+	}
+
+	db.mutex.Unlock()
+
 	db.parentDB.mutex.Lock()
 	defer db.parentDB.mutex.Unlock()
 
