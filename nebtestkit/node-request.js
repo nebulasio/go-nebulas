@@ -3,13 +3,22 @@
 
 var rq = require("request-promise");
 
-var HttpRequest = function (host, timeout) {
-    this.host = host || "http://localhost:8090";
+var HttpRequest = function (host, timeout, apiVersion) {
+    this.host = host || "http://localhost:8685";
     this.timeout = timeout || 0;
+    this.APIVersion = apiVersion || 'v1';
 };
 
 HttpRequest.prototype.setHost = function (host) {
-    this.host = host || "http://localhost:8090";
+    this.host = host || "http://localhost:8685";
+};
+
+HttpRequest.prototype.setAPIVersion = function (APIVersion) {
+    this.APIVersion = APIVersion;
+};
+
+HttpRequest.prototype.createUrl = function (action) {
+    return this.host + '/' + this.APIVersion + action;
 };
 
 HttpRequest.prototype._newRequest = function (method, api, payload) {
@@ -17,7 +26,7 @@ HttpRequest.prototype._newRequest = function (method, api, payload) {
     if (method.toUpperCase() === "POST") {
         m = "POST";
     }
-    var url = this.host + api;
+    var url = this.createUrl(api);
     var options = {
         method: m,
         uri: url,

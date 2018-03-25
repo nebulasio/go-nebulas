@@ -1,6 +1,6 @@
 'use strict';
 
-var Wallet = require('../../../cmd/console/neb.js/lib/wallet.js');
+var Wallet = require('nebulas');
 var sleep = require("system-sleep");
 var HttpRequest = require("../../node-request");
 var FS = require("fs");
