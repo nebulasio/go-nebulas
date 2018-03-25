@@ -26,6 +26,7 @@ import (
 	"github.com/nebulasio/go-nebulas/crypto/keystore"
 	"github.com/nebulasio/go-nebulas/net"
 	"github.com/nebulasio/go-nebulas/rpc/pb"
+	"github.com/nebulasio/go-nebulas/util/byteutils"
 	"golang.org/x/net/context"
 )
 
@@ -58,34 +59,6 @@ func (s *AdminService) NewAccount(ctx context.Context, req *rpcpb.NewAccountRequ
 		return nil, err
 	}
 	return &rpcpb.NewAccountResponse{Address: addr.String()}, nil
-}
-
-// SignTransactionWithPassphrase sign transaction with the from addr passphrase
-func (s *AdminService) SignTransactionWithPassphrase(ctx context.Context, req *rpcpb.SignTransactionPassphraseRequest) (*rpcpb.SignTransactionPassphraseResponse, error) {
-
-	neb := s.server.Neblet()
-	tx, err := parseTransaction(neb, req.Transaction)
-	if err != nil {
-		metricsSignTxFailed.Mark(1)
-		return nil, err
-	}
-	if err := neb.AccountManager().SignTransactionWithPassphrase(tx.From(), tx, []byte(req.Passphrase)); err != nil {
-		metricsSignTxFailed.Mark(1)
-		return nil, err
-	}
-	pbMsg, err := tx.ToProto()
-	if err != nil {
-		metricsSignTxFailed.Mark(1)
-		return nil, err
-	}
-	data, err := proto.Marshal(pbMsg)
-	if err != nil {
-		metricsSignTxFailed.Mark(1)
-		return nil, err
-	}
-
-	metricsSignTxSuccess.Mark(1)
-	return &rpcpb.SignTransactionPassphraseResponse{Data: data}, nil
 }
 
 // UnlockAccount unlock address with the passphrase
@@ -143,6 +116,56 @@ func (s *AdminService) SendTransaction(ctx context.Context, req *rpcpb.Transacti
 	}
 
 	return handleTransactionResponse(neb, tx)
+}
+
+// SignHash is the RPC API handler.
+func (s *AdminService) SignHash(ctx context.Context, req *rpcpb.SignHashRequest) (*rpcpb.SignHashResponse, error) {
+	neb := s.server.Neblet()
+
+	hash, err := byteutils.FromHex(req.Hash)
+	if err != nil {
+		return nil, err
+	}
+
+	addr, err := core.AddressParse(req.Address)
+	if err != nil {
+		return nil, err
+	}
+
+	data, err := neb.AccountManager().SignHash(addr, hash)
+	if err != nil {
+		return nil, err
+	}
+
+	return &rpcpb.SignHashResponse{Data: data}, nil
+}
+
+// SignTransactionWithPassphrase sign transaction with the from addr passphrase
+func (s *AdminService) SignTransactionWithPassphrase(ctx context.Context, req *rpcpb.SignTransactionPassphraseRequest) (*rpcpb.SignTransactionPassphraseResponse, error) {
+
+	neb := s.server.Neblet()
+	tx, err := parseTransaction(neb, req.Transaction)
+	if err != nil {
+		metricsSignTxFailed.Mark(1)
+		return nil, err
+	}
+	if err := neb.AccountManager().SignTransactionWithPassphrase(tx.From(), tx, []byte(req.Passphrase)); err != nil {
+		metricsSignTxFailed.Mark(1)
+		return nil, err
+	}
+	pbMsg, err := tx.ToProto()
+	if err != nil {
+		metricsSignTxFailed.Mark(1)
+		return nil, err
+	}
+	data, err := proto.Marshal(pbMsg)
+	if err != nil {
+		metricsSignTxFailed.Mark(1)
+		return nil, err
+	}
+
+	metricsSignTxSuccess.Mark(1)
+	return &rpcpb.SignTransactionPassphraseResponse{Data: data}, nil
 }
 
 // SendTransactionWithPassphrase send transaction with the from addr passphrase
