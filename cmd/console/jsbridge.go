@@ -32,6 +32,11 @@ import (
 	"github.com/robertkrimen/otto"
 )
 
+const (
+	//APIVersion rpc http version
+	APIVersion = "v1"
+)
+
 type jsBridge struct {
 
 	// js request host
@@ -97,7 +102,7 @@ func (b *jsBridge) request(call otto.FunctionCall) otto.Value {
 		}
 	}
 
-	url := b.host + api.String()
+	url := b.host + "/" + APIVersion + api.String()
 	//fmt.Fprintln(b.writer, "request", url, method.String(), args)
 	// method only support upper case.
 	req, err := http.NewRequest(strings.ToUpper(method.String()), url, bytes.NewBuffer([]byte(args)))
@@ -205,7 +210,7 @@ func (b *jsBridge) unlockAccount(call otto.FunctionCall) otto.Value {
 	return val
 }
 
-// sendTransaction handle the transaction send with passphrase input
+// sendTransactionWithPassphrase handle the transaction send with passphrase input
 func (b *jsBridge) sendTransactionWithPassphrase(call otto.FunctionCall) otto.Value {
 	if !call.Argument(0).IsString() || !call.Argument(1).IsString() {
 		fmt.Fprintln(b.writer, errors.New("from/to address arg must be string"))
@@ -231,6 +236,42 @@ func (b *jsBridge) sendTransactionWithPassphrase(call otto.FunctionCall) otto.Va
 	}
 	// Send the request to the backend and return
 	val, err := call.Otto.Call("bridge.sendTransactionWithPassphrase", nil,
+		call.Argument(0), call.Argument(1), call.Argument(2),
+		call.Argument(3), call.Argument(4), call.Argument(5),
+		call.Argument(6), call.Argument(7), passphrase)
+	if err != nil {
+		fmt.Fprintln(b.writer, err)
+		return otto.NullValue()
+	}
+	return val
+}
+
+// signTransactionWithPassphrase handle the transaction sign with passphrase input
+func (b *jsBridge) signTransactionWithPassphrase(call otto.FunctionCall) otto.Value {
+	if !call.Argument(0).IsString() || !call.Argument(1).IsString() {
+		fmt.Fprintln(b.writer, errors.New("from/to address arg must be string"))
+		return otto.NullValue()
+	}
+	var passphrase otto.Value
+	if call.Argument(8).IsUndefined() || call.Argument(8).IsNull() {
+		var (
+			input string
+			err   error
+		)
+		if input, err = b.prompter.PromptPassphrase("Passphrase: "); err != nil {
+			fmt.Fprintln(b.writer, err)
+			return otto.NullValue()
+		}
+		passphrase, _ = otto.ToValue(input)
+	} else {
+		if !call.Argument(8).IsString() {
+			fmt.Fprintln(b.writer, errors.New("password must be a string"))
+			return otto.NullValue()
+		}
+		passphrase = call.Argument(1)
+	}
+	// Send the request to the backend and return
+	val, err := call.Otto.Call("bridge.signTransactionWithPassphrase", nil,
 		call.Argument(0), call.Argument(1), call.Argument(2),
 		call.Argument(3), call.Argument(4), call.Argument(5),
 		call.Argument(6), call.Argument(7), passphrase)

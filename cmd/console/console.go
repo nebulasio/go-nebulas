@@ -153,6 +153,14 @@ func (c *Console) methodSwizzling() error {
 			return err
 		}
 		if obj := admin.Object(); obj != nil {
+			bridgeRequest := `bridge._sendRequest = function (method, api, params, callback) {
+				var action = "/admin" + api;
+				return this.request(method, action, params);
+			};`
+			if _, err = c.jsvm.Run(bridgeRequest); err != nil {
+				return fmt.Errorf("bridge._sendRequest: %v", err)
+			}
+
 			if _, err = c.jsvm.Run(`bridge.newAccount = admin.newAccount;`); err != nil {
 				return fmt.Errorf("admin.newAccount: %v", err)
 			}
@@ -162,10 +170,14 @@ func (c *Console) methodSwizzling() error {
 			if _, err = c.jsvm.Run(`bridge.sendTransactionWithPassphrase = admin.sendTransactionWithPassphrase;`); err != nil {
 				return fmt.Errorf("admin.sendTransactionWithPassphrase: %v", err)
 			}
+			if _, err = c.jsvm.Run(`bridge.signTransactionWithPassphrase = admin.signTransactionWithPassphrase;`); err != nil {
+				return fmt.Errorf("admin.signTransactionWithPassphrase: %v", err)
+			}
 			obj.Set("setHost", c.jsBridge.setHost)
 			obj.Set("newAccount", c.jsBridge.newAccount)
 			obj.Set("unlockAccount", c.jsBridge.unlockAccount)
 			obj.Set("sendTransactionWithPassphrase", c.jsBridge.sendTransactionWithPassphrase)
+			obj.Set("signTransactionWithPassphrase", c.jsBridge.signTransactionWithPassphrase)
 		}
 	}
 	return nil
