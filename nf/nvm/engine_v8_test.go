@@ -348,6 +348,47 @@ func TestDeployAndInitAndCall(t *testing.T) {
 	}
 }
 
+func TestERC20(t *testing.T) {
+	tests := []struct {
+		name         string
+		contractPath string
+		sourceType   string
+		initArgs     string
+		totalSupply  string
+	}{
+		{"deploy ERC20.js", "./test/ERC20.js", "js", "[\"TEST001\", \"TEST\", 1000000000]", "1000000000"},
+	}
+
+	// TODO: Addd more test cases
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			data, err := ioutil.ReadFile(tt.contractPath)
+			assert.Nil(t, err, "contract path read error")
+
+			mem, _ := storage.NewMemoryStorage()
+			context, _ := state.NewWorldState(dpos.NewDpos(), mem)
+			owner, err := context.GetOrCreateUserAccount([]byte("account1"))
+			assert.Nil(t, err)
+			owner.AddBalance(newUint128FromIntWrapper(10000000))
+			contract, _ := context.CreateContractAccount([]byte("account2"), nil)
+
+			ctx, err := NewContext(mockBlock(), mockTransaction(), owner, contract, context)
+			engine := NewV8Engine(ctx)
+			engine.SetExecutionLimits(10000, 10000000)
+			_, err = engine.DeployAndInit(string(data), tt.sourceType, tt.initArgs)
+			assert.Nil(t, err)
+			engine.Dispose()
+
+			engine = NewV8Engine(ctx)
+			engine.SetExecutionLimits(10000, 10000000)
+			_, err = engine.Call(string(data), tt.sourceType, "totalSupply", "[]")
+			assert.Nil(t, err)
+			engine.Dispose()
+
+		})
+	}
+}
+
 func TestContracts(t *testing.T) {
 	type fields struct {
 		function string
