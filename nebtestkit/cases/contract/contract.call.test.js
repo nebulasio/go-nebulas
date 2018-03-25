@@ -1,8 +1,9 @@
 'use strict';
 
 var Wallet = require('nebulas');
+// var Wallet = require("../../../cmd/console/neb.js/index.js");
 var sleep = require("system-sleep");
-var HttpRequest = require("../../node-request");
+var HttpRequest = Wallet.HttpRequest;
 var FS = require("fs");
 
 var expect = require('chai').expect;
@@ -18,6 +19,7 @@ var coinbase, coinState;
 var testCases = new Array();
 var caseIndex = 0;
 
+
 // mocha cases/contract/xxx testneb1 -t 200000
 var args = process.argv.splice(2);
 var env = args[1];
@@ -26,29 +28,30 @@ if (env !== "local" && env !== "testneb1" && env !== "testneb2" && env !== "test
 }
 console.log("env:", env);
 
+
 if (env == 'local'){
-	neb.setRequest(new HttpRequest("http://127.0.0.1:8685"));//https://testnet.nebulas.io
-	ChainID = 100;
-    source = new Wallet.Account("a6e5eb290e1438fce79f5cb8774a72621637c2c9654c8b2525ed1d7e4e73653f");
-    coinbase = "eb31ad2d8a89a0ca6935c308d5425730430bc2d63f2573b8";
+    neb.setRequest(new HttpRequest("http://35.182.48.19:8685"));
+    ChainID = 1001;
+    source = new Wallet.Account("25a3a441a34658e7a595a0eda222fa43ac51bd223017d17b420674fb6d0a4d52");
+    coinbase = "n1SAeQRVn33bamxN4ehWUT7JGdxipwn8b17";
 }else if(env == 'testneb1'){
-	neb.setRequest(new HttpRequest("http://35.182.48.19:8685"));
-	ChainID = 1001;
-    source = new Wallet.Account("43181d58178263837a9a6b08f06379a348a5b362bfab3631ac78d2ac771c5df3");
-    coinbase = "0b9cd051a6d7129ab44b17833c63fe4abead40c3714cde6d";
+    neb.setRequest(new HttpRequest("http://35.182.48.19:8685"));
+    ChainID = 1001;
+    source = new Wallet.Account("25a3a441a34658e7a595a0eda222fa43ac51bd223017d17b420674fb6d0a4d52");
+    coinbase = "n1SAeQRVn33bamxN4ehWUT7JGdxipwn8b17";
 }else if(env == "testneb2"){
-	neb.setRequest(new HttpRequest("http://34.205.26.12:8685"));
-	ChainID = 1002;
-    source = new Wallet.Account("43181d58178263837a9a6b08f06379a348a5b362bfab3631ac78d2ac771c5df3");
-    coinbase = "0b9cd051a6d7129ab44b17833c63fe4abead40c3714cde6d";
+    neb.setRequest(new HttpRequest("http://34.205.26.12:8685"));
+    ChainID = 1002;
+    source = new Wallet.Account("25a3a441a34658e7a595a0eda222fa43ac51bd223017d17b420674fb6d0a4d52");
+    coinbase = "n1SAeQRVn33bamxN4ehWUT7JGdxipwn8b17";
 }else if(env == "testneb3"){
     neb.setRequest(new HttpRequest("http://35.177.214.138:8685"));
     ChainID = 1003;
-    source = new Wallet.Account("43181d58178263837a9a6b08f06379a348a5b362bfab3631ac78d2ac771c5df3");
-    coinbase = "0b9cd051a6d7129ab44b17833c63fe4abead40c3714cde6d";
+    source = new Wallet.Account("25a3a441a34658e7a595a0eda222fa43ac51bd223017d17b420674fb6d0a4d52");
+    coinbase = "n1SAeQRVn33bamxN4ehWUT7JGdxipwn8b17";
 }else{
-	console.log("please input correct env local testneb1 testneb2");
-	return;
+    console.log("please input correct env local testneb1 testneb2");
+    return;
 }
 
 var lastnonce = 0;
@@ -61,9 +64,9 @@ function prepareContractCall(testCase, done) {
         var accounts = new Array();
         var values = new Array();
         // if (typeof contractAddr === "undefined") {
-            deploy = Wallet.Account.NewAccount();
-            accounts.push(deploy);
-            values.push(neb.nasToBasic(1));
+        deploy = Wallet.Account.NewAccount();
+        accounts.push(deploy);
+        values.push(neb.nasToBasic(1));
         // }
 
         from = Wallet.Account.NewAccount();
@@ -71,9 +74,10 @@ function prepareContractCall(testCase, done) {
 
         var fromBalance = (typeof testCase.testInput.fromBalance === "undefined") ? neb.nasToBasic(1) : testCase.testInput.fromBalance;
         values.push(fromBalance);
+
         cliamTokens(accounts, values, function () {
             // if (typeof contractAddr === "undefined") {
-                deployContract(done);
+            deployContract(done);
             // } else {
             //     done();
             // }
@@ -105,7 +109,7 @@ function testContractCall(testInput, testExpect, done) {
         if (testInput.sign) {
             tx.signTransaction();
         } else if (testInput.fakeSign) {
-        //repalce the privkey to sign
+            //replcce the privkey to sign
             console.log("this is the right signature:" + tx.sign)
             console.log("repalce the privkey and sign another signatrue...")
             var newAccount = new Wallet.Account("a6e5eb222e4538fce79f5cb8774a72621637c2c9654c8b2525ed1d7e4e73653f");
@@ -199,7 +203,7 @@ function testContractCall(testInput, testExpect, done) {
 
 function cliamTokens(accounts, values, done) {
     for (var i = 0; i < accounts.length; i++) {
-        // console.log("acc:"+accounts[i].getAddressString()+"value:"+values[i]);
+        console.log("acc:"+accounts[i].getAddressString()+" value:"+values[i]);
         sendTransaction(source, accounts[i], values[i], ++lastnonce);
         sleep(30);
     }
@@ -225,7 +229,6 @@ function checkCliamTokens(done) {
             if (lastnonce <= nonce){
                 console.log("cliam tokens success");
                 clearInterval(intervalAccount);
-
                 done();
             }
         });
@@ -247,7 +250,6 @@ function deployContract(done){
     var rawTx = transaction.toProtoString();
 
     // console.log("contract:" + rawTx);
-    
     neb.api.sendRawTransaction(rawTx).then(function (resp) {
         console.log("deploy contract:" + JSON.stringify(resp));
 
@@ -258,17 +260,15 @@ function deployContract(done){
 function checkTransaction(txhash, done){
 
     var retry = 0;
-    var maxRetry = 15;
+    var maxRetry = 45;
 
-    // contract status and get contract_address 
+    // contract status and get contract_address
     var interval = setInterval(function () {
-		// console.log("getTransactionReceipt hash:"+txhash);
-		neb.api.getTransactionReceipt(txhash).then(function (resp) {
+        neb.api.getTransactionReceipt(txhash).then(function (resp) {
             retry++;
 
-			console.log("check transaction status:" + resp.status);
-			
-			if(resp.status && resp.status === 1) {
+            console.log("check transaction status:" + resp.status);
+            if(resp.status && resp.status === 1) {
                 clearInterval(interval);
 
                 if (resp.contract_address) {
@@ -283,7 +283,7 @@ function checkTransaction(txhash, done){
                 }
 
                 done(resp);
-			} else if (resp.status && resp.status === 2) {
+            } else if (resp.status && resp.status === 2) {
                 if (retry > maxRetry) {
                     console.log("check transaction time out");
                     clearInterval(interval);
@@ -291,18 +291,18 @@ function checkTransaction(txhash, done){
                 }
             } else {
                 clearInterval(interval);
-			    console.log("transaction execution failed");
+                console.log("transaction execution failed");
                 done(resp);
             }
-		}).catch(function (err) {
-			retry++;
-			console.log("check transaction not found retry");
-			if (retry > maxRetry) {
-				console.log(JSON.stringify(err.error));
-				clearInterval(interval);
+        }).catch(function (err) {
+            retry++;
+            console.log("check transaction not found retry");
+            if (retry > maxRetry) {
+                console.log(JSON.stringify(err.error));
+                clearInterval(interval);
                 done(err);
-			}
-		});
+            }
+        });
 
     }, 2000);
 }

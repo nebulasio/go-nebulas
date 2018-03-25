@@ -5,7 +5,7 @@
 // var utils = require("../../../cmd/console/neb.js/lib/wallet").Utils;
 
 
-var Wallet = require("../../../cmd/console/neb.js/index.js");
+var Wallet = require("nebulas");
 var HttpRequest = Wallet.HttpRequest
 var utils = Wallet.Utils;
 
