@@ -104,7 +104,7 @@ func (m *Manager) loadKeyFile(file os.FileInfo) (*account, error) {
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"err":     err,
-			"address": addr,
+			"address": keyJSON.Address,
 		}).Error("Failed to parse the address.")
 		return nil, errors.New("failed to parse the address")
 	}
