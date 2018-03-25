@@ -30,7 +30,7 @@ if (env !== "local" && env !== "testneb1" && env !== "testneb2" && env !== "test
     env = "local";
 }
 console.log("env:", env);
-env  = 'testneb2'
+env  = 'local'
 if (env == 'local'){
     neb.setRequest(new HttpRequest("http://127.0.0.1:8685"));//https://testnet.nebulas.io
     ChainID = 100;
@@ -168,7 +168,7 @@ function testContractDeploy(testInput, testExpect, done) {
             tx.gasPrice = testInput.rewritePrice
         } 
         if (testInput.hasOwnProperty("rewriteGasLimit")) {
-            tx.gasLimit = testInput.rewriteGasLImit
+            tx.gasLimit = testInput.rewriteGasLimit
         }
 
         tx.signTransaction();
@@ -200,7 +200,7 @@ function testContractDeploy(testInput, testExpect, done) {
     }).then(function (resp) {
 
         if (true === testExpect.canSendTx) {
-            console.log("send Rax Tx:" + resp);
+            //console.log("send Rax Tx:" + resp);
             expect(resp).to.be.have.property('txhash');
             expect(resp).to.be.have.property('contract_address');
             var toAddr = resp.contract_address;
@@ -783,7 +783,7 @@ describe('contract deploy', function () {
                 canSendTx: true,
                 canSubmitTx: true,
                 canExcuteTx: false,
-                fromBalanceAfterTx: '9999999977584000000',
+                fromBalanceAfterTx: '9999999977711000000',
                 toBalanceAfterTx: '0',
                 transferReward: '22289000000'
             };
@@ -810,7 +810,7 @@ describe('contract deploy', function () {
                 canSendTx: true,
                 canSubmitTx: true,
                 canExcuteTx: false,
-                fromBalanceAfterTx: '9999999977584000000',
+                fromBalanceAfterTx: '9999999977712000000',
                 toBalanceAfterTx: '0',
                 transferReward: '22288000000'
             };
@@ -837,7 +837,7 @@ describe('contract deploy', function () {
                 canSendTx: true,
                 canSubmitTx: true,
                 canExcuteTx: false,
-                fromBalanceAfterTx: '9999999977584000000',
+                fromBalanceAfterTx: '9999999977713000000',
                 toBalanceAfterTx: '0',
                 transferReward: '22287000000'
             };
@@ -864,7 +864,7 @@ describe('contract deploy', function () {
                 canSendTx: true,
                 canSubmitTx: true,
                 canExcuteTx: false,
-                fromBalanceAfterTx: '9999999977584000000',
+                fromBalanceAfterTx: '9999999977772000000',
                 toBalanceAfterTx: '0',
                 transferReward: '22228000000'
             };
@@ -904,7 +904,7 @@ describe('contract deploy', function () {
             });
         });
 
-    it('[gasLimit insufficient] gasLimit = 0', function (done) {
+    it('[gasLimit insufficient] xgasLimit = 0', function (done) {
 
          var testInput = {
             transferValue: 1,
@@ -912,7 +912,7 @@ describe('contract deploy', function () {
             gasLimit: -1,
             gasPrice: -1,
             nonceIncrement: 1,
-            rewriteGasLImit: 0
+            rewriteGasLimit: 0
         };
         //can calc value by previous params
         var testExpect = {
@@ -1081,9 +1081,9 @@ describe('contract deploy', function () {
             canSendTx: true,
             canSubmitTx: true,
             canExcuteTx: false,
-            fromBalanceAfterTx: '9999999979856000000',
+            fromBalanceAfterTx: '9999999979792000000',
             toBalanceAfterTx: '0',
-            transferReward: '20144000000'
+            transferReward: '20208000000'
         };
         prepare((err) => {
             if (err) {
@@ -1243,9 +1243,9 @@ describe('contract deploy', function () {
             canSendTx: true,
             canSubmitTx: true,
             canExcuteTx: false,
-            fromBalanceAfterTx: '9999999976647000000',
+            fromBalanceAfterTx: '9999999976583000000',
             toBalanceAfterTx: '0',
-            transferReward: '23353000000'
+            transferReward: '23417000000'
         };
         prepare((err) => {
             if (err) {
