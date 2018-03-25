@@ -512,7 +512,7 @@ func (dpos *Dpos) checkProposer(tail *core.Block, nowInMs int64) (state.Consensu
 	if consensusState.Proposer() == nil || !consensusState.Proposer().Equals(dpos.miner.Bytes()) {
 		proposer := "nil"
 		if consensusState.Proposer() != nil {
-			proposer = string(consensusState.Proposer().Hex())
+			proposer = consensusState.Proposer().Base58()
 		}
 		logging.VLog().WithFields(logrus.Fields{
 			"tail":     tail,
