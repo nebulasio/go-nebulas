@@ -26,7 +26,6 @@ import (
 	"github.com/nebulasio/go-nebulas/crypto/keystore"
 	"github.com/nebulasio/go-nebulas/net"
 	"github.com/nebulasio/go-nebulas/rpc/pb"
-	"github.com/nebulasio/go-nebulas/util/byteutils"
 	"golang.org/x/net/context"
 )
 
@@ -122,17 +121,14 @@ func (s *AdminService) SendTransaction(ctx context.Context, req *rpcpb.Transacti
 func (s *AdminService) SignHash(ctx context.Context, req *rpcpb.SignHashRequest) (*rpcpb.SignHashResponse, error) {
 	neb := s.server.Neblet()
 
-	hash, err := byteutils.FromHex(req.Hash)
-	if err != nil {
-		return nil, err
-	}
-
+	hash := req.Hash
 	addr, err := core.AddressParse(req.Address)
 	if err != nil {
 		return nil, err
 	}
+	alg := keystore.Algorithm(req.Alg)
 
-	data, err := neb.AccountManager().SignHash(addr, hash)
+	data, err := neb.AccountManager().SignHash(addr, hash, alg)
 	if err != nil {
 		return nil, err
 	}

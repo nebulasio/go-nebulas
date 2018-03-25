@@ -225,13 +225,15 @@ func (n *Neblet) Start() {
 	chainConf := n.config.Chain
 	if chainConf.StartMine {
 		n.consensus.Start()
-		passphrase := n.config.Chain.Passphrase
-		if len(passphrase) == 0 {
-			fmt.Println("***********************************************")
-			fmt.Println("miner address:" + n.config.Chain.Miner)
-			prompt := console.Stdin
-			passphrase, _ = prompt.PromptPassphrase("Enter the miner's passphrase:")
-			fmt.Println("***********************************************")
+		if chainConf.EnableRemoteSignServer == false {
+			passphrase := chainConf.Passphrase
+			if len(passphrase) == 0 {
+				fmt.Println("***********************************************")
+				fmt.Println("miner address:" + n.config.Chain.Miner)
+				prompt := console.Stdin
+				passphrase, _ = prompt.PromptPassphrase("Enter the miner's passphrase:")
+				fmt.Println("***********************************************")
+			}
 		}
 		err := n.consensus.EnableMining(chainConf.Passphrase)
 		if err != nil {
@@ -246,7 +248,9 @@ func (n *Neblet) Start() {
 		n.blockChain.StartActiveSync()
 	} else {
 		logging.CLog().Info("This is a seed node.")
-		n.Consensus().ResumeMining()
+		if chainConf.StartMine {
+			n.Consensus().ResumeMining()
+		}
 	}
 
 	metricsNebstartGauge.Update(1)

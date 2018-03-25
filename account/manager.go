@@ -21,6 +21,8 @@ package account
 import (
 	"errors"
 
+	"github.com/nebulasio/go-nebulas/util/byteutils"
+
 	"path/filepath"
 
 	"time"
@@ -313,7 +315,7 @@ func (m *Manager) Remove(addr *core.Address, passphrase []byte) error {
 }
 
 // SignHash sign hash
-func (m *Manager) SignHash(addr *core.Address, hash []byte) ([]byte, error) {
+func (m *Manager) SignHash(addr *core.Address, hash byteutils.Hash, alg keystore.Algorithm) ([]byte, error) {
 	key, err := m.ks.GetUnlocked(addr.String())
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
@@ -324,7 +326,7 @@ func (m *Manager) SignHash(addr *core.Address, hash []byte) ([]byte, error) {
 		return nil, ErrAccountIsLocked
 	}
 
-	signature, err := crypto.NewSignature(m.signatureAlg)
+	signature, err := crypto.NewSignature(alg)
 	if err != nil {
 		return nil, err
 	}

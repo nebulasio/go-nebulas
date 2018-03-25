@@ -253,6 +253,12 @@ func NewBlock(chainID uint32, coinbase *Address, parent *Block) (*Block, error) 
 	return block, nil
 }
 
+// SetSignature set the signature
+func (block *Block) SetSignature(alg keystore.Algorithm, sign byteutils.Hash) {
+	block.header.alg = alg
+	block.header.sign = sign
+}
+
 // Sign sign transaction,sign algorithm is
 func (block *Block) Sign(signature keystore.Signature) error {
 	if signature == nil {
@@ -262,8 +268,7 @@ func (block *Block) Sign(signature keystore.Signature) error {
 	if err != nil {
 		return err
 	}
-	block.header.alg = keystore.Algorithm(signature.Algorithm())
-	block.header.sign = sign
+	block.SetSignature(keystore.Algorithm(signature.Algorithm()), sign)
 	return nil
 }
 

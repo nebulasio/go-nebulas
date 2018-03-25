@@ -525,7 +525,10 @@ message SignHashRequest {
     string address = 1;
 
     // sign msg
-    string hash = 2;
+    bytes hash = 2;
+
+    // sign algorithm
+    uint32 alg = 3;
 }
 
 message SignHashResponse {

@@ -22,6 +22,8 @@ import (
 	"errors"
 	"time"
 
+	"github.com/nebulasio/go-nebulas/crypto/keystore"
+
 	"github.com/nebulasio/go-nebulas/util/byteutils"
 
 	"github.com/nebulasio/go-nebulas/core/state"
@@ -223,7 +225,7 @@ type AccountManager interface {
 	Unlock(*Address, []byte, time.Duration) error
 	Lock(*Address) error
 
-	SignHash(*Address, []byte) ([]byte, error)
+	SignHash(*Address, byteutils.Hash, keystore.Algorithm) ([]byte, error)
 	SignBlock(*Address, *Block) error
 	SignTransaction(*Address, *Transaction) error
 	SignTransactionWithPassphrase(*Address, *Transaction, []byte) error

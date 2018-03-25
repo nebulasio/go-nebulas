@@ -22,7 +22,12 @@ import (
 	"errors"
 	"time"
 
+	"github.com/nebulasio/go-nebulas/rpc"
+	"github.com/nebulasio/go-nebulas/rpc/pb"
+	"golang.org/x/net/context"
+
 	"github.com/nebulasio/go-nebulas/core/state"
+	"github.com/nebulasio/go-nebulas/crypto/keystore"
 
 	lru "github.com/hashicorp/golang-lru"
 	"github.com/nebulasio/go-nebulas/core"
@@ -68,8 +73,10 @@ type Dpos struct {
 	ns    net.Service
 	am    core.AccountManager
 
-	coinbase *core.Address
-	miner    *core.Address
+	coinbase               *core.Address
+	miner                  *core.Address
+	enableRemoteSignServer bool
+	remoteSignServer       string
 
 	slot *lru.Cache
 
@@ -113,6 +120,8 @@ func (dpos *Dpos) Setup(neblet core.Neblet) error {
 		}
 		dpos.coinbase = coinbase
 		dpos.miner = miner
+		dpos.enableRemoteSignServer = chainConfig.EnableRemoteSignServer
+		dpos.remoteSignServer = chainConfig.RemoteSignServer
 	}
 
 	slot, err := lru.NewWithEvict(128, func(key interface{}, value interface{}) {
@@ -146,7 +155,7 @@ func (dpos *Dpos) Stop() {
 
 // EnableMining start the consensus
 func (dpos *Dpos) EnableMining(passphrase string) error {
-	if err := dpos.am.Unlock(dpos.miner, []byte(passphrase), DefaultMaxUnlockDuration); err != nil {
+	if err := dpos.unlock(passphrase); err != nil {
 		return err
 	}
 	dpos.enable = true
@@ -372,6 +381,38 @@ func (dpos *Dpos) VerifyBlock(block *core.Block) error {
 	return nil
 }
 
+func (dpos *Dpos) signBlock(block *core.Block) error {
+	if dpos.enableRemoteSignServer == true {
+		conn, err := rpc.Dial(dpos.remoteSignServer)
+		if err != nil {
+			return err
+		}
+		adminService := rpcpb.NewAdminServiceClient(conn)
+		alg := keystore.SECP256K1
+		resp, err := adminService.SignHash(
+			context.Background(),
+			&rpcpb.SignHashRequest{
+				Address: dpos.miner.String(),
+				Hash:    block.Hash(),
+				Alg:     uint32(alg),
+			})
+		if err != nil {
+			return err
+		}
+		block.SetSignature(alg, resp.Data)
+		return nil
+	}
+	return dpos.am.SignBlock(dpos.miner, block)
+}
+
+func (dpos *Dpos) unlock(passphrase string) error {
+	if dpos.enableRemoteSignServer == false {
+		return dpos.am.Unlock(dpos.miner, []byte(passphrase), DefaultMaxUnlockDuration)
+	}
+	return nil
+
+}
+
 func (dpos *Dpos) newBlock(tail *core.Block, consensusState state.ConsensusState, deadlineInMs int64) (*core.Block, error) {
 	startAt := time.Now().Unix()
 	block, err := core.NewBlock(dpos.chain.ChainID(), dpos.coinbase, tail)
@@ -401,7 +442,7 @@ func (dpos *Dpos) newBlock(tail *core.Block, consensusState state.ConsensusState
 		go block.ReturnTransactions()
 		return nil, err
 	}
-	if err = dpos.am.SignBlock(dpos.miner, block); err != nil {
+	if err = dpos.signBlock(block); err != nil {
 		logging.CLog().WithFields(logrus.Fields{
 			"miner": dpos.miner,
 			"block": block,

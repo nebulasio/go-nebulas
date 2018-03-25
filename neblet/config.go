@@ -36,20 +36,11 @@ var (
 // LoadConfig loads configuration from the file.
 func LoadConfig(file string) *nebletpb.Config {
 	var content string
-	if len(file) > 0 {
-		if !pathExist(file) {
-			CreateDefaultConfigFile(file)
-		}
-		b, err := ioutil.ReadFile(file)
-		if err != nil {
-			logging.CLog().Fatalf("Failed to read the config file: %s. error: %s", file, err)
-
-		}
-
-		content = string(b)
-	} else {
-		content = defaultConfig()
+	b, err := ioutil.ReadFile(file)
+	if err != nil {
+		logging.CLog().Fatalf("Failed to read the config file: %s. error: %s", file, err)
 	}
+	content = string(b)
 
 	pb := new(nebletpb.Config)
 	if err := proto.UnmarshalText(content, pb); err != nil {
@@ -67,9 +58,9 @@ func defaultConfig() string {
 	chain {
 		chain_id: 100
 		datadir: "data.db"
-		genesis: "conf/default/genesis.conf"
+		genesis: "conf/genesis.conf"
 		keydir: "keydir"
-		coinbase: "eb31ad2d8a89a0ca6935c308d5425730430bc2d63f2573b8"
+		start_mine: false
 		signature_ciphers: ["ECC_SECP256K1"]
 	}
 

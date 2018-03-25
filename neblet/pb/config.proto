@@ -58,9 +58,8 @@ message ChainConfig {
     // Key dir.
     string keydir = 12;
 
-    // start mine at launch
+    // Start mine at launch
     bool start_mine = 20;
-
     // Coinbase.
     string coinbase = 21;
     // Miner.
@@ -68,13 +67,18 @@ message ChainConfig {
     // Passphrase.
     string passphrase = 23;
 
+    // Enable remote sign server
+    bool enable_remote_sign_server = 24;
+    // Remote sign server 
+    string remote_sign_server = 25;
+
     // Lowest GasPrice.
-    string gas_price = 24;
+    string gas_price = 26;
     // Max GasLimit.
-    string gas_limit = 25;
+    string gas_limit = 27;
 
     // Supported signature cipher list. ["ECC_SECP256K1"]
-    repeated string signature_ciphers = 26;
+    repeated string signature_ciphers = 28;
 }
 
 message RPCConfig {
