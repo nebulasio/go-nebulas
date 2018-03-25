@@ -43,11 +43,13 @@ const (
 const (
 	// AddressPaddingLength the length of headpadding in byte
 	AddressPaddingLength = 1
-	AddressPaddingIndex  = 0
+	// AddressPaddingIndex the index of headpadding bytes
+	AddressPaddingIndex = 0
 
 	// AddressTypeLength the length of address type in byte
 	AddressTypeLength = 1
-	AddressTypeIndex  = 1
+	// AddressTypeIndex the index of address type bytes
+	AddressTypeIndex = 1
 
 	// AddressDataLength the length of data of address in byte.
 	AddressDataLength = 20
@@ -56,17 +58,18 @@ const (
 	AddressChecksumLength = 4
 
 	// AddressLength the length of address in byte.
-	AddressLength  = AddressPaddingLength + AddressTypeLength + AddressDataLength + AddressChecksumLength
+	AddressLength = AddressPaddingLength + AddressTypeLength + AddressDataLength + AddressChecksumLength
+	// AddressDataEnd the end of the address data
 	AddressDataEnd = 22
 
 	// AddressBase58Length length of base58(Address.address)
 	AddressBase58Length = 35
-
+	// PublicKeyDataLength length of public key
 	PublicKeyDataLength = 65
 )
 
+// Address design of nebulas address
 /*
-
 [Account Address]
 Similar to Bitcoin and Ethereum, Nebulas also adopts elliptic curve algorithm as its basic encryption algorithm for Nebulas accounts.
 The address is derived from **public key**, which is in turn derived from the **private key** that encrypted with user's **passphrase**.

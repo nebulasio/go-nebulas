@@ -668,16 +668,23 @@ func (bc *BlockChain) GasPrice() *util.Uint128 {
 	return gasPrice
 }
 
+// SimulateResult the result of simulating transaction execution
+type SimulateResult struct {
+	GasUsed *util.Uint128
+	Msg     string
+	Err     error
+}
+
 // SimulateTransactionExecution execute transaction in sandbox and rollback all changes, used to EstimateGas and Call api.
-func (bc *BlockChain) SimulateTransactionExecution(tx *Transaction) (*util.Uint128, string, error, error) {
+func (bc *BlockChain) SimulateTransactionExecution(tx *Transaction) (*SimulateResult, error) {
 	if tx == nil {
-		return nil, "", nil, ErrInvalidArgument
+		return nil, ErrInvalidArgument
 	}
 
 	// create block.
 	block, err := bc.NewBlock(GenesisCoinbase)
 	if err != nil {
-		return nil, "", nil, err
+		return nil, err
 	}
 	defer block.RollBack()
 

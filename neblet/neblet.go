@@ -357,6 +357,7 @@ func (n *Neblet) SyncService() *nsync.Service {
 	return n.syncService
 }
 
+// IsActiveSyncing return if the neb is syncing blocks
 func (n *Neblet) IsActiveSyncing() bool {
 	if n.syncService == nil {
 		return false

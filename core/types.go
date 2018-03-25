@@ -50,6 +50,7 @@ const (
 )
 
 var (
+	// PublicFuncNameChecker in smart contract
 	PublicFuncNameChecker = regexp.MustCompile("^[a-zA-Z$][A-Za-z0-9_$]*$")
 )
 

@@ -102,15 +102,15 @@ func (s *APIService) Call(ctx context.Context, req *rpcpb.TransactionRequest) (*
 		return nil, err
 	}
 
-	estimateGas, result, exeErr, err := neb.BlockChain().SimulateTransactionExecution(tx)
-
+	result, err := neb.BlockChain().SimulateTransactionExecution(tx)
 	if err != nil {
 		return nil, err
 	}
+
 	return &rpcpb.CallResponse{
-		Result:      result,
-		ExecuteErr:  exeErr.Error(),
-		EstimateGas: estimateGas.String(),
+		Result:      result.Msg,
+		ExecuteErr:  result.Err.Error(),
+		EstimateGas: result.GasUsed.String(),
 	}, nil
 }
 
@@ -434,16 +434,16 @@ func (s *APIService) EstimateGas(ctx context.Context, req *rpcpb.TransactionRequ
 		return nil, err
 	}
 
-	estimateGas, _, exeErr, err := neb.BlockChain().SimulateTransactionExecution(tx)
+	result, err := neb.BlockChain().SimulateTransactionExecution(tx)
 	if err != nil {
 		return nil, err
 	}
 
 	errMsg := ""
-	if exeErr != nil {
-		errMsg = exeErr.Error()
+	if result.Err != nil {
+		errMsg = result.Err.Error()
 	}
-	return &rpcpb.GasResponse{Gas: estimateGas.String(), Err: errMsg}, nil
+	return &rpcpb.GasResponse{Gas: result.GasUsed.String(), Err: errMsg}, nil
 }
 
 // GetEventsByHash return events by tx hash.

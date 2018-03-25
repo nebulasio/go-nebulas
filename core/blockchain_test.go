@@ -157,10 +157,10 @@ func TestBlockChain_SimulateTransactionExecution(t *testing.T) {
 
 	expectedGasUsed, _ := util.NewUint128FromInt(20000)
 
-	gasUsed, _, exeErr, err := bc.SimulateTransactionExecution(tx)
+	result, err := bc.SimulateTransactionExecution(tx)
 	assert.Nil(t, err)
-	assert.Equal(t, ErrInsufficientBalance, exeErr)
-	assert.Equal(t, expectedGasUsed, gasUsed)
+	assert.Equal(t, ErrInsufficientBalance, result.Err)
+	assert.Equal(t, expectedGasUsed, result.GasUsed)
 }
 
 func TestTailBlock(t *testing.T) {

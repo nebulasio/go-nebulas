@@ -451,11 +451,12 @@ func TestTransaction_VerifyExecution(t *testing.T) {
 	// tx execution err
 	executionErrTx := mockCallTransaction(bc.chainID, 0, "test", "")
 	executionErrTx.value = util.NewUint128()
-	gasUsed, _, exeErr, err := bc.SimulateTransactionExecution(executionErrTx)
+	result, err := bc.SimulateTransactionExecution(executionErrTx)
 	assert.Nil(t, err)
-	assert.Equal(t, ErrContractCheckFailed, exeErr)
-	coinbaseBalance, _ = executionErrTx.gasPrice.Mul(gasUsed)
-	balanceConsume, err = executionErrTx.gasPrice.Mul(gasUsed)
+	assert.Equal(t, ErrContractCheckFailed, result.Err)
+	coinbaseBalance, err = executionErrTx.gasPrice.Mul(result.GasUsed)
+	assert.Nil(t, err)
+	balanceConsume, err = executionErrTx.gasPrice.Mul(result.GasUsed)
 	assert.Nil(t, err)
 	afterBalance, err = balance.Sub(balanceConsume)
 	assert.Nil(t, err)
@@ -464,7 +465,7 @@ func TestTransaction_VerifyExecution(t *testing.T) {
 		name:            "execution err tx",
 		tx:              executionErrTx,
 		fromBalance:     balance,
-		gasUsed:         gasUsed,
+		gasUsed:         result.GasUsed,
 		afterBalance:    afterBalance,
 		toBalance:       util.NewUint128(),
 		coinbaseBalance: coinbaseBalance,
@@ -500,15 +501,15 @@ func TestTransaction_VerifyExecution(t *testing.T) {
 
 	// tx execution equal fromBalance after execution
 	executionEqualBalanceTx := mockDeployTransaction(bc.chainID, 0)
-	gasUsed, _, exeErr, err = bc.SimulateTransactionExecution(executionEqualBalanceTx)
+	result, err = bc.SimulateTransactionExecution(executionEqualBalanceTx)
 	assert.Nil(t, err)
-	assert.Equal(t, ErrInsufficientBalance, exeErr)
-	executionEqualBalanceTx.gasLimit = gasUsed
-	t.Log("gasUsed:", gasUsed)
-	coinbaseBalance, err = executionInsufficientBalanceTx.gasPrice.Mul(gasUsed)
+	assert.Equal(t, ErrInsufficientBalance, result.Err)
+	executionEqualBalanceTx.gasLimit = result.GasUsed
+	t.Log("gasUsed:", result.GasUsed)
+	coinbaseBalance, err = executionInsufficientBalanceTx.gasPrice.Mul(result.GasUsed)
 	assert.Nil(t, err)
 	executionEqualBalanceTx.value = balance
-	gasCost, err := executionEqualBalanceTx.gasPrice.Mul(gasUsed)
+	gasCost, err := executionEqualBalanceTx.gasPrice.Mul(result.GasUsed)
 	assert.Nil(t, err)
 	fromBalance, err := gasCost.Add(balance)
 	assert.Nil(t, err)
@@ -516,7 +517,7 @@ func TestTransaction_VerifyExecution(t *testing.T) {
 		name:            "execution equal fromBalance after execution tx",
 		tx:              executionEqualBalanceTx,
 		fromBalance:     fromBalance,
-		gasUsed:         gasUsed,
+		gasUsed:         result.GasUsed,
 		afterBalance:    balance,
 		toBalance:       balance,
 		coinbaseBalance: coinbaseBalance,
@@ -662,11 +663,11 @@ func TestTransaction_SimulateExecution(t *testing.T) {
 			assert.Nil(t, err)
 			coinbaseBefore := coinbaseAcc.Balance()
 
-			gasUsed, result, exeErr, err := tt.tx.simulateExecution(block)
+			result, err := tt.tx.simulateExecution(block)
 
-			assert.Equal(t, tt.wanted, exeErr)
-			assert.Equal(t, tt.result, result)
-			assert.Equal(t, tt.gasUsed, gasUsed)
+			assert.Equal(t, tt.wanted, result.Err)
+			assert.Equal(t, tt.result, result.Msg)
+			assert.Equal(t, tt.gasUsed, result.GasUsed)
 			assert.Nil(t, err)
 
 			fromAcc, err = block.worldState.GetOrCreateUserAccount(tt.tx.from.address)

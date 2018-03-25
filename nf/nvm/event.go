@@ -28,6 +28,7 @@ import (
 )
 
 const (
+	// EventBaseGasCount the gas count of a new event
 	EventBaseGasCount = 20
 )
 

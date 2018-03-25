@@ -592,7 +592,7 @@ func TestTypeScriptExecution(t *testing.T) {
 	}
 }
 
-func Deprecated_TestRunMozillaJSTestSuite(t *testing.T) {
+func DeprecatedTestRunMozillaJSTestSuite(t *testing.T) {
 	mem, _ := storage.NewMemoryStorage()
 	context, _ := state.NewWorldState(dpos.NewDpos(), mem)
 	owner, err := context.GetOrCreateUserAccount([]byte("account1"))

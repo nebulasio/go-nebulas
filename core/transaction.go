@@ -512,11 +512,11 @@ func VerifyExecution(tx *Transaction, block *Block, ws WorldState) (bool, error)
 }
 
 // simulateExecution simulate execution and return gasUsed, executionResult and executionErr, sysErr if occurred.
-func (tx *Transaction) simulateExecution(block *Block) (*util.Uint128, string, error, error) {
+func (tx *Transaction) simulateExecution(block *Block) (*SimulateResult, error) {
 	// hash is necessary in nvm
 	hash, err := tx.calHash()
 	if err != nil {
-		return nil, "", nil, err
+		return nil, err
 	}
 	tx.hash = hash
 
@@ -526,23 +526,23 @@ func (tx *Transaction) simulateExecution(block *Block) (*util.Uint128, string, e
 	// Get from account
 	fromAcc, err := ws.GetOrCreateUserAccount(tx.from.address)
 	if err != nil {
-		return nil, "", nil, err
+		return nil, err
 	}
 
 	// calculate min gas.
 	gasUsed, err := tx.GasCountOfTxBase()
 	if err != nil {
-		return util.NewUint128(), "GasCountOfTxBase error", err, nil
+		return &SimulateResult{util.NewUint128(), "GasCountOfTxBase error", err}, nil
 	}
 
 	payload, err := tx.LoadPayload()
 	if err != nil {
-		return gasUsed, "Invalid payload", err, nil
+		return &SimulateResult{gasUsed, "Invalid payload", err}, nil
 	}
 
 	payloasGas, err := gasUsed.Add(payload.BaseGasCount())
 	if err != nil {
-		return gasUsed, "GasCountOfTxBase + GasCountOfPayloadBase error", err, nil
+		return &SimulateResult{gasUsed, "GasCountOfTxBase + GasCountOfPayloadBase error", err}, nil
 	}
 	gasUsed = payloasGas
 
@@ -557,11 +557,11 @@ func (tx *Transaction) simulateExecution(block *Block) (*util.Uint128, string, e
 		// transfer value to smart contract.
 		toAcc, err := ws.GetOrCreateUserAccount(tx.to.address)
 		if err != nil {
-			return nil, "", nil, err
+			return nil, err
 		}
 		err = toAcc.AddBalance(tx.value)
 		if err != nil {
-			return gasUsed, "Too big value", err, nil
+			return &SimulateResult{gasUsed, "Too big value", err}, nil
 		}
 
 		// execute.
@@ -571,18 +571,18 @@ func (tx *Transaction) simulateExecution(block *Block) (*util.Uint128, string, e
 		// add gas.
 		executedGas, err := gasUsed.Add(gasExecution)
 		if err != nil {
-			return gasUsed, "CalFinalGasCount error", err, nil
+			return &SimulateResult{gasUsed, "CalFinalGasCount error", err}, nil
 		}
 		gasUsed = executedGas
 
 		if exeErr != nil {
-			return gasUsed, result, exeErr, nil
+			return &SimulateResult{gasUsed, result, exeErr}, nil
 		}
 	}
 
 	// check balance.
 	err = checkBalanceForGasUsedAndValue(ws, fromAcc, tx.value, gasUsed, tx.gasPrice)
-	return gasUsed, result, err, nil
+	return &SimulateResult{gasUsed, result, err}, nil
 }
 
 // checkBalanceForGasUsedAndValue check balance >= gasUsed * gasPrice + value.

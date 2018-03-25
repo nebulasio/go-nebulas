@@ -44,9 +44,10 @@ var (
 	// BlockHashLength define a const of the length of Hash of Block in byte.
 	BlockHashLength = 32
 
-	//Parallel num
-	ParallelNum = 32
+	// ParallelNum num
+	ParallelNum = 32 // TODO: 1
 
+	// VerifyExecutionTimeout 0 means unlimited
 	VerifyExecutionTimeout = 0
 
 	// BlockReward given to coinbase
