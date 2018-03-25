@@ -401,6 +401,11 @@ func (pool *TransactionPool) Del(tx *Transaction) {
 		for left.Nonce() <= tx.Nonce() {
 			bucket.PopLeft()
 			delete(pool.all, left.Hash().Hex())
+
+			logging.VLog().WithFields(logrus.Fields{
+				"tx": "tx",
+			}).Info("Delete transaction.")
+
 			if bucket.Len() > 0 {
 				left = bucket.Left().(*Transaction)
 			} else {
