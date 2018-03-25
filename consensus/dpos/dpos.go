@@ -396,6 +396,7 @@ func (dpos *Dpos) signBlock(block *core.Block) error {
 				Hash:    block.Hash(),
 				Alg:     uint32(alg),
 			})
+		conn.Close()
 		if err != nil {
 			return err
 		}
