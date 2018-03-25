@@ -223,6 +223,7 @@ type AccountManager interface {
 	Unlock(*Address, []byte, time.Duration) error
 	Lock(*Address) error
 
+	SignHash(*Address, []byte) ([]byte, error)
 	SignBlock(*Address, *Block) error
 	SignTransaction(*Address, *Transaction) error
 	SignTransactionWithPassphrase(*Address, *Transaction, []byte) error

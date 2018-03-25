@@ -128,7 +128,7 @@ service ApiService {
 
 service AdminService {
     // Accounts return account list.
-    rpc Accounts (NonParamsRequest) returns (AccountsResponse) { // TODO move to admin
+    rpc Accounts (NonParamsRequest) returns (AccountsResponse) {
         option (google.api.http) = {
             get: "/v1/admin/accounts"
         };
@@ -142,8 +142,8 @@ service AdminService {
         };
     }
 
-       // UnlockAccount unlock account with passphrase
-       rpc UnlockAccount(UnlockAccountRequest) returns (UnlockAccountResponse) {
+    // UnlockAccount unlock account with passphrase
+    rpc UnlockAccount(UnlockAccountRequest) returns (UnlockAccountResponse) {
         option (google.api.http) = {
             post: "/v1/admin/account/unlock"
             body: "*"
@@ -159,9 +159,17 @@ service AdminService {
     }
 
     // Verify, sign, and send the transaction.
-	rpc SendTransaction (TransactionRequest) returns (SendTransactionResponse) { // TODO move to admin
+	rpc SendTransaction (TransactionRequest) returns (SendTransactionResponse) {
 		option (google.api.http) = {
             post: "/v1/admin/transaction"
+            body: "*"
+        };
+    }
+
+    // Sign sign msg
+    rpc SignHash(SignHashRequest) returns (SignHashResponse) {
+        option (google.api.http) = {
+            post: "/v1/admin/sign/hash"
             body: "*"
         };
     }
@@ -198,7 +206,7 @@ service AdminService {
     }
 
     // Return the p2p node info.
-    rpc NodeInfo (NonParamsRequest) returns (NodeInfoResponse) { // TODO move to admin
+    rpc NodeInfo (NonParamsRequest) returns (NodeInfoResponse) {
         option (google.api.http) = {
             get: "/v1/admin/nodeinfo"
         };
@@ -321,18 +329,7 @@ message ByBlockHeightRequest {
 // Response message of GetDynastyRequest rpc
 message GetDynastyResponse {
 	repeated string miners = 1;
-}	
-
-// Response message of GetDelegateVoters rpc
-message GetDelegateVotersRequest {
-    string delegatee = 1;
-    uint64 height = 2;
-}	
-
-// Response message of GetDelegateVoters rpc
-message GetDelegateVotersResponse {
-	repeated string voters = 1;
-}	
+}
 
 // Request message of SendTransaction rpc.
 message TransactionRequest {
@@ -520,6 +517,19 @@ message LockAccountRequest {
 
 message LockAccountResponse {
     bool result = 1;
+}
+
+message SignHashRequest {
+
+    // sign address
+    string address = 1;
+
+    // sign msg
+    string hash = 2;
+}
+
+message SignHashResponse {
+    bytes data = 1;
 }
 
 message SignTransactionPassphraseRequest {

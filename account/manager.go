@@ -312,6 +312,34 @@ func (m *Manager) Remove(addr *core.Address, passphrase []byte) error {
 	return nil
 }
 
+// SignHash sign hash
+func (m *Manager) SignHash(addr *core.Address, hash []byte) ([]byte, error) {
+	key, err := m.ks.GetUnlocked(addr.String())
+	if err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"err":  err,
+			"addr": addr,
+			"hash": hash,
+		}).Error("sign address locked")
+		return nil, ErrAccountIsLocked
+	}
+
+	signature, err := crypto.NewSignature(m.signatureAlg)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := signature.InitSign(key.(keystore.PrivateKey)); err != nil {
+		return nil, err
+	}
+
+	signData, err := signature.Sign(hash)
+	if err != nil {
+		return nil, err
+	}
+	return signData, nil
+}
+
 // SignTransaction sign transaction with the specified algorithm
 func (m *Manager) SignTransaction(addr *core.Address, tx *core.Transaction) error {
 	// check sign addr is tx's from addr

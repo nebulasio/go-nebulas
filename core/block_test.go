@@ -190,6 +190,7 @@ func (m mockManager) Accounts() []*Address                { return nil }
 func (m mockManager) Unlock(addr *Address, passphrase []byte, expire time.Duration) error { return nil }
 func (m mockManager) Lock(addr *Address) error                                            { return nil }
 
+func (m mockManager) SignHash(addr *Address, hash []byte) ([]byte, error)                { return nil, nil }
 func (m mockManager) SignBlock(addr *Address, block *Block) error                        { return nil }
 func (m mockManager) SignTransaction(*Address, *Transaction) error                       { return nil }
 func (m mockManager) SignTransactionWithPassphrase(*Address, *Transaction, []byte) error { return nil }
