@@ -371,7 +371,7 @@ func submitTx(tx *Transaction, block *Block, ws WorldState, gas *util.Uint128, e
 			"tx":    tx,
 			"gas":   gas,
 			"block": block,
-		}).Error("Failed to record gas, unexpected error") // TODO: metrics, shit happens
+		}).Error("Failed to record gas, unexpected error")
 		go metricsUnexpectedBehavior.Update(1)
 		return true, err
 	}
@@ -381,7 +381,7 @@ func submitTx(tx *Transaction, block *Block, ws WorldState, gas *util.Uint128, e
 			"tx":    tx,
 			"gas":   gas,
 			"block": block,
-		}).Error("Failed to record result event, unexpected error") // TODO: metrics, shit happens
+		}).Error("Failed to record result event, unexpected error")
 		go metricsUnexpectedBehavior.Update(1)
 		return true, err
 	}
@@ -431,8 +431,6 @@ func VerifyExecution(tx *Transaction, block *Block, ws WorldState) (bool, error)
 	}
 
 	// !!!!!!Attention: all txs passed here will be on chain.
-	// TODO: add metrics, record tx count
-	go metricsTxsAcceptedInPackingBlock.Inc(1)
 
 	// step3. check payload vaild.
 	payload, payloadErr := tx.LoadPayload()
@@ -514,7 +512,7 @@ func VerifyExecution(tx *Transaction, block *Block, ws WorldState) (bool, error)
 }
 
 // simulateExecution simulate execution and return gasUsed, executionResult and executionErr, sysErr if occurred.
-func (tx *Transaction) simulateExecution(block *Block) (*util.Uint128, string, error, error) { // TODO check the logic
+func (tx *Transaction) simulateExecution(block *Block) (*util.Uint128, string, error, error) {
 	// hash is necessary in nvm
 	hash, err := tx.calHash()
 	if err != nil {
@@ -637,8 +635,8 @@ func (tx *Transaction) recordResultEvent(gasUsed *util.Uint128, err error, ws Wo
 		Topic: TopicTransactionExecutionResult,
 		Data:  string(txData),
 	}
-	// TODO: make sure RecordEvent won't return logic err
-	return ws.RecordEvent(tx.hash, event)
+	ws.RecordEvent(tx.hash, event)
+	return nil
 }
 
 // Sign sign transaction,sign algorithm is

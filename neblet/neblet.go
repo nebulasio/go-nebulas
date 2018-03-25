@@ -225,7 +225,7 @@ func (n *Neblet) Start() {
 	chainConf := n.config.Chain
 	if chainConf.StartMine {
 		n.consensus.Start()
-		passphrase := n.config.Chain.Passphrase // TODO passphrase shouldn't appear in Config, use -p
+		passphrase := n.config.Chain.Passphrase
 		if len(passphrase) == 0 {
 			fmt.Println("***********************************************")
 			fmt.Println("miner address:" + n.config.Chain.Miner)

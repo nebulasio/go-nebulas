@@ -408,7 +408,7 @@ func (s *APIService) Subscribe(req *rpcpb.SubscribeRequest, gs rpcpb.ApiService_
 	var err error
 	for {
 		select {
-		case <-gs.Context().Done(): // TODO: @roy @fengzi add test
+		case <-gs.Context().Done():
 			return gs.Context().Err()
 		case event := <-eventSub.EventChan():
 			err = gs.Send(&rpcpb.SubscribeResponse{Topic: event.Topic, Data: event.Data})

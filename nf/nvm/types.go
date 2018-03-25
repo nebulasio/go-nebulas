@@ -85,5 +85,5 @@ type Account interface {
 type WorldState interface {
 	GetOrCreateUserAccount(addr byteutils.Hash) (state.Account, error)
 	GetTx(txHash byteutils.Hash) ([]byte, error)
-	RecordEvent(txHash byteutils.Hash, event *state.Event) error
+	RecordEvent(txHash byteutils.Hash, event *state.Event)
 }

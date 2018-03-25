@@ -147,7 +147,7 @@ type WorldState interface {
 	GetTx(txHash byteutils.Hash) ([]byte, error)
 	PutTx(txHash byteutils.Hash, txBytes []byte) error
 
-	RecordEvent(txHash byteutils.Hash, event *Event) error
+	RecordEvent(txHash byteutils.Hash, event *Event)
 	FetchEvents(byteutils.Hash) ([]*Event, error)
 
 	Dynasty() ([]byteutils.Hash, error)
@@ -176,7 +176,7 @@ type TxWorldState interface {
 	GetTx(txHash byteutils.Hash) ([]byte, error)
 	PutTx(txHash byteutils.Hash, txBytes []byte) error
 
-	RecordEvent(txHash byteutils.Hash, event *Event) error
+	RecordEvent(txHash byteutils.Hash, event *Event)
 	FetchEvents(byteutils.Hash) ([]*Event, error)
 
 	Dynasty() ([]byteutils.Hash, error)

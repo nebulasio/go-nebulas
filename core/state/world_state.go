@@ -464,13 +464,12 @@ func (s *states) PutTx(txHash byteutils.Hash, txBytes []byte) error {
 	return nil
 }
 
-func (s *states) RecordEvent(txHash byteutils.Hash, event *Event) error {
+func (s *states) RecordEvent(txHash byteutils.Hash, event *Event) {
 	events, ok := s.events[txHash.String()]
 	if !ok {
 		events = make([]*Event, 0)
 	}
 	s.events[txHash.String()] = append(events, event)
-	return nil
 }
 
 func (s *states) FetchEvents(txHash byteutils.Hash) ([]*Event, error) {

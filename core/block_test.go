@@ -541,7 +541,7 @@ func TestBlock_fetchEvents(t *testing.T) {
 	txWorldState, err := tail.worldState.Prepare(byteutils.Hex(tx.Hash()))
 	assert.Nil(t, err)
 	for _, event := range events {
-		assert.Nil(t, txWorldState.RecordEvent(tx.Hash(), event))
+		txWorldState.RecordEvent(tx.Hash(), event)
 	}
 	_, err = txWorldState.CheckAndUpdate()
 	assert.Nil(t, err)
