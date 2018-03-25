@@ -1,65 +1,64 @@
 'use strict';
 
-// var HttpRequest = require("../../node-request");
-// var Wallet = require("../../../cmd/console/neb.js/lib/wallet");
-// var utils = require("../../../cmd/console/neb.js/lib/wallet").Utils;
+var expect = require('chai').expect;
+var BigNumber = require('bignumber.js');
 
-
-var Wallet = require("nebulas");
+var Wallet;
+try {
+    Wallet = require("../../neb.js");
+} catch (e) {
+    Wallet = require("nebulas");
+}
 var HttpRequest = Wallet.HttpRequest
 var utils = Wallet.Utils;
-
-// var Wallet = require("nebulas");
-
 var Neb = Wallet.Neb;
-var neb = new Neb();
 var Account = Wallet.Account;
 var Transaction = Wallet.Transaction;
 var Unit = Wallet.Unit;
 
-var expect = require('chai').expect;
-var BigNumber = require('bignumber.js');
-neb.setRequest(new HttpRequest("http://localhost:8685"));
-var ChainID = 100;
-var sourceAccount = new Account("a6e5eb290e1438fce79f5cb8774a72621637c2c9654c8b2525ed1d7e4e73653f");
-/*
- * make sure every node of testnet has the same coinbase, and substitute the address below
- */
-var coinbase = "eb31ad2d8a89a0ca6935c308d5425730430bc2d63f2573b8";
+// global vars.
+var ChainID;
+var sourceAccount;
+var coinbase;
 var coinState;
+var apiEndPoint;
 
+// start neb.
+var neb = new Neb();
 
 // mocha cases/contract/xxx testneb1 -t 200000
 var args = process.argv.splice(2);
 var env = args[1];
-if (env !== "local" && env !== "testneb1" && env !== "testneb2" && env !== "testneb3") {
-    // env = "local";
-    env = "testneb3";
-}
-console.log("env:", env);
-
-
 if (env === 'testneb1') {
-    neb.setRequest(new HttpRequest("http://35.182.48.19:8685"));
     ChainID = 1001;
     sourceAccount = new Wallet.Account("25a3a441a34658e7a595a0eda222fa43ac51bd223017d17b420674fb6d0a4d52");
     coinbase = "n1SAeQRVn33bamxN4ehWUT7JGdxipwn8b17";
+    apiEndPoint = "http://35.182.48.19:8685";
+
 } else if (env === "testneb2") {
-    neb.setRequest(new HttpRequest("http://34.205.26.12:8685"));
     ChainID = 1002;
     sourceAccount = new Wallet.Account("25a3a441a34658e7a595a0eda222fa43ac51bd223017d17b420674fb6d0a4d52");
     coinbase = "n1SAeQRVn33bamxN4ehWUT7JGdxipwn8b17";
+    apiEndPoint = "http://34.205.26.12:8685";
+
 } else if (env === "testneb3") {
-    neb.setRequest(new HttpRequest("http://35.177.214.138:8685"));
     ChainID = 1003;
     sourceAccount = new Wallet.Account("25a3a441a34658e7a595a0eda222fa43ac51bd223017d17b420674fb6d0a4d52");
     coinbase = "n1SAeQRVn33bamxN4ehWUT7JGdxipwn8b17";
+    apiEndPoint = "http://35.177.214.138:8685";
+
 } else if (env === "local") {
-    neb.setRequest(new HttpRequest("http://127.0.0.1:8685"));
     ChainID = 100;
     sourceAccount = new Wallet.Account("d80f115bdbba5ef215707a8d7053c16f4e65588fd50b0f83369ad142b99891b5 ");
     coinbase = "n1QZMXSZtW7BUerroSms4axNfyBGyFGkrh5";
+    apiEndPoint = "http://127.0.0.1:8685";
+
+} else {
+    throw new Error("invalid env (" + env + ").");
 }
+
+// setup request.
+neb.setRequest(new HttpRequest(apiEndPoint));
 
 var from;
 var fromState;
@@ -121,7 +120,7 @@ function testTransfer(testInput, testExpect, done) {
 
         var tx;
 
-        if (!testInput.hasOwnProperty("payloadLength")){
+        if (!testInput.hasOwnProperty("payloadLength")) {
             tx = new Transaction(ChainID, from, toAddr, Unit.nasToBasic(testInput.transferValue), parseInt(fromState.nonce) + testInput.nonceIncrement, testInput.gasPrice, testInput.gasLimit);
         } else {
             var payloadContent = new Array(testInput.payloadLength + 1).join("s");
@@ -129,29 +128,29 @@ function testTransfer(testInput, testExpect, done) {
             tx = new Transaction(ChainID, from, toAddr, Unit.nasToBasic(testInput.transferValue), parseInt(fromState.nonce) + testInput.nonceIncrement, testInput.gasPrice, testInput.gasLimit, payloadContent);
         }
 
-        if(testInput.hasOwnProperty("overrideFromAddr")) {
+        if (testInput.hasOwnProperty("overrideFromAddr")) {
             tx.from.address = Wallet.CryptoUtils.bufferToHex(testInput.overrideFromAddr);
             console.log("--> override tx.from.address with: " + testInput.overrideFromAddr);
         }
 
-        if(testInput.hasOwnProperty("overrideToAddr")) {
+        if (testInput.hasOwnProperty("overrideToAddr")) {
             tx.to.address = Wallet.CryptoUtils.bufferToHex(testInput.overrideToAddr);
             console.log("--> override tx.to.address with: " + testInput.overrideToAddr);
         }
 
-        if (testInput.hasOwnProperty("overrideGasLimit")){
+        if (testInput.hasOwnProperty("overrideGasLimit")) {
             tx.gasLimit = utils.toBigNumber(testInput.overrideGasLimit);
             console.log("--> override tx.gasLimit: " + tx.gasLimit);
         }
 
-        if (testInput.hasOwnProperty("overrideGasPrice")){
+        if (testInput.hasOwnProperty("overrideGasPrice")) {
             tx.gasPrice = utils.toBigNumber(testInput.overrideGasPrice);
             console.log("--> override tx.gasPrice: " + tx.gasPrice);
         }
 
         tx.signTransaction();
 
-        if(testInput.hasOwnProperty("overrideSignature")){
+        if (testInput.hasOwnProperty("overrideSignature")) {
             tx.sign = testInput.overrideSignature;
         } else if (testInput.fakeSign) {
             //repalce the privkey to sign
@@ -173,7 +172,7 @@ function testTransfer(testInput, testExpect, done) {
             done(err);
         } else {
             console.log("cannot send tx, err: ", err)
-            if (testExpect.hasOwnProperty("errMsg")){
+            if (testExpect.hasOwnProperty("errMsg")) {
                 //expect(testExpect.errMsg).to.be.equal(err.error.error);
                 expect(testExpect.errMsg).to.be.equal(err);
             }
@@ -258,7 +257,7 @@ function prepare(done) {
         // console.log("source tx:" + tx.toString());
         return neb.api.sendRawTransaction(tx.toProtoString());
     }).then(function (resp) {
-        console.log("prepare: " ,resp);
+        console.log("prepare: ", resp);
         checkTransaction(resp.txhash, function (resp) {
             try {
                 expect(resp).to.be.have.property('status').equal(1);
@@ -1202,7 +1201,7 @@ describe('normal transaction', function () {
             toBalanceAfterTx: '-1',
             transferReward: '-1',
             //errMsg: 'transaction\'s nonce is invalid, should bigger than the from\'s nonce'
-            errMsg: 'invalid transaction hash'  //TODO is this error right?
+            errMsg: 'invalid transaction hash' //TODO is this error right?
         };
         prepare(function (err) {
             if (err instanceof Error) {
