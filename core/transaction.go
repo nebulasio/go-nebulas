@@ -55,7 +55,7 @@ var (
 	TransactionGasPrice, _ = util.NewUint128FromInt(1000000)
 
 	// MinGasCountPerTransaction default gas for normal transaction
-	MinGasCountPerTransaction, _ = util.NewUint128FromInt(20000) // TODO check value. use nas = 1000 RMB by default.
+	MinGasCountPerTransaction, _ = util.NewUint128FromInt(20000)
 
 	// GasCountPerByte per byte of data attached to a transaction gas cost
 	GasCountPerByte, _ = util.NewUint128FromInt(1)
@@ -372,6 +372,7 @@ func submitTx(tx *Transaction, block *Block, ws WorldState, gas *util.Uint128, e
 			"gas":   gas,
 			"block": block,
 		}).Error("Failed to record gas, unexpected error") // TODO: metrics, shit happens
+		go metricsUnexpectedBehavior.Update(1)
 		return true, err
 	}
 	if err := tx.recordResultEvent(gas, exeErr, ws); err != nil {
@@ -381,6 +382,7 @@ func submitTx(tx *Transaction, block *Block, ws WorldState, gas *util.Uint128, e
 			"gas":   gas,
 			"block": block,
 		}).Error("Failed to record result event, unexpected error") // TODO: metrics, shit happens
+		go metricsUnexpectedBehavior.Update(1)
 		return true, err
 	}
 	// No error, won't giveback the tx
@@ -392,7 +394,7 @@ func VerifyExecution(tx *Transaction, block *Block, ws WorldState) (bool, error)
 	// step0. perpare accounts.
 	fromAcc, err := ws.GetOrCreateUserAccount(tx.from.address)
 	if err != nil {
-		return true, err // TODO: check which test case covers the codes
+		return true, err
 	}
 	toAcc, err := ws.GetOrCreateUserAccount(tx.to.address)
 	if err != nil {
@@ -430,6 +432,7 @@ func VerifyExecution(tx *Transaction, block *Block, ws WorldState) (bool, error)
 
 	// !!!!!!Attention: all txs passed here will be on chain.
 	// TODO: add metrics, record tx count
+	go metricsTxsAcceptedInPackingBlock.Inc(1)
 
 	// step3. check payload vaild.
 	payload, payloadErr := tx.LoadPayload()
@@ -446,7 +449,8 @@ func VerifyExecution(tx *Transaction, block *Block, ws WorldState) (bool, error)
 			"gasUsed":        gasUsed,
 			"payloadBaseGas": payload.BaseGasCount(),
 			"block":          block,
-		}).Error("Failed to add payload base gas, unexpected error") // TODO: metrics, shit happens
+		}).Error("Failed to add payload base gas, unexpected error")
+		go metricsUnexpectedBehavior.Update(1)
 		return submitTx(tx, block, ws, gasUsed, ErrGasCntOverflow, "Failed to add the count of base payload gas")
 	}
 	gasUsed = payloadGas
@@ -475,7 +479,8 @@ func VerifyExecution(tx *Transaction, block *Block, ws WorldState) (bool, error)
 			"fromBalance": fromAcc.Balance(),
 			"toBalance":   toAcc.Balance(),
 			"block":       block,
-		}).Error("Failed to transfer value, unexpected error") // TODO: metrics, shit happens
+		}).Error("Failed to transfer value, unexpected error")
+		go metricsUnexpectedBehavior.Update(1)
 		return submitTx(tx, block, ws, gasUsed, ErrInvalidTransfer, "Failed to transfer tx.value")
 	}
 
@@ -487,7 +492,8 @@ func VerifyExecution(tx *Transaction, block *Block, ws WorldState) (bool, error)
 			"tx":      tx,
 			"gasUsed": gasUsed,
 			"block":   block,
-		}).Error("Failed to calculate payload's limit gas, unexpected error") // TODO: metrics, shit happens
+		}).Error("Failed to calculate payload's limit gas, unexpected error")
+		go metricsUnexpectedBehavior.Update(1)
 		return submitTx(tx, block, ws, tx.gasLimit, ErrOutOfGasLimit, "Failed to calculate payload's limit gas")
 	}
 

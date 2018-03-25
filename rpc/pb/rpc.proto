@@ -320,7 +320,7 @@ message ByBlockHeightRequest {
 
 // Response message of GetDynastyRequest rpc
 message GetDynastyResponse {
-	repeated string validators = 1;
+	repeated string miners = 1;
 }	
 
 // Response message of GetDelegateVoters rpc

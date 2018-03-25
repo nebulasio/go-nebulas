@@ -424,7 +424,7 @@ func (db *MVCCDB) doClose() error {
 	}
 	db.preparedDBs = make(map[interface{}]*MVCCDB)
 
-	err := db.stagingTable.Close()
+	err := db.stagingTable.Detach()
 	if err != nil {
 		return err
 	}

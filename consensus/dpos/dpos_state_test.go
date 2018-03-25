@@ -50,8 +50,8 @@ func TestBlock_NextDynastyContext(t *testing.T) {
 
 	context, err := block.WorldState().NextConsensusState(BlockIntervalInMs / SecondInMs)
 	assert.Nil(t, err)
-	validators, _ := block.WorldState().Dynasty()
-	assert.Equal(t, context.Proposer(), validators[1])
+	miners, _ := block.WorldState().Dynasty()
+	assert.Equal(t, context.Proposer(), miners[1])
 	// check dynasty
 	consensusRoot := context.RootHash()
 	assert.Nil(t, err)
@@ -59,8 +59,8 @@ func TestBlock_NextDynastyContext(t *testing.T) {
 
 	context, err = block.WorldState().NextConsensusState((BlockIntervalInMs + DynastyIntervalInMs) / SecondInMs)
 	assert.Nil(t, err)
-	validators, _ = block.WorldState().Dynasty()
-	assert.Equal(t, context.Proposer(), validators[1])
+	miners, _ = block.WorldState().Dynasty()
+	assert.Equal(t, context.Proposer(), miners[1])
 	// check dynasty
 	consensusRoot = context.RootHash()
 	assert.Nil(t, err)
@@ -68,8 +68,8 @@ func TestBlock_NextDynastyContext(t *testing.T) {
 
 	context, err = block.WorldState().NextConsensusState(DynastyIntervalInMs / SecondInMs / 2)
 	assert.Nil(t, err)
-	validators, _ = block.WorldState().Dynasty()
-	assert.Equal(t, context.Proposer(), validators[int(DynastyIntervalInMs/2/BlockIntervalInMs)%DynastySize])
+	miners, _ = block.WorldState().Dynasty()
+	assert.Equal(t, context.Proposer(), miners[int(DynastyIntervalInMs/2/BlockIntervalInMs)%DynastySize])
 	// check dynasty
 	consensusRoot = context.RootHash()
 	assert.Nil(t, err)
@@ -77,16 +77,16 @@ func TestBlock_NextDynastyContext(t *testing.T) {
 
 	context, err = block.WorldState().NextConsensusState((DynastyIntervalInMs*2 + DynastyIntervalInMs/3) / SecondInMs)
 	assert.Nil(t, err)
-	validators, _ = block.WorldState().Dynasty()
+	miners, _ = block.WorldState().Dynasty()
 	index := int((DynastyIntervalInMs*2+DynastyIntervalInMs/3)%DynastyIntervalInMs) / int(BlockIntervalInMs) % DynastySize
-	assert.Equal(t, context.Proposer(), validators[index])
+	assert.Equal(t, context.Proposer(), miners[index])
 	// check dynasty
 	consensusRoot = context.RootHash()
 	assert.Nil(t, err)
 	checkDynasty(t, neb.consensus, consensusRoot, neb.Storage())
 
 	// new block
-	coinbase, err := core.AddressParseFromBytes(validators[4])
+	coinbase, err := core.AddressParseFromBytes(miners[4])
 	assert.Nil(t, err)
 	assert.Nil(t, neb.am.Unlock(coinbase, []byte("passphrase"), keystore.DefaultUnlockDuration))
 

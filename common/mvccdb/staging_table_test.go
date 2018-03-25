@@ -26,6 +26,19 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// Set set the tid/key/val pair. If tid+key does not exist, copy and incr version from `finalVersionizedValues` to record previous version.
+func (tbl *StagingTable) set(key []byte, val []byte, deleted, dirty bool) (*VersionizedValueItem, error) {
+	value, err := tbl.GetByKey(key, false)
+	if err != nil {
+		return nil, err
+	}
+
+	value.val = val
+	value.deleted = deleted
+	value.dirty = dirty
+	return value, nil
+}
+
 func TestNewDefaultVersionizedValueItem(t *testing.T) {
 	key := make([]byte, 0)
 	val := []byte("value")
@@ -238,7 +251,7 @@ func TestStagingTable_SingleTidAction(t *testing.T) {
 	{
 		key := []byte("key1")
 		val := []byte("val of key1")
-		value, _ := tbl.Set(key, val, false, false)
+		value, _ := tbl.set(key, val, false, false)
 		assert.NotNil(t, value)
 		assert.Equal(t, tid, value.tid)
 		assert.Equal(t, key, value.key)
@@ -313,7 +326,7 @@ func TestStagingTable_SingleTidAction(t *testing.T) {
 		assert.Equal(t, value, ret)
 
 		// restore dirty flag.
-		value, _ = tbl.Set(key, value.val, false, false)
+		value, _ = tbl.set(key, value.val, false, false)
 		assert.False(t, value.deleted)
 		assert.False(t, value.dirty)
 
@@ -509,7 +522,7 @@ func TestStagingTable_PrepareAndClose(t *testing.T) {
 
 	{
 		rootTbl := NewStagingTable(stor, "tid0", false)
-		assert.Equal(t, ErrDisallowedCallingInNoPreparedDB, rootTbl.Close())
+		assert.Equal(t, ErrDisallowedCallingInNoPreparedDB, rootTbl.Detach())
 	}
 
 	{
@@ -517,11 +530,11 @@ func TestStagingTable_PrepareAndClose(t *testing.T) {
 
 		tbl1, err := tbl.Prepare("tid1")
 		assert.Nil(t, err)
-		assert.Nil(t, tbl1.Close())
+		assert.Nil(t, tbl1.Detach())
 
 		tbl1, err = tbl.Prepare("tid1")
 		assert.Nil(t, err)
-		assert.Nil(t, tbl1.Close())
+		assert.Nil(t, tbl1.Detach())
 	}
 
 	{

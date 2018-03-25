@@ -176,19 +176,6 @@ func (tbl *StagingTable) Put(key []byte, val []byte) (*VersionizedValueItem, err
 	return value, nil
 }
 
-// Set set the tid/key/val pair. If tid+key does not exist, copy and incr version from `finalVersionizedValues` to record previous version.
-func (tbl *StagingTable) Set(key []byte, val []byte, deleted, dirty bool) (*VersionizedValueItem, error) { // TODO use set. move to *_test.go.
-	value, err := tbl.GetByKey(key, false)
-	if err != nil {
-		return nil, err
-	}
-
-	value.val = val
-	value.deleted = deleted
-	value.dirty = dirty
-	return value, nil
-}
-
 // Del del the tid/key pair. If tid+key does not exist, copy and incr version from `finalVersionizedValues` to record previous version.
 func (tbl *StagingTable) Del(key []byte) (*VersionizedValueItem, error) {
 	value, err := tbl.GetByKey(key, false)
@@ -304,9 +291,8 @@ func (tbl *StagingTable) MergeToParent() ([]interface{}, error) {
 	return tids, nil
 }
 
-// Close the staging table
-func (tbl *StagingTable) Close() error { // TODO rename Detach
-
+// Detach the staging table
+func (tbl *StagingTable) Detach() error {
 	if tbl.parentStagingTable == nil {
 		return ErrDisallowedCallingInNoPreparedDB
 	}
@@ -393,7 +379,7 @@ func NewDefaultVersionizedValueItem(key []byte, val []byte, tid interface{}, glo
 }
 
 // CloneVersionizedValueItem copy and return the version increased VersionizedValueItem.
-func CloneVersionizedValueItem(tid interface{}, oldValue *VersionizedValueItem) *VersionizedValueItem { // TODO rename CloneVersionizedValueItem
+func CloneVersionizedValueItem(tid interface{}, oldValue *VersionizedValueItem) *VersionizedValueItem {
 	return &VersionizedValueItem{
 		tid:           tid,
 		key:           oldValue.key,

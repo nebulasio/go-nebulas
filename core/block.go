@@ -704,6 +704,7 @@ func (block *Block) CollectTransactions(deadlineInMs int64) {
 		"packed":       len(block.transactions),
 		"dag":          block.dependency,
 	}).Info("CollectTransactions")
+	go metricsTxsAcceptedInPackingBlock.Clear()
 }
 
 // Sealed return true if block seals. Otherwise return false.

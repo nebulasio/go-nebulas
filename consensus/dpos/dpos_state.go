@@ -40,12 +40,12 @@ import (
 // Consensus Related Constants
 const (
 	SecondInMs               = int64(1000)
-	BlockIntervalInMs        = int64(20000)   // TODO 20S
-	AcceptedNetWorkDelayInMs = int64(5000)    // TODO 5S
-	MaxMintDurationInMs      = int64(7000)    // TODO 7S
-	MinMintDurationInMs      = int64(3000)    // TODO 3S
-	DynastyIntervalInMs      = int64(4200000) // TODO(roy): 3600000
-	DynastySize              = 6              // TODO(roy): 21
+	BlockIntervalInMs        = int64(20000)
+	AcceptedNetWorkDelayInMs = int64(5000)
+	MaxMintDurationInMs      = int64(7000)
+	MinMintDurationInMs      = int64(3000)
+	DynastyIntervalInMs      = int64(4200000)
+	DynastySize              = 6 // TODO(roy): 21
 	ConsensusSize            = DynastySize*2/3 + 1
 )
 
@@ -217,7 +217,7 @@ func (ds *State) DynastyRoot() byteutils.Hash {
 }
 
 // FindProposer for now in given dynasty
-func FindProposer(now int64, validators []byteutils.Hash) (proposer byteutils.Hash, err error) {
+func FindProposer(now int64, miners []byteutils.Hash) (proposer byteutils.Hash, err error) {
 	nowInMs := now * SecondInMs
 	offsetInMs := nowInMs % DynastyIntervalInMs
 	if (offsetInMs % BlockIntervalInMs) != 0 {
@@ -226,13 +226,13 @@ func FindProposer(now int64, validators []byteutils.Hash) (proposer byteutils.Ha
 	offset := offsetInMs / BlockIntervalInMs
 	offset %= DynastySize
 
-	if int(offset) < len(validators) {
-		proposer = validators[offset]
+	if int(offset) < len(miners) {
+		proposer = miners[offset]
 	} else {
 		logging.VLog().WithFields(logrus.Fields{
 			"proposer":  proposer,
 			"offset":    offset,
-			"delegatee": len(validators),
+			"delegatee": len(miners),
 		}).Error("Found Nil Proposer.")
 		return nil, ErrFoundNilProposer
 	}
@@ -270,11 +270,11 @@ func (ds *State) NextConsensusState(elapsedSecond int64, worldState state.WorldS
 		consensus: ds.consensus,
 	}
 
-	validators, err := TraverseDynasty(dynastyTrie)
+	miners, err := TraverseDynasty(dynastyTrie)
 	if err != nil {
 		return nil, err
 	}
-	consensusState.proposer, err = FindProposer(consensusState.timestamp, validators)
+	consensusState.proposer, err = FindProposer(consensusState.timestamp, miners)
 	if err != nil {
 		return nil, err
 	}

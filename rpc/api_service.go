@@ -491,22 +491,22 @@ func (s *APIService) GetDynasty(ctx context.Context, req *rpcpb.ByBlockHeightReq
 		}
 	}
 
-	validators, err := block.Dynasty()
+	miners, err := block.Dynasty()
 	if err != nil {
 		return nil, err
 	}
 
 	result := []string{}
-	for _, v := range validators {
+	for _, v := range miners {
 		addr, err := core.AddressParseFromBytes(v)
 		if err != nil {
 			logging.VLog().WithFields(logrus.Fields{
-				"validator": v.Base58(),
-				"block":     block,
-			}).Error("Failed to parse validator's bytes into address")
+				"miner": v.Base58(),
+				"block": block,
+			}).Error("Failed to parse miner's bytes into address")
 			return nil, err
 		}
 		result = append(result, addr.String())
 	}
-	return &rpcpb.GetDynastyResponse{Validators: result}, nil
+	return &rpcpb.GetDynastyResponse{Miners: result}, nil
 }

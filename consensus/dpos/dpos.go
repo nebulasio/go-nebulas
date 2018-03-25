@@ -297,7 +297,7 @@ func (dpos *Dpos) ResumeMining() {
 	dpos.pending = false
 }
 
-func verifyBlockSign(miner *core.Address, block *core.Block) error { // TODO rename miner
+func verifyBlockSign(miner *core.Address, block *core.Block) error {
 	signer, err := core.RecoverSignerFromSignature(block.Alg(), block.Hash(), block.Signature())
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
@@ -338,15 +338,15 @@ func (dpos *Dpos) VerifyBlock(block *core.Block) error {
 		return ErrDoubleBlockMinted
 	}
 	// check proposer
-	validators, err := tail.WorldState().Dynasty()
+	miners, err := tail.WorldState().Dynasty()
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"err":   err,
 			"block": block,
-		}).Debug("Failed to get validators from dynasty.")
+		}).Debug("Failed to get miners from dynasty.")
 		return err
 	}
-	proposer, err := FindProposer(block.Timestamp(), validators)
+	proposer, err := FindProposer(block.Timestamp(), miners)
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"proposer": proposer,
@@ -393,7 +393,7 @@ func (dpos *Dpos) newBlock(tail *core.Block, consensusState state.ConsensusState
 	block.WorldState().SetConsensusState(consensusState)
 	block.SetTimestamp(consensusState.TimeStamp())
 	block.CollectTransactions(deadlineInMs)
-	if err = block.Seal(); err != nil { // TODO rollback, return txs
+	if err = block.Seal(); err != nil {
 		logging.CLog().WithFields(logrus.Fields{
 			"block": block,
 			"err":   err,
@@ -401,7 +401,7 @@ func (dpos *Dpos) newBlock(tail *core.Block, consensusState state.ConsensusState
 		go block.ReturnTransactions()
 		return nil, err
 	}
-	if err = dpos.am.SignBlock(dpos.miner, block); err != nil { // TODO rollback, return txs
+	if err = dpos.am.SignBlock(dpos.miner, block); err != nil {
 		logging.CLog().WithFields(logrus.Fields{
 			"miner": dpos.miner,
 			"block": block,
@@ -596,14 +596,14 @@ func (dpos *Dpos) blockLoop() {
 }
 
 func (dpos *Dpos) findProposer(now int64) (proposer byteutils.Hash, err error) {
-	validators, err := dpos.chain.TailBlock().WorldState().Dynasty()
+	miners, err := dpos.chain.TailBlock().WorldState().Dynasty()
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"err": err,
-		}).Debug("Failed to get validators from dynasty.")
+		}).Debug("Failed to get miners from dynasty.")
 		return nil, err
 	}
-	proposer, err = FindProposer(now, validators)
+	proposer, err = FindProposer(now, miners)
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"proposer": proposer,

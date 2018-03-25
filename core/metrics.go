@@ -40,14 +40,15 @@ var (
 	metricsLruCacheBlock       = metrics.NewGauge("neb.block.lru.blocks")
 	metricsLruTailBlock        = metrics.NewGauge("neb.block.lru.tailblock")
 
-	metricsDuplicatedBlock   = metrics.NewCounter("neb.block.duplicated")
-	metricsInvalidBlock      = metrics.NewCounter("neb.block.invalid")
-	metricsTxsInBlock        = metrics.NewGauge("neb.block.txs")
-	metricsBlockVerifiedTime = metrics.NewGauge("neb.block.executed")
-	metricsTxVerifiedTime    = metrics.NewGauge("neb.tx.executed")
-	metricsTxPackedCount     = metrics.NewGauge("neb.tx.packed")
-	metricsTxUnpackedCount   = metrics.NewGauge("neb.tx.unpacked")
-	metricsTxGivebackCount   = metrics.NewGauge("neb.tx.giveback")
+	metricsDuplicatedBlock           = metrics.NewCounter("neb.block.duplicated")
+	metricsInvalidBlock              = metrics.NewCounter("neb.block.invalid")
+	metricsTxsInBlock                = metrics.NewGauge("neb.block.txs")
+	metricsTxsAcceptedInPackingBlock = metrics.NewCounter("neb.block.txs.accepted")
+	metricsBlockVerifiedTime         = metrics.NewGauge("neb.block.executed")
+	metricsTxVerifiedTime            = metrics.NewGauge("neb.tx.executed")
+	metricsTxPackedCount             = metrics.NewGauge("neb.tx.packed")
+	metricsTxUnpackedCount           = metrics.NewGauge("neb.tx.unpacked")
+	metricsTxGivebackCount           = metrics.NewGauge("neb.tx.giveback")
 
 	// txpool metrics
 	metricsReceivedTx                      = metrics.NewGauge("neb.txpool.received")
@@ -66,4 +67,7 @@ var (
 
 	// event metrics
 	metricsCachedEvent = metrics.NewGauge("neb.event.cached")
+
+	// unexpect behavior
+	metricsUnexpectedBehavior = metrics.NewGauge("neb.unexpected")
 )
