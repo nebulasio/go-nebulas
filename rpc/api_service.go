@@ -21,6 +21,7 @@ package rpc
 import (
 	"errors"
 
+	"github.com/nebulasio/go-nebulas/storage"
 	"github.com/nebulasio/go-nebulas/util/logging"
 	"github.com/sirupsen/logrus"
 
@@ -331,7 +332,7 @@ func (s *APIService) GetTransactionReceipt(ctx context.Context, req *rpcpb.GetTr
 		return nil, err
 	}
 	tx, err := neb.BlockChain().GetTransaction(hash)
-	if err != nil {
+	if err != nil && err != storage.ErrKeyNotFound {
 		return nil, err
 	}
 
