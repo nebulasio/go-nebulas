@@ -5,7 +5,7 @@ var rpc_client = require('./rpc_client/rpc_client.js');
 var protocol_version = '/neb/1.0.0'
 var node_version = '0.7.0'
 var server_address = 'localhost:8684';
-var coinbase = "eb31ad2d8a89a0ca6935c308d5425730430bc2d63f2573b8";
+var coinbase = "n1QZMXSZtW7BUerroSms4axNfyBGyFGkrh5";
 var chain_id = 100;
 var env = '';
 if (env === 'testneb1') {
@@ -14,7 +14,7 @@ if (env === 'testneb1') {
   chain_id = 1001;
 } else if (env === "testneb2") {
   server_address = "http://34.205.26.12:8685";
-  coinbase = "0b9cd051a6d7129ab44b17833c63fe4abead40c3714cde6d";
+  coinbase = "n1SAeQRVn33bamxN4ehWUT7JGdxipwn8b17";
   chain_id = 1002;
 }
 

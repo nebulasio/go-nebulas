@@ -1,7 +1,7 @@
 'use strict';
 
 var cryptoUtils = require('../../../cmd/console/neb.js/lib/utils/crypto-utils.js');
-var Wallet = require("../../../cmd/console/neb.js/index.js");
+var Wallet = require("nebulas");
 var HttpRequest = Wallet.HttpRequest;
 var Neb = Wallet.Neb;
 var neb = new Neb();
@@ -151,7 +151,6 @@ function testContractDeploy(testInput, testExpect, done) {
         if (testInput.isSameAddr === true) {
             toAddr = from;
         }
-        console.log(contract);
         var tx = new Transaction(ChainID, from, toAddr, Unit.nasToBasic(testInput.transferValue), parseInt(fromState.nonce) + testInput.nonceIncrement, testInput.gasPrice, testInput.gasLimit, contract);
         if (testInput.isAddressInvalid) {
             tx.from.address = cryptoUtils.toBuffer("0x23");
