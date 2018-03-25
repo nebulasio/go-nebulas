@@ -53,20 +53,18 @@ type SerializableTransaction struct {
 type Context struct {
 	block    Block
 	tx       Transaction
-	owner    Account
 	contract Account
 	state    WorldState
 }
 
 // NewContext create a engine context
-func NewContext(block Block, tx Transaction, owner Account, contract Account, state WorldState) (*Context, error) {
-	if block == nil || tx == nil || owner == nil || contract == nil || state == nil {
+func NewContext(block Block, tx Transaction, contract Account, state WorldState) (*Context, error) {
+	if block == nil || tx == nil || contract == nil || state == nil {
 		return nil, ErrContextConstructArrEmpty
 	}
 	ctx := &Context{
 		block:    block,
 		tx:       tx,
-		owner:    owner,
 		contract: contract,
 		state:    state,
 	}
