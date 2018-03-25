@@ -1,15 +1,21 @@
 'use strict';
 
-var HttpRequest = require("../../node-request");
+// var HttpRequest = require("../../node-request");
+// var Wallet = require("../../../cmd/console/neb.js/lib/wallet");
+// var utils = require("../../../cmd/console/neb.js/lib/wallet").Utils;
 
-var Wallet = require("../../../cmd/console/neb.js/lib/wallet");
+
+var Wallet = require("../../../cmd/console/neb.js/index.js");
+var HttpRequest = Wallet.HttpRequest
+var utils = Wallet.Utils;
+
+// var Wallet = require("nebulas");
+
 var Neb = Wallet.Neb;
 var neb = new Neb();
 var Account = Wallet.Account;
 var Transaction = Wallet.Transaction;
 var Unit = Wallet.Unit;
-var utils = require("../../../cmd/console/neb.js/lib/wallet").Utils;
-
 
 var expect = require('chai').expect;
 var BigNumber = require('bignumber.js');
@@ -27,7 +33,8 @@ var coinState;
 var args = process.argv.splice(2);
 var env = args[1];
 if (env !== "local" && env !== "testneb1" && env !== "testneb2" && env !== "testneb3") {
-    env = "local";
+    // env = "local";
+    env = "testneb3";
 }
 console.log("env:", env);
 
@@ -35,18 +42,28 @@ console.log("env:", env);
 if (env === 'testneb1') {
     neb.setRequest(new HttpRequest("http://35.182.48.19:8685"));
     ChainID = 1001;
-    sourceAccount = new Wallet.Account("43181d58178263837a9a6b08f06379a348a5b362bfab3631ac78d2ac771c5df3");
-    coinbase = "0b9cd051a6d7129ab44b17833c63fe4abead40c3714cde6d";
+    // sourceAccount = new Wallet.Account("43181d58178263837a9a6b08f06379a348a5b362bfab3631ac78d2ac771c5df3");
+    // coinbase = "0b9cd051a6d7129ab44b17833c63fe4abead40c3714cde6d";
+
+    sourceAccount = new Wallet.Account("25a3a441a34658e7a595a0eda222fa43ac51bd223017d17b420674fb6d0a4d52");
+    coinbase = "n1SAeQRVn33bamxN4ehWUT7JGdxipwn8b17";
+
 } else if (env === "testneb2") {
     neb.setRequest(new HttpRequest("http://34.205.26.12:8685"));
     ChainID = 1002;
-    sourceAccount = new Wallet.Account("43181d58178263837a9a6b08f06379a348a5b362bfab3631ac78d2ac771c5df3");
-    coinbase = "0b9cd051a6d7129ab44b17833c63fe4abead40c3714cde6d";
+
+    // sourceAccount = new Wallet.Account("43181d58178263837a9a6b08f06379a348a5b362bfab3631ac78d2ac771c5df3");
+    // coinbase = "0b9cd051a6d7129ab44b17833c63fe4abead40c3714cde6d";
+
+    sourceAccount = new Wallet.Account("25a3a441a34658e7a595a0eda222fa43ac51bd223017d17b420674fb6d0a4d52");
+    coinbase = "n1SAeQRVn33bamxN4ehWUT7JGdxipwn8b17";
 } else if (env === "testneb3") {
     neb.setRequest(new HttpRequest("http://35.177.214.138:8685"));
     ChainID = 1003;
-    sourceAccount = new Wallet.Account("43181d58178263837a9a6b08f06379a348a5b362bfab3631ac78d2ac771c5df3");
-    coinbase = "0b9cd051a6d7129ab44b17833c63fe4abead40c3714cde6d";
+    // sourceAccount = new Wallet.Account("43181d58178263837a9a6b08f06379a348a5b362bfab3631ac78d2ac771c5df3");
+    // coinbase = "0b9cd051a6d7129ab44b17833c63fe4abead40c3714cde6d";
+    sourceAccount = new Wallet.Account("25a3a441a34658e7a595a0eda222fa43ac51bd223017d17b420674fb6d0a4d52");
+    coinbase = "n1SAeQRVn33bamxN4ehWUT7JGdxipwn8b17";
 }
 
 var from;
@@ -58,7 +75,7 @@ var initFromBalance = 10;
  * the smaller the value, the faster the test, with the risk of causing error
  */
 
-var maxCheckTime = 50;
+var maxCheckTime = 60;
 var checkTimes = 0;
 
 function checkTransaction(hash, callback) {
@@ -71,7 +88,7 @@ function checkTransaction(hash, callback) {
         return;
     }
     neb.api.getTransactionReceipt(hash).then(function (resp) {
-        console.log("tx receipt status:" + resp.status);
+        console.log("0. tx receipt status:" + resp.status);
         if (resp.status === 2) {
             setTimeout(function () {
                 checkTransaction(hash, callback);
@@ -81,9 +98,9 @@ function checkTransaction(hash, callback) {
             callback(resp);
         }
     }).catch(function (err) {
-        console.log("fail to get tx receipt hash: " + hash);
-        console.log("it may because the tx is being packing, we are going on to check it!");
-        console.log(err.error);
+        console.log("1. fail to get tx receipt hash: " + hash);
+        console.log("2. it may because the tx is being packing, we are going on to check it!");
+        console.log("3. " + JSON.stringify(err));
         setTimeout(function () {
             checkTransaction(hash, callback);
         }, 2000);
@@ -153,6 +170,7 @@ function testTransfer(testInput, testExpect, done) {
             tx.from.privKey = privKey;
         }
 
+        console.log(tx.toString());
         return neb.api.sendRawTransaction(tx.toProtoString());
 
     }).catch(function (err) {
@@ -238,13 +256,13 @@ function testTransfer(testInput, testExpect, done) {
 function prepare(done) {
     from = Account.NewAccount();
     neb.api.getAccountState(sourceAccount.getAddressString()).then(function (resp) {
-
         console.log("source state:" + JSON.stringify(resp));
         var tx = new Transaction(ChainID, sourceAccount, from, Unit.nasToBasic(initFromBalance), parseInt(resp.nonce) + 1);
         tx.signTransaction();
         // console.log("source tx:" + tx.toString());
         return neb.api.sendRawTransaction(tx.toProtoString());
     }).then(function (resp) {
+        console.log("prepare: " ,resp);
         checkTransaction(resp.txhash, function (resp) {
             try {
                 expect(resp).to.be.have.property('status').equal(1);
@@ -266,12 +284,12 @@ describe('normal transaction', function () {
     //     neb.api.getAccountState(sourceAccount.getAddressString()).then(function (resp) {
     //
     //         console.log("source state:" + JSON.stringify(resp));
-    //         var tx = new Transaction(ChainID, sourceAccount, from, Unit.nasToBasic(initFromBalance), parseInt(resp.nonce) + 1);
+    //         var tx = new Transaction(ChainID, sourceAccount, from, Unit.nasToBasic(initFromBalance), parseInt(resp.result.nonce) + 1);
     //         tx.signTransaction();
     //         // console.log("source tx:" + tx.toString());
     //         return neb.api.sendRawTransaction(tx.toProtoString());
     //     }).then(function (resp) {
-    //         checkTransaction(resp.txhash, function (resp) {
+    //         checkTransaction(resp.result.txhash, function (resp) {
     //             try {
     //                 expect(resp).to.be.have.property('status').equal(1);
     //                 console.log("complete from address claim.");
