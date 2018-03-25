@@ -30,7 +30,7 @@ if (env !== "local" && env !== "testneb1" && env !== "testneb2" && env !== "test
     env = "local";
 }
 console.log("env:", env);
-env  = 'local'
+env  = 'testneb2'
 if (env == 'local'){
     neb.setRequest(new HttpRequest("http://127.0.0.1:8685"));//https://testnet.nebulas.io
     ChainID = 100;
@@ -159,6 +159,18 @@ function testContractDeploy(testInput, testExpect, done) {
             tx.from.address = cryptoUtils.bufferToHex("");
             tx.to.address = cryptoUtils.bufferToHex("");
         }
+
+        console.log("silent_debug");
+        //print dataLen to calculate gas 
+        console.log(tx.data.payload.length);
+
+        if (testInput.hasOwnProperty("rewritePrice")) {
+            tx.gasPrice = testInput.rewritePrice
+        } 
+        if (testInput.hasOwnProperty("rewriteGasLimit")) {
+            tx.gasLimit = testInput.rewriteGasLImit
+        }
+
         tx.signTransaction();
         if (testInput.isSignErr) {
             tx.sign = "wrong signature";
@@ -177,9 +189,10 @@ function testContractDeploy(testInput, testExpect, done) {
         }
         return neb.api.sendRawTransaction(tx.toProtoString());
     }).catch(function (err) {
+        console.log("--------------------", err);
         if (true === testExpect.canSendTx) {
             console.log(JSON.stringify(err))
-            done(err.error);
+            done(err);
         } else {
             console.log(err.error);
             done();
@@ -443,7 +456,7 @@ describe('contract deploy', function () {
         });
     });
 
-    it('signature is puppet', function (done) {
+    it('signature is fake', function (done) {
 
         var testInput = {
             transferValue: 1,
@@ -472,7 +485,7 @@ describe('contract deploy', function () {
     });
 
     it('[balance sufficient] balanceOfFrom = (TxBaseGasCount + TxPayloadBaseGasCount[payloadType] + ' +
-        'gasCountOfPayload + gasCountOfPayloadExecuted) * gasPrice + valueOfTx', function (done) {
+        'gasCountOfPayloadExecuted) * gasPrice + valueOfTx', function (done) {
 
             var testInput = {
                 transferValue: 9.999999977583000000,
@@ -569,16 +582,17 @@ describe('contract deploy', function () {
             isSameAddr: true,
             gasLimit: 2000000,
             gasPrice: 0,
+            rewritePrice: 0,
             nonceIncrement: 1
         };
         //can calc value by previous params
         var testExpect = {
-            canSendTx: true,
-            canSubmitTx: true,
-            canExcuteTx: true,
-            fromBalanceAfterTx: '9999999977583000000',
-            toBalanceAfterTx: '0',
-            transferReward: '22417000000'
+            canSendTx: false,
+            canSubmitTx: false,
+            canExcuteTx: false,
+            fromBalanceAfterTx: '',
+            toBalanceAfterTx: '',
+            transferReward: ''
         };
         prepare((err) => {
             if (err) {
@@ -760,7 +774,7 @@ describe('contract deploy', function () {
             var testInput = {
                 transferValue: 1,
                 isSameAddr: true,
-                gasLimit: 22416,
+                gasLimit: 22289,
                 gasPrice: -1,
                 nonceIncrement: 1
             };
@@ -771,7 +785,7 @@ describe('contract deploy', function () {
                 canExcuteTx: false,
                 fromBalanceAfterTx: '9999999977584000000',
                 toBalanceAfterTx: '0',
-                transferReward: '22416000000'
+                transferReward: '22289000000'
             };
             prepare((err) => {
                 if (err) {
@@ -787,18 +801,72 @@ describe('contract deploy', function () {
             var testInput = {
                 transferValue: 1,
                 isSameAddr: true,
-                gasLimit: 20060,
+                gasLimit: 22288,
                 gasPrice: -1,
                 nonceIncrement: 1
-            };
+            };  
             //can calc value by previous params
             var testExpect = {
                 canSendTx: true,
-                canSubmitTx: false,
+                canSubmitTx: true,
                 canExcuteTx: false,
                 fromBalanceAfterTx: '9999999977584000000',
                 toBalanceAfterTx: '0',
-                transferReward: '22416000000'
+                transferReward: '22288000000'
+            };
+            prepare((err) => {
+                if (err) {
+                    done(err);
+                } else {
+                    testContractDeploy(testInput, testExpect, done);
+                }
+            });
+        });
+
+        it('[gasLimit insufficient] TxBaseGasCount < gasLimit < TxBaseGasCount + gasCountOfPayload', function (done) {
+
+            var testInput = {
+                transferValue: 1,
+                isSameAddr: true,
+                gasLimit: 22287,
+                gasPrice: -1,
+                nonceIncrement: 1
+            };  
+            //can calc value by previous params
+            var testExpect = {
+                canSendTx: true,
+                canSubmitTx: true,
+                canExcuteTx: false,
+                fromBalanceAfterTx: '9999999977584000000',
+                toBalanceAfterTx: '0',
+                transferReward: '22287000000'
+            };
+            prepare((err) => {
+                if (err) {
+                    done(err);
+                } else {
+                    testContractDeploy(testInput, testExpect, done);
+                }
+            });
+        });
+
+        it('[gasLimit insufficient] gasLimit = TxBaseGasCount ', function (done) {
+
+            var testInput = {
+                transferValue: 1,
+                isSameAddr: true,
+                gasLimit: 22228,
+                gasPrice: -1,
+                nonceIncrement: 1
+            };  
+            //can calc value by previous params
+            var testExpect = {
+                canSendTx: true,
+                canSubmitTx: true,
+                canExcuteTx: false,
+                fromBalanceAfterTx: '9999999977584000000',
+                toBalanceAfterTx: '0',
+                transferReward: '22228000000'
             };
             prepare((err) => {
                 if (err) {
@@ -809,12 +877,12 @@ describe('contract deploy', function () {
             });
         });
         
-        it('[gasLimit insufficient] gasLimit < TxBaseGasCount + gasBaseCountOfPayload', function (done) {
+        it('[gasLimit insufficient] gasLimit < TxBaseGasCount', function (done) {
     
             var testInput = {
                 transferValue: 1,
                 isSameAddr: true,
-                gasLimit: 20020,
+                gasLimit: 22227,
                 gasPrice: -1,
                 nonceIncrement: 1
             };
@@ -836,72 +904,19 @@ describe('contract deploy', function () {
             });
         });
 
-    it('[gasLimit insufficient] gasLimit = TxBaseGasCount', function (done) {
-
-        var testInput = {
-            transferValue: 1,
-            isSameAddr: true,
-            gasLimit: 20000,
-            gasPrice: -1,
-            nonceIncrement: 1
-        };
-        //can calc value by previous params
-        var testExpect = {
-            canSendTx: true,
-            canSubmitTx: false,
-            canExcuteTx: false,
-            fromBalanceAfterTx: '',
-            toBalanceAfterTx: '',
-            transferReward: ''
-        };
-        prepare((err) => {
-            if (err) {
-                done(err);
-            } else {
-                testContractDeploy(testInput, testExpect, done);
-            }
-        });
-    });
-
-    it('[gasLimit insufficient] 0 < gasLimit < TxBaseGasCount', function (done) {
-
-        var testInput = {
-            transferValue: 1,
-            isSameAddr: true,
-            gasLimit: 19999,
-            gasPrice: -1,
-            nonceIncrement: 1
-        };
-        //can calc value by previous params
-        var testExpect = {
-            canSendTx: true,
-            canSubmitTx: false,
-            canExcuteTx: false,
-            fromBalanceAfterTx: '',
-            toBalanceAfterTx: '',
-            transferReward: ''
-        };
-        prepare((err) => {
-            if (err) {
-                done(err);
-            } else {
-                testContractDeploy(testInput, testExpect, done);
-            }
-        });
-    });
-
     it('[gasLimit insufficient] gasLimit = 0', function (done) {
 
-        var testInput = {
+         var testInput = {
             transferValue: 1,
             isSameAddr: true,
-            gasLimit: 0,
+            gasLimit: -1,
             gasPrice: -1,
-            nonceIncrement: 1
+            nonceIncrement: 1,
+            rewriteGasLImit: 0
         };
         //can calc value by previous params
         var testExpect = {
-            canSendTx: true,
+            canSendTx: false,
             canSubmitTx: false,
             canExcuteTx: false,
             fromBalanceAfterTx: '',
@@ -1106,7 +1121,7 @@ describe('contract deploy', function () {
         });
     });
 
-    it('contract args error', function (done) {
+    it('contract args error', function (done) {//TODO: modify erc20
         var testInput = {
             transferValue: 1,
             isSameAddr: true,
