@@ -30,10 +30,11 @@ console.log("env:", env);
 
 
 if (env == 'local'){
-    neb.setRequest(new HttpRequest("http://35.182.48.19:8685"));
-    ChainID = 1001;
-    source = new Wallet.Account("25a3a441a34658e7a595a0eda222fa43ac51bd223017d17b420674fb6d0a4d52");
-    coinbase = "n1SAeQRVn33bamxN4ehWUT7JGdxipwn8b17";
+    neb.setRequest(new HttpRequest("http://127.0.0.1:8685"));//https://testnet.nebulas.io
+    ChainID = 100;
+    source = new Wallet.Account("d80f115bdbba5ef215707a8d7053c16f4e65588fd50b0f83369ad142b99891b5");
+    coinbase = "n1QZMXSZtW7BUerroSms4axNfyBGyFGkrh5";
+
 }else if(env == 'testneb1'){
     neb.setRequest(new HttpRequest("http://35.182.48.19:8685"));
     ChainID = 1001;
