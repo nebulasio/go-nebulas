@@ -293,11 +293,14 @@ func (tbl *StagingTable) MergeToParent() ([]interface{}, error) {
 
 // Detach the staging table
 func (tbl *StagingTable) Detach() error {
+	tbl.mutex.Lock()
 	if tbl.parentStagingTable == nil {
+		tbl.mutex.Unlock()
 		return ErrDisallowedCallingInNoPreparedDB
 	}
-
 	parentStagingTableMu := &tbl.parentStagingTable.mutex
+	tbl.mutex.Unlock()
+
 	parentStagingTableMu.Lock()
 	defer parentStagingTableMu.Unlock()
 
