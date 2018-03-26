@@ -22,6 +22,8 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/nebulasio/go-nebulas/util/logging"
+	"github.com/sirupsen/logrus"
 	"github.com/willf/bloom"
 )
 
@@ -47,6 +49,9 @@ func RecordKey(key string) {
 	countOfRecvMessageInBloomFilter++
 	if countOfRecvMessageInBloomFilter > maxCountOfRecvMessageInBloomFiler {
 		// reset.
+		logging.VLog().WithFields(logrus.Fields{
+			"countOfRecvMessageInBloomFilter": countOfRecvMessageInBloomFilter,
+		}).Debug("reset bloom filter.")
 		bloomFilterOfRecvMessage = bloom.New(bloomFilterOfRecvMessageArgM, bloomFilterOfRecvMessageArgK)
 	}
 
