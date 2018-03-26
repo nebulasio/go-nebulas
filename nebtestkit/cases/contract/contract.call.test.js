@@ -139,13 +139,14 @@ function testContractCall(testInput, testExpect, done) {
             tx.signTransaction();
         } else if (testInput.fakeSign) {
             //replcce the privkey to sign
-            console.log("this is the right signature:" + tx.sign);
+            tx.signTransaction();
+            console.log("this is the right signature:" + tx.sign.toString('hex'));
             console.log("repalce the privkey and sign another signatrue...");
             var newAccount = new Account("a6e5eb222e4538fce79f5cb8774a72621637c2c9654c8b2525ed1d7e4e73653f");
             var privKey = tx.from.privKey;
             tx.from.privKey = newAccount.privKey;
             tx.signTransaction();
-            console.log("now signatrue is: " + tx.sign);
+            console.log("now signatrue is: " + tx.sign.toString('hex'));
             tx.from.privKey = privKey;
         }
         // console.log("tx raw:", tx.toString());
@@ -192,10 +193,14 @@ function testContractCall(testInput, testExpect, done) {
                         }).then(function (events) {
                             for (var i = 0; i < events.events.length; i++) {
                                 var event = events.events[i];
+                                //console.log("tx event:", JSON.stringify(event,null,'\t'));
                                 console.log("tx event:", event.data);
                                 if (event.topic == "chain.transactionResult") {
                                     var result = JSON.parse(event.data);
                                     expect(result.status).to.equal(testExpect.status);
+                                }
+                                if (testExpect.hasOwnProperty("eventErr")){
+                                    expect(result.error).to.equal(testExpect.eventErr);
                                 }
                             }
                             done();
@@ -369,7 +374,8 @@ var testCase = {
         status: 1,
         fromBalanceAfterTx: '999999979861999999',
         toBalanceAfterTx: '1',
-        transferReward: '20138000000'
+        transferReward: '20138000000',
+        eventErr: ""
     }
 };
 testCases.push(testCase);
@@ -562,7 +568,8 @@ testCase = {
         status: 1,
         fromBalanceAfterTx: "999999979861999999",
         toBalanceAfterTx: '1',
-        transferReward: '20138000000'
+        transferReward: '20138000000',
+        eventErr: ""
     }
 };
 testCases.push(testCase);
@@ -589,7 +596,8 @@ testCase = {
         status: 2,
         fromBalanceAfterTx: neb.nasToBasic(1),
         toBalanceAfterTx: '0',
-        transferReward: '0'
+        transferReward: '0',
+        eventErr: ""
     }
 };
 testCases.push(testCase);
@@ -616,7 +624,8 @@ testCase = {
         status: 1,
         fromBalanceAfterTx: neb.nasToBasic(1),
         toBalanceAfterTx: '0',
-        transferReward: '0'
+        transferReward: '0',
+        eventErr: ""
     }
 };
 testCases.push(testCase);
@@ -670,7 +679,8 @@ testCase = {
         status: 1,
         fromBalanceAfterTx: "999999979861999999",
         toBalanceAfterTx: '1',
-        transferReward: '20138000000'
+        transferReward: '20138000000',
+        eventErr: ""
     }
 };
 testCases.push(testCase);
@@ -697,7 +707,8 @@ testCase = {
         status: 1,
         fromBalanceAfterTx: "999999959723999999",
         toBalanceAfterTx: '1',
-        transferReward: '40276000000'
+        transferReward: '40276000000',
+        eventErr: ""
     }
 };
 testCases.push(testCase);
@@ -778,7 +789,8 @@ testCase = {
         status: 0,
         fromBalanceAfterTx: "999999979971000000",
         toBalanceAfterTx: '0',
-        transferReward: '20029000000'
+        transferReward: '20029000000',
+        eventErr: "out of gas limit"
     }
 };
 testCases.push(testCase);
@@ -805,7 +817,8 @@ testCase = {
         status: 0,
         fromBalanceAfterTx: "999999979900000000",
         toBalanceAfterTx: '0',
-        transferReward: '20100000000'
+        transferReward: '20100000000',
+        eventErr: 'Call: null'
     }
 };
 testCases.push(testCase);
@@ -832,7 +845,8 @@ testCase = {
         status: 1,
         fromBalanceAfterTx: "999999979861999999",
         toBalanceAfterTx: '1',
-        transferReward: '20138000000'
+        transferReward: '20138000000',
+        eventErr: ""
     }
 };
 testCases.push(testCase);
@@ -859,7 +873,8 @@ testCase = {
         status: 1,
         fromBalanceAfterTx: "999999979861999999",
         toBalanceAfterTx: '1',
-        transferReward: '20138000000'
+        transferReward: '20138000000',
+        eventErr: ""
     }
 };
 testCases.push(testCase);
@@ -998,7 +1013,8 @@ testCase = {
         status: 1,
         fromBalanceAfterTx: "0",
         toBalanceAfterTx: '1000000',
-        transferReward: '20138000000'
+        transferReward: '20138000000',
+        eventErr: ""
     }
 };
 testCases.push(testCase);
@@ -1053,7 +1069,8 @@ testCase = {
         status: 0,
         fromBalanceAfterTx: "999999979854000000",
         toBalanceAfterTx: '0',
-        transferReward: '20146000000'
+        transferReward: '20146000000',
+        eventErr: "Call: TypeError: Cannot read property 'apply' of undefined"
     }
 };
 testCases.push(testCase);
@@ -1080,7 +1097,8 @@ testCase = {
         status: 1,
         fromBalanceAfterTx: "999999979858999999",
         toBalanceAfterTx: '1',
-        transferReward: '20141000000'
+        transferReward: '20141000000',
+        eventErr: ""
     }
 };
 testCases.push(testCase);
@@ -1107,7 +1125,8 @@ testCase = {
         status: 1,
         fromBalanceAfterTx: "999999979841999999",
         toBalanceAfterTx: '1',
-        transferReward: '20158000000'
+        transferReward: '20158000000',
+        eventErr: ""
     }
 };
 testCases.push(testCase);
@@ -1134,7 +1153,8 @@ testCase = {
         status: 0,
         fromBalanceAfterTx: "999999979831000000",
         toBalanceAfterTx: '0',
-        transferReward: '20169000000'
+        transferReward: '20169000000',
+        eventErr: "Call: BigNumber Error: new BigNumber() not a number: asda"
     }
 };
 testCases.push(testCase);
@@ -1161,7 +1181,8 @@ testCase = {
         status: 0,
         fromBalanceAfterTx: "999999979733000000",
         toBalanceAfterTx: '0',
-        transferReward: '20267000000'
+        transferReward: '20267000000',
+        eventErr: "Call: Error: transfer failed."
     }
 };
 testCases.push(testCase);
@@ -1188,7 +1209,8 @@ testCase = {
         status: 1,
         fromBalanceAfterTx: "999999979787999999",
         toBalanceAfterTx: '1',
-        transferReward: '20212000000'
+        transferReward: '20212000000',
+        eventErr: ""
     }
 };
 testCases.push(testCase);
