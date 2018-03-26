@@ -30,8 +30,8 @@ import (
 const (
 	// according to https://krisives.github.io/bloom-calculator/
 	// Count (n) = 100000, Error (p) = 0.001
-	maxCountOfRecvMessageInBloomFiler = 100000
-	bloomFilterOfRecvMessageArgM      = 1437759
+	maxCountOfRecvMessageInBloomFiler = 1000000
+	bloomFilterOfRecvMessageArgM      = 14377588
 	bloomFilterOfRecvMessageArgK      = 10
 )
 
@@ -52,6 +52,7 @@ func RecordKey(key string) {
 		logging.VLog().WithFields(logrus.Fields{
 			"countOfRecvMessageInBloomFilter": countOfRecvMessageInBloomFilter,
 		}).Debug("reset bloom filter.")
+		countOfRecvMessageInBloomFilter = 0
 		bloomFilterOfRecvMessage = bloom.New(bloomFilterOfRecvMessageArgM, bloomFilterOfRecvMessageArgK)
 	}
 
