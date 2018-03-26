@@ -1,15 +1,16 @@
 'use strict';
 
-var Wallet = require('nebulas');
-// var Wallet = require("../../../cmd/console/neb.js/index.js");
 var sleep = require("system-sleep");
-var HttpRequest = Wallet.HttpRequest;
 var FS = require("fs");
-
 var expect = require('chai').expect;
 var BigNumber = require('bignumber.js');
 
-var Neb = Wallet.Neb;
+var Nebulas = require('nebulas');
+var HttpRequest = require('../../node-request');
+var Account = Nebulas.Account;
+var Transaction = Nebulas.Transaction;
+var CryptoUtils = Nebulas.CryptoUtils;
+var Neb = Nebulas.Neb;
 var neb = new Neb();
 
 var ChainID;
@@ -32,23 +33,23 @@ console.log("env:", env);
 if (env == 'local'){
     neb.setRequest(new HttpRequest("http://127.0.0.1:8685"));//https://testnet.nebulas.io
     ChainID = 100;
-    source = new Wallet.Account("d80f115bdbba5ef215707a8d7053c16f4e65588fd50b0f83369ad142b99891b5");
+    source = new Account("d80f115bdbba5ef215707a8d7053c16f4e65588fd50b0f83369ad142b99891b5");
     coinbase = "n1QZMXSZtW7BUerroSms4axNfyBGyFGkrh5";
 
 }else if(env == 'testneb1'){
     neb.setRequest(new HttpRequest("http://35.182.48.19:8685"));
     ChainID = 1001;
-    source = new Wallet.Account("25a3a441a34658e7a595a0eda222fa43ac51bd223017d17b420674fb6d0a4d52");
+    source = new Account("25a3a441a34658e7a595a0eda222fa43ac51bd223017d17b420674fb6d0a4d52");
     coinbase = "n1SAeQRVn33bamxN4ehWUT7JGdxipwn8b17";
 }else if(env == "testneb2"){
     neb.setRequest(new HttpRequest("http://34.205.26.12:8685"));
     ChainID = 1002;
-    source = new Wallet.Account("25a3a441a34658e7a595a0eda222fa43ac51bd223017d17b420674fb6d0a4d52");
+    source = new Account("25a3a441a34658e7a595a0eda222fa43ac51bd223017d17b420674fb6d0a4d52");
     coinbase = "n1SAeQRVn33bamxN4ehWUT7JGdxipwn8b17";
 }else if(env == "testneb3"){
     neb.setRequest(new HttpRequest("http://35.177.214.138:8685"));
     ChainID = 1003;
-    source = new Wallet.Account("25a3a441a34658e7a595a0eda222fa43ac51bd223017d17b420674fb6d0a4d52");
+    source = new Account("25a3a441a34658e7a595a0eda222fa43ac51bd223017d17b420674fb6d0a4d52");
     coinbase = "n1SAeQRVn33bamxN4ehWUT7JGdxipwn8b17";
 }else{
     console.log("please input correct env local testneb1 testneb2");
@@ -65,12 +66,12 @@ function prepareContractCall(testCase, done) {
         var accounts = new Array();
         var values = new Array();
         // if (typeof contractAddr === "undefined") {
-        deploy = Wallet.Account.NewAccount();
+        deploy = Account.NewAccount();
         accounts.push(deploy);
         values.push(neb.nasToBasic(1));
         // }
 
-        from = Wallet.Account.NewAccount();
+        from = Account.NewAccount();
         accounts.push(from);
 
         var fromBalance = (typeof testCase.testInput.fromBalance === "undefined") ? neb.nasToBasic(1) : testCase.testInput.fromBalance;
@@ -89,7 +90,7 @@ function prepareContractCall(testCase, done) {
 
 function testContractCall(testInput, testExpect, done) {
     var fromAcc = (typeof testInput.from === "undefined") ? from : testInput.from;
-    var to = (typeof testInput.to === "undefined") ? Wallet.Account.fromAddress(contractAddr) : testInput.to;
+    var to = (typeof testInput.to === "undefined") ? Account.fromAddress(contractAddr) : testInput.to;
 
     neb.api.getAccountState(from.getAddressString()).then(function (resp) {
         fromState = resp;
@@ -101,7 +102,7 @@ function testContractCall(testInput, testExpect, done) {
         console.log("coin state:", JSON.stringify(resp));
         coinState = resp;
 
-        var tx = new Wallet.Transaction(ChainID, fromAcc, to, testInput.value, parseInt(fromState.nonce) + testInput.nonce, testInput.gasPrice, testInput.gasLimit, testInput.contract);
+        var tx = new Transaction(ChainID, fromAcc, to, testInput.value, parseInt(fromState.nonce) + testInput.nonce, testInput.gasPrice, testInput.gasLimit, testInput.contract);
         // test invalid address
         tx.from.address = fromAcc.address;
         tx.to.address = to.address;
@@ -111,13 +112,13 @@ function testContractCall(testInput, testExpect, done) {
             tx.signTransaction();
         } else if (testInput.fakeSign) {
             //replcce the privkey to sign
-            console.log("this is the right signature:" + tx.sign)
-            console.log("repalce the privkey and sign another signatrue...")
-            var newAccount = new Wallet.Account("a6e5eb222e4538fce79f5cb8774a72621637c2c9654c8b2525ed1d7e4e73653f");
-            var privKey = tx.from.privKey
-            tx.from.privKey = newAccount.privKey
+            console.log("this is the right signature:" + tx.sign);
+            console.log("repalce the privkey and sign another signatrue...");
+            var newAccount = new Account("a6e5eb222e4538fce79f5cb8774a72621637c2c9654c8b2525ed1d7e4e73653f");
+            var privKey = tx.from.privKey;
+            tx.from.privKey = newAccount.privKey;
             tx.signTransaction();
-            console.log("now signatrue is: " + tx.sign)
+            console.log("now signatrue is: " + tx.sign);
             tx.from.privKey = privKey;
         }
         // console.log("tx raw:", tx.toString());
@@ -212,7 +213,7 @@ function cliamTokens(accounts, values, done) {
 }
 
 function sendTransaction(from, address, value, nonce) {
-    var transaction = new Wallet.Transaction(ChainID, from, address, value, nonce);
+    var transaction = new Transaction(ChainID, from, address, value, nonce, "1000000", "200000");
     transaction.signTransaction();
     var rawTx = transaction.toProtoString();
     neb.api.sendRawTransaction(rawTx).then(function (resp) {
@@ -246,7 +247,7 @@ function deployContract(done){
         "args": "[\"StandardToken\", \"NRC\", 18, \"1000000000\"]"
     };
 
-    var transaction = new Wallet.Transaction(ChainID, deploy, deploy, "0", 1, "10000000", "20000000000", contract);
+    var transaction = new Transaction(ChainID, deploy, deploy, "0", 1, "10000000", "2000000", contract);
     transaction.signTransaction();
     var rawTx = transaction.toProtoString();
 
@@ -346,8 +347,8 @@ var testCase = {
 };
 testCases.push(testCase);
 
-var invalidFrom = Wallet.Account.NewAccount();
-invalidFrom.address = Wallet.CryptoUtils.toBuffer("12af");
+var invalidFrom = Account.NewAccount();
+invalidFrom.address = CryptoUtils.toBuffer("12af");
 testCase = {
     "name": "2. from address invalid",
     "testInput": {
@@ -375,8 +376,8 @@ testCase = {
 };
 testCases.push(testCase);
 
-var invalidTo = Wallet.Account.NewAccount();
-invalidTo.address = Wallet.CryptoUtils.toBuffer("12af");
+var invalidTo = Account.NewAccount();
+invalidTo.address = CryptoUtils.toBuffer("12af");
 testCase = {
     "name": "3. to address invalid",
     "testInput": {
@@ -409,7 +410,7 @@ testCase = {
     "testInput": {
         sign: true,
         from: from,
-        to: Wallet.Account.NewAccount(),
+        to: Account.NewAccount(),
         value: "1",
         nonce: 1,
         gasPrice: 1000000,

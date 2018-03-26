@@ -9,7 +9,7 @@ try {
 } catch (e) {
     Wallet = require("nebulas");
 }
-var HttpRequest = Wallet.HttpRequest
+var HttpRequest = require("../../node-request");
 var utils = Wallet.Utils;
 var Neb = Wallet.Neb;
 var Account = Wallet.Account;
