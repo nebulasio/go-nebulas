@@ -72,8 +72,9 @@ const (
 	NebMessageHeaderCheckSumEndIdx = 36
 	NebMessageHeaderLength         = 36
 
-	MaxNebMessageDataLength = 16 * 1024 * 1024 // 16m.
-	MaxNebMessageNameLength = 24 - 12          // 12.
+	// Consider that a block is too large in sync.
+	MaxNebMessageDataLength = 512 * 1024 * 1024 // 512m.
+	MaxNebMessageNameLength = 24 - 12           // 12.
 )
 
 // Error types
