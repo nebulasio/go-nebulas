@@ -213,6 +213,7 @@ func (pool *TransactionPool) PushAndRelay(tx *Transaction) error {
 		return err
 	}
 
+	// TODO: if tx relay , don't relay again @fengzi @roy
 	pool.ns.Relay(MessageTypeNewTx, tx, net.MessagePriorityNormal)
 	return nil
 }
