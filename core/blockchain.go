@@ -141,22 +141,15 @@ func NewBlockChain(neb Neblet) (*BlockChain, error) {
 		quitCh:       make(chan int, 1),
 	}
 
-	bc.cachedBlocks, err = lru.NewWithEvict(128, func(key interface{}, value interface{}) {
-		block := value.(*Block)
-		if block != nil {
-			block.Dispose()
-		}
-	})
+	bc.cachedBlocks, err = lru.New(128)
 	if err != nil {
 		return nil, err
 	}
 
-	bc.detachedTailBlocks, err = lru.NewWithEvict(128, func(key interface{}, value interface{}) {
-		block := value.(*Block)
-		if block != nil {
-			block.Dispose()
-		}
-	})
+	bc.detachedTailBlocks, err = lru.New(128)
+	if err != nil {
+		return nil, err
+	}
 
 	bc.bkPool.setBlockChain(bc)
 	bc.txPool.setBlockChain(bc)

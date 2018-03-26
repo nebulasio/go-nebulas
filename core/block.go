@@ -134,9 +134,8 @@ type Block struct {
 	transactions Transactions
 	dependency   *dag.Dag
 
-	sealed      bool
-	height      uint64
-	parentBlock *Block
+	sealed bool
+	height uint64
 
 	worldState state.WorldState
 
@@ -231,7 +230,6 @@ func NewBlock(chainID uint32, coinbase *Address, parent *Block) (*Block, error) 
 		},
 		transactions: make(Transactions, 0),
 		dependency:   dag.NewDag(),
-		parentBlock:  parent,
 
 		worldState: worldState,
 		height:     parent.height + 1,
@@ -376,7 +374,6 @@ func (block *Block) LinkParentBlock(chain *BlockChain, parentBlock *Block) error
 	block.WorldState().SetConsensusState(consensusState)
 
 	block.height = parentBlock.height + 1
-	block.parentBlock = parentBlock
 	block.txPool = parentBlock.txPool
 	block.storage = parentBlock.storage
 	block.eventEmitter = parentBlock.eventEmitter
@@ -1235,10 +1232,4 @@ func LoadBlockFromStorage(hash byteutils.Hash, chain *BlockChain) (*Block, error
 	block.nvm = chain.nvm
 	block.storage = chain.storage
 	return block, nil
-}
-
-// Dispose dispose block.
-func (block *Block) Dispose() {
-	// cut off the parent block reference, prevent memory leak.
-	block.parentBlock = nil
 }

@@ -124,16 +124,8 @@ func (dpos *Dpos) Setup(neblet core.Neblet) error {
 		dpos.remoteSignServer = chainConfig.RemoteSignServer
 	}
 
-	slot, err := lru.NewWithEvict(128, func(key interface{}, value interface{}) {
-		block := value.(*core.Block)
-		if block != nil {
-			block.Dispose()
-		}
-	})
+	slot, err := lru.New(128)
 	if err != nil {
-		logging.CLog().WithFields(logrus.Fields{
-			"err": err,
-		}).Error("Failed to create cache.")
 		return err
 	}
 	dpos.slot = slot
