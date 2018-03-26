@@ -54,6 +54,7 @@ type RouteTable struct {
 	maxPeersCountForSyncResp int
 	maxPeersCountToSync      int
 	cacheFilePath            string
+	internalNodeFilePath     string
 	seedNodes                []ma.Multiaddr
 	node                     *Node
 	streamManager            *StreamManager
@@ -69,6 +70,7 @@ func NewRouteTable(config *Config, node *Node) *RouteTable {
 		maxPeersCountForSyncResp: MaxPeersCountForSyncResp,
 		maxPeersCountToSync:      config.MaxSyncNodes,
 		cacheFilePath:            path.Join(config.RoutingTableDir, RouteTableCacheFileName),
+		internalNodeFilePath:     path.Join(config.RoutingTableDir, RouteTableInternalNodeFileName),
 		seedNodes:                config.BootNodes,
 		node:                     node,
 		streamManager:            node.streamManager,
@@ -397,7 +399,7 @@ func (table *RouteTable) SyncWithPeer(pid peer.ID) {
 
 //LoadInternalNodeList Load Internal Node list from file
 func (table *RouteTable) LoadInternalNodeList() {
-	file, err := os.Open("internal_list.txt")
+	file, err := os.Open(table.internalNodeFilePath)
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"err": err,
