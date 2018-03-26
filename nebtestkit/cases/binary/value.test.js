@@ -9,7 +9,7 @@ try {
 } catch (e) {
     Wallet = require("nebulas");
 }
-var HttpRequest = Wallet.HttpRequest
+var HttpRequest = require("../../node-request");
 var utils = Wallet.Utils;
 var Neb = Wallet.Neb;
 var Account = Wallet.Account;
@@ -49,7 +49,7 @@ if (env === 'testneb1') {
 
 } else if (env === "local") {
     ChainID = 100;
-    sourceAccount = new Wallet.Account("d80f115bdbba5ef215707a8d7053c16f4e65588fd50b0f83369ad142b99891b5 ");
+    sourceAccount = new Wallet.Account("d80f115bdbba5ef215707a8d7053c16f4e65588fd50b0f83369ad142b99891b5");
     coinbase = "n1QZMXSZtW7BUerroSms4axNfyBGyFGkrh5";
     apiEndPoint = "http://127.0.0.1:8685";
 
@@ -164,7 +164,8 @@ function testTransfer(testInput, testExpect, done) {
             tx.from.privKey = privKey;
         }
 
-        console.log(tx.toString());
+        console.log("tx to be sent: " + tx.toString());
+        //console.log("tx to be send: " + JSON.stringify(JSON.parse(tx.toString()),null,'\t')); //json format output
         return neb.api.sendRawTransaction(tx.toProtoString());
 
     }).catch(function (err) {

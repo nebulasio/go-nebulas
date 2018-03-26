@@ -1,6 +1,5 @@
 'use strict';
 
-var Wallet = require('../../../cmd/console/neb.js/lib/wallet.js');
 var sleep = require("system-sleep");
 var HttpRequest = require("../../node-request");
 var FS = require("fs");
@@ -8,7 +7,12 @@ var FS = require("fs");
 var expect = require('chai').expect;
 var BigNumber = require('bignumber.js');
 
-var Neb = Wallet.Neb;
+var Nebulas = require('nebulas');
+var Account = Nebulas.Account;
+var Transaction = Nebulas.Transaction;
+var CryptoUtils = Nebulas.CryptoUtils;
+var Utils = Nebulas.Utils;
+var Neb = Nebulas.Neb;
 var neb = new Neb();
 
 var ChainID;
@@ -29,31 +33,32 @@ console.log("env:", env);
 if (env == 'local'){
     neb.setRequest(new HttpRequest("http://127.0.0.1:8685"));//https://testnet.nebulas.io
     ChainID = 100;
-    source = new Wallet.Account("a6e5eb290e1438fce79f5cb8774a72621637c2c9654c8b2525ed1d7e4e73653f");
-    coinbase = "eb31ad2d8a89a0ca6935c308d5425730430bc2d63f2573b8";
+    source = new Account("d80f115bdbba5ef215707a8d7053c16f4e65588fd50b0f83369ad142b99891b5");
+    coinbase = "n1QZMXSZtW7BUerroSms4axNfyBGyFGkrh5";
+
 }else if(env == 'testneb1'){
     neb.setRequest(new HttpRequest("http://35.182.48.19:8685"));
     ChainID = 1001;
-    source = new Wallet.Account("43181d58178263837a9a6b08f06379a348a5b362bfab3631ac78d2ac771c5df3");
-    coinbase = "0b9cd051a6d7129ab44b17833c63fe4abead40c3714cde6d";
+    source = new Account("25a3a441a34658e7a595a0eda222fa43ac51bd223017d17b420674fb6d0a4d52");
+    coinbase = "n1SAeQRVn33bamxN4ehWUT7JGdxipwn8b17";
 }else if(env == "testneb2"){
     neb.setRequest(new HttpRequest("http://34.205.26.12:8685"));
     ChainID = 1002;
-    source = new Wallet.Account("43181d58178263837a9a6b08f06379a348a5b362bfab3631ac78d2ac771c5df3");
-    coinbase = "0b9cd051a6d7129ab44b17833c63fe4abead40c3714cde6d";
+    source = new Account("25a3a441a34658e7a595a0eda222fa43ac51bd223017d17b420674fb6d0a4d52");
+    coinbase = "n1SAeQRVn33bamxN4ehWUT7JGdxipwn8b17";
 }else if(env == "testneb3"){
     neb.setRequest(new HttpRequest("http://35.177.214.138:8685"));
     ChainID = 1003;
-    source = new Wallet.Account("43181d58178263837a9a6b08f06379a348a5b362bfab3631ac78d2ac771c5df3");
-    coinbase = "0b9cd051a6d7129ab44b17833c63fe4abead40c3714cde6d";
+    source = new Account("25a3a441a34658e7a595a0eda222fa43ac51bd223017d17b420674fb6d0a4d52");
+    coinbase = "n1SAeQRVn33bamxN4ehWUT7JGdxipwn8b17";
 }else{
-    console.log("please input correct env local testneb1 testneb2");
+    console.log("please input correct env local testneb1 testneb2 testneb3");
     return;
 }
 
 var lastnonce = 0;
 
-// deploy = new Wallet.Account("823e8a73257beb9f8ddc5c10ec32b886199278d75371a9c6fdd33f8f4ea5b792");
+// deploy = new Account("823e8a73257beb9f8ddc5c10ec32b886199278d75371a9c6fdd33f8f4ea5b792");
 // contractAddr = "249596e82b086f76df1310d36b475ab33f5595fcec7d61aa";
 
 function prepareContractCall(testCase, done) {
@@ -63,8 +68,8 @@ function prepareContractCall(testCase, done) {
 
         var accounts = new Array();
         var values = new Array();
-        if (Wallet.Utils.isNull(contractAddr)) {
-            deploy = Wallet.Account.NewAccount();
+        if (Utils.isNull(contractAddr)) {
+            deploy = Account.NewAccount();
             accounts.push(deploy);
             values.push(neb.nasToBasic(1));
         }
@@ -81,7 +86,7 @@ function prepareContractCall(testCase, done) {
 
         if (accounts.length > 0) {
             cliamTokens(accounts, values, function () {
-                if (Wallet.Utils.isNull(contractAddr)) {
+                if (Utils.isNull(contractAddr)) {
                     deployContract(done);
                 } else {
                     done();
@@ -104,7 +109,7 @@ function cliamTokens(accounts, values, done) {
 }
 
 function sendTransaction(from, address, value, nonce) {
-    var transaction = new Wallet.Transaction(ChainID, from, address, value, nonce, "1000000", "2000000");
+    var transaction = new Transaction(ChainID, from, address, value, nonce, "1000000", "2000000");
     transaction.signTransaction();
     var rawTx = transaction.toProtoString();
     // console.log("send transaction:", transaction.toString());
@@ -140,7 +145,7 @@ function deployContract(done){
         "args": "[\"StandardToken\", \"NRC\", 18, \"1000000000\"]"
     };
 
-    var transaction = new Wallet.Transaction(ChainID, deploy, deploy, "0", 1, "10000000", "20000000000", contract);
+    var transaction = new Transaction(ChainID, deploy, deploy, "0", 1, "10000000", "2000000", contract);
     transaction.signTransaction();
     var rawTx = transaction.toProtoString();
 
@@ -210,7 +215,7 @@ function testCall(testInput, testExpect, done) {
         "function": testInput.function,
         "args": testInput.args
     };
-    var from = Wallet.Account.NewAccount();
+    var from = Account.NewAccount();
     neb.api.call(from.getAddressString(), contractAddr, "0", 1, "1000000", "2000000", contract).then(function (resp) {
         var result = JSON.parse(resp.result);
         console.log("result:", result);
@@ -227,8 +232,8 @@ function testCall(testInput, testExpect, done) {
 }
 
 function testTransfer(testInput, testExpect, done) {
-    var from = (Wallet.Utils.isNull(testInput.from)) ? deploy : testInput.from;
-    var to = Wallet.Account.NewAccount();
+    var from = (Utils.isNull(testInput.from)) ? deploy : testInput.from;
+    var to = Account.NewAccount();
     var fromBalance, toBalance;
 
     balanceOfNRC20(from.getAddressString()).then(function(resp) {
@@ -245,7 +250,7 @@ function testTransfer(testInput, testExpect, done) {
         console.log("from state:", JSON.stringify(resp));
 
         var args = testInput.args;
-        if (!Wallet.Utils.isNull(testInput.transferValue)) {
+        if (!Utils.isNull(testInput.transferValue)) {
             if (testInput.transferValue === "from.balance") {
                 testInput.transferValue = fromBalance;
             }
@@ -256,7 +261,7 @@ function testTransfer(testInput, testExpect, done) {
             "function": "transfer",
             "args": args
         };
-        var tx = new Wallet.Transaction(ChainID, from, contractAddr, "0", parseInt(resp.nonce) + 1, "1000000", "2000000", contract);
+        var tx = new Transaction(ChainID, from, contractAddr, "0", parseInt(resp.nonce) + 1, "1000000", "2000000", contract);
         tx.signTransaction();
 
         console.log("raw tx:", tx.toString());
@@ -333,8 +338,8 @@ function testTransfer(testInput, testExpect, done) {
 }
 
 function testApprove(testInput, testExpect, done) {
-    var from = (Wallet.Utils.isNull(testInput.from)) ? deploy : testInput.from;
-    var to = Wallet.Account.NewAccount();
+    var from = (Utils.isNull(testInput.from)) ? deploy : testInput.from;
+    var to = Account.NewAccount();
     var fromAllowance, fromBalance, fromState;
 
     allowanceOfNRC20(from.getAddressString(), to.getAddressString()).then(function (resp) {
@@ -352,12 +357,12 @@ function testApprove(testInput, testExpect, done) {
         console.log("from state:", resp);
 
         var args = testInput.args;
-        if (!Wallet.Utils.isNull(testInput.approveValue)) {
+        if (!Utils.isNull(testInput.approveValue)) {
             if (testInput.approveValue === "from.balance") {
                 testInput.approveValue = fromBalance;
             }
             var currentValue = fromAllowance;
-            if (!Wallet.Utils.isNull(testInput.currentValue)) {
+            if (!Utils.isNull(testInput.currentValue)) {
                 currentValue = testInput.currentValue;
             }
             args = "[\""+ to.getAddressString() +"\", \""+ currentValue +"\", \""+ testInput.approveValue +"\"]";
@@ -367,7 +372,7 @@ function testApprove(testInput, testExpect, done) {
             "function": "approve",
             "args": args
         };
-        var tx = new Wallet.Transaction(ChainID, from, contractAddr, "0", parseInt(resp.nonce) + 1, "1000000", "2000000", contract);
+        var tx = new Transaction(ChainID, from, contractAddr, "0", parseInt(resp.nonce) + 1, "1000000", "2000000", contract);
         tx.signTransaction();
 
         console.log("raw tx:", tx.toString());
@@ -422,8 +427,8 @@ function testApprove(testInput, testExpect, done) {
 }
 
 function testTransferFrom(testInput, testExpect, done) {
-    var from = (Wallet.Utils.isNull(testInput.from)) ? deploy : testInput.from;
-    var to = (Wallet.Utils.isNull(testInput.to)) ? Wallet.Account.NewAccount() : testInput.to;
+    var from = (Utils.isNull(testInput.from)) ? deploy : testInput.from;
+    var to = (Utils.isNull(testInput.to)) ? Account.NewAccount() : testInput.to;
     var deployAllowance, deployBalance, deployState, fromBalance, toBalance;
 
     allowanceOfNRC20(deploy.getAddressString(), from.getAddressString()).then(function (resp) {
@@ -456,7 +461,7 @@ function testTransferFrom(testInput, testExpect, done) {
         console.log("from state:", resp);
 
         approveNRC20(testInput, deployState, from, deployAllowance, function (resp) {
-            if (!Wallet.Utils.isNull(resp)) {
+            if (!Utils.isNull(resp)) {
                 if (resp instanceof Error) {
                     done(resp);
                 }
@@ -470,7 +475,7 @@ function testTransferFrom(testInput, testExpect, done) {
                 console.log("deploy allowance:", deployAllowance);
 
                 var args = testInput.args;
-                if (!Wallet.Utils.isNull(testInput.transferValue)) {
+                if (!Utils.isNull(testInput.transferValue)) {
                     args = "[\""+ deploy.getAddressString() +"\", \""+ to.getAddressString() +"\", \""+ testInput.transferValue +"\"]";
                 }
 
@@ -478,7 +483,7 @@ function testTransferFrom(testInput, testExpect, done) {
                     "function": "transferFrom",
                     "args": args
                 };
-                var tx = new Wallet.Transaction(ChainID, from, contractAddr, "0", parseInt(fromState.nonce) + 1, "1000000", "2000000", contract);
+                var tx = new Transaction(ChainID, from, contractAddr, "0", parseInt(fromState.nonce) + 1, "1000000", "2000000", contract);
                 tx.signTransaction();
 
                 console.log("raw tx:", tx.toString());
@@ -562,7 +567,7 @@ function testTransferFrom(testInput, testExpect, done) {
 }
 
 function approveNRC20(testInput, deployState, from, currentValue, done) {
-    if (!Wallet.Utils.isNull(testInput.approveValue)) {
+    if (!Utils.isNull(testInput.approveValue)) {
         var approveValue = testInput.approveValue;
         var args = "[\""+ from.getAddressString() +"\", \""+ currentValue +"\", \""+ approveValue +"\"]";
 
@@ -570,7 +575,7 @@ function approveNRC20(testInput, deployState, from, currentValue, done) {
             "function": "approve",
             "args": args
         };
-        var tx = new Wallet.Transaction(ChainID, deploy, contractAddr, "0", parseInt(deployState.nonce) + 1, "1000000", "2000000", contract);
+        var tx = new Transaction(ChainID, deploy, contractAddr, "0", parseInt(deployState.nonce) + 1, "1000000", "2000000", contract);
         tx.signTransaction();
         // console.log("approve tx:", tx.toString());
         neb.api.sendRawTransaction(tx.toProtoString()).then(function (resp) {
@@ -898,7 +903,7 @@ testCase = {
     "name": "23. transfer balance = 0 & value = 0",
     "testInput": {
         isTransfer: true,
-        from: Wallet.Account.NewAccount(),
+        from: Account.NewAccount(),
         transferValue: "0",
         function: "transfer",
         args: ""
@@ -952,7 +957,7 @@ testCase = {
     "name": "27. approve balance = 0 & value = 0",
     "testInput": {
         isApprove: true,
-        from: Wallet.Account.NewAccount(),
+        from: Account.NewAccount(),
         function: "approve",
         approveValue: "0",
         args: ""
@@ -1038,7 +1043,7 @@ testCase = {
     "name": "33. transferFrom args empty",
     "testInput": {
         isTransferFrom: true,
-        from: Wallet.Account.NewAccount(),
+        from: Account.NewAccount(),
         function: "transferFrom",
         args: ""
     },
@@ -1052,7 +1057,7 @@ testCase = {
     "name": "34. transferFrom args less",
     "testInput": {
         isTransferFrom: true,
-        from: Wallet.Account.NewAccount(),
+        from: Account.NewAccount(),
         function: "transferFrom",
         args: "[\"1a263547d167c74cf4b8f9166cfa244de0481c514a45aa2c\"]"
     },
@@ -1066,7 +1071,7 @@ testCase = {
     "name": "35. transferFrom args err",
     "testInput": {
         isTransferFrom: true,
-        from: Wallet.Account.NewAccount(),
+        from: Account.NewAccount(),
         function: "transferFrom",
         args: "[\"1a263547d167c74cf4b8f9166cfa244de0481c514a45aa2c\", 1]"
     },
@@ -1080,7 +1085,7 @@ testCase = {
     "name": "36. transferFrom no approve",
     "testInput": {
         isTransferFrom: true,
-        from: Wallet.Account.NewAccount(),
+        from: Account.NewAccount(),
         transferValue: "1",
         function: "transferFrom",
         args: ""
@@ -1095,7 +1100,7 @@ testCase = {
     "name": "37. transferFrom approve < value",
     "testInput": {
         isTransferFrom: true,
-        from: Wallet.Account.NewAccount(),
+        from: Account.NewAccount(),
         approveValue: "10000",
         transferValue: "10000000000000000000000000000",
         function: "transferFrom",
@@ -1111,7 +1116,7 @@ testCase = {
     "name": "38. transferFrom approve > value",
     "testInput": {
         isTransferFrom: true,
-        from: Wallet.Account.NewAccount(),
+        from: Account.NewAccount(),
         approveValue: "10",
         transferValue: "1",
         function: "transferFrom",
@@ -1127,7 +1132,7 @@ testCase = {
     "name": "39. transferFrom approve = value",
     "testInput": {
         isTransferFrom: true,
-        from: Wallet.Account.NewAccount(),
+        from: Account.NewAccount(),
         approveValue: "1",
         transferValue: "1",
         function: "transferFrom",
@@ -1143,7 +1148,7 @@ testCase = {
     "name": "40. transferFrom approve = value = 0",
     "testInput": {
         isTransferFrom: true,
-        from: Wallet.Account.NewAccount(),
+        from: Account.NewAccount(),
         approveValue: "0",
         transferValue: "0",
         function: "transferFrom",

@@ -108,9 +108,14 @@ func (s *APIService) Call(ctx context.Context, req *rpcpb.TransactionRequest) (*
 		return nil, err
 	}
 
+	errMsg := ""
+	if result.Err != nil {
+		errMsg = result.Err.Error()
+	}
+
 	return &rpcpb.CallResponse{
 		Result:      result.Msg,
-		ExecuteErr:  result.Err.Error(),
+		ExecuteErr:  errMsg,
 		EstimateGas: result.GasUsed.String(),
 	}, nil
 }
