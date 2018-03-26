@@ -14,7 +14,7 @@ var Neb = Nebulas.Neb;
 var neb = new Neb();
 
 var ChainID;
-var source, deploy, from, fromState, contractAddr;
+var originSource, source, deploy, from, fromState, contractAddr;
 
 var coinbase, coinState;
 var testCases = new Array();
@@ -33,23 +33,23 @@ console.log("env:", env);
 if (env == 'local'){
     neb.setRequest(new HttpRequest("http://127.0.0.1:8685"));//https://testnet.nebulas.io
     ChainID = 100;
-    source = new Account("d80f115bdbba5ef215707a8d7053c16f4e65588fd50b0f83369ad142b99891b5");
+    originSource = new Account("d80f115bdbba5ef215707a8d7053c16f4e65588fd50b0f83369ad142b99891b5");
     coinbase = "n1QZMXSZtW7BUerroSms4axNfyBGyFGkrh5";
 
 }else if(env == 'testneb1'){
     neb.setRequest(new HttpRequest("http://35.182.48.19:8685"));
     ChainID = 1001;
-    source = new Account("25a3a441a34658e7a595a0eda222fa43ac51bd223017d17b420674fb6d0a4d52");
+    originSource = new Account("25a3a441a34658e7a595a0eda222fa43ac51bd223017d17b420674fb6d0a4d52");
     coinbase = "n1SAeQRVn33bamxN4ehWUT7JGdxipwn8b17";
 }else if(env == "testneb2"){
     neb.setRequest(new HttpRequest("http://34.205.26.12:8685"));
     ChainID = 1002;
-    source = new Account("25a3a441a34658e7a595a0eda222fa43ac51bd223017d17b420674fb6d0a4d52");
+    originSource = new Account("25a3a441a34658e7a595a0eda222fa43ac51bd223017d17b420674fb6d0a4d52");
     coinbase = "n1SAeQRVn33bamxN4ehWUT7JGdxipwn8b17";
 }else if(env == "testneb3"){
     neb.setRequest(new HttpRequest("http://35.177.214.138:8685"));
     ChainID = 1003;
-    source = new Account("25a3a441a34658e7a595a0eda222fa43ac51bd223017d17b420674fb6d0a4d52");
+    originSource = new Account("25a3a441a34658e7a595a0eda222fa43ac51bd223017d17b420674fb6d0a4d52");
     coinbase = "n1SAeQRVn33bamxN4ehWUT7JGdxipwn8b17";
 }else{
     console.log("please input correct env local testneb1 testneb2");
@@ -57,6 +57,33 @@ if (env == 'local'){
 }
 
 var lastnonce = 0;
+
+function prepareSource(done) {
+    neb.api.getAccountState(originSource.getAddressString()).then(function (resp) {
+        console.log("prepare source account state:" + JSON.stringify(resp));
+        var nonce = parseInt(resp.nonce);
+
+        source = Account.NewAccount();
+
+        var tx = new Transaction(ChainID, originSource, source, neb.nasToBasic(1000), nonce + 1, "1000000", "200000");
+        tx.signTransaction();
+
+        console.log("cliam source tx:", tx.toString());
+
+        return neb.api.sendRawTransaction(tx.toProtoString());
+    }).then(function (resp) {
+        console.log("send Raw Tx:" + JSON.stringify(resp));
+        expect(resp).to.be.have.property('txhash');
+        checkTransaction(resp.txhash, function (receipt) {
+            console.log("tx receipt : " + JSON.stringify(receipt));
+            expect(receipt).to.be.have.property('status').equal(1);
+
+            done();
+        });
+    }).catch(function (err) {
+        done(err);
+    });
+}
 
 function prepareContractCall(testCase, done) {
     neb.api.getAccountState(source.getAddressString()).then(function (resp) {
@@ -1168,15 +1195,9 @@ testCases.push(testCase);
 
 
 describe('contract call test', function () {
-    // beforeEach(function (done) {
-    //     prepareContractCall(function (result) {
-    //         if (result instanceof Error) {
-    //             done(result);
-    //         } else {
-    //             done();
-    //         }
-    //     });
-    // });
+    before(function (done) {
+        prepareSource(done);
+    });
 
 
     // var testCase = testCases[26];
