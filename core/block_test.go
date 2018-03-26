@@ -301,7 +301,7 @@ func (n *mockNeb) SetGenesis(genesis *corepb.Genesis) {
 type mockNvm struct{}
 type mockEngine struct{}
 
-func (nvm *mockNvm) CreateEngine(block *Block, tx *Transaction, owner, contract state.Account, state WorldState) (SmartContractEngine, error) {
+func (nvm *mockNvm) CreateEngine(block *Block, tx *Transaction, contract state.Account, state WorldState) (SmartContractEngine, error) {
 	return &mockEngine{}, nil
 }
 func (nvm *mockEngine) Dispose() {

@@ -32,6 +32,10 @@ func NewNebulasVM() core.NVM {
 }
 
 // CreateEngine start engine
-func (nvm *NebulasVM) CreateEngine(block *core.Block, tx *core.Transaction, owner, contract state.Account, state core.WorldState) (core.SmartContractEngine, error) {
-	return NewV8Engine(&Context{block, tx, owner, contract, state}), nil
+func (nvm *NebulasVM) CreateEngine(block *core.Block, tx *core.Transaction, contract state.Account, state core.WorldState) (core.SmartContractEngine, error) {
+	ctx, err := NewContext(block, tx, contract, state)
+	if err != nil {
+		return nil, err
+	}
+	return NewV8Engine(ctx), nil
 }

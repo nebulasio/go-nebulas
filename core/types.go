@@ -238,7 +238,7 @@ type AccountManager interface {
 
 // NVM interface
 type NVM interface {
-	CreateEngine(block *Block, tx *Transaction, owner, contract state.Account, ws WorldState) (SmartContractEngine, error)
+	CreateEngine(block *Block, tx *Transaction, contract state.Account, ws WorldState) (SmartContractEngine, error)
 }
 
 // SmartContractEngine interface

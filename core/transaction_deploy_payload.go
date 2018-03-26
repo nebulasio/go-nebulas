@@ -103,16 +103,17 @@ func (payload *DeployPayload) Execute(limitedGas *util.Uint128, tx *Transaction,
 	if err != nil {
 		return util.NewUint128(), "", err
 	}
+	/* // disable useless owner.
 	owner, err := ws.GetOrCreateUserAccount(tx.from.Bytes())
 	if err != nil {
 		return util.NewUint128(), "", err
-	}
+	} */
 	contract, err := ws.CreateContractAccount(addr.Bytes(), tx.Hash())
 	if err != nil {
 		return util.NewUint128(), "", err
 	}
 
-	engine, err := block.nvm.CreateEngine(block, tx, owner, contract, ws)
+	engine, err := block.nvm.CreateEngine(block, tx, contract, ws)
 	if err != nil {
 		return util.NewUint128(), "", err
 	}

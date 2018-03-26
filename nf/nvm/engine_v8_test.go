@@ -137,7 +137,7 @@ func TestRunScriptSource(t *testing.T) {
 			assert.Nil(t, err)
 			owner.AddBalance(newUint128FromIntWrapper(1000000000))
 			contract, _ := context.CreateContractAccount([]byte("account2"), nil)
-			ctx, err := NewContext(mockBlock(), mockTransaction(), owner, contract, context)
+			ctx, err := NewContext(mockBlock(), mockTransaction(), contract, context)
 
 			engine := NewV8Engine(ctx)
 			engine.SetExecutionLimits(900000, 10000000)
@@ -175,7 +175,7 @@ func TestRunScriptSourceInModule(t *testing.T) {
 			assert.Nil(t, err)
 			owner.AddBalance(newUint128FromIntWrapper(1000000000))
 			contract, _ := context.CreateContractAccount([]byte("account2"), nil)
-			ctx, err := NewContext(mockBlock(), mockTransaction(), owner, contract, context)
+			ctx, err := NewContext(mockBlock(), mockTransaction(), contract, context)
 
 			engine := NewV8Engine(ctx)
 			engine.SetExecutionLimits(100000, 10000000)
@@ -218,7 +218,7 @@ func TestRunScriptSourceWithLimits(t *testing.T) {
 			assert.Nil(t, err)
 			owner.AddBalance(newUint128FromIntWrapper(100000))
 			contract, _ := context.CreateContractAccount([]byte("account2"), nil)
-			ctx, err := NewContext(mockBlock(), mockTransaction(), owner, contract, context)
+			ctx, err := NewContext(mockBlock(), mockTransaction(), contract, context)
 
 			// direct run.
 			(func() {
@@ -260,10 +260,12 @@ func TestRunScriptSourceTimeout(t *testing.T) {
 
 			mem, _ := storage.NewMemoryStorage()
 			context, _ := state.NewWorldState(dpos.NewDpos(), mem)
-			owner, err := context.GetOrCreateUserAccount([]byte("account1"))
-			assert.Nil(t, err)
+
+			// owner, err := context.GetOrCreateUserAccount([]byte("account1"))
+			// assert.Nil(t, err)
+
 			contract, _ := context.CreateContractAccount([]byte("account2"), nil)
-			ctx, err := NewContext(mockBlock(), mockTransaction(), owner, contract, context)
+			ctx, err := NewContext(mockBlock(), mockTransaction(), contract, context)
 
 			// direct run.
 			(func() {
@@ -311,7 +313,7 @@ func TestDeployAndInitAndCall(t *testing.T) {
 			owner.AddBalance(newUint128FromIntWrapper(10000000))
 			contract, _ := context.CreateContractAccount([]byte("account2"), nil)
 
-			ctx, err := NewContext(mockBlock(), mockTransaction(), owner, contract, context)
+			ctx, err := NewContext(mockBlock(), mockTransaction(), contract, context)
 			engine := NewV8Engine(ctx)
 			engine.SetExecutionLimits(10000, 10000000)
 			_, err = engine.DeployAndInit(string(data), tt.sourceType, tt.initArgs)
@@ -338,7 +340,7 @@ func TestDeployAndInitAndCall(t *testing.T) {
 			contract, err = context.CreateContractAccount([]byte("account2"), nil)
 			assert.Nil(t, err)
 
-			ctx, err = NewContext(mockBlock(), mockTransaction(), owner, contract, context)
+			ctx, err = NewContext(mockBlock(), mockTransaction(), contract, context)
 			engine = NewV8Engine(ctx)
 			engine.SetExecutionLimits(10000, 10000000)
 			_, err = engine.Call(string(data), tt.sourceType, "verify", tt.verifyArgs)
@@ -372,7 +374,7 @@ func TestERC20(t *testing.T) {
 			owner.AddBalance(newUint128FromIntWrapper(10000000))
 			contract, _ := context.CreateContractAccount([]byte("account2"), nil)
 
-			ctx, err := NewContext(mockBlock(), mockTransaction(), owner, contract, context)
+			ctx, err := NewContext(mockBlock(), mockTransaction(), contract, context)
 			engine := NewV8Engine(ctx)
 			engine.SetExecutionLimits(10000, 10000000)
 			_, err = engine.DeployAndInit(string(data), tt.sourceType, tt.initArgs)
@@ -432,7 +434,7 @@ func TestContracts(t *testing.T) {
 			owner.AddBalance(newUint128FromIntWrapper(10000000))
 			contract, err := context.CreateContractAccount([]byte("account2"), nil)
 			assert.Nil(t, err)
-			ctx, err := NewContext(mockBlock(), mockTransaction(), owner, contract, context)
+			ctx, err := NewContext(mockBlock(), mockTransaction(), contract, context)
 
 			// deploy and init.
 			engine := NewV8Engine(ctx)
@@ -480,7 +482,7 @@ func TestFunctionNameCheck(t *testing.T) {
 			assert.Nil(t, err)
 			owner.AddBalance(newUint128FromIntWrapper(1000000))
 			contract, _ := context.CreateContractAccount([]byte("account2"), nil)
-			ctx, err := NewContext(mockBlock(), mockTransaction(), owner, contract, context)
+			ctx, err := NewContext(mockBlock(), mockTransaction(), contract, context)
 
 			engine := NewV8Engine(ctx)
 			engine.SetExecutionLimits(1000, 10000000)
@@ -505,7 +507,7 @@ func TestMultiEngine(t *testing.T) {
 		go func() {
 			defer wg.Done()
 
-			ctx, err := NewContext(mockBlock(), mockTransaction(), owner, contract, context)
+			ctx, err := NewContext(mockBlock(), mockTransaction(), contract, context)
 
 			engine := NewV8Engine(ctx)
 			engine.SetExecutionLimits(1000, 10000000)
@@ -566,7 +568,7 @@ func TestInstructionCounterTestSuite(t *testing.T) {
 			owner.AddBalance(newUint128FromIntWrapper(1000000000))
 			contract, err := context.CreateContractAccount([]byte("account2"), nil)
 			assert.Nil(t, err)
-			ctx, err := NewContext(mockBlock(), mockTransaction(), owner, contract, context)
+			ctx, err := NewContext(mockBlock(), mockTransaction(), contract, context)
 
 			moduleID := tt.filepath
 			runnableSource := fmt.Sprintf("var x = require(\"%s\");", moduleID)
@@ -607,7 +609,7 @@ func TestTypeScriptExecution(t *testing.T) {
 			owner.AddBalance(newUint128FromIntWrapper(1000000000))
 			contract, err := context.CreateContractAccount([]byte("account2"), nil)
 			assert.Nil(t, err)
-			ctx, err := NewContext(mockBlock(), mockTransaction(), owner, contract, context)
+			ctx, err := NewContext(mockBlock(), mockTransaction(), contract, context)
 
 			moduleID := tt.filepath
 			runnableSource := fmt.Sprintf("require(\"%s\");", moduleID)
@@ -642,7 +644,7 @@ func DeprecatedTestRunMozillaJSTestSuite(t *testing.T) {
 
 	contract, err := context.CreateContractAccount([]byte("account2"), nil)
 	assert.Nil(t, err)
-	ctx, err := NewContext(mockBlock(), mockTransaction(), owner, contract, context)
+	ctx, err := NewContext(mockBlock(), mockTransaction(), contract, context)
 
 	var runTest func(dir string, shelljs string)
 	runTest = func(dir string, shelljs string) {
@@ -722,7 +724,7 @@ func TestBlockChain(t *testing.T) {
 			contract, err := context.CreateContractAccount([]byte("n1JNHZJEUvfBYfjDRD14Q73FX62nJAzXkMR"), nil)
 			assert.Nil(t, err)
 
-			ctx, err := NewContext(mockBlock(), mockTransaction(), owner, contract, context)
+			ctx, err := NewContext(mockBlock(), mockTransaction(), contract, context)
 			engine := NewV8Engine(ctx)
 			engine.SetExecutionLimits(100000, 10000000)
 			_, err = engine.RunScriptSource(string(data), 0)
@@ -783,7 +785,7 @@ func TestBankVaultContract(t *testing.T) {
 
 			// parepare env, block & transactions.
 			tx := mockNormalTransaction("n1FkntVUMPAsESuCAAPK711omQk19JotBjM", "n1JNHZJEUvfBYfjDRD14Q73FX62nJAzXkMR", tt.saveValue)
-			ctx, err := NewContext(mockBlock(), tx, owner, contract, context)
+			ctx, err := NewContext(mockBlock(), tx, contract, context)
 
 			// execute.
 			engine := NewV8Engine(ctx)
@@ -858,7 +860,7 @@ func TestEvent(t *testing.T) {
 			owner.AddBalance(newUint128FromIntWrapper(1000000000))
 			contract, _ := context.CreateContractAccount([]byte("n1JNHZJEUvfBYfjDRD14Q73FX62nJAzXkMR"), nil)
 
-			ctx, err := NewContext(mockBlock(), mockTransaction(), owner, contract, context)
+			ctx, err := NewContext(mockBlock(), mockTransaction(), contract, context)
 			engine := NewV8Engine(ctx)
 			engine.SetExecutionLimits(100000, 10000000)
 			_, err = engine.RunScriptSource(string(data), 0)
@@ -912,7 +914,7 @@ func TestNRC20Contract(t *testing.T) {
 
 			// parepare env, block & transactions.
 			tx := mockNormalTransaction(tt.from, "n1TV3sU6jyzR4rJ1D7jCAmtVGSntJagXZHC", "0")
-			ctx, err := NewContext(mockBlock(), tx, owner, contract, context)
+			ctx, err := NewContext(mockBlock(), tx, contract, context)
 
 			// execute.
 			engine := NewV8Engine(ctx)
@@ -1074,7 +1076,7 @@ func TestNebulasContract(t *testing.T) {
 	addr, _ = core.NewContractAddressFromData([]byte{1, 2, 3, 5, 7}, []byte{1, 2, 3, 5, 7})
 	contract, _ := context.CreateContractAccount(addr.Bytes(), nil)
 
-	ctx, err := NewContext(mockBlock(), mockTransaction(), owner, contract, context)
+	ctx, err := NewContext(mockBlock(), mockTransaction(), contract, context)
 
 	data, err := ioutil.ReadFile("test/mixin.js")
 	assert.Nil(t, err, "filepath read error")

@@ -79,6 +79,7 @@ func (payload *CallPayload) Execute(limitedGas *util.Uint128, tx *Transaction, b
 		return util.NewUint128(), "", ErrOutOfGasLimit
 	}
 
+	// contract address is tx.to.
 	contract, err := CheckContract(tx.to, ws)
 	if err != nil {
 		return util.NewUint128(), "", err
@@ -88,16 +89,17 @@ func (payload *CallPayload) Execute(limitedGas *util.Uint128, tx *Transaction, b
 	if err != nil {
 		return util.NewUint128(), "", err
 	}
+	/* // useless owner.
 	owner, err := ws.GetOrCreateUserAccount(birthTx.from.Bytes())
 	if err != nil {
 		return util.NewUint128(), "", err
-	}
+	} */
 	deploy, err := LoadDeployPayload(birthTx.data.Payload) // ToConfirm: move deploy payload in ctx.
 	if err != nil {
 		return util.NewUint128(), "", err
 	}
 
-	engine, err := block.nvm.CreateEngine(block, tx, owner, contract, ws)
+	engine, err := block.nvm.CreateEngine(block, tx, contract, ws)
 	if err != nil {
 		return util.NewUint128(), "", err
 	}

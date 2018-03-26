@@ -19,6 +19,7 @@
 package main
 
 import (
+	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
@@ -34,11 +35,10 @@ func main() {
 
 	mem, _ := storage.NewMemoryStorage()
 	context, _ := state.NewWorldState(nil, mem)
-	owner, _ := context.GetOrCreateUserAccount([]byte("account1"))
 	contract, _ := context.CreateContractAccount([]byte("account2"), nil)
 
-	ctx, err := nvm.NewContext(nil, nil, owner, contract, context)
-	if err != nil {
+	ctx, err := nvm.NewContext(nil, nil, contract, context)
+	if err == nil {
 		engine := nvm.NewV8Engine(ctx)
 		result, err := engine.RunScriptSource(string(data), 0)
 
@@ -46,5 +46,8 @@ func main() {
 
 		time.Sleep(10 * time.Second)
 		engine.Dispose()
+	} else {
+		fmt.Sprintf("Error: %s", err)
+		os.Exit(1)
 	}
 }
