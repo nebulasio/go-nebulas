@@ -761,7 +761,7 @@ func (block *Block) String() string {
 		block.header.stateRoot,
 		block.header.timestamp,
 		len(block.transactions),
-		byteutils.Hex(block.header.consensusRoot.Proposer),
+		byteutils.Hash(block.header.consensusRoot.Proposer).Base58(),
 	)
 }
 
