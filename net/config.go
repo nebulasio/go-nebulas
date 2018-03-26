@@ -41,9 +41,10 @@ const ( // TODO delete redundant vars
 var (
 	DefaultListen = []string{"0.0.0.0:8680"}
 
-	RouteTableSyncLoopInterval   = 30 * time.Second
-	RouteTableSaveToDiskInterval = 3 * 60 * time.Second
-	RouteTableCacheFileName      = "routetable.cache"
+	RouteTableSyncLoopInterval     = 30 * time.Second
+	RouteTableSaveToDiskInterval   = 3 * 60 * time.Second
+	RouteTableCacheFileName        = "routetable.cache"
+	RouteTableInternalNodeFileName = "internal_list.txt"
 
 	MaxPeersCountForSyncResp = 32
 )
