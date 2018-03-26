@@ -58,7 +58,7 @@ type RouteTable struct {
 	node                     *Node
 	streamManager            *StreamManager
 	latestUpdatedAt          int64
-	blackNodeList            []string
+	internalNodeList         []string
 }
 
 // NewRouteTable new route table.
@@ -116,7 +116,7 @@ func (table *RouteTable) syncLoop() {
 	// Load Route Table.
 	table.LoadSeedNodes()
 	table.LoadRouteTableFromFile()
-	table.LoadBlackNodeList()
+	table.LoadInternalNodeList()
 
 	// trigger first sync.
 	table.SyncRouteTable()
@@ -227,7 +227,7 @@ func (table *RouteTable) GetRandomPeers(pid peer.ID) []peerstore.PeerInfo {
 	var peers []peer.ID
 	allPeers := table.routeTable.ListPeers()
 	for _, v := range allPeers {
-		if inArray(v.Pretty(), table.blackNodeList) == false {
+		if inArray(v.Pretty(), table.internalNodeList) == false {
 			peers = append(peers, v)
 		}
 	}
@@ -395,9 +395,9 @@ func (table *RouteTable) SyncWithPeer(pid peer.ID) {
 	stream.SyncRoute()
 }
 
-//LoadBlackNodeList Load Black Node list from file
-func (table *RouteTable) LoadBlackNodeList() {
-	file, err := os.Open("black_node_list.txt")
+//LoadInternalNodeList Load Internal Node list from file
+func (table *RouteTable) LoadInternalNodeList() {
+	file, err := os.Open("internal_list.txt")
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"err": err,
@@ -413,7 +413,7 @@ func (table *RouteTable) LoadBlackNodeList() {
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
 		if len(line) > 0 {
-			table.blackNodeList = append(table.blackNodeList, line)
+			table.internalNodeList = append(table.internalNodeList, line)
 		}
 	}
 }
