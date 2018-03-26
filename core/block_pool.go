@@ -519,5 +519,8 @@ func (lb *linkedBlock) Dispose() {
 	lb.block = nil
 	lb.chain = nil
 	lb.parentBlock = nil
+	for _, v := range lb.childBlocks {
+		v.parentBlock = nil
+	}
 	lb.childBlocks = nil
 }
