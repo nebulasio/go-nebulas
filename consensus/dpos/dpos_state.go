@@ -40,11 +40,11 @@ import (
 // Consensus Related Constants
 const (
 	SecondInMs               = int64(1000)
-	BlockIntervalInMs        = int64(20000)
-	AcceptedNetWorkDelayInMs = int64(5000)
-	MaxMintDurationInMs      = int64(7000)
-	MinMintDurationInMs      = int64(3000)
-	DynastyIntervalInMs      = int64(4200000)
+	BlockIntervalInMs        = int64(15000)
+	AcceptedNetWorkDelayInMs = int64(3750)
+	MaxMintDurationInMs      = int64(5250)
+	MinMintDurationInMs      = int64(2250)
+	DynastyIntervalInMs      = int64(3150000)
 	DynastySize              = 6 // TODO(roy): 21
 	ConsensusSize            = DynastySize*2/3 + 1
 )
