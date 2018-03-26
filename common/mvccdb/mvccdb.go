@@ -394,10 +394,11 @@ func (db *MVCCDB) Close() error {
 		return ErrPreparedDBIsClosed
 	}
 
+	parentMu := &db.parentDB.mutex
 	db.mutex.Unlock()
 
-	db.parentDB.mutex.Lock()
-	defer db.parentDB.mutex.Unlock()
+	parentMu.Lock()
+	defer parentMu.Unlock()
 
 	return db.doClose()
 }

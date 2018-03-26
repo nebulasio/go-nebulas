@@ -297,8 +297,9 @@ func (tbl *StagingTable) Detach() error {
 		return ErrDisallowedCallingInNoPreparedDB
 	}
 
-	tbl.parentStagingTable.mutex.Lock()
-	defer tbl.parentStagingTable.mutex.Unlock()
+	parentStagingTableMu := &tbl.parentStagingTable.mutex
+	parentStagingTableMu.Lock()
+	defer parentStagingTableMu.Unlock()
 
 	delete(tbl.parentStagingTable.preparedStagingTables, tbl.tid)
 	tbl.parentStagingTable = nil
