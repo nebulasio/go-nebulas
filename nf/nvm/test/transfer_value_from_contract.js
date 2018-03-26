@@ -20,6 +20,14 @@ TransferValueContract.prototype = {
         }
         return Blockchain.transaction.value;
     },
+    transferSpecialValue: function(to, value) {
+        var amount = new BigNumber(value);
+        var result = Blockchain.transfer(to, amount);
+        // var result = Blockchain.transfer(to, 0);
+        if (!result) {
+	    	throw new Error("transfer failed.");
+        }
+    },
     
 }
 module.exports = TransferValueContract;
