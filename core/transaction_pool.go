@@ -278,10 +278,11 @@ func (pool *TransactionPool) Push(tx *Transaction) error {
 		pool.dropTx()
 
 		logging.VLog().WithFields(logrus.Fields{
-			"tx":        tx,
-			"size":      pool.size,
-			"bpoolsize": poollen,
-			"apoolsize": len(pool.all),
+			"tx":         tx,
+			"size":       pool.size,
+			"bpoolsize":  poollen,
+			"apoolsize":  len(pool.all),
+			"bucketsize": len(pool.buckets),
 		}).Debug("drop tx")
 	}
 
@@ -336,6 +337,9 @@ func (pool *TransactionPool) dropTx() {
 			longestSlice = v
 		}
 	}
+	logging.VLog().WithFields(logrus.Fields{
+		"longestsize": longestLen,
+	}).Info("Drop tx from longest bucket.")
 	if longestLen > 0 {
 		drop := longestSlice.PopRight().(*Transaction)
 		if drop != nil {
