@@ -52,7 +52,7 @@ func NewDispatcher() *Dispatcher {
 		filters:           make(map[string]bool),
 	}
 
-	dp.dispatchedMessages, _ = lru.New(10240)
+	dp.dispatchedMessages, _ = lru.New(51200)
 
 	return dp
 }
