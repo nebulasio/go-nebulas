@@ -228,6 +228,11 @@ func (table *RouteTable) GetRandomPeers(pid peer.ID) []peerstore.PeerInfo {
 	// change sync route algorithm from `NearestPeers` to `randomPeers`
 	var peers []peer.ID
 	allPeers := table.routeTable.ListPeers()
+	// Do not accept internal node synchronization routing requests.
+	if inArray(pid.Pretty(), table.internalNodeList) {
+		return []peerstore.PeerInfo{}
+	}
+
 	for _, v := range allPeers {
 		if inArray(v.Pretty(), table.internalNodeList) == false {
 			peers = append(peers, v)
