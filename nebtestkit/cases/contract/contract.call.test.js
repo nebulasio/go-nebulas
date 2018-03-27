@@ -200,6 +200,7 @@ function testContractCall(testInput, testExpect, done) {
                                     expect(result.status).to.equal(testExpect.status);
 
                                     if (testExpect.hasOwnProperty("eventErr")){
+                                        console.log("Event error checked.");
                                         expect(result.error).to.equal(testExpect.eventErr);
                                     }
                                 }
