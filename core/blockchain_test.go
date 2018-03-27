@@ -26,6 +26,9 @@ import (
 	"github.com/nebulasio/go-nebulas/crypto/keystore/secp256k1"
 	"github.com/nebulasio/go-nebulas/util"
 
+	"sync"
+	"time"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -169,6 +172,67 @@ func TestTailBlock(t *testing.T) {
 	block, err := bc.LoadTailFromStorage()
 	assert.Nil(t, err)
 	assert.Equal(t, bc.tailBlock.Hash(), block.Hash())
+}
+
+func TestSetTailBlockEvent(t *testing.T) {
+	neb := testNeb(t)
+	bc := neb.chain
+	bc.eventEmitter.Start()
+
+	coinbase, _ := AddressParse("n1JNHZJEUvfBYfjDRD14Q73FX62nJAzXkMR")
+
+	block0, err := bc.NewBlock(coinbase)
+	assert.Nil(t, err)
+
+	tx1 := mockNormalTransaction(bc.chainID, 1)
+	block0.transactions = append(block0.transactions, tx1)
+	tx2 := mockNormalTransaction(bc.chainID, 2)
+	block0.transactions = append(block0.transactions, tx2)
+	block0.header.timestamp = BlockInterval
+	block0.Seal()
+	bc.SetTailBlock(block0)
+
+	topics := []string{TopicRevertBlock, TopicNewTailBlock, TopicTransactionExecutionResult}
+
+	t1ch := register(bc.eventEmitter, topics[0])
+	t2ch := register(bc.eventEmitter, topics[1])
+	t3ch := register(bc.eventEmitter, topics[2])
+
+	wg := new(sync.WaitGroup)
+	wg.Add(1)
+
+	t1c, t2c, t3c := 0, 0, 0
+	go func() {
+		// send message.
+		defer wg.Done()
+
+		for {
+			select {
+			case <-time.After(time.Millisecond * 500):
+				return
+			case e := <-t1ch.eventCh:
+				assert.Equal(t, topics[0], e.Topic)
+				t1c++
+
+			case e := <-t2ch.eventCh:
+				assert.Equal(t, topics[1], e.Topic)
+				t2c++
+
+			case e := <-t3ch.eventCh:
+				assert.Equal(t, topics[2], e.Topic)
+				t3c++
+			}
+		}
+	}()
+
+	wg.Wait()
+
+	assert.Equal(t, 0, t1c)
+	assert.Equal(t, 1, t2c)
+	assert.Equal(t, 0, t3c) // tx not execute
+
+	bc.eventEmitter.Stop()
+	time.Sleep(time.Millisecond * 500)
 }
 
 func TestGetPrice(t *testing.T) {
