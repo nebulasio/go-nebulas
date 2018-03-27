@@ -50,13 +50,13 @@ func TestManager_NewAccount(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := manager.NewAccount(tt.passphrase)
+			_, err := manager.NewAccount(tt.passphrase)
 			assert.Nil(t, err, "new address err")
-			acc, err := manager.getAccount(got)
+			// acc, err := manager.getAccount(got)
 			assert.Nil(t, err, "new acc err")
-			err = manager.Remove(got, tt.passphrase)
+			// err = manager.Remove(got, tt.passphrase)
 			assert.Nil(t, err)
-			err = os.Remove(acc.path)
+			// err = os.Remove(acc.path)
 			assert.Nil(t, err)
 		})
 	}
