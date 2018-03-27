@@ -32,6 +32,12 @@ func NewRocksStorage(path string) (*RocksStorage, error) {
 	opts.SetMaxOpenFiles(500)
 	opts.SetWriteBufferSize(64 * opt.MiB) //Default: 4MB
 	opts.IncreaseParallelism(4)           //flush and compaction thread
+	opts.SetMaxBackgroundCompactions(6)
+	opts.SetDisableAutoCompactions(false)
+
+	opts.SetCompression(gorocksdb.ZLibCompression)
+	ct := []gorocksdb.CompressionType{gorocksdb.SnappyCompression, gorocksdb.SnappyCompression}
+	opts.SetCompressionPerLevel(ct)
 
 	db, err := gorocksdb.OpenDb(opts, path)
 	if err != nil {
