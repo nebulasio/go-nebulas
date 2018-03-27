@@ -265,12 +265,6 @@ func (pool *TransactionPool) Push(tx *Transaction) error {
 		return err
 	}
 
-	// verify non-dup tx
-	if _, ok := pool.all[tx.hash.Hex()]; ok {
-		metricsDuplicateTx.Inc(1)
-		return ErrDuplicatedTransaction
-	}
-
 	// cache the verified tx
 	pool.pushTx(tx)
 	// drop max tx in longest bucket if full
