@@ -230,6 +230,7 @@ function testTransfer(testInput, testExpect, done) {
                         });
                     } else {
                         expect(receipt).to.be.a('undefined');
+                        console.log("transaction can send but submit failed");
                         done();
                     }
                 } catch (err) {

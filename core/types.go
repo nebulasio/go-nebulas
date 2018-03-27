@@ -92,7 +92,7 @@ var (
 	ErrDoubleBlockMinted      = errors.New("double block minted")
 
 	ErrInvalidChainID           = errors.New("invalid transaction chainID")
-	ErrInvalidTransactionSigner = errors.New("transaction recover public key address not equal to from")
+	ErrInvalidTransactionSigner = errors.New("invalid transaction signer")
 	ErrInvalidTransactionHash   = errors.New("invalid transaction hash")
 	ErrInvalidSignature         = errors.New("invalid transaction signature")
 	ErrInvalidTxPayloadType     = errors.New("invalid transaction data payload type")

@@ -4,8 +4,7 @@ var FS = require('fs');
 var BigNumber = require('bignumber.js');
 var HttpRequest = require("../../node-request");
 var rpc_client = require('./rpc_client/rpc_client.js');
-var cryptoUtils = require('../../../cmd/console/neb.js/lib/utils/crypto-utils.js');
-var Wallet = require("../../../cmd/console/neb.js/lib/wallet");
+var Wallet = require("nebulas");
 var Neb = Wallet.Neb;
 var neb = new Neb();
 var Account = Wallet.Account;
@@ -16,23 +15,19 @@ var Unit = Wallet.Unit;
 var protocol_version = '/neb/1.0.0'
 var node_version = '0.7.0'
 var server_address = 'localhost:8684';
-var coinbase = "eb31ad2d8a89a0ca6935c308d5425730430bc2d63f2573b8";
-var sourceAccount = new Wallet.Account('a6e5eb290e1438fce79f5cb8774a72621637c2c9654c8b2525ed1d7e4e73653f');
+var coinbase = "n1QZMXSZtW7BUerroSms4axNfyBGyFGkrh5";
+var sourceAccount = new Wallet.Account('d80f115bdbba5ef215707a8d7053c16f4e65588fd50b0f83369ad142b99891b5');
 neb.setRequest(new HttpRequest("http://localhost:8685"))
 var chain_id = 100;
 var env = '';
 if (env === 'testneb1') {
-    server_address = '35.182.48.19:8684';
-    neb.setRequest(new HttpRequest("http://35.182.48.19:8685"))
-    coinbase = "0b9cd051a6d7129ab44b17833c63fe4abead40c3714cde6d";
-    chain_id = 1001;
-    sourceAccount = new Wallet.Account("43181d58178263837a9a6b08f06379a348a5b362bfab3631ac78d2ac771c5df3");
+
 } else if (env === "testneb2") {
     server_address = "34.205.26.12:8684";
     neb.setRequest(new HttpRequest("http://34.205.26.12:8685"))
-    coinbase = "0b9cd051a6d7129ab44b17833c63fe4abead40c3714cde6d";
+    coinbase = "n1SAeQRVn33bamxN4ehWUT7JGdxipwn8b17";
     chain_id = 1002;
-    sourceAccount = new Wallet.Account("43181d58178263837a9a6b08f06379a348a5b362bfab3631ac78d2ac771c5df3");
+    sourceAccount = new Wallet.Account("25a3a441a34658e7a595a0eda222fa43ac51bd223017d17b420674fb6d0a4d52");
 }
 
 var api_client;
@@ -65,6 +60,7 @@ function checkTransaction(hash, callback) {
         }
     }).catch(function (err) {
         console.log(err.error);
+        console.log("maybe packing");
         setTimeout(function () {
             checkTransaction(hash, callback);
         }, 2000);
@@ -87,7 +83,8 @@ function verify(gas, testInput, done) {
             done(err)
             return;
         }
-        api_client.SendTransaction(testInput.verifyInput, function (err, resp) {
+        var admin_client = rpc_client.new_client(server_address, 'AdminService');
+        admin_client.SendTransaction(testInput.verifyInput, function (err, resp) {
             try {
                 expect(err).to.be.equal(null);
             } catch (err) {
@@ -96,10 +93,10 @@ function verify(gas, testInput, done) {
             }
             checkTransaction(resp.txhash, function (receipt) {
                 try {
-                    expect(receipt.status).to.be.equal(1);
+                    expect(receipt.status).not.to.be.a('undefined');
                 } catch (err) {
                     done(err);
-                    rturn;
+                    return;
                 }
                 try {
                     neb.api.getAccountState(sourceAccount.getAddressString()).then(function (state) {
@@ -119,7 +116,7 @@ function verify(gas, testInput, done) {
         });
     }).catch(function (err) {
         done(err);
-        retrun;
+        return;
     });
 
 }
@@ -137,33 +134,17 @@ function testRpc(testInput, testExpect, done) {
             }
             done();
         } else {
-            if (testInput.isNormal) {
-                //TODO:verify response
-                //  expect(response.balance).to.be.a("string");
-                normalOutput = response;
-            } else {
-                if (testExpect.isNormalOutput) {
-                    try {
-                        expect(JSON.stringify(response)).to.be.equal(JSON.stringify(normalOutput));
-                    } catch (err) {
-                        done(err);
-                        return;
-                    }
-                    done();
-                } else {
-                    try {
-                        expect(testExpect.isNormalOutput).to.be.equal(false);
-                        expect(JSON.stringify(response)).not.be.equal(JSON.stringify(normalOutput));
-                        var gas = parseInt(response.gas);
-                    } catch (err) {
-                        done(err);
-                        retrun;
-                    }
-                    console.log(gas);
-                    verify(gas, testInput, done);
-                    //TODO: verify response
-                }
+            console.log(JSON.stringify(response));
+            try {
+                expect(response.err).equal(testExpect.resultMsg);
+            } catch (err) {
+                console.log("unexpected errpr :", err);
+                done(err);
+                return;
             }
+            var gas = parseInt(response.gas);
+            console.log(gas, "to verify");
+            verify(gas, testInput, done);
         }
     });
 
@@ -217,17 +198,14 @@ describe('rpc: estimateGas', function () {
                 nonce: nonce,
                 gas_price: "1000000",
                 gas_limit: "200000",
-                contract: contract
+                contract: contract,
             },
-            isNormal: false
         }
-
         var testExpect = {
-            isNormalOutput: false
+            resultMsg: "",
         }
-
         testRpc(testInput, testExpect, done);
-    })
+    });
 
     it('value is invalid', function (done) {
         nonce = nonce + 1;
@@ -256,11 +234,9 @@ describe('rpc: estimateGas', function () {
                 gas_limit: "200000",
                 contract: contract
             },
-            isNormal: false
         }
 
         var testExpect = {
-            isNormalOutput: false,
             errMsg: 'invalid value'
         }
 
@@ -292,16 +268,15 @@ describe('rpc: estimateGas', function () {
                 gas_limit: "200000",
                 contract: contract
             },
-            isNormal: false
         }
 
         var testExpect = {
-            isNormalOutput: false,
             errMsg: 'invalid value'
-        }
+         }
 
         testRpc(testInput, testExpect, done);
     })
+
     it('nonce is large', function (done) {
         nonce = nonce + 1;
         var erc20 = FS.readFileSync("./nf/nvm/test/ERC20.js", "utf-8");
@@ -329,15 +304,12 @@ describe('rpc: estimateGas', function () {
                 gas_limit: "200000",
                 contract: contract
             },
-            isNormal: false
         }
-
         var testExpect = {
-            isNormalOutput: false,
-        }
-
+            resultMsg: ""
+        };
         testRpc(testInput, testExpect, done);
-    })
+    });
 
     it('nonce is empty', function (done) {
         nonce = nonce + 1;
@@ -365,13 +337,10 @@ describe('rpc: estimateGas', function () {
                 gas_limit: "200000",
                 contract: contract
             },
-            isNormal: false
         }
-
         var testExpect = {
-            isNormalOutput: false,
-        }
-
+            resultMsg: ""
+        };
         testRpc(testInput, testExpect, done);
     })
 
@@ -402,13 +371,10 @@ describe('rpc: estimateGas', function () {
                 gas_limit: "200000",
                 contract: contract
             },
-            isNormal: false
         }
-
         var testExpect = {
-            isNormalOutput: false,
-        }
-
+            resultMsg: ""
+        };
         testRpc(testInput, testExpect, done);
     });
 
@@ -439,7 +405,6 @@ describe('rpc: estimateGas', function () {
                 gas_limit: "200000",
                 contract: contract
             },
-            isNormal: false
         }
 
         var testExpect = {
@@ -476,13 +441,10 @@ describe('rpc: estimateGas', function () {
                 gas_limit: "200000",
                 contract: contract
             },
-            isNormal: false
         }
-
         var testExpect = {
-            isNormalOutput: false,
-        }
-
+            resultMsg: ""
+        };
         testRpc(testInput, testExpect, done);
     });
 
@@ -513,11 +475,9 @@ describe('rpc: estimateGas', function () {
                 gas_limit: "200000",
                 contract: contract
             },
-            isNormal: false
         }
 
         var testExpect = {
-            isNormalOutput: false,
             errMsg: 'invalid gasLimit'
         }
 
@@ -551,12 +511,10 @@ describe('rpc: estimateGas', function () {
                 gas_limit: "200000",
                 contract: contract
             },
-            isNormal: false
         }
 
         var testExpect = {
-            isNormalOutput: false,
-            errMsg: 'out of gas limit'
+            resultMsg: ''
         }
 
         testRpc(testInput, testExpect, done);
@@ -589,12 +547,10 @@ describe('rpc: estimateGas', function () {
                 gas_limit: "200000",
                 contract: contract
             },
-            isNormal: false
         }
 
         var testExpect = {
-            isNormalOutput: false,
-            errMsg: 'execution failed'
+            resultMsg: 'Deploy: fail to init'
         }
 
         testRpc(testInput, testExpect, done);
@@ -626,15 +582,14 @@ describe('rpc: estimateGas', function () {
                 gas_limit: "200000",
                 contract: contract
             },
-            isNormal: false
         }
 
         var testExpect = {
-            isNormalOutput: false,
-            errMsg: 'unsupported source type'
+            errMsg: 'invalid source type of deploy payload'
         }
 
         testRpc(testInput, testExpect, done);
     });
 
 });
+

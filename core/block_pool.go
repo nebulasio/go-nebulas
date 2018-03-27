@@ -515,9 +515,17 @@ func (lb *linkedBlock) travelToLinkAndReturnAllValidBlocks(parentBlock *Block) (
 
 // Dispose dispose linkedBlock
 func (lb *linkedBlock) Dispose() {
-	// cut off the reference to prevent memory leak.
+	// clear pointer
 	lb.block = nil
 	lb.chain = nil
-	lb.parentBlock = nil
+	// cut the relationship with children
+	for _, v := range lb.childBlocks {
+		v.parentBlock = nil
+	}
 	lb.childBlocks = nil
+	// cut the relationship whit parent
+	if lb.parentBlock != nil {
+		delete(lb.parentBlock.childBlocks, lb.hash.Hex())
+		lb.parentBlock = nil
+	}
 }

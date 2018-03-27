@@ -1094,3 +1094,78 @@ func TestNebulasContract(t *testing.T) {
 		})
 	}
 }
+func TestTransferValueFromContracts(t *testing.T) {
+	type fields struct {
+		function string
+		args     string
+	}
+	tests := []struct {
+		contract   string
+		sourceType string
+		initArgs   string
+		calls      []fields
+		value      string
+		success    bool
+	}{
+		{
+			"./test/transfer_value_from_contract.js",
+			"js",
+			"",
+			[]fields{
+				{"transfer", "[\"n1SAeQRVn33bamxN4ehWUT7JGdxipwn8b17\"]"},
+			},
+			"100",
+			true,
+		},
+		{
+			"./test/transfer_value_from_contract.js",
+			"js",
+			"",
+			[]fields{
+				{"transfer", "[\"n1SAeQRVn33bamxN4ehWUT7JGdxipwn8b17\"]"},
+			},
+			"101",
+			false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.contract, func(t *testing.T) {
+			data, err := ioutil.ReadFile(tt.contract)
+			assert.Nil(t, err, "contract path read error")
+
+			mem, _ := storage.NewMemoryStorage()
+			context, _ := state.NewWorldState(dpos.NewDpos(), mem)
+			owner, err := context.GetOrCreateUserAccount([]byte("account1"))
+			assert.Nil(t, err)
+			owner.AddBalance(newUint128FromIntWrapper(10000000))
+			contract, err := context.CreateContractAccount([]byte("account2"), nil)
+			assert.Nil(t, err)
+
+			contract.AddBalance(newUint128FromIntWrapper(100))
+			mockTx := mockNormalTransaction("n1FkntVUMPAsESuCAAPK711omQk19JotBjM", "n1FkntVUMPAsESuCAAPK711omQk19JotBjM", tt.value)
+			ctx, err := NewContext(mockBlock(), mockTx, contract, context)
+
+			// deploy and init.
+			engine := NewV8Engine(ctx)
+			engine.SetExecutionLimits(1000, 10000000)
+			_, err = engine.DeployAndInit(string(data), tt.sourceType, tt.initArgs)
+			assert.Nil(t, err)
+			engine.Dispose()
+
+			// call.
+			for _, fields := range tt.calls {
+				engine = NewV8Engine(ctx)
+				engine.SetExecutionLimits(10000, 10000000)
+				result, err := engine.Call(string(data), tt.sourceType, fields.function, fields.args)
+				if tt.success {
+					assert.Equal(t, result, "\""+fmt.Sprint(tt.value)+"\"")
+					assert.Nil(t, err)
+				} else {
+					assert.NotNil(t, err)
+				}
+				engine.Dispose()
+			}
+		})
+	}
+}

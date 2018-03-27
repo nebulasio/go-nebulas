@@ -141,22 +141,15 @@ func NewBlockChain(neb Neblet) (*BlockChain, error) {
 		quitCh:       make(chan int, 1),
 	}
 
-	bc.cachedBlocks, err = lru.NewWithEvict(128, func(key interface{}, value interface{}) {
-		block := value.(*Block)
-		if block != nil {
-			block.Dispose()
-		}
-	})
+	bc.cachedBlocks, err = lru.New(128)
 	if err != nil {
 		return nil, err
 	}
 
-	bc.detachedTailBlocks, err = lru.NewWithEvict(128, func(key interface{}, value interface{}) {
-		block := value.(*Block)
-		if block != nil {
-			block.Dispose()
-		}
-	})
+	bc.detachedTailBlocks, err = lru.New(128)
+	if err != nil {
+		return nil, err
+	}
 
 	bc.bkPool.setBlockChain(bc)
 	bc.txPool.setBlockChain(bc)
@@ -338,23 +331,33 @@ func (bc *BlockChain) dropTxsInBlockFromTxPool(block *Block) {
 	}
 }
 
-func (bc *BlockChain) triggerNewTailEvent(blocks []string) {
+func (bc *BlockChain) triggerNewTailEvent(blocks []*Block) {
 	for i := len(blocks) - 1; i >= 0; i-- {
+		block := blocks[i]
 		bc.eventEmitter.Trigger(&state.Event{
 			Topic: TopicNewTailBlock,
-			Data:  blocks[i],
+			Data:  block.String(),
 		})
+
+		for _, v := range block.transactions {
+			events, err := block.FetchEvents(v.hash)
+			if err != nil {
+				for _, e := range events {
+					bc.eventEmitter.Trigger(e)
+				}
+			}
+		}
 	}
 }
 
 func (bc *BlockChain) buildIndexByBlockHeight(from *Block, to *Block) error {
-	blocks := []string{}
+	blocks := []*Block{}
 	for !to.Hash().Equals(from.Hash()) {
 		err := bc.storage.Put(byteutils.FromUint64(to.height), to.Hash())
 		if err != nil {
 			return err
 		}
-		blocks = append(blocks, to.String())
+		blocks = append(blocks, to)
 		go bc.dropTxsInBlockFromTxPool(to)
 		to = bc.GetBlock(to.header.parentHash)
 		if to == nil {
@@ -404,22 +407,6 @@ func (bc *BlockChain) SetTailBlock(newTail *Block) error {
 		return err
 	}
 	bc.tailBlock = newTail
-
-	go func() {
-		bc.eventEmitter.Trigger(&state.Event{
-			Topic: TopicNewTailBlock,
-			Data:  newTail.String(),
-		})
-
-		for _, v := range newTail.transactions {
-			events, err := newTail.FetchEvents(v.hash)
-			if err != nil {
-				for _, e := range events {
-					bc.eventEmitter.Trigger(e)
-				}
-			}
-		}
-	}()
 
 	metricsBlockHeightGauge.Update(int64(newTail.Height()))
 	metricsBlocktailHashGauge.Update(int64(byteutils.HashBytes(newTail.Hash())))

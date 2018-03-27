@@ -20,7 +20,6 @@ package rpc
 
 import (
 	"errors"
-	"fmt"
 
 	"github.com/nebulasio/go-nebulas/storage"
 	"github.com/nebulasio/go-nebulas/util/logging"
@@ -251,7 +250,6 @@ func (s *APIService) SendRawTransaction(ctx context.Context, req *rpcpb.SendRawT
 		metricsSendTxFailed.Mark(1)
 		return nil, err
 	}
-	fmt.Println("silent_debug", tx)
 
 	return handleTransactionResponse(neb, tx)
 }
