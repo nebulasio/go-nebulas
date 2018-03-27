@@ -307,6 +307,9 @@ message GetAccountStateResponse {
 
     // Current transaction count.
     uint64 nonce = 2;
+
+    // Account type
+    uint32 type = 3;
 }
 
 // Response message of Call rpc.
@@ -448,8 +451,11 @@ message BlockResponse {
     // Hex string of consensus root.
     consensuspb.ConsensusRoot consensus_root = 11;
 
+    // Miner
+    string miner = 12;
+
     // is finaliy
-    bool is_finality = 12;
+    bool is_finality = 13;
 
     // transaction slice
     repeated TransactionResponse transactions = 100;

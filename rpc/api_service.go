@@ -91,7 +91,7 @@ func (s *APIService) GetAccountState(ctx context.Context, req *rpcpb.GetAccountS
 	}
 
 	metricsAccountStateSuccess.Mark(1)
-	return &rpcpb.GetAccountStateResponse{Balance: acc.Balance().String(), Nonce: acc.Nonce()}, nil
+	return &rpcpb.GetAccountStateResponse{Balance: acc.Balance().String(), Nonce: acc.Nonce(), Type: uint32(addr.Type())}, nil
 }
 
 // Call is the RPC API handler.
@@ -300,6 +300,7 @@ func (s *APIService) toBlockResponse(block *core.Block, fullFillTransaction bool
 		TxsRoot:       block.TxsRoot().String(),
 		EventsRoot:    block.EventsRoot().String(),
 		ConsensusRoot: block.ConsensusRoot(),
+		Miner:         byteutils.Hash(block.ConsensusRoot().Proposer).Base58(),
 		IsFinality:    isFinality,
 	}
 
