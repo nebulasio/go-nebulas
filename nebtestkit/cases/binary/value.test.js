@@ -26,9 +26,11 @@ var apiEndPoint;
 // start neb.
 var neb = new Neb();
 
-// mocha cases/contract/xxx testneb1 -t 200000
+// mocha cases/contract/xxx testneb1 -t 2000000
 var args = process.argv.splice(2);
 var env = args[1];
+// var env = "testneb4";
+
 if (env === 'testneb1') {
     ChainID = 1001;
     sourceAccount = new Wallet.Account("25a3a441a34658e7a595a0eda222fa43ac51bd223017d17b420674fb6d0a4d52");
@@ -47,6 +49,16 @@ if (env === 'testneb1') {
     coinbase = "n1SAeQRVn33bamxN4ehWUT7JGdxipwn8b17";
     apiEndPoint = "http://35.177.214.138:8685";
 
+} else if (env === "testneb4") { //super node
+    ChainID = 1004;
+    sourceAccount = new Wallet.Account("c75402f6ffe6edcc2c062134b5932151cb39b6486a7beb984792bb9da3f38b9f");
+    coinbase = "n1EzGmFsVepKduN1U5QFyhLqpzFvM9sRSmG";
+    apiEndPoint = "http://35.154.108.11:8685";
+} else if (env === "testneb4_normalnode"){
+    ChainID = 1004;
+    sourceAccount = new Wallet.Account("c75402f6ffe6edcc2c062134b5932151cb39b6486a7beb984792bb9da3f38b9f");
+    coinbase = "n1EzGmFsVepKduN1U5QFyhLqpzFvM9sRSmG";
+    apiEndPoint = "http://18.197.107.228:8685";
 } else if (env === "local") {
     ChainID = 100;
     sourceAccount = new Wallet.Account("d80f115bdbba5ef215707a8d7053c16f4e65588fd50b0f83369ad142b99891b5");
@@ -56,6 +68,10 @@ if (env === 'testneb1') {
 } else {
     throw new Error("invalid env (" + env + ").");
 }
+
+
+console.log("running script, env:", env, " ChainId:", ChainID, " apiEndPoint:", apiEndPoint);
+
 
 // setup request.
 neb.setRequest(new HttpRequest(apiEndPoint));
@@ -172,10 +188,10 @@ function testTransfer(testInput, testExpect, done) {
         if (true === testExpect.canSendTx) {
             done(err);
         } else {
-            console.log("cannot send tx, err: ", err)
+            console.log("cannot send tx, err: ", err);
             if (testExpect.hasOwnProperty("errMsg")) {
-                //expect(testExpect.errMsg).to.be.equal(err.error.error);
-                expect(testExpect.errMsg).to.be.equal(err);
+                expect(err.error.error).to.be.equal(testExpect.errMsg);
+                // expect(testExpect.errMsg).to.be.equal(err);
             }
             done();
         }
@@ -592,7 +608,6 @@ describe('normal transaction', function () {
             canSendTx: false,
             canSubmitTx: false,
             canExcuteTx: true,
-            sendError: "invalid signature",
             fromBalanceAfterTx: '8999999980000000000',
             toBalanceAfterTx: '1000000000000000000',
             transferReward: '20000000000',
@@ -621,7 +636,6 @@ describe('normal transaction', function () {
             canSendTx: false,
             canSubmitTx: false,
             canExcuteTx: true,
-            sendError: "invalid signature",
             fromBalanceAfterTx: '8999999980000000000',
             toBalanceAfterTx: '1000000000000000000',
             transferReward: '20000000000',
@@ -650,11 +664,10 @@ describe('normal transaction', function () {
             canSendTx: false,
             canSubmitTx: false,
             canExcuteTx: true,
-            sendError: "transaction recover public key address not equal to from",
             fromBalanceAfterTx: '8999999980000000000',
             toBalanceAfterTx: '1000000000000000000',
             transferReward: '20000000000',
-            errMsg: 'transaction recover public key address not equal to from'
+            errMsg: 'invalid transaction signer'
         };
         prepare(function (err) {
             if (err instanceof Error) {
