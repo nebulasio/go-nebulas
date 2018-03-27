@@ -9,6 +9,7 @@ var neb = new Wallet.Neb();
 
 var ChainID,
     accountAddr;
+var coinbase = n1QZMXSZtW7BUerroSms4axNfyBGyFGkrh5;
 
 var env = process.env.NET || 'local';
 if (env === 'local') {
@@ -102,9 +103,9 @@ describe('UnlockAccount', () => {
 
     it("4. nonexistent account", (done) => {
         var testInput = {
-            address: "eb31ad2d8a89a0ca6935c308d5425730430bc2d63f2573b8",
+            address: Wallet.Account.newAccount(),
             passphrase: "passphrase",
-            canExecute: false
+            canExecute: true
         }
 
         var testExpect = {
@@ -122,7 +123,7 @@ describe('UnlockAccount', () => {
         }
 
         var testExpect = {
-            errorMsg: "address: invalid address"
+            errorMsg: "address: invalid address format"
         }
 
         testUnlockAccount(testInput, testExpect, done);

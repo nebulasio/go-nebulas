@@ -23,7 +23,7 @@ var client,
     address;
 
 function testSignTransaction(testInput, testExpect, done) {
-    client.SignTransaction(testInput.args, (err, resp) => {
+    client.SignTransactionWithPassphrase(testInput, (err, resp) => {
         try {
             expect(!!err).to.equal(testExpect.hasError);
 
@@ -41,7 +41,7 @@ function testSignTransaction(testInput, testExpect, done) {
     });
 }
 
-describe("rpc: SignTransaction", () => {
+describe("rpc: SignTransaction with passphrase", () => {
     before((done) => {
         client = rpc_client.new_client(server_address, 'AdminService');
 
@@ -51,19 +51,7 @@ describe("rpc: SignTransaction", () => {
                 expect(resp).to.have.property('address');
                 address = resp.address;
                 console.log("create new account: " + address);
-
-                client.UnlockAccount({
-                        address: address,
-                        passphrase: "passphrase"
-                    }, (err, resp) => {
-                        try {
-                            expect(resp).to.have.property('result').equal(true);
-                            done();
-                        } catch(err) {
-                            console.log("unlock account failed");
-                            done(err);
-                        }
-                });
+                done();
             });
         } catch(err) {
             done(err)
@@ -72,15 +60,15 @@ describe("rpc: SignTransaction", () => {
 
     it('1. normal', done => {
         var testInput = {
-            args: {
+            transaction: {
                 from: address,
-                to: "0b9cd051a6d7129ab44b17833c63fe4abead40c3714cde6d",
+                to: coinbase,
                 value: "123",
                 nonce: "10000",
                 gas_price: "1000000",
                 gas_limit: "1000000",
-                contract: {}
-            }
+            },
+            passphrase: 'passphrase'
         }
 
         var testExpect = {
@@ -94,7 +82,7 @@ describe("rpc: SignTransaction", () => {
 
     it('2.  `to` illegal', done => {
         var testInput = {
-            args: {
+             transaction: {
                 from: address,
                 to: "faaaa",
                 value: "",
@@ -102,12 +90,13 @@ describe("rpc: SignTransaction", () => {
                 gas_price: "1000000",
                 gas_limit: "1000000",
                 contract: {}
-            }
+            },
+            passphrase: 'passphrase'
         }
 
         var testExpect = {
             hasError: true,
-            errorMsg: "address: invalid address",
+            errorMsg: "address: invalid address format",
 
         }
 
@@ -116,7 +105,7 @@ describe("rpc: SignTransaction", () => {
 
     it('3.  `to` empty', done => {
         var testInput = {
-            args: {
+            transaction: {
                 from: address,
                 to: "",
                 value: "",
@@ -124,12 +113,13 @@ describe("rpc: SignTransaction", () => {
                 gas_price: "1000000",
                 gas_limit: "1000000",
                 contract: {}
-            }
+            },
+            passphrase: 'passphrase'
         }
 
         var testExpect = {
             hasError: true,
-            errorMsg: "address: invalid address",
+            errorMsg: "address: invalid address format",
 
         }
 
@@ -138,15 +128,16 @@ describe("rpc: SignTransaction", () => {
 
     it('4.  `value` empty', done => {
         var testInput = {
-            args: {
+            transaction: {
                 from: address,
-                to: "0b9cd051a6d7129ab44b17833c63fe4abead40c3714cde6d",
+                to: coinbase,
                 value: "",
                 nonce: "10000",
                 gas_price: "1000000",
                 gas_limit: "1000000",
                 contract: {}
-            }
+            },
+            passphrase: 'passphrase'
         }
 
         var testExpect = {
@@ -160,15 +151,16 @@ describe("rpc: SignTransaction", () => {
 
     it('5.  `value` alpha', done => {
         var testInput = {
-            args: {
+            transaction: {
                 from: address,
-                to: "0b9cd051a6d7129ab44b17833c63fe4abead40c3714cde6d",
+                to: coinbase,
                 value: "abc",
                 nonce: "10000",
                 gas_price: "1000000",
                 gas_limit: "1000000",
                 contract: {}
-            }
+            },
+            passphrase: 'passphrase'
         }
 
         var testExpect = {
@@ -182,15 +174,16 @@ describe("rpc: SignTransaction", () => {
 
     it('6.  `value` neg number', done => {
         var testInput = {
-            args: {
+            transaction: {
                 from: address,
-                to: "0b9cd051a6d7129ab44b17833c63fe4abead40c3714cde6d",
+                to: coinbase,
                 value: "-123",
                 nonce: "10000",
                 gas_price: "1000000",
                 gas_limit: "1000000",
                 contract: {}
-            }
+            },
+            passphrase: 'passphrase'
         }
 
         var testExpect = {
@@ -204,20 +197,21 @@ describe("rpc: SignTransaction", () => {
 
     it('7.  `nonce` alpha', done => {
         var testInput = {
-            args: {
+            transaction: {
                 from: address,
-                to: "0b9cd051a6d7129ab44b17833c63fe4abead40c3714cde6d",
+                to: coinbase,
                 value: "123",
-                nonce: "abasdx", 
+                nonce: 1, 
                 gas_price: "1000000",
                 gas_limit: "1000000",
                 contract: {}
-            }
+            },
+            passphrase: 'passphrase'
         }
 
         var testExpect = {
-            hasError: false,
-            errorMsg: "",
+            hasError: true,
+            errorMsg: "params error",
 
         }
 
@@ -226,20 +220,21 @@ describe("rpc: SignTransaction", () => {
 
     it('8.  `nonce` neg number', done => {
         var testInput = {
-            args: {
+            transaction: {
                 from: address,
-                to: "0b9cd051a6d7129ab44b17833c63fe4abead40c3714cde6d",
+                to: coinbase,
                 value: "123",
                 nonce: "-10000", 
                 gas_price: "1000000",
                 gas_limit: "1000000",
                 contract: {}
-            }
+            },
+            passphrase: 'passphrase'
         }
 
         var testExpect = {
-            hasError: false,
-            errorMsg: "",
+            hasError: true,
+            errorMsg: "params error",
 
         }
 
@@ -248,15 +243,16 @@ describe("rpc: SignTransaction", () => {
 
     it('9.  `gas_price` empty', done => {
         var testInput = {
-            args: {
+            transaction: {
                 from: address,
-                to: "0b9cd051a6d7129ab44b17833c63fe4abead40c3714cde6d",
+                to: coinbase,
                 value: "123",
                 nonce: "10000",
                 gas_price: "",
                 gas_limit: "1000000",
                 contract: {}
-            }
+            },
+            passphrase: 'passphrase'
         }
 
         var testExpect = {
@@ -270,15 +266,16 @@ describe("rpc: SignTransaction", () => {
 
     it('10.  `gas_price` alpha', done => {
         var testInput = {
-            args: {
+            transaction: {
                 from: address,
-                to: "0b9cd051a6d7129ab44b17833c63fe4abead40c3714cde6d",
+                to: coinbase,
                 value: "123",
                 nonce: "10000",
                 gas_price: "abcxz",
                 gas_limit: "1000000",
                 contract: {}
-            }
+            },
+            passphrase: 'passphrase'
         }
 
         var testExpect = {
@@ -292,15 +289,16 @@ describe("rpc: SignTransaction", () => {
 
     it('11.  `gas_price` negative', done => {
         var testInput = {
-            args: {
+            transaction: {
                 from: address,
-                to: "0b9cd051a6d7129ab44b17833c63fe4abead40c3714cde6d",
+                to: coinbase,
                 value: "123",
                 nonce: "10000",
                 gas_price: "-10000",
                 gas_limit: "1000000",
                 contract: {}
-            }
+            },
+            passphrase: 'passphrase'
         }
 
         var testExpect = {
@@ -314,15 +312,16 @@ describe("rpc: SignTransaction", () => {
 
     it('12.  `gas_limit` empty', done => {
         var testInput = {
-            args: {
+            transaction: {
                 from: address,
-                to: "0b9cd051a6d7129ab44b17833c63fe4abead40c3714cde6d",
+                to: coinbase,
                 value: "123",
                 nonce: "10000",
                 gas_price: "1000000",
                 gas_limit: "",
                 contract: {}
-            }
+            },
+            passphrase: 'passphrase'
         }
 
         var testExpect = {
@@ -336,15 +335,16 @@ describe("rpc: SignTransaction", () => {
 
     it('13.  `gas_limit` alpha', done => {
         var testInput = {
-            args: {
+            transaction: {
                 from: address,
-                to: "0b9cd051a6d7129ab44b17833c63fe4abead40c3714cde6d",
+                to: coinbase,
                 value: "123",
                 nonce: "10000",
                 gas_price: "1000000",
                 gas_limit: "aaz",
                 contract: {}
-            }
+            },
+            passphrase: 'passphrase'
         }
 
         var testExpect = {
@@ -358,15 +358,16 @@ describe("rpc: SignTransaction", () => {
 
     it('14.  `gas_limit` negative', done => {
         var testInput = {
-            args: {
+            transaction: {
                 from: address,
-                to: "0b9cd051a6d7129ab44b17833c63fe4abead40c3714cde6d",
+                to: coinbase,
                 value: "123",
                 nonce: "10000",
                 gas_price: "1000000",
                 gas_limit: "-10000",
                 contract: {}
-            }
+            },
+            passphrase: 'passphrase'
         }
 
         var testExpect = {
@@ -380,20 +381,21 @@ describe("rpc: SignTransaction", () => {
 
     it('15. `contract` empty', done => {
         var testInput = {
-            args: {
+            transaction: {
                 from: address,
-                to: "0b9cd051a6d7129ab44b17833c63fe4abead40c3714cde6d",
+                to: coinbase,
                 value: "123",
                 nonce: "10000",
                 gas_price: "1000000",
                 gas_limit: "1000000",
                 contract: {}
-            }
+            },
+            passphrase: 'passphrase'
         }
 
         var testExpect = {
-            hasError: false,
-            errorMsg: "",
+            hasError: true,
+            errorMsg: "params error",
 
         }
 
@@ -402,9 +404,9 @@ describe("rpc: SignTransaction", () => {
 
     it('16. `contract`', done => {
         var testInput = {
-            args: {
+            transaction: {
                 from: address,
-                to: "0b9cd051a6d7129ab44b17833c63fe4abead40c3714cde6d",
+                to: coinbase,
                 value: "123",
                 nonce: "10000",
                 gas_price: "1000000",
@@ -412,7 +414,8 @@ describe("rpc: SignTransaction", () => {
                 contract: {
                     "function": "save",
                 }
-            }
+            },
+            passphrase: 'passphrase'
         }
 
         var testExpect = {
