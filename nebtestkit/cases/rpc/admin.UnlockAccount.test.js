@@ -2,7 +2,7 @@
 
 var expect = require('chai').expect;
 var rpc_client = require('./rpc_client/rpc_client.js');
-
+var Wallet = require("nebulas");
 
 var coinbase,
     server_address;
@@ -10,7 +10,7 @@ var coinbase,
 var env = process.env.NET || 'local';
 if (env === 'local') {
     server_address = 'localhost:8684';
-    coinbase = "eb31ad2d8a89a0ca6935c308d5425730430bc2d63f2573b8";
+    coinbase = "n1QZMXSZtW7BUerroSms4axNfyBGyFGkrh5";
 } else if (env === 'testneb1') {
     server_address = '35.182.48.19:8684';
     coinbase = "0b9cd051a6d7129ab44b17833c63fe4abead40c3714cde6d";
@@ -123,14 +123,14 @@ describe("rpc: UnlockAccount", () => {
     it("4. nonexistent `address`", (done) => {
         var testInput = {
             args: {
-                address: "eb31ad2d8a89a0ca6935c308d5425730430bc2d63f2573b8",
+                address: Wallet.Account.NewAccount().getAddressString(),
                 passphrase: "passphrase"
             }
         }
 
         var testExpect = {
             hasError: true,
-            errorMsg: "address not find"
+            errorMsg: "account is not found"
         }
 
         testUnlockAccount(testInput, testExpect, done);
@@ -146,7 +146,7 @@ describe("rpc: UnlockAccount", () => {
 
         var testExpect = {
             hasError: true,
-            errorMsg: "address: invalid address"
+            errorMsg: "address: invalid address format"
         }
 
         testUnlockAccount(testInput, testExpect, done);
@@ -162,7 +162,7 @@ describe("rpc: UnlockAccount", () => {
 
         var testExpect = {
             hasError: true,
-            errorMsg: 'address: invalid address'
+            errorMsg: 'address: invalid address format'
         }
 
         testUnlockAccount(testInput, testExpect, done);

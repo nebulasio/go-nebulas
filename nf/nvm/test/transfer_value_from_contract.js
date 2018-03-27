@@ -25,7 +25,9 @@ TransferValueContract.prototype = {
         var result = Blockchain.transfer(to, amount);
         // var result = Blockchain.transfer(to, 0);
         if (!result) {
-	    	throw new Error("transfer failed.");
+            throw new Error("transfer failed.");
+        } else {
+            return 0
         }
     },
     

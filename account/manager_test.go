@@ -50,13 +50,13 @@ func TestManager_NewAccount(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := manager.NewAccount(tt.passphrase)
+			got, err := manager.NewAccount(tt.passphrase)
 			assert.Nil(t, err, "new address err")
-			// acc, err := manager.getAccount(got)
+			acc, err := manager.getAccount(got)
 			assert.Nil(t, err, "new acc err")
-			// err = manager.Remove(got, tt.passphrase)
+			err = manager.Remove(got, tt.passphrase)
 			assert.Nil(t, err)
-			// err = os.Remove(acc.path)
+			err = os.Remove(acc.path)
 			assert.Nil(t, err)
 		})
 	}
@@ -101,28 +101,8 @@ func TestManager_Unlock(t *testing.T) {
 
 func TestManager_Load(t *testing.T) {
 	manager, _ := NewManager(nil)
-	passphrase := []byte("qwertyuiop")
-	key := `{
-    "version":3,
-    "id":"3913ded3-2707-4a25-996a-807265dc0cdf",
-    "address":"70e30fcae5e7f4b2460faaa9e5b1bd912332ebb5",
-    "Crypto":{
-        "ciphertext":"30c9606797a6e4fd5bb8e91694184ecdb9ab0230c453fe1922732a1e3212301c",
-        "cipherparams":{
-            "iv":"65d14cb11d6bb6e57dff0d12346637cc"
-        },
-        "cipher":"aes-128-ctr",
-        "kdf":"scrypt",
-        "kdfparams":{
-            "dklen":32,
-            "salt":"8728c5a28888692acb5e28ee46bdc7935b8306dfece2c6d0cd003b2cbc259af2",
-            "n":1024,
-            "r":8,
-            "p":1
-        },
-        "mac":"a22874c9c35e365e305b1defe6663bde930d2efbcc6c3d0db192ff44bd9dfa7c"
-    }
-	}`
+	passphrase := []byte("b84c54af84672b5ae814")
+	key := `{"address":"n1NaY2ywi1J6ENA1htPa4FdeTRMo2hjpD8f","crypto":{"cipher":"aes-128-ctr","ciphertext":"2fc58f9135b318a98e8dd00d7da19aed2108c6fde033f4f7c28e710c06cdc740","cipherparams":{"iv":"4359b97562f55aa774af5dbb83b0b378"},"kdf":"scrypt","kdfparams":{"dklen":32,"n":4096,"p":1,"r":8,"salt":"ef2940317217226d7d9a11c4464b89cdc97edd2520f556858c8b566612a38ec3"},"mac":"dbbaf40ae7f7c5428b9e907e539c407f670fc11f56423b71fabe6bdc05c8d191","machash":"sha3256"},"id":"1eb90282-5e82-41be-8dd0-f3a6ff86eda0","version":3}`
 	_, err := manager.Load([]byte(key), passphrase)
 	assert.Nil(t, err, "import address err")
 }

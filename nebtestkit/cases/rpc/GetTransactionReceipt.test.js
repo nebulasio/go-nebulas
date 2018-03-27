@@ -5,8 +5,9 @@ var rpc_client = require('./rpc_client/rpc_client.js');
 var protocol_version = '/neb/1.0.0'
 var node_version = '0.7.0'
 var server_address = 'localhost:8684';
-var coinbase = "eb31ad2d8a89a0ca6935c308d5425730430bc2d63f2573b8";
-var sourceAccount = '1a263547d167c74cf4b8f9166cfa244de0481c514a45aa2c';
+var coinbase = "n1QZMXSZtW7BUerroSms4axNfyBGyFGkrh5";
+var Wallet = require("nebulas");
+var sourceAccount = new Wallet.Account('d80f115bdbba5ef215707a8d7053c16f4e65588fd50b0f83369ad142b99891b5');
 var chain_id = 100;
 var env = '';
 if (env === 'testneb1') {
@@ -57,7 +58,7 @@ describe('rpc: sendTransaction', function () {
     before((done) => {
         var admin_client = rpc_client.new_client(server_address, 'AdminService');
         var args = {
-            address: sourceAccount,
+            address: sourceAccount.getAddressString(),
             passphrase: "passphrase",
         }
         admin_client.UnlockAccount(args, (err, resp) => {
@@ -69,7 +70,7 @@ describe('rpc: sendTransaction', function () {
 
     before((done) => {
         api_client = rpc_client.new_client(server_address);
-        api_client.GetAccountState({ address: sourceAccount }, (err, resp) => {
+        api_client.GetAccountState({ address: sourceAccount.getAddressString() }, (err, resp) => {
             expect(err).to.be.equal(null);
             nonce = parseInt(resp.nonce);
             done(err);
@@ -79,15 +80,15 @@ describe('rpc: sendTransaction', function () {
     before((done) => {
         nonce = nonce + 1;
         var args = {
-            from: sourceAccount,
-            to: "eb31ad2d8a89a0ca6935c308d5425730430bc2d63f2573b8",
+            from: sourceAccount.getAddressString(),
+            to: coinbase,
             value: "1",
             nonce: nonce,
             gas_price: "1000000",
             gas_limit: "200000",
         },
-            api_client = rpc_client.new_client(server_address);
-        api_client.SendTransaction(args, (err, resp) => {
+            admin_client = rpc_client.new_client(server_address, "AdminService");
+        admin_client.SendTransaction(args, (err, resp) => {
             expect(err).to.be.equal(null);
             txHash = resp.txhash;
             done(err);
@@ -137,7 +138,7 @@ describe('rpc: sendTransaction', function () {
 
         var testExpect = {
             isNormalOutput: true,
-            errMsg: 'transaction not found'
+            errMsg: 'invalid argument(s)'
         }
 
         testRpc(testInput, testExpect, done);
@@ -154,7 +155,7 @@ describe('rpc: sendTransaction', function () {
 
         var testExpect = {
             isNormalOutput: true,
-            errMsg: 'transaction not found'
+            errMsg: 'invalid argument(s)'
         }
 
         testRpc(testInput, testExpect, done);
@@ -171,7 +172,7 @@ describe('rpc: sendTransaction', function () {
 
         var testExpect = {
             isNormalOutput: true,
-            errMsg: 'encoding/hex: odd length hex string'
+            errMsg: 'encoding/hex: invalid byte: U+0073 \'s\''
         }
 
         testRpc(testInput, testExpect, done);

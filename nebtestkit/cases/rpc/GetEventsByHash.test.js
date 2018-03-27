@@ -1,6 +1,6 @@
 'use strict';
 
-var Wallet = require("../../../cmd/console/neb.js/lib/wallet");
+var Wallet = require("nebulas");
 
 var expect = require('chai').expect;
 var rpc_client = require('./rpc_client/rpc_client.js');
@@ -8,7 +8,7 @@ var rpc_client = require('./rpc_client/rpc_client.js');
 
 var coinbase,
     sourceAccount,
-    toAddress = "2fe3f9f51f9a05dd5f7c5329127f7c917917149b4e16b0b8",
+    toAddress = Wallet.Account.NewAccount(),
     txhash,
     client,
     server_address;
@@ -16,8 +16,8 @@ var coinbase,
 var env = process.env.NET || 'local';
 if (env === 'local') {
     server_address = 'localhost:8684';
-    coinbase = "eb31ad2d8a89a0ca6935c308d5425730430bc2d63f2573b8";
-    sourceAccount = new Wallet.Account("a6e5eb290e1438fce79f5cb8774a72621637c2c9654c8b2525ed1d7e4e73653f");
+    coinbase = "n1QZMXSZtW7BUerroSms4axNfyBGyFGkrh5";
+    sourceAccount = new Wallet.Account("d80f115bdbba5ef215707a8d7053c16f4e65588fd50b0f83369ad142b99891b5");
 } else if (env === 'testneb1') {
     server_address = '35.182.48.19:8684';
     coinbase = "0b9cd051a6d7129ab44b17833c63fe4abead40c3714cde6d";
@@ -97,7 +97,7 @@ describe("rpc: GetEventsByHash", () => {
                     adminclient.SendTransactionWithPassphrase({
                         transaction: {
                             from: sourceAccount.getAddressString(),
-                            to: toAddress,
+                            to: toAddress.getAddressString(),
                             value: "100000000",
                             nonce: parseInt(coinbaseNonce) + 1,
                             gas_price: "1000000",

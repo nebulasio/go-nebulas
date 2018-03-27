@@ -1,12 +1,13 @@
 'use strict';
 var expect = require('chai').expect;
 var rpc_client = require('./rpc_client/rpc_client.js');
+var Wallet  = new require('nebulas');
 
 var protocol_version = '/neb/1.0.0'
 var node_version = '0.7.0'
 var server_address = 'localhost:8684';
-var coinbase = "eb31ad2d8a89a0ca6935c308d5425730430bc2d63f2573b8";
-var sourceAccount = '1a263547d167c74cf4b8f9166cfa244de0481c514a45aa2c';
+var coinbase = "n1QZMXSZtW7BUerroSms4axNfyBGyFGkrh5";
+var sourceAccount = new Wallet.Account("d80f115bdbba5ef215707a8d7053c16f4e65588fd50b0f83369ad142b99891b5");
 var chain_id = 100;
 var env = '';
 if (env === 'testneb1') {
@@ -24,7 +25,8 @@ var normalOutput;
 var nonce;
 
 function testRpc(testInput, testExpect, done) {
-  api_client.sendTransaction(testInput.rpcInput, function (err, response) {
+  var admin_client = rpc_client.new_client(server_address, "AdminService");
+  admin_client.sendTransaction(testInput.rpcInput, function (err, response) {
     if (err != null) {
       try {
         expect(testExpect.errMsg).to.be.equal(err.details);
@@ -66,7 +68,7 @@ describe('rpc: sendTransaction', function () {
   before((done) => {
     var admin_client = rpc_client.new_client(server_address, 'AdminService');
     var args = {
-      address: sourceAccount,
+      address: sourceAccount.getAddressString(),
       passphrase: "passphrase",
     }
     admin_client.UnlockAccount(args, (err, resp) => {
@@ -78,7 +80,7 @@ describe('rpc: sendTransaction', function () {
 
   before((done) => {
     api_client = rpc_client.new_client(server_address);
-    api_client.GetAccountState({ address: sourceAccount }, (err, resp) => {
+    api_client.GetAccountState({ address: sourceAccount.getAddressString() }, (err, resp) => {
       expect(err).to.be.equal(null);
       nonce = parseInt(resp.nonce);
       done(err);
@@ -89,7 +91,7 @@ describe('rpc: sendTransaction', function () {
     nonce = nonce + 1;
     var testInput = {
       rpcInput: {
-        from: sourceAccount,
+        from: sourceAccount.getAddressString(),
         to: coinbase,
         value: "1",
         nonce: nonce,
@@ -120,7 +122,7 @@ describe('rpc: sendTransaction', function () {
     }
 
     var testExpect = {
-      errMsg: "address: invalid address"
+      errMsg: "address: invalid address format"
     }
 
     testRpc(testInput, testExpect, done);
@@ -141,7 +143,7 @@ describe('rpc: sendTransaction', function () {
     }
 
     var testExpect = {
-      errMsg: "address: invalid address"
+      errMsg: "address: invalid address format"
     }
 
     testRpc(testInput, testExpect, done);
@@ -162,7 +164,7 @@ describe('rpc: sendTransaction', function () {
     }
 
     var testExpect = {
-      errMsg: "address: invalid address"
+      errMsg: "address: invalid address format"
     }
 
     testRpc(testInput, testExpect, done);
@@ -183,7 +185,7 @@ describe('rpc: sendTransaction', function () {
     }
 
     var testExpect = {
-      errMsg: "address: invalid address"
+      errMsg: "address: invalid address format"
     }
 
     testRpc(testInput, testExpect, done);
@@ -194,7 +196,7 @@ describe('rpc: sendTransaction', function () {
     nonce = nonce + 1;
     var testInput = {
       rpcInput: {
-        from: sourceAccount,
+        from: sourceAccount.getAddressString(),
         value: "1",
         nonce: nonce,
         gas_price: "1000000",
@@ -204,7 +206,7 @@ describe('rpc: sendTransaction', function () {
     }
 
     var testExpect = {
-      errMsg: "address: invalid address"
+      errMsg: "address: invalid address format"
     }
 
     testRpc(testInput, testExpect, done);
@@ -214,7 +216,7 @@ describe('rpc: sendTransaction', function () {
     nonce = nonce + 1;
     var testInput = {
       rpcInput: {
-        from: sourceAccount,
+        from: sourceAccount.getAddressString(),
         to: "eb31ad2d8a893b8",
         value: "1",
         nonce: nonce,
@@ -225,7 +227,7 @@ describe('rpc: sendTransaction', function () {
     }
 
     var testExpect = {
-      errMsg: "address: invalid address"
+      errMsg: "address: invalid address format"
     }
 
     testRpc(testInput, testExpect, done);
@@ -235,7 +237,7 @@ describe('rpc: sendTransaction', function () {
     nonce = nonce + 1;
     var testInput = {
       rpcInput: {
-        from: sourceAccount,
+        from: sourceAccount.getAddressString(),
         to: "eb31ad2d8a89a0ca6935c308d5425730430bc2d63f25733b8",
         value: "1",
         nonce: nonce,
@@ -246,7 +248,7 @@ describe('rpc: sendTransaction', function () {
     }
 
     var testExpect = {
-      errMsg: "address: invalid address"
+      errMsg: "address: invalid address format"
     }
 
     testRpc(testInput, testExpect, done);
@@ -256,7 +258,7 @@ describe('rpc: sendTransaction', function () {
     nonce = nonce + 1;
     var testInput = {
       rpcInput: {
-        from: sourceAccount,
+        from: sourceAccount.getAddressString(),
         to: coinbase,
         nonce: nonce,
         gas_price: "1000000",
@@ -276,7 +278,7 @@ describe('rpc: sendTransaction', function () {
     nonce = nonce + 1;
     var testInput = {
       rpcInput: {
-        from: sourceAccount,
+        from: sourceAccount.getAddressString(),
         to: coinbase,
         value: "3$",
         nonce: nonce,
@@ -297,7 +299,7 @@ describe('rpc: sendTransaction', function () {
     nonce = nonce + 1;
     var testInput = {
       rpcInput: {
-        from: sourceAccount,
+        from: sourceAccount.getAddressString(),
         to: coinbase,
         value: "111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111",
         nonce: nonce,
@@ -318,7 +320,7 @@ describe('rpc: sendTransaction', function () {
     nonce = nonce + 1;
     var testInput = {
       rpcInput: {
-        from: sourceAccount,
+        from: sourceAccount.getAddressString(),
         to: coinbase,
         value: "-1",
         nonce: nonce,
@@ -339,7 +341,7 @@ describe('rpc: sendTransaction', function () {
     nonce = nonce + 1;
     var testInput = {
       rpcInput: {
-        from: sourceAccount,
+        from: sourceAccount.getAddressString(),
         to: coinbase,
         value: "1",
         nonce: nonce,
@@ -359,7 +361,7 @@ describe('rpc: sendTransaction', function () {
     nonce = nonce + 1;
     var testInput = {
       rpcInput: {
-        from: sourceAccount,
+        from: sourceAccount.getAddressString(),
         to: coinbase,
         value: "1",
         nonce: nonce,
@@ -380,7 +382,7 @@ describe('rpc: sendTransaction', function () {
     nonce = nonce + 1;
     var testInput = {
       rpcInput: {
-        from: sourceAccount,
+        from: sourceAccount.getAddressString(),
         to: coinbase,
         value: "1",
         nonce: nonce,
@@ -401,7 +403,7 @@ describe('rpc: sendTransaction', function () {
     nonce = nonce + 1;
     var testInput = {
       rpcInput: {
-        from: sourceAccount,
+        from: sourceAccount.getAddressString(),
         to: coinbase,
         value: "1",
         nonce: nonce,
@@ -422,7 +424,7 @@ describe('rpc: sendTransaction', function () {
     nonce = nonce + 1;
     var testInput = {
       rpcInput: {
-        from: sourceAccount,
+        from: sourceAccount.getAddressString(),
         to: coinbase,
         value: "1",
         nonce: nonce,
@@ -443,7 +445,7 @@ describe('rpc: sendTransaction', function () {
     nonce = nonce + 1;
     var testInput = {
       rpcInput: {
-        from: sourceAccount,
+        from: sourceAccount.getAddressString(),
         to: coinbase,
         value: "1",
         nonce: nonce,
@@ -464,7 +466,7 @@ describe('rpc: sendTransaction', function () {
     nonce = nonce + 1;
     var testInput = {
       rpcInput: {
-        from: sourceAccount,
+        from: sourceAccount.getAddressString(),
         to: coinbase,
         value: "1",
         nonce: nonce,
@@ -485,7 +487,7 @@ describe('rpc: sendTransaction', function () {
     nonce = nonce + 1;
     var testInput = {
       rpcInput: {
-        from: sourceAccount,
+        from: sourceAccount.getAddressString(),
         to: coinbase,
         value: "1",
         nonce: nonce,
@@ -505,7 +507,7 @@ describe('rpc: sendTransaction', function () {
     nonce = nonce + 1;
     var testInput = {
       rpcInput: {
-        from: sourceAccount,
+        from: sourceAccount.getAddressString(),
         to: coinbase,
         value: "1",
         nonce: 1000000000000000000000000000000000000000000000000000000000000000000000000000000000000,
@@ -526,7 +528,7 @@ describe('rpc: sendTransaction', function () {
     nonce = nonce + 1;
     var testInput = {
       rpcInput: {
-        from: sourceAccount,
+        from: sourceAccount.getAddressString(),
         to: coinbase,
         value: "1",
         nonce: -1,
@@ -547,7 +549,7 @@ describe('rpc: sendTransaction', function () {
     nonce = nonce + 1;
     var testInput = {
       rpcInput: {
-        from: sourceAccount,
+        from: sourceAccount.getAddressString(),
         to: coinbase,
         value: "1",
         gas_limit: "200000",
@@ -567,7 +569,7 @@ describe('rpc: sendTransaction', function () {
     nonce = nonce + 1;
     var testInput = {
       rpcInput: {
-        from: sourceAccount,
+        from: sourceAccount.getAddressString(),
         to: coinbase,
         value: "1",
         nonce: "@",
@@ -589,7 +591,7 @@ describe('rpc: sendTransaction', function () {
 
     var admin_client = rpc_client.new_client(server_address, 'AdminService');
     var args = {
-      address: sourceAccount,
+      address: sourceAccount.getAddressString(),
     }
     var lock = 0;
     admin_client.LockAccount(args, (err, resp) => {
@@ -601,7 +603,7 @@ describe('rpc: sendTransaction', function () {
     });
     var testInput = {
       rpcInput: {
-        from: sourceAccount,
+        from: sourceAccount.getAddressString(),
         to: coinbase,
         value: "1",
         nonce: nonce,
@@ -612,7 +614,7 @@ describe('rpc: sendTransaction', function () {
     }
 
     var testExpect = {
-      errMsg: "key not unlocked"
+      errMsg: "account is locked"
     }
     setTimeout(() => { testRpc(testInput, testExpect, done); }, 100);
   })
