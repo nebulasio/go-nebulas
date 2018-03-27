@@ -26,6 +26,9 @@ import (
 	"github.com/nebulasio/go-nebulas/crypto/keystore/secp256k1"
 	"github.com/nebulasio/go-nebulas/util"
 
+	"sync"
+	"time"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -37,13 +40,13 @@ func TestBlockChain_FindCommonAncestorWithTail(t *testing.T) {
 	neb := testNeb(t)
 	bc := neb.chain
 
-	coinbase12, _ := AddressParse("n1FkntVUMPAsESuCAAPK711omQk19JotBjM")
-	coinbase11, _ := AddressParse("n1JNHZJEUvfBYfjDRD14Q73FX62nJAzXkMR")
-	coinbase221, _ := AddressParse("n1Kjom3J4KPsHKKzZ2xtt8Lc9W5pRDjeLcW")
-	coinbase111, _ := AddressParse("n1TV3sU6jyzR4rJ1D7jCAmtVGSntJagXZHC")
-	coinbase222, _ := AddressParse("n1WwqBXVMuYC3mFCEEuFFtAXad6yxqj4as4")
-	coinbase1111, _ := AddressParse("n1Zn6iyyQRhqthmCfqGBzWfip1Wx8wEvtrJ")
-	coinbase11111, _ := AddressParse("n1Zn6iyyQRhqthmCfqGBzWfip1Wx8wEvtrJ")
+	coinbase12, _ := AddressParse("n1FF1nz6tarkDVwWQkMnnwFPuPKUaQTdptE")
+	coinbase11, _ := AddressParse("n1GmkKH6nBMw4rrjt16RrJ9WcgvKUtAZP1s")
+	coinbase221, _ := AddressParse("n1H4MYms9F55ehcvygwWE71J8tJC4CRr2so")
+	coinbase111, _ := AddressParse("n1JAy4X6KKLCNiTd7MWMRsVBjgdVq5WCCpf")
+	coinbase222, _ := AddressParse("n1LkDi2gGMqPrjYcczUiweyP4RxTB6Go1qS")
+	coinbase1111, _ := AddressParse("n1LmP9K8pFF33fgdgHZonFEMsqZinJ4EUqk")
+	coinbase11111, _ := AddressParse("n1MNXBKm6uJ5d76nJTdRvkPNVq85n6CnXAi")
 
 	//add from reward
 	block0, _ := bc.NewBlock(coinbase11)
@@ -51,7 +54,6 @@ func TestBlockChain_FindCommonAncestorWithTail(t *testing.T) {
 	block0.Seal()
 	signBlock(block0)
 	assert.Nil(t, bc.BlockPool().Push(block0))
-	assert.Equal(t, bc.tailBlock.Hash().String(), "1111e101a97e0fb05ee1c96db0eba69b4a491af15f820d8df06f65379a2de9ef")
 
 	/*
 		genesis -- 0 -- 11 -- 111 -- 1111
@@ -77,21 +79,19 @@ func TestBlockChain_FindCommonAncestorWithTail(t *testing.T) {
 	assert.Nil(t, block111.Seal())
 	signBlock(block111)
 
-	assert.Equal(t, bc.tailBlock.Hash(), block11.Hash())
-
 	assert.Nil(t, bc.BlockPool().Push(block12))
-	assert.Equal(t, bc.tailBlock.Hash(), block12.Hash())
 
+	tailBlock, _ := bc.cachedBlocks.Get(block12.Hash().Hex())
+	bc.tailBlock = tailBlock.(*Block)
+	assert.Nil(t, bc.buildIndexByBlockHeight(bc.genesisBlock, bc.tailBlock))
 	block221, _ := bc.NewBlock(coinbase221)
 	block221.header.timestamp = BlockInterval * 5
 	block222, _ := bc.NewBlock(coinbase222)
 	block222.header.timestamp = BlockInterval * 6
 	assert.Nil(t, block221.Seal())
 	signBlock(block221)
-	assert.Equal(t, block221.Hash().String(), "0da11c6b15932b426f264e0a862ebbee318cc2ade632d480d43e3e2615013495")
 	assert.Nil(t, block222.Seal())
 	signBlock(block222)
-	assert.Equal(t, block222.Hash().String(), "078a5acc899a7f209b4c816a8bfacbada91f54617f2f57b384399c74feb97639")
 
 	assert.Nil(t, bc.BlockPool().Push(block111))
 	block1111, _ := bc.NewBlock(coinbase1111)
@@ -101,8 +101,10 @@ func TestBlockChain_FindCommonAncestorWithTail(t *testing.T) {
 
 	assert.Nil(t, bc.BlockPool().Push(block221))
 	assert.Nil(t, bc.BlockPool().Push(block222))
-	assert.Equal(t, bc.tailBlock.Hash(), block222.Hash())
 
+	tailBlock, _ = bc.cachedBlocks.Get(block222.Hash().Hex())
+	bc.tailBlock = tailBlock.(*Block)
+	assert.Nil(t, bc.buildIndexByBlockHeight(bc.genesisBlock, bc.tailBlock))
 	common2, err := bc.FindCommonAncestorWithTail(block221)
 	assert.Nil(t, err)
 	assert.Equal(t, common2.String(), block12.String())
@@ -169,6 +171,67 @@ func TestTailBlock(t *testing.T) {
 	block, err := bc.LoadTailFromStorage()
 	assert.Nil(t, err)
 	assert.Equal(t, bc.tailBlock.Hash(), block.Hash())
+}
+
+func TestSetTailBlockEvent(t *testing.T) {
+	neb := testNeb(t)
+	bc := neb.chain
+	bc.eventEmitter.Start()
+
+	coinbase, _ := AddressParse("n1FF1nz6tarkDVwWQkMnnwFPuPKUaQTdptE")
+
+	block0, err := bc.NewBlock(coinbase)
+	assert.Nil(t, err)
+
+	tx1 := mockNormalTransaction(bc.chainID, 1)
+	block0.transactions = append(block0.transactions, tx1)
+	tx2 := mockNormalTransaction(bc.chainID, 2)
+	block0.transactions = append(block0.transactions, tx2)
+	block0.header.timestamp = BlockInterval
+	block0.Seal()
+	bc.SetTailBlock(block0)
+
+	topics := []string{TopicRevertBlock, TopicNewTailBlock, TopicTransactionExecutionResult}
+
+	t1ch := register(bc.eventEmitter, topics[0])
+	t2ch := register(bc.eventEmitter, topics[1])
+	t3ch := register(bc.eventEmitter, topics[2])
+
+	wg := new(sync.WaitGroup)
+	wg.Add(1)
+
+	t1c, t2c, t3c := 0, 0, 0
+	go func() {
+		// send message.
+		defer wg.Done()
+
+		for {
+			select {
+			case <-time.After(time.Millisecond * 500):
+				return
+			case e := <-t1ch.eventCh:
+				assert.Equal(t, topics[0], e.Topic)
+				t1c++
+
+			case e := <-t2ch.eventCh:
+				assert.Equal(t, topics[1], e.Topic)
+				t2c++
+
+			case e := <-t3ch.eventCh:
+				assert.Equal(t, topics[2], e.Topic)
+				t3c++
+			}
+		}
+	}()
+
+	wg.Wait()
+
+	assert.Equal(t, 0, t1c)
+	assert.Equal(t, 1, t2c)
+	assert.Equal(t, 0, t3c) // tx not execute
+
+	bc.eventEmitter.Stop()
+	time.Sleep(time.Millisecond * 500)
 }
 
 func TestGetPrice(t *testing.T) {

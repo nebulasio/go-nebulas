@@ -45,7 +45,7 @@ var (
 	BlockHashLength = 32
 
 	// ParallelNum num
-	ParallelNum = 32 // TODO: 1
+	ParallelNum = 1
 
 	// VerifyExecutionTimeout 0 means unlimited
 	VerifyExecutionTimeout = 0
@@ -811,7 +811,6 @@ func (block *Block) VerifyExecution() error {
 
 // VerifyIntegrity verify block's hash, txs' integrity and consensus acceptable.
 func (block *Block) VerifyIntegrity(chainID uint32, consensus Consensus) error {
-
 	if consensus == nil {
 		metricsInvalidBlock.Inc(1)
 		return ErrNilArgument

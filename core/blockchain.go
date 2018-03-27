@@ -341,7 +341,7 @@ func (bc *BlockChain) triggerNewTailEvent(blocks []*Block) {
 
 		for _, v := range block.transactions {
 			events, err := block.FetchEvents(v.hash)
-			if err != nil {
+			if err == nil {
 				for _, e := range events {
 					bc.eventEmitter.Trigger(e)
 				}

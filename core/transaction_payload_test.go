@@ -283,6 +283,9 @@ func TestPayload_Execute(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			var err error
+			tt.tx.hash, err = tt.tx.calHash()
+			assert.Nil(t, err)
 			got, _, err := tt.payload.Execute(tt.limit, tt.tx, block, block.WorldState())
 			assert.Equal(t, tt.wantErr, err)
 			assert.Equal(t, tt.want, got)

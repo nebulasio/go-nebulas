@@ -773,6 +773,7 @@ func AcceptTransaction(tx *Transaction, ws WorldState) (bool, error) {
 		logging.VLog().Info("ATE 2")
 		return true, err
 	}
+	logging.CLog().Info(tx.hash)
 	if err := ws.PutTx(tx.hash, txBytes); err != nil {
 		logging.VLog().Info("ATE 3")
 		return true, err

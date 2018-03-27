@@ -195,12 +195,13 @@ function testContractCall(testInput, testExpect, done) {
                                 var event = events.events[i];
                                 //console.log("tx event:", JSON.stringify(event,null,'\t'));
                                 console.log("tx event:", event.data);
-                                if (event.topic == "chain.transactionResult") {
+                                if (event.topic === "chain.transactionResult") {
                                     var result = JSON.parse(event.data);
                                     expect(result.status).to.equal(testExpect.status);
-                                }
-                                if (testExpect.hasOwnProperty("eventErr")){
-                                    expect(result.error).to.equal(testExpect.eventErr);
+
+                                    if (testExpect.hasOwnProperty("eventErr")){
+                                        expect(result.error).to.equal(testExpect.eventErr);
+                                    }
                                 }
                             }
                             done();

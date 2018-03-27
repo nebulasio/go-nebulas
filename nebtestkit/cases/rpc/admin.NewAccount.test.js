@@ -10,7 +10,7 @@ var coinbase,
 var env = process.env.NET || 'local';
 if (env === 'local') {
     server_address = 'localhost:8684';
-    coinbase = "eb31ad2d8a89a0ca6935c308d5425730430bc2d63f2573b8";
+    coinbase = "n1QZMXSZtW7BUerroSms4axNfyBGyFGkrh5";
 } else if (env === 'testneb1') {
     server_address = '35.182.48.19:8684';
     coinbase = "0b9cd051a6d7129ab44b17833c63fe4abead40c3714cde6d";
