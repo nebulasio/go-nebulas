@@ -115,7 +115,7 @@ func (payload *CallPayload) Execute(limitedGas *util.Uint128, tx *Transaction, b
 	if err != nil {
 		return util.NewUint128(), "", err
 	}
-	if exeErr != nil && len(result) > 0 {
+	if exeErr != nil && exeErr == ErrExecutionFailed && len(result) > 0 {
 		exeErr = fmt.Errorf("Call: %s", result)
 	}
 	return instructions, result, exeErr

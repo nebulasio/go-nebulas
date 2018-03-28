@@ -19,7 +19,6 @@
 package main
 
 import (
-	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
@@ -47,7 +46,6 @@ func main() {
 		time.Sleep(10 * time.Second)
 		engine.Dispose()
 	} else {
-		fmt.Sprintf("Error: %s", err)
 		os.Exit(1)
 	}
 }

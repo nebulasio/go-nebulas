@@ -120,10 +120,10 @@ func TestRunScriptSource(t *testing.T) {
 		{"test/test_storage_handlers.js", nil, "\"\""},
 		{"test/test_storage_class.js", nil, "\"\""},
 		{"test/test_storage.js", nil, "\"\""},
-		{"test/test_eval.js", ErrExecutionFailed, "EvalError: Code generation from strings disallowed for this context"},
-		{"test/test_date.js", ErrExecutionFailed, "TypeError: Date.now is not a function"},
-		{"test/test_bignumber_random.js", ErrExecutionFailed, "Error: BigNumber.random is not allowed in nvm."},
-		{"test/test_random.js", ErrExecutionFailed, "Error: Math.random func is not allowed in nvm."},
+		{"test/test_eval.js", core.ErrExecutionFailed, "EvalError: Code generation from strings disallowed for this context"},
+		{"test/test_date.js", core.ErrExecutionFailed, "TypeError: Date.now is not a function"},
+		{"test/test_bignumber_random.js", core.ErrExecutionFailed, "Error: BigNumber.random is not allowed in nvm."},
+		{"test/test_random.js", core.ErrExecutionFailed, "Error: Math.random func is not allowed in nvm."},
 	}
 
 	for _, tt := range tests {
@@ -155,13 +155,13 @@ func TestRunScriptSourceInModule(t *testing.T) {
 		expectedErr error
 	}{
 		{"./test/test_require.js", nil},
-		{"./test/test_setTimeout.js", ErrExecutionFailed},
+		{"./test/test_setTimeout.js", core.ErrExecutionFailed},
 		{"./test/test_console.js", nil},
 		{"./test/test_storage_handlers.js", nil},
 		{"./test/test_storage_class.js", nil},
 		{"./test/test_storage.js", nil},
 		{"./test/test_ERC20.js", nil},
-		{"./test/test_eval.js", ErrExecutionFailed},
+		{"./test/test_eval.js", core.ErrExecutionFailed},
 	}
 
 	for _, tt := range tests {
@@ -538,7 +538,7 @@ func TestInstructionCounterTestSuite(t *testing.T) {
 		{"./test/instruction_counter_tests/redefine1.js", 0, ErrInjectTracingInstructionFailed, ""},
 		{"./test/instruction_counter_tests/redefine2.js", 0, ErrInjectTracingInstructionFailed, ""},
 		{"./test/instruction_counter_tests/redefine3.js", 0, ErrInjectTracingInstructionFailed, ""},
-		{"./test/instruction_counter_tests/redefine4.js", 0, ErrExecutionFailed, "Error: still not break the jail of _instruction_counter."},
+		{"./test/instruction_counter_tests/redefine4.js", 0, core.ErrExecutionFailed, "Error: still not break the jail of _instruction_counter."},
 		{"./test/instruction_counter_tests/redefine5.js", 0, ErrInjectTracingInstructionFailed, ""},
 		{"./test/instruction_counter_tests/redefine6.js", 0, nil, "\"\""},
 		{"./test/instruction_counter_tests/redefine7.js", 0, nil, "\"\""},
@@ -753,17 +753,17 @@ func TestBankVaultContract(t *testing.T) {
 		{"deploy bank_vault_contract.js", "./test/bank_vault_contract.js", "js", "5", "[0]",
 			[]TakeoutTest{
 				{"[1]", nil, "5", "4"},
-				{"[5]", ErrExecutionFailed, "4", "4"},
+				{"[5]", core.ErrExecutionFailed, "4", "4"},
 				{"[4]", nil, "4", "0"},
-				{"[1]", ErrExecutionFailed, "0", "0"},
+				{"[1]", core.ErrExecutionFailed, "0", "0"},
 			},
 		},
 		{"deploy bank_vault_contract.ts", "./test/bank_vault_contract.ts", "ts", "5", "[0]",
 			[]TakeoutTest{
 				{"[1]", nil, "5", "4"},
-				{"[5]", ErrExecutionFailed, "4", "4"},
+				{"[5]", core.ErrExecutionFailed, "4", "4"},
 				{"[4]", nil, "4", "0"},
-				{"[1]", ErrExecutionFailed, "0", "0"},
+				{"[1]", core.ErrExecutionFailed, "0", "0"},
 			},
 		},
 	}
@@ -1049,17 +1049,17 @@ func TestNebulasContract(t *testing.T) {
 		{"1", "0", "unpayable", "", nil},
 		{"2", "0", "unpayable", "[1]", nil},
 		{"3", "1", "unpayable", "", nil},
-		{"4", "0", "payable", "", ErrExecutionFailed},
+		{"4", "0", "payable", "", core.ErrExecutionFailed},
 		{"5", "1", "payable", "", nil},
 		{"6", "1", "payable", "[1]", nil},
 		{"7", "0", "contract1", "[1]", nil},
 		{"8", "1", "contract1", "[1]", nil},
-		{"9", "0", "contract2", "[1]", ErrExecutionFailed},
-		{"10", "1", "contract2", "[1]", ErrExecutionFailed},
-		{"11", "0", "contract3", "[1]", ErrExecutionFailed},
+		{"9", "0", "contract2", "[1]", core.ErrExecutionFailed},
+		{"10", "1", "contract2", "[1]", core.ErrExecutionFailed},
+		{"11", "0", "contract3", "[1]", core.ErrExecutionFailed},
 		{"12", "1", "contract3", "[1]", nil},
-		{"13", "0", "contract4", "[1]", ErrExecutionFailed},
-		{"14", "1", "contract4", "[1]", ErrExecutionFailed},
+		{"13", "0", "contract4", "[1]", core.ErrExecutionFailed},
+		{"14", "1", "contract4", "[1]", core.ErrExecutionFailed},
 	}
 
 	mem, _ := storage.NewMemoryStorage()
