@@ -1,5 +1,5 @@
 'use strict';
-
+var async = require('async');
 var sleep = require("system-sleep");
 var HttpRequest = require("../../node-request");
 var FS = require("fs");
@@ -234,108 +234,189 @@ function checkTransaction(txhash, done){
     }, 2000);
 }
 
-function testTransfer(testInput, testExpect, done) {
+
+function testTransferByAsync(testInput, testExpect, done) {
     var from = (Utils.isNull(testInput.from)) ? deploy : testInput.from;
     var to = Account.NewAccount();
     var fromBalance, toBalance;
+    console.log("begin async.auto, fromAddress:%s, toAddress:%s", 
+        from.getAddressString(), to.getAddressString());
+    async.auto({
+        //balanceOfNRC20返回值 and if null
+        getFromBalance: function(callback) {
+            console.log("begin getFromBalance");
+            var RR = balanceOfNRC20(from.getAddressString());
+            RR.then(function(resp) {
+                var fromBalance = JSON.parse(resp.result);
+                console.log("from balance:", fromBalance);
+                callback(null, fromBalance);
+            }).catch(function(err){
+                console.log("getFromBalance err:", err);
+                callback(err, null);
+            })
+        },
+        getToBalance: function(callback) {
+            console.log("begin getToBalance");
+            //var resp = balanceOfNRC20(to.getAddressString());
+            //toBalance = JSON.parse(resp.result);
+            var RR = balanceOfNRC20(to.getAddressString());
+            RR.then(function(resp) {
+                var toBalance = JSON.parse(resp.result);
+                console.log("to balance:", toBalance);
+                callback(null, toBalance);
+            }).catch(function(err){
+                console.log("getToBalance err:", err);
+                callback(err, null);
+            })
+            
+        },
+        getAccountState: function(callback) {
+            console.log("begin getAccountState");
+            var RR = neb.api.getAccountState(from.getAddressString());
+            //callback(null, resp);
+            RR.then(function(resp) {
+                console.log("state:", resp);
+                callback(null, resp);
+            }).catch(function(err){
+                console.log("getAccountState err:", err);
+                callback(err, null);
+            })
+        },
+        executeContract: ['getFromBalance', 'getToBalance', 'getAccountState', function(callback, results){
+            console.log("executeContract:", results);
+            console.log("from state:", JSON.stringify(results.getAccountState));
 
-    balanceOfNRC20(from.getAddressString()).then(function(resp) {
-        fromBalance = JSON.parse(resp.result);
-        console.log("from balance:", fromBalance);
-
-        return balanceOfNRC20(to.getAddressString());
-    }).then(function (resp) {
-        toBalance = JSON.parse(resp.result);
-        console.log("to balance:", toBalance);
-
-        return neb.api.getAccountState(from.getAddressString());
-    }).then(function (resp) {
-        console.log("from state:", JSON.stringify(resp));
-
-        var args = testInput.args;
-        if (!Utils.isNull(testInput.transferValue)) {
-            if (testInput.transferValue === "from.balance") {
-                testInput.transferValue = fromBalance;
-            }
-            args = "[\""+ to.getAddressString() +"\", \""+ testInput.transferValue +"\"]";
-        }
-        
-        var contract = {
-            "function": testInput.function,
-            "args": args
-        };
-        var tx = new Transaction(ChainID, from, contractAddr, "0", parseInt(resp.nonce) + 1, "1000000", "2000000", contract);
-        tx.signTransaction();
-
-        console.log("raw tx:", tx.toString());
-        return neb.api.sendRawTransaction(tx.toProtoString());
-    }).then(function (resp) {
-        console.log("send raw tx:", resp);
-        checkTransaction(resp.txhash, function (receipt) {
-            var resetContract = false;
-            try {
-                expect(receipt).to.be.have.property('status').equal(testExpect.status);
-
-                balanceOfNRC20(from.getAddressString()).then(function (resp) {
-                    var balance = JSON.parse(resp.result);
-                    console.log("after from balance:", balance);
-
-                    if (testExpect.status === 1) {
-                        var balanceNumber = new BigNumber(fromBalance).sub(testInput.transferValue);
-                        expect(balanceNumber.toString(10)).to.equal(balance);
-                    } else {
-                        expect(balance).to.equal(fromBalance);
-                    }
-
-                    if (balance === "0") {
-                        resetContract = true;
-                    }
-
-                    return balanceOfNRC20(to.getAddressString());
-                }).then(function (resp) {
-                    var balance = JSON.parse(resp.result);
-                    console.log("after to balance:", balance);
-
-                    if (testExpect.status === 1) {
-                        var balanceNumber = new BigNumber(toBalance).plus(testInput.transferValue);
-                        expect(balanceNumber.toString(10)).to.equal(balance);
-                    } else {
-                        expect(toBalance).to.equal(balance);
-                    }
-
-                    return neb.api.getEventsByHash(receipt.hash);
-                }).then(function (events) {
-                    // console.log("tx events:", events);
-                    for (var i = 0; i < events.events.length; i++) {
-                        var event = events.events[i];
-                        console.log("tx event:", event);
-                        if (event.topic == "chain.transactionResult") {
-                            var result = JSON.parse(event.data);
-                            expect(result.status).to.equal(testExpect.status);
-                        }
-                    }
-                    expect(events.events.length).to.equal(5);
-                    if (resetContract) {
-                        contractAddr = null;
-                    }
-                    done();
-                }).catch(function (err) {
-                    if (resetContract) {
-                        contractAddr = null;
-                    }
-                    done(err);
-                })
-            } catch (err) {
-                if (resetContract) {
-                    contractAddr = null;
+            var args = testInput.args;
+            if (!Utils.isNull(testInput.transferValue)) {
+                if (testInput.transferValue === "from.balance") {
+                    testInput.transferValue = fromBalance;
                 }
+                args = "[\""+ to.getAddressString() +"\", \""+ testInput.transferValue +"\"]";
+            }
+            
+            var contract = {
+                "function": testInput.function,
+                "args": args
+            };
+            var tx = new Transaction(ChainID, from, contractAddr, "0", parseInt(results.getAccountState.nonce) + 1, "1000000", "2000000", contract);
+            tx.signTransaction();
+
+            console.log("raw tx:", tx.toString());
+            var RR = neb.api.sendRawTransaction(tx.toProtoString());
+            RR.then(function(resp) {
+                callback(null, resp);
+            }).catch(function(err){
+                console.log("executeContract err:", err);
+                callback(err, null);
+            })
+        }],
+        checkContract: ['executeContract', function(callback, newtx){
+            console.log("begin checkContract,hash:", newtx.executeContract.txhash);
+            //var resp = checkTransaction(resp.txhash, function (receipt);
+            checkTransaction(newtx.executeContract.txhash, function(resp) {
+                if (resp.status == 0) {
+                    callback("checkTransaction execut contract failed!", null);
+                } else {
+                    callback(null, resp);
+                }
+            });
+        }],
+        getAfterFromBalance: ['checkContract', function(callback, receipt){
+            var RR = balanceOfNRC20(from.getAddressString());
+            RR.then(function(resp) {
+                var fromBalance = JSON.parse(resp.result);
+                console.log("after from balance:", fromBalance);
+                callback(null, fromBalance);
+            }).catch(function(err){
+                console.log("after getFromBalance err:", err);
+                callback(err, null);
+            })
+        }],
+        getAfterToBalance: ['checkContract', function(callback, receipt){
+            var RR = balanceOfNRC20(to.getAddressString());
+            RR.then(function(resp) {
+                var toBalance = JSON.parse(resp.result);
+                console.log("after to balance:", toBalance);
+                callback(null, toBalance);
+            }).catch(function(err){
+                console.log("after getToBalance err:", err);
+                callback(err, null);
+            })
+        }],
+        getEventsByHash: ['checkContract', function(callback, receipt){
+            var RR = neb.api.getEventsByHash(receipt.checkContract.hash);
+            RR.then(function(events) {
+                for (var i = 0; i < events.events.length; i++) {
+                    var event = events.events[i];
+                    console.log("tx event:", event);
+                    if (event.topic == "chain.transactionResult") {
+                        var result = JSON.parse(event.data);
+                        expect(result.status).to.equal(testExpect.status);
+                    }
+                }
+                callback(null, events);
+            }).catch(function(err) {
+                console.log("getEventsByHash err");
+                callback(err, null);
+            })
+            
+        }],
+     }, function(err, results) {
+        if (err) {
+            console.log("async.auto hava break:", err);
+            if (err == "checkTransaction execut contract failed!") {
+                done();
+            } else {
                 done(err);
             }
-        });
-    }).catch(function(err) {
-        done(err);
-    });
+        } else {
+            console.log("end async.auto");
+            done();
+        }
+     });
 }
+
+
+function testTransferByAsyncEx(testInput, done) {
+    console.log("begin test balance");
+    contractAddr = "n1xNam9bHHB1Xu9iCvBVJXmjJMvEsFWzZ1p";
+    //var from = (Utils.isNull(testInput.from)) ? deploy : testInput.from;
+    /*from = "n1QZMXSZtW7BUerroSms4axNfyBGyFGkrh5";
+    contractAddr = "n1xNam9bHHB1Xu9iCvBVJXmjJMvEsFWzZ1p";
+    balanceOfNRC20X(from).then(function(resp) {
+        console.log("begin enter cb");
+        var fromBalance = JSON.parse(resp.result);
+        console.log("from balance:", fromBalance);
+        done(); 
+    });*/
+    
+    
+    //var from = (Utils.isNull(testInput.from)) ? deploy : testInput.from;
+    console.log("begin async.auto");
+    async.auto({
+        //balanceOfNRC20返回值 and if null
+        getFromBalance: function(callback) {
+            console.log("begin getFromBalance");
+            var RR = balanceOfNRC20("n1QZMXSZtW7BUerroSms4axNfyBGyFGkrh5");
+            //console.log("from:", resp);
+            RR.then(function(resp) {
+                var fromBalance = JSON.parse(resp.result);
+                console.log("from balance:", fromBalance);
+                callback(null, fromBalance);
+            }).catch(function(err){
+                console.log("err");
+            })
+            
+            //callback(null, 1);
+        }
+     }, function(err, results) {
+        if (err) {
+            console.log("async.auto hava break");
+            done();
+        }
+        done();
+     });
+};
 
 function balanceOfNRC20(address) {
     var contract = {
@@ -343,6 +424,14 @@ function balanceOfNRC20(address) {
         "args": "[\"" + address + "\"]"
     };
     return neb.api.call(address, contractAddr, "0", 1, "1000000", "200000", contract)
+}
+function balanceOfNRC20(address, cb) {
+    var contract = {
+        "function": "balanceOf",
+        "args": "[\"" + address + "\"]"
+    };
+    console.log("begin balanceOfNRC20X");
+    return neb.api.call(address, contractAddr, "0", 1, "1000000", "200000", contract, cb)
 }
 
 function allowanceOfNRC20(owner, spender) {
@@ -366,18 +455,18 @@ var testCase = {
     }
 };
 testCases.push(testCase);
-/*testCase = {
-    "name": "1. transfer mult event",
+testCase = {
+    "name": "2. transfer mult event Status is err",
     "testInput": {
         isTransfer: true,
-        function: "transferforMultEvent",
+        function: "transferforMultEventStatus",
         args: ""
     },
     "testExpect": {
         status: 0
     }
 };
-testCases.push(testCase);*/
+testCases.push(testCase);
 
 describe('contract call test', function () {
     before(function (done) {
@@ -392,7 +481,7 @@ describe('contract call test', function () {
                 if (err instanceof Error) {
                     done(err);
                 } else {
-                    testTransfer(testCase.testInput, testCase.testExpect, done);
+                    testTransferByAsync(testCase.testInput, testCase.testExpect, done);
                 }
             });
         });

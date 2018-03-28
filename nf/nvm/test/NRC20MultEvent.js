@@ -165,7 +165,16 @@ StandardToken.prototype = {
             }
         });
     },
-
+    transferEvent: function (status, from, to, value) {
+        Event.Trigger(this.name(), {
+            Status: status,
+            Transfer: {
+                from: from,
+                to: to,
+                value: value
+            }
+        });
+    },
     transferforMultEventStatus: function (to, value) {
         value = new BigNumber(value);
 
