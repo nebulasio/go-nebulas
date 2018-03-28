@@ -32,6 +32,8 @@ var env = args[1];
 // var env = "testneb4";
 
 if (env === 'testneb1') {
+    console.log("testnet1 is unvaliable");
+    return
     ChainID = 1001;
     sourceAccount = new Wallet.Account("25a3a441a34658e7a595a0eda222fa43ac51bd223017d17b420674fb6d0a4d52");
     coinbase = "n1SAeQRVn33bamxN4ehWUT7JGdxipwn8b17";
@@ -76,11 +78,7 @@ if (env === 'testneb1') {
 
 
 
-
-var dateFormat = require('dateformat');
-var now = new Date();
-var dateString = dateFormat(now, "dddd, mmmm dS, yyyy, h:MM:ss TT");
-console.log("running script, env:", env, " ChainId:", ChainID, " apiEndPoint:", apiEndPoint, " time:", dateString);
+console.log("running script, env:", env, " ChainId:", ChainID, " apiEndPoint:", apiEndPoint, " time:", new Date());
 
 
 // setup request.
