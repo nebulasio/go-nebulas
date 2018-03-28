@@ -239,12 +239,10 @@ function testTransferByAsync(testInput, testExpect, done) {
     var from = (Utils.isNull(testInput.from)) ? deploy : testInput.from;
     var to = Account.NewAccount();
     var fromBalance, toBalance;
-    console.log("begin async.auto, fromAddress:%s, toAddress:%s", 
+    console.log("testTransferByAsync, fromAddress:%s, toAddress:%s", 
         from.getAddressString(), to.getAddressString());
     async.auto({
-        //balanceOfNRC20返回值 and if null
         getFromBalance: function(callback) {
-            console.log("begin getFromBalance");
             var RR = balanceOfNRC20(from.getAddressString());
             RR.then(function(resp) {
                 var fromBalance = JSON.parse(resp.result);
@@ -256,9 +254,6 @@ function testTransferByAsync(testInput, testExpect, done) {
             })
         },
         getToBalance: function(callback) {
-            console.log("begin getToBalance");
-            //var resp = balanceOfNRC20(to.getAddressString());
-            //toBalance = JSON.parse(resp.result);
             var RR = balanceOfNRC20(to.getAddressString());
             RR.then(function(resp) {
                 var toBalance = JSON.parse(resp.result);
@@ -271,7 +266,6 @@ function testTransferByAsync(testInput, testExpect, done) {
             
         },
         getAccountState: function(callback) {
-            console.log("begin getAccountState");
             var RR = neb.api.getAccountState(from.getAddressString());
             //callback(null, resp);
             RR.then(function(resp) {
@@ -283,7 +277,6 @@ function testTransferByAsync(testInput, testExpect, done) {
             })
         },
         executeContract: ['getFromBalance', 'getToBalance', 'getAccountState', function(callback, results){
-            console.log("executeContract:", results);
             console.log("from state:", JSON.stringify(results.getAccountState));
 
             var args = testInput.args;
@@ -311,8 +304,6 @@ function testTransferByAsync(testInput, testExpect, done) {
             })
         }],
         checkContract: ['executeContract', function(callback, newtx){
-            console.log("begin checkContract,hash:", newtx.executeContract.txhash);
-            //var resp = checkTransaction(resp.txhash, function (receipt);
             checkTransaction(newtx.executeContract.txhash, function(resp) {
                 if (resp.status == 0) {
                     callback("checkTransaction execut contract failed!", null);
@@ -375,48 +366,6 @@ function testTransferByAsync(testInput, testExpect, done) {
         }
      });
 }
-
-
-function testTransferByAsyncEx(testInput, done) {
-    console.log("begin test balance");
-    contractAddr = "n1xNam9bHHB1Xu9iCvBVJXmjJMvEsFWzZ1p";
-    //var from = (Utils.isNull(testInput.from)) ? deploy : testInput.from;
-    /*from = "n1QZMXSZtW7BUerroSms4axNfyBGyFGkrh5";
-    contractAddr = "n1xNam9bHHB1Xu9iCvBVJXmjJMvEsFWzZ1p";
-    balanceOfNRC20X(from).then(function(resp) {
-        console.log("begin enter cb");
-        var fromBalance = JSON.parse(resp.result);
-        console.log("from balance:", fromBalance);
-        done(); 
-    });*/
-    
-    
-    //var from = (Utils.isNull(testInput.from)) ? deploy : testInput.from;
-    console.log("begin async.auto");
-    async.auto({
-        //balanceOfNRC20返回值 and if null
-        getFromBalance: function(callback) {
-            console.log("begin getFromBalance");
-            var RR = balanceOfNRC20("n1QZMXSZtW7BUerroSms4axNfyBGyFGkrh5");
-            //console.log("from:", resp);
-            RR.then(function(resp) {
-                var fromBalance = JSON.parse(resp.result);
-                console.log("from balance:", fromBalance);
-                callback(null, fromBalance);
-            }).catch(function(err){
-                console.log("err");
-            })
-            
-            //callback(null, 1);
-        }
-     }, function(err, results) {
-        if (err) {
-            console.log("async.auto hava break");
-            done();
-        }
-        done();
-     });
-};
 
 function balanceOfNRC20(address) {
     var contract = {
