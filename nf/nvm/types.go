@@ -16,7 +16,6 @@ var (
 	ErrEngineNotStart           = errors.New("engine not start")
 	ErrContextConstructArrEmpty = errors.New("context construct err by args empty")
 
-	ErrExecutionFailed                 = errors.New("execution failed")
 	ErrDisallowCallPrivateFunction     = errors.New("disallow call private function")
 	ErrExecutionTimeout                = errors.New("execution timeout")
 	ErrInsufficientGas                 = errors.New("insufficient gas")
