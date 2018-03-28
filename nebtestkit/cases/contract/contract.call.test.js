@@ -820,7 +820,7 @@ testCase = {
         fromBalanceAfterTx: "999999979900000000",
         toBalanceAfterTx: '0',
         transferReward: '20100000000',
-        eventErr: 'Call: null'
+        eventErr: 'insufficient gas'
     }
 };
 testCases.push(testCase);
@@ -1173,7 +1173,7 @@ testCase = {
         gasLimit: 2000000,
         contract: {
             "function": "transfer",
-            "args": "[\"0b9cd051a6d7129ab44b17833c63fe4abead40c3714cde6d\", 1]"
+            "args": "[\"n1SAeQRVn33bamxN4ehWUT7JGdxipwn8b17\", 1]"
         }
     },
     "testExpect": {
@@ -1201,7 +1201,7 @@ testCase = {
         gasLimit: 2000000,
         contract: {
             "function": "balanceOf",
-            "args": "[\"0b9cd051a6d7129ab44b17833c63fe4abead40c3714cde6d\"]"
+            "args": "[\"n1SAeQRVn33bamxN4ehWUT7JGdxipwn8b17\"]"
         }
     },
     "testExpect": {
@@ -1224,7 +1224,7 @@ describe('contract call test', function () {
     });
 
 
-    // var testCase = testCases[26];
+    // var testCase = testCases[25];
     // it(testCase.name, function (done) {
     //     prepareContractCall(testCase, function (err) {
     //         if (err instanceof Error) {
