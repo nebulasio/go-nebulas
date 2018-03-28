@@ -167,7 +167,7 @@ func parseTransaction(neb core.Neblet, reqTx *rpcpb.TransactionRequest) (*core.T
 				return nil, err
 			}
 		} else {
-			return nil, errors.New("params error")
+			return nil, errors.New("invalid contract")
 		}
 	} else {
 		payloadType = core.TxPayloadBinaryType

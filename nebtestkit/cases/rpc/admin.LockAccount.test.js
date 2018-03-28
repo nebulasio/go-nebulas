@@ -2,7 +2,7 @@
 
 var expect = require('chai').expect;
 var rpc_client = require('./rpc_client/rpc_client.js');
-var Wallet = require("../../../cmd/console/neb.js/lib/wallet");
+var Wallet = require("nebulas");
 
 var coinbase,
     server_address;
@@ -10,7 +10,7 @@ var coinbase,
 var env = process.env.NET || 'local';
 if (env === 'local') {
     server_address = 'localhost:8684';
-    coinbase = "eb31ad2d8a89a0ca6935c308d5425730430bc2d63f2573b8";
+    coinbase = "n1QZMXSZtW7BUerroSms4axNfyBGyFGkrh5";
 } else if (env === 'testneb1') {
     server_address = '35.182.48.19:8684';
     coinbase = "0b9cd051a6d7129ab44b17833c63fe4abead40c3714cde6d";
@@ -124,7 +124,7 @@ describe("rpc: LockAccount", () => {
 
         var testExpect = {
             hasError: true,
-            errorMsg: "address: invalid address"
+            errorMsg: "address: invalid address format"
         }
 
         testLockAccount(testInput, testExpect, done);
@@ -139,7 +139,7 @@ describe("rpc: LockAccount", () => {
 
         var testExpect = {
             hasError: true,
-            errorMsg: "address: invalid address"
+            errorMsg: "address: invalid address format"
         }
 
         testLockAccount(testInput, testExpect, done);
@@ -148,13 +148,13 @@ describe("rpc: LockAccount", () => {
     it("5. invalid `address`", (done) => {
         var testInput = {
             args: {
-                address: "eb31ad2d8a89a0ca695730430bc2d63f2573b8" // same with ""
+                address: "n1QZMXSZtW7BUerroSms4axNfyBGyFGkrh3" // same with ""
             }
         }
 
         var testExpect = {
             hasError: true,
-            errorMsg: "address: invalid address"
+            errorMsg: "address: invalid address checksum"
         }
 
         testLockAccount(testInput, testExpect, done);
