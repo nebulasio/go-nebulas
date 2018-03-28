@@ -136,7 +136,7 @@ function testRpc(testInput, testExpect, done) {
         } else {
             console.log(JSON.stringify(response));
             try {
-                expect(response.err).equal(testExpect.resultMsg);
+                expect(response.err).equal(testExpect.exeMsg);
             } catch (err) {
                 console.log("unexpected errpr :", err);
                 done(err);
@@ -202,7 +202,7 @@ describe('rpc: estimateGas', function () {
             },
         }
         var testExpect = {
-            resultMsg: "",
+            exeMsg: "",
         }
         testRpc(testInput, testExpect, done);
     });
@@ -306,7 +306,7 @@ describe('rpc: estimateGas', function () {
             },
         }
         var testExpect = {
-            resultMsg: ""
+            exeMsg: ""
         };
         testRpc(testInput, testExpect, done);
     });
@@ -339,7 +339,7 @@ describe('rpc: estimateGas', function () {
             },
         }
         var testExpect = {
-            resultMsg: ""
+            exeMsg: ""
         };
         testRpc(testInput, testExpect, done);
     })
@@ -373,7 +373,7 @@ describe('rpc: estimateGas', function () {
             },
         }
         var testExpect = {
-            resultMsg: ""
+            exeMsg: ""
         };
         testRpc(testInput, testExpect, done);
     });
@@ -443,7 +443,7 @@ describe('rpc: estimateGas', function () {
             },
         }
         var testExpect = {
-            resultMsg: ""
+            exeMsg: ""
         };
         testRpc(testInput, testExpect, done);
     });
@@ -514,7 +514,7 @@ describe('rpc: estimateGas', function () {
         }
 
         var testExpect = {
-            resultMsg: ''
+            exeMsg: ''
         }
 
         testRpc(testInput, testExpect, done);
@@ -550,7 +550,7 @@ describe('rpc: estimateGas', function () {
         }
 
         var testExpect = {
-            resultMsg: 'Deploy: fail to init'
+            exeMsg: 'Deploy: fail to init'
         }
 
         testRpc(testInput, testExpect, done);
