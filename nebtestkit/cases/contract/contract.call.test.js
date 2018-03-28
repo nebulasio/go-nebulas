@@ -51,6 +51,11 @@ if (env == 'local'){
     ChainID = 1003;
     originSource = new Account("25a3a441a34658e7a595a0eda222fa43ac51bd223017d17b420674fb6d0a4d52");
     coinbase = "n1SAeQRVn33bamxN4ehWUT7JGdxipwn8b17";
+}else if (env === "maintest"){
+    ChainID = 2;
+    originSource = new Account("d2319a8a63b1abcb0cc6d4183198e5d7b264d271f97edf0c76cfdb1f2631848c");
+    coinbase = "n1dZZnqKGEkb1LHYsZRei1CH6DunTio1j1q";
+    neb.setRequest(new HttpRequest("http://54.149.15.132:8685"));
 }else{
     console.log("please input correct env local testneb1 testneb2");
     return;
@@ -74,7 +79,7 @@ function prepareSource(done) {
     }).then(function (resp) {
         console.log("send Raw Tx:" + JSON.stringify(resp));
         expect(resp).to.be.have.property('txhash');
-        checkTransaction(resp.txhash, function (receipt) {
+        checkTransaction(resp.txhash, 0, function (receipt) {
             console.log("tx receipt : " + JSON.stringify(receipt));
             expect(receipt).to.be.have.property('status').equal(1);
 
@@ -93,9 +98,9 @@ function prepareContractCall(testCase, done) {
         var accounts = new Array();
         var values = new Array();
         // if (typeof contractAddr === "undefined") {
-        deploy = Account.NewAccount();
-        accounts.push(deploy);
-        values.push(neb.nasToBasic(1));
+            deploy = Account.NewAccount();
+            accounts.push(deploy);
+            values.push(neb.nasToBasic(1));
         // }
 
         from = Account.NewAccount();
@@ -106,7 +111,7 @@ function prepareContractCall(testCase, done) {
 
         cliamTokens(accounts, values, function () {
             // if (typeof contractAddr === "undefined") {
-            deployContract(done);
+                deployContract(done);
             // } else {
             //     done();
             // }
@@ -155,7 +160,7 @@ function testContractCall(testInput, testExpect, done) {
         if (true === testExpect.canSendTx) {
             console.log("send Raw Tx:" + JSON.stringify(rawResp));
             expect(rawResp).to.be.have.property('txhash');
-            checkTransaction(rawResp.txhash, function (receipt) {
+            checkTransaction(rawResp.txhash, 0, function (receipt) {
                 console.log("tx receipt : " + JSON.stringify(receipt));
                 try {
                     if (true === testExpect.canSubmitTx) {
@@ -181,7 +186,7 @@ function testContractCall(testInput, testExpect, done) {
                             console.log("get coinbase account state before tx:" + JSON.stringify(coinState));
                             console.log("get coinbase account state after tx:" + JSON.stringify(state));
                             var reward = new BigNumber(state.balance).sub(coinState.balance);
-                            reward = reward.mod(new BigNumber(0.48).mul(new BigNumber(10).pow(18)));
+                            reward = reward.mod(new BigNumber(1.92).mul(new BigNumber(10).pow(18)));
                             // The transaction should be only
                             expect(reward.toString()).to.equal(testExpect.transferReward);
                             if (receipt.gasUsed) {
@@ -289,23 +294,22 @@ function deployContract(done){
     neb.api.sendRawTransaction(rawTx).then(function (resp) {
         console.log("deploy contract:" + JSON.stringify(resp));
 
-        checkTransaction(resp.txhash, done);
+        checkTransaction(resp.txhash, 0, done);
     });
 }
 
-function checkTransaction(txhash, done){
+function checkTransaction(txhash, retry, done){
 
-    var retry = 0;
     var maxRetry = 45;
 
     // contract status and get contract_address
-    var interval = setInterval(function () {
+    var interval = setTimeout(function () {
         neb.api.getTransactionReceipt(txhash).then(function (resp) {
             retry++;
 
             console.log("check transaction status:" + resp.status);
             if(resp.status && resp.status === 1) {
-                clearInterval(interval);
+                // clearInterval(interval);
 
                 if (resp.contract_address) {
                     console.log("deploy private key:" + deploy.getPrivateKeyString());
@@ -322,11 +326,13 @@ function checkTransaction(txhash, done){
             } else if (resp.status && resp.status === 2) {
                 if (retry > maxRetry) {
                     console.log("check transaction time out");
-                    clearInterval(interval);
+                    // clearInterval(interval);
                     done(resp);
+                } else {
+                    checkTransaction(txhash, retry++, done);
                 }
             } else {
-                clearInterval(interval);
+                // clearInterval(interval);
                 console.log("transaction execution failed");
                 done(resp);
             }
@@ -335,8 +341,10 @@ function checkTransaction(txhash, done){
             console.log("check transaction not found retry");
             if (retry > maxRetry) {
                 console.log(JSON.stringify(err.error));
-                clearInterval(interval);
+                // clearInterval(interval);
                 done(err);
+            } else {
+                checkTransaction(txhash, retry++, done);
             }
         });
 
@@ -1224,7 +1232,7 @@ describe('contract call test', function () {
     });
 
 
-    // var testCase = testCases[25];
+    // var testCase = testCases[1];
     // it(testCase.name, function (done) {
     //     prepareContractCall(testCase, function (err) {
     //         if (err instanceof Error) {
