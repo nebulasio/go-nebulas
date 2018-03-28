@@ -7,7 +7,6 @@ import "../../../..//consensus/pb/state.proto";
 import "../../../../neblet/pb/config.proto";
 package rpcpb;
 
-
 // RPC API interface.
 service ApiService {
     // Return the state of the neb.
@@ -291,6 +290,9 @@ message GetAccountStateResponse {
 
     // Current transaction count.
     uint64 nonce = 2;
+
+    // Account type
+    uint32 type = 3;
 }
 
 // Response message of Call rpc.
@@ -432,8 +434,11 @@ message BlockResponse {
     // Hex string of consensus root.
     consensuspb.ConsensusRoot consensus_root = 11;
 
+    // Miner
+    string miner = 12;
+
     // is finaliy
-    bool is_finality = 12;
+    bool is_finality = 13;
 
     // transaction slice
     repeated TransactionResponse transactions = 100;
@@ -509,7 +514,10 @@ message SignHashRequest {
     string address = 1;
 
     // sign msg
-    string hash = 2;
+    bytes hash = 2;
+
+    // sign algorithm
+    uint32 alg = 3;
 }
 
 message SignHashResponse {

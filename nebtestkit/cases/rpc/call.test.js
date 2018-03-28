@@ -17,18 +17,52 @@ var node_version = '0.7.0'
 var server_address = 'localhost:8684';
 var coinbase = "n1QZMXSZtW7BUerroSms4axNfyBGyFGkrh5";
 var sourceAccount = new Wallet.Account('d80f115bdbba5ef215707a8d7053c16f4e65588fd50b0f83369ad142b99891b5');
-neb.setRequest(new HttpRequest("http://localhost:8685"))
+
 var ChainID = 100;
-var env = '';
+var env = 'maintest';
 if (env === 'testneb1') {
+  ChainID = 1001;
+  sourceAccount = new Wallet.Account("25a3a441a34658e7a595a0eda222fa43ac51bd223017d17b420674fb6d0a4d52");
+  coinbase = "n1SAeQRVn33bamxN4ehWUT7JGdxipwn8b17";
+  server_address = "35.182.48.19:8684";
 
 } else if (env === "testneb2") {
-    server_address = "34.205.26.12:8684";
-    neb.setRequest(new HttpRequest("http://34.205.26.12:8685"))
-    coinbase = "n1SAeQRVn33bamxN4ehWUT7JGdxipwn8b17";
-    ChainID = 1002;
-    sourceAccount = new Wallet.Account("25a3a441a34658e7a595a0eda222fa43ac51bd223017d17b420674fb6d0a4d52");
+  ChainID = 1002;
+  sourceAccount = new Wallet.Account("25a3a441a34658e7a595a0eda222fa43ac51bd223017d17b420674fb6d0a4d52");
+  coinbase = "n1SAeQRVn33bamxN4ehWUT7JGdxipwn8b17";
+  server_address = "34.205.26.12:8684";
+
+} else if (env === "testneb3") {
+    ChainID = 1003;
+  sourceAccount = new Wallet.Account("25a3a441a34658e7a595a0eda222fa43ac51bd223017d17b420674fb6d0a4d52");
+  coinbase = "n1SAeQRVn33bamxN4ehWUT7JGdxipwn8b17";
+  server_address = "35.177.214.138:8684";
+
+} else if (env === "testneb4") { //super node
+    ChainID = 1004;
+  sourceAccount = new Wallet.Account("c75402f6ffe6edcc2c062134b5932151cb39b6486a7beb984792bb9da3f38b9f");
+  coinbase = "n1EzGmFsVepKduN1U5QFyhLqpzFvM9sRSmG";
+  server_address = "35.154.108.11:8684";
+} else if (env === "testneb4_normalnode"){
+    ChainID = 1004;
+  sourceAccount = new Wallet.Account("c75402f6ffe6edcc2c062134b5932151cb39b6486a7beb984792bb9da3f38b9f");
+  coinbase = "n1EzGmFsVepKduN1U5QFyhLqpzFvM9sRSmG";
+  server_address = "18.197.107.228:8684";
+} else if (env === "local") {
+  ChainID = 100;
+  sourceAccount = new Wallet.Account("d80f115bdbba5ef215707a8d7053c16f4e65588fd50b0f83369ad142b99891b5");
+  coinbase = "n1QZMXSZtW7BUerroSms4axNfyBGyFGkrh5";
+  server_address = "127.0.0.1:8684";
+
+} else if (env === "maintest"){
+    ChainID = 2;
+  sourceAccount = new Wallet.Account("d2319a8a63b1abcb0cc6d4183198e5d7b264d271f97edf0c76cfdb1f2631848c");
+  coinbase = "n1dZZnqKGEkb1LHYsZRei1CH6DunTio1j1q";
+  server_address = "54.149.15.132:8684";
+} else {
+  throw new Error("invalid env (" + env + ").");
 }
+neb.setRequest(new HttpRequest("http://54.149.15.132:8685"));
 
 var api_client;
 var normalOutput;
@@ -152,19 +186,6 @@ function testRpc(testInput, testExpect, done) {
 }
 
 describe('rpc: Call', function () {
-    //unlock the sourceAccount
-    before((done) => {
-        var admin_client = rpc_client.new_client(server_address, 'AdminService');
-        var args = {
-            address: sourceAccount.getAddressString(),
-            passphrase: "passphrase",
-        }
-        admin_client.UnlockAccount(args, (err, resp) => {
-            expect(err).to.be.equal(null);
-            done(err);
-        })
-    });
-
     before('deploy contract', function (done) {
         try {
             neb.api.getAccountState(sourceAccount.getAddressString()).then(function(resp) {
@@ -179,6 +200,7 @@ describe('rpc: Call', function () {
                 nonce = nonce + 1;
                 var tx = new Transaction(ChainID, sourceAccount, sourceAccount, 0, nonce, 1000000, 20000000, contract);
                 tx.signTransaction();
+                console.log(tx.toProtoString());
                 return neb.api.sendRawTransaction(tx.toProtoString());
             }).then(function(resp) {
                 console.log("----step1. deploy contract: " + JSON.stringify(resp));
@@ -229,405 +251,405 @@ describe('rpc: Call', function () {
         });
     });
 
-    // it('normal rpc', function (done) {
-    //     nonce = nonce + 1;
-    //     var contract = {
-    //         "function": "transferSpecialValue",
-    //         "args": "[\"" + toAddress.getAddressString() + "\", \"5000000000000000000\"]"
-    //     };
-    //     var testInput = {
-    //         rpcInput: {
-    //             from: sourceAccount.getAddressString(),
-    //             to: contractAddress,
-    //             value: "0",
-    //             nonce: nonce,
-    //             gas_price: "1000000",
-    //             gas_limit: "200000",
-    //             contract: contract,
-    //         },
-    //         verifyInput: {
-    //             from: sourceAccount.getAddressString(),
-    //             to: contractAddress,
-    //             value: "0",
-    //             nonce: nonce,
-    //             gas_price: "1000000",
-    //             gas_limit: "200000",
-    //             contract: contract,
-    //         },
-    //     }
-    //     var testExpect = {
-    //         exeErr: "",
-    //         resultMsg: "0",
-    //     }
-    //     testRpc(testInput, testExpect, done);
-    // });
+    it('normal rpc', function (done) {
+        nonce = nonce + 1;
+        var contract = {
+            "function": "transferSpecialValue",
+            "args": "[\"" + toAddress.getAddressString() + "\", \"5000000000000000000\"]"
+        };
+        var testInput = {
+            rpcInput: {
+                from: sourceAccount.getAddressString(),
+                to: contractAddress,
+                value: "0",
+                nonce: nonce,
+                gas_price: "1000000",
+                gas_limit: "200000",
+                contract: contract,
+            },
+            verifyInput: {
+                from: sourceAccount.getAddressString(),
+                to: contractAddress,
+                value: "0",
+                nonce: nonce,
+                gas_price: "1000000",
+                gas_limit: "200000",
+                contract: contract,
+            },
+        }
+        var testExpect = {
+            exeErr: "",
+            resultMsg: "0",
+        }
+        testRpc(testInput, testExpect, done);
+    });
     
-    // it('call function returns an error ', function (done) {
-    //     nonce = nonce + 1;
-    //     var contract = {
-    //         "function": "transferSpecialValue",
-    //         "args": "[\"" + toAddress.getAddressString() + "\", \"11000000000000000000\"]"
-    //     };
-    //     var testInput = {
-    //         rpcInput: {
-    //             from: sourceAccount.getAddressString(),
-    //             to: contractAddress,
-    //             value: "0",
-    //             nonce: nonce,
-    //             gas_price: "1000000",
-    //             gas_limit: "200000",
-    //             contract: contract,
-    //         },
-    //         verifyInput: {
-    //             from: sourceAccount.getAddressString(),
-    //             to: contractAddress,
-    //             value: "0",
-    //             nonce: nonce,
-    //             gas_price: "1000000",
-    //             gas_limit: "200000",
-    //             contract: contract,
-    //         },
-    //     }
-    //     var testExpect = {
-    //         exeErr: "Call: Error: transfer failed.",
-    //         resultMsg: "Error: transfer failed.",
-    //     }
-    //     testRpc(testInput, testExpect, done);
-    // });
+    it('call function returns an error ', function (done) {
+        nonce = nonce + 1;
+        var contract = {
+            "function": "transferSpecialValue",
+            "args": "[\"" + toAddress.getAddressString() + "\", \"11000000000000000000\"]"
+        };
+        var testInput = {
+            rpcInput: {
+                from: sourceAccount.getAddressString(),
+                to: contractAddress,
+                value: "0",
+                nonce: nonce,
+                gas_price: "1000000",
+                gas_limit: "200000",
+                contract: contract,
+            },
+            verifyInput: {
+                from: sourceAccount.getAddressString(),
+                to: contractAddress,
+                value: "0",
+                nonce: nonce,
+                gas_price: "1000000",
+                gas_limit: "200000",
+                contract: contract,
+            },
+        }
+        var testExpect = {
+            exeErr: "Call: Error: transfer failed.",
+            resultMsg: "Error: transfer failed.",
+        }
+        testRpc(testInput, testExpect, done);
+    });
 
-    // it('call function success but balanace is not enough ', function (done) {
-    //     nonce = nonce + 1;
-    //     var contract = {
-    //         "function": "transferSpecialValue",
-    //         "args": "[\"" + toAddress.getAddressString() + "\", \"5000000000000000000\"]"
-    //     };
-    //     var testInput = {
-    //         rpcInput: {
-    //             from: Wallet.Account.NewAccount().getAddressString(),
-    //             to: contractAddress,
-    //             value: "0",
-    //             nonce: nonce,
-    //             gas_price: "1000000",
-    //             gas_limit: "200000",
-    //             contract: contract,
-    //         },
-    //         verifyInput: {
-    //             from: sourceAccount.getAddressString(),
-    //             to: contractAddress,
-    //             value: "0",
-    //             nonce: nonce,
-    //             gas_price: "1000000",
-    //             gas_limit: "200000",
-    //             contract: contract,
-    //         },
-    //     }
-    //     var testExpect = {
-    //         exeErr: "insufficient balance",
-    //         resultMsg: "0",
-    //     }
-    //     testRpc(testInput, testExpect, done);
-    // });
+    it('call function success but balanace is not enough ', function (done) {
+        nonce = nonce + 1;
+        var contract = {
+            "function": "transferSpecialValue",
+            "args": "[\"" + toAddress.getAddressString() + "\", \"5000000000000000000\"]"
+        };
+        var testInput = {
+            rpcInput: {
+                from: Wallet.Account.NewAccount().getAddressString(),
+                to: contractAddress,
+                value: "0",
+                nonce: nonce,
+                gas_price: "1000000",
+                gas_limit: "200000",
+                contract: contract,
+            },
+            verifyInput: {
+                from: sourceAccount.getAddressString(),
+                to: contractAddress,
+                value: "0",
+                nonce: nonce,
+                gas_price: "1000000",
+                gas_limit: "200000",
+                contract: contract,
+            },
+        }
+        var testExpect = {
+            exeErr: "insufficient balance",
+            resultMsg: "0",
+        }
+        testRpc(testInput, testExpect, done);
+    });
 
-    // it('value is invalid', function (done) {
-    //     nonce = nonce + 1;
-    //     var contract = {
-    //         "function": "transferSpecialValue",
-    //         "args": "[\"" + toAddress.getAddressString() + "\", \"5000000000000000000\"]"
-    //     };
-    //     var testInput = {
-    //         rpcInput: {
-    //             from: sourceAccount.getAddressString(),
-    //             to: contractAddress,
-    //             value: "0a",
-    //             nonce: 100000000,
-    //             gas_price: "1000000",
-    //             gas_limit: "200000",
-    //             contract: contract,
-    //         },
-    //         verifyInput: {
-    //             from: sourceAccount.getAddressString(),
-    //             to: contractAddress,
-    //             value: "0",
-    //             nonce: nonce,
-    //             gas_price: "1000000",
-    //             gas_limit: "200000",
-    //             contract: contract
-    //         },
-    //     }
+    it('value is invalid', function (done) {
+        nonce = nonce + 1;
+        var contract = {
+            "function": "transferSpecialValue",
+            "args": "[\"" + toAddress.getAddressString() + "\", \"5000000000000000000\"]"
+        };
+        var testInput = {
+            rpcInput: {
+                from: sourceAccount.getAddressString(),
+                to: contractAddress,
+                value: "0a",
+                nonce: 100000000,
+                gas_price: "1000000",
+                gas_limit: "200000",
+                contract: contract,
+            },
+            verifyInput: {
+                from: sourceAccount.getAddressString(),
+                to: contractAddress,
+                value: "0",
+                nonce: nonce,
+                gas_price: "1000000",
+                gas_limit: "200000",
+                contract: contract
+            },
+        }
 
-    //     var testExpect = {
-    //         errMsg: 'invalid value'
-    //     }
+        var testExpect = {
+            errMsg: 'invalid value'
+        }
 
-    //     testRpc(testInput, testExpect, done);
-    // })
+        testRpc(testInput, testExpect, done);
+    })
 
-    // it('value is empty', function (done) {
-    //     nonce = nonce + 1;
-    //     var contract = {
-    //         "function": "transferSpecialValue",
-    //         "args": "[\"" + toAddress.getAddressString() + "\", \"5000000000000000000\"]"
-    //     };
-    //     var testInput = {
-    //         rpcInput: {
-    //             from: sourceAccount.getAddressString(),
-    //             to: contractAddress,
-    //             nonce: 100000000,
-    //             gas_price: "1000000",
-    //             gas_limit: "200000",
-    //             contract: contract,
-    //         },
-    //         verifyInput: {
-    //             from: sourceAccount.getAddressString(),
-    //             to: contractAddress,
-    //             nonce: nonce,
-    //             gas_price: "1000000",
-    //             gas_limit: "200000",
-    //             contract: contract
-    //         },
-    //     }
+    it('value is empty', function (done) {
+        nonce = nonce + 1;
+        var contract = {
+            "function": "transferSpecialValue",
+            "args": "[\"" + toAddress.getAddressString() + "\", \"5000000000000000000\"]"
+        };
+        var testInput = {
+            rpcInput: {
+                from: sourceAccount.getAddressString(),
+                to: contractAddress,
+                nonce: 100000000,
+                gas_price: "1000000",
+                gas_limit: "200000",
+                contract: contract,
+            },
+            verifyInput: {
+                from: sourceAccount.getAddressString(),
+                to: contractAddress,
+                nonce: nonce,
+                gas_price: "1000000",
+                gas_limit: "200000",
+                contract: contract
+            },
+        }
 
-    //     var testExpect = {
-    //         errMsg: 'invalid value'
-    //      }
+        var testExpect = {
+            errMsg: 'invalid value'
+         }
 
-    //     testRpc(testInput, testExpect, done);
-    // })
+        testRpc(testInput, testExpect, done);
+    })
 
-    // it('nonce is large', function (done) {
-    //     nonce = nonce + 1;
-    //     var contract = {
-    //         "function": "transferSpecialValue",
-    //         "args": "[\"" + toAddress.getAddressString() + "\", \"5000000000000000000\"]"
-    //     };
-    //     var testInput = {
-    //         rpcInput: {
-    //             from: sourceAccount.getAddressString(),
-    //             to: contractAddress,
-    //             value: "0",
-    //             nonce: 100000000,
-    //             gas_price: "1000000",
-    //             gas_limit: "200000",
-    //             contract: contract,
-    //         },
-    //         verifyInput: {
-    //             from: sourceAccount.getAddressString(),
-    //             to: contractAddress,
-    //             value: "0",
-    //             nonce: nonce,
-    //             gas_price: "1000000",
-    //             gas_limit: "200000",
-    //             contract: contract
-    //         },
-    //     }
-    //     var testExpect = {
-    //         exeErr: "",
-    //         resultMsg: "0"
-    //     };
-    //     testRpc(testInput, testExpect, done);
-    // });
+    it('nonce is large', function (done) {
+        nonce = nonce + 1;
+        var contract = {
+            "function": "transferSpecialValue",
+            "args": "[\"" + toAddress.getAddressString() + "\", \"5000000000000000000\"]"
+        };
+        var testInput = {
+            rpcInput: {
+                from: sourceAccount.getAddressString(),
+                to: contractAddress,
+                value: "0",
+                nonce: 100000000,
+                gas_price: "1000000",
+                gas_limit: "200000",
+                contract: contract,
+            },
+            verifyInput: {
+                from: sourceAccount.getAddressString(),
+                to: contractAddress,
+                value: "0",
+                nonce: nonce,
+                gas_price: "1000000",
+                gas_limit: "200000",
+                contract: contract
+            },
+        }
+        var testExpect = {
+            exeErr: "",
+            resultMsg: "0"
+        };
+        testRpc(testInput, testExpect, done);
+    });
 
-    // it('nonce is empty', function (done) {
-    //     nonce = nonce + 1;
-    //     var contract = {
-    //         "function": "transferSpecialValue",
-    //         "args": "[\"" + toAddress.getAddressString() + "\", \"5000000000000000000\"]"
-    //     };
-    //     var testInput = {
-    //         rpcInput: {
-    //             from: sourceAccount.getAddressString(),
-    //             to: contractAddress,
-    //             value: "0",
-    //             gas_price: "1000000",
-    //             gas_limit: "200000",
-    //             contract: contract,
-    //         },
-    //         verifyInput: {
-    //             from: sourceAccount.getAddressString(),
-    //             to: contractAddress,
-    //             value: "0",
-    //             nonce: nonce,
-    //             gas_price: "1000000",
-    //             gas_limit: "200000",
-    //             contract: contract
-    //         },
-    //     }
-    //     var testExpect = {
-    //         exeErr: "",
-    //         resultMsg: "0"
-    //     };
-    //     testRpc(testInput, testExpect, done);
-    // })
+    it('nonce is empty', function (done) {
+        nonce = nonce + 1;
+        var contract = {
+            "function": "transferSpecialValue",
+            "args": "[\"" + toAddress.getAddressString() + "\", \"5000000000000000000\"]"
+        };
+        var testInput = {
+            rpcInput: {
+                from: sourceAccount.getAddressString(),
+                to: contractAddress,
+                value: "0",
+                gas_price: "1000000",
+                gas_limit: "200000",
+                contract: contract,
+            },
+            verifyInput: {
+                from: sourceAccount.getAddressString(),
+                to: contractAddress,
+                value: "0",
+                nonce: nonce,
+                gas_price: "1000000",
+                gas_limit: "200000",
+                contract: contract
+            },
+        }
+        var testExpect = {
+            exeErr: "",
+            resultMsg: "0"
+        };
+        testRpc(testInput, testExpect, done);
+    })
 
-    // it('nonce is small', function (done) {
-    //     nonce = nonce + 1;
-    //     var contract = {
-    //         "function": "transferSpecialValue",
-    //         "args": "[\"" + toAddress.getAddressString() + "\", \"5000000000000000000\"]"
-    //     };
-    //     var testInput = {
-    //         rpcInput: {
-    //             from: sourceAccount.getAddressString(),
-    //             to: contractAddress,
-    //             value: "0",
-    //             nonce: 1,
-    //             gas_price: "1000000",
-    //             gas_limit: "200000",
-    //             contract: contract,
-    //         },
-    //         verifyInput: {
-    //             from: sourceAccount.getAddressString(),
-    //             to: contractAddress,
-    //             value: "0",
-    //             nonce: nonce,
-    //             gas_price: "1000000",
-    //             gas_limit: "200000",
-    //             contract: contract
-    //         },
-    //     }
-    //     var testExpect = {
-    //         exeErr: "",
-    //         resultMsg: "0"
-    //     };
-    //     testRpc(testInput, testExpect, done);
-    // });
+    it('nonce is small', function (done) {
+        nonce = nonce + 1;
+        var contract = {
+            "function": "transferSpecialValue",
+            "args": "[\"" + toAddress.getAddressString() + "\", \"5000000000000000000\"]"
+        };
+        var testInput = {
+            rpcInput: {
+                from: sourceAccount.getAddressString(),
+                to: contractAddress,
+                value: "0",
+                nonce: 1,
+                gas_price: "1000000",
+                gas_limit: "200000",
+                contract: contract,
+            },
+            verifyInput: {
+                from: sourceAccount.getAddressString(),
+                to: contractAddress,
+                value: "0",
+                nonce: nonce,
+                gas_price: "1000000",
+                gas_limit: "200000",
+                contract: contract
+            },
+        }
+        var testExpect = {
+            exeErr: "",
+            resultMsg: "0"
+        };
+        testRpc(testInput, testExpect, done);
+    });
 
-    // it('gasPrice is negative', function (done) {
-    //     nonce = nonce + 1;
-    //     var contract = {
-    //         "function": "transferSpecialValue",
-    //         "args": "[\"" + toAddress.getAddressString() + "\", \"5000000000000000000\"]"
-    //     };
-    //     var testInput = {
-    //         rpcInput: {
-    //             from: sourceAccount.getAddressString(),
-    //             to: contractAddress,
-    //             value: "0",
-    //             nonce: nonce,
-    //             gas_price: "-1",
-    //             gas_limit: "200000",
-    //             contract: contract,
-    //         },
-    //         verifyInput: {
-    //             from: sourceAccount.getAddressString(),
-    //             to: contractAddress,
-    //             value: "0",
-    //             nonce: nonce,
-    //             gas_price: "1000000",
-    //             gas_limit: "200000",
-    //             contract: contract
-    //         },
-    //     }
+    it('gasPrice is negative', function (done) {
+        nonce = nonce + 1;
+        var contract = {
+            "function": "transferSpecialValue",
+            "args": "[\"" + toAddress.getAddressString() + "\", \"5000000000000000000\"]"
+        };
+        var testInput = {
+            rpcInput: {
+                from: sourceAccount.getAddressString(),
+                to: contractAddress,
+                value: "0",
+                nonce: nonce,
+                gas_price: "-1",
+                gas_limit: "200000",
+                contract: contract,
+            },
+            verifyInput: {
+                from: sourceAccount.getAddressString(),
+                to: contractAddress,
+                value: "0",
+                nonce: nonce,
+                gas_price: "1000000",
+                gas_limit: "200000",
+                contract: contract
+            },
+        }
 
-    //     var testExpect = {
-    //         errMsg: 'invalid gasPrice'
-    //     }
+        var testExpect = {
+            errMsg: 'invalid gasPrice'
+        }
 
-    //     testRpc(testInput, testExpect, done);
-    // });
+        testRpc(testInput, testExpect, done);
+    });
 
-    // it('gas_price is less than gasPrince of tx pool', function (done) {
-    //     nonce = nonce + 1;
-    //     var contract = {
-    //         "function": "transferSpecialValue",
-    //         "args": "[\"" + toAddress.getAddressString() + "\", \"5000000000000000000\"]"
-    //     };
-    //     var testInput = {
-    //         rpcInput: {
-    //             from: sourceAccount.getAddressString(),
-    //             to: contractAddress,
-    //             value: "0",
-    //             nonce: 1,
-    //             gas_price: "100",
-    //             gas_limit: "200000",
-    //             contract: contract,
-    //         },
-    //         verifyInput: {
-    //             from: sourceAccount.getAddressString(),
-    //             to: contractAddress,
-    //             value: "0",
-    //             nonce: nonce,
-    //             gas_price: "1000000",
-    //             gas_limit: "200000",
-    //             contract: contract
-    //         },
-    //     }
-    //     var testExpect = {
-    //         exeErr: "",
-    //         resultMsg: "0"
-    //     };
-    //     testRpc(testInput, testExpect, done);
-    // });
+    it('gas_price is less than gasPrince of tx pool', function (done) {
+        nonce = nonce + 1;
+        var contract = {
+            "function": "transferSpecialValue",
+            "args": "[\"" + toAddress.getAddressString() + "\", \"5000000000000000000\"]"
+        };
+        var testInput = {
+            rpcInput: {
+                from: sourceAccount.getAddressString(),
+                to: contractAddress,
+                value: "0",
+                nonce: 1,
+                gas_price: "100",
+                gas_limit: "200000",
+                contract: contract,
+            },
+            verifyInput: {
+                from: sourceAccount.getAddressString(),
+                to: contractAddress,
+                value: "0",
+                nonce: nonce,
+                gas_price: "1000000",
+                gas_limit: "200000",
+                contract: contract
+            },
+        }
+        var testExpect = {
+            exeErr: "",
+            resultMsg: "0"
+        };
+        testRpc(testInput, testExpect, done);
+    });
 
-    // it('gasLimit is neg', function (done) {
-    //     nonce = nonce + 1;
-    //     var contract = {
-    //         "function": "transferSpecialValue",
-    //         "args": "[\"" + toAddress.getAddressString() + "\", \"5000000000000000000\"]"
-    //     };
-    //     var testInput = {
-    //         rpcInput: {
-    //             from: sourceAccount.getAddressString(),
-    //             to: contractAddress,
-    //             value: "0",
-    //             nonce: 1,
-    //             gas_price: "1000000",
-    //             gas_limit: "-1",
-    //             contract: contract,
-    //         },
-    //         verifyInput: {
-    //             from: sourceAccount.getAddressString(),
-    //             to: contractAddress,
-    //             value: "0",
-    //             nonce: nonce,
-    //             gas_price: "1000000",
-    //             gas_limit: "200000",
-    //             contract: contract
-    //         },
-    //     }
+    it('gasLimit is neg', function (done) {
+        nonce = nonce + 1;
+        var contract = {
+            "function": "transferSpecialValue",
+            "args": "[\"" + toAddress.getAddressString() + "\", \"5000000000000000000\"]"
+        };
+        var testInput = {
+            rpcInput: {
+                from: sourceAccount.getAddressString(),
+                to: contractAddress,
+                value: "0",
+                nonce: 1,
+                gas_price: "1000000",
+                gas_limit: "-1",
+                contract: contract,
+            },
+            verifyInput: {
+                from: sourceAccount.getAddressString(),
+                to: contractAddress,
+                value: "0",
+                nonce: nonce,
+                gas_price: "1000000",
+                gas_limit: "200000",
+                contract: contract
+            },
+        }
 
-    //     var testExpect = {
-    //         errMsg: 'invalid gasLimit'
-    //     }
+        var testExpect = {
+            errMsg: 'invalid gasLimit'
+        }
 
-    //     testRpc(testInput, testExpect, done);
-    // });
+        testRpc(testInput, testExpect, done);
+    });
 
-    // it('gasLimit is sufficient', function (done) {
-    //     nonce = nonce + 1;
-    //     var erc20 = FS.readFileSync("./nf/nvm/test/ERC20.js", "utf-8");
-    //     var contract = {
-    //         "function": "transferSpecialValue",
-    //         "args": "[\"" + toAddress.getAddressString() + "\", \"5000000000000000000\"]"
-    //     };
-    //     var testInput = {
-    //         rpcInput: {
-    //             from: sourceAccount.getAddressString(),
-    //             to: contractAddress,
-    //             value: "0",
-    //             nonce: nonce,
-    //             gas_price: "1000000",
-    //             gas_limit: "2000",
-    //             contract: contract,
-    //         },
-    //         verifyInput: {
-    //             from: sourceAccount.getAddressString(),
-    //             to: contractAddress,
-    //             value: "0",
-    //             nonce: nonce,
-    //             gas_price: "1000000",
-    //             gas_limit: "200000",
-    //             contract: contract
-    //         },
-    //     }
+    it('gasLimit is sufficient', function (done) {
+        nonce = nonce + 1;
+        var erc20 = FS.readFileSync("./nf/nvm/test/ERC20.js", "utf-8");
+        var contract = {
+            "function": "transferSpecialValue",
+            "args": "[\"" + toAddress.getAddressString() + "\", \"5000000000000000000\"]"
+        };
+        var testInput = {
+            rpcInput: {
+                from: sourceAccount.getAddressString(),
+                to: contractAddress,
+                value: "0",
+                nonce: nonce,
+                gas_price: "1000000",
+                gas_limit: "2000",
+                contract: contract,
+            },
+            verifyInput: {
+                from: sourceAccount.getAddressString(),
+                to: contractAddress,
+                value: "0",
+                nonce: nonce,
+                gas_price: "1000000",
+                gas_limit: "200000",
+                contract: contract
+            },
+        }
 
-    //     var testExpect = {
-    //         exeErr: '',
-    //         resultMsg: '0'
-    //     }
+        var testExpect = {
+            exeErr: '',
+            resultMsg: '0'
+        }
 
-    //     testRpc(testInput, testExpect, done);
-    // });
+        testRpc(testInput, testExpect, done);
+    });
 
 
     it('arges is less than that required', function (done) {
