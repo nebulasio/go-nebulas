@@ -234,7 +234,7 @@ StandardToken.prototype = {
             Status: null,
             Transfer: {
                 from: from,
-                to: 123,
+                to: to,
                 value: value
             }
         });
