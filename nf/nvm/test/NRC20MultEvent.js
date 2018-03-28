@@ -144,7 +144,7 @@ StandardToken.prototype = {
                 value: value
             }
         });
-      Event.Trigger(this.name(), {
+        Event.Trigger(this.name(), {
             Status: true,
             Transfer: {
                 from: from,
@@ -175,7 +175,44 @@ StandardToken.prototype = {
             }
         });
     },
+    //test c catch err
     transferforMultEventStatus: function (to, value) {
+        value = new BigNumber(value);
+
+        var from = Blockchain.transaction.from;
+        var balance = this.balances.get(from) || new BigNumber(0);
+
+        if (balance.lt(value)) {
+            throw new Error("transfer failed.");
+        }
+
+        this.balances.set(from, balance);
+        var toBalance = this.balances.get(to) || new BigNumber(0);
+        this.balances.set(to, toBalance);
+        
+        Event.Trigger(this.name(), {
+            Status: status,
+            Transfer: {
+                from: from,
+                to: to,
+                value: value
+            }
+        });
+        Event.Trigger(this.name(), {
+            Status: true,
+            Transfer: status,
+        });
+        Event.Trigger(this.name(), {
+            Status: "123",
+            Transfer: {
+                from: from,
+                to: to,
+                value: value
+            }
+        });
+    },
+
+    transferforMultEventTransfer: function (to, value) {
         value = new BigNumber(value);
 
         var from = Blockchain.transaction.from;
@@ -188,20 +225,13 @@ StandardToken.prototype = {
         this.balances.set(from, balance.sub(value));
         var toBalance = this.balances.get(to) || new BigNumber(0);
         this.balances.set(to, toBalance.add(value));
-        
-        Event.Trigger(this.name(), {
-            Status: status,
-            Transfer: {
-                from: from,
-                to: to,
-                value: value
-            }
-        });
-    },
 
-    transferforMultEventTransfer: function (status, from, to, value) {
         Event.Trigger(this.name(), {
             Status: true,
+        });
+
+        Event.Trigger(this.name(), {
+            Status: null,
             Transfer: {
                 from: from,
                 to: 123,

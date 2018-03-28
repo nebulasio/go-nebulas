@@ -245,7 +245,7 @@ function testTransferByAsync(testInput, testExpect, done) {
         getFromBalance: function(callback) {
             var RR = balanceOfNRC20(from.getAddressString());
             RR.then(function(resp) {
-                var fromBalance = JSON.parse(resp.result);
+                fromBalance = JSON.parse(resp.result);
                 console.log("from balance:", fromBalance);
                 callback(null, fromBalance);
             }).catch(function(err){
@@ -256,7 +256,7 @@ function testTransferByAsync(testInput, testExpect, done) {
         getToBalance: function(callback) {
             var RR = balanceOfNRC20(to.getAddressString());
             RR.then(function(resp) {
-                var toBalance = JSON.parse(resp.result);
+                toBalance = JSON.parse(resp.result);
                 console.log("to balance:", toBalance);
                 callback(null, toBalance);
             }).catch(function(err){
@@ -305,9 +305,13 @@ function testTransferByAsync(testInput, testExpect, done) {
         }],
         checkContract: ['executeContract', function(callback, newtx){
             checkTransaction(newtx.executeContract.txhash, function(resp) {
+                console.log("checkTransaction:", resp);
                 if (resp.status == 0) {
-                    callback("checkTransaction execut contract failed!", null);
+                    //callback("checkTransaction execut contract failed!", null);
+                    callback(null, resp);
                 } else {
+                    
+                    expect(resp).to.be.have.property('status').equal(testExpect.status);
                     callback(null, resp);
                 }
             });
@@ -315,9 +319,16 @@ function testTransferByAsync(testInput, testExpect, done) {
         getAfterFromBalance: ['checkContract', function(callback, receipt){
             var RR = balanceOfNRC20(from.getAddressString());
             RR.then(function(resp) {
-                var fromBalance = JSON.parse(resp.result);
-                console.log("after from balance:", fromBalance);
-                callback(null, fromBalance);
+                var balance = JSON.parse(resp.result);
+                console.log("after from balance:", balance);
+                if (testExpect.status === 1) {
+                    var balanceNumber = new BigNumber(fromBalance).sub(testInput.transferValue);
+                    expect(balanceNumber.toString(10)).to.equal(balance);
+                } else {
+                    expect(balance).to.equal(fromBalance);
+                }
+
+                callback(null, balance);
             }).catch(function(err){
                 console.log("after getFromBalance err:", err);
                 callback(err, null);
@@ -326,9 +337,15 @@ function testTransferByAsync(testInput, testExpect, done) {
         getAfterToBalance: ['checkContract', function(callback, receipt){
             var RR = balanceOfNRC20(to.getAddressString());
             RR.then(function(resp) {
-                var toBalance = JSON.parse(resp.result);
-                console.log("after to balance:", toBalance);
-                callback(null, toBalance);
+                var balance = JSON.parse(resp.result);
+                console.log("after to balance:", balance);
+                if (testExpect.status === 1) {
+                    var balanceNumber = new BigNumber(toBalance).plus(testInput.transferValue);
+                    expect(balanceNumber.toString(10)).to.equal(balance);
+                } else {
+                    expect(toBalance).to.equal(balance);
+                }
+                callback(null, balance);
             }).catch(function(err){
                 console.log("after getToBalance err:", err);
                 callback(err, null);
@@ -374,14 +391,6 @@ function balanceOfNRC20(address) {
     };
     return neb.api.call(address, contractAddr, "0", 1, "1000000", "200000", contract)
 }
-function balanceOfNRC20(address, cb) {
-    var contract = {
-        "function": "balanceOf",
-        "args": "[\"" + address + "\"]"
-    };
-    console.log("begin balanceOfNRC20X");
-    return neb.api.call(address, contractAddr, "0", 1, "1000000", "200000", contract, cb)
-}
 
 function allowanceOfNRC20(owner, spender) {
     var contract = {
@@ -413,6 +422,20 @@ testCase = {
     },
     "testExpect": {
         status: 0
+    }
+};
+testCases.push(testCase);
+
+testCase = {
+    "name": "3. transfer mult event args has err",
+    "testInput": {
+        isTransfer: true,
+        transferValue: "1",
+        function: "transferforMultEventTransfer",
+        args: ""
+    },
+    "testExpect": {
+        status: 1
     }
 };
 testCases.push(testCase);
