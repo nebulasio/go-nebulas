@@ -327,7 +327,7 @@ function testTransferByAsync(testInput, testExpect, done) {
                 } else {
                     expect(balance).to.equal(fromBalance);
                 }
-
+                fromBalance = balance;
                 callback(null, balance);
             }).catch(function(err){
                 console.log("after getFromBalance err:", err);
@@ -345,6 +345,7 @@ function testTransferByAsync(testInput, testExpect, done) {
                 } else {
                     expect(toBalance).to.equal(balance);
                 }
+                toBalance = balance;
                 callback(null, balance);
             }).catch(function(err){
                 console.log("after getToBalance err:", err);
@@ -354,14 +355,39 @@ function testTransferByAsync(testInput, testExpect, done) {
         getEventsByHash: ['checkContract', function(callback, receipt){
             var RR = neb.api.getEventsByHash(receipt.checkContract.hash);
             RR.then(function(events) {
+                //console.log("events:", events);
                 for (var i = 0; i < events.events.length; i++) {
                     var event = events.events[i];
                     console.log("tx event:", event);
                     if (event.topic == "chain.transactionResult") {
                         var result = JSON.parse(event.data);
                         expect(result.status).to.equal(testExpect.status);
+                    } else {
+                        var data = JSON.parse(event.data);
+                        if (testExpect.events[i] == null) {
+                            expect(typeof(data.Transfer)).equal('undefined');
+                            continue;
+                        }
+                        //check event value
+                        if (testExpect.events[i].from) {
+                            expect(data.Transfer.from).to.equal(from.getAddressString());
+                        } else {
+                            expect(typeof(data.Transfer.from)).equal('undefined');
+                        }
+                        if (testExpect.events[i].to) {
+                            expect(data.Transfer.to).to.equal(to.getAddressString());
+                        } else {
+                            expect(typeof(data.Transfer.to)).equal('undefined');
+                        }
+                        if (testExpect.events[i].value) {
+                            expect(data.Transfer.value).to.equal(testInput.transferValue);
+                        } else {
+                            expect(typeof(data.Transfer.value)).equal('undefined');
+                        }
                     }
+                    
                 }
+                expect(events.events.length).to.equal(testExpect.events.length + 1);
                 callback(null, events);
             }).catch(function(err) {
                 console.log("getEventsByHash err");
@@ -399,6 +425,11 @@ function allowanceOfNRC20(owner, spender) {
     };
     return neb.api.call(owner, contractAddr, "0", 1, "1000000", "2000000", contract)
 }
+var EventExpect = function(from, to, value) {
+    this.from = from;
+    this.to = to;
+    this.value = value;
+};
 
 var testCase = {
     "name": "1. transfer mult event",
@@ -409,10 +440,13 @@ var testCase = {
         args: ""
     },
     "testExpect": {
-        status: 1
+        status: 1,
+        events: [new EventExpect(1, 1, 1), new EventExpect(1,0,1), new EventExpect(0, 1, 1), new EventExpect(0, 0, 1),],
     }
 };
+    
 testCases.push(testCase);
+
 testCase = {
     "name": "2. transfer mult event Status is err",
     "testInput": {
@@ -421,7 +455,8 @@ testCase = {
         args: ""
     },
     "testExpect": {
-        status: 0
+        status: 0,
+        events: []
     }
 };
 testCases.push(testCase);
@@ -435,7 +470,8 @@ testCase = {
         args: ""
     },
     "testExpect": {
-        status: 1
+        status: 1,
+        events: [null, new EventExpect(1,1,1),],
     }
 };
 testCases.push(testCase);
