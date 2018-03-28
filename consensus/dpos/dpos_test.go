@@ -350,7 +350,7 @@ func TestForkChoice(t *testing.T) {
 	addr3 := GetUnlockAddress(t, am, "n1WwqBXVMuYC3mFCEEuFFtAXad6yxqj4as4")
 	block111, err := neb.chain.NewBlock(addr3)
 	assert.Nil(t, err)
-	consensusState, err = neb.chain.TailBlock().WorldState().NextConsensusState(BlockIntervalInMs / SecondInMs)
+	consensusState, err = neb.chain.TailBlock().WorldState().NextConsensusState(BlockIntervalInMs * 2 / SecondInMs)
 	assert.Nil(t, err)
 	block111.WorldState().SetConsensusState(consensusState)
 	block111.SetTimestamp(BlockIntervalInMs * 4 / SecondInMs)

@@ -52,8 +52,8 @@ var (
 
 	// BlockReward given to coinbase
 	// rule: 3% per year, 3,000,000. 1 block per 15 seconds
-	// value: 10^8 * 3% / (365*24*3600/15) * 10^18 ≈ 48 * 3% * 10*18 = 1.44 * 10^18
-	BlockReward, _ = util.NewUint128FromString("1440000000000000000")
+	// value: 10^8 * 3% / (365*24*3600/15) * 10^18 ≈ 1.42694 * 10^18
+	BlockReward, _ = util.NewUint128FromString("1426940000000000000")
 )
 
 // BlockHeader of a block
