@@ -44,7 +44,7 @@ var (
 	RouteTableSyncLoopInterval     = 30 * time.Second
 	RouteTableSaveToDiskInterval   = 3 * 60 * time.Second
 	RouteTableCacheFileName        = "routetable.cache"
-	RouteTableInternalNodeFileName = "internal_list.txt"
+	RouteTableInternalNodeFileName = "conf/internal_list.txt"
 
 	MaxPeersCountForSyncResp = 32
 )
