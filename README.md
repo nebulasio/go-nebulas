@@ -42,19 +42,40 @@ New users may want to checkout and use the stable _master_ release.
 git checkout master
 ```
 
-2. Install dependencies packages.
+2. Install rocksdb dependencies.
+
+* **OS X**:
+    * Install latest C++ compiler that supports C++ 11:
+        * Update XCode:  run `xcode-select --install` (or install it from XCode App's settting).
+        * Install via [homebrew](http://brew.sh/).
+            * If you're first time developer in MacOS, you still need to run: `xcode-select --install` in your command line.
+            * run `brew tap homebrew/versions; brew install gcc48 --use-llvm` to install gcc 4.8 (or higher).
+    * run `brew install rocksdb`
+
+* **Linux - Ubuntu**
+    * Upgrade your gcc to version at least 4.8 to get C++11 support.
+    * Install gflags. First, try: `sudo apt-get install libgflags-dev`
+      If this doesn't work and you're using Ubuntu, here's a nice tutorial:
+      (http://askubuntu.com/questions/312173/installing-gflags-12-04)
+    * Install snappy. This is usually as easy as:
+      `sudo apt-get install libsnappy-dev`.
+    * Install zlib. Try: `sudo apt-get install zlib1g-dev`.
+    * Install bzip2: `sudo apt-get install libbz2-dev`.
+    * Install lz4: `sudo apt-get install liblz4-dev`.
+    * Install zstandard: `sudo apt-get install libzstd-dev`.
+3. Install dependencies packages.
 
 ```bash
 make dep
 ```
 
-3. Install dependent v8 libraries.
+4. Install dependent v8 libraries.
 
 ```bash
 make deploy-v8
 ```
 
-4. Build the neb binary.
+5. Build the neb binary.
 
 ```bash
 make build
@@ -126,7 +147,6 @@ Neb uses [Protocol Buffer](https://github.com/google/protobuf) to load configura
 network {
   listen: ["0.0.0.0:8680"]
   private_key: "conf/network/ed25519key"
-  network_id: 1
 }
 
 chain {
