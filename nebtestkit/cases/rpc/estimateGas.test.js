@@ -19,7 +19,7 @@ var coinbase = "n1QZMXSZtW7BUerroSms4axNfyBGyFGkrh5";
 var sourceAccount = new Wallet.Account('d80f115bdbba5ef215707a8d7053c16f4e65588fd50b0f83369ad142b99891b5');
 neb.setRequest(new HttpRequest("http://localhost:8685"))
 var chain_id = 100;
-var env = 'maintest';
+var env = 'local';
 chain_id = 1002;
 if (env === 'testneb1') {
     chain_id = 1001;
@@ -63,7 +63,7 @@ if (env === 'testneb1') {
   } else {
     throw new Error("invalid env (" + env + ").");
 }
-neb.setRequest(new HttpRequest("http://54.149.15.132:8685"));
+neb.setRequest(new HttpRequest("http://127.0.0.1:8685"));
 
 var api_client;
 var normalOutput;
@@ -119,39 +119,42 @@ function verify(gas, testInput, done) {
             return;
         }
         var admin_client = rpc_client.new_client(server_address, 'AdminService');
-        var tx = new Transaction(chain_id, sourceAccount, sourceAccount,testInput.value, testInput.nonce,
-            testInput.gas_limit, testInput.gas_price, testInput.contract);
+        var tx = new Transaction(chain_id, sourceAccount, sourceAccount.getAddressString(),testInput.value, testInput.nonce,
+            testInput.gas_price, testInput.gas_limit, testInput.contract);
             tx.signTransaction();
-        neb.api.sendRawTransaction(tx.toProtoString()).then(function (err, resp) {
-            expect(err).to.be.equal(null);
-            checkTransaction(resp.txhash, function (receipt) {
-                try {
-                    expect(receipt.status).not.to.be.a('undefined');
-                } catch (err) {
+        // console.log(tx.toString());
+        return neb.api.sendRawTransaction(tx.toProtoString());   
+    }).then(function (resp) {
+        console.log(resp);
+        checkTransaction(resp.txhash, function (receipt) {
+            try {
+                console.log(receipt);
+                expect(receipt.status).not.to.be.a('undefined');
+            } catch (err) {
+                done(err);
+                return;
+            }
+            try {
+                neb.api.getAccountState(sourceAccount.getAddressString()).then(function (state) {
+                    balanceAfterTx = new BigNumber(state.balance);
+                    var gasConsumed = balanceBeforeTx.sub(balanceAfterTx).div(new BigNumber(testInput.gas_price));
+                    expect((new BigNumber(gas)).toString()).to.be.equal(gasConsumed.toString());
+                    done();
+                }).catch(function (err) {
+                    console.log(err);
+                    console.log("silent_debugggggg");
                     done(err);
                     return;
-                }
-                try {
-                    neb.api.getAccountState(sourceAccount.getAddressString()).then(function (state) {
-                        balanceAfterTx = new BigNumber(state.balance);
-                        var gasConsumed = balanceBeforeTx.sub(balanceAfterTx).div(new BigNumber(testInput.verifyInput.gas_price));
-                        expect((new BigNumber(gas)).toString()).to.be.equal(gasConsumed.toString());
-                    }).catch(function (err) {
-                        done(err);
-                        return;
-                    });
-                    done()
-                } catch (err) {
-                    done(err);
-                    return;
-                }
-            });
-        }).catch(function(err) {
-            done(err);
-            return;
+                });
+            } catch (err) {
+                done(err.error);
+                return;
+            }
         });
     }).catch(function (err) {
-        done(err);
+        console.log("silent_debug");
+        console.log(err);
+        done(err.error);
         return;
     });
 
@@ -165,6 +168,7 @@ function testRpc(testInput, testExpect, done) {
             try {
                 expect(testExpect.errMsg).to.be.equal(err.details);
             } catch (err) {
+
                 done(err);
                 return;
             }
@@ -180,7 +184,7 @@ function testRpc(testInput, testExpect, done) {
             }
             var gas = parseInt(response.gas);
             console.log(gas, "to verify");
-            verify(gas, testInput, done);
+            verify(gas, testInput.verifyInput, done);
         }
     });
 
@@ -206,6 +210,7 @@ describe('rpc: estimateGas', function () {
             try{
                 expect(err).to.be.equal(null);
                 nonce = parseInt(resp.nonce);
+                console.log("nonce is: ", nonce);
                 done(err);
             } catch(err) {
                 done(err);
@@ -221,7 +226,14 @@ describe('rpc: estimateGas', function () {
             "source": erc20,
             "source_type": "js",
             "args": '["NebulasToken", "NAS", 1000000000]'
-        }
+        };
+
+        var contractVerify = {
+            "source": erc20,
+            "sourceType": "js",
+            "args": '["NebulasToken", "NAS", 1000000000]'
+        };
+
         var testInput = {
             rpcInput: {
                 from: sourceAccount.getAddressString(),
@@ -229,7 +241,7 @@ describe('rpc: estimateGas', function () {
                 value: "0",
                 nonce: nonce,
                 gas_price: "1000000",
-                gas_limit: "200000",
+                gas_limit: "2000000",
                 contract: contract,
             },
             verifyInput: {
@@ -238,8 +250,8 @@ describe('rpc: estimateGas', function () {
                 value: "0",
                 nonce: nonce,
                 gas_price: "1000000",
-                gas_limit: "200000",
-                contract: contract,
+                gas_limit: "2000000",
+                contract: contractVerify,
             },
         }
         var testExpect = {
@@ -256,6 +268,12 @@ describe('rpc: estimateGas', function () {
             "source_type": "js",
             "args": '["NebulasToken", "NAS", 1000000000]'
         }
+
+        var contractVerify = {
+            "source": erc20,
+            "sourceType": "js",
+            "args": '["NebulasToken", "NAS", 1000000000]'
+        };
         var testInput = {
             rpcInput: {
                 from: sourceAccount.getAddressString(),
@@ -273,7 +291,7 @@ describe('rpc: estimateGas', function () {
                 nonce: nonce,
                 gas_price: "1000000",
                 gas_limit: "200000",
-                contract: contract
+                contract: contractVerify,
             },
         }
 
@@ -287,11 +305,17 @@ describe('rpc: estimateGas', function () {
     it('value is empty', function (done) {
         nonce = nonce + 1;
         var erc20 = FS.readFileSync("./nf/nvm/test/ERC20.js", "utf-8");
+
         var contract = {
             "source": erc20,
             "source_type": "js",
+            "args": '["NebulasToken", "NAS", 1000000000]',
+        };
+        var contractVerify = {
+            "source": erc20,
+            "sourceType": "js",
             "args": '["NebulasToken", "NAS", 1000000000]'
-        }
+        };
         var testInput = {
             rpcInput: {
                 from: sourceAccount.getAddressString(),
@@ -307,16 +331,15 @@ describe('rpc: estimateGas', function () {
                 nonce: nonce,
                 gas_price: "1000000",
                 gas_limit: "200000",
-                contract: contract
+                contract: contractVerify,
             },
         }
 
         var testExpect = {
             errMsg: 'invalid value'
          }
-
         testRpc(testInput, testExpect, done);
-    })
+    });
 
     it('nonce is large', function (done) {
         nonce = nonce + 1;
@@ -326,6 +349,11 @@ describe('rpc: estimateGas', function () {
             "source_type": "js",
             "args": '["NebulasToken", "NAS", 1000000000]'
         }
+        var contractVerify = {
+            "source": erc20,
+            "sourceType": "js",
+            "args": '["NebulasToken", "NAS", 1000000000]'
+        };
         var testInput = {
             rpcInput: {
                 from: sourceAccount.getAddressString(),
@@ -343,7 +371,7 @@ describe('rpc: estimateGas', function () {
                 nonce: nonce,
                 gas_price: "1000000",
                 gas_limit: "200000",
-                contract: contract
+                contract: contractVerify,
             },
         }
         var testExpect = {
@@ -359,7 +387,12 @@ describe('rpc: estimateGas', function () {
             "source": erc20,
             "source_type": "js",
             "args": '["NebulasToken", "NAS", 1000000000]'
-        }
+        };
+        var contractVerify = {
+            "source": erc20,
+            "sourceType": "js",
+            "args": '["NebulasToken", "NAS", 1000000000]'
+        };
         var testInput = {
             rpcInput: {
                 from: sourceAccount.getAddressString(),
@@ -376,7 +409,7 @@ describe('rpc: estimateGas', function () {
                 nonce: nonce,
                 gas_price: "1000000",
                 gas_limit: "200000",
-                contract: contract
+                contract: contractVerify,
             },
         }
         var testExpect = {
@@ -393,6 +426,11 @@ describe('rpc: estimateGas', function () {
             "source_type": "js",
             "args": '["NebulasToken", "NAS", 1000000000]'
         }
+        var contractVerify = {
+            "source": erc20,
+            "sourceType": "js",
+            "args": '["NebulasToken", "NAS", 1000000000]'
+        };
         var testInput = {
             rpcInput: {
                 from: sourceAccount.getAddressString(),
@@ -410,7 +448,7 @@ describe('rpc: estimateGas', function () {
                 nonce: nonce,
                 gas_price: "1000000",
                 gas_limit: "200000",
-                contract: contract
+                contract: contractVerify,
             },
         }
         var testExpect = {
@@ -426,7 +464,12 @@ describe('rpc: estimateGas', function () {
             "source": erc20,
             "source_type": "js",
             "args": '["NebulasToken", "NAS", 1000000000]'
-        }
+        };
+        var contractVerify = {
+            "source": erc20,
+            "sourceType": "js",
+            "args": '["NebulasToken", "NAS", 1000000000]'
+        };
         var testInput = {
             rpcInput: {
                 from: sourceAccount.getAddressString(),
@@ -444,7 +487,7 @@ describe('rpc: estimateGas', function () {
                 nonce: nonce,
                 gas_price: "1000000",
                 gas_limit: "200000",
-                contract: contract
+                contract: contractVerify,
             },
         }
 
@@ -462,7 +505,12 @@ describe('rpc: estimateGas', function () {
             "source": erc20,
             "source_type": "js",
             "args": '["NebulasToken", "NAS", 1000000000]'
-        }
+        };
+        var contractVerify = {
+            "source": erc20,
+            "sourceType": "js",
+            "args": '["NebulasToken", "NAS", 1000000000]'
+        };
         var testInput = {
             rpcInput: {
                 from: sourceAccount.getAddressString(),
@@ -480,7 +528,7 @@ describe('rpc: estimateGas', function () {
                 nonce: nonce,
                 gas_price: "1000000",
                 gas_limit: "200000",
-                contract: contract
+                contract: contractVerify,
             },
         }
         var testExpect = {
@@ -497,6 +545,11 @@ describe('rpc: estimateGas', function () {
             "source_type": "js",
             "args": '["NebulasToken", "NAS", 1000000000]'
         }
+        var contractVerify = {
+            "source": erc20,
+            "sourceType": "js",
+            "args": '["NebulasToken", "NAS", 1000000000]'
+        };
         var testInput = {
             rpcInput: {
                 from: sourceAccount.getAddressString(),
@@ -514,7 +567,7 @@ describe('rpc: estimateGas', function () {
                 nonce: nonce,
                 gas_price: "1000000",
                 gas_limit: "200000",
-                contract: contract
+                contract: contractVerify
             },
         }
 
@@ -533,6 +586,11 @@ describe('rpc: estimateGas', function () {
             "source_type": "js",
             "args": '["NebulasToken", "NAS", 1000000000]'
         }
+        var contractVerify = {
+            "source": erc20,
+            "sourceType": "js",
+            "args": '["NebulasToken", "NAS", 1000000000]'
+        };
         var testInput = {
             rpcInput: {
                 from: sourceAccount.getAddressString(),
@@ -550,7 +608,7 @@ describe('rpc: estimateGas', function () {
                 nonce: nonce,
                 gas_price: "1000000",
                 gas_limit: "200000",
-                contract: contract
+                contract: contractVerify
             },
         }
 
@@ -569,6 +627,11 @@ describe('rpc: estimateGas', function () {
             "source_type": "js",
             "args": '["NebulasToken", "NAS", 1000000000]'
         }
+        var contractVerify = {
+            "source": erc20,
+            "sourceType": "js",
+            "args": '["NebulasToken", "NAS", 1000000000]'
+        };
         var testInput = {
             rpcInput: {
                 from: sourceAccount.getAddressString(),
@@ -586,7 +649,7 @@ describe('rpc: estimateGas', function () {
                 nonce: nonce,
                 gas_price: "1000000",
                 gas_limit: "200000",
-                contract: contract
+                contract: contractVerify
             },
         }
 
@@ -604,6 +667,11 @@ describe('rpc: estimateGas', function () {
             "source": erc20,
             "args": '["NebulasToken", "NAS", 1000000000]'
         }
+        var contractVerify = {
+            "source": erc20,
+            "sourceType": "js",
+            "args": '["NebulasToken", "NAS", 1000000000]'
+        };
         var testInput = {
             rpcInput: {
                 from: sourceAccount.getAddressString(),
@@ -621,7 +689,7 @@ describe('rpc: estimateGas', function () {
                 nonce: nonce,
                 gas_price: "1000000",
                 gas_limit: "200000",
-                contract: contract
+                contract: contractVerify
             },
         }
 
