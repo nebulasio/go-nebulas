@@ -9,7 +9,6 @@ var FS = require("fs");
 var expect = require('chai').expect;
 var Unit = Wallet.Unit;
 
-var env  = 'local';
 var ChainID = 100;
 var sourceAccount;
 var coinbase;
@@ -17,13 +16,29 @@ var contractAddress;
 var toAddress = Wallet.Account.NewAccount();
 var nonce;
 var contractNonce = 0;
+
+var args = process.argv.splice(2);
+var env = args[1];
+
+if (env == null){
+    env = "local";
+}
+
 if (env == 'local'){
     neb.setRequest(new HttpRequest("http://127.0.0.1:8685"));//https://testnet.nebulas.io
     ChainID = 100;
     sourceAccount = new Wallet.Account("d80f115bdbba5ef215707a8d7053c16f4e65588fd50b0f83369ad142b99891b5");
     coinbase = "n1QZMXSZtW7BUerroSms4axNfyBGyFGkrh5";
 } else if (env == 'testneb2') {
-//to fill
+    neb.setRequest(new HttpRequest("http://34.205.26.12:8685"));
+    ChainID = 1002;
+    sourceAccount = new Wallet.Account("25a3a441a34658e7a595a0eda222fa43ac51bd223017d17b420674fb6d0a4d52");
+    coinbase = "n1SAeQRVn33bamxN4ehWUT7JGdxipwn8b17";
+} else if (env === "maintest"){
+    ChainID = 2;
+    sourceAccount = new Wallet.Account("d2319a8a63b1abcb0cc6d4183198e5d7b264d271f97edf0c76cfdb1f2631848c");
+    coinbase = "n1EzGmFsVepKduN1U5QFyhLqpzFvM9sRSmG";
+    neb.setRequest(new HttpRequest("http://54.149.15.132:8685"));
 }
 
 /*
@@ -33,6 +48,8 @@ if (env == 'local'){
 var maxCheckTime = 30;
 var checkTimes = 0;
 var beginCheckTime;
+
+console.log("env:", env);
 
 function checkTransaction(hash, callback) {
     if (checkTimes === 0) {

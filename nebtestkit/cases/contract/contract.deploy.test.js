@@ -28,11 +28,12 @@ var coinState;
 // mocha cases/contract/xxx testneb1 -t 200000
 var args = process.argv.splice(2);
 var env = args[1];
-if (env !== "local" && env !== "testneb1" && env !== "testneb2" && env !== "testneb3") {
+if (env !== "local" && env !== "testneb1" && env !== "testneb2" && env !== "testneb3" && env !== "maintest") {
     env = "local";
 }
+
 console.log("env:", env);
-env  = 'local'
+
 if (env === 'local'){
     neb.setRequest(new HttpRequest("http://127.0.0.1:8685"));//https://testnet.nebulas.io
     ChainID = 100;
@@ -46,15 +47,21 @@ if (env === 'local'){
     sourceAccount = new Wallet.Account("43181d58178263837a9a6b08f06379a348a5b362bfab3631ac78d2ac771c5df3");
     coinbase = "0b9cd051a6d7129ab44b17833c63fe4abead40c3714cde6d";
 } else if (env === "testneb2") {
-    neb.setRequest(new HttpRequest("http://34.205.26.12:8685"));
     ChainID = 1002;
     sourceAccount = new Wallet.Account("25a3a441a34658e7a595a0eda222fa43ac51bd223017d17b420674fb6d0a4d52");
     coinbase = "n1SAeQRVn33bamxN4ehWUT7JGdxipwn8b17";
+    neb.setRequest(new HttpRequest("http://34.205.26.12:8685"));
 } else if (env === "testneb3") {
     neb.setRequest(new HttpRequest("http://35.177.214.138:8685"));
     ChainID = 1003;
     sourceAccount = new Wallet.Account("25a3a441a34658e7a595a0eda222fa43ac51bd223017d17b420674fb6d0a4d52");
     coinbase = "n1SAeQRVn33bamxN4ehWUT7JGdxipwn8b17";
+} else if (env === "maintest"){
+    ChainID = 2;
+    sourceAccount = new Wallet.Account("d2319a8a63b1abcb0cc6d4183198e5d7b264d271f97edf0c76cfdb1f2631848c");
+    coinbase = "n1dZZnqKGEkb1LHYsZRei1CH6DunTio1j1q";
+    neb.setRequest(new HttpRequest("http://54.149.15.132:8685"));
+
 }
 
 var from;
@@ -237,7 +244,7 @@ function testContractDeploy(testInput, testExpect, done) {
 
                             console.log("get coinbase account state after tx:" + JSON.stringify(state));
                             var reward = new BigNumber(state.balance).sub(coinState.balance);
-                            reward = reward.mod(new BigNumber(1.92).mul(new BigNumber(10).pow(18)));
+                            reward = reward.mod(new BigNumber(1.42694).mul(new BigNumber(10).pow(18)));
                             // The transaction should be only
                             expect(reward.toString()).to.equal(testExpect.transferReward);
                             return neb.api.getEventsByHash(resp.txhash);
@@ -548,18 +555,19 @@ describe('contract deploy', function () {
         });
 
 
-    it('[balance insufficient] balanceOfFrom < gasPrice*gasLimit', function (done) {
+    it('[balance insufficient] balanceOfFrom < gasPrice*gasLimit', function (done) { //todo: check result
 
         var testInput = {
             transferValue: 1,
             isSameAddr: true,
-            gasLimit: 1000000000000000000,
+            gasLimit: 50000000000,
+            gasPrice: 210000000,
             gasPrice: -1,
             nonceIncrement: 1
         };
         //can calc value by previous params
         var testExpect = {
-            canSendTx: false,
+            canSendTx: true,
             canSubmitTx: false,
             canExcuteTx: false,
             status: 0,
@@ -832,7 +840,7 @@ describe('contract deploy', function () {
                 fromBalanceAfterTx: '9999999977711000000',
                 toBalanceAfterTx: '0',
                 transferReward: '22289000000',
-                eventError: 'Deploy: null'
+                eventError: 'insufficient gas'
             };
             prepare((err) => {
                 if (err) {
@@ -958,7 +966,7 @@ describe('contract deploy', function () {
             });
         });
 
-    it('[gasLimit insufficient] xgasLimit = 0', function (done) {
+    it('[gasLimit insufficient] gasLimit = 0', function (done) {
 
          var testInput = {
             transferValue: 1,
@@ -1216,7 +1224,7 @@ describe('contract deploy', function () {
         });
     });
 
-    it('source type is wrong', function (done) {
+    it('source type is wrong', function (done) { //todo: => canSubmitTx: false, (file: ".cc")
         var testInput = {
             transferValue: 1,
             isSameAddr: true,
@@ -1244,7 +1252,8 @@ describe('contract deploy', function () {
         });
     });
 
-    it('source type is empty', function (done) {
+    it('source type is empty', function (done) { //todo: => canSubmitTx: false,
+
         var testInput = {
             transferValue: 1,
             isSameAddr: true,

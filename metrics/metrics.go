@@ -29,7 +29,6 @@ import (
 	"github.com/nebulasio/go-nebulas/util/logging"
 	metrics "github.com/rcrowley/go-metrics"
 	"github.com/rcrowley/go-metrics/exp"
-	influxdb "github.com/vrischmann/go-metrics-influxdb"
 )
 
 const (
@@ -80,7 +79,7 @@ func Start(neb Neblet) {
 		}
 		tags[chainID] = fmt.Sprintf("%d", neb.Config().Chain.ChainId)
 		go collectSystemMetrics()
-		influxdb.InfluxDBWithTags(metrics.DefaultRegistry, interval, neb.Config().Stats.Influxdb.Host, neb.Config().Stats.Influxdb.Db, neb.Config().Stats.Influxdb.User, neb.Config().Stats.Influxdb.Password, tags)
+		InfluxDBWithTags(metrics.DefaultRegistry, interval, neb.Config().Stats.Influxdb.Host, neb.Config().Stats.Influxdb.Db, neb.Config().Stats.Influxdb.User, neb.Config().Stats.Influxdb.Password, tags)
 
 		logging.VLog().Info("Started Metrics.")
 

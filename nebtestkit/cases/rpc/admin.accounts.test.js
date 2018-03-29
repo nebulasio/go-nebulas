@@ -3,6 +3,7 @@ var expect = require('chai').expect;
 var rpc_client = require('./rpc_client/rpc_client.js');
 var Wallet = require('nebulas');
 var sourceAccount;
+var addressLength = 35;
 
 
 var protocol_version = '/neb/1.0.0'
@@ -70,7 +71,10 @@ describe('rpc: Accounts', function () {
         try {
           //         verify_respone(response)
           console.log(response);
-          expect(response).to.be.have.property('addresses');
+          expect(response).to.be.have.property('addresses');//todo; verify length of address
+          for(var i = 0; i < response.addresses.length; i++) {
+              expect(response.addresses[i].length).to.be.equal(addressLength);
+          }
         } catch (err) {
           done(err);
           return;

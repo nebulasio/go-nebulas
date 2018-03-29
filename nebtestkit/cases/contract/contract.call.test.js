@@ -21,10 +21,11 @@ var testCases = new Array();
 var caseIndex = 0;
 
 
+
 // mocha cases/contract/xxx testneb1 -t 200000
 var args = process.argv.splice(2);
 var env = args[1];
-if (env !== "local" && env !== "testneb1" && env !== "testneb2" && env !== "testneb3") {
+if (env !== "local" && env !== "testneb1" && env !== "testneb2" && env !== "testneb3" && env !== "maintest") {
     env = "local";
 }
 console.log("env:", env);
@@ -36,17 +37,17 @@ if (env == 'local'){
     originSource = new Account("d80f115bdbba5ef215707a8d7053c16f4e65588fd50b0f83369ad142b99891b5");
     coinbase = "n1QZMXSZtW7BUerroSms4axNfyBGyFGkrh5";
 
-}else if(env == 'testneb1'){
+}else if(env === 'testneb1'){
     neb.setRequest(new HttpRequest("http://35.182.48.19:8685"));
     ChainID = 1001;
     originSource = new Account("25a3a441a34658e7a595a0eda222fa43ac51bd223017d17b420674fb6d0a4d52");
     coinbase = "n1SAeQRVn33bamxN4ehWUT7JGdxipwn8b17";
-}else if(env == "testneb2"){
+}else if(env === "testneb2"){
     neb.setRequest(new HttpRequest("http://34.205.26.12:8685"));
     ChainID = 1002;
     originSource = new Account("25a3a441a34658e7a595a0eda222fa43ac51bd223017d17b420674fb6d0a4d52");
     coinbase = "n1SAeQRVn33bamxN4ehWUT7JGdxipwn8b17";
-}else if(env == "testneb3"){
+}else if(env === "testneb3"){
     neb.setRequest(new HttpRequest("http://35.177.214.138:8685"));
     ChainID = 1003;
     originSource = new Account("25a3a441a34658e7a595a0eda222fa43ac51bd223017d17b420674fb6d0a4d52");
@@ -62,6 +63,9 @@ if (env == 'local'){
 }
 
 var lastnonce = 0;
+
+
+console.log("running script, env:", env, " ChainId:", ChainID, " apiEndPoint:", " time:", new Date());
 
 function prepareSource(done) {
     neb.api.getAccountState(originSource.getAddressString()).then(function (resp) {
@@ -186,7 +190,7 @@ function testContractCall(testInput, testExpect, done) {
                             console.log("get coinbase account state before tx:" + JSON.stringify(coinState));
                             console.log("get coinbase account state after tx:" + JSON.stringify(state));
                             var reward = new BigNumber(state.balance).sub(coinState.balance);
-                            reward = reward.mod(new BigNumber(1.92).mul(new BigNumber(10).pow(18)));
+                            reward = reward.mod(new BigNumber(1.42694).mul(new BigNumber(10).pow(18)));
                             // The transaction should be only
                             expect(reward.toString()).to.equal(testExpect.transferReward);
                             if (receipt.gasUsed) {
@@ -1189,9 +1193,9 @@ testCase = {
         canSubmitTx: true,
         canExcuteTx: false,
         status: 0,
-        fromBalanceAfterTx: "999999979733000000",
+        fromBalanceAfterTx: "999999979746000000",
         toBalanceAfterTx: '0',
-        transferReward: '20267000000',
+        transferReward: '20254000000',
         eventErr: "Call: Error: transfer failed."
     }
 };
@@ -1217,9 +1221,9 @@ testCase = {
         canSubmitTx: true,
         canExcuteTx: true,
         status: 1,
-        fromBalanceAfterTx: "999999979787999999",
+        fromBalanceAfterTx: "999999979800999999",
         toBalanceAfterTx: '1',
-        transferReward: '20212000000',
+        transferReward: '20199000000',
         eventErr: ""
     }
 };
@@ -1231,35 +1235,34 @@ describe('contract call test', function () {
         prepareSource(done);
     });
 
-
-    // var testCase = testCases[1];
-    // it(testCase.name, function (done) {
-    //     prepareContractCall(testCase, function (err) {
-    //         if (err instanceof Error) {
-    //             done(err);
-    //         } else {
-    //             testContractCall(testCase.testInput, testCase.testExpect, done);
-    //         }
+    var testCase = testCases[30];
+    it(testCase.name, function (done) {
+        prepareContractCall(testCase, function (err) {
+            if (err instanceof Error) {
+                done(err);
+            } else {
+                testContractCall(testCase.testInput, testCase.testExpect, done);
+            }
+        });
+    });
+    
+    // for (var i = 0; i < testCases.length; i++) {
+    //
+    //     it(testCases[i].name, function (done) {
+    //         var testCase = testCases[caseIndex];
+    //         prepareContractCall(testCase, function (err) {
+    //             if (err instanceof Error) {
+    //                 done(err);
+    //             } else {
+    //                 testContractCall(testCase.testInput, testCase.testExpect, done);
+    //             }
+    //         });
     //     });
+    // }
+    //
+    // afterEach(function () {
+    //     caseIndex++;
+    //     console.log("case index:", caseIndex);
     // });
 
-
-    for (var i = 0; i < testCases.length; i++) {
-
-        it(testCases[i].name, function (done) {
-            var testCase = testCases[caseIndex];
-            prepareContractCall(testCase, function (err) {
-                if (err instanceof Error) {
-                    done(err);
-                } else {
-                    testContractCall(testCase.testInput, testCase.testExpect, done);
-                }
-            });
-        });
-    }
-
-    afterEach(function () {
-        caseIndex++;
-        console.log("case index:", caseIndex);
-    });
 });
