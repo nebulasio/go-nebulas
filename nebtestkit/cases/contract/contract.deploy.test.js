@@ -252,8 +252,9 @@ function testContractDeploy(testInput, testExpect, done) {
                                     var result = JSON.parse(event.data);
                                     expect(result.status).to.equal(testExpect.status);
 
-                                    if (testExpect.hasOwnProperty("eventErr")){
-                                        expect(result.error).to.equal(testExpect.eventErr);
+                                    if (testExpect.hasOwnProperty("eventError")){
+                                        console.log("Event error checked.");
+                                        expect(result.error).to.equal(testExpect.eventError);
                                     }
                                 }
                             }

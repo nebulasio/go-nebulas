@@ -158,6 +158,9 @@ var (
 
 	ErrInvalidTransactionResultEvent  = errors.New("invalid transaction result event, the last event in tx's events should be result event")
 	ErrNotFoundTransactionResultEvent = errors.New("transaction result event is not found ")
+
+	// nvm error
+	ErrExecutionFailed = errors.New("execution failed")
 )
 
 // Default gas count
