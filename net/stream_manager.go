@@ -39,8 +39,8 @@ import (
 // const
 const (
 	CleanupInterval   = time.Second * 60
-	MaxStreamNum      = 100
-	ReservedStreamNum = 20 // of MaxStreamNum
+	MaxStreamNum      = 500
+	ReservedStreamNum = 50 // of MaxStreamNum
 )
 
 // var
