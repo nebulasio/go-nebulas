@@ -25,7 +25,7 @@ var caseIndex = 0;
 // mocha cases/contract/xxx testneb1 -t 200000
 var args = process.argv.splice(2);
 var env = args[1];
-if (env !== "local" && env !== "testneb1" && env !== "testneb2" && env !== "testneb3") {
+if (env !== "local" && env !== "testneb1" && env !== "testneb2" && env !== "testneb3" && env !== "maintest") {
     env = "local";
 }
 console.log("env:", env);
@@ -51,7 +51,12 @@ if (env == 'local'){
     ChainID = 1003;
     originSource = new Account("25a3a441a34658e7a595a0eda222fa43ac51bd223017d17b420674fb6d0a4d52");
     coinbase = "n1SAeQRVn33bamxN4ehWUT7JGdxipwn8b17";
-}else{
+} else if (env === "maintest"){
+    ChainID = 2;
+    originSource = new Account("d2319a8a63b1abcb0cc6d4183198e5d7b264d271f97edf0c76cfdb1f2631848c");
+    coinbase = "n1EzGmFsVepKduN1U5QFyhLqpzFvM9sRSmG";
+    neb.setRequest(new HttpRequest("http://54.149.15.132:8685"));
+} else{
     console.log("please input correct env local testneb1 testneb2 testneb3");
     return;
 }

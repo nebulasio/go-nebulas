@@ -83,6 +83,7 @@ describe('rpc: LatestIrreversibleBlock', function () {
           expect(response).to.be.have.property('events_root');
           expect(response).to.be.have.property('consensus_root');
           expect(response).to.be.have.property('transactions');
+          expect(response).to.be.have.property('miner');
         } catch (err) {
           done(err);
           return;

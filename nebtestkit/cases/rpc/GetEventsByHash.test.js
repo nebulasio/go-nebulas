@@ -15,6 +15,7 @@ var coinbase,
     server_address;
 
 var env = process.env.NET || 'local';
+env = "maintest";
 if (env === 'testneb1') {
     chain_id = 1001;
     sourceAccount = new Wallet.Account("25a3a441a34658e7a595a0eda222fa43ac51bd223017d17b420674fb6d0a4d52");

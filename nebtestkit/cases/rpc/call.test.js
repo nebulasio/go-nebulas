@@ -20,6 +20,8 @@ var sourceAccount = new Wallet.Account('d80f115bdbba5ef215707a8d7053c16f4e65588f
 
 var ChainID = 100;
 var env = 'maintest';
+
+
 if (env === 'testneb1') {
   ChainID = 1001;
   sourceAccount = new Wallet.Account("25a3a441a34658e7a595a0eda222fa43ac51bd223017d17b420674fb6d0a4d52");
@@ -71,8 +73,10 @@ var nonce;
 var contractAddress;
 var toAddress = Wallet.Account.NewAccount();
 
-var maxCheckTime = 20;
+var maxCheckTime = 40;
 var checkTimes = 0;
+
+console.log("running chain_id: ", ChainID, " coinbase:", coinbase, " server_address:", server_address);
 
 function checkTransaction(hash, callback) {
     checkTimes += 1;
@@ -449,7 +453,7 @@ describe('rpc: Call', function () {
         testRpc(testInput, testExpect, done);
     });
 
-    it('nonce is empty', function (done) {
+    it('nonce is empty', function (done) {//todo: to check
         nonce = nonce + 1;
         var contract = {
             "function": "transferSpecialValue",
@@ -650,9 +654,8 @@ describe('rpc: Call', function () {
 
         testRpc(testInput, testExpect, done);
     });
-
-
-    it('arges is less than that required', function (done) {
+    
+    it('args is less than that required', function (done) {
         nonce = nonce + 1;
         var contract = {
             "function": "transferSpecialValue",

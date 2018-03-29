@@ -224,7 +224,7 @@ function testSave(testInput, testExpect, done) {
                 return neb.api.getAccountState(coinbase);
             }).then(function(state){
                 var coinbalancechange = new BigNumber(state.balance).sub(new BigNumber(coinBalanceBefore))
-                    .mod(new BigNumber(0.48).mul(new BigNumber(10).pow(new BigNumber(18))));
+                    .mod(new BigNumber(1.4269).mul(new BigNumber(10).pow(new BigNumber(18))));
                 console.log("[after save] coinbase state:" + JSON.stringify(state) + ", balance change: " + coinbalancechange);
                 return neb.api.gasPrice();
             }).then(function(resp){
@@ -313,7 +313,7 @@ function testTakeout(testInput, testExpect, done) {
                return neb.api.getAccountState(coinbase).then(function(state){
                     
                     var coinbalancechange = new BigNumber(state.balance).sub(new BigNumber(coinBalanceBefore))
-                        .mod(new BigNumber(0.48).mul(new BigNumber(10).pow(new BigNumber(18))));
+                        .mod(new BigNumber(1.4269).mul(new BigNumber(10).pow(new BigNumber(18))));
                     console.log("[after take] coinbase state:" + JSON.stringify(state) + ", balance change: " + coinbalancechange);
 
                     var chg = contractBalanceBefore.sub(new BigNumber(cstate.balance));

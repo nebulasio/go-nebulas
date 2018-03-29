@@ -62,8 +62,8 @@ if (env === 'testneb1') {
     server_address = "54.149.15.132:8684";
   } else {
     throw new Error("invalid env (" + env + ").");
-  }
-  neb.setRequest(new HttpRequest("http://54.149.15.132:8685"));
+}
+neb.setRequest(new HttpRequest("http://54.149.15.132:8685"));
 
 var api_client;
 var normalOutput;

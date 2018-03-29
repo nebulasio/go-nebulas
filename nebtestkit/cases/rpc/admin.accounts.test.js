@@ -70,7 +70,7 @@ describe('rpc: Accounts', function () {
         try {
           //         verify_respone(response)
           console.log(response);
-          expect(response).to.be.have.property('addresses');
+          expect(response).to.be.have.property('addresses');//todo; verify length of address
         } catch (err) {
           done(err);
           return;

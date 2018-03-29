@@ -9,6 +9,7 @@ var sourceAccount;
 var client,
     server_address;
 
+
 var env = process.env.NET || 'local';
 env = 'maintest';
 var chain_id;
@@ -55,6 +56,18 @@ if (env === 'testneb1') {
   } else {
     throw new Error("invalid env (" + env + ").");
   }
+
+
+
+// var chain_id = 100;
+// var server_address = 'localhost:8684';
+// var coinbase = "n1QZMXSZtW7BUerroSms4axNfyBGyFGkrh5";
+
+
+var chain_id = 2;
+var server_address ="54.149.15.132:8684";
+var coinbase = "n1EzGmFsVepKduN1U5QFyhLqpzFvM9sRSmG";
+
 
 function testGetGasPrice(testInput, testExpect, done) {
 
