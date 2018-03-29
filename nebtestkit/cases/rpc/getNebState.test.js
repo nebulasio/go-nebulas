@@ -57,13 +57,14 @@ if (env === 'testneb1') {
 
 var client;
 
+console.log("running chain_id: ", ChainID, " coinbase:", coinbase, " server_address:", server_address);
 describe('rpc: getNebState', function () {
   before(function () {
     client = rpc_client.new_client(server_address);
   });
 
   it('normal rpc', function (done) {
-    client.GetNebState({}, function (err, response) {
+      client.GetNebState({}, function (err, response) {
       if (err != null) {
         done(err);
         return;

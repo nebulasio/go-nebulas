@@ -32,6 +32,7 @@ function sendTransactionsTest() {
     type = type%5;
 }
 
+
 function startMochaTest(file) {
     const filePath = "/neb/app/logs/transactionTestResult.txt";
     // const filePath = "testResult.txt";

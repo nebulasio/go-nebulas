@@ -4,12 +4,15 @@ var rpc_client = require('./rpc_client/rpc_client.js');
 var Wallet = require("nebulas");
 var Account = Wallet.Account;
 var protocol_version = '/neb/1.0.0'
-var node_version = '0.7.0'
+var node_version = '0.7.0';
+
+
 var server_address = 'localhost:8684';
 var coinbase = "eb31ad2d8a89a0ca6935c308d5425730430bc2d63f2573b8";
 var sourceAccount;
 var chain_id = 100;
 var env = 'maintest';
+
 if (env === 'testneb1') {
   chain_id = 1001;
   sourceAccount = new Wallet.Account("25a3a441a34658e7a595a0eda222fa43ac51bd223017d17b420674fb6d0a4d52");
@@ -184,7 +187,7 @@ describe('rpc: getAccountState', function () {
     testRpc(testInput, testExpect, done);
   })
 
-  it('hight is empty', function (done) {
+  it('height is empty', function (done) {
     var testInput = {
       rpcInput: {
         address: coinbase,
@@ -209,7 +212,7 @@ describe('rpc: getAccountState', function () {
     }
 
     var testExpect = {
-      isNormalOutput: true
+      isNormalOutput: true//todo: to check
     }
     
     testRpc(testInput, testExpect, done);

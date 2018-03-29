@@ -131,7 +131,7 @@ function test_transfer(testInput, testExpect, done) {
 
                             console.log("get coinbase account state after tx:" + JSON.stringify(state));
                             var reward = new BigNumber(state.balance).sub(coinState.balance);
-                            reward = reward.mod(new BigNumber(0.48).mul(new BigNumber(10).pow(18)));
+                            reward = reward.mod(new BigNumber(1.4269).mul(new BigNumber(10).pow(18)));
                             // The transaction should be only
                             expect(reward.toString()).to.equal(testExpect.transferReward);
                             done();
