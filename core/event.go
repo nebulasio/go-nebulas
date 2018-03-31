@@ -33,24 +33,6 @@ const (
 	// TopicPendingTransaction the topic of pending a transaction in transaction_pool.
 	TopicPendingTransaction = "chain.pendingTransaction"
 
-	// TopicSendTransaction the topic of send a transaction.
-	TopicSendTransaction = "chain.sendTransaction"
-
-	// TopicDeploySmartContract the topic of deploy a smart contract.
-	TopicDeploySmartContract = "chain.deployContract"
-
-	// TopicCallSmartContract the topic of call a smart contract.
-	TopicCallSmartContract = "chain.callContract"
-
-	// TopicDelegate the topic of delegate.
-	TopicDelegate = "chain.delegate"
-
-	// TopicCandidate the topic of candidate.
-	TopicCandidate = "chain.candidate"
-
-	// TopicLinkBlock the topic of link a block.
-	TopicLinkBlock = "chain.linkBlock"
-
 	// TopicLibBlock the topic of latest irreversible block.
 	TopicLibBlock = "chain.latestIrreversibleBlock"
 
