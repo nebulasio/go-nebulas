@@ -50,12 +50,12 @@ var (
 
 var (
 	MockDynasty = []string{
-		"n1FkntVUMPAsESuCAAPK711omQk19JotBjM",
-		"n1JNHZJEUvfBYfjDRD14Q73FX62nJAzXkMR",
-		"n1Kjom3J4KPsHKKzZ2xtt8Lc9W5pRDjeLcW",
-		"n1TV3sU6jyzR4rJ1D7jCAmtVGSntJagXZHC",
-		"n1WwqBXVMuYC3mFCEEuFFtAXad6yxqj4as4",
-		"n1Zn6iyyQRhqthmCfqGBzWfip1Wx8wEvtrJ",
+		"n1FF1nz6tarkDVwWQkMnnwFPuPKUaQTdptE",
+		"n1GmkKH6nBMw4rrjt16RrJ9WcgvKUtAZP1s",
+		"n1H4MYms9F55ehcvygwWE71J8tJC4CRr2so",
+		"n1JAy4X6KKLCNiTd7MWMRsVBjgdVq5WCCpf",
+		"n1LkDi2gGMqPrjYcczUiweyP4RxTB6Go1qS",
+		"n1LmP9K8pFF33fgdgHZonFEMsqZinJ4EUqk",
 	}
 )
 
@@ -70,11 +70,11 @@ func MockGenesisConf() *corepb.Genesis {
 		},
 		TokenDistribution: []*corepb.GenesisTokenDistribution{
 			&corepb.GenesisTokenDistribution{
-				Address: "n1FkntVUMPAsESuCAAPK711omQk19JotBjM",
+				Address: "n1FF1nz6tarkDVwWQkMnnwFPuPKUaQTdptE",
 				Value:   "10000000000000000000000",
 			},
 			&corepb.GenesisTokenDistribution{
-				Address: "n1JNHZJEUvfBYfjDRD14Q73FX62nJAzXkMR",
+				Address: "n1GmkKH6nBMw4rrjt16RrJ9WcgvKUtAZP1s",
 				Value:   "10000000000000000000000",
 			},
 		},
@@ -596,10 +596,6 @@ func TestGivebackInvalidTx(t *testing.T) {
 func TestBlockVerifyIntegrity(t *testing.T) {
 	neb := testNeb(t)
 	bc := neb.chain
-	assert.Equal(t, bc.tailBlock.VerifyIntegrity(0, nil), ErrNilArgument)
-	assert.Equal(t, bc.tailBlock.VerifyIntegrity(0, neb.consensus), ErrInvalidChainID)
-	bc.tailBlock.header.hash[0] = 1
-	assert.Equal(t, bc.tailBlock.VerifyIntegrity(bc.ChainID(), bc.ConsensusHandler()), ErrInvalidBlockHash)
 	ks := keystore.DefaultKS
 	from := mockAddress()
 	key, err := ks.GetUnlocked(from.String())
@@ -625,9 +621,6 @@ func TestBlockVerifyIntegrity(t *testing.T) {
 func TestBlockVerifyDupTx(t *testing.T) {
 	neb := testNeb(t)
 	bc := neb.chain
-	assert.Equal(t, bc.tailBlock.VerifyIntegrity(0, neb.consensus), ErrInvalidChainID)
-	bc.tailBlock.header.hash[0] = 1
-	assert.Equal(t, bc.tailBlock.VerifyIntegrity(bc.ChainID(), bc.ConsensusHandler()), ErrInvalidBlockHash)
 	ks := keystore.DefaultKS
 	from := mockAddress()
 	key, err := ks.GetUnlocked(from.String())
@@ -649,9 +642,6 @@ func TestBlockVerifyDupTx(t *testing.T) {
 func TestBlockVerifyInvalidTx(t *testing.T) {
 	neb := testNeb(t)
 	bc := neb.chain
-	assert.Equal(t, bc.tailBlock.VerifyIntegrity(0, neb.consensus), ErrInvalidChainID)
-	bc.tailBlock.header.hash[0] = 1
-	assert.Equal(t, bc.tailBlock.VerifyIntegrity(bc.ChainID(), bc.ConsensusHandler()), ErrInvalidBlockHash)
 	ks := keystore.DefaultKS
 	from := mockAddress()
 	key, err := ks.GetUnlocked(from.String())
@@ -675,9 +665,6 @@ func TestBlockVerifyInvalidTx(t *testing.T) {
 func TestBlockVerifyState(t *testing.T) {
 	neb := testNeb(t)
 	bc := neb.chain
-	assert.Equal(t, bc.tailBlock.VerifyIntegrity(0, neb.consensus), ErrInvalidChainID)
-	bc.tailBlock.header.hash[0] = 1
-	assert.Equal(t, bc.tailBlock.VerifyIntegrity(bc.ChainID(), bc.ConsensusHandler()), ErrInvalidBlockHash)
 	ks := keystore.DefaultKS
 	from := mockAddress()
 

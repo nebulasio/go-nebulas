@@ -66,8 +66,8 @@ func mockNeb(t *testing.T) *Neb {
 			Chain: &nebletpb.ChainConfig{
 				ChainId:    genesisConf.Meta.ChainId,
 				Keydir:     "keydir",
-				Coinbase:   "n1QZMXSZtW7BUerroSms4axNfyBGyFGkrh5",
-				Miner:      "n1Kjom3J4KPsHKKzZ2xtt8Lc9W5pRDjeLcW",
+				Coinbase:   "n1dYu2BXgV3xgUh8LhZu8QDDNr15tz4hVDv",
+				Miner:      "n1FF1nz6tarkDVwWQkMnnwFPuPKUaQTdptE",
 				Passphrase: "passphrase",
 			},
 		},
@@ -137,12 +137,12 @@ func (n *Neb) SetGenesis(genesis *corepb.Genesis) {
 var (
 	// must be order by address.hash
 	MockDynasty = []string{
-		"n1FkntVUMPAsESuCAAPK711omQk19JotBjM",
-		"n1JNHZJEUvfBYfjDRD14Q73FX62nJAzXkMR",
-		"n1Kjom3J4KPsHKKzZ2xtt8Lc9W5pRDjeLcW",
-		"n1TV3sU6jyzR4rJ1D7jCAmtVGSntJagXZHC",
-		"n1WwqBXVMuYC3mFCEEuFFtAXad6yxqj4as4",
-		"n1Zn6iyyQRhqthmCfqGBzWfip1Wx8wEvtrJ",
+		"n1FF1nz6tarkDVwWQkMnnwFPuPKUaQTdptE",
+		"n1GmkKH6nBMw4rrjt16RrJ9WcgvKUtAZP1s",
+		"n1H4MYms9F55ehcvygwWE71J8tJC4CRr2so",
+		"n1JAy4X6KKLCNiTd7MWMRsVBjgdVq5WCCpf",
+		"n1LkDi2gGMqPrjYcczUiweyP4RxTB6Go1qS",
+		"n1LmP9K8pFF33fgdgHZonFEMsqZinJ4EUqk",
 	}
 )
 
@@ -157,12 +157,28 @@ func MockGenesisConf() *corepb.Genesis {
 		},
 		TokenDistribution: []*corepb.GenesisTokenDistribution{
 			&corepb.GenesisTokenDistribution{
-				Address: "n1Z6SbjLuAEXfhX1UJvXT6BB5osWYxVg3F3",
-				Value:   "10000000000000000000000",
+				Address: "n1FF1nz6tarkDVwWQkMnnwFPuPKUaQTdptE",
+				Value:   "5000000000000000000000000",
 			},
 			&corepb.GenesisTokenDistribution{
-				Address: "n1NHcbEus81PJxybnyg4aJgHAaSLDx9Vtf8",
-				Value:   "10000000000000000000000",
+				Address: "n1GmkKH6nBMw4rrjt16RrJ9WcgvKUtAZP1s",
+				Value:   "5000000000000000000000000",
+			},
+			&corepb.GenesisTokenDistribution{
+				Address: "n1H4MYms9F55ehcvygwWE71J8tJC4CRr2so",
+				Value:   "5000000000000000000000000",
+			},
+			&corepb.GenesisTokenDistribution{
+				Address: "n1JAy4X6KKLCNiTd7MWMRsVBjgdVq5WCCpf",
+				Value:   "5000000000000000000000000",
+			},
+			&corepb.GenesisTokenDistribution{
+				Address: "n1LkDi2gGMqPrjYcczUiweyP4RxTB6Go1qS",
+				Value:   "5000000000000000000000000",
+			},
+			&corepb.GenesisTokenDistribution{
+				Address: "n1LmP9K8pFF33fgdgHZonFEMsqZinJ4EUqk",
+				Value:   "5000000000000000000000000",
 			},
 		},
 	}
@@ -223,7 +239,7 @@ func TestChunk_generateChunkMeta(t *testing.T) {
 	payload, _ := core.NewDeployPayload(source, sourceType, argsDeploy)
 	payloadDeploy, _ := payload.ToBytes()
 
-	from, _ := core.AddressParse("n1FkntVUMPAsESuCAAPK711omQk19JotBjM")
+	from, _ := core.AddressParse("n1FF1nz6tarkDVwWQkMnnwFPuPKUaQTdptE")
 	assert.Nil(t, neb.am.Unlock(from, []byte("passphrase"), time.Second*60*60*24*365))
 
 	blocks := []*core.Block{}

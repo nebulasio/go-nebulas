@@ -45,7 +45,7 @@ const (
 	MaxMintDurationInMs      = int64(5250)
 	MinMintDurationInMs      = int64(2250)
 	DynastyIntervalInMs      = int64(3150000)
-	DynastySize              = 6 // TODO(roy): 21
+	DynastySize              = 6
 	ConsensusSize            = DynastySize*2/3 + 1
 )
 

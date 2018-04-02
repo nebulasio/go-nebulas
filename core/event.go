@@ -29,7 +29,6 @@ import (
 )
 
 const (
-
 	// TopicPendingTransaction the topic of pending a transaction in transaction_pool.
 	TopicPendingTransaction = "chain.pendingTransaction"
 

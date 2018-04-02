@@ -56,7 +56,7 @@ func VLog() *logrus.Logger {
 	if vlog == nil {
 		Init("/tmp", "info", 0)
 	}
-	return vlog
+	return clog
 }
 
 func convertLevel(level string) logrus.Level {
