@@ -509,7 +509,7 @@ func (s *APIService) GetDynasty(ctx context.Context, req *rpcpb.ByBlockHeightReq
 			logging.VLog().WithFields(logrus.Fields{
 				"miner": v.Base58(),
 				"block": block,
-			}).Error("Failed to parse miner's bytes into address")
+			}).Debug("Failed to parse miner's bytes into address")
 			return nil, err
 		}
 		result = append(result, addr.String())

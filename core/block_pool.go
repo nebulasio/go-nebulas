@@ -354,7 +354,7 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 	// verify block integrity
 	if err := block.VerifyIntegrity(pool.bc.chainID, pool.bc.ConsensusHandler()); err != nil {
 		metricsInvalidBlock.Inc(1)
-		logging.CLog().WithFields(logrus.Fields{
+		logging.VLog().WithFields(logrus.Fields{
 			"block": block,
 			"err":   err,
 		}).Debug("Failed to check block integrity.")

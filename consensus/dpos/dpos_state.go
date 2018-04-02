@@ -45,7 +45,7 @@ const (
 	MaxMintDurationInMs      = int64(5250)
 	MinMintDurationInMs      = int64(2250)
 	DynastyIntervalInMs      = int64(3150000)
-	DynastySize              = 21
+	DynastySize              = 6
 	ConsensusSize            = DynastySize*2/3 + 1
 )
 
@@ -107,7 +107,7 @@ func (dpos *Dpos) CheckTimeout(block *core.Block) bool {
 			"now":   nowInMs,
 			"diff":  blockTimeInMs - nowInMs,
 			"err":   "timeout - future block",
-		}).Debug("Found a future block.")
+		}).Warn("Found a future block.")
 		return false
 	}
 	behindInMs := nowInMs - blockTimeInMs
@@ -118,7 +118,7 @@ func (dpos *Dpos) CheckTimeout(block *core.Block) bool {
 			"diff":  behindInMs,
 			"limit": AcceptedNetWorkDelayInMs,
 			"err":   "timeout - expired block",
-		}).Debug("Found a expired block.")
+		}).Warn("Found a expired block.")
 		return true
 	}
 	return false
@@ -226,14 +226,14 @@ func FindProposer(now int64, miners []byteutils.Hash) (proposer byteutils.Hash, 
 	offset := offsetInMs / BlockIntervalInMs
 	offset %= DynastySize
 
-	if int(offset) < len(miners) {
+	if offset >= 0 && int(offset) < len(miners) {
 		proposer = miners[offset]
 	} else {
 		logging.VLog().WithFields(logrus.Fields{
 			"proposer":  proposer,
 			"offset":    offset,
 			"delegatee": len(miners),
-		}).Error("Found Nil Proposer.")
+		}).Warn("Found Nil Proposer.")
 		return nil, ErrFoundNilProposer
 	}
 	return proposer, nil

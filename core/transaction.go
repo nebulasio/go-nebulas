@@ -258,11 +258,6 @@ func NewTransaction(chainID uint32, from, to *Address, value *util.Uint128, nonc
 	}
 
 	if nil == from || nil == to || nil == value {
-		logging.VLog().WithFields(logrus.Fields{
-			"from":  from,
-			"to":    to,
-			"value": value,
-		}).Error("invalid parameters")
 		return nil, ErrInvalidArgument
 	}
 
@@ -743,7 +738,6 @@ func CheckTransaction(tx *Transaction, ws WorldState) (bool, error) {
 	// check nonce
 	fromAcc, err := ws.GetOrCreateUserAccount(tx.from.address)
 	if err != nil {
-		logging.VLog().Info("CTE 1")
 		return true, err
 	}
 
@@ -765,23 +759,18 @@ func AcceptTransaction(tx *Transaction, ws WorldState) (bool, error) {
 	// record tx
 	pbTx, err := tx.ToProto()
 	if err != nil {
-		logging.VLog().Info("ATE 1")
 		return true, err
 	}
 	txBytes, err := proto.Marshal(pbTx)
 	if err != nil {
-		logging.VLog().Info("ATE 2")
 		return true, err
 	}
-	logging.CLog().Info(tx.hash)
 	if err := ws.PutTx(tx.hash, txBytes); err != nil {
-		logging.VLog().Info("ATE 3")
 		return true, err
 	}
 	// incre nonce
 	fromAcc, err := ws.GetOrCreateUserAccount(tx.from.address)
 	if err != nil {
-		logging.VLog().Info("ATE 4")
 		return true, err
 	}
 	fromAcc.IncrNonce()

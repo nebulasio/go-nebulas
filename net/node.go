@@ -70,7 +70,7 @@ func NewNode(config *Config) (*Node, error) {
 		logging.CLog().WithFields(logrus.Fields{
 			"err":    err,
 			"listen": config.Listen,
-		}).Error("Listen port is not available.")
+		}).Error("Failed to check port.")
 		return nil, err
 	}
 
@@ -221,9 +221,9 @@ func initP2PSwarmNetwork(config *Config, node *Node) error {
 		tcpAddr, err := net.ResolveTCPAddr("tcp", v)
 		if err != nil {
 			logging.CLog().WithFields(logrus.Fields{
-				"err":            err,
-				"listen address": v,
-			}).Error("Invalid listen address.")
+				"err":    err,
+				"listen": v,
+			}).Error("Failed to bind node socket.")
 			return err
 		}
 
@@ -236,9 +236,9 @@ func initP2PSwarmNetwork(config *Config, node *Node) error {
 		)
 		if err != nil {
 			logging.CLog().WithFields(logrus.Fields{
-				"err":            err,
-				"listen address": v,
-			}).Error("Invalid listen address.")
+				"err":    err,
+				"listen": v,
+			}).Error("Failed to bind node socket.")
 			return err
 		}
 
@@ -275,7 +275,7 @@ func (node *Node) SendMessageToPeer(messageName string, data []byte, priority in
 		logging.VLog().WithFields(logrus.Fields{
 			"pid": peerID,
 			"err": ErrPeerIsNotConnected,
-		}).Debug("Failed to send msg")
+		}).Debug("Failed to locate peer's stream")
 		return ErrPeerIsNotConnected
 	}
 

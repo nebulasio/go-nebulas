@@ -23,6 +23,8 @@ import (
 	"io/ioutil"
 	"os"
 
+	"github.com/sirupsen/logrus"
+
 	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/neblet/pb"
 	"github.com/nebulasio/go-nebulas/util/logging"
@@ -38,13 +40,17 @@ func LoadConfig(file string) *nebletpb.Config {
 	var content string
 	b, err := ioutil.ReadFile(file)
 	if err != nil {
-		logging.CLog().Fatalf("Failed to read the config file: %s. error: %s", file, err)
+		logging.CLog().WithFields(logrus.Fields{
+			"err": err,
+		}).Fatal("Failed to read the config file: %s.", file)
 	}
 	content = string(b)
 
 	pb := new(nebletpb.Config)
 	if err := proto.UnmarshalText(content, pb); err != nil {
-		logging.CLog().Fatalf("Failed to parse the config file: %s. error: %s", file, err)
+		logging.CLog().WithFields(logrus.Fields{
+			"err": err,
+		}).Fatal("Failed to parse the config file: %s.", file)
 	}
 	return pb
 }
@@ -86,7 +92,9 @@ func defaultConfig() string {
 // CreateDefaultConfigFile create a default config file.
 func CreateDefaultConfigFile(filename string) {
 	if err := ioutil.WriteFile(filename, []byte(defaultConfig()), 0644); err != nil {
-		logging.VLog().Fatal(err)
+		logging.VLog().WithFields(logrus.Fields{
+			"err": err,
+		}).Fatal("Failed to create default config file.")
 	}
 }
 

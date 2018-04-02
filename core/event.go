@@ -32,15 +32,6 @@ const (
 	// TopicPendingTransaction the topic of pending a transaction in transaction_pool.
 	TopicPendingTransaction = "chain.pendingTransaction"
 
-	// TopicSendTransaction the topic of send a transaction.
-	TopicSendTransaction = "chain.sendTransaction"
-
-	// TopicDeploySmartContract the topic of deploy a smart contract.
-	TopicDeploySmartContract = "chain.deployContract"
-
-	// TopicCallSmartContract the topic of call a smart contract.
-	TopicCallSmartContract = "chain.callContract"
-
 	// TopicLibBlock the topic of latest irreversible block.
 	TopicLibBlock = "chain.latestIrreversibleBlock"
 
@@ -166,7 +157,7 @@ func (emitter *EventEmitter) loop() {
 				default:
 					logging.VLog().WithFields(logrus.Fields{
 						"topic": topic,
-					}).Debug("timeout to dispatch event.")
+					}).Warn("timeout to dispatch event.")
 				}
 				return true
 			})

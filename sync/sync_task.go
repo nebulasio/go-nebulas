@@ -238,7 +238,7 @@ func (st *Task) sendChainSync() {
 		logging.VLog().WithFields(logrus.Fields{
 			"err":       err,
 			"syncpoint": st.syncPointBlock,
-		}).Warn("Failed to serialize sync message")
+		}).Debug("Failed to serialize sync message")
 		return
 	}
 
@@ -378,11 +378,6 @@ func (st *Task) checkChainGetChunkTimeout() {
 	for i := 0; i <= st.chainChunkDataSyncPosition; i++ {
 		t := st.chainChunkDataStatus[i]
 
-		/* 		logging.VLog().WithFields(logrus.Fields{
-			"pos":    st.chainChunkDataProcessPosition,
-			"status": t,
-		}).Debug("Chunk Status.") */
-
 		if t == chunkDataStatusFinished || t == chunkDataStatusNotStart {
 			continue
 		}
@@ -492,11 +487,6 @@ func (st *Task) processChunkData(message net.Message) {
 			st.sendChainGetChunkMessage(chunkDataIndex)
 			return
 		}
-
-		/* 		logging.VLog().WithFields(logrus.Fields{
-			"received": chunkDataIndex,
-			"time":     time.Now().Unix() - startAt,
-		}).Debugf("Succeed to get chain chunk %d.", st.chainChunkDataProcessPosition) */
 
 		st.chainChunkDataProcessPosition++
 		chunk, ok = st.chainChunkData[st.chainChunkDataProcessPosition]

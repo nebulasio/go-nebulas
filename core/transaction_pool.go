@@ -206,10 +206,10 @@ func (pool *TransactionPool) GetTransaction(hash byteutils.Hash) *Transaction {
 // PushAndRelay push tx into pool and relay it
 func (pool *TransactionPool) PushAndRelay(tx *Transaction) error {
 	if err := pool.Push(tx); err != nil {
-		logging.CLog().WithFields(logrus.Fields{
+		logging.VLog().WithFields(logrus.Fields{
 			"tx":  tx,
 			"err": err,
-		}).Info("Failed to push tx")
+		}).Debug("Failed to push tx")
 		return err
 	}
 
@@ -332,9 +332,11 @@ func (pool *TransactionPool) dropTx() {
 			longestSlice = v
 		}
 	}
+
 	logging.VLog().WithFields(logrus.Fields{
 		"longestsize": longestLen,
-	}).Info("Drop tx from longest bucket.")
+	}).Debug("Drop tx from longest bucket.")
+
 	if longestLen > 0 {
 		drop := longestSlice.PopRight().(*Transaction)
 		if drop != nil {
@@ -403,7 +405,7 @@ func (pool *TransactionPool) Del(tx *Transaction) {
 
 			logging.VLog().WithFields(logrus.Fields{
 				"tx": "tx",
-			}).Info("Delete transaction.")
+			}).Debug("Delete transaction.")
 
 			if bucket.Len() > 0 {
 				left = bucket.Left().(*Transaction)

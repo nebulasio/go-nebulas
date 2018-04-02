@@ -82,7 +82,7 @@ func RequireDelegateFunc(handler unsafe.Pointer, filename *C.char, lineOffset *C
 	if e == nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"filename": id,
-		}).Debug("require delegate handler does not found.")
+		}).Error("require delegate handler does not found.")
 		return nil
 	}
 

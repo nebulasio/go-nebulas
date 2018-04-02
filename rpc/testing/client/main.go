@@ -21,6 +21,9 @@ package main
 import (
 	"io"
 	"log"
+	"time"
+
+	"github.com/nebulasio/go-nebulas/crypto/keystore"
 
 	"fmt"
 
@@ -33,8 +36,8 @@ import (
 // TODO: add command line flag.
 const (
 	//config = "../../../../config.pb.txt"
-	from  = "1a263547d167c74cf4b8f9166cfa244de0481c514a45aa2c"
-	to    = "2fe3f9f51f9a05dd5f7c5329127f7c917917149b4e16b0b8"
+	from  = "n1QZMXSZtW7BUerroSms4axNfyBGyFGkrh5"
+	to    = "n1Zn6iyyQRhqthmCfqGBzWfip1Wx8wEvtrJ"
 	value = 2
 )
 
@@ -98,13 +101,28 @@ func main() {
 		if err != nil {
 			log.Println("newUint128 failed:", err)
 		}
-		r, err := adc.SendTransaction(context.Background(), &rpcpb.TransactionRequest{From: from, To: to, Value: v.String(), Nonce: nonce + 1})
+
+		_, err = adc.UnlockAccount(context.Background(), &rpcpb.UnlockAccountRequest{
+			Address: from, Passphrase: "passphrase", Duration: uint64(keystore.DefaultUnlockDuration),
+		})
+		if err != nil {
+			log.Println("UnlockAccount failed:", err)
+		} else {
+			log.Println("UnlockAccount", from)
+		}
+
+		r, err := adc.SendTransaction(context.Background(), &rpcpb.TransactionRequest{
+			From: from, To: to, Value: v.String(), Nonce: nonce + 1,
+			GasPrice: "2000000", GasLimit: "1000000",
+		})
 		if err != nil {
 			log.Println("SendTransaction failed:", err)
 		} else {
 			log.Println("SendTransaction", from, "->", to, "value", value, r)
 		}
 	}
+
+	time.Sleep(40 * time.Second)
 
 	{
 		var val *util.Uint128

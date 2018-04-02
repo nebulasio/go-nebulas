@@ -257,17 +257,6 @@ func (s *Stream) WriteNebMessage(message *NebMessage) error {
 	err := s.Write(message.Content())
 	message.FlagWriteMessageAt()
 
-	/*
-		// debug logs.
-		logging.VLog().WithFields(logrus.Fields{
-			"stream":      s.String(),
-			"err":         err,
-			"checksum":    message.DataCheckSum(),
-			"messageName": message.MessageName(),
-			"latency(ms)": message.LatencyFromSendToWrite(),
-		}).Debugf("Written %s message to peer.", message.MessageName())
-	*/
-
 	return err
 }
 
@@ -383,17 +372,6 @@ func (s *Stream) readLoop() {
 			// remove data from buffer.
 			messageBuffer = messageBuffer[message.DataLength():]
 
-			/*
-				nowAt := time.Now().UnixNano()
-				logging.VLog().WithFields(logrus.Fields{
-					"messageName":                    message.MessageName(),
-					"checksum":                       message.DataCheckSum(),
-					"stream":                         s.String(),
-					"duration from Read(ms)":         (nowAt - readDataAt) / int64(time.Millisecond),
-					"duration from last Message(ms)": (nowAt - readAt) / int64(time.Millisecond),
-					"len(messageBuffer)":             len(messageBuffer),
-				}).Debugf("Received %s message from peer.", message.MessageName())
-			*/
 			// metrics.
 			metricsPacketsIn.Mark(1)
 			metricsBytesIn.Mark(int64(message.Length()))
