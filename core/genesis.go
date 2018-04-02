@@ -47,14 +47,16 @@ func LoadGenesisConf(filePath string) (*corepb.Genesis, error) {
 	if err != nil {
 		logging.CLog().WithFields(logrus.Fields{
 			"err": err,
-		}).Info("Failed to read the genesis config file.")
+		}).Error("Failed to read the genesis config file.")
 		return nil, err
 	}
 	content := string(b)
 
 	genesis := new(corepb.Genesis)
 	if err := proto.UnmarshalText(content, genesis); err != nil {
-		logging.CLog().Fatalf("genesis.conf parse failed. err:%v", err)
+		logging.CLog().WithFields(logrus.Fields{
+			"err": err,
+		}).Error("Failed to parse genesis file.")
 		return nil, err
 	}
 	return genesis, nil

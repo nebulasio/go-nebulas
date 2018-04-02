@@ -230,7 +230,7 @@ func (sm *StreamManager) CloseStream(peerID string, reason error) {
 func (sm *StreamManager) cleanup() {
 
 	if sm.activePeersCount < MaxStreamNum {
-		logging.CLog().WithFields(logrus.Fields{
+		logging.VLog().WithFields(logrus.Fields{
 			"maxNum":      MaxStreamNum,
 			"reservedNum": ReservedStreamNum,
 			"currentNum":  sm.activePeersCount,
@@ -281,7 +281,7 @@ func (sm *StreamManager) cleanup() {
 	}
 
 	sort.Sort(sort.Reverse(svs))
-	logging.CLog().WithFields(logrus.Fields{
+	logging.VLog().WithFields(logrus.Fields{
 		"maxNum":           MaxStreamNum,
 		"reservedNum":      ReservedStreamNum,
 		"currentNum":       sm.activePeersCount,

@@ -65,7 +65,7 @@ type Server struct {
 func NewServer(neblet core.Neblet) *Server {
 	cfg := neblet.Config().Rpc
 	if cfg == nil {
-		logging.CLog().Fatalf("config.conf should has rpc")
+		logging.CLog().Fatal("Failed to find rpc config in config file.")
 	}
 	rpc := grpc.NewServer(grpc.StreamInterceptor(grpc_middleware.ChainStreamServer(loggingStream)),
 		grpc.UnaryInterceptor(grpc_middleware.ChainUnaryServer(loggingUnary)))

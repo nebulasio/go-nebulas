@@ -229,7 +229,7 @@ func (bc *BlockChain) CheckGenesisConfig(neb Neblet) error {
 			return ErrInvalidConfigChainID
 		}
 	} else if neb.Genesis() == nil && err != nil {
-		logging.CLog().Fatalf("not found genesis.conf")
+		logging.CLog().Fatal("Failed to find genesis config in config file")
 	} else if neb.Genesis() != nil && err != nil {
 		//first start
 		if neb.Config().Chain.ChainId != neb.Genesis().Meta.ChainId {
@@ -561,7 +561,7 @@ func (bc *BlockChain) putVerifiedNewBlocks(parent *Block, allBlocks, tailBlocks 
 			logging.VLog().WithFields(logrus.Fields{
 				"block": v,
 				"err":   err,
-			}).Error("Failed to store the verified block.")
+			}).Debug("Failed to store the verified block.")
 			return err
 		}
 

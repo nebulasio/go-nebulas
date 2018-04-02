@@ -22,8 +22,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/nebulasio/go-nebulas/util/logging"
-
 	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/common/trie"
 	"github.com/nebulasio/go-nebulas/core/pb"
@@ -206,7 +204,6 @@ type accountState struct {
 func NewAccountState(root byteutils.Hash, storage storage.Storage) (AccountState, error) {
 	stateTrie, err := trie.NewTrie(root, storage, false)
 	if err != nil {
-		logging.CLog().Info("NASE 1", err)
 		return nil, err
 	}
 

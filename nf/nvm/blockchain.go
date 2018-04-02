@@ -120,7 +120,7 @@ func GetAccountStateFunc(handler unsafe.Pointer, address *C.char, gasCnt *C.size
 func TransferFunc(handler unsafe.Pointer, to *C.char, v *C.char, gasCnt *C.size_t) int {
 	engine, _ := getEngineByStorageHandler(uint64(uintptr(handler)))
 	if engine == nil || engine.ctx.block == nil {
-		logging.VLog().Error("get engine failed!")
+		logging.VLog().Error("Failed to get engine.")
 		return TransferGetEngineErr
 	}
 
@@ -132,7 +132,7 @@ func TransferFunc(handler unsafe.Pointer, to *C.char, v *C.char, gasCnt *C.size_
 		logging.VLog().WithFields(logrus.Fields{
 			"handler": uint64(uintptr(handler)),
 			"key":     C.GoString(to),
-		}).Error("TransferFunc parse address failed.")
+		}).Debug("TransferFunc parse address failed.")
 		return TransferAddressParseErr
 	}
 
@@ -142,7 +142,7 @@ func TransferFunc(handler unsafe.Pointer, to *C.char, v *C.char, gasCnt *C.size_
 			"handler": uint64(uintptr(handler)),
 			"address": addr,
 			"err":     err,
-		}).Error("GetAccountStateFunc get account state failed.")
+		}).Debug("GetAccountStateFunc get account state failed.")
 		return TransferGetAccountErr
 	}
 
@@ -152,7 +152,7 @@ func TransferFunc(handler unsafe.Pointer, to *C.char, v *C.char, gasCnt *C.size_
 			"handler": uint64(uintptr(handler)),
 			"address": addr,
 			"err":     err,
-		}).Error("GetAmountFunc get amount failed.")
+		}).Debug("GetAmountFunc get amount failed.")
 		return TransferStringToBigIntErr
 	}
 
@@ -164,7 +164,7 @@ func TransferFunc(handler unsafe.Pointer, to *C.char, v *C.char, gasCnt *C.size_
 				"handler": uint64(uintptr(handler)),
 				"key":     C.GoString(to),
 				"err":     err,
-			}).Error("TransferFunc SubBalance failed.")
+			}).Debug("TransferFunc SubBalance failed.")
 			return TransferSubBalance
 		}
 
@@ -175,7 +175,7 @@ func TransferFunc(handler unsafe.Pointer, to *C.char, v *C.char, gasCnt *C.size_
 				"amount":  amount,
 				"address": addr,
 				"err":     err,
-			}).Error("failed to add balance")
+			}).Debug("failed to add balance")
 			return TransferAddBalance
 		}
 	}

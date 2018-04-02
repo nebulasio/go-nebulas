@@ -177,7 +177,7 @@ func NewNebMessage(chainID uint32, reserved []byte, version byte, messageName st
 			"messageName": messageName,
 			"dataLength":  len(data),
 			"limits":      MaxNebMessageDataLength,
-		}).Error("Exceeded max data length.")
+		}).Debug("Exceeded max data length.")
 		return nil, ErrExceedMaxDataLength
 	}
 
@@ -186,7 +186,7 @@ func NewNebMessage(chainID uint32, reserved []byte, version byte, messageName st
 			"messageName":      messageName,
 			"len(messageName)": len(messageName),
 			"limits":           MaxNebMessageNameLength,
-		}).Error("Exceeded max message name length.")
+		}).Debug("Exceeded max message name length.")
 		return nil, ErrExceedMaxMessageNameLength
 
 	}

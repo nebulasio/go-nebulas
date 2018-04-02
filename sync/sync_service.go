@@ -172,7 +172,7 @@ func (ss *Service) startLoop() {
 			default:
 				logging.VLog().WithFields(logrus.Fields{
 					"messageName": message.MessageType(),
-				}).Debug("Received unknown message.")
+				}).Warn("Received unknown message.")
 			}
 		}
 	}

@@ -390,14 +390,18 @@ func (block *Block) Begin() error {
 // Commit a batch task
 func (block *Block) Commit() {
 	if err := block.WorldState().Commit(); err != nil {
-		logging.VLog().Fatal(err)
+		logging.VLog().WithFields(logrus.Fields{
+			"err": err,
+		}).Fatal("Failed to commit the block")
 	}
 }
 
 // RollBack a batch task
 func (block *Block) RollBack() {
 	if err := block.WorldState().RollBack(); err != nil {
-		logging.VLog().Fatal(err)
+		logging.VLog().WithFields(logrus.Fields{
+			"err": err,
+		}).Fatal("Failed to rollback the block")
 	}
 }
 
@@ -619,14 +623,6 @@ func (block *Block) CollectTransactions(deadlineInMs int64) {
 					unpacked++
 					conflict++
 
-					/* 					if err := txWorldState.Close(); err != nil {
-						logging.VLog().WithFields(logrus.Fields{
-							"block": block,
-							"tx":    tx,
-							"err":   err,
-						}).Debug("Failed to close tx.")
-					} */
-
 					if err := pool.Push(tx); err != nil {
 						logging.VLog().WithFields(logrus.Fields{
 							"block": block,
@@ -706,7 +702,7 @@ func (block *Block) CollectTransactions(deadlineInMs int64) {
 		"core-packing": execute + prepare + update,
 		"packed":       len(block.transactions),
 		"dag":          block.dependency,
-	}).Info("CollectTransactions")
+	}).Debug("CollectTransactions")
 }
 
 // Sealed return true if block seals. Otherwise return false.
@@ -804,7 +800,7 @@ func (block *Block) VerifyExecution() error {
 		"diff-verify":  commitAt - executedAt,
 		"block":        block,
 		"txs":          len(block.Transactions()),
-	}).Info("Verify txs.")
+	}).Debug("Verify txs.")
 
 	return nil
 }
@@ -967,7 +963,7 @@ func (block *Block) execute() error {
 			"dag": block.dependency.String(),
 			"txs": transactions,
 			"err": err,
-		}).Info("block verfiy txs err")
+		}).Debug("Failed to verify txs in block.")
 		return err
 	}
 	end := time.Now().UnixNano()
@@ -1037,7 +1033,7 @@ func (block *Block) FetchExecutionResultEvent(txHash byteutils.Hash) (*state.Eve
 			logging.VLog().WithFields(logrus.Fields{
 				"tx":     txHash,
 				"events": events,
-			}).Error("Failed to locate the result event")
+			}).Debug("Failed to locate the result event")
 			return nil, ErrInvalidTransactionResultEvent
 		}
 		return event, nil
@@ -1074,21 +1070,17 @@ func (block *Block) rewardCoinbaseForGas() error {
 func transfer(from, to byteutils.Hash, value *util.Uint128, ws WorldState) (bool, error) {
 	fromAcc, err := ws.GetOrCreateUserAccount(from)
 	if err != nil {
-		logging.VLog().Info("AEE 13")
 		return true, err
 	}
 	toAcc, err := ws.GetOrCreateUserAccount(to)
 	if err != nil {
-		logging.VLog().Info("AEE 14")
 		return true, err
 	}
 	if err := fromAcc.SubBalance(value); err != nil {
-		logging.VLog().Info("AEE 15")
 		// Balance is not enough to transfer the value, won't giveback the tx
 		return false, err
 	}
 	if err := toAcc.AddBalance(value); err != nil {
-		logging.VLog().Info("AEE 16")
 		// Balance plus value result in overflow, won't giveback the tx
 		return false, err
 	}
@@ -1105,7 +1097,7 @@ func (block *Block) ExecuteTransaction(tx *Transaction, ws WorldState) (bool, er
 		logging.VLog().WithFields(logrus.Fields{
 			"tx":  tx,
 			"err": err,
-		}).Info("Failed to check transaction")
+		}).Debug("Failed to check transaction")
 		return giveback, err
 	}
 
@@ -1113,7 +1105,7 @@ func (block *Block) ExecuteTransaction(tx *Transaction, ws WorldState) (bool, er
 		logging.VLog().WithFields(logrus.Fields{
 			"tx":  tx,
 			"err": err,
-		}).Info("Failed to verify transaction execution")
+		}).Debug("Failed to verify transaction execution")
 		return giveback, err
 	}
 
@@ -1121,7 +1113,7 @@ func (block *Block) ExecuteTransaction(tx *Transaction, ws WorldState) (bool, er
 		logging.VLog().WithFields(logrus.Fields{
 			"tx":  tx,
 			"err": err,
-		}).Info("Failed to accept transaction")
+		}).Debug("Failed to accept transaction")
 		return giveback, err
 	}
 
