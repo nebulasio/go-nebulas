@@ -75,10 +75,10 @@ git checkout testnet
 make dep
 ```
 
-4. Install dependent v8 libraries.
+4. Install dependent libraries.
 
 ```bash
-make deploy-v8
+make deploy-libs
 ```
 
 5. Build the neb binary.
