@@ -36,10 +36,16 @@ The project is under active development. Its default branch is _develop_.
 cd github.com/nebulasio/go-nebulas
 ```
 
-New users may want to checkout and use the stable _master_ release.
+New users may want to checkout and use the stable mainnet release in __master__.
 
 ```bash
 git checkout master
+```
+
+Or use the stable testnet release in __testnet__.
+
+```bash
+git checkout testnet
 ```
 
 2. Install rocksdb dependencies.
