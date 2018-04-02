@@ -40,13 +40,13 @@ func TestBlockChain_FindCommonAncestorWithTail(t *testing.T) {
 	neb := testNeb(t)
 	bc := neb.chain
 
-	coinbase12, _ := AddressParse("n1FkntVUMPAsESuCAAPK711omQk19JotBjM")
-	coinbase11, _ := AddressParse("n1JNHZJEUvfBYfjDRD14Q73FX62nJAzXkMR")
-	coinbase221, _ := AddressParse("n1Kjom3J4KPsHKKzZ2xtt8Lc9W5pRDjeLcW")
-	coinbase111, _ := AddressParse("n1TV3sU6jyzR4rJ1D7jCAmtVGSntJagXZHC")
-	coinbase222, _ := AddressParse("n1WwqBXVMuYC3mFCEEuFFtAXad6yxqj4as4")
-	coinbase1111, _ := AddressParse("n1Zn6iyyQRhqthmCfqGBzWfip1Wx8wEvtrJ")
-	coinbase11111, _ := AddressParse("n1Zn6iyyQRhqthmCfqGBzWfip1Wx8wEvtrJ")
+	coinbase12, _ := AddressParse("n1FF1nz6tarkDVwWQkMnnwFPuPKUaQTdptE")
+	coinbase11, _ := AddressParse("n1GmkKH6nBMw4rrjt16RrJ9WcgvKUtAZP1s")
+	coinbase221, _ := AddressParse("n1H4MYms9F55ehcvygwWE71J8tJC4CRr2so")
+	coinbase111, _ := AddressParse("n1JAy4X6KKLCNiTd7MWMRsVBjgdVq5WCCpf")
+	coinbase222, _ := AddressParse("n1LkDi2gGMqPrjYcczUiweyP4RxTB6Go1qS")
+	coinbase1111, _ := AddressParse("n1LmP9K8pFF33fgdgHZonFEMsqZinJ4EUqk")
+	coinbase11111, _ := AddressParse("n1MNXBKm6uJ5d76nJTdRvkPNVq85n6CnXAi")
 
 	//add from reward
 	block0, _ := bc.NewBlock(coinbase11)
@@ -178,7 +178,7 @@ func TestSetTailBlockEvent(t *testing.T) {
 	bc := neb.chain
 	bc.eventEmitter.Start()
 
-	coinbase, _ := AddressParse("n1JNHZJEUvfBYfjDRD14Q73FX62nJAzXkMR")
+	coinbase, _ := AddressParse("n1FF1nz6tarkDVwWQkMnnwFPuPKUaQTdptE")
 
 	block0, err := bc.NewBlock(coinbase)
 	assert.Nil(t, err)
