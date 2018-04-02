@@ -65,7 +65,7 @@ func parseStorageKey(key string) (string, string, error) {
 func StorageGetFunc(handler unsafe.Pointer, key *C.char, gasCnt *C.size_t) *C.char {
 	_, storage := getEngineByStorageHandler(uint64(uintptr(handler)))
 	if storage == nil {
-		logging.VLog().Error("get storage failed!")
+		logging.VLog().Error("Failed to get storage handler.")
 		return nil
 	}
 
@@ -80,7 +80,7 @@ func StorageGetFunc(handler unsafe.Pointer, key *C.char, gasCnt *C.size_t) *C.ch
 			"handler": uint64(uintptr(handler)),
 			"key":     k,
 			"err":     err,
-		}).Error("invalid storage key.")
+		}).Debug("Invalid storage key.")
 		return nil
 	}
 
@@ -91,7 +91,7 @@ func StorageGetFunc(handler unsafe.Pointer, key *C.char, gasCnt *C.size_t) *C.ch
 				"handler": uint64(uintptr(handler)),
 				"key":     k,
 				"err":     err,
-			}).Error("StorageGetFunc get key failed.")
+			}).Debug("StorageGetFunc get key failed.")
 		}
 		return nil
 	}
@@ -104,6 +104,7 @@ func StorageGetFunc(handler unsafe.Pointer, key *C.char, gasCnt *C.size_t) *C.ch
 func StoragePutFunc(handler unsafe.Pointer, key *C.char, value *C.char, gasCnt *C.size_t) int {
 	_, storage := getEngineByStorageHandler(uint64(uintptr(handler)))
 	if storage == nil {
+		logging.VLog().Error("Failed to get storage handler.")
 		return 1
 	}
 
@@ -119,7 +120,7 @@ func StoragePutFunc(handler unsafe.Pointer, key *C.char, value *C.char, gasCnt *
 			"handler": uint64(uintptr(handler)),
 			"key":     k,
 			"err":     err,
-		}).Error("invalid storage key.")
+		}).Debug("Invalid storage key.")
 		return 1
 	}
 
@@ -129,7 +130,7 @@ func StoragePutFunc(handler unsafe.Pointer, key *C.char, value *C.char, gasCnt *
 			"handler": uint64(uintptr(handler)),
 			"key":     k,
 			"err":     err,
-		}).Error("StoragePutFunc put key failed.")
+		}).Debug("StoragePutFunc put key failed.")
 		return 1
 	}
 
@@ -141,6 +142,7 @@ func StoragePutFunc(handler unsafe.Pointer, key *C.char, value *C.char, gasCnt *
 func StorageDelFunc(handler unsafe.Pointer, key *C.char, gasCnt *C.size_t) int {
 	_, storage := getEngineByStorageHandler(uint64(uintptr(handler)))
 	if storage == nil {
+		logging.VLog().Error("Failed to get storage handler.")
 		return 1
 	}
 
@@ -155,7 +157,7 @@ func StorageDelFunc(handler unsafe.Pointer, key *C.char, gasCnt *C.size_t) int {
 			"handler": uint64(uintptr(handler)),
 			"key":     k,
 			"err":     err,
-		}).Error("invalid storage key.")
+		}).Debug("invalid storage key.")
 		return 1
 	}
 
@@ -165,7 +167,7 @@ func StorageDelFunc(handler unsafe.Pointer, key *C.char, gasCnt *C.size_t) int {
 			"handler": uint64(uintptr(handler)),
 			"key":     k,
 			"err":     err,
-		}).Error("StorageDelFunc del key failed.")
+		}).Debug("StorageDelFunc del key failed.")
 		return 1
 	}
 

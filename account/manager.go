@@ -322,7 +322,7 @@ func (m *Manager) SignHash(addr *core.Address, hash byteutils.Hash, alg keystore
 			"err":  err,
 			"addr": addr,
 			"hash": hash,
-		}).Error("sign address locked")
+		}).Error("Failed to get unlocked private key.")
 		return nil, ErrAccountIsLocked
 	}
 
@@ -351,10 +351,9 @@ func (m *Manager) SignTransaction(addr *core.Address, tx *core.Transaction) erro
 	key, err := m.ks.GetUnlocked(addr.String())
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
-			"func": "SignTransaction",
-			"err":  err,
-			"tx":   tx,
-		}).Error("transaction address locked")
+			"err": err,
+			"tx":  tx,
+		}).Error("Failed to get unlocked private key to sign transaction.")
 		return ErrAccountIsLocked
 	}
 
@@ -371,10 +370,9 @@ func (m *Manager) SignBlock(addr *core.Address, block *core.Block) error {
 	key, err := m.ks.GetUnlocked(addr.String())
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
-			"func":  "SignBlock",
 			"err":   err,
 			"block": block,
-		}).Error("block signer's address locked")
+		}).Error("Failed to get unlocked private key to sign block.")
 		return ErrAccountIsLocked
 	}
 
@@ -403,10 +401,9 @@ func (m *Manager) SignTransactionWithPassphrase(addr *core.Address, tx *core.Tra
 	key, err := m.ks.GetKey(addr.String(), passphrase)
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
-			"func": "SignTransactionWithPassphrase",
-			"err":  err,
-			"tx":   tx,
-		}).Error("transaction address get failed")
+			"err": err,
+			"tx":  tx,
+		}).Error("Failed to unlock private key to sign transaction")
 		return ErrAccountIsLocked
 	}
 	defer key.Clear()

@@ -196,7 +196,7 @@ func (dpos *Dpos) ForkChoice() error {
 		logging.VLog().WithFields(logrus.Fields{
 			"old tail": tailBlock,
 			"new tail": newTailBlock,
-		}).Info("Current tail is best, no need to change.")
+		}).Debug("Current tail is best, no need to change.")
 		return nil
 	}
 
@@ -206,7 +206,7 @@ func (dpos *Dpos) ForkChoice() error {
 			"new tail": newTailBlock,
 			"old tail": tailBlock,
 			"err":      err,
-		}).Error("Failed to set new tail block.")
+		}).Debug("Failed to set new tail block.")
 		return err
 	}
 
@@ -278,7 +278,7 @@ func (dpos *Dpos) UpdateLIB() {
 		"err":              "supported miners is not enough",
 		"miners.limit":     ConsensusSize,
 		"miners.supported": len(miners),
-	}).Warn("Failed to update latest irreversible block.")
+	}).Debug("Failed to update latest irreversible block.")
 }
 
 // Pending return if consensus can do mining now
@@ -305,11 +305,11 @@ func verifyBlockSign(miner *core.Address, block *core.Block) error {
 			"signer": signer,
 			"err":    err,
 			"block":  block,
-		}).Error("Failed to recover block's miner.")
+		}).Debug("Failed to recover block's miner.")
 		return err
 	}
 	if !miner.Equals(signer) {
-		logging.CLog().WithFields(logrus.Fields{
+		logging.VLog().WithFields(logrus.Fields{
 			"signer": signer,
 			"miner":  miner,
 			"block":  block,
@@ -419,11 +419,6 @@ func (dpos *Dpos) newBlock(tail *core.Block, consensusState state.ConsensusState
 		return nil, err
 	}
 
-	logging.CLog().WithFields(logrus.Fields{
-		"coinbase": dpos.coinbase,
-		"reward":   core.BlockReward,
-	}).Info("Rewarded the coinbase.")
-
 	block.WorldState().SetConsensusState(consensusState)
 	block.SetTimestamp(consensusState.TimeStamp())
 	block.CollectTransactions(deadlineInMs)
@@ -446,13 +441,13 @@ func (dpos *Dpos) newBlock(tail *core.Block, consensusState state.ConsensusState
 	}
 	endAt := time.Now().Unix()
 
-	logging.CLog().WithFields(logrus.Fields{
+	logging.VLog().WithFields(logrus.Fields{
 		"start": startAt,
 		"end":   endAt,
 		"diff":  endAt - startAt,
 		"block": block,
 		"txs":   len(block.Transactions()),
-	}).Info("Packed txs.")
+	}).Debug("Packed txs.")
 
 	return block, nil
 }

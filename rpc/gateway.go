@@ -118,13 +118,13 @@ func errorHandler(ctx context.Context, _ *runtime.ServeMux, marshaler runtime.Ma
 			logging.VLog().WithFields(logrus.Fields{
 				"error":        tmpErr,
 				"jsonFallback": jsonFallback,
-			}).Error("fall to marshal fallback msg")
+			}).Debug("Failed to marshal fallback msg")
 		}
 		_, tmpErr = w.Write(jsonFallback)
 		if tmpErr != nil {
 			logging.VLog().WithFields(logrus.Fields{
 				"error": tmpErr,
-			}).Error("fail to write fallback msg")
+			}).Debug("Failed to write fallback msg")
 		}
 	}
 }

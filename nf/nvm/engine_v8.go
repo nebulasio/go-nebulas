@@ -212,12 +212,12 @@ func (e *V8Engine) SetExecutionLimits(limitsOfExecutionInstructions, limitsOfTot
 	e.limitsOfTotalMemorySize = limitsOfTotalMemorySize
 
 	if limitsOfExecutionInstructions == 0 || limitsOfTotalMemorySize == 0 {
-		logging.VLog().Errorf("limit args has empty. limitsOfExecutionInstructions:%v,limitsOfTotalMemorySize:%d", limitsOfExecutionInstructions, limitsOfTotalMemorySize)
+		logging.VLog().Debugf("limit args has empty. limitsOfExecutionInstructions:%v,limitsOfTotalMemorySize:%d", limitsOfExecutionInstructions, limitsOfTotalMemorySize)
 		return ErrLimitHasEmpty
 	}
 	// V8 needs at least 6M heap memory.
 	if limitsOfTotalMemorySize > 0 && limitsOfTotalMemorySize < 6000000 {
-		logging.VLog().Warnf("V8 needs at least 6M (6000000) heap memory, your limitsOfTotalMemorySize (%d) is too low.", limitsOfTotalMemorySize)
+		logging.VLog().Debugf("V8 needs at least 6M (6000000) heap memory, your limitsOfTotalMemorySize (%d) is too low.", limitsOfTotalMemorySize)
 		return ErrSetMemorySmall
 	}
 	return nil
@@ -335,7 +335,7 @@ func (e *V8Engine) DeployAndInit(source, sourceType, args string) (string, error
 // Call function in a script
 func (e *V8Engine) Call(source, sourceType, function, args string) (string, error) {
 	if core.PublicFuncNameChecker.MatchString(function) == false {
-		logging.VLog().Errorf("function:%v", function)
+		logging.VLog().Debugf("Invalid function: %v", function)
 		return "", ErrDisallowCallNotStandardFunction
 	}
 	if strings.EqualFold("init", function) == true {
@@ -389,7 +389,7 @@ func (e *V8Engine) AddModule(id, source string, sourceLineOffset int) error {
 			if err != nil {
 				logging.VLog().WithFields(logrus.Fields{
 					"err": err,
-				}).Debug("inject tracing instruction failed.")
+				}).Debug("Failed to inject tracing instruction.")
 				return err
 			}
 
@@ -465,7 +465,6 @@ func getEngineByStorageHandler(handler uint64) (*V8Engine, Account) {
 
 	if engine == nil {
 		logging.VLog().WithFields(logrus.Fields{
-			"func":          "nvm.getEngineByStorageHandler",
 			"wantedHandler": handler,
 		}).Error("wantedHandler is not found.")
 		return nil, nil
@@ -479,7 +478,6 @@ func getEngineByStorageHandler(handler uint64) (*V8Engine, Account) {
 		// return engine, engine.ctx.owner
 	} else {
 		logging.VLog().WithFields(logrus.Fields{
-			"func":          "nvm.getEngineByStorageHandler",
 			"lcsHandler":    engine.lcsHandler,
 			"gcsHandler":    engine.gcsHandler,
 			"wantedHandler": handler,

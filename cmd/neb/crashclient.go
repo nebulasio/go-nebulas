@@ -92,7 +92,9 @@ func InitCrashReporter(conf *nebletpb.AppConfig) {
 	var buf = make([]byte, 10)
 	n, berror := conn.Read(buf)
 	if berror != nil {
-		logging.CLog().Fatalf("conn read error: %s", berror)
+		logging.CLog().WithFields(logrus.Fields{
+			"err": berror,
+		}).Fatal("Failed to read from conn")
 	}
 	rs := string(buf[:n])
 

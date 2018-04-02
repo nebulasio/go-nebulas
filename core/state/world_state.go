@@ -21,8 +21,6 @@ package state
 import (
 	"encoding/json"
 
-	"github.com/nebulasio/go-nebulas/util/logging"
-
 	"github.com/nebulasio/go-nebulas/consensus/pb"
 	"github.com/nebulasio/go-nebulas/util"
 
@@ -67,7 +65,6 @@ type states struct {
 }
 
 func newStates(consensus Consensus, stor storage.Storage) (*states, error) {
-	// logging.CLog().Info("WS New MVCCDB: ", nil)
 	changelog, err := newChangeLog()
 	if err != nil {
 		return nil, err
@@ -112,7 +109,6 @@ func newStates(consensus Consensus, stor storage.Storage) (*states, error) {
 }
 
 func (s *states) Replay(done *states) error {
-	// logging.CLog().Info("WS Replay MVCCDB: ", s.txid)
 	err := s.accState.Replay(done.accState)
 	if err != nil {
 		return err
@@ -177,36 +173,29 @@ func (s *states) ReplayEvent(done *states) error {
 }
 
 func (s *states) Clone() (*states, error) {
-	// logging.CLog().Info("WS Clone MVCCDB: ", s.txid)
 	changelog, err := newChangeLog()
 	if err != nil {
-		logging.CLog().Info("CE 1")
 		return nil, err
 	}
 	stateDB, err := newStateDB(s.innerDB)
 	if err != nil {
-		logging.CLog().Info("CE 2")
 		return nil, err
 	}
 
 	accState, err := NewAccountState(s.accState.RootHash(), stateDB)
 	if err != nil {
-		logging.CLog().Info("CE 3")
 		return nil, err
 	}
 	txsState, err := trie.NewTrie(s.txsState.RootHash(), stateDB, false)
 	if err != nil {
-		logging.CLog().Info("CE 4")
 		return nil, err
 	}
 	eventsState, err := trie.NewTrie(s.eventsState.RootHash(), stateDB, false)
 	if err != nil {
-		logging.CLog().Info("CE 5")
 		return nil, err
 	}
 	consensusState, err := s.consensus.NewState(s.consensusState.RootHash(), stateDB, false)
 	if err != nil {
-		logging.CLog().Info("CE 6")
 		return nil, err
 	}
 
@@ -228,20 +217,16 @@ func (s *states) Clone() (*states, error) {
 }
 
 func (s *states) Begin() error {
-	// logging.CLog().Info("WS Begin MVCCDB: ", s.txid)
 	if err := s.changelog.Begin(); err != nil {
-		logging.CLog().Info("BE 11")
 		return err
 	}
 	if err := s.stateDB.Begin(); err != nil {
-		logging.CLog().Info("BE 12")
 		return err
 	}
 	return nil
 }
 
 func (s *states) Commit() error {
-	// logging.CLog().Info("WS Commit MVCCDB: ", s.txid)
 	if err := s.Flush(); err != nil {
 		return err
 	}
@@ -260,7 +245,6 @@ func (s *states) Commit() error {
 }
 
 func (s *states) RollBack() error {
-	// logging.CLog().Info("WS Rollback MVCCDB: ", s.txid)
 	if err := s.Abort(); err != nil {
 		return err
 	}
@@ -277,15 +261,12 @@ func (s *states) RollBack() error {
 }
 
 func (s *states) Prepare(txid interface{}) (*states, error) {
-	// logging.CLog().Info("WS Prepare MVCCDB: ", txid)
 	changelog, err := s.changelog.Prepare(txid)
 	if err != nil {
-		logging.VLog().Info("PPE 11")
 		return nil, err
 	}
 	stateDB, err := s.stateDB.Prepare(txid)
 	if err != nil {
-		logging.VLog().Info("PPE 12")
 		return nil, err
 	}
 
@@ -330,15 +311,12 @@ func (s *states) Prepare(txid interface{}) (*states, error) {
 }
 
 func (s *states) CheckAndUpdateTo(parent *states) ([]interface{}, error) {
-	// logging.CLog().Info("WS CheckAndUpdateTo MVCCDB: ", s.txid)
 	dependency, err := s.changelog.CheckAndUpdate()
 	if err != nil {
-		logging.VLog().Info("CUE 11")
 		return nil, err
 	}
 	_, err = s.stateDB.CheckAndUpdate()
 	if err != nil {
-		logging.VLog().Info("CUE 12")
 		return nil, err
 	}
 	if err := parent.Replay(s); err != nil {
@@ -348,13 +326,10 @@ func (s *states) CheckAndUpdateTo(parent *states) ([]interface{}, error) {
 }
 
 func (s *states) Reset() error {
-	// logging.CLog().Info("WS Reset MVCCDB: ", s.txid)
 	if err := s.changelog.Reset(); err != nil {
-		logging.VLog().Info("RSE 11")
 		return err
 	}
 	if err := s.stateDB.Reset(); err != nil {
-		logging.VLog().Info("RSE 12")
 		return err
 	}
 	if err := s.Abort(); err != nil {
@@ -364,13 +339,10 @@ func (s *states) Reset() error {
 }
 
 func (s *states) Close() error {
-	// logging.CLog().Info("WS Close MVCCDB: ", s.txid)
 	if err := s.changelog.Close(); err != nil {
-		logging.VLog().Info("CSE 11")
 		return err
 	}
 	if err := s.stateDB.Close(); err != nil {
-		logging.VLog().Info("CSE 12")
 		return err
 	}
 	if err := s.Abort(); err != nil {
@@ -410,7 +382,6 @@ func (s *states) Abort() error {
 
 func (s *states) recordAccount(acc Account) (Account, error) {
 	if err := s.changelog.Put(acc.Address(), acc.Address()); err != nil {
-		logging.VLog().Info("RAE 3")
 		return nil, err
 	}
 	return acc, nil
@@ -419,7 +390,6 @@ func (s *states) recordAccount(acc Account) (Account, error) {
 func (s *states) GetOrCreateUserAccount(addr byteutils.Hash) (Account, error) {
 	acc, err := s.accState.GetOrCreateUserAccount(addr)
 	if err != nil {
-		logging.VLog().Info("GCUE 1")
 		return nil, err
 	}
 	return s.recordAccount(acc)
@@ -428,7 +398,6 @@ func (s *states) GetOrCreateUserAccount(addr byteutils.Hash) (Account, error) {
 func (s *states) GetContractAccount(addr byteutils.Hash) (Account, error) {
 	acc, err := s.accState.GetContractAccount(addr)
 	if err != nil {
-		logging.VLog().Info("GCE 1")
 		return nil, err
 	}
 	if len(acc.BirthPlace()) == 0 {
@@ -440,7 +409,6 @@ func (s *states) GetContractAccount(addr byteutils.Hash) (Account, error) {
 func (s *states) CreateContractAccount(owner byteutils.Hash, birthPlace byteutils.Hash) (Account, error) {
 	acc, err := s.accState.CreateContractAccount(owner, birthPlace)
 	if err != nil {
-		logging.VLog().Info("CCE 1")
 		return nil, err
 	}
 	return s.recordAccount(acc)
@@ -449,7 +417,6 @@ func (s *states) CreateContractAccount(owner byteutils.Hash, birthPlace byteutil
 func (s *states) GetTx(txHash byteutils.Hash) ([]byte, error) {
 	bytes, err := s.txsState.Get(txHash)
 	if err != nil {
-		logging.VLog().Info("GTE 11")
 		return nil, err
 	}
 	return bytes, nil
@@ -458,7 +425,6 @@ func (s *states) GetTx(txHash byteutils.Hash) ([]byte, error) {
 func (s *states) PutTx(txHash byteutils.Hash, txBytes []byte) error {
 	_, err := s.txsState.Put(txHash, txBytes)
 	if err != nil {
-		logging.VLog().Info("PTE 11")
 		return err
 	}
 	return nil
@@ -481,20 +447,17 @@ func (s *states) FetchEvents(txHash byteutils.Hash) ([]*Event, error) {
 	if err == nil {
 		exist, err := iter.Next()
 		if err != nil {
-			logging.VLog().Info("FEE 11")
 			return nil, err
 		}
 		for exist {
 			event := new(Event)
 			err = json.Unmarshal(iter.Value(), event)
 			if err != nil {
-				logging.VLog().Info("FEE 12")
 				return nil, err
 			}
 			events = append(events, event)
 			exist, err = iter.Next()
 			if err != nil {
-				logging.VLog().Info("FEE 14")
 				return nil, err
 			}
 		}
@@ -605,11 +568,9 @@ func (ws *worldState) Clone() (WorldState, error) {
 func (ws *worldState) Begin() error {
 	snapshot, err := ws.states.Clone()
 	if err != nil {
-		logging.CLog().Info("BE 1")
 		return err
 	}
 	if err := ws.states.Begin(); err != nil {
-		logging.CLog().Info("BE 2", err)
 		return err
 	}
 	ws.snapshot = snapshot
@@ -618,7 +579,6 @@ func (ws *worldState) Begin() error {
 
 func (ws *worldState) Commit() error {
 	if err := ws.states.Commit(); err != nil {
-		logging.CLog().Info("CE 1")
 		return err
 	}
 	ws.snapshot = nil
@@ -627,7 +587,6 @@ func (ws *worldState) Commit() error {
 
 func (ws *worldState) RollBack() error {
 	if err := ws.states.RollBack(); err != nil {
-		logging.CLog().Info("RE 1")
 		return err
 	}
 	ws.states = ws.snapshot
@@ -638,7 +597,6 @@ func (ws *worldState) RollBack() error {
 func (ws *worldState) Prepare(txid interface{}) (TxWorldState, error) {
 	s, err := ws.states.Prepare(txid)
 	if err != nil {
-		logging.VLog().Info("PPE 1")
 		return nil, err
 	}
 	txState := &txWorldState{
@@ -666,7 +624,6 @@ type txWorldState struct {
 func (tws *txWorldState) CheckAndUpdate() ([]interface{}, error) {
 	dependencies, err := tws.states.CheckAndUpdateTo(tws.parent.states)
 	if err != nil {
-		logging.VLog().Info("CUE 1")
 		return nil, err
 	}
 	tws.parent = nil
@@ -675,7 +632,6 @@ func (tws *txWorldState) CheckAndUpdate() ([]interface{}, error) {
 
 func (tws *txWorldState) Reset() error {
 	if err := tws.states.Reset(); err != nil {
-		logging.VLog().Info("RSE 1")
 		return err
 	}
 	return nil
@@ -683,7 +639,6 @@ func (tws *txWorldState) Reset() error {
 
 func (tws *txWorldState) Close() error {
 	if err := tws.states.Close(); err != nil {
-		logging.VLog().Info("CSE 1")
 		return err
 	}
 	tws.parent = nil

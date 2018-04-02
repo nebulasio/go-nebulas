@@ -11,8 +11,6 @@ import (
 
 	peer "github.com/libp2p/go-libp2p-peer"
 	ma "github.com/multiformats/go-multiaddr"
-	"github.com/nebulasio/go-nebulas/util/logging"
-	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -86,11 +84,6 @@ func run() {
 
 func cleanup(sm *StreamManager) {
 	if sm.activePeersCount < maxstreamnumber {
-		logging.CLog().WithFields(logrus.Fields{
-			"maxNum":      maxstreamnumber,
-			"reservedNum": reservednumber,
-			"currentNum":  sm.activePeersCount,
-		}).Debug("No need for streams cleanup.")
 		return
 	}
 

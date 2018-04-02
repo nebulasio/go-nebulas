@@ -157,7 +157,7 @@ func (emitter *EventEmitter) loop() {
 				default:
 					logging.VLog().WithFields(logrus.Fields{
 						"topic": topic,
-					}).Debug("timeout to dispatch event.")
+					}).Warn("timeout to dispatch event.")
 				}
 				return true
 			})
