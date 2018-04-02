@@ -13,61 +13,37 @@ var Unit = Wallet.Unit;
 var expect = require('chai').expect;
 var BigNumber = require('bignumber.js');
 var FS = require("fs");
+var TestNetConfig = require("../testnet_config.js");
 
-var neb = new Neb();
-var coinbase,
-    coinState,
-    ChainID,
-    sourceAccount,
-    from,
-    fromState,
-    contractAddr,
-    initFromBalance = 10;
+//mocha cases/contract/contract.deploy.test.js testneb2 -t 200000
 
-// mocha cases/contract/xxx testneb1 -t 200000
 var args = process.argv.splice(2);
 var env = args[1];
 if (env !== "local" && env !== "testneb1" && env !== "testneb2" && env !== "testneb3" && env !== "maintest") {
     env = "local";
 }
+var testNetConfig = new TestNetConfig(env);
 
-console.log("env:", env);
+var coinState,
+    from,
+    fromState,
+    contractAddr,
+    initFromBalance = 10;
 
-if (env === 'local'){
-    neb.setRequest(new HttpRequest("http://127.0.0.1:8685"));//https://testnet.nebulas.io
-    ChainID = 100;
-    sourceAccount = new Wallet.Account("d80f115bdbba5ef215707a8d7053c16f4e65588fd50b0f83369ad142b99891b5");
-    coinbase = "n1QZMXSZtW7BUerroSms4axNfyBGyFGkrh5";
-}else if (env === 'testneb1') {
-    console.log("testnet1 is unvaliable");
-    return
-    neb.setRequest(new HttpRequest("http://35.182.48.19:8685"));
-    ChainID = 1001;
-    sourceAccount = new Wallet.Account("43181d58178263837a9a6b08f06379a348a5b362bfab3631ac78d2ac771c5df3");
-    coinbase = "0b9cd051a6d7129ab44b17833c63fe4abead40c3714cde6d";
-} else if (env === "testneb2") {
-    ChainID = 1002;
-    sourceAccount = new Wallet.Account("25a3a441a34658e7a595a0eda222fa43ac51bd223017d17b420674fb6d0a4d52");
-    coinbase = "n1SAeQRVn33bamxN4ehWUT7JGdxipwn8b17";
-    neb.setRequest(new HttpRequest("http://34.205.26.12:8685"));
-} else if (env === "testneb3") {
-    neb.setRequest(new HttpRequest("http://35.177.214.138:8685"));
-    ChainID = 1003;
-    sourceAccount = new Wallet.Account("25a3a441a34658e7a595a0eda222fa43ac51bd223017d17b420674fb6d0a4d52");
-    coinbase = "n1SAeQRVn33bamxN4ehWUT7JGdxipwn8b17";
-} else if (env === "maintest"){
-    ChainID = 2;
-    sourceAccount = new Wallet.Account("d2319a8a63b1abcb0cc6d4183198e5d7b264d271f97edf0c76cfdb1f2631848c");
-    coinbase = "n1dZZnqKGEkb1LHYsZRei1CH6DunTio1j1q";
-    neb.setRequest(new HttpRequest("http://54.149.15.132:8685"));
+var neb = new Neb();
+var ChainID = testNetConfig.ChainId;
+var sourceAccount = testNetConfig.sourceAccount;
+var coinbase = testNetConfig.coinbase;
+var apiEndPoint = testNetConfig.apiEndPoint;
+neb.setRequest(new HttpRequest(apiEndPoint));
 
-}
 
 
 /*
  * set this value according to the status of your testnet.
  * the smaller the value, the faster the test, with the risk of causing error
  */
+
 var maxCheckTime = 30;
 var checkTimes = 0;
 var beginCheckTime;
@@ -311,7 +287,7 @@ function prepare(done) {
 
 describe('contract deploy', function () {
  
-    it('normal deploy', function (done) {
+    it('111 normal deploy', function (done) {
 
         var testInput = {
             transferValue: 1,
@@ -1213,7 +1189,7 @@ describe('contract deploy', function () {
         });
     });
 
-    it('source type is wrong', function (done) { //todo: => canSubmitTx: false, (file: ".cc")
+    it('source type is wrong', function (done) { //todo: => canSubmitTx: false, (file: ".c")
         var testInput = {
             transferValue: 1,
             isSameAddr: true,
