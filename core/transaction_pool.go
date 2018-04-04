@@ -148,6 +148,9 @@ func (pool *TransactionPool) loop() {
 		case <-timerChan:
 			metricsReceivedTx.Update(int64(len(pool.receivedMessageCh)))
 			metricsCachedTx.Update(int64(len(pool.all)))
+			metricsBucketTx.Update(int64(len(pool.buckets)))
+			metricsCandidates.Update(int64(pool.candidates.Len()))
+
 		case <-pool.quitCh:
 			logging.CLog().WithFields(logrus.Fields{
 				"size": pool.size,
@@ -404,8 +407,11 @@ func (pool *TransactionPool) Del(tx *Transaction) {
 			delete(pool.all, left.Hash().Hex())
 
 			logging.VLog().WithFields(logrus.Fields{
-				"tx": "tx",
-			}).Debug("Delete transaction.")
+				"tx":         left.Hash().Hex(),
+				"size":       pool.size,
+				"poolsize":   len(pool.all),
+				"bucketsize": len(pool.buckets),
+			}).Debug("Delete transaction")
 
 			if bucket.Len() > 0 {
 				left = bucket.Left().(*Transaction)

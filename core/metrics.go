@@ -52,6 +52,8 @@ var (
 	// txpool metrics
 	metricsReceivedTx                      = metrics.NewGauge("neb.txpool.received")
 	metricsCachedTx                        = metrics.NewGauge("neb.txpool.cached")
+	metricsBucketTx                        = metrics.NewGauge("neb.txpool.bucket")
+	metricsCandidates                      = metrics.NewGauge("neb.txpool.candidates")
 	metricsInvalidTx                       = metrics.NewCounter("neb.txpool.invalid")
 	metricsDuplicateTx                     = metrics.NewCounter("neb.txpool.duplicate")
 	metricsTxPoolBelowGasPrice             = metrics.NewCounter("neb.txpool.below_gas_price")
