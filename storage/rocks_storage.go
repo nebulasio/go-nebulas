@@ -2,6 +2,7 @@ package storage
 
 import (
 	"sync"
+	"time"
 
 	"github.com/nebulasio/go-nebulas/util/byteutils"
 	"github.com/syndtr/goleveldb/leveldb/opt"
@@ -117,8 +118,12 @@ func (storage *RocksStorage) Flush() error {
 		return nil
 	}
 
+	startAt := time.Now().UnixNano()
+
 	wb := gorocksdb.NewWriteBatch()
 	defer wb.Destroy()
+
+	bl := len(storage.batchOpts)
 
 	for _, opt := range storage.batchOpts {
 		if opt.deleted {
@@ -129,7 +134,13 @@ func (storage *RocksStorage) Flush() error {
 	}
 	storage.batchOpts = make(map[string]*batchOpt)
 
-	return storage.db.Write(storage.wo, wb)
+	err := storage.db.Write(storage.wo, wb)
+
+	endAt := time.Now().UnixNano()
+	metricsRocksdbFlushTime.Update(endAt - startAt)
+	metricsRocksdbFlushLen.Update(int64(bl))
+
+	return err
 }
 
 // DisableBatch disable batch write.
