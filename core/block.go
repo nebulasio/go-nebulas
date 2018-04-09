@@ -1180,7 +1180,7 @@ func HashPbBlock(pbBlock *corepb.Block) (byteutils.Hash, error) {
 	if err := block.FromProto(pbBlock); err != nil {
 		return nil, err
 	}
-	return block.Hash(), nil
+	return block.calHash()
 }
 
 // LoadBlockFromStorage return a block from storage
