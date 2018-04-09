@@ -24,6 +24,7 @@ import (
 	"hash/crc32"
 	"time"
 
+	"github.com/golang/snappy"
 	byteutils "github.com/nebulasio/go-nebulas/util/byteutils"
 	"github.com/nebulasio/go-nebulas/util/logging"
 	"github.com/sirupsen/logrus"
@@ -172,6 +173,9 @@ func (message *NebMessage) Length() uint64 {
 
 // NewNebMessage new neb message
 func NewNebMessage(chainID uint32, reserved []byte, version byte, messageName string, data []byte) (*NebMessage, error) {
+	// compress message data.
+	data = snappy.Encode(nil, data)
+
 	if len(data) > MaxNebMessageDataLength {
 		logging.VLog().WithFields(logrus.Fields{
 			"messageName": messageName,

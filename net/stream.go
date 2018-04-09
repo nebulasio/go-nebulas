@@ -21,11 +21,12 @@ package net
 import (
 	"errors"
 	"fmt"
+	"hash/crc32"
 	"io"
 	"sync"
 	"time"
 
-	"github.com/nebulasio/go-nebulas/util/byteutils"
+	"github.com/golang/snappy"
 
 	"github.com/gogo/protobuf/proto"
 	libnet "github.com/libp2p/go-libp2p-net"
@@ -59,6 +60,7 @@ const (
 var (
 	ErrShouldCloseConnectionAndExitLoop = errors.New("should close connection and exit loop")
 	ErrStreamIsNotConnected             = errors.New("stream is not connected")
+	ErrUncompressMessageFailed          = errors.New("uncompress message failed")
 )
 
 // Stream define the structure of a stream in p2p network
@@ -444,11 +446,17 @@ func (s *Stream) handleMessage(message *NebMessage) error {
 	messageName := message.MessageName()
 	s.msgCount[messageName]++
 
+	// uncompress message data.
+	data, err := snappy.Decode(nil, message.Data())
+	if err != nil {
+		return ErrUncompressMessageFailed
+	}
+
 	switch messageName {
 	case HELLO:
-		return s.onHello(message)
+		return s.onHello(message, data)
 	case OK:
-		return s.onOk(message)
+		return s.onOk(message, data)
 	case BYE:
 		return s.onBye(message)
 	}
@@ -462,13 +470,12 @@ func (s *Stream) handleMessage(message *NebMessage) error {
 	case SYNCROUTE:
 		return s.onSyncRoute(message)
 	case ROUTETABLE:
-		return s.onRouteTable(message)
-	case RECVEDMSG:
-		return s.onRecvedMsg(message)
+		return s.onRouteTable(message, data)
 	default:
-		s.node.netService.PutMessage(NewBaseMessage(message.MessageName(), s.pid.Pretty(), message.Data()))
+		s.node.netService.PutMessage(NewBaseMessage(message.MessageName(), s.pid.Pretty(), data))
 		// record recv message.
-		RecordRecvMessage(s, message.DataCheckSum())
+		dataCheckSum := crc32.ChecksumIEEE(data)
+		RecordRecvMessage(s, dataCheckSum)
 	}
 
 	return nil
@@ -525,8 +532,8 @@ func (s *Stream) Hello() error {
 	return s.WriteProtoMessage(HELLO, msg)
 }
 
-func (s *Stream) onHello(message *NebMessage) error {
-	msg, err := netpb.HelloMessageFromProto(message.Data())
+func (s *Stream) onHello(message *NebMessage, data []byte) error {
+	msg, err := netpb.HelloMessageFromProto(data)
 	if err != nil {
 		return ErrShouldCloseConnectionAndExitLoop
 	}
@@ -562,8 +569,8 @@ func (s *Stream) Ok() error {
 	return s.WriteProtoMessage(OK, resp)
 }
 
-func (s *Stream) onOk(message *NebMessage) error {
-	msg, err := netpb.OKMessageFromProto(message.Data())
+func (s *Stream) onOk(message *NebMessage, data []byte) error {
+	msg, err := netpb.OKMessageFromProto(data)
 	if err != nil {
 		return ErrShouldCloseConnectionAndExitLoop
 	}
@@ -626,9 +633,9 @@ func (s *Stream) RouteTable() error {
 	return s.SendProtoMessage(ROUTETABLE, msg, MessagePriorityHigh)
 }
 
-func (s *Stream) onRouteTable(message *NebMessage) error {
+func (s *Stream) onRouteTable(message *NebMessage, data []byte) error {
 	peers := new(netpb.Peers)
-	if err := proto.Unmarshal(message.Data(), peers); err != nil {
+	if err := proto.Unmarshal(data, peers); err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"err": err,
 		}).Debug("Invalid Peers proto message.")
@@ -636,18 +643,6 @@ func (s *Stream) onRouteTable(message *NebMessage) error {
 	}
 
 	s.node.routeTable.AddPeers(s.node.ID(), peers)
-
-	return nil
-}
-
-// RecvedMsg send received msg
-func (s *Stream) RecvedMsg(hash uint32) error {
-	return s.SendMessage(RECVEDMSG, byteutils.FromUint32(hash), MessagePriorityHigh)
-}
-
-func (s *Stream) onRecvedMsg(message *NebMessage) error {
-	hash := byteutils.Uint32(message.Data())
-	RecordRecvMessage(s, hash)
 
 	return nil
 }
