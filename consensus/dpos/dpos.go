@@ -332,11 +332,13 @@ func (dpos *Dpos) VerifyBlock(block *core.Block) error {
 	}
 	// check double mint
 	if preBlock, exist := dpos.slot.Get(block.Timestamp()); exist {
-		logging.VLog().WithFields(logrus.Fields{
-			"curBlock": block,
-			"preBlock": preBlock.(*core.Block),
-		}).Warn("Found someone minted multiple blocks at same time.")
-		return ErrDoubleBlockMinted
+		if preBlock.(*core.Block).Hash().Equals(block.Hash()) == false {
+			logging.VLog().WithFields(logrus.Fields{
+				"curBlock": block,
+				"preBlock": preBlock.(*core.Block),
+			}).Warn("Found someone minted multiple blocks at same time.")
+			return ErrDoubleBlockMinted
+		}
 	}
 	// check proposer
 	miners, err := tail.WorldState().Dynasty()
