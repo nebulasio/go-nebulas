@@ -41,8 +41,10 @@ static char source_require_format[] =
 static RequireDelegate sRequireDelegate = NULL;
 
 static int readSource(Local<Context> context, const char *filename, char **data,
-                      size_t *lineOffset) {
-  if (strstr(filename, "\"") != NULL) {
+                      size_t *lineOffset)
+{
+  if (strstr(filename, "\"") != NULL)
+  {
     return -1;
   }
 
@@ -51,15 +53,18 @@ static int readSource(Local<Context> context, const char *filename, char **data,
   char *content = NULL;
 
   // try sRequireDelegate.
-  if (sRequireDelegate != NULL) {
+  if (sRequireDelegate != NULL)
+  {
     V8Engine *e = GetV8EngineInstance(context);
     content = sRequireDelegate(e, filename, lineOffset);
   }
 
-  if (content == NULL) {
+  if (content == NULL)
+  {
     size_t file_size = 0;
     content = readFile(filename, &file_size);
-    if (content == NULL) {
+    if (content == NULL)
+    {
       return 1;
     }
   }
@@ -72,34 +77,77 @@ static int readSource(Local<Context> context, const char *filename, char **data,
 }
 
 void NewNativeRequireFunction(Isolate *isolate,
-                              Local<ObjectTemplate> globalTpl) {
+                              Local<ObjectTemplate> globalTpl)
+{
   globalTpl->Set(String::NewFromUtf8(isolate, "_native_require"),
                  FunctionTemplate::New(isolate, RequireCallback),
                  static_cast<PropertyAttribute>(PropertyAttribute::DontDelete |
                                                 PropertyAttribute::ReadOnly));
 }
 
-void RequireCallback(const v8::FunctionCallbackInfo<v8::Value> &info) {
+void RequireCallback(const v8::FunctionCallbackInfo<v8::Value> &info)
+{
   Isolate *isolate = info.GetIsolate();
   Local<Context> context = isolate->GetCurrentContext();
-
-  if (info.Length() == 0) {
+  //isolate->ThrowException(Exception::Error(
+  //      String::NewFromUtf8(isolate, "begin test")));
+  //printf("============begin test\n");
+  if (info.Length() == 0)
+  {
     isolate->ThrowException(
         Exception::Error(String::NewFromUtf8(isolate, "require missing path")));
     return;
   }
 
   Local<Value> path = info[0];
-  if (!path->IsString()) {
+  if (!path->IsString())
+  {
     isolate->ThrowException(Exception::Error(
         String::NewFromUtf8(isolate, "require path must be string")));
     return;
   }
 
   String::Utf8Value filename(path);
+  if (filename.length() >= MAX_PATH_LEN)
+  {
+    isolate->ThrowException(Exception::Error(
+        String::NewFromUtf8(isolate, "require path length more")));
+    return;
+  }
+  if (strcmp(*filename, LIB_WHITE)) { //if have need update to array match
+    char *abPath = getAbsoluteByPath(*filename);
+    if (abPath == NULL) {
+      isolate->ThrowException(Exception::Error(
+          String::NewFromUtf8(isolate, "require path is not get absolutepath")));
+      return;
+    }
+    char cur_path[1024] = {0};
+    getcwd(cur_path, MAX_PATH_LEN);
+    //if (strncmp(abPath, cur_path, MAX_PATH_LEN - 1))
+    int cur_len = strlen(cur_path);
+    if (strncmp(abPath, cur_path, cur_len))
+    {
+      free(abPath);
+      isolate->ThrowException(Exception::Error(
+          String::NewFromUtf8(isolate, "require path is not in lib")));
+      return;
+    }
+    else
+    {
+      //
+    }
+    free(abPath);
+    if (!checkFile(*filename)) {
+      isolate->ThrowException(Exception::Error(
+          String::NewFromUtf8(isolate, "require path is not file")));
+      return;
+    }
+  }
+  
   char *data = NULL;
   size_t lineOffset = 0;
-  if (readSource(context, *filename, &data, &lineOffset)) {
+  if (readSource(context, *filename, &data, &lineOffset))
+  {
     char msg[512];
     snprintf(msg, 512, "require cannot find module '%s'", *filename);
     isolate->ThrowException(
@@ -110,9 +158,11 @@ void RequireCallback(const v8::FunctionCallbackInfo<v8::Value> &info) {
   ScriptOrigin sourceSrcOrigin(path, Integer::New(isolate, lineOffset));
   MaybeLocal<Script> script = Script::Compile(
       context, String::NewFromUtf8(isolate, data), &sourceSrcOrigin);
-  if (!script.IsEmpty()) {
+  if (!script.IsEmpty())
+  {
     MaybeLocal<Value> ret = script.ToLocalChecked()->Run(context);
-    if (!ret.IsEmpty()) {
+    if (!ret.IsEmpty())
+    {
       Local<Value> rr = ret.ToLocalChecked();
       info.GetReturnValue().Set(rr);
     }
@@ -121,6 +171,7 @@ void RequireCallback(const v8::FunctionCallbackInfo<v8::Value> &info) {
   free(static_cast<void *>(data));
 }
 
-void InitializeRequireDelegate(RequireDelegate delegate) {
+void InitializeRequireDelegate(RequireDelegate delegate)
+{
   sRequireDelegate = delegate;
 }

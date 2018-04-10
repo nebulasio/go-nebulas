@@ -22,6 +22,16 @@
 
 #include <stddef.h>
 
+#define MAX_PATH_LEN    1024
+
+#ifdef _WIN32
+    #define LIB_DIR     "\\lib"
+#else
+    #define LIB_DIR     "/lib"
+#endif //WIN32
+
 char *readFile(const char *filepath, size_t *size);
+char *getAbsoluteByPath(const char *filepath);
+bool checkFile(const char *file);
 
 #endif // _NEBULAS_NF_NVM_V8_LIB_FILE_H_

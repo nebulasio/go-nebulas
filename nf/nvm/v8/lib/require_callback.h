@@ -22,6 +22,7 @@
 #include <v8.h>
 
 using namespace v8;
+#define LIB_WHITE   "lib/contract.js"
 
 void NewNativeRequireFunction(Isolate *isolate,
                               Local<ObjectTemplate> globalTpl);
