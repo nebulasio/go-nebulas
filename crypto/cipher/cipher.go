@@ -18,11 +18,6 @@
 
 package cipher
 
-import (
-	"crypto/rand"
-	"io"
-)
-
 // Cipher encrypt cipher
 type Cipher struct {
 	encrypt Encrypt
@@ -58,14 +53,4 @@ func (c *Cipher) Decrypt(data []byte, passphrase []byte) ([]byte, error) {
 // DecryptKey decrypts a key, returning the private key itself.
 func (c *Cipher) DecryptKey(keyjson []byte, passphrase []byte) ([]byte, error) {
 	return c.encrypt.DecryptKey(keyjson, passphrase)
-}
-
-// RandomCSPRNG a cryptographically secure pseudo-random number generator
-func RandomCSPRNG(n int) []byte {
-	buff := make([]byte, n)
-	_, err := io.ReadFull(rand.Reader, buff)
-	if err != nil {
-		panic("reading from crypto/rand failed: " + err.Error())
-	}
-	return buff
 }

@@ -33,6 +33,7 @@ import (
 	"github.com/nebulasio/go-nebulas/crypto"
 	"github.com/nebulasio/go-nebulas/crypto/cipher"
 	"github.com/nebulasio/go-nebulas/crypto/keystore"
+	"github.com/nebulasio/go-nebulas/crypto/utils"
 	"github.com/nebulasio/go-nebulas/neblet/pb"
 	"github.com/nebulasio/go-nebulas/util/logging"
 	"github.com/sirupsen/logrus"
@@ -153,6 +154,7 @@ func (m *Manager) setKeyStore(priv keystore.PrivateKey, passphrase []byte) (*cor
 	if err != nil {
 		return nil, err
 	}
+
 	// set key to keystore
 	err = m.ks.SetKey(addr.String(), priv, passphrase)
 	if err != nil {
@@ -241,7 +243,7 @@ func (m *Manager) Load(keyjson, passphrase []byte) (*core.Address, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer crypto.ZeroBytes(data)
+	defer utils.ZeroBytes(data)
 
 	priv, err := crypto.NewPrivateKey(m.signatureAlg, data)
 	if err != nil {
@@ -291,7 +293,7 @@ func (m *Manager) Export(addr *core.Address, passphrase []byte) ([]byte, error) 
 	if err != nil {
 		return nil, err
 	}
-	defer crypto.ZeroBytes(data)
+	defer utils.ZeroBytes(data)
 
 	cipher := cipher.NewCipher(uint8(m.encryptAlg))
 	if err != nil {

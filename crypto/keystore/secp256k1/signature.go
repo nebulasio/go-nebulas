@@ -60,7 +60,7 @@ func (s *Signature) RecoverPublic(data []byte, signature []byte) (keystore.Publi
 	if err != nil {
 		return nil, err
 	}
-	s.publicKey = NewPublicKey(*pub)
+	s.publicKey = NewPublicKey(pub)
 	return s.publicKey, nil
 }
 

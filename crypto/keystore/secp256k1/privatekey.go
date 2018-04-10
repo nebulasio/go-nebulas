@@ -19,28 +19,22 @@
 package secp256k1
 
 import (
-	"crypto/ecdsa"
-
 	"github.com/nebulasio/go-nebulas/crypto/keystore"
+	"github.com/nebulasio/go-nebulas/crypto/utils"
+	"github.com/nebulasio/go-nebulas/util/logging"
+	"github.com/sirupsen/logrus"
 )
 
 // PrivateKey ecdsa privatekey
 type PrivateKey struct {
-	privateKey *ecdsa.PrivateKey
-}
-
-// NewPrivateKey new a private key with ecdsa.PrivateKey
-func NewPrivateKey(key *ecdsa.PrivateKey) *PrivateKey {
-	priv := new(PrivateKey)
-	priv.privateKey = key
-	return priv
+	seckey []byte
 }
 
 // GeneratePrivateKey generate a new private key
 func GeneratePrivateKey() *PrivateKey {
 	priv := new(PrivateKey)
-	ecdsa := NewECDSAPrivateKey()
-	priv.privateKey = ecdsa
+	seckey := NewSeckey()
+	priv.seckey = seckey
 	return priv
 }
 
@@ -51,30 +45,36 @@ func (k *PrivateKey) Algorithm() keystore.Algorithm {
 
 // Encoded encoded to byte
 func (k *PrivateKey) Encoded() ([]byte, error) {
-	return FromECDSAPrivateKey(k.privateKey)
+	return k.seckey, nil
 }
 
 // Decode decode data to key
 func (k *PrivateKey) Decode(data []byte) error {
-	priv, err := ToECDSAPrivateKey(data)
-	if err != nil {
-		return err
+	if SeckeyVerify(data) == false {
+		return ErrInvalidPrivateKey
 	}
-	k.privateKey = priv
+	k.seckey = data
 	return nil
 }
 
 // Clear clear key content
 func (k *PrivateKey) Clear() {
-	zeroKey(k.privateKey)
+	utils.ZeroBytes(k.seckey)
 }
 
 // PublicKey returns publickey
 func (k *PrivateKey) PublicKey() keystore.PublicKey {
-	return NewPublicKey(k.privateKey.PublicKey)
+	pub, err := GetPublicKey(k.seckey)
+	if err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"err": err,
+		}).Error("Failed to get public key.")
+		return nil
+	}
+	return NewPublicKey(pub)
 }
 
 // Sign sign hash with privatekey
 func (k *PrivateKey) Sign(hash []byte) ([]byte, error) {
-	return Sign(hash, k.privateKey)
+	return Sign(hash, k.seckey)
 }
