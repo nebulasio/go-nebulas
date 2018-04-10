@@ -319,6 +319,14 @@ func (sm *StreamManager) cleanup() {
 		return true
 	})
 
+	// check length
+	if len(svs) <= MaxStreamNum-ReservedStreamNum {
+		logging.CLog().WithFields(logrus.Fields{
+			"streamValueSliceLength": len(svs),
+		}).Debug("StreamValueSlice length is not enough, return directly.")
+		return
+	}
+
 	for _, sv := range svs {
 		for t, c := range sv.stream.msgCount {
 			w, _ := msgWeight[t]
