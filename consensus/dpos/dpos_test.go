@@ -588,6 +588,7 @@ func TestDoubleMint(t *testing.T) {
 	am := neb.am
 
 	addr0 := GetUnlockAddress(t, am, "n1GmkKH6nBMw4rrjt16RrJ9WcgvKUtAZP1s")
+
 	block0, _ := chain.NewBlock(addr0)
 	consensusState, err := chain.TailBlock().WorldState().NextConsensusState(BlockIntervalInMs / SecondInMs)
 	assert.Nil(t, err)
@@ -595,16 +596,10 @@ func TestDoubleMint(t *testing.T) {
 	block0.WorldState().SetConsensusState(consensusState)
 	block0.Seal()
 	am.SignBlock(addr0, block0)
+
 	assert.Nil(t, chain.BlockPool().Push(block0))
 	assert.Equal(t, block0.Hash(), chain.TailBlock().Hash())
 
-	block11, err := chain.NewBlock(addr0)
-	assert.Nil(t, err)
 	consensusState, err = chain.TailBlock().WorldState().NextConsensusState(0)
-	assert.Nil(t, err)
-	block11.SetTimestamp(block0.Timestamp())
-	block11.WorldState().SetConsensusState(consensusState)
-	block11.Seal()
-	am.SignBlock(addr0, block11)
-	assert.Equal(t, chain.BlockPool().Push(block11), ErrDoubleBlockMinted)
+	assert.Equal(t, err, ErrNotBlockForgTime)
 }

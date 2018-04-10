@@ -327,7 +327,7 @@ func (dpos *Dpos) VerifyBlock(block *core.Block) error {
 		return ErrInvalidBlockTimestamp
 	}
 	elapsedSecondInMs := (block.Timestamp() - tail.Timestamp()) * SecondInMs
-	if (elapsedSecondInMs % BlockIntervalInMs) != 0 {
+	if elapsedSecondInMs <= 0 || (elapsedSecondInMs%BlockIntervalInMs) != 0 {
 		return ErrInvalidBlockInterval
 	}
 	// check double mint

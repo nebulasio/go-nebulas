@@ -252,7 +252,7 @@ func (ds *State) TimeStamp() int64 {
 // NextConsensusState return the new state after some seconds elapsed
 func (ds *State) NextConsensusState(elapsedSecond int64, worldState state.WorldState) (state.ConsensusState, error) {
 	elapsedSecondInMs := elapsedSecond * SecondInMs
-	if elapsedSecondInMs%BlockIntervalInMs != 0 {
+	if elapsedSecondInMs <= 0 || elapsedSecondInMs%BlockIntervalInMs != 0 {
 		return nil, ErrNotBlockForgTime
 	}
 
