@@ -27,6 +27,7 @@ import (
 	"errors"
 
 	"github.com/nebulasio/go-nebulas/crypto/hash"
+	"github.com/nebulasio/go-nebulas/crypto/utils"
 	uuid "github.com/satori/go.uuid"
 	"golang.org/x/crypto/scrypt"
 )
@@ -130,14 +131,14 @@ func (s *Scrypt) ScryptEncrypt(data []byte, passphrase []byte, N, r, p int) ([]b
 }
 
 func (s *Scrypt) scryptEncrypt(data []byte, passphrase []byte, N, r, p int) (*cryptoJSON, error) {
-	salt := RandomCSPRNG(ScryptDKLen)
+	salt := utils.RandomCSPRNG(ScryptDKLen)
 	derivedKey, err := scrypt.Key(passphrase, salt, N, r, p, ScryptDKLen)
 	if err != nil {
 		return nil, err
 	}
 	encryptKey := derivedKey[:16]
 
-	iv := RandomCSPRNG(aes.BlockSize) // 16
+	iv := utils.RandomCSPRNG(aes.BlockSize) // 16
 	cipherText, err := s.aesCTRXOR(encryptKey, data, iv)
 	if err != nil {
 		return nil, err

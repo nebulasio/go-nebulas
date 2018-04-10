@@ -19,18 +19,17 @@
 package secp256k1
 
 import (
-	"crypto/ecdsa"
-
 	"github.com/nebulasio/go-nebulas/crypto/keystore"
+	"github.com/nebulasio/go-nebulas/crypto/utils"
 )
 
 // PublicKey ecdsa publickey
 type PublicKey struct {
-	publickey ecdsa.PublicKey
+	pub []byte
 }
 
 // NewPublicKey generate PublicKey
-func NewPublicKey(pub ecdsa.PublicKey) *PublicKey {
+func NewPublicKey(pub []byte) *PublicKey {
 	ecdsaPub := &PublicKey{pub}
 	return ecdsaPub
 }
@@ -42,25 +41,21 @@ func (k *PublicKey) Algorithm() keystore.Algorithm {
 
 // Encoded encoded to byte
 func (k *PublicKey) Encoded() ([]byte, error) {
-	return FromECDSAPublicKey(&k.publickey)
+	return k.pub, nil
 }
 
 // Decode decode data to key
 func (k *PublicKey) Decode(data []byte) error {
-	pub, err := ToECDSAPublicKey(data)
-	if err != nil {
-		return err
-	}
-	k.publickey = *pub
+	k.pub = data
 	return nil
 }
 
 // Clear clear key content
 func (k *PublicKey) Clear() {
-	k.publickey = ecdsa.PublicKey{}
+	utils.ZeroBytes(k.pub)
 }
 
 // Verify verify ecdsa publickey
 func (k *PublicKey) Verify(hash []byte, signature []byte) (bool, error) {
-	return Verify(hash, signature, &k.publickey)
+	return Verify(hash, signature, k.pub)
 }
