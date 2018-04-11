@@ -175,6 +175,9 @@ func (c *mockConsensus) Enable() bool                         { return true }
 func (c *mockConsensus) CheckTimeout(block *Block) bool {
 	return time.Now().Unix()-block.Timestamp() > AcceptedNetWorkDelay
 }
+func (c *mockConsensus) CheckDoubleMint(block *Block) bool {
+	return false
+}
 func (c *mockConsensus) NewState(root *consensuspb.ConsensusRoot, stor storage.Storage, needChangeLog bool) (state.ConsensusState, error) {
 	return newMockConsensusState(root.Timestamp)
 }

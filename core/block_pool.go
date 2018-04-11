@@ -139,7 +139,13 @@ func (pool *BlockPool) handleReceivedBlock(msg net.Message) {
 		return
 	}
 
-	if msg.MessageType() == MessageTypeNewBlock && pool.bc.ConsensusHandler().CheckTimeout(block) {
+	if msg.MessageType() == MessageTypeNewBlock &&
+		pool.bc.ConsensusHandler().CheckTimeout(block) {
+		return
+	}
+
+	if msg.MessageType() == MessageTypeNewBlock &&
+		pool.bc.ConsensusHandler().CheckDoubleMint(block) {
 		return
 	}
 
@@ -416,7 +422,7 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 				logging.CLog().WithFields(logrus.Fields{
 					"tail":    bc.tailBlock,
 					"block":   block,
-					"offline": lb.block.Height() - bc.TailBlock().Height(),
+					"offline": gap,
 					"limit":   ChunkSize,
 				}).Warn("Offline too long, pend mining and restart sync from others.")
 			}

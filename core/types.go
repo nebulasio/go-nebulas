@@ -207,6 +207,7 @@ type Consensus interface {
 	NewState(*consensuspb.ConsensusRoot, storage.Storage, bool) (state.ConsensusState, error)
 	GenesisConsensusState(*BlockChain, *corepb.Genesis) (state.ConsensusState, error)
 	CheckTimeout(*Block) bool
+	CheckDoubleMint(*Block) bool
 }
 
 // SyncService interface of sync service
