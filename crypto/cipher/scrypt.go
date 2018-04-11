@@ -37,7 +37,7 @@ const (
 	ScryptKDF = "scrypt"
 
 	// StandardScryptN N parameter of Scrypt encryption algorithm
-	StandardScryptN = 1 << 12
+	StandardScryptN = 1 << 12 //TODO: check 1<<12 vs 1<<18
 
 	// StandardScryptR r parameter of Scrypt encryption algorithm
 	StandardScryptR = 8

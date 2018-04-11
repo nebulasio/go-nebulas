@@ -384,6 +384,17 @@ func TestTransactionPoolBucketUpdateTimeAndEvict(t *testing.T) {
 	assert.NotNil(t, txPool.all[txs[2].hash.Hex()])
 	assert.NotNil(t, txPool.all[txs[3].hash.Hex()])
 
+	txPool.bucketsLastUpdate[txs[0].from.address.Hex()] = time.Now().Add(time.Minute * -89)
+	txPool.evictExpiredTransactions()
+	assert.NotNil(t, txPool.all[txs[0].hash.Hex()])
+	assert.NotNil(t, txPool.all[txs[2].hash.Hex()])
+	assert.NotNil(t, txPool.all[txs[3].hash.Hex()])
+	_, ok := txPool.buckets[txs[0].from.address.Hex()]
+	assert.Equal(t, ok, true)
+	_, ok = txPool.bucketsLastUpdate[txs[0].from.address.Hex()]
+	assert.Equal(t, ok, true)
+
+
 	txPool.bucketsLastUpdate[txs[0].from.address.Hex()] = time.Now().Add(time.Minute * -91)
 	txPool.evictExpiredTransactions()
 	assert.Nil(t, txPool.all[txs[0].hash.Hex()])
@@ -391,5 +402,10 @@ func TestTransactionPoolBucketUpdateTimeAndEvict(t *testing.T) {
 	assert.Nil(t, txPool.all[txs[3].hash.Hex()])
 	assert.NotNil(t, txPool.all[txs[1].hash.Hex()])
 	assert.NotNil(t, txPool.all[txs[4].hash.Hex()])
+
+	_, ok = txPool.buckets[txs[0].from.address.Hex()]
+	assert.Equal(t, ok, false)
+	_, ok = txPool.bucketsLastUpdate[txs[0].from.address.Hex()]
+	assert.Equal(t, ok, false)
 
 }
