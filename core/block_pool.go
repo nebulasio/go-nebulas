@@ -379,14 +379,18 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 	}
 
 	// find parent block in cache.
+	gap := 0
 	v, _ := cache.Get(lb.parentHash.Hex())
 	if v != nil {
 		// found in cache.
 		plb = v.(*linkedBlock)
 		lb.LinkParent(plb)
+		lb = plb
+		gap++
 
-		for plb.parentBlock != nil {
-			plb = plb.parentBlock
+		for lb.parentBlock != nil {
+			lb = lb.parentBlock
+			gap++
 		}
 
 		logging.VLog().WithFields(logrus.Fields{
@@ -396,8 +400,6 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 		if sender == NoSender {
 			return ErrMissingParentBlock
 		}
-
-		return pool.downloadParent(sender, plb.block)
 	}
 
 	// find parent in Chain.
@@ -409,7 +411,7 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 		}
 
 		// do sync if there are so many empty slots.
-		if int(lb.block.Height())-int(bc.TailBlock().Height()) > ChunkSize {
+		if gap > ChunkSize {
 			if bc.StartActiveSync() {
 				logging.CLog().WithFields(logrus.Fields{
 					"tail":    bc.tailBlock,
