@@ -66,6 +66,7 @@ func run() {
 	cleanupTicker := time.NewTicker(CleanupInterval / 12)
 	stopTicker := time.NewTicker(CleanupInterval / 12)
 	times := 0
+	config := NewConfigFromDefaults()
 	for {
 		select {
 		case <-stopTicker.C:
@@ -75,7 +76,7 @@ func run() {
 		case <-cleanupTicker.C:
 			times++
 			fmt.Printf("mock %d\n: max num = %d, reserved = %d\n", times, maxstreamnumber, reservednumber)
-			sm := NewStreamManager()
+			sm := NewStreamManager(config)
 			sm.fillMockStreams(maxstreamnumber)
 			cleanup(sm)
 		}

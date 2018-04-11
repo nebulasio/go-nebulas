@@ -35,6 +35,8 @@ const ( // TODO delete redundant vars
 	DefaultMaxSyncNodes           = 64
 	DefaultChainID                = 1
 	DefaultRoutingTableDir        = ""
+	DefaultMaxStreamNum           = 200
+	DefaultReservedStreamNum      = 20
 )
 
 // Default Configuration in P2P network
@@ -51,14 +53,16 @@ var (
 
 // Config TODO: move to proto config.
 type Config struct {
-	Bucketsize      int
-	Latency         time.Duration
-	BootNodes       []multiaddr.Multiaddr
-	PrivateKeyPath  string
-	Listen          []string
-	MaxSyncNodes    int
-	ChainID         uint32
-	RoutingTableDir string
+	Bucketsize           int
+	Latency              time.Duration
+	BootNodes            []multiaddr.Multiaddr
+	PrivateKeyPath       string
+	Listen               []string
+	MaxSyncNodes         int
+	ChainID              uint32
+	RoutingTableDir      string
+	StreamLimits         int32
+	ReservedStreamLimits int32
 }
 
 // Neblet interface breaks cycle import dependency.
@@ -110,6 +114,15 @@ func NewP2PConfig(n Neblet) *Config {
 		}
 	}
 
+	// max stream limits
+	if networkConf.GetStreamLimits() > 0 {
+		config.StreamLimits = networkConf.StreamLimits
+	}
+
+	if networkConf.GetReservedStreamLimits() > 0 {
+		config.ReservedStreamLimits = networkConf.ReservedStreamLimits
+	}
+
 	return config
 }
 
@@ -140,5 +153,7 @@ func NewConfigFromDefaults() *Config {
 		DefaultMaxSyncNodes,
 		DefaultChainID,
 		DefaultRoutingTableDir,
+		DefaultMaxStreamNum,
+		DefaultReservedStreamNum,
 	}
 }

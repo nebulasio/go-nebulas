@@ -37,9 +37,9 @@ import (
 
 // const
 const (
-	CleanupInterval   = time.Second * 60
-	MaxStreamNum      = 500
-	ReservedStreamNum = 50 // of MaxStreamNum
+	CleanupInterval = time.Second * 60
+	// MaxStreamNum      = 500
+	// ReservedStreamNum = 50 // of MaxStreamNum
 )
 
 // var
@@ -51,18 +51,22 @@ var (
 
 // StreamManager manages all streams
 type StreamManager struct {
-	mu               sync.Mutex
-	quitCh           chan bool
-	allStreams       *sync.Map
-	activePeersCount int32
+	mu                sync.Mutex
+	quitCh            chan bool
+	allStreams        *sync.Map
+	activePeersCount  int32
+	maxStreamNum      int32
+	reservedStreamNum int32
 }
 
 // NewStreamManager return a new stream manager
-func NewStreamManager() *StreamManager {
+func NewStreamManager(config *Config) *StreamManager {
 	return &StreamManager{
-		quitCh:           make(chan bool, 1),
-		allStreams:       new(sync.Map),
-		activePeersCount: 0,
+		quitCh:            make(chan bool, 1),
+		allStreams:        new(sync.Map),
+		activePeersCount:  0,
+		maxStreamNum:      config.StreamLimits,
+		reservedStreamNum: config.ReservedStreamLimits,
 	}
 }
 
@@ -97,7 +101,7 @@ func (sm *StreamManager) AddStream(stream *Stream) {
 	sm.mu.Lock()
 	defer sm.mu.Unlock()
 
-	if sm.activePeersCount >= MaxStreamNum {
+	if sm.activePeersCount >= sm.maxStreamNum {
 		if stream.stream != nil {
 			stream.stream.Close()
 		}
@@ -275,10 +279,10 @@ func (sm *StreamManager) CloseStream(peerID string, reason error) {
 // cleanup eliminating low value streams if reaching the limit
 func (sm *StreamManager) cleanup() {
 
-	if sm.activePeersCount < MaxStreamNum {
+	if sm.activePeersCount < sm.maxStreamNum {
 		logging.VLog().WithFields(logrus.Fields{
-			"maxNum":      MaxStreamNum,
-			"reservedNum": ReservedStreamNum,
+			"maxNum":      sm.maxStreamNum,
+			"reservedNum": sm.reservedStreamNum,
 			"currentNum":  sm.activePeersCount,
 		}).Debug("No need for streams cleanup.")
 		return
@@ -320,7 +324,7 @@ func (sm *StreamManager) cleanup() {
 	})
 
 	// check length
-	if len(svs) <= MaxStreamNum-ReservedStreamNum {
+	if len(svs) <= int(sm.maxStreamNum-sm.reservedStreamNum) {
 		logging.CLog().WithFields(logrus.Fields{
 			"streamValueSliceLength": len(svs),
 		}).Debug("StreamValueSlice length is not enough, return directly.")
@@ -336,20 +340,20 @@ func (sm *StreamManager) cleanup() {
 
 	sort.Sort(sort.Reverse(svs))
 	logging.VLog().WithFields(logrus.Fields{
-		"maxNum":           MaxStreamNum,
-		"reservedNum":      ReservedStreamNum,
+		"maxNum":           sm.maxStreamNum,
+		"reservedNum":      sm.reservedStreamNum,
 		"currentNum":       sm.activePeersCount,
 		"msgTotal":         msgTotal,
 		"msgWeight":        msgWeight,
 		"streamValueSlice": svs,
 	}).Debug("Sorting streams before the cleanup.")
 
-	eliminated := svs[MaxStreamNum-ReservedStreamNum:]
+	eliminated := svs[sm.maxStreamNum-sm.reservedStreamNum:]
 	for _, sv := range eliminated {
 		sv.stream.close(ErrElimination)
 	}
 
-	svs = svs[:MaxStreamNum-ReservedStreamNum]
+	svs = svs[:sm.maxStreamNum-sm.reservedStreamNum]
 	logging.VLog().WithFields(logrus.Fields{
 		"eliminatedNum": len(eliminated),
 		"retained":      svs,
