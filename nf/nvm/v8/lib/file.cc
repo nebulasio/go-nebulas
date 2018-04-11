@@ -90,9 +90,14 @@ bool getCurAbsolute(char *curCwd, int len) {
   if (pc == NULL) {
     return false;
   }
-  memcpy(curCwd, pc, strlen(pc) - strlen(EXECUTION_FILE));
+  int pcLen = strlen(pc);
+  if (pcLen >= len) {
+    free(pc);
+    return false;
+  }
+  memcpy(curCwd, pc, pcLen - strlen(EXECUTION_FILE));
   //strncpy(curCwd, pc, len - 1);
-  curCwd[strlen(pc) - strlen(EXECUTION_FILE)] = 0x00;
+  curCwd[pcLen - strlen(EXECUTION_FILE)] = 0x00;
   free(pc);
   return true;
 }
