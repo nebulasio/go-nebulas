@@ -48,7 +48,7 @@ Or use the stable testnet release in __testnet__.
 git checkout testnet
 ```
 
-2. Install rocksdb dependencies.
+2. Install rocksdb && dependencies.
 
 * **OS X**:
     * Install latest C++ compiler that supports C++ 11:
@@ -72,6 +72,7 @@ git checkout testnet
     * Install bzip2: `sudo apt-get install libbz2-dev`.
     * Install lz4: `sudo apt-get install liblz4-dev`.
     * Install zstandard: `sudo apt-get install libzstd-dev`.
+
 3. Install dependencies packages.
 
 ```bash
