@@ -48,7 +48,7 @@ Or use the stable testnet release in __testnet__.
 git checkout testnet
 ```
 
-2. Install rocksdb dependencies.
+2. Install rocksdb && dependencies.
 
 * **OS X**:
     * Install latest C++ compiler that supports C++ 11:
@@ -59,6 +59,9 @@ git checkout testnet
     * run `brew install rocksdb`
 
 * **Linux - Ubuntu**
+    * Install rocksdb by source code: (https://github.com/facebook/rocksdb/blob/master/INSTALL.md)
+    `git clone https://github.com/facebook/rocksdb.git`
+    `cd rocksdb & make shared_lib`
     * Upgrade your gcc to version at least 4.8 to get C++11 support.
     * Install gflags. First, try: `sudo apt-get install libgflags-dev`
       If this doesn't work and you're using Ubuntu, here's a nice tutorial:
@@ -69,6 +72,7 @@ git checkout testnet
     * Install bzip2: `sudo apt-get install libbz2-dev`.
     * Install lz4: `sudo apt-get install liblz4-dev`.
     * Install zstandard: `sudo apt-get install libzstd-dev`.
+
 3. Install dependencies packages.
 
 ```bash
