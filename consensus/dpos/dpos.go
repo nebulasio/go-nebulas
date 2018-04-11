@@ -340,7 +340,7 @@ func (dpos *Dpos) VerifyBlock(block *core.Block) error {
 	if block.Timestamp() != block.ConsensusRoot().Timestamp {
 		return ErrInvalidBlockTimestamp
 	}
-	elapsedSecondInMs := (block.Timestamp() - tail.Timestamp()) * SecondInMs
+	elapsedSecondInMs := block.Timestamp() * SecondInMs
 	if elapsedSecondInMs <= 0 || (elapsedSecondInMs%BlockIntervalInMs) != 0 {
 		return ErrInvalidBlockInterval
 	}
