@@ -19,22 +19,20 @@
 
 #include "file.h"
 #include "logger.h"
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
-#include <errno.h>
+#include <unistd.h>
 
-char *readFile(const char *filepath, size_t *size)
-{
-  if (size != NULL)
-  {
+char *readFile(const char *filepath, size_t *size) {
+  if (size != NULL) {
     *size = 0;
   }
 
   FILE *f = fopen(filepath, "r");
-  if (f == NULL)
-  {
+  if (f == NULL) {
     return NULL;
   }
 
@@ -47,66 +45,54 @@ char *readFile(const char *filepath, size_t *size)
   size_t idx = 0;
 
   size_t len = 0;
-  while ((len = fread(data + idx, sizeof(char), file_size + 1 - idx, f)) > 0)
-  {
+  while ((len = fread(data + idx, sizeof(char), file_size + 1 - idx, f)) > 0) {
     idx += len;
   }
   *(data + idx) = '\0';
 
-  if (feof(f) == 0)
-  {
+  if (feof(f) == 0) {
     free(static_cast<void *>(data));
     return NULL;
   }
 
   fclose(f);
 
-  if (size != NULL)
-  {
+  if (size != NULL) {
     *size = file_size;
   }
 
   return data;
 }
-char *getAbsoluteByPath(const char *filepath)
-{
-  char *pf = realpath(filepath, NULL);
-  if (pf == NULL)
-  {
-    return NULL;
+
+bool isFile(const char *file) {
+  struct stat buf;
+  if (stat(file, &buf) != 0) {
+    return false;
   }
-  else
-  {
-    char *ps = strstr(pf, LIB_DIR);
-    if (ps == NULL)
-    {
-      free(pf);
-      return NULL;
-    }
-    else
-    {
-      char *out = (char *)malloc(ps - pf + 1);
-      memcpy(out, pf, ps - pf);
-      out[ps - pf] = 0x00;
-      free(pf);
-      return out;
-    }
+  if (S_ISREG(buf.st_mode)) {
+    return true;
+  } else {
+    return false;
   }
 }
 
-bool checkFile(const char *file)
-{
-  struct stat buf;
-  if (stat(file, &buf) != 0)
-  {
+bool getCurAbsolute(char *curCwd, int len) {
+  char tmp[MAX_PATH_LEN] = {0};
+  if (!getcwd(tmp, MAX_PATH_LEN)) {
     return false;
   }
-  if (S_ISREG(buf.st_mode))
-  {
-    return true;
-  }
-  else
-  {
+
+  strncat(tmp, LIB_DIR, MAX_PATH_LEN - strlen(tmp) - 1);
+  //staged ln
+  strncat(tmp, EXECUTION_FILE, MAX_PATH_LEN - strlen(tmp) -1);
+
+  char *pc = realpath(tmp, NULL);
+  if (pc == NULL) {
     return false;
   }
+  memcpy(curCwd, pc, strlen(pc) - strlen(EXECUTION_FILE));
+  //strncpy(curCwd, pc, len - 1);
+  curCwd[strlen(pc) - strlen(EXECUTION_FILE)] = 0x00;
+  free(pc);
+  return true;
 }

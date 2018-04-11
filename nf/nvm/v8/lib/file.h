@@ -26,12 +26,15 @@
 
 #ifdef _WIN32
     #define LIB_DIR     "\\lib"
+    #define EXECUTION_FILE  "\\execution_env.js"
 #else
     #define LIB_DIR     "/lib"
+    #define EXECUTION_FILE  "/execution_env.js"
 #endif //WIN32
 
 char *readFile(const char *filepath, size_t *size);
-char *getAbsoluteByPath(const char *filepath);
-bool checkFile(const char *file);
+
+bool isFile(const char *file);
+bool getCurAbsolute(char *curCwd, int len);
 
 #endif // _NEBULAS_NF_NVM_V8_LIB_FILE_H_
