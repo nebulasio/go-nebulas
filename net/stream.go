@@ -21,7 +21,6 @@ package net
 import (
 	"errors"
 	"fmt"
-	"io"
 	"sync"
 	"time"
 
@@ -222,7 +221,7 @@ func (s *Stream) SendMessage(messageName string, data []byte, priority int) erro
 
 func (s *Stream) Write(data []byte) error {
 	if s.stream == nil {
-		s.Close(ErrStreamIsNotConnected)
+		s.close(ErrStreamIsNotConnected)
 		return ErrStreamIsNotConnected
 	}
 
@@ -237,7 +236,7 @@ func (s *Stream) Write(data []byte) error {
 			"err":    err,
 			"stream": s.String(),
 		}).Warn("Failed to send message to peer.")
-		s.Close(err)
+		s.close(err)
 		return err
 	}
 	s.latestWriteAt = time.Now().Unix()
@@ -295,11 +294,11 @@ func (s *Stream) readLoop() {
 	// send Hello to host if stream is not connected.
 	if !s.IsConnected() {
 		if err := s.Connect(); err != nil {
-			s.Close(err)
+			s.close(err)
 			return
 		}
 		if err := s.Hello(); err != nil {
-			s.Close(err)
+			s.close(err)
 			return
 		}
 	}
@@ -317,9 +316,7 @@ func (s *Stream) readLoop() {
 				"err":    err,
 				"stream": s.String(),
 			}).Debug("Error occurred when reading data from network connection.")
-			if err != io.EOF {
-				s.Close(err)
-			}
+			s.close(err)
 			return
 		}
 
@@ -404,7 +401,7 @@ func (s *Stream) writeLoop() {
 		logging.VLog().WithFields(logrus.Fields{
 			"stream": s.String(),
 		}).Debug("Handshaking Stream timeout, quiting.")
-		s.Close(errors.New("Handshake timeout"))
+		s.close(errors.New("Handshake timeout"))
 		return
 	}
 
@@ -475,7 +472,7 @@ func (s *Stream) handleMessage(message *NebMessage) error {
 }
 
 // Close close the stream
-func (s *Stream) Close(reason error) {
+func (s *Stream) close(reason error) {
 	// Add lock & close flag to prevent multi call.
 	s.syncMutex.Lock()
 	defer s.syncMutex.Unlock()
@@ -506,7 +503,7 @@ func (s *Stream) Close(reason error) {
 // Bye say bye in the stream
 func (s *Stream) Bye() {
 	s.WriteMessage(BYE, []byte{})
-	s.Close(errors.New("bye: force close"))
+	s.close(errors.New("bye: force close"))
 }
 
 func (s *Stream) onBye(message *NebMessage) error {
