@@ -243,7 +243,7 @@ func (dpos *Dpos) UpdateLIB() {
 				}).Debug("Failed to store latest irreversible block.")
 				return
 			}
-			logging.VLog().WithFields(logrus.Fields{
+			logging.CLog().WithFields(logrus.Fields{
 				"lib.new":          cur,
 				"lib.old":          lib,
 				"tail":             tail,
