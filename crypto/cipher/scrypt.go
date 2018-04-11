@@ -52,7 +52,8 @@ const (
 	cipherName = "aes-128-ctr"
 
 	// version compatible with ethereum, the version start with 3
-	version = 3
+	version3       = 3
+	currentVersion = 4
 
 	// mac calculate hash type
 	macHash = "sha3256"
@@ -107,7 +108,7 @@ func (s *Scrypt) EncryptKey(address string, data []byte, passphrase []byte) ([]b
 		string(address),
 		*crypto,
 		uuid.NewV4().String(),
-		version,
+		currentVersion,
 	}
 	return json.Marshal(encryptedKeyJSON)
 }
@@ -143,7 +144,9 @@ func (s *Scrypt) scryptEncrypt(data []byte, passphrase []byte, N, r, p int) (*cr
 	if err != nil {
 		return nil, err
 	}
-	mac := hash.Sha3256(derivedKey[16:32], cipherText) //TODO: add n r p aesctr to mac calculate
+
+	//mac := hash.Sha3256(derivedKey[16:32], cipherText) // version3: deprecated
+	mac := hash.Sha3256(derivedKey[16:32], cipherText, iv, []byte(cipherName))
 
 	scryptParamsJSON := make(map[string]interface{}, 5)
 	scryptParamsJSON["n"] = N
@@ -185,8 +188,7 @@ func (s *Scrypt) Decrypt(data []byte, passphrase []byte) ([]byte, error) {
 	if err := json.Unmarshal(data, crypto); err != nil {
 		return nil, err
 	}
-
-	return s.scryptDecrypt(crypto, passphrase)
+	return s.scryptDecrypt(crypto, passphrase, currentVersion)
 }
 
 // DecryptKey decrypts a key from a json blob, returning the private key itself.
@@ -195,13 +197,15 @@ func (s *Scrypt) DecryptKey(keyjson []byte, passphrase []byte) ([]byte, error) {
 	if err := json.Unmarshal(keyjson, keyJSON); err != nil {
 		return nil, err
 	}
-	if keyJSON.Version != version {
+	version := keyJSON.Version
+	if version != currentVersion && version != version3 {
 		return nil, ErrVersionInvalid
 	}
-	return s.scryptDecrypt(&keyJSON.Crypto, passphrase)
+	return s.scryptDecrypt(&keyJSON.Crypto, passphrase, version)
 }
 
-func (s *Scrypt) scryptDecrypt(crypto *cryptoJSON, passphrase []byte) ([]byte, error) {
+func (s *Scrypt) scryptDecrypt(crypto *cryptoJSON, passphrase []byte, version int) ([]byte, error) {
+
 	if crypto.Cipher != cipherName {
 		return nil, ErrCipherInvalid
 	}
@@ -240,11 +244,20 @@ func (s *Scrypt) scryptDecrypt(crypto *cryptoJSON, passphrase []byte) ([]byte, e
 		return nil, ErrKDFInvalid
 	}
 
-	var calculatedMAC = hash.Sha3256(derivedKey[16:32], cipherText)
-	if crypto.MACHash != macHash {
-		// compatible ethereum keystore file,
-		calculatedMAC = hash.Keccak256(derivedKey[16:32], cipherText)
+	var calculatedMAC []byte
+
+	if version == currentVersion {
+		calculatedMAC = hash.Sha3256(derivedKey[16:32], cipherText, iv, []byte(crypto.Cipher))
+	} else if version == version3 {
+		calculatedMAC = hash.Sha3256(derivedKey[16:32], cipherText)
+		if crypto.MACHash != macHash {
+			// compatible ethereum keystore file,
+			calculatedMAC = hash.Keccak256(derivedKey[16:32], cipherText)
+		}
+	} else {
+		return nil, ErrVersionInvalid
 	}
+
 	if !bytes.Equal(calculatedMAC, mac) {
 		return nil, ErrDecrypt
 	}
