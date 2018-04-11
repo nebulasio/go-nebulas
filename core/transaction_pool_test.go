@@ -394,7 +394,6 @@ func TestTransactionPoolBucketUpdateTimeAndEvict(t *testing.T) {
 	_, ok = txPool.bucketsLastUpdate[txs[0].from.address.Hex()]
 	assert.Equal(t, ok, true)
 
-
 	txPool.bucketsLastUpdate[txs[0].from.address.Hex()] = time.Now().Add(time.Minute * -91)
 	txPool.evictExpiredTransactions()
 	assert.Nil(t, txPool.all[txs[0].hash.Hex()])
