@@ -191,7 +191,7 @@ function testSave(testInput, testExpect, done) {
         });
        
         return neb.api.estimateGas(from.getAddressString(), contractAddr,
-                testInput.value, txInfo.nonce, 0, testInput.gasLimit, txInfo.call);
+                testInput.value, txInfo.nonce, testInput.gasPrice, testInput.gasLimit, txInfo.call);
     }).then(function(resp){
         expect(resp).to.have.property('gas');
         gasUsed = resp.gas;
@@ -282,7 +282,7 @@ function testTakeout(testInput, testExpect, done) {
         tx.signTransaction();
 
         neb.api.estimateGas(from.getAddressString(), contractAddr,
-            testInput.value, parseInt(state.nonce) + 1, 0, testInput.gasLimit, call).then(function(resp){
+            testInput.value, parseInt(state.nonce) + 1, testInput.gasPrice, testInput.gasLimit, call).then(function(resp){
                         expect(resp).to.have.property('gas');
                         gasUsed = resp.gas;
         }).catch(function(err) {
