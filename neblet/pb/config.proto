@@ -44,6 +44,10 @@ message NetworkConfig {
 
     // Network ID
     uint32 network_id = 4;
+
+    int32 stream_limits = 5;
+
+    int32 reserved_stream_limits = 6;
 }
 
 message ChainConfig {
