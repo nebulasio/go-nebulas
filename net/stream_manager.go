@@ -25,7 +25,6 @@ import (
 	"sort"
 	"strconv"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/sirupsen/logrus"
@@ -38,30 +37,36 @@ import (
 
 // const
 const (
-	CleanupInterval   = time.Second * 60
-	MaxStreamNum      = 100
-	ReservedStreamNum = 20 // of MaxStreamNum
+	CleanupInterval = time.Second * 60
+	// MaxStreamNum      = 500
+	// ReservedStreamNum = 50 // of MaxStreamNum
 )
 
 // var
 var (
 	ErrExceedMaxStreamNum = errors.New("too many streams connected")
 	ErrElimination        = errors.New("eliminated for low value")
+	ErrDeprecatedStream   = errors.New("deprecated stream")
 )
 
 // StreamManager manages all streams
 type StreamManager struct {
-	quitCh           chan bool
-	allStreams       *sync.Map
-	activePeersCount int32
+	mu                sync.Mutex
+	quitCh            chan bool
+	allStreams        *sync.Map
+	activePeersCount  int32
+	maxStreamNum      int32
+	reservedStreamNum int32
 }
 
 // NewStreamManager return a new stream manager
-func NewStreamManager() *StreamManager {
+func NewStreamManager(config *Config) *StreamManager {
 	return &StreamManager{
-		quitCh:           make(chan bool, 1),
-		allStreams:       new(sync.Map),
-		activePeersCount: 0,
+		quitCh:            make(chan bool, 1),
+		allStreams:        new(sync.Map),
+		activePeersCount:  0,
+		maxStreamNum:      config.StreamLimits,
+		reservedStreamNum: config.ReservedStreamLimits,
 	}
 }
 
@@ -93,37 +98,82 @@ func (sm *StreamManager) Add(s libnet.Stream, node *Node) {
 // AddStream into the stream manager
 func (sm *StreamManager) AddStream(stream *Stream) {
 
-	if sm.activePeersCount >= MaxStreamNum {
-		stream.Close(ErrExceedMaxStreamNum)
+	sm.mu.Lock()
+	defer sm.mu.Unlock()
+
+	if sm.activePeersCount >= sm.maxStreamNum {
+		if stream.stream != nil {
+			stream.stream.Close()
+		}
 		return
 	}
 
+	// check & close old stream
+	if v, ok := sm.allStreams.Load(stream.pid.Pretty()); ok {
+		old, _ := v.(*Stream)
+
+		logging.VLog().WithFields(logrus.Fields{
+			"pid": old.pid.Pretty(),
+		}).Debug("Removing old stream.")
+
+		sm.activePeersCount--
+		sm.allStreams.Delete(old.pid.Pretty())
+
+		if old.stream != nil {
+			old.stream.Close()
+		}
+	}
+
 	logging.VLog().WithFields(logrus.Fields{
-		"steam": stream.String(),
+		"stream": stream.String(),
 	}).Debug("Added a new stream.")
 
-	atomic.AddInt32(&sm.activePeersCount, 1)
+	sm.activePeersCount++
 	sm.allStreams.Store(stream.pid.Pretty(), stream)
 	stream.StartLoop()
 }
 
 // Remove the stream with the given pid from the stream manager
-func (sm *StreamManager) Remove(pid peer.ID) {
-	logging.VLog().WithFields(logrus.Fields{
-		"pid": pid.Pretty(),
-	}).Debug("Removing a stream.")
+// func (sm *StreamManager) Remove(pid peer.ID) {
 
-	if _, ok := sm.allStreams.Load(pid.Pretty()); !ok {
-		// caused by close in AddStream
-		return
-	}
-	atomic.AddInt32(&sm.activePeersCount, -1)
-	sm.allStreams.Delete(pid.Pretty())
-}
+// 	sm.mu.Lock()
+// 	defer sm.mu.Unlock()
+
+// 	logging.VLog().WithFields(logrus.Fields{
+// 		"pid": pid.Pretty(),
+// 	}).Debug("Removing a stream.")
+
+// 	if _, ok := sm.allStreams.Load(pid.Pretty()); !ok {
+// 		// caused by close in AddStream
+// 		return
+// 	}
+
+// 	sm.activePeersCount--
+// 	sm.allStreams.Delete(pid.Pretty())
+// }
 
 // RemoveStream from the stream manager
 func (sm *StreamManager) RemoveStream(s *Stream) {
-	sm.Remove(s.pid)
+
+	sm.mu.Lock()
+	defer sm.mu.Unlock()
+
+	v, ok := sm.allStreams.Load(s.pid.Pretty())
+	if !ok {
+		return
+	}
+
+	exist, _ := v.(*Stream)
+	if s != exist {
+		return
+	}
+
+	logging.VLog().WithFields(logrus.Fields{
+		"pid": s.pid.Pretty(),
+	}).Debug("Removing a stream.")
+
+	sm.activePeersCount--
+	sm.allStreams.Delete(s.pid.Pretty())
 }
 
 // FindByPeerID find the stream with the given peerID
@@ -222,17 +272,17 @@ func (sm *StreamManager) SendMessageToPeers(messageName string, data []byte, pri
 func (sm *StreamManager) CloseStream(peerID string, reason error) {
 	stream := sm.FindByPeerID(peerID)
 	if stream != nil {
-		stream.Close(reason)
+		stream.close(reason)
 	}
 }
 
 // cleanup eliminating low value streams if reaching the limit
 func (sm *StreamManager) cleanup() {
 
-	if sm.activePeersCount < MaxStreamNum {
+	if sm.activePeersCount < sm.maxStreamNum {
 		logging.VLog().WithFields(logrus.Fields{
-			"maxNum":      MaxStreamNum,
-			"reservedNum": ReservedStreamNum,
+			"maxNum":      sm.maxStreamNum,
+			"reservedNum": sm.reservedStreamNum,
 			"currentNum":  sm.activePeersCount,
 		}).Debug("No need for streams cleanup.")
 		return
@@ -273,6 +323,14 @@ func (sm *StreamManager) cleanup() {
 		return true
 	})
 
+	// check length
+	if len(svs) <= int(sm.maxStreamNum-sm.reservedStreamNum) {
+		logging.CLog().WithFields(logrus.Fields{
+			"streamValueSliceLength": len(svs),
+		}).Debug("StreamValueSlice length is not enough, return directly.")
+		return
+	}
+
 	for _, sv := range svs {
 		for t, c := range sv.stream.msgCount {
 			w, _ := msgWeight[t]
@@ -282,20 +340,20 @@ func (sm *StreamManager) cleanup() {
 
 	sort.Sort(sort.Reverse(svs))
 	logging.VLog().WithFields(logrus.Fields{
-		"maxNum":           MaxStreamNum,
-		"reservedNum":      ReservedStreamNum,
+		"maxNum":           sm.maxStreamNum,
+		"reservedNum":      sm.reservedStreamNum,
 		"currentNum":       sm.activePeersCount,
 		"msgTotal":         msgTotal,
 		"msgWeight":        msgWeight,
 		"streamValueSlice": svs,
 	}).Debug("Sorting streams before the cleanup.")
 
-	eliminated := svs[MaxStreamNum-ReservedStreamNum:]
+	eliminated := svs[sm.maxStreamNum-sm.reservedStreamNum:]
 	for _, sv := range eliminated {
-		sv.stream.Close(ErrElimination)
+		sv.stream.close(ErrElimination)
 	}
 
-	svs = svs[:MaxStreamNum-ReservedStreamNum]
+	svs = svs[:sm.maxStreamNum-sm.reservedStreamNum]
 	logging.VLog().WithFields(logrus.Fields{
 		"eliminatedNum": len(eliminated),
 		"retained":      svs,

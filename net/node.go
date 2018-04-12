@@ -78,7 +78,7 @@ func NewNode(config *Config) (*Node, error) {
 		quitCh:        make(chan bool, 10),
 		config:        config,
 		context:       context.Background(),
-		streamManager: NewStreamManager(),
+		streamManager: NewStreamManager(config),
 		synchronizing: false,
 	}
 
