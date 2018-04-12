@@ -22,7 +22,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"math"
 	"math/rand"
 	"sync"
 	"time"
@@ -514,7 +513,7 @@ func (st *Task) hasEnoughChunkHeaders() bool {
 		chainSyncPeersCount = len(st.chainSyncPeers)
 	}
 
-	return chainSyncPeersCount > 0 && st.maxConsistentChunkHeadersCount >= int(math.Sqrt(float64(chainSyncPeersCount))) // FIXME: change to majority.
+	return chainSyncPeersCount > 0 && st.maxConsistentChunkHeadersCount >= int(chainSyncPeersCount/2)+1
 }
 
 func (st *Task) hasFinishedGetAllChunkData() bool {

@@ -19,6 +19,7 @@
 package net
 
 import (
+	"math"
 	"math/rand"
 )
 
@@ -28,7 +29,11 @@ type ChainSyncPeersFilter struct {
 
 // Filter implemets PeerFilterAlgorithm interface
 func (filter *ChainSyncPeersFilter) Filter(peers PeersSlice) PeersSlice {
-	return peers
+	if len(peers) == 0 {
+		return peers
+	}
+	selection := int(math.Sqrt(float64(len(peers))))
+	return peers[:selection]
 }
 
 // RandomPeerFilter will filter a peer randomly
