@@ -18,7 +18,49 @@
 'use strict';
 
 
-var StandardToken = require('./ERC20.js');
+
+var StandardToken = function () {
+    LocalContractStorage.defineProperties(this, {
+        name: null,
+        symbol: null,
+        _totalSupply: null,
+        totalIssued: null
+    });
+    LocalContractStorage.defineMapProperty(this, "balances");
+};
+
+StandardToken.prototype = {
+    init: function (name, symbol, totalSupply) {
+        this.name = name;
+        this.symbol = symbol;
+        this._totalSupply = totalSupply;
+        this.totalIssued = 0;
+    },
+    totalSupply: function () {
+        return this._totalSupply;
+    },
+    balanceOf: function (owner) {
+        return this.balances.get(owner) || 0;
+    },
+    transfer: function (to, value) {
+        var balance = this.balanceOf(msg.sender);
+        if (balance < value) {
+            return false;
+        }
+
+        var finalBalance = balance - value;
+        this.balances.set(msg.sender, finalBalance);
+        this.balances.set(to, this.balanceOf(to) + value);
+        return true;
+    },
+    pay: function (msg, amount) {
+        if (this.totalIssued + amount > this._totalSupply) {
+            throw new Error("too much amount, exceed totalSupply");
+        }
+        this.balances.set(msg.sender, this.balanceOf(msg.sender) + amount);
+        this.totalIssued += amount;
+    }
+};
 
 var token = new StandardToken();
 
