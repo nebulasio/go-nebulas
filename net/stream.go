@@ -39,14 +39,16 @@ import (
 
 // Stream Message Type
 const (
-	ClientVersion = "0.3.0"
-	NebProtocolID = "/neb/1.0.0"
-	HELLO         = "hello"
-	OK            = "ok"
-	BYE           = "bye"
-	SYNCROUTE     = "syncroute"
-	ROUTETABLE    = "routetable"
-	RECVEDMSG     = "recvedmsg"
+	ClientVersion      = "0.3.0"
+	NebProtocolID      = "/neb/1.0.0"
+	HELLO              = "hello"
+	OK                 = "ok"
+	BYE                = "bye"
+	SYNCROUTE          = "syncroute"
+	ROUTETABLE         = "routetable"
+	RECVEDMSG          = "recvedmsg"
+	CompressionVersion = 1
+	ProtocolVersion    = 1
 )
 
 // Stream Status
@@ -81,6 +83,7 @@ type Stream struct {
 	latestReadAt              int64
 	latestWriteAt             int64
 	msgCount                  map[string]int
+	remotePeerVersion         map[string]byte
 }
 
 // NewStream return a new Stream
@@ -110,6 +113,7 @@ func newStreamInstance(pid peer.ID, addr ma.Multiaddr, stream libnet.Stream, nod
 		latestReadAt:              0,
 		latestWriteAt:             0,
 		msgCount:                  make(map[string]int),
+		remotePeerVersion:         make(map[string]byte),
 	}
 }
 
@@ -174,7 +178,7 @@ func (s *Stream) SendProtoMessage(messageName string, pb proto.Message, priority
 
 // SendMessage send msg to buffer
 func (s *Stream) SendMessage(messageName string, data []byte, priority int) error {
-	message, err := NewNebMessage(s.node.config.ChainID, DefaultReserved, 0, messageName, data)
+	message, err := NewNebMessage(s, DefaultReserved, ProtocolVersion, messageName, data)
 	if err != nil {
 		return err
 	}
@@ -279,7 +283,7 @@ func (s *Stream) WriteProtoMessage(messageName string, pb proto.Message) error {
 
 // WriteMessage write raw msg in the stream
 func (s *Stream) WriteMessage(messageName string, data []byte) error {
-	message, err := NewNebMessage(s.node.config.ChainID, DefaultReserved, 0, messageName, data)
+	message, err := NewNebMessage(s, DefaultReserved, ProtocolVersion, messageName, data)
 	if err != nil {
 		return err
 	}
@@ -445,11 +449,17 @@ func (s *Stream) writeLoop() {
 func (s *Stream) handleMessage(message *NebMessage) error {
 	messageName := message.MessageName()
 	s.msgCount[messageName]++
+	s.remotePeerVersion[s.pid.Pretty()] = message.Version()
 
+	// Network data compression compatible with old clients.
 	// uncompress message data.
-	data, err := snappy.Decode(nil, message.Data())
-	if err != nil {
-		return ErrUncompressMessageFailed
+	var data = message.Data()
+	if message.Version() >= CompressionVersion {
+		var err error
+		data, err = snappy.Decode(nil, message.Data())
+		if err != nil {
+			return ErrUncompressMessageFailed
+		}
 	}
 
 	switch messageName {

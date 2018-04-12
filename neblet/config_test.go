@@ -306,5 +306,3 @@ func (n mockNetService) SendMessageToPeer(messageName string, data []byte, prior
 func (n mockNetService) ClosePeer(peerID string, reason error) {}
 
 func (n mockNetService) BroadcastNetworkID([]byte) {}
-
-func (n mockNetService) BuildRawMessageData([]byte, string) []byte { return nil }

@@ -226,8 +226,6 @@ func (n mockNetService) ClosePeer(peerID string, reason error) {}
 
 func (n mockNetService) BroadcastNetworkID([]byte) {}
 
-func (n mockNetService) BuildRawMessageData([]byte, string) []byte { return nil }
-
 func TestChunk_generateChunkMeta(t *testing.T) {
 	neb := mockNeb(t)
 	chain := neb.chain

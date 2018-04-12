@@ -172,9 +172,13 @@ func (message *NebMessage) Length() uint64 {
 }
 
 // NewNebMessage new neb message
-func NewNebMessage(chainID uint32, reserved []byte, version byte, messageName string, data []byte) (*NebMessage, error) {
-	// compress message data.
-	data = snappy.Encode(nil, data)
+func NewNebMessage(s *Stream, reserved []byte, version byte, messageName string, data []byte) (*NebMessage, error) {
+	chainID := s.node.config.ChainID
+	// if remote peer version >= compress version, compress message data.
+	if messageName != HELLO && s.remotePeerVersion[s.pid.Pretty()] >= CompressionVersion {
+		// compress message data.
+		data = snappy.Encode(nil, data)
+	}
 
 	if len(data) > MaxNebMessageDataLength {
 		logging.VLog().WithFields(logrus.Fields{

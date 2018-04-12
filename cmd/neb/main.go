@@ -70,7 +70,6 @@ func main() {
 		licenseCommand,
 		configCommand,
 		blockDumpCommand,
-		serializeCommand,
 	}
 	sort.Sort(cli.CommandsByName(app.Commands))
 

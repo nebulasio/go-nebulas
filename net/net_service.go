@@ -112,16 +112,6 @@ func (ns *NebService) BroadcastNetworkID(msg []byte) {
 	// TODO: @robin networkID.
 }
 
-// BuildRawMessageData return the raw NebMessage content data.
-func (ns *NebService) BuildRawMessageData(data []byte, msgName string) []byte {
-	message, err := NewNebMessage(ns.node.config.ChainID, DefaultReserved, 0, msgName, data)
-	if err != nil {
-		return nil
-	}
-
-	return message.Content()
-}
-
 // SendMsg send message to a peer.
 func (ns *NebService) SendMsg(msgName string, msg []byte, target string, priority int) error {
 	return ns.node.SendMessageToPeer(msgName, msg, priority, target)

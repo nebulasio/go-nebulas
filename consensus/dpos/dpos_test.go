@@ -239,8 +239,6 @@ func (n mockNetService) ClosePeer(peerID string, reason error) {}
 
 func (n mockNetService) BroadcastNetworkID([]byte) {}
 
-func (n mockNetService) BuildRawMessageData([]byte, string) []byte { return nil }
-
 func mockBlockFromNetwork(block *core.Block) (*core.Block, error) {
 	pbBlock, err := block.ToProto()
 	if err != nil {

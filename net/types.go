@@ -92,8 +92,6 @@ type Service interface {
 	ClosePeer(peerID string, reason error)
 
 	BroadcastNetworkID([]byte)
-
-	BuildRawMessageData([]byte, string) []byte
 }
 
 // MessageWeight float64

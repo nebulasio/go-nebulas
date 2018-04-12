@@ -239,8 +239,6 @@ func (n mockNetService) ClosePeer(peerID string, reason error) {}
 
 func (n mockNetService) BroadcastNetworkID([]byte) {}
 
-func (n mockNetService) BuildRawMessageData([]byte, string) []byte { return nil }
-
 type mockNeb struct {
 	config    *nebletpb.Config
 	chain     *BlockChain
