@@ -81,7 +81,7 @@ const (
 // Error types
 var (
 	MagicNumber     = []byte{0x4e, 0x45, 0x42, 0x31}
-	DefaultReserved = []byte{0x0, 0x0, 0x0}
+	DefaultReserved = []byte{0x1, 0x0, 0x0}
 
 	ErrInsufficientMessageHeaderLength = errors.New("insufficient message header length")
 	ErrInsufficientMessageDataLength   = errors.New("insufficient message data length")
@@ -175,9 +175,14 @@ func (message *NebMessage) Length() uint64 {
 func NewNebMessage(s *Stream, reserved []byte, version byte, messageName string, data []byte) (*NebMessage, error) {
 	chainID := s.node.config.ChainID
 	// if remote peer version >= compress version, compress message data.
-	if messageName != HELLO && s.remotePeerVersion[s.pid.Pretty()] >= CompressionVersion {
-		// compress message data.
-		data = snappy.Encode(nil, data)
+	if messageName != HELLO {
+		if _, ok := s.compressFlag[s.pid.Pretty()]; ok {
+			switch s.compressFlag[s.pid.Pretty()] {
+			case Snappy:
+				// compress message data.
+				data = snappy.Encode(nil, data)
+			}
+		}
 	}
 
 	if len(data) > MaxNebMessageDataLength {
