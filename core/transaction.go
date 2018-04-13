@@ -62,6 +62,8 @@ var (
 
 	// MaxDataPayLoadLength Max data length in transaction
 	MaxDataPayLoadLength = 128 * 1024
+	// MaxDataBinPayloadLength Max data length in binary transaction
+	MaxDataBinPayloadLength = 64
 
 	// MaxEventErrLength Max error length in event
 	MaxEventErrLength = 256
@@ -195,6 +197,11 @@ func (tx *Transaction) FromProto(msg proto.Message) error {
 			}
 			if len(msg.Data.Payload) > MaxDataPayLoadLength {
 				return ErrTxDataPayLoadOutOfMaxLength
+			}
+			if CheckGenesisTransaction(tx) == false &&
+				msg.Data.Type == TxPayloadBinaryType &&
+				len(msg.Data.Payload) > MaxDataBinPayloadLength {
+				return ErrTxDataBinPayLoadOutOfMaxLength
 			}
 			tx.data = msg.Data
 
