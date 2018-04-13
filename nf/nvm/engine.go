@@ -39,6 +39,8 @@ func (nvm *NebulasVM) CreateEngine(block *core.Block, tx *core.Transaction, cont
 	}
 	return NewV8Engine(ctx), nil
 }
+
+// CheckV8Run to check V8 env is OK
 func (nvm *NebulasVM) CheckV8Run() error {
 	engine := NewV8Engine(nil)
 	_, err := engine.RunScriptSource("", 0)

@@ -92,7 +92,7 @@ func mockTransaction() *core.Transaction {
 	return mockNormalTransaction("n1FkntVUMPAsESuCAAPK711omQk19JotBjM", "n1JNHZJEUvfBYfjDRD14Q73FX62nJAzXkMR", "0")
 }
 
-var CONTRACT_NAME = "contract.js"
+const ContractName = "contract.js"
 
 func mockNormalTransaction(from, to, value string) *core.Transaction {
 
@@ -182,8 +182,8 @@ func TestRunScriptSourceInModule(t *testing.T) {
 
 			engine := NewV8Engine(ctx)
 			engine.SetExecutionLimits(100000, 10000000)
-			engine.AddModule(CONTRACT_NAME, string(data), 0)
-			runnableSource := fmt.Sprintf("require(\"%s\");", CONTRACT_NAME)
+			engine.AddModule(ContractName, string(data), 0)
+			runnableSource := fmt.Sprintf("require(\"%s\");", ContractName)
 			_, err = engine.RunScriptSource(runnableSource, 0)
 
 			assert.Equal(t, tt.expectedErr, err)
@@ -236,12 +236,12 @@ func TestRunScriptSourceWithLimits(t *testing.T) {
 
 			// modularized run.
 			(func() {
-				moduleID := fmt.Sprintf("%s", CONTRACT_NAME)
+				moduleID := fmt.Sprintf("%s", ContractName)
 				runnableSource := fmt.Sprintf("require(\"%s\");", moduleID)
 
 				engine := NewV8Engine(ctx)
 				engine.SetExecutionLimits(tt.limitsOfExecutionInstructions, tt.limitsOfTotalMemorySize)
-				engine.AddModule(CONTRACT_NAME, string(data), 0)
+				engine.AddModule(ContractName, string(data), 0)
 				_, err = engine.RunScriptSource(runnableSource, 0)
 				assert.Equal(t, tt.expectedErr, err)
 				engine.Dispose()
@@ -281,7 +281,7 @@ func TestRunScriptSourceTimeout(t *testing.T) {
 
 			// modularized run.
 			(func() {
-				moduleID := fmt.Sprintf("%s", CONTRACT_NAME)
+				moduleID := fmt.Sprintf("%s", ContractName)
 				runnableSource := fmt.Sprintf("require(\"%s\");", moduleID)
 
 				engine := NewV8Engine(ctx)
@@ -574,7 +574,7 @@ func TestInstructionCounterTestSuite(t *testing.T) {
 			assert.Nil(t, err)
 			ctx, err := NewContext(mockBlock(), mockTransaction(), contract, context)
 
-			moduleID := CONTRACT_NAME
+			moduleID := ContractName
 			runnableSource := fmt.Sprintf("var x = require(\"%s\");", moduleID)
 
 			engine := NewV8Engine(ctx)
@@ -615,7 +615,7 @@ func TestTypeScriptExecution(t *testing.T) {
 			assert.Nil(t, err)
 			ctx, err := NewContext(mockBlock(), mockTransaction(), contract, context)
 
-			moduleID := CONTRACT_NAME
+			moduleID := ContractName
 			runnableSource := fmt.Sprintf("require(\"%s\");", moduleID)
 
 			engine := NewV8Engine(ctx)
