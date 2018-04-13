@@ -19,9 +19,12 @@
 
 #include "file.h"
 #include "logger.h"
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 char *readFile(const char *filepath, size_t *size) {
   if (size != NULL) {
@@ -59,4 +62,42 @@ char *readFile(const char *filepath, size_t *size) {
   }
 
   return data;
+}
+
+bool isFile(const char *file) {
+  struct stat buf;
+  if (stat(file, &buf) != 0) {
+    return false;
+  }
+  if (S_ISREG(buf.st_mode)) {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+bool getCurAbsolute(char *curCwd, int len) {
+  char tmp[MAX_PATH_LEN] = {0};
+  if (!getcwd(tmp, MAX_PATH_LEN)) {
+    return false;
+  }
+
+  strncat(tmp, LIB_DIR, MAX_PATH_LEN - strlen(tmp) - 1);
+  //staged ln
+  strncat(tmp, EXECUTION_FILE, MAX_PATH_LEN - strlen(tmp) -1);
+
+  char *pc = realpath(tmp, NULL);
+  if (pc == NULL) {
+    return false;
+  }
+  int pcLen = strlen(pc);
+  if (pcLen >= len) {
+    free(pc);
+    return false;
+  }
+  memcpy(curCwd, pc, pcLen - strlen(EXECUTION_FILE));
+  //strncpy(curCwd, pc, len - 1);
+  curCwd[pcLen - strlen(EXECUTION_FILE)] = 0x00;
+  free(pc);
+  return true;
 }

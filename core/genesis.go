@@ -205,6 +205,17 @@ func CheckGenesisBlock(block *Block) bool {
 	return false
 }
 
+// CheckGenesisTransaction if a tx is a genesis transaction
+func CheckGenesisTransaction(tx *Transaction) bool {
+	if tx == nil {
+		return false
+	}
+	if tx.from.Equals(GenesisCoinbase) {
+		return true
+	}
+	return false
+}
+
 // DumpGenesis return the configuration of the genesis block in the storage
 func DumpGenesis(chain *BlockChain) (*corepb.Genesis, error) {
 	genesis, err := LoadBlockFromStorage(GenesisHash, chain)

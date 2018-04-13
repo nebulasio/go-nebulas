@@ -180,6 +180,11 @@ func TestSetTailBlockEvent(t *testing.T) {
 
 	coinbase, _ := AddressParse("n1FF1nz6tarkDVwWQkMnnwFPuPKUaQTdptE")
 
+	topics := []string{TopicRevertBlock, TopicNewTailBlock, TopicTransactionExecutionResult}
+	t1ch := register(bc.eventEmitter, topics[0])
+	t2ch := register(bc.eventEmitter, topics[1])
+	t3ch := register(bc.eventEmitter, topics[2])
+
 	block0, err := bc.NewBlock(coinbase)
 	assert.Nil(t, err)
 
@@ -190,12 +195,6 @@ func TestSetTailBlockEvent(t *testing.T) {
 	block0.header.timestamp = BlockInterval
 	block0.Seal()
 	bc.SetTailBlock(block0)
-
-	topics := []string{TopicRevertBlock, TopicNewTailBlock, TopicTransactionExecutionResult}
-
-	t1ch := register(bc.eventEmitter, topics[0])
-	t2ch := register(bc.eventEmitter, topics[1])
-	t3ch := register(bc.eventEmitter, topics[2])
 
 	wg := new(sync.WaitGroup)
 	wg.Add(1)

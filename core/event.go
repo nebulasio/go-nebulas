@@ -43,6 +43,9 @@ const (
 
 	// TopicRevertBlock the topic of revert block
 	TopicRevertBlock = "chain.revertBlock"
+
+	// TopicDropTransaction drop tx (1): smaller nonce (2) expire txLifeTime
+	TopicDropTransaction = "chain.dropTransaction"
 )
 
 // EventSubscriber subscriber object

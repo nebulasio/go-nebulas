@@ -37,14 +37,23 @@ import "C"
 //#cgo CFLAGS: -Wno-error
 
 import (
-	"crypto/ecdsa"
 	"errors"
 	"unsafe"
+
+	"github.com/nebulasio/go-nebulas/crypto/utils"
+)
+
+const (
+	// EcdsaPrivateKeyLength private key length
+	EcdsaPrivateKeyLength = 32
 )
 
 var (
 	// ErrInvalidMsgLen invalid message length
 	ErrInvalidMsgLen = errors.New("invalid message length, need 32 bytes")
+
+	// ErrGetPublicKeyFailed private key to public failed
+	ErrGetPublicKeyFailed = errors.New("private key to public failed")
 
 	// ErrInvalidSignature invalid signature length
 	ErrInvalidSignature = errors.New("invalid signature")
@@ -71,17 +80,46 @@ func init() {
 	ctx = C.secp256k1_context_create(C.SECP256K1_CONTEXT_SIGN | C.SECP256K1_CONTEXT_VERIFY)
 }
 
-// SeckeyVerify check private is ok for secp256k1
-func SeckeyVerify(priv *ecdsa.PrivateKey) bool {
-	seckey, err := FromECDSAPrivateKey(priv)
-	if err != nil {
-		return false
+// NewSeckey generate a ecdsa private key by secp256k1
+func NewSeckey() []byte {
+	var priv []byte
+
+	// in bitcoin src, they call SeckeyVerify func to verify the generated private key
+	// to make sure valid.
+	for {
+		priv = utils.RandomCSPRNG(EcdsaPrivateKeyLength)
+		if SeckeyVerify(priv) {
+			break
+		}
 	}
+	return priv
+}
+
+// SeckeyVerify check private is ok for secp256k1
+func SeckeyVerify(seckey []byte) bool {
 	return C.secp256k1_ec_seckey_verify(ctx, cBuf(seckey)) == 1
 }
 
+// GetPublicKey private key to public key
+func GetPublicKey(seckey []byte) ([]byte, error) {
+
+	var pubkey C.secp256k1_pubkey
+	result := int(C.secp256k1_ec_pubkey_create(ctx, &pubkey, cBuf(seckey)))
+	if result != 1 {
+		return nil, ErrGetPublicKeyFailed
+	}
+
+	output := make([]C.uchar, 65)
+	outputLen := C.size_t(65)
+	result = int(C.secp256k1_ec_pubkey_serialize(ctx, &output[0], &outputLen, &pubkey, C.SECP256K1_EC_UNCOMPRESSED))
+	if result != 1 {
+		return nil, ErrGetPublicKeyFailed
+	}
+	return goBytes(output, C.int(outputLen)), nil
+}
+
 // RecoverECDSAPublicKey recover verifies the compact signature "signature" of "hash"
-func RecoverECDSAPublicKey(msg []byte, signature []byte) (*ecdsa.PublicKey, error) {
+func RecoverECDSAPublicKey(msg []byte, signature []byte) ([]byte, error) {
 	if len(msg) != 32 {
 		return nil, ErrInvalidMsgLen
 	}
@@ -106,18 +144,15 @@ func RecoverECDSAPublicKey(msg []byte, signature []byte) (*ecdsa.PublicKey, erro
 	if result != 1 {
 		return nil, ErrRecoverFailed
 	}
-	return ToECDSAPublicKey(goBytes(output, C.int(outputLen)))
+	return goBytes(output, C.int(outputLen)), nil
 }
 
 // Sign sign hash with private key
-func Sign(msg []byte, priv *ecdsa.PrivateKey) ([]byte, error) {
+func Sign(msg []byte, seckey []byte) ([]byte, error) {
 	if len(msg) != 32 {
 		return nil, ErrInvalidMsgLen
 	}
-	seckey, err := FromECDSAPrivateKey(priv)
-	if err != nil {
-		return nil, err
-	}
+
 	if C.secp256k1_ec_seckey_verify(ctx, cBuf(seckey)) != 1 {
 		return nil, ErrInvalidPrivateKey
 	}
@@ -140,19 +175,16 @@ func Sign(msg []byte, priv *ecdsa.PrivateKey) ([]byte, error) {
 }
 
 // Verify verify with public key
-func Verify(msg []byte, signature []byte, pub *ecdsa.PublicKey) (bool, error) {
+func Verify(msg []byte, signature []byte, pub []byte) (bool, error) {
 	if len(msg) != 32 {
 		return false, ErrInvalidMsgLen
 	}
-	pubdata, err := FromECDSAPublicKey(pub)
-	if err != nil {
-		return false, err
-	}
+
 	var (
 		sig    C.secp256k1_ecdsa_signature
 		pubkey C.secp256k1_pubkey
 	)
-	result := int(C.secp256k1_ec_pubkey_parse(ctx, &pubkey, cBuf(pubdata), C.size_t(len(pubdata))))
+	result := int(C.secp256k1_ec_pubkey_parse(ctx, &pubkey, cBuf(pub), C.size_t(len(pub))))
 	if result != 1 {
 		return false, ErrInvalidPublicKey
 	}

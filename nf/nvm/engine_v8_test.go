@@ -92,6 +92,8 @@ func mockTransaction() *core.Transaction {
 	return mockNormalTransaction("n1FkntVUMPAsESuCAAPK711omQk19JotBjM", "n1JNHZJEUvfBYfjDRD14Q73FX62nJAzXkMR", "0")
 }
 
+const ContractName = "contract.js"
+
 func mockNormalTransaction(from, to, value string) *core.Transaction {
 
 	fromAddr, _ := core.AddressParse(from)
@@ -152,16 +154,17 @@ func TestRunScriptSource(t *testing.T) {
 func TestRunScriptSourceInModule(t *testing.T) {
 	tests := []struct {
 		filepath    string
+		sourceType  string
 		expectedErr error
 	}{
-		{"./test/test_require.js", nil},
-		{"./test/test_setTimeout.js", core.ErrExecutionFailed},
-		{"./test/test_console.js", nil},
-		{"./test/test_storage_handlers.js", nil},
-		{"./test/test_storage_class.js", nil},
-		{"./test/test_storage.js", nil},
-		{"./test/test_ERC20.js", nil},
-		{"./test/test_eval.js", core.ErrExecutionFailed},
+		{"./test/test_require.js", "js", nil},
+		{"./test/test_setTimeout.js", "js", core.ErrExecutionFailed},
+		{"./test/test_console.js", "js", nil},
+		{"./test/test_storage_handlers.js", "js", nil},
+		{"./test/test_storage_class.js", "js", nil},
+		{"./test/test_storage.js", "js", nil},
+		{"./test/test_ERC20.js", "js", nil},
+		{"./test/test_eval.js", "js", core.ErrExecutionFailed},
 	}
 
 	for _, tt := range tests {
@@ -179,9 +182,10 @@ func TestRunScriptSourceInModule(t *testing.T) {
 
 			engine := NewV8Engine(ctx)
 			engine.SetExecutionLimits(100000, 10000000)
-			engine.AddModule(tt.filepath, string(data), 0)
-			runnableSource := fmt.Sprintf("require(\"%s\");", tt.filepath)
+			engine.AddModule(ContractName, string(data), 0)
+			runnableSource := fmt.Sprintf("require(\"%s\");", ContractName)
 			_, err = engine.RunScriptSource(runnableSource, 0)
+
 			assert.Equal(t, tt.expectedErr, err)
 			engine.Dispose()
 		})
@@ -232,12 +236,12 @@ func TestRunScriptSourceWithLimits(t *testing.T) {
 
 			// modularized run.
 			(func() {
-				moduleID := fmt.Sprintf("./%s", tt.filepath)
+				moduleID := fmt.Sprintf("%s", ContractName)
 				runnableSource := fmt.Sprintf("require(\"%s\");", moduleID)
 
 				engine := NewV8Engine(ctx)
 				engine.SetExecutionLimits(tt.limitsOfExecutionInstructions, tt.limitsOfTotalMemorySize)
-				engine.AddModule(moduleID, string(data), 0)
+				engine.AddModule(ContractName, string(data), 0)
 				_, err = engine.RunScriptSource(runnableSource, 0)
 				assert.Equal(t, tt.expectedErr, err)
 				engine.Dispose()
@@ -277,7 +281,7 @@ func TestRunScriptSourceTimeout(t *testing.T) {
 
 			// modularized run.
 			(func() {
-				moduleID := fmt.Sprintf("./%s", tt.filepath)
+				moduleID := fmt.Sprintf("%s", ContractName)
 				runnableSource := fmt.Sprintf("require(\"%s\");", moduleID)
 
 				engine := NewV8Engine(ctx)
@@ -570,7 +574,7 @@ func TestInstructionCounterTestSuite(t *testing.T) {
 			assert.Nil(t, err)
 			ctx, err := NewContext(mockBlock(), mockTransaction(), contract, context)
 
-			moduleID := tt.filepath
+			moduleID := ContractName
 			runnableSource := fmt.Sprintf("var x = require(\"%s\");", moduleID)
 
 			engine := NewV8Engine(ctx)
@@ -611,7 +615,7 @@ func TestTypeScriptExecution(t *testing.T) {
 			assert.Nil(t, err)
 			ctx, err := NewContext(mockBlock(), mockTransaction(), contract, context)
 
-			moduleID := tt.filepath
+			moduleID := ContractName
 			runnableSource := fmt.Sprintf("require(\"%s\");", moduleID)
 
 			engine := NewV8Engine(ctx)
@@ -1166,6 +1170,62 @@ func TestTransferValueFromContracts(t *testing.T) {
 				}
 				engine.Dispose()
 			}
+		})
+	}
+}
+
+func TestRequireModule(t *testing.T) {
+	tests := []struct {
+		name         string
+		contractPath string
+		sourceType   string
+		initArgs     string
+	}{
+		{"deploy test_require_module.js", "./test/test_require_module.js", "js", ""},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			data, err := ioutil.ReadFile(tt.contractPath)
+			assert.Nil(t, err, "contract path read error")
+
+			mem, _ := storage.NewMemoryStorage()
+			context, _ := state.NewWorldState(dpos.NewDpos(), mem)
+			owner, err := context.GetOrCreateUserAccount([]byte("account1"))
+			assert.Nil(t, err)
+			owner.AddBalance(newUint128FromIntWrapper(10000000))
+			contract, _ := context.CreateContractAccount([]byte("account2"), nil)
+
+			ctx, err := NewContext(mockBlock(), mockTransaction(), contract, context)
+			engine := NewV8Engine(ctx)
+			engine.SetExecutionLimits(10000, 10000000)
+			_, err = engine.DeployAndInit(string(data), tt.sourceType, tt.initArgs)
+			assert.Nil(t, err)
+			engine.Dispose()
+
+			engine = NewV8Engine(ctx)
+			engine.SetExecutionLimits(10000, 10000000)
+			_, err = engine.Call(string(data), tt.sourceType, "requireNULL", "")
+			assert.NotNil(t, err)
+			engine.Dispose()
+
+			engine = NewV8Engine(ctx)
+			engine.SetExecutionLimits(10000, 10000000)
+			_, err = engine.Call(string(data), tt.sourceType, "requireNotExistPath", "")
+			assert.NotNil(t, err)
+			engine.Dispose()
+
+			engine = NewV8Engine(ctx)
+			engine.SetExecutionLimits(10000, 10000000)
+			_, err = engine.Call(string(data), tt.sourceType, "requireCurPath", "")
+			assert.NotNil(t, err)
+			engine.Dispose()
+
+			engine = NewV8Engine(ctx)
+			engine.SetExecutionLimits(10000, 10000000)
+			_, err = engine.Call(string(data), tt.sourceType, "requireNotExistFile", "")
+			assert.NotNil(t, err)
+			engine.Dispose()
 		})
 	}
 }

@@ -182,7 +182,7 @@ func (c *Chunk) generateChunkData(chunkHeader *syncpb.ChunkHeader) (*syncpb.Chun
 
 	blocks := []*corepb.Block{}
 	for k, v := range chunkHeader.Headers {
-		block := c.blockChain.GetBlock(v)
+		block := c.blockChain.GetBlockOnCanonicalChainByHash(v)
 		if block == nil {
 			logging.VLog().WithFields(logrus.Fields{
 				"index": k,

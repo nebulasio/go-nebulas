@@ -326,3 +326,85 @@ func TestTransactionPool_Pop(t *testing.T) {
 	tx = txPool.Pop()
 	assert.Equal(t, tx.sign, txs[0].sign)
 }
+
+func TestTransactionPoolBucketUpdateTimeAndEvict(t *testing.T) {
+	ks := keystore.DefaultKS
+	priv1 := secp256k1.GeneratePrivateKey()
+	pubdata1, _ := priv1.PublicKey().Encoded()
+	from, _ := NewAddressFromPublicKey(pubdata1)
+	ks.SetKey(from.String(), priv1, []byte("passphrase"))
+	ks.Unlock(from.String(), []byte("passphrase"), time.Second*60*60*24*365)
+	key1, _ := ks.GetUnlocked(from.String())
+	signature1, _ := crypto.NewSignature(keystore.SECP256K1)
+	signature1.InitSign(key1.(keystore.PrivateKey))
+
+	priv2 := secp256k1.GeneratePrivateKey()
+	pubdata2, _ := priv2.PublicKey().Encoded()
+	other, _ := NewAddressFromPublicKey(pubdata2)
+	ks.SetKey(other.String(), priv2, []byte("passphrase"))
+	ks.Unlock(other.String(), []byte("passphrase"), time.Second*60*60*24*365)
+	key2, _ := ks.GetUnlocked(other.String())
+	signature2, _ := crypto.NewSignature(keystore.SECP256K1)
+	signature2.InitSign(key2.(keystore.PrivateKey))
+
+	gasCount, _ := util.NewUint128FromInt(2)
+	highPrice, err := TransactionGasPrice.Mul(gasCount)
+	assert.Nil(t, err)
+	neb := testNeb(t)
+	bc := neb.chain
+	txPool := bc.txPool
+
+	assert.Equal(t, highPrice.Cmp(TransactionGasPrice), 1)
+	gasLimit, _ := util.NewUint128FromInt(200000)
+	tx1, _ := NewTransaction(bc.ChainID(), from, &Address{[]byte("to")}, util.NewUint128(), 3, TxPayloadBinaryType, []byte("1"), TransactionGasPrice, gasLimit)
+	tx2, _ := NewTransaction(bc.ChainID(), other, &Address{[]byte("to")}, util.NewUint128(), 2, TxPayloadBinaryType, []byte("2"), highPrice, gasLimit)
+	tx3, _ := NewTransaction(bc.ChainID(), from, &Address{[]byte("to")}, util.NewUint128(), 2, TxPayloadBinaryType, []byte("3"), TransactionGasPrice, gasLimit)
+	tx4, _ := NewTransaction(bc.ChainID(), from, &Address{[]byte("to")}, util.NewUint128(), 1, TxPayloadBinaryType, []byte("4"), TransactionGasPrice, gasLimit)
+	tx5, _ := NewTransaction(bc.ChainID(), other, &Address{[]byte("to")}, util.NewUint128(), 1, TxPayloadBinaryType, []byte("5"), highPrice, gasLimit)
+	txs := []*Transaction{tx1, tx2, tx3, tx4, tx5}
+
+	assert.Nil(t, txs[0].Sign(signature1))
+	assert.Nil(t, txPool.Push(txs[0]))
+	assert.Nil(t, txs[1].Sign(signature2))
+	assert.Nil(t, txPool.Push(txs[1]))
+	assert.Nil(t, txs[2].Sign(signature1))
+	assert.Nil(t, txPool.Push(txs[2]))
+	assert.Nil(t, txs[3].Sign(signature1))
+	assert.Nil(t, txPool.Push(txs[3]))
+	assert.Nil(t, txs[4].Sign(signature2))
+	assert.Nil(t, txPool.Push(txs[4]))
+
+	// test bucket time is initialized but not updated
+	assert.Equal(t, time.Since(txPool.bucketsLastUpdate[txs[0].from.address.Hex()]) < time.Second*5, true)
+	assert.Equal(t, txPool.bucketsLastUpdate[txs[0].from.address.Hex()], txPool.bucketsLastUpdate[txs[2].from.address.Hex()])
+	assert.Equal(t, txPool.bucketsLastUpdate[txs[0].from.address.Hex()], txPool.bucketsLastUpdate[txs[3].from.address.Hex()])
+	assert.Equal(t, time.Since(txPool.bucketsLastUpdate[txs[1].from.address.Hex()]) < time.Second*5, true)
+	assert.Equal(t, txPool.bucketsLastUpdate[txs[1].from.address.Hex()], txPool.bucketsLastUpdate[txs[4].from.address.Hex()])
+	assert.NotNil(t, txPool.all[txs[0].hash.Hex()])
+	assert.NotNil(t, txPool.all[txs[2].hash.Hex()])
+	assert.NotNil(t, txPool.all[txs[3].hash.Hex()])
+
+	txPool.bucketsLastUpdate[txs[0].from.address.Hex()] = time.Now().Add(time.Minute * -89)
+	txPool.evictExpiredTransactions()
+	assert.NotNil(t, txPool.all[txs[0].hash.Hex()])
+	assert.NotNil(t, txPool.all[txs[2].hash.Hex()])
+	assert.NotNil(t, txPool.all[txs[3].hash.Hex()])
+	_, ok := txPool.buckets[txs[0].from.address.Hex()]
+	assert.Equal(t, ok, true)
+	_, ok = txPool.bucketsLastUpdate[txs[0].from.address.Hex()]
+	assert.Equal(t, ok, true)
+
+	txPool.bucketsLastUpdate[txs[0].from.address.Hex()] = time.Now().Add(time.Minute * -91)
+	txPool.evictExpiredTransactions()
+	assert.Nil(t, txPool.all[txs[0].hash.Hex()])
+	assert.Nil(t, txPool.all[txs[2].hash.Hex()])
+	assert.Nil(t, txPool.all[txs[3].hash.Hex()])
+	assert.NotNil(t, txPool.all[txs[1].hash.Hex()])
+	assert.NotNil(t, txPool.all[txs[4].hash.Hex()])
+
+	_, ok = txPool.buckets[txs[0].from.address.Hex()]
+	assert.Equal(t, ok, false)
+	_, ok = txPool.bucketsLastUpdate[txs[0].from.address.Hex()]
+	assert.Equal(t, ok, false)
+
+}

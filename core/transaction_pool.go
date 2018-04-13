@@ -34,15 +34,22 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+var (
+	metricUpdateInterval = time.Second
+	txEvictInterval      = time.Minute
+	txLifetime           = time.Minute * 90
+)
+
 // TransactionPool cache txs, is thread safe
 type TransactionPool struct {
 	receivedMessageCh chan net.Message
 	quitCh            chan int
 
-	size       int
-	candidates *sorted.Slice
-	buckets    map[byteutils.HexHash]*sorted.Slice
-	all        map[byteutils.HexHash]*Transaction
+	size              int
+	candidates        *sorted.Slice
+	buckets           map[byteutils.HexHash]*sorted.Slice
+	all               map[byteutils.HexHash]*Transaction
+	bucketsLastUpdate map[byteutils.HexHash]time.Time
 
 	ns net.Service
 	mu sync.RWMutex
@@ -81,6 +88,7 @@ func NewTransactionPool(size int) (*TransactionPool, error) {
 		candidates:        sorted.NewSlice(gasCmp),
 		buckets:           make(map[byteutils.HexHash]*sorted.Slice),
 		all:               make(map[byteutils.HexHash]*Transaction),
+		bucketsLastUpdate: make(map[byteutils.HexHash]time.Time),
 		minGasPrice:       TransactionGasPrice,
 		maxGasLimit:       TransactionMaxGas,
 	}, nil
@@ -142,12 +150,20 @@ func (pool *TransactionPool) loop() {
 		"size": pool.size,
 	}).Info("Started TransactionPool.")
 
-	timerChan := time.NewTicker(time.Second).C
+	metricsUpdateChan := time.NewTicker(metricUpdateInterval).C
+	evictChan := time.NewTicker(txEvictInterval).C
+
 	for {
 		select {
-		case <-timerChan:
+		case <-metricsUpdateChan:
 			metricsReceivedTx.Update(int64(len(pool.receivedMessageCh)))
 			metricsCachedTx.Update(int64(len(pool.all)))
+			metricsBucketTx.Update(int64(len(pool.buckets)))
+			metricsCandidates.Update(int64(pool.candidates.Len()))
+
+		case <-evictChan:
+			pool.evictExpiredTransactions()
+
 		case <-pool.quitCh:
 			logging.CLog().WithFields(logrus.Fields{
 				"size": pool.size,
@@ -309,6 +325,12 @@ func (pool *TransactionPool) pushTx(tx *Transaction) {
 		pool.candidates.Del(oldCandidate)
 		pool.candidates.Push(newCandidate)
 	}
+
+	// Initialize bucket time. Do not update in pushTx() after init.
+	// Because tx could be taken out and then push back if verification fail
+	if _, ok := pool.bucketsLastUpdate[slot]; !ok {
+		pool.bucketsLastUpdate[slot] = time.Now()
+	}
 }
 
 func (pool *TransactionPool) popTx(tx *Transaction) {
@@ -403,9 +425,19 @@ func (pool *TransactionPool) Del(tx *Transaction) {
 			bucket.PopLeft()
 			delete(pool.all, left.Hash().Hex())
 
+			// trigger pending transaction
+			event := &state.Event{
+				Topic: TopicDropTransaction,
+				Data:  left.String(),
+			}
+			pool.eventEmitter.Trigger(event)
+
 			logging.VLog().WithFields(logrus.Fields{
-				"tx": "tx",
-			}).Debug("Delete transaction.")
+				"tx":         left.Hash().Hex(),
+				"size":       pool.size,
+				"poolsize":   len(pool.all),
+				"bucketsize": len(pool.buckets),
+			}).Debug("Delete transaction")
 
 			if bucket.Len() > 0 {
 				left = bucket.Left().(*Transaction)
@@ -423,6 +455,8 @@ func (pool *TransactionPool) Del(tx *Transaction) {
 			}
 		}
 	}
+	//update bucket update time when txs are put on chain
+	pool.bucketsLastUpdate[tx.from.address.Hex()] = time.Now()
 }
 
 // Empty return if the pool is empty
@@ -430,4 +464,43 @@ func (pool *TransactionPool) Empty() bool {
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
 	return len(pool.all) == 0
+}
+
+func (pool *TransactionPool) evictExpiredTransactions() {
+	pool.mu.Lock()
+	defer pool.mu.Unlock()
+
+	for slot := range pool.buckets {
+		if timeLastDate, ok := pool.bucketsLastUpdate[slot]; ok {
+			if time.Since(timeLastDate) > txLifetime {
+				bucket := pool.buckets[slot]
+
+				val := bucket.PopLeft()
+				if tx := val.(*Transaction); tx != nil && tx.hash != nil {
+					pool.candidates.Del(tx) // only remove the first from candidates
+				}
+				for val != nil {
+					if tx := val.(*Transaction); tx != nil && tx.hash != nil {
+						delete(pool.all, tx.hash.Hex())
+						logging.VLog().WithFields(logrus.Fields{
+							"tx":         tx.hash.Hex(),
+							"size":       pool.size,
+							"poolsize":   len(pool.all),
+							"bucketsize": len(pool.buckets),
+						}).Debug("Remove expired transactions.")
+						// trigger pending transaction
+						event := &state.Event{
+							Topic: TopicDropTransaction,
+							Data:  tx.String(),
+						}
+						pool.eventEmitter.Trigger(event)
+					}
+
+					val = bucket.PopLeft()
+				}
+				delete(pool.buckets, slot)
+				delete(pool.bucketsLastUpdate, slot)
+			}
+		}
+	}
 }

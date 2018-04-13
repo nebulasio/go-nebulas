@@ -205,7 +205,7 @@ func (bc *BlockChain) Stop() {
 
 func (bc *BlockChain) loop() {
 	logging.CLog().Info("Started BlockChain.")
-	timerChan := time.NewTicker(5 * time.Second).C
+	timerChan := time.NewTicker(15 * time.Second).C
 	for {
 		select {
 		case <-bc.quitCh:
@@ -407,6 +407,10 @@ func (bc *BlockChain) SetTailBlock(newTail *Block) error {
 		return err
 	}
 	bc.tailBlock = newTail
+
+	logging.CLog().WithFields(logrus.Fields{
+		"tail": newTail,
+	}).Info("Succeed to update new tail.")
 
 	metricsBlockHeightGauge.Update(int64(newTail.Height()))
 	metricsBlocktailHashGauge.Update(int64(byteutils.HashBytes(newTail.Hash())))

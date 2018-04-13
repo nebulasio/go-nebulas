@@ -24,6 +24,7 @@ import (
 	"hash/crc32"
 	"time"
 
+	"github.com/golang/snappy"
 	byteutils "github.com/nebulasio/go-nebulas/util/byteutils"
 	"github.com/nebulasio/go-nebulas/util/logging"
 	"github.com/sirupsen/logrus"
@@ -80,7 +81,7 @@ const (
 // Error types
 var (
 	MagicNumber     = []byte{0x4e, 0x45, 0x42, 0x31}
-	DefaultReserved = []byte{0x0, 0x0, 0x0}
+	DefaultReserved = []byte{0x1, 0x0, 0x0}
 
 	ErrInsufficientMessageHeaderLength = errors.New("insufficient message header length")
 	ErrInsufficientMessageDataLength   = errors.New("insufficient message data length")
@@ -171,7 +172,19 @@ func (message *NebMessage) Length() uint64 {
 }
 
 // NewNebMessage new neb message
-func NewNebMessage(chainID uint32, reserved []byte, version byte, messageName string, data []byte) (*NebMessage, error) {
+func NewNebMessage(s *Stream, reserved []byte, version byte, messageName string, data []byte) (*NebMessage, error) {
+	chainID := s.node.config.ChainID
+	// if remote peer version >= compress version, compress message data.
+	if messageName != HELLO {
+		if v, ok := s.compressFlag.Load(s.pid.Pretty()); ok {
+			switch v.(byte) {
+			case Snappy:
+				// compress message data.
+				data = snappy.Encode(nil, data)
+			}
+		}
+	}
+
 	if len(data) > MaxNebMessageDataLength {
 		logging.VLog().WithFields(logrus.Fields{
 			"messageName": messageName,

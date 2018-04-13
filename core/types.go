@@ -99,10 +99,11 @@ var (
 	ErrInvalidGasPrice          = errors.New("invalid gas price, should be in (0, 10^12]")
 	ErrInvalidGasLimit          = errors.New("invalid gas limit, should be in (0, 5*10^10]")
 
-	ErrNoTimeToPackTransactions    = errors.New("no time left to pack transactions in a block")
-	ErrTxDataPayLoadOutOfMaxLength = errors.New("data's payload is out of max data length")
-	ErrNilArgument                 = errors.New("argument(s) is nil")
-	ErrInvalidArgument             = errors.New("invalid argument(s)")
+	ErrNoTimeToPackTransactions       = errors.New("no time left to pack transactions in a block")
+	ErrTxDataPayLoadOutOfMaxLength    = errors.New("data's payload is out of max data length")
+	ErrTxDataBinPayLoadOutOfMaxLength = errors.New("data's payload is out of max data length in a binary tx")
+	ErrNilArgument                    = errors.New("argument(s) is nil")
+	ErrInvalidArgument                = errors.New("invalid argument(s)")
 
 	ErrInsufficientBalance                = errors.New("insufficient balance")
 	ErrBelowGasPrice                      = errors.New("below the gas price")
@@ -207,6 +208,7 @@ type Consensus interface {
 	NewState(*consensuspb.ConsensusRoot, storage.Storage, bool) (state.ConsensusState, error)
 	GenesisConsensusState(*BlockChain, *corepb.Genesis) (state.ConsensusState, error)
 	CheckTimeout(*Block) bool
+	CheckDoubleMint(*Block) bool
 }
 
 // SyncService interface of sync service
@@ -242,6 +244,7 @@ type AccountManager interface {
 // NVM interface
 type NVM interface {
 	CreateEngine(block *Block, tx *Transaction, contract state.Account, ws WorldState) (SmartContractEngine, error)
+	CheckV8Run() error
 }
 
 // SmartContractEngine interface

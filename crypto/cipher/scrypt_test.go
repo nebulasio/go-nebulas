@@ -69,33 +69,72 @@ func TestScrypt_Encrypt(t *testing.T) {
 }
 
 func TestScrypt_DecryptKey(t *testing.T) {
+
 	passphrase := []byte("qwertyuiop")
-	key := `{
-    "version":3,
-    "id":"3913ded3-2707-4a25-996a-807265dc0cdf",
-    "address":"70e30fcae5e7f4b2460faaa9e5b1bd912332ebb5",
-    "Crypto":{
-        "ciphertext":"30c9606797a6e4fd5bb8e91694184ecdb9ab0230c453fe1922732a1e3212301c",
-        "cipherparams":{
-            "iv":"65d14cb11d6bb6e57dff0d12346637cc"
-        },
-        "cipher":"aes-128-ctr",
-        "kdf":"scrypt",
-        "kdfparams":{
-            "dklen":32,
-            "salt":"8728c5a28888692acb5e28ee46bdc7935b8306dfece2c6d0cd003b2cbc259af2",
-            "n":1024,
-            "r":8,
-            "p":1
-        },
-        "mac":"a22874c9c35e365e305b1defe6663bde930d2efbcc6c3d0db192ff44bd9dfa7c"
-    }
-	}`
-	scrypt := new(Scrypt)
-	_, err := scrypt.DecryptKey([]byte(key), passphrase)
-	if err != nil {
-		t.Errorf("DecryptKey() error = %v", err)
-		return
+
+	tests := []struct {
+		name string
+		key  string
+	}{
+		{
+			"version3",
+			`{
+					"version":3,
+					"id":"3913ded3-2707-4a25-996a-807265dc0cdf",
+					"address":"70e30fcae5e7f4b2460faaa9e5b1bd912332ebb5",
+					"Crypto":{
+						"ciphertext":"30c9606797a6e4fd5bb8e91694184ecdb9ab0230c453fe1922732a1e3212301c",
+						"cipherparams":{
+							"iv":"65d14cb11d6bb6e57dff0d12346637cc"
+						},
+						"cipher":"aes-128-ctr",
+						"kdf":"scrypt",
+						"kdfparams":{
+							"dklen":32,
+							"salt":"8728c5a28888692acb5e28ee46bdc7935b8306dfece2c6d0cd003b2cbc259af2",
+							"n":1024,
+							"r":8,
+							"p":1
+						},
+						"mac":"a22874c9c35e365e305b1defe6663bde930d2efbcc6c3d0db192ff44bd9dfa7c"
+					}
+				  }`,
+		},
+		{
+			"version4",
+			`{
+					"version":4,
+					"id":"3913ded3-2707-4a25-996a-807265dc0cdf",
+					"address":"70e30fcae5e7f4b2460faaa9e5b1bd912332ebb5",
+					"Crypto":{
+						"ciphertext":"30c9606797a6e4fd5bb8e91694184ecdb9ab0230c453fe1922732a1e3212301c",
+						"cipherparams":{
+							"iv":"65d14cb11d6bb6e57dff0d12346637cc"
+						},
+						"cipher":"aes-128-ctr",
+						"kdf":"scrypt",
+						"kdfparams":{
+							"dklen":32,
+							"salt":"8728c5a28888692acb5e28ee46bdc7935b8306dfece2c6d0cd003b2cbc259af2",
+							"n":1024,
+							"r":8,
+							"p":1
+						},
+						"mac":"c213e1567ce01702e236fbff6a00481d0478b4844cfe992d1604e0d4af20a79e"
+					}
+                  }`,
+		},
 	}
-	//t.Logf("decrypt key :%d", d)
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			key := tt.key
+			s := new(Scrypt)
+			_, err := s.DecryptKey([]byte(key), passphrase)
+			if err != nil {
+				t.Errorf("DecryptKey() error = %v", err)
+				return
+			}
+		})
+	}
 }

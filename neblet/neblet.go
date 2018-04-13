@@ -132,7 +132,11 @@ func (n *Neblet) Setup() {
 
 	// nvm
 	n.nvm = nvm.NewNebulasVM()
-
+	if err = n.nvm.CheckV8Run(); err != nil {
+		logging.CLog().WithFields(logrus.Fields{
+			"err": err,
+		}).Fatal("Failed to setup V8.")
+	}
 	// core
 	n.eventEmitter = core.NewEventEmitter(40960)
 	n.consensus = dpos.NewDpos()

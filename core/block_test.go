@@ -190,6 +190,9 @@ func (c *mockConsensus) Enable() bool                         { return true }
 func (c *mockConsensus) CheckTimeout(block *Block) bool {
 	return time.Now().Unix()-block.Timestamp() > AcceptedNetWorkDelay
 }
+func (c *mockConsensus) CheckDoubleMint(block *Block) bool {
+	return false
+}
 func (c *mockConsensus) NewState(root *consensuspb.ConsensusRoot, stor storage.Storage, needChangeLog bool) (state.ConsensusState, error) {
 	return newMockConsensusState(root.Timestamp)
 }
@@ -250,8 +253,6 @@ func (n mockNetService) SendMessageToPeer(messageName string, data []byte, prior
 func (n mockNetService) ClosePeer(peerID string, reason error) {}
 
 func (n mockNetService) BroadcastNetworkID([]byte) {}
-
-func (n mockNetService) BuildRawMessageData([]byte, string) []byte { return nil }
 
 type mockNeb struct {
 	config    *nebletpb.Config
@@ -319,6 +320,10 @@ type mockEngine struct{}
 func (nvm *mockNvm) CreateEngine(block *Block, tx *Transaction, contract state.Account, state WorldState) (SmartContractEngine, error) {
 	return &mockEngine{}, nil
 }
+func (nvm *mockNvm) CheckV8Run() error {
+	return nil
+}
+
 func (nvm *mockEngine) Dispose() {
 
 }

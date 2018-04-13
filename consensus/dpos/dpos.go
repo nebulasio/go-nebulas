@@ -243,7 +243,7 @@ func (dpos *Dpos) UpdateLIB() {
 				}).Debug("Failed to store latest irreversible block.")
 				return
 			}
-			logging.VLog().WithFields(logrus.Fields{
+			logging.CLog().WithFields(logrus.Fields{
 				"lib.new":          cur,
 				"lib.old":          lib,
 				"tail":             tail,
@@ -319,6 +319,20 @@ func verifyBlockSign(miner *core.Address, block *core.Block) error {
 	return nil
 }
 
+// CheckDoubleMint if double mint exists
+func (dpos *Dpos) CheckDoubleMint(block *core.Block) bool {
+	if preBlock, exist := dpos.slot.Get(block.Timestamp()); exist {
+		if preBlock.(*core.Block).Hash().Equals(block.Hash()) == false {
+			logging.VLog().WithFields(logrus.Fields{
+				"curBlock": block,
+				"preBlock": preBlock.(*core.Block),
+			}).Warn("Found someone minted multiple blocks at same time.")
+			return true
+		}
+	}
+	return false
+}
+
 // VerifyBlock verify the block
 func (dpos *Dpos) VerifyBlock(block *core.Block) error {
 	tail := dpos.chain.TailBlock()
@@ -326,17 +340,9 @@ func (dpos *Dpos) VerifyBlock(block *core.Block) error {
 	if block.Timestamp() != block.ConsensusRoot().Timestamp {
 		return ErrInvalidBlockTimestamp
 	}
-	elapsedSecondInMs := (block.Timestamp() - tail.Timestamp()) * SecondInMs
-	if (elapsedSecondInMs % BlockIntervalInMs) != 0 {
+	elapsedSecondInMs := block.Timestamp() * SecondInMs
+	if elapsedSecondInMs <= 0 || (elapsedSecondInMs%BlockIntervalInMs) != 0 {
 		return ErrInvalidBlockInterval
-	}
-	// check double mint
-	if preBlock, exist := dpos.slot.Get(block.Timestamp()); exist {
-		logging.VLog().WithFields(logrus.Fields{
-			"curBlock": block,
-			"preBlock": preBlock.(*core.Block),
-		}).Warn("Found someone minted multiple blocks at same time.")
-		return ErrDoubleBlockMinted
 	}
 	// check proposer
 	miners, err := tail.WorldState().Dynasty()
