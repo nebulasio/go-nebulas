@@ -48,11 +48,6 @@ const (
 	RECVEDMSG     = "recvedmsg"
 )
 
-// Compression algorithm
-const (
-	Snappy = 0x1
-)
-
 // Stream Status
 const (
 	streamStatusInit = iota
@@ -448,16 +443,15 @@ func (s *Stream) writeLoop() {
 
 func (s *Stream) handleMessage(message *NebMessage) error {
 	messageName := message.MessageName()
-	compressFlag := message.Reserved()[0]
-	s.msgCount[messageName]++
+	compressFlag := message.Reserved()[0] & 0x80
 	s.compressFlag.Store(s.pid.Pretty(), compressFlag)
+	s.msgCount[messageName]++
 
 	// Network data compression compatible with old clients.
 	// uncompress message data.
 	var data = message.Data()
 	if messageName != HELLO {
-		switch compressFlag {
-		case Snappy:
+		if compressFlag > 0 {
 			var err error
 			data, err = snappy.Decode(nil, message.Data())
 			if err != nil {
