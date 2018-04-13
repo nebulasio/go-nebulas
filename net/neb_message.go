@@ -176,8 +176,8 @@ func NewNebMessage(s *Stream, reserved []byte, version byte, messageName string,
 	chainID := s.node.config.ChainID
 	// if remote peer version >= compress version, compress message data.
 	if messageName != HELLO {
-		if _, ok := s.compressFlag[s.pid.Pretty()]; ok {
-			switch s.compressFlag[s.pid.Pretty()] {
+		if v, ok := s.compressFlag.Load(s.pid.Pretty()); ok {
+			switch v {
 			case Snappy:
 				// compress message data.
 				data = snappy.Encode(nil, data)

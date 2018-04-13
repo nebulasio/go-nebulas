@@ -85,7 +85,7 @@ type Stream struct {
 	latestReadAt              int64
 	latestWriteAt             int64
 	msgCount                  map[string]int
-	compressFlag              map[string]byte
+	compressFlag              *sync.Map
 }
 
 // NewStream return a new Stream
@@ -115,7 +115,7 @@ func newStreamInstance(pid peer.ID, addr ma.Multiaddr, stream libnet.Stream, nod
 		latestReadAt:              0,
 		latestWriteAt:             0,
 		msgCount:                  make(map[string]int),
-		compressFlag:              make(map[string]byte),
+		compressFlag:              new(sync.Map),
 	}
 }
 
@@ -450,7 +450,7 @@ func (s *Stream) handleMessage(message *NebMessage) error {
 	messageName := message.MessageName()
 	compressFlag := message.Reserved()[0]
 	s.msgCount[messageName]++
-	s.compressFlag[s.pid.Pretty()] = compressFlag
+	s.compressFlag.Store(s.pid.Pretty(), compressFlag)
 
 	// Network data compression compatible with old clients.
 	// uncompress message data.
