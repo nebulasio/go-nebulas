@@ -320,6 +320,10 @@ type mockEngine struct{}
 func (nvm *mockNvm) CreateEngine(block *Block, tx *Transaction, contract state.Account, state WorldState) (SmartContractEngine, error) {
 	return &mockEngine{}, nil
 }
+func (nvm *mockNvm) CheckV8Run() error {
+	return nil
+}
+
 func (nvm *mockEngine) Dispose() {
 
 }
