@@ -18,7 +18,7 @@
 //
 
 #include "memory_modules.h"
-#include "logger.h"
+#include "../lib/logger.h"
 
 #include <atomic>
 #include <mutex>
