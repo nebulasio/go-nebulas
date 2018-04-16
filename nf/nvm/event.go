@@ -32,6 +32,18 @@ const (
 	EventBaseGasCount = 20
 )
 
+const (
+	// TransferFromContractEventCompatibilityHeight record event 'TransferFromContractEvent' after this height
+	TransferFromContractEventCompatibilityHeight uint64 = 200000
+)
+
+// TransferFromContractEvent event for transfer in contract
+type TransferFromContractEvent struct {
+	Amount string `json:"amount"`
+	From   string `json:"from"`
+	To     string `json:"to"`
+}
+
 // EventTriggerFunc export EventTriggerFunc
 //export EventTriggerFunc
 func EventTriggerFunc(handler unsafe.Pointer, topic, data *C.char, gasCnt *C.size_t) {
