@@ -32,7 +32,6 @@ import (
 	"github.com/nebulasio/go-nebulas/crypto/keystore"
 	"github.com/nebulasio/go-nebulas/util"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
-	"github.com/nebulasio/go-nebulas/util/logging"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -196,8 +195,7 @@ func TestTransaction_VerifyExecutionDependency(t *testing.T) {
 	tx4, _ := NewTransaction(bc.chainID, e, f, v, uint64(1), TxPayloadBinaryType, []byte("nas"), TransactionGasPrice, TransactionMaxGas)
 
 	txs := [4]*Transaction{tx1, tx2, tx3, tx4}
-	for idx, tx := range txs {
-		logging.CLog().Info("tx[", idx, "]from:", tx.from, " to:", tx.to)
+	for _, tx := range txs {
 		key, _ := ks.GetUnlocked(tx.from.String())
 		signature, _ := crypto.NewSignature(keystore.SECP256K1)
 		signature.InitSign(key.(keystore.PrivateKey))
@@ -224,9 +222,6 @@ func TestTransaction_VerifyExecutionDependency(t *testing.T) {
 	}
 
 	bc.tailBlock.Commit()
-
-	fromAcc, err := bc.tailBlock.worldState.GetOrCreateUserAccount(tx1.from.address)
-	logging.CLog().Info("XXXXX", fromAcc.Balance().Uint64())
 
 	block, err := bc.NewBlock(bc.tailBlock.header.coinbase)
 	assert.Nil(t, err)
@@ -288,7 +283,6 @@ func TestTransaction_VerifyExecutionDependency(t *testing.T) {
 	assert.Equal(t, "2", dependency3[0])
 
 	acc3, err := block.worldState.GetOrCreateUserAccount(tx3.from.address)
-	logging.CLog().Info("Balance:", acc3.Balance().String())
 	assert.Equal(t, "1000000000000000001", acc3.Balance().String())
 	toacc3, err := block.worldState.GetOrCreateUserAccount(tx3.to.address)
 	assert.Equal(t, "1", toacc3.Balance().String())

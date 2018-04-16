@@ -97,15 +97,57 @@ void RequireCallback(const v8::FunctionCallbackInfo<v8::Value> &info) {
   }
 
   String::Utf8Value filename(path);
-  char *data = NULL;
-  size_t lineOffset = 0;
-  if (readSource(context, *filename, &data, &lineOffset)) {
-    char msg[512];
-    snprintf(msg, 512, "require cannot find module '%s'", *filename);
-    isolate->ThrowException(
-        Exception::Error(String::NewFromUtf8(isolate, msg)));
+  if (filename.length() >= MAX_PATH_LEN) {
+    isolate->ThrowException(Exception::Error(
+        String::NewFromUtf8(isolate, "require path length more")));
     return;
   }
+  char *abPath = NULL;
+  if (strcmp(*filename, LIB_WHITE)) { // if needed, check array instead.
+    abPath = realpath(*filename, NULL);
+    if (abPath == NULL) {
+      isolate->ThrowException(Exception::Error(String::NewFromUtf8(
+          isolate, "require path is invalid absolutepath")));
+      return;
+    }
+    static char curPath[MAX_PATH_LEN] = {0};
+    if (curPath[0] == 0x00 && !getCurAbsolute(curPath, MAX_PATH_LEN)) {
+      isolate->ThrowException(Exception::Error(
+          String::NewFromUtf8(isolate, "invalid cwd absolutepath")));
+      free(abPath);
+      return;
+    }
+    static int curLen = strlen(curPath);
+    if (strncmp(abPath, curPath, curLen) != 0) {
+      isolate->ThrowException(Exception::Error(
+          String::NewFromUtf8(isolate, "require path is not in lib")));
+      free(abPath);
+      return;
+    } 
+
+    //free(abPath);
+    if (!isFile(abPath)) {
+      isolate->ThrowException(Exception::Error(
+          String::NewFromUtf8(isolate, "require path is not file")));
+      free(abPath);
+      return;
+    }
+  }
+  char *pFile = abPath;
+  if (abPath == NULL) {
+    pFile = *filename;
+  }
+  char *data = NULL;
+  size_t lineOffset = 0;
+  if (readSource(context, (const char*)pFile, &data, &lineOffset)) {
+    char msg[512];
+    snprintf(msg, 512, "require cannot find module '%s'", pFile);
+    isolate->ThrowException(
+        Exception::Error(String::NewFromUtf8(isolate, msg)));
+    free(abPath);
+    return;
+  }
+  free(abPath);
 
   ScriptOrigin sourceSrcOrigin(path, Integer::New(isolate, lineOffset));
   MaybeLocal<Script> script = Script::Compile(

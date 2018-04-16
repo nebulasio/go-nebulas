@@ -205,7 +205,7 @@ func (bc *BlockChain) Stop() {
 
 func (bc *BlockChain) loop() {
 	logging.CLog().Info("Started BlockChain.")
-	timerChan := time.NewTicker(5 * time.Second).C
+	timerChan := time.NewTicker(15 * time.Second).C
 	for {
 		select {
 		case <-bc.quitCh:
@@ -229,7 +229,7 @@ func (bc *BlockChain) CheckGenesisConfig(neb Neblet) error {
 			return ErrInvalidConfigChainID
 		}
 	} else if neb.Genesis() == nil && err != nil {
-		logging.CLog().Fatalf("not found genesis.conf")
+		logging.CLog().Fatal("Failed to find genesis config in config file")
 	} else if neb.Genesis() != nil && err != nil {
 		//first start
 		if neb.Config().Chain.ChainId != neb.Genesis().Meta.ChainId {
@@ -408,6 +408,10 @@ func (bc *BlockChain) SetTailBlock(newTail *Block) error {
 	}
 	bc.tailBlock = newTail
 
+	logging.CLog().WithFields(logrus.Fields{
+		"tail": newTail,
+	}).Info("Succeed to update new tail.")
+
 	metricsBlockHeightGauge.Update(int64(newTail.Height()))
 	metricsBlocktailHashGauge.Update(int64(byteutils.HashBytes(newTail.Hash())))
 
@@ -561,7 +565,7 @@ func (bc *BlockChain) putVerifiedNewBlocks(parent *Block, allBlocks, tailBlocks 
 			logging.VLog().WithFields(logrus.Fields{
 				"block": v,
 				"err":   err,
-			}).Error("Failed to store the verified block.")
+			}).Debug("Failed to store the verified block.")
 			return err
 		}
 

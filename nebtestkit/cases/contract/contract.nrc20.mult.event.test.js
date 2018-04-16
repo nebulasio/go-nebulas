@@ -2,64 +2,39 @@
 var async = require('async');
 var sleep = require("system-sleep");
 var HttpRequest = require("../../node-request");
+var TestNetConfig = require("../testnet_config.js");
+
 var FS = require("fs");
 
 var expect = require('chai').expect;
 var BigNumber = require('bignumber.js');
 
 var Nebulas = require('nebulas');
+var Neb = Nebulas.Neb;
 var Account = Nebulas.Account;
 var Transaction = Nebulas.Transaction;
 var CryptoUtils = Nebulas.CryptoUtils;
 var Utils = Nebulas.Utils;
-var Neb = Nebulas.Neb;
-var neb = new Neb();
 
-var ChainID;
-var originSource, source, deploy, from, fromState, contractAddr;
 
 var coinbase, coinState;
 var testCases = new Array();
 var caseIndex = 0;
 
-// mocha cases/contract/xxx testneb1 -t 200000
+// mocha cases/contract/contract.nrc20.mult.event.test.js testneb2 -t 200000
 var args = process.argv.splice(2);
 var env = args[1];
-if (env !== "local" && env !== "testneb1" && env !== "testneb2" && env !== "testneb3") {
-    env = "local";
-}
-console.log("env:", env);
+var testNetConfig = new TestNetConfig(env);
 
-if (env == 'local'){
-    neb.setRequest(new HttpRequest("http://127.0.0.1:8685"));//https://testnet.nebulas.io
-    ChainID = 100;
-    originSource = new Account("d80f115bdbba5ef215707a8d7053c16f4e65588fd50b0f83369ad142b99891b5");
-    coinbase = "n1QZMXSZtW7BUerroSms4axNfyBGyFGkrh5";
 
-}else if(env == 'testneb1'){
-    neb.setRequest(new HttpRequest("http://35.182.48.19:8685"));
-    ChainID = 1001;
-    originSource = new Account("25a3a441a34658e7a595a0eda222fa43ac51bd223017d17b420674fb6d0a4d52");
-    coinbase = "n1SAeQRVn33bamxN4ehWUT7JGdxipwn8b17";
-}else if(env == "testneb2"){
-    neb.setRequest(new HttpRequest("http://34.205.26.12:8685"));
-    ChainID = 1002;
-    originSource = new Account("25a3a441a34658e7a595a0eda222fa43ac51bd223017d17b420674fb6d0a4d52");
-    coinbase = "n1SAeQRVn33bamxN4ehWUT7JGdxipwn8b17";
-}else if(env == "testneb3"){
-    neb.setRequest(new HttpRequest("http://35.177.214.138:8685"));
-    ChainID = 1003;
-    originSource = new Account("25a3a441a34658e7a595a0eda222fa43ac51bd223017d17b420674fb6d0a4d52");
-    coinbase = "n1SAeQRVn33bamxN4ehWUT7JGdxipwn8b17";
-} else if (env === "maintest"){
-    ChainID = 2;
-    originSource = new Wallet.Account("d2319a8a63b1abcb0cc6d4183198e5d7b264d271f97edf0c76cfdb1f2631848c");
-    coinbase = "n1EzGmFsVepKduN1U5QFyhLqpzFvM9sRSmG";
-    neb.setRequest(new HttpRequest("http://54.149.15.132:8685"));
-} else{
-    console.log("please input correct env local testneb1 testneb2 testneb3");
-    return;
-}
+var neb = new Neb();
+var source, deploy, from, fromState, contractAddr;
+var ChainID = testNetConfig.ChainId;
+var originSource = testNetConfig.sourceAccount;
+var coinbase = testNetConfig.coinbase;
+var apiEndPoint = testNetConfig.apiEndPoint;
+neb.setRequest(new HttpRequest(apiEndPoint));
+
 
 var lastnonce = 0;
 

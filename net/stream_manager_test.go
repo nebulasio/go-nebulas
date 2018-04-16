@@ -11,8 +11,6 @@ import (
 
 	peer "github.com/libp2p/go-libp2p-peer"
 	ma "github.com/multiformats/go-multiaddr"
-	"github.com/nebulasio/go-nebulas/util/logging"
-	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -29,10 +27,10 @@ var (
 		SYNCROUTE:  MessageWeightZero,
 		ROUTETABLE: MessageWeightRouteTable,
 
-		ChainSync:      MessageWeightZero,
-		ChainChunks:    MessageWeightChainChunks,
-		ChainGetChunk:  MessageWeightZero,
-		ChainChunkData: MessageWeightChainChunkData,
+		ChunkHeadersRequest:  MessageWeightZero,
+		ChunkHeadersResponse: MessageWeightChainChunks,
+		ChunkDataRequest:     MessageWeightZero,
+		ChunkDataResponse:    MessageWeightChainChunkData,
 
 		"newblock": MessageWeightNewBlock,
 		"dlblock":  MessageWeightZero,
@@ -45,7 +43,7 @@ var (
 
 func TestAllMsg(t *testing.T) {
 	msgtypes := []string{HELLO, OK, BYE, SYNCROUTE, ROUTETABLE,
-		ChainSync, ChainChunks, ChainGetChunk, ChainChunkData,
+		ChunkHeadersRequest, ChunkHeadersResponse, ChunkDataRequest, ChunkDataResponse,
 		"newblock", "dlblock", "dlreply", "newtx",
 	}
 
@@ -55,7 +53,7 @@ func TestAllMsg(t *testing.T) {
 
 func TestUnvaluedMsg(t *testing.T) {
 	msgtypes := []string{HELLO, OK, BYE, SYNCROUTE,
-		ChainSync, ChainGetChunk,
+		ChunkHeadersRequest, ChunkDataRequest,
 		"dlblock", "dlreply", "newtx",
 	}
 
@@ -68,6 +66,7 @@ func run() {
 	cleanupTicker := time.NewTicker(CleanupInterval / 12)
 	stopTicker := time.NewTicker(CleanupInterval / 12)
 	times := 0
+	config := NewConfigFromDefaults()
 	for {
 		select {
 		case <-stopTicker.C:
@@ -77,7 +76,7 @@ func run() {
 		case <-cleanupTicker.C:
 			times++
 			fmt.Printf("mock %d\n: max num = %d, reserved = %d\n", times, maxstreamnumber, reservednumber)
-			sm := NewStreamManager()
+			sm := NewStreamManager(config)
 			sm.fillMockStreams(maxstreamnumber)
 			cleanup(sm)
 		}
@@ -86,11 +85,6 @@ func run() {
 
 func cleanup(sm *StreamManager) {
 	if sm.activePeersCount < maxstreamnumber {
-		logging.CLog().WithFields(logrus.Fields{
-			"maxNum":      maxstreamnumber,
-			"reservedNum": reservednumber,
-			"currentNum":  sm.activePeersCount,
-		}).Debug("No need for streams cleanup.")
 		return
 	}
 

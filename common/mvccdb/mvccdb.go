@@ -331,19 +331,6 @@ func (db *MVCCDB) CheckAndUpdate() ([]interface{}, error) {
 		db.stagingTable.Purge()
 	}
 
-	/* 	logging.CLog().Infof("tid %s-%s: GET latency { %6.6f, %6.6f, %6.6f, %6.6f }; PUT latency { %6.6f, %6.6f, %6.6f, %6.6f }}",
-	   		db.prefix,
-	   		db.tid,
-	   		db.getLatency.Percentile(0.10),
-	   		db.getLatency.Percentile(0.50),
-	   		db.getLatency.Percentile(0.80),
-	   		db.getLatency.Percentile(0.90),
-	   		db.putLatency.Percentile(0.10),
-	   		db.putLatency.Percentile(0.50),
-	   		db.putLatency.Percentile(0.80),
-	   		db.putLatency.Percentile(0.90),
-	   	)
-	*/
 	return ret, err
 }
 

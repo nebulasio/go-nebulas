@@ -107,7 +107,7 @@ func (dpos *Dpos) CheckTimeout(block *core.Block) bool {
 			"now":   nowInMs,
 			"diff":  blockTimeInMs - nowInMs,
 			"err":   "timeout - future block",
-		}).Debug("Found a future block.")
+		}).Warn("Found a future block.")
 		return false
 	}
 	behindInMs := nowInMs - blockTimeInMs
@@ -118,7 +118,7 @@ func (dpos *Dpos) CheckTimeout(block *core.Block) bool {
 			"diff":  behindInMs,
 			"limit": AcceptedNetWorkDelayInMs,
 			"err":   "timeout - expired block",
-		}).Debug("Found a expired block.")
+		}).Warn("Found a expired block.")
 		return true
 	}
 	return false
@@ -226,14 +226,14 @@ func FindProposer(now int64, miners []byteutils.Hash) (proposer byteutils.Hash, 
 	offset := offsetInMs / BlockIntervalInMs
 	offset %= DynastySize
 
-	if int(offset) < len(miners) {
+	if offset >= 0 && int(offset) < len(miners) {
 		proposer = miners[offset]
 	} else {
 		logging.VLog().WithFields(logrus.Fields{
 			"proposer":  proposer,
 			"offset":    offset,
 			"delegatee": len(miners),
-		}).Error("Found Nil Proposer.")
+		}).Warn("Found Nil Proposer.")
 		return nil, ErrFoundNilProposer
 	}
 	return proposer, nil
@@ -252,7 +252,7 @@ func (ds *State) TimeStamp() int64 {
 // NextConsensusState return the new state after some seconds elapsed
 func (ds *State) NextConsensusState(elapsedSecond int64, worldState state.WorldState) (state.ConsensusState, error) {
 	elapsedSecondInMs := elapsedSecond * SecondInMs
-	if elapsedSecondInMs%BlockIntervalInMs != 0 {
+	if elapsedSecondInMs <= 0 || elapsedSecondInMs%BlockIntervalInMs != 0 {
 		return nil, ErrNotBlockForgTime
 	}
 

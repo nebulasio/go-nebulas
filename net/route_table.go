@@ -25,6 +25,7 @@ import (
 	"math/rand"
 	"os"
 	"path"
+	"reflect"
 	"strings"
 	"time"
 
@@ -57,6 +58,7 @@ type RouteTable struct {
 	node                     *Node
 	streamManager            *StreamManager
 	latestUpdatedAt          int64
+	internalNodeList         []string
 }
 
 // NewRouteTable new route table.
@@ -114,6 +116,7 @@ func (table *RouteTable) syncLoop() {
 	// Load Route Table.
 	table.LoadSeedNodes()
 	table.LoadRouteTableFromFile()
+	table.LoadInternalNodeList()
 
 	// trigger first sync.
 	table.SyncRouteTable()
@@ -222,17 +225,40 @@ func (table *RouteTable) GetRandomPeers(pid peer.ID) []peerstore.PeerInfo {
 
 	// change sync route algorithm from `NearestPeers` to `randomPeers`
 	var peers []peer.ID
-	allPeers := shufflePeerID(table.routeTable.ListPeers())
-	if len(allPeers) <= table.maxPeersCountForSyncResp {
-		peers = allPeers
-	} else {
-		peers = allPeers[:table.maxPeersCountForSyncResp]
+	allPeers := table.routeTable.ListPeers()
+	// Do not accept internal node synchronization routing requests.
+	if inArray(pid.Pretty(), table.internalNodeList) {
+		logging.VLog().Debugf("i am internal node: %s", pid.Pretty())
+		return []peerstore.PeerInfo{}
+	}
+
+	for _, v := range allPeers {
+		if inArray(v.Pretty(), table.internalNodeList) == false {
+			logging.VLog().Debugf("external peer: %s", v.Pretty())
+			peers = append(peers, v)
+		}
+	}
+	peers = shufflePeerID(peers)
+	if len(peers) > table.maxPeersCountForSyncResp {
+		peers = peers[:table.maxPeersCountForSyncResp]
 	}
 	ret := make([]peerstore.PeerInfo, len(peers))
 	for i, v := range peers {
 		ret[i] = table.peerStore.PeerInfo(v)
 	}
 	return ret
+}
+
+func inArray(obj interface{}, array interface{}) bool {
+	arrayValue := reflect.ValueOf(array)
+	if reflect.TypeOf(array).Kind() == reflect.Array || reflect.TypeOf(array).Kind() == reflect.Slice {
+		for i := 0; i < arrayValue.Len(); i++ {
+			if arrayValue.Index(i).Interface() == obj {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func shufflePeerID(pids []peer.ID) []peer.ID {
@@ -374,4 +400,31 @@ func (table *RouteTable) SyncWithPeer(pid peer.ID) {
 	}
 
 	stream.SyncRoute()
+}
+
+//LoadInternalNodeList Load Internal Node list from file
+func (table *RouteTable) LoadInternalNodeList() {
+	file, err := os.Open(RouteTableInternalNodeFileName)
+	if err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"err": err,
+		}).Warn("Failed to open internal list file.")
+		return
+	}
+	defer file.Close()
+
+	// read line by line.
+	scanner := bufio.NewScanner(file)
+	scanner.Split(bufio.ScanLines)
+
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		if len(line) > 0 {
+			table.internalNodeList = append(table.internalNodeList, line)
+		}
+	}
+
+	logging.VLog().WithFields(logrus.Fields{
+		"internalNodeList": table.internalNodeList,
+	}).Info("Loaded internal node list.")
 }

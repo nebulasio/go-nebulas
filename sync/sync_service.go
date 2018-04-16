@@ -69,10 +69,10 @@ func (ss *Service) Start() {
 
 	// register the network handler.
 	netService := ss.netService
-	netService.Register(net.NewSubscriber(ss, ss.messageCh, false, net.ChainSync, net.MessageWeightZero))
-	netService.Register(net.NewSubscriber(ss, ss.messageCh, false, net.ChainChunks, net.MessageWeightChainChunks))
-	netService.Register(net.NewSubscriber(ss, ss.messageCh, false, net.ChainGetChunk, net.MessageWeightZero))
-	netService.Register(net.NewSubscriber(ss, ss.messageCh, false, net.ChainChunkData, net.MessageWeightChainChunkData))
+	netService.Register(net.NewSubscriber(ss, ss.messageCh, false, net.ChunkHeadersRequest, net.MessageWeightZero))
+	netService.Register(net.NewSubscriber(ss, ss.messageCh, false, net.ChunkHeadersResponse, net.MessageWeightChainChunks))
+	netService.Register(net.NewSubscriber(ss, ss.messageCh, false, net.ChunkDataRequest, net.MessageWeightZero))
+	netService.Register(net.NewSubscriber(ss, ss.messageCh, false, net.ChunkDataResponse, net.MessageWeightChainChunkData))
 
 	// start loop().
 	go ss.startLoop()
@@ -82,10 +82,10 @@ func (ss *Service) Start() {
 func (ss *Service) Stop() {
 	// deregister the network handler.
 	netService := ss.netService
-	netService.Deregister(net.NewSubscriber(ss, ss.messageCh, false, net.ChainSync, net.MessageWeightZero))
-	netService.Deregister(net.NewSubscriber(ss, ss.messageCh, false, net.ChainChunks, net.MessageWeightChainChunks))
-	netService.Deregister(net.NewSubscriber(ss, ss.messageCh, false, net.ChainGetChunk, net.MessageWeightZero))
-	netService.Deregister(net.NewSubscriber(ss, ss.messageCh, false, net.ChainChunkData, net.MessageWeightChainChunkData))
+	netService.Deregister(net.NewSubscriber(ss, ss.messageCh, false, net.ChunkHeadersRequest, net.MessageWeightZero))
+	netService.Deregister(net.NewSubscriber(ss, ss.messageCh, false, net.ChunkHeadersResponse, net.MessageWeightChainChunks))
+	netService.Deregister(net.NewSubscriber(ss, ss.messageCh, false, net.ChunkDataRequest, net.MessageWeightZero))
+	netService.Deregister(net.NewSubscriber(ss, ss.messageCh, false, net.ChunkDataResponse, net.MessageWeightChainChunkData))
 
 	ss.StopActiveSync()
 
@@ -161,41 +161,41 @@ func (ss *Service) startLoop() {
 			return
 		case message := <-ss.messageCh:
 			switch message.MessageType() {
-			case net.ChainSync:
-				ss.onChainSync(message)
-			case net.ChainChunks:
-				ss.onChainChunks(message)
-			case net.ChainGetChunk:
-				ss.onChainGetChunk(message)
-			case net.ChainChunkData:
-				ss.onChainChunkData(message)
+			case net.ChunkHeadersRequest:
+				ss.onChunkHeadersRequest(message)
+			case net.ChunkHeadersResponse:
+				ss.onChunkHeadersResponse(message)
+			case net.ChunkDataRequest:
+				ss.onChunkDataRequest(message)
+			case net.ChunkDataResponse:
+				ss.onChunkDataResponse(message)
 			default:
 				logging.VLog().WithFields(logrus.Fields{
 					"messageName": message.MessageType(),
-				}).Debug("Received unknown message.")
+				}).Warn("Received unknown message.")
 			}
 		}
 	}
 }
 
-func (ss *Service) onChainSync(message net.Message) {
+func (ss *Service) onChunkHeadersRequest(message net.Message) {
 	if ss.IsActiveSyncing() {
 		return
 	}
 
-	// handle ChainSync message.
+	// handle ChunkHeadersRequest message.
 	chunkSync := new(syncpb.Sync)
 	err := proto.Unmarshal(message.Data(), chunkSync)
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"err": err,
 			"pid": message.MessageFrom(),
-		}).Debug("Invalid ChainSync message data.")
+		}).Debug("Invalid ChunkHeadersRequest message data.")
 		ss.netService.ClosePeer(message.MessageFrom(), ErrInvalidChainSyncMessageData)
 		return
 	}
 
-	// generate Chunks message.
+	// generate ChunkHeaders message.
 	chunks, err := ss.chunk.generateChunkHeaders(chunkSync.TailBlockHash)
 	if err != nil && err != ErrTooSmallGapToSync {
 		logging.VLog().WithFields(logrus.Fields{
@@ -206,10 +206,10 @@ func (ss *Service) onChainSync(message net.Message) {
 		return
 	}
 
-	ss.sendChainChunks(message.MessageFrom(), chunks)
+	ss.chunkHeadersResponse(message.MessageFrom(), chunks)
 }
 
-func (ss *Service) onChainChunks(message net.Message) {
+func (ss *Service) onChunkHeadersResponse(message net.Message) {
 	if ss.activeTask == nil {
 		return
 	}
@@ -217,12 +217,12 @@ func (ss *Service) onChainChunks(message net.Message) {
 	ss.activeTask.processChunkHeaders(message)
 }
 
-func (ss *Service) onChainGetChunk(message net.Message) {
+func (ss *Service) onChunkDataRequest(message net.Message) {
 	if ss.IsActiveSyncing() {
 		return
 	}
 
-	// handle ChainGetChunk message.
+	// handle ChunkDataRequest message.
 	chunkHeader := new(syncpb.ChunkHeader)
 	err := proto.Unmarshal(message.Data(), chunkHeader)
 	if err != nil {
@@ -242,10 +242,10 @@ func (ss *Service) onChainGetChunk(message net.Message) {
 		return
 	}
 
-	ss.sendChainChunkData(message.MessageFrom(), chunkData)
+	ss.chunkDataResponse(message.MessageFrom(), chunkData)
 }
 
-func (ss *Service) onChainChunkData(message net.Message) {
+func (ss *Service) onChunkDataResponse(message net.Message) {
 	if ss.activeTask == nil {
 		return
 	}
@@ -253,7 +253,7 @@ func (ss *Service) onChainChunkData(message net.Message) {
 	ss.activeTask.processChunkData(message)
 }
 
-func (ss *Service) sendChainChunks(peerID string, chunks *syncpb.ChunkHeaders) {
+func (ss *Service) chunkHeadersResponse(peerID string, chunks *syncpb.ChunkHeaders) {
 	data, err := proto.Marshal(chunks)
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
@@ -262,10 +262,10 @@ func (ss *Service) sendChainChunks(peerID string, chunks *syncpb.ChunkHeaders) {
 		return
 	}
 
-	ss.netService.SendMessageToPeer(net.ChainChunks, data, net.MessagePriorityLow, peerID)
+	ss.netService.SendMessageToPeer(net.ChunkHeadersResponse, data, net.MessagePriorityLow, peerID)
 }
 
-func (ss *Service) sendChainChunkData(peerID string, chunkData *syncpb.ChunkData) {
+func (ss *Service) chunkDataResponse(peerID string, chunkData *syncpb.ChunkData) {
 	data, err := proto.Marshal(chunkData)
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
@@ -274,5 +274,5 @@ func (ss *Service) sendChainChunkData(peerID string, chunkData *syncpb.ChunkData
 		return
 	}
 
-	ss.netService.SendMessageToPeer(net.ChainChunkData, data, net.MessagePriorityLow, peerID)
+	ss.netService.SendMessageToPeer(net.ChunkDataResponse, data, net.MessagePriorityLow, peerID)
 }

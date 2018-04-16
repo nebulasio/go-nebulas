@@ -110,7 +110,7 @@ func (dp *Dispatcher) loop() {
 				default:
 					logging.VLog().WithFields(logrus.Fields{
 						"msgType": msgType,
-					}).Debug("timeout to dispatch message.")
+					}).Warn("timeout to dispatch message.")
 				}
 				return true
 			})

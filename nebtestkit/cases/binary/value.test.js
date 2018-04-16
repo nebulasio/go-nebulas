@@ -2,87 +2,37 @@
 
 var expect = require('chai').expect;
 var BigNumber = require('bignumber.js');
-
+var HttpRequest = require("../../node-request");
+var TestNetConfig = require("../testnet_config.js");
 var Wallet;
 try {
     Wallet = require("../../neb.js");
 } catch (e) {
     Wallet = require("nebulas");
 }
-var HttpRequest = require("../../node-request");
 var utils = Wallet.Utils;
 var Neb = Wallet.Neb;
 var Account = Wallet.Account;
 var Transaction = Wallet.Transaction;
 var Unit = Wallet.Unit;
 
-// global vars.
-var ChainID;
-var sourceAccount;
-var coinbase;
-var coinState;
-var apiEndPoint;
+// mocha cases/contract/xxx testneb2 -t 2000000
 
-// start neb.
-var neb = new Neb();
-
-// mocha cases/contract/xxx testneb1 -t 2000000
 var args = process.argv.splice(2);
 var env = args[1];
-// var env = "testneb4";
+var testNetConfig = new TestNetConfig(env);
 
-if (env === 'testneb1') {
-    console.log("testnet1 is unvaliable");
-    return
-    ChainID = 1001;
-    sourceAccount = new Wallet.Account("25a3a441a34658e7a595a0eda222fa43ac51bd223017d17b420674fb6d0a4d52");
-    coinbase = "n1SAeQRVn33bamxN4ehWUT7JGdxipwn8b17";
-    apiEndPoint = "http://35.182.48.19:8685";
-
-} else if (env === "testneb2") {
-    ChainID = 1002;
-    sourceAccount = new Wallet.Account("25a3a441a34658e7a595a0eda222fa43ac51bd223017d17b420674fb6d0a4d52");
-    coinbase = "n1SAeQRVn33bamxN4ehWUT7JGdxipwn8b17";
-    apiEndPoint = "http://34.205.26.12:8685";
-
-} else if (env === "testneb3") {
-    ChainID = 1003;
-    sourceAccount = new Wallet.Account("25a3a441a34658e7a595a0eda222fa43ac51bd223017d17b420674fb6d0a4d52");
-    coinbase = "n1SAeQRVn33bamxN4ehWUT7JGdxipwn8b17";
-    apiEndPoint = "http://35.177.214.138:8685";
-
-} else if (env === "testneb4") { //super node
-    ChainID = 1004;
-    sourceAccount = new Wallet.Account("c75402f6ffe6edcc2c062134b5932151cb39b6486a7beb984792bb9da3f38b9f");
-    coinbase = "n1EzGmFsVepKduN1U5QFyhLqpzFvM9sRSmG";
-    apiEndPoint = "http://35.154.108.11:8685";
-} else if (env === "testneb4_normalnode"){
-    ChainID = 1004;
-    sourceAccount = new Wallet.Account("c75402f6ffe6edcc2c062134b5932151cb39b6486a7beb984792bb9da3f38b9f");
-    coinbase = "n1EzGmFsVepKduN1U5QFyhLqpzFvM9sRSmG";
-    apiEndPoint = "http://18.197.107.228:8685";
-} else if (env === "local") {
-    ChainID = 100;
-    sourceAccount = new Wallet.Account("d80f115bdbba5ef215707a8d7053c16f4e65588fd50b0f83369ad142b99891b5");
-    coinbase = "n1QZMXSZtW7BUerroSms4axNfyBGyFGkrh5";
-    apiEndPoint = "http://127.0.0.1:8685";
-
-} else if (env === "maintest"){
-    ChainID = 2;
-    sourceAccount = new Wallet.Account("d2319a8a63b1abcb0cc6d4183198e5d7b264d271f97edf0c76cfdb1f2631848c");
-    coinbase = "n1dZZnqKGEkb1LHYsZRei1CH6DunTio1j1q";
-    apiEndPoint = "http://54.149.15.132:8685";
-} else {
-    throw new Error("invalid env (" + env + ").");
-}
-
-
-
-console.log("running script, env:", env, " ChainId:", ChainID, " apiEndPoint:", apiEndPoint, " time:", new Date());
-
-
-// setup request.
+// global vars.
+var neb = new Neb();
+var ChainID = testNetConfig.ChainId;
+var sourceAccount = testNetConfig.sourceAccount;
+var coinbase = testNetConfig.coinbase;
+var apiEndPoint = testNetConfig.apiEndPoint;
 neb.setRequest(new HttpRequest(apiEndPoint));
+
+
+var coinState;
+
 
 var from;
 var fromState;

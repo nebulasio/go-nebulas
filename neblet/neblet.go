@@ -84,10 +84,15 @@ func New(config *nebletpb.Config) (*Neblet, error) {
 	n.TryStartProfiling()
 
 	if chain := config.GetChain(); chain == nil {
-		logging.CLog().Errorf("config.conf should has chain")
+		logging.CLog().Error("Failed to find chain config in config file")
 		return nil, ErrConfigShouldHasChain
 	}
-	n.genesis, _ = core.LoadGenesisConf(config.Chain.Genesis)
+	var err error
+	n.genesis, err = core.LoadGenesisConf(config.Chain.Genesis)
+	if err != nil {
+		logging.CLog().Error("Failed to load genesis config")
+		return nil, err
+	}
 
 	am, err := account.NewManager(n)
 	if err != nil {
@@ -127,7 +132,11 @@ func (n *Neblet) Setup() {
 
 	// nvm
 	n.nvm = nvm.NewNebulasVM()
-
+	if err = n.nvm.CheckV8Run(); err != nil {
+		logging.CLog().WithFields(logrus.Fields{
+			"err": err,
+		}).Fatal("Failed to setup V8.")
+	}
 	// core
 	n.eventEmitter = core.NewEventEmitter(40960)
 	n.consensus = dpos.NewDpos()
@@ -165,8 +174,12 @@ func (n *Neblet) StartPprof(listen string) error {
 	if len(listen) > 0 {
 		conn, err := net.DialTimeout("tcp", listen, time.Second*1)
 		if err == nil {
+			logging.CLog().WithFields(logrus.Fields{
+				"listen": listen,
+				"err":    err,
+			}).Error("Failed to start pprof")
 			conn.Close()
-			return errors.New("pprof http listen port is not available")
+			return err
 		}
 
 		go func() {
@@ -247,7 +260,6 @@ func (n *Neblet) Start() {
 	if len(n.Config().Network.Seed) > 0 {
 		n.blockChain.StartActiveSync()
 	} else {
-		logging.CLog().Info("This is a seed node.")
 		if chainConf.StartMine {
 			n.Consensus().ResumeMining()
 		}
@@ -377,11 +389,11 @@ func (n *Neblet) Nvm() core.NVM {
 // TryStartProfiling try start pprof
 func (n *Neblet) TryStartProfiling() {
 	if n.config.App == nil {
-		logging.CLog().Infof("config.conf lack App interface")
+		logging.CLog().Error("Failed to find app config in config file")
 		return
 	}
 	if n.config.App.Pprof == nil {
-		logging.CLog().Infof("config.conf lack App.Pprof interface")
+		logging.CLog().Error("Failed to find app.pprof config in config file")
 		return
 	}
 
@@ -389,10 +401,14 @@ func (n *Neblet) TryStartProfiling() {
 	if len(cpuProfile) > 0 {
 		f, err := os.Create(cpuProfile)
 		if err != nil {
-			logging.CLog().Fatalf("Could not create CPU profile %s, err is %s", cpuProfile, err)
+			logging.CLog().WithFields(logrus.Fields{
+				"err": err,
+			}).Fatalf("Failed to create CPU profile %s", cpuProfile)
 		}
 		if err := pprof.StartCPUProfile(f); err != nil {
-			logging.CLog().Fatalf("Failed to start cpu profile, err is %s", err)
+			logging.CLog().WithFields(logrus.Fields{
+				"err": err,
+			}).Fatalf("Failed to start CPU profile")
 		}
 	}
 }
@@ -407,11 +423,15 @@ func (n *Neblet) TryStopProfiling() {
 	if len(memProfile) > 0 {
 		f, err := os.Create(memProfile)
 		if err != nil {
-			logging.CLog().Errorf("Could not create memory profile %s, err is %s", memProfile, err)
+			logging.CLog().WithFields(logrus.Fields{
+				"err": err,
+			}).Errorf("Failed to create memory profile %s", memProfile)
 		}
 		runtime.GC() // get up-to-date statistics
 		if err := pprof.WriteHeapProfile(f); err != nil {
-			logging.CLog().Errorf("Failed to write memory profile, err is %s", err)
+			logging.CLog().WithFields(logrus.Fields{
+				"err": err,
+			}).Errorf("Failed to write memory profile")
 		}
 		f.Close()
 	}

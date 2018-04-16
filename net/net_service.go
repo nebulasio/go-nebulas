@@ -32,7 +32,7 @@ type NebService struct {
 // NewNebService create netService
 func NewNebService(n Neblet) (*NebService, error) {
 	if networkConf := n.Config().GetNetwork(); networkConf == nil {
-		logging.CLog().Fatal("config.conf should has network")
+		logging.CLog().Fatal("Failed to find network config in config file")
 		return nil, ErrConfigLackNetWork
 	}
 	node, err := NewNode(NewP2PConfig(n))
@@ -110,16 +110,6 @@ func (ns *NebService) Relay(name string, msg Serializable, priority int) {
 // BroadcastNetworkID broadcast networkID when changed.
 func (ns *NebService) BroadcastNetworkID(msg []byte) {
 	// TODO: @robin networkID.
-}
-
-// BuildRawMessageData return the raw NebMessage content data.
-func (ns *NebService) BuildRawMessageData(data []byte, msgName string) []byte {
-	message, err := NewNebMessage(ns.node.config.ChainID, DefaultReserved, 0, msgName, data)
-	if err != nil {
-		return nil
-	}
-
-	return message.Content()
 }
 
 // SendMsg send message to a peer.

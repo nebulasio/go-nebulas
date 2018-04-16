@@ -21,11 +21,11 @@ package net
 import (
 	"errors"
 	"fmt"
-	"io"
+	"hash/crc32"
 	"sync"
 	"time"
 
-	"github.com/nebulasio/go-nebulas/util/byteutils"
+	"github.com/golang/snappy"
 
 	"github.com/gogo/protobuf/proto"
 	libnet "github.com/libp2p/go-libp2p-net"
@@ -59,6 +59,7 @@ const (
 var (
 	ErrShouldCloseConnectionAndExitLoop = errors.New("should close connection and exit loop")
 	ErrStreamIsNotConnected             = errors.New("stream is not connected")
+	ErrUncompressMessageFailed          = errors.New("uncompress message failed")
 )
 
 // Stream define the structure of a stream in p2p network
@@ -79,6 +80,7 @@ type Stream struct {
 	latestReadAt              int64
 	latestWriteAt             int64
 	msgCount                  map[string]int
+	compressFlag              *sync.Map
 }
 
 // NewStream return a new Stream
@@ -108,6 +110,7 @@ func newStreamInstance(pid peer.ID, addr ma.Multiaddr, stream libnet.Stream, nod
 		latestReadAt:              0,
 		latestWriteAt:             0,
 		msgCount:                  make(map[string]int),
+		compressFlag:              new(sync.Map),
 	}
 }
 
@@ -172,7 +175,7 @@ func (s *Stream) SendProtoMessage(messageName string, pb proto.Message, priority
 
 // SendMessage send msg to buffer
 func (s *Stream) SendMessage(messageName string, data []byte, priority int) error {
-	message, err := NewNebMessage(s.node.config.ChainID, DefaultReserved, 0, messageName, data)
+	message, err := NewNebMessage(s, DefaultReserved, 0, messageName, data)
 	if err != nil {
 		return err
 	}
@@ -222,7 +225,7 @@ func (s *Stream) SendMessage(messageName string, data []byte, priority int) erro
 
 func (s *Stream) Write(data []byte) error {
 	if s.stream == nil {
-		s.Close(ErrStreamIsNotConnected)
+		s.close(ErrStreamIsNotConnected)
 		return ErrStreamIsNotConnected
 	}
 
@@ -237,7 +240,7 @@ func (s *Stream) Write(data []byte) error {
 			"err":    err,
 			"stream": s.String(),
 		}).Warn("Failed to send message to peer.")
-		s.Close(err)
+		s.close(err)
 		return err
 	}
 	s.latestWriteAt = time.Now().Unix()
@@ -256,17 +259,6 @@ func (s *Stream) WriteNebMessage(message *NebMessage) error {
 
 	err := s.Write(message.Content())
 	message.FlagWriteMessageAt()
-
-	/*
-		// debug logs.
-		logging.VLog().WithFields(logrus.Fields{
-			"stream":      s.String(),
-			"err":         err,
-			"checksum":    message.DataCheckSum(),
-			"messageName": message.MessageName(),
-			"latency(ms)": message.LatencyFromSendToWrite(),
-		}).Debugf("Written %s message to peer.", message.MessageName())
-	*/
 
 	return err
 }
@@ -288,7 +280,7 @@ func (s *Stream) WriteProtoMessage(messageName string, pb proto.Message) error {
 
 // WriteMessage write raw msg in the stream
 func (s *Stream) WriteMessage(messageName string, data []byte) error {
-	message, err := NewNebMessage(s.node.config.ChainID, DefaultReserved, 0, messageName, data)
+	message, err := NewNebMessage(s, DefaultReserved, 0, messageName, data)
 	if err != nil {
 		return err
 	}
@@ -306,11 +298,11 @@ func (s *Stream) readLoop() {
 	// send Hello to host if stream is not connected.
 	if !s.IsConnected() {
 		if err := s.Connect(); err != nil {
-			s.Close(err)
+			s.close(err)
 			return
 		}
 		if err := s.Hello(); err != nil {
-			s.Close(err)
+			s.close(err)
 			return
 		}
 	}
@@ -328,9 +320,7 @@ func (s *Stream) readLoop() {
 				"err":    err,
 				"stream": s.String(),
 			}).Debug("Error occurred when reading data from network connection.")
-			if err != io.EOF {
-				s.Close(err)
-			}
+			s.close(err)
 			return
 		}
 
@@ -383,17 +373,6 @@ func (s *Stream) readLoop() {
 			// remove data from buffer.
 			messageBuffer = messageBuffer[message.DataLength():]
 
-			/*
-				nowAt := time.Now().UnixNano()
-				logging.VLog().WithFields(logrus.Fields{
-					"messageName":                    message.MessageName(),
-					"checksum":                       message.DataCheckSum(),
-					"stream":                         s.String(),
-					"duration from Read(ms)":         (nowAt - readDataAt) / int64(time.Millisecond),
-					"duration from last Message(ms)": (nowAt - readAt) / int64(time.Millisecond),
-					"len(messageBuffer)":             len(messageBuffer),
-				}).Debugf("Received %s message from peer.", message.MessageName())
-			*/
 			// metrics.
 			metricsPacketsIn.Mark(1)
 			metricsBytesIn.Mark(int64(message.Length()))
@@ -426,7 +405,7 @@ func (s *Stream) writeLoop() {
 		logging.VLog().WithFields(logrus.Fields{
 			"stream": s.String(),
 		}).Debug("Handshaking Stream timeout, quiting.")
-		s.Close(errors.New("Handshake timeout"))
+		s.close(errors.New("Handshake timeout"))
 		return
 	}
 
@@ -464,13 +443,28 @@ func (s *Stream) writeLoop() {
 
 func (s *Stream) handleMessage(message *NebMessage) error {
 	messageName := message.MessageName()
+	compressFlag := message.Reserved()[0] & 0x80
+	s.compressFlag.Store(s.pid.Pretty(), compressFlag)
 	s.msgCount[messageName]++
+
+	// Network data compression compatible with old clients.
+	// uncompress message data.
+	var data = message.Data()
+	if messageName != HELLO {
+		if compressFlag > 0 {
+			var err error
+			data, err = snappy.Decode(nil, message.Data())
+			if err != nil {
+				return ErrUncompressMessageFailed
+			}
+		}
+	}
 
 	switch messageName {
 	case HELLO:
-		return s.onHello(message)
+		return s.onHello(message, data)
 	case OK:
-		return s.onOk(message)
+		return s.onOk(message, data)
 	case BYE:
 		return s.onBye(message)
 	}
@@ -484,20 +478,19 @@ func (s *Stream) handleMessage(message *NebMessage) error {
 	case SYNCROUTE:
 		return s.onSyncRoute(message)
 	case ROUTETABLE:
-		return s.onRouteTable(message)
-	case RECVEDMSG:
-		return s.onRecvedMsg(message)
+		return s.onRouteTable(message, data)
 	default:
-		s.node.netService.PutMessage(NewBaseMessage(message.MessageName(), s.pid.Pretty(), message.Data()))
+		s.node.netService.PutMessage(NewBaseMessage(message.MessageName(), s.pid.Pretty(), data))
 		// record recv message.
-		RecordRecvMessage(s, message.DataCheckSum())
+		dataCheckSum := crc32.ChecksumIEEE(data)
+		RecordRecvMessage(s, dataCheckSum)
 	}
 
 	return nil
 }
 
 // Close close the stream
-func (s *Stream) Close(reason error) {
+func (s *Stream) close(reason error) {
 	// Add lock & close flag to prevent multi call.
 	s.syncMutex.Lock()
 	defer s.syncMutex.Unlock()
@@ -528,7 +521,7 @@ func (s *Stream) Close(reason error) {
 // Bye say bye in the stream
 func (s *Stream) Bye() {
 	s.WriteMessage(BYE, []byte{})
-	s.Close(errors.New("bye: force close"))
+	s.close(errors.New("bye: force close"))
 }
 
 func (s *Stream) onBye(message *NebMessage) error {
@@ -547,8 +540,8 @@ func (s *Stream) Hello() error {
 	return s.WriteProtoMessage(HELLO, msg)
 }
 
-func (s *Stream) onHello(message *NebMessage) error {
-	msg, err := netpb.HelloMessageFromProto(message.Data())
+func (s *Stream) onHello(message *NebMessage, data []byte) error {
+	msg, err := netpb.HelloMessageFromProto(data)
 	if err != nil {
 		return ErrShouldCloseConnectionAndExitLoop
 	}
@@ -584,8 +577,8 @@ func (s *Stream) Ok() error {
 	return s.WriteProtoMessage(OK, resp)
 }
 
-func (s *Stream) onOk(message *NebMessage) error {
-	msg, err := netpb.OKMessageFromProto(message.Data())
+func (s *Stream) onOk(message *NebMessage, data []byte) error {
+	msg, err := netpb.OKMessageFromProto(data)
 	if err != nil {
 		return ErrShouldCloseConnectionAndExitLoop
 	}
@@ -648,9 +641,9 @@ func (s *Stream) RouteTable() error {
 	return s.SendProtoMessage(ROUTETABLE, msg, MessagePriorityHigh)
 }
 
-func (s *Stream) onRouteTable(message *NebMessage) error {
+func (s *Stream) onRouteTable(message *NebMessage, data []byte) error {
 	peers := new(netpb.Peers)
-	if err := proto.Unmarshal(message.Data(), peers); err != nil {
+	if err := proto.Unmarshal(data, peers); err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"err": err,
 		}).Debug("Invalid Peers proto message.")
@@ -658,18 +651,6 @@ func (s *Stream) onRouteTable(message *NebMessage) error {
 	}
 
 	s.node.routeTable.AddPeers(s.node.ID(), peers)
-
-	return nil
-}
-
-// RecvedMsg send received msg
-func (s *Stream) RecvedMsg(hash uint32) error {
-	return s.SendMessage(RECVEDMSG, byteutils.FromUint32(hash), MessagePriorityHigh)
-}
-
-func (s *Stream) onRecvedMsg(message *NebMessage) error {
-	hash := byteutils.Uint32(message.Data())
-	RecordRecvMessage(s, hash)
 
 	return nil
 }

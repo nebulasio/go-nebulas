@@ -36,10 +36,10 @@ const (
 
 // Sync Message Type
 const (
-	ChainSync      = "sync"
-	ChainChunks    = "chunks"
-	ChainGetChunk  = "getchunk"
-	ChainChunkData = "chunkdata"
+	ChunkHeadersRequest  = "sync"      // ChainSync
+	ChunkHeadersResponse = "chunks"    // ChainChunks
+	ChunkDataRequest     = "getchunk"  // ChainGetChunk
+	ChunkDataResponse    = "chunkdata" // ChainChunkData
 )
 
 // Sync Errors
@@ -92,8 +92,6 @@ type Service interface {
 	ClosePeer(peerID string, reason error)
 
 	BroadcastNetworkID([]byte)
-
-	BuildRawMessageData([]byte, string) []byte
 }
 
 // MessageWeight float64

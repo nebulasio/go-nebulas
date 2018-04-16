@@ -67,7 +67,7 @@ func (c *Chunk) generateChunkHeaders(syncpointHash byteutils.Hash) (*syncpb.Chun
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"err": err,
-		}).Warn("Failed to create memory storage")
+		}).Debug("Failed to create memory storage")
 		return nil, err
 	}
 	chunksTrie, err := trie.NewTrie(nil, stor, false)
@@ -132,7 +132,7 @@ func verifyChunkHeaders(chunkHeaders *syncpb.ChunkHeaders) (bool, error) {
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"err": err,
-		}).Warn("Failed to create memory storage")
+		}).Debug("Failed to create memory storage")
 		return false, err
 	}
 
@@ -168,7 +168,7 @@ func (c *Chunk) generateChunkData(chunkHeader *syncpb.ChunkHeader) (*syncpb.Chun
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"err": err,
-		}).Warn("Failed to create memory storage")
+		}).Debug("Failed to create memory storage")
 		return nil, err
 	}
 
@@ -182,7 +182,7 @@ func (c *Chunk) generateChunkData(chunkHeader *syncpb.ChunkHeader) (*syncpb.Chun
 
 	blocks := []*corepb.Block{}
 	for k, v := range chunkHeader.Headers {
-		block := c.blockChain.GetBlock(v)
+		block := c.blockChain.GetBlockOnCanonicalChainByHash(v)
 		if block == nil {
 			logging.VLog().WithFields(logrus.Fields{
 				"index": k,
@@ -225,7 +225,7 @@ func verifyChunkData(chunkHeader *syncpb.ChunkHeader, chunkData *syncpb.ChunkDat
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"err": err,
-		}).Warn("Failed to create memory storage")
+		}).Debug("Failed to create memory storage")
 		return false, err
 	}
 

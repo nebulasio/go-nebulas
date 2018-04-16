@@ -258,7 +258,7 @@ func (tbl *StagingTable) MergeToParent() ([]interface{}, error) {
 			"tid":          tbl.tid,
 			"parentTid":    tbl.parentStagingTable.tid,
 			"conflictKeys": conflictKeys,
-		}).Debug("Check failed.")
+		}).Debug("Failed to be merged into parent.")
 		return nil, ErrStagingTableKeyConfliction
 	}
 
