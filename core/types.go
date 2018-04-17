@@ -53,7 +53,7 @@ const (
 
 // Const
 const (
-	ContractDefaultFunc = "accept"
+	ContractAcceptFunc = "accept"
 )
 
 var (

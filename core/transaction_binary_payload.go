@@ -89,7 +89,7 @@ func (payload *BinaryPayload) Execute(limitedGas *util.Uint128, tx *Transaction,
 			return util.NewUint128(), "", err
 		}
 
-		result, exeErr := engine.Call(deploy.Source, deploy.SourceType, ContractDefaultFunc, "")
+		result, exeErr := engine.Call(deploy.Source, deploy.SourceType, ContractAcceptFunc, "")
 		gasCout := engine.ExecutionInstructions()
 		instructions, err := util.NewUint128FromInt(int64(gasCout))
 		if err != nil {
