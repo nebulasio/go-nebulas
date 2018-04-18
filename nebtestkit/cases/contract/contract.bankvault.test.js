@@ -2,7 +2,7 @@
 
 var HttpRequest = require("../../node-request");
 
-var Wallet = require("../../../cmd/console/neb.js/lib/wallet");
+var Wallet = require("nebulas");
 var Account = Wallet.Account;
 var Transaction = Wallet.Transaction;
 var Utils = Wallet.Utils;
@@ -24,6 +24,7 @@ var coinState;
 var redeploy = process.env.REDEPLOY || true;
 var scriptType = process.env.script || 'js';
 var env = process.env.NET || 'local';
+var blockInterval = 15;
 
 // mocha cases/contract/xxx testneb1 -t 200000
 var args = process.argv.splice(2);
@@ -36,8 +37,8 @@ console.log("env:", env);
 if (env === 'local') {
     neb.setRequest(new HttpRequest("http://127.0.0.1:8685"));//https://testnet.nebulas.io
 	ChainID = 100;
-    sourceAccount = new Wallet.Account("a6e5eb290e1438fce79f5cb8774a72621637c2c9654c8b2525ed1d7e4e73653f");
-    coinbase = "eb31ad2d8a89a0ca6935c308d5425730430bc2d63f2573b8";
+    sourceAccount = new Wallet.Account("1d3fe06a53919e728315e2ccca41d4aa5b190845a79007797517e62dbc0df454");
+    coinbase = "n1QZMXSZtW7BUerroSms4axNfyBGyFGkrh5";
     if (!redeploy) {
         contractAddr = "e5a02995444628cf7935e3ef8b613299a2d97e6d188ce808";  //js
         // contractAddr = "557fccaf2f05d4b46156e9b98ca9726f1c9e91d95d3830a7";  //ts
@@ -55,8 +56,8 @@ if (env === 'local') {
 } else if (env === "testneb2") {
     neb.setRequest(new HttpRequest("http://34.205.26.12:8685"));
     ChainID = 1002;
-    sourceAccount = new Wallet.Account("43181d58178263837a9a6b08f06379a348a5b362bfab3631ac78d2ac771c5df3");
-    coinbase = "0b9cd051a6d7129ab44b17833c63fe4abead40c3714cde6d";
+    sourceAccount = new Wallet.Account("25a3a441a34658e7a595a0eda222fa43ac51bd223017d17b420674fb6d0a4d52");
+    coinbase = "n1SAeQRVn33bamxN4ehWUT7JGdxipwn8b17";
     if (!redeploy) {
         contractAddr = "";
     }
@@ -83,11 +84,12 @@ var initFromBalance = 10;
  * set this value according to the status of your testnet.
  * the smaller the value, the faster the test, with the risk of causing error
  */
-var maxCheckTime = 100;
+var maxCheckTime = 15;
 var checkTimes = 0;
 var beginCheckTime;
 
 function checkTransaction(hash, callback) {
+    console.log("==>checkTransaction");
     if (checkTimes === 0) {
         beginCheckTime = new Date().getTime();
     }
@@ -104,29 +106,32 @@ function checkTransaction(hash, callback) {
         if (resp.status === 2) {
             setTimeout(function(){
                 checkTransaction(hash, callback)
-            }, 2000)
+            }, 5000)
         } else {
             checkTimes = 0;
             var endCheckTime = new Date().getTime();
             console.log("check tx time: : " + (endCheckTime - beginCheckTime) / 1000);
             callback(resp);
+            return
         }
 
     }).catch(function (err) {
         console.log("fail to get tx receipt hash: '" + hash + "' probably being packing, continue checking...")
-        console.log(err.error)
+        console.log(err);
+        console.log(err.error);
         setTimeout(function(){
             checkTransaction(hash, callback)
-        }, 2000)
+        }, 5000)
     });
 }
 
 function deployContract(testInput, done) {
+    console.log("==> deployContract");
     neb.api.getAccountState(from.getAddressString()).then(function(state){
         fromState = state;
         console.log("from state: " + JSON.stringify(fromState));
     }).then(function(){
-        var filepath = "./nf/nvm/test/bank_vault_contract." + testInput.contractType;
+        var filepath = "../nf/nvm/test/bank_vault_contract." + testInput.contractType;
         console.log("deploying contract: " + filepath);
         var bankvault = FS.readFileSync(filepath, "utf-8");
         var contract = {
@@ -142,6 +147,7 @@ function deployContract(testInput, done) {
         console.log(err.error);
         done(err);
     }).then(function(resp){
+        console.log("111: result", resp);
         expect(resp).to.be.have.property('txhash');
         expect(resp).to.be.have.property('contract_address');
         contractAddr = resp.contract_address;
@@ -168,6 +174,7 @@ var fromBalanceBefore,
     txInfo = {};
 
 function testSave(testInput, testExpect, done) {
+    console.log("==> testSave");
 
     var call = {
         "function": testInput.func,
@@ -192,6 +199,7 @@ function testSave(testInput, testExpect, done) {
        
         return neb.api.estimateGas(from.getAddressString(), contractAddr,
                 testInput.value, txInfo.nonce, testInput.gasPrice, testInput.gasLimit, txInfo.call);
+
     }).then(function(resp){
         expect(resp).to.have.property('gas');
         gasUsed = resp.gas;
@@ -259,6 +267,7 @@ function testSave(testInput, testExpect, done) {
 }
 
 function testTakeout(testInput, testExpect, done) {
+    console.log("==>testTakeout");
     neb.api.getAccountState(contractAddr).then(function(state){
         console.log("[before take] contract state: " + JSON.stringify(state));
         contractBalanceBefore = new BigNumber(state.balance);
@@ -293,67 +302,73 @@ function testTakeout(testInput, testExpect, done) {
     }).then(function(resp){
         expect(resp).to.have.property('txhash');
         checkTransaction(resp.txhash, function(receipt){
-
-            if (testExpect.canExecuteTx) {
-                expect(receipt).to.have.property('status').equal(1);
-            } else {
-                expect(receipt).to.not.have.property('status');
-            }
-            
-            neb.api.getAccountState(receipt.from).then(function(state){
-
-                // from balance change
-                fromBalanceChange = new BigNumber(state.balance).sub(new BigNumber(fromBalanceBefore));
-                console.log("[after take] from state: " + JSON.stringify(state) + ", balance change: " + fromBalanceChange);
-
-                return neb.api.getAccountState(receipt.to);
-            }).then(function(cstate){
-                
-
-               return neb.api.getAccountState(coinbase).then(function(state){
-                    
-                    var coinbalancechange = new BigNumber(state.balance).sub(new BigNumber(coinBalanceBefore))
-                        .mod(new BigNumber(1.4269).mul(new BigNumber(10).pow(new BigNumber(18))));
-                    console.log("[after take] coinbase state:" + JSON.stringify(state) + ", balance change: " + coinbalancechange);
-
-                    var chg = contractBalanceBefore.sub(new BigNumber(cstate.balance));
-                    console.log("[after take] contract state: " + JSON.stringify(cstate) + ", balance change: " + chg);
-
-                    if (testExpect.canExecuteTx) {
-                        var isEqual = chg.equals(new BigNumber(testExpect.takeBalance));
-                        expect(isEqual).to.be.true;
-                    }
-    
-                    return neb.api.getEventsByHash(receipt.hash);
-                
-                });
-                
-            }).then(function(evtResp){
-
-                if (!testExpect.canExecuteTx) {
-                    expect(evtResp.events[0].topic).to.equal(testExpect.eventTopic);
-                    done();
+            try {
+                console.log("22: receipt", receipt);
+                if (testExpect.canExecuteTx) {
+                    expect(receipt).to.have.property('status').equal(1);
                 } else {
-                    neb.api.gasPrice().then(function(resp){
-                        expect(resp).to.have.property('gas_price');
-                        console.log("[after take] gas price:" + resp['gas_price'] + ", gas used: " + gasUsed);
-                        gasPrice = resp['gas_price'];
-                        
-                        var t = new BigNumber(testExpect.takeBalance).sub(new BigNumber(gasUsed)
-                                .mul(new BigNumber(gasPrice)));
-                        var isEqual = fromBalanceChange.equals(t);
-    
-                        expect(isEqual).to.be.true;
-                        done();
-                    }).catch(function(err){
-                        done(err);
-                    });
+                    expect(receipt).to.have.property('status').equal(0);
                 }
-            }).catch(function(err){
-                console.log(err.error);
+
+                console.log("333");
+                neb.api.getAccountState(receipt.from).then(function (state) {
+
+                    // from balance change
+                    fromBalanceChange = new BigNumber(state.balance).sub(new BigNumber(fromBalanceBefore));
+                    console.log("[after take] from state: " + JSON.stringify(state) + ", balance change: " + fromBalanceChange);
+
+                    return neb.api.getAccountState(receipt.to);
+                }).then(function (cstate) {
+
+                    return neb.api.getAccountState(coinbase).then(function (state) {
+
+                        var coinbalancechange = new BigNumber(state.balance).sub(new BigNumber(coinBalanceBefore))
+                            .mod(new BigNumber(1.4269).mul(new BigNumber(10).pow(new BigNumber(18))));
+                        console.log("[after take] coinbase state:" + JSON.stringify(state) + ", balance change: " + coinbalancechange);
+
+                        var chg = contractBalanceBefore.sub(new BigNumber(cstate.balance));
+                        console.log("[after take] contract state: " + JSON.stringify(cstate) + ", balance change: " + chg);
+
+                        if (testExpect.canExecuteTx) {
+                            var isEqual = chg.equals(new BigNumber(testExpect.takeBalance));
+                            expect(isEqual).to.be.true;
+                        }
+
+                        return neb.api.getEventsByHash(receipt.hash);
+                    });
+
+                }).then(function (evtResp) {
+
+                    if (!testExpect.canExecuteTx) {
+
+                        expect(evtResp.events[0].topic).to.equal(testExpect.eventTopic);
+                        done();
+
+                    } else {
+                        neb.api.gasPrice().then(function (resp) {
+                            expect(resp).to.have.property('gas_price');
+                            console.log("[after take] gas price:" + resp['gas_price'] + ", gas used: " + gasUsed);
+                            gasPrice = resp['gas_price'];
+
+                            var t = new BigNumber(testExpect.takeBalance).sub(new BigNumber(gasUsed)
+                                .mul(new BigNumber(gasPrice)));
+                            var isEqual = fromBalanceChange.equals(t);
+
+                            expect(isEqual).to.be.true;
+                            done();
+                        }).catch(function (err) {
+                            done(err);
+                        });
+                    }
+                }).catch(function (err) {
+                    console.log(err.error);
+                    done(err)
+                });
+            } catch (err) {
+                console.log(JSON.stringify(err));
                 done(err)
-            });
-        });
+            }
+        })
     }).catch(function(err){
         console.log(err.error);
         if (testExpect.hasError) {
@@ -370,6 +385,7 @@ function testTakeout(testInput, testExpect, done) {
 }
 
 function testVerifyAddress(testInput, testExpect, done) {
+    console.log("==> testVerifyAddress");
     neb.api.getAccountState(contractAddr).then(function(state){
         console.log("[before verify] contract state: " + JSON.stringify(state));
         contractBalanceBefore = new BigNumber(state.balance);
@@ -388,7 +404,7 @@ function testVerifyAddress(testInput, testExpect, done) {
             "function": testInput.func,
             "args": testInput.args
         }
-        return neb.api.call(from.getAddressString(), contractAddr, testInput.value, parseInt(state.nonce) + 1, 0, testInput.gasLimit, call);
+        return neb.api.call(from.getAddressString(), contractAddr, testInput.value, parseInt(state.nonce) + 1, testInput.gasPrice, testInput.gasLimit, call);
     }).then(resp => {
         console.log("response: " + JSON.stringify(resp));
         expect(resp).to.have.property('result')
@@ -398,6 +414,7 @@ function testVerifyAddress(testInput, testExpect, done) {
 }
 
 function claimNas(contractType, done) {
+    console.log("==> claimNas");
     from = Account.NewAccount();
 
     console.log("from addr:" + from.getAddressString());
@@ -419,7 +436,8 @@ function claimNas(contractType, done) {
             if (redeploy) {
                 var testInput = {
                     contractType: contractType,
-                    gasLimit: 2000000
+                    gasLimit: 2000000,
+                    gasPrice: 1000000,
                 };
                 redeploy = false;
                 deployContract(testInput, done);
@@ -444,14 +462,16 @@ describe('bankvault.' + scriptType, function() {
         it('save before take', function(done){
             var testInput = {
                 gasLimit: 2000000,
+                gasPrice: 1000000,
+
                 func: "save",
                 args: "[0]",
                 value: 20000000000,
-            }
+            };
 
             var testExpect = {
                 canExecuteTx: true
-            }
+            };
 
             testSave(testInput, testExpect, done);
         });
@@ -461,6 +481,8 @@ describe('bankvault.' + scriptType, function() {
             // take
             var testInput = {
                 gasLimit: 2000000,
+                gasPrice: 1000000,
+
                 func: "takeout",
                 args: "[10000000000]",
                 value: "0"  //no use
@@ -483,6 +505,8 @@ describe('bankvault.' + scriptType, function() {
         it('save before take', function(done){
             var testInput = {
                 gasLimit: 2000000,
+                gasPrice: 1000000,
+
                 func: "save",
                 args: "[0]",
                 value: 20000000000,
@@ -499,6 +523,7 @@ describe('bankvault.' + scriptType, function() {
             // take
             var testInput = {
                 gasLimit: 2000000,
+                gasPrice: 1000000,
                 func: "takeout",
                 args: "[40000000000]",
                 value: "0"  //no use
@@ -507,7 +532,8 @@ describe('bankvault.' + scriptType, function() {
             var testExpect = {
                 canExecuteTx: false,  // actually, should be `false`
                 takeBalance: '40000000000',  // same with testInput.args[0]
-                eventTopic: 'chain.executeTxFailed',
+                // eventTopic: 'chain.executeTxFailed',
+                eventTopic: 'chain.transactionResult',
                 hasError: true,
                 errorMsg: 'execution failed'
             }
@@ -519,6 +545,8 @@ describe('bankvault.' + scriptType, function() {
             // take
             var testInput = {
                 gasLimit: 2000000,
+                gasPrice: 1000000,
+
                 func: "takeout",
                 args: "[0]",
                 value: "0"  //no use
@@ -536,6 +564,8 @@ describe('bankvault.' + scriptType, function() {
             // take
             var testInput = {
                 gasLimit: 2000000,
+                gasPrice: 1000000,
+
                 func: "takeout",
                 args: "[-40000000000]",
                 value: "0"  //no use
@@ -544,7 +574,8 @@ describe('bankvault.' + scriptType, function() {
             var testExpect = {
                 canExecuteTx: false,  // actually, should be `false`
                 takeBalance: '-40000000000',  // same with testInput.args[0]
-                eventTopic: 'chain.executeTxFailed',
+                // eventTopic: 'chain.executeTxFailed',
+                eventTopic: 'chain.transactionResult',
                 hasError: true,
                 errorMsg: 'execution failed'
             }
@@ -561,6 +592,8 @@ describe('bankvault.' + scriptType, function() {
         it('save(40) before take', done => {
             var testInput = {
                 gasLimit: 2000000,
+                gasPrice: 1000000,
+
                 func: "save",
                 args: "[15]",
                 value: 20000000000,
@@ -577,15 +610,18 @@ describe('bankvault.' + scriptType, function() {
             // take
             var testInput = {
                 gasLimit: 2000000,
+                gasPrice: 1000000,
+
                 func: "takeout",
                 args: "[10000000000]",
                 value: "0"  //no use
             }
     
             var testExpect = {
-                canExecuteTx: false,  // actually, should be `false`
+                canExecuteTx: false,
                 takeBalance: '10000000000',  // same with testInput.args[0]
-                eventTopic: 'chain.executeTxFailed'
+                // eventTopic: 'chain.executeTxFailed'
+                eventTopic: 'chain.transactionResult'
             }
     
             testTakeout(testInput, testExpect, done);
@@ -595,19 +631,21 @@ describe('bankvault.' + scriptType, function() {
             // take
             var testInput = {
                 gasLimit: 2000000,
+                gasPrice: 1000000,
+
                 func: "takeout",
                 args: "[10000000000]",
                 value: "0"  //no use
             }
     
             var testExpect = {
-                canExecuteTx: true,  // actually, should be `false`
+                canExecuteTx: true,
                 takeBalance: '10000000000'  // same with testInput.args[0]
             }
             
             setTimeout(() => {
                 testTakeout(testInput, testExpect, done);
-            }, 25 * 5 * 1000);
+            }, 25 * blockInterval * 1000);
             
         });
     });
@@ -622,6 +660,8 @@ describe('bankvault.' + scriptType, function() {
             // take
             var testInput = {
                 gasLimit: 2000000,
+                gasPrice: 1000000,
+
                 func: "takeout",
                 args: "[10000000000]",
                 value: "0"  //no use
@@ -630,7 +670,8 @@ describe('bankvault.' + scriptType, function() {
             var testExpect = {
                 canExecuteTx: false , 
                 takeBalance: '0',
-                eventTopic: 'chain.executeTxFailed'
+                // eventTopic: 'chain.executeTxFailed'
+                eventTopic: 'chain.transactionResult'
             }
     
             testTakeout(testInput, testExpect, done);
@@ -645,6 +686,8 @@ describe('bankvault.' + scriptType, function() {
         it('5-1. save non-negative value', function(done){
             var testInput = {
                 gasLimit: 2000000,
+                gasPrice: 1000000,
+
                 func: "save",
                 args: "[0]",
                 value: 10000000000,
@@ -660,6 +703,8 @@ describe('bankvault.' + scriptType, function() {
         it('5-2. save negative value', function(done){
             var testInput = {
                 gasLimit: 2000000,
+                gasPrice: 1000000,
+
                 func: "save",
                 args: "[0]",
                 value: -20000000000,
@@ -667,7 +712,7 @@ describe('bankvault.' + scriptType, function() {
     
             var testExpect = {
                 hasError: true,
-                errorMsg: "uint128: underflow"
+                errorMsg: "invalid value"
             }
     
             testSave(testInput, testExpect, done);
@@ -676,6 +721,7 @@ describe('bankvault.' + scriptType, function() {
         it('5-3. save negative height', done => {
             var testInput = {
                 gasLimit: 2000000,
+                gasPrice: 1000000,
                 func: "save",
                 args: "[-500]",
                 value: 20000000000,
@@ -699,8 +745,9 @@ describe('bankvault.' + scriptType, function() {
             var testInput = {
                 value: "0",
                 gasLimit: 2000000,
+                gasPrice: 1000000,
                 func: "verifyAddress",
-                args: "[\"d2e558ebf403d10cc435e7ddff5906fcb2c8d033d74cc305\"]"
+                args: "[\"n1QZMXSZtW7BUerroSms4axNfyBGyFGkrh5\"]"
             }
     
             var testExpect = {
@@ -714,6 +761,7 @@ describe('bankvault.' + scriptType, function() {
             var testInput = {
                 value: "0",
                 gasLimit: 2000000,
+                gasPrice: 1000000,
                 func: "verifyAddress",
                 args: "[\"slfjlsalfksdflsfjks\"]"
             }
