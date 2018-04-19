@@ -82,7 +82,7 @@ make dep
 4. Install dependent libraries.
 
 ```bash
-make deploy-libs
+make deploy-v8
 ```
 
 5. Build the neb binary.
