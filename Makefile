@@ -58,7 +58,7 @@ deploy-v8:
 	$(LDCONFIG)
 
 deploy-libs:
-	$(INSTALL) nf/nvm/native-lib/libnebulasv8$(DYLIB) /usr/local/lib/
+	$(INSTALL) nf/nvm/native-lib/*$(DYLIB) /usr/local/lib/
 	$(INSTALL) native-lib/*$(DYLIB) /usr/local/lib/
 	$(LDCONFIG)
 
