@@ -80,7 +80,7 @@ type Stream struct {
 	latestReadAt              int64
 	latestWriteAt             int64
 	msgCount                  map[string]int
-	compressFlag              *sync.Map
+	compressFlag              byte
 }
 
 // NewStream return a new Stream
@@ -110,7 +110,7 @@ func newStreamInstance(pid peer.ID, addr ma.Multiaddr, stream libnet.Stream, nod
 		latestReadAt:              0,
 		latestWriteAt:             0,
 		msgCount:                  make(map[string]int),
-		compressFlag:              new(sync.Map),
+		compressFlag:              0x80 & 0x80,
 	}
 }
 
@@ -175,7 +175,13 @@ func (s *Stream) SendProtoMessage(messageName string, pb proto.Message, priority
 
 // SendMessage send msg to buffer
 func (s *Stream) SendMessage(messageName string, data []byte, priority int) error {
-	message, err := NewNebMessage(s, DefaultReserved, 0, messageName, data)
+	var reserved []byte
+	if s.compressFlag > 0 {
+		reserved = CompressReserved
+	} else {
+		reserved = DefaultReserved
+	}
+	message, err := NewNebMessage(s.node.config.ChainID, reserved, 0, messageName, data)
 	if err != nil {
 		return err
 	}
@@ -280,7 +286,13 @@ func (s *Stream) WriteProtoMessage(messageName string, pb proto.Message) error {
 
 // WriteMessage write raw msg in the stream
 func (s *Stream) WriteMessage(messageName string, data []byte) error {
-	message, err := NewNebMessage(s, DefaultReserved, 0, messageName, data)
+	var reserved []byte
+	if s.compressFlag > 0 {
+		reserved = CompressReserved
+	} else {
+		reserved = DefaultReserved
+	}
+	message, err := NewNebMessage(s.node.config.ChainID, reserved, 0, messageName, data)
 	if err != nil {
 		return err
 	}
@@ -443,15 +455,14 @@ func (s *Stream) writeLoop() {
 
 func (s *Stream) handleMessage(message *NebMessage) error {
 	messageName := message.MessageName()
-	compressFlag := message.Reserved()[0] & 0x80
-	s.compressFlag.Store(s.pid.Pretty(), compressFlag)
+	s.compressFlag = message.Reserved()[0] & 0x80
 	s.msgCount[messageName]++
 
 	// Network data compression compatible with old clients.
 	// uncompress message data.
 	var data = message.Data()
 	if messageName != HELLO {
-		if compressFlag > 0 {
+		if s.compressFlag > 0 {
 			var err error
 			data, err = snappy.Decode(nil, message.Data())
 			if err != nil {
