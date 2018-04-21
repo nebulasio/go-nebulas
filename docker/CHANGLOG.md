@@ -4,6 +4,8 @@
 
 * 添加了 docker-compose 可以跑 seed 和 miner
 
+* 在 docker-compose 设置环境变量 NEBULAS_BRANCH，可以指定checkout的分支，默认master
+
 * 把包含go1.9.2 和 rocksdb5.13 整合在 docker image 里
 
 * 添加了一些功能：
