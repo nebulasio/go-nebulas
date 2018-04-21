@@ -1,0 +1,52 @@
+version: '3'
+
+services:
+
+  seed:
+    image: bkbabydp/go-nebulas
+    build:
+      context: ./docker
+    ports:
+      - '8680'
+      - '8684'
+      - '8685'
+      - '8888'
+      - '8086'
+    volumes:
+      - .:/go/src/github.com/nebulasio/go-nebulas
+    environment:
+      - TZ=Asia/Shanghai
+      - NEBULAS_BRANCH=master
+    command: bash docker/scripts/neb.bash -c conf/default/config_local.conf
+
+  miner:
+    image: bkbabydp/go-nebulas
+    build:
+      context: ./docker
+    ports:
+      - '8780'
+      - '8784'
+      - '8785'
+      - '8087:8086'
+    volumes:
+      - .:/go/src/github.com/nebulasio/go-nebulas
+    environment:
+      - TZ=Asia/Shanghai
+      - NEBULAS_BRANCH=master
+    command: bash docker/scripts/neb.bash -c conf/example/mimer.conf
+  
+  node:
+    image: bkbabydp/go-nebulas
+    build:
+      context: ./docker
+    ports:
+      - '8780'
+      - '8784'
+      - '8785'
+      - '8087:8086'
+    volumes:
+      - .:/go/src/github.com/nebulasio/go-nebulas
+    environment:
+      - TZ=Asia/Shanghai
+      - NEBULAS_BRANCH=master
+    command: bash docker/scripts/neb.bash -c conf/example/mimer.conf
