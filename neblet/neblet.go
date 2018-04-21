@@ -114,7 +114,7 @@ func (n *Neblet) Setup() {
 	// storage
 	// n.storage, err = storage.NewDiskStorage(n.config.Chain.Datadir)
 	// n.storage, err = storage.NewMemoryStorage()
-	n.storage, err = storage.NewRocksStorage(n.config.Chain.Datadir)
+	n.storage, err = storage.NewRocksStorage(n.config.Chain.Datadir, n.config.Stats.EnableMetrics)
 	if err != nil {
 		logging.CLog().WithFields(logrus.Fields{
 			"dir": n.config.Chain.Datadir,
