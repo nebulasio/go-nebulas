@@ -61,7 +61,7 @@ git checkout testnet
 * **Linux - Ubuntu**
     * Install rocksdb by source code: (https://github.com/facebook/rocksdb/blob/master/INSTALL.md)
     `git clone https://github.com/facebook/rocksdb.git`
-    `cd rocksdb & make shared_lib`
+    `cd rocksdb & make install`
     * Upgrade your gcc to version at least 4.8 to get C++11 support.
     * Install gflags. First, try: `sudo apt-get install libgflags-dev`
       If this doesn't work and you're using Ubuntu, here's a nice tutorial:
