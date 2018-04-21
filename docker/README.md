@@ -1,9 +1,16 @@
-### 安装 docker-compose
-### 运行 seed
+# Install docker-compose
+
+## Pull image
 ```bash
-    docker-compose up seed
+docker pull bkbabydp/go-nebulas
 ```
-### 运行 miner
+## Edit configuration
 ```bash
-    docker-compose up miner
+edit [your conf path] in /path/to/go-nebulas/docker-compose.yml
 ```
+
+## Launch node
+```bash
+docker-compose up node
+```
+

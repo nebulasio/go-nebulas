@@ -48,48 +48,45 @@ Or use the stable testnet release in __testnet__.
 git checkout testnet
 ```
 
-2. Install rocksdb && dependencies.
+2. Install rocksdb.
 
 * **OS X**:
-    * Install latest C++ compiler that supports C++ 11:
-        * Update XCode:  run `xcode-select --install` (or install it from XCode App's settting).
-        * Install via [homebrew](http://brew.sh/).
-            * If you're first time developer in MacOS, you still need to run: `xcode-select --install` in your command line.
-            * run `brew tap homebrew/versions; brew install gcc48 --use-llvm` to install gcc 4.8 (or higher).
+    * Install via [homebrew](http://brew.sh/).
     * run `brew install rocksdb`
 
 * **Linux - Ubuntu**
-    * Install rocksdb by source code: (https://github.com/facebook/rocksdb/blob/master/INSTALL.md)
-    `git clone https://github.com/facebook/rocksdb.git`
-    `cd rocksdb & make install`
-    * Upgrade your gcc to version at least 4.8 to get C++11 support.
-    * Install gflags. First, try: `sudo apt-get install libgflags-dev`
-      If this doesn't work and you're using Ubuntu, here's a nice tutorial:
-      (http://askubuntu.com/questions/312173/installing-gflags-12-04)
-    * Install snappy. This is usually as easy as:
-      `sudo apt-get install libsnappy-dev`.
-    * Install zlib. Try: `sudo apt-get install zlib1g-dev`.
-    * Install bzip2: `sudo apt-get install libbz2-dev`.
-    * Install lz4: `sudo apt-get install liblz4-dev`.
-    * Install zstandard: `sudo apt-get install libzstd-dev`.
+    * Install Dependencies
+        ```bash
+        apt-get update
+        apt-get -y build-essential libgflags-dev libsnappy-dev zlib1g-dev libbz2-dev liblz4-dev libzstd-dev
+        ```
+    * Install rocksdb by source code:
+        ```bash
+        git clone https://github.com/facebook/rocksdb.git
+        cd rocksdb & make shared_lib && make install-shared
+        ```
+* **Linux - Centos**
+    * Install Dependencies
+        ```bash
+        yum -y install epel-release && yum -y update
+        yum -y install gflags-devel snappy-devel zlib-devel bzip2-devel gcc-c++  libstdc++-devel
+        ```
+    * Install rocksdb by source code:
+        ```bash
+        git clone https://github.com/facebook/rocksdb.git
+        cd rocksdb & make shared_lib && make install-shared
+        ```
 
 3. Install dependencies packages.
+    * all golang dependencies will be stored in ./vendor.
+    * run `make dep` to install dependencies.
+    * If you failed to run this, please download our [vendor.tar.gz](http://ory7cn4fx.bkt.clouddn.com/vendor.tar.gz) directly.
 
-```bash
-make dep
-```
-
-4. Install dependent libraries.
-
-```bash
-make deploy-v8
-```
+4. Install v8 libraries.
+    * run `make deploy-v8`
 
 5. Build the neb binary.
-
-```bash
-make build
-```
+    * run `make build`
 
 ## Run
 
@@ -142,12 +139,40 @@ From the log, we can see the binary execution starts neblet, starts network serv
 ## Docker
 
 ### Build
-
-`docker build -t nebulas .`
+* pull from dockerhub directly
+    ```bash
+    docker pull bkbabydp/go-nebulas
+    ```
+* build locally
+    ```bash
+    docker-compose up
+    ```
 
 ### Run
-
-`docker run -it -v $(pwd)/data.db:/nebulas/data.db nebulas`
+* edit [your conf path] in docker-compose.yml
+```yml
+  # node:
+  #   image: bkbabydp/go-nebulas
+  #   build:
+  #     context: ./docker
+  #   ports:
+  #     - '8680'
+  #     - '8684'
+  #     - '8685'
+  #     - '8888'
+  #     - '8086'
+  #   volumes:
+  #     - .:/go/src/github.com/nebulasio/go-nebulas
+  #   environment:
+  #     - TZ=Asia/Shanghai
+  #     - NEBULAS_BRANCH=master
+  #   command: bash docker/scripts/neb.bash -c [your conf path]
+```
+* start the node
+```bash
+    cd /path/to/go-nebulas
+    docker-compose up node
+```
 
 ## TestNet
 

@@ -22,13 +22,9 @@ else
         make dep
     fi
 fi
+
 make deploy-v8
-if [[ -x ${NEBULAS_SRC}/neb ]]; then
-    echo './neb exists.'
-else
-    echo './neb not found. Building ./neb...'
-    make clean && make build
-fi
+make clean && make build
 
 echo 'Run ./neb '$@
 ./neb $@
