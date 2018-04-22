@@ -1,0 +1,20 @@
+version: '3'
+
+services:
+  
+  node:
+    image: bkbabydp/go-nebulas
+    build:
+      context: ./docker
+    ports:
+      - '8680:8680'
+      - '8684:8684'
+      - '8685:8685'
+      - '8888:8888'
+      - '8086:8086'
+    volumes:
+      - .:/go/src/github.com/nebulasio/go-nebulas
+    environment:
+      - TZ=Asia/Shanghai
+      - NEBULAS_BRANCH=master
+    command: bash docker/scripts/neb.bash -c [your conf path]
