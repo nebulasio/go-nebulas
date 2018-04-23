@@ -1,8 +1,7 @@
 #! /usr/bin/env bash
 
 declare NEBULAS_SRC=${GOPATH}/src/github.com/nebulasio/go-nebulas
-
-[ -z ${NEBULAS_BRANCH} ] && NEBULAS_BRANCH=master
+declare NEBULAS_BRANCH=master
 
 # git clone https://github.com/nebulasio/go-nebulas ${NEBULAS_SRC}
 echo NEBULAS_BRANCH=${NEBULAS_BRANCH}
