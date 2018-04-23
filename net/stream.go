@@ -178,9 +178,13 @@ func (s *Stream) SendMessage(messageName string, data []byte, priority int) erro
 	var reserved []byte
 	if s.compressFlag > 0 {
 		reserved = CompressReserved
+		if messageName != HELLO {
+			data = snappy.Encode(nil, data)
+		}
 	} else {
 		reserved = DefaultReserved
 	}
+
 	message, err := NewNebMessage(s.node.config.ChainID, reserved, 0, messageName, data)
 	if err != nil {
 		return err
@@ -289,9 +293,13 @@ func (s *Stream) WriteMessage(messageName string, data []byte) error {
 	var reserved []byte
 	if s.compressFlag > 0 {
 		reserved = CompressReserved
+		if messageName != HELLO {
+			data = snappy.Encode(nil, data)
+		}
 	} else {
 		reserved = DefaultReserved
 	}
+
 	message, err := NewNebMessage(s.node.config.ChainID, reserved, 0, messageName, data)
 	if err != nil {
 		return err
