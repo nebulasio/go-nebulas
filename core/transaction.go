@@ -554,7 +554,8 @@ func (tx *Transaction) simulateExecution(block *Block) (*SimulateResult, error) 
 	)
 
 	// try run smart contract if payload is.
-	if tx.data.Type == TxPayloadCallType || tx.data.Type == TxPayloadDeployType {
+	if tx.data.Type == TxPayloadCallType || tx.data.Type == TxPayloadDeployType ||
+		(tx.data.Type == TxPayloadBinaryType && tx.to.Type() == ContractAddress) {
 
 		// transfer value to smart contract.
 		toAcc, err := ws.GetOrCreateUserAccount(tx.to.address)
@@ -708,6 +709,10 @@ func (tx *Transaction) GenerateContractAddress() (*Address, error) {
 func CheckContract(addr *Address, ws WorldState) (state.Account, error) {
 	if addr == nil || ws == nil {
 		return nil, ErrNilArgument
+	}
+
+	if addr.Type() != ContractAddress {
+		return nil, ErrContractCheckFailed
 	}
 
 	contract, err := ws.GetContractAccount(addr.Bytes())
