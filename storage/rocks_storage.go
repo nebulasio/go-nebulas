@@ -18,15 +18,19 @@ type RocksStorage struct {
 
 	ro *gorocksdb.ReadOptions
 	wo *gorocksdb.WriteOptions
+
+	cache *gorocksdb.Cache
 }
 
 // NewRocksStorage init a storage
-func NewRocksStorage(path string) (*RocksStorage, error) {
+func NewRocksStorage(path string, enableMetrics bool) (*RocksStorage, error) {
 
 	filter := gorocksdb.NewBloomFilter(10)
 	bbto := gorocksdb.NewDefaultBlockBasedTableOptions()
 	bbto.SetFilterPolicy(filter)
-	bbto.SetBlockCache(gorocksdb.NewLRUCache(512 << 20))
+
+	cache := gorocksdb.NewLRUCache(512 << 20)
+	bbto.SetBlockCache(cache)
 	opts := gorocksdb.NewDefaultOptions()
 	opts.SetBlockBasedTableFactory(bbto)
 	opts.SetCreateIfMissing(true)
@@ -39,13 +43,19 @@ func NewRocksStorage(path string) (*RocksStorage, error) {
 		return nil, err
 	}
 
-	return &RocksStorage{
+	storage := &RocksStorage{
 		db:          db,
+		cache:       cache,
 		enableBatch: false,
 		batchOpts:   make(map[string]*batchOpt),
 		ro:          gorocksdb.NewDefaultReadOptions(),
 		wo:          gorocksdb.NewDefaultWriteOptions(),
-	}, nil
+	}
+
+	if enableMetrics {
+		go RecordMetrics(storage)
+	}
+	return storage, nil
 }
 
 // Get return value to the key in Storage
@@ -150,4 +160,35 @@ func (storage *RocksStorage) DisableBatch() {
 	storage.batchOpts = make(map[string]*batchOpt)
 
 	storage.enableBatch = false
+}
+
+// RecordMetrics record rocksdb metrics
+func RecordMetrics(storage *RocksStorage) {
+	metricsUpdateChan := time.NewTicker(5 * time.Second).C
+
+	for {
+		select {
+		case <-metricsUpdateChan:
+
+			readersMemStr := storage.db.GetProperty("rocksdb.estimate-table-readers-mem")
+			allMemTablesStr := storage.db.GetProperty("rocksdb.cur-size-all-mem-tables")
+			cacheSize := storage.cache.GetUsage()
+			pinnedSize := storage.cache.GetPinnedUsage()
+
+			readersMemByte, err := byteutils.FromHex(readersMemStr)
+			if err != nil {
+				break
+			}
+
+			allMemTablesByte, err := byteutils.FromHex(allMemTablesStr)
+			if err != nil {
+				break
+			}
+
+			metricsBlocksdbAllMemTables.Update(byteutils.Int64(allMemTablesByte))
+			metricsBlocksdbTableReaderMem.Update(byteutils.Int64(readersMemByte))
+			metricsBlocksdbCacheSize.Update(int64(cacheSize))
+			metricsBlocksdbCachePinnedSize.Update(int64(pinnedSize))
+		}
+	}
 }

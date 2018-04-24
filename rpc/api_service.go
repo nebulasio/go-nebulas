@@ -147,7 +147,7 @@ func parseTransaction(neb core.Neblet, reqTx *rpcpb.TransactionRequest) (*core.T
 	)
 
 	if reqTx.Contract != nil {
-		if len(reqTx.Contract.Source) > 0 && len(reqTx.Contract.Function) == 0 { // TODO: reqTx.DeployContract, reqTx.CallContract
+		if len(reqTx.Contract.Source) > 0 && len(reqTx.Contract.Function) == 0 && fromAddr.Equals(toAddr) {
 			payloadType = core.TxPayloadDeployType
 			payloadObj, err := core.NewDeployPayload(reqTx.Contract.Source, reqTx.Contract.SourceType, reqTx.Contract.Args)
 			if err != nil {
@@ -156,7 +156,7 @@ func parseTransaction(neb core.Neblet, reqTx *rpcpb.TransactionRequest) (*core.T
 			if payload, err = payloadObj.ToBytes(); err != nil {
 				return nil, err
 			}
-		} else if len(reqTx.Contract.Source) == 0 && len(reqTx.Contract.Function) > 0 {
+		} else if len(reqTx.Contract.Source) == 0 && len(reqTx.Contract.Function) > 0 && toAddr.Type() == core.ContractAddress {
 			payloadType = core.TxPayloadCallType
 			callpayload, err := core.NewCallPayload(reqTx.Contract.Function, reqTx.Contract.Args)
 			if err != nil {
