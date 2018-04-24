@@ -192,11 +192,6 @@ func handleTransactionResponse(neb core.Neblet, tx *core.Transaction) (resp *rpc
 		}
 	}()
 
-	err = tx.VerifyIntegrity(neb.BlockChain().ChainID())
-	if err != nil {
-		return nil, err
-	}
-
 	tailBlock := neb.BlockChain().TailBlock()
 	acc, err := tailBlock.GetAccount(tx.From().Bytes())
 	if err != nil {
