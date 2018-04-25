@@ -28,8 +28,15 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
+
+	"github.com/gogo/protobuf/proto"
+	"github.com/nebulasio/go-nebulas/account"
+	"github.com/nebulasio/go-nebulas/net"
 
 	"github.com/nebulasio/go-nebulas/consensus/dpos"
+	"github.com/nebulasio/go-nebulas/core/pb"
+	"github.com/nebulasio/go-nebulas/neblet/pb"
 
 	"encoding/json"
 
@@ -1227,5 +1234,344 @@ func TestRequireModule(t *testing.T) {
 			assert.NotNil(t, err)
 			engine.Dispose()
 		})
+	}
+}
+
+type Neb struct {
+	config    *nebletpb.Config
+	chain     *core.BlockChain
+	ns        net.Service
+	am        *account.Manager
+	genesis   *corepb.Genesis
+	storage   storage.Storage
+	consensus core.Consensus
+	emitter   *core.EventEmitter
+	nvm       core.NVM
+}
+
+func mockNeb(t *testing.T) *Neb {
+	// storage, _ := storage.NewDiskStorage("test.db")
+	// storage, err := storage.NewRocksStorage("rocks.db")
+	// assert.Nil(t, err)
+	storage, _ := storage.NewMemoryStorage()
+	eventEmitter := core.NewEventEmitter(1024)
+	genesisConf := MockGenesisConf()
+	consensus := dpos.NewDpos()
+	nvm := NewNebulasVM()
+	neb := &Neb{
+		genesis:   genesisConf,
+		storage:   storage,
+		emitter:   eventEmitter,
+		consensus: consensus,
+		nvm:       nvm,
+		config: &nebletpb.Config{
+			Chain: &nebletpb.ChainConfig{
+				ChainId:    genesisConf.Meta.ChainId,
+				Keydir:     "keydir",
+				StartMine:  true,
+				Coinbase:   "n1dYu2BXgV3xgUh8LhZu8QDDNr15tz4hVDv",
+				Miner:      "n1FF1nz6tarkDVwWQkMnnwFPuPKUaQTdptE",
+				Passphrase: "passphrase",
+			},
+		},
+		ns: mockNetService{},
+	}
+
+	am, _ := account.NewManager(neb)
+	neb.am = am
+
+	chain, err := core.NewBlockChain(neb)
+	assert.Nil(t, err)
+	neb.chain = chain
+	assert.Nil(t, consensus.Setup(neb))
+	assert.Nil(t, chain.Setup(neb))
+
+	var ns mockNetService
+	neb.ns = ns
+	neb.chain.BlockPool().RegisterInNetwork(ns)
+
+	eventEmitter.Start()
+	return neb
+}
+
+func (n *Neb) Config() *nebletpb.Config {
+	return n.config
+}
+
+func (n *Neb) BlockChain() *core.BlockChain {
+	return n.chain
+}
+
+func (n *Neb) NetService() net.Service {
+	return n.ns
+}
+
+func (n *Neb) IsActiveSyncing() bool {
+	return true
+}
+
+func (n *Neb) AccountManager() core.AccountManager {
+	return n.am
+}
+
+func (n *Neb) Genesis() *corepb.Genesis {
+	return n.genesis
+}
+
+func (n *Neb) Storage() storage.Storage {
+	return n.storage
+}
+
+func (n *Neb) EventEmitter() *core.EventEmitter {
+	return n.emitter
+}
+
+func (n *Neb) Consensus() core.Consensus {
+	return n.consensus
+}
+
+func (n *Neb) Nvm() core.NVM {
+	return n.nvm
+}
+
+func (n *Neb) StartActiveSync() {}
+
+func (n *Neb) StartPprof(string) error { return nil }
+
+func (n *Neb) SetGenesis(genesis *corepb.Genesis) {
+	n.genesis = genesis
+}
+
+var (
+	DefaultOpenDynasty = []string{
+		"n1FF1nz6tarkDVwWQkMnnwFPuPKUaQTdptE",
+		"n1GmkKH6nBMw4rrjt16RrJ9WcgvKUtAZP1s",
+		"n1H4MYms9F55ehcvygwWE71J8tJC4CRr2so",
+		"n1JAy4X6KKLCNiTd7MWMRsVBjgdVq5WCCpf",
+		"n1LkDi2gGMqPrjYcczUiweyP4RxTB6Go1qS",
+		"n1LmP9K8pFF33fgdgHZonFEMsqZinJ4EUqk",
+		"n1MNXBKm6uJ5d76nJTdRvkPNVq85n6CnXAi",
+		"n1NrMKTYESZRCwPFDLFKiKREzZKaN1nhQvz",
+		"n1NwoSCDFwFL2981k6j9DPooigW33hjAgTa",
+		"n1PfACnkcfJoNm1Pbuz55pQCwueW1BYs83m",
+		"n1Q8mxXp4PtHaXtebhY12BnHEwu4mryEkXH",
+		"n1RYagU8n3JSuV4R7q4Qs5gQJ3pEmrZd6cJ",
+		"n1SAQy3ix1pZj8MPzNeVqpAmu1nCVqb5w8c",
+		"n1SHufJdxt2vRWGKAxwPETYfEq3MCQXnEXE",
+		"n1SSda41zGr9FKF5DJNE2ryY1ToNrndMauN",
+		"n1TmQtaCn3PNpk4f4ycwrBxCZFSVKvwBtzc",
+		"n1UM7z6MqnGyKEPvUpwrfxZpM1eB7UpzmLJ",
+		"n1UnCsJZjQiKyQiPBr7qG27exqCLuWUf1d7",
+		"n1XkoVVjswb5Gek3rRufqjKNpwrDdsnQ7Hq",
+		"n1cYKNHTeVW9v1NQRWuhZZn9ETbqAYozckh",
+		"n1dYu2BXgV3xgUh8LhZu8QDDNr15tz4hVDv",
+	}
+)
+
+// MockGenesisConf return mock genesis conf
+func MockGenesisConf() *corepb.Genesis {
+	dynasty := []string{}
+	for _, v := range DefaultOpenDynasty {
+		dynasty = append(dynasty, v)
+	}
+	return &corepb.Genesis{
+		Meta: &corepb.GenesisMeta{ChainId: 0},
+		Consensus: &corepb.GenesisConsensus{
+			Dpos: &corepb.GenesisConsensusDpos{
+				Dynasty: dynasty,
+			},
+		},
+		TokenDistribution: []*corepb.GenesisTokenDistribution{
+			&corepb.GenesisTokenDistribution{
+				Address: "n1FF1nz6tarkDVwWQkMnnwFPuPKUaQTdptE",
+				Value:   "5000000000000000000000000",
+			},
+			&corepb.GenesisTokenDistribution{
+				Address: "n1GmkKH6nBMw4rrjt16RrJ9WcgvKUtAZP1s",
+				Value:   "5000000000000000000000000",
+			},
+			&corepb.GenesisTokenDistribution{
+				Address: "n1H4MYms9F55ehcvygwWE71J8tJC4CRr2so",
+				Value:   "5000000000000000000000000",
+			},
+			&corepb.GenesisTokenDistribution{
+				Address: "n1JAy4X6KKLCNiTd7MWMRsVBjgdVq5WCCpf",
+				Value:   "5000000000000000000000000",
+			},
+			&corepb.GenesisTokenDistribution{
+				Address: "n1LkDi2gGMqPrjYcczUiweyP4RxTB6Go1qS",
+				Value:   "5000000000000000000000000",
+			},
+			&corepb.GenesisTokenDistribution{
+				Address: "n1LmP9K8pFF33fgdgHZonFEMsqZinJ4EUqk",
+				Value:   "5000000000000000000000000",
+			},
+		},
+	}
+}
+
+var (
+	received = []byte{}
+)
+
+type mockNetService struct{}
+
+func (n mockNetService) Start() error { return nil }
+func (n mockNetService) Stop()        {}
+
+func (n mockNetService) Node() *net.Node { return nil }
+
+func (n mockNetService) Sync(net.Serializable) error { return nil }
+
+func (n mockNetService) Register(...*net.Subscriber)   {}
+func (n mockNetService) Deregister(...*net.Subscriber) {}
+
+func (n mockNetService) Broadcast(name string, msg net.Serializable, priority int) {
+	pb, _ := msg.ToProto()
+	bytes, _ := proto.Marshal(pb)
+	received = bytes
+}
+func (n mockNetService) Relay(name string, msg net.Serializable, priority int) {
+	pb, _ := msg.ToProto()
+	bytes, _ := proto.Marshal(pb)
+	received = bytes
+}
+func (n mockNetService) SendMsg(name string, msg []byte, target string, priority int) error {
+	received = msg
+	return nil
+}
+
+func (n mockNetService) SendMessageToPeers(messageName string, data []byte, priority int, filter net.PeerFilterAlgorithm) []string {
+	return make([]string, 0)
+}
+func (n mockNetService) SendMessageToPeer(messageName string, data []byte, priority int, peerID string) error {
+	return nil
+}
+
+func (n mockNetService) ClosePeer(peerID string, reason error) {}
+
+func (n mockNetService) BroadcastNetworkID([]byte) {}
+
+type contract struct {
+	contractPath string
+	sourceType   string
+	initArgs     string
+}
+
+type call struct {
+	function string
+	args     string
+}
+
+func TestInnerTransactions(t *testing.T) {
+	tests := []struct {
+		name      string
+		contracts []contract
+		call      call
+	}{
+		{
+			"deploy test_require_module.js",
+			[]contract{
+				contract{
+					"./test/bank_vault_contract.js",
+					"js",
+					"",
+				},
+				contract{
+					"./test/bank_vault_contract.js",
+					"js",
+					"",
+				},
+			},
+			call{
+				"save",
+				"[1]",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		neb := mockNeb(t)
+		tail := neb.chain.TailBlock()
+		manager, err := account.NewManager(neb)
+		assert.Nil(t, err)
+
+		a, _ := core.AddressParse("n1FF1nz6tarkDVwWQkMnnwFPuPKUaQTdptE")
+		assert.Nil(t, manager.Unlock(a, []byte("passphrase"), keystore.YearUnlockDuration))
+		b, _ := core.AddressParse("n1GmkKH6nBMw4rrjt16RrJ9WcgvKUtAZP1s")
+		assert.Nil(t, manager.Unlock(b, []byte("passphrase"), keystore.YearUnlockDuration))
+		c, _ := core.AddressParse("n1H4MYms9F55ehcvygwWE71J8tJC4CRr2so")
+		assert.Nil(t, manager.Unlock(c, []byte("passphrase"), keystore.YearUnlockDuration))
+
+		elapsedSecond := dpos.BlockIntervalInMs / dpos.SecondInMs
+		consensusState, err := tail.WorldState().NextConsensusState(elapsedSecond)
+		assert.Nil(t, err)
+		block, err := core.NewBlock(neb.chain.ChainID(), b, tail)
+		assert.Nil(t, err)
+		block.WorldState().SetConsensusState(consensusState)
+		block.SetTimestamp(consensusState.TimeStamp())
+
+		contractsAddr := []string{}
+
+		t.Run(tt.name, func(t *testing.T) {
+			for k, v := range tt.contracts {
+				data, err := ioutil.ReadFile(v.contractPath)
+				assert.Nil(t, err, "contract path read error")
+				source := string(data)
+				sourceType := "js"
+				argsDeploy := ""
+				deploy, _ := core.NewDeployPayload(source, sourceType, argsDeploy)
+				payloadDeploy, _ := deploy.ToBytes()
+
+				value, _ := util.NewUint128FromInt(0)
+				gasLimit, _ := util.NewUint128FromInt(200000)
+				txDeploy, err := core.NewTransaction(neb.chain.ChainID(), a, a, value, uint64(k+1), core.TxPayloadDeployType, payloadDeploy, core.TransactionGasPrice, gasLimit)
+				assert.Nil(t, err)
+				assert.Nil(t, manager.SignTransaction(a, txDeploy))
+				assert.Nil(t, neb.chain.TransactionPool().Push(txDeploy))
+
+				contractAddr, err := txDeploy.GenerateContractAddress()
+				assert.Nil(t, err)
+				contractsAddr = append(contractsAddr, contractAddr.String())
+			}
+		})
+
+		block.CollectTransactions((time.Now().Unix() + 1) * dpos.SecondInMs)
+		assert.Nil(t, block.Seal())
+		assert.Nil(t, manager.SignBlock(b, block))
+		assert.Nil(t, neb.chain.BlockPool().Push(block))
+
+		for _, v := range contractsAddr {
+			contract, err := core.AddressParse(v)
+			assert.Nil(t, err)
+			_, err = neb.chain.TailBlock().CheckContract(contract)
+			assert.Nil(t, err)
+		}
+
+		elapsedSecond = dpos.BlockIntervalInMs / dpos.SecondInMs
+		tail = neb.chain.TailBlock()
+		consensusState, err = tail.WorldState().NextConsensusState(elapsedSecond)
+		assert.Nil(t, err)
+		block, err = core.NewBlock(neb.chain.ChainID(), c, tail)
+		assert.Nil(t, err)
+		block.WorldState().SetConsensusState(consensusState)
+		block.SetTimestamp(consensusState.TimeStamp())
+
+		callPayload, _ := core.NewCallPayload(tt.call.function, tt.call.args)
+		payloadCall, _ := callPayload.ToBytes()
+
+		value, _ := util.NewUint128FromInt(0)
+		gasLimit, _ := util.NewUint128FromInt(200000)
+		txCall, err := core.NewTransaction(neb.chain.ChainID(), a, a, value, uint64(len(contractsAddr)+1), core.TxPayloadCallType, payloadCall, core.TransactionGasPrice, gasLimit)
+		assert.Nil(t, err)
+		assert.Nil(t, manager.SignTransaction(a, txCall))
+		assert.Nil(t, neb.chain.TransactionPool().Push(txCall))
+
+		block.CollectTransactions((time.Now().Unix() + 1) * dpos.SecondInMs)
+		assert.Nil(t, block.Seal())
+		assert.Nil(t, manager.SignBlock(c, block))
+		assert.Nil(t, neb.chain.BlockPool().Push(block))
+
+		// check
 	}
 }
