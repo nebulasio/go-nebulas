@@ -186,7 +186,7 @@ function deployContract(done, caseGroup) {
     }).catch (err => done(err));
 }
 
-function testBinary(testInput, testExpect, done) {
+function runTest(testInput, testExpect, done) {
     var fromAcc = (typeof testInput.from === "undefined") ? from : testInput.from;
     var to = (typeof testInput.to === "undefined") ? Account.fromAddress(contractAddr) : testInput.to;
 
@@ -205,7 +205,7 @@ function testBinary(testInput, testExpect, done) {
         console.log("coin state before: ", JSON.stringify(resp));
         coinState = resp;
 
-        var tx = new Transaction(ChainID, fromAcc, to, testInput.value, parseInt(fromState.nonce) + testInput.nonce, testInput.gasPrice, testInput.gasLimit);
+        var tx = new Transaction(ChainID, fromAcc, to, testInput.value, parseInt(fromState.nonce) + testInput.nonce, testInput.gasPrice, testInput.gasLimit, testInput.contract);
         tx.from.address = fromAcc.address;
         tx.to.address = to.address;
         tx.gasPrice = new BigNumber(testInput.gasPrice);
@@ -268,6 +268,11 @@ function testBinary(testInput, testExpect, done) {
                                 expect(result.error).to.equal(testExpect.eventErr);
                             }
                         }
+                        if (event.topic === "chain.contract.Date") {
+                            var result = JSON.parse(event.data);
+                            expect(result.data.equalBlockTime).to.equal(testExpect.equalBlockTime);
+                            console.log("check equalBlockTime success");
+                        }
                     }
                     done();
                 }).catch(function (err) {
@@ -287,133 +292,55 @@ function testBinary(testInput, testExpect, done) {
 
 var testCaseGroups = [];
 var caseGroup = {
-    "filename": "contract_accept_func_with_args.js",
+    "filename": "contract_date_and_random.js",
     "type": "js",
-    "groupname": "case group 0: accept takes some args with execution error",
+    "groupname": "case group 0: Date",
     "groupIndex": 0,
 
     cases: [
         {
-            "name": "0-1. value = 0, invalid args",
+            "name": "0-1. test 'new Date()'",
             "testInput": {
-                // from: from, 
-                // to: contractAddr,
                 value: "0",
                 nonce: 1, 
                 gasPrice: 1000000,
-                gasLimit: 2000000
-            },
-            "testExpect": {
-                canExcuteTx: false,
-                toBalanceChange: "0",
-                status: 0,
-                eventErr: "Binary: BigNumber Error: plus() not a number: undefined"
-            }
-        }
-    ]
-};
-testCaseGroups.push(caseGroup);
-
-caseGroup = {
-    "filename": "contract_accept_func_with_args_2.js",
-    "type": "js",
-    "groupname": "case group 1: accept takes some args witchout execution error",
-    "groupIndex": 1,
-
-    cases: [
-        {
-            "name": "1-1. value = 0",
-            "testInput": {
-                // from: from, 
-                // to: contractAddr,
-                value: "0",
-                nonce: 1, 
-                gasPrice: 1000000,
-                gasLimit: 2000000
+                gasLimit: 2000000,
+                contract: {
+                    function: "testDate",
+                    args: ""
+                }
             },
             "testExpect": {
                 canExcuteTx: true,
                 toBalanceChange: "0",
-                status: 1
+                status: 1,
+                equalBlockTime: true
             }
         },
-
         {
-            "name": "1-2. value > 0",
+            "name": "0-2. test 'new Date('1995-12-17T03:24:00')'",
             "testInput": {
-                // from: from, 
-                // to: contractAddr,
-                value: "100",
+                value: "0",
                 nonce: 1, 
                 gasPrice: 1000000,
-                gasLimit: 2000000
+                gasLimit: 2000000,
+                contract: {
+                    function: "testDate",
+                    args: "[\"1995-12-17T03:24:00\"]"
+                }
             },
             "testExpect": {
                 canExcuteTx: true,
-                toBalanceChange: "100",
-                status: 1
-            }
-        }
-    ]
-};
-testCaseGroups.push(caseGroup);
-
-caseGroup = {
-    "filename": "bank_vault_contract.js",
-    "type": "js",
-    "groupname": "case group 2: bankvault without accept func",
-    "groupIndex": 2,
-
-    cases: [
-        {
-            "name": "2-1. value > 0",
-            "testInput": {
-                // from: from, 
-                // to: contractAddr,
-                value: "100",
-                nonce: 1, 
-                gasPrice: 1000000,
-                gasLimit: 2000000
-            },
-            "testExpect": {
-                canExcuteTx: false,
                 toBalanceChange: "0",
-                status: 0,
-                eventErr: "Binary: TypeError: Cannot read property 'apply' of undefined"
+                status: 1,
+                equalBlockTime: false
             }
         }
     ]
 };
 testCaseGroups.push(caseGroup);
 
-caseGroup = {
-    "filename": "contract_accept_func_standard.js",
-    "type": "js",
-    "groupname": "case group 3: bankvault with standard accept func",
-    "groupIndex": 3,
-
-    cases: [
-        {
-            "name": "3-1. value > 0",
-            "testInput": {
-                // from: from, 
-                // to: contractAddr,
-                value: "100",
-                nonce: 1, 
-                gasPrice: 1000000,
-                gasLimit: 2000000
-            },
-            "testExpect": {
-                canExcuteTx: true,
-                toBalanceChange: "100",
-                status: 1
-            }
-        }
-    ]
-};
-testCaseGroups.push(caseGroup);
-
-describe('accept func test', () => {
+describe('Contract Date test', () => {
 
     before(done => prepareSource(done));
 
@@ -433,7 +360,7 @@ describe('accept func test', () => {
                 let testCase = caseGroup.cases[j];
                 it(testCase.name, done => {
                     console.log("===> running case: " + JSON.stringify(testCase));
-                    testBinary(testCase.testInput, testCase.testExpect, done);
+                    runTest(testCase.testInput, testCase.testExpect, done);
                 });
             }
 
