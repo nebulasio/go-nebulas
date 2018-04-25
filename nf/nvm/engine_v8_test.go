@@ -123,7 +123,7 @@ func TestRunScriptSource(t *testing.T) {
 		{"test/test_storage_class.js", nil, "\"\""},
 		{"test/test_storage.js", nil, "\"\""},
 		{"test/test_eval.js", core.ErrExecutionFailed, "EvalError: Code generation from strings disallowed for this context"},
-		{"test/test_date.js", core.ErrExecutionFailed, "TypeError: Date.now is not a function"},
+		{"test/test_date.js", nil, "\"\""},
 		{"test/test_bignumber_random.js", core.ErrExecutionFailed, "Error: BigNumber.random is not allowed in nvm."},
 		{"test/test_random.js", core.ErrExecutionFailed, "Error: Math.random func is not allowed in nvm."},
 	}

@@ -16,6 +16,9 @@
 // along with the go-nebulas library.  If not, see <http://www.gnu.org/licenses/>.
 //
 
+Blockchain.block = {
+    timestamp: 10000000000
+};
 
 console.log(Date.now());
 console.log(Date.UTC());
