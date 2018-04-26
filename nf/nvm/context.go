@@ -19,6 +19,8 @@
 package nvm
 
 import (
+	"unsafe"
+
 	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/core/pb"
@@ -55,6 +57,8 @@ type Context struct {
 	tx       Transaction
 	contract Account
 	state    WorldState
+	head     unsafe.Pointer
+	index    uint32
 }
 
 // NewContext create a engine context
@@ -71,6 +75,21 @@ func NewContext(block Block, tx Transaction, contract Account, state WorldState)
 	return ctx, nil
 }
 
+// NewChildContext create a child engine context
+func NewChildContext(block Block, tx Transaction, contract Account, state WorldState, head unsafe.Pointer, index uint32) (*Context, error) {
+	if block == nil || tx == nil || contract == nil || state == nil || head == nil {
+		return nil, ErrContextConstructArrEmpty
+	}
+	ctx := &Context{
+		block:    block,
+		tx:       tx,
+		contract: contract,
+		state:    state,
+		head:     head,
+		index:    index,
+	}
+	return ctx, nil
+}
 func toSerializableAccount(acc Account) *SerializableAccount {
 	sAcc := &SerializableAccount{
 		Nonce:   acc.Nonce(),

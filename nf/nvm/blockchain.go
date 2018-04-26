@@ -290,8 +290,8 @@ func RunMultilevelContractSourceFunc(handler unsafe.Pointer, address *C.char, fu
 		return nil
 	}
 	//transfer
-	//var transferCoseGas *C.size_t
-	//TransferFunc(handler, address, v, transferCoseGas)
+	var transferCoseGas C.size_t
+	TransferFunc(handler, address, v, &transferCoseGas)
 	logging.CLog().Errorf("begin pack payload,funcName:%s, args:%s\n", C.GoString(funcName), C.GoString(args))
 	//run
 	payloadType := core.TxPayloadCallType
@@ -333,14 +333,20 @@ func RunMultilevelContractSourceFunc(handler unsafe.Pointer, address *C.char, fu
 		return nil
 	}*/
 
-	newCtx, err := NewContext(engine.ctx.block, newTx, contract, engine.ctx.state)
+	// newCtx, err := NewContext(engine.ctx.block, newTx, contract, engine.ctx.state)
+	newCtx, err := NewChildContext(engine.ctx.block, newTx, contract, engine.ctx.state, unsafe.Pointer(engine.v8engine), engine.ctx.index+1)
+
 	if err != nil {
 		logging.CLog().Errorf("NewContext err:%v", err)
 		return nil
 	}
-	logging.CLog().Errorf("begin create New V8")
+	verbInstruction, verbMem := engine.GetNVMVerbResources()
+	verbInstruction -= 100
+	verbInstruction -= 100
+
+	logging.CLog().Errorf("begin create New V8,intance:%v, mem:%v", verbInstruction, verbMem)
 	engineNew := NewV8Engine(newCtx)
-	engineNew.SetExecutionLimits(10000, 10000000)
+	engineNew.SetExecutionLimits(verbInstruction, verbMem)
 	logging.CLog().Errorf("begin Call,source:%v, sourceType:%v", deploy.Source, deploy.SourceType)
 	val, err := engineNew.Call(string(deploy.Source), deploy.SourceType, C.GoString(funcName), C.GoString(args))
 	engineNew.Dispose()

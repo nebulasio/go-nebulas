@@ -49,7 +49,7 @@ type TransferFromContractEvent struct {
 func EventTriggerFunc(handler unsafe.Pointer, topic, data *C.char, gasCnt *C.size_t) {
 	gTopic := C.GoString(topic)
 	gData := C.GoString(data)
-
+	var engine *V8Engine
 	e := getEngineByEngineHandler(handler)
 	if e == nil {
 		logging.VLog().WithFields(logrus.Fields{
@@ -59,11 +59,23 @@ func EventTriggerFunc(handler unsafe.Pointer, topic, data *C.char, gasCnt *C.siz
 		}).Error("Event.Trigger delegate handler does not found.")
 		return
 	}
-
+	if e.ctx.head != nil {
+		engine = getEngineByEngineHandler(e.ctx.head)
+		if engine == nil {
+			logging.VLog().WithFields(logrus.Fields{
+				"category": 0, // ChainEventCategory.
+				"topic":    gTopic,
+				"data":     gData,
+			}).Error("Event.Trigger delegate head handler does not found.")
+			return
+		}
+	} else {
+		engine = e
+	}
 	// calculate Gas.
 	*gasCnt = C.size_t(EventBaseGasCount + len(gTopic) + len(gData))
 
 	contractTopic := EventNameSpaceContract + "." + gTopic
 	event := &state.Event{Topic: contractTopic, Data: gData}
-	e.ctx.state.RecordEvent(e.ctx.tx.Hash(), event)
+	e.ctx.state.RecordEvent(engine.ctx.tx.Hash(), event)
 }

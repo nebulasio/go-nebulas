@@ -278,6 +278,14 @@ func (e *V8Engine) CollectTracingStats() {
 	e.actualTotalMemorySize = uint64(e.v8engine.stats.total_memory_size)
 }
 
+// GetNVMVerbResources return current NVM verb total resource
+func (e *V8Engine) GetNVMVerbResources() (uint64, uint64) {
+	e.CollectTracingStats()
+	instruction := e.limitsOfExecutionInstructions - e.actualCountOfExecutionInstructions
+	mem := e.limitsOfTotalMemorySize - e.actualTotalMemorySize
+	return instruction, mem
+}
+
 // RunScriptSource run js source.
 func (e *V8Engine) RunScriptSource(source string, sourceLineOffset int) (string, error) {
 	cSource := C.CString(source)
