@@ -21,6 +21,7 @@ package net
 import (
 	"errors"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
@@ -35,16 +36,15 @@ import (
 
 // Stream Message Type
 const (
-	ClientVersion             = "0.3.0"
-	NebProtocolID             = "/neb/1.0.0"
-	HELLO                     = "hello"
-	OK                        = "ok"
-	BYE                       = "bye"
-	SYNCROUTE                 = "syncroute"
-	ROUTETABLE                = "routetable"
-	RECVEDMSG                 = "recvedmsg"
-	CurrentVersion            = 0x1
-	CompressionEnabledVersion = 0x1
+	ClientVersion  = "0.3.0"
+	NebProtocolID  = "/neb/1.0.0"
+	HELLO          = "hello"
+	OK             = "ok"
+	BYE            = "bye"
+	SYNCROUTE      = "syncroute"
+	ROUTETABLE     = "routetable"
+	RECVEDMSG      = "recvedmsg"
+	CurrentVersion = 0x0
 )
 
 // Stream Status
@@ -547,7 +547,7 @@ func (s *Stream) onHello(message *NebMessage) error {
 		return ErrShouldCloseConnectionAndExitLoop
 	}
 
-	if message.Version() >= CompressionEnabledVersion {
+	if (message.Reserved()[2] & ReservedCompressionClientFlag) > 0 {
 		s.reservedFlag = CurrentReserved
 	}
 
@@ -593,7 +593,7 @@ func (s *Stream) onOk(message *NebMessage) error {
 		return ErrShouldCloseConnectionAndExitLoop
 	}
 
-	if message.Version() >= CompressionEnabledVersion {
+	if (message.Reserved()[2] & ReservedCompressionClientFlag) > 0 {
 		s.reservedFlag = CurrentReserved
 	}
 
@@ -672,6 +672,15 @@ func (s *Stream) finishHandshake() {
 }
 
 // CheckClientVersionCompatibility if two clients are compatible
+// If the clientVersion of node A is X.Y.Z, then node B must be X.Y.{} to be compatible with A.
 func CheckClientVersionCompatibility(v1, v2 string) bool {
-	return v1 == v2
+	s1 := strings.Split(v1, ".")
+	s2 := strings.Split(v1, ".")
+	if len(s1) != 3 || len(s2) != 3 {
+		return false
+	}
+	if s1[0] != s2[0] || s1[1] != s2[1] {
+		return false
+	}
+	return true
 }
