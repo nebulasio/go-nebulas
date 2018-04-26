@@ -58,7 +58,7 @@ git checkout testnet
     * Install Dependencies
         ```bash
         apt-get update
-        apt-get -y build-essential libgflags-dev libsnappy-dev zlib1g-dev libbz2-dev liblz4-dev libzstd-dev
+        apt-get -y install build-essential libgflags-dev libsnappy-dev zlib1g-dev libbz2-dev liblz4-dev libzstd-dev
         ```
     * Install rocksdb by source code:
         ```bash
