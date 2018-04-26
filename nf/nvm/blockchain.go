@@ -227,3 +227,127 @@ func VerifyAddressFunc(handler unsafe.Pointer, address *C.char, gasCnt *C.size_t
 	}
 	return int(addr.Type())
 }
+
+// GetContractSourceFunc get contract code by address
+//export GetContractSourceFunc
+func GetContractSourceFunc(handler unsafe.Pointer, address *C.char, gasCnt *C.size_t) *C.char {
+	// calculate Gas.
+	engine, _ := getEngineByStorageHandler(uint64(uintptr(handler)))
+	if engine == nil || engine.ctx.block == nil {
+		logging.VLog().Error("Failed to get engine.")
+		return nil
+	}
+	*gasCnt = C.size_t(100)
+	ws := engine.ctx.state
+	addr, err := core.AddressParse(C.GoString(address))
+	if err != nil {
+		return nil
+	}
+	contract, err := core.CheckContract(addr, ws)
+	if err != nil {
+		return nil
+	}
+
+	birthTx, err := core.GetTransaction(contract.BirthPlace(), ws)
+	if err != nil {
+		return nil
+	}
+	deploy, err := core.LoadDeployPayload(birthTx.Data()) // ToConfirm: move deploy payload in ctx.
+	if err != nil {
+		return nil
+	}
+	return C.CString(string(deploy.Source))
+}
+
+// RunMultilevelContractSourceFunc verify address is valid
+//export RunMultilevelContractSourceFunc
+func RunMultilevelContractSourceFunc(handler unsafe.Pointer, address *C.char, funcName *C.char, v *C.char, args *C.char, gasCnt *C.size_t) *C.char {
+	// calculate Gas.
+	logging.CLog().Errorf("begin RunMultilevelContractSourceFunc\n")
+	engine, _ := getEngineByStorageHandler(uint64(uintptr(handler)))
+	if engine == nil || engine.ctx.block == nil {
+		logging.VLog().Error("Failed to get engine.")
+		return nil
+	}
+	*gasCnt = C.size_t(100)
+	ws := engine.ctx.state
+	logging.CLog().Errorf("address:", C.GoString(address))
+	addr, err := core.AddressParse(C.GoString(address))
+	if err != nil {
+		return nil
+	}
+	contract, err := core.CheckContract(addr, ws)
+	if err != nil {
+		return nil
+	}
+
+	birthTx, err := core.GetTransaction(contract.BirthPlace(), ws)
+	if err != nil {
+		return nil
+	}
+	deploy, err := core.LoadDeployPayload(birthTx.Data()) // ToConfirm: move deploy payload in ctx.
+	if err != nil {
+		return nil
+	}
+	//transfer
+	//var transferCoseGas *C.size_t
+	//TransferFunc(handler, address, v, transferCoseGas)
+	logging.CLog().Errorf("begin pack payload,funcName:%s, args:%s\n", C.GoString(funcName), C.GoString(args))
+	//run
+	payloadType := core.TxPayloadCallType
+	callpayload, err := core.NewCallPayload(C.GoString(funcName), C.GoString(args))
+	if err != nil {
+		logging.CLog().Errorf("core.NewCallPayload err:", err)
+		return nil
+	}
+	payload, err := callpayload.ToBytes()
+	if err != nil {
+		logging.CLog().Errorf("callpayload.ToBytes err:", err)
+		return nil
+	}
+	oldTx := engine.ctx.tx
+	zeroVal := util.NewUint128()
+	from := engine.ctx.contract.Address()
+	fromAddr, err := core.AddressParseFromBytes(from)
+	if err != nil {
+		logging.CLog().Errorf("core.AddressParse err:", err)
+		return nil
+	}
+
+	logging.CLog().Errorf("create NewTransaction id:%v", oldTx.ChainID())
+	newTx, err := core.NewTransaction(oldTx.ChainID(), fromAddr, addr, zeroVal, oldTx.Nonce(), payloadType,
+		payload, oldTx.GasPrice(), oldTx.GasLimit())
+	if err != nil {
+		return nil
+	}
+	logging.CLog().Errorf("create NewContext")
+
+	/*addrT, err := newTx.GenerateContractAddress()
+	if err != nil {
+		logging.CLog().Errorf("newTx.GenerateContractAddress err:%v", err)
+		return nil
+	}
+	contractT, err := ws.CreateContractAccount(addrT.Bytes(), newTx.Hash())
+	if err != nil {
+		logging.CLog().Errorf("ws.CreateContractAccount err:%v", err)
+		return nil
+	}*/
+
+	newCtx, err := NewContext(engine.ctx.block, newTx, contract, engine.ctx.state)
+	if err != nil {
+		logging.CLog().Errorf("NewContext err:%v", err)
+		return nil
+	}
+	logging.CLog().Errorf("begin create New V8")
+	engineNew := NewV8Engine(newCtx)
+	engineNew.SetExecutionLimits(10000, 10000000)
+	logging.CLog().Errorf("begin Call,source:%v, sourceType:%v", deploy.Source, deploy.SourceType)
+	val, err := engineNew.Call(string(deploy.Source), deploy.SourceType, C.GoString(funcName), C.GoString(args))
+	engineNew.Dispose()
+	if err != nil {
+		return nil
+	}
+	logging.CLog().Errorf("end cal val:%v", val)
+	return C.CString(string(val))
+	//return C.CString("")
+}

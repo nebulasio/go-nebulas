@@ -60,6 +60,7 @@ type Block interface {
 
 // Transaction interface breaks cycle import dependency and hides unused services.
 type Transaction interface {
+	ChainID() uint32
 	Hash() byteutils.Hash
 	From() *core.Address
 	To() *core.Address
@@ -87,4 +88,12 @@ type WorldState interface {
 	GetOrCreateUserAccount(addr byteutils.Hash) (state.Account, error)
 	GetTx(txHash byteutils.Hash) ([]byte, error)
 	RecordEvent(txHash byteutils.Hash, event *state.Event)
+	CreateContractAccount(owner byteutils.Hash, birthPlace byteutils.Hash) (state.Account, error)
+	Dynasty() ([]byteutils.Hash, error)
+	DynastyRoot() byteutils.Hash
+	FetchEvents(byteutils.Hash) ([]*state.Event, error)
+	GetContractAccount(addr byteutils.Hash) (state.Account, error)
+	PutTx(txHash byteutils.Hash, txBytes []byte) error
+	RecordGas(from string, gas *util.Uint128) error
+	Reset() error //Need to consider risk
 }

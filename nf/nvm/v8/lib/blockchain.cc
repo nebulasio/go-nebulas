@@ -25,14 +25,20 @@ static GetTxByHashFunc sGetTxByHash = NULL;
 static GetAccountStateFunc sGetAccountState = NULL;
 static TransferFunc sTransfer = NULL;
 static VerifyAddressFunc sVerifyAddress = NULL;
+static GetContractSourceFunc sGetContractSource = NULL;
+static RunMultilevelContractSourceFunc sRunMultContract = NULL;
 
 void InitializeBlockchain(GetTxByHashFunc getTx, GetAccountStateFunc getAccount,
                           TransferFunc transfer,
-                          VerifyAddressFunc verifyAddress) {
+                          VerifyAddressFunc verifyAddress,
+                          GetContractSourceFunc contractSource,
+                          RunMultilevelContractSourceFunc rMultContract) {
   sGetTxByHash = getTx;
   sGetAccountState = getAccount;
   sTransfer = transfer;
   sVerifyAddress = verifyAddress;
+  sGetContractSource = contractSource;
+  sRunMultContract = rMultContract;
 }
 
 void NewBlockchainInstance(Isolate *isolate, Local<Context> context,
@@ -62,6 +68,16 @@ void NewBlockchainInstance(Isolate *isolate, Local<Context> context,
 
   blockTpl->Set(String::NewFromUtf8(isolate, "verifyAddress"),
                 FunctionTemplate::New(isolate, VerifyAddressCallback),
+                static_cast<PropertyAttribute>(PropertyAttribute::DontDelete |
+                                               PropertyAttribute::ReadOnly));
+  
+  blockTpl->Set(String::NewFromUtf8(isolate, "getContractSource"),
+                FunctionTemplate::New(isolate, GetContractSourceCallback),
+                static_cast<PropertyAttribute>(PropertyAttribute::DontDelete |
+                                               PropertyAttribute::ReadOnly));
+
+  blockTpl->Set(String::NewFromUtf8(isolate, "runContractSource"),
+                FunctionTemplate::New(isolate, RunMultilevelContractSourceCallBack),
                 static_cast<PropertyAttribute>(PropertyAttribute::DontDelete |
                                                PropertyAttribute::ReadOnly));
 
@@ -200,6 +216,92 @@ void VerifyAddressCallback(const FunctionCallbackInfo<Value> &info) {
   int ret = sVerifyAddress(handler->Value(),
                            *String::Utf8Value(address->ToString()), &cnt);
   info.GetReturnValue().Set(ret);
+
+  // record storage usage.
+  IncrCounter(isolate, isolate->GetCurrentContext(), cnt);
+}
+
+void GetContractSourceCallback(const FunctionCallbackInfo<Value> &info) {
+  Isolate *isolate = info.GetIsolate();
+  Local<Object> thisArg = info.Holder();
+  Local<External> handler = Local<External>::Cast(thisArg->GetInternalField(0));
+
+  if (info.Length() != 1) {
+    isolate->ThrowException(String::NewFromUtf8(
+        isolate, "Blockchain.GetContractSource() requires 1 arguments"));
+    return;
+  }
+
+  Local<Value> address = info[0];
+  if (!address->IsString()) {
+    isolate->ThrowException(
+        String::NewFromUtf8(isolate, "address must be string"));
+    return;
+  }
+
+  size_t cnt = 0;
+
+  char *value = sGetContractSource(handler->Value(),
+                           *String::Utf8Value(address->ToString()), &cnt);
+  if (value == NULL) {
+    info.GetReturnValue().SetNull();
+  } else {
+    info.GetReturnValue().Set(String::NewFromUtf8(isolate, value));
+    free(value);
+  }
+
+  // record storage usage.
+  IncrCounter(isolate, isolate->GetCurrentContext(), cnt);
+}
+void RunMultilevelContractSourceCallBack(const FunctionCallbackInfo<Value> &info) {
+  Isolate *isolate = info.GetIsolate();
+  Local<Object> thisArg = info.Holder();
+  Local<External> handler = Local<External>::Cast(thisArg->GetInternalField(0));
+
+  if (info.Length() != 4) {
+    char msg[512];
+    snprintf(msg, 512, "Blockchain.RunMultilevelContractSourceCallBack() requires 14 arguments,args:%d", info.Length());
+    isolate->ThrowException(String::NewFromUtf8(
+        isolate, msg));
+    return;
+  }
+
+  Local<Value> address = info[0];
+  if (!address->IsString()) {
+    isolate->ThrowException(
+        String::NewFromUtf8(isolate, "address must be string"));
+    return;
+  }
+  Local<Value> funcName = info[1];
+  if (!address->IsString()) {
+    isolate->ThrowException(
+        String::NewFromUtf8(isolate, "func must be string"));
+    return;
+  }
+  Local<Value> val = info[2];
+  if (!val->IsString()) {
+    isolate->ThrowException(
+        String::NewFromUtf8(isolate, "val must be string"));
+    return;
+  }
+  Local<Value> args = info[3];
+  if (!args->IsString()) {
+    isolate->ThrowException(
+        String::NewFromUtf8(isolate, "args must be string"));
+    return;
+  }
+
+  size_t cnt = 0;
+  char *value = sRunMultContract(handler->Value(),
+                           *String::Utf8Value(address->ToString()), *String::Utf8Value(funcName->ToString()),
+                           *String::Utf8Value(val->ToString()), *String::Utf8Value(args->ToString()),
+                           &cnt);
+  if (value == NULL) {
+    info.GetReturnValue().SetNull();
+  } else {
+    info.GetReturnValue().Set(String::NewFromUtf8(isolate, value));
+    free(value);
+  }
 
   // record storage usage.
   IncrCounter(isolate, isolate->GetCurrentContext(), cnt);

@@ -38,6 +38,8 @@ char *GetTxByHashFunc_cgo(void *handler, const char *hash);
 char *GetAccountStateFunc_cgo(void *handler, const char *address);
 int TransferFunc_cgo(void *handler, const char *to, const char *value);
 int VerifyAddressFunc_cgo(void *handler, const char *address);
+char *GetContractSourceFunc_cgo(void *handler, const char *address);
+char *RunMultilevelContractSourceFunc_cgo(void *handler, const char *address, const char *funcName, const char * v, const char *args, size_t *gasCnt);
 
 void EventTriggerFunc_cgo(void *handler, const char *topic, const char *data, size_t *gasCnt);
 
@@ -111,10 +113,17 @@ func InitV8Engine() {
 	C.InitializeRequireDelegate((C.RequireDelegate)(unsafe.Pointer(C.RequireDelegateFunc_cgo)))
 
 	// Storage.
-	C.InitializeStorage((C.StorageGetFunc)(unsafe.Pointer(C.StorageGetFunc_cgo)), (C.StoragePutFunc)(unsafe.Pointer(C.StoragePutFunc_cgo)), (C.StorageDelFunc)(unsafe.Pointer(C.StorageDelFunc_cgo)))
+	C.InitializeStorage((C.StorageGetFunc)(unsafe.Pointer(C.StorageGetFunc_cgo)),
+		(C.StoragePutFunc)(unsafe.Pointer(C.StoragePutFunc_cgo)),
+		(C.StorageDelFunc)(unsafe.Pointer(C.StorageDelFunc_cgo)))
 
 	// Blockchain.
-	C.InitializeBlockchain((C.GetTxByHashFunc)(unsafe.Pointer(C.GetTxByHashFunc_cgo)), (C.GetAccountStateFunc)(unsafe.Pointer(C.GetAccountStateFunc_cgo)), (C.TransferFunc)(unsafe.Pointer(C.TransferFunc_cgo)), (C.VerifyAddressFunc)(unsafe.Pointer(C.VerifyAddressFunc_cgo)))
+	C.InitializeBlockchain((C.GetTxByHashFunc)(unsafe.Pointer(C.GetTxByHashFunc_cgo)),
+		(C.GetAccountStateFunc)(unsafe.Pointer(C.GetAccountStateFunc_cgo)),
+		(C.TransferFunc)(unsafe.Pointer(C.TransferFunc_cgo)),
+		(C.VerifyAddressFunc)(unsafe.Pointer(C.VerifyAddressFunc_cgo)),
+		(C.GetContractSourceFunc)(unsafe.Pointer(C.GetContractSourceFunc_cgo)),
+		(C.RunMultilevelContractSourceFunc)(unsafe.Pointer(C.RunMultilevelContractSourceFunc_cgo)))
 
 	// Event.
 	C.InitializeEvent((C.EventTriggerFunc)(unsafe.Pointer(C.EventTriggerFunc_cgo)))
@@ -283,8 +292,10 @@ func (e *V8Engine) RunScriptSource(source string, sourceLineOffset int) (string,
 
 	done := make(chan bool, 1)
 	go func() {
+		logging.CLog().Errorf("begine C.RunScriptSource:%v", source)
 		ret = C.RunScriptSource(&cResult, e.v8engine, cSource, C.int(sourceLineOffset), C.uintptr_t(e.lcsHandler),
 			C.uintptr_t(e.gcsHandler))
+		logging.CLog().Errorf("end C.RunScriptSource:%v", ret)
 		done <- true
 	}()
 
@@ -305,6 +316,7 @@ func (e *V8Engine) RunScriptSource(source string, sourceLineOffset int) (string,
 
 	if cResult != nil {
 		result = C.GoString(cResult)
+		logging.CLog().Errorf("============result:%v", result)
 		C.free(unsafe.Pointer(cResult))
 	} else if ret == 0 {
 		result = "\"\"" // default JSON String.
@@ -407,7 +419,7 @@ func (e *V8Engine) AddModule(id, source string, sourceLineOffset int) error {
 		source = item.traceableSource
 		sourceLineOffset = item.traceableSourceLineOffset
 	}
-
+	logging.CLog().Errorf("contract.source:%v", source)
 	e.modules.Add(NewModule(id, source, sourceLineOffset))
 	return nil
 }
@@ -455,6 +467,7 @@ func (e *V8Engine) prepareRunnableContractScript(source, function, args string) 
 									__instance["%s"].apply(__instance, JSON.parse("%s"));`,
 		formatArgs(string(blockJSON)), formatArgs(string(txJSON)),
 		ModuleID, function, formatArgs(string(argsInput)))
+	logging.CLog().Errorf("prepareRunnableContractScript:%v", runnableSource)
 	return runnableSource, 0, nil
 }
 

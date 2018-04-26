@@ -70,10 +70,17 @@ typedef int (*TransferFunc)(void *handler, const char *to, const char *value,
 typedef int (*VerifyAddressFunc)(void *handler, const char *address,
                                  size_t *counterVal);
 
+typedef char *(*GetContractSourceFunc)(void *handler, const char *address,
+                                 size_t *counterVal);
+typedef char *(*RunMultilevelContractSourceFunc)(void *handler, const char *address, const char *funcName, const char * v,
+		const char *args, size_t *gasCnt);
+
 EXPORT void InitializeBlockchain(GetTxByHashFunc getTx,
                                  GetAccountStateFunc getAccount,
                                  TransferFunc transfer,
-                                 VerifyAddressFunc verifyAddress);
+                                 VerifyAddressFunc verifyAddress,
+                                 GetContractSourceFunc contractSource,
+                                 RunMultilevelContractSourceFunc rMultContract);
 
 // version
 EXPORT char *GetV8Version();

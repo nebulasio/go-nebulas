@@ -53,7 +53,8 @@ Blockchain.prototype = {
     },
     verifyAddress: function (address) {
         return this.nativeBlockchain.verifyAddress(address);
-    }
+    },
+    
 };
 
 module.exports = new Blockchain();
