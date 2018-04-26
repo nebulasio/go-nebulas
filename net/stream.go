@@ -21,11 +21,8 @@ package net
 import (
 	"errors"
 	"fmt"
-	"hash/crc32"
 	"sync"
 	"time"
-
-	"github.com/golang/snappy"
 
 	"github.com/gogo/protobuf/proto"
 	libnet "github.com/libp2p/go-libp2p-net"
@@ -38,14 +35,16 @@ import (
 
 // Stream Message Type
 const (
-	ClientVersion = "0.3.0"
-	NebProtocolID = "/neb/1.0.0"
-	HELLO         = "hello"
-	OK            = "ok"
-	BYE           = "bye"
-	SYNCROUTE     = "syncroute"
-	ROUTETABLE    = "routetable"
-	RECVEDMSG     = "recvedmsg"
+	ClientVersion             = "0.3.0"
+	NebProtocolID             = "/neb/1.0.0"
+	HELLO                     = "hello"
+	OK                        = "ok"
+	BYE                       = "bye"
+	SYNCROUTE                 = "syncroute"
+	ROUTETABLE                = "routetable"
+	RECVEDMSG                 = "recvedmsg"
+	CurrentVersion            = 0x1
+	CompressionEnabledVersion = 0x1
 )
 
 // Stream Status
@@ -59,7 +58,6 @@ const (
 var (
 	ErrShouldCloseConnectionAndExitLoop = errors.New("should close connection and exit loop")
 	ErrStreamIsNotConnected             = errors.New("stream is not connected")
-	ErrUncompressMessageFailed          = errors.New("uncompress message failed")
 )
 
 // Stream define the structure of a stream in p2p network
@@ -80,7 +78,7 @@ type Stream struct {
 	latestReadAt              int64
 	latestWriteAt             int64
 	msgCount                  map[string]int
-	compressFlag              byte
+	reservedFlag              []byte
 }
 
 // NewStream return a new Stream
@@ -110,7 +108,7 @@ func newStreamInstance(pid peer.ID, addr ma.Multiaddr, stream libnet.Stream, nod
 		latestReadAt:              0,
 		latestWriteAt:             0,
 		msgCount:                  make(map[string]int),
-		compressFlag:              0x80 & 0x80,
+		reservedFlag:              DefaultReserved,
 	}
 }
 
@@ -175,17 +173,7 @@ func (s *Stream) SendProtoMessage(messageName string, pb proto.Message, priority
 
 // SendMessage send msg to buffer
 func (s *Stream) SendMessage(messageName string, data []byte, priority int) error {
-	var reserved []byte
-	if s.compressFlag > 0 {
-		reserved = CompressReserved
-		if messageName != HELLO {
-			data = snappy.Encode(nil, data)
-		}
-	} else {
-		reserved = DefaultReserved
-	}
-
-	message, err := NewNebMessage(s.node.config.ChainID, reserved, 0, messageName, data)
+	message, err := NewNebMessage(s.node.config.ChainID, s.reservedFlag, CurrentVersion, messageName, data)
 	if err != nil {
 		return err
 	}
@@ -290,17 +278,7 @@ func (s *Stream) WriteProtoMessage(messageName string, pb proto.Message) error {
 
 // WriteMessage write raw msg in the stream
 func (s *Stream) WriteMessage(messageName string, data []byte) error {
-	var reserved []byte
-	if s.compressFlag > 0 {
-		reserved = CompressReserved
-		if messageName != HELLO {
-			data = snappy.Encode(nil, data)
-		}
-	} else {
-		reserved = DefaultReserved
-	}
-
-	message, err := NewNebMessage(s.node.config.ChainID, reserved, 0, messageName, data)
+	message, err := NewNebMessage(s.node.config.ChainID, s.reservedFlag, CurrentVersion, messageName, data)
 	if err != nil {
 		return err
 	}
@@ -463,27 +441,13 @@ func (s *Stream) writeLoop() {
 
 func (s *Stream) handleMessage(message *NebMessage) error {
 	messageName := message.MessageName()
-	s.compressFlag = message.Reserved()[0] & 0x80
 	s.msgCount[messageName]++
-
-	// Network data compression compatible with old clients.
-	// uncompress message data.
-	var data = message.Data()
-	if messageName != HELLO {
-		if s.compressFlag > 0 {
-			var err error
-			data, err = snappy.Decode(nil, message.Data())
-			if err != nil {
-				return ErrUncompressMessageFailed
-			}
-		}
-	}
 
 	switch messageName {
 	case HELLO:
-		return s.onHello(message, data)
+		return s.onHello(message)
 	case OK:
-		return s.onOk(message, data)
+		return s.onOk(message)
 	case BYE:
 		return s.onBye(message)
 	}
@@ -497,12 +461,15 @@ func (s *Stream) handleMessage(message *NebMessage) error {
 	case SYNCROUTE:
 		return s.onSyncRoute(message)
 	case ROUTETABLE:
-		return s.onRouteTable(message, data)
+		return s.onRouteTable(message)
 	default:
+		data, err := message.Data()
+		if err != nil {
+			return err
+		}
 		s.node.netService.PutMessage(NewBaseMessage(message.MessageName(), s.pid.Pretty(), data))
 		// record recv message.
-		dataCheckSum := crc32.ChecksumIEEE(data)
-		RecordRecvMessage(s, dataCheckSum)
+		RecordRecvMessage(s, message.DataCheckSum())
 	}
 
 	return nil
@@ -559,7 +526,11 @@ func (s *Stream) Hello() error {
 	return s.WriteProtoMessage(HELLO, msg)
 }
 
-func (s *Stream) onHello(message *NebMessage, data []byte) error {
+func (s *Stream) onHello(message *NebMessage) error {
+	data, err := message.Data()
+	if err != nil {
+		return err
+	}
 	msg, err := netpb.HelloMessageFromProto(data)
 	if err != nil {
 		return ErrShouldCloseConnectionAndExitLoop
@@ -574,6 +545,10 @@ func (s *Stream) onHello(message *NebMessage, data []byte) error {
 			"ok.client_version": msg.ClientVersion,
 		}).Warn("Invalid NodeId or incompatible client version.")
 		return ErrShouldCloseConnectionAndExitLoop
+	}
+
+	if message.Version() >= CompressionEnabledVersion {
+		s.reservedFlag = CurrentReserved
 	}
 
 	// add to route table.
@@ -596,7 +571,12 @@ func (s *Stream) Ok() error {
 	return s.WriteProtoMessage(OK, resp)
 }
 
-func (s *Stream) onOk(message *NebMessage, data []byte) error {
+func (s *Stream) onOk(message *NebMessage) error {
+	data, err := message.Data()
+	if err != nil {
+		return err
+	}
+
 	msg, err := netpb.OKMessageFromProto(data)
 	if err != nil {
 		return ErrShouldCloseConnectionAndExitLoop
@@ -611,6 +591,10 @@ func (s *Stream) onOk(message *NebMessage, data []byte) error {
 			"ok.client_version": msg.ClientVersion,
 		}).Warn("Invalid NodeId or incompatible client version.")
 		return ErrShouldCloseConnectionAndExitLoop
+	}
+
+	if message.Version() >= CompressionEnabledVersion {
+		s.reservedFlag = CurrentReserved
 	}
 
 	// add to route table.
@@ -660,7 +644,11 @@ func (s *Stream) RouteTable() error {
 	return s.SendProtoMessage(ROUTETABLE, msg, MessagePriorityHigh)
 }
 
-func (s *Stream) onRouteTable(message *NebMessage, data []byte) error {
+func (s *Stream) onRouteTable(message *NebMessage) error {
+	data, err := message.Data()
+	if err != nil {
+		return err
+	}
 	peers := new(netpb.Peers)
 	if err := proto.Unmarshal(data, peers); err != nil {
 		logging.VLog().WithFields(logrus.Fields{
