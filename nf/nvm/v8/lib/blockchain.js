@@ -43,22 +43,35 @@ var Contract = function(address, contract_interface) {
             throw("wrong interface define")
         }
         //TODO: check if this works 
-        // console.log("silent_debug"+src);
-        // if (src.search("/" + func +" ＊: ＊function/i") == -1) {
-        //     throw("contract have no function called : " + func);
-        // } 
+        var expression = new RegExp(func + " *: *function", "m");
+        if (src.search(expression) == -1) {
+            throw("contract have no function called : " + func);
+        } 
     }
         
 }
 
 Contract.prototype = {
     value: function (value) {
-        this.v = value;
+        if (value == null) {
+            this.v = 0;
+        } else {
+            this.v = new BigNumber(v);
+        }    
         return this
     },
     call: function (func, args) {
+        if (typeof(func) != "string") {
+            throw("function name should be a string")
+        }
+
+        if (typeof(args) != "args") {
+            throw("function args should be a string")
+        }
+
         var value = this.v;
         this.v = 0;
+        //TODO: check how to handle err?
         return _native_blockchain.runContractSource(this.address, func, value.toString(), args);
     }
 }
