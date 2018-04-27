@@ -1478,7 +1478,7 @@ func TestInnerTransactions(t *testing.T) {
 					"",
 				},
 				contract{
-					"./test/bank_vault_contract.js",
+					"./test/test_inner_transaction.js",
 					"js",
 					"",
 				},
@@ -1513,28 +1513,28 @@ func TestInnerTransactions(t *testing.T) {
 
 		contractsAddr := []string{}
 
-		t.Run(tt.name, func(t *testing.T) {
-			for k, v := range tt.contracts {
-				data, err := ioutil.ReadFile(v.contractPath)
-				assert.Nil(t, err, "contract path read error")
-				source := string(data)
-				sourceType := "js"
-				argsDeploy := ""
-				deploy, _ := core.NewDeployPayload(source, sourceType, argsDeploy)
-				payloadDeploy, _ := deploy.ToBytes()
+		// t.Run(tt.name, func(t *testing.T) {
+		for k, v := range tt.contracts {
+			data, err := ioutil.ReadFile(v.contractPath)
+			assert.Nil(t, err, "contract path read error")
+			source := string(data)
+			sourceType := "js"
+			argsDeploy := ""
+			deploy, _ := core.NewDeployPayload(source, sourceType, argsDeploy)
+			payloadDeploy, _ := deploy.ToBytes()
 
-				value, _ := util.NewUint128FromInt(0)
-				gasLimit, _ := util.NewUint128FromInt(200000)
-				txDeploy, err := core.NewTransaction(neb.chain.ChainID(), a, a, value, uint64(k+1), core.TxPayloadDeployType, payloadDeploy, core.TransactionGasPrice, gasLimit)
-				assert.Nil(t, err)
-				assert.Nil(t, manager.SignTransaction(a, txDeploy))
-				assert.Nil(t, neb.chain.TransactionPool().Push(txDeploy))
+			value, _ := util.NewUint128FromInt(0)
+			gasLimit, _ := util.NewUint128FromInt(200000)
+			txDeploy, err := core.NewTransaction(neb.chain.ChainID(), a, a, value, uint64(k+1), core.TxPayloadDeployType, payloadDeploy, core.TransactionGasPrice, gasLimit)
+			assert.Nil(t, err)
+			assert.Nil(t, manager.SignTransaction(a, txDeploy))
+			assert.Nil(t, neb.chain.TransactionPool().Push(txDeploy))
 
-				contractAddr, err := txDeploy.GenerateContractAddress()
-				assert.Nil(t, err)
-				contractsAddr = append(contractsAddr, contractAddr.String())
-			}
-		})
+			contractAddr, err := txDeploy.GenerateContractAddress()
+			assert.Nil(t, err)
+			contractsAddr = append(contractsAddr, contractAddr.String())
+		}
+		// })
 
 		block.CollectTransactions((time.Now().Unix() + 1) * dpos.SecondInMs)
 		assert.Nil(t, block.Seal())
@@ -1557,12 +1557,16 @@ func TestInnerTransactions(t *testing.T) {
 		block.WorldState().SetConsensusState(consensusState)
 		block.SetTimestamp(consensusState.TimeStamp())
 
-		callPayload, _ := core.NewCallPayload(tt.call.function, tt.call.args)
+		calleeContract := contractsAddr[0]
+		callPayload, _ := core.NewCallPayload(tt.call.function, fmt.Sprintf("[\"%s\", 1]", calleeContract))
 		payloadCall, _ := callPayload.ToBytes()
 
 		value, _ := util.NewUint128FromInt(0)
 		gasLimit, _ := util.NewUint128FromInt(200000)
-		txCall, err := core.NewTransaction(neb.chain.ChainID(), a, a, value, uint64(len(contractsAddr)+1), core.TxPayloadCallType, payloadCall, core.TransactionGasPrice, gasLimit)
+
+		proxyContractAddress, err := core.AddressParse(contractsAddr[1])
+		txCall, err := core.NewTransaction(neb.chain.ChainID(), a, proxyContractAddress, value,
+			uint64(len(contractsAddr)+1), core.TxPayloadCallType, payloadCall, core.TransactionGasPrice, gasLimit)
 		assert.Nil(t, err)
 		assert.Nil(t, manager.SignTransaction(a, txCall))
 		assert.Nil(t, neb.chain.TransactionPool().Push(txCall))
@@ -1573,5 +1577,15 @@ func TestInnerTransactions(t *testing.T) {
 		assert.Nil(t, neb.chain.BlockPool().Push(block))
 
 		// check
+		tail = neb.chain.TailBlock()
+		event, err := tail.FetchExecutionResultEvent(txCall.Hash())
+		assert.Nil(t, err)
+		txEvent := core.TransactionEvent{}
+		err = json.Unmarshal([]byte(event.Data), &txEvent)
+		assert.Nil(t, err)
+		if txEvent.Status != 1 {
+			fmt.Println(txEvent)
+		}
+		assert.Equal(t, txEvent.Status, int8(1))
 	}
 }

@@ -18,8 +18,50 @@
 
 'use strict';
 
+var Contract = function(address, contract_interface) {
+    //check args
+    if (typeof(address) != "string") {
+        throw("contract address should be a string");
+    }
+    if (typeof(contract_interface) != 'object') {
+        throw("wrong interface");
+    }
+
+    this.v = 0;
+
+    //TODO:
+    //load callee contract
+    // var src = _native_blockchain.getContractSource(address);
+    // check src and contract_interface matches
+
+    // var arguments_length = contract_interface[func].length;  
+    for(var func in contract_interface) {
+        //check propertys in interface are function 
+        if (typeof(contract_interface[func]) !== 'function') {
+            throw("wrong interface define")
+        }
+
+        this[func] = function () { 
+            var value = this.v;
+            this.v = 0;
+            return value;
+            // TODO:return runMultilevelContractSource(address, value, func, arguments);
+        };
+    }
+        
+}
+
+Contract.prototype = {
+    value: function (value) {
+        this.v = value;
+        return this
+    }
+}
+
+
 var Blockchain = function () {
     this.nativeBlockchain = _native_blockchain;
+    this.Contract = Contract;
 };
 
 Blockchain.prototype = {
