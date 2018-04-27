@@ -31,7 +31,8 @@ var Contract = function(address, contract_interface) {
 
     //TODO:
     //load callee contract
-    // var src = _native_blockchain.getContractSource(address);
+    var src = _native_blockchain.getContractSource(address);
+    console.log("silent_debug"+src);
     // check src and contract_interface matches
 
     // var arguments_length = contract_interface[func].length;  
@@ -44,8 +45,8 @@ var Contract = function(address, contract_interface) {
         this[func] = function () { 
             var value = this.v;
             this.v = 0;
-            return value;
-            // TODO:return runMultilevelContractSource(address, value, func, arguments);
+            // return value;
+            return _native_blockchain.runContractSource(address, func, value.toString(), "[1]");
         };
     }
         

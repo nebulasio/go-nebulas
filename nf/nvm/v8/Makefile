@@ -65,7 +65,7 @@ engine: engine.cc.o allocator.cc.o lib/global.cc.o lib/execution_env.cc.o lib/st
 install: engine
 	-mkdir -p ../native-lib
 	-install libnebulasv8$(DYLIB) ../native-lib/
-
+	-install libnebulasv8$(DYLIB) /usr/local/lib
 clean:
 	-rm -f natives_blob.bin.h snapshot_blob.bin.h;
 	-find . -iname '*.o' -exec rm {} \;

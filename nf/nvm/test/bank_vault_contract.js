@@ -49,8 +49,17 @@ BankVaultContract.prototype = {
 		deposit.expiryHeight = bk_height.plus(height);
 
 		this.bankVault.put(from, deposit);
+		this.transferEvent(true, height);
 	},
-
+	transferEvent: function (status, height) {
+        Event.Trigger("bank_vault_contract", {
+            Status: status,
+            Transfer: {
+                height: height,
+                magic: "children one"
+            }
+        });
+    },
 	takeout: function (value) {
 		var from = Blockchain.transaction.from;
 		var bk_height = new BigNumber(Blockchain.block.height);

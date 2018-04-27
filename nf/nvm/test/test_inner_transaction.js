@@ -18,11 +18,22 @@ ProxyBankContract.prototype = {
             }
         }
 
-        var c = new Blockchain.Contract("n21223", funcs);
+        var c = new Blockchain.Contract(address, funcs);
 
 
         c.value(5).save(height); 
-    }
+        this.transferEvent(true, address, height);
+    },
+    transferEvent: function (status, address, height) {
+        Event.Trigger("test_inner_transaction", {
+            Status: status,
+            Transfer: {
+                address: address,
+                height: height,
+                magic: "main"
+            }
+        });
+    },
 };
 
 module.exports = ProxyBankContract;
