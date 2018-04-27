@@ -28,26 +28,25 @@ var Contract = function(address, contract_interface) {
     }
 
     this.v = 0;
+    this.address = address;
 
     //TODO:
     //load callee contract
     var src = _native_blockchain.getContractSource(address);
-    console.log("silent_debug"+src);
-    // check src and contract_interface matches
-
+    if (src == null) {
+        throw("no contract at this address " + address);
+    }
     // var arguments_length = contract_interface[func].length;  
     for(var func in contract_interface) {
-        //check propertys in interface are function 
+        //check propertys in interface are function
         if (typeof(contract_interface[func]) !== 'function') {
             throw("wrong interface define")
         }
-
-        this[func] = function () { 
-            var value = this.v;
-            this.v = 0;
-            // return value;
-            return _native_blockchain.runContractSource(address, func, value.toString(), "[1]");
-        };
+        //TODO: check if this works 
+        // console.log("silent_debug"+src);
+        // if (src.search("/" + func +" ＊: ＊function/i") == -1) {
+        //     throw("contract have no function called : " + func);
+        // } 
     }
         
 }
@@ -56,6 +55,11 @@ Contract.prototype = {
     value: function (value) {
         this.v = value;
         return this
+    },
+    call: function (func, args) {
+        var value = this.v;
+        this.v = 0;
+        return _native_blockchain.runContractSource(this.address, func, value.toString(), args);
     }
 }
 

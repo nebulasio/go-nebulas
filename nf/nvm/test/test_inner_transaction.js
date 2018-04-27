@@ -15,13 +15,14 @@ ProxyBankContract.prototype = {
 
         var funcs =  {
             save: function() { 
+            
             }
         }
 
         var c = new Blockchain.Contract(address, funcs);
 
 
-        c.value(5).save(height); 
+        c.value(5).call("save", "[1]"); 
         this.transferEvent(true, address, height);
     },
     transferEvent: function (status, address, height) {
