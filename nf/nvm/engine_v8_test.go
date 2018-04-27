@@ -1473,12 +1473,17 @@ func TestInnerTransactions(t *testing.T) {
 			"deploy test_require_module.js",
 			[]contract{
 				contract{
-					"./test/bank_vault_contract.js",
+					"./test/bank_vault_contract_second.js",
 					"js",
 					"",
 				},
 				contract{
 					"./test/test_inner_transaction.js",
+					"js",
+					"",
+				},
+				contract{
+					"./test/bank_vault_contract.js",
 					"js",
 					"",
 				},
@@ -1558,7 +1563,8 @@ func TestInnerTransactions(t *testing.T) {
 		block.SetTimestamp(consensusState.TimeStamp())
 
 		calleeContract := contractsAddr[0]
-		callPayload, _ := core.NewCallPayload(tt.call.function, fmt.Sprintf("[\"%s\", 1]", calleeContract))
+		callToContract := contractsAddr[2]
+		callPayload, _ := core.NewCallPayload(tt.call.function, fmt.Sprintf("[\"%s\", \"%s\", 1]", calleeContract, callToContract))
 		payloadCall, _ := callPayload.ToBytes()
 
 		value, _ := util.NewUint128FromInt(0)

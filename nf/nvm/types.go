@@ -51,6 +51,17 @@ const (
 	TransferRecordEventFailed
 )
 
+//nvm args define
+var (
+	MultiNvmMax                         = 3
+	GetTxByHashFuncCost                 = 1000
+	GetAccountStateFuncCost             = 1000
+	TransferFuncCost                    = 2000
+	VerifyAddressFuncCost               = 100
+	GetContractSourceFuncCost           = 100
+	RunMultilevelContractSourceFuncCost = 100
+)
+
 // Block interface breaks cycle import dependency and hides unused services.
 type Block interface {
 	Hash() byteutils.Hash

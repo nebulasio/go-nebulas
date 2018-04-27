@@ -42,7 +42,7 @@ func GetTxByHashFunc(handler unsafe.Pointer, hash *C.char, gasCnt *C.size_t) *C.
 	}
 
 	// calculate Gas.
-	*gasCnt = C.size_t(1000)
+	*gasCnt = C.size_t(GetTxByHashFuncCost)
 
 	txHash, err := byteutils.FromHex(C.GoString(hash))
 	if err != nil {
@@ -88,7 +88,7 @@ func GetAccountStateFunc(handler unsafe.Pointer, address *C.char, gasCnt *C.size
 	}
 
 	// calculate Gas.
-	*gasCnt = C.size_t(1000)
+	*gasCnt = C.size_t(GetAccountStateFuncCost)
 
 	addr, err := core.AddressParse(C.GoString(address))
 	if err != nil {
@@ -126,7 +126,7 @@ func TransferFunc(handler unsafe.Pointer, to *C.char, v *C.char, gasCnt *C.size_
 	}
 
 	// calculate Gas.
-	*gasCnt = C.size_t(2000)
+	*gasCnt = C.size_t(TransferFuncCost)
 
 	addr, err := core.AddressParse(C.GoString(to))
 	if err != nil {
@@ -219,7 +219,7 @@ func TransferFunc(handler unsafe.Pointer, to *C.char, v *C.char, gasCnt *C.size_
 //export VerifyAddressFunc
 func VerifyAddressFunc(handler unsafe.Pointer, address *C.char, gasCnt *C.size_t) int {
 	// calculate Gas.
-	*gasCnt = C.size_t(100)
+	*gasCnt = C.size_t(VerifyAddressFuncCost)
 
 	addr, err := core.AddressParse(C.GoString(address))
 	if err != nil {
@@ -237,7 +237,7 @@ func GetContractSourceFunc(handler unsafe.Pointer, address *C.char, gasCnt *C.si
 		logging.VLog().Error("Failed to get engine.")
 		return nil
 	}
-	*gasCnt = C.size_t(100)
+	*gasCnt = C.size_t(GetContractSourceFuncCost)
 	ws := engine.ctx.state
 	addr, err := core.AddressParse(C.GoString(address))
 	if err != nil {
@@ -269,7 +269,11 @@ func RunMultilevelContractSourceFunc(handler unsafe.Pointer, address *C.char, fu
 		logging.VLog().Error("Failed to get engine.")
 		return nil
 	}
-	*gasCnt = C.size_t(100)
+	if engine.ctx.index >= uint32(MultiNvmMax) {
+		logging.VLog().Errorf("Failed to run nvm, becase more nvm ,current nvm:%v", engine.ctx.index)
+		return nil
+	}
+	*gasCnt = C.size_t(RunMultilevelContractSourceFuncCost)
 	ws := engine.ctx.state
 	logging.CLog().Errorf("address:", C.GoString(address))
 	addr, err := core.AddressParse(C.GoString(address))
@@ -334,15 +338,21 @@ func RunMultilevelContractSourceFunc(handler unsafe.Pointer, address *C.char, fu
 	}*/
 
 	// newCtx, err := NewContext(engine.ctx.block, newTx, contract, engine.ctx.state)
-	newCtx, err := NewChildContext(engine.ctx.block, newTx, contract, engine.ctx.state, unsafe.Pointer(engine.v8engine), engine.ctx.index+1)
+	var head unsafe.Pointer
+	if engine.ctx.head == nil {
+		head = unsafe.Pointer(engine.v8engine)
+	} else {
+		head = engine.ctx.head
+	}
+	newCtx, err := NewChildContext(engine.ctx.block, newTx, contract, engine.ctx.state, head, engine.ctx.index+1)
 
 	if err != nil {
 		logging.CLog().Errorf("NewContext err:%v", err)
 		return nil
 	}
 	verbInstruction, verbMem := engine.GetNVMVerbResources()
-	verbInstruction -= 100
-	verbInstruction -= 100
+	verbInstruction -= uint64(RunMultilevelContractSourceFuncCost)
+	verbInstruction -= uint64(TransferFuncCost)
 
 	logging.CLog().Errorf("begin create New V8,intance:%v, mem:%v", verbInstruction, verbMem)
 	engineNew := NewV8Engine(newCtx)

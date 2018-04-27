@@ -56,7 +56,7 @@ BankVaultContract.prototype = {
             Status: status,
             Transfer: {
                 height: height,
-                magic: "children one"
+                magic: "children last one"
             }
         });
     },

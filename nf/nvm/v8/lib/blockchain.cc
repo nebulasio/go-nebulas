@@ -297,7 +297,10 @@ void RunMultilevelContractSourceCallBack(const FunctionCallbackInfo<Value> &info
                            *String::Utf8Value(val->ToString()), *String::Utf8Value(args->ToString()),
                            &cnt);
   if (value == NULL) {
-    info.GetReturnValue().SetNull();
+    // info.GetReturnValue().SetNull();
+    isolate->ThrowException(
+        String::NewFromUtf8(isolate, "mult run nvm err!!!"));
+    return;
   } else {
     info.GetReturnValue().Set(String::NewFromUtf8(isolate, value));
     free(value);

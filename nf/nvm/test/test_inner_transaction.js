@@ -11,7 +11,7 @@ ProxyBankContract.prototype = {
         //
     },
     
-    save: function (address, height) {
+    save: function (address, to, height) {
 
         var funcs =  {
             save: function() { 
@@ -21,8 +21,8 @@ ProxyBankContract.prototype = {
 
         var c = new Blockchain.Contract(address, funcs);
 
-
-        c.value(5).call("save", "[1]"); 
+        var args = "[\"" + to + "\", \""+ height +"\"]";
+        c.value(5).call("save", args); 
         this.transferEvent(true, address, height);
     },
     transferEvent: function (status, address, height) {
