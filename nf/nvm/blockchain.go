@@ -181,7 +181,7 @@ func TransferFunc(handler unsafe.Pointer, to *C.char, v *C.char, gasCnt *C.size_
 		}
 	}
 
-	if engine.ctx.block.Height() >= TransferFromContractEventCompatibilityHeight {
+	if engine.ctx.block.Height() >= core.TransferFromContractEventCompatibleHeight {
 		cAddr, err := core.AddressParseFromBytes(engine.ctx.contract.Address())
 		if err != nil {
 			logging.VLog().WithFields(logrus.Fields{
