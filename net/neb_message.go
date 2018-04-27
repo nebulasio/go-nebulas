@@ -86,7 +86,7 @@ const (
 var (
 	MagicNumber     = []byte{0x4e, 0x45, 0x42, 0x31}
 	DefaultReserved = []byte{DefaultReservedFlag, DefaultReservedFlag, DefaultReservedFlag}
-	CurrentReserved = []byte{DefaultReservedFlag | ReservedCompressionEnableFlag, DefaultReservedFlag, DefaultReservedFlag | ReservedCompressionClientFlag}
+	CurrentReserved = []byte{DefaultReservedFlag | ReservedCompressionEnableFlag, DefaultReservedFlag, DefaultReservedFlag}
 
 	ErrInsufficientMessageHeaderLength = errors.New("insufficient message header length")
 	ErrInsufficientMessageDataLength   = errors.New("insufficient message data length")
@@ -166,7 +166,7 @@ func (message *NebMessage) HeaderWithoutCheckSum() []byte {
 func (message *NebMessage) Data() ([]byte, error) {
 	reserved := message.Reserved()
 	data := message.content[NebMessageHeaderLength:]
-	if ((reserved[2] & ReservedCompressionClientFlag) > 0) && ((reserved[0] & ReservedCompressionEnableFlag) > 0) {
+	if (reserved[0] & ReservedCompressionEnableFlag) > 0 {
 		var err error
 		data, err = snappy.Decode(nil, data)
 		if err != nil {
@@ -194,7 +194,7 @@ func (message *NebMessage) Length() uint64 {
 // NewNebMessage new neb message
 func NewNebMessage(chainID uint32, reserved []byte, version byte, messageName string, data []byte) (*NebMessage, error) {
 	// Process message compression
-	if ((reserved[2] & ReservedCompressionClientFlag) > 0) && ((reserved[0] & ReservedCompressionEnableFlag) > 0) {
+	if (reserved[0] & ReservedCompressionEnableFlag) > 0 {
 		data = snappy.Encode(nil, data)
 	}
 

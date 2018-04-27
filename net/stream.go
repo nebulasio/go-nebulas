@@ -262,7 +262,7 @@ func (s *Stream) WriteNebMessage(message *NebMessage) error {
 }
 
 // WriteProtoMessage write proto msg in the stream
-func (s *Stream) WriteProtoMessage(messageName string, pb proto.Message) error {
+func (s *Stream) WriteProtoMessage(messageName string, pb proto.Message, reservedClientFlag byte) error {
 	data, err := proto.Marshal(pb)
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
@@ -273,11 +273,16 @@ func (s *Stream) WriteProtoMessage(messageName string, pb proto.Message) error {
 		return err
 	}
 
-	return s.WriteMessage(messageName, data)
+	return s.WriteMessage(messageName, data, reservedClientFlag)
 }
 
 // WriteMessage write raw msg in the stream
-func (s *Stream) WriteMessage(messageName string, data []byte) error {
+func (s *Stream) WriteMessage(messageName string, data []byte, reservedClientFlag byte) error {
+	// hello and ok messages come with the client flag bit.
+	if reservedClientFlag == ReservedCompressionClientFlag {
+		s.reservedFlag[2] = s.reservedFlag[2] | reservedClientFlag
+	}
+
 	message, err := NewNebMessage(s.node.config.ChainID, s.reservedFlag, CurrentVersion, messageName, data)
 	if err != nil {
 		return err
@@ -463,7 +468,7 @@ func (s *Stream) handleMessage(message *NebMessage) error {
 	case ROUTETABLE:
 		return s.onRouteTable(message)
 	default:
-		data, err := message.Data()
+		data, err := s.getData(message)
 		if err != nil {
 			return err
 		}
@@ -506,7 +511,7 @@ func (s *Stream) close(reason error) {
 
 // Bye say bye in the stream
 func (s *Stream) Bye() {
-	s.WriteMessage(BYE, []byte{})
+	s.WriteMessage(BYE, []byte{}, DefaultReservedFlag)
 	s.close(errors.New("bye: force close"))
 }
 
@@ -523,15 +528,11 @@ func (s *Stream) Hello() error {
 		NodeId:        s.node.id.String(),
 		ClientVersion: ClientVersion,
 	}
-	return s.WriteProtoMessage(HELLO, msg)
+	return s.WriteProtoMessage(HELLO, msg, ReservedCompressionClientFlag)
 }
 
 func (s *Stream) onHello(message *NebMessage) error {
-	data, err := message.Data()
-	if err != nil {
-		return err
-	}
-	msg, err := netpb.HelloMessageFromProto(data)
+	msg, err := netpb.HelloMessageFromProto(message.OriginalData())
 	if err != nil {
 		return ErrShouldCloseConnectionAndExitLoop
 	}
@@ -568,16 +569,11 @@ func (s *Stream) Ok() error {
 		ClientVersion: ClientVersion,
 	}
 
-	return s.WriteProtoMessage(OK, resp)
+	return s.WriteProtoMessage(OK, resp, ReservedCompressionClientFlag)
 }
 
 func (s *Stream) onOk(message *NebMessage) error {
-	data, err := message.Data()
-	if err != nil {
-		return err
-	}
-
-	msg, err := netpb.OKMessageFromProto(data)
+	msg, err := netpb.OKMessageFromProto(message.OriginalData())
 	if err != nil {
 		return ErrShouldCloseConnectionAndExitLoop
 	}
@@ -645,10 +641,11 @@ func (s *Stream) RouteTable() error {
 }
 
 func (s *Stream) onRouteTable(message *NebMessage) error {
-	data, err := message.Data()
+	data, err := s.getData(message)
 	if err != nil {
 		return err
 	}
+
 	peers := new(netpb.Peers)
 	if err := proto.Unmarshal(data, peers); err != nil {
 		logging.VLog().WithFields(logrus.Fields{
@@ -671,16 +668,52 @@ func (s *Stream) finishHandshake() {
 	s.handshakeSucceedCh <- true
 }
 
+func (s *Stream) getData(message *NebMessage) ([]byte, error) {
+	var data []byte
+	if ByteSliceEqualBCE(s.reservedFlag, CurrentReserved) {
+		var err error
+		data, err = message.Data()
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		data = message.OriginalData()
+	}
+	return data, nil
+}
+
 // CheckClientVersionCompatibility if two clients are compatible
 // If the clientVersion of node A is X.Y.Z, then node B must be X.Y.{} to be compatible with A.
 func CheckClientVersionCompatibility(v1, v2 string) bool {
 	s1 := strings.Split(v1, ".")
 	s2 := strings.Split(v1, ".")
+
 	if len(s1) != 3 || len(s2) != 3 {
 		return false
 	}
+
 	if s1[0] != s2[0] || s1[1] != s2[1] {
 		return false
 	}
+	return true
+}
+
+// ByteSliceEqualBCE determines whether two byte arrays are equal.
+func ByteSliceEqualBCE(a, b []byte) bool {
+	if len(a) != len(b) {
+		return false
+	}
+
+	if (a == nil) != (b == nil) {
+		return false
+	}
+
+	b = b[:len(a)]
+	for i, v := range a {
+		if v != b[i] {
+			return false
+		}
+	}
+
 	return true
 }
