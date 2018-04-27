@@ -56,7 +56,7 @@ Contract.prototype = {
         if (value == null) {
             this.v = 0;
         } else {
-            this.v = new BigNumber(v);
+            this.v = new BigNumber(value);
         }    
         return this
     },
@@ -65,7 +65,7 @@ Contract.prototype = {
             throw("function name should be a string")
         }
 
-        if (typeof(args) != "args") {
+        if (typeof(args) != "string") {
             throw("function args should be a string")
         }
 
