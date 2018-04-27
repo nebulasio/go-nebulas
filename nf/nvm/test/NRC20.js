@@ -148,6 +148,7 @@ StandardToken.prototype = {
 
         var allowed = this.allowed.get(from) || new Allowed();
         var allowedValue = allowed.get(spender) || new BigNumber(0);
+        value = new BigNumber(value);
 
         if (value.gte(0) && balance.gte(value) && allowedValue.gte(value)) {
 
@@ -186,12 +187,14 @@ StandardToken.prototype = {
         }
 
         var balance = new BigNumber(this.balanceOf(from));
+        var value = new BigNumber(value);
+
         if (value.lt(0) || balance.lt(value)) {
             throw new Error("invalid value.");
         }
 
         var owned = this.allowed.get(from) || new Allowed();
-        owned.set(spender, new BigNumber(value));
+        owned.set(spender, value);
 
         this.allowed.set(from, owned);
 
