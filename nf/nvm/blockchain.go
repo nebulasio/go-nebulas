@@ -340,11 +340,9 @@ func GetContractSourceFunc(handler unsafe.Pointer, address *C.char, gasCnt *C.si
 	return C.CString(string(deploy.Source))
 }
 
-// RunMultilevelContractSourceFunc verify address is valid
+// RunMultilevelContractSourceFunc multi run contract. output[c standard]: if err return nil else return "*"
 //export RunMultilevelContractSourceFunc
 func RunMultilevelContractSourceFunc(handler unsafe.Pointer, address *C.char, funcName *C.char, v *C.char, args *C.char, gasCnt *C.size_t) *C.char {
-	// calculate Gas.
-	logging.CLog().Errorf("begin RunMultilevelContractSourceFunc\n")
 	engine, _ := getEngineByStorageHandler(uint64(uintptr(handler)))
 	if engine == nil || engine.ctx.block == nil {
 		logging.VLog().Error("Failed to get engine.")
@@ -356,7 +354,7 @@ func RunMultilevelContractSourceFunc(handler unsafe.Pointer, address *C.char, fu
 	}
 	*gasCnt = C.size_t(RunMultilevelContractSourceFuncCost)
 	ws := engine.ctx.state
-	logging.CLog().Errorf("address:", C.GoString(address))
+
 	addr, err := core.AddressParse(C.GoString(address))
 	if err != nil {
 		return nil
@@ -370,26 +368,26 @@ func RunMultilevelContractSourceFunc(handler unsafe.Pointer, address *C.char, fu
 	if err != nil {
 		return nil
 	}
-	deploy, err := core.LoadDeployPayload(birthTx.Data()) // ToConfirm: move deploy payload in ctx.
+	deploy, err := core.LoadDeployPayload(birthTx.Data())
 	if err != nil {
 		return nil
 	}
 
-	logging.CLog().Errorf("begin pack payload,funcName:%s, args:%s\n", C.GoString(funcName), C.GoString(args))
 	//run
 	payloadType := core.TxPayloadCallType
 	callpayload, err := core.NewCallPayload(C.GoString(funcName), C.GoString(args))
 	if err != nil {
-		logging.CLog().Errorf("core.NewCallPayload err:", err)
+		logging.VLog().Errorf("core.NewCallPayload err:", err)
 		return nil
 	}
 	payload, err := callpayload.ToBytes()
 	if err != nil {
-		logging.CLog().Errorf("callpayload.ToBytes err:", err)
+		logging.VLog().Errorf("callpayload.ToBytes err:", err)
 		return nil
 	}
+
 	oldTx := engine.ctx.tx
-	zeroVal := util.NewUint128()
+	// zeroVal := util.NewUint128()
 	from := engine.ctx.contract.Address()
 	fromAddr, err := core.AddressParseFromBytes(from)
 	if err != nil {
@@ -398,35 +396,20 @@ func RunMultilevelContractSourceFunc(handler unsafe.Pointer, address *C.char, fu
 	}
 	//transfer
 	var transferCoseGas uint64
-	var iRet int
-	iRet = TransferByAddress(handler, fromAddr, addr, C.GoString(v), &transferCoseGas)
-	//logging.CLog().Errorf("begin TransferFunc:")
-	//iRet = TransferFunc(handler, address, v, &transferCoseGas)
+	//var iRet int
+	iRet := TransferByAddress(handler, fromAddr, addr, C.GoString(v), &transferCoseGas)
 	if iRet != 0 {
 		return nil
 	}
-	logging.CLog().Errorf("end TransferFunc:form:%v, to:%v, v:%v,transferCoseGas:%v", engine.ctx.tx.From().Bytes(), addr.Bytes(), C.GoString(v), transferCoseGas)
+	// logging.CLog().Errorf("end TransferFunc:form:%v, to:%v, v:%v,transferCoseGas:%v", engine.ctx.tx.From().Bytes(), addr.Bytes(), C.GoString(v), transferCoseGas)
 
-	logging.CLog().Errorf("create NewTransaction id:%v", oldTx.ChainID())
-	newTx, err := core.NewTransaction(oldTx.ChainID(), fromAddr, addr, zeroVal, oldTx.Nonce(), payloadType,
+	newTx, err := core.NewTransaction(oldTx.ChainID(), fromAddr, addr, util.NewUint128(), oldTx.Nonce(), payloadType,
 		payload, oldTx.GasPrice(), oldTx.GasLimit())
 	if err != nil {
 		return nil
 	}
-	logging.CLog().Errorf("create NewContext")
 
-	/*addrT, err := newTx.GenerateContractAddress()
-	if err != nil {
-		logging.CLog().Errorf("newTx.GenerateContractAddress err:%v", err)
-		return nil
-	}
-	contractT, err := ws.CreateContractAccount(addrT.Bytes(), newTx.Hash())
-	if err != nil {
-		logging.CLog().Errorf("ws.CreateContractAccount err:%v", err)
-		return nil
-	}*/
-
-	// newCtx, err := NewContext(engine.ctx.block, newTx, contract, engine.ctx.state)
+	// event address need to user
 	var head unsafe.Pointer
 	if engine.ctx.head == nil {
 		head = unsafe.Pointer(engine.v8engine)
@@ -443,16 +426,17 @@ func RunMultilevelContractSourceFunc(handler unsafe.Pointer, address *C.char, fu
 	verbInstruction -= uint64(RunMultilevelContractSourceFuncCost)
 	verbInstruction -= uint64(TransferFuncCost)
 
-	logging.CLog().Errorf("begin create New V8,intance:%v, mem:%v", verbInstruction, verbMem)
+	logging.CLog().Infof("begin create New V8,intance:%v, mem:%v", verbInstruction, verbMem)
 	engineNew := NewV8Engine(newCtx)
 	engineNew.SetExecutionLimits(verbInstruction, verbMem)
-	logging.CLog().Errorf("begin Call,source:%v, sourceType:%v", deploy.Source, deploy.SourceType)
+	// logging.CLog().Errorf("begin Call,source:%v, sourceType:%v", deploy.Source, deploy.SourceType)
 	val, err := engineNew.Call(string(deploy.Source), deploy.SourceType, C.GoString(funcName), C.GoString(args))
 	engineNew.Dispose()
 	if err != nil {
 		return nil
 	}
-	logging.CLog().Errorf("end cal val:%v", val)
+	logging.CLog().Infof("end cal val:%v", val)
+
 	return C.CString(string(val))
 	//return C.CString("")
 }

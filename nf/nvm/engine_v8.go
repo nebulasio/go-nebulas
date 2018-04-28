@@ -300,10 +300,8 @@ func (e *V8Engine) RunScriptSource(source string, sourceLineOffset int) (string,
 
 	done := make(chan bool, 1)
 	go func() {
-		logging.CLog().Errorf("begine C.RunScriptSource:%v", source)
 		ret = C.RunScriptSource(&cResult, e.v8engine, cSource, C.int(sourceLineOffset), C.uintptr_t(e.lcsHandler),
 			C.uintptr_t(e.gcsHandler))
-		logging.CLog().Errorf("end C.RunScriptSource:%v", ret)
 		done <- true
 	}()
 
@@ -324,7 +322,6 @@ func (e *V8Engine) RunScriptSource(source string, sourceLineOffset int) (string,
 
 	if cResult != nil {
 		result = C.GoString(cResult)
-		logging.CLog().Errorf("============result:%v", result)
 		C.free(unsafe.Pointer(cResult))
 	} else if ret == 0 {
 		result = "\"\"" // default JSON String.
@@ -427,7 +424,6 @@ func (e *V8Engine) AddModule(id, source string, sourceLineOffset int) error {
 		source = item.traceableSource
 		sourceLineOffset = item.traceableSourceLineOffset
 	}
-	logging.CLog().Errorf("contract.source:%v", source)
 	e.modules.Add(NewModule(id, source, sourceLineOffset))
 	return nil
 }
@@ -475,7 +471,6 @@ func (e *V8Engine) prepareRunnableContractScript(source, function, args string) 
 									__instance["%s"].apply(__instance, JSON.parse("%s"));`,
 		formatArgs(string(blockJSON)), formatArgs(string(txJSON)),
 		ModuleID, function, formatArgs(string(argsInput)))
-	logging.CLog().Errorf("prepareRunnableContractScript:%v", runnableSource)
 	return runnableSource, 0, nil
 }
 
