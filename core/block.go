@@ -243,6 +243,7 @@ func NewBlock(chainID uint32, coinbase *Address, parent *Block) (*Block, error) 
 			coinbase:      coinbase,
 			timestamp:     time.Now().Unix(),
 			consensusRoot: &consensuspb.ConsensusRoot{},
+			rand:          &corepb.Rand{},
 		},
 		transactions: make(Transactions, 0),
 		dependency:   dag.NewDag(),

@@ -19,6 +19,8 @@
 package core
 
 import (
+	"crypto/rand"
+	"io"
 	"strings"
 	"time"
 
@@ -698,6 +700,13 @@ func (bc *BlockChain) SimulateTransactionExecution(tx *Transaction) (*SimulateRe
 	if err != nil {
 		return nil, err
 	}
+
+	sVrfHash, sVrfProof := make([]byte, 32), make([]byte, 129)
+	_, _ = io.ReadFull(rand.Reader, sVrfHash)
+	_, _ = io.ReadFull(rand.Reader, sVrfProof)
+	block.header.rand.VrfHash = sVrfHash
+	block.header.rand.VrfProof = sVrfProof
+
 	defer block.RollBack()
 
 	// simulate execution.
