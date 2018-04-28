@@ -537,7 +537,7 @@ func (lb *linkedBlock) travelToLinkAndReturnAllValidBlocks(parentBlock *Block) (
 		for _, h := range hashes {
 			data = append(data, []byte(h)...)
 		}
-		index, err := verifier.ProofToHash(data, lb.block.header.rand.VrfProof)
+		index, err := verifier.ProofToHash(data, lb.block.header.random.VrfProof)
 		if err != nil {
 			logging.VLog().WithFields(logrus.Fields{
 				"err": err,
@@ -545,7 +545,7 @@ func (lb *linkedBlock) travelToLinkAndReturnAllValidBlocks(parentBlock *Block) (
 			return nil, nil, err
 		}
 
-		if !bytes.Equal(index[:], lb.block.header.rand.VrfHash) {
+		if !bytes.Equal(index[:], lb.block.header.random.VrfHash) {
 			logging.VLog().WithFields(logrus.Fields{
 				"block": lb.block,
 			}).Error("VRF proof failed.")

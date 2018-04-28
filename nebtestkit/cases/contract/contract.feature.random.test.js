@@ -285,7 +285,15 @@ function runTest(testInput, testExpect, done) {
             }
         });
     }).catch(function (err) {
-        console.log("send tx err");
+        if (err.error && err.error.error && testExpect.eventErr) {
+            try {
+                expect(err.error.error).to.equal(testExpect.eventErr)
+                done();
+            } catch (err) {
+                done(err);
+            }
+            return;
+        }
         done(err);
     });
 }
@@ -314,7 +322,7 @@ var caseGroup = {
                 canExcuteTx: false,
                 toBalanceChange: "0",
                 status: 0,
-                equalBlockTime: true
+                eventErr: "Call: Error: random seed must be a string"
             }
         },
         {

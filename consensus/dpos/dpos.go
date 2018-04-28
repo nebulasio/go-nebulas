@@ -377,12 +377,12 @@ func (dpos *Dpos) VerifyBlock(block *core.Block) error {
 		return err
 	}
 
-	// check block rand
+	// check block random
 	if block.Height() >= core.RandomAvailableCompatibleHeight && !block.HasBlockRand() {
 		logging.VLog().WithFields(logrus.Fields{
 			"compatibleHeight": core.RandomAvailableCompatibleHeight,
-		}).Debug("No rand found in block header.")
-		return core.ErrInvalidBlockRand
+		}).Debug("No random found in block header.")
+		return core.ErrInvalidBlockRandom
 	}
 
 	dpos.slot.Add(block.Timestamp(), block)
@@ -396,7 +396,7 @@ func (dpos *Dpos) generateBlockSand(block *core.Block, adminService rpcpb.AdminS
 		}
 		// generate VRF hash,proof
 		if block.Height() >= core.RandomAvailableCompatibleHeight {
-			rand, err := adminService.GenerateBlockRand(
+			random, err := adminService.GenerateBlockRand(
 				context.Background(),
 				&rpcpb.GenerateBlockRandRequest{
 					Address:    dpos.miner.String(),
@@ -405,7 +405,7 @@ func (dpos *Dpos) generateBlockSand(block *core.Block, adminService rpcpb.AdminS
 			if err != nil {
 				return err
 			}
-			block.SetBlockRand(rand.VrfHash, rand.VrfProof)
+			block.SetBlockRand(random.VrfHash, random.VrfProof)
 		}
 		return nil
 	}

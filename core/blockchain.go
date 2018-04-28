@@ -704,8 +704,8 @@ func (bc *BlockChain) SimulateTransactionExecution(tx *Transaction) (*SimulateRe
 	sVrfHash, sVrfProof := make([]byte, 32), make([]byte, 129)
 	_, _ = io.ReadFull(rand.Reader, sVrfHash)
 	_, _ = io.ReadFull(rand.Reader, sVrfProof)
-	block.header.rand.VrfHash = sVrfHash
-	block.header.rand.VrfProof = sVrfProof
+	block.header.random.VrfHash = sVrfHash
+	block.header.random.VrfProof = sVrfProof
 
 	defer block.RollBack()
 

@@ -96,7 +96,7 @@ var (
 	ErrDuplicatedBlock        = errors.New("duplicated block")
 	ErrDoubleBlockMinted      = errors.New("double block minted")
 	ErrVRFProofFailed         = errors.New("VRF proof failed")
-	ErrInvalidBlockRand       = errors.New("invalid block rand")
+	ErrInvalidBlockRandom     = errors.New("invalid block random")
 
 	ErrInvalidChainID           = errors.New("invalid transaction chainID")
 	ErrInvalidTransactionSigner = errors.New("invalid transaction signer")

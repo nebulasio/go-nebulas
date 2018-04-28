@@ -64,7 +64,7 @@ message BlockHeader {
     bytes txs_root = 10;
     bytes events_root = 11;
     consensuspb.ConsensusRoot consensus_root = 12;
-    rand rand = 13;
+    Random random = 13;
 }
 
 message Block {
@@ -92,7 +92,7 @@ message DownloadBlock {
     bytes sign = 2;
 }
 
-message rand {
+message Random {
     bytes vrf_hash = 1;
     bytes vrf_proof = 2;
 }
