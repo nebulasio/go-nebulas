@@ -85,7 +85,7 @@ StandardToken.prototype = {
     init: function (name, symbol, decimals, totalSupply) {
         this._name = name;
         this._symbol = symbol;
-        this._decimals = decimals || 0;
+        this._decimals = decimals | 0;
         this._totalSupply = new BigNumber(totalSupply).mul(new BigNumber(10).pow(decimals));
 
         var from = Blockchain.transaction.from;

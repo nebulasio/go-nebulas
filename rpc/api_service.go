@@ -203,7 +203,7 @@ func handleTransactionResponse(neb core.Neblet, tx *core.Transaction) (resp *rpc
 	}
 
 	// check Balance  Simulate
-	if tx.Nonce() == acc.Nonce()+1 {
+	if tx.Nonce() == (acc.Nonce() + 1) {
 		result, err := neb.BlockChain().SimulateTransactionExecution(tx)
 		if err != nil {
 			return nil, err
