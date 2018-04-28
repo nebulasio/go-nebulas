@@ -476,7 +476,7 @@ func (s *Stream) handleMessage(message *NebMessage) error {
 			logging.VLog().WithFields(logrus.Fields{
 				"err":         err,
 				"messageName": message.MessageName(),
-			}).Error("get data occurs error.")
+			}).Info("Handle message data occurs error.")
 			return err
 		}
 		s.node.netService.PutMessage(NewBaseMessage(message.MessageName(), s.pid.Pretty(), data))
