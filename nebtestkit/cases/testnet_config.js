@@ -29,7 +29,7 @@ var TestNet = function (env) {
         this.ChainId = 1003;
         this.sourceAccount = new Wallet.Account("25a3a441a34658e7a595a0eda222fa43ac51bd223017d17b420674fb6d0a4d52");
         this.coinbase = "n1SAeQRVn33bamxN4ehWUT7JGdxipwn8b17";
-        this.apiEndPoint = "http://35.177.214.138:8685";
+        this.apiEndPoint = "http://35.182.205.40:8685";
 
     } else if (env === "testneb4") { //super node
 
