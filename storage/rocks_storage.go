@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"strconv"
 	"sync"
 	"time"
 
@@ -175,18 +176,17 @@ func RecordMetrics(storage *RocksStorage) {
 			cacheSize := storage.cache.GetUsage()
 			pinnedSize := storage.cache.GetPinnedUsage()
 
-			readersMemByte, err := byteutils.FromHex(readersMemStr)
+			readersMem, err := strconv.Atoi(readersMemStr)
+			if err != nil {
+				break
+			}
+			allMemTables, err := strconv.Atoi(allMemTablesStr)
 			if err != nil {
 				break
 			}
 
-			allMemTablesByte, err := byteutils.FromHex(allMemTablesStr)
-			if err != nil {
-				break
-			}
-
-			metricsBlocksdbAllMemTables.Update(byteutils.Int64(allMemTablesByte))
-			metricsBlocksdbTableReaderMem.Update(byteutils.Int64(readersMemByte))
+			metricsBlocksdbAllMemTables.Update(int64(allMemTables))
+			metricsBlocksdbTableReaderMem.Update(int64(readersMem))
 			metricsBlocksdbCacheSize.Update(int64(cacheSize))
 			metricsBlocksdbCachePinnedSize.Update(int64(pinnedSize))
 		}
