@@ -202,6 +202,18 @@ func handleTransactionResponse(neb core.Neblet, tx *core.Transaction) (resp *rpc
 		return nil, errors.New("transaction's nonce is invalid, should bigger than the from's nonce")
 	}
 
+	// check Balance  Simulate
+	if tx.Nonce() == acc.Nonce()+1 {
+		result, err := neb.BlockChain().SimulateTransactionExecution(tx)
+		if err != nil {
+			return nil, err
+		}
+
+		if result.Err != nil {
+			return nil, result.Err
+		}
+	}
+
 	if tx.Type() == core.TxPayloadDeployType {
 		if !tx.From().Equals(tx.To()) {
 			return nil, core.ErrContractTransactionAddressNotEqual
@@ -350,8 +362,9 @@ func (s *APIService) GetTransactionReceipt(ctx context.Context, req *rpcpb.GetTr
 
 func (s *APIService) toTransactionResponse(tx *core.Transaction) (*rpcpb.TransactionResponse, error) {
 	var (
-		status  int32
-		gasUsed string
+		status        int32
+		gasUsed       string
+		execute_error string
 	)
 	neb := s.server.Neblet()
 	event, err := neb.BlockChain().TailBlock().FetchExecutionResultEvent(tx.Hash())
@@ -367,24 +380,26 @@ func (s *APIService) toTransactionResponse(tx *core.Transaction) (*rpcpb.Transac
 		}
 		status = int32(txEvent.Status)
 		gasUsed = txEvent.GasUsed
+		execute_error = txEvent.Error
 	} else {
 		status = core.TxExecutionPendding
 	}
 
 	resp := &rpcpb.TransactionResponse{
-		ChainId:   tx.ChainID(),
-		Hash:      tx.Hash().String(),
-		From:      tx.From().String(),
-		To:        tx.To().String(),
-		Value:     tx.Value().String(),
-		Nonce:     tx.Nonce(),
-		Timestamp: tx.Timestamp(),
-		Type:      tx.Type(),
-		Data:      tx.Data(),
-		GasPrice:  tx.GasPrice().String(),
-		GasLimit:  tx.GasLimit().String(),
-		Status:    status,
-		GasUsed:   gasUsed,
+		ChainId:      tx.ChainID(),
+		Hash:         tx.Hash().String(),
+		From:         tx.From().String(),
+		To:           tx.To().String(),
+		Value:        tx.Value().String(),
+		Nonce:        tx.Nonce(),
+		Timestamp:    tx.Timestamp(),
+		Type:         tx.Type(),
+		Data:         tx.Data(),
+		GasPrice:     tx.GasPrice().String(),
+		GasLimit:     tx.GasLimit().String(),
+		Status:       status,
+		GasUsed:      gasUsed,
+		ExecuteError: execute_error,
 	}
 
 	if tx.Type() == core.TxPayloadDeployType {

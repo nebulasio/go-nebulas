@@ -497,6 +497,9 @@ message TransactionResponse {
 
     // transaction gas used
     string gas_used = 14;
+
+    // contract execute error
+    string execute_error = 15;
 }
 
 message NewAccountRequest {
