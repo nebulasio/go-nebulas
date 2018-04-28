@@ -1561,13 +1561,16 @@ func TestInnerTransactions(t *testing.T) {
 		assert.Nil(t, err)
 		block.WorldState().SetConsensusState(consensusState)
 		block.SetTimestamp(consensusState.TimeStamp())
+		//accountA, err := tail.GetAccount(a.Bytes())
+		//accountB, err := tail.GetAccount(b.Bytes())
+		assert.Nil(t, err)
 
 		calleeContract := contractsAddr[0]
 		callToContract := contractsAddr[2]
 		callPayload, _ := core.NewCallPayload(tt.call.function, fmt.Sprintf("[\"%s\", \"%s\", 1]", calleeContract, callToContract))
 		payloadCall, _ := callPayload.ToBytes()
 
-		value, _ := util.NewUint128FromInt(0)
+		value, _ := util.NewUint128FromInt(6)
 		gasLimit, _ := util.NewUint128FromInt(200000)
 
 		proxyContractAddress, err := core.AddressParse(contractsAddr[1])
@@ -1600,7 +1603,15 @@ func TestInnerTransactions(t *testing.T) {
 
 			fmt.Println("==============", event.Data)
 		}
+		contract_new, err := core.AddressParse(contractsAddr[0])
+		accountANew, err := tail.GetAccount(contract_new.Bytes())
+		assert.Nil(t, err)
+		fmt.Printf("account :%v\naccount_:%v\n", accountANew)
 
+		contract_newO, err := core.AddressParse(contractsAddr[1])
+		accountBNew, err := tail.GetAccount(contract_newO.Bytes())
+		assert.Nil(t, err)
+		fmt.Printf("accountB :%v\naccount_:%v", accountBNew)
 		// assert.Equal(t, txEvent.Status, 1)
 	}
 }

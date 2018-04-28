@@ -116,6 +116,87 @@ func GetAccountStateFunc(handler unsafe.Pointer, address *C.char, gasCnt *C.size
 	return C.CString(string(json))
 }
 
+//TransferByAddress value from to
+func TransferByAddress(handler unsafe.Pointer, from *core.Address, to *core.Address, value string, gasCnt *uint64) int {
+	engine, _ := getEngineByStorageHandler(uint64(uintptr(handler)))
+	if engine == nil || engine.ctx.block == nil {
+		logging.VLog().Error("Failed to get engine.")
+		return TransferGetEngineErr
+	}
+	*gasCnt = uint64(TransferFuncCost)
+	//get from
+	/*fromAddr, err := core.AddressParse(from)
+	if err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"handler": uint64(uintptr(handler)),
+			"key":     from,
+		}).Debug("TransferFunc parse from address failed.")
+		return TransferAddressParseErr
+	}*/
+
+	fromAcc, err := engine.ctx.state.GetOrCreateUserAccount(from.Bytes())
+	if err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"handler": uint64(uintptr(handler)),
+			"address": from.String(),
+			"err":     err,
+		}).Debug("GetAccountStateFunc get account state failed.")
+		return TransferGetAccountErr
+	}
+
+	/*toAddr, err := core.AddressParse(to)
+	if err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"handler": uint64(uintptr(handler)),
+			"key":     to,
+		}).Debug("TransferFunc parse to address failed.")
+		return TransferAddressParseErr
+	}*/
+	toAcc, err := engine.ctx.state.GetOrCreateUserAccount(to.Bytes())
+	if err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"handler": uint64(uintptr(handler)),
+			"address": to.String(),
+			"err":     err,
+		}).Debug("GetAccountStateFunc get account state failed.")
+		return TransferGetAccountErr
+	}
+	amount, err := util.NewUint128FromString(value)
+	if err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"handler": uint64(uintptr(handler)),
+			"address": from.String(),
+			"err":     err,
+		}).Debug("GetAmountFunc get amount failed.")
+		return TransferStringToBigIntErr
+	}
+	logging.CLog().Infof("amount:%v", amount)
+	// update balance
+	if amount.Cmp(util.NewUint128()) > 0 {
+		err = fromAcc.SubBalance(amount)
+		if err != nil {
+			logging.CLog().WithFields(logrus.Fields{
+				"handler": uint64(uintptr(handler)),
+				"key":     from.String(),
+				"err":     err,
+			}).Info("TransferFunc SubBalance failed.")
+			return TransferSubBalance
+		}
+
+		err = toAcc.AddBalance(amount)
+		if err != nil {
+			logging.VLog().WithFields(logrus.Fields{
+				"account": to,
+				"amount":  amount,
+				"address": to.String(),
+				"err":     err,
+			}).Debug("failed to add balance")
+			return TransferAddBalance
+		}
+	}
+	return TransferFuncSuccess
+}
+
 // TransferFunc transfer vale to address
 //export TransferFunc
 func TransferFunc(handler unsafe.Pointer, to *C.char, v *C.char, gasCnt *C.size_t) int {
@@ -156,16 +237,16 @@ func TransferFunc(handler unsafe.Pointer, to *C.char, v *C.char, gasCnt *C.size_
 		}).Debug("GetAmountFunc get amount failed.")
 		return TransferStringToBigIntErr
 	}
-
+	logging.CLog().Infof("amount:%v", amount)
 	// update balance
 	if amount.Cmp(util.NewUint128()) > 0 {
 		err = engine.ctx.contract.SubBalance(amount)
 		if err != nil {
-			logging.VLog().WithFields(logrus.Fields{
+			logging.CLog().WithFields(logrus.Fields{
 				"handler": uint64(uintptr(handler)),
 				"key":     C.GoString(to),
 				"err":     err,
-			}).Debug("TransferFunc SubBalance failed.")
+			}).Info("TransferFunc SubBalance failed.")
 			return TransferSubBalance
 		}
 
@@ -293,9 +374,7 @@ func RunMultilevelContractSourceFunc(handler unsafe.Pointer, address *C.char, fu
 	if err != nil {
 		return nil
 	}
-	//transfer
-	var transferCoseGas C.size_t
-	TransferFunc(handler, address, v, &transferCoseGas)
+
 	logging.CLog().Errorf("begin pack payload,funcName:%s, args:%s\n", C.GoString(funcName), C.GoString(args))
 	//run
 	payloadType := core.TxPayloadCallType
@@ -317,6 +396,16 @@ func RunMultilevelContractSourceFunc(handler unsafe.Pointer, address *C.char, fu
 		logging.CLog().Errorf("core.AddressParse err:", err)
 		return nil
 	}
+	//transfer
+	var transferCoseGas uint64
+	var iRet int
+	iRet = TransferByAddress(handler, fromAddr, addr, C.GoString(v), &transferCoseGas)
+	//logging.CLog().Errorf("begin TransferFunc:")
+	//iRet = TransferFunc(handler, address, v, &transferCoseGas)
+	if iRet != 0 {
+		return nil
+	}
+	logging.CLog().Errorf("end TransferFunc:form:%v, to:%v, v:%v,transferCoseGas:%v", engine.ctx.tx.From().Bytes(), addr.Bytes(), C.GoString(v), transferCoseGas)
 
 	logging.CLog().Errorf("create NewTransaction id:%v", oldTx.ChainID())
 	newTx, err := core.NewTransaction(oldTx.ChainID(), fromAddr, addr, zeroVal, oldTx.Nonce(), payloadType,
@@ -345,11 +434,11 @@ func RunMultilevelContractSourceFunc(handler unsafe.Pointer, address *C.char, fu
 		head = engine.ctx.head
 	}
 	newCtx, err := NewChildContext(engine.ctx.block, newTx, contract, engine.ctx.state, head, engine.ctx.index+1)
-
 	if err != nil {
 		logging.CLog().Errorf("NewContext err:%v", err)
 		return nil
 	}
+
 	verbInstruction, verbMem := engine.GetNVMVerbResources()
 	verbInstruction -= uint64(RunMultilevelContractSourceFuncCost)
 	verbInstruction -= uint64(TransferFuncCost)
