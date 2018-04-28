@@ -19,12 +19,16 @@
 package core
 
 import (
+	"bytes"
 	"sync"
 	"time"
+
+	"github.com/nebulasio/go-nebulas/crypto/keystore/secp256k1/vrf/secp256k1VRF"
 
 	"github.com/gogo/protobuf/proto"
 	lru "github.com/hashicorp/golang-lru"
 	"github.com/nebulasio/go-nebulas/core/pb"
+	"github.com/nebulasio/go-nebulas/crypto"
 	"github.com/nebulasio/go-nebulas/net"
 
 	"github.com/nebulasio/go-nebulas/util/byteutils"
@@ -497,6 +501,56 @@ func (lb *linkedBlock) travelToLinkAndReturnAllValidBlocks(parentBlock *Block) (
 			"err":   err,
 		}).Error("Failed to execute block.")
 		return nil, nil, err
+	}
+
+	// VRF verify
+	if lb.block.Height() >= RandomAvailableCompatibleHeight {
+		hashes, err := lb.chain.GetRecentNBlockHashBeforeInclusive(parentBlock.Hash(), VRFInputParentHashNumber)
+		if err != nil {
+			logging.VLog().WithFields(logrus.Fields{
+				"err": err,
+			}).Error("Failed to get parent block hash for verifying VRF.")
+			return nil, nil, err
+		}
+		signature, err := crypto.NewSignature(lb.block.Alg())
+		if err != nil {
+			return nil, nil, err
+		}
+		pub, err := signature.RecoverPublic(lb.block.Hash(), lb.block.Signature())
+		if err != nil {
+			return nil, nil, err
+		}
+		pubdata, err := pub.Encoded()
+		if err != nil {
+			return nil, nil, err
+		}
+
+		verifier, err := secp256k1VRF.NewVRFVerifierFromRawKey(pubdata)
+		if err != nil {
+			logging.VLog().WithFields(logrus.Fields{
+				"err": err,
+			}).Error("Failed to new VRF verifier.")
+			return nil, nil, err
+		}
+
+		var data []byte
+		for _, h := range hashes {
+			data = append(data, []byte(h)...)
+		}
+		index, err := verifier.ProofToHash(data, lb.block.header.rand.VrfProof)
+		if err != nil {
+			logging.VLog().WithFields(logrus.Fields{
+				"err": err,
+			}).Error("Failed to calculate VRF proof.")
+			return nil, nil, err
+		}
+
+		if !bytes.Equal(index[:], lb.block.header.rand.VrfHash) {
+			logging.VLog().WithFields(logrus.Fields{
+				"block": lb.block,
+			}).Error("VRF proof failed.")
+			return nil, nil, ErrVRFProofFailed
+		}
 	}
 
 	logging.VLog().WithFields(logrus.Fields{

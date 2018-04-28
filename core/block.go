@@ -40,6 +40,11 @@ import (
 	"golang.org/x/crypto/sha3"
 )
 
+// const
+const (
+	VRFInputParentHashNumber = 7
+)
+
 var (
 	// BlockHashLength define a const of the length of Hash of Block in byte.
 	BlockHashLength = 32
@@ -74,6 +79,9 @@ type BlockHeader struct {
 	// sign
 	alg  keystore.Algorithm
 	sign byteutils.Hash
+
+	// rand
+	rand *corepb.Rand
 }
 
 // ToProto converts domain BlockHeader to proto BlockHeader
@@ -90,6 +98,7 @@ func (b *BlockHeader) ToProto() (proto.Message, error) {
 		ChainId:       b.chainID,
 		Alg:           uint32(b.alg),
 		Sign:          b.sign,
+		Rand:          b.rand,
 	}, nil
 }
 
@@ -121,6 +130,7 @@ func (b *BlockHeader) FromProto(msg proto.Message) error {
 
 			b.alg = alg
 			b.sign = msg.Sign
+			b.rand = msg.Rand
 			return nil
 		}
 		return ErrInvalidProtoToBlockHeader
@@ -188,6 +198,12 @@ func (block *Block) FromProto(msg proto.Message) error {
 			block.header = new(BlockHeader)
 			if err := block.header.FromProto(msg.Header); err != nil {
 				return err
+			}
+			if msg.Height >= RandomAvailableCompatibleHeight && !block.HasBlockRand() {
+				logging.VLog().WithFields(logrus.Fields{
+					"compatibleHeight": RandomAvailableCompatibleHeight,
+				}).Debug("No rand found in block header.")
+				return ErrInvalidProtoToBlockHeader
 			}
 			block.transactions = make(Transactions, len(msg.Transactions))
 			for idx, v := range msg.Transactions {
@@ -268,6 +284,19 @@ func (block *Block) Sign(signature keystore.Signature) error {
 	}
 	block.SetSignature(keystore.Algorithm(signature.Algorithm()), sign)
 	return nil
+}
+
+// SetBlockRand set block.header.rand
+func (block *Block) SetBlockRand(vrfhash, vrfproof []byte) {
+	block.header.rand = &corepb.Rand{
+		VrfHash:  vrfhash,
+		VrfProof: vrfproof,
+	}
+}
+
+// HasBlockRand check rand if exists
+func (block *Block) HasBlockRand() bool {
+	return block.header.rand != nil && block.header.rand.VrfHash != nil && block.header.rand.VrfProof != nil
 }
 
 // ChainID returns block's chainID
@@ -353,6 +382,19 @@ func (block *Block) Height() uint64 {
 // Transactions returns block transactions
 func (block *Block) Transactions() Transactions {
 	return block.transactions
+}
+
+// RandomSeed block rand seed (VRF)
+func (block *Block) RandomSeed() string {
+	if block.height >= RandomAvailableCompatibleHeight {
+		return byteutils.Hex(block.header.rand.VrfHash)
+	}
+	return ""
+}
+
+// SupportRandom check is random supported
+func (block *Block) SupportRandom() bool {
+	return block.height >= RandomAvailableCompatibleHeight
 }
 
 // LinkParentBlock link parent block, return true if hash is the same; false otherwise.
@@ -750,7 +792,16 @@ func (block *Block) Seal() error {
 }
 
 func (block *Block) String() string {
-	return fmt.Sprintf(`{"height": %d, "hash": "%s", "parent_hash": "%s", "acc_root": "%s", "timestamp": %d, "tx": %d, "miner": "%s"}`,
+	rand := ""
+	if block.height >= RandomAvailableCompatibleHeight && block.header.rand != nil {
+		if block.header.rand.VrfHash != nil {
+			rand += "/vrf_hash/" + byteutils.Hex(block.header.rand.VrfHash)
+		}
+		if block.header.rand.VrfProof != nil {
+			rand += "/vrf_proof/" + byteutils.Hex(block.header.rand.VrfProof)
+		}
+	}
+	return fmt.Sprintf(`{"height": %d, "hash": "%s", "parent_hash": "%s", "acc_root": "%s", "timestamp": %d, "tx": %d, "miner": "%s", "rand": "%s"}`,
 		block.height,
 		block.header.hash,
 		block.header.parentHash,
@@ -758,6 +809,7 @@ func (block *Block) String() string {
 		block.header.timestamp,
 		len(block.transactions),
 		byteutils.Hash(block.header.consensusRoot.Proposer).Base58(),
+		rand,
 	)
 }
 

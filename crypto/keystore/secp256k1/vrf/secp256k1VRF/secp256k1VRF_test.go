@@ -23,6 +23,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/nebulasio/go-nebulas/crypto/keystore/secp256k1"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
 	// _ "github.com/google/trillian/crypto/keys/der/proto"
 )
@@ -308,4 +309,54 @@ func h2b(h string) []byte {
 		panic("Invalid hex")
 	}
 	return b
+}
+
+func Test256VRF(t *testing.T) {
+
+	seckey, err := byteutils.FromHex(privKey)
+	if err != nil {
+		t.Errorf("load priv err: %v", err)
+	}
+	ecdsaPriv, err := secp256k1.ToECDSAPrivateKey(seckey)
+	if err != nil {
+		t.Errorf("ecdsa err: %v", err)
+	}
+
+	signer, err := NewVRFSigner(ecdsaPriv)
+	if err != nil {
+		t.Errorf("new signer err: %v", err)
+	}
+
+	data := []byte("b10c1203d5ae6d4d069d5f520eb060f2f5fb74e942f391e7cadbc2b5148dfbcb")
+	sIndex, proof := signer.Evaluate(data)
+
+	seckeyPub, err := byteutils.FromHex(pubKey)
+
+	priv := new(secp256k1.PrivateKey)
+	err = priv.Decode(seckey)
+	if err != nil {
+		t.Errorf("decode priv err: %v", err)
+	}
+
+	epub, err := priv.PublicKey().Encoded()
+	if err != nil {
+		t.Errorf("encode pub err: %v", err)
+	}
+	if !bytes.Equal(seckeyPub, epub) {
+		t.Errorf("mismatched priv/pub err: %v", err)
+	}
+
+	verifier, err := NewVRFVerifierFromRawKey(seckeyPub)
+	if err != nil {
+		t.Errorf("new verifier err: %v", err)
+	}
+
+	vIndex, err := verifier.ProofToHash(data, proof)
+	if err != nil {
+		t.Errorf("exec proof err: %v", err)
+	}
+
+	if !bytes.Equal(sIndex[0:], vIndex[0:]) {
+		t.Errorf("verification failed")
+	}
 }

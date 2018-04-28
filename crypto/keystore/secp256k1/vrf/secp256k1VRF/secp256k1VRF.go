@@ -37,7 +37,7 @@ import (
 	"github.com/nebulasio/go-nebulas/crypto/keystore/secp256k1"
 	"github.com/nebulasio/go-nebulas/crypto/keystore/secp256k1/bitelliptic"
 
-	"github.com/google/keytransparency/core/crypto/vrf"
+	"github.com/nebulasio/go-nebulas/crypto/keystore/secp256k1/vrf"
 )
 
 var (
@@ -52,6 +52,8 @@ var (
 	ErrNoPEMFound = errors.New("no PEM block found")
 	// ErrInvalidVRF occurs when the VRF does not validate.
 	ErrInvalidVRF = errors.New("invalid VRF proof")
+	// ErrEvaluateFailed fail
+	ErrEvaluateFailed = errors.New("failed to evaluate VRF")
 )
 
 // PublicKey holds a public VRF key.

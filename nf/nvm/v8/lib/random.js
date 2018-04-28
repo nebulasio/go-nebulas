@@ -97,26 +97,39 @@ function Mash() {
 
 module.exports = (function(){
 
-    if (!Blockchain) {
-        throw new Error("'Blockchain' is not defined.");
+    var arng = null;
+
+    function checkCtx() {
+        if (!Blockchain) {
+            throw new Error("'Blockchain' is undefined.");
+        }
+        if (!Blockchain.block) {
+            throw new Error("'Blockchain.block' is undefined.");
+        }
+    
+        if (!Blockchain.block.supportRandom) {
+            throw new Error("Math.random func is not allowed in nvm.");
+        }
+    
+        if (!Blockchain.block.seed) {
+            throw new Error("random seed is undefined.");
+        }
     }
-    if (!Blockchain.block) {
-        throw new Error("'Blockchain.block' is not defined.");
-    }
 
-    if (!Blockchain.block.seed) {
-        throw new Error("random seed not found.");
-    }
-
-    var arng = new impl(Blockchain.block.seed);
-    return function() {
-        // Get a 32 bit (signed) integer.
-        // arng.int32()
-
-        // Gets 56 bits of randomness.
-        // arng.double()
-
-        // By default provides 32 bits of randomness in a float.
+    function rand() {
+        if (arng == null) {
+            checkCtx();
+            arng = new impl(Blockchain.block.seed);
+        }
         return arng();
     }
+    rand.seed = function(userseed) {
+        if (typeof(userseed) !== 'string') {
+            throw new Error("random seed must be a string")
+        }
+        checkCtx();
+        arng = new impl(Blockchain.block.seed + userseed);
+    }
+
+    return rand;
 })();

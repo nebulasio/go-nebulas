@@ -17,10 +17,6 @@
 //
 
 
-Math.random = function () {
-    throw new Error("Math.random func is not allowed in nvm.");
-};
-
 const require = (function (global) {
     var PathRegexForNotLibFile = /^\.{0,2}\//;
     var modules = new Map();
@@ -149,14 +145,4 @@ var Date = (function(Date) {
     return NebDate;
 })(Date);
 
-// Blockchain.block = {
-//     // seed: 20000000
-// }
-
-// Math.random = require('random.js');
-
-// var arr = [];
-// for (var i = 0; i<10; ++i) {
-//     arr.push(Math.random());
-// }
-// throw new Error(arr);
+Math.random = require('random.js');

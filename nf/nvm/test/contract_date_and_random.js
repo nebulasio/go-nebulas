@@ -43,8 +43,22 @@ Contract.prototype = {
         return data;
     },
 
-    testRandom: function() {
-        // TODO
+    testRandom: function(userseed) {
+        var r1 = Math.random();
+        var r12 = Math.random();
+        var r13 = Math.random();
+        // equivalent to reset seed
+        Math.random.seed(userseed);
+        var r2 = Math.random();
+
+        Event.Trigger("random", {
+            "supportRandom": Blockchain.block.supportRandom,
+            "seed": Blockchain.block.seed, 
+            "defaultSeedRandom1": r1,
+            "defaultSeedRandom2": r12,
+            "defaultSeedRandom3": r13,
+            "userSeedRandom": r2
+        });
     }
 };
 

@@ -464,6 +464,27 @@ func (bc *BlockChain) GetBlockOnCanonicalChainByHash(blockHash byteutils.Hash) *
 	return blockByHeight
 }
 
+// GetRecentNBlockHashBeforeInclusive read hashes of 'N' parent blocks before hash(inclusive) as VRF input.
+//	hashes order: from back to front
+func (bc *BlockChain) GetRecentNBlockHashBeforeInclusive(hash byteutils.Hash, n int) (hashes []byteutils.Hash, err error) {
+	if n == 0 || hash == nil {
+		return nil, ErrInvalidArgument
+	}
+	for i := 0; i < n; i++ {
+		block := bc.GetBlockOnCanonicalChainByHash(hash)
+		if block == nil {
+			return nil, ErrNotBlockInCanonicalChain
+		}
+		hashes = append(hashes, hash)
+		// if i < n-1 && block.Height() == 1 {
+		// 	// if chain height is not enough, return current hashes
+		// 	return
+		// }
+		hash = block.ParentHash()
+	}
+	return
+}
+
 // FindCommonAncestorWithTail return the block's common ancestor with current tail
 func (bc *BlockChain) FindCommonAncestorWithTail(block *Block) (*Block, error) {
 	if block == nil {

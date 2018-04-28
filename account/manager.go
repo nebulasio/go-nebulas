@@ -21,6 +21,8 @@ package account
 import (
 	"errors"
 
+	"github.com/nebulasio/go-nebulas/crypto/keystore/secp256k1/vrf/secp256k1VRF"
+
 	"github.com/nebulasio/go-nebulas/util/byteutils"
 
 	"path/filepath"
@@ -384,6 +386,50 @@ func (m *Manager) SignBlock(addr *core.Address, block *core.Block) error {
 	}
 	signature.InitSign(key.(keystore.PrivateKey))
 	return block.Sign(signature)
+}
+
+// GenerateBlockRand generate rand
+func (m *Manager) GenerateBlockRand(addr *core.Address, parentHashes []byteutils.Hash) (vrfHash, vrfProof []byte, err error) {
+
+	if len(parentHashes) != core.VRFInputParentHashNumber {
+		logging.VLog().WithFields(logrus.Fields{
+			"parent_hash_length": len(parentHashes),
+		}).Error("Parent hashes are not enough.")
+		return nil, nil, core.ErrInvalidArgument
+	}
+
+	key, err := m.ks.GetUnlocked(addr.String())
+	if err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"err": err,
+		}).Error("Failed to get unlocked private key to generate block rand.")
+		return nil, nil, ErrAccountIsLocked
+	}
+
+	_, err = crypto.NewSignature(m.signatureAlg)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	seckey, err := key.(keystore.PrivateKey).Encoded()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	signer, err := secp256k1VRF.NewVRFSignerFromRawKey(seckey)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	var data []byte
+	for _, h := range parentHashes {
+		data = append(data, []byte(h)...)
+	}
+	index, proof := signer.Evaluate(data)
+	if proof == nil {
+		return nil, nil, secp256k1VRF.ErrEvaluateFailed
+	}
+	return index[:], proof, nil
 }
 
 // SignTransactionWithPassphrase sign transaction with the from passphrase

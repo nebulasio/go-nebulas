@@ -76,6 +76,16 @@ func (block *testBlock) Height() uint64 {
 	return 1
 }
 
+// RandomSeed mock
+func (block *testBlock) RandomSeed() string {
+	return "59fc526072b09af8a8ca9732dae17132c4e9127e43cf2232"
+}
+
+// SupportRandom mock
+func (block *testBlock) SupportRandom() bool {
+	return true
+}
+
 // GetTransaction mock
 func (block *testBlock) GetTransaction(hash byteutils.Hash) (*core.Transaction, error) {
 	return nil, nil
@@ -132,7 +142,9 @@ func TestRunScriptSource(t *testing.T) {
 		{"test/test_eval.js", core.ErrExecutionFailed, "EvalError: Code generation from strings disallowed for this context"},
 		{"test/test_date.js", nil, "\"\""},
 		{"test/test_bignumber_random.js", core.ErrExecutionFailed, "Error: BigNumber.random is not allowed in nvm."},
-		{"test/test_random.js", core.ErrExecutionFailed, "Error: Math.random func is not allowed in nvm."},
+		{"test/test_random_enable.js", nil, "\"\""},
+		{"test/test_random_disable.js", core.ErrExecutionFailed, "Error: Math.random func is not allowed in nvm."},
+		{"test/test_random_seed.js", core.ErrExecutionFailed, "Error: random seed must be a string"},
 	}
 
 	for _, tt := range tests {

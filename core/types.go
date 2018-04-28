@@ -95,6 +95,8 @@ var (
 	ErrDoubleSealBlock        = errors.New("cannot seal a block twice")
 	ErrDuplicatedBlock        = errors.New("duplicated block")
 	ErrDoubleBlockMinted      = errors.New("double block minted")
+	ErrVRFProofFailed         = errors.New("VRF proof failed")
+	ErrInvalidBlockRand       = errors.New("invalid block rand")
 
 	ErrInvalidChainID           = errors.New("invalid transaction chainID")
 	ErrInvalidTransactionSigner = errors.New("invalid transaction signer")
@@ -237,6 +239,7 @@ type AccountManager interface {
 
 	SignHash(*Address, byteutils.Hash, keystore.Algorithm) ([]byte, error)
 	SignBlock(*Address, *Block) error
+	GenerateBlockRand(*Address, []byteutils.Hash) ([]byte, []byte, error)
 	SignTransaction(*Address, *Transaction) error
 	SignTransactionWithPassphrase(*Address, *Transaction, []byte) error
 

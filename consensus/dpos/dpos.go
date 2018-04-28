@@ -56,6 +56,7 @@ var (
 	ErrGenerateNextConsensusState = errors.New("Failed to generate next consensus state")
 	ErrDoubleBlockMinted          = errors.New("double block minted")
 	ErrAppendNewBlockFailed       = errors.New("failed to append new block to real chain")
+	ErrInvalidArgument            = errors.New("invalid argument")
 )
 
 // Metrics
@@ -375,33 +376,73 @@ func (dpos *Dpos) VerifyBlock(block *core.Block) error {
 	if err := verifyBlockSign(miner, block); err != nil {
 		return err
 	}
+
+	// check block rand
+	if block.Height() >= core.RandomAvailableCompatibleHeight && !block.HasBlockRand() {
+		logging.VLog().WithFields(logrus.Fields{
+			"compatibleHeight": core.RandomAvailableCompatibleHeight,
+		}).Debug("No rand found in block header.")
+		return core.ErrInvalidBlockRand
+	}
+
 	dpos.slot.Add(block.Timestamp(), block)
 	return nil
 }
 
-func (dpos *Dpos) signBlock(block *core.Block) error {
+func (dpos *Dpos) generateBlockSand(block *core.Block, adminService rpcpb.AdminServiceClient) error {
 	if dpos.enableRemoteSignServer == true {
-		conn, err := rpc.Dial(dpos.remoteSignServer)
-		if err != nil {
-			return err
+		if adminService == nil {
+			return ErrInvalidArgument
 		}
-		adminService := rpcpb.NewAdminServiceClient(conn)
-		alg := keystore.SECP256K1
-		resp, err := adminService.SignHash(
-			context.Background(),
-			&rpcpb.SignHashRequest{
-				Address: dpos.miner.String(),
-				Hash:    block.Hash(),
-				Alg:     uint32(alg),
-			})
-		conn.Close()
-		if err != nil {
-			return err
+		// generate VRF hash,proof
+		if block.Height() >= core.RandomAvailableCompatibleHeight {
+			rand, err := adminService.GenerateBlockRand(
+				context.Background(),
+				&rpcpb.GenerateBlockRandRequest{
+					Address:    dpos.miner.String(),
+					ParentHash: block.ParentHash(),
+				})
+			if err != nil {
+				return err
+			}
+			block.SetBlockRand(rand.VrfHash, rand.VrfProof)
 		}
-		block.SetSignature(alg, resp.Data)
 		return nil
 	}
-	return dpos.am.SignBlock(dpos.miner, block)
+
+	// generate VRF hash,proof
+	if block.Height() >= core.RandomAvailableCompatibleHeight {
+		hashes, err := dpos.chain.GetRecentNBlockHashBeforeInclusive(block.ParentHash(), core.VRFInputParentHashNumber)
+		if err != nil {
+			return err
+		}
+		vrfHash, vrfProof, err := dpos.am.GenerateBlockRand(dpos.miner, hashes)
+		if err != nil {
+			return err
+		}
+		block.SetBlockRand(vrfHash, vrfProof)
+	}
+	return nil
+}
+
+func (dpos *Dpos) remoteSignBlock(block *core.Block, adminService rpcpb.AdminServiceClient) error {
+	if adminService == nil {
+		return ErrInvalidArgument
+	}
+	alg := keystore.SECP256K1
+	resp, err := adminService.SignHash(
+		context.Background(),
+		&rpcpb.SignHashRequest{
+			Address: dpos.miner.String(),
+			Hash:    block.Hash(),
+			Alg:     uint32(alg),
+		})
+	if err != nil {
+		return err
+	}
+
+	block.SetSignature(alg, resp.Data)
+	return nil
 }
 
 func (dpos *Dpos) unlock(passphrase string) error {
@@ -425,6 +466,22 @@ func (dpos *Dpos) newBlock(tail *core.Block, consensusState state.ConsensusState
 		return nil, err
 	}
 
+	var adminService rpcpb.AdminServiceClient
+	if dpos.enableRemoteSignServer == true {
+		conn, err := rpc.Dial(dpos.remoteSignServer)
+		defer func() {
+			if conn != nil {
+				conn.Close()
+			}
+		}()
+		if err != nil {
+			return nil, err
+		}
+		adminService = rpcpb.NewAdminServiceClient(conn)
+	}
+
+	dpos.generateBlockSand(block, adminService)
+
 	block.WorldState().SetConsensusState(consensusState)
 	block.SetTimestamp(consensusState.TimeStamp())
 	block.CollectTransactions(deadlineInMs)
@@ -436,7 +493,13 @@ func (dpos *Dpos) newBlock(tail *core.Block, consensusState state.ConsensusState
 		go block.ReturnTransactions()
 		return nil, err
 	}
-	if err = dpos.signBlock(block); err != nil {
+
+	if dpos.enableRemoteSignServer == true {
+		err = dpos.remoteSignBlock(block, adminService)
+	} else {
+		err = dpos.am.SignBlock(dpos.miner, block)
+	}
+	if err != nil {
 		logging.CLog().WithFields(logrus.Fields{
 			"miner": dpos.miner,
 			"block": block,
