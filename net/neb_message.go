@@ -194,7 +194,7 @@ func (message *NebMessage) Length() uint64 {
 // NewNebMessage new neb message
 func NewNebMessage(chainID uint32, reserved []byte, version byte, messageName string, data []byte) (*NebMessage, error) {
 	// Process message compression
-	if (reserved[0] & ReservedCompressionEnableFlag) > 0 {
+	if (reserved[2] != ReservedCompressionClientFlag) && ((reserved[0] & ReservedCompressionEnableFlag) > 0) {
 		data = snappy.Encode(nil, data)
 	}
 
