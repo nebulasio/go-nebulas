@@ -142,9 +142,21 @@ var Date = (function(Date) {
     }
     NebDate.prototype = new Proxy(NebDate.prototype, {
         getPrototypeOf: function(target) {
-            throw new Error("Not supported method!");
+            throw new Error("Unsupported method!");
         },
     });
     Object.setPrototypeOf(NebDate.prototype, Date.prototype);
     return NebDate;
 })(Date);
+
+// Blockchain.block = {
+//     // seed: 20000000
+// }
+
+// Math.random = require('random.js');
+
+// var arr = [];
+// for (var i = 0; i<10; ++i) {
+//     arr.push(Math.random());
+// }
+// throw new Error(arr);
