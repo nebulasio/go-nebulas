@@ -352,7 +352,9 @@ func RunMultilevelContractSourceFunc(handler unsafe.Pointer, address *C.char, fu
 		logging.VLog().Errorf("Failed to run nvm, becase more nvm ,current nvm:%v", engine.ctx.index)
 		return nil
 	}
-	*gasCnt = C.size_t(RunMultilevelContractSourceFuncCost)
+	var gasSum uint64
+	//*gasCnt = C.size_t(RunMultilevelContractSourceFuncCost)
+	gasSum = uint64(RunMultilevelContractSourceFuncCost)
 	ws := engine.ctx.state
 
 	addr, err := core.AddressParse(C.GoString(address))
@@ -402,8 +404,11 @@ func RunMultilevelContractSourceFunc(handler unsafe.Pointer, address *C.char, fu
 		return nil
 	}
 	// logging.CLog().Errorf("end TransferFunc:form:%v, to:%v, v:%v,transferCoseGas:%v", engine.ctx.tx.From().Bytes(), addr.Bytes(), C.GoString(v), transferCoseGas)
-
-	newTx, err := core.NewTransaction(oldTx.ChainID(), fromAddr, addr, util.NewUint128(), oldTx.Nonce(), payloadType,
+	toValue, err := util.NewUint128FromString(C.GoString(v))
+	if err != nil {
+		return nil
+	}
+	newTx, err := core.NewTransaction(oldTx.ChainID(), fromAddr, addr, toValue, oldTx.Nonce(), payloadType,
 		payload, oldTx.GasPrice(), oldTx.GasLimit())
 	if err != nil {
 		return nil
@@ -431,12 +436,19 @@ func RunMultilevelContractSourceFunc(handler unsafe.Pointer, address *C.char, fu
 	engineNew.SetExecutionLimits(verbInstruction, verbMem)
 	// logging.CLog().Errorf("begin Call,source:%v, sourceType:%v", deploy.Source, deploy.SourceType)
 	val, err := engineNew.Call(string(deploy.Source), deploy.SourceType, C.GoString(funcName), C.GoString(args))
+	gasCout := engineNew.ExecutionInstructions()
+	gasSum += gasCout
+	/*instructions, err := util.NewUint128FromInt(int64(gasCout))
+	if err != nil {
+		return util.NewUint128(), "", err
+	}*/
+
 	engineNew.Dispose()
 	if err != nil {
 		return nil
 	}
-	logging.CLog().Infof("end cal val:%v", val)
-
+	logging.CLog().Infof("end cal val:%v,gascount:%V,gasSum:%v", val, gasCout, gasSum)
+	*gasCnt = C.size_t(gasSum)
 	return C.CString(string(val))
 	//return C.CString("")
 }
