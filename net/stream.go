@@ -279,11 +279,14 @@ func (s *Stream) WriteProtoMessage(messageName string, pb proto.Message, reserve
 // WriteMessage write raw msg in the stream
 func (s *Stream) WriteMessage(messageName string, data []byte, reservedClientFlag byte) error {
 	// hello and ok messages come with the client flag bit.
+	var reserved = make([]byte, len(s.reservedFlag))
+	copy(reserved, s.reservedFlag)
+
 	if reservedClientFlag == ReservedCompressionClientFlag {
-		s.reservedFlag[2] = s.reservedFlag[2] | reservedClientFlag
+		reserved[2] = s.reservedFlag[2] | reservedClientFlag
 	}
 
-	message, err := NewNebMessage(s.node.config.ChainID, s.reservedFlag, CurrentVersion, messageName, data)
+	message, err := NewNebMessage(s.node.config.ChainID, reserved, CurrentVersion, messageName, data)
 	if err != nil {
 		return err
 	}
@@ -470,6 +473,10 @@ func (s *Stream) handleMessage(message *NebMessage) error {
 	default:
 		data, err := s.getData(message)
 		if err != nil {
+			logging.VLog().WithFields(logrus.Fields{
+				"err":         err,
+				"messageName": message.MessageName(),
+			}).Error("get data occurs error.")
 			return err
 		}
 		s.node.netService.PutMessage(NewBaseMessage(message.MessageName(), s.pid.Pretty(), data))
