@@ -380,6 +380,7 @@ func (dpos *Dpos) VerifyBlock(block *core.Block) error {
 	// check block random
 	if block.Height() >= core.RandomAvailableCompatibleHeight && !block.HasBlockRand() {
 		logging.VLog().WithFields(logrus.Fields{
+			"blockHeight":      block.Height(),
 			"compatibleHeight": core.RandomAvailableCompatibleHeight,
 		}).Debug("No random found in block header.")
 		return core.ErrInvalidBlockRandom

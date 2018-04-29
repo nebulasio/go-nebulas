@@ -201,6 +201,7 @@ func (block *Block) FromProto(msg proto.Message) error {
 			}
 			if msg.Height >= RandomAvailableCompatibleHeight && !block.HasBlockRand() {
 				logging.VLog().WithFields(logrus.Fields{
+					"blockHeight":      msg.Height,
 					"compatibleHeight": RandomAvailableCompatibleHeight,
 				}).Debug("No random found in block header.")
 				return ErrInvalidProtoToBlockHeader
