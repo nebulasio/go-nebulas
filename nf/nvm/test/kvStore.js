@@ -37,7 +37,7 @@ SuperWiki.prototype = {
 
     save: function (key, value) {
         console.log("================", Blockchain.transaction.value);
-        if(Blockchain.transaction.value < 1) {
+        if(Blockchain.transaction.value < 2000000000000000000) {
             throw("nas is not enough");
         }
 
