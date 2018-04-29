@@ -466,7 +466,7 @@ func (bc *BlockChain) GetBlockOnCanonicalChainByHash(blockHash byteutils.Hash) *
 	return blockByHeight
 }
 
-// GetRecentNBlockHashBeforeInclusive read hashes of 'N' parent blocks before hash(inclusive) as VRF input.
+// GetRecentNBlockHashBeforeInclusive read hashes of 'N' on-chain parent blocks before hash(inclusive) as VRF input.
 //	hashes order: from back to front
 func (bc *BlockChain) GetRecentNBlockHashBeforeInclusive(hash byteutils.Hash, n int) (hashes []byteutils.Hash, err error) {
 	if n == 0 || hash == nil {
@@ -478,10 +478,6 @@ func (bc *BlockChain) GetRecentNBlockHashBeforeInclusive(hash byteutils.Hash, n 
 			return nil, ErrNotBlockInCanonicalChain
 		}
 		hashes = append(hashes, hash)
-		// if i < n-1 && block.Height() == 1 {
-		// 	// if chain height is not enough, return current hashes
-		// 	return
-		// }
 		hash = block.ParentHash()
 	}
 	return

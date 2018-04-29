@@ -80,6 +80,7 @@ var (
 	ErrCannotFindBlockAtGivenHeight                      = errors.New("cannot find a block at given height which is less than tail block's height")
 	ErrInvalidBlockCannotFindParentInLocalAndTryDownload = errors.New("invalid block received, download its parent from others")
 	ErrInvalidBlockCannotFindParentInLocalAndTrySync     = errors.New("invalid block received, sync its parent from others")
+	ErrBlockNotFound                                     = errors.New("block not found in blockchain cache nor chain")
 
 	ErrInvalidConfigChainID          = errors.New("invalid chainID, genesis chainID not equal to chainID in config")
 	ErrCannotLoadGenesisConf         = errors.New("cannot load genesis conf")

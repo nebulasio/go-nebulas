@@ -23,12 +23,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/nebulasio/go-nebulas/crypto/keystore/secp256k1/vrf/secp256k1VRF"
-
 	"github.com/gogo/protobuf/proto"
 	lru "github.com/hashicorp/golang-lru"
 	"github.com/nebulasio/go-nebulas/core/pb"
 	"github.com/nebulasio/go-nebulas/crypto"
+	"github.com/nebulasio/go-nebulas/crypto/keystore/secp256k1/vrf/secp256k1VRF"
 	"github.com/nebulasio/go-nebulas/net"
 
 	"github.com/nebulasio/go-nebulas/util/byteutils"
@@ -451,6 +450,13 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 		return err
 	}
 
+	// VRF verify
+	allBlocks, tailBlocks = pool.verifyVrfOfTails(parentBlock, allBlocks, tailBlocks)
+	if len(tailBlocks) == 0 {
+		cache.Remove(lb.hash.Hex())
+		return nil
+	}
+
 	if err := bc.putVerifiedNewBlocks(parentBlock, allBlocks, tailBlocks); err != nil {
 		cache.Remove(lb.hash.Hex())
 		return err
@@ -463,6 +469,124 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 
 	// notify consensus to handle new block.
 	return pool.bc.ConsensusHandler().ForkChoice()
+}
+
+func (pool *BlockPool) verifyVrfOfTails(parent *Block, allBlocks, tailBlocks []*Block) (newAll, newTails []*Block) {
+
+	allBlocksMap := make(map[string]*Block)
+	for _, b := range allBlocks {
+		allBlocksMap[b.Hash().String()] = b
+	}
+
+	for _, tail := range tailBlocks {
+
+		subAll, valid := pool.isValidSubChain(parent, tail, allBlocksMap)
+		if !valid {
+			logging.VLog().WithFields(logrus.Fields{
+				"parent": parent.String(),
+				"tail":   tail.String(),
+			}).Error("Discard an invalid sub chain.")
+			continue
+		}
+		newAll = append(newAll, subAll...)
+		newTails = append(newTails, tail)
+	}
+	return
+}
+
+func (pool *BlockPool) isValidSubChain(parentOnChain, tail *Block, allBlocksMap map[string]*Block) (allBlocks []*Block, valid bool) {
+
+	for parentOnChain.Height() < tail.Height() {
+
+		tph := tail.ParentHash()
+		allBlocks = append(allBlocks, tail)
+
+		if tail.Height() < RandomAvailableCompatibleHeight {
+			var ok bool
+			tail, ok = allBlocksMap[tph.String()]
+			if !ok {
+				tail = pool.bc.GetBlock(tph)
+			}
+			continue
+		}
+
+		hashes := make([]byteutils.Hash, 0)
+
+		for i := 0; i < VRFInputParentHashNumber; i++ {
+
+			b, ok := allBlocksMap[tph.String()]
+			if !ok {
+				b = pool.bc.GetBlock(tph)
+			}
+			if b == nil {
+				break
+			}
+			hashes = append(hashes, tph)
+			tph = b.ParentHash()
+		}
+		if len(hashes) != VRFInputParentHashNumber {
+			logging.VLog().WithFields(logrus.Fields{
+				"tail": tail.String(),
+			}).Error("Failed to get enough parent block hash for VRF.")
+			return nil, false
+		}
+
+		if err := pool.vrfProof(tail, hashes); err != nil {
+			logging.VLog().WithFields(logrus.Fields{
+				"err": err,
+			}).Error("Failed to VRF proof.")
+			return nil, false
+		}
+		var ok bool
+		tail, ok = allBlocksMap[tph.String()]
+		if !ok {
+			tail = pool.bc.GetBlock(tph)
+		}
+	}
+	return allBlocks, true
+}
+
+func (pool *BlockPool) vrfProof(block *Block, pHashes []byteutils.Hash) error {
+	signature, err := crypto.NewSignature(block.Alg())
+	if err != nil {
+		return err
+	}
+	pub, err := signature.RecoverPublic(block.Hash(), block.Signature())
+	if err != nil {
+		return err
+	}
+	pubdata, err := pub.Encoded()
+	if err != nil {
+		return err
+	}
+
+	verifier, err := secp256k1VRF.NewVRFVerifierFromRawKey(pubdata)
+	if err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"err": err,
+		}).Error("Failed to new VRF verifier.")
+		return err
+	}
+
+	var data []byte
+	for _, h := range pHashes {
+		data = append(data, []byte(h)...)
+	}
+	index, err := verifier.ProofToHash(data, block.header.random.VrfProof)
+	if err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"err": err,
+		}).Error("Failed to calculate VRF proof.")
+		return err
+	}
+
+	if !bytes.Equal(index[:], block.header.random.VrfHash) {
+		logging.VLog().WithFields(logrus.Fields{
+			"block": block,
+		}).Error("VRF proof failed.")
+		return ErrVRFProofFailed
+	}
+	return nil
 }
 
 func (pool *BlockPool) setBlockChain(bc *BlockChain) {
@@ -501,56 +625,6 @@ func (lb *linkedBlock) travelToLinkAndReturnAllValidBlocks(parentBlock *Block) (
 			"err":   err,
 		}).Error("Failed to execute block.")
 		return nil, nil, err
-	}
-
-	// VRF verify
-	if lb.block.Height() >= RandomAvailableCompatibleHeight {
-		hashes, err := lb.chain.GetRecentNBlockHashBeforeInclusive(parentBlock.Hash(), VRFInputParentHashNumber)
-		if err != nil {
-			logging.VLog().WithFields(logrus.Fields{
-				"err": err,
-			}).Error("Failed to get parent block hash for verifying VRF.")
-			return nil, nil, err
-		}
-		signature, err := crypto.NewSignature(lb.block.Alg())
-		if err != nil {
-			return nil, nil, err
-		}
-		pub, err := signature.RecoverPublic(lb.block.Hash(), lb.block.Signature())
-		if err != nil {
-			return nil, nil, err
-		}
-		pubdata, err := pub.Encoded()
-		if err != nil {
-			return nil, nil, err
-		}
-
-		verifier, err := secp256k1VRF.NewVRFVerifierFromRawKey(pubdata)
-		if err != nil {
-			logging.VLog().WithFields(logrus.Fields{
-				"err": err,
-			}).Error("Failed to new VRF verifier.")
-			return nil, nil, err
-		}
-
-		var data []byte
-		for _, h := range hashes {
-			data = append(data, []byte(h)...)
-		}
-		index, err := verifier.ProofToHash(data, lb.block.header.random.VrfProof)
-		if err != nil {
-			logging.VLog().WithFields(logrus.Fields{
-				"err": err,
-			}).Error("Failed to calculate VRF proof.")
-			return nil, nil, err
-		}
-
-		if !bytes.Equal(index[:], lb.block.header.random.VrfHash) {
-			logging.VLog().WithFields(logrus.Fields{
-				"block": lb.block,
-			}).Error("VRF proof failed.")
-			return nil, nil, ErrVRFProofFailed
-		}
 	}
 
 	logging.VLog().WithFields(logrus.Fields{
