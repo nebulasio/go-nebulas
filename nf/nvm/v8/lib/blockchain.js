@@ -43,10 +43,14 @@ var Contract = function(address, contract_interface) {
             throw("wrong interface define")
         }
         //TODO: check if this works 
-        var expression = new RegExp(func + " *: *function", "m");
+        var expression = new RegExp(func, "m");
         if (src.search(expression) == -1) {
             throw("contract have no function called : " + func);
-        } 
+        }
+        
+        this[func] = function() {
+            _native_blockchain.runContractSource(this.address, func, value.toString(), JSON.stringify(arguments));
+        }
     }
         
 }
