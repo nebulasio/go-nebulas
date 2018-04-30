@@ -36,7 +36,6 @@ SuperWiki.prototype = {
     },
 
     save: function (key, value) {
-        console.log("================", Blockchain.transaction.value);
         if(Blockchain.transaction.value < 2000000000000000000) {
             throw("nas is not enough");
         }
@@ -52,6 +51,7 @@ SuperWiki.prototype = {
 
         var from = Blockchain.transaction.from;
         var wikiItem = this.repo.get(key);
+    
         if (wikiItem){
             throw new Error("value has been taken");
         }
@@ -60,7 +60,6 @@ SuperWiki.prototype = {
         wikiItem.author = from;
         wikiItem.key = key;
         wikiItem.value = value;
-
         this.repo.put(key, wikiItem);
     },
 

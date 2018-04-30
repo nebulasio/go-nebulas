@@ -48,7 +48,7 @@ var Contract = function(address, contract_interface) {
             throw("contract have no function called : " + func);
         }
         
-        this[func] = function() {
+        this[func] = function(func) {return function() {
             var value = this.v;
             this.v = 0;
   
@@ -56,8 +56,9 @@ var Contract = function(address, contract_interface) {
             for (var i = 0; i < arguments.length; i++) {
                 args.push(arguments[i]);
             }
-            _native_blockchain.runContractSource(this.address, func, value.toString(), JSON.stringify(args));
-        }
+            var result =  _native_blockchain.runContractSource(this.address, func, value.toString(), JSON.stringify(args));
+            return JSON.parse(result);
+        }}(func);
     }
         
 }
@@ -83,7 +84,8 @@ Contract.prototype = {
         var value = this.v;
         this.v = 0;
         //TODO: check how to handle err?
-        return _native_blockchain.runContractSource(this.address, func, value.toString(), args);
+        var result =  _native_blockchain.runContractSource(this.address, func, value.toString(), args);
+        return JSON.parse(result);
     }
 }
 
