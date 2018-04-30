@@ -451,24 +451,16 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 	}
 
 	// VRF verify
-	newAllBlocks, newTailBlocks := pool.verifyVrfOfTails(parentBlock, allBlocks, tailBlocks)
+	newAllBlocks, newTailBlocks := pool.verifyVRFOfForks(parentBlock, allBlocks, tailBlocks)
 	if len(newTailBlocks) == 0 {
 		cache.Remove(lb.hash.Hex())
 		return nil
 	}
 
-	logging.VLog().WithFields(logrus.Fields{
-		"newAllBlocks":  newAllBlocks,
-		"newTailBlocks": newTailBlocks,
-	}).Error("new tail===========.5")
-
 	if err := bc.putVerifiedNewBlocks(parentBlock, newAllBlocks, newTailBlocks); err != nil {
 		cache.Remove(lb.hash.Hex())
 		return err
 	}
-	logging.VLog().WithFields(logrus.Fields{
-		"parentBlock": parentBlock,
-	}).Error("parentBlock===========.4")
 	// remove allBlocks from cache.
 	for _, v := range allBlocks {
 		cache.Remove(v.Hash().Hex())
@@ -478,12 +470,8 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 	return pool.bc.ConsensusHandler().ForkChoice()
 }
 
-func (pool *BlockPool) verifyVrfOfTails(parent *Block, allBlocks, tailBlocks []*Block) (newAll, newTails []*Block) {
-	defer func() {
-		if r := recover(); r != nil {
-			logging.VLog().WithFields(logrus.Fields{}).Error("current tail===========recover.", r)
-		}
-	}()
+func (pool *BlockPool) verifyVRFOfForks(parent *Block, allBlocks, tailBlocks []*Block) (newAll, newTails []*Block) {
+
 	allBlocksMap := make(map[string]*Block)
 	for _, b := range allBlocks {
 		allBlocksMap[b.Hash().String()] = b
@@ -491,34 +479,21 @@ func (pool *BlockPool) verifyVrfOfTails(parent *Block, allBlocks, tailBlocks []*
 
 	for _, tail := range tailBlocks {
 
-		logging.VLog().WithFields(logrus.Fields{
-			"tail":         tail,
-			"parent":       parent,
-			"allBlocksMap": allBlocksMap,
-		}).Error("current tail===========1.")
-
-		subAll, valid := pool.isValidSubChain(parent, tail, allBlocksMap)
+		forkAll, valid := pool.verifyVRFOfFork(parent, tail, allBlocksMap)
 		if !valid {
 			logging.VLog().WithFields(logrus.Fields{
 				"parent": parent,
 				"tail":   tail,
-			}).Error("Discard an invalid sub chain.3")
+			}).Error("Discard an invalid fork for VRF verification failure.")
 			continue
 		}
-		logging.VLog().WithFields(logrus.Fields{
-			"newAll":   newAll,
-			"newTails": newTails,
-			"subAll":   subAll,
-			"valid":    valid,
-			"tail":     tail,
-		}).Error("check tail===========2.")
-		newAll = append(newAll, subAll...)
+		newAll = append(newAll, forkAll...)
 		newTails = append(newTails, tail)
 	}
 	return
 }
 
-func (pool *BlockPool) isValidSubChain(stop, tail *Block, allBlocksMap map[string]*Block) (allBlocks []*Block, valid bool) {
+func (pool *BlockPool) verifyVRFOfFork(stop, tail *Block, allBlocksMap map[string]*Block) (allBlocks []*Block, valid bool) {
 
 	for stop.Height() < tail.Height() {
 
@@ -531,12 +506,14 @@ func (pool *BlockPool) isValidSubChain(stop, tail *Block, allBlocksMap map[strin
 			if !ok {
 				tail = pool.bc.GetBlock(tph)
 			}
-			logging.VLog().WithFields(logrus.Fields{
-				"ok":        ok,
-				"tail":      tail,
-				"stop":      stop,
-				"allBlocks": allBlocks,
-			}).Error("check ===========10.")
+			if tail == nil {
+				// Normally, should not be here
+				logging.VLog().WithFields(logrus.Fields{
+					"blockHash":    tph,
+					"traverseStop": stop,
+				}).Error("Parent block not found for VRF input")
+				return nil, false
+			}
 			continue
 		}
 
@@ -556,35 +533,33 @@ func (pool *BlockPool) isValidSubChain(stop, tail *Block, allBlocksMap map[strin
 		}
 		if len(hashes) != VRFInputParentHashNumber {
 			logging.VLog().WithFields(logrus.Fields{
-				"tail":   tail,
-				"stop":   stop,
-				"hashes": hashes,
+				"tail":         tail,
+				"traverseStop": stop,
+				"hashes":       hashes,
 			}).Error("Failed to get enough parent block hash for VRF.")
 			return nil, false
 		}
 
-		logging.VLog().WithFields(logrus.Fields{
-			"tail":   tail,
-			"stop":   stop,
-			"hashes": hashes,
-		}).Error("================12")
-
 		if err := pool.vrfProof(tail, hashes); err != nil {
 			logging.VLog().WithFields(logrus.Fields{
 				"err": err,
-			}).Error("Failed to VRF proof.")
+			}).Error("VRF proof failed.")
 			return nil, false
 		}
+
 		var ok bool
 		tail, ok = allBlocksMap[tph.String()]
 		if !ok {
 			tail = pool.bc.GetBlock(tph)
 		}
-		logging.VLog().WithFields(logrus.Fields{
-			"tail": tail,
-			"stop": stop,
-			"ok":   ok,
-		}).Error("================13")
+		if tail == nil {
+			// Normally, should not be here
+			logging.VLog().WithFields(logrus.Fields{
+				"blockHash":    tph,
+				"traverseStop": stop,
+			}).Error("Parent block not found for VRF input")
+			return nil, false
+		}
 	}
 	return allBlocks, true
 }
