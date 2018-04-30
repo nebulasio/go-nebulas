@@ -457,11 +457,18 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 		return nil
 	}
 
+	logging.VLog().WithFields(logrus.Fields{
+		"newAllBlocks":  newAllBlocks,
+		"newTailBlocks": newTailBlocks,
+	}).Error("new tail===========.")
+
 	if err := bc.putVerifiedNewBlocks(parentBlock, newAllBlocks, newTailBlocks); err != nil {
 		cache.Remove(lb.hash.Hex())
 		return err
 	}
-
+	logging.VLog().WithFields(logrus.Fields{
+		"parentBlock": parentBlock,
+	}).Error("parentBlock===========.")
 	// remove allBlocks from cache.
 	for _, v := range allBlocks {
 		cache.Remove(v.Hash().Hex())
@@ -479,6 +486,10 @@ func (pool *BlockPool) verifyVrfOfTails(parent *Block, allBlocks, tailBlocks []*
 	}
 
 	for _, tail := range tailBlocks {
+
+		logging.VLog().WithFields(logrus.Fields{
+			"tail": tail,
+		}).Error("current tail===========.")
 
 		subAll, valid := pool.isValidSubChain(parent, tail, allBlocksMap)
 		if !valid {
