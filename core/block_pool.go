@@ -518,9 +518,9 @@ func (pool *BlockPool) verifyVrfOfTails(parent *Block, allBlocks, tailBlocks []*
 	return
 }
 
-func (pool *BlockPool) isValidSubChain(parentOnChain, tail *Block, allBlocksMap map[string]*Block) (allBlocks []*Block, valid bool) {
+func (pool *BlockPool) isValidSubChain(stop, tail *Block, allBlocksMap map[string]*Block) (allBlocks []*Block, valid bool) {
 
-	for parentOnChain.Height() < tail.Height() {
+	for stop.Height() < tail.Height() {
 
 		tph := tail.ParentHash()
 		allBlocks = append(allBlocks, tail)
@@ -531,29 +531,43 @@ func (pool *BlockPool) isValidSubChain(parentOnChain, tail *Block, allBlocksMap 
 			if !ok {
 				tail = pool.bc.GetBlock(tph)
 			}
+			logging.VLog().WithFields(logrus.Fields{
+				"ok":        ok,
+				"tail":      tail,
+				"stop":      stop,
+				"allBlocks": allBlocks,
+			}).Error("check ===========10.")
 			continue
 		}
 
 		hashes := make([]byteutils.Hash, 0)
-
+		p := tph
 		for i := 0; i < VRFInputParentHashNumber; i++ {
 
-			b, ok := allBlocksMap[tph.String()]
+			b, ok := allBlocksMap[p.String()]
 			if !ok {
-				b = pool.bc.GetBlock(tph)
+				b = pool.bc.GetBlock(p)
 			}
 			if b == nil {
 				break
 			}
-			hashes = append(hashes, tph)
-			tph = b.ParentHash()
+			hashes = append(hashes, p)
+			p = b.ParentHash()
 		}
 		if len(hashes) != VRFInputParentHashNumber {
 			logging.VLog().WithFields(logrus.Fields{
-				"tail": tail.String(),
+				"tail":   tail,
+				"stop":   stop,
+				"hashes": hashes,
 			}).Error("Failed to get enough parent block hash for VRF.")
 			return nil, false
 		}
+
+		logging.VLog().WithFields(logrus.Fields{
+			"tail":   tail,
+			"stop":   stop,
+			"hashes": hashes,
+		}).Error("================12")
 
 		if err := pool.vrfProof(tail, hashes); err != nil {
 			logging.VLog().WithFields(logrus.Fields{
@@ -566,6 +580,11 @@ func (pool *BlockPool) isValidSubChain(parentOnChain, tail *Block, allBlocksMap 
 		if !ok {
 			tail = pool.bc.GetBlock(tph)
 		}
+		logging.VLog().WithFields(logrus.Fields{
+			"tail": tail,
+			"stop": stop,
+			"ok":   ok,
+		}).Error("================13")
 	}
 	return allBlocks, true
 }
