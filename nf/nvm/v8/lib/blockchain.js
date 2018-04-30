@@ -42,14 +42,21 @@ var Contract = function(address, contract_interface) {
         if (typeof(contract_interface[func]) !== 'function') {
             throw("wrong interface define")
         }
-        //TODO: check if this works 
+      
         var expression = new RegExp(func, "m");
         if (src.search(expression) == -1) {
             throw("contract have no function called : " + func);
         }
         
         this[func] = function() {
-            _native_blockchain.runContractSource(this.address, func, value.toString(), JSON.stringify(arguments));
+            var value = this.v;
+            this.v = 0;
+  
+            var args = new Array();
+            for (var i = 0; i < arguments.length; i++) {
+                args.push(arguments[i]);
+            }
+            _native_blockchain.runContractSource(this.address, func, value.toString(), JSON.stringify(args));
         }
     }
         

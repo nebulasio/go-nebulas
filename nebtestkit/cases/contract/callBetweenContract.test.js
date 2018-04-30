@@ -203,7 +203,9 @@ describe('test transfer from contract', function () {
                     }).then(function(state){
                         expect(state.balance).to.be.equal("2000000000000000000");
                         done();
-                    });
+                    }).catch(function(err){
+                        done(err);
+                    })
                 } catch(err) {
                     console.log("check tx err :" + err);
                     done(err);
@@ -240,6 +242,8 @@ describe('test transfer from contract', function () {
                     }).then(function(state){
                         expect(state.balance).to.be.equal("2000000000000000000");
                         done();
+                    }).catch(function(err){
+                        done(err);
                     });
                 } catch(err) {
                     console.log("check tx err :" + err);

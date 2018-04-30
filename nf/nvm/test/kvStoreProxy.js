@@ -28,7 +28,8 @@ kvStore.prototype = {
         args[0] = key;
         args[1] = value;
 
-        real_kv.value(2000000000000000000).call('save', JSON.stringify(args));
+        // real_kv.value(2000000000000000000).call('save', JSON.stringify(args));
+        real_kv.value(2000000000000000000).save(key, value);
     },
 
     get: function(address, key) {
