@@ -451,13 +451,13 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 	}
 
 	// VRF verify
-	allBlocks, tailBlocks = pool.verifyVrfOfTails(parentBlock, allBlocks, tailBlocks)
-	if len(tailBlocks) == 0 {
+	newAllBlocks, newTailBlocks := pool.verifyVrfOfTails(parentBlock, allBlocks, tailBlocks)
+	if len(newTailBlocks) == 0 {
 		cache.Remove(lb.hash.Hex())
 		return nil
 	}
 
-	if err := bc.putVerifiedNewBlocks(parentBlock, allBlocks, tailBlocks); err != nil {
+	if err := bc.putVerifiedNewBlocks(parentBlock, newAllBlocks, newTailBlocks); err != nil {
 		cache.Remove(lb.hash.Hex())
 		return err
 	}
@@ -488,6 +488,13 @@ func (pool *BlockPool) verifyVrfOfTails(parent *Block, allBlocks, tailBlocks []*
 			}).Error("Discard an invalid sub chain.")
 			continue
 		}
+		logging.VLog().WithFields(logrus.Fields{
+			"newAll":   newAll,
+			"newTails": newTails,
+			"subAll":   subAll,
+			"valid":    valid,
+			"tail":     tail,
+		}).Error("check tail===========.")
 		newAll = append(newAll, subAll...)
 		newTails = append(newTails, tail)
 	}
