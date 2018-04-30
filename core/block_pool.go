@@ -460,7 +460,7 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 	logging.VLog().WithFields(logrus.Fields{
 		"newAllBlocks":  newAllBlocks,
 		"newTailBlocks": newTailBlocks,
-	}).Error("new tail===========.")
+	}).Error("new tail===========.5")
 
 	if err := bc.putVerifiedNewBlocks(parentBlock, newAllBlocks, newTailBlocks); err != nil {
 		cache.Remove(lb.hash.Hex())
@@ -468,7 +468,7 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 	}
 	logging.VLog().WithFields(logrus.Fields{
 		"parentBlock": parentBlock,
-	}).Error("parentBlock===========.")
+	}).Error("parentBlock===========.4")
 	// remove allBlocks from cache.
 	for _, v := range allBlocks {
 		cache.Remove(v.Hash().Hex())
@@ -479,7 +479,11 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 }
 
 func (pool *BlockPool) verifyVrfOfTails(parent *Block, allBlocks, tailBlocks []*Block) (newAll, newTails []*Block) {
-
+	defer func() {
+		if r := recover(); r != nil {
+			logging.VLog().WithFields(logrus.Fields{}).Error("current tail===========recover.", r)
+		}
+	}()
 	allBlocksMap := make(map[string]*Block)
 	for _, b := range allBlocks {
 		allBlocksMap[b.Hash().String()] = b
@@ -488,15 +492,17 @@ func (pool *BlockPool) verifyVrfOfTails(parent *Block, allBlocks, tailBlocks []*
 	for _, tail := range tailBlocks {
 
 		logging.VLog().WithFields(logrus.Fields{
-			"tail": tail,
-		}).Error("current tail===========.")
+			"tail":         tail,
+			"parent":       parent,
+			"allBlocksMap": allBlocksMap,
+		}).Error("current tail===========1.")
 
 		subAll, valid := pool.isValidSubChain(parent, tail, allBlocksMap)
 		if !valid {
 			logging.VLog().WithFields(logrus.Fields{
-				"parent": parent.String(),
-				"tail":   tail.String(),
-			}).Error("Discard an invalid sub chain.")
+				"parent": parent,
+				"tail":   tail,
+			}).Error("Discard an invalid sub chain.3")
 			continue
 		}
 		logging.VLog().WithFields(logrus.Fields{
@@ -505,7 +511,7 @@ func (pool *BlockPool) verifyVrfOfTails(parent *Block, allBlocks, tailBlocks []*
 			"subAll":   subAll,
 			"valid":    valid,
 			"tail":     tail,
-		}).Error("check tail===========.")
+		}).Error("check tail===========2.")
 		newAll = append(newAll, subAll...)
 		newTails = append(newTails, tail)
 	}
