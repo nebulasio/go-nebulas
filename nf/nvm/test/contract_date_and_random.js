@@ -15,8 +15,16 @@ Contract.prototype = {
         });
 
         var date = arguments.length == 0 ? new Date() : new Date(arguments[0]);
+        var date2 = new Date();
+        date2.setFullYear(1988);
         var data = {
+            UTC: Date.UTC(),
             now: Date.now(),
+            parse: Date.parse('04 Dec 1995 00:12:00 GMT'),
+            getUTCDate: date.getUTCDate(),
+            timeZone: date.getTimezoneOffset(),
+            toJSON: date.toJSON(),
+            setFullYear: date2.toString(),
             height: Blockchain.block.height,
             timestamp: Blockchain.block.timestamp,
             valueOf: date.valueOf(),
