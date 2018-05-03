@@ -418,7 +418,7 @@ func RunMultilevelContractSourceFunc(handler unsafe.Pointer, address *C.char, fu
 	var transferCoseGas uint64
 	iRet := TransferByAddress(handler, fromAddr, addr, C.GoString(v), &transferCoseGas)
 	if iRet != 0 {
-		packErrInfo(MultiTransferErrByAddress, rerrType, rerr, "TransferByAddress,form:%v,to:%v,value:%v,engine index:%v", fromAddr.String(), addr.String(), C.GoString(v), err, engine.ctx.index)
+		packErrInfo(MultiTransferErrByAddress, rerrType, rerr, "TransferByAddress,form:%v,to:%v,value:%v,err:%v, engine index:%v", fromAddr.String(), addr.String(), C.GoString(v), err, engine.ctx.index)
 		return nil
 	}
 
@@ -434,7 +434,7 @@ func RunMultilevelContractSourceFunc(handler unsafe.Pointer, address *C.char, fu
 			fromAddr.String(), addr.String(), C.GoString(v), oldTx.Nonce(), engine.ctx.index)
 		return nil
 	}
-
+	newTx.SetHash(oldTx.Hash())
 	// event address need to user
 	var head unsafe.Pointer
 	if engine.ctx.head == nil {
@@ -448,13 +448,18 @@ func RunMultilevelContractSourceFunc(handler unsafe.Pointer, address *C.char, fu
 		return nil
 	}
 
-	verbInstruction, verbMem := engine.GetNVMVerbResources()
-	verbInstruction -= uint64(RunMultilevelContractSourceFuncCost)
-	verbInstruction -= uint64(TransferFuncCost)
+	remainInstruction, remainMem := engine.GetNVMVerbResources()
+	iCost := RunMultilevelContractSourceFuncCost + TransferFuncCost
+	if remainInstruction < uint64(iCost) {
+		packErrInfo(MultiNvmSystemErr, rerrType, rerr, "engine.call system err:%v, engine index:%d", err, index)
+		return nil
+	}
+	remainInstruction -= uint64(RunMultilevelContractSourceFuncCost)
+	remainInstruction -= uint64(TransferFuncCost)
 
-	logging.CLog().Infof("begin create New V8,intance:%v, mem:%v", verbInstruction, verbMem)
+	logging.CLog().Infof("begin create New V8,intance:%v, mem:%v", remainInstruction, remainMem)
 	engineNew := NewV8Engine(newCtx)
-	engineNew.SetExecutionLimits(verbInstruction, verbMem)
+	engineNew.SetExecutionLimits(remainInstruction, remainMem)
 
 	val, err := engineNew.Call(string(deploy.Source), deploy.SourceType, C.GoString(funcName), C.GoString(args))
 	gasCout := engineNew.ExecutionInstructions()
@@ -473,7 +478,7 @@ func RunMultilevelContractSourceFunc(handler unsafe.Pointer, address *C.char, fu
 		}
 		return nil
 	}
-	logging.CLog().Infof("end cal val:%v,gascount:%V,gasSum:%v", val, gasCout, gasSum)
+	logging.CLog().Infof("end cal val:%v,gascount:%v,gasSum:%v", val, gasCout, gasSum)
 	*gasCnt = C.size_t(gasSum)
 	return C.CString(string(val))
 }

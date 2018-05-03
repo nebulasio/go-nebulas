@@ -291,6 +291,11 @@ func (tx *Transaction) Hash() byteutils.Hash {
 	return tx.hash
 }
 
+// SetHash set hash to in args
+func (tx *Transaction) SetHash(in byteutils.Hash) {
+	tx.hash = in
+}
+
 // GasPrice returns gasPrice
 func (tx *Transaction) GasPrice() *util.Uint128 {
 	return tx.gasPrice
