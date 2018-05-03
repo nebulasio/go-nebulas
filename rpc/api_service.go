@@ -141,39 +141,10 @@ func parseTransaction(neb core.Neblet, reqTx *rpcpb.TransactionRequest) (*core.T
 	if err != nil {
 		return nil, errors.New("invalid gasLimit")
 	}
-	var (
-		payloadType string
-		payload     []byte
-	)
 
-	if reqTx.Contract != nil {
-		if len(reqTx.Contract.Source) > 0 && len(reqTx.Contract.Function) == 0 && fromAddr.Equals(toAddr) {
-			payloadType = core.TxPayloadDeployType
-			payloadObj, err := core.NewDeployPayload(reqTx.Contract.Source, reqTx.Contract.SourceType, reqTx.Contract.Args)
-			if err != nil {
-				return nil, err
-			}
-			if payload, err = payloadObj.ToBytes(); err != nil {
-				return nil, err
-			}
-		} else if len(reqTx.Contract.Source) == 0 && len(reqTx.Contract.Function) > 0 && toAddr.Type() == core.ContractAddress {
-			payloadType = core.TxPayloadCallType
-			callpayload, err := core.NewCallPayload(reqTx.Contract.Function, reqTx.Contract.Args)
-			if err != nil {
-				return nil, err
-			}
-
-			if payload, err = callpayload.ToBytes(); err != nil {
-				return nil, err
-			}
-		} else {
-			return nil, errors.New("invalid contract")
-		}
-	} else {
-		payloadType = core.TxPayloadBinaryType
-		if payload, err = core.NewBinaryPayload(reqTx.Binary).ToBytes(); err != nil {
-			return nil, err
-		}
+	payloadType, payload, err := parseTransactionPayload(reqTx)
+	if err != nil {
+		return nil, err
 	}
 
 	tx, err := core.NewTransaction(neb.BlockChain().ChainID(), fromAddr, toAddr, value, reqTx.Nonce, payloadType, payload, gasPrice, gasLimit)
@@ -181,6 +152,83 @@ func parseTransaction(neb core.Neblet, reqTx *rpcpb.TransactionRequest) (*core.T
 		return nil, err
 	}
 	return tx, nil
+}
+
+func parseTransactionPayload(reqTx *rpcpb.TransactionRequest) (payloadType string, payload []byte, err error) {
+	if len(reqTx.Type) > 0 {
+		switch reqTx.Type {
+		case core.TxPayloadBinaryType:
+			{
+				if payload, err = core.NewBinaryPayload(reqTx.Binary).ToBytes(); err != nil {
+					return "", nil, err
+				}
+			}
+		case core.TxPayloadDeployType:
+			{
+				if reqTx.Contract == nil {
+					return "", nil, core.ErrInvalidDeploySource
+				}
+				deployPayload, err := core.NewDeployPayload(reqTx.Contract.Source, reqTx.Contract.SourceType, reqTx.Contract.Args)
+				if err != nil {
+					return "", nil, err
+				}
+				if payload, err = deployPayload.ToBytes(); err != nil {
+					return "", nil, err
+				}
+			}
+		case core.TxPayloadCallType:
+			{
+				if reqTx.Contract == nil {
+					return "", nil, core.ErrInvalidCallFunction
+				}
+				callpayload, err := core.NewCallPayload(reqTx.Contract.Function, reqTx.Contract.Args)
+				if err != nil {
+					return "", nil, err
+				}
+
+				if payload, err = callpayload.ToBytes(); err != nil {
+					return "", nil, err
+				}
+			}
+		default:
+			return "", nil, core.ErrInvalidTxPayloadType
+		}
+	} else {
+		if reqTx.Contract != nil {
+			toAddr, err := core.AddressParse(reqTx.To)
+			if err != nil {
+				return "", nil, err
+			}
+			if len(reqTx.Contract.Source) > 0 && len(reqTx.Contract.Function) == 0 && reqTx.From == reqTx.To {
+				payloadType = core.TxPayloadDeployType
+				payloadObj, err := core.NewDeployPayload(reqTx.Contract.Source, reqTx.Contract.SourceType, reqTx.Contract.Args)
+				if err != nil {
+					return "", nil, err
+				}
+				if payload, err = payloadObj.ToBytes(); err != nil {
+					return "", nil, err
+				}
+			} else if len(reqTx.Contract.Source) == 0 && len(reqTx.Contract.Function) > 0 && toAddr.Type() == core.ContractAddress {
+				payloadType = core.TxPayloadCallType
+				callpayload, err := core.NewCallPayload(reqTx.Contract.Function, reqTx.Contract.Args)
+				if err != nil {
+					return "", nil, err
+				}
+
+				if payload, err = callpayload.ToBytes(); err != nil {
+					return "", nil, err
+				}
+			} else {
+				return "", nil, errors.New("invalid contract")
+			}
+		} else {
+			payloadType = core.TxPayloadBinaryType
+			if payload, err = core.NewBinaryPayload(reqTx.Binary).ToBytes(); err != nil {
+				return "", nil, err
+			}
+		}
+	}
+	return payloadType, payload, nil
 }
 
 func handleTransactionResponse(neb core.Neblet, tx *core.Transaction) (resp *rpcpb.SendTransactionResponse, err error) {

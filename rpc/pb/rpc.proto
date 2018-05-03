@@ -366,6 +366,9 @@ message TransactionRequest {
 
     // binary data for transaction
     bytes binary = 10;
+
+    // transaction payload type, enum:binary, deploy, call
+    string type = 20;
 }
 
 message ContractRequest {
