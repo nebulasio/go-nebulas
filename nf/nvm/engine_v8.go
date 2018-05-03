@@ -39,7 +39,7 @@ char *GetAccountStateFunc_cgo(void *handler, const char *address);
 int TransferFunc_cgo(void *handler, const char *to, const char *value);
 int VerifyAddressFunc_cgo(void *handler, const char *address);
 char *GetContractSourceFunc_cgo(void *handler, const char *address);
-char *RunMultilevelContractSourceFunc_cgo(void *handler, const char *address, const char *funcName, const char * v, const char *args, size_t *gasCnt);
+char *RunMultilevelContractSourceFunc_cgo(void *handler, const char *address, const char *funcName, const char * v, const char *args, size_t *gasCnt, size_t rerrType, char **rerr);
 
 void EventTriggerFunc_cgo(void *handler, const char *topic, const char *data, size_t *gasCnt);
 

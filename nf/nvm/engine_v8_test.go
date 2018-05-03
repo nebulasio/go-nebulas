@@ -1612,6 +1612,12 @@ func TestInnerTransactions(t *testing.T) {
 		accountBNew, err := tail.GetAccount(contract_newO.Bytes())
 		assert.Nil(t, err)
 		fmt.Printf("accountB :%v\naccount_:%v", accountBNew)
+
+		aI, err := tail.GetAccount(a.Bytes())
+		// bI, err := tail.GetAccount(b.Bytes())
+		fmt.Printf("aI:%v\n", aI)
+		bI, err := tail.GetAccount(b.Bytes())
+		fmt.Printf("b:%v\n", bI)
 		// assert.Equal(t, txEvent.Status, 1)
 	}
 }

@@ -73,7 +73,7 @@ typedef int (*VerifyAddressFunc)(void *handler, const char *address,
 typedef char *(*GetContractSourceFunc)(void *handler, const char *address,
                                  size_t *counterVal);
 typedef char *(*RunMultilevelContractSourceFunc)(void *handler, const char *address, const char *funcName, const char * v,
-		const char *args, size_t *gasCnt);
+		const char *args, size_t *gasCnt, size_t *rerrType, char **rerr);
 
 EXPORT void InitializeBlockchain(GetTxByHashFunc getTx,
                                  GetAccountStateFunc getAccount,

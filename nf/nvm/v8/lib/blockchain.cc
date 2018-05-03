@@ -292,17 +292,42 @@ void RunMultilevelContractSourceCallBack(const FunctionCallbackInfo<Value> &info
   }
 
   size_t cnt = 0;
+  size_t rerrType = 0;
+  char *rerr = NULL;
   char *value = sRunMultContract(handler->Value(),
                            *String::Utf8Value(address->ToString()), *String::Utf8Value(funcName->ToString()),
                            *String::Utf8Value(val->ToString()), *String::Utf8Value(args->ToString()),
-                           &cnt);
+                           &cnt, &rerrType, &rerr);
+  Local<Object> rObj = v8::Object::New(isolate);
+    // 对象的赋值
+    // obj->Set(v8::String::NewFromUtf8(isolate, "arg1"), str);
+    // obj->Set(v8::String::NewFromUtf8(isolate, "arg2"), retval);                         
   if (value == NULL) {
-    // info.GetReturnValue().SetNull();
-    isolate->ThrowException(
+    //info.GetReturnValue().SetNull();
+    if (rerrType <= 10000) {
+      isolate->ThrowException(
         String::NewFromUtf8(isolate, "mult run nvm err!!!"));
+    }
+    Local<Boolean> flag = Boolean::New(isolate, false);
+    rObj->Set(v8::String::NewFromUtf8(isolate, "code"), flag);
+    char msg[512];
+    snprintf(msg, 512, "--------------sRunMultContract:%s", rerr);
+    //rObj->Set(v8::String::NewFromUtf8(isolate, "ret"), Null);
+    Local<String> errStr = v8::String::NewFromUtf8(isolate, msg);
+    rObj->Set(v8::String::NewFromUtf8(isolate, "msg"), errStr);
+    info.GetReturnValue().Set(rObj);
+    free(rerr);
     return;
   } else {
-    info.GetReturnValue().Set(String::NewFromUtf8(isolate, value));
+    Local<Boolean> flag = Boolean::New(isolate, true);
+    rObj->Set(v8::String::NewFromUtf8(isolate, "code"), flag);
+    Local<String> valueStr = v8::String::NewFromUtf8(isolate, value);
+
+    rObj->Set(v8::String::NewFromUtf8(isolate, "data"), valueStr);
+    info.GetReturnValue().Set(rObj);
+
+    //info.GetReturnValue().Set(String::NewFromUtf8(isolate, value));
+
     free(value);
   }
 

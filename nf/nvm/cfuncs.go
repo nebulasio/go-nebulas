@@ -39,7 +39,7 @@ int TransferFunc(void *handler, const char *to, const char *value, size_t *gasCn
 int VerifyAddressFunc(void *handler, const char *address, size_t *gasCnt);
 char *GetContractSourceFunc(void *handler, const char *address, size_t *gasCnt);
 char *RunMultilevelContractSourceFunc(void *handler, const char *address, const char *funcName, const char * v,
-		const char *args, size_t *gasCnt);
+		const char *args, size_t *gasCnt, size_t *rerrType, char **rerr);
 
 // event.
 void EventTriggerFunc(void *handler, const char *topic, const char *data, size_t *gasCnt);
@@ -78,8 +78,8 @@ int VerifyAddressFunc_cgo(void *handler, const char *address, size_t *gasCnt) {
 char *GetContractSourceFunc_cgo(void *handler, const char *address, size_t *gasCnt) {
 	return GetContractSourceFunc(handler, address, gasCnt);
 };
-char *RunMultilevelContractSourceFunc_cgo(void *handler, const char *address, const char *funcName, const char * v, const char *args, size_t *gasCnt) {
-	return RunMultilevelContractSourceFunc(handler, address, funcName, v, args, gasCnt);
+char *RunMultilevelContractSourceFunc_cgo(void *handler, const char *address, const char *funcName, const char * v, const char *args, size_t *gasCnt, size_t *rerrType, char **rerr) {
+	return RunMultilevelContractSourceFunc(handler, address, funcName, v, args, gasCnt, rerrType, rerr);
 };
 void EventTriggerFunc_cgo(void *handler, const char *topic, const char *data, size_t *gasCnt) {
 	EventTriggerFunc(handler, topic, data, gasCnt);

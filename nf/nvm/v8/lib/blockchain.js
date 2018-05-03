@@ -122,6 +122,7 @@ Blockchain.prototype = {
             value = new BigNumber(value);
         }
         var ret = this.nativeBlockchain.transfer(address, value.toString(10));
+        //console.log("-----ret:err", ret, err);
         return ret == 0;
     },
     verifyAddress: function (address) {
