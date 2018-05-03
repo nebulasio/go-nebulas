@@ -43,12 +43,78 @@ var NebDate = (function(Date) {
     NebDate.parse = function(dateString) {
         return Date.parse(dateString);
     }
+
+    NebDate.prototype.getTimezoneOffset = function() {
+        return 0;
+    }
+    NebDate.prototype.getDate = function() {
+        return this.getUTCDate();
+    }
+    NebDate.prototype.getDay = function() {
+        return this.getUTCDay();
+    }
+    NebDate.prototype.getFullYear = function() {
+        return this.getUTCFullYear();
+    }
+    NebDate.prototype.getHours = function() {
+        return this.getUTCHours();
+    }
+    NebDate.prototype.getMilliseconds = function() {
+        return this.getUTCMilliseconds();
+    }
+    NebDate.prototype.getMinutes = function() {
+        return this.getUTCMinutes();
+    }
+    NebDate.prototype.getMonth = function() {
+        return this.getUTCMonth();
+    }
+    NebDate.prototype.getSeconds = function() {
+        return this.getUTCSeconds();
+    },
+    NebDate.prototype.getYear = function() {
+        throw new Error("Deprecated!");
+    }
+    NebDate.prototype.setYear = function() {
+        throw new Error("Deprecated!");
+    }
+    NebDate.prototype.setDate = function() {
+        return this.setUTCDate.apply(this, arguments);
+    }
+    NebDate.prototype.setFullYear = function() {
+        return this.setUTCFullYear.apply(this, arguments);
+    }
+    NebDate.prototype.setHours = function() {
+        return this.setUTCHours.apply(this, arguments);
+    }
+    NebDate.prototype.setMilliseconds = function() {
+        return this.setUTCMilliseconds.apply(this, arguments);
+    }
+    NebDate.prototype.setMinutes = function() {
+        return this.setUTCMinutes.apply(this, arguments);
+    }
+    NebDate.prototype.setMonth = function() {
+        return this.setUTCMonth.apply(this, arguments);
+    }
+    NebDate.prototype.setSeconds = function() {
+        return this.setUTCSeconds.apply(this, arguments);
+    }
+    NebDate.prototype.toString = function() {
+        // return UTC string
+        return this.toUTCString.apply(this, arguments);
+    }
+    NebDate.prototype.toDateString = function() {
+        throw new Error("Unsupported method!");
+    }
+    NebDate.prototype.toTimeString = function() {
+        throw new Error("Unsupported method!");
+    }
+
     NebDate.prototype = new Proxy(NebDate.prototype, {
         getPrototypeOf: function(target) {
             throw new Error("Unsupported method!");
         },
     });
-    // TODO: timezone/locale => 0
+
     Object.setPrototypeOf(NebDate.prototype, Date.prototype);
     return NebDate;
 })(Date);
