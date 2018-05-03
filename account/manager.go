@@ -21,6 +21,7 @@ package account
 import (
 	"errors"
 
+	"github.com/nebulasio/go-nebulas/crypto/hash"
 	"github.com/nebulasio/go-nebulas/crypto/keystore/secp256k1/vrf/secp256k1VRF"
 
 	"github.com/nebulasio/go-nebulas/util/byteutils"
@@ -388,15 +389,8 @@ func (m *Manager) SignBlock(addr *core.Address, block *core.Block) error {
 	return block.Sign(signature)
 }
 
-// GenerateBlockRand generate rand
-func (m *Manager) GenerateBlockRand(addr *core.Address, parentHashes []byteutils.Hash) (vrfHash, vrfProof []byte, err error) {
-
-	if len(parentHashes) != core.VRFInputParentHashNumber {
-		logging.VLog().WithFields(logrus.Fields{
-			"parent_hash_length": len(parentHashes),
-		}).Error("Parent hashes are not enough.")
-		return nil, nil, core.ErrInvalidArgument
-	}
+// GenerateRandomSeed generate rand
+func (m *Manager) GenerateRandomSeed(addr *core.Address, args ...[]byte) (vrfSeed, vrfProof []byte, err error) {
 
 	key, err := m.ks.GetUnlocked(addr.String())
 	if err != nil {
@@ -421,15 +415,13 @@ func (m *Manager) GenerateBlockRand(addr *core.Address, parentHashes []byteutils
 		return nil, nil, err
 	}
 
-	var data []byte
-	for _, h := range parentHashes {
-		data = append(data, []byte(h)...)
-	}
-	index, proof := signer.Evaluate(data)
+	data := hash.Sha3256(args...)
+
+	seed, proof := signer.Evaluate(data)
 	if proof == nil {
 		return nil, nil, secp256k1VRF.ErrEvaluateFailed
 	}
-	return index[:], proof, nil
+	return seed[:], proof, nil
 }
 
 // SignTransactionWithPassphrase sign transaction with the from passphrase

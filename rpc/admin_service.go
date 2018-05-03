@@ -136,10 +136,10 @@ func (s *AdminService) SignHash(ctx context.Context, req *rpcpb.SignHashRequest)
 	return &rpcpb.SignHashResponse{Data: data}, nil
 }
 
-// GenerateBlockRand generate block's rand info
-func (s *AdminService) GenerateBlockRand(ctx context.Context, req *rpcpb.GenerateBlockRandRequest) (*rpcpb.GenerateBlockRandResponse, error) {
+// GenerateRandomSeed generate block's rand info
+func (s *AdminService) GenerateRandomSeed(ctx context.Context, req *rpcpb.GenerateRandomSeedRequest) (*rpcpb.GenerateRandomSeedResponse, error) {
 	neb := s.server.Neblet()
-	hashes, err := neb.BlockChain().GetRecentNBlockHashBeforeInclusive(req.ParentHash, core.VRFInputParentHashNumber)
+	inputs, err := neb.BlockChain().GetInputForVRFSigner(req.ParentHash, req.Height)
 	if err != nil {
 		return nil, err
 	}
@@ -149,13 +149,13 @@ func (s *AdminService) GenerateBlockRand(ctx context.Context, req *rpcpb.Generat
 		return nil, err
 	}
 
-	vrfHash, vrfProof, err := neb.AccountManager().GenerateBlockRand(addr, hashes)
+	vrfSeed, vrfProof, err := neb.AccountManager().GenerateRandomSeed(addr, inputs...)
 	if err != nil {
 		return nil, err
 	}
 
-	return &rpcpb.GenerateBlockRandResponse{
-		VrfHash:  vrfHash,
+	return &rpcpb.GenerateRandomSeedResponse{
+		VrfSeed:  vrfSeed,
 		VrfProof: vrfProof,
 	}, nil
 }

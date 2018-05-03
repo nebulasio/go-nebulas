@@ -48,6 +48,7 @@ var NebDate = (function(Date) {
             throw new Error("Unsupported method!");
         },
     });
+    // TODO: timezone/locale => 0
     Object.setPrototypeOf(NebDate.prototype, Date.prototype);
     return NebDate;
 })(Date);

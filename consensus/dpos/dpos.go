@@ -378,7 +378,7 @@ func (dpos *Dpos) VerifyBlock(block *core.Block) error {
 	}
 
 	// check block random
-	if block.Height() >= core.RandomAvailableCompatibleHeight && !block.HasBlockRand() {
+	if block.Height() >= core.RandomAvailableCompatibleHeight && !block.HasRandomSeed() {
 		logging.VLog().WithFields(logrus.Fields{
 			"blockHeight":      block.Height(),
 			"compatibleHeight": core.RandomAvailableCompatibleHeight,
@@ -390,39 +390,37 @@ func (dpos *Dpos) VerifyBlock(block *core.Block) error {
 	return nil
 }
 
-func (dpos *Dpos) generateBlockSand(block *core.Block, adminService rpcpb.AdminServiceClient) error {
+func (dpos *Dpos) generateRandomSeed(block *core.Block, adminService rpcpb.AdminServiceClient) error {
 	if dpos.enableRemoteSignServer == true {
 		if adminService == nil {
 			return ErrInvalidArgument
 		}
 		// generate VRF hash,proof
-		if block.Height() >= core.RandomAvailableCompatibleHeight {
-			random, err := adminService.GenerateBlockRand(
-				context.Background(),
-				&rpcpb.GenerateBlockRandRequest{
-					Address:    dpos.miner.String(),
-					ParentHash: block.ParentHash(),
-				})
-			if err != nil {
-				return err
-			}
-			block.SetBlockRand(random.VrfHash, random.VrfProof)
+		random, err := adminService.GenerateRandomSeed(
+			context.Background(),
+			&rpcpb.GenerateRandomSeedRequest{
+				Address:    dpos.miner.String(),
+				ParentHash: block.ParentHash(),
+				Height:     block.Height(),
+			})
+		if err != nil {
+			return err
 		}
+		block.SetRandomSeed(random.VrfSeed, random.VrfProof)
 		return nil
 	}
 
 	// generate VRF hash,proof
-	if block.Height() >= core.RandomAvailableCompatibleHeight {
-		hashes, err := dpos.chain.GetRecentNBlockHashBeforeInclusive(block.ParentHash(), core.VRFInputParentHashNumber)
-		if err != nil {
-			return err
-		}
-		vrfHash, vrfProof, err := dpos.am.GenerateBlockRand(dpos.miner, hashes)
-		if err != nil {
-			return err
-		}
-		block.SetBlockRand(vrfHash, vrfProof)
+	inputs, err := dpos.chain.GetInputForVRFSigner(block.ParentHash(), block.Height())
+	if err != nil {
+		return err
 	}
+	vrfSeed, vrfProof, err := dpos.am.GenerateRandomSeed(dpos.miner, inputs...)
+	if err != nil {
+		return err
+	}
+	block.SetRandomSeed(vrfSeed, vrfProof)
+
 	return nil
 }
 
@@ -481,7 +479,9 @@ func (dpos *Dpos) newBlock(tail *core.Block, consensusState state.ConsensusState
 		adminService = rpcpb.NewAdminServiceClient(conn)
 	}
 
-	dpos.generateBlockSand(block, adminService)
+	if block.Height() >= core.RandomAvailableCompatibleHeight {
+		dpos.generateRandomSeed(block, adminService)
+	}
 
 	block.WorldState().SetConsensusState(consensusState)
 	block.SetTimestamp(consensusState.TimeStamp())
@@ -711,4 +711,9 @@ func (dpos *Dpos) findProposer(now int64) (proposer byteutils.Hash, err error) {
 		return nil, err
 	}
 	return proposer, nil
+}
+
+// NumberOfBlocksInDynasty number of blocks in one dynasty
+func (dpos *Dpos) NumberOfBlocksInDynasty() uint64 {
+	return uint64(DynastyIntervalInMs) / uint64(BlockIntervalInMs)
 }

@@ -40,11 +40,6 @@ import (
 	"golang.org/x/crypto/sha3"
 )
 
-// const
-const (
-	VRFInputParentHashNumber = 7
-)
-
 var (
 	// BlockHashLength define a const of the length of Hash of Block in byte.
 	BlockHashLength = 32
@@ -199,7 +194,7 @@ func (block *Block) FromProto(msg proto.Message) error {
 			if err := block.header.FromProto(msg.Header); err != nil {
 				return err
 			}
-			if msg.Height >= RandomAvailableCompatibleHeight && !block.HasBlockRand() {
+			if msg.Height >= RandomAvailableCompatibleHeight && !block.HasRandomSeed() {
 				logging.VLog().WithFields(logrus.Fields{
 					"blockHeight":      msg.Height,
 					"compatibleHeight": RandomAvailableCompatibleHeight,
@@ -288,17 +283,17 @@ func (block *Block) Sign(signature keystore.Signature) error {
 	return nil
 }
 
-// SetBlockRand set block.header.random
-func (block *Block) SetBlockRand(vrfhash, vrfproof []byte) {
+// SetRandomSeed set block.header.random
+func (block *Block) SetRandomSeed(vrfseed, vrfproof []byte) {
 	block.header.random = &corepb.Random{
-		VrfHash:  vrfhash,
+		VrfSeed:  vrfseed,
 		VrfProof: vrfproof,
 	}
 }
 
-// HasBlockRand check random if exists
-func (block *Block) HasBlockRand() bool {
-	return block.header.random != nil && block.header.random.VrfHash != nil && block.header.random.VrfProof != nil
+// HasRandomSeed check random if exists
+func (block *Block) HasRandomSeed() bool {
+	return block.header.random != nil && block.header.random.VrfSeed != nil && block.header.random.VrfProof != nil
 }
 
 // ChainID returns block's chainID
@@ -389,7 +384,7 @@ func (block *Block) Transactions() Transactions {
 // RandomSeed block random seed (VRF)
 func (block *Block) RandomSeed() string {
 	if block.height >= RandomAvailableCompatibleHeight {
-		return byteutils.Hex(block.header.random.VrfHash)
+		return byteutils.Hex(block.header.random.VrfSeed)
 	}
 	return ""
 }
@@ -796,8 +791,8 @@ func (block *Block) Seal() error {
 func (block *Block) String() string {
 	random := ""
 	if block.height >= RandomAvailableCompatibleHeight && block.header.random != nil {
-		if block.header.random.VrfHash != nil {
-			random += "/vrf_hash/" + byteutils.Hex(block.header.random.VrfHash)
+		if block.header.random.VrfSeed != nil {
+			random += "/vrf_seed/" + byteutils.Hex(block.header.random.VrfSeed)
 		}
 		if block.header.random.VrfProof != nil {
 			random += "/vrf_proof/" + byteutils.Hex(block.header.random.VrfProof)

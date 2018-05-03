@@ -93,6 +93,6 @@ message DownloadBlock {
 }
 
 message Random {
-    bytes vrf_hash = 1;
+    bytes vrf_seed = 1;
     bytes vrf_proof = 2;
 }

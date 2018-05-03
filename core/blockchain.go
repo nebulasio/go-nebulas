@@ -466,19 +466,43 @@ func (bc *BlockChain) GetBlockOnCanonicalChainByHash(blockHash byteutils.Hash) *
 	return blockByHeight
 }
 
-// GetRecentNBlockHashBeforeInclusive read hashes of 'N' on-chain parent blocks before hash(inclusive) as VRF input.
-//	hashes order: from back to front
-func (bc *BlockChain) GetRecentNBlockHashBeforeInclusive(hash byteutils.Hash, n int) (hashes []byteutils.Hash, err error) {
-	if n == 0 || hash == nil {
+// GetInputForVRFSigner returns [ getBlock(block.height - 2 * dynasty.size).hash, block.parent.seed ]
+func (bc *BlockChain) GetInputForVRFSigner(parentHash byteutils.Hash, height uint64) (out [][]byte, err error) {
+	if parentHash == nil || height < RandomAvailableCompatibleHeight {
 		return nil, ErrInvalidArgument
 	}
-	for i := 0; i < n; i++ {
-		block := bc.GetBlockOnCanonicalChainByHash(hash)
-		if block == nil {
+
+	nob := bc.consensusHandler.NumberOfBlocksInDynasty()
+	if height > nob*2 {
+		b := bc.GetBlockOnCanonicalChainByHeight(height - nob*2)
+		if b == nil {
+			logging.VLog().WithFields(logrus.Fields{
+				"blockHeight":          height,
+				"targetHeight":         height - nob,
+				"numOfBlocksInDynasty": nob,
+			}).Error("Block not found.")
 			return nil, ErrNotBlockInCanonicalChain
 		}
-		hashes = append(hashes, hash)
-		hash = block.ParentHash()
+		out = append(out, b.Hash())
+	} else {
+		out = append(out, bc.GenesisBlock().Hash())
+	}
+
+	parent := bc.GetBlockOnCanonicalChainByHash(parentHash)
+	if parent == nil {
+		return nil, ErrNotBlockInCanonicalChain
+	}
+
+	if parent.height >= RandomAvailableCompatibleHeight {
+		if !parent.HasRandomSeed() {
+			logging.VLog().WithFields(logrus.Fields{
+				"parent": parent,
+			}).Info("Parent block has no random seed.")
+			return nil, ErrInvalidBlockRandom
+		}
+		out = append(out, parent.header.random.VrfSeed)
+	} else {
+		out = append(out, bc.GenesisBlock().Hash())
 	}
 	return
 }
@@ -697,10 +721,10 @@ func (bc *BlockChain) SimulateTransactionExecution(tx *Transaction) (*SimulateRe
 		return nil, err
 	}
 
-	sVrfHash, sVrfProof := make([]byte, 32), make([]byte, 129)
-	_, _ = io.ReadFull(rand.Reader, sVrfHash)
+	sVrfSeed, sVrfProof := make([]byte, 32), make([]byte, 129)
+	_, _ = io.ReadFull(rand.Reader, sVrfSeed)
 	_, _ = io.ReadFull(rand.Reader, sVrfProof)
-	block.header.random.VrfHash = sVrfHash
+	block.header.random.VrfSeed = sVrfSeed
 	block.header.random.VrfProof = sVrfProof
 
 	defer block.RollBack()

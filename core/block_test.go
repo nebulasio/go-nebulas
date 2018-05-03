@@ -199,6 +199,9 @@ func (c *mockConsensus) NewState(root *consensuspb.ConsensusRoot, stor storage.S
 func (c *mockConsensus) GenesisConsensusState(*BlockChain, *corepb.Genesis) (state.ConsensusState, error) {
 	return newMockConsensusState(0)
 }
+func (c *mockConsensus) NumberOfBlocksInDynasty() uint64 {
+	return 210
+}
 
 type mockManager struct{}
 
@@ -219,7 +222,7 @@ func (m mockManager) Update(*Address, []byte, []byte) error   { return nil }
 func (m mockManager) Load([]byte, []byte) (*Address, error)   { return nil, nil }
 func (m mockManager) Import([]byte, []byte) (*Address, error) { return nil, nil }
 func (m mockManager) Remove(*Address, []byte) error           { return nil }
-func (m mockManager) GenerateBlockRand(addr *Address, parentHashes []byteutils.Hash) (vrfHash, vrfProof []byte, err error) {
+func (m mockManager) GenerateRandomSeed(addr *Address, args ...[]byte) (vrfSeed, vrfProof []byte, err error) {
 	return nil, nil, nil
 }
 

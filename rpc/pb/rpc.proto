@@ -174,9 +174,9 @@ service AdminService {
         };
     }
 
-    rpc GenerateBlockRand(GenerateBlockRandRequest) returns (GenerateBlockRandResponse) {
+    rpc GenerateRandomSeed(GenerateRandomSeedRequest) returns (GenerateRandomSeedResponse) {
         option (google.api.http) = {
-            post: "/v1/admin/blockrand"
+            post: "/v1/admin/generateRandomSeed"
             body: "*"
         };
     }
@@ -554,15 +554,17 @@ message SignHashResponse {
     bytes data = 1;
 }
 
-message GenerateBlockRandRequest {
+message GenerateRandomSeedRequest {
     // miner address
     string address = 1;
     // parent hash of new block
     bytes parent_hash = 2;
+    // height of new block
+    uint64 height = 3;
 }
 
-message GenerateBlockRandResponse {
-    bytes vrf_hash = 1;
+message GenerateRandomSeedResponse {
+    bytes vrf_seed = 1;
     bytes vrf_proof = 2;
 }
 

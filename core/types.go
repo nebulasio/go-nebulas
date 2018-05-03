@@ -217,6 +217,8 @@ type Consensus interface {
 	GenesisConsensusState(*BlockChain, *corepb.Genesis) (state.ConsensusState, error)
 	CheckTimeout(*Block) bool
 	CheckDoubleMint(*Block) bool
+
+	NumberOfBlocksInDynasty() uint64
 }
 
 // SyncService interface of sync service
@@ -240,7 +242,7 @@ type AccountManager interface {
 
 	SignHash(*Address, byteutils.Hash, keystore.Algorithm) ([]byte, error)
 	SignBlock(*Address, *Block) error
-	GenerateBlockRand(*Address, []byteutils.Hash) ([]byte, []byte, error)
+	GenerateRandomSeed(*Address, ...[]byte) ([]byte, []byte, error)
 	SignTransaction(*Address, *Transaction) error
 	SignTransactionWithPassphrase(*Address, *Transaction, []byte) error
 
