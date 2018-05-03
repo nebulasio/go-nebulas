@@ -25,6 +25,8 @@
 
 using namespace v8;
 
+#define SYSTEMERRSTR  "V8StstemErr"
+
 typedef int (*ExecutionDelegate)(char **result, Isolate *isolate,
                                  const char *source, int source_line_offset,
                                  Local<Context> context, TryCatch &trycatch,

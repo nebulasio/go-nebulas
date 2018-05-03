@@ -64,8 +64,9 @@ type MultiV8error struct {
 const (
 	MultiSystemMemLimit = iota
 	MultiSystemInsufficientLimit
-	MultiNotFoundEngine = 10001
 	MultiNvmMaxLimit
+	MultiNvmSystemErr
+	MultiNotFoundEngine = 10001
 	MultiNotParseAddress
 	MultiContractIsErr
 	MultiGetTransErrByBirth

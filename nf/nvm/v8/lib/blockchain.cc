@@ -19,6 +19,7 @@
 
 #include "blockchain.h"
 #include "../engine.h"
+#include "../engine_int.h"
 #include "instruction_counter.h"
 
 static GetTxByHashFunc sGetTxByHash = NULL;
@@ -307,7 +308,7 @@ void RunMultilevelContractSourceCallBack(const FunctionCallbackInfo<Value> &info
     if (rerrType <= 10000) {
       free(rerr);
       isolate->ThrowException(
-        String::NewFromUtf8(isolate, "mult run nvm err!!!"));
+        String::NewFromUtf8(isolate, SYSTEMERRSTR));
         return;
     }
     Local<Boolean> flag = Boolean::New(isolate, false);
