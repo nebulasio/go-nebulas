@@ -12,9 +12,7 @@ var Unit = Wallet.Unit;
 // mocha cases/contract/xxx testneb2 -t 2000000
 var args = process.argv.splice(2);
 var env = args[1];
-if (env == null){
-    env = "local";
-}
+env = 'local';
 var testNetConfig = new TestNetConfig(env);
 
 var neb = new Neb();
@@ -140,7 +138,6 @@ describe('test transfer from contract', function () {
             done(err);
         }
     });
-    it("", function(){console.log();});
 
     it ('1. test normal call', function (done) {
         nonce = nonce + 1;
@@ -159,13 +156,25 @@ describe('test transfer from contract', function () {
                 try {
                     expect(resp).to.not.be.a('undefined');
                     expect(resp.status).to.be.equal(1);
-                    console.log("----step2. have been on chain");
+                    console.log("----step2. have been on chain， To check balances");
                     neb.api.getAccountState(callerContractAddress).then(function(state){
                         expect(state.balance).to.be.equal("0");
                         return neb.api.getAccountState(calleeContractAddress);
                     }).then(function(state){
                         expect(state.balance).to.be.equal("2000000000000000000");
+                        console.log("----step3, to check the result");
+                        var contract = {
+                            "function": "get",
+                            "args": "[\"" + calleeContractAddress + "\",\"msg1\"]"
+                        };
+                        return neb.api.call(sourceAccount.getAddressString(), callerContractAddress, Unit.nasToBasic(0), nonce, 1000000, 2000000, contract);
+                    }).then(function(result){
+                        console.log("to be deleted");
+                        //result = {"result":"{\"key\":\"msg1\",\"value\":\"湖人总冠军\"}","execute_err":"","estimate_gas":"20511"}
+                        expect(JSON.parse(result.result).value).equal("湖人总冠军");
                         done();
+                    }).catch(function(err) {
+                        done(err);
                     });
                 } catch(err) {
                     console.log("check tx err :" + err);
@@ -178,6 +187,7 @@ describe('test transfer from contract', function () {
             done(err);
         });
     });
+
 
     it ('2. not exist callee contract', function (done) {
         nonce = nonce + 1;
@@ -202,6 +212,9 @@ describe('test transfer from contract', function () {
                         return neb.api.getAccountState(calleeContractAddress);
                     }).then(function(state){
                         expect(state.balance).to.be.equal("2000000000000000000");
+                        return neb.api.getEventsByHash(resp.hash);
+                    }).then(function(result){
+                        expect(JSON.parse(result.events[0].data).error).equal("Call: no contract at this address " + notExistAddress);
                         done();
                     }).catch(function(err){
                         done(err);
@@ -218,11 +231,11 @@ describe('test transfer from contract', function () {
         });
     });
 
-    it ('3. caller contract has not enough gas', function (done) {
+    it ('3. caller contract has not enough balance', function (done) {
         nonce = nonce + 1;
         console.log(callerContractAddress);
         var contract = {
-            "function": "save",
+            "function": "safeSave",
             "args": "[\"" + calleeContractAddress + "\",\"msg1\", \"湖人总冠军\"]"
         };
         var tx = new Transaction(ChainID, sourceAccount, callerContractAddress, Unit.nasToBasic(1), nonce, 1000000, 2000000, contract);
@@ -240,7 +253,10 @@ describe('test transfer from contract', function () {
                         expect(state.balance).to.be.equal("0");
                         return neb.api.getAccountState(calleeContractAddress);
                     }).then(function(state){
-                        expect(state.balance).to.be.equal("2000000000000000000");
+                        expect(state.balance).to.be.equal("0");
+                        return neb.api.getEventsByHash(resp.hash);
+                    }).then(function(result){
+                        expect(JSON.parse(result.events[0].data).error).equal("Call: mult run nvm err!!!");
                         done();
                     }).catch(function(err){
                         done(err);
@@ -257,119 +273,129 @@ describe('test transfer from contract', function () {
         });
     });
 
+    it ('4. gasLimit is not enough', function (done) {
+        nonce = nonce + 1;
+        console.log(callerContractAddress);
+        var contract = {
+            "function": "save",
+            "args": "[\"" + calleeContractAddress + "\",\"msg1\", \"湖人总冠军\"]"
+        };
+        var tx = new Transaction(ChainID, sourceAccount, callerContractAddress, Unit.nasToBasic(10), nonce, 1000000, 20332, contract);
+        // tx.to = contractAddress;
+        tx.signTransaction();
+        // console.log("silent_debug");
+        neb.api.sendRawTransaction(tx.toProtoString()).then(function(resp) {
+            console.log("----step1. call callerTx ", resp);
+            checkTransaction(resp.txhash, function(resp) {
+                try {
+                    expect(resp).to.not.be.a('undefined');
+                    expect(resp.status).to.be.equal(0);
+                    console.log("----step2. have been on chain");
+                    neb.api.getAccountState(callerContractAddress).then(function(state){
+                        expect(state.balance).to.be.equal("0");
+                        return neb.api.getAccountState(calleeContractAddress);
+                    }).then(function(state){
+                        expect(state.balance).to.be.equal("0");
+                        return neb.api.getEventsByHash(resp.hash);
+                    }).then(function(result){
+                        expect(JSON.parse(result.events[0].data).error).equal("Call: mult run nvm err!!!");
+                        done();
+                    }).catch(function(err){
+                        done(err);
+                    });
+                } catch(err) {
+                    console.log("check tx err :" + err);
+                    done(err);
+                    return;
+                }
+            });
+        }).catch(function(err) {
+            console.log("unexpected err: " + err);
+            done(err);
+        });
+    });
 
+    it ('5. nas is not enough and but catch the error', function (done) {
+        nonce = nonce + 1;
+        console.log(callerContractAddress);
+        var contract = {
+            "function": "safeave",
+            "args": "[\"" + calleeContractAddress + "\",\"msg1\", \"湖人总冠军\"]"
+        };
+        var tx = new Transaction(ChainID, sourceAccount, callerContractAddress, Unit.nasToBasic(1), nonce, 1000000, 20332, contract);
+        // tx.to = contractAddress;
+        tx.signTransaction();
+        // console.log("silent_debug");
+        neb.api.sendRawTransaction(tx.toProtoString()).then(function(resp) {
+            console.log("----step1. call callerTx ", resp);
+            checkTransaction(resp.txhash, function(resp) {
+                try {
+                    expect(resp).to.not.be.a('undefined');
+                    expect(resp.status).to.be.equal(0);
+                    console.log("----step2. have been on chain");
+                    neb.api.getAccountState(callerContractAddress).then(function(state){
+                        expect(state.balance).to.be.equal("1");
+                        return neb.api.getAccountState(calleeContractAddress);
+                    }).then(function(state){
+                        expect(state.balance).to.be.equal("1000000000000000000");
+                        return neb.api.getEventsByHash(resp.hash);
+                    }).then(function(result){
+                        expect(JSON.parse(result.events[0].data).error).equal("Call: mult run nvm err!!!");
+                        done();
+                    }).catch(function(err){
+                        done(err);
+                    });
+                } catch(err) {
+                    console.log("check tx err :" + err);
+                    done(err);
+                    return;
+                }
+            });
+        }).catch(function(err) {
+            console.log("unexpected err: " + err);
+            done(err);
+        });
+    });
 
-
-
-//     it ('2. send 5 nas from contract address to toAddress', function (done) {
-//         nonce = nonce + 1;
-//         var contract = {
-//             "function": "transferSpecialValue",
-//             "args": "[\"" + toAddress.getAddressString() + "\", \"5000000000000000000\"]"
-//         };
-//         var tx = new Transaction(ChainID, sourceAccount, contractAddress, 0, nonce, 1000000, 2000000, contract);
-//         tx.signTransaction();
-//         console.log(tx.toString);
-//         neb.api.sendRawTransaction(tx.toProtoString()).then(function (resp) {
-//             console.log("----step5. call transferSpecialValue function", JSON.stringify(resp));
-//             checkTransaction(resp.txhash, function(resp) {
-//                 try {
-//                     expect(resp).to.not.be.a('undefined');
-//                     console.log("----step6. have be on chain");
-//                     neb.api.getAccountState(toAddress.getAddressString()).then(function(resp) {
-//                         expect(resp.balance).equal("5000000000000000000");
-//                         return neb.api.getAccountState(contractAddress);
-//                     }).then(function(resp){
-//                         expect(resp.balance).equal("5000000000000000000");
-//                         done();
-//                     }).catch(function(err){
-//                         console.log("unexpected err :", err);
-//                         done(err);
-//                     });
-//                 } catch(err) {
-//                     console.log("unexpected err :", err);
-//                     done(err);
-//                 }
-//             });
-//         }).catch(function(err){
-//             console.log("unexpected err :", err);
-//             done(err);
-//         });
-//     });
-
-//     it ('3. send 5 nas to contract and try to send 11 nas from contract toAddress',
-//      function (done) {
-//         nonce = nonce + 1;
-//         var contract = {
-//             "function": "transferSpecialValue",
-//             "args": "[\"" + toAddress.getAddressString() + "\", \"11000000000000000000\"]"
-//         };
-//         var tx = new Transaction(ChainID, sourceAccount, contractAddress, Unit.nasToBasic(5), nonce, 1000000, 2000000, contract);
-//         tx.signTransaction();
-//         neb.api.sendRawTransaction(tx.toProtoString()).then(function (resp) {
-//             console.log("----step7. call transferSpecialValue function", JSON.stringify(resp));
-//             checkTransaction(resp.txhash, function(resp) {
-//                 try {
-//                     expect(resp).to.not.be.a('undefined');
-//                     expect(resp.status).to.be.equal(0);
-//                     console.log("----step8. have be on chain");
-//                     neb.api.getAccountState(toAddress.getAddressString()).then(function(resp) {
-//                         expect(resp.balance).equal("5000000000000000000");
-//                         return neb.api.getAccountState(contractAddress);
-//                     }).then(function(resp){
-//                         expect(resp.balance).equal("5000000000000000000");
-//                         done();
-//                     }).catch(function(err){
-//                         console.log("unexpected err :", err);
-//                         done(err);
-//                     });
-//                 } catch (err) {
-//                     console.log("unexpected error: ", err);
-//                     done(err);
-//                 }
-
-//             });
-//         }).catch(function(err){
-//             console.log("unexpected err :", err);
-//             done(err);
-//         });
-//     });
-
-//     it ('4. send 5 nas to contract and try to send 10 nas from contract toAddress',
-//     function (done) {
-//        nonce = nonce + 1;
-//        var contract = {
-//            "function": "transferSpecialValue",
-//            "args": "[\"" + toAddress.getAddressString() + "\", \"10000000000000000000\"]"
-//        };
-//        var tx = new Transaction(ChainID, sourceAccount, contractAddress, Unit.nasToBasic(5), nonce, 1000000, 2000000, contract);
-//        tx.signTransaction();
-//        neb.api.sendRawTransaction(tx.toProtoString()).then(function (resp) {
-//            console.log("----step9. call transferSpecialValue function", JSON.stringify(resp));
-//            checkTransaction(resp.txhash, function(resp) {
-//                try {
-//                    expect(resp).to.not.be.a('undefined');
-//                    expect(resp.status).to.be.equal(1);
-//                    console.log("----step10. have be on chain");
-//                    neb.api.getAccountState(toAddress.getAddressString()).then(function(resp) {
-//                        expect(resp.balance).equal("15000000000000000000");
-//                        return neb.api.getAccountState(contractAddress);
-//                    }).then(function(resp){
-//                        expect(resp.balance).equal("0");
-//                        done();
-//                    }).catch(function(err){
-//                        console.log("unexpected err :", err);
-//                        done(err);
-//                    });
-//                } catch (err) {
-//                    console.log("unexpected error: ", err);
-//                    done(err);
-//                }
-
-//            });
-//        }).catch(function(err){
-//            console.log("unexpected err :", err);
-//            done(err);
-//        });
-//    });
+    it ('6. trigger the err in callee contract and but catch the error', function (done) {
+        nonce = nonce + 1;
+        console.log(callerContractAddress);
+        var contract = {
+            "function": "testTryCatch",
+            "args": "[]"
+        };
+        var tx = new Transaction(ChainID, sourceAccount, callerContractAddress, Unit.nasToBasic(1), nonce, 1000000, 20332, contract);
+        // tx.to = contractAddress;
+        tx.signTransaction();
+        // console.log("silent_debug");
+        neb.api.sendRawTransaction(tx.toProtoString()).then(function(resp) {
+            console.log("----step1. call callerTx ", resp);
+            checkTransaction(resp.txhash, function(resp) {
+                try {
+                    expect(resp).to.not.be.a('undefined');
+                    expect(resp.status).to.be.equal(0);
+                    console.log("----step2. have been on chain");
+                    neb.api.getAccountState(callerContractAddress).then(function(state){
+                        expect(state.balance).to.be.equal("1");
+                        return neb.api.getAccountState(calleeContractAddress);
+                    }).then(function(state){
+                        expect(state.balance).to.be.equal("1000000000000000000");
+                        return neb.api.getEventsByHash(resp.hash);
+                    }).then(function(result){
+                      //  expect(JSON.parse(result.events[0].data).error).equal("Call: mult run nvm err!!!");
+                        done();
+                    }).catch(function(err){
+                        done(err);
+                    });
+                } catch(err) {
+                    console.log("check tx err :" + err);
+                    done(err);
+                    return;
+                }
+            });
+        }).catch(function(err) {
+            console.log("unexpected err: " + err);
+            done(err);
+        });
+    });
 });

@@ -30,12 +30,12 @@ var Contract = function(address, contract_interface) {
     this.v = 0;
     this.address = address;
 
-    //TODO:
-    //load callee contract
+
     var src = _native_blockchain.getContractSource(address);
     if (src == null) {
         throw("no contract at this address " + address);
     }
+
     // var arguments_length = contract_interface[func].length;  
     for(var func in contract_interface) {
         //check propertys in interface are function
@@ -57,7 +57,12 @@ var Contract = function(address, contract_interface) {
                 args.push(arguments[i]);
             }
             var result =  _native_blockchain.runContractSource(this.address, func, value.toString(), JSON.stringify(args));
-            return JSON.parse(result);
+            console.log("yangshun2532",result);
+            if (result.code) {
+                return JSON.parse(result.data);
+            } else {
+                throw(result.msg);
+            }
         }}(func);
     }
         
@@ -83,9 +88,12 @@ Contract.prototype = {
 
         var value = this.v;
         this.v = 0;
-        //TODO: check how to handle err?
         var result =  _native_blockchain.runContractSource(this.address, func, value.toString(), args);
-        return JSON.parse(result);
+        if (result.code == 0) {
+            return JSON.parse(result.data);
+        } else {
+            throw(msg);
+        }
     }
 }
 

@@ -36,6 +36,7 @@ SuperWiki.prototype = {
     },
 
     save: function (key, value) {
+        console.log("reach child contract");
         if(Blockchain.transaction.value < 2000000000000000000) {
             throw("nas is not enough");
         }
@@ -69,6 +70,10 @@ SuperWiki.prototype = {
             throw new Error("empty key")
         }
         return this.repo.get(key);
+    }, 
+
+    throwErr: function() {
+        throw("err for test");
     }
 };
 module.exports = SuperWiki;
