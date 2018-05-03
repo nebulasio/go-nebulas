@@ -45,7 +45,7 @@ var NebDate = (function(Date) {
     }
 
     NebDate.prototype.getTimezoneOffset = function() {
-        return 0;
+        throw new Error("Unsupported method!");
     }
     NebDate.prototype.getDate = function() {
         return this.getUTCDate();

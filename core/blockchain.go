@@ -497,7 +497,8 @@ func (bc *BlockChain) GetInputForVRFSigner(parentHash byteutils.Hash, height uin
 		if !parent.HasRandomSeed() {
 			logging.VLog().WithFields(logrus.Fields{
 				"parent": parent,
-			}).Info("Parent block has no random seed.")
+			}).Error("Parent block has no random seed, unexpected error.")
+			metricsUnexpectedBehavior.Update(1)
 			return nil, ErrInvalidBlockRandom
 		}
 		out = append(out, parent.header.random.VrfSeed)

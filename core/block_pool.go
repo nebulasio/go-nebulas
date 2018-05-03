@@ -554,7 +554,7 @@ func (lb *linkedBlock) travelToLinkAndReturnAllValidBlocks(parentBlock *Block) (
 						"blockHeight":          lb.block.height,
 						"targetHeight":         lb.block.height - nob,
 						"numOfBlocksInDynasty": nob,
-					}).Error("Block not found.")
+					}).Error("Block not found, unexpected error.")
 					metricsUnexpectedBehavior.Update(1)
 					return nil, nil, ErrNotBlockInCanonicalChain
 				}
@@ -570,7 +570,7 @@ func (lb *linkedBlock) travelToLinkAndReturnAllValidBlocks(parentBlock *Block) (
 			if !parentBlock.HasRandomSeed() {
 				logging.VLog().WithFields(logrus.Fields{
 					"parent": parentBlock,
-				}).Error("Parent block has no random seed.")
+				}).Error("Parent block has no random seed, unexpected error.")
 				metricsUnexpectedBehavior.Update(1)
 				return nil, nil, ErrInvalidBlockRandom
 			}
