@@ -355,6 +355,20 @@ func packErrInfo(errType int, rerrType *C.size_t, rerr **C.char, format string, 
 	return rStr
 }
 
+//SetHeadV8ErrMsg set head node err info
+func SetHeadV8ErrMsg(handler unsafe.Pointer, err string) {
+	if handler == nil {
+		logging.CLog().Debugf("the main node")
+		return
+	}
+	engine := getEngineByEngineHandler(handler)
+	if engine == nil {
+		logging.VLog().Errorf("the handler not found the v8 engine")
+		return
+	}
+	engine.multiErrMsg = err
+}
+
 // RunMultilevelContractSourceFunc multi run contract. output[c standard]: if err return nil else return "*"
 //export RunMultilevelContractSourceFunc
 func RunMultilevelContractSourceFunc(handler unsafe.Pointer, address *C.char, funcName *C.char, v *C.char, args *C.char, gasCnt *C.size_t, rerrType *C.size_t, rerr **C.char) *C.char {
@@ -365,7 +379,8 @@ func RunMultilevelContractSourceFunc(handler unsafe.Pointer, address *C.char, fu
 	}
 	index := engine.ctx.index
 	if engine.ctx.index >= uint32(MultiNvmMax) {
-		packErrInfo(MultiNvmMaxLimit, rerrType, rerr, "Failed to run nvm, becase more nvm , engine index:%v", engine.ctx.index)
+		rStr := packErrInfo(MultiNvmMaxLimit, rerrType, rerr, "Failed to run nvm, becase more nvm , engine index:%v", engine.ctx.index)
+		SetHeadV8ErrMsg(engine.ctx.head, rStr)
 		return nil
 	}
 	var gasSum uint64
@@ -451,9 +466,10 @@ func RunMultilevelContractSourceFunc(handler unsafe.Pointer, address *C.char, fu
 	remainInstruction, remainMem := engine.GetNVMVerbResources()
 	iCost := RunMultilevelContractSourceFuncCost + TransferFuncCost
 	if remainInstruction < uint64(iCost) {
-		packErrInfo(MultiNvmSystemErr, rerrType, rerr, "engine.call system err:%v, engine index:%d", err, index)
+		packErrInfo(MultiNvmSystemErr, rerrType, rerr, "engine.call system failed the gas over!!!, engine index:%d", index)
 		return nil
 	}
+
 	remainInstruction -= uint64(RunMultilevelContractSourceFuncCost)
 	remainInstruction -= uint64(TransferFuncCost)
 
@@ -472,8 +488,8 @@ func RunMultilevelContractSourceFunc(handler unsafe.Pointer, address *C.char, fu
 		Err:   err.Error(),
 	}
 
-	eData, err := json.Marshal(event)
-	if err != nil {
+	eData, errMarshal := json.Marshal(event)
+	if errMarshal != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"from":  fromAddr.String(),
 			"to":    addr.String(),
@@ -484,16 +500,18 @@ func RunMultilevelContractSourceFunc(handler unsafe.Pointer, address *C.char, fu
 		packErrInfo(TransferRecordEventFailed, rerrType, rerr, "engine.call failed to marshal TransferFromContractEvent err:%v, engine index:%v", err, engine.ctx.index)
 		return nil
 	}
-
 	engine.ctx.state.RecordEvent(oldTx.Hash(), &state.Event{Topic: core.TopicInnerTransferContract, Data: string(eData)})
 
 	engineNew.Dispose()
 	if err != nil {
 		if err == ErrExceedMemoryLimits {
-			packErrInfo(MultiSystemMemLimit, rerrType, rerr, "engine.call mem limit err:%v, engine index:%v", err, engine.ctx.index)
+			rStr := packErrInfo(MultiSystemMemLimit, rerrType, rerr, "engine.call mem limit err:%v, engine index:%v", err, engine.ctx.index)
+			SetHeadV8ErrMsg(engine.ctx.head, rStr)
 		} else if err == ErrInsufficientGas {
-			packErrInfo(MultiSystemMemLimit, rerrType, rerr, "engine.call insuff limit err:%v, engine index:%v", err, engine.ctx.index)
+			rStr := packErrInfo(MultiSystemInsufficientLimit, rerrType, rerr, "engine.call insuff limit err:%v, engine index:%v", err, engine.ctx.index)
+			SetHeadV8ErrMsg(engine.ctx.head, rStr)
 		} else if err == core.ErrMultiExecutionFailed {
+			logging.CLog().Errorf("++++++++err:%v", err)
 			packErrInfo(MultiNvmSystemErr, rerrType, rerr, "engine.call system err:%v, engine index:%d", err, index)
 		} else {
 			packErrInfo(MultiCallErr, rerrType, rerr, "engine.call err:%v, engine index:%v", err, index)

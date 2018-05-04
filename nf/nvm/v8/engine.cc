@@ -39,7 +39,7 @@ using namespace v8;
 static Platform *platformPtr = NULL;
 
 void PrintException(Local<Context> context, TryCatch &trycatch);
-int PrintAndReturnException(char **exception, Local<Context> context,
+void PrintAndReturnException(char **exception, Local<Context> context,
                              TryCatch &trycatch);
 void EngineLimitsCheckDelegate(Isolate *isolate, size_t count,
                                void *listenerContext);
@@ -133,8 +133,8 @@ int ExecuteSourceDataDelegate(char **result, Isolate *isolate,
   // Run the script to get the result.
   MaybeLocal<Value> ret = script.ToLocalChecked()->Run(context);
   if (ret.IsEmpty()) {
-    return PrintAndReturnException(result, context, trycatch);
-    //return 1;
+    PrintAndReturnException(result, context, trycatch);
+    return 1;
   }
 
   // set result.
@@ -221,15 +221,27 @@ int Execute(char **result, V8Engine *e, const char *source,
     return 1;
   }
 
-  return delegate(result, isolate, source, source_line_offset, context,
+  int iRtn = delegate(result, isolate, source, source_line_offset, context,
                   trycatch, delegateContext);
+  if (iRtn == 1) {
+    if (e->is_requested_terminate_execution == 1) {
+      if (result != NULL) {
+        free(*result);
+        int len = strlen(SYSTEMERRTERMINATE) + 1;
+        *result = (char *)malloc(len);
+        strcpy(*result, SYSTEMERRTERMINATE);
+      }
+      return 2;
+    }
+  }
+  return iRtn;
 }
 
 void PrintException(Local<Context> context, TryCatch &trycatch) {
   PrintAndReturnException(NULL, context, trycatch);
 }
 
-int PrintAndReturnException(char **exception, Local<Context> context,
+void PrintAndReturnException(char **exception, Local<Context> context,
                              TryCatch &trycatch) {
   static char SOURCE_INFO_PLACEHOLDER[] = "";
   char *source_info = NULL;
@@ -288,10 +300,6 @@ int PrintAndReturnException(char **exception, Local<Context> context,
   if (stacktrace_ret.IsEmpty()) {
     // print exception when stack trace is not available.
     LogErrorf("V8 Exception:\n%s%s", source_info, *exception_str);
-    printf("----exception:%s\n", *exception_str);
-    if (strcmp(SYSTEMERRSTR, *exception_str) == 0) {
-      return 2;
-    }
   }
 
   if (source_info != NULL && source_info != SOURCE_INFO_PLACEHOLDER) {
@@ -303,7 +311,6 @@ int PrintAndReturnException(char **exception, Local<Context> context,
     *exception = (char *)malloc(exception_str.length() + 1);
     strcpy(*exception, *exception_str);
   }
-  return 1;
 }
 
 void ReadMemoryStatistics(V8Engine *e) {

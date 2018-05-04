@@ -20,6 +20,7 @@
 #include "blockchain.h"
 #include "../engine.h"
 #include "../engine_int.h"
+#include "global.h"
 #include "instruction_counter.h"
 
 static GetTxByHashFunc sGetTxByHash = NULL;
@@ -307,9 +308,13 @@ void RunMultilevelContractSourceCallBack(const FunctionCallbackInfo<Value> &info
     //info.GetReturnValue().SetNull();
     if (rerrType <= 10000) {
       free(rerr);
-      isolate->ThrowException(
-        String::NewFromUtf8(isolate, SYSTEMERRSTR));
-        return;
+      /*isolate->ThrowException(
+        String::NewFromUtf8(isolate, SYSTEMERRSTR));*/
+      Local<Context> context = isolate->GetCurrentContext();
+      V8Engine *e = GetV8EngineInstance(context);
+
+      TerminateExecution(e);
+      return;
     }
     Local<Boolean> flag = Boolean::New(isolate, false);
     rObj->Set(v8::String::NewFromUtf8(isolate, "code"), flag);

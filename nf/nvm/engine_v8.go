@@ -93,6 +93,7 @@ type V8Engine struct {
 	actualTotalMemorySize                   uint64
 	lcsHandler                              uint64
 	gcsHandler                              uint64
+	multiErrMsg                             string
 }
 
 type sourceModuleItem struct {
@@ -281,8 +282,18 @@ func (e *V8Engine) CollectTracingStats() {
 // GetNVMVerbResources return current NVM verb total resource
 func (e *V8Engine) GetNVMVerbResources() (uint64, uint64) {
 	e.CollectTracingStats()
-	instruction := e.limitsOfExecutionInstructions - e.actualCountOfExecutionInstructions
-	mem := e.limitsOfTotalMemorySize - e.actualTotalMemorySize
+	var instruction uint64
+	var mem uint64
+	if e.limitsOfExecutionInstructions < e.actualCountOfExecutionInstructions {
+		instruction = 0
+	} else {
+		instruction = e.limitsOfExecutionInstructions - e.actualCountOfExecutionInstructions
+	}
+	if e.limitsOfTotalMemorySize < e.actualTotalMemorySize {
+		mem = 0
+	} else {
+		mem = e.limitsOfTotalMemorySize - e.actualTotalMemorySize
+	}
 	return instruction, mem
 }
 
@@ -342,7 +353,9 @@ func (e *V8Engine) RunScriptSource(source string, sourceLineOffset int) (string,
 	if e.actualCountOfExecutionInstructions > e.limitsOfExecutionInstructions || err == ErrExceedMemoryLimits { //ToDo ErrExceedMemoryLimits value is same in each linux
 		e.actualCountOfExecutionInstructions = e.limitsOfExecutionInstructions //ToDo memory pass whether exhaust ?
 	}
-
+	if e.multiErrMsg != "" {
+		result = e.multiErrMsg
+	}
 	return result, err
 }
 

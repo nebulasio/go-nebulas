@@ -1771,6 +1771,7 @@ func TestInnerTransactionsGasLimit(t *testing.T) {
 		contracts   []contract
 		call        call
 		expectedErr string
+		//gasArr      []int
 	}{
 		{
 			"deploy test_require_module.js",
@@ -1796,6 +1797,7 @@ func TestInnerTransactionsGasLimit(t *testing.T) {
 				"[1]",
 			},
 			"multi execution failed",
+			//[]
 		},
 	}
 
@@ -1877,7 +1879,8 @@ func TestInnerTransactionsGasLimit(t *testing.T) {
 
 		value, _ := util.NewUint128FromInt(6)
 		//gasLimit, _ := util.NewUint128FromInt(21300)
-		gasLimit, _ := util.NewUint128FromInt(300)
+		//gasLimit, _ := util.NewUint128FromInt(25300)	//null                            file=logger.go func=nvm.V8Log line=32
+		gasLimit, _ := util.NewUint128FromInt(25300)
 		proxyContractAddress, err := core.AddressParse(contractsAddr[0])
 		fmt.Printf("++++++++++++pack transaction")
 		txCall, err := core.NewTransaction(neb.chain.ChainID(), a, proxyContractAddress, value,
