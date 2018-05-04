@@ -83,6 +83,10 @@ message ChainConfig {
 
     // Supported signature cipher list. ["ECC_SECP256K1"]
     repeated string signature_ciphers = 28;
+
+    bool super_node = 30;
+
+    string unsupported_keyword = 31;
 }
 
 message RPCConfig {

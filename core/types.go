@@ -162,6 +162,9 @@ var (
 
 	// nvm error
 	ErrExecutionFailed = errors.New("execution failed")
+
+	// unsupported keyword error in smart contract
+	ErrUnsupportedKeyword = errors.New("transaction data has unsupported keyword")
 )
 
 // Default gas count

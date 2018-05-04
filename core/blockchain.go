@@ -69,6 +69,10 @@ type BlockChain struct {
 	nvm NVM
 
 	quitCh chan int
+
+	superNode bool
+
+	unsupportedKeyword string
 }
 
 const (
@@ -131,14 +135,16 @@ func NewBlockChain(neb Neblet) (*BlockChain, error) {
 	txPool.RegisterInNetwork(neb.NetService())
 
 	var bc = &BlockChain{
-		chainID:      neb.Config().Chain.ChainId,
-		genesis:      neb.Genesis(),
-		bkPool:       blockPool,
-		txPool:       txPool,
-		storage:      neb.Storage(),
-		eventEmitter: neb.EventEmitter(),
-		nvm:          neb.Nvm(),
-		quitCh:       make(chan int, 1),
+		chainID:            neb.Config().Chain.ChainId,
+		genesis:            neb.Genesis(),
+		bkPool:             blockPool,
+		txPool:             txPool,
+		storage:            neb.Storage(),
+		eventEmitter:       neb.EventEmitter(),
+		nvm:                neb.Nvm(),
+		quitCh:             make(chan int, 1),
+		superNode:          neb.Config().Chain.SuperNode,
+		unsupportedKeyword: neb.Config().Chain.UnsupportedKeyword,
 	}
 
 	bc.cachedBlocks, err = lru.New(128)
