@@ -86,7 +86,7 @@ message ChainConfig {
 
     bool super_node = 30;
 
-    string shield_keyword = 31;
+    string unsupported_keyword = 31;
 }
 
 message RPCConfig {
