@@ -8,8 +8,6 @@ var contractInterface = {
     },
     get: function() {
     },
-    testTryCatch: function() {
-    }
 }
 
 
@@ -63,6 +61,10 @@ kvStore.prototype = {
     },
 
     testTryCatch: function(address) {
+        var contractInterface = {
+            testTryCatch: function() {
+            }
+        }
         var real_kv = new Blockchain.Contract(address, contractInterface);
 
         try {
