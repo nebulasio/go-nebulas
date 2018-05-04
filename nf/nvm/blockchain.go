@@ -465,6 +465,28 @@ func RunMultilevelContractSourceFunc(handler unsafe.Pointer, address *C.char, fu
 	gasCout := engineNew.ExecutionInstructions()
 	gasSum += gasCout
 
+	event := &InnerTransferContractEvent{
+		From:  fromAddr.String(),
+		To:    addr.String(),
+		Value: toValue.String(),
+		Err:   err.Error(),
+	}
+
+	eData, err := json.Marshal(event)
+	if err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"from":  fromAddr.String(),
+			"to":    addr.String(),
+			"value": toValue.String(),
+			"err":   err,
+		}).Debug("failed to marshal TransferFromContractEvent")
+
+		packErrInfo(TransferRecordEventFailed, rerrType, rerr, "engine.call failed to marshal TransferFromContractEvent err:%v, engine index:%v", err, engine.ctx.index)
+		return nil
+	}
+
+	engine.ctx.state.RecordEvent(oldTx.Hash(), &state.Event{Topic: core.TopicInnerTransferContract, Data: string(eData)})
+
 	engineNew.Dispose()
 	if err != nil {
 		if err == ErrExceedMemoryLimits {

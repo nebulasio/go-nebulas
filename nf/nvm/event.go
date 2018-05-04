@@ -44,6 +44,14 @@ type TransferFromContractEvent struct {
 	To     string `json:"to"`
 }
 
+// InnerTransferContractEvent event for inner transfer in contract
+type InnerTransferContractEvent struct {
+	From  string `json:"from"`
+	To    string `json:"to"`
+	Value string `json:"value"`
+	Err   string `json:"err"`
+}
+
 // EventTriggerFunc export EventTriggerFunc
 //export EventTriggerFunc
 func EventTriggerFunc(handler unsafe.Pointer, topic, data *C.char, gasCnt *C.size_t) {
