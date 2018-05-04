@@ -164,7 +164,7 @@ var (
 	ErrExecutionFailed = errors.New("execution failed")
 
 	// shielded keywork error
-	ErrShieldedKeyword = errors.New("transaction data has shielded keyword")
+	ErrShieldedKeyword = errors.New("transaction data has unsupported keywords")
 )
 
 // Default gas count
