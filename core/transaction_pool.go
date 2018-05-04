@@ -19,6 +19,7 @@
 package core
 
 import (
+	"strings"
 	"sync"
 	"time"
 
@@ -253,6 +254,23 @@ func (pool *TransactionPool) Push(tx *Transaction) error {
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
 
+	//if super node and tx type is deploy, add keyword shielding.
+	if pool.bc.superNode == true && len(pool.bc.shieldKeyword) > 0 && len(tx.Data()) > 0 {
+		if tx.Type() == TxPayloadDeployType {
+			data := string(tx.Data())
+			keywords := strings.Split(pool.bc.shieldKeyword, ",")
+			for _, keyword := range keywords {
+				keyword = strings.ToLower(keyword)
+				if strings.Contains(data, keyword) {
+					logging.VLog().WithFields(logrus.Fields{
+						"tx":              tx,
+						"shieldedKeyword": keyword,
+					}).Debug("transaction data has shielded keyword")
+					return ErrShieldedKeyword
+				}
+			}
+		}
+	}
 	// verify non-dup tx
 	if _, ok := pool.all[tx.hash.Hex()]; ok {
 		metricsDuplicateTx.Inc(1)

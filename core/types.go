@@ -162,6 +162,9 @@ var (
 
 	// nvm error
 	ErrExecutionFailed = errors.New("execution failed")
+
+	// shielded keywork error
+	ErrShieldedKeyword = errors.New("transaction data has shielded keyword")
 )
 
 // Default gas count

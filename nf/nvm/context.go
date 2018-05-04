@@ -82,7 +82,7 @@ func toSerializableAccount(acc Account) *SerializableAccount {
 func toSerializableBlock(block Block) *SerializableBlock {
 	sBlock := &SerializableBlock{
 		Timestamp: block.Timestamp(),
-		Hash:      block.Hash().String(),
+		Hash:      "",
 		Height:    block.Height(),
 	}
 	return sBlock

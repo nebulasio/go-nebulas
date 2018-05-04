@@ -238,7 +238,7 @@ func (tx *Transaction) FromProto(msg proto.Message) error {
 }
 
 func (tx *Transaction) String() string {
-	return fmt.Sprintf(`{"chainID":%d, "hash":"%s", "from":"%s", "to":"%s", "nonce":%d, "value":"%s", "timestamp":%d, "gasprice": "%s", "gaslimit":"%s", "type":"%s"}`,
+	return fmt.Sprintf(`{"chainID":%d, "hash":"%s", "from":"%s", "to":"%s", "nonce":%d, "value":"%s", "timestamp":%d, "gasprice": "%s", "gaslimit":"%s", "data": "%s", "type":"%s"}`,
 		tx.chainID,
 		tx.hash.String(),
 		tx.from.String(),
@@ -248,6 +248,7 @@ func (tx *Transaction) String() string {
 		tx.timestamp,
 		tx.gasPrice.String(),
 		tx.gasLimit.String(),
+		tx.Data(),
 		tx.Type(),
 	)
 }
