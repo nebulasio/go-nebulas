@@ -79,6 +79,7 @@ const (
 	MultiBigNumChangeErr
 	MultiNewTransactionErr
 	MultiNewChildContext
+	MultiTransferRecordEventFailed
 	MultiCallErr
 )
 
