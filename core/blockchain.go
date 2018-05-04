@@ -74,8 +74,6 @@ type BlockChain struct {
 }
 
 const (
-	// TestNetID chain id for test net.
-	TestNetID = 1
 
 	// EagleNebula chain id for 1.x
 	EagleNebula = 1 << 4

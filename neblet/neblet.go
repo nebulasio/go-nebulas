@@ -87,6 +87,9 @@ func New(config *nebletpb.Config) (*Neblet, error) {
 		logging.CLog().Error("Failed to find chain config in config file")
 		return nil, ErrConfigShouldHasChain
 	}
+
+	core.SetCompatibilityOptions(config.Chain.ChainId)
+
 	var err error
 	n.genesis, err = core.LoadGenesisConf(config.Chain.Genesis)
 	if err != nil {

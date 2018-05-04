@@ -18,13 +18,104 @@
 
 package core
 
+import (
+	"github.com/nebulasio/go-nebulas/util/logging"
+	"github.com/sirupsen/logrus"
+)
+
 const (
+	// MainNetID mainnet id
+	MainNetID uint32 = 1
+
+	// TestNetID testnet id
+	TestNetID uint32 = 1001
+)
+
+// mainnet/testnet
+const (
+	// DefaultTransferFromContractEventRecordableHeight
+	DefaultTransferFromContractEventRecordableHeight uint64 = 250000
+
+	// DefaultAcceptFuncAvailableHeight
+	DefaultAcceptFuncAvailableHeight uint64 = 250000
+
+	// DefaultRandomAvailableHeight
+	DefaultRandomAvailableHeight uint64 = 250000
+
+	// DefaultDateAvailableHeight
+	DefaultDateAvailableHeight uint64 = 250000
+
+	// DefaultRecordCallContractResultHeight
+	DefaultRecordCallContractResultHeight uint64 = 250000
+)
+
+// others, e.g. local/develop
+const (
+	// LocalTransferFromContractEventRecordableHeight
+	LocalTransferFromContractEventRecordableHeight uint64 = 0
+
+	// LocalAcceptFuncAvailableHeight
+	LocalAcceptFuncAvailableHeight uint64 = 0
+
+	// LocalRandomAvailableHeight
+	LocalRandomAvailableHeight uint64 = 0
+
+	// LocalDateAvailableHeight
+	LocalDateAvailableHeight uint64 = 0
+
+	// LocalRecordCallContractResultHeight
+	LocalRecordCallContractResultHeight uint64 = 0
+)
+
+var (
 	// TransferFromContractEventRecordableHeight record event 'TransferFromContractEvent' since this height
-	TransferFromContractEventRecordableHeight uint64 = 200000
+	TransferFromContractEventRecordableHeight = DefaultTransferFromContractEventRecordableHeight
+
+	// AcceptFuncAvailableHeight 'accept' func available since this height
+	AcceptFuncAvailableHeight = DefaultAcceptFuncAvailableHeight
 
 	// RandomAvailableHeight make 'Math.random' available in contract since this height
-	RandomAvailableHeight uint64 = 200000
+	RandomAvailableHeight = DefaultRandomAvailableHeight
 
 	// DateAvailableHeight make 'Date' available in contract since this height
-	DateAvailableHeight uint64 = 200000
+	DateAvailableHeight = DefaultDateAvailableHeight
+
+	// RecordCallContractResultHeight record result of call contract to event `TopicTransactionExecutionResult` since this height
+	RecordCallContractResultHeight = DefaultRecordCallContractResultHeight
 )
+
+// SetCompatibilityOptions set compatibility height according to chain_id
+func SetCompatibilityOptions(chainID uint32) {
+
+	if chainID == MainNetID || chainID == TestNetID {
+		logging.VLog().WithFields(logrus.Fields{
+			"chain_id": chainID,
+			"TransferFromContractEventRecordableHeight": TransferFromContractEventRecordableHeight,
+			"AcceptFuncAvailableHeight":                 AcceptFuncAvailableHeight,
+			"RandomAvailableHeight":                     RandomAvailableHeight,
+			"DateAvailableHeight":                       DateAvailableHeight,
+			"RecordCallContractResultHeight":            RecordCallContractResultHeight,
+		}).Info("Set compatibility options for mainnet/testnet.")
+		return
+	}
+
+	TransferFromContractEventRecordableHeight = LocalTransferFromContractEventRecordableHeight
+
+	AcceptFuncAvailableHeight = LocalAcceptFuncAvailableHeight
+
+	RandomAvailableHeight = LocalRandomAvailableHeight
+
+	DateAvailableHeight = LocalDateAvailableHeight
+
+	RecordCallContractResultHeight = LocalRecordCallContractResultHeight
+
+	logging.VLog().WithFields(logrus.Fields{
+		"chain_id": chainID,
+		"TransferFromContractEventRecordableHeight": TransferFromContractEventRecordableHeight,
+		"AcceptFuncAvailableHeight":                 AcceptFuncAvailableHeight,
+		"RandomAvailableHeight":                     RandomAvailableHeight,
+		"DateAvailableHeight":                       DateAvailableHeight,
+		"RecordCallContractResultHeight":            RecordCallContractResultHeight,
+	}).Info("Set compatibility options for local.")
+
+}

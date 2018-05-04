@@ -510,6 +510,9 @@ message TransactionResponse {
 
     // contract execute error
     string execute_error = 15;
+
+    // contract execute result
+    string execute_result = 16;
 }
 
 message NewAccountRequest {

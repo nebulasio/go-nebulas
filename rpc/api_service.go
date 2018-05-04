@@ -410,9 +410,10 @@ func (s *APIService) GetTransactionReceipt(ctx context.Context, req *rpcpb.GetTr
 
 func (s *APIService) toTransactionResponse(tx *core.Transaction) (*rpcpb.TransactionResponse, error) {
 	var (
-		status        int32
-		gasUsed       string
-		execute_error string
+		status         int32
+		gasUsed        string
+		execute_error  string
+		execute_result string
 	)
 	neb := s.server.Neblet()
 	event, err := neb.BlockChain().TailBlock().FetchExecutionResultEvent(tx.Hash())
@@ -421,33 +422,48 @@ func (s *APIService) toTransactionResponse(tx *core.Transaction) (*rpcpb.Transac
 	}
 
 	if event != nil {
-		txEvent := core.TransactionEvent{}
-		err := json.Unmarshal([]byte(event.Data), &txEvent)
-		if err != nil {
-			return nil, err
+		h := neb.BlockChain().TailBlock().Height()
+		if h >= core.RecordCallContractResultHeight {
+			txEvent2 := core.TransactionEventV2{}
+
+			err := json.Unmarshal([]byte(event.Data), &txEvent2)
+			if err != nil {
+				return nil, err
+			}
+			status = int32(txEvent2.Status)
+			gasUsed = txEvent2.GasUsed
+			execute_error = txEvent2.Error
+			execute_result = txEvent2.ExecuteResult
+		} else {
+			txEvent := core.TransactionEvent{}
+			err := json.Unmarshal([]byte(event.Data), &txEvent)
+			if err != nil {
+				return nil, err
+			}
+			status = int32(txEvent.Status)
+			gasUsed = txEvent.GasUsed
+			execute_error = txEvent.Error
 		}
-		status = int32(txEvent.Status)
-		gasUsed = txEvent.GasUsed
-		execute_error = txEvent.Error
 	} else {
 		status = core.TxExecutionPendding
 	}
 
 	resp := &rpcpb.TransactionResponse{
-		ChainId:      tx.ChainID(),
-		Hash:         tx.Hash().String(),
-		From:         tx.From().String(),
-		To:           tx.To().String(),
-		Value:        tx.Value().String(),
-		Nonce:        tx.Nonce(),
-		Timestamp:    tx.Timestamp(),
-		Type:         tx.Type(),
-		Data:         tx.Data(),
-		GasPrice:     tx.GasPrice().String(),
-		GasLimit:     tx.GasLimit().String(),
-		Status:       status,
-		GasUsed:      gasUsed,
-		ExecuteError: execute_error,
+		ChainId:       tx.ChainID(),
+		Hash:          tx.Hash().String(),
+		From:          tx.From().String(),
+		To:            tx.To().String(),
+		Value:         tx.Value().String(),
+		Nonce:         tx.Nonce(),
+		Timestamp:     tx.Timestamp(),
+		Type:          tx.Type(),
+		Data:          tx.Data(),
+		GasPrice:      tx.GasPrice().String(),
+		GasLimit:      tx.GasLimit().String(),
+		Status:        status,
+		GasUsed:       gasUsed,
+		ExecuteError:  execute_error,
+		ExecuteResult: execute_result,
 	}
 
 	if tx.Type() == core.TxPayloadDeployType {
