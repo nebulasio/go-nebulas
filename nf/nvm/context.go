@@ -32,11 +32,12 @@ type SerializableAccount struct {
 
 // SerializableBlock serializable block
 type SerializableBlock struct {
-	Timestamp     int64  `json:"timestamp"`
-	Hash          string `json:"hash"`
-	Height        uint64 `json:"height"`
-	SupportRandom bool   `json:"supportRandom"`
-	Seed          string `json:"seed"`
+	Timestamp       int64  `json:"timestamp"`
+	Hash            string `json:"hash"`
+	Height          uint64 `json:"height"`
+	RandomAvailable bool   `json:"randomAvailable"`
+	DateAvailable   bool   `json:"dateAvailable"`
+	Seed            string `json:"seed"`
 }
 
 // SerializableTransaction serializable transaction
@@ -83,11 +84,12 @@ func toSerializableAccount(acc Account) *SerializableAccount {
 
 func toSerializableBlock(block Block) *SerializableBlock {
 	sBlock := &SerializableBlock{
-		Timestamp:     block.Timestamp(),
-		Hash:          block.Hash().String(),
-		Height:        block.Height(),
-		SupportRandom: block.SupportRandom(),
-		Seed:          block.RandomSeed(),
+		Timestamp:       block.Timestamp(),
+		Hash:            block.Hash().String(),
+		Height:          block.Height(),
+		RandomAvailable: block.RandomAvailable(),
+		DateAvailable:   block.DateAvailable(),
+		Seed:            block.RandomSeed(),
 	}
 	return sBlock
 }

@@ -19,9 +19,12 @@
 package core
 
 const (
-	// TransferFromContractEventCompatibleHeight record event 'TransferFromContractEvent' since this height
-	TransferFromContractEventCompatibleHeight uint64 = 200000
+	// TransferFromContractEventRecordableHeight record event 'TransferFromContractEvent' since this height
+	TransferFromContractEventRecordableHeight uint64 = 200000
 
-	// RandomAvailableCompatibleHeight make 'random' available in contract since this height
-	RandomAvailableCompatibleHeight uint64 = 200000
+	// RandomAvailableHeight make 'Math.random' available in contract since this height
+	RandomAvailableHeight uint64 = 200000
+
+	// DateAvailableHeight make 'Date' available in contract since this height
+	DateAvailableHeight uint64 = 200000
 )

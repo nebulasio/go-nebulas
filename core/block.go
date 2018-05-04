@@ -194,10 +194,10 @@ func (block *Block) FromProto(msg proto.Message) error {
 			if err := block.header.FromProto(msg.Header); err != nil {
 				return err
 			}
-			if msg.Height >= RandomAvailableCompatibleHeight && !block.HasRandomSeed() {
+			if msg.Height >= RandomAvailableHeight && !block.HasRandomSeed() {
 				logging.VLog().WithFields(logrus.Fields{
 					"blockHeight":      msg.Height,
-					"compatibleHeight": RandomAvailableCompatibleHeight,
+					"compatibleHeight": RandomAvailableHeight,
 				}).Debug("No random found in block header.")
 				return ErrInvalidProtoToBlockHeader
 			}
@@ -383,15 +383,20 @@ func (block *Block) Transactions() Transactions {
 
 // RandomSeed block random seed (VRF)
 func (block *Block) RandomSeed() string {
-	if block.height >= RandomAvailableCompatibleHeight {
+	if block.height >= RandomAvailableHeight {
 		return byteutils.Hex(block.header.random.VrfSeed)
 	}
 	return ""
 }
 
-// SupportRandom check is random supported
-func (block *Block) SupportRandom() bool {
-	return block.height >= RandomAvailableCompatibleHeight
+// RandomAvailable check if Math.random available in contract
+func (block *Block) RandomAvailable() bool {
+	return block.height >= RandomAvailableHeight
+}
+
+// DateAvailable check if date available in contract
+func (block *Block) DateAvailable() bool {
+	return block.height >= DateAvailableHeight
 }
 
 // LinkParentBlock link parent block, return true if hash is the same; false otherwise.
@@ -790,7 +795,7 @@ func (block *Block) Seal() error {
 
 func (block *Block) String() string {
 	random := ""
-	if block.height >= RandomAvailableCompatibleHeight && block.header.random != nil {
+	if block.height >= RandomAvailableHeight && block.header.random != nil {
 		if block.header.random.VrfSeed != nil {
 			random += "/vrf_seed/" + byteutils.Hex(block.header.random.VrfSeed)
 		}

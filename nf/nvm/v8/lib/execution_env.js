@@ -110,5 +110,5 @@ const BigNumber = require('bignumber.js');
 const Blockchain = require('blockchain.js');
 const Event = require('event.js');
 
-var Date = require('date.js')
+var Date = require('date.js');
 Math.random = require('random.js');

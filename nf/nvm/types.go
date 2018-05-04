@@ -57,7 +57,8 @@ type Block interface {
 	Height() uint64 // ToAdd: timestamp interface
 	Timestamp() int64
 	RandomSeed() string
-	SupportRandom() bool
+	RandomAvailable() bool
+	DateAvailable() bool
 }
 
 // Transaction interface breaks cycle import dependency and hides unused services.

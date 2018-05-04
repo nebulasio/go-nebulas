@@ -468,7 +468,7 @@ func (bc *BlockChain) GetBlockOnCanonicalChainByHash(blockHash byteutils.Hash) *
 
 // GetInputForVRFSigner returns [ getBlock(block.height - 2 * dynasty.size).hash, block.parent.seed ]
 func (bc *BlockChain) GetInputForVRFSigner(parentHash byteutils.Hash, height uint64) (out [][]byte, err error) {
-	if parentHash == nil || height < RandomAvailableCompatibleHeight {
+	if parentHash == nil || height < RandomAvailableHeight {
 		return nil, ErrInvalidArgument
 	}
 
@@ -493,7 +493,7 @@ func (bc *BlockChain) GetInputForVRFSigner(parentHash byteutils.Hash, height uin
 		return nil, ErrNotBlockInCanonicalChain
 	}
 
-	if parent.height >= RandomAvailableCompatibleHeight {
+	if parent.height >= RandomAvailableHeight {
 		if !parent.HasRandomSeed() {
 			logging.VLog().WithFields(logrus.Fields{
 				"parent": parent,

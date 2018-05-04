@@ -535,7 +535,7 @@ func (lb *linkedBlock) travelToLinkAndReturnAllValidBlocks(parentBlock *Block) (
 	}
 
 	// verify vrf
-	if lb.block.height >= RandomAvailableCompatibleHeight {
+	if lb.block.height >= RandomAvailableHeight {
 		// prepare vrf inputs
 		inputs := make([][]byte, 0)
 
@@ -566,7 +566,7 @@ func (lb *linkedBlock) travelToLinkAndReturnAllValidBlocks(parentBlock *Block) (
 			inputs = append(inputs, tmp.block.Hash())
 		}
 
-		if parentBlock.height >= RandomAvailableCompatibleHeight {
+		if parentBlock.height >= RandomAvailableHeight {
 			if !parentBlock.HasRandomSeed() {
 				logging.VLog().WithFields(logrus.Fields{
 					"parent": parentBlock,

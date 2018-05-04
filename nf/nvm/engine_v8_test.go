@@ -81,8 +81,13 @@ func (block *testBlock) RandomSeed() string {
 	return "59fc526072b09af8a8ca9732dae17132c4e9127e43cf2232"
 }
 
-// SupportRandom mock
-func (block *testBlock) SupportRandom() bool {
+// RandomAvailable mock
+func (block *testBlock) RandomAvailable() bool {
+	return true
+}
+
+// DateAvailable
+func (block *testBlock) DateAvailable() bool {
 	return true
 }
 
@@ -144,7 +149,7 @@ func TestRunScriptSource(t *testing.T) {
 		{"test/test_bignumber_random.js", core.ErrExecutionFailed, "Error: BigNumber.random is not allowed in nvm."},
 		{"test/test_random_enable.js", nil, "\"\""},
 		{"test/test_random_disable.js", core.ErrExecutionFailed, "Error: Math.random func is not allowed in nvm."},
-		{"test/test_random_seed.js", core.ErrExecutionFailed, "Error: random seed must be a string"},
+		{"test/test_random_seed.js", core.ErrExecutionFailed, "Error: input seed must be a string"},
 	}
 
 	for _, tt := range tests {

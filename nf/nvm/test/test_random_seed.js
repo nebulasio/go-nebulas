@@ -16,8 +16,5 @@
 // along with the go-nebulas library.  If not, see <http://www.gnu.org/licenses/>.
 // 
 
-Blockchain.block = {
-    supportRandom: true,
-    seed: "null"
-}
+Blockchain.blockParse("{\"seed\":\"null\",\"randomAvailable\":false}");
 console.log(Math.random.seed());

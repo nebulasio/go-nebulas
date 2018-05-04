@@ -60,7 +60,8 @@ Contract.prototype = {
         var r2 = Math.random();
 
         Event.Trigger("random", {
-            "supportRandom": Blockchain.block.supportRandom,
+            "supportRandom": Blockchain.block.randomAvailable,
+            "supportDate": Blockchain.block.dateAvailable,
             "seed": Blockchain.block.seed, 
             "defaultSeedRandom1": r1,
             "defaultSeedRandom2": r12,

@@ -107,7 +107,7 @@ module.exports = (function(){
             throw new Error("'Blockchain.block' is undefined.");
         }
     
-        if (!Blockchain.block.supportRandom) {
+        if (!Blockchain.block.randomAvailable) {
             throw new Error("Math.random func is not allowed in nvm.");
         }
     
@@ -125,7 +125,7 @@ module.exports = (function(){
     }
     rand.seed = function(userseed) {
         if (typeof(userseed) !== 'string') {
-            throw new Error("random seed must be a string")
+            throw new Error("input seed must be a string")
         }
         checkCtx();
         arng = new impl(Blockchain.block.seed + userseed);

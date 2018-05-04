@@ -25,6 +25,9 @@ var NebDate = (function(Date) {
         if (!Blockchain.block) {
             throw new Error("'Blockchain.block' is not defined.");
         }
+        if (!Blockchain.block.dateAvailable) {
+            throw new Error("Date is not allowed in nvm.");
+        }
     
         var date = new(Function.prototype.bind.apply(Date, [Date].concat(Array.prototype.slice.call(arguments))))();
         if (arguments.length == 0) {
@@ -35,12 +38,21 @@ var NebDate = (function(Date) {
         return date;
     }
     NebDate.now = function() {
+        if (!Blockchain.block.dateAvailable) {
+            throw new Error("Date is not allowed in nvm.");
+        }
         return new NebDate().getTime();
     }
     NebDate.UTC = function() {
+        if (!Blockchain.block.dateAvailable) {
+            throw new Error("Date is not allowed in nvm.");
+        }
         return Date.UTC.apply(null, arguments);
     }
     NebDate.parse = function(dateString) {
+        if (!Blockchain.block.dateAvailable) {
+            throw new Error("Date is not allowed in nvm.");
+        }
         return Date.parse(dateString);
     }
 
