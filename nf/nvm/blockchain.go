@@ -340,6 +340,20 @@ func GetContractSourceFunc(handler unsafe.Pointer, address *C.char, gasCnt *C.si
 	}
 	return C.CString(string(deploy.Source))
 }
+func packErrInfoAndSetHead(e *V8Engine, index uint32, errType int, rerrType *C.size_t, rerr **C.char, format string, a ...interface{}) string {
+	rStr := packErrInfo(errType, rerrType, rerr, format, a...)
+
+	formatEx := rStr + ",engine index:%v"
+	rStr = fmt.Sprintf(formatEx, index)
+
+	logging.CLog().Errorf(rStr)
+	if index == 0 {
+		e.multiErrMsg = rStr
+	} else {
+		SetHeadV8ErrMsg(e.ctx.head, rStr)
+	}
+	return rStr
+}
 func packErrInfo(errType int, rerrType *C.size_t, rerr **C.char, format string, a ...interface{}) string {
 	/*var rStr string
 	if a == nil {
@@ -349,7 +363,7 @@ func packErrInfo(errType int, rerrType *C.size_t, rerr **C.char, format string, 
 	}*/
 	rStr := fmt.Sprintf(format, a...)
 
-	logging.CLog().Errorf(rStr)
+	// logging.CLog().Errorf(rStr)
 	*rerrType = C.size_t(errType)
 	*rerr = C.CString(rStr)
 	return rStr
@@ -379,8 +393,9 @@ func RunMultilevelContractSourceFunc(handler unsafe.Pointer, address *C.char, fu
 	}
 	index := engine.ctx.index
 	if engine.ctx.index >= uint32(MultiNvmMax) {
-		rStr := packErrInfo(MultiNvmMaxLimit, rerrType, rerr, "Failed to run nvm, becase more nvm , engine index:%v", engine.ctx.index)
-		SetHeadV8ErrMsg(engine.ctx.head, rStr)
+		//rStr := packErrInfo(MultiNvmMaxLimit, rerrType, rerr, "Failed to run nvm, becase more nvm , engine index:%v", engine.ctx.index)
+		//SetHeadV8ErrMsg(engine.ctx.head, rStr)
+		packErrInfoAndSetHead(engine, index, MultiNvmMaxLimit, rerrType, rerr, "Failed to run nvm, becase more nvm")
 		return nil
 	}
 	var gasSum uint64
@@ -389,23 +404,27 @@ func RunMultilevelContractSourceFunc(handler unsafe.Pointer, address *C.char, fu
 
 	addr, err := core.AddressParse(C.GoString(address))
 	if err != nil {
-		packErrInfo(MultiNotParseAddress, rerrType, rerr, "address parse err , engine index:%v", engine.ctx.index)
+		//packErrInfo(MultiNotParseAddress, rerrType, rerr, "address parse err , engine index:%v", engine.ctx.index)
+		packErrInfoAndSetHead(engine, index, MultiNotParseAddress, rerrType, rerr, "address parse err")
 		return nil
 	}
 	contract, err := core.CheckContract(addr, ws)
 	if err != nil {
-		packErrInfo(MultiContractIsErr, rerrType, rerr, "check contract has err , engine index:%v", engine.ctx.index)
+		//packErrInfo(MultiContractIsErr, rerrType, rerr, "check contract has err , engine index:%v", engine.ctx.index)
+		packErrInfoAndSetHead(engine, index, MultiContractIsErr, rerrType, rerr, "check contract has err")
 		return nil
 	}
 
 	birthTx, err := core.GetTransaction(contract.BirthPlace(), ws)
 	if err != nil {
-		packErrInfo(MultiGetTransErrByBirth, rerrType, rerr, "get transaction ie err by birth , engine index:%v", engine.ctx.index)
+		// packErrInfo(MultiGetTransErrByBirth, rerrType, rerr, "get transaction ie err by birth , engine index:%v", engine.ctx.index)
+		packErrInfoAndSetHead(engine, index, MultiGetTransErrByBirth, rerrType, rerr, "get transaction ie err by birth")
 		return nil
 	}
 	deploy, err := core.LoadDeployPayload(birthTx.Data())
 	if err != nil {
-		packErrInfo(MultiLoadDeployPayLoadErr, rerrType, rerr, "LoadDeployPayload err , engine index:%v", engine.ctx.index)
+		//packErrInfo(MultiLoadDeployPayLoadErr, rerrType, rerr, "LoadDeployPayload err , engine index:%v", engine.ctx.index)
+		packErrInfoAndSetHead(engine, index, MultiLoadDeployPayLoadErr, rerrType, rerr, "LoadDeployPayload err")
 		return nil
 	}
 
@@ -413,12 +432,14 @@ func RunMultilevelContractSourceFunc(handler unsafe.Pointer, address *C.char, fu
 	payloadType := core.TxPayloadCallType
 	callpayload, err := core.NewCallPayload(C.GoString(funcName), C.GoString(args))
 	if err != nil {
-		packErrInfo(MultiNewCallPayLoadErr, rerrType, rerr, "core.NewCallPayload err:%v, engine index:%v", err, engine.ctx.index)
+		// packErrInfo(MultiNewCallPayLoadErr, rerrType, rerr, "core.NewCallPayload err:%v, engine index:%v", err, engine.ctx.index)
+		packErrInfoAndSetHead(engine, index, MultiNewCallPayLoadErr, rerrType, rerr, "core.NewCallPayload err:%v", err)
 		return nil
 	}
 	payload, err := callpayload.ToBytes()
 	if err != nil {
-		packErrInfo(MultiPayLoadToByteErr, rerrType, rerr, "callpayload.ToBytes err:%v, engine index:%v", err, engine.ctx.index)
+		// packErrInfo(MultiPayLoadToByteErr, rerrType, rerr, "callpayload.ToBytes err:%v, engine index:%v", err, engine.ctx.index)
+		packErrInfoAndSetHead(engine, index, MultiPayLoadToByteErr, rerrType, rerr, "callpayload.ToBytes err:%v", err)
 		return nil
 	}
 
@@ -426,27 +447,33 @@ func RunMultilevelContractSourceFunc(handler unsafe.Pointer, address *C.char, fu
 	from := engine.ctx.contract.Address()
 	fromAddr, err := core.AddressParseFromBytes(from)
 	if err != nil {
-		packErrInfo(MultiNotParseAddressFromByte, rerrType, rerr, "core.AddressParse err:%v, engine index:%v", err, engine.ctx.index)
+		// packErrInfo(MultiNotParseAddressFromByte, rerrType, rerr, "core.AddressParse err:%v, engine index:%v", err, engine.ctx.index)
+		packErrInfoAndSetHead(engine, index, MultiNotParseAddressFromByte, rerrType, rerr, "core.AddressParse err:%v", err)
 		return nil
 	}
 	//transfer
 	var transferCoseGas uint64
 	iRet := TransferByAddress(handler, fromAddr, addr, C.GoString(v), &transferCoseGas)
 	if iRet != 0 {
-		packErrInfo(MultiTransferErrByAddress, rerrType, rerr, "TransferByAddress,form:%v,to:%v,value:%v,err:%v, engine index:%v", fromAddr.String(), addr.String(), C.GoString(v), err, engine.ctx.index)
+		// packErrInfo(MultiTransferErrByAddress, rerrType, rerr, "TransferByAddress,form:%v,to:%v,value:%v,err:%v, engine index:%v", fromAddr.String(), addr.String(), C.GoString(v), err, engine.ctx.index)
+		packErrInfoAndSetHead(engine, index, MultiTransferErrByAddress, rerrType, rerr, "TransferByAddress,form:%v,to:%v,value:%v,err:%v", fromAddr.String(), addr.String(), C.GoString(v), err)
 		return nil
 	}
+	gasSum += transferCoseGas
 
 	toValue, err := util.NewUint128FromString(C.GoString(v))
 	if err != nil {
-		packErrInfo(MultiBigNumChangeErr, rerrType, rerr, "NewUint128FromString err v:%v, engine index:%v", C.GoString(v), engine.ctx.index)
+		// packErrInfo(MultiBigNumChangeErr, rerrType, rerr, "NewUint128FromString err v:%v, engine index:%v", C.GoString(v), engine.ctx.index)
+		packErrInfoAndSetHead(engine, index, MultiBigNumChangeErr, rerrType, rerr, "NewUint128FromString err, v:%v", C.GoString(v))
 		return nil
 	}
 	newTx, err := core.NewTransaction(oldTx.ChainID(), fromAddr, addr, toValue, oldTx.Nonce(), payloadType,
 		payload, oldTx.GasPrice(), oldTx.GasLimit())
 	if err != nil {
-		packErrInfo(MultiNewTransactionErr, rerrType, rerr, "MultiNewTransactionErr err, from:%v, to:%v, v:%v, nonce:%v, engine index:%v",
-			fromAddr.String(), addr.String(), C.GoString(v), oldTx.Nonce(), engine.ctx.index)
+		//packErrInfo(MultiNewTransactionErr, rerrType, rerr, "MultiNewTransactionErr err, from:%v, to:%v, v:%v, nonce:%v, engine index:%v",
+		//	fromAddr.String(), addr.String(), C.GoString(v), oldTx.Nonce(), engine.ctx.index)
+		packErrInfoAndSetHead(engine, index, MultiNewTransactionErr, rerrType, rerr, "MultiNewTransactionErr err, from:%v, to:%v, v:%v, nonce:%v",
+			fromAddr.String(), addr.String(), C.GoString(v), oldTx.Nonce())
 		return nil
 	}
 	newTx.SetHash(oldTx.Hash())
@@ -459,21 +486,24 @@ func RunMultilevelContractSourceFunc(handler unsafe.Pointer, address *C.char, fu
 	}
 	newCtx, err := NewChildContext(engine.ctx.block, newTx, contract, engine.ctx.state, head, engine.ctx.index+1)
 	if err != nil {
-		packErrInfo(MultiNewChildContext, rerrType, rerr, "NewContext err:%v, engine index:%v", err, engine.ctx.index)
+		// packErrInfo(MultiNewChildContext, rerrType, rerr, "NewContext err:%v, engine index:%v", err, engine.ctx.index)
+		packErrInfoAndSetHead(engine, index, MultiNewChildContext, rerrType, rerr, "NewContext err:%v", err)
 		return nil
 	}
 
 	remainInstruction, remainMem := engine.GetNVMVerbResources()
-	iCost := RunMultilevelContractSourceFuncCost + TransferFuncCost
-	if remainInstruction < uint64(iCost) {
-		packErrInfo(MultiNvmSystemErr, rerrType, rerr, "engine.call system failed the gas over!!!, engine index:%d", index)
+	iCost := uint64(RunMultilevelContractSourceFuncCost) + transferCoseGas
+	if remainInstruction <= uint64(iCost) {
+		//rStr := packErrInfo(MultiNvmSystemErr, rerrType, rerr, "engine.call system failed the gas over!!!, engine index:%d", index)
+		//SetHeadV8ErrMsg(engine.ctx.head, rStr)
+		packErrInfoAndSetHead(engine, index, MultiNvmSystemErr, rerrType, rerr, "engine.call system failed the gas over!!!")
 		return nil
 	}
 
 	remainInstruction -= uint64(RunMultilevelContractSourceFuncCost)
-	remainInstruction -= uint64(TransferFuncCost)
+	remainInstruction -= uint64(transferCoseGas)
 
-	logging.CLog().Infof("begin create New V8,intance:%v, mem:%v", remainInstruction, remainMem)
+	logging.CLog().Infof("begin create New V8,intance:%v, mem:%v, cost:%v", remainInstruction, remainMem, iCost)
 	engineNew := NewV8Engine(newCtx)
 	engineNew.SetExecutionLimits(remainInstruction, remainMem)
 
@@ -499,19 +529,21 @@ func RunMultilevelContractSourceFunc(handler unsafe.Pointer, address *C.char, fu
 			"value": toValue.String(),
 			"err":   err,
 		}).Debug("failed to marshal TransferFromContractEvent")
-
-		packErrInfo(MultiTransferRecordEventFailed, rerrType, rerr, "engine.call failed to marshal TransferFromContractEvent err:%v, engine index:%v", err, engine.ctx.index)
+		packErrInfoAndSetHead(engine, index, MultiTransferRecordEventFailed, rerrType, rerr, "engine.call failed to marshal TransferFromContractEvent err:%v", err)
+		//packErrInfo(MultiTransferRecordEventFailed, rerrType, rerr, "engine.call failed to marshal TransferFromContractEvent err:%v, engine index:%v", err, engine.ctx.index)
 		return nil
 	}
 	engine.ctx.state.RecordEvent(oldTx.Hash(), &state.Event{Topic: core.TopicInnerTransferContract, Data: string(eData)})
 	engineNew.Dispose()
 	if err != nil {
 		if err == ErrExceedMemoryLimits {
-			rStr := packErrInfo(MultiSystemMemLimit, rerrType, rerr, "engine.call mem limit err:%v, engine index:%v", err, engine.ctx.index)
-			SetHeadV8ErrMsg(engine.ctx.head, rStr)
+			//rStr := packErrInfo(MultiSystemMemLimit, rerrType, rerr, "engine.call mem limit err:%v, engine index:%v", err, engine.ctx.index)
+			//SetHeadV8ErrMsg(engine.ctx.head, rStr)
+			packErrInfoAndSetHead(engine, index, MultiSystemMemLimit, rerrType, rerr, "engine.call mem limit err:%v", err)
 		} else if err == ErrInsufficientGas {
-			rStr := packErrInfo(MultiSystemInsufficientLimit, rerrType, rerr, "engine.call insuff limit err:%v, engine index:%v", err, engine.ctx.index)
-			SetHeadV8ErrMsg(engine.ctx.head, rStr)
+			//rStr := packErrInfo(MultiSystemInsufficientLimit, rerrType, rerr, "engine.call insuff limit err:%v, engine index:%v", err, engine.ctx.index)
+			//SetHeadV8ErrMsg(engine.ctx.head, rStr)
+			packErrInfoAndSetHead(engine, index, MultiSystemInsufficientLimit, rerrType, rerr, "engine.call insuff limit err:%v", err)
 		} else if err == core.ErrMultiExecutionFailed {
 			logging.CLog().Errorf("++++++++err:%v", err)
 			packErrInfo(MultiNvmSystemErr, rerrType, rerr, "engine.call system err:%v, engine index:%d", err, index)
@@ -522,7 +554,7 @@ func RunMultilevelContractSourceFunc(handler unsafe.Pointer, address *C.char, fu
 		/*packErrInfo(MultiNvmSystemErr, rerrType, rerr, "engine.call system err:%v, engine index:%d", err, index)
 		return nil*/
 	}
-	logging.CLog().Infof("end cal val:%v,gascount:%v,gasSum:%v", val, gasCout, gasSum)
+	logging.CLog().Infof("end cal val:%v,gascount:%v,gasSum:%v, engine index:%v", val, gasCout, gasSum, index)
 	*gasCnt = C.size_t(gasSum)
 	return C.CString(string(val))
 }

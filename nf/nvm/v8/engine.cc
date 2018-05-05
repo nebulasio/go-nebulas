@@ -225,12 +225,12 @@ int Execute(char **result, V8Engine *e, const char *source,
                   trycatch, delegateContext);
   if (iRtn == 1) {
     if (e->is_requested_terminate_execution == 1) {
-      if (result != NULL) {
+      /*if (result != NULL) {
         free(*result);
         int len = strlen(SYSTEMERRTERMINATE) + 1;
         *result = (char *)malloc(len);
         strcpy(*result, SYSTEMERRTERMINATE);
-      }
+      }*/
       return 2;
     }
   }
