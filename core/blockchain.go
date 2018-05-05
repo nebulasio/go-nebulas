@@ -487,8 +487,8 @@ func (bc *BlockChain) GetInputForVRFSigner(parentHash byteutils.Hash, height uin
 	}
 
 	parent := bc.GetBlockOnCanonicalChainByHash(parentHash)
-	if parent == nil {
-		return nil, ErrNotBlockInCanonicalChain
+	if parent == nil || parent.height+1 != height {
+		return nil, ErrInvalidBlockHash
 	}
 
 	if parent.height >= RandomAvailableHeight {

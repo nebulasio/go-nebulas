@@ -27,6 +27,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/neblet"
 	"github.com/nebulasio/go-nebulas/util/logging"
 	"github.com/urfave/cli"
@@ -83,6 +84,8 @@ func neb(ctx *cli.Context) error {
 	}
 
 	logging.Init(n.Config().App.LogFile, n.Config().App.LogLevel, n.Config().App.LogAge)
+
+	core.SetCompatibilityOptions(n.Config().Chain.ChainId)
 
 	// enable crash report if open the switch and configure the url
 	if n.Config().App.EnableCrashReport && len(n.Config().App.CrashReportUrl) > 0 {

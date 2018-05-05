@@ -88,8 +88,6 @@ func New(config *nebletpb.Config) (*Neblet, error) {
 		return nil, ErrConfigShouldHasChain
 	}
 
-	core.SetCompatibilityOptions(config.Chain.ChainId)
-
 	var err error
 	n.genesis, err = core.LoadGenesisConf(config.Chain.Genesis)
 	if err != nil {
