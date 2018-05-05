@@ -54,6 +54,7 @@ const (
 // Block interface breaks cycle import dependency and hides unused services.
 type Block interface {
 	Hash() byteutils.Hash
+	ParentHash() byteutils.Hash
 	Height() uint64 // ToAdd: timestamp interface
 	Timestamp() int64
 	RandomSeed() string
