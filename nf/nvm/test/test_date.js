@@ -16,7 +16,7 @@
 // along with the go-nebulas library.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-Blockchain.blockParse("{\"timestamp\":20000000000,\"dateAvailable\":true}");
+Blockchain.blockParse("{\"timestamp\":20000000000,\"seed\":\"\"}");
 
 console.log(Date.now());
 console.log(Date.UTC());

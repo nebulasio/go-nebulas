@@ -107,12 +107,8 @@ module.exports = (function(){
             throw new Error("'Blockchain.block' is undefined.");
         }
     
-        if (!Blockchain.block.randomAvailable) {
+        if (Blockchain.block.seed == null || typeof(Blockchain.block.seed) === 'undefined') {
             throw new Error("Math.random func is not allowed in nvm.");
-        }
-    
-        if (!Blockchain.block.seed) {
-            throw new Error("random seed is undefined.");
         }
     }
 

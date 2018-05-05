@@ -67,6 +67,9 @@ var (
 
 	// MaxEventErrLength Max error length in event
 	MaxEventErrLength = 256
+
+	// MaxResultLength max execution result length
+	MaxResultLength = 256
 )
 
 // TransactionEvent transaction event
@@ -628,6 +631,10 @@ func (tx *Transaction) recordResultEvent(gasUsed *util.Uint128, err error, ws Wo
 
 	var txData []byte
 	if block.height >= RecordCallContractResultHeight {
+
+		if len(exeResult) > MaxResultLength {
+			exeResult = exeResult[:MaxResultLength]
+		}
 		txEvent := &TransactionEventV2{
 			Hash:          tx.hash.String(),
 			GasUsed:       gasUsed.String(),

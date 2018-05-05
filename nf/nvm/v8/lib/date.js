@@ -17,7 +17,16 @@
 // 
 
 
-var NebDate = (function(Date) {
+var NebDate = (function(ProtoDate) {
+    // compatibility
+    var Date = function() {
+        throw new Error("Date is not allowed in nvm.");
+    }
+
+    function allow() {
+        return Blockchain.block.seed != null && typeof(Blockchain.block.seed) !== 'undefined';
+    }
+
     function NebDate() {
         if (!Blockchain) {
             throw new Error("'Blockchain' is not defined.");
@@ -25,11 +34,11 @@ var NebDate = (function(Date) {
         if (!Blockchain.block) {
             throw new Error("'Blockchain.block' is not defined.");
         }
-        if (!Blockchain.block.dateAvailable) {
+        if (!allow()) {
             throw new Error("Date is not allowed in nvm.");
         }
     
-        var date = new(Function.prototype.bind.apply(Date, [Date].concat(Array.prototype.slice.call(arguments))))();
+        var date = new(Function.prototype.bind.apply(ProtoDate, [ProtoDate].concat(Array.prototype.slice.call(arguments))))();
         if (arguments.length == 0) {
             // unit of timestamp is second
             date.setTime(Blockchain.block.timestamp * 1000);
@@ -38,22 +47,22 @@ var NebDate = (function(Date) {
         return date;
     }
     NebDate.now = function() {
-        if (!Blockchain.block.dateAvailable) {
-            throw new Error("Date is not allowed in nvm.");
+        if (!allow()) {
+            Date.now();
         }
         return new NebDate().getTime();
     }
     NebDate.UTC = function() {
-        if (!Blockchain.block.dateAvailable) {
-            throw new Error("Date is not allowed in nvm.");
+        if (!allow()) {
+            Date.UTC();
         }
-        return Date.UTC.apply(null, arguments);
+        return ProtoDate.UTC.apply(null, arguments);
     }
     NebDate.parse = function(dateString) {
-        if (!Blockchain.block.dateAvailable) {
-            throw new Error("Date is not allowed in nvm.");
+        if (!allow()) {
+            Date.parse(dateString);
         }
-        return Date.parse(dateString);
+        return ProtoDate.parse(dateString);
     }
 
     NebDate.prototype.getTimezoneOffset = function() {
@@ -127,7 +136,7 @@ var NebDate = (function(Date) {
         },
     });
 
-    Object.setPrototypeOf(NebDate.prototype, Date.prototype);
+    Object.setPrototypeOf(NebDate.prototype, ProtoDate.prototype);
     return NebDate;
 })(Date);
 
