@@ -300,31 +300,13 @@ void RunMultilevelContractSourceCallBack(const FunctionCallbackInfo<Value> &info
                            *String::Utf8Value(address->ToString()), *String::Utf8Value(funcName->ToString()),
                            *String::Utf8Value(val->ToString()), *String::Utf8Value(args->ToString()),
                            &cnt, &rerrType, &rerr);
-  Local<Object> rObj = v8::Object::New(isolate);
-    // 对象的赋值
-    // obj->Set(v8::String::NewFromUtf8(isolate, "arg1"), str);
-    // obj->Set(v8::String::NewFromUtf8(isolate, "arg2"), retval);                         
+  Local<Object> rObj = v8::Object::New(isolate);                      
   if (value == NULL) {
-    //info.GetReturnValue().SetNull();
-    if (rerrType <= 10000) {
-      free(rerr);
-      /*isolate->ThrowException(
-        String::NewFromUtf8(isolate, SYSTEMERRSTR));*/
-      Local<Context> context = isolate->GetCurrentContext();
-      V8Engine *e = GetV8EngineInstance(context);
-
-      TerminateExecution(e);
-      return;
-    }
-    Local<Boolean> flag = Boolean::New(isolate, false);
-    rObj->Set(v8::String::NewFromUtf8(isolate, "code"), flag);
-    char msg[512];
-    snprintf(msg, 512, "blockchain.sRunMultContract err:%s", rerr);
-    //rObj->Set(v8::String::NewFromUtf8(isolate, "ret"), Null);
-    Local<String> errStr = v8::String::NewFromUtf8(isolate, msg);
-    rObj->Set(v8::String::NewFromUtf8(isolate, "msg"), errStr);
-    info.GetReturnValue().Set(rObj);
     free(rerr);
+    Local<Context> context = isolate->GetCurrentContext();
+    V8Engine *e = GetV8EngineInstance(context);
+
+    TerminateExecution(e);
     return;
   } else {
     Local<Boolean> flag = Boolean::New(isolate, true);

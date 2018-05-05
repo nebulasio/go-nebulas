@@ -480,17 +480,20 @@ func RunMultilevelContractSourceFunc(handler unsafe.Pointer, address *C.char, fu
 	val, err := engineNew.Call(string(deploy.Source), deploy.SourceType, C.GoString(funcName), C.GoString(args))
 	gasCout := engineNew.ExecutionInstructions()
 	gasSum += gasCout
-
+	errStr := ""
+	if err != nil {
+		errStr = err.Error()
+	}
 	event := &InnerTransferContractEvent{
 		From:  fromAddr.String(),
 		To:    addr.String(),
 		Value: toValue.String(),
-		Err:   err.Error(),
+		Err:   errStr,
 	}
 
 	eData, errMarshal := json.Marshal(event)
 	if errMarshal != nil {
-		logging.VLog().WithFields(logrus.Fields{
+		logging.CLog().WithFields(logrus.Fields{
 			"from":  fromAddr.String(),
 			"to":    addr.String(),
 			"value": toValue.String(),
@@ -501,7 +504,6 @@ func RunMultilevelContractSourceFunc(handler unsafe.Pointer, address *C.char, fu
 		return nil
 	}
 	engine.ctx.state.RecordEvent(oldTx.Hash(), &state.Event{Topic: core.TopicInnerTransferContract, Data: string(eData)})
-
 	engineNew.Dispose()
 	if err != nil {
 		if err == ErrExceedMemoryLimits {
@@ -517,6 +519,8 @@ func RunMultilevelContractSourceFunc(handler unsafe.Pointer, address *C.char, fu
 			packErrInfo(MultiCallErr, rerrType, rerr, "engine.call err:%v, engine index:%v", err, index)
 		}
 		return nil
+		/*packErrInfo(MultiNvmSystemErr, rerrType, rerr, "engine.call system err:%v, engine index:%d", err, index)
+		return nil*/
 	}
 	logging.CLog().Infof("end cal val:%v,gascount:%v,gasSum:%v", val, gasCout, gasSum)
 	*gasCnt = C.size_t(gasSum)
