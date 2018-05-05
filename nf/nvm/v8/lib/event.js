@@ -18,10 +18,6 @@
 
 'use strict';
 
-function trigger(topic, data) {
+exports["Trigger"] = function (topic, data) {
     _native_event_trigger(topic, JSON.stringify(data));
 };
-
-trigger.toString = function() {return "";};
-
-exports["Trigger"] = trigger;

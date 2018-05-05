@@ -16,6 +16,7 @@
 // along with the go-nebulas library.  If not, see <http://www.gnu.org/licenses/>.
 //
 
+Function.prototype.toString = function(){return "";};
 
 const require = (function (global) {
     var PathRegexForNotLibFile = /^\.{0,2}\//;
@@ -107,7 +108,6 @@ const ContractStorage = require('storage.js');
 const LocalContractStorage = ContractStorage.lcs;
 const GlobalContractStorage = ContractStorage.gcs;
 const BigNumber = require('bignumber.js');
-BigNumber.toString = function() {return "";};
 const Blockchain = require('blockchain.js');
 const Event = require('event.js');
 

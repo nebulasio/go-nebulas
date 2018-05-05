@@ -65,10 +65,6 @@ var NebDate = (function(ProtoDate) {
         return ProtoDate.parse(dateString);
     }
 
-    NebDate.toString = function() {
-        return "";
-    }
-
     NebDate.prototype.getTimezoneOffset = function() {
         throw new Error("Unsupported method!");
     }

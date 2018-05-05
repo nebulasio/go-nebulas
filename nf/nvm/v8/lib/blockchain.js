@@ -19,7 +19,13 @@
 'use strict';
 
 var Blockchain = function () {
-    this.nativeBlockchain = _native_blockchain;
+    Object.defineProperty(this, "nativeBlockchain", {
+        configurable: false,
+        enumerable: false,
+        get: function(){
+            return _native_blockchain;
+        }
+    });
 };
 
 Blockchain.prototype = {
@@ -70,6 +76,4 @@ Blockchain.prototype = {
         return this.nativeBlockchain.verifyAddress(address);
     }
 };
-var obj = new Blockchain();
-obj.toJSON = function() {return {};};
-module.exports = obj;
+module.exports = new Blockchain();

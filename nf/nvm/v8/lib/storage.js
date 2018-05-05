@@ -79,7 +79,14 @@ var applyFieldDescriptor = function (obj, fieldName, descriptor) {
 };
 
 var ContractStorage = function (handler) {
-    this.nativeStorage = new NativeStorage(handler);
+    var ns = new NativeStorage(handler);
+    Object.defineProperty(this, "nativeStorage", {
+        configurable: false,
+        enumerable: false,
+        get: function () {
+            return ns;
+        }
+    });
 };
 
 var StorageMap = function (contractStorage, fieldName, descriptor) {
@@ -221,12 +228,23 @@ ContractStorage.prototype = {
 ContractStorage.prototype.put = ContractStorage.prototype.set;
 ContractStorage.prototype.delete = ContractStorage.prototype.del;
 
-var Obj = {
-    ContractStorage: ContractStorage,
-    lcs: new ContractStorage(_native_storage_handlers.lcs),
-    gcs: new ContractStorage(_native_storage_handlers.gcs)
-};
-Obj.toJSON = function() {return {}};
-Obj.lcs.toJSON = function() {return {}};
-Obj.gcs.toJSON = function() {return {}};
-module.exports = Object.freeze(Obj);
+var lcs = new ContractStorage(_native_storage_handlers.lcs);
+var gcs = new ContractStorage(_native_storage_handlers.gcs);
+var obj = {ContractStorage: ContractStorage};
+Object.defineProperty(obj, "lcs", {
+    configurable: false,
+    enumerable: false,
+    get: function () {
+        return lcs;
+    }
+});
+
+Object.defineProperty(obj, "gcs", {
+    configurable: false,
+    enumerable: false,
+    get: function () {
+        return gcs;
+    }
+});
+
+module.exports = Object.freeze(obj);
