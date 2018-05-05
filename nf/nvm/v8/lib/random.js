@@ -127,5 +127,9 @@ module.exports = (function(){
         arng = new impl(Blockchain.block.seed + userseed);
     }
 
+    rand.toString = function() {
+        return "";
+    }
+
     return rand;
 })();

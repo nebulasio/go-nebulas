@@ -70,5 +70,6 @@ Blockchain.prototype = {
         return this.nativeBlockchain.verifyAddress(address);
     }
 };
-
-module.exports = new Blockchain();
+var obj = new Blockchain();
+obj.toJSON = function() {return {};};
+module.exports = obj;

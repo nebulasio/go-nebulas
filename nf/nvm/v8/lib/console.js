@@ -52,5 +52,7 @@ function format(obj) {
     Console.prototype[val[0]] = log.bind(null, val[1]);
 });
 
+Console.toString = function() {return "";};
+
 module.exports = new Console();
 module.exports.Console = Console;
