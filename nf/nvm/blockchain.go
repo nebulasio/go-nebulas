@@ -494,12 +494,16 @@ func RunMultilevelContractSourceFunc(handler unsafe.Pointer, address *C.char, fu
 	remainInstruction, remainMem := engine.GetNVMVerbResources()
 	iCost := uint64(RunMultilevelContractSourceFuncCost) + transferCoseGas
 	if remainInstruction <= uint64(iCost) {
+		logging.CLog().Infof("remainInstruction:%v, mem:%v", remainInstruction, remainMem)
 		//rStr := packErrInfo(MultiNvmSystemErr, rerrType, rerr, "engine.call system failed the gas over!!!, engine index:%d", index)
 		//SetHeadV8ErrMsg(engine.ctx.head, rStr)
 		packErrInfoAndSetHead(engine, index, MultiNvmSystemErr, rerrType, rerr, "engine.call system failed the gas over!!!")
 		return nil
 	}
-
+	if remainMem <= 0 {
+		packErrInfoAndSetHead(engine, index, MultiNvmSystemErr, rerrType, rerr, "engine.call system failed the mem over!!!")
+		return nil
+	}
 	remainInstruction -= uint64(RunMultilevelContractSourceFuncCost)
 	remainInstruction -= uint64(transferCoseGas)
 
