@@ -48,6 +48,7 @@ const (
 	TransferStringToBigIntErr
 	TransferSubBalance
 	TransferAddBalance
+	TransferRecordEventFailed
 )
 
 // Block interface breaks cycle import dependency and hides unused services.
@@ -55,6 +56,9 @@ type Block interface {
 	Hash() byteutils.Hash
 	Height() uint64 // ToAdd: timestamp interface
 	Timestamp() int64
+	RandomSeed() string
+	RandomAvailable() bool
+	DateAvailable() bool
 }
 
 // Transaction interface breaks cycle import dependency and hides unused services.
@@ -71,6 +75,7 @@ type Transaction interface {
 
 // Account interface breaks cycle import dependency and hides unused services.
 type Account interface {
+	Address() byteutils.Hash
 	Balance() *util.Uint128
 	Nonce() uint64
 	AddBalance(value *util.Uint128) error

@@ -95,11 +95,14 @@ func collectSystemMetrics() {
 	}
 
 	allocs := metrics.GetOrRegisterMeter("system_allocs", nil)
+
 	// totalAllocs := metrics.GetOrRegisterMeter("system_total_allocs", nil)
 	sys := metrics.GetOrRegisterMeter("system_sys", nil)
 	frees := metrics.GetOrRegisterMeter("system_frees", nil)
 	heapInuse := metrics.GetOrRegisterMeter("system_heapInuse", nil)
 	stackInuse := metrics.GetOrRegisterMeter("system_stackInuse", nil)
+	releases := metrics.GetOrRegisterMeter("system_release", nil)
+
 	for i := 1; ; i++ {
 		select {
 		case <-quitCh:
@@ -107,10 +110,13 @@ func collectSystemMetrics() {
 		default:
 			runtime.ReadMemStats(memstats[i%2])
 			allocs.Mark(int64(memstats[i%2].Alloc - memstats[(i-1)%2].Alloc))
+
 			sys.Mark(int64(memstats[i%2].Sys - memstats[(i-1)%2].Sys))
 			frees.Mark(int64(memstats[i%2].Frees - memstats[(i-1)%2].Frees))
 			heapInuse.Mark(int64(memstats[i%2].HeapInuse - memstats[(i-1)%2].HeapInuse))
 			stackInuse.Mark(int64(memstats[i%2].StackInuse - memstats[(i-1)%2].StackInuse))
+			releases.Mark(int64(memstats[i%2].HeapReleased - memstats[(i-1)%2].HeapReleased))
+
 			time.Sleep(2 * time.Second)
 		}
 	}

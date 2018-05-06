@@ -102,6 +102,9 @@ func (dp *Dispatcher) loop() {
 			msgType := msg.MessageType()
 
 			v, _ := dp.subscribersMap.Load(msgType)
+			if v == nil {
+				continue
+			}
 			m, _ := v.(*sync.Map)
 
 			m.Range(func(key, value interface{}) bool {

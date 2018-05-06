@@ -21,6 +21,9 @@ package account
 import (
 	"errors"
 
+	"github.com/nebulasio/go-nebulas/crypto/hash"
+	"github.com/nebulasio/go-nebulas/crypto/keystore/secp256k1/vrf/secp256k1VRF"
+
 	"github.com/nebulasio/go-nebulas/util/byteutils"
 
 	"path/filepath"
@@ -384,6 +387,41 @@ func (m *Manager) SignBlock(addr *core.Address, block *core.Block) error {
 	}
 	signature.InitSign(key.(keystore.PrivateKey))
 	return block.Sign(signature)
+}
+
+// GenerateRandomSeed generate rand
+func (m *Manager) GenerateRandomSeed(addr *core.Address, args ...[]byte) (vrfSeed, vrfProof []byte, err error) {
+
+	key, err := m.ks.GetUnlocked(addr.String())
+	if err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"err": err,
+		}).Error("Failed to get unlocked private key to generate block rand.")
+		return nil, nil, ErrAccountIsLocked
+	}
+
+	_, err = crypto.NewSignature(m.signatureAlg)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	seckey, err := key.(keystore.PrivateKey).Encoded()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	signer, err := secp256k1VRF.NewVRFSignerFromRawKey(seckey)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	data := hash.Sha3256(args...)
+
+	seed, proof := signer.Evaluate(data)
+	if proof == nil {
+		return nil, nil, secp256k1VRF.ErrEvaluateFailed
+	}
+	return seed[:], proof, nil
 }
 
 // SignTransactionWithPassphrase sign transaction with the from passphrase

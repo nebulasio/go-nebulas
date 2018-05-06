@@ -56,6 +56,7 @@ var (
 	ErrGenerateNextConsensusState = errors.New("Failed to generate next consensus state")
 	ErrDoubleBlockMinted          = errors.New("double block minted")
 	ErrAppendNewBlockFailed       = errors.New("failed to append new block to real chain")
+	ErrInvalidArgument            = errors.New("invalid argument")
 )
 
 // Metrics
@@ -375,33 +376,72 @@ func (dpos *Dpos) VerifyBlock(block *core.Block) error {
 	if err := verifyBlockSign(miner, block); err != nil {
 		return err
 	}
+
+	// check block random
+	if block.Height() >= core.RandomAvailableHeight && !block.HasRandomSeed() {
+		logging.VLog().WithFields(logrus.Fields{
+			"blockHeight":      block.Height(),
+			"compatibleHeight": core.RandomAvailableHeight,
+		}).Debug("No random found in block header.")
+		return core.ErrInvalidBlockRandom
+	}
+
 	dpos.slot.Add(block.Timestamp(), block)
 	return nil
 }
 
-func (dpos *Dpos) signBlock(block *core.Block) error {
+func (dpos *Dpos) generateRandomSeed(block *core.Block, adminService rpcpb.AdminServiceClient) error {
 	if dpos.enableRemoteSignServer == true {
-		conn, err := rpc.Dial(dpos.remoteSignServer)
-		if err != nil {
-			return err
+		if adminService == nil {
+			return ErrInvalidArgument
 		}
-		adminService := rpcpb.NewAdminServiceClient(conn)
-		alg := keystore.SECP256K1
-		resp, err := adminService.SignHash(
+		// generate VRF hash,proof
+		random, err := adminService.GenerateRandomSeed(
 			context.Background(),
-			&rpcpb.SignHashRequest{
-				Address: dpos.miner.String(),
-				Hash:    block.Hash(),
-				Alg:     uint32(alg),
+			&rpcpb.GenerateRandomSeedRequest{
+				Address:    dpos.miner.String(),
+				ParentHash: block.ParentHash(),
+				Height:     block.Height(),
 			})
-		conn.Close()
 		if err != nil {
 			return err
 		}
-		block.SetSignature(alg, resp.Data)
+		block.SetRandomSeed(random.VrfSeed, random.VrfProof)
 		return nil
 	}
-	return dpos.am.SignBlock(dpos.miner, block)
+
+	// generate VRF hash,proof
+	inputs, err := dpos.chain.GetInputForVRFSigner(block.ParentHash(), block.Height())
+	if err != nil {
+		return err
+	}
+	vrfSeed, vrfProof, err := dpos.am.GenerateRandomSeed(dpos.miner, inputs...)
+	if err != nil {
+		return err
+	}
+	block.SetRandomSeed(vrfSeed, vrfProof)
+
+	return nil
+}
+
+func (dpos *Dpos) remoteSignBlock(block *core.Block, adminService rpcpb.AdminServiceClient) error {
+	if adminService == nil {
+		return ErrInvalidArgument
+	}
+	alg := keystore.SECP256K1
+	resp, err := adminService.SignHash(
+		context.Background(),
+		&rpcpb.SignHashRequest{
+			Address: dpos.miner.String(),
+			Hash:    block.Hash(),
+			Alg:     uint32(alg),
+		})
+	if err != nil {
+		return err
+	}
+
+	block.SetSignature(alg, resp.Data)
+	return nil
 }
 
 func (dpos *Dpos) unlock(passphrase string) error {
@@ -425,6 +465,24 @@ func (dpos *Dpos) newBlock(tail *core.Block, consensusState state.ConsensusState
 		return nil, err
 	}
 
+	var adminService rpcpb.AdminServiceClient
+	if dpos.enableRemoteSignServer == true {
+		conn, err := rpc.Dial(dpos.remoteSignServer)
+		defer func() {
+			if conn != nil {
+				conn.Close()
+			}
+		}()
+		if err != nil {
+			return nil, err
+		}
+		adminService = rpcpb.NewAdminServiceClient(conn)
+	}
+
+	if block.Height() >= core.RandomAvailableHeight {
+		dpos.generateRandomSeed(block, adminService)
+	}
+
 	block.WorldState().SetConsensusState(consensusState)
 	block.SetTimestamp(consensusState.TimeStamp())
 	block.CollectTransactions(deadlineInMs)
@@ -436,7 +494,13 @@ func (dpos *Dpos) newBlock(tail *core.Block, consensusState state.ConsensusState
 		go block.ReturnTransactions()
 		return nil, err
 	}
-	if err = dpos.signBlock(block); err != nil {
+
+	if dpos.enableRemoteSignServer == true {
+		err = dpos.remoteSignBlock(block, adminService)
+	} else {
+		err = dpos.am.SignBlock(dpos.miner, block)
+	}
+	if err != nil {
 		logging.CLog().WithFields(logrus.Fields{
 			"miner": dpos.miner,
 			"block": block,
@@ -647,4 +711,9 @@ func (dpos *Dpos) findProposer(now int64) (proposer byteutils.Hash, err error) {
 		return nil, err
 	}
 	return proposer, nil
+}
+
+// NumberOfBlocksInDynasty number of blocks in one dynasty
+func (dpos *Dpos) NumberOfBlocksInDynasty() uint64 {
+	return uint64(DynastyIntervalInMs) / uint64(BlockIntervalInMs)
 }

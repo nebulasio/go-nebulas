@@ -27,6 +27,9 @@ import (
 // AddressType address type
 type AddressType byte
 
+// UndefinedAddressType undefined
+const UndefinedAddressType AddressType = 0x00
+
 // address type enum
 const (
 	AccountAddress AddressType = 0x57 + iota
@@ -151,6 +154,9 @@ func (a *Address) Equals(b *Address) bool {
 
 // Type return the type of address.
 func (a *Address) Type() AddressType {
+	if len(a.address) <= AddressTypeIndex {
+		return UndefinedAddressType
+	}
 	return AddressType(a.address[AddressTypeIndex])
 }
 

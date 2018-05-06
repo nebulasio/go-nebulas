@@ -26,6 +26,7 @@ import (
 	"encoding/json"
 
 	"github.com/nebulasio/go-nebulas/core"
+	"github.com/nebulasio/go-nebulas/core/state"
 	"github.com/nebulasio/go-nebulas/util"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
 	"github.com/nebulasio/go-nebulas/util/logging"
@@ -178,6 +179,37 @@ func TransferFunc(handler unsafe.Pointer, to *C.char, v *C.char, gasCnt *C.size_
 			}).Debug("failed to add balance")
 			return TransferAddBalance
 		}
+	}
+
+	if engine.ctx.block.Height() >= core.TransferFromContractEventRecordableHeight {
+		cAddr, err := core.AddressParseFromBytes(engine.ctx.contract.Address())
+		if err != nil {
+			logging.VLog().WithFields(logrus.Fields{
+				"txhash":  engine.ctx.tx.Hash().String(),
+				"address": engine.ctx.contract.Address(),
+				"err":     err,
+			}).Debug("failed to parse contract address")
+			return TransferRecordEventFailed
+		}
+
+		event := &TransferFromContractEvent{
+			Amount: amount.String(),
+			From:   cAddr.String(),
+			To:     addr.String(),
+		}
+
+		eData, err := json.Marshal(event)
+		if err != nil {
+			logging.VLog().WithFields(logrus.Fields{
+				"from":   cAddr.String(),
+				"to":     addr.String(),
+				"amount": amount.String(),
+				"err":    err,
+			}).Debug("failed to marshal TransferFromContractEvent")
+			return TransferRecordEventFailed
+		}
+
+		engine.ctx.state.RecordEvent(engine.ctx.tx.Hash(), &state.Event{Topic: core.TopicTransferFromContract, Data: string(eData)})
 	}
 
 	return TransferFuncSuccess

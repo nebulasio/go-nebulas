@@ -136,6 +136,30 @@ func (s *AdminService) SignHash(ctx context.Context, req *rpcpb.SignHashRequest)
 	return &rpcpb.SignHashResponse{Data: data}, nil
 }
 
+// GenerateRandomSeed generate block's rand info
+func (s *AdminService) GenerateRandomSeed(ctx context.Context, req *rpcpb.GenerateRandomSeedRequest) (*rpcpb.GenerateRandomSeedResponse, error) {
+	neb := s.server.Neblet()
+	inputs, err := neb.BlockChain().GetInputForVRFSigner(req.ParentHash, req.Height)
+	if err != nil {
+		return nil, err
+	}
+
+	addr, err := core.AddressParse(req.Address)
+	if err != nil {
+		return nil, err
+	}
+
+	vrfSeed, vrfProof, err := neb.AccountManager().GenerateRandomSeed(addr, inputs...)
+	if err != nil {
+		return nil, err
+	}
+
+	return &rpcpb.GenerateRandomSeedResponse{
+		VrfSeed:  vrfSeed,
+		VrfProof: vrfProof,
+	}, nil
+}
+
 // SignTransactionWithPassphrase sign transaction with the from addr passphrase
 func (s *AdminService) SignTransactionWithPassphrase(ctx context.Context, req *rpcpb.SignTransactionPassphraseRequest) (*rpcpb.SignTransactionPassphraseResponse, error) {
 

@@ -19,7 +19,13 @@
 'use strict';
 
 var Blockchain = function () {
-    this.nativeBlockchain = _native_blockchain;
+    Object.defineProperty(this, "nativeBlockchain", {
+        configurable: false,
+        enumerable: false,
+        get: function(){
+            return _native_blockchain;
+        }
+    });
 };
 
 Blockchain.prototype = {
@@ -29,7 +35,14 @@ Blockchain.prototype = {
     blockParse: function (str) {
         var block = JSON.parse(str);
         if (block != null) {
-            this.block = Object.freeze(block);
+            var fb = Object.freeze(block);
+            Object.defineProperty(this, "block", {
+                configurable: false,
+                enumerable: false,
+                get: function(){
+                    return fb;
+                }
+            });
         }
     },
     transactionParse: function (str) {
@@ -41,7 +54,15 @@ Blockchain.prototype = {
             tx.gasPrice = new BigNumber(gasPrice);
             var gasLimit = tx.gasLimit === undefined || tx.gasLimit.length === 0 ? "0" : tx.gasLimit;
             tx.gasLimit = new BigNumber(gasLimit);
-            this.transaction = Object.freeze(tx);
+            
+            var ft = Object.freeze(tx);
+            Object.defineProperty(this, "transaction", {
+                configurable: false,
+                enumerable: false,
+                get: function(){
+                    return ft;
+                }
+            });
         }
     },
     transfer: function (address, value) {
@@ -55,5 +76,4 @@ Blockchain.prototype = {
         return this.nativeBlockchain.verifyAddress(address);
     }
 };
-
 module.exports = new Blockchain();

@@ -174,6 +174,13 @@ service AdminService {
         };
     }
 
+    rpc GenerateRandomSeed(GenerateRandomSeedRequest) returns (GenerateRandomSeedResponse) {
+        option (google.api.http) = {
+            post: "/v1/admin/generateRandomSeed"
+            body: "*"
+        };
+    }
+
     // Sign sign transaction
     rpc SignTransactionWithPassphrase(SignTransactionPassphraseRequest) returns (SignTransactionPassphraseResponse) {
         option (google.api.http) = {
@@ -359,6 +366,9 @@ message TransactionRequest {
 
     // binary data for transaction
     bytes binary = 10;
+
+    // transaction payload type, enum:binary, deploy, call
+    string type = 20;
 }
 
 message ContractRequest {
@@ -497,6 +507,12 @@ message TransactionResponse {
 
     // transaction gas used
     string gas_used = 14;
+
+    // contract execute error
+    string execute_error = 15;
+
+    // contract execute result
+    string execute_result = 16;
 }
 
 message NewAccountRequest {
@@ -539,6 +555,20 @@ message SignHashRequest {
 
 message SignHashResponse {
     bytes data = 1;
+}
+
+message GenerateRandomSeedRequest {
+    // miner address
+    string address = 1;
+    // parent hash of new block
+    bytes parent_hash = 2;
+    // height of new block
+    uint64 height = 3;
+}
+
+message GenerateRandomSeedResponse {
+    bytes vrf_seed = 1;
+    bytes vrf_proof = 2;
 }
 
 message SignTransactionPassphraseRequest {

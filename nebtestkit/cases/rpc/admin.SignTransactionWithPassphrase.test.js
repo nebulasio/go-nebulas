@@ -10,7 +10,7 @@ var coinbase,
     server_address;
 
 var env = process.env.NET || 'local';
-var env = 'maintest';
+var env = 'local';
 if (env === 'testneb1') {
   chain_id = 1001;
   sourceAccount = new Wallet.Account("25a3a441a34658e7a595a0eda222fa43ac51bd223017d17b420674fb6d0a4d52");
@@ -450,11 +450,186 @@ describe("rpc: SignTransaction with passphrase", () => {
         }
 
         var testExpect = {
-            hasError: false,
-            errorMsg: "",
+            hasError: true,
+            errorMsg: "invalid contract",
 
         }
 
         testSignTransaction(testInput, testExpect, done)
     });
+
+it('17. `invalid type`', done => {
+    var testInput = {
+        transaction: {
+            from: address,
+            to: coinbase,
+            value: "123",
+            nonce: "10000",
+            gas_price: "1000000",
+            gas_limit: "1000000",
+            contract: {
+                "function": "save",
+            },
+            type: "invalid"
+        },
+        passphrase: 'passphrase'
+    }
+
+    var testExpect = {
+        hasError: true,
+        errorMsg: "invalid transaction data payload type",
+
+    }
+
+    testSignTransaction(testInput, testExpect, done)
+});
+
+it('18. `binary type`', done => {
+    var testInput = {
+        transaction: {
+            from: address,
+            to: coinbase,
+            value: "123",
+            nonce: "10000",
+            gas_price: "1000000",
+            gas_limit: "1000000",
+            type: "binary"
+        },
+        passphrase: 'passphrase'
+    }
+
+    var testExpect = {
+        hasError: false,
+        errorMsg: "",
+
+    }
+
+    testSignTransaction(testInput, testExpect, done)
+});
+
+it('19. `deploy type`', done => {
+    var testInput = {
+        transaction: {
+            from: address,
+            to: coinbase,
+            value: "123",
+            nonce: "10000",
+            gas_price: "1000000",
+            gas_limit: "1000000",
+            type: "deploy",
+            contract: {
+                "source": "var a = {}",
+                "source_type": "ts"
+            }
+        },
+        passphrase: 'passphrase'
+    }
+
+    var testExpect = {
+        hasError: false,
+        errorMsg: "",
+
+    }
+
+    testSignTransaction(testInput, testExpect, done)
+});
+
+it('20. `deploy type parse err`', done => {
+    var testInput = {
+        transaction: {
+            from: address,
+            to: coinbase,
+            value: "123",
+            nonce: "10000",
+            gas_price: "1000000",
+            gas_limit: "1000000",
+            type: "deploy",
+            contract: {
+                "source": "var a = {}"
+            }
+        },
+        passphrase: 'passphrase'
+    }
+
+    var testExpect = {
+        hasError: true,
+        errorMsg: "invalid source type of deploy payload",
+
+    }
+
+    testSignTransaction(testInput, testExpect, done)
+});
+
+it('21. `call type`', done => {
+    var testInput = {
+        transaction: {
+            from: address,
+            to: coinbase,
+            value: "123",
+            nonce: "10000",
+            gas_price: "1000000",
+            gas_limit: "1000000",
+            type: "call",
+            contract: {
+                "function": "save"
+            }
+        },
+        passphrase: 'passphrase'
+    }
+
+    var testExpect = {
+        hasError: false,
+        errorMsg: "",
+
+    }
+
+    testSignTransaction(testInput, testExpect, done)
+});
+it('22. `call type function err`', done => {
+    var testInput = {
+        transaction: {
+            from: address,
+            to: coinbase,
+            value: "123",
+            nonce: "10000",
+            gas_price: "1000000",
+            gas_limit: "1000000",
+            type: "call",
+            contract: {
+                "function": "_save"
+            }
+        },
+        passphrase: 'passphrase'
+    }
+
+    var testExpect = {
+        hasError: true,
+        errorMsg: "invalid function of call payload",
+
+    }
+
+    testSignTransaction(testInput, testExpect, done)
+});
+it('23. `call type no function`', done => {
+    var testInput = {
+        transaction: {
+            from: address,
+            to: coinbase,
+            value: "123",
+            nonce: "10000",
+            gas_price: "1000000",
+            gas_limit: "1000000",
+            type: "call"
+        },
+        passphrase: 'passphrase'
+    }
+
+    var testExpect = {
+        hasError: true,
+        errorMsg: "invalid function of call payload",
+
+    }
+
+    testSignTransaction(testInput, testExpect, done)
+});
 });

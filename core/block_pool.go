@@ -19,12 +19,16 @@
 package core
 
 import (
+	"bytes"
 	"sync"
 	"time"
 
 	"github.com/gogo/protobuf/proto"
 	lru "github.com/hashicorp/golang-lru"
 	"github.com/nebulasio/go-nebulas/core/pb"
+	"github.com/nebulasio/go-nebulas/crypto"
+	"github.com/nebulasio/go-nebulas/crypto/hash"
+	"github.com/nebulasio/go-nebulas/crypto/keystore/secp256k1/vrf/secp256k1VRF"
 	"github.com/nebulasio/go-nebulas/net"
 
 	"github.com/nebulasio/go-nebulas/util/byteutils"
@@ -451,7 +455,6 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 		cache.Remove(lb.hash.Hex())
 		return err
 	}
-
 	// remove allBlocks from cache.
 	for _, v := range allBlocks {
 		cache.Remove(v.Hash().Hex())
@@ -459,6 +462,46 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 
 	// notify consensus to handle new block.
 	return pool.bc.ConsensusHandler().ForkChoice()
+}
+
+func vrfProof(block *Block, args [][]byte) error {
+	signature, err := crypto.NewSignature(block.Alg())
+	if err != nil {
+		return err
+	}
+	pub, err := signature.RecoverPublic(block.Hash(), block.Signature())
+	if err != nil {
+		return err
+	}
+	pubdata, err := pub.Encoded()
+	if err != nil {
+		return err
+	}
+
+	verifier, err := secp256k1VRF.NewVRFVerifierFromRawKey(pubdata)
+	if err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"err": err,
+		}).Error("Failed to new VRF verifier.")
+		return err
+	}
+
+	data := hash.Sha3256(args...)
+	index, err := verifier.ProofToHash(data, block.header.random.VrfProof)
+	if err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"err": err,
+		}).Error("Failed to calculate VRF proof.")
+		return err
+	}
+
+	if !bytes.Equal(index[:], block.header.random.VrfSeed) {
+		logging.VLog().WithFields(logrus.Fields{
+			"block": block,
+		}).Error("VRF proof failed.")
+		return ErrVRFProofFailed
+	}
+	return nil
 }
 
 func (pool *BlockPool) setBlockChain(bc *BlockChain) {
@@ -489,6 +532,60 @@ func (lb *linkedBlock) travelToLinkAndReturnAllValidBlocks(parentBlock *Block) (
 			"err":    err,
 		}).Error("Failed to link the block with its parent.")
 		return nil, nil, err
+	}
+
+	// verify vrf
+	if lb.block.height >= RandomAvailableHeight {
+		// prepare vrf inputs
+		inputs := make([][]byte, 0)
+
+		nob := lb.chain.ConsensusHandler().NumberOfBlocksInDynasty()
+		i := uint64(0)
+		tmp := lb
+		for i < nob*2 && tmp != nil {
+			i++
+			tmp = tmp.parentBlock
+		}
+		if tmp == nil {
+			if lb.block.height > nob*2 {
+				b := lb.chain.GetBlockOnCanonicalChainByHeight(lb.block.height - nob*2)
+				if b == nil {
+					logging.VLog().WithFields(logrus.Fields{
+						"blockHeight":          lb.block.height,
+						"targetHeight":         lb.block.height - nob,
+						"numOfBlocksInDynasty": nob,
+					}).Error("Block not found, unexpected error.")
+					metricsUnexpectedBehavior.Update(1)
+					return nil, nil, ErrNotBlockInCanonicalChain
+				}
+				inputs = append(inputs, b.Hash())
+			} else {
+				inputs = append(inputs, lb.chain.GenesisBlock().Hash())
+			}
+		} else {
+			inputs = append(inputs, tmp.block.Hash())
+		}
+
+		if parentBlock.height >= RandomAvailableHeight {
+			if !parentBlock.HasRandomSeed() {
+				logging.VLog().WithFields(logrus.Fields{
+					"parent": parentBlock,
+				}).Error("Parent block has no random seed, unexpected error.")
+				metricsUnexpectedBehavior.Update(1)
+				return nil, nil, ErrInvalidBlockRandom
+			}
+			inputs = append(inputs, parentBlock.header.random.VrfSeed)
+		} else {
+			inputs = append(inputs, lb.chain.GenesisBlock().Hash())
+		}
+
+		if err := vrfProof(lb.block, inputs); err != nil {
+			logging.CLog().WithFields(logrus.Fields{
+				"err":      err,
+				"lb.block": lb.block,
+			}).Error("VRF proof failed.")
+			return nil, nil, ErrVRFProofFailed
+		}
 	}
 
 	if err := lb.block.VerifyExecution(); err != nil {
