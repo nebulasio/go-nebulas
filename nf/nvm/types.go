@@ -96,7 +96,7 @@ func packV8Err(code uint32, errStr string, index uint32) string {
 	//return errJson.string()
 }
 
-//nvm args define
+//nvm args define //TODO: 确定所有值的大小
 var (
 	MultiNvmMax                         = 3
 	GetTxByHashFuncCost                 = 1000
