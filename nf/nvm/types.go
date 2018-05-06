@@ -17,6 +17,7 @@ var (
 	ErrEngineRepeatedStart      = errors.New("engine repeated start")
 	ErrEngineNotStart           = errors.New("engine not start")
 	ErrContextConstructArrEmpty = errors.New("context construct err by args empty")
+	ErrEngineNotFound           = errors.New("Failed to get engine")
 
 	ErrDisallowCallPrivateFunction     = errors.New("disallow call private function")
 	ErrExecutionTimeout                = errors.New("execution timeout")
@@ -29,11 +30,18 @@ var (
 	ErrLimitHasEmpty                   = errors.New("limit args has empty")
 	ErrSetMemorySmall                  = errors.New("set memory small than v8 limit")
 	ErrDisallowCallNotStandardFunction = errors.New("disallow call not standard function")
+
+	ErrNvmNumLimit          = errors.New("out of limit nvm count")
+	ErrInnerTransferFailed  = errors.New("inner transfer failed")
+	ErrInnerInsufficientGas = errors.New("preparation inner nvm insufficient gas")
+	ErrInnerInsufficientMem = errors.New("preparation inner nvm insufficient mem")
 )
 
 //define
 var (
-	EventNameSpaceContract = "chain.contract" //ToRefine: move to core
+	EventNameSpaceContract    = "chain.contract" //ToRefine: move to core
+	InnerTransactionErrPrefix = "inner transation err ["
+	InnerTransactionErrEnding = "] engine index:%v"
 )
 
 //common err
@@ -53,7 +61,7 @@ const (
 	TransferRecordEventFailed
 )
 
-//MultiV8error err info, err only in RunMultilevelContractSourceFunc .so not to deine #
+//MultiV8error err info, err only in InnerContractFunc .so not to deine #
 type MultiV8error struct {
 	errCode uint32
 	index   uint32
@@ -98,13 +106,13 @@ func packV8Err(code uint32, errStr string, index uint32) string {
 
 //nvm args define //TODO: 确定所有值的大小
 var (
-	MultiNvmMax                         = 3
-	GetTxByHashFuncCost                 = 1000
-	GetAccountStateFuncCost             = 1000
-	TransferFuncCost                    = 2000
-	VerifyAddressFuncCost               = 100
-	GetContractSourceFuncCost           = 100
-	RunMultilevelContractSourceFuncCost = 100
+	MultiNvmMax               = 3
+	GetTxByHashFuncCost       = 1000
+	GetAccountStateFuncCost   = 1000
+	TransferFuncCost          = 2000
+	VerifyAddressFuncCost     = 100
+	GetContractSourceFuncCost = 100
+	InnerContractFuncCost     = 100
 )
 
 // Block interface breaks cycle import dependency and hides unused services.

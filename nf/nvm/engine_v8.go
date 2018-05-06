@@ -39,7 +39,7 @@ char *GetAccountStateFunc_cgo(void *handler, const char *address);
 int TransferFunc_cgo(void *handler, const char *to, const char *value);
 int VerifyAddressFunc_cgo(void *handler, const char *address);
 char *GetContractSourceFunc_cgo(void *handler, const char *address);
-char *RunMultilevelContractSourceFunc_cgo(void *handler, const char *address, const char *funcName, const char * v, const char *args, size_t *gasCnt, size_t rerrType, char **rerr);
+char *InnerContractFunc_cgo(void *handler, const char *address, const char *funcName, const char * v, const char *args, size_t *gasCnt);
 
 void EventTriggerFunc_cgo(void *handler, const char *topic, const char *data, size_t *gasCnt);
 
@@ -124,7 +124,7 @@ func InitV8Engine() {
 		(C.TransferFunc)(unsafe.Pointer(C.TransferFunc_cgo)),
 		(C.VerifyAddressFunc)(unsafe.Pointer(C.VerifyAddressFunc_cgo)),
 		(C.GetContractSourceFunc)(unsafe.Pointer(C.GetContractSourceFunc_cgo)),
-		(C.RunMultilevelContractSourceFunc)(unsafe.Pointer(C.RunMultilevelContractSourceFunc_cgo)))
+		(C.InnerContractFunc)(unsafe.Pointer(C.InnerContractFunc_cgo)))
 
 	// Event.
 	C.InitializeEvent((C.EventTriggerFunc)(unsafe.Pointer(C.EventTriggerFunc_cgo)))

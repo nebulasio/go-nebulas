@@ -28,13 +28,13 @@ static GetAccountStateFunc sGetAccountState = NULL;
 static TransferFunc sTransfer = NULL;
 static VerifyAddressFunc sVerifyAddress = NULL;
 static GetContractSourceFunc sGetContractSource = NULL;
-static RunMultilevelContractSourceFunc sRunMultContract = NULL;
+static InnerContractFunc sRunMultContract = NULL;
 
 void InitializeBlockchain(GetTxByHashFunc getTx, GetAccountStateFunc getAccount,
                           TransferFunc transfer,
                           VerifyAddressFunc verifyAddress,
                           GetContractSourceFunc contractSource,
-                          RunMultilevelContractSourceFunc rMultContract) {
+                          InnerContractFunc rMultContract) {
   sGetTxByHash = getTx;
   sGetAccountState = getAccount;
   sTransfer = transfer;
@@ -294,15 +294,12 @@ void RunMultilevelContractSourceCallBack(const FunctionCallbackInfo<Value> &info
   }
 
   size_t cnt = 0;
-  size_t rerrType = 0;
-  char *rerr = NULL;
   char *value = sRunMultContract(handler->Value(),
                            *String::Utf8Value(address->ToString()), *String::Utf8Value(funcName->ToString()),
                            *String::Utf8Value(val->ToString()), *String::Utf8Value(args->ToString()),
-                           &cnt, &rerrType, &rerr);
+                           &cnt);
   Local<Object> rObj = v8::Object::New(isolate);                      
   if (value == NULL) {
-    free(rerr);
     Local<Context> context = isolate->GetCurrentContext();
     V8Engine *e = GetV8EngineInstance(context);
 
