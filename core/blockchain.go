@@ -465,9 +465,9 @@ func (bc *BlockChain) GetBlockOnCanonicalChainByHash(blockHash byteutils.Hash) *
 }
 
 // GetInputForVRFSigner returns [ getBlock(block.height - 2 * dynasty.size).hash, block.parent.seed ]
-func (bc *BlockChain) GetInputForVRFSigner(parentHash byteutils.Hash, height uint64) (out [][]byte, err error) {
+func (bc *BlockChain) GetInputForVRFSigner(parentHash byteutils.Hash, height uint64) (ancestorHash, parentSeed []byte, err error) {
 	if parentHash == nil || height < RandomAvailableHeight {
-		return nil, ErrInvalidArgument
+		return nil, nil, ErrInvalidArgument
 	}
 
 	nob := bc.consensusHandler.NumberOfBlocksInDynasty()
@@ -479,16 +479,16 @@ func (bc *BlockChain) GetInputForVRFSigner(parentHash byteutils.Hash, height uin
 				"targetHeight":         height - nob,
 				"numOfBlocksInDynasty": nob,
 			}).Error("Block not found.")
-			return nil, ErrNotBlockInCanonicalChain
+			return nil, nil, ErrNotBlockInCanonicalChain
 		}
-		out = append(out, b.Hash())
+		ancestorHash = b.Hash()
 	} else {
-		out = append(out, bc.GenesisBlock().Hash())
+		ancestorHash = bc.GenesisBlock().Hash()
 	}
 
 	parent := bc.GetBlockOnCanonicalChainByHash(parentHash)
 	if parent == nil || parent.height+1 != height {
-		return nil, ErrInvalidBlockHash
+		return nil, nil, ErrInvalidBlockHash
 	}
 
 	if parent.height >= RandomAvailableHeight {
@@ -497,11 +497,11 @@ func (bc *BlockChain) GetInputForVRFSigner(parentHash byteutils.Hash, height uin
 				"parent": parent,
 			}).Error("Parent block has no random seed, unexpected error.")
 			metricsUnexpectedBehavior.Update(1)
-			return nil, ErrInvalidBlockRandom
+			return nil, nil, ErrInvalidBlockRandom
 		}
-		out = append(out, parent.header.random.VrfSeed)
+		parentSeed = parent.header.random.VrfSeed
 	} else {
-		out = append(out, bc.GenesisBlock().Hash())
+		parentSeed = bc.GenesisBlock().Hash()
 	}
 	return
 }

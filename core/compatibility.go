@@ -52,19 +52,19 @@ const (
 // others, e.g. local/develop
 const (
 	// LocalTransferFromContractEventRecordableHeight
-	LocalTransferFromContractEventRecordableHeight uint64 = 0
+	LocalTransferFromContractEventRecordableHeight uint64 = 2
 
 	// LocalAcceptFuncAvailableHeight
-	LocalAcceptFuncAvailableHeight uint64 = 0
+	LocalAcceptFuncAvailableHeight uint64 = 2
 
 	// LocalRandomAvailableHeight
-	LocalRandomAvailableHeight uint64 = 0
+	LocalRandomAvailableHeight uint64 = 2
 
 	// LocalDateAvailableHeight
-	LocalDateAvailableHeight uint64 = 0
+	LocalDateAvailableHeight uint64 = 2
 
 	// LocalRecordCallContractResultHeight
-	LocalRecordCallContractResultHeight uint64 = 0
+	LocalRecordCallContractResultHeight uint64 = 2
 )
 
 var (

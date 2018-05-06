@@ -391,6 +391,12 @@ func (dpos *Dpos) VerifyBlock(block *core.Block) error {
 }
 
 func (dpos *Dpos) generateRandomSeed(block *core.Block, adminService rpcpb.AdminServiceClient) error {
+
+	ancestorHash, parentSeed, err := dpos.chain.GetInputForVRFSigner(block.ParentHash(), block.Height())
+	if err != nil {
+		return err
+	}
+
 	if dpos.enableRemoteSignServer == true {
 		if adminService == nil {
 			return ErrInvalidArgument
@@ -399,9 +405,9 @@ func (dpos *Dpos) generateRandomSeed(block *core.Block, adminService rpcpb.Admin
 		random, err := adminService.GenerateRandomSeed(
 			context.Background(),
 			&rpcpb.GenerateRandomSeedRequest{
-				Address:    dpos.miner.String(),
-				ParentHash: block.ParentHash(),
-				Height:     block.Height(),
+				Address:      dpos.miner.String(),
+				ParentSeed:   parentSeed,
+				AncestorHash: ancestorHash,
 			})
 		if err != nil {
 			return err
@@ -411,11 +417,7 @@ func (dpos *Dpos) generateRandomSeed(block *core.Block, adminService rpcpb.Admin
 	}
 
 	// generate VRF hash,proof
-	inputs, err := dpos.chain.GetInputForVRFSigner(block.ParentHash(), block.Height())
-	if err != nil {
-		return err
-	}
-	vrfSeed, vrfProof, err := dpos.am.GenerateRandomSeed(dpos.miner, inputs...)
+	vrfSeed, vrfProof, err := dpos.am.GenerateRandomSeed(dpos.miner, ancestorHash, parentSeed)
 	if err != nil {
 		return err
 	}
@@ -480,7 +482,14 @@ func (dpos *Dpos) newBlock(tail *core.Block, consensusState state.ConsensusState
 	}
 
 	if block.Height() >= core.RandomAvailableHeight {
-		dpos.generateRandomSeed(block, adminService)
+		err := dpos.generateRandomSeed(block, adminService)
+		if err != nil {
+			logging.VLog().WithFields(logrus.Fields{
+				"block": block,
+				"err":   err,
+			}).Error("Failed to generate random seed from remote.")
+			return nil, err
+		}
 	}
 
 	block.WorldState().SetConsensusState(consensusState)
