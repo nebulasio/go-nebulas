@@ -119,6 +119,9 @@ func GetAccountStateFunc(handler unsafe.Pointer, address *C.char, gasCnt *C.size
 
 //TransferByAddress value from to
 func TransferByAddress(handler unsafe.Pointer, from *core.Address, to *core.Address, value string, gasCnt *uint64) int {
+
+	return _TransferFunc(handler, to, v, gasCnt, false)
+
 	engine, _ := getEngineByStorageHandler(uint64(uintptr(handler)))
 	if engine == nil || engine.ctx.block == nil {
 		logging.VLog().Error("Failed to get engine.")
@@ -340,6 +343,9 @@ func GetContractSourceFunc(handler unsafe.Pointer, address *C.char, gasCnt *C.si
 	}
 	return C.CString(string(deploy.Source))
 }
+
+//增加前缀inner transation err!
+//packErrInfoAndSetHead->packInner
 func packErrInfoAndSetHead(e *V8Engine, index uint32, errType int, rerrType *C.size_t, rerr **C.char, format string, a ...interface{}) string {
 	rStr := packErrInfo(errType, rerrType, rerr, format, a...)
 
@@ -372,7 +378,7 @@ func packErrInfo(errType int, rerrType *C.size_t, rerr **C.char, format string, 
 //SetHeadV8ErrMsg set head node err info
 func SetHeadV8ErrMsg(handler unsafe.Pointer, err string) {
 	if handler == nil {
-		logging.CLog().Debugf("the main node")
+		logging.CLog().Errorf("the main node")
 		return
 	}
 	engine := getEngineByEngineHandler(handler)
@@ -383,48 +389,50 @@ func SetHeadV8ErrMsg(handler unsafe.Pointer, err string) {
 	engine.multiErrMsg = err
 }
 
+//FIXME: 函数名改成InnerContractFunc
 // RunMultilevelContractSourceFunc multi run contract. output[c standard]: if err return nil else return "*"
 //export RunMultilevelContractSourceFunc
 func RunMultilevelContractSourceFunc(handler unsafe.Pointer, address *C.char, funcName *C.char, v *C.char, args *C.char, gasCnt *C.size_t, rerrType *C.size_t, rerr **C.char) *C.char {
 	engine, _ := getEngineByStorageHandler(uint64(uintptr(handler)))
 	if engine == nil || engine.ctx.block == nil {
-		packErrInfo(MultiNotFoundEngine, rerrType, rerr, "Failed to get engine.")
+		rStr := packErrInfo(MultiNotFoundEngine, rerrType, rerr, "Failed to get engine.")
+		logging.CLog().Errorf(rStr)
 		return nil
 	}
 	index := engine.ctx.index
 	if engine.ctx.index >= uint32(MultiNvmMax) {
 		//rStr := packErrInfo(MultiNvmMaxLimit, rerrType, rerr, "Failed to run nvm, becase more nvm , engine index:%v", engine.ctx.index)
 		//SetHeadV8ErrMsg(engine.ctx.head, rStr)
-		packErrInfoAndSetHead(engine, index, MultiNvmMaxLimit, rerrType, rerr, "Failed to run nvm, becase more nvm")
+		packErrInfoAndSetHead(engine, index, MultiNvmMaxLimit, rerrType, rerr, "out of limit nvm count")
 		return nil
 	}
 	var gasSum uint64
 	gasSum = uint64(RunMultilevelContractSourceFuncCost)
 	ws := engine.ctx.state
-
+	//TODO: 执行和读取js封装统一接口
 	addr, err := core.AddressParse(C.GoString(address))
 	if err != nil {
 		//packErrInfo(MultiNotParseAddress, rerrType, rerr, "address parse err , engine index:%v", engine.ctx.index)
-		packErrInfoAndSetHead(engine, index, MultiNotParseAddress, rerrType, rerr, "address parse err")
+		packErrInfoAndSetHead(engine, index, MultiNotParseAddress, rerrType, rerr, err.Error())
 		return nil
 	}
 	contract, err := core.CheckContract(addr, ws)
 	if err != nil {
 		//packErrInfo(MultiContractIsErr, rerrType, rerr, "check contract has err , engine index:%v", engine.ctx.index)
-		packErrInfoAndSetHead(engine, index, MultiContractIsErr, rerrType, rerr, "check contract has err")
+		packErrInfoAndSetHead(engine, index, MultiContractIsErr, rerrType, rerr, err.Error())
 		return nil
 	}
 
 	birthTx, err := core.GetTransaction(contract.BirthPlace(), ws)
 	if err != nil {
 		// packErrInfo(MultiGetTransErrByBirth, rerrType, rerr, "get transaction ie err by birth , engine index:%v", engine.ctx.index)
-		packErrInfoAndSetHead(engine, index, MultiGetTransErrByBirth, rerrType, rerr, "get transaction ie err by birth")
+		packErrInfoAndSetHead(engine, index, MultiGetTransErrByBirth, rerrType, rerr, err.Error())
 		return nil
 	}
 	deploy, err := core.LoadDeployPayload(birthTx.Data())
 	if err != nil {
 		//packErrInfo(MultiLoadDeployPayLoadErr, rerrType, rerr, "LoadDeployPayload err , engine index:%v", engine.ctx.index)
-		packErrInfoAndSetHead(engine, index, MultiLoadDeployPayLoadErr, rerrType, rerr, "LoadDeployPayload err")
+		packErrInfoAndSetHead(engine, index, MultiLoadDeployPayLoadErr, rerrType, rerr, err.Error())
 		return nil
 	}
 
@@ -443,7 +451,7 @@ func RunMultilevelContractSourceFunc(handler unsafe.Pointer, address *C.char, fu
 		return nil
 	}
 
-	oldTx := engine.ctx.tx
+	oldTx := engine.ctx.tx //FIXME: oldTx->parentTx
 	from := engine.ctx.contract.Address()
 	fromAddr, err := core.AddressParseFromBytes(from)
 	if err != nil {
@@ -484,6 +492,7 @@ func RunMultilevelContractSourceFunc(handler unsafe.Pointer, address *C.char, fu
 	} else {
 		head = engine.ctx.head
 	}
+	//TODO: 确定world reset 是否需要
 	newCtx, err := NewChildContext(engine.ctx.block, newTx, contract, engine.ctx.state, head, engine.ctx.index+1)
 	if err != nil {
 		// packErrInfo(MultiNewChildContext, rerrType, rerr, "NewContext err:%v, engine index:%v", err, engine.ctx.index)
@@ -497,11 +506,11 @@ func RunMultilevelContractSourceFunc(handler unsafe.Pointer, address *C.char, fu
 		logging.CLog().Infof("remainInstruction:%v, mem:%v", remainInstruction, remainMem)
 		//rStr := packErrInfo(MultiNvmSystemErr, rerrType, rerr, "engine.call system failed the gas over!!!, engine index:%d", index)
 		//SetHeadV8ErrMsg(engine.ctx.head, rStr)
-		packErrInfoAndSetHead(engine, index, MultiNvmSystemErr, rerrType, rerr, "engine.call system failed the gas over!!!")
+		packErrInfoAndSetHead(engine, index, MultiNvmSystemErr, rerrType, rerr, ErrInsufficientGas.Error()) //TODO: gas over!!!
 		return nil
 	}
 	if remainMem <= 0 {
-		packErrInfoAndSetHead(engine, index, MultiNvmSystemErr, rerrType, rerr, "engine.call system failed the mem over!!!")
+		packErrInfoAndSetHead(engine, index, MultiNvmSystemErr, rerrType, rerr, ErrExceedMemoryLimits.Error())
 		return nil
 	}
 	remainInstruction -= uint64(RunMultilevelContractSourceFuncCost)
