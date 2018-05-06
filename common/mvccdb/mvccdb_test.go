@@ -524,7 +524,7 @@ func TestMVCCDB_ParallelsExeTowTx(t *testing.T) {
 }
 
 func TestPerformance(t *testing.T) {
-	store, _ := storage.NewRocksStorage("test.db", false)
+	store, _ := storage.NewRocksStorage("test.db")
 	defer os.RemoveAll("test.db")
 	db, _ := NewMVCCDB(store, true)
 
