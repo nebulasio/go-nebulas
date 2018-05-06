@@ -22,7 +22,6 @@ Contract.prototype = {
             now: Date.now(),
             parse: Date.parse('04 Dec 1995 00:12:00 GMT'),
             getUTCDate: date.getUTCDate(),
-            timeZone: date.getTimezoneOffset(),
             toJSON: date.toJSON(),
             setFullYear: date2.toString(),
             height: Blockchain.block.height,
@@ -49,6 +48,14 @@ Contract.prototype = {
         });
         
         return data;
+    },
+
+    testDate2: function() {
+        var date = new Date();
+        
+        Event.Trigger("Date.TZ", {
+			timezone: date.getTimezoneOffset()
+        });
     },
 
     testRandom: function(userseed) {

@@ -322,7 +322,7 @@ var caseGroup = {
                 canExcuteTx: false,
                 toBalanceChange: "0",
                 status: 0,
-                eventErr: "Call: Error: random seed must be a string"
+                eventErr: "Call: Error: input seed must be a string"
             }
         },
         {
