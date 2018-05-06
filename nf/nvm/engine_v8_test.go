@@ -71,6 +71,10 @@ func (block *testBlock) Hash() byteutils.Hash {
 	return []byte("59fc526072b09af8a8ca9732dae17132c4e9127e43cf2232")
 }
 
+func (block *testBlock) ParentHash() byteutils.Hash {
+	return []byte("59fc526072b09af8a8ca9732dae17132c4e9127e43cf2232")
+}
+
 // Height mock
 func (block *testBlock) Height() uint64 {
 	return 1
