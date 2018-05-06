@@ -29,6 +29,9 @@ const (
 
 	// TestNetID testnet id
 	TestNetID uint32 = 1001
+
+	//SignNetID signnet id
+	SignNetID uint32 = 0
 )
 
 // mainnet/testnet
@@ -87,7 +90,7 @@ var (
 // SetCompatibilityOptions set compatibility height according to chain_id
 func SetCompatibilityOptions(chainID uint32) {
 
-	if chainID == MainNetID || chainID == TestNetID {
+	if chainID == MainNetID || chainID == TestNetID || chainID == SignNetID {
 		logging.VLog().WithFields(logrus.Fields{
 			"chain_id": chainID,
 			"TransferFromContractEventRecordableHeight": TransferFromContractEventRecordableHeight,
