@@ -112,6 +112,11 @@ func (s *APIService) Call(ctx context.Context, req *rpcpb.TransactionRequest) (*
 		errMsg = result.Err.Error()
 	}
 
+	errInjectTracingInstructionFailed := "inject tracing instructions failed"
+
+	if errMsg == errInjectTracingInstructionFailed {
+		errMsg = "contract code syntax error"
+	}
 	return &rpcpb.CallResponse{
 		Result:      result.Msg,
 		ExecuteErr:  errMsg,
