@@ -57,11 +57,10 @@ var Contract = function(address, contract_interface) {
                 args.push(arguments[i]);
             }
             var result =  _native_blockchain.runContractSource(this.address, func, value.toString(), JSON.stringify(args));
-            console.log("yangshun2532",result);
-            if (result.code) {
-                return JSON.parse(result.data);
+            if (result) {
+                return JSON.parse(result);
             } else {
-                throw(result.msg);
+                return null;
             }
         }}(func);
     }
@@ -89,10 +88,10 @@ Contract.prototype = {
         var value = this.v;
         this.v = 0;
         var result =  _native_blockchain.runContractSource(this.address, func, value.toString(), args);
-        if (result.code == 0) {
-            return JSON.parse(result.data);
+        if (result) {
+            return JSON.parse(result);
         } else {
-            throw(msg);
+        return null;
         }
     }
 }
