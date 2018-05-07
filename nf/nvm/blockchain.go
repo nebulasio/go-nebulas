@@ -310,6 +310,28 @@ func VerifyAddressFunc(handler unsafe.Pointer, address *C.char, gasCnt *C.size_t
 	return int(addr.Type())
 }
 
+//getPayLoadByAddress
+func getPayLoadByAddress(ws WorldState, address string) (*core.DeployPayload, error) {
+	addr, err := core.AddressParse(address)
+	if err != nil {
+		return nil, err
+	}
+	contract, err := core.CheckContract(addr, ws)
+	if err != nil {
+		return nil, err
+	}
+
+	birthTx, err := core.GetTransaction(contract.BirthPlace(), ws)
+	if err != nil {
+		return nil, err
+	}
+	deploy, err := core.LoadDeployPayload(birthTx.Data()) // ToConfirm: move deploy payload in ctx.
+	if err != nil {
+		return nil, err
+	}
+	return deploy, nil
+}
+
 // GetContractSourceFunc get contract code by address
 //export GetContractSourceFunc
 func GetContractSourceFunc(handler unsafe.Pointer, address *C.char, gasCnt *C.size_t) *C.char {
@@ -321,23 +343,29 @@ func GetContractSourceFunc(handler unsafe.Pointer, address *C.char, gasCnt *C.si
 	}
 	*gasCnt = C.size_t(GetContractSourceFuncCost)
 	ws := engine.ctx.state
-	addr, err := core.AddressParse(C.GoString(address))
+	// addr, err := core.AddressParse(C.GoString(address))
+	// if err != nil {
+	// 	return nil
+	// }
+	// contract, err := core.CheckContract(addr, ws)
+	// if err != nil {
+	// 	return nil
+	// }
+
+	// birthTx, err := core.GetTransaction(contract.BirthPlace(), ws)
+	// if err != nil {
+	// 	return nil
+	// }
+	// deploy, err := core.LoadDeployPayload(birthTx.Data()) // ToConfirm: move deploy payload in ctx.
+	// if err != nil {
+	// 	return nil
+	// }
+	deploy, err := getPayLoadByAddress(ws, C.GoString(address))
 	if err != nil {
-		return nil
-	}
-	contract, err := core.CheckContract(addr, ws)
-	if err != nil {
+		logging.CLog().Errorf("getPayLoadByAddress err, address:%v, err:%v", address, err)
 		return nil
 	}
 
-	birthTx, err := core.GetTransaction(contract.BirthPlace(), ws)
-	if err != nil {
-		return nil
-	}
-	deploy, err := core.LoadDeployPayload(birthTx.Data()) // ToConfirm: move deploy payload in ctx.
-	if err != nil {
-		return nil
-	}
 	return C.CString(string(deploy.Source))
 }
 
@@ -409,7 +437,7 @@ func InnerContractFunc(handler unsafe.Pointer, address *C.char, funcName *C.char
 	var gasSum uint64
 	gasSum = uint64(InnerContractFuncCost)
 	ws := engine.ctx.state
-	//TODO: 执行和读取js封装统一接口
+
 	addr, err := core.AddressParse(C.GoString(address))
 	if err != nil {
 		//packErrInfo(MultiNotParseAddress, rerrType, rerr, "address parse err , engine index:%v", engine.ctx.index)
@@ -425,17 +453,22 @@ func InnerContractFunc(handler unsafe.Pointer, address *C.char, funcName *C.char
 		return nil
 	}
 
-	birthTx, err := core.GetTransaction(contract.BirthPlace(), ws)
+	// birthTx, err := core.GetTransaction(contract.BirthPlace(), ws)
+	// if err != nil {
+	// 	// packErrInfo(MultiGetTransErrByBirth, rerrType, rerr, "get transaction ie err by birth , engine index:%v", engine.ctx.index)
+	// 	//packErrInfoAndSetHead(engine, index, MultiGetTransErrByBirth, rerrType, rerr, err.Error())
+	// 	setHeadErrAndLog(engine, index, err.Error(), true)
+	// 	return nil
+	// }
+	// deploy, err := core.LoadDeployPayload(birthTx.Data())
+	// if err != nil {
+	// 	//packErrInfo(MultiLoadDeployPayLoadErr, rerrType, rerr, "LoadDeployPayload err , engine index:%v", engine.ctx.index)
+	// 	//packErrInfoAndSetHead(engine, index, MultiLoadDeployPayLoadErr, rerrType, rerr, err.Error())
+	// 	setHeadErrAndLog(engine, index, err.Error(), true)
+	// 	return nil
+	// }
+	deploy, err := getPayLoadByAddress(ws, C.GoString(address))
 	if err != nil {
-		// packErrInfo(MultiGetTransErrByBirth, rerrType, rerr, "get transaction ie err by birth , engine index:%v", engine.ctx.index)
-		//packErrInfoAndSetHead(engine, index, MultiGetTransErrByBirth, rerrType, rerr, err.Error())
-		setHeadErrAndLog(engine, index, err.Error(), true)
-		return nil
-	}
-	deploy, err := core.LoadDeployPayload(birthTx.Data())
-	if err != nil {
-		//packErrInfo(MultiLoadDeployPayLoadErr, rerrType, rerr, "LoadDeployPayload err , engine index:%v", engine.ctx.index)
-		//packErrInfoAndSetHead(engine, index, MultiLoadDeployPayLoadErr, rerrType, rerr, err.Error())
 		setHeadErrAndLog(engine, index, err.Error(), true)
 		return nil
 	}

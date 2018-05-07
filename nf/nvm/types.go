@@ -1,7 +1,6 @@
 package nvm
 
 import (
-	"encoding/json"
 	"errors"
 
 	"github.com/nebulasio/go-nebulas/core"
@@ -9,7 +8,6 @@ import (
 	"github.com/nebulasio/go-nebulas/storage"
 	"github.com/nebulasio/go-nebulas/util"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
-	"github.com/nebulasio/go-nebulas/util/logging"
 )
 
 // Error Types
@@ -90,19 +88,6 @@ const (
 	MultiTransferRecordEventFailed
 	MultiCallErr
 )
-
-//
-func packV8Err(code uint32, errStr string, index uint32) string {
-	var multiErr MultiV8error
-	multiErr.errCode = code
-	multiErr.index = index
-	multiErr.errStr = errStr
-	errJSON, err := json.Marshal(multiErr)
-	logging.CLog().Errorf("packV8Err:%v,err:%v,multiErr:%v", errJSON, err, multiErr)
-	// j, _ := json.Marshal(msg)
-	return string(errJSON)
-	//return errJson.string()
-}
 
 //nvm args define //TODO: 确定所有值的大小
 var (
