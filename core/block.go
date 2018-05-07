@@ -476,6 +476,11 @@ func (block *Block) CollectTransactions(deadlineInMs int64) {
 				<-mergeCh // unlock
 				continue
 			}
+
+			logging.VLog().WithFields(logrus.Fields{
+				"tx.hash": tx.hash,
+			}).Debug("Pop tx.")
+
 			fetch++
 			fromBlacklist.Store(tx.from.address.Hex(), true)
 			fromBlacklist.Store(tx.to.address.Hex(), true)
