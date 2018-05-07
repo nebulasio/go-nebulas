@@ -367,6 +367,7 @@ func (pool *TransactionPool) popTx(tx *Transaction) {
 		pool.candidates.Push(candidate)
 	} else {
 		delete(pool.buckets, tx.from.address.Hex())
+		delete(pool.bucketsLastUpdate, tx.from.address.Hex())
 	}
 }
 
@@ -391,6 +392,7 @@ func (pool *TransactionPool) dropTx() {
 			if longestLen == 1 {
 				pool.candidates.Del(drop)
 				delete(pool.buckets, drop.from.address.Hex())
+				delete(pool.bucketsLastUpdate, drop.from.address.Hex())
 			}
 		}
 	}
@@ -468,19 +470,23 @@ func (pool *TransactionPool) Del(tx *Transaction) {
 				left = bucket.Left().(*Transaction)
 			} else {
 				delete(pool.buckets, left.from.address.Hex())
+				delete(pool.bucketsLastUpdate, left.from.address.Hex())
 				break
 			}
 		}
+
 		newCandidate := bucket.Left()
 		// replace candidate
 		if oldCandidate != newCandidate {
 			pool.candidates.Del(oldCandidate)
-			if newCandidate != nil {
-				pool.candidates.Push(newCandidate)
-			}
+			delete(pool.bucketsLastUpdate, tx.from.address.Hex())
 		}
-		//update bucket update time when txs are put on chain
-		pool.bucketsLastUpdate[tx.from.address.Hex()] = time.Now()
+		if newCandidate != nil {
+			pool.candidates.Push(newCandidate)
+
+			//update bucket update time when txs are put on chain
+			pool.bucketsLastUpdate[tx.from.address.Hex()] = time.Now()
+		}
 	} else {
 		//remove key of bucketsLastUpdate when bucket is empty
 		delete(pool.bucketsLastUpdate, tx.from.address.Hex())
