@@ -67,29 +67,6 @@ type MultiV8error struct {
 	errStr  string
 }
 
-//multV8ErrCode
-const (
-	MultiSystemMemLimit = iota
-	MultiSystemInsufficientLimit
-	MultiNvmMaxLimit
-	MultiNvmSystemErr
-	MultiNotFoundEngine = 10001
-	MultiNotParseAddress
-	MultiContractIsErr
-	MultiGetTransErrByBirth
-	MultiLoadDeployPayLoadErr
-	MultiNewCallPayLoadErr
-	MultiPayLoadToByteErr
-	MultiNotParseAddressFromByte
-	MultiTransferErrByAddress
-	MultiTransferErr
-	MultiBigNumChangeErr
-	MultiNewTransactionErr
-	MultiNewChildContext
-	MultiTransferRecordEventFailed
-	MultiCallErr
-)
-
 //nvm args define //TODO: 确定所有值的大小
 var (
 	MultiNvmMax               = 3
