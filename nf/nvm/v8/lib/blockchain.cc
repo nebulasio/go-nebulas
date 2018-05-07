@@ -298,7 +298,7 @@ void RunMultilevelContractSourceCallBack(const FunctionCallbackInfo<Value> &info
                            *String::Utf8Value(address->ToString()), *String::Utf8Value(funcName->ToString()),
                            *String::Utf8Value(val->ToString()), *String::Utf8Value(args->ToString()),
                            &cnt);
-  Local<Object> rObj = v8::Object::New(isolate);                      
+  // Local<Object> rObj = v8::Object::New(isolate);                      
   if (value == NULL) {
     Local<Context> context = isolate->GetCurrentContext();
     V8Engine *e = GetV8EngineInstance(context);
@@ -306,14 +306,14 @@ void RunMultilevelContractSourceCallBack(const FunctionCallbackInfo<Value> &info
     TerminateExecution(e);
     return;
   } else {
-    Local<Boolean> flag = Boolean::New(isolate, true);
-    rObj->Set(v8::String::NewFromUtf8(isolate, "code"), flag);
-    Local<String> valueStr = v8::String::NewFromUtf8(isolate, value);
+    // Local<Boolean> flag = Boolean::New(isolate, true);
+    // rObj->Set(v8::String::NewFromUtf8(isolate, "code"), flag);
+    // Local<String> valueStr = v8::String::NewFromUtf8(isolate, value);
 
-    rObj->Set(v8::String::NewFromUtf8(isolate, "data"), valueStr);
-    info.GetReturnValue().Set(rObj);
+    // rObj->Set(v8::String::NewFromUtf8(isolate, "data"), valueStr);
+    // info.GetReturnValue().Set(rObj);
 
-    //info.GetReturnValue().Set(String::NewFromUtf8(isolate, value));
+    info.GetReturnValue().Set(String::NewFromUtf8(isolate, value));
 
     free(value);
   }

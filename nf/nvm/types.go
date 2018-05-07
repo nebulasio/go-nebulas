@@ -50,6 +50,7 @@ var (
 //transfer err code enum
 const (
 	TransferFuncSuccess = iota
+	TransferSuccess     = iota
 	TransferGetEngineErr
 	TransferAddressParseErr
 	TransferGetAccountErr
