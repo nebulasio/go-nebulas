@@ -478,13 +478,14 @@ func (pool *TransactionPool) Del(tx *Transaction) {
 		if oldCandidate != newCandidate {
 			pool.candidates.Del(oldCandidate)
 			delete(pool.bucketsLastUpdate, tx.from.address.Hex())
-		}
-		if newCandidate != nil {
-			pool.candidates.Push(newCandidate)
+			if newCandidate != nil {
+				pool.candidates.Push(newCandidate)
 
-			//update bucket update time when txs are put on chain
-			pool.bucketsLastUpdate[tx.from.address.Hex()] = time.Now()
+				//update bucket update time when txs are put on chain
+				pool.bucketsLastUpdate[tx.from.address.Hex()] = time.Now()
+			}
 		}
+
 	} else {
 		//remove key of bucketsLastUpdate when bucket is empty
 		delete(pool.bucketsLastUpdate, tx.from.address.Hex())
