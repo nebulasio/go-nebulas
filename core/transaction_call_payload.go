@@ -118,5 +118,10 @@ func (payload *CallPayload) Execute(limitedGas *util.Uint128, tx *Transaction, b
 	if exeErr == ErrExecutionFailed && len(result) > 0 {
 		exeErr = fmt.Errorf("Call: %s", result)
 	}
+	if exeErr == ErrInnerExecutionFailed && len(result) > 0 {
+		exeErr = fmt.Errorf("Mult Call: %s", result)
+	}
+
+	fmt.Printf("======err:%v\n", exeErr)
 	return instructions, result, exeErr
 }

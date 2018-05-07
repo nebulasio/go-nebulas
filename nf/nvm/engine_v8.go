@@ -93,7 +93,7 @@ type V8Engine struct {
 	actualTotalMemorySize                   uint64
 	lcsHandler                              uint64
 	gcsHandler                              uint64
-	multiErrMsg                             string
+	innerErrMsg                             string
 }
 
 type sourceModuleItem struct {
@@ -319,7 +319,7 @@ func (e *V8Engine) RunScriptSource(source string, sourceLineOffset int) (string,
 	select {
 	case <-done:
 		if ret == 2 {
-			err = core.ErrMultiExecutionFailed
+			err = core.ErrInnerExecutionFailed
 		} else if ret != 0 {
 			err = core.ErrExecutionFailed
 		}
@@ -353,8 +353,8 @@ func (e *V8Engine) RunScriptSource(source string, sourceLineOffset int) (string,
 	if e.actualCountOfExecutionInstructions > e.limitsOfExecutionInstructions || err == ErrExceedMemoryLimits { //ToDo ErrExceedMemoryLimits value is same in each linux
 		e.actualCountOfExecutionInstructions = e.limitsOfExecutionInstructions //ToDo memory pass whether exhaust ?
 	}
-	if e.multiErrMsg != "" {
-		result = e.multiErrMsg
+	if e.innerErrMsg != "" {
+		result = e.innerErrMsg
 	}
 	return result, err
 }

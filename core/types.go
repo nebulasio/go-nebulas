@@ -168,7 +168,7 @@ var (
 	// nvm error
 	ErrExecutionFailed = errors.New("execution failed")
 	// multi nvm error
-	ErrMultiExecutionFailed = errors.New("multi execution failed")
+	ErrInnerExecutionFailed = errors.New("multi execution failed")
 )
 
 // Default gas count

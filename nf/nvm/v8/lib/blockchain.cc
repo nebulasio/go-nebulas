@@ -19,7 +19,6 @@
 
 #include "blockchain.h"
 #include "../engine.h"
-#include "../engine_int.h"
 #include "global.h"
 #include "instruction_counter.h"
 
@@ -28,7 +27,7 @@ static GetAccountStateFunc sGetAccountState = NULL;
 static TransferFunc sTransfer = NULL;
 static VerifyAddressFunc sVerifyAddress = NULL;
 static GetContractSourceFunc sGetContractSource = NULL;
-static InnerContractFunc sRunMultContract = NULL;
+static InnerContractFunc sRunInnerContract = NULL;
 
 void InitializeBlockchain(GetTxByHashFunc getTx, GetAccountStateFunc getAccount,
                           TransferFunc transfer,
@@ -40,7 +39,7 @@ void InitializeBlockchain(GetTxByHashFunc getTx, GetAccountStateFunc getAccount,
   sTransfer = transfer;
   sVerifyAddress = verifyAddress;
   sGetContractSource = contractSource;
-  sRunMultContract = rMultContract;
+  sRunInnerContract = rMultContract;
 }
 
 void NewBlockchainInstance(Isolate *isolate, Local<Context> context,
@@ -79,7 +78,7 @@ void NewBlockchainInstance(Isolate *isolate, Local<Context> context,
                                                PropertyAttribute::ReadOnly));
 
   blockTpl->Set(String::NewFromUtf8(isolate, "runContractSource"),
-                FunctionTemplate::New(isolate, RunMultilevelContractSourceCallBack),
+                FunctionTemplate::New(isolate, RunInnerContractSourceCallBack),
                 static_cast<PropertyAttribute>(PropertyAttribute::DontDelete |
                                                PropertyAttribute::ReadOnly));
 
@@ -255,14 +254,14 @@ void GetContractSourceCallback(const FunctionCallbackInfo<Value> &info) {
   // record storage usage.
   IncrCounter(isolate, isolate->GetCurrentContext(), cnt);
 }
-void RunMultilevelContractSourceCallBack(const FunctionCallbackInfo<Value> &info) {
+void RunInnerContractSourceCallBack(const FunctionCallbackInfo<Value> &info) {
   Isolate *isolate = info.GetIsolate();
   Local<Object> thisArg = info.Holder();
   Local<External> handler = Local<External>::Cast(thisArg->GetInternalField(0));
 
   if (info.Length() != 4) {
     char msg[512];
-    snprintf(msg, 512, "Blockchain.RunMultilevelContractSourceCallBack() requires 14 arguments,args:%d", info.Length());
+    snprintf(msg, 512, "Blockchain.RunInnerContractSourceCallBack() requires 14 arguments,args:%d", info.Length());
     isolate->ThrowException(String::NewFromUtf8(
         isolate, msg));
     return;
@@ -294,7 +293,7 @@ void RunMultilevelContractSourceCallBack(const FunctionCallbackInfo<Value> &info
   }
 
   size_t cnt = 0;
-  char *value = sRunMultContract(handler->Value(),
+  char *value = sRunInnerContract(handler->Value(),
                            *String::Utf8Value(address->ToString()), *String::Utf8Value(funcName->ToString()),
                            *String::Utf8Value(val->ToString()), *String::Utf8Value(args->ToString()),
                            &cnt);

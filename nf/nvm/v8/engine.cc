@@ -98,6 +98,7 @@ V8Engine *CreateEngine() {
   V8Engine *e = (V8Engine *)calloc(1, sizeof(V8Engine));
   e->allocator = allocator;
   e->isolate = isolate;
+
   return e;
 }
 
@@ -129,14 +130,12 @@ int ExecuteSourceDataDelegate(char **result, Isolate *isolate,
     PrintAndReturnException(result, context, trycatch);
     return 1;
   }
-
   // Run the script to get the result.
   MaybeLocal<Value> ret = script.ToLocalChecked()->Run(context);
   if (ret.IsEmpty()) {
     PrintAndReturnException(result, context, trycatch);
     return 1;
   }
-
   // set result.
   if (result != NULL) {
     Local<Object> obj = ret.ToLocalChecked().As<Object>();
@@ -223,17 +222,11 @@ int Execute(char **result, V8Engine *e, const char *source,
 
   int iRtn = delegate(result, isolate, source, source_line_offset, context,
                   trycatch, delegateContext);
-  if (iRtn == 1) {
-    if (e->is_requested_terminate_execution == 1) {
-      /*if (result != NULL) {
-        free(*result);
-        int len = strlen(SYSTEMERRTERMINATE) + 1;
-        *result = (char *)malloc(len);
-        strcpy(*result, SYSTEMERRTERMINATE);
-      }*/
-      return 2;
-    }
+  
+  if (e->is_requested_terminate_execution == 1) {
+    return 2;
   }
+  
   return iRtn;
 }
 

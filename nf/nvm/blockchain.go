@@ -309,7 +309,6 @@ func GetContractSourceFunc(handler unsafe.Pointer, address *C.char, gasCnt *C.si
 	return C.CString(string(deploy.Source))
 }
 
-//增加前缀inner transation err!
 //packErrInfoAndSetHead->packInner
 func setHeadErrAndLog(e *V8Engine, index uint32, err string, flag bool) string {
 	//rStr := packErrInfo(errType, rerrType, rerr, format, a...)
@@ -322,7 +321,7 @@ func setHeadErrAndLog(e *V8Engine, index uint32, err string, flag bool) string {
 	}
 
 	if index == 0 {
-		e.multiErrMsg = rStr
+		e.innerErrMsg = rStr
 	} else {
 		SetHeadV8ErrMsg(e.ctx.head, rStr)
 	}
@@ -340,7 +339,7 @@ func SetHeadV8ErrMsg(handler unsafe.Pointer, err string) {
 		logging.VLog().Errorf("the handler not found the v8 engine")
 		return
 	}
-	engine.multiErrMsg = err
+	engine.innerErrMsg = err
 }
 
 // InnerContractFunc multi run contract. output[c standard]: if err return nil else return "*"
@@ -458,6 +457,7 @@ func InnerContractFunc(handler unsafe.Pointer, address *C.char, funcName *C.char
 
 	val, err := engineNew.Call(string(deploy.Source), deploy.SourceType, C.GoString(funcName), C.GoString(args))
 	gasCout := engineNew.ExecutionInstructions()
+
 	gasSum += gasCout
 	errStr := ""
 	if err != nil {
@@ -477,13 +477,17 @@ func InnerContractFunc(handler unsafe.Pointer, address *C.char, funcName *C.char
 			"to":    addr.String(),
 			"value": toValue.String(),
 			"err":   errMarshal.Error(),
-		}).Debug("failed to marshal TransferFromContractEvent")
+		}).Error("failed to marshal TransferFromContractEvent")
 		setHeadErrAndLog(engine, index, errMarshal.Error(), true)
+		engineNew.Dispose()
 		return nil
 	}
 	engine.ctx.state.RecordEvent(parentTx.Hash(), &state.Event{Topic: core.TopicInnerTransferContract, Data: string(eData)})
 	engineNew.Dispose()
 	if err != nil {
+		if err == core.ErrInnerExecutionFailed || err == core.ErrExecutionFailed {
+			return nil
+		}
 		setHeadErrAndLog(engine, index, err.Error(), true)
 		return nil
 	}

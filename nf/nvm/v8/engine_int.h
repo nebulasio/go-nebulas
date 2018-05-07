@@ -25,8 +25,6 @@
 
 using namespace v8;
 
-#define SYSTEMERRSTR  "V8SystemErr"
-#define SYSTEMERRTERMINATE       "V8SystemTERMINATE"
 typedef int (*ExecutionDelegate)(char **result, Isolate *isolate,
                                  const char *source, int source_line_offset,
                                  Local<Context> context, TryCatch &trycatch,
