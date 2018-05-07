@@ -253,6 +253,12 @@ func (pool *TransactionPool) PushAndBroadcast(tx *Transaction) error {
 func (pool *TransactionPool) Push(tx *Transaction) error {
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
+	// add tx log in super node
+	if pool.bc.superNode == true {
+		logging.VLog().WithFields(logrus.Fields{
+			"tx": tx,
+		}).Debug("Push tx to transaction pool")
+	}
 
 	//if is super node and tx type is deploy, do unsupported keyword checking.
 	if pool.bc.superNode == true && len(pool.bc.unsupportedKeyword) > 0 && len(tx.Data()) > 0 {
@@ -501,10 +507,11 @@ func (pool *TransactionPool) evictExpiredTransactions() {
 					if tx := val.(*Transaction); tx != nil && tx.hash != nil {
 						delete(pool.all, tx.hash.Hex())
 						logging.VLog().WithFields(logrus.Fields{
-							"tx":         tx.hash.Hex(),
+							"tx.hash":    tx.hash.Hex(),
 							"size":       pool.size,
 							"poolsize":   len(pool.all),
 							"bucketsize": len(pool.buckets),
+							"tx":         tx,
 						}).Debug("Remove expired transactions.")
 						// trigger pending transaction
 						event := &state.Event{
