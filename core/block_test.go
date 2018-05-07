@@ -222,7 +222,7 @@ func (m mockManager) Update(*Address, []byte, []byte) error   { return nil }
 func (m mockManager) Load([]byte, []byte) (*Address, error)   { return nil, nil }
 func (m mockManager) Import([]byte, []byte) (*Address, error) { return nil, nil }
 func (m mockManager) Remove(*Address, []byte) error           { return nil }
-func (m mockManager) GenerateRandomSeed(addr *Address, args ...[]byte) (vrfSeed, vrfProof []byte, err error) {
+func (m mockManager) GenerateRandomSeed(addr *Address, ancestorHash, parentSeed []byte) (vrfSeed, vrfProof []byte, err error) {
 	return nil, nil, nil
 }
 

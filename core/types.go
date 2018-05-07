@@ -245,7 +245,7 @@ type AccountManager interface {
 
 	SignHash(*Address, byteutils.Hash, keystore.Algorithm) ([]byte, error)
 	SignBlock(*Address, *Block) error
-	GenerateRandomSeed(*Address, ...[]byte) ([]byte, []byte, error)
+	GenerateRandomSeed(*Address, []byte, []byte) ([]byte, []byte, error)
 	SignTransaction(*Address, *Transaction) error
 	SignTransactionWithPassphrase(*Address, *Transaction, []byte) error
 

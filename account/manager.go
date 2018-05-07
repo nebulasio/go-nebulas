@@ -390,12 +390,13 @@ func (m *Manager) SignBlock(addr *core.Address, block *core.Block) error {
 }
 
 // GenerateRandomSeed generate rand
-func (m *Manager) GenerateRandomSeed(addr *core.Address, args ...[]byte) (vrfSeed, vrfProof []byte, err error) {
+func (m *Manager) GenerateRandomSeed(addr *core.Address, ancestorHash, parentSeed []byte) (vrfSeed, vrfProof []byte, err error) {
 
 	key, err := m.ks.GetUnlocked(addr.String())
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
-			"err": err,
+			"err":  err,
+			"addr": addr.String(),
 		}).Error("Failed to get unlocked private key to generate block rand.")
 		return nil, nil, ErrAccountIsLocked
 	}
@@ -415,7 +416,7 @@ func (m *Manager) GenerateRandomSeed(addr *core.Address, args ...[]byte) (vrfSee
 		return nil, nil, err
 	}
 
-	data := hash.Sha3256(args...)
+	data := hash.Sha3256(ancestorHash, parentSeed)
 
 	seed, proof := signer.Evaluate(data)
 	if proof == nil {

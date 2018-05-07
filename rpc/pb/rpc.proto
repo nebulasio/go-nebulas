@@ -560,10 +560,10 @@ message SignHashResponse {
 message GenerateRandomSeedRequest {
     // miner address
     string address = 1;
-    // parent hash of new block
-    bytes parent_hash = 2;
-    // height of new block
-    uint64 height = 3;
+    // parent seed of new block
+    bytes parent_seed = 2;
+    //  hash of new block's ancestor
+    bytes ancestor_hash = 3;
 }
 
 message GenerateRandomSeedResponse {

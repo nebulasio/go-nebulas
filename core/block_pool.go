@@ -464,7 +464,7 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 	return pool.bc.ConsensusHandler().ForkChoice()
 }
 
-func vrfProof(block *Block, args [][]byte) error {
+func vrfProof(block *Block, ancestorHash, parentSeed []byte) error {
 	signature, err := crypto.NewSignature(block.Alg())
 	if err != nil {
 		return err
@@ -486,7 +486,7 @@ func vrfProof(block *Block, args [][]byte) error {
 		return err
 	}
 
-	data := hash.Sha3256(args...)
+	data := hash.Sha3256(ancestorHash, parentSeed)
 	index, err := verifier.ProofToHash(data, block.header.random.VrfProof)
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
@@ -537,7 +537,7 @@ func (lb *linkedBlock) travelToLinkAndReturnAllValidBlocks(parentBlock *Block) (
 	// verify vrf
 	if lb.block.height >= RandomAvailableHeight {
 		// prepare vrf inputs
-		inputs := make([][]byte, 0)
+		var ancestorHash, parentSeed []byte
 
 		nob := lb.chain.ConsensusHandler().NumberOfBlocksInDynasty()
 		i := uint64(0)
@@ -558,12 +558,12 @@ func (lb *linkedBlock) travelToLinkAndReturnAllValidBlocks(parentBlock *Block) (
 					metricsUnexpectedBehavior.Update(1)
 					return nil, nil, ErrNotBlockInCanonicalChain
 				}
-				inputs = append(inputs, b.Hash())
+				ancestorHash = b.Hash()
 			} else {
-				inputs = append(inputs, lb.chain.GenesisBlock().Hash())
+				ancestorHash = lb.chain.GenesisBlock().Hash()
 			}
 		} else {
-			inputs = append(inputs, tmp.block.Hash())
+			ancestorHash = tmp.block.Hash()
 		}
 
 		if parentBlock.height >= RandomAvailableHeight {
@@ -574,12 +574,12 @@ func (lb *linkedBlock) travelToLinkAndReturnAllValidBlocks(parentBlock *Block) (
 				metricsUnexpectedBehavior.Update(1)
 				return nil, nil, ErrInvalidBlockRandom
 			}
-			inputs = append(inputs, parentBlock.header.random.VrfSeed)
+			parentSeed = parentBlock.header.random.VrfSeed
 		} else {
-			inputs = append(inputs, lb.chain.GenesisBlock().Hash())
+			parentSeed = lb.chain.GenesisBlock().Hash()
 		}
 
-		if err := vrfProof(lb.block, inputs); err != nil {
+		if err := vrfProof(lb.block, ancestorHash, parentSeed); err != nil {
 			logging.CLog().WithFields(logrus.Fields{
 				"err":      err,
 				"lb.block": lb.block,
