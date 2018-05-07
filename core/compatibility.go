@@ -37,19 +37,19 @@ const (
 // mainnet/testnet
 const (
 	// DefaultTransferFromContractEventRecordableHeight
-	DefaultTransferFromContractEventRecordableHeight uint64 = 200000
+	DefaultTransferFromContractEventRecordableHeight uint64 = 199666
 
 	// DefaultAcceptFuncAvailableHeight
-	DefaultAcceptFuncAvailableHeight uint64 = 200000
+	DefaultAcceptFuncAvailableHeight uint64 = 199666
 
 	// DefaultRandomAvailableHeight
-	DefaultRandomAvailableHeight uint64 = 200000
+	DefaultRandomAvailableHeight uint64 = 199666
 
 	// DefaultDateAvailableHeight
-	DefaultDateAvailableHeight uint64 = 200000
+	DefaultDateAvailableHeight uint64 = 199666
 
 	// DefaultRecordCallContractResultHeight
-	DefaultRecordCallContractResultHeight uint64 = 200000
+	DefaultRecordCallContractResultHeight uint64 = 199666
 )
 
 // others, e.g. local/develop
