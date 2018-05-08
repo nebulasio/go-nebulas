@@ -413,6 +413,31 @@ func (s *APIService) GetTransactionReceipt(ctx context.Context, req *rpcpb.GetTr
 	return s.toTransactionResponse(tx)
 }
 
+// GetTransactionByContract get transaction info by the contract address
+func (s *APIService) GetTransactionByContract(ctx context.Context, req *rpcpb.GetTransactionByContractRequest) (*rpcpb.TransactionResponse, error) {
+
+	neb := s.server.Neblet()
+
+	addr, err := core.AddressParse(req.GetAddress())
+	if err != nil {
+		return nil, err
+	}
+
+	contract, err := neb.BlockChain().GetContract(addr)
+	if err != nil {
+		return nil, err
+	}
+
+	hash := contract.BirthPlace()
+
+	tx, err := neb.BlockChain().GetTransaction(hash)
+	if err != nil {
+		return nil, err
+	}
+
+	return s.toTransactionResponse(tx)
+}
+
 func (s *APIService) toTransactionResponse(tx *core.Transaction) (*rpcpb.TransactionResponse, error) {
 	var (
 		status         int32

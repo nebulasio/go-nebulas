@@ -88,6 +88,14 @@ service ApiService {
         };
     }
 
+    // Get transactionReceipt info by tansaction hash.
+    rpc GetTransactionByContract (GetTransactionByContractRequest) returns (TransactionResponse) {
+        option (google.api.http) = {
+            post: "/v1/user/getTransactionByContract"
+            body: "*"
+        };
+    }
+
     // Subscribe message
     rpc Subscribe(SubscribeRequest) returns (stream SubscribeResponse) {
         option (google.api.http) = {
@@ -423,6 +431,12 @@ message GetBlockByHeightRequest {
 message GetTransactionByHashRequest {
     // Hex string of transaction hash.
     string hash = 1;
+}
+
+// Request message of GetTransactionByContract rpc.
+message GetTransactionByContractRequest {
+    // string of contract address.
+    string address = 1;
 }
 
 // Response message of Block.
