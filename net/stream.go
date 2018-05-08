@@ -21,11 +21,9 @@ package net
 import (
 	"errors"
 	"fmt"
-	"hash/crc32"
+	"strings"
 	"sync"
 	"time"
-
-	"github.com/golang/snappy"
 
 	"github.com/gogo/protobuf/proto"
 	libnet "github.com/libp2p/go-libp2p-net"
@@ -38,14 +36,15 @@ import (
 
 // Stream Message Type
 const (
-	ClientVersion = "0.3.0"
-	NebProtocolID = "/neb/1.0.0"
-	HELLO         = "hello"
-	OK            = "ok"
-	BYE           = "bye"
-	SYNCROUTE     = "syncroute"
-	ROUTETABLE    = "routetable"
-	RECVEDMSG     = "recvedmsg"
+	ClientVersion  = "0.3.0"
+	NebProtocolID  = "/neb/1.0.0"
+	HELLO          = "hello"
+	OK             = "ok"
+	BYE            = "bye"
+	SYNCROUTE      = "syncroute"
+	ROUTETABLE     = "routetable"
+	RECVEDMSG      = "recvedmsg"
+	CurrentVersion = 0x0
 )
 
 // Stream Status
@@ -59,7 +58,6 @@ const (
 var (
 	ErrShouldCloseConnectionAndExitLoop = errors.New("should close connection and exit loop")
 	ErrStreamIsNotConnected             = errors.New("stream is not connected")
-	ErrUncompressMessageFailed          = errors.New("uncompress message failed")
 )
 
 // Stream define the structure of a stream in p2p network
@@ -80,7 +78,7 @@ type Stream struct {
 	latestReadAt              int64
 	latestWriteAt             int64
 	msgCount                  map[string]int
-	compressFlag              *sync.Map
+	reservedFlag              []byte
 }
 
 // NewStream return a new Stream
@@ -110,7 +108,7 @@ func newStreamInstance(pid peer.ID, addr ma.Multiaddr, stream libnet.Stream, nod
 		latestReadAt:              0,
 		latestWriteAt:             0,
 		msgCount:                  make(map[string]int),
-		compressFlag:              new(sync.Map),
+		reservedFlag:              DefaultReserved,
 	}
 }
 
@@ -175,7 +173,7 @@ func (s *Stream) SendProtoMessage(messageName string, pb proto.Message, priority
 
 // SendMessage send msg to buffer
 func (s *Stream) SendMessage(messageName string, data []byte, priority int) error {
-	message, err := NewNebMessage(s, DefaultReserved, 0, messageName, data)
+	message, err := NewNebMessage(s.node.config.ChainID, s.reservedFlag, CurrentVersion, messageName, data)
 	if err != nil {
 		return err
 	}
@@ -264,7 +262,7 @@ func (s *Stream) WriteNebMessage(message *NebMessage) error {
 }
 
 // WriteProtoMessage write proto msg in the stream
-func (s *Stream) WriteProtoMessage(messageName string, pb proto.Message) error {
+func (s *Stream) WriteProtoMessage(messageName string, pb proto.Message, reservedClientFlag byte) error {
 	data, err := proto.Marshal(pb)
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
@@ -275,12 +273,20 @@ func (s *Stream) WriteProtoMessage(messageName string, pb proto.Message) error {
 		return err
 	}
 
-	return s.WriteMessage(messageName, data)
+	return s.WriteMessage(messageName, data, reservedClientFlag)
 }
 
 // WriteMessage write raw msg in the stream
-func (s *Stream) WriteMessage(messageName string, data []byte) error {
-	message, err := NewNebMessage(s, DefaultReserved, 0, messageName, data)
+func (s *Stream) WriteMessage(messageName string, data []byte, reservedClientFlag byte) error {
+	// hello and ok messages come with the client flag bit.
+	var reserved = make([]byte, len(s.reservedFlag))
+	copy(reserved, s.reservedFlag)
+
+	if reservedClientFlag == ReservedCompressionClientFlag {
+		reserved[2] = s.reservedFlag[2] | reservedClientFlag
+	}
+
+	message, err := NewNebMessage(s.node.config.ChainID, reserved, CurrentVersion, messageName, data)
 	if err != nil {
 		return err
 	}
@@ -443,28 +449,13 @@ func (s *Stream) writeLoop() {
 
 func (s *Stream) handleMessage(message *NebMessage) error {
 	messageName := message.MessageName()
-	compressFlag := message.Reserved()[0] & 0x80
-	s.compressFlag.Store(s.pid.Pretty(), compressFlag)
 	s.msgCount[messageName]++
-
-	// Network data compression compatible with old clients.
-	// uncompress message data.
-	var data = message.Data()
-	if messageName != HELLO {
-		if compressFlag > 0 {
-			var err error
-			data, err = snappy.Decode(nil, message.Data())
-			if err != nil {
-				return ErrUncompressMessageFailed
-			}
-		}
-	}
 
 	switch messageName {
 	case HELLO:
-		return s.onHello(message, data)
+		return s.onHello(message)
 	case OK:
-		return s.onOk(message, data)
+		return s.onOk(message)
 	case BYE:
 		return s.onBye(message)
 	}
@@ -478,12 +469,19 @@ func (s *Stream) handleMessage(message *NebMessage) error {
 	case SYNCROUTE:
 		return s.onSyncRoute(message)
 	case ROUTETABLE:
-		return s.onRouteTable(message, data)
+		return s.onRouteTable(message)
 	default:
+		data, err := s.getData(message)
+		if err != nil {
+			logging.VLog().WithFields(logrus.Fields{
+				"err":         err,
+				"messageName": message.MessageName(),
+			}).Info("Handle message data occurs error.")
+			return err
+		}
 		s.node.netService.PutMessage(NewBaseMessage(message.MessageName(), s.pid.Pretty(), data))
 		// record recv message.
-		dataCheckSum := crc32.ChecksumIEEE(data)
-		RecordRecvMessage(s, dataCheckSum)
+		RecordRecvMessage(s, message.DataCheckSum())
 	}
 
 	return nil
@@ -520,7 +518,7 @@ func (s *Stream) close(reason error) {
 
 // Bye say bye in the stream
 func (s *Stream) Bye() {
-	s.WriteMessage(BYE, []byte{})
+	s.WriteMessage(BYE, []byte{}, DefaultReservedFlag)
 	s.close(errors.New("bye: force close"))
 }
 
@@ -537,11 +535,11 @@ func (s *Stream) Hello() error {
 		NodeId:        s.node.id.String(),
 		ClientVersion: ClientVersion,
 	}
-	return s.WriteProtoMessage(HELLO, msg)
+	return s.WriteProtoMessage(HELLO, msg, ReservedCompressionClientFlag)
 }
 
-func (s *Stream) onHello(message *NebMessage, data []byte) error {
-	msg, err := netpb.HelloMessageFromProto(data)
+func (s *Stream) onHello(message *NebMessage) error {
+	msg, err := netpb.HelloMessageFromProto(message.OriginalData())
 	if err != nil {
 		return ErrShouldCloseConnectionAndExitLoop
 	}
@@ -555,6 +553,10 @@ func (s *Stream) onHello(message *NebMessage, data []byte) error {
 			"ok.client_version": msg.ClientVersion,
 		}).Warn("Invalid NodeId or incompatible client version.")
 		return ErrShouldCloseConnectionAndExitLoop
+	}
+
+	if (message.Reserved()[2] & ReservedCompressionClientFlag) > 0 {
+		s.reservedFlag = CurrentReserved
 	}
 
 	// add to route table.
@@ -574,11 +576,11 @@ func (s *Stream) Ok() error {
 		ClientVersion: ClientVersion,
 	}
 
-	return s.WriteProtoMessage(OK, resp)
+	return s.WriteProtoMessage(OK, resp, ReservedCompressionClientFlag)
 }
 
-func (s *Stream) onOk(message *NebMessage, data []byte) error {
-	msg, err := netpb.OKMessageFromProto(data)
+func (s *Stream) onOk(message *NebMessage) error {
+	msg, err := netpb.OKMessageFromProto(message.OriginalData())
 	if err != nil {
 		return ErrShouldCloseConnectionAndExitLoop
 	}
@@ -592,6 +594,10 @@ func (s *Stream) onOk(message *NebMessage, data []byte) error {
 			"ok.client_version": msg.ClientVersion,
 		}).Warn("Invalid NodeId or incompatible client version.")
 		return ErrShouldCloseConnectionAndExitLoop
+	}
+
+	if (message.Reserved()[2] & ReservedCompressionClientFlag) > 0 {
+		s.reservedFlag = CurrentReserved
 	}
 
 	// add to route table.
@@ -641,7 +647,12 @@ func (s *Stream) RouteTable() error {
 	return s.SendProtoMessage(ROUTETABLE, msg, MessagePriorityHigh)
 }
 
-func (s *Stream) onRouteTable(message *NebMessage, data []byte) error {
+func (s *Stream) onRouteTable(message *NebMessage) error {
+	data, err := s.getData(message)
+	if err != nil {
+		return err
+	}
+
 	peers := new(netpb.Peers)
 	if err := proto.Unmarshal(data, peers); err != nil {
 		logging.VLog().WithFields(logrus.Fields{
@@ -664,7 +675,52 @@ func (s *Stream) finishHandshake() {
 	s.handshakeSucceedCh <- true
 }
 
+func (s *Stream) getData(message *NebMessage) ([]byte, error) {
+	var data []byte
+	if ByteSliceEqualBCE(s.reservedFlag, CurrentReserved) {
+		var err error
+		data, err = message.Data()
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		data = message.OriginalData()
+	}
+	return data, nil
+}
+
 // CheckClientVersionCompatibility if two clients are compatible
+// If the clientVersion of node A is X.Y.Z, then node B must be X.Y.{} to be compatible with A.
 func CheckClientVersionCompatibility(v1, v2 string) bool {
-	return v1 == v2
+	s1 := strings.Split(v1, ".")
+	s2 := strings.Split(v1, ".")
+
+	if len(s1) != 3 || len(s2) != 3 {
+		return false
+	}
+
+	if s1[0] != s2[0] || s1[1] != s2[1] {
+		return false
+	}
+	return true
+}
+
+// ByteSliceEqualBCE determines whether two byte arrays are equal.
+func ByteSliceEqualBCE(a, b []byte) bool {
+	if len(a) != len(b) {
+		return false
+	}
+
+	if (a == nil) != (b == nil) {
+		return false
+	}
+
+	b = b[:len(a)]
+	for i, v := range a {
+		if v != b[i] {
+			return false
+		}
+	}
+
+	return true
 }

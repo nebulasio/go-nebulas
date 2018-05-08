@@ -46,6 +46,9 @@ const (
 
 	// TopicDropTransaction drop tx (1): smaller nonce (2) expire txLifeTime
 	TopicDropTransaction = "chain.dropTransaction"
+
+	// TopicTransferFromContract transfer from contract
+	TopicTransferFromContract = "chain.transferFromContract"
 )
 
 // EventSubscriber subscriber object

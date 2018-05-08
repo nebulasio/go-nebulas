@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"strconv"
 	"sync"
 	"time"
 
@@ -18,6 +19,8 @@ type RocksStorage struct {
 
 	ro *gorocksdb.ReadOptions
 	wo *gorocksdb.WriteOptions
+
+	cache *gorocksdb.Cache
 }
 
 // NewRocksStorage init a storage
@@ -26,7 +29,9 @@ func NewRocksStorage(path string) (*RocksStorage, error) {
 	filter := gorocksdb.NewBloomFilter(10)
 	bbto := gorocksdb.NewDefaultBlockBasedTableOptions()
 	bbto.SetFilterPolicy(filter)
-	bbto.SetBlockCache(gorocksdb.NewLRUCache(512 << 20))
+
+	cache := gorocksdb.NewLRUCache(512 << 20)
+	bbto.SetBlockCache(cache)
 	opts := gorocksdb.NewDefaultOptions()
 	opts.SetBlockBasedTableFactory(bbto)
 	opts.SetCreateIfMissing(true)
@@ -39,13 +44,18 @@ func NewRocksStorage(path string) (*RocksStorage, error) {
 		return nil, err
 	}
 
-	return &RocksStorage{
+	storage := &RocksStorage{
 		db:          db,
+		cache:       cache,
 		enableBatch: false,
 		batchOpts:   make(map[string]*batchOpt),
 		ro:          gorocksdb.NewDefaultReadOptions(),
 		wo:          gorocksdb.NewDefaultWriteOptions(),
-	}, nil
+	}
+
+	//go RecordMetrics(storage)
+
+	return storage, nil
 }
 
 // Get return value to the key in Storage
@@ -150,4 +160,34 @@ func (storage *RocksStorage) DisableBatch() {
 	storage.batchOpts = make(map[string]*batchOpt)
 
 	storage.enableBatch = false
+}
+
+// RecordMetrics record rocksdb metrics
+func RecordMetrics(storage *RocksStorage) {
+	metricsUpdateChan := time.NewTicker(5 * time.Second).C
+
+	for {
+		select {
+		case <-metricsUpdateChan:
+
+			readersMemStr := storage.db.GetProperty("rocksdb.estimate-table-readers-mem")
+			allMemTablesStr := storage.db.GetProperty("rocksdb.cur-size-all-mem-tables")
+			cacheSize := storage.cache.GetUsage()
+			pinnedSize := storage.cache.GetPinnedUsage()
+
+			readersMem, err := strconv.Atoi(readersMemStr)
+			if err != nil {
+				break
+			}
+			allMemTables, err := strconv.Atoi(allMemTablesStr)
+			if err != nil {
+				break
+			}
+
+			metricsBlocksdbAllMemTables.Update(int64(allMemTables))
+			metricsBlocksdbTableReaderMem.Update(int64(readersMem))
+			metricsBlocksdbCacheSize.Update(int64(cacheSize))
+			metricsBlocksdbCachePinnedSize.Update(int64(pinnedSize))
+		}
+	}
 }

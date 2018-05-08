@@ -35,6 +35,7 @@ type SerializableBlock struct {
 	Timestamp int64  `json:"timestamp"`
 	Hash      string `json:"hash"`
 	Height    uint64 `json:"height"`
+	Seed      string `json:"seed,omitempty"`
 }
 
 // SerializableTransaction serializable transaction
@@ -84,6 +85,9 @@ func toSerializableBlock(block Block) *SerializableBlock {
 		Timestamp: block.Timestamp(),
 		Hash:      "",
 		Height:    block.Height(),
+	}
+	if block.RandomAvailable() {
+		sBlock.Seed = block.RandomSeed()
 	}
 	return sBlock
 }

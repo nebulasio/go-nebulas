@@ -32,8 +32,9 @@ import (
 
 // Errors
 var (
-	ErrBalanceInsufficient = errors.New("cannot subtract a value which is bigger than current balance")
-	ErrAccountNotFound     = errors.New("cannot found account in storage")
+	ErrBalanceInsufficient     = errors.New("cannot subtract a value which is bigger than current balance")
+	ErrAccountNotFound         = errors.New("cannot found account in storage")
+	ErrContractAccountNotFound = errors.New("cannot found contract account in storage please check contract address is valid or deploy is success")
 )
 
 // account info in state Trie
@@ -301,6 +302,10 @@ func (as *accountState) GetOrCreateUserAccount(addr byteutils.Hash) (Account, er
 // GetContractAccount from current AccountState
 func (as *accountState) GetContractAccount(addr byteutils.Hash) (Account, error) {
 	acc, err := as.getAccount(addr)
+
+	if err == ErrAccountNotFound {
+		err = ErrContractAccountNotFound
+	}
 	if err != nil {
 		return nil, err
 	}

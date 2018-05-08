@@ -74,6 +74,9 @@ type BlockHeader struct {
 	// sign
 	alg  keystore.Algorithm
 	sign byteutils.Hash
+
+	// rand
+	random *corepb.Random
 }
 
 // ToProto converts domain BlockHeader to proto BlockHeader
@@ -90,6 +93,7 @@ func (b *BlockHeader) ToProto() (proto.Message, error) {
 		ChainId:       b.chainID,
 		Alg:           uint32(b.alg),
 		Sign:          b.sign,
+		Random:        b.random,
 	}, nil
 }
 
@@ -121,6 +125,7 @@ func (b *BlockHeader) FromProto(msg proto.Message) error {
 
 			b.alg = alg
 			b.sign = msg.Sign
+			b.random = msg.Random
 			return nil
 		}
 		return ErrInvalidProtoToBlockHeader
@@ -189,6 +194,13 @@ func (block *Block) FromProto(msg proto.Message) error {
 			if err := block.header.FromProto(msg.Header); err != nil {
 				return err
 			}
+			if msg.Height >= RandomAvailableHeight && !block.HasRandomSeed() {
+				logging.VLog().WithFields(logrus.Fields{
+					"blockHeight":      msg.Height,
+					"compatibleHeight": RandomAvailableHeight,
+				}).Debug("No random found in block header.")
+				return ErrInvalidProtoToBlockHeader
+			}
 			block.transactions = make(Transactions, len(msg.Transactions))
 			for idx, v := range msg.Transactions {
 				if v != nil {
@@ -227,6 +239,7 @@ func NewBlock(chainID uint32, coinbase *Address, parent *Block) (*Block, error) 
 			coinbase:      coinbase,
 			timestamp:     time.Now().Unix(),
 			consensusRoot: &consensuspb.ConsensusRoot{},
+			random:        &corepb.Random{},
 		},
 		transactions: make(Transactions, 0),
 		dependency:   dag.NewDag(),
@@ -268,6 +281,19 @@ func (block *Block) Sign(signature keystore.Signature) error {
 	}
 	block.SetSignature(keystore.Algorithm(signature.Algorithm()), sign)
 	return nil
+}
+
+// SetRandomSeed set block.header.random
+func (block *Block) SetRandomSeed(vrfseed, vrfproof []byte) {
+	block.header.random = &corepb.Random{
+		VrfSeed:  vrfseed,
+		VrfProof: vrfproof,
+	}
+}
+
+// HasRandomSeed check random if exists
+func (block *Block) HasRandomSeed() bool {
+	return block.header.random != nil && block.header.random.VrfSeed != nil && block.header.random.VrfProof != nil
 }
 
 // ChainID returns block's chainID
@@ -353,6 +379,24 @@ func (block *Block) Height() uint64 {
 // Transactions returns block transactions
 func (block *Block) Transactions() Transactions {
 	return block.transactions
+}
+
+// RandomSeed block random seed (VRF)
+func (block *Block) RandomSeed() string {
+	if block.height >= RandomAvailableHeight {
+		return byteutils.Hex(block.header.random.VrfSeed)
+	}
+	return ""
+}
+
+// RandomAvailable check if Math.random available in contract
+func (block *Block) RandomAvailable() bool {
+	return block.height >= RandomAvailableHeight
+}
+
+// DateAvailable check if date available in contract
+func (block *Block) DateAvailable() bool {
+	return block.height >= DateAvailableHeight
 }
 
 // LinkParentBlock link parent block, return true if hash is the same; false otherwise.
@@ -476,6 +520,11 @@ func (block *Block) CollectTransactions(deadlineInMs int64) {
 				<-mergeCh // unlock
 				continue
 			}
+
+			logging.VLog().WithFields(logrus.Fields{
+				"tx.hash": tx.hash,
+			}).Debug("Pop tx.")
+
 			fetch++
 			fromBlacklist.Store(tx.from.address.Hex(), true)
 			fromBlacklist.Store(tx.to.address.Hex(), true)
@@ -750,7 +799,16 @@ func (block *Block) Seal() error {
 }
 
 func (block *Block) String() string {
-	return fmt.Sprintf(`{"height": %d, "hash": "%s", "parent_hash": "%s", "acc_root": "%s", "timestamp": %d, "tx": %d, "miner": "%s"}`,
+	random := ""
+	if block.height >= RandomAvailableHeight && block.header.random != nil {
+		if block.header.random.VrfSeed != nil {
+			random += "/vrf_seed/" + byteutils.Hex(block.header.random.VrfSeed)
+		}
+		if block.header.random.VrfProof != nil {
+			random += "/vrf_proof/" + byteutils.Hex(block.header.random.VrfProof)
+		}
+	}
+	return fmt.Sprintf(`{"height": %d, "hash": "%s", "parent_hash": "%s", "acc_root": "%s", "timestamp": %d, "tx": %d, "miner": "%s", "random": "%s"}`,
 		block.height,
 		block.header.hash,
 		block.header.parentHash,
@@ -758,6 +816,7 @@ func (block *Block) String() string {
 		block.header.timestamp,
 		len(block.transactions),
 		byteutils.Hash(block.header.consensusRoot.Proposer).Base58(),
+		random,
 	)
 }
 

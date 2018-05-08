@@ -449,7 +449,6 @@ func (e *V8Engine) prepareRunnableContractScript(source, function, args string) 
 	}
 	runnableSource = fmt.Sprintf(`Blockchain.blockParse("%s");
 									Blockchain.transactionParse("%s");
-									Object.freeze(Blockchain);
 									var __contract = require("%s");
 									var __instance = new __contract();
 									__instance["%s"].apply(__instance, JSON.parse("%s"));`,

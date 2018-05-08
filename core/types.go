@@ -51,6 +51,11 @@ const (
 	SourceTypeTypeScript = "ts"
 )
 
+// Const
+const (
+	ContractAcceptFunc = "accept"
+)
+
 var (
 	// PublicFuncNameChecker     in smart contract
 	PublicFuncNameChecker = regexp.MustCompile("^[a-zA-Z$][A-Za-z0-9_$]*$")
@@ -75,6 +80,7 @@ var (
 	ErrCannotFindBlockAtGivenHeight                      = errors.New("cannot find a block at given height which is less than tail block's height")
 	ErrInvalidBlockCannotFindParentInLocalAndTryDownload = errors.New("invalid block received, download its parent from others")
 	ErrInvalidBlockCannotFindParentInLocalAndTrySync     = errors.New("invalid block received, sync its parent from others")
+	ErrBlockNotFound                                     = errors.New("block not found in blockchain cache nor chain")
 
 	ErrInvalidConfigChainID          = errors.New("invalid chainID, genesis chainID not equal to chainID in config")
 	ErrCannotLoadGenesisConf         = errors.New("cannot load genesis conf")
@@ -90,6 +96,8 @@ var (
 	ErrDoubleSealBlock        = errors.New("cannot seal a block twice")
 	ErrDuplicatedBlock        = errors.New("duplicated block")
 	ErrDoubleBlockMinted      = errors.New("double block minted")
+	ErrVRFProofFailed         = errors.New("VRF proof failed")
+	ErrInvalidBlockRandom     = errors.New("invalid block random")
 
 	ErrInvalidChainID           = errors.New("invalid transaction chainID")
 	ErrInvalidTransactionSigner = errors.New("invalid transaction signer")
@@ -212,6 +220,8 @@ type Consensus interface {
 	GenesisConsensusState(*BlockChain, *corepb.Genesis) (state.ConsensusState, error)
 	CheckTimeout(*Block) bool
 	CheckDoubleMint(*Block) bool
+
+	NumberOfBlocksInDynasty() uint64
 }
 
 // SyncService interface of sync service
@@ -235,6 +245,7 @@ type AccountManager interface {
 
 	SignHash(*Address, byteutils.Hash, keystore.Algorithm) ([]byte, error)
 	SignBlock(*Address, *Block) error
+	GenerateRandomSeed(*Address, []byte, []byte) ([]byte, []byte, error)
 	SignTransaction(*Address, *Transaction) error
 	SignTransactionWithPassphrase(*Address, *Transaction, []byte) error
 

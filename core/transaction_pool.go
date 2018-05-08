@@ -278,6 +278,23 @@ func (pool *TransactionPool) Push(tx *Transaction) error {
 		}
 	}
 
+	//if is super node and tx type is deploy, do unsupported keyword checking.
+	if pool.bc.superNode == true && len(pool.bc.unsupportedKeyword) > 0 && len(tx.Data()) > 0 {
+		if tx.Type() == TxPayloadDeployType {
+			data := string(tx.Data())
+			keywords := strings.Split(pool.bc.unsupportedKeyword, ",")
+			for _, keyword := range keywords {
+				keyword = strings.ToLower(keyword)
+				if strings.Contains(data, keyword) {
+					logging.VLog().WithFields(logrus.Fields{
+						"tx":                 tx,
+						"unsupportedKeyword": keyword,
+					}).Debug("transaction data has unsupported keyword")
+					return ErrUnsupportedKeyword
+				}
+			}
+		}
+	}
 	// verify non-dup tx
 	if _, ok := pool.all[tx.hash.Hex()]; ok {
 		metricsDuplicateTx.Inc(1)
@@ -480,13 +497,14 @@ func (pool *TransactionPool) Del(tx *Transaction) {
 		if oldCandidate != newCandidate {
 			pool.candidates.Del(oldCandidate)
 			delete(pool.bucketsLastUpdate, tx.from.address.Hex())
-		}
-		if newCandidate != nil {
-			pool.candidates.Push(newCandidate)
+			if newCandidate != nil {
+				pool.candidates.Push(newCandidate)
 
-			//update bucket update time when txs are put on chain
-			pool.bucketsLastUpdate[tx.from.address.Hex()] = time.Now()
+				//update bucket update time when txs are put on chain
+				pool.bucketsLastUpdate[tx.from.address.Hex()] = time.Now()
+			}
 		}
+
 	} else {
 		//remove key of bucketsLastUpdate when bucket is empty
 		delete(pool.bucketsLastUpdate, tx.from.address.Hex())
