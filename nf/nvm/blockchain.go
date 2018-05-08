@@ -126,40 +126,32 @@ func TransferByAddress(handler unsafe.Pointer, from *core.Address, to *core.Addr
 	}
 	*gasCnt = uint64(TransferFuncCost)
 
-	iRtn := transfer(engine, from.Bytes(), to.String(), value)
+	iRtn := transfer(engine, from, to, value)
 	if iRtn != TransferSuccess {
 		return iRtn
 	}
 
 	return TransferFuncSuccess
 }
-func transfer(e *V8Engine, from byteutils.Hash, to string, val string) int {
-	addr, err := core.AddressParse(to)
-	if err != nil {
-		logging.VLog().WithFields(logrus.Fields{
-			"handler": uint64(e.lcsHandler),
-			"key":     to,
-		}).Debug("TransferFunc parse address failed.")
-		return TransferAddressParseErr
-	}
 
-	toAcc, err := e.ctx.state.GetOrCreateUserAccount(addr.Bytes())
+func transfer(e *V8Engine, from *core.Address, to *core.Address, val string) int {
+	toAcc, err := e.ctx.state.GetOrCreateUserAccount(to.Bytes())
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"handler": uint64(e.lcsHandler),
-			"address": addr,
+			"address": to,
 			"err":     err,
-		}).Debug("GetAccountStateFunc get account state failed.")
+		}).Error("GetAccountStateFunc get account state failed.")
 		return TransferGetAccountErr
 	}
 
-	fromAcc, err := e.ctx.state.GetOrCreateUserAccount(from)
+	fromAcc, err := e.ctx.state.GetOrCreateUserAccount(from.Bytes())
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"handler": uint64(e.lcsHandler),
 			"address": fromAcc.Address().String(),
 			"err":     err,
-		}).Debug("GetAccountStateFunc get account state failed.")
+		}).Error("GetAccountStateFunc get account state failed.")
 		return TransferGetAccountErr
 	}
 
@@ -167,21 +159,23 @@ func transfer(e *V8Engine, from byteutils.Hash, to string, val string) int {
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"handler": uint64(e.lcsHandler),
-			"address": addr,
+			"address": to,
 			"err":     err,
-		}).Debug("GetAmountFunc get amount failed.")
+		}).Error("GetAmountFunc get amount failed.")
 		return TransferStringToBigIntErr
 	}
 	logging.CLog().Infof("amount:%v", amount)
 	// update balance
 	if amount.Cmp(util.NewUint128()) > 0 {
-		err = e.ctx.contract.SubBalance(amount)
+		err = fromAcc.SubBalance(amount)
 		if err != nil {
 			logging.CLog().WithFields(logrus.Fields{
 				"handler": uint64(e.lcsHandler),
-				"key":     to,
+				"account": fromAcc,
+				"from":    from,
+				"amount":  amount,
 				"err":     err,
-			}).Info("TransferFunc SubBalance failed.")
+			}).Error("TransferFunc SubBalance failed.")
 			return TransferSubBalance
 		}
 
@@ -190,9 +184,9 @@ func transfer(e *V8Engine, from byteutils.Hash, to string, val string) int {
 			logging.VLog().WithFields(logrus.Fields{
 				"account": toAcc,
 				"amount":  amount,
-				"address": addr,
+				"address": to,
 				"err":     err,
-			}).Debug("failed to add balance")
+			}).Error("failed to add balance")
 			return TransferAddBalance
 		}
 	}
@@ -213,7 +207,25 @@ func TransferFunc(handler unsafe.Pointer, to *C.char, v *C.char, gasCnt *C.size_
 	toStr := C.GoString(to)
 	val := C.GoString(v)
 
-	iRtn := transfer(engine, engine.ctx.contract.Address(), toStr, val)
+	toAddr, err := core.AddressParse(toStr)
+	if err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"handler": uint64(uintptr(handler)),
+			"key":     toStr,
+		}).Error("TransferFunc parse to address failed.")
+		return TransferAddressParseErr
+	}
+
+	fromAddr, err := core.AddressParseFromBytes(engine.ctx.contract.Address())
+	if err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"handler": uint64(uintptr(handler)),
+			"key":     engine.ctx.contract.Address().String(),
+		}).Error("TransferFunc parse from address failed.")
+		return TransferAddressParseErr
+	}
+
+	iRtn := transfer(engine, fromAddr, toAddr, val)
 	if iRtn != TransferSuccess {
 		return iRtn
 	}
@@ -323,13 +335,13 @@ func setHeadErrAndLog(e *V8Engine, index uint32, err string, flag bool) string {
 	if index == 0 {
 		e.innerErrMsg = rStr
 	} else {
-		SetHeadV8ErrMsg(e.ctx.head, rStr)
+		setHeadV8ErrMsg(e.ctx.head, rStr)
 	}
 	return rStr
 }
 
-//SetHeadV8ErrMsg set head node err info
-func SetHeadV8ErrMsg(handler unsafe.Pointer, err string) {
+//setHeadV8ErrMsg set head node err info
+func setHeadV8ErrMsg(handler unsafe.Pointer, err string) {
 	if handler == nil {
 		logging.CLog().Errorf("the main node")
 		return
@@ -453,6 +465,7 @@ func InnerContractFunc(handler unsafe.Pointer, address *C.char, funcName *C.char
 
 	logging.CLog().Infof("begin create New V8,intance:%v, mem:%v, cost:%v", remainInstruction, remainMem, iCost)
 	engineNew := NewV8Engine(newCtx)
+	defer engineNew.Dispose()
 	engineNew.SetExecutionLimits(remainInstruction, remainMem)
 
 	val, err := engineNew.Call(string(deploy.Source), deploy.SourceType, C.GoString(funcName), C.GoString(args))
@@ -479,13 +492,13 @@ func InnerContractFunc(handler unsafe.Pointer, address *C.char, funcName *C.char
 			"err":   errMarshal.Error(),
 		}).Error("failed to marshal TransferFromContractEvent")
 		setHeadErrAndLog(engine, index, errMarshal.Error(), true)
-		engineNew.Dispose()
+
 		return nil
 	}
 	engine.ctx.state.RecordEvent(parentTx.Hash(), &state.Event{Topic: core.TopicInnerTransferContract, Data: string(eData)})
-	engineNew.Dispose()
 	if err != nil {
 		if err == core.ErrInnerExecutionFailed || err == core.ErrExecutionFailed {
+			logging.CLog().Errorf("check inner err, engine index:%v", index)
 			return nil
 		}
 		setHeadErrAndLog(engine, index, err.Error(), true)
