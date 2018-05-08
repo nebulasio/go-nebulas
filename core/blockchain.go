@@ -676,6 +676,19 @@ func (bc *BlockChain) GetTransaction(hash byteutils.Hash) (*Transaction, error) 
 	return tx, nil
 }
 
+// GetContract return contract of given address
+func (bc *BlockChain) GetContract(addr *Address) (state.Account, error) {
+	worldState, err := bc.TailBlock().WorldState().Clone()
+	if err != nil {
+		return nil, err
+	}
+	contract, err := CheckContract(addr, worldState)
+	if err != nil {
+		return nil, err
+	}
+	return contract, nil
+}
+
 // GasPrice returns the lowest transaction gas price.
 func (bc *BlockChain) GasPrice() *util.Uint128 {
 	gasPrice := TransactionMaxGasPrice
