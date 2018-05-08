@@ -542,6 +542,15 @@ func testMintBlock(t *testing.T, round int, neb *Neb, num int) {
 	acc, _ := block.WorldState().GetOrCreateUserAccount(a.Bytes())
 	nonce := int(acc.Nonce())
 
+	accb, _ := block.WorldState().GetOrCreateUserAccount(b.Bytes())
+	nonceb := int(accb.Nonce())
+
+	accc, _ := block.WorldState().GetOrCreateUserAccount(c.Bytes())
+	noncec := int(accc.Nonce())
+
+	accd, _ := block.WorldState().GetOrCreateUserAccount(d.Bytes())
+	nonced := int(accd.Nonce())
+
 	for i := 1; i < num; i++ {
 		gas, _ := util.NewUint128FromInt(1000000)
 		limit, _ := util.NewUint128FromInt(200000)
@@ -561,15 +570,15 @@ func testMintBlock(t *testing.T, round int, neb *Neb, num int) {
 		assert.Nil(t, manager.SignTransaction(a, tx))
 		assert.Nil(t, neb.chain.TransactionPool().Push(tx))
 
-		tx, _ = core.NewTransaction(neb.chain.ChainID(), b, f, util.NewUint128(), uint64(i), core.TxPayloadBinaryType, []byte("nas"), gas, limit)
+		tx, _ = core.NewTransaction(neb.chain.ChainID(), b, f, util.NewUint128(), uint64(nonceb+i), core.TxPayloadBinaryType, []byte("nas"), gas, limit)
 		assert.Nil(t, manager.SignTransaction(b, tx))
 		assert.Nil(t, neb.chain.TransactionPool().Push(tx))
 
-		tx, _ = core.NewTransaction(neb.chain.ChainID(), c, f, util.NewUint128(), uint64(i), core.TxPayloadBinaryType, []byte("nas"), gas, limit)
+		tx, _ = core.NewTransaction(neb.chain.ChainID(), c, f, util.NewUint128(), uint64(noncec+i), core.TxPayloadBinaryType, []byte("nas"), gas, limit)
 		assert.Nil(t, manager.SignTransaction(c, tx))
 		assert.Nil(t, neb.chain.TransactionPool().Push(tx))
 
-		tx, _ = core.NewTransaction(neb.chain.ChainID(), d, f, util.NewUint128(), uint64(i), core.TxPayloadBinaryType, []byte("nas"), gas, limit)
+		tx, _ = core.NewTransaction(neb.chain.ChainID(), d, f, util.NewUint128(), uint64(nonced+i), core.TxPayloadBinaryType, []byte("nas"), gas, limit)
 		assert.Nil(t, manager.SignTransaction(d, tx))
 		assert.Nil(t, neb.chain.TransactionPool().Push(tx))
 	}
@@ -588,7 +597,7 @@ func TestDposTxBinary(t *testing.T) {
 
 	neb := mockNeb(t)
 
-	for i := 0; i < 1; i++ {
+	for i := 0; i < 5; i++ {
 		testMintBlock(t, i, neb, 5)
 	}
 
