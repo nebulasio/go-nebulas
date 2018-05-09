@@ -1459,26 +1459,27 @@ type contract struct {
 }
 
 type call struct {
-	function string
-	args     string
+	function   string
+	args       string
+	exceptArgs []string //[congractA,B,C, AccountA, B]
 }
 
 func TestInnerTransactions(t *testing.T) {
 	tests := []struct {
 		name      string
 		contracts []contract
-		call      call
+		calls     []call
 	}{
 		{
 			"deploy test_require_module.js",
 			[]contract{
 				contract{
-					"./test/bank_vault_contract_second.js",
+					"./test/test_inner_transaction.js",
 					"js",
 					"",
 				},
 				contract{
-					"./test/test_inner_transaction.js",
+					"./test/bank_vault_contract_second.js",
 					"js",
 					"",
 				},
@@ -1488,14 +1489,18 @@ func TestInnerTransactions(t *testing.T) {
 					"",
 				},
 			},
-			call{
-				"save",
-				"[1]",
+			[]call{
+				call{
+					"save",
+					"[1]",
+					[]string{"1", "3", "2", "4999999999999905351999994", "5000001426940068783000000"},
+				},
 			},
 		},
 	}
+	tt := tests[0]
+	for _, call := range tt.calls {
 
-	for _, tt := range tests {
 		neb := mockNeb(t)
 		tail := neb.chain.TailBlock()
 		manager, err := account.NewManager(neb)
@@ -1565,15 +1570,15 @@ func TestInnerTransactions(t *testing.T) {
 		//accountB, err := tail.GetAccount(b.Bytes())
 		assert.Nil(t, err)
 
-		calleeContract := contractsAddr[0]
+		calleeContract := contractsAddr[1]
 		callToContract := contractsAddr[2]
-		callPayload, _ := core.NewCallPayload(tt.call.function, fmt.Sprintf("[\"%s\", \"%s\", 1]", calleeContract, callToContract))
+		callPayload, _ := core.NewCallPayload(call.function, fmt.Sprintf("[\"%s\", \"%s\", 1]", calleeContract, callToContract))
 		payloadCall, _ := callPayload.ToBytes()
 
 		value, _ := util.NewUint128FromInt(6)
 		gasLimit, _ := util.NewUint128FromInt(200000)
 
-		proxyContractAddress, err := core.AddressParse(contractsAddr[1])
+		proxyContractAddress, err := core.AddressParse(contractsAddr[0])
 		txCall, err := core.NewTransaction(neb.chain.ChainID(), a, proxyContractAddress, value,
 			uint64(len(contractsAddr)+1), core.TxPayloadCallType, payloadCall, core.TransactionGasPrice, gasLimit)
 		assert.Nil(t, err)
@@ -1603,21 +1608,30 @@ func TestInnerTransactions(t *testing.T) {
 
 			fmt.Println("==============", event.Data)
 		}
-		contract_new, err := core.AddressParse(contractsAddr[0])
-		accountANew, err := tail.GetAccount(contract_new.Bytes())
+		contractAddrA, err := core.AddressParse(contractsAddr[0])
+		accountAAcc, err := tail.GetAccount(contractAddrA.Bytes())
 		assert.Nil(t, err)
-		fmt.Printf("account :%v\n", accountANew)
+		fmt.Printf("account :%v\n", accountAAcc)
+		assert.Equal(t, call.exceptArgs[0], accountAAcc.Balance().String())
 
-		contract_newO, err := core.AddressParse(contractsAddr[1])
-		accountBNew, err := tail.GetAccount(contract_newO.Bytes())
+		contractAddrB, err := core.AddressParse(contractsAddr[1])
+		accountBAcc, err := tail.GetAccount(contractAddrB.Bytes())
 		assert.Nil(t, err)
-		fmt.Printf("accountB :%v\n", accountBNew)
+		fmt.Printf("accountB :%v\n", accountBAcc)
+		assert.Equal(t, call.exceptArgs[1], accountBAcc.Balance().String())
+
+		contractAddrC, err := core.AddressParse(contractsAddr[2])
+		accountAccC, err := tail.GetAccount(contractAddrC.Bytes())
+		assert.Nil(t, err)
+		fmt.Printf("accountC :%v\n", accountAccC)
+		assert.Equal(t, call.exceptArgs[2], accountAccC.Balance().String())
 
 		aI, err := tail.GetAccount(a.Bytes())
-		// bI, err := tail.GetAccount(b.Bytes())
+		// assert.Equal(t, call.exceptArgs[3], aI.Balance().String())
 		fmt.Printf("aI:%v\n", aI)
 		bI, err := tail.GetAccount(b.Bytes())
 		fmt.Printf("b:%v\n", bI)
+		// assert.Equal(t, call.exceptArgs[4], bI.Balance().String())
 		// assert.Equal(t, txEvent.Status, 1)
 	}
 }
@@ -1651,6 +1665,7 @@ func TestInnerTransactionsMaxMulit(t *testing.T) {
 			call{
 				"saveToLoop",
 				"[1]",
+				[]string{""},
 			},
 			"multi execution failed",
 		},
@@ -1767,11 +1782,12 @@ func TestInnerTransactionsMaxMulit(t *testing.T) {
 }
 func TestInnerTransactionsGasLimit(t *testing.T) {
 	tests := []struct {
-		name        string
-		contracts   []contract
-		call        call
-		expectedErr string
-		//gasArr      []int
+		name           string
+		contracts      []contract
+		call           call
+		expectedErr    string
+		gasArr         []int
+		gasExpectedErr []string
 	}{
 		{
 			"deploy test_require_module.js",
@@ -1795,134 +1811,321 @@ func TestInnerTransactionsGasLimit(t *testing.T) {
 			call{
 				"save",
 				"[1]",
+				[]string{""},
 			},
 			"multi execution failed",
-			//[]
+			//[]int{10000, 20000, 21300, 25300, 31500},
+			//25118 in c and gas is 1
+			//25117 in B and after cost c is 0
+			//25116 in B not enough to cost in C
+			//23117 在B内不足支付到C{engine.call system failed the gas over!!!,engine index:1}
+			//22436 A不足支付B{engine.call system failed the gas over!!!,engine index:0}
+			//22437 A刚好支付B剩余1{engine.call insuff limit err:insufficient gas,engine index:0}
+			//20336 仅够支付A{engine.call system failed the gas over!!!,engine index:0}
+			//20335 A不足gas{insufficient gas}
+			//10000 不能进入trans
+			//tmp 23117
+			[]int{25218},
+			[]string{"", "",
+				"engine.call system failed the gas over!!!, engine index:0",
+				"engine.call insuff limit err:insufficient gas, engine index:1"},
 		},
 	}
 
 	for _, tt := range tests {
-		neb := mockNeb(t)
-		tail := neb.chain.TailBlock()
-		manager, err := account.NewManager(neb)
-		assert.Nil(t, err)
+		for i := 0; i < len(tt.gasArr); i++ {
 
-		a, _ := core.AddressParse("n1FF1nz6tarkDVwWQkMnnwFPuPKUaQTdptE")
-		assert.Nil(t, manager.Unlock(a, []byte("passphrase"), keystore.YearUnlockDuration))
-		b, _ := core.AddressParse("n1GmkKH6nBMw4rrjt16RrJ9WcgvKUtAZP1s")
-		assert.Nil(t, manager.Unlock(b, []byte("passphrase"), keystore.YearUnlockDuration))
-		c, _ := core.AddressParse("n1H4MYms9F55ehcvygwWE71J8tJC4CRr2so")
-		assert.Nil(t, manager.Unlock(c, []byte("passphrase"), keystore.YearUnlockDuration))
-
-		elapsedSecond := dpos.BlockIntervalInMs / dpos.SecondInMs
-		consensusState, err := tail.WorldState().NextConsensusState(elapsedSecond)
-		assert.Nil(t, err)
-		block, err := core.NewBlock(neb.chain.ChainID(), b, tail)
-		assert.Nil(t, err)
-		block.WorldState().SetConsensusState(consensusState)
-		block.SetTimestamp(consensusState.TimeStamp())
-
-		contractsAddr := []string{}
-		fmt.Printf("++++++++++++pack account")
-		// t.Run(tt.name, func(t *testing.T) {
-		for k, v := range tt.contracts {
-			data, err := ioutil.ReadFile(v.contractPath)
-			assert.Nil(t, err, "contract path read error")
-			source := string(data)
-			sourceType := "js"
-			argsDeploy := ""
-			deploy, _ := core.NewDeployPayload(source, sourceType, argsDeploy)
-			payloadDeploy, _ := deploy.ToBytes()
-
-			value, _ := util.NewUint128FromInt(0)
-			gasLimit, _ := util.NewUint128FromInt(200000)
-			txDeploy, err := core.NewTransaction(neb.chain.ChainID(), a, a, value, uint64(k+1), core.TxPayloadDeployType, payloadDeploy, core.TransactionGasPrice, gasLimit)
+			neb := mockNeb(t)
+			tail := neb.chain.TailBlock()
+			manager, err := account.NewManager(neb)
 			assert.Nil(t, err)
-			assert.Nil(t, manager.SignTransaction(a, txDeploy))
-			assert.Nil(t, neb.chain.TransactionPool().Push(txDeploy))
 
-			contractAddr, err := txDeploy.GenerateContractAddress()
+			a, _ := core.AddressParse("n1FF1nz6tarkDVwWQkMnnwFPuPKUaQTdptE")
+			assert.Nil(t, manager.Unlock(a, []byte("passphrase"), keystore.YearUnlockDuration))
+			b, _ := core.AddressParse("n1GmkKH6nBMw4rrjt16RrJ9WcgvKUtAZP1s")
+			assert.Nil(t, manager.Unlock(b, []byte("passphrase"), keystore.YearUnlockDuration))
+			c, _ := core.AddressParse("n1H4MYms9F55ehcvygwWE71J8tJC4CRr2so")
+			assert.Nil(t, manager.Unlock(c, []byte("passphrase"), keystore.YearUnlockDuration))
+
+			elapsedSecond := dpos.BlockIntervalInMs / dpos.SecondInMs
+			consensusState, err := tail.WorldState().NextConsensusState(elapsedSecond)
 			assert.Nil(t, err)
-			contractsAddr = append(contractsAddr, contractAddr.String())
+			block, err := core.NewBlock(neb.chain.ChainID(), b, tail)
+			assert.Nil(t, err)
+			block.WorldState().SetConsensusState(consensusState)
+			block.SetTimestamp(consensusState.TimeStamp())
+
+			contractsAddr := []string{}
+			fmt.Printf("++++++++++++pack account")
+			// t.Run(tt.name, func(t *testing.T) {
+			for k, v := range tt.contracts {
+				data, err := ioutil.ReadFile(v.contractPath)
+				assert.Nil(t, err, "contract path read error")
+				source := string(data)
+				sourceType := "js"
+				argsDeploy := ""
+				deploy, _ := core.NewDeployPayload(source, sourceType, argsDeploy)
+				payloadDeploy, _ := deploy.ToBytes()
+
+				value, _ := util.NewUint128FromInt(0)
+				gasLimit, _ := util.NewUint128FromInt(200000)
+				txDeploy, err := core.NewTransaction(neb.chain.ChainID(), a, a, value, uint64(k+1), core.TxPayloadDeployType, payloadDeploy, core.TransactionGasPrice, gasLimit)
+				assert.Nil(t, err)
+				assert.Nil(t, manager.SignTransaction(a, txDeploy))
+				assert.Nil(t, neb.chain.TransactionPool().Push(txDeploy))
+
+				contractAddr, err := txDeploy.GenerateContractAddress()
+				assert.Nil(t, err)
+				contractsAddr = append(contractsAddr, contractAddr.String())
+			}
+			// })
+
+			block.CollectTransactions((time.Now().Unix() + 1) * dpos.SecondInMs)
+			assert.Nil(t, block.Seal())
+			assert.Nil(t, manager.SignBlock(b, block))
+			assert.Nil(t, neb.chain.BlockPool().Push(block))
+
+			for _, v := range contractsAddr {
+				contract, err := core.AddressParse(v)
+				assert.Nil(t, err)
+				_, err = neb.chain.TailBlock().CheckContract(contract)
+				assert.Nil(t, err)
+			}
+
+			elapsedSecond = dpos.BlockIntervalInMs / dpos.SecondInMs
+			tail = neb.chain.TailBlock()
+			consensusState, err = tail.WorldState().NextConsensusState(elapsedSecond)
+			assert.Nil(t, err)
+			block, err = core.NewBlock(neb.chain.ChainID(), c, tail)
+			assert.Nil(t, err)
+			block.WorldState().SetConsensusState(consensusState)
+			block.SetTimestamp(consensusState.TimeStamp())
+			//accountA, err := tail.GetAccount(a.Bytes())
+			//accountB, err := tail.GetAccount(b.Bytes())
+			assert.Nil(t, err)
+
+			calleeContract := contractsAddr[1]
+			callToContract := contractsAddr[2]
+			fmt.Printf("++++++++++++pack payload")
+			callPayload, _ := core.NewCallPayload(tt.call.function, fmt.Sprintf("[\"%s\", \"%s\", 1]", calleeContract, callToContract))
+			payloadCall, _ := callPayload.ToBytes()
+
+			value, _ := util.NewUint128FromInt(6)
+			//gasLimit, _ := util.NewUint128FromInt(21300)
+			//gasLimit, _ := util.NewUint128FromInt(25300)	//null                            file=logger.go func=nvm.V8Log line=32
+			gasLimit, _ := util.NewUint128FromInt(int64(tt.gasArr[i]))
+			proxyContractAddress, err := core.AddressParse(contractsAddr[0])
+			fmt.Printf("++++++++++++pack transaction")
+			txCall, err := core.NewTransaction(neb.chain.ChainID(), a, proxyContractAddress, value,
+				uint64(len(contractsAddr)+1), core.TxPayloadCallType, payloadCall, core.TransactionGasPrice, gasLimit)
+			assert.Nil(t, err)
+			assert.Nil(t, manager.SignTransaction(a, txCall))
+			assert.Nil(t, neb.chain.TransactionPool().Push(txCall))
+
+			fmt.Printf("++++++++++++pack collect")
+			block.CollectTransactions((time.Now().Unix() + 1) * dpos.SecondInMs)
+			assert.Nil(t, block.Seal())
+			assert.Nil(t, manager.SignBlock(c, block))
+			assert.Nil(t, neb.chain.BlockPool().Push(block))
+
+			fmt.Printf("++++++++++++pack check\n")
+			// check
+			tail = neb.chain.TailBlock()
+
+			events, err := tail.FetchEvents(txCall.Hash())
+			//assert.Nil(t, err)
+			// events.
+			fmt.Printf("==events:%v\n", events)
+			for _, event := range events {
+
+				fmt.Println("==============", event.Data)
+			}
+			/*
+				contractOne, err := core.AddressParse(contractsAddr[0])
+				accountANew, err := tail.GetAccount(contractOne.Bytes())
+				assert.Nil(t, err)
+				fmt.Printf("contractA account :%v\n", accountANew)
+
+				contractTwo, err := core.AddressParse(contractsAddr[1])
+				accountBNew, err := tail.GetAccount(contractTwo.Bytes())
+				assert.Nil(t, err)
+				fmt.Printf("contractB account :%v\n", accountBNew)
+
+				aI, err := tail.GetAccount(a.Bytes())
+				// bI, err := tail.GetAccount(b.Bytes())
+				fmt.Printf("aI:%v\n", aI)
+				bI, err := tail.GetAccount(b.Bytes())
+				fmt.Printf("bI:%v\n", bI)*/
 		}
-		// })
+		//
+	}
+}
+func TestInnerTransactionsMemLimit(t *testing.T) {
+	tests := []struct {
+		name           string
+		contracts      []contract
+		call           call
+		expectedErr    string
+		gasArr         []int
+		gasExpectedErr []string
+	}{
+		{
+			"deploy test_require_module.js",
+			[]contract{
+				contract{
+					"./test/test_inner_transaction.js",
+					"js",
+					"",
+				},
+				contract{
+					"./test/bank_vault_contract_second.js",
+					"js",
+					"",
+				},
+				contract{
+					"./test/bank_vault_contract.js",
+					"js",
+					"",
+				},
+			},
+			call{
+				"saveMem",
+				"[1]",
+				[]string{""},
+			},
+			"multi execution failed",
+			[]int{20 * 1024 * 1024},
+			[]string{"", "",
+				"engine.call system failed the gas over!!!, engine index:0",
+				"engine.call insuff limit err:insufficient gas, engine index:1"},
+		},
+	}
 
-		block.CollectTransactions((time.Now().Unix() + 1) * dpos.SecondInMs)
-		assert.Nil(t, block.Seal())
-		assert.Nil(t, manager.SignBlock(b, block))
-		assert.Nil(t, neb.chain.BlockPool().Push(block))
+	for _, tt := range tests {
+		for i := 0; i < len(tt.gasArr); i++ {
 
-		for _, v := range contractsAddr {
-			contract, err := core.AddressParse(v)
+			neb := mockNeb(t)
+			tail := neb.chain.TailBlock()
+			manager, err := account.NewManager(neb)
 			assert.Nil(t, err)
-			_, err = neb.chain.TailBlock().CheckContract(contract)
+
+			a, _ := core.AddressParse("n1FF1nz6tarkDVwWQkMnnwFPuPKUaQTdptE")
+			assert.Nil(t, manager.Unlock(a, []byte("passphrase"), keystore.YearUnlockDuration))
+			b, _ := core.AddressParse("n1GmkKH6nBMw4rrjt16RrJ9WcgvKUtAZP1s")
+			assert.Nil(t, manager.Unlock(b, []byte("passphrase"), keystore.YearUnlockDuration))
+			c, _ := core.AddressParse("n1H4MYms9F55ehcvygwWE71J8tJC4CRr2so")
+			assert.Nil(t, manager.Unlock(c, []byte("passphrase"), keystore.YearUnlockDuration))
+
+			elapsedSecond := dpos.BlockIntervalInMs / dpos.SecondInMs
+			consensusState, err := tail.WorldState().NextConsensusState(elapsedSecond)
 			assert.Nil(t, err)
+			block, err := core.NewBlock(neb.chain.ChainID(), b, tail)
+			assert.Nil(t, err)
+			block.WorldState().SetConsensusState(consensusState)
+			block.SetTimestamp(consensusState.TimeStamp())
+
+			contractsAddr := []string{}
+			fmt.Printf("++++++++++++pack account")
+			// t.Run(tt.name, func(t *testing.T) {
+			for k, v := range tt.contracts {
+				data, err := ioutil.ReadFile(v.contractPath)
+				assert.Nil(t, err, "contract path read error")
+				source := string(data)
+				sourceType := "js"
+				argsDeploy := ""
+				deploy, _ := core.NewDeployPayload(source, sourceType, argsDeploy)
+				payloadDeploy, _ := deploy.ToBytes()
+
+				value, _ := util.NewUint128FromInt(0)
+				gasLimit, _ := util.NewUint128FromInt(200000)
+				txDeploy, err := core.NewTransaction(neb.chain.ChainID(), a, a, value, uint64(k+1), core.TxPayloadDeployType, payloadDeploy, core.TransactionGasPrice, gasLimit)
+				assert.Nil(t, err)
+				assert.Nil(t, manager.SignTransaction(a, txDeploy))
+				assert.Nil(t, neb.chain.TransactionPool().Push(txDeploy))
+
+				contractAddr, err := txDeploy.GenerateContractAddress()
+				assert.Nil(t, err)
+				contractsAddr = append(contractsAddr, contractAddr.String())
+			}
+			// })
+
+			block.CollectTransactions((time.Now().Unix() + 1) * dpos.SecondInMs)
+			assert.Nil(t, block.Seal())
+			assert.Nil(t, manager.SignBlock(b, block))
+			assert.Nil(t, neb.chain.BlockPool().Push(block))
+
+			for _, v := range contractsAddr {
+				contract, err := core.AddressParse(v)
+				assert.Nil(t, err)
+				_, err = neb.chain.TailBlock().CheckContract(contract)
+				assert.Nil(t, err)
+			}
+
+			elapsedSecond = dpos.BlockIntervalInMs / dpos.SecondInMs
+			tail = neb.chain.TailBlock()
+			consensusState, err = tail.WorldState().NextConsensusState(elapsedSecond)
+			assert.Nil(t, err)
+			block, err = core.NewBlock(neb.chain.ChainID(), c, tail)
+			assert.Nil(t, err)
+			block.WorldState().SetConsensusState(consensusState)
+			block.SetTimestamp(consensusState.TimeStamp())
+			//accountA, err := tail.GetAccount(a.Bytes())
+			//accountB, err := tail.GetAccount(b.Bytes())
+			assert.Nil(t, err)
+
+			calleeContract := contractsAddr[1]
+			callToContract := contractsAddr[2]
+			fmt.Printf("++++++++++++pack payload")
+			callPayload, _ := core.NewCallPayload(tt.call.function, fmt.Sprintf("[\"%s\", \"%s\", \"%d\"]", calleeContract, callToContract, tt.gasArr[i]))
+			payloadCall, _ := callPayload.ToBytes()
+
+			value, _ := util.NewUint128FromInt(6)
+			//gasLimit, _ := util.NewUint128FromInt(21300)
+			//gasLimit, _ := util.NewUint128FromInt(25300)	//null                            file=logger.go func=nvm.V8Log line=32
+			gasLimit, _ := util.NewUint128FromInt(int64(tt.gasArr[i]))
+			proxyContractAddress, err := core.AddressParse(contractsAddr[0])
+			fmt.Printf("++++++++++++pack transaction")
+			txCall, err := core.NewTransaction(neb.chain.ChainID(), a, proxyContractAddress, value,
+				uint64(len(contractsAddr)+1), core.TxPayloadCallType, payloadCall, core.TransactionGasPrice, gasLimit)
+			assert.Nil(t, err)
+			assert.Nil(t, manager.SignTransaction(a, txCall))
+			assert.Nil(t, neb.chain.TransactionPool().Push(txCall))
+
+			fmt.Printf("++++++++++++pack collect")
+			block.CollectTransactions((time.Now().Unix() + 1) * dpos.SecondInMs)
+			assert.Nil(t, block.Seal())
+			assert.Nil(t, manager.SignBlock(c, block))
+			assert.Nil(t, neb.chain.BlockPool().Push(block))
+
+			fmt.Printf("++++++++++++pack check\n")
+			// check
+			tail = neb.chain.TailBlock()
+
+			events, err := tail.FetchEvents(txCall.Hash())
+			//assert.Nil(t, err)
+			// events.
+			fmt.Printf("==events:%v\n", events)
+			for _, event := range events {
+
+				fmt.Println("==============", event.Data)
+			}
+			/*
+				contractOne, err := core.AddressParse(contractsAddr[0])
+				accountANew, err := tail.GetAccount(contractOne.Bytes())
+				assert.Nil(t, err)
+				fmt.Printf("contractA account :%v\n", accountANew)
+
+				contractTwo, err := core.AddressParse(contractsAddr[1])
+				accountBNew, err := tail.GetAccount(contractTwo.Bytes())
+				assert.Nil(t, err)
+				fmt.Printf("contractB account :%v\n", accountBNew)
+
+				aI, err := tail.GetAccount(a.Bytes())
+				// bI, err := tail.GetAccount(b.Bytes())
+				fmt.Printf("aI:%v\n", aI)
+				bI, err := tail.GetAccount(b.Bytes())
+				fmt.Printf("bI:%v\n", bI)*/
 		}
-
-		elapsedSecond = dpos.BlockIntervalInMs / dpos.SecondInMs
-		tail = neb.chain.TailBlock()
-		consensusState, err = tail.WorldState().NextConsensusState(elapsedSecond)
-		assert.Nil(t, err)
-		block, err = core.NewBlock(neb.chain.ChainID(), c, tail)
-		assert.Nil(t, err)
-		block.WorldState().SetConsensusState(consensusState)
-		block.SetTimestamp(consensusState.TimeStamp())
-		//accountA, err := tail.GetAccount(a.Bytes())
-		//accountB, err := tail.GetAccount(b.Bytes())
-		assert.Nil(t, err)
-
-		calleeContract := contractsAddr[1]
-		callToContract := contractsAddr[2]
-		fmt.Printf("++++++++++++pack payload")
-		callPayload, _ := core.NewCallPayload(tt.call.function, fmt.Sprintf("[\"%s\", \"%s\", 1]", calleeContract, callToContract))
-		payloadCall, _ := callPayload.ToBytes()
-
-		value, _ := util.NewUint128FromInt(6)
-		//gasLimit, _ := util.NewUint128FromInt(21300)
-		//gasLimit, _ := util.NewUint128FromInt(25300)	//null                            file=logger.go func=nvm.V8Log line=32
-		gasLimit, _ := util.NewUint128FromInt(25300)
-		proxyContractAddress, err := core.AddressParse(contractsAddr[0])
-		fmt.Printf("++++++++++++pack transaction")
-		txCall, err := core.NewTransaction(neb.chain.ChainID(), a, proxyContractAddress, value,
-			uint64(len(contractsAddr)+1), core.TxPayloadCallType, payloadCall, core.TransactionGasPrice, gasLimit)
-		assert.Nil(t, err)
-		assert.Nil(t, manager.SignTransaction(a, txCall))
-		assert.Nil(t, neb.chain.TransactionPool().Push(txCall))
-
-		fmt.Printf("++++++++++++pack collect")
-		block.CollectTransactions((time.Now().Unix() + 1) * dpos.SecondInMs)
-		assert.Nil(t, block.Seal())
-		assert.Nil(t, manager.SignBlock(c, block))
-		assert.Nil(t, neb.chain.BlockPool().Push(block))
-
-		fmt.Printf("++++++++++++pack check\n")
-		// check
-		tail = neb.chain.TailBlock()
-
-		events, err := tail.FetchEvents(txCall.Hash())
-		assert.Nil(t, err)
-		// events.
-		fmt.Printf("==events:%v\n", events)
-		for _, event := range events {
-
-			fmt.Println("==============", event.Data)
-		}
-
-		contractOne, err := core.AddressParse(contractsAddr[0])
-		accountANew, err := tail.GetAccount(contractOne.Bytes())
-		assert.Nil(t, err)
-		fmt.Printf("contractA account :%v\n", accountANew)
-
-		contractTwo, err := core.AddressParse(contractsAddr[1])
-		accountBNew, err := tail.GetAccount(contractTwo.Bytes())
-		assert.Nil(t, err)
-		fmt.Printf("contractB account :%v\n", accountBNew)
-
-		aI, err := tail.GetAccount(a.Bytes())
-		// bI, err := tail.GetAccount(b.Bytes())
-		fmt.Printf("aI:%v\n", aI)
-		bI, err := tail.GetAccount(b.Bytes())
-		fmt.Printf("bI:%v\n", bI)
 		//
 	}
 }
