@@ -633,7 +633,9 @@ func (block *Block) CollectTransactions(deadlineInMs int64) {
 						// thus, when we find a transaction with a very large nonce
 						// we won't try to pack other transactions from the same account in the block
 						// the account will be in our from blacklist util the block is sealed
-						fromBlacklist.Delete(tx.to.address.Hex())
+						if !byteutils.Equal(tx.to.address, tx.from.address) {
+							fromBlacklist.Delete(tx.to.address.Hex())
+						}
 						toBlacklist.Delete(tx.to.address.Hex())
 					} else {
 						fromBlacklist.Delete(tx.from.address.Hex())
