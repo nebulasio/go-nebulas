@@ -265,6 +265,24 @@ func (tx *Transaction) String() string {
 	)
 }
 
+// JSONString of transaction
+func (tx *Transaction) JSONString() string {
+	txJSONObj := make(map[string]interface{})
+	txJSONObj["chainID"] = tx.chainID
+	txJSONObj["hash"] = tx.hash.String()
+	txJSONObj["from"] = tx.from.String()
+	txJSONObj["to"] = tx.to.String()
+	txJSONObj["nonce"] = tx.nonce
+	txJSONObj["value"] = tx.value.String()
+	txJSONObj["timestamp"] = tx.timestamp
+	txJSONObj["gasprice"] = tx.gasPrice.String()
+	txJSONObj["gaslimit"] = tx.gasLimit.String()
+	txJSONObj["data"] = string(tx.Data())
+	txJSONObj["type"] = tx.Type()
+	txJSON, _ := json.Marshal(txJSONObj)
+	return string(txJSON)
+}
+
 // Transactions is an alias of Transaction array.
 type Transactions []*Transaction
 

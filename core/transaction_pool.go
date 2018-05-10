@@ -324,7 +324,7 @@ func (pool *TransactionPool) Push(tx *Transaction) error {
 	// trigger pending transaction
 	event := &state.Event{
 		Topic: TopicPendingTransaction,
-		Data:  tx.String(),
+		Data:  tx.JSONString(),
 	}
 	pool.eventEmitter.Trigger(event)
 
@@ -526,7 +526,7 @@ func (pool *TransactionPool) evictExpiredTransactions() {
 						// trigger pending transaction
 						event := &state.Event{
 							Topic: TopicDropTransaction,
-							Data:  tx.String(),
+							Data:  tx.JSONString(),
 						}
 						pool.eventEmitter.Trigger(event)
 					}
