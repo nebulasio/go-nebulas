@@ -279,7 +279,13 @@ func (tx *Transaction) JSONString() string {
 	txJSONObj["gaslimit"] = tx.gasLimit.String()
 	txJSONObj["data"] = string(tx.Data())
 	txJSONObj["type"] = tx.Type()
-	txJSON, _ := json.Marshal(txJSONObj)
+	txJSON, err := json.Marshal(txJSONObj)
+	if err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"err": err,
+			"tx":  tx,
+		}).Error("Failed to get transaction json string")
+	}
 	return string(txJSON)
 }
 
