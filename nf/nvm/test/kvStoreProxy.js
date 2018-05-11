@@ -12,11 +12,27 @@ var contractInterface = {
 
 
 kvStore.prototype = {
-    init : function() {
+    init: function() {
         //
     },
 
-    save : function(address, key, value) {
+    testTpsForNormalCall: function() {
+        
+    },
+
+    testTpsForMutiNvm: function(address) {
+        console.log(address);
+        var contractInterface = {
+            testTps: function(){
+
+            },
+        };
+        var v = Blockchain.transaction.value;
+        var real_kv = new Blockchain.Contract(address, contractInterface);
+        return real_kv.value(1).testTps();
+    },
+
+    save: function(address, key, value) {
 
         var real_kv  = new Blockchain.Contract(address, contractInterface);
         
