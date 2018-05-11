@@ -1960,14 +1960,22 @@ func TestInnerTransactionsGasLimit(t *testing.T) {
 		//
 	}
 }
+
+type SysEvent struct {
+	Hash    string `json:"hash"`
+	Status  int    `json:"status"`
+	GasUsed string `json:"gas_used"`
+	Err     string `json:"error"`
+}
+
 func TestInnerTransactionsMemLimit(t *testing.T) {
 	tests := []struct {
 		name           string
 		contracts      []contract
 		call           call
 		expectedErr    string
-		gasArr         []int
-		gasExpectedErr []string
+		memArr         []int
+		memExpectedErr []string
 	}{
 		{
 			"deploy test_require_module.js",
@@ -1994,15 +2002,16 @@ func TestInnerTransactionsMemLimit(t *testing.T) {
 				[]string{""},
 			},
 			"multi execution failed",
-			[]int{20 * 1024 * 1024},
-			[]string{"", "",
-				"engine.call system failed the gas over!!!, engine index:0",
-				"engine.call insuff limit err:insufficient gas, engine index:1"},
+			[]int{5 * 1024 * 1024, 10 * 1024 * 1024, 20 * 1024 * 1024, 40 * 1024 * 1024},
+			[]string{"",
+				"Mult Call: inner transation err [exceed memory limits] engine index:1",
+				"Mult Call: inner transation err [exceed memory limits] engine index:0",
+				"exceed memory limits"},
 		},
 	}
 
 	for _, tt := range tests {
-		for i := 0; i < len(tt.gasArr); i++ {
+		for i := 0; i < len(tt.memArr); i++ {
 
 			neb := mockNeb(t)
 			tail := neb.chain.TailBlock()
@@ -2025,8 +2034,6 @@ func TestInnerTransactionsMemLimit(t *testing.T) {
 			block.SetTimestamp(consensusState.TimeStamp())
 
 			contractsAddr := []string{}
-			fmt.Printf("++++++++++++pack account")
-			// t.Run(tt.name, func(t *testing.T) {
 			for k, v := range tt.contracts {
 				data, err := ioutil.ReadFile(v.contractPath)
 				assert.Nil(t, err, "contract path read error")
@@ -2047,7 +2054,6 @@ func TestInnerTransactionsMemLimit(t *testing.T) {
 				assert.Nil(t, err)
 				contractsAddr = append(contractsAddr, contractAddr.String())
 			}
-			// })
 
 			block.CollectTransactions((time.Now().Unix() + 1) * dpos.SecondInMs)
 			assert.Nil(t, block.Seal())
@@ -2069,63 +2075,42 @@ func TestInnerTransactionsMemLimit(t *testing.T) {
 			assert.Nil(t, err)
 			block.WorldState().SetConsensusState(consensusState)
 			block.SetTimestamp(consensusState.TimeStamp())
-			//accountA, err := tail.GetAccount(a.Bytes())
-			//accountB, err := tail.GetAccount(b.Bytes())
 			assert.Nil(t, err)
 
 			calleeContract := contractsAddr[1]
 			callToContract := contractsAddr[2]
-			fmt.Printf("++++++++++++pack payload")
-			callPayload, _ := core.NewCallPayload(tt.call.function, fmt.Sprintf("[\"%s\", \"%s\", \"%d\"]", calleeContract, callToContract, tt.gasArr[i]))
+			callPayload, _ := core.NewCallPayload(tt.call.function, fmt.Sprintf("[\"%s\", \"%s\", \"%d\"]", calleeContract, callToContract, tt.memArr[i]))
 			payloadCall, _ := callPayload.ToBytes()
 
 			value, _ := util.NewUint128FromInt(6)
-			//gasLimit, _ := util.NewUint128FromInt(21300)
-			//gasLimit, _ := util.NewUint128FromInt(25300)	//null                            file=logger.go func=nvm.V8Log line=32
-			gasLimit, _ := util.NewUint128FromInt(int64(tt.gasArr[i]))
+			gasLimit, _ := util.NewUint128FromInt(int64(tt.memArr[i]))
 			proxyContractAddress, err := core.AddressParse(contractsAddr[0])
-			fmt.Printf("++++++++++++pack transaction")
 			txCall, err := core.NewTransaction(neb.chain.ChainID(), a, proxyContractAddress, value,
 				uint64(len(contractsAddr)+1), core.TxPayloadCallType, payloadCall, core.TransactionGasPrice, gasLimit)
 			assert.Nil(t, err)
 			assert.Nil(t, manager.SignTransaction(a, txCall))
 			assert.Nil(t, neb.chain.TransactionPool().Push(txCall))
 
-			fmt.Printf("++++++++++++pack collect")
 			block.CollectTransactions((time.Now().Unix() + 1) * dpos.SecondInMs)
 			assert.Nil(t, block.Seal())
 			assert.Nil(t, manager.SignBlock(c, block))
 			assert.Nil(t, neb.chain.BlockPool().Push(block))
 
-			fmt.Printf("++++++++++++pack check\n")
-			// check
 			tail = neb.chain.TailBlock()
-
 			events, err := tail.FetchEvents(txCall.Hash())
-			//assert.Nil(t, err)
-			// events.
-			fmt.Printf("==events:%v\n", events)
 			for _, event := range events {
 
 				fmt.Println("==============", event.Data)
+				var jEvent SysEvent
+				if err := json.Unmarshal([]byte(event.Data), &jEvent); err == nil {
+					fmt.Println("================json str 转struct==")
+					fmt.Println(jEvent.Err)
+					if jEvent.Hash != "" {
+						assert.Equal(t, tt.memExpectedErr[i], jEvent.Err)
+					}
+				}
+
 			}
-			/*
-				contractOne, err := core.AddressParse(contractsAddr[0])
-				accountANew, err := tail.GetAccount(contractOne.Bytes())
-				assert.Nil(t, err)
-				fmt.Printf("contractA account :%v\n", accountANew)
-
-				contractTwo, err := core.AddressParse(contractsAddr[1])
-				accountBNew, err := tail.GetAccount(contractTwo.Bytes())
-				assert.Nil(t, err)
-				fmt.Printf("contractB account :%v\n", accountBNew)
-
-				aI, err := tail.GetAccount(a.Bytes())
-				// bI, err := tail.GetAccount(b.Bytes())
-				fmt.Printf("aI:%v\n", aI)
-				bI, err := tail.GetAccount(b.Bytes())
-				fmt.Printf("bI:%v\n", bI)*/
 		}
-		//
 	}
 }
