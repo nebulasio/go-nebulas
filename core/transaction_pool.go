@@ -19,6 +19,8 @@
 package core
 
 import (
+	"errors"
+	"fmt"
 	"strings"
 	"sync"
 	"time"
@@ -272,7 +274,8 @@ func (pool *TransactionPool) Push(tx *Transaction) error {
 						"tx":                 tx,
 						"unsupportedKeyword": keyword,
 					}).Debug("transaction data has unsupported keyword")
-					return ErrUnsupportedKeyword
+					unsupportedKeywordError := fmt.Sprintf("transaction data has unsupported keyword(keyword: %s)", keyword)
+					return errors.New(unsupportedKeywordError)
 				}
 			}
 		}
