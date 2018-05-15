@@ -2013,8 +2013,8 @@ func TestInnerTransactionsMemLimit(t *testing.T) {
 			"multi execution failed",
 			[]int{5 * 1024 * 1024, 10 * 1024 * 1024, 20 * 1024 * 1024, 40 * 1024 * 1024},
 			[]string{"",
-				"Mult Call: inner transation err [exceed memory limits] engine index:1",
-				"Mult Call: inner transation err [exceed memory limits] engine index:0",
+				"Inner Call: inner transation err [exceed memory limits] engine index:1",
+				"Inner Call: inner transation err [exceed memory limits] engine index:0",
 				"exceed memory limits"},
 		},
 	}
