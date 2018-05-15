@@ -47,15 +47,25 @@ BankVaultContract.prototype = {
 		var deposit = new DepositeContent();
 		deposit.balance = value;
 		deposit.expiryHeight = bk_height.plus(height);
-
 		this.bankVault.put(from, deposit);
 		this.transferEvent(true, height);
 	},
-	transferEvent: function (status, height) {
+	saveMem: function (mem) {
+        var funcs =  {
+            saveMem: function() { 
+            
+            }
+        }
+        var m = new ArrayBuffer(mem);
+
+        this.transferEvent(true, 0, mem);
+    },
+	transferEvent: function (status, height, mem) {
         Event.Trigger("bank_vault_contract", {
             Status: status,
-            Transfer: {
-                height: height,
+            BankVaultContract: {
+				height: height,
+				mem: mem,
                 magic: "children last one"
             }
         });
