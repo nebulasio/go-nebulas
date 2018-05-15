@@ -78,7 +78,7 @@ kvStore.prototype = {
 
     testTryCatch: function(address) {
         var contractInterface = {
-            testTryCatch: function() {
+            throwErr: function() {
             }
         }
         var real_kv = new Blockchain.Contract(address, contractInterface);
@@ -90,7 +90,7 @@ kvStore.prototype = {
         }
     },
 
-    testWrongInterfaceNotFunc: function() {
+    testWrongInterfaceNotFunc: function(address) {
         var contractInterface = {
             save: function() {
             },
@@ -102,7 +102,7 @@ kvStore.prototype = {
 
     },
 
-    testWrongInterfaceMissFunc: function() {
+    testWrongInterfaceMissFunc: function(address) {
         var contractInterface = {
             save: function() {
             },
