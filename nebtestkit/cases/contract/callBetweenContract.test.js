@@ -73,12 +73,81 @@ function checkTransaction(hash, callback) {
 }
 
 
+function doTest(testInput, testExpect, done) {
+    try {
+        nonce = nonce + 1;
+        var tx = new Transaction(ChainID, sourceAccount, callerContractAddress, Unit.nasToBasic(testInput.value), nonce, 1000000, 2000000, testInput.contract);
+        // tx.to = contractAddress;
+        tx.signTransaction();
+        // console.log("silent_debug");
+        neb.api.sendRawTransaction(tx.toProtoString()).then(function(resp) {
+            console.log("----step1. call callerTx ", resp);
+            checkTransaction(resp.txhash, function(resp) {
+                try {
+                    expect(resp).to.not.be.a('undefined');
+                    console.log("----step2. have been on chain， To check balances");
+                    
+                    expect(resp.status).to.be.equal(testExpect.txStatus);
+                    neb.api.getAccountState(callerContractAddress).then(function(state){
+                        expect(state.balance).to.be.equal(testExpect.callerBalance);
+                        return neb.api.getAccountState(calleeContractAddress);
+                    }).then( function(state) {
+                        expect(state.balance).to.be.equal(testExpect.calleeBalance);
+
+                        if (1 == testExpect.txStatus) {
+                            console.log("----step3, to check the result");
+
+                            neb.api.call(sourceAccount.getAddressString(), callerContractAddress, 
+                                Unit.nasToBasic(0), nonce, 1000000, 2000000, testInput.resultCheckContract).then(function(result){
+                                console.log(JSON.stringify(result));
+                                //result = {"result":"{\"key\":\"msg1\",\"value\":\"湖人总冠军\"}","execute_err":"","estimate_gas":"20511"}
+                                expect(result.result).equal(testExpect.result);
+                                done();
+                            }).catch(function(err) {
+                                console.log("unexpected err in level 3" );
+                                done(err);
+                            });
+                        } else {
+                            console.log("----step3, to check the err info by get event");
+
+                            neb.api.getEventsByHash(resp.hash).then(function(result){
+                                expect(JSON.parse(result.events[0].data).error).equal(testExpect.errInfo);
+                                done();
+                            }).catch(function(err){
+                                console.log("unexpected err in level 3.1" );
+                                done(err);
+                            })
+                        }
+                    }).catch(function(err) {
+                        console.log("unexpected err in level 2" );
+                        done(err);
+                    });
+                    
+                } catch(err) {
+                    console.log("check tx err :" + err);
+                    done(err);
+                    return;
+                }
+            });
+        }).catch(function(err) {
+            console.log("unexpected err in level 1" );
+            done(err);
+        });
+    } catch(err) {
+        console.log("unexpected err in level 0");
+        done(err);
+    }
+}
+
+
+
 var calleeContractSrc = FS.readFileSync("nf/nvm/test/kvStore.js", "utf-8");
 var callerContractSrc = FS.readFileSync("nf/nvm/test/kvStoreProxy.js", "utf-8"); 
 var calleeContractAddress;
 var callerContractAddress;
-var notExistAddress = "n1hW4dGjRs8pTN1aH6TH6gAhmWYnuRAwuzE";
-var calleebalance = 0;
+var notExistAddress = "n1i8P4uhhgmHQmagmFRsk9cRzfJSkfnv2cp";
+var calleeBalance = 0;
+var callerBalance = 0;
 
 describe('test transfer from contract', function () {
     before('0. deploy contracts', function (done) {
@@ -140,146 +209,71 @@ describe('test transfer from contract', function () {
         }
     });
 
-    it ('1# test normal call', function (done) {
-        nonce = nonce + 1;
-        console.log(callerContractAddress);
-        var contract = {
-            "function": "save",
-            "args": "[\"" + calleeContractAddress + "\",\"msg1\", \"湖人总冠军\"]"
+    it ('1# test normal call', function(done) {
+        var testInput = {
+            contract: {
+                "function": "save",
+                "args": "[\"" + calleeContractAddress + "\",\"msg1\", \"湖人总冠军\"]"
+            },
+            resultCheckContract: {
+                "function": "get",
+                "args": "[\"" + calleeContractAddress + "\",\"msg1\"]"
+            },
+            value: 2
         };
-        var tx = new Transaction(ChainID, sourceAccount, callerContractAddress, Unit.nasToBasic(2), nonce, 1000000, 2000000, contract);
-        // tx.to = contractAddress;
-        tx.signTransaction();
-        // console.log("silent_debug");
-        neb.api.sendRawTransaction(tx.toProtoString()).then(function(resp) {
-            console.log("----step1. call callerTx ", resp);
-            checkTransaction(resp.txhash, function(resp) {
-                try {
-                    expect(resp).to.not.be.a('undefined');
-                    expect(resp.status).to.be.equal(1);
-                    console.log("----step2. have been on chain， To check balances");
-                    neb.api.getAccountState(callerContractAddress).then(function(state){
-                        expect(state.balance).to.be.equal("0");
-                        return neb.api.getAccountState(calleeContractAddress);
-                    }).then(function(state){
-                            calleebalance += 2000000000000000000;
-                        expect(state.balance).to.be.equal(calleebalance.toString());
-                        console.log("----step3, to check the result");
-                        var contract = {
-                            "function": "get",
-                            "args": "[\"" + calleeContractAddress + "\",\"msg1\"]"
-                        };
-                        return neb.api.call(sourceAccount.getAddressString(), callerContractAddress, Unit.nasToBasic(0), nonce, 1000000, 2000000, contract);
-                    }).then(function(result){
-                        console.log(result.result);
-                        //result = {"result":"{\"key\":\"msg1\",\"value\":\"湖人总冠军\"}","execute_err":"","estimate_gas":"20511"}
-                        expect(JSON.parse(result.result).value).equal("湖人总冠军");
-                        done();
-                    }).catch(function(err) {
-                        done(err);
-                    });
-                } catch(err) {
-                    console.log("check tx err :" + err);
-                    done(err);
-                    return;
-                }
-            });
-        }).catch(function(err) {
-            console.log("unexpected err: " + err);
-            done(err);
-        });
+
+        calleeBalance += 2000000000000000000;
+        
+        var testExpect = {
+            txStatus: 1,
+            callerBalance: callerBalance.toString(),
+            calleeBalance: calleeBalance.toString(),
+            result: "{\"key\":\"msg1\",\"value\":\"湖人总冠军\"}",
+        }
+
+        doTest(testInput, testExpect, done);
     });
 
-    it ('2# test normal call by use "call"', function (done) {
-        nonce = nonce + 1;
-        console.log(callerContractAddress);
-        var contract = {
-            "function": "saveByCall",
-            "args": "[\"" + calleeContractAddress + "\",\"msg1\", \"湖人总冠军\"]"
+    it ('2# test normal call by use "call"', function(done) {
+        var testInput = {
+            contract: {
+                "function": "saveByCall",
+                "args": "[\"" + calleeContractAddress + "\",\"msg1\", \"湖人总冠军\"]"
+            },
+            resultCheckContract: {
+                "function": "get",
+                "args": "[\"" + calleeContractAddress + "\",\"msg1\"]"
+            },
+            value: 2
         };
-        var tx = new Transaction(ChainID, sourceAccount, callerContractAddress, Unit.nasToBasic(2), nonce, 1000000, 2000000, contract);
-        // tx.to = contractAddress;
-        tx.signTransaction();
-        // console.log("silent_debug");
-        neb.api.sendRawTransaction(tx.toProtoString()).then(function(resp) {
-            console.log("----step1. call callerTx ", resp);
-            checkTransaction(resp.txhash, function(resp) {
-                try {
-                    expect(resp).to.not.be.a('undefined');
-                    expect(resp.status).to.be.equal(1);
-                    console.log("----step2. have been on chain， To check balances");
-                    neb.api.getAccountState(callerContractAddress).then(function(state){
-                        expect(state.balance).to.be.equal("0");
-                        return neb.api.getAccountState(calleeContractAddress);
-                    }).then(function(state){
-                            calleebalance += 2000000000000000000;
-                        expect(state.balance).to.be.equal(calleebalance.toString());
-                        console.log("----step3, to check the result");
-                        var contract = {
-                            "function": "get",
-                            "args": "[\"" + calleeContractAddress + "\",\"msg1\"]"
-                        };
-                        return neb.api.call(sourceAccount.getAddressString(), callerContractAddress, Unit.nasToBasic(0), nonce, 1000000, 2000000, contract);
-                    }).then(function(result){
-                        console.log(result.result);
-                        //result = {"result":"{\"key\":\"msg1\",\"value\":\"湖人总冠军\"}","execute_err":"","estimate_gas":"20511"}
-                        expect(JSON.parse(result.result).value).equal("湖人总冠军");
-                        done();
-                    }).catch(function(err) {
-                        done(err);
-                    });
-                } catch(err) {
-                    console.log("check tx err :" + err);
-                    done(err);
-                    return;
-                }
-            });
-        }).catch(function(err) {
-            console.log("unexpected err: " + err);
-            done(err);
-        });
+        
+        var testExpect = {
+            txStatus: 1,
+            callerBalance: callerBalance.toString(),
+            calleeBalance: calleeBalance.toString(),
+            result: "{\"key\":\"msg1\",\"value\":\"湖人总冠军\"}",
+        }
+
+        doTest(testInput, testExpect, done);
     });
 
-    it ('2. not exist callee contract', function (done) {
-        nonce = nonce + 1;
-        console.log(callerContractAddress);
-        var contract = {
-            "function": "save",
-            "args": "[\"" + notExistAddress + "\",\"msg1\", \"湖人总冠军\"]"
+    it ('3# not exsit callee contract', function(done) {
+        var testInput = {
+            contract: {
+                "function": "save",
+                "args": "[\"" + notExistAddress + "\",\"msg1\", \"湖人总冠军\"]"
+            },
+            value: 2
         };
-        var tx = new Transaction(ChainID, sourceAccount, callerContractAddress, Unit.nasToBasic(10), nonce, 1000000, 2000000, contract);
-        // tx.to = contractAddress;
-        tx.signTransaction();
-        // console.log("silent_debug");
-        neb.api.sendRawTransaction(tx.toProtoString()).then(function(resp) {
-            console.log("----step1. call callerTx ", resp);
-            checkTransaction(resp.txhash, function(resp) {
-                try {
-                    expect(resp).to.not.be.a('undefined');
-                    expect(resp.status).to.be.equal(0);
-                    console.log("----step2. have been on chain");
-                    neb.api.getAccountState(callerContractAddress).then(function(state){
-                        expect(state.balance).to.be.equal("0");
-                        return neb.api.getAccountState(calleeContractAddress);
-                    }).then(function(state){
-                        expect(state.balance).to.be.equal(calleebalance.toString());
-                        return neb.api.getEventsByHash(resp.hash);
-                    }).then(function(result){
-                        expect(JSON.parse(result.events[0].data).error).equal("Call: no contract at this address " + notExistAddress);
-                        done();
-                    }).catch(function(err){
-                        done(err);
-                    })
-                } catch(err) {
-                    console.log("check tx err :" + err);
-                    done(err);
-                    return;
-                }
-            });
-        }).catch(function(err) {
-            console.log("unexpected err: " + err);
-            done(err);
-        });
+        
+        var testExpect = {
+            txStatus: 0,
+            callerBalance: callerBalance.toString(),
+            calleeBalance: calleeBalance.toString(),
+            errInfo: "Call: Inner Call: no contract at this address",
+        }
+
+        doTest(testInput, testExpect, done);
     });
 
     it ('3. caller contract has not enough balance', function (done) {
