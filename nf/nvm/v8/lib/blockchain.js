@@ -35,7 +35,7 @@ var callFunc = function (func, args) {//TODO：检查是否会被覆盖。
     if (result) {
         return JSON.parse(result);
     } else {
-        throw "Inner Call: TODO:";
+        throw "Inner Call: TODO:"; // will be executed if  runContractSource fails
     }
 }
  

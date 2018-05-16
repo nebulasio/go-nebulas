@@ -39,6 +39,32 @@ SuperWiki.prototype = {
         console.log("child nvm!");
     },
 
+    saveWithNoValue: function (key, value) {
+        console.log("reach child contract");
+
+        key = key.trim();
+        value = value.trim();
+        if (key === "" || value === ""){
+            throw new Error("empty key / value");
+        }
+        if (value.length > 128 || key.length > 128){
+            throw new Error("key / value exceed limit length")
+        }
+
+        var from = Blockchain.transaction.from;
+        var wikiItem = this.repo.get(key);
+    
+        if (wikiItem){
+            throw new Error("value has been taken");
+        }
+
+        wikiItem = new WikiItem();
+        wikiItem.author = from;
+        wikiItem.key = key;
+        wikiItem.value = value;
+        this.repo.put(key, wikiItem);
+    },
+
     save: function (key, value) {
         console.log("reach child contract");
         if(Blockchain.transaction.value < 2000000000000000000) {
