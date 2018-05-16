@@ -63,7 +63,7 @@ BankVaultContract.prototype = {
 	transferEvent: function (status, height, mem) {
         Event.Trigger("bank_vault_contract", {
             Status: status,
-            BankVaultContract: {
+            Transfer: {
 				height: height,
 				mem: mem,
                 magic: "children last one"
