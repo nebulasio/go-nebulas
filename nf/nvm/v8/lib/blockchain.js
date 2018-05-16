@@ -18,82 +18,112 @@
 
 'use strict';
 
+var callFunc = function (func, args) {//TODO：检查是否会被覆盖。
+    if (typeof(func) != "string") {
+        throw("Inner Call: function name should be a string");
+    }
+
+    if (typeof(args) != "string") {
+        throw("Inner Call: function args should be a string");
+    }
+
+    if (!this.methods[func]) {
+        throw("Inner Call: matches no function in the interface");
+    }
+
+    var result =  _native_blockchain.runContractSource(this.address, func, this.v.toString(10), args);
+    if (result) {
+        return JSON.parse(result);
+    } else {
+        throw "Inner Call: TODO:";
+    }
+}
+ 
+var funcGenerator = function (func) {
+    return function() {
+        var args = new Array();
+        for (var i = 0; i < arguments.length; i++) {
+            args.push(arguments[i]);
+        }
+
+        var result =  _native_blockchain.runContractSource(this.address, func, this.v.toString(10), JSON.stringify(args));
+        if (result) {
+            //if no return, result === "\"\"",  JSON.parse(result) === "", !!JSON.parse(result) === false,
+            //if return is a number,2, result === "1", typeof(JSON.parse(result)) === 'number'; 
+            return JSON.parse(result);
+        } else {
+            throw "Inner Call: TODO:";
+        }
+    }
+}
+
+var dumpContract = function (address, v, methods) {
+    this.address = address;
+    this.v = v;
+    this.methods = methods;
+
+    for (var func in this.methods) {
+        this[func] = funcGenerator(func);
+    }
+}
+
+dumpContract.prototype = {
+    call: callFunc,
+}
+
 var Contract = function(address, contract_interface) {
     //check args
     if (typeof(address) != "string") {
-        throw("contract address should be a string");
+        throw("Inner Call: contract address should be a string");
     }
     if (typeof(contract_interface) != 'object') {
-        throw("wrong interface");
+        throw("Inner Call: wrong interface");
     }
 
-    this.v = 0;
+    this.v = new BigNumber(0);
     this.address = address;
-
+    this.methods = {};
 
     var src = _native_blockchain.getContractSource(address);
     if (src == null) {
-        throw("no contract at this address " + address);
+        throw("Inner Call: no contract at this address");
     }
 
     // var arguments_length = contract_interface[func].length;  
-    for(var func in contract_interface) {
+    for (var func in contract_interface) {
+        if (func === "call" || func === "value") {
+            continue;
+        }
+
         //check propertys in interface are function
         if (typeof(contract_interface[func]) !== 'function') {
-            throw("wrong interface define")
+            throw("Inner Call: wrong interface define");
         }
       
         var expression = new RegExp(func, "m");
         if (src.search(expression) == -1) {
-            throw("contract have no function called : " + func);
+            throw("Inner Call: function not implenmented");
         }
         
-        this[func] = function(func) {return function() {
-            var value = this.v;
-            this.v = 0;
-  
-            var args = new Array();
-            for (var i = 0; i < arguments.length; i++) {
-                args.push(arguments[i]);
-            }
-            var result =  _native_blockchain.runContractSource(this.address, func, value.toString(), JSON.stringify(args));
-            if (result) {
-                return JSON.parse(result);
-            } else {
-                return null;
-            }
-        }}(func);
+        this.methods[func] = 1;
+        this[func] = funcGenerator(func);
     }
         
 }
 
 Contract.prototype = {
     value: function (value) {
-        if (value == null) {
-            this.v = 0;
-        } else {
-            this.v = new BigNumber(value);
-        }    
-        return this
+        var v = value || 0;
+        v = new BigNumber(v);
+        
+        if (!v.isInteger() || v.lessThan(0)) {
+            throw("Inner Call: invalid value");
+        }
+
+        return new dumpContract(this.address, v, this.methods);
     },
-    call: function (func, args) {
-        if (typeof(func) != "string") {
-            throw("function name should be a string")
-        }
 
-        if (typeof(args) != "string") {
-            throw("function args should be a string")
-        }
-
-        var value = this.v;
-        this.v = 0;
-        var result =  _native_blockchain.runContractSource(this.address, func, value.toString(), args);
-        if (result) {
-            return JSON.parse(result);
-        } else {
-        return null;
-        }
-    }
+    call: callFunc,
 }
 
 
