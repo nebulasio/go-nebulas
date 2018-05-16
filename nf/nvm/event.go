@@ -49,7 +49,7 @@ type InnerTransferContractEvent struct {
 	From  string `json:"from"`
 	To    string `json:"to"`
 	Value string `json:"value"`
-	Err   string `json:"err"`
+	Err   string `json:"error"`
 }
 
 // EventTriggerFunc export EventTriggerFunc
