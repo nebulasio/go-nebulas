@@ -497,11 +497,16 @@ func InnerContractFunc(handler unsafe.Pointer, address *C.char, funcName *C.char
 	}
 	engine.ctx.state.RecordEvent(parentTx.Hash(), &state.Event{Topic: core.TopicInnerTransferContract, Data: string(eData)})
 	if err != nil {
-		if err == core.ErrInnerExecutionFailed || err == core.ErrExecutionFailed {
+		if err == core.ErrInnerExecutionFailed {
 			logging.CLog().Errorf("check inner err, engine index:%v", index)
-			return nil
+			// return nil
+		} else if err == core.ErrExecutionFailed {
+			logging.CLog().Errorf("inner err:%v, engine index:%v", val, index)
+			setHeadErrAndLog(engine, index, err.Error(), false)
+		} else {
+			setHeadErrAndLog(engine, index, err.Error(), true)
 		}
-		setHeadErrAndLog(engine, index, err.Error(), true)
+
 		return nil
 	}
 	logging.CLog().Infof("end cal val:%v,gascount:%v,gasSum:%v, engine index:%v", val, gasCout, gasSum, index)
