@@ -74,12 +74,6 @@
   revision = "553a641470496b2327abcac10b36396bd98e45c9"
 
 [[projects]]
-  branch = "master"
-  name = "github.com/google/keytransparency"
-  packages = ["core/crypto/vrf"]
-  revision = "e5573858922e6a9456ab5557779b37d30af56c4c"
-
-[[projects]]
   name = "github.com/gorilla/websocket"
   packages = ["."]
   revision = "ea4d1f681babbce9545c9c5f3d5194a789c89f5b"
@@ -597,7 +591,7 @@
   name = "google.golang.org/grpc"
   packages = [".","balancer","balancer/base","balancer/roundrobin","codes","connectivity","credentials","encoding","grpclb/grpc_lb_v1/messages","grpclog","internal","keepalive","metadata","naming","peer","reflection","reflection/grpc_reflection_v1alpha","resolver","resolver/dns","resolver/passthrough","stats","status","tap","transport"]
   revision = "6b51017f791ae1cfbec89c52efdf444b13b550ef"
-  version = "v1.9.2"
+  version = "v1.12.0"
 
 [[projects]]
   name = "gopkg.in/sourcemap.v1"
@@ -608,6 +602,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "105cf7ff893a2ebe6f3323ec78756a46b9bc5f7dc0708b4ff00a04bef0f8faaf"
+  inputs-digest = "12562db98440c65bbc4cb7c3b82e57491f140e396b853ba7c5e66f8611fc6a9d"
   solver-name = "gps-cdcl"
   solver-version = 1
