@@ -78,7 +78,7 @@ BankVaultContractS.prototype = {
             
             }
 		}
-		throw("+++++++second throw");
+		// throw("+++++++second throw");
         var m = new ArrayBuffer(mem);
 		var c = new Blockchain.Contract(address, funcs);
         var args = "[\"" + mem +"\"]";
