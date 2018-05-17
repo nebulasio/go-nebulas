@@ -36,6 +36,21 @@ ProxyBankContract.prototype = {
         c.value(0).call("saveMem", args); 
         this.transferEvent(true, address, 0, mem);
     },
+    saveErr: function(address, to, flag) {
+        if (flag == 0) {
+            throw("saveErr in test_inner_transaction");
+            return;
+        }
+        var funcs =  {
+            saveErr: function() { 
+            
+            }
+        }
+        var c = new Blockchain.Contract(address, funcs);
+        var args = "[\"" + to + "\", \""+ flag +"\"]";
+        c.value(0).call("saveErr", args); 
+        // this.transferEvent(true, address, 0, mem);
+    },
     saveToLoop: function (address, to, height) {
 
         var funcs =  {

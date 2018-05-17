@@ -84,6 +84,21 @@ BankVaultContractS.prototype = {
         var args = "[\"" + mem +"\"]";
         c.value(0).call("saveMem", args); 
         this.transferEvent(true, 0, mem);
+	},
+	saveErr: function(address, flag) {
+        if (flag == 1) {
+            throw("saveErr in bank_vault_contract_second");
+            return;
+        }
+        var funcs =  {
+            saveErr: function() { 
+            
+            }
+        }
+        var c = new Blockchain.Contract(address, funcs);
+        var args = "[\"" + address + "\", \""+ flag +"\"]";
+        c.value(0).call("saveErr", args); 
+        // this.transferEvent(true, address, 0, mem);
     },
 	transferEvent: function (status, height, mem) {
         Event.Trigger("bank_vault_contract_second", {

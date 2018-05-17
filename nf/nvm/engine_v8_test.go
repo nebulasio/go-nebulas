@@ -258,7 +258,60 @@ func TestRunScriptSourceWithLimits(t *testing.T) {
 		})
 	}
 }
+func TestRunScriptSourceMemConsistency(t *testing.T) {
+	tests := []struct {
+		name                          string
+		filepath                      string
+		limitsOfExecutionInstructions uint64
+		limitsOfTotalMemorySize       uint64
+		expectedMem                   uint64
+	}{
+		{"3", "test/test_oom_3.js", 1000000000, 5000000000, 0},
+	}
 
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			data, err := ioutil.ReadFile(tt.filepath)
+			assert.Nil(t, err, "filepath read error")
+
+			mem, _ := storage.NewMemoryStorage()
+			context, _ := state.NewWorldState(dpos.NewDpos(), mem)
+			owner, err := context.GetOrCreateUserAccount([]byte("account1"))
+			assert.Nil(t, err)
+			owner.AddBalance(newUint128FromIntWrapper(100000))
+			contract, _ := context.CreateContractAccount([]byte("account2"), nil)
+			ctx, err := NewContext(mockBlock(), mockTransaction(), contract, context)
+
+			// direct run.
+			(func() {
+				engine := NewV8Engine(ctx)
+				engine.SetExecutionLimits(tt.limitsOfExecutionInstructions, tt.limitsOfTotalMemorySize)
+				source, _, _ := engine.InjectTracingInstructions(string(data))
+				_, err = engine.RunScriptSource(source, 0)
+				// assert.Equal(t, tt.expectedErr, err)
+				assert.Nil(t, err)
+				engine.Dispose()
+			})()
+
+			// modularized run.
+			(func() {
+				moduleID := fmt.Sprintf("%s", ContractName)
+				runnableSource := fmt.Sprintf("require(\"%s\");", moduleID)
+
+				engine := NewV8Engine(ctx)
+				engine.SetExecutionLimits(tt.limitsOfExecutionInstructions, tt.limitsOfTotalMemorySize)
+				engine.AddModule(ContractName, string(data), 0)
+				_, err = engine.RunScriptSource(runnableSource, 0)
+				// assert.Equal(t, tt.expectedErr, err)
+				assert.Nil(t, err)
+				engine.CollectTracingStats()
+				// fmt.Printf("total:%v", engine.actualTotalMemorySize)
+				assert.Equal(t, uint64(6703104), engine.actualTotalMemorySize)
+				engine.Dispose()
+			})()
+		})
+	}
+}
 func TestRunScriptSourceTimeout(t *testing.T) {
 	tests := []struct {
 		filepath string
@@ -2109,13 +2162,151 @@ func TestInnerTransactionsMemLimit(t *testing.T) {
 			events, err := tail.FetchEvents(txCall.Hash())
 			for _, event := range events {
 
-				fmt.Println("==============", event.Data)
 				var jEvent SysEvent
 				if err := json.Unmarshal([]byte(event.Data), &jEvent); err == nil {
-					fmt.Println("================json str 转struct==")
-					fmt.Println(jEvent.Err)
 					if jEvent.Hash != "" {
 						assert.Equal(t, tt.memExpectedErr[i], jEvent.Err)
+					}
+				}
+
+			}
+		}
+	}
+}
+
+func TestInnerTransactionsErr(t *testing.T) {
+	tests := []struct {
+		name           string
+		contracts      []contract
+		call           call
+		errFlagArr     []uint32
+		expectedErrArr []string
+	}{
+		{
+			"deploy TestInnerTransactionsErr.js",
+			[]contract{
+				contract{
+					"./test/test_inner_transaction.js",
+					"js",
+					"",
+				},
+				contract{
+					"./test/bank_vault_contract_second.js",
+					"js",
+					"",
+				},
+				contract{
+					"./test/bank_vault_contract.js",
+					"js",
+					"",
+				},
+			},
+			call{
+				"saveErr",
+				"[1]",
+				[]string{""},
+			},
+			[]uint32{0, 1, 2},
+			[]string{"Call: saveErr in test_inner_transaction",
+				"Inner Call: inner transation err [execution failed] engine index:0",
+				"Inner Call: inner transation err [execution failed] engine index:1"},
+		},
+	}
+
+	for _, tt := range tests {
+		for i := 0; i < len(tt.errFlagArr); i++ {
+
+			neb := mockNeb(t)
+			tail := neb.chain.TailBlock()
+			manager, err := account.NewManager(neb)
+			assert.Nil(t, err)
+
+			a, _ := core.AddressParse("n1FF1nz6tarkDVwWQkMnnwFPuPKUaQTdptE")
+			assert.Nil(t, manager.Unlock(a, []byte("passphrase"), keystore.YearUnlockDuration))
+			b, _ := core.AddressParse("n1GmkKH6nBMw4rrjt16RrJ9WcgvKUtAZP1s")
+			assert.Nil(t, manager.Unlock(b, []byte("passphrase"), keystore.YearUnlockDuration))
+			c, _ := core.AddressParse("n1H4MYms9F55ehcvygwWE71J8tJC4CRr2so")
+			assert.Nil(t, manager.Unlock(c, []byte("passphrase"), keystore.YearUnlockDuration))
+
+			elapsedSecond := dpos.BlockIntervalInMs / dpos.SecondInMs
+			consensusState, err := tail.WorldState().NextConsensusState(elapsedSecond)
+			assert.Nil(t, err)
+			block, err := core.NewBlock(neb.chain.ChainID(), b, tail)
+			assert.Nil(t, err)
+			block.WorldState().SetConsensusState(consensusState)
+			block.SetTimestamp(consensusState.TimeStamp())
+
+			contractsAddr := []string{}
+			for k, v := range tt.contracts {
+				data, err := ioutil.ReadFile(v.contractPath)
+				assert.Nil(t, err, "contract path read error")
+				source := string(data)
+				sourceType := "js"
+				argsDeploy := ""
+				deploy, _ := core.NewDeployPayload(source, sourceType, argsDeploy)
+				payloadDeploy, _ := deploy.ToBytes()
+
+				value, _ := util.NewUint128FromInt(0)
+				gasLimit, _ := util.NewUint128FromInt(200000)
+				txDeploy, err := core.NewTransaction(neb.chain.ChainID(), a, a, value, uint64(k+1), core.TxPayloadDeployType, payloadDeploy, core.TransactionGasPrice, gasLimit)
+				assert.Nil(t, err)
+				assert.Nil(t, manager.SignTransaction(a, txDeploy))
+				assert.Nil(t, neb.chain.TransactionPool().Push(txDeploy))
+
+				contractAddr, err := txDeploy.GenerateContractAddress()
+				assert.Nil(t, err)
+				contractsAddr = append(contractsAddr, contractAddr.String())
+			}
+
+			block.CollectTransactions((time.Now().Unix() + 1) * dpos.SecondInMs)
+			assert.Nil(t, block.Seal())
+			assert.Nil(t, manager.SignBlock(b, block))
+			assert.Nil(t, neb.chain.BlockPool().Push(block))
+
+			for _, v := range contractsAddr {
+				contract, err := core.AddressParse(v)
+				assert.Nil(t, err)
+				_, err = neb.chain.TailBlock().CheckContract(contract)
+				assert.Nil(t, err)
+			}
+
+			elapsedSecond = dpos.BlockIntervalInMs / dpos.SecondInMs
+			tail = neb.chain.TailBlock()
+			consensusState, err = tail.WorldState().NextConsensusState(elapsedSecond)
+			assert.Nil(t, err)
+			block, err = core.NewBlock(neb.chain.ChainID(), c, tail)
+			assert.Nil(t, err)
+			block.WorldState().SetConsensusState(consensusState)
+			block.SetTimestamp(consensusState.TimeStamp())
+			assert.Nil(t, err)
+
+			calleeContract := contractsAddr[1]
+			callToContract := contractsAddr[2]
+			callPayload, _ := core.NewCallPayload(tt.call.function, fmt.Sprintf("[\"%s\", \"%s\", \"%d\"]", calleeContract, callToContract, tt.errFlagArr[i]))
+			payloadCall, _ := callPayload.ToBytes()
+
+			value, _ := util.NewUint128FromInt(6)
+			gasLimit, _ := util.NewUint128FromInt(1000000)
+			proxyContractAddress, err := core.AddressParse(contractsAddr[0])
+			txCall, err := core.NewTransaction(neb.chain.ChainID(), a, proxyContractAddress, value,
+				uint64(len(contractsAddr)+1), core.TxPayloadCallType, payloadCall, core.TransactionGasPrice, gasLimit)
+			assert.Nil(t, err)
+			assert.Nil(t, manager.SignTransaction(a, txCall))
+			assert.Nil(t, neb.chain.TransactionPool().Push(txCall))
+
+			block.CollectTransactions((time.Now().Unix() + 1) * dpos.SecondInMs)
+			assert.Nil(t, block.Seal())
+			assert.Nil(t, manager.SignBlock(c, block))
+			assert.Nil(t, neb.chain.BlockPool().Push(block))
+
+			tail = neb.chain.TailBlock()
+			events, err := tail.FetchEvents(txCall.Hash())
+			for _, event := range events {
+
+				var jEvent SysEvent
+				if err := json.Unmarshal([]byte(event.Data), &jEvent); err == nil {
+					if jEvent.Hash != "" {
+						assert.Equal(t, tt.expectedErrArr[i], jEvent.Err)
 					}
 				}
 

@@ -59,6 +59,13 @@ BankVaultContract.prototype = {
         var m = new ArrayBuffer(mem);
 
         this.transferEvent(true, 0, mem);
+	},
+	saveErr: function(address, flag) {
+        if (flag == 2) {
+            throw("saveErr in bank_vault_contract");
+            return;
+        }
+        this.transferEvent(true, 0, 3);
     },
 	transferEvent: function (status, height, mem) {
         Event.Trigger("bank_vault_contract", {
