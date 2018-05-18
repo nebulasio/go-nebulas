@@ -612,11 +612,11 @@ func TestGivebackInvalidTx(t *testing.T) {
 	signature.InitSign(key.(keystore.PrivateKey))
 	tx.Sign(signature)
 	assert.Nil(t, bc.txPool.Push(tx))
-	assert.Equal(t, len(bc.txPool.all), 1)
+	assert.Equal(t, bc.txPool.cache.Size(), 1)
 	block, err := bc.NewBlock(from)
 	assert.Nil(t, err)
 	block.CollectTransactions(time.Now().Unix() + 1)
-	assert.Equal(t, len(bc.txPool.all), 1)
+	assert.Equal(t, bc.txPool.cache.Size(), 1)
 }
 
 func TestBlockVerifyIntegrity(t *testing.T) {

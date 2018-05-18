@@ -21,10 +21,8 @@ package net
 import (
 	"bufio"
 	"errors"
-	"fmt"
 	"math/rand"
 	"os"
-	"path"
 	"reflect"
 	"strings"
 	"time"
@@ -39,6 +37,7 @@ import (
 	peer "github.com/libp2p/go-libp2p-peer"
 	peerstore "github.com/libp2p/go-libp2p-peerstore"
 	ma "github.com/multiformats/go-multiaddr"
+	"github.com/nebulasio/go-nebulas/cache"
 )
 
 // Route Table Errors
@@ -48,43 +47,61 @@ var (
 
 // RouteTable route table struct.
 type RouteTable struct {
-	quitCh                   chan bool
-	peerStore                peerstore.Peerstore
-	routeTable               *kbucket.RoutingTable
+	quitCh    chan bool
+	peerStore peerstore.Peerstore
+	// routeTable               *kbucket.RoutingTable
 	maxPeersCountForSyncResp int
 	maxPeersCountToSync      int
-	cacheFilePath            string
-	seedNodes                []ma.Multiaddr
-	node                     *Node
-	streamManager            *StreamManager
-	latestUpdatedAt          int64
-	internalNodeList         []string
+	cache                    cache.Cache
+	// cacheFilePath            string
+	seedNodes     []ma.Multiaddr
+	node          *Node
+	streamManager *StreamManager
+	// latestUpdatedAt          int64
+	internalNodeList []string
 }
 
 // NewRouteTable new route table.
 func NewRouteTable(config *Config, node *Node) *RouteTable {
-	table := &RouteTable{
-		quitCh:                   make(chan bool, 1),
-		peerStore:                peerstore.NewPeerstore(),
-		maxPeersCountForSyncResp: MaxPeersCountForSyncResp,
-		maxPeersCountToSync:      config.MaxSyncNodes,
-		cacheFilePath:            path.Join(config.RoutingTableDir, RouteTableCacheFileName),
-		seedNodes:                config.BootNodes,
-		node:                     node,
-		streamManager:            node.streamManager,
-		latestUpdatedAt:          0,
-	}
-
-	table.routeTable = kbucket.NewRoutingTable(
+	ps := peerstore.NewPeerstore()
+	routeTable := kbucket.NewRoutingTable(
 		config.Bucketsize,
 		kbucket.ConvertPeerID(node.id),
 		config.Latency,
-		table.peerStore,
+		ps,
 	)
+	routeTable.Update(node.id)
+	ps.AddPubKey(node.id, node.networkKey.GetPublic())
+	ps.AddPrivKey(node.id, node.networkKey)
+	cacheConf := &cache.PersistableCacheConfig{
+		IntervalMs: int64(RouteTableSaveToDiskInterval),
+		SaveDir:    config.RoutingTableDir,
+		CacheSize:  1000,
+	}
 
-	table.routeTable.Update(node.id)
-	table.peerStore.AddPubKey(node.id, node.networkKey.GetPublic())
-	table.peerStore.AddPrivKey(node.id, node.networkKey)
+	table := &RouteTable{
+		quitCh:    make(chan bool, 1),
+		peerStore: ps,
+		cache:     newRouteTableCache(cacheConf, ps, routeTable),
+		maxPeersCountForSyncResp: MaxPeersCountForSyncResp,
+		maxPeersCountToSync:      config.MaxSyncNodes,
+		// cacheFilePath:            path.Join(config.RoutingTableDir, RouteTableCacheFileName),
+		seedNodes:     config.BootNodes,
+		node:          node,
+		streamManager: node.streamManager,
+		// latestUpdatedAt:          0,
+	}
+
+	// table.routeTable = kbucket.NewRoutingTable(
+	// 	config.Bucketsize,
+	// 	kbucket.ConvertPeerID(node.id),
+	// 	config.Latency,
+	// 	table.peerStore,
+	// )
+	//
+	// table.routeTable.Update(node.id)
+	// table.peerStore.AddPubKey(node.id, node.networkKey.GetPublic())
+	// table.peerStore.AddPrivKey(node.id, node.networkKey)
 
 	return table
 }
@@ -105,17 +122,24 @@ func (table *RouteTable) Stop() {
 
 // Peers return peers in route table.
 func (table *RouteTable) Peers() map[peer.ID][]ma.Multiaddr {
-	peers := make(map[peer.ID][]ma.Multiaddr)
-	for _, pid := range table.peerStore.Peers() {
-		peers[pid] = table.peerStore.Addrs(pid)
+	// peers := make(map[peer.ID][]ma.Multiaddr)
+	// for _, pid := range table.peerStore.Peers() {
+	// 	peers[pid] = table.peerStore.Addrs(pid)
+	// }
+	all := table.cache.Entries()
+	if peers, ok := all.(map[peer.ID][]ma.Multiaddr); ok {
+		return peers
 	}
-	return peers
+	logging.VLog().WithFields(logrus.Fields{
+		"size": table.cache.Size(),
+	}).Error("Type assertion failed.")
+	return make(map[peer.ID][]ma.Multiaddr)
 }
 
 func (table *RouteTable) syncLoop() {
 	// Load Route Table.
 	table.LoadSeedNodes()
-	table.LoadRouteTableFromFile()
+	// table.LoadRouteTableFromFile()	// TODO: ?
 	table.LoadInternalNodeList()
 
 	// trigger first sync.
@@ -124,8 +148,8 @@ func (table *RouteTable) syncLoop() {
 	logging.CLog().Info("Started NebService RouteTable Sync.")
 
 	syncLoopTicker := time.NewTicker(RouteTableSyncLoopInterval)
-	saveRouteTableToDiskTicker := time.NewTicker(RouteTableSaveToDiskInterval)
-	latestUpdatedAt := table.latestUpdatedAt
+	// saveRouteTableToDiskTicker := time.NewTicker(RouteTableSaveToDiskInterval)
+	// latestUpdatedAt := table.latestUpdatedAt
 
 	for {
 		select {
@@ -134,11 +158,11 @@ func (table *RouteTable) syncLoop() {
 			return
 		case <-syncLoopTicker.C:
 			table.SyncRouteTable()
-		case <-saveRouteTableToDiskTicker.C:
-			if latestUpdatedAt < table.latestUpdatedAt {
-				table.SaveRouteTableToFile()
-				latestUpdatedAt = table.latestUpdatedAt
-			}
+			// case <-saveRouteTableToDiskTicker.C:
+			// 	if latestUpdatedAt < table.latestUpdatedAt {
+			// 		table.SaveRouteTableToFile()
+			// 		latestUpdatedAt = table.latestUpdatedAt
+			// 	}
 		}
 	}
 }
@@ -157,24 +181,29 @@ func (table *RouteTable) AddPeerInfo(prettyID string, addrStr []string) error {
 			return err
 		}
 	}
+	return table.cache.Set(pid, addrs)
+	// if table.routeTable.Find(pid) != "" {
+	// 	table.peerStore.SetAddrs(pid, addrs, peerstore.PermanentAddrTTL)
+	// } else {
+	// 	table.peerStore.AddAddrs(pid, addrs, peerstore.PermanentAddrTTL)
+	// }
+	// table.routeTable.Update(pid)
+	// table.onRouteTableChange()
 
-	if table.routeTable.Find(pid) != "" {
-		table.peerStore.SetAddrs(pid, addrs, peerstore.PermanentAddrTTL)
-	} else {
-		table.peerStore.AddAddrs(pid, addrs, peerstore.PermanentAddrTTL)
-	}
-	table.routeTable.Update(pid)
-	table.onRouteTableChange()
-
-	return nil
+	// return nil
 }
 
 // AddPeer add peer to route table.
 func (table *RouteTable) AddPeer(pid peer.ID, addr ma.Multiaddr) {
 	logging.VLog().Debugf("Adding Peer: %s,%s", pid.Pretty(), addr.String())
-	table.peerStore.AddAddr(pid, addr, peerstore.PermanentAddrTTL)
-	table.routeTable.Update(pid)
-	table.onRouteTableChange()
+	if err := table.cache.Set(pid, []ma.Multiaddr{addr}); err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"err": err,
+		}).Error("Set cache error.")
+	}
+	// table.peerStore.AddAddr(pid, addr, peerstore.PermanentAddrTTL)
+	// table.routeTable.Update(pid)
+	// table.onRouteTableChange()
 
 }
 
@@ -200,53 +229,85 @@ func (table *RouteTable) AddIPFSPeerAddr(addr ma.Multiaddr) {
 
 // AddPeerStream add peer stream to peerStore.
 func (table *RouteTable) AddPeerStream(s *Stream) {
-	table.peerStore.AddAddr(
-		s.pid,
-		s.addr,
-		peerstore.PermanentAddrTTL,
-	)
-	table.routeTable.Update(s.pid)
-	table.onRouteTableChange()
+	table.AddPeer(s.pid, s.addr)
+	// table.peerStore.AddAddr(
+	// 	s.pid,
+	// 	s.addr,
+	// 	peerstore.PermanentAddrTTL,
+	// )
+	// table.routeTable.Update(s.pid)
+	// table.onRouteTableChange()
 }
 
 // RemovePeerStream remove peerStream from peerStore.
 func (table *RouteTable) RemovePeerStream(s *Stream) {
-	table.peerStore.AddAddr(s.pid, s.addr, 0)
-	table.routeTable.Remove(s.pid)
-	table.onRouteTableChange()
+	if _, err := table.cache.Take(s.pid); err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"err": err,
+		}).Error("Remove peer error.")
+	}
+	// table.peerStore.AddAddr(s.pid, s.addr, 0)
+	// table.routeTable.Remove(s.pid)
+	// table.onRouteTableChange()
 }
 
-func (table *RouteTable) onRouteTableChange() {
-	table.latestUpdatedAt = time.Now().Unix()
-}
+// func (table *RouteTable) onRouteTableChange() {
+// 	table.latestUpdatedAt = time.Now().Unix()
+// }
 
 // GetRandomPeers get random peers
 func (table *RouteTable) GetRandomPeers(pid peer.ID) []peerstore.PeerInfo {
 
-	// change sync route algorithm from `NearestPeers` to `randomPeers`
-	var peers []peer.ID
-	allPeers := table.routeTable.ListPeers()
 	// Do not accept internal node synchronization routing requests.
 	if inArray(pid.Pretty(), table.internalNodeList) {
 		logging.VLog().Debugf("i am internal node: %s", pid.Pretty())
 		return []peerstore.PeerInfo{}
 	}
 
-	for _, v := range allPeers {
-		if inArray(v.Pretty(), table.internalNodeList) == false {
-			logging.VLog().Debugf("external peer: %s", v.Pretty())
-			peers = append(peers, v)
+	// change sync route algorithm from `NearestPeers` to `randomPeers`
+	// allPeers := table.routeTable.ListPeers()
+	if allPeers, ok := table.cache.Entries().(map[peer.ID][]ma.Multiaddr); ok {
+		var peers []peer.ID
+		for pid = range allPeers {
+			if inArray(pid.Pretty(), table.internalNodeList) == false {
+				logging.VLog().Debugf("external peer: %s", pid.Pretty())
+				peers = append(peers, pid)
+			}
 		}
+
+		peers = shufflePeerID(peers)
+		if len(peers) > table.maxPeersCountForSyncResp {
+			peers = peers[:table.maxPeersCountForSyncResp]
+		}
+		ret := make([]peerstore.PeerInfo, len(peers))
+		for i, v := range peers {
+			ret[i] = peerstore.PeerInfo{
+				ID:    v,
+				Addrs: allPeers[v],
+			}
+		}
+		return ret
 	}
-	peers = shufflePeerID(peers)
-	if len(peers) > table.maxPeersCountForSyncResp {
-		peers = peers[:table.maxPeersCountForSyncResp]
-	}
-	ret := make([]peerstore.PeerInfo, len(peers))
-	for i, v := range peers {
-		ret[i] = table.peerStore.PeerInfo(v)
-	}
-	return ret
+
+	logging.VLog().WithFields(logrus.Fields{
+		"size": table.cache.Size(),
+	}).Error("Type assertion failed.")
+
+	// for _, v := range allPeers {
+	// 	if inArray(v.Pretty(), table.internalNodeList) == false {
+	// 		logging.VLog().Debugf("external peer: %s", v.Pretty())
+	// 		peers = append(peers, v)
+	// 	}
+	// }
+	// peers = shufflePeerID(peers)
+	// if len(peers) > table.maxPeersCountForSyncResp {
+	// 	peers = peers[:table.maxPeersCountForSyncResp]
+	// }
+	// ret := make([]peerstore.PeerInfo, len(peers))
+	// for i, v := range peers {
+	// 	ret[i] = table.peerStore.PeerInfo(v)
+	// }
+	return make([]peerstore.PeerInfo, 0)
 }
 
 func inArray(obj interface{}, array interface{}) bool {
@@ -280,64 +341,64 @@ func (table *RouteTable) LoadSeedNodes() {
 }
 
 // LoadRouteTableFromFile load route table from file.
-func (table *RouteTable) LoadRouteTableFromFile() {
-	file, err := os.Open(table.cacheFilePath)
-	if err != nil {
-		logging.VLog().WithFields(logrus.Fields{
-			"cacheFilePath": table.cacheFilePath,
-			"err":           err,
-		}).Warn("Failed to open Route Table Cache file.")
-		return
-	}
-	defer file.Close()
+// func (table *RouteTable) LoadRouteTableFromFile() {
+// 	file, err := os.Open(table.cacheFilePath)
+// 	if err != nil {
+// 		logging.VLog().WithFields(logrus.Fields{
+// 			"cacheFilePath": table.cacheFilePath,
+// 			"err":           err,
+// 		}).Warn("Failed to open Route Table Cache file.")
+// 		return
+// 	}
+// 	defer file.Close()
 
-	// read line by line.
-	scanner := bufio.NewScanner(file)
-	scanner.Split(bufio.ScanLines)
+// 	// read line by line.
+// 	scanner := bufio.NewScanner(file)
+// 	scanner.Split(bufio.ScanLines)
 
-	for scanner.Scan() {
-		line := strings.TrimSpace(scanner.Text())
-		if strings.HasPrefix(line, "#") {
-			continue
-		}
+// 	for scanner.Scan() {
+// 		line := strings.TrimSpace(scanner.Text())
+// 		if strings.HasPrefix(line, "#") {
+// 			continue
+// 		}
 
-		addr, err := ma.NewMultiaddr(line)
-		if err != nil {
-			// ignore.
-			logging.VLog().WithFields(logrus.Fields{
-				"err":  err,
-				"text": line,
-			}).Warn("Invalid address in Route Table Cache file.")
-			continue
-		}
+// 		addr, err := ma.NewMultiaddr(line)
+// 		if err != nil {
+// 			// ignore.
+// 			logging.VLog().WithFields(logrus.Fields{
+// 				"err":  err,
+// 				"text": line,
+// 			}).Warn("Invalid address in Route Table Cache file.")
+// 			continue
+// 		}
 
-		table.AddIPFSPeerAddr(addr)
-	}
-}
+// 		table.AddIPFSPeerAddr(addr)
+// 	}
+// }
 
 // SaveRouteTableToFile save route table to file.
-func (table *RouteTable) SaveRouteTableToFile() {
-	file, err := os.Create(table.cacheFilePath)
-	if err != nil {
-		logging.VLog().WithFields(logrus.Fields{
-			"cacheFilePath": table.cacheFilePath,
-			"err":           err,
-		}).Warn("Failed to open Route Table Cache file.")
-		return
-	}
-	defer file.Close()
+// func (table *RouteTable) SaveRouteTableToFile() {
+// 	file, err := os.Create(table.cacheFilePath)
+// 	if err != nil {
+// 		logging.VLog().WithFields(logrus.Fields{
+// 			"cacheFilePath": table.cacheFilePath,
+// 			"err":           err,
+// 		}).Warn("Failed to open Route Table Cache file.")
+// 		return
+// 	}
+// 	defer file.Close()
 
-	// write header.
-	file.WriteString(fmt.Sprintf("# %s\n", time.Now().String()))
+// 	// write header.
+// 	file.WriteString(fmt.Sprintf("# %s\n", time.Now().String()))
 
-	peers := table.routeTable.ListPeers()
-	for _, v := range peers {
-		for _, addr := range table.peerStore.Addrs(v) {
-			line := fmt.Sprintf("%s/ipfs/%s\n", addr, v.Pretty())
-			file.WriteString(line)
-		}
-	}
-}
+// 	peers := table.routeTable.ListPeers()
+// 	for _, v := range peers {
+// 		for _, addr := range table.peerStore.Addrs(v) {
+// 			line := fmt.Sprintf("%s/ipfs/%s\n", addr, v.Pretty())
+// 			file.WriteString(line)
+// 		}
+// 	}
+// }
 
 // SyncRouteTable sync route table.
 func (table *RouteTable) SyncRouteTable() {
@@ -354,7 +415,8 @@ func (table *RouteTable) SyncRouteTable() {
 	}
 
 	// random peer selection.
-	peers := table.routeTable.ListPeers()
+	// peers := table.routeTable.ListPeers()
+	peers := table.cache.Keys().([]peer.ID)
 	peersCount := len(peers)
 	if peersCount <= 1 {
 		return

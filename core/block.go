@@ -499,7 +499,7 @@ func (block *Block) CollectTransactions(deadlineInMs int64) {
 	failed := 0
 	conflict := 0
 	expired := 0
-	bucket := len(block.txPool.all)
+	bucket := block.txPool.cache.Size()
 	packing := int64(0)
 	prepare := int64(0)
 	execute := int64(0)

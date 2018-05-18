@@ -23,6 +23,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/nebulasio/go-nebulas/cache"
 	"github.com/nebulasio/go-nebulas/core/state"
 
 	"github.com/gogo/protobuf/proto"
@@ -46,10 +47,11 @@ type TransactionPool struct {
 	receivedMessageCh chan net.Message
 	quitCh            chan int
 
-	size              int
-	candidates        *sorted.Slice
-	buckets           map[byteutils.HexHash]*sorted.Slice
-	all               map[byteutils.HexHash]*Transaction
+	size       int
+	candidates *sorted.Slice
+	buckets    map[byteutils.HexHash]*sorted.Slice
+	// all               map[byteutils.HexHash]*Transaction
+	cache             cache.Cache
 	bucketsLastUpdate map[byteutils.HexHash]time.Time
 
 	ns net.Service
@@ -81,14 +83,19 @@ func gasCmp(a interface{}, b interface{}) int {
 }
 
 // NewTransactionPool create a new TransactionPool
-func NewTransactionPool(size int) (*TransactionPool, error) {
+func NewTransactionPool(size int, cacheDir string, dumpIntervalMs int64) (*TransactionPool, error) {
 	return &TransactionPool{
 		receivedMessageCh: make(chan net.Message, size),
 		quitCh:            make(chan int, 1),
 		size:              size,
 		candidates:        sorted.NewSlice(gasCmp),
 		buckets:           make(map[byteutils.HexHash]*sorted.Slice),
-		all:               make(map[byteutils.HexHash]*Transaction),
+		// all:               make(map[byteutils.HexHash]*Transaction),
+		cache: newTransactionPoolCache(&cache.PersistableCacheConfig{
+			IntervalMs: dumpIntervalMs,
+			SaveDir:    cacheDir,
+			CacheSize:  size,
+		}),
 		bucketsLastUpdate: make(map[byteutils.HexHash]time.Time),
 		minGasPrice:       TransactionGasPrice,
 		maxGasLimit:       TransactionMaxGas,
@@ -158,7 +165,8 @@ func (pool *TransactionPool) loop() {
 		select {
 		case <-metricsUpdateChan:
 			metricsReceivedTx.Update(int64(len(pool.receivedMessageCh)))
-			metricsCachedTx.Update(int64(len(pool.all)))
+			// metricsCachedTx.Update(int64(len(pool.all)))
+			metricsCachedTx.Update(int64(pool.cache.Size()))
 			metricsBucketTx.Update(int64(len(pool.buckets)))
 			metricsCandidates.Update(int64(pool.candidates.Len()))
 
@@ -217,7 +225,8 @@ func (pool *TransactionPool) GetTransaction(hash byteutils.Hash) *Transaction {
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
 
-	return pool.all[hash.Hex()]
+	// return pool.all[hash.Hex()]
+	return pool.cache.Get(hash.Hex()).(*Transaction)
 }
 
 // PushAndRelay push tx into pool and relay it
@@ -278,7 +287,8 @@ func (pool *TransactionPool) Push(tx *Transaction) error {
 		}
 	}
 	// verify non-dup tx
-	if _, ok := pool.all[tx.hash.Hex()]; ok {
+	// if _, ok := pool.all[tx.hash.Hex()]; ok {
+	if pool.cache.Get(tx.hash.Hex()).(*Transaction) != nil {
 		metricsDuplicateTx.Inc(1)
 		return ErrDuplicatedTransaction
 	} // ToRefine: refine the lock scope
@@ -308,18 +318,31 @@ func (pool *TransactionPool) Push(tx *Transaction) error {
 	// cache the verified tx
 	pool.pushTx(tx)
 	// drop max tx in longest bucket if full
-	if len(pool.all) > pool.size {
-		poollen := len(pool.all)
+	l := pool.cache.Size()
+	if l > pool.size {
+		poollen := l
 		pool.dropTx()
 
 		logging.VLog().WithFields(logrus.Fields{
 			"tx":         tx,
 			"size":       pool.size,
 			"bpoolsize":  poollen,
-			"apoolsize":  len(pool.all),
+			"apoolsize":  l,
 			"bucketsize": len(pool.buckets),
 		}).Debug("drop tx")
 	}
+	// if len(pool.all) > pool.size {
+	// 	poollen := len(pool.all)
+	// 	pool.dropTx()
+
+	// 	logging.VLog().WithFields(logrus.Fields{
+	// 		"tx":         tx,
+	// 		"size":       pool.size,
+	// 		"bpoolsize":  poollen,
+	// 		"apoolsize":  len(pool.all),
+	// 		"bucketsize": len(pool.buckets),
+	// 	}).Debug("drop tx")
+	// }
 
 	// trigger pending transaction
 	event := &state.Event{
@@ -332,6 +355,17 @@ func (pool *TransactionPool) Push(tx *Transaction) error {
 }
 
 func (pool *TransactionPool) pushTx(tx *Transaction) {
+
+	// pool.all[tx.hash.Hex()] = tx
+	err := pool.cache.Set(tx.hash.Hex(), tx)
+	if err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"err":    err,
+			"txhash": tx.hash.Hex(),
+		}).Error("Failed to push tx.")
+		return
+	}
+
 	slot := tx.from.address.Hex()
 	bucket, ok := pool.buckets[slot]
 	if !ok {
@@ -340,7 +374,7 @@ func (pool *TransactionPool) pushTx(tx *Transaction) {
 	}
 	oldCandidate := bucket.Left()
 	bucket.Push(tx)
-	pool.all[tx.hash.Hex()] = tx
+
 	newCandidate := bucket.Left()
 	// replace candidate
 	if oldCandidate == nil {
@@ -359,7 +393,8 @@ func (pool *TransactionPool) pushTx(tx *Transaction) {
 
 func (pool *TransactionPool) popTx(tx *Transaction) {
 	bucket := pool.buckets[tx.from.address.Hex()]
-	delete(pool.all, tx.hash.Hex())
+	// delete(pool.all, tx.hash.Hex())
+	pool.cache.Take(tx.hash.Hex())
 	bucket.PopLeft()
 	if bucket.Len() != 0 {
 		candidate := bucket.Left()
@@ -387,7 +422,8 @@ func (pool *TransactionPool) dropTx() {
 	if longestLen > 0 {
 		drop := longestSlice.PopRight().(*Transaction)
 		if drop != nil {
-			delete(pool.all, drop.Hash().Hex())
+			// delete(pool.all, drop.Hash().Hex())
+			pool.cache.Take(drop.Hash().Hex())
 			if longestLen == 1 {
 				pool.candidates.Del(drop)
 				delete(pool.buckets, drop.from.address.Hex())
@@ -449,7 +485,8 @@ func (pool *TransactionPool) Del(tx *Transaction) {
 		left := oldCandidate.(*Transaction)
 		for left.Nonce() <= tx.Nonce() {
 			bucket.PopLeft()
-			delete(pool.all, left.Hash().Hex())
+			// delete(pool.all, left.Hash().Hex())
+			pool.cache.Take(left.Hash().Hex())
 
 			// trigger pending transaction
 			event := &state.Event{
@@ -461,7 +498,7 @@ func (pool *TransactionPool) Del(tx *Transaction) {
 			logging.VLog().WithFields(logrus.Fields{
 				"tx":         left.Hash().Hex(),
 				"size":       pool.size,
-				"poolsize":   len(pool.all),
+				"poolsize":   pool.cache.Size(),
 				"bucketsize": len(pool.buckets),
 			}).Debug("Delete transaction")
 
@@ -497,7 +534,8 @@ func (pool *TransactionPool) Del(tx *Transaction) {
 func (pool *TransactionPool) Empty() bool {
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
-	return len(pool.all) == 0
+	// return len(pool.all) == 0
+	return pool.cache.Size() == 0
 }
 
 func (pool *TransactionPool) evictExpiredTransactions() {
@@ -515,11 +553,12 @@ func (pool *TransactionPool) evictExpiredTransactions() {
 				}
 				for val != nil {
 					if tx := val.(*Transaction); tx != nil && tx.hash != nil {
-						delete(pool.all, tx.hash.Hex())
+						// delete(pool.all, tx.hash.Hex())
+						pool.cache.Take(tx.hash.Hex())
 						logging.VLog().WithFields(logrus.Fields{
 							"tx.hash":    tx.hash.Hex(),
 							"size":       pool.size,
-							"poolsize":   len(pool.all),
+							"poolsize":   pool.cache.Size(),
 							"bucketsize": len(pool.buckets),
 							"tx":         tx,
 						}).Debug("Remove expired transactions.")

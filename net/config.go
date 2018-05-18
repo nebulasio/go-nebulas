@@ -21,6 +21,7 @@ package net
 import (
 	"fmt"
 	"net"
+	"path"
 	"time"
 
 	"github.com/multiformats/go-multiaddr"
@@ -99,7 +100,7 @@ func NewP2PConfig(n Neblet) *Config {
 	if checkPathConfig(chainConf.Datadir) == false {
 		panic(fmt.Sprintf("The chain data directory %s is not exist.", chainConf.Datadir))
 	}
-	config.RoutingTableDir = chainConf.Datadir
+	config.RoutingTableDir = path.Join(chainConf.Datadir, "routetable.cache")
 
 	// seed server address.
 	seeds := networkConf.Seed

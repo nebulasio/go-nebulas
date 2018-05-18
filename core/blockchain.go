@@ -21,6 +21,7 @@ package core
 import (
 	"crypto/rand"
 	"io"
+	"path"
 	"strings"
 	"time"
 
@@ -90,6 +91,12 @@ const (
 
 	// LIB (latest irreversible block) in storage
 	LIB = "blockchain_lib"
+
+	// TxPoolCacheCapacity max number of tx pool cache
+	TxPoolCacheCapacity = 327680
+
+	// TxPoolCacheDumpIntervalMs interval of tx pool dump in milliseconds
+	TxPoolCacheDumpIntervalMs = 15000
 )
 
 // NewBlockChain create new #BlockChain instance.
@@ -124,7 +131,7 @@ func NewBlockChain(neb Neblet) (*BlockChain, error) {
 	}
 	blockPool.RegisterInNetwork(neb.NetService())
 
-	txPool, err := NewTransactionPool(327680)
+	txPool, err := NewTransactionPool(TxPoolCacheCapacity, path.Join(neb.Config().Chain.Datadir, "txpool.cache"), TxPoolCacheDumpIntervalMs)
 	if err != nil {
 		return nil, err
 	}

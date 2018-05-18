@@ -19,7 +19,12 @@
 package core
 
 import (
+	"encoding/gob"
+	"fmt"
+	"os"
 	"testing"
+
+	"github.com/nebulasio/go-nebulas/core/pb"
 
 	"time"
 
@@ -73,7 +78,7 @@ func TestTransactionPool_1(t *testing.T) {
 	assert.Nil(t, err)
 
 	bc := testNeb(t).chain
-	txPool, _ := NewTransactionPool(3)
+	txPool, _ := NewTransactionPool(3, "txpool.cache", 15000)
 	txPool.setBlockChain(bc)
 	txPool.setEventEmitter(bc.eventEmitter)
 
@@ -103,12 +108,12 @@ func TestTransactionPool_1(t *testing.T) {
 	// put not signed tx, should fail
 	assert.NotNil(t, txPool.Push(txs[3]))
 	// push 3, full, drop 0
-	assert.Equal(t, len(txPool.all), 3)
-	assert.NotNil(t, txPool.all[txs[0].hash.Hex()])
+	assert.Equal(t, txPool.cache.Size(), 3)
+	assert.NotNil(t, txPool.cache.Get(txs[0].hash.Hex()).(*Transaction))
 	assert.Nil(t, txs[3].Sign(signature1))
 	assert.Nil(t, txPool.Push(txs[3]))
-	assert.Nil(t, txPool.all[txs[0].hash.Hex()])
-	assert.Equal(t, len(txPool.all), 3)
+	assert.Nil(t, txPool.cache.Get(txs[0].hash.Hex()).(*Transaction))
+	assert.Equal(t, txPool.cache.Size(), 3)
 	// pop 1
 	tx := txPool.Pop()
 	assert.Equal(t, txs[1].data, tx.data)
@@ -116,29 +121,29 @@ func TestTransactionPool_1(t *testing.T) {
 	assert.Nil(t, txs[4].Sign(signature1))
 	assert.NotNil(t, txPool.Push(txs[4]))
 	// put one new
-	assert.Equal(t, len(txPool.all), 2)
+	assert.Equal(t, txPool.cache.Size(), 2)
 	assert.Nil(t, txs[5].Sign(signature3))
 	assert.Nil(t, txPool.Push(txs[5]))
-	assert.Equal(t, len(txPool.all), 3)
+	assert.Equal(t, txPool.cache.Size(), 3)
 	// put one new, full, pop 3
-	assert.Equal(t, len(txPool.all), 3)
-	assert.NotNil(t, txPool.all[txs[3].hash.Hex()])
+	assert.Equal(t, txPool.cache.Size(), 3)
+	assert.NotNil(t, txPool.cache.Get(txs[3].hash.Hex()).(*Transaction))
 	assert.Nil(t, txs[6].Sign(signature2))
 	assert.Nil(t, txPool.Push(txs[6]))
-	assert.Nil(t, txPool.all[txs[3].hash.Hex()])
-	assert.Equal(t, len(txPool.all), 3)
+	assert.Nil(t, txPool.cache.Get(txs[3].hash.Hex()).(*Transaction))
+	assert.Equal(t, txPool.cache.Size(), 3)
 
-	assert.Equal(t, len(txPool.all), 3)
+	assert.Equal(t, txPool.cache.Size(), 3)
 	assert.Nil(t, txs[7].Sign(signature4))
 	assert.Nil(t, txPool.Push(txs[7]))
-	assert.Equal(t, len(txPool.all), 3)
+	assert.Equal(t, txPool.cache.Size(), 3)
 
 	assert.NotNil(t, txPool.Pop())
-	assert.Equal(t, len(txPool.all), 2)
+	assert.Equal(t, txPool.cache.Size(), 2)
 	assert.NotNil(t, txPool.Pop())
-	assert.Equal(t, len(txPool.all), 1)
+	assert.Equal(t, txPool.cache.Size(), 1)
 	assert.NotNil(t, txPool.Pop())
-	assert.Equal(t, len(txPool.all), 0)
+	assert.Equal(t, txPool.cache.Size(), 0)
 	assert.Equal(t, txPool.Empty(), true)
 	assert.Nil(t, txPool.Pop())
 }
@@ -195,18 +200,18 @@ func TestTransactionPool(t *testing.T) {
 	assert.Nil(t, txs[4].Sign(signature1))
 	assert.NotNil(t, txPool.Push(txs[4]))
 	// put one new, replace txs[1]
-	assert.Equal(t, len(txPool.all), 3)
+	assert.Equal(t, txPool.cache.Size(), 3)
 	assert.Nil(t, txs[6].Sign(signature1))
 	assert.Nil(t, txPool.Push(txs[6]))
-	assert.Equal(t, len(txPool.all), 4)
+	assert.Equal(t, txPool.cache.Size(), 4)
 	// get from: other, nonce: 1, data: "da"
 	tx := txPool.Pop()
 	assert.Equal(t, txs[6].data.Payload, tx.data.Payload)
 	// put one new
-	assert.Equal(t, len(txPool.all), 3)
+	assert.Equal(t, txPool.cache.Size(), 3)
 	assert.Nil(t, txs[5].Sign(signature2))
 	assert.Nil(t, txPool.Push(txs[5]))
-	assert.Equal(t, len(txPool.all), 4)
+	assert.Equal(t, txPool.cache.Size(), 4)
 	// get 2 txs, txs[5], txs[0]
 	tx = txPool.Pop()
 	assert.Equal(t, txs[5].from.address, tx.from.address)
@@ -221,7 +226,7 @@ func TestTransactionPool(t *testing.T) {
 }
 
 func TestGasConfig(t *testing.T) {
-	txPool, _ := NewTransactionPool(3)
+	txPool, _ := NewTransactionPool(3, "txpool.cache", 15000)
 	txPool.SetGasConfig(nil, nil)
 	assert.Equal(t, txPool.minGasPrice, TransactionGasPrice)
 	assert.Equal(t, txPool.maxGasLimit, TransactionMaxGas)
@@ -380,15 +385,15 @@ func TestTransactionPoolBucketUpdateTimeAndEvict(t *testing.T) {
 	assert.Equal(t, txPool.bucketsLastUpdate[txs[0].from.address.Hex()], txPool.bucketsLastUpdate[txs[3].from.address.Hex()])
 	assert.Equal(t, time.Since(txPool.bucketsLastUpdate[txs[1].from.address.Hex()]) < time.Second*5, true)
 	assert.Equal(t, txPool.bucketsLastUpdate[txs[1].from.address.Hex()], txPool.bucketsLastUpdate[txs[4].from.address.Hex()])
-	assert.NotNil(t, txPool.all[txs[0].hash.Hex()])
-	assert.NotNil(t, txPool.all[txs[2].hash.Hex()])
-	assert.NotNil(t, txPool.all[txs[3].hash.Hex()])
+	assert.NotNil(t, txPool.cache.Get(txs[0].hash.Hex()).(*Transaction))
+	assert.NotNil(t, txPool.cache.Get(txs[2].hash.Hex()).(*Transaction))
+	assert.NotNil(t, txPool.cache.Get(txs[3].hash.Hex()).(*Transaction))
 
 	txPool.bucketsLastUpdate[txs[0].from.address.Hex()] = time.Now().Add(time.Minute * -89)
 	txPool.evictExpiredTransactions()
-	assert.NotNil(t, txPool.all[txs[0].hash.Hex()])
-	assert.NotNil(t, txPool.all[txs[2].hash.Hex()])
-	assert.NotNil(t, txPool.all[txs[3].hash.Hex()])
+	assert.NotNil(t, txPool.cache.Get(txs[0].hash.Hex()).(*Transaction))
+	assert.NotNil(t, txPool.cache.Get(txs[2].hash.Hex()).(*Transaction))
+	assert.NotNil(t, txPool.cache.Get(txs[3].hash.Hex()).(*Transaction))
 	_, ok := txPool.buckets[txs[0].from.address.Hex()]
 	assert.Equal(t, ok, true)
 	_, ok = txPool.bucketsLastUpdate[txs[0].from.address.Hex()]
@@ -396,15 +401,102 @@ func TestTransactionPoolBucketUpdateTimeAndEvict(t *testing.T) {
 
 	txPool.bucketsLastUpdate[txs[0].from.address.Hex()] = time.Now().Add(time.Minute * -91)
 	txPool.evictExpiredTransactions()
-	assert.Nil(t, txPool.all[txs[0].hash.Hex()])
-	assert.Nil(t, txPool.all[txs[2].hash.Hex()])
-	assert.Nil(t, txPool.all[txs[3].hash.Hex()])
-	assert.NotNil(t, txPool.all[txs[1].hash.Hex()])
-	assert.NotNil(t, txPool.all[txs[4].hash.Hex()])
+	assert.Nil(t, txPool.cache.Get(txs[0].hash.Hex()).(*Transaction))
+	assert.Nil(t, txPool.cache.Get(txs[2].hash.Hex()).(*Transaction))
+	assert.Nil(t, txPool.cache.Get(txs[3].hash.Hex()).(*Transaction))
+	assert.NotNil(t, txPool.cache.Get(txs[1].hash.Hex()).(*Transaction))
+	assert.NotNil(t, txPool.cache.Get(txs[4].hash.Hex()).(*Transaction))
 
 	_, ok = txPool.buckets[txs[0].from.address.Hex()]
 	assert.Equal(t, ok, false)
 	_, ok = txPool.bucketsLastUpdate[txs[0].from.address.Hex()]
 	assert.Equal(t, ok, false)
 
+}
+
+func TestMoss(t *testing.T) {
+	// c, err:= moss.NewCollection(moss.CollectionOptions{})
+	// defer c.Close()
+
+	to1, _ := AddressParse("n1cYKNHTeVW9v1NQRWuhZZn9ETbqAYozckh")
+	to4, _ := AddressParse("n1RB386UkGfrA3uXvAksGETxUhwJAL2H94r")
+
+	priv1 := secp256k1.GeneratePrivateKey()
+	pubdata1, _ := priv1.PublicKey().Encoded()
+	from, _ := NewAddressFromPublicKey(pubdata1)
+	neb := testNeb(t)
+	bc := neb.chain
+	gasLimit, _ := util.NewUint128FromInt(200000)
+	tx1, _ := NewTransaction(bc.ChainID(), from, to1, util.NewUint128(), 3, TxPayloadBinaryType, []byte("1"), TransactionGasPrice, gasLimit)
+	fmt.Println(tx1.String())
+	txpb, _ := tx1.ToProto()
+
+	file, _ := os.Create("/Users/jasonhuang/Downloads/tx.tmp")
+	encoder := gob.NewEncoder(file)
+	err := encoder.Encode(txpb)
+	// err := binary.Write(file, binary.BigEndian, tx1)
+	if err != nil {
+		fmt.Printf("tx1: %v\n", err)
+	}
+
+	tx4, _ := NewTransaction(bc.ChainID(), from, to4, util.NewUint128(), 1, TxPayloadBinaryType, []byte("4"), TransactionGasPrice, gasLimit)
+	fmt.Println(tx4.String())
+	txpb, _ = tx4.ToProto()
+	err = encoder.Encode(txpb)
+	if err != nil {
+		fmt.Printf("tx4: %v\n", err)
+	}
+	file.Close()
+	fmt.Println("--------------------")
+
+	file, _ = os.Open("/Users/jasonhuang/Downloads/tx.tmp")
+	decoder := gob.NewDecoder(file)
+	txpb = new(corepb.Transaction)
+	tx := new(Transaction)
+	// decode tx1
+	err = decoder.Decode(txpb)
+	if err != nil {
+		fmt.Printf("decode tx1: %v\n", err)
+	}
+	tx.FromProto(txpb)
+	fmt.Println(tx.String())
+
+	// decode tx4
+	txpb = new(corepb.Transaction)
+	tx = new(Transaction)
+	err = decoder.Decode(txpb)
+	if err != nil {
+		fmt.Printf("decode tx4: %v\n", err)
+	}
+	tx.FromProto(txpb)
+	fmt.Println(tx.String())
+
+}
+
+func TestEncodeTx(t *testing.T) {
+	to1, _ := AddressParse("n1cYKNHTeVW9v1NQRWuhZZn9ETbqAYozckh")
+
+	priv1 := secp256k1.GeneratePrivateKey()
+	pubdata1, _ := priv1.PublicKey().Encoded()
+	from, _ := NewAddressFromPublicKey(pubdata1)
+	neb := testNeb(t)
+	bc := neb.chain
+	gasLimit, _ := util.NewUint128FromInt(200000)
+
+	file, _ := os.Create("/Users/jasonhuang/Downloads/tx.tmp")
+	encoder := gob.NewEncoder(file)
+	start := time.Now()
+	var tx *Transaction
+	for i := 0; i < 327680; i++ {
+		tx, _ = NewTransaction(bc.ChainID(), from, to1, util.NewUint128(), uint64(i), TxPayloadBinaryType, []byte("1"), TransactionGasPrice, gasLimit)
+		txpb, _ := tx.ToProto()
+
+		err := encoder.Encode(txpb)
+		if err != nil {
+			fmt.Printf("tx1: %v\n", err)
+		}
+	}
+	file.Close()
+	fmt.Println("time: ", time.Now().Sub(start).Seconds())
+	fmt.Println(tx.String())
 }
