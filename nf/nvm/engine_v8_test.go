@@ -274,6 +274,65 @@ func TestRunScriptSourceWithLimits(t *testing.T) {
 	}
 }
 
+func TestV8ResourceLimit(t *testing.T) {
+	tests := []struct {
+		name          string
+		contractPath  string
+		sourceType    string
+		initArgs      string
+		callArgs      string
+		initExceptErr string
+		callExceptErr string
+	}{
+		{"deploy test_oom_4.js", "./test/test_oom_4.js", "js", "[31457280]", "[31457280]", "", ""},
+		{"deploy test_oom_4.js", "./test/test_oom_4.js", "js", "[37748736]", "[37748736]", "", ""},
+		{"deploy test_oom_4.js", "./test/test_oom_4.js", "js", "[41943039]", "[41943039]", "exceed memory limits", "exceed memory limits"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			data, err := ioutil.ReadFile(tt.contractPath)
+			assert.Nil(t, err, "contract path read error")
+
+			mem, _ := storage.NewMemoryStorage()
+			context, _ := state.NewWorldState(dpos.NewDpos(), mem)
+			owner, err := context.GetOrCreateUserAccount([]byte("account1"))
+			assert.Nil(t, err)
+			owner.AddBalance(newUint128FromIntWrapper(10000000))
+			contract, _ := context.CreateContractAccount([]byte("account2"), nil)
+
+			ctx, err := NewContext(mockBlock(), mockTransaction(), contract, context)
+			engine := NewV8Engine(ctx)
+			engine.SetExecutionLimits(10000, 10000000)
+			_, err = engine.DeployAndInit(string(data), tt.sourceType, tt.initArgs)
+			engine.CollectTracingStats()
+			fmt.Printf("total:%v", engine.actualTotalMemorySize)
+			// assert.Nil(t, err)
+			if err != nil {
+				fmt.Printf("err:%v", err.Error())
+				assert.Equal(t, tt.initExceptErr, err.Error())
+			} else {
+				assert.Equal(t, tt.initExceptErr, "")
+			}
+			// assert.Equal(t, tt.initExceptErr, err.Error)
+
+			engine.Dispose()
+
+			engine = NewV8Engine(ctx)
+			engine.SetExecutionLimits(10000, 10000000)
+			_, err = engine.Call(string(data), tt.sourceType, "newMem", tt.callArgs)
+			// assert.Nil(t, err)
+			// assert.Equal(t, tt.initExceptErr, err.Error)
+			if err != nil {
+				assert.Equal(t, tt.initExceptErr, err.Error())
+			} else {
+				assert.Equal(t, tt.initExceptErr, "")
+			}
+			engine.Dispose()
+
+		})
+	}
+}
 func TestRunScriptSourceTimeout(t *testing.T) {
 	tests := []struct {
 		filepath string
