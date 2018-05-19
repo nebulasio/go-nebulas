@@ -401,9 +401,9 @@ func submitTx(tx *Transaction, block *Block, ws WorldState,
 		// if execution failed, the previous changes on world state should be reset
 		// record dependency
 
-		addr := tx.from.address
-		if block.Height() >= WsResetRecordDependencyHeight {
-			addr = tx.to.address
+		addr := tx.to.address
+		if block.Height() < WsResetRecordDependencyHeight {
+			addr = tx.from.address
 		}
 		if err := ws.Reset(addr); err != nil {
 			// if reset failed, the tx should be given back
