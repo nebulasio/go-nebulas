@@ -73,7 +73,7 @@ func (block *testBlock) Hash() byteutils.Hash {
 
 // Height mock
 func (block *testBlock) Height() uint64 {
-	return 1
+	return core.DefaultNvmMemLimitHeight
 }
 
 // RandomSeed mock
