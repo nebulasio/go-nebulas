@@ -399,8 +399,13 @@ func submitTx(tx *Transaction, block *Block, ws WorldState,
 
 	if exeErr != nil {
 		// if execution failed, the previous changes on world state should be reset
-		// reserve dependency
-		if err := ws.Reset(tx.to.address); err != nil {
+		// record dependency
+
+		addr := tx.from.address
+		if block.Height() >= WsResetRecordDependencyHeight {
+			addr = tx.to.address
+		}
+		if err := ws.Reset(addr); err != nil {
 			// if reset failed, the tx should be given back
 			return true, err
 		}

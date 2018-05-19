@@ -336,7 +336,7 @@ func (s *states) Reset(addr byteutils.Hash) error {
 		return err
 	}
 
-	// reserve dependency
+	// record dependency
 	if err := s.changelog.Put(addr, addr); err != nil {
 		return err
 	}

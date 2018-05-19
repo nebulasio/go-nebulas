@@ -51,8 +51,11 @@ const (
 	// DefaultRecordCallContractResultHeight
 	DefaultRecordCallContractResultHeight uint64 = 199666
 
-	//DefaultNvmMemLimitHeight
-	DefaultNvmMemLimitHeight uint64 = 269360
+	//DefaultNvmMemoryLimitWithoutInjectHeight
+	DefaultNvmMemoryLimitWithoutInjectHeight uint64 = 269360
+
+	//DefaultWdResetRecordDependencyHeight
+	DefaultWsResetRecordDependencyHeight uint64 = 269360
 )
 
 // others, e.g. local/develop
@@ -71,6 +74,12 @@ const (
 
 	// LocalRecordCallContractResultHeight
 	LocalRecordCallContractResultHeight uint64 = 2
+
+	//LocalNvmMemoryLimitWithoutInjectHeight
+	LocalNvmMemoryLimitWithoutInjectHeight uint64 = 2
+
+	//LocalWdResetRecordDependencyHeight
+	LocalWsResetRecordDependencyHeight uint64 = 2
 )
 
 var (
@@ -88,6 +97,12 @@ var (
 
 	// RecordCallContractResultHeight record result of call contract to event `TopicTransactionExecutionResult` since this height
 	RecordCallContractResultHeight = DefaultRecordCallContractResultHeight
+
+	// NvmMemoryLimitWithoutInjectHeight memory of nvm contract without inject code
+	NvmMemoryLimitWithoutInjectHeight = DefaultNvmMemoryLimitWithoutInjectHeight
+
+	//WdResetRecordDependencyHeight if tx execute faied, worldstate reset and need to record to address dependency
+	WsResetRecordDependencyHeight = DefaultWsResetRecordDependencyHeight
 )
 
 // SetCompatibilityOptions set compatibility height according to chain_id
@@ -101,6 +116,8 @@ func SetCompatibilityOptions(chainID uint32) {
 			"RandomAvailableHeight":                     RandomAvailableHeight,
 			"DateAvailableHeight":                       DateAvailableHeight,
 			"RecordCallContractResultHeight":            RecordCallContractResultHeight,
+			"NvmMemoryLimitWithoutInjectHeight":         NvmMemoryLimitWithoutInjectHeight,
+			"WsResetRecordDependencyHeight":             WsResetRecordDependencyHeight,
 		}).Info("Set compatibility options for mainnet/testnet.")
 		return
 	}
@@ -115,6 +132,10 @@ func SetCompatibilityOptions(chainID uint32) {
 
 	RecordCallContractResultHeight = LocalRecordCallContractResultHeight
 
+	NvmMemoryLimitWithoutInjectHeight = LocalNvmMemoryLimitWithoutInjectHeight
+
+	WsResetRecordDependencyHeight = LocalWsResetRecordDependencyHeight
+
 	logging.VLog().WithFields(logrus.Fields{
 		"chain_id": chainID,
 		"TransferFromContractEventRecordableHeight": TransferFromContractEventRecordableHeight,
@@ -122,6 +143,8 @@ func SetCompatibilityOptions(chainID uint32) {
 		"RandomAvailableHeight":                     RandomAvailableHeight,
 		"DateAvailableHeight":                       DateAvailableHeight,
 		"RecordCallContractResultHeight":            RecordCallContractResultHeight,
+		"NvmMemoryLimitWithoutInjectHeight":         NvmMemoryLimitWithoutInjectHeight,
+		"WsResetRecordDependencyHeight":             WsResetRecordDependencyHeight,
 	}).Info("Set compatibility options for local.")
 
 }
