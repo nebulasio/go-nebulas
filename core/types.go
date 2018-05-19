@@ -303,5 +303,5 @@ type WorldState interface {
 
 	RecordGas(from string, gas *util.Uint128) error
 
-	Reset() error
+	Reset(addr byteutils.Hash) error
 }
