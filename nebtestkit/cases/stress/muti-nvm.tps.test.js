@@ -17,9 +17,9 @@ var args = process.argv.splice(2);
 
 if (args.length != 5) {
     // give default config
-    env = "local";
-    AddressNumber = 8000;
-    SendTimes = 1;
+    env = "testneb2";
+    AddressNumber = 4000; 
+    SendTimes = 10;
     ContractNumber = 20;
     testType = 1;
 } else {
@@ -59,6 +59,7 @@ neb.setRequest(new HttpRequest(apiEndPoint));
 
 var calleeContractSrc = FS.readFileSync("nf/nvm/test/kvStore.js", "utf-8");
 var callerContractSrc = FS.readFileSync("nf/nvm/test/kvStoreProxy.js", "utf-8");
+var deployContractSrc = FS.readFileSync("nebtestkit/cases/stress/game.ts", "utf-8");
 var calleeContractAddresses;
 var callerContractAddresses;
 var to = Wallet.Account.NewAccount();
@@ -102,7 +103,10 @@ function checkTransaction(hash, callback) {
     });
 }
 
-if (testType == 3) {
+if (testType == 4) {
+    console.log("test from deploy contract");
+    testBinary();
+} else if (testType == 3) {
     console.log("test for muti-nvm");
     deployContracts();
 } else if (testType == 2) {
@@ -186,7 +190,6 @@ function deployContracts() {
     } catch (err) {
         console.log("unexpected err: " + err);
     }
-
 }
 
 
@@ -197,7 +200,6 @@ function claimTokens() {
         accountArray.push(account);
 
         sendTransaction(0, 1, sourceAccount, account, "1000000000000000", ++nonce);
-
         sleep(10);
     }
     checkClaimTokens();
@@ -251,6 +253,7 @@ function sendTransactionsForTps() {
             //to call()
             //sleep(10);
         };
+        console.log("sending transaction... address number: ", i);
         sleep(10);
     }
 
@@ -277,14 +280,24 @@ function callMutiLevelNvm(from, nonce, contract_index) {
             "function": "testTpsForNormalCall",
             "args": "[]"
         };
+    } else if (testType == 4) {
+        contract = {
+            "source": deployContractSrc,
+            "sourceType": "ts",
+            "args": "[]"
+        };
     }
 
 
     //send 1 wei by the way
     if (testType == 3 || testType == 2) {
         tx = new Transaction(ChainID, from, callerContractAddresses[contract_index], 1, nonce, 1000000, 2000000, contract);
-    } else {
+    } else if (testType == 1) {
         tx = new Transaction(ChainID, from, toAddresses[contract_index], 1, nonce, 1000000, 2000000);
+    } else if (testType == 4) {
+        tx = new Transaction(ChainID, from, from, 1, nonce, 1000000, 2000000, contract);
+    } else {
+        throw "no test type";
     }
     // var tx = new Transaction(ChainID, from, to, 1, nonce, 1000000, 2000000);
 
