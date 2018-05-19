@@ -120,7 +120,7 @@ type WorldState interface {
 	RollBack() error
 
 	Prepare(interface{}) (TxWorldState, error)
-	Reset() error
+	Reset(addr byteutils.Hash) error
 	Flush() error
 	Abort() error
 
@@ -165,7 +165,7 @@ type TxWorldState interface {
 	ConsensusRoot() *consensuspb.ConsensusRoot
 
 	CheckAndUpdate() ([]interface{}, error)
-	Reset() error
+	Reset(addr byteutils.Hash) error
 	Close() error
 
 	Accounts() ([]Account, error)

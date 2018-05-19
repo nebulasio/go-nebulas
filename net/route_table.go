@@ -228,13 +228,11 @@ func (table *RouteTable) GetRandomPeers(pid peer.ID) []peerstore.PeerInfo {
 	allPeers := table.routeTable.ListPeers()
 	// Do not accept internal node synchronization routing requests.
 	if inArray(pid.Pretty(), table.internalNodeList) {
-		logging.VLog().Debugf("i am internal node: %s", pid.Pretty())
 		return []peerstore.PeerInfo{}
 	}
 
 	for _, v := range allPeers {
 		if inArray(v.Pretty(), table.internalNodeList) == false {
-			logging.VLog().Debugf("external peer: %s", v.Pretty())
 			peers = append(peers, v)
 		}
 	}
