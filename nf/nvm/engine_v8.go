@@ -367,11 +367,13 @@ func (e *V8Engine) RunContractScript(source, sourceType, function, args string) 
 	if err != nil {
 		return "", err
 	}
-	e.CollectTracingStats()
-	mem := e.actualTotalMemorySize + core.DefaultLimitsOfTotalMemorySize
-	// logging.VLog().Infof("cost mem:%v, mem limit:%v", e.actualTotalMemorySize, mem)
-	if err := e.SetExecutionLimits(uint64(C.size_t(e.v8engine.limits_of_executed_instructions)), mem); err != nil {
-		return "", err
+	if e.ctx.block.Height() >= core.DefaultNvmMemLimitHeight {
+		e.CollectTracingStats()
+		mem := e.actualTotalMemorySize + core.DefaultLimitsOfTotalMemorySize
+		// logging.VLog().Infof("cost mem:%v, mem limit:%v", e.actualTotalMemorySize, mem)
+		if err := e.SetExecutionLimits(uint64(C.size_t(e.v8engine.limits_of_executed_instructions)), mem); err != nil {
+			return "", err
+		}
 	}
 
 	return e.RunScriptSource(runnableSource, sourceLineOffset)

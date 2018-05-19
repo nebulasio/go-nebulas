@@ -50,6 +50,9 @@ const (
 
 	// DefaultRecordCallContractResultHeight
 	DefaultRecordCallContractResultHeight uint64 = 199666
+
+	//DefaultNvmMemLimitHeight
+	DefaultNvmMemLimitHeight uint64 = 268199
 )
 
 // others, e.g. local/develop
