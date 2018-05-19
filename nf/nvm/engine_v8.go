@@ -374,12 +374,7 @@ func (e *V8Engine) RunContractScript(source, sourceType, function, args string) 
 		return "", err
 	}
 
-	result, err := e.RunScriptSource(runnableSource, sourceLineOffset)
-	if err != nil {
-		sourceHash := byteutils.Hex(hash.Sha3256([]byte(source)))
-		sourceModuleCache.Remove(sourceHash)
-	}
-	return result, err
+	return e.RunScriptSource(runnableSource, sourceLineOffset)
 }
 
 // AddModule add module.
