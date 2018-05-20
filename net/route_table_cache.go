@@ -41,11 +41,11 @@ func (c *routeTableCache) Keys() interface{} {
 // Set adds a new element or replaces the old element
 func (c *routeTableCache) Set(k interface{}, v interface{}) error {
 	pid, ok := k.(peer.ID)
-	if !ok {
+	if !ok || pid == "" {
 		return cache.ErrInvalidCacheKey
 	}
 	addrs, ok := v.([]ma.Multiaddr)
-	if !ok {
+	if !ok || len(addrs) == 0 {
 		return cache.ErrInvalidCacheValue
 	}
 
@@ -145,62 +145,3 @@ func (c *routeTableCache) Decode(kv *cache.ExportableEntry) (k, v interface{}, e
 	}
 	return
 }
-
-// switch l.operator {
-// case Dump, Add:
-// 	lines := l.operand.([]string)
-// 	addrs := make([]ma.Multiaddr, 0)
-// 	var pid peer.ID
-// 	for _, line := range lines {
-// 		// ipfs  addr
-// 		ipfs, err := ma.NewMultiaddr(line)
-// 		if err != nil {
-// 			logging.VLog().WithFields(logrus.Fields{
-// 				"err":  err,
-// 				"line": line,
-// 			}).Warn("Invalid address in Route Table Cache file.")
-// 			continue
-// 		}
-// 		id, addr, err := parseFromIPFSAddr(ipfs)
-// 		if err != nil {
-// 			logging.VLog().WithFields(logrus.Fields{
-// 				"err":  err,
-// 				"ipfs": line,
-// 			}).Warn("Invalid address in Route Table Cache file.")
-// 			continue
-// 		}
-// 		addrs = append(addrs, addr)
-// 		pid = id
-// 	}
-// 	return pid, addrs
-
-// case Delete, Readd:
-// 	pid, err := peer.IDB58Decode(l.operand.(string))
-// 	if err != nil {
-// 		return nil, nil
-// 	}
-// 	return pid, nil
-// default:
-// 	return nil, nil
-// }
-// }
-
-// func parseFromIPFSAddr(ipfsAddr ma.Multiaddr) (peer.ID, ma.Multiaddr, error) {
-// 	addr, err := ma.NewMultiaddr(strings.Split(ipfsAddr.String(), "/ipfs/")[0])
-// 	if err != nil {
-// 		return "", nil, err
-// 	}
-
-// 	// TODO: @robin we should register neb multicodecs.
-// 	b58, err := ipfsAddr.ValueForProtocol(ma.P_IPFS)
-// 	if err != nil {
-// 		return "", nil, err
-// 	}
-
-// 	id, err := peer.IDB58Decode(b58)
-// 	if err != nil {
-// 		return "", nil, err
-// 	}
-
-// 	return id, addr, nil
-// }

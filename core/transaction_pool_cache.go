@@ -38,11 +38,11 @@ func (p transactionPoolCache) Keys() interface{} {
 // Set ...
 func (p transactionPoolCache) Set(k, v interface{}) error {
 	h, ok := k.(byteutils.HexHash)
-	if !ok {
+	if !ok || h == "" {
 		return cache.ErrInvalidCacheKey
 	}
 	tx, ok := v.(*Transaction)
-	if !ok {
+	if !ok || tx == nil {
 		return cache.ErrInvalidCacheValue
 	}
 	p[h] = tx

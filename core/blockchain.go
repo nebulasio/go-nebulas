@@ -96,7 +96,7 @@ const (
 	TxPoolCacheCapacity = 327680
 
 	// TxPoolCacheDumpIntervalMs interval of tx pool dump in milliseconds
-	TxPoolCacheDumpIntervalMs = 15000
+	TxPoolCacheDumpIntervalMs = 30000
 )
 
 // NewBlockChain create new #BlockChain instance.
