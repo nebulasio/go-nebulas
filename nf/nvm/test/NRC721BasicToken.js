@@ -49,7 +49,6 @@ Operator.prototype = {
 var StandardToken = function () {
     LocalContractStorage.defineProperties(this, {
         _name: null,
-        _symbol: null,
     });
 
     LocalContractStorage.defineMapProperties(this, {
@@ -78,15 +77,10 @@ var StandardToken = function () {
 StandardToken.prototype = {
     init: function (name, symbol) {
         this._name = name;
-        this._symbol = symbol;
     },
 
     name: function () {
         return this._name;
-    },
-
-    symbol: function () {
-        return this._symbol;
     },
 
     balanceOf: function (_owner) {

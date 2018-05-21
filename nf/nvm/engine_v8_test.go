@@ -1132,16 +1132,14 @@ func TestNRC20ContractMultitimes(t *testing.T) {
 func TestNRC721Contract(t *testing.T) {
 
 	tests := []struct {
-		test         string
+		name         string
 		contractPath string
 		sourceType   string
-		name         string
-		symbol       string
 		from         string
 		to           string
 		tokenID      string
 	}{
-		{"nrc721", "./test/NRC721BasicToken.js", "js", "721标准代币", "ST",
+		{"nrc721", "./test/NRC721BasicToken.js", "js",
 			"n1FkntVUMPAsESuCAAPK711omQk19JotBjM", "n1Kjom3J4KPsHKKzZ2xtt8Lc9W5pRDjeLcW", "1001",
 		},
 	}
@@ -1166,7 +1164,7 @@ func TestNRC721Contract(t *testing.T) {
 			// execute.
 			engine := NewV8Engine(ctx)
 			engine.SetExecutionLimits(10000, 100000000)
-			args := fmt.Sprintf("[\"%s\",  \"%s\"]", tt.name, tt.symbol)
+			args := fmt.Sprintf("[\"%s\"]", tt.name)
 			_, err = engine.DeployAndInit(string(data), tt.sourceType, args)
 			assert.Nil(t, err)
 			engine.Dispose()
@@ -1180,18 +1178,6 @@ func TestNRC721Contract(t *testing.T) {
 			err = json.Unmarshal([]byte(name), &nameStr)
 			assert.Nil(t, err)
 			assert.Equal(t, tt.name, nameStr)
-			engine.Dispose()
-
-			// call symbol.
-			engine = NewV8Engine(ctx)
-			engine.SetExecutionLimits(10000, 100000000)
-			symbol, err := engine.Call(string(data), tt.sourceType, "symbol", "")
-			assert.Nil(t, err)
-			var symbolStr string
-			err = json.Unmarshal([]byte(symbol), &symbolStr)
-			assert.Nil(t, err)
-			assert.Equal(t, tt.symbol, symbolStr)
-			assert.Nil(t, err)
 			engine.Dispose()
 
 			// call mint.
