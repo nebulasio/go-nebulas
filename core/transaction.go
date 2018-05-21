@@ -276,7 +276,6 @@ func (tx *Transaction) StringWithoutData() string {
 		tx.timestamp,
 		tx.gasPrice.String(),
 		tx.gasLimit.String(),
-		tx.Data(),
 		tx.Type(),
 	)
 }
