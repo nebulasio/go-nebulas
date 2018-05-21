@@ -198,7 +198,7 @@ func (block *Block) FromProto(msg proto.Message) error {
 				logging.VLog().WithFields(logrus.Fields{
 					"blockHeight":      msg.Height,
 					"compatibleHeight": RandomAvailableHeight,
-				}).Debug("No random found in block header.")
+				}).Info("No random found in block header.")
 				return ErrInvalidProtoToBlockHeader
 			}
 			block.transactions = make(Transactions, len(msg.Transactions))
@@ -552,7 +552,7 @@ func (block *Block) CollectTransactions(deadlineInMs int64) {
 							"block": block,
 							"tx":    tx,
 							"err":   err,
-						}).Debug("Failed to giveback the tx.")
+						}).Info("Failed to giveback the tx.")
 					}
 					return
 				}
@@ -566,7 +566,7 @@ func (block *Block) CollectTransactions(deadlineInMs int64) {
 						"block": block,
 						"tx":    tx,
 						"err":   err,
-					}).Debug("Failed to prepare tx.")
+					}).Info("Failed to prepare tx.")
 					failed++
 
 					if err := pool.Push(tx); err != nil {
@@ -574,7 +574,7 @@ func (block *Block) CollectTransactions(deadlineInMs int64) {
 							"block": block,
 							"tx":    tx,
 							"err":   err,
-						}).Debug("Failed to giveback the tx.")
+						}).Info("Failed to giveback the tx.")
 					}
 
 					fromBlacklist.Delete(tx.from.address.Hex())
@@ -592,7 +592,7 @@ func (block *Block) CollectTransactions(deadlineInMs int64) {
 							"block": block,
 							"tx":    tx,
 							"err":   err,
-						}).Debug("Failed to close tx.")
+						}).Info("Failed to close tx.")
 					}
 				}()
 
@@ -624,7 +624,7 @@ func (block *Block) CollectTransactions(deadlineInMs int64) {
 								"block": block,
 								"tx":    tx,
 								"err":   err,
-							}).Debug("Failed to giveback the tx.")
+							}).Info("Failed to giveback the tx.")
 						}
 					}
 					if err == ErrLargeTransactionNonce {
@@ -656,7 +656,7 @@ func (block *Block) CollectTransactions(deadlineInMs int64) {
 							"block": block,
 							"tx":    tx,
 							"err":   err,
-						}).Debug("Failed to giveback the tx.")
+						}).Info("Failed to giveback the tx.")
 					}
 					return
 				}
@@ -670,7 +670,7 @@ func (block *Block) CollectTransactions(deadlineInMs int64) {
 						"err":        err,
 						"giveback":   giveback,
 						"dependency": dependency,
-					}).Debug("CheckAndUpdate invalid tx.")
+					}).Info("CheckAndUpdate invalid tx.")
 					unpacked++
 					conflict++
 
@@ -679,7 +679,7 @@ func (block *Block) CollectTransactions(deadlineInMs int64) {
 							"block": block,
 							"tx":    tx,
 							"err":   err,
-						}).Debug("Failed to giveback the tx.")
+						}).Info("Failed to giveback the tx.")
 					}
 
 					fromBlacklist.Delete(tx.from.address.Hex())
@@ -753,7 +753,7 @@ func (block *Block) CollectTransactions(deadlineInMs int64) {
 		"core-packing": execute + prepare + update,
 		"packed":       len(block.transactions),
 		"dag":          block.dependency,
-	}).Debug("CollectTransactions")
+	}).Info("CollectTransactions")
 }
 
 // Sealed return true if block seals. Otherwise return false.
@@ -861,7 +861,7 @@ func (block *Block) VerifyExecution() error {
 		"diff-verify":  commitAt - executedAt,
 		"block":        block,
 		"txs":          len(block.Transactions()),
-	}).Debug("Verify txs.")
+	}).Info("Verify txs.")
 
 	return nil
 }
@@ -878,7 +878,7 @@ func (block *Block) VerifyIntegrity(chainID uint32, consensus Consensus) error {
 		logging.VLog().WithFields(logrus.Fields{
 			"expect": chainID,
 			"actual": block.header.chainID,
-		}).Debug("Failed to check chainid.")
+		}).Info("Failed to check chainid.")
 		metricsInvalidBlock.Inc(1)
 		return ErrInvalidChainID
 	}
@@ -889,7 +889,7 @@ func (block *Block) VerifyIntegrity(chainID uint32, consensus Consensus) error {
 			logging.VLog().WithFields(logrus.Fields{
 				"tx":  tx,
 				"err": err,
-			}).Debug("Failed to verify tx's integrity.")
+			}).Info("Failed to verify tx's integrity.")
 			metricsInvalidBlock.Inc(1)
 			return err
 		}
@@ -905,7 +905,7 @@ func (block *Block) VerifyIntegrity(chainID uint32, consensus Consensus) error {
 			"expect": wantedHash,
 			"actual": block.Hash(),
 			"err":    err,
-		}).Debug("Failed to check block's hash.")
+		}).Info("Failed to check block's hash.")
 		metricsInvalidBlock.Inc(1)
 		return ErrInvalidBlockHash
 	}
@@ -915,7 +915,7 @@ func (block *Block) VerifyIntegrity(chainID uint32, consensus Consensus) error {
 		logging.VLog().WithFields(logrus.Fields{
 			"block": block,
 			"err":   err,
-		}).Debug("Failed to verify block.")
+		}).Info("Failed to verify block.")
 		metricsInvalidBlock.Inc(1)
 		return err
 	}
@@ -930,7 +930,7 @@ func (block *Block) verifyState() error {
 		logging.VLog().WithFields(logrus.Fields{
 			"expect": block.StateRoot(),
 			"actual": block.WorldState().AccountsRoot(),
-		}).Debug("Failed to verify state.")
+		}).Info("Failed to verify state.")
 		return ErrInvalidBlockStateRoot
 	}
 
@@ -939,7 +939,7 @@ func (block *Block) verifyState() error {
 		logging.VLog().WithFields(logrus.Fields{
 			"expect": block.TxsRoot(),
 			"actual": block.WorldState().TxsRoot(),
-		}).Debug("Failed to verify txs.")
+		}).Info("Failed to verify txs.")
 		return ErrInvalidBlockTxsRoot
 	}
 
@@ -948,7 +948,7 @@ func (block *Block) verifyState() error {
 		logging.VLog().WithFields(logrus.Fields{
 			"expect": block.EventsRoot(),
 			"actual": block.WorldState().EventsRoot(),
-		}).Debug("Failed to verify events.")
+		}).Info("Failed to verify events.")
 		return ErrInvalidBlockEventsRoot
 	}
 
@@ -957,7 +957,7 @@ func (block *Block) verifyState() error {
 		logging.VLog().WithFields(logrus.Fields{
 			"expect": block.ConsensusRoot(),
 			"actual": block.WorldState().ConsensusRoot(),
-		}).Debug("Failed to verify dpos context.")
+		}).Info("Failed to verify dpos context.")
 		return ErrInvalidBlockConsensusRoot
 	}
 	return nil
@@ -990,6 +990,11 @@ func (block *Block) execute() error {
 			return ErrInvalidDagBlock
 		}
 		tx := block.transactions[idx]
+
+		logging.VLog().WithFields(logrus.Fields{
+			"tx.hash": tx.hash,
+		}).Debug("execute tx.")
+
 		metricsTxExecute.Mark(1)
 
 		mergeCh <- true
@@ -1024,7 +1029,7 @@ func (block *Block) execute() error {
 			"dag": block.dependency.String(),
 			"txs": transactions,
 			"err": err,
-		}).Debug("Failed to verify txs in block.")
+		}).Info("Failed to verify txs in block.")
 		return err
 	}
 	end := time.Now().UnixNano()
@@ -1094,7 +1099,7 @@ func (block *Block) FetchExecutionResultEvent(txHash byteutils.Hash) (*state.Eve
 			logging.VLog().WithFields(logrus.Fields{
 				"tx":     txHash,
 				"events": events,
-			}).Debug("Failed to locate the result event")
+			}).Info("Failed to locate the result event")
 			return nil, ErrInvalidTransactionResultEvent
 		}
 		return event, nil
@@ -1158,7 +1163,7 @@ func (block *Block) ExecuteTransaction(tx *Transaction, ws WorldState) (bool, er
 		logging.VLog().WithFields(logrus.Fields{
 			"tx":  tx,
 			"err": err,
-		}).Debug("Failed to check transaction")
+		}).Info("Failed to check transaction")
 		return giveback, err
 	}
 
@@ -1166,7 +1171,7 @@ func (block *Block) ExecuteTransaction(tx *Transaction, ws WorldState) (bool, er
 		logging.VLog().WithFields(logrus.Fields{
 			"tx":  tx,
 			"err": err,
-		}).Debug("Failed to verify transaction execution")
+		}).Info("Failed to verify transaction execution")
 		return giveback, err
 	}
 
@@ -1174,7 +1179,7 @@ func (block *Block) ExecuteTransaction(tx *Transaction, ws WorldState) (bool, er
 		logging.VLog().WithFields(logrus.Fields{
 			"tx":  tx,
 			"err": err,
-		}).Debug("Failed to accept transaction")
+		}).Info("Failed to accept transaction")
 		return giveback, err
 	}
 

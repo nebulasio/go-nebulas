@@ -49,6 +49,7 @@ const (
 	TransferSubBalance
 	TransferAddBalance
 	TransferRecordEventFailed
+	TransferAddressFailed
 )
 
 // Block interface breaks cycle import dependency and hides unused services.

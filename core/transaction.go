@@ -265,6 +265,21 @@ func (tx *Transaction) String() string {
 	)
 }
 
+func (tx *Transaction) StringWithoutData() string {
+	return fmt.Sprintf(`{"chainID":%d, "hash":"%s", "from":"%s", "to":"%s", "nonce":%d, "value":"%s", "timestamp":%d, "gasprice": "%s", "gaslimit":"%s", "type":"%s"}`,
+		tx.chainID,
+		tx.hash.String(),
+		tx.from.String(),
+		tx.to.String(),
+		tx.nonce,
+		tx.value.String(),
+		tx.timestamp,
+		tx.gasPrice.String(),
+		tx.gasLimit.String(),
+		tx.Type(),
+	)
+}
+
 // JSONString of transaction
 func (tx *Transaction) JSONString() string {
 	txJSONObj := make(map[string]interface{})
@@ -391,7 +406,7 @@ func submitTx(tx *Transaction, block *Block, ws WorldState,
 			"err":         exeErr,
 			"block":       block,
 			"transaction": tx,
-		}).Debug(exeErrTy)
+		}).Info(exeErrTy)
 		metricsTxExeFailed.Mark(1)
 	} else {
 		metricsTxExeSuccess.Mark(1)
