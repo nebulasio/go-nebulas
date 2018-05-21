@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"github.com/nebulasio/go-nebulas/util/logging"
+	"github.com/sirupsen/logrus"
 )
 
 //type value interface{}
@@ -76,7 +77,7 @@ func NewDispatcher(dag *Dag, concurrency int, elapseInMs int64, context interfac
 
 // Run dag dispatch goroutine.
 func (dp *Dispatcher) Run() error {
-	logging.VLog().Info("Starting Dag Dispatcher...")
+	logging.VLog().Debug("Starting Dag Dispatcher...")
 
 	vertices := dp.dag.GetNodes()
 
@@ -132,6 +133,9 @@ func (dp *Dispatcher) execute() error {
 						} else {
 							isFinish, err := dp.onCompleteParentTask(msg)
 							if err != nil {
+								logging.VLog().WithFields(logrus.Fields{
+									"err": err,
+								}).Debug("Stoped Dag Dispatcher.")
 								dp.Stop()
 							}
 							if isFinish {

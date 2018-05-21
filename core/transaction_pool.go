@@ -226,7 +226,7 @@ func (pool *TransactionPool) GetTransaction(hash byteutils.Hash) *Transaction {
 func (pool *TransactionPool) PushAndRelay(tx *Transaction) error {
 	if err := pool.Push(tx); err != nil {
 		logging.VLog().WithFields(logrus.Fields{
-			"tx":  tx,
+			"tx":  tx.StringWithoutData(),
 			"err": err,
 		}).Debug("Failed to push tx")
 		return err
@@ -241,7 +241,7 @@ func (pool *TransactionPool) PushAndRelay(tx *Transaction) error {
 func (pool *TransactionPool) PushAndBroadcast(tx *Transaction) error {
 	if err := pool.Push(tx); err != nil {
 		logging.VLog().WithFields(logrus.Fields{
-			"tx":  tx,
+			"tx":  tx.StringWithoutData(),
 			"err": err,
 		}).Debug("Failed to push tx")
 		return err
@@ -271,7 +271,7 @@ func (pool *TransactionPool) Push(tx *Transaction) error {
 				keyword = strings.ToLower(keyword)
 				if strings.Contains(data, keyword) {
 					logging.VLog().WithFields(logrus.Fields{
-						"tx":                 tx,
+						"tx.hash":            tx.hash,
 						"unsupportedKeyword": keyword,
 					}).Debug("transaction data has unsupported keyword")
 					unsupportedKeywordError := fmt.Sprintf("transaction data has unsupported keyword(keyword: %s)", keyword)
@@ -316,7 +316,7 @@ func (pool *TransactionPool) Push(tx *Transaction) error {
 		pool.dropTx()
 
 		logging.VLog().WithFields(logrus.Fields{
-			"tx":         tx,
+			"tx":         tx.StringWithoutData(),
 			"size":       pool.size,
 			"bpoolsize":  poollen,
 			"apoolsize":  len(pool.all),
@@ -524,7 +524,7 @@ func (pool *TransactionPool) evictExpiredTransactions() {
 							"size":       pool.size,
 							"poolsize":   len(pool.all),
 							"bucketsize": len(pool.buckets),
-							"tx":         tx,
+							"tx":         tx.StringWithoutData(),
 						}).Debug("Remove expired transactions.")
 						// trigger pending transaction
 						event := &state.Event{
