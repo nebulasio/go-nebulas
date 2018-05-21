@@ -73,10 +73,10 @@ const (
 	TestNetRecordCallContractResultHeight uint64 = 199666
 
 	//TestNetNvmMemoryLimitWithoutInjectHeight
-	TestNetNvmMemoryLimitWithoutInjectHeight uint64 = 369360
+	TestNetNvmMemoryLimitWithoutInjectHeight uint64 = 281600
 
 	//TestNetWdResetRecordDependencyHeight
-	TestNetWsResetRecordDependencyHeight uint64 = 369360
+	TestNetWsResetRecordDependencyHeight uint64 = 281600
 )
 
 // MainNet
