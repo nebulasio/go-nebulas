@@ -170,6 +170,9 @@ var (
 
 	// nvm error
 	ErrExecutionFailed = errors.New("execution failed")
+
+	// unsupported keyword error in smart contract
+	ErrUnsupportedKeyword = errors.New("transaction data has unsupported keyword")
 )
 
 // Default gas count
@@ -300,5 +303,5 @@ type WorldState interface {
 
 	RecordGas(from string, gas *util.Uint128) error
 
-	Reset() error
+	Reset(addr byteutils.Hash) error
 }

@@ -71,6 +71,10 @@ type BlockChain struct {
 	nvm NVM
 
 	quitCh chan int
+
+	superNode bool
+
+	unsupportedKeyword string
 }
 
 const (
@@ -131,14 +135,16 @@ func NewBlockChain(neb Neblet) (*BlockChain, error) {
 	txPool.RegisterInNetwork(neb.NetService())
 
 	var bc = &BlockChain{
-		chainID:      neb.Config().Chain.ChainId,
-		genesis:      neb.Genesis(),
-		bkPool:       blockPool,
-		txPool:       txPool,
-		storage:      neb.Storage(),
-		eventEmitter: neb.EventEmitter(),
-		nvm:          neb.Nvm(),
-		quitCh:       make(chan int, 1),
+		chainID:            neb.Config().Chain.ChainId,
+		genesis:            neb.Genesis(),
+		bkPool:             blockPool,
+		txPool:             txPool,
+		storage:            neb.Storage(),
+		eventEmitter:       neb.EventEmitter(),
+		nvm:                neb.Nvm(),
+		quitCh:             make(chan int, 1),
+		superNode:          neb.Config().Chain.SuperNode,
+		unsupportedKeyword: neb.Config().Chain.UnsupportedKeyword,
 	}
 
 	bc.cachedBlocks, err = lru.New(128)
@@ -668,6 +674,19 @@ func (bc *BlockChain) GetTransaction(hash byteutils.Hash) (*Transaction, error) 
 		return nil, err
 	}
 	return tx, nil
+}
+
+// GetContract return contract of given address
+func (bc *BlockChain) GetContract(addr *Address) (state.Account, error) {
+	worldState, err := bc.TailBlock().WorldState().Clone()
+	if err != nil {
+		return nil, err
+	}
+	contract, err := CheckContract(addr, worldState)
+	if err != nil {
+		return nil, err
+	}
+	return contract, nil
 }
 
 // GasPrice returns the lowest transaction gas price.

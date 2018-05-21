@@ -112,6 +112,11 @@ func (s *APIService) Call(ctx context.Context, req *rpcpb.TransactionRequest) (*
 		errMsg = result.Err.Error()
 	}
 
+	errInjectTracingInstructionFailed := "inject tracing instructions failed"
+
+	if errMsg == errInjectTracingInstructionFailed {
+		errMsg = "contract code syntax error"
+	}
 	return &rpcpb.CallResponse{
 		Result:      result.Msg,
 		ExecuteErr:  errMsg,
@@ -403,6 +408,31 @@ func (s *APIService) GetTransactionReceipt(ctx context.Context, req *rpcpb.GetTr
 		if tx == nil {
 			return nil, errors.New("transaction not found")
 		}
+	}
+
+	return s.toTransactionResponse(tx)
+}
+
+// GetTransactionByContract get transaction info by the contract address
+func (s *APIService) GetTransactionByContract(ctx context.Context, req *rpcpb.GetTransactionByContractRequest) (*rpcpb.TransactionResponse, error) {
+
+	neb := s.server.Neblet()
+
+	addr, err := core.AddressParse(req.GetAddress())
+	if err != nil {
+		return nil, err
+	}
+
+	contract, err := neb.BlockChain().GetContract(addr)
+	if err != nil {
+		return nil, err
+	}
+
+	hash := contract.BirthPlace()
+
+	tx, err := neb.BlockChain().GetTransaction(hash)
+	if err != nil {
+		return nil, err
 	}
 
 	return s.toTransactionResponse(tx)

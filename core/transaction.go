@@ -250,7 +250,7 @@ func (tx *Transaction) FromProto(msg proto.Message) error {
 }
 
 func (tx *Transaction) String() string {
-	return fmt.Sprintf(`{"chainID":%d, "hash":"%s", "from":"%s", "to":"%s", "nonce":%d, "value":"%s", "timestamp":%d, "gasprice": "%s", "gaslimit":"%s", "type":"%s"}`,
+	return fmt.Sprintf(`{"chainID":%d, "hash":"%s", "from":"%s", "to":"%s", "nonce":%d, "value":"%s", "timestamp":%d, "gasprice": "%s", "gaslimit":"%s", "data": "%s", "type":"%s"}`,
 		tx.chainID,
 		tx.hash.String(),
 		tx.from.String(),
@@ -260,8 +260,33 @@ func (tx *Transaction) String() string {
 		tx.timestamp,
 		tx.gasPrice.String(),
 		tx.gasLimit.String(),
+		tx.Data(),
 		tx.Type(),
 	)
+}
+
+// JSONString of transaction
+func (tx *Transaction) JSONString() string {
+	txJSONObj := make(map[string]interface{})
+	txJSONObj["chainID"] = tx.chainID
+	txJSONObj["hash"] = tx.hash.String()
+	txJSONObj["from"] = tx.from.String()
+	txJSONObj["to"] = tx.to.String()
+	txJSONObj["nonce"] = tx.nonce
+	txJSONObj["value"] = tx.value.String()
+	txJSONObj["timestamp"] = tx.timestamp
+	txJSONObj["gasprice"] = tx.gasPrice.String()
+	txJSONObj["gaslimit"] = tx.gasLimit.String()
+	txJSONObj["data"] = string(tx.Data())
+	txJSONObj["type"] = tx.Type()
+	txJSON, err := json.Marshal(txJSONObj)
+	if err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"err": err,
+			"tx":  tx,
+		}).Error("Failed to get transaction json string")
+	}
+	return string(txJSON)
 }
 
 // Transactions is an alias of Transaction array.
@@ -374,7 +399,13 @@ func submitTx(tx *Transaction, block *Block, ws WorldState,
 
 	if exeErr != nil {
 		// if execution failed, the previous changes on world state should be reset
-		if err := ws.Reset(); err != nil {
+		// record dependency
+
+		addr := tx.to.address
+		if block.Height() < WsResetRecordDependencyHeight {
+			addr = tx.from.address
+		}
+		if err := ws.Reset(addr); err != nil {
 			// if reset failed, the tx should be given back
 			return true, err
 		}
