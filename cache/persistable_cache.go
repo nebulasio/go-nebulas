@@ -43,7 +43,7 @@ type PersistableCache struct {
 }
 
 // NewPersistableCache ..
-func NewPersistableCache(cache Cache, conf *PersistableCacheConfig) Cache {
+func NewPersistableCache(cache Cache, conf *PersistableCacheConfig) *PersistableCache {
 	pc := &PersistableCache{
 		mirrorCache:        make(map[interface{}]interface{}),
 		originCache:        cache,
@@ -110,7 +110,7 @@ func (pc *PersistableCache) DecodeEntry(kv *ExportableEntry) (interface{}, inter
 	return pc.originCache.DecodeEntry(kv)
 }
 
-// StartPersistence ..
+// StartPersistence starts persistence goroutine
 func (pc *PersistableCache) StartPersistence() {
 	if pc.persistenceStarted {
 		return

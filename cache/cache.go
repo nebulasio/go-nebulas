@@ -13,9 +13,9 @@ const (
 
 // var
 var (
-	ErrInvalidEncodeArguments = errors.New("invalid encode arguments")
-	ErrInvalidCacheKey        = errors.New("invalid cache key")
-	ErrInvalidCacheValue      = errors.New("invalid cache value")
+	ErrInvalidArguments  = errors.New("invalid arguments")
+	ErrInvalidCacheKey   = errors.New("invalid cache key")
+	ErrInvalidCacheValue = errors.New("invalid cache value")
 )
 
 // ExportableEntry ..

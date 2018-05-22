@@ -15,7 +15,7 @@ type routeTableCache struct {
 	routeTable *kbucket.RoutingTable
 }
 
-func newRouteTableCache(conf *cache.PersistableCacheConfig, ps peerstore.Peerstore, rt *kbucket.RoutingTable) cache.Cache {
+func newRouteTableCache(conf *cache.PersistableCacheConfig, ps peerstore.Peerstore, rt *kbucket.RoutingTable) *cache.PersistableCache {
 	c := &routeTableCache{
 		peerStore:  ps,
 		routeTable: rt,
@@ -24,7 +24,7 @@ func newRouteTableCache(conf *cache.PersistableCacheConfig, ps peerstore.Peersto
 	return cache.NewPersistableCache(c, conf)
 }
 
-// Entries ..
+// Entries returns map[peer.ID][]ma.Multiaddr
 func (c *routeTableCache) Entries() interface{} {
 	ret := make(map[peer.ID][]ma.Multiaddr)
 	for _, pid := range c.peerStore.Peers() {
@@ -33,7 +33,7 @@ func (c *routeTableCache) Entries() interface{} {
 	return ret
 }
 
-// Keys ..
+// Keys returns []peer.ID
 func (c *routeTableCache) Keys() interface{} {
 	return c.peerStore.Peers()
 }
@@ -58,7 +58,7 @@ func (c *routeTableCache) Set(k interface{}, v interface{}) error {
 	return nil
 }
 
-// Get returns the target element
+// Get returns []ma.Multiaddr corresponding to peer.ID k
 func (c *routeTableCache) Get(k interface{}) interface{} {
 	if pid, ok := k.(peer.ID); ok {
 		return c.peerStore.Addrs(pid)
@@ -86,28 +86,38 @@ func (c *routeTableCache) Size() int {
 
 //  k is peer.ID
 //  v is []ma.Multiaddr
-func (c *routeTableCache) EncodeEntry(k, v interface{}) (*cache.ExportableEntry, error) {
+func (c *routeTableCache) EncodeEntry(k, v interface{}) (ret *cache.ExportableEntry, err error) {
 
-	ret := &cache.ExportableEntry{}
 	if k != nil {
 		if tk, ok := k.(peer.ID); ok {
-			ret.K = tk.Pretty()
+			ret = &cache.ExportableEntry{
+				K: tk.Pretty(),
+			}
 		}
 	}
 
 	if v != nil {
 		if addrs, ok := v.([]ma.Multiaddr); ok {
 			lines := make([]string, len(addrs))
-			for i, addr := range addrs {
-				// line := fmt.Sprintf("%s/ipfs/%s\n", addr, pid.Pretty())
-				lines[i] = addr.String()
+			if len(lines) > 0 {
+				for i, addr := range addrs {
+					// line := fmt.Sprintf("%s/ipfs/%s\n", addr, pid.Pretty())
+					lines[i] = addr.String()
+				}
+
+				if ret == nil {
+					ret = &cache.ExportableEntry{
+						V: lines,
+					}
+				} else {
+					ret.V = lines
+				}
 			}
-			ret.V = lines
 		}
 	}
 
-	if ret.K == nil && ret.V == nil {
-		return nil, cache.ErrInvalidEncodeArguments
+	if ret == nil {
+		return nil, cache.ErrInvalidArguments
 	}
 	return ret, nil
 }
@@ -115,6 +125,10 @@ func (c *routeTableCache) EncodeEntry(k, v interface{}) (*cache.ExportableEntry,
 //  k is peer.ID
 //  v is []ma.Multiaddr
 func (c *routeTableCache) DecodeEntry(kv *cache.ExportableEntry) (k, v interface{}, err error) {
+	if kv == nil {
+		return nil, nil, cache.ErrInvalidArguments
+	}
+
 	if kv.K != nil {
 		// TODO: test decode
 		k, err = peer.IDB58Decode(kv.K.(string))

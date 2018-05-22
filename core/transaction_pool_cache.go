@@ -8,14 +8,14 @@ import (
 
 type transactionPoolCache map[byteutils.HexHash]*Transaction
 
-func newTransactionPoolCache(conf *cache.PersistableCacheConfig) cache.Cache {
+func newTransactionPoolCache(conf *cache.PersistableCacheConfig) *cache.PersistableCache {
 	c := make(transactionPoolCache)
 	return cache.NewPersistableCache(c, conf)
 }
 
-// All ..
+// Entries returns []*Transaction
 func (p transactionPoolCache) Entries() interface{} {
-	ret := make([]interface{}, len(p))
+	ret := make([]*Transaction, len(p))
 	i := 0
 	for _, v := range p {
 		ret[i] = v
@@ -24,7 +24,7 @@ func (p transactionPoolCache) Entries() interface{} {
 	return ret
 }
 
-// Keys ..
+// Keys returns []byteutils.HexHash
 func (p transactionPoolCache) Keys() interface{} {
 	ret := make([]byteutils.HexHash, len(p))
 	i := 0
@@ -63,8 +63,10 @@ func (p transactionPoolCache) Take(k interface{}) (interface{}, error) {
 	if !ok {
 		return nil, cache.ErrInvalidCacheKey
 	}
-	ret := p[h]
-	delete(p, h)
+	ret, ok := p[h]
+	if ok {
+		delete(p, h)
+	}
 	return ret, nil
 }
 
@@ -73,12 +75,13 @@ func (p transactionPoolCache) Size() int {
 	return len(p)
 }
 
-func (p transactionPoolCache) EncodeEntry(k, v interface{}) (*cache.ExportableEntry, error) {
+func (p transactionPoolCache) EncodeEntry(k, v interface{}) (ret *cache.ExportableEntry, err error) {
 
-	ret := &cache.ExportableEntry{}
 	if k != nil {
-		if tk, ok := k.(byteutils.HexHash); ok {
-			ret.K = string(tk)
+		if h, ok := k.(byteutils.HexHash); ok {
+			ret = &cache.ExportableEntry{
+				K: string(h),
+			}
 		}
 	}
 
@@ -88,17 +91,26 @@ func (p transactionPoolCache) EncodeEntry(k, v interface{}) (*cache.ExportableEn
 			if err != nil {
 				return nil, err
 			}
-			ret.V = tp.(*corepb.Transaction)
+			if ret == nil {
+				ret = &cache.ExportableEntry{
+					V: tp.(*corepb.Transaction),
+				}
+			} else {
+				ret.V = tp.(*corepb.Transaction)
+			}
 		}
 	}
 
-	if ret.K == nil && ret.V == nil {
-		return nil, cache.ErrInvalidEncodeArguments
+	if ret == nil {
+		return nil, cache.ErrInvalidArguments
 	}
 	return ret, nil
 }
 
 func (p transactionPoolCache) DecodeEntry(e *cache.ExportableEntry) (k, v interface{}, err error) {
+	if e == nil {
+		return nil, nil, cache.ErrInvalidArguments
+	}
 
 	if e.K != nil {
 		if s, ok := e.K.(string); ok {
