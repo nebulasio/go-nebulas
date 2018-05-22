@@ -97,10 +97,10 @@ const (
 	MainNetRecordCallContractResultHeight uint64 = 225666
 
 	//MainNetNvmMemoryLimitWithoutInjectHeight
-	MainNetNvmMemoryLimitWithoutInjectHeight uint64 = 306700
+	MainNetNvmMemoryLimitWithoutInjectHeight uint64 = 306800
 
 	//MainNetWdResetRecordDependencyHeight
-	MainNetWsResetRecordDependencyHeight uint64 = 306700
+	MainNetWsResetRecordDependencyHeight uint64 = 306800
 )
 
 var (
