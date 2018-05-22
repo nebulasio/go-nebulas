@@ -38,8 +38,10 @@ type PersistableCache struct {
 	replayFile         *os.File
 	replayEncoder      *gob.Encoder
 	replayChan         chan *replay
-	persistenceStarted bool
 	ticker             *time.Ticker
+	startChan          chan bool
+	startDoneChan      chan bool
+	persistenceStarted bool
 }
 
 // NewPersistableCache ..
@@ -49,6 +51,8 @@ func NewPersistableCache(cache Cache, conf *PersistableCacheConfig) *Persistable
 		originCache:        cache,
 		conf:               conf,
 		replayChan:         make(chan *replay, conf.CacheSize),
+		startChan:          make(chan bool, 1),
+		startDoneChan:      make(chan bool, 1),
 		persistenceStarted: false,
 	}
 	pc.init()
@@ -115,13 +119,9 @@ func (pc *PersistableCache) StartPersistence() {
 	if pc.persistenceStarted {
 		return
 	}
-	// dump immediately
-	now := strconv.Itoa(int(time.Now().UnixNano() / int64(time.Millisecond)))
-	pc.nextReplayLogger(now)
-	pc.dumpMirror(now, 0)
-	pc.ticker = time.NewTicker(time.Millisecond * time.Duration(pc.conf.IntervalMs))
 
-	pc.persistenceStarted = true
+	pc.startChan <- true
+	<-pc.startDoneChan
 }
 
 func (pc *PersistableCache) init() {
@@ -130,36 +130,63 @@ func (pc *PersistableCache) init() {
 
 	go func() {
 		last := 0
-		for r := range pc.replayChan {
-
-			b := pc.replayToMirror(r)
-
-			if !pc.persistenceStarted {
-				continue
-			}
-
-			if b {
-				// records only when replay succeed
-				pc.recordReplay(r)
-			}
-
+		for {
 			select {
-			case <-pc.ticker.C:
-				start := int(time.Now().UnixNano() / int64(time.Millisecond))
-				now := strconv.Itoa(start)
+
+			// replay chan
+			case r := <-pc.replayChan:
+
+				b := pc.replayToMirror(r)
+
+				if !pc.persistenceStarted {
+					continue
+				}
+
+				if b {
+					// records only when replay succeed
+					pc.recordReplay(r)
+				}
+
+				select {
+				case <-pc.ticker.C:
+					start := int(time.Now().UnixNano() / int64(time.Millisecond))
+					now := strconv.Itoa(start)
+					pc.nextReplayLogger(now)
+					pc.dumpMirror(now, last)
+					end := int(time.Now().UnixNano() / int64(time.Millisecond))
+
+					logging.VLog().WithFields(logrus.Fields{
+						"cost":      end - start,
+						"dir":       pc.conf.SaveDir,
+						"timestamp": now,
+					}).Info("Dump snapshot done.")
+
+					last = start
+				default:
+					// non-block
+				}
+
+			// start persistence
+			case <-pc.startChan:
+				if pc.persistenceStarted {
+					pc.startDoneChan <- true
+					continue
+				}
+
+				now := strconv.Itoa(int(time.Now().UnixNano() / int64(time.Millisecond)))
 				pc.nextReplayLogger(now)
-				pc.dumpMirror(now, last)
-				end := int(time.Now().UnixNano() / int64(time.Millisecond))
+				pc.dumpMirror(now, 0)
+				pc.ticker = time.NewTicker(time.Millisecond * time.Duration(pc.conf.IntervalMs))
+
+				pc.persistenceStarted = true
 
 				logging.VLog().WithFields(logrus.Fields{
-					"cost":      end - start,
-					"dir":       pc.conf.SaveDir,
-					"timestamp": now,
-				}).Info("Dump snapshot done.")
+					"mirrorSize": len(pc.mirrorCache),
+					"dir":        pc.conf.SaveDir,
+					"timestamp":  now,
+				}).Info("Start persistence.")
 
-				last = start
-			default:
-				// non-block
+				pc.startDoneChan <- true
 			}
 		}
 	}()

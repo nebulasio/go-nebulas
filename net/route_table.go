@@ -52,7 +52,7 @@ type RouteTable struct {
 	// routeTable               *kbucket.RoutingTable
 	maxPeersCountForSyncResp int
 	maxPeersCountToSync      int
-	cache                    cache.Cache
+	cache                    *cache.PersistableCache
 	// cacheFilePath            string
 	seedNodes     []ma.Multiaddr
 	node          *Node
@@ -73,10 +73,11 @@ func NewRouteTable(config *Config, node *Node) *RouteTable {
 	routeTable.Update(node.id)
 	ps.AddPubKey(node.id, node.networkKey.GetPublic())
 	ps.AddPrivKey(node.id, node.networkKey)
+
 	cacheConf := &cache.PersistableCacheConfig{
 		IntervalMs: int64(RouteTableSaveToDiskInterval),
 		SaveDir:    config.RoutingTableDir,
-		CacheSize:  1000,
+		CacheSize:  2048,
 	}
 
 	table := &RouteTable{
@@ -102,6 +103,11 @@ func NewRouteTable(config *Config, node *Node) *RouteTable {
 	// table.routeTable.Update(node.id)
 	// table.peerStore.AddPubKey(node.id, node.networkKey.GetPublic())
 	// table.peerStore.AddPrivKey(node.id, node.networkKey)
+
+	// restored from file
+	logging.VLog().WithFields(logrus.Fields{
+		"size": table.cache.Size(),
+	}).Info("Restore route table from files.")
 
 	return table
 }
@@ -141,6 +147,8 @@ func (table *RouteTable) syncLoop() {
 	table.LoadSeedNodes()
 	// table.LoadRouteTableFromFile()	// TODO: ?
 	table.LoadInternalNodeList()
+
+	table.cache.StartPersistence()
 
 	// trigger first sync.
 	table.SyncRouteTable()
@@ -244,6 +252,7 @@ func (table *RouteTable) RemovePeerStream(s *Stream) {
 	if _, err := table.cache.Take(s.pid); err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"err": err,
+			"pid": s.pid,
 		}).Error("Remove peer error.")
 	}
 	// table.peerStore.AddAddr(s.pid, s.addr, 0)

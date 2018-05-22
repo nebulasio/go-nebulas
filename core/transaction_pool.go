@@ -51,7 +51,7 @@ type TransactionPool struct {
 	candidates *sorted.Slice
 	buckets    map[byteutils.HexHash]*sorted.Slice
 	// all               map[byteutils.HexHash]*Transaction
-	cache             cache.Cache
+	cache             *cache.PersistableCache
 	bucketsLastUpdate map[byteutils.HexHash]time.Time
 
 	ns net.Service
@@ -83,8 +83,8 @@ func gasCmp(a interface{}, b interface{}) int {
 }
 
 // NewTransactionPool create a new TransactionPool
-func NewTransactionPool(size int, cacheDir string, dumpIntervalMs int64) (*TransactionPool, error) {
-	return &TransactionPool{
+func NewTransactionPool(size int, cacheDir string, dumpIntervalMs int64) (pool *TransactionPool, err error) {
+	pool = &TransactionPool{
 		receivedMessageCh: make(chan net.Message, size),
 		quitCh:            make(chan int, 1),
 		size:              size,
@@ -99,7 +99,23 @@ func NewTransactionPool(size int, cacheDir string, dumpIntervalMs int64) (*Trans
 		bucketsLastUpdate: make(map[byteutils.HexHash]time.Time),
 		minGasPrice:       TransactionGasPrice,
 		maxGasLimit:       TransactionMaxGas,
-	}, nil
+	}
+
+	// restored from file
+	entries := pool.cache.Entries().([]*Transaction)
+	for _, e := range entries {
+		pool.pushTx(e)
+	}
+	logging.VLog().WithFields(logrus.Fields{
+		"size": len(entries),
+	}).Info("Restore transaction pool cache from files.")
+
+	return
+}
+
+// StartPersistence ..
+func (pool *TransactionPool) StartPersistence() {
+	pool.cache.StartPersistence()
 }
 
 // SetGasConfig config the lowest gasPrice and the maximum gasLimit.

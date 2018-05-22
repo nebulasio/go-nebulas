@@ -584,6 +584,7 @@ func (bc *BlockChain) StartActiveSync() bool {
 		bc.consensusHandler.SuspendMining()
 		go func() {
 			bc.syncService.WaitingForFinish()
+			bc.txPool.StartPersistence()
 			bc.consensusHandler.ResumeMining()
 		}()
 		return true

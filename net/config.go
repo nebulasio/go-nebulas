@@ -46,7 +46,7 @@ var (
 
 	RouteTableSyncLoopInterval     = 30 * time.Second
 	RouteTableSaveToDiskInterval   = 3 * 60 * time.Second
-	RouteTableCacheFileName        = "routetable.cache"
+	RouteTableCacheDirName         = "routetable.cache"
 	RouteTableInternalNodeFileName = "conf/internal_list.txt"
 
 	MaxPeersCountForSyncResp = 32
@@ -100,7 +100,7 @@ func NewP2PConfig(n Neblet) *Config {
 	if checkPathConfig(chainConf.Datadir) == false {
 		panic(fmt.Sprintf("The chain data directory %s is not exist.", chainConf.Datadir))
 	}
-	config.RoutingTableDir = path.Join(chainConf.Datadir, "routetable.cache")
+	config.RoutingTableDir = path.Join(chainConf.Datadir, RouteTableCacheDirName)
 
 	// seed server address.
 	seeds := networkConf.Seed
