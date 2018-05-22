@@ -86,7 +86,7 @@ func (c *routeTableCache) Size() int {
 
 //  k is peer.ID
 //  v is []ma.Multiaddr
-func (c *routeTableCache) Encode(k, v interface{}) (*cache.ExportableEntry, error) {
+func (c *routeTableCache) EncodeEntry(k, v interface{}) (*cache.ExportableEntry, error) {
 
 	ret := &cache.ExportableEntry{}
 	if k != nil {
@@ -114,7 +114,7 @@ func (c *routeTableCache) Encode(k, v interface{}) (*cache.ExportableEntry, erro
 
 //  k is peer.ID
 //  v is []ma.Multiaddr
-func (c *routeTableCache) Decode(kv *cache.ExportableEntry) (k, v interface{}, err error) {
+func (c *routeTableCache) DecodeEntry(kv *cache.ExportableEntry) (k, v interface{}, err error) {
 	if kv.K != nil {
 		// TODO: test decode
 		k, err = peer.IDB58Decode(kv.K.(string))

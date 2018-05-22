@@ -100,14 +100,14 @@ func (pc *PersistableCache) Take(k interface{}) (v interface{}, err error) {
 	return
 }
 
-// Encode ..
-func (pc *PersistableCache) Encode(k, v interface{}) (*ExportableEntry, error) {
-	return pc.originCache.Encode(k, v)
+// EncodeEntry ..
+func (pc *PersistableCache) EncodeEntry(k, v interface{}) (*ExportableEntry, error) {
+	return pc.originCache.EncodeEntry(k, v)
 }
 
-// Decode ..
-func (pc *PersistableCache) Decode(kv *ExportableEntry) (interface{}, interface{}, error) {
-	return pc.originCache.Decode(kv)
+// DecodeEntry ..
+func (pc *PersistableCache) DecodeEntry(kv *ExportableEntry) (interface{}, interface{}, error) {
+	return pc.originCache.DecodeEntry(kv)
 }
 
 // StartPersistence ..
@@ -289,28 +289,28 @@ func (pc *PersistableCache) replayToMirror(r *replay) bool {
 }
 
 func (pc *PersistableCache) recordReplay(r *replay) {
-	var l *SerializableLog // TODO: check nil
+	var l *ReplayLog // TODO: check nil
 	switch r.op {
 	case Add:
-		kv, err := pc.Encode(r.k, r.v)
+		kv, err := pc.EncodeEntry(r.k, r.v)
 		if err != nil {
 			logging.VLog().WithFields(logrus.Fields{
 				"err": err,
 			}).Error("Encode add replay error.")
 		} else {
-			l = &SerializableLog{
+			l = &ReplayLog{
 				Add,
 				kv,
 			}
 		}
 	case Delete:
-		kv, err := pc.Encode(r.k, nil)
+		kv, err := pc.EncodeEntry(r.k, nil)
 		if err != nil {
 			logging.VLog().WithFields(logrus.Fields{
 				"err": err,
 			}).Error("Encode delete replay error.")
 		} else {
-			l = &SerializableLog{
+			l = &ReplayLog{
 				Delete,
 				kv,
 			}
@@ -364,7 +364,7 @@ func (pc *PersistableCache) restoreSnap(path string) {
 			continue
 		}
 
-		k, v, err := pc.Decode(e)
+		k, v, err := pc.DecodeEntry(e)
 		if err != nil {
 			logging.VLog().WithFields(logrus.Fields{
 				"err":  err,
@@ -405,7 +405,7 @@ func (pc *PersistableCache) restoreReplay(paths []string) {
 
 		decoder := gob.NewDecoder(f)
 		for {
-			r := new(SerializableLog)
+			r := new(ReplayLog)
 			err = decoder.Decode(r)
 			if err == io.EOF {
 				break
@@ -418,7 +418,7 @@ func (pc *PersistableCache) restoreReplay(paths []string) {
 				continue
 			}
 
-			k, v, err := pc.Decode(r.Operand)
+			k, v, err := pc.DecodeEntry(r.Operand)
 			if err != nil {
 				logging.VLog().WithFields(logrus.Fields{
 					"err":  err,
@@ -475,7 +475,7 @@ func (pc *PersistableCache) dumpMirror(now string, last int) {
 	snapEncoder := gob.NewEncoder(f)
 
 	for k, v := range pc.mirrorCache {
-		kv, err := pc.Encode(k, v)
+		kv, err := pc.EncodeEntry(k, v)
 		if err != nil {
 			logging.VLog().WithFields(logrus.Fields{
 				"err": err,

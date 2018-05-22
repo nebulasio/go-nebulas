@@ -73,7 +73,7 @@ func (p transactionPoolCache) Size() int {
 	return len(p)
 }
 
-func (p transactionPoolCache) Encode(k, v interface{}) (*cache.ExportableEntry, error) {
+func (p transactionPoolCache) EncodeEntry(k, v interface{}) (*cache.ExportableEntry, error) {
 
 	ret := &cache.ExportableEntry{}
 	if k != nil {
@@ -98,7 +98,7 @@ func (p transactionPoolCache) Encode(k, v interface{}) (*cache.ExportableEntry, 
 	return ret, nil
 }
 
-func (p transactionPoolCache) Decode(e *cache.ExportableEntry) (k, v interface{}, err error) {
+func (p transactionPoolCache) DecodeEntry(e *cache.ExportableEntry) (k, v interface{}, err error) {
 
 	if e.K != nil {
 		if s, ok := e.K.(string); ok {

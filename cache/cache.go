@@ -2,16 +2,12 @@ package cache
 
 import "errors"
 
-// Operator ..
+// Operator replay operator
 type Operator int
 
 // const
 const (
-	// dump
-	Dump Operator = 1 + iota
-
-	// inclog
-	Add
+	Add Operator = 1 + iota
 	Delete
 )
 
@@ -28,8 +24,8 @@ type ExportableEntry struct {
 	V interface{}
 }
 
-// SerializableLog ..
-type SerializableLog struct {
+// ReplayLog ..
+type ReplayLog struct {
 	Op      Operator
 	Operand *ExportableEntry
 }
@@ -43,14 +39,16 @@ type Cache interface {
 	Get(interface{}) interface{}
 	Take(interface{}) (interface{}, error)
 	Size() int
-	Encode(interface{}, interface{}) (*ExportableEntry, error)
-	Decode(*ExportableEntry) (interface{}, interface{}, error)
+	EncodeEntry(interface{}, interface{}) (*ExportableEntry, error)
+	DecodeEntry(*ExportableEntry) (interface{}, interface{}, error)
 }
 
 // PersistableCacheConfig config of cache
 type PersistableCacheConfig struct {
-	// milliseconds
+	// dump interval in milliseconds
 	IntervalMs int64
-	SaveDir    string
-	CacheSize  int
+	// storage apth
+	SaveDir string
+	// cache size
+	CacheSize int
 }
