@@ -17,6 +17,13 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// const
+const (
+	SnapFileSuffix     = ".snap"
+	SnapDoneFileSuffix = ".done"
+	ReplayFileSuffix   = ".rep"
+)
+
 type replay struct {
 	op Operator
 	k  interface{}
@@ -25,11 +32,11 @@ type replay struct {
 
 // PersistableCache ..
 type PersistableCache struct {
-	shadowCache        map[interface{}]interface{}
+	mirrorCache        map[interface{}]interface{}
 	originCache        Cache
 	conf               *PersistableCacheConfig
-	incFile            *os.File
-	incEncoder         *gob.Encoder
+	replayFile         *os.File
+	replayEncoder      *gob.Encoder
 	replayChan         chan *replay
 	persistenceStarted bool
 	ticker             *time.Ticker
@@ -38,7 +45,7 @@ type PersistableCache struct {
 // NewPersistableCache ..
 func NewPersistableCache(cache Cache, conf *PersistableCacheConfig) Cache {
 	pc := &PersistableCache{
-		shadowCache:        make(map[interface{}]interface{}),
+		mirrorCache:        make(map[interface{}]interface{}),
 		originCache:        cache,
 		conf:               conf,
 		replayChan:         make(chan *replay, conf.CacheSize),
@@ -110,8 +117,8 @@ func (pc *PersistableCache) StartPersistence() {
 	}
 	// dump immediately
 	now := strconv.Itoa(int(time.Now().UnixNano() / int64(time.Millisecond)))
-	pc.changeReplayLogger(now)
-	pc.dump(now, "")
+	pc.nextReplayLogger(now)
+	pc.dumpMirror(now, 0)
 	pc.ticker = time.NewTicker(time.Millisecond * time.Duration(pc.conf.IntervalMs))
 
 	pc.persistenceStarted = true
@@ -119,16 +126,13 @@ func (pc *PersistableCache) StartPersistence() {
 
 func (pc *PersistableCache) init() {
 
-	// ticker := time.NewTicker(time.Millisecond * time.Duration(pc.conf.IntervalMs))
-	// pc.newLogger(strconv.Itoa(int(time.Now().UnixNano() / int64(time.Millisecond))))
-
 	pc.restore()
 
 	go func() {
 		last := 0
 		for r := range pc.replayChan {
 
-			b := pc.replayToShadow(r)
+			b := pc.replayToMirror(r)
 
 			if !pc.persistenceStarted {
 				continue
@@ -143,15 +147,15 @@ func (pc *PersistableCache) init() {
 			case <-pc.ticker.C:
 				start := int(time.Now().UnixNano() / int64(time.Millisecond))
 				now := strconv.Itoa(start)
-				pc.changeReplayLogger(now)
-				pc.dump(now, strconv.Itoa(last))
+				pc.nextReplayLogger(now)
+				pc.dumpMirror(now, last)
 				end := int(time.Now().UnixNano() / int64(time.Millisecond))
 
 				logging.VLog().WithFields(logrus.Fields{
 					"cost":      end - start,
 					"dir":       pc.conf.SaveDir,
-					"timestamp": start,
-				}).Info("Cache dump done.")
+					"timestamp": now,
+				}).Info("Dump snapshot done.")
 
 				last = start
 			default:
@@ -170,14 +174,14 @@ func (pc *PersistableCache) restore() {
 			logging.VLog().WithFields(logrus.Fields{
 				"err": err,
 				"dir": pc.conf.SaveDir,
-			}).Fatal("Create save dir failed.")
+			}).Fatal("Create cache dir error.")
 		}
-	} else {
-		if !fi.IsDir() {
-			logging.VLog().WithFields(logrus.Fields{
-				"name": pc.conf.SaveDir,
-			}).Fatal("File already exists with the same name.")
-		}
+		return
+	}
+	if !fi.IsDir() {
+		logging.VLog().WithFields(logrus.Fields{
+			"file": pc.conf.SaveDir,
+		}).Fatal("File already exists with the same name.")
 	}
 
 	// list files
@@ -189,14 +193,14 @@ func (pc *PersistableCache) restore() {
 		}).Fatal("List files error.")
 	}
 
-	// filter max timestamp
+	// pick max timestamp
 	lastest := 0
 	for _, f := range files {
 		if f.IsDir() {
 			continue
 		}
-		if strings.HasSuffix(f.Name(), ".done") {
-			cur, err := strconv.Atoi(strings.Split(f.Name(), ".done")[0])
+		if strings.HasSuffix(f.Name(), SnapDoneFileSuffix) {
+			cur, err := strconv.Atoi(strings.Split(f.Name(), SnapDoneFileSuffix)[0])
 			if err != nil {
 				logging.VLog().WithFields(logrus.Fields{
 					"err":      err,
@@ -213,8 +217,8 @@ func (pc *PersistableCache) restore() {
 	// restore
 	if lastest > 0 {
 		var snapPath string
-		incPaths := make(map[int]string)
-		incPathsKeys := make([]int, 0)
+		repPaths := make(map[int]string)
+		repPathsKeys := make([]int, 0)
 		todel := make([]string, 0)
 		for _, f := range files {
 			if f.IsDir() {
@@ -243,16 +247,10 @@ func (pc *PersistableCache) restore() {
 			switch ss[1] {
 			case "snap":
 				snapPath = filepath.Join(pc.conf.SaveDir, f.Name())
-			case "inc":
-				if _, ok := incPaths[ts]; ok {
-					logging.VLog().WithFields(logrus.Fields{
-						"timestamp": ts,
-					}).Error("Duplicated inc file found.")
-				} else {
-					incPathsKeys = append(incPathsKeys, ts)
-					incPaths[ts] = filepath.Join(pc.conf.SaveDir, f.Name())
-				}
-			case "done":
+			case "rep":
+				repPathsKeys = append(repPathsKeys, ts)
+				repPaths[ts] = filepath.Join(pc.conf.SaveDir, f.Name())
+			default:
 			}
 		}
 
@@ -261,11 +259,11 @@ func (pc *PersistableCache) restore() {
 
 		// restore cache from files
 		pc.restoreSnap(snapPath)
-		if len(incPathsKeys) > 0 {
-			sort.Ints(incPathsKeys)
+		if len(repPathsKeys) > 0 {
+			sort.Ints(repPathsKeys)
 			sortedPaths := make([]string, 0)
-			for _, k := range incPathsKeys {
-				sortedPaths = append(sortedPaths, incPaths[k])
+			for _, k := range repPathsKeys {
+				sortedPaths = append(sortedPaths, repPaths[k])
 			}
 			pc.restoreReplay(sortedPaths)
 		}
@@ -273,16 +271,16 @@ func (pc *PersistableCache) restore() {
 
 }
 
-func (pc *PersistableCache) replayToShadow(r *replay) bool {
+func (pc *PersistableCache) replayToMirror(r *replay) bool {
 	switch r.op {
 	case Add:
-		if _, ok := pc.shadowCache[r.k]; !ok {
-			pc.shadowCache[r.k] = r.v
+		if _, ok := pc.mirrorCache[r.k]; !ok {
+			pc.mirrorCache[r.k] = r.v
 			return true
 		}
 	case Delete:
-		if _, ok := pc.shadowCache[r.k]; ok {
-			delete(pc.shadowCache, r.k)
+		if _, ok := pc.mirrorCache[r.k]; ok {
+			delete(pc.mirrorCache, r.k)
 			return true
 		}
 	}
@@ -298,7 +296,7 @@ func (pc *PersistableCache) recordReplay(r *replay) {
 		if err != nil {
 			logging.VLog().WithFields(logrus.Fields{
 				"err": err,
-			}).Error("Encode replay error.")
+			}).Error("Encode add replay error.")
 		} else {
 			l = &SerializableLog{
 				Add,
@@ -310,7 +308,7 @@ func (pc *PersistableCache) recordReplay(r *replay) {
 		if err != nil {
 			logging.VLog().WithFields(logrus.Fields{
 				"err": err,
-			}).Error("Encode replay error.")
+			}).Error("Encode delete replay error.")
 		} else {
 			l = &SerializableLog{
 				Delete,
@@ -324,26 +322,25 @@ func (pc *PersistableCache) recordReplay(r *replay) {
 	}
 
 	if l != nil {
-		err := pc.incEncoder.Encode(l)
+		err := pc.replayEncoder.Encode(l)
 		if err != nil {
 			logging.VLog().WithFields(logrus.Fields{
-				"err": err,
-				"key": l.Operand.K,
+				"err":  err,
+				"type": l.Op,
+				"key":  l.Operand.K,
 			}).Error("Failed to record replay.")
 		}
 	}
 }
 
 func (pc *PersistableCache) restoreSnap(path string) {
-	if path == "" {
-		return
-	}
+
 	f, err := os.Open(path)
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"err":  err,
 			"file": path,
-		}).Fatal("Open file error.") // TODO: Fatal?
+		}).Fatal("Open snap file error.") // TODO: Fatal?
 	}
 
 	decoder := gob.NewDecoder(f)
@@ -372,15 +369,15 @@ func (pc *PersistableCache) restoreSnap(path string) {
 			logging.VLog().WithFields(logrus.Fields{
 				"err":  err,
 				"file": path,
-			}).Error("Cache entry decode error.")
+			}).Error("Decode cache entry error.")
 			continue
 		}
 		err = pc.Set(k, v)
-		// err = pc.originCache.Set(k, v)
 		if err != nil {
 			logging.VLog().WithFields(logrus.Fields{
-				"err": err,
-			}).Error("Restore error.")
+				"err":  err,
+				"file": path,
+			}).Error("Restore cache entry error.")
 		}
 	}
 	err = f.Close()
@@ -388,7 +385,7 @@ func (pc *PersistableCache) restoreSnap(path string) {
 		logging.VLog().WithFields(logrus.Fields{
 			"err":  err,
 			"file": path,
-		}).Error("Close file error.")
+		}).Error("Close snap file error.")
 	}
 }
 
@@ -403,7 +400,7 @@ func (pc *PersistableCache) restoreReplay(paths []string) {
 			logging.VLog().WithFields(logrus.Fields{
 				"err":  err,
 				"file": path,
-			}).Fatal("Open file error.") // TODO: Fatal?
+			}).Fatal("Open replay file error.") // TODO: Fatal?
 		}
 
 		decoder := gob.NewDecoder(f)
@@ -426,7 +423,7 @@ func (pc *PersistableCache) restoreReplay(paths []string) {
 				logging.VLog().WithFields(logrus.Fields{
 					"err":  err,
 					"file": path,
-				}).Error("Replay log decode error.")
+				}).Error("Decode replay entry error.")
 				continue
 			}
 
@@ -437,7 +434,7 @@ func (pc *PersistableCache) restoreReplay(paths []string) {
 					logging.VLog().WithFields(logrus.Fields{
 						"err":  err,
 						"file": path,
-					}).Error("Replay set error.")
+					}).Error("Restore add error.")
 				}
 			case Delete:
 				_, err = pc.Take(k)
@@ -445,8 +442,13 @@ func (pc *PersistableCache) restoreReplay(paths []string) {
 					logging.VLog().WithFields(logrus.Fields{
 						"err":  err,
 						"file": path,
-					}).Error("Replay delete error.")
+					}).Error("Restore delete error.")
 				}
+			default:
+				logging.VLog().WithFields(logrus.Fields{
+					"type": r.Op,
+					"file": path,
+				}).Error("Unknown replay log type.")
 			}
 		}
 
@@ -455,15 +457,15 @@ func (pc *PersistableCache) restoreReplay(paths []string) {
 			logging.VLog().WithFields(logrus.Fields{
 				"err":  err,
 				"file": path,
-			}).Error("Close file error.")
+			}).Error("Close replay file error.")
 		}
 	}
 }
 
-func (pc *PersistableCache) dump(now, last string) {
+func (pc *PersistableCache) dumpMirror(now string, last int) {
 
-	// dump snapshot
-	f, err := os.Create(path.Join(pc.conf.SaveDir, now+".snap"))
+	p := path.Join(pc.conf.SaveDir, now+SnapFileSuffix)
+	f, err := os.Create(p)
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"err":       err,
@@ -472,12 +474,12 @@ func (pc *PersistableCache) dump(now, last string) {
 	}
 	snapEncoder := gob.NewEncoder(f)
 
-	for k, v := range pc.shadowCache {
+	for k, v := range pc.mirrorCache {
 		kv, err := pc.Encode(k, v)
 		if err != nil {
 			logging.VLog().WithFields(logrus.Fields{
 				"err": err,
-			}).Error("Encode ExportableEntry error.")
+			}).Error("Serialize ExportableEntry error.")
 			continue
 		}
 		err = snapEncoder.Encode(kv)
@@ -485,7 +487,7 @@ func (pc *PersistableCache) dump(now, last string) {
 			logging.VLog().WithFields(logrus.Fields{
 				"err": err,
 				"key": k,
-			}).Error("Write snapshot item error.")
+			}).Error("Encode ExportableEntry error.")
 		}
 	}
 
@@ -493,12 +495,12 @@ func (pc *PersistableCache) dump(now, last string) {
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"err":  err,
-			"file": f.Name(),
+			"file": p,
 		}).Error("Close snapshot file error.")
 	}
 
 	// create done file
-	doneF, err := os.Create(path.Join(pc.conf.SaveDir, now+".done"))
+	doneF, err := os.Create(path.Join(pc.conf.SaveDir, now+SnapDoneFileSuffix))
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"err":       err,
@@ -508,41 +510,43 @@ func (pc *PersistableCache) dump(now, last string) {
 		defer doneF.Close()
 	}
 
-	if last != "" {
+	if last > 0 {
 		// delete last files
+		sl := strconv.Itoa(last)
 		pc.removeFiles([]string{
-			path.Join(pc.conf.SaveDir, last+".snap"),
-			path.Join(pc.conf.SaveDir, last+".done"),
-			path.Join(pc.conf.SaveDir, last+".inc"),
+			path.Join(pc.conf.SaveDir, sl+SnapFileSuffix),
+			path.Join(pc.conf.SaveDir, sl+SnapDoneFileSuffix),
+			path.Join(pc.conf.SaveDir, sl+ReplayFileSuffix),
 		})
 	}
 }
 
-func (pc *PersistableCache) changeReplayLogger(now string) {
-	if pc.incFile != nil {
-		err := pc.incFile.Close()
+func (pc *PersistableCache) nextReplayLogger(now string) {
+	if pc.replayFile != nil {
+		err := pc.replayFile.Close()
 		if err != nil {
 			logging.VLog().WithFields(logrus.Fields{
 				"err":  err,
-				"file": pc.incFile.Name(),
-			}).Error("Close last inc log file error.")
+				"file": pc.replayFile.Name(),
+			}).Error("Close last replay file error.")
 		}
 	}
 
-	incFile, err := os.Create(filepath.Join(pc.conf.SaveDir, now+".inc"))
+	p := filepath.Join(pc.conf.SaveDir, now+ReplayFileSuffix)
+	replayFile, err := os.Create(p)
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"err":      err,
-			"filename": incFile.Name(),
-		}).Fatal("Create inc log file error.") // TODO: Fatal?
+			"filepath": p,
+		}).Fatal("Create replay file error.") // TODO: Fatal?
 	}
 
-	pc.incFile = incFile
-	pc.incEncoder = gob.NewEncoder(incFile)
+	pc.replayFile = replayFile
+	pc.replayEncoder = gob.NewEncoder(replayFile)
 
 	logging.VLog().WithFields(logrus.Fields{
-		"file": pc.incFile.Name(),
-	}).Info("Create new inc log file.")
+		"file": pc.replayFile.Name(),
+	}).Info("Create new replay file done.")
 }
 
 func (pc *PersistableCache) removeFiles(paths []string) {
@@ -569,7 +573,7 @@ func (pc *PersistableCache) removeFiles(paths []string) {
 		} else {
 			logging.VLog().WithFields(logrus.Fields{
 				"file": path,
-			}).Info("Delete file.")
+			}).Info("Delete file done.")
 		}
 	}
 }
