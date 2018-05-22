@@ -173,7 +173,7 @@ func (block *Block) ToProto() (proto.Message, error) {
 		if err != nil {
 			return nil, err
 		}
-		if dependency := dependency.(*dagpb.Dag); ok {
+		if dependency, ok := dependency.(*dagpb.Dag); ok {
 			return &corepb.Block{
 				Header:       header,
 				Transactions: txs,
