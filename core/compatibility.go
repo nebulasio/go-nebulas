@@ -29,27 +29,6 @@ const (
 
 	// TestNetID testnet id
 	TestNetID uint32 = 1001
-
-	//SignNetID signnet id
-	SignNetID uint32 = 0
-)
-
-// mainnet/testnet
-const (
-	// DefaultTransferFromContractEventRecordableHeight
-	DefaultTransferFromContractEventRecordableHeight uint64 = 225666
-
-	// DefaultAcceptFuncAvailableHeight
-	DefaultAcceptFuncAvailableHeight uint64 = 225666
-
-	// DefaultRandomAvailableHeight
-	DefaultRandomAvailableHeight uint64 = 225666
-
-	// DefaultDateAvailableHeight
-	DefaultDateAvailableHeight uint64 = 225666
-
-	// DefaultRecordCallContractResultHeight
-	DefaultRecordCallContractResultHeight uint64 = 225666
 )
 
 // others, e.g. local/develop
@@ -68,50 +47,115 @@ const (
 
 	// LocalRecordCallContractResultHeight
 	LocalRecordCallContractResultHeight uint64 = 2
+
+	//LocalNvmMemoryLimitWithoutInjectHeight
+	LocalNvmMemoryLimitWithoutInjectHeight uint64 = 2
+
+	//LocalWdResetRecordDependencyHeight
+	LocalWsResetRecordDependencyHeight uint64 = 2
+)
+
+// TestNet
+const (
+	// TestNetTransferFromContractEventRecordableHeight
+	TestNetTransferFromContractEventRecordableHeight uint64 = 199666
+
+	// TestNetAcceptFuncAvailableHeight
+	TestNetAcceptFuncAvailableHeight uint64 = 199666
+
+	// TestNetRandomAvailableHeight
+	TestNetRandomAvailableHeight uint64 = 199666
+
+	// TestNetDateAvailableHeight
+	TestNetDateAvailableHeight uint64 = 199666
+
+	// TestNetRecordCallContractResultHeight
+	TestNetRecordCallContractResultHeight uint64 = 199666
+
+	//TestNetNvmMemoryLimitWithoutInjectHeight
+	TestNetNvmMemoryLimitWithoutInjectHeight uint64 = 281800
+
+	//TestNetWdResetRecordDependencyHeight
+	TestNetWsResetRecordDependencyHeight uint64 = 281800
+)
+
+// MainNet
+const (
+	// MainNetTransferFromContractEventRecordableHeight
+	MainNetTransferFromContractEventRecordableHeight uint64 = 225666
+
+	// MainNetAcceptFuncAvailableHeight
+	MainNetAcceptFuncAvailableHeight uint64 = 225666
+
+	// MainNetRandomAvailableHeight
+	MainNetRandomAvailableHeight uint64 = 225666
+
+	// MainNetDateAvailableHeight
+	MainNetDateAvailableHeight uint64 = 225666
+
+	// MainNetRecordCallContractResultHeight
+	MainNetRecordCallContractResultHeight uint64 = 225666
+
+	//MainNetNvmMemoryLimitWithoutInjectHeight
+	MainNetNvmMemoryLimitWithoutInjectHeight uint64 = 306000
+
+	//MainNetWdResetRecordDependencyHeight
+	MainNetWsResetRecordDependencyHeight uint64 = 306000
 )
 
 var (
 	// TransferFromContractEventRecordableHeight record event 'TransferFromContractEvent' since this height
-	TransferFromContractEventRecordableHeight = DefaultTransferFromContractEventRecordableHeight
+	TransferFromContractEventRecordableHeight = TestNetTransferFromContractEventRecordableHeight
 
 	// AcceptFuncAvailableHeight 'accept' func available since this height
-	AcceptFuncAvailableHeight = DefaultAcceptFuncAvailableHeight
+	AcceptFuncAvailableHeight = TestNetAcceptFuncAvailableHeight
 
 	// RandomAvailableHeight make 'Math.random' available in contract since this height
-	RandomAvailableHeight = DefaultRandomAvailableHeight
+	RandomAvailableHeight = TestNetRandomAvailableHeight
 
 	// DateAvailableHeight make 'Date' available in contract since this height
-	DateAvailableHeight = DefaultDateAvailableHeight
+	DateAvailableHeight = TestNetDateAvailableHeight
 
 	// RecordCallContractResultHeight record result of call contract to event `TopicTransactionExecutionResult` since this height
-	RecordCallContractResultHeight = DefaultRecordCallContractResultHeight
+	RecordCallContractResultHeight = TestNetRecordCallContractResultHeight
+
+	// NvmMemoryLimitWithoutInjectHeight memory of nvm contract without inject code
+	NvmMemoryLimitWithoutInjectHeight = TestNetNvmMemoryLimitWithoutInjectHeight
+
+	//WdResetRecordDependencyHeight if tx execute faied, worldstate reset and need to record to address dependency
+	WsResetRecordDependencyHeight = TestNetWsResetRecordDependencyHeight
 )
 
 // SetCompatibilityOptions set compatibility height according to chain_id
 func SetCompatibilityOptions(chainID uint32) {
 
-	if chainID == MainNetID || chainID == TestNetID || chainID == SignNetID {
-		logging.VLog().WithFields(logrus.Fields{
-			"chain_id": chainID,
-			"TransferFromContractEventRecordableHeight": TransferFromContractEventRecordableHeight,
-			"AcceptFuncAvailableHeight":                 AcceptFuncAvailableHeight,
-			"RandomAvailableHeight":                     RandomAvailableHeight,
-			"DateAvailableHeight":                       DateAvailableHeight,
-			"RecordCallContractResultHeight":            RecordCallContractResultHeight,
-		}).Info("Set compatibility options for mainnet/testnet.")
-		return
+	if chainID == MainNetID {
+		TransferFromContractEventRecordableHeight = MainNetTransferFromContractEventRecordableHeight
+		AcceptFuncAvailableHeight = MainNetAcceptFuncAvailableHeight
+		RandomAvailableHeight = MainNetRandomAvailableHeight
+		DateAvailableHeight = MainNetDateAvailableHeight
+		RecordCallContractResultHeight = MainNetRecordCallContractResultHeight
+		NvmMemoryLimitWithoutInjectHeight = MainNetNvmMemoryLimitWithoutInjectHeight
+		WsResetRecordDependencyHeight = MainNetWsResetRecordDependencyHeight
+	} else if chainID == TestNetID {
+
+		TransferFromContractEventRecordableHeight = TestNetTransferFromContractEventRecordableHeight
+		AcceptFuncAvailableHeight = TestNetAcceptFuncAvailableHeight
+		RandomAvailableHeight = TestNetRandomAvailableHeight
+		DateAvailableHeight = TestNetDateAvailableHeight
+		RecordCallContractResultHeight = TestNetRecordCallContractResultHeight
+		NvmMemoryLimitWithoutInjectHeight = TestNetNvmMemoryLimitWithoutInjectHeight
+		WsResetRecordDependencyHeight = TestNetWsResetRecordDependencyHeight
+	} else {
+
+		TransferFromContractEventRecordableHeight = LocalTransferFromContractEventRecordableHeight
+		AcceptFuncAvailableHeight = LocalAcceptFuncAvailableHeight
+		RandomAvailableHeight = LocalRandomAvailableHeight
+		DateAvailableHeight = LocalDateAvailableHeight
+		RecordCallContractResultHeight = LocalRecordCallContractResultHeight
+		NvmMemoryLimitWithoutInjectHeight = LocalNvmMemoryLimitWithoutInjectHeight
+		WsResetRecordDependencyHeight = LocalWsResetRecordDependencyHeight
 	}
-
-	TransferFromContractEventRecordableHeight = LocalTransferFromContractEventRecordableHeight
-
-	AcceptFuncAvailableHeight = LocalAcceptFuncAvailableHeight
-
-	RandomAvailableHeight = LocalRandomAvailableHeight
-
-	DateAvailableHeight = LocalDateAvailableHeight
-
-	RecordCallContractResultHeight = LocalRecordCallContractResultHeight
-
 	logging.VLog().WithFields(logrus.Fields{
 		"chain_id": chainID,
 		"TransferFromContractEventRecordableHeight": TransferFromContractEventRecordableHeight,
@@ -119,6 +163,7 @@ func SetCompatibilityOptions(chainID uint32) {
 		"RandomAvailableHeight":                     RandomAvailableHeight,
 		"DateAvailableHeight":                       DateAvailableHeight,
 		"RecordCallContractResultHeight":            RecordCallContractResultHeight,
-	}).Info("Set compatibility options for local.")
-
+		"NvmMemoryLimitWithoutInjectHeight":         NvmMemoryLimitWithoutInjectHeight,
+		"WsResetRecordDependencyHeight":             WsResetRecordDependencyHeight,
+	}).Info("Set compatibility options.")
 }

@@ -102,10 +102,6 @@ func (s *APIService) Call(ctx context.Context, req *rpcpb.TransactionRequest) (*
 		return nil, err
 	}
 
-	logging.VLog().WithFields(logrus.Fields{
-		"tx": tx,
-	}).Debug("Call Api")
-
 	result, err := neb.BlockChain().SimulateTransactionExecution(tx)
 	if err != nil {
 		return nil, err
@@ -260,19 +256,18 @@ func handleTransactionResponse(neb core.Neblet, tx *core.Transaction) (resp *rpc
 	}
 
 	// check Balance  Simulate
-	if tx.Nonce() == (acc.Nonce() + 1) {
-		logging.VLog().WithFields(logrus.Fields{
-			"tx": tx,
-		}).Debug("handle transaction")
-		result, err := neb.BlockChain().SimulateTransactionExecution(tx)
-		if err != nil {
-			return nil, err
-		}
+	/*
+		if tx.Nonce() == (acc.Nonce() + 1) {
+			result, err := neb.BlockChain().SimulateTransactionExecution(tx)
+			if err != nil {
+				return nil, err
+			}
 
-		if result.Err != nil {
-			return nil, result.Err
+			if result.Err != nil {
+				return nil, result.Err
+			}
 		}
-	}
+	*/
 
 	if tx.Type() == core.TxPayloadDeployType {
 		if !tx.From().Equals(tx.To()) {
@@ -551,9 +546,6 @@ func (s *APIService) EstimateGas(ctx context.Context, req *rpcpb.TransactionRequ
 		return nil, err
 	}
 
-	logging.VLog().WithFields(logrus.Fields{
-		"tx": tx,
-	}).Debug("EstimateGas Api")
 	result, err := neb.BlockChain().SimulateTransactionExecution(tx)
 	if err != nil {
 		return nil, err

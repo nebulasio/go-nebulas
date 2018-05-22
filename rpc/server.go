@@ -25,6 +25,7 @@ var (
 // Const
 const (
 	DefaultConnectionLimits = 128
+	MaxRecvMsgSize          = 64 * 1024 * 1024
 )
 
 // Neblet interface breaks cycle import dependency and hides unused services.
@@ -68,7 +69,8 @@ func NewServer(neblet core.Neblet) *Server {
 		logging.CLog().Fatal("Failed to find rpc config in config file.")
 	}
 	rpc := grpc.NewServer(grpc.StreamInterceptor(grpc_middleware.ChainStreamServer(loggingStream)),
-		grpc.UnaryInterceptor(grpc_middleware.ChainUnaryServer(loggingUnary)))
+		grpc.UnaryInterceptor(grpc_middleware.ChainUnaryServer(loggingUnary)),
+		grpc.MaxRecvMsgSize(MaxRecvMsgSize))
 
 	srv := &Server{neblet: neblet, rpcServer: rpc, rpcConfig: cfg}
 	api := &APIService{server: srv}

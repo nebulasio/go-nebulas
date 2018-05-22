@@ -189,7 +189,7 @@ func TransferFunc(handler unsafe.Pointer, to *C.char, v *C.char, gasCnt *C.size_
 				"address": engine.ctx.contract.Address(),
 				"err":     err,
 			}).Debug("failed to parse contract address")
-			return TransferRecordEventFailed
+			return TransferAddressFailed
 		}
 
 		event := &TransferFromContractEvent{

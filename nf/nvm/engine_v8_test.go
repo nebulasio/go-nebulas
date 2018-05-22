@@ -73,7 +73,7 @@ func (block *testBlock) Hash() byteutils.Hash {
 
 // Height mock
 func (block *testBlock) Height() uint64 {
-	return 1
+	return core.NvmMemoryLimitWithoutInjectHeight
 }
 
 // RandomSeed mock
@@ -274,6 +274,65 @@ func TestRunScriptSourceWithLimits(t *testing.T) {
 	}
 }
 
+func TestV8ResourceLimit(t *testing.T) {
+	tests := []struct {
+		name          string
+		contractPath  string
+		sourceType    string
+		initArgs      string
+		callArgs      string
+		initExceptErr string
+		callExceptErr string
+	}{
+		{"deploy test_oom_4.js", "./test/test_oom_4.js", "js", "[31457280]", "[31457280]", "", ""},
+		{"deploy test_oom_4.js", "./test/test_oom_4.js", "js", "[37748736]", "[37748736]", "", ""},
+		{"deploy test_oom_4.js", "./test/test_oom_4.js", "js", "[41943039]", "[41943039]", "exceed memory limits", "exceed memory limits"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			data, err := ioutil.ReadFile(tt.contractPath)
+			assert.Nil(t, err, "contract path read error")
+
+			mem, _ := storage.NewMemoryStorage()
+			context, _ := state.NewWorldState(dpos.NewDpos(), mem)
+			owner, err := context.GetOrCreateUserAccount([]byte("account1"))
+			assert.Nil(t, err)
+			owner.AddBalance(newUint128FromIntWrapper(10000000))
+			contract, _ := context.CreateContractAccount([]byte("account2"), nil)
+
+			ctx, err := NewContext(mockBlock(), mockTransaction(), contract, context)
+			engine := NewV8Engine(ctx)
+			engine.SetExecutionLimits(10000, 10000000)
+			_, err = engine.DeployAndInit(string(data), tt.sourceType, tt.initArgs)
+			engine.CollectTracingStats()
+			fmt.Printf("total:%v", engine.actualTotalMemorySize)
+			// assert.Nil(t, err)
+			if err != nil {
+				fmt.Printf("err:%v", err.Error())
+				assert.Equal(t, tt.initExceptErr, err.Error())
+			} else {
+				assert.Equal(t, tt.initExceptErr, "")
+			}
+			// assert.Equal(t, tt.initExceptErr, err.Error)
+
+			engine.Dispose()
+
+			engine = NewV8Engine(ctx)
+			engine.SetExecutionLimits(10000, 10000000)
+			_, err = engine.Call(string(data), tt.sourceType, "newMem", tt.callArgs)
+			// assert.Nil(t, err)
+			// assert.Equal(t, tt.initExceptErr, err.Error)
+			if err != nil {
+				assert.Equal(t, tt.initExceptErr, err.Error())
+			} else {
+				assert.Equal(t, tt.initExceptErr, "")
+			}
+			engine.Dispose()
+
+		})
+	}
+}
 func TestRunScriptSourceTimeout(t *testing.T) {
 	tests := []struct {
 		filepath string
@@ -594,7 +653,9 @@ func TestInstructionCounterTestSuite(t *testing.T) {
 			owner, err := context.GetOrCreateUserAccount([]byte("account1"))
 			assert.Nil(t, err)
 			owner.AddBalance(newUint128FromIntWrapper(1000000000))
-			contract, err := context.CreateContractAccount([]byte("account2"), nil)
+			addr, err := core.NewContractAddressFromData([]byte("n1FkntVUMPAsESuCAAPK711omQk19JotBjM"), byteutils.FromUint64(1))
+			assert.Nil(t, err)
+			contract, err := context.CreateContractAccount(addr.Bytes(), nil)
 			assert.Nil(t, err)
 			ctx, err := NewContext(mockBlock(), mockTransaction(), contract, context)
 
@@ -808,7 +869,9 @@ func TestBankVaultContract(t *testing.T) {
 			owner.AddBalance(newUint128FromIntWrapper(10000000))
 
 			// prepare the contract.
-			contract, _ := context.CreateContractAccount([]byte("account2"), nil)
+			addr, err := core.NewContractAddressFromData([]byte("n1FkntVUMPAsESuCAAPK711omQk19JotBjM"), byteutils.FromUint64(1))
+			assert.Nil(t, err)
+			contract, _ := context.CreateContractAccount(addr.Bytes(), nil)
 			contract.AddBalance(newUint128FromIntWrapper(5))
 
 			// parepare env, block & transactions.
@@ -1066,6 +1129,92 @@ func TestNRC20ContractMultitimes(t *testing.T) {
 	}
 }
 
+func TestNRC721Contract(t *testing.T) {
+
+	tests := []struct {
+		name         string
+		contractPath string
+		sourceType   string
+		from         string
+		to           string
+		tokenID      string
+	}{
+		{"nrc721", "./test/NRC721BasicToken.js", "js",
+			"n1FkntVUMPAsESuCAAPK711omQk19JotBjM", "n1Kjom3J4KPsHKKzZ2xtt8Lc9W5pRDjeLcW", "1001",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			data, err := ioutil.ReadFile(tt.contractPath)
+			assert.Nil(t, err, "contract path read error")
+
+			mem, _ := storage.NewMemoryStorage()
+			context, _ := state.NewWorldState(dpos.NewDpos(), mem)
+			assert.Nil(t, err)
+
+			// prepare the contract.
+			contract, _ := context.CreateContractAccount([]byte("account2"), nil)
+			contract.AddBalance(newUint128FromIntWrapper(5))
+
+			// parepare env, block & transactions.
+			tx := mockNormalTransaction(tt.from, "n1TV3sU6jyzR4rJ1D7jCAmtVGSntJagXZHC", "0")
+			ctx, err := NewContext(mockBlock(), tx, contract, context)
+
+			// execute.
+			engine := NewV8Engine(ctx)
+			engine.SetExecutionLimits(10000, 100000000)
+			args := fmt.Sprintf("[\"%s\"]", tt.name)
+			_, err = engine.DeployAndInit(string(data), tt.sourceType, args)
+			assert.Nil(t, err)
+			engine.Dispose()
+
+			// call name.
+			engine = NewV8Engine(ctx)
+			engine.SetExecutionLimits(10000, 100000000)
+			name, err := engine.Call(string(data), tt.sourceType, "name", "")
+			assert.Nil(t, err)
+			var nameStr string
+			err = json.Unmarshal([]byte(name), &nameStr)
+			assert.Nil(t, err)
+			assert.Equal(t, tt.name, nameStr)
+			engine.Dispose()
+
+			// call mint.
+			engine = NewV8Engine(ctx)
+			engine.SetExecutionLimits(10000, 100000000)
+			mintArgs := fmt.Sprintf("[\"%s\", \"%s\"]", tt.from, tt.tokenID)
+			result, err := engine.Call(string(data), tt.sourceType, "mint", mintArgs)
+			assert.Nil(t, err)
+			assert.Equal(t, "\"\"", result)
+			engine.Dispose()
+
+			// call approve.
+			engine = NewV8Engine(ctx)
+			engine.SetExecutionLimits(10000, 100000000)
+			approveArgs := fmt.Sprintf("[\"%s\", \"%s\"]", tt.to, tt.tokenID)
+			result, err = engine.Call(string(data), tt.sourceType, "approve", approveArgs)
+			assert.Nil(t, err)
+			assert.Equal(t, "\"\"", result)
+			engine.Dispose()
+
+			// parepare env, block & transactions.
+			tx = mockNormalTransaction(tt.to, "n1TV3sU6jyzR4rJ1D7jCAmtVGSntJagXZHC", "0")
+			ctx, err = NewContext(mockBlock(), tx, contract, context)
+
+			// call transferFrom.
+			engine = NewV8Engine(ctx)
+			engine.SetExecutionLimits(10000, 100000000)
+			transferFromArgs := fmt.Sprintf("[\"%s\", \"%s\", \"%s\"]", tt.from, tt.to, tt.tokenID)
+			result, err = engine.Call(string(data), tt.sourceType, "transferFrom", transferFromArgs)
+			assert.Nil(t, err)
+			assert.Equal(t, "\"\"", result)
+			engine.Dispose()
+
+		})
+	}
+}
+
 func TestNebulasContract(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -1167,7 +1316,9 @@ func TestTransferValueFromContracts(t *testing.T) {
 			owner, err := context.GetOrCreateUserAccount([]byte("account1"))
 			assert.Nil(t, err)
 			owner.AddBalance(newUint128FromIntWrapper(10000000))
-			contract, err := context.CreateContractAccount([]byte("account2"), nil)
+			addr, err := core.NewContractAddressFromData([]byte("n1FkntVUMPAsESuCAAPK711omQk19JotBjM"), byteutils.FromUint64(1))
+			assert.Nil(t, err)
+			contract, err := context.CreateContractAccount(addr.Bytes(), nil)
 			assert.Nil(t, err)
 
 			contract.AddBalance(newUint128FromIntWrapper(100))
