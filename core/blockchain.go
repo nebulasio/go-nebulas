@@ -584,6 +584,10 @@ func (bc *BlockChain) StartActiveSync() bool {
 	return false
 }
 
+func (bc *BlockChain) IsActiveSyncing() bool {
+	return bc.syncService.IsActiveSyncing()
+}
+
 // ConsensusHandler return consensus handler.
 func (bc *BlockChain) ConsensusHandler() Consensus {
 	return bc.consensusHandler
