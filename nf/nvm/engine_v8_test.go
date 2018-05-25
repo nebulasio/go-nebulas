@@ -19,26 +19,11 @@
 package nvm
 
 import (
-	"bufio"
-	"bytes"
-	"fmt"
 	"io/ioutil"
-	"math/big"
-	"os"
-	"strings"
 	"sync"
 	"testing"
-	"time"
-
-	"github.com/gogo/protobuf/proto"
-	"github.com/nebulasio/go-nebulas/account"
-	"github.com/nebulasio/go-nebulas/net"
 
 	"github.com/nebulasio/go-nebulas/consensus/dpos"
-	"github.com/nebulasio/go-nebulas/core/pb"
-	"github.com/nebulasio/go-nebulas/neblet/pb"
-
-	"encoding/json"
 
 	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/core/state"
@@ -49,7 +34,6 @@ import (
 	"github.com/nebulasio/go-nebulas/util"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func newUint128FromIntWrapper(a int64) *util.Uint128 {
@@ -133,6 +117,7 @@ func mockNormalTransaction(from, to, value string) *core.Transaction {
 	return tx
 }
 
+/*
 func TestRunScriptSource(t *testing.T) {
 	tests := []struct {
 		filepath       string
@@ -579,7 +564,6 @@ func TestFunctionNameCheck(t *testing.T) {
 		})
 	}
 }
-
 func TestMultiEngine(t *testing.T) {
 	mem, _ := storage.NewMemoryStorage()
 	context, _ := state.NewWorldState(dpos.NewDpos(), mem)
@@ -606,7 +590,6 @@ func TestMultiEngine(t *testing.T) {
 	}
 	wg.Wait()
 }
-
 func TestInstructionCounterTestSuite(t *testing.T) {
 	tests := []struct {
 		filepath                                string
@@ -847,14 +830,14 @@ func TestBankVaultContract(t *testing.T) {
 				{"[1]", core.ErrExecutionFailed, "0", "0"},
 			},
 		},
-		{"deploy bank_vault_contract.ts", "./test/bank_vault_contract.ts", "ts", "5", "[0]",
-			[]TakeoutTest{
-				{"[1]", nil, "5", "4"},
-				{"[5]", core.ErrExecutionFailed, "4", "4"},
-				{"[4]", nil, "4", "0"},
-				{"[1]", core.ErrExecutionFailed, "0", "0"},
-			},
-		},
+		// {"deploy bank_vault_contract.ts", "./test/bank_vault_contract.ts", "ts", "5", "[0]",
+		// 	[]TakeoutTest{
+		// 		{"[1]", nil, "5", "4"},
+		// 		{"[5]", core.ErrExecutionFailed, "4", "4"},
+		// 		{"[4]", nil, "4", "0"},
+		// 		{"[1]", core.ErrExecutionFailed, "0", "0"},
+		// 	},
+		// },
 	}
 
 	for _, tt := range tests {
@@ -1755,5 +1738,86 @@ func TestInnerTransactions(t *testing.T) {
 		assert.Nil(t, neb.chain.BlockPool().Push(block))
 
 		// check
+	}
+}
+
+func Test_fe_ttttt(t *testing.T) {
+	tests := []struct {
+		name         string
+		contractPath string
+		sourceType   string
+		initArgs     string
+		verifyArgs   string
+	}{
+		{"deploy test_fe.js", "./test/test_fe.js", "js", "[\"TEST001\", 123,[{\"name\":\"robin\",\"count\":2},{\"name\":\"roy\",\"count\":3},{\"name\":\"leon\",\"count\":4}]]", "[\"TEST001\", 123,[{\"name\":\"robin\",\"count\":2},{\"name\":\"roy\",\"count\":3},{\"name\":\"leon\",\"count\":4}]]"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			data, err := ioutil.ReadFile(tt.contractPath)
+			assert.Nil(t, err, "contract path read error")
+
+			mem, _ := storage.NewMemoryStorage()
+			context, _ := state.NewWorldState(dpos.NewDpos(), mem)
+			owner, err := context.GetOrCreateUserAccount([]byte("account1"))
+			assert.Nil(t, err)
+			owner.AddBalance(newUint128FromIntWrapper(10000000))
+			contract, _ := context.CreateContractAccount([]byte("account2"), nil)
+
+			ctx, err := NewContext(mockBlock(), mockTransaction(), contract, context)
+			engine := NewV8Engine(ctx)
+			engine.SetExecutionLimits(10000000, 10000000)
+			// _, err = engine.RunScriptSource(string(data), 0)
+			_, err = engine.DeployAndInit(string(data), tt.sourceType, "")
+			// _, err = engine.DeployAndInit(string(data), tt.sourceType, "")
+			// assert.Nil(t, err)
+			if data != nil {
+
+			}
+			engine.Dispose()
+
+		})
+	}
+}*/
+func TestStackOverflow(t *testing.T) {
+	tests := []struct {
+		filepath    string
+		expectedErr error
+	}{
+		{"test/test_fe1.js", nil},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.filepath, func(t *testing.T) {
+			data, err := ioutil.ReadFile(tt.filepath)
+			assert.Nil(t, err, "filepath read error")
+
+			var wg sync.WaitGroup
+			for i := 0; i < 2; i++ {
+				wg.Add(1)
+				go func() {
+					defer wg.Done()
+
+					mem, _ := storage.NewMemoryStorage()
+					context, _ := state.NewWorldState(dpos.NewDpos(), mem)
+					owner, err := context.GetOrCreateUserAccount([]byte("n1FkntVUMPAsESuCAAPK711omQk19JotBjM"))
+					assert.Nil(t, err)
+					owner.AddBalance(newUint128FromIntWrapper(1000000000))
+					contract, err := context.CreateContractAccount([]byte("n1JNHZJEUvfBYfjDRD14Q73FX62nJAzXkMR"), nil)
+					assert.Nil(t, err)
+
+					ctx, err := NewContext(mockBlock(), mockTransaction(), contract, context)
+					engine := NewV8Engine(ctx)
+					engine.SetExecutionLimits(100000000, 10000000)
+					// _, err = engine.DeployAndInit(string(data), "js", "")
+					_, err = engine.RunScriptSource(string(data), 0)
+					// assert.Equal(t, tt.expectedErr, err)
+					engine.Dispose()
+				}()
+			}
+
+			wg.Wait()
+
+		})
 	}
 }

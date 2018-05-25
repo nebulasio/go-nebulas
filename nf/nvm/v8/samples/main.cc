@@ -16,7 +16,7 @@
 // along with the go-nebulas library.  If not, see
 // <http://www.gnu.org/licenses/>.
 //
-
+#include <unistd.h>
 #include "../engine.h"
 #include "../lib/blockchain.h"
 #include "../lib/fake_blockchain.h"
@@ -219,9 +219,45 @@ void ExecuteScript(const char *filename, V8ExecutionDelegate delegate) {
   DeleteStorageHandler(lcsHandler);
   DeleteStorageHandler(gcsHandler);
 }
+void *loop(void *arg) {
+  // char str[2 * 1024 * 1024];
+  //   memset(str, 0x01, sizeof(str));
+  //   uint32_t a = 0;
+  //   for (int i = 0; i < sizeof(str); ++i) {
+  //     a += str[i];
+  //   }
+  //   printf("test2 a:%u\n", a);
 
+  pthread_attr_t attribute;  
+  pthread_attr_init(&attribute);
+  size_t stacksize = 100;  
+  pthread_attr_getstacksize(&attribute, &stacksize);
+  printf("loop -- stacksize(%lu)--min stack:%u\n", stacksize, PTHREAD_STACK_MIN); 
+  ExecuteScript((const char*)arg, RunScriptSourceDelegate);
+  return 0x00;
+}
 void ExecuteScriptSource(const char *filename) {
-  ExecuteScript(filename, RunScriptSourceDelegate);
+  // pthread_t pthread_id;  
+  // pthread_attr_t thread_attr;  
+  // int status;  
+
+  // status = pthread_attr_init(&thread_attr);  
+  // if(status != 0)  
+  //     printf("init error\n");  
+
+  // size_t stacksize = 100;  
+  // status = pthread_attr_getstacksize(&thread_attr, &stacksize);  
+  // printf("stacksize(%d)\n", stacksize);  
+
+  // char str[1024 * 400];
+  // memset(str, 0x01, sizeof(str) - 1);
+  // uint32_t a = 0;
+  // for(int i = 0; i < sizeof(str) - 1; ++i) {
+  //   a += str[i];
+  // }
+  // printf("std:%d\n", a);
+  // while(1)
+    ExecuteScript(filename, RunScriptSourceDelegate);
 }
 
 int main(int argc, const char *argv[]) {
@@ -303,16 +339,60 @@ int main(int argc, const char *argv[]) {
     // inject and print.
     ExecuteScript(filename, InjectTracingInstructionsAndPrintDelegate);
   } else {
+    // ExecuteScript(filename, RunScriptSourceDelegate);
     // execute script.
-    std::vector<std::thread *> threads;
+    // std::vector<std::thread *> threads;
+    // for (int i = 0; i < concurrency; i++) {
+    //   // pthread_attr_t attribute;
+    //   // pthread_attr_init(&attribute);
+    //   // pthread_attr_setstacksize(&attribute, 6388608);
+
+    //   // pthread_t pthread_id;  
+    //   // pthread_attr_t thread_attr;  
+    //   // int status;  
+
+    //   // status = pthread_attr_init(&thread_attr);  
+    //   // if(status != 0)  
+    //   //     printf("init error\n");  
+
+    //   // size_t stacksize = 100;  
+    //   // status = pthread_attr_getstacksize(&thread_attr, &stacksize);  
+    //   // printf("stacksize(%d)\n", stacksize);  
+
+    //   printf("-----------------------------------------\n");
+    //   std::thread *thread = new std::thread(ExecuteScriptSource, filename);
+    //   // std::thread(
+      
+    //   threads.push_back(thread);
+    // }
+
+    // for (int i = 0; i < concurrency; i++) {
+    //   threads[i]->join();
+    // }
+    // char str[6 * 1024 * 1024];
+    // memset(str, 0x01, sizeof(str));
+    // uint32_t a = 0;
+    // for (int i = 0; i < sizeof(str); ++i) {
+    //   a += str[i];
+    // }
+    // printf("test a:%u\n", a);
+    printf("min stack:%u\n", PTHREAD_STACK_MIN);
+    pthread_attr_t attribute;
+    std::vector<pthread_t > threads;
     for (int i = 0; i < concurrency; i++) {
-      std::thread *thread = new std::thread(ExecuteScriptSource, filename);
+      pthread_t thread;
+      pthread_attr_init(&attribute);
+      pthread_attr_setstacksize(&attribute, 2 * 1024 * 1024);
+
+      pthread_create(&thread,&attribute, loop, (void *)filename);
       threads.push_back(thread);
     }
-
     for (int i = 0; i < concurrency; i++) {
-      threads[i]->join();
+      // threads[i]->join();
+      pthread_join(threads[i], 0);
     }
+    printf("success\n");
+    // pthread_join(thread,0);
   }
 
   Dispose();

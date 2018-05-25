@@ -280,14 +280,16 @@ func (e *V8Engine) RunScriptSource(source string, sourceLineOffset int) (string,
 		ret     C.int
 		cResult *C.char
 	)
-
 	done := make(chan bool, 1)
-	go func() {
-		ret = C.RunScriptSource(&cResult, e.v8engine, cSource, C.int(sourceLineOffset), C.uintptr_t(e.lcsHandler),
-			C.uintptr_t(e.gcsHandler))
-		done <- true
-	}()
 
+	// go func() {
+	// 	ret = C.RunScriptSource(&cResult, e.v8engine, cSource, C.int(sourceLineOffset), C.uintptr_t(e.lcsHandler),
+	// 		C.uintptr_t(e.gcsHandler))
+	// 	done <- true
+	// }()
+	ret = C.RunScriptSource(&cResult, e.v8engine, cSource, C.int(sourceLineOffset), C.uintptr_t(e.lcsHandler),
+		C.uintptr_t(e.gcsHandler))
+	done <- true
 	select {
 	case <-done:
 		if ret != 0 {
@@ -375,7 +377,10 @@ func (e *V8Engine) RunContractScript(source, sourceType, function, args string) 
 			return "", err
 		}
 	}
+	if runnableSource == "" || sourceLineOffset == 0 {
 
+	}
+	// return "", nil
 	return e.RunScriptSource(runnableSource, sourceLineOffset)
 }
 

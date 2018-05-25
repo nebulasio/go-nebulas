@@ -19,6 +19,7 @@
 
 #ifndef _NEBULAS_NF_NVM_V8_ENGINE_H_
 #define _NEBULAS_NF_NVM_V8_ENGINE_H_
+// #include <v8.h>
 
 #if BUILDING_DLL
 #define EXPORT __attribute__((__visibility__("default")))
@@ -32,6 +33,7 @@ extern "C" {
 
 #include <stddef.h>
 #include <stdint.h>
+
 
 enum LogLevel {
   DEBUG = 1,
@@ -106,6 +108,7 @@ typedef struct V8Engine {
   int is_requested_terminate_execution;
   int testing;
   V8EngineStats stats;
+  // void *context;
 } V8Engine;
 
 EXPORT void Initialize();
