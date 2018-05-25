@@ -47,13 +47,11 @@ void NewBlockchainInstance(Isolate *isolate, Local<Context> context,
                                                  PropertyAttribute::ReadOnly));
   */
 
-  /* disable getAccountState() function.
-    blockTpl->Set(String::NewFromUtf8(isolate, "getAccountState"),
-                  FunctionTemplate::New(isolate, GetAccountStateCallback),
-                  static_cast<PropertyAttribute>(PropertyAttribute::DontDelete
-                  |
-                                                 PropertyAttribute::ReadOnly));
-  */
+  blockTpl->Set(String::NewFromUtf8(isolate, "getAccountState"),
+                FunctionTemplate::New(isolate, GetAccountStateCallback),
+                static_cast<PropertyAttribute>(PropertyAttribute::DontDelete|
+                                                PropertyAttribute::ReadOnly));
+
 
   blockTpl->Set(String::NewFromUtf8(isolate, "transfer"),
                 FunctionTemplate::New(isolate, TransferCallback),

@@ -72,8 +72,17 @@ Blockchain.prototype = {
         var ret = this.nativeBlockchain.transfer(address, value.toString(10));
         return ret == 0;
     },
+
     verifyAddress: function (address) {
         return this.nativeBlockchain.verifyAddress(address);
+    },
+
+    getAccountState: function(address) {
+        if (address) {
+            return this.nativeBlockchain.getAccountState(address);
+        } else {
+            throw "getAccountState:  inValid address";
+        }
     }
 };
 module.exports = new Blockchain();
