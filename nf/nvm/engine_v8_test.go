@@ -1784,7 +1784,7 @@ func TestStackOverflow(t *testing.T) {
 		filepath    string
 		expectedErr error
 	}{
-		{"test/test_fe1.js", nil},
+		{"test/contract_stack_overflow.js", core.ErrExecutionFailed},
 	}
 
 	for _, tt := range tests {
@@ -1809,10 +1809,15 @@ func TestStackOverflow(t *testing.T) {
 					ctx, err := NewContext(mockBlock(), mockTransaction(), contract, context)
 					engine := NewV8Engine(ctx)
 					engine.SetExecutionLimits(100000000, 10000000)
+
 					// _, err = engine.DeployAndInit(string(data), "js", "")
 					_, err = engine.RunScriptSource(string(data), 0)
-					// assert.Equal(t, tt.expectedErr, err)
+
+					//logging.CLog().Info("err:", err)
+					assert.Equal(t, tt.expectedErr, err)
+
 					engine.Dispose()
+
 				}()
 			}
 
