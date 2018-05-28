@@ -1754,7 +1754,6 @@ func TestInnerTransactions(t *testing.T) {
 	}
 }
 
-/*
 func TestStackOverflow(t *testing.T) {
 	tests := []struct {
 		filepath    string
@@ -1802,4 +1801,3 @@ func TestStackOverflow(t *testing.T) {
 		})
 	}
 }
-*/
