@@ -280,7 +280,7 @@ func (e *V8Engine) RunScriptSource(source string, sourceLineOffset int) (string,
 		ret     C.int
 		cResult *C.char
 	)
-	done := make(chan bool, 1)
+	done := make(chan bool)
 
 	err = nil
 	go func() {
