@@ -19,11 +19,24 @@
 package nvm
 
 import (
+	"bufio"
+	"bytes"
+	"encoding/json"
+	"fmt"
 	"io/ioutil"
+	"math/big"
+	"os"
+	"strings"
 	"sync"
 	"testing"
+	"time"
 
+	"github.com/gogo/protobuf/proto"
+	"github.com/nebulasio/go-nebulas/account"
 	"github.com/nebulasio/go-nebulas/consensus/dpos"
+	"github.com/nebulasio/go-nebulas/core/pb"
+	"github.com/nebulasio/go-nebulas/neblet/pb"
+	"github.com/nebulasio/go-nebulas/net"
 
 	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/core/state"
@@ -34,6 +47,7 @@ import (
 	"github.com/nebulasio/go-nebulas/util"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func newUint128FromIntWrapper(a int64) *util.Uint128 {
@@ -117,7 +131,6 @@ func mockNormalTransaction(from, to, value string) *core.Transaction {
 	return tx
 }
 
-/*
 func TestRunScriptSource(t *testing.T) {
 	tests := []struct {
 		filepath       string
@@ -1741,44 +1754,7 @@ func TestInnerTransactions(t *testing.T) {
 	}
 }
 
-func Test_fe_ttttt(t *testing.T) {
-	tests := []struct {
-		name         string
-		contractPath string
-		sourceType   string
-		initArgs     string
-		verifyArgs   string
-	}{
-		{"deploy test_fe.js", "./test/test_fe.js", "js", "[\"TEST001\", 123,[{\"name\":\"robin\",\"count\":2},{\"name\":\"roy\",\"count\":3},{\"name\":\"leon\",\"count\":4}]]", "[\"TEST001\", 123,[{\"name\":\"robin\",\"count\":2},{\"name\":\"roy\",\"count\":3},{\"name\":\"leon\",\"count\":4}]]"},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			data, err := ioutil.ReadFile(tt.contractPath)
-			assert.Nil(t, err, "contract path read error")
-
-			mem, _ := storage.NewMemoryStorage()
-			context, _ := state.NewWorldState(dpos.NewDpos(), mem)
-			owner, err := context.GetOrCreateUserAccount([]byte("account1"))
-			assert.Nil(t, err)
-			owner.AddBalance(newUint128FromIntWrapper(10000000))
-			contract, _ := context.CreateContractAccount([]byte("account2"), nil)
-
-			ctx, err := NewContext(mockBlock(), mockTransaction(), contract, context)
-			engine := NewV8Engine(ctx)
-			engine.SetExecutionLimits(10000000, 10000000)
-			// _, err = engine.RunScriptSource(string(data), 0)
-			_, err = engine.DeployAndInit(string(data), tt.sourceType, "")
-			// _, err = engine.DeployAndInit(string(data), tt.sourceType, "")
-			// assert.Nil(t, err)
-			if data != nil {
-
-			}
-			engine.Dispose()
-
-		})
-	}
-}*/
+/*
 func TestStackOverflow(t *testing.T) {
 	tests := []struct {
 		filepath    string
@@ -1826,3 +1802,4 @@ func TestStackOverflow(t *testing.T) {
 		})
 	}
 }
+*/
