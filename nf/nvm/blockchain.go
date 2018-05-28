@@ -25,7 +25,9 @@ import (
 
 	"encoding/json"
 
+	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/core"
+	"github.com/nebulasio/go-nebulas/core/pb"
 	"github.com/nebulasio/go-nebulas/core/state"
 	"github.com/nebulasio/go-nebulas/util"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
@@ -280,4 +282,89 @@ func VerifyAddressFunc(handler unsafe.Pointer, address *C.char, gasCnt *C.size_t
 		return 0
 	}
 	return int(addr.Type())
+}
+
+// GetPreBlockHashFunc returns hash of the block before current tail by n
+//export GetPreBlockHashFunc
+func GetPreBlockHashFunc(handler unsafe.Pointer, n int, gasCnt *C.size_t) *C.char {
+	if n <= 0 || n > 178560 { //31 days
+		return nil
+	}
+
+	engine, _ := getEngineByStorageHandler(uint64(uintptr(handler)))
+	if engine == nil || engine.ctx == nil || engine.ctx.block == nil || engine.ctx.state == nil {
+		return nil
+	}
+	wsState := engine.ctx.state
+	// calculate Gas.
+	*gasCnt = C.size_t(1000)
+
+	//get height
+	height := engine.ctx.block.Height()
+	if uint64(n) < height {
+		return nil
+	}
+	height -= uint64(n)
+
+	blockHash, err := wsState.Get(byteutils.FromUint64(height))
+	if err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"height": height,
+			"err":    err,
+		}).Fatal("Failed to get bytes from wsState") //TODO: to confirm
+		return nil
+	}
+
+	return C.CString(string(blockHash))
+}
+
+// GetPreBlockSeedFunc returns hash of the block before current tail by n
+//export GetPreBlockSeedFunc
+func GetPreBlockSeedFunc(handler unsafe.Pointer, n int, gasCnt *C.size_t) *C.char {
+	engine, _ := getEngineByStorageHandler(uint64(uintptr(handler)))
+	if engine == nil || engine.ctx == nil || engine.ctx.block == nil || engine.ctx.state == nil {
+		return nil
+	}
+	height := engine.ctx.block.Height()
+	wsState := engine.ctx.state
+
+	if height < core.RandomAvailableHeight {
+		return nil
+	}
+	// calculate Gas.
+	*gasCnt = C.size_t(1500) //TODO: to confirm
+
+	if n <= 0 || n > MaxRecentBlockNumber { //31 days
+		return nil
+	}
+	if uint64(n) >= height {
+		return nil
+	}
+	queryHeight := height - uint64(n)
+
+	blockHash, err := wsState.Get(byteutils.FromUint64(queryHeight))
+	if err != nil {
+		return nil
+	}
+
+	bytes, err := wsState.Get(blockHash)
+	if err != nil {
+		return nil
+	}
+
+	pbBlock := new(corepb.Block)
+	if err = proto.Unmarshal(bytes, pbBlock); err != nil {
+		return nil
+	}
+
+	if pbBlock.GetHeader() == nil || pbBlock.GetHeader().GetRandom() == nil ||
+		pbBlock.GetHeader().GetRandom().GetVrfSeed() == nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"pbBlock": pbBlock,
+			"height":  height,
+		}).Info("No random found in block header")
+		return nil
+	}
+
+	return C.CString(string(pbBlock.GetHeader().GetRandom().GetVrfSeed()))
 }

@@ -52,6 +52,11 @@ const (
 	TransferAddressFailed
 )
 
+//the max recent block number can query
+const (
+	MaxRecentBlockNumber = 178560
+)
+
 // Block interface breaks cycle import dependency and hides unused services.
 type Block interface {
 	Hash() byteutils.Hash
@@ -91,4 +96,5 @@ type WorldState interface {
 	GetOrCreateUserAccount(addr byteutils.Hash) (state.Account, error)
 	GetTx(txHash byteutils.Hash) ([]byte, error)
 	RecordEvent(txHash byteutils.Hash, event *state.Event)
+	Get(hash byteutils.Hash) ([]byte, error)
 }

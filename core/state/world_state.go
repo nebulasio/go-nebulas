@@ -653,3 +653,11 @@ func (tws *txWorldState) Close() error {
 func (tws *txWorldState) TxID() interface{} {
 	return tws.txid
 }
+
+func (tws *txWorldState) Get(hash byteutils.Hash) ([]byte, error) {
+	bytes, err := tws.innerDB.Get(hash)
+	if err != nil {
+		return nil, err
+	}
+	return bytes, nil
+}
