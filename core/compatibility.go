@@ -53,6 +53,9 @@ const (
 
 	//LocalWdResetRecordDependencyHeight
 	LocalWsResetRecordDependencyHeight uint64 = 2
+
+	//LocalNetTransferFromContractFailureEventRecordableHeight
+	LocalTransferFromContractFailureEventRecordableHeight uint64 = 333333
 )
 
 // TestNet
@@ -77,6 +80,9 @@ const (
 
 	//TestNetWdResetRecordDependencyHeight
 	TestNetWsResetRecordDependencyHeight uint64 = 281600
+
+	//TestNetTransferFromContractFailureEventRecordableHeight
+	TestNetTransferFromContractFailureEventRecordableHeight uint64 = 333333
 )
 
 // MainNet
@@ -101,6 +107,9 @@ const (
 
 	//MainNetWdResetRecordDependencyHeight
 	MainNetWsResetRecordDependencyHeight uint64 = 325666
+
+	//MainNetTransferFromContractFailureEventRecordableHeight
+	MainNetTransferFromContractFailureEventRecordableHeight uint64 = 333333
 )
 
 var (
@@ -124,6 +133,9 @@ var (
 
 	//WdResetRecordDependencyHeight if tx execute faied, worldstate reset and need to record to address dependency
 	WsResetRecordDependencyHeight = TestNetWsResetRecordDependencyHeight
+
+	// TransferFromContractEventRecordableHeight record event 'TransferFromContractEvent' since this height
+	TransferFromContractFailureEventRecordableHeight = TestNetTransferFromContractEventRecordableHeight
 )
 
 // SetCompatibilityOptions set compatibility height according to chain_id
@@ -137,6 +149,7 @@ func SetCompatibilityOptions(chainID uint32) {
 		RecordCallContractResultHeight = MainNetRecordCallContractResultHeight
 		NvmMemoryLimitWithoutInjectHeight = MainNetNvmMemoryLimitWithoutInjectHeight
 		WsResetRecordDependencyHeight = MainNetWsResetRecordDependencyHeight
+		TransferFromContractFailureEventRecordableHeight = MainNetTransferFromContractFailureEventRecordableHeight
 	} else if chainID == TestNetID {
 
 		TransferFromContractEventRecordableHeight = TestNetTransferFromContractEventRecordableHeight
@@ -146,6 +159,8 @@ func SetCompatibilityOptions(chainID uint32) {
 		RecordCallContractResultHeight = TestNetRecordCallContractResultHeight
 		NvmMemoryLimitWithoutInjectHeight = TestNetNvmMemoryLimitWithoutInjectHeight
 		WsResetRecordDependencyHeight = TestNetWsResetRecordDependencyHeight
+		TransferFromContractFailureEventRecordableHeight = TestNetTransferFromContractFailureEventRecordableHeight
+
 	} else {
 
 		TransferFromContractEventRecordableHeight = LocalTransferFromContractEventRecordableHeight
@@ -155,6 +170,8 @@ func SetCompatibilityOptions(chainID uint32) {
 		RecordCallContractResultHeight = LocalRecordCallContractResultHeight
 		NvmMemoryLimitWithoutInjectHeight = LocalNvmMemoryLimitWithoutInjectHeight
 		WsResetRecordDependencyHeight = LocalWsResetRecordDependencyHeight
+		TransferFromContractFailureEventRecordableHeight = LocalTransferFromContractFailureEventRecordableHeight
+
 	}
 	logging.VLog().WithFields(logrus.Fields{
 		"chain_id": chainID,
@@ -165,5 +182,6 @@ func SetCompatibilityOptions(chainID uint32) {
 		"RecordCallContractResultHeight":            RecordCallContractResultHeight,
 		"NvmMemoryLimitWithoutInjectHeight":         NvmMemoryLimitWithoutInjectHeight,
 		"WsResetRecordDependencyHeight":             WsResetRecordDependencyHeight,
+		"TransferFromContractFailureHeight":         TransferFromContractFailureEventRecordableHeight,
 	}).Info("Set compatibility options.")
 }
