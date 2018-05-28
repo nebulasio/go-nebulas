@@ -280,27 +280,24 @@ func (e *V8Engine) RunScriptSource(source string, sourceLineOffset int) (string,
 		ret     C.int
 		cResult *C.char
 	)
-
 	done := make(chan bool, 1)
+
+	err = nil
 	go func() {
-		ret = C.RunScriptSource(&cResult, e.v8engine, cSource, C.int(sourceLineOffset), C.uintptr_t(e.lcsHandler),
-			C.uintptr_t(e.gcsHandler))
-		done <- true
-	}()
-
-	select {
-	case <-done:
-		if ret != 0 {
-			err = core.ErrExecutionFailed
-		}
-	case <-time.After(ExecutionTimeoutInSeconds * time.Second):
-		C.TerminateExecution(e.v8engine) //ToDo TerminateExecution can kill RunScriptSource
-		err = ErrExecutionTimeout
-
-		// wait for C.RunScriptSource() returns.
 		select {
 		case <-done:
+			return
+		case <-time.After(ExecutionTimeoutInSeconds * time.Second):
+			C.TerminateExecution(e.v8engine) //ToDo TerminateExecution can kill RunScriptSource
+			err = ErrExecutionTimeout
 		}
+	}()
+
+	ret = C.RunScriptSource(&cResult, e.v8engine, cSource, C.int(sourceLineOffset), C.uintptr_t(e.lcsHandler),
+		C.uintptr_t(e.gcsHandler))
+	done <- true
+	if err == nil && ret != 0 {
+		err = core.ErrExecutionFailed
 	}
 
 	if cResult != nil {
