@@ -290,6 +290,11 @@ func (e *V8Engine) RunScriptSource(source string, sourceLineOffset int) (string,
 		case <-time.After(ExecutionTimeoutInSeconds * time.Second):
 			C.TerminateExecution(e.v8engine) //ToDo TerminateExecution can kill RunScriptSource
 			err = ErrExecutionTimeout
+
+			// wait for C.RunScriptSource() returns.
+			select {
+			case <-done:
+			}
 		}
 	}()
 
