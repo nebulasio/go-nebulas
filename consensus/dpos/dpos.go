@@ -64,7 +64,7 @@ var (
 	metricsBlockPackingTime = metrics.NewGauge("neb.block.packing")
 	metricsBlockWaitingTime = metrics.NewGauge("neb.block.waiting")
 	metricsLruPoolSlotBlock = metrics.NewGauge("neb.block.lru.poolslot")
-	metricsMintBlock        = metrics.NewGauge("neb.block.mint")
+	metricsMintBlock        = metrics.NewCounter("neb.block.mint")
 )
 
 // Dpos Delegate Proof-of-Stake
@@ -618,7 +618,6 @@ func (dpos *Dpos) pushAndBroadcast(tail *core.Block, block *core.Block) error {
 func (dpos *Dpos) mintBlock(now int64) error {
 	metricsBlockPackingTime.Update(0)
 	metricsBlockWaitingTime.Update(0)
-	metricsMintBlock.Update(0)
 
 	nowInMs := now * SecondInMs
 	// check mining enable
@@ -679,7 +678,7 @@ func (dpos *Dpos) mintBlock(now int64) error {
 		"end":      time.Now().Unix(),
 	}).Info("Minted new block")
 
-	metricsMintBlock.Update(1)
+	metricsMintBlock.Inc(1)
 	// try to push the new block on chain
 	// if failed, return all txs back
 
