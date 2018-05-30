@@ -83,6 +83,40 @@ Blockchain.prototype = {
         } else {
             throw "getAccountState:  inValid address";
         }
-    }
+    },
+    
+    getPreBlockHash: function (distance) {
+        distance = parseInt(distance);
+        if (!distance) {
+            throw "getPreBlockHash: invalid distance"
+        }
+        
+        if (distance <= 0) {
+            throw "distance should large than 0"
+        }
+
+        if (distance >= this.block.height) {
+            throw "block not exsit"
+        }
+        
+        return this.nativeBlockchain.getPreBlockHash(distance);
+    },
+
+    getPreBlockSeed: function (distance) {
+        distance = parseInt(distance);
+        if (!distance) {
+            throw "getPreBlockSeed: invalid distance"
+        }
+        
+        if (distance <= 0) {
+            throw "distance should large than 0"
+        }
+        
+        if (distance >= this.block.height) {
+            throw "block not exsit"
+        }
+
+        return this.nativeBlockchain.getPreBlockSeed(distance);
+    },
 };
 module.exports = new Blockchain();

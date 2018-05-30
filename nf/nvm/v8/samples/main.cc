@@ -233,7 +233,7 @@ int main(int argc, const char *argv[]) {
   InitializeLogger(logFunc);
   InitializeRequireDelegate(RequireDelegateFunc);
   InitializeStorage(StorageGet, StoragePut, StorageDel);
-  InitializeBlockchain(GetTxByHash, GetAccountState, Transfer, VerifyAddress);
+  InitializeBlockchain(GetTxByHash, GetAccountState, Transfer, VerifyAddress, GetPreBlockHash, GetPreBlockSeed);
   InitializeEvent(eventTriggerFunc);
 
   int argcIdx = 1;

@@ -286,8 +286,9 @@ func VerifyAddressFunc(handler unsafe.Pointer, address *C.char, gasCnt *C.size_t
 
 // GetPreBlockHashFunc returns hash of the block before current tail by n
 //export GetPreBlockHashFunc
-func GetPreBlockHashFunc(handler unsafe.Pointer, n int, gasCnt *C.size_t) *C.char {
-	if n <= 0 || n > 178560 { //31 days
+func GetPreBlockHashFunc(handler unsafe.Pointer, distance C.ulonglong, gasCnt *C.size_t) *C.char {
+	n := uint64(distance)
+	if n > uint64(maxBlockDistance) { //31 days
 		return nil
 	}
 
@@ -297,64 +298,82 @@ func GetPreBlockHashFunc(handler unsafe.Pointer, n int, gasCnt *C.size_t) *C.cha
 	}
 	wsState := engine.ctx.state
 	// calculate Gas.
-	*gasCnt = C.size_t(1000)
+	*gasCnt = C.size_t(1000) //TODO: to confirm
 
 	//get height
 	height := engine.ctx.block.Height()
-	if uint64(n) < height {
-		return nil
+	if n >= height { // have checked it in lib js
+		logging.VLog().WithFields(logrus.Fields{
+			"height":   height,
+			"distance": n,
+		}).Fatal("distance is large than height") //TODO: to confirm
 	}
-	height -= uint64(n)
+	height -= n
 
-	blockHash, err := wsState.Get(byteutils.FromUint64(height))
+	blockHash, err := wsState.GetBlockHashByHeight(height)
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"height": height,
 			"err":    err,
-		}).Fatal("Failed to get bytes from wsState") //TODO: to confirm
-		return nil
+		}).Fatal("Failed to get block hash from wsState by height") //TODO: to confirm
 	}
 
-	return C.CString(string(blockHash))
+	return C.CString(byteutils.Hex(blockHash))
 }
 
 // GetPreBlockSeedFunc returns hash of the block before current tail by n
 //export GetPreBlockSeedFunc
-func GetPreBlockSeedFunc(handler unsafe.Pointer, n int, gasCnt *C.size_t) *C.char {
+func GetPreBlockSeedFunc(handler unsafe.Pointer, distance C.ulonglong, gasCnt *C.size_t) *C.char {
+	n := uint64(distance)
+	if n > uint64(maxBlockDistance) { //31 days
+		return nil
+	}
+
 	engine, _ := getEngineByStorageHandler(uint64(uintptr(handler)))
 	if engine == nil || engine.ctx == nil || engine.ctx.block == nil || engine.ctx.state == nil {
 		return nil
 	}
-	height := engine.ctx.block.Height()
 	wsState := engine.ctx.state
+	// calculate Gas.
+	*gasCnt = C.size_t(1000) //TODO: to confirm
 
+	//get height
+	height := engine.ctx.block.Height()
+	if n >= height { // have checked it in lib js
+		logging.VLog().WithFields(logrus.Fields{
+			"height":   height,
+			"distance": n,
+		}).Fatal("distance is large than height") //TODO: to confirm
+	}
+
+	height -= n
 	if height < core.RandomAvailableHeight {
 		return nil
 	}
-	// calculate Gas.
-	*gasCnt = C.size_t(1500) //TODO: to confirm
 
-	if n <= 0 || n > MaxRecentBlockNumber { //31 days
-		return nil
-	}
-	if uint64(n) >= height {
-		return nil
-	}
-	queryHeight := height - uint64(n)
-
-	blockHash, err := wsState.Get(byteutils.FromUint64(queryHeight))
+	blockHash, err := wsState.GetBlockHashByHeight(height)
 	if err != nil {
-		return nil
+		logging.VLog().WithFields(logrus.Fields{
+			"height": height,
+			"err":    err,
+		}).Fatal("Failed to get block hash from wsState by height") //TODO: to confirm
 	}
 
-	bytes, err := wsState.Get(blockHash)
+	bytes, err := wsState.GetBlock(blockHash)
 	if err != nil {
-		return nil
+		logging.VLog().WithFields(logrus.Fields{
+			"height": height,
+			"err":    err,
+		}).Fatal("Failed to get block from wsState by hash") //TODO: to confirm
 	}
 
 	pbBlock := new(corepb.Block)
 	if err = proto.Unmarshal(bytes, pbBlock); err != nil {
-		return nil
+		logging.VLog().WithFields(logrus.Fields{
+			"bytes":  bytes,
+			"height": height,
+			"err":    err,
+		}).Fatal("Failed to unmarshal pbBlock") //TODO: to confirm
 	}
 
 	if pbBlock.GetHeader() == nil || pbBlock.GetHeader().GetRandom() == nil ||
@@ -362,9 +381,8 @@ func GetPreBlockSeedFunc(handler unsafe.Pointer, n int, gasCnt *C.size_t) *C.cha
 		logging.VLog().WithFields(logrus.Fields{
 			"pbBlock": pbBlock,
 			"height":  height,
-		}).Info("No random found in block header")
-		return nil
+		}).Fatal("No random found in block header") //TODO: to confirm
 	}
 
-	return C.CString(string(pbBlock.GetHeader().GetRandom().GetVrfSeed()))
+	return C.CString(byteutils.Hex(pbBlock.GetHeader().GetRandom().GetVrfSeed()))
 }
