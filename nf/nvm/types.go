@@ -3,6 +3,8 @@ package nvm
 import (
 	"errors"
 
+	"github.com/nebulasio/go-nebulas/consensus/dpos"
+
 	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/core/state"
 	"github.com/nebulasio/go-nebulas/storage"
@@ -54,7 +56,8 @@ const (
 
 //the max recent block number can query
 const (
-	MaxRecentBlockNumber = 178560
+	maxQueryBlockInfoValidTime = 30
+	maxBlockDistance           = maxQueryBlockInfoValidTime * 24 * 3600 * 1000 / dpos.BlockIntervalInMs
 )
 
 // Block interface breaks cycle import dependency and hides unused services.
@@ -96,5 +99,6 @@ type WorldState interface {
 	GetOrCreateUserAccount(addr byteutils.Hash) (state.Account, error)
 	GetTx(txHash byteutils.Hash) ([]byte, error)
 	RecordEvent(txHash byteutils.Hash, event *state.Event)
-	Get(hash byteutils.Hash) ([]byte, error)
+	GetBlockHashByHeight(height uint64) ([]byte, error)
+	GetBlock(txHash byteutils.Hash) ([]byte, error)
 }
