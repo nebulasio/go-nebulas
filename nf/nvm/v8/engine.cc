@@ -410,7 +410,7 @@ void RunScriptThread(V8Engine *e) {
   // V8Engine *pe = (V8Engine*)args;
   pthread_create(&thread, &attribute, loopExecute, (void *)e);
   // int count = 0;
-  static struct timeval tcBegin, tcEnd;
+  struct timeval tcBegin, tcEnd;
   gettimeofday(&tcBegin, NULL);
   bool isKill = false;
   //thread safe
