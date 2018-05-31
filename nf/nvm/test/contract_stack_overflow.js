@@ -21,11 +21,6 @@ Test.prototype = {
        var s = new Set();
        s.toString()
     }
-}
-var s = new Set();
-s.toString();
-//while(1) {
+};
 
-//}
-console.log("test js");
-
+module.exports = Test;

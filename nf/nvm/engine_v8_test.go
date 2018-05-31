@@ -1968,7 +1968,7 @@ func TestThreadStackOverflowE(t *testing.T) {
 		filepath    string
 		expectedErr error
 	}{
-		{"test/test_fe.js", nil},
+		{"test/contract_stack_overflow.js", core.ErrExecutionFailed},
 	}
 	// lockx := sync.RWMutex{}
 
@@ -2018,7 +2018,7 @@ func TestThreadStackOverflowE(t *testing.T) {
 					_, err = engine.DeployAndInit(string(data), "js", "")
 					fmt.Printf("err:%v", err)
 					// _, err = engine.RunScriptSource("", 0)
-					// assert.Equal(t, tt.expectedErr, err)
+					assert.Equal(t, tt.expectedErr, err)
 					engine.Dispose()
 					// // lockx.Unlock()
 
