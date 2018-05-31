@@ -39,6 +39,7 @@ static char source_require_format[] =
     "})();\n";
 
 static RequireDelegate sRequireDelegate = NULL;
+static AttachLibVersionDelegate alvDelegate = NULL;
 
 static int readSource(Local<Context> context, const char *filename, char **data,
                       size_t *lineOffset) {
@@ -68,6 +69,22 @@ static int readSource(Local<Context> context, const char *filename, char **data,
   *lineOffset += -2;
   free(content);
 
+  return 0;
+}
+
+static int attachVersion(char *out, Local<Context> context, const char *libname) {
+
+  char *verlib = NULL;
+  if (alvDelegate != NULL) {
+    V8Engine *e = GetV8EngineInstance(context);
+    verlib = alvDelegate(e, libname);
+  }
+  if (verlib == NULL) {
+    return 1;
+  }
+
+  strcat(out, verlib);
+  free(verlib);
   return 0;
 }
 
@@ -104,14 +121,20 @@ void RequireCallback(const v8::FunctionCallbackInfo<v8::Value> &info) {
   }
   char *abPath = NULL;
   if (strcmp(*filename, LIB_WHITE)) { // if needed, check array instead.
-    abPath = realpath(*filename, NULL);
+    char versioned[MAX_VERSIONED_PATH_LEN] = {0};
+    if (attachVersion(versioned, context, filename) != 0) {
+      isolate->ThrowException(Exception::Error(String::NewFromUtf8(
+          isolate, "attach version failed")));
+      return;
+    }
+    abPath = realpath(versioned, NULL);
     if (abPath == NULL) {
       isolate->ThrowException(Exception::Error(String::NewFromUtf8(
           isolate, "require path is invalid absolutepath")));
       return;
     }
-    static char curPath[MAX_PATH_LEN] = {0};
-    if (curPath[0] == 0x00 && !getCurAbsolute(curPath, MAX_PATH_LEN)) {
+    static char curPath[MAX_VERSIONED_PATH_LEN] = {0};
+    if (curPath[0] == 0x00 && !getCurAbsolute(curPath, MAX_VERSIONED_PATH_LEN)) {
       isolate->ThrowException(Exception::Error(
           String::NewFromUtf8(isolate, "invalid cwd absolutepath")));
       free(abPath);
@@ -163,6 +186,7 @@ void RequireCallback(const v8::FunctionCallbackInfo<v8::Value> &info) {
   free(static_cast<void *>(data));
 }
 
-void InitializeRequireDelegate(RequireDelegate delegate) {
+void InitializeRequireDelegate(RequireDelegate delegate, AttachLibVersionDelegate aDelegate) {
   sRequireDelegate = delegate;
+  alvDelegate = aDelegate;
 }

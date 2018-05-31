@@ -22,6 +22,9 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/nebulasio/go-nebulas/core/pb"
+	"github.com/nebulasio/go-nebulas/core/state"
+
 	"github.com/nebulasio/go-nebulas/util"
 )
 
@@ -108,7 +111,12 @@ func (payload *DeployPayload) Execute(limitedGas *util.Uint128, tx *Transaction,
 	if err != nil {
 		return util.NewUint128(), "", err
 	} */
-	contract, err := ws.CreateContractAccount(addr.Bytes(), tx.Hash())
+	var contract state.Account
+	if block.Height() >= V8JSLibVersionControlHeight {
+		contract, err = ws.CreateContractAccount(addr.Bytes(), tx.Hash(), &corepb.ContractMeta{Version: CurrentV8JSLibVersion})
+	} else {
+		contract, err = ws.CreateContractAccount(addr.Bytes(), tx.Hash(), nil)
+	}
 	if err != nil {
 		return util.NewUint128(), "", err
 	}

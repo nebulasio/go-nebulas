@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	"github.com/nebulasio/go-nebulas/core"
+	"github.com/nebulasio/go-nebulas/core/pb"
 	"github.com/nebulasio/go-nebulas/core/state"
 	"github.com/nebulasio/go-nebulas/storage"
 	"github.com/nebulasio/go-nebulas/util"
@@ -84,6 +85,7 @@ type Account interface {
 	Put(key []byte, value []byte) error
 	Get(key []byte) ([]byte, error)
 	Del(key []byte) error
+	ContractMeta() *corepb.ContractMeta
 }
 
 // WorldState interface breaks cycle import dependency and hides unused services.

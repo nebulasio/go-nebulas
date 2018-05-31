@@ -22,6 +22,7 @@ import (
 	"encoding/json"
 
 	"github.com/nebulasio/go-nebulas/consensus/pb"
+	"github.com/nebulasio/go-nebulas/core/pb"
 	"github.com/nebulasio/go-nebulas/util"
 
 	"github.com/nebulasio/go-nebulas/common/mvccdb"
@@ -411,8 +412,8 @@ func (s *states) GetContractAccount(addr byteutils.Hash) (Account, error) {
 	return s.recordAccount(acc)
 }
 
-func (s *states) CreateContractAccount(owner byteutils.Hash, birthPlace byteutils.Hash) (Account, error) {
-	acc, err := s.accState.CreateContractAccount(owner, birthPlace)
+func (s *states) CreateContractAccount(owner byteutils.Hash, birthPlace byteutils.Hash, contractMeta *corepb.ContractMeta) (Account, error) {
+	acc, err := s.accState.CreateContractAccount(owner, birthPlace, contractMeta)
 	if err != nil {
 		return nil, err
 	}

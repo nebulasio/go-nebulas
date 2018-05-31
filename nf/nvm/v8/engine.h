@@ -81,7 +81,11 @@ EXPORT char *GetV8Version();
 // require callback.
 typedef char *(*RequireDelegate)(void *handler, const char *filename,
                                  size_t *lineOffset);
-EXPORT void InitializeRequireDelegate(RequireDelegate delegate);
+typedef char *(*AttachLibVersionDelegate)(void *handler, const char *libname);
+
+EXPORT void InitializeRequireDelegate(RequireDelegate delegate, AttachLibVersionDelegate libDelegate);
+
+EXPORT void InitializeExecutionEnvDelegate(AttachLibVersionDelegate libDelegate);
 
 typedef struct V8EngineStats {
   size_t count_of_executed_instructions;

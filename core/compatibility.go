@@ -19,6 +19,10 @@
 package core
 
 import (
+	"os"
+	"path/filepath"
+	"strings"
+
 	"github.com/nebulasio/go-nebulas/util/logging"
 	"github.com/sirupsen/logrus"
 )
@@ -29,6 +33,32 @@ const (
 
 	// TestNetID testnet id
 	TestNetID uint32 = 1001
+)
+
+const (
+	// DefaultV8JSLibVersion default version
+	DefaultV8JSLibVersion = "1.0.0"
+
+	// CurrentV8JSLibVersion current js lib version
+	CurrentV8JSLibVersion = "1.0.1"
+)
+
+// var ..
+var (
+	// NOTE: versions should be arranged in ascending order
+	// 		map[libname][versions]
+	V8JSLibs = map[string][]string{
+		"execution_env.js": {"1.0.0", "1.0.1"},
+		"bignumber.js":     {"1.0.0", "1.0.1"},
+		"random.js":        {"1.0.0", "1.0.1"},
+		"date.js":          {"1.0.0", "1.0.1"},
+		"blockchain.js":    {"1.0.0"},
+		"console.js":       {"1.0.0"},
+		"event.js":         {"1.0.0"},
+		"storage.js":       {"1.0.0"},
+		"crypto.js":        {"1.0.1"},
+		"uint.js":          {"1.0.1"},
+	}
 )
 
 // others, e.g. local/develop
@@ -53,6 +83,9 @@ const (
 
 	//LocalWdResetRecordDependencyHeight
 	LocalWsResetRecordDependencyHeight uint64 = 2
+
+	// LocalV8JSLibVersionControlHeight
+	LocalV8JSLibVersionControlHeight uint64 = 2
 )
 
 // TestNet
@@ -77,6 +110,9 @@ const (
 
 	//TestNetWdResetRecordDependencyHeight
 	TestNetWsResetRecordDependencyHeight uint64 = 281600
+
+	// TestNetV8JSLibVersionControlHeight
+	TestNetV8JSLibVersionControlHeight uint64 = 400000
 )
 
 // MainNet
@@ -101,6 +137,9 @@ const (
 
 	//MainNetWdResetRecordDependencyHeight
 	MainNetWsResetRecordDependencyHeight uint64 = 325666
+
+	// MainNetV8JSLibVersionControlHeight
+	MainNetV8JSLibVersionControlHeight uint64 = 400000
 )
 
 var (
@@ -122,8 +161,11 @@ var (
 	// NvmMemoryLimitWithoutInjectHeight memory of nvm contract without inject code
 	NvmMemoryLimitWithoutInjectHeight = TestNetNvmMemoryLimitWithoutInjectHeight
 
-	//WdResetRecordDependencyHeight if tx execute faied, worldstate reset and need to record to address dependency
+	//WsResetRecordDependencyHeight if tx execute faied, worldstate reset and need to record to address dependency
 	WsResetRecordDependencyHeight = TestNetWsResetRecordDependencyHeight
+
+	// V8JSLibVersionControlHeight enable v8 js lib version control
+	V8JSLibVersionControlHeight = TestNetV8JSLibVersionControlHeight
 )
 
 // SetCompatibilityOptions set compatibility height according to chain_id
@@ -137,6 +179,7 @@ func SetCompatibilityOptions(chainID uint32) {
 		RecordCallContractResultHeight = MainNetRecordCallContractResultHeight
 		NvmMemoryLimitWithoutInjectHeight = MainNetNvmMemoryLimitWithoutInjectHeight
 		WsResetRecordDependencyHeight = MainNetWsResetRecordDependencyHeight
+		V8JSLibVersionControlHeight = MainNetV8JSLibVersionControlHeight
 	} else if chainID == TestNetID {
 
 		TransferFromContractEventRecordableHeight = TestNetTransferFromContractEventRecordableHeight
@@ -146,6 +189,7 @@ func SetCompatibilityOptions(chainID uint32) {
 		RecordCallContractResultHeight = TestNetRecordCallContractResultHeight
 		NvmMemoryLimitWithoutInjectHeight = TestNetNvmMemoryLimitWithoutInjectHeight
 		WsResetRecordDependencyHeight = TestNetWsResetRecordDependencyHeight
+		V8JSLibVersionControlHeight = TestNetV8JSLibVersionControlHeight
 	} else {
 
 		TransferFromContractEventRecordableHeight = LocalTransferFromContractEventRecordableHeight
@@ -155,6 +199,7 @@ func SetCompatibilityOptions(chainID uint32) {
 		RecordCallContractResultHeight = LocalRecordCallContractResultHeight
 		NvmMemoryLimitWithoutInjectHeight = LocalNvmMemoryLimitWithoutInjectHeight
 		WsResetRecordDependencyHeight = LocalWsResetRecordDependencyHeight
+		V8JSLibVersionControlHeight = LocalV8JSLibVersionControlHeight
 	}
 	logging.VLog().WithFields(logrus.Fields{
 		"chain_id": chainID,
@@ -165,5 +210,61 @@ func SetCompatibilityOptions(chainID uint32) {
 		"RecordCallContractResultHeight":            RecordCallContractResultHeight,
 		"NvmMemoryLimitWithoutInjectHeight":         NvmMemoryLimitWithoutInjectHeight,
 		"WsResetRecordDependencyHeight":             WsResetRecordDependencyHeight,
+		"V8JSLibVersionControlHeight":               V8JSLibVersionControlHeight,
 	}).Info("Set compatibility options.")
+
+	checkJSLib()
+}
+
+// FilterLibVersion ..
+func FilterLibVersion(deployVersion, libname string) string {
+	if len(deployVersion) == 0 || len(libname) == 0 {
+		logging.VLog().WithFields(logrus.Fields{
+			"libname":       libname,
+			"deployVersion": deployVersion,
+		}).Error("empty arguments.")
+		return ""
+	}
+	if libs, ok := V8JSLibs[libname]; ok {
+		for i := len(libs) - 1; i >= 0; i-- {
+			// TODO: check comparison
+			if strings.Compare(libs[i], deployVersion) <= 0 {
+				logging.VLog().WithFields(logrus.Fields{
+					"libname":       libname,
+					"deployVersion": deployVersion,
+					"return":        libs[i],
+				}).Debug("filter js lib.")
+				return libs[i]
+			}
+		}
+	} else {
+		logging.VLog().WithFields(logrus.Fields{
+			"libname":       libname,
+			"deployVersion": deployVersion,
+		}).Debug("js lib not configured.")
+	}
+	return ""
+}
+
+func checkJSLib() {
+	for lib, vers := range V8JSLibs {
+		for _, ver := range vers {
+			p := filepath.Join("lib", ver, lib)
+			fi, err := os.Stat(p)
+			if os.IsNotExist(err) {
+				logging.VLog().WithFields(logrus.Fields{
+					"path": p,
+				}).Fatal("lib file not exist.")
+			}
+			if fi.IsDir() {
+				logging.VLog().WithFields(logrus.Fields{
+					"path": p,
+				}).Fatal("directory already exists with the same name.")
+			}
+
+			logging.VLog().WithFields(logrus.Fields{
+				"path": p,
+			}).Debug("js lib exists.")
+		}
+	}
 }

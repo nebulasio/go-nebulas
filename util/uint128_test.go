@@ -14,6 +14,12 @@ const (
 	maxUint64 = ^uint64(0)
 )
 
+func TestMax(t *testing.T) {
+	bigMaxUint128 := &big.Int{}
+	bigMaxUint128.SetString(strings.Repeat("f", 32), 16)
+	fmt.Println(bigMaxUint128.String())
+}
+
 func TestUint128(t *testing.T) {
 	bigInt0 := big.NewInt(0)
 

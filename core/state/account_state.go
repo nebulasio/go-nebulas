@@ -47,6 +47,8 @@ type account struct {
 	variables *trie.Trie
 	// ContractType: Transaction Hash
 	birthPlace byteutils.Hash
+
+	contractMeta *corepb.ContractMeta
 }
 
 // ToBytes converts domain Account to bytes
@@ -56,11 +58,12 @@ func (acc *account) ToBytes() ([]byte, error) {
 		return nil, err
 	}
 	pbAcc := &corepb.Account{
-		Address:    acc.address,
-		Balance:    value,
-		Nonce:      acc.nonce,
-		VarsHash:   acc.variables.RootHash(),
-		BirthPlace: acc.birthPlace,
+		Address:      acc.address,
+		Balance:      value,
+		Nonce:        acc.nonce,
+		VarsHash:     acc.variables.RootHash(),
+		BirthPlace:   acc.birthPlace,
+		ContractMeta: acc.contractMeta,
 	}
 	bytes, err := proto.Marshal(pbAcc)
 	if err != nil {
@@ -83,6 +86,7 @@ func (acc *account) FromBytes(bytes []byte, storage storage.Storage) error {
 	acc.balance = value
 	acc.nonce = pbAcc.Nonce
 	acc.birthPlace = pbAcc.BirthPlace
+	acc.contractMeta = pbAcc.ContractMeta
 	acc.variables, err = trie.NewTrie(pbAcc.VarsHash, storage, false)
 	if err != nil {
 		return err
@@ -115,6 +119,11 @@ func (acc *account) BirthPlace() byteutils.Hash {
 	return acc.birthPlace
 }
 
+// ContractMeta ..
+func (acc *account) ContractMeta() *corepb.ContractMeta {
+	return acc.contractMeta
+}
+
 // Clone account
 func (acc *account) Clone() (Account, error) {
 	variables, err := acc.variables.Clone()
@@ -123,11 +132,12 @@ func (acc *account) Clone() (Account, error) {
 	}
 
 	return &account{
-		address:    acc.address,
-		balance:    acc.balance,
-		nonce:      acc.nonce,
-		variables:  variables,
-		birthPlace: acc.birthPlace,
+		address:      acc.address,
+		balance:      acc.balance,
+		nonce:        acc.nonce,
+		variables:    variables,
+		birthPlace:   acc.birthPlace,
+		contractMeta: acc.contractMeta, // TODO: Clone() ?
 	}, nil
 }
 
@@ -184,13 +194,14 @@ func (acc *account) Iterator(prefix []byte) (Iterator, error) {
 }
 
 func (acc *account) String() string {
-	return fmt.Sprintf("Account %p {Address: %v, Balance:%v; Nonce:%v; VarsHash:%v; BirthPlace:%v}",
+	return fmt.Sprintf("Account %p {Address: %v, Balance:%v; Nonce:%v; VarsHash:%v; BirthPlace:%v; ContractMeta:%v}",
 		acc,
 		byteutils.Hex(acc.address),
 		acc.balance,
 		acc.nonce,
 		byteutils.Hex(acc.variables.RootHash()),
 		acc.birthPlace.Hex(),
+		acc.contractMeta.String(), // TODO: check nil?
 	)
 }
 
@@ -219,17 +230,18 @@ func (as *accountState) recordDirtyAccount(addr byteutils.Hash, acc Account) {
 	as.dirtyAccount[addr.Hex()] = acc
 }
 
-func (as *accountState) newAccount(addr byteutils.Hash, birthPlace byteutils.Hash) (Account, error) {
+func (as *accountState) newAccount(addr byteutils.Hash, birthPlace byteutils.Hash, contractMeta *corepb.ContractMeta) (Account, error) {
 	varTrie, err := trie.NewTrie(nil, as.storage, false)
 	if err != nil {
 		return nil, err
 	}
 	acc := &account{
-		address:    addr,
-		balance:    util.NewUint128(),
-		nonce:      0,
-		variables:  varTrie,
-		birthPlace: birthPlace,
+		address:      addr,
+		balance:      util.NewUint128(),
+		nonce:        0,
+		variables:    varTrie,
+		birthPlace:   birthPlace,
+		contractMeta: contractMeta,
 	}
 	as.recordDirtyAccount(addr, acc)
 	return acc, nil
@@ -290,7 +302,7 @@ func (as *accountState) GetOrCreateUserAccount(addr byteutils.Hash) (Account, er
 		return nil, err
 	}
 	if err == ErrAccountNotFound {
-		acc, err = as.newAccount(addr, nil)
+		acc, err = as.newAccount(addr, nil, nil)
 		if err != nil {
 			return nil, err
 		}
@@ -314,8 +326,8 @@ func (as *accountState) GetContractAccount(addr byteutils.Hash) (Account, error)
 }
 
 // CreateContractAccount according to the addr, and set birthPlace as creation tx hash
-func (as *accountState) CreateContractAccount(addr byteutils.Hash, birthPlace byteutils.Hash) (Account, error) {
-	return as.newAccount(addr, birthPlace)
+func (as *accountState) CreateContractAccount(addr byteutils.Hash, birthPlace byteutils.Hash, contractMeta *corepb.ContractMeta) (Account, error) {
+	return as.newAccount(addr, birthPlace, contractMeta)
 }
 
 func (as *accountState) Accounts() ([]Account, error) { // TODO delete

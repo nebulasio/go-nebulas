@@ -26,8 +26,15 @@ import (
 	"strings"
 	"unsafe"
 
+	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/util/logging"
 	"github.com/sirupsen/logrus"
+)
+
+// const
+const (
+	JSLibRootName    = "lib/"
+	JSLibRootNameLen = len(JSLibRoot)
 )
 
 var (
@@ -94,6 +101,75 @@ func RequireDelegateFunc(handler unsafe.Pointer, filename *C.char, lineOffset *C
 	*lineOffset = C.size_t(module.lineOffset)
 	cSource := C.CString(module.source)
 	return cSource
+}
+
+// AttachLibVersionDelegateFunc delegate func for lib version choose
+//export AttachLibVersionDelegateFunc
+func AttachLibVersionDelegateFunc(handler unsafe.Pointer, require *C.char) *C.char {
+	libname := C.GoString(require)
+	e := getEngineByEngineHandler(handler)
+	if e == nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"libname": libname,
+		}).Error("delegate handler does not found.")
+		return nil
+	}
+	if len(libname) == 0 {
+		logging.VLog().Error("attach path is empty.")
+		return nil
+	}
+
+	// block after core.V8JSLibVersionControlHeight, inclusive
+	if e.ctx.block.Height() >= core.V8JSLibVersionControlHeight {
+
+		cv := e.ctx.contract.ContractMeta().Version // TODO: check nil
+
+		if len(cv) == 0 {
+			logging.VLog().WithFields(logrus.Fields{
+				"libname": libname,
+			}).Error("contract deploy lib version is empty.")
+			return nil
+		}
+
+		if !strings.HasPrefix(libname, JSLibRootName) || strings.Contains(libname, "../") {
+			logging.VLog().WithFields(logrus.Fields{
+				"libname":   libname,
+				"deployLib": cv,
+			}).Error("invalid attach path.")
+			return nil
+		}
+
+		ver := core.FilterLibVersion(cv, libname[JSLibRootNameLen:])
+		if len(ver) == 0 {
+			logging.VLog().WithFields(logrus.Fields{
+				"libname":      libname,
+				"deployLibVer": cv,
+			}).Error("lib version not found.")
+			return nil
+		}
+
+		logging.VLog().WithFields(logrus.Fields{
+			"libname": libname,
+			"return":  JSLibRootName + ver + libname[JSLibRootNameLen-1:],
+		}).Debug("attach lib.")
+
+		return C.CString(JSLibRootName + ver + libname[JSLibRootNameLen-1:])
+	}
+
+	// block before core.V8JSLibVersionControlHeight, default lib version: 1.0.0
+	if strings.HasPrefix(libname, JSLibRootName) {
+		logging.VLog().WithFields(logrus.Fields{
+			"libname": libname,
+			"return":  JSLibRootName + "1.0.0" + libname[JSLibRootNameLen-1:],
+		}).Debug("attach lib.")
+		return C.CString(JSLibRootName + "1.0.0" + libname[JSLibRootNameLen-1:])
+	}
+
+	logging.VLog().WithFields(logrus.Fields{
+		"libname": libname,
+		"return":  "1.0.0" + libname,
+	}).Debug("attach lib.")
+	return C.CString("1.0.0" + libname)
 }
 
 func reformatModuleID(id string) string {

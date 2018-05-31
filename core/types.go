@@ -290,7 +290,7 @@ type Neblet interface {
 type WorldState interface {
 	GetOrCreateUserAccount(addr byteutils.Hash) (state.Account, error)
 	GetContractAccount(addr byteutils.Hash) (state.Account, error)
-	CreateContractAccount(owner byteutils.Hash, birthPlace byteutils.Hash) (state.Account, error)
+	CreateContractAccount(owner byteutils.Hash, birthPlace byteutils.Hash, contractMeta *corepb.ContractMeta) (state.Account, error)
 
 	GetTx(txHash byteutils.Hash) ([]byte, error)
 	PutTx(txHash byteutils.Hash, txBytes []byte) error

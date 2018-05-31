@@ -29,6 +29,7 @@ package nvm
 void V8Log_cgo(int level, const char *msg);
 
 char *RequireDelegateFunc_cgo(void *handler, const char *filename, size_t *lineOffset);
+char *AttachLibVersionDelegateFunc_cgo(void *handler, const char *libname);
 
 char *StorageGetFunc_cgo(void *handler, const char *key, size_t *gasCnt);
 int StoragePutFunc_cgo(void *handler, const char *key, const char *value, size_t *gasCnt);
@@ -108,7 +109,10 @@ func InitV8Engine() {
 	C.InitializeLogger((C.LogFunc)(unsafe.Pointer(C.V8Log_cgo)))
 
 	// Require.
-	C.InitializeRequireDelegate((C.RequireDelegate)(unsafe.Pointer(C.RequireDelegateFunc_cgo)))
+	C.InitializeRequireDelegate((C.RequireDelegate)(unsafe.Pointer(C.RequireDelegateFunc_cgo)), (C.AttachLibVersionDelegate)(unsafe.Pointer(C.AttachLibVersionDelegateFunc_cgo)))
+
+	// execution_env require
+	C.InitializeExecutionEnvDelegate((C.AttachLibVersionDelegate)(unsafe.Pointer(C.AttachLibVersionDelegateFunc_cgo)))
 
 	// Storage.
 	C.InitializeStorage((C.StorageGetFunc)(unsafe.Pointer(C.StorageGetFunc_cgo)), (C.StoragePutFunc)(unsafe.Pointer(C.StoragePutFunc_cgo)), (C.StorageDelFunc)(unsafe.Pointer(C.StorageDelFunc_cgo)))

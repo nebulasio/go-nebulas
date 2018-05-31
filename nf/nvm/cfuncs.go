@@ -26,6 +26,7 @@ void V8Log(int level, const char *msg);
 
 // require.
 char *RequireDelegateFunc(void *handler, const char *filename, size_t *lineOffset);
+char *AttachLibVersionDelegateFunc(void *handler, const char *libname);
 
 // storage.
 char *StorageGetFunc(void *handler, const char *key, size_t *gasCnt);
@@ -48,6 +49,10 @@ void V8Log_cgo(int level, const char *msg) {
 
 char *RequireDelegateFunc_cgo(void *handler, const char *filename, size_t *lineOffset) {
 	return RequireDelegateFunc(handler, filename, lineOffset);
+}
+
+char *AttachLibVersionDelegateFunc_cgo(void *handler, const char *libname) {
+	return AttachLibVersionDelegateFunc(handler, libname);
 }
 
 char *StorageGetFunc_cgo(void *handler, const char *key, size_t *gasCnt) {

@@ -18,11 +18,28 @@
 //
 
 #include "execution_env.h"
+#include "../engine.h"
 #include "file.h"
 #include "logger.h"
 
+static AttachLibVersionDelegate alvDelegate = NULL;
+
 int SetupExecutionEnv(Isolate *isolate, Local<Context> &context) {
-  char *data = readFile("lib/execution_env.js", NULL);
+  char *verlib = NULL;
+  if (alvDelegate != NULL) {
+    V8Engine *e = GetV8EngineInstance(context);
+    verlib = alvDelegate(e, "lib/execution_env.js");
+  }
+  if (verlib == NULL) {
+    return 1;
+  }
+
+  char path[64] = {0};
+  strcat(path, verlib);
+  free(verlib);
+
+  char *data = readFile(path, NULL);
+  // char *data = readFile("lib/execution_env.js", NULL);
   if (data == NULL) {
     isolate->ThrowException(Exception::Error(
         String::NewFromUtf8(isolate, "execution_env.js is not found.")));
@@ -51,4 +68,8 @@ int SetupExecutionEnv(Isolate *isolate, Local<Context> &context) {
   }
 
   return 0;
+}
+
+void InitializeExecutionEnvDelegate(AttachLibVersionDelegate aDelegate) {
+  alvDelegate = aDelegate;
 }
