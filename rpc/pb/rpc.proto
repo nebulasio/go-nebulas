@@ -20,6 +20,7 @@ syntax = "proto3";
 
 import "google/api/annotations.proto";
 import "github.com/nebulasio/go-nebulas/consensus/pb/state.proto";
+import "github.com/nebulasio/go-nebulas/core/pb/block.proto";
 import "github.com/nebulasio/go-nebulas/neblet/pb/config.proto";
 
 package rpcpb;
@@ -478,8 +479,14 @@ message BlockResponse {
     // Miner
     string miner = 12;
 
+    // Random seed
+    string randomSeed = 13;
+
+    // Random proof
+    string randomProof = 14;
+
     // is finaliy
-    bool is_finality = 13;
+    bool is_finality = 15;
 
     // transaction slice
     repeated TransactionResponse transactions = 100;

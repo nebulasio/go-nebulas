@@ -389,6 +389,14 @@ func (block *Block) RandomSeed() string {
 	return ""
 }
 
+// RandomProof block random proof (VRF)
+func (block *Block) RandomProof() string {
+	if block.height >= RandomAvailableHeight {
+		return byteutils.Hex(block.header.random.VrfProof)
+	}
+	return ""
+}
+
 // RandomAvailable check if Math.random available in contract
 func (block *Block) RandomAvailable() bool {
 	return block.height >= RandomAvailableHeight
