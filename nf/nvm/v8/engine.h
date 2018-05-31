@@ -33,13 +33,20 @@ extern "C" {
 
 #include <stddef.h>
 #include <stdint.h>
-
+#include <string.h>
+#include <stdbool.h>
 
 enum LogLevel {
   DEBUG = 1,
   WARN = 2,
   INFO = 3,
   ERROR = 4,
+};
+
+enum OptType {
+  INSTRUCTION = 1,
+  INSTRUCTION_TS = 2,
+  RUN         = 3,
 };
 
 // log
@@ -107,7 +114,20 @@ typedef struct V8Engine {
   size_t limits_of_total_memory_size;
   int is_requested_terminate_execution;
   int testing;
+  uintptr_t lcs;  
+  uintptr_t gcs;
+  enum OptType opt;  
+  int lineOffset;
+  int ret;  //output
+  int allowUsage;
   V8EngineStats stats;
+  char *source;
+  char *result; //output
+  bool isRunEnd;
+  
+  // V8Engine() {
+  //   // memset(this, 0x00, sizeof(V8Engine));
+  // }
   // void *context;
 } V8Engine;
 
@@ -134,6 +154,15 @@ EXPORT void ReadMemoryStatistics(V8Engine *e);
 EXPORT void TerminateExecution(V8Engine *e);
 
 EXPORT void DeleteEngine(V8Engine *e);
+
+EXPORT void ExecuteLoop(const char *file);
+
+EXPORT V8Engine *CreateThreadEngine();
+EXPORT void DeleteThreadEngine(V8Engine *e);
+
+EXPORT void ExecuteLoopInIsolate(V8Engine *e);
+
+EXPORT void RunScriptThread(V8Engine *e);
 
 #ifdef __cplusplus
 }

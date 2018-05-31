@@ -47,7 +47,6 @@ import (
 	"fmt"
 	"strings"
 	"sync"
-	"time"
 	"unsafe"
 
 	"encoding/json"
@@ -161,6 +160,45 @@ func NewV8Engine(ctx *Context) *V8Engine {
 		storages[engine.lcsHandler] = engine
 		storages[engine.gcsHandler] = engine
 	})()
+	engine.v8engine.lcs = C.uintptr_t(engine.lcsHandler)
+	engine.v8engine.gcs = C.uintptr_t(engine.gcsHandler)
+	return engine
+}
+func NewV8ThreadEngine(ctx *Context) *V8Engine {
+	v8engineOnce.Do(func() {
+		InitV8Engine()
+	})
+
+	engine := &V8Engine{
+		ctx:      ctx,
+		modules:  NewModules(),
+		v8engine: nil,
+		strictDisallowUsageOfInstructionCounter: 1, // enable by default.
+		enableLimits:                            true,
+		limitsOfExecutionInstructions:           0,
+		limitsOfTotalMemorySize:                 0,
+		actualCountOfExecutionInstructions:      0,
+		actualTotalMemorySize:                   0,
+	}
+
+	// (func() {
+	// 	enginesLock.Lock()
+	// 	defer enginesLock.Unlock()
+	// 	engines[engine.v8engine] = engine
+	// })()
+
+	// (func() {
+	// 	storagesLock.Lock()
+	// 	defer storagesLock.Unlock()
+
+	// 	storagesIdx++
+	// 	engine.lcsHandler = storagesIdx
+	// 	storagesIdx++
+	// 	engine.gcsHandler = storagesIdx
+
+	// 	storages[engine.lcsHandler] = engine
+	// 	storages[engine.gcsHandler] = engine
+	// })()
 	return engine
 }
 
@@ -249,15 +287,19 @@ func (e *V8Engine) InjectTracingInstructions(source string) (string, int, error)
 	cSource := C.CString(source)
 	defer C.free(unsafe.Pointer(cSource))
 
-	lineOffset := C.int(0)
-	traceableCSource := C.InjectTracingInstructions(e.v8engine, cSource, &lineOffset, C.int(e.strictDisallowUsageOfInstructionCounter))
-
+	// lineOffset := C.int(0)
+	// traceableCSource := C.InjectTracingInstructions(e.v8engine, cSource, &lineOffset, C.int(e.strictDisallowUsageOfInstructionCounter))
+	e.v8engine.source = cSource
+	e.v8engine.opt = 1
+	e.v8engine.allowUsage = C.int(e.strictDisallowUsageOfInstructionCounter)
+	C.RunScriptThread(e.v8engine)
+	traceableCSource := e.v8engine.result
 	if traceableCSource == nil {
 		return "", 0, ErrInjectTracingInstructionFailed
 	}
 	defer C.free(unsafe.Pointer(traceableCSource))
-
-	return C.GoString(traceableCSource), int(lineOffset), nil
+	e.v8engine.result = nil
+	return C.GoString(traceableCSource), int(e.v8engine.lineOffset), nil
 }
 
 // CollectTracingStats collect tracing data from v8 engine.
@@ -271,6 +313,11 @@ func (e *V8Engine) CollectTracingStats() {
 
 // RunScriptSource run js source.
 func (e *V8Engine) RunScriptSource(source string, sourceLineOffset int) (string, error) {
+	// cFile := C.CString("test/test_fe1.js")
+	// C.ExecuteLoop(cFile)
+	// C.ExecuteLoopInIsolate(e.v8engine)
+	// return "", nil
+
 	cSource := C.CString(source)
 	defer C.free(unsafe.Pointer(cSource))
 
@@ -280,33 +327,47 @@ func (e *V8Engine) RunScriptSource(source string, sourceLineOffset int) (string,
 		ret     C.int
 		cResult *C.char
 	)
-	done := make(chan bool, 1)
-
+	// done := make(chan bool, 1)
 	// go func() {
 	// 	ret = C.RunScriptSource(&cResult, e.v8engine, cSource, C.int(sourceLineOffset), C.uintptr_t(e.lcsHandler),
 	// 		C.uintptr_t(e.gcsHandler))
 	// 	done <- true
 	// }()
-	ret = C.RunScriptSource(&cResult, e.v8engine, cSource, C.int(sourceLineOffset), C.uintptr_t(e.lcsHandler),
-		C.uintptr_t(e.gcsHandler))
-	done <- true
-	select {
-	case <-done:
-		if ret != 0 {
-			err = core.ErrExecutionFailed
-		}
-	case <-time.After(ExecutionTimeoutInSeconds * time.Second):
-		C.TerminateExecution(e.v8engine) //ToDo TerminateExecution can kill RunScriptSource
-		err = ErrExecutionTimeout
+	// ret = C.RunScriptSource(&cResult, e.v8engine, cSource, C.int(sourceLineOffset), C.uintptr_t(e.lcsHandler),
+	// 	C.uintptr_t(e.gcsHandler))
+	e.v8engine.source = cSource
+	logging.CLog().Infof("script:%v", source)
+	// e.v8engine.
+	e.v8engine.opt = 3
+	e.v8engine.lineOffset = C.int(sourceLineOffset)
+	C.RunScriptThread(e.v8engine)
+	cResult = e.v8engine.result
+	// done <- true
+	// select {
+	// case <-done:
+	// 	if ret != 0 {
+	// 		err = core.ErrExecutionFailed
+	// 	}
+	// case <-time.After(ExecutionTimeoutInSeconds * time.Second):
+	// 	C.TerminateExecution(e.v8engine) //ToDo TerminateExecution can kill RunScriptSource
 
-		// wait for C.RunScriptSource() returns.
-		select {
-		case <-done:
-		}
+	// 	err = ErrExecutionTimeout
+
+	// 	// wait for C.RunScriptSource() returns.
+	// 	select {
+	// 	case <-done:
+	// 	}
+	// }
+	if int(e.v8engine.ret) == 2 {
+		err = ErrExecutionTimeout
+	} else if int(e.v8engine.ret) == 1 {
+		err = core.ErrExecutionFailed
 	}
 
+	logging.CLog().Infof("run end")
 	if cResult != nil {
 		result = C.GoString(cResult)
+		e.v8engine.result = nil
 		C.free(unsafe.Pointer(cResult))
 	} else if ret == 0 {
 		result = "\"\"" // default JSON String.
@@ -314,7 +375,7 @@ func (e *V8Engine) RunScriptSource(source string, sourceLineOffset int) (string,
 
 	// collect tracing stats.
 	e.CollectTracingStats()
-
+	logging.CLog().Infof("run end get mem limit")
 	if e.limitsOfExecutionInstructions > 0 && e.limitsOfExecutionInstructions < e.actualCountOfExecutionInstructions {
 		// Reach instruction limits.
 		err = ErrInsufficientGas
