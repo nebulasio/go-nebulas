@@ -1823,7 +1823,7 @@ func TestStackOverflow(t *testing.T) {
 		filepath    string
 		expectedErr error
 	}{
-		{"test/contract_stack_overflow.js", core.ErrExecutionFailed},
+		{"test/test_stack_overflow.js", core.ErrExecutionFailed},
 	}
 	// lockx := sync.RWMutex{}
 
