@@ -34,6 +34,8 @@ import (
 	"github.com/nebulasio/go-nebulas/account"
 	"github.com/nebulasio/go-nebulas/net"
 
+	// "github.com/gogo/protobuf/proto"
+	// "github.com/nebulasio/go-nebulas/account"
 	"github.com/nebulasio/go-nebulas/consensus/dpos"
 	"github.com/nebulasio/go-nebulas/core/pb"
 	"github.com/nebulasio/go-nebulas/neblet/pb"
@@ -1821,7 +1823,7 @@ func TestStackOverflow(t *testing.T) {
 		filepath    string
 		expectedErr error
 	}{
-		{"test/test_fe1.js", nil},
+		{"test/contract_stack_overflow.js", core.ErrExecutionFailed},
 	}
 	// lockx := sync.RWMutex{}
 
@@ -1868,10 +1870,14 @@ func TestStackOverflow(t *testing.T) {
 					ctx, err := NewContext(mockBlock(), mockTransaction(), contract, context)
 					engine := NewV8Engine(ctx)
 					engine.SetExecutionLimits(100000000, 10000000)
+
 					// _, err = engine.DeployAndInit(string(data), "js", "")
 					fmt.Printf("err:%v", err)
 					_, err = engine.RunScriptSource(string(data), 0)
-					// assert.Equal(t, tt.expectedErr, err)
+
+					//logging.CLog().Info("err:", err)
+					assert.Equal(t, tt.expectedErr, err)
+
 					engine.Dispose()
 					// lockx.Unlock()
 				}()
