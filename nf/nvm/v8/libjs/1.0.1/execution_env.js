@@ -106,7 +106,7 @@ const LocalContractStorage = ContractStorage.lcs;
 const GlobalContractStorage = ContractStorage.gcs;
 
 const Blockchain = require('blockchain.js');
-var Date = require('date.js');
+
 Math.random = require('random.js');
 
 const BigNumber = require('bignumber.js');
