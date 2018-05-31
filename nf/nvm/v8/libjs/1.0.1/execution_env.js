@@ -19,7 +19,7 @@
 Function.prototype.toString = function(){return "";};
 
 const require = (function (global) {
-    var PathRegexForNotLibFile = /^\.{0,2}\//;
+    var PathDoubleDotRegex = /\.{2}\//;
     var modules = new Map();
 
     var Module = function (id, parent) {
@@ -44,19 +44,15 @@ const require = (function (global) {
             native_req_func.call(temp_global, this.exports, this, curry(require_func, $this));
         },
         _resolve: function (id) {
-            var paths = this.id.split("/");
-            paths.pop();
-
-            if (!PathRegexForNotLibFile.test(id)) {
-                id = "lib/" + id;
-                paths = [];
+            if (PathDoubleDotRegex.test(id)) {
+                throw new Error("invalid path '../'");
             }
+            id = "lib/" + id;
+            var paths = [];
 
             for (const p of id.split("/")) {
                 if (p == "" || p == ".") {
                     continue;
-                } else if (p == ".." && paths.length > 0) {
-                    paths.pop();
                 } else {
                     paths.push(p);
                 }
