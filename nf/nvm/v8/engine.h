@@ -157,13 +157,13 @@ EXPORT void DeleteEngine(V8Engine *e);
 
 EXPORT void ExecuteLoop(const char *file);
 
-EXPORT V8Engine *CreateThreadEngine();
-EXPORT void DeleteThreadEngine(V8Engine *e);
+// EXPORT V8Engine *CreateThreadEngine();
+// EXPORT void DeleteThreadEngine(V8Engine *e);
 
-EXPORT void ExecuteLoopInIsolate(V8Engine *e);
+// EXPORT void ExecuteLoopInIsolate(V8Engine *e);
 
 EXPORT void RunScriptThread(V8Engine *e);
-
+EXPORT void SetRunScriptArgs(V8Engine *e, int opt, char *source, int lineOffset, int allowUsage);
 #ifdef __cplusplus
 }
 #endif // __cplusplus

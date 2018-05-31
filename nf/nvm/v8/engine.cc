@@ -370,7 +370,7 @@ int IsEngineLimitsExceeded(V8Engine *e) {
 void *loopExecute(void *args) {
   V8Engine *pe = (V8Engine*)args;
   if (pe->opt == INSTRUCTION) {
-    printf("begin instruct\n");
+    // printf("begin instruct\n");
     TracingContext tContext;
     tContext.source_line_offset = 0;
     tContext.tracable_source = NULL;
@@ -418,7 +418,7 @@ void RunScriptThread(V8Engine *e) {
     // V8Engine *pe = (V8Engine*)e;
     if (e->isRunEnd == true) {
       e->isRunEnd = false;
-      printf("e->stats.count_of_executed_instructions:%lu\n", e->stats.count_of_executed_instructions);
+      // printf("e->stats.count_of_executed_instructions:%lu\n", e->stats.count_of_executed_instructions);
       // if (e->opt == RUN) {
         if (isKill == true) {
           e->ret = 2;
@@ -439,6 +439,20 @@ void RunScriptThread(V8Engine *e) {
 
     // pthread_join(thread, 0);
 }
-// void SetInjectArgs(V8Engine *e, ) {
-
+// void SetInjectJSArgs(V8Engine *e, OptType opt, char *source, int lineOffset, int allowUsage) {
+//   e->source = source;
+//   e->opt = opt;
+//   e->allowUsage = allowUsage;
+//   e->lineOffset = lineOffset;
 // }
+// void SetInjectTSArgs(V8Engine *e, OptType opt, char *source, int allowUsage) {
+//   e->source = source;
+//   e->opt = opt;
+//   e->allowUsage = allowUsage;
+// }
+void SetRunScriptArgs(V8Engine *e, int opt, char *source, int lineOffset, int allowUsage) {
+  e->source = source;
+  e->opt = (OptType)opt;
+  e->allowUsage = allowUsage;
+  e->lineOffset = lineOffset;
+}

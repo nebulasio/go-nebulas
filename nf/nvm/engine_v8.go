@@ -276,9 +276,10 @@ func (e *V8Engine) TranspileTypeScript(source string) (string, int, error) {
 	// if jsSource == nil {
 	// 	return "", 0, ErrTranspileTypeScriptFailed
 	// }
-	e.v8engine.source = cSource
-	e.v8engine.opt = 2
-	e.v8engine.lineOffset = 0
+	// e.v8engine.source = cSource
+	// e.v8engine.opt = 2
+	// e.v8engine.lineOffset = 0
+	C.SetRunScriptArgs(e.v8engine, C.int(2), cSource, C.int(0), C.int(e.strictDisallowUsageOfInstructionCounter))
 	C.RunScriptThread(e.v8engine)
 	jsSource := e.v8engine.result
 
@@ -295,9 +296,10 @@ func (e *V8Engine) InjectTracingInstructions(source string) (string, int, error)
 
 	// lineOffset := C.int(0)
 	// traceableCSource := C.InjectTracingInstructions(e.v8engine, cSource, &lineOffset, C.int(e.strictDisallowUsageOfInstructionCounter))
-	e.v8engine.source = cSource
-	e.v8engine.opt = 1
-	e.v8engine.allowUsage = C.int(e.strictDisallowUsageOfInstructionCounter)
+	// e.v8engine.source = cSource
+	// e.v8engine.opt = 1
+	// e.v8engine.allowUsage = C.int(e.strictDisallowUsageOfInstructionCounter)
+	C.SetRunScriptArgs(e.v8engine, 1, cSource, 0, C.int(e.strictDisallowUsageOfInstructionCounter))
 	C.RunScriptThread(e.v8engine)
 	traceableCSource := e.v8engine.result
 	if traceableCSource == nil {
@@ -341,11 +343,12 @@ func (e *V8Engine) RunScriptSource(source string, sourceLineOffset int) (string,
 	// }()
 	// ret = C.RunScriptSource(&cResult, e.v8engine, cSource, C.int(sourceLineOffset), C.uintptr_t(e.lcsHandler),
 	// 	C.uintptr_t(e.gcsHandler))
-	e.v8engine.source = cSource
-	logging.CLog().Infof("script:%v", source)
-	// e.v8engine.
-	e.v8engine.opt = 3
-	e.v8engine.lineOffset = C.int(sourceLineOffset)
+	// e.v8engine.source = cSource
+	// logging.CLog().Infof("script:%v", source)
+	// // e.v8engine.
+	// e.v8engine.opt = 3
+	// e.v8engine.lineOffset = C.int(sourceLineOffset)
+	C.SetRunScriptArgs(e.v8engine, 3, cSource, C.int(sourceLineOffset), 1)
 	C.RunScriptThread(e.v8engine)
 	cResult = e.v8engine.result
 	// done <- true
