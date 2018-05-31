@@ -271,14 +271,20 @@ func (e *V8Engine) TranspileTypeScript(source string) (string, int, error) {
 	cSource := C.CString(source)
 	defer C.free(unsafe.Pointer(cSource))
 
-	lineOffset := C.int(0)
-	jsSource := C.TranspileTypeScriptModule(e.v8engine, cSource, &lineOffset)
-	if jsSource == nil {
-		return "", 0, ErrTranspileTypeScriptFailed
-	}
-	defer C.free(unsafe.Pointer(jsSource))
+	// lineOffset := C.int(0)
+	// jsSource := C.TranspileTypeScriptModule(e.v8engine, cSource, &lineOffset)
+	// if jsSource == nil {
+	// 	return "", 0, ErrTranspileTypeScriptFailed
+	// }
+	e.v8engine.source = cSource
+	e.v8engine.opt = 2
+	e.v8engine.lineOffset = 0
+	C.RunScriptThread(e.v8engine)
+	jsSource := e.v8engine.result
 
-	return C.GoString(jsSource), int(lineOffset), nil
+	defer C.free(unsafe.Pointer(jsSource))
+	e.v8engine.result = nil
+	return C.GoString(jsSource), int(e.v8engine.lineOffset), nil
 
 }
 

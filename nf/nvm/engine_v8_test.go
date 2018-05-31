@@ -847,14 +847,14 @@ func TestBankVaultContract(t *testing.T) {
 				{"[1]", core.ErrExecutionFailed, "0", "0"},
 			},
 		},
-		// {"deploy bank_vault_contract.ts", "./test/bank_vault_contract.ts", "ts", "5", "[0]",
-		// 	[]TakeoutTest{
-		// 		{"[1]", nil, "5", "4"},
-		// 		{"[5]", core.ErrExecutionFailed, "4", "4"},
-		// 		{"[4]", nil, "4", "0"},
-		// 		{"[1]", core.ErrExecutionFailed, "0", "0"},
-		// 	},
-		// },
+		{"deploy bank_vault_contract.ts", "./test/bank_vault_contract.ts", "ts", "5", "[0]",
+			[]TakeoutTest{
+				{"[1]", nil, "5", "4"},
+				{"[5]", core.ErrExecutionFailed, "4", "4"},
+				{"[4]", nil, "4", "0"},
+				{"[1]", core.ErrExecutionFailed, "0", "0"},
+			},
+		},
 	}
 
 	for _, tt := range tests {
