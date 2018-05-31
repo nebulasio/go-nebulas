@@ -79,24 +79,30 @@ Blockchain.prototype = {
 
     getAccountState: function(address) {
         if (address) {
-            return this.nativeBlockchain.getAccountState(address);
+            var result =  this.nativeBlockchain.getAccountState(address);
+            if (result) {
+                return JSON.parse(result);
+            } else {
+                throw "getAccountState: invalid address";
+            }
         } else {
             throw "getAccountState:  inValid address";
         }
     },
     
     getPreBlockHash: function (distance) {
+        console.log("============", distance);
         distance = parseInt(distance);
         if (!distance) {
             throw "getPreBlockHash: invalid distance"
         }
         
         if (distance <= 0) {
-            throw "distance should large than 0"
+            throw "getPreBlockHash: distance should large than 0"
         }
 
         if (distance >= this.block.height) {
-            throw "block not exsit"
+            throw "getPreBlockHash: block not exist"
         }
         
         return this.nativeBlockchain.getPreBlockHash(distance);
@@ -109,11 +115,11 @@ Blockchain.prototype = {
         }
         
         if (distance <= 0) {
-            throw "distance should large than 0"
+            throw "getPreBlockSeed: distance should large than 0"
         }
         
         if (distance >= this.block.height) {
-            throw "block not exsit"
+            throw "getPreBlockSeed: block not exist"
         }
 
         return this.nativeBlockchain.getPreBlockSeed(distance);

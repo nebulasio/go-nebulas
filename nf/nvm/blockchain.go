@@ -107,7 +107,7 @@ func GetAccountStateFunc(handler unsafe.Pointer, address *C.char, gasCnt *C.size
 			"handler": uint64(uintptr(handler)),
 			"address": addr,
 			"err":     err,
-		}).Debug("GetAccountStateFunc get account state failed.")
+		}).Debug("GetAccountStateFunc get account state failed.") //TODO: to confirm if sys err
 		return nil
 	}
 	state := toSerializableAccount(acc)

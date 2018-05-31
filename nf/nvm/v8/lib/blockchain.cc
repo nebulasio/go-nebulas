@@ -129,9 +129,10 @@ void GetAccountStateCallback(const FunctionCallbackInfo<Value> &info) {
   Local<External> handler = Local<External>::Cast(thisArg->GetInternalField(0));
 
   if (info.Length() != 1) {
-    isolate->ThrowException(String::NewFromUtf8(
-        isolate, "Blockchain.getAccountState() requires only 1 argument"));
-    return;
+    LogFatalf("Blockchain.verifyAddress() requires 1 arguments");//TODO: unexpected
+    // isolate->ThrowException(String::NewFromUtf8(
+    //     isolate, "Blockchain.getAccountState() requires only 1 argument"));
+    // return;
   }
 
   Local<Value> key = info[0];
