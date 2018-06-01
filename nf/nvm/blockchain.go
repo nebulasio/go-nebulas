@@ -21,6 +21,7 @@ package nvm
 import "C"
 
 import (
+	"fmt"
 	"unsafe"
 
 	"encoding/json"
@@ -240,10 +241,10 @@ func TransferFunc(handler unsafe.Pointer, to *C.char, v *C.char, gasCnt *C.size_
 		recordTransferFailureEvent(TransferStringToBigIntErr, cAddr.String(), addr.String(), "", height, wsState, txHash)
 		return TransferStringToBigIntErr
 	}
-
 	// update balance
 	if amount.Cmp(util.NewUint128()) > 0 {
 		err = engine.ctx.contract.SubBalance(amount)
+		fmt.Println("=============y=", amount)
 		if err != nil {
 			logging.VLog().WithFields(logrus.Fields{
 				"handler": uint64(uintptr(handler)),
@@ -253,6 +254,7 @@ func TransferFunc(handler unsafe.Pointer, to *C.char, v *C.char, gasCnt *C.size_
 			recordTransferFailureEvent(TransferSubBalance, cAddr.String(), addr.String(), amount.String(), height, wsState, txHash)
 			return TransferSubBalance
 		}
+		fmt.Println("======success")
 
 		err = toAcc.AddBalance(amount)
 		if err != nil {

@@ -55,7 +55,7 @@ const (
 	LocalWsResetRecordDependencyHeight uint64 = 2
 
 	//LocalNetTransferFromContractFailureEventRecordableHeight
-	LocalTransferFromContractFailureEventRecordableHeight uint64 = 333333
+	LocalTransferFromContractFailureEventRecordableHeight uint64 = 2
 )
 
 // TestNet
