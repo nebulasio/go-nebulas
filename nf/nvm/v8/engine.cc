@@ -406,6 +406,7 @@ void RunScriptThread(V8Engine *e) {
   pthread_attr_t attribute;
   pthread_attr_init(&attribute);
   pthread_attr_setstacksize(&attribute, 2 * 1024 * 1024);
+  pthread_attr_setdetachstate (&attribute, PTHREAD_CREATE_DETACHED);
   // char *file = "test_fe1.js";
   // V8Engine *pe = (V8Engine*)args;
   pthread_create(&thread, &attribute, loopExecute, (void *)e);
