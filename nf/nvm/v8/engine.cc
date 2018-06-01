@@ -367,6 +367,8 @@ int IsEngineLimitsExceeded(V8Engine *e) {
 
   return 0;
 }
+
+
 void *loopExecute(void *args) {
   V8Engine *pe = (V8Engine*)args;
   if (pe->opt == INSTRUCTION) {
@@ -381,7 +383,7 @@ void *loopExecute(void *args) {
 
     pe->lineOffset = tContext.source_line_offset;
     pe->result = static_cast<char *>(tContext.tracable_source);
-  } else if (pe->opt == INSTRUCTION_TS) {
+  } else if (pe->opt == INSTRUCTIONTS) {
     TypeScriptContext tContext;
     tContext.source_line_offset = 0;
     tContext.js_source = NULL;
@@ -439,21 +441,4 @@ void RunScriptThread(V8Engine *e) {
   }
 
     // pthread_join(thread, 0);
-}
-// void SetInjectJSArgs(V8Engine *e, OptType opt, char *source, int lineOffset, int allowUsage) {
-//   e->source = source;
-//   e->opt = opt;
-//   e->allowUsage = allowUsage;
-//   e->lineOffset = lineOffset;
-// }
-// void SetInjectTSArgs(V8Engine *e, OptType opt, char *source, int allowUsage) {
-//   e->source = source;
-//   e->opt = opt;
-//   e->allowUsage = allowUsage;
-// }
-void SetRunScriptArgs(V8Engine *e, int opt, char *source, int lineOffset, int allowUsage) {
-  e->source = source;
-  e->opt = (OptType)opt;
-  e->allowUsage = allowUsage;
-  e->lineOffset = lineOffset;
 }

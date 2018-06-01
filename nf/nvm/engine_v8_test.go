@@ -256,6 +256,7 @@ func TestRunScriptSourceWithLimits(t *testing.T) {
 				engine.SetExecutionLimits(tt.limitsOfExecutionInstructions, tt.limitsOfTotalMemorySize)
 				source, _, _ := engine.InjectTracingInstructions(string(data))
 				_, err = engine.RunScriptSource(source, 0)
+				fmt.Printf("err:%v\n", err)
 				assert.Equal(t, tt.expectedErr, err)
 				engine.Dispose()
 			})()
@@ -1833,7 +1834,7 @@ func TestStackOverflow(t *testing.T) {
 			assert.Nil(t, err, "filepath read error")
 
 			var wg sync.WaitGroup
-			for i := 0; i < 100; i++ {
+			for i := 0; i < 1; i++ {
 				if i == 1 {
 					// time.Sleep(1)
 				}
@@ -1871,9 +1872,9 @@ func TestStackOverflow(t *testing.T) {
 					engine := NewV8Engine(ctx)
 					engine.SetExecutionLimits(100000000, 10000000)
 
-					// _, err = engine.DeployAndInit(string(data), "js", "")
+					_, err = engine.DeployAndInit(string(data), "js", "")
 					fmt.Printf("err:%v", err)
-					_, err = engine.RunScriptSource(string(data), 0)
+					// _, err = engine.RunScriptSource(string(data), 0)
 
 					//logging.CLog().Info("err:", err)
 					assert.Equal(t, tt.expectedErr, err)
@@ -1968,7 +1969,7 @@ func TestThreadStackOverflowE(t *testing.T) {
 		filepath    string
 		expectedErr error
 	}{
-		{"test/contract_stack_overflow.js", core.ErrExecutionFailed},
+		{"test/test_stack_overflow.js", core.ErrExecutionFailed},
 	}
 	// lockx := sync.RWMutex{}
 
@@ -1976,57 +1977,58 @@ func TestThreadStackOverflowE(t *testing.T) {
 		t.Run(tt.filepath, func(t *testing.T) {
 			data, err := ioutil.ReadFile(tt.filepath)
 			assert.Nil(t, err, "filepath read error")
+			for j := 0; j < 100; j++ {
 
-			var wg sync.WaitGroup
-			for i := 0; i < 100; i++ {
-				if i == 1 {
-					// time.Sleep(1)
-				}
-				wg.Add(1)
-				go func() {
-					// runtime.LockOSThread()
-					defer wg.Done()
-					// for j := 0; j < 1000; j++ {
-					// 	mem, _ := storage.NewMemoryStorage()
-					// 	context, _ := state.NewWorldState(dpos.NewDpos(), mem)
-					// 	owner, err := context.GetOrCreateUserAccount([]byte("n1FkntVUMPAsESuCAAPK711omQk19JotBjM"))
-					// 	assert.Nil(t, err)
-					// 	owner.AddBalance(newUint128FromIntWrapper(1000000000))
-					// 	contract, err := context.CreateContractAccount([]byte("n1JNHZJEUvfBYfjDRD14Q73FX62nJAzXkMR"), nil)
-					// 	assert.Nil(t, err)
+				var wg sync.WaitGroup
+				for i := 0; i < 50; i++ {
+					if i == 1 {
+						// time.Sleep(1)
+					}
+					wg.Add(1)
+					go func() {
+						// runtime.LockOSThread()
+						defer wg.Done()
+						// for j := 0; j < 1000; j++ {
+						// 	mem, _ := storage.NewMemoryStorage()
+						// 	context, _ := state.NewWorldState(dpos.NewDpos(), mem)
+						// 	owner, err := context.GetOrCreateUserAccount([]byte("n1FkntVUMPAsESuCAAPK711omQk19JotBjM"))
+						// 	assert.Nil(t, err)
+						// 	owner.AddBalance(newUint128FromIntWrapper(1000000000))
+						// 	contract, err := context.CreateContractAccount([]byte("n1JNHZJEUvfBYfjDRD14Q73FX62nJAzXkMR"), nil)
+						// 	assert.Nil(t, err)
 
-					// 	ctx, err := NewContext(mockBlock(), mockTransaction(), contract, context)
-					// 	engine := NewV8Engine(ctx)
-					// 	// engine.SetExecutionLimits(100000000, 10000000)
-					// 	// _, err = engine.DeployAndInit(string(data), "js", "")
-					// 	_, err = engine.RunScriptSource(string(data), 0)
-					// 	// assert.Equal(t, tt.expectedErr, err)
-					// 	engine.Dispose()
+						// 	ctx, err := NewContext(mockBlock(), mockTransaction(), contract, context)
+						// 	engine := NewV8Engine(ctx)
+						// 	// engine.SetExecutionLimits(100000000, 10000000)
+						// 	// _, err = engine.DeployAndInit(string(data), "js", "")
+						// 	_, err = engine.RunScriptSource(string(data), 0)
+						// 	// assert.Equal(t, tt.expectedErr, err)
+						// 	engine.Dispose()
+						// }
+						// lockx.Lock()
+						mem, _ := storage.NewMemoryStorage()
+						context, _ := state.NewWorldState(dpos.NewDpos(), mem)
+						owner, err := context.GetOrCreateUserAccount([]byte("n1FkntVUMPAsESuCAAPK711omQk19JotBjM"))
+						assert.Nil(t, err)
+						owner.AddBalance(newUint128FromIntWrapper(1000000000))
+						contract, err := context.CreateContractAccount([]byte("n1JNHZJEUvfBYfjDRD14Q73FX62nJAzXkMR"), nil)
+						assert.Nil(t, err)
+
+						ctx, err := NewContext(mockBlock(), mockTransaction(), contract, context)
+						engine := NewV8Engine(ctx)
+						engine.SetExecutionLimits(100000000, 10000000)
+						_, err = engine.DeployAndInit(string(data), "js", "")
+						fmt.Printf("err:%v", err)
+						// _, err = engine.RunScriptSource("", 0)
+						assert.Equal(t, tt.expectedErr, err)
+						engine.Dispose()
+						// // lockx.Unlock()
+
+					}()
 					// }
-					// lockx.Lock()
-					mem, _ := storage.NewMemoryStorage()
-					context, _ := state.NewWorldState(dpos.NewDpos(), mem)
-					owner, err := context.GetOrCreateUserAccount([]byte("n1FkntVUMPAsESuCAAPK711omQk19JotBjM"))
-					assert.Nil(t, err)
-					owner.AddBalance(newUint128FromIntWrapper(1000000000))
-					contract, err := context.CreateContractAccount([]byte("n1JNHZJEUvfBYfjDRD14Q73FX62nJAzXkMR"), nil)
-					assert.Nil(t, err)
-
-					ctx, err := NewContext(mockBlock(), mockTransaction(), contract, context)
-					engine := NewV8Engine(ctx)
-					engine.SetExecutionLimits(100000000, 10000000)
-					_, err = engine.DeployAndInit(string(data), "js", "")
-					fmt.Printf("err:%v", err)
-					// _, err = engine.RunScriptSource("", 0)
-					assert.Equal(t, tt.expectedErr, err)
-					engine.Dispose()
-					// // lockx.Unlock()
-
-				}()
-				// }
+				}
+				wg.Wait()
 			}
-
-			wg.Wait()
 
 		})
 	}

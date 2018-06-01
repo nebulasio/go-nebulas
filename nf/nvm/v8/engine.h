@@ -44,9 +44,9 @@ enum LogLevel {
 };
 
 enum OptType {
-  INSTRUCTION = 1,
-  INSTRUCTION_TS = 2,
-  RUN         = 3,
+  INSTRUCTION     = 1,
+  INSTRUCTIONTS  = 2,
+  RUNSCRIPT       = 3,
 };
 
 // log
@@ -121,7 +121,7 @@ typedef struct V8Engine {
   int ret;  //output
   int allowUsage;
   V8EngineStats stats;
-  char *source;
+  const char *source;
   char *result; //output
   bool isRunEnd;
   
@@ -161,9 +161,18 @@ EXPORT void ExecuteLoop(const char *file);
 // EXPORT void DeleteThreadEngine(V8Engine *e);
 
 // EXPORT void ExecuteLoopInIsolate(V8Engine *e);
-
+EXPORT char *InjectTracingInstructionsThread(V8Engine *e, const char *source,
+                                int *source_line_offset,
+                                int strictDisallowUsage);
+EXPORT char *TranspileTypeScriptModuleThread(V8Engine *e, const char *source,
+                                int *source_line_offset);
+int RunScriptSourceThread(char **result, V8Engine *e, const char *source,
+                    int source_line_offset, uintptr_t lcsHandler,
+                    uintptr_t gcsHandler);
 EXPORT void RunScriptThread(V8Engine *e);
-EXPORT void SetRunScriptArgs(V8Engine *e, int opt, char *source, int lineOffset, int allowUsage);
+EXPORT void SetRunScriptArgs(V8Engine *e, int opt, const char *source, int lineOffset, int allowUsage);
+EXPORT void DecoratorOutPut(V8Engine *e);
+
 #ifdef __cplusplus
 }
 #endif // __cplusplus
