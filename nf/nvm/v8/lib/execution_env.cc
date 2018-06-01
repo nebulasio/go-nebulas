@@ -21,6 +21,7 @@
 #include "../engine.h"
 #include "file.h"
 #include "logger.h"
+#include "global.h"
 
 static AttachLibVersionDelegate alvDelegate = NULL;
 

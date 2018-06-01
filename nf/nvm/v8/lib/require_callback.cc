@@ -122,7 +122,7 @@ void RequireCallback(const v8::FunctionCallbackInfo<v8::Value> &info) {
   char *abPath = NULL;
   if (strcmp(*filename, LIB_WHITE)) { // if needed, check array instead.
     char versioned[MAX_VERSIONED_PATH_LEN] = {0};
-    if (attachVersion(versioned, context, filename) != 0) {
+    if (attachVersion(versioned, context, *filename) != 0) {
       isolate->ThrowException(Exception::Error(String::NewFromUtf8(
           isolate, "attach version failed")));
       return;
