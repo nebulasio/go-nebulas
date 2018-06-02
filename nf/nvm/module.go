@@ -132,7 +132,6 @@ func AttachLibVersionDelegateFunc(handler unsafe.Pointer, require *C.char) *C.ch
 
 	// block after core.V8JSLibVersionControlHeight, inclusive
 	if e.ctx.block.Height() >= core.V8JSLibVersionControlHeight {
-		// fmt.Println(e.ctx.block.Height(), core.V8JSLibVersionControlHeight, libname)
 		if e.ctx.contract == nil {
 			logging.VLog().Error("context.contract is nil.")
 			return nil
@@ -175,25 +174,20 @@ func AttachLibVersionDelegateFunc(handler unsafe.Pointer, require *C.char) *C.ch
 		return C.CString(JSLibRootName + ver + libname[JSLibRootNameLen-1:])
 	}
 
-	// block before core.V8JSLibVersionControlHeight, default lib version: 1.0.0
-	if strings.HasPrefix(libname, JSLibRootName) {
-		logging.VLog().WithFields(logrus.Fields{
-			"libname": libname,
-			"return":  JSLibRootName + "1.0.0" + libname[JSLibRootNameLen-1:],
-		}).Debug("attach lib.")
-		return C.CString(JSLibRootName + "1.0.0" + libname[JSLibRootNameLen-1:])
-	}
-
-	v := "1.0.0"
-	if !strings.HasPrefix(libname, "/") {
-		v += "/"
+	// block created before core.V8JSLibVersionControlHeight, default lib version: 1.0.0
+	if !strings.HasPrefix(libname, JSLibRootName) {
+		if strings.HasPrefix(libname, "/") {
+			libname = "lib" + libname
+		} else {
+			libname = JSLibRootName + libname
+		}
 	}
 
 	logging.VLog().WithFields(logrus.Fields{
 		"libname": libname,
-		"return":  v + libname,
+		"return":  JSLibRootName + "1.0.0" + libname[JSLibRootNameLen-1:],
 	}).Debug("attach lib.")
-	return C.CString(v + libname)
+	return C.CString(JSLibRootName + "1.0.0" + libname[JSLibRootNameLen-1:])
 }
 
 func reformatModuleID(id string) string {

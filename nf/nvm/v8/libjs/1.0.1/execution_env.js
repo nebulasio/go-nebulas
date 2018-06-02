@@ -109,4 +109,5 @@ const Blockchain = require('blockchain.js');
 
 Math.random = require('random.js');
 
-const BigNumber = require('bignumber.js');
+// since 1.0.1   bignumber.js needs be required explicitly
+// const BigNumber = require('bignumber.js');

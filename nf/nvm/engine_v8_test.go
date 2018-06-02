@@ -1743,3 +1743,35 @@ func TestInnerTransactions(t *testing.T) {
 		// check
 	}
 }
+
+func TestMultiLibVersion(t *testing.T) {
+	tests := []struct {
+		filepath       string
+		expectedErr    error
+		expectedResult string
+	}{
+		{"test/test_multi_lib_version_require.js", nil, "\"\""},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.filepath, func(t *testing.T) {
+			data, err := ioutil.ReadFile(tt.filepath)
+			assert.Nil(t, err, "filepath read error")
+
+			mem, _ := storage.NewMemoryStorage()
+			context, _ := state.NewWorldState(dpos.NewDpos(), mem)
+			owner, err := context.GetOrCreateUserAccount([]byte("account1"))
+			assert.Nil(t, err)
+			owner.AddBalance(newUint128FromIntWrapper(1000000000))
+			contract, _ := context.CreateContractAccount([]byte("account2"), nil, &corepb.ContractMeta{Version: "1.0.1"})
+			ctx, err := NewContext(mockBlock(), mockTransaction(), contract, context)
+
+			engine := NewV8Engine(ctx)
+			engine.SetExecutionLimits(900000, 10000000)
+			result, err := engine.RunScriptSource(string(data), 0)
+			assert.Equal(t, tt.expectedErr, err)
+			assert.Equal(t, tt.expectedResult, result)
+			engine.Dispose()
+		})
+	}
+}
