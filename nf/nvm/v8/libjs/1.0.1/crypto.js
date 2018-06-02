@@ -29,7 +29,39 @@ var Crypto = function() {
 };
 
 Crypto.prototype = {
-    
+ 
+    sha256: function(data) {
+        if (typeof data !== "string") {
+            throw new Error("input must be string");
+        }
+        return this.nativeCrypto.sha256(data);
+    },
+
+    sha3256: function(data) {
+        if (typeof data !== "string") {
+            throw new Error("input must be string");
+        }
+        return this.nativeCrypto.sha3256(data);
+    },
+
+    ripemd160: function(data) {
+        if (typeof data !== "string") {
+            throw new Error("input must be string");
+        }
+        return this.nativeCrypto.ripemd160(data);
+    },
+
+    recoverAddress: function(alg, data, sign) {
+        if (!Number.isInteger(alg)) {
+            throw new Error("alg must be integer");
+        }
+
+        if (typeof data != "string" || typeof sign != "string") {
+            throw new Error("data & sign must be string");
+        }
+
+        return this.nativeCrypto.recoverAddress(alg, data, sign);
+    },
 };
 
-module.exports = Crypto;
+module.exports = new Crypto();

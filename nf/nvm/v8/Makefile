@@ -56,10 +56,10 @@ all: main
 %.cpp.o: %.cpp
 	$(CXX) $(CXXFLAGS) -c $< -o $<.o
 
-main: samples/main.cc.o samples/memory_storage.cc.o samples/memory_modules.cc.o engine.cc.o allocator.cc.o lib/global.cc.o lib/execution_env.cc.o lib/storage_object.cc.o lib/log_callback.cc.o lib/require_callback.cc.o lib/instruction_counter.cc.o lib/blockchain.cc.o lib/fake_blockchain.cc.o lib/tracing.cc.o lib/file.cc.o lib/util.cc.o lib/typescript.cc.o lib/event.cc.o
+main: samples/main.cc.o samples/memory_storage.cc.o samples/memory_modules.cc.o engine.cc.o allocator.cc.o lib/global.cc.o lib/execution_env.cc.o lib/storage_object.cc.o lib/log_callback.cc.o lib/require_callback.cc.o lib/instruction_counter.cc.o lib/blockchain.cc.o lib/fake_blockchain.cc.o lib/tracing.cc.o lib/file.cc.o lib/util.cc.o lib/typescript.cc.o lib/event.cc.o  lib/crypto.cc.o
 	$(LD) $(LDFLAGS) $^ -o $@ $(LIBS_PATH) $(LIBS)
 
-engine: engine.cc.o allocator.cc.o lib/global.cc.o lib/execution_env.cc.o lib/storage_object.cc.o lib/log_callback.cc.o lib/require_callback.cc.o lib/instruction_counter.cc.o lib/blockchain.cc.o lib/tracing.cc.o lib/file.cc.o lib/util.cc.o lib/typescript.cc.o lib/event.cc.o
+engine: engine.cc.o allocator.cc.o lib/global.cc.o lib/execution_env.cc.o lib/storage_object.cc.o lib/log_callback.cc.o lib/require_callback.cc.o lib/instruction_counter.cc.o lib/blockchain.cc.o lib/tracing.cc.o lib/file.cc.o lib/util.cc.o lib/typescript.cc.o lib/event.cc.o lib/crypto.cc.o
 	$(LD) -shared $(LDFLAGS) $^ -o libnebulasv8$(DYLIB) $(LIBS_PATH) $(LIBS)
 
 install: engine

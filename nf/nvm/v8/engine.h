@@ -75,6 +75,21 @@ EXPORT void InitializeBlockchain(GetTxByHashFunc getTx,
                                  TransferFunc transfer,
                                  VerifyAddressFunc verifyAddress);
 
+// crypto
+typedef char *(*Sha256Func)(void *handler, const char *data,
+                                 size_t *counterVal);
+typedef char *(*Sha3256Func)(void *handler, const char *data,
+                                     size_t *counterVal);
+typedef char *(*Ripemd160Func)(void *handler, const char *data,
+                            size_t *counterVal);
+typedef char *(*RecoverAddressFunc)(void *handler, int alg, const char *data, const char *sign,
+                                 size_t *counterVal);
+
+EXPORT void InitializeCrypto(Sha256Func sha256,
+                                 Sha3256Func sha3256,
+                                 Ripemd160Func ripemd160,
+                                 RecoverAddressFunc recoverAddress);
+
 // version
 EXPORT char *GetV8Version();
 

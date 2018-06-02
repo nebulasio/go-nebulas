@@ -162,7 +162,7 @@ func TestRunScriptSource(t *testing.T) {
 			owner, err := context.GetOrCreateUserAccount([]byte("account1"))
 			assert.Nil(t, err)
 			owner.AddBalance(newUint128FromIntWrapper(1000000000))
-			contract, _ := context.CreateContractAccount([]byte("account2"), nil)
+			contract, _ := context.CreateContractAccount([]byte("account2"), nil, nil)
 			ctx, err := NewContext(mockBlock(), mockTransaction(), contract, context)
 
 			engine := NewV8Engine(ctx)
@@ -201,7 +201,7 @@ func TestRunScriptSourceInModule(t *testing.T) {
 			owner, err := context.GetOrCreateUserAccount([]byte("account1"))
 			assert.Nil(t, err)
 			owner.AddBalance(newUint128FromIntWrapper(1000000000))
-			contract, _ := context.CreateContractAccount([]byte("account2"), nil)
+			contract, _ := context.CreateContractAccount([]byte("account2"), nil, nil)
 			ctx, err := NewContext(mockBlock(), mockTransaction(), contract, context)
 
 			engine := NewV8Engine(ctx)
@@ -245,7 +245,7 @@ func TestRunScriptSourceWithLimits(t *testing.T) {
 			owner, err := context.GetOrCreateUserAccount([]byte("account1"))
 			assert.Nil(t, err)
 			owner.AddBalance(newUint128FromIntWrapper(100000))
-			contract, _ := context.CreateContractAccount([]byte("account2"), nil)
+			contract, _ := context.CreateContractAccount([]byte("account2"), nil, nil)
 			ctx, err := NewContext(mockBlock(), mockTransaction(), contract, context)
 
 			// direct run.
@@ -299,7 +299,7 @@ func TestV8ResourceLimit(t *testing.T) {
 			owner, err := context.GetOrCreateUserAccount([]byte("account1"))
 			assert.Nil(t, err)
 			owner.AddBalance(newUint128FromIntWrapper(10000000))
-			contract, _ := context.CreateContractAccount([]byte("account2"), nil)
+			contract, _ := context.CreateContractAccount([]byte("account2"), nil, nil)
 
 			ctx, err := NewContext(mockBlock(), mockTransaction(), contract, context)
 			engine := NewV8Engine(ctx)
@@ -351,7 +351,7 @@ func TestRunScriptSourceTimeout(t *testing.T) {
 			// owner, err := context.GetOrCreateUserAccount([]byte("account1"))
 			// assert.Nil(t, err)
 
-			contract, _ := context.CreateContractAccount([]byte("account2"), nil)
+			contract, _ := context.CreateContractAccount([]byte("account2"), nil, nil)
 			ctx, err := NewContext(mockBlock(), mockTransaction(), contract, context)
 
 			// direct run.
@@ -398,7 +398,7 @@ func TestDeployAndInitAndCall(t *testing.T) {
 			owner, err := context.GetOrCreateUserAccount([]byte("account1"))
 			assert.Nil(t, err)
 			owner.AddBalance(newUint128FromIntWrapper(10000000))
-			contract, _ := context.CreateContractAccount([]byte("account2"), nil)
+			contract, _ := context.CreateContractAccount([]byte("account2"), nil, nil)
 
 			ctx, err := NewContext(mockBlock(), mockTransaction(), contract, context)
 			engine := NewV8Engine(ctx)
@@ -424,7 +424,7 @@ func TestDeployAndInitAndCall(t *testing.T) {
 			context, _ = state.NewWorldState(dpos.NewDpos(), mem)
 			owner, err = context.GetOrCreateUserAccount([]byte("account1"))
 			assert.Nil(t, err)
-			contract, err = context.CreateContractAccount([]byte("account2"), nil)
+			contract, err = context.CreateContractAccount([]byte("account2"), nil, nil)
 			assert.Nil(t, err)
 
 			ctx, err = NewContext(mockBlock(), mockTransaction(), contract, context)
@@ -459,7 +459,7 @@ func TestERC20(t *testing.T) {
 			owner, err := context.GetOrCreateUserAccount([]byte("account1"))
 			assert.Nil(t, err)
 			owner.AddBalance(newUint128FromIntWrapper(10000000))
-			contract, _ := context.CreateContractAccount([]byte("account2"), nil)
+			contract, _ := context.CreateContractAccount([]byte("account2"), nil, nil)
 
 			ctx, err := NewContext(mockBlock(), mockTransaction(), contract, context)
 			engine := NewV8Engine(ctx)
@@ -519,7 +519,7 @@ func TestContracts(t *testing.T) {
 			owner, err := context.GetOrCreateUserAccount([]byte("account1"))
 			assert.Nil(t, err)
 			owner.AddBalance(newUint128FromIntWrapper(10000000))
-			contract, err := context.CreateContractAccount([]byte("account2"), nil)
+			contract, err := context.CreateContractAccount([]byte("account2"), nil, nil)
 			assert.Nil(t, err)
 			ctx, err := NewContext(mockBlock(), mockTransaction(), contract, context)
 
@@ -568,7 +568,7 @@ func TestFunctionNameCheck(t *testing.T) {
 			owner, err := context.GetOrCreateUserAccount([]byte("account1"))
 			assert.Nil(t, err)
 			owner.AddBalance(newUint128FromIntWrapper(1000000))
-			contract, _ := context.CreateContractAccount([]byte("account2"), nil)
+			contract, _ := context.CreateContractAccount([]byte("account2"), nil, nil)
 			ctx, err := NewContext(mockBlock(), mockTransaction(), contract, context)
 
 			engine := NewV8Engine(ctx)
@@ -586,7 +586,7 @@ func TestMultiEngine(t *testing.T) {
 	owner, err := context.GetOrCreateUserAccount([]byte("account1"))
 	assert.Nil(t, err)
 	owner.AddBalance(newUint128FromIntWrapper(1000000))
-	contract, _ := context.CreateContractAccount([]byte("account2"), nil)
+	contract, _ := context.CreateContractAccount([]byte("account2"), nil, nil)
 
 	var wg sync.WaitGroup
 	for i := 0; i < 100; i++ {
@@ -655,7 +655,7 @@ func TestInstructionCounterTestSuite(t *testing.T) {
 			owner.AddBalance(newUint128FromIntWrapper(1000000000))
 			addr, err := core.NewContractAddressFromData([]byte("n1FkntVUMPAsESuCAAPK711omQk19JotBjM"), byteutils.FromUint64(1))
 			assert.Nil(t, err)
-			contract, err := context.CreateContractAccount(addr.Bytes(), nil)
+			contract, err := context.CreateContractAccount(addr.Bytes(), nil, nil)
 			assert.Nil(t, err)
 			ctx, err := NewContext(mockBlock(), mockTransaction(), contract, context)
 
@@ -696,7 +696,7 @@ func TestTypeScriptExecution(t *testing.T) {
 			owner, err := context.GetOrCreateUserAccount([]byte("account1"))
 			assert.Nil(t, err)
 			owner.AddBalance(newUint128FromIntWrapper(1000000000))
-			contract, err := context.CreateContractAccount([]byte("account2"), nil)
+			contract, err := context.CreateContractAccount([]byte("account2"), nil, nil)
 			assert.Nil(t, err)
 			ctx, err := NewContext(mockBlock(), mockTransaction(), contract, context)
 
@@ -731,7 +731,7 @@ func DeprecatedTestRunMozillaJSTestSuite(t *testing.T) {
 	assert.Nil(t, err)
 	owner.AddBalance(newUint128FromIntWrapper(1000000000))
 
-	contract, err := context.CreateContractAccount([]byte("account2"), nil)
+	contract, err := context.CreateContractAccount([]byte("account2"), nil, nil)
 	assert.Nil(t, err)
 	ctx, err := NewContext(mockBlock(), mockTransaction(), contract, context)
 
@@ -810,7 +810,7 @@ func TestBlockChain(t *testing.T) {
 			owner, err := context.GetOrCreateUserAccount([]byte("n1FkntVUMPAsESuCAAPK711omQk19JotBjM"))
 			assert.Nil(t, err)
 			owner.AddBalance(newUint128FromIntWrapper(1000000000))
-			contract, err := context.CreateContractAccount([]byte("n1JNHZJEUvfBYfjDRD14Q73FX62nJAzXkMR"), nil)
+			contract, err := context.CreateContractAccount([]byte("n1JNHZJEUvfBYfjDRD14Q73FX62nJAzXkMR"), nil, nil)
 			assert.Nil(t, err)
 
 			ctx, err := NewContext(mockBlock(), mockTransaction(), contract, context)
@@ -871,7 +871,7 @@ func TestBankVaultContract(t *testing.T) {
 			// prepare the contract.
 			addr, err := core.NewContractAddressFromData([]byte("n1FkntVUMPAsESuCAAPK711omQk19JotBjM"), byteutils.FromUint64(1))
 			assert.Nil(t, err)
-			contract, _ := context.CreateContractAccount(addr.Bytes(), nil)
+			contract, _ := context.CreateContractAccount(addr.Bytes(), nil, nil)
 			contract.AddBalance(newUint128FromIntWrapper(5))
 
 			// parepare env, block & transactions.
@@ -949,7 +949,7 @@ func TestEvent(t *testing.T) {
 			owner, err := context.GetOrCreateUserAccount([]byte("n1FkntVUMPAsESuCAAPK711omQk19JotBjM"))
 			assert.Nil(t, err)
 			owner.AddBalance(newUint128FromIntWrapper(1000000000))
-			contract, _ := context.CreateContractAccount([]byte("n1JNHZJEUvfBYfjDRD14Q73FX62nJAzXkMR"), nil)
+			contract, _ := context.CreateContractAccount([]byte("n1JNHZJEUvfBYfjDRD14Q73FX62nJAzXkMR"), nil, nil)
 
 			ctx, err := NewContext(mockBlock(), mockTransaction(), contract, context)
 			engine := NewV8Engine(ctx)
@@ -1000,7 +1000,7 @@ func TestNRC20Contract(t *testing.T) {
 			owner.AddBalance(newUint128FromIntWrapper(10000000))
 
 			// prepare the contract.
-			contract, _ := context.CreateContractAccount([]byte("account2"), nil)
+			contract, _ := context.CreateContractAccount([]byte("account2"), nil, nil)
 			contract.AddBalance(newUint128FromIntWrapper(5))
 
 			// parepare env, block & transactions.
@@ -1154,7 +1154,7 @@ func TestNRC721Contract(t *testing.T) {
 			assert.Nil(t, err)
 
 			// prepare the contract.
-			contract, _ := context.CreateContractAccount([]byte("account2"), nil)
+			contract, _ := context.CreateContractAccount([]byte("account2"), nil, nil)
 			contract.AddBalance(newUint128FromIntWrapper(5))
 
 			// parepare env, block & transactions.
@@ -1251,7 +1251,7 @@ func TestNebulasContract(t *testing.T) {
 	owner.AddBalance(newUint128FromIntWrapper(1000000000))
 
 	addr, _ = core.NewContractAddressFromData([]byte{1, 2, 3, 5, 7}, []byte{1, 2, 3, 5, 7})
-	contract, _ := context.CreateContractAccount(addr.Bytes(), nil)
+	contract, _ := context.CreateContractAccount(addr.Bytes(), nil, nil)
 
 	ctx, err := NewContext(mockBlock(), mockTransaction(), contract, context)
 
@@ -1318,7 +1318,7 @@ func TestTransferValueFromContracts(t *testing.T) {
 			owner.AddBalance(newUint128FromIntWrapper(10000000))
 			addr, err := core.NewContractAddressFromData([]byte("n1FkntVUMPAsESuCAAPK711omQk19JotBjM"), byteutils.FromUint64(1))
 			assert.Nil(t, err)
-			contract, err := context.CreateContractAccount(addr.Bytes(), nil)
+			contract, err := context.CreateContractAccount(addr.Bytes(), nil, nil)
 			assert.Nil(t, err)
 
 			contract.AddBalance(newUint128FromIntWrapper(100))
@@ -1369,7 +1369,7 @@ func TestRequireModule(t *testing.T) {
 			owner, err := context.GetOrCreateUserAccount([]byte("account1"))
 			assert.Nil(t, err)
 			owner.AddBalance(newUint128FromIntWrapper(10000000))
-			contract, _ := context.CreateContractAccount([]byte("account2"), nil)
+			contract, _ := context.CreateContractAccount([]byte("account2"), nil, nil)
 
 			ctx, err := NewContext(mockBlock(), mockTransaction(), contract, context)
 			engine := NewV8Engine(ctx)

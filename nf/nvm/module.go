@@ -107,6 +107,8 @@ func RequireDelegateFunc(handler unsafe.Pointer, filename *C.char, lineOffset *C
 //export AttachLibVersionDelegateFunc
 func AttachLibVersionDelegateFunc(handler unsafe.Pointer, require *C.char) *C.char {
 	libname := C.GoString(require)
+	libname = strings.Replace(libname, `\\`, "/", -1)
+	libname = strings.Replace(libname, `\`, "/", -1)
 	e := getEngineByEngineHandler(handler)
 	if e == nil {
 		logging.VLog().WithFields(logrus.Fields{
@@ -119,10 +121,27 @@ func AttachLibVersionDelegateFunc(handler unsafe.Pointer, require *C.char) *C.ch
 		return nil
 	}
 
+	if e.ctx == nil {
+		logging.VLog().Error("context is nil.")
+		return nil
+	}
+	if e.ctx.block == nil {
+		logging.VLog().Error("context.block is nil.")
+		return nil
+	}
+
 	// block after core.V8JSLibVersionControlHeight, inclusive
 	if e.ctx.block.Height() >= core.V8JSLibVersionControlHeight {
-
-		cv := e.ctx.contract.ContractMeta().Version // TODO: check nil
+		// fmt.Println(e.ctx.block.Height(), core.V8JSLibVersionControlHeight, libname)
+		if e.ctx.contract == nil {
+			logging.VLog().Error("context.contract is nil.")
+			return nil
+		}
+		if e.ctx.contract.ContractMeta() == nil {
+			logging.VLog().Error("context.contract.ContractMeta() return nil.")
+			return nil
+		}
+		cv := e.ctx.contract.ContractMeta().Version
 
 		if len(cv) == 0 {
 			logging.VLog().WithFields(logrus.Fields{
@@ -165,11 +184,16 @@ func AttachLibVersionDelegateFunc(handler unsafe.Pointer, require *C.char) *C.ch
 		return C.CString(JSLibRootName + "1.0.0" + libname[JSLibRootNameLen-1:])
 	}
 
+	v := "1.0.0"
+	if !strings.HasPrefix(libname, "/") {
+		v += "/"
+	}
+
 	logging.VLog().WithFields(logrus.Fields{
 		"libname": libname,
-		"return":  "1.0.0" + libname,
+		"return":  v + libname,
 	}).Debug("attach lib.")
-	return C.CString("1.0.0" + libname)
+	return C.CString(v + libname)
 }
 
 func reformatModuleID(id string) string {

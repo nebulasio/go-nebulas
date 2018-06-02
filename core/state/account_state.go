@@ -406,3 +406,12 @@ func (as *accountState) String() string {
 		as.storage,
 	)
 }
+
+// MockAccount nf/nvm/engine.CheckV8Run()  & cmd/v8/main.go
+func MockAccount(version string) Account {
+	return &account{
+		contractMeta: &corepb.ContractMeta{
+			Version: version,
+		},
+	}
+}

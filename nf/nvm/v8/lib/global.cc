@@ -24,6 +24,7 @@
 #include "log_callback.h"
 #include "require_callback.h"
 #include "storage_object.h"
+#include "crypto.h"
 
 Local<ObjectTemplate> CreateGlobalObjectTemplate(Isolate *isolate) {
   Local<ObjectTemplate> globalTpl = ObjectTemplate::New(isolate);
@@ -49,6 +50,7 @@ void SetGlobalObjectProperties(Isolate *isolate, Local<Context> context,
   NewInstructionCounterInstance(isolate, context,
                                 &(e->stats.count_of_executed_instructions), e);
   NewBlockchainInstance(isolate, context, lcsHandler);
+  NewCryptoInstance(isolate, context);
 }
 
 V8Engine *GetV8EngineInstance(Local<Context> context) {

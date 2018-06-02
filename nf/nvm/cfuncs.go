@@ -42,6 +42,12 @@ int VerifyAddressFunc(void *handler, const char *address, size_t *gasCnt);
 // event.
 void EventTriggerFunc(void *handler, const char *topic, const char *data, size_t *gasCnt);
 
+// crypto
+char *Sha256Func(const char *data, size_t *gasCnt);
+char *Sha3256Func(const char *data, size_t *gasCnt);
+char *Ripemd160Func(const char *data, size_t *gasCnt);
+char *RecoverAddressFunc(int alg, const char *data, const char *sign, size_t *gasCnt);
+
 // The gateway functions.
 void V8Log_cgo(int level, const char *msg) {
 	V8Log(level, msg);
@@ -81,6 +87,19 @@ int VerifyAddressFunc_cgo(void *handler, const char *address, size_t *gasCnt) {
 void EventTriggerFunc_cgo(void *handler, const char *topic, const char *data, size_t *gasCnt) {
 	EventTriggerFunc(handler, topic, data, gasCnt);
 };
+
+char *Sha256Func_cgo(const char *data, size_t *gasCnt) {
+	return Sha256Func(data, gasCnt);
+}
+char *Sha3256Func_cgo(const char *data, size_t *gasCnt) {
+	return Sha3256Func(data, gasCnt);
+}
+char *Ripemd160Func_cgo(const char *data, size_t *gasCnt) {
+	return Ripemd160Func(data, gasCnt);
+}
+char *RecoverAddressFunc_cgo(int alg, const char *data, const char *sign, size_t *gasCnt) {
+	return RecoverAddressFunc(alg, data, sign, gasCnt);
+}
 
 */
 import "C"
