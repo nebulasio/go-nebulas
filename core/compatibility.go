@@ -270,7 +270,7 @@ func checkJSLib() {
 
 			logging.VLog().WithFields(logrus.Fields{
 				"path": p,
-			}).Debug("js lib exists.")
+			}).Debug("check js lib.")
 		}
 	}
 }
