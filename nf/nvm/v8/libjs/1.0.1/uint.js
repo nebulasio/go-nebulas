@@ -46,23 +46,27 @@ class Uint {
     _validate() {
         // check integer
         if (!this.inner.isInteger()) {
-            throw new Error('[uint Error] not a integer');
+            throw new Error('[Uint Error] not a integer');
         }
 
         // check negative
         if (this.inner.isNegative()) {
-            throw new Error('[uint' + this.size + ' Error] underflow');
+            throw new Error('[Uint' + this.size + ' Error] underflow');
         }
 
         // check overflow
         if (this.inner.gt(MAX_UINTS[this.size])) {
-            throw new Error('[uint' + this.size + ' Error] overflow');
+            throw new Error('[Uint' + this.size + ' Error] overflow');
         }
     }
 
     _checkOperands(left, right) {
-        if (typeof left !== typeof right) {
-            throw new Error('[uint Error] mismatched operand type');
+        if (!left instanceof Uint || !right instanceof Uint) {
+            throw new Error('[Uint Error] operand is not Uint type');
+        }
+
+        if (left.constructor !== right.constructor) {
+            throw new Error('[Uint Error] mismatched operand type');
         }
 
         right._validate();
