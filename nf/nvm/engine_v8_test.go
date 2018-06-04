@@ -58,6 +58,7 @@ func newUint128FromIntWrapper(a int64) *util.Uint128 {
 }
 
 type testBlock struct {
+	height uint64
 }
 
 // Coinbase mock
@@ -73,7 +74,7 @@ func (block *testBlock) Hash() byteutils.Hash {
 
 // Height mock
 func (block *testBlock) Height() uint64 {
-	return core.NvmMemoryLimitWithoutInjectHeight
+	return block.height
 }
 
 // RandomSeed mock
@@ -106,7 +107,12 @@ func (block *testBlock) Timestamp() int64 {
 }
 
 func mockBlock() Block {
-	block := &testBlock{}
+	block := &testBlock{core.NvmMemoryLimitWithoutInjectHeight}
+	return block
+}
+
+func mockBlockForLib(height uint64) Block {
+	block := &testBlock{height}
 	return block
 }
 
@@ -1751,6 +1757,7 @@ func TestMultiLibVersion(t *testing.T) {
 		expectedResult string
 	}{
 		{"test/test_multi_lib_version_require.js", nil, "\"\""},
+		{"test/test_uint.js", nil, "\"\""},
 	}
 
 	for _, tt := range tests {
@@ -1764,7 +1771,7 @@ func TestMultiLibVersion(t *testing.T) {
 			assert.Nil(t, err)
 			owner.AddBalance(newUint128FromIntWrapper(1000000000))
 			contract, _ := context.CreateContractAccount([]byte("account2"), nil, &corepb.ContractMeta{Version: "1.0.1"})
-			ctx, err := NewContext(mockBlock(), mockTransaction(), contract, context)
+			ctx, err := NewContext(mockBlockForLib(2000000), mockTransaction(), contract, context)
 
 			engine := NewV8Engine(ctx)
 			engine.SetExecutionLimits(900000, 10000000)

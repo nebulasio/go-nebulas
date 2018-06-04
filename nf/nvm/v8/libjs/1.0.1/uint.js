@@ -56,7 +56,7 @@ class Uint {
     _validate() {
         // check integer
         if (!this._inner.isInteger()) {
-            throw new Error('[Uint Error] not a integer');
+            throw new Error('[Uint' + this._size + ' Error] not an integer');
         }
 
         // check negative
@@ -72,18 +72,18 @@ class Uint {
 
     _checkRightOperand(right) {
         if (typeof right === 'undefined' || right == null) {
-            throw new Error('[Uint Error] NaN');
+            throw new Error('[Uint' + this._size + ' Error] NaN');
         }
 
         if (!right instanceof Uint || this.constructor !== right.constructor) {
-            throw new Error('[Uint Error] incompatible Uint type');
+            throw new Error('[Uint' + this._size + ' Error] incompatible type');
         }
         right._validate();
     }
 
     div(o) {
         this._checkRightOperand(o);
-        var r = this._inner.idiv(o._inner);
+        var r = this._inner.divToInt(o._inner);
         return new this.constructor(r, null, this._size);
     }
 
