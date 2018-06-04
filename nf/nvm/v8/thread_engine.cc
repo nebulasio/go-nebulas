@@ -21,6 +21,7 @@
 #include "engine_int.h"
 #include "lib/tracing.h"
 #include "lib/typescript.h"
+#include "lib/logger.h"
 
 #include <assert.h>
 #include <string.h>
@@ -32,156 +33,135 @@
 #include <unistd.h>
 #define KillTimeMicros  1000 * 1000 * 2  
 #define MicroSecondDiff(newtv, oldtv) (1000000 * (unsigned long long)((newtv).tv_sec - (oldtv).tv_sec) + (newtv).tv_usec - (oldtv).tv_usec)  //微秒
-#define CodeTimeOut   2
-void SetRunScriptArgs(v8ThreadContext *pc, V8Engine *e, int opt, const char *source, int line_offset, int allow_usage) {
-  // e->source = source;
-  // e->opt = (OptType)opt;
-  // e->allowUsage = allowUsage;
-  // e->lineOffset = lineOffset;
- 
-  pc->te = e;
-  pc->input.source = source;
-  pc->input.opt = (OptType)opt;
-  pc->input.allow_usage = allow_usage;
-  pc->input.line_offset = line_offset;
+#define CodeExecuteErr 1
+#define CodeTimeOut    2
+
+void SetRunScriptArgs(v8ThreadContext *ctx, V8Engine *e, int opt, const char *source, int line_offset, int allow_usage) {
+  ctx->e = e;
+  ctx->input.source = source;
+  ctx->input.opt = (OptType)opt;
+  ctx->input.allow_usage = allow_usage;
+  ctx->input.line_offset = line_offset;
 }
 
 char *InjectTracingInstructionsThread(V8Engine *e, const char *source,
                                 int *source_line_offset,
                                 int allow_usage) {
-  // TracingContext tContext;
-  // tContext.source_line_offset = 0;
-  // tContext.tracable_source = NULL;
-  // tContext.strictDisallowUsage = strictDisallowUsage;
-
-  // Execute(NULL, e, source, 0, 0L, 0L, InjectTracingInstructionDelegate,
-  //         (void *)&tContext);
-
-  // *source_line_offset = tContext.source_line_offset;
-  // return static_cast<char *>(tContext.tracable_source);
-  v8ThreadContext *pc = (v8ThreadContext *)calloc(1, sizeof(v8ThreadContext));
-  SetRunScriptArgs(pc, e, INSTRUCTION, source, *source_line_offset, allow_usage);
-	CreateScriptThread(pc);
-  *source_line_offset = pc->input.line_offset;
-  char *result = pc->output.result;
-  free(pc);
-  return result;
+  v8ThreadContext ctx;
+  memset(&ctx, 0x00, sizeof(ctx));
+  SetRunScriptArgs(&ctx, e, INSTRUCTION, source, *source_line_offset, allow_usage);
+	bool btn = CreateScriptThread(&ctx);
+  if (btn == false) {
+    return NULL;
+  }
+  *source_line_offset = ctx.output.line_offset;
+  return ctx.output.result;
 }
 
 char *TranspileTypeScriptModuleThread(V8Engine *e, const char *source,
                                 int *source_line_offset) {
-  // TypeScriptContext tContext;
-  // tContext.source_line_offset = 0;
-  // tContext.js_source = NULL;
-
-  // Execute(NULL, e, source, 0, 0L, 0L, TypeScriptTranspileDelegate,
-  //         (void *)&tContext);
-  v8ThreadContext *pc = (v8ThreadContext *)calloc(1, sizeof(v8ThreadContext));
-  SetRunScriptArgs(pc, e, INSTRUCTIONTS, source, *source_line_offset, 1);
-	CreateScriptThread(pc);
-  *source_line_offset = pc->input.line_offset;
-  char *result = pc->output.result;
-  free(pc);
-  return result;
-  // *source_line_offset = tContext.source_line_offset;
-  // return static_cast<char *>(tContext.js_source);
+  v8ThreadContext ctx;
+  memset(&ctx, 0x00, sizeof(ctx));
+  SetRunScriptArgs(&ctx, e, INSTRUCTIONTS, source, *source_line_offset, 1);
+	bool btn = CreateScriptThread(&ctx);
+  if (btn == false) {
+    return NULL;
+  }
+  *source_line_offset = ctx.output.line_offset;
+  return ctx.output.result;
 }
 int RunScriptSourceThread(char **result, V8Engine *e, const char *source,
                     int source_line_offset, uintptr_t lcs_handler,
                     uintptr_t gcs_handler) {
- 
-  v8ThreadContext *pc = (v8ThreadContext *)calloc(1, sizeof(v8ThreadContext));                    
-  SetRunScriptArgs(pc, e, RUNSCRIPT, source, source_line_offset, 1);
-	pc->input.lcs = lcs_handler;
-  pc->input.gcs = gcs_handler;  
+  v8ThreadContext ctx;
+  memset(&ctx, 0x00, sizeof(ctx));
+  SetRunScriptArgs(&ctx, e, RUNSCRIPT, source, source_line_offset, 1);
+	ctx.input.lcs = lcs_handler;
+  ctx.input.gcs = gcs_handler;  
 
-  CreateScriptThread(pc);
+  bool btn = CreateScriptThread(&ctx);
+  if (btn == false) {
+    return CodeExecuteErr;
+  }
 
-  // char *result = pc->output.result;
-  *result = pc->output.result;
-  int ret = pc->output.ret;
-  return ret;
+  *result = ctx.output.result;
+  return ctx.output.ret;
 }
 
-// void DecoratorOutPut(V8Engine *e) {
-//   if (e->result != NULL) {
-//     free(e->result);
-//     e->result = NULL;
-//   }
-    
-//   e->lineOffset = 0;
-//   e->ret = 0;
-// }
 void *ExecuteThread(void *args) {
-  v8ThreadContext *pc = (v8ThreadContext*)args;
-  if (pc->input.opt == INSTRUCTION) {
-    // printf("begin instruct\n");
+  v8ThreadContext *ctx = (v8ThreadContext*)args;
+  if (ctx->input.opt == INSTRUCTION) {
     TracingContext tContext;
     tContext.source_line_offset = 0;
     tContext.tracable_source = NULL;
-    tContext.strictDisallowUsage = pc->input.allow_usage;
+    tContext.strictDisallowUsage = ctx->input.allow_usage;
 
-    Execute(NULL, pc->te, pc->input.source, 0, 0L, 0L, InjectTracingInstructionDelegate,
+    Execute(NULL, ctx->e, ctx->input.source, 0, 0L, 0L, InjectTracingInstructionDelegate,
             (void *)&tContext);
 
-    pc->input.line_offset = tContext.source_line_offset;
-    pc->output.result = static_cast<char *>(tContext.tracable_source);
-  } else if (pc->input.opt == INSTRUCTIONTS) {
+    ctx->output.line_offset = tContext.source_line_offset;
+    ctx->output.result = static_cast<char *>(tContext.tracable_source);
+  } else if (ctx->input.opt == INSTRUCTIONTS) {
     TypeScriptContext tContext;
     tContext.source_line_offset = 0;
     tContext.js_source = NULL;
 
-    Execute(NULL, pc->te, pc->input.source, 0, 0L, 0L, TypeScriptTranspileDelegate,
+    Execute(NULL, ctx->e, ctx->input.source, 0, 0L, 0L, TypeScriptTranspileDelegate,
             (void *)&tContext);
 
-    pc->input.line_offset = tContext.source_line_offset;
-    pc->output.result = static_cast<char *>(tContext.js_source);
+    ctx->output.line_offset = tContext.source_line_offset;
+    ctx->output.result = static_cast<char *>(tContext.js_source);
   } else {
-    pc->output.ret = Execute(&pc->output.result, pc->te, pc->input.source, pc->input.line_offset, (void *)pc->input.lcs,
-                (void *)pc->input.gcs, ExecuteSourceDataDelegate, NULL);
-    printf("iRtn:%d--result:%s\n", pc->output.ret, pc->output.result);
+    ctx->output.ret = Execute(&ctx->output.result, ctx->e, ctx->input.source, ctx->input.line_offset, (void *)ctx->input.lcs,
+                (void *)ctx->input.gcs, ExecuteSourceDataDelegate, NULL);
+    // printf("iRtn:%d--result:%s\n", ctx->output.ret, ctx->output.result);
   }
 
-  pc->isRunEnd = true;
+  ctx->is_finished = true;
   return 0x00;
 }
-
-void CreateScriptThread(v8ThreadContext *pc) {
+// return : success return true. if hava err ,then return false. and not need to free heap
+// if gettimeofday hava err ,There is a risk of an infinite loop
+bool CreateScriptThread(v8ThreadContext *ctx) {
   pthread_t thread;
   pthread_attr_t attribute;
   pthread_attr_init(&attribute);
   pthread_attr_setstacksize(&attribute, 2 * 1024 * 1024);
   pthread_attr_setdetachstate (&attribute, PTHREAD_CREATE_DETACHED);
-  // char *file = "test_fe1.js";
-  // V8Engine *pe = (V8Engine*)args;
-  pthread_create(&thread, &attribute, ExecuteThread, (void *)pc);
-  // int count = 0;
   struct timeval tcBegin, tcEnd;
-  gettimeofday(&tcBegin, NULL);
-  bool isKill = false;
+  int rtn = gettimeofday(&tcBegin, NULL);
+  if (rtn != 0) {
+    LogErrorf("CreateScriptThread get start time err:%d\n", rtn);
+    return false;
+  }
+  rtn = pthread_create(&thread, &attribute, ExecuteThread, (void *)ctx);
+  if (rtn != 0) {
+    LogErrorf("CreateScriptThread pthread_create err:%d\n", rtn);
+    return false;
+  }
+  
+  bool is_kill = false;
   //thread safe
-  while(1) {  //TODO: 可以考虑迁移
-    // V8Engine *pe = (V8Engine*)e;
-    if (pc->isRunEnd == true) {
-      pc->isRunEnd = false;
-      // printf("e->stats.count_of_executed_instructions:%lu\n", e->stats.count_of_executed_instructions);
-      // if (e->opt == RUN) {
-        if (isKill == true) {
-          pc->output.ret = CodeTimeOut; 
+  while(1) {
+    if (ctx->is_finished == true) {
+        if (is_kill == true) {
+          ctx->output.ret = CodeTimeOut; 
         }
         break;
-      // }
     } else {
       usleep(10); //10 micro second loop .epoll_wait optimize
-      gettimeofday(&tcEnd, NULL);
+      rtn = gettimeofday(&tcEnd, NULL);
+      if (rtn) {
+        LogErrorf("CreateScriptThread get end time err:%d\n", rtn);
+        continue;
+      }
       int diff = MicroSecondDiff(tcEnd, tcBegin);
-      if (diff >= KillTimeMicros && isKill == false) { 
-        TerminateExecution(pc->te);
-        isKill = true;
+      if (diff >= KillTimeMicros && is_kill == false) { 
+        TerminateExecution(ctx->e);
+        is_kill = true;
       }
 
     }
   }
-
-    // pthread_join(thread, 0);
+  return true;
 }

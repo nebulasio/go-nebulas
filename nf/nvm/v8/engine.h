@@ -128,15 +128,16 @@ typedef struct v8ThreadContextInput {
 } v8ThreadContextInput;
 typedef struct v8ThreadContextOutput {
   int ret;  //output
+  int line_offset;
   char *result; //output
 } v8ThreadContextOutput;
 typedef struct v8ThreadContext_ {
-  V8Engine *te;
+  V8Engine *e; 
   v8ThreadContextInput input;
   v8ThreadContextOutput output;
-  bool isRunEnd;  
+  bool is_finished;  
 } v8ThreadContext;
-//TODO: v8Engine update
+
 EXPORT void Initialize();
 EXPORT void Dispose();
 
@@ -163,10 +164,6 @@ EXPORT void DeleteEngine(V8Engine *e);
 
 EXPORT void ExecuteLoop(const char *file);
 
-// EXPORT V8Engine *CreateThreadEngine();
-// EXPORT void DeleteThreadEngine(V8Engine *e);
-
-// EXPORT void ExecuteLoopInIsolate(V8Engine *e);
 EXPORT char *InjectTracingInstructionsThread(V8Engine *e, const char *source,
                                 int *source_line_offset,
                                 int allow_usage);
@@ -175,11 +172,8 @@ EXPORT char *TranspileTypeScriptModuleThread(V8Engine *e, const char *source,
 EXPORT int RunScriptSourceThread(char **result, V8Engine *e, const char *source,
                     int source_line_offset, uintptr_t lcs_handler,
                     uintptr_t gcs_handler);
-EXPORT void CreateScriptThread(v8ThreadContext *pc);
-// EXPORT void DecoratorOutPut(V8Engine *e);
 
-// 
-
+bool CreateScriptThread(v8ThreadContext *pc);
 void SetRunScriptArgs(v8ThreadContext *pc, V8Engine *e, int opt, const char *source, int line_offset, int allow_usage);
 #ifdef __cplusplus
 }
