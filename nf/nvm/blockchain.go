@@ -159,9 +159,9 @@ func recordTransferFailureEvent(errNo int, from string, to string, value string,
 			}).Fatal("failed to marshal TransferFromContractEvent") // TODO: to confirm
 		}
 
-		status := uint8(0)
+		status := uint8(1)
 		if errNo != TransferFuncSuccess {
-			status = 1
+			status = 0
 		}
 
 		event := &TransferFromContractFailureEvent{
