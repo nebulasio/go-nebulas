@@ -368,8 +368,8 @@ int IsEngineLimitsExceeded(V8Engine *e) {
   return 0;
 }
 
-
-void *loopExecute(void *args) {
+//loopExecute迁移文件
+void *loopExecute(void *args) { //FIXME: to ExecuteThread
   V8Engine *pe = (V8Engine*)args;
   if (pe->opt == INSTRUCTION) {
     // printf("begin instruct\n");
@@ -402,8 +402,8 @@ void *loopExecute(void *args) {
   pe->isRunEnd = true;
   return 0x00;
 }
-
-void RunScriptThread(V8Engine *e) {
+//FIXME: 变量下划线
+void RunScriptThread(V8Engine *e) { //FIXME: CreateScriptThread
   pthread_t thread;
   pthread_attr_t attribute;
   pthread_attr_init(&attribute);
@@ -417,14 +417,14 @@ void RunScriptThread(V8Engine *e) {
   gettimeofday(&tcBegin, NULL);
   bool isKill = false;
   //thread safe
-  while(1) {
+  while(1) {  //TODO: 可以考虑迁移
     // V8Engine *pe = (V8Engine*)e;
     if (e->isRunEnd == true) {
       e->isRunEnd = false;
       // printf("e->stats.count_of_executed_instructions:%lu\n", e->stats.count_of_executed_instructions);
       // if (e->opt == RUN) {
         if (isKill == true) {
-          e->ret = 2;
+          e->ret = 2; //FIXME: const
         }
         break;
       // }
@@ -432,7 +432,7 @@ void RunScriptThread(V8Engine *e) {
       usleep(10); //10 micro second loop .epoll_wait optimize
       gettimeofday(&tcEnd, NULL);
       int diff = MicroSecondDiff(tcEnd, tcBegin);
-      if (diff >= KillTimeMicros) {
+      if (diff >= KillTimeMicros) { //FIXME: isKill == false
         TerminateExecution(e);
         isKill = true;
       }

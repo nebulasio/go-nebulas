@@ -292,7 +292,7 @@ func (e *V8Engine) RunScriptSource(source string, sourceLineOffset int) (string,
 	ret = C.RunScriptSourceThread(&cResult, e.v8engine, cSource, C.int(sourceLineOffset), C.uintptr_t(e.lcsHandler),
 		C.uintptr_t(e.gcsHandler))
 
-	if ret == 2 {
+	if ret == 2 { //TODO: 2 to const
 		err = ErrExecutionTimeout
 	} else if ret == 1 {
 		err = core.ErrExecutionFailed
