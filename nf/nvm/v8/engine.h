@@ -114,22 +114,28 @@ typedef struct V8Engine {
   size_t limits_of_total_memory_size;
   int is_requested_terminate_execution;
   int testing;
+  
+  V8EngineStats stats;
+ 
+} V8Engine;
+typedef struct v8ThreadContextInput {
   uintptr_t lcs;  
   uintptr_t gcs;
   enum OptType opt;  
-  int lineOffset;
-  int ret;  //output
-  int allowUsage;
-  V8EngineStats stats;
+  int line_offset;
+  int allow_usage;
   const char *source;
+} v8ThreadContextInput;
+typedef struct v8ThreadContextOutput {
+  int ret;  //output
   char *result; //output
-  bool isRunEnd;
-  
-  // V8Engine() {
-  //   // memset(this, 0x00, sizeof(V8Engine));
-  // }
-  // void *context;
-} V8Engine;
+} v8ThreadContextOutput;
+typedef struct v8ThreadContext_ {
+  V8Engine *te;
+  v8ThreadContextInput input;
+  v8ThreadContextOutput output;
+  bool isRunEnd;  
+} v8ThreadContext;
 //TODO: v8Engine update
 EXPORT void Initialize();
 EXPORT void Dispose();
@@ -163,16 +169,18 @@ EXPORT void ExecuteLoop(const char *file);
 // EXPORT void ExecuteLoopInIsolate(V8Engine *e);
 EXPORT char *InjectTracingInstructionsThread(V8Engine *e, const char *source,
                                 int *source_line_offset,
-                                int strictDisallowUsage);
+                                int allow_usage);
 EXPORT char *TranspileTypeScriptModuleThread(V8Engine *e, const char *source,
                                 int *source_line_offset);
-int RunScriptSourceThread(char **result, V8Engine *e, const char *source,
-                    int source_line_offset, uintptr_t lcsHandler,
-                    uintptr_t gcsHandler);
-EXPORT void RunScriptThread(V8Engine *e);
-EXPORT void SetRunScriptArgs(V8Engine *e, int opt, const char *source, int lineOffset, int allowUsage);
-EXPORT void DecoratorOutPut(V8Engine *e);
+EXPORT int RunScriptSourceThread(char **result, V8Engine *e, const char *source,
+                    int source_line_offset, uintptr_t lcs_handler,
+                    uintptr_t gcs_handler);
+EXPORT void CreateScriptThread(v8ThreadContext *pc);
+// EXPORT void DecoratorOutPut(V8Engine *e);
 
+// 
+
+void SetRunScriptArgs(v8ThreadContext *pc, V8Engine *e, int opt, const char *source, int line_offset, int allow_usage);
 #ifdef __cplusplus
 }
 #endif // __cplusplus

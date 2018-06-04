@@ -36,11 +36,8 @@
 #include <thread>
 #include <stdlib.h>
 #include <stdio.h>
-#include <unistd.h>
-#include <sys/time.h>
+
 using namespace v8;
-#define KillTimeMicros  1000 * 1000 * 2  
-#define MicroSecondDiff(newtv, oldtv) (1000000 * (unsigned long long)((newtv).tv_sec - (oldtv).tv_sec) + (newtv).tv_usec - (oldtv).tv_usec)  //微秒
 
 static Platform *platformPtr = NULL;
 
@@ -369,76 +366,3 @@ int IsEngineLimitsExceeded(V8Engine *e) {
 }
 
 //loopExecute迁移文件
-void *loopExecute(void *args) { //FIXME: to ExecuteThread
-  V8Engine *pe = (V8Engine*)args;
-  if (pe->opt == INSTRUCTION) {
-    // printf("begin instruct\n");
-    TracingContext tContext;
-    tContext.source_line_offset = 0;
-    tContext.tracable_source = NULL;
-    tContext.strictDisallowUsage = pe->allowUsage;
-
-    Execute(NULL, pe, pe->source, 0, 0L, 0L, InjectTracingInstructionDelegate,
-            (void *)&tContext);
-
-    pe->lineOffset = tContext.source_line_offset;
-    pe->result = static_cast<char *>(tContext.tracable_source);
-  } else if (pe->opt == INSTRUCTIONTS) {
-    TypeScriptContext tContext;
-    tContext.source_line_offset = 0;
-    tContext.js_source = NULL;
-
-    Execute(NULL, pe, pe->source, 0, 0L, 0L, TypeScriptTranspileDelegate,
-            (void *)&tContext);
-
-    pe->lineOffset = tContext.source_line_offset;
-    pe->result = static_cast<char *>(tContext.js_source);
-  } else {
-    pe->ret = Execute(&pe->result, pe, pe->source, pe->lineOffset, (void *)pe->lcs,
-                (void *)pe->gcs, ExecuteSourceDataDelegate, NULL);
-    printf("iRtn:%d--result:%s\n", pe->ret, pe->result);
-  }
-
-  pe->isRunEnd = true;
-  return 0x00;
-}
-//FIXME: 变量下划线
-void RunScriptThread(V8Engine *e) { //FIXME: CreateScriptThread
-  pthread_t thread;
-  pthread_attr_t attribute;
-  pthread_attr_init(&attribute);
-  pthread_attr_setstacksize(&attribute, 2 * 1024 * 1024);
-  pthread_attr_setdetachstate (&attribute, PTHREAD_CREATE_DETACHED);
-  // char *file = "test_fe1.js";
-  // V8Engine *pe = (V8Engine*)args;
-  pthread_create(&thread, &attribute, loopExecute, (void *)e);
-  // int count = 0;
-  struct timeval tcBegin, tcEnd;
-  gettimeofday(&tcBegin, NULL);
-  bool isKill = false;
-  //thread safe
-  while(1) {  //TODO: 可以考虑迁移
-    // V8Engine *pe = (V8Engine*)e;
-    if (e->isRunEnd == true) {
-      e->isRunEnd = false;
-      // printf("e->stats.count_of_executed_instructions:%lu\n", e->stats.count_of_executed_instructions);
-      // if (e->opt == RUN) {
-        if (isKill == true) {
-          e->ret = 2; //FIXME: const
-        }
-        break;
-      // }
-    } else {
-      usleep(10); //10 micro second loop .epoll_wait optimize
-      gettimeofday(&tcEnd, NULL);
-      int diff = MicroSecondDiff(tcEnd, tcBegin);
-      if (diff >= KillTimeMicros) { //FIXME: isKill == false
-        TerminateExecution(e);
-        isKill = true;
-      }
-
-    }
-  }
-
-    // pthread_join(thread, 0);
-}

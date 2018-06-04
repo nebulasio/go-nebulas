@@ -63,6 +63,9 @@ const (
 	// ExecutionTimeoutInSeconds max v8 execution timeout.
 	ExecutionTimeoutInSeconds = 5
 )
+const (
+	ExecutionTimeOutErr = 2
+)
 
 //engine_v8 private data
 var (
@@ -240,7 +243,8 @@ func (e *V8Engine) TranspileTypeScript(source string) (string, int, error) {
 		return "", 0, ErrTranspileTypeScriptFailed
 	}
 
-	defer C.DecoratorOutPut(e.v8engine)
+	defer C.free(unsafe.Pointer(jsSource))
+	// defer C.DecoratorOutPut(e.v8engine)
 	return C.GoString(jsSource), int(lineOffset), nil
 
 }
@@ -258,7 +262,8 @@ func (e *V8Engine) InjectTracingInstructions(source string) (string, int, error)
 		return "", 0, ErrInjectTracingInstructionFailed
 	}
 
-	defer C.DecoratorOutPut(e.v8engine)
+	// defer C.DecoratorOutPut(e.v8engine)
+	defer C.free(unsafe.Pointer(traceableCSource))
 	return C.GoString(traceableCSource), int(lineOffset), nil
 }
 
@@ -292,7 +297,7 @@ func (e *V8Engine) RunScriptSource(source string, sourceLineOffset int) (string,
 	ret = C.RunScriptSourceThread(&cResult, e.v8engine, cSource, C.int(sourceLineOffset), C.uintptr_t(e.lcsHandler),
 		C.uintptr_t(e.gcsHandler))
 
-	if ret == 2 { //TODO: 2 to const
+	if ret == ExecutionTimeOutErr { //TODO: 2 to const
 		err = ErrExecutionTimeout
 	} else if ret == 1 {
 		err = core.ErrExecutionFailed
@@ -301,9 +306,9 @@ func (e *V8Engine) RunScriptSource(source string, sourceLineOffset int) (string,
 	logging.CLog().Infof("run end")
 	if cResult != nil {
 		result = C.GoString(cResult)
-		C.DecoratorOutPut(e.v8engine)
+		// C.DecoratorOutPut(e.v8engine)
 		// e.v8engine.result = nil
-		// C.free(unsafe.Pointer(cResult))
+		C.free(unsafe.Pointer(cResult))
 	} else if ret == 0 {
 		result = "\"\"" // default JSON String.
 	}
