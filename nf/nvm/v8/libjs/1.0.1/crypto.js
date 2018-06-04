@@ -52,11 +52,11 @@ Crypto.prototype = {
     },
 
     recoverAddress: function(alg, data, sign) {
-        if (!Number.isInteger(alg)) {
-            throw new Error("alg must be integer");
+        if (!Number.isSafeInteger(alg) || alg < 0) {
+            throw new Error("alg must be non-negative integer");
         }
 
-        if (typeof data != "string" || typeof sign != "string") {
+        if (typeof data !== "string" || typeof sign !== "string") {
             throw new Error("data & sign must be string");
         }
 

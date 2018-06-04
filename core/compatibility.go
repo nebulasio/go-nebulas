@@ -49,7 +49,7 @@ var (
 	// 		map[libname][versions]
 	V8JSLibs = map[string][]string{
 		"execution_env.js":       {"1.0.0", "1.0.1"},
-		"bignumber.js":           {"1.0.0", "1.0.1"},
+		"bignumber.js":           {"1.0.0"},
 		"random.js":              {"1.0.0", "1.0.1"},
 		"date.js":                {"1.0.0", "1.0.1"},
 		"tsc.js":                 {"1.0.0"},

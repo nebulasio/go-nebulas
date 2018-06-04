@@ -16,17 +16,21 @@
 // along with the go-nebulas library.  If not, see <http://www.gnu.org/licenses/>.
 // 
 
+/*
+ * this module must be required after bignumber.js
+ */
 'use strict';
 
-var BN = BigNumber;
-if (!BN) {
-    BN = require('bignumber.js');
-}
-
-const MAX_UINT64 = new BN('18446744073709551615', 16);
-const MAX_UINT128 = new BN('340282366920938463463374607431768211455', 16);
-const MAX_UINT256 = new BN('115792089237316195423570985008687907853269984665640564039457584007913129639935', 16);
-const MAX_UINT512 = new BN('13407807929942597099574024998205846127479365820592393377723561443721764030073546976801874298166903427690031858186486050853753882811946569946433649006084095', 16);
+/*
+ * ffffffffffffffff 18446744073709551615
+ * ffffffffffffffffffffffffffffffff 340282366920938463463374607431768211455
+ * ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff 115792089237316195423570985008687907853269984665640564039457584007913129639935
+ * ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff 13407807929942597099574024998205846127479365820592393377723561443721764030073546976801874298166903427690031858186486050853753882811946569946433649006084095
+ */
+const MAX_UINT64 = new BigNumber('ffffffffffffffff', 16);
+const MAX_UINT128 = new BigNumber('ffffffffffffffffffffffffffffffff', 16);
+const MAX_UINT256 = new BigNumber('ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff', 16);
+const MAX_UINT512 = new BigNumber('ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff', 16);
 
 const MAX_UINTS = {
     64: MAX_UINT64,
@@ -37,84 +41,93 @@ const MAX_UINTS = {
 
 class Uint {
     constructor(n, b, s) {
-        this.inner = new BN(n, b);
-        this.size = s;
+        Object.defineProperties(this, {
+            _inner: {
+                value: new BigNumber(n, b)
+            },
+            _size: {
+                value: s
+            }
+        });
 
         this._validate();
     }
 
     _validate() {
         // check integer
-        if (!this.inner.isInteger()) {
+        if (!this._inner.isInteger()) {
             throw new Error('[Uint Error] not a integer');
         }
 
         // check negative
-        if (this.inner.isNegative()) {
-            throw new Error('[Uint' + this.size + ' Error] underflow');
+        if (this._inner.isNegative()) {
+            throw new Error('[Uint' + this._size + ' Error] underflow');
         }
 
         // check overflow
-        if (this.inner.gt(MAX_UINTS[this.size])) {
-            throw new Error('[Uint' + this.size + ' Error] overflow');
+        if (this._inner.gt(MAX_UINTS[this._size])) {
+            throw new Error('[Uint' + this._size + ' Error] overflow');
         }
     }
 
-    _checkOperands(left, right) {
-        if (!left instanceof Uint || !right instanceof Uint) {
-            throw new Error('[Uint Error] operand is not Uint type');
+    _checkRightOperand(right) {
+        if (typeof right === 'undefined' || right == null) {
+            throw new Error('[Uint Error] NaN');
         }
 
-        if (left.constructor !== right.constructor) {
-            throw new Error('[Uint Error] mismatched operand type');
+        if (!right instanceof Uint || this.constructor !== right.constructor) {
+            throw new Error('[Uint Error] incompatible Uint type');
         }
-
         right._validate();
     }
 
     div(o) {
-        _checkOperands(this, o);
-        var r = this.inner.idiv(o.inner);
-        return new this.constructor(r, null, this.size);
+        this._checkRightOperand(o);
+        var r = this._inner.idiv(o._inner);
+        return new this.constructor(r, null, this._size);
     }
 
     pow(o) {
-        _checkOperands(this, o);
-        var r = this.inner.pow(o.inner);
-        return new this.constructor(r, null, this.size);
+        this._checkRightOperand(o);
+        var r = this._inner.pow(o._inner);
+        return new this.constructor(r, null, this._size);
     }
 
     minus(o) {
-        _checkOperands(this, o);
-        var r = this.inner.minus(o.inner);
-        return new this.constructor(r, null, this.size);
+        this._checkRightOperand(o);
+        var r = this._inner.minus(o._inner);
+        return new this.constructor(r, null, this._size);
     }
 
     mod(o) {
-        _checkOperands(this, o);
-        var r = this.inner.mod(o.inner);
-        return new this.constructor(r, null, this.size);
+        this._checkRightOperand(o);
+        var r = this._inner.mod(o._inner);
+        return new this.constructor(r, null, this._size);
     }
 
     mul(o) {
-        _checkOperands(this, o);
-        var r = this.inner.times(o.inner);
-        return new this.constructor(r, null, this.size);
+        this._checkRightOperand(o);
+        var r = this._inner.times(o._inner);
+        return new this.constructor(r, null, this._size);
     }
 
     plus(o) {
-        _checkOperands(this, o);
-        var r = this.inner.plus(o.inner);
-        return new this.constructor(r, null, this.size);
+        this._checkRightOperand(o);
+        var r = this._inner.plus(o._inner);
+        return new this.constructor(r, null, this._size);
     }
 
     cmp(o) {
-        _checkOperands(this, o);
-        return this.inner.comparedTo(o.inner);
+        this._checkRightOperand(o);
+        return this._inner.comparedTo(o._inner);
+    }
+
+    isZero() {
+        return this._inner.isZero();
     }
 
     toString() {
-        return this.inner.toString.call(this.inner, arguments);
+        return this._inner.toString.apply(this._inner, Array.prototype.slice.call(arguments));
     }
 }
 
@@ -122,11 +135,19 @@ class Uint64 extends Uint {
     constructor(n, b) {
         super(n, b, 64);
     }
+
+    static get MaxValue () {
+        return new Uint64(MAX_UINTS[64], null, 64);
+    }
 }
 
 class Uint128 extends Uint {
     constructor(n, b) {
         super(n, b, 128);
+    }
+
+    static get MaxValue () {
+        return new Uint128(MAX_UINTS[128], null, 128);
     }
 }
 
@@ -134,10 +155,18 @@ class Uint256 extends Uint {
     constructor(n, b) {
         super(n, b, 256);
     }
+
+    static get MaxValue () {
+        return new Uint256(MAX_UINTS[256], null, 256);
+    }
 }
 class Uint512 extends Uint {
     constructor(n, b) {
         super(n, b, 512);
+    }
+
+    static get MaxValue () {
+        return new Uint512(MAX_UINTS[512], null, 512);
     }
 }
 

@@ -104,10 +104,8 @@ const Event = require('event.js');
 const ContractStorage = require('storage.js');
 const LocalContractStorage = ContractStorage.lcs;
 const GlobalContractStorage = ContractStorage.gcs;
-
+const BigNumber = require('bignumber.js');
 const Blockchain = require('blockchain.js');
 
+var Date = require('date.js');
 Math.random = require('random.js');
-
-// since 1.0.1   bignumber.js needs be required explicitly
-// const BigNumber = require('bignumber.js');

@@ -120,10 +120,10 @@ module.exports = (function(){
         return arng();
     }
     rand.seed = function(userseed) {
-        if (typeof(userseed) !== 'string') {
+        if (userseed && typeof(userseed) !== 'string') {
             throw new Error("input seed must be a string")
         }
-        if (userseed === "") {
+        if (typeof userseed === 'undefined' || userseed == null || userseed === "") {
             return;
         }
         checkCtx();
