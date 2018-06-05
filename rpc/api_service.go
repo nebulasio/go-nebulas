@@ -164,12 +164,14 @@ func parseTransactionPayload(reqTx *rpcpb.TransactionRequest) (payloadType strin
 		switch reqTx.Type {
 		case core.TxPayloadBinaryType:
 			{
+				payloadType = core.TxPayloadBinaryType
 				if payload, err = core.NewBinaryPayload(reqTx.Binary).ToBytes(); err != nil {
 					return "", nil, err
 				}
 			}
 		case core.TxPayloadDeployType:
 			{
+				payloadType = core.TxPayloadDeployType
 				if reqTx.Contract == nil {
 					return "", nil, core.ErrInvalidDeploySource
 				}
@@ -183,6 +185,7 @@ func parseTransactionPayload(reqTx *rpcpb.TransactionRequest) (payloadType strin
 			}
 		case core.TxPayloadCallType:
 			{
+				payloadType = core.TxPayloadCallType
 				if reqTx.Contract == nil {
 					return "", nil, core.ErrInvalidCallFunction
 				}
