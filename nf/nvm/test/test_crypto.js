@@ -147,23 +147,23 @@ var ret = crypto.nativeCrypto.recoverAddress(-10, "564733f9f3e139b925cfb1e7e50ba
 eq(ret, null);
 
 // invalid alg
-var ret = crypto.nativeCrypto.recoverAddress(10, "564733f9f3e139b925cfb1e7e50ba8581e9107b13e4213f2e4708d9c284be75b", "d80e282d165f8c05d8581133df7af3c7c41d51ec7cd8470c18b84a31b9af6a9d1da876ab28a88b0226707744679d4e180691aca6bdef5827622396751a0670c101");
+ret = crypto.nativeCrypto.recoverAddress(10, "564733f9f3e139b925cfb1e7e50ba8581e9107b13e4213f2e4708d9c284be75b", "d80e282d165f8c05d8581133df7af3c7c41d51ec7cd8470c18b84a31b9af6a9d1da876ab28a88b0226707744679d4e180691aca6bdef5827622396751a0670c101");
 eq(ret, null);
 
 // odd/invalid sign
-crypto.nativeCrypto.recoverAddress(1, "564733f9f3e139b925cfb1e7e50ba8581e9107b13e4213f2e4708d9c284be75b", "d80e282d165f8c05d8581133df7af3c7c41d51ec7cd");
+ret = crypto.nativeCrypto.recoverAddress(1, "564733f9f3e139b925cfb1e7e50ba8581e9107b13e4213f2e4708d9c284be75b", "d80e282d165f8c05d8581133df7af3c7c41d51ec7cd");
 eq(ret, null);
 
 // empty sign
-crypto.nativeCrypto.recoverAddress(1, "564733f9f3e139b925cfb1e7e50ba8581e9107b13e4213f2e4708d9c284be75b", "");
+ret = crypto.nativeCrypto.recoverAddress(1, "564733f9f3e139b925cfb1e7e50ba8581e9107b13e4213f2e4708d9c284be75b", "");
 eq(ret, null);
 
 // empty hash
-crypto.nativeCrypto.recoverAddress(1, "", "d80e282d165f8c05d8581133df7af3c7c41d51ec7cd8470c18b84a31b9af6a9d1da876ab28a88b0226707744679d4e180691aca6bdef5827622396751a0670c101");
+ret = crypto.nativeCrypto.recoverAddress(1, "", "d80e282d165f8c05d8581133df7af3c7c41d51ec7cd8470c18b84a31b9af6a9d1da876ab28a88b0226707744679d4e180691aca6bdef5827622396751a0670c101");
 eq(ret, null);
 
 // odd/invalid hash
-var ret = crypto.nativeCrypto.recoverAddress(1, "564733f9f3e139b925cfb1e7e50ba8581e9107b13e421", "d80e282d165f8c05d8581133df7af3c7c41d51ec7cd8470c18b84a31b9af6a9d1da876ab28a88b0226707744679d4e180691aca6bdef5827622396751a0670c101");
+ret = crypto.nativeCrypto.recoverAddress(1, "564733f9f3e139b925cfb1e7e50ba8581e9107b13e421", "d80e282d165f8c05d8581133df7af3c7c41d51ec7cd8470c18b84a31b9af6a9d1da876ab28a88b0226707744679d4e180691aca6bdef5827622396751a0670c101");
 eq(ret, null);
 
 try {
