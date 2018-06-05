@@ -71,8 +71,6 @@ void NewCryptoInstance(Isolate *isolate, Local<Context> context) {
 // Sha256Callback
 void Sha256Callback(const FunctionCallbackInfo<Value> &info) {
   Isolate *isolate = info.GetIsolate();
-  Local<Object> thisArg = info.Holder();
-  Local<External> handler = Local<External>::Cast(thisArg->GetInternalField(0));
 
   if (info.Length() != 1) {
     isolate->ThrowException(String::NewFromUtf8(
@@ -88,7 +86,7 @@ void Sha256Callback(const FunctionCallbackInfo<Value> &info) {
 
   size_t cnt = 0;
 
-  char *value = sSha256(handler->Value(), *String::Utf8Value(data->ToString()), &cnt);
+  char *value = sSha256(*String::Utf8Value(data->ToString()), &cnt);
   if (value == NULL) {
     info.GetReturnValue().SetNull();
   } else {
@@ -103,8 +101,6 @@ void Sha256Callback(const FunctionCallbackInfo<Value> &info) {
 // Sha3256Callback
 void Sha3256Callback(const FunctionCallbackInfo<Value> &info) {
   Isolate *isolate = info.GetIsolate();
-  Local<Object> thisArg = info.Holder();
-  Local<External> handler = Local<External>::Cast(thisArg->GetInternalField(0));
 
   if (info.Length() != 1) {
     isolate->ThrowException(String::NewFromUtf8(
@@ -120,7 +116,7 @@ void Sha3256Callback(const FunctionCallbackInfo<Value> &info) {
 
   size_t cnt = 0;
 
-  char *value = sSha3256(handler->Value(), *String::Utf8Value(data->ToString()), &cnt);
+  char *value = sSha3256(*String::Utf8Value(data->ToString()), &cnt);
   if (value == NULL) {
     info.GetReturnValue().SetNull();
   } else {
@@ -135,8 +131,6 @@ void Sha3256Callback(const FunctionCallbackInfo<Value> &info) {
 // Ripemd160Callback
 void Ripemd160Callback(const FunctionCallbackInfo<Value> &info) {
   Isolate *isolate = info.GetIsolate();
-  Local<Object> thisArg = info.Holder();
-  Local<External> handler = Local<External>::Cast(thisArg->GetInternalField(0));
 
   if (info.Length() != 1) {
     isolate->ThrowException(String::NewFromUtf8(
@@ -152,7 +146,7 @@ void Ripemd160Callback(const FunctionCallbackInfo<Value> &info) {
 
   size_t cnt = 0;
 
-  char *value = sRipemd160(handler->Value(), *String::Utf8Value(data->ToString()), &cnt);
+  char *value = sRipemd160(*String::Utf8Value(data->ToString()), &cnt);
   if (value == NULL) {
     info.GetReturnValue().SetNull();
   } else {
@@ -167,8 +161,6 @@ void Ripemd160Callback(const FunctionCallbackInfo<Value> &info) {
 // RecoverAddressCallback
 void RecoverAddressCallback(const FunctionCallbackInfo<Value> &info) {
   Isolate *isolate = info.GetIsolate();
-  Local<Object> thisArg = info.Holder();
-  Local<External> handler = Local<External>::Cast(thisArg->GetInternalField(0));
 
   if (info.Length() != 3) {
     isolate->ThrowException(String::NewFromUtf8(
@@ -199,7 +191,7 @@ void RecoverAddressCallback(const FunctionCallbackInfo<Value> &info) {
 
   size_t cnt = 0;
 
-  char *value = sRecoverAddress(handler->Value(), alg->ToInt32()->Int32Value(), *String::Utf8Value(data->ToString()), 
+  char *value = sRecoverAddress(alg->ToInt32()->Int32Value(), *String::Utf8Value(data->ToString()), 
                                *String::Utf8Value(sign->ToString()), &cnt);
   if (value == NULL) {
     info.GetReturnValue().SetNull();

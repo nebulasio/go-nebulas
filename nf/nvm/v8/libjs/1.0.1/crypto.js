@@ -34,6 +34,7 @@ Crypto.prototype = {
         if (typeof data !== "string") {
             throw new Error("input must be string");
         }
+        // any string
         return this.nativeCrypto.sha256(data);
     },
 
@@ -41,6 +42,7 @@ Crypto.prototype = {
         if (typeof data !== "string") {
             throw new Error("input must be string");
         }
+        // any string
         return this.nativeCrypto.sha3256(data);
     },
 
@@ -48,6 +50,7 @@ Crypto.prototype = {
         if (typeof data !== "string") {
             throw new Error("input must be string");
         }
+        // any string
         return this.nativeCrypto.ripemd160(data);
     },
 
@@ -59,7 +62,9 @@ Crypto.prototype = {
         if (typeof data !== "string" || typeof sign !== "string") {
             throw new Error("data & sign must be string");
         }
-
+        // alg: 1
+        // data: sha3256 hex string
+        // sign: cipher hex string by private key
         return this.nativeCrypto.recoverAddress(alg, data, sign);
     },
 };

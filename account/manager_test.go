@@ -24,8 +24,11 @@ import (
 	"os"
 
 	"github.com/nebulasio/go-nebulas/core"
+	"github.com/nebulasio/go-nebulas/crypto"
+	"github.com/nebulasio/go-nebulas/crypto/hash"
 	"github.com/nebulasio/go-nebulas/crypto/keystore"
 	"github.com/nebulasio/go-nebulas/util"
+	"github.com/nebulasio/go-nebulas/util/byteutils"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -222,4 +225,83 @@ func TestManager_SignTransactionWithPassphrase(t *testing.T) {
 			assert.Nil(t, err)
 		})
 	}
+}
+
+func TestForCryptoJS(t *testing.T) {
+	type args struct {
+		method string
+		input  string
+		output string
+	}
+
+	tests := []args{
+		{
+			method: "sha256",
+			input:  "Nebulas is a next generation public blockchain, aiming for a continuously improving ecosystem.",
+			output: "a32d6d686968192663b9c9e21e6a3ba1ba9b2e288470c2f98b790256530933e0",
+		},
+
+		{
+			method: "sha3256",
+			input:  "Nebulas is a next generation public blockchain, aiming for a continuously improving ecosystem.",
+			output: "564733f9f3e139b925cfb1e7e50ba8581e9107b13e4213f2e4708d9c284be75b",
+		},
+
+		{
+			method: "ripemd160",
+			input:  "Nebulas is a next generation public blockchain, aiming for a continuously improving ecosystem.",
+			output: "4236aa9974eb7b9ddb0f7a7ed06d4bf3d9c0e386",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.method, func(t *testing.T) {
+			out := ""
+			switch tt.method {
+			case "sha256":
+				out = byteutils.Hex(hash.Sha256([]byte(tt.input)))
+			case "sha3256":
+				out = byteutils.Hex(hash.Sha3256([]byte(tt.input)))
+			case "ripemd160":
+				out = byteutils.Hex(hash.Ripemd160([]byte(tt.input)))
+			}
+			assert.Equal(t, tt.output, out)
+		})
+	}
+
+	// recoverAddress
+	manager, _ := NewManager(nil)
+	addr, err := manager.NewAccount([]byte("passphrase"))
+	assert.Nil(t, err, "new address err")
+	err = manager.Unlock(addr, []byte("passphrase"), keystore.DefaultUnlockDuration)
+	assert.Nil(t, err, "unlock err")
+	key, err := manager.ks.GetUnlocked(addr.String())
+	assert.Nil(t, err, "get key err")
+
+	signature, err := crypto.NewSignature(1)
+	assert.Nil(t, err, "get signature err")
+
+	err = signature.InitSign(key.(keystore.PrivateKey))
+	assert.Nil(t, err, "init signature err")
+
+	data := hash.Sha3256([]byte("Nebulas is a next generation public blockchain, aiming for a continuously improving ecosystem."))
+	assert.Equal(t, "564733f9f3e139b925cfb1e7e50ba8581e9107b13e4213f2e4708d9c284be75b", byteutils.Hex(data))
+	signData, err := signature.Sign(data)
+	assert.Nil(t, err, "sign data err")
+	signHex := byteutils.Hex(signData)
+	// assert.Equal(t, "d80e282d165f8c05d8581133df7af3c7c41d51ec7cd8470c18b84a31b9af6a9d1da876ab28a88b0226707744679d4e180691aca6bdef5827622396751a0670c101", byteutils.Hex(signData))
+
+	// recover
+	rb, err := byteutils.FromHex(signHex)
+	assert.Nil(t, err, "from hex error")
+	rAddr, err := core.RecoverSignerFromSignature(keystore.Algorithm(1), data, rb)
+	assert.Nil(t, err, "recover err")
+	assert.Equal(t, addr.String(), rAddr.String())
+
+	acc, err := manager.getAccount(addr)
+	assert.Nil(t, err, "get acc err")
+	err = manager.Remove(addr, []byte("passphrase"))
+	assert.Nil(t, err)
+	err = os.Remove(acc.path)
+	assert.Nil(t, err)
 }
