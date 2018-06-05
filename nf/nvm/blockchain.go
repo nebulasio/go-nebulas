@@ -21,7 +21,6 @@ package nvm
 import "C"
 
 import (
-	"fmt"
 	"unsafe"
 
 	"encoding/json"
@@ -253,7 +252,6 @@ func TransferFunc(handler unsafe.Pointer, to *C.char, v *C.char, gasCnt *C.size_
 			recordTransferFailureEvent(TransferSubBalance, cAddr.String(), addr.String(), amount.String(), height, wsState, txHash)
 			return TransferSubBalance
 		}
-		fmt.Println("======success")
 
 		err = toAcc.AddBalance(amount)
 		if err != nil {
