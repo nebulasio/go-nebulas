@@ -1758,7 +1758,7 @@ func TestMultiLibVersion(t *testing.T) {
 	}{
 		{"test/test_multi_lib_version_require.js", nil, "\"\""},
 		{"test/test_uint.js", nil, "\"\""},
-		{"test/test_date_1.0.1.js", nil, "\"\""},
+		{"test/test_date_1.0.5.js", nil, "\"\""},
 		{"test/test_crypto.js", nil, "\"\""},
 	}
 
@@ -1772,7 +1772,7 @@ func TestMultiLibVersion(t *testing.T) {
 			owner, err := context.GetOrCreateUserAccount([]byte("account1"))
 			assert.Nil(t, err)
 			owner.AddBalance(newUint128FromIntWrapper(1000000000))
-			contract, _ := context.CreateContractAccount([]byte("account2"), nil, &corepb.ContractMeta{Version: "1.0.1"})
+			contract, _ := context.CreateContractAccount([]byte("account2"), nil, &corepb.ContractMeta{Version: "1.0.5"})
 			ctx, err := NewContext(mockBlockForLib(2000000), mockTransaction(), contract, context)
 
 			engine := NewV8Engine(ctx)

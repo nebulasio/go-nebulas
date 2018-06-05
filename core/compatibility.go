@@ -40,7 +40,7 @@ const (
 	DefaultV8JSLibVersion = "1.0.0"
 
 	// CurrentV8JSLibVersion current js lib version
-	CurrentV8JSLibVersion = "1.0.1"
+	CurrentV8JSLibVersion = "1.0.5"
 )
 
 // var ..
@@ -48,10 +48,10 @@ var (
 	// NOTE: versions should be arranged in ascending order
 	// 		map[libname][versions]
 	V8JSLibs = map[string][]string{
-		"execution_env.js":       {"1.0.0", "1.0.1"},
+		"execution_env.js":       {"1.0.0", "1.0.5"},
 		"bignumber.js":           {"1.0.0"},
-		"random.js":              {"1.0.0", "1.0.1"},
-		"date.js":                {"1.0.0", "1.0.1"},
+		"random.js":              {"1.0.0", "1.0.5"},
+		"date.js":                {"1.0.0", "1.0.5"},
 		"tsc.js":                 {"1.0.0"},
 		"util.js":                {"1.0.0"},
 		"esprima.js":             {"1.0.0"},
@@ -62,8 +62,8 @@ var (
 		"console.js":             {"1.0.0"},
 		"event.js":               {"1.0.0"},
 		"storage.js":             {"1.0.0"},
-		"crypto.js":              {"1.0.1"},
-		"uint.js":                {"1.0.1"},
+		"crypto.js":              {"1.0.5"},
+		"uint.js":                {"1.0.5"},
 	}
 )
 
