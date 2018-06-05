@@ -38,6 +38,10 @@ var b = new Uint128(100000000000000);
 var c = new Uint256(100000000000000);
 var d = new Uint512(100000000000000);
 
+var f = new Uint64(0);
+if (f.toString(10) !== "0") {
+    throw new Error("not eq")
+}
 
 // overflow
 try {
@@ -112,6 +116,13 @@ if (a.mod(a).toString(10) !== "0") {
 // not an integer
 try {
     new Uint64(1.2);
+} catch (e) {
+    if (e.message !== err7) {
+        throw e;
+    }
+}
+try {
+    new Uint64("1.2");
 } catch (e) {
     if (e.message !== err7) {
         throw e;
