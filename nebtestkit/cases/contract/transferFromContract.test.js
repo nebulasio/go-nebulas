@@ -195,8 +195,9 @@ describe('test transfer from contract', function () {
                         expect(resp.balance).equal("5000000000000000000");
                         return neb.api.getEventsByHash(hash);
                     }).then(function(resp){
-                        console.log(JSON.stringify(resp))
+                        console.log("======", JSON.stringify(resp))
                         expect(resp.events[0].topic).equal("chain.transferFromContract");
+                        expect(JSON.parse(resp.events[0].date).error).equal("failed to sub balace from contract address");
                         done();
                     }).catch(function(err){
                         console.log("unexpected err :", err);

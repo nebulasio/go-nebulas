@@ -15,7 +15,15 @@ testContract.prototype = {
         
     },
 
-    testGetAccoutState1: function() {
+    testGetAccountState: function() {
+        return Blockchain.getAccountState(Blockchain.transaction.from).balance;
+    },
+
+    testGetAccountStateWrongAddr: function() {
+        return Blockchain.getAccountState("n1JNHZJEUvfBYfjDRD14Q73FX62nJAzXkMR").balance;
+    },
+
+    testGetAccountState1: function() {
         var from = Blockchain.transaction.from;
         var to = Blockchain.transaction.to;
         var value = new BigNumber(Blockchain.transaction.value);
@@ -43,7 +51,7 @@ testContract.prototype = {
         assert(parseInt(toState1.nonce) == parseInt(toState2.nonce), "err3");
     },
 
-    testGetAccoutState2: function() {
+    testGetAccountState2: function() {
         return Blockchain.getAccountState("0x1233455");
     },
 
@@ -52,11 +60,18 @@ testContract.prototype = {
         var height = Blockchain.block.height;
         return {hash: hash, height: height};
     },
+    testGetPreBlockHash1: function(distance) {
+        return  Blockchain.getPreBlockHash(distance);
+    },
 
     testGetPreBlockSeed: function(distance) {
         var seed = Blockchain.getPreBlockSeed(distance);
         var height = Blockchain.block.height;
         return {seed: seed, height: height};
+    },
+
+    testGetPreBlockSeed1: function(distance) {
+        return Blockchain.getPreBlockSeed(distance);
     }
 }
 

@@ -117,7 +117,7 @@ describe('test transfer from contract', function () {
 
     it ('1. test feature getAccoutState 1/2', function (done) {
         var contract = {
-            'function': 'testGetAccoutState1',
+            'function': 'testGetAccountState1',
             "args": '[]',
         };
         neb.api.call(sourceAccount.getAddressString(), contractAddress, Unit.nasToBasic(10), nonce, 200000, 1000000, contract).then(function(resp){
@@ -132,7 +132,7 @@ describe('test transfer from contract', function () {
 
     it ('2. test feature getAccoutState 2/2', function (done) {
         var contract = {
-            'function': 'testGetAccoutState2',
+            'function': 'testGetAccountState2',
             "args": '[]',
         };
         neb.api.call(sourceAccount.getAddressString(), contractAddress, Unit.nasToBasic(10), nonce, 200000, 1000000, contract).then(function(resp){
