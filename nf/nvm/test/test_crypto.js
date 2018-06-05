@@ -34,6 +34,66 @@ eq(crypto.sha3256(input), "564733f9f3e139b925cfb1e7e50ba8581e9107b13e4213f2e4708
 eq(crypto.ripemd160(input), "4236aa9974eb7b9ddb0f7a7ed06d4bf3d9c0e386");
 eq(crypto.recoverAddress(1, "564733f9f3e139b925cfb1e7e50ba8581e9107b13e4213f2e4708d9c284be75b", "d80e282d165f8c05d8581133df7af3c7c41d51ec7cd8470c18b84a31b9af6a9d1da876ab28a88b0226707744679d4e180691aca6bdef5827622396751a0670c101"), "n1F8QbdnhqpPXDPFT2c9a581tpia8iuF7o2");
 
+// alg is not a safe integer
+try {
+    crypto.recoverAddress(1000000000000000000010000000000000000000, "564733f9f3e139b925cfb1e7e50ba8581e9107b13e4213f2e4708d9c284be75b",
+     "d80e282d165f8c05d8581133df7af3c7c41d51ec7cd8470c18b84a31b9af6a9d1da876ab28a88b0226707744679d4e180691aca6bdef5827622396751a0670c101");
+} catch (err) {
+    if (err.message !== "alg must be non-negative integer") {
+        throw err;
+    }
+}
+
+// negative alg
+try {
+    crypto.recoverAddress(-1000, "564733f9f3e139b925cfb1e7e50ba8581e9107b13e4213f2e4708d9c284be75b",
+     "d80e282d165f8c05d8581133df7af3c7c41d51ec7cd8470c18b84a31b9af6a9d1da876ab28a88b0226707744679d4e180691aca6bdef5827622396751a0670c101");
+} catch (err) {
+    if (err.message !== "alg must be non-negative integer") {
+        throw err;
+    }
+}
+
+// odd hash
+try {
+    crypto.recoverAddress(1, "564733f9f3e139b925cfb1e7e50ba8581e9107b13e4213f2e4708d9c284be75",
+     "d80e282d165f8c05d8581133df7af3c7c41d51ec7cd8470c18b84a31b9af6a9d1da876ab28a88b0226707744679d4e180691aca6bdef5827622396751a0670c101");
+} catch (err) {
+    if (err.message !== "hash & sign must be hex string") {
+        throw err;
+    }
+}
+
+// not hex hash
+try {
+    crypto.recoverAddress(1, "TT564733f9f3e139b925cfb1e7e50ba8581e9107b13e4213f2e4708d9c284be75b",
+     "d80e282d165f8c05d8581133df7af3c7c41d51ec7cd8470c18b84a31b9af6a9d1da876ab28a88b0226707744679d4e180691aca6bdef5827622396751a0670c101");
+} catch (err) {
+    if (err.message !== "hash & sign must be hex string") {
+        throw err;
+    }
+}
+
+// not hex sign
+try {
+    crypto.recoverAddress(1, "564733f9f3e139b925cfb1e7e50ba8581e9107b13e4213f2e4708d9c284be75b",
+     "TTd80e282d165f8c05d8581133df7af3c7c41d51ec7cd8470c18b84a31b9af6a9d1da876ab28a88b0226707744679d4e180691aca6bdef5827622396751a0670c101");
+} catch (err) {
+    if (err.message !== "hash & sign must be hex string") {
+        throw err;
+    }
+}
+
+// odd sign
+try {
+    crypto.recoverAddress(1, "564733f9f3e139b925cfb1e7e50ba8581e9107b13e4213f2e4708d9c284be75b",
+     "d80e282d165f8c05d8581133df7af3c7c41d51ec7cd8470c18b84a31b9af6a9d1d876ab28a88b0226707744679d4e180691aca6bdef5827622396751a0670c101");
+} catch (err) {
+    if (err.message !== "hash & sign must be hex string") {
+        throw err;
+    }
+}
+
 try {
     crypto.nativeCrypto.sha256(1231432);
 } catch (err) {
