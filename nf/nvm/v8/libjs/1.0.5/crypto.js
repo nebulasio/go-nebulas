@@ -18,6 +18,8 @@
 
 'use strict';
 
+const HexStringRegex = /^[0-9a-fA-F]+$/;
+
 var Crypto = function() {
     Object.defineProperty(this, "nativeCrypto", {
         configurable: false,
@@ -30,6 +32,7 @@ var Crypto = function() {
 
 Crypto.prototype = {
  
+    // case sensitive
     sha256: function(data) {
         if (typeof data !== "string") {
             throw new Error("input must be string");
@@ -38,6 +41,7 @@ Crypto.prototype = {
         return this.nativeCrypto.sha256(data);
     },
 
+    // case sensitive
     sha3256: function(data) {
         if (typeof data !== "string") {
             throw new Error("input must be string");
@@ -46,6 +50,7 @@ Crypto.prototype = {
         return this.nativeCrypto.sha3256(data);
     },
 
+    // case sensitive
     ripemd160: function(data) {
         if (typeof data !== "string") {
             throw new Error("input must be string");
@@ -54,18 +59,20 @@ Crypto.prototype = {
         return this.nativeCrypto.ripemd160(data);
     },
 
-    recoverAddress: function(alg, data, sign) {
+    // case insensitive
+    recoverAddress: function(alg, hash, sign) {
         if (!Number.isSafeInteger(alg) || alg < 0) {
             throw new Error("alg must be non-negative integer");
         }
 
-        if (typeof data !== "string" || typeof sign !== "string") {
-            throw new Error("data & sign must be string");
+        if (typeof hash !== "string" || !HexStringRegex.test(hash) 
+            || typeof sign !== "string" || !HexStringRegex.test(sign)) {
+            throw new Error("hash & sign must be hex string");
         }
         // alg: 1
-        // data: sha3256 hex string
-        // sign: cipher hex string by private key
-        return this.nativeCrypto.recoverAddress(alg, data, sign);
+        // hash: sha3256 hex string, 64 chars
+        // sign: cipher hex string by private key, 130 chars
+        return this.nativeCrypto.recoverAddress(alg, hash, sign);
     },
 };
 
