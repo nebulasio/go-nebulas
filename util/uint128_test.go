@@ -15,9 +15,21 @@ const (
 )
 
 func TestMax(t *testing.T) {
+	bigMaxUint64 := &big.Int{}
+	bigMaxUint64.SetString(strings.Repeat("f", 16), 16)
+	fmt.Println(strings.Repeat("f", 16), bigMaxUint64.String())
+
 	bigMaxUint128 := &big.Int{}
 	bigMaxUint128.SetString(strings.Repeat("f", 32), 16)
-	fmt.Println(bigMaxUint128.String())
+	fmt.Println(strings.Repeat("f", 32), bigMaxUint128.String())
+
+	bigMaxUint256 := &big.Int{}
+	bigMaxUint256.SetString(strings.Repeat("f", 64), 16)
+	fmt.Println(strings.Repeat("f", 64), bigMaxUint256.String())
+
+	bigMaxUint512 := &big.Int{}
+	bigMaxUint512.SetString(strings.Repeat("f", 128), 16)
+	fmt.Println(strings.Repeat("f", 128), bigMaxUint512.String())
 }
 
 func TestUint128(t *testing.T) {
