@@ -244,7 +244,6 @@ func TransferFunc(handler unsafe.Pointer, to *C.char, v *C.char, gasCnt *C.size_
 	// update balance
 	if amount.Cmp(util.NewUint128()) > 0 {
 		err = engine.ctx.contract.SubBalance(amount)
-		fmt.Println("=============y=", amount)
 		if err != nil {
 			logging.VLog().WithFields(logrus.Fields{
 				"handler": uint64(uintptr(handler)),

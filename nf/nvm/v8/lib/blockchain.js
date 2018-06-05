@@ -91,7 +91,6 @@ Blockchain.prototype = {
     },
     
     getPreBlockHash: function (distance) {
-        console.log("============", distance);
         distance = parseInt(distance);
         if (!distance) {
             throw "getPreBlockHash: invalid distance"
