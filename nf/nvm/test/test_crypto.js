@@ -32,4 +32,115 @@ var input = "Nebulas is a next generation public blockchain, aiming for a contin
 eq(crypto.sha256(input), "a32d6d686968192663b9c9e21e6a3ba1ba9b2e288470c2f98b790256530933e0");
 eq(crypto.sha3256(input), "564733f9f3e139b925cfb1e7e50ba8581e9107b13e4213f2e4708d9c284be75b");
 eq(crypto.ripemd160(input), "4236aa9974eb7b9ddb0f7a7ed06d4bf3d9c0e386");
-eq(crypto.recoverAddress(1, "564733f9f3e139b925cfb1e7e50ba8581e9107b13e4213f2e4708d9c284be75b", "d80e282d165f8c05d8581133df7af3c7c41d51ec7cd8470c18b84a31b9af6a9d1da876ab28a88b0226707744679d4e180691aca6bdef5827622396751a0670c101"), "n1F8QbdnhqpPXDPFT2c9a581tpia8iuF7o2")
+eq(crypto.recoverAddress(1, "564733f9f3e139b925cfb1e7e50ba8581e9107b13e4213f2e4708d9c284be75b", "d80e282d165f8c05d8581133df7af3c7c41d51ec7cd8470c18b84a31b9af6a9d1da876ab28a88b0226707744679d4e180691aca6bdef5827622396751a0670c101"), "n1F8QbdnhqpPXDPFT2c9a581tpia8iuF7o2");
+
+try {
+    crypto.nativeCrypto.sha256(1231432);
+} catch (err) {
+    if (err !== "sha256() requires a string argument") {
+        throw err;
+    }
+}
+
+try {
+    crypto.nativeCrypto.sha256();
+} catch (err) {
+    if (err !== "sha256() requires only 1 argument") {
+        throw err;
+    }
+}
+
+try {
+    crypto.nativeCrypto.sha3256(null);
+} catch (err) {
+    if (err !== "sha3256() requires a string argument") {
+        throw err;
+    }
+}
+
+try {
+    crypto.nativeCrypto.sha3256();
+} catch (err) {
+    if (err !== "sha3256() requires only 1 argument") {
+        throw err;
+    }
+}
+
+try {
+    crypto.nativeCrypto.ripemd160();
+} catch (err) {
+    if (err !== "ripemd160() requires only 1 argument") {
+        throw err;
+    }
+}
+
+try {
+    var ret = crypto.nativeCrypto.ripemd(-121);
+} catch (err) {
+    if (err.message !== "crypto.nativeCrypto.ripemd is not a function") {
+        throw err;
+    }
+}
+
+// negative alg
+var ret = crypto.nativeCrypto.recoverAddress(-10, "564733f9f3e139b925cfb1e7e50ba8581e9107b13e4213f2e4708d9c284be75b", "d80e282d165f8c05d8581133df7af3c7c41d51ec7cd8470c18b84a31b9af6a9d1da876ab28a88b0226707744679d4e180691aca6bdef5827622396751a0670c101");
+eq(ret, null);
+
+// invalid alg
+var ret = crypto.nativeCrypto.recoverAddress(10, "564733f9f3e139b925cfb1e7e50ba8581e9107b13e4213f2e4708d9c284be75b", "d80e282d165f8c05d8581133df7af3c7c41d51ec7cd8470c18b84a31b9af6a9d1da876ab28a88b0226707744679d4e180691aca6bdef5827622396751a0670c101");
+eq(ret, null);
+
+// odd/invalid sign
+crypto.nativeCrypto.recoverAddress(1, "564733f9f3e139b925cfb1e7e50ba8581e9107b13e4213f2e4708d9c284be75b", "d80e282d165f8c05d8581133df7af3c7c41d51ec7cd");
+eq(ret, null);
+
+// empty sign
+crypto.nativeCrypto.recoverAddress(1, "564733f9f3e139b925cfb1e7e50ba8581e9107b13e4213f2e4708d9c284be75b", "");
+eq(ret, null);
+
+// empty hash
+crypto.nativeCrypto.recoverAddress(1, "", "d80e282d165f8c05d8581133df7af3c7c41d51ec7cd8470c18b84a31b9af6a9d1da876ab28a88b0226707744679d4e180691aca6bdef5827622396751a0670c101");
+eq(ret, null);
+
+// odd/invalid hash
+var ret = crypto.nativeCrypto.recoverAddress(1, "564733f9f3e139b925cfb1e7e50ba8581e9107b13e421", "d80e282d165f8c05d8581133df7af3c7c41d51ec7cd8470c18b84a31b9af6a9d1da876ab28a88b0226707744679d4e180691aca6bdef5827622396751a0670c101");
+eq(ret, null);
+
+try {
+    crypto.nativeCrypto.recoverAddress("", "564733f9f3e139b925cfb1e7e50ba8581e9107b13e4213f2e4708d9c284be75b", "d80e282d165f8c05d8581133df7af3c7c41d51ec7cd8470c18b84a31b9af6a9d1da876ab28a88b0226707744679d4e180691aca6bdef5827622396751a0670c101");
+} catch (err) {
+    if (err !== "recoverAddress(): 1st arg should be integer") {
+        throw err;
+    }
+}
+try {
+    crypto.nativeCrypto.recoverAddress(null, "564733f9f3e139b925cfb1e7e50ba8581e9107b13e4213f2e4708d9c284be75b", "d80e282d165f8c05d8581133df7af3c7c41d51ec7cd8470c18b84a31b9af6a9d1da876ab28a88b0226707744679d4e180691aca6bdef5827622396751a0670c101");
+} catch (err) {
+    if (err !== "recoverAddress(): 1st arg should be integer") {
+        throw err;
+    }
+}
+
+try {
+    crypto.nativeCrypto.recoverAddress(1, 123, "d80e282d165f8c05d8581133df7af3c7c41d51ec7cd8470c18b84a31b9af6a9d1da876ab28a88b0226707744679d4e180691aca6bdef5827622396751a0670c101");
+} catch (err) {
+    if (err !== "recoverAddress(): 2nd arg should be string") {
+        throw err;
+    }
+}
+
+try {
+    crypto.nativeCrypto.recoverAddress(1, "564733f9f3e139b925cfb1e7e50ba8581e9107b13e4213f2e4708d9c284be75b", null);
+} catch (err) {
+    if (err !== "recoverAddress(): 3rd arg should be string") {
+        throw err;
+    }
+}
+
+try {
+    crypto.nativeCrypto.recoverAddress(1, "564733f9f3e139b925cfb1e7e50ba8581e9107b13e4213f2e4708d9c284be75b");
+} catch (err) {
+    if (err !== "recoverAddress() requires 3 arguments") {
+        throw err;
+    }
+}

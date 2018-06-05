@@ -74,13 +74,13 @@ void Sha256Callback(const FunctionCallbackInfo<Value> &info) {
 
   if (info.Length() != 1) {
     isolate->ThrowException(String::NewFromUtf8(
-        isolate, "_native_crypto.sha256() requires only 1 argument"));
+        isolate, "sha256() requires only 1 argument"));
     return;
   }
 
   Local<Value> data = info[0];
   if (!data->IsString()) {
-    isolate->ThrowException(String::NewFromUtf8(isolate, "_native_crypto.sha256(): argument must be string"));
+    isolate->ThrowException(String::NewFromUtf8(isolate, "sha256() requires a string argument"));
     return;
   }
 
@@ -104,13 +104,13 @@ void Sha3256Callback(const FunctionCallbackInfo<Value> &info) {
 
   if (info.Length() != 1) {
     isolate->ThrowException(String::NewFromUtf8(
-        isolate, "_native_crypto.sha3256() requires only 1 argument"));
+        isolate, "sha3256() requires only 1 argument"));
     return;
   }
 
   Local<Value> data = info[0];
   if (!data->IsString()) {
-    isolate->ThrowException(String::NewFromUtf8(isolate, "_native_crypto.sha3256(): argument must be string"));
+    isolate->ThrowException(String::NewFromUtf8(isolate, "sha3256() requires a string argument"));
     return;
   }
 
@@ -134,13 +134,13 @@ void Ripemd160Callback(const FunctionCallbackInfo<Value> &info) {
 
   if (info.Length() != 1) {
     isolate->ThrowException(String::NewFromUtf8(
-        isolate, "_native_crypto.ripemd() requires only 1 argument"));
+        isolate, "ripemd160() requires only 1 argument"));
     return;
   }
 
   Local<Value> data = info[0];
   if (!data->IsString()) {
-    isolate->ThrowException(String::NewFromUtf8(isolate, "_native_crypto.ripemd(): argument must be string"));
+    isolate->ThrowException(String::NewFromUtf8(isolate, "ripemd160() requires a string argument"));
     return;
   }
 
@@ -164,28 +164,28 @@ void RecoverAddressCallback(const FunctionCallbackInfo<Value> &info) {
 
   if (info.Length() != 3) {
     isolate->ThrowException(String::NewFromUtf8(
-        isolate, "_native_crypto.recoverAddress() requires 3 arguments"));
+        isolate, "recoverAddress() requires 3 arguments"));
     return;
   }
 
   Local<Value> alg = info[0];
   if (!alg->IsInt32()) {
     isolate->ThrowException(
-        String::NewFromUtf8(isolate, "_native_crypto.recoverAddress(): alg must be integer"));
+        String::NewFromUtf8(isolate, "recoverAddress(): 1st arg should be integer"));
     return;
   }
 
   Local<Value> data = info[1];
   if (!data->IsString()) {
     isolate->ThrowException(
-        String::NewFromUtf8(isolate, "_native_crypto.recoverAddress(): data must be string"));
+        String::NewFromUtf8(isolate, "recoverAddress(): 2nd arg should be string"));
     return;
   }
 
   Local<Value> sign = info[2];
   if (!sign->IsString()) {
     isolate->ThrowException(
-        String::NewFromUtf8(isolate, "_native_crypto.recoverAddress(): sign must be string"));
+        String::NewFromUtf8(isolate, "recoverAddress(): 3rd arg should be string"));
     return;
   }
 

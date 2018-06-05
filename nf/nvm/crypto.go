@@ -70,11 +70,12 @@ func RecoverAddressFunc(alg int, data, sign *C.char, gasCnt *C.size_t) *C.char {
 	plain, err := byteutils.FromHex(d)
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
-			"data": d,
+			"hash": d,
 			"sign": s,
 			"alg":  alg,
 			"err":  err,
-		}).Debug("convert data to byte array error.")
+		}).Debug("convert hash to byte array error.")
+		return nil
 	}
 	cipher, err := byteutils.FromHex(s)
 	if err != nil {
@@ -84,6 +85,7 @@ func RecoverAddressFunc(alg int, data, sign *C.char, gasCnt *C.size_t) *C.char {
 			"alg":  alg,
 			"err":  err,
 		}).Debug("convert sign to byte array error.")
+		return nil
 	}
 	addr, err := core.RecoverSignerFromSignature(keystore.Algorithm(alg), plain, cipher)
 	if err != nil {
@@ -93,6 +95,7 @@ func RecoverAddressFunc(alg int, data, sign *C.char, gasCnt *C.size_t) *C.char {
 			"alg":  alg,
 			"err":  err,
 		}).Debug("recover address error.")
+		return nil
 	}
 
 	return C.CString(addr.String())
