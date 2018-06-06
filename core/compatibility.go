@@ -58,7 +58,7 @@ var (
 		"assert.js":              {"1.0.0"},
 		"instruction_counter.js": {"1.0.0"},
 		"typescriptServices.js":  {"1.0.0"},
-		"blockchain.js":          {"1.0.0"},
+		"blockchain.js":          {"1.0.0", "1.0.5"},
 		"console.js":             {"1.0.0"},
 		"event.js":               {"1.0.0"},
 		"storage.js":             {"1.0.0"},

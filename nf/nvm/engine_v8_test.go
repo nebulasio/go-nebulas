@@ -1760,6 +1760,7 @@ func TestMultiLibVersion(t *testing.T) {
 		{"test/test_uint.js", nil, "\"\""},
 		{"test/test_date_1.0.5.js", nil, "\"\""},
 		{"test/test_crypto.js", nil, "\"\""},
+		{"test/test_blockchain_1.0.5.js", nil, "\"\""},
 	}
 
 	for _, tt := range tests {
