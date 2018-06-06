@@ -26,6 +26,14 @@ Contract.prototype = {
 
     testRecoverAddress: function(alg, hash, sign) {
         return crypto.recoverAddress(alg, hash, sign);
+    },
+
+    testMd5: function(data) {
+        return crypto.md5(data);
+    },
+
+    testBase64: function(data) {
+        return crypto.base64(data);
     }
 };
 

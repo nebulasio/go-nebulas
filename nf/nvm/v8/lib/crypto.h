@@ -29,5 +29,7 @@ void Sha256Callback(const FunctionCallbackInfo<Value> &info);
 void Sha3256Callback(const FunctionCallbackInfo<Value> &info);
 void Ripemd160Callback(const FunctionCallbackInfo<Value> &info);
 void RecoverAddressCallback(const FunctionCallbackInfo<Value> &info);
+void Md5Callback(const FunctionCallbackInfo<Value> &info);
+void Base64Callback(const FunctionCallbackInfo<Value> &info);
 
 #endif //_NEBULAS_NF_NVM_V8_LIB_CRYPTO_H_

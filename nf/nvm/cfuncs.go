@@ -47,6 +47,8 @@ char *Sha256Func(const char *data, size_t *gasCnt);
 char *Sha3256Func(const char *data, size_t *gasCnt);
 char *Ripemd160Func(const char *data, size_t *gasCnt);
 char *RecoverAddressFunc(int alg, const char *data, const char *sign, size_t *gasCnt);
+char *Md5Func(const char *data, size_t *gasCnt);
+char *Base64Func(const char *data, size_t *gasCnt);
 
 // The gateway functions.
 void V8Log_cgo(int level, const char *msg) {
@@ -99,6 +101,12 @@ char *Ripemd160Func_cgo(const char *data, size_t *gasCnt) {
 }
 char *RecoverAddressFunc_cgo(int alg, const char *data, const char *sign, size_t *gasCnt) {
 	return RecoverAddressFunc(alg, data, sign, gasCnt);
+}
+char *Md5Func_cgo(const char *data, size_t *gasCnt) {
+	return Md5Func(data, gasCnt);
+}
+char *Base64Func_cgo(const char *data, size_t *gasCnt) {
+	return Base64Func(data, gasCnt);
 }
 
 */

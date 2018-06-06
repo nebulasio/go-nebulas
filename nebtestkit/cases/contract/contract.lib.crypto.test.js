@@ -382,8 +382,7 @@ var caseGroup = {
                 status: 1,
                 result: "\"n1F8QbdnhqpPXDPFT2c9a581tpia8iuF7o2\""
             }
-        }
-        ,
+        },
         {
             "name": "0-5. test recoverAddress invalid alg",
             "testInput": {
@@ -401,6 +400,44 @@ var caseGroup = {
                 toBalanceChange: "0",
                 status: 1,
                 result: "null"
+            }
+        },
+        {
+            "name": "0-6. test md5",
+            "testInput": {
+                value: "0",
+                nonce: 1, 
+                gasPrice: 1000000,
+                gasLimit: 2000000,
+                contract: {
+                    function: "testMd5",
+                    args: "[\"Nebulas is a next generation public blockchain, aiming for a continuously improving ecosystem.\"]"
+                }
+            },
+            "testExpect": {
+                canExcuteTx: true,
+                toBalanceChange: "0",
+                status: 1,
+                result: "\"9954125a33a380c3117269cff93f76a7\""
+            }
+        },
+        {
+            "name": "0-7. test base64",
+            "testInput": {
+                value: "0",
+                nonce: 1, 
+                gasPrice: 1000000,
+                gasLimit: 2000000,
+                contract: {
+                    function: "testBase64",
+                    args: "[\"https://y.qq.com/portal/player_radio.html#id=99\"]"
+                }
+            },
+            "testExpect": {
+                canExcuteTx: true,
+                toBalanceChange: "0",
+                status: 1,
+                result: "\"aHR0cHM6Ly95LnFxLmNvbS9wb3J0YWwvcGxheWVyX3JhZGlvLmh0bWwjaWQ9OTk=\""
             }
         }
     ]

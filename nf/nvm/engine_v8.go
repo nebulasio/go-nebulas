@@ -44,6 +44,8 @@ char *Sha256Func_cgo(const char *data, size_t *gasCnt);
 char *Sha3256Func_cgo(const char *data, size_t *gasCnt);
 char *Ripemd160Func_cgo(const char *data, size_t *gasCnt);
 char *RecoverAddressFunc_cgo(int alg, const char *data, const char *sign, size_t *gasCnt);
+char *Md5Func_cgo(const char *data, size_t *gasCnt);
+char *Base64Func_cgo(const char *data, size_t *gasCnt);
 
 void EventTriggerFunc_cgo(void *handler, const char *topic, const char *data, size_t *gasCnt);
 
@@ -132,7 +134,9 @@ func InitV8Engine() {
 	C.InitializeCrypto((C.Sha256Func)(unsafe.Pointer(C.Sha256Func_cgo)),
 		(C.Sha3256Func)(unsafe.Pointer(C.Sha3256Func_cgo)),
 		(C.Ripemd160Func)(unsafe.Pointer(C.Ripemd160Func_cgo)),
-		(C.RecoverAddressFunc)(unsafe.Pointer(C.RecoverAddressFunc_cgo)))
+		(C.RecoverAddressFunc)(unsafe.Pointer(C.RecoverAddressFunc_cgo)),
+		(C.Md5Func)(unsafe.Pointer(C.Md5Func_cgo)),
+		(C.Base64Func)(unsafe.Pointer(C.Base64Func_cgo)))
 }
 
 // DisposeV8Engine dispose the v8 engine.

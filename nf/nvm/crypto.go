@@ -21,6 +21,8 @@ package nvm
 import "C"
 
 import (
+	"crypto/md5"
+
 	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/crypto/hash"
 	"github.com/nebulasio/go-nebulas/crypto/keystore"
@@ -99,4 +101,24 @@ func RecoverAddressFunc(alg int, data, sign *C.char, gasCnt *C.size_t) *C.char {
 	}
 
 	return C.CString(addr.String())
+}
+
+// Md5Func ..
+//export Md5Func
+func Md5Func(data *C.char, gasCnt *C.size_t) *C.char {
+	s := C.GoString(data)
+	*gasCnt = C.size_t(len(s) * 100)
+
+	r := md5.Sum([]byte(s))
+	return C.CString(byteutils.Hex(r[:]))
+}
+
+// Base64Func ..
+//export Base64Func
+func Base64Func(data *C.char, gasCnt *C.size_t) *C.char {
+	s := C.GoString(data)
+	*gasCnt = C.size_t(1000 + len(s))
+
+	r := hash.Base64Encode([]byte(s))
+	return C.CString(string(r))
 }

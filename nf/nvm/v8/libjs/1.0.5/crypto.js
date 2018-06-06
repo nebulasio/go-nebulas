@@ -74,6 +74,24 @@ Crypto.prototype = {
         // sign: cipher hex string by private key, 130 chars
         return this.nativeCrypto.recoverAddress(alg, hash, sign);
     },
+
+    // case sensitive
+    md5: function(data) {
+        if (typeof data !== "string") {
+            throw new Error("input must be string");
+        }
+        // any string
+        return this.nativeCrypto.md5(data);
+    },
+
+    // case sensitive
+    base64: function(data) {
+        if (typeof data !== "string") {
+            throw new Error("input must be string");
+        }
+        // any string
+        return this.nativeCrypto.base64(data);
+    }
 };
 
 module.exports = new Crypto();
