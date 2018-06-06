@@ -22,7 +22,7 @@
 #include "file.h"
 #include "logger.h"
 #include "global.h"
-
+#include "string.h"
 static AttachLibVersionDelegate alvDelegate = NULL;
 
 int SetupExecutionEnv(Isolate *isolate, Local<Context> &context) {

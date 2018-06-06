@@ -21,6 +21,7 @@
 #include "../engine.h"
 #include "instruction_counter.h"
 #include "logger.h"
+#include "limits.h"
 
 static GetTxByHashFunc sGetTxByHash = NULL;
 static GetAccountStateFunc sGetAccountState = NULL;
