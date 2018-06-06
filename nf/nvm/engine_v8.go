@@ -245,7 +245,6 @@ func (e *V8Engine) TranspileTypeScript(source string) (string, int, error) {
 	}
 
 	defer C.free(unsafe.Pointer(jsSource))
-	// defer C.DecoratorOutPut(e.v8engine)
 	return C.GoString(jsSource), int(lineOffset), nil
 
 }
@@ -258,12 +257,10 @@ func (e *V8Engine) InjectTracingInstructions(source string) (string, int, error)
 	lineOffset := C.int(0)
 
 	traceableCSource := C.InjectTracingInstructionsThread(e.v8engine, cSource, &lineOffset, C.int(e.strictDisallowUsageOfInstructionCounter))
-	// traceableCSource := e.v8engine.result
 	if traceableCSource == nil {
 		return "", 0, ErrInjectTracingInstructionFailed
 	}
 
-	// defer C.DecoratorOutPut(e.v8engine)
 	defer C.free(unsafe.Pointer(traceableCSource))
 	return C.GoString(traceableCSource), int(lineOffset), nil
 }
@@ -304,11 +301,8 @@ func (e *V8Engine) RunScriptSource(source string, sourceLineOffset int) (string,
 		err = core.ErrExecutionFailed
 	}
 
-	logging.CLog().Infof("run end")
 	if cResult != nil {
 		result = C.GoString(cResult)
-		// C.DecoratorOutPut(e.v8engine)
-		// e.v8engine.result = nil
 		C.free(unsafe.Pointer(cResult))
 	} else if ret == 0 {
 		result = "\"\"" // default JSON String.
@@ -378,11 +372,6 @@ func (e *V8Engine) RunContractScript(source, sourceType, function, args string) 
 			return "", err
 		}
 	}
-	if runnableSource == "" || sourceLineOffset == 0 {
-
-	}
-	// return "", nil
-	logging.CLog().Infof("begin run script")
 	return e.RunScriptSource(runnableSource, sourceLineOffset)
 }
 
