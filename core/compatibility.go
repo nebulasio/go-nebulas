@@ -92,6 +92,9 @@ const (
 
 	// LocalV8JSLibVersionControlHeight
 	LocalV8JSLibVersionControlHeight uint64 = 2
+
+	//LocalNetTransferFromContractFailureEventRecordableHeight
+	LocalTransferFromContractFailureEventRecordableHeight uint64 = 2
 )
 
 // TestNet
@@ -119,6 +122,9 @@ const (
 
 	// TestNetV8JSLibVersionControlHeight
 	TestNetV8JSLibVersionControlHeight uint64 = 400000
+
+	//TestNetTransferFromContractFailureEventRecordableHeight
+	TestNetTransferFromContractFailureEventRecordableHeight uint64 = 333333
 )
 
 // MainNet
@@ -146,6 +152,9 @@ const (
 
 	// MainNetV8JSLibVersionControlHeight
 	MainNetV8JSLibVersionControlHeight uint64 = 400000
+
+	//MainNetTransferFromContractFailureEventRecordableHeight
+	MainNetTransferFromContractFailureEventRecordableHeight uint64 = 333333
 )
 
 var (
@@ -172,6 +181,9 @@ var (
 
 	// V8JSLibVersionControlHeight enable v8 js lib version control
 	V8JSLibVersionControlHeight = TestNetV8JSLibVersionControlHeight
+
+	// TransferFromContractEventRecordableHeight record event 'TransferFromContractEvent' since this height
+	TransferFromContractFailureEventRecordableHeight = TestNetTransferFromContractEventRecordableHeight
 )
 
 // SetCompatibilityOptions set compatibility height according to chain_id
@@ -186,6 +198,7 @@ func SetCompatibilityOptions(chainID uint32) {
 		NvmMemoryLimitWithoutInjectHeight = MainNetNvmMemoryLimitWithoutInjectHeight
 		WsResetRecordDependencyHeight = MainNetWsResetRecordDependencyHeight
 		V8JSLibVersionControlHeight = MainNetV8JSLibVersionControlHeight
+		TransferFromContractFailureEventRecordableHeight = MainNetTransferFromContractFailureEventRecordableHeight
 	} else if chainID == TestNetID {
 
 		TransferFromContractEventRecordableHeight = TestNetTransferFromContractEventRecordableHeight
@@ -196,6 +209,7 @@ func SetCompatibilityOptions(chainID uint32) {
 		NvmMemoryLimitWithoutInjectHeight = TestNetNvmMemoryLimitWithoutInjectHeight
 		WsResetRecordDependencyHeight = TestNetWsResetRecordDependencyHeight
 		V8JSLibVersionControlHeight = TestNetV8JSLibVersionControlHeight
+		TransferFromContractFailureEventRecordableHeight = TestNetTransferFromContractFailureEventRecordableHeight
 	} else {
 
 		TransferFromContractEventRecordableHeight = LocalTransferFromContractEventRecordableHeight
@@ -206,6 +220,7 @@ func SetCompatibilityOptions(chainID uint32) {
 		NvmMemoryLimitWithoutInjectHeight = LocalNvmMemoryLimitWithoutInjectHeight
 		WsResetRecordDependencyHeight = LocalWsResetRecordDependencyHeight
 		V8JSLibVersionControlHeight = LocalV8JSLibVersionControlHeight
+		TransferFromContractFailureEventRecordableHeight = LocalTransferFromContractFailureEventRecordableHeight
 	}
 	logging.VLog().WithFields(logrus.Fields{
 		"chain_id": chainID,
@@ -217,6 +232,7 @@ func SetCompatibilityOptions(chainID uint32) {
 		"NvmMemoryLimitWithoutInjectHeight":         NvmMemoryLimitWithoutInjectHeight,
 		"WsResetRecordDependencyHeight":             WsResetRecordDependencyHeight,
 		"V8JSLibVersionControlHeight":               V8JSLibVersionControlHeight,
+		"TransferFromContractFailureHeight":         TransferFromContractFailureEventRecordableHeight,
 	}).Info("Set compatibility options.")
 
 	checkJSLib()

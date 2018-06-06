@@ -141,6 +141,7 @@ describe('test transfer from contract', function () {
         console.log(tx.toString);
         neb.api.sendRawTransaction(tx.toProtoString()).then(function (resp) {
             console.log("----step5. call transferSpecialValue function", JSON.stringify(resp));
+            var hash = resp.txhash;
             checkTransaction(resp.txhash, function(resp) {
                 try {
                     expect(resp).to.not.be.a('undefined');
@@ -150,6 +151,10 @@ describe('test transfer from contract', function () {
                         return neb.api.getAccountState(contractAddress);
                     }).then(function(resp){
                         expect(resp.balance).equal("5000000000000000000");
+                        return neb.api.getEventsByHash(hash);
+                    }).then(function(resp){
+                        console.log(JSON.stringify(resp));
+                        expect(resp.events[0].topic).equal("chain.transferFromContract");
                         done();
                     }).catch(function(err){
                         console.log("unexpected err :", err);
@@ -177,6 +182,7 @@ describe('test transfer from contract', function () {
         tx.signTransaction();
         neb.api.sendRawTransaction(tx.toProtoString()).then(function (resp) {
             console.log("----step7. call transferSpecialValue function", JSON.stringify(resp));
+            var hash = resp.txhash;
             checkTransaction(resp.txhash, function(resp) {
                 try {
                     expect(resp).to.not.be.a('undefined');
@@ -187,6 +193,11 @@ describe('test transfer from contract', function () {
                         return neb.api.getAccountState(contractAddress);
                     }).then(function(resp){
                         expect(resp.balance).equal("5000000000000000000");
+                        return neb.api.getEventsByHash(hash);
+                    }).then(function(resp){
+                        console.log("======", JSON.stringify(resp))
+                        expect(resp.events[0].topic).equal("chain.transferFromContract");
+                        expect(JSON.parse(resp.events[0].date).error).equal("failed to sub balace from contract address");
                         done();
                     }).catch(function(err){
                         console.log("unexpected err :", err);

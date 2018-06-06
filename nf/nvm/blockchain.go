@@ -25,7 +25,9 @@ import (
 
 	"encoding/json"
 
+	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/core"
+	"github.com/nebulasio/go-nebulas/core/pb"
 	"github.com/nebulasio/go-nebulas/core/state"
 	"github.com/nebulasio/go-nebulas/util"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
@@ -105,7 +107,7 @@ func GetAccountStateFunc(handler unsafe.Pointer, address *C.char, gasCnt *C.size
 			"handler": uint64(uintptr(handler)),
 			"address": addr,
 			"err":     err,
-		}).Debug("GetAccountStateFunc get account state failed.")
+		}).Debug("GetAccountStateFunc get account state failed.") //TODO: to confirm if sys err
 		return nil
 	}
 	state := toSerializableAccount(acc)
@@ -116,13 +118,95 @@ func GetAccountStateFunc(handler unsafe.Pointer, address *C.char, gasCnt *C.size
 	return C.CString(string(json))
 }
 
+func recordTransferFailureEvent(errNo int, from string, to string, value string,
+	height uint64, wsState WorldState, txHash byteutils.Hash) {
+
+	if errNo == TransferFuncSuccess && height > core.LocalTransferFromContractEventRecordableHeight {
+		event := &TransferFromContractEvent{
+			Amount: value,
+			From:   from,
+			To:     to,
+		}
+		eData, err := json.Marshal(event)
+		if err != nil {
+			logging.VLog().WithFields(logrus.Fields{
+				"from":   from,
+				"to":     to,
+				"amount": value,
+				"err":    err,
+			}).Fatal("failed to marshal TransferFromContractEvent")
+		}
+		wsState.RecordEvent(txHash, &state.Event{Topic: core.TopicTransferFromContract, Data: string(eData)})
+
+	} else if height >= core.LocalTransferFromContractFailureEventRecordableHeight {
+		var errMsg string
+		switch errNo {
+		case TransferFuncSuccess:
+			errMsg = ""
+		case TransferAddressParseErr:
+			errMsg = "failed to parse to address"
+		case TransferStringToBigIntErr:
+			errMsg = "failed to parse transfer amount"
+		case TransferSubBalance:
+			errMsg = "failed to sub balace from contract address"
+		default:
+			logging.VLog().WithFields(logrus.Fields{
+				"from":   from,
+				"to":     to,
+				"amount": value,
+				"errNo":  errNo,
+			}).Fatal("failed to marshal TransferFromContractEvent") // TODO: to confirm
+		}
+
+		status := uint8(1)
+		if errNo != TransferFuncSuccess {
+			status = 0
+		}
+
+		event := &TransferFromContractFailureEvent{
+			Amount: value,
+			From:   from,
+			To:     to,
+			Status: status,
+			Error:  errMsg,
+		}
+
+		eData, err := json.Marshal(event)
+		if err != nil {
+			logging.VLog().WithFields(logrus.Fields{
+				"from":   from,
+				"to":     to,
+				"amount": value,
+				"status": event.Status,
+				"error":  err,
+			}).Fatal("failed to marshal TransferFromContractEvent") // TODO: to confirm
+		}
+
+		wsState.RecordEvent(txHash, &state.Event{Topic: core.TopicTransferFromContract, Data: string(eData)})
+
+	}
+}
+
 // TransferFunc transfer vale to address
 //export TransferFunc
 func TransferFunc(handler unsafe.Pointer, to *C.char, v *C.char, gasCnt *C.size_t) int {
 	engine, _ := getEngineByStorageHandler(uint64(uintptr(handler)))
-	if engine == nil || engine.ctx.block == nil {
-		logging.VLog().Error("Failed to get engine.")
-		return TransferGetEngineErr
+	if engine == nil || engine.ctx == nil || engine.ctx.block == nil ||
+		engine.ctx.state == nil || engine.ctx.tx == nil {
+		logging.VLog().Fatal("Unexpected error: failed to get engine.") //TODO: to confirm, sys err, crash or just return err
+	}
+
+	wsState := engine.ctx.state
+	height := engine.ctx.block.Height()
+	txHash := engine.ctx.tx.Hash()
+
+	cAddr, err := core.AddressParseFromBytes(engine.ctx.contract.Address())
+	if err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"txhash":  engine.ctx.tx.Hash().String(),
+			"address": engine.ctx.contract.Address(),
+			"err":     err,
+		}).Fatal("Unexpected error: failed to parse contract address") //TODO: sys err ,crash
 	}
 
 	// calculate Gas.
@@ -134,7 +218,7 @@ func TransferFunc(handler unsafe.Pointer, to *C.char, v *C.char, gasCnt *C.size_
 			"handler": uint64(uintptr(handler)),
 			"key":     C.GoString(to),
 		}).Debug("TransferFunc parse address failed.")
-		return TransferAddressParseErr
+		recordTransferFailureEvent(TransferAddressParseErr, cAddr.String(), "", "", height, wsState, txHash)
 	}
 
 	toAcc, err := engine.ctx.state.GetOrCreateUserAccount(addr.Bytes())
@@ -143,8 +227,7 @@ func TransferFunc(handler unsafe.Pointer, to *C.char, v *C.char, gasCnt *C.size_
 			"handler": uint64(uintptr(handler)),
 			"address": addr,
 			"err":     err,
-		}).Debug("GetAccountStateFunc get account state failed.")
-		return TransferGetAccountErr
+		}).Fatal("GetAccountStateFunc get account state failed.") // TODO: sys err, crash
 	}
 
 	amount, err := util.NewUint128FromString(C.GoString(v))
@@ -154,9 +237,9 @@ func TransferFunc(handler unsafe.Pointer, to *C.char, v *C.char, gasCnt *C.size_
 			"address": addr,
 			"err":     err,
 		}).Debug("GetAmountFunc get amount failed.")
+		recordTransferFailureEvent(TransferStringToBigIntErr, cAddr.String(), addr.String(), "", height, wsState, txHash)
 		return TransferStringToBigIntErr
 	}
-
 	// update balance
 	if amount.Cmp(util.NewUint128()) > 0 {
 		err = engine.ctx.contract.SubBalance(amount)
@@ -165,7 +248,8 @@ func TransferFunc(handler unsafe.Pointer, to *C.char, v *C.char, gasCnt *C.size_
 				"handler": uint64(uintptr(handler)),
 				"key":     C.GoString(to),
 				"err":     err,
-			}).Debug("TransferFunc SubBalance failed.")
+			}).Debug("TransferFunc SubBalance failed.") //TODO: to confirm
+			recordTransferFailureEvent(TransferSubBalance, cAddr.String(), addr.String(), amount.String(), height, wsState, txHash)
 			return TransferSubBalance
 		}
 
@@ -176,42 +260,13 @@ func TransferFunc(handler unsafe.Pointer, to *C.char, v *C.char, gasCnt *C.size_
 				"amount":  amount,
 				"address": addr,
 				"err":     err,
-			}).Debug("failed to add balance")
-			return TransferAddBalance
+			}).Fatal("failed to add balance") //TODO: to confirm
+			//			recordTransferFailureEvent(TransferSubBalance, cAddr.String(), addr.String(), amount.String(), height, wsState, txHash)
+			// return TransferAddBalance
 		}
 	}
 
-	if engine.ctx.block.Height() >= core.TransferFromContractEventRecordableHeight {
-		cAddr, err := core.AddressParseFromBytes(engine.ctx.contract.Address())
-		if err != nil {
-			logging.VLog().WithFields(logrus.Fields{
-				"txhash":  engine.ctx.tx.Hash().String(),
-				"address": engine.ctx.contract.Address(),
-				"err":     err,
-			}).Debug("failed to parse contract address")
-			return TransferAddressFailed
-		}
-
-		event := &TransferFromContractEvent{
-			Amount: amount.String(),
-			From:   cAddr.String(),
-			To:     addr.String(),
-		}
-
-		eData, err := json.Marshal(event)
-		if err != nil {
-			logging.VLog().WithFields(logrus.Fields{
-				"from":   cAddr.String(),
-				"to":     addr.String(),
-				"amount": amount.String(),
-				"err":    err,
-			}).Debug("failed to marshal TransferFromContractEvent")
-			return TransferRecordEventFailed
-		}
-
-		engine.ctx.state.RecordEvent(engine.ctx.tx.Hash(), &state.Event{Topic: core.TopicTransferFromContract, Data: string(eData)})
-	}
-
+	recordTransferFailureEvent(TransferFuncSuccess, cAddr.String(), addr.String(), amount.String(), height, wsState, txHash)
 	return TransferFuncSuccess
 }
 
@@ -226,4 +281,107 @@ func VerifyAddressFunc(handler unsafe.Pointer, address *C.char, gasCnt *C.size_t
 		return 0
 	}
 	return int(addr.Type())
+}
+
+// GetPreBlockHashFunc returns hash of the block before current tail by n
+//export GetPreBlockHashFunc
+func GetPreBlockHashFunc(handler unsafe.Pointer, distance C.ulonglong, gasCnt *C.size_t) *C.char {
+	n := uint64(distance)
+	if n > uint64(maxBlockDistance) { //31 days
+		return nil
+	}
+
+	engine, _ := getEngineByStorageHandler(uint64(uintptr(handler)))
+	if engine == nil || engine.ctx == nil || engine.ctx.block == nil || engine.ctx.state == nil {
+		return nil
+	}
+	wsState := engine.ctx.state
+	// calculate Gas.
+	*gasCnt = C.size_t(1000) //TODO: to confirm
+
+	//get height
+	height := engine.ctx.block.Height()
+	if n >= height { // have checked it in lib js
+		logging.VLog().WithFields(logrus.Fields{
+			"height":   height,
+			"distance": n,
+		}).Fatal("distance is large than height") //TODO: to confirm
+	}
+	height -= n
+
+	blockHash, err := wsState.GetBlockHashByHeight(height)
+	if err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"height": height,
+			"err":    err,
+		}).Fatal("Failed to get block hash from wsState by height") //TODO: to confirm
+	}
+
+	return C.CString(byteutils.Hex(blockHash))
+}
+
+// GetPreBlockSeedFunc returns hash of the block before current tail by n
+//export GetPreBlockSeedFunc
+func GetPreBlockSeedFunc(handler unsafe.Pointer, distance C.ulonglong, gasCnt *C.size_t) *C.char {
+	n := uint64(distance)
+	if n > uint64(maxBlockDistance) { //31 days
+		return nil
+	}
+
+	engine, _ := getEngineByStorageHandler(uint64(uintptr(handler)))
+	if engine == nil || engine.ctx == nil || engine.ctx.block == nil || engine.ctx.state == nil {
+		return nil
+	}
+	wsState := engine.ctx.state
+	// calculate Gas.
+	*gasCnt = C.size_t(1000) //TODO: to confirm
+
+	//get height
+	height := engine.ctx.block.Height()
+	if n >= height { // have checked it in lib js
+		logging.VLog().WithFields(logrus.Fields{
+			"height":   height,
+			"distance": n,
+		}).Fatal("distance is large than height") //TODO: to confirm
+	}
+
+	height -= n
+	if height < core.RandomAvailableHeight {
+		return nil
+	}
+
+	blockHash, err := wsState.GetBlockHashByHeight(height)
+	if err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"height": height,
+			"err":    err,
+		}).Fatal("Failed to get block hash from wsState by height") //TODO: to confirm
+	}
+
+	bytes, err := wsState.GetBlock(blockHash)
+	if err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"height": height,
+			"err":    err,
+		}).Fatal("Failed to get block from wsState by hash") //TODO: to confirm
+	}
+
+	pbBlock := new(corepb.Block)
+	if err = proto.Unmarshal(bytes, pbBlock); err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"bytes":  bytes,
+			"height": height,
+			"err":    err,
+		}).Fatal("Failed to unmarshal pbBlock") //TODO: to confirm
+	}
+
+	if pbBlock.GetHeader() == nil || pbBlock.GetHeader().GetRandom() == nil ||
+		pbBlock.GetHeader().GetRandom().GetVrfSeed() == nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"pbBlock": pbBlock,
+			"height":  height,
+		}).Fatal("No random found in block header") //TODO: to confirm
+	}
+
+	return C.CString(byteutils.Hex(pbBlock.GetHeader().GetRandom().GetVrfSeed()))
 }

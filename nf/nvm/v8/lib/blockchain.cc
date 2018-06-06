@@ -20,19 +20,26 @@
 #include "blockchain.h"
 #include "../engine.h"
 #include "instruction_counter.h"
+#include "logger.h"
 
 static GetTxByHashFunc sGetTxByHash = NULL;
 static GetAccountStateFunc sGetAccountState = NULL;
 static TransferFunc sTransfer = NULL;
 static VerifyAddressFunc sVerifyAddress = NULL;
+static GetPreBlockHashFunc sGetPreBlockHash = NULL;
+static GetPreBlockSeedFunc sGetPreBlockSeed = NULL;
 
 void InitializeBlockchain(GetTxByHashFunc getTx, GetAccountStateFunc getAccount,
                           TransferFunc transfer,
-                          VerifyAddressFunc verifyAddress) {
+                          VerifyAddressFunc verifyAddress,
+                          GetPreBlockHashFunc getPreBlockHash,
+                          GetPreBlockSeedFunc getPreBlockSeed) {
   sGetTxByHash = getTx;
   sGetAccountState = getAccount;
   sTransfer = transfer;
   sVerifyAddress = verifyAddress;
+  sGetPreBlockHash = getPreBlockHash;
+  sGetPreBlockSeed = getPreBlockSeed;
 }
 
 void NewBlockchainInstance(Isolate *isolate, Local<Context> context,
@@ -47,13 +54,11 @@ void NewBlockchainInstance(Isolate *isolate, Local<Context> context,
                                                  PropertyAttribute::ReadOnly));
   */
 
-  /* disable getAccountState() function.
-    blockTpl->Set(String::NewFromUtf8(isolate, "getAccountState"),
-                  FunctionTemplate::New(isolate, GetAccountStateCallback),
-                  static_cast<PropertyAttribute>(PropertyAttribute::DontDelete
-                  |
-                                                 PropertyAttribute::ReadOnly));
-  */
+  blockTpl->Set(String::NewFromUtf8(isolate, "getAccountState"),
+                FunctionTemplate::New(isolate, GetAccountStateCallback),
+                static_cast<PropertyAttribute>(PropertyAttribute::DontDelete|
+                                                PropertyAttribute::ReadOnly));
+
 
   blockTpl->Set(String::NewFromUtf8(isolate, "transfer"),
                 FunctionTemplate::New(isolate, TransferCallback),
@@ -64,6 +69,16 @@ void NewBlockchainInstance(Isolate *isolate, Local<Context> context,
                 FunctionTemplate::New(isolate, VerifyAddressCallback),
                 static_cast<PropertyAttribute>(PropertyAttribute::DontDelete |
                                                PropertyAttribute::ReadOnly));
+
+  blockTpl->Set(String::NewFromUtf8(isolate, "getPreBlockHash"),
+              FunctionTemplate::New(isolate, GetPreBlockHashCallback),
+              static_cast<PropertyAttribute>(PropertyAttribute::DontDelete |
+                                              PropertyAttribute::ReadOnly));
+
+  blockTpl->Set(String::NewFromUtf8(isolate, "getPreBlockSeed"),
+              FunctionTemplate::New(isolate, GetPreBlockSeedCallback),
+              static_cast<PropertyAttribute>(PropertyAttribute::DontDelete |
+                                              PropertyAttribute::ReadOnly));
 
   Local<Object> instance = blockTpl->NewInstance(context).ToLocalChecked();
   instance->SetInternalField(0, External::New(isolate, handler));
@@ -114,9 +129,10 @@ void GetAccountStateCallback(const FunctionCallbackInfo<Value> &info) {
   Local<External> handler = Local<External>::Cast(thisArg->GetInternalField(0));
 
   if (info.Length() != 1) {
-    isolate->ThrowException(String::NewFromUtf8(
-        isolate, "Blockchain.getAccountState() requires only 1 argument"));
-    return;
+    LogFatalf("Blockchain.verifyAddress() requires 1 arguments");//TODO: unexpected
+    // isolate->ThrowException(String::NewFromUtf8(
+    //     isolate, "Blockchain.getAccountState() requires only 1 argument"));
+    // return;
   }
 
   Local<Value> key = info[0];
@@ -200,6 +216,88 @@ void VerifyAddressCallback(const FunctionCallbackInfo<Value> &info) {
   int ret = sVerifyAddress(handler->Value(),
                            *String::Utf8Value(address->ToString()), &cnt);
   info.GetReturnValue().Set(ret);
+
+  // record storage usage.
+  IncrCounter(isolate, isolate->GetCurrentContext(), cnt);
+}
+
+// GetPreBlockHashCallBack
+void GetPreBlockHashCallback(const FunctionCallbackInfo<Value> &info) {
+  Isolate *isolate = info.GetIsolate();
+  Local<Object> thisArg = info.Holder();
+  Local<External> handler = Local<External>::Cast(thisArg->GetInternalField(0));
+
+  if (info.Length() != 1) {
+    LogFatalf("Blockchain.verifyAddress() requires 1 arguments");//TODO: unexpected
+    // isolate->ThrowException(String::NewFromUtf8(
+    //     isolate, "Blockchain.verifyAddress() requires 1 arguments"));
+    // return;
+  }
+  
+  Local<Value> distance = info[0];
+  if (!distance->IsNumber()) {
+    LogFatalf("n must be a number"); //TODO: unexpected
+    // isolate->ThrowException(
+    //     String::NewFromUtf8(isolate, "n must be a number")); 
+    // return;
+  }
+
+  double v = Number::Cast(*distance)->Value();
+  if (v > ULLONG_MAX) {
+    isolate->ThrowException(
+        String::NewFromUtf8(isolate, "distance out of range"));
+    return;
+  }
+
+  size_t cnt = 0;
+  char *hash = sGetPreBlockHash(handler->Value(), (unsigned long long)(v), &cnt);
+  if (hash == NULL) {
+    info.GetReturnValue().SetNull();
+  } else {
+    info.GetReturnValue().Set(String::NewFromUtf8(isolate, hash));
+    free(hash);
+  }
+
+  // record storage usage.
+  IncrCounter(isolate, isolate->GetCurrentContext(), cnt);
+}
+
+// GetPreBlockSeedCallBack
+void GetPreBlockSeedCallback(const FunctionCallbackInfo<Value> &info) {
+  Isolate *isolate = info.GetIsolate();
+  Local<Object> thisArg = info.Holder();
+  Local<External> handler = Local<External>::Cast(thisArg->GetInternalField(0));
+
+  if (info.Length() != 1) {
+    LogFatalf("Blockchain.verifyAddress() requires 1 arguments");//TODO: unexpected
+    // isolate->ThrowException(String::NewFromUtf8(
+    //     isolate, "Blockchain.verifyAddress() requires 1 arguments"));
+    // return;
+  }
+  
+  Local<Value> distance = info[0];
+  if (!distance->IsNumber()) {
+    LogFatalf("n must be a number"); //TODO: unexpected
+    // isolate->ThrowException(
+    //     String::NewFromUtf8(isolate, "n must be a number")); 
+    // return;
+  }
+
+  double v = Number::Cast(*distance)->Value();
+  if (v > ULLONG_MAX) {
+    isolate->ThrowException(
+        String::NewFromUtf8(isolate, "distance out of range"));
+    return;
+  }
+
+  size_t cnt = 0;
+  char *seed = sGetPreBlockSeed(handler->Value(), (unsigned long long)v, &cnt);
+  if (seed == NULL) {
+    info.GetReturnValue().SetNull();
+  } else {
+    info.GetReturnValue().Set(String::NewFromUtf8(isolate, seed));
+    free(seed);
+  }
 
   // record storage usage.
   IncrCounter(isolate, isolate->GetCurrentContext(), cnt);

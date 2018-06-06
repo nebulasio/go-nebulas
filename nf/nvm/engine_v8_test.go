@@ -21,6 +21,7 @@ package nvm
 import (
 	"bufio"
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"math/big"
@@ -32,13 +33,10 @@ import (
 
 	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/account"
-	"github.com/nebulasio/go-nebulas/net"
-
 	"github.com/nebulasio/go-nebulas/consensus/dpos"
 	"github.com/nebulasio/go-nebulas/core/pb"
 	"github.com/nebulasio/go-nebulas/neblet/pb"
-
-	"encoding/json"
+	"github.com/nebulasio/go-nebulas/net"
 
 	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/core/state"
@@ -548,6 +546,156 @@ func TestContracts(t *testing.T) {
 	}
 }
 
+func TestContractFeatureGetAccountState(t *testing.T) {
+	type fields struct {
+		function string
+		args     string
+		result   string
+		error    string
+	}
+	tests := []struct {
+		contract   string
+		sourceType string
+		initArgs   string
+		calls      []fields
+	}{
+		{
+			"./test/test_contract_features.js",
+			"js",
+			"[]",
+			[]fields{
+				{"testGetAccountState", "[]", "\"1000000000000\"", ""},
+				{"testGetAccountStateWrongAddr", "[]", "\"0\"", ""},
+			},
+		},
+	}
+
+	account1 := "n1FkntVUMPAsESuCAAPK711omQk19JotBjM"
+	account2 := "n1JNHZJEUvfBYfjDRD14Q73FX62nJAzXkMR"
+
+	for _, tt := range tests {
+		t.Run(tt.contract, func(t *testing.T) {
+			data, err := ioutil.ReadFile(tt.contract)
+			assert.Nil(t, err, "contract path read error")
+
+			mem, _ := storage.NewMemoryStorage()
+			context, _ := state.NewWorldState(dpos.NewDpos(), mem)
+			add1, _ := core.AddressParse(account1)
+			owner, err := context.GetOrCreateUserAccount(add1.Bytes())
+			assert.Nil(t, err)
+			owner.AddBalance(newUint128FromIntWrapper(1000000000000))
+			add2, _ := core.AddressParse(account2)
+			contract, err := context.CreateContractAccount(add2.Bytes(), nil)
+			assert.Nil(t, err)
+			tx := mockNormalTransaction("n1FkntVUMPAsESuCAAPK711omQk19JotBjM", "n1JNHZJEUvfBYfjDRD14Q73FX62nJAzXkMR", "0")
+			ctx, err := NewContext(mockBlock(), tx, contract, context)
+
+			// deploy and init.
+			engine := NewV8Engine(ctx)
+			engine.SetExecutionLimits(100000, 10000000)
+			_, err = engine.DeployAndInit(string(data), tt.sourceType, tt.initArgs)
+			assert.Nil(t, err)
+			engine.Dispose()
+
+			// call.
+			for _, fields := range tt.calls {
+				state, _ := ctx.state.GetOrCreateUserAccount([]byte(account1))
+				fmt.Println("===", state)
+				engine = NewV8Engine(ctx)
+				engine.SetExecutionLimits(100000, 10000000)
+				result, err := engine.Call(string(data), tt.sourceType, fields.function, fields.args)
+				assert.Equal(t, fields.result, result)
+				assert.Nil(t, err)
+				engine.Dispose()
+			}
+		})
+	}
+}
+
+func TestContractsFeatureGetBlockHashAndSeed(t *testing.T) {
+	type fields struct {
+		function string
+		args     string
+		result   string
+		err      error
+	}
+	tests := []struct {
+		contract   string
+		sourceType string
+		initArgs   string
+		calls      []fields
+	}{
+		{
+			"./test/test_contract_features.js",
+			"js",
+			"[]",
+			[]fields{
+				{"testGetPreBlockHash1", "[1]", "\"" + byteutils.Hex([]byte("blockHash")) + "\"", nil},
+				{"testGetPreBlockHash1", "[0]", "getPreBlockHash: invalid distance", core.ErrExecutionFailed},
+				{"testGetPreBlockHash1", "[1111111111111111111]", "getPreBlockHash: block not exist", core.ErrExecutionFailed},
+				{"testGetPreBlockSeed1", "[1]", "\"" + byteutils.Hex([]byte("randomSeed")) + "\"", nil},
+			},
+		},
+	}
+
+	account1 := "n1FkntVUMPAsESuCAAPK711omQk19JotBjM"
+	account2 := "n1JNHZJEUvfBYfjDRD14Q73FX62nJAzXkMR"
+
+	for _, tt := range tests {
+		t.Run(tt.contract, func(t *testing.T) {
+			data, err := ioutil.ReadFile(tt.contract)
+			assert.Nil(t, err, "contract path read error")
+
+			mem, _ := storage.NewMemoryStorage()
+			curBlock := mockBlock()
+
+			preBlock := &corepb.Block{
+				Header: &corepb.BlockHeader{
+					Random: &corepb.Random{
+						VrfSeed: []byte("randomSeed"),
+					},
+				},
+			}
+			preBlockHash := []byte("blockHash")
+			preBlockHeight := curBlock.Height() - 1
+			blockBytes, err := proto.Marshal(preBlock)
+			assert.Nil(t, err)
+
+			mem.Put(byteutils.FromUint64(preBlockHeight), preBlockHash)
+			mem.Put(preBlockHash, blockBytes)
+
+			context, _ := state.NewWorldState(dpos.NewDpos(), mem)
+			add1, _ := core.AddressParse(account1)
+			owner, err := context.GetOrCreateUserAccount(add1.Bytes())
+			assert.Nil(t, err)
+			owner.AddBalance(newUint128FromIntWrapper(1000000000000))
+			add2, _ := core.AddressParse(account2)
+			contract, err := context.CreateContractAccount(add2.Bytes(), nil)
+			assert.Nil(t, err)
+			tx := mockNormalTransaction("n1FkntVUMPAsESuCAAPK711omQk19JotBjM", "n1JNHZJEUvfBYfjDRD14Q73FX62nJAzXkMR", "0")
+			ctx, err := NewContext(mockBlock(), tx, contract, context)
+
+			// deploy and init.
+			engine := NewV8Engine(ctx)
+			engine.SetExecutionLimits(100000, 10000000)
+			_, err = engine.DeployAndInit(string(data), tt.sourceType, tt.initArgs)
+			assert.Nil(t, err)
+			engine.Dispose()
+
+			// call.
+			for _, fields := range tt.calls {
+				engine = NewV8Engine(ctx)
+				engine.SetExecutionLimits(100000, 10000000)
+				result, err := engine.Call(string(data), tt.sourceType, fields.function, fields.args)
+				fmt.Println(result)
+				assert.Equal(t, fields.result, result)
+				assert.Equal(t, fields.err, err)
+				engine.Dispose()
+			}
+		})
+	}
+}
+
 func TestFunctionNameCheck(t *testing.T) {
 	tests := []struct {
 		function    string
@@ -585,7 +733,6 @@ func TestFunctionNameCheck(t *testing.T) {
 		})
 	}
 }
-
 func TestMultiEngine(t *testing.T) {
 	mem, _ := storage.NewMemoryStorage()
 	context, _ := state.NewWorldState(dpos.NewDpos(), mem)
@@ -612,7 +759,6 @@ func TestMultiEngine(t *testing.T) {
 	}
 	wg.Wait()
 }
-
 func TestInstructionCounterTestSuite(t *testing.T) {
 	tests := []struct {
 		filepath                                string
@@ -1767,7 +1913,6 @@ func TestMultiLibVersion(t *testing.T) {
 		t.Run(tt.filepath, func(t *testing.T) {
 			data, err := ioutil.ReadFile(tt.filepath)
 			assert.Nil(t, err, "filepath read error")
-
 			mem, _ := storage.NewMemoryStorage()
 			context, _ := state.NewWorldState(dpos.NewDpos(), mem)
 			owner, err := context.GetOrCreateUserAccount([]byte("account1"))
@@ -1782,6 +1927,54 @@ func TestMultiLibVersion(t *testing.T) {
 			assert.Equal(t, tt.expectedErr, err)
 			assert.Equal(t, tt.expectedResult, result)
 			engine.Dispose()
+		})
+	}
+}
+
+func TestStackOverflow(t *testing.T) {
+	tests := []struct {
+		filepath    string
+		expectedErr error
+	}{
+		{"test/contract_stack_overflow.js", core.ErrExecutionFailed},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.filepath, func(t *testing.T) {
+			data, err := ioutil.ReadFile(tt.filepath)
+			assert.Nil(t, err, "filepath read error")
+
+			var wg sync.WaitGroup
+			for i := 0; i < 2; i++ {
+				wg.Add(1)
+				go func() {
+					defer wg.Done()
+
+					mem, _ := storage.NewMemoryStorage()
+					context, _ := state.NewWorldState(dpos.NewDpos(), mem)
+					owner, err := context.GetOrCreateUserAccount([]byte("n1FkntVUMPAsESuCAAPK711omQk19JotBjM"))
+					assert.Nil(t, err)
+					owner.AddBalance(newUint128FromIntWrapper(1000000000))
+					contract, err := context.CreateContractAccount([]byte("n1JNHZJEUvfBYfjDRD14Q73FX62nJAzXkMR"), nil, nil)
+					assert.Nil(t, err)
+
+					ctx, err := NewContext(mockBlock(), mockTransaction(), contract, context)
+					engine := NewV8Engine(ctx)
+					engine.SetExecutionLimits(100000000, 10000000)
+
+					// _, err = engine.DeployAndInit(string(data), "js", "")
+					_, err = engine.RunScriptSource(string(data), 0)
+
+					//logging.CLog().Info("err:", err)
+					assert.Equal(t, tt.expectedErr, err)
+
+					engine.Dispose()
+
+				}()
+			}
+
+			wg.Wait()
+
 		})
 	}
 }

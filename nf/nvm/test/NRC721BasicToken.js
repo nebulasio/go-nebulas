@@ -75,7 +75,7 @@ var StandardToken = function () {
 };
 
 StandardToken.prototype = {
-    init: function (name, symbol) {
+    init: function (name) {
         this._name = name;
     },
 
@@ -144,6 +144,10 @@ StandardToken.prototype = {
 
     transferFrom: function (_from, _to, _tokenId) {
         var from = Blockchain.transaction.from;
+        var contractAddress = Blockchain.transaction.to;
+        if (contractAddress == _to) {
+            throw new Error("Forbidden to transfer money to a smart contract address");
+        }
         if (this.isApprovedOrOwner(from, _tokenId)) {
             this.clearApproval(_from, _tokenId);
             this.removeTokenFrom(_from, _tokenId);
@@ -154,6 +158,7 @@ StandardToken.prototype = {
         }
         
     },
+
 
     clearApproval: function (_owner, _tokenId) {
         var owner = this.ownerOf(_tokenId);

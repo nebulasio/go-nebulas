@@ -69,11 +69,18 @@ typedef int (*TransferFunc)(void *handler, const char *to, const char *value,
                             size_t *counterVal);
 typedef int (*VerifyAddressFunc)(void *handler, const char *address,
                                  size_t *counterVal);
+typedef char *(*GetPreBlockHashFunc)(void *handler, unsigned long long distance, size_t *counterVal);
+
+typedef char *(*GetPreBlockSeedFunc)(void *handler, unsigned long long distance, size_t *counterVal);
+
+
 
 EXPORT void InitializeBlockchain(GetTxByHashFunc getTx,
                                  GetAccountStateFunc getAccount,
                                  TransferFunc transfer,
-                                 VerifyAddressFunc verifyAddress);
+                                 VerifyAddressFunc verifyAddress,
+                                 GetPreBlockHashFunc getPreBlockHash,
+                                 GetPreBlockSeedFunc getPreBlockSeed);
 
 // crypto
 typedef char *(*Sha256Func)(const char *data, size_t *counterVal);

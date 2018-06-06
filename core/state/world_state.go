@@ -541,6 +541,22 @@ func (s *states) GetGas() map[string]*util.Uint128 {
 	return gasConsumed
 }
 
+func (s *states) GetBlockHashByHeight(height uint64) ([]byte, error) {
+	bytes, err := s.innerDB.Get(byteutils.FromUint64(height))
+	if err != nil {
+		return nil, err
+	}
+	return bytes, nil
+}
+
+func (s *states) GetBlock(hash byteutils.Hash) ([]byte, error) {
+	bytes, err := s.innerDB.Get(hash)
+	if err != nil {
+		return nil, err
+	}
+	return bytes, nil
+}
+
 // WorldState manange all current states in Blockchain
 type worldState struct {
 	*states
