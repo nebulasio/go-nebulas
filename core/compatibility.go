@@ -182,7 +182,7 @@ var (
 	// V8JSLibVersionControlHeight enable v8 js lib version control
 	V8JSLibVersionControlHeight = TestNetV8JSLibVersionControlHeight
 
-	// TransferFromContractEventRecordableHeight record event 'TransferFromContractEvent' since this height
+	// TransferFromContractFailureEventRecordableHeight record event 'TransferFromContractEvent' since this height
 	TransferFromContractFailureEventRecordableHeight = TestNetTransferFromContractEventRecordableHeight
 )
 
