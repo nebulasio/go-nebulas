@@ -335,7 +335,7 @@ func (e *V8Engine) RunScriptSource(source string, sourceLineOffset int) (string,
 	if cResult != nil {
 		result = C.GoString(cResult)
 		C.free(unsafe.Pointer(cResult))
-	} else if ret == 0 {
+	} else if ret == C.NVM_SUCCESS {
 		result = "\"\"" // default JSON String.
 	}
 

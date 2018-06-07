@@ -32,6 +32,7 @@ extern "C" {
 
 #include <stddef.h>
 #include <stdint.h>
+#include "nvm_error.h"
 
 enum LogLevel {
   DEBUG = 1,
