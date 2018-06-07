@@ -585,10 +585,10 @@ func TestContractFeatureGetAccountState(t *testing.T) {
 			assert.Nil(t, err)
 			owner.AddBalance(newUint128FromIntWrapper(1000000000000))
 			add2, _ := core.AddressParse(account2)
-			contract, err := context.CreateContractAccount(add2.Bytes(), nil, nil)
+			contract, err := context.CreateContractAccount(add2.Bytes(), nil, &corepb.ContractMeta{Version: "1.0.5"})
 			assert.Nil(t, err)
 			tx := mockNormalTransaction("n1FkntVUMPAsESuCAAPK711omQk19JotBjM", "n1JNHZJEUvfBYfjDRD14Q73FX62nJAzXkMR", "0")
-			ctx, err := NewContext(mockBlock(), tx, contract, context)
+			ctx, err := NewContext(mockBlockForLib(2000000), tx, contract, context)
 
 			// deploy and init.
 			engine := NewV8Engine(ctx)
@@ -670,10 +670,10 @@ func TestContractsFeatureGetBlockHashAndSeed(t *testing.T) {
 			assert.Nil(t, err)
 			owner.AddBalance(newUint128FromIntWrapper(1000000000000))
 			add2, _ := core.AddressParse(account2)
-			contract, err := context.CreateContractAccount(add2.Bytes(), nil, nil)
+			contract, err := context.CreateContractAccount(add2.Bytes(), nil, &corepb.ContractMeta{Version: "1.0.5"})
 			assert.Nil(t, err)
 			tx := mockNormalTransaction("n1FkntVUMPAsESuCAAPK711omQk19JotBjM", "n1JNHZJEUvfBYfjDRD14Q73FX62nJAzXkMR", "0")
-			ctx, err := NewContext(mockBlock(), tx, contract, context)
+			ctx, err := NewContext(mockBlockForLib(2000000), tx, contract, context)
 
 			// deploy and init.
 			engine := NewV8Engine(ctx)
