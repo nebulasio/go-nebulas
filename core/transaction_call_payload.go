@@ -23,6 +23,7 @@ import (
 	"fmt"
 
 	"github.com/nebulasio/go-nebulas/util"
+	"github.com/nebulasio/go-nebulas/util/byteutils"
 )
 
 // CallPayload carry function call information
@@ -68,6 +69,33 @@ func (payload *CallPayload) BaseGasCount() *util.Uint128 {
 	return base
 }
 
+var (
+	TestCompatArr = []string{"5b6a9ed8a48cfb0e6415f0df9f79cbbdac565dd139779c7972069b37c99a3913"}
+	MainCompatArr = []string{"f153197e19f2102de79e1dd3ddb763e8d92ac9691bbb22a1d5e21f6755718364",
+		"3db72f0d02daa26407d13ca9efc820ec618407d10d55ac15433784aaef93c659"}
+)
+
+// IsCompatibleStack return if compatible stack
+func IsCompatibleStack(id uint32, hash byteutils.Hash) bool {
+	if id == MainNetID {
+		for i := 0; i < len(MainCompatArr); i++ {
+			compatStr := MainCompatArr[i]
+			if compatStr == hash.String() {
+				return true
+			}
+		}
+
+	} else {
+		for i := 0; i < len(TestCompatArr); i++ {
+			compatStr := TestCompatArr[i]
+			if compatStr == hash.String() {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 // Execute the call payload in tx, call a function
 func (payload *CallPayload) Execute(limitedGas *util.Uint128, tx *Transaction, block *Block, ws WorldState) (*util.Uint128, string, error) {
 	if block == nil || tx == nil {
@@ -104,9 +132,14 @@ func (payload *CallPayload) Execute(limitedGas *util.Uint128, tx *Transaction, b
 		return util.NewUint128(), "", err
 	}
 	defer engine.Dispose()
-
-	if err := engine.SetExecutionLimits(limitedGas.Uint64(), DefaultLimitsOfTotalMemorySize); err != nil {
-		return util.NewUint128(), "", err
+	if IsCompatibleStack(block.header.chainID, tx.hash) == true {
+		if err := engine.SetExecutionLimits(10000, DefaultLimitsOfTotalMemorySize); err != nil {
+			return util.NewUint128(), "", err
+		}
+	} else {
+		if err := engine.SetExecutionLimits(limitedGas.Uint64(), DefaultLimitsOfTotalMemorySize); err != nil {
+			return util.NewUint128(), "", err
+		}
 	}
 
 	result, exeErr := engine.Call(deploy.Source, deploy.SourceType, payload.Function, payload.Args)
