@@ -86,7 +86,7 @@ func GetTxByHashFunc(handler unsafe.Pointer, hash *C.char, gasCnt *C.size_t) *C.
 func GetAccountStateFunc(handler unsafe.Pointer, address *C.char, gasCnt *C.size_t) *C.char {
 	engine, _ := getEngineByStorageHandler(uint64(uintptr(handler)))
 	if engine == nil || engine.ctx.block == nil {
-		return nil
+		logging.VLog().Fatal("Unexpected error: failed to get engine.")
 	}
 
 	// calculate Gas.
@@ -193,7 +193,7 @@ func TransferFunc(handler unsafe.Pointer, to *C.char, v *C.char, gasCnt *C.size_
 	engine, _ := getEngineByStorageHandler(uint64(uintptr(handler)))
 	if engine == nil || engine.ctx == nil || engine.ctx.block == nil ||
 		engine.ctx.state == nil || engine.ctx.tx == nil {
-		logging.VLog().Fatal("Unexpected error: failed to get engine.") //TODO: to confirm, sys err, crash or just return err
+		logging.VLog().Fatal("Unexpected error: failed to get engine.")
 	}
 
 	wsState := engine.ctx.state
@@ -219,7 +219,7 @@ func TransferFunc(handler unsafe.Pointer, to *C.char, v *C.char, gasCnt *C.size_
 			"key":     C.GoString(to),
 		}).Debug("TransferFunc parse address failed.")
 		recordTransferFailureEvent(TransferAddressParseErr, cAddr.String(), "", "", height, wsState, txHash)
-		// TODO: return or fatal?
+		return TransferAddressParseErr
 	}
 
 	toAcc, err := engine.ctx.state.GetOrCreateUserAccount(addr.Bytes())
@@ -294,7 +294,7 @@ func GetPreBlockHashFunc(handler unsafe.Pointer, distance C.ulonglong, gasCnt *C
 
 	engine, _ := getEngineByStorageHandler(uint64(uintptr(handler)))
 	if engine == nil || engine.ctx == nil || engine.ctx.block == nil || engine.ctx.state == nil {
-		return nil
+		logging.VLog().Fatal("Unexpected error: failed to get engine.")
 	}
 	wsState := engine.ctx.state
 	// calculate Gas.
@@ -306,7 +306,8 @@ func GetPreBlockHashFunc(handler unsafe.Pointer, distance C.ulonglong, gasCnt *C
 		logging.VLog().WithFields(logrus.Fields{
 			"height":   height,
 			"distance": n,
-		}).Fatal("distance is large than height") //TODO: to confirm
+		}).Debug("distance is large than height")
+		return nil
 	}
 	height -= n
 
@@ -315,7 +316,7 @@ func GetPreBlockHashFunc(handler unsafe.Pointer, distance C.ulonglong, gasCnt *C
 		logging.VLog().WithFields(logrus.Fields{
 			"height": height,
 			"err":    err,
-		}).Fatal("Failed to get block hash from wsState by height") //TODO: to confirm
+		}).Fatal("Unexpected error: Failed to get block hash from wsState by height")
 	}
 
 	return C.CString(byteutils.Hex(blockHash))
@@ -331,7 +332,7 @@ func GetPreBlockSeedFunc(handler unsafe.Pointer, distance C.ulonglong, gasCnt *C
 
 	engine, _ := getEngineByStorageHandler(uint64(uintptr(handler)))
 	if engine == nil || engine.ctx == nil || engine.ctx.block == nil || engine.ctx.state == nil {
-		return nil
+		logging.VLog().Fatal("Unexpected error: failed to get engine.")
 	}
 	wsState := engine.ctx.state
 	// calculate Gas.
@@ -343,7 +344,8 @@ func GetPreBlockSeedFunc(handler unsafe.Pointer, distance C.ulonglong, gasCnt *C
 		logging.VLog().WithFields(logrus.Fields{
 			"height":   height,
 			"distance": n,
-		}).Fatal("distance is large than height") //TODO: to confirm
+		}).Debug("distance is large than height")
+		return nil
 	}
 
 	height -= n
@@ -356,7 +358,7 @@ func GetPreBlockSeedFunc(handler unsafe.Pointer, distance C.ulonglong, gasCnt *C
 		logging.VLog().WithFields(logrus.Fields{
 			"height": height,
 			"err":    err,
-		}).Fatal("Failed to get block hash from wsState by height") //TODO: to confirm
+		}).Fatal("Unexpected error: Failed to get block hash from wsState by height")
 	}
 
 	bytes, err := wsState.GetBlock(blockHash)
@@ -364,7 +366,7 @@ func GetPreBlockSeedFunc(handler unsafe.Pointer, distance C.ulonglong, gasCnt *C
 		logging.VLog().WithFields(logrus.Fields{
 			"height": height,
 			"err":    err,
-		}).Fatal("Failed to get block from wsState by hash") //TODO: to confirm
+		}).Fatal("Unexpected error: Failed to get block from wsState by hash")
 	}
 
 	pbBlock := new(corepb.Block)
@@ -373,7 +375,7 @@ func GetPreBlockSeedFunc(handler unsafe.Pointer, distance C.ulonglong, gasCnt *C
 			"bytes":  bytes,
 			"height": height,
 			"err":    err,
-		}).Fatal("Failed to unmarshal pbBlock") //TODO: to confirm
+		}).Fatal("Unexpected error: Failed to unmarshal pbBlock")
 	}
 
 	if pbBlock.GetHeader() == nil || pbBlock.GetHeader().GetRandom() == nil ||
@@ -381,7 +383,7 @@ func GetPreBlockSeedFunc(handler unsafe.Pointer, distance C.ulonglong, gasCnt *C
 		logging.VLog().WithFields(logrus.Fields{
 			"pbBlock": pbBlock,
 			"height":  height,
-		}).Fatal("No random found in block header") //TODO: to confirm
+		}).Fatal("Unexpected error: No random found in block header")
 	}
 
 	return C.CString(byteutils.Hex(pbBlock.GetHeader().GetRandom().GetVrfSeed()))

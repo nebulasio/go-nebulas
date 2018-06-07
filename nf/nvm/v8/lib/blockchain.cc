@@ -130,10 +130,9 @@ void GetAccountStateCallback(const FunctionCallbackInfo<Value> &info) {
   Local<External> handler = Local<External>::Cast(thisArg->GetInternalField(0));
 
   if (info.Length() != 1) {
-    LogFatalf("Blockchain.verifyAddress() requires 1 arguments");//TODO: unexpected
-    // isolate->ThrowException(String::NewFromUtf8(
-    //     isolate, "Blockchain.getAccountState() requires only 1 argument"));
-    // return;
+    isolate->ThrowException(String::NewFromUtf8(
+        isolate, "Blockchain.getAccountState() requires only 1 argument"));
+    return;
   }
 
   Local<Value> key = info[0];
@@ -229,22 +228,20 @@ void GetPreBlockHashCallback(const FunctionCallbackInfo<Value> &info) {
   Local<External> handler = Local<External>::Cast(thisArg->GetInternalField(0));
 
   if (info.Length() != 1) {
-    LogFatalf("Blockchain.verifyAddress() requires 1 arguments");//TODO: unexpected
-    // isolate->ThrowException(String::NewFromUtf8(
-    //     isolate, "Blockchain.verifyAddress() requires 1 arguments"));
-    // return;
+    isolate->ThrowException(String::NewFromUtf8(
+        isolate, "Blockchain.verifyAddress() requires 1 arguments"));
+    return;
   }
   
   Local<Value> distance = info[0];
   if (!distance->IsNumber()) {
-    LogFatalf("n must be a number"); //TODO: unexpected
-    // isolate->ThrowException(
-    //     String::NewFromUtf8(isolate, "n must be a number")); 
-    // return;
+    isolate->ThrowException(
+        String::NewFromUtf8(isolate, "n must be a number")); 
+    return;
   }
 
   double v = Number::Cast(*distance)->Value();
-  if (v > ULLONG_MAX) {
+  if (v > ULLONG_MAX || v <= 0) {
     isolate->ThrowException(
         String::NewFromUtf8(isolate, "distance out of range"));
     return;
@@ -270,22 +267,20 @@ void GetPreBlockSeedCallback(const FunctionCallbackInfo<Value> &info) {
   Local<External> handler = Local<External>::Cast(thisArg->GetInternalField(0));
 
   if (info.Length() != 1) {
-    LogFatalf("Blockchain.verifyAddress() requires 1 arguments");//TODO: unexpected
-    // isolate->ThrowException(String::NewFromUtf8(
-    //     isolate, "Blockchain.verifyAddress() requires 1 arguments"));
-    // return;
+    isolate->ThrowException(String::NewFromUtf8(
+        isolate, "Blockchain.verifyAddress() requires 1 arguments"));
+    return;
   }
   
   Local<Value> distance = info[0];
   if (!distance->IsNumber()) {
-    LogFatalf("n must be a number"); //TODO: unexpected
-    // isolate->ThrowException(
-    //     String::NewFromUtf8(isolate, "n must be a number")); 
-    // return;
+    isolate->ThrowException(
+        String::NewFromUtf8(isolate, "n must be a number")); 
+    return;
   }
 
   double v = Number::Cast(*distance)->Value();
-  if (v > ULLONG_MAX) {
+  if (v > ULLONG_MAX || v <= 0) {
     isolate->ThrowException(
         String::NewFromUtf8(isolate, "distance out of range"));
     return;
