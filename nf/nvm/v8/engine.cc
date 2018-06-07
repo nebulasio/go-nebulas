@@ -296,6 +296,8 @@ void PrintAndReturnException(char **exception, Local<Context> context,
 
   // return exception message.
   if (exception != NULL) {
+    printf("==========%s", *exception_str);
+    printf("==========%d", exception_str.length());
     *exception = (char *)malloc(exception_str.length() + 1);
     strcpy(*exception, *exception_str);
   }

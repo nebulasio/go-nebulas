@@ -59,3 +59,14 @@ int VerifyAddress(void *handler, const char *address, size_t *gasCnt) {
   *gasCnt = 100;
   return 0;
 }
+
+char *GetPreBlockHash(void *handler, unsigned long long distance, size_t *gasCnt) {
+  *gasCnt = 1000;
+  return (char *)"blockHash";
+}
+
+char *GetPreBlockSeed(void *handler, unsigned long long distance, size_t *gasCnt) {
+  *gasCnt = 1000;
+  return (char *)"blockSeed";
+}
+
