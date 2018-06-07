@@ -31,7 +31,7 @@
 #include <thread>
 #include <sys/time.h>
 #include <unistd.h>
-#define KillTimeMicros  1000 * 1000 * 2  
+#define KillTimeMicros  1000 * 1000 * 5  
 #define MicroSecondDiff(newtv, oldtv) (1000000 * (unsigned long long)((newtv).tv_sec - (oldtv).tv_sec) + (newtv).tv_usec - (oldtv).tv_usec)  //微秒
 #define CodeExecuteErr 1
 #define CodeTimeOut    2
