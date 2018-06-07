@@ -3,8 +3,6 @@ package nvm
 import (
 	"errors"
 
-	"github.com/nebulasio/go-nebulas/consensus/dpos"
-
 	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/core/pb"
 	"github.com/nebulasio/go-nebulas/core/state"
@@ -58,7 +56,7 @@ const (
 //the max recent block number can query
 const (
 	maxQueryBlockInfoValidTime = 30
-	maxBlockDistance           = maxQueryBlockInfoValidTime * 24 * 3600 * 1000 / dpos.BlockIntervalInMs
+	maxBlockDistance           = maxQueryBlockInfoValidTime * 24 * 3600 * 1000 / 15000 //TODO:dpos.BlockIntervalInMs
 )
 
 // Block interface breaks cycle import dependency and hides unused services.
