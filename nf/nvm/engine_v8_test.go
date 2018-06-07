@@ -647,7 +647,7 @@ func TestContractsFeatureGetBlockHashAndSeed(t *testing.T) {
 			assert.Nil(t, err, "contract path read error")
 
 			mem, _ := storage.NewMemoryStorage()
-			curBlock := mockBlock()
+			curBlock := mockBlockForLib(2000000)
 
 			preBlock := &corepb.Block{
 				Header: &corepb.BlockHeader{
@@ -959,10 +959,12 @@ func TestBlockChain(t *testing.T) {
 
 			mem, _ := storage.NewMemoryStorage()
 			context, _ := state.NewWorldState(dpos.NewDpos(), mem)
-			owner, err := context.GetOrCreateUserAccount([]byte("n1FkntVUMPAsESuCAAPK711omQk19JotBjM"))
+			addr, _ := core.AddressParse("n1FkntVUMPAsESuCAAPK711omQk19JotBjM")
+			owner, err := context.GetOrCreateUserAccount(addr.Bytes())
 			assert.Nil(t, err)
 			owner.AddBalance(newUint128FromIntWrapper(1000000000))
-			contract, err := context.CreateContractAccount([]byte("n1JNHZJEUvfBYfjDRD14Q73FX62nJAzXkMR"), nil, nil)
+			addr, _ = core.AddressParse("n1JNHZJEUvfBYfjDRD14Q73FX62nJAzXkMR")
+			contract, err := context.CreateContractAccount(addr.Bytes(), nil, nil)
 			assert.Nil(t, err)
 
 			ctx, err := NewContext(mockBlock(), mockTransaction(), contract, context)

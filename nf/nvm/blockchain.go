@@ -219,6 +219,7 @@ func TransferFunc(handler unsafe.Pointer, to *C.char, v *C.char, gasCnt *C.size_
 			"key":     C.GoString(to),
 		}).Debug("TransferFunc parse address failed.")
 		recordTransferFailureEvent(TransferAddressParseErr, cAddr.String(), "", "", height, wsState, txHash)
+		// TODO: return or fatal?
 	}
 
 	toAcc, err := engine.ctx.state.GetOrCreateUserAccount(addr.Bytes())
