@@ -293,6 +293,7 @@ func getPayLoadByAddress(ws WorldState, address string) (*core.DeployPayload, er
 	if err != nil {
 		return nil, err
 	}
+
 	deploy, err := core.LoadDeployPayload(birthTx.Data()) // ToConfirm: move deploy payload in ctx.
 	if err != nil {
 		return nil, err
@@ -314,6 +315,7 @@ func GetContractSourceFunc(handler unsafe.Pointer, address *C.char, gasCnt *C.si
 
 	deploy, err := getPayLoadByAddress(ws, C.GoString(address))
 	if err != nil {
+		//FIXME: VLog() WriteField
 		logging.CLog().Errorf("getPayLoadByAddress err, address:%v, err:%v", address, err)
 		return nil
 	}
@@ -362,13 +364,13 @@ func InnerContractFunc(handler unsafe.Pointer, address *C.char, funcName *C.char
 		logging.CLog().Errorf(ErrEngineNotFound.Error())
 		return nil
 	}
-	index := engine.ctx.index
+	index := engine.ctx.index //TODO: index to clear
 	if engine.ctx.index >= uint32(MultiNvmMax) {
 		setHeadErrAndLog(engine, index, ErrNvmNumLimit.Error(), true)
 		return nil
 	}
 	var gasSum uint64
-	gasSum = uint64(InnerContractFuncCost)
+	gasSum = uint64(InnerContractFuncCost) //FIXME:
 	ws := engine.ctx.state
 
 	addr, err := core.AddressParse(C.GoString(address))
@@ -409,8 +411,8 @@ func InnerContractFunc(handler unsafe.Pointer, address *C.char, funcName *C.char
 		return nil
 	}
 	//transfer
-	var transferCoseGas uint64
-	iRet := TransferByAddress(handler, fromAddr, addr, C.GoString(v), &transferCoseGas)
+	var transferCoseGas uint64                                                          //TODO: transferCoseGas->transferCostGas
+	iRet := TransferByAddress(handler, fromAddr, addr, C.GoString(v), &transferCoseGas) //TODO: gas cost?
 	if iRet != 0 {
 		setHeadErrAndLog(engine, index, ErrInnerTransferFailed.Error(), true)
 		return nil

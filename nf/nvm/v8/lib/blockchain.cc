@@ -245,6 +245,7 @@ void GetContractSourceCallback(const FunctionCallbackInfo<Value> &info) {
   char *value = sGetContractSource(handler->Value(),
                            *String::Utf8Value(address->ToString()), &cnt);
   if (value == NULL) {
+    //TODO: throw err 
     info.GetReturnValue().SetNull();
   } else {
     info.GetReturnValue().Set(String::NewFromUtf8(isolate, value));
@@ -260,8 +261,8 @@ void RunInnerContractSourceCallBack(const FunctionCallbackInfo<Value> &info) {
   Local<External> handler = Local<External>::Cast(thisArg->GetInternalField(0));
 
   if (info.Length() != 4) {
-    char msg[512];
-    snprintf(msg, 512, "Blockchain.RunInnerContractSourceCallBack() requires 14 arguments,args:%d", info.Length());
+    char msg[128];
+    snprintf(msg, 128, "Blockchain.RunInnerContractSourceCallBack() requires 4 arguments,args:%d", info.Length());
     isolate->ThrowException(String::NewFromUtf8(
         isolate, msg));
     return;
