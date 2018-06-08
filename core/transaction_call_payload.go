@@ -71,7 +71,7 @@ func (payload *CallPayload) BaseGasCount() *util.Uint128 {
 
 var (
 	TestCompatArr = []string{"5b6a9ed8a48cfb0e6415f0df9f79cbbdac565dd139779c7972069b37c99a3913"}
-	MainCompatArr = []string{"f153197e19f2102de79e1dd3ddb763e8d92ac9691bbb22a1d5e21f6755718364",
+	MainCompatArr = []string{"ee90d2cc5f930fe627363e9e05f1e98ea20025898201c849125659d6c0079242",
 		"3db72f0d02daa26407d13ca9efc820ec618407d10d55ac15433784aaef93c659"}
 )
 
