@@ -173,7 +173,7 @@ func (block *Block) ToProto() (proto.Message, error) {
 		if err != nil {
 			return nil, err
 		}
-		if dependency := dependency.(*dagpb.Dag); ok {
+		if dependency, ok := dependency.(*dagpb.Dag); ok {
 			return &corepb.Block{
 				Header:       header,
 				Transactions: txs,
@@ -385,6 +385,14 @@ func (block *Block) Transactions() Transactions {
 func (block *Block) RandomSeed() string {
 	if block.height >= RandomAvailableHeight {
 		return byteutils.Hex(block.header.random.VrfSeed)
+	}
+	return ""
+}
+
+// RandomProof block random proof (VRF)
+func (block *Block) RandomProof() string {
+	if block.height >= RandomAvailableHeight {
+		return byteutils.Hex(block.header.random.VrfProof)
 	}
 	return ""
 }

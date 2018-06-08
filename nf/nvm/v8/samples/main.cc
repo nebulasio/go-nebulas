@@ -16,7 +16,7 @@
 // along with the go-nebulas library.  If not, see
 // <http://www.gnu.org/licenses/>.
 //
-
+#include <unistd.h>
 #include "../engine.h"
 #include "../lib/blockchain.h"
 #include "../lib/fake_blockchain.h"
@@ -219,9 +219,13 @@ void ExecuteScript(const char *filename, V8ExecutionDelegate delegate) {
   DeleteStorageHandler(lcsHandler);
   DeleteStorageHandler(gcsHandler);
 }
+void *loop(void *arg) {
 
+  ExecuteScript((const char*)arg, RunScriptSourceDelegate);
+  return 0x00;
+}
 void ExecuteScriptSource(const char *filename) {
-  ExecuteScript(filename, RunScriptSourceDelegate);
+    ExecuteScript(filename, RunScriptSourceDelegate);
 }
 
 int main(int argc, const char *argv[]) {
@@ -303,16 +307,20 @@ int main(int argc, const char *argv[]) {
     // inject and print.
     ExecuteScript(filename, InjectTracingInstructionsAndPrintDelegate);
   } else {
-    // execute script.
-    std::vector<std::thread *> threads;
+    pthread_attr_t attribute;
+    std::vector<pthread_t > threads;
     for (int i = 0; i < concurrency; i++) {
-      std::thread *thread = new std::thread(ExecuteScriptSource, filename);
+      pthread_t thread;
+      pthread_attr_init(&attribute);
+      pthread_attr_setstacksize(&attribute, 2 * 1024 * 1024);
+
+      pthread_create(&thread,&attribute, loop, (void *)filename);
       threads.push_back(thread);
     }
-
     for (int i = 0; i < concurrency; i++) {
-      threads[i]->join();
+      pthread_join(threads[i], 0);
     }
+    printf("success\n");
   }
 
   Dispose();

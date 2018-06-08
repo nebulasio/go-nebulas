@@ -139,3 +139,15 @@ function eq(a, b) {
         throw new Error("Not equal.");
     }
 }
+
+/* cases: new Date() */
+var d1 = new Date('December 17, 1995 00:00:00');
+var d2 = new Date(d1.getUTCFullYear(), d1.getUTCMonth(), d1.getUTCDate());
+eq(d1.getTime(), d2.getTime());
+
+eq(Date.parse(Date()), 20000000000000);
+
+// var event = new Date(Date.UTC(2012, 11, 20, 3, 0, 0));
+// console.log(event.toLocaleString('ko-KR', { timeZone: 'UTC' }));
+
+/* cases: new Date() End */

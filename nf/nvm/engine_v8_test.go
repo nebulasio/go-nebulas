@@ -21,6 +21,7 @@ package nvm
 import (
 	"bufio"
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"math/big"
@@ -37,8 +38,6 @@ import (
 	"github.com/nebulasio/go-nebulas/consensus/dpos"
 	"github.com/nebulasio/go-nebulas/core/pb"
 	"github.com/nebulasio/go-nebulas/neblet/pb"
-
-	"encoding/json"
 
 	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/core/state"
@@ -254,6 +253,7 @@ func TestRunScriptSourceWithLimits(t *testing.T) {
 				engine.SetExecutionLimits(tt.limitsOfExecutionInstructions, tt.limitsOfTotalMemorySize)
 				source, _, _ := engine.InjectTracingInstructions(string(data))
 				_, err = engine.RunScriptSource(source, 0)
+				fmt.Printf("err:%v\n", err)
 				assert.Equal(t, tt.expectedErr, err)
 				engine.Dispose()
 			})()
@@ -579,7 +579,6 @@ func TestFunctionNameCheck(t *testing.T) {
 		})
 	}
 }
-
 func TestMultiEngine(t *testing.T) {
 	mem, _ := storage.NewMemoryStorage()
 	context, _ := state.NewWorldState(dpos.NewDpos(), mem)
@@ -606,7 +605,6 @@ func TestMultiEngine(t *testing.T) {
 	}
 	wg.Wait()
 }
-
 func TestInstructionCounterTestSuite(t *testing.T) {
 	tests := []struct {
 		filepath                                string
@@ -1741,5 +1739,53 @@ func TestInnerTransactions(t *testing.T) {
 		assert.Nil(t, neb.chain.BlockPool().Push(block))
 
 		// check
+	}
+}
+
+func TestThreadStackOverflow(t *testing.T) {
+	tests := []struct {
+		filepath    string
+		expectedErr error
+	}{
+		{"test/test_stack_overflow.js", core.ErrExecutionFailed},
+	}
+	// lockx := sync.RWMutex{}
+
+	for _, tt := range tests {
+		t.Run(tt.filepath, func(t *testing.T) {
+			data, err := ioutil.ReadFile(tt.filepath)
+			assert.Nil(t, err, "filepath read error")
+			for j := 0; j < 10; j++ {
+
+				var wg sync.WaitGroup
+				for i := 0; i < 5; i++ {
+					wg.Add(1)
+					go func() {
+						defer wg.Done()
+
+						mem, _ := storage.NewMemoryStorage()
+						context, _ := state.NewWorldState(dpos.NewDpos(), mem)
+						owner, err := context.GetOrCreateUserAccount([]byte("n1FkntVUMPAsESuCAAPK711omQk19JotBjM"))
+						assert.Nil(t, err)
+						owner.AddBalance(newUint128FromIntWrapper(1000000000))
+						contract, err := context.CreateContractAccount([]byte("n1JNHZJEUvfBYfjDRD14Q73FX62nJAzXkMR"), nil)
+						assert.Nil(t, err)
+
+						ctx, err := NewContext(mockBlock(), mockTransaction(), contract, context)
+						engine := NewV8Engine(ctx)
+						engine.SetExecutionLimits(100000000, 10000000)
+						_, err = engine.DeployAndInit(string(data), "js", "")
+						fmt.Printf("err:%v", err)
+						// _, err = engine.RunScriptSource("", 0)
+						assert.Equal(t, tt.expectedErr, err)
+						engine.Dispose()
+
+					}()
+					// }
+				}
+				wg.Wait()
+			}
+
+		})
 	}
 }

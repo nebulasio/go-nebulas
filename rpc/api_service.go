@@ -366,6 +366,8 @@ func (s *APIService) toBlockResponse(block *core.Block, fullFillTransaction bool
 		EventsRoot:    block.EventsRoot().String(),
 		ConsensusRoot: block.ConsensusRoot(),
 		Miner:         byteutils.Hash(block.ConsensusRoot().Proposer).Base58(),
+		RandomSeed:    block.RandomSeed(),
+		RandomProof:   block.RandomProof(),
 		IsFinality:    isFinality,
 	}
 
