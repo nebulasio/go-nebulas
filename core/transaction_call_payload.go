@@ -135,7 +135,7 @@ func (payload *CallPayload) Execute(limitedGas *util.Uint128, tx *Transaction, b
 	defer engine.Dispose()
 
 	if IsCompatibleStack(block.header.chainID, tx.hash) == true {
-		if err := engine.SetExecutionLimits(10000, DefaultLimitsOfTotalMemorySize); err != nil {
+		if err := engine.SetExecutionLimits(2000, DefaultLimitsOfTotalMemorySize); err != nil {
 			return util.NewUint128(), "", err
 		}
 	} else {
