@@ -32,6 +32,7 @@ extern "C" {
 
 #include <stddef.h>
 #include <stdint.h>
+#include <stdbool.h>
 #include "nvm_error.h"
 
 enum LogLevel {
@@ -132,6 +133,7 @@ typedef struct V8Engine {
   size_t limits_of_executed_instructions;
   size_t limits_of_total_memory_size;
   bool is_requested_terminate_execution;
+  bool is_unexpected_error_happen;
   int testing;
   V8EngineStats stats;
 } V8Engine;

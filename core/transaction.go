@@ -558,6 +558,9 @@ func VerifyExecution(tx *Transaction, block *Block, ws WorldState) (bool, error)
 
 	// step7. execute contract.
 	gasExecution, exeResult, exeErr := payload.Execute(contractLimitedGas, tx, block, ws)
+	if exeErr == ErrUnexpected {
+		return false, exeErr
+	}
 
 	// step8. calculate final gas.
 	allGas, gasErr := gasUsed.Add(gasExecution)

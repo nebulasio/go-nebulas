@@ -170,6 +170,7 @@ var (
 
 	// nvm error
 	ErrExecutionFailed = errors.New("execution failed")
+	ErrUnexpected      = errors.New("Unexpected sys error")
 
 	// unsupported keyword error in smart contract
 	ErrUnsupportedKeyword = errors.New("transaction data has unsupported keyword")

@@ -328,7 +328,7 @@ func (e *V8Engine) RunScriptSource(source string, sourceLineOffset int) (string,
 	ret = C.RunScriptSource(&cResult, e.v8engine, cSource, C.int(sourceLineOffset), C.uintptr_t(e.lcsHandler),
 		C.uintptr_t(e.gcsHandler))
 	done <- true
-	if err == nil && ret != 0 {
+	if err == nil && ret != C.NVM_SUCCESS {
 		err = core.ErrExecutionFailed
 	}
 
@@ -351,6 +351,10 @@ func (e *V8Engine) RunScriptSource(source string, sourceLineOffset int) (string,
 	}
 	if e.actualCountOfExecutionInstructions > e.limitsOfExecutionInstructions || err == ErrExceedMemoryLimits { //ToDo ErrExceedMemoryLimits value is same in each linux
 		e.actualCountOfExecutionInstructions = e.limitsOfExecutionInstructions //ToDo memory pass whether exhaust ?
+	}
+
+	if ret == C.NVM_UNEXPECTED_ERR {
+		err = core.ErrUnexpected
 	}
 
 	return result, err

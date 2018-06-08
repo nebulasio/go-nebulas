@@ -23,6 +23,8 @@ import (
 	"fmt"
 
 	"github.com/nebulasio/go-nebulas/util"
+	"github.com/nebulasio/go-nebulas/util/logging"
+	"github.com/sirupsen/logrus"
 )
 
 // CallPayload carry function call information
@@ -110,10 +112,16 @@ func (payload *CallPayload) Execute(limitedGas *util.Uint128, tx *Transaction, b
 	}
 
 	result, exeErr := engine.Call(deploy.Source, deploy.SourceType, payload.Function, payload.Args)
-	gasCout := engine.ExecutionInstructions()
-	instructions, err := util.NewUint128FromInt(int64(gasCout))
-	if err != nil {
-		return util.NewUint128(), "", err
+	gasCount := engine.ExecutionInstructions()
+	instructions, err := util.NewUint128FromInt(int64(gasCount))
+
+	if err != nil || exeErr == ErrUnexpected {
+		logging.VLog().WithFields(logrus.Fields{
+			"err":      err,
+			"exeErr":   exeErr,
+			"gasCount": gasCount,
+		}).Error("Unexpected error when executing call")
+		return util.NewUint128(), "", ErrUnexpected
 	}
 	if exeErr == ErrExecutionFailed && len(result) > 0 {
 		exeErr = fmt.Errorf("Call: %s", result)

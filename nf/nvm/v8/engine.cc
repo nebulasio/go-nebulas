@@ -221,8 +221,14 @@ int Execute(char **result, V8Engine *e, const char *source,
     return NVM_EXCEPTION_ERR;
   }
 
-  return delegate(result, isolate, source, source_line_offset, context,
+  int retTmp = delegate(result, isolate, source, source_line_offset, context,
                   trycatch, delegateContext);
+  
+  if (e->is_unexpected_error_happen) {
+    return NVM_UNEXPECTED_ERR;
+  }
+
+  return retTmp;
 }
 
 void PrintException(Local<Context> context, TryCatch &trycatch) {

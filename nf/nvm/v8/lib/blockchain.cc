@@ -18,6 +18,7 @@
 //
 
 #include "blockchain.h"
+#include "global.h"
 #include "../engine.h"
 #include "instruction_counter.h"
 #include "logger.h"
@@ -294,6 +295,11 @@ void GetPreBlockSeedCallback(const FunctionCallbackInfo<Value> &info) {
     info.GetReturnValue().Set(String::NewFromUtf8(isolate, seed));
     free(seed);
   }
+
+    // Local<Context> context = isolate->GetCurrentContext();
+    // V8Engine *e = GetV8EngineInstance(context);
+    // TerminateExecution(e);
+    // e.is_unexpected_error_happened = true;
 
   // record storage usage.
   IncrCounter(isolate, isolate->GetCurrentContext(), cnt);
