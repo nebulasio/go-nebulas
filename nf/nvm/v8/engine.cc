@@ -331,7 +331,7 @@ void TerminateExecution(V8Engine *e) {
   }
   Isolate *isolate = static_cast<Isolate *>(e->isolate);
   isolate->TerminateExecution();
-  e->is_requested_terminate_execution = 1;
+  e->is_requested_terminate_execution = true;
 }
 
 void EngineLimitsCheckDelegate(Isolate *isolate, size_t count,
