@@ -154,7 +154,7 @@ const (
 	MainNetV8JSLibVersionControlHeight uint64 = 400000
 
 	//MainNetTransferFromContractFailureEventRecordableHeight
-	MainNetTransferFromContractFailureEventRecordableHeight uint64 = 333333
+	MainNetTransferFromContractFailureEventRecordableHeight uint64 = 400000
 )
 
 var (

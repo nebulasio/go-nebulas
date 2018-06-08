@@ -121,7 +121,7 @@ func GetAccountStateFunc(handler unsafe.Pointer, address *C.char, gasCnt *C.size
 func recordTransferFailureEvent(errNo int, from string, to string, value string,
 	height uint64, wsState WorldState, txHash byteutils.Hash) {
 
-	if errNo == TransferFuncSuccess && height > core.LocalTransferFromContractEventRecordableHeight {
+	if errNo == TransferFuncSuccess && height > core.TransferFromContractEventRecordableHeight {
 		event := &TransferFromContractEvent{
 			Amount: value,
 			From:   from,
@@ -138,7 +138,7 @@ func recordTransferFailureEvent(errNo int, from string, to string, value string,
 		}
 		wsState.RecordEvent(txHash, &state.Event{Topic: core.TopicTransferFromContract, Data: string(eData)})
 
-	} else if height >= core.LocalTransferFromContractFailureEventRecordableHeight {
+	} else if height >= core.TransferFromContractFailureEventRecordableHeight {
 		var errMsg string
 		switch errNo {
 		case TransferFuncSuccess:
