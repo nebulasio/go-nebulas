@@ -49,7 +49,6 @@ import (
 	"fmt"
 	"strings"
 	"sync"
-	"time"
 	"unsafe"
 
 	"encoding/json"
@@ -65,6 +64,10 @@ import (
 const (
 	// ExecutionTimeoutInSeconds max v8 execution timeout.
 	ExecutionTimeoutInSeconds = 5
+)
+const (
+	ExecutionFailedErr  = 1
+	ExecutionTimeOutErr = 2
 )
 
 //engine_v8 private data
@@ -171,6 +174,8 @@ func NewV8Engine(ctx *Context) *V8Engine {
 		storages[engine.lcsHandler] = engine
 		storages[engine.gcsHandler] = engine
 	})()
+	// engine.v8engine.lcs = C.uintptr_t(engine.lcsHandler)
+	// engine.v8engine.gcs = C.uintptr_t(engine.gcsHandler)
 	return engine
 }
 
@@ -214,8 +219,8 @@ func (e *V8Engine) SetExecutionLimits(limitsOfExecutionInstructions, limitsOfTot
 	e.v8engine.limits_of_total_memory_size = C.size_t(limitsOfTotalMemorySize)
 
 	logging.VLog().WithFields(logrus.Fields{
-		"limits_of_executed_instructions": e.v8engine.limits_of_executed_instructions,
-		"limits_of_total_memory_size":     e.v8engine.limits_of_total_memory_size,
+		"limits_of_executed_instructions": limitsOfExecutionInstructions,
+		"limits_of_total_memory_size":     limitsOfTotalMemorySize,
 	}).Debug("set execution limits.")
 
 	e.limitsOfExecutionInstructions = limitsOfExecutionInstructions
@@ -244,12 +249,12 @@ func (e *V8Engine) TranspileTypeScript(source string) (string, int, error) {
 	defer C.free(unsafe.Pointer(cSource))
 
 	lineOffset := C.int(0)
-	jsSource := C.TranspileTypeScriptModule(e.v8engine, cSource, &lineOffset)
+	jsSource := C.TranspileTypeScriptModuleThread(e.v8engine, cSource, &lineOffset)
 	if jsSource == nil {
 		return "", 0, ErrTranspileTypeScriptFailed
 	}
-	defer C.free(unsafe.Pointer(jsSource))
 
+	defer C.free(unsafe.Pointer(jsSource))
 	return C.GoString(jsSource), int(lineOffset), nil
 
 }
@@ -260,13 +265,13 @@ func (e *V8Engine) InjectTracingInstructions(source string) (string, int, error)
 	defer C.free(unsafe.Pointer(cSource))
 
 	lineOffset := C.int(0)
-	traceableCSource := C.InjectTracingInstructions(e.v8engine, cSource, &lineOffset, C.int(e.strictDisallowUsageOfInstructionCounter))
 
+	traceableCSource := C.InjectTracingInstructionsThread(e.v8engine, cSource, &lineOffset, C.int(e.strictDisallowUsageOfInstructionCounter))
 	if traceableCSource == nil {
 		return "", 0, ErrInjectTracingInstructionFailed
 	}
-	defer C.free(unsafe.Pointer(traceableCSource))
 
+	defer C.free(unsafe.Pointer(traceableCSource))
 	return C.GoString(traceableCSource), int(lineOffset), nil
 }
 
@@ -299,6 +304,7 @@ func (e *V8Engine) GetNVMVerbResources() (uint64, uint64) {
 
 // RunScriptSource run js source.
 func (e *V8Engine) RunScriptSource(source string, sourceLineOffset int) (string, error) {
+
 	cSource := C.CString(source)
 	defer C.free(unsafe.Pointer(cSource))
 
@@ -308,29 +314,19 @@ func (e *V8Engine) RunScriptSource(source string, sourceLineOffset int) (string,
 		ret     C.int
 		cResult *C.char
 	)
+	// done := make(chan bool, 1)
+	// go func() {
+	// 	ret = C.RunScriptSource(&cResult, e.v8engine, cSource, C.int(sourceLineOffset), C.uintptr_t(e.lcsHandler),
+	// 		C.uintptr_t(e.gcsHandler))
+	// 	done <- true
+	// }()
+	ret = C.RunScriptSourceThread(&cResult, e.v8engine, cSource, C.int(sourceLineOffset), C.uintptr_t(e.lcsHandler),
+		C.uintptr_t(e.gcsHandler))
 
-	done := make(chan bool, 1)
-	go func() {
-		ret = C.RunScriptSource(&cResult, e.v8engine, cSource, C.int(sourceLineOffset), C.uintptr_t(e.lcsHandler),
-			C.uintptr_t(e.gcsHandler))
-		done <- true
-	}()
-
-	select {
-	case <-done:
-		if ret == 2 {
-			err = core.ErrInnerExecutionFailed
-		} else if ret != 0 {
-			err = core.ErrExecutionFailed
-		}
-	case <-time.After(ExecutionTimeoutInSeconds * time.Second):
-		C.TerminateExecution(e.v8engine) //ToDo TerminateExecution can kill RunScriptSource
+	if ret == ExecutionTimeOutErr {
 		err = ErrExecutionTimeout
-
-		// wait for C.RunScriptSource() returns.
-		select {
-		case <-done:
-		}
+	} else if ret == ExecutionFailedErr {
+		err = core.ErrExecutionFailed
 	}
 
 	if cResult != nil {
@@ -342,7 +338,6 @@ func (e *V8Engine) RunScriptSource(source string, sourceLineOffset int) (string,
 
 	// collect tracing stats.
 	e.CollectTracingStats()
-
 	if e.limitsOfExecutionInstructions > 0 && e.limitsOfExecutionInstructions < e.actualCountOfExecutionInstructions {
 		// Reach instruction limits.
 		err = ErrInsufficientGas
@@ -399,7 +394,18 @@ func (e *V8Engine) RunContractScript(source, sourceType, function, args string) 
 	if err != nil {
 		return "", err
 	}
-
+	if e.ctx.block.Height() >= core.NvmMemoryLimitWithoutInjectHeight {
+		e.CollectTracingStats()
+		mem := e.actualTotalMemorySize + core.DefaultLimitsOfTotalMemorySize
+		logging.VLog().WithFields(logrus.Fields{
+			"actualTotalMemorySize": e.actualTotalMemorySize,
+			"limit":                 mem,
+			"tx.hash":               e.ctx.tx.Hash(),
+		}).Debug("mem limit")
+		if err := e.SetExecutionLimits(e.limitsOfExecutionInstructions, mem); err != nil {
+			return "", err
+		}
+	}
 	return e.RunScriptSource(runnableSource, sourceLineOffset)
 }
 
@@ -480,7 +486,6 @@ func (e *V8Engine) prepareRunnableContractScript(source, function, args string) 
 	}
 	runnableSource = fmt.Sprintf(`Blockchain.blockParse("%s");
 									Blockchain.transactionParse("%s");
-									Object.freeze(Blockchain);
 									var __contract = require("%s");
 									var __instance = new __contract();
 									__instance["%s"].apply(__instance, JSON.parse("%s"));`,

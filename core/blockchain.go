@@ -19,6 +19,8 @@
 package core
 
 import (
+	"crypto/rand"
+	"io"
 	"strings"
 	"time"
 
@@ -69,11 +71,13 @@ type BlockChain struct {
 	nvm NVM
 
 	quitCh chan int
+
+	superNode bool
+
+	unsupportedKeyword string
 }
 
 const (
-	// TestNetID chain id for test net.
-	TestNetID = 1
 
 	// EagleNebula chain id for 1.x
 	EagleNebula = 1 << 4
@@ -131,14 +135,16 @@ func NewBlockChain(neb Neblet) (*BlockChain, error) {
 	txPool.RegisterInNetwork(neb.NetService())
 
 	var bc = &BlockChain{
-		chainID:      neb.Config().Chain.ChainId,
-		genesis:      neb.Genesis(),
-		bkPool:       blockPool,
-		txPool:       txPool,
-		storage:      neb.Storage(),
-		eventEmitter: neb.EventEmitter(),
-		nvm:          neb.Nvm(),
-		quitCh:       make(chan int, 1),
+		chainID:            neb.Config().Chain.ChainId,
+		genesis:            neb.Genesis(),
+		bkPool:             blockPool,
+		txPool:             txPool,
+		storage:            neb.Storage(),
+		eventEmitter:       neb.EventEmitter(),
+		nvm:                neb.Nvm(),
+		quitCh:             make(chan int, 1),
+		superNode:          neb.Config().Chain.SuperNode,
+		unsupportedKeyword: neb.Config().Chain.UnsupportedKeyword,
 	}
 
 	bc.cachedBlocks, err = lru.New(128)
@@ -464,6 +470,48 @@ func (bc *BlockChain) GetBlockOnCanonicalChainByHash(blockHash byteutils.Hash) *
 	return blockByHeight
 }
 
+// GetInputForVRFSigner returns [ getBlock(block.height - 2 * dynasty.size).hash, block.parent.seed ]
+func (bc *BlockChain) GetInputForVRFSigner(parentHash byteutils.Hash, height uint64) (ancestorHash, parentSeed []byte, err error) {
+	if parentHash == nil || height < RandomAvailableHeight {
+		return nil, nil, ErrInvalidArgument
+	}
+
+	nob := bc.consensusHandler.NumberOfBlocksInDynasty()
+	if height > nob*2 {
+		b := bc.GetBlockOnCanonicalChainByHeight(height - nob*2)
+		if b == nil {
+			logging.VLog().WithFields(logrus.Fields{
+				"blockHeight":          height,
+				"targetHeight":         height - nob,
+				"numOfBlocksInDynasty": nob,
+			}).Error("Block not found.")
+			return nil, nil, ErrNotBlockInCanonicalChain
+		}
+		ancestorHash = b.Hash()
+	} else {
+		ancestorHash = bc.GenesisBlock().Hash()
+	}
+
+	parent := bc.GetBlockOnCanonicalChainByHash(parentHash)
+	if parent == nil || parent.height+1 != height {
+		return nil, nil, ErrInvalidBlockHash
+	}
+
+	if parent.height >= RandomAvailableHeight {
+		if !parent.HasRandomSeed() {
+			logging.VLog().WithFields(logrus.Fields{
+				"parent": parent,
+			}).Error("Parent block has no random seed, unexpected error.")
+			metricsUnexpectedBehavior.Update(1)
+			return nil, nil, ErrInvalidBlockRandom
+		}
+		parentSeed = parent.header.random.VrfSeed
+	} else {
+		parentSeed = bc.GenesisBlock().Hash()
+	}
+	return
+}
+
 // FindCommonAncestorWithTail return the block's common ancestor with current tail
 func (bc *BlockChain) FindCommonAncestorWithTail(block *Block) (*Block, error) {
 	if block == nil {
@@ -534,6 +582,10 @@ func (bc *BlockChain) StartActiveSync() bool {
 		return true
 	}
 	return false
+}
+
+func (bc *BlockChain) IsActiveSyncing() bool {
+	return bc.syncService.IsActiveSyncing()
 }
 
 // ConsensusHandler return consensus handler.
@@ -690,6 +742,13 @@ func (bc *BlockChain) SimulateTransactionExecution(tx *Transaction) (*SimulateRe
 	if err != nil {
 		return nil, err
 	}
+
+	sVrfSeed, sVrfProof := make([]byte, 32), make([]byte, 129)
+	_, _ = io.ReadFull(rand.Reader, sVrfSeed)
+	_, _ = io.ReadFull(rand.Reader, sVrfProof)
+	block.header.random.VrfSeed = sVrfSeed
+	block.header.random.VrfProof = sVrfProof
+
 	defer block.RollBack()
 
 	// simulate execution.

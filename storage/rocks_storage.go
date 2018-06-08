@@ -24,7 +24,7 @@ type RocksStorage struct {
 }
 
 // NewRocksStorage init a storage
-func NewRocksStorage(path string, enableMetrics bool) (*RocksStorage, error) {
+func NewRocksStorage(path string) (*RocksStorage, error) {
 
 	filter := gorocksdb.NewBloomFilter(10)
 	bbto := gorocksdb.NewDefaultBlockBasedTableOptions()
@@ -53,9 +53,8 @@ func NewRocksStorage(path string, enableMetrics bool) (*RocksStorage, error) {
 		wo:          gorocksdb.NewDefaultWriteOptions(),
 	}
 
-	if enableMetrics {
-		go RecordMetrics(storage)
-	}
+	//go RecordMetrics(storage)
+
 	return storage, nil
 }
 

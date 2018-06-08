@@ -87,6 +87,7 @@ func New(config *nebletpb.Config) (*Neblet, error) {
 		logging.CLog().Error("Failed to find chain config in config file")
 		return nil, ErrConfigShouldHasChain
 	}
+
 	var err error
 	n.genesis, err = core.LoadGenesisConf(config.Chain.Genesis)
 	if err != nil {
@@ -114,7 +115,7 @@ func (n *Neblet) Setup() {
 	// storage
 	// n.storage, err = storage.NewDiskStorage(n.config.Chain.Datadir)
 	// n.storage, err = storage.NewMemoryStorage()
-	n.storage, err = storage.NewRocksStorage(n.config.Chain.Datadir, n.config.Stats.EnableMetrics)
+	n.storage, err = storage.NewRocksStorage(n.config.Chain.Datadir)
 	if err != nil {
 		logging.CLog().WithFields(logrus.Fields{
 			"dir": n.config.Chain.Datadir,

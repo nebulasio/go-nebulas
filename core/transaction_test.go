@@ -767,3 +767,25 @@ func TestDeployAndCall(t *testing.T) {
 func Test1(t *testing.T) {
 	fmt.Println(len(hash.Sha3256([]byte("abc"))))
 }
+func TestTransactionString(t *testing.T) {
+	neb := testNeb(t)
+	bc := neb.chain
+
+	a := mockAddress()
+	b := mockAddress()
+
+	v, _ := util.NewUint128FromInt(1)
+	data := `{"Function":"donation","Args":"[\"d\"]"}", "type":"call"}`
+	tx1, _ := NewTransaction(bc.chainID, a, b, v, uint64(1), TxPayloadDeployType, []byte(data), TransactionGasPrice, TransactionMaxGas)
+	expectedOut := fmt.Sprintf(`{"chainID":100,"data":"{\"Function\":\"donation\",\"Args\":\"[\\\"d\\\"]\"}\", \"type\":\"call\"}","from":"%s","gaslimit":"50000000000","gasprice":"1000000","hash":"","nonce":1,"timestamp":%d,"to":"%s","type":"deploy","value":"1"}`, a, tx1.timestamp, b)
+
+	if tx1.String() == tx1.JSONString() {
+		t.Errorf("tx String() != tx.JsonString")
+	}
+
+	if tx1.JSONString() != expectedOut {
+		fmt.Println(tx1.JSONString())
+		fmt.Println(expectedOut)
+		t.Errorf("tx JsonString() is not working as xpected")
+	}
+}

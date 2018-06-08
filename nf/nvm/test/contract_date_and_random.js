@@ -15,8 +15,15 @@ Contract.prototype = {
         });
 
         var date = arguments.length == 0 ? new Date() : new Date(arguments[0]);
+        var date2 = new Date();
+        date2.setFullYear(1988);
         var data = {
+            UTC: Date.UTC(),
             now: Date.now(),
+            parse: Date.parse('04 Dec 1995 00:12:00 GMT'),
+            getUTCDate: date.getUTCDate(),
+            toJSON: date.toJSON(),
+            setFullYear: date2.toString(),
             height: Blockchain.block.height,
             timestamp: Blockchain.block.timestamp,
             valueOf: date.valueOf(),
@@ -43,8 +50,29 @@ Contract.prototype = {
         return data;
     },
 
-    testRandom: function() {
-        // TODO
+    testDate2: function() {
+        var date = new Date();
+        
+        Event.Trigger("Date.TZ", {
+			timezone: date.getTimezoneOffset()
+        });
+    },
+
+    testRandom: function(userseed) {
+        var r1 = Math.random();
+        var r12 = Math.random();
+        var r13 = Math.random();
+        // equivalent to reset seed
+        Math.random.seed(userseed);
+        var r2 = Math.random();
+
+        Event.Trigger("random", {
+            "seed": Blockchain.block.seed, 
+            "defaultSeedRandom1": r1,
+            "defaultSeedRandom2": r12,
+            "defaultSeedRandom3": r13,
+            "userSeedRandom": r2
+        });
     }
 };
 

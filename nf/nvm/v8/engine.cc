@@ -29,10 +29,13 @@
 #include "v8_data_inc.h"
 
 #include <libplatform/libplatform.h>
-#include <v8.h>
+
 
 #include <assert.h>
 #include <string.h>
+#include <thread>
+#include <stdlib.h>
+#include <stdio.h>
 
 using namespace v8;
 
@@ -93,7 +96,7 @@ V8Engine *CreateEngine() {
   Isolate *isolate = Isolate::New(create_params);
 
   // fix bug: https://github.com/nebulasio/go-nebulas/issues/5
-  isolate->SetStackLimit(0x700000000000UL);
+  // isolate->SetStackLimit(0x700000000000UL);
 
   V8Engine *e = (V8Engine *)calloc(1, sizeof(V8Engine));
   e->allocator = allocator;
@@ -191,6 +194,7 @@ int Execute(char **result, V8Engine *e, const char *source,
             int source_line_offset, void *lcsHandler, void *gcsHandler,
             ExecutionDelegate delegate, void *delegateContext) {
   Isolate *isolate = static_cast<Isolate *>(e->isolate);
+  Locker locker(isolate);
   assert(isolate);
 
   Isolate::Scope isolate_scope(isolate);
@@ -365,3 +369,5 @@ int IsEngineLimitsExceeded(V8Engine *e) {
 
   return 0;
 }
+
+//loopExecute迁移文件

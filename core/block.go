@@ -74,6 +74,9 @@ type BlockHeader struct {
 	// sign
 	alg  keystore.Algorithm
 	sign byteutils.Hash
+
+	// rand
+	random *corepb.Random
 }
 
 // ToProto converts domain BlockHeader to proto BlockHeader
@@ -90,6 +93,7 @@ func (b *BlockHeader) ToProto() (proto.Message, error) {
 		ChainId:       b.chainID,
 		Alg:           uint32(b.alg),
 		Sign:          b.sign,
+		Random:        b.random,
 	}, nil
 }
 
@@ -121,6 +125,7 @@ func (b *BlockHeader) FromProto(msg proto.Message) error {
 
 			b.alg = alg
 			b.sign = msg.Sign
+			b.random = msg.Random
 			return nil
 		}
 		return ErrInvalidProtoToBlockHeader
@@ -168,7 +173,7 @@ func (block *Block) ToProto() (proto.Message, error) {
 		if err != nil {
 			return nil, err
 		}
-		if dependency := dependency.(*dagpb.Dag); ok {
+		if dependency, ok := dependency.(*dagpb.Dag); ok {
 			return &corepb.Block{
 				Header:       header,
 				Transactions: txs,
@@ -188,6 +193,13 @@ func (block *Block) FromProto(msg proto.Message) error {
 			block.header = new(BlockHeader)
 			if err := block.header.FromProto(msg.Header); err != nil {
 				return err
+			}
+			if msg.Height >= RandomAvailableHeight && !block.HasRandomSeed() {
+				logging.VLog().WithFields(logrus.Fields{
+					"blockHeight":      msg.Height,
+					"compatibleHeight": RandomAvailableHeight,
+				}).Info("No random found in block header.")
+				return ErrInvalidProtoToBlockHeader
 			}
 			block.transactions = make(Transactions, len(msg.Transactions))
 			for idx, v := range msg.Transactions {
@@ -227,6 +239,7 @@ func NewBlock(chainID uint32, coinbase *Address, parent *Block) (*Block, error) 
 			coinbase:      coinbase,
 			timestamp:     time.Now().Unix(),
 			consensusRoot: &consensuspb.ConsensusRoot{},
+			random:        &corepb.Random{},
 		},
 		transactions: make(Transactions, 0),
 		dependency:   dag.NewDag(),
@@ -268,6 +281,19 @@ func (block *Block) Sign(signature keystore.Signature) error {
 	}
 	block.SetSignature(keystore.Algorithm(signature.Algorithm()), sign)
 	return nil
+}
+
+// SetRandomSeed set block.header.random
+func (block *Block) SetRandomSeed(vrfseed, vrfproof []byte) {
+	block.header.random = &corepb.Random{
+		VrfSeed:  vrfseed,
+		VrfProof: vrfproof,
+	}
+}
+
+// HasRandomSeed check random if exists
+func (block *Block) HasRandomSeed() bool {
+	return block.header.random != nil && block.header.random.VrfSeed != nil && block.header.random.VrfProof != nil
 }
 
 // ChainID returns block's chainID
@@ -353,6 +379,32 @@ func (block *Block) Height() uint64 {
 // Transactions returns block transactions
 func (block *Block) Transactions() Transactions {
 	return block.transactions
+}
+
+// RandomSeed block random seed (VRF)
+func (block *Block) RandomSeed() string {
+	if block.height >= RandomAvailableHeight {
+		return byteutils.Hex(block.header.random.VrfSeed)
+	}
+	return ""
+}
+
+// RandomProof block random proof (VRF)
+func (block *Block) RandomProof() string {
+	if block.height >= RandomAvailableHeight {
+		return byteutils.Hex(block.header.random.VrfProof)
+	}
+	return ""
+}
+
+// RandomAvailable check if Math.random available in contract
+func (block *Block) RandomAvailable() bool {
+	return block.height >= RandomAvailableHeight
+}
+
+// DateAvailable check if date available in contract
+func (block *Block) DateAvailable() bool {
+	return block.height >= DateAvailableHeight
 }
 
 // LinkParentBlock link parent block, return true if hash is the same; false otherwise.
@@ -476,6 +528,11 @@ func (block *Block) CollectTransactions(deadlineInMs int64) {
 				<-mergeCh // unlock
 				continue
 			}
+
+			logging.VLog().WithFields(logrus.Fields{
+				"tx.hash": tx.hash,
+			}).Debug("Pop tx.")
+
 			fetch++
 			fromBlacklist.Store(tx.from.address.Hex(), true)
 			fromBlacklist.Store(tx.to.address.Hex(), true)
@@ -503,7 +560,7 @@ func (block *Block) CollectTransactions(deadlineInMs int64) {
 							"block": block,
 							"tx":    tx,
 							"err":   err,
-						}).Debug("Failed to giveback the tx.")
+						}).Info("Failed to giveback the tx.")
 					}
 					return
 				}
@@ -517,7 +574,7 @@ func (block *Block) CollectTransactions(deadlineInMs int64) {
 						"block": block,
 						"tx":    tx,
 						"err":   err,
-					}).Debug("Failed to prepare tx.")
+					}).Info("Failed to prepare tx.")
 					failed++
 
 					if err := pool.Push(tx); err != nil {
@@ -525,7 +582,7 @@ func (block *Block) CollectTransactions(deadlineInMs int64) {
 							"block": block,
 							"tx":    tx,
 							"err":   err,
-						}).Debug("Failed to giveback the tx.")
+						}).Info("Failed to giveback the tx.")
 					}
 
 					fromBlacklist.Delete(tx.from.address.Hex())
@@ -543,7 +600,7 @@ func (block *Block) CollectTransactions(deadlineInMs int64) {
 							"block": block,
 							"tx":    tx,
 							"err":   err,
-						}).Debug("Failed to close tx.")
+						}).Info("Failed to close tx.")
 					}
 				}()
 
@@ -575,7 +632,7 @@ func (block *Block) CollectTransactions(deadlineInMs int64) {
 								"block": block,
 								"tx":    tx,
 								"err":   err,
-							}).Debug("Failed to giveback the tx.")
+							}).Info("Failed to giveback the tx.")
 						}
 					}
 					if err == ErrLargeTransactionNonce {
@@ -584,7 +641,9 @@ func (block *Block) CollectTransactions(deadlineInMs int64) {
 						// thus, when we find a transaction with a very large nonce
 						// we won't try to pack other transactions from the same account in the block
 						// the account will be in our from blacklist util the block is sealed
-						fromBlacklist.Delete(tx.to.address.Hex())
+						if !byteutils.Equal(tx.to.address, tx.from.address) {
+							fromBlacklist.Delete(tx.to.address.Hex())
+						}
 						toBlacklist.Delete(tx.to.address.Hex())
 					} else {
 						fromBlacklist.Delete(tx.from.address.Hex())
@@ -605,7 +664,7 @@ func (block *Block) CollectTransactions(deadlineInMs int64) {
 							"block": block,
 							"tx":    tx,
 							"err":   err,
-						}).Debug("Failed to giveback the tx.")
+						}).Info("Failed to giveback the tx.")
 					}
 					return
 				}
@@ -619,7 +678,7 @@ func (block *Block) CollectTransactions(deadlineInMs int64) {
 						"err":        err,
 						"giveback":   giveback,
 						"dependency": dependency,
-					}).Debug("CheckAndUpdate invalid tx.")
+					}).Info("CheckAndUpdate invalid tx.")
 					unpacked++
 					conflict++
 
@@ -628,7 +687,7 @@ func (block *Block) CollectTransactions(deadlineInMs int64) {
 							"block": block,
 							"tx":    tx,
 							"err":   err,
-						}).Debug("Failed to giveback the tx.")
+						}).Info("Failed to giveback the tx.")
 					}
 
 					fromBlacklist.Delete(tx.from.address.Hex())
@@ -702,7 +761,7 @@ func (block *Block) CollectTransactions(deadlineInMs int64) {
 		"core-packing": execute + prepare + update,
 		"packed":       len(block.transactions),
 		"dag":          block.dependency,
-	}).Debug("CollectTransactions")
+	}).Info("CollectTransactions")
 }
 
 // Sealed return true if block seals. Otherwise return false.
@@ -750,7 +809,16 @@ func (block *Block) Seal() error {
 }
 
 func (block *Block) String() string {
-	return fmt.Sprintf(`{"height": %d, "hash": "%s", "parent_hash": "%s", "acc_root": "%s", "timestamp": %d, "tx": %d, "miner": "%s"}`,
+	random := ""
+	if block.height >= RandomAvailableHeight && block.header.random != nil {
+		if block.header.random.VrfSeed != nil {
+			random += "/vrf_seed/" + byteutils.Hex(block.header.random.VrfSeed)
+		}
+		if block.header.random.VrfProof != nil {
+			random += "/vrf_proof/" + byteutils.Hex(block.header.random.VrfProof)
+		}
+	}
+	return fmt.Sprintf(`{"height": %d, "hash": "%s", "parent_hash": "%s", "acc_root": "%s", "timestamp": %d, "tx": %d, "miner": "%s", "random": "%s"}`,
 		block.height,
 		block.header.hash,
 		block.header.parentHash,
@@ -758,6 +826,7 @@ func (block *Block) String() string {
 		block.header.timestamp,
 		len(block.transactions),
 		byteutils.Hash(block.header.consensusRoot.Proposer).Base58(),
+		random,
 	)
 }
 
@@ -800,7 +869,7 @@ func (block *Block) VerifyExecution() error {
 		"diff-verify":  commitAt - executedAt,
 		"block":        block,
 		"txs":          len(block.Transactions()),
-	}).Debug("Verify txs.")
+	}).Info("Verify txs.")
 
 	return nil
 }
@@ -817,7 +886,7 @@ func (block *Block) VerifyIntegrity(chainID uint32, consensus Consensus) error {
 		logging.VLog().WithFields(logrus.Fields{
 			"expect": chainID,
 			"actual": block.header.chainID,
-		}).Debug("Failed to check chainid.")
+		}).Info("Failed to check chainid.")
 		metricsInvalidBlock.Inc(1)
 		return ErrInvalidChainID
 	}
@@ -828,7 +897,7 @@ func (block *Block) VerifyIntegrity(chainID uint32, consensus Consensus) error {
 			logging.VLog().WithFields(logrus.Fields{
 				"tx":  tx,
 				"err": err,
-			}).Debug("Failed to verify tx's integrity.")
+			}).Info("Failed to verify tx's integrity.")
 			metricsInvalidBlock.Inc(1)
 			return err
 		}
@@ -844,7 +913,7 @@ func (block *Block) VerifyIntegrity(chainID uint32, consensus Consensus) error {
 			"expect": wantedHash,
 			"actual": block.Hash(),
 			"err":    err,
-		}).Debug("Failed to check block's hash.")
+		}).Info("Failed to check block's hash.")
 		metricsInvalidBlock.Inc(1)
 		return ErrInvalidBlockHash
 	}
@@ -854,7 +923,7 @@ func (block *Block) VerifyIntegrity(chainID uint32, consensus Consensus) error {
 		logging.VLog().WithFields(logrus.Fields{
 			"block": block,
 			"err":   err,
-		}).Debug("Failed to verify block.")
+		}).Info("Failed to verify block.")
 		metricsInvalidBlock.Inc(1)
 		return err
 	}
@@ -869,7 +938,7 @@ func (block *Block) verifyState() error {
 		logging.VLog().WithFields(logrus.Fields{
 			"expect": block.StateRoot(),
 			"actual": block.WorldState().AccountsRoot(),
-		}).Debug("Failed to verify state.")
+		}).Info("Failed to verify state.")
 		return ErrInvalidBlockStateRoot
 	}
 
@@ -878,7 +947,7 @@ func (block *Block) verifyState() error {
 		logging.VLog().WithFields(logrus.Fields{
 			"expect": block.TxsRoot(),
 			"actual": block.WorldState().TxsRoot(),
-		}).Debug("Failed to verify txs.")
+		}).Info("Failed to verify txs.")
 		return ErrInvalidBlockTxsRoot
 	}
 
@@ -887,7 +956,7 @@ func (block *Block) verifyState() error {
 		logging.VLog().WithFields(logrus.Fields{
 			"expect": block.EventsRoot(),
 			"actual": block.WorldState().EventsRoot(),
-		}).Debug("Failed to verify events.")
+		}).Info("Failed to verify events.")
 		return ErrInvalidBlockEventsRoot
 	}
 
@@ -896,7 +965,7 @@ func (block *Block) verifyState() error {
 		logging.VLog().WithFields(logrus.Fields{
 			"expect": block.ConsensusRoot(),
 			"actual": block.WorldState().ConsensusRoot(),
-		}).Debug("Failed to verify dpos context.")
+		}).Info("Failed to verify dpos context.")
 		return ErrInvalidBlockConsensusRoot
 	}
 	return nil
@@ -929,6 +998,11 @@ func (block *Block) execute() error {
 			return ErrInvalidDagBlock
 		}
 		tx := block.transactions[idx]
+
+		logging.VLog().WithFields(logrus.Fields{
+			"tx.hash": tx.hash,
+		}).Debug("execute tx.")
+
 		metricsTxExecute.Mark(1)
 
 		mergeCh <- true
@@ -963,7 +1037,7 @@ func (block *Block) execute() error {
 			"dag": block.dependency.String(),
 			"txs": transactions,
 			"err": err,
-		}).Debug("Failed to verify txs in block.")
+		}).Info("Failed to verify txs in block.")
 		return err
 	}
 	end := time.Now().UnixNano()
@@ -1033,7 +1107,7 @@ func (block *Block) FetchExecutionResultEvent(txHash byteutils.Hash) (*state.Eve
 			logging.VLog().WithFields(logrus.Fields{
 				"tx":     txHash,
 				"events": events,
-			}).Debug("Failed to locate the result event")
+			}).Info("Failed to locate the result event")
 			return nil, ErrInvalidTransactionResultEvent
 		}
 		return event, nil
@@ -1097,7 +1171,7 @@ func (block *Block) ExecuteTransaction(tx *Transaction, ws WorldState) (bool, er
 		logging.VLog().WithFields(logrus.Fields{
 			"tx":  tx,
 			"err": err,
-		}).Debug("Failed to check transaction")
+		}).Info("Failed to check transaction")
 		return giveback, err
 	}
 
@@ -1105,7 +1179,7 @@ func (block *Block) ExecuteTransaction(tx *Transaction, ws WorldState) (bool, er
 		logging.VLog().WithFields(logrus.Fields{
 			"tx":  tx,
 			"err": err,
-		}).Debug("Failed to verify transaction execution")
+		}).Info("Failed to verify transaction execution")
 		return giveback, err
 	}
 
@@ -1113,7 +1187,7 @@ func (block *Block) ExecuteTransaction(tx *Transaction, ws WorldState) (bool, er
 		logging.VLog().WithFields(logrus.Fields{
 			"tx":  tx,
 			"err": err,
-		}).Debug("Failed to accept transaction")
+		}).Info("Failed to accept transaction")
 		return giveback, err
 	}
 

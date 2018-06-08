@@ -19,6 +19,7 @@
 
 #ifndef _NEBULAS_NF_NVM_V8_ENGINE_H_
 #define _NEBULAS_NF_NVM_V8_ENGINE_H_
+// #include <v8.h>
 
 #if BUILDING_DLL
 #define EXPORT __attribute__((__visibility__("default")))
@@ -32,12 +33,20 @@ extern "C" {
 
 #include <stddef.h>
 #include <stdint.h>
+#include <string.h>
+#include <stdbool.h>
 
 enum LogLevel {
   DEBUG = 1,
   WARN = 2,
   INFO = 3,
   ERROR = 4,
+};
+
+enum OptType {
+  INSTRUCTION     = 1,
+  INSTRUCTIONTS  = 2,
+  RUNSCRIPT       = 3,
 };
 
 // log
@@ -112,8 +121,29 @@ typedef struct V8Engine {
   size_t limits_of_total_memory_size;
   int is_requested_terminate_execution;
   int testing;
+  
   V8EngineStats stats;
+ 
 } V8Engine;
+typedef struct v8ThreadContextInput {
+  uintptr_t lcs;  
+  uintptr_t gcs;
+  enum OptType opt;  
+  int line_offset;
+  int allow_usage;
+  const char *source;
+} v8ThreadContextInput;
+typedef struct v8ThreadContextOutput {
+  int ret;  //output
+  int line_offset;
+  char *result; //output
+} v8ThreadContextOutput;
+typedef struct v8ThreadContext_ {
+  V8Engine *e; 
+  v8ThreadContextInput input;
+  v8ThreadContextOutput output;
+  bool is_finished;  
+} v8ThreadContext;
 
 EXPORT void Initialize();
 EXPORT void Dispose();
@@ -139,6 +169,19 @@ EXPORT void TerminateExecution(V8Engine *e);
 
 EXPORT void DeleteEngine(V8Engine *e);
 
+EXPORT void ExecuteLoop(const char *file);
+
+EXPORT char *InjectTracingInstructionsThread(V8Engine *e, const char *source,
+                                int *source_line_offset,
+                                int allow_usage);
+EXPORT char *TranspileTypeScriptModuleThread(V8Engine *e, const char *source,
+                                int *source_line_offset);
+EXPORT int RunScriptSourceThread(char **result, V8Engine *e, const char *source,
+                    int source_line_offset, uintptr_t lcs_handler,
+                    uintptr_t gcs_handler);
+
+bool CreateScriptThread(v8ThreadContext *pc);
+void SetRunScriptArgs(v8ThreadContext *pc, V8Engine *e, int opt, const char *source, int line_offset, int allow_usage);
 #ifdef __cplusplus
 }
 #endif // __cplusplus

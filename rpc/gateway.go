@@ -25,6 +25,8 @@ const (
 const (
 	// DefaultHTTPLimit default max http conns
 	DefaultHTTPLimit = 128
+	// MaxRecvMsgSize Deafult max message size  gateway's grpc client can receive
+	MaxGateWayRecvMsgSize = 64 * 1024 * 1024
 )
 
 // Run start gateway proxy to mapping grpc to http.
@@ -37,7 +39,9 @@ func Run(config *nebletpb.RPCConfig) error {
 	mux := runtime.NewServeMux(runtime.WithMarshalerOption(runtime.MIMEWildcard,
 		&runtime.JSONPb{OrigName: true, EmitDefaults: true}),
 		runtime.WithProtoErrorHandler(errorHandler))
-	opts := []grpc.DialOption{grpc.WithInsecure()}
+	opts := []grpc.DialOption{grpc.WithInsecure(),
+		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(MaxGateWayRecvMsgSize))}
+
 	echoEndpoint := flag.String("rpc", config.RpcListen[0], "")
 	for _, v := range config.HttpModule {
 		switch v {

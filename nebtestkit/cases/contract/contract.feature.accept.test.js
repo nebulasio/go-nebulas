@@ -280,7 +280,16 @@ function testBinary(testInput, testExpect, done) {
             }
         });
     }).catch(function (err) {
-        console.log("send tx err");
+        console.log("send tx err", err);
+        if (err.error && err.error.error && testExpect.eventErr) {
+            try {
+                expect(err.error.error).to.equal(testExpect.eventErr)
+                done();
+            } catch (err) {
+                done(err);
+            }
+            return;
+        }
         done(err);
     });
 }
@@ -419,7 +428,7 @@ describe('accept func test', () => {
 
     for (var i = 0; i < testCaseGroups.length; i++) {
 
-        // if (i != 3) {continue;}         // selectively run tests
+        // if (i != 2) {continue;}         // selectively run tests
 
         let caseGroup = testCaseGroups[i];
         describe(caseGroup.groupname, () => {

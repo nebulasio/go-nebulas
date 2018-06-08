@@ -32,11 +32,6 @@ const (
 	EventBaseGasCount = 20
 )
 
-const (
-	// TransferFromContractEventCompatibilityHeight record event 'TransferFromContractEvent' after this height
-	TransferFromContractEventCompatibilityHeight uint64 = 200000
-)
-
 // TransferFromContractEvent event for transfer in contract
 type TransferFromContractEvent struct {
 	Amount string `json:"amount"`

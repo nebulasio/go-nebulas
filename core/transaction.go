@@ -67,6 +67,9 @@ var (
 
 	// MaxEventErrLength Max error length in event
 	MaxEventErrLength = 256
+
+	// MaxResultLength max execution result length
+	MaxResultLength = 256
 )
 
 // TransactionEvent transaction event
@@ -75,6 +78,15 @@ type TransactionEvent struct {
 	Status  int8   `json:"status"`
 	GasUsed string `json:"gas_used"`
 	Error   string `json:"error"`
+}
+
+// TransactionEventV2 add execution result
+type TransactionEventV2 struct {
+	Hash          string `json:"hash"`
+	Status        int8   `json:"status"`
+	GasUsed       string `json:"gas_used"`
+	Error         string `json:"error"`
+	ExecuteResult string `json:"execute_result"`
 }
 
 // Transaction type is used to handle all transaction data.
@@ -238,6 +250,22 @@ func (tx *Transaction) FromProto(msg proto.Message) error {
 }
 
 func (tx *Transaction) String() string {
+	return fmt.Sprintf(`{"chainID":%d, "hash":"%s", "from":"%s", "to":"%s", "nonce":%d, "value":"%s", "timestamp":%d, "gasprice": "%s", "gaslimit":"%s", "data": "%s", "type":"%s"}`,
+		tx.chainID,
+		tx.hash.String(),
+		tx.from.String(),
+		tx.to.String(),
+		tx.nonce,
+		tx.value.String(),
+		tx.timestamp,
+		tx.gasPrice.String(),
+		tx.gasLimit.String(),
+		tx.Data(),
+		tx.Type(),
+	)
+}
+
+func (tx *Transaction) StringWithoutData() string {
 	return fmt.Sprintf(`{"chainID":%d, "hash":"%s", "from":"%s", "to":"%s", "nonce":%d, "value":"%s", "timestamp":%d, "gasprice": "%s", "gaslimit":"%s", "type":"%s"}`,
 		tx.chainID,
 		tx.hash.String(),
@@ -250,6 +278,30 @@ func (tx *Transaction) String() string {
 		tx.gasLimit.String(),
 		tx.Type(),
 	)
+}
+
+// JSONString of transaction
+func (tx *Transaction) JSONString() string {
+	txJSONObj := make(map[string]interface{})
+	txJSONObj["chainID"] = tx.chainID
+	txJSONObj["hash"] = tx.hash.String()
+	txJSONObj["from"] = tx.from.String()
+	txJSONObj["to"] = tx.to.String()
+	txJSONObj["nonce"] = tx.nonce
+	txJSONObj["value"] = tx.value.String()
+	txJSONObj["timestamp"] = tx.timestamp
+	txJSONObj["gasprice"] = tx.gasPrice.String()
+	txJSONObj["gaslimit"] = tx.gasLimit.String()
+	txJSONObj["data"] = string(tx.Data())
+	txJSONObj["type"] = tx.Type()
+	txJSON, err := json.Marshal(txJSONObj)
+	if err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"err": err,
+			"tx":  tx,
+		}).Error("Failed to get transaction json string")
+	}
+	return string(txJSON)
 }
 
 // Transactions is an alias of Transaction array.
@@ -352,13 +404,14 @@ func (tx *Transaction) LoadPayload() (TxPayload, error) {
 	return payload, err
 }
 
-func submitTx(tx *Transaction, block *Block, ws WorldState, gas *util.Uint128, exeErr error, exeErrTy string) (bool, error) {
+func submitTx(tx *Transaction, block *Block, ws WorldState,
+	gas *util.Uint128, exeErr error, exeErrTy string, exeResult string) (bool, error) {
 	if exeErr != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"err":         exeErr,
 			"block":       block,
 			"transaction": tx,
-		}).Debug(exeErrTy)
+		}).Info(exeErrTy)
 		metricsTxExeFailed.Mark(1)
 	} else {
 		metricsTxExeSuccess.Mark(1)
@@ -366,7 +419,13 @@ func submitTx(tx *Transaction, block *Block, ws WorldState, gas *util.Uint128, e
 
 	if exeErr != nil {
 		// if execution failed, the previous changes on world state should be reset
-		if err := ws.Reset(); err != nil {
+		// record dependency
+
+		addr := tx.to.address
+		if block.Height() < WsResetRecordDependencyHeight {
+			addr = tx.from.address
+		}
+		if err := ws.Reset(addr); err != nil {
 			// if reset failed, the tx should be given back
 			return true, err
 		}
@@ -382,7 +441,7 @@ func submitTx(tx *Transaction, block *Block, ws WorldState, gas *util.Uint128, e
 		metricsUnexpectedBehavior.Update(1)
 		return true, err
 	}
-	if err := tx.recordResultEvent(gas, exeErr, ws); err != nil {
+	if err := tx.recordResultEvent(gas, exeErr, ws, block, exeResult); err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"err":   err,
 			"tx":    tx,
@@ -442,7 +501,7 @@ func VerifyExecution(tx *Transaction, block *Block, ws WorldState) (bool, error)
 	// step3. check payload vaild.
 	payload, payloadErr := tx.LoadPayload()
 	if payloadErr != nil {
-		return submitTx(tx, block, ws, gasUsed, payloadErr, "Failed to load payload.")
+		return submitTx(tx, block, ws, gasUsed, payloadErr, "Failed to load payload.", "")
 	}
 
 	// step4. calculate base gas of payload
@@ -456,20 +515,20 @@ func VerifyExecution(tx *Transaction, block *Block, ws WorldState) (bool, error)
 			"block":          block,
 		}).Error("Failed to add payload base gas, unexpected error")
 		metricsUnexpectedBehavior.Update(1)
-		return submitTx(tx, block, ws, gasUsed, ErrGasCntOverflow, "Failed to add the count of base payload gas")
+		return submitTx(tx, block, ws, gasUsed, ErrGasCntOverflow, "Failed to add the count of base payload gas", "")
 	}
 	gasUsed = payloadGas
 	if tx.gasLimit.Cmp(gasUsed) < 0 {
-		return submitTx(tx, block, ws, tx.gasLimit, ErrOutOfGasLimit, "Failed to check gasLimit >= txBaseGas + payloasBaseGas.")
+		return submitTx(tx, block, ws, tx.gasLimit, ErrOutOfGasLimit, "Failed to check gasLimit >= txBaseGas + payloasBaseGas.", "")
 	}
 
 	// step5. check balance >= limitedFee + value. and transfer
 	minBalanceRequired, balanceErr := limitedFee.Add(tx.value)
 	if balanceErr != nil {
-		return submitTx(tx, block, ws, gasUsed, ErrGasFeeOverflow, "Failed to add tx.value")
+		return submitTx(tx, block, ws, gasUsed, ErrGasFeeOverflow, "Failed to add tx.value", "")
 	}
 	if fromAcc.Balance().Cmp(minBalanceRequired) < 0 {
-		return submitTx(tx, block, ws, gasUsed, ErrInsufficientBalance, "Failed to check balance >= gasLimit * gasPrice + value")
+		return submitTx(tx, block, ws, gasUsed, ErrInsufficientBalance, "Failed to check balance >= gasLimit * gasPrice + value", "")
 	}
 	var transferSubErr, transferAddErr error
 	transferSubErr = fromAcc.SubBalance(tx.value)
@@ -486,7 +545,7 @@ func VerifyExecution(tx *Transaction, block *Block, ws WorldState) (bool, error)
 			"block":       block,
 		}).Error("Failed to transfer value, unexpected error")
 		metricsUnexpectedBehavior.Update(1)
-		return submitTx(tx, block, ws, gasUsed, ErrInvalidTransfer, "Failed to transfer tx.value")
+		return submitTx(tx, block, ws, gasUsed, ErrInvalidTransfer, "Failed to transfer tx.value", "")
 	}
 
 	// step6. calculate contract's limited gas
@@ -499,23 +558,23 @@ func VerifyExecution(tx *Transaction, block *Block, ws WorldState) (bool, error)
 			"block":   block,
 		}).Error("Failed to calculate payload's limit gas, unexpected error")
 		metricsUnexpectedBehavior.Update(1)
-		return submitTx(tx, block, ws, tx.gasLimit, ErrOutOfGasLimit, "Failed to calculate payload's limit gas")
+		return submitTx(tx, block, ws, tx.gasLimit, ErrOutOfGasLimit, "Failed to calculate payload's limit gas", "")
 	}
 
 	// step7. execute contract.
-	gasExecution, _, exeErr := payload.Execute(contractLimitedGas, tx, block, ws)
+	gasExecution, exeResult, exeErr := payload.Execute(contractLimitedGas, tx, block, ws)
 
 	// step8. calculate final gas.
 	allGas, gasErr := gasUsed.Add(gasExecution)
 	if gasErr != nil {
-		return submitTx(tx, block, ws, gasUsed, ErrGasCntOverflow, "Failed to add the fee of execution gas")
+		return submitTx(tx, block, ws, gasUsed, ErrGasCntOverflow, "Failed to add the fee of execution gas", "")
 	}
 	if tx.gasLimit.Cmp(allGas) < 0 {
-		return submitTx(tx, block, ws, tx.gasLimit, ErrOutOfGasLimit, "Failed to check gasLimit >= allGas")
+		return submitTx(tx, block, ws, tx.gasLimit, ErrOutOfGasLimit, "Failed to check gasLimit >= allGas", "")
 	}
 
 	// step9. over
-	return submitTx(tx, block, ws, allGas, exeErr, "Failed to execute payload")
+	return submitTx(tx, block, ws, allGas, exeErr, "Failed to execute payload", exeResult)
 }
 
 // simulateExecution simulate execution and return gasUsed, executionResult and executionErr, sysErr if occurred.
@@ -560,7 +619,7 @@ func (tx *Transaction) simulateExecution(block *Block) (*SimulateResult, error) 
 
 	// try run smart contract if payload is.
 	if tx.data.Type == TxPayloadCallType || tx.data.Type == TxPayloadDeployType ||
-		(tx.data.Type == TxPayloadBinaryType && tx.to.Type() == ContractAddress) {
+		(tx.data.Type == TxPayloadBinaryType && tx.to.Type() == ContractAddress && block.height >= AcceptFuncAvailableHeight) {
 
 		// transfer value to smart contract.
 		toAcc, err := ws.GetOrCreateUserAccount(tx.to.address)
@@ -619,22 +678,46 @@ func (tx *Transaction) recordGas(gasCnt *util.Uint128, ws WorldState) error {
 	return ws.RecordGas(tx.from.String(), gasCost)
 }
 
-func (tx *Transaction) recordResultEvent(gasUsed *util.Uint128, err error, ws WorldState) error {
-	txEvent := &TransactionEvent{
-		Hash:    tx.hash.String(),
-		GasUsed: gasUsed.String(),
-		Status:  TxExecutionSuccess,
-	}
+func (tx *Transaction) recordResultEvent(gasUsed *util.Uint128, err error, ws WorldState, block *Block, exeResult string) error {
 
-	if err != nil {
-		txEvent.Status = TxExecutionFailed
-		txEvent.Error = err.Error()
-		if len(txEvent.Error) > MaxEventErrLength {
-			txEvent.Error = txEvent.Error[:MaxEventErrLength]
+	var txData []byte
+	if block.height >= RecordCallContractResultHeight {
+
+		if len(exeResult) > MaxResultLength {
+			exeResult = exeResult[:MaxResultLength]
 		}
+		txEvent := &TransactionEventV2{
+			Hash:          tx.hash.String(),
+			GasUsed:       gasUsed.String(),
+			Status:        TxExecutionSuccess,
+			ExecuteResult: exeResult,
+		}
+
+		if err != nil {
+			txEvent.Status = TxExecutionFailed
+			txEvent.Error = err.Error()
+			if len(txEvent.Error) > MaxEventErrLength {
+				txEvent.Error = txEvent.Error[:MaxEventErrLength]
+			}
+		}
+		txData, err = json.Marshal(txEvent)
+	} else {
+		txEvent := &TransactionEvent{
+			Hash:    tx.hash.String(),
+			GasUsed: gasUsed.String(),
+			Status:  TxExecutionSuccess,
+		}
+
+		if err != nil {
+			txEvent.Status = TxExecutionFailed
+			txEvent.Error = err.Error()
+			if len(txEvent.Error) > MaxEventErrLength {
+				txEvent.Error = txEvent.Error[:MaxEventErrLength]
+			}
+		}
+		txData, err = json.Marshal(txEvent)
 	}
 
-	txData, err := json.Marshal(txEvent)
 	if err != nil {
 		return err
 	}

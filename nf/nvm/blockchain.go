@@ -230,7 +230,7 @@ func TransferFunc(handler unsafe.Pointer, to *C.char, v *C.char, gasCnt *C.size_
 		return iRtn
 	}
 
-	if engine.ctx.block.Height() >= TransferFromContractEventCompatibilityHeight {
+	if engine.ctx.block.Height() >= core.TransferFromContractEventRecordableHeight {
 		cAddr, err := core.AddressParseFromBytes(engine.ctx.contract.Address())
 		if err != nil {
 			logging.VLog().WithFields(logrus.Fields{
@@ -238,7 +238,7 @@ func TransferFunc(handler unsafe.Pointer, to *C.char, v *C.char, gasCnt *C.size_
 				"address": engine.ctx.contract.Address(),
 				"err":     err,
 			}).Debug("failed to parse contract address")
-			return TransferRecordEventFailed
+			return TransferAddressFailed
 		}
 		//fromStr := cAddr.String()
 

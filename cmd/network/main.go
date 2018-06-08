@@ -29,6 +29,7 @@ import (
 	"time"
 
 	"github.com/libp2p/go-libp2p-interface-conn"
+	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/metrics"
 	"github.com/nebulasio/go-nebulas/neblet"
 	"github.com/nebulasio/go-nebulas/net"
@@ -107,6 +108,8 @@ func run(mode, configPath string, packageSize, concurrentMessageCount, totalMess
 
 	// init log.
 	logging.Init(config.App.LogFile, config.App.LogLevel, config.App.LogAge)
+
+	core.SetCompatibilityOptions(config.Chain.ChainId)
 
 	// neblet.
 	neblet, _ := neblet.New(config)

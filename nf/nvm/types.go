@@ -58,6 +58,7 @@ const (
 	TransferSubBalance
 	TransferAddBalance
 	TransferRecordEventFailed
+	TransferAddressFailed
 )
 
 //MultiV8error err info, err only in InnerContractFunc .so not to deine #
@@ -83,6 +84,9 @@ type Block interface {
 	Hash() byteutils.Hash
 	Height() uint64 // ToAdd: timestamp interface
 	Timestamp() int64
+	RandomSeed() string
+	RandomAvailable() bool
+	DateAvailable() bool
 }
 
 // Transaction interface breaks cycle import dependency and hides unused services.
@@ -122,5 +126,5 @@ type WorldState interface {
 	GetContractAccount(addr byteutils.Hash) (state.Account, error)
 	PutTx(txHash byteutils.Hash, txBytes []byte) error
 	RecordGas(from string, gas *util.Uint128) error
-	Reset() error //Need to consider risk
+	Reset(addr byteutils.Hash) error //Need to consider risk
 }

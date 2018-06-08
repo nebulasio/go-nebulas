@@ -24,6 +24,7 @@ import (
 	"hash/crc32"
 	"time"
 
+	"github.com/golang/snappy"
 	byteutils "github.com/nebulasio/go-nebulas/util/byteutils"
 	"github.com/nebulasio/go-nebulas/util/logging"
 	"github.com/sirupsen/logrus"
@@ -75,13 +76,17 @@ const (
 	// Consider that a block is too large in sync.
 	MaxNebMessageDataLength = 512 * 1024 * 1024 // 512m.
 	MaxNebMessageNameLength = 24 - 12           // 12.
+
+	DefaultReservedFlag           = 0x0
+	ReservedCompressionEnableFlag = 0x80
+	ReservedCompressionClientFlag = 0x1
 )
 
 // Error types
 var (
-	MagicNumber      = []byte{0x4e, 0x45, 0x42, 0x31}
-	DefaultReserved  = []byte{0x0, 0x0, 0x0}
-	CompressReserved = []byte{0x80, 0x0, 0x0}
+	MagicNumber     = []byte{0x4e, 0x45, 0x42, 0x31}
+	DefaultReserved = []byte{DefaultReservedFlag, DefaultReservedFlag, DefaultReservedFlag}
+	CurrentReserved = []byte{DefaultReservedFlag | ReservedCompressionEnableFlag, DefaultReservedFlag, DefaultReservedFlag}
 
 	ErrInsufficientMessageHeaderLength = errors.New("insufficient message header length")
 	ErrInsufficientMessageDataLength   = errors.New("insufficient message data length")
@@ -90,6 +95,7 @@ var (
 	ErrInvalidDataCheckSum             = errors.New("invalid data checksum")
 	ErrExceedMaxDataLength             = errors.New("exceed max data length")
 	ErrExceedMaxMessageNameLength      = errors.New("exceed max message name length")
+	ErrUncompressMessageFailed         = errors.New("uncompress message failed")
 )
 
 //NebMessage struct
@@ -157,7 +163,21 @@ func (message *NebMessage) HeaderWithoutCheckSum() []byte {
 }
 
 // Data return data
-func (message *NebMessage) Data() []byte {
+func (message *NebMessage) Data() ([]byte, error) {
+	reserved := message.Reserved()
+	data := message.content[NebMessageHeaderLength:]
+	if (reserved[0] & ReservedCompressionEnableFlag) > 0 {
+		var err error
+		data, err = snappy.Decode(nil, data)
+		if err != nil {
+			return nil, ErrUncompressMessageFailed
+		}
+	}
+	return data, nil
+}
+
+// OriginalData return original data
+func (message *NebMessage) OriginalData() []byte {
 	return message.content[NebMessageHeaderLength:]
 }
 
@@ -173,6 +193,11 @@ func (message *NebMessage) Length() uint64 {
 
 // NewNebMessage new neb message
 func NewNebMessage(chainID uint32, reserved []byte, version byte, messageName string, data []byte) (*NebMessage, error) {
+	// Process message compression
+	if (reserved[2] != ReservedCompressionClientFlag) && ((reserved[0] & ReservedCompressionEnableFlag) > 0) {
+		data = snappy.Encode(nil, data)
+	}
+
 	if len(data) > MaxNebMessageDataLength {
 		logging.VLog().WithFields(logrus.Fields{
 			"messageName": messageName,
@@ -189,7 +214,6 @@ func NewNebMessage(chainID uint32, reserved []byte, version byte, messageName st
 			"limits":           MaxNebMessageNameLength,
 		}).Debug("Exceeded max message name length.")
 		return nil, ErrExceedMaxMessageNameLength
-
 	}
 
 	dataCheckSum := crc32.ChecksumIEEE(data)
@@ -281,7 +305,7 @@ func (message *NebMessage) VerifyHeader() error {
 
 // VerifyData verify message data
 func (message *NebMessage) VerifyData() error {
-	expectedCheckSum := crc32.ChecksumIEEE(message.Data())
+	expectedCheckSum := crc32.ChecksumIEEE(message.OriginalData())
 	if expectedCheckSum != message.DataCheckSum() {
 		logging.VLog().WithFields(logrus.Fields{
 			"expect": expectedCheckSum,

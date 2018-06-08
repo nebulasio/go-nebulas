@@ -37,6 +37,7 @@ func loggingStream(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServe
 func loggingUnary(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp interface{}, err error) {
 	logging.VLog().WithFields(logrus.Fields{
 		"method": info.FullMethod,
+		"params": req,
 	}).Info("Rpc request.")
 	metricsRPCCounter.Mark(1)
 

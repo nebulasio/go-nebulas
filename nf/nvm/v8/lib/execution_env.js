@@ -16,10 +16,7 @@
 // along with the go-nebulas library.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-
-Math.random = function () {
-    throw new Error("Math.random func is not allowed in nvm.");
-};
+Function.prototype.toString = function(){return "";};
 
 const require = (function (global) {
     var PathRegexForNotLibFile = /^\.{0,2}\//;
@@ -114,37 +111,5 @@ const BigNumber = require('bignumber.js');
 const Blockchain = require('blockchain.js');
 const Event = require('event.js');
 
-var Date = (function(Date) {
-    function NebDate() {
-        if (!Blockchain) {
-            throw new Error("'Blockchain' is not defined.");
-        }
-        if (!Blockchain.block) {
-            throw new Error("'Blockchain.block' is not defined.");
-        }
-    
-        var date = new(Function.prototype.bind.apply(Date, [Date].concat(Array.prototype.slice.call(arguments))))();
-        if (arguments.length == 0) {
-            // unit of timestamp is second
-            date.setTime(Blockchain.block.timestamp * 1000);
-        }
-        Object.setPrototypeOf(date, NebDate.prototype);
-        return date;
-    }
-    NebDate.now = function() {
-        return new NebDate().getTime();
-    }
-    NebDate.UTC = function() {
-        return Date.UTC.apply(null, arguments);
-    }
-    NebDate.parse = function(dateString) {
-        return Date.parse(dateString);
-    }
-    NebDate.prototype = new Proxy(NebDate.prototype, {
-        getPrototypeOf: function(target) {
-            throw new Error("Not supported method!");
-        },
-    });
-    Object.setPrototypeOf(NebDate.prototype, Date.prototype);
-    return NebDate;
-})(Date);
+var Date = require('date.js');
+Math.random = require('random.js');

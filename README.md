@@ -58,7 +58,7 @@ git checkout testnet
     * Install Dependencies
         ```bash
         apt-get update
-        apt-get -y build-essential libgflags-dev libsnappy-dev zlib1g-dev libbz2-dev liblz4-dev libzstd-dev
+        apt-get -y install build-essential libgflags-dev libsnappy-dev zlib1g-dev libbz2-dev liblz4-dev libzstd-dev
         ```
     * Install rocksdb by source code:
         ```bash
@@ -213,3 +213,4 @@ Thanks.
 The go-nebulas project is licensed under the [GNU Lesser General Public License Version 3.0 (“LGPL v3”)](https://www.gnu.org/licenses/lgpl-3.0.en.html).
 
 For the more information about licensing, please refer to [Licensing](https://github.com/nebulasio/wiki/blob/master/licensing.md) page.
+

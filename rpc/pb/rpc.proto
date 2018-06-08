@@ -20,6 +20,7 @@ syntax = "proto3";
 
 import "google/api/annotations.proto";
 import "github.com/nebulasio/go-nebulas/consensus/pb/state.proto";
+import "github.com/nebulasio/go-nebulas/core/pb/block.proto";
 import "github.com/nebulasio/go-nebulas/neblet/pb/config.proto";
 
 package rpcpb;
@@ -88,14 +89,13 @@ service ApiService {
         };
     }
 
-
     // Get transactionReceipt info by tansaction hash.
     rpc GetTransactionByContract (GetTransactionByContractRequest) returns (TransactionResponse) {
-            option (google.api.http) = {
-                post: "/v1/user/getTransactionByContract"
-                body: "*"
-            };
-        }
+        option (google.api.http) = {
+            post: "/v1/user/getTransactionByContract"
+            body: "*"
+        };
+    }
 
     // Subscribe message
     rpc Subscribe(SubscribeRequest) returns (stream SubscribeResponse) {
@@ -179,6 +179,13 @@ service AdminService {
     rpc SignHash(SignHashRequest) returns (SignHashResponse) {
         option (google.api.http) = {
             post: "/v1/admin/sign/hash"
+            body: "*"
+        };
+    }
+
+    rpc GenerateRandomSeed(GenerateRandomSeedRequest) returns (GenerateRandomSeedResponse) {
+        option (google.api.http) = {
+            post: "/v1/admin/generateRandomSeed"
             body: "*"
         };
     }
@@ -368,6 +375,9 @@ message TransactionRequest {
 
     // binary data for transaction
     bytes binary = 10;
+
+    // transaction payload type, enum:binary, deploy, call
+    string type = 20;
 }
 
 message ContractRequest {
@@ -469,8 +479,14 @@ message BlockResponse {
     // Miner
     string miner = 12;
 
+    // Random seed
+    string randomSeed = 13;
+
+    // Random proof
+    string randomProof = 14;
+
     // is finaliy
-    bool is_finality = 13;
+    bool is_finality = 15;
 
     // transaction slice
     repeated TransactionResponse transactions = 100;
@@ -512,6 +528,12 @@ message TransactionResponse {
 
     // transaction gas used
     string gas_used = 14;
+
+    // contract execute error
+    string execute_error = 15;
+
+    // contract execute result
+    string execute_result = 16;
 }
 
 message NewAccountRequest {
@@ -554,6 +576,20 @@ message SignHashRequest {
 
 message SignHashResponse {
     bytes data = 1;
+}
+
+message GenerateRandomSeedRequest {
+    // miner address
+    string address = 1;
+    // parent seed of new block
+    bytes parent_seed = 2;
+    //  hash of new block's ancestor
+    bytes ancestor_hash = 3;
+}
+
+message GenerateRandomSeedResponse {
+    bytes vrf_seed = 1;
+    bytes vrf_proof = 2;
 }
 
 message SignTransactionPassphraseRequest {

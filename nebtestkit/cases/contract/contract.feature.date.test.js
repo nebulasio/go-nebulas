@@ -285,7 +285,15 @@ function runTest(testInput, testExpect, done) {
             }
         });
     }).catch(function (err) {
-        console.log("send tx err");
+        if (err.error && err.error.error && testExpect.eventErr) {
+            try {
+                expect(err.error.error).to.equal(testExpect.eventErr)
+                done();
+            } catch (err) {
+                done(err);
+            }
+            return;
+        }
         done(err);
     });
 }
@@ -334,6 +342,25 @@ var caseGroup = {
                 toBalanceChange: "0",
                 status: 1,
                 equalBlockTime: false
+            }
+        },
+        {
+            "name": "0-3. test unsupported method",
+            "testInput": {
+                value: "0",
+                nonce: 1, 
+                gasPrice: 1000000,
+                gasLimit: 2000000,
+                contract: {
+                    function: "testDate2",
+                    args: ""
+                }
+            },
+            "testExpect": {
+                canExcuteTx: false,
+                toBalanceChange: "0",
+                status: 0,
+                eventErr: "Call: Error: Unsupported method!"
             }
         }
     ]
