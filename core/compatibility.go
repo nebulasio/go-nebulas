@@ -124,7 +124,7 @@ const (
 	TestNetV8JSLibVersionControlHeight uint64 = 400000
 
 	//TestNetTransferFromContractFailureEventRecordableHeight
-	TestNetTransferFromContractFailureEventRecordableHeight uint64 = 333333
+	TestNetTransferFromContractFailureEventRecordableHeight uint64 = 400000
 )
 
 // MainNet
@@ -183,7 +183,7 @@ var (
 	V8JSLibVersionControlHeight = TestNetV8JSLibVersionControlHeight
 
 	// TransferFromContractFailureEventRecordableHeight record event 'TransferFromContractEvent' since this height
-	TransferFromContractFailureEventRecordableHeight = TestNetTransferFromContractEventRecordableHeight
+	TransferFromContractFailureEventRecordableHeight = TestNetTransferFromContractFailureEventRecordableHeight
 )
 
 // SetCompatibilityOptions set compatibility height according to chain_id
