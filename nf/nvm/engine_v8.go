@@ -367,7 +367,11 @@ func (e *V8Engine) RunContractScript(source, sourceType, function, args string) 
 	if e.ctx.block.Height() >= core.NvmMemoryLimitWithoutInjectHeight {
 		e.CollectTracingStats()
 		mem := e.actualTotalMemorySize + core.DefaultLimitsOfTotalMemorySize
-		logging.CLog().Infof("cost mem:%v, mem limit:%v", e.actualTotalMemorySize, mem)
+		logging.VLog().WithFields(logrus.Fields{
+			"actualTotalMemorySize": e.actualTotalMemorySize,
+			"limit":                 mem,
+			"tx.hash":               e.ctx.tx.Hash(),
+		}).Debug("mem limit")
 		if err := e.SetExecutionLimits(e.limitsOfExecutionInstructions, mem); err != nil {
 			return "", err
 		}
