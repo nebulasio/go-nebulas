@@ -70,14 +70,15 @@ func (payload *CallPayload) BaseGasCount() *util.Uint128 {
 }
 
 var (
-	TestCompatArr = []string{"5b6a9ed8a48cfb0e6415f0df9f79cbbdac565dd139779c7972069b37c99a3913"}
+	TestCompatArr = []string{"5b6a9ed8a48cfb0e6415f0df9f79cbbdac565dd139779c7972069b37c99a3913",
+		"918d116f5d42b253e84497d65d2a6508fb5c4c1dbc5c1c2a1718ab718a50a509"}
 	MainCompatArr = []string{"ee90d2cc5f930fe627363e9e05f1e98ea20025898201c849125659d6c0079242",
 		"3db72f0d02daa26407d13ca9efc820ec618407d10d55ac15433784aaef93c659"}
 )
 
 // IsCompatibleStack return if compatible stack
-func IsCompatibleStack(id uint32, hash byteutils.Hash) bool {
-	if id == MainNetID {
+func IsCompatibleStack(chainID uint32, hash byteutils.Hash) bool {
+	if chainID == MainNetID {
 		for i := 0; i < len(MainCompatArr); i++ {
 			compatStr := MainCompatArr[i]
 			if compatStr == hash.String() {
@@ -85,7 +86,7 @@ func IsCompatibleStack(id uint32, hash byteutils.Hash) bool {
 			}
 		}
 
-	} else {
+	} else if chainID == TestNetID {
 		for i := 0; i < len(TestCompatArr); i++ {
 			compatStr := TestCompatArr[i]
 			if compatStr == hash.String() {
@@ -132,6 +133,7 @@ func (payload *CallPayload) Execute(limitedGas *util.Uint128, tx *Transaction, b
 		return util.NewUint128(), "", err
 	}
 	defer engine.Dispose()
+
 	if IsCompatibleStack(block.header.chainID, tx.hash) == true {
 		if err := engine.SetExecutionLimits(10000, DefaultLimitsOfTotalMemorySize); err != nil {
 			return util.NewUint128(), "", err
@@ -147,6 +149,9 @@ func (payload *CallPayload) Execute(limitedGas *util.Uint128, tx *Transaction, b
 	instructions, err := util.NewUint128FromInt(int64(gasCout))
 	if err != nil {
 		return util.NewUint128(), "", err
+	}
+	if IsCompatibleStack(block.header.chainID, tx.hash) {
+		instructions = limitedGas
 	}
 	if exeErr == ErrExecutionFailed && len(result) > 0 {
 		exeErr = fmt.Errorf("Call: %s", result)
