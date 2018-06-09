@@ -634,6 +634,11 @@ func (dpos *Dpos) mintBlock(now int64) error {
 
 	deadlineInMs, err := dpos.checkDeadline(tail, nowInMs)
 	if err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"tail": tail,
+			"now":  nowInMs,
+			"err":  err,
+		}).Debug("checkDeadline")
 		return err
 	}
 
