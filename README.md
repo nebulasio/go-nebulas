@@ -74,7 +74,7 @@ git checkout testnet
     * Install rocksdb by source code:
         ```bash
         git clone https://github.com/facebook/rocksdb.git
-        cd rocksdb & make shared_lib && make install-shared
+        cd rocksdb && make shared_lib && make install-shared
         ```
 
 3. Install dependencies packages.
