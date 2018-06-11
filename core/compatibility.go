@@ -19,8 +19,10 @@
 package core
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/nebulasio/go-nebulas/util/logging"
@@ -42,6 +44,10 @@ const (
 	// CurrentV8JSLibVersion current js lib version
 	CurrentV8JSLibVersion = "1.0.5"
 )
+
+type version struct {
+	major, minor, patch int
+}
 
 // var ..
 var (
@@ -65,6 +71,13 @@ var (
 		"crypto.js":              {"1.0.5"},
 		"uint.js":                {"1.0.5"},
 	}
+
+	digitalized = make(map[string][]*version)
+)
+
+var (
+	// ErrInvalidJSLibVersion ..
+	ErrInvalidJSLibVersion = errors.New("invalid js lib version")
 )
 
 // others, e.g. local/develop
@@ -247,16 +260,25 @@ func FilterLibVersion(deployVersion, libname string) string {
 		}).Error("empty arguments.")
 		return ""
 	}
-	if libs, ok := V8JSLibs[libname]; ok {
+
+	if libs, ok := digitalized[libname]; ok {
+		v, err := parseVersion(deployVersion)
+		if err != nil {
+			logging.VLog().WithFields(logrus.Fields{
+				"err":           err,
+				"deployVersion": deployVersion,
+				"lib":           libname,
+			}).Debug("parse deploy version error.")
+			return ""
+		}
 		for i := len(libs) - 1; i >= 0; i-- {
-			// TODO: check comparison
-			if strings.Compare(libs[i], deployVersion) <= 0 {
+			if compareVersion(libs[i], v) <= 0 {
 				logging.VLog().WithFields(logrus.Fields{
 					"libname":       libname,
 					"deployVersion": deployVersion,
 					"return":        libs[i],
 				}).Debug("filter js lib.")
-				return libs[i]
+				return V8JSLibs[libname][i]
 			}
 		}
 	} else {
@@ -266,6 +288,30 @@ func FilterLibVersion(deployVersion, libname string) string {
 		}).Debug("js lib not configured.")
 	}
 	return ""
+}
+
+func compareVersion(a, b *version) int {
+	if a.major > b.major {
+		return 1
+	}
+	if a.major < b.major {
+		return -1
+	}
+
+	if a.minor > b.minor {
+		return 1
+	}
+	if a.minor < b.minor {
+		return -1
+	}
+
+	if a.patch > b.patch {
+		return 1
+	}
+	if a.patch < b.patch {
+		return -1
+	}
+	return 0
 }
 
 func checkJSLib() {
@@ -284,9 +330,55 @@ func checkJSLib() {
 				}).Fatal("directory already exists with the same name.")
 			}
 
+			// digitalize
+			v, err := parseVersion(ver)
+			if err != nil {
+				logging.VLog().WithFields(logrus.Fields{
+					"err":     err,
+					"lib":     lib,
+					"version": ver,
+				}).Fatal("parse js lib version error.")
+			}
+
+			if _, ok := digitalized[lib]; !ok {
+				digitalized[lib] = make([]*version, 0)
+			}
+			digitalized[lib] = append(digitalized[lib], v)
+
 			logging.VLog().WithFields(logrus.Fields{
 				"path": p,
 			}).Debug("check js lib.")
 		}
 	}
+}
+
+func parseVersion(ver string) (*version, error) {
+	ss := strings.Split(ver, ".")
+	if len(ss) != 3 {
+		return nil, ErrInvalidJSLibVersion
+	}
+
+	major, err := strconv.Atoi(ss[0])
+	if err != nil {
+		return nil, err
+	}
+
+	minor, err := strconv.Atoi(ss[1])
+	if err != nil {
+		return nil, err
+	}
+
+	patch, err := strconv.Atoi(ss[2])
+	if err != nil {
+		return nil, err
+	}
+	return &version{major, minor, patch}, nil
+}
+
+func (v *version) String() string {
+	return strings.Join([]string{
+		strconv.Itoa(v.major),
+		strconv.Itoa(v.minor),
+		strconv.Itoa(v.patch),
+	}, ".")
 }
