@@ -124,6 +124,9 @@ StandardToken.prototype = {
 
     transfer: function (to, value) {
         value = new BigNumber(value);
+        if (value.lt(0)) {
+            throw new Error("invalid value.");
+        }
 
         var from = Blockchain.transaction.from;
         var balance = this.balances.get(from) || new BigNumber(0);
@@ -140,19 +143,19 @@ StandardToken.prototype = {
     },
 
     transferFrom: function (from, to, value) {
-        var txFrom = Blockchain.transaction.from;
+        var spender = Blockchain.transaction.from;
         var balance = this.balances.get(from) || new BigNumber(0);
 
         var allowed = this.allowed.get(from) || new Allowed();
         var allowedValue = allowed.get(spender) || new BigNumber(0);
         value = new BigNumber(value);
 
-        if (balance.gte(value) && allowedValue.gte(value)) {
+        if (value.gte(0) && balance.gte(value) && allowedValue.gte(value)) {
 
             this.balances.set(from, balance.sub(value));
 
             // update allowed value
-            allowed.set(txFrom, allowedValue.sub(value));
+            allowed.set(spender, allowedValue.sub(value));
             this.allowed.set(from, allowed);
 
             var toBalance = this.balances.get(to) || new BigNumber(0);

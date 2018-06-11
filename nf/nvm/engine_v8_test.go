@@ -2525,3 +2525,135 @@ func TestThreadStackOverflow(t *testing.T) {
 		})
 	}
 }
+func TestGetContractErr(t *testing.T) {
+	tests := []struct {
+		name      string
+		contracts []contract
+		calls     []call
+	}{
+		{
+			"TestGetContractErr",
+			[]contract{
+				contract{
+					"./test/test_inner_transaction.js",
+					"js",
+					"",
+				},
+				contract{
+					"./test/bank_vault_contract_second.js",
+					"js",
+					"",
+				},
+			},
+			[]call{
+				call{
+					"getSource",
+					"[1]",
+					[]string{"Call: Inner Call: no contract at this address"},
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		for i := 0; i < len(tt.calls); i++ {
+
+			neb := mockNeb(t)
+			tail := neb.chain.TailBlock()
+			manager, err := account.NewManager(neb)
+			assert.Nil(t, err)
+
+			a, _ := core.AddressParse("n1FF1nz6tarkDVwWQkMnnwFPuPKUaQTdptE")
+			assert.Nil(t, manager.Unlock(a, []byte("passphrase"), keystore.YearUnlockDuration))
+			b, _ := core.AddressParse("n1GmkKH6nBMw4rrjt16RrJ9WcgvKUtAZP1s")
+			assert.Nil(t, manager.Unlock(b, []byte("passphrase"), keystore.YearUnlockDuration))
+			c, _ := core.AddressParse("n1H4MYms9F55ehcvygwWE71J8tJC4CRr2so")
+			assert.Nil(t, manager.Unlock(c, []byte("passphrase"), keystore.YearUnlockDuration))
+
+			elapsedSecond := dpos.BlockIntervalInMs / dpos.SecondInMs
+			consensusState, err := tail.WorldState().NextConsensusState(elapsedSecond)
+			assert.Nil(t, err)
+			block, err := core.NewBlock(neb.chain.ChainID(), b, tail)
+			assert.Nil(t, err)
+			block.WorldState().SetConsensusState(consensusState)
+			block.SetTimestamp(consensusState.TimeStamp())
+
+			contractsAddr := []string{}
+			for k, v := range tt.contracts {
+				data, err := ioutil.ReadFile(v.contractPath)
+				assert.Nil(t, err, "contract path read error")
+				source := string(data)
+				sourceType := "js"
+				argsDeploy := ""
+				deploy, _ := core.NewDeployPayload(source, sourceType, argsDeploy)
+				payloadDeploy, _ := deploy.ToBytes()
+
+				value, _ := util.NewUint128FromInt(0)
+				gasLimit, _ := util.NewUint128FromInt(200000)
+				txDeploy, err := core.NewTransaction(neb.chain.ChainID(), a, a, value, uint64(k+1), core.TxPayloadDeployType, payloadDeploy, core.TransactionGasPrice, gasLimit)
+				assert.Nil(t, err)
+				assert.Nil(t, manager.SignTransaction(a, txDeploy))
+				assert.Nil(t, neb.chain.TransactionPool().Push(txDeploy))
+
+				contractAddr, err := txDeploy.GenerateContractAddress()
+				assert.Nil(t, err)
+				contractsAddr = append(contractsAddr, contractAddr.String())
+			}
+
+			block.CollectTransactions((time.Now().Unix() + 1) * dpos.SecondInMs)
+			assert.Nil(t, block.Seal())
+			assert.Nil(t, manager.SignBlock(b, block))
+			assert.Nil(t, neb.chain.BlockPool().Push(block))
+
+			for _, v := range contractsAddr {
+				contract, err := core.AddressParse(v)
+				assert.Nil(t, err)
+				_, err = neb.chain.TailBlock().CheckContract(contract)
+				assert.Nil(t, err)
+			}
+
+			elapsedSecond = dpos.BlockIntervalInMs / dpos.SecondInMs
+			tail = neb.chain.TailBlock()
+			consensusState, err = tail.WorldState().NextConsensusState(elapsedSecond)
+			assert.Nil(t, err)
+			block, err = core.NewBlock(neb.chain.ChainID(), c, tail)
+			assert.Nil(t, err)
+			block.WorldState().SetConsensusState(consensusState)
+			block.SetTimestamp(consensusState.TimeStamp())
+			assert.Nil(t, err)
+
+			calleeContract := "123456789"
+			callToContract := "123456789"
+			callPayload, _ := core.NewCallPayload(tt.calls[i].function, fmt.Sprintf("[\"%s\", \"%s\"]", calleeContract, callToContract))
+			payloadCall, _ := callPayload.ToBytes()
+
+			value, _ := util.NewUint128FromInt(6)
+			gasLimit, _ := util.NewUint128FromInt(1000000)
+			proxyContractAddress, err := core.AddressParse(contractsAddr[0])
+			txCall, err := core.NewTransaction(neb.chain.ChainID(), a, proxyContractAddress, value,
+				uint64(len(contractsAddr)+1), core.TxPayloadCallType, payloadCall, core.TransactionGasPrice, gasLimit)
+			assert.Nil(t, err)
+			assert.Nil(t, manager.SignTransaction(a, txCall))
+			assert.Nil(t, neb.chain.TransactionPool().Push(txCall))
+
+			block.CollectTransactions((time.Now().Unix() + 1) * dpos.SecondInMs)
+			assert.Nil(t, block.Seal())
+			assert.Nil(t, manager.SignBlock(c, block))
+			assert.Nil(t, neb.chain.BlockPool().Push(block))
+
+			tail = neb.chain.TailBlock()
+			events, err := tail.FetchEvents(txCall.Hash())
+			for _, event := range events {
+				fmt.Printf("event:%v\n", events)
+				var jEvent SysEvent
+				if err := json.Unmarshal([]byte(event.Data), &jEvent); err == nil {
+					if jEvent.Hash != "" {
+						assert.Equal(t, tt.calls[i].exceptArgs[0], jEvent.Err)
+					}
+					fmt.Printf("event:%v\n", jEvent.Err)
+				}
+
+			}
+		}
+	}
+}

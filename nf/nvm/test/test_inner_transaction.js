@@ -10,7 +10,16 @@ ProxyBankContract.prototype = {
 	init: function () {
         //
     },
-    
+    getSource: function(address) {
+        var funcs =  {
+            save: function() { 
+                
+            }
+        }
+        var c = new Blockchain.Contract(address, funcs);
+        console.log("=============================address:", address);
+        // c.value(5).call("save", args); 
+    },
     save: function (address, to, height) {
 
         var funcs =  {
