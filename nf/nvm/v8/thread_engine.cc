@@ -52,6 +52,7 @@ char *InjectTracingInstructionsThread(V8Engine *e, const char *source,
   SetRunScriptArgs(&ctx, e, INSTRUCTION, source, *source_line_offset, allow_usage);
 	bool btn = CreateScriptThread(&ctx);
   if (btn == false) {
+    LogErrorf("Failed to create script thread");
     return NULL;
   }
   *source_line_offset = ctx.output.line_offset;
