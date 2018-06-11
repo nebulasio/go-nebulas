@@ -1298,3 +1298,11 @@ func LoadBlockFromStorage(hash byteutils.Hash, chain *BlockChain) (*Block, error
 	block.storage = chain.storage
 	return block, nil
 }
+
+// MockBlock nf/nvm/engine.CheckV8Run()  & cmd/v8/main.go
+func MockBlock(header *BlockHeader, height uint64) *Block {
+	return &Block{
+		header: header,
+		height: height,
+	}
+}

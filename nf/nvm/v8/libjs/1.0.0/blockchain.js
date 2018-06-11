@@ -72,6 +72,7 @@ Blockchain.prototype = {
         var ret = this.nativeBlockchain.transfer(address, value.toString(10));
         return ret == 0;
     },
+
     verifyAddress: function (address) {
         return this.nativeBlockchain.verifyAddress(address);
     }

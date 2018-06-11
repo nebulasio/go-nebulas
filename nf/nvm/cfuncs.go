@@ -26,6 +26,7 @@ void V8Log(int level, const char *msg);
 
 // require.
 char *RequireDelegateFunc(void *handler, const char *filename, size_t *lineOffset);
+char *AttachLibVersionDelegateFunc(void *handler, const char *libname);
 
 // storage.
 char *StorageGetFunc(void *handler, const char *key, size_t *gasCnt);
@@ -37,9 +38,19 @@ char *GetTxByHashFunc(void *handler, const char *hash, size_t *gasCnt);
 char *GetAccountStateFunc(void *handler, const char *address, size_t *gasCnt);
 int TransferFunc(void *handler, const char *to, const char *value, size_t *gasCnt);
 int VerifyAddressFunc(void *handler, const char *address, size_t *gasCnt);
+char *GetPreBlockHashFunc(void *handler, unsigned long long distance, size_t *gasCnt);
+char *GetPreBlockSeedFunc(void *handler, unsigned long long distance, size_t *gasCnt);
 
 // event.
 void EventTriggerFunc(void *handler, const char *topic, const char *data, size_t *gasCnt);
+
+// crypto
+char *Sha256Func(const char *data, size_t *gasCnt);
+char *Sha3256Func(const char *data, size_t *gasCnt);
+char *Ripemd160Func(const char *data, size_t *gasCnt);
+char *RecoverAddressFunc(int alg, const char *data, const char *sign, size_t *gasCnt);
+char *Md5Func(const char *data, size_t *gasCnt);
+char *Base64Func(const char *data, size_t *gasCnt);
 
 // The gateway functions.
 void V8Log_cgo(int level, const char *msg) {
@@ -48,6 +59,10 @@ void V8Log_cgo(int level, const char *msg) {
 
 char *RequireDelegateFunc_cgo(void *handler, const char *filename, size_t *lineOffset) {
 	return RequireDelegateFunc(handler, filename, lineOffset);
+}
+
+char *AttachLibVersionDelegateFunc_cgo(void *handler, const char *libname) {
+	return AttachLibVersionDelegateFunc(handler, libname);
 }
 
 char *StorageGetFunc_cgo(void *handler, const char *key, size_t *gasCnt) {
@@ -73,9 +88,36 @@ int VerifyAddressFunc_cgo(void *handler, const char *address, size_t *gasCnt) {
 	return VerifyAddressFunc(handler, address, gasCnt);
 };
 
+char *GetPreBlockHashFunc_cgo(void *handler, unsigned long long distance, size_t *gasCnt) {
+	return GetPreBlockHashFunc(handler, distance, gasCnt);
+}
+
+char *GetPreBlockSeedFunc_cgo(void *handler, unsigned long long distance, size_t *gasCnt) {
+	return GetPreBlockSeedFunc(handler, distance, gasCnt);
+}
+
 void EventTriggerFunc_cgo(void *handler, const char *topic, const char *data, size_t *gasCnt) {
 	EventTriggerFunc(handler, topic, data, gasCnt);
 };
+
+char *Sha256Func_cgo(const char *data, size_t *gasCnt) {
+	return Sha256Func(data, gasCnt);
+}
+char *Sha3256Func_cgo(const char *data, size_t *gasCnt) {
+	return Sha3256Func(data, gasCnt);
+}
+char *Ripemd160Func_cgo(const char *data, size_t *gasCnt) {
+	return Ripemd160Func(data, gasCnt);
+}
+char *RecoverAddressFunc_cgo(int alg, const char *data, const char *sign, size_t *gasCnt) {
+	return RecoverAddressFunc(alg, data, sign, gasCnt);
+}
+char *Md5Func_cgo(const char *data, size_t *gasCnt) {
+	return Md5Func(data, gasCnt);
+}
+char *Base64Func_cgo(const char *data, size_t *gasCnt) {
+	return Base64Func(data, gasCnt);
+}
 
 */
 import "C"

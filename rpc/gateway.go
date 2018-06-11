@@ -25,7 +25,7 @@ const (
 const (
 	// DefaultHTTPLimit default max http conns
 	DefaultHTTPLimit = 128
-	// MaxRecvMsgSize Deafult max message size  gateway's grpc client can receive
+	// MaxGateWayRecvMsgSize Deafult max message size  gateway's grpc client can receive
 	MaxGateWayRecvMsgSize = 64 * 1024 * 1024
 )
 

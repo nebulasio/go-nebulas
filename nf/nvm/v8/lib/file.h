@@ -23,11 +23,15 @@
 #include <stddef.h>
 
 #define MAX_PATH_LEN    1024
+#define MAX_VERSION_LEN 64
+#define MAX_VERSIONED_PATH_LEN 1088
 
 #ifdef _WIN32
+    #define FILE_SEPARATOR "\\"
     #define LIB_DIR     "\\lib"
     #define EXECUTION_FILE  "\\execution_env.js"
 #else
+    #define FILE_SEPARATOR "/"
     #define LIB_DIR     "/lib"
     #define EXECUTION_FILE  "/execution_env.js"
 #endif //WIN32

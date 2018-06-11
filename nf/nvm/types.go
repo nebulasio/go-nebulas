@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	"github.com/nebulasio/go-nebulas/core"
+	"github.com/nebulasio/go-nebulas/core/pb"
 	"github.com/nebulasio/go-nebulas/core/state"
 	"github.com/nebulasio/go-nebulas/storage"
 	"github.com/nebulasio/go-nebulas/util"
@@ -52,6 +53,12 @@ const (
 	TransferAddressFailed
 )
 
+//the max recent block number can query
+const (
+	maxQueryBlockInfoValidTime = 30
+	maxBlockDistance           = maxQueryBlockInfoValidTime * 24 * 3600 * 1000 / 15000 //TODO:dpos.BlockIntervalInMs
+)
+
 // Block interface breaks cycle import dependency and hides unused services.
 type Block interface {
 	Hash() byteutils.Hash
@@ -84,6 +91,7 @@ type Account interface {
 	Put(key []byte, value []byte) error
 	Get(key []byte) ([]byte, error)
 	Del(key []byte) error
+	ContractMeta() *corepb.ContractMeta
 }
 
 // WorldState interface breaks cycle import dependency and hides unused services.
@@ -91,4 +99,6 @@ type WorldState interface {
 	GetOrCreateUserAccount(addr byteutils.Hash) (state.Account, error)
 	GetTx(txHash byteutils.Hash) ([]byte, error)
 	RecordEvent(txHash byteutils.Hash, event *state.Event)
+	GetBlockHashByHeight(height uint64) ([]byte, error)
+	GetBlock(txHash byteutils.Hash) ([]byte, error)
 }

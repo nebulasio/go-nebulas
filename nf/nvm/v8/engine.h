@@ -35,6 +35,7 @@ extern "C" {
 #include <stdint.h>
 #include <string.h>
 #include <stdbool.h>
+#include "nvm_error.h"
 
 enum LogLevel {
   DEBUG = 1,
@@ -78,11 +79,34 @@ typedef int (*TransferFunc)(void *handler, const char *to, const char *value,
                             size_t *counterVal);
 typedef int (*VerifyAddressFunc)(void *handler, const char *address,
                                  size_t *counterVal);
+typedef char *(*GetPreBlockHashFunc)(void *handler, unsigned long long distance, size_t *counterVal);
+
+typedef char *(*GetPreBlockSeedFunc)(void *handler, unsigned long long distance, size_t *counterVal);
+
+
 
 EXPORT void InitializeBlockchain(GetTxByHashFunc getTx,
                                  GetAccountStateFunc getAccount,
                                  TransferFunc transfer,
-                                 VerifyAddressFunc verifyAddress);
+                                 VerifyAddressFunc verifyAddress,
+                                 GetPreBlockHashFunc getPreBlockHash,
+                                 GetPreBlockSeedFunc getPreBlockSeed);
+
+// crypto
+typedef char *(*Sha256Func)(const char *data, size_t *counterVal);
+typedef char *(*Sha3256Func)(const char *data, size_t *counterVal);
+typedef char *(*Ripemd160Func)(const char *data, size_t *counterVal);
+typedef char *(*RecoverAddressFunc)(int alg, const char *data, const char *sign,
+                                 size_t *counterVal);
+typedef char *(*Md5Func)(const char *data, size_t *counterVal);
+typedef char *(*Base64Func)(const char *data, size_t *counterVal);
+
+EXPORT void InitializeCrypto(Sha256Func sha256,
+                                 Sha3256Func sha3256,
+                                 Ripemd160Func ripemd160,
+                                 RecoverAddressFunc recoverAddress,
+                                 Md5Func md5,
+                                 Base64Func base64);
 
 // version
 EXPORT char *GetV8Version();
@@ -90,7 +114,11 @@ EXPORT char *GetV8Version();
 // require callback.
 typedef char *(*RequireDelegate)(void *handler, const char *filename,
                                  size_t *lineOffset);
-EXPORT void InitializeRequireDelegate(RequireDelegate delegate);
+typedef char *(*AttachLibVersionDelegate)(void *handler, const char *libname);
+
+EXPORT void InitializeRequireDelegate(RequireDelegate delegate, AttachLibVersionDelegate libDelegate);
+
+EXPORT void InitializeExecutionEnvDelegate(AttachLibVersionDelegate libDelegate);
 
 typedef struct V8EngineStats {
   size_t count_of_executed_instructions;
@@ -112,7 +140,8 @@ typedef struct V8Engine {
   void *allocator;
   size_t limits_of_executed_instructions;
   size_t limits_of_total_memory_size;
-  int is_requested_terminate_execution;
+  bool is_requested_terminate_execution;
+  bool is_unexpected_error_happen;
   int testing;
   
   V8EngineStats stats;

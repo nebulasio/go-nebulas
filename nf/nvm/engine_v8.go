@@ -29,6 +29,7 @@ package nvm
 void V8Log_cgo(int level, const char *msg);
 
 char *RequireDelegateFunc_cgo(void *handler, const char *filename, size_t *lineOffset);
+char *AttachLibVersionDelegateFunc_cgo(void *handler, const char *libname);
 
 char *StorageGetFunc_cgo(void *handler, const char *key, size_t *gasCnt);
 int StoragePutFunc_cgo(void *handler, const char *key, const char *value, size_t *gasCnt);
@@ -38,6 +39,15 @@ char *GetTxByHashFunc_cgo(void *handler, const char *hash);
 char *GetAccountStateFunc_cgo(void *handler, const char *address);
 int TransferFunc_cgo(void *handler, const char *to, const char *value);
 int VerifyAddressFunc_cgo(void *handler, const char *address);
+char *GetPreBlockHashFunc_cgo(void *handler, unsigned long long distance, size_t *gasCnt);
+char *GetPreBlockSeedFunc_cgo(void *handler, unsigned long long distance, size_t *gasCnt);
+
+char *Sha256Func_cgo(const char *data, size_t *gasCnt);
+char *Sha3256Func_cgo(const char *data, size_t *gasCnt);
+char *Ripemd160Func_cgo(const char *data, size_t *gasCnt);
+char *RecoverAddressFunc_cgo(int alg, const char *data, const char *sign, size_t *gasCnt);
+char *Md5Func_cgo(const char *data, size_t *gasCnt);
+char *Base64Func_cgo(const char *data, size_t *gasCnt);
 
 void EventTriggerFunc_cgo(void *handler, const char *topic, const char *data, size_t *gasCnt);
 
@@ -111,16 +121,33 @@ func InitV8Engine() {
 	C.InitializeLogger((C.LogFunc)(unsafe.Pointer(C.V8Log_cgo)))
 
 	// Require.
-	C.InitializeRequireDelegate((C.RequireDelegate)(unsafe.Pointer(C.RequireDelegateFunc_cgo)))
+	C.InitializeRequireDelegate((C.RequireDelegate)(unsafe.Pointer(C.RequireDelegateFunc_cgo)), (C.AttachLibVersionDelegate)(unsafe.Pointer(C.AttachLibVersionDelegateFunc_cgo)))
+
+	// execution_env require
+	C.InitializeExecutionEnvDelegate((C.AttachLibVersionDelegate)(unsafe.Pointer(C.AttachLibVersionDelegateFunc_cgo)))
 
 	// Storage.
 	C.InitializeStorage((C.StorageGetFunc)(unsafe.Pointer(C.StorageGetFunc_cgo)), (C.StoragePutFunc)(unsafe.Pointer(C.StoragePutFunc_cgo)), (C.StorageDelFunc)(unsafe.Pointer(C.StorageDelFunc_cgo)))
 
 	// Blockchain.
-	C.InitializeBlockchain((C.GetTxByHashFunc)(unsafe.Pointer(C.GetTxByHashFunc_cgo)), (C.GetAccountStateFunc)(unsafe.Pointer(C.GetAccountStateFunc_cgo)), (C.TransferFunc)(unsafe.Pointer(C.TransferFunc_cgo)), (C.VerifyAddressFunc)(unsafe.Pointer(C.VerifyAddressFunc_cgo)))
+	C.InitializeBlockchain((C.GetTxByHashFunc)(unsafe.Pointer(C.GetTxByHashFunc_cgo)),
+		(C.GetAccountStateFunc)(unsafe.Pointer(C.GetAccountStateFunc_cgo)),
+		(C.TransferFunc)(unsafe.Pointer(C.TransferFunc_cgo)),
+		(C.VerifyAddressFunc)(unsafe.Pointer(C.VerifyAddressFunc_cgo)),
+		(C.GetPreBlockHashFunc)(unsafe.Pointer(C.GetPreBlockHashFunc_cgo)),
+		(C.GetPreBlockSeedFunc)(unsafe.Pointer(C.GetPreBlockSeedFunc_cgo)),
+	)
 
 	// Event.
 	C.InitializeEvent((C.EventTriggerFunc)(unsafe.Pointer(C.EventTriggerFunc_cgo)))
+
+	// Crypto
+	C.InitializeCrypto((C.Sha256Func)(unsafe.Pointer(C.Sha256Func_cgo)),
+		(C.Sha3256Func)(unsafe.Pointer(C.Sha3256Func_cgo)),
+		(C.Ripemd160Func)(unsafe.Pointer(C.Ripemd160Func_cgo)),
+		(C.RecoverAddressFunc)(unsafe.Pointer(C.RecoverAddressFunc_cgo)),
+		(C.Md5Func)(unsafe.Pointer(C.Md5Func_cgo)),
+		(C.Base64Func)(unsafe.Pointer(C.Base64Func_cgo)))
 }
 
 // DisposeV8Engine dispose the v8 engine.
@@ -304,7 +331,7 @@ func (e *V8Engine) RunScriptSource(source string, sourceLineOffset int) (string,
 	if cResult != nil {
 		result = C.GoString(cResult)
 		C.free(unsafe.Pointer(cResult))
-	} else if ret == 0 {
+	} else if ret == C.NVM_SUCCESS {
 		result = "\"\"" // default JSON String.
 	}
 
@@ -319,6 +346,10 @@ func (e *V8Engine) RunScriptSource(source string, sourceLineOffset int) (string,
 	}
 	if e.actualCountOfExecutionInstructions > e.limitsOfExecutionInstructions || err == ErrExceedMemoryLimits { //ToDo ErrExceedMemoryLimits value is same in each linux
 		e.actualCountOfExecutionInstructions = e.limitsOfExecutionInstructions //ToDo memory pass whether exhaust ?
+	}
+
+	if ret == C.NVM_UNEXPECTED_ERR {
+		err = core.ErrUnexpected
 	}
 
 	return result, err

@@ -42,7 +42,12 @@ func (nvm *NebulasVM) CreateEngine(block *core.Block, tx *core.Transaction, cont
 
 // CheckV8Run to check V8 env is OK
 func (nvm *NebulasVM) CheckV8Run() error {
-	engine := NewV8Engine(nil)
+	engine := NewV8Engine(&Context{
+		block:    core.MockBlock(nil, 1),
+		contract: state.MockAccount("1.0.0"),
+		tx:       nil,
+		state:    nil,
+	})
 	_, err := engine.RunScriptSource("", 0)
 	engine.Dispose()
 	return err

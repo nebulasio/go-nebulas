@@ -24,6 +24,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/core/state"
 	"github.com/nebulasio/go-nebulas/nf/nvm"
 	"github.com/nebulasio/go-nebulas/storage"
@@ -34,9 +35,9 @@ func main() {
 
 	mem, _ := storage.NewMemoryStorage()
 	context, _ := state.NewWorldState(nil, mem)
-	contract, _ := context.CreateContractAccount([]byte("account2"), nil)
+	contract, _ := context.CreateContractAccount([]byte("account2"), nil, nil)
 
-	ctx, err := nvm.NewContext(nil, nil, contract, context)
+	ctx, err := nvm.NewContext(core.MockBlock(nil, 1), nil, contract, context)
 	if err == nil {
 		engine := nvm.NewV8Engine(ctx)
 		result, err := engine.RunScriptSource(string(data), 0)

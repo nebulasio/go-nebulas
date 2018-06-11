@@ -28,6 +28,11 @@ message Account {
     uint64 nonce = 3;
     bytes vars_hash = 4;
     bytes birth_place = 5;
+    ContractMeta contract_meta = 6;
+}
+
+message ContractMeta {
+    string version = 1;
 }
 
 message Data {

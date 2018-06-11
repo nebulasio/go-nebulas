@@ -24,6 +24,6 @@ void LogInfof(const char *format, ...);
 void LogErrorf(const char *format, ...);
 void LogDebugf(const char *format, ...);
 void LogWarnf(const char *format, ...);
-void LogFatalF(const char *format, ...);
+void LogFatalf(const char *format, ...);
 
 #endif // _NEBULAS_NF_NVM_V8_LOGGER_H_

@@ -584,6 +584,7 @@ func (bc *BlockChain) StartActiveSync() bool {
 	return false
 }
 
+// IsActiveSyncing returns true if being syncing
 func (bc *BlockChain) IsActiveSyncing() bool {
 	return bc.syncService.IsActiveSyncing()
 }
