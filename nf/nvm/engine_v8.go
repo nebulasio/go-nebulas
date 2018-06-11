@@ -66,8 +66,9 @@ const (
 	ExecutionTimeoutInSeconds = 5
 )
 const (
-	ExecutionFailedErr  = 1
-	ExecutionTimeOutErr = 2
+	ExecutionFailedErr   = 1
+	ExecutionInnerNvmErr = 2
+	ExecutionTimeOutErr  = 3
 )
 
 //engine_v8 private data
@@ -327,6 +328,8 @@ func (e *V8Engine) RunScriptSource(source string, sourceLineOffset int) (string,
 		err = ErrExecutionTimeout
 	} else if ret == ExecutionFailedErr {
 		err = core.ErrExecutionFailed
+	} else if ret == ExecutionInnerNvmErr {
+		err = core.ErrInnerExecutionFailed
 	}
 
 	if cResult != nil {
@@ -486,11 +489,12 @@ func (e *V8Engine) prepareRunnableContractScript(source, function, args string) 
 	}
 	runnableSource = fmt.Sprintf(`Blockchain.blockParse("%s");
 									Blockchain.transactionParse("%s");
+									Object.freeze(Blockchain);
 									var __contract = require("%s");
 									var __instance = new __contract();
 									__instance["%s"].apply(__instance, JSON.parse("%s"));`,
 		formatArgs(string(blockJSON)), formatArgs(string(txJSON)),
-		ModuleID, function, formatArgs(string(argsInput)))
+		ModuleID, function, formatArgs(string(argsInput))) //TODO: freeze?
 	return runnableSource, 0, nil
 }
 
