@@ -315,8 +315,11 @@ func GetContractSourceFunc(handler unsafe.Pointer, address *C.char, gasCnt *C.si
 
 	deploy, err := getPayLoadByAddress(ws, C.GoString(address))
 	if err != nil {
-		//FIXME: VLog() WriteField
-		logging.CLog().Errorf("getPayLoadByAddress err, address:%v, err:%v", address, err)
+		logging.VLog().WithFields(logrus.Fields{
+			"address": address,
+			"err":     err,
+		}).Error("getPayLoadByAddress err")
+
 		return nil
 	}
 
@@ -364,7 +367,7 @@ func InnerContractFunc(handler unsafe.Pointer, address *C.char, funcName *C.char
 		logging.CLog().Errorf(ErrEngineNotFound.Error())
 		return nil
 	}
-	index := engine.ctx.index //TODO: index to clear
+	index := engine.ctx.index
 	if engine.ctx.index >= uint32(MultiNvmMax) {
 		setHeadErrAndLog(engine, index, ErrNvmNumLimit.Error(), true)
 		return nil
@@ -411,13 +414,13 @@ func InnerContractFunc(handler unsafe.Pointer, address *C.char, funcName *C.char
 		return nil
 	}
 	//transfer
-	var transferCoseGas uint64                                                          //TODO: transferCoseGas->transferCostGas
-	iRet := TransferByAddress(handler, fromAddr, addr, C.GoString(v), &transferCoseGas) //TODO: gas cost?
+	var transferCostGas uint64
+	iRet := TransferByAddress(handler, fromAddr, addr, C.GoString(v), &transferCostGas) //TODO: gas cost?
 	if iRet != 0 {
 		setHeadErrAndLog(engine, index, ErrInnerTransferFailed.Error(), true)
 		return nil
 	}
-	gasSum += transferCoseGas
+	gasSum += transferCostGas
 
 	toValue, err := util.NewUint128FromString(C.GoString(v))
 	if err != nil {
@@ -452,7 +455,7 @@ func InnerContractFunc(handler unsafe.Pointer, address *C.char, funcName *C.char
 	}
 
 	remainInstruction, remainMem := engine.GetNVMVerbResources()
-	iCost := uint64(InnerContractFuncCost) + transferCoseGas
+	iCost := uint64(InnerContractFuncCost) + transferCostGas
 	if remainInstruction <= uint64(iCost) {
 		logging.CLog().Infof("remainInstruction:%v, mem:%v", remainInstruction, remainMem)
 		setHeadErrAndLog(engine, index, ErrInnerInsufficientGas.Error(), true)
@@ -463,7 +466,7 @@ func InnerContractFunc(handler unsafe.Pointer, address *C.char, funcName *C.char
 		return nil
 	}
 	remainInstruction -= uint64(InnerContractFuncCost)
-	remainInstruction -= uint64(transferCoseGas)
+	remainInstruction -= uint64(transferCostGas)
 
 	logging.CLog().Infof("begin create New V8,intance:%v, mem:%v, cost:%v", remainInstruction, remainMem, iCost)
 	engineNew := NewV8Engine(newCtx)

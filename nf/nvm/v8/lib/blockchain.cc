@@ -245,7 +245,6 @@ void GetContractSourceCallback(const FunctionCallbackInfo<Value> &info) {
   char *value = sGetContractSource(handler->Value(),
                            *String::Utf8Value(address->ToString()), &cnt);
   if (value == NULL) {
-    //TODO: throw err 
     info.GetReturnValue().SetNull();
   } else {
     info.GetReturnValue().Set(String::NewFromUtf8(isolate, value));
