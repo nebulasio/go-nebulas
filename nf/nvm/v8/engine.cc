@@ -307,7 +307,12 @@ void PrintAndReturnException(char **exception, Local<Context> context,
   // return exception message.
   if (exception != NULL) {
     *exception = (char *)malloc(exception_str.length() + 1);
-    strcpy(*exception, *exception_str);
+    //TODO: Branch code detected “(v8::String::Utf8Value) $0 = (str_ = <no value available>, length_ = 0)”
+    if (exception_str.length() == 0) {
+      strcpy(*exception, "");
+    } else {
+      strcpy(*exception, *exception_str);
+    }
   }
 }
 
