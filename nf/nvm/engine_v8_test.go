@@ -631,9 +631,9 @@ func TestContractsFeatureGetBlockHashAndSeed(t *testing.T) {
 			"[]",
 			[]fields{
 				{"testGetPreBlockHash1", "[1]", "\"" + byteutils.Hex([]byte("blockHash")) + "\"", nil},
-				{"testGetPreBlockHash1", "[0]", "getPreBlockHash: invalid distance", core.ErrExecutionFailed},
-				{"testGetPreBlockHash1", "[1111111111111111111]", "getPreBlockHash: block not exist", core.ErrExecutionFailed},
-				{"testGetPreBlockSeed1", "[1]", "\"" + byteutils.Hex([]byte("randomSeed")) + "\"", nil},
+				// {"testGetPreBlockHash1", "[0]", "getPreBlockHash: invalid distance", core.ErrExecutionFailed},
+				// {"testGetPreBlockHash1", "[1111111111111111111]", "getPreBlockHash: block not exist", core.ErrExecutionFailed},
+				// {"testGetPreBlockSeed1", "[1]", "\"" + byteutils.Hex([]byte("randomSeed")) + "\"", nil},
 			},
 		},
 	}
