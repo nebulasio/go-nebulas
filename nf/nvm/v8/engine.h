@@ -35,7 +35,7 @@ extern "C" {
 #include <stdint.h>
 #include <string.h>
 #include <stdbool.h>
-#include "nvm_error.h"
+#include "lib/nvm_error.h"
 
 enum LogLevel {
   DEBUG = 1,
@@ -73,15 +73,15 @@ EXPORT void InitializeStorage(StorageGetFunc get, StoragePutFunc put,
 // blockchain
 typedef char *(*GetTxByHashFunc)(void *handler, const char *hash,
                                  size_t *counterVal);
-typedef char *(*GetAccountStateFunc)(void *handler, const char *address,
-                                     size_t *counterVal);
+typedef int (*GetAccountStateFunc)(void *handler, const char *address,
+                                     size_t *counterVal, char **result, char **info);
 typedef int (*TransferFunc)(void *handler, const char *to, const char *value,
                             size_t *counterVal);
 typedef int (*VerifyAddressFunc)(void *handler, const char *address,
                                  size_t *counterVal);
-typedef char *(*GetPreBlockHashFunc)(void *handler, unsigned long long distance, size_t *counterVal);
+typedef int (*GetPreBlockHashFunc)(void *handler, unsigned long long distance, size_t *counterVal, char **result, char **info);
 
-typedef char *(*GetPreBlockSeedFunc)(void *handler, unsigned long long distance, size_t *counterVal);
+typedef int (*GetPreBlockSeedFunc)(void *handler, unsigned long long distance, size_t *counterVal, char **result, char **info);
 
 
 

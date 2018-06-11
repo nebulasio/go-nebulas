@@ -17,8 +17,8 @@
 // <http://www.gnu.org/licenses/>.
 //
 
-#ifndef _NEBULAS_NF_NVM_V8_ENGINE_ERROR_H_
-#define _NEBULAS_NF_NVM_V8_ENGINE_ERROR_H_
+#ifndef _NEBULAS_NF_NVM_V8_ERROR_H_
+#define _NEBULAS_NF_NVM_V8_ERROR_H_
 
 enum nvmErrno {
   NVM_SUCCESS = 0,

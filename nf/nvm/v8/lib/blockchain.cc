@@ -31,6 +31,23 @@ static VerifyAddressFunc sVerifyAddress = NULL;
 static GetPreBlockHashFunc sGetPreBlockHash = NULL;
 static GetPreBlockSeedFunc sGetPreBlockSeed = NULL;
 
+/*
+success or crash
+*/
+static void reportUnexepectedError(Isolate *isolate) {
+  if (NULL == isolate) {
+    LogFatalf("Unexpected Error: invalid argument, ioslate is NULL");
+  }
+  Local<Context> context = isolate->GetCurrentContext();
+  V8Engine *e = GetV8EngineInstance(context);
+  if (NULL == e) {
+    LogFatalf("Unexpected Error: failed to get V8Engine");
+  }
+  TerminateExecution(e);
+  e->is_unexpected_error_happen = true;
+  return;
+}
+
 void InitializeBlockchain(GetTxByHashFunc getTx, GetAccountStateFunc getAccount,
                           TransferFunc transfer,
                           VerifyAddressFunc verifyAddress,
@@ -126,7 +143,11 @@ void GetTransactionByHashCallback(const FunctionCallbackInfo<Value> &info) {
 
 // GetAccountStateCallback
 void GetAccountStateCallback(const FunctionCallbackInfo<Value> &info) {
+  int err = NVM_SUCCESS;
   Isolate *isolate = info.GetIsolate();
+  if (NULL == isolate) {
+    LogFatalf("Unexpected error: failed to get ioslate");
+  }
   Local<Object> thisArg = info.Holder();
   Local<External> handler = Local<External>::Cast(thisArg->GetInternalField(0));
 
@@ -138,19 +159,32 @@ void GetAccountStateCallback(const FunctionCallbackInfo<Value> &info) {
 
   Local<Value> key = info[0];
   if (!key->IsString()) {
-    isolate->ThrowException(String::NewFromUtf8(isolate, "key must be string"));
+    isolate->ThrowException(String::NewFromUtf8(isolate, "Blockchain.getAccountState(), key must be string"));
     return;
   }
 
-  size_t cnt = 0;
 
-  char *value = sGetAccountState(handler->Value(),
-                                 *String::Utf8Value(key->ToString()), &cnt);
-  if (value == NULL) {
+  size_t cnt = 0;
+  char *result = NULL;
+  char *exceptionInfo = NULL;
+  err = sGetAccountState(handler->Value(), *String::Utf8Value(key->ToString()), &cnt, &result, &exceptionInfo);
+
+  if (NVM_UNEXPECTED_ERR == err || (NVM_EXCEPTION_ERR == err && NULL == exceptionInfo) ||
+      (NVM_SUCCESS == err && NULL == result)) {
     info.GetReturnValue().SetNull();
+    reportUnexepectedError(isolate);
+  } else if (NVM_EXCEPTION_ERR == err) {
+    isolate->ThrowException(String::NewFromUtf8(isolate, exceptionInfo));
+  } else if (NVM_SUCCESS == err) {
+    info.GetReturnValue().Set(String::NewFromUtf8(isolate, result));
   } else {
-    info.GetReturnValue().Set(String::NewFromUtf8(isolate, value));
-    free(value);
+    info.GetReturnValue().SetNull();
+    reportUnexepectedError(isolate);
+  }
+
+  if (result != NULL) {
+    free(result);
+    result = NULL;
   }
 
   // record storage usage.
@@ -224,37 +258,55 @@ void VerifyAddressCallback(const FunctionCallbackInfo<Value> &info) {
 
 // GetPreBlockHashCallBack
 void GetPreBlockHashCallback(const FunctionCallbackInfo<Value> &info) {
+  int err = NVM_SUCCESS;
   Isolate *isolate = info.GetIsolate();
+  if (NULL == isolate) {
+    LogFatalf("Unexpected error: failed to get isolate");
+  }
   Local<Object> thisArg = info.Holder();
   Local<External> handler = Local<External>::Cast(thisArg->GetInternalField(0));
 
   if (info.Length() != 1) {
     isolate->ThrowException(String::NewFromUtf8(
-        isolate, "Blockchain.verifyAddress() requires 1 arguments"));
+        isolate, "Blockchain.GetPreBlockHash() requires 1 arguments"));
     return;
   }
   
   Local<Value> distance = info[0];
   if (!distance->IsNumber()) {
     isolate->ThrowException(
-        String::NewFromUtf8(isolate, "n must be a number")); 
+        String::NewFromUtf8(isolate, "Blockchain.GetPreBlockHash(), the argument must be a number")); 
     return;
   }
 
   double v = Number::Cast(*distance)->Value();
   if (v > ULLONG_MAX || v <= 0) {
     isolate->ThrowException(
-        String::NewFromUtf8(isolate, "distance out of range"));
+        String::NewFromUtf8(isolate, "Blockchain.GetPreBlockHash(), argument out of range"));
     return;
   }
 
   size_t cnt = 0;
-  char *hash = sGetPreBlockHash(handler->Value(), (unsigned long long)(v), &cnt);
-  if (hash == NULL) {
+  char *result = NULL;
+  char *exceptionInfo = NULL;
+  err = sGetPreBlockHash(handler->Value(), (unsigned long long)(v), &cnt, &result, &exceptionInfo);
+
+  if (NVM_UNEXPECTED_ERR== err || (NVM_EXCEPTION_ERR == err && NULL == exceptionInfo) ||
+      (NVM_SUCCESS == err && NULL == result)) {
     info.GetReturnValue().SetNull();
+    reportUnexepectedError(isolate);
+  } else if (NVM_EXCEPTION_ERR == err) {
+    isolate->ThrowException(String::NewFromUtf8(isolate, exceptionInfo));
+  } else if (NVM_SUCCESS == err) {
+    info.GetReturnValue().Set(String::NewFromUtf8(isolate, result));
   } else {
-    info.GetReturnValue().Set(String::NewFromUtf8(isolate, hash));
-    free(hash);
+    info.GetReturnValue().SetNull();
+    reportUnexepectedError(isolate);
+  }
+
+  if (result != NULL) {
+    free(result);
+    result = NULL;
   }
 
   // record storage usage.
@@ -263,43 +315,56 @@ void GetPreBlockHashCallback(const FunctionCallbackInfo<Value> &info) {
 
 // GetPreBlockSeedCallBack
 void GetPreBlockSeedCallback(const FunctionCallbackInfo<Value> &info) {
+  int err = NVM_SUCCESS;
   Isolate *isolate = info.GetIsolate();
+  if (NULL == isolate) {
+    LogFatalf("Unexpected error: failed to get isolate");
+  }
   Local<Object> thisArg = info.Holder();
   Local<External> handler = Local<External>::Cast(thisArg->GetInternalField(0));
 
   if (info.Length() != 1) {
     isolate->ThrowException(String::NewFromUtf8(
-        isolate, "Blockchain.verifyAddress() requires 1 arguments"));
+        isolate, "Blockchain.GetPreBlockSeed() requires 1 arguments"));
     return;
   }
   
   Local<Value> distance = info[0];
   if (!distance->IsNumber()) {
     isolate->ThrowException(
-        String::NewFromUtf8(isolate, "n must be a number")); 
+        String::NewFromUtf8(isolate, "Blockchain.GetPreBlockSeed(), the argument must be a number")); 
     return;
   }
 
   double v = Number::Cast(*distance)->Value();
   if (v > ULLONG_MAX || v <= 0) {
     isolate->ThrowException(
-        String::NewFromUtf8(isolate, "distance out of range"));
+        String::NewFromUtf8(isolate, "Blockchain.GetPreBlockSeed(), argument out of range"));
     return;
   }
 
   size_t cnt = 0;
-  char *seed = sGetPreBlockSeed(handler->Value(), (unsigned long long)v, &cnt);
-  if (seed == NULL) {
+  char *result = NULL;
+  char *exceptionInfo = NULL;
+  err = sGetPreBlockSeed(handler->Value(), (unsigned long long)(v), &cnt, &result, &exceptionInfo);
+
+  if (NVM_UNEXPECTED_ERR == err || (NVM_EXCEPTION_ERR == err && NULL == exceptionInfo) ||
+      (NVM_SUCCESS == err && NULL == result)) {
     info.GetReturnValue().SetNull();
+    reportUnexepectedError(isolate);
+  } else if (NVM_EXCEPTION_ERR == err) {
+    isolate->ThrowException(String::NewFromUtf8(isolate, exceptionInfo));
+  } else if (NVM_SUCCESS == err) {
+    info.GetReturnValue().Set(String::NewFromUtf8(isolate, result));
   } else {
-    info.GetReturnValue().Set(String::NewFromUtf8(isolate, seed));
-    free(seed);
+    info.GetReturnValue().SetNull();
+    reportUnexepectedError(isolate);
   }
 
-    // Local<Context> context = isolate->GetCurrentContext();
-    // V8Engine *e = GetV8EngineInstance(context);
-    // TerminateExecution(e);
-    // e.is_unexpected_error_happened = true;
+  if (result != NULL) {
+    free(result);
+    result = NULL;
+  }
 
   // record storage usage.
   IncrCounter(isolate, isolate->GetCurrentContext(), cnt);
