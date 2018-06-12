@@ -22,6 +22,7 @@
 #include "lib/tracing.h"
 #include "lib/typescript.h"
 #include "lib/logger.h"
+#include "lib/nvm_error.h"
 
 #include <assert.h>
 #include <string.h>
@@ -33,8 +34,6 @@
 #include <unistd.h>
 #define KillTimeMicros  1000 * 1000 * 5  
 #define MicroSecondDiff(newtv, oldtv) (1000000 * (unsigned long long)((newtv).tv_sec - (oldtv).tv_sec) + (newtv).tv_usec - (oldtv).tv_usec)  //微秒
-#define CodeExecuteErr 1
-#define CodeTimeOut    2
 
 void SetRunScriptArgs(v8ThreadContext *ctx, V8Engine *e, int opt, const char *source, int line_offset, int allow_usage) {
   ctx->e = e;
@@ -82,7 +81,7 @@ int RunScriptSourceThread(char **result, V8Engine *e, const char *source,
 
   bool btn = CreateScriptThread(&ctx);
   if (btn == false) {
-    return CodeExecuteErr;
+    return NVM_UNEXPECTED_ERR;
   }
 
   *result = ctx.output.result;
@@ -146,7 +145,7 @@ bool CreateScriptThread(v8ThreadContext *ctx) {
   while(1) {
     if (ctx->is_finished == true) {
         if (is_kill == true) {
-          ctx->output.ret = CodeTimeOut; 
+          ctx->output.ret = NVM_EXE_TIMEOUT_ERR; 
         }
         break;
     } else {

@@ -322,9 +322,9 @@ func (e *V8Engine) RunScriptSource(source string, sourceLineOffset int) (string,
 	ret = C.RunScriptSourceThread(&cResult, e.v8engine, cSource, C.int(sourceLineOffset), C.uintptr_t(e.lcsHandler),
 		C.uintptr_t(e.gcsHandler))
 
-	if ret == ExecutionTimeOutErr {
+	if ret == C.NVM_EXE_TIMEOUT_ERR {
 		err = ErrExecutionTimeout
-	} else if ret == ExecutionFailedErr {
+	} else if ret != C.NVM_SUCCESS {
 		err = core.ErrExecutionFailed
 	}
 
