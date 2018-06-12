@@ -176,13 +176,13 @@ StandardToken.prototype = {
         if (tokenCount.lt(1)) {
             throw new Error("Insufficient account balance in removeTokenFrom.");
         }
-        this.ownedTokensCount.set(_from, tokenCount-1);
+        this.ownedTokensCount.set(_from, tokenCount.sub(1));
     },
 
     addTokenTo: function(_to, _tokenId) {
         this.tokenOwner.set(_tokenId, _to);
         var tokenCount = this.ownedTokensCount.get(_to) || new BigNumber(0);
-        this.ownedTokensCount.set(_to, tokenCount+1);
+        this.ownedTokensCount.set(_to, tokenCount.add(1));
     },
 
     mint: function(_to, _tokenId) {
