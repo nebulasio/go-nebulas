@@ -134,10 +134,10 @@ const (
 	TestNetWsResetRecordDependencyHeight uint64 = 281600
 
 	// TestNetV8JSLibVersionControlHeight
-	TestNetV8JSLibVersionControlHeight uint64 = 400000
+	TestNetV8JSLibVersionControlHeight uint64 = 407000
 
 	//TestNetTransferFromContractFailureEventRecordableHeight
-	TestNetTransferFromContractFailureEventRecordableHeight uint64 = 400000
+	TestNetTransferFromContractFailureEventRecordableHeight uint64 = 407000
 )
 
 // MainNet
@@ -164,10 +164,10 @@ const (
 	MainNetWsResetRecordDependencyHeight uint64 = 325666
 
 	// MainNetV8JSLibVersionControlHeight
-	MainNetV8JSLibVersionControlHeight uint64 = 400000
+	MainNetV8JSLibVersionControlHeight uint64 = 440000
 
 	//MainNetTransferFromContractFailureEventRecordableHeight
-	MainNetTransferFromContractFailureEventRecordableHeight uint64 = 400000
+	MainNetTransferFromContractFailureEventRecordableHeight uint64 = 440000
 )
 
 var (
