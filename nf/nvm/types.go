@@ -75,8 +75,8 @@ var (
 	GetAccountStateFuncCost   = 1000
 	TransferFuncCost          = 2000
 	VerifyAddressFuncCost     = 100
-	GetContractSourceFuncCost = 100
-	InnerContractFuncCost     = 100
+	GetContractSourceFuncCost = 5000
+	InnerContractFuncCost     = 30000
 )
 
 // Block interface breaks cycle import dependency and hides unused services.
