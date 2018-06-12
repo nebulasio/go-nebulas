@@ -45,8 +45,8 @@ int GetAccountState(void *handler, const char *address, size_t *gasCnt, char **r
   *gasCnt = 1000;
 
   string value = "{\"value\":1,\"nonce\":4}";
-  result = (char *)calloc(value.length() + 1, sizeof(char));
-  strncpy(result, value.c_str(), value.length());
+  *result = (char *)calloc(value.length() + 1, sizeof(char));
+  strncpy(*result, value.c_str(), value.length());
   return NVM_SUCCESS;
 }
 
