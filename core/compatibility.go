@@ -330,21 +330,6 @@ func checkJSLib() {
 				}).Fatal("directory already exists with the same name.")
 			}
 
-			// digitalize
-			v, err := parseVersion(ver)
-			if err != nil {
-				logging.VLog().WithFields(logrus.Fields{
-					"err":     err,
-					"lib":     lib,
-					"version": ver,
-				}).Fatal("parse js lib version error.")
-			}
-
-			if _, ok := digitalized[lib]; !ok {
-				digitalized[lib] = make([]*version, 0)
-			}
-			digitalized[lib] = append(digitalized[lib], v)
-
 			logging.VLog().WithFields(logrus.Fields{
 				"path": p,
 			}).Debug("check js lib.")
@@ -381,4 +366,24 @@ func (v *version) String() string {
 		strconv.Itoa(v.minor),
 		strconv.Itoa(v.patch),
 	}, ".")
+}
+
+func init() {
+	for lib, vers := range V8JSLibs {
+		for _, ver := range vers {
+			v, err := parseVersion(ver)
+			if err != nil {
+				logging.VLog().WithFields(logrus.Fields{
+					"err":     err,
+					"lib":     lib,
+					"version": ver,
+				}).Fatal("parse js lib version error.")
+			}
+
+			if _, ok := digitalized[lib]; !ok {
+				digitalized[lib] = make([]*version, 0)
+			}
+			digitalized[lib] = append(digitalized[lib], v)
+		}
+	}
 }

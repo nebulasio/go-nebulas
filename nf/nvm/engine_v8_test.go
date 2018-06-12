@@ -33,11 +33,10 @@ import (
 
 	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/account"
-	"github.com/nebulasio/go-nebulas/net"
-
 	"github.com/nebulasio/go-nebulas/consensus/dpos"
 	"github.com/nebulasio/go-nebulas/core/pb"
 	"github.com/nebulasio/go-nebulas/neblet/pb"
+	"github.com/nebulasio/go-nebulas/net"
 
 	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/core/state"
