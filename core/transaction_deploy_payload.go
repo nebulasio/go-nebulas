@@ -114,8 +114,9 @@ func (payload *DeployPayload) Execute(limitedGas *util.Uint128, tx *Transaction,
 		return util.NewUint128(), "", err
 	} */
 	var contract state.Account
-	if block.Height() >= V8JSLibVersionControlHeight {
-		contract, err = ws.CreateContractAccount(addr.Bytes(), tx.Hash(), &corepb.ContractMeta{Version: CurrentV8JSLibVersion})
+	v := GetV8JSLibVersion(block.Height())
+	if len(v) > 0 {
+		contract, err = ws.CreateContractAccount(addr.Bytes(), tx.Hash(), &corepb.ContractMeta{Version: v})
 	} else {
 		contract, err = ws.CreateContractAccount(addr.Bytes(), tx.Hash(), nil)
 	}

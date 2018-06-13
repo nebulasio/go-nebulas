@@ -107,8 +107,6 @@ func RequireDelegateFunc(handler unsafe.Pointer, filename *C.char, lineOffset *C
 //export AttachLibVersionDelegateFunc
 func AttachLibVersionDelegateFunc(handler unsafe.Pointer, require *C.char) *C.char {
 	libname := C.GoString(require)
-	libname = strings.Replace(libname, `\\`, "/", -1)
-	libname = strings.Replace(libname, `\`, "/", -1)
 	e := getEngineByEngineHandler(handler)
 	if e == nil {
 		logging.VLog().WithFields(logrus.Fields{
@@ -117,27 +115,37 @@ func AttachLibVersionDelegateFunc(handler unsafe.Pointer, require *C.char) *C.ch
 		return nil
 	}
 	if len(libname) == 0 {
-		logging.VLog().Error("attach path is empty.")
+		logging.VLog().Error("libname is empty.")
 		return nil
 	}
 
 	if e.ctx == nil {
-		logging.VLog().Error("context is nil.")
+		logging.VLog().WithFields(logrus.Fields{
+			"libname": libname,
+		}).Error("e.context is nil.")
 		return nil
 	}
 	if e.ctx.block == nil {
-		logging.VLog().Error("context.block is nil.")
+		logging.VLog().WithFields(logrus.Fields{
+			"libname": libname,
+		}).Error("e.context.block is nil.")
 		return nil
 	}
 
 	// block after core.V8JSLibVersionControlHeight, inclusive
 	if e.ctx.block.Height() >= core.V8JSLibVersionControlHeight {
 		if e.ctx.contract == nil {
-			logging.VLog().Error("context.contract is nil.")
+			logging.VLog().WithFields(logrus.Fields{
+				"libname": libname,
+				"height":  e.ctx.block.Height(),
+			}).Error("e.context.contract is nil.")
 			return nil
 		}
 		if e.ctx.contract.ContractMeta() == nil {
-			logging.VLog().Error("context.contract.ContractMeta() return nil.")
+			logging.VLog().WithFields(logrus.Fields{
+				"libname": libname,
+				"height":  e.ctx.block.Height(),
+			}).Error("e.context.contract.ContractMeta is nil.")
 			return nil
 		}
 		cv := e.ctx.contract.ContractMeta().Version
@@ -145,19 +153,21 @@ func AttachLibVersionDelegateFunc(handler unsafe.Pointer, require *C.char) *C.ch
 		if len(cv) == 0 {
 			logging.VLog().WithFields(logrus.Fields{
 				"libname": libname,
+				"height":  e.ctx.block.Height(),
 			}).Error("contract deploy lib version is empty.")
 			return nil
 		}
 
 		if !strings.HasPrefix(libname, JSLibRootName) || strings.Contains(libname, "../") {
 			logging.VLog().WithFields(logrus.Fields{
-				"libname":   libname,
-				"deployLib": cv,
-			}).Error("invalid attach path.")
+				"libname":       libname,
+				"height":        e.ctx.block.Height(),
+				"deployVersion": cv,
+			}).Error("invalid require path.")
 			return nil
 		}
 
-		ver := core.FilterLibVersion(cv, libname[JSLibRootNameLen:])
+		ver := core.FindLastNearestLibVersion(cv, libname[JSLibRootNameLen:])
 		if len(ver) == 0 {
 			logging.VLog().WithFields(logrus.Fields{
 				"libname":      libname,
@@ -185,9 +195,9 @@ func AttachLibVersionDelegateFunc(handler unsafe.Pointer, require *C.char) *C.ch
 
 	logging.VLog().WithFields(logrus.Fields{
 		"libname": libname,
-		"return":  JSLibRootName + "1.0.0" + libname[JSLibRootNameLen-1:],
+		"return":  JSLibRootName + core.DefaultV8JSLibVersion + libname[JSLibRootNameLen-1:],
 	}).Debug("attach lib.")
-	return C.CString(JSLibRootName + "1.0.0" + libname[JSLibRootNameLen-1:])
+	return C.CString(JSLibRootName + core.DefaultV8JSLibVersion + libname[JSLibRootNameLen-1:])
 }
 
 func reformatModuleID(id string) string {

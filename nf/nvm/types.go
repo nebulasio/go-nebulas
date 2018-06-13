@@ -59,6 +59,17 @@ const (
 	maxBlockDistance           = maxQueryBlockInfoValidTime * 24 * 3600 * 1000 / 15000 //TODO:dpos.BlockIntervalInMs
 )
 
+// gas price
+const (
+	// crypto
+	CryptoSha256GasBase         = 20000
+	CryptoSha3256GasBase        = 20000
+	CryptoRipemd160GasBase      = 20000
+	CryptoRecoverAddressGasBase = 100000
+	CryptoMd5GasBase            = 6000
+	CryptoBase64GasBase         = 3000
+)
+
 // Block interface breaks cycle import dependency and hides unused services.
 type Block interface {
 	Hash() byteutils.Hash
