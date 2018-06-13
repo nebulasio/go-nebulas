@@ -41,6 +41,8 @@ int VerifyAddressFunc_cgo(void *handler, const char *address);
 char *GetContractSourceFunc_cgo(void *handler, const char *address);
 char *InnerContractFunc_cgo(void *handler, const char *address, const char *funcName, const char * v, const char *args, size_t *gasCnt);
 
+char *GetTxRandomFunc_cgo(void *handler);
+
 void EventTriggerFunc_cgo(void *handler, const char *topic, const char *data, size_t *gasCnt);
 
 */
@@ -129,7 +131,8 @@ func InitV8Engine() {
 		(C.VerifyAddressFunc)(unsafe.Pointer(C.VerifyAddressFunc_cgo)),
 		(C.GetContractSourceFunc)(unsafe.Pointer(C.GetContractSourceFunc_cgo)),
 		(C.InnerContractFunc)(unsafe.Pointer(C.InnerContractFunc_cgo)))
-
+	// random.
+	C.InitializeRandom((C.GetTxRandomFunc)(unsafe.Pointer(C.GetTxRandomFunc_cgo)))
 	// Event.
 	C.InitializeEvent((C.EventTriggerFunc)(unsafe.Pointer(C.EventTriggerFunc_cgo)))
 }

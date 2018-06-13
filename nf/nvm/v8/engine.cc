@@ -227,9 +227,9 @@ int Execute(char **result, V8Engine *e, const char *source,
   int iRtn = delegate(result, isolate, source, source_line_offset, context,
                   trycatch, delegateContext);
   
-  if (e->is_requested_terminate_execution == 1) {
-    return 2;
-  }
+  // if (e->is_requested_terminate_execution == 1) {
+  //   return 2;
+  // }
   
   return iRtn;
 }

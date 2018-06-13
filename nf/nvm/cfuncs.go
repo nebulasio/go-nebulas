@@ -41,6 +41,9 @@ char *GetContractSourceFunc(void *handler, const char *address, size_t *gasCnt);
 char *InnerContractFunc(void *handler, const char *address, const char *funcName, const char * v,
 		const char *args, size_t *gasCnt);
 
+//random.
+char *GetTxRandomFunc(void *handler);
+
 // event.
 void EventTriggerFunc(void *handler, const char *topic, const char *data, size_t *gasCnt);
 
@@ -80,6 +83,9 @@ char *GetContractSourceFunc_cgo(void *handler, const char *address, size_t *gasC
 };
 char *InnerContractFunc_cgo(void *handler, const char *address, const char *funcName, const char * v, const char *args, size_t *gasCnt) {
 	return InnerContractFunc(handler, address, funcName, v, args, gasCnt);
+};
+char *GetTxRandomFunc_cgo(void *handler) {
+	return GetTxRandomFunc(handler);
 };
 void EventTriggerFunc_cgo(void *handler, const char *topic, const char *data, size_t *gasCnt) {
 	EventTriggerFunc(handler, topic, data, gasCnt);

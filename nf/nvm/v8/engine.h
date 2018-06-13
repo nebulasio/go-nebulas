@@ -98,6 +98,9 @@ EXPORT char *GetV8Version();
 typedef char *(*RequireDelegate)(void *handler, const char *filename,
                                  size_t *lineOffset);
 EXPORT void InitializeRequireDelegate(RequireDelegate delegate);
+// random callback
+typedef char *(*GetTxRandomFunc)(void *handler);
+EXPORT void InitializeRandom(GetTxRandomFunc delegate);
 
 typedef struct V8EngineStats {
   size_t count_of_executed_instructions;

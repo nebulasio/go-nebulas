@@ -10,6 +10,10 @@ ProxyBankContract.prototype = {
 	init: function () {
         //
     },
+    getRandom: function() {
+        var rand = _native_math.random();
+        console.log("rand:", rand);
+    },
     getSource: function(address) {
         var funcs =  {
             save: function() { 
@@ -85,6 +89,7 @@ ProxyBankContract.prototype = {
             }
         });
     },
+
 };
 
 module.exports = ProxyBankContract;
