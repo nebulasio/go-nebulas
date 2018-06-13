@@ -32,7 +32,6 @@
 #include <thread>
 #include <sys/time.h>
 #include <unistd.h>
-#define KillTimeMicros  1000 * 1000 * 5  
 #define MicroSecondDiff(newtv, oldtv) (1000000 * (unsigned long long)((newtv).tv_sec - (oldtv).tv_sec) + (newtv).tv_usec - (oldtv).tv_usec)  //微秒
 
 void SetRunScriptArgs(v8ThreadContext *ctx, V8Engine *e, int opt, const char *source, int line_offset, int allow_usage) {
@@ -140,6 +139,7 @@ bool CreateScriptThread(v8ThreadContext *ctx) {
     return false;
   }
   
+  int timeout = ctx->e->timeout;
   bool is_kill = false;
   //thread safe
   while(1) {
@@ -156,11 +156,12 @@ bool CreateScriptThread(v8ThreadContext *ctx) {
         continue;
       }
       int diff = MicroSecondDiff(tcEnd, tcBegin);
-      if (diff >= KillTimeMicros && is_kill == false) { 
+  
+      if (diff >= timeout && is_kill == false) { 
+        LogErrorf("CreateScriptThread timeout timeout:%d diff:%d\n", timeout, diff);
         TerminateExecution(ctx->e);
         is_kill = true;
       }
-
     }
   }
   return true;

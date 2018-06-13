@@ -230,6 +230,10 @@ func (e *V8Engine) SetTestingFlag(flag bool) {
 	}*/
 }
 
+func (e *V8Engine) SetTimeOut(timeout uint64) {
+	e.v8engine.timeout = C.int(timeout)
+}
+
 // SetExecutionLimits set execution limits of V8 Engine, prevent Halting Problem.
 func (e *V8Engine) SetExecutionLimits(limitsOfExecutionInstructions, limitsOfTotalMemorySize uint64) error {
 	e.v8engine.limits_of_executed_instructions = C.size_t(limitsOfExecutionInstructions)

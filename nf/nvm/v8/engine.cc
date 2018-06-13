@@ -47,6 +47,7 @@ void PrintAndReturnException(char **exception, Local<Context> context,
 void EngineLimitsCheckDelegate(Isolate *isolate, size_t count,
                                void *listenerContext);
 
+#define ExecuteTimeOut  5*1000*1000
 #define STRINGIZE2(s) #s
 #define STRINGIZE(s) STRINGIZE2(s)
 #define V8VERSION_STRING                                                       \
@@ -101,6 +102,7 @@ V8Engine *CreateEngine() {
   V8Engine *e = (V8Engine *)calloc(1, sizeof(V8Engine));
   e->allocator = allocator;
   e->isolate = isolate;
+  e->timeout = ExecuteTimeOut;
   return e;
 }
 

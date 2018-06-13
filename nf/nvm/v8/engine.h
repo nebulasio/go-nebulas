@@ -136,6 +136,7 @@ typedef struct V8EngineStats {
 } V8EngineStats;
 
 typedef struct V8Engine {
+
   void *isolate;
   void *allocator;
   size_t limits_of_executed_instructions;
@@ -143,6 +144,7 @@ typedef struct V8Engine {
   bool is_requested_terminate_execution;
   bool is_unexpected_error_happen;
   int testing;
+  int timeout;
   
   V8EngineStats stats;
  
@@ -164,7 +166,7 @@ typedef struct v8ThreadContext_ {
   V8Engine *e; 
   v8ThreadContextInput input;
   v8ThreadContextOutput output;
-  bool is_finished;  
+  bool is_finished;
 } v8ThreadContext;
 
 EXPORT void Initialize();
