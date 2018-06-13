@@ -70,12 +70,12 @@ import (
 )
 
 const (
-	// ExecutionTimeoutInSeconds max v8 execution timeout.
-	ExecutionTimeoutInSeconds = 5
-)
-const (
 	ExecutionFailedErr  = 1
 	ExecutionTimeOutErr = 2
+
+	// ExecutionTimeoutInSeconds max v8 execution timeout.
+	ExecutionTimeoutInSeconds = 5
+	TimeoutGasLimitCost       = 100000000
 )
 
 //engine_v8 private data
@@ -328,6 +328,13 @@ func (e *V8Engine) RunScriptSource(source string, sourceLineOffset int) (string,
 
 	if ret == C.NVM_EXE_TIMEOUT_ERR {
 		err = ErrExecutionTimeout
+
+		if TimeoutGasLimitCost > e.limitsOfExecutionInstructions {
+			e.actualCountOfExecutionInstructions = e.limitsOfExecutionInstructions
+		} else {
+			e.actualCountOfExecutionInstructions = TimeoutGasLimitCost
+		}
+
 	} else if ret != C.NVM_SUCCESS {
 		err = core.ErrExecutionFailed
 	}
