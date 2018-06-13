@@ -345,7 +345,7 @@ var caseGroup = {
             }
         },
         {
-            "name": "0-3. test unsupported method",
+            "name": "0-3. test locale method",
             "testInput": {
                 value: "0",
                 nonce: 1, 
@@ -357,10 +357,9 @@ var caseGroup = {
                 }
             },
             "testExpect": {
-                canExcuteTx: false,
+                canExcuteTx: true,
                 toBalanceChange: "0",
-                status: 0,
-                eventErr: "Call: Error: Unsupported method!"
+                status: 1
             }
         }
     ]

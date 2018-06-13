@@ -54,7 +54,10 @@ Contract.prototype = {
         var date = new Date();
         
         Event.Trigger("Date.TZ", {
-			timezone: date.getTimezoneOffset()
+            "timezone": date.getTimezoneOffset(),
+            "toLocaleString": date.toLocaleString(),
+            "toLocaleDateString": date.toLocaleDateString(),
+            "toLocaleTimeString": date.toLocaleTimeString()
         });
     },
 

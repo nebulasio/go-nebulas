@@ -307,7 +307,7 @@ var caseGroup = {
 
     cases: [
         {
-            "name": "0-1. test 'not define user seed'",
+            "name": "0-1. test 'undefined user seed'",
             "testInput": {
                 value: "0",
                 nonce: 1, 
@@ -319,14 +319,14 @@ var caseGroup = {
                 }
             },
             "testExpect": {
-                canExcuteTx: false,
+                canExcuteTx: true,
                 toBalanceChange: "0",
-                status: 0,
-                eventErr: "Call: Error: input seed must be a string"
+                status: 1,
+                equalr1r2: false
             }
         },
         {
-            "name": "0-2. test 'empty user seed('') == reset random seed'",
+            "name": "0-2. test 'empty user seed('')'",
             "testInput": {
                 value: "0",
                 nonce: 1, 
@@ -341,7 +341,7 @@ var caseGroup = {
                 canExcuteTx: true,
                 toBalanceChange: "0",
                 status: 1,
-                equalr1r2: true
+                equalr1r2: false
             }
         },
         {
