@@ -197,7 +197,7 @@ describe('test transfer from contract', function () {
                     }).then(function(resp){
                         console.log("======", JSON.stringify(resp))
                         expect(resp.events[0].topic).equal("chain.transferFromContract");
-                        expect(JSON.parse(resp.events[0].date).error).equal("failed to sub balace from contract address");
+                        expect(JSON.parse(resp.events[0].data).error).equal("failed to sub balace from contract address");
                         done();
                     }).catch(function(err){
                         console.log("unexpected err :", err);

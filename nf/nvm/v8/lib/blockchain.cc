@@ -159,7 +159,7 @@ void GetAccountStateCallback(const FunctionCallbackInfo<Value> &info) {
 
   Local<Value> key = info[0];
   if (!key->IsString()) {
-    isolate->ThrowException(String::NewFromUtf8(isolate, "Blockchain.getAccountState(), key must be string"));
+    isolate->ThrowException(String::NewFromUtf8(isolate, "Blockchain.getAccountState(), argument must be a string"));
     return;
   }
 
@@ -185,6 +185,11 @@ void GetAccountStateCallback(const FunctionCallbackInfo<Value> &info) {
   if (result != NULL) {
     free(result);
     result = NULL;
+  }
+
+  if (exceptionInfo != NULL) {
+    free(exceptionInfo);
+    exceptionInfo = NULL;
   }
 
   // record storage usage.
@@ -309,6 +314,11 @@ void GetPreBlockHashCallback(const FunctionCallbackInfo<Value> &info) {
     result = NULL;
   }
 
+  if (exceptionInfo != NULL) {
+    free(exceptionInfo);
+    exceptionInfo = NULL;
+  }
+
   // record storage usage.
   IncrCounter(isolate, isolate->GetCurrentContext(), cnt);
 }
@@ -364,6 +374,11 @@ void GetPreBlockSeedCallback(const FunctionCallbackInfo<Value> &info) {
   if (result != NULL) {
     free(result);
     result = NULL;
+  }
+
+  if (exceptionInfo != NULL) {
+    free(exceptionInfo);
+    exceptionInfo = NULL;
   }
 
   // record storage usage.

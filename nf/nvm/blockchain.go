@@ -92,7 +92,7 @@ func GetAccountStateFunc(handler unsafe.Pointer, address *C.char, gasCnt *C.size
 	*exceptionInfo = nil
 	engine, _ := getEngineByStorageHandler(uint64(uintptr(handler)))
 	if engine == nil || engine.ctx.block == nil {
-		logging.VLog().Error("Unexpected error: failed to get engine.")
+		logging.VLog().Error("Unexpected error: failed to get engine")
 		return C.NVM_UNEXPECTED_ERR
 	}
 
@@ -101,7 +101,7 @@ func GetAccountStateFunc(handler unsafe.Pointer, address *C.char, gasCnt *C.size
 
 	addr, err := core.AddressParse(C.GoString(address))
 	if err != nil {
-		*exceptionInfo = C.CString("GetAccountState parse address failed.")
+		*exceptionInfo = C.CString("Blockchain.getAccountState(), parse address failed")
 		return C.NVM_EXCEPTION_ERR
 	}
 
