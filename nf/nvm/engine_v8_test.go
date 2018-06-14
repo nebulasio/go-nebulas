@@ -2772,6 +2772,7 @@ func TestInnerTransactionsRand(t *testing.T) {
 		},
 	}
 
+	core.RandomAvailableHeight = 2
 	for _, tt := range tests {
 		for i := 0; i < len(tt.memArr); i++ {
 
@@ -2792,13 +2793,12 @@ func TestInnerTransactionsRand(t *testing.T) {
 			assert.Nil(t, err)
 			block, err := core.NewBlock(neb.chain.ChainID(), b, tail)
 			assert.Nil(t, err)
-			seed := "ec4a091fc648cfae111a4554fa6d6af02dd7347e59f445b7697d6b9a600b8629"
-			seedHex, _ := byteutils.FromHex(seed)
-			prof := "61e5a30b84f04af8e1b11b49c9a2b87ac71014eb1fbe0483c6f6c4bf91ed6de89fb2ce07b1d8bcab59c78e160a773f60be64e29f1a9979940e8f9ba9bfd3aac004901ebe51ff348eee9e072dced705d1f70621aaa06e60a8d4f73fe4d64b47e8944b91aa0b7bfbca13c18373a3d5d8adb17cbacfb9d6027afc910e92c50436d284"
-			profHex, _ := byteutils.FromHex(prof)
-			block.SetRandomSeed(seedHex, profHex)
 
-			core.RandomAvailableHeight = 2
+			miner, _ := core.AddressParseFromBytes(consensusState.Proposer())
+			// fmt.Println("====", miner.String()) // n1GmkKH6nBMw4rrjt16RrJ9WcgvKUtAZP1s
+			seed, proof, err := manager.GenerateRandomSeed(miner, neb.chain.GenesisBlock().Hash(), neb.chain.GenesisBlock().Hash())
+			block.SetRandomSeed(seed, proof)
+
 			block.WorldState().SetConsensusState(consensusState)
 			block.SetTimestamp(consensusState.TimeStamp())
 
@@ -2845,6 +2845,12 @@ func TestInnerTransactionsRand(t *testing.T) {
 			block.WorldState().SetConsensusState(consensusState)
 			block.SetTimestamp(consensusState.TimeStamp())
 			assert.Nil(t, err)
+
+			miner, err = core.AddressParseFromBytes(consensusState.Proposer())
+			assert.Nil(t, err)
+			seed, proof, err = manager.GenerateRandomSeed(miner, neb.chain.GenesisBlock().Hash(), seed)
+			assert.Nil(t, err)
+			block.SetRandomSeed(seed, proof)
 
 			calleeContract := contractsAddr[1]
 			callToContract := contractsAddr[2]
