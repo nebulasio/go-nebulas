@@ -137,7 +137,7 @@ describe('test transfer from contract', function () {
         };
         neb.api.call(sourceAccount.getAddressString(), contractAddress, Unit.nasToBasic(10), nonce, 200000, 1000000, contract).then(function(resp){
             console.log(JSON.stringify(resp));
-            expect(resp.execute_err).to.be.equal("Call: getAccountState: invalid address");
+            expect(resp.execute_err).to.be.equal("Call: Blockchain.getAccountState(), parse address failed");
             done();
         }).catch(function(err) {
             console.log(err);
@@ -145,11 +145,11 @@ describe('test transfer from contract', function () {
         });
     });
 
-    it ('3. test feature getPreBlockHash 1/5[distance is 1]', function (done) {
-        var distance = 1;
+    it ('3. test feature getPreBlockHash 1/5[offset is 1]', function (done) {
+        var offset = 1;
         var contract = {
             'function': 'testGetPreBlockHash',
-            "args": '[' + distance + ']',
+            "args": '[' + offset + ']',
         };
         var hash;
         var height;
@@ -158,7 +158,7 @@ describe('test transfer from contract', function () {
             var result = JSON.parse(resp.result);
             hash = result.hash;
             height = result.height;
-            return neb.api.getBlockByHeight(height - distance);
+            return neb.api.getBlockByHeight(height - offset);
         }).then(function(resp) {
             // console.log(JSON.stringify(resp));
             expect(resp.hash).to.be.equal(hash);
@@ -169,11 +169,11 @@ describe('test transfer from contract', function () {
         });
     });
 
-    it ('4. test feature getPreBlockHash 2/5[distance is "1"]', function (done) {
-        var distance = 1;
+    it ('4. test feature getPreBlockHash 2/5[offset is "1"]', function (done) {
+        var offset = 1;
         var contract = {
             'function': 'testGetPreBlockHash',
-            "args": "[\"" + distance + "\"]",
+            "args": "[\"" + offset + "\"]",
         };
         var hash;
         var height;
@@ -182,7 +182,7 @@ describe('test transfer from contract', function () {
             var result = JSON.parse(resp.result);
             hash = result.hash;
             height = result.height;
-            return neb.api.getBlockByHeight(height - distance);
+            return neb.api.getBlockByHeight(height - offset);
         }).then(function(resp) {
             // console.log(JSON.stringify(resp));
             expect(resp.hash).to.be.equal(hash);
@@ -193,15 +193,15 @@ describe('test transfer from contract', function () {
         });
     });
 
-    it ('5. test feature getPreBlockHash 3/5[distance is "#1"]', function (done) {
-        var distance = "#1";
+    it ('5. test feature getPreBlockHash 3/5[offset is "#1"]', function (done) {
+        var offset = "#1";
         var contract = {
             'function': 'testGetPreBlockHash',
-            "args": "[\"" + distance + "\"]",
+            "args": "[\"" + offset + "\"]",
         };
         neb.api.call(sourceAccount.getAddressString(), contractAddress, Unit.nasToBasic(10), nonce, 200000, 1000000, contract).then(function(resp){
             console.log(JSON.stringify(resp));
-            expect(resp.execute_err).to.be.equal("Call: getPreBlockHash: invalid distance");
+            expect(resp.execute_err).to.be.equal("Call: getPreBlockHash: invalid offset");
             done();
         }).catch(function(err) {
             console.log(err);
@@ -209,15 +209,15 @@ describe('test transfer from contract', function () {
         });
     });
 
-    it ('6. test feature getPreBlockHash 4/5[distance is 0]', function (done) {
-        var distance = 0;
+    it ('6. test feature getPreBlockHash 4/5[offset is 0]', function (done) {
+        var offset = 0;
         var contract = {
             'function': 'testGetPreBlockHash',
-            "args": '[' + distance + ']',
+            "args": '[' + offset + ']',
         };
         neb.api.call(sourceAccount.getAddressString(), contractAddress, Unit.nasToBasic(10), nonce, 200000, 1000000, contract).then(function(resp){
             console.log(JSON.stringify(resp));
-            expect(resp.execute_err).to.be.equal("Call: getPreBlockHash: invalid distance");
+            expect(resp.execute_err).to.be.equal("Call: getPreBlockHash: invalid offset");
             done();
         }).catch(function(err) {
             console.log(err);
@@ -225,11 +225,11 @@ describe('test transfer from contract', function () {
         });
     });
 
-    it ('7. test feature getPreBlockHash 5/5[distance is too large]', function (done) {
-        var distance = 11111111111111;
+    it ('7. test feature getPreBlockHash 5/5[offset is too large]', function (done) {
+        var offset = 11111111111111;
         var contract = {
             'function': 'testGetPreBlockHash',
-            "args": '[' + distance + ']',
+            "args": '[' + offset + ']',
         };
         neb.api.call(sourceAccount.getAddressString(), contractAddress, Unit.nasToBasic(10), nonce, 200000, 1000000, contract).then(function(resp){
             console.log(JSON.stringify(resp));
@@ -241,11 +241,11 @@ describe('test transfer from contract', function () {
         });
     });
 
-    it ('8. test feature getPreBlockSeed 1/5[distance is 1]', function (done) {
-        var distance = 1;
+    it ('8. test feature getPreBlockSeed 1/5[offset is 1]', function (done) {
+        var offset = 1;
         var contract = {
             'function': 'testGetPreBlockSeed',
-            "args": '[' + distance + ']',
+            "args": '[' + offset + ']',
         };
         var seed;
         var height;
@@ -255,7 +255,7 @@ describe('test transfer from contract', function () {
             seed = result.seed;
             console.log(seed);
             height = result.height;
-            return neb.api.getBlockByHeight(height - distance);
+            return neb.api.getBlockByHeight(height - offset);
         }).then(function(resp) {
             console.log(JSON.stringify(resp));
             expect(resp.randomSeed).to.be.equal(seed);
@@ -266,11 +266,11 @@ describe('test transfer from contract', function () {
         });
     });
 
-    it ('9. test feature getPreBlockSeed 2/5[distance is "1"]', function (done) {
-        var distance = 1;
+    it ('9. test feature getPreBlockSeed 2/5[offset is "1"]', function (done) {
+        var offset = 1;
         var contract = {
             'function': 'testGetPreBlockSeed',
-            "args": "[\"" + distance + "\"]",
+            "args": "[\"" + offset + "\"]",
         };
         var seed;
         var height;
@@ -279,7 +279,7 @@ describe('test transfer from contract', function () {
             var result = JSON.parse(resp.result);
             seed = result.seed;
             height = result.height;
-            return neb.api.getBlockByHeight(height - distance);
+            return neb.api.getBlockByHeight(height - offset);
         }).then(function(resp) {
             // console.log(JSON.stringify(resp));
             expect(resp.randomSeed).to.be.equal(seed);
@@ -290,15 +290,15 @@ describe('test transfer from contract', function () {
         });
     });
 
-    it ('10. test feature getPreBlockSeed 3/5[distance is 0]', function (done) {
-        var distance = 0;
+    it ('10. test feature getPreBlockSeed 3/5[offset is 0]', function (done) {
+        var offset = 0;
         var contract = {
             'function': 'testGetPreBlockSeed',
-            "args": '[' + distance + ']',
+            "args": '[' + offset + ']',
         };
         neb.api.call(sourceAccount.getAddressString(), contractAddress, Unit.nasToBasic(10), nonce, 200000, 1000000, contract).then(function(resp){
             console.log(JSON.stringify(resp));
-            expect(resp.execute_err).to.be.equal("Call: getPreBlockSeed: invalid distance");
+            expect(resp.execute_err).to.be.equal("Call: getPreBlockSeed: invalid offset");
             done();
         }).catch(function(err) {
             console.log(err);
@@ -306,11 +306,11 @@ describe('test transfer from contract', function () {
         });
     });
 
-    it ('11. test feature getPreBlockSeed 4/5[distance is too large]', function (done) {
-        var distance = 11111111111111;
+    it ('11. test feature getPreBlockSeed 4/5[offset is too large]', function (done) {
+        var offset = 11111111111111;
         var contract = {
             'function': 'testGetPreBlockSeed',
-            "args": '[' + distance + ']',
+            "args": '[' + offset + ']',
         };
         neb.api.call(sourceAccount.getAddressString(), contractAddress, Unit.nasToBasic(10), nonce, 200000, 1000000, contract).then(function(resp){
             console.log(JSON.stringify(resp));
@@ -321,15 +321,15 @@ describe('test transfer from contract', function () {
             done(err);
         });
     });
-    it ('12. test feature getPreBlockSeed 5/5[distance is "#1"]', function (done) {
-        var distance = "#1";
+    it ('12. test feature getPreBlockSeed 5/5[offset is "#1"]', function (done) {
+        var offset = "#1";
         var contract = {
             'function': 'testGetPreBlockSeed',
-            "args": "[\"" + distance + "\"]",
+            "args": "[\"" + offset + "\"]",
         };
         neb.api.call(sourceAccount.getAddressString(), contractAddress, Unit.nasToBasic(10), nonce, 200000, 1000000, contract).then(function(resp){
             console.log(JSON.stringify(resp));
-            expect(resp.execute_err).to.be.equal("Call: getPreBlockSeed: invalid distance");
+            expect(resp.execute_err).to.be.equal("Call: getPreBlockSeed: invalid offset");
             done();
         }).catch(function(err) {
             console.log(err);

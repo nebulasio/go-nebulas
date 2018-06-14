@@ -20,7 +20,7 @@ var TestNet = function (env) {
     } else if (env === "testneb2") {
 
         this.ChainId = 1002;
-        this.sourceAccount = new Wallet.Account("25a3a441a34658e7a595a0eda222fa43ac51bd223017d17b420674fb6d0a4d52");
+        this.sourceAccount = new Wallet.Account("1d3fe06a53919e728315e2ccca41d4aa5b190845a79007797517e62dbc0df454");
         this.coinbase = "n1SAeQRVn33bamxN4ehWUT7JGdxipwn8b17";
         this.apiEndPoint = "http://34.205.26.12:8685";
 
