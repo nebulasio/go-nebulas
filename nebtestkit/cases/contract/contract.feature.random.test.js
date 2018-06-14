@@ -319,10 +319,10 @@ var caseGroup = {
                 }
             },
             "testExpect": {
-                canExcuteTx: true,
+                canExcuteTx: false,
                 toBalanceChange: "0",
-                status: 1,
-                equalr1r2: false
+                status: 0,
+                eventErr: "Call: Error: input seed must be a string"
             }
         },
         {

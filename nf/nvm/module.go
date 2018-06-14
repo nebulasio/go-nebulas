@@ -176,11 +176,6 @@ func AttachLibVersionDelegateFunc(handler unsafe.Pointer, require *C.char) *C.ch
 			return nil
 		}
 
-		logging.VLog().WithFields(logrus.Fields{
-			"libname": libname,
-			"return":  JSLibRootName + ver + libname[JSLibRootNameLen-1:],
-		}).Debug("attach lib.")
-
 		return C.CString(JSLibRootName + ver + libname[JSLibRootNameLen-1:])
 	}
 
@@ -192,11 +187,6 @@ func AttachLibVersionDelegateFunc(handler unsafe.Pointer, require *C.char) *C.ch
 			libname = JSLibRootName + libname
 		}
 	}
-
-	logging.VLog().WithFields(logrus.Fields{
-		"libname": libname,
-		"return":  JSLibRootName + core.DefaultV8JSLibVersion + libname[JSLibRootNameLen-1:],
-	}).Debug("attach lib.")
 	return C.CString(JSLibRootName + core.DefaultV8JSLibVersion + libname[JSLibRootNameLen-1:])
 }
 

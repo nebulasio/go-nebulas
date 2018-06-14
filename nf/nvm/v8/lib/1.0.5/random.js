@@ -123,7 +123,7 @@ module.exports = (function(){
         if (typeof(userseed) !== 'string') {
             throw new Error("input seed must be a string")
         }
-        if (typeof userseed === 'undefined' || userseed == null || userseed === "") {
+        if (userseed === "") {
             return;
         }
         checkCtx();
