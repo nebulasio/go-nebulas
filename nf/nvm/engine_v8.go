@@ -325,42 +325,40 @@ func (e *V8Engine) RunScriptSource(source string, sourceLineOffset int) (string,
 	// }()
 	ret = C.RunScriptSourceThread(&cResult, e.v8engine, cSource, C.int(sourceLineOffset), C.uintptr_t(e.lcsHandler),
 		C.uintptr_t(e.gcsHandler))
+	e.CollectTracingStats()
 
+	//set err
 	if ret == C.NVM_EXE_TIMEOUT_ERR {
 		err = ErrExecutionTimeout
-
 		if TimeoutGasLimitCost > e.limitsOfExecutionInstructions {
 			e.actualCountOfExecutionInstructions = e.limitsOfExecutionInstructions
 		} else {
 			e.actualCountOfExecutionInstructions = TimeoutGasLimitCost
 		}
-
-	} else if ret != C.NVM_SUCCESS {
-		err = core.ErrExecutionFailed
+	} else if ret == C.NVM_UNEXPECTED_ERR {
+		err = core.ErrUnexpected
+	} else {
+		if ret != C.NVM_SUCCESS {
+			err = core.ErrExecutionFailed
+		}
+		if e.limitsOfExecutionInstructions > 0 &&
+			e.limitsOfExecutionInstructions < e.actualCountOfExecutionInstructions {
+			// Reach instruction limits.
+			err = ErrInsufficientGas
+			e.actualCountOfExecutionInstructions = e.limitsOfExecutionInstructions
+		} else if e.limitsOfTotalMemorySize > 0 && e.limitsOfTotalMemorySize < e.actualTotalMemorySize {
+			// reach memory limits.
+			err = ErrExceedMemoryLimits
+			e.actualCountOfExecutionInstructions = e.limitsOfExecutionInstructions
+		}
 	}
 
+	//set result
 	if cResult != nil {
 		result = C.GoString(cResult)
 		C.free(unsafe.Pointer(cResult))
 	} else if ret == C.NVM_SUCCESS {
 		result = "\"\"" // default JSON String.
-	}
-
-	// collect tracing stats.
-	e.CollectTracingStats()
-	if e.limitsOfExecutionInstructions > 0 && e.limitsOfExecutionInstructions < e.actualCountOfExecutionInstructions {
-		// Reach instruction limits.
-		err = ErrInsufficientGas
-	} else if e.limitsOfTotalMemorySize > 0 && e.limitsOfTotalMemorySize < e.actualTotalMemorySize {
-		// reach memory limits.
-		err = ErrExceedMemoryLimits
-	}
-	if e.actualCountOfExecutionInstructions > e.limitsOfExecutionInstructions || err == ErrExceedMemoryLimits { //ToDo ErrExceedMemoryLimits value is same in each linux
-		e.actualCountOfExecutionInstructions = e.limitsOfExecutionInstructions //ToDo memory pass whether exhaust ?
-	}
-
-	if ret == C.NVM_UNEXPECTED_ERR {
-		err = core.ErrUnexpected
 	}
 
 	return result, err
