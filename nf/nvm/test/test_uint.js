@@ -18,11 +18,10 @@
 
 'use strict';
 
-var uint = require('uint.js');
-var Uint64 = uint.Uint64;
-var Uint128 = uint.Uint128;
-var Uint256 = uint.Uint256;
-var Uint512 = uint.Uint512;
+var Uint64 = Uint.Uint64;
+var Uint128 = Uint.Uint128;
+var Uint256 = Uint.Uint256;
+var Uint512 = Uint.Uint512;
 
 var err1 = "[Uint64 Error] overflow";
 var err2 = '[Uint128 Error] incompatible type';
@@ -40,7 +39,23 @@ var d = new Uint512(100000000000000);
 
 var f = new Uint64(0);
 if (f.toString(10) !== "0") {
-    throw new Error("not eq")
+    throw new Error("not eq");
+}
+
+if (!Uint.isUint(a)) {
+    throw new Error("uint64 should be uint");
+}
+
+if (Uint.isUint(new BigNumber("123"))) {
+    throw new Error("bignumber should not be uint");
+}
+
+if (Uint.isUint(123)) {
+    throw new Error("number should not be uint");
+}
+
+if (Uint.isUint("123")) {
+    throw new Error("string should not be uint");
 }
 
 // overflow

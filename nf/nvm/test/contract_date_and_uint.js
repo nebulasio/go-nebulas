@@ -2,11 +2,10 @@
 
 "use strict";
 
-var uint = require('uint.js');
-var Uint64 = uint.Uint64;
-var Uint128 = uint.Uint128;
-var Uint256 = uint.Uint256;
-var Uint512 = uint.Uint512;
+var Uint64 = Uint.Uint64;
+var Uint128 = Uint.Uint128;
+var Uint256 = Uint.Uint256;
+var Uint512 = Uint.Uint512;
 
 var Contract = function() {
 

@@ -174,5 +174,8 @@ module.exports = {
     Uint64: Uint64,
     Uint128: Uint128,
     Uint256: Uint256,
-    Uint512: Uint512
+    Uint512: Uint512,
+    isUint: function(o) {
+        return o instanceof Uint;
+    }
 };

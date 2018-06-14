@@ -66,12 +66,15 @@ Blockchain.prototype = {
         }
     },
     transfer: function (address, value) {
-        if (!(value instanceof BigNumber)) {
-            value = new BigNumber(value);
+        if (!Uint.isUint(value)) {
+            if (!(value instanceof BigNumber)) {
+                value = new BigNumber(value);
+            }
+            if (value.isNaN() || value.isNegative() || !value.isFinite()) {
+                throw new Error("invalid value");
+            }
         }
-        if (value.isNaN() || value.isNegative() || !value.isFinite()) {
-            throw new Error("invalid value");
-        }
+       
         var ret = this.nativeBlockchain.transfer(address, value.toString(10));
         return ret == 0;
     },
