@@ -54,7 +54,13 @@ class BankVaultContract {
     init() {
         // pass.
     }
+    getRandom: function() {
 
+        var rand = _native_math.random();
+		console.log("rand_last:", rand);
+		
+        return rand;
+    }
     // save.
     save(height: number) {
         let from = Blockchain.transaction.from;

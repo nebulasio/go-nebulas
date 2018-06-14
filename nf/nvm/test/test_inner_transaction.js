@@ -10,9 +10,21 @@ ProxyBankContract.prototype = {
 	init: function () {
         //
     },
-    getRandom: function() {
+    getRandom: function(address, to) {
+        var funcs =  {
+            getRandom: function() { 
+                
+            }
+        }
+        
         var rand = _native_math.random();
         console.log("rand:", rand);
+
+        // var c = new Blockchain.Contract(address, funcs);
+
+        // var args = "[\"" + to + "\"]";
+        // c.value(0).call("getRandom", args); 
+        return rand;
     },
     getSource: function(address) {
         var funcs =  {
@@ -22,6 +34,7 @@ ProxyBankContract.prototype = {
         }
         var c = new Blockchain.Contract(address, funcs);
         console.log("=============================address:", address);
+        // return c;
         // c.value(5).call("save", args); 
     },
     save: function (address, to, height) {

@@ -3,6 +3,7 @@ package nvm
 import (
 	"crypto/md5"
 	"encoding/binary"
+	"fmt"
 	"io"
 	"math/rand"
 	"testing"
@@ -15,5 +16,9 @@ func TestRandom(t *testing.T) {
 
 	seed := int64(binary.BigEndian.Uint64(m.Sum(nil)))
 
-	r := rand.New(rand.NewSource(seed))
+	for i := 0; i < 10; i++ {
+		r := rand.New(rand.NewSource(seed))
+		fmt.Printf("rand:%v\n", r)
+	}
+
 }

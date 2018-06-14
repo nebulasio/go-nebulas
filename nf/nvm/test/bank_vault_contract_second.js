@@ -33,7 +33,19 @@ BankVaultContractS.prototype = {
 	init: function () {
 		//TODO:
 	},
+	getRandom: function(address) {
+		var funcs =  {
+            getRandom: function() { 
+            }
+		}
+        var rand = _native_math.random();
+		console.log("rand_second:", rand);
 
+		// var c = new Blockchain.Contract(address, funcs);
+		// var args = "[]";
+		// c.value(0).call("getRandom", args); 
+        return rand;
+    },
 	save: function (address, height) {
 		console.log("----------address:",address, height);
 		var from = Blockchain.transaction.from;

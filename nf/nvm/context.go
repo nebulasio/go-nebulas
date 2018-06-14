@@ -79,7 +79,7 @@ func NewContext(block Block, tx Transaction, contract Account, state WorldState)
 }
 
 // NewChildContext create a child engine context
-func NewChildContext(block Block, tx Transaction, contract Account, state WorldState, head unsafe.Pointer, index uint32) (*Context, error) {
+func NewChildContext(block Block, tx Transaction, contract Account, state WorldState, head unsafe.Pointer, index uint32, rand *rand.Rand) (*Context, error) {
 	if block == nil || tx == nil || contract == nil || state == nil || head == nil {
 		return nil, ErrContextConstructArrEmpty
 	}
@@ -90,6 +90,7 @@ func NewChildContext(block Block, tx Transaction, contract Account, state WorldS
 		state:    state,
 		head:     head,
 		index:    index,
+		rand:     rand,
 	}
 	return ctx, nil
 }
