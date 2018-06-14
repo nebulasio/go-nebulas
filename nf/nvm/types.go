@@ -56,10 +56,10 @@ const (
 //the max recent block number can query
 const (
 	maxQueryBlockInfoValidTime = 30
-	maxBlockDistance           = maxQueryBlockInfoValidTime * 24 * 3600 * 1000 / 15000 //TODO:dpos.BlockIntervalInMs
+	maxBlockOffset             = maxQueryBlockInfoValidTime * 24 * 3600 * 1000 / 15000 //TODO:dpos.BlockIntervalInMs
 )
 
-// gas price
+// define gas consume
 const (
 	// crypto
 	CryptoSha256GasBase         = 20000
@@ -68,6 +68,14 @@ const (
 	CryptoRecoverAddressGasBase = 100000
 	CryptoMd5GasBase            = 6000
 	CryptoBase64GasBase         = 3000
+
+	//In blockChain
+	GetTxByHashGasBase     = 1000
+	GetAccountStateGasBase = 2000
+	TransferGasBase        = 2000
+	VerifyAddressGasBase   = 100
+	GetPreBlockHashGasBase = 2000
+	GetPreBlockSeedGasBase = 2000
 )
 
 // Block interface breaks cycle import dependency and hides unused services.
