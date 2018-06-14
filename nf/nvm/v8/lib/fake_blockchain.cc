@@ -60,12 +60,12 @@ int VerifyAddress(void *handler, const char *address, size_t *gasCnt) {
   return NVM_SUCCESS;
 }
 
-int GetPreBlockHash(void *handler, unsigned long long distance, size_t *gasCnt, char **result, char **info) {
+int GetPreBlockHash(void *handler, unsigned long long offset, size_t *gasCnt, char **result, char **info) {
   *gasCnt = 1000;
   return NVM_SUCCESS;
 }
 
-int GetPreBlockSeed(void *handler, unsigned long long distance, size_t *gasCnt, char **result, char **info) {
+int GetPreBlockSeed(void *handler, unsigned long long offset, size_t *gasCnt, char **result, char **info) {
   *gasCnt = 1000;
   return NVM_SUCCESS;
 }

@@ -38,8 +38,8 @@ char *GetTxByHashFunc(void *handler, const char *hash, size_t *gasCnt);
 int GetAccountStateFunc(void *handler, const char *address, size_t *gasCnt, char **result, char **info);
 int TransferFunc(void *handler, const char *to, const char *value, size_t *gasCnt);
 int VerifyAddressFunc(void *handler, const char *address, size_t *gasCnt);
-int GetPreBlockHashFunc(void *handler, unsigned long long distance, size_t *gasCnt, char **result, char **info);
-int GetPreBlockSeedFunc(void *handler, unsigned long long distance, size_t *gasCnt, char **result, char **info);
+int GetPreBlockHashFunc(void *handler, unsigned long long offset, size_t *gasCnt, char **result, char **info);
+int GetPreBlockSeedFunc(void *handler, unsigned long long offset, size_t *gasCnt, char **result, char **info);
 
 // event.
 void EventTriggerFunc(void *handler, const char *topic, const char *data, size_t *gasCnt);
@@ -88,12 +88,12 @@ int VerifyAddressFunc_cgo(void *handler, const char *address, size_t *gasCnt) {
 	return VerifyAddressFunc(handler, address, gasCnt);
 };
 
-int GetPreBlockHashFunc_cgo(void *handler, unsigned long long distance, size_t *gasCnt, char **result, char **info) {
-	return GetPreBlockHashFunc(handler, distance, gasCnt, result, info);
+int GetPreBlockHashFunc_cgo(void *handler, unsigned long long offset, size_t *gasCnt, char **result, char **info) {
+	return GetPreBlockHashFunc(handler, offset, gasCnt, result, info);
 }
 
-int GetPreBlockSeedFunc_cgo(void *handler, unsigned long long distance, size_t *gasCnt, char **result, char **info) {
-	return GetPreBlockSeedFunc(handler, distance, gasCnt, result, info);
+int GetPreBlockSeedFunc_cgo(void *handler, unsigned long long offset, size_t *gasCnt, char **result, char **info) {
+	return GetPreBlockSeedFunc(handler, offset, gasCnt, result, info);
 }
 
 void EventTriggerFunc_cgo(void *handler, const char *topic, const char *data, size_t *gasCnt) {

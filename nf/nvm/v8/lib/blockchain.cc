@@ -31,23 +31,6 @@ static VerifyAddressFunc sVerifyAddress = NULL;
 static GetPreBlockHashFunc sGetPreBlockHash = NULL;
 static GetPreBlockSeedFunc sGetPreBlockSeed = NULL;
 
-/*
-success or crash
-*/
-static void reportUnexepectedError(Isolate *isolate) {
-  if (NULL == isolate) {
-    LogFatalf("Unexpected Error: invalid argument, ioslate is NULL");
-  }
-  Local<Context> context = isolate->GetCurrentContext();
-  V8Engine *e = GetV8EngineInstance(context);
-  if (NULL == e) {
-    LogFatalf("Unexpected Error: failed to get V8Engine");
-  }
-  TerminateExecution(e);
-  e->is_unexpected_error_happen = true;
-  return;
-}
-
 void InitializeBlockchain(GetTxByHashFunc getTx, GetAccountStateFunc getAccount,
                           TransferFunc transfer,
                           VerifyAddressFunc verifyAddress,
@@ -149,7 +132,7 @@ void GetAccountStateCallback(const FunctionCallbackInfo<Value> &info) {
     LogFatalf("Unexpected error: failed to get ioslate");
   }
   Local<Object> thisArg = info.Holder();
-  Local<External> handler = Local<External>::Cast(thisArg->GetInternalField(0));
+  Local<External> handler = Local<External>::Cast(thisArg->GetInternalField(0));//TODO:
 
   if (info.Length() != 1) {
     isolate->ThrowException(String::NewFromUtf8(
@@ -169,18 +152,7 @@ void GetAccountStateCallback(const FunctionCallbackInfo<Value> &info) {
   char *exceptionInfo = NULL;
   err = sGetAccountState(handler->Value(), *String::Utf8Value(key->ToString()), &cnt, &result, &exceptionInfo);
 
-  if (NVM_UNEXPECTED_ERR == err || (NVM_EXCEPTION_ERR == err && NULL == exceptionInfo) ||
-      (NVM_SUCCESS == err && NULL == result)) {
-    info.GetReturnValue().SetNull();
-    reportUnexepectedError(isolate);
-  } else if (NVM_EXCEPTION_ERR == err) {
-    isolate->ThrowException(String::NewFromUtf8(isolate, exceptionInfo));
-  } else if (NVM_SUCCESS == err) {
-    info.GetReturnValue().Set(String::NewFromUtf8(isolate, result));
-  } else {
-    info.GetReturnValue().SetNull();
-    reportUnexepectedError(isolate);
-  }
+  DEAL_ERROR_FROM_GOLANG(err);
 
   if (result != NULL) {
     free(result);
@@ -275,19 +247,25 @@ void GetPreBlockHashCallback(const FunctionCallbackInfo<Value> &info) {
     isolate->ThrowException(String::NewFromUtf8(
         isolate, "Blockchain.GetPreBlockHash() requires 1 arguments"));
     return;
-  }
-  
-  Local<Value> distance = info[0];
-  if (!distance->IsNumber()) {
+  } 
+
+  Local<Value> offset = info[0];
+  if (!offset->IsNumber()) {
     isolate->ThrowException(
         String::NewFromUtf8(isolate, "Blockchain.GetPreBlockHash(), the argument must be a number")); 
     return;
   }
 
-  double v = Number::Cast(*distance)->Value();
+  double v = Number::Cast(*offset)->Value();
   if (v > ULLONG_MAX || v <= 0) {
     isolate->ThrowException(
         String::NewFromUtf8(isolate, "Blockchain.GetPreBlockHash(), argument out of range"));
+    return;
+  }
+
+  if (v != (double)(unsigned long long)v) {
+        isolate->ThrowException(
+        String::NewFromUtf8(isolate, "Blockchain.GetPreBlockHash(), argument must be integer"));
     return;
   }
 
@@ -296,18 +274,7 @@ void GetPreBlockHashCallback(const FunctionCallbackInfo<Value> &info) {
   char *exceptionInfo = NULL;
   err = sGetPreBlockHash(handler->Value(), (unsigned long long)(v), &cnt, &result, &exceptionInfo);
 
-  if (NVM_UNEXPECTED_ERR== err || (NVM_EXCEPTION_ERR == err && NULL == exceptionInfo) ||
-      (NVM_SUCCESS == err && NULL == result)) {
-    info.GetReturnValue().SetNull();
-    reportUnexepectedError(isolate);
-  } else if (NVM_EXCEPTION_ERR == err) {
-    isolate->ThrowException(String::NewFromUtf8(isolate, exceptionInfo));
-  } else if (NVM_SUCCESS == err) {
-    info.GetReturnValue().Set(String::NewFromUtf8(isolate, result));
-  } else {
-    info.GetReturnValue().SetNull();
-    reportUnexepectedError(isolate);
-  }
+  DEAL_ERROR_FROM_GOLANG(err);  
 
   if (result != NULL) {
     free(result);
@@ -339,17 +306,23 @@ void GetPreBlockSeedCallback(const FunctionCallbackInfo<Value> &info) {
     return;
   }
   
-  Local<Value> distance = info[0];
-  if (!distance->IsNumber()) {
+  Local<Value> offset = info[0];
+  if (!offset->IsNumber()) {
     isolate->ThrowException(
         String::NewFromUtf8(isolate, "Blockchain.GetPreBlockSeed(), the argument must be a number")); 
     return;
   }
 
-  double v = Number::Cast(*distance)->Value();
+  double v = Number::Cast(*offset)->Value();
   if (v > ULLONG_MAX || v <= 0) {
     isolate->ThrowException(
         String::NewFromUtf8(isolate, "Blockchain.GetPreBlockSeed(), argument out of range"));
+    return;
+  }
+
+ if (v != (double)(unsigned long long)v) {
+    isolate->ThrowException(
+        String::NewFromUtf8(isolate, "Blockchain.GetPreBlockSeed(), argument must be integer"));
     return;
   }
 
@@ -358,18 +331,7 @@ void GetPreBlockSeedCallback(const FunctionCallbackInfo<Value> &info) {
   char *exceptionInfo = NULL;
   err = sGetPreBlockSeed(handler->Value(), (unsigned long long)(v), &cnt, &result, &exceptionInfo);
 
-  if (NVM_UNEXPECTED_ERR == err || (NVM_EXCEPTION_ERR == err && NULL == exceptionInfo) ||
-      (NVM_SUCCESS == err && NULL == result)) {
-    info.GetReturnValue().SetNull();
-    reportUnexepectedError(isolate);
-  } else if (NVM_EXCEPTION_ERR == err) {
-    isolate->ThrowException(String::NewFromUtf8(isolate, exceptionInfo));
-  } else if (NVM_SUCCESS == err) {
-    info.GetReturnValue().Set(String::NewFromUtf8(isolate, result));
-  } else {
-    info.GetReturnValue().SetNull();
-    reportUnexepectedError(isolate);
-  }
+  DEAL_ERROR_FROM_GOLANG(err);
 
   if (result != NULL) {
     free(result);

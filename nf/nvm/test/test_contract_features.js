@@ -55,24 +55,33 @@ testContract.prototype = {
         return Blockchain.getAccountState("0x1233455");
     },
 
-    testGetPreBlockHash: function(distance) {
-        var hash = Blockchain.getPreBlockHash(distance);
+    testGetPreBlockHash: function(offset) {
+        var hash = Blockchain.getPreBlockHash(offset);
         var height = Blockchain.block.height;
         return {hash: hash, height: height};
     },
-    testGetPreBlockHash1: function(distance) {
-        return  Blockchain.getPreBlockHash(distance);
+    testGetPreBlockHash1: function(offset) {
+        return  Blockchain.getPreBlockHash(offset);
     },
 
-    testGetPreBlockSeed: function(distance) {
-        var seed = Blockchain.getPreBlockSeed(distance);
+    testGetPreBlockSeed: function(offset) {
+        var seed = Blockchain.getPreBlockSeed(offset);
         var height = Blockchain.block.height;
         return {seed: seed, height: height};
     },
 
-    testGetPreBlockSeed1: function(distance) {
-        return Blockchain.getPreBlockSeed(distance);
+    testGetPreBlockSeed1: function(offset) {
+        return Blockchain.getPreBlockSeed(offset);
+    },
+
+    testGetPreBlockHashByNativeBlock: function(offset) {
+        return Blockchain.nativeBlockchain.getPreBlockHash(offset);
+    },
+
+    testGetPreBlockSeedByNativeBlock: function(offset) {
+        return Blockchain.nativeBlockchain.getPreBlockSeed(offset);
     }
+
 }
 
 module.exports = testContract;

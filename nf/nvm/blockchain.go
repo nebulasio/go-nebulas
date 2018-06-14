@@ -190,7 +190,7 @@ func recordTransferFailureEvent(errNo int, from string, to string, value string,
 				"amount": value,
 				"status": event.Status,
 				"error":  err,
-			}).Fatal("failed to marshal TransferFromContractEvent") // TODO: to confirm
+			}).Fatal("failed to marshal TransferFromContractEvent")
 		}
 
 		wsState.RecordEvent(txHash, &state.Event{Topic: core.TopicTransferFromContract, Data: string(eData)})
@@ -217,7 +217,7 @@ func TransferFunc(handler unsafe.Pointer, to *C.char, v *C.char, gasCnt *C.size_
 			"txhash":  engine.ctx.tx.Hash().String(),
 			"address": engine.ctx.contract.Address(),
 			"err":     err,
-		}).Fatal("Unexpected error: failed to parse contract address") //TODO: sys err ,crash
+		}).Fatal("Unexpected error: failed to parse contract address")
 	}
 
 	// calculate Gas.
@@ -239,7 +239,7 @@ func TransferFunc(handler unsafe.Pointer, to *C.char, v *C.char, gasCnt *C.size_
 			"handler": uint64(uintptr(handler)),
 			"address": addr,
 			"err":     err,
-		}).Fatal("GetAccountStateFunc get account state failed.") // TODO: sys err, crash
+		}).Fatal("GetAccountStateFunc get account state failed.")
 	}
 
 	amount, err := util.NewUint128FromString(C.GoString(v))
@@ -260,7 +260,7 @@ func TransferFunc(handler unsafe.Pointer, to *C.char, v *C.char, gasCnt *C.size_
 				"handler": uint64(uintptr(handler)),
 				"key":     C.GoString(to),
 				"err":     err,
-			}).Debug("TransferFunc SubBalance failed.") //TODO: to confirm
+			}).Debug("TransferFunc SubBalance failed.")
 			recordTransferFailureEvent(TransferSubBalance, cAddr.String(), addr.String(), amount.String(), height, wsState, txHash)
 			return TransferSubBalance
 		}
@@ -272,7 +272,7 @@ func TransferFunc(handler unsafe.Pointer, to *C.char, v *C.char, gasCnt *C.size_
 				"amount":  amount,
 				"address": addr,
 				"err":     err,
-			}).Fatal("failed to add balance") //TODO: to confirm
+			}).Fatal("failed to add balance")
 			//			recordTransferFailureEvent(TransferSubBalance, cAddr.String(), addr.String(), amount.String(), height, wsState, txHash)
 			// return TransferAddBalance
 		}
@@ -314,7 +314,7 @@ func GetPreBlockHashFunc(handler unsafe.Pointer, offset C.ulonglong,
 	}
 	wsState := engine.ctx.state
 	// calculate Gas.
-	*gasCnt = C.size_t(GetPreBlockHashGasBase) //TODO: to confirm
+	*gasCnt = C.size_t(GetPreBlockHashGasBase)
 
 	//get height
 	height := engine.ctx.block.Height()
@@ -361,7 +361,7 @@ func GetPreBlockSeedFunc(handler unsafe.Pointer, offset C.ulonglong,
 	}
 	wsState := engine.ctx.state
 	// calculate Gas.
-	*gasCnt = C.size_t(GetPreBlockSeedGasBase) //TODO: 2000
+	*gasCnt = C.size_t(GetPreBlockSeedGasBase)
 
 	//get height
 	height := engine.ctx.block.Height()

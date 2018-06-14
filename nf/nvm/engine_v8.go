@@ -39,8 +39,8 @@ char *GetTxByHashFunc_cgo(void *handler, const char *hash);
 char *GetAccountStateFunc_cgo(void *handler, const char *address);
 int TransferFunc_cgo(void *handler, const char *to, const char *value);
 int VerifyAddressFunc_cgo(void *handler, const char *address);
-char *GetPreBlockHashFunc_cgo(void *handler, unsigned long long distance, size_t *gasCnt);
-char *GetPreBlockSeedFunc_cgo(void *handler, unsigned long long distance, size_t *gasCnt);
+char *GetPreBlockHashFunc_cgo(void *handler, unsigned long long offset, size_t *gasCnt);
+char *GetPreBlockSeedFunc_cgo(void *handler, unsigned long long offset, size_t *gasCnt);
 
 char *Sha256Func_cgo(const char *data, size_t *gasCnt);
 char *Sha3256Func_cgo(const char *data, size_t *gasCnt);
@@ -231,7 +231,7 @@ func (e *V8Engine) SetTestingFlag(flag bool) {
 }
 
 func (e *V8Engine) SetTimeOut(timeout uint64) {
-	e.v8engine.timeout = C.int(timeout)
+	e.v8engine.timeout = C.int(timeout) //TODO:
 }
 
 // SetExecutionLimits set execution limits of V8 Engine, prevent Halting Problem.

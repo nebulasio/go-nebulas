@@ -96,38 +96,38 @@ Blockchain.prototype = {
         }
     },
     
-    getPreBlockHash: function (distance) {
-        distance = parseInt(distance);
-        if (!distance) {
-            throw "getPreBlockHash: invalid distance"
+    getPreBlockHash: function (offset) {
+        offset = parseInt(offset);
+        if (!offset) {
+            throw "getPreBlockHash: invalid offset"
         }
         
-        if (distance <= 0) {
-            throw "getPreBlockHash: distance should large than 0"
+        if (offset <= 0) {
+            throw "getPreBlockHash: offset should large than 0"
         }
 
-        if (distance >= this.block.height) {
+        if (offset >= this.block.height) {
             throw "getPreBlockHash: block not exist"
         }
         
-        return this.nativeBlockchain.getPreBlockHash(distance);
+        return this.nativeBlockchain.getPreBlockHash(offset);
     },
 
-    getPreBlockSeed: function (distance) {
-        distance = parseInt(distance);
-        if (!distance) {
-            throw "getPreBlockSeed: invalid distance"
+    getPreBlockSeed: function (offset) {
+        offset = parseInt(offset);
+        if (!offset) {
+            throw "getPreBlockSeed: invalid offset"
         }
         
-        if (distance <= 0) {
-            throw "getPreBlockSeed: distance should large than 0"
+        if (offset <= 0) {
+            throw "getPreBlockSeed: offset should large than 0"
         }
         
-        if (distance >= this.block.height) {
+        if (offset >= this.block.height) {
             throw "getPreBlockSeed: block not exist"
         }
 
-        return this.nativeBlockchain.getPreBlockSeed(distance);
+        return this.nativeBlockchain.getPreBlockSeed(offset);
     }
 };
 module.exports = new Blockchain();

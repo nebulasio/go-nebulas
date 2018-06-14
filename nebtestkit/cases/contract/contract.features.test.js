@@ -336,5 +336,4 @@ describe('test transfer from contract', function () {
             done(err);
         });
     });
-
 });

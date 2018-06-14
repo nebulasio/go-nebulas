@@ -79,9 +79,9 @@ typedef int (*TransferFunc)(void *handler, const char *to, const char *value,
                             size_t *counterVal);
 typedef int (*VerifyAddressFunc)(void *handler, const char *address,
                                  size_t *counterVal);
-typedef int (*GetPreBlockHashFunc)(void *handler, unsigned long long distance, size_t *counterVal, char **result, char **info);
+typedef int (*GetPreBlockHashFunc)(void *handler, unsigned long long offset, size_t *counterVal, char **result, char **info);
 
-typedef int (*GetPreBlockSeedFunc)(void *handler, unsigned long long distance, size_t *counterVal, char **result, char **info);
+typedef int (*GetPreBlockSeedFunc)(void *handler, unsigned long long offset, size_t *counterVal, char **result, char **info);
 
 
 
