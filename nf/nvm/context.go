@@ -19,6 +19,7 @@
 package nvm
 
 import (
+	"math/rand"
 	"unsafe"
 
 	"github.com/gogo/protobuf/proto"
@@ -60,6 +61,7 @@ type Context struct {
 	state    WorldState
 	head     unsafe.Pointer
 	index    uint32
+	rand     *rand.Rand
 }
 
 // NewContext create a engine context
