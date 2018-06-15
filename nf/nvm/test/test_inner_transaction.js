@@ -26,6 +26,17 @@ ProxyBankContract.prototype = {
         c.value(0).call("getRandom", args); 
         return rand;
     },
+    getRandomSingle: function(address, to) {
+        var funcs =  {
+            getRandom: function() { 
+                
+            }
+        }
+        
+        var rand = _native_math.random();
+        console.log("rand:", rand);
+        return rand;
+    },
     getSource: function(address) {
         var funcs =  {
             save: function() { 
