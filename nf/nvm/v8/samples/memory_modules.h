@@ -25,6 +25,8 @@
 char *RequireDelegateFunc(void *handler, const char *filename,
                           size_t *lineOffset);
 
+char *AttachLibVersionDelegateFunc(void *handler, const char *libname);
+
 void AddModule(void *handler, const char *filename, const char *source,
                int lineOffset);
 

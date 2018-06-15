@@ -39,6 +39,7 @@ static char source_require_format[] =
     "})();\n";
 
 static RequireDelegate sRequireDelegate = NULL;
+static AttachLibVersionDelegate attachLibVersionDelegate = NULL;
 
 static int readSource(Local<Context> context, const char *filename, char **data,
                       size_t *lineOffset) {
@@ -69,6 +70,19 @@ static int readSource(Local<Context> context, const char *filename, char **data,
   free(content);
 
   return 0;
+}
+
+static void attachVersion(char *out, int maxoutlen, Local<Context> context, const char *libname) {
+
+  char *verlib = NULL;
+  if (attachLibVersionDelegate != NULL) {
+    V8Engine *e = GetV8EngineInstance(context);
+    verlib = attachLibVersionDelegate(e, libname);
+  }
+  if (verlib != NULL) {
+    strncat(out, verlib, maxoutlen - strlen(out) - 1);
+    free(verlib);
+  }
 }
 
 void NewNativeRequireFunction(Isolate *isolate,
@@ -104,20 +118,22 @@ void RequireCallback(const v8::FunctionCallbackInfo<v8::Value> &info) {
   }
   char *abPath = NULL;
   if (strcmp(*filename, LIB_WHITE)) { // if needed, check array instead.
-    abPath = realpath(*filename, NULL);
+    char versionlizedPath[MAX_VERSIONED_PATH_LEN] = {0};
+    attachVersion(versionlizedPath, MAX_VERSIONED_PATH_LEN, context, *filename);
+    abPath = realpath(versionlizedPath, NULL);
     if (abPath == NULL) {
       isolate->ThrowException(Exception::Error(String::NewFromUtf8(
           isolate, "require path is invalid absolutepath")));
       return;
     }
-    static char curPath[MAX_PATH_LEN] = {0};
-    if (curPath[0] == 0x00 && !getCurAbsolute(curPath, MAX_PATH_LEN)) {
+    char curPath[MAX_VERSIONED_PATH_LEN] = {0};
+    if (curPath[0] == 0x00 && !getCurAbsolute(curPath, MAX_VERSIONED_PATH_LEN)) {
       isolate->ThrowException(Exception::Error(
           String::NewFromUtf8(isolate, "invalid cwd absolutepath")));
       free(abPath);
       return;
     }
-    static int curLen = strlen(curPath);
+    int curLen = strlen(curPath);
     if (strncmp(abPath, curPath, curLen) != 0) {
       isolate->ThrowException(Exception::Error(
           String::NewFromUtf8(isolate, "require path is not in lib")));
@@ -163,6 +179,7 @@ void RequireCallback(const v8::FunctionCallbackInfo<v8::Value> &info) {
   free(static_cast<void *>(data));
 }
 
-void InitializeRequireDelegate(RequireDelegate delegate) {
+void InitializeRequireDelegate(RequireDelegate delegate, AttachLibVersionDelegate aDelegate) {
   sRequireDelegate = delegate;
+  attachLibVersionDelegate = aDelegate;
 }

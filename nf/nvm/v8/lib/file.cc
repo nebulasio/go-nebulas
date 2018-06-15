@@ -77,14 +77,12 @@ bool isFile(const char *file) {
 }
 
 bool getCurAbsolute(char *curCwd, int len) {
-  char tmp[MAX_PATH_LEN] = {0};
-  if (!getcwd(tmp, MAX_PATH_LEN)) {
+  char tmp[MAX_VERSIONED_PATH_LEN] = {0};
+  if (!getcwd(tmp, MAX_VERSIONED_PATH_LEN)) {
     return false;
   }
 
-  strncat(tmp, LIB_DIR, MAX_PATH_LEN - strlen(tmp) - 1);
-  //staged ln
-  strncat(tmp, EXECUTION_FILE, MAX_PATH_LEN - strlen(tmp) -1);
+  strncat(tmp, "/lib/1.0.0/execution_env.js", MAX_VERSIONED_PATH_LEN - strlen(tmp) - 1);
 
   char *pc = realpath(tmp, NULL);
   if (pc == NULL) {
@@ -95,9 +93,9 @@ bool getCurAbsolute(char *curCwd, int len) {
     free(pc);
     return false;
   }
-  memcpy(curCwd, pc, pcLen - strlen(EXECUTION_FILE));
+  memcpy(curCwd, pc, pcLen - strlen("/1.0.0/execution_env.js"));
   //strncpy(curCwd, pc, len - 1);
-  curCwd[pcLen - strlen(EXECUTION_FILE)] = 0x00;
+  curCwd[pcLen - strlen("/1.0.0/execution_env.js")] = 0x00;
   free(pc);
   return true;
 }

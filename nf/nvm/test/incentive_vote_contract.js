@@ -229,11 +229,11 @@ IncentiveVoteContract.prototype = {
     },
     getAddrVotesList: function() {
         var count = this.voteCount;
-        var dappVotes = new Array();
+        var dappVotes = {};
         for(var i = 0; i < count; i++) {
             var addr = this.voteAddrArray.get(i);
             var dappVote = this.voteMap.get(addr);
-            dappVotes.push(dappVote);
+            dappVotes[addr] = dappVote;
         }
         return dappVotes;
     },

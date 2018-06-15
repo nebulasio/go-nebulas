@@ -1291,7 +1291,7 @@ describe('contract deploy', function () {
             status: 0,
             fromBalanceAfterTx: '9999999976573000000',
             toBalanceAfterTx: '0',
-            transferReward: '23437000000'
+            transferReward: '23427000000'
         };
         prepare((err) => {
             if (err) {

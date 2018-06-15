@@ -66,14 +66,68 @@ Blockchain.prototype = {
         }
     },
     transfer: function (address, value) {
-        if (!(value instanceof BigNumber)) {
-            value = new BigNumber(value);
+        if (!Uint.isUint(value)) {
+            if (!(value instanceof BigNumber)) {
+                value = new BigNumber(value);
+            }
+            if (value.isNaN() || value.isNegative() || !value.isFinite()) {
+                throw new Error("invalid value");
+            }
         }
+       
         var ret = this.nativeBlockchain.transfer(address, value.toString(10));
         return ret == 0;
     },
+
     verifyAddress: function (address) {
         return this.nativeBlockchain.verifyAddress(address);
+    },
+
+    getAccountState: function(address) {
+        if (address) {
+            var result =  this.nativeBlockchain.getAccountState(address);
+            if (result) {
+                return JSON.parse(result);
+            } else {
+                throw "getAccountState: invalid address";
+            }
+        } else {
+            throw "getAccountState:  inValid address";
+        }
+    },
+    
+    getPreBlockHash: function (offset) {
+        offset = parseInt(offset);
+        if (!offset) {
+            throw "getPreBlockHash: invalid offset"
+        }
+        
+        if (offset <= 0) {
+            throw "getPreBlockHash: offset should large than 0"
+        }
+
+        if (offset >= this.block.height) {
+            throw "getPreBlockHash: block not exist"
+        }
+        
+        return this.nativeBlockchain.getPreBlockHash(offset);
+    },
+
+    getPreBlockSeed: function (offset) {
+        offset = parseInt(offset);
+        if (!offset) {
+            throw "getPreBlockSeed: invalid offset"
+        }
+        
+        if (offset <= 0) {
+            throw "getPreBlockSeed: offset should large than 0"
+        }
+        
+        if (offset >= this.block.height) {
+            throw "getPreBlockSeed: block not exist"
+        }
+
+        return this.nativeBlockchain.getPreBlockSeed(offset);
     }
 };
 module.exports = new Blockchain();

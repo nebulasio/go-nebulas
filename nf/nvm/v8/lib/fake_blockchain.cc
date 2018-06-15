@@ -24,6 +24,7 @@
 #include <string>
 
 #include <string.h>
+#include "nvm_error.h"
 
 using namespace std;
 
@@ -40,22 +41,32 @@ char *GetTxByHash(void *handler, const char *hash, size_t *gasCnt) {
   return ret;
 }
 
-char *GetAccountState(void *handler, const char *address, size_t *gasCnt) {
+int GetAccountState(void *handler, const char *address, size_t *gasCnt, char **result, char **info) {
   *gasCnt = 1000;
 
-  char *ret = NULL;
   string value = "{\"value\":1,\"nonce\":4}";
-  ret = (char *)calloc(value.length() + 1, sizeof(char));
-  strncpy(ret, value.c_str(), value.length());
-  return ret;
+  *result = (char *)calloc(value.length() + 1, sizeof(char));
+  strncpy(*result, value.c_str(), value.length());
+  return NVM_SUCCESS;
 }
 
 int Transfer(void *handler, const char *to, const char *value, size_t *gasCnt) {
   *gasCnt = 2000;
-  return 0;
+  return NVM_SUCCESS;
 }
 
 int VerifyAddress(void *handler, const char *address, size_t *gasCnt) {
   *gasCnt = 100;
-  return 0;
+  return NVM_SUCCESS;
 }
+
+int GetPreBlockHash(void *handler, unsigned long long offset, size_t *gasCnt, char **result, char **info) {
+  *gasCnt = 1000;
+  return NVM_SUCCESS;
+}
+
+int GetPreBlockSeed(void *handler, unsigned long long offset, size_t *gasCnt, char **result, char **info) {
+  *gasCnt = 1000;
+  return NVM_SUCCESS;
+}
+

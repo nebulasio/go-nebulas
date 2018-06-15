@@ -99,6 +99,17 @@ char *RequireDelegateFunc(void *handler, const char *filepath,
   return ret;
 }
 
+char *AttachLibVersionDelegateFunc(void *handler, const char *libname) {
+  char *path = (char *)calloc(128, sizeof(char));
+  if (strncmp(libname, "lib/", 4) == 0) {
+    sprintf(path, "lib/1.0.0/%s", libname + 4);
+  } else {
+    sprintf(path, "1.0.0/%s", libname);
+  }
+   LogDebugf("AttachLibVersion: %s -> %s", libname, path);
+   return path;
+}
+
 void AddModule(void *handler, const char *filename, const char *source,
                int lineOffset) {
   char filepath[128];

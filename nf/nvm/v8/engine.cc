@@ -47,6 +47,7 @@ void PrintAndReturnException(char **exception, Local<Context> context,
 void EngineLimitsCheckDelegate(Isolate *isolate, size_t count,
                                void *listenerContext);
 
+#define ExecuteTimeOut  5*1000*1000
 #define STRINGIZE2(s) #s
 #define STRINGIZE(s) STRINGIZE2(s)
 #define V8VERSION_STRING                                                       \
@@ -101,6 +102,7 @@ V8Engine *CreateEngine() {
   V8Engine *e = (V8Engine *)calloc(1, sizeof(V8Engine));
   e->allocator = allocator;
   e->isolate = isolate;
+  e->timeout = ExecuteTimeOut;
   return e;
 }
 
@@ -130,14 +132,14 @@ int ExecuteSourceDataDelegate(char **result, Isolate *isolate,
 
   if (script.IsEmpty()) {
     PrintAndReturnException(result, context, trycatch);
-    return 1;
+    return NVM_EXCEPTION_ERR;
   }
 
   // Run the script to get the result.
   MaybeLocal<Value> ret = script.ToLocalChecked()->Run(context);
   if (ret.IsEmpty()) {
     PrintAndReturnException(result, context, trycatch);
-    return 1;
+    return NVM_EXCEPTION_ERR;
   }
 
   // set result.
@@ -153,7 +155,7 @@ int ExecuteSourceDataDelegate(char **result, Isolate *isolate,
     }
   }
 
-  return 0;
+  return NVM_SUCCESS;
 }
 
 char *InjectTracingInstructions(V8Engine *e, const char *source,
@@ -222,11 +224,17 @@ int Execute(char **result, V8Engine *e, const char *source,
   // Setup execution env.
   if (SetupExecutionEnv(isolate, context)) {
     PrintAndReturnException(result, context, trycatch);
-    return 1;
+    return NVM_EXCEPTION_ERR;
   }
 
-  return delegate(result, isolate, source, source_line_offset, context,
+  int retTmp = delegate(result, isolate, source, source_line_offset, context,
                   trycatch, delegateContext);
+  
+  if (e->is_unexpected_error_happen) {
+    return NVM_UNEXPECTED_ERR;
+  }
+
+  return retTmp;
 }
 
 void PrintException(Local<Context> context, TryCatch &trycatch) {
@@ -301,7 +309,12 @@ void PrintAndReturnException(char **exception, Local<Context> context,
   // return exception message.
   if (exception != NULL) {
     *exception = (char *)malloc(exception_str.length() + 1);
-    strcpy(*exception, *exception_str);
+    //TODO: Branch code detected “(v8::String::Utf8Value) $0 = (str_ = <no value available>, length_ = 0)”
+    if (exception_str.length() == 0) {
+      strcpy(*exception, "");
+    } else {
+      strcpy(*exception, *exception_str);
+    }
   }
 }
 
@@ -335,7 +348,7 @@ void TerminateExecution(V8Engine *e) {
   }
   Isolate *isolate = static_cast<Isolate *>(e->isolate);
   isolate->TerminateExecution();
-  e->is_requested_terminate_execution = 1;
+  e->is_requested_terminate_execution = true;
 }
 
 void EngineLimitsCheckDelegate(Isolate *isolate, size_t count,
@@ -355,11 +368,11 @@ int IsEngineLimitsExceeded(V8Engine *e) {
       e->limits_of_executed_instructions <
           e->stats.count_of_executed_instructions) {
     // Reach instruction limits.
-    return 1;
+    return NVM_GAS_LIMIT_ERR;
   } else if (e->limits_of_total_memory_size > 0 &&
              e->limits_of_total_memory_size < e->stats.total_memory_size) {
     // reach memory limits.
-    return 2;
+    return NVM_MEM_LIMIT_ERR;
   }
 
   return 0;

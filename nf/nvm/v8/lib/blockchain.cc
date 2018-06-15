@@ -18,21 +18,30 @@
 //
 
 #include "blockchain.h"
+#include "global.h"
 #include "../engine.h"
 #include "instruction_counter.h"
+#include "logger.h"
+#include "limits.h"
 
 static GetTxByHashFunc sGetTxByHash = NULL;
 static GetAccountStateFunc sGetAccountState = NULL;
 static TransferFunc sTransfer = NULL;
 static VerifyAddressFunc sVerifyAddress = NULL;
+static GetPreBlockHashFunc sGetPreBlockHash = NULL;
+static GetPreBlockSeedFunc sGetPreBlockSeed = NULL;
 
 void InitializeBlockchain(GetTxByHashFunc getTx, GetAccountStateFunc getAccount,
                           TransferFunc transfer,
-                          VerifyAddressFunc verifyAddress) {
+                          VerifyAddressFunc verifyAddress,
+                          GetPreBlockHashFunc getPreBlockHash,
+                          GetPreBlockSeedFunc getPreBlockSeed) {
   sGetTxByHash = getTx;
   sGetAccountState = getAccount;
   sTransfer = transfer;
   sVerifyAddress = verifyAddress;
+  sGetPreBlockHash = getPreBlockHash;
+  sGetPreBlockSeed = getPreBlockSeed;
 }
 
 void NewBlockchainInstance(Isolate *isolate, Local<Context> context,
@@ -47,13 +56,11 @@ void NewBlockchainInstance(Isolate *isolate, Local<Context> context,
                                                  PropertyAttribute::ReadOnly));
   */
 
-  /* disable getAccountState() function.
-    blockTpl->Set(String::NewFromUtf8(isolate, "getAccountState"),
-                  FunctionTemplate::New(isolate, GetAccountStateCallback),
-                  static_cast<PropertyAttribute>(PropertyAttribute::DontDelete
-                  |
-                                                 PropertyAttribute::ReadOnly));
-  */
+  blockTpl->Set(String::NewFromUtf8(isolate, "getAccountState"),
+                FunctionTemplate::New(isolate, GetAccountStateCallback),
+                static_cast<PropertyAttribute>(PropertyAttribute::DontDelete|
+                                                PropertyAttribute::ReadOnly));
+
 
   blockTpl->Set(String::NewFromUtf8(isolate, "transfer"),
                 FunctionTemplate::New(isolate, TransferCallback),
@@ -64,6 +71,16 @@ void NewBlockchainInstance(Isolate *isolate, Local<Context> context,
                 FunctionTemplate::New(isolate, VerifyAddressCallback),
                 static_cast<PropertyAttribute>(PropertyAttribute::DontDelete |
                                                PropertyAttribute::ReadOnly));
+
+  blockTpl->Set(String::NewFromUtf8(isolate, "getPreBlockHash"),
+              FunctionTemplate::New(isolate, GetPreBlockHashCallback),
+              static_cast<PropertyAttribute>(PropertyAttribute::DontDelete |
+                                              PropertyAttribute::ReadOnly));
+
+  blockTpl->Set(String::NewFromUtf8(isolate, "getPreBlockSeed"),
+              FunctionTemplate::New(isolate, GetPreBlockSeedCallback),
+              static_cast<PropertyAttribute>(PropertyAttribute::DontDelete |
+                                              PropertyAttribute::ReadOnly));
 
   Local<Object> instance = blockTpl->NewInstance(context).ToLocalChecked();
   instance->SetInternalField(0, External::New(isolate, handler));
@@ -109,9 +126,13 @@ void GetTransactionByHashCallback(const FunctionCallbackInfo<Value> &info) {
 
 // GetAccountStateCallback
 void GetAccountStateCallback(const FunctionCallbackInfo<Value> &info) {
+  int err = NVM_SUCCESS;
   Isolate *isolate = info.GetIsolate();
+  if (NULL == isolate) {
+    LogFatalf("Unexpected error: failed to get ioslate");
+  }
   Local<Object> thisArg = info.Holder();
-  Local<External> handler = Local<External>::Cast(thisArg->GetInternalField(0));
+  Local<External> handler = Local<External>::Cast(thisArg->GetInternalField(0));//TODO:
 
   if (info.Length() != 1) {
     isolate->ThrowException(String::NewFromUtf8(
@@ -121,19 +142,26 @@ void GetAccountStateCallback(const FunctionCallbackInfo<Value> &info) {
 
   Local<Value> key = info[0];
   if (!key->IsString()) {
-    isolate->ThrowException(String::NewFromUtf8(isolate, "key must be string"));
+    isolate->ThrowException(String::NewFromUtf8(isolate, "Blockchain.getAccountState(), argument must be a string"));
     return;
   }
 
-  size_t cnt = 0;
 
-  char *value = sGetAccountState(handler->Value(),
-                                 *String::Utf8Value(key->ToString()), &cnt);
-  if (value == NULL) {
-    info.GetReturnValue().SetNull();
-  } else {
-    info.GetReturnValue().Set(String::NewFromUtf8(isolate, value));
-    free(value);
+  size_t cnt = 0;
+  char *result = NULL;
+  char *exceptionInfo = NULL;
+  err = sGetAccountState(handler->Value(), *String::Utf8Value(key->ToString()), &cnt, &result, &exceptionInfo);
+
+  DEAL_ERROR_FROM_GOLANG(err);
+
+  if (result != NULL) {
+    free(result);
+    result = NULL;
+  }
+
+  if (exceptionInfo != NULL) {
+    free(exceptionInfo);
+    exceptionInfo = NULL;
   }
 
   // record storage usage.
@@ -200,6 +228,120 @@ void VerifyAddressCallback(const FunctionCallbackInfo<Value> &info) {
   int ret = sVerifyAddress(handler->Value(),
                            *String::Utf8Value(address->ToString()), &cnt);
   info.GetReturnValue().Set(ret);
+
+  // record storage usage.
+  IncrCounter(isolate, isolate->GetCurrentContext(), cnt);
+}
+
+// GetPreBlockHashCallBack
+void GetPreBlockHashCallback(const FunctionCallbackInfo<Value> &info) {
+  int err = NVM_SUCCESS;
+  Isolate *isolate = info.GetIsolate();
+  if (NULL == isolate) {
+    LogFatalf("Unexpected error: failed to get isolate");
+  }
+  Local<Object> thisArg = info.Holder();
+  Local<External> handler = Local<External>::Cast(thisArg->GetInternalField(0));
+
+  if (info.Length() != 1) {
+    isolate->ThrowException(String::NewFromUtf8(
+        isolate, "Blockchain.GetPreBlockHash() requires 1 arguments"));
+    return;
+  } 
+
+  Local<Value> offset = info[0];
+  if (!offset->IsNumber()) {
+    isolate->ThrowException(
+        String::NewFromUtf8(isolate, "Blockchain.GetPreBlockHash(), the argument must be a number")); 
+    return;
+  }
+
+  double v = Number::Cast(*offset)->Value();
+  if (v > ULLONG_MAX || v <= 0) {
+    isolate->ThrowException(
+        String::NewFromUtf8(isolate, "Blockchain.GetPreBlockHash(), argument out of range"));
+    return;
+  }
+
+  if (v != (double)(unsigned long long)v) {
+        isolate->ThrowException(
+        String::NewFromUtf8(isolate, "Blockchain.GetPreBlockHash(), argument must be integer"));
+    return;
+  }
+
+  size_t cnt = 0;
+  char *result = NULL;
+  char *exceptionInfo = NULL;
+  err = sGetPreBlockHash(handler->Value(), (unsigned long long)(v), &cnt, &result, &exceptionInfo);
+
+  DEAL_ERROR_FROM_GOLANG(err);  
+
+  if (result != NULL) {
+    free(result);
+    result = NULL;
+  }
+
+  if (exceptionInfo != NULL) {
+    free(exceptionInfo);
+    exceptionInfo = NULL;
+  }
+
+  // record storage usage.
+  IncrCounter(isolate, isolate->GetCurrentContext(), cnt);
+}
+
+// GetPreBlockSeedCallBack
+void GetPreBlockSeedCallback(const FunctionCallbackInfo<Value> &info) {
+  int err = NVM_SUCCESS;
+  Isolate *isolate = info.GetIsolate();
+  if (NULL == isolate) {
+    LogFatalf("Unexpected error: failed to get isolate");
+  }
+  Local<Object> thisArg = info.Holder();
+  Local<External> handler = Local<External>::Cast(thisArg->GetInternalField(0));
+
+  if (info.Length() != 1) {
+    isolate->ThrowException(String::NewFromUtf8(
+        isolate, "Blockchain.GetPreBlockSeed() requires 1 arguments"));
+    return;
+  }
+  
+  Local<Value> offset = info[0];
+  if (!offset->IsNumber()) {
+    isolate->ThrowException(
+        String::NewFromUtf8(isolate, "Blockchain.GetPreBlockSeed(), the argument must be a number")); 
+    return;
+  }
+
+  double v = Number::Cast(*offset)->Value();
+  if (v > ULLONG_MAX || v <= 0) {
+    isolate->ThrowException(
+        String::NewFromUtf8(isolate, "Blockchain.GetPreBlockSeed(), argument out of range"));
+    return;
+  }
+
+ if (v != (double)(unsigned long long)v) {
+    isolate->ThrowException(
+        String::NewFromUtf8(isolate, "Blockchain.GetPreBlockSeed(), argument must be integer"));
+    return;
+  }
+
+  size_t cnt = 0;
+  char *result = NULL;
+  char *exceptionInfo = NULL;
+  err = sGetPreBlockSeed(handler->Value(), (unsigned long long)(v), &cnt, &result, &exceptionInfo);
+
+  DEAL_ERROR_FROM_GOLANG(err);
+
+  if (result != NULL) {
+    free(result);
+    result = NULL;
+  }
+
+  if (exceptionInfo != NULL) {
+    free(exceptionInfo);
+    exceptionInfo = NULL;
+  }
 
   // record storage usage.
   IncrCounter(isolate, isolate->GetCurrentContext(), cnt);

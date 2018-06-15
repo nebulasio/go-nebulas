@@ -30,6 +30,9 @@ TransferValueContract.prototype = {
             return 0
         }
     },
+
+    accept: function() {    
+    },
     
 }
 module.exports = TransferValueContract;
