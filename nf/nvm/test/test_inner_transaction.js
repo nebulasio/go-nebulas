@@ -20,10 +20,10 @@ ProxyBankContract.prototype = {
         var rand = _native_math.random();
         console.log("rand:", rand);
 
-        // var c = new Blockchain.Contract(address, funcs);
+        var c = new Blockchain.Contract(address, funcs);
 
-        // var args = "[\"" + to + "\"]";
-        // c.value(0).call("getRandom", args); 
+        var args = "[\"" + to + "\"]";
+        c.value(0).call("getRandom", args); 
         return rand;
     },
     getSource: function(address) {

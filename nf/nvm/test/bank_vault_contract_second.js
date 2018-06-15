@@ -34,6 +34,7 @@ BankVaultContractS.prototype = {
 		//TODO:
 	},
 	getRandom: function(address) {
+		console.log("second bank");
 		var funcs =  {
             getRandom: function() { 
             }
@@ -41,9 +42,9 @@ BankVaultContractS.prototype = {
         var rand = _native_math.random();
 		console.log("rand_second:", rand);
 
-		// var c = new Blockchain.Contract(address, funcs);
-		// var args = "[]";
-		// c.value(0).call("getRandom", args); 
+		var c = new Blockchain.Contract(address, funcs);
+		var args = "[]";
+		c.value(0).call("getRandom", args); 
         return rand;
     },
 	save: function (address, height) {
