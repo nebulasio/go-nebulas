@@ -307,6 +307,7 @@ func SetCompatibilityOptions(chainID uint32) {
 		NewNvmExeTimeoutConsumeGasHeight = LocalNewNvmExeTimeoutConsumeGasHeight
 	}
 
+	// sort V8JSLibVersionHeightSlice in descending order by height
 	sort.Sort(sort.Reverse(V8JSLibVersionHeightSlice))
 
 	logging.VLog().WithFields(logrus.Fields{
@@ -465,8 +466,9 @@ func init() {
 	}
 }
 
-// GetV8JSLibVersion ..
-func GetV8JSLibVersion(blockHeight uint64) string {
+// GetMaxV8JSLibVersionAtHeight ..
+func GetMaxV8JSLibVersionAtHeight(blockHeight uint64) string {
+	// V8JSLibVersionHeightSlice is already sorted at SetCompatibilityOptions func
 	for _, v := range V8JSLibVersionHeightSlice {
 		if blockHeight >= v.height {
 			return v.version
