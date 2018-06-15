@@ -90,7 +90,7 @@ function doTest(testInput, testExpect, done) {
                 try {
                     expect(resp).to.not.be.a('undefined');
                     console.log("----step2. have been on chain， To check balances");
-                    
+                    console.log(JSON.stringify(resp));
                     expect(resp.status).to.be.equal(testExpect.txStatus);
                     neb.api.getAccountState(callerContractAddress).then(function(state){
                         expect(state.balance).to.be.equal(testExpect.callerBalance);
@@ -330,7 +330,7 @@ describe('test transfer from contract', function () {
                 "args": "[\"" + calleeContractAddress + "\",\"msg4\", \"湖人总冠军\"]"
             },
             value: 2,
-            gasLimit: 20400
+            gasLimit: 32300
         };
         
         var testExpect = {
@@ -376,44 +376,6 @@ describe('test transfer from contract', function () {
             callerBalance: callerBalance.toString(),
             calleeBalance: calleeBalance.toString(),
             errInfo: "execution failed", //TODO: ["execution failed", ...]
-        }
-
-        doTest(testInput, testExpect, done);
-    });
-
-    it ('9# test wrong interface not func', function(done) {
-        var testInput = {
-            contract: {
-                "function": "testWrongInterfaceNotFunc",
-                "args": "[\"" + calleeContractAddress + "\",\"msg4\", \"湖人总冠军\"]"
-            },
-            value: 2,
-        };
-        
-        var testExpect = {
-            txStatus: 0,
-            callerBalance: callerBalance.toString(),
-            calleeBalance: calleeBalance.toString(),
-            errInfo: "Call: Inner Call: wrong interface define",
-        }
-
-        doTest(testInput, testExpect, done);
-    });
-
-    it ('10# test wrong inteface miss func', function(done) {
-        var testInput = {
-            contract: {
-                "function": "testWrongInterfaceNotFunc",
-                "args": "[\"" + calleeContractAddress + "\",\"msg4\", \"湖人总冠军\"]"
-            },
-            value: 2,
-        };
-        
-        var testExpect = {
-            txStatus: 0,
-            callerBalance: callerBalance.toString(),
-            calleeBalance: calleeBalance.toString(),
-            errInfo: "Call: Inner Call: wrong interface define",
         }
 
         doTest(testInput, testExpect, done);

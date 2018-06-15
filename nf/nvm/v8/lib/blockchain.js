@@ -24,16 +24,8 @@ var callFunc = function () {
         throw("Inner Call: function name should be a string");
     }
 
-    if (typeof(args) != "string") {
-        throw("Inner Call: function args should be a string");
-    }
-
-    if (!this.methods[func]) {
-        throw("Inner Call: matches no function in the interface");
-    }
-
     var args = new Array();
-    for (var i = 1; i < arguments.length - 1; i++) {
+    for (var i = 1; i < arguments.length; i++) {
         args.push(arguments[i]);
     }
     var result =  _native_blockchain.runContractSource(this.address, func, this.v.toString(10), JSON.stringify(args));
