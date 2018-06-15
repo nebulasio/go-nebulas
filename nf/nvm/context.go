@@ -53,15 +53,20 @@ type SerializableTransaction struct {
 	GasLimit  string `json:"gasLimit"`
 }
 
+// ContextRand ..
+type ContextRand struct {
+	rand *rand.Rand
+}
+
 // Context nvm engine context
 type Context struct {
-	block    Block
-	tx       Transaction
-	contract Account
-	state    WorldState
-	head     unsafe.Pointer
-	index    uint32
-	rand     *rand.Rand
+	block       Block
+	tx          Transaction
+	contract    Account
+	state       WorldState
+	head        unsafe.Pointer
+	index       uint32
+	contextRand *ContextRand
 }
 
 // NewContext create a engine context
@@ -70,27 +75,28 @@ func NewContext(block Block, tx Transaction, contract Account, state WorldState)
 		return nil, ErrContextConstructArrEmpty
 	}
 	ctx := &Context{
-		block:    block,
-		tx:       tx,
-		contract: contract,
-		state:    state,
+		block:       block,
+		tx:          tx,
+		contract:    contract,
+		state:       state,
+		contextRand: &ContextRand{},
 	}
 	return ctx, nil
 }
 
 // NewChildContext create a child engine context
-func NewChildContext(block Block, tx Transaction, contract Account, state WorldState, head unsafe.Pointer, index uint32, rand *rand.Rand) (*Context, error) {
+func NewChildContext(block Block, tx Transaction, contract Account, state WorldState, head unsafe.Pointer, index uint32, ctxRand *ContextRand) (*Context, error) {
 	if block == nil || tx == nil || contract == nil || state == nil || head == nil {
 		return nil, ErrContextConstructArrEmpty
 	}
 	ctx := &Context{
-		block:    block,
-		tx:       tx,
-		contract: contract,
-		state:    state,
-		head:     head,
-		index:    index,
-		rand:     rand,
+		block:       block,
+		tx:          tx,
+		contract:    contract,
+		state:       state,
+		head:        head,
+		index:       index,
+		contextRand: ctxRand,
 	}
 	return ctx, nil
 }

@@ -448,7 +448,7 @@ func InnerContractFunc(handler unsafe.Pointer, address *C.char, funcName *C.char
 		head = engine.ctx.head
 	}
 	//TODO: 确定world reset 是否需要
-	newCtx, err := NewChildContext(engine.ctx.block, newTx, contract, engine.ctx.state, head, engine.ctx.index+1, engine.ctx.rand)
+	newCtx, err := NewChildContext(engine.ctx.block, newTx, contract, engine.ctx.state, head, engine.ctx.index+1, engine.ctx.contextRand)
 	if err != nil {
 		setHeadErrAndLog(engine, index, err.Error(), true)
 		return nil

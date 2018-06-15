@@ -10,12 +10,9 @@ import (
 	"testing"
 	"unsafe"
 
-	"github.com/nebulasio/go-nebulas/consensus/dpos"
-	"github.com/nebulasio/go-nebulas/core/state"
 	"github.com/nebulasio/go-nebulas/crypto"
 	"github.com/nebulasio/go-nebulas/crypto/keystore"
 	"github.com/nebulasio/go-nebulas/crypto/keystore/secp256k1"
-	"github.com/nebulasio/go-nebulas/storage"
 	"github.com/nebulasio/go-nebulas/util"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
 	"github.com/stretchr/testify/assert"
@@ -96,9 +93,7 @@ func mockBlock2() Block {
 	return block
 }
 
-func testRandomFunc(t *testing.T) {
-	mem, _ := storage.NewMemoryStorage()
-	context, _ := state.NewWorldState(dpos.NewDpos(), mem)
+func testRandomFunc(t *testing.T, context WorldState) {
 	contractAddr, err := core.AddressParse("n1FkntVUMPAsESuCAAPK711omQk19JotBjM")
 	assert.Nil(t, err)
 	contract, _ := context.CreateContractAccount(contractAddr.Bytes(), nil)
@@ -106,14 +101,15 @@ func testRandomFunc(t *testing.T) {
 
 	tx := mockNormalTransaction2("n1FkntVUMPAsESuCAAPK711omQk19JotBjM", "n1TV3sU6jyzR4rJ1D7jCAmtVGSntJagXZHC", "0")
 	ctx, err := NewContext(mockBlock2(), tx, contract, context)
+	assert.Nil(t, err)
 
 	// execute.
 	engine := NewV8Engine(ctx)
-	assert.Nil(t, engine.ctx.rand)
+	assert.Nil(t, engine.ctx.contextRand.rand)
 
 	r1 := GetTxRandomFunc(unsafe.Pointer(uintptr(engine.lcsHandler)))
 	assert.NotNil(t, r1)
-	assert.NotNil(t, engine.ctx.rand)
+	assert.NotNil(t, engine.ctx.contextRand.rand)
 	rs1 := C.GoString(r1)
 
 	r2 := GetTxRandomFunc(unsafe.Pointer(uintptr(engine.lcsHandler)))
