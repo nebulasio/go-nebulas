@@ -137,6 +137,9 @@ const (
 
 	//LocalNetTransferFromContractFailureEventRecordableHeight
 	LocalTransferFromContractFailureEventRecordableHeight uint64 = 2
+
+	//LocalNetNewNvmExeTimeoutConsumeGasHeight
+	LocalNewNvmExeTimeoutConsumeGasHeight uint64 = 2
 )
 
 // var for local/develop
@@ -170,10 +173,13 @@ const (
 	TestNetWsResetRecordDependencyHeight uint64 = 281600
 
 	// TestNetV8JSLibVersionControlHeight
-	TestNetV8JSLibVersionControlHeight uint64 = 407000
+	TestNetV8JSLibVersionControlHeight uint64 = 460000
 
 	//TestNetTransferFromContractFailureEventRecordableHeight
-	TestNetTransferFromContractFailureEventRecordableHeight uint64 = 407000
+	TestNetTransferFromContractFailureEventRecordableHeight uint64 = 460000
+
+	//TestNetNewNvmExeTimeoutConsumeGasHeight
+	TestNetNewNvmExeTimeoutConsumeGasHeight uint64 = 460000
 )
 
 // var for TestNet
@@ -207,10 +213,13 @@ const (
 	MainNetWsResetRecordDependencyHeight uint64 = 325666
 
 	// MainNetV8JSLibVersionControlHeight
-	MainNetV8JSLibVersionControlHeight uint64 = 440000
+	MainNetV8JSLibVersionControlHeight uint64 = 480000
 
 	//MainNetTransferFromContractFailureEventRecordableHeight
-	MainNetTransferFromContractFailureEventRecordableHeight uint64 = 440000
+	MainNetTransferFromContractFailureEventRecordableHeight uint64 = 480000
+
+	//MainNetNewNvmExeTimeoutConsumeGasHeight
+	MainNetNewNvmExeTimeoutConsumeGasHeight uint64 = 480000
 )
 
 // var for MainNet
@@ -250,6 +259,9 @@ var (
 
 	// TransferFromContractFailureEventRecordableHeight record event 'TransferFromContractEvent' since this height
 	TransferFromContractFailureEventRecordableHeight = TestNetTransferFromContractFailureEventRecordableHeight
+
+	//NewNvmExeTimeoutConsumeGasHeight
+	NewNvmExeTimeoutConsumeGasHeight = TestNetNewNvmExeTimeoutConsumeGasHeight
 )
 
 // SetCompatibilityOptions set compatibility height according to chain_id
@@ -266,6 +278,7 @@ func SetCompatibilityOptions(chainID uint32) {
 		V8JSLibVersionControlHeight = MainNetV8JSLibVersionControlHeight
 		V8JSLibVersionHeightSlice = MainNetV8JSLibVersionHeightSlice
 		TransferFromContractFailureEventRecordableHeight = MainNetTransferFromContractFailureEventRecordableHeight
+		NewNvmExeTimeoutConsumeGasHeight = MainNetNewNvmExeTimeoutConsumeGasHeight
 	} else if chainID == TestNetID {
 
 		TransferFromContractEventRecordableHeight = TestNetTransferFromContractEventRecordableHeight
@@ -278,6 +291,7 @@ func SetCompatibilityOptions(chainID uint32) {
 		V8JSLibVersionControlHeight = TestNetV8JSLibVersionControlHeight
 		V8JSLibVersionHeightSlice = TestNetV8JSLibVersionHeightSlice
 		TransferFromContractFailureEventRecordableHeight = TestNetTransferFromContractFailureEventRecordableHeight
+		NewNvmExeTimeoutConsumeGasHeight = TestNetNewNvmExeTimeoutConsumeGasHeight
 	} else {
 
 		TransferFromContractEventRecordableHeight = LocalTransferFromContractEventRecordableHeight
@@ -290,6 +304,7 @@ func SetCompatibilityOptions(chainID uint32) {
 		V8JSLibVersionControlHeight = LocalV8JSLibVersionControlHeight
 		V8JSLibVersionHeightSlice = LocalV8JSLibVersionHeightSlice
 		TransferFromContractFailureEventRecordableHeight = LocalTransferFromContractFailureEventRecordableHeight
+		NewNvmExeTimeoutConsumeGasHeight = LocalNewNvmExeTimeoutConsumeGasHeight
 	}
 
 	sort.Sort(sort.Reverse(V8JSLibVersionHeightSlice))
@@ -306,6 +321,7 @@ func SetCompatibilityOptions(chainID uint32) {
 		"V8JSLibVersionControlHeight":               V8JSLibVersionControlHeight,
 		"V8JSLibVersionHeightSlice":                 V8JSLibVersionHeightSlice,
 		"TransferFromContractFailureHeight":         TransferFromContractFailureEventRecordableHeight,
+		"NewNvmExeTimeoutConsumeGasHeight":          NewNvmExeTimeoutConsumeGasHeight,
 	}).Info("Set compatibility options.")
 
 	checkJSLib()

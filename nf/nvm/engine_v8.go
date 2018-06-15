@@ -330,10 +330,19 @@ func (e *V8Engine) RunScriptSource(source string, sourceLineOffset int) (string,
 	//set err
 	if ret == C.NVM_EXE_TIMEOUT_ERR {
 		err = ErrExecutionTimeout
-		if TimeoutGasLimitCost > e.limitsOfExecutionInstructions {
-			e.actualCountOfExecutionInstructions = e.limitsOfExecutionInstructions
-		} else {
-			e.actualCountOfExecutionInstructions = TimeoutGasLimitCost
+		ctx := e.Context()
+		if ctx == nil || ctx.block == nil {
+			logging.VLog().WithFields(logrus.Fields{
+				"err": err,
+				"ctx": ctx,
+			}).Error("Unexpected: Failed to get current height")
+			err = core.ErrUnexpected
+		} else if ctx.block.Height() >= core.NewNvmExeTimeoutConsumeGasHeight {
+			if TimeoutGasLimitCost > e.limitsOfExecutionInstructions {
+				e.actualCountOfExecutionInstructions = e.limitsOfExecutionInstructions
+			} else {
+				e.actualCountOfExecutionInstructions = TimeoutGasLimitCost
+			}
 		}
 	} else if ret == C.NVM_UNEXPECTED_ERR {
 		err = core.ErrUnexpected
