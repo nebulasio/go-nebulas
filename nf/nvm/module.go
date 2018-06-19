@@ -145,8 +145,8 @@ func AttachLibVersionDelegateFunc(handler unsafe.Pointer, require *C.char) *C.ch
 			logging.VLog().WithFields(logrus.Fields{
 				"libname": libname,
 				"height":  e.ctx.block.Height(),
-			}).Error("e.context.contract.ContractMeta is nil.")
-			return nil
+			}).Debug("e.context.contract.ContractMeta is nil.")
+			return attachDefaultVersionLib(libname)
 		}
 		cv := e.ctx.contract.ContractMeta().Version
 
@@ -179,6 +179,10 @@ func AttachLibVersionDelegateFunc(handler unsafe.Pointer, require *C.char) *C.ch
 		return C.CString(JSLibRootName + ver + libname[JSLibRootNameLen-1:])
 	}
 
+	return attachDefaultVersionLib(libname)
+}
+
+func attachDefaultVersionLib(libname string) *C.char {
 	// block created before core.V8JSLibVersionControlHeight, default lib version: 1.0.0
 	if !strings.HasPrefix(libname, JSLibRootName) {
 		if strings.HasPrefix(libname, "/") {

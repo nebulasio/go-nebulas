@@ -173,13 +173,13 @@ const (
 	TestNetWsResetRecordDependencyHeight uint64 = 281800
 
 	// TestNetV8JSLibVersionControlHeight
-	TestNetV8JSLibVersionControlHeight uint64 = 424300
+	TestNetV8JSLibVersionControlHeight uint64 = 424400
 
 	//TestNetTransferFromContractFailureEventRecordableHeight
-	TestNetTransferFromContractFailureEventRecordableHeight uint64 = 424300
+	TestNetTransferFromContractFailureEventRecordableHeight uint64 = 424400
 
 	//TestNetNewNvmExeTimeoutConsumeGasHeight
-	TestNetNewNvmExeTimeoutConsumeGasHeight uint64 = 424300
+	TestNetNewNvmExeTimeoutConsumeGasHeight uint64 = 424400
 )
 
 // var for TestNet
