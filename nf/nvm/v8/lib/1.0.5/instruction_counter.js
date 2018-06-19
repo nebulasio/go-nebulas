@@ -198,7 +198,7 @@ function processScript(source, strictDisallowUsage) {
             ensure_block_statement(node.body);
 
             var pos = node.body.range[0];
-            if (node.body.type === 'BlockStatement') {
+            if (body.type === 'BlockStatement') {
                 pos += 1;
             }
             record_injection(pos, 1, InjectionCodeGenerators.CounterIncrFunc);
@@ -241,20 +241,14 @@ function processScript(source, strictDisallowUsage) {
             };
         } else if (node.type == "WhileStatement") {
             ensure_block_statement(node.body);
-            var pos = node.body.range[0];
-            if (node.body.type === 'BlockStatement') {
-                pos += 1;
-            }
+            var pos = node.body.range[0] + 1;
             record_injection(pos, 1, InjectionCodeGenerators.CounterIncrFunc);
             return {
                 "test": new InjectionContext(node.test, InjectionType.INNER_BEGINNING),
             };
         } else if (node.type == "DoWhileStatement") {
             ensure_block_statement(node.body);
-            var pos = node.body.range[0];
-            if (node.body.type === 'BlockStatement') {
-                pos += 1;
-            }
+            var pos = node.body.range[0] + 1;
             record_injection(pos, 1, InjectionCodeGenerators.CounterIncrFunc);
             return {
                 "test": new InjectionContext(node.test, InjectionType.INNER_BEGINNING),
