@@ -213,13 +213,13 @@ const (
 	MainNetWsResetRecordDependencyHeight uint64 = 306800
 
 	// MainNetV8JSLibVersionControlHeight
-	MainNetV8JSLibVersionControlHeight uint64 = 460000
+	MainNetV8JSLibVersionControlHeight uint64 = 467500
 
 	//MainNetTransferFromContractFailureEventRecordableHeight
-	MainNetTransferFromContractFailureEventRecordableHeight uint64 = 460000
+	MainNetTransferFromContractFailureEventRecordableHeight uint64 = 467500
 
 	//MainNetNewNvmExeTimeoutConsumeGasHeight
-	MainNetNewNvmExeTimeoutConsumeGasHeight uint64 = 460000
+	MainNetNewNvmExeTimeoutConsumeGasHeight uint64 = 467500
 )
 
 // var for MainNet
