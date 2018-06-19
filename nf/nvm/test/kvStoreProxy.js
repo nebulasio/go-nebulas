@@ -31,6 +31,12 @@ kvStore.prototype = {
         real_kv.value(2000000000000000000).call("save", key, value);
     },
 
+    testFuncNotExist: function(address, key, value) {
+        var real_kv  = new Blockchain.Contract(address);
+
+        real_kv.call("testFuncNotExist", key, value);
+    },
+
     testUsageOfValue: function(address, key, value) {
         var real_kv = new Blockchain.Contract(address);  
         real_kv.value(2000000000000000000);
