@@ -43,7 +43,7 @@ BankVaultContractS.prototype = {
 		console.log("rand_second:", rand);
 
 		var c = new Blockchain.Contract(address, funcs);
-		var args = "[]";
+		var args = "";
 		c.value(0).call("getRandom", args); 
         return rand;
     },
@@ -80,8 +80,8 @@ BankVaultContractS.prototype = {
 			console.log("second:", e);
 		}*/
 		console.log("begin second js");
-        var args = "[\"" + height +"\"]";
-		c.value(2).call("save", args); 
+        // var args = "[\"" + height +"\"]";
+		c.value(2).call("save", height); 
 		// console.log("begin second js");
         this.transferEvent(true, height);
 	},
@@ -94,8 +94,8 @@ BankVaultContractS.prototype = {
 		// throw("+++++++second throw");
         var m = new ArrayBuffer(mem);
 		var c = new Blockchain.Contract(address, funcs);
-        var args = "[\"" + mem +"\"]";
-        c.value(0).call("saveMem", args); 
+        // var args = "[\"" + mem +"\"]";
+        c.value(0).call("saveMem", mem); 
         this.transferEvent(true, 0, mem);
 	},
 	saveErr: function(address, flag) {
@@ -109,8 +109,8 @@ BankVaultContractS.prototype = {
             }
         }
         var c = new Blockchain.Contract(address, funcs);
-        var args = "[\"" + address + "\", \""+ flag +"\"]";
-        c.value(0).call("saveErr", args); 
+        // var args = "[\"" + address + "\", \""+ flag +"\"]";
+        c.value(0).call("saveErr", address, flag); 
         // this.transferEvent(true, address, 0, mem);
     },
 	transferEvent: function (status, height, mem) {

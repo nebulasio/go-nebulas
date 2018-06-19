@@ -22,8 +22,9 @@ ProxyBankContract.prototype = {
 
         var c = new Blockchain.Contract(address, funcs);
 
-        var args = "[\"" + to + "\"]";
-        c.value(0).call("getRandom", args); 
+        // var args = 
+        // var args = "[\"" + to + "\"]";
+        c.value(0).call("getRandom", to); 
         return rand;
     },
     getRandomSingle: function(address, to) {
@@ -57,8 +58,8 @@ ProxyBankContract.prototype = {
         }
         var c = new Blockchain.Contract(address, funcs);
 
-        var args = "[\"" + to + "\", \""+ height +"\"]";
-        c.value(5).call("save", args); 
+        // var args = "[\"" + to + "\", \""+ height +"\"]";
+        c.value(5).call("save", to, height); 
         this.transferEvent(true, address, height);
     },
     saveMem: function (address, to, mem) {
@@ -69,8 +70,8 @@ ProxyBankContract.prototype = {
         }
         var m = new ArrayBuffer(mem);
         var c = new Blockchain.Contract(address, funcs);
-        var args = "[\"" + to + "\", \""+ mem +"\"]";
-        c.value(0).call("saveMem", args); 
+        // var args = "[\"" + to + "\", \""+ mem +"\"]";
+        c.value(0).call("saveMem", to, mem); 
         this.transferEvent(true, address, 0, mem);
     },
     saveErr: function(address, to, flag) {
@@ -84,8 +85,8 @@ ProxyBankContract.prototype = {
             }
         }
         var c = new Blockchain.Contract(address, funcs);
-        var args = "[\"" + to + "\", \""+ flag +"\"]";
-        c.value(0).call("saveErr", args); 
+        // var args = "[\"" + to + "\", \""+ flag +"\"]";
+        c.value(0).call("saveErr", to, flag); 
         // this.transferEvent(true, address, 0, mem);
     },
     saveToLoop: function (address, to, height) {
@@ -98,8 +99,8 @@ ProxyBankContract.prototype = {
 
         var c = new Blockchain.Contract(address, funcs);
 
-        var args = "[\"" + address + "\", \"" + to + "\", \""+ height +"\"]";
-        c.value(5).call("saveToLoop", args); 
+        // var args = "[\"" + address + "\", \"" + to + "\", \""+ height +"\"]";
+        c.value(5).call("saveToLoop", address, to, height); 
         this.transferEvent(true, address, height);
     },
     transferEvent: function (status, address, height, mem) {
