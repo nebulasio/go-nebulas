@@ -48,6 +48,10 @@ char *Ripemd160Func_cgo(const char *data, size_t *gasCnt);
 char *RecoverAddressFunc_cgo(int alg, const char *data, const char *sign, size_t *gasCnt);
 char *Md5Func_cgo(const char *data, size_t *gasCnt);
 char *Base64Func_cgo(const char *data, size_t *gasCnt);
+char *GetContractSourceFunc_cgo(void *handler, const char *address);
+char *InnerContractFunc_cgo(void *handler, const char *address, const char *funcName, const char * v, const char *args, size_t *gasCnt);
+
+char *GetTxRandomFunc_cgo(void *handler);
 
 void EventTriggerFunc_cgo(void *handler, const char *topic, const char *data, size_t *gasCnt);
 
@@ -78,6 +82,12 @@ const (
 	TimeoutGasLimitCost       = 100000000
 )
 
+// const (
+// 	ExecutionFailedErr   = 1
+// 	ExecutionInnerNvmErr = 2
+// 	ExecutionTimeOutErr  = 3
+// )
+
 //engine_v8 private data
 var (
 	v8engineOnce         = sync.Once{}
@@ -104,6 +114,7 @@ type V8Engine struct {
 	actualTotalMemorySize                   uint64
 	lcsHandler                              uint64
 	gcsHandler                              uint64
+	innerErrMsg                             string
 }
 
 type sourceModuleItem struct {
@@ -127,7 +138,9 @@ func InitV8Engine() {
 	C.InitializeExecutionEnvDelegate((C.AttachLibVersionDelegate)(unsafe.Pointer(C.AttachLibVersionDelegateFunc_cgo)))
 
 	// Storage.
-	C.InitializeStorage((C.StorageGetFunc)(unsafe.Pointer(C.StorageGetFunc_cgo)), (C.StoragePutFunc)(unsafe.Pointer(C.StoragePutFunc_cgo)), (C.StorageDelFunc)(unsafe.Pointer(C.StorageDelFunc_cgo)))
+	C.InitializeStorage((C.StorageGetFunc)(unsafe.Pointer(C.StorageGetFunc_cgo)),
+		(C.StoragePutFunc)(unsafe.Pointer(C.StoragePutFunc_cgo)),
+		(C.StorageDelFunc)(unsafe.Pointer(C.StorageDelFunc_cgo)))
 
 	// Blockchain.
 	C.InitializeBlockchain((C.GetTxByHashFunc)(unsafe.Pointer(C.GetTxByHashFunc_cgo)),
@@ -136,8 +149,10 @@ func InitV8Engine() {
 		(C.VerifyAddressFunc)(unsafe.Pointer(C.VerifyAddressFunc_cgo)),
 		(C.GetPreBlockHashFunc)(unsafe.Pointer(C.GetPreBlockHashFunc_cgo)),
 		(C.GetPreBlockSeedFunc)(unsafe.Pointer(C.GetPreBlockSeedFunc_cgo)),
-	)
-
+		(C.GetContractSourceFunc)(unsafe.Pointer(C.GetContractSourceFunc_cgo)),
+		(C.InnerContractFunc)(unsafe.Pointer(C.InnerContractFunc_cgo)))
+	// random.
+	C.InitializeRandom((C.GetTxRandomFunc)(unsafe.Pointer(C.GetTxRandomFunc_cgo)))
 	// Event.
 	C.InitializeEvent((C.EventTriggerFunc)(unsafe.Pointer(C.EventTriggerFunc_cgo)))
 
@@ -305,6 +320,24 @@ func (e *V8Engine) CollectTracingStats() {
 	e.actualTotalMemorySize = uint64(e.v8engine.stats.total_memory_size)
 }
 
+// GetNVMVerbResources return current NVM verb total resource
+func (e *V8Engine) GetNVMVerbResources() (uint64, uint64) {
+	e.CollectTracingStats()
+	var instruction uint64
+	var mem uint64
+	if e.limitsOfExecutionInstructions < e.actualCountOfExecutionInstructions {
+		instruction = 0
+	} else {
+		instruction = e.limitsOfExecutionInstructions - e.actualCountOfExecutionInstructions
+	}
+	if e.limitsOfTotalMemorySize < e.actualTotalMemorySize {
+		mem = 0
+	} else {
+		mem = e.limitsOfTotalMemorySize - e.actualTotalMemorySize
+	}
+	return instruction, mem
+}
+
 // RunScriptSource run js source.
 func (e *V8Engine) RunScriptSource(source string, sourceLineOffset int) (string, error) {
 
@@ -348,7 +381,11 @@ func (e *V8Engine) RunScriptSource(source string, sourceLineOffset int) (string,
 		err = core.ErrUnexpected
 	} else {
 		if ret != C.NVM_SUCCESS {
-			err = core.ErrExecutionFailed
+			if ret == C.NVM_INNER_EXE_ERR {
+				err = core.ErrInnerExecutionFailed
+			} else {
+				err = core.ErrExecutionFailed
+			}
 		}
 		if e.limitsOfExecutionInstructions > 0 &&
 			e.limitsOfExecutionInstructions < e.actualCountOfExecutionInstructions {
@@ -369,7 +406,9 @@ func (e *V8Engine) RunScriptSource(source string, sourceLineOffset int) (string,
 	} else if ret == C.NVM_SUCCESS {
 		result = "\"\"" // default JSON String.
 	}
-
+	if e.innerErrMsg != "" {
+		result = e.innerErrMsg
+	}
 	return result, err
 }
 
@@ -464,7 +503,6 @@ func (e *V8Engine) AddModule(id, source string, sourceLineOffset int) error {
 		source = item.traceableSource
 		sourceLineOffset = item.traceableSourceLineOffset
 	}
-
 	e.modules.Add(NewModule(id, source, sourceLineOffset))
 	return nil
 }
@@ -510,7 +548,7 @@ func (e *V8Engine) prepareRunnableContractScript(source, function, args string) 
 									var __instance = new __contract();
 									__instance["%s"].apply(__instance, JSON.parse("%s"));`,
 		formatArgs(string(blockJSON)), formatArgs(string(txJSON)),
-		ModuleID, function, formatArgs(string(argsInput)))
+		ModuleID, function, formatArgs(string(argsInput))) //TODO: freeze?
 	return runnableSource, 0, nil
 }
 

@@ -54,7 +54,6 @@ class BankVaultContract {
     init() {
         // pass.
     }
-
     // save.
     save(height: number) {
         let from = Blockchain.transaction.from;

@@ -33,6 +33,9 @@
 #include <sys/time.h>
 #include <unistd.h>
 #define MicroSecondDiff(newtv, oldtv) (1000000 * (unsigned long long)((newtv).tv_sec - (oldtv).tv_sec) + (newtv).tv_usec - (oldtv).tv_usec)  //微秒
+#define CodeExecuteErr 1
+#define CodeExecuteInnerNvmErr 2
+#define CodeTimeOut    3
 
 void SetRunScriptArgs(v8ThreadContext *ctx, V8Engine *e, int opt, const char *source, int line_offset, int allow_usage) {
   ctx->e = e;
@@ -146,6 +149,9 @@ bool CreateScriptThread(v8ThreadContext *ctx) {
     if (ctx->is_finished == true) {
         if (is_kill == true) {
           ctx->output.ret = NVM_EXE_TIMEOUT_ERR; 
+          // ctx->output.ret = CodeTimeOut; 
+        } else if (ctx->e->is_requested_terminate_execution == 1) {
+          ctx->output.ret = NVM_INNER_EXE_ERR;
         }
         break;
     } else {

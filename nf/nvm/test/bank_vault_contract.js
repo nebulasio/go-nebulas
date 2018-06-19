@@ -33,7 +33,17 @@ BankVaultContract.prototype = {
 	init: function () {
 		//TODO:
 	},
+	getRandom: function() {
+		console.log("second bank");
+		var funcs =  {
+            getRandom: function() { 
+            }
+		}
+        var rand = _native_math.random();
+		console.log("rand_last:", rand);
 
+		
+    },
 	save: function (height) {
 		var from = Blockchain.transaction.from;
 		var value = Blockchain.transaction.value;
@@ -47,10 +57,36 @@ BankVaultContract.prototype = {
 		var deposit = new DepositeContent();
 		deposit.balance = value;
 		deposit.expiryHeight = bk_height.plus(height);
-
 		this.bankVault.put(from, deposit);
+		this.transferEvent(true, height);
 	},
+	saveMem: function (mem) {
+        var funcs =  {
+            saveMem: function() { 
+            
+            }
+        }
+        var m = new ArrayBuffer(mem);
 
+        this.transferEvent(true, 0, mem);
+	},
+	saveErr: function(address, flag) {
+        if (flag == 2) {
+            throw("saveErr in bank_vault_contract");
+            return;
+        }
+        this.transferEvent(true, 0, 3);
+    },
+	transferEvent: function (status, height, mem) {
+        Event.Trigger("bank_vault_contract", {
+            Status: status,
+            Transfer: {
+				height: height,
+				mem: mem,
+                magic: "children last one"
+            }
+        });
+    },
 	takeout: function (value) {
 		var from = Blockchain.transaction.from;
 		var bk_height = new BigNumber(Blockchain.block.height);

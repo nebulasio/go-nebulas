@@ -668,19 +668,6 @@ func (bc *BlockChain) GetBlock(hash byteutils.Hash) *Block {
 	return block
 }
 
-// GetTransaction return transaction of given hash from local storage.
-func (bc *BlockChain) GetTransaction(hash byteutils.Hash) (*Transaction, error) {
-	worldState, err := bc.TailBlock().WorldState().Clone()
-	if err != nil {
-		return nil, err
-	}
-	tx, err := GetTransaction(hash, worldState)
-	if err != nil {
-		return nil, err
-	}
-	return tx, nil
-}
-
 // GetContract return contract of given address
 func (bc *BlockChain) GetContract(addr *Address) (state.Account, error) {
 	worldState, err := bc.TailBlock().WorldState().Clone()
@@ -692,6 +679,19 @@ func (bc *BlockChain) GetContract(addr *Address) (state.Account, error) {
 		return nil, err
 	}
 	return contract, nil
+}
+
+// GetTransaction return transaction of given hash from local storage.
+func (bc *BlockChain) GetTransaction(hash byteutils.Hash) (*Transaction, error) {
+	worldState, err := bc.TailBlock().WorldState().Clone()
+	if err != nil {
+		return nil, err
+	}
+	tx, err := GetTransaction(hash, worldState)
+	if err != nil {
+		return nil, err
+	}
+	return tx, nil
 }
 
 // GasPrice returns the lowest transaction gas price.

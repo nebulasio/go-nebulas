@@ -103,6 +103,7 @@ V8Engine *CreateEngine() {
   e->allocator = allocator;
   e->isolate = isolate;
   e->timeout = ExecuteTimeOut;
+
   return e;
 }
 
@@ -134,14 +135,12 @@ int ExecuteSourceDataDelegate(char **result, Isolate *isolate,
     PrintAndReturnException(result, context, trycatch);
     return NVM_EXCEPTION_ERR;
   }
-
   // Run the script to get the result.
   MaybeLocal<Value> ret = script.ToLocalChecked()->Run(context);
   if (ret.IsEmpty()) {
     PrintAndReturnException(result, context, trycatch);
     return NVM_EXCEPTION_ERR;
   }
-
   // set result.
   if (result != NULL) {
     Local<Object> obj = ret.ToLocalChecked().As<Object>();
