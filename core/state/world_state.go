@@ -22,6 +22,7 @@ import (
 	"encoding/json"
 
 	"github.com/nebulasio/go-nebulas/consensus/pb"
+	"github.com/nebulasio/go-nebulas/core/pb"
 	"github.com/nebulasio/go-nebulas/util"
 
 	"github.com/nebulasio/go-nebulas/common/mvccdb"
@@ -411,8 +412,8 @@ func (s *states) GetContractAccount(addr byteutils.Hash) (Account, error) {
 	return s.recordAccount(acc)
 }
 
-func (s *states) CreateContractAccount(owner byteutils.Hash, birthPlace byteutils.Hash) (Account, error) {
-	acc, err := s.accState.CreateContractAccount(owner, birthPlace)
+func (s *states) CreateContractAccount(owner byteutils.Hash, birthPlace byteutils.Hash, contractMeta *corepb.ContractMeta) (Account, error) {
+	acc, err := s.accState.CreateContractAccount(owner, birthPlace, contractMeta)
 	if err != nil {
 		return nil, err
 	}
@@ -538,6 +539,22 @@ func (s *states) GetGas() map[string]*util.Uint128 {
 	}
 	s.gasConsumed = make(map[string]*util.Uint128)
 	return gasConsumed
+}
+
+func (s *states) GetBlockHashByHeight(height uint64) ([]byte, error) {
+	bytes, err := s.innerDB.Get(byteutils.FromUint64(height))
+	if err != nil {
+		return nil, err
+	}
+	return bytes, nil
+}
+
+func (s *states) GetBlock(hash byteutils.Hash) ([]byte, error) {
+	bytes, err := s.innerDB.Get(hash)
+	if err != nil {
+		return nil, err
+	}
+	return bytes, nil
 }
 
 // WorldState manange all current states in Blockchain

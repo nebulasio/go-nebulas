@@ -64,6 +64,7 @@ var (
 	metricsBlockPackingTime = metrics.NewGauge("neb.block.packing")
 	metricsBlockWaitingTime = metrics.NewGauge("neb.block.waiting")
 	metricsLruPoolSlotBlock = metrics.NewGauge("neb.block.lru.poolslot")
+	metricsMintBlock        = metrics.NewCounter("neb.block.mint")
 )
 
 // Dpos Delegate Proof-of-Stake
@@ -682,6 +683,7 @@ func (dpos *Dpos) mintBlock(now int64) error {
 		"end":      time.Now().Unix(),
 	}).Info("Minted new block")
 
+	metricsMintBlock.Inc(1)
 	// try to push the new block on chain
 	// if failed, return all txs back
 

@@ -75,7 +75,7 @@ var StandardToken = function () {
 };
 
 StandardToken.prototype = {
-    init: function (name, symbol) {
+    init: function (name) {
         this._name = name;
     },
 
@@ -144,6 +144,10 @@ StandardToken.prototype = {
 
     transferFrom: function (_from, _to, _tokenId) {
         var from = Blockchain.transaction.from;
+        var contractAddress = Blockchain.transaction.to;
+        if (contractAddress == _to) {
+            throw new Error("Forbidden to transfer money to a smart contract address");
+        }
         if (this.isApprovedOrOwner(from, _tokenId)) {
             this.clearApproval(_from, _tokenId);
             this.removeTokenFrom(_from, _tokenId);
@@ -154,6 +158,7 @@ StandardToken.prototype = {
         }
         
     },
+
 
     clearApproval: function (_owner, _tokenId) {
         var owner = this.ownerOf(_tokenId);
@@ -171,13 +176,13 @@ StandardToken.prototype = {
         if (tokenCount.lt(1)) {
             throw new Error("Insufficient account balance in removeTokenFrom.");
         }
-        this.ownedTokensCount.set(_from, tokenCount-1);
+        this.ownedTokensCount.set(_from, tokenCount.sub(1));
     },
 
     addTokenTo: function(_to, _tokenId) {
         this.tokenOwner.set(_tokenId, _to);
         var tokenCount = this.ownedTokensCount.get(_to) || new BigNumber(0);
-        this.ownedTokensCount.set(_to, tokenCount+1);
+        this.ownedTokensCount.set(_to, tokenCount.add(1));
     },
 
     mint: function(_to, _tokenId) {

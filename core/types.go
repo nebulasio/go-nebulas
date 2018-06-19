@@ -170,6 +170,7 @@ var (
 
 	// nvm error
 	ErrExecutionFailed = errors.New("execution failed")
+	ErrUnexpected      = errors.New("Unexpected sys error")
 
 	// unsupported keyword error in smart contract
 	ErrUnsupportedKeyword = errors.New("transaction data has unsupported keyword")
@@ -290,7 +291,7 @@ type Neblet interface {
 type WorldState interface {
 	GetOrCreateUserAccount(addr byteutils.Hash) (state.Account, error)
 	GetContractAccount(addr byteutils.Hash) (state.Account, error)
-	CreateContractAccount(owner byteutils.Hash, birthPlace byteutils.Hash) (state.Account, error)
+	CreateContractAccount(owner byteutils.Hash, birthPlace byteutils.Hash, contractMeta *corepb.ContractMeta) (state.Account, error)
 
 	GetTx(txHash byteutils.Hash) ([]byte, error)
 	PutTx(txHash byteutils.Hash, txBytes []byte) error
@@ -304,4 +305,6 @@ type WorldState interface {
 	RecordGas(from string, gas *util.Uint128) error
 
 	Reset(addr byteutils.Hash) error
+	GetBlockHashByHeight(height uint64) ([]byte, error)
+	GetBlock(txHash byteutils.Hash) ([]byte, error)
 }

@@ -389,6 +389,14 @@ func (block *Block) RandomSeed() string {
 	return ""
 }
 
+// RandomProof block random proof (VRF)
+func (block *Block) RandomProof() string {
+	if block.height >= RandomAvailableHeight {
+		return byteutils.Hex(block.header.random.VrfProof)
+	}
+	return ""
+}
+
 // RandomAvailable check if Math.random available in contract
 func (block *Block) RandomAvailable() bool {
 	return block.height >= RandomAvailableHeight
@@ -1289,4 +1297,12 @@ func LoadBlockFromStorage(hash byteutils.Hash, chain *BlockChain) (*Block, error
 	block.nvm = chain.nvm
 	block.storage = chain.storage
 	return block, nil
+}
+
+// MockBlock nf/nvm/engine.CheckV8Run()  & cmd/v8/main.go
+func MockBlock(header *BlockHeader, height uint64) *Block {
+	return &Block{
+		header: header,
+		height: height,
+	}
 }

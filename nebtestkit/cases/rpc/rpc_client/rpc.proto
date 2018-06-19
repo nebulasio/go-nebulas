@@ -4,6 +4,7 @@ syntax = "proto3";
 //import "google/api/annotations.proto";
 
 import "../../../..//consensus/pb/state.proto";
+import "../../../../core/pb/block.proto";
 import "../../../../neblet/pb/config.proto";
 package rpcpb;
 
@@ -440,8 +441,14 @@ message BlockResponse {
     // Miner
     string miner = 12;
 
+    //Random seed
+    string randomSeed = 13;
+
+    //vrf proof
+    string randomProof = 14;
+
     // is finaliy
-    bool is_finality = 13;
+    bool is_finality = 15;
 
     // transaction slice
     repeated TransactionResponse transactions = 100;

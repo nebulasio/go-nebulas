@@ -22,6 +22,7 @@ import (
 	"errors"
 
 	"github.com/nebulasio/go-nebulas/consensus/pb"
+	"github.com/nebulasio/go-nebulas/core/pb"
 	"github.com/nebulasio/go-nebulas/storage"
 	"github.com/nebulasio/go-nebulas/util"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
@@ -67,6 +68,7 @@ type Account interface {
 	Get(key []byte) ([]byte, error)
 	Del(key []byte) error
 	Iterator(prefix []byte) (Iterator, error)
+	ContractMeta() *corepb.ContractMeta
 }
 
 // AccountState Interface
@@ -84,7 +86,7 @@ type AccountState interface {
 
 	GetOrCreateUserAccount(byteutils.Hash) (Account, error)
 	GetContractAccount(byteutils.Hash) (Account, error)
-	CreateContractAccount(byteutils.Hash, byteutils.Hash) (Account, error)
+	CreateContractAccount(byteutils.Hash, byteutils.Hash, *corepb.ContractMeta) (Account, error)
 }
 
 // Event event structure.
@@ -142,7 +144,7 @@ type WorldState interface {
 	Accounts() ([]Account, error)
 	GetOrCreateUserAccount(addr byteutils.Hash) (Account, error)
 	GetContractAccount(addr byteutils.Hash) (Account, error)
-	CreateContractAccount(owner byteutils.Hash, birthPlace byteutils.Hash) (Account, error)
+	CreateContractAccount(owner byteutils.Hash, birthPlace byteutils.Hash, contractMeta *corepb.ContractMeta) (Account, error)
 
 	GetTx(txHash byteutils.Hash) ([]byte, error)
 	PutTx(txHash byteutils.Hash, txBytes []byte) error
@@ -155,6 +157,8 @@ type WorldState interface {
 
 	RecordGas(from string, gas *util.Uint128) error
 	GetGas() map[string]*util.Uint128
+	GetBlockHashByHeight(height uint64) ([]byte, error)
+	GetBlock(txHash byteutils.Hash) ([]byte, error)
 }
 
 // TxWorldState is the world state of a single transaction
@@ -171,7 +175,7 @@ type TxWorldState interface {
 	Accounts() ([]Account, error)
 	GetOrCreateUserAccount(addr byteutils.Hash) (Account, error)
 	GetContractAccount(addr byteutils.Hash) (Account, error)
-	CreateContractAccount(owner byteutils.Hash, birthPlace byteutils.Hash) (Account, error)
+	CreateContractAccount(owner byteutils.Hash, birthPlace byteutils.Hash, contractMeta *corepb.ContractMeta) (Account, error)
 
 	GetTx(txHash byteutils.Hash) ([]byte, error)
 	PutTx(txHash byteutils.Hash, txBytes []byte) error
@@ -183,4 +187,6 @@ type TxWorldState interface {
 	DynastyRoot() byteutils.Hash
 
 	RecordGas(from string, gas *util.Uint128) error
+	GetBlockHashByHeight(height uint64) ([]byte, error)
+	GetBlock(txHash byteutils.Hash) ([]byte, error)
 }

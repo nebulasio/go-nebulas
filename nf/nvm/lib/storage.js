@@ -1,1 +1,0 @@
-../v8/lib/storage.js

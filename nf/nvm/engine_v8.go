@@ -29,6 +29,7 @@ package nvm
 void V8Log_cgo(int level, const char *msg);
 
 char *RequireDelegateFunc_cgo(void *handler, const char *filename, size_t *lineOffset);
+char *AttachLibVersionDelegateFunc_cgo(void *handler, const char *libname);
 
 char *StorageGetFunc_cgo(void *handler, const char *key, size_t *gasCnt);
 int StoragePutFunc_cgo(void *handler, const char *key, const char *value, size_t *gasCnt);
@@ -38,6 +39,15 @@ char *GetTxByHashFunc_cgo(void *handler, const char *hash);
 char *GetAccountStateFunc_cgo(void *handler, const char *address);
 int TransferFunc_cgo(void *handler, const char *to, const char *value);
 int VerifyAddressFunc_cgo(void *handler, const char *address);
+char *GetPreBlockHashFunc_cgo(void *handler, unsigned long long offset, size_t *gasCnt);
+char *GetPreBlockSeedFunc_cgo(void *handler, unsigned long long offset, size_t *gasCnt);
+
+char *Sha256Func_cgo(const char *data, size_t *gasCnt);
+char *Sha3256Func_cgo(const char *data, size_t *gasCnt);
+char *Ripemd160Func_cgo(const char *data, size_t *gasCnt);
+char *RecoverAddressFunc_cgo(int alg, const char *data, const char *sign, size_t *gasCnt);
+char *Md5Func_cgo(const char *data, size_t *gasCnt);
+char *Base64Func_cgo(const char *data, size_t *gasCnt);
 
 void EventTriggerFunc_cgo(void *handler, const char *topic, const char *data, size_t *gasCnt);
 
@@ -47,7 +57,6 @@ import (
 	"fmt"
 	"strings"
 	"sync"
-	"time"
 	"unsafe"
 
 	"encoding/json"
@@ -61,8 +70,12 @@ import (
 )
 
 const (
+	ExecutionFailedErr  = 1
+	ExecutionTimeOutErr = 2
+
 	// ExecutionTimeoutInSeconds max v8 execution timeout.
 	ExecutionTimeoutInSeconds = 5
+	TimeoutGasLimitCost       = 100000000
 )
 
 //engine_v8 private data
@@ -108,16 +121,33 @@ func InitV8Engine() {
 	C.InitializeLogger((C.LogFunc)(unsafe.Pointer(C.V8Log_cgo)))
 
 	// Require.
-	C.InitializeRequireDelegate((C.RequireDelegate)(unsafe.Pointer(C.RequireDelegateFunc_cgo)))
+	C.InitializeRequireDelegate((C.RequireDelegate)(unsafe.Pointer(C.RequireDelegateFunc_cgo)), (C.AttachLibVersionDelegate)(unsafe.Pointer(C.AttachLibVersionDelegateFunc_cgo)))
+
+	// execution_env require
+	C.InitializeExecutionEnvDelegate((C.AttachLibVersionDelegate)(unsafe.Pointer(C.AttachLibVersionDelegateFunc_cgo)))
 
 	// Storage.
 	C.InitializeStorage((C.StorageGetFunc)(unsafe.Pointer(C.StorageGetFunc_cgo)), (C.StoragePutFunc)(unsafe.Pointer(C.StoragePutFunc_cgo)), (C.StorageDelFunc)(unsafe.Pointer(C.StorageDelFunc_cgo)))
 
 	// Blockchain.
-	C.InitializeBlockchain((C.GetTxByHashFunc)(unsafe.Pointer(C.GetTxByHashFunc_cgo)), (C.GetAccountStateFunc)(unsafe.Pointer(C.GetAccountStateFunc_cgo)), (C.TransferFunc)(unsafe.Pointer(C.TransferFunc_cgo)), (C.VerifyAddressFunc)(unsafe.Pointer(C.VerifyAddressFunc_cgo)))
+	C.InitializeBlockchain((C.GetTxByHashFunc)(unsafe.Pointer(C.GetTxByHashFunc_cgo)),
+		(C.GetAccountStateFunc)(unsafe.Pointer(C.GetAccountStateFunc_cgo)),
+		(C.TransferFunc)(unsafe.Pointer(C.TransferFunc_cgo)),
+		(C.VerifyAddressFunc)(unsafe.Pointer(C.VerifyAddressFunc_cgo)),
+		(C.GetPreBlockHashFunc)(unsafe.Pointer(C.GetPreBlockHashFunc_cgo)),
+		(C.GetPreBlockSeedFunc)(unsafe.Pointer(C.GetPreBlockSeedFunc_cgo)),
+	)
 
 	// Event.
 	C.InitializeEvent((C.EventTriggerFunc)(unsafe.Pointer(C.EventTriggerFunc_cgo)))
+
+	// Crypto
+	C.InitializeCrypto((C.Sha256Func)(unsafe.Pointer(C.Sha256Func_cgo)),
+		(C.Sha3256Func)(unsafe.Pointer(C.Sha3256Func_cgo)),
+		(C.Ripemd160Func)(unsafe.Pointer(C.Ripemd160Func_cgo)),
+		(C.RecoverAddressFunc)(unsafe.Pointer(C.RecoverAddressFunc_cgo)),
+		(C.Md5Func)(unsafe.Pointer(C.Md5Func_cgo)),
+		(C.Base64Func)(unsafe.Pointer(C.Base64Func_cgo)))
 }
 
 // DisposeV8Engine dispose the v8 engine.
@@ -161,6 +191,8 @@ func NewV8Engine(ctx *Context) *V8Engine {
 		storages[engine.lcsHandler] = engine
 		storages[engine.gcsHandler] = engine
 	})()
+	// engine.v8engine.lcs = C.uintptr_t(engine.lcsHandler)
+	// engine.v8engine.gcs = C.uintptr_t(engine.gcsHandler)
 	return engine
 }
 
@@ -198,14 +230,18 @@ func (e *V8Engine) SetTestingFlag(flag bool) {
 	}*/
 }
 
+func (e *V8Engine) SetTimeOut(timeout uint64) {
+	e.v8engine.timeout = C.int(timeout) //TODO:
+}
+
 // SetExecutionLimits set execution limits of V8 Engine, prevent Halting Problem.
 func (e *V8Engine) SetExecutionLimits(limitsOfExecutionInstructions, limitsOfTotalMemorySize uint64) error {
 	e.v8engine.limits_of_executed_instructions = C.size_t(limitsOfExecutionInstructions)
 	e.v8engine.limits_of_total_memory_size = C.size_t(limitsOfTotalMemorySize)
 
 	logging.VLog().WithFields(logrus.Fields{
-		"limits_of_executed_instructions": e.v8engine.limits_of_executed_instructions,
-		"limits_of_total_memory_size":     e.v8engine.limits_of_total_memory_size,
+		"limits_of_executed_instructions": limitsOfExecutionInstructions,
+		"limits_of_total_memory_size":     limitsOfTotalMemorySize,
 	}).Debug("set execution limits.")
 
 	e.limitsOfExecutionInstructions = limitsOfExecutionInstructions
@@ -234,12 +270,12 @@ func (e *V8Engine) TranspileTypeScript(source string) (string, int, error) {
 	defer C.free(unsafe.Pointer(cSource))
 
 	lineOffset := C.int(0)
-	jsSource := C.TranspileTypeScriptModule(e.v8engine, cSource, &lineOffset)
+	jsSource := C.TranspileTypeScriptModuleThread(e.v8engine, cSource, &lineOffset)
 	if jsSource == nil {
 		return "", 0, ErrTranspileTypeScriptFailed
 	}
-	defer C.free(unsafe.Pointer(jsSource))
 
+	defer C.free(unsafe.Pointer(jsSource))
 	return C.GoString(jsSource), int(lineOffset), nil
 
 }
@@ -250,13 +286,13 @@ func (e *V8Engine) InjectTracingInstructions(source string) (string, int, error)
 	defer C.free(unsafe.Pointer(cSource))
 
 	lineOffset := C.int(0)
-	traceableCSource := C.InjectTracingInstructions(e.v8engine, cSource, &lineOffset, C.int(e.strictDisallowUsageOfInstructionCounter))
 
+	traceableCSource := C.InjectTracingInstructionsThread(e.v8engine, cSource, &lineOffset, C.int(e.strictDisallowUsageOfInstructionCounter))
 	if traceableCSource == nil {
 		return "", 0, ErrInjectTracingInstructionFailed
 	}
-	defer C.free(unsafe.Pointer(traceableCSource))
 
+	defer C.free(unsafe.Pointer(traceableCSource))
 	return C.GoString(traceableCSource), int(lineOffset), nil
 }
 
@@ -271,6 +307,7 @@ func (e *V8Engine) CollectTracingStats() {
 
 // RunScriptSource run js source.
 func (e *V8Engine) RunScriptSource(source string, sourceLineOffset int) (string, error) {
+
 	cSource := C.CString(source)
 	defer C.free(unsafe.Pointer(cSource))
 
@@ -280,48 +317,57 @@ func (e *V8Engine) RunScriptSource(source string, sourceLineOffset int) (string,
 		ret     C.int
 		cResult *C.char
 	)
+	// done := make(chan bool, 1)
+	// go func() {
+	// 	ret = C.RunScriptSource(&cResult, e.v8engine, cSource, C.int(sourceLineOffset), C.uintptr_t(e.lcsHandler),
+	// 		C.uintptr_t(e.gcsHandler))
+	// 	done <- true
+	// }()
+	ret = C.RunScriptSourceThread(&cResult, e.v8engine, cSource, C.int(sourceLineOffset), C.uintptr_t(e.lcsHandler),
+		C.uintptr_t(e.gcsHandler))
+	e.CollectTracingStats()
 
-	done := make(chan bool, 1)
-	go func() {
-		ret = C.RunScriptSource(&cResult, e.v8engine, cSource, C.int(sourceLineOffset), C.uintptr_t(e.lcsHandler),
-			C.uintptr_t(e.gcsHandler))
-		done <- true
-	}()
-
-	select {
-	case <-done:
-		if ret != 0 {
+	//set err
+	if ret == C.NVM_EXE_TIMEOUT_ERR {
+		err = ErrExecutionTimeout
+		ctx := e.Context()
+		if ctx == nil || ctx.block == nil {
+			logging.VLog().WithFields(logrus.Fields{
+				"err": err,
+				"ctx": ctx,
+			}).Error("Unexpected: Failed to get current height")
+			err = core.ErrUnexpected
+		} else if ctx.block.Height() >= core.NewNvmExeTimeoutConsumeGasHeight {
+			if TimeoutGasLimitCost > e.limitsOfExecutionInstructions {
+				e.actualCountOfExecutionInstructions = e.limitsOfExecutionInstructions
+			} else {
+				e.actualCountOfExecutionInstructions = TimeoutGasLimitCost
+			}
+		}
+	} else if ret == C.NVM_UNEXPECTED_ERR {
+		err = core.ErrUnexpected
+	} else {
+		if ret != C.NVM_SUCCESS {
 			err = core.ErrExecutionFailed
 		}
-	case <-time.After(ExecutionTimeoutInSeconds * time.Second):
-		C.TerminateExecution(e.v8engine) //ToDo TerminateExecution can kill RunScriptSource
-		err = ErrExecutionTimeout
-
-		// wait for C.RunScriptSource() returns.
-		select {
-		case <-done:
+		if e.limitsOfExecutionInstructions > 0 &&
+			e.limitsOfExecutionInstructions < e.actualCountOfExecutionInstructions {
+			// Reach instruction limits.
+			err = ErrInsufficientGas
+			e.actualCountOfExecutionInstructions = e.limitsOfExecutionInstructions
+		} else if e.limitsOfTotalMemorySize > 0 && e.limitsOfTotalMemorySize < e.actualTotalMemorySize {
+			// reach memory limits.
+			err = ErrExceedMemoryLimits
+			e.actualCountOfExecutionInstructions = e.limitsOfExecutionInstructions
 		}
 	}
 
+	//set result
 	if cResult != nil {
 		result = C.GoString(cResult)
 		C.free(unsafe.Pointer(cResult))
-	} else if ret == 0 {
+	} else if ret == C.NVM_SUCCESS {
 		result = "\"\"" // default JSON String.
-	}
-
-	// collect tracing stats.
-	e.CollectTracingStats()
-
-	if e.limitsOfExecutionInstructions > 0 && e.limitsOfExecutionInstructions < e.actualCountOfExecutionInstructions {
-		// Reach instruction limits.
-		err = ErrInsufficientGas
-	} else if e.limitsOfTotalMemorySize > 0 && e.limitsOfTotalMemorySize < e.actualTotalMemorySize {
-		// reach memory limits.
-		err = ErrExceedMemoryLimits
-	}
-	if e.actualCountOfExecutionInstructions > e.limitsOfExecutionInstructions || err == ErrExceedMemoryLimits { //ToDo ErrExceedMemoryLimits value is same in each linux
-		e.actualCountOfExecutionInstructions = e.limitsOfExecutionInstructions //ToDo memory pass whether exhaust ?
 	}
 
 	return result, err
@@ -370,12 +416,15 @@ func (e *V8Engine) RunContractScript(source, sourceType, function, args string) 
 	if e.ctx.block.Height() >= core.NvmMemoryLimitWithoutInjectHeight {
 		e.CollectTracingStats()
 		mem := e.actualTotalMemorySize + core.DefaultLimitsOfTotalMemorySize
-		logging.CLog().Infof("cost mem:%v, mem limit:%v", e.actualTotalMemorySize, mem)
+		logging.VLog().WithFields(logrus.Fields{
+			"actualTotalMemorySize": e.actualTotalMemorySize,
+			"limit":                 mem,
+			"tx.hash":               e.ctx.tx.Hash(),
+		}).Debug("mem limit")
 		if err := e.SetExecutionLimits(e.limitsOfExecutionInstructions, mem); err != nil {
 			return "", err
 		}
 	}
-
 	return e.RunScriptSource(runnableSource, sourceLineOffset)
 }
 

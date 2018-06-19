@@ -20,11 +20,17 @@ package hash
 
 import (
 	"crypto/sha256"
+	"encoding/base64"
 
 	keccak "github.com/nebulasio/go-nebulas/crypto/sha3"
 	"golang.org/x/crypto/ripemd160"
 	"golang.org/x/crypto/sha3"
 )
+
+// const alphabet = "./ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
+
+var bcEncoding = base64.NewEncoding(alphabet)
 
 // Sha256 returns the SHA-256 digest of the data.
 func Sha256(args ...[]byte) []byte {
@@ -60,4 +66,30 @@ func Ripemd160(args ...[]byte) []byte {
 		hasher.Write(bytes)
 	}
 	return hasher.Sum(nil)
+}
+
+// Base64Encode encode to base64
+func Base64Encode(src []byte) []byte {
+	n := bcEncoding.EncodedLen(len(src))
+	dst := make([]byte, n)
+	bcEncoding.Encode(dst, src)
+	// for dst[n-1] == '=' {
+	// 	n--
+	// }
+	return dst[:n]
+}
+
+// Base64Decode decode base64
+func Base64Decode(src []byte) ([]byte, error) {
+	numOfEquals := 4 - (len(src) % 4)
+	for i := 0; i < numOfEquals; i++ {
+		src = append(src, '=')
+	}
+
+	dst := make([]byte, bcEncoding.DecodedLen(len(src)))
+	n, err := bcEncoding.Decode(dst, src)
+	if err != nil {
+		return nil, err
+	}
+	return dst[:n], nil
 }

@@ -19,6 +19,8 @@
 package rpc
 
 import (
+	"strings"
+
 	"github.com/nebulasio/go-nebulas/util/logging"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
@@ -35,10 +37,18 @@ func loggingStream(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServe
 }
 
 func loggingUnary(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp interface{}, err error) {
-	logging.VLog().WithFields(logrus.Fields{
-		"method": info.FullMethod,
-		"params": req,
-	}).Info("Rpc request.")
+
+	if strings.Contains(info.FullMethod, "ApiService") {
+		logging.VLog().WithFields(logrus.Fields{
+			"method": info.FullMethod,
+			"params": req,
+		}).Info("Rpc request.")
+	} else {
+		logging.VLog().WithFields(logrus.Fields{
+			"method": info.FullMethod,
+		}).Info("Rpc request.")
+	}
+
 	metricsRPCCounter.Mark(1)
 
 	return handler(ctx, req)

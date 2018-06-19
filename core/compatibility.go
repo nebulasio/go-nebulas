@@ -19,6 +19,14 @@
 package core
 
 import (
+	"bytes"
+	"errors"
+	"os"
+	"path/filepath"
+	"sort"
+	"strconv"
+	"strings"
+
 	"github.com/nebulasio/go-nebulas/util/logging"
 	"github.com/sirupsen/logrus"
 )
@@ -30,6 +38,76 @@ const (
 	// TestNetID testnet id
 	TestNetID uint32 = 1001
 )
+
+/**********     js lib relative  BEGIN   **********/
+const (
+	// DefaultV8JSLibVersion default version
+	DefaultV8JSLibVersion = "1.0.0"
+)
+
+type version struct {
+	major, minor, patch int
+}
+
+type heightOfVersionSlice []*struct {
+	version string
+	height  uint64
+}
+
+func (h heightOfVersionSlice) String() string {
+	var buf bytes.Buffer
+	buf.WriteString("{")
+	for _, v := range h {
+		if buf.Len() > 1 {
+			buf.WriteString(",")
+		}
+		buf.WriteString(v.version + "=" + strconv.FormatUint(v.height, 10))
+	}
+	buf.WriteString("}")
+	return buf.String()
+}
+func (h heightOfVersionSlice) Len() int {
+	return len(h)
+}
+func (h heightOfVersionSlice) Less(i, j int) bool {
+	return h[i].height < h[j].height
+}
+func (h heightOfVersionSlice) Swap(i, j int) {
+	h[i], h[j] = h[j], h[i]
+}
+
+// var ..
+var (
+	// NOTE: versions should be arranged in ascending order
+	// 		map[libname][versions]
+	V8JSLibs = map[string][]string{
+		"execution_env.js":       {"1.0.0", "1.0.5"},
+		"bignumber.js":           {"1.0.0"},
+		"random.js":              {"1.0.0", "1.0.5"},
+		"date.js":                {"1.0.0", "1.0.5"},
+		"tsc.js":                 {"1.0.0"},
+		"util.js":                {"1.0.0"},
+		"esprima.js":             {"1.0.0"},
+		"assert.js":              {"1.0.0"},
+		"instruction_counter.js": {"1.0.0"},
+		"typescriptServices.js":  {"1.0.0"},
+		"blockchain.js":          {"1.0.0", "1.0.5"},
+		"console.js":             {"1.0.0"},
+		"event.js":               {"1.0.0"},
+		"storage.js":             {"1.0.0"},
+		"crypto.js":              {"1.0.5"},
+		"uint.js":                {"1.0.5"},
+	}
+
+	digitalized = make(map[string][]*version)
+)
+
+var (
+	// ErrInvalidJSLibVersion ..
+	ErrInvalidJSLibVersion = errors.New("invalid js lib version")
+)
+
+/**********     js lib relative  END   **********/
 
 // others, e.g. local/develop
 const (
@@ -53,6 +131,22 @@ const (
 
 	//LocalWdResetRecordDependencyHeight
 	LocalWsResetRecordDependencyHeight uint64 = 2
+
+	// LocalV8JSLibVersionControlHeight
+	LocalV8JSLibVersionControlHeight uint64 = 2
+
+	//LocalNetTransferFromContractFailureEventRecordableHeight
+	LocalTransferFromContractFailureEventRecordableHeight uint64 = 2
+
+	//LocalNetNewNvmExeTimeoutConsumeGasHeight
+	LocalNewNvmExeTimeoutConsumeGasHeight uint64 = 2
+)
+
+// var for local/develop
+var (
+	LocalV8JSLibVersionHeightSlice = heightOfVersionSlice{
+		{"1.0.5", LocalV8JSLibVersionControlHeight},
+	}
 )
 
 // TestNet
@@ -77,6 +171,22 @@ const (
 
 	//TestNetWdResetRecordDependencyHeight
 	TestNetWsResetRecordDependencyHeight uint64 = 281800
+
+	// TestNetV8JSLibVersionControlHeight
+	TestNetV8JSLibVersionControlHeight uint64 = 424400
+
+	//TestNetTransferFromContractFailureEventRecordableHeight
+	TestNetTransferFromContractFailureEventRecordableHeight uint64 = 424400
+
+	//TestNetNewNvmExeTimeoutConsumeGasHeight
+	TestNetNewNvmExeTimeoutConsumeGasHeight uint64 = 424400
+)
+
+// var for TestNet
+var (
+	TestNetV8JSLibVersionHeightSlice = heightOfVersionSlice{
+		{"1.0.5", TestNetV8JSLibVersionControlHeight},
+	}
 )
 
 // MainNet
@@ -101,6 +211,22 @@ const (
 
 	//MainNetWdResetRecordDependencyHeight
 	MainNetWsResetRecordDependencyHeight uint64 = 306800
+
+	// MainNetV8JSLibVersionControlHeight
+	MainNetV8JSLibVersionControlHeight uint64 = 460000
+
+	//MainNetTransferFromContractFailureEventRecordableHeight
+	MainNetTransferFromContractFailureEventRecordableHeight uint64 = 460000
+
+	//MainNetNewNvmExeTimeoutConsumeGasHeight
+	MainNetNewNvmExeTimeoutConsumeGasHeight uint64 = 460000
+)
+
+// var for MainNet
+var (
+	MainNetV8JSLibVersionHeightSlice = heightOfVersionSlice{
+		{"1.0.5", MainNetV8JSLibVersionControlHeight},
+	}
 )
 
 var (
@@ -122,8 +248,20 @@ var (
 	// NvmMemoryLimitWithoutInjectHeight memory of nvm contract without inject code
 	NvmMemoryLimitWithoutInjectHeight = TestNetNvmMemoryLimitWithoutInjectHeight
 
-	//WdResetRecordDependencyHeight if tx execute faied, worldstate reset and need to record to address dependency
+	//WsResetRecordDependencyHeight if tx execute faied, worldstate reset and need to record to address dependency
 	WsResetRecordDependencyHeight = TestNetWsResetRecordDependencyHeight
+
+	// V8JSLibVersionControlHeight enable v8 js lib version control
+	V8JSLibVersionControlHeight = TestNetV8JSLibVersionControlHeight
+
+	// V8JSLibVersionHeightSlice all version-height pairs
+	V8JSLibVersionHeightSlice = TestNetV8JSLibVersionHeightSlice
+
+	// TransferFromContractFailureEventRecordableHeight record event 'TransferFromContractEvent' since this height
+	TransferFromContractFailureEventRecordableHeight = TestNetTransferFromContractFailureEventRecordableHeight
+
+	//NewNvmExeTimeoutConsumeGasHeight
+	NewNvmExeTimeoutConsumeGasHeight = TestNetNewNvmExeTimeoutConsumeGasHeight
 )
 
 // SetCompatibilityOptions set compatibility height according to chain_id
@@ -137,6 +275,10 @@ func SetCompatibilityOptions(chainID uint32) {
 		RecordCallContractResultHeight = MainNetRecordCallContractResultHeight
 		NvmMemoryLimitWithoutInjectHeight = MainNetNvmMemoryLimitWithoutInjectHeight
 		WsResetRecordDependencyHeight = MainNetWsResetRecordDependencyHeight
+		V8JSLibVersionControlHeight = MainNetV8JSLibVersionControlHeight
+		V8JSLibVersionHeightSlice = MainNetV8JSLibVersionHeightSlice
+		TransferFromContractFailureEventRecordableHeight = MainNetTransferFromContractFailureEventRecordableHeight
+		NewNvmExeTimeoutConsumeGasHeight = MainNetNewNvmExeTimeoutConsumeGasHeight
 	} else if chainID == TestNetID {
 
 		TransferFromContractEventRecordableHeight = TestNetTransferFromContractEventRecordableHeight
@@ -146,6 +288,10 @@ func SetCompatibilityOptions(chainID uint32) {
 		RecordCallContractResultHeight = TestNetRecordCallContractResultHeight
 		NvmMemoryLimitWithoutInjectHeight = TestNetNvmMemoryLimitWithoutInjectHeight
 		WsResetRecordDependencyHeight = TestNetWsResetRecordDependencyHeight
+		V8JSLibVersionControlHeight = TestNetV8JSLibVersionControlHeight
+		V8JSLibVersionHeightSlice = TestNetV8JSLibVersionHeightSlice
+		TransferFromContractFailureEventRecordableHeight = TestNetTransferFromContractFailureEventRecordableHeight
+		NewNvmExeTimeoutConsumeGasHeight = TestNetNewNvmExeTimeoutConsumeGasHeight
 	} else {
 
 		TransferFromContractEventRecordableHeight = LocalTransferFromContractEventRecordableHeight
@@ -155,7 +301,15 @@ func SetCompatibilityOptions(chainID uint32) {
 		RecordCallContractResultHeight = LocalRecordCallContractResultHeight
 		NvmMemoryLimitWithoutInjectHeight = LocalNvmMemoryLimitWithoutInjectHeight
 		WsResetRecordDependencyHeight = LocalWsResetRecordDependencyHeight
+		V8JSLibVersionControlHeight = LocalV8JSLibVersionControlHeight
+		V8JSLibVersionHeightSlice = LocalV8JSLibVersionHeightSlice
+		TransferFromContractFailureEventRecordableHeight = LocalTransferFromContractFailureEventRecordableHeight
+		NewNvmExeTimeoutConsumeGasHeight = LocalNewNvmExeTimeoutConsumeGasHeight
 	}
+
+	// sort V8JSLibVersionHeightSlice in descending order by height
+	sort.Sort(sort.Reverse(V8JSLibVersionHeightSlice))
+
 	logging.VLog().WithFields(logrus.Fields{
 		"chain_id": chainID,
 		"TransferFromContractEventRecordableHeight": TransferFromContractEventRecordableHeight,
@@ -165,5 +319,160 @@ func SetCompatibilityOptions(chainID uint32) {
 		"RecordCallContractResultHeight":            RecordCallContractResultHeight,
 		"NvmMemoryLimitWithoutInjectHeight":         NvmMemoryLimitWithoutInjectHeight,
 		"WsResetRecordDependencyHeight":             WsResetRecordDependencyHeight,
+		"V8JSLibVersionControlHeight":               V8JSLibVersionControlHeight,
+		"V8JSLibVersionHeightSlice":                 V8JSLibVersionHeightSlice,
+		"TransferFromContractFailureHeight":         TransferFromContractFailureEventRecordableHeight,
+		"NewNvmExeTimeoutConsumeGasHeight":          NewNvmExeTimeoutConsumeGasHeight,
 	}).Info("Set compatibility options.")
+
+	checkJSLib()
+}
+
+// FindLastNearestLibVersion ..
+func FindLastNearestLibVersion(deployVersion, libname string) string {
+	if len(deployVersion) == 0 || len(libname) == 0 {
+		logging.VLog().WithFields(logrus.Fields{
+			"libname":       libname,
+			"deployVersion": deployVersion,
+		}).Error("empty arguments.")
+		return ""
+	}
+
+	if libs, ok := digitalized[libname]; ok {
+		v, err := parseVersion(deployVersion)
+		if err != nil {
+			logging.VLog().WithFields(logrus.Fields{
+				"err":           err,
+				"deployVersion": deployVersion,
+				"lib":           libname,
+			}).Debug("parse deploy version error.")
+			return ""
+		}
+		for i := len(libs) - 1; i >= 0; i-- {
+			if compareVersion(libs[i], v) <= 0 {
+				logging.VLog().WithFields(logrus.Fields{
+					"libname":       libname,
+					"deployVersion": deployVersion,
+					"return":        libs[i],
+				}).Debug("filter js lib.")
+				return V8JSLibs[libname][i]
+			}
+		}
+	} else {
+		logging.VLog().WithFields(logrus.Fields{
+			"libname":       libname,
+			"deployVersion": deployVersion,
+		}).Debug("js lib not configured.")
+	}
+	return ""
+}
+
+func compareVersion(a, b *version) int {
+	if a.major > b.major {
+		return 1
+	}
+	if a.major < b.major {
+		return -1
+	}
+
+	if a.minor > b.minor {
+		return 1
+	}
+	if a.minor < b.minor {
+		return -1
+	}
+
+	if a.patch > b.patch {
+		return 1
+	}
+	if a.patch < b.patch {
+		return -1
+	}
+	return 0
+}
+
+func checkJSLib() {
+	for lib, vers := range V8JSLibs {
+		for _, ver := range vers {
+			p := filepath.Join("lib", ver, lib)
+			fi, err := os.Stat(p)
+			if os.IsNotExist(err) {
+				logging.VLog().WithFields(logrus.Fields{
+					"path": p,
+				}).Fatal("lib file not exist.")
+			}
+			if fi.IsDir() {
+				logging.VLog().WithFields(logrus.Fields{
+					"path": p,
+				}).Fatal("directory already exists with the same name.")
+			}
+
+			logging.VLog().WithFields(logrus.Fields{
+				"path": p,
+			}).Debug("check js lib.")
+		}
+	}
+}
+
+func parseVersion(ver string) (*version, error) {
+	ss := strings.Split(ver, ".")
+	if len(ss) != 3 {
+		return nil, ErrInvalidJSLibVersion
+	}
+
+	major, err := strconv.Atoi(ss[0])
+	if err != nil {
+		return nil, err
+	}
+
+	minor, err := strconv.Atoi(ss[1])
+	if err != nil {
+		return nil, err
+	}
+
+	patch, err := strconv.Atoi(ss[2])
+	if err != nil {
+		return nil, err
+	}
+	return &version{major, minor, patch}, nil
+}
+
+func (v *version) String() string {
+	return strings.Join([]string{
+		strconv.Itoa(v.major),
+		strconv.Itoa(v.minor),
+		strconv.Itoa(v.patch),
+	}, ".")
+}
+
+// convert V8JSLibs from string to type `version`
+func init() {
+	for lib, vers := range V8JSLibs {
+		for _, ver := range vers {
+			v, err := parseVersion(ver)
+			if err != nil {
+				logging.VLog().WithFields(logrus.Fields{
+					"err":     err,
+					"lib":     lib,
+					"version": ver,
+				}).Fatal("parse js lib version error.")
+			}
+
+			if _, ok := digitalized[lib]; !ok {
+				digitalized[lib] = make([]*version, 0)
+			}
+			digitalized[lib] = append(digitalized[lib], v)
+		}
+	}
+}
+
+// GetMaxV8JSLibVersionAtHeight ..
+func GetMaxV8JSLibVersionAtHeight(blockHeight uint64) string {
+	// V8JSLibVersionHeightSlice is already sorted at SetCompatibilityOptions func
+	for _, v := range V8JSLibVersionHeightSlice {
+		if blockHeight >= v.height {
+			return v.version
+		}
+	}
+	return ""
 }

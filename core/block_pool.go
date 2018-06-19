@@ -432,9 +432,10 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 			}
 			return ErrInvalidBlockCannotFindParentInLocalAndTrySync
 		}
-
-		if err := pool.downloadParent(sender, lb.block); err != nil {
-			return err
+		if !bc.IsActiveSyncing() {
+			if err := pool.downloadParent(sender, lb.block); err != nil {
+				return err
+			}
 		}
 		return ErrInvalidBlockCannotFindParentInLocalAndTryDownload
 	}

@@ -22,6 +22,8 @@ import (
 	"fmt"
 
 	"github.com/nebulasio/go-nebulas/util"
+	"github.com/nebulasio/go-nebulas/util/logging"
+	"github.com/sirupsen/logrus"
 )
 
 // BinaryPayload carry some data
@@ -90,11 +92,17 @@ func (payload *BinaryPayload) Execute(limitedGas *util.Uint128, tx *Transaction,
 		}
 
 		result, exeErr := engine.Call(deploy.Source, deploy.SourceType, ContractAcceptFunc, "")
-		gasCout := engine.ExecutionInstructions()
-		instructions, err := util.NewUint128FromInt(int64(gasCout))
-		if err != nil {
-			return util.NewUint128(), "", err
+		gasCount := engine.ExecutionInstructions()
+		instructions, err := util.NewUint128FromInt(int64(gasCount))
+		if err != nil || exeErr == ErrUnexpected {
+			logging.VLog().WithFields(logrus.Fields{
+				"err":      err,
+				"exeErr":   exeErr,
+				"gasCount": gasCount,
+			}).Error("Unexpected error when executing binary")
+			return util.NewUint128(), "", ErrUnexpected
 		}
+
 		if exeErr == ErrExecutionFailed && len(result) > 0 {
 			exeErr = fmt.Errorf("Binary: %s", result)
 		}
