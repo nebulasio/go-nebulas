@@ -51,7 +51,7 @@ var TestNet = function (env) {
 
         this.ChainId = 100;
         this.sourceAccount = new Wallet.Account("1d3fe06a53919e728315e2ccca41d4aa5b190845a79007797517e62dbc0df454");
-        this.coinbase = "n1QZMXSZtW7BUerroSms4axNfyBGyFGkrh5";
+        this.coinbase = "n1XkoVVjswb5Gek3rRufqjKNpwrDdsnQ7Hq";
         this.apiEndPoint = "http://127.0.0.1:8685";
 
     } else {

@@ -1,5 +1,6 @@
 "use strict";
 
+var BigNumber = require('bignumber.js');
 var Wallet = require("nebulas");
 var HttpRequest = require("../../node-request.js");
 var TestNetConfig = require("../testnet_config.js");
@@ -84,7 +85,11 @@ function doTest(testInput, testExpect, done) {
         // tx.to = contractAddress;
         tx.signTransaction();
         // console.log("silent_debug");
-        neb.api.sendRawTransaction(tx.toProtoString()).then(function(resp) {
+        var coinState;
+        neb.api.getAccountState(coinbase).then(function(state){
+            coinState = state;
+            return neb.api.sendRawTransaction(tx.toProtoString());
+        }).then(function(resp) {
             console.log("----step1. call callerTx ", resp);
             checkTransaction(resp.txhash, function(resp) {
                 try {
@@ -95,35 +100,35 @@ function doTest(testInput, testExpect, done) {
                     neb.api.getAccountState(callerContractAddress).then(function(state){
                         expect(state.balance).to.be.equal(testExpect.callerBalance);
                         return neb.api.getAccountState(calleeContractAddress);
-                    }).then( function(state) {
-                        expect(state.balance).to.be.equal(testExpect.calleeBalance);
-
-                        if (1 == testExpect.txStatus) {
-                            console.log("----step3, to check the result");
-
-                            neb.api.call(sourceAccount.getAddressString(), callerContractAddress, 
-                                Unit.nasToBasic(0), nonce, 1000000, 2000000, testInput.resultCheckContract).then(function(result){
-                                console.log(JSON.stringify(result));
-                                //result = {"result":"{\"key\":\"msg1\",\"value\":\"湖人总冠军\"}","execute_err":"","estimate_gas":"20511"}
-                                expect(result.result).equal(testExpect.result);
-                                done();
-                            }).catch(function(err) {
-                                console.log("unexpected err in level 3" );
-                                done(err);
-                            });
-                        } else {
-                            console.log("----step3, to check the err info by get event");
-
-                            neb.api.getEventsByHash(resp.hash).then(function(result){
-                                console.log(JSON.stringify(result));
-                                expect(JSON.parse(result.events[0].data).error).equal(testExpect.errInfo);
-                                done();
-                            }).catch(function(err){
-                                console.log("unexpected err in level 3.1" );
-                                done(err);
-                            })
+                    }).then(function(state) {
+                        expect(state.balance).to.be.equal(testExpect.calleeBalance);  
+                        console.log("----step3, to check the result");
+                        return neb.api.call(sourceAccount.getAddressString(), callerContractAddress, 
+                            Unit.nasToBasic(0), nonce, 1000000, 2000000, testInput.resultCheckContract);
+                    }).then(function(result){
+                        console.log(JSON.stringify(result));
+                        //result = {"result":"{\"key\":\"msg1\",\"value\":\"湖人总冠军\"}","execute_err":"","estimate_gas":"20511"}
+                        if (testExpect.status == 0) {
+                            expect(result.result).equal(testExpect.result);
                         }
+                        console.log("----step4, to check the err info by get event");
+                        return neb.api.getEventsByHash(resp.hash);
+                    }).then(function(result){
+                        console.log(JSON.stringify(result));
+                        if (testExpect.status == 1) {
+                            expect(JSON.parse(result.events[0].data).error).equal(testExpect.errInfo);
+                        }
+                        return neb.api.getAccountState(coinbase);
+                    }).then(function (state) {
+                        console.log("get coinbase account state after tx:" + JSON.stringify(state));
+                        var reward = new BigNumber(state.balance).sub(coinState.balance);
+                        reward = reward.mod(new BigNumber(1.42694).mul(new BigNumber(10).pow(18)));
+                        // The transaction should be only
+                        console.log("=========================",reward.toString());
+                        done();
+                        expect(reward.toString()).to.equal(testExpect.reward);
                     }).catch(function(err) {
+                        console.log(err);
                         console.log("unexpected err in level 2" );
                         done(err);
                     });
@@ -231,6 +236,7 @@ describe('test transfer from contract', function () {
         
         var testExpect = {
             txStatus: 1,
+            reward: "57549000000",
             callerBalance: callerBalance.toString(),
             calleeBalance: calleeBalance.toString(),
             result: "{\"key\":\"msg1\",\"value\":\"湖人总冠军\"}",
@@ -254,6 +260,7 @@ describe('test transfer from contract', function () {
         calleeBalance += 2000000000000000000;
         var testExpect = {
             txStatus: 1,
+            reward: "57555000000",
             callerBalance: callerBalance.toString(),
             calleeBalance: calleeBalance.toString(),
             result: "{\"key\":\"msg2\",\"value\":\"湖人总冠军\"}",
@@ -273,6 +280,7 @@ describe('test transfer from contract', function () {
         
         var testExpect = {
             txStatus: 0,
+            reward: "25188000000",
             callerBalance: callerBalance.toString(),
             calleeBalance: calleeBalance.toString(),
             errInfo: "Call: Inner Call: no contract at this address",
@@ -281,7 +289,27 @@ describe('test transfer from contract', function () {
         doTest(testInput, testExpect, done);
     });
 
-    it ('4# test usage of value', function(done) {
+    it ('4# function not exsit in callee contract', function(done) {
+        var testInput = {
+            contract: {
+                "function": "testFuncNotExist",
+                "args": "[\"" + calleeContractAddress + "\",\"msg1.5\", \"湖人总冠军\"]"
+            },
+            value: 2
+        };
+        
+        var testExpect = {
+            txStatus: 0,
+            reward: "25212000000",
+            callerBalance: callerBalance.toString(),
+            calleeBalance: calleeBalance.toString(),
+            errInfo: "execution failed",
+        }
+
+        doTest(testInput, testExpect, done);
+    });
+
+    it ('5# test usage of value', function(done) {
         var testInput = {
             contract: {
                 "function": "testUsageOfValue",
@@ -296,6 +324,7 @@ describe('test transfer from contract', function () {
         
         var testExpect = {
             txStatus: 1,
+            reward: "57538000000",
             callerBalance: callerBalance.toString(),
             calleeBalance: calleeBalance.toString(),
             result: "{\"key\":\"msg3\",\"value\":\"湖人总冠军\"}",
@@ -304,7 +333,7 @@ describe('test transfer from contract', function () {
         doTest(testInput, testExpect, done);
     });
 
-    it ('5# caller contract has not enough balance', function(done) {
+    it ('6# caller contract has not enough balance', function(done) {
         var testInput = {
             contract: {
                 "function": "save",
@@ -315,6 +344,7 @@ describe('test transfer from contract', function () {
         
         var testExpect = {
             txStatus: 0,
+            reward: "25210000000",
             callerBalance: callerBalance.toString(),
             calleeBalance: calleeBalance.toString(),
             errInfo: "Inner Call: inner transation err [inner transfer failed] engine index:0",
@@ -323,7 +353,7 @@ describe('test transfer from contract', function () {
         doTest(testInput, testExpect, done);
     });
 
-    it ('6# gasLimit is not enough', function(done) {
+    it ('7# gasLimit is not enough', function(done) {
         var testInput = {
             contract: {
                 "function": "save",
@@ -335,6 +365,7 @@ describe('test transfer from contract', function () {
         
         var testExpect = {
             txStatus: 0,
+            reward: "25210000000", //TODO: to check
             callerBalance: callerBalance.toString(),
             calleeBalance: calleeBalance.toString(),
             errInfo: "Inner Call: inner transation err [preparation inner nvm insufficient gas] engine index:0",
@@ -343,7 +374,7 @@ describe('test transfer from contract', function () {
         doTest(testInput, testExpect, done);
     });
 
-    it ('7# nas is not enough and but catch the error', function(done) {
+    it ('8# nas is not enough and but catch the error', function(done) {
         var testInput = {
             contract: {
                 "function": "safeSave",
@@ -354,6 +385,7 @@ describe('test transfer from contract', function () {
         
         var testExpect = {
             txStatus: 0,
+            reward: "25214000000",
             callerBalance: callerBalance.toString(),
             calleeBalance: calleeBalance.toString(),
             errInfo: "Inner Call: inner transation err [inner transfer failed] engine index:0",
@@ -362,7 +394,7 @@ describe('test transfer from contract', function () {
         doTest(testInput, testExpect, done);
     });
 
-    it ('8# trigger the err in callee contract and but catch the error', function(done) {
+    it ('9# trigger the err in callee contract and but catch the error', function(done) {
         var testInput = {
             contract: {
                 "function": "testTryCatch",
@@ -373,6 +405,7 @@ describe('test transfer from contract', function () {
         
         var testExpect = {
             txStatus: 0,
+            reward: "25214000000",
             callerBalance: callerBalance.toString(),
             calleeBalance: calleeBalance.toString(),
             errInfo: "execution failed", //TODO: ["execution failed", ...]
