@@ -83,7 +83,7 @@ var (
 	V8JSLibs = map[string][]string{
 		"execution_env.js":       {"1.0.0", "1.0.5"},
 		"bignumber.js":           {"1.0.0"},
-		"random.js":              {"1.0.0", "1.0.5"},
+		"random.js":              {"1.0.0", "1.0.5", "1.1.0"},
 		"date.js":                {"1.0.0", "1.0.5"},
 		"tsc.js":                 {"1.0.0"},
 		"util.js":                {"1.0.0"},
@@ -91,7 +91,7 @@ var (
 		"assert.js":              {"1.0.0"},
 		"instruction_counter.js": {"1.0.0"},
 		"typescriptServices.js":  {"1.0.0"},
-		"blockchain.js":          {"1.0.0", "1.0.5"},
+		"blockchain.js":          {"1.0.0", "1.0.5", "1.1.0"},
 		"console.js":             {"1.0.0"},
 		"event.js":               {"1.0.0"},
 		"storage.js":             {"1.0.0"},
@@ -146,6 +146,7 @@ const (
 var (
 	LocalV8JSLibVersionHeightSlice = heightOfVersionSlice{
 		{"1.0.5", LocalV8JSLibVersionControlHeight},
+		{"1.1.0", 3},
 	}
 )
 
@@ -186,6 +187,7 @@ const (
 var (
 	TestNetV8JSLibVersionHeightSlice = heightOfVersionSlice{
 		{"1.0.5", TestNetV8JSLibVersionControlHeight},
+		{"1.1.0", 500000},
 	}
 )
 
@@ -226,6 +228,7 @@ const (
 var (
 	MainNetV8JSLibVersionHeightSlice = heightOfVersionSlice{
 		{"1.0.5", MainNetV8JSLibVersionControlHeight},
+		{"1.1.0", 500000},
 	}
 )
 
