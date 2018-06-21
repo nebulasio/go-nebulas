@@ -1306,3 +1306,42 @@ func MockBlock(header *BlockHeader, height uint64) *Block {
 		height: height,
 	}
 }
+
+// MockBlockEx return new block to inner nvm unit test
+func MockBlockEx(chainID uint32, coinbase *Address, parent *Block, height uint64) (*Block, error) { // ToCheck: check args. // ToCheck: check full-functional block.
+	worldState, err := parent.worldState.Clone()
+	if err != nil {
+		return nil, err
+	}
+
+	block := &Block{
+		header: &BlockHeader{
+			chainID:       chainID,
+			parentHash:    parent.Hash(),
+			coinbase:      coinbase,
+			timestamp:     time.Now().Unix(),
+			consensusRoot: &consensuspb.ConsensusRoot{},
+			random:        &corepb.Random{},
+		},
+		transactions: make(Transactions, 0),
+		dependency:   dag.NewDag(),
+
+		worldState: worldState,
+		height:     height,
+		sealed:     false,
+
+		txPool:       parent.txPool,
+		eventEmitter: parent.eventEmitter,
+		nvm:          parent.nvm,
+		storage:      parent.storage,
+	}
+
+	if err := block.Begin(); err != nil {
+		return nil, err
+	}
+	if err := block.rewardCoinbaseForMint(); err != nil {
+		return nil, err
+	}
+
+	return block, nil
+}
