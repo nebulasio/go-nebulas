@@ -387,7 +387,7 @@ void GetContractSourceCallback(const FunctionCallbackInfo<Value> &info) {
   char *value = sGetContractSource(handler->Value(),
                            *String::Utf8Value(address->ToString()), &cnt);
   if (value == NULL) {
-    info.GetReturnValue().SetNull();
+    info.GetReturnValue().SetNull();  //FIXME: throw err
   } else {
     info.GetReturnValue().Set(String::NewFromUtf8(isolate, value));
     free(value);

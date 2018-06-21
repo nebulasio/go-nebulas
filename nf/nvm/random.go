@@ -17,7 +17,7 @@ import (
 
 //GetTxRandomFunc return random
 //export GetTxRandomFunc
-func GetTxRandomFunc(handler unsafe.Pointer) *C.char {
+func GetTxRandomFunc(handler unsafe.Pointer) *C.char { //TODO: add gas cost
 	engine, _ := getEngineByStorageHandler(uint64(uintptr(handler)))
 	if engine == nil || engine.ctx.block == nil {
 		return nil

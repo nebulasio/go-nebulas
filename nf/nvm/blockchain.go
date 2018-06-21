@@ -284,7 +284,9 @@ func TransferFunc(handler unsafe.Pointer, to *C.char, v *C.char, gasCnt *C.size_
 		logging.VLog().Error("Failed to get engine.")
 		return TransferGetEngineErr
 	}
-
+	wsState := engine.ctx.state
+	height := engine.ctx.block.Height()
+	txHash := engine.ctx.tx.Hash()
 	// calculate Gas.
 	*gasCnt = C.size_t(TransferFuncCost)
 	toStr := C.GoString(to)
@@ -313,38 +315,18 @@ func TransferFunc(handler unsafe.Pointer, to *C.char, v *C.char, gasCnt *C.size_
 		return iRtn
 	}
 
-	if engine.ctx.block.Height() >= core.TransferFromContractEventRecordableHeight {
-		cAddr, err := core.AddressParseFromBytes(engine.ctx.contract.Address())
-		if err != nil {
-			logging.VLog().WithFields(logrus.Fields{
-				"txhash":  engine.ctx.tx.Hash().String(),
-				"address": engine.ctx.contract.Address(),
-				"err":     err,
-			}).Debug("failed to parse contract address")
-			return TransferAddressFailed
-		}
-		//fromStr := cAddr.String()
-
-		event := &TransferFromContractEvent{
-			Amount: val,
-			From:   cAddr.String(),
-			To:     toStr,
-		}
-
-		eData, err := json.Marshal(event)
-		if err != nil {
-			logging.VLog().WithFields(logrus.Fields{
-				"from":   cAddr.String(),
-				"to":     toStr,
-				"amount": val,
-				"err":    err,
-			}).Debug("failed to marshal TransferFromContractEvent")
-			return TransferRecordEventFailed
-		}
-
-		engine.ctx.state.RecordEvent(engine.ctx.tx.Hash(), &state.Event{Topic: core.TopicTransferFromContract, Data: string(eData)})
+	amount, err := util.NewUint128FromString(C.GoString(v))
+	if err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"handler": uint64(uintptr(handler)),
+			"address": toAddr,
+			"err":     err,
+		}).Debug("GetAmountFunc get amount failed.")
+		recordTransferFailureEvent(TransferStringToBigIntErr, fromAddr.String(), toAddr.String(), "", height, wsState, txHash)
+		return TransferStringToBigIntErr
 	}
 
+	recordTransferFailureEvent(TransferFuncSuccess, fromAddr.String(), toAddr.String(), amount.String(), height, wsState, txHash)
 	return TransferFuncSuccess
 }
 
