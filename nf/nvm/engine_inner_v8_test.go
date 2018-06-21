@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"sort"
 	"testing"
 	"time"
 
@@ -444,7 +443,6 @@ func TestInnerTransactions(t *testing.T) {
 }
 
 func TestInnerTransactionsMaxMulit(t *testing.T) {
-	initInnerNvm()
 	tests := []struct {
 		name        string
 		contracts   []contract
@@ -813,13 +811,7 @@ type SysEvent struct {
 	Err     string `json:"error"`
 }
 
-func initInnerNvm() {
-	core.V8JSLibVersionHeightSlice = core.LocalV8JSLibVersionHeightSlice
-	sort.Sort(sort.Reverse(core.V8JSLibVersionHeightSlice))
-	core.V8JSLibVersionControlHeight = core.LocalV8JSLibVersionControlHeight
-}
 func TestInnerTransactionsMemLimit(t *testing.T) {
-	initInnerNvm()
 	tests := []struct {
 		name           string
 		contracts      []contract
@@ -992,7 +984,6 @@ func TestInnerTransactionsMemLimit(t *testing.T) {
 }
 
 func TestInnerTransactionsErr(t *testing.T) {
-	initInnerNvm()
 	tests := []struct {
 		name           string
 		contracts      []contract
@@ -1153,7 +1144,6 @@ func TestInnerTransactionsErr(t *testing.T) {
 }
 
 func TestGetContractErr(t *testing.T) {
-	initInnerNvm()
 	tests := []struct {
 		name      string
 		contracts []contract
