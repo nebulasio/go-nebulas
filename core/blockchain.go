@@ -452,7 +452,7 @@ func (bc *BlockChain) GetBlockOnCanonicalChainByHash(blockHash byteutils.Hash) *
 	blockByHeight := bc.GetBlockOnCanonicalChainByHeight(blockByHash.height)
 	if blockByHeight == nil {
 		logging.VLog().WithFields(logrus.Fields{
-			"height": blockByHeight.Height(),
+			"height": blockByHash.height,
 			"tail":   bc.tailBlock,
 			"err":    "cannot find block with the given height in local storage",
 		}).Debug("Failed to check a block on canonical chain.")
