@@ -103,6 +103,7 @@ var (
 	VerifyAddressFuncCost     = 100
 	GetContractSourceFuncCost = 5000
 	InnerContractFuncCost     = 30000
+	GetTxRandomFuncCost       = 1000
 )
 
 // Block interface breaks cycle import dependency and hides unused services.

@@ -1,15 +1,18 @@
 package nvm
 
-import (
-	"C"
+/*
+#include <stdlib.h>
+#include "v8/lib/nvm_error.h"
 
-	"github.com/nebulasio/go-nebulas/core"
-)
+*/
+import "C"
+
 import (
 	"fmt"
 	"testing"
 	"unsafe"
 
+	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/crypto"
 	"github.com/nebulasio/go-nebulas/crypto/keystore"
 	"github.com/nebulasio/go-nebulas/crypto/keystore/secp256k1"
@@ -107,18 +110,36 @@ func testRandomFunc(t *testing.T, context WorldState) {
 	engine := NewV8Engine(ctx)
 	assert.Nil(t, engine.ctx.contextRand.rand)
 
-	r1 := GetTxRandomFunc(unsafe.Pointer(uintptr(engine.lcsHandler)))
-	assert.NotNil(t, r1)
+	var cnt C.size_t
+	var result *C.char
+	var exception *C.char
+	r1 := GetTxRandomFunc(unsafe.Pointer(uintptr(engine.lcsHandler)), &cnt, &result, &exception)
+	fmt.Printf("r1:%v\n", r1)
+	assert.Equal(t, r1, C.NVM_SUCCESS)
+	assert.NotNil(t, result)
 	assert.NotNil(t, engine.ctx.contextRand.rand)
-	rs1 := C.GoString(r1)
-
-	r2 := GetTxRandomFunc(unsafe.Pointer(uintptr(engine.lcsHandler)))
-	assert.NotNil(t, r2)
-	rs2 := C.GoString(r2)
+	rs1 := C.GoString(result)
+	if result != nil {
+		C.free(unsafe.Pointer(result))
+	}
+	if exception != nil {
+		C.free(unsafe.Pointer(exception))
+	}
+	result = nil
+	exception = nil
+	r2 := GetTxRandomFunc(unsafe.Pointer(uintptr(engine.lcsHandler)), &cnt, &result, &exception)
+	assert.Equal(t, r2, C.NVM_SUCCESS)
+	assert.NotNil(t, result)
+	rs2 := C.GoString(result)
 
 	assert.NotEqual(t, rs1, rs2)
 
 	fmt.Println(rs1, rs2)
-
+	if result != nil {
+		C.free(unsafe.Pointer(result))
+	}
+	if exception != nil {
+		C.free(unsafe.Pointer(exception))
+	}
 	engine.Dispose()
 }

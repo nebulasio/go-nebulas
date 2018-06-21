@@ -566,7 +566,7 @@ func InnerContractFunc(handler unsafe.Pointer, address *C.char, funcName *C.char
 		return nil
 	}
 	var gasSum uint64
-	gasSum = uint64(InnerContractFuncCost) //FIXME:
+	gasSum = uint64(InnerContractFuncCost)
 	ws := engine.ctx.state
 
 	addr, err := core.AddressParse(C.GoString(address))

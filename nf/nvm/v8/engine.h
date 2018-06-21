@@ -128,7 +128,7 @@ EXPORT void InitializeRequireDelegate(RequireDelegate delegate, AttachLibVersion
 
 EXPORT void InitializeExecutionEnvDelegate(AttachLibVersionDelegate libDelegate);
 // random callback
-typedef char *(*GetTxRandomFunc)(void *handler);
+typedef int(*GetTxRandomFunc)(void *handler, size_t *gasCnt, char **result, char **exceptionInfo);
 EXPORT void InitializeRandom(GetTxRandomFunc delegate);
 
 typedef struct V8EngineStats {

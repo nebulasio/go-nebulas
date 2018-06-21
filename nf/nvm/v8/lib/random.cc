@@ -1,5 +1,8 @@
 #include "random.h"
+#include "global.h"
 #include "../engine.h"
+#include "instruction_counter.h"
+#include "logger.h"
 
 static GetTxRandomFunc sRandomDelegate = NULL;
 
@@ -42,16 +45,29 @@ void RandomCallback(const v8::FunctionCallbackInfo<v8::Value> &info) {
   }
 //   size_t cnt = 0;
 
-  char *value = sRandomDelegate(handler->Value());
-  if (value == NULL) {
-    info.GetReturnValue().SetNull();
-  } else {
-    info.GetReturnValue().Set(String::NewFromUtf8(isolate, value));
-    free(value);
+  // char *value = sRandomDelegate(handler->Value());
+  // if (value == NULL) {
+  //   info.GetReturnValue().SetNull();
+  // } else {
+  //   info.GetReturnValue().Set(String::NewFromUtf8(isolate, value));
+  //   free(value);
+  // }
+  size_t cnt = 0;
+  char *result = NULL;
+  char *exceptionInfo = NULL;
+
+  int err = sRandomDelegate(handler->Value(), &cnt, &result, &exceptionInfo);
+  DEAL_ERROR_FROM_GOLANG(err);
+
+  if (result != NULL) {
+    free(result);
   }
 
+  if (exceptionInfo != NULL) {
+    free(exceptionInfo);
+  }
   // record storage usage.
-//   IncrCounter(isolate, isolate->GetCurrentContext(), cnt);
+  IncrCounter(isolate, isolate->GetCurrentContext(), cnt);
 }
 
 void InitializeRandom(GetTxRandomFunc delegate) {

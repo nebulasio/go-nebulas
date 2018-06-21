@@ -1,5 +1,8 @@
 package nvm
 
+/*
+#include "v8/lib/nvm_error.h"
+*/
 import "C"
 
 import (
@@ -17,20 +20,21 @@ import (
 
 //GetTxRandomFunc return random
 //export GetTxRandomFunc
-func GetTxRandomFunc(handler unsafe.Pointer) *C.char { //TODO: add gas cost
+func GetTxRandomFunc(handler unsafe.Pointer, gasCnt *C.size_t, result **C.char, exceptionInfo **C.char) int {
 	engine, _ := getEngineByStorageHandler(uint64(uintptr(handler)))
 	if engine == nil || engine.ctx.block == nil {
-		return nil
+		logging.VLog().Error("random.GetTxRandomFunc Unexpected error: failed to get engine")
+		return C.NVM_UNEXPECTED_ERR
 	}
-	logging.CLog().Infof("Hello GetTxRandomFunc")
 	// calculate Gas.
-	// *gasCnt = C.size_t(GetTxByHashFuncCost)
+	*gasCnt = C.size_t(GetTxRandomFuncCost)
 
 	if engine.ctx.contextRand == nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"height": engine.ctx.block.Height(),
 		}).Error("ContextRand is nil")
-		return nil
+		*exceptionInfo = C.CString("random.GetTxRandomFunc(), contextRand is nil")
+		return C.NVM_EXCEPTION_ERR
 	}
 
 	if engine.ctx.contextRand.rand == nil {
@@ -39,7 +43,8 @@ func GetTxRandomFunc(handler unsafe.Pointer) *C.char { //TODO: add gas cost
 			logging.VLog().WithFields(logrus.Fields{
 				"height": engine.ctx.block.Height(),
 			}).Error("block seed is nil")
-			return nil
+			*exceptionInfo = C.CString("random.GetTxRandomFunc(), randomSeed len is zero")
+			return C.NVM_EXCEPTION_ERR
 		}
 
 		txhash := engine.ctx.tx.Hash().String()
@@ -47,7 +52,8 @@ func GetTxRandomFunc(handler unsafe.Pointer) *C.char { //TODO: add gas cost
 			logging.VLog().WithFields(logrus.Fields{
 				"height": engine.ctx.block.Height(),
 			}).Error("transaction hash is nil")
-			return nil
+			*exceptionInfo = C.CString("random.GetTxRandomFunc(), randomSeed len is zero")
+			return C.NVM_EXCEPTION_ERR
 		}
 
 		m := md5.New()
@@ -56,6 +62,6 @@ func GetTxRandomFunc(handler unsafe.Pointer) *C.char { //TODO: add gas cost
 		seed := int64(binary.BigEndian.Uint64(m.Sum(nil)))
 		engine.ctx.contextRand.rand = rand.New(rand.NewSource(seed))
 	}
-
-	return C.CString(strconv.FormatFloat(engine.ctx.contextRand.rand.Float64(), 'f', -1, 64))
+	*result = C.CString(strconv.FormatFloat(engine.ctx.contextRand.rand.Float64(), 'f', -1, 64))
+	return C.NVM_SUCCESS
 }

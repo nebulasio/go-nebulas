@@ -51,7 +51,7 @@ char *Base64Func_cgo(const char *data, size_t *gasCnt);
 char *GetContractSourceFunc_cgo(void *handler, const char *address);
 char *InnerContractFunc_cgo(void *handler, const char *address, const char *funcName, const char * v, const char *args, size_t *gasCnt);
 
-char *GetTxRandomFunc_cgo(void *handler);
+char *GetTxRandomFunc_cgo(void *handler, size_t *gasCnt, char **result, char **exceptionInfo);
 
 void EventTriggerFunc_cgo(void *handler, const char *topic, const char *data, size_t *gasCnt);
 
