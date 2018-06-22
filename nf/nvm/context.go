@@ -114,7 +114,7 @@ func toSerializableBlock(block Block) *SerializableBlock {
 		Hash:      "",
 		Height:    block.Height(),
 	}
-	if block.RandomAvailable() {
+	if core.V8BlockSeedAvailableAtHeight(block.Height()) {
 		sBlock.Seed = block.RandomSeed()
 	}
 	return sBlock

@@ -194,10 +194,10 @@ func (block *Block) FromProto(msg proto.Message) error {
 			if err := block.header.FromProto(msg.Header); err != nil {
 				return err
 			}
-			if msg.Height >= RandomAvailableHeight && !block.HasRandomSeed() {
+			if RandomAvailableAtHeight(msg.Height) && !block.HasRandomSeed() {
 				logging.VLog().WithFields(logrus.Fields{
 					"blockHeight":      msg.Height,
-					"compatibleHeight": RandomAvailableHeight,
+					"compatibleHeight": NebCompatibility.RandomAvailableHeight(),
 				}).Info("No random found in block header.")
 				return ErrInvalidProtoToBlockHeader
 			}
@@ -383,7 +383,7 @@ func (block *Block) Transactions() Transactions {
 
 // RandomSeed block random seed (VRF)
 func (block *Block) RandomSeed() string {
-	if block.height >= RandomAvailableHeight {
+	if RandomAvailableAtHeight(block.height) {
 		return byteutils.Hex(block.header.random.VrfSeed)
 	}
 	return ""
@@ -391,7 +391,7 @@ func (block *Block) RandomSeed() string {
 
 // RandomProof block random proof (VRF)
 func (block *Block) RandomProof() string {
-	if block.height >= RandomAvailableHeight {
+	if RandomAvailableAtHeight(block.height) {
 		return byteutils.Hex(block.header.random.VrfProof)
 	}
 	return ""
@@ -399,12 +399,12 @@ func (block *Block) RandomProof() string {
 
 // RandomAvailable check if Math.random available in contract
 func (block *Block) RandomAvailable() bool {
-	return block.height >= RandomAvailableHeight
+	return RandomAvailableAtHeight(block.height)
 }
 
 // DateAvailable check if date available in contract
 func (block *Block) DateAvailable() bool {
-	return block.height >= DateAvailableHeight
+	return DateAvailableAtHeight(block.height)
 }
 
 // LinkParentBlock link parent block, return true if hash is the same; false otherwise.
@@ -810,7 +810,7 @@ func (block *Block) Seal() error {
 
 func (block *Block) String() string {
 	random := ""
-	if block.height >= RandomAvailableHeight && block.header.random != nil {
+	if RandomAvailableAtHeight(block.height) && block.header.random != nil {
 		if block.header.random.VrfSeed != nil {
 			random += "/vrf_seed/" + byteutils.Hex(block.header.random.VrfSeed)
 		}

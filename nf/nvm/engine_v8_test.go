@@ -103,7 +103,7 @@ func (block *testBlock) Timestamp() int64 {
 }
 
 func mockBlock() Block {
-	block := &testBlock{core.NvmMemoryLimitWithoutInjectHeight}
+	block := &testBlock{core.NebCompatibility.NvmMemoryLimitWithoutInjectHeight()}
 	return block
 }
 

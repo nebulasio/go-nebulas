@@ -59,7 +59,7 @@ func (block *testBlock2) Hash() byteutils.Hash {
 
 // Height mock
 func (block *testBlock2) Height() uint64 {
-	return core.NvmMemoryLimitWithoutInjectHeight
+	return core.NebCompatibility.NvmMemoryLimitWithoutInjectHeight()
 }
 
 // RandomSeed mock

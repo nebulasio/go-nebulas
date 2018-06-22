@@ -132,8 +132,7 @@ func AttachLibVersionDelegateFunc(handler unsafe.Pointer, require *C.char) *C.ch
 		return nil
 	}
 
-	// block after core.V8JSLibVersionControlHeight, inclusive
-	if e.ctx.block.Height() >= core.V8JSLibVersionControlHeight {
+	if core.V8JSLibVersionControlAtHeight(e.ctx.block.Height()) {
 		if e.ctx.contract == nil {
 			logging.VLog().WithFields(logrus.Fields{
 				"libname": libname,

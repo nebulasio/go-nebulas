@@ -133,7 +133,7 @@ func GetAccountStateFunc(handler unsafe.Pointer, address *C.char, gasCnt *C.size
 func recordTransferFailureEvent(errNo int, from string, to string, value string,
 	height uint64, wsState WorldState, txHash byteutils.Hash) {
 
-	if errNo == TransferFuncSuccess && height > core.TransferFromContractEventRecordableHeight {
+	if errNo == TransferFuncSuccess && core.TransferFromContractEventRecordableAtHeight(height) {
 		event := &TransferFromContractEvent{
 			Amount: value,
 			From:   from,
@@ -150,7 +150,7 @@ func recordTransferFailureEvent(errNo int, from string, to string, value string,
 		}
 		wsState.RecordEvent(txHash, &state.Event{Topic: core.TopicTransferFromContract, Data: string(eData)})
 
-	} else if height >= core.TransferFromContractFailureEventRecordableHeight {
+	} else if core.TransferFromContractFailureEventRecordableAtHeight(height) {
 		var errMsg string
 		switch errNo {
 		case TransferFuncSuccess:
@@ -423,7 +423,7 @@ func GetPreBlockSeedFunc(handler unsafe.Pointer, offset C.ulonglong,
 	}
 
 	height -= n
-	if height < core.RandomAvailableHeight {
+	if !core.RandomAvailableAtHeight(height) {
 		*exceptionInfo = C.CString("Blockchain.GetPreBlockSeed(), seed is not available at this height")
 		return C.NVM_EXCEPTION_ERR
 	}

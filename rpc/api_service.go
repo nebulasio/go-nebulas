@@ -457,7 +457,7 @@ func (s *APIService) toTransactionResponse(tx *core.Transaction) (*rpcpb.Transac
 
 	if event != nil {
 		h := neb.BlockChain().TailBlock().Height()
-		if h >= core.RecordCallContractResultHeight {
+		if core.RecordCallContractResultAtHeight(h) {
 			txEvent2 := core.TransactionEventV2{}
 
 			err := json.Unmarshal([]byte(event.Data), &txEvent2)

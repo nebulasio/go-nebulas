@@ -370,7 +370,7 @@ func (e *V8Engine) RunScriptSource(source string, sourceLineOffset int) (string,
 				"ctx": ctx,
 			}).Error("Unexpected: Failed to get current height")
 			err = core.ErrUnexpected
-		} else if ctx.block.Height() >= core.NewNvmExeTimeoutConsumeGasHeight {
+		} else if core.NewNvmExeTimeoutConsumeGasAtHeight(ctx.block.Height()) {
 			if TimeoutGasLimitCost > e.limitsOfExecutionInstructions {
 				e.actualCountOfExecutionInstructions = e.limitsOfExecutionInstructions
 			} else {
@@ -452,7 +452,7 @@ func (e *V8Engine) RunContractScript(source, sourceType, function, args string) 
 	if err != nil {
 		return "", err
 	}
-	if e.ctx.block.Height() >= core.NvmMemoryLimitWithoutInjectHeight {
+	if core.NvmMemoryLimitWithoutInjectAtHeight(e.ctx.block.Height()) {
 		e.CollectTracingStats()
 		mem := e.actualTotalMemorySize + core.DefaultLimitsOfTotalMemorySize
 		logging.VLog().WithFields(logrus.Fields{

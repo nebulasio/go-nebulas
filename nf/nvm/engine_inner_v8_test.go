@@ -1336,7 +1336,6 @@ func TestInnerTransactionsRand(t *testing.T) {
 		},
 	}
 
-	core.RandomAvailableHeight = 2
 	for _, tt := range tests {
 		for i := 0; i < len(tt.memArr); i++ {
 

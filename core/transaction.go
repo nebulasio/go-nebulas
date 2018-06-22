@@ -422,7 +422,7 @@ func submitTx(tx *Transaction, block *Block, ws WorldState,
 		// record dependency
 
 		addr := tx.to.address
-		if block.Height() < WsResetRecordDependencyHeight {
+		if !WsResetRecordDependencyAtHeight(block.Height()) {
 			addr = tx.from.address
 		}
 		if err := ws.Reset(addr); err != nil {
@@ -622,7 +622,7 @@ func (tx *Transaction) simulateExecution(block *Block) (*SimulateResult, error) 
 
 	// try run smart contract if payload is.
 	if tx.data.Type == TxPayloadCallType || tx.data.Type == TxPayloadDeployType ||
-		(tx.data.Type == TxPayloadBinaryType && tx.to.Type() == ContractAddress && block.height >= AcceptFuncAvailableHeight) {
+		(tx.data.Type == TxPayloadBinaryType && tx.to.Type() == ContractAddress && AcceptAvailableAtHeight(block.height)) {
 
 		// transfer value to smart contract.
 		toAcc, err := ws.GetOrCreateUserAccount(tx.to.address)
@@ -684,7 +684,7 @@ func (tx *Transaction) recordGas(gasCnt *util.Uint128, ws WorldState) error {
 func (tx *Transaction) recordResultEvent(gasUsed *util.Uint128, err error, ws WorldState, block *Block, exeResult string) error {
 
 	var txData []byte
-	if block.height >= RecordCallContractResultHeight {
+	if RecordCallContractResultAtHeight(block.height) {
 
 		if len(exeResult) > MaxResultLength {
 			exeResult = exeResult[:MaxResultLength]
