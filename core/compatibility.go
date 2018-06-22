@@ -123,6 +123,7 @@ func (v *V8JSLibVersionHeightMap) validate() {
 			if compareVersion(cur, lastVersion) >= 0 || v.Data[key] >= v.Data[lastVersion.String()] {
 				logging.VLog().WithFields(logrus.Fields{
 					"version": key,
+					"height":  v.Data[key],
 				}).Fatal("non descending order version map.")
 			}
 		}

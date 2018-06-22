@@ -43,7 +43,7 @@ func NewCompatibilityLocal() Compatibility {
 				"1.0.5": 2,
 				"1.1.0": 3,
 			},
-			DescKeys: []string{"1.1.0", "1.0.5"}, // TODO: check order at startup
+			DescKeys: []string{"1.1.0", "1.0.5"},
 		},
 	}
 }

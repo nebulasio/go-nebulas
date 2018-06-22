@@ -43,7 +43,7 @@ func NewCompatibilityTestNet() Compatibility {
 				"1.0.5": 460000, // v8JSLibVersionControlHeight
 				"1.1.0": 500000,
 			},
-			DescKeys: []string{"1.1.0", "1.0.5"}, // TODO: check order at startup
+			DescKeys: []string{"1.1.0", "1.0.5"},
 		},
 	}
 }
