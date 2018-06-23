@@ -34,6 +34,8 @@ var (
 	ErrInnerTransferFailed  = errors.New("inner transfer failed")
 	ErrInnerInsufficientGas = errors.New("preparation inner nvm insufficient gas")
 	ErrInnerInsufficientMem = errors.New("preparation inner nvm insufficient mem")
+
+	ErrOutOfNvmMaxGasLimit = errors.New("out of nvm max gas limit")
 )
 
 //define

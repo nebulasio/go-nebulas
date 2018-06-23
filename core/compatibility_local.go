@@ -23,6 +23,8 @@ type CompatibilityLocal struct {
 	newNvmExeTimeoutConsumeGasHeight uint64
 
 	v8JSLibVersionHeightMap *V8JSLibVersionHeightMap
+
+	nvmGasLimitWithoutTimeoutHeight uint64
 }
 
 // NewCompatibilityLocal ..
@@ -45,6 +47,7 @@ func NewCompatibilityLocal() Compatibility {
 			},
 			DescKeys: []string{"1.1.0", "1.0.5"},
 		},
+		nvmGasLimitWithoutTimeoutHeight: 2,
 	}
 }
 
@@ -101,4 +104,9 @@ func (c *CompatibilityLocal) NewNvmExeTimeoutConsumeGasHeight() uint64 {
 // V8JSLibVersionHeightMap ..
 func (c *CompatibilityLocal) V8JSLibVersionHeightMap() *V8JSLibVersionHeightMap {
 	return c.v8JSLibVersionHeightMap
+}
+
+// NvmGasLimitWithoutTimeoutHeight ..
+func (c *CompatibilityLocal) NvmGasLimitWithoutTimeoutHeight() uint64 {
+	return c.nvmGasLimitWithoutTimeoutHeight
 }

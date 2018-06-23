@@ -23,6 +23,8 @@ type CompatibilityTestNet struct {
 	newNvmExeTimeoutConsumeGasHeight uint64
 
 	v8JSLibVersionHeightMap *V8JSLibVersionHeightMap
+
+	nvmGasLimitWithoutTimeoutHeight uint64
 }
 
 // NewCompatibilityTestNet ..
@@ -45,6 +47,8 @@ func NewCompatibilityTestNet() Compatibility {
 			},
 			DescKeys: []string{"1.1.0", "1.0.5"},
 		},
+
+		nvmGasLimitWithoutTimeoutHeight: 600000,
 	}
 }
 
@@ -101,4 +105,9 @@ func (c *CompatibilityTestNet) NewNvmExeTimeoutConsumeGasHeight() uint64 {
 // V8JSLibVersionHeightMap ..
 func (c *CompatibilityTestNet) V8JSLibVersionHeightMap() *V8JSLibVersionHeightMap {
 	return c.v8JSLibVersionHeightMap
+}
+
+// NvmGasLimitWithoutTimeoutHeight ..
+func (c *CompatibilityTestNet) NvmGasLimitWithoutTimeoutHeight() uint64 {
+	return c.nvmGasLimitWithoutTimeoutHeight
 }

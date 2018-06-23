@@ -145,6 +145,7 @@ type Compatibility interface {
 	TransferFromContractFailureEventRecordableHeight() uint64
 	NewNvmExeTimeoutConsumeGasHeight() uint64
 	V8JSLibVersionHeightMap() *V8JSLibVersionHeightMap
+	NvmGasLimitWithoutTimeoutHeight() uint64
 }
 
 // NebCompatibility ..
@@ -387,4 +388,9 @@ func TransferFromContractEventRecordableAtHeight(blockHeight uint64) bool {
 // TransferFromContractFailureEventRecordableAtHeight ..
 func TransferFromContractFailureEventRecordableAtHeight(blockHeight uint64) bool {
 	return blockHeight >= NebCompatibility.TransferFromContractFailureEventRecordableHeight()
+}
+
+// NvmGasLimitWithoutTimeoutHeight ..
+func NvmGasLimitWithoutTimeoutHeight(blockHeight uint64) bool {
+	return blockHeight >= NebCompatibility.NvmGasLimitWithoutTimeoutHeight()
 }

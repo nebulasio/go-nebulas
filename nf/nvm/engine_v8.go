@@ -77,9 +77,10 @@ const (
 	ExecutionFailedErr  = 1
 	ExecutionTimeOutErr = 2
 
-	// ExecutionTimeoutInSeconds max v8 execution timeout.
-	ExecutionTimeoutInSeconds = 5
-	TimeoutGasLimitCost       = 100000000
+	// ExecutionTimeout max v8 execution timeout.
+	ExecutionTimeout                 = 5 * 1000 * 1000
+	TimeoutGasLimitCost              = 100000000
+	MaxLimitsOfExecutionInstructions = 1000000000000 // TODO: set max gasLimit with execution 5s *0.8
 )
 
 // const (
@@ -208,6 +209,10 @@ func NewV8Engine(ctx *Context) *V8Engine {
 	})()
 	// engine.v8engine.lcs = C.uintptr_t(engine.lcsHandler)
 	// engine.v8engine.gcs = C.uintptr_t(engine.gcsHandler)
+	if core.NvmGasLimitWithoutTimeoutHeight(ctx.block.Height()) {
+		engine.SetTimeOut(ExecutionTimeout)
+	}
+
 	return engine
 }
 
@@ -245,12 +250,19 @@ func (e *V8Engine) SetTestingFlag(flag bool) {
 	}*/
 }
 
+// SetTimeOut set nvm timeout, if not set, the default is 5*1000*1000
 func (e *V8Engine) SetTimeOut(timeout uint64) {
 	e.v8engine.timeout = C.int(timeout) //TODO:
 }
 
 // SetExecutionLimits set execution limits of V8 Engine, prevent Halting Problem.
 func (e *V8Engine) SetExecutionLimits(limitsOfExecutionInstructions, limitsOfTotalMemorySize uint64) error {
+	if core.NvmGasLimitWithoutTimeoutHeight(e.ctx.block.Height()) {
+		if limitsOfExecutionInstructions > MaxLimitsOfExecutionInstructions {
+			return ErrOutOfNvmMaxGasLimit
+		}
+	}
+
 	e.v8engine.limits_of_executed_instructions = C.size_t(limitsOfExecutionInstructions)
 	e.v8engine.limits_of_total_memory_size = C.size_t(limitsOfTotalMemorySize)
 
@@ -361,23 +373,24 @@ func (e *V8Engine) RunScriptSource(source string, sourceLineOffset int) (string,
 	e.CollectTracingStats()
 
 	//set err
-	if ret == C.NVM_EXE_TIMEOUT_ERR {
-		err = ErrExecutionTimeout
-		ctx := e.Context()
-		if ctx == nil || ctx.block == nil {
-			logging.VLog().WithFields(logrus.Fields{
-				"err": err,
-				"ctx": ctx,
-			}).Error("Unexpected: Failed to get current height")
-			err = core.ErrUnexpected
-		} else if core.NewNvmExeTimeoutConsumeGasAtHeight(ctx.block.Height()) {
-			if TimeoutGasLimitCost > e.limitsOfExecutionInstructions {
-				e.actualCountOfExecutionInstructions = e.limitsOfExecutionInstructions
-			} else {
-				e.actualCountOfExecutionInstructions = TimeoutGasLimitCost
-			}
-		}
-	} else if ret == C.NVM_UNEXPECTED_ERR {
+	//if ret == C.NVM_EXE_TIMEOUT_ERR {
+	//	err = ErrExecutionTimeout
+	//	ctx := e.Context()
+	//	if ctx == nil || ctx.block == nil {
+	//		logging.VLog().WithFields(logrus.Fields{
+	//			"err": err,
+	//			"ctx": ctx,
+	//		}).Error("Unexpected: Failed to get current height")
+	//		err = core.ErrUnexpected
+	//	} else if core.NewNvmExeTimeoutConsumeGasAtHeight(ctx.block.Height()) {
+	//		if TimeoutGasLimitCost > e.limitsOfExecutionInstructions {
+	//			e.actualCountOfExecutionInstructions = e.limitsOfExecutionInstructions
+	//		} else {
+	//			e.actualCountOfExecutionInstructions = TimeoutGasLimitCost
+	//		}
+	//	}
+	//} else
+	if ret == C.NVM_UNEXPECTED_ERR || ret == C.NVM_EXE_TIMEOUT_ERR {
 		err = core.ErrUnexpected
 	} else {
 		if ret != C.NVM_SUCCESS {
