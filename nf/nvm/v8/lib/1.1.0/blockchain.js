@@ -93,6 +93,7 @@ Blockchain.prototype = {
 
     blockParse: function (str) {
         var block = JSON.parse(str);
+        block.seed = "";
         if (block != null) {
             var fb = Object.freeze(block);
             Object.defineProperty(this, "block", {

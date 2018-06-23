@@ -331,8 +331,12 @@ func GetMaxV8JSLibVersionAtHeight(blockHeight uint64) string {
 
 // V8BlockSeedAvailableAtHeight ..
 func V8BlockSeedAvailableAtHeight(blockHeight uint64) bool {
-	return blockHeight >= NebCompatibility.RandomAvailableHeight() &&
-		blockHeight < NebCompatibility.V8JSLibVersionHeightMap().GetHeightOfVersion("1.1.0")
+	/*  For old contract, Blockchain.block.seed should not be disable
+	 * 		return blockHeight >= NebCompatibility.RandomAvailableHeight() &&
+	 * 		blockHeight < NebCompatibility.V8JSLibVersionHeightMap().GetHeightOfVersion("1.1.0")
+	 */
+
+	return blockHeight >= NebCompatibility.RandomAvailableHeight()
 }
 
 // V8JSLibVersionControlAtHeight ..
