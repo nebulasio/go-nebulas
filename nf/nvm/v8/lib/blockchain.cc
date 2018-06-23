@@ -444,7 +444,7 @@ void RunInnerContractSourceCallBack(const FunctionCallbackInfo<Value> &info) {
   if (value == NULL) {
     Local<Context> context = isolate->GetCurrentContext();
     V8Engine *e = GetV8EngineInstance(context);
-
+    SetInnerNvmHappen(e);
     TerminateExecution(e);
     return;
   } else {

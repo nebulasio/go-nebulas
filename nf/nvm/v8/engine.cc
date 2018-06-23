@@ -349,7 +349,9 @@ void TerminateExecution(V8Engine *e) {
   isolate->TerminateExecution();
   e->is_requested_terminate_execution = true;
 }
-
+void SetInnerNvmHappen(V8Engine *e) {
+  e->is_inner_nvm_error_happen = true;
+}
 void EngineLimitsCheckDelegate(Isolate *isolate, size_t count,
                                void *listenerContext) {
   V8Engine *e = static_cast<V8Engine *>(listenerContext);

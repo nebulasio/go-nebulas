@@ -150,7 +150,8 @@ bool CreateScriptThread(v8ThreadContext *ctx) {
         if (is_kill == true) {
           ctx->output.ret = NVM_EXE_TIMEOUT_ERR; 
           // ctx->output.ret = CodeTimeOut; 
-        } else if (ctx->e->is_requested_terminate_execution == 1) {
+        } 
+        else if (ctx->e->is_inner_nvm_error_happen == 1) {
           ctx->output.ret = NVM_INNER_EXE_ERR;
         }
         break;
