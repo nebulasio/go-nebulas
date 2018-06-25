@@ -99,6 +99,8 @@ const require = (function (global) {
     return curry(require_func, globalModule);
 })(this);
 
+const global = {};
+
 const console = require('console.js');
 const Event = require('event.js');
 const ContractStorage = require('storage.js');
@@ -110,3 +112,5 @@ const Blockchain = require('blockchain.js');
 
 var Date = require('date.js');
 Math.random = require('random.js');
+
+global.Blockchain = Blockchain;

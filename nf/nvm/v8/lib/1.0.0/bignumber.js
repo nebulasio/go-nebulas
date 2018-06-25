@@ -7,8 +7,8 @@
     const NaNAndInfinityCheckHeight = 1;
 
     function checkNaNOrInfinity(n) {
-        if (globalObj.Blockchain && globalObj.Blockchain.block.height >= NaNAndInfinityCheckHeight) {
-            if (n.isNaN() || !n.isFinite()) {
+        if (global.Blockchain && global.Blockchain.block && global.Blockchain.block.height >= NaNAndInfinityCheckHeight) {
+            if (isNaN(n) || !isFinite(n)) {
                 throw ErrIsNaNOrInfinity;
             }
         }
@@ -165,6 +165,8 @@
             var c, e, i, num, len, str,
                 x = this;
 
+            checkNaNOrInfinity(n);
+
             // Enable constructor usage without new.
             if ( !( x instanceof BigNumber ) ) {
 
@@ -183,7 +185,6 @@
                     x.e = n.e;
                     x.c = ( n = n.c ) ? n.slice() : n;
                     id = 0;
-                    checkNaNOrInfinity(x);
                     return;
                 }
 
@@ -321,7 +322,6 @@
 
             id = 0;
 
-            checkNaNOrInfinity(x);
         }
 
 
@@ -1024,7 +1024,6 @@
                 n.c = c;
             }
 
-            checkNaNOrInfinity(n);
             return n;
         }
 
@@ -1043,9 +1042,6 @@
 
                 // No exception on ±Infinity or NaN.
                 if ( isInfinityOrNaN.test(s) ) {
-                    if (Blockchain.block.height >= NaNAndInfinityCheckHeight) {
-                        throw ErrIsNaNOrInfinity;
-                    }
                     x.s = isNaN(s) ? null : s < 0 ? -1 : 1;
                 } else {
                     if ( !num ) {
