@@ -41,6 +41,7 @@ const MAX_UINTS = {
 
 class Uint {
     constructor(n, b, s) {
+
         Object.defineProperties(this, {
             _inner: {
                 value: new BigNumber(n, b)
