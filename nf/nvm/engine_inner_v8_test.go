@@ -812,6 +812,7 @@ type SysEvent struct {
 }
 
 func TestInnerTransactionsMemLimit(t *testing.T) {
+	core.NebCompatibility = core.NewCompatibilityLocal()
 	tests := []struct {
 		name           string
 		contracts      []contract
@@ -845,8 +846,8 @@ func TestInnerTransactionsMemLimit(t *testing.T) {
 				[]string{""},
 			},
 			"multi execution failed",
-			[]int{5 * 1024 * 1024, 10 * 1024 * 1024, 20 * 1024 * 1024, 40 * 1024 * 1024},
-			// []int{20 * 1024 * 1024},
+			// []int{5 * 1024 * 1024, 10 * 1024 * 1024, 20 * 1024 * 1024, 40 * 1024 * 1024},
+			[]int{20 * 1024 * 1024},
 			[]string{"",
 				"Inner Call: inner transation err [exceed memory limits] engine index:1",
 				"Inner Call: inner transation err [exceed memory limits] engine index:0",
@@ -882,6 +883,13 @@ func TestInnerTransactionsMemLimit(t *testing.T) {
 			block, err := core.MockBlockEx(neb.chain.ChainID(), c, tail, 2)
 			fmt.Printf("mock 2, block.height:%v\n", block.Height())
 			assert.Nil(t, err)
+			/* ----- mock random seed for new block ------*/
+			miner, err := core.AddressParseFromBytes(consensusState.Proposer())
+			assert.Nil(t, err)
+			seed, proof, err := manager.GenerateRandomSeed(miner, neb.chain.GenesisBlock().Hash(), neb.chain.GenesisBlock().Hash()) // NOTE: 3rd arg is genesis's hash for the first block
+			assert.Nil(t, err)
+			block.SetRandomSeed(seed, proof)
+			/* ----- mock random seed for new block END ------*/
 			block.WorldState().SetConsensusState(consensusState)
 			block.SetTimestamp(consensusState.TimeStamp())
 			block.CollectTransactions((time.Now().Unix() + 1) * dpos.SecondInMs)
@@ -896,6 +904,14 @@ func TestInnerTransactionsMemLimit(t *testing.T) {
 			assert.Nil(t, err)
 			consensusState, err = tail.WorldState().NextConsensusState(elapsedSecond)
 			assert.Nil(t, err)
+
+			/* ----- mock random seed for new block ------*/
+			miner, err = core.AddressParseFromBytes(consensusState.Proposer())
+			assert.Nil(t, err)
+			seed, proof, err = manager.GenerateRandomSeed(miner, neb.chain.GenesisBlock().Hash(), seed) // NOTE: 3rd arg is parent's seed
+			assert.Nil(t, err)
+			block.SetRandomSeed(seed, proof)
+			/* ----- mock random seed for new block END ------*/
 			block.WorldState().SetConsensusState(consensusState)
 			block.SetTimestamp(consensusState.TimeStamp())
 
@@ -944,6 +960,13 @@ func TestInnerTransactionsMemLimit(t *testing.T) {
 			// block, err = core.MockBlockEx(neb.chain.ChainID(), c, tail, 2)
 			// block = core.MockBlock(nil, 3)
 			assert.Nil(t, err)
+			/* ----- mock random seed for new block ------*/
+			miner, err = core.AddressParseFromBytes(consensusState.Proposer())
+			assert.Nil(t, err)
+			seed, proof, err = manager.GenerateRandomSeed(miner, neb.chain.GenesisBlock().Hash(), seed) // NOTE: 3rd arg is parent's seed
+			assert.Nil(t, err)
+			block.SetRandomSeed(seed, proof)
+			/* ----- mock random seed for new block END ------*/
 			block.WorldState().SetConsensusState(consensusState)
 			block.SetTimestamp(consensusState.TimeStamp())
 			assert.Nil(t, err)
