@@ -18,68 +18,15 @@
 
 'use strict';
 
-var callFunc = function () {
-    var func = arguments[0];
-    if (typeof(func) != "string") {
-        throw("Inner Call: function name should be a string");
-    }
-
-    var args = new Array();
-    for (var i = 1; i < arguments.length; i++) {
-        args.push(arguments[i]);
-    }
-    var result =  _native_blockchain.runContractSource(this.address, func, this.v.toString(10), JSON.stringify(args));
-    if (result) {
-        return JSON.parse(result);
-    } else {
-        console.log("sys log: Unexpected error");
-        return null;
-    }
-}
-
-var dumpContract = function (address, v, methods) {
-    this.address = address;
-    this.v = v;
-}
-
-dumpContract.prototype = {
-    call: callFunc,
-}
-
-var Contract = function(address) {
-    //check args
-    if (typeof(address) != "string") {
-        throw("Inner Call: contract address should be a string");
-    }
-
-    this.v = new BigNumber(0);
-    this.address = address;
-
-    var src = _native_blockchain.getContractSource(address); //TODO: change the interface getContactSource
-    if (src == null) {
-        throw("Inner Call: no contract at this address");
-    }   
-}
-
-Contract.prototype = {
-    value: function (value) {
-        var v = value || 0;
-        v = new BigNumber(v);
-        
-        if (!v.isInteger() || v.lessThan(0)) {
-            throw("Inner Call: invalid value");
-        }
-
-        return new dumpContract(this.address, v);
-    },
-
-    call: callFunc,
-}
-
-
 var Blockchain = function () {
-    this.nativeBlockchain = _native_blockchain;
-    this.Contract = Contract;
+    console.log("-----------------------1.0.0--------------");
+    Object.defineProperty(this, "nativeBlockchain", {
+        configurable: false,
+        enumerable: false,
+        get: function(){
+            return _native_blockchain;
+        }
+    });
 };
 
 Blockchain.prototype = {
@@ -124,13 +71,11 @@ Blockchain.prototype = {
             value = new BigNumber(value);
         }
         var ret = this.nativeBlockchain.transfer(address, value.toString(10));
-        //console.log("-----ret:err", ret, err);
         return ret == 0;
     },
 
     verifyAddress: function (address) {
         return this.nativeBlockchain.verifyAddress(address);
-    },
-    
+    }
 };
 module.exports = new Blockchain();
