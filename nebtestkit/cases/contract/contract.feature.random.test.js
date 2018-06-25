@@ -299,6 +299,77 @@ function runTest(testInput, testExpect, done) {
 }
 
 var testCaseGroups = [];
+
+// NOTE: for version before 1.1.0
+// var caseGroup = {
+//     "filename": "contract_date_and_random.js",
+//     "type": "js",
+//     "groupname": "case group 0: Math.random",
+//     "groupIndex": 0,
+
+//     cases: [
+//         {
+//             "name": "0-1. test 'undefined user seed'",
+//             "testInput": {
+//                 value: "0",
+//                 nonce: 1, 
+//                 gasPrice: 1000000,
+//                 gasLimit: 2000000,
+//                 contract: {
+//                     function: "testRandom",
+//                     args: ""
+//                 }
+//             },
+//             "testExpect": {
+//                 canExcuteTx: false,
+//                 toBalanceChange: "0",
+//                 status: 0,
+//                 eventErr: "Call: Error: input seed must be a string"
+//             }
+//         },
+//         {
+//             "name": "0-2. test 'empty user seed('')'",
+//             "testInput": {
+//                 value: "0",
+//                 nonce: 1, 
+//                 gasPrice: 1000000,
+//                 gasLimit: 2000000,
+//                 contract: {
+//                     function: "testRandom",
+//                     args: "[\"\"]"
+//                 }
+//             },
+//             "testExpect": {
+//                 canExcuteTx: true,
+//                 toBalanceChange: "0",
+//                 status: 1,
+//                 equalr1r2: false
+//             }
+//         },
+//         {
+//             "name": "0-3. test 'set user seed('abc')'",
+//             "testInput": {
+//                 value: "0",
+//                 nonce: 1, 
+//                 gasPrice: 1000000,
+//                 gasLimit: 2000000,
+//                 contract: {
+//                     function: "testRandom",
+//                     args: "[\"abc\"]"
+//                 }
+//             },
+//             "testExpect": {
+//                 canExcuteTx: true,
+//                 toBalanceChange: "0",
+//                 status: 1,
+//                 equalr1r2: false
+//             }
+//         }
+//     ]
+// };
+
+
+// NOTE: for v1.1.0
 var caseGroup = {
     "filename": "contract_date_and_random.js",
     "type": "js",
@@ -307,53 +378,15 @@ var caseGroup = {
 
     cases: [
         {
-            "name": "0-1. test 'undefined user seed'",
+            "name": "0-1. test",
             "testInput": {
                 value: "0",
                 nonce: 1, 
                 gasPrice: 1000000,
                 gasLimit: 2000000,
                 contract: {
-                    function: "testRandom",
+                    function: "testRandom1_1_0",
                     args: ""
-                }
-            },
-            "testExpect": {
-                canExcuteTx: false,
-                toBalanceChange: "0",
-                status: 0,
-                eventErr: "Call: Error: input seed must be a string"
-            }
-        },
-        {
-            "name": "0-2. test 'empty user seed('')'",
-            "testInput": {
-                value: "0",
-                nonce: 1, 
-                gasPrice: 1000000,
-                gasLimit: 2000000,
-                contract: {
-                    function: "testRandom",
-                    args: "[\"\"]"
-                }
-            },
-            "testExpect": {
-                canExcuteTx: true,
-                toBalanceChange: "0",
-                status: 1,
-                equalr1r2: false
-            }
-        },
-        {
-            "name": "0-3. test 'set user seed('abc')'",
-            "testInput": {
-                value: "0",
-                nonce: 1, 
-                gasPrice: 1000000,
-                gasLimit: 2000000,
-                contract: {
-                    function: "testRandom",
-                    args: "[\"abc\"]"
                 }
             },
             "testExpect": {
