@@ -103,7 +103,7 @@ const require = (function (global) {
     return curry(require_func, globalModule);
 })(this);
 
-const global = {};
+const GlobalVars = {};
 
 const console = require('console.js');
 const ContractStorage = require('storage.js');
@@ -111,9 +111,8 @@ const LocalContractStorage = ContractStorage.lcs;
 const GlobalContractStorage = ContractStorage.gcs;
 const BigNumber = require('bignumber.js');
 const Blockchain = require('blockchain.js');
+GlobalVars.Blockchain = Blockchain;
 const Event = require('event.js');
 
 var Date = require('date.js');
 Math.random = require('random.js');
-
-global.Blockchain = Blockchain;

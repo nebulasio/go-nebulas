@@ -4,11 +4,11 @@
     'use strict';
 
     const ErrIsNaNOrInfinity = new Error("NaN or Infinity");
-    const NaNAndInfinityCheckHeight = 1;
+    const NaNAndInfinityCheckHeight = 482100;
 
     function checkNaNOrInfinity(n) {
-        if (global.Blockchain && global.Blockchain.block && global.Blockchain.block.height >= NaNAndInfinityCheckHeight) {
-            if (isNaN(n) || !isFinite(n)) {
+        if (GlobalVars.Blockchain && GlobalVars.Blockchain.block && GlobalVars.Blockchain.block.height >= NaNAndInfinityCheckHeight) {
+            if (n.isNaN() || !n.isFinite()) {
                 throw ErrIsNaNOrInfinity;
             }
         }
@@ -153,6 +153,14 @@
 
         // CONSTRUCTOR
 
+        function BigNumber( n, b ) {
+            var x = BigNumberOrigin.apply(this, arguments);
+            if (x == undefined || typeof(x) != 'object') {
+                x = this;
+            }
+            checkNaNOrInfinity(x);
+            return x;
+        }
 
         /*
          * The BigNumber constructor and exported function.
@@ -161,11 +169,9 @@
          * n {number|string|BigNumber} A numeric value.
          * [b] {number} The base of n. Integer, 2 to 64 inclusive.
          */
-        function BigNumber( n, b ) {
+        function BigNumberOrigin( n, b ) {
             var c, e, i, num, len, str,
                 x = this;
-
-            checkNaNOrInfinity(n);
 
             // Enable constructor usage without new.
             if ( !( x instanceof BigNumber ) ) {
