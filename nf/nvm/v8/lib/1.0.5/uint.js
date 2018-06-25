@@ -41,9 +41,20 @@ const MAX_UINTS = {
 
 class Uint {
     constructor(n, b, s) {
+
+        var bn;
+        try {
+            bn = new BigNumber(n, b);
+        } catch (err) {
+            if (err && err.message === 'NaN or Infinity') {
+                throw new Error('[Uint' + s + ' Error] not an integer');
+            }
+            throw err;
+        }
+
         Object.defineProperties(this, {
             _inner: {
-                value: new BigNumber(n, b)
+                value: bn
             },
             _size: {
                 value: s

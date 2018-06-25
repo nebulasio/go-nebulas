@@ -3,6 +3,16 @@
 ;(function (globalObj) {
     'use strict';
 
+    const ErrIsNaNOrInfinity = new Error("NaN or Infinity");
+    const NaNAndInfinityCheckHeight = 512198;
+
+    function checkNaNOrInfinity(n) {
+        if (Blockchain.block.height >= NaNAndInfinityCheckHeight) {
+            if (n.isNaN() || !n.isFinite()) {
+                throw ErrIsNaNOrInfinity;
+            }
+        }
+    }
     /*
       bignumber.js v4.1.0
       A JavaScript library for arbitrary-precision arithmetic.
@@ -173,6 +183,7 @@
                     x.e = n.e;
                     x.c = ( n = n.c ) ? n.slice() : n;
                     id = 0;
+                    checkNaNOrInfinity(x);
                     return;
                 }
 
@@ -309,6 +320,8 @@
             }
 
             id = 0;
+
+            checkNaNOrInfinity(x);
         }
 
 
@@ -1011,6 +1024,7 @@
                 n.c = c;
             }
 
+            checkNaNOrInfinity(n);
             return n;
         }
 
@@ -1029,6 +1043,9 @@
 
                 // No exception on ±Infinity or NaN.
                 if ( isInfinityOrNaN.test(s) ) {
+                    if (Blockchain.block.height >= NaNAndInfinityCheckHeight) {
+                        throw ErrIsNaNOrInfinity;
+                    }
                     x.s = isNaN(s) ? null : s < 0 ? -1 : 1;
                 } else {
                     if ( !num ) {
