@@ -4,10 +4,10 @@
     'use strict';
 
     const ErrIsNaNOrInfinity = new Error("NaN or Infinity");
-    const NaNAndInfinityCheckHeight = 512198;
+    const NaNAndInfinityCheckHeight = 1;
 
     function checkNaNOrInfinity(n) {
-        if (Blockchain.block.height >= NaNAndInfinityCheckHeight) {
+        if (globalObj.Blockchain && globalObj.Blockchain.block.height >= NaNAndInfinityCheckHeight) {
             if (n.isNaN() || !n.isFinite()) {
                 throw ErrIsNaNOrInfinity;
             }
@@ -220,7 +220,7 @@
                 if ( ( num = typeof n == 'number' ) && n * 0 != 0 ||
                   !( new RegExp( '^-?' + ( c = '[' + ALPHABET.slice( 0, b ) + ']+' ) +
                     '(?:\\.' + c + ')?$',b < 37 ? 'i' : '' ) ).test(str) ) {
-                    return parseNumeric( x, str, num, b );
+                        return parseNumeric( x, str, num, b );
                 }
 
                 if (num) {
