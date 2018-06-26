@@ -19,7 +19,6 @@
 'use strict';
 
 var Blockchain = function () {
-    console.log("-----------------------1.0.0--------------");
     Object.defineProperty(this, "nativeBlockchain", {
         configurable: false,
         enumerable: false,

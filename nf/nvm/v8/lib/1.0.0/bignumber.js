@@ -3,6 +3,16 @@
 ;(function (globalObj) {
     'use strict';
 
+    const ErrIsNaNOrInfinity = new Error("NaN or Infinity");
+    const NaNAndInfinityCheckHeight = 504800;   // mainnet-504800, testnet-482100
+
+    function checkNaNOrInfinity(n) {
+        if (GlobalVars.Blockchain && GlobalVars.Blockchain.block && GlobalVars.Blockchain.block.height >= NaNAndInfinityCheckHeight) {
+            if (n.isNaN() || !n.isFinite()) {
+                throw ErrIsNaNOrInfinity;
+            }
+        }
+    }
     /*
       bignumber.js v4.1.0
       A JavaScript library for arbitrary-precision arithmetic.
@@ -143,6 +153,14 @@
 
         // CONSTRUCTOR
 
+        function BigNumber( n, b ) {
+            var x = BigNumberOrigin.apply(this, arguments);
+            if (x == undefined || typeof(x) != 'object') {
+                x = this;
+            }
+            checkNaNOrInfinity(x);
+            return x;
+        }
 
         /*
          * The BigNumber constructor and exported function.
@@ -151,7 +169,7 @@
          * n {number|string|BigNumber} A numeric value.
          * [b] {number} The base of n. Integer, 2 to 64 inclusive.
          */
-        function BigNumber( n, b ) {
+        function BigNumberOrigin( n, b ) {
             var c, e, i, num, len, str,
                 x = this;
 
@@ -209,7 +227,7 @@
                 if ( ( num = typeof n == 'number' ) && n * 0 != 0 ||
                   !( new RegExp( '^-?' + ( c = '[' + ALPHABET.slice( 0, b ) + ']+' ) +
                     '(?:\\.' + c + ')?$',b < 37 ? 'i' : '' ) ).test(str) ) {
-                    return parseNumeric( x, str, num, b );
+                        return parseNumeric( x, str, num, b );
                 }
 
                 if (num) {
@@ -309,6 +327,7 @@
             }
 
             id = 0;
+
         }
 
 
