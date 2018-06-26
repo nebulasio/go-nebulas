@@ -56,8 +56,9 @@ ProxyBankContract.prototype = {
                 
             }
         }
+        console.log("enter inner transaction begin create inner client");
         var c = new Blockchain.Contract(address, funcs);
-
+        console.log("exit inner transaction");
         // var args = "[\"" + to + "\", \""+ height +"\"]";
         c.value(5).call("save", to, height); 
         this.transferEvent(true, address, height);
@@ -68,8 +69,10 @@ ProxyBankContract.prototype = {
             
             }
         }
+        console.log("saveMem:", mem);
         var m = new ArrayBuffer(mem);
         var c = new Blockchain.Contract(address, funcs);
+        
         // var args = "[\"" + to + "\", \""+ mem +"\"]";
         c.value(0).call("saveMem", to, mem); 
         this.transferEvent(true, address, 0, mem);

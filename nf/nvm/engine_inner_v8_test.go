@@ -651,12 +651,13 @@ func TestInnerTransactionsMaxMulit(t *testing.T) {
 func TestInnerTransactionsGasLimit(t *testing.T) {
 	core.NebCompatibility = core.NewCompatibilityLocal()
 	tests := []struct {
-		name           string
-		contracts      []contract
-		call           call
-		expectedErr    string
-		gasArr         []int
-		gasExpectedErr []string
+		name              string
+		contracts         []contract
+		call              call
+		expectedErr       string
+		gasArr            []int
+		gasExpectedErr    []string
+		gasExpectedResult []string
 	}{
 		{
 			"deploy test_require_module.js",
@@ -694,10 +695,36 @@ func TestInnerTransactionsGasLimit(t *testing.T) {
 			//20335 A不足gas{insufficient gas}
 			//10000 不能进入trans
 			//tmp 23117
-			[]int{25218},
-			[]string{"", "",
-				"engine.call system failed the gas over!!!, engine index:0",
-				"engine.call insuff limit err:insufficient gas, engine index:1"},
+			[]int{20175, 20174, 53000, 57248, 57249, 94697, 94698, 95093, 95092, 96093},
+			//96093 “”	"\"\""
+			//95092	Inner Call: inner transation err [insufficient gas] engine index:1
+			//95093 c刚好消费殆尽,代码回到B后gas不足. Call: inner transation err [insufficient gas] engine index:0
+			//94698 Inner Call: inner transation err [insufficient gas] engine index:1","execute_result":"inner transation err [insufficient gas] engine index:1"
+			//94697 调用C的时候B消耗完毕	Inner Call: inner transation err [preparation inner nvm insufficient gas] engine index:1
+			//57249 Inner Call: inner transation err [insufficient gas] engine index:0
+			//57248 调用B的时候,A消耗完毕 Inner Call: inner transation err [preparation inner nvm insufficient gas] engine index:0
+			//53000 Inner Call: inner transation err [preparation inner nvm insufficient gas] engine index:0
+			//20174	out of gas limit 	""
+			//20175 insufficient gas "null"
+			//20000
+			[]string{"insufficient gas", "out of gas limit",
+				"Inner Call: inner transation err [preparation inner nvm insufficient gas] engine index:0",
+				"Inner Call: inner transation err [preparation inner nvm insufficient gas] engine index:0",
+				"Inner Call: inner transation err [insufficient gas] engine index:0",
+				"Inner Call: inner transation err [preparation inner nvm insufficient gas] engine index:1",
+				"Inner Call: inner transation err [insufficient gas] engine index:1",
+				"Inner Call: inner transation err [insufficient gas] engine index:0",
+				"Inner Call: inner transation err [insufficient gas] engine index:1",
+				"",
+			},
+			[]string{"null", "", "inner transation err [preparation inner nvm insufficient gas] engine index:0",
+				"inner transation err [preparation inner nvm insufficient gas] engine index:0",
+				"inner transation err [insufficient gas] engine index:0",
+				"inner transation err [preparation inner nvm insufficient gas] engine index:1",
+				"inner transation err [insufficient gas] engine index:1",
+				"inner transation err [insufficient gas] engine index:0",
+				"inner transation err [insufficient gas] engine index:1",
+				"\"\""},
 		},
 	}
 
@@ -848,6 +875,13 @@ func TestInnerTransactionsGasLimit(t *testing.T) {
 			for _, event := range events {
 
 				fmt.Println("==============", event.Data)
+				var jEvent SysEvent
+				if err := json.Unmarshal([]byte(event.Data), &jEvent); err == nil {
+					if jEvent.Hash != "" {
+						assert.Equal(t, tt.gasExpectedErr[i], jEvent.Err)
+						assert.Equal(t, tt.gasExpectedResult[i], jEvent.Result)
+					}
+				}
 			}
 			/*
 				contractOne, err := core.AddressParse(contractsAddr[0])
@@ -875,6 +909,7 @@ type SysEvent struct {
 	Status  int    `json:"status"`
 	GasUsed string `json:"gas_used"`
 	Err     string `json:"error"`
+	Result  string `json:"execute_result"`
 }
 
 func TestInnerTransactionsMemLimit(t *testing.T) {

@@ -35,7 +35,7 @@ func NewCompatibilityLocal() Compatibility {
 		randomAvailableHeight:                            2,
 		dateAvailableHeight:                              2,
 		recordCallContractResultHeight:                   2,
-		nvmMemoryLimitWithoutInjectHeight:                2,
+		nvmMemoryLimitWithoutInjectHeight:                325666,
 		wsResetRecordDependencyHeight:                    2,
 		v8JSLibVersionControlHeight:                      2,
 		transferFromContractFailureEventRecordableHeight: 2,
