@@ -176,6 +176,15 @@ IncentiveVoteContract.prototype = {
         }
         return false;
     },
+    updateEndHeight: function(height) {
+        if (this.owner !== Blockchain.transaction.from) {
+            throw new Error("only contract owner can update the end height");
+        }
+        this.endHeight = height;
+    },
+    getEndHeight: function() {
+        return this.endHeight;
+    },
     updateVoter: function(oldAddr, newAddr) {
         if (this.owner !== Blockchain.transaction.from) {
             throw new Error("only contract owner can update the voter");
