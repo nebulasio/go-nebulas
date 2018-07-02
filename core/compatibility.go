@@ -61,7 +61,7 @@ var (
 		"util.js":                {"1.0.0"},
 		"esprima.js":             {"1.0.0"},
 		"assert.js":              {"1.0.0"},
-		"instruction_counter.js": {"1.0.0"},
+		"instruction_counter.js": {"1.0.0", "1.1.0"},
 		"typescriptServices.js":  {"1.0.0"},
 		"blockchain.js":          {"1.0.0", "1.0.5", "1.1.0"},
 		"console.js":             {"1.0.0"},
