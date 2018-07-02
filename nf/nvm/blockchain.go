@@ -280,55 +280,86 @@ func transfer(e *V8Engine, from *core.Address, to *core.Address, val string) int
 //export TransferFunc
 func TransferFunc(handler unsafe.Pointer, to *C.char, v *C.char, gasCnt *C.size_t) int {
 	engine, _ := getEngineByStorageHandler(uint64(uintptr(handler)))
-	if engine == nil || engine.ctx.block == nil {
-		logging.VLog().Error("Failed to get engine.")
-		return TransferGetEngineErr
+	if engine == nil || engine.ctx == nil || engine.ctx.block == nil ||
+		engine.ctx.state == nil || engine.ctx.tx == nil {
+		logging.VLog().Fatal("Unexpected error: failed to get engine.")
 	}
+
 	wsState := engine.ctx.state
 	height := engine.ctx.block.Height()
 	txHash := engine.ctx.tx.Hash()
+
+	cAddr, err := core.AddressParseFromBytes(engine.ctx.contract.Address())
+	if err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"txhash":  engine.ctx.tx.Hash().String(),
+			"address": engine.ctx.contract.Address(),
+			"err":     err,
+		}).Fatal("Unexpected error: failed to parse contract address")
+	}
+
 	// calculate Gas.
-	*gasCnt = C.size_t(TransferFuncCost)
-	toStr := C.GoString(to)
-	val := C.GoString(v)
+	*gasCnt = C.size_t(TransferGasBase)
 
-	toAddr, err := core.AddressParse(toStr)
+	addr, err := core.AddressParse(C.GoString(to))
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
-			"handler": uint64(uintptr(handler)),
-			"key":     toStr,
-		}).Error("TransferFunc parse to address failed.")
+			"handler":   uint64(uintptr(handler)),
+			"toAddress": C.GoString(to),
+		}).Debug("TransferFunc parse address failed.")
+		recordTransferFailureEvent(TransferAddressParseErr, cAddr.String(), "", "", height, wsState, txHash)
 		return TransferAddressParseErr
 	}
 
-	fromAddr, err := core.AddressParseFromBytes(engine.ctx.contract.Address())
+	toAcc, err := engine.ctx.state.GetOrCreateUserAccount(addr.Bytes())
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"handler": uint64(uintptr(handler)),
-			"key":     engine.ctx.contract.Address().String(),
-		}).Error("TransferFunc parse from address failed.")
-		return TransferAddressParseErr
-	}
-
-	iRtn := transfer(engine, fromAddr, toAddr, val)
-	if iRtn != TransferSuccess {
-		return iRtn
+			"address": addr,
+			"err":     err,
+		}).Fatal("GetAccountStateFunc get account state failed.")
 	}
 
 	amount, err := util.NewUint128FromString(C.GoString(v))
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"handler": uint64(uintptr(handler)),
-			"address": toAddr,
+			"address": addr,
 			"err":     err,
 		}).Debug("GetAmountFunc get amount failed.")
-		recordTransferFailureEvent(TransferStringToBigIntErr, fromAddr.String(), toAddr.String(), "", height, wsState, txHash)
+		recordTransferFailureEvent(TransferStringToBigIntErr, cAddr.String(), addr.String(), "", height, wsState, txHash)
 		return TransferStringToBigIntErr
 	}
+	// update balance
+	if amount.Cmp(util.NewUint128()) > 0 {
+		err = engine.ctx.contract.SubBalance(amount)
+		if err != nil {
+			logging.VLog().WithFields(logrus.Fields{
+				"handler": uint64(uintptr(handler)),
+				"key":     C.GoString(to),
+				"err":     err,
+			}).Debug("TransferFunc SubBalance failed.")
+			recordTransferFailureEvent(TransferSubBalance, cAddr.String(), addr.String(), amount.String(), height, wsState, txHash)
+			return TransferSubBalance
+		}
 
-	recordTransferFailureEvent(TransferFuncSuccess, fromAddr.String(), toAddr.String(), amount.String(), height, wsState, txHash)
+		err = toAcc.AddBalance(amount)
+		if err != nil {
+			logging.VLog().WithFields(logrus.Fields{
+				"account": toAcc,
+				"amount":  amount,
+				"address": addr,
+				"err":     err,
+			}).Fatal("failed to add balance")
+			//			recordTransferFailureEvent(TransferSubBalance, cAddr.String(), addr.String(), amount.String(), height, wsState, txHash)
+			// return TransferAddBalance
+		}
+	}
+
+	recordTransferFailureEvent(TransferFuncSuccess, cAddr.String(), addr.String(), amount.String(), height, wsState, txHash)
 	return TransferFuncSuccess
 }
+
 
 // VerifyAddressFunc verify address is valid
 //export VerifyAddressFunc
