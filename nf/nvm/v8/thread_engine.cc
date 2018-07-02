@@ -147,7 +147,7 @@ bool CreateScriptThread(v8ThreadContext *ctx) {
     if (ctx->is_finished == true) {
         if (is_kill == true) {
           ctx->output.ret = CodeTimeOut; 
-        } else if (ctx->e->is_requested_terminate_execution == 1) {
+        } else if (ctx->e->is_inner_nvm_error_happen == 1) {
           ctx->output.ret = CodeExecuteInnerNvmErr;
         }
         break;

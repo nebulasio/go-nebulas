@@ -123,6 +123,7 @@ typedef struct V8Engine {
   size_t limits_of_executed_instructions;
   size_t limits_of_total_memory_size;
   int is_requested_terminate_execution;
+  bool is_inner_nvm_error_happen;
   int testing;
   
   V8EngineStats stats;
@@ -183,6 +184,7 @@ EXPORT int RunScriptSourceThread(char **result, V8Engine *e, const char *source,
                     int source_line_offset, uintptr_t lcs_handler,
                     uintptr_t gcs_handler);
 
+void SetInnerNvmHappen(V8Engine *e);
 bool CreateScriptThread(v8ThreadContext *pc);
 void SetRunScriptArgs(v8ThreadContext *pc, V8Engine *e, int opt, const char *source, int line_offset, int allow_usage);
 #ifdef __cplusplus

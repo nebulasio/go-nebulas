@@ -369,5 +369,7 @@ int IsEngineLimitsExceeded(V8Engine *e) {
 
   return 0;
 }
-
+void SetInnerNvmHappen(V8Engine *e) {
+  e->is_inner_nvm_error_happen = true;
+}
 //loopExecute迁移文件
