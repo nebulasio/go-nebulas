@@ -35,6 +35,7 @@ import (
 	// "github.com/nebulasio/go-nebulas/net"
 
 	"github.com/nebulasio/go-nebulas/core"
+	"github.com/nebulasio/go-nebulas/core/pb"
 	"github.com/nebulasio/go-nebulas/core/state"
 	"github.com/nebulasio/go-nebulas/crypto"
 	"github.com/nebulasio/go-nebulas/crypto/keystore"
@@ -623,6 +624,7 @@ func TestMultiEngine(t *testing.T) {
 	wg.Wait()
 }
 func TestInstructionCounterTestSuite(t *testing.T) {
+	core.NebCompatibility = core.NewCompatibilityLocal()
 	tests := []struct {
 		filepath                                string
 		strictDisallowUsageOfInstructionCounter int
@@ -670,9 +672,9 @@ func TestInstructionCounterTestSuite(t *testing.T) {
 			owner.AddBalance(newUint128FromIntWrapper(1000000000))
 			addr, err := core.NewContractAddressFromData([]byte("n1FkntVUMPAsESuCAAPK711omQk19JotBjM"), byteutils.FromUint64(1))
 			assert.Nil(t, err)
-			contract, err := context.CreateContractAccount(addr.Bytes(), nil, nil)
+			contract, err := context.CreateContractAccount(addr.Bytes(), nil, &corepb.ContractMeta{Version: "1.1.0"})
 			assert.Nil(t, err)
-			ctx, err := NewContext(mockBlock(), mockTransaction(), contract, context)
+			ctx, err := NewContext(mockBlockForLib(3), mockTransaction(), contract, context)
 
 			moduleID := ContractName
 			runnableSource := fmt.Sprintf("var x = require(\"%s\");", moduleID)

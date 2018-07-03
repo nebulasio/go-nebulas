@@ -160,21 +160,6 @@ function processScript(source, strictDisallowUsage) {
         }
     };
 
-    function is_block_statement(node) {
-        if (!node || !node.type) {
-            // not a valid node, ignore
-            return false;
-        }
-
-        if (!(node.type in {
-                BlockStatement: "",
-                IfStatement: "",
-            })) {
-            return true;
-        }
-        return false
-    }
-
     var ast = esprima.parseScript(source, {
         range: true,
         loc: true
@@ -196,12 +181,6 @@ function processScript(source, strictDisallowUsage) {
         } else if (node.type == "ForStatement") {
             debugger
             ensure_block_statement(node.body);
-
-            var pos = node.body.range[0];
-            if (node.body.type === 'BlockStatement') {
-                pos += 1;
-            }
-            record_injection(pos, 1, InjectionCodeGenerators.CounterIncrFunc);
             return {
                 "init": new InjectionContext(node, InjectionType.BEFORE_NODE),
                 "test": new InjectionContext(node.test, InjectionType.INNER_BEGINNING),
@@ -217,7 +196,7 @@ function processScript(source, strictDisallowUsage) {
             if (body.type === 'BlockStatement') {
                 pos = body.range[0] + 1;
             }
-            record_injection(pos, 2, InjectionCodeGenerators.CounterIncrFunc);
+            record_injection(pos, 1, InjectionCodeGenerators.CounterIncrFunc);
 
             return {
                 "left": new InjectionContext(node, InjectionType.BEFORE_NODE),
@@ -233,7 +212,7 @@ function processScript(source, strictDisallowUsage) {
             if (body.type === 'BlockStatement') {
                 pos = body.range[0] + 1;
             }
-            record_injection(pos, 2, InjectionCodeGenerators.CounterIncrFunc);
+            record_injection(pos, 1, InjectionCodeGenerators.CounterIncrFunc);
 
             return {
                 "left": new InjectionContext(node, InjectionType.BEFORE_NODE),
@@ -241,21 +220,11 @@ function processScript(source, strictDisallowUsage) {
             };
         } else if (node.type == "WhileStatement") {
             ensure_block_statement(node.body);
-            var pos = node.body.range[0];
-            if (node.body.type === 'BlockStatement') {
-                pos += 1;
-            }
-            record_injection(pos, 1, InjectionCodeGenerators.CounterIncrFunc);
             return {
                 "test": new InjectionContext(node.test, InjectionType.INNER_BEGINNING),
             };
         } else if (node.type == "DoWhileStatement") {
             ensure_block_statement(node.body);
-            var pos = node.body.range[0];
-            if (node.body.type === 'BlockStatement') {
-                pos += 1;
-            }
-            record_injection(pos, 1, InjectionCodeGenerators.CounterIncrFunc);
             return {
                 "test": new InjectionContext(node.test, InjectionType.INNER_BEGINNING),
             };
@@ -417,3 +386,4 @@ function disallowRedefineOfInstructionCounter(node, parents, strictDisallowUsage
 
 exports["parseScript"] = esprima.parseScript;
 exports["processScript"] = processScript;
+
