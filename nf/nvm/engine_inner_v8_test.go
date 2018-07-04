@@ -282,7 +282,7 @@ func TestInnerTransactions(t *testing.T) {
 				call{
 					"save",
 					"[1]",
-					[]string{"1", "3", "2", "4999999999999905351999994", "5000001426940068783000000"},
+					[]string{"1", "3", "2", "4999999999999832053999994", "5000004280820167946000000"},
 				},
 			},
 		},
@@ -454,12 +454,18 @@ func TestInnerTransactions(t *testing.T) {
 		fmt.Printf("accountC :%v\n", accountAccC)
 		assert.Equal(t, call.exceptArgs[2], accountAccC.Balance().String())
 
-		aI, err := tail.GetAccount(a.Bytes())
-		// assert.Equal(t, call.exceptArgs[3], aI.Balance().String())
-		fmt.Printf("aI:%v\n", aI)
-		bI, err := tail.GetAccount(b.Bytes())
-		fmt.Printf("b:%v\n", bI)
-		// assert.Equal(t, call.exceptArgs[4], bI.Balance().String())
+		aUser, err := tail.GetAccount(a.Bytes()) //TODO: add account cost
+		assert.Equal(t, call.exceptArgs[3], aUser.Balance().String())
+		fmt.Printf("aI:%v\n", aUser)
+		cUser, err := tail.GetAccount(c.Bytes())
+		fmt.Printf("b:%v\n", cUser)
+		assert.Equal(t, call.exceptArgs[4], cUser.Balance().String())
+
+		// cUser, err := tail.GetAccount(c.Bytes())
+		// fmt.Printf("c:%v\n", cUser)
+
+		// dUser, err := tail.GetAccount(d.Bytes())
+		// fmt.Printf("d:%v\n", dUser)
 		// assert.Equal(t, txEvent.Status, 1)
 	}
 }
@@ -643,7 +649,7 @@ func TestInnerTransactionsMaxMulit(t *testing.T) {
 		fmt.Printf("==events:%v\n", events)
 		for _, event := range events {
 
-			fmt.Println("==============", event.Data)
+			fmt.Println("==============", event.Data) //FIXME: except event err
 		}
 		//
 	}
@@ -709,6 +715,8 @@ func TestInnerTransactionsGasLimit(t *testing.T) {
 			//20174	out of gas limit 	""
 			//20175 insufficient gas "null"
 			//20000
+			//TODO: 增加第二阶完成，第一阶gas insuff。。应该是Call: err
+			//FIXME: event err to insufficient gas
 			[]string{"insufficient gas", "out of gas limit",
 				"Inner Call: inner transation err [preparation inner nvm insufficient gas] engine index:0",
 				"Inner Call: inner transation err [preparation inner nvm insufficient gas] engine index:0",
@@ -963,6 +971,7 @@ func TestInnerTransactionsMemLimit(t *testing.T) {
 			"multi execution failed",
 			[]int{5 * 1024 * 1024, 10 * 1024 * 1024, 20 * 1024 * 1024, 40 * 1024 * 1024},
 			// []int{20 * 1024 * 1024},
+			//FIXME: event err to "exceed memory limits"
 			[]string{"",
 				"Inner Call: inner transation err [exceed memory limits] engine index:1",
 				"Inner Call: inner transation err [exceed memory limits] engine index:0",
