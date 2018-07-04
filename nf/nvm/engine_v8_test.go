@@ -417,7 +417,7 @@ func TestRunScriptSourceTimeout(t *testing.T) {
 			(func() {
 				engine := NewV8Engine(ctx)
 				_, err = engine.RunScriptSource(string(data), 0)
-				assert.Equal(t, ErrExecutionTimeout, err)
+				assert.Equal(t, core.ErrUnexpected, err)
 				engine.Dispose()
 			})()
 
@@ -429,7 +429,7 @@ func TestRunScriptSourceTimeout(t *testing.T) {
 				engine := NewV8Engine(ctx)
 				engine.AddModule(moduleID, string(data), 0)
 				_, err = engine.RunScriptSource(runnableSource, 0)
-				assert.Equal(t, ErrExecutionTimeout, err)
+				assert.Equal(t, core.ErrUnexpected, err)
 				engine.Dispose()
 			})()
 		})
