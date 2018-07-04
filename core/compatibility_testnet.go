@@ -35,14 +35,14 @@ func NewCompatibilityTestNet() Compatibility {
 		randomAvailableHeight:                            199666,
 		dateAvailableHeight:                              199666,
 		recordCallContractResultHeight:                   199666,
-		nvmMemoryLimitWithoutInjectHeight:                281600,
-		wsResetRecordDependencyHeight:                    281600,
-		v8JSLibVersionControlHeight:                      460000,
-		transferFromContractFailureEventRecordableHeight: 460000,
-		newNvmExeTimeoutConsumeGasHeight:                 460000,
+		nvmMemoryLimitWithoutInjectHeight:                281800,
+		wsResetRecordDependencyHeight:                    281800,
+		v8JSLibVersionControlHeight:                      424400,
+		transferFromContractFailureEventRecordableHeight: 424400,
+		newNvmExeTimeoutConsumeGasHeight:                 424400,
 		v8JSLibVersionHeightMap: &V8JSLibVersionHeightMap{
 			Data: map[string]uint64{
-				"1.0.5": 460000, // v8JSLibVersionControlHeight
+				"1.0.5": 424400, // v8JSLibVersionControlHeight
 				"1.1.0": 500000,
 			},
 			DescKeys: []string{"1.1.0", "1.0.5"},

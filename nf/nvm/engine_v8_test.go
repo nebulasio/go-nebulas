@@ -696,6 +696,7 @@ func TestInstructionCounterTestSuite(t *testing.T) {
 }
 
 func TestTypeScriptExecution(t *testing.T) {
+	core.NebCompatibility = core.NewCompatibilityLocal()
 	tests := []struct {
 		filepath    string
 		expectedErr error
@@ -713,7 +714,7 @@ func TestTypeScriptExecution(t *testing.T) {
 			owner, err := context.GetOrCreateUserAccount([]byte("account1"))
 			assert.Nil(t, err)
 			owner.AddBalance(newUint128FromIntWrapper(1000000000))
-			contract, err := context.CreateContractAccount([]byte("account2"), nil, nil)
+			contract, err := context.CreateContractAccount([]byte("account2"), nil, &corepb.ContractMeta{Version: "1.1.0"})
 			assert.Nil(t, err)
 			ctx, err := NewContext(mockBlock(), mockTransaction(), contract, context)
 
@@ -810,6 +811,7 @@ func DeprecatedTestRunMozillaJSTestSuite(t *testing.T) {
 }
 
 func TestNebulasContract(t *testing.T) {
+	core.NebCompatibility = core.NewCompatibilityLocal()
 	tests := []struct {
 		name     string
 		value    string
@@ -845,7 +847,7 @@ func TestNebulasContract(t *testing.T) {
 	owner.AddBalance(newUint128FromIntWrapper(1000000000))
 
 	addr, _ = core.NewContractAddressFromData([]byte{1, 2, 3, 5, 7}, []byte{1, 2, 3, 5, 7})
-	contract, _ := context.CreateContractAccount(addr.Bytes(), nil, nil)
+	contract, _ := context.CreateContractAccount(addr.Bytes(), nil, &corepb.ContractMeta{Version: "1.1.0"})
 
 	ctx, err := NewContext(mockBlock(), mockTransaction(), contract, context)
 
@@ -867,6 +869,7 @@ func TestNebulasContract(t *testing.T) {
 }
 
 func TestThreadStackOverflow(t *testing.T) {
+	core.NebCompatibility = core.NewCompatibilityLocal()
 	tests := []struct {
 		filepath    string
 		expectedErr error
@@ -892,7 +895,7 @@ func TestThreadStackOverflow(t *testing.T) {
 						owner, err := context.GetOrCreateUserAccount([]byte("n1FkntVUMPAsESuCAAPK711omQk19JotBjM"))
 						assert.Nil(t, err)
 						owner.AddBalance(newUint128FromIntWrapper(1000000000))
-						contract, err := context.CreateContractAccount([]byte("n1JNHZJEUvfBYfjDRD14Q73FX62nJAzXkMR"), nil, nil)
+						contract, err := context.CreateContractAccount([]byte("n1JNHZJEUvfBYfjDRD14Q73FX62nJAzXkMR"), nil, &corepb.ContractMeta{Version: "1.1.0"})
 						assert.Nil(t, err)
 
 						ctx, err := NewContext(mockBlock(), mockTransaction(), contract, context)
@@ -914,6 +917,7 @@ func TestThreadStackOverflow(t *testing.T) {
 	}
 }
 func TestGetRandomBySingle(t *testing.T) {
+	core.NebCompatibility = core.NewCompatibilityLocal()
 	type TransferTest struct {
 		to     string
 		result bool
@@ -945,7 +949,7 @@ func TestGetRandomBySingle(t *testing.T) {
 
 			// prepare the contract.
 			contractAddr, err := core.AddressParse(contractStr)
-			contract, _ := context.CreateContractAccount(contractAddr.Bytes(), nil, nil)
+			contract, _ := context.CreateContractAccount(contractAddr.Bytes(), nil, &corepb.ContractMeta{Version: "1.1.0"})
 			contract.AddBalance(newUint128FromIntWrapper(5))
 
 			// parepare env, block & transactions.
