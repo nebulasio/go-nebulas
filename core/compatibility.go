@@ -390,7 +390,7 @@ func TransferFromContractFailureEventRecordableAtHeight(blockHeight uint64) bool
 	return blockHeight >= NebCompatibility.TransferFromContractFailureEventRecordableHeight()
 }
 
-// NvmGasLimitWithoutTimeoutHeight ..
-func NvmGasLimitWithoutTimeoutHeight(blockHeight uint64) bool {
+// NvmGasLimitWithoutTimeoutAtHeight ..
+func NvmGasLimitWithoutTimeoutAtHeight(blockHeight uint64) bool {
 	return blockHeight >= NebCompatibility.NvmGasLimitWithoutTimeoutHeight()
 }

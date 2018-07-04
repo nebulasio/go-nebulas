@@ -209,7 +209,7 @@ func NewV8Engine(ctx *Context) *V8Engine {
 	})()
 	// engine.v8engine.lcs = C.uintptr_t(engine.lcsHandler)
 	// engine.v8engine.gcs = C.uintptr_t(engine.gcsHandler)
-	if core.NvmGasLimitWithoutTimeoutHeight(ctx.block.Height()) {
+	if core.NvmGasLimitWithoutTimeoutAtHeight(ctx.block.Height()) {
 		engine.SetTimeOut(ExecutionTimeout)
 	}
 
@@ -257,7 +257,7 @@ func (e *V8Engine) SetTimeOut(timeout uint64) {
 
 // SetExecutionLimits set execution limits of V8 Engine, prevent Halting Problem.
 func (e *V8Engine) SetExecutionLimits(limitsOfExecutionInstructions, limitsOfTotalMemorySize uint64) error {
-	if core.NvmGasLimitWithoutTimeoutHeight(e.ctx.block.Height()) {
+	if core.NvmGasLimitWithoutTimeoutAtHeight(e.ctx.block.Height()) {
 		if limitsOfExecutionInstructions > MaxLimitsOfExecutionInstructions {
 			return ErrOutOfNvmMaxGasLimit
 		}
@@ -398,7 +398,7 @@ func (e *V8Engine) RunScriptSource(source string, sourceLineOffset int) (string,
 				"ctx": ctx,
 			}).Error("Unexpected: Failed to get current height")
 			err = core.ErrUnexpected
-		} else if core.NvmGasLimitWithoutTimeoutHeight(ctx.block.Height()) {
+		} else if core.NvmGasLimitWithoutTimeoutAtHeight(ctx.block.Height()) {
 			err = core.ErrUnexpected
 		} else {
 			err = ErrExecutionTimeout
