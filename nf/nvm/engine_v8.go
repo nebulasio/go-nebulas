@@ -390,7 +390,20 @@ func (e *V8Engine) RunScriptSource(source string, sourceLineOffset int) (string,
 	//		}
 	//	}
 	//} else
-	if ret == C.NVM_UNEXPECTED_ERR || ret == C.NVM_EXE_TIMEOUT_ERR {
+	if ret == C.NVM_EXE_TIMEOUT_ERR {
+		ctx := e.Context()
+		if ctx == nil || ctx.block == nil {
+			logging.VLog().WithFields(logrus.Fields{
+				"err": err,
+				"ctx": ctx,
+			}).Error("Unexpected: Failed to get current height")
+			err = core.ErrUnexpected
+		} else if core.NvmGasLimitWithoutTimeoutHeight(ctx.block.Height()) {
+			err = core.ErrUnexpected
+		} else {
+			err = ErrExecutionTimeout
+		}
+	} else if ret == C.NVM_UNEXPECTED_ERR {
 		err = core.ErrUnexpected
 	} else {
 		if ret != C.NVM_SUCCESS {
