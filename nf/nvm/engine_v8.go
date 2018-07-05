@@ -493,6 +493,11 @@ func (e *V8Engine) RunContractScript(source, sourceType, function, args string) 
 	return e.RunScriptSource(runnableSource, sourceLineOffset)
 }
 
+// ClearModuleCache ..
+func ClearSourceModuleCache() {
+	sourceModuleCache.Purge()
+}
+
 // AddModule add module.
 func (e *V8Engine) AddModule(id, source string, sourceLineOffset int) error {
 	// inject tracing instruction when enable limits.
