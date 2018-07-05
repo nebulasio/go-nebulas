@@ -51,13 +51,8 @@ ProxyBankContract.prototype = {
     },
     save: function (address, to, height) {
 
-        var funcs =  {
-            save: function() { 
-                
-            }
-        }
         console.log("enter inner transaction begin create inner client");
-        var c = new Blockchain.Contract(address, funcs);
+        var c = new Blockchain.Contract(address);
         console.log("exit inner transaction");
         // var args = "[\"" + to + "\", \""+ height +"\"]";
         c.value(5).call("save", to, height); 

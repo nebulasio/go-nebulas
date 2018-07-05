@@ -454,7 +454,7 @@ func TestInnerTransactions(t *testing.T) {
 		fmt.Printf("accountC :%v\n", accountAccC)
 		assert.Equal(t, call.exceptArgs[2], accountAccC.Balance().String())
 
-		aUser, err := tail.GetAccount(a.Bytes()) //TODO: add account cost
+		aUser, err := tail.GetAccount(a.Bytes())
 		assert.Equal(t, call.exceptArgs[3], aUser.Balance().String())
 		fmt.Printf("aI:%v\n", aUser)
 		cUser, err := tail.GetAccount(c.Bytes())
@@ -703,11 +703,15 @@ func TestInnerTransactionsGasLimit(t *testing.T) {
 			//20335 A不足gas{insufficient gas}
 			//10000 不能进入trans
 			//tmp 23117
-			[]int{20175, 20174, 53000, 57248, 57249, 94697, 94698, 95093, 95092, 96093},
+			// []int{20175, 20174, 53000, 57248, 57249, 94697, 94710, 95105, 95092, 96093},
+			[]int{20175, 20174, 53000, 57248, 57249, 94697, 94710, 95092, 95105, 95269, 96093},
+			// []int{95269},
+			//95093->95105, 94698->94710
 			//96093 “”	"\"\""
+			//95269	insufficient gas "null"
+			//95105 c刚好消费殆尽,代码回到B后gas不足. Call: inner transation err [insufficient gas] engine index:0
 			//95092	Inner Call: inner transation err [insufficient gas] engine index:1
-			//95093 c刚好消费殆尽,代码回到B后gas不足. Call: inner transation err [insufficient gas] engine index:0
-			//94698 Inner Call: inner transation err [insufficient gas] engine index:1","execute_result":"inner transation err [insufficient gas] engine index:1"
+			//94710 Inner Call: inner transation err [insufficient gas] engine index:1","execute_result":"inner transation err [insufficient gas] engine index:1"
 			//94697 调用C的时候B消耗完毕	Inner Call: inner transation err [preparation inner nvm insufficient gas] engine index:1
 			//57249 Inner Call: inner transation err [insufficient gas] engine index:0
 			//57248 调用B的时候,A消耗完毕 Inner Call: inner transation err [preparation inner nvm insufficient gas] engine index:0
@@ -723,8 +727,9 @@ func TestInnerTransactionsGasLimit(t *testing.T) {
 				"Inner Call: inner transation err [insufficient gas] engine index:0",
 				"Inner Call: inner transation err [preparation inner nvm insufficient gas] engine index:1",
 				"Inner Call: inner transation err [insufficient gas] engine index:1",
-				"Inner Call: inner transation err [insufficient gas] engine index:0",
 				"Inner Call: inner transation err [insufficient gas] engine index:1",
+				"Inner Call: inner transation err [insufficient gas] engine index:0",
+				"insufficient gas",
 				"",
 			},
 			[]string{"null", "", "inner transation err [preparation inner nvm insufficient gas] engine index:0",
@@ -732,8 +737,9 @@ func TestInnerTransactionsGasLimit(t *testing.T) {
 				"inner transation err [insufficient gas] engine index:0",
 				"inner transation err [preparation inner nvm insufficient gas] engine index:1",
 				"inner transation err [insufficient gas] engine index:1",
-				"inner transation err [insufficient gas] engine index:0",
 				"inner transation err [insufficient gas] engine index:1",
+				"inner transation err [insufficient gas] engine index:0",
+				"null",
 				"\"\""},
 		},
 	}
@@ -1487,7 +1493,7 @@ func TestGetContractErr(t *testing.T) {
 	}
 }
 
-func TestInnerTransactionsRand(t *testing.T) {
+func TestInnerTransactionsRand(t *testing.T) { //FIXME: random unit test in js
 	core.NebCompatibility = core.NewCompatibilityLocal()
 	tests := []struct {
 		name           string

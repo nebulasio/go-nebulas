@@ -48,7 +48,7 @@ BankVaultContractS.prototype = {
         return rand;
     },
 	save: function (address, height) {
-		console.log("----------address:",address, height);
+		console.log("---------- inner in second address:",address, height);
 		var from = Blockchain.transaction.from;
 		var value = Blockchain.transaction.value;
 		var bk_height = new BigNumber(Blockchain.block.height);
@@ -64,25 +64,8 @@ BankVaultContractS.prototype = {
 
 		this.bankVault.put(from, deposit);
 		this.transferEvent(true, height);
-
-		var funcs =  {
-            save: function() { 
-            }
-		}
-		console.log("---------address:", address);
-		var c = new Blockchain.Contract(address, funcs);
-
-		//var args = "[\"" + address + "\", \""+ height +"\"]";
-		/*try {
-			var args = "[\"" + height +"\"]";
-        c.value(3).call("save", args); 
-		}catch(e) {
-			console.log("second:", e);
-		}*/
-		console.log("begin second js");
-        // var args = "[\"" + height +"\"]";
+		var c = new Blockchain.Contract(address);
 		c.value(2).call("save", height); 
-		// console.log("begin second js");
         this.transferEvent(true, height);
 	},
 	saveMem: function (address, mem) {
